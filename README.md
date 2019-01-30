@@ -20,7 +20,9 @@ a software project's development process:
 
 ## Overview
 
-![overview](docs/images/overview.png)
+<p align="center">
+  <img src="docs/images/overview.png">
+</p>
 
 ## Documentation
 You can find detailed documentation
