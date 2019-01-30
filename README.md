@@ -25,6 +25,4 @@ a software project's development process:
 </p>
 
 ## Documentation
-You can find detailed documentation
-
-[here](https://google.github.io/clusterfuzz).
+You can find detailed documentation [here](https://google.github.io/clusterfuzz).
