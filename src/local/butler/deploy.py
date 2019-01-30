@@ -369,6 +369,8 @@ def execute(args):
     # since they can be fairly slow.
     appengine.symlink_dirs()
     common.install_dependencies()
+    with open(constants.PACKAGE_TARGET_MANIFEST_PATH, 'w') as f:
+      f.write('%s\n' % revision)
 
   too_large_file_path = find_file_exceeding_limit('src/appengine',
                                                   APPENGINE_FILESIZE_LIMIT)
