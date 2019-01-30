@@ -1,4 +1,5 @@
 # ClusterFuzz
+
 ![logo](docs/images/logo.png)
 
 ClusterFuzz is a scalable fuzzing infrastructure which finds security and stability issues in software.
@@ -16,8 +17,10 @@ a software project's development process:
 - Easy to use web interface for management and viewing crashes.
 
 ## Overview
-![logo](docs/images/overview.png)
+
+<img src="docs/images/overview.png" style="display: block; margin: 0 auto">
 
 ## Documentation
 You can find detailed documentation
+
 [here](https://google.github.io/clusterfuzz).
