@@ -1,0 +1,563 @@
+# Copyright 2018 Google LLC
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+indexes:
+
+- kind: Blacklist
+  properties:
+  - name: function_name
+  - name: testcase_id
+  - name: tool_name
+
+- kind: BuildMetadata
+  properties:
+  - name: bad_build
+  - name: timestamp
+    direction: desc
+
+- kind: BuildMetadata
+  properties:
+  - name: job_type
+  - name: bad_build
+  - name: timestamp
+    direction: desc
+
+- kind: BuildMetadata
+  properties:
+  - name: job_type
+  - name: revision
+    direction: desc
+
+- kind: BuildMetadata
+  properties:
+  - name: bad_build
+  - name: job_type
+
+- kind: CodeCoverage
+  properties:
+  - name: status
+  - name: platform
+  - name: timestamp
+    direction: desc
+
+- kind: CodeCoverage
+  properties:
+  - name: status
+  - name: fuzzer_name
+  - name: job_type
+  - name: timestamp
+    direction: desc
+
+- kind: CoverageInformation
+  properties:
+  - name: fuzzer
+  - name: date
+    direction: desc
+
+- kind: DataBundle
+  properties:
+  - name: name
+  - name: revision
+    direction: asc
+
+- kind: ExternalUserPermission
+  properties:
+  - name: email
+  - name: entity_kind
+
+- kind: ExternalUserPermission
+  properties:
+  - name: entity_kind
+  - name: entity_name
+  - name: email
+
+- kind: ExternalUserPermission
+  properties:
+  - name: entity_kind
+  - name: is_prefix
+  - name: entity_name
+  - name: email
+
+- kind: ExternalUserPermission
+  properties:
+  - name: entity_kind
+  - name: is_prefix
+  - name: auto_cc
+  - name: entity_name
+  - name: email
+
+- kind: ExternalUserPermission
+  properties:
+  - name: entity_name
+  - name: entity_kind
+
+- kind: FuzzTarget
+  properties:
+  - name: engine
+  - name: project
+
+- kind: FuzzTargetJob
+  properties:
+  - name: engine
+  - name: weight
+
+- kind: ReportMetadata
+  properties:
+  - name: is_uploaded
+  - name: job_type
+  - name: crash_revision
+
+- kind: ReportMetadata
+  properties:
+  - name: testcase_id
+  - name: is_uploaded
+  - name: job_type
+  - name: crash_revision
+
+- kind: SheriffItem
+  properties:
+  - name: item_type
+  - name: priority
+
+- kind: SheriffItem
+  properties:
+  - name: item_type
+  - name: package
+
+- kind: StatusDashboardItem
+  properties:
+  - name: identifier
+  - name: type
+
+- kind: StatusDashboardItem
+  properties:
+  - name: resolved
+  - name: current_timestamp
+
+- kind: Testcase
+  properties:
+  - name: job_type
+  - name: one_time_crasher_flag
+  - name: open
+  - name: status
+  - name: crash_revision
+
+- kind: Testcase
+  properties:
+  - name: bug_information
+  - name: job_type
+  - name: one_time_crasher_flag
+  - name: open
+  - name: status
+  - name: crash_revision
+
+- kind: Testcase
+  properties:
+  - name: bug_information
+  - name: one_time_crasher_flag
+  - name: open
+
+- kind: Testcase
+  properties:
+  - name: crash_state
+  - name: crash_type
+  - name: security_flag
+  - name: status
+
+- kind: Testcase
+  properties:
+  - name: __key__
+  - name: bug_information
+  - name: crash_state
+  - name: crash_type
+  - name: fuzzer_name
+  - name: job_type
+  - name: overridden_fuzzer_name
+  - name: security_flag
+
+- kind: Testcase
+  properties:
+  - name: crash_type
+  - name: crash_state
+  - name: security_flag
+  - name: project_name
+  - name: status
+
+- kind: Testcase
+  properties:
+  - name: has_bug_flag
+  - name: is_a_duplicate_flag
+  - name: is_leader
+  - name: job_type
+  - name: one_time_crasher_flag
+  - name: open
+  - name: status
+  - name: crash_revision
+    direction: desc
+
+- kind: Testcase
+  properties:
+  - name: project_name
+  - name: crash_state
+  - name: crash_type
+  - name: security_flag
+  - name: status
+  - name: open
+
+- kind: Testcase
+  properties:
+  - name: open
+  - name: security_flag
+  - name: status
+  - name: timestamp
+    direction: desc
+
+- kind: Testcase
+  properties:
+  - name: open
+  - name: status
+  - name: timestamp
+    direction: desc
+
+- kind: Testcase
+  properties:
+  - name: regression
+  - name: fixed
+  - name: status
+
+- kind: Testcase
+  properties:
+  - name: regression
+  - name: fixed
+  - name: crash_type
+  - name: job_type
+  - name: status
+
+- kind: Testcase
+  properties:
+  - name: bug_information
+  - name: one_time_crasher_flag
+
+- kind: Testcase
+  properties:
+  - name: status
+  - name: crash_revision
+
+- kind: Testcase
+  properties:
+  - name: status
+  - name: open
+
+- kind: Testcase
+  properties:
+  - name: status
+  - name: open
+  - name: security_flag
+
+- kind: Testcase
+  properties:
+  - name: status
+  - name: open
+  - name: job_type
+
+- kind: Testcase
+  properties:
+  - name: status
+  - name: open
+  - name: job_type
+  - name: security_flag
+
+- kind: Testcase
+  properties:
+  - name: status
+  - name: security_flag
+
+- kind: Testcase
+  properties:
+  - name: status
+  - name: job_type
+
+- kind: Testcase
+  properties:
+  - name: status
+  - name: job_type
+  - name: security_flag
+
+- kind: Testcase
+  properties:
+  - name: fuzzer_name
+  - name: open
+  - name: status
+  - name: crash_revision
+
+- kind: Testcase
+  properties:
+  - name: job_type
+  - name: status
+  - name: crash_revision
+
+- kind: Testcase
+  properties:
+  - name: job_type
+  - name: status
+  - name: crash_revision
+  - name: open
+
+- kind: Testcase
+  properties:
+  - name: job_type
+  - name: status
+  - name: crash_revision
+  - name: security_flag
+
+- kind: Testcase
+  properties:
+  - name: job_type
+  - name: status
+  - name: crash_revision
+  - name: security_flag
+  - name: open
+  - name: one_time_crasher_flag
+  - name: timestamp
+  - name: fuzzer_name
+
+- kind: Testcase
+  properties:
+  - name: job_type
+  - name: one_time_crasher_flag
+  - name: status
+  - name: crash_revision
+
+- kind: Testcase
+  properties:
+  - name: job_type
+  - name: timestamp
+
+- kind: Testcase
+  properties:
+  - name: project_name
+  - name: timestamp
+
+- kind: Testcase
+  properties:
+  - name: __key__
+  - name: bug_information
+  - name: crash_state
+  - name: crash_type
+  - name: open
+  - name: fixed
+  - name: group_id
+  - name: job_type
+  - name: one_time_crasher_flag
+  - name: regression
+  - name: security_flag
+  - name: group_bug_information
+  - name: project_name
+  - name: platform
+  - name: is_impact_set_flag
+  - name: impact_stable_version
+  - name: impact_beta_version
+  - name: timestamp
+
+- kind: Testcase
+  properties:
+  - name: __key__
+  - name: bug_information
+  - name: crash_revision
+  - name: crash_state
+  - name: crash_type
+  - name: fixed
+  - name: group_bug_information
+  - name: group_id
+  - name: impact_beta_version
+  - name: impact_stable_version
+  - name: is_impact_set_flag
+  - name: job_type
+  - name: one_time_crasher_flag
+  - name: open
+  - name: platform
+  - name: project_name
+  - name: regression
+  - name: security_flag
+
+- kind: Testcase
+  properties:
+  - name: project_name
+  - name: timestamp
+    direction: desc
+
+- kind: Testcase
+  properties:
+  - name: one_time_crasher_flag
+  - name: timestamp
+    direction: desc
+
+- kind: Testcase
+  properties:
+  - name: open
+  - name: one_time_crasher_flag
+  - name: status
+
+- kind: Testcase
+  properties:
+  - name: security_flag
+  - name: timestamp
+    direction: desc
+
+- kind: Testcase
+  properties:
+  - name: group_id
+  - name: timestamp
+    direction: desc
+
+- kind: Testcase
+  properties:
+  - name: group_id
+  - name: one_time_crasher_flag
+
+- kind: Testcase
+  properties:
+  - name: bug_information
+  - name: timestamp
+    direction: desc
+
+- kind: Testcase
+  properties:
+  - name: job_type
+  - name: timestamp
+    direction: desc
+
+- kind: Testcase
+  properties:
+  - name: open
+  - name: timestamp
+    direction: desc
+
+- kind: Testcase
+  properties:
+  - name: keywords
+  - name: timestamp
+    direction: desc
+
+- kind: Testcase
+  properties:
+  - name: bug_indices
+  - name: timestamp
+    direction: desc
+
+- kind: Testcase
+  properties:
+  - name: fuzzer_name_indices
+  - name: timestamp
+    direction: desc
+
+- kind: Testcase
+  properties:
+  - name: has_bug_flag
+  - name: timestamp
+    direction: desc
+
+- kind: Testcase
+  properties:
+  - name: impact_version_indices
+  - name: timestamp
+    direction: desc
+
+- kind: Testcase
+  properties:
+  - name: impact_stable_version_indices
+  - name: timestamp
+    direction: desc
+
+- kind: Testcase
+  properties:
+  - name: impact_beta_version_indices
+  - name: timestamp
+    direction: desc
+
+- kind: Testcase
+  properties:
+  - name: platform
+  - name: timestamp
+    direction: desc
+
+- kind: Testcase
+  properties:
+  - name: is_a_duplicate_flag
+  - name: timestamp
+    direction: desc
+
+- kind: Testcase
+  properties:
+  - name: status
+  - name: timestamp
+    direction: desc
+
+- kind: Testcase
+  properties:
+  - name: is_leader
+  - name: timestamp
+    direction: desc
+
+- kind: Testcase
+  properties:
+  - name: open
+  - name: status
+  - name: bug_information
+
+- kind: Testcase
+  properties:
+  - name: project_name
+  - name: crash_type
+  - name: crash_state
+  - name: security_flag
+  - name: open
+  - name: is_a_duplicate_flag
+  - name: timestamp
+    direction: desc
+  - name: bug_information
+  - name: group_bug_information
+
+- kind: Testcase
+  properties:
+  - name: overridden_fuzzer_name
+  - name: timestamp
+
+- kind: _AE_Pipeline_Record
+  properties:
+  - name: is_root_pipeline
+  - name: start_time
+    direction: desc
+
+- kind: _AE_Pipeline_Record
+  properties:
+  - name: class_path
+  - name: start_time
+    direction: desc
+
+- kind: Notification
+  properties:
+  - name: testcase_id
+  - name: user_email
+
+- kind: TestcaseUploadMetadata
+  properties:
+  - name: uploader_email
+  - name: timestamp
+    direction: desc
+
+- kind: FuzzerJob
+  properties:
+  - name: platform
+  - name: tag

@@ -26,7 +26,6 @@
 /src/appengine/app.yaml
 /src/appengine/cron-service.yaml
 /src/appengine/cron.yaml
-/src/appengine/index.yaml
 /src/appengine/staging.yaml
 /src/appengine/config
 /src/appengine/local_gcs
