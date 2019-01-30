@@ -7,7 +7,10 @@ has_children: true
 ---
 
 # ClusterFuzz
-![logo]({{ site.baseurl }}/images/logo.png){: style="display: block; margin: 0 auto"}
+
+<p align="center">
+  <img src="{{ site.baseurl }}/images/logo.png" width="400" height="322">
+</p>
 
 ClusterFuzz is a scalable [fuzzing](https://en.wikipedia.org/wiki/Fuzzing)
 infrastructure which finds security and stability issues in software.
