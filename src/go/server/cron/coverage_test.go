@@ -134,9 +134,11 @@ func TestFuzzerCoverage(t *testing.T) {
 	db.Put(context.Background(), info2.Key, info2)
 
 	req := httptest.NewRequest("", "/", nil)
-	resp := httptest.NewRecorder()
-
-	FuzzerCoverage(resp, req)
+	url := latestReportInfoDir(config.IntegrationTestBucketStatic())
+	err := processGCSDir(req.Context(), url, processProject)
+	if err != nil {
+		t.Fatalf("Code coverage task (processGCSDir) failed unexpectedly: %+v", err)
+	}
 
 	query := datastore.NewQuery("CoverageInformation")
 	it := db.RunQuery(context.Background(), query)

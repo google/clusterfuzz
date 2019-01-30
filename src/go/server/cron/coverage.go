@@ -73,10 +73,7 @@ type coverageSummary struct {
 	Data []coverageData `json:"data"`
 }
 
-func latestReportInfoDir() string {
-	cfg := config.NewProjectConfig()
-	bucket := cfg.GetString("coverage.reports.bucket")
-
+func latestReportInfoDir(bucket string) string {
 	return buckets.BuildURL(gcs.Scheme, bucket, "latest_report_info/")
 }
 
@@ -233,7 +230,9 @@ func readJSON(ctx context.Context, url string, data interface{}) error {
 
 // FuzzerCoverage gets the latest code coverage stats and links to reports.
 func FuzzerCoverage(w http.ResponseWriter, r *http.Request) {
-	url := latestReportInfoDir()
+	cfg := config.NewProjectConfig()
+	bucket := cfg.GetString("coverage.reports.bucket")
+	url := latestReportInfoDir(bucket)
 	err := processGCSDir(r.Context(), url, processProject)
 	if err != nil {
 		logs.Errorf("Failed to processProject in %s: %+v", url, err)
