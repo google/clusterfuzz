@@ -60,9 +60,16 @@ script from Chromium and [this bash script](https://github.com/google/oss-fuzz/b
 ## Coverage information file
 The builder needs to upload the artifacts and a JSON file containing coverage
 information to a [GCS bucket](https://cloud.google.com/storage/docs/creating-buckets)
-specified in the project config (TODO(mmoroz): clarify this!). The file name
-should be equal to the project name, e.g. `zlib.json`. The format is the
-following:
+specified in the project config (`coverage.reports.bucket`). The file name
+should be equal to the project name, e.g. `zlib.json`. The JSON file(s) must be
+uploaded to the following location:
+
+```bash
+gs://<bucket name>/latest_report_info/<project name>.json
+# Example from OSS-Fuzz:
+gs://oss-fuzz-coverage/latest_report_info/zlib.json
+```
+The format of the file is the following:
 
 ```json
 {

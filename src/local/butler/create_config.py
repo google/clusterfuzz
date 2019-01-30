@@ -230,8 +230,9 @@ def execute(args):
   bucket_replacements = (
       ('test-blobs-bucket', project_bucket(args.project_id, 'blobs')),
       ('test-deployment-bucket', deployment_bucket),
-      ('test-backup-bucket', project_bucket(args.project_id, 'backup')),
       ('test-bigquery-bucket', project_bucket(args.project_id, 'bigquery')),
+      ('test-backup-bucket', project_bucket(args.project_id, 'backup')),
+      ('test-coverage-bucket', project_bucket(args.project_id, 'coverage')),
       ('test-fuzzer-logs-bucket', project_bucket(args.project_id,
                                                  'fuzzer-logs')),
       ('test-corpus-bucket', project_bucket(args.project_id, 'corpus')),

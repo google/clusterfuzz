@@ -30,7 +30,8 @@ backup:
 
 coverage:
   reports:
-    bucket: clusterfuzz-test-data
+    # Bucket to load code coverage information from.
+    bucket: test-coverage-bucket
 
 logs:
   fuzzer:
