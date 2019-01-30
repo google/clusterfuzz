@@ -1,7 +1,7 @@
 # ClusterFuzz
 
 <p align="center">
-  ![logo](docs/images/logo.png)
+  <img src="docs/images/logo.png">
 </p>
 
 ClusterFuzz is a scalable fuzzing infrastructure which finds security and stability issues in software.
