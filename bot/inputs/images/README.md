@@ -1,0 +1,1 @@
+Placeholder for system images (e.g. Android OS image, etc).
