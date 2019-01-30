@@ -13,7 +13,7 @@ ClusterFuzz provides many features which help seamlessly integrate fuzzing into
 a software project's development process:
 - Highly scalable. Google's internal instance runs on over 25,000 machines.
 - Accurate deduplication of crashes.
-- Fully automatic bug filing and closing for issue trackers ([Monorail] only for now):
+- Fully automatic bug filing and closing for issue trackers ([Monorail](https://opensource.google.com/projects/monorail) only for now):
 - Testcase minimization.
 - Regression finding through [bisection](https://en.wikipedia.org/wiki/Bisection_(software_engineering)).
 - Statistics for analyzing fuzzer performance, and crash rates.
