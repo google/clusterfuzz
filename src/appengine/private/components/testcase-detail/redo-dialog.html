@@ -1,0 +1,126 @@
+<!--
+  Copyright 2018 Google LLC
+
+  Licensed under the Apache License, Version 2.0 (the "License");
+  you may not use this file except in compliance with the License.
+  You may obtain a copy of the License at
+
+       http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+-->
+<link rel="import" href="../../bower_components/polymer/polymer.html">
+<link rel="import" href="../../components/common/ajax-dialog/ajax-dialog.html">
+<link rel="import" href="../../bower_components/paper-checkbox/paper-checkbox.html">
+
+<dom-module id="redo-dialog">
+  <link rel="import" href="../technology/technology.css" type="css">
+  <template>
+    <style>
+      :host {
+        display: block;
+      }
+
+      :host ajax-dialog > * {
+        display: block;
+        margin: 8px 0px;
+      }
+
+      :host .explanation {
+        width: 400px;
+      }
+    </style>
+    <ajax-dialog
+        id="dialog"
+        url="/testcase-detail/redo"
+        title="Redo task"
+        submit-button="Commit"
+        params="[[computeParams(info, minimize, regression, impact, blame, progression)]]"
+        opened="{{opened}}"
+        on-response="handleResponse"
+        response="{{response}}">
+      <div class="explanation">
+        Sometimes, ClusterFuzz can give an incorrect result (e.g. incorrect regression range, a poorly minimized testcase, etc) when a testcase is inherently flaky or just takes a long time to process. If you suspect that is the case here, you can rerun those tasks to generate new results:
+      </div>
+      <br/>
+      <paper-checkbox class="minimize-checkbox" checked="{{minimize}}" title="Reduce testcase to smallest possible size">Run testcase minimizer</paper-checkbox>
+      <paper-checkbox class="regression-checkbox" checked="{{regression}}" title="Calculate revision range where bug was introduced">Calculate regression range</paper-checkbox>
+      <template is="dom-if" if="[[info.show_blame]]">
+        <paper-checkbox class="blame-checkbox" checked="{{blame}}" title="Find who introduced bug">Find culprit changelist and author</paper-checkbox>
+      </template>
+      <template is="dom-if" if="[[info.show_impact]]">
+        <paper-checkbox class="impact-checkbox" checked="{{impact}}" title="Calculate whether bug affects stable and beta">Calculate impact on production builds</paper-checkbox>
+      </template>
+      <paper-checkbox class="progression-checkbox" checked="{{progression}}" title="Check if bug reproduces on trunk and if not, provide a revision range where it got fixed">Check if bug still reproduces</paper-checkbox>
+    </ajax-dialog>
+  </template>
+  <script>
+    Polymer({
+      is: 'redo-dialog',
+      properties: {
+        info: {
+          type: Object,
+          notify: true
+        },
+        minimize: {
+          type: Boolean,
+          value: false
+        },
+        regression: {
+          type: Boolean,
+          value: false
+        },
+        impact: {
+          type: Boolean,
+          value: false
+        },
+        blame: {
+          type: Boolean,
+          value: false
+        },
+        progression: {
+          type: Boolean,
+          value: false
+        },
+        response: Object,
+        opened: {
+          type: Boolean,
+          notify: true
+        }
+      },
+      observers: ['handleResponse(response)'],
+      computeParams(info, minimize, regression, impact, blame, progression) {
+        if (!info) { return; }
+
+        let taskMap = new Map([
+          ['minimize', minimize],
+          ['regression', regression],
+          ['impact', impact],
+          ['blame', blame],
+          ['progression', progression]
+        ]);
+        let tasks = [];
+        taskMap.forEach((value, key) => {
+          if (value) {
+            tasks.push(key);
+          }
+        });
+
+        return {
+          'testcaseId': info.testcase.id,
+          'tasks': tasks,
+          'csrf_token': info.csrf_token,
+        };
+      },
+      handleResponse() {
+        this.info = this.response;
+        this.$.dialog.close();
+      },
+    });
+  </script>
+</dom-module>
+

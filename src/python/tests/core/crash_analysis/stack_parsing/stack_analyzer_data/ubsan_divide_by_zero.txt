@@ -1,0 +1,26 @@
+Running command: /mnt/scratch0/clusterfuzz/bot/builds/clusterfuzz-builds_ffmpeg_37aaa00c35609bba402b3a13a6024248e52e107c/revisions/ffmpeg_AV_CODEC_ID_MPEG1VIDEO_fuzzer -runs=100 -max_len=1000000 -rss_limit_mb=2048 -timeout=25 /dd0311b7a4d3ca938bebbc2a52ee5ec5fb3e37d15e1bfbcf988c8b09702f5c63211fa2628413dc5ce2fec8c0d95a28dfb55cf7f446fd4bc955f5380b58142625dbf163f97a85d7e3c36db6fadb5dd6ec1dec40f3694e53670a9216f2ef6856fbfuzz-3-ffmpeg_AV_CODEC_ID_MPEG1VIDEO_fuzzer
+INFO: Seed: 3815075981
+INFO: Loaded 1 modules (28863 guards): [0x1290fd0, 0x12ad2cc),
+/mnt/scratch0/clusterfuzz/bot/builds/clusterfuzz-builds_ffmpeg_37aaa00c35609bba402b3a13a6024248e52e107c/revisions/ffmpeg_AV_CODEC_ID_MPEG1VIDEO_fuzzer: Running 1 inputs 100 time(s) each.
+Running: /dd0311b7a4d3ca938bebbc2a52ee5ec5fb3e37d15e1bfbcf988c8b09702f5c63211fa2628413dc5ce2fec8c0d95a28dfb55cf7f446fd4bc955f5380b58142625dbf163f97a85d7e3c36db6fadb5dd6ec1dec40f3694e53670a9216f2ef6856fbfuzz-3-ffmpeg_AV_CODEC_ID_MPEG1VIDEO_fuzzer
+libavcodec/mpeg12dec.c:1245:49: runtime error: division by zero
+#0 0x54bf8b in mpeg_decode_postinit /src/ffmpeg/libavcodec/mpeg12dec.c:1245:49
+#1 0x542d2e in decode_chunks /src/ffmpeg/libavcodec/mpeg12dec.c:2536:23
+#2 0x53deca in mpeg_decode_frame /src/ffmpeg/libavcodec/mpeg12dec.c:2826:11
+#3 0x53571c in decode_simple_internal /src/ffmpeg/libavcodec/decode.c:414:15
+#4 0x534f51 in decode_simple_receive_frame /src/ffmpeg/libavcodec/decode.c:617:15
+#5 0x525f72 in decode_receive_frame_internal /src/ffmpeg/libavcodec/decode.c:635:15
+#6 0x524a2d in avcodec_send_packet /src/ffmpeg/libavcodec/decode.c:675:15
+#7 0x5268d3 in compat_decode /src/ffmpeg/libavcodec/decode.c:730:15
+#8 0x5185e7 in LLVMFuzzerTestOneInput /src/ffmpeg/tools/target_dec_fuzzer.c:213:23
+#9 0xc2f4b4 in fuzzer::Fuzzer::ExecuteCallback(unsigned char const*, unsigned long) /src/libfuzzer/FuzzerLoop.cpp:440:13
+#10 0xc2f7ce in fuzzer::Fuzzer::RunOne(unsigned char const*, unsigned long) /src/libfuzzer/FuzzerLoop.cpp:397:3
+#11 0xc21ff0 in fuzzer::RunOneTest(fuzzer::Fuzzer*, char const*, unsigned long) /src/libfuzzer/FuzzerDriver.cpp:268:6
+#12 0xc25f10 in fuzzer::FuzzerDriver(int*, char***, int (*)(unsigned char const*, unsigned long)) /src/libfuzzer/FuzzerDriver.cpp:682:9
+#13 0xc21cec in main /src/libfuzzer/FuzzerMain.cpp:20:10
+#14 0x7f372a45a82f in __libc_start_main /build/glibc-9tT8Do/glibc-2.23/csu/libc-start.c:291
+#15 0x41c908 in _start
+SUMMARY: UndefinedBehaviorSanitizer: undefined-behavior libavcodec/mpeg12dec.c:1245:49 in
+MS: 0 ; base unit: 0000000000000000000000000000000000000000
+0x0,0x0,0x1,0xb3,0x0,0x3b,0x0,0x0,0x1,0x0,0x3b,0x28,0x0,0x21,0x1,0x3e,0x0,0x3e,0x0,
+\x00\x00\x01\xb3\x00;\x00\x00\x01\x00;(\x00!\x01>\x00>\x00

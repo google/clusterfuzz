@@ -1,0 +1,15 @@
+../../ui/gl/gl_implementation.cc:138:18: runtime error: call to function eglGetProcAddress through pointer to incorrect function type void *(*)(const char *)
+third_party/angle/src/libEGL/libEGL.cpp:287: note: eglGetProcAddress defined here
+#0 0x6adc5c in gl::GetGLProcAddress(char const*) ui/gl/gl_implementation.cc:138:18
+#1 0x6d34f2 in gl::DriverGL::InitializeStaticBindings() ui/gl/gl_bindings_autogen_gl.cc:78:42
+#2 0x6a9891 in gl::InitializeStaticGLBindingsGL() ui/gl/gl_gl_api_implementation.cc:381:15
+#3 0xc1f68b in gl::init::(anonymous namespace)::InitializeStaticEGLInternal() ui/gl/init/gl_initializer_x11.cc:118:3
+#4 0xc1f0a0 in gl::init::InitializeStaticGLBindings(gl::GLImplementation) ui/gl/init/gl_initializer_x11.cc:169:14
+#5 0xc1e94c in gl::init::InitializeGLOneOffImplementation(gl::GLImplementation, bool, bool, bool) ui/gl/init/gl_factory.cc:65:7
+#6 0x53e356 in gpu::(anonymous namespace)::CommandBufferSetup::CommandBufferSetup() gpu/command_buffer/tests/fuzzer_main.cc:105:5
+#7 0x521e5a in __cxx_global_var_init gpu/command_buffer/tests/fuzzer_main.cc:317:35
+#8 0xed9a7c in __libc_csu_init (/mnt/scratch0/clusterfuzz/bot/builds/chromium-browser-libfuzzer_linux-release-ubsan_ae530a86793cd6b8b56ce9af9159ac101396e802/revisions/libfuzzer-linux-release-438050/gpu_angle_fuzzer+0xed9a7c)
+#9 0x7f8babe1ae54 in __libc_start_main /build/buildd/eglibc-2.19/csu/libc-start.c:246
+#10 0x52256c in _start (/mnt/scratch0/clusterfuzz/bot/builds/chromium-browser-libfuzzer_linux-release-ubsan_ae530a86793cd6b8b56ce9af9159ac101396e802/revisions/libfuzzer-linux-release-438050/gpu_angle_fuzzer+0x52256c)
+ 
+SUMMARY: UndefinedBehaviorSanitizer: undefined-behavior ../../ui/gl/gl_implementation.cc:138:18 in

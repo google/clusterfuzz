@@ -1,0 +1,9 @@
+Warning: unknown flag --harmony-templates.
+Try --help for options
+Received signal 11 SEGV_MAPERR 7f6b0c580000
+==== C stack trace ===============================
+[0x7f6b13882bf1]
+[0x7f6b137dadb5]
+[0x7f6b0d5c2340]
+[0x7f69a09750a9]
+[end of stack trace]

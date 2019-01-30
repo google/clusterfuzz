@@ -1,0 +1,37 @@
+Command: ['/mnt/scratch0/clusterfuzz/bot/builds/chromium-browser-libfuzzer_linux-release-asan_ae530a86793cd6b8b56ce9af9159ac101396e802/revisions/libfuzzer-linux-release-404048/media_vpx_video_decoder_fuzzer', '-max_len=400000', '-timeout=300', '-rss_limit_mb=3000', '-max_total_time=3250', '-print_final_stats=1', '/mnt/scratch0/clusterfuzz/bot/inputs/fuzzer-testcases-disk/temp/new', '/mnt/scratch0/clusterfuzz/bot/inputs/fuzzers/libfuzzer/libfuzzer_data/media_vpx_video_decoder_fuzzer']
+Bot: clusterfuzz-linux-pre-0179
+Time ran: 3251.208376
+
+INFO: Seed: 139051785
+INFO: Loaded 1 modules (5677 guards): [0x954b10, 0x95a3c4),
+Loading corpus: /mnt/scratch0/clusterfuzz/bot/inputs/fuzzers/libfuzzer/libfuzzer_data/media_vpx_video_decoder_fuzzer
+Loaded 1024/2718 files from /mnt/scratch0/clusterfuzz/bot/inputs/fuzzers/libfuzzer/libfuzzer_data/media_vpx_video_decoder_fuzzer
+Loaded 2048/2718 files from /mnt/scratch0/clusterfuzz/bot/inputs/fuzzers/libfuzzer/libfuzzer_data/media_vpx_video_decoder_fuzzer
+#0  READ   units: 2718 exec/s: 0
+#1  pulse  cov: 333 bits: 259 indir: 39 units: 2718 exec/s: 0
+#2  pulse  cov: 335 bits: 267 indir: 39 units: 2718 exec/s: 0
+#4  pulse  cov: 501 bits: 445 indir: 51 units: 2718 exec/s: 0
+#8  pulse  cov: 534 bits: 513 indir: 54 units: 2718 exec/s: 1
+#16 pulse  cov: 551 bits: 542 indir: 54 units: 2718 exec/s: 3
+#32 pulse  cov: 724 bits: 758 indir: 67 units: 2718 exec/s: 5
+#64 pulse  cov: 831 bits: 945 indir: 68 units: 2718 exec/s: 8
+#128  pulse  cov: 1195 bits: 1953 indir: 101 units: 2718 exec/s: 12
+#256  pulse  cov: 1248 bits: 2868 indir: 101 units: 2718 exec/s: 18
+#512  pulse  cov: 1522 bits: 4564 indir: 112 units: 2718 exec/s: 22
+#1024 pulse  cov: 2402 bits: 7729 indir: 156 units: 2718 exec/s: 23
+#2048 pulse  cov: 2701 bits: 12374 indir: 178 units: 2718 exec/s: 13
+#2722 INITED cov: 2722 bits: 13691 indir: 178 units: 2337 exec/s: 12
+#2723 NEW    cov: 2743 bits: 13691 indir: 179 units: 2338 exec/s: 12 L: 2532 MS: 1 ChangeBit-
+#4096 pulse  cov: 2743 bits: 13691 indir: 179 units: 2338 exec/s: 17
+#8192 pulse  cov: 2743 bits: 13691 indir: 179 units: 2338 exec/s: 30
+#16384  pulse  cov: 2743 bits: 13691 indir: 179 units: 2338 exec/s: 50
+#99658  NEW    cov: 2743 bits: 13693 indir: 179 units: 2339 exec/s: 103 L: 36892 MS: 1 ShuffleBytes-
+#109623 NEW    cov: 2743 bits: 13695 indir: 179 units: 2340 exec/s: 103 L: 3313 MS: 1 ShuffleBytes-
+#262144 pulse  cov: 2743 bits: 13695 indir: 179 units: 2340 exec/s: 115
+#384537 DONE   cov: 2743 bits: 13695 indir: 179 units: 2340 exec/s: 118
+Done 384537 runs in 3251 second(s)
+stat::number_of_executed_units: 384537
+stat::average_exec_per_sec:     1180
+stat::new_units_added:          30
+stat::slowest_unit_time_sec:    0
+stat::peak_rss_mb:              1300

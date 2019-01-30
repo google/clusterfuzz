@@ -1,0 +1,64 @@
+[3236:3236:0629/123027:ERROR:browser_main_loop.cc(189)] Running without the SUID sandbox! See https://code.google.com/p/chromium/wiki/LinuxSUIDSandboxDevelopment for more information on developing with the sandbox on.
+[3294:3294:0629/123027:ERROR:renderer_main.cc(200)] Running without renderer sandbox
+[3349:3349:0629/123028:ERROR:renderer_main.cc(200)] Running without renderer sandbox
+compilation error: file  line 1 element output
+invalid value for method: undefined
+
+=================================================================
+==3236==ERROR: LeakSanitizer: detected memory leaks
+
+Indirect leak of 3079 byte(s) in 252 object(s) allocated from:
+    #0 0x7f3b595f8acb in __interceptor_malloc ??:?
+    #1 0x7f3b4ed87839 in __GI___strdup /build/buildd/eglibc-2.19/string/strdup.c:42
+
+-----------------------------------------------------
+Suppressions used:
+  count      bytes template
+    360      17792 libfontconfig
+-----------------------------------------------------
+
+SUMMARY: AddressSanitizer: 3079 byte(s) leaked in 252 allocation(s).
+
+=================================================================
+==3294==ERROR: LeakSanitizer: detected memory leaks
+
+Direct leak of 10 byte(s) in 1 object(s) allocated from:
+    #0 0x7fef9d463acb in __interceptor_malloc ??:?
+    #1 0x7fefa091110b in xmlStrndup /mnt/data/b/build/slave/ASAN_Release__symbolized_/build/src/out/Release/../../third_party/libxml/src/xmlstring.c:45
+    #2 0x7fefa09112f7 in xmlStrdup /mnt/data/b/build/slave/ASAN_Release__symbolized_/build/src/out/Release/../../third_party/libxml/src/xmlstring.c:71
+    #3 0x7fefa088726b in xmlGetPropNodeValueInternal /mnt/data/b/build/slave/ASAN_Release__symbolized_/build/src/out/Release/../../third_party/libxml/src/tree.c:6593
+    #4 0x7fefa0884779 in xmlGetNsProp /mnt/data/b/build/slave/ASAN_Release__symbolized_/build/src/out/Release/../../third_party/libxml/src/tree.c:6744
+    #5 0x7fefadf0440e in xsltParseStylesheetOutput /mnt/data/b/build/slave/ASAN_Release__symbolized_/build/src/out/Release/../../third_party/libxslt/libxslt/xslt.c:1186
+    #6 0x7fefadf0d815 in xsltParseStylesheetTop /mnt/data/b/build/slave/ASAN_Release__symbolized_/build/src/out/Release/../../third_party/libxslt/libxslt/xslt.c:6150
+    #7 0x7fefadf08c56 in xsltParseStylesheetProcess /mnt/data/b/build/slave/ASAN_Release__symbolized_/build/src/out/Release/../../third_party/libxslt/libxslt/xslt.c:6428
+    #8 0x7fefadf0e47c in xsltParseStylesheetImportedDoc /mnt/data/b/build/slave/ASAN_Release__symbolized_/build/src/out/Release/../../third_party/libxslt/libxslt/xslt.c:6641
+    #9 0x7fefadf0f131 in xsltParseStylesheetDoc /mnt/data/b/build/slave/ASAN_Release__symbolized_/build/src/out/Release/../../third_party/libxslt/libxslt/xslt.c:6680
+    #10 0x7fefa4b2a216 in blink::XSLStyleSheet::compileStyleSheet() /mnt/data/b/build/slave/ASAN_Release__symbolized_/build/src/out/Release/../../third_party/WebKit/Source/core/xml/XSLStyleSheetLibxslt.cpp:250
+    #11 0x7fefa4b3155b in xsltStylesheetPointer /mnt/data/b/build/slave/ASAN_Release__symbolized_/build/src/out/Release/../../third_party/WebKit/Source/core/xml/XSLTProcessorLibxslt.cpp:240
+    #12 0x7fefa4b302d7 in transformToString /mnt/data/b/build/slave/ASAN_Release__symbolized_/build/src/out/Release/../../third_party/WebKit/Source/core/xml/XSLTProcessorLibxslt.cpp:283
+    #13 0x7fefa4b2f5c8 in blink::XSLTProcessor::transformToDocument(blink::Node*) /mnt/data/b/build/slave/ASAN_Release__symbolized_/build/src/out/Release/../../third_party/WebKit/Source/core/xml/XSLTProcessor.cpp:113
+    #14 0x7fefa588e23b in transformToDocumentMethod /mnt/data/b/build/slave/ASAN_Release__symbolized_/build/src/out/Release/gen/blink/bindings/core/v8/V8XSLTProcessor.cpp:110
+    #15 0x7fefa588d2f6 in blink::XSLTProcessorV8Internal::transformToDocumentMethodCallback(v8::FunctionCallbackInfo<v8::Value> const&) /mnt/data/b/build/slave/ASAN_Release__symbolized_/build/src/out/Release/gen/blink/bindings/core/v8/V8XSLTProcessor.cpp:116
+    #16 0x7fefa26651e1 in Call /mnt/data/b/build/slave/ASAN_Release__symbolized_/build/src/out/Release/../../v8/src/arguments.cc:33
+    #17 0x7fefa1c8eb45 in HandleApiCallHelper<false> /mnt/data/b/build/slave/ASAN_Release__symbolized_/build/src/out/Release/../../v8/src/builtins.cc:1092
+    #18 0x7fefa1c9d040 in Builtin_implHandleApiCall /mnt/data/b/build/slave/ASAN_Release__symbolized_/build/src/out/Release/../../v8/src/builtins.cc:1115 (discriminator 1)
+    #19 0x7fefa1c8ff2f in v8::internal::Builtin_HandleApiCall(int, v8::internal::Object**, v8::internal::Isolate*) /mnt/data/b/build/slave/ASAN_Release__symbolized_/build/src/out/Release/../../v8/src/builtins.cc:1111
+    #20 0x7fee08409afa  (<unknown module>)
+    #21 0x7fee0850fbd6  (<unknown module>)
+    #22 0x7fee0840a436  (<unknown module>)
+    #23 0x7fee0850f8d8  (<unknown module>)
+    #24 0x7fee0843145c  (<unknown module>)
+    #25 0x7fee084166e1  (<unknown module>)
+    #20 0x7fefa1de7f70 in Invoke /mnt/data/b/build/slave/ASAN_Release__symbolized_/build/src/out/Release/../../v8/src/execution.cc:128
+    #21 0x7fefa1de6efc in Call /mnt/data/b/build/slave/ASAN_Release__symbolized_/build/src/out/Release/../../v8/src/execution.cc:179
+    #22 0x7fefa1bc9862 in Run /mnt/data/b/build/slave/ASAN_Release__symbolized_/build/src/out/Release/../../v8/src/api.cc:1687
+    #23 0x7fefa56fe04d in blink::V8ScriptRunner::runCompiledScript(v8::Isolate*, v8::Local<v8::Script>, blink::ExecutionContext*) /mnt/data/b/build/slave/ASAN_Release__symbolized_/build/src/out/Release/../../third_party/WebKit/Source/bindings/core/v8/V8ScriptRunner.cpp:391
+
+SUMMARY: AddressSanitizer: 10 byte(s) leaked in 1 allocation(s).
+[0629/123031:ERROR:nacl_helper_linux.cc(317)] NaCl helper process running without a sandbox!
+Most likely you need to configure your SUID sandbox correctly
+-----------------------------------------------------
+Suppressions used:
+  count      bytes template
+      3      18072 libGL.so
+-----------------------------------------------------

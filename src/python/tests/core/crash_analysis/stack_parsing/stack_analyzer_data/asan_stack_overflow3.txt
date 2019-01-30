@@ -1,0 +1,28 @@
+==1==ERROR: AddressSanitizer: stack-overflow on address 0x7ffca4df4b38 (pc 0x000000467236 bp 0x7ffca4df53b0 sp 0x7ffca4df4b40 T0)
+SCARINESS: 10 (stack-overflow)
+#0 0x467235 in __interceptor_memcpy.part.35 /src/llvm/projects/compiler-rt/lib/sanitizer_common/sanitizer_common_interceptors.inc:649
+#1 0x57cec2 in fuzzer::TracePC::AddValueForMemcmp(void*, void const*, void const*, unsigned long, bool) /src/libfuzzer/FuzzerTracePC.cpp:256:11
+#2 0x4b1435 in __interceptor_memcmp.part.75 /src/llvm/projects/compiler-rt/lib/sanitizer_common/sanitizer_common_interceptors.inc:706
+#3 0x5d985e in grpc_is_binary_header /home/builder/.cache/bazel/_bazel_builder/ec9ee79d770c6b7183036e592ac23980/execroot/grpc/src/core/lib/surface/validate_metadata.c:103:15
+#4 0x65f459 in is_binary_literal_header /home/builder/.cache/bazel/_bazel_builder/ec9ee79d770c6b7183036e592ac23980/execroot/grpc/src/core/ext/transport/chttp2/transport/hpack_parser.c:1542:10
+#5 0x65f0aa in parse_value_string_with_literal_key /home/builder/.cache/bazel/_bazel_builder/ec9ee79d770c6b7183036e592ac23980/execroot/grpc/src/core/ext/transport/chttp2/transport/hpack_parser.c:1582:52
+#6 0x65d273 in begin_parse_string /home/builder/.cache/bazel/_bazel_builder/ec9ee79d770c6b7183036e592ac23980/execroot/grpc/src/core/ext/transport/chttp2/transport/hpack_parser.c:1529:10
+#7 0x65f969 in finish_lithdr_notidx_v /home/builder/.cache/bazel/_bazel_builder/ec9ee79d770c6b7183036e592ac23980/execroot/grpc/src/core/ext/transport/chttp2/transport/hpack_parser.c:944:10
+#8 0x65d185 in begin_parse_string /home/builder/.cache/bazel/_bazel_builder/ec9ee79d770c6b7183036e592ac23980/execroot/grpc/src/core/ext/transport/chttp2/transport/hpack_parser.c:1521:12
+#9 0x65d185 in begin_parse_string /home/builder/.cache/bazel/_bazel_builder/ec9ee79d770c6b7183036e592ac23980/execroot/grpc/src/core/ext/transport/chttp2/transport/hpack_parser.c:1521:12
+#10 0x65f969 in finish_lithdr_notidx_v /home/builder/.cache/bazel/_bazel_builder/ec9ee79d770c6b7183036e592ac23980/execroot/grpc/src/core/ext/transport/chttp2/transport/hpack_parser.c:944:10
+#11 0x65d185 in begin_parse_string /home/builder/.cache/bazel/_bazel_builder/ec9ee79d770c6b7183036e592ac23980/execroot/grpc/src/core/ext/transport/chttp2/transport/hpack_parser.c:1521:12
+#12 0x65d185 in begin_parse_string /home/builder/.cache/bazel/_bazel_builder/ec9ee79d770c6b7183036e592ac23980/execroot/grpc/src/core/ext/transport/chttp2/transport/hpack_parser.c:1521:12
+#13 0x65f969 in finish_lithdr_notidx_v /home/builder/.cache/bazel/_bazel_builder/ec9ee79d770c6b7183036e592ac23980/execroot/grpc/src/core/ext/transport/chttp2/transport/hpack_parser.c:944:10
+#14 0x65d273 in begin_parse_string /home/builder/.cache/bazel/_bazel_builder/ec9ee79d770c6b7183036e592ac23980/execroot/grpc/src/core/ext/transport/chttp2/transport/hpack_parser.c:1529:10
+#15 0x65d273 in begin_parse_string /home/builder/.cache/bazel/_bazel_builder/ec9ee79d770c6b7183036e592ac23980/execroot/grpc/src/core/ext/transport/chttp2/transport/hpack_parser.c:1529:10
+#16 0x65f969 in finish_lithdr_notidx_v /home/builder/.cache/bazel/_bazel_builder/ec9ee79d770c6b7183036e592ac23980/execroot/grpc/src/core/ext/transport/chttp2/transport/hpack_parser.c:944:10
+#17 0x65d185 in begin_parse_string /home/builder/.cache/bazel/_bazel_builder/ec9ee79d770c6b7183036e592ac23980/execroot/grpc/src/core/ext/transport/chttp2/transport/hpack_parser.c:1521:12
+#18 0x65d185 in begin_parse_string /home/builder/.cache/bazel/_bazel_builder/ec9ee79d770c6b7183036e592ac23980/execroot/grpc/src/core/ext/transport/chttp2/transport/hpack_parser.c:1521:12
+#19 0x65f969 in finish_lithdr_notidx_v /home/builder/.cache/bazel/_bazel_builder/ec9ee79d770c6b7183036e592ac23980/execroot/grpc/src/core/ext/transport/chttp2/transport/hpack_parser.c:944:10
+#20 0x65d185 in begin_parse_string /home/builder/.cache/bazel/_bazel_builder/ec9ee79d770c6b7183036e592ac23980/execroot/grpc/src/core/ext/transport/chttp2/transport/hpack_parser.c:1521:12
+#21 0x65d185 in begin_parse_string /home/builder/.cache/bazel/_bazel_builder/ec9ee79d770c6b7183036e592ac23980/execroot/grpc/src/core/ext/transport/chttp2/transport/hpack_parser.c:1521:12
+#22 0x65f969 in finish_lithdr_notidx_v /home/builder/.cache/bazel/_bazel_builder/ec9ee79d770c6b7183036e592ac23980/execroot/grpc/src/core/ext/transport/chttp2/transport/hpack_parser.c:944:10
+#23 0x65d273 in begin_parse_string /home/builder/.cache/bazel/_bazel_builder/ec9ee79d770c6b7183036e592ac23980/execroot/grpc/src/core/ext/transport/chttp2/transport/hpack_parser.c:1529:10
+#24 0x65d273 in begin_parse_string /home/builder/.cache/bazel/_bazel_builder/ec9ee79d770c6b7183036e592ac23980/execroot/grpc/src/core/ext/transport/chttp2/transport/hpack_parser.c:1529:10
+#25 0x65f969 in finish_lithdr_notidx_v /home/builder/.cache/bazel/_bazel_builder/ec9ee79d770c6b7183036e592ac23980/execroot/grpc/src/core/ext/transport/chttp2/transport/hpack_parser.c:944:10

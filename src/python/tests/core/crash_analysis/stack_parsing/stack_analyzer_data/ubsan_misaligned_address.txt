@@ -1,0 +1,27 @@
+Running command: /mnt/scratch0/clusterfuzz/bot/builds/clusterfuzz-builds_ffmpeg_37aaa00c35609bba402b3a13a6024248e52e107c/revisions/ffmpeg_AV_CODEC_ID_PPM_fuzzer -runs=100 -max_len=1000000 -rss_limit_mb=2048 -timeout=25 /5ccd8674b9a8a541a3291574a282fd047fdbec0fa0dde363db5d6d691dc99884065c2d63672559e11ff1ee7dacfa79467621b1fe711126709e9d1eb50ad263aed461db21926574a35002d1deb963edce5f22ae526033c18a0e25be62345d6f67fuzz-3-ffmpeg_AV_CODEC_ID_PPM_fuzzer
+INFO: Seed: 2608356068
+INFO: Loaded 1 modules (14103 guards): [0xc2cfd0, 0xc3ac2c),
+/mnt/scratch0/clusterfuzz/bot/builds/clusterfuzz-builds_ffmpeg_37aaa00c35609bba402b3a13a6024248e52e107c/revisions/ffmpeg_AV_CODEC_ID_PPM_fuzzer: Running 1 inputs 100 time(s) each.
+Running: /5ccd8674b9a8a541a3291574a282fd047fdbec0fa0dde363db5d6d691dc99884065c2d63672559e11ff1ee7dacfa79467621b1fe711126709e9d1eb50ad263aed461db21926574a35002d1deb963edce5f22ae526033c18a0e25be62345d6f67fuzz-3-ffmpeg_AV_CODEC_ID_PPM_fuzzer
+libavcodec/pnmdec.c:175:25: runtime error: load of misaligned address 0x60600000002b for type uint16_t (aka unsigned short), which requires 2 byte alignment
+0x60600000002b: note: pointer points here
+35  33 36 09 00 00 00 00 01  00 00 00 00 00 27 27 0a  0a 23 27 00 00 00 00 00  00 00 00 00 00 00 00
+^
+#0 0x542682 in pnm_decode_frame /src/ffmpeg/libavcodec/pnmdec.c:175:25
+#1 0x53571c in decode_simple_internal /src/ffmpeg/libavcodec/decode.c:414:15
+#2 0x534f51 in decode_simple_receive_frame /src/ffmpeg/libavcodec/decode.c:617:15
+#3 0x525f72 in decode_receive_frame_internal /src/ffmpeg/libavcodec/decode.c:635:15
+#4 0x524a2d in avcodec_send_packet /src/ffmpeg/libavcodec/decode.c:675:15
+#5 0x5268d3 in compat_decode /src/ffmpeg/libavcodec/decode.c:730:15
+#6 0x5185e7 in LLVMFuzzerTestOneInput /src/ffmpeg/tools/target_dec_fuzzer.c:213:23
+#7 0x79d184 in fuzzer::Fuzzer::ExecuteCallback(unsigned char const*, unsigned long) /src/libfuzzer/FuzzerLoop.cpp:440:13
+#8 0x79d49e in fuzzer::Fuzzer::RunOne(unsigned char const*, unsigned long) /src/libfuzzer/FuzzerLoop.cpp:397:3
+#9 0x78fcc0 in fuzzer::RunOneTest(fuzzer::Fuzzer*, char const*, unsigned long) /src/libfuzzer/FuzzerDriver.cpp:268:6
+#10 0x793be0 in fuzzer::FuzzerDriver(int*, char***, int (*)(unsigned char const*, unsigned long)) /src/libfuzzer/FuzzerDriver.cpp:682:9
+#11 0x78f9bc in main /src/libfuzzer/FuzzerMain.cpp:20:10
+#12 0x7f5fb5e3182f in __libc_start_main /build/glibc-9tT8Do/glibc-2.23/csu/libc-start.c:291
+#13 0x41c908 in _start
+SUMMARY: UndefinedBehaviorSanitizer: undefined-behavior libavcodec/pnmdec.c:175:25 in
+MS: 0 ; base unit: 0000000000000000000000000000000000000000
+0x50,0x35,0x20,0x34,0x20,0x32,0x20,0x35,0x33,0x36,0x9,0x0,0x0,0x0,0x0,0x1,0x0,0x0,0x0,0x0,0x0,0x27,0x27,0xa,0xa,0x23,0x27,0x27,0x27,0x27,0xa,0xa,0x27,0x27,0x27,
+P5 4 2 536\x09\x00\x00\x00\x00\x01\x00\x00\x00\x00\x00\x0a\x0a#\x0a\x0a

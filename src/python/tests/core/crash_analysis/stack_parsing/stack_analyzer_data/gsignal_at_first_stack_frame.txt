@@ -1,0 +1,45 @@
+[1222/164952:FATAL:ftp_util.cc(198)] Check failed: 1 == map_[ASCIIToUTF16("jan")] (1 vs. 0)
+#0 0x000000466ef1 __interceptor_backtrace
+#1 0x0000015ac58a base::debug::StackTrace::StackTrace()
+#2 0x000001177e4c logging::LogMessage::~LogMessage()
+#3 0x0000010b9df0 net::FtpUtil::AbbreviatedMonthToNumber()
+#4 0x0000010be233 net::FtpUtil::LsDateListingToTime()
+#5 0x000001084fa9 net::ParseFtpDirectoryListingLs()
+#6 0x000001082006 net::ParseFtpDirectoryListing()
+#7 0x0000004e640a LLVMFuzzerTestOneInput
+#8 0x000001ff6eb8 fuzzer::RunOneTest()
+#9 0x000001ff8f42 fuzzer::FuzzerDriver()
+#10 0x000001ff7486 fuzzer::FuzzerDriver()
+#11 0x000001ff718b fuzzer::FuzzerDriver()
+#12 0x7ffb57addec5 __libc_start_main
+#13 0x0000004264e3 <unknown>
+
+ASAN:DEADLYSIGNAL
+=================================================================
+==96165==ERROR: AddressSanitizer: SEGV on unknown address 0x5668a000177a5 (pc 0x7ffb57af2cb7 bp 0x7ffe2246d7d0 sp 0x7ffe2246d698 T0)
+    #0 0x7ffb57af2cb6 in gsignal /tmp/tmp.Htw1L27e9P/nptl/sysdeps/unix/sysv/linux/raise.c:56
+    #1 0x1178a18 in logging::LogMessage::~LogMessage() base/logging.cc:721:7
+    #2 0x10b9def in AbbreviatedMonthsMap net/ftp/ftp_util.cc:198:5
+    #3 0x10b9def in New base/memory/singleton.h:53
+    #4 0x10b9def in get base/memory/singleton.h:248
+    #5 0x10b9def in GetInstance net/ftp/ftp_util.cc:135
+    #6 0x10b9def in net::FtpUtil::AbbreviatedMonthToNumber(std::__1::basic_string<unsigned short, base::string16_char_traits, std::__1::allocator<unsigned short> > const&, int*) net/ftp/ftp_util.cc:223
+    #7 0x10be232 in net::FtpUtil::LsDateListingToTime(std::__1::basic_string<unsigned short, base::string16_char_traits, std::__1::allocator<unsigned short> > const&, std::__1::basic_string<unsigned short, base::string16_char_traits, std::__1::allocator<unsigned short> > const&, std::__1::basic_string<unsigned short, base::string16_char_traits, std::__1::allocator<unsigned short> > const&, base::Time const&, base::Time*) net/ftp/ftp_util.cc:234:8
+    #8 0x1084fa8 in DetectColumnOffsetSizeAndModificationTime net/ftp/ftp_directory_listing_parser_ls.cc:85:9
+    #9 0x1084fa8 in net::ParseFtpDirectoryListingLs(std::__1::vector<std::__1::basic_string<unsigned short, base::string16_char_traits, std::__1::allocator<unsigned short> >, std::__1::allocator<std::__1::basic_string<unsigned short, base::string16_char_traits, std::__1::allocator<unsigned short> > > > const&, base::Time const&, std::__1::vector<net::FtpDirectoryListingEntry, std::__1::allocator<net::FtpDirectoryListingEntry> >*) net/ftp/ftp_directory_listing_parser_ls.cc:158
+    #10 0x1082005 in Run base/callback.h:396:12
+    #11 0x1082005 in ParseListing net/ftp/ftp_directory_listing_parser.cc:71
+    #12 0x1082005 in DecodeAndParse net/ftp/ftp_directory_listing_parser.cc:101
+    #13 0x1082005 in net::ParseFtpDirectoryListing(std::__1::basic_string<char, std::__1::char_traits<char>, std::__1::allocator<char> > const&, base::Time const&, std::__1::vector<net::FtpDirectoryListingEntry, std::__1::allocator<net::FtpDirectoryListingEntry> >*) net/ftp/ftp_directory_listing_parser.cc:129
+    #14 0x4e6409 in LLVMFuzzerTestOneInput testing/libfuzzer/ftp_directory_listing_fuzzer.cc:16:3
+    #15 0x1ff6eb7 in fuzzer::RunOneTest(fuzzer::Fuzzer*, char const*) third_party/llvm/lib/Fuzzer/FuzzerDriver.cpp:189:3
+    #16 0x1ff8f41 in fuzzer::FuzzerDriver(std::__1::vector<std::__1::basic_string<char, std::__1::char_traits<char>, std::__1::allocator<char> >, std::__1::allocator<std::__1::basic_string<char, std::__1::char_traits<char>, std::__1::allocator<char> > > > const&, fuzzer::UserSuppliedFuzzer&) third_party/llvm/lib/Fuzzer/FuzzerDriver.cpp:277:12
+    #17 0x1ff7485 in fuzzer::FuzzerDriver(int, char**, fuzzer::UserSuppliedFuzzer&) third_party/llvm/lib/Fuzzer/FuzzerDriver.cpp:201:10
+    #18 0x1ff718a in fuzzer::FuzzerDriver(int, char**, int (*)(unsigned char const*, unsigned long)) third_party/llvm/lib/Fuzzer/FuzzerDriver.cpp:196:10
+    #19 0x7ffb57addec4 in __libc_start_main /tmp/tmp.Htw1L27e9P/csu/libc-start.c:287
+
+AddressSanitizer can not provide additional info.
+SUMMARY: AddressSanitizer: SEGV (/lib/x86_64-linux-gnu/libc.so.6+0x36cb6)
+==96165==ABORTING
+DEATH:
+

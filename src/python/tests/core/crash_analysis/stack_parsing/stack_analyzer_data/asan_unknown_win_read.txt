@@ -1,0 +1,44 @@
+=================================================================
+==3316==ERROR: AddressSanitizer: access-violation on unknown address 0x00010008 (pc 0x59565ab9 bp 0x001ad27c sp 0x001ad000 T0)
+==3316==The signal is caused by a READ memory access.
+==3316==Hint: address points to the zero page.
+SCARINESS: 10 (null-deref)
+==3316==*** WARNING: Failed to initialize DbgHelp!              ***
+==3316==*** Most likely this means that the app is already      ***
+==3316==*** using DbgHelp, possibly with incompatible flags.    ***
+==3316==*** Due to technical reasons, symbolization might crash ***
+==3316==*** or produce wrong results.                           ***
+==3316==WARNING: Failed to use and restart external symbolizer!
+  #0 0x59565ab8 in blink::SVGEnumerationBase::calculateAnimatedValue third_party/WebKit/Source/core/svg/SVGEnumeration.cpp:90
+  #1 0x594c249e in blink::SVGAnimateElement::calculateAnimatedValue third_party/WebKit/Source/core/svg/SVGAnimateElement.cpp:378
+  #2 0x594748c6 in blink::SVGAnimationElement::updateAnimation third_party/WebKit/Source/core/svg/SVGAnimationElement.cpp:617
+  #3 0x59556967 in blink::SMILTimeContainer::updateAnimations third_party/WebKit/Source/core/svg/animation/SMILTimeContainer.cpp:485
+  #4 0x595588d9 in blink::SMILTimeContainer::updateAnimationsAndScheduleFrameIfNeeded third_party/WebKit/Source/core/svg/animation/SMILTimeContainer.cpp:414
+  #5 0x5955490c in blink::SMILTimeContainer::wakeupTimerFired third_party/WebKit/Source/core/svg/animation/SMILTimeContainer.cpp:289
+  #6 0x58afdd31 in blink::TaskRunnerTimer<blink::EventHandler>::fired third_party/WebKit/Source/platform/Timer.h:144
+  #7 0x56fb5842 in blink::TimerBase::runInternal third_party/WebKit/Source/platform/Timer.cpp:174
+  #8 0x54876038 in base::debug::TaskAnnotator::RunTask base/debug/task_annotator.cc:57
+  #9 0x5718efce in blink::scheduler::TaskQueueManager::ProcessTaskFromWorkQueue third_party/WebKit/Source/platform/scheduler/base/task_queue_manager.cc:533
+  #10 0x5718a666 in blink::scheduler::TaskQueueManager::DoWork third_party/WebKit/Source/platform/scheduler/base/task_queue_manager.cc:331
+  #11 0x5a99ba44 in base::internal::Invoker<base::internal::BindState<void (content::WebMediaPlayerMS::*)(bool) __attribute__((thiscall)),base::WeakPtr<content::WebMediaPlayerMS>,bool>,void ()>::Run base/bind_internal.h:340
+  #12 0x54876038 in base::debug::TaskAnnotator::RunTask base/debug/task_annotator.cc:57
+  #13 0x5471fa1f in base::MessageLoop::RunTask base/message_loop/message_loop.cc:423
+  #14 0x547208d6 in base::MessageLoop::DeferOrRunPendingTask base/message_loop/message_loop.cc:434
+  #15 0x54721bf6 in base::MessageLoop::DoWork base/message_loop/message_loop.cc:527
+  #16 0x5487c3ba in base::MessagePumpDefault::Run base/message_loop/message_pump_default.cc:33
+  #17 0x5471ea59 in base::MessageLoop::RunHandler base/message_loop/message_loop.cc:387
+  #18 0x547a0efd in base::RunLoop::Run base/run_loop.cc:37
+  #19 0x5a853a26 in content::RendererMain content/renderer/renderer_main.cc:200
+  #20 0x545a0015 in content::RunNamedProcessTypeMain content/app/content_main_runner.cc:491
+  #21 0x545a13da in content::ContentMainRunnerImpl::Run content/app/content_main_runner.cc:836
+  #22 0x5459fc00 in content::ContentMain content/app/content_main.cc:20
+  #23 0x514a11c2 in ChromeMain chrome/app/chrome_main.cc:121
+  #24 0x9a97d9 in MainDllLoader::Launch chrome/app/main_dll_loader_win.cc:201
+  #25 0x9a1926 in main chrome/app/chrome_exe_main_win.cc:271
+  #26 0xbe26ba in __scrt_common_main_seh f:\dd\vctools\crt\vcstartup\src\startup\exe_common.inl:253
+  #27 0x76837c03 in BaseThreadInitThunk+0x23 (C:\windows\SYSTEM32\KERNEL32.DLL+0x17c03)
+  #28 0x7712ab8e in RtlInitializeExceptionChain+0x8e (C:\windows\SYSTEM32\ntdll.dll+0x5ab8e)
+  #29 0x7712ab59 in RtlInitializeExceptionChain+0x59 (C:\windows\SYSTEM32\ntdll.dll+0x5ab59)
+AddressSanitizer can not provide additional info.
+SUMMARY: AddressSanitizer: access-violation third_party\WebKit\Source\core\svg\SVGEnumeration.cpp:90 in blink::SVGEnumerationBase::calculateAnimatedValue
+==3316==ABORTING

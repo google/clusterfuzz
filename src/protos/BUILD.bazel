@@ -1,0 +1,51 @@
+load("@io_bazel_rules_go//proto:def.bzl", "go_proto_library")
+
+# gazelle:proto package
+
+proto_library(
+    name = "process_state_proto",
+    srcs = ["process_state.proto"],
+    visibility = ["//visibility:public"],
+)
+
+go_proto_library(
+    name = "process_state_go_proto",
+    importpath = "clusterfuzz/protos/process_state",
+    proto = ":process_state_proto",
+    visibility = ["//visibility:public"],
+)
+
+proto_library(
+    name = "untrusted_runner_proto",
+    srcs = [
+        "heartbeat.proto",
+        "untrusted_runner.proto",
+    ],
+    visibility = ["//visibility:public"],
+)
+
+go_proto_library(
+    name = "untrusted_runner_go_proto",
+    compilers = ["@io_bazel_rules_go//proto:go_grpc"],
+    importpath = "clusterfuzz/protos/untrusted_runner",
+    proto = ":untrusted_runner_proto",
+    visibility = ["//visibility:public"],
+)
+
+proto_library(
+    name = "protos_proto",
+    srcs = [
+        "heartbeat.proto",
+        "process_state.proto",
+        "untrusted_runner.proto",
+    ],
+    visibility = ["//visibility:public"],
+)
+
+go_proto_library(
+    name = "protos_go_proto",
+    compilers = ["@io_bazel_rules_go//proto:go_grpc"],
+    importpath = "clusterfuzz/protos",
+    proto = ":protos_proto",
+    visibility = ["//visibility:public"],
+)

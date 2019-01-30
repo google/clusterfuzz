@@ -1,0 +1,110 @@
+/mnt/scratch0/clusterfuzz/bot/builds/chromium-browser-msan_linux-release_f410a434006030e5a0745c56c98e77f5ab2bad97/symbolized/release/msan-chained-origins-linux-release-406549/chrome --user-data-dir=/mnt/scratch0/tmp/user_profile_0 --ignore-gpu-blacklist --js-flags="--expose-gc" --no-first-run --use-gl=osmesa --disable-gl-drawing-for-tests /mnt/scratch0/clusterfuzz/bot/inputs/fuzzer-testcases/fuzz-canvas-1469052742.57.html
+
+[Crash Revision] r406549
+[Environment] MSAN_OPTIONS = symbolize=0:coverage=0
+
+Xlib:  extension "RANDR" missing on display ":1".
+Xlib:  extension "RANDR" missing on display ":1".
+[1506:1506:0720/160513:ERROR:json_feature_provider.cc(42)] clipboard: API features must specify at least one context.
+[1:1:0720/160514:ERROR:json_feature_provider.cc(42)] clipboard: API features must specify at least one context.
+[1:1:0720/160514:ERROR:json_feature_provider.cc(42)] clipboard: API features must specify at least one context.
+[1577:1577:0720/160515:ERROR:json_feature_provider.cc(42)] clipboard: API features must specify at least one context.
+[1:1:0720/160517:ERROR:json_feature_provider.cc(42)] clipboard: API features must specify at least one context.
+==1==WARNING: MemorySanitizer: use-of-uninitialized-value
+    #0 0x7f2518508f6c in sort third_party/skia/include/core/SkRect.h:879:13
+    #1 0x7f2518508f6c in setRect third_party/skia/include/core/SkRRect.h:131
+    #2 0x7f2518508f6c in GrShape::attemptToSimplifyPath() third_party/skia/src/gpu/GrShape.cpp:332
+    #3 0x7f251843630c in GrShape third_party/skia/src/gpu/GrShape.h:47:15
+    #4 0x7f251843630c in GrDrawContext::internalDrawPath(GrClip const&, GrPaint const&, SkMatrix const&, SkPath const&, GrStyle const&) third_party/skia/src/gpu/GrDrawContext.cpp:1187
+    #5 0x7f251844dc41 in GrDrawContext::drawPath(GrClip const&, GrPaint const&, SkMatrix const&, SkPath const&, GrStyle const&) third_party/skia/src/gpu/GrDrawContext.cpp:1102:11
+    #6 0x7f2518e3f23f in GrBlurUtils::drawPathWithMaskFilter(GrContext*, GrDrawContext*, GrClip const&, SkPath const&, SkPaint const&, SkMatrix const&, SkMatrix const*, SkIRect const&, bool) third_party/skia/src/gpu/GrBlurUtils.cpp:299:22
+    #7 0x7f25187eb828 in SkGpuDevice::drawPath(SkDraw const&, SkPath const&, SkPaint const&, SkMatrix const*, bool) third_party/skia/src/gpu/SkGpuDevice.cpp:760:5
+    #8 0x7f2517f240e3 in SkCanvas::onDrawPath(SkPath const&, SkPaint const&) third_party/skia/src/core/SkCanvas.cpp:2268:23
+    #9 0x7f251817337b in draw<SkRecords::DrawPath> third_party/skia/src/core/SkRecordDraw.cpp:107:1
+    #10 0x7f251817337b in operator()<SkRecords::DrawPath> third_party/skia/src/core/SkRecordDraw.h:62
+    #11 0x7f251817337b in decltype ({parm#1}((SkRecords::NoOp)())) SkRecord::Record::visit<SkRecords::Draw&>(SkRecords::Draw&) const third_party/skia/src/core/SkRecord.h:170
+    #12 0x7f251816ffb2 in visit<SkRecords::Draw &> third_party/skia/src/core/SkRecord.h:51:28
+    #13 0x7f251816ffb2 in SkRecordDraw(SkRecord const&, SkCanvas*, SkPicture const* const*, SkDrawable* const*, int, SkBBoxHierarchy const*, SkPicture::AbortCallback*) third_party/skia/src/core/SkRecordDraw.cpp:54
+    #14 0x7f251888ceb3 in SkBigPicture::playback(SkCanvas*, SkPicture::AbortCallback*) const third_party/skia/src/core/SkBigPicture.cpp:35:5
+    #15 0x7f2522c71193 in blink::Canvas2DLayerBridge::flushRecordingOnly() third_party/WebKit/Source/platform/graphics/Canvas2DLayerBridge.cpp:706:49
+    #16 0x7f2522c72fd6 in blink::Canvas2DLayerBridge::flush() third_party/WebKit/Source/platform/graphics/Canvas2DLayerBridge.cpp:718:5
+    #17 0x7f2522c7989e in blink::Canvas2DLayerBridge::flushGpu() third_party/WebKit/Source/platform/graphics/Canvas2DLayerBridge.cpp:725:5
+    #18 0x7f2522c7e831 in blink::Canvas2DLayerBridge::didProcessTask() third_party/WebKit/Source/platform/graphics/Canvas2DLayerBridge.cpp:955:13
+    #19 0x7f2522954c5d in scheduler::TaskQueueManager::ProcessTaskFromWorkQueue(scheduler::internal::WorkQueue*, scheduler::internal::TaskQueueImpl::Task*) components/scheduler/base/task_queue_manager.cc:325:5
+    #20 0x7f252294baed in scheduler::TaskQueueManager::DoWork(base::TimeTicks, bool) components/scheduler/base/task_queue_manager.cc:218:13
+    #21 0x7f2515d15889 in Run base/callback.h:389:12
+    #22 0x7f2515d15889 in base::debug::TaskAnnotator::RunTask(char const*, base::PendingTask const&) base/debug/task_annotator.cc:51
+    #23 0x7f2515a2eac7 in base::MessageLoop::RunTask(base::PendingTask const&) base/message_loop/message_loop.cc:496:19
+    #24 0x7f2515a30bef in base::MessageLoop::DeferOrRunPendingTask(base::PendingTask) base/message_loop/message_loop.cc:505:5
+    #25 0x7f2515a3402b in base::MessageLoop::DoDelayedWork(base::TimeTicks*) base/message_loop/message_loop.cc:668:10
+    #26 0x7f2515a437ed in base::MessagePumpDefault::Run(base::MessagePump::Delegate*) base/message_loop/message_pump_default.cc:39:27
+    #27 0x7f2515b085a7 in base::RunLoop::Run() base/run_loop.cc:35:10
+    #28 0x7f25138694db in content::RendererMain(content::MainFunctionParams const&) content/renderer/renderer_main.cc:198:23
+    #29 0x7f25144761c3 in content::RunZygote(content::MainFunctionParams const&, content::ContentMainDelegate*) content/app/content_main_runner.cc:343:14
+    #30 0x7f251447a22e in content::RunNamedProcessTypeMain(std::__1::basic_string<char, std::__1::char_traits<char>, std::__1::allocator<char> > const&, content::MainFunctionParams const&, content::ContentMainDelegate*) content/app/content_main_runner.cc:426:12
+    #31 0x7f251447e4af in content::ContentMainRunnerImpl::Run() content/app/content_main_runner.cc:785:12
+    #32 0x7f251447430c in content::ContentMain(content::ContentMainParams const&) content/app/content_main.cc:20:28
+    #33 0x7f25038a4d28 in ChromeMain chrome/app/chrome_main.cc:85:12
+    #34 0x7f25038a4b11 in main chrome/app/chrome_exe_main_aura.cc:17:10
+    #35 0x7f24f81f2f44 in __libc_start_main /build/eglibc-oGUzwX/eglibc-2.19/csu/libc-start.c:287
+    #36 0x7f250383a88c in _start
+  Uninitialized value was stored to memory at
+    #0 0x7f25038591f7 in __msan_memcpy
+    #1 0x7f2518506767 in setRect third_party/skia/include/core/SkRRect.h:130:15
+    #2 0x7f2518506767 in GrShape::attemptToSimplifyPath() third_party/skia/src/gpu/GrShape.cpp:332
+    #3 0x7f251843630c in GrShape third_party/skia/src/gpu/GrShape.h:47:15
+    #4 0x7f251843630c in GrDrawContext::internalDrawPath(GrClip const&, GrPaint const&, SkMatrix const&, SkPath const&, GrStyle const&) third_party/skia/src/gpu/GrDrawContext.cpp:1187
+    #5 0x7f251844dc41 in GrDrawContext::drawPath(GrClip const&, GrPaint const&, SkMatrix const&, SkPath const&, GrStyle const&) third_party/skia/src/gpu/GrDrawContext.cpp:1102:11
+    #6 0x7f2518e3f23f in GrBlurUtils::drawPathWithMaskFilter(GrContext*, GrDrawContext*, GrClip const&, SkPath const&, SkPaint const&, SkMatrix const&, SkMatrix const*, SkIRect const&, bool) third_party/skia/src/gpu/GrBlurUtils.cpp:299:22
+    #7 0x7f25187eb828 in SkGpuDevice::drawPath(SkDraw const&, SkPath const&, SkPaint const&, SkMatrix const*, bool) third_party/skia/src/gpu/SkGpuDevice.cpp:760:5
+    #8 0x7f2517f240e3 in SkCanvas::onDrawPath(SkPath const&, SkPaint const&) third_party/skia/src/core/SkCanvas.cpp:2268:23
+    #9 0x7f251817337b in draw<SkRecords::DrawPath> third_party/skia/src/core/SkRecordDraw.cpp:107:1
+    #10 0x7f251817337b in operator()<SkRecords::DrawPath> third_party/skia/src/core/SkRecordDraw.h:62
+    #11 0x7f251817337b in decltype ({parm#1}((SkRecords::NoOp)())) SkRecord::Record::visit<SkRecords::Draw&>(SkRecords::Draw&) const third_party/skia/src/core/SkRecord.h:170
+    #12 0x7f251816ffb2 in visit<SkRecords::Draw &> third_party/skia/src/core/SkRecord.h:51:28
+    #13 0x7f251816ffb2 in SkRecordDraw(SkRecord const&, SkCanvas*, SkPicture const* const*, SkDrawable* const*, int, SkBBoxHierarchy const*, SkPicture::AbortCallback*) third_party/skia/src/core/SkRecordDraw.cpp:54
+    #14 0x7f251888ceb3 in SkBigPicture::playback(SkCanvas*, SkPicture::AbortCallback*) const third_party/skia/src/core/SkBigPicture.cpp:35:5
+    #15 0x7f2522c71193 in blink::Canvas2DLayerBridge::flushRecordingOnly() third_party/WebKit/Source/platform/graphics/Canvas2DLayerBridge.cpp:706:49
+    #16 0x7f2522c72fd6 in blink::Canvas2DLayerBridge::flush() third_party/WebKit/Source/platform/graphics/Canvas2DLayerBridge.cpp:718:5
+    #17 0x7f2522c7989e in blink::Canvas2DLayerBridge::flushGpu() third_party/WebKit/Source/platform/graphics/Canvas2DLayerBridge.cpp:725:5
+    #18 0x7f2522c7e831 in blink::Canvas2DLayerBridge::didProcessTask() third_party/WebKit/Source/platform/graphics/Canvas2DLayerBridge.cpp:955:13
+    #19 0x7f2522954c5d in scheduler::TaskQueueManager::ProcessTaskFromWorkQueue(scheduler::internal::WorkQueue*, scheduler::internal::TaskQueueImpl::Task*) components/scheduler/base/task_queue_manager.cc:325:5
+    #20 0x7f252294baed in scheduler::TaskQueueManager::DoWork(base::TimeTicks, bool) components/scheduler/base/task_queue_manager.cc:218:13
+    #21 0x7f2515d15889 in Run base/callback.h:389:12
+    #22 0x7f2515d15889 in base::debug::TaskAnnotator::RunTask(char const*, base::PendingTask const&) base/debug/task_annotator.cc:51
+    #23 0x7f2515a2eac7 in base::MessageLoop::RunTask(base::PendingTask const&) base/message_loop/message_loop.cc:496:19
+    #24 0x7f2515a30bef in base::MessageLoop::DeferOrRunPendingTask(base::PendingTask) base/message_loop/message_loop.cc:505:5
+    #25 0x7f2515a3402b in base::MessageLoop::DoDelayedWork(base::TimeTicks*) base/message_loop/message_loop.cc:668:10
+
+  Uninitialized value was stored to memory at
+    #0 0x7f25180df5d7 in SkPathPriv::IsSimpleClosedRect(SkPath const&, SkRect*, SkPath::Direction*, unsigned int*) third_party/skia/src/core/SkPath.cpp:3370:11
+    #1 0x7f2518506235 in GrShape::attemptToSimplifyPath() third_party/skia/src/gpu/GrShape.cpp:327:16
+    #2 0x7f251843630c in GrShape third_party/skia/src/gpu/GrShape.h:47:15
+    #3 0x7f251843630c in GrDrawContext::internalDrawPath(GrClip const&, GrPaint const&, SkMatrix const&, SkPath const&, GrStyle const&) third_party/skia/src/gpu/GrDrawContext.cpp:1187
+    #4 0x7f251844dc41 in GrDrawContext::drawPath(GrClip const&, GrPaint const&, SkMatrix const&, SkPath const&, GrStyle const&) third_party/skia/src/gpu/GrDrawContext.cpp:1102:11
+    #5 0x7f2518e3f23f in GrBlurUtils::drawPathWithMaskFilter(GrContext*, GrDrawContext*, GrClip const&, SkPath const&, SkPaint const&, SkMatrix const&, SkMatrix const*, SkIRect const&, bool) third_party/skia/src/gpu/GrBlurUtils.cpp:299:22
+    #6 0x7f25187eb828 in SkGpuDevice::drawPath(SkDraw const&, SkPath const&, SkPaint const&, SkMatrix const*, bool) third_party/skia/src/gpu/SkGpuDevice.cpp:760:5
+    #7 0x7f2517f240e3 in SkCanvas::onDrawPath(SkPath const&, SkPaint const&) third_party/skia/src/core/SkCanvas.cpp:2268:23
+    #8 0x7f251817337b in draw<SkRecords::DrawPath> third_party/skia/src/core/SkRecordDraw.cpp:107:1
+    #9 0x7f251817337b in operator()<SkRecords::DrawPath> third_party/skia/src/core/SkRecordDraw.h:62
+    #10 0x7f251817337b in decltype ({parm#1}((SkRecords::NoOp)())) SkRecord::Record::visit<SkRecords::Draw&>(SkRecords::Draw&) const third_party/skia/src/core/SkRecord.h:170
+    #11 0x7f251816ffb2 in visit<SkRecords::Draw &> third_party/skia/src/core/SkRecord.h:51:28
+    #12 0x7f251816ffb2 in SkRecordDraw(SkRecord const&, SkCanvas*, SkPicture const* const*, SkDrawable* const*, int, SkBBoxHierarchy const*, SkPicture::AbortCallback*) third_party/skia/src/core/SkRecordDraw.cpp:54
+    #13 0x7f251888ceb3 in SkBigPicture::playback(SkCanvas*, SkPicture::AbortCallback*) const third_party/skia/src/core/SkBigPicture.cpp:35:5
+    #14 0x7f2522c71193 in blink::Canvas2DLayerBridge::flushRecordingOnly() third_party/WebKit/Source/platform/graphics/Canvas2DLayerBridge.cpp:706:49
+    #15 0x7f2522c72fd6 in blink::Canvas2DLayerBridge::flush() third_party/WebKit/Source/platform/graphics/Canvas2DLayerBridge.cpp:718:5
+    #16 0x7f2522c7989e in blink::Canvas2DLayerBridge::flushGpu() third_party/WebKit/Source/platform/graphics/Canvas2DLayerBridge.cpp:725:5
+    #17 0x7f2522c7e831 in blink::Canvas2DLayerBridge::didProcessTask() third_party/WebKit/Source/platform/graphics/Canvas2DLayerBridge.cpp:955:13
+    #18 0x7f2522954c5d in scheduler::TaskQueueManager::ProcessTaskFromWorkQueue(scheduler::internal::WorkQueue*, scheduler::internal::TaskQueueImpl::Task*) components/scheduler/base/task_queue_manager.cc:325:5
+    #19 0x7f252294baed in scheduler::TaskQueueManager::DoWork(base::TimeTicks, bool) components/scheduler/base/task_queue_manager.cc:218:13
+    #20 0x7f2515d15889 in Run base/callback.h:389:12
+    #21 0x7f2515d15889 in base::debug::TaskAnnotator::RunTask(char const*, base::PendingTask const&) base/debug/task_annotator.cc:51
+    #22 0x7f2515a2eac7 in base::MessageLoop::RunTask(base::PendingTask const&) base/message_loop/message_loop.cc:496:19
+    #23 0x7f2515a30bef in base::MessageLoop::DeferOrRunPendingTask(base::PendingTask) base/message_loop/message_loop.cc:505:5
+    #24 0x7f2515a3402b in base::MessageLoop::DoDelayedWork(base::TimeTicks*) base/message_loop/message_loop.cc:668:10
+
+  Uninitialized value was created
+    <empty stack>
+
+SUMMARY: MemorySanitizer: use-of-uninitialized-value (/mnt/scratch0/clusterfuzz/bot/builds/chromium-browser-msan_linux-release_f410a434006030e5a0745c56c98e77f5ab2bad97/symbolized/release/msan-chained-origins-linux-release-406549/chrome+0x158a9f6c)
+Exiting

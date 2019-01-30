@@ -1,0 +1,143 @@
+List of tests used for mutation:
+spidermonkey/test262/language/statements/class/fields-same-line-async-gen-literal-names.js
+v8/test/mjsunit/regress/regress-1119.js
+spidermonkey/test262/language/statements/for-await-of/async-func-dstr-var-ary-ptrn-elision-step-err.js
+spidermonkey/test262/language/expressions/class/fields-after-same-line-static-async-method-string-literal-names.js
+v8/test/mjsunit/regress/regress-6991.js
+spidermonkey/non262/Array/unscopables.js
+spidermonkey/non262/Intl/NumberFormat/call.js
+Caught: Error: got own properties false, expected false
+Caught: TypeError: Assertion failed: got "[object Object]", expected "null"
+Caught: Error: Assertion failed: got "undefined", expected "[object Object]"
+false
+Caught: Error: got own properties false, expected false
+Caught: TypeError: Assertion failed: got "function Object() { [native code] }", expected "true"
+Caught: TypeError: Assertion failed: got "function Function() { [native code] }", expected "true"
+Caught: TypeError: Assertion failed: got "function Array() { [native code] }", expected "true"
+Caught: TypeError: Assertion failed: got "function Number() { [native code] }", expected "true"
+Caught: TypeError: Assertion failed: got "function parseFloat() { [native code] }", expected "true"
+Caught: TypeError: Assertion failed: got "function parseInt() { [native code] }", expected "true"
+Caught: TypeError: Assertion failed: got "Infinity", expected "true"
+Caught: TypeError: Assertion failed: got "NaN", expected "true"
+Caught: TypeError: Assertion failed: got "undefined", expected "true"
+Caught: TypeError: Assertion failed: got "function Boolean() { [native code] }", expected "true"
+Caught: TypeError: Assertion failed: got "function String() { [native code] }", expected "true"
+Caught: TypeError: Assertion failed: got "function Symbol() { [native code] }", expected "true"
+Caught: TypeError: Assertion failed: got "function Date() { [native code] }", expected "true"
+Caught: TypeError: Assertion failed: got "function Promise() { [native code] }", expected "true"
+Caught: TypeError: Assertion failed: got "function RegExp() { [native code] }", expected "true"
+Caught: TypeError: Assertion failed: got "function Error() { [native code] }", expected "true"
+Caught: TypeError: Assertion failed: got "function EvalError() { [native code] }", expected "true"
+Caught: TypeError: Assertion failed: got "function RangeError() { [native code] }", expected "true"
+Caught: TypeError: Assertion failed: got "function ReferenceError() { [native code] }", expected "true"
+Caught: TypeError: Assertion failed: got "function SyntaxError() { [native code] }", expected "true"
+Caught: TypeError: Assertion failed: got "function TypeError() { [native code] }", expected "true"
+Caught: TypeError: Assertion failed: got "function URIError() { [native code] }", expected "true"
+Caught: TypeError: Assertion failed: got "[object JSON]", expected "true"
+Caught: TypeError: Assertion failed: got "[object Math]", expected "true"
+Caught: TypeError: Assertion failed: got "[object Object]", expected "true"
+Caught: TypeError: Assertion failed: got "[object Object]", expected "true"
+Caught: TypeError: Assertion failed: got "function ArrayBuffer() { [native code] }", expected "true"
+Caught: TypeError: Assertion failed: got "function Uint8Array() { [native code] }", expected "true"
+Caught: TypeError: Assertion failed: got "function Int8Array() { [native code] }", expected "true"
+Caught: TypeError: Assertion failed: got "function Uint16Array() { [native code] }", expected "true"
+Caught: TypeError: Assertion failed: got "function Int16Array() { [native code] }", expected "true"
+Caught: TypeError: Assertion failed: got "function Uint32Array() { [native code] }", expected "true"
+Caught: TypeError: Assertion failed: got "function Int32Array() { [native code] }", expected "true"
+Caught: TypeError: Assertion failed: got "function Float32Array() { [native code] }", expected "true"
+Caught: TypeError: Assertion failed: got "function Float64Array() { [native code] }", expected "true"
+Caught: TypeError: Assertion failed: got "function Uint8ClampedArray() { [native code] }", expected "true"
+Caught: TypeError: Assertion failed: got "function DataView() { [native code] }", expected "true"
+Caught: TypeError: Assertion failed: got "function Map() { [native code] }", expected "true"
+Caught: TypeError: Assertion failed: got "function Set() { [native code] }", expected "true"
+Caught: TypeError: Assertion failed: got "function WeakMap() { [native code] }", expected "true"
+Caught: TypeError: Assertion failed: got "function WeakSet() { [native code] }", expected "true"
+Caught: TypeError: Assertion failed: got "function Proxy() { [native code] }", expected "true"
+Caught: TypeError: Assertion failed: got "[object Object]", expected "true"
+Caught: TypeError: Assertion failed: got "function decodeURI() { [native code] }", expected "true"
+Caught: TypeError: Assertion failed: got "function decodeURIComponent() { [native code] }", expected "true"
+Caught: TypeError: Assertion failed: got "function encodeURI() { [native code] }", expected "true"
+Caught: TypeError: Assertion failed: got "function encodeURIComponent() { [native code] }", expected "true"
+Caught: TypeError: Assertion failed: got "function escape() { [native code] }", expected "true"
+Caught: TypeError: Assertion failed: got "function unescape() { [native code] }", expected "true"
+Caught: TypeError: Assertion failed: got "function eval() { [native code] }", expected "true"
+Caught: TypeError: Assertion failed: got "function isFinite() { [native code] }", expected "true"
+Caught: TypeError: Assertion failed: got "function isNaN() { [native code] }", expected "true"
+Caught: TypeError: Assertion failed: got "function log() { [native code] }", expected "true"
+Caught: TypeError: Assertion failed: got "function printErr() { [native code] }", expected "true"
+Caught: TypeError: Assertion failed: got "function write() { [native code] }", expected "true"
+Caught: TypeError: Assertion failed: got "function read() { [native code] }", expected "true"
+Caught: TypeError: Assertion failed: got "function readbuffer() { [native code] }", expected "true"
+Caught: TypeError: Assertion failed: got "function readline() { [native code] }", expected "true"
+Caught: TypeError: Assertion failed: got "function load() { [native code] }", expected "true"
+Caught: TypeError: Assertion failed: got "function setTimeout() { [native code] }", expected "true"
+Caught: TypeError: Assertion failed: got "function nop(){return false;}", expected "true"
+Caught: TypeError: Assertion failed: got "[object Object]", expected "true"
+Caught: TypeError: Assertion failed: got "function version() { [native code] }", expected "true"
+Caught: TypeError: Assertion failed: got "[object Object]", expected "true"
+Caught: TypeError: Assertion failed: got "[object Object]", expected "true"
+Caught: TypeError: Assertion failed: got "function Worker() { [native code] }", expected "true"
+Caught: TypeError: Assertion failed: got "[object Object]", expected "true"
+Caught: TypeError: Assertion failed: got "function SharedArrayBuffer() { [native code] }", expected "true"
+Caught: TypeError: Assertion failed: got "[object Atomics]", expected "true"
+Caught: TypeError: Assertion failed: got "[object WebAssembly]", expected "true"
+Caught: TypeError: Assertion failed: got "", expected "true"
+Caught: TypeError: Assertion failed: got "function MjsUnitAssertionError(message){this.message=message;let prevPrepareStackTrace=Error.prepareStackTrace;try{Error.prepareStackTrace=MjsUnitAssertionError.prepareStackTrace;this.stack=new Error("MjsUnitAssertionError").stack;}finally{Error.prepareStackTrace=prevPrepareStackTrace;}}", expected "true"
+Caught: TypeError: Assertion failed: got "function assertSame(expected,found,name_opt){if(found===expected){if(expected!==0||(1/expected)===(1/found))return;}else if((expected!==expected)&&(found!==found)){return;}
+fail(PrettyPrint(expected),found,name_opt);}", expected "true"
+Caught: TypeError: Assertion failed: got "function assertEquals(expected,found,name_opt){if(!deepEquals(found,expected)){fail(PrettyPrint(expected),found,name_opt);}}", expected "true"
+Caught: TypeError: Assertion failed: got "function assertNotEquals(expected,found,name_opt){if(deepEquals(found,expected)){fail("not equals to "+PrettyPrint(expected),found,name_opt);}}", expected "true"
+Caught: TypeError: Assertion failed: got "function assertEqualsDelta(expected,found,delta,name_opt){if(Math.abs(expected-found)>delta){fail(PrettyPrint(expected)+" +- "+PrettyPrint(delta),found,name_opt);}}", expected "true"
+Caught: TypeError: Assertion failed: got "function assertArrayEquals(expected,found,name_opt){var start="";if(name_opt){start=name_opt+" - ";}
+assertEquals(expected.length,found.length,start+"array length");if(expected.length===found.length){for(var i=0;i<expected.length;++i){assertEquals(expected[i],found[i],start+"array element at index "+i);}}}", expected "true"
+Caught: TypeError: Assertion failed: got "function assertPropertiesEqual(expected,found,name_opt){if(!deepObjectEquals(expected,found)){fail(expected,found,name_opt);}}", expected "true"
+Caught: TypeError: Assertion failed: got "function assertToStringEquals(expected,found,name_opt){if(expected!==String(found)){fail(expected,found,name_opt);}}", expected "true"
+Caught: TypeError: Assertion failed: got "function assertTrue(value,name_opt){assertEquals(true,value,name_opt);}", expected "true"
+Caught: TypeError: Assertion failed: got "function assertFalse(value,name_opt){assertEquals(false,value,name_opt);}", expected "true"
+Caught: TypeError: Assertion failed: got "function assertNull(value,name_opt){if(value!==null){fail("null",value,name_opt);}}", expected "true"
+Caught: TypeError: Assertion failed: got "function assertNotNull(value,name_opt){if(value===null){fail("not null",value,name_opt);}}", expected "true"
+Caught: TypeError: Assertion failed: got "function assertThrows(f) {
+var ok = false;
+try {
+f();
+} catch (exc) {
+ok = true;
+}
+if (!ok)
+throw new Error(`Assertion failed: ${f} did not throw as expected`);
+}", expected "true"
+Caught: TypeError: Assertion failed: got "function assertThrowsEquals(fun,val){try{fun();}catch(e){assertEquals(val,e);return;}
+failWithMessage("Did not throw exception");}", expected "true"
+Caught: TypeError: Assertion failed: got "function assertDoesNotThrow(code,name_opt){try{if(typeof code==='function'){return code();}else{return eval(code);}}catch(e){failWithMessage("threw an exception: "+(e.message||e));}}", expected "true"
+Caught: TypeError: Assertion failed: got "function assertInstanceof(obj,type){if(!(obj instanceof type)){var actualTypeName=null;var actualConstructor=Object.getPrototypeOf(obj).constructor;if(typeof actualConstructor==="function"){actualTypeName=actualConstructor.name||String(actualConstructor);}
+failWithMessage("Object <"+PrettyPrint(obj)+"> is not an instance of <"+
+(type.name||type)+">"+
+(actualTypeName?" but of <"+actualTypeName+">":""));}}", expected "true"
+Caught: TypeError: Assertion failed: got "function assertUnreachable(name_opt){var message="Fail"+"ure: unreachable";if(name_opt){message+=" - "+name_opt;}
+failWithMessage(message);}", expected "true"
+Caught: TypeError: Assertion failed: got "function assertOptimized(fun,sync_opt,name_opt,skip_if_maybe_deopted=true){if(sync_opt===undefined)sync_opt="";var opt_status=OptimizationStatus(fun,sync_opt);assertFalse((opt_status&V8OptimizationStatus.kNeverOptimize)!==0,"test does not make sense with --no-opt");assertTrue((opt_status&V8OptimizationStatus.kIsFunction)!==0,name_opt);if(skip_if_maybe_deopted&&(opt_status&V8OptimizationStatus.kMaybeDeopted)!==0){return;}
+assertTrue((opt_status&V8OptimizationStatus.kOptimized)!==0,name_opt);}", expected "true"
+Caught: TypeError: Assertion failed: got "function assertUnoptimized(fun,sync_opt,name_opt,skip_if_maybe_deopted=true){if(sync_opt===undefined)sync_opt="";var opt_status=OptimizationStatus(fun,sync_opt);assertFalse((opt_status&V8OptimizationStatus.kAlwaysOptimize)!==0,"test does not make sense with --always-opt");assertTrue((opt_status&V8OptimizationStatus.kIsFunction)!==0,name_opt);if(skip_if_maybe_deopted&&(opt_status&V8OptimizationStatus.kMaybeDeopted)!==0){return;}
+assertFalse((opt_status&V8OptimizationStatus.kOptimized)!==0,name_opt);}", expected "true"
+Caught: TypeError: Assertion failed: got "function(sub,value,name_opt){if(value==null?(sub!=null):value.indexOf(sub)==-1){fail("contains '"+String(sub)+"'",value,name_opt);}}", expected "true"
+Caught: TypeError: Assertion failed: got "function(regexp,str,name_opt){if(!(regexp instanceof RegExp)){regexp=new RegExp(regexp);}
+if(!str.match(regexp)){fail("should match '"+regexp+"'",str,name_opt);}}", expected "true"
+Caught: TypeError: Assertion failed: got "function(promise,success,fail){if(!success)success=()=>{};failWithMessage=(msg)=>eval("nop(msg)");if(!fail){fail=result=>failWithMessage("assertPromiseResult failed: "+result);}
+var test_promise=promise.then(result=>{try{success(result);}catch(e){failWithMessage(String(e));}},result=>{fail(result);}).then((x)=>{if(--promiseTestCount==0)testRunner.notifyDone();});if(!promiseTestChain)promiseTestChain=Promise.resolve();testRunner.waitUntilDone();++promiseTestCount;return promiseTestChain.then(test_promise);}", expected "true"
+Caught: TypeError: Assertion failed: got "undefined", expected "true"
+Caught: TypeError: Assertion failed: got "0", expected "true"
+Caught: TypeError: Assertion failed: got "[object Object]", expected "true"
+Caught: TypeError: Assertion failed: got "function isNeverOptimize(){var opt_status=OptimizationStatus(undefined,"");return(opt_status&V8OptimizationStatus.kNeverOptimize)!==0;}", expected "true"
+Caught: TypeError: Assertion failed: got "function isAlwaysOptimize(){var opt_status=OptimizationStatus(undefined,"");return(opt_status&V8OptimizationStatus.kAlwaysOptimize)!==0;}", expected "true"
+Caught: TypeError: Assertion failed: got "function isInterpreted(fun){var opt_status=OptimizationStatus(fun,"");assertTrue((opt_status&V8OptimizationStatus.kIsFunction)!==0,"not a function");return(opt_status&V8OptimizationStatus.kOptimized)===0&&(opt_status&V8OptimizationStatus.kInterpreted)!==0;}", expected "true"
+Caught: TypeError: Assertion failed: got "function isOptimized(fun){var opt_status=OptimizationStatus(fun,"");assertTrue((opt_status&V8OptimizationStatus.kIsFunction)!==0,"not a function");return(opt_status&V8OptimizationStatus.kOptimized)!==0;}", expected "true"
+Caught: TypeError: Assertion failed: got "function isCrankshafted(fun){var opt_status=OptimizationStatus(fun,"");assertTrue((opt_status&V8OptimizationStatus.kIsFunction)!==0,"not a function");return(opt_status&V8OptimizationStatus.kOptimized)!==0&&(opt_status&V8OptimizationStatus.kTurboFanned)===0;}", expected "true"
+Caught: TypeError: Assertion failed: got "function isTurboFanned(fun){var opt_status=OptimizationStatus(fun,"");assertTrue((opt_status&V8OptimizationStatus.kIsFunction)!==0,"not a function");return(opt_status&V8OptimizationStatus.kOptimized)!==0&&(opt_status&V8OptimizationStatus.kTurboFanned)!==0;}", expected "true"
+Caught: TypeError: Assertion failed: got "function(test,name){let assert=new AsyncAssertion(test,name);test(assert);eval("nop()");assert.done_();}", expected "true"
+Caught: TypeError: Assertion failed: got "function nop(){return false;}", expected "true"
+Caught: TypeError: Assertion failed: got "function __isPropertyOfType(obj,name,type){let desc;try{desc=Object.getOwnPropertyDescriptor(obj,name);}catch(e){return false;}
+if(!desc)
+return false;return typeof type==='undefined'||typeof desc.value===type;}", expected "true"
+Caught: TypeError: Assertion failed: got "function __getProperties(obj,type){if(typeof obj==="undefined"||obj===null)
+return[];let properties=[];for(let name of Object.getOwnPropertyNames(obj)){if(__isPropertyOfType(obj,name,type))
+properties.push(name);}

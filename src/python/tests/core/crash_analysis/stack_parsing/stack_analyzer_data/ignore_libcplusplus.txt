@@ -1,0 +1,36 @@
+libc++abi.dylib: terminating with uncaught exception of type std::length_error: vector
+AddressSanitizer:DEADLYSIGNAL
+=================================================================
+==29939==ERROR: AddressSanitizer: ABRT on unknown address 0x7fff94dd7f06 (pc 0x7fff94dd7f06 bp 0x7fff5a49dcd0 sp 0x7fff5a49dca8 T0)
+SCARINESS: 10 (signal)
+    #0 0x7fff94dd7f05 in __pthread_kill
+    #1 0x7fff8733c6de in abort
+    #2 0x7fff8e1abc10  (/usr/lib/libc++abi.dylib:x86_64+0xc10)
+    #3 0x7fff8e1d1dfe  (/usr/lib/libc++abi.dylib:x86_64+0x26dfe)
+    #2 0x7fff86bef4a5 in _objc_terminate()
+    #5 0x7fff8e1cf00d  (/usr/lib/libc++abi.dylib:x86_64+0x2400d)
+    #6 0x7fff8e1cea79  (/usr/lib/libc++abi.dylib:x86_64+0x23a79)
+    #7 0x7fff820ec726  (/usr/lib/libc++.1.dylib:x86_64+0x3a726)
+    #3 0x1058ea0b7 in std::__1::vector<sfntly::Ptr<sfntly::IndexSubTable::Builder>, std::__1::allocator<sfntly::Ptr<sfntly::IndexSubTable::Builder> > >::__recommend(unsigned long) const third_party/llvm-build/Release+Asserts/include/c++/v1/vector:1010:15
+    #4 0x1058e9bf0 in std::__1::vector<sfntly::Ptr<sfntly::IndexSubTable::Builder>, std::__1::allocator<sfntly::Ptr<sfntly::IndexSubTable::Builder> > >::__append(unsigned long) third_party/llvm-build/Release+Asserts/include/c++/v1/vector:1087:57
+    #5 0x1058e4a36 in sfntly::BitmapSizeTable::Builder::Initialize(sfntly::ReadableFontData*) third_party/sfntly/src/cpp/src/sfntly/table/bitmap/bitmap_size_table.cc:465:23
+    #6 0x1058e3308 in sfntly::BitmapSizeTable::Builder::GetIndexSubTableBuilders() third_party/sfntly/src/cpp/src/sfntly/table/bitmap/bitmap_size_table.cc:454:5
+    #7 0x1057e11bc in (anonymous namespace)::InitializeBitmapBuilder(sfntly::EbdtTable::Builder*, sfntly::EblcTable::Builder*, std::__1::set<int, std::__1::less<int>, std::__1::allocator<int> > const&) third_party/sfntly/src/cpp/src/sample/chromium/subsetter_impl.cc:324:24
+    #8 0x1057e0653 in sfntly::SetupBitmapBuilders(sfntly::Font*, sfntly::Font::Builder*, std::__1::set<int, std::__1::less<int>, std::__1::allocator<int> > const&) third_party/sfntly/src/cpp/src/sample/chromium/subsetter_impl.cc:607:8
+    #9 0x1057e40da in sfntly::SubsetterImpl::Subset(std::__1::set<int, std::__1::less<int>, std::__1::allocator<int> > const&, sfntly::GlyphTable*, sfntly::LocaTable*) third_party/sfntly/src/cpp/src/sample/chromium/subsetter_impl.cc:776:22
+    #10 0x1057e2c4c in sfntly::SubsetterImpl::SubsetFont(unsigned int const*, unsigned long, unsigned char**) third_party/sfntly/src/cpp/src/sample/chromium/subsetter_impl.cc:685:19
+    #11 0x1057df7ce in SfntlyWrapper::SubsetFont(char const*, unsigned char const*, unsigned long, unsigned int const*, unsigned long, unsigned char**) third_party/sfntly/src/cpp/src/sample/chromium/font_subsetter.cc:38:20
+    #12 0x10576054f in LLVMFuzzerTestOneInput third_party/sfntly/fuzzers/subset_font_fuzzer.cc:35:3
+    #13 0x10579676a in fuzzer::Fuzzer::ExecuteCallback(unsigned char const*, unsigned long) third_party/libFuzzer/src/FuzzerLoop.cpp:571:15
+    #14 0x10576f876 in fuzzer::RunOneTest(fuzzer::Fuzzer*, char const*, unsigned long) third_party/libFuzzer/src/FuzzerDriver.cpp:280:6
+    #15 0x1057744b6 in fuzzer::FuzzerDriver(int*, char***, int (*)(unsigned char const*, unsigned long)) third_party/libFuzzer/src/FuzzerDriver.cpp:713:9
+    #16 0x1057b4c51 in main third_party/libFuzzer/src/FuzzerMain.cpp:20:10
+    #17 0x7fff93ca35ac in start
+==29939==Register values:
+rax = 0x0000000000000000  rbx = 0x0000000000000006  rcx = 0x00007fff5a49dca8  rdx = 0x0000000000000000
+rdi = 0x000000000000050f  rsi = 0x0000000000000006  rbp = 0x00007fff5a49dcd0  rsp = 0x00007fff5a49dca8
+ r8 = 0x0000000000000001   r9 = 0x0000000000000008  r10 = 0x0000000008000000  r11 = 0x0000000000000206
+r12 = 0x00007fff5a49de30  r13 = 0x00001000217593c0  r14 = 0x00007fff72252000  r15 = 0x00007fff5a49dd10
+AddressSanitizer can not provide additional info.
+SUMMARY: AddressSanitizer: ABRT (/usr/lib/system/libsystem_kernel.dylib:x86_64+0x16f05)
+==29939==ABORTING

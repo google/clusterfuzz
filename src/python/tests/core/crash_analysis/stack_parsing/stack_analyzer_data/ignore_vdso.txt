@@ -1,0 +1,54 @@
+[1:1:0308/122440.968711:FATAL:SimplifiedBackwardsTextIterator.cpp(243)] Check failed: static_cast<unsigned>(text_offset + text_length) <= text.length() (1056 vs. 1027)
+AddressSanitizer:DEADLYSIGNAL
+=================================================================
+==1==ERROR: AddressSanitizer: ABRT on unknown address 0x00000001 (pc 0xf77b6be9 bp 0xffa51818 sp 0xffa516a8 T0)
+SCARINESS: 10 (signal)
+    #0 0xf77b6be8 in [vdso]
+    #1 0x626b2849 in logging::LogMessage::~LogMessage() ../../base/logging.cc:842:7
+    #2 0x6e1571f0 in blink::SimplifiedBackwardsTextIteratorAlgorithm<blink::EditingAlgorithm<blink::NodeTraversal> >::HandleTextNode() ../../third_party/WebKit/Source/core/editing/iterators/SimplifiedBackwardsTextIterator.cpp:243:3
+    #3 0x6e154dcf in blink::SimplifiedBackwardsTextIteratorAlgorithm<blink::EditingAlgorithm<blink::NodeTraversal> >::Advance() ../../third_party/WebKit/Source/core/editing/iterators/SimplifiedBackwardsTextIterator.cpp:155:27
+    #4 0x6e154694 in blink::SimplifiedBackwardsTextIteratorAlgorithm<blink::EditingAlgorithm<blink::NodeTraversal> >::Init(blink::Node const*, blink::Node const*, int, int) ../../third_party/WebKit/Source/core/editing/iterators/SimplifiedBackwardsTextIterator.cpp:130:3
+    #5 0x6e154353 in blink::SimplifiedBackwardsTextIteratorAlgorithm<blink::EditingAlgorithm<blink::NodeTraversal> >::SimplifiedBackwardsTextIteratorAlgorithm(blink::EphemeralRangeTemplate<blink::EditingAlgorithm<blink::NodeTraversal> > const&, blink::TextIteratorBehavior const&) ../../third_party/WebKit/Source/core/editing/iterators/SimplifiedBackwardsTextIterator.cpp:89:3
+    #6 0x6e144ad5 in blink::BackwardsCharacterIteratorAlgorithm<blink::EditingAlgorithm<blink::NodeTraversal> >::BackwardsCharacterIteratorAlgorithm(blink::EphemeralRangeTemplate<blink::EditingAlgorithm<blink::NodeTraversal> > const&, blink::TextIteratorBehavior const&) ../../third_party/WebKit/Source/core/editing/iterators/BackwardsCharacterIterator.cpp:42:7
+    #7 0x6e24dad7 in CalculateHotModeCheckingRange ../../third_party/WebKit/Source/core/editing/spellcheck/HotModeSpellCheckRequester.cpp:82:30
+    #8 0x6e24dad7 in blink::HotModeSpellCheckRequester::CheckSpellingAt(blink::PositionTemplate<blink::EditingAlgorithm<blink::NodeTraversal> > const&) ../../third_party/WebKit/Source/core/editing/spellcheck/HotModeSpellCheckRequester.cpp:124
+    #9 0x6e23d195 in blink::IdleSpellCheckCallback::HotModeInvocation(blink::IdleDeadline*) ../../third_party/WebKit/Source/core/editing/spellcheck/IdleSpellCheckCallback.cpp:147:13
+    #10 0x6e23e2ce in blink::IdleSpellCheckCallback::invoke(blink::IdleDeadline*) ../../third_party/WebKit/Source/core/editing/spellcheck/IdleSpellCheckCallback.cpp:179:5
+    #11 0x75d6d2e7 in blink::ScriptedIdleTaskController::RunCallback(int, double, blink::IdleDeadline::CallbackType) ../../third_party/WebKit/Source/core/dom/ScriptedIdleTaskController.cpp:234:14
+    #12 0x75d6c9dc in blink::ScriptedIdleTaskController::CallbackFired(int, double, blink::IdleDeadline::CallbackType) ../../third_party/WebKit/Source/core/dom/ScriptedIdleTaskController.cpp:204:3
+    #13 0x75d6b944 in blink::internal::IdleRequestCallbackWrapper::TimeoutFired(scoped_refptr<blink::internal::IdleRequestCallbackWrapper>) ../../third_party/WebKit/Source/core/dom/ScriptedIdleTaskController.cpp:59:19
+    #14 0x75d72eb1 in Invoke<scoped_refptr<blink::internal::IdleRequestCallbackWrapper> > ../../base/bind_internal.h:402:12
+    #15 0x75d72eb1 in MakeItSo<void (*)(scoped_refptr<blink::internal::IdleRequestCallbackWrapper>), scoped_refptr<blink::internal::IdleRequestCallbackWrapper> > ../../base/bind_internal.h:530
+    #16 0x75d72eb1 in RunImpl<void (*)(scoped_refptr<blink::internal::IdleRequestCallbackWrapper>), std::__1::tuple<scoped_refptr<blink::internal::IdleRequestCallbackWrapper> >, 0> ../../base/bind_internal.h:604
+    #17 0x75d72eb1 in base::internal::Invoker<base::internal::BindState<void (*)(scoped_refptr<blink::internal::IdleRequestCallbackWrapper>), scoped_refptr<blink::internal::IdleRequestCallbackWrapper> >, void ()>::RunOnce(base::internal::BindStateBase*) ../../base/bind_internal.h:572
+    #18 0x62646a9f in Run ../../base/callback.h:95:12
+    #19 0x62646a9f in base::debug::TaskAnnotator::RunTask(char const*, base::PendingTask*) ../../base/debug/task_annotator.cc:61
+    #20 0x60f3203c in blink::scheduler::internal::ThreadControllerImpl::DoWork(blink::scheduler::internal::SequencedTaskSource::WorkType) ../../third_party/WebKit/Source/platform/scheduler/base/thread_controller_impl.cc:162:21
+    #21 0x60f36e24 in Invoke<const base::WeakPtr<blink::scheduler::internal::ThreadControllerImpl> &, const blink::scheduler::internal::SequencedTaskSource::WorkType &> ../../base/bind_internal.h:447:12
+    #22 0x60f36e24 in MakeItSo<void (blink::scheduler::internal::ThreadControllerImpl::*const &)(blink::scheduler::internal::SequencedTaskSource::WorkType), const base::WeakPtr<blink::scheduler::internal::ThreadControllerImpl> &, const blink::scheduler::internal::SequencedTaskSource::WorkType &> ../../base/bind_internal.h:550
+    #23 0x60f36e24 in RunImpl<void (blink::scheduler::internal::ThreadControllerImpl::*const &)(blink::scheduler::internal::SequencedTaskSource::WorkType), const std::__1::tuple<base::WeakPtr<blink::scheduler::internal::ThreadControllerImpl>, blink::scheduler::internal::SequencedTaskSource::WorkType> &, 0, 1> ../../base/bind_internal.h:604
+    #24 0x60f36e24 in base::internal::Invoker<base::internal::BindState<void (blink::scheduler::internal::ThreadControllerImpl::*)(blink::scheduler::internal::SequencedTaskSource::WorkType), base::WeakPtr<blink::scheduler::internal::ThreadControllerImpl>, blink::scheduler::internal::SequencedTaskSource::WorkType>, void ()>::Run(base::internal::BindStateBase*) ../../base/bind_internal.h:586
+    #25 0x62646a9f in Run ../../base/callback.h:95:12
+    #26 0x62646a9f in base::debug::TaskAnnotator::RunTask(char const*, base::PendingTask*) ../../base/debug/task_annotator.cc:61
+    #27 0x62946a03 in base::internal::IncomingTaskQueue::RunTask(base::PendingTask*) ../../base/message_loop/incoming_task_queue.cc:124:19
+    #28 0x626cf15e in base::MessageLoop::RunTask(base::PendingTask*) ../../base/message_loop/message_loop.cc:395:25
+    #29 0x626d13c3 in DeferOrRunPendingTask ../../base/message_loop/message_loop.cc:407:5
+    #30 0x626d13c3 in base::MessageLoop::DoWork() ../../base/message_loop/message_loop.cc:451
+    #31 0x626d642b in base::MessagePumpDefault::Run(base::MessagePump::Delegate*) ../../base/message_loop/message_pump_default.cc:37:31
+    #32 0x626cdc27 in Run ../../base/message_loop/message_loop.cc:346:12
+    #33 0x626cdc27 in non-virtual thunk to base::MessageLoop::Run(bool) ../../base/message_loop/message_loop.cc:0
+    #34 0x62791e4c in base::RunLoop::Run() ../../base/run_loop.cc:133:14
+    #35 0x709e25c7 in content::RendererMain(content::MainFunctionParams const&) ../../content/renderer/renderer_main.cc:227:23
+    #36 0x6163bafc in content::RunZygote(content::ContentMainDelegate*) ../../content/app/content_main_runner.cc:0:14
+    #37 0x6163dae7 in content::RunNamedProcessTypeMain(std::__1::basic_string<char, std::__1::char_traits<char>, std::__1::allocator<char> > const&, content::MainFunctionParams const&, content::ContentMainDelegate*) ../../content/app/content_main_runner.cc:431:12
+    #38 0x61640643 in content::ContentMainRunnerImpl::Run() ../../content/app/content_main_runner.cc:703:12
+    #39 0x61636ca3 in content::ContentServiceManagerMainDelegate::RunEmbedderProcess() ../../content/app/content_service_manager_main_delegate.cc:51:32
+    #40 0x61670564 in service_manager::Main(service_manager::MainParams const&) ../../services/service_manager/embedder/main.cc:453:29
+    #41 0x6163b048 in content::ContentMain(content::ContentMainParams const&) ../../content/app/content_main.cc:19:10
+    #42 0x5788aed7 in ChromeMain ../../chrome/app/chrome_main.cc:101:12
+    #43 0x5788ac37 in main ../../chrome/app/chrome_exe_main_aura.cc:17:10
+    #44 0xf5d21636 in __libc_start_main
+
+AddressSanitizer can not provide additional info.
+SUMMARY: AddressSanitizer: ABRT ([vdso]+0xbe8)
+==1==ABORTING

@@ -1,0 +1,192 @@
+<!--
+  Copyright 2018 Google LLC
+
+  Licensed under the Apache License, Version 2.0 (the "License");
+  you may not use this file except in compliance with the License.
+  You may obtain a copy of the License at
+
+       http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+-->
+<link rel="import" href="../../bower_components/polymer/polymer.html">
+<link rel="import" href="../../bower_components/paper-dialog/paper-dialog.html">
+<link rel="import" href="../../bower_components/paper-button/paper-button.html">
+<link rel="import" href="../../bower_components/paper-input/paper-input.html">
+<link rel="import" href="../../bower_components/paper-date-picker/paper-date-picker.html">
+<link rel="import" href="../../bower_components/paper-button-group/paper-button-group.html">
+<link rel="import" href="../../components/common/date-time-picker-style/date-time-picker-style.html">
+<link rel="import" href="../../components/common/if-else/if-else.html">
+
+<dom-module id="date-time-picker">
+  <template>
+    <style include="date-time-picker-style"></style>
+    <paper-dialog id="dialog" class="paper-date-picker-dialog" modal>
+      <div class="date-picker">
+        <template is="dom-if" if="[[minHour && maxHour]]">
+          <paper-date-picker min-date="[[getMinDate(minHour)]]" max-date="[[getMaxDate(maxHour)]]" date="{{selectedDate}}"></paper-date-picker>
+        </template>
+      </div>
+      <div class="hour-picker">
+        <paper-button-group selected="{{selectedHourOfDay}}">
+          <template is="dom-repeat" items="[[hourOptions]]">
+            <paper-button disabled$="[[shouldDisable(item, selectedDate, minHour, maxHour)]]" toggles name="[[item]]">[[formattedHour(item)]]</paper-button>
+          </template>
+        </paper-button-group>
+      </div>
+      <div class="remark">
+        The statistics have been aggregated until [[formatTime(maxHour)]].
+      </div>
+      <div class="error" hidden$="[[!showValidationError]]">
+        Please select time.
+      </div>
+      <div class="buttons">
+        <paper-button dialog-dismiss>Cancel</paper-button>
+        <paper-button on-tap="submit">OK</paper-button>
+      </div>
+    </paper-dialog>
+    <if-else condition="[[floatLabel]]">
+      <paper-input slot="t" on-tap="open" id="mainButton" always-float-label label="[[label]]" readonly value="[[formattedDate]]">
+        <iron-icon icon="arrow-drop-down" slot="suffix"></iron-icon>
+      </paper-input>
+      <paper-input slot="f" on-tap="open" id="mainButton" no-label-float readonly value="[[formattedDate]]">
+        <iron-icon icon="arrow-drop-down" slot="suffix"></iron-icon>
+      </paper-input>
+    </if-else>
+  </template>
+  <script>
+    MILLIS_IN_HOUR = 60 * 60 * 1000;
+
+    Polymer({
+      is: 'date-time-picker',
+      properties: {
+        selectedHour: {
+          type: Number,
+          notify: true
+        },
+        floatLabel: {
+          type: Boolean,
+          value: false
+        },
+        label: {
+          type: String,
+          value: "No label"
+        },
+        maxHour: {
+          type: Number,
+          value: 0
+        },
+        minHour: {
+          type: Number,
+          value: 0
+        },
+        selectedDate: {
+          type: Date,
+          value: () => { return new Date(); },
+          notify: true
+        },
+        selectedHourOfDay: {
+          type: Number,
+          notify: true
+        },
+        formattedDate: {
+          type: String
+        },
+        hourOptions: {
+          type: Array,
+          value: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17,
+                  18, 19, 20, 21, 22, 23]
+        },
+        showValidationError: {
+          type: Boolean,
+          value: false
+        }
+      },
+      observers: [
+          'changed(selectedHour)',
+      ],
+      formattedHour(hour) {
+        let sanitizedDate = new Date(1970, 1, 1, hour, 0, 0, 0);
+
+        return sanitizedDate.toLocaleTimeString('en-US', {hour: 'numeric'});
+      },
+      changed(selectedHour) {
+        let date = new Date(selectedHour * MILLIS_IN_HOUR);
+        date.setMinutes(0);
+        date.setSeconds(0);
+        date.setMilliseconds(0);
+
+        this.selectedDate = date;
+        this.selectedHourOfDay = date.getHours();
+        this.formattedDate = date.toLocaleDateString(
+            'en-US',
+            {weekday:'short', year:'numeric', month:'short', day:'numeric',
+             hour:'numeric'});
+
+        this.fire('selectedDate', this.selectedDate);
+        this.fire('selectedHourOfDay', this.selectedHourOfDay);
+        this.fire('formattedDate', this.formattedDate);
+      },
+      submit() {
+        if (this.selectedHourOfDay == null) {
+          this.showValidationError = true;
+          return;
+        }
+        this.showValidationError = false;
+
+        let sanitizedDate = new Date(
+            this.selectedDate.getFullYear(), this.selectedDate.getMonth(),
+            this.selectedDate.getDate(), this.selectedHourOfDay, 0, 0, 0);
+        this.selectedHour = parseInt(sanitizedDate.getTime() / MILLIS_IN_HOUR);
+        this.fire('submit');
+
+        this.$.dialog.close();
+      },
+      open() {
+        this.changed(this.selectedHour);
+        this.$.dialog.open();
+      },
+      formatTime(hours) {
+        let date = new Date(hours * MILLIS_IN_HOUR);
+        return date.toLocaleDateString(
+            'en-US',
+            {year: 'numeric', month: 'short', day: 'numeric', hour: 'numeric'});
+      },
+      getMinDate(hours) {
+        let date = new Date(hours * MILLIS_IN_HOUR);
+        date.setHours(0);
+        date.setMinutes(0);
+        date.setSeconds(0);
+        date.setMilliseconds(0);
+        return date;
+      },
+      getMaxDate(hours) {
+        let date = new Date(hours * MILLIS_IN_HOUR);
+        date.setHours(23);
+        date.setMinutes(59);
+        date.setSeconds(59);
+        date.setMilliseconds(999);
+        return date;
+      },
+      shouldDisable(item, selectedDate, minHour, maxHour) {
+        let sanitizedDate = new Date(
+            selectedDate.getFullYear(), selectedDate.getMonth(),
+            selectedDate.getDate(), 0, 0, 0, 0);
+        let hours = sanitizedDate.getTime() / MILLIS_IN_HOUR + item;
+
+        let disabled = (hours < minHour || hours > maxHour);
+        if (disabled && this.selectedHourOfDay == item) {
+          this.selectedHourOfDay = null;
+        }
+
+        return disabled;
+      }
+    });
+  </script>
+</dom-module>
+
+

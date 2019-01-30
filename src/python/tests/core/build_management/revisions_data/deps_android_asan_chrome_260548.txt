@@ -1,0 +1,4 @@
+vars = {
+  "clank_revision": "6352abaaa45613ba44f1ae3cfc2d7b0ce071c48c",
+  "chromium_revision": "336903",
+}

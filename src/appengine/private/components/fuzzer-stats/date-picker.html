@@ -1,0 +1,83 @@
+<!--
+  Copyright 2018 Google LLC
+
+  Licensed under the Apache License, Version 2.0 (the "License");
+  you may not use this file except in compliance with the License.
+  You may obtain a copy of the License at
+
+       http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+-->
+<link rel="import" href="../../bower_components/polymer/polymer.html">
+<link rel="import" href="../../bower_components/paper-dialog/paper-dialog.html">
+<link rel="import" href="../../bower_components/paper-button/paper-button.html">
+<link rel="import" href="../../bower_components/paper-input/paper-input.html">
+<link rel="import" href="../../bower_components/paper-date-picker/paper-date-picker.html">
+<link rel="import" href="../../bower_components/paper-button-group/paper-button-group.html">
+<link rel="import" href="../../components/common/date-time-picker-style/date-time-picker-style.html">
+
+<dom-module id="date-picker">
+  <template>
+    <style include="date-time-picker-style"></style>
+    <paper-dialog id="dialog" class="paper-date-picker-dialog" modal>
+      <div class="date-picker">
+        <paper-date-picker date="{{selectedDate}}"></paper-date-picker>
+      </div>
+      <div class="buttons">
+        <paper-button dialog-dismiss>Cancel</paper-button>
+        <paper-button on-tap="submit">OK</paper-button>
+      </div>
+    </paper-dialog>
+    <paper-input on-tap="open" id="mainButton" always-float-label label="[[label]]" readonly value="[[selectedDateString]]">
+      <iron-icon icon="arrow-drop-down" slot="suffix"></iron-icon>
+    </paper-input>
+  </template>
+  <script>
+    Polymer({
+      is: 'date-picker',
+      properties: {
+        label: {
+          type: String,
+          value: "No label"
+        },
+        selectedDate: {
+          type: Date
+        },
+        value:  {
+          type: String,
+          notify: true
+        },
+        selectedDateString: {
+          type: String,
+          computed: 'computeSelectedDateString(value)'
+        }
+      },
+      submit() {
+        this.value = this.selectedDate.toISOString().slice(0, 10);
+        this.fire('submit');
+        this.$.dialog.close();
+      },
+      open() {
+        let date = new Date(this.value);
+        this.selectedDate = new Date(
+            date.getTime() + date.getTimezoneOffset()*60000);
+        this.$.dialog.open();
+      },
+      computeSelectedDateString(value) {
+        let date = new Date(this.value);
+        let adjustedDate = new Date(
+            date.getTime() + date.getTimezoneOffset()*60000);
+        return adjustedDate.toLocaleDateString(
+            'en-US',
+            {year:'numeric', month:'short', day:'numeric'});
+      }
+    });
+  </script>
+</dom-module>
+
+

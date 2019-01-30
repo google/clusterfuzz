@@ -1,0 +1,19 @@
+#
+# Fatal error in ../../v8/src/compiler/verifier.cc, line 394
+# Check failed: a == b (2 vs. 3).
+#
+
+==== C stack trace ===============================
+
+ 1: 0x7f4843814746
+ 2: 0x7f4843814d6b
+ 3: 0x7f4841e7fb22
+ 4: 0x7f4841e84a9c
+ 5: 0x7f4841cfa3c9
+ 6: 0x7f4841cfbc1f
+ 7: 0x7f4841ea52dd
+ 8: 0x7f4841eb26d7
+ 9: 0x7f4841eb4bd2
+10: 0x7f4841eb089b
+11: 0x7f4842f25943
+12: 0x7f46d0409afb

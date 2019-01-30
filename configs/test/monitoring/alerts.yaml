@@ -1,0 +1,123 @@
+# Copyright 2018 Google LLC
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+resources:
+  - name: low_good_to_all_build_ratio_by_job
+    type: gcp-types/monitoring-v3:projects.alertPolicies
+    properties:
+      displayName: Low good-to-all build ratio (by job)
+      combiner: AND
+      conditions:
+      - displayName: Under threshold
+        conditionThreshold:
+          filter: metric.type="custom.googleapis.com/task/fuzz/job/bad_build_count"
+            resource.type="gce_instance" metric.label."bad_build"!="true"
+          aggregations:
+            - alignmentPeriod: 600s
+              perSeriesAligner: ALIGN_DELTA
+              crossSeriesReducer: REDUCE_COUNT
+              groupByFields: [metric.label.job]
+          denominatorFilter: metric.type="custom.googleapis.com/task/fuzz/job/bad_build_count"
+            resource.type="gce_instance"
+          denominatorAggregations:
+            - alignmentPeriod: 600s
+              perSeriesAligner: ALIGN_DELTA
+              crossSeriesReducer: REDUCE_COUNT
+              groupByFields: [metric.label.job]
+          comparison: COMPARISON_LT
+          thresholdValue: 0.9
+          duration: 21600s
+      notificationChannels:
+        - $(ref.alert_channel.name)
+  - name: low_good_to_all_build_ratio_by_region
+    type: gcp-types/monitoring-v3:projects.alertPolicies
+    properties:
+      displayName: Low good-to-all build ratio (by region)
+      combiner: AND
+      conditions:
+      - displayName: Under threshold
+        conditionThreshold:
+          filter: metric.type="custom.googleapis.com/task/fuzz/job/bad_build_count"
+            resource.type="gce_instance" metric.label."bad_build"!="true"
+          aggregations:
+            - alignmentPeriod: 600s
+              perSeriesAligner: ALIGN_DELTA
+              crossSeriesReducer: REDUCE_COUNT
+              groupByFields: [metric.label.region]
+          denominatorFilter: metric.type="custom.googleapis.com/task/fuzz/job/bad_build_count"
+            resource.type="gce_instance"
+          denominatorAggregations:
+            - alignmentPeriod: 600s
+              perSeriesAligner: ALIGN_DELTA
+              crossSeriesReducer: REDUCE_COUNT
+              groupByFields: [metric.label.region]
+          comparison: COMPARISON_LT
+          thresholdValue: 0.9
+          duration: 21600s
+      notificationChannels:
+        - $(ref.alert_channel.name)
+  - name: low_fuzzer_zero_return_count_ratio_by_region
+    type: gcp-types/monitoring-v3:projects.alertPolicies
+    properties:
+      displayName: Low fuzzer zero return count ratio (by region)
+      combiner: AND
+      conditions:
+      - displayName: Under threshold
+        conditionThreshold:
+          filter: metric.type="custom.googleapis.com/task/fuzz/fuzzer/return_code_count"
+            resource.type="gce_instance" metric.label."return_code"="0"
+          aggregations:
+            - alignmentPeriod: 600s
+              perSeriesAligner: ALIGN_DELTA
+              crossSeriesReducer: REDUCE_COUNT
+              groupByFields: [metric.label.region]
+          denominatorFilter: metric.type="custom.googleapis.com/task/fuzz/fuzzer/return_code_count"
+            resource.type="gce_instance"
+          denominatorAggregations:
+            - alignmentPeriod: 600s
+              perSeriesAligner: ALIGN_DELTA
+              crossSeriesReducer: REDUCE_COUNT
+              groupByFields: [metric.label.region]
+          comparison: COMPARISON_LT
+          thresholdValue: 0.9
+          duration: 21600s
+      notificationChannels:
+        - $(ref.alert_channel.name)
+  - name: low_fuzzer_testcase_count_ratio_by_region
+    type: gcp-types/monitoring-v3:projects.alertPolicies
+    properties:
+      displayName: Low fuzzer testcase count ratio (by region, P5)
+      combiner: AND
+      conditions:
+      - displayName: Under threshold
+        conditionThreshold:
+          filter: metric.type="custom.googleapis.com/task/fuzz/fuzzer/testcase_count_ratio"
+            resource.type="gce_instance"
+          aggregations:
+            - alignmentPeriod: 600s
+              perSeriesAligner: ALIGN_DELTA
+              crossSeriesReducer: REDUCE_PERCENTILE_05
+              groupByFields: [metric.label.region]
+          comparison: COMPARISON_LT
+          thresholdValue: 0.9
+          duration: 21600s
+      notificationChannels:
+        - $(ref.alert_channel.name)
+  - name: alert_channel
+    type: gcp-types/monitoring-v3:projects.notificationChannels
+    properties:
+      enabled: true
+      labels:
+        email_address: nobody@changeme.com
+      type: email

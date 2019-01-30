@@ -1,0 +1,6 @@
+#!/bin/bash -ex
+
+echo 'Running unit tests...'
+INTEGRATION=1 python butler.py py_unittest -t appengine -m "$@"
+INTEGRATION=1 python butler.py py_unittest -t core -m "$@"
+INTEGRATION=1 python butler.py go_unittest "$@"

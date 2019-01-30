@@ -1,0 +1,20 @@
+Command: /mnt/scratch0/clusterfuzz/bot/builds/clusterfuzz-builds_irssi_1324be13f2f2cd0662b26f9511664a4ace2554ae/revisions/irssi-fuzz -max_len=2048 -dict=/mnt/scratch0/clusterfuzz/bot/builds/clusterfuzz-builds_irssi_1324be13f2f2cd0662b26f9511664a4ace2554ae/revisions/irssi-fuzz.dict -rss_limit_mb=2048 -timeout=25 -artifact_prefix=/ -max_total_time=2950 -print_final_stats=1 /new /subset
+Bot: ossfuzz-linux-0377
+Time ran: 0.125844
+
+
+(irssi-fuzz:1): GLib-WARNING **: getpwuid_r(): failed due to unknown user id (0)
+
+(irssi-fuzz:1): GLib-CRITICAL **: g_once_init_leave: assertion 'result != 0' failed
+ParseDictionaryFile: file does not exist or is empty
+==1==SanitizerCoverage: failed to open /mnt/scratch0/tmp/irssi-fuzz.1.sancov for writing (reason: 2)
+==1==SanitizerCoverage: failed to open /mnt/scratch0/tmp/caller-callee.1.sancov for writing (reason: 2)
+
+Merging new testcases failed:
+
+(irssi-fuzz:1): GLib-WARNING **: getpwuid_r(): failed due to unknown user id (0)
+
+(irssi-fuzz:1): GLib-CRITICAL **: g_once_init_leave: assertion 'result != 0' failed
+ParseDictionaryFile: file does not exist or is empty
+==1==SanitizerCoverage: failed to open /mnt/scratch0/tmp/irssi-fuzz.1.sancov for writing (reason: 2)
+==1==SanitizerCoverage: failed to open /mnt/scratch0/tmp/caller-callee.1.sancov for writing (reason: 2)

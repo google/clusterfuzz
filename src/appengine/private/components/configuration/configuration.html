@@ -1,0 +1,422 @@
+<!--
+  Copyright 2018 Google LLC
+
+  Licensed under the Apache License, Version 2.0 (the "License");
+  you may not use this file except in compliance with the License.
+  You may obtain a copy of the License at
+
+       http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+-->
+<link rel="import" href="../../bower_components/polymer/polymer.html">
+<link rel="import" href="../../bower_components/iron-form/iron-form.html">
+<link rel="import" href="../../bower_components/iron-icon/iron-icon.html">
+<link rel="import" href="../../bower_components/paper-button/paper-button.html">
+<link rel="import" href="../../bower_components/paper-checkbox/paper-checkbox.html">
+<link rel="import" href="../../bower_components/paper-dropdown-menu/paper-dropdown-menu.html">
+<link rel="import" href="../../bower_components/paper-input/paper-input.html">
+<link rel="import" href="../../bower_components/paper-input/paper-textarea.html">
+
+<dom-module id="configuration-page">
+  <link rel="import" href="../../stylesheets/main.css" type="css">
+  <link rel="import" href="../technology/technology.css" type="css">
+  <template>
+    <style>
+      .section > .body > table {
+        padding: 15px 5% 15px 5%;
+        width: 100%;
+      }
+
+      .section > .body > table td {
+        padding: 0px;
+      }
+
+      .section > .body > table td.label {
+        width: 30%;
+      }
+
+      .section > .body > table td.label > .help {
+        font-size: 16px;
+        padding: 8px 10px 0px 0px;
+      }
+
+      .section > .body > table td.submit-row {
+        text-align: center;
+      }
+
+      .permtable {
+        padding: 0px 5% 0px 5%;
+        border-bottom: 1px solid #ccc;
+        width: 100%;
+      }
+
+      .read-only {
+        pointer-events: none;
+      }
+
+      :root {
+        --paper-input-container-input-color: var(--primary-text-color);
+      }
+    </style>
+    <iron-form id="form" allow-redirect>
+      <form action="/configuration" method="post">
+        <input type="hidden" name="csrf_token" value="[[fieldValues.csrf_token]]" />
+        <input type="hidden" name="previous_hash" value="[[config.previous_hash]]" />
+        <div class="section">
+          <div class="title">Configuration Parameters</div>
+          <div class="body">
+            <table>
+              <tr>
+                <td class="label">
+                  <div class="help" title="Link to file a ClusterFuzz bug">
+                    Bug report url
+                  </div>
+                </td>
+                <td>
+                  <paper-input name="bug_report_url" value="[[config.bug_report_url]]" no-label-float></paper-input>
+                </td>
+              </tr>
+
+              <tr>
+                <td class="label">
+                  <div class="help" title="Link to ClusterFuzz documentation">
+                    Documentation url
+                  </div>
+                </td>
+                <td>
+                  <paper-input name="documentation_url" value="[[config.documentation_url]]" no-label-float></paper-input>
+                </td>
+              </tr>
+
+              <tr>
+                <td class="label">
+                  <div class="help" title="Link to documentation on reproducing crashes">
+                    Reproduction help url
+                  </div>
+                </td>
+                <td>
+                  <paper-input name="reproduction_help_url" value="[[config.reproduction_help_url]]" no-label-float></paper-input>
+                </td>
+              </tr>
+
+              <tr>
+                <td class="label">
+                  <div class="help" title="Contact string to display on pages (e.g. error)">
+                    Contact string
+                  </div>
+                </td>
+                <td>
+                  <paper-input name="contact_string" value="[[config.contact_string]]" no-label-float></paper-input>
+                </td>
+              </tr>
+
+              <tr>
+                <td class="label">
+                  <div class="help" title="List of privileged users (one email per line). These users can access security vulnerabilities.">
+                    Privileged users
+                  </div>
+                </td>
+                <td>
+                  <paper-textarea name="privileged_users" max-rows="5" value="[[config.privileged_users]]" no-label-float></paper-textarea>
+                </td>
+              </tr>
+
+              <tr>
+                <td class="label">
+                  <div class="help" title="Stacktrace blacklist signatures (one regex per line). These signatures can be used to ignore a crash altogether.">
+                    Stacktrace blacklist signatures
+                  </div>
+                </td>
+                <td>
+                  <paper-textarea name="stack_blacklist" max-rows="5" value="[[config.stack_blacklist]]" no-label-float></paper-textarea>
+                </td>
+              </tr>
+
+              <tr>
+                <td class="label">
+                  <div class="help" title="Stacktrace cleaning signatures (one regex per line). These signatures will be removed from display in crash stacktraces (but not the crash state).">
+                    Stacktrace cleaning signatures
+                  </div>
+                </td>
+                <td>
+                  <paper-textarea name="stack_clean_regex" max-rows="5" value="[[config.stack_clean_regex]]" no-label-float></paper-textarea>
+                </td>
+              </tr>
+
+              <tr>
+                <td class="label">
+                  <div class="help" title="Revision vars url (one per line - job;url). The url (with %s for revision) should point to source map containing list of component revisions used (as json).">
+                    Revision vars url
+                  </div>
+                </td>
+                <td>
+                  <paper-textarea name="revision_vars_url" max-rows="5" value="[[config.revision_vars_url]]" no-label-float></paper-textarea>
+                </td>
+              </tr>
+
+              <tr>
+                <td class="label">
+                  <div class="help" title="Platform group to zone mapping (one per line - platform;zone). This groups platforms into a particular zone for locks (e.g. modifying corpus on NFS).">
+                    Platform group to zone mapping
+                  </div>
+                </td>
+                <td>
+                  <paper-textarea name="platform_group_mappings" max-rows="5" value="[[config.platform_group_mappings]]" no-label-float></paper-textarea>
+                </td>
+              </tr>
+
+              <tr>
+                <td class="label">
+                  <div class="help" title="JSON credentials to access bug tracker (applicable to Monorail tracker only).">
+                    Bug tracker credentials (Monorail only)
+                  </div>
+                </td>
+                <td>
+                  <paper-input name="client_credentials" max-rows="5" value="[[config.client_credentials]]" no-label-float></paper-input>
+                </td>
+              </tr>
+
+              <tr>
+                <td class="label">
+                  <div class="help" title="Component to googlesource repository mappings (one per line - component,repository)">
+                    Component repository mappings (Chromium only)
+                  </div>
+                </td>
+                <td>
+                  <paper-textarea name="component_repository_mappings" max-rows="5" value="[[config.component_repository_mappings]]" no-label-float></paper-textarea>
+                </td>
+              </tr>
+
+              <tr>
+                <td class="label">
+                  <div class="help" title="Credentials to connect to GitHub (applicable to OSS-Fuzz only).">
+                    GitHub credentials (OSS-Fuzz only)
+                  </div>
+                </td>
+                <td>
+                  <paper-input name="github_credentials" value="[[config.github_credentials]]" no-label-float></paper-input>
+                </td>
+              </tr>
+
+              <tr>
+                <td class="label">
+                  <div class="help" title="Wifi SSID to use for Android bots.">
+                    Wifi SSID (Android OS only)
+                  </div>
+                </td>
+                <td>
+                  <paper-input name="wifi_ssid" value="[[config.wifi_ssid]]" no-label-float></paper-input>
+                </td>
+              </tr>
+
+              <tr>
+                <td class="label">
+                  <div class="help" title="Wifi password to use for Android bots.">
+                    Wifi Password (Android OS only)
+                  </div>
+                </td>
+                <td>
+                  <paper-input name="wifi_password" value="[[config.wifi_password]]" no-label-float></paper-input>
+                </td>
+              </tr>
+
+              <tr>
+                <td class="label">
+                  <div class="help" title="Service account email to connect to Android Build Apiary for fetching new OS images.">
+                    Android Build Access Email (Android OS only)
+                  </div>
+                </td>
+                <td>
+                  <paper-input name="build_apiary_service_account_email" value="[[config.build_apiary_service_account_email]]" no-label-float></paper-input>
+                </td>
+              </tr>
+
+              <tr>
+                <td class="label">
+                  <div class="help" title="Service account private key to connect to Android Build Apiary for fetching new OS images.">
+                    Android Build Access Key (Android OS only)
+                  </div>
+                </td>
+                <td>
+                  <paper-input name="build_apiary_service_account_private_key" value="[[config.build_apiary_service_account_private_key]]" no-label-float></paper-input>
+                </td>
+              </tr>
+
+              <tr>
+                <td class="label">
+                  <div class="help" title="Email of test account for use in apps on Android OS.">
+                    Test Account Email (Android OS only)
+                  </div>
+                </td>
+                <td>
+                  <paper-input name="test_account_email" value="[[config.test_account_email]]" no-label-float></paper-input>
+                </td>
+              </tr>
+
+              <tr>
+                <td class="label">
+                  <div class="help" title="Password for test account for use in apps on Android OS.">
+                    Test Account Password (Android OS only)
+                  </div>
+                </td>
+                <td>
+                  <paper-input name="test_account_password" value="[[config.test_account_password]]" no-label-float></paper-input>
+                </td>
+              </tr>
+
+              <tr>
+                <td class="label">
+                  <div class="help" title="Allows testcases to be viewed by any CCed email on bugs.">
+                    Relax testcase view restrictions
+                  </div>
+                </td>
+                <td>
+                  <paper-checkbox name="relax_testcase_restrictions" checked="[[config.relax_testcase_restrictions]]"></paper-checkbox>
+                </td>
+              </tr>
+
+              <tr>
+                <td colspan="2" class="submit-row">
+                  <paper-button raised on-click="submitForm">Submit</paper-button>
+                </td>
+              </tr>
+            </table>
+          </div>
+        </div>
+      </form>
+    </iron-form>
+
+
+    <div class="section">
+      <div class="title">User permissions</div>
+      <div class="body">
+        <iron-form allow-redirect>
+          <form action="[[fieldValues.add_permission_url]]" method="post">
+            <input type="hidden" name="csrf_token" value="[[fieldValues.csrf_token]]" />
+              <table class="permtable">
+                <tr>
+                  <td>
+                    <paper-input label="Email" name="email"></paper-input>
+                  </td>
+                  <td>
+                    <paper-input label="Entity (fuzzer or job)" name="entity_name"></paper-input>
+                  </td>
+                  <td>
+                    <paper-dropdown-menu label="Entity Kind" name="entity_kind" no-animations="true" noink>
+                      <paper-listbox slot="dropdown-content" class="dropdown-content">
+                        <template is="dom-repeat" items="[[fieldValues.user_permission_entity_kinds]]">
+                          <paper-item label="[[item.name]]" value="[[item.value]]">[[item.name]]</paper-item>
+                        </template>
+                      </paper-listbox>
+                    </paper-dropdown-menu>
+                  </td>
+                  <td>
+                    <paper-dropdown-menu label="Auto CC" name="auto_cc" no-animations="true" noink>
+                      <paper-listbox slot="dropdown-content" class="dropdown-content">
+                        <template is="dom-repeat" items="[[fieldValues.user_permission_auto_cc_types]]">
+                          <paper-item label="[[item.name]]" value="[[item.value]]">[[item.name]]</paper-item>
+                        </template>
+                      </paper-listbox>
+                    </paper-dropdown-menu>
+                  </td>
+                  <td>
+                    <paper-checkbox name="is_prefix">Prefix</paper-checkbox>
+                  </td>
+                  <td>
+                    <button style="border:none; background:none;" tabindex="-1">
+                      <paper-button class="info" raised>Add</paper-button>
+                    </button>
+                  </td>
+                </tr>
+              </table>
+          </form>
+        </iron-form>
+
+        <paper-input class="search-box" label="Enter search string here" value="{{searchString::input}}">
+          <iron-icon icon="icons:search" slot="prefix"></iron-icon>
+          <iron-icon icon="icons:help-outline" title="Search with keywords in user email or entity name (fuzzer/job)." slot="suffix"></iron-icon>
+        </paper-input>
+        <template is="dom-repeat" items="[[permissions]]" initial-count="20" filter="[[computeFilter(searchString)]]">
+          <iron-form allow-redirect>
+            <form action="[[fieldValues.delete_permission_url]]" method="post">
+              <input type="hidden" name="csrf_token" value="[[fieldValues.csrf_token]]" />
+              <table class="permtable">
+                <tr>
+                  <td>
+                    <paper-input label="Email" name="email" value="[[item.email]]" readonly></paper-input>
+                  </td>
+                  <td>
+                    <paper-input label="Entity (fuzzer or job)" name="entity_name" value="[[item.entity_name]]" readonly></paper-input>
+                  </td>
+
+                  <td>
+                    <paper-dropdown-menu class="read-only" label="Entity Kind" name="entity_kind" no-animations="true" noink>
+                      <paper-listbox selected="[[item.entity_kind]]" attr-for-selected="value" slot="dropdown-content" class="dropdown-content">
+                        <template is="dom-repeat" items="[[fieldValues.user_permission_entity_kinds]]">
+                          <paper-item label="[[item.name]]" value="[[item.value]]">[[item.name]]</paper-item>
+                        </template>
+                      </paper-listbox>
+                    </paper-dropdown-menu>
+                  </td>
+                  <td>
+                    <paper-dropdown-menu class="read-only" label="Auto CC" name="auto_cc" no-animations="true" noink>
+                      <paper-listbox selected="[[item.auto_cc]]" attr-for-selected="value" slot="dropdown-content" class="dropdown-content">
+                        <template is="dom-repeat" items="[[fieldValues.user_permission_auto_cc_types]]">
+                          <paper-item label="[[item.name]]" value="[[item.value]]">[[item.name]]</paper-item>
+                        </template>
+                      </paper-listbox>
+                    </paper-dropdown-menu>
+                  </td>
+                  <td>
+                    <paper-checkbox class="read-only" name="is_prefix" checked="[[item.is_prefix]]">Prefix</paper-checkbox>
+                  </td>
+                  <td>
+                    <button style="border:none; background:none;" tabindex="-1">
+                      <paper-button raised>Delete</paper-button>
+                    </button>
+                  </td>
+                </tr>
+              </table>
+            </form>
+          </iron-form>
+        </template>
+      </div>
+    </div>
+
+
+  </template>
+  <script>
+    class ConfigurationPage extends Polymer.Element {
+      static get is() { return 'configuration-page'; }
+
+      static get properties() {
+        return {
+          config: Object,
+          permissions: Array,
+          fieldValues: Object,
+        };
+      }
+
+      submitForm() {
+        this.$.form.submit();
+      }
+
+      computeFilter(searchKey) {
+        if (!searchKey)
+          return null;
+
+        searchKey = searchKey.toLowerCase();
+        return (el) => (
+            el['email'].toLowerCase().indexOf(searchKey) != -1 ||
+            el['entity_name'].toLowerCase().indexOf(searchKey) != -1);
+      }
+    }
+
+    customElements.define(ConfigurationPage.is, ConfigurationPage);
+  </script>
+</dom-module>

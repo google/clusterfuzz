@@ -1,0 +1,100 @@
+<!--
+  Copyright 2018 Google LLC
+
+  Licensed under the Apache License, Version 2.0 (the "License");
+  you may not use this file except in compliance with the License.
+  You may obtain a copy of the License at
+
+       http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+-->
+<link rel="import" href="../../../bower_components/polymer/polymer.html">
+
+<dom-module id="impact-button">
+  <template>
+    <style>
+      :host {
+        display: inline-block;
+      }
+
+      a:hover {
+        text-decoration: underline;
+      }
+
+      a, a:active, a:visited, a:focus {
+        cursor: pointer;
+        color: var(--impact-button-color);
+        text-decoration: none;
+      }
+    </style>
+    <a href$="/testcases?impact=[[lower(release)]]" on-tap="handleTap">[[release]]</a>
+    <template is="dom-repeat" items="[[getComponents(version)]]"
+      ><template is="dom-if" if="[[item.prefixWithDot]]">.</template
+      ><a href$="/testcases?q=[[lower(release)]]%3A[[item.filter]]" data-filter-version$="[[item.filter]]" on-tap="handleTap">[[item.label]]</a
+    ></template>
+    <template is="dom-if" if="[[likely]]">
+      (likely)
+    </template>
+  </template>
+  <script>
+    class ImpactButton extends Polymer.Element {
+      static get is() { return 'impact-button'; }
+
+      static get properties() {
+        return {
+          release: String,
+          version: String,
+          likely: {
+            type: Boolean,
+            value: false
+          }
+        }
+      }
+
+      lower(s) {
+        return s.toLowerCase();
+      }
+
+      getComponents(version) {
+        let tokens = version.split('.');
+
+        let components = [
+            {label: tokens[0], filter: encodeURIComponent(tokens[0]),
+             prefixWithDot: false}
+        ];
+
+        for (let i=1;i<tokens.length;i++) {
+          components.push({
+            prefixWithDot: true,
+            label: tokens[i],
+            filter: (
+                components[i - 1].filter + encodeURIComponent('.' + tokens[i]))
+          });
+        }
+
+        return components;
+      }
+
+      handleTap(ev) {
+        this.dispatchEvent(new CustomEvent(
+            'tap',
+            {
+                detail: {
+                    release: this.lower(this.release),
+                    version: ev.target.dataset.filterVersion
+                }
+            }
+        ));
+      }
+    }
+
+    customElements.define(ImpactButton.is, ImpactButton);
+  </script>
+</dom-module>
+
+

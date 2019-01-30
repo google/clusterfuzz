@@ -1,0 +1,56 @@
+[Environment] ASAN_OPTIONS = redzone=32:strict_string_check=1:symbolize=0:handle_sigill=1:handle_segv=1:allocator_release_to_os_interval_ms=500:print_suppressions=0:strict_memcmp=1:allow_user_segv_handler=0:coverage=0:allocator_may_return_null=1:fast_unwind_on_fatal=0:handle_sigfpe=1:handle_sigbus=1:detect_stack_use_after_return=1:alloc_dealloc_mismatch=0:detect_leaks=1:print_scariness=1:strip_path_prefix=/workspace/:max_uar_stack_size_log=16:handle_abort=1:check_malloc_usable_size=0:detect_container_overflow=1:quarantine_size_mb=256:detect_odr_violation=0:use_sigaltstack=1:print_summary=1
+[Command line] python  /mnt/scratch0/clusterfuzz/src/python/bot/fuzzers/libFuzzer/launcher.py /mnt/scratch0/clusterfuzz/bot/inputs/fuzzer-testcases/0b57a7d43fabfa98de384327db6408f031843fe4c1f3bf8f33c178e7e3fuzz-1 config_fuzz_test /mnt/scratch0/clusterfuzz/bot/inputs/data-bundles/global/envoy_config_fuzz_test -timeout=25 -rss_limit_mb=2048
++----------------------------------------Release Build Stacktrace----------------------------------------+
+Running command: /mnt/scratch0/clusterfuzz/bot/builds/clusterfuzz-builds_envoy_13d8ff3fd8b6e12ff5bbd32d951c40c9e1c6513f/revisions/config_fuzz_test -timeout=25 -rss_limit_mb=2048 -runs=100 /3ceec645ca617fd98de10638a403ff7f31843fe4c1f3bf8f33c178e7e3fuzz-1
+INFO: Seed: 227034424
+INFO: Loaded 1 modules   (504300 inline 8-bit counters): 504300 [0x4539a10, 0x45b4bfc),
+INFO: Loaded 1 PC tables (504300 PCs): 504300 [0x45b4c00,0x4d66ac0),
+/mnt/scratch0/clusterfuzz/bot/builds/clusterfuzz-builds_envoy_13d8ff3fd8b6e12ff5bbd32d951c40c9e1c6513f/revisions/config_fuzz_test: Running 1 inputs 100 time(s) each.
+Running: /3ceec645ca617fd98de10638a403ff7f31843fe4c1f3bf8f33c178e7e3fuzz-1
+[libprotobuf WARNING external/com_google_protobuf/src/google/protobuf/text_format.cc:324] Warning parsing text-format envoy.config.bootstrap.v2.Bootstrap: 13:1: text format contains deprecated field "deprecated_v1"
+[libprotobuf WARNING external/com_google_protobuf/src/google/protobuf/text_format.cc:324] Warning parsing text-format envoy.config.bootstrap.v2.Bootstrap: 13:1: text format contains deprecated field "deprecated_v1"
+[2018-09-20 01:00:45.516][1][critical][assert] source/common/upstream/cluster_manager_impl.cc:259] panic: not reached
+AddressSanitizer:DEADLYSIGNAL
+=================================================================
+==1==ERROR: AddressSanitizer: ABRT on unknown address 0x000000000001 (pc 0x7f37f8b21428 bp 0x7ffed2d1cf90 sp 0x7ffed2d1cce8 T0)
+SCARINESS: 10 (signal)
+    #0 0x7f37f8b21427 in gsignal /build/glibc-Cl5G7W/glibc-2.23/sysdeps/unix/sysv/linux/raise.c:54
+    #1 0x7f37f8b23029 in abort /build/glibc-Cl5G7W/glibc-2.23/stdlib/abort.c:89
+    #2 0x8295ea in Envoy::Upstream::ClusterManagerImpl::ClusterManagerImpl(envoy::config::bootstrap::v2::Bootstrap const&, Envoy::Upstream::ClusterManagerFactory&, Envoy::Stats::Store&, Envoy::ThreadLocal::Instance&, Envoy::Runtime::Loader&, Envoy::Runtime::RandomGenerator&, Envoy::LocalInfo::LocalInfo const&, Envoy::AccessLog::AccessLogManager&, Envoy::Event::Dispatcher&, Envoy::Server::Admin&) /source/common/upstream/cluster_manager_impl.cc:259:7
+    #3 0x66356c in Envoy::Upstream::ValidationClusterManager::ValidationClusterManager(envoy::config::bootstrap::v2::Bootstrap const&, Envoy::Upstream::ClusterManagerFactory&, Envoy::Stats::Store&, Envoy::ThreadLocal::Instance&, Envoy::Runtime::Loader&, Envoy::Runtime::RandomGenerator&, Envoy::LocalInfo::LocalInfo const&, Envoy::AccessLog::AccessLogManager&, Envoy::Event::Dispatcher&, Envoy::Server::Admin&) /source/server/config_validation/cluster_manager.cc:41:7
+    #4 0x6632d9 in Envoy::Upstream::ValidationClusterManagerFactory::clusterManagerFromProto(envoy::config::bootstrap::v2::Bootstrap const&, Envoy::Stats::Store&, Envoy::ThreadLocal::Instance&, Envoy::Runtime::Loader&, Envoy::Runtime::RandomGenerator&, Envoy::LocalInfo::LocalInfo const&, Envoy::AccessLog::AccessLogManager&, Envoy::Server::Admin&) /source/server/config_validation/cluster_manager.cc:21:32
+    #5 0x1df71c7 in Envoy::Server::Configuration::MainImpl::initialize(envoy::config::bootstrap::v2::Bootstrap const&, Envoy::Server::Instance&, Envoy::Upstream::ClusterManagerFactory&) /source/server/configuration_impl.cc:57:46
+    #6 0x659f24 in Envoy::Server::ValidationInstance::initialize(Envoy::Server::Options&, std::__1::shared_ptr<Envoy::Network::Address::Instance const>, Envoy::Server::ComponentFactory&) /source/server/config_validation/server.cc:93:16
+    #7 0x658384 in Envoy::Server::ValidationInstance::ValidationInstance(Envoy::Server::Options&, Envoy::Event::TimeSystem&, std::__1::shared_ptr<Envoy::Network::Address::Instance const>, Envoy::Stats::IsolatedStoreImpl&, Envoy::Thread::BasicLockable&, Envoy::Server::ComponentFactory&) /source/server/config_validation/server.cc:49:5
+    #8 0x657071 in Envoy::Server::validateConfig(Envoy::Server::Options&, std::__1::shared_ptr<Envoy::Network::Address::Instance const>, Envoy::Server::ComponentFactory&) /source/server/config_validation/server.cc:27:24
+    #9 0x636f65 in Envoy::Server::TestOneProtoInput(envoy::config::bootstrap::v2::Bootstrap const&) /test/server/config_validation/config_fuzz_test.cc:29:5
+    #10 0x6368e4 in LLVMFuzzerTestOneInput /test/server/config_validation/config_fuzz_test.cc:16:1
+    #11 0x2da0578 in fuzzer::Fuzzer::ExecuteCallback(unsigned char const*, unsigned long) /src/libfuzzer/FuzzerLoop.cpp:570:15
+    #12 0x2d7df6d in fuzzer::RunOneTest(fuzzer::Fuzzer*, char const*, unsigned long) /src/libfuzzer/FuzzerDriver.cpp:280:6
+    #13 0x2d897e3 in fuzzer::FuzzerDriver(int*, char***, int (*)(unsigned char const*, unsigned long)) /src/libfuzzer/FuzzerDriver.cpp:713:9
+    #14 0x2d7d5ec in main /src/libfuzzer/FuzzerMain.cpp:20:10
+    #15 0x7f37f8b0c82f in __libc_start_main /build/glibc-Cl5G7W/glibc-2.23/csu/libc-start.c:291
+    #16 0x522da8 in _start
+AddressSanitizer can not provide additional info.
+SUMMARY: AddressSanitizer: ABRT (/lib/x86_64-linux-gnu/libc.so.6+0x35427)
+==1==ABORTING
++----------------------------------------Release Build Unsymbolized Stacktrace (diff)----------------------------------------+
+==1==ERROR: AddressSanitizer: ABRT on unknown address 0x000000000001 (pc 0x7f37f8b21428 bp 0x7ffed2d1cf90 sp 0x7ffed2d1cce8 T0)
+SCARINESS: 10 (signal)
+    #0 0x7f37f8b21427  (/lib/x86_64-linux-gnu/libc.so.6+0x35427)
+    #1 0x7f37f8b23029  (/lib/x86_64-linux-gnu/libc.so.6+0x37029)
+    #2 0x8295ea  (/mnt/scratch0/clusterfuzz/bot/builds/clusterfuzz-builds_envoy_13d8ff3fd8b6e12ff5bbd32d951c40c9e1c6513f/revisions/config_fuzz_test+0x8295ea)
+    #3 0x66356c  (/mnt/scratch0/clusterfuzz/bot/builds/clusterfuzz-builds_envoy_13d8ff3fd8b6e12ff5bbd32d951c40c9e1c6513f/revisions/config_fuzz_test+0x66356c)
+    #4 0x6632d9  (/mnt/scratch0/clusterfuzz/bot/builds/clusterfuzz-builds_envoy_13d8ff3fd8b6e12ff5bbd32d951c40c9e1c6513f/revisions/config_fuzz_test+0x6632d9)
+    #5 0x1df71c7  (/mnt/scratch0/clusterfuzz/bot/builds/clusterfuzz-builds_envoy_13d8ff3fd8b6e12ff5bbd32d951c40c9e1c6513f/revisions/config_fuzz_test+0x1df71c7)
+    #6 0x659f24  (/mnt/scratch0/clusterfuzz/bot/builds/clusterfuzz-builds_envoy_13d8ff3fd8b6e12ff5bbd32d951c40c9e1c6513f/revisions/config_fuzz_test+0x659f24)
+    #7 0x658384  (/mnt/scratch0/clusterfuzz/bot/builds/clusterfuzz-builds_envoy_13d8ff3fd8b6e12ff5bbd32d951c40c9e1c6513f/revisions/config_fuzz_test+0x658384)
+    #8 0x657071  (/mnt/scratch0/clusterfuzz/bot/builds/clusterfuzz-builds_envoy_13d8ff3fd8b6e12ff5bbd32d951c40c9e1c6513f/revisions/config_fuzz_test+0x657071)
+    #9 0x636f65  (/mnt/scratch0/clusterfuzz/bot/builds/clusterfuzz-builds_envoy_13d8ff3fd8b6e12ff5bbd32d951c40c9e1c6513f/revisions/config_fuzz_test+0x636f65)
+    #10 0x6368e4  (/mnt/scratch0/clusterfuzz/bot/builds/clusterfuzz-builds_envoy_13d8ff3fd8b6e12ff5bbd32d951c40c9e1c6513f/revisions/config_fuzz_test+0x6368e4)
+    #11 0x2da0578  (/mnt/scratch0/clusterfuzz/bot/builds/clusterfuzz-builds_envoy_13d8ff3fd8b6e12ff5bbd32d951c40c9e1c6513f/revisions/config_fuzz_test+0x2da0578)
+    #12 0x2d7df6d  (/mnt/scratch0/clusterfuzz/bot/builds/clusterfuzz-builds_envoy_13d8ff3fd8b6e12ff5bbd32d951c40c9e1c6513f/revisions/config_fuzz_test+0x2d7df6d)
+    #13 0x2d897e3  (/mnt/scratch0/clusterfuzz/bot/builds/clusterfuzz-builds_envoy_13d8ff3fd8b6e12ff5bbd32d951c40c9e1c6513f/revisions/config_fuzz_test+0x2d897e3)
+    #14 0x2d7d5ec  (/mnt/scratch0/clusterfuzz/bot/builds/clusterfuzz-builds_envoy_13d8ff3fd8b6e12ff5bbd32d951c40c9e1c6513f/revisions/config_fuzz_test+0x2d7d5ec)
+    #15 0x7f37f8b0c82f  (/lib/x86_64-linux-gnu/libc.so.6+0x2082f)
+    #16 0x522da8  (/mnt/scratch0/clusterfuzz/bot/builds/clusterfuzz-builds_envoy_13d8ff3fd8b6e12ff5bbd32d951c40c9e1c6513f/revisions/config_fuzz_test+0x522da8)

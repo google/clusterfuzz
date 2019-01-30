@@ -1,0 +1,47 @@
+CRITICAL ERROR : gst_vorbis_tag_add: assertion 'g_utf8_validate (tag, -1, NULL)' failed
+UndefinedBehaviorSanitizer:DEADLYSIGNAL
+==1==ERROR: UndefinedBehaviorSanitizer: ABRT on unknown address 0x000000000001 (pc 0x7f15a7835428 bp 0x7f15a537b040 sp 0x7f15a537aef8 T3)
+    #0 0x7f15a7835427 in gsignal /build/glibc-9tT8Do/glibc-2.23/sysdeps/unix/sysv/linux/raise.c:54
+    #1 0x7f15a7837029 in abort /build/glibc-9tT8Do/glibc-2.23/stdlib/abort.c:89
+    #2 0x42fa49 in custom_logger /src/gst-ci/fuzzing/gst-discoverer.c:79:5
+    #3 0x7264cc in g_logv /work/glib-2.54.2/glib/gmessages.c:1341:11
+    #4 0x726117 in g_log /work/glib-2.54.2/glib/gmessages.c:1403:3
+    #5 0x5a0a50 in gst_tag_list_from_vorbiscomment /src/gst-plugins-base/gst-libs/gst/tag/gstvorbistag.c:484:7
+    #6 0x50438b in tag_list_from_vorbiscomment_packet /src/gst-plugins-base/ext/ogg/gstoggstream.c:385:10
+    #7 0x502c71 in extract_tags_opus /src/gst-plugins-base/ext/ogg/gstoggstream.c:2108:5
+    #8 0x4f0bd0 in gst_ogg_pad_submit_packet /src/gst-plugins-base/ext/ogg/gstoggdemux.c:1129:5
+    #9 0x4efa99 in gst_ogg_pad_stream_out /src/gst-plugins-base/ext/ogg/gstoggdemux.c:1289:18
+    #10 0x4ee877 in gst_ogg_pad_submit_page /src/gst-plugins-base/ext/ogg/gstoggdemux.c:2032:12
+    #11 0x4f203b in gst_ogg_demux_handle_page /src/gst-plugins-base/ext/ogg/gstoggdemux.c:4547:14
+    #12 0x4f19f2 in gst_ogg_demux_chain /src/gst-plugins-base/ext/ogg/gstoggdemux.c:4626:16
+    #13 0x6270cc in gst_pad_chain_data_unchecked /src/gstreamer/gst/gstpad.c:0:35
+    #14 0x627c69 in gst_pad_push_data /src/gstreamer/gst/gstpad.c:4471:9
+    #15 0x6279a1 in gst_pad_push /src/gstreamer/gst/gstpad.c:4590:9
+    #16 0x45bf43 in stop_typefinding /src/gstreamer/plugins/elements/gsttypefindelement.c:645:7
+    #17 0x45c2c1 in gst_type_find_element_chain_do_typefinding /src/gstreamer/plugins/elements/gsttypefindelement.c:979:3
+    #18 0x45ab29 in gst_type_find_element_sink_event /src/gstreamer/plugins/elements/gsttypefindelement.c:702:11
+    #19 0x62af31 in gst_pad_send_event_unchecked /src/gstreamer/gst/gstpad.c:5633:14
+    #20 0x62a872 in gst_pad_push_event_unchecked /src/gstreamer/gst/gstpad.c:5289:9
+    #21 0x62deef in push_sticky /src/gstreamer/gst/gstpad.c:3817:17
+    #22 0x625e8b in events_foreach /src/gstreamer/gst/gstpad.c:604:11
+    #23 0x626d6b in check_sticky /src/gstreamer/gst/gstpad.c:3874:5
+    #24 0x62a2b9 in gst_pad_push_event /src/gstreamer/gst/gstpad.c:5420:12
+    #25 0x6253f9 in event_forward_func /src/gstreamer/gst/gstpad.c:2992:19
+    #26 0x625165 in gst_pad_forward /src/gstreamer/gst/gstpad.c:2946:25
+    #27 0x625377 in gst_pad_event_default /src/gstreamer/gst/gstpad.c:3043:5
+    #28 0x62af31 in gst_pad_send_event_unchecked /src/gstreamer/gst/gstpad.c:5633:14
+    #29 0x62a872 in gst_pad_push_event_unchecked /src/gstreamer/gst/gstpad.c:5289:9
+    #30 0x62deef in push_sticky /src/gstreamer/gst/gstpad.c:3817:17
+    #31 0x625e8b in events_foreach /src/gstreamer/gst/gstpad.c:604:11
+    #32 0x626d6b in check_sticky /src/gstreamer/gst/gstpad.c:3874:5
+    #33 0x62a2b9 in gst_pad_push_event /src/gstreamer/gst/gstpad.c:5420:12
+    #34 0x5be78c in gst_base_src_loop /src/gstreamer/libs/gst/base/gstbasesrc.c:3002:7
+    #35 0x65a3f1 in gst_task_func /src/gstreamer/gst/gsttask.c:332:5
+    #36 0x752c72 in g_thread_pool_thread_proxy /work/glib-2.54.2/glib/gthreadpool.c:307:15
+    #37 0x751667 in g_thread_proxy /work/glib-2.54.2/glib/gthread.c:784:20
+    #38 0x7f15a7de66b9 in start_thread
+    #39 0x7f15a790682c in clone /build/glibc-9tT8Do/glibc-2.23/sysdeps/unix/sysv/linux/x86_64/clone.S:109
+
+UndefinedBehaviorSanitizer can not provide additional info.
+SUMMARY: UndefinedBehaviorSanitizer: ABRT (/lib/x86_64-linux-gnu/libc.so.6+0x35427)
+==1==ABORTING

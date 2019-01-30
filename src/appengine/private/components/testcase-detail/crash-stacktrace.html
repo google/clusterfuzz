@@ -1,0 +1,245 @@
+<!--
+  Copyright 2018 Google LLC
+
+  Licensed under the Apache License, Version 2.0 (the "License");
+  you may not use this file except in compliance with the License.
+  You may obtain a copy of the License at
+
+       http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+-->
+<link rel="import" href="../../bower_components/polymer/polymer.html">
+<link rel="import" href="../../components/common/if-else/if-else.html">
+<link rel="import" href="../../bower_components/iron-icon/iron-icon.html">
+<link rel="import" href="../../bower_components/paper-button/paper-button.html">
+
+<dom-module id="crash-stacktrace">
+  <link rel="import" href="../../stylesheets/main.css" type="css">
+  <link rel="import" href="../technology/technology.css" type="css">
+  <template>
+    <style>
+      :host {
+        display: block;
+      }
+
+      :host .stacktrace {
+        display: block;
+        border-top: 1px dashed #777;
+        margin-top: 20px;
+        position: relative;
+      }
+
+      :host .stacktrace > .title {
+        display: inline-block;
+        color: #777;
+        font-size: 14px;
+        line-height: 20px;
+        text-transform: uppercase;
+        background-color: #f2f7fa;
+        top: -12px;
+        left: 12px;
+        position: absolute;
+        padding: 0px 5px;
+      }
+
+      :host .stacktrace > .title paper-button {
+        padding: 0px;
+        margin: 0px;
+      }
+
+      :host .stacktrace > .body {
+        padding: 15px 4px;
+        font-size: 13px;
+        font-family: 'Source Code Pro', monospace;
+      }
+
+      :host .stacktrace > .body > table {
+        width: 100%;
+      }
+
+      :host .stacktrace > .body > table tr.code td.code {
+        font-size: 13px;
+        word-break: break-all;
+        line-height: 18px;
+        padding: 2px 0px 2px 4px;
+        vertical-align: top;
+        white-space: pre-wrap;
+        width: 99%;
+      }
+
+      :host .stacktrace > .body > table tr.code.important td.code {
+        color: #E10000;
+      }
+
+      :host .stacktrace > .body > table tr.code td.code b {
+        font-weight: bold;
+      }
+
+      :host .stacktrace > .body > table tr.code td.number {
+        text-align: right;
+        padding: 2px;
+        font-size: 13px;
+        line-height: 18px;
+        color: #888;
+        vertical-align: top;
+        width: 1%;
+      }
+
+      :host .stacktrace > .body > table tr.code td.number span.help {
+        border-bottom: 1px dashed #979a95;
+        cursor: help;
+      }
+
+      :host [data-text]::after {
+        content: attr(data-text);
+      }
+
+      :host .stacktrace > .body > table tr.gap td {
+        padding: 0px 20px;
+        cursor: pointer;
+      }
+
+      :host .stacktrace > .body > table tr.gap td div.separator {
+        color: #979a95;
+        font-size: 14px;
+        margin-top: 25px;
+        margin-bottom: 20px;
+        text-align: center;
+        border-top: 1px dotted #979a95;
+        display: block;
+      }
+
+      :host .stacktrace > .body > table tr.gap td span {
+        color: #aaa;
+        text-align: center;
+        margin-top: -9px;
+        display: inline-block;
+        background-color: #f2f7fa;
+        padding: 0px 15px;
+      }
+
+      :host .stacktrace > .body > table tr.gap td span iron-icon {
+        height: 16px;
+        width: 16px;
+        margin-right: 5px;
+        margin-bottom: 2px;
+      }
+
+      :host paper-button {
+        margin-top: 10px;
+      }
+
+      :host .revision {
+        font-weight: bold;
+        margin: 0px 8px;
+        color: #000;
+      }
+    </style>
+    <div class="stacktrace">
+      <div class="title">
+        <if-else condition="[[shouldHavePreview(stacktrace.preview_lines)]]">
+          <paper-button slot="t" on-tap="toggle">
+            <if-else condition="[[shouldPreview(isPreviewed, stacktrace.preview_lines)]]">
+              <iron-icon slot="t" icon="icons:expand-more"></iron-icon>
+              <iron-icon slot="f" icon="icons:expand-less"></iron-icon>
+            </if-else>
+            [[name]]
+            <template is="dom-if" if="[[stacktrace.revision]]">
+              on <span class="revision">revision [[stacktrace.revision]]</span>
+            </template>
+            ([[stacktrace.lines.length]] lines)
+          </paper-button>
+          <span slot="f">
+            [[name]]
+            <template is="dom-if" if="[[stacktrace.revision]]">
+              on <span class="revision">revision [[stacktrace.revision]]</span>
+            </template>
+            ([[stacktrace.lines.length]] lines)
+          </span>
+        </if-else>
+      </div>
+      <div class="body">
+        <table>
+          <template is="dom-if" if="[[shouldPreview(isPreviewed, stacktrace.preview_lines)]]">
+            <template is="dom-repeat" items="[[stacktrace.preview_lines]]">
+              <template is="dom-if" if="[[isLine(item)]]" restamp>
+                <tr class$="code {{importantClass(item)}}">
+                  <template is="dom-if" if="[[item.important]]" restamp>
+                    <td class="number" title="This line might be important (e.g. match crash state, the beginning of the stacktrace)."><span class="help" data-text$="[[item.lineNumber]]"></span>
+                  </template>
+                  <template is="dom-if" if="[[!item.important]]" restamp>
+                    <td class="number" data-text$="[[item.lineNumber]]">
+                  </template>
+                  <td class="code" inner-h-t-m-l="[[formatContent(item.content)]]">
+                </tr>
+              </template>
+              <template is="dom-if" if="[[isGap(item)]]">
+                <tr class="gap">
+                  <td colspan="2" on-tap="toggle">
+                    <div class="separator">
+                      <span><iron-icon icon="add-circle-outline"></iron-icon>[[item.size]] lines omitted</span>
+                    </div>
+                  </td>
+                </tr>
+              </template>
+            </template>
+          </template>
+          <template is="dom-if" if="[[!shouldPreview(isPreviewed, stacktrace.preview_lines)]]">
+            <template is="dom-repeat" items="[[stacktrace.lines]]">
+              <tr class$="code [[importantClass(item)]]">
+                <template is="dom-if" if="[[item.important]]">
+                  <td class="number" title="This line might be important (e.g. match crash state, the beginning of the stacktrace)."><span class="help" data-text$="[[item.lineNumber]]"></span></td>
+                </template>
+                <template is="dom-if" if="[[!item.important]]">
+                  <td class="number" data-text$="[[item.lineNumber]]"></td>
+                </template>
+                <td class="code" inner-h-t-m-l="[[formatContent(item.content)]]"></td>
+              </tr>
+            </template>
+          </template>
+        </table>
+      </div>
+    </div>
+  </template>
+  <script>
+    Polymer({
+      is: 'crash-stacktrace',
+      properties: {
+        stacktrace: Object,
+        name: String,
+        isPreviewed: {
+          type: Boolean,
+          value: true
+        }
+      },
+      shouldPreview(isPreviewed, previewLines) {
+        return this.shouldHavePreview(previewLines) && isPreviewed;
+      },
+      toggle() {
+        this.isPreviewed = !this.isPreviewed;
+      },
+      importantClass(line) {
+        return line.important ? 'important': '';
+      },
+      isLine(lineOrGap) {
+        return lineOrGap.type == 'Line';
+      },
+      isGap(lineOrGap) {
+        return lineOrGap.type == 'Gap';
+      },
+      formatContent(content) {
+        return content.replace('\t', '&emsp;');
+      },
+      shouldHavePreview(previewLines) {
+        return (previewLines
+                && previewLines.length > 0);
+      }
+    });
+  </script>
+</dom-module>
+

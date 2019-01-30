@@ -1,0 +1,55 @@
+frameworks/av/media/libstagefright/MPEG4Extractor.cpp:3301 CHECK_EQ( (unsigned)ptr[0],1u) failed: 25 vs. 1
+Fatal signal 6 (SIGABRT), code -6 in tid 6998 (generic)
+--------- Keyboard.Facilitator (1827):
+onFinishInput()
+--------- DEBUG (1232):
+*** *** *** *** *** *** *** *** *** *** *** *** *** *** *** ***
+Build fingerprint: generic/gce_x86_phone/gce_x86:6.0.1/MMB30D.MZC89/2724882:userdebug/test-keys
+Revision: 0
+ABI: x86
+pid: 1322, tid: 6998, name: generic  >>> /system/bin/mediaserver <<<
+signal 6 (SIGABRT), code -6 (SI_TKILL), fault addr --------
+Abort message: frameworks/av/media/libstagefright/MPEG4Extractor.cpp:3301 CHECK_EQ( (unsigned)ptr[0],1u) failed: 25 vs. 1
+    eax 00000000  ebx 0000052a  ecx 00001b56  edx 00000006
+    esi b18bf980  edi 00000009
+    xcs 00000073  xds 0000007b  xes 0000007b  xfs 00000000  xss 0000007b
+    eip b6fc4fe6  ebp 00001b56  esp b18bef20  flags 00200202
+--------- NativeCrashListener (1567):
+Couldnt find ProcessRecord for pid 1322
+--------- GceGrallocRegionRegistry (1228):
+Mapped gralloc-1228.295 hnd=0xb31ab000 fd=25 base=0xb2c88000 format=RGBA_8888(0x1) width=800 height=1280
+--------- GceGrallocRegionRegistry (6974):
+Mapped gralloc-1228.295 hnd=0xb206b6d0 fd=30 base=0x7935c000 format=RGBA_8888(0x1) width=800 height=1280
+--------- DEBUG (1232):
+
+backtrace:
+AM write failed: Broken pipe
+    #0 0x00084fe6 in tgkill /bionic/libc/arch-x86/syscalls/tgkill.S:20
+    #1 0x00081218 in pthread_kill /bionic/libc/bionic/pthread_kill.cpp:45
+    #2 0x00027205 in raise /bionic/libc/bionic/raise.cpp:34
+    #3 0x000209e4 in abort /bionic/libc/bionic/abort.cpp:47
+    #4 0x0000cc13 in __android_log_assert /system/core/liblog/logd_write.c:459
+    #5 0x000bf682 in android::MPEG4Source::MPEG4Source(android::sp<android::MPEG4Extractor> const&, android::sp<android::MetaData> const&, android::sp<android::DataSource> const&, int, android::sp<android::SampleTable> const&, android::Vector<android::SidxEntry>&, android::Trex const*, long long) frameworks/av/media/libstagefright/MPEG4Extractor.cpp:3301:9
+    #6 0x000befbc in android::MPEG4Extractor::getTrack(unsigned int) frameworks/av/media/libstagefright/MPEG4Extractor.cpp:2858:16
+    #7 0x0008d43a in android::NuPlayer::GenericSource::initFromDataSource() frameworks/av/media/libmediaplayerservice/nuplayer/GenericSource.cpp:213:33
+    #8 0x0008e33c in android::NuPlayer::GenericSource::onPrepareAsync() frameworks/av/media/libmediaplayerservice/nuplayer/GenericSource.cpp:405:20
+    #9 0x0008f7dc in android::NuPlayer::GenericSource::onMessageReceived(android::sp<android::AMessage> const&) frameworks/av/media/libmediaplayerservice/nuplayer/GenericSource.cpp:744:11
+    #10 0x0000c9b9 in android::AHandler::deliverMessage(android::sp<android::AMessage> const&) frameworks/av/media/libstagefright/foundation/AHandler.cpp:27:5
+    #11 0x00010f32 in android::AMessage::deliver() frameworks/av/media/libstagefright/foundation/AMessage.cpp:354:5
+    #12 0x0000de0f in android::ALooper::loop() frameworks/av/media/libstagefright/foundation/ALooper.cpp:220:5
+    #13 0x0000e803 in android::ALooper::LooperThread::threadLoop() frameworks/av/media/libstagefright/foundation/ALooper.cpp:50:16
+    #14 0x00014aac in android::Thread::_threadLoop(void*) system/core/libutils/Threads.cpp:758
+    #15 0x000141cf in thread_data_t::trampoline(thread_data_t const*) system/core/libutils/Threads.cpp:98
+    #16 0x000806c3 in __pthread_start(void*) bionic/libc/bionic/pthread_create.cpp:199
+    #17 0x00021952 in __start_thread bionic/libc/bionic/clone.cpp:41
+    #18 0x000170b6 in __bionic_clone bionic/libc/arch-x86/bionic/__bionic_clone.S:48
+--------- GceGrallocRegionRegistry (1228):
+Mapped gralloc-1228.296 hnd=0xb315c5b0 fd=37 base=0xb0492000 format=RGBA_8888(0x1) width=800 height=1280
+--------- GceGrallocRegionRegistry (6974):
+Mapped gralloc-1228.296 hnd=0xb207a150 fd=32 base=0x78f72000 format=RGBA_8888(0x1) width=800 height=1280
+--------- init (0):
+Service media (pid 1235) exited with status 0
+Service media (pid 1235) killing any children in process group
+--------- DEBUG (1232):
+
+Tombstone written to: /data/tombstones/tombstone_01

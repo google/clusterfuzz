@@ -1,0 +1,48 @@
+CONFIG_KASAN_INLINE enabled
+GPF could be caused by NULL-ptr deref or user memory access
+general protection fault: 0000 [#1] SMP KASAN
+Modules linked in: i2c_dev uinput bluetooth sr_mod i2c_piix4 cdrom fuse zram cfg80211 nf_conntrack_ipv6 nf_defrag_ipv6 ip6table_filter ip6_tables virtio_net ppp_async ppp_generic slhc tun
+CPU: 2 PID: 19 Comm: kworker/2:0 Not tainted 3.14.0 #175
+Hardware name: QEMU Standard PC (i440FX + PIIX, 1996), BIOS Bochs 01/01/2011
+Workqueue: events key_garbage_collector
+task: ffff880035e04b00 ti: ffff880035e60000 task.ti: ffff880035e60000
+RIP: 0010:[<ffffffff92af056e>]  [<ffffffff92af056e>] keyring_destroy+0xe2/0x186
+RSP: 0018:ffff880035e67c78  EFLAGS: 00010202
+RAX: dffffc0000000000 RBX: ffff880009a46700 RCX: 0000000000000000
+RDX: 000000001ffffff1 RSI: 0000000000000000 RDI: 00000000ffffff8a
+RBP: ffff880035e67c98 R08: ffff880035e60000 R09: ffff880035dcf848
+R10: ffff880035e67ce8 R11: 0000000000000002 R12: ffff880009a467a0
+R13: 00000000ffffff82 R14: 0000000000000000 R15: ffffffff93f70120
+FS:  0000000000000000(0000) GS:ffff880036100000(0000) knlGS:0000000000000000
+CS:  0010 DS: 0000 ES: 0000 CR0: 000000008005003b
+CR2: 00007f2612e76fb0 CR3: 0000000013e11000 CR4: 00000000000006e0
+Stack:
+ ffff880009a46708 dffffc0000000000 ffff880009a46750 ffffffff92af048c
+ ffff880035e67ce8 ffffffff92aec9ef fffffbfff2a81c50 0000001d9275ff9f
+ ffff880009a46700 0000000000000000 0000000000000000 7fffffffffffffff
+Call Trace:
+ [<ffffffff92af048c>] ? keyring_read+0x193/0x193 security/keys/keyring.c:176
+ [<ffffffff92aec9ef>] key_gc_unused_keys.constprop.1+0x2a9/0x331 security/keys/gc.c:261
+ [<ffffffff92aecf55>] key_garbage_collector+0x436/0x641 security/keys/key.c:378
+ [<     inlined    >] ? key_schedule_gc+0xa8/0xa8 test_and_clear_bit arch/x86/include/asm/bitops.h:254
+ [<ffffffff92aecb1f>] ? key_schedule_gc+0xa8/0xa8 security/keys/gc.c:209
+ [<ffffffff926dbfd0>] process_one_work+0x572/0x7e1 kernel/workqueue.c:2302 (discriminator 3)
+ [<ffffffff926dce16>] worker_thread+0x42e/0x595 kernel/workqueue.c:4306
+ [<ffffffff926eb47e>] kthread+0x206/0x21a kernel/kthread.c:582
+ [<ffffffff926dc9e8>] ? rescuer_thread+0x741/0x741 kernel/workqueue.c:4347 (discriminator 3)
+ [<     inlined    >] ? __kthread_parkme+0x105/0x105 constant_test_bit arch/x86/include/asm/bitops.h:313
+ [<ffffffff926eb278>] ? __kthread_parkme+0x105/0x105 kernel/kthread.c:205
+ [<     inlined    >] ? finish_task_switch+0x12a/0x1cc atomic_read arch/x86/include/asm/atomic.h:26
+ [<     inlined    >] ? finish_task_switch+0x12a/0x1cc static_key_false include/linux/jump_label.h:148
+ [<     inlined    >] ? finish_task_switch+0x12a/0x1cc perf_sw_event include/linux/perf_event.h:671
+ [<ffffffff92703a04>] ? finish_task_switch+0x12a/0x1cc include/linux/perf_event.h:692
+ [<     inlined    >] ? __kthread_parkme+0x105/0x105 constant_test_bit arch/x86/include/asm/bitops.h:313
+ [<ffffffff926eb278>] ? __kthread_parkme+0x105/0x105 kernel/kthread.c:205
+ [<ffffffff937c896c>] ret_from_fork+0x7c/0xb0 arch/x86/kernel/entry_64.S:554
+ [<     inlined    >] ? __kthread_parkme+0x105/0x105 constant_test_bit arch/x86/include/asm/bitops.h:313
+ [<ffffffff926eb278>] ? __kthread_parkme+0x105/0x105 kernel/kthread.c:205
+Code: 48 c1 ea 03 80 3c 02 00 74 05 e8 7f 81 dc ff 49 8d 7d 08 48 b8 00 00 00 00 00 fc ff df 4c 8b b3 a8 00 00 00 48 89 fa 48 c1 ea 03 <80> 3c 02 00 74 05 e8 51 83 dc ff 4c 89 f2 48 b8 00 00 00 00 00
+RIP  [<ffffffff92af056e>] keyring_destroy+0xe2/0x186 security/keys/keyring.c:172
+ RSP <ffff880035e67c78>
+---[ end trace b0df7272e78c18be ]---
+Kernel panic - not syncing: Fatal exception

@@ -1,0 +1,1 @@
+Libass: <a target="_blank" href="https://github.com/libass/libass/commit/35dc4dd0e14e3afb4a2c7e319a3f4110e20c7cf2">35dc4dd0e14e3afb4a2c7e319a3f4110e20c7cf2</a><br />Fribidi: <a target="_blank" href="https://github.com/behdad/fribidi/commit/881b8d891cc61989ab8811b74d0e721f72bf913b">881b8d891cc61989ab8811b74d0e721f72bf913b</a><br />

@@ -1,0 +1,9 @@
+[30020:30020:0810/024340:317857911391:INFO:audio_manager_pulse.cc(258)] Failed to connect to the context.  Error: Connection refused
+Xlib:  extension "RANDR" missing on display ":1".
+#READY
+Xlib:  extension "RANDR" missing on display ":1".
+Content-Type: text/plain
+ASSERT should not be triggered when type is changed in focus event.
+#EOF
+#EOF
+#EOF

@@ -1,0 +1,37 @@
+#!/bin/bash
+#
+# Copyright 2018 Google LLC
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+function has_python_changes_only {
+  if git show --pretty="" --name-only | grep -E -v '(\.py|requirements\.txt|project\.yaml|gce/clusters\.yaml)$'; then
+    return 1
+  else
+    return 0
+  fi
+}
+
+echo 'Deploying...'
+
+EXTRA_ARGS=''
+if has_python_changes_only; then
+  echo 'Only Python App Engine services.'
+  EXTRA_ARGS='--only-python'
+else
+  echo 'All App Engine services.'
+fi
+
+for config_dir in "$@"; do
+  python butler.py deploy --force --prod --config-dir "$config_dir" $EXTRA_ARGS || exit 1
+done

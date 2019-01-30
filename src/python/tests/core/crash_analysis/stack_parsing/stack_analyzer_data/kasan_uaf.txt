@@ -1,0 +1,100 @@
+==================================================================
+BUG: KASAN: use after free in ip6_append_data+0x2dec/0x34bb at addr ffff88005031ee80
+Read of size 4 by task syzkaller_execu/24036
+=============================================================================
+BUG kmalloc-64 (Tainted: G    B   W     ): kasan: bad access detected
+-----------------------------------------------------------------------------
+
+INFO: Slab 0xffffea000140c780 objects=64 used=39 fp=0xffff88005031edc0 flags=0x4000000000000080
+INFO: Object 0xffff88005031ee80 @offset=3712 fp=0x          (null)
+
+Bytes b4 ffff88005031ee70: 00 00 00 00 00 00 00 00 b1 01 00 00 00 00 00 00  ................
+Object ffff88005031ee80: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00  ................
+Object ffff88005031ee90: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00  ................
+Object ffff88005031eea0: 00 00 00 00 00 00 00 00 0e fe e2 41 00 88 ff ff  ...........A....
+Object ffff88005031eeb0: 60 f7 e2 41 00 88 ff ff 28 00 00 00 00 00 00 00  `..A....(.......
+CPU: 0 PID: 24036 Comm: syzkaller_execu Tainted: G    B   W      3.18.0 #28
+Hardware name: QEMU Standard PC (i440FX + PIIX, 1996), BIOS Bochs 01/01/2011
+ 00000000ffffffff 0000000042b9e767 ffff880021c07448 ffffffff82320c0b
+ fffffbfff0618e16 ffffffff5031ee80 ffff880051401c00 ffff88005031ee80
+ ffff880021c07478 ffffffff812c7423 ffff880051401c00 ffffea000140c780
+Call Trace:
+ [<     inlined    >] dump_stack+0x6c/0x8b __dump_stack lib/dump_stack.c:15
+ [<ffffffff82320c0b>] dump_stack+0x6c/0x8b lib/dump_stack.c:50
+ [<ffffffff812c7423>] print_trailer+0x12b/0x134 mm/slub.c:650
+ [<ffffffff812c7819>] object_err+0x37/0x3f mm/slub.c:657
+ [<     inlined    >] kasan_report_error+0x20e/0x3a3 print_address_description mm/kasan/report.c:120
+ [<ffffffff812cb4ae>] kasan_report_error+0x20e/0x3a3 mm/kasan/report.c:193
+ [<ffffffff812cb72c>] kasan_report+0x46/0x5c mm/kasan/report.c:230
+ [<ffffffff8226b72f>] ? ip6_append_data+0x2dec/0x34bb net/ipv6/ip6_output.c:1172
+ [<ffffffff812cb791>] __asan_report_load4_noabort+0x19/0x1b mm/kasan/report.c:250
+ [<ffffffff8226b72f>] ip6_append_data+0x2dec/0x34bb net/ipv6/ip6_output.c:1172
+ [<ffffffff82125ddb>] ? __skb_pull.part.27+0xb/0xb include/linux/skbuff.h:1693
+ [<ffffffff8226776d>] ? ip6_xmit+0x105b/0x105b net/ipv6/ip6_output.c:235
+ [<ffffffff82268943>] ? ip6_push_pending_frames+0x11d6/0x11d6 net/ipv6/ip6_output.c:1605
+ [<     inlined    >] ? xfrm_lookup_route+0x116/0x125 __rcu_read_unlock include/linux/rcupdate.h:244
+ [<     inlined    >] ? xfrm_lookup_route+0x116/0x125 rcu_read_unlock include/linux/rcupdate.h:935
+ [<     inlined    >] ? xfrm_lookup_route+0x116/0x125 xfrm_policy_put_afinfo net/xfrm/xfrm_policy.c:114
+ [<     inlined    >] ? xfrm_lookup_route+0x116/0x125 make_blackhole net/xfrm/xfrm_policy.c:2172
+ [<ffffffff822315f0>] ? xfrm_lookup_route+0x116/0x125 net/xfrm/xfrm_policy.c:2339
+ [<ffffffff815e7747>] ? delay_tsc+0x71/0x7a arch/x86/lib/delay.c:86
+ [<ffffffff815e765c>] ? __delay+0x20/0x22 arch/x86/lib/delay.c:111
+ [<     inlined    >] ? do_raw_spin_lock+0x2ba/0x33a debug_spin_lock_after kernel/locking/spinlock_debug.c:91
+ [<ffffffff81131b3e>] ? do_raw_spin_lock+0x2ba/0x33a kernel/locking/spinlock_debug.c:138
+ [<     inlined    >] ? ip6_copy_metadata+0x52d/0x52d nf_copy include/linux/skbuff.h:3069
+ [<ffffffff822649fd>] ? ip6_copy_metadata+0x52d/0x52d net/ipv6/ip6_output.c:536
+ [<     inlined    >] ? do_raw_spin_unlock+0x14f/0x1ac debug_spin_unlock kernel/locking/spinlock_debug.c:102
+ [<ffffffff81131e05>] ? do_raw_spin_unlock+0x14f/0x1ac kernel/locking/spinlock_debug.c:158
+ [<ffffffff822b16c5>] udpv6_sendmsg+0x1414/0x19b3 net/ipv6/udp.c:1300 (discriminator 4)
+ [<     inlined    >] ? pick_next_task_fair+0x331/0x9b8 idle_balance kernel/sched/fair.c:7028
+ [<ffffffff81116cbe>] ? pick_next_task_fair+0x331/0x9b8 kernel/sched/fair.c:4999
+ [<ffffffff82125ddb>] ? __skb_pull.part.27+0xb/0xb include/linux/skbuff.h:1693
+ [<ffffffff822b02b1>] ? udpv6_setsockopt+0x8e/0x8e net/ipv6/udp.c:1383
+ [<ffffffff8110b13f>] ? hrtick_update+0x45/0xe5 kernel/sched/fair.c:3994
+ [<ffffffff8111140e>] ? put_prev_entity+0x117/0x216 kernel/sched/fair.c:3136
+ [<     inlined    >] ? do_raw_spin_unlock+0x14f/0x1ac debug_spin_unlock kernel/locking/spinlock_debug.c:102
+ [<ffffffff81131e05>] ? do_raw_spin_unlock+0x14f/0x1ac kernel/locking/spinlock_debug.c:158
+ [<     inlined    >] ? _raw_spin_unlock_irq+0x1f/0x22 __raw_spin_unlock_irq include/linux/spinlock_api_smp.h:167
+ [<ffffffff8232d295>] ? _raw_spin_unlock_irq+0x1f/0x22 kernel/locking/spinlock.c:199
+ [<     inlined    >] ? finish_task_switch+0x12b/0x1ce mmdrop include/linux/sched.h:2444
+ [<ffffffff810f30d6>] ? finish_task_switch+0x12b/0x1ce kernel/sched/core.c:2265
+ [<     inlined    >] ? __schedule+0xce4/0xdac context_switch kernel/sched/core.c:2377
+ [<ffffffff82326ccc>] ? __schedule+0xce4/0xdac kernel/sched/core.c:2859
+ [<ffffffff811895ae>] ? fixup_owner+0x27e/0x27e kernel/futex.c:2045 (discriminator 4)
+ [<ffffffff821c8e69>] inet_sendmsg+0xe7/0x181 net/ipv4/af_inet.c:748
+ [<ffffffff820181f4>] __sock_sendmsg_nosec+0x141/0x14d net/socket.c:624
+ [<     inlined    >] sock_aio_write+0x29a/0x2f9 __sock_sendmsg net/socket.c:632
+ [<     inlined    >] sock_aio_write+0x29a/0x2f9 do_sock_write net/socket.c:942
+ [<ffffffff8201ac0e>] sock_aio_write+0x29a/0x2f9 net/socket.c:957
+ [<ffffffff8201a974>] ? dlci_ioctl_set+0x36/0x36 net/socket.c:995
+ [<     inlined    >] ? drop_futex_key_refs+0xe2/0xe7 mmdrop include/linux/sched.h:2445
+ [<ffffffff81187bbe>] ? drop_futex_key_refs+0xe2/0xe7 kernel/futex.c:374
+ [<ffffffff8201a974>] ? dlci_ioctl_set+0x36/0x36 net/socket.c:995
+ [<ffffffff812d4170>] do_sync_readv_writev+0x107/0x1a0 fs/read_write.c:684
+ [<ffffffff812d4069>] ? do_sync_write+0x1e2/0x1e2 fs/read_write.c:462
+ [<ffffffff812d55ad>] ? rw_verify_area+0x299/0x2ab fs/read_write.c:365
+ [<ffffffff8201a974>] ? dlci_ioctl_set+0x36/0x36 net/socket.c:995
+ [<ffffffff812d7148>] do_readv_writev+0x2ca/0x3bf fs/read_write.c:839
+ [<ffffffff812d6e7e>] ? rw_copy_check_uvector+0x244/0x244 fs/read_write.c:799
+ [<     inlined    >] ? do_raw_spin_lock+0x2ba/0x33a debug_spin_lock_after kernel/locking/spinlock_debug.c:91
+ [<ffffffff81131b3e>] ? do_raw_spin_lock+0x2ba/0x33a kernel/locking/spinlock_debug.c:138
+ [<ffffffff81315170>] ? __fcheck_files+0xb9/0xc4 include/linux/fdtable.h:80
+ [<     inlined    >] ? __fget+0xf4/0xff __rcu_read_unlock include/linux/rcupdate.h:244
+ [<     inlined    >] ? __fget+0xf4/0xff rcu_read_unlock include/linux/rcupdate.h:935
+ [<ffffffff81315f35>] ? __fget+0xf4/0xff fs/file.c:645
+ [<ffffffff81316087>] ? __fget_light+0x102/0x10d fs/file.c:692
+ [<ffffffff812d737e>] vfs_writev+0x94/0xb0 fs/read_write.c:880
+ [<     inlined    >] SyS_writev+0x104/0x1a3 SYSC_writev fs/read_write.c:913
+ [<ffffffff812d7641>] SyS_writev+0x104/0x1a3 fs/read_write.c:905
+ [<ffffffff812d753d>] ? SyS_readv+0x1a3/0x1a3 fs/read_write.c:885
+ [<ffffffff813171a0>] ? fd_install+0x58/0x60 fs/file.c:565
+ [<ffffffff8232db5a>] ? system_call_fastpath+0x1a/0x3b arch/x86/kernel/entry_64.S:433
+ [<ffffffff8232db71>] system_call_fastpath+0x31/0x3b arch/x86/kernel/entry_64.S:439
+Memory state around the buggy address:
+ ffff88005031ed80: fb fb fb fb fb fb fb fb fb fb fb fb fb fb fb fb
+ ffff88005031ee00: 00 00 00 00 00 00 00 00 fb fb fb fb fb fb fb fb
+>ffff88005031ee80: fb fb fb fb fb fb fb fb fb fb fb fb fb fb fb fb
+                   ^
+ ffff88005031ef00: fb fb fb fb fb fb fb fb fb fb fb fb fb fb fb fb
+ ffff88005031ef80: fb fb fb fb fb fb fb fb fb fb fb fb fb fb fb fb
+==================================================================

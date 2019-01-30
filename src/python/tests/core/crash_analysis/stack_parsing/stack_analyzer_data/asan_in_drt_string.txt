@@ -1,0 +1,23 @@
+[30816:30816:0811/062039:485568368194:INFO:audio_manager_pulse.cc(258)] Failed to connect to the context.  Error: Connection refused
+Xlib:  extension "RANDR" missing on display ":1".
+#READY
+Xlib:  extension "RANDR" missing on display ":1".
+Content-Type: text/plain
+layer at (0,0) size 800x600
+  LayoutView at (0,0) size 800x600
+layer at (0,0) size 800x600
+  LayoutBlockFlow {HTML} at (0,0) size 800x600
+    LayoutBlockFlow {BODY} at (8,8) size 784x584
+      LayoutText {#text} at (0,0) size 780x119
+        text run at (0,0) width 768: "# Copyright (c) 2011 The Chromium Authors. All rights reserved. # Use of this source code is governed by a BSD-style license"
+        text run at (0,20) width 249: "that can be # found in the LICENSE file. "
+        text run at (249,20) width 531: "# This file lists symbols that should not be stripped by Xcode from the binaries # built for"
+        text run at (0,40) width 596: "Mac OS X using AddressSanitizer # (http://dev.chromium.org/developers/testing/addresssanitizer). "
+        text run at (596,40) width 76: "___asan_init"
+        text run at (0,60) width 643: "___asan_handle_no_return ___asan_register_global ___asan_register_globals ___asan_unregister_globals"
+        text run at (0,80) width 714: "___asan_report_load1 ___asan_report_load2 ___asan_report_load4 ___asan_report_load8 ___asan_report_load16"
+        text run at (0,100) width 734: "___asan_report_store1 ___asan_report_store2 ___asan_report_store4 ___asan_report_store8 ___asan_report_store16"
+#EOF
+#EOF
+#EOF
+[30816:30835:0811/062042:485570935221:ERROR:channel.cc(307)] RawChannel read error (connection broken)

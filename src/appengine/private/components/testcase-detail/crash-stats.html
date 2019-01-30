@@ -1,0 +1,426 @@
+<!--
+  Copyright 2018 Google LLC
+
+  Licensed under the Apache License, Version 2.0 (the "License");
+  you may not use this file except in compliance with the License.
+  You may obtain a copy of the License at
+
+       http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+-->
+<link rel="import" href="../../bower_components/polymer/polymer.html">
+<link rel="import" href="../../bower_components/iron-icon/iron-icon.html">
+<link rel="import" href="../../bower_components/neon-animation/neon-animations.html">
+<link rel="import" href="../../bower_components/paper-button/paper-button.html">
+<link rel="import" href="../../bower_components/paper-menu-button/paper-menu-button.html">
+<link rel="import" href="../../bower_components/paper-tabs/paper-tab.html">
+<link rel="import" href="../../bower_components/paper-tabs/paper-tabs.html">
+<link rel="import" href="../../components/crash-stats-chart/crash-stats-chart.html">
+<link rel="import" href="../../components/crash-stats-chart/crash-stats-header.html">
+<link rel="import" href="../../components/crash-stats/date-time-picker.html">
+
+<dom-module id="crash-stats">
+  <link rel="import" href="../../stylesheets/main.css" type="css">
+  <link rel="import" href="../technology/technology.css" type="css">
+  <script src="../../javascripts/error.js" type="text/javascript"></script>
+  <template>
+    <style>
+      :host {
+        display: block;
+      }
+
+      :host .section .title {
+        display: -webkit-flex;
+        display: flex;
+      }
+
+      :host .section .title div.left {
+        -webkit-flex: 1;
+        flex: 1;
+      }
+
+      :host .section .title div.right {
+        -webkit-flex: 1;
+        flex: 1;
+        text-align: right;
+      }
+
+      :host .chart-container {
+        display: block;
+        margin: 0px auto;
+        width: 1200px;
+      }
+
+      :host .seen {
+        display: block;
+        text-align: center;
+        font-size: 14px;
+        color: #aaa;
+        padding-bottom: 10px;
+      }
+
+      :host .empty {
+        padding: 10px 5px;
+      }
+
+      :host paper-dropdown-menu, date-time-picker {
+        display: inline-block;
+        height: 16px;
+        margin-left: 5px;
+        vertical-align: middle;
+
+        --paper-dropdown-menu-button: {
+          margin-top: -5px;
+        };
+
+        --paper-dropdown-menu-ripple: {
+          display: none;
+        };
+
+        --paper-input-container: {
+          padding: 0px;
+          height: 16px;
+          vertical-align: middle;
+          text-align: right;
+        };
+
+        --paper-input-container-underline: {
+          display: none;
+        };
+
+        --paper-input-container-underline-focus: {
+          display: none;
+        };
+
+        --paper-input-suffix: {
+          color: #fff;
+        };
+
+        --paper-dropdown-menu-input: {
+          border-bottom: none;
+        };
+
+        --paper-dropdown-menu-icon: {
+          color: #fff;
+        };
+      }
+
+      :host #groupByOptions, #blockOptions {
+        cursor: pointer;
+        --paper-input-container-input: {
+          cursor: pointer;
+          color: #fff;
+          font-weight: normal;
+          font-size: 13px;
+          line-height: 16px;
+          height: 16px;
+          width: 110px;
+          text-transform: uppercase;
+          text-align: right;
+        };
+      }
+
+      :host #blockOptions {
+        cursor: pointer;
+        --paper-input-container-input: {
+          cursor: pointer;
+          color: #fff;
+          font-weight: normal;
+          font-size: 13px;
+          line-height: 16px;
+          height: 16px;
+          width: 60px;
+          text-transform: uppercase;
+          text-align: right;
+        };
+      }
+
+      :host #daysButton {
+        display: inline-block;
+        width: 90px;
+        padding: 0px;
+        margin: -2px 0px 0px 0px;
+        height: 16px;
+        vertical-align: middle;
+      }
+
+      :host #daysButton div {
+        display: inline-block;
+        height: 16px;
+        line-height: 16px;
+        vertical-align: top;
+        font-size: 13px;
+      }
+
+      :host #days {
+        width: 200px;
+      }
+
+      :host #daysButton iron-icon {
+        display: inline-block;
+        vertical-align: top;
+        margin-top: -4px;
+        margin-left: -4px;
+      }
+
+      :host .time-label {
+        height: 16px;
+        line-height: 16px;
+        font-size: 13px;
+      }
+
+      :host date-time-picker {
+        --paper-input-container-input: {
+          color: #fff;
+          font-weight: normal;
+          font-size: 13px;
+          line-height: 16px;
+          height: 16px;
+          text-transform: uppercase;
+          width: 160px;
+          text-align: right;
+          cursor: pointer;
+        };
+      }
+
+      :host paper-spinner {
+        width: 16px;
+        height: 16px;
+        margin-left: 5px;
+        vertical-align: middle;
+      }
+
+      :host .error {
+        padding: 5px;
+        color: #ca4545;
+      }
+
+      :host .error .title {
+        display: block;
+        font-weight: bold;
+      }
+
+      :host .error .trace-dump {
+        display: block;
+        overflow: auto;
+        font-family: 'Source Code Pro', monospace;
+        white-space: pre;
+        margin-top: 10px;
+        font-size: 12px;
+      }
+
+      :host .expand-button {
+        display: block;
+        text-align: center;
+        padding: 10px 0px;
+      }
+    </style>
+    <paper-dialog opened="{{daysOpened}}" modal>
+      <div class="body">
+        <paper-input
+            id="days"
+            type="text"
+            value="{{days}}"
+            label="The number of days on the statistics.">
+        </paper-input>
+      </div>
+      <div class="buttons">
+        <paper-button class="submit" on-tap="submitDays">Set</paper-button>
+        <paper-button dialog-dismiss>Cancel</paper-button>
+      </div>
+    </paper-dialog>
+    <iron-ajax
+      id="ajax"
+      url="/testcase-detail/crash-stats"
+      method="POST"
+      content-type="application/json"
+      body="[[ajaxParams]]"
+      loading="{{loading}}"
+      last-request="{{request}}"
+      last-error="{{error}}"
+      last-response="{{response}}"
+      on-error="handleError"
+      on-request="handleRequest"
+      on-response="handleResponse"
+      debounce-duration="500"></iron-ajax>
+    <div class="section">
+      <div class="title">
+        <div class="left">
+          Statistics
+          <paper-spinner active="[[loading]]"></paper-spinner>
+        </div>
+        <div class="right">
+          <span class="time-label">End Time:</span>
+          <date-time-picker float-label$="false" selected-hour="{{end}}" min-hour="[[minHour]]" max-hour="[[maxHour]]" on-submit="submit"></date-time-picker>
+          <paper-dropdown-menu
+              id="blockOptions"
+              no-animations="true"
+              no-label-float
+              noink>
+            <paper-listbox
+                slot="dropdown-content"
+                selected="{{block}}"
+                attr-for-selected="value">
+              <paper-item on-click="submit" value="day">By day</paper-item>
+              <paper-item on-click="submit" value="hour">By hour</paper-item>
+            </paper-listbox>
+          </paper-dropdown-menu>
+          <paper-button no-ink id="daysButton" toggles active="{{daysOpened}}">
+            <div>[[days]] day[[maybeAddS(days)]]</div>
+            <iron-icon icon="icons:arrow-drop-down"></iron-icon>
+          </paper-button>
+          <paper-dropdown-menu
+              id="groupByOptions"
+              no-animations="true"
+              no-label-float
+              noink>
+            <paper-listbox
+                slot="dropdown-content"
+                class="dropdown-content"
+                selected="{{groupBy}}"
+                attr-for-selected="value">
+              <paper-item on-click="submit" value="platform">Platform</paper-item>
+              <paper-item on-click="submit" value="reproducible_flag">Reproducibility</paper-item>
+              <paper-item on-click="submit" value="fuzzer_name">Fuzzer</paper-item>
+              <paper-item on-click="submit" value="job_type">Job</paper-item>
+              <paper-item on-click="submit" value="revision">Revision</paper-item>
+            </paper-listbox>
+          </paper-dropdown-menu>
+        </div>
+      </div>
+      <div class="body">
+        <template is="dom-if" if="[[!hasStats(stats, error)]]">
+          <div class="expand-button">
+            <paper-button raised disabled="[[loading]]" on-click="submit">
+              <template is="dom-if" if="[[!loading]]">
+                Click to see the stats
+              </template>
+              <template is="dom-if" if="[[loading]]">
+                <paper-spinner active="[[loading]]"></paper-spinner> &nbsp; Loading
+              </template>
+            </paper-button>
+          </div>
+        </template>
+        <template is="dom-if" if="[[hasStats(stats, error)]]">
+          <template is="dom-if" if="[[error]]">
+            <div class="error">
+              <span class="title">[[error.message]]</span>
+              <span class="trace-dump" hidden$="[[!error.traceDump]]"
+                >[[error.traceDump]]</span>
+            </div>
+          </template>
+          <template is="dom-if" if="[[!error]]">
+            <div class="chart-container">
+              <crash-stats-header
+                  header-width="1200"
+                  end="[[stats.end]]"
+                  days="[[stats.days]]"
+                  block="[[stats.block]]">
+              </crash-stats-header>
+              <crash-stats-chart
+                  chart-width="1200"
+                  groups="[[stats.groups]]"
+                  days="[[stats.days]]"
+                  number-type="count"
+                  end="[[stats.end]]"
+                  block="[[stats.block]]">
+              </crash-stats-chart>
+            </div>
+          </template>
+        </template>
+      </div>
+    </div>
+  </template>
+  <script>
+    Polymer({
+      is: 'crash-stats',
+      properties: {
+          testcaseId: String,
+          minHour: Number,
+          maxHour: Number,
+          error: {
+            type: Object,
+            value: null
+          },
+          stats: {
+            type: Object,
+            value: null
+          },
+          groupBy: {
+              type: String,
+              value: 'platform'
+          },
+          days: {
+              type: Number,
+              value: 7
+          },
+          block: {
+              type: String,
+              value: 'day'
+          },
+          end: Number,
+          loading: {
+            type: Boolean,
+            value: false
+          }
+      },
+      hasStats(stats, error) {
+        return stats || error;
+      },
+      formatTime(hours) {
+        let date = new Date(hours * 60 * 60 * 1000);
+        return date.toLocaleDateString(
+            'en-US',
+            {year: 'numeric', month: 'short', day: 'numeric', hour: 'numeric'});
+      },
+      maybeAddS(days) {
+        if (days == 1) {
+          return '';
+        } else {
+          return 's';
+        }
+      },
+      submit() {
+        this.ajaxParams = {
+          testcaseId: this.testcaseId,
+          end: this.end,
+          days: this.days,
+          groupBy: this.groupBy,
+          block: this.block
+        };
+        this.$.ajax.generateRequest();
+      },
+      handleRequest() {
+        var reqs = this.$.ajax.activeRequests;
+        for (let i=0;i<reqs.length;i++) {
+          if (reqs[i] != this.request) {
+            reqs[i].abort();
+          }
+        }
+      },
+      handleResponse() {
+        this.set('stats', this.response);
+        this.set('error', null);
+      },
+      handleError() {
+        let error = parseError(this.error);
+        if (!error) {
+          // this.error is undefined because its request is aborted.
+          return;
+        }
+
+        this.set('error', error);
+      },
+      submitDays() {
+        this.set('daysOpened', false);
+        this.submit();
+      }
+    });
+  </script>
+</dom-module>
+

@@ -1,0 +1,50 @@
+Command: /mnt/scratch0/clusterfuzz/bot/builds/clusterfuzz-builds_imagemagick_fe1d5c34955786983249f7efc0c66cfc4922c0ee/revisions/encoder_miff_fuzzer -timeout=25 -rss_limit_mb=2048 -artifact_prefix=/ -max_total_time=2050 -print_final_stats=1 /new /imagemagick_encoder_miff_fuzzer /mutations
+Bot: oss-fuzz-linux-zone1-worker-imagemagick-5811
+Time ran: 351.112087
+INFO: Seed: 2978083033
+INFO: Loaded 1 modules   (52747 inline 8-bit counters): 52747 [0x16e9b98, 0x16f69a3),
+INFO: Loaded 1 PC tables (52747 PCs): 52747 [0x1346330,0x14143e0),
+INFO:        0 files found in /new
+INFO:     3787 files found in /imagemagick_encoder_miff_fuzzer
+INFO:     1981 files found in /mutations
+INFO: -max_len is not provided; libFuzzer will not generate inputs larger than 978798 bytes
+INFO: seed corpus: files: 5768 min: 1b max: 978798b total: 87662049b rss: 103Mb
+#4096	pulse  cov: 1321 ft: 6306 corp: 2256/467Kb exec/s: 1024 rss: 103Mb
+Slowest unit: 10 s:
+artifact_prefix='/'; Test unit written to /slow-unit-2b09e188a1c3ffefc0d54be6d4d2a90b2b0ee1d5
+Slowest unit: 12 s:
+artifact_prefix='/'; Test unit written to /slow-unit-35b029feb7726205da6fe3d25402923022f90f68
+Slowest unit: 14 s:
+artifact_prefix='/'; Test unit written to /slow-unit-da4f94642691327134a933aacfb46a0c905cf438
+Slowest unit: 19 s:
+artifact_prefix='/'; Test unit written to /slow-unit-0d0f4c24ea61eef0391f3e205e6d5121cf329a92
+ALARM: working on the last Unit for 32 seconds
+and the timeout value is 25 (use -timeout=N to change)
+MS: 0 ; base unit: 0000000000000000000000000000000000000000
+==1== ERROR: libFuzzer: timeout after 32 seconds
+#0 0x446e0c in __sanitizer_print_stack_trace /src/llvm/projects/compiler-rt/lib/msan/msan.cc:653
+#1 0x4dfd65 in fuzzer::Fuzzer::AlarmCallback() /src/libfuzzer/FuzzerLoop.cpp:292:7
+#2 0x45c919 in SignalHandler(int) /src/llvm/projects/compiler-rt/lib/msan/msan_interceptors.cc:1049
+#3 0x7f0d6fd4f38f in libpthread.so.0
+#4 0x56eb5e in HandleCmp<unsigned long> /src/libfuzzer/FuzzerTracePC.cpp:331:55
+#5 0x56eb5e in __sanitizer_cov_trace_cmp8 /src/libfuzzer/FuzzerTracePC.cpp:423
+#6 0x9906c9 in GetValueFromLinkedList imagemagick/MagickCore/linked-list.c:412:15
+#7 0x58200f in Magick::throwException(MagickCore::_ExceptionInfo*, bool) imagemagick/Magick++/lib/Exception.cpp:853:35
+#8 0x5bc2f1 in Magick::Image::read(MagickCore::_Image*, MagickCore::_ExceptionInfo*) imagemagick/Magick++/lib/Image.cpp:5083:3
+#9 0x49ec2c in LLVMFuzzerTestOneInput imagemagick/Magick++/fuzz/encoder_fuzzer.cc:43:11
+#10 0x4e6a93 in fuzzer::Fuzzer::ExecuteCallback(unsigned char const*, unsigned long) /src/libfuzzer/FuzzerLoop.cpp:515:13
+#11 0x4e3c7c in fuzzer::Fuzzer::RunOne(unsigned char const*, unsigned long, bool, fuzzer::InputInfo*, bool*) /src/libfuzzer/FuzzerLoop.cpp:440:3
+#12 0x4ee569 in fuzzer::Fuzzer::ReadAndExecuteSeedCorpora(std::__1::vector<std::__1::basic_string<char, std::__1::char_traits<char>, std::__1::allocator<char> >, fuzzer::fuzzer_allocator<std::__1::basic_string<char, std::__1::char_traits<char>, std::__1::allocator<char> > > > const&) /src/libfuzzer/FuzzerLoop.cpp:723:7
+#13 0x4eeee3 in fuzzer::Fuzzer::Loop(std::__1::vector<std::__1::basic_string<char, std::__1::char_traits<char>, std::__1::allocator<char> >, fuzzer::fuzzer_allocator<std::__1::basic_string<char, std::__1::char_traits<char>, std::__1::allocator<char> > > > const&) /src/libfuzzer/FuzzerLoop.cpp:739:3
+#14 0x4b3edd in fuzzer::FuzzerDriver(int*, char***, int (*)(unsigned char const*, unsigned long)) /src/libfuzzer/FuzzerDriver.cpp:754:6
+#15 0x49f221 in main /src/libfuzzer/FuzzerMain.cpp:20:10
+#16 0x7f0d6f37282f in __libc_start_main /build/glibc-bfm8X4/glibc-2.23/csu/libc-start.c:291
+#17 0x41fa18 in _start
+custom-crash-state: imagemagick_encoder_miff_fuzzer
+SUMMARY: libFuzzer: timeout
+stat::number_of_executed_units: 5769
+stat::average_exec_per_sec:     16
+stat::new_units_added:          0
+stat::slowest_unit_time_sec:    19
+stat::peak_rss_mb:              301
+cf::fuzzing_strategies: corpus_mutations_radamsa

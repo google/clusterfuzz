@@ -1,0 +1,304 @@
+--------- google-breakpad (8142):
+Cannot upload crash dump: failed to open
+Output crash dump:
+/data/data/com.google.android.apps.chrome/cache/Crash Reports/android_mime_minidump.dmp1
+### ### ### ### ### ### ### ### ### ### ### ### ###
+Chrome build fingerprint:
+46.0.2482.0
+2482000
+none
+### ### ### ### ### ### ### ### ### ### ### ### ###
+Fatal signal 6 (SIGABRT), code -6 in tid 8142 (oid.apps.chrome)
+--------- DEBUG (188):
+*** *** *** *** *** *** *** *** *** *** *** *** *** *** *** ***
+Build fingerprint: 'google/hammerhead/hammerhead:5.1.1/LMY48B/1863243:userdebug/dev-keys'
+Revision: '11'
+ABI: 'arm'
+pid: 8142, tid: 8142, name: oid.apps.chrome  >>> com.google.android.apps.chrome <<<
+signal 6 (SIGABRT), code -6 (SI_TKILL), fault addr --------
+Abort message: '[FATAL:jni_android.cc(249)] Check failed: false. Please include Java exception stack in crash report
+'
+    r0 00000000  r1 00001fce  r2 00000006  r3 00000000
+    r4 b6fb7e38  r5 00000006  r6 0000000b  r7 0000010c
+    r8 000d320c  r9 bef92a40  sl b26513a0  fp bef92a38
+    ip 00001fce  sp bef929e0  lr b68d63c5  pc b68f987c  cpsr 600b0010
+
+backtrace:
+    #0 0x0003a87c (/system/lib/libc.so+0x0003a87c)
+    #1 0x000173c1 (/system/lib/libc.so+0x000173c1)
+    #2 0x00017fd3 (/system/lib/libc.so+0x00017fd3)
+    #3 0x00014795 (/system/lib/libc.so+0x00014795)
+    #4 0x00012f44 (/system/lib/libc.so+0x00012f44)
+    #5 0x0212ef50 (/data/app/com.google.android.apps.chrome-1/lib/arm/libchrome.so+0x0212ef50)
+    #6 0x00338dc0 (/data/app/com.google.android.apps.chrome-1/lib/arm/libchrome.so+0x00338dc0)
+    #7 0x002be21c (/data/app/com.google.android.apps.chrome-1/lib/arm/libchrome.so+0x002be21c)
+    #8 0x0bc833f0 (/data/app/com.google.android.apps.chrome-1/lib/arm/libchrome.so+0x0bc833f0)
+    #9 0x0c60939c (/data/app/com.google.android.apps.chrome-1/lib/arm/libchrome.so+0x0c60939c)
+    #10 0x0c5e697c (/data/app/com.google.android.apps.chrome-1/lib/arm/libchrome.so+0x0c5e697c)
+    #11 0x0c5e67dc (/data/app/com.google.android.apps.chrome-1/lib/arm/libchrome.so+0x0c5e67dc)
+    #12 0x0c5e14a8 (/data/app/com.google.android.apps.chrome-1/lib/arm/libchrome.so+0x0c5e14a8)
+    #13 0x0c5c8d9c (/data/app/com.google.android.apps.chrome-1/lib/arm/libchrome.so+0x0c5c8d9c)
+    #14 0x0c5a5a18 (/data/app/com.google.android.apps.chrome-1/lib/arm/libchrome.so+0x0c5a5a18)
+    #15 0x01523c84 (/data/app/com.google.android.apps.chrome-1/lib/arm/libchrome.so+0x01523c84)
+    #16 0x00f5dd2c (/data/app/com.google.android.apps.chrome-1/lib/arm/libchrome.so+0x00f5dd2c)
+    #17 0x00f5c818 (/data/app/com.google.android.apps.chrome-1/lib/arm/libchrome.so+0x00f5c818)
+    #18 0x00f5b800 (/data/app/com.google.android.apps.chrome-1/lib/arm/libchrome.so+0x00f5b800)
+    #19 0x005dafec (/data/app/com.google.android.apps.chrome-1/lib/arm/libchrome.so+0x005dafec)
+    #20 0x002615b3 (/data/dalvik-cache/arm/data@app@com.google.android.apps.chrome-1@base.apk@classes.dex+0x002615b3)
+--------- ActivityManager (3862):
+Start proc 8496:com.google.android.apps.chrome:sandboxed_process0/u0i5 for service com.google.android.apps.chrome/org.chromium.content.app.SandboxedProcessService0
+START u0 {act=android.intent.action.VIEW dat=file:///sdcard/fuzzer-testcases/fuzz-dummy-66.html flg=0x10000000 cmp=com.google.android.apps.chrome/.Main} from uid 0 on display 0
+--------- cr.ChildProcessService (8496):
+Creating new ChildProcessService pid=8496
+--------- ActivityManager (3862):
+Activity pause timeout for ActivityRecord{3db01612 u0 com.google.android.apps.chrome/org.chromium.chrome.browser.ChromeTabbedActivity t4}
+--------- debuggerd (188):
+type=1400 audit(0.0:59): avc: denied { read } for name="kgsl-3d0" dev="tmpfs" ino=5635 scontext=u:r:debuggerd:s0 tcontext=u:object_r:gpu_device:s0 tclass=chr_file
+type=1400 audit(0.0:60): avc: denied { open } for name="kgsl-3d0" dev="tmpfs" ino=5635 scontext=u:r:debuggerd:s0 tcontext=u:object_r:gpu_device:s0 tclass=chr_file
+type=1400 audit(0.0:61): avc: denied { getattr } for path="/dev/kgsl-3d0" dev="tmpfs" ino=5635 scontext=u:r:debuggerd:s0 tcontext=u:object_r:gpu_device:s0 tclass=chr_file
+
+Tombstone written to: /data/tombstones/tombstone_01
+--------- BootReceiver (3862):
+Copying /data/tombstones/tombstone_01 to DropBox (SYSTEM_TOMBSTONE)
+  Force finishing activity 1 com.google.android.apps.chrome/.Main
+  Force finishing activity 2 com.google.android.apps.chrome/org.chromium.chrome.browser.ChromeTabbedActivity
+WIN DEATH: Window{1ffa755 u0 com.google.android.apps.chrome/org.chromium.chrome.browser.ChromeTabbedActivity}
+Force-removing child win Window{321a5e36 u0 SurfaceView} from container Window{1ffa755 u0 com.google.android.apps.chrome/org.chromium.chrome.browser.ChromeTabbedActivity}
+Failed looking up window
+java.lang.IllegalArgumentException: Requested window android.os.BinderProxy@3e6063d1 does not exist
+	at com.android.server.wm.WindowManagerService.windowForClientLocked(WindowManagerService.java:8539)
+	at com.android.server.wm.WindowManagerService.windowForClientLocked(WindowManagerService.java:8530)
+	at com.android.server.wm.WindowState$DeathRecipient.binderDied(WindowState.java:1142)
+	at android.os.BinderProxy.sendDeathNotice(Binder.java:551)
+WIN DEATH: null
+--------- Zygote (3571):
+Process 8142 exited due to signal (6)
+--------- chromium (8227):
+[INFO:child_process_service.cc(170)] ChildProcessService: Exiting child process.
+--------- ActivityManager (3862):
+Process com.google.android.apps.chrome (pid 8142) has died
+Killing 8496:com.google.android.apps.chrome:sandboxed_process0/u0a90i5 (adj 0): isolated not needed
+failed to open /acct/uid_10090/pid_8496/cgroup.procs: No such file or directory
+<qeglDrvAPI_eglInitialize:379>: QUALCOMM Build: 01/14/15, ab0075f, Id3510ff6dc
+Initialized EGL, version 1.4
+Process com.google.android.apps.chrome:privileged_process0 (pid 8227) has died
+
+
+----------------------------------------Memory Statistics----------------------------------------
+
+USER     PID   PPID  VSIZE  RSS   CPU   WCHAN    PC        NAME
+root      1     0     8856   716   0  c027bc50 00034b50 S /init
+root      2     0     0      0     0  c01b5b18 00000000 S kthreadd
+root      3     2     0      0     0  c019bacc 00000000 S ksoftirqd/0
+root      4     2     0      0     0  c01af4b8 00000000 S kworker/0:0
+root      5     2     0      0     0  c01af4b8 00000000 S kworker/0:0H
+root      6     2     0      0     2  c01af4b8 00000000 S kworker/u:0
+root      7     2     0      0     0  c0175ab4 00000000 D kworker/u:0H
+root      8     2     0      0     0  c01eb1f8 00000000 S migration/0
+root      13    2     0      0     1  c01af260 00000000 S khelper
+root      14    2     0      0     1  c01af260 00000000 S netns
+root      15    2     0      0     0  c01af4b8 00000000 S kworker/0:1
+root      17    2     0      0     0  c01af4b8 00000000 S kworker/0:1H
+root      18    2     0      0     1  c01af260 00000000 S modem_notifier
+root      19    2     0      0     1  c01af260 00000000 S smd_channel_clo
+root      20    2     0      0     1  c01af260 00000000 S smsm_cb_wq
+root      21    2     0      0     0  c01af4b8 00000000 S kworker/u:1
+root      22    2     0      0     1  c01af260 00000000 S rpm-smd
+root      23    2     0      0     1  c01af4b8 00000000 S kworker/u:1H
+root      24    2     0      0     1  c01f7b4c 00000000 S irq/317-earjack
+root      25    2     0      0     0  c024845c 00000000 S sync_supers
+root      26    2     0      0     1  c0248d04 00000000 S bdi-default
+root      27    2     0      0     1  c01af260 00000000 S kblockd
+root      28    2     0      0     0  c04a4e10 00000000 S vmalloc
+root      29    2     0      0     1  c05cf7bc 00000000 S khubd
+root      30    2     0      0     1  c01f7b4c 00000000 S irq/102-msm_iom
+root      31    2     0      0     1  c01f7b4c 00000000 S irq/102-msm_iom
+root      32    2     0      0     1  c01f7b4c 00000000 S irq/102-msm_iom
+root      33    2     0      0     1  c01f7b4c 00000000 S irq/79-msm_iomm
+root      34    2     0      0     1  c01f7b4c 00000000 S irq/78-msm_iomm
+root      35    2     0      0     1  c01f7b4c 00000000 S irq/78-msm_iomm
+root      36    2     0      0     1  c01f7b4c 00000000 S irq/74-msm_iomm
+root      37    2     0      0     1  c01f7b4c 00000000 S irq/75-msm_iomm
+root      38    2     0      0     1  c01f7b4c 00000000 S irq/75-msm_iomm
+root      39    2     0      0     1  c01f7b4c 00000000 S irq/75-msm_iomm
+root      40    2     0      0     1  c01f7b4c 00000000 S irq/75-msm_iomm
+root      41    2     0      0     1  c01f7b4c 00000000 S irq/273-msm_iom
+root      42    2     0      0     1  c01f7b4c 00000000 S irq/273-msm_iom
+root      43    2     0      0     1  c01f7b4c 00000000 S irq/97-msm_iomm
+root      44    2     0      0     1  c01f7b4c 00000000 S irq/97-msm_iomm
+root      45    2     0      0     1  c01f7b4c 00000000 S irq/97-msm_iomm
+root      46    2     0      0     1  c01af260 00000000 S l2cap
+root      47    2     0      0     1  c01af260 00000000 S a2mp
+root      48    2     0      0     1  c01af260 00000000 S cfg80211
+root      50    2     0      0     1  c01af260 00000000 S qmi
+root      51    2     0      0     1  c01af260 00000000 S nmea
+root      52    2     0      0     1  c01af260 00000000 S msm_ipc_router
+root      53    2     0      0     1  c01af260 00000000 S apr_driver
+root      55    2     0      0     0  c0240100 00000000 S kswapd0
+root      56    2     0      0     0  c02a7b50 00000000 S fsnotify_mark
+root      57    2     0      0     1  c01af260 00000000 S cifsiod
+root      58    2     0      0     1  c01af260 00000000 S crypto
+root      76    2     0      0     1  c01af260 00000000 S ad_calc_wq
+root      77    2     0      0     1  c01af260 00000000 S hdmi_tx_workq
+root      78    2     0      0     1  c01af260 00000000 S anx7808_work
+root      79    2     0      0     1  c01af260 00000000 S k_hsuart
+root      80    2     0      0     1  c01af260 00000000 S diag_wq
+root      81    2     0      0     1  c01af260 00000000 S diag_cntl_wq
+root      82    2     0      0     1  c01af260 00000000 S diag_dci_wq
+root      83    2     0      0     1  c01af260 00000000 S kgsl-3d0
+root      84    2     0      0     1  c01af4b8 00000000 S kworker/u:2
+root      85    2     0      0     1  c01af260 00000000 S f9966000.spi
+root      89    2     0      0     1  c01af260 00000000 S usbnet
+root      90    2     0      0     1  c01f7b4c 00000000 S irq/329-anx7808
+root      91    2     0      0     1  c01af260 00000000 S k_rmnet_mux_wor
+root      92    2     0      0     1  c01af260 00000000 S f_mtp
+root      93    2     0      0     1  c0626e8c 00000000 S file-storage
+root      94    2     0      0     1  c01af260 00000000 S uether
+root      95    2     0      0     1  c01af260 00000000 S synaptics_wq
+root      96    2     0      0     0  c01f7b4c 00000000 S irq/362-s3350
+root      97    2     0      0     1  c01af260 00000000 S msm_vidc_worker
+root      98    2     0      0     1  c01af260 00000000 S msm_vidc_worker
+root      100   2     0      0     1  c01af260 00000000 S msm_cpp_workque
+root      101   2     0      0     1  c01f7b4c 00000000 S irq/350-bq51013
+root      102   2     0      0     0  c01af4b8 00000000 S kworker/0:2
+root      103   2     0      0     1  c01af260 00000000 S dm_bufio_cache
+root      104   2     0      0     1  c0730574 00000000 D dbs_sync/0
+root      105   2     0      0     1  c0730574 00000000 D dbs_sync/1
+root      106   2     0      0     1  c0730574 00000000 D dbs_sync/2
+root      107   2     0      0     1  c0730574 00000000 D dbs_sync/3
+root      108   2     0      0     1  c0732fe4 00000000 S cfinteractive
+root      109   2     0      0     1  c01f7b4c 00000000 S irq/170-msm_sdc
+root      110   2     0      0     1  c01af260 00000000 S binder
+root      111   2     0      0     1  c01af260 00000000 S usb_bam_wq
+root      112   2     0      0     1  c09cdbd0 00000000 S krfcommd
+root      113   2     0      0     1  c01af260 00000000 S bam_dmux_rx
+root      114   2     0      0     1  c01af260 00000000 S bam_dmux_tx
+root      115   2     0      0     1  c01af260 00000000 S rq_stats
+root      116   2     0      0     1  c01af260 00000000 S deferwq
+root      117   2     0      0     0  c01af4b8 00000000 S kworker/u:3
+root      118   2     0      0     0  c01f7b4c 00000000 S irq/361-MAX1704
+root      119   2     0      0     0  c01af4b8 00000000 S kworker/0:3
+root      120   2     0      0     0  c074dbac 00000000 S mmcqd/1
+root      121   2     0      0     1  c074dbac 00000000 S mmcqd/1rpmb
+root      122   2     0      0     1  c01bbbe0 00000000 S wl_event_handle
+root      123   2     0      0     0  c01bbbe0 00000000 S dhd_watchdog_th
+root      124   2     0      0     0  c01bbbe0 00000000 S dhd_dpc
+root      125   2     0      0     0  c01bbbe0 00000000 S dhd_rxf
+root      126   2     0      0     0  c01bbbe0 00000000 S dhd_sysioc
+root      127   2     0      0     1  c01af260 00000000 S vibrator
+root      128   2     0      0     1  c01af260 00000000 S max1462x
+root      129   2     0      0     1  c01f7b4c 00000000 S irq/310-maxim_m
+root      130   2     0      0     1  c01f7b4c 00000000 S irq/311-maxim_m
+root      131   1     8852   560   0  c027bc50 00034b50 S /sbin/ueventd
+root      133   2     0      0     1  c0346f14 00000000 S jbd2/mmcblk0p25
+root      134   2     0      0     1  c01af260 00000000 S ext4-dio-unwrit
+root      137   2     0      0     1  c0291c10 00000000 S flush-179:0
+root      139   2     0      0     0  c0346f14 00000000 S jbd2/mmcblk0p28
+root      140   2     0      0     1  c01af260 00000000 S ext4-dio-unwrit
+root      144   2     0      0     1  c0346f14 00000000 S jbd2/mmcblk0p27
+root      145   2     0      0     1  c01af260 00000000 S ext4-dio-unwrit
+root      146   2     0      0     1  c0346f14 00000000 S jbd2/mmcblk0p16
+root      147   2     0      0     1  c01af260 00000000 S ext4-dio-unwrit
+root      169   2     0      0     0  c01af4b8 00000000 S kworker/0:2H
+logd      170   1     18632  2236  2  ffffffff b6f7768c S /system/bin/logd
+root      171   1     9832   304   1  c02ab61c 00031da8 S /sbin/healthd
+root      172   1     10620  1244  0  c02ab61c b6f86fa0 S /system/bin/lmkd
+root      173   2     0      0     1  c01af260 00000000 S IPCRTR
+root      174   2     0      0     1  c01af260 00000000 S ipc_rtr_q6_ipcr
+root      175   2     0      0     1  c01af260 00000000 S sb-1
+root      176   2     0      0     0  c053f058 00000000 S ngd_msm_ctrl_ng
+system    177   1     9452   688   1  c0798a94 b6ed1298 S /system/bin/servicemanager
+root      178   1     18028  1748  2  ffffffff b6f10b6c S /system/bin/vold
+nobody    180   1     19792  952   2  ffffffff b6eacbb4 S /system/bin/rmt_storage
+system    181   1     11100  1008  3  c0198614 b6f29664 S /system/bin/qseecomd
+shell     184   1     9316   736   3  c0475934 b6f1848c S /system/bin/sh
+root      186   1     9200   380   1  c027bc50 b6f7ddcc S /system/bin/subsystem_ramdump
+root      188   1     10140  1636  1  c0868cb0 b6f54354 S /system/bin/debuggerd
+radio     189   1     35984  4892  1  ffffffff b6f36b6c S /system/bin/rild
+drm       190   1     28156  5504  0  ffffffff b6f5e298 S /system/bin/drmserver
+media     191   1     28488  5732  1  ffffffff b6efbfc0 S media.log
+install   192   1     9408   688   0  c0933abc b6fa348c S /system/bin/installd
+keystore  194   1     12536  1652  1  c0798a94 b6f37298 S /system/bin/keystore
+radio     195   1     18856  696   0  ffffffff b6ec03bc S /system/bin/bridgemgrd
+radio     196   1     24060  788   1  ffffffff b6f3bbb4 S /system/bin/qmuxd
+radio     197   1     20036  960   0  ffffffff b6f5d3bc S /system/bin/netmgrd
+nobody    198   1     57864  1976  0  ffffffff b6f49bb4 S /system/bin/sensors.qcom
+root      201   1     58772  1624  1  ffffffff b6e9868c S /system/bin/thermal-engine-hh
+media_rw  203   1     15400  628   1  ffffffff b6ebb48c S /system/bin/sdcard
+camera    204   1     16300  4904  0  c027bc50 b6f31bb4 S /system/bin/mm-qcamera-daemon
+system    205   1     20500  1268  2  ffffffff b6f143bc S /system/bin/time_daemon
+root      212   2     0      0     1  c01b5c80 00000000 S msm_slim_qmi_cl
+root      213   2     0      0     1  c01af260 00000000 S msm_qmi_rtx_q
+root      218   2     0      0     0  c01f7b4c 00000000 S irq/288-wcd9xxx
+root      235   2     0      0     1  c01ec000 00000000 S kauditd
+root      282   2     0      0     1  c09ff278 00000000 D msm_thermal:hot
+root      283   2     0      0     0  c09ff050 00000000 D msm_thermal:fre
+system    285   181   15288  580   2  ffffffff b6f2a68c S /system/bin/qseecomd
+media     393   191   122304 10572 0  ffffffff b6efc298 S /system/bin/mediaserver
+root      561   2     0      0     1  c01af260 00000000 S IPCRTR
+root      562   2     0      0     1  c01af260 00000000 S ipc_rtr_smd_ipc
+root      1997  1     20256  920   0  ffffffff b6eef3bc S /system/bin/mpdecision
+root      2821  1     16984  476   0  ffffffff 00027958 S /sbin/adbd
+root      3562  2     0      0     0  c01af4b8 00000000 S kworker/u:4
+root      3563  2     0      0     1  c01af4b8 00000000 S kworker/u:5
+root      3564  2     0      0     0  c01af4b8 00000000 S kworker/u:6
+root      3569  1     22828  1308  0  ffffffff b6f2eb6c S /system/bin/netd
+system    3570  1     126068 11096 1  ffffffff b6e84fa0 S /system/bin/surfaceflinger
+root      3571  1     1954448 74452 1  ffffffff b68f9bb4 S zygote
+root      3604  2     0      0     1  c045ddcc 00000000 D mdss_fb0
+system    3862  3571  2153260 132580 1  ffffffff b68f8fa0 S system_server
+u0_a6     3982  3571  1956408 59172 1  ffffffff b68f8fa0 S android.process.media
+u0_a22    4018  3571  2051572 116956 0  ffffffff b68f8fa0 S com.android.systemui
+u0_a24    4138  3571  1984988 54572 2  ffffffff b68f8fa0 S com.google.android.googlequicksearchbox:interactor
+u0_a57    4155  3571  1978732 63272 1  ffffffff b68f8fa0 S com.google.android.inputmethod.latin
+wifi      4200  1     12568  2764  0  c027bc50 b6e81bb4 S /system/bin/wpa_supplicant
+nfc       4206  3571  1970568 57544 0  ffffffff b68f8fa0 S com.android.nfc
+radio     4227  3571  1953364 51348 0  ffffffff b68f8fa0 S com.redbend.vdmc
+radio     4255  3571  1976788 66656 0  ffffffff b68f8fa0 S com.android.phone
+u0_a24    4280  3571  2061080 95184 2  ffffffff b68f8fa0 S com.google.android.googlequicksearchbox
+u0_a4     4325  3571  1961652 58968 0  ffffffff b68f8fa0 S android.process.acore
+u0_a9     4360  3571  2170660 84584 0  ffffffff b68f8fa0 S com.google.android.gms
+u0_a24    4427  3571  2006044 76436 0  ffffffff b68f8fa0 S com.google.android.googlequicksearchbox:search
+u0_a9     4482  3571  2041000 76796 0  ffffffff b68f8fa0 S com.google.process.gapps
+root      4663  1     21112  632   0  ffffffff b6e98bb4 S /data/local/tmp/device_forwarder
+u0_a9     4674  3571  2045724 78028 1  ffffffff b68f8fa0 S com.google.process.location
+u0_a33    5639  3571  1977848 61096 0  ffffffff b68f8fa0 S com.google.android.calendar
+u0_a71    5876  3571  1991116 62884 0  ffffffff b68f8fa0 S com.google.android.gm
+dhcp      5940  1     9344   672   0  c027bc50 b6ebfdcc S /system/bin/dhcpcd
+u0_a82    6052  3571  2088704 74404 0  ffffffff b68f8fa0 S com.google.android.youtube
+radio     6156  3571  1960808 50276 0  ffffffff b68f8fa0 S com.qualcomm.qcrilmsgtunnel
+u0_a61    6225  3571  2060636 72532 0  ffffffff b68f8fa0 S com.google.android.music:main
+u0_a15    6303  3571  1982468 70732 2  ffffffff b68f8fa0 S com.google.android.talk
+u0_a25    6351  3571  1965076 53620 0  ffffffff b68f8fa0 S com.google.android.volta
+u0_a8     6373  3571  1974168 53628 0  ffffffff b68f8fa0 S com.google.android.apps.gcs
+u0_a9     6480  3571  2037228 69392 2  ffffffff b68f8fa0 S com.google.android.gms.unstable
+u0_a68    6549  3571  2017940 60636 3  ffffffff b68f8fa0 S com.google.android.apps.plus
+u0_a18    6606  3571  2004816 62908 0  ffffffff b68f8fa0 S com.android.vending
+u0_a9     6743  3571  2032284 59572 1  ffffffff b68f8fa0 S com.google.android.gms.wearable
+u0_a9     7067  3571  2031008 55760 0  ffffffff b68f8fa0 S com.google.android.gms.ui
+u0_a5     7083  3571  1961292 49836 2  ffffffff b68f8fa0 S com.android.defcontainer
+u0_a41    7124  3571  1965060 52216 0  ffffffff b68f8fa0 S com.android.documentsui
+u0_a7     7157  3571  1961612 50640 0  ffffffff b68f8fa0 S com.android.externalstorage
+u0_a2     7221  3571  1963068 54344 0  ffffffff b68f8fa0 S com.android.providers.calendar
+root      7732  2     0      0     0  c01af4b8 00000000 S kworker/0:3H
+root      8357  2     0      0     1  c01eb1f8 00000000 S migration/1
+root      8358  2     0      0     1  c01af4b8 00000000 S kworker/1:0
+root      8359  2     0      0     1  c01af4b8 00000000 S kworker/1:0H
+root      8360  2     0      0     1  c019bacc 00000000 S ksoftirqd/1
+root      8366  2     0      0     1  c01af4b8 00000000 S kworker/1:1H
+root      8403  2     0      0     1  c01af4b8 00000000 S kworker/1:1
+root      8407  2     0      0     1  c01af4b8 00000000 S kworker/1:2H
+root      8564  2     0      0     2  c01eb1f8 00000000 S migration/2
+root      8565  2     0      0     2  c01af4b8 00000000 S kworker/2:0
+root      8566  2     0      0     2  c01af4b8 00000000 S kworker/2:0H
+root      8567  2     0      0     2  c019bacc 00000000 S ksoftirqd/2
+root      8568  2     0      0     3  c01eb1f8 00000000 S migration/3
+root      8569  2     0      0     3  c01af4b8 00000000 S kworker/3:0
+root      8570  2     0      0     3  c01af4b8 00000000 S kworker/3:0H
+root      8571  2     0      0     3  c019bacc 00000000 S ksoftirqd/3
+root      8572  2     0      0     3  c01af4b8 00000000 S kworker/3:1H
+root      8574  2     0      0     2  c01af4b8 00000000 S kworker/2:1H
+root      8575  2     0      0     2  c01af4b8 00000000 S kworker/2:2H
+root      8579  2     0      0     3  c01af4b8 00000000 S kworker/3:1
+root      8580  2     0      0     3  c01af4b8 00000000 S kworker/3:2H
+root      8585  2821  10672  788   1  00000000 b6f0048c R ps

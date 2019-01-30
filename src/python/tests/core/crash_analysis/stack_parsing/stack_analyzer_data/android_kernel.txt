@@ -1,0 +1,2382 @@
+is_module_start_session: Enter
+is_module_start_session: Exit successful
+is_module_get_port: Exit successful
+c2d_module_start_session:246, info: starting session 2
+c2d_module_start_session:284, info: c2d_thread created.
+c2d_thread_func:39: c2d_thread entering the polling loop...
+c2d_module_start_session:306, info: session 2 started.
+module_imglib_create_msg_thread:202] E
+module_imglib_create_msg_thread:224] X
+module_imglib_msg_thread:61] abort 0
+img_q_wait: before wait
+module_faceproc_query_mod:1353 Max Face ROI 2
+mm_camera_open:  opened, break out while loop
+server_process_hal_ds_packet: [dbgHang] - Map buffer --->>> enter
+server_process_hal_ds_packet: [dbgHang] - Map buffer --->>> exit
+[dbgHang] - Map buffer >>> enter
+[dbgHang] - Map buffer >>> exit with status: 1
+module_faceproc_query_mod:1353 Max Face ROI 2
+[server_process_hal_ds_packet: dbgHang] - UnMap buffer --->>> enter
+[server_process_hal_ds_packet: dbgHang] - UnMap buffer --->>> exit
+[dbgHang] - UnMap buffer >>>>> enter
+[dbgHang] - UnMap buffer >>>>> exit with status: 1
+mct_pipeline_get_stream: no children
+mct_pipeline_process_set:1351: Couldnt find stream
+module_sensor_stop_session:429 session 2
+stats_module_stop_session: list =0xb6a8a3d0, remove port =0xb6c0ed40 name=stats_sink from module=0xb6c0e080, name=stats
+stats_module_stop_session: 1 port =0xb6c0ed40 name=stats_sink
+stats_module_stop_session: 2 port =0xb6c0ed40 name=stats_sink
+is_module_stop_session: Enter
+is_module_stop_session: Exit successful
+stats_module_stop_session: 3 port =0xb6c0ed40 name=stats_sink
+c2d_module_stop_session:322, info: stopping session 2 ...
+c2d_thread_process_pipe_message:506, C2D_THREAD_MSG_ABORT: c2d_thread exiting..
+c2d_module_stop_session:361, info: session 2 stopped.
+module_imglib_destroy_msg_thread:128] threadid -1236993744
+module_imglib_destroy_msg_thread:132] after msg thread exit
+module_imglib_msg_thread:99] X
+Waiting for service media.camera.proxy...
+register_android_hardware_Radio DONE
+Profiling disabled.
+Preloading classes...
+Class not found for preloading: [Landroid.graphics.drawable.Ripple;
+Class not found for preloading: [Landroid.widget.Editor$TextDisplayList;
+Class not found for preloading: [Lcom.android.internal.policy.impl.PhoneWindow$PanelFeatureState;
+Class not found for preloading: [Lcom.android.okhttp.ResponseSource;
+Class not found for preloading: [Lcom.android.okhttp.internal.http.HttpURLConnectionImpl$Retry;
+Class not found for preloading: android.app.Activity$1
+Class not found for preloading: android.app.ContextImpl$1
+Class not found for preloading: android.app.ContextImpl$10
+Class not found for preloading: android.app.ContextImpl$11
+Class not found for preloading: android.app.ContextImpl$12
+Class not found for preloading: android.app.ContextImpl$13
+Class not found for preloading: android.app.ContextImpl$14
+Class not found for preloading: android.app.ContextImpl$15
+Class not found for preloading: android.app.ContextImpl$16
+Class not found for preloading: android.app.ContextImpl$17
+Class not found for preloading: android.app.ContextImpl$18
+Class not found for preloading: android.app.ContextImpl$19
+Class not found for preloading: android.app.ContextImpl$2
+Class not found for preloading: android.app.ContextImpl$20
+Class not found for preloading: android.app.ContextImpl$21
+Class not found for preloading: android.app.ContextImpl$22
+Class not found for preloading: android.app.ContextImpl$23
+Class not found for preloading: android.app.ContextImpl$24
+Class not found for preloading: android.app.ContextImpl$25
+Class not found for preloading: android.app.ContextImpl$26
+Class not found for preloading: android.app.ContextImpl$27
+Class not found for preloading: android.app.ContextImpl$28
+Class not found for preloading: android.app.ContextImpl$29
+Class not found for preloading: android.app.ContextImpl$3
+Class not found for preloading: android.app.ContextImpl$30
+Class not found for preloading: android.app.ContextImpl$31
+Class not found for preloading: android.app.ContextImpl$32
+Class not found for preloading: android.app.ContextImpl$33
+Class not found for preloading: android.app.ContextImpl$34
+Class not found for preloading: android.app.ContextImpl$35
+Class not found for preloading: android.app.ContextImpl$36
+Class not found for preloading: android.app.ContextImpl$37
+Class not found for preloading: android.app.ContextImpl$38
+Class not found for preloading: android.app.ContextImpl$39
+Class not found for preloading: android.app.ContextImpl$4
+Class not found for preloading: android.app.ContextImpl$40
+Class not found for preloading: android.app.ContextImpl$41
+Class not found for preloading: android.app.ContextImpl$42
+Class not found for preloading: android.app.ContextImpl$43
+Class not found for preloading: android.app.ContextImpl$44
+Class not found for preloading: android.app.ContextImpl$45
+Class not found for preloading: android.app.ContextImpl$46
+Class not found for preloading: android.app.ContextImpl$47
+Class not found for preloading: android.app.ContextImpl$48
+Class not found for preloading: android.app.ContextImpl$49
+Class not found for preloading: android.app.ContextImpl$5
+Class not found for preloading: android.app.ContextImpl$50
+Class not found for preloading: android.app.ContextImpl$51
+Class not found for preloading: android.app.ContextImpl$52
+Class not found for preloading: android.app.ContextImpl$53
+Class not found for preloading: android.app.ContextImpl$54
+Class not found for preloading: android.app.ContextImpl$55
+Class not found for preloading: android.app.ContextImpl$56
+Class not found for preloading: android.app.ContextImpl$57
+Class not found for preloading: android.app.ContextImpl$58
+Class not found for preloading: android.app.ContextImpl$59
+Class not found for preloading: android.app.ContextImpl$6
+Class not found for preloading: android.app.ContextImpl$60
+Class not found for preloading: android.app.ContextImpl$61
+Class not found for preloading: android.app.ContextImpl$62
+Class not found for preloading: android.app.ContextImpl$7
+Class not found for preloading: android.app.ContextImpl$8
+Class not found for preloading: android.app.ContextImpl$9
+Class not found for preloading: android.app.ContextImpl$ServiceFetcher
+Class not found for preloading: android.app.ContextImpl$StaticServiceFetcher
+Class not found for preloading: android.graphics.Bitmap$2
+runCmd(/system/bin/iptables -F natctrl_FORWARD) res=0
+runCmd(/system/bin/iptables -A natctrl_FORWARD -j DROP) res=0
+runCmd(/system/bin/iptables -t nat -F natctrl_nat_POSTROUTING) res=0
+runCmd(/system/bin/iptables -F natctrl_tether_counters) res=1
+runCmd(/system/bin/iptables -X natctrl_tether_counters) res=1
+runCmd(/system/bin/iptables -N natctrl_tether_counters) res=0
+runCmd(/system/bin/iptables -t mangle -A natctrl_mangle_FORWARD -p tcp --tcp-flags SYN SYN -j TCPMSS --clamp-mss-to-pmtu) res=0
+addFont failed to create font /system/fonts/NanumGothic.ttf
+addFont failed to create font /system/fonts/DroidSansFallback.ttf
+addFont failed to create font /system/fonts/MTLmr3m.ttf
+Class not found for preloading: android.graphics.drawable.GradientDrawable$1
+Class not found for preloading: android.graphics.drawable.Ripple
+Class not found for preloading: android.graphics.drawable.Ripple$1
+Class not found for preloading: android.graphics.drawable.Ripple$LogInterpolator
+Class not found for preloading: android.graphics.drawable.RippleBackground$2
+register_android_hardware_Radio DONE
+System.exit called, status: 1
+VM exiting with result code 1.
+Thread[1,tid=206,Native,Thread*=0xb5036a00,peer=0x12c35100,"main"] recursive attempt to load library "/system/lib/libmedia_jni.so"
+Thread[1,tid=206,Native,Thread*=0xb5036a00,peer=0x12c35100,"main"] recursive attempt to load library "/system/lib/libmedia_jni.so"
+Thread[1,tid=206,Native,Thread*=0xb5036a00,peer=0x12c35100,"main"] recursive attempt to load library "/system/lib/libmedia_jni.so"
+Waiting for service media.camera.proxy...
+Class not found for preloading: android.media.SoundPool$SoundPoolImpl
+Failed to load libemoji.so: dlopen failed: library "libemoji.so" not found
+Class not found for preloading: android.view.GLES20Canvas
+Class not found for preloading: android.view.GLES20Canvas$CanvasFinalizer
+Class not found for preloading: android.view.GLES20RecordingCanvas
+Class not found for preloading: android.view.HardwareCanvas
+Class not found for preloading: android.view.ThreadedRenderer$AtlasInitializer
+Class not found for preloading: android.view.View$14
+Class not found for preloading: android.widget.Editor$TextDisplayList
+Class not found for preloading: android.widget.PopupWindow$PopupViewContainer
+Class not found for preloading: android.widget.TextView$4
+Class not found for preloading: com.android.internal.policy.IPolicy
+Class not found for preloading: com.android.internal.policy.PolicyManager
+Class not found for preloading: com.android.internal.policy.impl.PhoneFallbackEventHandler
+Class not found for preloading: com.android.internal.policy.impl.PhoneLayoutInflater
+Class not found for preloading: com.android.internal.policy.impl.PhoneWindow
+Class not found for preloading: com.android.internal.policy.impl.PhoneWindow$1
+Class not found for preloading: com.android.internal.policy.impl.PhoneWindow$ActionMenuPresenterCallback
+Class not found for preloading: com.android.internal.policy.impl.PhoneWindow$DecorView
+Class not found for preloading: com.android.internal.policy.impl.PhoneWindow$DialogMenuCallback
+Class not found for preloading: com.android.internal.policy.impl.PhoneWindow$PanelFeatureState
+Class not found for preloading: com.android.internal.policy.impl.PhoneWindow$PanelFeatureState$SavedState
+Class not found for preloading: com.android.internal.policy.impl.PhoneWindow$PanelFeatureState$SavedState$1
+Class not found for preloading: com.android.internal.policy.impl.PhoneWindow$RotationWatcher
+Class not found for preloading: com.android.internal.policy.impl.PhoneWindow$RotationWatcher$1
+Class not found for preloading: com.android.internal.policy.impl.Policy
+Class not found for preloading: com.android.internal.util.FastPrintWriter$1
+Class not found for preloading: com.android.okhttp.HostResolver
+Class not found for preloading: com.android.okhttp.HostResolver$1
+Class not found for preloading: com.android.okhttp.OkAuthenticator
+Class not found for preloading: com.android.okhttp.OkResponseCache
+Class not found for preloading: com.android.okhttp.Request$ParsedHeaders
+Class not found for preloading: com.android.okhttp.Response$Body
+Class not found for preloading: com.android.okhttp.ResponseSource
+Class not found for preloading: com.android.okhttp.RouteDatabase
+Class not found for preloading: com.android.okhttp.TunnelRequest
+Class not found for preloading: com.android.okhttp.internal.http.CacheStrategy$1
+Class not found for preloading: com.android.okhttp.internal.http.DelegatingHttpsURLConnection
+Class not found for preloading: com.android.okhttp.internal.http.HttpAuthenticator
+Class not found for preloading: com.android.okhttp.internal.http.HttpAuthenticator$1
+Class not found for preloading: com.android.okhttp.internal.http.HttpURLConnectionImpl
+Class not found for preloading: com.android.okhttp.internal.http.HttpURLConnectionImpl$Retry
+Class not found for preloading: com.android.okhttp.internal.http.HttpsURLConnectionImpl
+Class not found for preloading: com.android.okio.BufferedSink
+Class not found for preloading: com.android.okio.BufferedSource
+Class not found for preloading: com.android.okio.ByteString
+Class not found for preloading: com.android.okio.Deadline
+Class not found for preloading: com.android.okio.Deadline$1
+Class not found for preloading: com.android.okio.OkBuffer
+Class not found for preloading: com.android.okio.Okio
+Class not found for preloading: com.android.okio.Okio$1
+Class not found for preloading: com.android.okio.Okio$2
+Class not found for preloading: com.android.okio.RealBufferedSink
+Class not found for preloading: com.android.okio.RealBufferedSink$1
+Class not found for preloading: com.android.okio.RealBufferedSource
+Class not found for preloading: com.android.okio.RealBufferedSource$1
+Class not found for preloading: com.android.okio.Segment
+Class not found for preloading: com.android.okio.SegmentPool
+Class not found for preloading: com.android.okio.Sink
+Class not found for preloading: com.android.okio.Source
+Class not found for preloading: com.android.okio.Util
+Class not found for preloading: com.android.org.conscrypt.OpenSSLCipher$AES$CBC$PKCS5Padding
+Class not found for preloading: com.android.org.conscrypt.OpenSSLDigestContext
+Class not found for preloading: com.android.org.conscrypt.OpenSSLNativeReference
+Class not found for preloading: com.android.org.conscrypt.util.Arrays
+Class not found for preloading: java.lang.Daemons$GCDaemon
+Class not found for preloading: java.lang.Daemons$HeapTrimmerDaemon
+Class not found for preloading: java.util.TreeMap$2
+Class not found for preloading: libcore.icu.NativeBreakIterator
+Loaded time zone names for "" in 83ms (80ms in ICU)
+Loaded time zone names for "en_US" in 54ms (51ms in ICU)
+Class not found for preloading: org.apache.http.impl.conn.ProxySelectorRoutePlanner$1
+...preloaded 2860 classes in 1212ms.
+VMRuntime.preloadDexCaches starting
+VMRuntime.preloadDexCaches strings total=241466 before=42513 after=42513
+VMRuntime.preloadDexCaches types total=20029 before=6397 after=6457
+VMRuntime.preloadDexCaches fields total=97510 before=34415 after=34830
+VMRuntime.preloadDexCaches methods total=169037 before=66942 after=68266
+VMRuntime.preloadDexCaches finished
+Preloading resources...
+Waiting for service media.camera.proxy...
+...preloaded 342 resources in 443ms.
+...preloaded 41 resources in 11ms.
+Preloading shared libraries...
+Starting a blocking GC Explicit
+Explicit concurrent mark sweep GC freed 3614(593KB) AllocSpace objects, 1(192KB) LOS objects, 39% free, 7MB/12MB, paused 213us total 11.108ms
+Starting a blocking GC Explicit
+Explicit concurrent mark sweep GC freed 20(592B) AllocSpace objects, 0(0B) LOS objects, 39% free, 7MB/12MB, paused 274us total 12.359ms
+Starting a blocking GC HeapTrim
+Waiting for service media.camera.proxy...
+Starting a blocking GC Background
+System server process 630 has been created
+Accepting command socket connections
+disconnecting...
+Entered the Android system server!
+Starting com.android.server.pm.Installer
+Waiting for installd to be ready.
+connecting...
+new connection
+Starting com.android.server.am.ActivityManagerService$Lifecycle
+Memory class: 192
+Enabled StrictMode logging for ActivityManager looper.
+Enabled StrictMode logging for android.ui looper.
+Read new rules (A:0 B:0 S:0)
+Enabled StrictMode logging for android.display looper.
+Starting com.android.server.power.PowerManagerService
+Enabled StrictMode logging for PowerManagerService looper.
+power_init
+Selected early suspend
+Starting early suspend unblocker thread
+Failed to reset optimization for resource: 4 level: 0
+Starting com.android.server.lights.LightsService
+Starting com.android.server.display.DisplayManagerService
+Starting phase 100
+Display device added: DisplayDeviceInfo{"Built-in Screen": uniqueId="local:0", 1200 x 1920, modeId 1, defaultModeId 1, supportedModes [{id=1, width=1200, height=1920, fps=60.0}], density 320, 320.842 x 322.966 dpi, appVsyncOff 0, presDeadline 17666667, touch INTERNAL, rotation 0, type BUILT_IN, state UNKNOWN, FLAG_DEFAULT_DISPLAY, FLAG_ROTATES_WITH_CONTENT, FLAG_SECURE, FLAG_SUPPORTS_PROTECTED_BUFFERS}
+Display device changed state: "Built-in Screen", ON
+Package Manager
+DexFile_getDexOptNeeded file /system/framework/org.apache.http.legacy.jar does not exist
+Library not found: /system/framework/org.apache.http.legacy.jar
+Waiting for service media.camera.proxy...
+
+
+----- Kernel Log -----
+[    0.000000] Booting Linux on physical CPU 0
+[    0.000000] Initializing cgroup subsys cpu
+[    0.000000] Linux version 3.4.0-g51f2ffd (gcc version 4.8 (GCC) ) #1 SMP PREEMPT Wed Jun 17 06:23:10 UTC 2015
+[    0.000000] CPU: ARMv7 Processor [511f06f0] revision 0 (ARMv7), cr=10c5387d
+[    0.000000] CPU: PIPT / VIPT nonaliasing data cache, PIPT instruction cache
+[    0.000000] Machine: QCT APQ8064 FLO
+[    0.000000] Truncating memory at 0x90000000 to fit in 32-bit physical address space
+[    0.000000] memory pool 3 (start fe9ff000 size 1600000) initialized
+[    0.000000] Initialized persistent memory from 88d00000-88dfffff
+[    0.000000] cma: CMA: reserved 16 MiB at aa000000
+[    0.000000] Memory policy: ECC disabled, Data cache writealloc
+[    0.000000] socinfo_init: v7, id=172, ver=2.0, raw_id=2289, raw_ver=2289, hw_plat=8, hw_plat_ver=65536
+[    0.000000]  accessory_chip=0, hw_plat_subtype=0, pmic_model=18, pmic_die_revision=4
+[    0.000000] allocating 44236800 bytes at c24dd000 (826dd000 physical) for fb
+[    0.000000] PERCPU: Embedded 7 pages/cpu @c4f10000 s15680 r0 d12992 u32768
+[    0.000000] Built 1 zonelists in Zone order, mobility grouping on.  Total pages: 478211
+[    0.000000] Kernel command line: androidboot.hardware=flo user_debug=31 msm_rtb.filter=0x3F ehci-hcd.park=3 vmalloc=340M androidboot.emmc=true androidboot.serialno=09e0d2ee bootreason=Reboot fuse_info=Y ddr_vendor=hynix androidboot.baseband=apq asustek.hw_rev=rev_e androidboot.bootloader=FLO-04.05
+[    0.000000] HW Revision: ASUSTek input rev_e
+[    0.000000] HW Revision: ASUSTek matched rev_e
+[    0.000000] PID hash table entries: 4096 (order: 2, 16384 bytes)
+[    0.000000] Dentry cache hash table entries: 131072 (order: 7, 524288 bytes)
+[    0.000000] Inode-cache hash table entries: 65536 (order: 6, 262144 bytes)
+[    0.000000] Memory: 140MB 58MB 4MB 7MB 254MB 1420MB = 1883MB total
+[    0.000000] Memory: 1831844k/1951652k available, 97368k reserved, 1370108K highmem
+[    0.000000] Virtual kernel memory layout:
+[    0.000000]     vector  : 0xffff0000 - 0xffff1000   (   4 kB)
+[    0.000000]     fixmap  : 0xfff00000 - 0xfffe0000   ( 896 kB)
+[    0.000000]     vmalloc : 0xea000000 - 0xff000000   ( 336 MB)
+[    0.000000]     lowmem  : 0xc0000000 - 0xe9c00000   ( 668 MB)
+[    0.000000]     pkmap   : 0xbfe00000 - 0xc0000000   (   2 MB)
+[    0.000000]       .text : 0xc0008000 - 0xc0dcb470   (14094 kB)
+[    0.000000]       .init : 0xc0e00000 - 0xc0f03d40   (1040 kB)
+[    0.000000]       .data : 0xc0f04000 - 0xc1045528   (1286 kB)
+[    0.000000]        .bss : 0xc104554c - 0xc1242c6c   (2038 kB)
+[    0.000000] SLUB: Genslabs=11, HWalign=64, Order=0-3, MinObjects=0, CPUs=4, Nodes=1
+[    0.000000] Preemptible hierarchical RCU implementation.
+[    0.000000] NR_IRQS:1177
+[    0.000000] sched_clock: 32 bits at 32kHz, resolution 30517ns, wraps every 131071999ms
+[    0.000000] Console: colour dummy device 80x30
+[    0.000000] console [tty0] enabled
+[    0.150207] Calibrating delay using timer specific routine.. 13.53 BogoMIPS (lpj=67667)
+[    0.150268] pid_max: default: 32768 minimum: 301
+[    0.150573] Security Framework initialized
+[    0.150634] SELinux:  Initializing.
+[    0.150909] Mount-cache hash table entries: 512
+[    0.152435] Initializing cgroup subsys debug
+[    0.152465] Initializing cgroup subsys cpuacct
+[    0.152465] Initializing cgroup subsys freezer
+[    0.152526] CPU: Testing write buffer coherency: ok
+[    0.152893] CPU0: thread -1, cpu 0, socket 0, mpidr 80000000
+[    0.152923] hw perfevents: enabled with ARMv7 Krait PMU driver, 5 counters available
+[    0.153045] Setting up static identity map for 0x80b06d60 - 0x80b06de8
+[    0.155548] CPU1: thread -1, cpu 1, socket 0, mpidr 80000001
+[    0.157409] CPU2: thread -1, cpu 2, socket 0, mpidr 80000002
+[    0.159240] CPU3: thread -1, cpu 3, socket 0, mpidr 80000003
+[    0.159393] Brought up 4 CPUs
+[    0.159454] SMP: Total of 4 processors activated (54.13 BogoMIPS).
+[    0.175445] dummy:
+[    0.177062] NET: Registered protocol family 16
+[    0.183776] DMA: preallocated 1792 KiB pool for atomic coherent allocations
+[    0.184234] AXI: msm_bus_fabric_init_driver(): msm_bus_fabric_init_driver
+[    0.188415] MIDR      = 0x511f06f0
+[    0.188476] meminfo_init: smem ram ptable found: ver: 0 len: 5
+[    0.188537] Found 1 memory banks grouped into 8 memory regions
+[    0.188903] gpiochip_add: registered GPIOs 0 to 151 on device: msmgpio
+[    0.190093] socinfo_init: v7, id=172, ver=2.0, raw_id=2289, raw_ver=2289, hw_plat=8, hw_plat_ver=65536
+[    0.190124]  accessory_chip=0, hw_plat_subtype=0, pmic_model=18, pmic_die_revision=4
+[    0.190246] msm_rpm_init: RPM firmware 3.0.16842936
+[    0.211914] msm_rpm_get_status(): Status id 433 not defined for target
+[    0.211944] msm_rpm_get_status(): Status id 433 not defined for target
+[    0.211975] msm_rpm_get_status(): Status id 433 not defined for target
+[    0.211975] msm_rpm_get_status(): Status id 433 not defined for target
+[    0.212005] msm_rpm_get_status(): Status id 433 not defined for target
+[    0.212036] msm_rpm_get_status(): Status id 433 not defined for target
+[    0.212036] msm_rpm_get_status(): Status id 433 not defined for target
+[    0.212066] msm_rpm_get_status(): Status id 433 not defined for target
+[    0.230712] ASUSTek: Bypassing PCB_ID3
+[    0.230773] ASUSTek: PCBID=141
+[    0.231811] gpio_vreg_probe: id=203, name=ext_mpp8, gpio=203, gpio_label=ext_mpp8_en
+[    0.232055] pm8921_probe: PMIC revision 1: F4
+[    0.232086] pm8921_probe: PMIC revision 2: 06
+[    0.232116] pm8921_probe: PMIC version: PM8921 rev 3.0
+[    0.232147] pm8921_probe: PMIC Restart Reason: Triggered from KPD (power key press)
+[    0.233489] gpiochip_add: registered GPIOs 152 to 195 on device: pm-gpio
+[    0.234008] pm_gpio_probe: OK: base=152, ngpio=44
+[    0.234313] gpiochip_add: registered GPIOs 196 to 207 on device: pm8xxx-mpp
+[    0.234405] pm8xxx_mpp_probe: OK: base=196, ngpio=12
+[    0.236206] pm8821_probe: PMIC revision 1: PM8821 rev F3
+[    0.236236] pm8821_probe: PMIC revision 2: PM8821 rev 0B
+[    0.236267] pm8821_probe: PMIC version: PM8821 ver 2.1
+[    0.236968] gpiochip_add: registered GPIOs 208 to 211 on device: pm8xxx-mpp
+[    0.236999] pm8xxx_mpp_probe: OK: base=208, ngpio=4
+[    0.237304] gpio_vreg_probe: gpio_label required.
+[    0.237365] msm-gpio-regulator: probe of msm-gpio-regulator.174 failed with error -22
+[    0.238586] saw_probe: id=0, name=8921_s5
+[    0.238952] saw_probe: id=1, name=8921_s6
+[    0.239318] saw_probe: id=2, name=8821_s0
+[    0.239685] saw_probe: id=3, name=8821_s1
+[    0.247802] Sensors:DSPS: initial dsps.
+[    0.248840] [ELAN] Touch dirver register
+[    0.249206] persistent_ram: found existing buffer, size 77860, start 77860
+[    0.492645] console [ram-1] enabled
+[    0.493286] apq8064_init_fb: lcd_type=0
+[    0.493499] apq8064_init_fb: register mipi_JDI_panel_device
+[    0.494903] msm_gpiomux_install: write failure: -22
+[    0.494995] msm_gpiomux_install: write failure: -22
+[    0.495208] msm_gpiomux_install: write failure: -22
+[    0.495300] msm_gpiomux_install: write failure: -22
+[    0.495422] msm_gpiomux_install: write failure: -22
+[    0.495605] msm_gpiomux_install: write failure: -22
+[    0.496520] Registering gpio keys
+[    0.496704] Reconfigure VOL_UP(GPIO155) and VOL_DOWN(GPIO189) with PMIC
+[    0.496948] 8921_l17: Failed to create debugfs directory
+[    0.498870] ------------[ cut here ]------------
+[    0.498992] WARNING: at /buildbot/repo_clients/https___partner-android.googlesource.com_a_kernel_manifest/m-dev-msm-flo-3.4-wip/private/msm-asus/arch/arm/mach-msm/subsystem_restart.c:573 subsys_restart_init+0xd8/0x108()
+[    0.499328] [<c00149b8>] (unwind_backtrace+0x0/0x11c) from [<c007991c>] (warn_slowpath_common+0x48/0x60)
+[    0.499542] [<c007991c>] (warn_slowpath_common+0x48/0x60) from [<c00799f0>] (warn_slowpath_null+0x18/0x20)
+[    0.499755] [<c00799f0>] (warn_slowpath_null+0x18/0x20) from [<c0e0bf3c>] (subsys_restart_init+0xd8/0x108)
+[    0.499908] [<c0e0bf3c>] (subsys_restart_init+0xd8/0x108) from [<c0e009a8>] (do_one_initcall+0x8c/0x150)
+[    0.500122] [<c0e009a8>] (do_one_initcall+0x8c/0x150) from [<c0e00b64>] (kernel_init+0xf8/0x1ac)
+[    0.500335] [<c0e00b64>] (kernel_init+0xf8/0x1ac) from [<c000f558>] (kernel_thread_exit+0x0/0x8)
+[    0.500549] ---[ end trace 16e5d5c10f702f89 ]---
+[    0.504821] sps:BAM 0x12244000 enabled: ver:0x5, number of pipes:20
+[    0.505035] sps:BAM 0x12244000 is registered.
+[    0.505645] sps:sps is ready.
+[    0.537048] bio: create slab <bio-0> at 0
+[    0.537902] vgaarb: loaded
+[    0.538208] ION heap vmalloc created
+[    0.538360] ION heap mm created at a0000000 with size 5c00000
+[    0.538574] ION heap mm_fw created at 9fe00000 with size 1e0000
+[    0.538696] ION heap mfc created at a5c00000 with size 2000
+[    0.538909] ION heap iommu created
+[    0.539062] ION heap qsecom created at fea07000 with size 780000
+[    0.539276] ION heap audio created at ff187000 with size 4cf000
+[    0.540618] pm8xxx_pwm_probe: OK
+[    0.541412] SCSI subsystem initialized
+[    0.541870] sps:BAM 0x28084000 enabled: ver:0x12, number of pipes:31
+[    0.541992] sps:BAM 0x28084000 is registered.
+[    0.545837] usbcore: registered new interface driver usbfs
+[    0.546112] usbcore: registered new interface driver hub
+[    0.546447] usbcore: registered new device driver usb
+[    0.546691] Linux media interface: v0.10
+[    0.546997] Linux video capture interface: v2.00
+[    0.548278] apq8064_pm8921_pwm_init+
+[    0.548431] apq8064_pm8921_pwm_init-
+[    0.549377] msm_iommu_dev: device vpe mapped at ea400000, with 2 ctx banks
+[    0.549621] msm_iommu_dev: device mdp0 mapped at ea600000, with 2 ctx banks
+[    0.549926] msm_iommu_dev: device mdp1 mapped at ea800000, with 2 ctx banks
+[    0.550170] msm_iommu_dev: device rot mapped at eaa00000, with 2 ctx banks
+[    0.550506] msm_iommu_dev: device ijpeg mapped at eac00000, with 2 ctx banks
+[    0.550811] msm_iommu_dev: device vfe mapped at eae00000, with 2 ctx banks
+[    0.551025] msm_iommu_dev: device vcodec_a mapped at eb000000, with 2 ctx banks
+[    0.551330] msm_iommu_dev: device vcodec_b mapped at eb200000, with 2 ctx banks
+[    0.551666] msm_iommu_dev: device gfx3d mapped at eb400000, with 3 ctx banks
+[    0.551879] msm_iommu_dev: device jpegd mapped at eb600000, with 2 ctx banks
+[    0.552215] msm_iommu_dev: device gfx3d1 mapped at eb800000, with 3 ctx banks
+[    0.552459] msm_iommu_dev: device vcap mapped at eba00000, with 2 ctx banks
+[    0.553131] msm_iommu_ctx msm_iommu_ctx.2: context vpe_src using bank 0
+[    0.553436] msm_iommu_ctx msm_iommu_ctx.3: context vpe_dst using bank 1
+[    0.553710] msm_iommu_ctx msm_iommu_ctx.4: context mdp_port0_cb0 using bank 0
+[    0.554046] msm_iommu_ctx msm_iommu_ctx.5: context mdp_port0_cb1 using bank 1
+[    0.554321] msm_iommu_ctx msm_iommu_ctx.6: context mdp_port1_cb0 using bank 0
+[    0.554687] msm_iommu_ctx msm_iommu_ctx.7: context mdp_port1_cb1 using bank 1
+[    0.554992] msm_iommu_ctx msm_iommu_ctx.8: context rot_src using bank 0
+[    0.555236] msm_iommu_ctx msm_iommu_ctx.9: context rot_dst using bank 1
+[    0.555572] msm_iommu_ctx msm_iommu_ctx.10: context ijpeg_src using bank 0
+[    0.555908] msm_iommu_ctx msm_iommu_ctx.11: context ijpeg_dst using bank 1
+[    0.556182] msm_iommu_ctx msm_iommu_ctx.12: context vfe_imgwr using bank 0
+[    0.556488] msm_iommu_ctx msm_iommu_ctx.13: context vfe_misc using bank 1
+[    0.556732] msm_iommu_ctx msm_iommu_ctx.14: context vcodec_a_stream using bank 0
+[    0.557098] msm_iommu_ctx msm_iommu_ctx.15: context vcodec_a_mm1 using bank 1
+[    0.557464] msm_iommu_ctx msm_iommu_ctx.16: context vcodec_b_mm2 using bank 0
+[    0.557830] msm_iommu_ctx msm_iommu_ctx.17: context gfx3d_user using bank 0
+[    0.558227] msm_iommu_ctx msm_iommu_ctx.18: context gfx3d_priv using bank 1
+[    0.558471] msm_iommu_ctx msm_iommu_ctx.0: context jpegd_src using bank 0
+[    0.558807] msm_iommu_ctx msm_iommu_ctx.1: context jpegd_dst using bank 1
+[    0.559204] msm_iommu_ctx msm_iommu_ctx.19: context gfx3d1_user using bank 0
+[    0.559539] msm_iommu_ctx msm_iommu_ctx.20: context gfx3d1_priv using bank 1
+[    0.559875] msm_iommu_ctx msm_iommu_ctx.21: context vcap_vc using bank 0
+[    0.560211] msm_iommu_ctx msm_iommu_ctx.22: context vcap_vp using bank 1
+[    0.560394] Advanced Linux Sound Architecture Driver Version 1.0.25.
+[    0.561218] Bluetooth: Core ver 2.16
+[    0.561370] NET: Registered protocol family 31
+[    0.561492] Bluetooth: HCI device and connection manager initialized
+[    0.561676] Bluetooth: HCI socket layer initialized
+[    0.561767] Bluetooth: L2CAP socket layer initialized
+[    0.562225] Bluetooth: SCO socket layer initialized
+[    0.562652] cfg80211: Calling CRDA to update world regulatory domain
+[    0.562927] cfg80211: World regulatory domain updated:
+[    0.563018] cfg80211:   (start_freq - end_freq @ bandwidth), (max_antenna_gain, max_eirp)
+[    0.563232] cfg80211:   (2402000 KHz - 2472000 KHz @ 40000 KHz), (300 mBi, 2000 mBm)
+[    0.563415] cfg80211:   (2457000 KHz - 2482000 KHz @ 40000 KHz), (300 mBi, 2000 mBm)
+[    0.563537] cfg80211:   (2474000 KHz - 2494000 KHz @ 20000 KHz), (300 mBi, 2000 mBm)
+[    0.563720] cfg80211:   (5170000 KHz - 5250000 KHz @ 40000 KHz), (300 mBi, 2000 mBm)
+[    0.563934] cfg80211:   (5735000 KHz - 5835000 KHz @ 40000 KHz), (300 mBi, 2000 mBm)
+[    0.565063] Switching to clocksource gp_timer
+[    0.603332] NET: Registered protocol family 2
+[    0.603759] IP route cache hash table entries: 32768 (order: 5, 131072 bytes)
+[    0.604522] TCP established hash table entries: 131072 (order: 8, 1048576 bytes)
+[    0.605895] TCP bind hash table entries: 65536 (order: 7, 524288 bytes)
+[    0.606658] TCP: Hash tables configured (established 131072 bind 65536)
+[    0.606872] TCP: reno registered
+[    0.606994] UDP hash table entries: 512 (order: 2, 16384 bytes)
+[    0.607116] UDP-Lite hash table entries: 512 (order: 2, 16384 bytes)
+[    0.607696] NET: Registered protocol family 1
+[    0.608367] RPC: Registered named UNIX socket transport module.
+[    0.608703] RPC: Registered udp transport module.
+[    0.608856] RPC: Registered tcp transport module.
+[    0.609161] RPC: Registered tcp NFSv4.1 backchannel transport module.
+[    0.609863] Trying to unpack rootfs image as initramfs...
+[    0.700195] Freeing initrd memory: 880K
+[    0.702819] Detected 9 counters on the L2CC PMU.
+[    0.704833] pil_qdsp6v4 pil_qdsp6v4.0: using secure boot
+[    0.706695] pil_riva pil_riva: using secure boot
+[    0.709533] pil_dsps pil_dsps: using secure boot
+[    0.711059] pil_gss pil_gss: using secure boot
+[    0.713439] smd_channel_probe_worker: allocation table not initialized
+[    0.719573] msm_dsps driver version 4.03.
+[    0.721191] NET: Registered protocol family 27
+[    0.724090] dma_test_init, minor number 97
+[    0.724395] lpass_fatal_init: lpass SSR driver inited.
+[    0.724639] wcnss_8960: module initialized
+[    0.725097] gss_8064_init: gss fatal driver inited.
+[    0.725769] acpuclk-8064 acpuclk-8064: SPEED BIN: 14
+[    0.726013] acpuclk-8064 acpuclk-8064: ACPU PVS: 3
+[    0.728668] acpuclk-8064 acpuclk-8064: CPU0: 12 frequencies supported
+[    0.728881] acpuclk-8064 acpuclk-8064: CPU1: 12 frequencies supported
+[    0.729003] acpuclk-8064 acpuclk-8064: CPU2: 12 frequencies supported
+[    0.729187] acpuclk-8064 acpuclk-8064: CPU3: 12 frequencies supported
+[    0.731872] msm_rpm_log_probe: OK
+[    0.735290] usbcore: registered new interface driver hsic_sysmon
+[    0.735809] audit: initializing netlink socket (disabled)
+[    0.736053] type=2000 audit(0.720:1): initialized
+[    0.737518] highmem bounce pool size: 64 pages
+[    0.746948] NFS: Registering the id_resolver key type
+[    0.748565] fuse init (API version 7.18)
+[    0.749023] msgmni has been set to 935
+[    0.753173] Block layer SCSI generic (bsg) driver version 0.4 loaded (major 248)
+[    0.753479] io scheduler noop registered
+[    0.753906] io scheduler deadline registered
+[    0.754241] io scheduler cfq registered (default)
+[    0.754486] io scheduler test-iosched registered
+[    0.759399] mipi_dsi base phy_addr = 0x4700000 virt = 0xebc00000
+[    0.759735] mmss_sfpb  base phy_addr = 0x5700000,virt = 0xea0fc000
+[    0.760498] mipi_JDI_1080P_pt_init+
+[    0.761047] mipi_JDI_lcd_probe+
+[    0.761322] mipi_JDI_lcd_probe, hw_revision=0
+[    0.761749] mipi_JDI_lcd_probe, lcd_pwm_type=1
+[    0.762542] mipi_JDI_lcd_probe+
+[    0.762786] mipi_JDI_lcd_probe, hw_revision=0
+[    0.763244] mipi_JDI_lcd_probe, lcd_pwm_type=1
+[    0.763488] setting pdata->panel_info.fb_num to 3. type: 9
+[    0.778106] FrameBuffer[0] 1200x1920 size=28016640 bytes is registered successfully!
+[    0.778900] mipi_JDI_lcd_probe-
+[    0.779113] mipi_JDI_1080P_pt_init-
+[    0.780517] setting pdata->panel_info.fb_num to 1. type: 7
+[    0.783630] FrameBuffer[1] 1920x1080 size=0 bytes is registered successfully!
+[    0.784240] mdp4_dtv_vsync_init: ndx=0
+[    0.784515] hdmi_msm hdmi_msm.1: external_common_state_create: sysfs group e8298608
+[    0.784759] hdmi_msm hdmi_msm.1: hdmi_msm_config_hdcp_feature: HDCP Feature: Enabled
+[    0.786315]
+[    0.786315]  msm_vidc_enc: Inside vid_enc_init()
+[    0.786773]
+[    0.786773]  msm_vidc_enc: Inside vid_enc_vcd_init()
+[    0.788543] msm_serial_hs module loaded
+[    0.789001] msm_serial_hsl: detected port #1
+[    0.789367] msm_serial_hsl.1: ttyHSL1 at MMIO 0x12450000 (irq = 225) is a MSM
+[    0.789733] msm_serial_hsl: detected port #0
+[    0.790039] msm_serial_hsl.0: ttyHSL0 at MMIO 0x16640000 (irq = 190) is a MSM
+[    0.790435] msm_serial_hsl: driver initialized
+[    0.792266] msm_rotator_probe: rotator_hw_revision=2
+[    0.795837] diagchar initialized now
+[    0.800445] kgsl kgsl-3d0: |kgsl_iommu_init| MMU type set for device is IOMMU
+[    0.812164] brd: module loaded
+[    0.816467] loop: module loaded
+[    0.818481] anx7808 init gpio
+[    0.885528] sp_tx_hardware_poweron: anx7808 power on
+[    0.886383] ANX7808 is found.
+[    0.887695] 3.3V output disabled
+[    0.945587] sp_tx_hardware_powerdown: anx7808 power down
+[    0.945709] SP_TX To System State:
+[    0.945892] STATE_CABLE_PLUG
+[    0.946502] tabla-slim tabla-slim: Platform data from board file
+[    1.105590] wcd9xxx_slim_probe: failed to get slimbus tabla-slim logical address: -6
+[    1.108795] tabla2x-slim tabla2x-slim: Platform data from board file
+[    1.172821] wcd9xxx_check_codec_type: codec is tabla_codec
+[    1.173095] wcd9xxx_check_codec_type: Read codec idbytes & version
+[    1.173095] byte_0[00000002] byte_1[00000000] byte_2[00000000]
+[    1.173095]  byte_3[00000001] version = 2
+[    1.175323] i2c-core: driver [tabla-i2c-core] using legacy suspend method
+[    1.175537] i2c-core: driver [tabla-i2c-core] using legacy resume method
+[    1.176635] bcm2079x-i2c 0-0077: bcm2079x_probe, probing bcm2079x driver flags = 0
+[    1.176940] bcm2079x-i2c 0-0077: requesting IRQ 320
+[    1.177246] bcm2079x-i2c 0-0077: bcm2079x_probe, probing bcm2079x driver exited successfully
+[    1.177978] SCSI Media Changer driver v0.25
+[    1.178680] spi_qsd spi_qsd.0: master is unqueued, this is deprecated
+[    1.180419] tun: Universal TUN/TAP device driver, 1.6
+[    1.180603] tun: (C) 1999-2004 Max Krasnyansky <maxk@qualcomm.com>
+[    1.180847] rmnet_init: BAM devices[8]
+[    1.195434] PPP generic driver version 2.4.2
+[    1.195770] PPP BSD Compression module registered
+[    1.195953] PPP Deflate Compression module registered
+[    1.196685] PPP MPPE Compression module registered
+[    1.196807] NET: Registered protocol family 24
+[    1.197052] SLIP: version 0.8.4-NET3.019-NEWTTY (dynamic channels, max=256) (6 bit encapsulation enabled).
+[    1.197265] CSLIP: code copyright 1989 Regents of the University of California.
+[    1.197479] wcnss_wlan probed in built-in mode
+[    1.198638] usbcore: registered new interface driver asix
+[    1.198791] usbcore: registered new interface driver cdc_ether
+[    1.199035] usbcore: registered new interface driver net1080
+[    1.199188] usbcore: registered new interface driver cdc_subset
+[    1.199432] usbcore: registered new interface driver zaurus
+[    1.199737] usbcore: registered new interface driver cdc_ncm
+[    1.200531] smb345_probe+
+[    1.211730] smb345_charger: [smb345_inok_irq] GPIO pin irq 311 requested ok, smb345_INOK = L
+[    1.212066] smb345_charger: [smb345_wireless_irq] GPIO pin irq 322 requested ok, wpc_pok = H
+[    1.212219] smb345_charger: [smb345_wireless_en_config] GPIO pin 179, 183 requested ok, wpc_en1 = L, wpc_en2 = L
+[    1.212432] smb345_probe-
+[    1.212646] i2c-core: driver [smb345] using legacy suspend method
+[    1.212768] i2c-core: driver [smb345] using legacy resume method
+[    1.213012] bq27541_probe + client->addr= 55
+[    1.214202] bq27541_get_psp status: Not charging ret= 0x0280
+[    1.215301] bq27541_get_psp voltage_now= 4281000 uV
+[    1.216278] bq27541_get_capacity = 100% ret= 100
+[    1.217285] bq27541_get_psp temperature= 269 (0.1XC)
+[    1.219207] bq27541_get_psp current = 0 mA
+[    1.220367] bq27541_get_psp status: Not charging ret= 0x0280
+[    1.221466] bq27541_get_psp status: Not charging ret= 0x0280
+[    1.222381] setup_low_battery_irq irq=317, LL_BAT_T30=1
+[    1.222656] bq27541_get_psp voltage_now= 4281000 uV
+[    1.223266] bq27541_probe - bq27541-battery driver registered
+[    1.223541] i2c-core: driver [bq27541-battery] using legacy suspend method
+[    1.223754] bq27541_get_capacity = 100% ret= 100
+[    1.224121] i2c-core: driver [bq27541-battery] using legacy resume method
+[    1.224609] msm_otg msm_otg: msm_otg probe
+[    1.224914] bq27541_get_psp temperature= 269 (0.1XC)
+[    1.225555] msm_otg msm_otg: failed to get phy_clk
+[    1.225769] msm_otg msm_otg: OTG regs = ea308000
+[    1.226959] bq27541_get_psp current = 0 mA
+[    1.229522] msm_otg msm_otg: PMIC IRQ for ID notifications doesnt exist
+[    1.229919] gpio 23 request failed
+[    1.230072] msm_otg_acok_init: GPIO pin irq 311 requested ok, msm_otg_ACOK = L
+[    1.230377] gpio 77 request failed
+[    1.230621] msm_otg_id_pin_init: GPIO pin irq 365 requested ok, msm_otg_id_pin = H
+[    1.231262] ehci_hcd: USB 2.0 Enhanced Host Controller (EHCI) Driver
+[    1.232482] usbcore: registered new interface driver cdc_acm
+[    1.232696] cdc_acm: USB Abstract Control Model driver for USB modems and ISDN adapters
+[    1.232818] Initializing USB Mass Storage driver...
+[    1.233062] usbcore: registered new interface driver usb-storage
+[    1.233184] USB Mass Storage support registered.
+[    1.233428] usbcore: registered new interface driver ums-alauda
+[    1.233581] usbcore: registered new interface driver ums-cypress
+[    1.233795] usbcore: registered new interface driver ums-datafab
+[    1.233947] usbcore: registered new interface driver ums-freecom
+[    1.234222] usbcore: registered new interface driver ums-isd200
+[    1.234375] usbcore: registered new interface driver ums-jumpshot
+[    1.234588] usbcore: registered new interface driver ums-karma
+[    1.234832] usbcore: registered new interface driver ums-onetouch
+[    1.234985] usbcore: registered new interface driver ums-sddr09
+[    1.235229] usbcore: registered new interface driver ums-sddr55
+[    1.235382] usbcore: registered new interface driver ums-usbat
+[    1.235748] usbcore: registered new interface driver usbserial
+[    1.235870] usbserial: USB Serial Driver core
+[    1.236114] usbcore: registered new interface driver qc_csvt
+[    1.236267] USB Serial support registered for qc_csvt
+[    1.236419] usbcore: registered new interface driver usb_ehset_test
+[    1.236694] usbcore: registered new interface driver diag_bridge
+[    1.237091] usbcore: registered new interface driver mdm_bridge
+[    1.238128] usbcore: registered new interface driver ks_bridge
+[    1.238586] ksb_init: init done
+[    1.239349] msm_otg msm_otg: phy_reset: success
+[    1.240844] msm_hsusb msm_hsusb: [ci13xxx_start] hw_ep_max = 32
+[    1.241607] mbim_init: initialize 1 instances
+[    1.242065] mbim_init: Initialized 1 ports
+[    1.245971] rndis_qc_init: initialize rndis QC instance
+[    1.246856] android_usb gadget: Mass Storage Function, version: 2009/09/11
+[    1.247283] android_usb gadget: Number of LUNs=1
+[    1.247558]  lun0: LUN: removable file: (no medium)
+[    1.248596] android_usb gadget: android_usb ready
+[    1.250335] mousedev: PS/2 mouse device common for all mice
+[    1.251708] usbcore: registered new interface driver xpad
+[    1.252166] [ektf3k]:[elan] elan_ktf3k_ts_init
+[    1.252655] [ektf3k]:[ELAN] Start HW reset!
+[    1.345764] [usb_otg] switch to peripheral mode by default (boot)
+
+[    1.505859] [ektf3k]:[elan]detect intr=>Old FW
+[    1.506317] [ektf3k]:The boot code is old!
+[    1.536193] [ektf3k]:[elan] __hello_packet_handler: hello packet 55:55:55:55
+[    1.536407] [ektf3k]:[elan] hello packets rc = 0
+[    1.746215] notifying plugin
+[    1.748138] [ektf3k]:[elan] __fw_packet_handler: firmware version: 0xa044
+[    1.750274] [ektf3k]:[elan] __fw_packet_handler: X resolution: 0x007e
+[    1.752319] [ektf3k]:[elan] __fw_packet_handler: Y resolution: 0x00d2
+[    1.754455] [ektf3k]:[elan] __fw_packet_handler: firmware id: 0x3029
+[    1.756500] [ektf3k]:[elan] __fw_packet_handler: boot code id: 0x6047
+[    1.756713] [ektf3k]:[Elan] Max X=2239, Max Y=1343
+[    1.757049] input: elan-touchscreen as /devices/virtual/input/input0
+[    1.757537] [ektf3k]:The firmware was version 0xA044 and id:0x3029
+[    1.757781] [ektf3k]: /proc/ektf_dbg created
+[    1.758239] [ektf3k]:[elan] Start touchscreen elan-touchscreen in interrupt mode
+[    1.758544] [ektf3k]:[ELAN]misc_register finished!!
+[    1.758666] elan-ktf3k 3-0010: Update power source to 0
+[    1.759460] lis3dh_acc accelerometer driver: init
+[    1.759643] i2c-core: driver [lis3dh_acc] using legacy suspend method
+[    1.759765] i2c-core: driver [lis3dh_acc] using legacy resume method
+[    1.760162] ASUSTek: lid_driver_probe
+[    1.760467] input: lid_input as /devices/virtual/input/input1
+[    1.762268] using rtc device, pm8xxx_rtc, for alarms
+[    1.762420] rtc-pm8xxx rtc-pm8xxx: rtc core: registered pm8xxx_rtc as rtc0
+[    1.763092] i2c /dev entries driver
+[    1.766937] ov5693_init_module:105
+[    1.767456] ov5693_init_module:110 rc -19
+[    1.802124] gpio 25 VCM_PD(1)
+[    1.802276] gpio 31 XSHUTDN(1)
+[    1.860778] mi1040_init_module:323
+[    1.861358] mi1040_init_module:329 rc -19
+[    1.876068] msm_otg msm_otg: chg_type = USB_SDP_CHARGER
+[    1.876525] smb345_charger: [usb_cable_type_detect] INOK=L
+[    1.876770] smb345_charger: [usb_cable_type_detect] Cable: SDP
+[    1.877746] smb345_charger: [smb345_vflt_setting] Bypass set Float Volt=e8
+[    1.878326] ========================================================
+[    1.878784] bq27541_battery_callback  usb_cable_state = 1
+[    1.879028] ========================================================
+[    1.879486] battery_callback cable_wake_lock 5 sec...
+[    1.879486]
+[    1.879974] elan-ktf3k 3-0010: Update power source to 1
+[    1.880828] The USB cable status = CHARGER_SDP
+[    1.884918] msm_hsusb msm_hsusb: CI13XXX_CONTROLLER_RESET_EVENT received
+[    2.036315] gpio 43 CAM_RST(1)
+[    2.095916] mi1040_sensor_match_id +++
+[    2.096649] Sensor id: 0x2481
+[    2.096862] PMIC gpio 11 CAM_VENDOR_1(0)
+[    2.096984] PMIC gpio 10 CAM_VENDOR_0(0)
+[    2.097137] PMIC gpio 24 CAM_LENS(0)
+[    2.097320] Vendor is B
+[    2.097442] mi1040_sensor_match_id ---
+[    2.337951] lirc_dev: IR Remote Control driver registered, major 236
+[    2.338165] IR NEC protocol handler initialized
+[    2.338287] IR RC5(x) protocol handler initialized
+[    2.338470] IR RC6 protocol handler initialized
+[    2.338592] IR JVC protocol handler initialized
+[    2.338714] IR Sony protocol handler initialized
+[    2.338897] IR RC5 (streamzap) protocol handler initialized
+[    2.339019] IR SANYO protocol handler initialized
+[    2.339202] IR MCE Keyboard/mouse protocol handler initialized
+[    2.339324] IR LIRC bridge handler initialized
+[    2.340118] gspca_main: v2.14.0 registered
+[    2.340606] usbcore: registered new interface driver uvcvideo
+[    2.340728] USB Video Class driver (1.1.1)
+[    2.342620] pm8xxx_adc_probe: failed to request pa_therm vreg with error -517
+[    2.343719] CAP1106: [cap1106_init]
+[    2.343963] i2c-core: driver [cap1106] using legacy suspend method
+[    2.344085] i2c-core: driver [cap1106] using legacy resume method
+[    2.367675] pm8xxx_tm_probe: OK
+[    2.368743] pm8xxx_tm_probe: OK
+[    2.370727] device-mapper: ioctl: 4.22.0-ioctl (2011-10-19) initialised: dm-devel@redhat.com
+[    2.371551] Bluetooth: HCI UART driver ver 2.2
+[    2.371826] Bluetooth: HCI H4 protocol initialized
+[    2.372070] Bluetooth: HCIATH3K protocol initialized
+[    2.372802] Bluetooth: HCI_IBS protocol initialized
+[    2.374938] cpuidle: using governor ladder
+[    2.375183] cpuidle: using governor menu
+[    2.376281] mmc0: SDCC Version: 0x06000018
+[    2.378448] mmc0: bam physical base=0x12402000
+[    2.378570] mmc0: bam virtual base=0xea334000
+[    2.378784] sps:BAM 0x12402000 is registered.
+[    2.378906] mmc0: BAM device registered. bam_handle=0xe7d4a600
+[    2.380981] sps:BAM 0x12402000 enabled: ver:0x5, number of pipes:6
+[    2.382781] mmc0: Qualcomm MSM SDCC-BAM at 0x0000000012402000 irq 130
+[    2.383117] mmc0: Qualcomm MSM SDCC-DML at 0x0000000012400800
+[    2.383270] mmc0: No card detect facilities available
+[    2.385284] mmc0: Qualcomm MSM SDCC-core at 0x0000000012400000 irq 136,0 dma -1 dmacrcri -1
+[    2.385406] mmc0: Controller capabilities: 0x0000039a
+[    2.385589] mmc0: 8 bit data mode enabled
+[    2.385711] mmc0: 4 bit data mode disabled
+[    2.385833] mmc0: polling status mode disabled
+[    2.386108] mmc0: MMC clock 400000 -> 96000000 Hz, PCLK 0 Hz
+[    2.386230] mmc0: Slot eject status = 0
+[    2.386413] mmc0: Power save feature enable = 1
+[    2.386535] mmc0: SPS-BAM data transfer mode available
+[    2.389495] usbcore: registered new interface driver usbhid
+[    2.389648] usbhid: USB HID core driver
+[    2.390594] ashmem: initialized
+[    2.391540] usbcore: registered new interface driver snd-usb-audio
+[    2.393310] tabla_probe
+[    2.395233] msm_pcm_probe: dev name msm-voip-dsp
+[    2.395751] msm-dai-q6-mi2s msm-dai-q6-mi2s: msm_dai_q6_mi2s_platform_data_validation: playback sdline 0 capture sdline 8
+[    2.396026] msm-dai-q6-mi2s msm-dai-q6-mi2s: msm_dai_q6_mi2s_platform_data_validation: playback ch_max 0 capture ch_mx 8
+[    2.397491] msm_pcm_probe: dev name msm-pcm-dsp
+[    2.397949] msm_pcm_probe: dev name msm-multi-ch-pcm-dsp
+[    2.398529] msm_pcm_probe: dev name msm-lowlatency-pcm-dsp
+[    2.398651] adding pm_qos request in low latency driver
+[    2.398834] done adding pm_qos request in low latency driver
+[    2.399993] msm_compr_probe: dev name msm-compr-dsp
+[    2.400878] msm-pcm-lpa msm-pcm-lpa: msm_pcm_probe: dev name msm-pcm-lpa
+[    2.402099] msm8930_audio_init: Not the right machine type
+[    2.402282] msm_audio_init: Not the right machine type
+[    2.402404] msm_audio_init: Not APQ8064 in I2S mode
+[    2.507781] mmc0: new HS200 MMC card at address 0001
+[    2.509643] mmcblk0: mmc0:0001 016G92 14.6 GiB
+[    2.517456]  mmcblk0: p1 p2 p3 p4 p5 p6 p7 p8 p9 p10 p11 p12 p13 p14 p15 p16 p17 p18 p19 p20 p21 p22 p23 p24 p25 p26 p27 p28 p29 p30
+[    2.541168] asoc: snd-soc-dummy-dai <-> MultiMedia1 mapping ok
+[    2.542083] asoc: snd-soc-dummy-dai <-> MultiMedia2 mapping ok
+[    2.542877] asoc: snd-soc-dummy-dai <-> CS-VOICE mapping ok
+[    2.543823] asoc: snd-soc-dummy-dai <-> VoIP mapping ok
+[    2.544525] asoc: snd-soc-dummy-dai <-> MultiMedia3 mapping ok
+[    2.545379] asoc: snd-soc-dummy-dai <-> SLIMBUS0_HOSTLESS mapping ok
+[    2.546264] asoc: snd-soc-dummy-dai <-> INT_FM_HOSTLESS mapping ok
+[    2.547088] asoc: msm-stub-rx <-> msm-dai-q6.241 mapping ok
+[    2.547760] asoc: msm-stub-tx <-> msm-dai-q6.240 mapping ok
+[    2.548645] asoc: snd-soc-dummy-dai <-> MultiMedia4 mapping ok
+[    2.549438] asoc: snd-soc-dummy-dai <-> AUXPCM_HOSTLESS mapping ok
+[    2.550262] asoc: snd-soc-dummy-dai <-> HDMI_HOSTLESS mapping ok
+[    2.551177] asoc: snd-soc-dummy-dai <-> VOICE_STUB mapping ok
+[    2.551971] asoc: snd-soc-dummy-dai <-> VoLTE mapping ok
+[    2.552795] asoc: snd-soc-dummy-dai <-> MultiMedia5 mapping ok
+[    2.554260] asoc: tabla_rx1 <-> msm-dai-q6.16384 mapping ok
+[    2.559326] asoc: tabla_tx1 <-> msm-dai-q6.16385 mapping ok
+[    2.559967] asoc: msm-stub-rx <-> msm-dai-q6.12288 mapping ok
+[    2.560668] asoc: msm-stub-tx <-> msm-dai-q6.12289 mapping ok
+[    2.561309] asoc: msm-stub-rx <-> msm-dai-q6.12292 mapping ok
+[    2.562042] asoc: msm-stub-tx <-> msm-dai-q6.12293 mapping ok
+[    2.562713] asoc: msm-stub-rx <-> msm-dai-q6-hdmi.8 mapping ok
+[    2.563537] asoc: msm-stub-rx <-> msm-dai-q6.224 mapping ok
+[    2.564178] asoc: msm-stub-tx <-> msm-dai-q6.225 mapping ok
+[    2.565032] asoc: msm-stub-rx <-> msm-dai-q6.2 mapping ok
+[    2.565765] asoc: msm-stub-tx <-> msm-dai-q6.3 mapping ok
+[    2.566467] asoc: tabla_rx2 <-> msm-dai-stub mapping ok
+[    2.567108] asoc: tabla_tx1 <-> msm-dai-stub mapping ok
+[    2.567749] asoc: msm-stub-rx <-> msm-dai-q6.16386 mapping ok
+[    2.568511] asoc: msm-stub-tx <-> msm-dai-q6.16387 mapping ok
+[    2.569244] asoc: tabla_tx2 <-> msm-dai-q6.16389 mapping ok
+[    2.570037] asoc: tabla_rx3 <-> msm-dai-q6.16388 mapping ok
+[    2.570678] asoc: msm-stub-rx <-> msm-dai-q6.16392 mapping ok
+[    2.571380] asoc: msm-stub-tx <-> msm-dai-q6.16393 mapping ok
+[    2.572052] asoc: tabla_tx3 <-> msm-dai-stub mapping ok
+[    2.572875] asoc: msm-stub-rx <-> msm-dai-q6.16390 mapping ok
+[    2.573486] asoc: msm-stub-tx <-> msm-dai-q6.16391 mapping ok
+[    2.576232] input: apq8064-tabla-snd-card Button Jack as /devices/platform/soc-audio.0/sound/card0/input2
+[    2.576721] input: apq8064-tabla-snd-card Headset Jack as /devices/platform/soc-audio.0/sound/card0/input3
+[    2.580566] headset_init+ #####
+[    2.581970] input: h2w button as /devices/virtual/input/input4
+[    2.582641] HEADSET: Headset detection mode
+[    2.636230] set_hs_micbias badgap status: OFF power down bandgap
+[    2.636596] headset_init- #####
+[    2.637268] u32 classifier
+[    2.637512]     Actions configured
+[    2.637786] Netfilter messages via NETLINK v0.30.
+[    2.638366] nf_conntrack version 0.5.0 (16384 buckets, 65536 max)
+[    2.640167] ctnetlink v0.93: registering with nfnetlink.
+[    2.640747] NF_TPROXY: Transparent proxy support initialized, version 4.1.0
+[    2.640991] NF_TPROXY: Copyright (c) 2006-2007 BalaBit IT Ltd.
+[    2.642181] xt_time: kernel timezone is -0000
+[    2.643249] ip_tables: (C) 2000-2006 Netfilter Core Team
+[    2.644348] arp_tables: (C) 2002 David S. Miller
+[    2.644775] TCP: cubic registered
+[    2.646484] NET: Registered protocol family 10
+[    2.653533] Mobile IPv6
+[    2.653869] ip6_tables: (C) 2000-2006 Netfilter Core Team
+[    2.654602] IPv6 over IPv4 tunneling driver
+[    2.656494] NET: Registered protocol family 17
+[    2.656829] NET: Registered protocol family 15
+[    2.657379] Bluetooth: RFCOMM TTY layer initialized
+[    2.657867] Bluetooth: RFCOMM socket layer initialized
+[    2.658111] Bluetooth: RFCOMM ver 1.11
+[    2.658538] Bluetooth: BNEP (Ethernet Emulation) ver 1.3
+[    2.658813] Bluetooth: BNEP filters: protocol multicast
+[    2.659271] Bluetooth: HIDP (Human Interface Emulation) ver 1.2
+[    2.659729] L2TP core driver, V2.0
+[    2.660034] PPPoL2TP kernel driver, V2.0
+[    2.660491] Registering the dns_resolver key type
+[    2.662536] VFP support v0.3: implementor 51 architecture 64 part 6f variant 1 rev 0
+[    2.663299] Registering SWP/SWPB emulation handler
+[    2.663574] clock_late_init: Removing enables held for handed-off clocks
+[    2.672515] MSM Watchdog Initialized
+[    2.683349] input: gpio-keys as /devices/platform/gpio-keys.0/input/input5
+[    2.683776] rtc-pm8xxx rtc-pm8xxx: setting system clock to 2015-06-22 12:53:02 UTC (1434977582)
+[    2.684143] MSM_DCVS: msm_dcvs_register_core: msm_dcvs_register_core: scm register core fail handle = 1 ret = -22
+[    2.684295] Unable to register core for 0
+[    2.684387] msm_dcvs_gov: probe of msm_dcvs_gov failed with error -22
+[    2.684722] ALSA device list:
+[    2.684844]   #0: apq8064-tabla-snd-card
+[    2.685821] Freeing init memory: 1036K
+[    2.687774] init: init started!
+[    2.873504] type=1403 audit(1434977582.680:2): policy loaded auid=4294967295 ses=4294967295
+[    2.873992] type=1404 audit(1434977582.680:3): enforcing=1 old_enforcing=0 auid=4294967295 ses=4294967295
+[    3.056274] init: (Initializing SELinux enforcing took 0.37s.)
+[    3.064544] init: init second stage started!
+[    3.139587] init: waitpid failed: No child processes
+[    3.140075] init: (Loading properties from /default.prop took 0.00s.)
+[    3.141998] init: (Parsing /init.environ.rc took 0.00s.)
+[    3.142333] init: (Parsing /init.usb.rc took 0.00s.)
+[    3.143524] init: (Parsing init.flo.usb.rc took 0.00s.)
+[    3.143646] init: (Parsing init.flo.diag.rc took 0.00s.)
+[    3.143798] init: (Parsing /init.flo.rc took 0.00s.)
+[    3.143951] init: (Parsing /init.zygote32.rc took 0.00s.)
+[    3.144226] init: (Parsing /init.trace.rc took 0.00s.)
+[    3.144287] init: (Parsing /init.rc took 0.00s.)
+[    3.144744] init: Starting service ueventd...
+[    3.145324] init: Waiting for /dev/.coldboot_done...
+[    3.147583] ueventd: ueventd started!
+[    3.172729] bq27541_get_psp status: Full ret= 0x0280
+[    3.173370] bq27541_get_psp voltage_now= 4281000 uV
+[    3.174041] bq27541_get_capacity = 100% ret= 100
+[    3.174682] bq27541_get_psp temperature= 269 (0.1XC)
+[    3.175903] bq27541_get_psp current = 0 mA
+[    3.526611] ueventd: Coldboot took 0.37s.
+[    3.529418] init: Waiting for /dev/.coldboot_done took 0.38s.
+[    3.656494] keychord: using input dev gpio-keys for fevent
+[    3.791259] init: write_file: Unable to open /proc/sys/kernel/hung_task_timeout_secs: No such file or directory
+[    3.791534] init: write_file: Unable to open /proc/sys/kernel/sched_latency_ns: No such file or directory
+[    3.791687] init: write_file: Unable to open /proc/sys/kernel/sched_wakeup_granularity_ns: No such file or directory
+[    3.791870] init: write_file: Unable to open /proc/sys/kernel/sched_compat_yield: No such file or directory
+[    3.836853] init: write_file: Unable to write to /dev/cpuctl/cpu.shares: Invalid argument
+[    3.839111] init: write_file: Unable to open /proc/sys/abi/swp: No such file or directory
+[    3.839385] type=1400 audit(1434977583.640:4): avc:  denied  { create } for  pid=1 comm="init" name="sdcard" scontext=u:r:init:s0 tcontext=u:object_r:tmpfs:s0 tclass=lnk_file permissive=0
+[    3.848327] EXT4-fs (mmcblk0p22): mounted filesystem without journal. Opts: barrier=1
+[    3.848571] fs_mgr: __mount(source=/dev/block/platform/msm_sdcc.1/by-name/system,target=/system,type=ext4)=0
+[    3.854125] EXT4-fs (mmcblk0p23): mounted filesystem with ordered data mode. Opts: nomblk_io_submit,errors=remount-ro
+[    3.854339] fs_mgr: check_fs(): mount(/dev/block/platform/msm_sdcc.1/by-name/cache,/cache,ext4)=0: Success
+[    3.887054] bq27541_get_psp status: Full ret= 0x0280
+[    3.887756] bq27541_get_psp status: Full ret= 0x0280
+[    3.888397] bq27541_get_psp voltage_now= 4281000 uV
+[    3.889068] bq27541_get_capacity = 100% ret= 100
+[    3.889709] bq27541_get_psp temperature= 269 (0.1XC)
+[    3.890930] bq27541_get_psp current = 0 mA
+[    3.916503] fs_mgr: check_fs(): unmount(/cache) succeeded
+[    3.917633] fs_mgr: Running /system/bin/e2fsck on /dev/block/platform/msm_sdcc.1/by-name/cache
+[    3.977111] smb345_charger: [smb345_config_thermal_limit] Set HRD SFT limit, retval=41 setting=73
+[    3.977600] smb345_charger: [smb345_config_thermal_charging] temp=26, volt=4281000
+[    3.978057] smb345_charger: [smb345_config_thermal_charging] Bypass set Float Volt=e8
+[    3.978393] smb345_charger: [smb345_config_thermal_charging] Bypass charger enable
+[    3.982971] e2fsck: e2fsck 1.42.9 (28-Dec-2013)
+[    3.983001]
+[    3.983184] e2fsck: /dev/block/platform/msm_sdcc.1/by-name/cache: clean, 16/35840 files, 4622/143360 blocks
+[    3.983184]
+[    3.988189] EXT4-fs (mmcblk0p23): mounted filesystem with ordered data mode. Opts: barrier=1,data=ordered,nomblk_io_submit,errors=panic
+[    3.988433] fs_mgr: __mount(source=/dev/block/platform/msm_sdcc.1/by-name/cache,target=/cache,type=ext4)=0
+[    3.993682] EXT4-fs (mmcblk0p30): mounted filesystem with ordered data mode. Opts: nomblk_io_submit,errors=remount-ro
+[    3.993865] fs_mgr: check_fs(): mount(/dev/block/platform/msm_sdcc.1/by-name/userdata,/data,ext4)=0: Success
+[    4.046600] fs_mgr: check_fs(): unmount(/data) succeeded
+[    4.046752] fs_mgr: Running /system/bin/e2fsck on /dev/block/platform/msm_sdcc.1/by-name/userdata
+[    4.081970] e2fsck: e2fsck 1.42.9 (28-Dec-2013)
+[    4.082000]
+[    4.082214] e2fsck: /dev/block/platform/msm_sdcc.1/by-name/userdata: clean, 1249/814400 files, 260559/3257339 blocks
+[    4.082214]
+[    4.087493] EXT4-fs (mmcblk0p30): mounted filesystem with ordered data mode. Opts: barrier=1,data=ordered,nomblk_io_submit,errors=panic
+[    4.087707] fs_mgr: __mount(source=/dev/block/platform/msm_sdcc.1/by-name/userdata,target=/data,type=ext4)=0
+[    4.092559] EXT4-fs (mmcblk0p4): mounted filesystem with ordered data mode. Opts: barrier=1,data=ordered,nodelalloc
+[    4.092773] fs_mgr: __mount(source=/dev/block/platform/msm_sdcc.1/by-name/persist,target=/persist,type=ext4)=0
+[    4.093933] adsp_boot_store:going to call adsp_loader_do
+[    4.409790] pil pil0: q6: Brought out of reset
+[    4.432464] diag: In diag_process_smd_cntl_read_data, Invalid Msg type 12 proc 1
+[    4.454528] apr_tal:Q6 Is Up
+[    4.462066] diag: proc 1, msg mask update fail -12, tried 419
+[    4.517059] adsp_loader_do: Q6/ADSP image is loaded
+[    4.519042] init: Starting service logd...
+[    4.530151] init: Starting service vold...
+[    4.532836] init: Not bootcharting.
+[    4.563507] logd.auditd: start
+[    4.563629] logd.klogd: 4556955608
+[    4.577606] init: Starting service exec 0 (/system/bin/tzdatacheck)...
+[    4.602386] init: Service exec 0 (/system/bin/tzdatacheck) (pid 181) exited with status 0
+[    4.603027] wcnss_8960: Subsystem restart activated for riva.
+[    4.613861] init: write_file: Unable to open /sys/class/timed_output/vibrator/amp: No such file or directory
+[    4.617523] init: write_file: Unable to open /sys/devices/system/cpu/cpufreq/ondemand/down_differential_multi_core: No such file or directory
+[    4.618164] init: write_file: Unable to write to /sys/devices/system/cpu/cpu1/online: Invalid argument
+[    4.618377] init: write_file: Unable to write to /sys/devices/system/cpu/cpu2/online: Invalid argument
+[    4.618591] init: write_file: Unable to write to /sys/devices/system/cpu/cpu3/online: Invalid argument
+[    4.618774] init: write_file: Unable to open /dev/cpuctl/apps/cpu.notify_on_migrate: No such file or directory
+[    4.622894] init: (Loading properties from /system/build.prop took 0.00s.)
+[    4.623107] init: (Loading properties from /vendor/build.prop took 0.00s.)
+[    4.623291] init: (Loading properties from /factory/factory.prop took 0.00s.)
+[    4.623931] init: (Loading properties from /data/local.prop took 0.00s.)
+[    4.664733] init: Starting service logd-reinit...
+[    4.668701] init: Starting service healthd...
+[    4.669525] init: Starting service lmkd...
+[    4.670227] init: Starting service servicemanager...
+[    4.670959] init: Starting service surfaceflinger...
+[    4.671630] init: Starting service ks_checker...
+[    4.672393] binder: 186:186 transaction failed 29189, size 0-0
+[    4.674957] init: write_file: Unable to open /proc/sys/net/ipv6/conf/rmnet_sdio0/accept_ra: No such file or directory
+[    4.675140] init: write_file: Unable to open /proc/sys/net/ipv6/conf/rmnet_sdio1/accept_ra: No such file or directory
+[    4.675323] init: write_file: Unable to open /proc/sys/net/ipv6/conf/rmnet_sdio2/accept_ra: No such file or directory
+[    4.675537] init: write_file: Unable to open /proc/sys/net/ipv6/conf/rmnet_sdio3/accept_ra: No such file or directory
+[    4.675720] init: write_file: Unable to open /proc/sys/net/ipv6/conf/rmnet_sdio4/accept_ra: No such file or directory
+[    4.675903] init: write_file: Unable to open /proc/sys/net/ipv6/conf/rmnet_sdio5/accept_ra: No such file or directory
+[    4.676116] init: write_file: Unable to open /proc/sys/net/ipv6/conf/rmnet_sdio6/accept_ra: No such file or directory
+[    4.676300] init: write_file: Unable to open /proc/sys/net/ipv6/conf/rmnet_sdio7/accept_ra: No such file or directory
+[    4.683593] init: using deprecated syntax for specifying property ro.serialno, use ${name} instead
+[    4.683898] init: using deprecated syntax for specifying property ro.product.manufacturer, use ${name} instead
+[    4.684112] init: using deprecated syntax for specifying property ro.product.model, use ${name} instead
+[    4.684143] logd.daemon: reinit
+[    4.685760] init: Service logd-reinit (pid 185) exited with status 0
+[    4.686645] init: Starting service console...
+[    4.688751] init: Starting service netd...
+[    4.689727] init: Starting service debuggerd...
+[    4.690093] init: cannot find /system/bin/debuggerd64, disabling debuggerd64
+[    4.691040] init: Starting service drm...
+[    4.692932] init: Starting service media...
+[    4.694732] init: Starting service gatekeeperd...
+[    4.695831] init: Starting service installd...
+[    4.697601] init: Starting service flash_recovery...
+[    4.698577] init: Starting service keystore...
+[    4.699584] init: Starting service irsc_util...
+[    4.700805] init: Starting service rmt_storage...
+[    4.719329] init: Starting service bridgemgrd...
+[    4.723022] init: Starting service thermald...
+[    4.723754] init: Starting service mpdecision...
+[    4.724395] init: Starting service bdAddrLoader...
+[    4.730590] init: Starting service zygote...
+[    4.756011] init: Starting service perfprofd...
+[    4.757446] init: Starting service sensors...
+[    4.761413] init: Starting service qcamerasvr...
+[    4.765106] init: Starting service wcnss_init...
+[    4.767456] init: Starting service qseecomd...
+[    4.767944] enable_store: android_usb: already disabled
+[    4.771728] init: Starting service adbd...
+[    4.809387] adb_open
+[    4.809448] adb_bind_config
+[    4.825256] msm_thermal: enabled = 0
+[    4.827789] init: Service ks_checker (pid 190) exited with status 0
+[    4.828125] init: Service irsc_util (pid 201) exited with status 0
+[    4.829071] init: Service bdAddrLoader (pid 208) exited with status 1
+[    4.986877] msm_otg msm_otg: Failed notifying 1 charger type to PMIC
+[    4.987152] android_work: android_work: did not send uevent (0 0   (null))
+[    5.042297] pil pil3: dsps: Brought out of reset
+[    5.057525] android_work: android_work: sent uevent USB_STATE=CONNECTED
+[    5.061096] msm_otg msm_otg: Failed notifying 1 charger type to PMIC
+[    5.061309] android_work: android_work: sent uevent USB_STATE=DISCONNECTED
+[    5.130554] QSEECOM: qseecom_load_app: App (keymaster) doesnt exist, loading apps for first time
+[    5.140899] QSEECOM: qseecom_load_app: App with id 1 (keymaster) now loaded
+[    5.149414] android_work: android_work: sent uevent USB_STATE=CONNECTED
+[    5.150390] android_usb gadget: high-speed config #1: android_usb
+[    5.150482] msm_otg msm_otg: Failed notifying 1 charger type to PMIC
+[    5.150604] msm_otg msm_otg: Avail curr from USB = 500
+[    5.179809] wcnss_wlan wcnss_node_write: triggered by userspace
+[    5.207397] android_work: android_work: sent uevent USB_STATE=CONFIGURED
+[    5.473510] pil pil1: wcnss: Brought out of reset
+[    5.474609] init: Service wcnss_init (pid 216) exited with status 0
+[    5.673522] healthd: wakealarm_init: timerfd_create failed
+[    5.782928] init: Service flash_recovery (pid 199) exited with status 0
+[    5.895233] wcnss_wlan_ctrl_probe: SMD ctrl channel up
+[    5.897644] wcnss: version 01040102
+[    5.897735] wcnss: schedule dnld work for riva
+[    5.901397] wcnss: NV bin size: 29772, total_fragments: 10
+[    5.901489] wcnss: no space available for smd frame
+[    5.926940] wcnss: no space available for smd frame
+[    5.956970] wcnss: no space available for smd frame
+[    5.986968] wcnss: no space available for smd frame
+[    5.995056] mipi_dsi_panel_power+, on=1
+[    6.021636] wcnss: received WCNSS_NVBIN_DNLD_RSP from ccpu
+[    6.066955] mipi_dsi_panel_power-
+[    6.072601] mipi_JDI_lcd_on+
+[    6.072601] mipi_JDI_lcd_on-, booting
+[    6.134704] init: Starting service bootanim...
+[    6.134918] hdmi_msm hdmi_msm.1: hdmi_msm_hpd_feature: 1
+[    6.725494] mdp4_overlay_mdp_perf_upd mdp clk is changed [1] from 0 to 200000000
+[    6.886993] msm_ta_detect_work: USB exit ta detection - frindex
+[    8.750305] warning: `main uses 32-bit capabilities (legacy support in use)
+[   10.576965] msm_post_event: Timed out for event type 134225920
+[   10.577117] msm_post_event: rc = -110
+[   10.716888] request_suspend_state: wakeup (3->0) at 10709949777 (2015-06-22 12:53:10.529775495 UTC)
+[   10.766998] gpio 43 CAM_RST(1)
+[   10.826965] mi1040_sensor_match_id +++
+[   10.827758] Sensor id: 0x2481
+[   10.827850] PMIC gpio 11 CAM_VENDOR_1(0)
+[   10.827911] PMIC gpio 10 CAM_VENDOR_0(0)
+[   10.828063] PMIC gpio 24 CAM_LENS(0)
+[   10.828155] Vendor is B
+[   10.828216] mi1040_sensor_match_id ---
+[   10.856994] mipi_JDI_set_backlight: pwm enable
+[   15.906951] wcnss_post_bootup: Cancel APPS vote for Iris & Riva
+[   18.328155] bq27541_get_capacity = 100% ret= 100
+[   18.328918] bq27541_get_psp voltage_now= 4280000 uV
+[   18.329589] bq27541_get_psp temperature= 269 (0.1XC)
+[   18.330322] bq27541_get_psp status: Full ret= 0x0280
+[   18.331909] bq27541_get_psp current = 0 mA
+[   18.332000] healthd: battery l=100 v=4280 t=26.9 h=2 st=5 c=0 chg=u
+[   18.647491] lowmem_shrink: convert oom_adj to oom_score_adj:
+[   18.647613] oom_adj 0 => oom_score_adj 0
+[   18.647674] init: write_file: Unable to open /proc/sys/vm/extra_free_kbytes: No such file or directory
+[   18.647918] oom_adj 1 => oom_score_adj 58
+[   18.648040] oom_adj 2 => oom_score_adj 117
+[   18.648132] oom_adj 3 => oom_score_adj 176
+[   18.648284] oom_adj 9 => oom_score_adj 529
+[   18.648376] oom_adj 15 => oom_score_adj 1000
+[   19.993927] acc_open
+[   19.994079] acc_release
+[   20.826812] msm_vidc_venc: Inside vid_enc_open()
+[   20.826904]
+[   20.826904]  msm_vidc_enc: Inside vid_enc_open_client()
+[   20.827239]
+[   20.827239] res_trk_download_firmware(): Request firmware download
+[   20.861999] wlan: loading driver v3.2.3.22
+[   20.864257] wlan: [593:E :HDD] hdd_apply_cfg_ini: Reg Parameter gEmptyScanRefreshPeriod < allowed Minimum [0 < 1000]. Enforcing Default= 0
+[   20.867279] fw_version 9:23:2014
+[   20.868774]
+[   20.868774]  msm_vidc_enc: Inside vid_enc_release()
+[   20.869049]
+[   20.869049]  msm_vidc_enc: Inside vid_enc_close_client()
+[   20.873199] wlan: [593:E :VOS] INFO: NV binary file version=1 Driver default NV version=1, continue...
+[   20.873199]
+[   20.873596] DefaultCountry is WS
+[   20.891693]
+[   20.891693]  msm_vidc_enc: Return from vid_enc_release()
+[   20.892913] msm_vidc_venc: Inside vid_enc_open()
+[   20.893096]
+[   20.893096]  msm_vidc_enc: Inside vid_enc_open_client()
+[   20.917266] fw_version 9:23:2014
+[   20.918365]
+[   20.918365]  msm_vidc_enc: Inside vid_enc_release()
+[   20.918579]
+[   20.918579]  msm_vidc_enc: Inside vid_enc_close_client()
+[   20.941741]
+[   20.941772]  msm_vidc_enc: Return from vid_enc_release()
+[   20.943054] msm_vidc_venc: Inside vid_enc_open()
+[   20.943237]
+[   20.943237]  msm_vidc_enc: Inside vid_enc_open_client()
+[   20.967224] fw_version 9:23:2014
+[   20.968414]
+[   20.968414]  msm_vidc_enc: Inside vid_enc_release()
+[   20.968627]
+[   20.968627]  msm_vidc_enc: Inside vid_enc_close_client()
+[   20.991790]
+[   20.991821]  msm_vidc_enc: Return from vid_enc_release()
+[   21.005249] msm_vidc_dec: Inside vid_dec_open()
+[   21.027221] fw_version 9:23:2014
+[   21.028594] msm_vidc_dec: Inside vid_dec_release()
+[   21.055694] msm_vidc_dec: Return from vid_dec_release()
+[   21.125152] pil pil2: vidc: Brought out of reset
+[   21.137329] fw_version 9:23:2014
+[   21.137756] Securing...
+[   21.141448] msm_vidc_dec: Inside vid_dec_release_secure()
+[   21.161132] wlan: WCNSS WLAN version 1.4.1.2
+[   21.161407] wlan: WCNSS software version 201076
+[   21.161529] wlan: WCNSS hardware version WCN v2.0 RadioPhy vIris_TSMC_2.0 with 48MHz XO
+[   21.161926] DefaultCountry is WS
+[   21.167266] Unsecuring....
+[   21.193634] wlan: driver loaded
+[   21.200531] msm_vidc_dec: Return from vid_dec_release_secure()
+[   21.202484] msm_vidc_dec: Inside vid_dec_open()
+[   21.227264] fw_version 9:23:2014
+[   21.228637] msm_vidc_dec: Inside vid_dec_release()
+[   21.251617] msm_vidc_dec: Return from vid_dec_release()
+[   21.253326] msm_vidc_dec: Inside vid_dec_open()
+[   21.277252] fw_version 9:23:2014
+[   21.278839] msm_vidc_dec: Inside vid_dec_release()
+[   21.301483] msm_vidc_dec: Return from vid_dec_release()
+[   21.303131] msm_vidc_dec: Inside vid_dec_open()
+[   21.327301] fw_version 9:23:2014
+[   21.328460] msm_vidc_dec: Inside vid_dec_release()
+[   21.352996] msm_vidc_dec: Return from vid_dec_release()
+[   21.652435] gpio 25 VCM_PD(1)
+[   21.652618] gpio 31 XSHUTDN(1)
+[   21.677612] msm_sensor_config:1422 sensor state 1
+[   21.793792] msm_actuator_config:887 msm_actuator_power_down failed -14
+[   21.826965] msm_sensor_config:1445 sensor state 0
+[   21.963287] gpio 25 VCM_PD(1)
+[   21.963378] gpio 31 XSHUTDN(1)
+[   21.989013] msm_sensor_config:1422 sensor state 1
+[   21.998321] wlan: [680:E :SME] PMC: STA not associated with an AP with single active session. BMPS cannot be entered
+[   21.998901] ADDRCONF(NETDEV_UP): wlan0: link is not ready
+[   22.016082] init: Starting service p2p_supplicant...
+[   22.111755] wlan: [977:E :SME] PMC: STA not associated with an AP with single active session. BMPS cannot be entered
+[   22.112792] ADDRCONF(NETDEV_UP): p2p0: link is not ready
+[   22.150909] msm_actuator_config:887 msm_actuator_power_down failed -14
+[   22.185089] msm_sensor_config:1445 sensor state 0
+[   22.456970] gpio 43 CAM_RST(1)
+[   22.516967] mi1040_sensor_match_id +++
+[   22.517669] Sensor id: 0x2481
+[   22.517791] PMIC gpio 11 CAM_VENDOR_1(0)
+[   22.517883] PMIC gpio 10 CAM_VENDOR_0(0)
+[   22.517974] PMIC gpio 24 CAM_LENS(0)
+[   22.518096] Vendor is B
+[   22.518188] mi1040_sensor_match_id ---
+[   22.561462] pil pil4: gss: Brought out of reset
+[   22.567474] Notify: smsm init
+[   22.579162] wlan: [977:E :HDD] hdd_conf_arp_offload:
+[   22.579162]
+[   22.579376] wlan: [839:E :CTL]  WDI_ProcessHostOffloadReq : Association for this BSSID does not exist 00:00:00:00:00:00
+[   22.579528] wlan: [839:E :WDA] Failure in host offload REQ WDI API, free all the memory
+[   22.579681] wlan: [839:E :CTL]  WDI_ProcessHostOffloadReq : Association for this BSSID does not exist 00:00:00:00:00:00
+[   22.579864] wlan: [839:E :WDA] Failure in host offload REQ WDI API, free all the memory
+[   22.580047] wlan: [839:E :CTL]  WDI_ProcessHostOffloadReq : Association for this BSSID does not exist 00:00:00:00:00:00
+[   22.580200] wlan: [839:E :WDA] Failure in host offload REQ WDI API, free all the memory
+[   22.580291] wlan: [839:E :CTL]  WDI_ProcessHostOffloadReq : Association for this BSSID does not exist 00:00:00:00:00:00
+[   22.580444] wlan: [839:E :WDA] Failure in host offload REQ WDI API, free all the memory
+[   22.580596] wlan: [839:E :CTL]  WDI_ProcessHostOffloadReq : Association for this BSSID does not exist 00:00:00:00:00:00
+[   22.580749] wlan: [839:E :WDA] Failure in host offload REQ WDI API, free all the memory
+[   22.580902] wlan: [839:E :CTL]  WDI_ProcessHostOffloadReq : Association for this BSSID does not exist 00:00:00:00:00:00
+[   22.581054] wlan: [839:E :WDA] Failure in host offload REQ WDI API, free all the memory
+[   22.581146] wlan: [839:E :CTL]  WDI_ProcessHostOffloadReq : Association for this BSSID does not exist 00:00:00:00:00:00
+[   22.581237] wlan: [839:E :WDA] Failure in host offload REQ WDI API, free all the memory
+[   22.581390] wlan: [839:E :CTL]  WDI_ProcessHostOffloadReq : Association for this BSSID does not exist 00:00:00:00:00:00
+[   22.581542] wlan: [839:E :WDA] Failure in host offload REQ WDI API, free all the memory
+[   22.581756] wlan: [839:E :CTL]  WDI_ProcessHostOffloadReq : Association for this BSSID does not exist 00:00:00:00:00:00
+[   22.581909] wlan: [839:E :WDA] Failure in host offload REQ WDI API, free all the memory
+[   22.582061] wlan: [839:E :CTL]  WDI_ProcessHostOffloadReq : Association for this BSSID does not exist 00:00:00:00:00:00
+[   22.582183] wlan: [839:E :WDA] Failure in host offload REQ WDI API, free all the memory
+[   22.582244] wlan: [839:E :CTL]  WDI_ProcessHostOffloadReq : Association for this BSSID does not exist 00:00:00:00:00:00
+[   22.582427] wlan: [839:E :WDA] Failure in host offload REQ WDI API, free all the memory
+[   22.582550] wlan: [839:E :CTL]  WDI_ProcessHostOffloadReq : Association for this BSSID does not exist 00:00:00:00:00:00
+[   22.582702] wlan: [839:E :WDA] Failure in host offload REQ WDI API, free all the memory
+[   22.582855] wlan: [839:E :CTL]  WDI_ProcessHostOffloadReq : Association for this BSSID does not exist 00:00:00:00:00:00
+[   22.583007] wlan: [839:E :WDA] Failure in host offload REQ WDI API, free all the memory
+[   22.583099] wlan: [839:E :CTL]  WDI_ProcessHostOffloadReq : Association for this BSSID does not exist 00:00:00:00:00:00
+[   22.583251] wlan: [839:E :WDA] Failure in host offload REQ WDI API, free all the memory
+[   22.583374] wlan: [839:E :CTL]  WDI_ProcessHostOffloadReq : Association for this BSSID does not exist 00:00:00:00:00:00
+[   22.583587] wlan: [839:E :WDA] Failure in host offload REQ WDI API, free all the memory
+[   22.583740] wlan: [839:E :CTL]  WDI_ProcessHostOffloadReq : Association for this BSSID does not exist 00:00:00:00:00:00
+[   22.583892] wlan: [839:E :WDA] Failure in host offload REQ WDI API, free all the memory
+[   22.583984] wlan: [839:E :CTL]  WDI_ProcessHostOffloadReq : Association for this BSSID does not exist 00:00:00:00:00:00
+[   22.584136] wlan: [839:E :WDA] Failure in host offload REQ WDI API, free all the memory
+[   22.584289] wlan: [839:E :CTL]  WDI_ProcessHostOffloadReq : Association for this BSSID does not exist 00:00:00:00:00:00
+[   22.584442] wlan: [839:E :WDA] Failure in host offload REQ WDI API, free all the memory
+[   22.584564] wlan: [839:E :CTL]  WDI_ProcessHostOffloadReq : Association for this BSSID does not exist 00:00:00:00:00:00
+[   22.584716] wlan: [839:E :WDA] Failure in host offload REQ WDI API, free all the memory
+[   22.987457] diag: In diag_smd_send_req, SMD sending partial pkt 308 20 20 1 0 1
+[   22.997985] diag: In diag_smd_send_req, SMD sending partial pkt 308 288 308 3 0 1
+[   23.017578] diag: proc 0, msg mask update fail -12, tried 419
+[   23.658782] bcm2079x-i2c 0-0077: 10,90
+[   23.762145] binder: release 195:195 transaction 5483 in, still active
+[   23.762298] binder: send failed reply for transaction 5483 to 597:1025
+[   23.762451] binder: release 195:826 transaction 4608 in, still active
+[   23.762512] binder: send failed reply for transaction 4608 to 738:738
+[   23.762664] binder: release 195:1129 transaction 6003 in, still active
+[   23.762725] binder: send failed reply for transaction 6003 to 597:597
+[   23.763000] binder: send failed reply for transaction 6004 to 1049:1049
+[   24.009399] init: Service media (pid 195) killed by signal 11
+[   24.009521] init: Service media (pid 195) killing any children in process group
+[   24.010223] init: Starting service media...
+[   24.483215] gpio 25 VCM_PD(1)
+[   24.483306] gpio 31 XSHUTDN(1)
+[   24.507720] msm_sensor_config:1422 sensor state 1
+[   24.652770] msm_actuator_config:887 msm_actuator_power_down failed -14
+[   24.686889] msm_sensor_config:1445 sensor state 0
+[   24.877014] gpio 43 CAM_RST(1)
+[   24.937011] mi1040_sensor_match_id +++
+[   24.937744] Sensor id: 0x2481
+[   24.937835] PMIC gpio 11 CAM_VENDOR_1(0)
+[   24.937957] PMIC gpio 10 CAM_VENDOR_0(0)
+[   24.938140] PMIC gpio 24 CAM_LENS(0)
+[   24.938201] Vendor is B
+[   24.938262] mi1040_sensor_match_id ---
+[   25.991638] msm_vidc_venc: Inside vid_enc_open()
+[   25.991790]
+[   25.991790]  msm_vidc_enc: Inside vid_enc_open_client()
+[   26.007385] fw_version 9:23:2014
+[   26.008789]
+[   26.008789]  msm_vidc_enc: Inside vid_enc_release()
+[   26.009002]
+[   26.009002]  msm_vidc_enc: Inside vid_enc_close_client()
+[   26.030853]
+[   26.030853]  msm_vidc_enc: Return from vid_enc_release()
+[   26.032379] msm_vidc_venc: Inside vid_enc_open()
+[   26.032562]
+[   26.032562]  msm_vidc_enc: Inside vid_enc_open_client()
+[   26.057342] fw_version 9:23:2014
+[   26.058502]
+[   26.058532]  msm_vidc_enc: Inside vid_enc_release()
+[   26.058715]
+[   26.058715]  msm_vidc_enc: Inside vid_enc_close_client()
+[   26.082824]
+[   26.082824]  msm_vidc_enc: Return from vid_enc_release()
+[   26.084075] msm_vidc_venc: Inside vid_enc_open()
+[   26.084259]
+[   26.084259]  msm_vidc_enc: Inside vid_enc_open_client()
+[   26.107513] fw_version 9:23:2014
+[   26.109283]
+[   26.109283]  msm_vidc_enc: Inside vid_enc_release()
+[   26.109558]
+[   26.109558]  msm_vidc_enc: Inside vid_enc_close_client()
+[   26.131530]
+[   26.131530]  msm_vidc_enc: Return from vid_enc_release()
+[   26.141723] msm_vidc_dec: Inside vid_dec_open()
+[   26.167388] fw_version 9:23:2014
+[   26.168670] msm_vidc_dec: Inside vid_dec_release()
+[   26.200744] msm_vidc_dec: Return from vid_dec_release()
+[   26.266418] pil pil2: vidc: Brought out of reset
+[   26.277282] fw_version 9:23:2014
+[   26.277770] Securing...
+[   26.280517] msm_vidc_dec: Inside vid_dec_release_secure()
+[   26.297058] Unsecuring....
+[   26.319091] msm_vidc_dec: Return from vid_dec_release_secure()
+[   26.320343] msm_vidc_dec: Inside vid_dec_open()
+[   26.337280] fw_version 9:23:2014
+[   26.338562] msm_vidc_dec: Inside vid_dec_release()
+[   26.361145] msm_vidc_dec: Return from vid_dec_release()
+[   26.362518] msm_vidc_dec: Inside vid_dec_open()
+[   26.387329] fw_version 9:23:2014
+[   26.388549] msm_vidc_dec: Inside vid_dec_release()
+[   26.410675] msm_vidc_dec: Return from vid_dec_release()
+[   26.412170] msm_vidc_dec: Inside vid_dec_open()
+[   26.427764] fw_version 9:23:2014
+[   26.428863] msm_vidc_dec: Inside vid_dec_release()
+[   26.450805] msm_vidc_dec: Return from vid_dec_release()
+[   30.568359] binder: 1847:1855 refcount change on invalid ref 23
+[   30.688873] binder: 1847:1860 refcount change on invalid ref 23
+[   30.689025] binder: 1847:1860 refcount change on invalid ref 23
+[   30.689117] binder: transaction release 20125 bad handle 23
+[   32.918853] init: Service bootanim (pid 393) exited with status 0
+[   38.702117] bq27541_get_capacity = 100% ret= 100
+[   41.043701] wlan: [839:E :SME] csrMoveTempScanResultsToMainList: 2908: 11d AP Bssid 30:b5:c2:33:f9:25 chan= 6, rssi = -41, countryCode US
+[   41.143310] wlan: [839:E :SME] csrApplyChannelPowerCountryInfo: 3283:   11D channel list is empty
+[   41.422821] wlan: [977:E :HDD] wlan_hdd_cfg80211_set_cipher: received cipher 0 - considering none
+[   41.422973] wlan: [977:E :HDD] wlan_hdd_cfg80211_set_cipher: received cipher 0 - considering none
+[   41.507781] wlan: [839:E :PE ] limProcessAuthFrame: 1302: received Auth frame from peer with failure code 17 6c:f3:7f:af:62:62
+[   41.507965] wlan: [839:E :PE ] limProcessMlmAuthCnf: 622: Auth Failure occurred.
+[   41.508087] wlan: [839:E :PE ] limDeactivateAndChangeTimer: 1438: Deactivated probe after hb timer
+[   41.518218] wlan: connection failed with 6c:f3:7f:af:62:62 reason:3 and Status:7
+[   41.555572] wlan: [839:E :PE ] wlan_cfgGetInt: 351: Not valid cfg id 1
+[   41.563903] wlan: connected to 6c:f3:7f:af:62:71
+[   41.564025] wlan(36) 6c:f3:7f:af:62:71 Standalone
+[   41.564636] ADDRCONF(NETDEV_CHANGE): wlan0: link becomes ready
+[   41.651275] wlan: [977:E :HDD] hdd_conf_arp_offload:
+[   41.651275]
+[   42.738525] wlan: [839:E :SME] sme_QosPmcDeviceStateUpdateInd: 7219: nothing to process in PMC state 6
+[   51.577697] wlan: [839:E :HDD] hdd_tx_rx_pkt_cnt_stat_timer_handler: Disable split scan
+[   57.068634] adb_release
+[   57.075347] init: Service adbd (pid 219) exited with status 1
+[   57.075500] init: Service adbd (pid 219) killing any children in process group
+[   57.076080] init: Untracked pid 622 killed by signal 1
+[   57.076293] init: Starting service adbd...
+[   57.086761] adb_open
+[   57.086883] adb_bind_config
+[   57.090087] msm_otg msm_otg: Failed notifying 1 charger type to PMIC
+[   57.090576] msm_otg msm_otg: Avail curr from USB = 2
+[   57.090850] msm_otg msm_otg: current: 500 -> 2 (mA)
+[   57.091278] msm_hsusb msm_hsusb: CI13XXX_CONTROLLER_SUSPEND_EVENT received
+[   57.242340] msm_otg msm_otg: Failed notifying 1 charger type to PMIC
+[   57.242889] msm_otg msm_otg: Avail curr from USB = 0
+[   57.245422] android_work: android_work: sent uevent USB_STATE=DISCONNECTED
+[   57.318572] msm_otg msm_otg: Failed notifying 1 charger type to PMIC
+[   57.320068] android_work: android_work: sent uevent USB_STATE=CONNECTED
+[   57.321075] android_work: android_work: sent uevent USB_STATE=DISCONNECTED
+[   57.424621] android_usb gadget: high-speed config #1: android_usb
+[   57.424743] msm_otg msm_otg: Failed notifying 1 charger type to PMIC
+[   57.424865] msm_otg msm_otg: Avail curr from USB = 500
+[   57.425292] android_work: android_work: sent uevent USB_STATE=CONNECTED
+[   57.478881] android_work: android_work: sent uevent USB_STATE=CONFIGURED
+[   59.889221] init: no such service zygote_secondary
+[   59.889556] init: Service zygote is being killed...
+[   59.932006] init: Service surfaceflinger is being killed...
+[   59.945373] mipi_JDI_lcd_off+
+[   59.945465] mipi_JDI_lcd_off, JDI display off command+
+[   59.945892] init: Service netd is being killed...
+[   59.950592] init: Service netd (pid 192) killed by signal 9
+[   59.950683] init: Service netd (pid 192) killing any children in process group
+[   60.052246] init: Service zygote (pid 209) killed by signal 9
+[   60.052368] init: Service zygote (pid 209) killing any children in process group
+[   60.052856] init: Untracked pid 1141 killed by signal 9
+[   60.068023] mipi_JDI_lcd_off, JDI display off command-
+[   60.068115] mipi_JDI_lcd_off-
+[   60.068206] mipi_dsi_panel_power+, on=0
+[   60.098175] init: Untracked pid 2276 killed by signal 9
+[   60.098388] init: Untracked pid 2589 killed by signal 9
+[   60.108093] init: Untracked pid 2567 killed by signal 9
+[   60.108581] init: Untracked pid 1175 killed by signal 9
+[   60.118408] init: Untracked pid 767 killed by signal 9
+[   60.118713] init: Untracked pid 1029 killed by signal 9
+[   60.118927] init: Untracked pid 1405 killed by signal 9
+[   60.119171] init: Untracked pid 2095 killed by signal 9
+[   60.128021] init: Untracked pid 2235 killed by signal 9
+[   60.128265] init: Untracked pid 2552 killed by signal 9
+[   60.128509] init: Untracked pid 738 killed by signal 9
+[   60.128753] init: Untracked pid 1916 killed by signal 9
+[   60.128936] init: Untracked pid 1162 killed by signal 9
+[   60.129241] init: Untracked pid 1063 killed by signal 9
+[   60.129394] mipi_dsi_panel_power-
+[   60.129425] init: Untracked pid 1520 killed by signal 9
+[   60.129547] init: Untracked pid 2160 killed by signal 9
+[   60.129669] init: Untracked pid 2181 killed by signal 9
+[   60.129913] init: Untracked pid 2202 killed by signal 9
+[   60.130096] init: Untracked pid 2253 killed by signal 9
+[   60.130371] init: Untracked pid 2307 killed by signal 9
+[   60.130584] init: Untracked pid 2409 killed by signal 9
+[   60.135833] init: Service surfaceflinger (pid 189) killed by signal 9
+[   60.135925] init: Service surfaceflinger (pid 189) killing any children in process group
+[   60.138061] init: Untracked pid 1847 killed by signal 9
+[   60.138275] init: Untracked pid 1049 killed by signal 9
+[   60.138580] init: Untracked pid 1281 killed by signal 9
+[   60.138824] init: Untracked pid 1119 killed by signal 9
+[   60.139068] init: Untracked pid 1664 killed by signal 9
+[   60.197174] init: Starting service netd...
+[   60.198089] init: Starting service surfaceflinger...
+[   60.198883] init: Starting service zygote...
+[   60.199371] init: no such service zygote_secondary
+[   60.312713] mipi_dsi_panel_power+, on=1
+[   60.387603] mipi_dsi_panel_power-
+[   60.393615] mipi_JDI_lcd_on+
+[   60.393707] mipi_JDI_lcd_on, JDI display on command+, command bl
+[   60.417724] alarm_release: clear alarm, pending 0
+[   60.417907] alarm_release: clear pending alarms 8
+[   60.537658] mipi_JDI_lcd_on, JDI display on command-
+[   60.537841] mipi_JDI_lcd_on-
+[   60.700836] hdmi_msm hdmi_msm.1: hdmi_msm_hpd_feature: 0
+[   60.700958] hdmi_msm hdmi_msm.1: hdmi_msm_hpd_feature: hdmi state switched to 0
+[   60.722473] init: Starting service bootanim...
+[   60.722656] hdmi_msm hdmi_msm.1: hdmi_msm_hpd_feature: 1
+[   61.128021] mdp4_overlay_mdp_perf_upd mdp clk is changed [1] from 0 to 200000000
+[   61.958435] init: Untracked pid 597 killed by signal 9
+[   64.181274] bq27541_get_psp status: Full ret= 0x0280
+[   64.182739] bq27541_get_psp status: Full ret= 0x0280
+[   64.183532] bq27541_get_psp voltage_now= 4281000 uV
+[   64.184173] bq27541_get_capacity = 100% ret= 100
+[   64.184844] bq27541_get_psp temperature= 269 (0.1XC)
+[   64.186035] bq27541_get_psp current = 0 mA
+[   64.186981] bq27541_get_capacity = 100% ret= 100
+[   64.188629] bq27541_get_psp voltage_now= 4281000 uV
+[   64.189331] bq27541_get_psp temperature= 269 (0.1XC)
+[   64.190063] bq27541_get_psp status: Full ret= 0x0280
+[   64.191711] bq27541_get_psp current = 0 mA
+[   64.191833] healthd: battery l=100 v=4281 t=26.9 h=2 st=5 c=0 chg=u
+[   64.305084] smb345_charger: [smb345_config_thermal_limit] Bypass set HRD SFT limit=73
+[   64.305450] smb345_charger: [smb345_config_thermal_charging] temp=26, volt=4280000
+[   64.305908] smb345_charger: [smb345_config_thermal_charging] Bypass set Float Volt=e8
+[   64.306335] smb345_charger: [smb345_config_thermal_charging] Bypass charger enable
+[   65.134979] request_suspend_state: wakeup (0->0) at 65127425403 (2015-06-22 12:54:04.925981484 UTC)
+[   69.168365] bq27541_get_capacity = 100% ret= 100
+[   69.169067] bq27541_get_psp voltage_now= 4281000 uV
+[   69.169738] bq27541_get_psp temperature= 269 (0.1XC)
+[   69.170440] bq27541_get_psp status: Full ret= 0x0280
+[   69.172027] bq27541_get_psp current = 0 mA
+[   69.172180] healthd: battery l=100 v=4281 t=26.9 h=2 st=5 c=0 chg=u
+[   69.385864] lowmem_shrink: convert oom_adj to oom_score_adj:
+[   69.386016] oom_adj 0 => oom_score_adj 0
+[   69.386077] init: write_file: Unable to open /proc/sys/vm/extra_free_kbytes: No such file or directory
+[   69.386199] oom_adj 1 => oom_score_adj 58
+[   69.386291] oom_adj 2 => oom_score_adj 117
+[   69.386413] oom_adj 3 => oom_score_adj 176
+[   69.386474] oom_adj 9 => oom_score_adj 529
+[   69.386535] oom_adj 15 => oom_score_adj 1000
+[   70.598022] acc_open
+[   70.598114] acc_release
+[   70.628173] binder: 1299:1483 transaction failed 29189, size 172-0
+[   71.101776] type=1400 audit(1434977650.886:5): avc: denied { getattr } for pid=3146 comm="d.process.media" path="/storage/emulated" dev="tmpfs" ino=11285 scontext=u:r:untrusted_app:s0:c512,c768 tcontext=u:object_r:storage_stub_file:s0 tclass=dir permissive=0
+[   71.109893] type=1400 audit(1434977650.886:6): avc: denied { getattr } for pid=3146 comm="d.process.media" path="/storage/emulated" dev="tmpfs" ino=11285 scontext=u:r:untrusted_app:s0:c512,c768 tcontext=u:object_r:storage_stub_file:s0 tclass=dir permissive=0
+[   71.113281] type=1400 audit(1434977650.896:7): avc: denied { getattr } for pid=3146 comm="d.process.media" path="/storage/emulated" dev="tmpfs" ino=11285 scontext=u:r:untrusted_app:s0:c512,c768 tcontext=u:object_r:storage_stub_file:s0 tclass=dir permissive=0
+[   71.516448] wlan: unloading driver v3.2.3.22
+[   71.518829] wlan: [3057:E :SME] csrNeighborRoamIndicateDisconnect: 3742: Disconnect indication on session 0 in state 2
+[   71.519042] wlan: [3057:E :TL ]  ----> CRegion 0, hRSSI -60, Alpha 5
+[   71.519226] wlan: [3057:E :TL ]  ----> CRegion 0, hRSSI -60, Alpha 5
+[   71.519348] wlan: [839:E :HDD] hdd_tdlsStatusUpdate: DEL_ALL_TDLS_PEER_IND staIdx 0 00:00:00:00:00:00
+[   71.519348]
+[   71.520141] wlan: [839:E :PE ] limDeactivateAndChangeTimer: 1438: Deactivated probe after hb timer
+[   71.520294] wlan: [839:E :PE ] limSendDisassocCnf: 3507: FT Preauth Session (e62f0000,0) Cleanup
+[   71.532104] wlan: disconnected
+[   71.532165] wlan(0) 00:00:00:00:00:00 Standalone
+[   71.611083] wlan: [3057:E :HDD] wlan_hdd_validate_context: Unloading/Loading in Progress. Ignore!!!
+[   71.611358] wlan: [3057:E :HDD] wlan_hdd_cfg80211_disconnect: HDD context is not valid
+[   71.888366] wlan: driver unloaded
+[   72.097564] wlan: loading driver v3.2.3.22
+[   72.100402] wlan: [3057:E :HDD] hdd_apply_cfg_ini: Reg Parameter gEmptyScanRefreshPeriod < allowed Minimum [0 < 1000]. Enforcing Default= 0
+[   72.101043] wlan: [3057:E :VOS] vos_lock_init: already initialized lock
+[   72.107757] gpio 25 VCM_PD(1)
+[   72.107940] gpio 31 XSHUTDN(1)
+[   72.110565] wlan: [3057:E :VOS] INFO: NV binary file version=1 Driver default NV version=1, continue...
+[   72.110565]
+[   72.110931] DefaultCountry is WS
+[   72.138214] msm_sensor_config:1422 sensor state 1
+[   72.369323] msm_actuator_config:887 msm_actuator_power_down failed -14
+[   72.404235] msm_sensor_config:1445 sensor state 0
+[   72.437713] wlan: WCNSS WLAN version 1.4.1.2
+[   72.438201] wlan: WCNSS software version 201076
+[   72.438476] wlan: WCNSS hardware version WCN v2.0 RadioPhy vIris_TSMC_2.0 with 48MHz XO
+[   72.439483] DefaultCountry is WS
+[   72.463775] wlan: driver loaded
+[   72.464904] wlan: [977:E :SME] PMC: STA not associated with an AP with single active session. BMPS cannot be entered
+[   72.465637] ADDRCONF(NETDEV_UP): wlan0: link is not ready
+[   72.501281] wlan: [977:E :SME] PMC: STA not associated with an AP with single active session. BMPS cannot be entered
+[   72.502044] ADDRCONF(NETDEV_UP): p2p0: link is not ready
+[   72.717620] gpio 43 CAM_RST(1)
+[   72.777587] mi1040_sensor_match_id +++
+[   72.778320] Sensor id: 0x2481
+[   72.778411] PMIC gpio 11 CAM_VENDOR_1(0)
+[   72.778533] PMIC gpio 10 CAM_VENDOR_0(0)
+[   72.778625] PMIC gpio 24 CAM_LENS(0)
+[   72.778717] Vendor is B
+[   72.778778] mi1040_sensor_match_id ---
+[   73.536621] init: Service p2p_supplicant is being killed...
+[   73.778015] init: Service p2p_supplicant (pid 977) killed by signal 9
+[   73.839202] wlan: [3102:E :SME] PMC: STA not associated with an AP with single active session. BMPS cannot be entered
+[   73.839843] ADDRCONF(NETDEV_UP): wlan0: link is not ready
+[   73.844573] init: Starting service p2p_supplicant...
+[   74.635467] bcm2079x-i2c 0-0077: 10,90
+[   75.007751] wlan: [3397:E :HDD] hdd_conf_arp_offload:
+[   75.007781]
+[   75.008422] wlan: [3254:E :CTL]  WDI_ProcessHostOffloadReq : Association for this BSSID does not exist 00:00:00:00:00:00
+[   75.008605] wlan: [3254:E :WDA] Failure in host offload REQ WDI API, free all the memory
+[   75.008697] wlan: [3254:E :CTL]  WDI_ProcessHostOffloadReq : Association for this BSSID does not exist 00:00:00:00:00:00
+[   75.008850] wlan: [3254:E :WDA] Failure in host offload REQ WDI API, free all the memory
+[   75.009002] wlan: [3254:E :CTL]  WDI_ProcessHostOffloadReq : Association for this BSSID does not exist 00:00:00:00:00:00
+[   75.009124] wlan: [3254:E :WDA] Failure in host offload REQ WDI API, free all the memory
+[   75.009277] wlan: [3254:E :CTL]  WDI_ProcessHostOffloadReq : Association for this BSSID does not exist 00:00:00:00:00:00
+[   75.009429] wlan: [3254:E :WDA] Failure in host offload REQ WDI API, free all the memory
+[   75.009521] wlan: [3254:E :CTL]  WDI_ProcessHostOffloadReq : Association for this BSSID does not exist 00:00:00:00:00:00
+[   75.009674] wlan: [3254:E :WDA] Failure in host offload REQ WDI API, free all the memory
+[   75.009796] wlan: [3254:E :CTL]  WDI_ProcessHostOffloadReq : Association for this BSSID does not exist 00:00:00:00:00:00
+[   75.009948] wlan: [3254:E :WDA] Failure in host offload REQ WDI API, free all the memory
+[   75.010101] wlan: [3254:E :CTL]  WDI_ProcessHostOffloadReq : Association for this BSSID does not exist 00:00:00:00:00:00
+[   75.010253] wlan: [3254:E :WDA] Failure in host offload REQ WDI API, free all the memory
+[   75.010314] wlan: [3254:E :CTL]  WDI_ProcessHostOffloadReq : Association for this BSSID does not exist 00:00:00:00:00:00
+[   75.010467] wlan: [3254:E :WDA] Failure in host offload REQ WDI API, free all the memory
+[   75.010620] wlan: [3254:E :CTL]  WDI_ProcessHostOffloadReq : Association for this BSSID does not exist 00:00:00:00:00:00
+[   75.010772] wlan: [3254:E :WDA] Failure in host offload REQ WDI API, free all the memory
+[   75.010925] wlan: [3254:E :CTL]  WDI_ProcessHostOffloadReq : Association for this BSSID does not exist 00:00:00:00:00:00
+[   75.011077] wlan: [3254:E :WDA] Failure in host offload REQ WDI API, free all the memory
+[   75.011199] wlan: [3254:E :CTL]  WDI_ProcessHostOffloadReq : Association for this BSSID does not exist 00:00:00:00:00:00
+[   75.011352] wlan: [3254:E :WDA] Failure in host offload REQ WDI API, free all the memory
+[   75.011444] wlan: [3254:E :CTL]  WDI_ProcessHostOffloadReq : Association for this BSSID does not exist 00:00:00:00:00:00
+[   75.011596] wlan: [3254:E :WDA] Failure in host offload REQ WDI API, free all the memory
+[   75.011749] wlan: [3254:E :CTL]  WDI_ProcessHostOffloadReq : Association for this BSSID does not exist 00:00:00:00:00:00
+[   75.011901] wlan: [3254:E :WDA] Failure in host offload REQ WDI API, free all the memory
+[   75.012023] wlan: [3254:E :CTL]  WDI_ProcessHostOffloadReq : Association for this BSSID does not exist 00:00:00:00:00:00
+[   75.012176] wlan: [3254:E :WDA] Failure in host offload REQ WDI API, free all the memory
+[   75.012268] wlan: [3254:E :CTL]  WDI_ProcessHostOffloadReq : Association for this BSSID does not exist 00:00:00:00:00:00
+[   75.012420] wlan: [3254:E :WDA] Failure in host offload REQ WDI API, free all the memory
+[   75.012573] wlan: [3254:E :CTL]  WDI_ProcessHostOffloadReq : Association for this BSSID does not exist 00:00:00:00:00:00
+[   75.012725] wlan: [3254:E :WDA] Failure in host offload REQ WDI API, free all the memory
+[   75.012878] wlan: [3254:E :CTL]  WDI_ProcessHostOffloadReq : Association for this BSSID does not exist 00:00:00:00:00:00
+[   75.013000] wlan: [3254:E :WDA] Failure in host offload REQ WDI API, free all the memory
+[   75.013092] wlan: [3254:E :CTL]  WDI_ProcessHostOffloadReq : Association for this BSSID does not exist 00:00:00:00:00:00
+[   75.013244] wlan: [3254:E :WDA] Failure in host offload REQ WDI API, free all the memory
+[   75.013397] wlan: [3254:E :CTL]  WDI_ProcessHostOffloadReq : Association for this BSSID does not exist 00:00:00:00:00:00
+[   75.013519] wlan: [3254:E :WDA] Failure in host offload REQ WDI API, free all the memory
+[   81.320678] init: Service bootanim (pid 2779) exited with status 0
+[   93.488830] wlan: [3254:E :SME] csrMoveTempScanResultsToMainList: 2908: 11d AP Bssid 6c:f3:7f:af:94:d5 chan= 149, rssi = -84, countryCode US
+[   93.489166] wlan: [3254:E :SME] csrMoveTempScanResultsToMainList: 2908: 11d AP Bssid 6c:f3:7f:ae:71:f8 chan= 149, rssi = -72, countryCode US
+[   93.489471] wlan: [3254:E :SME] csrMoveTempScanResultsToMainList: 2908: 11d AP Bssid 6c:f3:7f:ae:71:f6 chan= 149, rssi = -71, countryCode US
+[   93.489715] wlan: [3254:E :SME] csrMoveTempScanResultsToMainList: 2908: 11d AP Bssid 6c:f3:7f:ae:71:f5 chan= 149, rssi = -70, countryCode US
+[   93.490264] wlan: [3254:E :SME] csrMoveTempScanResultsToMainList: 2908: 11d AP Bssid 6c:f3:7f:af:fa:58 chan= 44, rssi = -67, countryCode US
+[   93.490509] wlan: [3254:E :SME] csrMoveTempScanResultsToMainList: 2908: 11d AP Bssid 84:b8:02:2d:e5:8f chan= 64, rssi = -62, countryCode US
+[   93.490814] wlan: [3254:E :SME] csrMoveTempScanResultsToMainList: 2908: 11d AP Bssid 84:b8:02:2d:e5:8e chan= 64, rssi = -61, countryCode US
+[   93.491119] wlan: [3254:E :SME] csrMoveTempScanResultsToMainList: 2908: 11d AP Bssid 30:b5:c2:34:18:e9 chan= 149, rssi = -54, countryCode US
+[   93.493774] wlan: [3254:E :SME] csrMoveTempScanResultsToMainList: 2908: 11d AP Bssid 9c:1c:12:a0:3a:18 chan= 149, rssi = -53, countryCode US
+[   93.497039] wlan: [3254:E :SME] csrMoveTempScanResultsToMainList: 2908: 11d AP Bssid 9c:1c:12:a0:3a:07 chan= 6, rssi = -44, countryCode US
+[   93.558563] wlan: [3254:E :SME] csrApplyChannelPowerCountryInfo: 3283:   11D channel list is empty
+[   93.865112] wlan: [3397:E :HDD] wlan_hdd_cfg80211_set_cipher: received cipher 0 - considering none
+[   93.865264] wlan: [3397:E :HDD] wlan_hdd_cfg80211_set_cipher: received cipher 0 - considering none
+[   93.874176] wlan: [3254:E :SME]   Invalid center channel (151), disable 40MHz mode
+[   93.907135] wlan: [3254:E :PE ] wlan_cfgGetInt: 351: Not valid cfg id 1
+[   93.917724] wlan: connected to 9c:1c:12:a0:3a:12
+[   93.917877] wlan(149) 9c:1c:12:a0:3a:12 Standalone
+[   93.918457] ADDRCONF(NETDEV_CHANGE): wlan0: link becomes ready
+[   94.000579] wlan: [3397:E :HDD] hdd_conf_arp_offload:
+[   94.000579]
+[   94.076354] wlan: [3254:E :SME] sme_QosPmcDeviceStateUpdateInd: 7219: nothing to process in PMC state 6
+[   96.155059] ch_notify on a closed smd_pkt_dev id:18
+[   96.159790] init: Service sensors (pid 213) killed by signal 11
+[   96.160339] init: Service sensors (pid 213) killing any children in process group
+[   96.162780] init: Starting service sensors...
+[   99.317687] bq27541_get_capacity = 100% ret= 100
+[  103.938201] wlan: [3254:E :HDD] hdd_tx_rx_pkt_cnt_stat_timer_handler: Disable split scan
+[  114.912322] wlan: [3254:E :SME] csrMoveTempScanResultsToMainList: 2908: 11d AP Bssid 30:b5:c2:33:f9:25 chan= 6, rssi = -41, countryCode US
+[  124.343383] bq27541_get_psp status: Full ret= 0x0280
+[  124.344604] bq27541_get_psp status: Full ret= 0x0280
+[  124.347106] bq27541_get_psp voltage_now= 4281000 uV
+[  124.350585] bq27541_get_capacity = 100% ret= 100
+[  124.351623] bq27541_get_psp temperature= 269 (0.1XC)
+[  124.353210] bq27541_get_psp current = 0 mA
+[  124.357238] bq27541_get_capacity = 100% ret= 100
+[  124.358276] bq27541_get_psp voltage_now= 4281000 uV
+[  124.359680] bq27541_get_psp temperature= 269 (0.1XC)
+[  124.361541] bq27541_get_psp status: Full ret= 0x0280
+[  124.367279] bq27541_get_psp current = 0 mA
+[  124.369049] healthd: battery l=100 v=4281 t=26.9 h=2 st=5 c=0 chg=u
+[  124.477203] smb345_charger: [smb345_config_thermal_limit] Bypass set HRD SFT limit=73
+[  124.477569] smb345_charger: [smb345_config_thermal_charging] temp=26, volt=4281000
+[  124.478637] smb345_charger: [smb345_config_thermal_charging] Bypass set Float Volt=e8
+[  124.478973] smb345_charger: [smb345_config_thermal_charging] Bypass charger enable
+[  129.215087] init: no such service zygote_secondary
+[  129.215454] init: Service zygote is being killed...
+[  129.249053] init: Service surfaceflinger is being killed...
+[  129.249969] init: Service netd is being killed...
+[  129.252319] init: Service netd (pid 2734) killed by signal 9
+[  129.252471] init: Service netd (pid 2734) killing any children in process group
+[  129.271484] init: Service zygote (pid 2736) killed by signal 9
+[  129.271636] init: Service zygote (pid 2736) killing any children in process group
+[  129.274780] mipi_JDI_lcd_off+
+[  129.274902] mipi_JDI_lcd_off, JDI display off command+
+[  129.279022] init: Untracked pid 3437 killed by signal 9
+[  129.368957] init: Untracked pid 3146 killed by signal 9
+[  129.388214] mipi_JDI_lcd_off, JDI display off command-
+[  129.388305] mipi_JDI_lcd_off-
+[  129.388427] mipi_dsi_panel_power+, on=0
+[  129.399169] init: Untracked pid 3741 killed by signal 9
+[  129.399444] init: Untracked pid 3767 killed by signal 9
+[  129.448760] init: Untracked pid 4382 killed by signal 9
+[  129.449523] init: Untracked pid 4844 killed by signal 9
+[  129.449768] init: Untracked pid 4456 killed by signal 9
+[  129.450042] mipi_dsi_panel_power-
+[  129.455780] init: Starting service netd...
+[  129.456542] init: Service surfaceflinger (pid 2735) killed by signal 9
+[  129.456695] init: Service surfaceflinger (pid 2735) killing any children in process group
+[  129.457122] init: Starting service zygote...
+[  129.457885] init: Starting service surfaceflinger...
+[  129.460479] init: Untracked pid 3841 killed by signal 9
+[  129.460784] init: Untracked pid 4078 killed by signal 9
+[  129.460998] init: Untracked pid 4273 killed by signal 9
+[  129.461242] init: Untracked pid 4333 killed by signal 9
+[  129.461486] init: Untracked pid 4419 killed by signal 9
+[  129.461791] init: Untracked pid 4558 killed by signal 9
+[  129.462005] init: Untracked pid 4818 killed by signal 9
+[  129.462493] init: no such service zygote_secondary
+[  129.469390] init: Untracked pid 3402 killed by signal 9
+[  129.469696] init: Untracked pid 3430 killed by signal 9
+[  129.469940] init: Untracked pid 3457 killed by signal 9
+[  129.470184] init: Untracked pid 3708 killed by signal 9
+[  129.470428] init: Untracked pid 3369 killed by signal 9
+[  129.470642] init: Untracked pid 4512 killed by signal 9
+[  129.470855] init: Untracked pid 4903 killed by signal 9
+[  129.478698] init: Untracked pid 3545 killed by signal 9
+[  129.479125] init: Untracked pid 4651 killed by signal 9
+[  129.479339] init: Untracked pid 4486 killed by signal 9
+[  129.508758] init: Untracked pid 3477 killed by signal 9
+[  129.509552] init: Untracked pid 3154 killed by signal 9
+[  129.565826] mipi_dsi_panel_power+, on=1
+[  129.638305] mipi_dsi_panel_power-
+[  129.644012] mipi_JDI_lcd_on+
+[  129.644104] mipi_JDI_lcd_on, JDI display on command+, command bl
+[  129.708282] alarm_release: clear alarm, pending 0
+[  129.788208] mipi_JDI_lcd_on, JDI display on command-
+[  129.788391] mipi_JDI_lcd_on-
+[  129.940612] hdmi_msm hdmi_msm.1: hdmi_msm_hpd_feature: 0
+[  129.940704] hdmi_msm hdmi_msm.1: hdmi_msm_hpd_feature: hdmi state switched to 0
+[  129.963897] init: Starting service bootanim...
+[  129.964111] hdmi_msm hdmi_msm.1: hdmi_msm_hpd_feature: 1
+[  130.366943] mdp4_overlay_mdp_perf_upd mdp clk is changed [1] from 0 to 200000000
+[  130.793212] init: Untracked pid 2960 killed by signal 9
+[  134.277038] request_suspend_state: wakeup (0->0) at 134268869532 (2015-06-22 12:55:14.068578896 UTC)
+[  138.363311] bq27541_get_capacity = 100% ret= 100
+[  138.364013] bq27541_get_psp voltage_now= 4280000 uV
+[  138.364746] bq27541_get_psp temperature= 269 (0.1XC)
+[  138.365417] bq27541_get_psp status: Full ret= 0x0280
+[  138.367065] bq27541_get_psp current = 0 mA
+[  138.367156] healthd: battery l=100 v=4280 t=26.9 h=2 st=5 c=0 chg=u
+[  138.591125] lowmem_shrink: convert oom_adj to oom_score_adj:
+[  138.591278] oom_adj 0 => oom_score_adj 0
+[  138.591339] oom_adj 1 => oom_score_adj 58
+[  138.591461] oom_adj 2 => oom_score_adj 117
+[  138.591552] oom_adj 3 => oom_score_adj 176
+[  138.591613] oom_adj 9 => oom_score_adj 529
+[  138.591735] oom_adj 15 => oom_score_adj 1000
+[  138.592346] init: write_file: Unable to open /proc/sys/vm/extra_free_kbytes: No such file or directory
+[  139.755737] acc_open
+[  139.755859] acc_release
+[  140.286010] type=1400 audit(1434977720.062:8): avc: denied { getattr } for pid=5421 comm="d.process.media" path="/storage/emulated" dev="tmpfs" ino=21693 scontext=u:r:untrusted_app:s0:c512,c768 tcontext=u:object_r:storage_stub_file:s0 tclass=dir permissive=0
+[  140.286407] type=1400 audit(1434977720.062:9): avc: denied { getattr } for pid=5421 comm="d.process.media" path="/storage/emulated" dev="tmpfs" ino=21693 scontext=u:r:untrusted_app:s0:c512,c768 tcontext=u:object_r:storage_stub_file:s0 tclass=dir permissive=0
+[  140.309936] type=1400 audit(1434977720.093:10): avc: denied { getattr } for pid=5421 comm="d.process.media" path=2F73746F726167652F656D756C61746564202864656C6574656429 dev="tmpfs" ino=21693 scontext=u:r:untrusted_app:s0:c512,c768 tcontext=u:object_r:storage_stub_file:s0 tclass=dir permissive=0
+[  140.721435] wlan: unloading driver v3.2.3.22
+[  140.729278] wlan: [5357:E :SME] csrNeighborRoamIndicateDisconnect: 3742: Disconnect indication on session 0 in state 2
+[  140.729431] wlan: [5357:E :TL ]  ----> CRegion 0, hRSSI -52, Alpha 5
+[  140.729583] wlan: [5357:E :TL ]  ----> CRegion 0, hRSSI -52, Alpha 5
+[  140.729705] wlan: [3254:E :HDD] hdd_tdlsStatusUpdate: DEL_ALL_TDLS_PEER_IND staIdx 0 00:00:00:00:00:00
+[  140.729705]
+[  140.730163] wlan: [3254:E :PE ] limDeactivateAndChangeTimer: 1438: Deactivated probe after hb timer
+[  140.730316] wlan: [3254:E :PE ] limSendDisassocCnf: 3507: FT Preauth Session (e5858000,0) Cleanup
+[  140.742126] wlan: disconnected
+[  140.742218] wlan(0) 00:00:00:00:00:00 Standalone
+[  140.831176] wlan: [5357:E :HDD] wlan_hdd_validate_context: Unloading/Loading in Progress. Ignore!!!
+[  140.831390] wlan: [5357:E :HDD] wlan_hdd_cfg80211_disconnect: HDD context is not valid
+[  141.048858] wlan: driver unloaded
+[  141.258270] wlan: loading driver v3.2.3.22
+[  141.261444] wlan: [5357:E :HDD] hdd_apply_cfg_ini: Reg Parameter gEmptyScanRefreshPeriod < allowed Minimum [0 < 1000]. Enforcing Default= 0
+[  141.262451] wlan: [5357:E :VOS] vos_lock_init: already initialized lock
+[  141.272338] wlan: [5357:E :VOS] INFO: NV binary file version=1 Driver default NV version=1, continue...
+[  141.272338]
+[  141.272735] DefaultCountry is WS
+[  141.554656] wlan: WCNSS WLAN version 1.4.1.2
+[  141.554718] wlan: WCNSS software version 201076
+[  141.554809] wlan: WCNSS hardware version WCN v2.0 RadioPhy vIris_TSMC_2.0 with 48MHz XO
+[  141.555084] DefaultCountry is WS
+[  141.568847] wlan: [3397:E :HDD] wlan_hdd_validate_context: Unloading/Loading in Progress. Ignore!!!
+[  141.569000] wlan: [3397:E :HDD] wlan_hdd_cfg80211_set_power_mgmt: HDD context is not valid
+[  141.569610] ADDRCONF(NETDEV_UP): wlan0: link is not ready
+[  141.579406] wlan: driver loaded
+[  141.633270] wlan: [3397:E :SME] PMC: STA not associated with an AP with single active session. BMPS cannot be entered
+[  141.634033] ADDRCONF(NETDEV_UP): p2p0: link is not ready
+[  142.627136] init: Service p2p_supplicant is being killed...
+[  142.878723] init: Service p2p_supplicant (pid 3397) killed by signal 9
+[  142.935791] ADDRCONF(NETDEV_UP): wlan0: link is not ready
+[  142.943634] init: Starting service p2p_supplicant...
+[  143.042053] binder: 1299:1484 transaction failed 29189, size 180-0
+[  143.418212] wlan: [5678:E :SME] PMC: STA not associated with an AP with single active session. BMPS cannot be entered
+[  143.493164] wlan: [5678:E :HDD] hdd_conf_arp_offload:
+[  143.493164]
+[  143.493347] wlan: [5538:E :CTL]  WDI_ProcessHostOffloadReq : Association for this BSSID does not exist 00:00:00:00:00:00
+[  143.493499] wlan: [5538:E :WDA] Failure in host offload REQ WDI API, free all the memory
+[  143.493652] wlan: [5538:E :CTL]  WDI_ProcessHostOffloadReq : Association for this BSSID does not exist 00:00:00:00:00:00
+[  143.493774] wlan: [5538:E :WDA] Failure in host offload REQ WDI API, free all the memory
+[  143.493927] wlan: [5538:E :CTL]  WDI_ProcessHostOffloadReq : Association for this BSSID does not exist 00:00:00:00:00:00
+[  143.494018] wlan: [5538:E :WDA] Failure in host offload REQ WDI API, free all the memory
+[  143.494140] wlan: [5538:E :CTL]  WDI_ProcessHostOffloadReq : Association for this BSSID does not exist 00:00:00:00:00:00
+[  143.494293] wlan: [5538:E :WDA] Failure in host offload REQ WDI API, free all the memory
+[  143.494415] wlan: [5538:E :CTL]  WDI_ProcessHostOffloadReq : Association for this BSSID does not exist 00:00:00:00:00:00
+[  143.494567] wlan: [5538:E :WDA] Failure in host offload REQ WDI API, free all the memory
+[  143.494689] wlan: [5538:E :CTL]  WDI_ProcessHostOffloadReq : Association for this BSSID does not exist 00:00:00:00:00:00
+[  143.494842] wlan: [5538:E :WDA] Failure in host offload REQ WDI API, free all the memory
+[  143.494934] wlan: [5538:E :CTL]  WDI_ProcessHostOffloadReq : Association for this BSSID does not exist 00:00:00:00:00:00
+[  143.495056] wlan: [5538:E :WDA] Failure in host offload REQ WDI API, free all the memory
+[  143.495208] wlan: [5538:E :CTL]  WDI_ProcessHostOffloadReq : Association for this BSSID does not exist 00:00:00:00:00:00
+[  143.495330] wlan: [5538:E :WDA] Failure in host offload REQ WDI API, free all the memory
+[  143.495483] wlan: [5538:E :CTL]  WDI_ProcessHostOffloadReq : Association for this BSSID does not exist 00:00:00:00:00:00
+[  143.495635] wlan: [5538:E :WDA] Failure in host offload REQ WDI API, free all the memory
+[  143.495697] wlan: [5538:E :CTL]  WDI_ProcessHostOffloadReq : Association for this BSSID does not exist 00:00:00:00:00:00
+[  143.495849] wlan: [5538:E :WDA] Failure in host offload REQ WDI API, free all the memory
+[  143.495971] wlan: [5538:E :CTL]  WDI_ProcessHostOffloadReq : Association for this BSSID does not exist 00:00:00:00:00:00
+[  143.496124] wlan: [5538:E :WDA] Failure in host offload REQ WDI API, free all the memory
+[  143.496246] wlan: [5538:E :CTL]  WDI_ProcessHostOffloadReq : Association for this BSSID does not exist 00:00:00:00:00:00
+[  143.496398] wlan: [5538:E :WDA] Failure in host offload REQ WDI API, free all the memory
+[  143.496490] wlan: [5538:E :CTL]  WDI_ProcessHostOffloadReq : Association for this BSSID does not exist 00:00:00:00:00:00
+[  143.496612] wlan: [5538:E :WDA] Failure in host offload REQ WDI API, free all the memory
+[  143.496765] wlan: [5538:E :CTL]  WDI_ProcessHostOffloadReq : Association for this BSSID does not exist 00:00:00:00:00:00
+[  143.496917] wlan: [5538:E :WDA] Failure in host offload REQ WDI API, free all the memory
+[  143.497039] wlan: [5538:E :CTL]  WDI_ProcessHostOffloadReq : Association for this BSSID does not exist 00:00:00:00:00:00
+[  143.497192] wlan: [5538:E :WDA] Failure in host offload REQ WDI API, free all the memory
+[  143.497314] wlan: [5538:E :CTL]  WDI_ProcessHostOffloadReq : Association for this BSSID does not exist 00:00:00:00:00:00
+[  143.497467] wlan: [5538:E :WDA] Failure in host offload REQ WDI API, free all the memory
+[  143.497528] wlan: [5538:E :CTL]  WDI_ProcessHostOffloadReq : Association for this BSSID does not exist 00:00:00:00:00:00
+[  143.497680] wlan: [5538:E :WDA] Failure in host offload REQ WDI API, free all the memory
+[  143.497802] wlan: [5538:E :CTL]  WDI_ProcessHostOffloadReq : Association for this BSSID does not exist 00:00:00:00:00:00
+[  143.497955] wlan: [5538:E :WDA] Failure in host offload REQ WDI API, free all the memory
+[  143.498077] wlan: [5538:E :CTL]  WDI_ProcessHostOffloadReq : Association for this BSSID does not exist 00:00:00:00:00:00
+[  143.498779] wlan: [5538:E :WDA] Failure in host offload REQ WDI API, free all the memory
+[  143.646392] bcm2079x-i2c 0-0077: 10,90
+[  148.466766] binder: 6255:6263 refcount change on invalid ref 11
+[  148.664581] binder: 6255:6277 refcount change on invalid ref 11
+[  148.664703] binder: 6255:6277 refcount change on invalid ref 11
+[  148.664794] binder: transaction release 88536 bad handle 11
+[  150.509185] init: Service bootanim (pid 5091) exited with status 0
+[  161.785644] wlan: [5538:E :SME] csrMoveTempScanResultsToMainList: 2908: 11d AP Bssid 6c:f3:7f:af:94:d5 chan= 149, rssi = -83, countryCode US
+[  161.785827] wlan: [5538:E :SME] csrMoveTempScanResultsToMainList: 2908: 11d AP Bssid 6c:f3:7f:ae:71:f8 chan= 149, rssi = -73, countryCode US
+[  161.786102] wlan: [5538:E :SME] csrMoveTempScanResultsToMainList: 2908: 11d AP Bssid 6c:f3:7f:ae:71:f5 chan= 149, rssi = -72, countryCode US
+[  161.786346] wlan: [5538:E :SME] csrMoveTempScanResultsToMainList: 2908: 11d AP Bssid 6c:f3:7f:af:fa:58 chan= 44, rssi = -68, countryCode US
+[  161.786529] wlan: [5538:E :SME] csrMoveTempScanResultsToMainList: 2908: 11d AP Bssid 84:b8:02:2d:e5:8f chan= 64, rssi = -63, countryCode US
+[  161.786743] wlan: [5538:E :SME] csrMoveTempScanResultsToMainList: 2908: 11d AP Bssid 84:b8:02:2d:e5:8e chan= 64, rssi = -61, countryCode US
+[  161.786987] wlan: [5538:E :SME] csrMoveTempScanResultsToMainList: 2908: 11d AP Bssid 30:b5:c2:34:18:e9 chan= 149, rssi = -54, countryCode US
+[  161.790954] wlan: [5538:E :SME] csrMoveTempScanResultsToMainList: 2908: 11d AP Bssid 9c:1c:12:a0:3a:10 chan= 149, rssi = -53, countryCode US
+[  161.811706] wlan: [5538:E :SME] csrMoveTempScanResultsToMainList: 2908: 11d AP Bssid 6c:f3:7f:af:62:65 chan= 1, rssi = -48, countryCode US
+[  161.813507] wlan: [5538:E :SME] csrMoveTempScanResultsToMainList: 2908: 11d AP Bssid 6c:f3:7f:af:62:63 chan= 1, rssi = -47, countryCode US
+[  161.872619] wlan: [5538:E :SME] csrApplyChannelPowerCountryInfo: 3283:   11D channel list is empty
+[  162.202392] wlan: [5678:E :HDD] wlan_hdd_cfg80211_set_cipher: received cipher 0 - considering none
+[  162.202545] wlan: [5678:E :HDD] wlan_hdd_cfg80211_set_cipher: received cipher 0 - considering none
+[  162.212097] wlan: [5538:E :SME]   Invalid center channel (151), disable 40MHz mode
+[  162.302276] wlan: [5538:E :PE ] wlan_cfgGetInt: 351: Not valid cfg id 1
+[  162.311401] wlan: connected to 9c:1c:12:a0:3a:12
+[  162.311553] wlan(149) 9c:1c:12:a0:3a:12 Standalone
+[  162.312133] ADDRCONF(NETDEV_CHANGE): wlan0: link becomes ready
+[  162.374450] wlan: [5678:E :HDD] hdd_conf_arp_offload:
+[  162.374450]
+[  162.557189] type=1404 audit(1434977742.334:11): enforcing=0 old_enforcing=1 auid=4294967295 ses=4294967295
+[  163.467071] wlan: [5538:E :SME] sme_QosPmcDeviceStateUpdateInd: 7219: nothing to process in PMC state 6
+[  166.167480] wlan: [5538:E :SME] csrNeighborRoamIndicateDisconnect: 3742: Disconnect indication on session 0 in state 2
+[  166.167663] wlan: [5538:E :TL ]  ----> CRegion 0, hRSSI -53, Alpha 5
+[  166.167755] wlan: [5538:E :TL ]  ----> CRegion 0, hRSSI -53, Alpha 5
+[  166.175292] wlan: [5538:E :PE ] limDeactivateAndChangeTimer: 1438: Deactivated probe after hb timer
+[  166.175537] wlan: [5538:E :PE ] limSendDisassocCnf: 3507: FT Preauth Session (de0d0000,0) Cleanup
+[  166.175689] wlan: [5538:E :HDD] hdd_tdlsStatusUpdate: DEL_ALL_TDLS_PEER_IND staIdx 0 00:00:00:00:00:00
+[  166.175689]
+[  166.188568] wlan: disconnected
+[  166.188781] wlan(0) 00:00:00:00:00:00 Standalone
+[  166.189331] cfg80211: Calling CRDA to update world regulatory domain
+[  166.189910] cfg80211: World regulatory domain updated:
+[  166.190002] cfg80211:   (start_freq - end_freq @ bandwidth), (max_antenna_gain, max_eirp)
+[  166.190124] cfg80211:   (2402000 KHz - 2472000 KHz @ 40000 KHz), (300 mBi, 2000 mBm)
+[  166.190216] cfg80211:   (2457000 KHz - 2482000 KHz @ 40000 KHz), (300 mBi, 2000 mBm)
+[  166.190368] cfg80211:   (2474000 KHz - 2494000 KHz @ 20000 KHz), (300 mBi, 2000 mBm)
+[  166.190490] cfg80211:   (5170000 KHz - 5250000 KHz @ 40000 KHz), (300 mBi, 2000 mBm)
+[  166.190643] cfg80211:   (5735000 KHz - 5835000 KHz @ 40000 KHz), (300 mBi, 2000 mBm)
+[  166.554565] init: Service p2p_supplicant (pid 5678) exited with status 0
+[  167.978790] mipi_JDI_set_backlight: pwm disable
+[  168.059143] mipi_JDI_lcd_off+
+[  168.059143] mipi_JDI_lcd_off, JDI display off command+
+[  168.178802] mipi_JDI_lcd_off, JDI display off command-
+[  168.178833] mipi_JDI_lcd_off-
+[  168.178833] mipi_dsi_panel_power+, on=0
+[  168.260467] mipi_dsi_panel_power-
+[  168.268157] request_suspend_state: sleep (0->3) at 168259404963 (2015-06-22 12:55:48.059808869 UTC)
+[  168.268341] early_suspend: call handlers
+[  168.268402] [ektf3k]:[elan] elan_ktf3k_ts_suspend: enter
+[  168.269592] active wake lock PowerManagerService.WakeLocks
+[  168.269592] PM: Syncing filesystems...
+[  168.269836] active wake lock PowerManagerService.Display
+[  168.269958] active wake lock msm_otg
+[  168.281982] sync done.
+[  168.626037] request_suspend_state: wakeup (3->0) at 168617284284 (2015-06-22 12:55:48.417688190 UTC)
+[  168.626281] late_resume: call handlers
+[  168.626342] [ektf3k]:[elan] elan_ktf3k_ts_resume: enter
+[  168.628112] [ektf3k]:[elan] dump repsponse: 58
+[  168.628234] late_resume: done
+[  168.630218] mipi_dsi_panel_power+, on=1
+[  168.709320] mipi_dsi_panel_power-
+[  168.715545] mipi_JDI_lcd_on+
+[  168.715576] mipi_JDI_lcd_on, JDI display on command+, command bl
+[  168.858825] mipi_JDI_lcd_on, JDI display on command-
+[  168.858856] mipi_JDI_lcd_on-
+[  168.880554] mdp4_overlay_mdp_perf_upd mdp clk is changed [1] from 0 to 200000000
+[  168.989074] mipi_JDI_set_backlight: pwm enable
+[  170.005493] binder: 1299:1479 transaction failed 29189, size 92-0
+[  170.019653] apr_tal: SMD_EVENT_OPEN
+[  170.065917] setting pm_qos in msm_pcm_playback_copy with 1000
+[  170.066009] done setting pm_qos in msm_pcm_playback_copy
+[  173.299346] updating pm_qos value to default msm_pcm_playback_close
+[  173.299713] done updating pm_qos value to default msm_pcm_playback_close
+[  173.326110] SLIM_CL: skip reconfig sequence
+[  184.507354] bq27541_get_psp status: Full ret= 0x0280
+[  184.508728] bq27541_get_psp status: Full ret= 0x0280
+[  184.510345] bq27541_get_psp voltage_now= 4280000 uV
+[  184.511413] bq27541_get_capacity = 100% ret= 100
+[  184.512298] bq27541_get_psp temperature= 269 (0.1XC)
+[  184.513916] bq27541_get_psp current = 0 mA
+[  184.516845] bq27541_get_capacity = 100% ret= 100
+[  184.518585] bq27541_get_psp voltage_now= 4280000 uV
+[  184.519989] bq27541_get_psp temperature= 269 (0.1XC)
+[  184.521026] bq27541_get_psp status: Full ret= 0x0280
+[  184.529876] bq27541_get_psp current = 0 mA
+[  184.530212] healthd: battery l=100 v=4280 t=26.9 h=2 st=5 c=0 chg=u
+[  184.607482] smb345_charger: [smb345_config_thermal_limit] Bypass set HRD SFT limit=73
+[  184.607788] smb345_charger: [smb345_config_thermal_charging] temp=26, volt=4280000
+[  184.608306] smb345_charger: [smb345_config_thermal_charging] Bypass set Float Volt=e8
+[  184.608703] smb345_charger: [smb345_config_thermal_charging] Bypass charger enable
+[  186.318206] ch_notify on a closed smd_pkt_dev id:18
+[  186.323883] init: Service sensors (pid 4927) killed by signal 11
+[  186.324249] init: Service sensors (pid 4927) killing any children in process group
+[  186.326721] init: Starting service sensors...
+[  244.660675] bq27541_get_psp status: Full ret= 0x0281
+[  244.661834] bq27541_get_psp status: Full ret= 0x0281
+[  244.662750] bq27541_get_psp voltage_now= 4280000 uV
+[  244.663818] bq27541_get_capacity = 100% ret= 100
+[  244.664672] bq27541_get_psp temperature= 269 (0.1XC)
+[  244.666290] bq27541_get_psp current = 0 mA
+[  244.670471] bq27541_get_capacity = 100% ret= 100
+[  244.672363] bq27541_get_psp voltage_now= 4280000 uV
+[  244.673614] bq27541_get_psp temperature= 269 (0.1XC)
+[  244.674652] bq27541_get_psp status: Full ret= 0x0281
+[  244.677612] bq27541_get_psp current = 0 mA
+[  244.677978] healthd: battery l=100 v=4280 t=26.9 h=2 st=5 c=0 chg=u
+[  244.763153] smb345_charger: [smb345_config_thermal_limit] Bypass set HRD SFT limit=73
+[  244.763458] smb345_charger: [smb345_config_thermal_charging] temp=26, volt=4280000
+[  244.763977] smb345_charger: [smb345_config_thermal_charging] Bypass set Float Volt=e8
+[  244.764373] smb345_charger: [smb345_config_thermal_charging] Bypass charger enable
+[  276.476196] ch_notify on a closed smd_pkt_dev id:18
+[  276.478424] init: Service sensors (pid 7388) killed by signal 11
+[  276.478515] init: Service sensors (pid 7388) killing any children in process group
+[  276.479125] init: Starting service sensors...
+[  304.824829] bq27541_get_psp status: Full ret= 0x0200
+[  304.825988] bq27541_get_psp status: Full ret= 0x0200
+[  304.827117] bq27541_get_psp voltage_now= 4280000 uV
+[  304.828247] bq27541_get_capacity = 100% ret= 100
+[  304.829986] bq27541_get_psp temperature= 268 (0.1XC)
+[  304.831787] bq27541_get_psp current = 0 mA
+[  304.834991] bq27541_get_capacity = 100% ret= 100
+[  304.836578] bq27541_get_psp voltage_now= 4280000 uV
+[  304.837982] bq27541_get_psp temperature= 268 (0.1XC)
+[  304.839233] bq27541_get_psp status: Full ret= 0x0200
+[  304.844055] bq27541_get_psp current = 0 mA
+[  304.844390] healthd: battery l=100 v=4280 t=26.8 h=2 st=5 c=0 chg=u
+[  304.978240] smb345_charger: [smb345_config_thermal_limit] Bypass set HRD SFT limit=73
+[  304.978637] smb345_charger: [smb345_config_thermal_charging] temp=26, volt=4280000
+[  304.979522] smb345_charger: [smb345_config_thermal_charging] Bypass set Float Volt=e8
+[  304.979919] smb345_charger: [smb345_config_thermal_charging] Bypass charger enable
+[  365.143920] bq27541_get_psp status: Full ret= 0x0200
+[  365.145263] bq27541_get_psp status: Full ret= 0x0200
+[  365.146148] bq27541_get_psp voltage_now= 4280000 uV
+[  365.147216] bq27541_get_capacity = 100% ret= 100
+[  365.148101] bq27541_get_psp temperature= 268 (0.1XC)
+[  365.150787] bq27541_get_psp current = 0 mA
+[  365.154479] bq27541_get_capacity = 100% ret= 100
+[  365.155609] bq27541_get_psp voltage_now= 4280000 uV
+[  365.156829] bq27541_get_psp temperature= 268 (0.1XC)
+[  365.157867] bq27541_get_psp status: Full ret= 0x0200
+[  365.160766] bq27541_get_psp current = 0 mA
+[  365.161285] healthd: battery l=100 v=4280 t=26.8 h=2 st=5 c=0 chg=u
+[  365.270233] smb345_charger: [smb345_config_thermal_limit] Bypass set HRD SFT limit=73
+[  365.270599] smb345_charger: [smb345_config_thermal_charging] temp=26, volt=4280000
+[  365.271118] smb345_charger: [smb345_config_thermal_charging] Bypass set Float Volt=e8
+[  365.271453] smb345_charger: [smb345_config_thermal_charging] Bypass charger enable
+[  366.598022] ch_notify on a closed smd_pkt_dev id:18
+[  366.820800] init: Service sensors (pid 7441) killed by signal 11
+[  366.831665] init: Service sensors (pid 7441) killing any children in process group
+[  366.833892] init: Starting service sensors...
+[  402.044494] bq27541_get_capacity = 100% ret= 100
+[  425.454681] bq27541_get_psp status: Full ret= 0x0201
+[  425.455322] bq27541_get_psp status: Full ret= 0x0201
+[  425.455963] bq27541_get_psp voltage_now= 4281000 uV
+[  425.456634] bq27541_get_capacity = 100% ret= 100
+[  425.457305] bq27541_get_psp temperature= 269 (0.1XC)
+[  425.458526] bq27541_get_psp current = 0 mA
+[  425.460296] bq27541_get_capacity = 100% ret= 100
+[  425.460998] bq27541_get_psp voltage_now= 4281000 uV
+[  425.461730] bq27541_get_psp temperature= 269 (0.1XC)
+[  425.462402] bq27541_get_psp status: Full ret= 0x0201
+[  425.464080] bq27541_get_psp current = 0 mA
+[  425.464172] healthd: battery l=100 v=4281 t=26.9 h=2 st=5 c=0 chg=u
+[  425.595642] smb345_charger: [smb345_config_thermal_limit] Bypass set HRD SFT limit=73
+[  425.596038] smb345_charger: [smb345_config_thermal_charging] temp=26, volt=4280000
+[  425.596557] smb345_charger: [smb345_config_thermal_charging] Bypass set Float Volt=e8
+[  425.596954] smb345_charger: [smb345_config_thermal_charging] Bypass charger enable
+[  457.066314] ch_notify on a closed smd_pkt_dev id:18
+[  457.075256] init: Service sensors (pid 7560) killed by signal 11
+[  457.075714] init: Service sensors (pid 7560) killing any children in process group
+[  457.077484] init: Starting service sensors...
+[  485.623687] bq27541_get_psp status: Full ret= 0x0200
+[  485.624694] bq27541_get_psp status: Full ret= 0x0200
+[  485.625732] bq27541_get_psp voltage_now= 4280000 uV
+[  485.627044] bq27541_get_capacity = 100% ret= 100
+[  485.627960] bq27541_get_psp temperature= 268 (0.1XC)
+[  485.637786] bq27541_get_psp current = 0 mA
+[  485.640625] bq27541_get_capacity = 100% ret= 100
+[  485.642211] bq27541_get_psp voltage_now= 4280000 uV
+[  485.643646] bq27541_get_psp temperature= 268 (0.1XC)
+[  485.644836] bq27541_get_psp status: Full ret= 0x0200
+[  485.649932] bq27541_get_psp current = 0 mA
+[  485.650329] healthd: battery l=100 v=4280 t=26.8 h=2 st=5 c=0 chg=u
+[  485.780792] smb345_charger: [smb345_config_thermal_limit] Bypass set HRD SFT limit=73
+[  485.781127] smb345_charger: [smb345_config_thermal_charging] temp=26, volt=4281000
+[  485.781646] smb345_charger: [smb345_config_thermal_charging] Bypass set Float Volt=e8
+[  485.782073] smb345_charger: [smb345_config_thermal_charging] Bypass charger enable
+[  545.940795] bq27541_get_psp status: Full ret= 0x0200
+[  545.942108] bq27541_get_psp status: Full ret= 0x0200
+[  545.943054] bq27541_get_psp voltage_now= 4280000 uV
+[  545.944152] bq27541_get_capacity = 100% ret= 100
+[  545.945281] bq27541_get_psp temperature= 268 (0.1XC)
+[  545.947021] bq27541_get_psp current = 0 mA
+[  545.951538] bq27541_get_capacity = 100% ret= 100
+[  545.953247] bq27541_get_psp voltage_now= 4280000 uV
+[  545.954528] bq27541_get_psp temperature= 268 (0.1XC)
+[  545.955871] bq27541_get_psp status: Full ret= 0x0200
+[  545.960205] bq27541_get_psp current = 0 mA
+[  545.960662] healthd: battery l=100 v=4280 t=26.8 h=2 st=5 c=0 chg=u
+[  546.063964] smb345_charger: [smb345_config_thermal_limit] Bypass set HRD SFT limit=73
+[  546.064361] smb345_charger: [smb345_config_thermal_charging] temp=26, volt=4280000
+[  546.064849] smb345_charger: [smb345_config_thermal_charging] Bypass set Float Volt=e8
+[  546.065521] smb345_charger: [smb345_config_thermal_charging] Bypass charger enable
+[  547.239501] ch_notify on a closed smd_pkt_dev id:18
+[  547.242004] init: Service sensors (pid 7679) killed by signal 11
+[  547.242126] init: Service sensors (pid 7679) killing any children in process group
+[  547.242645] init: Starting service sensors...
+[  606.257537] bq27541_get_psp status: Full ret= 0x0200
+[  606.258239] bq27541_get_psp status: Full ret= 0x0200
+[  606.259094] bq27541_get_psp voltage_now= 4280000 uV
+[  606.259765] bq27541_get_capacity = 100% ret= 100
+[  606.260406] bq27541_get_psp temperature= 267 (0.1XC)
+[  606.261627] bq27541_get_psp current = 0 mA
+[  606.263031] bq27541_get_capacity = 100% ret= 100
+[  606.263977] bq27541_get_psp voltage_now= 4280000 uV
+[  606.264739] bq27541_get_psp temperature= 267 (0.1XC)
+[  606.265411] bq27541_get_psp status: Full ret= 0x0200
+[  606.267059] bq27541_get_psp current = 0 mA
+[  606.267150] healthd: battery l=100 v=4280 t=26.7 h=2 st=5 c=0 chg=u
+[  606.371612] smb345_charger: [smb345_config_thermal_limit] Bypass set HRD SFT limit=73
+[  606.372039] smb345_charger: [smb345_config_thermal_charging] temp=26, volt=4280000
+[  606.372558] smb345_charger: [smb345_config_thermal_charging] Bypass set Float Volt=e8
+[  606.372955] smb345_charger: [smb345_config_thermal_charging] Bypass charger enable
+[  637.409484] ch_notify on a closed smd_pkt_dev id:18
+[  637.416625] init: Service sensors (pid 7815) killed by signal 11
+[  637.416717] init: Service sensors (pid 7815) killing any children in process group
+[  637.417297] init: Starting service sensors...
+[  666.421051] bq27541_get_psp status: Full ret= 0x0200
+[  666.422424] bq27541_get_psp status: Full ret= 0x0200
+[  666.423339] bq27541_get_psp voltage_now= 4280000 uV
+[  666.424621] bq27541_get_capacity = 100% ret= 100
+[  666.425659] bq27541_get_psp temperature= 265 (0.1XC)
+[  666.427276] bq27541_get_psp current = 0 mA
+[  666.432830] bq27541_get_capacity = 100% ret= 100
+[  666.433898] bq27541_get_psp voltage_now= 4280000 uV
+[  666.435394] bq27541_get_psp temperature= 265 (0.1XC)
+[  666.436859] bq27541_get_psp status: Full ret= 0x0200
+[  666.440948] bq27541_get_psp current = 0 mA
+[  666.441406] healthd: battery l=100 v=4280 t=26.5 h=2 st=5 c=0 chg=u
+[  666.579528] smb345_charger: [smb345_config_thermal_limit] Bypass set HRD SFT limit=73
+[  666.579925] smb345_charger: [smb345_config_thermal_charging] temp=26, volt=4280000
+[  666.580444] smb345_charger: [smb345_config_thermal_charging] Bypass set Float Volt=e8
+[  666.580841] smb345_charger: [smb345_config_thermal_charging] Bypass charger enable
+[  703.236267] bq27541_get_capacity = 100% ret= 100
+[  726.734771] bq27541_get_psp status: Full ret= 0x0200
+[  726.735717] bq27541_get_psp status: Full ret= 0x0200
+[  726.736633] bq27541_get_psp voltage_now= 4281000 uV
+[  726.740203] bq27541_get_capacity = 100% ret= 100
+[  726.741058] bq27541_get_psp temperature= 264 (0.1XC)
+[  726.742858] bq27541_get_psp current = 0 mA
+[  726.745880] bq27541_get_capacity = 100% ret= 100
+[  726.747467] bq27541_get_psp voltage_now= 4281000 uV
+[  726.748901] bq27541_get_psp temperature= 264 (0.1XC)
+[  726.749938] bq27541_get_psp status: Full ret= 0x0200
+[  726.754547] bq27541_get_psp current = 0 mA
+[  726.755004] healthd: battery l=100 v=4281 t=26.4 h=2 st=5 c=0 chg=u
+[  726.888427] smb345_charger: [smb345_config_thermal_limit] Bypass set HRD SFT limit=73
+[  726.888793] smb345_charger: [smb345_config_thermal_charging] temp=26, volt=4280000
+[  726.889312] smb345_charger: [smb345_config_thermal_charging] Bypass set Float Volt=e8
+[  726.889739] smb345_charger: [smb345_config_thermal_charging] Bypass charger enable
+[  727.568115] ch_notify on a closed smd_pkt_dev id:18
+[  727.570709] init: Service sensors (pid 7929) killed by signal 11
+[  727.570800] init: Service sensors (pid 7929) killing any children in process group
+[  727.571350] init: Starting service sensors...
+[  787.064666] bq27541_get_psp status: Full ret= 0x0280
+[  787.065704] bq27541_get_psp status: Full ret= 0x0280
+[  787.066619] bq27541_get_psp voltage_now= 4280000 uV
+[  787.067840] bq27541_get_capacity = 100% ret= 100
+[  787.069854] bq27541_get_psp temperature= 262 (0.1XC)
+[  787.071868] bq27541_get_psp current = 0 mA
+[  787.074890] bq27541_get_capacity = 100% ret= 100
+[  787.076477] bq27541_get_psp voltage_now= 4280000 uV
+[  787.077819] bq27541_get_psp temperature= 262 (0.1XC)
+[  787.079040] bq27541_get_psp status: Full ret= 0x0280
+[  787.088073] bq27541_get_psp current = 0 mA
+[  787.088562] healthd: battery l=100 v=4280 t=26.2 h=2 st=5 c=0 chg=u
+[  787.219085] smb345_charger: [smb345_config_thermal_limit] Bypass set HRD SFT limit=73
+[  787.219421] smb345_charger: [smb345_config_thermal_charging] temp=26, volt=4281000
+[  787.219940] smb345_charger: [smb345_config_thermal_charging] Bypass set Float Volt=e8
+[  787.220367] smb345_charger: [smb345_config_thermal_charging] Bypass charger enable
+[  817.726104] ch_notify on a closed smd_pkt_dev id:18
+[  817.729125] init: Service sensors (pid 8094) killed by signal 11
+[  817.729217] init: Service sensors (pid 8094) killing any children in process group
+[  817.729766] init: Starting service sensors...
+[  846.866821] type=1400 audit(1434978426.644:12): avc: denied { read } for pid=8337 comm="ndroid.music:ui" path="/data/local/tmp/fuzzer-testcases/fuzz-45-ironman0.vp9.webm" dev="mmcblk0p30" ino=228228 scontext=u:r:mediaserver:s0 tcontext=u:object_r:shell_data_file:s0 tclass=file permissive=1
+[  846.881530] type=1400 audit(1434978426.664:13): avc: denied { read } for pid=8386 comm="generic" path="/data/local/tmp/fuzzer-testcases/fuzz-45-ironman0.vp9.webm" dev="mmcblk0p30" ino=228228 scontext=u:r:drmserver:s0 tcontext=u:object_r:shell_data_file:s0 tclass=file permissive=1
+[  847.378814] bq27541_get_psp status: Full ret= 0x0281
+[  847.379455] bq27541_get_psp status: Full ret= 0x0281
+[  847.380126] bq27541_get_psp voltage_now= 4281000 uV
+[  847.380767] bq27541_get_capacity = 100% ret= 100
+[  847.381439] bq27541_get_psp temperature= 261 (0.1XC)
+[  847.382659] bq27541_get_psp current = 0 mA
+[  847.383575] bq27541_get_capacity = 100% ret= 100
+[  847.384368] bq27541_get_psp voltage_now= 4281000 uV
+[  847.385101] bq27541_get_psp temperature= 261 (0.1XC)
+[  847.385955] bq27541_get_psp status: Full ret= 0x0281
+[  847.387664] bq27541_get_psp current = 0 mA
+[  847.387908] healthd: battery l=100 v=4281 t=26.1 h=2 st=5 c=0 chg=u
+[  847.481445] smb345_charger: [smb345_config_thermal_limit] Bypass set HRD SFT limit=73
+[  847.481903] smb345_charger: [smb345_config_thermal_charging] temp=26, volt=4280000
+[  847.482391] smb345_charger: [smb345_config_thermal_charging] Bypass set Float Volt=e8
+[  847.482849] smb345_charger: [smb345_config_thermal_charging] Bypass charger enable
+[  865.168670] type=1400 audit(1434978444.942:14): avc: denied { read } for pid=8870 comm="generic" path="/data/local/tmp/fuzzer-testcases/fuzz-13-avatar3d2.m4a" dev="mmcblk0p30" ino=228222 scontext=u:r:drmserver:s0 tcontext=u:object_r:shell_data_file:s0 tclass=file permissive=1
+[  875.568634] SLIM_CL: skip reconfig sequence
+[  875.646209] setting pm_qos in msm_pcm_playback_copy with 1000
+[  875.646514] done setting pm_qos in msm_pcm_playback_copy
+[  886.137878] updating pm_qos value to default msm_pcm_playback_close
+[  886.138000] done updating pm_qos value to default msm_pcm_playback_close
+[  886.166076] SLIM_CL: skip reconfig sequence
+[  905.675079] setting pm_qos in msm_pcm_playback_copy with 1000
+[  905.675231] done setting pm_qos in msm_pcm_playback_copy
+[  907.707641] bq27541_get_psp status: Full ret= 0x0200
+[  907.708343] bq27541_get_psp status: Full ret= 0x0200
+[  907.709197] bq27541_get_psp voltage_now= 4281000 uV
+[  907.709838] bq27541_get_capacity = 100% ret= 100
+[  907.710601] bq27541_get_psp temperature= 260 (0.1XC)
+[  907.711791] bq27541_get_psp current = 0 mA
+[  907.713073] bq27541_get_capacity = 100% ret= 100
+[  907.713897] bq27541_get_psp voltage_now= 4281000 uV
+[  907.714599] bq27541_get_psp temperature= 260 (0.1XC)
+[  907.715423] bq27541_get_psp status: Full ret= 0x0200
+[  907.717224] bq27541_get_psp current = 0 mA
+[  907.717346] healthd: battery l=100 v=4281 t=26.0 h=2 st=5 c=0 chg=u
+[  907.792419] smb345_charger: [smb345_config_thermal_limit] Bypass set HRD SFT limit=73
+[  907.792846] smb345_charger: [smb345_config_thermal_charging] temp=26, volt=4281000
+[  907.793334] smb345_charger: [smb345_config_thermal_charging] Bypass set Float Volt=e8
+[  907.793792] smb345_charger: [smb345_config_thermal_charging] Bypass charger enable
+[  907.829589] ch_notify on a closed smd_pkt_dev id:18
+[  908.019683] init: Service sensors (pid 8236) killed by signal 11
+[  908.019927] init: Service sensors (pid 8236) killing any children in process group
+[  908.020874] init: Starting service sensors...
+[  915.728576] updating pm_qos value to default msm_pcm_playback_close
+[  915.728637] done updating pm_qos value to default msm_pcm_playback_close
+[  915.771087] SLIM_CL: skip reconfig sequence
+[  915.974151] setting pm_qos in msm_pcm_playback_copy with 1000
+[  915.974365] done setting pm_qos in msm_pcm_playback_copy
+[  925.707122] updating pm_qos value to default msm_pcm_playback_close
+[  925.707275] done updating pm_qos value to default msm_pcm_playback_close
+[  925.734039] SLIM_CL: skip reconfig sequence
+[  945.180999] setting pm_qos in msm_pcm_playback_copy with 1000
+[  945.181152] done setting pm_qos in msm_pcm_playback_copy
+[  954.897979] updating pm_qos value to default msm_pcm_playback_close
+[  954.898071] done updating pm_qos value to default msm_pcm_playback_close
+[  954.925354] SLIM_CL: skip reconfig sequence
+[  967.860870] bq27541_get_psp status: Full ret= 0x0200
+[  967.863983] bq27541_get_psp status: Full ret= 0x0200
+[  967.865722] bq27541_get_psp voltage_now= 4281000 uV
+[  967.866424] bq27541_get_capacity = 100% ret= 100
+[  967.867065] bq27541_get_psp temperature= 259 (0.1XC)
+[  967.868255] bq27541_get_psp current = 0 mA
+[  967.869628] bq27541_get_capacity = 100% ret= 100
+[  967.870330] bq27541_get_psp voltage_now= 4281000 uV
+[  967.871093] bq27541_get_psp temperature= 259 (0.1XC)
+[  967.871795] bq27541_get_psp status: Full ret= 0x0200
+[  967.873474] bq27541_get_psp current = 0 mA
+[  967.873565] healthd: battery l=100 v=4281 t=25.9 h=2 st=5 c=0 chg=u
+[  967.990783] smb345_charger: [smb345_config_thermal_limit] Bypass set HRD SFT limit=73
+[  967.991210] smb345_charger: [smb345_config_thermal_charging] temp=26, volt=4281000
+[  967.991699] smb345_charger: [smb345_config_thermal_charging] Bypass set Float Volt=e8
+[  967.992095] smb345_charger: [smb345_config_thermal_charging] Bypass charger enable
+[  984.445861] SLIM_CL: skip reconfig sequence
+[  993.702850] setting pm_qos in msm_pcm_playback_copy with 1000
+[  993.703002] done setting pm_qos in msm_pcm_playback_copy
+[  997.709381] updating pm_qos value to default msm_pcm_playback_close
+[  997.709747] done updating pm_qos value to default msm_pcm_playback_close
+[  997.738739] SLIM_CL: skip reconfig sequence
+[  998.137908] ch_notify on a closed smd_pkt_dev id:18
+[  998.139678] init: Service sensors (pid 9851) killed by signal 11
+[  998.139770] init: Service sensors (pid 9851) killing any children in process group
+[  998.140350] init: Starting service sensors...
+[ 1007.634246] bq27541_get_capacity = 100% ret= 100
+[ 1012.884521] type=1400 audit(1434978592.666:15): avc: denied { read } for pid=12374 comm="ndroid.music:ui" path="/data/local/tmp/fuzzer-testcases/fuzz-1-red1.webm" dev="mmcblk0p30" ino=228195 scontext=u:r:mediaserver:s0 tcontext=u:object_r:shell_data_file:s0 tclass=file permissive=1
+[ 1013.071502] setting pm_qos in msm_pcm_playback_copy with 1000
+[ 1013.071594] done setting pm_qos in msm_pcm_playback_copy
+[ 1023.043640] updating pm_qos value to default msm_pcm_playback_close
+[ 1023.043762] done updating pm_qos value to default msm_pcm_playback_close
+[ 1023.072753] SLIM_CL: skip reconfig sequence
+[ 1028.026550] bq27541_get_psp status: Full ret= 0x0200
+[ 1028.027404] bq27541_get_psp status: Full ret= 0x0200
+[ 1028.028106] bq27541_get_psp voltage_now= 4281000 uV
+[ 1028.028839] bq27541_get_capacity = 100% ret= 100
+[ 1028.029876] bq27541_get_psp temperature= 259 (0.1XC)
+[ 1028.031097] bq27541_get_psp current = 0 mA
+[ 1028.032653] bq27541_get_capacity = 100% ret= 100
+[ 1028.033447] bq27541_get_psp voltage_now= 4281000 uV
+[ 1028.034271] bq27541_get_psp temperature= 259 (0.1XC)
+[ 1028.035034] bq27541_get_psp status: Full ret= 0x0200
+[ 1028.036926] bq27541_get_psp current = 0 mA
+[ 1028.037078] healthd: battery l=100 v=4281 t=25.9 h=2 st=5 c=0 chg=u
+[ 1028.112243] smb345_charger: [smb345_config_thermal_limit] Bypass set HRD SFT limit=73
+[ 1028.112701] smb345_charger: [smb345_config_thermal_charging] temp=25, volt=4281000
+[ 1028.113250] smb345_charger: [smb345_config_thermal_charging] Bypass set Float Volt=e8
+[ 1028.113647] smb345_charger: [smb345_config_thermal_charging] Bypass charger enable
+[ 1032.550323] setting pm_qos in msm_pcm_playback_copy with 1000
+[ 1032.550445] done setting pm_qos in msm_pcm_playback_copy
+[ 1042.532623] updating pm_qos value to default msm_pcm_playback_close
+[ 1042.532775] done updating pm_qos value to default msm_pcm_playback_close
+[ 1062.224731] SLIM_CL: skip reconfig sequence
+[ 1078.802917] SLIM_CL: skip reconfig sequence
+[ 1088.181030] bq27541_get_psp status: Full ret= 0x0200
+[ 1088.184539] bq27541_get_psp status: Full ret= 0x0200
+[ 1088.185668] bq27541_get_psp voltage_now= 4281000 uV
+[ 1088.186553] bq27541_get_capacity = 100% ret= 100
+[ 1088.187652] bq27541_get_psp temperature= 261 (0.1XC)
+[ 1088.189117] bq27541_get_psp current = 0 mA
+[ 1088.191894] bq27541_get_capacity = 100% ret= 100
+[ 1088.193359] bq27541_get_psp voltage_now= 4281000 uV
+[ 1088.194488] bq27541_get_psp temperature= 261 (0.1XC)
+[ 1088.195678] bq27541_get_psp status: Full ret= 0x0200
+[ 1088.198394] bq27541_get_psp current = 0 mA
+[ 1088.200164] healthd: battery l=100 v=4281 t=26.1 h=2 st=5 c=0 chg=u
+[ 1088.257354] ch_notify on a closed smd_pkt_dev id:18
+[ 1088.261993] init: Service sensors (pid 11989) killed by signal 11
+[ 1088.262084] init: Service sensors (pid 11989) killing any children in process group
+[ 1088.262725] init: Starting service sensors...
+[ 1088.360198] smb345_charger: [smb345_config_thermal_limit] Bypass set HRD SFT limit=73
+[ 1088.360595] smb345_charger: [smb345_config_thermal_charging] temp=25, volt=4281000
+[ 1088.361083] smb345_charger: [smb345_config_thermal_charging] Bypass set Float Volt=e8
+[ 1088.361450] smb345_charger: [smb345_config_thermal_charging] Bypass charger enable
+[ 1093.894226] setting pm_qos in msm_pcm_playback_copy with 1000
+[ 1093.894317] done setting pm_qos in msm_pcm_playback_copy
+[ 1103.955108] updating pm_qos value to default msm_pcm_playback_close
+[ 1103.955230] done updating pm_qos value to default msm_pcm_playback_close
+[ 1103.999908] SLIM_CL: skip reconfig sequence
+[ 1148.497955] bq27541_get_psp status: Full ret= 0x0200
+[ 1148.498718] bq27541_get_psp status: Full ret= 0x0200
+[ 1148.499633] bq27541_get_psp voltage_now= 4281000 uV
+[ 1148.500305] bq27541_get_capacity = 100% ret= 100
+[ 1148.500946] bq27541_get_psp temperature= 261 (0.1XC)
+[ 1148.502197] bq27541_get_psp current = 0 mA
+[ 1148.503723] bq27541_get_capacity = 100% ret= 100
+[ 1148.504394] bq27541_get_psp voltage_now= 4281000 uV
+[ 1148.505126] bq27541_get_psp temperature= 261 (0.1XC)
+[ 1148.505798] bq27541_get_psp status: Full ret= 0x0200
+[ 1148.507446] bq27541_get_psp current = 0 mA
+[ 1148.507537] healthd: battery l=100 v=4281 t=26.1 h=2 st=5 c=0 chg=u
+[ 1148.633636] smb345_charger: [smb345_config_thermal_limit] Bypass set HRD SFT limit=73
+[ 1148.633972] smb345_charger: [smb345_config_thermal_charging] temp=26, volt=4281000
+[ 1148.634460] smb345_charger: [smb345_config_thermal_charging] Bypass set Float Volt=e8
+[ 1148.634857] smb345_charger: [smb345_config_thermal_charging] Bypass charger enable
+[ 1152.356353] setting pm_qos in msm_pcm_playback_copy with 1000
+[ 1152.356536] done setting pm_qos in msm_pcm_playback_copy
+[ 1162.348602] updating pm_qos value to default msm_pcm_playback_close
+[ 1162.348785] done updating pm_qos value to default msm_pcm_playback_close
+[ 1162.378814] SLIM_CL: skip reconfig sequence
+[ 1178.387329] ch_notify on a closed smd_pkt_dev id:18
+[ 1178.609619] init: Service sensors (pid 14133) killed by signal 11
+[ 1178.609832] init: Service sensors (pid 14133) killing any children in process group
+[ 1178.611083] init: Starting service sensors...
+[ 1178.637542] type=1400 audit(1434978758.418:16): avc: denied { read } for pid=16139 comm="generic" path="/data/local/tmp/fuzzer-testcases/fuzz-57-color1.mp3" dev="mmcblk0p30" ino=228164 scontext=u:r:mediaserver:s0 tcontext=u:object_r:shell_data_file:s0 tclass=file permissive=1
+[ 1181.403045] type=1400 audit(1434978761.181:17): avc: denied { read } for pid=16388 comm="generic" path="/data/local/tmp/fuzzer-testcases/fuzz-83-2ad98fb5fd19bd09d02581b7a03f8895718947d0.3gp" dev="mmcblk0p30" ino=228162 scontext=u:r:drmserver:s0 tcontext=u:object_r:shell_data_file:s0 tclass=file permissive=1
+[ 1182.070617] SLIM_CL: skip reconfig sequence
+[ 1201.482727] SLIM_CL: skip reconfig sequence
+[ 1208.819366] bq27541_get_psp status: Full ret= 0x0280
+[ 1208.820190] bq27541_get_psp status: Full ret= 0x0280
+[ 1208.820831] bq27541_get_psp voltage_now= 4281000 uV
+[ 1208.821502] bq27541_get_capacity = 100% ret= 100
+[ 1208.822143] bq27541_get_psp temperature= 261 (0.1XC)
+[ 1208.823364] bq27541_get_psp current = 0 mA
+[ 1208.824707] bq27541_get_capacity = 100% ret= 100
+[ 1208.825408] bq27541_get_psp voltage_now= 4281000 uV
+[ 1208.826110] bq27541_get_psp temperature= 261 (0.1XC)
+[ 1208.826782] bq27541_get_psp status: Full ret= 0x0280
+[ 1208.828430] bq27541_get_psp current = 0 mA
+[ 1208.828552] healthd: battery l=100 v=4281 t=26.1 h=2 st=5 c=0 chg=u
+[ 1208.912200] smb345_charger: [smb345_config_thermal_limit] Bypass set HRD SFT limit=73
+[ 1208.912780] smb345_charger: [smb345_config_thermal_charging] temp=26, volt=4281000
+[ 1208.913299] smb345_charger: [smb345_config_thermal_charging] Bypass set Float Volt=e8
+[ 1208.913635] smb345_charger: [smb345_config_thermal_charging] Bypass charger enable
+[ 1240.496185] SLIM_CL: skip reconfig sequence
+[ 1259.876861] SLIM_CL: skip reconfig sequence
+[ 1268.711975] ch_notify on a closed smd_pkt_dev id:18
+[ 1268.800231] init: Service sensors (pid 16256) killed by signal 11
+[ 1268.800384] init: Service sensors (pid 16256) killing any children in process group
+[ 1268.800994] init: Starting service sensors...
+[ 1268.984619] bq27541_get_psp status: Full ret= 0x0280
+[ 1268.985260] bq27541_get_psp status: Full ret= 0x0280
+[ 1268.985961] bq27541_get_psp voltage_now= 4281000 uV
+[ 1268.986602] bq27541_get_capacity = 100% ret= 100
+[ 1268.987274] bq27541_get_psp temperature= 261 (0.1XC)
+[ 1268.988494] bq27541_get_psp current = 0 mA
+[ 1268.989654] bq27541_get_capacity = 100% ret= 100
+[ 1268.990447] bq27541_get_psp voltage_now= 4281000 uV
+[ 1268.991149] bq27541_get_psp temperature= 261 (0.1XC)
+[ 1268.991912] bq27541_get_psp status: Full ret= 0x0280
+[ 1268.993591] bq27541_get_psp current = 0 mA
+[ 1268.993743] healthd: battery l=100 v=4281 t=26.1 h=2 st=5 c=0 chg=u
+[ 1269.070098] smb345_charger: [smb345_config_thermal_limit] Bypass set HRD SFT limit=73
+[ 1269.070465] smb345_charger: [smb345_config_thermal_charging] temp=26, volt=4281000
+[ 1269.070922] smb345_charger: [smb345_config_thermal_charging] Bypass set Float Volt=e8
+[ 1269.071319] smb345_charger: [smb345_config_thermal_charging] Bypass charger enable
+[ 1279.165222] setting pm_qos in msm_pcm_playback_copy with 1000
+[ 1279.165313] done setting pm_qos in msm_pcm_playback_copy
+[ 1286.178710] updating pm_qos value to default msm_pcm_playback_close
+[ 1286.178802] done updating pm_qos value to default msm_pcm_playback_close
+[ 1286.204925] SLIM_CL: skip reconfig sequence
+[ 1288.795318] setting pm_qos in msm_pcm_playback_copy with 1000
+[ 1288.795532] done setting pm_qos in msm_pcm_playback_copy
+[ 1304.459442] updating pm_qos value to default msm_pcm_playback_close
+[ 1304.459991] done updating pm_qos value to default msm_pcm_playback_close
+[ 1304.486511] SLIM_CL: skip reconfig sequence
+[ 1308.627349] setting pm_qos in msm_pcm_playback_copy with 1000
+[ 1308.627532] done setting pm_qos in msm_pcm_playback_copy
+[ 1310.418579] bq27541_get_capacity = 100% ret= 100
+[ 1312.648284] updating pm_qos value to default msm_pcm_playback_close
+[ 1312.648986] done updating pm_qos value to default msm_pcm_playback_close
+[ 1312.678741] SLIM_CL: skip reconfig sequence
+[ 1321.303131] setting pm_qos in msm_pcm_playback_copy with 1000
+[ 1321.303283] done setting pm_qos in msm_pcm_playback_copy
+[ 1329.146453] bq27541_get_psp status: Full ret= 0x0280
+[ 1329.147094] bq27541_get_psp status: Full ret= 0x0280
+[ 1329.147796] bq27541_get_psp voltage_now= 4281000 uV
+[ 1329.148437] bq27541_get_capacity = 100% ret= 100
+[ 1329.149078] bq27541_get_psp temperature= 260 (0.1XC)
+[ 1329.150329] bq27541_get_psp current = 0 mA
+[ 1329.151397] bq27541_get_capacity = 100% ret= 100
+[ 1329.152191] bq27541_get_psp voltage_now= 4281000 uV
+[ 1329.153137] bq27541_get_psp temperature= 260 (0.1XC)
+[ 1329.153991] bq27541_get_psp status: Full ret= 0x0280
+[ 1329.155792] bq27541_get_psp current = 0 mA
+[ 1329.155883] healthd: battery l=100 v=4281 t=26.0 h=2 st=5 c=0 chg=u
+[ 1329.239074] smb345_charger: [smb345_config_thermal_limit] Bypass set HRD SFT limit=73
+[ 1329.239440] smb345_charger: [smb345_config_thermal_charging] temp=26, volt=4281000
+[ 1329.240112] smb345_charger: [smb345_config_thermal_charging] Bypass set Float Volt=e8
+[ 1329.240966] smb345_charger: [smb345_config_thermal_charging] Bypass charger enable
+[ 1330.762817] type=1400 audit(1434978910.546:18): avc: denied { read } for pid=19826 comm="ndroid.music:ui" path="/data/local/tmp/fuzzer-testcases/fuzz-42-smclockmp4aac_1_0.mp4" dev="mmcblk0p30" ino=228138 scontext=u:r:mediaserver:s0 tcontext=u:object_r:shell_data_file:s0 tclass=file permissive=1
+[ 1330.774353] type=1400 audit(1434978910.556:19): avc: denied { read } for pid=19863 comm="generic" path="/data/local/tmp/fuzzer-testcases/fuzz-42-smclockmp4aac_1_0.mp4" dev="mmcblk0p30" ino=228138 scontext=u:r:drmserver:s0 tcontext=u:object_r:shell_data_file:s0 tclass=file permissive=1
+[ 1331.155487] updating pm_qos value to default msm_pcm_playback_close
+[ 1331.155639] done updating pm_qos value to default msm_pcm_playback_close
+[ 1331.182678] SLIM_CL: skip reconfig sequence
+[ 1340.659240] setting pm_qos in msm_pcm_playback_copy with 1000
+[ 1340.659423] done setting pm_qos in msm_pcm_playback_copy
+[ 1358.898223] ch_notify on a closed smd_pkt_dev id:18
+[ 1359.019622] init: Service sensors (pid 18371) killed by signal 11
+[ 1359.019805] init: Service sensors (pid 18371) killing any children in process group
+[ 1359.020385] init: Starting service sensors...
+[ 1359.080444] Unable to handle kernel NULL pointer dereference at virtual address 00000004
+[ 1359.080535] pgd = c0004000
+[ 1359.080657] [00000004] *pgd=00000000
+[ 1359.080810] Internal error: Oops: 5 [#1] PREEMPT SMP ARM
+[ 1359.080871] CPU: 0    Tainted: G        W     (3.4.0-g51f2ffd #1)
+[ 1359.081024] PC is at process_one_work+0xf4/0x400
+[ 1359.081085] LR is at process_one_work+0xf4/0x400
+[ 1359.081237] pc : [<12345678>]    lr : [<12345678>]    psr: 60000093
+[ 1359.081237] sp : e7c97f70  ip : b274b275  fp : c053597c
+[ 1359.081420] r10: 00000000  r9 : e7c96020  r8 : c4f16900
+[ 1359.081481] r7 : e7c96000  r6 : c4f10780  r5 : c4f12334  r4 : e7c563c0
+[ 1359.081634] r3 : 00000500  r2 : e8115d9c  r1 : e8115d9c  r0 : 00000000
+[ 1359.081695] Flags: nZCv  IRQs off  FIQs on  Mode SVC_32  ISA ARM  Segment kernel
+[ 1359.081848] Control: 10c5787d  Table: a8f5006a  DAC: 00000015
+[ 1359.081970]
+[ 1359.081970] PC: 0xc0090864:
+[ 1359.082092] 0864  eafffb18 e5843000 e3530000 15834004 e5824024 e9840121 e5953000 e596200c
+[ 1359.082794] 0884  e7e33253 e58d3004 e5953000 e1a02402 e3130001 1a000000 e7f001f2 e1a03005
+[ 1359.083435] 08a4  e3822001 e4832004 e9950006 e5812004 e5821000 e5853004 e5853008 e5963010
+[ 1359.084136] 08c4  e3130010 0a00000f e1a03006 e5b32004 e1520003 e2420004 0a000007 ebfffac9
+[ 1359.084808] 08e4  e5903004 e5933000 e3130010 0a000002 e1a00006 ebffffb5 ea000002 e5963010
+[ 1359.085510] 0904  e3c33010 e5863010 e35a0000 e1a0100d e3c17d7f 0a000027 e3c7303f e5942018
+[ 1359.086120] 0924  e594901c e593300c e1520003 0a00000a e59f329c e5d32005 e3520000 1a000006
+[ 1359.086822] 0944  e59f0290 e30012e2 e58d3000 ebffa420 e59d3000 e3a02001 e5c32005 e5943024
+[ 1359.087524]
+[ 1359.087524] LR: 0xc0090864:
+[ 1359.087646] 0864  eafffb18 e5843000 e3530000 15834004 e5824024 e9840121 e5953000 e596200c
+[ 1359.088348] 0884  e7e33253 e58d3004 e5953000 e1a02402 e3130001 1a000000 e7f001f2 e1a03005
+[ 1359.089019] 08a4  e3822001 e4832004 e9950006 e5812004 e5821000 e5853004 e5853008 e5963010
+[ 1359.089660] 08c4  e3130010 0a00000f e1a03006 e5b32004 e1520003 e2420004 0a000007 ebfffac9
+[ 1359.090362] 08e4  e5903004 e5933000 e3130010 0a000002 e1a00006 ebffffb5 ea000002 e5963010
+[ 1359.091064] 0904  e3c33010 e5863010 e35a0000 e1a0100d e3c17d7f 0a000027 e3c7303f e5942018
+[ 1359.091766] 0924  e594901c e593300c e1520003 0a00000a e59f329c e5d32005 e3520000 1a000006
+[ 1359.092407] 0944  e59f0290 e30012e2 e58d3000 ebffa420 e59d3000 e3a02001 e5c32005 e5943024
+[ 1359.093078]
+[ 1359.093078] SP: 0xe7c97ef0:
+[ 1359.093200] 7ef0  00000000 c0f03580 e7c96000 e7c96008 e7c97f9c 12345678 60000093 ffffffff
+[ 1359.093902] 7f10  e7c97f5c c4f16900 e7c96020 00000000 c053597c c000df58 00000000 e8115d9c
+[ 1359.094604] 7f30  e8115d9c 00000500 e7c563c0 c4f12334 c4f10780 e7c96000 c4f16900 e7c96020
+[ 1359.095306] 7f50  00000000 c053597c b274b275 e7c97f70 12345678 12345678 60000093 ffffffff
+[ 1359.095947] 7f70  e7c563c0 00000000 00000000 e7c563c0 c4f10780 c101da79 e7c96000 e7c563d0
+[ 1359.096588] 7f90  e7c96020 c4f10784 c4f10780 c00911c4 e7c563c0 00000000 00000000 e495bf20
+[ 1359.097290] 7fb0  e7c563c0 c0091024 00000013 00000000 00000000 00000000 00000000 c0095e60
+[ 1359.097930] 7fd0  00000000 e7c563c0 00000000 00000000 e7c97fe0 e7c97fe0 e495bf20 c0095ddc
+[ 1359.098602]
+[ 1359.098602] FP: 0xc05358fc:
+[ 1359.098785] 58fc  e285a024 e1a00004 eb0f3aaa e1a0000a ebed729c e1a00004 eb0f3b4f e5951084
+[ 1359.099426] 591c  e1a00007 e59b5004 e58d1000 ebed256f e59d1000 e1a0200a e1a03000 e1a00001
+[ 1359.100067] 593c  e1a01005 ebed70c4 e1a00004 eb0f3a99 eaffffca e1a00009 e28dd014 e8bd8ff0
+[ 1359.100738] 595c  c0c2496a c11b9a78 c0f02310 c0ff46e4 c0a08324 c0f32464 c0f32938 c0f060c0
+[ 1359.101348] 597c  e92d4ff0 e24dd02c e5903060 e1a07000 e5d04064 e2800068 e58d0018 e58d301c
+[ 1359.102050] 599c  eb0f3b2d e5d73064 e2044001 e7c0301f e5c73064 e59f3518 e5933028 e3530000
+[ 1359.102722] 59bc  0a000001 e3540000 1a000133 e5176004 e3a03000 e3e09000 e5873048 e58d3004
+[ 1359.103393] 59dc  e1a0a003 e59f34ec e58d3010 e59f34e8 e58d3014 e2892001 e1a00006 e3a01004
+[ 1359.104064]
+[ 1359.104064] R1: 0xe8115d1c:
+[ 1359.104248] 5d1c  00000012 00000001 00000000 00000001 00000001 00001feb 00000000 00000000
+[ 1359.104888] 5d3c  00000000 7fffffff 00010001 e8115d48 e8115d48 e78eda10 c0f975ec 00000100
+[ 1359.105590] 5d5c  c0c0066f 7fffffff 00000000 00000000 00000000 00000000 00000000 00000000
+[ 1359.106262] 5d7c  00000000 00000000 00000000 00000000 00000000 00000000 00000000 00000500
+[ 1359.106964] 5d9c  e8115d9c c4f10784 c0039648 5d3d5d3d 00000000 00000000 00000000 00000000
+[ 1359.107604] 5dbc  00000000 00000000 00000000 00000000 00000000 00000000 00000000 00000000
+[ 1359.108306] 5ddc  00000000 00000000 00000000 00000000 00000000 00000000 00000000 00000000
+[ 1359.109008] 5dfc  00000000 00000000 e4aea980 e4b77200 e811620c e8115a0c e4ae9740 e493b340
+[ 1359.109710]
+[ 1359.109710] R2: 0xe8115d1c:
+[ 1359.109863] 5d1c  00000012 00000001 00000000 00000001 00000001 00001feb 00000000 00000000
+[ 1359.110534] 5d3c  00000000 7fffffff 00010001 e8115d48 e8115d48 e78eda10 c0f975ec 00000100
+[ 1359.111175] 5d5c  c0c0066f 7fffffff 00000000 00000000 00000000 00000000 00000000 00000000
+[ 1359.111877] 5d7c  00000000 00000000 00000000 00000000 00000000 00000000 00000000 00000500
+[ 1359.112548] 5d9c  e8115d9c c4f10784 c0039648 5d3d5d3d 00000000 00000000 00000000 00000000
+[ 1359.113220] 5dbc  00000000 00000000 00000000 00000000 00000000 00000000 00000000 00000000
+[ 1359.113861] 5ddc  00000000 00000000 00000000 00000000 00000000 00000000 00000000 00000000
+[ 1359.114532] 5dfc  00000000 00000000 e4aea980 e4b77200 e811620c e8115a0c e4ae9740 e493b340
+[ 1359.115173]
+[ 1359.115173] R4: 0xe7c56340:
+[ 1359.115295] 6340  6f2d6361 6e696c6e 63320065 302f302d 3530302d 6f702f35 5f726577 70707573
+[ 1359.115997] 6360  612f796c 00000063 00000000 00000000 00000000 00000000 00000000 00000000
+[ 1359.116668] 6380  e7c56340 00000000 00000000 00000000 e7c56390 e7c56390 e7c56a18 e7c54e58
+[ 1359.117279] 63a0  00000000 00000000 00000000 00000000 00000000 00000000 00000000 00000000
+[ 1359.117980] 63c0  00000000 c4f10890 c4f12334 c4f16900 e7c563d0 e7c563d0 e820e300 c4f10780
+[ 1359.118621] 63e0  00019d7c 00000001 00000002 00000500 e7c563f0 e7c563f0 c008fdf8 00000000
+[ 1359.119262] 6400  00000001 00000001 00000000 00000000 00000000 00000000 00000000 00000000
+[ 1359.119964] 6420  00000000 00000000 00000000 00000000 00000000 00000000 00000000 00000000
+[ 1359.120666]
+[ 1359.120666] R5: 0xc4f122b4:
+[ 1359.120819] 22b4  53248ef7 0c5af0d9 c4f10048 e7e46840 00000000 00000000 00e000e0 c4f122d0
+[ 1359.121520] 22d4  c4f122d0 00000000 00000000 00000000 00000000 00000000 00000000 e7e5e000
+[ 1359.122161] 22f4  e7e5c1c0 00000000 00000000 00000000 00000000 00000000 00000000 2ad06c07
+[ 1359.122802] 2314  00000000 040da447 00000000 50f84d7f 00000000 00000000 00000000 e7e46840
+[ 1359.123504] 2334  00000001 c4f12338 c4f12338 c053597c 00000000 00200200 00019d84 c10f9b81
+[ 1359.124206] 2354  c00917f0 c4f12334 ffffffff ffffffff 00000000 00000000 00000000 00000000
+[ 1359.124877] 2374  00000000 c1047ba4 00000000 00000000 00000000 00000004 00000063 00000063
+[ 1359.125549] 2394  00000000 00000000 00000001 00000000 c4f123a4 c4f123a4 00000000 e7cf2680
+[ 1359.126220]
+[ 1359.126220] R6: 0xc4f10700:
+[ 1359.126342] 0700  00000000 00000000 e4940700 c4f1070c c4f1070c c4f10714 c4f10714 c4f1071c
+[ 1359.127044] 0720  c4f1071c c4f10724 c4f10724 c4f1072c c4f1072c c4f10734 c4f10734 c4f1073c
+[ 1359.127716] 0740  c4f1073c c4f10744 c4f10744 c4f1074c c4f1074c c4f10754 c4f10754 00000000
+[ 1359.128387] 0760  c4f1075c 00000000 c4f10764 c10f9b80 00000000 00000000 00000000 00000000
+[ 1359.129028] 0780  b274b276 e8115d9c c4f120e8 00000000 00000010 00000005 00000004 e49b4600
+[ 1359.129699] 07a0  e492b100 00000000 00000000 00000000 00000000 00000000 00000000 00000000
+[ 1359.130371] 07c0  00000000 00000000 00000000 00000000 00000000 00000000 00000000 00000000
+[ 1359.131042] 07e0  00000000 00000000 00000000 00000000 00000000 00000000 00000000 00000000
+[ 1359.131683]
+[ 1359.131683] R7: 0xe7c95f80:
+[ 1359.131866] 5f80  00000000 c03a377c 00000000 00000000 00000000 00000000 00000000 00000000
+[ 1359.132507] 5fa0  00000000 00000000 00000000 00000000 00000000 00000000 00000000 00000000
+[ 1359.133209] 5fc0  00000000 00000000 00000000 00000000 00000000 00000000 00000000 00000000
+[ 1359.133911] 5fe0  00000000 00000000 00000000 00000000 00000000 00000000 00000000 00000000
+[ 1359.134613] 6000  00000000 00000003 00000000 e820e300 c0f94500 00000000 00000015 c4f13580
+[ 1359.135253] 6020  e820e300 e7c96008 e7c96000 e7a30380 e5236a00 e78861c0 e7c97f9c e7c97f08
+[ 1359.135955] 6040  c0905208 00000000 00000000 00000000 00000000 00000000 00000000 00000000
+[ 1359.136657] 6060  00000000 00000000 00000000 00000000 00000000 00000000 00000000 00000000
+[ 1359.137298]
+[ 1359.137298] R8: 0xc4f16880:
+[ 1359.137481] 6880  000175a7 00000000 00000000 00000000 00000000 00000000 00000000 00000000
+[ 1359.138183] 68a0  00000000 00000000 00000000 00000008 00000208 00000001 00000002 00000000
+[ 1359.138824] 68c0  00000000 00000000 00000002 00000002 00000002 00000320 00000208 00000005
+[ 1359.139526] 68e0  00000002 0000001f 0000003f 00000007 00000002 00000006 00000009 00000000
+[ 1359.140228] 6900  c4f10780 e8204f80 00000000 ffffffff 00000001 00000000 00000000 00000000
+[ 1359.140838] 6920  00000000 00000000 00000000 00000000 00000000 00000000 00000000 00000000
+[ 1359.141540] 6940  00000000 00000000 00000000 00000001 00000100 c4f16954 c4f16954 0000015a
+[ 1359.142211] 6960  000000f0 0000000f 0000001a 00000000 00000001 00000020 00000027 00000047
+[ 1359.142883]
+[ 1359.142883] R9: 0xe7c95fa0:
+[ 1359.143035] 5fa0  00000000 00000000 00000000 00000000 00000000 00000000 00000000 00000000
+[ 1359.143707] 5fc0  00000000 00000000 00000000 00000000 00000000 00000000 00000000 00000000
+[ 1359.144348] 5fe0  00000000 00000000 00000000 00000000 00000000 00000000 00000000 00000000
+[ 1359.145019] 6000  00000000 00000003 00000000 e820e300 c0f94500 00000000 00000015 c4f13580
+[ 1359.145690] 6020  e820e300 e7c96008 e7c96000 e7a30380 e5236a00 e78861c0 e7c97f9c e7c97f08
+[ 1359.146392] 6040  c0905208 00000000 00000000 00000000 00000000 00000000 00000000 00000000
+[ 1359.147033] 6060  00000000 00000000 00000000 00000000 00000000 00000000 00000000 00000000
+[ 1359.147674] 6080  00000000 00000000 00000000 00000000 00000000 00000000 00000000 00000000
+[ 1359.148376] Process kworker/0:2 (pid: 116, stack limit = 0xe7c962f0)
+[ 1359.148437] Stack: (0xe7c97f70 to 0xe7c98000)
+[ 1359.148559] 7f60:                                     e7c563c0 00000000 00000000 e7c563c0
+[ 1359.148651] 7f80: c4f10780 c101da79 e7c96000 e7c563d0 e7c96020 c4f10784 c4f10780 c00911c4
+[ 1359.148773] 7fa0: e7c563c0 00000000 00000000 e495bf20 e7c563c0 c0091024 00000013 00000000
+[ 1359.148925] 7fc0: 00000000 00000000 00000000 c0095e60 00000000 e7c563c0 00000000 00000000
+[ 1359.149047] 7fe0: e7c97fe0 e7c97fe0 e495bf20 c0095ddc c000f558 c000f558 00000000 00000000
+[ 1359.149139] [<12345678>] (top_frame+0xaa/0x000) from [<c00911c4>] (top_frame+0xdd/0x333)
+[ 1359.149261] [<c00911c4>] (next_frame+0xbb/0x111) from [<c0095e60>] (next_frame+0xee/0x444)
+[ 1359.149414] [<c0095e60>] (last_frame+0xcc/0x222) from [<c000f558>] (last_frame_exit+0ff/0x555)
+[ 1359.149536] Code: e1520003 e2420004 0a000007 ebfffac9 (e5903004)
+[ 1359.149719] ---[ end trace 16e5d5c10f702f8b ]---
+[ 1359.149841] Kernel panic - not syncing: Fatal exception
+[ 1360.384490] SMP: failed to stop secondary CPUs
+[ 1360.384582] wcnss_8960: crash shutdown : 0
+[ 1363.489227] Rebooting in 5 seconds..
+[ 1369.730957] SMP: failed to stop secondary CPUs
+[ 1369.731140] Going down for restart now
+[ 1369.731231] in panic
+
+No errors detected
+Boot info:
+Last boot reason: Panic

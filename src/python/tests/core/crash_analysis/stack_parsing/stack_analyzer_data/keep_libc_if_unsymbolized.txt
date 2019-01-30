@@ -1,0 +1,161 @@
+shell am start -a android.intent.action.VIEW -n com.google.android.apps.chrome/.Main file:///sdcard/fuzzer-testcases/fuzz-23.html
+
+START u0 {act=android.intent.action.VIEW dat=file:///sdcard/fuzzer-testcases/fuzz-23.html flg=0x10000000 cmp=com.google.android.apps.chrome/.Main} from uid 0 on display 0
+addAppToken: AppWindowToken{11516628 token=Token{d43ac4b ActivityRecord{1386791a u0 com.google.android.apps.chrome/.Main t3030}}} to stack=1 task=3030 at 0
+Start proc 24836:com.google.android.apps.chrome/u0a86 for activity com.google.android.apps.chrome/.Main
+START u0 {act=android.intent.action.VIEW dat=file:///sdcard/fuzzer-testcases/fuzz-23.html flg=0x14002000 cmp=com.google.android.apps.chrome/org.chromium.chrome.browser.ChromeTabbedActivity} from uid 10086 on display 0
+addAppToken: AppWindowToken{e1ec227 token=Token{1b030ce6 ActivityRecord{17b8df41 u0 com.google.android.apps.chrome/org.chromium.chrome.browser.ChromeTabbedActivity t3030}}} to stack=1 task=3030 at 1
+mic_close gzi@22ad5536
+Hotword detection finished
+Stopping hotword detection.
+Failure getting entry for 0x7f040053 (t=3 e=83) (error -75)
+Based on layer: Adding window Window{3920d240 u0 com.google.android.apps.chrome/org.chromium.chrome.browser.ChromeTabbedActivity} at 1 of 3
+<qeglDrvAPI_eglInitialize:379>: QUALCOMM Build: 01/14/15, ab0075f, Id3510ff6dc
+Initialized EGL, version 1.4
+Extracting resource chrome_100_percent.pak
+Extracting resource en-GB.pak
+Extracting resource en-US.pak
+Extracting resource icudtl.dat
+Adding window Window{d4cd2be u0 SurfaceView} at 1 of 4 (before Window{3920d240 u0 com.google.android.apps.chrome/org.chromium.chrome.browser.ChromeTabbedActivity})
+Extracting resource natives_blob.bin
+Displayed com.google.android.apps.chrome/org.chromium.chrome.browser.ChromeTabbedActivity: +655ms (total +779ms)
+Extracting resource resources.pak
+Extracting resource snapshot_blob.bin
+Time to load native libraries: 5307 ms (timestamps 9940-5247)
+Expected native library version number "45.0.2422.0",actual native library version number "45.0.2422.0"
+Deleting obsolete libraries in /data/data/com.google.android.apps.chrome/app_fallback
+Deleted /data/data/com.google.android.apps.chrome/app_fallback
+[INFO:library_loader_hooks.cc(118)] Chromium logging enabled: level = 0, default verbosity = 0
+Start proc 24919:com.google.android.apps.chrome:sandboxed_process0/u0i260 for service com.google.android.apps.chrome/org.chromium.content.app.SandboxedProcessService0
+Initializing chromium process, singleProcess=false
+Attempt to remove local handle scope entry from IRT, ignoring
+Explicit concurrent mark sweep GC freed 26293(1369KB) AllocSpace objects, 4(64KB) LOS objects, 33% free, 29MB/44MB, paused 1.066ms total 60.596ms
+Creating new ChildProcessService pid=24919
+validate_display:255 error 3008 (EGL_BAD_DISPLAY)
+validate_display:255 error 3008 (EGL_BAD_DISPLAY)
+Requires BLUETOOTH permission
+[ERROR:shell_integration_android.cc(12)] Not implemented reached in static ShellIntegration::DefaultWebClientSetPermission ShellIntegration::CanSetAsDefaultBrowser()
+WifiStateMachine CMD_START_SCAN source -2 txSuccessRate=0.00 rxSuccessRate=0.00 targetRoamBSSID=6c:f3:7f:af:9f:40 RSSI=-81
+Start proc 24962:com.google.android.apps.chrome:privileged_process0/u0a86 for service com.google.android.apps.chrome/org.chromium.content.app.PrivilegedProcessService0
+[WARNING:data_reduction_proxy_config.cc(476)] SPDY proxy OFF at startup
+Creating new ChildProcessService pid=24962
+Attempt to remove local handle scope entry from IRT, ignoring
+[ERROR:process_posix.cc(369)] Not implemented reached in bool base::Process::SetProcessBackgrounded(bool)
+begin FirstRunFlowSequencer.checkIfFirstRunIsNecessary
+end FirstRunFlowSequencer.checkIfFirstRunIsNecessary
+in refreshSignIn before starting the sign-in processor
+before checking child and EDU
+onChildAccountChecked
+returning from start
+Registering app com.google.android.apps.chrome of senders cloudprint.c2dm@gmail.com,ipc.invalidation@gmail.com
+onSchoolCheckDone
+parameters are ready
+GCM config loaded
+onReceive: com.google.android.c2dm.intent.REGISTRATION
+Setting the name of retry receiver class to com.google.ipc.invalidation.external.client.contrib.MultiplexingGcmListener$GCMReceiver
+GCM IntentService class: com.google.ipc.invalidation.external.client.contrib.MultiplexingGcmListener
+Acquiring wakelock
+Intent service name: GCMIntentService-DynamicSenderIds-1
+Registering receiver
+Saving regId on app version 2422000
+Releasing wakelock
+Time to load native libraries: 4326 ms (timestamps 5822-148)
+Expected native library version number "45.0.2422.0",actual native library version number "45.0.2422.0"
+[INFO:library_loader_hooks.cc(118)] Chromium logging enabled: level = 0, default verbosity = 0
+Attempt to remove local handle scope entry from IRT, ignoring
+Attempt to remove local handle scope entry from IRT, ignoring
+validate_display:255 error 3008 (EGL_BAD_DISPLAY)
+validate_display:255 error 3008 (EGL_BAD_DISPLAY)
+<qeglDrvAPI_eglInitialize:379>: QUALCOMM Build: 01/14/15, ab0075f, Id3510ff6dc
+Using client-side OMX mux.
+Time to load native libraries: 4336 ms (timestamps 5993-329)
+Expected native library version number "45.0.2422.0",actual native library version number "45.0.2422.0"
+[INFO:library_loader_hooks.cc(118)] Chromium logging enabled: level = 0, default verbosity = 0
+Attempt to remove local handle scope entry from IRT, ignoring
+Attempt to remove local handle scope entry from IRT, ignoring
+component_init: OMX.qcom.video.decoder.vp8 : fd=18
+Capabilities: driver_name = msm_vidc_driver, card = msm_vdec_8974, bus_info = , version = 1, capabilities = 4003000
+omx_vdec::component_init() success : fd=18
+omx_vdec::component_deinit() complete
+Exit OMX vdec Destructor: fd=18
+Google Play services out of date.  Requires 7327000 but found 6774438
+Google Play Services too old or unavailable.
+[INFO:CONSOLE(7371)] "Error: Invalid value for <svg> attribute height="reset"", source: file:///sdcard/fuzzer-testcases/fuzz-23.html (7371)
+Skipping unknown process pid 25082
+Fatal signal 8 (SIGFPE), code -6, fault addr 0x6157 in tid 24955 (CrRendererMain)
+*** *** *** *** *** *** *** *** *** *** *** *** *** *** *** ***
+Build fingerprint: google/hammerhead/hammerhead:5.1/LMY47I/1767468:userdebug/dev-keys
+Revision: 11
+ABI: arm
+pid: 24919, tid: 24955, name: CrRendererMain  >>> com.google.android.apps.chrome:sandboxed_process0 <<<
+signal 8 (SIGFPE), code -6 (SI_TKILL), fault addr 0x6157
+    r0 00000000  r1 0000617b  r2 00000008  r3 00000000
+    r4 8ef4edb8  r5 00000008  r6 00000002  r7 0000010c
+    r8 8ef43030  r9 00630588  sl 11de860a  fp 8ef42200
+    ip 0000617b  sp 8ef421b8  lr b68d83c5  pc b68fb1b0  cpsr 600b0010
+
+backtrace:
+    #0 0x0003a1b0 (/system/lib/libc.so+0x0003a1b0)
+    #1 0x000173c1 (/system/lib/libc.so+0x000173c1)
+    #2 0x00017fd3 (/system/lib/libc.so+0x00017fd3)
+    #3 0x000d86bc (/data/app/com.google.android.apps.chrome-1/lib/arm/libc++_shared.so+0x000d86bc)
+    #4 0x090b0694 (/data/app/com.google.android.apps.chrome-1/lib/arm/libblink_web.cr.so+0x090b0694)
+    #5 0x08d870d8 (/data/app/com.google.android.apps.chrome-1/lib/arm/libblink_web.cr.so+0x08d870d8)
+    #6 0x08d94dec (/data/app/com.google.android.apps.chrome-1/lib/arm/libblink_web.cr.so+0x08d94dec)
+    #7 0x08d89cb4 (/data/app/com.google.android.apps.chrome-1/lib/arm/libblink_web.cr.so+0x08d89cb4)
+    #8 0x08d98460 (/data/app/com.google.android.apps.chrome-1/lib/arm/libblink_web.cr.so+0x08d98460)
+    #9 0x08da2594 (/data/app/com.google.android.apps.chrome-1/lib/arm/libblink_web.cr.so+0x08da2594)
+    #10 0x08d999b8 (/data/app/com.google.android.apps.chrome-1/lib/arm/libblink_web.cr.so+0x08d999b8)
+    #11 0x08dba268 (/data/app/com.google.android.apps.chrome-1/lib/arm/libblink_web.cr.so+0x08dba268)
+    #12 0x08d2c6d0 (/data/app/com.google.android.apps.chrome-1/lib/arm/libblink_web.cr.so+0x08d2c6d0)
+    #13 0x08d2abc8 (/data/app/com.google.android.apps.chrome-1/lib/arm/libblink_web.cr.so+0x08d2abc8)
+    #14 0x08cb3920 (/data/app/com.google.android.apps.chrome-1/lib/arm/libblink_web.cr.so+0x08cb3920)
+    #15 0x08d324a0 (/data/app/com.google.android.apps.chrome-1/lib/arm/libblink_web.cr.so+0x08d324a0)
+    #16 0x08d4fad0 (/data/app/com.google.android.apps.chrome-1/lib/arm/libblink_web.cr.so+0x08d4fad0)
+    #17 0x08d2c698 (/data/app/com.google.android.apps.chrome-1/lib/arm/libblink_web.cr.so+0x08d2c698)
+    #18 0x08d2abc8 (/data/app/com.google.android.apps.chrome-1/lib/arm/libblink_web.cr.so+0x08d2abc8)
+    #19 0x08cb3920 (/data/app/com.google.android.apps.chrome-1/lib/arm/libblink_web.cr.so+0x08cb3920)
+    #20 0x090b4028 (/data/app/com.google.android.apps.chrome-1/lib/arm/libblink_web.cr.so+0x090b4028)
+    #21 0x08dba13c (/data/app/com.google.android.apps.chrome-1/lib/arm/libblink_web.cr.so+0x08dba13c)
+    #22 0x08d2c6d0 (/data/app/com.google.android.apps.chrome-1/lib/arm/libblink_web.cr.so+0x08d2c6d0)
+    #23 0x08d2abc8 (/data/app/com.google.android.apps.chrome-1/lib/arm/libblink_web.cr.so+0x08d2abc8)
+    #24 0x08cb3920 (/data/app/com.google.android.apps.chrome-1/lib/arm/libblink_web.cr.so+0x08cb3920)
+    #25 0x08d324a0 (/data/app/com.google.android.apps.chrome-1/lib/arm/libblink_web.cr.so+0x08d324a0)
+    #26 0x08d4fad0 (/data/app/com.google.android.apps.chrome-1/lib/arm/libblink_web.cr.so+0x08d4fad0)
+    #27 0x08d2c698 (/data/app/com.google.android.apps.chrome-1/lib/arm/libblink_web.cr.so+0x08d2c698)
+    #28 0x08d2abc8 (/data/app/com.google.android.apps.chrome-1/lib/arm/libblink_web.cr.so+0x08d2abc8)
+    #29 0x08cb3920 (/data/app/com.google.android.apps.chrome-1/lib/arm/libblink_web.cr.so+0x08cb3920)
+    #30 0x08d324a0 (/data/app/com.google.android.apps.chrome-1/lib/arm/libblink_web.cr.so+0x08d324a0)
+    #31 0x08d4fad0 (/data/app/com.google.android.apps.chrome-1/lib/arm/libblink_web.cr.so+0x08d4fad0)
+    #32 0x08d2c698 (/data/app/com.google.android.apps.chrome-1/lib/arm/libblink_web.cr.so+0x08d2c698)
+    #33 0x08d2abc8 (/data/app/com.google.android.apps.chrome-1/lib/arm/libblink_web.cr.so+0x08d2abc8)
+    #34 0x08cb3920 (/data/app/com.google.android.apps.chrome-1/lib/arm/libblink_web.cr.so+0x08cb3920)
+    #35 0x08d324a0 (/data/app/com.google.android.apps.chrome-1/lib/arm/libblink_web.cr.so+0x08d324a0)
+    #36 0x08d4fad0 (/data/app/com.google.android.apps.chrome-1/lib/arm/libblink_web.cr.so+0x08d4fad0)
+    #37 0x08d2c698 (/data/app/com.google.android.apps.chrome-1/lib/arm/libblink_web.cr.so+0x08d2c698)
+    #38 0x08d2abc8 (/data/app/com.google.android.apps.chrome-1/lib/arm/libblink_web.cr.so+0x08d2abc8)
+    #39 0x08cb3920 (/data/app/com.google.android.apps.chrome-1/lib/arm/libblink_web.cr.so+0x08cb3920)
+    #40 0x08d324a0 (/data/app/com.google.android.apps.chrome-1/lib/arm/libblink_web.cr.so+0x08d324a0)
+    #41 0x08d4fad0 (/data/app/com.google.android.apps.chrome-1/lib/arm/libblink_web.cr.so+0x08d4fad0)
+    #42 0x08d2c698 (/data/app/com.google.android.apps.chrome-1/lib/arm/libblink_web.cr.so+0x08d2c698)
+    #43 0x08d2abc8 (/data/app/com.google.android.apps.chrome-1/lib/arm/libblink_web.cr.so+0x08d2abc8)
+    #44 0x08cb3920 (/data/app/com.google.android.apps.chrome-1/lib/arm/libblink_web.cr.so+0x08cb3920)
+    #45 0x08d324a0 (/data/app/com.google.android.apps.chrome-1/lib/arm/libblink_web.cr.so+0x08d324a0)
+    #46 0x08d4fad0 (/data/app/com.google.android.apps.chrome-1/lib/arm/libblink_web.cr.so+0x08d4fad0)
+    #47 0x08d2c698 (/data/app/com.google.android.apps.chrome-1/lib/arm/libblink_web.cr.so+0x08d2c698)
+    #48 0x08d2abc8 (/data/app/com.google.android.apps.chrome-1/lib/arm/libblink_web.cr.so+0x08d2abc8)
+    #49 0x08cb3920 (/data/app/com.google.android.apps.chrome-1/lib/arm/libblink_web.cr.so+0x08cb3920)
+    #50 0x08d324a0 (/data/app/com.google.android.apps.chrome-1/lib/arm/libblink_web.cr.so+0x08d324a0)
+    #51 0x08d4fad0 (/data/app/com.google.android.apps.chrome-1/lib/arm/libblink_web.cr.so+0x08d4fad0)
+    #52 0x08d2c698 (/data/app/com.google.android.apps.chrome-1/lib/arm/libblink_web.cr.so+0x08d2c698)
+    #53 0x08d2abc8 (/data/app/com.google.android.apps.chrome-1/lib/arm/libblink_web.cr.so+0x08d2abc8)
+    #54 0x08cb3920 (/data/app/com.google.android.apps.chrome-1/lib/arm/libblink_web.cr.so+0x08cb3920)
+    #55 0x0922974c (/data/app/com.google.android.apps.chrome-1/lib/arm/libblink_web.cr.so+0x0922974c)
+    #56 0x07de3ad4 (/data/app/com.google.android.apps.chrome-1/lib/arm/libblink_web.cr.so+0x07de3ad4)
+    #57 0x07de98cc (/data/app/com.google.android.apps.chrome-1/lib/arm/libblink_web.cr.so+0x07de98cc)
+    #58 0x05ece7f8 (/data/app/com.google.android.apps.chrome-1/lib/arm/libblink_web.cr.so+0x05ece7f8)
+    #59 0x05ecfa00 (/data/app/com.google.android.apps.chrome-1/lib/arm/libblink_web.cr.so+0x05ecfa00)
+    #60 0x07a29d6c (/data/app/com.google.android.apps.chrome-1/lib/arm/libblink_web.cr.so+0x07a29d6c)
+    #61 0x07a297e0 (/data/app/com.google.android.apps.chrome-1/lib/arm/libblink_web.cr.so+0x07a297e0)
+    #62 0x07a69dc4 (/data/app/com.google.android.apps.chrome-1/lib/arm/libblink_web.cr.so+0x07a69dc4)
+    #63 0x0795aaa8 (/data/app/com.google.android.apps.chrome-1/lib/arm/libblink_web.cr.so+0x0795aaa8)

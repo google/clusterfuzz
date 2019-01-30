@@ -1,0 +1,330 @@
+# Copyright 2018 Google LLC
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+displayName: Dashboard
+root:
+  gridLayout:
+    columns: '2'
+    widgets:
+    - title: Known crash count (by job)
+      xyChart:
+        dataSets:
+        - plotType: STACKED_AREA
+          timeSeriesFilter:
+            crossSeriesReducer: REDUCE_SUM
+            filter: metric.type="custom.googleapis.com/task/fuzz/job/known_crash_count"
+              resource.type="gce_instance"
+            groupByFields: [metric.label.job]
+            perSeriesAligner: ALIGN_DELTA
+            unitOverride: '1'
+        options: {}
+        timeshiftDuration: 0s
+        y1Axis: {label: y1Axis}
+    - title: Known crash count (by region)
+      xyChart:
+        dataSets:
+        - plotType: STACKED_AREA
+          timeSeriesFilter:
+            crossSeriesReducer: REDUCE_SUM
+            filter: metric.type="custom.googleapis.com/task/fuzz/job/known_crash_count"
+              resource.type="gce_instance"
+            groupByFields: [metric.label."region"]
+            perSeriesAligner: ALIGN_DELTA
+            unitOverride: '1'
+        options: {}
+        timeshiftDuration: 0s
+        y1Axis: {label: y1Axis}
+    - title: New crash count (by job)
+      xyChart:
+        dataSets:
+        - plotType: STACKED_AREA
+          timeSeriesFilter:
+            crossSeriesReducer: REDUCE_SUM
+            filter: metric.type="custom.googleapis.com/task/fuzz/job/new_crash_count"
+              resource.type="gce_instance"
+            groupByFields: [metric.label.job]
+            perSeriesAligner: ALIGN_DELTA
+            unitOverride: '1'
+        options: {}
+        timeshiftDuration: 0s
+        y1Axis: {label: y1Axis}
+    - title: New crash count (by region)
+      xyChart:
+        dataSets:
+        - plotType: STACKED_AREA
+          timeSeriesFilter:
+            crossSeriesReducer: REDUCE_SUM
+            filter: metric.type="custom.googleapis.com/task/fuzz/job/new_crash_count"
+              resource.type="gce_instance"
+            groupByFields: [metric.label.region]
+            perSeriesAligner: ALIGN_DELTA
+            unitOverride: '1'
+        options: {}
+        timeshiftDuration: 0s
+        y1Axis: {label: y1Axis}
+    - title: P5 of testcase count ratio (by fuzzer, worst 16)
+      xyChart:
+        dataSets:
+        - timeSeriesFilter:
+            crossSeriesReducer: REDUCE_PERCENTILE_05
+            filter: metric.type="custom.googleapis.com/task/fuzz/fuzzer/testcase_count_ratio"
+              resource.type="gce_instance"
+            groupByFields: [metric.label."fuzzer"]
+            perSeriesAligner: ALIGN_DELTA
+            pickTimeSeriesFilter: {direction: BOTTOM, numTimeSeries: 16, rankingMethod: METHOD_MEAN}
+            unitOverride: '1'
+        options: {}
+        timeshiftDuration: 0s
+        y1Axis: {label: y1Axis}
+    - title: P5 of testcase count ratio (by region)
+      xyChart:
+        dataSets:
+        - timeSeriesFilter: {crossSeriesReducer: REDUCE_PERCENTILE_05, filter: metric.type="custom.googleapis.com/task/fuzz/fuzzer/testcase_count_ratio"
+              resource.type="gce_instance", perSeriesAligner: ALIGN_DELTA, unitOverride: '1'}
+        options: {}
+        timeshiftDuration: 0s
+        y1Axis: {label: y1Axis}
+    - title: Zero return code ratio per fuzzer
+      xyChart:
+        dataSets:
+        - timeSeriesFilterRatio:
+            denominatorFilter:
+              crossSeriesReducer: REDUCE_COUNT
+              filter: metric.type="custom.googleapis.com/task/fuzz/fuzzer/return_code_count"
+                resource.type="gce_instance"
+              groupByFields: [metric.label."fuzzer"]
+              perSeriesAligner: ALIGN_DELTA
+              unitOverride: '1'
+            numeratorFilter:
+              crossSeriesReducer: REDUCE_COUNT
+              filter: metric.type="custom.googleapis.com/task/fuzz/fuzzer/return_code_count"
+                resource.type="gce_instance" metric.label."return_code"="0"
+              groupByFields: [metric.label."fuzzer"]
+              perSeriesAligner: ALIGN_DELTA
+              unitOverride: '1'
+        options: {}
+        timeshiftDuration: 0s
+        y1Axis: {label: y1Axis}
+    - title: Zero return code ratio per region
+      xyChart:
+        dataSets:
+        - timeSeriesFilterRatio:
+            denominatorFilter:
+              crossSeriesReducer: REDUCE_COUNT
+              filter: metric.type="custom.googleapis.com/task/fuzz/fuzzer/return_code_count"
+                resource.type="gce_instance"
+              groupByFields: [metric.label."region"]
+              perSeriesAligner: ALIGN_DELTA
+              unitOverride: '1'
+            numeratorFilter:
+              crossSeriesReducer: REDUCE_COUNT
+              filter: metric.type="custom.googleapis.com/task/fuzz/fuzzer/return_code_count"
+                resource.type="gce_instance" metric.label."return_code"="0"
+              groupByFields: [metric.label."region"]
+              perSeriesAligner: ALIGN_DELTA
+              unitOverride: '1'
+        options: {}
+        timeshiftDuration: 0s
+        y1Axis: {label: y1Axis}
+    - title: Zero return code count per fuzzer
+      xyChart:
+        dataSets:
+        - timeSeriesFilter:
+            crossSeriesReducer: REDUCE_COUNT
+            filter: metric.type="custom.googleapis.com/task/fuzz/fuzzer/return_code_count"
+              resource.type="gce_instance" metric.label."return_code"="0"
+            groupByFields: [metric.label."fuzzer"]
+            perSeriesAligner: ALIGN_DELTA
+            unitOverride: '1'
+        options: {}
+        timeshiftDuration: 0s
+        y1Axis: {label: y1Axis}
+    - title: Zero return code count per region
+      xyChart:
+        dataSets:
+        - timeSeriesFilter:
+            crossSeriesReducer: REDUCE_COUNT
+            filter: metric.type="custom.googleapis.com/task/fuzz/fuzzer/return_code_count"
+              resource.type="gce_instance" metric.label."return_code"="0"
+            groupByFields: [metric.label."region"]
+            perSeriesAligner: ALIGN_DELTA
+            unitOverride: '1'
+        options: {}
+        timeshiftDuration: 0s
+        y1Axis: {label: y1Axis}
+    - title: Non-zero return code count per fuzzer
+      xyChart:
+        dataSets:
+        - timeSeriesFilter:
+            crossSeriesReducer: REDUCE_COUNT
+            filter: metric.type="custom.googleapis.com/task/fuzz/fuzzer/return_code_count"
+              resource.type="gce_instance" metric.label."return_code"!="0"
+            groupByFields: [metric.label."fuzzer"]
+            perSeriesAligner: ALIGN_DELTA
+            unitOverride: '1'
+        options: {}
+        timeshiftDuration: 0s
+        y1Axis: {label: y1Axis}
+    - title: Non-zero return code count per region
+      xyChart:
+        dataSets:
+        - timeSeriesFilter:
+            crossSeriesReducer: REDUCE_COUNT
+            filter: metric.type="custom.googleapis.com/task/fuzz/fuzzer/return_code_count"
+              resource.type="gce_instance" metric.label."return_code"!="0"
+            groupByFields: [metric.label."region"]
+            perSeriesAligner: ALIGN_DELTA
+            unitOverride: '1'
+        options: {}
+        timeshiftDuration: 0s
+        y1Axis: {label: y1Axis}
+    - title: Timeout count per fuzzer
+      xyChart:
+        dataSets:
+        - timeSeriesFilter:
+            crossSeriesReducer: REDUCE_COUNT
+            filter: metric.type="custom.googleapis.com/task/fuzz/fuzzer/return_code_count"
+              resource.type="gce_instance" metric.label."return_code"="-1"
+            groupByFields: [metric.label."fuzzer"]
+            perSeriesAligner: ALIGN_DELTA
+            unitOverride: '1'
+        options: {}
+        timeshiftDuration: 0s
+        y1Axis: {label: y1Axis}
+    - title: Timeout count per region
+      xyChart:
+        dataSets:
+        - timeSeriesFilter:
+            crossSeriesReducer: REDUCE_COUNT
+            filter: metric.type="custom.googleapis.com/task/fuzz/fuzzer/return_code_count"
+              resource.type="gce_instance" metric.label."return_code"="-1"
+            groupByFields: [metric.label."region"]
+            perSeriesAligner: ALIGN_DELTA
+            unitOverride: '1'
+        options: {}
+        timeshiftDuration: 0s
+        y1Axis: {label: y1Axis}
+    - title: Good-to-all build ratio per job
+      xyChart:
+        dataSets:
+        - timeSeriesFilterRatio:
+            denominatorFilter:
+              crossSeriesReducer: REDUCE_COUNT
+              filter: metric.type="custom.googleapis.com/task/fuzz/job/bad_build_count"
+                resource.type="gce_instance"
+              groupByFields: [metric.label."job"]
+              perSeriesAligner: ALIGN_DELTA
+              unitOverride: '1'
+            numeratorFilter:
+              crossSeriesReducer: REDUCE_COUNT
+              filter: metric.type="custom.googleapis.com/task/fuzz/job/bad_build_count"
+                resource.type="gce_instance" metric.label."bad_build"!="true"
+              groupByFields: [metric.label."job"]
+              perSeriesAligner: ALIGN_DELTA
+              unitOverride: '1'
+        options: {}
+        timeshiftDuration: 0s
+        y1Axis: {label: y1Axis}
+    - title: Good-to-all build ratio per region
+      xyChart:
+        dataSets:
+        - timeSeriesFilterRatio:
+            denominatorFilter:
+              crossSeriesReducer: REDUCE_COUNT
+              filter: metric.type="custom.googleapis.com/task/fuzz/job/bad_build_count"
+                resource.type="gce_instance"
+              groupByFields: [metric.label."region"]
+              perSeriesAligner: ALIGN_DELTA
+              unitOverride: '1'
+            numeratorFilter:
+              crossSeriesReducer: REDUCE_COUNT
+              filter: metric.type="custom.googleapis.com/task/fuzz/job/bad_build_count"
+                resource.type="gce_instance" metric.label."bad_build"!="true"
+              groupByFields: [metric.label."region"]
+              perSeriesAligner: ALIGN_DELTA
+              unitOverride: '1'
+        options: {}
+        timeshiftDuration: 0s
+        y1Axis: {label: y1Axis}
+    - title: Error count per task
+      xyChart:
+        dataSets:
+        - timeSeriesFilter:
+            crossSeriesReducer: REDUCE_SUM
+            filter: metric.type="custom.googleapis.com/errors/count" resource.type="gce_instance"
+            groupByFields: [metric.label."task_name"]
+            perSeriesAligner: ALIGN_DELTA
+            unitOverride: '1'
+        options: {}
+        timeshiftDuration: 0s
+        y1Axis: {label: y1Axis}
+    - title: Error count per region
+      xyChart:
+        dataSets:
+        - timeSeriesFilter:
+            crossSeriesReducer: REDUCE_SUM
+            filter: metric.type="custom.googleapis.com/errors/count" resource.type="gce_instance"
+            groupByFields: [metric.label."region"]
+            perSeriesAligner: ALIGN_DELTA
+            unitOverride: '1'
+        options: {}
+        timeshiftDuration: 0s
+        y1Axis: {label: y1Axis}
+    - title: Revision
+      xyChart:
+        dataSets:
+        - plotType: STACKED_AREA
+          timeSeriesFilter:
+            crossSeriesReducer: REDUCE_SUM
+            filter: metric.type="custom.googleapis.com/bot_count" resource.type="gce_instance"
+            groupByFields: [metric.label.revision]
+            perSeriesAligner: ALIGN_COUNT
+            unitOverride: '1'
+        options: {}
+        timeshiftDuration: 0s
+        y1Axis: {label: y1Axis}
+    - title: Total fuzz time
+      xyChart:
+        dataSets:
+        - timeSeriesFilter: {crossSeriesReducer: REDUCE_SUM, filter: metric.type="custom.googleapis.com/task/fuzz/fuzzer/total_time"
+              resource.type="gce_instance", perSeriesAligner: ALIGN_DELTA, unitOverride: '1'}
+        options: {}
+        timeshiftDuration: 0s
+        y1Axis: {label: y1Axis}
+    - title: Success count
+      xyChart:
+        dataSets:
+        - timeSeriesFilter:
+            crossSeriesReducer: REDUCE_SUM
+            filter: metric.type="custom.googleapis.com/utils/retry/count" resource.type="gce_instance"
+              metric.label."is_succeeded"="true"
+            groupByFields: [metric.label."function"]
+            perSeriesAligner: ALIGN_DELTA
+            unitOverride: '1'
+        options: {}
+        timeshiftDuration: 0s
+        y1Axis: {label: y1Axis}
+    - title: Failure count
+      xyChart:
+        dataSets:
+        - timeSeriesFilter:
+            crossSeriesReducer: REDUCE_SUM
+            filter: metric.type="custom.googleapis.com/utils/retry/count" resource.type="gce_instance"
+              metric.label."is_succeeded"!="true"
+            groupByFields: [metric.label."function"]
+            perSeriesAligner: ALIGN_DELTA
+            unitOverride: '1'
+        options: {}
+        timeshiftDuration: 0s
+        y1Axis: {label: y1Axis}

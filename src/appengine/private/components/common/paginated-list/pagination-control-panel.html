@@ -1,0 +1,99 @@
+<!--
+  Copyright 2018 Google LLC
+
+  Licensed under the Apache License, Version 2.0 (the "License");
+  you may not use this file except in compliance with the License.
+  You may obtain a copy of the License at
+
+       http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+-->
+<link rel="import" href="../../../bower_components/polymer/polymer.html">
+<link rel="import" href="../../../bower_components/paper-button/paper-button.html">
+<link rel="import" href="../../../bower_components/paper-spinner/paper-spinner.html">
+
+<dom-module id="pagination-control-panel">
+  <link rel="import" href="../../technology/technology.css" type="css">
+  <template>
+    <style>
+      :host {
+        display: block;
+      }
+
+      :host .pages {
+        display: block;
+        margin: 10px 0px;
+        text-align: center;
+      }
+
+      :host .pages paper-button {
+        padding: 5px 8px;
+        margin: 0px;
+        min-width: 0px;
+      }
+
+      :host .pages paper-spinner {
+        vertical-align: middle;
+        margin-right: 5px;
+        width: 20px;
+        height: 20px;
+      }
+    </style>
+    <div class="pages">
+      <paper-spinner active="[[loading]]"></paper-spinner>
+      <paper-button id="previousButton" raised disabled="[[!shouldEnablePrevious(result)]]" on-tap="previous">Previous</paper-button>
+      <template is="dom-repeat" items="[[computePaginationItems(result, result.page)]]" restamp>
+        <paper-button hidden$="[[!item.isPage]]" id$="page[[item.number]]" raised primary$="[[item.isCurrent]]" on-tap="jump" data-number$="[[item.number]]">[[item.number]]</paper-button>
+        <paper-button hidden$="[[item.isPage]]" disabled raised>...</paper-button>
+      </template>
+        <paper-button hidden$="[[!result.hasMore]]" disabled raised>...</paper-button>
+      <paper-button id="nextButton" raised disabled="[[!shouldEnableNext(result)]]" on-tap="next">Next</paper-button>
+    </div>
+  </template>
+  <script>
+    Polymer({
+      is: 'pagination-control-panel',
+      properties: {
+        result: Object,
+        loading: Boolean
+      },
+      previous() {
+        this.fire('page-tapped', this.result.page - 1);
+      },
+      next() {
+        this.fire('page-tapped', this.result.page + 1);
+      },
+      jump(ev) {
+        this.fire('page-tapped', parseInt(ev.target.dataset.number));
+      },
+      shouldEnablePrevious(result) {
+        return result.page > 1;
+      },
+      shouldEnableNext(result) {
+        return result.page < result.totalPages;
+      },
+      computePaginationItems(result, currentPage) {
+        let pages = [];
+        let isGapAdded = false;
+        for (let i=1;i<=result.totalPages;i++) {
+          if (i <= 2 || i >= (result.totalPages - 1)
+              || ((result.page - 2) <= i && i <= (result.page + 2))) {
+            pages.push(
+                {isPage: true, number: i, isCurrent: (i == currentPage)});
+            isGapAdded = false;
+          } else if (!isGapAdded) {
+            pages.push({isPage: false})
+            isGapAdded = true;
+          }
+        }
+        return pages;
+      },
+    });
+  </script>
+</dom-module>
+

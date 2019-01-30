@@ -1,0 +1,67 @@
+Command: /mnt/scratch0/clusterfuzz/bot/builds/chromium-browser-libfuzzer_linux-release-asan_ae530a86793cd6b8b56ce9af9159ac101396e802/revisions/libfuzzer-linux-release-499528/pdf_codec_jpeg_fuzzer -dict=/mnt/scratch0/clusterfuzz/bot/builds/chromium-browser-libfuzzer_linux-release-asan_ae530a86793cd6b8b56ce9af9159ac101396e802/revisions/libfuzzer-linux-release-499528/pdf_codec_jpeg_fuzzer.dict -timeout=25 -rss_limit_mb=2048 -max_len=5754 -artifact_prefix=/mnt/scratch0/clusterfuzz/bot/inputs/fuzzer-testcases/ -max_total_time=2650 -print_final_stats=1 /mnt/scratch0/clusterfuzz/bot/inputs/fuzzer-testcases-disk/temp/new /mnt/scratch0/clusterfuzz/bot/inputs/fuzzer-testcases-disk/temp/subset
+Bot: clusterfuzz-linux-pre-0186
+Time ran: 1704.800115
+
+Dictionary: 14 entries
+INFO: Seed: 3272961086
+INFO: Loaded 2 modules   (398435 guards): 17127 [0x7f5deb44b7a0, 0x7f5deb45c33c), 381308 [0x3989ba0, 0x3afe190),
+INFO:        0 files found in /mnt/scratch0/clusterfuzz/bot/inputs/fuzzer-testcases-disk/temp/new
+INFO:      100 files found in /mnt/scratch0/clusterfuzz/bot/inputs/fuzzer-testcases-disk/temp/subset
+INFO: seed corpus: files: 100 min: 4b max: 569518b total: 1582520b rss: 58Mb
+#32	pulse  cov: 1829 ft: 1660 corp: 31/1417b exec/s: 10 rss: 261Mb
+#64	pulse  cov: 2085 ft: 3078 corp: 63/8100b exec/s: 16 rss: 261Mb
+#101	INITED cov: 2239 ft: 4321 corp: 100/142Kb exec/s: 20 rss: 449Mb
+#108	NEW    cov: 2241 ft: 4325 corp: 101/142Kb exec/s: 15 rss: 449Mb L: 307/5754 MS: 2 InsertRepeatedBytes-CopyPart-
+#110	NEW    cov: 2246 ft: 4326 corp: 102/142Kb exec/s: 15 rss: 449Mb L: 308/5754 MS: 4 InsertRepeatedBytes-CopyPart-InsertByte-ShuffleBytes-
+#90016	REDUCE cov: 2367 ft: 6400 corp: 910/1775Kb exec/s: 53 rss: 1148Mb L: 1803/5754 MS: 5 InsertByte-CMP-ShuffleBytes-ChangeByte-EraseBytes- DE: "\xff\xff"-
+#90077	REDUCE cov: 2367 ft: 6400 corp: 910/1775Kb exec/s: 53 rss: 1148Mb L: 1661/5754 MS: 1 EraseBytes-
+#90188	REDUCE cov: 2367 ft: 6400 corp: 910/1775Kb exec/s: 53 rss: 1148Mb L: 809/5754 MS: 2 ChangeBinInt-EraseBytes-
+#90297	NEW    cov: 2367 ft: 6401 corp: 911/1779Kb exec/s: 53 rss: 1148Mb L: 4436/5754 MS: 1 EraseBytes-
+#90439	REDUCE cov: 2367 ft: 6401 corp: 911/1779Kb exec/s: 53 rss: 1148Mb L: 2536/5754 MS: 3 ChangeASCIIInt-ChangeBit-EraseBytes-
+#90497	REDUCE cov: 2367 ft: 6401 corp: 911/1779Kb exec/s: 53 rss: 1148Mb L: 5321/5754 MS: 1 EraseBytes-
+#90561	REDUCE cov: 2367 ft: 6401 corp: 911/1779Kb exec/s: 53 rss: 1148Mb L: 4141/5754 MS: 5 EraseBytes-ManualDict-ManualDict-PersAutoDict-InsertRepeatedBytes- DE: "JFIF\x00"-"\xff\xc0"-"\xff\xc0"-
+#90658	REDUCE cov: 2367 ft: 6401 corp: 911/1779Kb exec/s: 53 rss: 1148Mb L: 1118/5754 MS: 2 CopyPart-EraseBytes-
+==21790== ERROR: libFuzzer: out-of-memory (used: 2183Mb; limit: 2048Mb)
+   To change the out-of-memory limit use -rss_limit_mb=<N>
+
+Live Heap Allocations: 2236539140 bytes in 4979 chunks; quarantined: 9002806 bytes in 87 chunks; 11941 other chunks; total chunks: 17007; showing top 95% (at most 8 unique contexts)
+1171103733 byte(s) (52%) in 3 allocation(s)
+    #0 0x4c4df3 in __interceptor_malloc (/mnt/scratch0/clusterfuzz/bot/builds/chromium-browser-libfuzzer_linux-release-asan_ae530a86793cd6b8b56ce9af9159ac101396e802/revisions/libfuzzer-linux-release-499528/pdf_codec_jpeg_fuzzer+0x4c4df3)
+    #1 0x1e9b418 in alloc_large third_party/libjpeg_turbo/jmemmgr.c:389:30
+    #2 0x1e9b9d3 in alloc_barray third_party/libjpeg_turbo/jmemmgr.c:525:29
+    #3 0x1e9c9c9 in realize_virt_arrays third_party/libjpeg_turbo/jmemmgr.c:731:26
+    #4 0x1e81d82 in master_selection third_party/libjpeg_turbo/jdmaster.c:560:3
+    #5 0x1e70b1b in chromium_jpeg_start_decompress third_party/libjpeg_turbo/jdapistd.c:47:5
+    #6 0x1d1608c in CCodec_JpegModule::StartScanline(CCodec_JpegModule::Context*, int) third_party/pdfium/core/fxcodec/codec/fx_codec_jpeg.cpp:483:12
+    #7 0x1d8e1b2 in CCodec_ProgressiveDecoder::StartDecode(CFX_RetainPtr<CFX_DIBitmap> const&, int, int, int, int, int, bool) third_party/pdfium/core/fxcodec/codec/fx_codec_progress.cpp:1902:24
+    #8 0x4f0e7e in XFACodecFuzzer::Fuzz(unsigned char const*, unsigned long, FXCODEC_IMAGE_TYPE) third_party/pdfium/testing/libfuzzer/xfa_codec_fuzzer.h:45:23
+    #9 0x5140a0 in fuzzer::Fuzzer::ExecuteCallback(unsigned char const*, unsigned long) third_party/libFuzzer/src/FuzzerLoop.cpp:463:13
+    #10 0x513526 in fuzzer::Fuzzer::RunOne(unsigned char const*, unsigned long, bool, fuzzer::InputInfo*) third_party/libFuzzer/src/FuzzerLoop.cpp:392:3
+    #11 0x517384 in fuzzer::Fuzzer::MutateAndTestOne() third_party/libFuzzer/src/FuzzerLoop.cpp:587:9
+    #12 0x51878e in fuzzer::Fuzzer::Loop(std::__1::vector<std::__1::basic_string<char, std::__1::char_traits<char>, std::__1::allocator<char> >, fuzzer::fuzzer_allocator<std::__1::basic_string<char, std::__1::char_traits<char>, std::__1::allocator<char> > > > const&) third_party/libFuzzer/src/FuzzerLoop.cpp:699:5
+    #13 0x4fc319 in fuzzer::FuzzerDriver(int*, char***, int (*)(unsigned char const*, unsigned long)) third_party/libFuzzer/src/FuzzerDriver.cpp:738:6
+    #14 0x529da8 in main third_party/libFuzzer/src/FuzzerMain.cpp:20:10
+    #15 0x7f5de99b3f44 in __libc_start_main /build/eglibc-SvCtMH/eglibc-2.19/csu/libc-start.c:287
+
+1040980996 byte(s) (46%) in 1 allocation(s)
+    #0 0x4c4df3 in __interceptor_malloc (/mnt/scratch0/clusterfuzz/bot/builds/chromium-browser-libfuzzer_linux-release-asan_ae530a86793cd6b8b56ce9af9159ac101396e802/revisions/libfuzzer-linux-release-499528/pdf_codec_jpeg_fuzzer+0x4c4df3)
+    #1 0x19c5458 in PartitionAllocGenericFlags third_party/pdfium/third_party/base/allocator/partition_allocator/partition_alloc.h:787:18
+    #2 0x19c5458 in FX_SafeAlloc(unsigned long, unsigned long) third_party/pdfium/core/fxcrt/fx_memory.h:46
+    #3 0x200a939 in CFX_DIBitmap::Create(int, int, FXDIB_Format, unsigned char*, unsigned int) third_party/pdfium/core/fxge/dib/cfx_dibitmap.cpp:57:11
+    #4 0x4f0dba in XFACodecFuzzer::Fuzz(unsigned char const*, unsigned long, FXCODEC_IMAGE_TYPE) third_party/pdfium/testing/libfuzzer/xfa_codec_fuzzer.h:37:13
+    #5 0x5140a0 in fuzzer::Fuzzer::ExecuteCallback(unsigned char const*, unsigned long) third_party/libFuzzer/src/FuzzerLoop.cpp:463:13
+    #6 0x513526 in fuzzer::Fuzzer::RunOne(unsigned char const*, unsigned long, bool, fuzzer::InputInfo*) third_party/libFuzzer/src/FuzzerLoop.cpp:392:3
+    #7 0x517384 in fuzzer::Fuzzer::MutateAndTestOne() third_party/libFuzzer/src/FuzzerLoop.cpp:587:9
+    #8 0x51878e in fuzzer::Fuzzer::Loop(std::__1::vector<std::__1::basic_string<char, std::__1::char_traits<char>, std::__1::allocator<char> >, fuzzer::fuzzer_allocator<std::__1::basic_string<char, std::__1::char_traits<char>, std::__1::allocator<char> > > > const&) third_party/libFuzzer/src/FuzzerLoop.cpp:699:5
+    #9 0x4fc319 in fuzzer::FuzzerDriver(int*, char***, int (*)(unsigned char const*, unsigned long)) third_party/libFuzzer/src/FuzzerDriver.cpp:738:6
+    #10 0x529da8 in main third_party/libFuzzer/src/FuzzerMain.cpp:20:10
+    #11 0x7f5de99b3f44 in __libc_start_main /build/eglibc-SvCtMH/eglibc-2.19/csu/libc-start.c:287
+
+MS: 1 ChangeBit-; base unit: 251d1c6ee4136b020b7eb0900c5e40bc83b133a4
+artifact_prefix='/fake/'; Test unit written to /fake/oom-755e18dc1b20912de7556d11380e540231dc292c
+SUMMARY: libFuzzer: out-of-memory
+stat::number_of_executed_units: 90667
+stat::average_exec_per_sec:     53
+stat::new_units_added:          1513
+stat::slowest_unit_time_sec:    0
+stat::peak_rss_mb:              2184

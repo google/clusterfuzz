@@ -1,0 +1,2 @@
+# Set up test environment so that gcloud works in the bazel sandbox.
+test --test_env=CLOUDSDK_PYTHON=/usr/bin/python --test_env=CLOUDSDK_CORE_PROJECT=test-clusterfuzz

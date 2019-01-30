@@ -1,0 +1,45 @@
+==1246==ERROR: AddressSanitizer: requested allocation size 0x285be9c758f75400 (0x285be9c758f76400 after adjustments for alignment, red zones etc.) exceeds maximum supported size of 0x10000000000 (thread T0 (chrome))
+    #0 0x55db32469933 in __interceptor_malloc third_party/llvm/compiler-rt/lib/asan/asan_malloc_linux.cc:88:3
+    #1 0x55db44461003 in PartitionAllocGenericFlags base/allocator/partition_allocator/partition_alloc.h:947:18
+    #2 0x55db44461003 in AllocateMemoryWithFlags third_party/blink/renderer/platform/wtf/typed_arrays/array_buffer_contents.cc:111
+    #3 0x55db44461003 in WTF::ArrayBufferContents::AllocateMemoryOrNull(unsigned long, WTF::ArrayBufferContents::InitializationPolicy) third_party/blink/renderer/platform/wtf/typed_arrays/array_buffer_contents.cc:121
+    #4 0x55db38743024 in v8::internal::JSArrayBuffer::SetupAllocatingData(v8::internal::Handle<v8::internal::JSArrayBuffer>, v8::internal::Isolate*, unsigned long, bool, v8::internal::SharedFlag) v8/src/objects.cc
+    #5 0x55db377b1006 in v8::internal::(anonymous namespace)::ConstructBuffer(v8::internal::Isolate*, v8::internal::Handle<v8::internal::JSFunction>, v8::internal::Handle<v8::internal::JSReceiver>, v8::internal::Handle<v8::internal::Object>, bool) v8/src/builtins/builtins-arraybuffer.cc:43:8
+    #6 0x55db377ac88a in v8::internal::Builtin_Impl_ArrayBufferConstructor(v8::internal::BuiltinArguments, v8::internal::Isolate*) v8/src/builtins/builtins-arraybuffer.cc:76:12
+    #7 0x7ecb7cb042dc  (<unknown module>)
+    #8 0x7ecb7cb0f1a4  (<unknown module>)
+    #9 0x7ecb7cb8afcd  (<unknown module>)
+    #10 0x7ecb7cb120a8  (<unknown module>)
+    #11 0x7ecb7cb107d4  (<unknown module>)
+    #12 0x7ecb7cb09ce0  (<unknown module>)
+    #13 0x55db38162ee4 in Call v8/src/simulator.h:113:12
+    #14 0x55db38162ee4 in v8::internal::(anonymous namespace)::Invoke(v8::internal::Isolate*, bool, v8::internal::Handle<v8::internal::Object>, v8::internal::Handle<v8::internal::Object>, int, v8::internal::Handle<v8::internal::Object>*, v8::internal::Handle<v8::internal::Object>, v8::internal::Execution::MessageHandling, v8::internal::Execution::Target) v8/src/execution.cc:155
+    #15 0x55db38162272 in CallInternal v8/src/execution.cc:191:10
+    #16 0x55db38162272 in v8::internal::Execution::Call(v8::internal::Isolate*, v8::internal::Handle<v8::internal::Object>, v8::internal::Handle<v8::internal::Object>, int, v8::internal::Handle<v8::internal::Object>*) v8/src/execution.cc:202
+    #17 0x55db375e0a91 in v8::Script::Run(v8::Local<v8::Context>) v8/src/api.cc:2160:7
+    #18 0x55db4494ab37 in blink::V8ScriptRunner::RunCompiledScript(v8::Isolate*, v8::Local<v8::Script>, blink::ExecutionContext*) third_party/blink/renderer/bindings/core/v8/v8_script_runner.cc:474:22
+    #19 0x55db458d4f27 in blink::ScriptController::ExecuteScriptAndReturnValue(v8::Local<v8::Context>, blink::ScriptSourceCode const&, blink::KURL const&, blink::ScriptFetchOptions const&, blink::AccessControlStatus) third_party/blink/renderer/bindings/core/v8/script_controller.cc:148:20
+    #20 0x55db458d7696 in blink::ScriptController::EvaluateScriptInMainWorld(blink::ScriptSourceCode const&, blink::KURL const&, blink::ScriptFetchOptions const&, blink::AccessControlStatus, blink::ScriptController::ExecuteScriptPolicy) third_party/blink/renderer/bindings/core/v8/script_controller.cc:349:33
+    #21 0x55db458d807f in blink::ScriptController::ExecuteScriptInMainWorld(blink::ScriptSourceCode const&, blink::KURL const&, blink::ScriptFetchOptions const&, blink::AccessControlStatus) third_party/blink/renderer/bindings/core/v8/script_controller.cc:314:3
+    #22 0x55db48301660 in blink::ScriptLoader::ExecuteScriptBlock(blink::PendingScript*, blink::KURL const&) third_party/blink/renderer/core/script/script_loader.cc:890:13
+    #23 0x55db482fc40c in blink::ScriptLoader::PrepareScript(WTF::TextPosition const&, blink::ScriptLoader::LegacyTypeSupport) third_party/blink/renderer/core/script/script_loader.cc:705:3
+    #24 0x55db482b69c1 in blink::HTMLParserScriptRunner::ProcessScriptElementInternal(blink::Element*, WTF::TextPosition const&) third_party/blink/renderer/core/script/html_parser_script_runner.cc:521:20
+    #25 0x55db482b6278 in blink::HTMLParserScriptRunner::ProcessScriptElement(blink::Element*, WTF::TextPosition const&) third_party/blink/renderer/core/script/html_parser_script_runner.cc:300:3
+    #26 0x55db46bbdbdf in RunScriptsForPausedTreeBuilder third_party/blink/renderer/core/html/parser/html_document_parser.cc:285:21
+    #27 0x55db46bbdbdf in blink::HTMLDocumentParser::ProcessTokenizedChunkFromBackgroundParser(std::__1::unique_ptr<blink::HTMLDocumentParser::TokenizedChunk, std::__1::default_delete<blink::HTMLDocumentParser::TokenizedChunk> >) third_party/blink/renderer/core/html/parser/html_document_parser.cc:550
+    #28 0x55db46bb8203 in blink::HTMLDocumentParser::PumpPendingSpeculations() third_party/blink/renderer/core/html/parser/html_document_parser.cc:608:9
+    #29 0x55db4485f29c in Run base/callback.h:96:12
+    #30 0x55db4485f29c in blink::TaskHandle::Runner::Run(blink::TaskHandle const&) third_party/blink/renderer/platform/web_task_runner.cc:75
+    #31 0x55db3a7f9e19 in Run base/callback.h:96:12
+    #32 0x55db3a7f9e19 in base::debug::TaskAnnotator::RunTask(char const*, base::PendingTask*) base/debug/task_annotator.cc:101
+    #33 0x55db394d11da in blink::scheduler::internal::ThreadControllerImpl::DoWork(blink::scheduler::internal::SequencedTaskSource::WorkType) third_party/blink/renderer/platform/scheduler/base/thread_controller_impl.cc:162:21
+    #34 0x55db3a7f9e19 in Run base/callback.h:96:12
+    #35 0x55db3a7f9e19 in base::debug::TaskAnnotator::RunTask(char const*, base::PendingTask*) base/debug/task_annotator.cc:101
+    #36 0x55db3a85ee09 in base::MessageLoop::RunTask(base::PendingTask*) base/message_loop/message_loop.cc:319:25
+    #37 0x55db3a8602cf in DeferOrRunPendingTask base/message_loop/message_loop.cc:329:5
+    #38 0x55db3a8602cf in base::MessageLoop::DoWork() base/message_loop/message_loop.cc:373
+==1246==HINT: if you don't care about these errors you may set ASAN_OPTIONS=allocator_may_return_null=1
+SUMMARY: AddressSanitizer: allocation-size-too-big /b/build/slave/linux_upload_clang/build/src/third_party/llvm/compiler-rt/lib/asan/asan_malloc_linux.cc:88:3 in __interceptor_malloc
+==1246==ABORTING
+[0422/074534.295828:ERROR:nacl_helper_linux.cc(310)] NaCl helper process running without a sandbox!
+Most likely you need to configure your SUID sandbox correctly

@@ -1,0 +1,109 @@
+[24222:24245:0324/233643:ERROR:bad_message.cc(18)] Terminating renderer for bad IPC message, reason 36
+[24222:24245:0324/233643:ERROR:bad_message.cc(18)] Terminating renderer for bad IPC message, reason 31
+[24222:24246:0324/233643:ERROR:bad_message.cc(18)] Terminating renderer for bad IPC message, reason 77
+[24222:24222:0324/233643:ERROR:bad_message.cc(16)] Terminating renderer for bad IPC message, reason 0
+[24222:24246:0324/233643:ERROR:bad_message.cc(18)] Terminating renderer for bad IPC message, reason 77
+[24256:24256:0324/233644:FATAL:latency_info.cc(299)] Security DCHECK failed: !terminated_.
+#0 0x7f48a3cf4141 __interceptor_backtrace
+#1 0x7f48a51f99e0 base::debug::StackTrace::StackTrace()
+#2 0x7f48a526964d logging::LogMessage::~LogMessage()
+#3 0x7f48b4856ef4 ui::LatencyInfo::AddLatencyNumberWithTimestampImpl()
+#4 0x7f48b4855974 ui::LatencyInfo::AddLatencyNumberWithTimestamp()
+#5 0x7f48b4b12c84 content::PassThroughImageTransportSurface::FinishSwapBuffers()
+#6 0x7f48b4b127fc content::PassThroughImageTransportSurface::SwapBuffers()
+#7 0x7f48b51ddb33 gpu::gles2::GLES2DecoderImpl::DoSwapBuffers()
+#8 0x7f48b515679b gpu::gles2::GLES2DecoderImpl::HandleSwapBuffers()
+#9 0x7f48b5195f24 gpu::gles2::GLES2DecoderImpl::DoCommandsImpl<>()
+#10 0x7f48b5194496 gpu::gles2::GLES2DecoderImpl::DoCommands()
+#11 0x7f48b534ae69 gpu::CommandParser::ProcessCommands()
+#12 0x7f48b50e312a gpu::CommandExecutor::PutChanged()
+#13 0x7f48b4b09ed5 _ZN4base8internal12InvokeHelperILb0EvNS0_15RunnableAdapterIMN7content20GpuCommandBufferStubEFvvEEEE8MakeItSoIJPS4_EEEvS7_DpOT_
+#14 0x7f48b4b09d48 _ZN4base8internal7InvokerINS_13IndexSequenceIJLm0EEEENS0_9BindStateINS0_15RunnableAdapterIMN7content20GpuCommandBufferStubEFvvEEEFvPS7_EJNS0_17UnretainedWrapperIS7_EEEEENS0_12InvokeHelperILb0EvSA_EEFvvEE3RunEPNS0_13BindStateBaseE
+#15 0x7f48b50e073a gpu::CommandBufferService::Flush()
+#16 0x7f48b4af5d07 content::GpuCommandBufferStub::OnAsyncFlush()
+#17 0x7f48b4b04ce5 _ZN3IPC16DispatchToMethodIN7content20GpuCommandBufferStubEMS2_FvijRKNSt3__16vectorIN2ui11LatencyInfoENS3_9allocatorIS6_EEEEEvNS3_5tupleIJijS9_EEEEEvPT_T0_PT1_RKT2_
+#18 0x7f48b4af58df _ZN3IPC8MessageTI35GpuCommandBufferMsg_AsyncFlush_MetaNSt3__15tupleIJijNS2_6vectorIN2ui11LatencyInfoENS2_9allocatorIS6_EEEEEEEvE8DispatchIN7content20GpuCommandBufferStubESE_vMSE_FvijRKS9_EEEbPKNS_7MessageEPT_PT0_PT1_T2_
+#19 0x7f48b4aefb3e content::GpuCommandBufferStub::OnMessageReceived()
+#20 0x7f48b49d5cfa IPC::MessageRouter::RouteMessage()
+#21 0x7f48b4ad7ae8 content::GpuChannel::HandleMessageHelper()
+#22 0x7f48b4ad754d content::GpuChannel::HandleMessage()
+#23 0x7f48b4ae4d99 _ZN4base8internal12InvokeHelperILb1EvNS0_15RunnableAdapterIMN7content10GpuChannelEFvRK13scoped_refptrINS3_22GpuChannelMessageQueueEEEEEE8MakeItSoINS_7WeakPtrIS4_EEJS9_EEEvSC_T_DpOT0_
+#24 0x7f48b4ae4c04 _ZN4base8internal7InvokerINS_13IndexSequenceIJLm0ELm1EEEENS0_9BindStateINS0_15RunnableAdapterIMN7content10GpuChannelEFvRK13scoped_refptrINS6_22GpuChannelMessageQueueEEEEEFvPS7_SC_EJNS_7WeakPtrIS7_EESC_EEENS0_12InvokeHelperILb1EvSF_EEFvvEE3RunEPNS0_13BindStateBaseE
+#25 0x7f48a5417038 base::debug::TaskAnnotator::RunTask()
+#26 0x7f48a5284f99 base::MessageLoop::RunTask()
+#27 0x7f48a5285d2e base::MessageLoop::DeferOrRunPendingTask()
+#28 0x7f48a52863d3 base::MessageLoop::DoWork()
+#29 0x7f48a540e87d base::MessagePumpGlib::HandleDispatch()
+#30 0x7f48a540f7af base::(anonymous namespace)::WorkSourceDispatch()
+#31 0x7f48a0111e04 g_main_context_dispatch
+#32 0x7f48a0112048 <unknown>
+#33 0x7f48a01120ec g_main_context_iteration
+#34 0x7f48a540ef32 base::MessagePumpGlib::Run()
+#35 0x7f48a52844e5 base::MessageLoop::RunHandler()
+#36 0x7f48a52f55b5 base::RunLoop::Run()
+#37 0x7f48a5281c89 base::MessageLoop::Run()
+#38 0x7f48b40e73dc content::GpuMain()
+#39 0x7f48a5126dab content::RunNamedProcessTypeMain()
+#40 0x7f48a512a433 content::ContentMainRunnerImpl::Run()
+#41 0x7f48a51244be content::ContentMain()
+#42 0x7f48a3d73f0d ChromeMain
+#43 0x7f4899096ec5 __libc_start_main
+#44 0x7f48a3cb4d4d <unknown>
+Received signal 6
+#0 0x7f48a3cf4141 __interceptor_backtrace
+#1 0x7f48a51f99e0 base::debug::StackTrace::StackTrace()
+#2 0x7f48a51f8af4 base::debug::(anonymous namespace)::StackDumpSignalHandler()
+#3 0x7f489a677340 <unknown>
+#4 0x7f48990abcc9 gsignal
+#5 0x7f48990af0d8 abort
+#6 0x7f48a51f7baa base::debug::BreakDebugger()
+#7 0x7f48a5269cd2 logging::LogMessage::~LogMessage()
+#8 0x7f48b4856ef4 ui::LatencyInfo::AddLatencyNumberWithTimestampImpl()
+#9 0x7f48b4855974 ui::LatencyInfo::AddLatencyNumberWithTimestamp()
+#10 0x7f48b4b12c84 content::PassThroughImageTransportSurface::FinishSwapBuffers()
+#11 0x7f48b4b127fc content::PassThroughImageTransportSurface::SwapBuffers()
+#12 0x7f48b51ddb33 gpu::gles2::GLES2DecoderImpl::DoSwapBuffers()
+#13 0x7f48b515679b gpu::gles2::GLES2DecoderImpl::HandleSwapBuffers()
+#14 0x7f48b5195f24 gpu::gles2::GLES2DecoderImpl::DoCommandsImpl<>()
+#15 0x7f48b5194496 gpu::gles2::GLES2DecoderImpl::DoCommands()
+#16 0x7f48b534ae69 gpu::CommandParser::ProcessCommands()
+#17 0x7f48b50e312a gpu::CommandExecutor::PutChanged()
+#18 0x7f48b4b09ed5 _ZN4base8internal12InvokeHelperILb0EvNS0_15RunnableAdapterIMN7content20GpuCommandBufferStubEFvvEEEE8MakeItSoIJPS4_EEEvS7_DpOT_
+#19 0x7f48b4b09d48 _ZN4base8internal7InvokerINS_13IndexSequenceIJLm0EEEENS0_9BindStateINS0_15RunnableAdapterIMN7content20GpuCommandBufferStubEFvvEEEFvPS7_EJNS0_17UnretainedWrapperIS7_EEEEENS0_12InvokeHelperILb0EvSA_EEFvvEE3RunEPNS0_13BindStateBaseE
+#20 0x7f48b50e073a gpu::CommandBufferService::Flush()
+#21 0x7f48b4af5d07 content::GpuCommandBufferStub::OnAsyncFlush()
+#22 0x7f48b4b04ce5 _ZN3IPC16DispatchToMethodIN7content20GpuCommandBufferStubEMS2_FvijRKNSt3__16vectorIN2ui11LatencyInfoENS3_9allocatorIS6_EEEEEvNS3_5tupleIJijS9_EEEEEvPT_T0_PT1_RKT2_
+#23 0x7f48b4af58df _ZN3IPC8MessageTI35GpuCommandBufferMsg_AsyncFlush_MetaNSt3__15tupleIJijNS2_6vectorIN2ui11LatencyInfoENS2_9allocatorIS6_EEEEEEEvE8DispatchIN7content20GpuCommandBufferStubESE_vMSE_FvijRKS9_EEEbPKNS_7MessageEPT_PT0_PT1_T2_
+#24 0x7f48b4aefb3e content::GpuCommandBufferStub::OnMessageReceived()
+#25 0x7f48b49d5cfa IPC::MessageRouter::RouteMessage()
+#26 0x7f48b4ad7ae8 content::GpuChannel::HandleMessageHelper()
+#27 0x7f48b4ad754d content::GpuChannel::HandleMessage()
+#28 0x7f48b4ae4d99 _ZN4base8internal12InvokeHelperILb1EvNS0_15RunnableAdapterIMN7content10GpuChannelEFvRK13scoped_refptrINS3_22GpuChannelMessageQueueEEEEEE8MakeItSoINS_7WeakPtrIS4_EEJS9_EEEvSC_T_DpOT0_
+#29 0x7f48b4ae4c04 _ZN4base8internal7InvokerINS_13IndexSequenceIJLm0ELm1EEEENS0_9BindStateINS0_15RunnableAdapterIMN7content10GpuChannelEFvRK13scoped_refptrINS6_22GpuChannelMessageQueueEEEEEFvPS7_SC_EJNS_7WeakPtrIS7_EESC_EEENS0_12InvokeHelperILb1EvSF_EEFvvEE3RunEPNS0_13BindStateBaseE
+#30 0x7f48a5417038 base::debug::TaskAnnotator::RunTask()
+#31 0x7f48a5284f99 base::MessageLoop::RunTask()
+#32 0x7f48a5285d2e base::MessageLoop::DeferOrRunPendingTask()
+#33 0x7f48a52863d3 base::MessageLoop::DoWork()
+#34 0x7f48a540e87d base::MessagePumpGlib::HandleDispatch()
+#35 0x7f48a540f7af base::(anonymous namespace)::WorkSourceDispatch()
+#36 0x7f48a0111e04 g_main_context_dispatch
+#37 0x7f48a0112048 <unknown>
+#38 0x7f48a01120ec g_main_context_iteration
+#39 0x7f48a540ef32 base::MessagePumpGlib::Run()
+#40 0x7f48a52844e5 base::MessageLoop::RunHandler()
+#41 0x7f48a52f55b5 base::RunLoop::Run()
+#42 0x7f48a5281c89 base::MessageLoop::Run()
+#43 0x7f48b40e73dc content::GpuMain()
+#44 0x7f48a5126dab content::RunNamedProcessTypeMain()
+#45 0x7f48a512a433 content::ContentMainRunnerImpl::Run()
+#46 0x7f48a51244be content::ContentMain()
+#47 0x7f48a3d73f0d ChromeMain
+#48 0x7f4899096ec5 __libc_start_main
+#49 0x7f48a3cb4d4d <unknown>
+  r8: 0000000008000000  r9: 000000000000b270 r10: 0000000000000008 r11: 0000000000000206
+ r12: 00007f48a0ed0800 r13: 00007f48a0ed0a60 r14: 00007f48a0ed0aa0 r15: 0000000000000000
+  di: 0000000000005ec0  si: 0000000000005ec0  bp: 00007ffefe02d710  bx: 00007ffefe02d720
+  dx: 0000000000000006  ax: 0000000000000000  cx: ffffffffffffffff  sp: 00007ffefe02d5d8
+  ip: 00007f48990abcc9 efl: 0000000000000206 cgf: 0000000000000033 erf: 0000000000000000
+ trp: 0000000000000000 msk: 0000000000000000 cr2: 0000000000000000
+[end of stack trace]

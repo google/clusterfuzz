@@ -1,0 +1,14 @@
+"element_1"
+"HTML"
+
+# Empty lines and comments since this is a manual section of the dictionary.
+
+"\x00\xFF" # Comments everywhere!
+"\x0a\x0d"
+
+# Recommended dictionary stored in GCS.
+"x\x0a"
+"\x00\x00\x00\x00"
+"*\x0a"
+"1337"
+"XXXXXX"

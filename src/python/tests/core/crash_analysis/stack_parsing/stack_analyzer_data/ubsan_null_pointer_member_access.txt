@@ -1,0 +1,24 @@
+  Running command: /mnt/scratch0/clusterfuzz/bot/builds/clusterfuzz-builds_libxml2_ce1b30bbec4a9f82204cba87518d9a199407ecb0/revisions/libxml2_xml_regexp_compile_fuzzer -runs=100 -max_len=4788 -rss_limit_mb=2048 -timeout=25 /7e2ff2bb7024c8ffcbf111aca5aeb7bc22bae3ba753cd6f2f2b51ab2fb7d3312dfdb070e9fa59fccc5ec15b626d5485c8527752c54d58c44f68a4125f9e23e75830c119ba0ce3846b697c5142f8de660d532095f02e2c47c9df22e2e8bf931dbfuzz-2-libxml2_xml_regexp_compile_fuzzer
+INFO: Seed: 3907006728
+INFO: Loaded 0 modules (0 guards):
+/mnt/scratch0/clusterfuzz/bot/builds/clusterfuzz-builds_libxml2_ce1b30bbec4a9f82204cba87518d9a199407ecb0/revisions/libxml2_xml_regexp_compile_fuzzer: Running 1 inputs 100 time(s) each.
+Running: /7e2ff2bb7024c8ffcbf111aca5aeb7bc22bae3ba753cd6f2f2b51ab2fb7d3312dfdb070e9fa59fccc5ec15b626d5485c8527752c54d58c44f68a4125f9e23e75830c119ba0ce3846b697c5142f8de660d532095f02e2c47c9df22e2e8bf931dbfuzz-2-libxml2_xml_regexp_compile_fuzzer
+xmlregexp.c:4883:14: runtime error: member access within null pointer of type xmlRegAtom (aka struct _xmlRegAtom)
+#0 0x480c2a in xmlFAParseCharClassEsc /src/libxml2/xmlregexp.c:4883:14
+#1 0x480474 in xmlFAParseAtom /src/libxml2/xmlregexp.c:5299:2
+#2 0x48031d in xmlFAParsePiece /src/libxml2/xmlregexp.c:5316:11
+#3 0x480219 in xmlFAParseBranch /src/libxml2/xmlregexp.c:5342:11
+#4 0x4794ef in xmlFAParseRegExp /src/libxml2/xmlregexp.c:5377:5
+#5 0x479227 in xmlRegexpCompile /src/libxml2/xmlregexp.c:5473:5
+#6 0x42d8ca in LLVMFuzzerTestOneInput /src/libxml2_xml_regexp_compile_fuzzer.cc:29:20
+#7 0x43caed in fuzzer::Fuzzer::ExecuteCallback(unsigned char const*, unsigned long) /src/libfuzzer/FuzzerLoop.cpp:458:13
+#8 0x43cec7 in fuzzer::Fuzzer::RunOne(unsigned char const*, unsigned long) /src/libfuzzer/FuzzerLoop.cpp:397:3
+#9 0x42e008 in fuzzer::RunOneTest(fuzzer::Fuzzer*, char const*, unsigned long) /src/libfuzzer/FuzzerDriver.cpp:268:6
+#10 0x4324a8 in fuzzer::FuzzerDriver(int*, char***, int (*)(unsigned char const*, unsigned long)) /src/libfuzzer/FuzzerDriver.cpp:683:9
+#11 0x42dc6c in main /src/libfuzzer/FuzzerMain.cpp:20:10
+#12 0x7f051628282f in __libc_start_main /build/glibc-9tT8Do/glibc-2.23/csu/libc-start.c:291
+#13 0x406758 in _start
+SUMMARY: UndefinedBehaviorSanitizer: undefined-behavior xmlregexp.c:4883:14 in
+MS: 0 ; base unit: 0000000000000000000000000000000000000000
+0x5c,0x50,0x7b,
+\\P{

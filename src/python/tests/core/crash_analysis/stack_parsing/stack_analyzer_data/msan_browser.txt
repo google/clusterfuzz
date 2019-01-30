@@ -1,0 +1,40 @@
+==8966==WARNING: MemorySanitizer: use-of-uninitialized-value
+    #0 0x7fbe995caeff in gfx::Transform::TransformPointInternal(SkMatrix44 const&, gfx::Point3F*) const ui/gfx/transform.cc:520:27
+    #1 0x7fbe995cb2ca in gfx::Transform::TransformPointReverse(gfx::Point3F*) const ui/gfx/transform.cc:435:3
+    #2 0x7fbea53d897d in ConvertPointFromAncestor ui/views/view.cc:2058:3
+    #3 0x7fbea53d897d in ConvertPointFromWidget ui/views/view.cc:695
+    #4 0x7fbea53d897d in views::View::ConvertPointFromScreen(views::View const*, gfx::Point*) ui/views/view.cc:720
+    #5 0x7fbea53dc145 in views::View::IsMouseHovered() const ui/views/view.cc:958:3
+    #6 0x7fbea2907c01 in ReloadButton::ChangeMode(ReloadButton::Mode, bool) chrome/browser/ui/views/toolbar/reload_button.cc:67:18
+    #7 0x7fbea2a75e64 in UpdateReloadStopState chrome/browser/ui/browser_command_controller.cc:1205:3
+    #8 0x7fbea2a75e64 in chrome::BrowserCommandController::LoadingStateChanged(bool, bool) chrome/browser/ui/browser_command_controller.cc:277
+    #9 0x7fbea2a5fa4b in Browser::LoadingStateChanged(content::WebContents*, bool) chrome/browser/ui/browser.cc:1601:5
+    #10 0x7fbea3de2156 in content::WebContentsImpl::LoadingStateChanged(bool, bool, content::LoadNotificationDetails*) content/browser/web_contents/web_contents_impl.cc:3818:5
+    #11 0x7fbea3e06d9e in content::WebContentsImpl::DidStopLoading() content/browser/web_contents/web_contents_impl.cc:4226:3
+    #12 0x7fbea431aa5d in content::FrameTreeNode::DidStopLoading() content/browser/frame_host/frame_tree_node.cc:419:5
+    #13 0x7fbea37c7208 in content::RenderFrameHostImpl::OnDidStopLoading() content/browser/frame_host/render_frame_host_impl.cc:1844:5
+    #14 0x7fbea3ce4f86 in content::SiteInstanceImpl::RenderProcessExited(content::RenderProcessHost*, base::TerminationStatus, int) content/browser/site_instance_impl.cc:414:3
+    #15 0x7fbea3a30bcd in content::RenderProcessHostImpl::ProcessDied(bool, content::RenderProcessHost::RendererClosedDetails*) content/browser/renderer_host/render_process_host_impl.cc:2459:3
+    #16 0x7fbea3a2fc33 in content::RenderProcessHostImpl::FastShutdownIfPossible() content/browser/renderer_host/render_process_host_impl.cc:1705:3
+    #17 0x7fbe967ba3af in browser_shutdown::OnShutdownStarting(browser_shutdown::ShutdownType) chrome/browser/browser_shutdown.cc:135:10
+    #18 0x7fbe963a64a4 in chrome::SessionEnding() chrome/browser/lifetime/application_lifetime.cc:274:3
+    #19 0x7fbe961623f5 in (anonymous namespace)::BrowserX11IOErrorHandler(_XDisplay*) chrome/browser/chrome_browser_main_extra_parts_x11.cc:63:3
+    #20 0x7fbe90e3c1f9 in _XIOError out-msan-no-origins-trusty/Release/obj/third_party/instrumented_libraries/msan-libx11-6.gen/libx11-6/libx11-1.6.2/src/XlibInt.c:1498:2
+    #21 0x7fbe90e33d20 in _XEventsQueued out-msan-no-origins-trusty/Release/obj/third_party/instrumented_libraries/msan-libx11-6.gen/libx11-6/libx11-1.6.2/src/xcb_io.c:366:4
+    #22 0x7fbe90e02161 in XPending out-msan-no-origins-trusty/Release/obj/third_party/instrumented_libraries/msan-libx11-6.gen/libx11-6/libx11-1.6.2/src/Pending.c:55:12
+    #23 0x7fbe940bc9f1 in g_main_context_check out-msan-no-origins-trusty/Release/obj/third_party/instrumented_libraries/msan-libglib2.0-0.gen/libglib2.0-0/glib2.0-2.40.2/glib/gmain.c:3575:24
+    #24 0x7fbe940bdf7b in g_main_context_iterate out-msan-no-origins-trusty/Release/obj/third_party/instrumented_libraries/msan-libglib2.0-0.gen/libglib2.0-0/glib2.0-2.40.2/glib/gmain.c:3731:16
+    #25 0x7fbe940be166 in g_main_context_iteration out-msan-no-origins-trusty/Release/obj/third_party/instrumented_libraries/msan-libglib2.0-0.gen/libglib2.0-0/glib2.0-2.40.2/glib/gmain.c:3795:12
+    #26 0x7fbe9730b458 in base::MessagePumpGlib::Run(base::MessagePump::Delegate*) base/message_loop/message_pump_glib.cc:309:30
+    #27 0x7fbe971f378a in base::RunLoop::Run() base/run_loop.cc:35:3
+    #28 0x7fbe9680f694 in ChromeBrowserMainParts::MainMessageLoopRun(int*) chrome/browser/chrome_browser_main.cc:1855:3
+    #29 0x7fbea410e2a1 in content::BrowserMainLoop::RunMainMessageLoopParts() content/browser/browser_main_loop.cc:935:21
+    #30 0x7fbea3686e7b in content::BrowserMainRunnerImpl::Run() content/browser/browser_main_runner.cc:154:5
+    #31 0x7fbea368506e in content::BrowserMain(content::MainFunctionParams const&) content/browser/browser_main.cc:46:15
+    #32 0x7fbe9701f781 in content::RunNamedProcessTypeMain(std::__1::basic_string<char, std::__1::char_traits<char>, std::__1::allocator<char> > const&, content::MainFunctionParams const&, content::ContentMainDelegate*) content/app/content_main_runner.cc:381:14
+    #33 0x7fbe9702265a in content::ContentMainRunnerImpl::Run() content/app/content_main_runner.cc:742:12
+    #34 0x7fbe9701b875 in content::ContentMain(content::ContentMainParams const&) content/app/content_main.cc:20:15
+    #35 0x7fbe95db2f53 in ChromeMain chrome/app/chrome_main.cc:84:12
+    #36 0x7fbe95db2d7f in main chrome/app/chrome_exe_main_aura.cc:17:10
+    #37 0x7fbe8bc5cec4 in __libc_start_main /build/eglibc-3GlaMS/eglibc-2.19/csu/libc-start.c:287
+    #38 0x7fbe95d4b3c4 in _start

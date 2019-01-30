@@ -1,0 +1,20 @@
+Running command: /mnt/scratch0/clusterfuzz/bot/builds/clusterfuzz-builds_woff2_b3b735e8cc2a2b9b4a095b289dfa25297b5088d2/revisions/convert_woff2ttf_fuzzer -runs=100 -max_len=1000000 -rss_limit_mb=2048 -timeout=25 /19fde25d9ff13e1b974ea33096b77f78ad78665c361a5f98c48723533072eb66ece5a8b20db514e177c99c677546002f3d601daf1aadf58614b6d73aa09fabe3b72c4d04bc8a0a0205eb224f39d47b78dd26861a68a56e93b03d64364719e50cfuzz-3-woff2_convert_woff2ttf_fuzzer
+INFO: Seed: 3894629002
+INFO: Loaded 0 modules (0 guards):
+/mnt/scratch0/clusterfuzz/bot/builds/clusterfuzz-builds_woff2_b3b735e8cc2a2b9b4a095b289dfa25297b5088d2/revisions/convert_woff2ttf_fuzzer: Running 1 inputs 100 time(s) each.
+Running: /19fde25d9ff13e1b974ea33096b77f78ad78665c361a5f98c48723533072eb66ece5a8b20db514e177c99c677546002f3d601daf1aadf58614b6d73aa09fabe3b72c4d04bc8a0a0205eb224f39d47b78dd26861a68a56e93b03d64364719e50cfuzz-3-woff2_convert_woff2ttf_fuzzer
+/usr/local/bin/../include/c++/v1/vector:1498:12: runtime error: reference binding to null pointer of type unsigned char
+#0 0x455bd8 in operator[] /usr/local/include/c++/v1/vector:1498:5
+#1 0x455bd8 in woff2::ConvertWOFF2ToTTF(unsigned char const*, unsigned long, woff2::WOFF2Out*) /src/woff2/src/woff2_dec.cc:1302
+#2 0x4557a3 in LLVMFuzzerTestOneInput /src/woff2/src/convert_woff2ttf_fuzzer.cc:11:3
+#3 0x43b80d in fuzzer::Fuzzer::ExecuteCallback(unsigned char const*, unsigned long) /src/libfuzzer/FuzzerLoop.cpp:458:13
+#4 0x43bbe7 in fuzzer::Fuzzer::RunOne(unsigned char const*, unsigned long) /src/libfuzzer/FuzzerLoop.cpp:397:3
+#5 0x42cd18 in fuzzer::RunOneTest(fuzzer::Fuzzer*, char const*, unsigned long) /src/libfuzzer/FuzzerDriver.cpp:268:6
+#6 0x4311b8 in fuzzer::FuzzerDriver(int*, char***, int (*)(unsigned char const*, unsigned long)) /src/libfuzzer/FuzzerDriver.cpp:683:9
+#7 0x42c97c in main /src/libfuzzer/FuzzerMain.cpp:20:10
+#8 0x7f95cd12f82f in __libc_start_main /build/glibc-9tT8Do/glibc-2.23/csu/libc-start.c:291
+#9 0x405848 in _start
+SUMMARY: UndefinedBehaviorSanitizer: undefined-behavior /usr/local/bin/../include/c++/v1/vector:1498:12 in
+MS: 0 ; base unit: 0000000000000000000000000000000000000000
+0x77,0x4f,0x46,0x32,0x0,0x1,0x0,0x0,0x0,0x0,0x0,0x34,0x0,0x1,0x0,0x0,0x0,0x0,0x0,0x1,0x0,0x0,0x0,0x2,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x4f,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x4f,0x0,0x0,0x4f,0x4f,
+wOF2\x00\x01\x00\x00\x00\x00\x004\x00\x01\x00\x00\x00\x00\x00\x01\x00\x00\x00\x02\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00O\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00O\x00\x00OO

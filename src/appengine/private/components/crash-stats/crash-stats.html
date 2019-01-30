@@ -1,0 +1,509 @@
+<!--
+  Copyright 2018 Google LLC
+
+  Licensed under the Apache License, Version 2.0 (the "License");
+  you may not use this file except in compliance with the License.
+  You may obtain a copy of the License at
+
+       http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+-->
+<link rel="import" href="../../bower_components/polymer/polymer.html">
+<link rel="import" href="../../bower_components/iron-ajax/iron-ajax.html">
+<link rel="import" href="../../bower_components/iron-icons/iron-icons.html">
+<link rel="import" href="../../bower_components/iron-icon/iron-icon.html">
+<link rel="import" href="../../bower_components/paper-button/paper-button.html">
+<link rel="import" href="../../bower_components/paper-icon-button/paper-icon-button.html">
+<link rel="import" href="../../bower_components/paper-spinner/paper-spinner.html">
+<link rel="import" href="../../bower_components/paper-styles/color.html">
+<link rel="import" href="../../bower_components/paper-toggle-button/paper-toggle-button.html">
+<link rel="import" href="../../components/crash-stats-chart/crash-stats-header.html">
+<link rel="import" href="../../components/crash-stats-chart/crash-stats-chart.html">
+<link rel="import" href="../common/if-else/if-else.html">
+<link rel="import" href="../common/paginated-list/paginated-list.html">
+<link rel="import" href="../common/render-either/render-either.html">
+<link rel="import" href="search-control-panel.html">
+
+<dom-module id="crash-stats">
+  <link rel="import" href="../../stylesheets/main.css" type="css">
+  <link rel="import" href="../technology/technology.css" type="css">
+  <script src="../../javascripts/error.js" type="text/javascript"></script>
+  <template>
+    <style>
+      :host {
+        display: block;
+      }
+
+      :host #mainContent {
+        width: 1200px;
+      }
+
+      :host .error {
+        text-align: left;
+        color: #ca4545;
+        display: block;
+        padding: 30px 60px;
+        box-shadow: 0px 3px 6px rgba(0, 0, 0, 0.2);
+        background-color: #f2f7fa;
+      }
+
+      :host .error .title {
+        display: block;
+        font-weight: bold;
+      }
+
+      :host .error .trace-dump {
+        display: block;
+        overflow: auto;
+        font-family: 'Source Code Pro', monospace;
+        white-space: pre;
+        margin-top: 10px;
+        font-size: 12px;
+      }
+
+      :host .empty {
+        text-align: center;
+        color: #777;
+        display: block;
+        padding: 30px;
+        font-weight: bold;
+        font-size: 18px;
+        box-shadow: 0px 3px 6px rgba(0, 0, 0, 0.2);
+        background-color: #f2f7fa;
+      }
+
+      :host .empty .keyword-tip {
+        display: block;
+        margin-top: 22px;
+        color: #888;
+        font-size: 14px;
+        font-weight: normal;
+        line-height: 22px;
+      }
+
+      :host .too-many-items-tip {
+        display: block;
+        color: #888;
+        text-align: center;
+        font-size: 14px;
+        font-weight: normal;
+        line-height: 22px;
+        margin: 20px 0px;
+      }
+
+      :host .crashes div.row {
+        display: block;
+      }
+
+      :host .crashes .total-count-label {
+        display: block;
+        padding: 5px;
+        font-style: italic;
+        color: #555;
+        font-size: 14px;
+        text-align: center;
+        background-color: #d0d5d7;
+      }
+
+      :host .crashes {
+        display: block;
+        overflow: hidden;
+        box-shadow: 0px 3px 6px rgba(0, 0, 0, 0.2);
+        background-color: #f2f7fa;
+        padding: 3px;
+      }
+
+      :host div.row > table {
+        display: block;
+        width: 100%;
+      }
+
+      :host div.row > table td.left {
+        width: 576px;
+        vertical-align: top;
+        padding-left: 5px;
+      }
+
+      :host div.row > table td.right {
+        width: 614px;
+        text-align: right;
+      }
+
+      :host div.row .type {
+        display: block;
+        padding: 20px 0px 5px;
+        font-size: 16px;
+        font-weight: bold;
+        text-decoration: none;
+      }
+
+      :host div.row .states {
+        width: 468px;
+        font-weight: normal;
+        font-family: 'Source Code Pro', monospace;
+        text-decoration: none;
+        white-space: nowrap;
+        overflow: hidden;
+        display: block;
+        line-height: 22px;
+        font-size: 13px;
+      }
+
+      :host div.row span.type, :host div.row span.states {
+        cursor: not-allowed;
+      }
+
+      :host div.row a.type, :host div.row a.states {
+        color: #444;
+      }
+
+      :host div.row a.type:hover, :host div.row a.states:hover {
+        color: #4078c0 !important;
+      }
+
+      :host div.row a.type:visited, :host div.row a.states:visited {
+        color: #551A8B !important;
+      }
+
+      :host .states span {
+        display: block;
+      }
+
+      :host .labels {
+        display: block;
+        white-space: normal;
+      }
+
+      :host .label {
+        font-size: 13px;
+        display: inline-block;
+        margin-right: 5px;
+        border: 1px solid #ccc;
+        color: #ccc;
+        padding: 2px 4px;
+        vertical-align: middle;
+        font-weight: normal;
+        line-height: 12px;
+        text-decoration: none;
+        margin: 5px 0px 0px;
+      }
+
+      :host .label.project {
+        border: 1px solid #5D4037;
+        color: #5D4037;
+      }
+
+      :host .label.security {
+        border: 1px solid #FC2929;
+        color: #FC2929;
+      }
+
+      :host .label.reproducible {
+        border: 1px solid #5319E7;
+        color: #5319E7;
+      }
+
+      :host .label.new {
+        border: 1px solid #228B22;
+        color: #228B22;
+      }
+
+      :host .label.issue {
+        border: 1px solid #01579B;
+        color: #01579B;
+        text-decoration: none;
+      }
+
+      :host .seen {
+        font-size: 12px;
+        line-height: 18px;
+        margin-top: 8px;
+        display: block;
+        color: #888;
+      }
+
+      :host .crash-time-help {
+        width: 14px;
+        height: 14px;
+        margin-top: -3px;
+        cursor: help;
+      }
+    </style>
+    <iron-ajax
+      id="ajax"
+      url="/crash-stats/load"
+      method="POST"
+      content-type="application/json"
+      body="[[ajaxParams]]"
+      loading="{{loading}}"
+      last-request="{{request}}"
+      last-error="{{error}}"
+      last-response="{{response}}"
+      on-error="handleError"
+      on-request="handleRequest"
+      on-response="handleResponse"
+      debounce-duration="500"></iron-ajax>
+    <app-toolbar>
+      <paper-icon-button icon="menu" onclick="document.getElementById('drawer').toggle()"></paper-icon-button>
+      <div id="title">Crash Statistics</div>
+      <template is="dom-if" if="[[loading]]">
+        <paper-spinner active="[[loading]]"></paper-spinner>
+      </template>
+    </app-toolbar>
+    <div id="mainContent">
+      <search-control-panel
+          id="searchControlPanel"
+          field-values="[[fieldValues]]"
+          params="{{params}}"
+          loading="[[loading]]"
+          projected-key="{{projectedKey}}"
+          on-search-button-tapped="searchButtonTapped"></search-control-panel>
+      <paginated-list
+          id="paginatedList"
+          result="{{result}}"
+          params="{{params}}"
+          keys="[[paramKeys]]"
+          loading="[[loading]]"
+          on-params-modified="paramsModified">
+        <div class="error" hidden$="[[!shouldShowError(result, result.error)]]">
+          <span class="title">[[result.error.message]]</span>
+          <span class="trace-dump" hidden$="[[!result.error.traceDump]]"
+            >[[result.error.traceDump]]</span>
+        </div>
+        <div class="empty" hidden$="[[!shouldShowEmpty(result, result.items)]]">
+          Didn't find anything with the current search.<br/>
+          <span class="keyword-tip">
+            Searching matches only whole words, including words within camel-cased text.</br>
+            For example, <strong>debug</strong>, <strong>break</strong>, <strong>tree</strong>, <strong>debugbreak</strong>, or <strong>break::tree</strong> match <strong>DebugBreak::Tree</strong>.</br>
+            But <strong>de</strong>, <strong>ub</strong>, or <strong>ak::tr</strong> don't match it.
+          </span>
+        </div>
+        <div class="crashes" hidden$="[[!shouldShowItems(result, result.items)]]">
+          <div class="total-count-label">[[result.totalCount]] unique crashes have been found.</div>
+          <template is="dom-repeat" items="[[result.items]]">
+            <div class="row">
+              <table cellpadding="0" cellspacing="0" border="0">
+                <tr>
+                  <td class="left">
+                    <template is="dom-if" if="[[item.testcase.id]]">
+                      <a href="/testcase-detail/[[item.testcase.id]]" title="Click to view the associated testcase." class="type">
+                        [[item.crashType]]
+                      </a>
+                      <a href="/testcase-detail/[[item.testcase.id]]" title="Click to view the associated testcase." class="states">
+                        <template is="dom-repeat" items="[[splitLines(item.crashState)]]" as="state">
+                          <span>[[state]]</span>
+                        </template>
+                      </a>
+                    </template>
+                    <template is="dom-if" if="[[!item.testcase.id]]">
+                      <span class="type" title="An associated testcase cannot be found.">
+                        [[item.crashType]]
+                      </span>
+                      <span class="states" title="An associated testcase cannot be found.">
+                        <template is="dom-repeat" items="[[splitLines(item.crashState)]]" as="state">
+                          <span>[[state]]</span>
+                        </template>
+                      </span>
+                    </template>
+                    <span class="labels">
+                      <span class="label project" title="The crash is associated with [[item.projectName]] project.">Project [[item.projectName]]</span>
+                      <if-else condition="[[item.isSecurity]]">
+                        <span slot="t" class="label security" title="The crash is security-related.">Security</span>
+                        <span slot="f" class="label" title="The crash is NOT security-related.">Security</span>
+                      </if-else>
+                      <if-else condition="[[item.isReproducible]]">
+                        <span slot="t" class="label reproducible" title="The crash is reliably reproducible at least once over the selected time period.">Reliably reproduces</span>
+                        <span slot="f" class="label" title="The crash is not reliably reproducible over the selected time period.">Reliably reproduces</span>
+                      </if-else>
+                      <if-else condition="[[item.isNew]]">
+                        <span slot="t" class="label new" title="The crash is considered as 'new' within the selected time period.">New</span>
+                        <span slot="f" class="label" title="The crash is NOT considered as 'new' within the selected time period.">New</span>
+                      </if-else>
+                      <template is="dom-repeat" items="[[getIssue(item)]]" as="issue">
+                        <a class="label issue" href="/issue/[[item.testcase.id]]/[[issue.number]]" title="[[issue.title]]">Issue [[issue.number]]</a>
+                      </template>
+                    </span>
+                    <span class="seen">
+                      Time to crash: [[toSeconds(item.crashTime.avg)]]s
+                      <iron-icon class="crash-time-help" icon="icons:help-outline" title="The number of seconds it took before crashing over the selected time period: avg=[[toSeconds(item.crashTime.avg)]]s min=[[toSeconds(item.crashTime.min)]]s max=[[toSeconds(item.crashTime.max)]] std=[[toSeconds(item.crashTime.std)]]s"></iron-icon>
+                      <br/>
+                      Total count: [[formatNumber(item.totalCount)]]
+                    </span>
+                  </td>
+                  <td class="right">
+                    <crash-stats-header
+                      header-width="614"
+                      end="[[item.end]]"
+                      days="[[item.days]]"
+                      block="[[item.block]]">
+                    </crash-stats-header>
+                    <crash-stats-chart
+                      chart-width="614"
+                      groups="[[item.groups]]"
+                      days="[[item.days]]"
+                      number-type="[[params.number]]"
+                      end="[[item.end]]"
+                      block="[[item.block]]">
+                    </crash-stats-chart>
+                  </td>
+                </tr>
+              </table>
+            </div>
+          </template>
+        </div>
+      </paginated-list>
+      <div class="too-many-items-tip" hidden$="[[!shouldShowFilterTip(result)]]">
+        Too many items? An additional filters on platform is supported. <br/>
+        Try adding <strong>platform:"android:hammerhead:m"</strong> to the search textbox.
+      </div>
+    </div>
+  </template>
+  <script>
+    Polymer({
+      is: 'crash-stats',
+      properties: {
+          numSlots: {
+            type: Number,
+            value: 12
+          },
+          result:  Object,
+          fieldValues:  Object,
+          params: Object,
+          paramKeys: {
+              type: Array,
+              value: [
+                  'page', 'q', 'reproducible', 'security', 'fuzzer', 'block',
+                  'job', 'end', 'days', 'platform', 'project', 'group',
+                  'number', 'new', 'sort'
+              ]
+          },
+          projectedKey: {
+              type: String,
+              value: 'platforms'
+          },
+          response: Object,
+          loading: {
+              type: Boolean,
+              value: false
+          },
+          error: {
+            type: Object,
+            value: false
+          }
+      },
+      shouldShowError(result, error) {
+        return !!error;
+      },
+      shouldShowEmpty(result, items) {
+        return items != null && items.length == 0;
+      },
+      shouldShowItems(result, items) {
+        return items && items.length > 0;
+      },
+      ready() {
+        if (this.result) {
+          this.set('result.error', this.result.error || null);
+        }
+
+        this.paramKeys.forEach((key) => {
+          if (!this.params[key]) {
+            this.set(`params.${key}`, '');
+          }
+        });
+
+        this.$.paginatedList.init();
+      },
+      searchButtonTapped(ev) {
+        this.params.page = '';
+        this.set('result.page', 1);
+        this.search();
+      },
+      paramsModified(ev) {
+        this.search();
+      },
+      search() {
+
+        this.ajaxParams = {};
+        let hasParam = false;
+        this.paramKeys.forEach((key) => {
+          if (this.params[key]) {
+            hasParam = key != 'page' && true;
+            this.ajaxParams[key] = this.params[key];
+          }
+        });
+
+        this.$.paginatedList.updateQuery();
+        this.$.ajax.generateRequest();
+      },
+      handleRequest() {
+        var reqs = this.$.ajax.activeRequests;
+        for (let i=0;i<reqs.length;i++) {
+          if (reqs[i] != this.request) {
+            reqs[i].abort();
+          }
+        }
+      },
+      handleResponse() {
+        this.result = this.response;
+        this.set('result.error', null);
+        this.$.paginatedList.save();
+        this.$.searchControlPanel.focus();
+      },
+      handleError() {
+        let error = parseError(this.error);
+        if (!error) {
+          // this.error is undefined because its request is aborted.
+          return;
+        }
+
+        this.set('result.items', null);
+        this.set('result.error', error);
+
+        this.$.paginatedList.save();
+        this.$.searchControlPanel.focus();
+      },
+      shouldShowFilterTip(result) {
+        return result && result.totalPages >= 3;
+      },
+      toSeconds(timeInMs) {
+        return (timeInMs / 1000).toFixed(2).toLocaleString();
+      },
+      getIssue(item) {
+        if (!item.testcase) { return []; }
+
+        if (item.testcase.issueNumber) {
+          return [{
+              number: item.testcase.issueNumber,
+              title: 'Click to view the associated issue ' + item.testcase.issueNumber + ' in the issue tracker.'
+          }];
+        } else if (item.testcase.groupIssueNumber) {
+          return [{
+              number: item.testcase.groupIssueNumber,
+              title: ('Click to view the associated issue ' + item.testcase.groupIssueNumber + ' (from its group) ' +
+                      'in the issue tracker.')
+          }];
+        }
+
+        return [];
+      },
+      formatNumber(num) {
+        return num.toLocaleString();
+      },
+      formatTime(hours) {
+        let date = new Date(hours * 60 * 60 * 1000);
+        return date.toLocaleDateString(
+            'en-US',
+            {year: 'numeric', month: 'short', day: 'numeric', hour: 'numeric'});
+      },
+      splitLines(content) {
+        return content.trim().split(/\r?\n/);
+      }
+    });
+  </script>
+</dom-module>
+

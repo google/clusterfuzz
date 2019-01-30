@@ -1,0 +1,193 @@
+/mnt/scratch0/clusterfuzz/bot/builds/chromium-browser-tsan_linux-release_e1f0dbf462d779d5196ef318a224a998657a9c66/revisions/tsan-linux-release-399078/chrome --user-data-dir=/mnt/scratch0/tmp/user_profile_0 --js-flags="--expose-gc" --no-first-run --disable-gpu --no-sandbox /mnt/scratch0/clusterfuzz/bot/inputs/fuzzer-common-data-bundles/CrashTests/5717155692675072/fuzz-lyt-test1465545993.15.html
+
+[Crash Revision] r399078
+[Environment] TSAN_OPTIONS = external_symbolizer_path=/mnt/scratch0/clusterfuzz/resources/platform/linux/llvm-symbolizer:history_size=3:symbolize_inline_frames=false:stack_trace_format=DEFAULT:report_signal_unsafe=0:report_thread_leaks=0:flush_memory_ms=2000:atexit_sleep_ms=200:symbolize=1:suppressions=/mnt/scratch0/clusterfuzz/scripts/suppressions/tsan_suppressions.txt
+
+[25746:25746:0610+/master/docs/linux_suid_sandbox_development.md for more information on developing with the sandbox on.
+Xlib:  extension "RANDR" missing on display ":1".
+Xlib:  extension "RANDR" missing on display ":1".
+==================
+WARNING: ThreadSanitizer: data race (pid=25777)
+  Atomic write of size 8 at 0x7e97c31793f0 by thread T13:
+    #0 0x7f823f63fc58 in __tsan_atomic64_store (/mnt/scratch0/clusterfuzz/bot/builds/chromium-browser-tsan_linux-release_e1f0dbf462d779d5196ef318a224a998657a9c66/revisions/tsan-linux-release-399078/chrome+0xbccc57)
+    #1 0x7f8241e5fba0 in blink::SQLTransactionBackend::getNextStatement() third_party/WebKit/Source/wtf/Atomics.h:163:5
+    #2 0x7f8241e5ee84 in blink::SQLTransactionBackend::runStatements() third_party/WebKit/Source/modules/webdatabase/SQLTransactionBackend.cpp:645:13
+    #3 0x7f8241e5f752 in blink::SQLTransactionBackend::performNextStep() third_party/WebKit/Source/modules/webdatabase/SQLTransactionStateMachine.h:102:23
+    #4 0x7f8242340f84 in blink::Database::DatabaseTransactionTask::doPerformTask() third_party/WebKit/Source/modules/webdatabase/DatabaseTask.cpp:145:20
+    #5 0x7f8242340a19 in blink::DatabaseTask::run() third_party/WebKit/Source/modules/webdatabase/DatabaseTask.cpp:72:5
+    #6 0x7f8242342e87 in WTF::PartBoundFunctionImpl<(WTF::FunctionThreadAffinity)0, std::__1::tuple<WTF::OwnPtr<blink::DatabaseTask>&&>, WTF::FunctionWrapper<void (blink::DatabaseTask::*)()>>::operator()() third_party/WebKit/Source/wtf/Functional.h:173:16
+    #7 0x7f824113cd30 in blink::CrossThreadTask::run() third_party/WebKit/Source/platform/WebTaskRunner.cpp:38:9
+    #8 0x7f8246b10dae in scheduler::WebTaskRunnerImpl::runTask(std::__1::unique_ptr<blink::WebTaskRunner::Task, std::__1::default_delete<blink::WebTaskRunner::Task> >) components/scheduler/child/web_task_runner_impl.cc:70:9
+    #9 0x7f8246b11202 in base::internal::Invoker<base::IndexSequence<0ul>, base::internal::BindState<base::internal::RunnableAdapter<void (*)(std::__1::unique_ptr<blink::WebTaskRunner::Task, std::__1::default_delete<blink::WebTaskRunner::Task> >)>, void (std::__1::unique_ptr<blink::WebTaskRunner::Task, std::__1::default_delete<blink::WebTaskRunner::Task> >), base::internal::PassedWrapper<std::__1::unique_ptr<blink::WebTaskRunner::Task, std::__1::default_delete<blink::WebTaskRunner::Task> > > >, false, void ()>::Run(base::internal::BindStateBase*) base/bind_internal.h:160:12
+    #10 0x7f823fd039ae in base::debug::TaskAnnotator::RunTask(char const*, base::PendingTask const&) base/callback.h:397:12
+    #11 0x7f8246b1bc66 in scheduler::TaskQueueManager::ProcessTaskFromWorkQueue(scheduler::internal::WorkQueue*, scheduler::internal::TaskQueueImpl::Task*) components/scheduler/base/task_queue_manager.cc:289:19
+    #12 0x7f8246b1a2e0 in scheduler::TaskQueueManager::DoWork(base::TimeTicks, bool) components/scheduler/base/task_queue_manager.cc:201:13
+    #13 0x7f8246b1cd9f in base::internal::Invoker<base::IndexSequence<0ul, 1ul, 2ul>, base::internal::BindState<base::internal::RunnableAdapter<void (scheduler::TaskQueueManager::*)(base::TimeTicks, bool)>, void (scheduler::TaskQueueManager*, base::TimeTicks, bool), base::WeakPtr<scheduler::TaskQueueManager>, base::TimeTicks, bool>, true, void ()>::Run(base::internal::BindStateBase*) base/bind_internal.h:187:12
+    #14 0x7f823fd039ae in base::debug::TaskAnnotator::RunTask(char const*, base::PendingTask const&) base/callback.h:397:12
+    #15 0x7f823fc8537c in base::MessageLoop::RunTask(base::PendingTask const&) base/message_loop/message_loop.cc:475:19
+    #16 0x7f823fc8592e in base::MessageLoop::DeferOrRunPendingTask(base::PendingTask const&) base/message_loop/message_loop.cc:484:5
+    #17 0x7f823fc860d3 in base::MessageLoop::DoWork() base/message_loop/message_loop.cc:601:13
+    #18 0x7f823fc89862 in base::MessagePumpDefault::Run(base::MessagePump::Delegate*) base/message_loop/message_pump_default.cc:33:31
+    #19 0x7f823fc84d1c in base::MessageLoop::RunHandler() base/message_loop/message_loop.cc:439:10
+    #20 0x7f823fcaada8 in base::RunLoop::Run() base/run_loop.cc:35:10
+    #21 0x7f823fc84546 in base::MessageLoop::Run() base/message_loop/message_loop.cc:294:12
+    #22 0x7f823fcd747a in base::Thread::Run(base::MessageLoop*) base/threading/thread.cc:204:17
+    #23 0x7f823fcd764a in base::Thread::ThreadMain() base/threading/thread.cc:256:3
+    #24 0x7f823fcd1b4e in base::(anonymous namespace)::ThreadFunc(void*) base/threading/platform_thread_posix.cc:70:13
+
+  Previous read of size 8 at 0x7e97c31793f0 by main thread (mutexes: write M471, write M981):
+    #0 0x7f82410e9f89 in blink::CrossThreadPersistentRegion::shouldTracePersistentNode(blink::Visitor*, blink::PersistentNode*) third_party/WebKit/Source/platform/heap/Persistent.h:118:29
+    #1 0x7f82410e9e04 in blink::PersistentRegion::tracePersistentNodes(blink::Visitor*, bool (*)(blink::Visitor*, blink::PersistentNode*)) third_party/WebKit/Source/platform/heap/PersistentNode.cpp:99:22
+    #2 0x7f82410e05dd in blink::ThreadHeap::visitPersistentRoots(blink::Visitor*) third_party/WebKit/Source/platform/heap/PersistentNode.h:222:29
+    #3 0x7f82410dfa29 in blink::ThreadHeap::collectGarbage(blink::BlinkGC::StackState, blink::BlinkGC::GCType, blink::BlinkGC::GCReason) third_party/WebKit/Source/platform/heap/Heap.cpp:527:23
+    #4 0x7f82410ee786 in blink::ThreadState::performIdleGC(double) third_party/WebKit/Source/platform/heap/ThreadState.cpp:721:5
+    #5 0x7f82410f3fed in WTF::PartBoundFunctionImpl<(WTF::FunctionThreadAffinity)1, std::__1::tuple<blink::ThreadState*&&>, WTF::FunctionWrapper<void (blink::ThreadState::*)(double)>, double>::operator()(double) third_party/WebKit/Source/wtf/Functional.h:167:16
+    #6 0x7f824110920a in blink::(anonymous namespace)::IdleTaskRunner::run(double) third_party/WebKit/Source/platform/WebScheduler.cpp:33:9
+    #7 0x7f8246b10706 in scheduler::WebSchedulerImpl::runIdleTask(std::__1::unique_ptr<blink::WebThread::IdleTask, std::__1::default_delete<blink::WebThread::IdleTask> >, base::TimeTicks) components/scheduler/child/web_scheduler_impl.cc:45:9
+    #8 0x7f8246aff9e2 in base::internal::Invoker<base::IndexSequence<0ul>, base::internal::BindState<base::internal::RunnableAdapter<void (*)(std::__1::unique_ptr<blink::WebThread::IdleTask, std::__1::default_delete<blink::WebThread::IdleTask> >, base::TimeTicks)>, void (std::__1::unique_ptr<blink::WebThread::IdleTask, std::__1::default_delete<blink::WebThread::IdleTask> >, base::TimeTicks), base::internal::PassedWrapper<std::__1::unique_ptr<blink::WebThread::IdleTask, std::__1::default_delete<blink::WebThread::IdleTask> > > >, false, void (base::TimeTicks)>::Run(base::internal::BindStateBase*, base::TimeTicks&&) base/bind_internal.h:160:12
+    #9 0x7f8246afe674 in scheduler::SingleThreadIdleTaskRunner::RunTask(base::Callback<void (base::TimeTicks), (base::internal::CopyMode)1>) base/callback.h:397:12
+    #10 0x7f8246afebb2 in void base::internal::InvokeHelper<true, void>::MakeItSo<base::internal::RunnableAdapter<void (scheduler::SingleThreadIdleTaskRunner::*)(base::Callback<void (base::TimeTicks), (base::internal::CopyMode)1>)>&, base::WeakPtr<scheduler::SingleThreadIdleTaskRunner>, base::Callback<void (base::TimeTicks), (base::internal::CopyMode)1> const&>(base::internal::RunnableAdapter<void (scheduler::SingleThreadIdleTaskRunner::*)(base::Callback<void (base::TimeTicks), (base::internal::CopyMode)1>)>&, base::WeakPtr<scheduler::SingleThreadIdleTaskRunner>, base::Callback<void (base::TimeTicks), (base::internal::CopyMode)1> const&) base/bind_internal.h:187:12
+    #11 0x7f8246afeae8 in base::internal::Invoker<base::IndexSequence<0ul, 1ul>, base::internal::BindState<base::internal::RunnableAdapter<void (scheduler::SingleThreadIdleTaskRunner::*)(base::Callback<void (base::TimeTicks), (base::internal::CopyMode)1>)>, void (scheduler::SingleThreadIdleTaskRunner*, base::Callback<void (base::TimeTicks), (base::internal::CopyMode)1>), base::WeakPtr<scheduler::SingleThreadIdleTaskRunner>&, base::Callback<void (base::TimeTicks), (base::internal::CopyMode)1> const&>, true, void ()>::Run(base::internal::BindStateBase*) base/bind_internal.h:364:12
+    #12 0x7f823fd039ae in base::debug::TaskAnnotator::RunTask(char const*, base::PendingTask const&) base/callback.h:397:12
+    #13 0x7f8246b1bc66 in scheduler::TaskQueueManager::ProcessTaskFromWorkQueue(scheduler::internal::WorkQueue*, scheduler::internal::TaskQueueImpl::Task*) components/scheduler/base/task_queue_manager.cc:289:19
+    #14 0x7f8246b1a2e0 in scheduler::TaskQueueManager::DoWork(base::TimeTicks, bool) components/scheduler/base/task_queue_manager.cc:201:13
+    #15 0x7f8246b1cd9f in base::internal::Invoker<base::IndexSequence<0ul, 1ul, 2ul>, base::internal::BindState<base::internal::RunnableAdapter<void (scheduler::TaskQueueManager::*)(base::TimeTicks, bool)>, void (scheduler::TaskQueueManager*, base::TimeTicks, bool), base::WeakPtr<scheduler::TaskQueueManager>, base::TimeTicks, bool>, true, void ()>::Run(base::internal::BindStateBase*) base/bind_internal.h:187:12
+    #16 0x7f823fd039ae in base::debug::TaskAnnotator::RunTask(char const*, base::PendingTask const&) base/callback.h:397:12
+    #17 0x7f823fc8537c in base::MessageLoop::RunTask(base::PendingTask const&) base/message_loop/message_loop.cc:475:19
+    #18 0x7f823fc8592e in base::MessageLoop::DeferOrRunPendingTask(base::PendingTask const&) base/message_loop/message_loop.cc:484:5
+    #19 0x7f823fc860d3 in base::MessageLoop::DoWork() base/message_loop/message_loop.cc:601:13
+    #20 0x7f823fc89862 in base::MessagePumpDefault::Run(base::MessagePump::Delegate*) base/message_loop/message_pump_default.cc:33:31
+    #21 0x7f823fc84d1c in base::MessageLoop::RunHandler() base/message_loop/message_loop.cc:439:10
+    #22 0x7f823fcaada8 in base::RunLoop::Run() base/run_loop.cc:35:10
+    #23 0x7f823fc84546 in base::MessageLoop::Run() base/message_loop/message_loop.cc:294:12
+    #24 0x7f82449ee20a in content::RendererMain(content::MainFunctionParams const&) content/renderer/renderer_main.cc:199:37
+    #25 0x7f823fc0f8ec in content::RunZygote(content::MainFunctionParams const&, content::ContentMainDelegate*) content/app/content_main_runner.cc:345:14
+    #26 0x7f823fc10450 in content::RunNamedProcessTypeMain(std::__1::basic_string<char, std::__1::char_traits<char>, std::__1::allocator<char> > const&, content::MainFunctionParams const&, content::ContentMainDelegate*) content/app/content_main_runner.cc:428:12
+    #27 0x7f823fc110ee in content::ContentMainRunnerImpl::Run() content/app/content_main_runner.cc:787:12
+    #28 0x7f823fc0f2ff in content::ContentMain(content::ContentMainParams const&) content/app/content_main.cc:20:28
+    #29 0x7f823f660ab3 in ChromeMain chrome/app/chrome_main.cc:84:12
+    #30 0x7f823f660a3f in main chrome/app/chrome_exe_main_aura.cc:17:10
+
+  Mutex M471 (0x7d380000d9e0) created at:
+    #0 0x7f823f6037c4 in pthread_mutex_init (/mnt/scratch0/clusterfuzz/bot/builds/chromium-browser-tsan_linux-release_e1f0dbf462d779d5196ef318a224a998657a9c66/revisions/tsan-linux-release-399078/chrome+0xb907c3)
+    #1 0x7f82463dcc5c in WTF::MutexBase::MutexBase(bool) third_party/WebKit/Source/wtf/ThreadingPthreads.cpp:113:18
+    #2 0x7f82410de407 in blink::ThreadHeap::ThreadHeap() third_party/WebKit/Source/wtf/ThreadingPrimitives.h:107:24
+    #3 0x7f82410eb691 in blink::ThreadState::ThreadState(bool) third_party/WebKit/Source/platform/heap/ThreadState.cpp:122:22
+    #4 0x7f82410ebd59 in blink::ThreadState::attachMainThread() third_party/WebKit/Source/platform/heap/ThreadState.cpp:196:36
+    #5 0x7f8241118ee3 in blink::Platform::initialize(blink::Platform*) third_party/WebKit/Source/platform/exported/Platform.cpp:88:5
+    #6 0x7f8241c7c36f in blink::initialize(blink::Platform*) third_party/WebKit/Source/web/WebKit.cpp:83:5
+    #7 0x7f82449aa80d in content::RenderThreadImpl::InitializeWebKit(scoped_refptr<base::SingleThreadTaskRunner>&) content/renderer/render_thread_impl.cc:1160:3
+    #8 0x7f82449a90b0 in content::RenderThreadImpl::Init(scoped_refptr<base::SingleThreadTaskRunner>&) content/renderer/render_thread_impl.cc:627:3
+    #9 0x7f82449a8ec2 in content::RenderThreadImpl::RenderThreadImpl(std::__1::unique_ptr<base::MessageLoop, std::__1::default_delete<base::MessageLoop> >, std::__1::unique_ptr<scheduler::RendererScheduler, std::__1::default_delete<scheduler::RendererScheduler> >) content/renderer/render_thread_impl.cc:606:3
+    #10 0x7f82449a8ae7 in content::RenderThreadImpl::Create(std::__1::unique_ptr<base::MessageLoop, std::__1::default_delete<base::MessageLoop> >, std::__1::unique_ptr<scheduler::RendererScheduler, std::__1::default_delete<scheduler::RendererScheduler> >) content/renderer/render_thread_impl.cc:575:14
+    #11 0x7f82449ee171 in content::RendererMain(content::MainFunctionParams const&) content/renderer/renderer_main.cc:187:5
+    #12 0x7f823fc0f8ec in content::RunZygote(content::MainFunctionParams const&, content::ContentMainDelegate*) content/app/content_main_runner.cc:345:14
+    #13 0x7f823fc10450 in content::RunNamedProcessTypeMain(std::__1::basic_string<char, std::__1::char_traits<char>, std::__1::allocator<char> > const&, content::MainFunctionParams const&, content::ContentMainDelegate*) content/app/content_main_runner.cc:428:12
+    #14 0x7f823fc110ee in content::ContentMainRunnerImpl::Run() content/app/content_main_runner.cc:787:12
+    #15 0x7f823fc0f2ff in content::ContentMain(content::ContentMainParams const&) content/app/content_main.cc:20:28
+    #16 0x7f823f660ab3 in ChromeMain chrome/app/chrome_main.cc:84:12
+    #17 0x7f823f660a3f in main chrome/app/chrome_exe_main_aura.cc:17:10
+
+  Mutex M981 (0x7d0c000233d8) created at:
+    #0 0x7f823f6037c4 in pthread_mutex_init (/mnt/scratch0/clusterfuzz/bot/builds/chromium-browser-tsan_linux-release_e1f0dbf462d779d5196ef318a224a998657a9c66/revisions/tsan-linux-release-399078/chrome+0xb907c3)
+    #1 0x7f82463dcc5c in WTF::MutexBase::MutexBase(bool) third_party/WebKit/Source/wtf/ThreadingPthreads.cpp:113:18
+    #2 0x7f82410de164 in blink::ProcessHeap::crossThreadPersistentRegion() third_party/WebKit/Source/wtf/ThreadingPrimitives.h:107:24
+    #3 0x7f8242b34528 in blink::PersistentBase<blink::NavigationScheduler, (blink::WeaknessPersistentConfiguration)1, (blink::CrossThreadnessPersistentConfiguration)1>::initialize() third_party/WebKit/Source/platform/heap/Persistent.h:200:13
+    #4 0x7f8242b30b46 in _ZN5blink22CancellableTaskFactory6createINS_19NavigationSchedulerEEEN3WTF6OwnPtrIS0_EEPT_MS6_FvvEPNSt3__19enable_ifIXsr22IsGarbageCollectedTypeIS6_EE5valueEvE4typeE third_party/WebKit/Source/platform/heap/Persistent.h:50:9
+    #5 0x7f8242b30a9c in blink::NavigationScheduler::NavigationScheduler(blink::LocalFrame*) third_party/WebKit/Source/core/loader/NavigationScheduler.cpp:307:29
+    #6 0x7f82429f7053 in blink::LocalFrame::LocalFrame(blink::FrameLoaderClient*, blink::FrameHost*, blink::FrameOwner*, blink::ServiceRegistry*) third_party/WebKit/Source/core/loader/NavigationScheduler.h:58:20
+    #7 0x7f82429f6e01 in blink::LocalFrame::create(blink::FrameLoaderClient*, blink::FrameHost*, blink::FrameOwner*, blink::ServiceRegistry*) third_party/WebKit/Source/core/frame/LocalFrame.cpp:172:29
+    #8 0x7f8241c86ca2 in blink::WebLocalFrameImpl::initializeCoreFrame(blink::FrameHost*, blink::FrameOwner*, WTF::AtomicString const&, WTF::AtomicString const&) third_party/WebKit/Source/web/WebLocalFrameImpl.cpp:1493:18
+    #9 0x7f8241c9f6ec in blink::WebViewImpl::setMainFrame(blink::WebFrame*) third_party/WebKit/Source/web/WebViewImpl.cpp:377:26
+    #10 0x7f82449711fb in content::RenderFrameImpl::CreateMainFrame(content::RenderViewImpl*, int, int, bool, blink::WebScreenInfo const&, content::CompositorDependencies*, blink::WebFrame*) content/renderer/render_frame_impl.cc:898:27
+    #11 0x7f82449b97c8 in content::RenderViewImpl::Initialize(ViewMsg_New_Params const&, bool) content/renderer/render_view_impl.cc:723:26
+    #12 0x7f82449bd5bc in content::RenderViewImpl::Create(content::CompositorDependencies*, ViewMsg_New_Params const&, bool) content/renderer/render_view_impl.cc:1133:16
+    #13 0x7f82449b2e9a in content::RenderThreadImpl::OnCreateNewView(ViewMsg_New_Params const&) content/renderer/render_thread_impl.cc:1755:3
+    #14 0x7f82449b2d2b in bool IPC::MessageT<ViewMsg_New_Meta, std::__1::tuple<ViewMsg_New_Params>, void>::Dispatch<content::RenderThreadImpl, content::RenderThreadImpl, void, void (content::RenderThreadImpl::*)(ViewMsg_New_Params const&)>(IPC::Message const*, content::RenderThreadImpl*, content::RenderThreadImpl*, void*, void (content::RenderThreadImpl::*)(ViewMsg_New_Params const&)) base/tuple.h:126:3
+    #15 0x7f82449b22b1 in content::RenderThreadImpl::OnControlMessageReceived(IPC::Message const&) content/renderer/render_thread_impl.cc:1682:5
+    #16 0x7f82449b3c95 in non-virtual thunk to content::RenderThreadImpl::OnControlMessageReceived(IPC::Message const&) content/renderer/render_thread_impl.cc:1661:24
+    #17 0x7f8246a81d4c in content::ChildThreadImpl::OnMessageReceived(IPC::Message const&) content/child/child_thread_impl.cc:664:12
+    #18 0x7f8240ea33b5 in IPC::ChannelProxy::Context::OnDispatchMessage(IPC::Message const&) ipc/ipc_channel_proxy.cc:284:14
+    #19 0x7f8240ea55be in base::internal::Invoker<base::IndexSequence<0ul, 1ul>, base::internal::BindState<base::internal::RunnableAdapter<void (IPC::ChannelProxy::Context::*)(IPC::Message const&)>, void (IPC::ChannelProxy::Context*, IPC::Message const&), IPC::ChannelProxy::Context*, IPC::Message const&>, false, void ()>::Run(base::internal::BindStateBase*) base/bind_internal.h:187:12
+    #20 0x7f823fd039ae in base::debug::TaskAnnotator::RunTask(char const*, base::PendingTask const&) base/callback.h:397:12
+    #21 0x7f8246b1bc66 in scheduler::TaskQueueManager::ProcessTaskFromWorkQueue(scheduler::internal::WorkQueue*, scheduler::internal::TaskQueueImpl::Task*) components/scheduler/base/task_queue_manager.cc:289:19
+    #22 0x7f8246b1a2e0 in scheduler::TaskQueueManager::DoWork(base::TimeTicks, bool) components/scheduler/base/task_queue_manager.cc:201:13
+    #23 0x7f8246b1cd9f in base::internal::Invoker<base::IndexSequence<0ul, 1ul, 2ul>, base::internal::BindState<base::internal::RunnableAdapter<void (scheduler::TaskQueueManager::*)(base::TimeTicks, bool)>, void (scheduler::TaskQueueManager*, base::TimeTicks, bool), base::WeakPtr<scheduler::TaskQueueManager>, base::TimeTicks, bool>, true, void ()>::Run(base::internal::BindStateBase*) base/bind_internal.h:187:12
+    #24 0x7f823fd039ae in base::debug::TaskAnnotator::RunTask(char const*, base::PendingTask const&) base/callback.h:397:12
+    #25 0x7f823fc8537c in base::MessageLoop::RunTask(base::PendingTask const&) base/message_loop/message_loop.cc:475:19
+    #26 0x7f823fc8592e in base::MessageLoop::DeferOrRunPendingTask(base::PendingTask const&) base/message_loop/message_loop.cc:484:5
+    #27 0x7f823fc860d3 in base::MessageLoop::DoWork() base/message_loop/message_loop.cc:601:13
+    #28 0x7f823fc89862 in base::MessagePumpDefault::Run(base::MessagePump::Delegate*) base/message_loop/message_pump_default.cc:33:31
+    #29 0x7f823fc84d1c in base::MessageLoop::RunHandler() base/message_loop/message_loop.cc:439:10
+    #30 0x7f823fcaada8 in base::RunLoop::Run() base/run_loop.cc:35:10
+    #31 0x7f823fc84546 in base::MessageLoop::Run() base/message_loop/message_loop.cc:294:12
+    #32 0x7f82449ee20a in content::RendererMain(content::MainFunctionParams const&) content/renderer/renderer_main.cc:199:37
+    #33 0x7f823fc0f8ec in content::RunZygote(content::MainFunctionParams const&, content::ContentMainDelegate*) content/app/content_main_runner.cc:345:14
+    #34 0x7f823fc10450 in content::RunNamedProcessTypeMain(std::__1::basic_string<char, std::__1::char_traits<char>, std::__1::allocator<char> > const&, content::MainFunctionParams const&, content::ContentMainDelegate*) content/app/content_main_runner.cc:428:12
+    #35 0x7f823fc110ee in content::ContentMainRunnerImpl::Run() content/app/content_main_runner.cc:787:12
+    #36 0x7f823fc0f2ff in content::ContentMain(content::ContentMainParams const&) content/app/content_main.cc:20:28
+    #37 0x7f823f660ab3 in ChromeMain chrome/app/chrome_main.cc:84:12
+    #38 0x7f823f660a3f in main chrome/app/chrome_exe_main_aura.cc:17:10
+
+  Thread T13 WebCore: Database (tid=25874, running) created by main thread at:
+    #0 0x7f823f6027b6 in pthread_create (/mnt/scratch0/clusterfuzz/bot/builds/chromium-browser-tsan_linux-release_e1f0dbf462d779d5196ef318a224a998657a9c66/revisions/tsan-linux-release-399078/chrome+0xb8f7b5)
+    #1 0x7f823fcd17cb in base::(anonymous namespace)::CreateThread(unsigned long, bool, base::PlatformThread::Delegate*, base::PlatformThreadHandle*, base::ThreadPriority) base/threading/platform_thread_posix.cc:109:13
+    #2 0x7f823fcd16d6 in base::PlatformThread::CreateWithPriority(unsigned long, base::PlatformThread::Delegate*, base::PlatformThreadHandle*, base::ThreadPriority) base/threading/platform_thread_posix.cc:190:10
+    #3 0x7f823fcd71f1 in base::Thread::StartWithOptions(base::Thread::Options const&) base/threading/thread.cc:118:10
+    #4 0x7f8246affbbf in scheduler::WebThreadImplForWorkerScheduler::WebThreadImplForWorkerScheduler(char const*, base::Thread::Options) components/scheduler/child/webthread_impl_for_worker_scheduler.cc:30:27
+    #5 0x7f8246affa93 in scheduler::WebThreadImplForWorkerScheduler::WebThreadImplForWorkerScheduler(char const*) components/scheduler/child/webthread_impl_for_worker_scheduler.cc:24:7
+    #6 0x7f8246a704f1 in content::BlinkPlatformImpl::createThread(char const*) content/child/blink_platform_impl.cc:454:11
+    #7 0x7f8246431386 in blink::WebThreadSupportingGC::create(char const*, bool) third_party/WebKit/Source/platform/WebThreadSupportingGC.cpp:35:56
+    #8 0x7f8242341510 in blink::DatabaseThread::start() third_party/WebKit/Source/modules/webdatabase/DatabaseThread.cpp:65:16
+    #9 0x7f824233fc6b in blink::DatabaseContext::databaseThreadAvailable() third_party/WebKit/Source/modules/webdatabase/DatabaseContext.cpp:163:27
+    #10 0x7f8242333ada in blink::Database::openAndVerifyVersion(bool, blink::DatabaseError&, WTF::String&) third_party/WebKit/Source/modules/webdatabase/Database.cpp:263:32
+    #11 0x7f8241e4c728 in blink::DatabaseManager::openDatabaseInternal(blink::ExecutionContext*, WTF::String const&, WTF::String const&, WTF::String const&, unsigned int, bool, blink::DatabaseError&, WTF::String&) third_party/WebKit/Source/modules/webdatabase/DatabaseManager.cpp:184:22
+    #12 0x7f8241e4c7f7 in blink::DatabaseManager::openDatabase(blink::ExecutionContext*, WTF::String const&, WTF::String const&, WTF::String const&, unsigned int, blink::DatabaseCallback*, blink::DatabaseError&, WTF::String&) third_party/WebKit/Source/modules/webdatabase/DatabaseManager.cpp:212:26
+    #13 0x7f82423322b5 in blink::DOMWindowWebDatabase::openDatabase(blink::DOMWindow&, WTF::String const&, WTF::String const&, WTF::String const&, unsigned int, blink::DatabaseCallback*, blink::ExceptionState&) third_party/WebKit/Source/modules/webdatabase/DOMWindowWebDatabase.cpp:51:30
+    #14 0x7f82420fa003 in blink::DOMWindowPartialV8Internal::openDatabaseMethodCallback(v8::FunctionCallbackInfo<v8::Value> const&) out/Release/gen/blink/bindings/modules/v8/V8WindowPartial.cpp:849:24
+    #15 0x7f824192e48a in v8::internal::FunctionCallbackArguments::Call(void (*)(v8::FunctionCallbackInfo<v8::Value> const&)) v8/src/api-arguments.cc:19:3
+    #16 0x7f82412447c4 in v8::internal::(anonymous namespace)::HandleApiCallHelper(v8::internal::Isolate*, v8::internal::(anonymous namespace)::BuiltinArguments<(v8::internal::BuiltinExtraArguments)3>) v8/src/builtins.cc:5087:36
+    #17 0x7f8241282b1a in v8::internal::Builtin_Impl_HandleApiCall(v8::internal::(anonymous namespace)::BuiltinArguments<(v8::internal::BuiltinExtraArguments)3>, v8::internal::Isolate*) v8/src/builtins.cc:5104:3
+    #18 0x7f8241247f0f in v8::internal::Builtin_HandleApiCall(int, v8::internal::Object**, v8::internal::Isolate*) v8/src/builtins.cc:5102:1
+    #19 0x7f820e9062e7  (<unknown module>)
+    #20 0x7f82414fb001 in v8::internal::Execution::Call(v8::internal::Isolate*, v8::internal::Handle<v8::internal::Object>, v8::internal::Handle<v8::internal::Object>, int, v8::internal::Handle<v8::internal::Object>*) v8/src/execution.cc:154:10
+    #21 0x7f82411ea53c in v8::Script::Run(v8::Local<v8::Context>) v8/src/api.cc:1752:23
+    #22 0x7f82430d761e in blink::V8ScriptRunner::runCompiledScript(v8::Isolate*, v8::Local<v8::Script>, blink::ExecutionContext*) third_party/WebKit/Source/bindings/core/v8/V8ScriptRunner.cpp:414:26
+    #23 0x7f824308b93a in blink::ScriptController::executeScriptAndReturnValue(v8::Local<v8::Context>, blink::ScriptSourceCode const&, blink::AccessControlStatus, double*) third_party/WebKit/Source/bindings/core/v8/ScriptController.cpp:162:21
+    #24 0x7f824308d342 in blink::ScriptController::evaluateScriptInMainWorld(blink::ScriptSourceCode const&, blink::AccessControlStatus, blink::ScriptController::ExecuteScriptPolicy, double*) third_party/WebKit/Source/bindings/core/v8/ScriptController.cpp:412:35
+    #25 0x7f824308d4c2 in blink::ScriptController::executeScriptInMainWorld(blink::ScriptSourceCode const&, blink::AccessControlStatus, double*) third_party/WebKit/Source/bindings/core/v8/ScriptController.cpp:390:5
+    #26 0x7f824665f3f6 in blink::ScriptLoader::executeScript(blink::ScriptSourceCode const&, double*) third_party/WebKit/Source/core/dom/ScriptLoader.cpp:430:21
+    #27 0x7f824665cc64 in blink::ScriptLoader::prepareScript(WTF::TextPosition const&, blink::ScriptLoader::LegacyTypeSupport) third_party/WebKit/Source/core/dom/ScriptLoader.cpp:277:14
+    #28 0x7f824269b20c in blink::HTMLScriptRunner::runScript(blink::Element*, WTF::TextPosition const&) third_party/WebKit/Source/core/html/parser/HTMLScriptRunner.cpp:422:23
+    #29 0x7f824269aedb in blink::HTMLScriptRunner::execute(blink::Element*, WTF::TextPosition const&) third_party/WebKit/Source/core/html/parser/HTMLScriptRunner.cpp:275:5
+    #30 0x7f8242683293 in blink::HTMLDocumentParser::processParsedChunkFromBackgroundParser(WTF::OwnPtr<blink::HTMLDocumentParser::ParsedChunk>) third_party/WebKit/Source/core/html/parser/HTMLDocumentParser.cpp:258:25
+    #31 0x7f8242680c44 in blink::HTMLDocumentParser::pumpPendingSpeculations() third_party/WebKit/Source/core/html/parser/HTMLDocumentParser.cpp:526:36
+    #32 0x7f824268083a in blink::HTMLDocumentParser::resumeParsingAfterYield() third_party/WebKit/Source/core/html/parser/HTMLDocumentParser.cpp:247:5
+    #33 0x7f824268fe82 in blink::HTMLParserScheduler::continueParsing() third_party/WebKit/Source/core/html/parser/HTMLParserScheduler.cpp:158:15
+    #34 0x7f824269086d in void WTF::PartBoundFunctionImpl<(WTF::FunctionThreadAffinity)1, std::__1::tuple<blink::CrossThreadWeakPersistentThisPointer<blink::HTMLParserScheduler>&&>, WTF::FunctionWrapper<void (blink::HTMLParserScheduler::*)()>>::callInternal<0ul>(base::IndexSequence<0ul> const&) third_party/WebKit/Source/wtf/Functional.h:188:16
+    #35 0x7f824269062e in WTF::PartBoundFunctionImpl<(WTF::FunctionThreadAffinity)1, std::__1::tuple<blink::CrossThreadWeakPersistentThisPointer<blink::HTMLParserScheduler>&&>, WTF::FunctionWrapper<void (blink::HTMLParserScheduler::*)()>>::operator()() third_party/WebKit/Source/wtf/Functional.h:341:16
+    #36 0x7f8246512aff in blink::CancellableTaskFactory::CancellableTask::run() third_party/WebKit/Source/platform/scheduler/CancellableTaskFactory.cpp:27:9
+    #37 0x7f8246b10dae in scheduler::WebTaskRunnerImpl::runTask(std::__1::unique_ptr<blink::WebTaskRunner::Task, std::__1::default_delete<blink::WebTaskRunner::Task> >) components/scheduler/child/web_task_runner_impl.cc:70:9
+    #38 0x7f8246b11202 in base::internal::Invoker<base::IndexSequence<0ul>, base::internal::BindState<base::internal::RunnableAdapter<void (*)(std::__1::unique_ptr<blink::WebTaskRunner::Task, std::__1::default_delete<blink::WebTaskRunner::Task> >)>, void (std::__1::unique_ptr<blink::WebTaskRunner::Task, std::__1::default_delete<blink::WebTaskRunner::Task> >), base::internal::PassedWrapper<std::__1::unique_ptr<blink::WebTaskRunner::Task, std::__1::default_delete<blink::WebTaskRunner::Task> > > >, false, void ()>::Run(base::internal::BindStateBase*) base/bind_internal.h:160:12
+    #39 0x7f823fd039ae in base::debug::TaskAnnotator::RunTask(char const*, base::PendingTask const&) base/callback.h:397:12
+    #40 0x7f8246b1bc66 in scheduler::TaskQueueManager::ProcessTaskFromWorkQueue(scheduler::internal::WorkQueue*, scheduler::internal::TaskQueueImpl::Task*) components/scheduler/base/task_queue_manager.cc:289:19
+    #41 0x7f8246b1a2e0 in scheduler::TaskQueueManager::DoWork(base::TimeTicks, bool) components/scheduler/base/task_queue_manager.cc:201:13
+    #42 0x7f8246b1cd9f in base::internal::Invoker<base::IndexSequence<0ul, 1ul, 2ul>, base::internal::BindState<base::internal::RunnableAdapter<void (scheduler::TaskQueueManager::*)(base::TimeTicks, bool)>, void (scheduler::TaskQueueManager*, base::TimeTicks, bool), base::WeakPtr<scheduler::TaskQueueManager>, base::TimeTicks, bool>, true, void ()>::Run(base::internal::BindStateBase*) base/bind_internal.h:187:12
+    #43 0x7f823fd039ae in base::debug::TaskAnnotator::RunTask(char const*, base::PendingTask const&) base/callback.h:397:12
+    #44 0x7f823fc8537c in base::MessageLoop::RunTask(base::PendingTask const&) base/message_loop/message_loop.cc:475:19
+    #45 0x7f823fc8592e in base::MessageLoop::DeferOrRunPendingTask(base::PendingTask const&) base/message_loop/message_loop.cc:484:5
+    #46 0x7f823fc860d3 in base::MessageLoop::DoWork() base/message_loop/message_loop.cc:601:13
+    #47 0x7f823fc89862 in base::MessagePumpDefault::Run(base::MessagePump::Delegate*) base/message_loop/message_pump_default.cc:33:31
+    #48 0x7f823fc84d1c in base::MessageLoop::RunHandler() base/message_loop/message_loop.cc:439:10
+    #49 0x7f823fcaada8 in base::RunLoop::Run() base/run_loop.cc:35:10
+    #50 0x7f823fc84546 in base::MessageLoop::Run() base/message_loop/message_loop.cc:294:12
+    #51 0x7f82449ee20a in content::RendererMain(content::MainFunctionParams const&) content/renderer/renderer_main.cc:199:37
+    #52 0x7f823fc0f8ec in content::RunZygote(content::MainFunctionParams const&, content::ContentMainDelegate*) content/app/content_main_runner.cc:345:14
+    #53 0x7f823fc10450 in content::RunNamedProcessTypeMain(std::__1::basic_string<char, std::__1::char_traits<char>, std::__1::allocator<char> > const&, content::MainFunctionParams const&, content::ContentMainDelegate*) content/app/content_main_runner.cc:428:12
+    #54 0x7f823fc110ee in content::ContentMainRunnerImpl::Run() content/app/content_main_runner.cc:787:12
+    #55 0x7f823fc0f2ff in content::ContentMain(content::ContentMainParams const&) content/app/content_main.cc:20:28
+    #56 0x7f823f660ab3 in ChromeMain chrome/app/chrome_main.cc:84:12
+    #57 0x7f823f660a3f in main chrome/app/chrome_exe_main_aura.cc:17:10
+
+SUMMARY: ThreadSanitizer: data race (/mnt/scratch0/clusterfuzz/bot/builds/chromium-browser-tsan_linux-release_e1f0dbf462d779d5196ef318a224a998657a9c66/revisions/tsan-linux-release-399078/chrome+0xbccc57) in __tsan_atomic64_store
+==================

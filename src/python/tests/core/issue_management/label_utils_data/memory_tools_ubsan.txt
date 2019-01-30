@@ -1,0 +1,140 @@
+/mnt/scratch0/clusterfuzz/bot/builds/chromium-browser-ubsan_linux-release_9227acca8c779ec90eaa02611b89110e18ea367c/revisions/ubsan-linux-release-406906/chrome --user-data-dir=/mnt/scratch0/tmp/user_profile_0 --js-flags="--expose-gc" --no-first-run --use-gl=osmesa --disable-gl-drawing-for-tests --no-sandbox /mnt/scratch0/clusterfuzz/bot/inputs/fuzzer-testcases/fuzz-28.html
+
+[Crash Revision] r406906
+[Environment] UBSAN_OPTIONS = suppressions=/mnt/scratch0/clusterfuzz/scripts/suppressions/ubsan_suppressions.txt:print_stacktrace=1:print_summary=1:symbolize=0
+
+Xlib:  extension "RANDR" missing on display ":1".
+Xlib:  extension "RANDR" missing on display ":1".
+../../third_party/harfbuzz-ng/src/hb-ot-layout-gsubgpos-private.hh:1496:12: runtime error: index 2 out of bounds for type OffsetTo<OT::Coverage> const[1]
+    #0 0x7f532ca3a66c in OT::ContextFormat3::sanitize(OT::hb_sanitize_context_t*) const third_party/harfbuzz-ng/src/hb-ot-layout-gsubgpos-private.hh:1496:12
+    #1 0x7f532ca363f0 in dispatch<OT::ContextFormat3> third_party/harfbuzz-ng/src/hb-open-type-private.hh:203:56
+    #2 0x7f532ca363f0 in OT::hb_sanitize_context_t::return_t OT::Context::dispatch<OT::hb_sanitize_context_t>(OT::hb_sanitize_context_t*) const third_party/harfbuzz-ng/src/hb-ot-layout-gsubgpos-private.hh:1525
+    #3 0x7f532ca35229 in OT::hb_sanitize_context_t::return_t OT::SubstLookupSubTable::dispatch<OT::hb_sanitize_context_t>(OT::hb_sanitize_context_t*, unsigned int) const third_party/harfbuzz-ng/src/hb-ot-layout-gsub-table.hh:1080:20
+    #4 0x7f532ca350cd in OT::hb_sanitize_context_t::return_t OT::Lookup::dispatch<OT::SubstLookupSubTable, OT::hb_sanitize_context_t>(OT::hb_sanitize_context_t*) const third_party/harfbuzz-ng/src/hb-ot-layout-common-private.hh:628:71
+    #5 0x7f532ca34c71 in dispatch<OT::hb_sanitize_context_t> third_party/harfbuzz-ng/src/hb-ot-layout-gsub-table.hh:1231:20
+    #6 0x7f532ca34c71 in OT::SubstLookup::sanitize(OT::hb_sanitize_context_t*) const third_party/harfbuzz-ng/src/hb-ot-layout-gsub-table.hh:1237
+    #7 0x7f532ca34aad in OT::OffsetTo<OT::SubstLookup, OT::IntType<unsigned short, 2u> >::sanitize(OT::hb_sanitize_context_t*, void const*) const third_party/harfbuzz-ng/src/hb-open-type-private.hh:809:5
+    #8 0x7f532ca34733 in OT::ArrayOf<OT::OffsetTo<OT::SubstLookup, OT::IntType<unsigned short, 2u> >, OT::IntType<unsigned short, 2u> >::sanitize(OT::hb_sanitize_context_t*, void const*) const third_party/harfbuzz-ng/src/hb-open-type-private.hh:910:11
+    #9 0x7f532ca3453e in OT::OffsetListOf<OT::SubstLookup>::sanitize(OT::hb_sanitize_context_t*) const third_party/harfbuzz-ng/src/hb-open-type-private.hh:967:5
+    #10 0x7f532ca3000d in OT::OffsetTo<OT::OffsetListOf<OT::SubstLookup>, OT::IntType<unsigned short, 2u> >::sanitize(OT::hb_sanitize_context_t*, void const*) const third_party/harfbuzz-ng/src/hb-open-type-private.hh:809:5
+    #11 0x7f532ca2fce5 in OT::GSUB::sanitize(OT::hb_sanitize_context_t*) const third_party/harfbuzz-ng/src/hb-ot-layout-gsub-table.hh:1274:5
+    #12 0x7f532ca18d3f in OT::Sanitizer<OT::GSUB>::sanitize(hb_blob_t*) third_party/harfbuzz-ng/src/hb-open-type-private.hh:335:15
+    #13 0x7f532ca1856e in _hb_ot_layout_create(hb_face_t*) third_party/harfbuzz-ng/src/hb-ot-layout.cc:57:23
+    #14 0x7f532ca17464 in hb_ot_shaper_face_data_ensure(hb_face_t*) third_party/harfbuzz-ng/src/hb-shaper-list.hh:43:1
+    #15 0x7f532ca166c8 in hb_shape_plan_plan third_party/harfbuzz-ng/src/hb-shaper-list.hh:43:1
+    #16 0x7f532ca166c8 in hb_shape_plan_create third_party/harfbuzz-ng/src/hb-shape-plan.cc:149
+    #17 0x7f532ca17234 in hb_shape_plan_create_cached third_party/harfbuzz-ng/src/hb-shape-plan.cc:458:33
+    #18 0x7f532ca16521 in hb_shape_full third_party/harfbuzz-ng/src/hb-shape.cc:376:33
+    #19 0x7f53325bae61 in blink::HarfBuzzShaper::shapeRange(hb_buffer_t*, unsigned int, unsigned int, blink::SimpleFontData const*, WTF::PassRefPtr<blink::UnicodeRangeSet>, UScriptCode, hb_language_impl_t const*) third_party/WebKit/Source/platform/fonts/shaping/HarfBuzzShaper.cpp:352:5
+    #20 0x7f53325ba412 in blink::HarfBuzzShaper::shapeResult() third_party/WebKit/Source/platform/fonts/shaping/HarfBuzzShaper.cpp:661:18
+    #21 0x7f53325b30a5 in blink::CachingWordShapeIterator::shapeWordWithoutSpacing(blink::TextRun const&, blink::Font const*) third_party/WebKit/Source/platform/fonts/shaping/CachingWordShapeIterator.h:84:56
+    #22 0x7f53325b2a46 in blink::CachingWordShapeIterator::shapeWord(blink::TextRun const&, blink::Font const*) third_party/WebKit/Source/platform/fonts/shaping/CachingWordShapeIterator.h:98:20
+    #23 0x7f53325b2bfe in blink::CachingWordShapeIterator::shapeToEndIndex(WTF::RefPtr<blink::ShapeResult const>*, unsigned int) third_party/WebKit/Source/platform/fonts/shaping/CachingWordShapeIterator.h:173:23
+    #24 0x7f53325b1c38 in nextWord third_party/WebKit/Source/platform/fonts/shaping/CachingWordShapeIterator.h:106:16
+    #25 0x7f53325b1c38 in blink::CachingWordShapeIterator::next(WTF::RefPtr<blink::ShapeResult const>*) third_party/WebKit/Source/platform/fonts/shaping/CachingWordShapeIterator.h:71
+    #26 0x7f53325b1a1a in blink::CachingWordShaper::width(blink::Font const*, blink::TextRun const&, WTF::HashSet<blink::SimpleFontData const*, WTF::PtrHash<blink::SimpleFontData const>, WTF::HashTraits<blink::SimpleFontData const*>, WTF::PartitionAllocator>*, blink::FloatRect*) third_party/WebKit/Source/platform/fonts/shaping/CachingWordShaper.cpp:45:21
+    #27 0x7f53325a8be7 in floatWidthForComplexText third_party/WebKit/Source/platform/fonts/Font.cpp:734:26
+    #28 0x7f53325a8be7 in blink::Font::width(blink::TextRun const&, WTF::HashSet<blink::SimpleFontData const*, WTF::PtrHash<blink::SimpleFontData const>, WTF::HashTraits<blink::SimpleFontData const*>, WTF::PartitionAllocator>*, blink::FloatRect*) const third_party/WebKit/Source/platform/fonts/Font.cpp:242
+    #29 0x7f532ee3b409 in widthFromFont third_party/WebKit/Source/core/layout/LayoutText.cpp:729:22
+    #30 0x7f532ee3b409 in blink::LayoutText::computePreferredLogicalWidths(float, WTF::HashSet<blink::SimpleFontData const*, WTF::PtrHash<blink::SimpleFontData const>, WTF::HashTraits<blink::SimpleFontData const*>, WTF::PartitionAllocator>&, blink::FloatRect&) third_party/WebKit/Source/core/layout/LayoutText.cpp:1053
+    #31 0x7f532ee393c2 in computePreferredLogicalWidths third_party/WebKit/Source/core/layout/LayoutText.cpp:858:5
+    #32 0x7f532ee393c2 in blink::LayoutText::trimmedPrefWidths(blink::LayoutUnit, blink::LayoutUnit&, bool&, blink::LayoutUnit&, bool&, bool&, bool&, blink::LayoutUnit&, blink::LayoutUnit&, blink::LayoutUnit&, blink::LayoutUnit&, bool&, blink::TextDirection) third_party/WebKit/Source/core/layout/LayoutText.cpp:755
+    #33 0x7f532ed798e4 in blink::LayoutBlockFlow::computeInlinePreferredLogicalWidths(blink::LayoutUnit&, blink::LayoutUnit&) third_party/WebKit/Source/core/layout/LayoutBlockFlowLine.cpp:1414:20
+    #34 0x7f532ed4a198 in blink::LayoutBlock::computeIntrinsicLogicalWidths(blink::LayoutUnit&, blink::LayoutUnit&) const third_party/WebKit/Source/core/layout/LayoutBlock.cpp:1227:60
+    #35 0x7f532ed4b197 in blink::LayoutBlock::computePreferredLogicalWidths() third_party/WebKit/Source/core/layout/LayoutBlock.cpp:1262:9
+    #36 0x7f532ed89ba0 in blink::LayoutBox::minPreferredLogicalWidth() const third_party/WebKit/Source/core/layout/LayoutBox.cpp:1023:39
+    #37 0x7f532ed4bd0c in blink::LayoutBlock::computeChildPreferredLogicalWidths(blink::LayoutObject&, blink::LayoutUnit&, blink::LayoutUnit&) const third_party/WebKit/Source/core/layout/LayoutBlock.cpp:1391:38
+    #38 0x7f532ed4a8d6 in blink::LayoutBlock::computeBlockPreferredLogicalWidths(blink::LayoutUnit&, blink::LayoutUnit&) const third_party/WebKit/Source/core/layout/LayoutBlock.cpp:1331:9
+    #39 0x7f532ed4a17f in blink::LayoutBlock::computeIntrinsicLogicalWidths(blink::LayoutUnit&, blink::LayoutUnit&) const third_party/WebKit/Source/core/layout/LayoutBlock.cpp:1229:9
+    #40 0x7f532ed4b197 in blink::LayoutBlock::computePreferredLogicalWidths() third_party/WebKit/Source/core/layout/LayoutBlock.cpp:1262:9
+    #41 0x7f532ee574a7 in blink::LayoutTableCell::computePreferredLogicalWidths() third_party/WebKit/Source/core/layout/LayoutTableCell.cpp:146:22
+    #42 0x7f532ed89c30 in blink::LayoutBox::maxPreferredLogicalWidth() const third_party/WebKit/Source/core/layout/LayoutBox.cpp:1036:39
+    #43 0x7f532ee8ffa4 in blink::TableLayoutAlgorithmAuto::recalcColumn(unsigned int) third_party/WebKit/Source/core/layout/TableLayoutAlgorithmAuto.cpp:68:27
+    #44 0x7f532ee90bef in blink::TableLayoutAlgorithmAuto::fullRecalc() third_party/WebKit/Source/core/layout/TableLayoutAlgorithmAuto.cpp:178:9
+    #45 0x7f532ee91125 in blink::TableLayoutAlgorithmAuto::computeIntrinsicLogicalWidths(blink::LayoutUnit&, blink::LayoutUnit&) third_party/WebKit/Source/core/layout/TableLayoutAlgorithmAuto.cpp:232:5
+    #46 0x7f532ee4f481 in blink::LayoutTable::computePreferredLogicalWidths() third_party/WebKit/Source/core/layout/LayoutTable.cpp:725:5
+    #47 0x7f532ed89ba0 in blink::LayoutBox::minPreferredLogicalWidth() const third_party/WebKit/Source/core/layout/LayoutBox.cpp:1023:39
+    #48 0x7f532ee49c30 in blink::LayoutTable::updateLogicalWidth() third_party/WebKit/Source/core/layout/LayoutTable.cpp:303:57
+    #49 0x7f532ee4b9c9 in blink::LayoutTable::layout() third_party/WebKit/Source/core/layout/LayoutTable.cpp:461:9
+    #50 0x7f532ed46726 in layoutIfNeeded third_party/WebKit/Source/core/layout/LayoutObject.h:897:13
+    #51 0x7f532ed46726 in blink::LayoutBlock::layoutPositionedObjects(bool, blink::LayoutBlock::PositionedLayoutBehavior) third_party/WebKit/Source/core/layout/LayoutBlock.cpp:721
+    #52 0x7f532ed539bb in blink::LayoutBlockFlow::layoutBlockFlow(bool, blink::LayoutUnit&, blink::SubtreeLayoutScope&) third_party/WebKit/Source/core/layout/LayoutBlockFlow.cpp:526:5
+    #53 0x7f532ed52e15 in blink::LayoutBlockFlow::layoutBlock(bool) third_party/WebKit/Source/core/layout/LayoutBlockFlow.cpp:389:16
+    #54 0x7f532ed4379f in blink::LayoutBlock::layout() third_party/WebKit/Source/core/layout/LayoutBlock.cpp:371:5
+    #55 0x7f532ed46726 in layoutIfNeeded third_party/WebKit/Source/core/layout/LayoutObject.h:897:13
+    #56 0x7f532ed46726 in blink::LayoutBlock::layoutPositionedObjects(bool, blink::LayoutBlock::PositionedLayoutBehavior) third_party/WebKit/Source/core/layout/LayoutBlock.cpp:721
+    #57 0x7f532ed539bb in blink::LayoutBlockFlow::layoutBlockFlow(bool, blink::LayoutUnit&, blink::SubtreeLayoutScope&) third_party/WebKit/Source/core/layout/LayoutBlockFlow.cpp:526:5
+    #58 0x7f532ed52e15 in blink::LayoutBlockFlow::layoutBlock(bool) third_party/WebKit/Source/core/layout/LayoutBlockFlow.cpp:389:16
+    #59 0x7f532ed4379f in blink::LayoutBlock::layout() third_party/WebKit/Source/core/layout/LayoutBlock.cpp:371:5
+    #60 0x7f532ed46726 in layoutIfNeeded third_party/WebKit/Source/core/layout/LayoutObject.h:897:13
+    #61 0x7f532ed46726 in blink::LayoutBlock::layoutPositionedObjects(bool, blink::LayoutBlock::PositionedLayoutBehavior) third_party/WebKit/Source/core/layout/LayoutBlock.cpp:721
+    #62 0x7f532ed539bb in blink::LayoutBlockFlow::layoutBlockFlow(bool, blink::LayoutUnit&, blink::SubtreeLayoutScope&) third_party/WebKit/Source/core/layout/LayoutBlockFlow.cpp:526:5
+    #63 0x7f532ed52e15 in blink::LayoutBlockFlow::layoutBlock(bool) third_party/WebKit/Source/core/layout/LayoutBlockFlow.cpp:389:16
+    #64 0x7f532ed4379f in blink::LayoutBlock::layout() third_party/WebKit/Source/core/layout/LayoutBlock.cpp:371:5
+    #65 0x7f532ed552c9 in blink::LayoutBlockFlow::positionAndLayoutOnceIfNeeded(blink::LayoutBox&, blink::LayoutUnit, blink::BlockChildrenLayoutInfo&) third_party/WebKit/Source/core/layout/LayoutBlockFlow.cpp:654:11
+    #66 0x7f532ed55656 in blink::LayoutBlockFlow::layoutBlockChild(blink::LayoutBox&, blink::BlockChildrenLayoutInfo&) third_party/WebKit/Source/core/layout/LayoutBlockFlow.cpp:704:30
+    #67 0x7f532ed5af75 in blink::LayoutBlockFlow::layoutBlockChildren(bool, blink::SubtreeLayoutScope&, blink::LayoutUnit, blink::LayoutUnit) third_party/WebKit/Source/core/layout/LayoutBlockFlow.cpp:1189:9
+    #68 0x7f532ed53655 in blink::LayoutBlockFlow::layoutBlockFlow(bool, blink::LayoutUnit&, blink::SubtreeLayoutScope&) third_party/WebKit/Source/core/layout/LayoutBlockFlow.cpp:471:9
+    #69 0x7f532ed52e15 in blink::LayoutBlockFlow::layoutBlock(bool) third_party/WebKit/Source/core/layout/LayoutBlockFlow.cpp:389:16
+    #70 0x7f532ed4379f in blink::LayoutBlock::layout() third_party/WebKit/Source/core/layout/LayoutBlock.cpp:371:5
+    #71 0x7f532ed552c9 in blink::LayoutBlockFlow::positionAndLayoutOnceIfNeeded(blink::LayoutBox&, blink::LayoutUnit, blink::BlockChildrenLayoutInfo&) third_party/WebKit/Source/core/layout/LayoutBlockFlow.cpp:654:11
+    #72 0x7f532ed55656 in blink::LayoutBlockFlow::layoutBlockChild(blink::LayoutBox&, blink::BlockChildrenLayoutInfo&) third_party/WebKit/Source/core/layout/LayoutBlockFlow.cpp:704:30
+    #73 0x7f532ed5af75 in blink::LayoutBlockFlow::layoutBlockChildren(bool, blink::SubtreeLayoutScope&, blink::LayoutUnit, blink::LayoutUnit) third_party/WebKit/Source/core/layout/LayoutBlockFlow.cpp:1189:9
+    #74 0x7f532ed53655 in blink::LayoutBlockFlow::layoutBlockFlow(bool, blink::LayoutUnit&, blink::SubtreeLayoutScope&) third_party/WebKit/Source/core/layout/LayoutBlockFlow.cpp:471:9
+    #75 0x7f532ed52e15 in blink::LayoutBlockFlow::layoutBlock(bool) third_party/WebKit/Source/core/layout/LayoutBlockFlow.cpp:389:16
+    #76 0x7f532ed4379f in blink::LayoutBlock::layout() third_party/WebKit/Source/core/layout/LayoutBlock.cpp:371:5
+    #77 0x7f532ed552c9 in blink::LayoutBlockFlow::positionAndLayoutOnceIfNeeded(blink::LayoutBox&, blink::LayoutUnit, blink::BlockChildrenLayoutInfo&) third_party/WebKit/Source/core/layout/LayoutBlockFlow.cpp:654:11
+    #78 0x7f532ed55656 in blink::LayoutBlockFlow::layoutBlockChild(blink::LayoutBox&, blink::BlockChildrenLayoutInfo&) third_party/WebKit/Source/core/layout/LayoutBlockFlow.cpp:704:30
+    #79 0x7f532ed5af75 in blink::LayoutBlockFlow::layoutBlockChildren(bool, blink::SubtreeLayoutScope&, blink::LayoutUnit, blink::LayoutUnit) third_party/WebKit/Source/core/layout/LayoutBlockFlow.cpp:1189:9
+    #80 0x7f532ed53655 in blink::LayoutBlockFlow::layoutBlockFlow(bool, blink::LayoutUnit&, blink::SubtreeLayoutScope&) third_party/WebKit/Source/core/layout/LayoutBlockFlow.cpp:471:9
+    #81 0x7f532ed52e15 in blink::LayoutBlockFlow::layoutBlock(bool) third_party/WebKit/Source/core/layout/LayoutBlockFlow.cpp:389:16
+    #82 0x7f532ed4379f in blink::LayoutBlock::layout() third_party/WebKit/Source/core/layout/LayoutBlock.cpp:371:5
+    #83 0x7f532ed552c9 in blink::LayoutBlockFlow::positionAndLayoutOnceIfNeeded(blink::LayoutBox&, blink::LayoutUnit, blink::BlockChildrenLayoutInfo&) third_party/WebKit/Source/core/layout/LayoutBlockFlow.cpp:654:11
+    #84 0x7f532ed55656 in blink::LayoutBlockFlow::layoutBlockChild(blink::LayoutBox&, blink::BlockChildrenLayoutInfo&) third_party/WebKit/Source/core/layout/LayoutBlockFlow.cpp:704:30
+    #85 0x7f532ed5af75 in blink::LayoutBlockFlow::layoutBlockChildren(bool, blink::SubtreeLayoutScope&, blink::LayoutUnit, blink::LayoutUnit) third_party/WebKit/Source/core/layout/LayoutBlockFlow.cpp:1189:9
+    #86 0x7f532ed53655 in blink::LayoutBlockFlow::layoutBlockFlow(bool, blink::LayoutUnit&, blink::SubtreeLayoutScope&) third_party/WebKit/Source/core/layout/LayoutBlockFlow.cpp:471:9
+    #87 0x7f532ed52e15 in blink::LayoutBlockFlow::layoutBlock(bool) third_party/WebKit/Source/core/layout/LayoutBlockFlow.cpp:389:16
+    #88 0x7f532ed4379f in blink::LayoutBlock::layout() third_party/WebKit/Source/core/layout/LayoutBlock.cpp:371:5
+    #89 0x7f532ed552c9 in blink::LayoutBlockFlow::positionAndLayoutOnceIfNeeded(blink::LayoutBox&, blink::LayoutUnit, blink::BlockChildrenLayoutInfo&) third_party/WebKit/Source/core/layout/LayoutBlockFlow.cpp:654:11
+    #90 0x7f532ed55656 in blink::LayoutBlockFlow::layoutBlockChild(blink::LayoutBox&, blink::BlockChildrenLayoutInfo&) third_party/WebKit/Source/core/layout/LayoutBlockFlow.cpp:704:30
+    #91 0x7f532ed5af75 in blink::LayoutBlockFlow::layoutBlockChildren(bool, blink::SubtreeLayoutScope&, blink::LayoutUnit, blink::LayoutUnit) third_party/WebKit/Source/core/layout/LayoutBlockFlow.cpp:1189:9
+    #92 0x7f532ed53655 in blink::LayoutBlockFlow::layoutBlockFlow(bool, blink::LayoutUnit&, blink::SubtreeLayoutScope&) third_party/WebKit/Source/core/layout/LayoutBlockFlow.cpp:471:9
+    #93 0x7f532ed52e15 in blink::LayoutBlockFlow::layoutBlock(bool) third_party/WebKit/Source/core/layout/LayoutBlockFlow.cpp:389:16
+    #94 0x7f532ed4379f in blink::LayoutBlock::layout() third_party/WebKit/Source/core/layout/LayoutBlock.cpp:371:5
+    #95 0x7f532ed552c9 in blink::LayoutBlockFlow::positionAndLayoutOnceIfNeeded(blink::LayoutBox&, blink::LayoutUnit, blink::BlockChildrenLayoutInfo&) third_party/WebKit/Source/core/layout/LayoutBlockFlow.cpp:654:11
+    #96 0x7f532ed55656 in blink::LayoutBlockFlow::layoutBlockChild(blink::LayoutBox&, blink::BlockChildrenLayoutInfo&) third_party/WebKit/Source/core/layout/LayoutBlockFlow.cpp:704:30
+    #97 0x7f532ed5af75 in blink::LayoutBlockFlow::layoutBlockChildren(bool, blink::SubtreeLayoutScope&, blink::LayoutUnit, blink::LayoutUnit) third_party/WebKit/Source/core/layout/LayoutBlockFlow.cpp:1189:9
+    #98 0x7f532ed53655 in blink::LayoutBlockFlow::layoutBlockFlow(bool, blink::LayoutUnit&, blink::SubtreeLayoutScope&) third_party/WebKit/Source/core/layout/LayoutBlockFlow.cpp:471:9
+    #99 0x7f532ed52e15 in blink::LayoutBlockFlow::layoutBlock(bool) third_party/WebKit/Source/core/layout/LayoutBlockFlow.cpp:389:16
+    #100 0x7f532ed4379f in blink::LayoutBlock::layout() third_party/WebKit/Source/core/layout/LayoutBlock.cpp:371:5
+    #101 0x7f532ee7ff57 in layoutContent third_party/WebKit/Source/core/layout/LayoutView.cpp:185:22
+    #102 0x7f532ee7ff57 in blink::LayoutView::layout() third_party/WebKit/Source/core/layout/LayoutView.cpp:261
+    #103 0x7f532e971401 in layoutFromRootObject third_party/WebKit/Source/core/frame/FrameView.cpp:834:10
+    #104 0x7f532e971401 in blink::FrameView::performLayout(bool) third_party/WebKit/Source/core/frame/FrameView.cpp:903
+    #105 0x7f532e96dcaa in blink::FrameView::layout() third_party/WebKit/Source/core/frame/FrameView.cpp:1051:9
+    #106 0x7f532e97dace in blink::FrameView::updateStyleAndLayoutIfNeededRecursiveInternal() third_party/WebKit/Source/core/frame/FrameView.cpp:2725:9
+    #107 0x7f532e97c136 in blink::FrameView::updateStyleAndLayoutIfNeededRecursive() third_party/WebKit/Source/core/frame/FrameView.cpp:2698:5
+    #108 0x7f532e97b36e in blink::FrameView::updateLifecyclePhasesInternal(blink::DocumentLifecycle::LifecycleState) third_party/WebKit/Source/core/frame/FrameView.cpp:2532:5
+    #109 0x7f532eb0e1f8 in blink::PageAnimator::updateAllLifecyclePhases(blink::LocalFrame&) third_party/WebKit/Source/core/page/PageAnimator.cpp:86:11
+    #110 0x7f532dc3c839 in blink::WebViewImpl::updateAllLifecyclePhases() third_party/WebKit/Source/web/WebViewImpl.cpp:2013:5
+    #111 0x7f5330ab8e5f in content::RenderWidgetCompositor::UpdateLayerTreeHost() content/renderer/gpu/render_widget_compositor.cc:1016:14
+    #112 0x7f5331d6b169 in cc::ProxyMain::BeginMainFrame(std::unique_ptr<cc::BeginMainFrameAndCommitState, std::default_delete<cc::BeginMainFrameAndCommitState> >) cc/trees/proxy_main.cc:199:21
+    #113 0x7f5331d7e7d0 in void base::internal::FunctorTraits<void (cc::ProxyMain::*)(std::unique_ptr<cc::BeginMainFrameAndCommitState, std::default_delete<cc::BeginMainFrameAndCommitState> >), void>::Invoke<base::WeakPtr<cc::ProxyMain> const&, std::unique_ptr<cc::BeginMainFrameAndCommitState, std::default_delete<cc::BeginMainFrameAndCommitState> > >(void (cc::ProxyMain::*)(std::unique_ptr<cc::BeginMainFrameAndCommitState, std::default_delete<cc::BeginMainFrameAndCommitState> >), base::WeakPtr<cc::ProxyMain> const&, std::unique_ptr<cc::BeginMainFrameAndCommitState, std::default_delete<cc::BeginMainFrameAndCommitState> >&&) base/bind_internal.h:214:12
+    #114 0x7f5331d7e6fa in void base::internal::Invoker<base::internal::BindState<void (cc::ProxyMain::*)(std::unique_ptr<cc::BeginMainFrameAndCommitState, std::default_delete<cc::BeginMainFrameAndCommitState> >), base::WeakPtr<cc::ProxyMain>, base::internal::PassedWrapper<std::unique_ptr<cc::BeginMainFrameAndCommitState, std::default_delete<cc::BeginMainFrameAndCommitState> > > >, void ()>::RunImpl<void (cc::ProxyMain::* const&)(std::unique_ptr<cc::BeginMainFrameAndCommitState, std::default_delete<cc::BeginMainFrameAndCommitState> >), std::tuple<base::WeakPtr<cc::ProxyMain>, base::internal::PassedWrapper<std::unique_ptr<cc::BeginMainFrameAndCommitState, std::default_delete<cc::BeginMainFrameAndCommitState> > > > const&, 0ul, 1ul>(void (cc::ProxyMain::* const&)(std::unique_ptr<cc::BeginMainFrameAndCommitState, std::default_delete<cc::BeginMainFrameAndCommitState> >), std::tuple<base::WeakPtr<cc::ProxyMain>, base::internal::PassedWrapper<std::unique_ptr<cc::BeginMainFrameAndCommitState, std::default_delete<cc::BeginMainFrameAndCommitState> > > > const&, base::IndexSequence<0ul, 1ul>) base/bind_internal.h:346:12
+    #115 0x7f532bc75262 in base::debug::TaskAnnotator::RunTask(char const*, base::PendingTask const&) base/debug/task_annotator.cc:51:21
+    #116 0x7f5332d17f7f in scheduler::TaskQueueManager::ProcessTaskFromWorkQueue(scheduler::internal::WorkQueue*, scheduler::internal::TaskQueueImpl::Task*) components/scheduler/base/task_queue_manager.cc:315:19
+    #117 0x7f5332d1636d in scheduler::TaskQueueManager::DoWork(base::TimeTicks, bool) components/scheduler/base/task_queue_manager.cc:218:13
+    #118 0x7f532bc75262 in base::debug::TaskAnnotator::RunTask(char const*, base::PendingTask const&) base/debug/task_annotator.cc:51:21
+    #119 0x7f532bbfee6f in base::MessageLoop::RunTask(base::PendingTask const&) base/message_loop/message_loop.cc:496:19
+    #120 0x7f532bbff729 in base::MessageLoop::DeferOrRunPendingTask(base::PendingTask) base/message_loop/message_loop.cc:505:5
+    #121 0x7f532bc002dc in base::MessageLoop::DoDelayedWork(base::TimeTicks*) base/message_loop/message_loop.cc:668:10
+    #122 0x7f532bc01e4f in base::MessagePumpDefault::Run(base::MessagePump::Delegate*) base/message_loop/message_pump_default.cc:39:27
+    #123 0x7f532bc2527c in base::RunLoop::Run() base/run_loop.cc:35:10
+    #124 0x7f533099df7d in content::RendererMain(content::MainFunctionParams const&) content/renderer/renderer_main.cc:198:23
+    #125 0x7f532bb8b263 in content::RunZygote(content::MainFunctionParams const&, content::ContentMainDelegate*) content/app/content_main_runner.cc:343:14
+    #126 0x7f532bb8d39f in content::ContentMainRunnerImpl::Run() content/app/content_main_runner.cc:785:12
+    #127 0x7f532bb8adea in content::ContentMain(content::ContentMainParams const&) content/app/content_main.cc:20:28
+    #128 0x7f532b55b009 in ChromeMain chrome/app/chrome_main.cc:85:12
+    #129 0x7f531f23ff44 in __libc_start_main /build/eglibc-oGUzwX/eglibc-2.19/csu/libc-start.c:287
+    #130 0x7f532b540904 in _start
+SUMMARY: UndefinedBehaviorSanitizer: undefined-behavior ../../third_party/harfbuzz-ng/src/hb-ot-layout-gsubgpos-private.hh:1496:12 in

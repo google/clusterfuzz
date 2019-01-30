@@ -1,0 +1,19 @@
+Running command: /mnt/scratch0/clusterfuzz/bot/builds/clusterfuzz-builds_libtsm_6d95cdfb4510c2f52e59cdc48fa60dca63fa8045/revisions/libtsm_fuzzer -runs=100 -rss_limit_mb=2048 -timeout=25 /fuzz-3-libtsm_fuzzer
+WARNING: Failed to find function "__sanitizer_print_stack_trace".
+INFO: Seed: 2187685998
+INFO: Loaded 1 modules (2806 guards): [0x73e710, 0x7412e8),
+/mnt/scratch0/clusterfuzz/bot/builds/clusterfuzz-builds_libtsm_6d95cdfb4510c2f52e59cdc48fa60dca63fa8045/revisions/libtsm_fuzzer: Running 1 inputs 100 time(s) each.
+Running: /fuzz-3-libtsm_fuzzer
+src/tsm/tsm-screen.c:1321:8: runtime error: load of value 161, which is not a valid value for type 'bool'
+#0 0x434f6d in tsm_screen_tab_left /src/libtsm/src/tsm/tsm-screen.c:1321:8
+#1 0x438eb7 in parse_data /src/libtsm/src/tsm/tsm-vte.c:0:3
+#2 0x438b19 in tsm_vte_input /src/libtsm/src/tsm/tsm-vte.c:0:4
+#3 0x42e3ad in LLVMFuzzerTestOneInput /src/libtsm_fuzzer.c:44:3
+#4 0x4509d4 in fuzzer::Fuzzer::ExecuteCallback(unsigned char const*, unsigned long) /src/libfuzzer/FuzzerLoop.cpp:550:13
+#5 0x450cfa in fuzzer::Fuzzer::RunOne(unsigned char const*, unsigned long) /src/libfuzzer/FuzzerLoop.cpp:501:3
+#6 0x4451ad in fuzzer::RunOneTest(fuzzer::Fuzzer*, char const*, unsigned long) /src/libfuzzer/FuzzerDriver.cpp:268:6
+#7 0x447139 in fuzzer::FuzzerDriver(int*, char***, int (*)(unsigned char const*, unsigned long)) /src/libfuzzer/FuzzerDriver.cpp:517:9
+#8 0x444ebc in main /src/libfuzzer/FuzzerMain.cpp:20:10
+#9 0x7fe78e4ca82f in __libc_start_main
+#10 0x4058f8 in _start
+SUMMARY: UndefinedBehaviorSanitizer: undefined-behavior src/tsm/tsm-screen.c:1321:8 in

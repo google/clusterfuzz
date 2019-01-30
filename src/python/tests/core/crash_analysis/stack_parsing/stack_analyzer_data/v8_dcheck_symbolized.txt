@@ -1,0 +1,157 @@
+#
+# Fatal error in ../../src/objects-debug.cc, line 1639
+# Debug check failed: old_target->kind() == new_target->kind() (3 vs. 16).
+#
+==== C stack trace ===============================
+/mnt/scratch0/clusterfuzz/bot/builds/v8-asan_linux-debug_ddc8d9b4eb72ba668f6305da25580be9a07378b8/revisions/d8-arm-asan-linux-debug-v8-component-45504/d8(backtrace+0x5c)
+[0xf7194e1c]
+/mnt/scratch0/clusterfuzz/bot/builds/v8-asan_linux-debug_ddc8d9b4eb72ba668f6305da25580be9a07378b8/revisions/d8-arm-asan-linux-debug-v8-component-45504/./libv8_libbase.so(v8::base::debug::StackTrace::StackTrace()+0x38)
+[0xf230f5b8]
+/mnt/scratch0/clusterfuzz/bot/builds/v8-asan_linux-debug_ddc8d9b4eb72ba668f6305da25580be9a07378b8/revisions/d8-arm-asan-linux-debug-v8-component-45504/./libv8_libplatform.so(+0x125bf)
+[0xf22b85bf]
+/mnt/scratch0/clusterfuzz/bot/builds/v8-asan_linux-debug_ddc8d9b4eb72ba668f6305da25580be9a07378b8/revisions/d8-arm-asan-linux-debug-v8-component-45504/./libv8_libbase.so(V8_Fatal+0x19a)
+[0xf230001a]
+/mnt/scratch0/clusterfuzz/bot/builds/v8-asan_linux-debug_ddc8d9b4eb72ba668f6305da25580be9a07378b8/revisions/d8-arm-asan-linux-debug-v8-component-45504/./libv8.so(v8::internal::Code::VerifyRecompiledCode(v8::internal::Code*,
+v8::internal::Code*)+0xf7f) [0xf4d120bf]
+/mnt/scratch0/clusterfuzz/bot/builds/v8-asan_linux-debug_ddc8d9b4eb72ba668f6305da25580be9a07378b8/revisions/d8-arm-asan-linux-debug-v8-component-45504/./libv8.so(v8::internal::SharedFunctionInfo::EnableDeoptimizationSupport(v8::internal::Code*)+0x2f9)
+[0xf4fc7119]
+/mnt/scratch0/clusterfuzz/bot/builds/v8-asan_linux-debug_ddc8d9b4eb72ba668f6305da25580be9a07378b8/revisions/d8-arm-asan-linux-debug-v8-component-45504/./libv8.so(v8::internal::Compiler::EnsureDeoptimizationSupport(v8::internal::CompilationInfo*)+0x12c2)
+[0xf32a84b2]
+/mnt/scratch0/clusterfuzz/bot/builds/v8-asan_linux-debug_ddc8d9b4eb72ba668f6305da25580be9a07378b8/revisions/d8-arm-asan-linux-debug-v8-component-45504/./libv8.so(v8::internal::compiler::PipelineCompilationJob::PrepareJobImpl()+0x7d7)
+[0xf39658b7]
+/mnt/scratch0/clusterfuzz/bot/builds/v8-asan_linux-debug_ddc8d9b4eb72ba668f6305da25580be9a07378b8/revisions/d8-arm-asan-linux-debug-v8-component-45504/./libv8.so(v8::internal::CompilationJob::PrepareJob()+0x6f4)
+[0xf3282ed4]
+/mnt/scratch0/clusterfuzz/bot/builds/v8-asan_linux-debug_ddc8d9b4eb72ba668f6305da25580be9a07378b8/revisions/d8-arm-asan-linux-debug-v8-component-45504/./libv8.so(+0xf77192)
+[0xf3299192]
+/mnt/scratch0/clusterfuzz/bot/builds/v8-asan_linux-debug_ddc8d9b4eb72ba668f6305da25580be9a07378b8/revisions/d8-arm-asan-linux-debug-v8-component-45504/./libv8.so(v8::internal::Compiler::CompileOptimized(v8::internal::Handle<v8::internal::JSFunction>,
+v8::internal::Compiler::ConcurrencyMode)+0x30e) [0xf32950be]
+/mnt/scratch0/clusterfuzz/bot/builds/v8-asan_linux-debug_ddc8d9b4eb72ba668f6305da25580be9a07378b8/revisions/d8-arm-asan-linux-debug-v8-component-45504/./libv8.so(+0x330a23b)
+[0xf562c23b]
+/mnt/scratch0/clusterfuzz/bot/builds/v8-asan_linux-debug_ddc8d9b4eb72ba668f6305da25580be9a07378b8/revisions/d8-arm-asan-linux-debug-v8-component-45504/./libv8.so(v8::internal::Runtime_CompileOptimized_NotConcurrent(int,
+v8::internal::Object**, v8::internal::Isolate*)+0x1f1) [0xf562b251]
+/mnt/scratch0/clusterfuzz/bot/builds/v8-asan_linux-debug_ddc8d9b4eb72ba668f6305da25580be9a07378b8/revisions/d8-arm-asan-linux-debug-v8-component-45504/./libv8.so(v8::internal::Simulator::SoftwareInterrupt(v8::internal::Instruction*)+0xed3)
+[0xf5f916a3]
+/mnt/scratch0/clusterfuzz/bot/builds/v8-asan_linux-debug_ddc8d9b4eb72ba668f6305da25580be9a07378b8/revisions/d8-arm-asan-linux-debug-v8-component-45504/./libv8.so(v8::internal::Simulator::InstructionDecode(v8::internal::Instruction*)+0xe03)
+[0xf5f86133]
+/mnt/scratch0/clusterfuzz/bot/builds/v8-asan_linux-debug_ddc8d9b4eb72ba668f6305da25580be9a07378b8/revisions/d8-arm-asan-linux-debug-v8-component-45504/./libv8.so(v8::internal::Simulator::CallInternal(unsigned
+char*)+0x455) [0xf5fc6aa5]
+/mnt/scratch0/clusterfuzz/bot/builds/v8-asan_linux-debug_ddc8d9b4eb72ba668f6305da25580be9a07378b8/revisions/d8-arm-asan-linux-debug-v8-component-45504/./libv8.so(v8::internal::Simulator::Call(unsigned
+char*, int, ...)+0x31b) [0xf5fc7c3b]
+/mnt/scratch0/clusterfuzz/bot/builds/v8-asan_linux-debug_ddc8d9b4eb72ba668f6305da25580be9a07378b8/revisions/d8-arm-asan-linux-debug-v8-component-45504/./libv8.so(+0x209cce8)
+[0xf43bece8]
+/mnt/scratch0/clusterfuzz/bot/builds/v8-asan_linux-debug_ddc8d9b4eb72ba668f6305da25580be9a07378b8/revisions/d8-arm-asan-linux-debug-v8-component-45504/./libv8.so(+0x209925e)
+[0xf43bb25e]
+/mnt/scratch0/clusterfuzz/bot/builds/v8-asan_linux-debug_ddc8d9b4eb72ba668f6305da25580be9a07378b8/revisions/d8-arm-asan-linux-debug-v8-component-45504/./libv8.so(v8::internal::Execution::Call(v8::internal::Isolate*,
+v8::internal::Handle<v8::internal::Object>,
+v8::internal::Handle<v8::internal::Object>, int,
+v8::internal::Handle<v8::internal::Object>*)+0x143) [0xf43baa53]
+/mnt/scratch0/clusterfuzz/bot/builds/v8-asan_linux-debug_ddc8d9b4eb72ba668f6305da25580be9a07378b8/revisions/d8-arm-asan-linux-debug-v8-component-45504/./libv8.so(v8::Script::Run(v8::Local<v8::Context>)+0x700)
+[0xf29decb0]
+/mnt/scratch0/clusterfuzz/bot/builds/v8-asan_linux-debug_ddc8d9b4eb72ba668f6305da25580be9a07378b8/revisions/d8-arm-asan-linux-debug-v8-component-45504/d8(v8::Shell::ExecuteString(v8::Isolate*,
+v8::Local<v8::String>, v8::Local<v8::Value>, bool, bool)+0x33f) [0xf7223bef]
+/mnt/scratch0/clusterfuzz/bot/builds/v8-asan_linux-debug_ddc8d9b4eb72ba668f6305da25580be9a07378b8/revisions/d8-arm-asan-linux-debug-v8-component-45504/d8(v8::SourceGroup::Execute(v8::Isolate*)+0x6ec)
+[0xf724de3c]
+/mnt/scratch0/clusterfuzz/bot/builds/v8-asan_linux-debug_ddc8d9b4eb72ba668f6305da25580be9a07378b8/revisions/d8-arm-asan-linux-debug-v8-component-45504/d8(v8::Shell::RunMain(v8::Isolate*,
+int, char**, bool)+0x745) [0xf7257835]
+/mnt/scratch0/clusterfuzz/bot/builds/v8-asan_linux-debug_ddc8d9b4eb72ba668f6305da25580be9a07378b8/revisions/d8-arm-asan-linux-debug-v8-component-45504/d8(v8::Shell::Main(int,
+char**)+0x2b77) [0xf725d877]
+/mnt/scratch0/clusterfuzz/bot/builds/v8-asan_linux-debug_ddc8d9b4eb72ba668f6305da25580be9a07378b8/revisions/d8-arm-asan-linux-debug-v8-component-45504/d8(main+0x38)
+[0xf725ee58]
+/lib/i386-linux-gnu/libc.so.6(__libc_start_main+0xf3) [0xf0a7caf3]
+/mnt/scratch0/clusterfuzz/bot/builds/v8-asan_linux-debug_ddc8d9b4eb72ba668f6305da25580be9a07378b8/revisions/d8-arm-asan-linux-debug-v8-component-45504/d8(+0x2b502)
+[0xf7147502]
+ASAN:DEADLYSIGNAL
+=================================================================
+==19757==ERROR: AddressSanitizer: ILL on unknown address 0xf230afbc (pc
+0xf230afbc bp 0xffc75718 sp 0xffc75700 T0)
+SCARINESS: 10 (signal)
+#0 0xf230afbb in v8::base::OS::Abort()
+/b/build/slave/V8_Linux_ASAN_arm_-_debug_builder/build/v8/src/base/platform/platform-posix.cc:261:5
+#1 0xf2300058 in V8_Fatal
+/b/build/slave/V8_Linux_ASAN_arm_-_debug_builder/build/v8/src/base/logging.cc:74:3
+#2 0xf4d120be in v8::internal::Code::VerifyRecompiledCode(v8::internal::Code*,
+v8::internal::Code*)
+/b/build/slave/V8_Linux_ASAN_arm_-_debug_builder/build/v8/src/objects-debug.cc:1639:5
+#3 0xf4fc7118 in ReplaceCode
+/b/build/slave/V8_Linux_ASAN_arm_-_debug_builder/build/v8/src/objects-inl.h:5927:3
+#4 0xf4fc7118 in
+v8::internal::SharedFunctionInfo::EnableDeoptimizationSupport(v8::internal::Code*)
+/b/build/slave/V8_Linux_ASAN_arm_-_debug_builder/build/v8/src/objects.cc:13637
+#5 0xf32a84b1 in
+v8::internal::Compiler::EnsureDeoptimizationSupport(v8::internal::CompilationInfo*)
+/b/build/slave/V8_Linux_ASAN_arm_-_debug_builder/build/v8/src/compiler.cc:1431:13
+#6 0xf39658b6 in
+v8::internal::compiler::PipelineCompilationJob::PrepareJobImpl()
+/b/build/slave/V8_Linux_ASAN_arm_-_debug_builder/build/v8/src/compiler/pipeline.cc:617:10
+#7 0xf3282ed3 in v8::internal::CompilationJob::PrepareJob()
+/b/build/slave/V8_Linux_ASAN_arm_-_debug_builder/build/v8/src/compiler.cc:110:22
+#8 0xf3299191 in GetOptimizedCodeNow
+/b/build/slave/V8_Linux_ASAN_arm_-_debug_builder/build/v8/src/compiler.cc:782:12
+#9 0xf3299191 in v8::internal::(anonymous
+namespace)::GetOptimizedCode(v8::internal::Handle<v8::internal::JSFunction>,
+v8::internal::Compiler::ConcurrencyMode, v8::internal::BailoutId,
+v8::internal::JavaScriptFrame*)
+/b/build/slave/V8_Linux_ASAN_arm_-_debug_builder/build/v8/src/compiler.cc:971
+#10 0xf32950bd in
+v8::internal::Compiler::CompileOptimized(v8::internal::Handle<v8::internal::JSFunction>,
+v8::internal::Compiler::ConcurrencyMode)
+/b/build/slave/V8_Linux_ASAN_arm_-_debug_builder/build/v8/src/compiler.cc:1290:8
+#11 0xf562c23a in
+v8::internal::__RT_impl_Runtime_CompileOptimized_NotConcurrent(v8::internal::Arguments,
+v8::internal::Isolate*)
+/b/build/slave/V8_Linux_ASAN_arm_-_debug_builder/build/v8/src/runtime/runtime-compiler.cc:64:8
+#12 0xf562b250 in v8::internal::Runtime_CompileOptimized_NotConcurrent(int,
+v8::internal::Object**, v8::internal::Isolate*)
+/b/build/slave/V8_Linux_ASAN_arm_-_debug_builder/build/v8/src/runtime/runtime-compiler.cc:58:1
+#13 0xf5f916a2 in
+v8::internal::Simulator::SoftwareInterrupt(v8::internal::Instruction*)
+/b/build/slave/V8_Linux_ASAN_arm_-_debug_builder/build/v8/src/arm/simulator-arm.cc:1958:13
+#14 0xf5f86132 in DecodeType7
+/b/build/slave/V8_Linux_ASAN_arm_-_debug_builder/build/v8/src/arm/simulator-arm.cc:3183:5
+#15 0xf5f86132 in
+v8::internal::Simulator::InstructionDecode(v8::internal::Instruction*)
+/b/build/slave/V8_Linux_ASAN_arm_-_debug_builder/build/v8/src/arm/simulator-arm.cc:5805
+#16 0xf5fc6aa4 in Execute
+/b/build/slave/V8_Linux_ASAN_arm_-_debug_builder/build/v8/src/arm/simulator-arm.cc:5832:7
+#17 0xf5fc6aa4 in v8::internal::Simulator::CallInternal(unsigned char*)
+/b/build/slave/V8_Linux_ASAN_arm_-_debug_builder/build/v8/src/arm/simulator-arm.cc:5889
+#18 0xf5fc7c3a in v8::internal::Simulator::Call(unsigned char*, int, ...)
+/b/build/slave/V8_Linux_ASAN_arm_-_debug_builder/build/v8/src/arm/simulator-arm.cc:5940:3
+#19 0xf43bece7 in v8::internal::(anonymous
+namespace)::Invoke(v8::internal::Isolate*, bool,
+v8::internal::Handle<v8::internal::Object>,
+v8::internal::Handle<v8::internal::Object>, int,
+v8::internal::Handle<v8::internal::Object>*,
+v8::internal::Handle<v8::internal::Object>,
+v8::internal::Execution::MessageHandling)
+/b/build/slave/V8_Linux_ASAN_arm_-_debug_builder/build/v8/src/execution.cc:145:13
+#20 0xf43bb25d in v8::internal::(anonymous
+namespace)::CallInternal(v8::internal::Isolate*,
+v8::internal::Handle<v8::internal::Object>,
+v8::internal::Handle<v8::internal::Object>, int,
+v8::internal::Handle<v8::internal::Object>*,
+v8::internal::Execution::MessageHandling)
+/b/build/slave/V8_Linux_ASAN_arm_-_debug_builder/build/v8/src/execution.cc:181:10
+#21 0xf43baa52 in v8::internal::Execution::Call(v8::internal::Isolate*,
+v8::internal::Handle<v8::internal::Object>,
+v8::internal::Handle<v8::internal::Object>, int,
+v8::internal::Handle<v8::internal::Object>*)
+/b/build/slave/V8_Linux_ASAN_arm_-_debug_builder/build/v8/src/execution.cc:191:10
+#22 0xf29decaf in v8::Script::Run(v8::Local<v8::Context>)
+/b/build/slave/V8_Linux_ASAN_arm_-_debug_builder/build/v8/src/api.cc:2039:7
+#23 0xf7223bee in v8::Shell::ExecuteString(v8::Isolate*, v8::Local<v8::String>,
+v8::Local<v8::Value>, bool, bool)
+/b/build/slave/V8_Linux_ASAN_arm_-_debug_builder/build/v8/src/d8.cc:584:28
+#24 0xf724de3b in v8::SourceGroup::Execute(v8::Isolate*)
+/b/build/slave/V8_Linux_ASAN_arm_-_debug_builder/build/v8/src/d8.cc:2302:10
+#25 0xf7257834 in v8::Shell::RunMain(v8::Isolate*, int, char**, bool)
+/b/build/slave/V8_Linux_ASAN_arm_-_debug_builder/build/v8/src/d8.cc:2729:34
+#26 0xf725d876 in v8::Shell::Main(int, char**)
+/b/build/slave/V8_Linux_ASAN_arm_-_debug_builder/build/v8/src/d8.cc:3183:16
+#27 0xf725ee57 in main
+/b/build/slave/V8_Linux_ASAN_arm_-_debug_builder/build/v8/src/d8.cc:3218:10
+#28 0xf0a7caf2 in __libc_start_main
+AddressSanitizer can not provide additional info.
+SUMMARY: AddressSanitizer: ILL
+(/mnt/scratch0/clusterfuzz/bot/builds/v8-asan_linux-debug_ddc8d9b4eb72ba668f6305da25580be9a07378b8/revisions/d8-arm-asan-linux-debug-v8-component-45504/./libv8_libbase.so+0x28fbb)
+==19757==ABORTING

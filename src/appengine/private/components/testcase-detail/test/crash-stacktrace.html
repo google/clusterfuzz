@@ -1,0 +1,138 @@
+<!--
+  Copyright 2018 Google LLC
+
+  Licensed under the Apache License, Version 2.0 (the "License");
+  you may not use this file except in compliance with the License.
+  You may obtain a copy of the License at
+
+       http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+-->
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>paper-button basic tests</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+
+  <script src="../../../bower_components/iron-test-helpers/mock-interactions.js"></script>
+  <script src="../../../bower_components/web-component-tester/browser.js"></script>
+  <script src="../../../bower_components/webcomponentsjs/webcomponents-lite.js"></script>
+  <script src="../../../javascripts/test-helpers.js"></script>
+
+  <link rel="import" href="../crash-stacktrace.html">
+</head>
+<body>
+  <test-fixture id="panel">
+    <template>
+      <crash-stacktrace class='test'></crash-stacktrace>
+    </template>
+  </test-fixture>
+  <script>
+    suite2('<crash-stacktrace>', ($) => {
+      setup(function() {
+        $.panel.stacktrace = {
+          preview_lines: [
+            {'type': 'Line', lineNumber: 1, content: '<b>a</b>'},
+            {'type': 'Gap', size: 10},
+            {'type': 'Line', lineNumber: 12, content: '  \t  b'},
+            {'type': 'Line', lineNumber: 13, content: 'c',
+             important: true},
+            {'type': 'Gap', size: 10}
+          ],
+          lines: [
+            {'type': 'Line', lineNumber: 1, content: '<b>aa</b>'},
+            {'type': 'Line', lineNumber: 2, content: ' \t  b'},
+            {'type': 'Line', lineNumber: 3, content: 'c', important: true},
+            {'type': 'Line', lineNumber: 4, content: 'd'},
+            {'type': 'Line', lineNumber: 5, content: 'e'},
+            {'type': 'Line', lineNumber: 6, content: 'f'}
+          ],
+          revision: '123'
+        };
+        $.panel.name = 'name';
+      });
+
+      test2(
+          'no preview (because preview_lines is empty)',
+          () => {
+            $.panel.set('stacktrace.preview_lines', []);
+          },
+          () => {
+            const rows = $.selectAll('.stacktrace tr');
+            expect(rows.length).to.be.eql(6);
+            expect($.panel.shouldHavePreview($.panel.stacktrace.preview_lines))
+                .to.be.false;
+          }
+      )
+
+      test2('render title', noop, () => {
+        expect($.select('.stacktrace .title').innerHTML).to.include('name');
+        expect($.select('.stacktrace .title').innerHTML).to.include('123');
+        expect($.select('.stacktrace .title').innerHTML).to
+            .include('(6 lines)');
+        expect($.panel.shouldHavePreview($.panel.stacktrace.preview_lines))
+            .to.be.true;
+      });
+
+      test2('render preview', noop, () => {
+        const rows = $.selectAll('.stacktrace tr');
+        expect(rows.length).to.be.eql(5);
+        expect(rows[0].classList.contains('code')).to.true;
+        expect(rows[1].classList.contains('gap')).to.true;
+        expect(rows[2].classList.contains('code')).to.true;
+        expect(rows[3].classList.contains('code')).to.true;
+        expect(rows[4].classList.contains('gap')).to.true;
+      });
+
+      test2(
+          'render full trace',
+          () => { $.panel.isPreviewed = false; },
+          () => {
+            const rows = $.selectAll('.stacktrace tr');
+            expect(rows.length).to.be.eql(6);
+
+            rows.forEach((row) => {
+              expect(row.classList.contains('code')).to.true;
+              expect(row.classList.contains('gap')).to.false;
+            });
+          }
+      );
+
+      test2('highlights in preview', noop, () => {
+        const tr = $.selectAll('.stacktrace tr')[3];
+        expect(tr.classList.contains('important')).to.true;
+      });
+
+      test2(
+          'highlights in full trace',
+          () => { $.panel.isPreviewed = false; },
+          () => {
+            const tr = $.selectAll('.stacktrace tr')[2];
+            expect(tr.classList.contains('important')).to.true;
+          }
+      );
+
+      test2('avoid escaping html in preview', noop, () => {
+        const cells = $.selectAll('.stacktrace tr td');
+        expect(cells[1].innerHTML).to.include('<b>a</b>');
+      });
+
+      test2(
+          'avoid escaping html in full trace',
+          () => { $.panel.isPreviewed = false; },
+          () => {
+            const cells = $.selectAll('.stacktrace tr td');
+            expect(cells[1].innerHTML).to.include('<b>aa</b>');
+          }
+      );
+
+    });
+  </script>
+</body>
+</html>
+

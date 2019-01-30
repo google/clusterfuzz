@@ -1,0 +1,27 @@
+GD Warning: gd2: EOF while reading
+GD Warning: gd2: EOF while reading
+GD Warning: gd2: EOF while reading
+GD Warning: product of memory allocation multiplication would exceed 100000, failing operation gracefully
+GD Warning: gd2: EOF while reading
+GD Warning: gd2: EOF while reading
+GD Warning: product of memory allocation multiplication would exceed 100000, failing operation gracefully
+GD Warning: product of memory allocation multiplication would exceed 100000, failing operation gracefully
+GD Warning: product of memory allocation multiplication would exceed 100000, failing operation gracefully
+GD Warning: product of memory allocation multiplication would exceed 100000, failing operation gracefully
+GD Warning: product of memory allocation multiplication would exceed 100000, failing operation gracefully
+GD Warning: product of memory allocation multiplication would exceed 100000, failing operation gracefully
+GD Warning: product of memory allocation multiplication would exceed 100000, failing operation gracefully
+GD Warning: product of memory allocation multiplication would exceed 100000, failing operation gracefully
+GD Warning: product of memory allocation multiplication would exceed 100000, failing operation gracefully
+GD Warning: product of memory allocation multiplication would exceed 100000, failing operation gracefully
+GD Warning: product of memory allocation multiplication would exceed 100000, failing operation gracefully
+GD Warning: product of memory allocation multiplication would exceed 100000, failing operation gracefully
+=================================================================
+==209673==ERROR: AddressSanitizer: SEGV on unknown address 0x000000000000 (pc 0x000000000000 bp 0x7ffc387203d0 sp 0x7ffc38720258 T0)
+==209673==Hint: pc points to the zero page.
+==209673==The signal is caused by a READ memory access.
+==209673==Hint: address points to the zero page.
+
+AddressSanitizer can not provide additional info.
+SUMMARY: AddressSanitizer: SEGV (<unknown module>) 
+==209673==ABORTING

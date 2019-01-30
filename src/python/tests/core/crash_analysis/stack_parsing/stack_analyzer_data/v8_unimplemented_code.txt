@@ -1,0 +1,29 @@
+Caught: ReferenceError: debug is not defined
+Caught: ReferenceError: Debug is not defined
+
+
+#
+# Fatal error in ../../src/arm/simulator-arm.cc, line 3715
+# unimplemented code
+#
+
+==== C stack trace ===============================
+
+ 1: 0xb27abe4
+ 2: 0xb27b212
+ 3: 0xa706089
+ 4: 0xa6ed7c3
+ 5: 0xa7157b8
+ 6: 0xa715bd0
+ 7: 0xa71794f
+ 8: 0x8ac1900
+ 9: 0x8aba804
+10: 0x81c1fc8
+11: 0x8226821
+12: 0x812f5a0
+13: 0x815780f
+14: 0x816227e
+15: 0x816463f
+16: __libc_start_main
+17: 0x80607aa
+E: Child terminated by signal ‘Illegal instruction’

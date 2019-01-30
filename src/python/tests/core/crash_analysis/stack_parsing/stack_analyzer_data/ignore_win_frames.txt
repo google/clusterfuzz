@@ -1,0 +1,61 @@
+==336==ERROR: AddressSanitizer: stack-buffer-overflow on address 0x00201b12d49f at pc 0x7ff6bfabe9d9 bp 0x00201b12d2a0 sp 0x00201b12d2e8
+READ of size 1 at 0x00201b12d49f thread T0
+SCARINESS: 27 (1-byte-read-stack-buffer-overflow)
+    #0 0x7ff6bfabe9d8 in v8::internal::`anonymous namespace'::GenerateSourceString C:\b\s\w\ir\cache\builder\src\v8\test\fuzzer\regexp-builtins.cc:294:25
+    #1 0x7ff6bfaa3909 in LLVMFuzzerTestOneInput C:\b\s\w\ir\cache\builder\src\v8\test\fuzzer\regexp-builtins.cc:442:3
+    #2 0x7ff6bfae1203 in fuzzer::Fuzzer::ExecuteCallback(unsigned char const *,unsigned __int64) C:\b\s\w\ir\cache\builder\src\third_party\libFuzzer\src\FuzzerLoop.cpp:570
+    #3 0x7ff6bfad77b5 in fuzzer::RunOneTest(class fuzzer::Fuzzer *,char const *,unsigned __int64) C:\b\s\w\ir\cache\builder\src\third_party\libFuzzer\src\FuzzerDriver.cpp:280
+    #4 0x7ff6bfadab6e in fuzzer::FuzzerDriver(int *,char * * *,int (*)(unsigned char const *,unsigned __int64)) C:\b\s\w\ir\cache\builder\src\third_party\libFuzzer\src\FuzzerDriver.cpp:713
+    #5 0x7ff6bfae71cc in main C:\b\s\w\ir\cache\builder\src\third_party\libFuzzer\src\FuzzerMain.cpp:20
+    #6 0x7ff6c2f1f0d3 in __scrt_common_main_seh f:\dd\vctools\crt\vcstartup\src\startup\exe_common.inl:283
+    #7 0x7ffef0608363 in BaseThreadInitThunk (C:\Windows\System32\KERNEL32.DLL+0x180008363)
+    #8 0x7ffef22d7090 in RtlUserThreadStart (C:\Windows\SYSTEM32\ntdll.dll+0x180067090)
+
+Address 0x00201b12d49f is located in stack of thread T0 at offset 383 in frame
+    #0 0x7ff6bfabc36f in v8::internal::`anonymous namespace'::GenerateSourceString C:\b\s\w\ir\cache\builder\src\v8\test\fuzzer\regexp-builtins.cc:290
+
+  This frame has 8 object(s):
+    [32, 64) 'ref.tmp.i58' (line 210)
+    [96, 102) 'buffer.i' (line 252)
+    [128, 160) 'ref.tmp.i' (line 194)
+    [192, 224) 'pattern' (line 291)
+    [256, 288) 'flags' (line 292)
+    [320, 352) 'last_index' (line 293)
+    [384, 416) 'subject' (line 294) <== Memory access at offset 383 underflows this variable
+    [448, 696) 'ss' (line 297)
+HINT: this may be a false positive if your program uses some custom stack unwind mechanism, swapcontext or vfork
+      (longjmp, SEH and C++ exceptions *are* supported)
+SUMMARY: AddressSanitizer: stack-buffer-overflow C:\b\s\w\ir\cache\builder\src\v8\test\fuzzer\regexp-builtins.cc:294:25 in v8::internal::`anonymous namespace'::GenerateSourceString
+Shadow bytes around the buggy address:
+  0x01a5ca825a40: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+  0x01a5ca825a50: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+  0x01a5ca825a60: 00 00 00 00 f1 f1 f1 f1 00 00 00 00 f2 f2 f2 f2
+  0x01a5ca825a70: f8 f2 f2 f2 f8 f8 f8 f8 f2 f2 f2 f2 00 00 00 00
+  0x01a5ca825a80: f2 f2 f2 f2 00 00 00 00 f2 f2 f2 f2 00 00 00 00
+=>0x01a5ca825a90: f2 f2 f2[f2]00 00 00 00 f2 f2 f2 f2 f8 f8 f8 f8
+  0x01a5ca825aa0: f8 f8 f8 f8 f8 f8 f8 f8 f8 f8 f8 f8 f8 f8 f8 f8
+  0x01a5ca825ab0: f8 f8 f8 f8 f8 f8 f8 f8 f8 f8 f8 f3 f3 f3 f3 f3
+  0x01a5ca825ac0: f3 f3 f3 f3 00 00 00 00 00 00 00 00 00 00 00 00
+  0x01a5ca825ad0: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+  0x01a5ca825ae0: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+Shadow byte legend (one shadow byte represents 8 application bytes):
+  Addressable:           00
+  Partially addressable: 01 02 03 04 05 06 07
+  Heap left redzone:       fa
+  Freed heap region:       fd
+  Stack left redzone:      f1
+  Stack mid redzone:       f2
+  Stack right redzone:     f3
+  Stack after return:      f5
+  Stack use after scope:   f8
+  Global redzone:          f9
+  Global init order:       f6
+  Poisoned by user:        f7
+  Container overflow:      fc
+  Array cookie:            ac
+  Intra object redzone:    bb
+  ASan internal:           fe
+  Left alloca redzone:     ca
+  Right alloca redzone:    cb
+  Shadow gap:              cc
+==336==ABORTING

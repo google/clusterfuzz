@@ -1,0 +1,4 @@
+test/cfi/simple-fail.cpp:103:4: runtime error: control flow integrity check for type 'B' failed during cast to unrelated type (vtable address 0x000000422710)
+0x000000422710: note: vtable is of type 'A'
+ 00 00 00 00  c0 c4 41 00 00 00 00 00  31 41 00 00 00 00 00 00  30 d0 ef 00 00 00 00 00  18 27 42 00
+              ^ 

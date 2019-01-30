@@ -1,0 +1,38 @@
+Xlib:  extension "RANDR" missing on display ":1".
+Xlib:  extension "RANDR" missing on display ":1".
+LaunchProcess: failed to execvp:
+xdg-desktop-menu
+../../net/quic/quic_spdy_stream.cc:39:3: runtime error: member call on address 0x15577a7fc900 which does not point to an object of type net::QuicSpdySession
+0x15577a7fc900: note: object is of type net::QuicSession
+ 00 00 00 00  38 f7 74 89 0e 7f 00 00  5c 9b 8c 07 fc ff ff ff  00 00 00 00 00 00 00 00  00 00 00 00
+              ^~~~~~~~~~~~~~~~~~~~~~~
+              vptr for net::QuicSession
+    #0 0x7f0e6dace963 in net::QuicSpdyStream::~QuicSpdyStream() net/quic/quic_spdy_stream.cc:39:3
+    #1 0x7f0e6e0a05ae in net::QuicChromiumClientStream::~QuicChromiumClientStream() net/quic/quic_chromium_client_stream.cc:31:55
+    #2 0x7f0e6de287b0 in STLDeleteContainerPointers<__gnu_cxx::__normal_iterator<net::ReliableQuicStream **, std::vector<net::ReliableQuicStream *, std::allocator<net::ReliableQuicStream *> > > > base/stl_util.h:44:5
+    #3 0x7f0e6de287b0 in STLDeleteElements<std::vector<net::ReliableQuicStream *, std::allocator<net::ReliableQuicStream *> > > base/stl_util.h:135
+    #4 0x7f0e6de287b0 in net::QuicSession::~QuicSession() net/quic/quic_session.cc:62
+    #5 0x7f0e6e0a7d35 in net::QuicClientSessionBase::~QuicClientSessionBase() net/quic/quic_client_session_base.cc:27:1
+    #6 0x7f0e6e07d6bf in net::QuicChromiumClientSession::~QuicChromiumClientSession() net/quic/quic_chromium_client_session.cc:351:1
+    #7 0x7f0e6e081d6e in net::QuicChromiumClientSession::~QuicChromiumClientSession() net/quic/quic_chromium_client_session.cc:233:57
+    #8 0x7f0e6dafab8f in net::QuicStreamFactory::OnSessionClosed(net::QuicChromiumClientSession*) net/quic/quic_stream_factory.cc:1136:3
+    #9 0x7f0e6e09452f in net::QuicChromiumClientSession::NotifyFactoryOfSessionClosed() net/quic/quic_chromium_client_session.cc:1067:5
+    #10 0x7f0e6e09fca9 in Run<> base/bind_internal.h:181:12
+    #11 0x7f0e6e09fca9 in MakeItSo<base::WeakPtr<net::QuicChromiumClientSession>> base/bind_internal.h:314
+    #12 0x7f0e6e09fca9 in base::internal::Invoker<base::IndexSequence<0ul>, base::internal::BindState<base::internal::RunnableAdapter<void (net::QuicChromiumClientSession::*)()>, void (net::QuicChromiumClientSession*), base::WeakPtr<net::QuicChromiumClientSession> >, base::internal::InvokeHelper<true, void, base::internal::RunnableAdapter<void (net::QuicChromiumClientSession::*)()> >, void ()>::Run(base::internal::BindStateBase*) base/bind_internal.h:352
+    #13 0x7f0e6c8cb713 in Run base/callback.h:397:12
+    #14 0x7f0e6c8cb713 in base::debug::TaskAnnotator::RunTask(char const*, base::PendingTask const&) base/debug/task_annotator.cc:51
+    #15 0x7f0e6c74ee55 in base::MessageLoop::RunTask(base::PendingTask const&) base/message_loop/message_loop.cc:476:3
+    #16 0x7f0e6c75086a in base::MessageLoop::DeferOrRunPendingTask(base::PendingTask const&) base/message_loop/message_loop.cc:485:5
+    #17 0x7f0e6c7514b1 in base::MessageLoop::DoWork() base/message_loop/message_loop.cc:597:13
+    #18 0x7f0e6c6c6a46 in base::MessagePumpLibevent::Run(base::MessagePump::Delegate*) base/message_loop/message_pump_libevent.cc:229:21
+    #19 0x7f0e6c7c65d5 in base::RunLoop::Run() base/run_loop.cc:35:3
+    #20 0x7f0e6c74b336 in base::MessageLoop::Run() base/message_loop/message_loop.cc:293:3
+    #21 0x7f0e7b2ff184 in content::BrowserThreadImpl::IOThreadRun(base::MessageLoop*) content/browser/browser_thread_impl.cc:215:3
+    #22 0x7f0e7b2ffa4e in content::BrowserThreadImpl::Run(base::MessageLoop*) content/browser/browser_thread_impl.cc:251:14
+    #23 0x7f0e6c83f390 in base::Thread::ThreadMain() base/threading/thread.cc:254:3
+    #24 0x7f0e6c82bef4 in base::(anonymous namespace)::ThreadFunc(void*) base/threading/platform_thread_posix.cc:68:3
+    #25 0x7f0e61070181 in start_thread /build/eglibc-3GlaMS/eglibc-2.19/nptl/pthread_create.c:312
+    #26 0x7f0e5fd6b47c in clone /build/eglibc-3GlaMS/eglibc-2.19/sysdeps/unix/sysv/linux/x86_64/clone.S:111
+
+SUMMARY: UndefinedBehaviorSanitizer: undefined-behavior ../../net/quic/quic_spdy_stream.cc:39:3 in

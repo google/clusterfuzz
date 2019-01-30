@@ -1,0 +1,35 @@
+ASAN:DEADLYSIGNAL
+=================================================================
+==1550==ERROR: AddressSanitizer: SEGV on unknown address 0x000000010008 (pc 0x7efef5995c27 bp 0x7fff15768f00 sp 0x7fff15768ef0 T0)
+==1550==The signal is caused by a READ memory access.
+==1550==Hint: address points to the zero page.
+    #0 0x7efef5995c26 in operator-> buildtools/third_party/libc++/trunk/include/memory:2713:76
+    #1 0x7efef5995c26 in content::NavigationEntryImpl::site_instance() const content/browser/frame_host/navigation_entry_impl.h:224
+    #2 0x7efef599dd1b in content::NavigationControllerImpl::ClassifyNavigation(content::RenderFrameHostImpl*, FrameHostMsg_DidCommitProvisionalLoad_Params const&) const content/browser/frame_host/navigation_controller_impl.cc:1058:9
+    #3 0x7efef599c379 in content::NavigationControllerImpl::RendererDidNavigate(content::RenderFrameHostImpl*, FrameHostMsg_DidCommitProvisionalLoad_Params const&, content::LoadCommittedDetails*) content/browser/frame_host/navigation_controller_impl.cc:866:19
+    #4 0x7efef653f020 in content::NavigatorImpl::DidNavigate(content::RenderFrameHostImpl*, FrameHostMsg_DidCommitProvisionalLoad_Params const&) content/browser/frame_host/navigator_impl.cc:523:23
+    #5 0x7efef59d6b5f in content::RenderFrameHostImpl::OnDidCommitProvisionalLoad(IPC::Message const&) content/browser/frame_host/render_frame_host_impl.cc:1083:3
+    #6 0x7efef59d181c in content::RenderFrameHostImpl::OnMessageReceived(IPC::Message const&) content/browser/frame_host/render_frame_host_impl.cc:521:5
+    #7 0x7efef5c4cffa in content::RenderProcessHostImpl::OnMessageReceived(IPC::Message const&) content/browser/renderer_host/render_process_host_impl.cc:1803:10
+    #8 0x7efeeecf10ac in IPC::ChannelProxy::Context::OnDispatchMessage(IPC::Message const&) ipc/ipc_channel_proxy.cc:293:3
+    #9 0x7efeeecf793d in void base::internal::InvokeHelper<false, void, base::internal::RunnableAdapter<void (IPC::ChannelProxy::Context::*)(IPC::Message const&)> >::MakeItSo<IPC::ChannelProxy::Context*, IPC::Message const&>(base::internal::RunnableAdapter<void (IPC::ChannelProxy::Context::*)(IPC::Message const&)>, IPC::ChannelProxy::Context*&&, IPC::Message const&) base/bind_internal.h:301:5
+    #10 0x7efeeecf77b4 in base::internal::Invoker<base::IndexSequence<0ul, 1ul>, base::internal::BindState<base::internal::RunnableAdapter<void (IPC::ChannelProxy::Context::*)(IPC::Message const&)>, void (IPC::ChannelProxy::Context*, IPC::Message const&), IPC::ChannelProxy::Context*, IPC::Message const&>, base::internal::InvokeHelper<false, void, base::internal::RunnableAdapter<void (IPC::ChannelProxy::Context::*)(IPC::Message const&)> >, void ()>::Run(base::internal::BindStateBase*) base/bind_internal.h:352:12
+    #11 0x7efeec743177 in base::debug::TaskAnnotator::RunTask(char const*, base::PendingTask const&) base/debug/task_annotator.cc:51:3
+    #12 0x7efeec5b4b08 in base::MessageLoop::RunTask(base::PendingTask const&) base/message_loop/message_loop.cc:476:3
+    #13 0x7efeec5b589d in base::MessageLoop::DeferOrRunPendingTask(base::PendingTask const&) base/message_loop/message_loop.cc:485:5
+    #14 0x7efeec5b5f42 in base::MessageLoop::DoWork() base/message_loop/message_loop.cc:597:13
+    #15 0x7efeec73ae86 in base::MessagePumpGlib::Run(base::MessagePump::Delegate*) base/message_loop/message_pump_glib.cc:313:31
+    #16 0x7efeec5b4054 in base::MessageLoop::RunHandler() base/message_loop/message_loop.cc:440:3
+    #17 0x7efeec621e24 in base::RunLoop::Run() base/run_loop.cc:35:3
+    #18 0x7efeebb7f6eb in ChromeBrowserMainParts::MainMessageLoopRun(int*) chrome/browser/chrome_browser_main.cc:1820:3
+    #19 0x7efef631f8b0 in content::BrowserMainLoop::RunMainMessageLoopParts() content/browser/browser_main_loop.cc:958:21
+    #20 0x7efef58ab50f in content::BrowserMainRunnerImpl::Run() content/browser/browser_main_runner.cc:152:5
+    #21 0x7efef58a998c in content::BrowserMain(content::MainFunctionParams const&) content/browser/browser_main.cc:44:15
+    #22 0x7efeec45690a in content::RunNamedProcessTypeMain(std::__1::basic_string<char, std::__1::char_traits<char>, std::__1::allocator<char> > const&, content::MainFunctionParams const&, content::ContentMainDelegate*) content/app/content_main_runner.cc:398:14
+    #23 0x7efeec459f7f in content::ContentMainRunnerImpl::Run() content/app/content_main_runner.cc:769:12
+    #24 0x7efeec45401d in content::ContentMain(content::ContentMainParams const&) content/app/content_main.cc:19:15
+    #25 0x7efeeb09b0cc in ChromeMain chrome/app/chrome_main.cc:84:12
+    #26 0x7efee03d1ec4 in __libc_start_main /build/buildd/eglibc-2.19/csu/libc-start.c:287
+AddressSanitizer can not provide additional info.
+SUMMARY: AddressSanitizer: SEGV (/mnt/scratch0/clusterfuzz/bot/builds/chromium-browser-asan_linux-release_4392242b7f59878a2775b4607420a2b37e17ff13/symbolized/release/asan-symbolized-linux-release-381276/chrome+0xd602c26)
+==1550==ABORTING

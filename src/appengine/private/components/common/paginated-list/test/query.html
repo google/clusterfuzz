@@ -1,0 +1,80 @@
+<!--
+  Copyright 2018 Google LLC
+
+  Licensed under the Apache License, Version 2.0 (the "License");
+  you may not use this file except in compliance with the License.
+  You may obtain a copy of the License at
+
+       http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+-->
+<html>
+<head>
+  <script src="../../../../bower_components/web-component-tester/browser.js"></script>
+  <script src="../../../../bower_components/webcomponentsjs/webcomponents-lite.js"></script>
+  <script src="../query.js"></script>
+</head>
+<body>
+  <script>
+    suite('query.parse(..)', () => {
+      test('Empty', () => {
+        expect(query.parse('')).to.eql({});
+      });
+
+      test('Non-empty', () => {
+        expect(query.parse('a=1&b=2')).to.eql({a: '1', b: '2'});
+        expect(query.parse('a%20b=1&b=2')).to.eql({'a b': '1', b: '2'});
+      });
+
+      test('Compatible with query.compute(..)', () => {
+        let key = 'a!@##@%b';
+        let hash = {b: '2'};
+        hash[key] = 'q!@#$';
+        expect(query.parse(query.compute(hash, [key, 'b']))).to.eql(hash);
+      });
+    });
+
+    suite('query.compute(..)', () => {
+      test('Empty', () => {
+        expect(query.compute({}, ['a'])).to.eql('');
+      });
+
+      test('Compute only existing keys', () => {
+        expect(query.compute({a: '1', b: '2', c: '3'}, ['a', 'b']))
+            .to.eql('a=1&b=2');
+        expect(query.compute({b: '2', a: '1', c: '3'}, ['a', 'b']))
+            .to.eql('a=1&b=2');
+      });
+
+      test('Skip empty values', () => {
+        expect(query.compute({a: '1', b: ''}, ['a', 'b'])).to.eql('a=1');
+      });
+
+      test('Escape special characters', () => {
+        expect(query.compute({'a b': 'c d'}, ['a b'])).to.eql('a%20b=c%20d');
+      });
+    });
+
+    suite('query.toObject(..)', () => {
+      test('empty', () => {
+        expect(query.toObject('', [])).to.eql({});
+      });
+
+      test('Get only existing keys', () => {
+        expect(query.toObject('a%20b=1&b=2&c=3', ['a b', 'b', 'c']))
+            .to.eql({'a b': '1', 'b': '2', 'c': '3'});
+      });
+
+      test('Ignore missing keys', () => {
+        expect(query.toObject('a=1', ['a', 'b']))
+            .to.eql({'a': '1'});
+      });
+    });
+  </script>
+</body>
+</html>

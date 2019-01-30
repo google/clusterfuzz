@@ -1,0 +1,70 @@
+<!--
+  Copyright 2018 Google LLC
+
+  Licensed under the Apache License, Version 2.0 (the "License");
+  you may not use this file except in compliance with the License.
+  You may obtain a copy of the License at
+
+       http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+-->
+<html>
+<head>
+  <script src="../../../../bower_components/iron-test-helpers/mock-interactions.js"></script>
+  <script src="../../../../bower_components/web-component-tester/browser.js"></script>
+  <script src="../../../../bower_components/webcomponentsjs/webcomponents-lite.js"></script>
+  <script src="../../../../javascripts/test-helpers.js"></script>
+
+  <link rel="import" href="../if-else.html">
+</head>
+<body>
+  <test-fixture id="panel">
+    <template>
+      <if-else>
+        <div slot="t" class="true">TRUE</div>
+        <div slot="f" class="false">FALSE</div>
+      </if-else>
+    </template>
+  </test-fixture>
+  <script>
+
+    suite2('<if-else>', ($) => {
+
+      let expectContent = (shouldContain, shouldNotContain) => {
+        let children = $.slotSelectAll('', 'div');
+        expect(children.length).to.eql(1)
+        expect(children[0].innerHTML).to.include(shouldContain);
+        expect(children[0].innerHTML).to.not.include(shouldNotContain);
+      }
+
+      test2(
+          'true',
+          () => { $.panel.condition = true; },
+          () => { expectContent('TRUE', 'FALSE'); }
+      );
+
+      test2(
+          'false',
+          () => { $.panel.condition = false; },
+          () => { expectContent('FALSE', 'TRUE'); }
+      );
+
+      test2(
+          'flips (require restamp)',
+          () => { $.panel.condition = false; },
+          () => { expectContent('FALSE', 'TRUE'); },
+          () => { $.panel.condition = true; },
+          () => { expectContent('TRUE', 'FALSE'); },
+          () => { $.panel.condition = false; },
+          () => { expectContent('FALSE', 'TRUE'); }
+      )
+    });
+  </script>
+</body>
+</html>
+

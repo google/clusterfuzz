@@ -1,0 +1,57 @@
+<!--
+  Copyright 2018 Google LLC
+
+  Licensed under the Apache License, Version 2.0 (the "License");
+  you may not use this file except in compliance with the License.
+  You may obtain a copy of the License at
+
+       http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+-->
+{% extends "layout-with-toolbar.html" %}
+{% block import_element %}
+  {% raw %}
+    <script src="/private/bower_components/webcomponentsjs/webcomponents-lite.js"></script>
+    <link rel="import" href="/private/bower_components/polymer/polymer.html">
+    <link rel="import" href="/private/bower_components/iron-icons/iron-icons.html">
+    <link rel="import" href="/private/bower_components/iron-icon/iron-icon.html">
+    <link rel="import" href="/private/bower_components/paper-icon-button/paper-icon-button.html">
+    <link rel="import" href="/private/bower_components/paper-item/paper-item.html">
+    <link rel="import" href="/private/bower_components/paper-listbox/paper-listbox.html">
+    <link rel="import" href="/private/bower_components/app-layout/app-layout.html">
+
+    <link rel="import" href="/private/components/fuzzers-page/fuzzers-page.html">
+
+    <link rel="import" href="/private/components/technology/technology.html">
+    <link rel="stylesheet" type="text/css" href="/private/stylesheets/main.css">
+  {% endraw %}
+{% endblock %}
+{% block page_title %}Fuzzers{% endblock %}
+{% block toolbar_title %}Fuzzers{% endblock %}
+{% block main_content %}
+  <dom-bind id="page">
+    <template>
+      <template is="dom-if" if="[[data]]">
+        <fuzzers-page
+            fuzzers="[[data.fuzzers]]"
+            field-values="[[data.fieldValues]]"
+            privileged="[[data.privileged]]"
+            fuzzer-logs-bucket="[[data.fuzzerLogsBucket]]">
+        </fuzzers-page>
+      </template>
+    </template>
+  </dom-bind>
+  <script>
+    document.querySelector('#page').data = {
+      fuzzers: JSON.parse(atob('{{fuzzers|json}}')),
+      fuzzerLogsBucket: JSON.parse(atob('{{fuzzerLogsBucket|json}}')),
+      privileged: JSON.parse(atob('{{privileged|json}}')),
+      fieldValues: JSON.parse(atob('{{fieldValues|json}}')),
+    };
+  </script>
+{% endblock %}

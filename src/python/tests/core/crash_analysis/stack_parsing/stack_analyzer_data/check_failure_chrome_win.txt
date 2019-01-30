@@ -1,0 +1,48 @@
+[0603/182750:ERROR:main_dll_loader_win.cc(199)] Could not find exported function RelaunchChromeBrowserWithNewCommandLineIfNeeded
+[0603/182751:ERROR:main_dll_loader_win.cc(199)] Could not find exported function RelaunchChromeBrowserWithNewCommandLineIfNeeded
+[420:1396:0603/182751:FATAL:media_stream_dispatcher_host.cc(278)] Check failed: it != device_change_subscribers_.end().
+Backtrace:
+	base::debug::StackTrace::StackTrace [0x61C20814+20] (base\debug\stack_trace_win.cc:215)
+	logging::LogMessage::~LogMessage [0x61B0EB84+292] (base\logging.cc:524)
+	content::MediaStreamDispatcherHost::OnCancelDeviceChangeNotifications [0x65F254C9+313]
+	IPC::MessageT<MediaStreamHostMsg_CancelDeviceChangeNotifications_Meta,std::tuple<int>,void>::Dispatch [0x65F24F1C+636] (ipc\ipc_message_templates.h:120)
+	content::MediaStreamDispatcherHost::OnMessageReceived [0x65F1FF32+2754] (content\browser\renderer_host\media\media_stream_dispatcher_host.cc:133)
+	content::BrowserMessageFilter::Internal::OnMessageReceived [0x65B69821+977] (content\public\browser\browser_message_filter.cc:73)
+	IPC::MessageFilterRouter::TryFilters [0x61F7241B+667] (ipc\message_filter_router.cc:87)
+	IPC::ChannelProxy::Context::TryFilters [0x61F55283+147] (ipc\ipc_channel_proxy.cc:80)
+	IPC::ChannelProxy::Context::OnMessageReceived [0x61F555B0+16] (ipc\ipc_channel_proxy.cc:97)
+	IPC::ChannelMojo::OnMessageReceived [0x6ABB84B7+903] (ipc\mojo\ipc_channel_mojo.cc:377)
+	IPC::internal::MessagePipeReader::Receive [0x6ABC5014+1284] (ipc\mojo\ipc_message_pipe_reader.cc:138)
+	IPC::mojom::ChannelStub::Accept [0x6ABC8E0D+2765] (out\Release\gen\ipc\mojo\ipc.mojom.cc:606)
+	mojo::internal::InterfaceEndpointClient::HandleValidatedMessage [0x6ABED726+310] (mojo\public\cpp\bindings\lib\interface_endpoint_client.cc:307)
+	IPC::mojom::ChannelRequestValidator::Accept [0x6ABC9B69+233] (out\Release\gen\ipc\mojo\ipc.mojom.cc:635)
+	mojo::internal::MultiplexRouter::ProcessIncomingMessage [0x6ABDC5B9+905] (mojo\public\cpp\bindings\lib\multiplex_router.cc:768)
+	mojo::internal::MultiplexRouter::Accept [0x6ABDB489+297] (mojo\public\cpp\bindings\lib\multiplex_router.cc:497)
+	mojo::internal::MessageHeaderValidator::Accept [0x645FECB4+756] (mojo\public\cpp\bindings\lib\message_header_validator.cc:73)
+	mojo::internal::Connector::ReadSingleMessage [0x645FCE14+516] (mojo\public\cpp\bindings\lib\connector.cc:271)
+	mojo::internal::Connector::OnWatcherHandleReady [0x645FDA93+291] (mojo\public\cpp\bindings\lib\connector.cc:208)
+	base::internal::Invoker<base::IndexSequence<0>,base::internal::BindState<base::internal::RunnableAdapter<void (disk_cache::SparseControl::*)(int) __attribute__((thiscall))>,void (disk_cache::SparseControl *, int),base::internal::UnretainedWrapper<disk_cac [0x62AFC558+72] (base\bind_internal.h:368)
+	mojo::Watcher::CallOnHandleReady [0x6461BB29+489] (mojo\public\cpp\system\watcher.cc:129)
+	mojo::edk::`anonymous namespace::CallWatchCallback [0x6456CE0B+59] (mojo\edk\system\core.cc:58)
+	base::internal::Invoker<base::IndexSequence<0,1>,base::internal::BindState<base::internal::RunnableAdapter<void (*)(void (*)(unsigned int, unsigned int, MojoHandleSignalsState, unsigned int), unsigned int, unsigned int, const mojo::edk::HandleSignalsState [0x64577966+118] (base\bind_internal.h:368)
+	mojo::edk::Watcher::MaybeInvokeCallback [0x645DF00A+266] (mojo\edk\system\watcher.cc:24)
+	mojo::edk::RequestContext::~RequestContext [0x645AC75C+444] (mojo\edk\system\request_context.cc:50)
+	mojo::edk::NodeChannel::OnChannelMessage [0x645D3880+5744] (mojo\edk\system\node_channel.cc:644)
+	mojo::edk::Channel::OnReadComplete [0x645D83E3+1507] (mojo\edk\system\channel.cc:553)
+	mojo::edk::`anonymous namespace::ChannelWin::OnIOCompleted [0x645DD778+1592] (mojo\edk\system\channel_win.cc:210)
+	base::MessagePumpForIO::WaitForIOCompletion [0x61CA9050+1424] (base\message_loop\message_pump_win.cc:688)
+	base::MessagePumpForIO::DoRunLoop [0x61CA86B6+870] (base\message_loop\message_pump_win.cc:632)
+	base::MessagePumpWin::Run [0x61CA58AE+446] (base\message_loop\message_pump_win.cc:60)
+	base::MessageLoop::RunHandler [0x61B16A19+345] (base\message_loop\message_loop.cc:440)
+	base::RunLoop::Run [0x61C029E1+481] (base\run_loop.cc:36)
+	base::MessageLoop::Run [0x61B15CD0+128] (base\message_loop\message_loop.cc:295)
+	base::Thread::Run [0x61B1EF5B+11] (base\threading\thread.cc:205)
+	content::BrowserThreadImpl::IOThreadRun [0x65A4DA74+180] (content\browser\browser_thread_impl.cc:216)
+	content::BrowserThreadImpl::Run [0x65A4E026+950] (content\browser\browser_thread_impl.cc:260)
+	base::Thread::ThreadMain [0x61B1F2D0+880] (base\threading\thread.cc:256)
+	base::`anonymous namespace::ThreadFunc [0x61BAA7FE+446] (base\threading\platform_thread_win.cc:86)
+	__asan::AsanThread::ThreadStart [0x01AB5DAE+142]
+	__asan::PlatformTSDDtor [0x01AB1C5E+142]
+	BaseThreadInitThunk [0x749B7C04+36]
+	RtlInitializeExceptionChain [0x771FAB8F+143]
+	RtlInitializeExceptionChain [0x771FAB5A+90]

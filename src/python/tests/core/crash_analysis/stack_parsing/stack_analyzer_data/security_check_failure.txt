@@ -1,0 +1,49 @@
+[1:1:0826/102126:FATAL:Serialization.cpp(238)] Security CHECK failed: startPosition.compareTo(endPosition) <= 0. 
+#0 0x7fe0a8a5f4a1 __interceptor_backtrace
+#1 0x7fe0ad8efb93 base::debug::StackTrace::StackTrace()
+#2 0x7fe0ad92d31e logging::LogMessage::~LogMessage()
+#3 0x7fe0b50ae7f6 blink::CreateMarkupAlgorithm<>::createMarkup()
+#4 0x7fe0b50b0d96 blink::createMarkup()
+#5 0x7fe0b4ff841b blink::CompositeEditCommand::moveParagraphs()
+#6 0x7fe0b502dd47 blink::InsertListCommand::unlistifyParagraph()
+#7 0x7fe0b502c3ee blink::InsertListCommand::doApplyForSingleParagraph()
+#8 0x7fe0b502b154 blink::InsertListCommand::doApply()
+#9 0x7fe0b4febaf9 blink::CompositeEditCommand::apply()
+#10 0x7fe0b5013b71 blink::Editor::Command::execute()
+#11 0x7fe0b43aa054 blink::Document::execCommand()
+#12 0x7fe0b429ebf0 blink::DocumentV8Internal::execCommandMethodCallback()
+#13 0x7fe0aa3aa9bb v8::internal::FunctionCallbackArguments::Call()
+#14 0x7fe0aa508314 v8::internal::(anonymous namespace)::HandleApiCallHelper<>()
+#15 0x7fe0aa505b4d v8::internal::Builtin_Impl_HandleApiCall()
+#16 0x7fe0737063a7 <unknown>
+
+Failed to tell parent about crash.
+Received signal 6
+#0 0x7fe0a8a5f4a1 __interceptor_backtrace
+#1 0x7fe0ad8eec37 base::debug::(anonymous namespace)::StackDumpSignalHandler()
+#2 0x7fe0a1143330 <unknown>
+#3 0x7fe09defec37 gsignal
+#4 0x7fe09df02028 abort
+#5 0x7fe0ad8eb31a base::debug::BreakDebugger()
+#6 0x7fe0ad92d88f logging::LogMessage::~LogMessage()
+#7 0x7fe0b50ae7f6 blink::CreateMarkupAlgorithm<>::createMarkup()
+#8 0x7fe0b50b0d96 blink::createMarkup()
+#9 0x7fe0b4ff841b blink::CompositeEditCommand::moveParagraphs()
+#10 0x7fe0b502dd47 blink::InsertListCommand::unlistifyParagraph()
+#11 0x7fe0b502c3ee blink::InsertListCommand::doApplyForSingleParagraph()
+#12 0x7fe0b502b154 blink::InsertListCommand::doApply()
+#13 0x7fe0b4febaf9 blink::CompositeEditCommand::apply()
+#14 0x7fe0b5013b71 blink::Editor::Command::execute()
+#15 0x7fe0b43aa054 blink::Document::execCommand()
+#16 0x7fe0b429ebf0 blink::DocumentV8Internal::execCommandMethodCallback()
+#17 0x7fe0aa3aa9bb v8::internal::FunctionCallbackArguments::Call()
+#18 0x7fe0aa508314 v8::internal::(anonymous namespace)::HandleApiCallHelper<>()
+#19 0x7fe0aa505b4d v8::internal::Builtin_Impl_HandleApiCall()
+#20 0x7fe0737063a7 <unknown>
+  r8: 00007fe097bd5ed0  r9: 0000000000000000 r10: 0000000000000008 r11: 0000000000000202
+ r12: 00007fe097bd5ae0 r13: 0000000000000000 r14: 00007fe097bd5800 r15: 00007fe097aae960
+  di: 0000000000000001  si: 0000000000000001  bp: 00007ffdddc5b8d0  bx: 00007ffdddc5b8e0
+  dx: 0000000000000006  ax: 0000000000000000  cx: ffffffffffffffff  sp: 00007ffdddc5b798
+  ip: 00007fe09defec37 efl: 0000000000000202 cgf: 0000000000000033 erf: 0000000000000000
+ trp: 0000000000000000 msk: 0000000000000000 cr2: 0000000000000000
+[end of stack trace]

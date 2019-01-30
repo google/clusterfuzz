@@ -1,0 +1,29 @@
+{
+  '/src': {
+    'url': 'https://chromium.googlesource.com/chromium/src.git',
+    'rev': 'e4eb2a57c8667ab31903237e3c316fcaf4afe718',
+    'name': 'Chromium',
+    'commit_pos': 398287
+  },
+  'src/third_party/bidichecker': {
+     'name': 'Bidicheck',
+     'rev': '97f2aa645b74c28c57eca56992235c79850fa9e0',
+     'url': 'https://chromium.googlesource.com/external/bidichecker/lib.git'
+  },
+  'src/third_party/pdfium': {
+     'name': 'Pdfium',
+     'rev': 'f7e108b2d0c2f67a143e99693df084bfff7037ec',
+     'url': 'https://pdfium.googlesource.com/pdfium.git'
+  },
+  'src/third_party/skia': {
+     'name': 'Skia',
+     'rev': 'ee295645bd91fcbe1714847c5fe5341759037cc5',
+     'url': 'https://skia.googlesource.com/skia.git'
+  },
+  'src/v8': {
+     'name': 'V8',
+     'rev': 'cba1fdd4d72e7c5b874f9eeb07901792f26c871a',
+     'url': 'https://chromium.googlesource.com/v8/v8.git'
+  }
+}
+

@@ -1,0 +1,27 @@
+start_time        : 1504640693
+last_update       : 1504640710
+fuzzer_pid        : 37784
+cycles_done       : 1376
+execs_done        : 621037
+execs_per_sec     : 76.19
+paths_total       : 2
+paths_favored     : 2
+paths_found       : 1
+paths_imported    : 0
+max_depth         : 2
+cur_path          : 1
+pending_favs      : 0
+pending_total     : 0
+variable_paths    : 0
+stability         : 100.00%
+bitmap_cvg        : 0.00%
+unique_crashes    : 0
+unique_hangs      : 1
+last_path         : 1504640693
+last_crash        : 0
+last_hang         : 1504640708
+execs_since_crash : 621037
+exec_timeout      : 20
+afl_banner        : flatbuffers_verifier_fuzzer
+afl_version       : 2.38b
+command_line      : ./afl-fuzz -iinput -ooutput -mnone ./flatbuffers_verifier_fuzzer 2147483647

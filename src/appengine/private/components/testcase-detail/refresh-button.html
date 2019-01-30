@@ -1,0 +1,174 @@
+<!--
+  Copyright 2018 Google LLC
+
+  Licensed under the Apache License, Version 2.0 (the "License");
+  you may not use this file except in compliance with the License.
+  You may obtain a copy of the License at
+
+       http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+-->
+<link rel="import" href="../../bower_components/polymer/polymer.html">
+<link rel="import" href="../../components/common/if-else/if-else.html">
+<link rel="import" href="../../bower_components/iron-ajax/iron-ajax.html">
+<link rel="import" href="../../bower_components/iron-icon/iron-icon.html">
+<link rel="import" href="../../bower_components/paper-icon-button/paper-icon-button.html">
+<link rel="import" href="../../bower_components/paper-spinner/paper-spinner.html">
+
+<dom-module id="refresh-button">
+  <link rel="import" href="../../stylesheets/main.css" type="css">
+  <script src="../../javascripts/error.js" type="text/javascript"></script>
+  <template>
+    <style>
+      :host {
+        display: inline-block;
+        line-height: 45px;
+        white-space: nowrap;
+      }
+
+      :host > * {
+        vertical-align: middle;
+      }
+
+      :host paper-spinner {
+        width: 24px;
+        height: 24px;
+        padding: 8px;
+      }
+
+      :host .last-loaded-label {
+        display: inline-block;
+        font-size: 12px;
+        color: #eee;
+      }
+    </style>
+    <iron-ajax
+      id="ajax"
+      url="/testcase-detail/refresh"
+      method="POST"
+      content-type="application/json"
+      body="[[computeParams(info)]]"
+      loading="{{loading}}"
+      last-request="{{request}}"
+      last-error="{{error}}"
+      last-response="{{response}}"
+      on-error="handleError"
+      on-response="handleResponse"
+      active-requests="{{activeRequests}}"
+      debounce-duration="1000"></iron-ajax>
+    <span class="last-loaded-label">Loaded [[timeAgo]]</span>
+    <template is="dom-if" if="[[!loading]]">
+      <if-else condition="[[error]]">
+        <paper-icon-button slot="t" class="error-button" error icon="warning" on-tap="refresh" title="[[computeErrorMessage(error)]]"></paper-icon-button>
+        <paper-icon-button slot="f" class="submit-button" icon="refresh" on-tap="refresh"></paper-icon-button>
+      </if-else>
+    </template>
+    <template is="dom-if" if="[[loading]]">
+      <paper-spinner active="[[loading]]"></paper-spinner>
+    </template>
+  </template>
+  <script>
+    Polymer({
+      is: 'refresh-button',
+      properties: {
+        info: {
+          type: Object,
+          notify: true
+        },
+        loading: {
+          type: Boolean,
+          notify: true,
+          value: false
+        },
+        lastLoadedTime: {
+          type: Number,
+          value: () => { return Date.now(); }
+        },
+        timeAgo: {
+          type: String,
+          value: 'just now'
+        },
+        error: {
+          type: Object,
+          value: null
+        },
+        response: {
+          type: Object,
+          value: null
+        },
+        activeRequests: Array,
+        refreshId: {
+          type: Number,
+          value: 0
+        },
+        nextRefresh: {
+          type: Object,
+          value: null
+        }
+      },
+      observers: ['computeTimeAgo(lastLoadedTime)'],
+      computeParams(info) {
+        return {testcaseId: info.testcase.id};
+      },
+      computeErrorMessage(originalError) {
+        let error = parseError(originalError);
+
+        if (!error) {
+          return 'Aborted.';
+        } else {
+          let message = error.message;
+          if (error.traceDump) {
+            message += '\n\n' + error.traceDump;
+          }
+          return message;
+        }
+      },
+      computeTimeAgo(lastLoadedTime) {
+        let minutesAgo = parseInt((Date.now() - lastLoadedTime)/ 60000);
+
+        if (minutesAgo <= 1) {
+          this.timeAgo = 'just now';
+        } else {
+          this.timeAgo = `${minutesAgo} minutes ago`;
+        }
+      },
+      handleResponse() {
+        if (this.info.refreshId == this.refreshId) {
+          this.lastLoadedTime = Date.now();
+          this.info = this.response;
+        }
+
+        this.scheduleRefresh();
+      },
+      handleError() {
+        this.scheduleRefresh();
+      },
+      scheduleRefresh() {
+        this.nextRefresh = setTimeout(() => { this.refresh(); }, 5 * 60000);
+      },
+      refresh() {
+        if (this.nextRefresh) {
+          clearTimeout(this.nextRefresh);
+          this.nextRefresh = null;
+        }
+
+        this.refreshId++;
+        this.info.refreshId = this.refreshId;
+        this.$.ajax.generateRequest();
+      },
+      ready() {
+        setInterval(
+            () => { this.computeTimeAgo(this.lastLoadedTime) },
+            60000
+        );
+        this.scheduleRefresh();
+      }
+    });
+  </script>
+</dom-module>
+

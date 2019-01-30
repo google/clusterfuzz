@@ -1,0 +1,17 @@
+[
+  {
+    "origin": [
+      "https://test-clusterfuzz.appspot.com",
+      "https://test-clusterfuzz.com"
+    ],
+    "responseHeader": [
+      "Origin",
+      "X-Requested-With",
+      "Content-Type",
+      "Accept",
+      "X-PINGOTHER"
+    ],
+    "method": ["GET", "POST", "OPTIONS"],
+    "maxAgeSeconds": 3600
+  }
+]

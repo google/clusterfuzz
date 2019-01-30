@@ -1,0 +1,74 @@
+#READY
+Content-Type: text/plain
+layer at (0,0) size 800x600
+LayoutView at (0,0) size 800x600
+layer at (0,0) size 800x600
+LayoutBlockFlow {HTML} at (0,0) size 800x600
+LayoutBlockFlow {BODY} at (8,8) size 784x584
+layer at (8,8) size 300x150
+LayoutHTMLCanvas {CANVAS} at (0,0) size 300x150
+#EOF
+#EOF
+ASAN:DEADLYSIGNAL
+=================================================================
+==14764==ERROR: AddressSanitizer: BUS on unknown address 0x603000250000 (pc 0x7fff8d0731b6 bp 0x7fff566a69b0 sp 0x7fff566a69a8 T0)
+SCARINESS: 10 (signal)
+#0 0x7fff8d0731b5 in storeColor
+#1 0x7fff8d0834ed in glgProcessColor
+#2 0x7fff8d056628 in __glgProcessPixelsWithProcessor_block_invoke
+#3 0x7fff89222028 in _dispatch_client_callout2
+#4 0x7fff892268c0 in _dispatch_apply_serial
+#5 0x7fff8921040a in _dispatch_client_callout
+#6 0x7fff892215a3 in _dispatch_sync_f_invoke
+#7 0x7fff89221c4b in dispatch_apply_f
+#8 0x7fff8d05641d in glgProcessPixelsWithProcessor
+#9 0x7fff83bc7b02 in gldDoScalingBlit
+#10 0x7fff83bc556b in gldBlitFramebufferData
+#11 0x7fff90432a0a in gleBlitFramebuffer
+#12 0x7fff9037010a in glBlitFramebufferEXT_Exec
+#13 0x7fff8ba2805c in glBlitFramebuffer
+#14 0x10ee0046d in gl::GLApiBase::glBlitFramebufferFn(int, int, int, int, int, int, int, int, unsigned int, unsigned int) ui/gl/gl_bindings_autogen_gl.cc:2627:3
+#15 0x1103dd3f7 in gpu::gles2::GLES2DecoderImpl::DoBlitFramebufferCHROMIUM(int, int, int, int, int, int, int, int, unsigned int, unsigned int) gpu/command_buffer/service/gles2_cmd_decoder.cc:8327:5
+#16 0x11036c86f in gpu::gles2::GLES2DecoderImpl::HandleBlitFramebufferCHROMIUM(unsigned int, void const volatile*) gpu/command_buffer/service/gles2_cmd_decoder_autogen.h:4135:3
+#17 0x1103c180e in gpu::error::Error gpu::gles2::GLES2DecoderImpl::DoCommandsImpl<false>(unsigned int, void const volatile*, int, int*) gpu/command_buffer/service/gles2_cmd_decoder.cc:5276:18
+#18 0x110291647 in ProcessCommands gpu/command_buffer/service/command_buffer_service.cc:231:17
+#19 0x110291647 in gpu::CommandBufferService::Flush(int) gpu/command_buffer/service/command_buffer_service.cc:86
+#20 0x111498e03 in gpu::GpuCommandBufferStub::OnAsyncFlush(int, unsigned int, std::__1::vector<ui::LatencyInfo, std::__1::allocator<ui::LatencyInfo> > const&, std::__1::vector<gpu::SyncToken, std::__1::allocator<gpu::SyncToken> > const&) gpu/ipc/service/gpu_command_buffer_stub.cc:973:20
+#21 0x1114984df in DispatchToMethodImpl<gpu::GpuCommandBufferStub *, void (gpu::GpuCommandBufferStub::*)(int, unsigned int, const std::__1::vector<ui::LatencyInfo, std::__1::allocator<ui::LatencyInfo> > &, const std::__1::vector<gpu::SyncToken, std::__1::allocator<gpu::SyncToken> > &), const std::__1::tuple<int, unsigned int, std::__1::vector<ui::LatencyInfo, std::__1::allocator<ui::LatencyInfo> >, std::__1::vector<gpu::SyncToken, std::__1::allocator<gpu::SyncToken> > > &, 0, 1, 2, 3> base/tuple.h:77:3
+#22 0x1114984df in DispatchToMethod<gpu::GpuCommandBufferStub *, void (gpu::GpuCommandBufferStub::*)(int, unsigned int, const std::__1::vector<ui::LatencyInfo, std::__1::allocator<ui::LatencyInfo> > &, const std::__1::vector<gpu::SyncToken, std::__1::allocator<gpu::SyncToken> > &), const std::__1::tuple<int, unsigned int, std::__1::vector<ui::LatencyInfo, std::__1::allocator<ui::LatencyInfo> >, std::__1::vector<gpu::SyncToken, std::__1::allocator<gpu::SyncToken> > > &> base/tuple.h:84
+#23 0x1114984df in DispatchToMethod<gpu::GpuCommandBufferStub, void (gpu::GpuCommandBufferStub::*)(int, unsigned int, const std::__1::vector<ui::LatencyInfo, std::__1::allocator<ui::LatencyInfo> > &, const std::__1::vector<gpu::SyncToken, std::__1::allocator<gpu::SyncToken> > &), void, std::__1::tuple<int, unsigned int, std::__1::vector<ui::LatencyInfo, std::__1::allocator<ui::LatencyInfo> >, std::__1::vector<gpu::SyncToken, std::__1::allocator<gpu::SyncToken> > > > ipc/ipc_message_templates.h:26
+#24 0x1114984df in bool IPC::MessageT<GpuCommandBufferMsg_AsyncFlush_Meta, std::__1::tuple<int, unsigned int, std::__1::vector<ui::LatencyInfo, std::__1::allocator<ui::LatencyInfo> >, std::__1::vector<gpu::SyncToken, std::__1::allocator<gpu::SyncToken> > >, void>::Dispatch<gpu::GpuCommandBufferStub, gpu::GpuCommandBufferStub, void, void (gpu::GpuCommandBufferStub::*)(int, unsigned int, std::__1::vector<ui::LatencyInfo, std::__1::allocator<ui::LatencyInfo> > const&, std::__1::vector<gpu::SyncToken, std::__1::allocator<gpu::SyncToken> > const&)>(IPC::Message const*, gpu::GpuCommandBufferStub*, gpu::GpuCommandBufferStub*, void*, void (gpu::GpuCommandBufferStub::*)(int, unsigned int, std::__1::vector<ui::LatencyInfo, std::__1::allocator<ui::LatencyInfo> > const&, std::__1::vector<gpu::SyncToken, std::__1::allocator<gpu::SyncToken> > const&)) ipc/ipc_message_templates.h:121
+#25 0x111492fbb in gpu::GpuCommandBufferStub::OnMessageReceived(IPC::Message const&) gpu/ipc/service/gpu_command_buffer_stub.cc:303:5
+#26 0x111457821 in HandleMessageHelper gpu/ipc/service/gpu_channel.cc:985:23
+#27 0x111457821 in gpu::GpuChannel::HandleMessageOnQueue() gpu/ipc/service/gpu_channel.cc:960
+#28 0x10e1089d2 in Run base/callback.h:91:12
+#29 0x10e1089d2 in base::debug::TaskAnnotator::RunTask(char const*, base::PendingTask*) base/debug/task_annotator.cc:59
+#30 0x10e1888a2 in base::MessageLoop::RunTask(base::PendingTask*) base/message_loop/message_loop.cc:414:19
+#31 0x10e189978 in base::MessageLoop::DeferOrRunPendingTask(base::PendingTask) base/message_loop/message_loop.cc:425:5
+#32 0x10e18a3fe in base::MessageLoop::DoWork() base/message_loop/message_loop.cc:513:13
+#33 0x10e198922 in base::MessagePumpCFRunLoopBase::RunWork() base/message_loop/message_pump_mac.mm:421:30
+#34 0x10e1612c9 in base::mac::CallWithEHFrame(void () block_pointer)
+#35 0x10e195c3d in base::MessagePumpCFRunLoopBase::RunWorkSource(void*) base/message_loop/message_pump_mac.mm:397:3
+#36 0x7fff8d289880 in __CFRUNLOOP_IS_CALLING_OUT_TO_A_SOURCE0_PERFORM_FUNCTION__
+#37 0x7fff8d268fbb in __CFRunLoopDoSources0
+#38 0x7fff8d2684de in __CFRunLoopRun
+#39 0x7fff8d267ed7 in CFRunLoopRunSpecific
+#40 0x10e1999cf in base::MessagePumpCFRunLoop::DoRun(base::MessagePump::Delegate*) base/message_loop/message_pump_mac.mm:639:14
+#41 0x10e1939a6 in base::MessagePumpCFRunLoopBase::Run(base::MessagePump::Delegate*) base/message_loop/message_pump_mac.mm:141:3
+#42 0x10e2055d9 in base::RunLoop::Run() base/run_loop.cc:111:14
+#43 0x11407e918 in content::GpuMain(content::MainFunctionParams const&) content/gpu/gpu_main.cc:296:21
+#44 0x10a1ff7c7 in content::ContentMainRunnerImpl::Run() content/app/content_main_runner.cc:705:12
+#45 0x112a39c54 in service_manager::Main(service_manager::MainParams const&) services/service_manager/embedder/main.cc:469:29
+#46 0x10a1fce46 in content::ContentMain(content::ContentMainParams const&) content/app/content_main.cc:19:10
+#47 0x10955fa1e in Content Shell Framework:x86_64
+#48 0x7fff8b9d35ac in start
+==14764==Register values:
+rax = 0x0000603000250000  rbx = 0x00007fff8d073238  rcx = 0x0000000000000000  rdx = 0x0000603000250004
+rdi = 0x0000000000000000  rsi = 0x0000000000000016  rbp = 0x00007fff566a69b0  rsp = 0x00007fff566a69a8
+r8 = 0x00007fff566a6e08   r9 = 0x0000000000000000  r10 = 0x0000000000000000  r11 = 0x0000000000000000
+r12 = 0x0000000000000000  r13 = 0x000000000fffc344  r14 = 0x00007fff566a6e08  r15 = 0x0000000000000016
+AddressSanitizer can not provide additional info.
+SUMMARY: AddressSanitizer: BUS (/System/Library/Frameworks/OpenGL.framework/Versions/A/Libraries/libGLImage.dylib:x86_64+0x251b5)
+==14764==ABORTING
+#CRASHED - gpu
+#EOF

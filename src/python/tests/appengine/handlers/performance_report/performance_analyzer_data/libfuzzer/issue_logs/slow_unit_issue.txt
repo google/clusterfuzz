@@ -1,0 +1,42 @@
+Command: ['/mnt/scratch0/clusterfuzz/bot/builds/chromium-browser-libfuzzer_linux-release-asan_ae530a86793cd6b8b56ce9af9159ac101396e802/revisions/libfuzzer-linux-release-404048/ots_fuzzer', '-max_len=16800', '-timeout=300', '-rss_limit_mb=3000', '-max_total_time=3250', '-print_final_stats=1', '/mnt/scratch0/clusterfuzz/bot/inputs/fuzzer-testcases-disk/temp/new', '/mnt/scratch0/clusterfuzz/bot/inputs/fuzzers/libfuzzer/libfuzzer_data/ots_fuzzer']
+Bot: clusterfuzz-linux-high-end-pre-0062
+Time ran: 3260.027679
+
+INFO: Seed: 3193749932
+INFO: Loaded 1 modules (5677 guards): [0x954b10, 0x95a3c4),
+Loading corpus: /mnt/scratch0/clusterfuzz/bot/inputs/fuzzers/libfuzzer/libfuzzer_data/ots_fuzzer
+Loaded 1024/3094 files from /mnt/scratch0/clusterfuzz/bot/inputs/fuzzers/libfuzzer/libfuzzer_data/ots_fuzzer
+Loaded 2048/3094 files from /mnt/scratch0/clusterfuzz/bot/inputs/fuzzers/libfuzzer/libfuzzer_data/ots_fuzzer
+#0  READ   units: 3094 exec/s: 0
+#1  pulse  cov: 185 bits: 87 indir: 14 units: 3094 exec/s: 0
+#2  pulse  cov: 189 bits: 87 indir: 14 units: 3094 exec/s: 0
+#4  pulse  cov: 197 bits: 95 indir: 16 units: 3094 exec/s: 0
+#8  pulse  cov: 203 bits: 101 indir: 17 units: 3094 exec/s: 1
+#16 pulse  cov: 230 bits: 130 indir: 24 units: 3094 exec/s: 2
+#32 pulse  cov: 261 bits: 266 indir: 31 units: 3094 exec/s: 4
+#64 pulse  cov: 915 bits: 1393 indir: 104 units: 3094 exec/s: 9
+#128  pulse  cov: 1248 bits: 2359 indir: 161 units: 3094 exec/s: 18
+#256  pulse  cov: 1514 bits: 3023 indir: 274 units: 3094 exec/s: 36
+#512  pulse  cov: 2211 bits: 4716 indir: 394 units: 3094 exec/s: 73
+#1024 pulse  cov: 2670 bits: 6158 indir: 522 units: 3094 exec/s: 146
+#2048 pulse  cov: 3287 bits: 8429 indir: 739 units: 3094 exec/s: 256
+Slowest unit: 14 s:
+artifact_prefix='./'; Test unit written to ./slow-unit-ff3b4854881f660a1fad137109695723174e18a5
+Slowest unit: 28 s:
+artifact_prefix='./'; Test unit written to ./slow-unit-4d8f76eedaa95f58f56da52a3f47bc5ae08c8373
+Slowest unit: 32 s:
+artifact_prefix='./'; Test unit written to ./slow-unit-52da5371e1e8db521702f93b2dc0728385bfed9f
+#3094 INITED cov: 3538 bits: 10244 indir: 812 units: 2710 exec/s: 4
+#3095 NEW    cov: 3547 bits: 10244 indir: 812 units: 2711 exec/s: 4 L: 2827 MS: 1 EraseByte-
+#4096 pulse  cov: 3547 bits: 10244 indir: 812 units: 2711 exec/s: 5
+#8192 pulse  cov: 3547 bits: 10244 indir: 812 units: 2711 exec/s: 11
+#16384  pulse  cov: 3547 bits: 10244 indir: 812 units: 2711 exec/s: 15
+#32768  pulse  cov: 3547 bits: 10244 indir: 812 units: 2711 exec/s: 27
+#65536  pulse  cov: 3547 bits: 10244 indir: 812 units: 2711 exec/s: 38
+#131072 pulse  cov: 3547 bits: 10244 indir: 812 units: 2711 exec/s: 51
+==23980== libFuzzer: run interrupted; exiting
+stat::number_of_executed_units: 161068
+stat::average_exec_per_sec:     49
+stat::new_units_added:          1
+stat::slowest_unit_time_sec:    32
+stat::peak_rss_mb:              168

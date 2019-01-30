@@ -1,0 +1,41 @@
+ASAN:DEADLYSIGNAL
+=================================================================
+==29409==ERROR: AddressSanitizer: SEGV on unknown address 0x000000010178 (pc 0x7f5eae7977d1 bp 0x7ffcc670d840 sp 0x7ffcc670cfd8 T0)
+==29409==The signal is caused by a WRITE memory access.
+==29409==Hint: address points to the zero page.
+    #0 0x7f5eae7977d0 in memcpy-ssse3-back.S:1702 /build/eglibc-rrybNj/eglibc-2.15/sysdeps/x86_64/multiarch/memcpy-ssse3-back.S:1702
+    #1 0x7f5eba8358a1 in SetTaskInfo base/timer/timer.cc:145:16
+    #2 0x7f5eba8358a1 in base::Timer::Start(tracked_objects::Location const&, base::TimeDelta, base::Callback<void ()> const&) base/timer/timer.cc:105
+    #3 0x7f5eca365821 in Start<views::MenuController> base/timer/timer.h:224:5
+    #4 0x7f5eca365821 in StartCancelAllTimer ui/views/controls/menu/menu_controller.cc:1832
+    #5 0x7f5eca365821 in views::MenuController::OnDragExited(views::SubmenuView*) ui/views/controls/menu/menu_controller.cc:925
+    #6 0x7f5eca59bd42 in NotifyDragExit ui/views/widget/drop_helper.cc:154:5
+    #7 0x7f5eca59bd42 in views::DropHelper::OnDragExit() ui/views/widget/drop_helper.cc:47
+    #8 0x7f5eca5c18f0 in NotifyDragLeave ui/views/widget/desktop_aura/desktop_drag_drop_client_aurax11.cc:1019:5
+    #9 0x7f5eca5c18f0 in views::DesktopDragDropClientAuraX11::~DesktopDragDropClientAuraX11() ui/views/widget/desktop_aura/desktop_drag_drop_client_aurax11.cc:447
+    #10 0x7f5eca5c1f0a in views::DesktopDragDropClientAuraX11::~DesktopDragDropClientAuraX11() ui/views/widget/desktop_aura/desktop_drag_drop_client_aurax11.cc:443:63
+    #11 0x7f5eca52b660 in operator() buildtools/third_party/libc++/trunk/include/memory:2529:13
+    #12 0x7f5eca52b660 in reset buildtools/third_party/libc++/trunk/include/memory:2735
+    #13 0x7f5eca52b660 in views::DesktopNativeWidgetAura::OnDesktopWindowTreeHostDestroyed(aura::WindowTreeHost*) ui/views/widget/desktop_aura/desktop_native_widget_aura.cc:355
+    #14 0x7f5eca5438d9 in views::DesktopWindowTreeHostX11::~DesktopWindowTreeHostX11() ui/views/widget/desktop_aura/desktop_window_tree_host_x11.cc:184:3
+    #15 0x7f5eca543f3e in ~DesktopWindowTreeHostX11 ui/views/widget/desktop_aura/desktop_window_tree_host_x11.cc:181:55
+    #16 0x7f5eca543f3e in non-virtual thunk to views::DesktopWindowTreeHostX11::~DesktopWindowTreeHostX11() ui/views/widget/desktop_aura/desktop_window_tree_host_x11.cc:181
+    #17 0x7f5eca52b012 in operator() buildtools/third_party/libc++/trunk/include/memory:2529:13
+    #18 0x7f5eca52b012 in reset buildtools/third_party/libc++/trunk/include/memory:2735
+    #19 0x7f5eca52b012 in views::DesktopNativeWidgetAura::OnHostClosed() ui/views/widget/desktop_aura/desktop_native_widget_aura.cc:330
+    #20 0x7f5eca54d397 in views::DesktopWindowTreeHostX11::CloseNow() ui/views/widget/desktop_aura/desktop_window_tree_host_x11.cc:392:3
+    #21 0x7f5eca567bdf in Run<> base/bind_internal.h:181:12
+    #22 0x7f5eca567bdf in MakeItSo<base::WeakPtr<views::DesktopWindowTreeHostX11>> base/bind_internal.h:314
+    #23 0x7f5eca567bdf in base::internal::Invoker<base::IndexSequence<0ul>, base::internal::BindState<base::internal::RunnableAdapter<void (views::DesktopWindowTreeHostX11::*)()>, void (views::DesktopWindowTreeHostX11*), base::WeakPtr<views::DesktopWindowTreeHostX11> >, base::internal::InvokeHelper<true, void, base::internal::RunnableAdapter<void (views::DesktopWindowTreeHostX11::*)()> >, void ()>::Run(base::internal::BindStateBase*) base/bind_internal.h:351
+    #24 0x7f5eba8c5fe9 in Run base/callback.h:394:12
+    #25 0x7f5eba8c5fe9 in base::debug::TaskAnnotator::RunTask(char const*, base::PendingTask const&) base/debug/task_annotator.cc:51
+    #26 0x7f5eba6fc007 in base::MessageLoop::RunTask(base::PendingTask const&) base/message_loop/message_loop.cc:476:3
+    #27 0x7f5eba6fd05b in base::MessageLoop::DeferOrRunPendingTask(base::PendingTask const&) base/message_loop/message_loop.cc:485:5
+    #28 0x7f5eba6fdd7a in base::MessageLoop::DoWork() base/message_loop/message_loop.cc:597:13
+    #29 0x7f5eba8be1d7 in HandleDispatch base/message_loop/message_pump_glib.cc:267:7
+    #30 0x7f5eba8be1d7 in base::(anonymous namespace)::WorkSourceDispatch(_GSource*, int (*)(void*), void*) base/message_loop/message_pump_glib.cc:109
+    #31 0x7f5eb5767d12 in g_main_dispatch /build/buildd/glib2.0-2.32.4/glib/gmain.c:2539
+    #32 0x7f5eb5767d12 in g_main_context_dispatch /build/buildd/glib2.0-2.32.4/glib/gmain.c:3075
+AddressSanitizer can not provide additional info.
+SUMMARY: AddressSanitizer: SEGV (/lib/x86_64-linux-gnu/libc.so.6+0x14e7d0)
+==29409==ABORTING

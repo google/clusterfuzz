@@ -1,0 +1,71 @@
+=================================================================
+==2304==ERROR: AddressSanitizer: breakpoint on unknown address 0xba0f4780 (pc 0x13458f6c bp 0x0067b158 sp 0x0067b158 T0)
+==2304==The signal is caused by a READ memory access.
+SCARINESS: 20 (wild-addr-read)
+==2304==*** WARNING: Failed to initialize DbgHelp!              ***
+==2304==*** Most likely this means that the app is already      ***
+==2304==*** using DbgHelp, possibly with incompatible flags.    ***
+==2304==*** Due to technical reasons, symbolization might crash ***
+==2304==*** or produce wrong results.                           ***
+==2304==WARNING: Failed to use and restart external symbolizer!
+    #0 0x13458f6b in base::debug::BreakDebugger C:\b\c\b\win_asan_release_media\src\base\debug\debugger_win.cc:18
+    #1 0x1321cea6 in logging::LogMessage::~LogMessage C:\b\c\b\win_asan_release_media\src\base\logging.cc:783
+    #2 0x1b23f3a8 in WTF::Vector<blink::Member<blink::MimeClassInfo>,0,blink::HeapAllocator>::at C:\b\c\b\win_asan_release_media\src\third_party\WebKit\Source\platform\wtf\Vector.h:1007
+    #3 0x1b23cd90 in blink::PluginInfo::GetMimeClassInfo C:\b\c\b\win_asan_release_media\src\third_party\WebKit\Source\platform\plugins\PluginData.cpp:56
+    #4 0x1d60fc91 in blink::DOMPlugin::item C:\b\c\b\win_asan_release_media\src\third_party\WebKit\Source\modules\plugins\DOMPlugin.cpp:54
+    #5 0x1d8cd8db in blink::V8Plugin::itemMethodCallback C:\b\c\b\win_asan_release_media\src\out\release\gen\blink\bindings\modules\v8\V8Plugin.cpp:177
+    #6 0x10bd3915 in v8::internal::FunctionCallbackArguments::Call C:\b\c\b\win_asan_release_media\src\v8\src\api-arguments.cc:25
+    #7 0x10e22d04 in v8::internal::`anonymous namespace'::HandleApiCallHelper<0> C:\b\c\b\win_asan_release_media\src\v8\src\builtins\builtins-api.cc:112
+    #8 0x10e1fa41 in v8::internal::Builtin_Impl_HandleApiCall C:\b\c\b\win_asan_release_media\src\v8\src\builtins\builtins-api.cc:142
+    #9 0x10e1eea1 in v8::internal::Builtin_HandleApiCall C:\b\c\b\win_asan_release_media\src\v8\src\builtins\builtins-api.cc:130
+    #10 0x2c6063fd  (<unknown module>)
+    #11 0x255bc0a5  (<unknown module>)
+    #12 0x2558e7f3  (<unknown module>)
+    #13 0x2c6074b5  (<unknown module>)
+    #14 0xeb4355a  (<unknown module>)
+    #15 0xeb43ae9  (<unknown module>)
+    #16 0xeb43d5b  (<unknown module>)
+    #17 0xeb43d5b  (<unknown module>)
+    #18 0x255bc52d  (<unknown module>)
+    #19 0x2558e7f3  (<unknown module>)
+    #20 0x255bc97c  (<unknown module>)
+    #21 0x2558e7f3  (<unknown module>)
+    #22 0x2558d83d  (<unknown module>)
+    #23 0x2c606097  (<unknown module>)
+    #24 0x1190df62 in v8::internal::`anonymous namespace'::Invoke C:\b\c\b\win_asan_release_media\src\v8\src\execution.cc:145
+    #25 0x1190d6fa in v8::internal::Execution::Call C:\b\c\b\win_asan_release_media\src\v8\src\execution.cc:190
+    #26 0x10bfc31b in v8::Script::Run C:\b\c\b\win_asan_release_media\src\v8\src\api.cc:2060
+    #27 0x1a931a24 in blink::V8ScriptRunner::RunCompiledScript C:\b\c\b\win_asan_release_media\src\third_party\WebKit\Source\bindings\core\v8\V8ScriptRunner.cpp:573
+    #28 0x1a8c4240 in blink::ScriptController::ExecuteScriptAndReturnValue C:\b\c\b\win_asan_release_media\src\third_party\WebKit\Source\bindings\core\v8\ScriptController.cpp:135
+    #29 0x1cbd8c39 in blink::ScheduledAction::Execute C:\b\c\b\win_asan_release_media\src\third_party\WebKit\Source\bindings\core\v8\ScheduledAction.cpp:161
+    #30 0x1cbd83af in blink::ScheduledAction::Execute C:\b\c\b\win_asan_release_media\src\third_party\WebKit\Source\bindings\core\v8\ScheduledAction.cpp:107
+    #31 0x1bca2c17 in blink::DOMTimer::Fired C:\b\c\b\win_asan_release_media\src\third_party\WebKit\Source\core\frame\DOMTimer.cpp:172
+    #32 0x16b923b8 in blink::TimerBase::RunInternal C:\b\c\b\win_asan_release_media\src\third_party\WebKit\Source\platform\Timer.cpp:174
+    #33 0x134b4656 in base::debug::TaskAnnotator::RunTask C:\b\c\b\win_asan_release_media\src\base\debug\task_annotator.cc:57
+    #34 0x16d84b2d in blink::scheduler::TaskQueueManager::ProcessTaskFromWorkQueue C:\b\c\b\win_asan_release_media\src\third_party\WebKit\Source\platform\scheduler\base\task_queue_manager.cc:531
+    #35 0x16d7fc8d in blink::scheduler::TaskQueueManager::DoWork C:\b\c\b\win_asan_release_media\src\third_party\WebKit\Source\platform\scheduler\base\task_queue_manager.cc:329
+    #36 0x15386db0 in base::internal::Invoker<base::internal::BindState<void (gpu::GpuWatchdogThread::*)(bool) __attribute__((thiscall)),base::WeakPtr<gpu::GpuWatchdogThread>,bool>,void ()>::Run C:\b\c\b\win_asan_release_media\src\base\bind_internal.h:330
+    #37 0x102b5c1b in base::CancelableCallback<void ()>::Forward C:\b\c\b\win_asan_release_media\src\base\cancelable_callback.h:109
+    #38 0x134b4656 in base::debug::TaskAnnotator::RunTask C:\b\c\b\win_asan_release_media\src\base\debug\task_annotator.cc:57
+    #39 0x13357e00 in base::MessageLoop::RunTask C:\b\c\b\win_asan_release_media\src\base\message_loop\message_loop.cc:422
+    #40 0x13358e0b in base::MessageLoop::DeferOrRunPendingTask C:\b\c\b\win_asan_release_media\src\base\message_loop\message_loop.cc:433
+    #41 0x1335a2df in base::MessageLoop::DoDelayedWork C:\b\c\b\win_asan_release_media\src\base\message_loop\message_loop.cc:580
+    #42 0x134baf0f in base::MessagePumpDefault::Run C:\b\c\b\win_asan_release_media\src\base\message_loop\message_pump_default.cc:37
+    #43 0x13356e04 in base::MessageLoop::Run C:\b\c\b\win_asan_release_media\src\base\message_loop\message_loop.cc:369
+    #44 0x133f2fcb in base::RunLoop::Run C:\b\c\b\win_asan_release_media\src\base\run_loop.cc:111
+    #45 0x181e421f in content::RendererMain C:\b\c\b\win_asan_release_media\src\content\renderer\renderer_main.cc:219
+    #46 0x132044f8 in content::RunNamedProcessTypeMain C:\b\c\b\win_asan_release_media\src\content\app\content_main_runner.cc:411
+    #47 0x13205ab7 in content::ContentMainRunnerImpl::Run C:\b\c\b\win_asan_release_media\src\content\app\content_main_runner.cc:704
+    #48 0x1321722d in service_manager::Main C:\b\c\b\win_asan_release_media\src\services\service_manager\embedder\main.cc:469
+    #49 0x132041dc in content::ContentMain C:\b\c\b\win_asan_release_media\src\content\app\content_main.cc:19
+    #50 0xfe91262 in ChromeMain C:\b\c\b\win_asan_release_media\src\chrome\app\chrome_main.cc:119
+    #51 0x13584a6 in MainDllLoader::Launch C:\b\c\b\win_asan_release_media\src\chrome\app\main_dll_loader_win.cc:199
+    #52 0x1351ccb in main C:\b\c\b\win_asan_release_media\src\chrome\app\chrome_exe_main_win.cc:268
+    #53 0x16c5a59 in __scrt_common_main_seh f:\dd\vctools\crt\vcstartup\src\startup\exe_common.inl:283
+    #54 0x77487c03 in BaseThreadInitThunk+0x23 (C:\windows\SYSTEM32\KERNEL32.DLL+0x17c03)
+    #55 0x77a9ad2e in RtlInitializeExceptionChain+0x8e (C:\windows\SYSTEM32\ntdll.dll+0x5ad2e)
+    #56 0x77a9acf9 in RtlInitializeExceptionChain+0x59 (C:\windows\SYSTEM32\ntdll.dll+0x5acf9)
+
+AddressSanitizer can not provide additional info.
+SUMMARY: AddressSanitizer: breakpoint C:\b\c\b\win_asan_release_media\src\base\debug\debugger_win.cc:18 in base::debug::BreakDebugger
+==2304==ABORTING

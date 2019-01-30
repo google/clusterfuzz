@@ -1,0 +1,144 @@
+[30919:30919:0806/225106:ERROR:browser_main_loop.cc(194)] Running without the SUID sandbox! See https://code.google.com/p/chromium/wiki/LinuxSUIDSandboxDevelopment for more information on developing with the sandbox on.
+Xlib:  extension "RANDR" missing on display ":1".
+Xlib:  extension "RANDR" missing on display ":1".
+[31021:31021:0806/225110:ERROR:renderer_main.cc(190)] Running without renderer sandbox
+NOT SANDBOXED
+-----------------------------------------------------
+Suppressions used:
+  count      bytes template
+    581      16883 libfontconfig
+-----------------------------------------------------
+
+=================================================================
+==31049==ERROR: LeakSanitizer: detected memory leaks
+Direct leak of 196608 byte(s) in 3 object(s) allocated from:
+    #0 0x7f1d1174876b in operator new[](unsigned long)
+    #1 0x7f1bb40eebec in pepper::AutoBuffer::AllocateBuffer(unsigned long) /home/rtcbldr/ws/St_Make/code/flash/platform/pepper/base/pep_auto_buffer.cpp:69
+    #2 0x1cac3294459a93ff  (<unknown module>)
+
+Direct leak of 18240 byte(s) in 190 object(s) allocated from:
+    #0 0x7f1d117485fb in operator new(unsigned long)
+    #1 0x7f1bb4b4ddbf in std::tr1::_Hashtable<std::string, std::pair<std::string const, int>, std::allocator<std::pair<std::string const, int> >, std::_Select1st<std::pair<std::string const, int> >, std::equal_to<std::string>, std::tr1::hash<std::string>, std::tr1::__detail::_Mod_range_hashing, std::tr1::__detail::_Default_ranged_hash, std::tr1::__detail::_Prime_rehash_policy, false, false, true>::_M_allocate_buckets(unsigned long) /usr/include/c++/4.4/ext/new_allocator.h:89
+
+Direct leak of 4352 byte(s) in 34 object(s) allocated from:
+    #0 0x7f1d117485fb in operator new(unsigned long)
+    #1 0x7f1bb4b5da9b in PlatformSocketAddress::PlatformSocketAddress() /home/rtcbldr/ws/St_Make/code/flash/platform/pepper/pep_socket_address.cpp:56
+
+Direct leak of 1680 byte(s) in 6 object(s) allocated from:
+    #0 0x7f1d117485fb in operator new(unsigned long)
+    #1 0x7f1bb40fc1b5 in PepperDisplayContext3D::PepperDisplayContext3D(MMgc::GCAPI::GCRef<coreplayer::View>, SPOINT const&) /home/rtcbldr/ws/St_Make/code/flash/platform/pepper/pep_displaycontext.cpp:391
+
+Direct leak of 1536 byte(s) in 6 object(s) allocated from:
+    #0 0x7f1d117485fb in operator new(unsigned long)
+    #1 0x7f1bb40de625 in PlatformPlayer::PlatformPlayer(PlatformGlobals*, MMgc::GC*, CorePlayer*) /home/rtcbldr/ws/St_Make/code/flash/platform/pepper/pep_player.cpp:143
+
+Direct leak of 1440 byte(s) in 6 object(s) allocated from:
+    #0 0x7f1d117485fb in operator new(unsigned long)
+    #1 0x7f1bb3c9cf78  (/usr/lib/x86_64-linux-gnu/libstdc++.so.6+0xbef78)
+
+Direct leak of 528 byte(s) in 6 object(s) allocated from:
+    #0 0x7f1d117485fb in operator new(unsigned long)
+    #1 0x7f1bb40de5a4 in PlatformPlayer::PlatformPlayer(PlatformGlobals*, MMgc::GC*, CorePlayer*) /home/rtcbldr/ws/St_Make/code/flash/platform/pepper/pep_player.cpp:143
+
+Direct leak of 384 byte(s) in 6 object(s) allocated from:
+    #0 0x7f1d117485fb in operator new(unsigned long)
+    #1 0x7f1bb40dd448 in PlatformPlayer::Init(pepper::Instance*) /home/rtcbldr/ws/St_Make/code/flash/platform/pepper/pep_player.cpp:210
+
+Direct leak of 384 byte(s) in 6 object(s) allocated from:
+    #0 0x7f1d117485fb in operator new(unsigned long)
+    #1 0x7f1bb40e652a in SoundMix::Create(CorePlayer*) /usr/include/c++/4.4/ext/new_allocator.h:89
+
+Direct leak of 336 byte(s) in 6 object(s) allocated from:
+    #0 0x7f1d117485fb in operator new(unsigned long)
+    #1 0x7f1bb40de6d7 in PlatformPlayer::PlatformPlayer(PlatformGlobals*, MMgc::GC*, CorePlayer*) /home/rtcbldr/ws/St_Make/code/third_party/ppapi/utility/completion_callback_factory.h:836
+
+Direct leak of 336 byte(s) in 6 object(s) allocated from:
+    #0 0x7f1d117485fb in operator new(unsigned long)
+    #1 0x7f1bb40fbea3 in PepperDisplayContext3D::PepperDisplayContext3D(MMgc::GCAPI::GCRef<coreplayer::View>, SPOINT const&) /home/rtcbldr/ws/St_Make/code/third_party/ppapi/utility/completion_callback_factory.h:836
+
+Direct leak of 192 byte(s) in 6 object(s) allocated from:
+    #0 0x7f1d117485fb in operator new(unsigned long)
+    #1 0x7f1bb40f7635 in std::vector<pp::DeviceRef_Dev, std::allocator<pp::DeviceRef_Dev> >::operator=(std::vector<pp::DeviceRef_Dev, std::allocator<pp::DeviceRef_Dev> > const&) /usr/include/c++/4.4/ext/new_allocator.h:89
+
+Direct leak of 96 byte(s) in 6 object(s) allocated from:
+    #0 0x7f1d117485fb in operator new(unsigned long)
+    #1 0x7f1bb40fc0e9 in PepperDisplayContext3D::PepperDisplayContext3D(MMgc::GCAPI::GCRef<coreplayer::View>, SPOINT const&) /home/rtcbldr/ws/St_Make/code/flash/platform/pepper/pep_displaycontext.cpp:381
+
+Direct leak of 96 byte(s) in 6 object(s) allocated from:
+    #0 0x7f1d117485fb in operator new(unsigned long)
+    #1 0x7f1bb40de55a in PlatformPlayer::PlatformPlayer(PlatformGlobals*, MMgc::GC*, CorePlayer*) /home/rtcbldr/ws/St_Make/code/flash/platform/pepper/pep_player.cpp:143
+
+Direct leak of 64 byte(s) in 1 object(s) allocated from:
+    #0 0x7f1d117269bb in __interceptor_malloc
+    #1 0x7f1bb4386c69 in MMgc::BasicList<CorePlayer*, 4>::Add(CorePlayer*) /home/rtcbldr/ws/St_Make/code/third_party/avmplus/MMgc/Shared-inlines.h:65
+
+Direct leak of 48 byte(s) in 3 object(s) allocated from:
+    #0 0x7f1d117485fb in operator new(unsigned long)
+    #1 0x7f1bb41129aa in pepper::internal::MicrophoneManagerImpl::DoEnumerateDevices(int) /home/rtcbldr/ws/St_Make/code/flash/platform/pepper/pep_microphone_manager.cpp:107
+
+Direct leak of 32 byte(s) in 1 object(s) allocated from:
+    #0 0x7f1d117485fb in operator new(unsigned long)
+    #1 0x7f1bb40fc9fd in std::vector<IVideoPlane*, std::allocator<IVideoPlane*> >::_M_fill_insert(__gnu_cxx::__normal_iterator<IVideoPlane**, std::vector<IVideoPlane*, std::allocator<IVideoPlane*> > >, unsigned long, IVideoPlane* const&) /usr/include/c++/4.4/ext/new_allocator.h:89
+
+Direct leak of 32 byte(s) in 2 object(s) allocated from:
+    #0 0x7f1d117485fb in operator new(unsigned long)
+    #1 0x7f1bb44c691d in coreplayer::ComponentFactory::CreateCapabilities(avmplus::CapabilitiesClass*) /home/rtcbldr/ws/St_Make/code/flash/core/splayer.cpp:33562
+
+Indirect leak of 3072 byte(s) in 6 object(s) allocated from:
+    #0 0x7f1d117485fb in operator new(unsigned long)
+    #1 0x7f1bb40e654d in SoundMix::Create(CorePlayer*) /usr/include/c++/4.4/ext/new_allocator.h:89
+
+Indirect leak of 1488 byte(s) in 6 object(s) allocated from:
+    #0 0x7f1d117485fb in operator new(unsigned long)
+    #1 0x7f1bb40de749 in PlatformPlayer::PlatformPlayer(PlatformGlobals*, MMgc::GC*, CorePlayer*) /home/rtcbldr/ws/St_Make/code/flash/platform/pepper/pep_player.cpp:143
+
+Indirect leak of 1448 byte(s) in 44 object(s) allocated from:
+    #0 0x7f1d117485fb in operator new(unsigned long)
+    #1 0x7f1bb3c9cf78  (/usr/lib/x86_64-linux-gnu/libstdc++.so.6+0xbef78)
+
+Indirect leak of 1056 byte(s) in 44 object(s) allocated from:
+    #0 0x7f1d117485fb in operator new(unsigned long)
+    #1 0x7f1bb4b4e494 in std::tr1::_Hashtable<std::string, std::pair<std::string const, int>, std::allocator<std::pair<std::string const, int> >, std::_Select1st<std::pair<std::string const, int> >, std::equal_to<std::string>, std::tr1::hash<std::string>, std::tr1::__detail::_Mod_range_hashing, std::tr1::__detail::_Default_ranged_hash, std::tr1::__detail::_Prime_rehash_policy, false, false, true>::_M_insert_bucket(std::pair<std::string const, int> const&, unsigned long, unsigned long) /usr/include/c++/4.4/ext/new_allocator.h:89
+    #2 0x7f1affffffff  (<unknown module>)
+
+Indirect leak of 624 byte(s) in 6 object(s) allocated from:
+    #0 0x7f1d117485fb in operator new(unsigned long)
+    #1 0x7f1bb40de579 in PlatformPlayer::PlatformPlayer(PlatformGlobals*, MMgc::GC*, CorePlayer*) /home/rtcbldr/ws/St_Make/code/flash/platform/pepper/pep_player.cpp:143
+
+Indirect leak of 624 byte(s) in 6 object(s) allocated from:
+    #0 0x7f1d117485fb in operator new(unsigned long)
+    #1 0x7f1bb40de769 in PlatformPlayer::PlatformPlayer(PlatformGlobals*, MMgc::GC*, CorePlayer*) /home/rtcbldr/ws/St_Make/code/flash/platform/pepper/pep_player.cpp:143
+
+Indirect leak of 336 byte(s) in 6 object(s) allocated from:
+    #0 0x7f1d117485fb in operator new(unsigned long)
+    #1 0x7f1bb40f6faa in PlatformCameraManager::PlatformCameraManager(PlatformPlayer*) /home/rtcbldr/ws/St_Make/code/third_party/ppapi/utility/completion_callback_factory.h:836
+
+Indirect leak of 336 byte(s) in 6 object(s) allocated from:
+    #0 0x7f1d117485fb in operator new(unsigned long)
+    #1 0x7f1bb40f588f in pepper::PepperBroker::PepperBroker(PlatformPlayer*) /home/rtcbldr/ws/St_Make/code/third_party/ppapi/utility/completion_callback_factory.h:836
+
+Indirect leak of 336 byte(s) in 6 object(s) allocated from:
+    #0 0x7f1d117485fb in operator new(unsigned long)
+    #1 0x7f1bb4118be9 in internal::WeakReferenceOwner::GetRef() const /home/rtcbldr/ws/St_Make/code/flash/platform/pepper/base/pep_weak_ptr.cpp:45
+
+Indirect leak of 336 byte(s) in 6 object(s) allocated from:
+    #0 0x7f1d117485fb in operator new(unsigned long)
+    #1 0x7f1bb4100ab2 in pepper::FileChooserHelper::FileChooserHelper(PlatformPlayer*) /home/rtcbldr/ws/St_Make/code/third_party/ppapi/utility/completion_callback_factory.h:836
+
+Indirect leak of 160 byte(s) in 1 object(s) allocated from:
+    #0 0x7f1d117485fb in operator new(unsigned long)
+    #1 0x7f1bb40de69a in PlatformPlayer::PlatformPlayer(PlatformGlobals*, MMgc::GC*, CorePlayer*) /home/rtcbldr/ws/St_Make/code/flash/platform/pepper/pep_player.cpp:143
+
+Indirect leak of 96 byte(s) in 6 object(s) allocated from:
+    #0 0x7f1d117485fb in operator new(unsigned long)
+    #1 0x7f1bb40f7635 in std::vector<pp::DeviceRef_Dev, std::allocator<pp::DeviceRef_Dev> >::operator=(std::vector<pp::DeviceRef_Dev, std::allocator<pp::DeviceRef_Dev> > const&) /usr/include/c++/4.4/ext/new_allocator.h:89
+
+Indirect leak of 96 byte(s) in 6 object(s) allocated from:
+    #0 0x7f1d117485fb in operator new(unsigned long)
+    #1 0x7f1bb40fc07d in PepperDisplayContext3D::PepperDisplayContext3D(MMgc::GCAPI::GCRef<coreplayer::View>, SPOINT const&) /home/rtcbldr/ws/St_Make/code/flash/platform/pepper/pep_displaycontext.cpp:378
+
+Indirect leak of 56 byte(s) in 1 object(s) allocated from:
+    #0 0x7f1d117485fb in operator new(unsigned long)
+    #1 0x7f1bb40ff2bd in pepper::EventManager::EventManager(pepper::EventManagerClient*) /home/rtcbldr/ws/St_Make/code/third_party/ppapi/utility/completion_callback_factory.h:836
+
+SUMMARY: AddressSanitizer: 236448 byte(s) leaked in 450 allocation(s).

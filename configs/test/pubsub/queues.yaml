@@ -1,0 +1,64 @@
+# Copyright 2018 Google LLC
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+imports:
+  - path: queue.jinja
+
+resources:
+  - name: jobs-linux
+    type: queue.jinja
+  - name: high-end-jobs-linux
+    type: queue.jinja
+  - name: jobs-linux-with-gpu
+    type: queue.jinja
+  - name: high-end-jobs-linux-with-gpu
+    type: queue.jinja
+  - name: jobs-windows
+    type: queue.jinja
+  - name: high-end-jobs-windows
+    type: queue.jinja
+  - name: jobs-windows-with-gpu
+    type: queue.jinja
+  - name: high-end-jobs-windows-with-gpu
+    type: queue.jinja
+  - name: jobs-mac
+    type: queue.jinja
+  - name: high-end-jobs-mac
+    type: queue.jinja
+  - name: jobs-android
+    type: queue.jinja
+  - name: high-end-jobs-android
+    type: queue.jinja
+  - name: jobs-android-x86
+    type: queue.jinja
+  - name: high-end-jobs-android-x86
+    type: queue.jinja
+  - name: jobs-android-local-devices
+    type: queue.jinja
+  - name: high-end-jobs-android-local-devices
+    type: queue.jinja
+  - name: jobs-chromeos
+    type: queue.jinja
+  - name: high-end-jobs-chromeos
+    type: queue.jinja
+  - name: jobs-linux-untrusted
+    type: queue.jinja
+  - name: high-end-jobs-linux-untrusted
+    type: queue.jinja
+  - name: jobs-fuchsia
+    type: queue.jinja
+  - name: high-end-jobs-fuchsia
+    type: queue.jinja
+  - name: ml-jobs-linux
+    type: queue.jinja

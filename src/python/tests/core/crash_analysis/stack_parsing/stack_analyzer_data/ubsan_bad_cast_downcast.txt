@@ -1,0 +1,67 @@
+../../third_party/WebKit/Source/core/accessibility/AXMenuList.h:58:1: runtime error: downcast of address 0x2aa9a6abc480 which does not point to an object of type blink::AXMenuList
+0x2aa9a6abc480: note: object is of type blink::AXList
+ 00 00 00 00  00 d7 9c 07 00 00 00 00  03 00 00 00 04 00 00 00  00 00 00 00 00 00 00 00  00 00 00 00
+              ^~~~~~~~~~~~~~~~~~~~~~~
+              vptr for blink::AXList
+    #0 0x334397e in blink::RenderMenuList::didUpdateActiveOption(int) third_party/WebKit/Source/core/accessibility/AXMenuList.h:58:1
+    #1 0x33420fb in blink::RenderMenuList::setTextFromOption(int) third_party/WebKit/Source/core/rendering/RenderMenuList.cpp:277:5
+    #2 0x24a12f0 in blink::Element::recalcStyle(blink::StyleRecalcChange, blink::Text*) third_party/WebKit/Source/core/dom/Element.cpp:1512:9
+    #3 0x2412092 in blink::ContainerNode::recalcChildStyle(blink::StyleRecalcChange) third_party/WebKit/Source/core/dom/ContainerNode.cpp:1230:17
+    #4 0x24a1134 in blink::Element::recalcStyle(blink::StyleRecalcChange, blink::Text*) third_party/WebKit/Source/core/dom/Element.cpp:1502:13
+    #5 0x2412092 in blink::ContainerNode::recalcChildStyle(blink::StyleRecalcChange) third_party/WebKit/Source/core/dom/ContainerNode.cpp:1230:17
+    #6 0x24a1134 in blink::Element::recalcStyle(blink::StyleRecalcChange, blink::Text*) third_party/WebKit/Source/core/dom/Element.cpp:1502:13
+    #7 0x2438e9a in blink::Document::updateStyle(blink::StyleRecalcChange) third_party/WebKit/Source/core/dom/Document.cpp:1879:13
+    #8 0x24375df in blink::Document::updateRenderTree(blink::StyleRecalcChange) third_party/WebKit/Source/core/dom/Document.cpp:1817:5
+    #9 0x2c911bf in blink::FrameView::updateLayoutAndStyleIfNeededRecursive() third_party/WebKit/Source/core/dom/Document.h:459:39
+    #10 0x2c9082d in blink::FrameView::updateLayoutAndStyleForPainting() third_party/WebKit/Source/core/frame/FrameView.cpp:2515:5
+    #11 0x2e6c661 in blink::PageAnimator::updateLayoutAndStyleForPainting(blink::LocalFrame*) third_party/WebKit/Source/core/page/PageAnimator.cpp:84:5
+    #12 0x2315d74 in blink::WebViewImpl::layout() third_party/WebKit/Source/web/WebViewImpl.cpp:1791:5
+    #13 0x5506ec in content::WebTestProxyBase::AnimateNow() content/shell/renderer/test_runner/web_test_proxy.cc:619:5
+    #14 0x66967a in base::debug::TaskAnnotator::RunTask(char const*, char const*, base::PendingTask const&) base/callback.h:401:12
+    #15 0x618767 in base::MessageLoop::RunTask(base::PendingTask const&) base/message_loop/message_loop.cc:446:3
+    #16 0x618e9c in base::MessageLoop::DeferOrRunPendingTask(base::PendingTask const&) base/message_loop/message_loop.cc:456:5
+    #17 0x619c76 in base::MessageLoop::DoDelayedWork(base::TimeTicks*) base/message_loop/message_loop.cc:603:10
+    #18 0x61c644 in base::MessagePumpDefault::Run(base::MessagePump::Delegate*) base/message_loop/message_pump_default.cc:36:17
+    #19 0x63184e in base::RunLoop::Run() base/run_loop.cc:49:3
+    #20 0x61728c in base::MessageLoop::Run() base/message_loop/message_loop.cc:308:3
+    #21 0x4a0969a in content::RendererMain(content::MainFunctionParams const&) content/renderer/renderer_main.cc:230:7
+    #22 0x5d861d in content::RunZygote(content::MainFunctionParams const&, content::ContentMainDelegate*) content/app/content_main_runner.cc:344:14
+    #23 0x5da71c in content::ContentMainRunnerImpl::Run() content/app/content_main_runner.cc:767:12
+    #24 0x5d7fa4 in content::ContentMain(content::ContentMainParams const&) content/app/content_main.cc:19:15
+    #25 0x4d0968 in main content/shell/app/shell_main.cc:49:10
+    #26 0x7fe6c39dcde4 in __libc_start_main /build/buildd/eglibc-2.17/csu/libc-start.c:260
+    #27 0x4d086c in _start
+
+../../third_party/WebKit/Source/core/rendering/RenderMenuList.cpp:441:9: runtime error: member call on address 0x2aa9a6abc480 which does not point to an object of type blink::AXMenuList
+0x2aa9a6abc480: note: object is of type blink::AXList
+ 00 00 00 00  00 d7 9c 07 00 00 00 00  03 00 00 00 04 00 00 00  00 00 00 00 00 00 00 00  00 00 00 00
+              ^~~~~~~~~~~~~~~~~~~~~~~
+              vptr for blink::AXList
+    #0 0x3343995 in blink::RenderMenuList::didUpdateActiveOption(int) third_party/WebKit/Source/core/rendering/RenderMenuList.cpp:441:9
+    #1 0x33420fb in blink::RenderMenuList::setTextFromOption(int) third_party/WebKit/Source/core/rendering/RenderMenuList.cpp:277:5
+    #2 0x24a12f0 in blink::Element::recalcStyle(blink::StyleRecalcChange, blink::Text*) third_party/WebKit/Source/core/dom/Element.cpp:1512:9
+    #3 0x2412092 in blink::ContainerNode::recalcChildStyle(blink::StyleRecalcChange) third_party/WebKit/Source/core/dom/ContainerNode.cpp:1230:17
+    #4 0x24a1134 in blink::Element::recalcStyle(blink::StyleRecalcChange, blink::Text*) third_party/WebKit/Source/core/dom/Element.cpp:1502:13
+    #5 0x2412092 in blink::ContainerNode::recalcChildStyle(blink::StyleRecalcChange) third_party/WebKit/Source/core/dom/ContainerNode.cpp:1230:17
+    #6 0x24a1134 in blink::Element::recalcStyle(blink::StyleRecalcChange, blink::Text*) third_party/WebKit/Source/core/dom/Element.cpp:1502:13
+    #7 0x2438e9a in blink::Document::updateStyle(blink::StyleRecalcChange) third_party/WebKit/Source/core/dom/Document.cpp:1879:13
+    #8 0x24375df in blink::Document::updateRenderTree(blink::StyleRecalcChange) third_party/WebKit/Source/core/dom/Document.cpp:1817:5
+    #9 0x2c911bf in blink::FrameView::updateLayoutAndStyleIfNeededRecursive() third_party/WebKit/Source/core/dom/Document.h:459:39
+    #10 0x2c9082d in blink::FrameView::updateLayoutAndStyleForPainting() third_party/WebKit/Source/core/frame/FrameView.cpp:2515:5
+    #11 0x2e6c661 in blink::PageAnimator::updateLayoutAndStyleForPainting(blink::LocalFrame*) third_party/WebKit/Source/core/page/PageAnimator.cpp:84:5
+    #12 0x2315d74 in blink::WebViewImpl::layout() third_party/WebKit/Source/web/WebViewImpl.cpp:1791:5
+    #13 0x5506ec in content::WebTestProxyBase::AnimateNow() content/shell/renderer/test_runner/web_test_proxy.cc:619:5
+    #14 0x66967a in base::debug::TaskAnnotator::RunTask(char const*, char const*, base::PendingTask const&) base/callback.h:401:12
+    #15 0x618767 in base::MessageLoop::RunTask(base::PendingTask const&) base/message_loop/message_loop.cc:446:3
+    #16 0x618e9c in base::MessageLoop::DeferOrRunPendingTask(base::PendingTask const&) base/message_loop/message_loop.cc:456:5
+    #17 0x619c76 in base::MessageLoop::DoDelayedWork(base::TimeTicks*) base/message_loop/message_loop.cc:603:10
+    #18 0x61c644 in base::MessagePumpDefault::Run(base::MessagePump::Delegate*) base/message_loop/message_pump_default.cc:36:17
+    #19 0x63184e in base::RunLoop::Run() base/run_loop.cc:49:3
+    #20 0x61728c in base::MessageLoop::Run() base/message_loop/message_loop.cc:308:3
+    #21 0x4a0969a in content::RendererMain(content::MainFunctionParams const&) content/renderer/renderer_main.cc:230:7
+    #22 0x5d861d in content::RunZygote(content::MainFunctionParams const&, content::ContentMainDelegate*) content/app/content_main_runner.cc:344:14
+    #23 0x5da71c in content::ContentMainRunnerImpl::Run() content/app/content_main_runner.cc:767:12
+    #24 0x5d7fa4 in content::ContentMain(content::ContentMainParams const&) content/app/content_main.cc:19:15
+    #25 0x4d0968 in main content/shell/app/shell_main.cc:49:10
+    #26 0x7fe6c39dcde4 in __libc_start_main /build/buildd/eglibc-2.17/csu/libc-start.c:260
+    #27 0x4d086c in _start

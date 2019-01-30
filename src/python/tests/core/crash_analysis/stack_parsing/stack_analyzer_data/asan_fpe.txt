@@ -1,0 +1,45 @@
+ASAN:DEADLYSIGNAL
+=================================================================
+==13370==ERROR: AddressSanitizer: FPE on unknown address 0x7fdc48869a7c (pc 0x7fdc48869a7c bp 0x7ffdcfaf8350 sp 0x7ffdcfaf8240 T0)
+    #0 0x7fdc48869a7b in ash::WindowGrid::PositionWindows(bool) ash/wm/overview/window_grid.cc:252:49
+    #1 0x7fdc487fd825 in ash::WindowSelector::Init(std::vector<aura::Window*, std::allocator<aura::Window*> > const&) ash/wm/overview/window_selector.cc:309:7
+    #2 0x7fdc4865e376 in ash::WindowSelectorController::ToggleOverview() ash/wm/overview/window_selector_controller.cc:62:5
+    #3 0x7fdc4838639b in HandleToggleOverview ash/accelerators/accelerator_controller.cc:394:3
+    #4 0x7fdc4838639b in ash::AcceleratorController::PerformAction(ash::AcceleratorAction, ui::Accelerator const&) ash/accelerators/accelerator_controller.cc:1089
+    #5 0x7fdc4838a67d in ash::AcceleratorController::AcceleratorPressed(ui::Accelerator const&) ash/accelerators/accelerator_controller.cc:733:5
+    #6 0x7fdc50d8fa5e in ui::AcceleratorManager::Process(ui::Accelerator const&) ui/base/accelerators/accelerator_manager.cc:88:11
+    #7 0x7fdc4838186f in ash::AcceleratorController::Process(ui::Accelerator const&) ash/accelerators/accelerator_controller.cc:658:12
+    #8 0x7fdc486dcce9 in ash::AcceleratorDelegate::ProcessAccelerator(ui::KeyEvent const&, ui::Accelerator const&, wm::AcceleratorDelegate::KeyType) ash/accelerators/accelerator_delegate.cc:32:5
+    #9 0x7fdc4b28c7a3 in wm::AcceleratorFilter::OnKeyEvent(ui::KeyEvent*) ui/wm/core/accelerator_filter.cc:70:7
+    #10 0x7fdc50e13d50 in ui::EventHandler::OnEvent(ui::Event*) ui/events/event_handler.cc:37:5
+    #11 0x7fdc50e11b4e in DispatchEvent ui/events/event_dispatcher.cc:189:3
+    #12 0x7fdc50e11b4e in ui::EventDispatcher::DispatchEventToEventHandlers(std::vector<ui::EventHandler*, std::allocator<ui::EventHandler*> >*, ui::Event*) ui/events/event_dispatcher.cc:168
+    #13 0x7fdc50e10256 in ui::EventDispatcher::ProcessEvent(ui::EventTarget*, ui::Event*) ui/events/event_dispatcher.cc:126:3
+    #14 0x7fdc50e0fa70 in DispatchEventToTarget ui/events/event_dispatcher.cc:85:3
+    #15 0x7fdc50e0fa70 in ui::EventDispatcherDelegate::DispatchEvent(ui::EventTarget*, ui::Event*) ui/events/event_dispatcher.cc:57
+    #16 0x7fdc50e1480b in ui::EventProcessor::OnEventFromSource(ui::Event*) ui/events/event_processor.cc:35:15
+    #17 0x7fdc4846d17c in DispatchKeyEventPostIME ash/host/ash_window_tree_host_x11.cc:243:7
+    #18 0x7fdc4846d17c in non-virtual thunk to ash::AshWindowTreeHostX11::DispatchKeyEventPostIME(ui::KeyEvent*) ash/host/ash_window_tree_host_x11.cc:239
+    #19 0x7fdc5144470f in ui::InputMethodBase::DispatchKeyEventPostIME(ui::KeyEvent*) const ui/base/ime/input_method_base.cc:111:15
+    #20 0x7fdc514319d1 in ui::InputMethodChromeOS::ProcessUnfilteredKeyPressEvent(ui::KeyEvent*) ui/base/ime/input_method_chromeos.cc:395:17
+    #21 0x7fdc51431297 in ui::InputMethodChromeOS::DispatchKeyEvent(ui::KeyEvent*) ui/base/ime/input_method_chromeos.cc:130:7
+    #22 0x7fdc4846f5f9 in ash::InputMethodEventHandler::OnKeyEvent(ui::KeyEvent*) ash/ime/input_method_event_handler.cc:35:3
+    #23 0x7fdc50e13d50 in ui::EventHandler::OnEvent(ui::Event*) ui/events/event_handler.cc:37:5
+    #24 0x7fdc50e11b4e in DispatchEvent ui/events/event_dispatcher.cc:189:3
+    #25 0x7fdc50e11b4e in ui::EventDispatcher::DispatchEventToEventHandlers(std::vector<ui::EventHandler*, std::allocator<ui::EventHandler*> >*, ui::Event*) ui/events/event_dispatcher.cc:168
+    #26 0x7fdc50e10256 in ui::EventDispatcher::ProcessEvent(ui::EventTarget*, ui::Event*) ui/events/event_dispatcher.cc:126:3
+    #27 0x7fdc50e0fa70 in DispatchEventToTarget ui/events/event_dispatcher.cc:85:3
+    #28 0x7fdc50e0fa70 in ui::EventDispatcherDelegate::DispatchEvent(ui::EventTarget*, ui::Event*) ui/events/event_dispatcher.cc:57
+    #29 0x7fdc50e1480b in ui::EventProcessor::OnEventFromSource(ui::Event*) ui/events/event_processor.cc:35:15
+    #30 0x7fdc50e1642b in DeliverEventToProcessor ui/events/event_source.cc:73:10
+    #31 0x7fdc50e1642b in ui::EventSource::SendEventToProcessor(ui::Event*) ui/events/event_source.cc:51
+    #32 0x7fdc5144d04c in aura::WindowTreeHostX11::DispatchEvent(_XEvent* const&) ui/aura/window_tree_host_x11.cc:343:9
+    #33 0x7fdc3d35fd47 in ui::PlatformEventSource::DispatchEvent(_XEvent*) ui/events/platform/platform_event_source.cc:82:18
+    #34 0x7fdc50ea2348 in ui::X11EventSource::DispatchEvent(_XEvent*) ui/events/platform/x11/x11_event_source.cc:136:21
+    #35 0x7fdc50ea1c22 in ExtractCookieDataDispatchEvent ui/events/platform/x11/x11_event_source.cc:129:21
+    #36 0x7fdc50ea1c22 in ui::X11EventSource::DispatchXEvents() ui/events/platform/x11/x11_event_source.cc:106
+    #37 0x7fdc50ea108a in ui::(anonymous namespace)::XSourceDispatch(_GSource*, int (*)(void*), void*) ui/events/platform/x11/x11_event_source_glib.cc:39:3
+    #38 0x7fdc3512bce4 in g_main_context_dispatch
+AddressSanitizer can not provide additional info.
+SUMMARY: AddressSanitizer: FPE (/mnt/scratch0/clusterfuzz/bot/builds/chromium-browser-asan_linux-release-chromeos_4392242b7f59878a2775b4607420a2b37e17ff13/symbolized/release/asan-linux-release-344814/chrome+0x127f6a7b)
+==13370==ABORTING

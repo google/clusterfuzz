@@ -1,0 +1,11 @@
+[libfuzzer]
+max_len=31337
+timeout=11
+
+# The value below should be used for fuzzing, but not with a single testcase.
+# Test for that: libfuzzer_launcher_test.test_single_input_with_custom_options.
+runs=9999999
+
+# The value below is intentionnaly large. The script should use default value
+# instead of that one below.
+rss_limit_mb=12345

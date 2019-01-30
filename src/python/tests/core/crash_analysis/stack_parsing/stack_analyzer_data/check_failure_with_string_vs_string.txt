@@ -1,0 +1,127 @@
+[1:1:0417/224500.881615:FATAL:text_iterator.cc(207)] Check failed: start <= end (DIV (editable)@beforeChildren vs. DIV class="CLASS0 CLASS11"@offsetInAnchor[0])
+#0 0x00000300a451 <unknown>
+#1 0x000009d463ee <unknown>
+#2 0x000009da88e3 <unknown>
+#3 0x00001097fee9 <unknown>
+#4 0x000010986d19 <unknown>
+#5 0x000010aecd16 <unknown>
+#6 0x000010aea349 <unknown>
+#7 0x000010aea88b <unknown>
+#8 0x000010a28ca2 <unknown>
+#9 0x000010a29a25 <unknown>
+#10 0x000010a2bf82 <unknown>
+#11 0x000010a30475 <unknown>
+#12 0x000010a30822 <unknown>
+#13 0x000010944e43 <unknown>
+#14 0x0000108e95bc <unknown>
+#15 0x00000ef6932c <unknown>
+#16 0x0000058c2b92 <unknown>
+#17 0x0000058bfd84 <unknown>
+#18 0x0000058bd3bc <unknown>
+#19 0x7ea271a842bd <unknown>
+
+AddressSanitizer:DEADLYSIGNAL
+=================================================================
+==1==ERROR: AddressSanitizer: ABRT on unknown address 0x053900000001 (pc 0x7fe9a5149428 bp 0x7ffd8382f950 sp 0x7ffd8382f818 T0)
+SCARINESS: 10 (signal)
+==1==WARNING: invalid path to external symbolizer!
+==1==WARNING: Failed to use and restart external symbolizer!
+    #0 0x7fe9a5149427 in gsignal /build/glibc-Cl5G7W/glibc-2.23/sysdeps/unix/sysv/linux/raise.c:54
+    #1 0x9da929d in logging::LogMessage::~LogMessage() ../../base/logging.cc:855:7
+    #2 0x1097fee8 in blink::TextIteratorAlgorithm<blink::EditingAlgorithm<blink::FlatTreeTraversal> >::TextIteratorAlgorithm(blink::PositionTemplate<blink::EditingAlgorithm<blink::FlatTreeTraversal> > const&, blink::PositionTemplate<blink::EditingAlgorithm<blink::FlatTreeTraversal> > const&, blink::TextIteratorBehavior const&) ../../third_party/blink/renderer/core/editing/iterators/text_iterator.cc:207:3
+    #3 0x10986d18 in blink::TextIteratorAlgorithm<blink::EditingAlgorithm<blink::FlatTreeTraversal> >::RangeLength(blink::PositionTemplate<blink::EditingAlgorithm<blink::FlatTreeTraversal> > const&, blink::PositionTemplate<blink::EditingAlgorithm<blink::FlatTreeTraversal> > const&, blink::TextIteratorBehavior const&) ../../third_party/blink/renderer/core/editing/iterators/text_iterator.cc:908:40
+    #4 0x10aecd15 in blink::TextOffsetMapping::ComputeTextOffset(blink::PositionTemplate<blink::EditingAlgorithm<blink::FlatTreeTraversal> > const&) const ../../third_party/blink/renderer/core/editing/text_offset_mapping.cc:104:10
+    #5 0x10aea348 in NextWordPositionInternal ../../third_party/blink/renderer/core/editing/visible_units_word.cc:92:47
+    #6 0x10aea348 in blink::NextWordPosition(blink::PositionTemplate<blink::EditingAlgorithm<blink::FlatTreeTraversal> > const&) ../../third_party/blink/renderer/core/editing/visible_units_word.cc:184
+    #7 0x10aea88a in NextWordPosition ../../third_party/blink/renderer/core/editing/visible_units_word.cc:195:7
+    #8 0x10aea88a in blink::NextWordPosition(blink::VisiblePositionTemplate<blink::EditingAlgorithm<blink::NodeTraversal> > const&) ../../third_party/blink/renderer/core/editing/visible_units_word.cc:203
+    #9 0x10a28ca1 in blink::SelectionModifier::NextWordPositionForPlatform(blink::VisiblePositionTemplate<blink::EditingAlgorithm<blink::NodeTraversal> > const&) ../../third_party/blink/renderer/core/editing/selection_modifier.cc:234:7
+    #10 0x10a29a24 in blink::SelectionModifier::ModifyExtendingForwardInternal(blink::TextGranularity) ../../third_party/blink/renderer/core/editing/selection_modifier.cc:315:14
+    #11 0x10a2bf81 in blink::SelectionModifier::ModifyExtendingForward(blink::TextGranularity) ../../third_party/blink/renderer/core/editing/selection_modifier.cc:346:31
+    #12 0x10a30474 in blink::SelectionModifier::ComputeModifyPosition(blink::SelectionModifyAlteration, blink::SelectionModifyDirection, blink::TextGranularity) ../../third_party/blink/renderer/core/editing/selection_modifier.cc:619:16
+    #13 0x10a30821 in blink::SelectionModifier::Modify(blink::SelectionModifyAlteration, blink::SelectionModifyDirection, blink::TextGranularity) ../../third_party/blink/renderer/core/editing/selection_modifier.cc:648:7
+    #14 0x10944e42 in blink::FrameSelection::Modify(blink::SelectionModifyAlteration, blink::SelectionModifyDirection, blink::TextGranularity, blink::SetSelectionBy) ../../third_party/blink/renderer/core/editing/frame_selection.cc:350:26
+    #15 0x108e95bb in blink::DOMSelection::modify(WTF::String const&, WTF::String const&, WTF::String const&) ../../third_party/blink/renderer/core/editing/dom_selection.cc:457:27
+    #16 0xef6932b in modifyMethod gen/third_party/blink/renderer/bindings/core/v8/v8_selection.cc:466:9
+    #17 0xef6932b in blink::V8Selection::modifyMethodCallback(v8::FunctionCallbackInfo<v8::Value> const&) gen/third_party/blink/renderer/bindings/core/v8/v8_selection.cc:666
+    #18 0x58c2b91 in v8::internal::FunctionCallbackArguments::Call(v8::internal::CallHandlerInfo*) ../../v8/src/api-arguments-inl.h:93:3
+    #19 0x58bfd83 in v8::internal::MaybeHandle<v8::internal::Object> v8::internal::(anonymous namespace)::HandleApiCallHelper<false>(v8::internal::Isolate*, v8::internal::Handle<v8::internal::HeapObject>, v8::internal::Handle<v8::internal::HeapObject>, v8::internal::Handle<v8::internal::FunctionTemplateInfo>, v8::internal::Handle<v8::internal::Object>, v8::internal::BuiltinArguments) ../../v8/src/builtins/builtins-api.cc:107:36
+    #20 0x58bd3bb in v8::internal::Builtin_Impl_HandleApiCall(v8::internal::BuiltinArguments, v8::internal::Isolate*) ../../v8/src/builtins/builtins-api.cc:137:5
+    #18 0x7ea271a842bc  (<unknown module>)
+    #19 0x7ea271a931e8  (<unknown module>)
+    #20 0x7ea271a8bfc2  (<unknown module>)
+    #21 0x7ea271a907d4  (<unknown module>)
+    #22 0x7ea271a86a40  (<unknown module>)
+    #21 0x62919c4 in Call ../../v8/src/simulator.h:113:12
+    #22 0x62919c4 in v8::internal::(anonymous namespace)::Invoke(v8::internal::Isolate*, bool, v8::internal::Handle<v8::internal::Object>, v8::internal::Handle<v8::internal::Object>, int, v8::internal::Handle<v8::internal::Object>*, v8::internal::Handle<v8::internal::Object>, v8::internal::Execution::MessageHandling, v8::internal::Execution::Target) ../../v8/src/execution.cc:155
+    #23 0x6290d52 in CallInternal ../../v8/src/execution.cc:191:10
+    #24 0x6290d52 in v8::internal::Execution::Call(v8::internal::Isolate*, v8::internal::Handle<v8::internal::Object>, v8::internal::Handle<v8::internal::Object>, int, v8::internal::Handle<v8::internal::Object>*) ../../v8/src/execution.cc:202
+    #25 0x57543ad in v8::Function::Call(v8::Local<v8::Context>, v8::Local<v8::Value>, int, v8::Local<v8::Value>*) ../../v8/src/api.cc:5119:7
+    #26 0xea7573e in blink::V8ScriptRunner::CallFunction(v8::Local<v8::Function>, blink::ExecutionContext*, v8::Local<v8::Value>, int, v8::Local<v8::Value>*, v8::Isolate*) ../../third_party/blink/renderer/bindings/core/v8/v8_script_runner.cc:658:17
+    #27 0xea89aa1 in blink::V8EventListener::CallListenerFunction(blink::ScriptState*, v8::Local<v8::Value>, blink::Event*) ../../third_party/blink/renderer/bindings/core/v8/v8_event_listener.cc:115:8
+    #28 0xea8b42f in blink::V8AbstractEventListener::InvokeEventHandler(blink::ScriptState*, blink::Event*, v8::Local<v8::Value>) ../../third_party/blink/renderer/bindings/core/v8/v8_abstract_event_listener.cc:155:20
+    #29 0xea8acab in blink::V8AbstractEventListener::HandleEvent(blink::ScriptState*, blink::Event*) ../../third_party/blink/renderer/bindings/core/v8/v8_abstract_event_listener.cc:104:3
+    #30 0xea8a81b in blink::V8AbstractEventListener::handleEvent(blink::ExecutionContext*, blink::Event*) ../../third_party/blink/renderer/bindings/core/v8/v8_abstract_event_listener.cc:92:3
+    #31 0x1064897d in blink::EventTarget::FireEventListeners(blink::Event*, blink::EventTargetData*, blink::HeapVector<blink::RegisteredEventListener, 1ul>&) ../../third_party/blink/renderer/core/dom/events/event_target.cc:809:15
+    #32 0x1064643a in blink::EventTarget::FireEventListeners(blink::Event*) ../../third_party/blink/renderer/core/dom/events/event_target.cc:661:29
+    #33 0x106d5cb7 in blink::Node::HandleLocalEvents(blink::Event&) ../../third_party/blink/renderer/core/dom/node.cc:2242:3
+    #34 0x1061d050 in blink::EventDispatcher::DispatchEventAtCapturing() ../../third_party/blink/renderer/core/dom/events/event_dispatcher.cc:216:19
+    #35 0x1061bc97 in blink::EventDispatcher::Dispatch() ../../third_party/blink/renderer/core/dom/events/event_dispatcher.cc:177:9
+    #36 0x10619a0f in blink::EventDispatcher::DispatchEvent(blink::Node&, blink::Event*) ../../third_party/blink/renderer/core/dom/events/event_dispatcher.cc:57:17
+    #37 0x1065270d in DispatchEvent ../../third_party/blink/renderer/core/dom/events/scoped_event_queue.cc:76:3
+    #38 0x1065270d in DispatchAllEvents ../../third_party/blink/renderer/core/dom/events/scoped_event_queue.cc:70
+    #39 0x1065270d in blink::ScopedEventQueue::DecrementScopingLevel() ../../third_party/blink/renderer/core/dom/events/scoped_event_queue.cc:94
+    #40 0x108eddb3 in blink::DOMSelection::deleteFromDocument() ../../third_party/blink/renderer/core/editing/dom_selection.cc:678:12
+    #41 0xef67c82 in deleteFromDocumentMethod gen/third_party/blink/renderer/bindings/core/v8/v8_selection.cc:416:9
+    #42 0xef67c82 in blink::V8Selection::deleteFromDocumentMethodCallback(v8::FunctionCallbackInfo<v8::Value> const&) gen/third_party/blink/renderer/bindings/core/v8/v8_selection.cc:652
+    #43 0x58c2b91 in v8::internal::FunctionCallbackArguments::Call(v8::internal::CallHandlerInfo*) ../../v8/src/api-arguments-inl.h:93:3
+    #44 0x58bfd83 in v8::internal::MaybeHandle<v8::internal::Object> v8::internal::(anonymous namespace)::HandleApiCallHelper<false>(v8::internal::Isolate*, v8::internal::Handle<v8::internal::HeapObject>, v8::internal::Handle<v8::internal::HeapObject>, v8::internal::Handle<v8::internal::FunctionTemplateInfo>, v8::internal::Handle<v8::internal::Object>, v8::internal::BuiltinArguments) ../../v8/src/builtins/builtins-api.cc:107:36
+    #45 0x58bd3bb in v8::internal::Builtin_Impl_HandleApiCall(v8::internal::BuiltinArguments, v8::internal::Isolate*) ../../v8/src/builtins/builtins-api.cc:137:5
+    #43 0x7ea271a842bc  (<unknown module>)
+    #44 0x7ea271a931e8  (<unknown module>)
+    #45 0x7ea271a907d4  (<unknown module>)
+    #46 0x7ea271a86a40  (<unknown module>)
+    #46 0x62919c4 in Call ../../v8/src/simulator.h:113:12
+    #47 0x62919c4 in v8::internal::(anonymous namespace)::Invoke(v8::internal::Isolate*, bool, v8::internal::Handle<v8::internal::Object>, v8::internal::Handle<v8::internal::Object>, int, v8::internal::Handle<v8::internal::Object>*, v8::internal::Handle<v8::internal::Object>, v8::internal::Execution::MessageHandling, v8::internal::Execution::Target) ../../v8/src/execution.cc:155
+    #48 0x6290d52 in CallInternal ../../v8/src/execution.cc:191:10
+    #49 0x6290d52 in v8::internal::Execution::Call(v8::internal::Isolate*, v8::internal::Handle<v8::internal::Object>, v8::internal::Handle<v8::internal::Object>, int, v8::internal::Handle<v8::internal::Object>*) ../../v8/src/execution.cc:202
+    #50 0x57543ad in v8::Function::Call(v8::Local<v8::Context>, v8::Local<v8::Value>, int, v8::Local<v8::Value>*) ../../v8/src/api.cc:5119:7
+    #51 0xea7573e in blink::V8ScriptRunner::CallFunction(v8::Local<v8::Function>, blink::ExecutionContext*, v8::Local<v8::Value>, int, v8::Local<v8::Value>*, v8::Isolate*) ../../third_party/blink/renderer/bindings/core/v8/v8_script_runner.cc:658:17
+    #52 0x10d8bf2b in blink::ScheduledAction::Execute(blink::LocalFrame*) ../../third_party/blink/renderer/bindings/core/v8/scheduled_action.cc:155:5
+    #53 0x10d8b567 in blink::ScheduledAction::Execute(blink::ExecutionContext*) ../../third_party/blink/renderer/bindings/core/v8/scheduled_action.cc:107:5
+    #54 0x10d884e7 in blink::DOMTimer::Fired() ../../third_party/blink/renderer/core/frame/dom_timer.cc:175:11
+    #55 0xf8a7215 in blink::TimerBase::RunInternal() ../../third_party/blink/renderer/platform/timer.cc:161:3
+    #56 0x9d4a6e9 in Run ../../base/callback.h:95:12
+    #57 0x9d4a6e9 in base::debug::TaskAnnotator::RunTask(char const*, base::PendingTask*) ../../base/debug/task_annotator.cc:101
+    #58 0x75bd3aa in blink::scheduler::internal::ThreadControllerImpl::DoWork(blink::scheduler::internal::SequencedTaskSource::WorkType) ../../third_party/blink/renderer/platform/scheduler/base/thread_controller_impl.cc:162:21
+    #59 0x9d4a6e9 in Run ../../base/callback.h:95:12
+    #60 0x9d4a6e9 in base::debug::TaskAnnotator::RunTask(char const*, base::PendingTask*) ../../base/debug/task_annotator.cc:101
+    #61 0x9dbeb79 in base::MessageLoop::RunTask(base::PendingTask*) ../../base/message_loop/message_loop.cc:319:25
+    #62 0x9dc003f in DeferOrRunPendingTask ../../base/message_loop/message_loop.cc:329:5
+    #63 0x9dc003f in base::MessageLoop::DoWork() ../../base/message_loop/message_loop.cc:373
+    #64 0x9dc9a9f in base::MessagePumpDefault::Run(base::MessagePump::Delegate*) ../../base/message_loop/message_pump_default.cc:37:31
+    #65 0x9e4089b in base::RunLoop::Run() ../../base/run_loop.cc:130:14
+    #66 0x155210e0 in content::RendererMain(content::MainFunctionParams const&) ../../content/renderer/renderer_main.cc:250:23
+    #67 0x79fe10a in content::RunZygote(content::ContentMainDelegate*) ../../content/app/content_main_runner.cc:563:14
+    #68 0x7a02665 in content::ContentMainRunnerImpl::Run() ../../content/app/content_main_runner.cc:923:12
+    #69 0xe87cdf9 in service_manager::Main(service_manager::MainParams const&) ../../services/service_manager/embedder/main.cc:452:29
+    #70 0x5408aa7 in content::ContentMain(content::ContentMainParams const&) ../../content/app/content_main.cc:19:10
+    #71 0x3092b58 in main ../../content/shell/app/shell_main.cc:48:10
+    #72 0x7fe9a513482f in __libc_start_main /build/glibc-Cl5G7W/glibc-2.23/csu/libc-start.c:291
+
+AddressSanitizer can not provide additional info.
+SUMMARY: AddressSanitizer: ABRT (/lib/x86_64-linux-gnu/libc.so.6+0x35427)
+==1==ABORTING
+==1==SanitizerCoverage: failed to open /mnt/scratch0/tmp/996/content_shell.1.sancov for writing (reason: 1)
+SanitizerCoverage: /mnt/scratch0/tmp/996/content_shell.1.sancov: 87845 PCs written
+==1==SanitizerCoverage: failed to open /mnt/scratch0/tmp/996/libblink_deprecated_test_plugin.so.1.sancov for writing (reason: 1)
+SanitizerCoverage: /mnt/scratch0/tmp/996/libblink_deprecated_test_plugin.so.1.sancov: 2 PCs written
+==1==SanitizerCoverage: failed to open /mnt/scratch0/tmp/996/libblink_test_plugin.so.1.sancov for writing (reason: 1)
+SanitizerCoverage: /mnt/scratch0/tmp/996/libblink_test_plugin.so.1.sancov: 2 PCs written
+==1==SanitizerCoverage: failed to open /mnt/scratch0/tmp/996/libc++.so.1.sancov for writing (reason: 1)
+SanitizerCoverage: /mnt/scratch0/tmp/996/libc++.so.1.sancov: 396 PCs written
+#CRASHED - renderer
+Content-Type: text/plain
+#CRASHED - renderer
+#EOF
+#EOF

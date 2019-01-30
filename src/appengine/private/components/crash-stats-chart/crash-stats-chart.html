@@ -1,0 +1,252 @@
+<!--
+  Copyright 2018 Google LLC
+
+  Licensed under the Apache License, Version 2.0 (the "License");
+  you may not use this file except in compliance with the License.
+  You may obtain a copy of the License at
+
+       http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+-->
+<link rel="import" href="../../bower_components/polymer/polymer.html">
+
+<dom-module id="crash-stats-chart">
+  <script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
+  <template>
+    <!-- Because the charts' JS don't inject CSS correctly, so we inject them manually.
+         See: https://bugs.chromium.org/p/chromium/issues/detail?id=710594#c5
+         TODO(ochang): Try removing the below <link> to see if it works because
+                       the new gviz version fixes this problem. -->
+    <link rel="stylesheet" href="https://www.gstatic.com/charts/45.2/css/util/util.css" type="text/css">
+    <link rel="stylesheet" href="https://www.gstatic.com/charts/45.2/css/core/tooltip.css" type="text/css">
+    <style>
+      :host #chartWithOverlays {
+        position: relative;
+      }
+
+      :host #chart {
+        min-height: 200px;
+      }
+
+      :host .new-overlay {
+        position: absolute;
+        display: none;
+        text-align: center;
+        font-size: 11px;
+        font-weight: bold;
+        color: #fff;
+        background-color: #228B22;
+        height: 15px;
+        border-radius: 0px 0px 4px 4px;
+        -webkit-box-shadow: inset 0px 5px 2px -4px rgba(0,0,0,0.38);
+        -moz-box-shadow: inset 0px 5px 2px -4px rgba(0,0,0,0.38);
+        box-shadow: inset 0px 5px 2px -4px rgba(0,0,0,0.38);
+      }
+    </style>
+    <div id="chartWithOverlays">
+      <div id="chart"></div>
+    </div>
+    <span id="newOverlay" class="new-overlay" title="At the time, there was no opened testcase for this crash. Therefore, the crash was considered as 'new'."></span>
+  </template>
+  <script>
+    class CrashStatsChart extends Polymer.Element {
+      static get is() { return 'crash-stats-chart'; }
+
+      static get properties() {
+        return {
+          chart: Object,
+          groups:  Array,
+          end: Number,
+          days: Number,
+          block: String,
+          numberType: String,
+          chartWidth: {
+              type: Number,
+              value: 0
+          },
+          newIndices: {
+              type: Array,
+              value: []
+          },
+          baseGraphOptions: {
+              type: Object,
+              value: {
+                  connectSteps: true,
+                  isStacked: true,
+                  height: 300,
+                  backgroundColor: '#f2f7fa',
+                  legend: { position: 'bottom' },
+                  areaOpacity: 0.85,
+                  hAxis: {
+                    textPosition: 'none'
+                  },
+                  lineWidth: 0,
+                  vAxis: {
+                      titleTextStyle: {
+                         color: '#888',
+                         fontSize: 11,
+                         italic: false,
+                      },
+                      textStyle: {
+                          color: '#888',
+                          bold: false
+                      },
+                      baseline: 0,
+                      minValue: 0,
+                      maxValue: 10
+                  },
+                  focusTarget: 'category',
+                  chartArea: {
+                      left: 64,
+                      top: 20,
+                      height: 200
+                  },
+                  tooltip: {
+                      ignoreBounds: true,
+                      isHtml: true,
+                      trigger: 'both'
+                  },
+              }
+          }
+        }
+      }
+
+      static get observers() {
+        return [
+            'dataChanged('
+            + 'chart, baseGraphOptions, chartWidth, numberType, groups, days, '
+            + 'end, block)'
+        ];
+      }
+
+      dataChanged(
+          chart, baseGraphOptions, chartWidth, numberType, groups, days, end,
+          block) {
+
+        if (chart == undefined || numberType == undefined || groups == undefined
+            || days == undefined || end == undefined || block == undefined) {
+          return;
+        }
+
+        let options = this.computeGraphOptions(
+            baseGraphOptions, chartWidth, numberType);
+        let data = this.computeGraphData(groups, days, end, block, numberType);
+
+        this.chart.draw(data, options);
+      }
+
+      computeGraphOptions(baseGraphOptions, chartWidth, numberType) {
+        baseGraphOptions.width = chartWidth;
+        baseGraphOptions.chartArea.width = chartWidth - 64;
+        baseGraphOptions.vAxis.title = (
+            numberType == 'percent' ?
+            'Percentage of total crashes' : 'Total number of crashes');
+        baseGraphOptions.vAxis.maxValue = numberType == 'percent' ? 100 : 10;
+        return baseGraphOptions;
+      }
+
+      formatTime(hours) {
+        let date = new Date(hours * 60 * 60 * 1000);
+        let dateStr = date.toLocaleDateString(
+            'en-US', {month: 'short', day: 'numeric'})
+        let timeStr = date.toLocaleTimeString('en-US', {hour: 'numeric'});
+        return dateStr + ' ' + timeStr;
+      }
+
+      computeGraphData(groups, days, end, block, numberType) {
+        if (groups.length == 0) {
+          // If there's no result, make a fake group, so that the graph is
+          // rendered.
+          groups = [{name: 'Count', indices: []}];
+        }
+
+        let data = new google.visualization.DataTable();
+        data.addColumn('string', 'TimeRange');
+
+        for (let group of groups) {
+          data.addColumn('number', group.name);
+        }
+
+        let timeSpan = block == 'hour' ? 1 : 24
+        let slots = [];
+        for (let group of groups) {
+          group.byHour = {};
+
+          for (let slot of group.indices) {
+            group.byHour[slot.hour] = slot;
+          }
+        }
+
+        this.newIndices = [];
+        for (let i=(end - days * 24), index=0;i<end;i+=timeSpan, index++) {
+          let trueEndHour = i + timeSpan - 1;
+          let formattedEndTime = this.formatTime(trueEndHour + 1);
+          let formattedStartTime = this.formatTime(i);
+          let value = [{v: formattedStartTime + ' to ' + formattedEndTime}];
+          let isNew = false;
+
+          for (let group of groups) {
+            if (trueEndHour in group.byHour) {
+              value.push({'v': group.byHour[trueEndHour][numberType]});
+              isNew = isNew || group.byHour[trueEndHour].is_new;
+            } else {
+              value.push({'v': 0});
+            }
+          }
+
+          if (isNew) {
+            // Append the label with 'New' if the data point is new.
+            value[0].v += ' (New)';
+            this.newIndices.push(index);
+          }
+
+          data.addRow(value);
+        }
+
+        return data;
+      }
+
+      ready() {
+        super.ready();
+
+        google.charts.load('current', {'packages':['corechart']});
+
+        google.charts.setOnLoadCallback(() => {
+          let overlays = this.$.chartWithOverlays.querySelectorAll(
+              '.new-overlay');
+          for (let overlay of overlays) {
+            overlay.parentElement.removeChild(overlay);
+          }
+
+          this.chart = (
+              this.chart ||
+              new google.visualization.SteppedAreaChart(this.$.chart));
+          let cli = this.chart.getChartLayoutInterface();
+          let box = cli.getChartAreaBoundingBox();
+
+          for (let index of this.newIndices) {
+            let elem = this.$.newOverlay.cloneNode(true);
+            elem.removeAttribute('id');
+            this.$.chartWithOverlays.appendChild(elem);
+
+            let width = Math.min(
+                cli.getXLocation(1) - cli.getXLocation(0) - 4, 40);
+
+            elem.style.width = width + 'px';
+            elem.style.left = (cli.getXLocation(index) - width / 2) + 'px';
+            elem.style.top = (box.top + box.height) + 'px';
+            elem.style.display = 'block';
+          }
+        });
+      }
+    }
+
+    customElements.define(CrashStatsChart.is, CrashStatsChart);
+  </script>
+</dom-module>
+

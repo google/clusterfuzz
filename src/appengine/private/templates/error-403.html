@@ -1,0 +1,56 @@
+<!--
+  Copyright 2018 Google LLC
+
+  Licensed under the Apache License, Version 2.0 (the "License");
+  you may not use this file except in compliance with the License.
+  You may obtain a copy of the License at
+
+       http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+-->
+{% extends "layout-with-toolbar.html" %}
+{% block import_element %}
+  {% raw %}
+    <script src="/private/bower_components/webcomponentsjs/webcomponents-lite.js"></script>
+    <link rel="import" href="/private/bower_components/polymer/polymer.html">
+    <link rel="import" href="/private/bower_components/iron-icons/iron-icons.html">
+    <link rel="import" href="/private/bower_components/iron-icon/iron-icon.html">
+    <link rel="import" href="/private/bower_components/paper-icon-button/paper-icon-button.html">
+    <link rel="import" href="/private/bower_components/paper-item/paper-item.html">
+    <link rel="import" href="/private/bower_components/paper-listbox/paper-listbox.html">
+    <link rel="import" href="/private/bower_components/app-layout/app-layout.html">
+
+    <link rel="import" href="/private/components/technology/technology.html">
+    <link rel="stylesheet" type="text/css" href="/private/stylesheets/main.css">
+  {% endraw %}
+{% endblock %}
+{% block page_title %}Access Denied{% endblock %}
+{% block toolbar_title %}Access Denied{% endblock %}
+{% block main_content %}
+  {% if user_email %}
+    <p>You (email={{user_email}}) are not authorized to access this page!</p>
+    {% if message %}
+      <p>{{message}}</p>
+    {% endif %}
+    <p>Please contact {{contact_string}}.</p>
+    <p>
+      <a href="{{switch_account_url}}">Switch account</a><br />
+      <a href="{{logout_url}}">Logout</a>
+    </p>
+  {% else %}
+    <p>Please <a href="{{login_url}}">log in</a> to see this page.</p>
+  {% endif %}
+  {% if is_oss_fuzz %}
+    <p class="access-denied-remark">
+      OSS-Fuzz is an effort to provide continuous fuzzing infrastructure for open-source software.
+      You can read more about it here:
+      <a href="https://github.com/google/oss-fuzz">https://github.com/google/oss-fuzz</a>.
+    </p>
+  {% endif %}
+{% endblock %}
+

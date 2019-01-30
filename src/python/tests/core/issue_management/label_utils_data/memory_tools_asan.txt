@@ -1,0 +1,66 @@
+/mnt/scratch0/clusterfuzz/bot/builds/chromium-browser-asan_linux-release_4392242b7f59878a2775b4607420a2b37e17ff13/symbolized/release/asan-linux-release-405858/chrome --user-data-dir=/mnt/scratch0/tmp/user_profile_0 --js-flags="--expose-gc --verify-heap" --no-first-run --use-gl=osmesa /mnt/scratch0/clusterfuzz/bot/inputs/fuzzer-testcases-disk/fuzz-674-1.1.1.id_001443,src_001221,op_arith32,pos_204,val_-2.bmp
+
+[Crash Revision] r405858
+[Environment] ASAN_OPTIONS = redzone=1024:symbolize=0:detect_stack_use_after_return=1:alloc_dealloc_mismatch=0:print_scariness=1:check_malloc_usable_size=0:max_uar_stack_size_log=16:use_sigaltstack=1:strict_memcmp=0:detect_container_overflow=1:allocator_may_return_null=1:coverage=0:detect_odr_violation=0:fast_unwind_on_fatal=1:handle_segv=1:malloc_context_size=128
+
+Xlib:  extension "RANDR" missing on display ":1".
+Xlib:  extension "RANDR" missing on display ":1".
+ASAN:DEADLYSIGNAL
+=================================================================
+==1==ERROR: AddressSanitizer: SEGV on unknown address 0x7f4d6ebe7000 (pc 0x7f4f9edda9ef bp 0x7f4dde649910 sp 0x7f4dde6498e0 T4)
+SCARINESS: 10 (signal)
+    #0 0x7f4f9edda9ee in store third_party/skia/src/opts/SkNx_sse.h:263:48
+    #1 0x7f4f9edda9ee in Compact third_party/skia/src/core/SkMipMap.cpp:32
+    #2 0x7f4f9edda9ee in void downsample_2_3<ColorTypeFilter_8888>(void*, void const*, unsigned long, int) third_party/skia/src/core/SkMipMap.cpp:215
+    #3 0x7f4f9edd8292 in SkMipMap::Build(SkPixmap const&, SkSourceGammaTreatment, SkDiscardableMemory* (*)(unsigned long)) third_party/skia/src/core/SkMipMap.cpp:484:13
+    #4 0x7f4f9ede6c60 in SkMipMap::Build(SkBitmap const&, SkSourceGammaTreatment, SkDiscardableMemory* (*)(unsigned long)) third_party/skia/src/core/SkMipMap.cpp:613:12
+    #5 0x7f4f9ec9933a in SkMipMapCache::AddAndRef(SkBitmap const&, SkSourceGammaTreatment, SkResourceCache*) third_party/skia/src/core/SkBitmapCache.cpp:304:24
+    #6 0x7f4f9f1b5e13 in SkDefaultBitmapControllerState::processMediumRequest(SkBitmapProvider const&) third_party/skia/src/core/SkBitmapController.cpp:175:28
+    #7 0x7f4f9f1b6547 in SkDefaultBitmapControllerState::SkDefaultBitmapControllerState(SkBitmapProvider const&, SkMatrix const&, SkFilterQuality, SkSourceGammaTreatment) third_party/skia/src/core/SkBitmapController.cpp:211:51
+    #8 0x7f4f9f1b672b in SkInPlaceNewCheck<SkDefaultBitmapControllerState, SkBitmapProvider, SkMatrix, SkFilterQuality, SkSourceGammaTreatment> third_party/skia/include/private/SkTemplates.h:453:72
+    #9 0x7f4f9f1b672b in SkDefaultBitmapController::onRequestBitmap(SkBitmapProvider const&, SkMatrix const&, SkFilterQuality, void*, unsigned long) third_party/skia/src/core/SkBitmapController.cpp:230
+    #10 0x7f4f9f1b42a5 in SkBitmapController::requestBitmap(SkBitmapProvider const&, SkMatrix const&, SkFilterQuality, void*, unsigned long) third_party/skia/src/core/SkBitmapController.cpp:28:26
+    #11 0x7f4f9ecb41d0 in SkBitmapProcInfo::init(SkMatrix const&, SkPaint const&) third_party/skia/src/core/SkBitmapProcState.cpp:137:27
+    #12 0x7f4f9ec9da69 in setup third_party/skia/src/core/SkBitmapProcState.h:69:22
+    #13 0x7f4f9ec9da69 in SkBitmapProcShader::MakeContext(SkShader const&, SkShader::TileMode, SkShader::TileMode, SkBitmapProvider const&, SkShader::ContextRec const&, void*) third_party/skia/src/core/SkBitmapProcShader.cpp:247
+    #14 0x7f4f9ec9eeec in SkBitmapProcShader::onCreateContext(SkShader::ContextRec const&, void*) const third_party/skia/src/core/SkBitmapProcShader.cpp:256:12
+    #15 0x7f4f9e8dab05 in SkShader::createContext(SkShader::ContextRec const&, void*) const third_party/skia/src/core/SkShader.cpp:96:18
+    #16 0x7f4f9ecd62ca in SkBlitter::Choose(SkPixmap const&, SkMatrix const&, SkPaint const&, SkSmallAllocator<3u, 3200ul>*, bool) third_party/skia/src/core/SkBlitter.cpp:891:37
+    #17 0x7f4f9e78cce7 in SkAutoBlitterChoose third_party/skia/src/core/SkDraw.cpp:56:20
+    #18 0x7f4f9e78cce7 in SkDraw::drawRect(SkRect const&, SkPaint const&, SkMatrix const*, SkRect const*) const third_party/skia/src/core/SkDraw.cpp:863
+    #19 0x7f4f9e792893 in drawRect third_party/skia/include/core/SkDraw.h:40:15
+    #20 0x7f4f9e792893 in SkDraw::drawBitmap(SkBitmap const&, SkMatrix const&, SkRect const*, SkPaint const&) const third_party/skia/src/core/SkDraw.cpp:1332
+    #21 0x7f4f9ec9c5a3 in SkBitmapDevice::drawBitmapRect(SkDraw const&, SkBitmap const&, SkRect const*, SkRect const&, SkPaint const&, SkCanvas::SrcRectConstraint) third_party/skia/src/core/SkBitmapDevice.cpp:316:14
+    #22 0x7f4f9e75b2a3 in SkCanvas::internalDrawBitmapRect(SkBitmap const&, SkRect const*, SkRect const&, SkPaint const*, SkCanvas::SrcRectConstraint) third_party/skia/src/core/SkCanvas.cpp:2470:23
+    #23 0x7f4f9e75ba55 in SkCanvas::onDrawBitmapRect(SkBitmap const&, SkRect const*, SkRect const&, SkPaint const*, SkCanvas::SrcRectConstraint) third_party/skia/src/core/SkCanvas.cpp:2480:11
+    #24 0x7f4f9e74da9a in drawBitmapRect third_party/skia/src/core/SkCanvas.cpp:2029:11
+    #25 0x7f4f9e74da9a in SkCanvas::drawBitmapRect(SkBitmap const&, SkRect const&, SkPaint const*, SkCanvas::SrcRectConstraint) third_party/skia/src/core/SkCanvas.cpp:2039
+    #26 0x7f4f9e840215 in SkPixmap::scalePixels(SkPixmap const&, SkFilterQuality) const third_party/skia/src/core/SkPixmap.cpp:271:27
+    #27 0x7f4faed40f3b in cc::SoftwareImageDecodeController::GetScaledImageDecode(cc::ImageDecodeControllerKey const&, sk_sp<SkImage const>) cc/tiles/software_image_decode_controller.cc:578:24
+    #28 0x7f4faed3e20e in cc::SoftwareImageDecodeController::DecodeImageInternal(cc::ImageDecodeControllerKey const&, cc::DrawImage const&) cc/tiles/software_image_decode_controller.cc:375:14
+    #29 0x7f4faed3d0bc in cc::SoftwareImageDecodeController::DecodeImage(cc::ImageDecodeControllerKey const&, cc::DrawImage const&) cc/tiles/software_image_decode_controller.cc:325:21
+    #30 0x7f4faed49063 in cc::(anonymous namespace)::ImageDecodeTaskImpl::RunOnWorkerThread() cc/tiles/software_image_decode_controller.cc:77:18
+    #31 0x7f4faba21265 in content::CategorizedWorkerPool::RunTaskInCategoryWithLockAcquired(cc::TaskCategory) content/renderer/categorized_worker_pool.cc:362:11
+    #32 0x7f4faba1d2b4 in RunTaskWithLockAcquired content/renderer/categorized_worker_pool.cc:340:7
+    #33 0x7f4faba1d2b4 in content::CategorizedWorkerPool::Run(std::__1::vector<cc::TaskCategory, std::__1::allocator<cc::TaskCategory> > const&, base::ConditionVariable*) content/renderer/categorized_worker_pool.cc:232
+    #34 0x7f4f9d1fc5cf in base::SimpleThread::ThreadMain() base/threading/simple_thread.cc:75:3
+    #35 0x7f4f9d1eeb3c in base::(anonymous namespace)::ThreadFunc(void*) base/threading/platform_thread_posix.cc:70:13
+    #36 0x7f4f98e9c183 in start_thread /build/eglibc-oGUzwX/eglibc-2.19/nptl/pthread_create.c:312
+AddressSanitizer can not provide additional info.
+SUMMARY: AddressSanitizer: SEGV (/mnt/scratch0/clusterfuzz/bot/builds/chromium-browser-asan_linux-release_4392242b7f59878a2775b4607420a2b37e17ff13/symbolized/release/asan-linux-release-405858/chrome+0x5b039ee)
+Thread T4 (CompositorTileW) created by T0 (chrome) here:
+    #0 0x7f4f9be9b9c6 in pthread_create
+    #1 0x7f4f9d1ee031 in base::(anonymous namespace)::CreateThread(unsigned long, bool, base::PlatformThread::Delegate*, base::PlatformThreadHandle*, base::ThreadPriority) base/threading/platform_thread_posix.cc:109:13
+    #2 0x7f4f9d1fc2e3 in base::SimpleThread::Start() base/threading/simple_thread.cc:45:15
+    #3 0x7f4faba1a074 in content::CategorizedWorkerPool::Start(int) content/renderer/categorized_worker_pool.cc:144:13
+    #4 0x7f4fab68612a in content::RenderThreadImpl::Init(scoped_refptr<base::SingleThreadTaskRunner>&) content/renderer/render_thread_impl.cc:837:29
+    #5 0x7f4fab6837e7 in content::RenderThreadImpl::RenderThreadImpl(std::__1::unique_ptr<base::MessageLoop, std::__1::default_delete<base::MessageLoop> >, std::__1::unique_ptr<scheduler::RendererScheduler, std::__1::default_delete<scheduler::RendererScheduler> >) content/renderer/render_thread_impl.cc:627:3
+    #6 0x7f4fab683076 in content::RenderThreadImpl::Create(std::__1::unique_ptr<base::MessageLoop, std::__1::default_delete<base::MessageLoop> >, std::__1::unique_ptr<scheduler::RendererScheduler, std::__1::default_delete<scheduler::RendererScheduler> >) content/renderer/render_thread_impl.cc:596:14
+    #7 0x7f4fab74e12b in content::RendererMain(content::MainFunctionParams const&) content/renderer/renderer_main.cc:186:5
+    #8 0x7f4f9cfb98f7 in content::RunZygote(content::MainFunctionParams const&, content::ContentMainDelegate*) content/app/content_main_runner.cc:343:14
+    #9 0x7f4f9cfbe0d5 in content::ContentMainRunnerImpl::Run() content/app/content_main_runner.cc:785:12
+    #10 0x7f4f9cfb868d in content::ContentMain(content::ContentMainParams const&) content/app/content_main.cc:20:28
+    #11 0x7f4f9bee08a5 in ChromeMain chrome/app/chrome_main.cc:84:12
+    #12 0x7f4f912daf44 in __libc_start_main /build/eglibc-oGUzwX/eglibc-2.19/csu/libc-start.c:287
+
+==1==ABORTING

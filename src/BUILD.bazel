@@ -1,0 +1,8 @@
+load("@bazel_gazelle//:def.bzl", "gazelle")
+
+# gazelle:exclude third_party
+
+gazelle(
+    name = "gazelle",
+    prefix = "clusterfuzz",
+)

@@ -1,0 +1,7 @@
+#!/bin/bash -ex
+
+TEST_NAME=$1
+shift
+
+echo "Running untrusted integration tests for $TEST_NAME..."
+UNTRUSTED_RUNNER_TESTS=1 python butler.py py_unittest -t core -p \*"$TEST_NAME"\* "$@"

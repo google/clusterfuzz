@@ -1,0 +1,39 @@
+==================================================================
+BUG: KASAN: out of bounds access in platform_match+0x104/0x1d8 at addr ffffffc002583240
+Read of size 1 by task kworker/u8:1/94
+page:ffffffbe01c834a8 count:1 mapcount:0 mapping:          (null) index:0x0
+flags: 0x400(reserved)
+page dumped because: kasan: bad access detected
+Address belongs to variable 0xffffffc002583240
+CPU: 2 PID: 94 Comm: kworker/u8:1 Tainted: G     U         3.18.0 #6
+Hardware name: Google Tegra210 Smaug Rev 1,3+ (DT)
+Workqueue: deferwq deferred_probe_work_func
+Call trace:
+[<ffffffc00020dbcc>] dump_backtrace+0x0/0x258 arch/arm64/kernel/traps.c:83
+[<ffffffc00020de40>] show_stack+0x1c/0x2c arch/arm64/kernel/traps.c:172
+[<     inline     >] __dump_stack lib/dump_stack.c:15
+[<ffffffc00195c384>] dump_stack+0x90/0x140 lib/dump_stack.c:50
+[<     inline     >] print_address_description mm/kasan/report.c:129
+[<ffffffc00045dc24>] kasan_report_error+0x3c8/0x3e8 mm/kasan/report.c:193
+[<ffffffc00045dd28>] kasan_report+0x34/0x40 mm/kasan/report.c:229
+[<ffffffc00045dd48>] __asan_report_load1_noabort+0x14/0x20 mm/kasan/report.c:248
+[<     inline     >] platform_match_id drivers/base/platform.c:792
+[<ffffffc000d36974>] platform_match+0x100/0x1d8 drivers/base/platform.c:834
+[<     inline     >] driver_match_device drivers/base/base.h:117
+[<ffffffc000d32f58>] __device_attach_driver+0x108/0x1a4 drivers/base/dd.c:479
+[<ffffffc000d2f680>] bus_for_each_drv+0x17c/0x190 drivers/base/bus.c:462
+[<ffffffc000d332d8>] __device_attach+0x1a4/0x234 drivers/base/dd.c:545
+[<ffffffc000d333b0>] device_initial_probe+0x1c/0x2c drivers/base/dd.c:592
+[<ffffffc000d2fb5c>] bus_probe_device+0xa0/0x1b4 drivers/base/bus.c:556
+[<ffffffc000d31bc8>] deferred_probe_work_func+0x110/0x128 drivers/base/dd.c:102
+[<ffffffc00026d030>] process_one_work+0x754/0xc58 kernel/workqueue.c:2023
+[<ffffffc00026dad0>] worker_thread+0x530/0x960 kernel/workqueue.c:2155
+[<ffffffc00027961c>] kthread+0x218/0x230 kernel/kthread.c:207
+Memory state around the buggy address:
+ ffffffc002583100: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+ ffffffc002583180: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 fa fa
+>ffffffc002583200: fa fa fa fa 00 00 00 00 fa fa fa fa 00 00 00 00
+                                           ^
+ ffffffc002583280: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+ ffffffc002583300: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+==================================================================

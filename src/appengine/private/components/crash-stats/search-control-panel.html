@@ -1,0 +1,489 @@
+<!--
+  Copyright 2018 Google LLC
+
+  Licensed under the Apache License, Version 2.0 (the "License");
+  you may not use this file except in compliance with the License.
+  You may obtain a copy of the License at
+
+       http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+-->
+<link rel="import" href="../../bower_components/polymer/polymer.html">
+<link rel="import" href="../../bower_components/iron-icon/iron-icon.html">
+<link rel="import" href="../../bower_components/paper-button/paper-button.html">
+<link rel="import" href="../../bower_components/paper-input/paper-input.html">
+<link rel="import" href="../../bower_components/paper-dropdown-menu/paper-dropdown-menu.html">
+<link rel="import" href="../../bower_components/paper-listbox/paper-listbox.html">
+<link rel="import" href="../../bower_components/paper-item/paper-item.html">
+<link rel="import" href="../../bower_components/paper-dialog/paper-dialog.html">
+<link rel="import" href="../common/render-either/render-either.html">
+<link rel="import" href="../../components/crash-stats/date-time-picker.html">
+
+<dom-module id="search-control-panel">
+  <link rel="import" href="../technology/technology.css" type="css">
+  <template>
+    <style>
+      :host {
+        display: block;
+      }
+
+      :host div.row {
+        display: -webkit-flex;
+        display: flex;
+      }
+
+      :host div.row > .left {
+        -webkit-flex: 1;
+        flex: 1;
+      }
+
+      :host div.row > .right {
+        -webkit-flex: 1;
+        flex: 1;
+        text-align: right;
+      }
+
+      paper-dropdown-menu {
+        width: 60px;
+
+        --paper-input-container-label: {
+          color: #666;
+          font-size: 18px;
+        };
+
+        --paper-input-container-input: {
+          color: #888;
+          font-size: 14px;
+        };
+      }
+
+     date-time-picker {
+        --paper-input-container-input: {
+          color: #888;
+          font-size: 14px;
+          width: 160px;
+        };
+
+        --paper-input-container-label: {
+          color: #666;
+          font-size: 18px;
+        };
+      }
+
+      #jobs, #fuzzers {
+        width: 160px;
+      }
+
+      #reproducibleOptions, #platformOptions, #projectOptions {
+        width: 90px;
+      }
+
+      #days {
+        display: inline-block;
+        vertical-align: top;
+        width: 50px;
+        text-align: left;
+      }
+
+      #blockOptions {
+        width: 70px;
+      }
+
+      #groupOptions, #numberOptions {
+        width: 120px;
+      }
+
+      #groupOptions, #sortOptions {
+        width: 120px;
+      }
+
+      :host [hidden] {
+        display: none !important;
+      }
+
+      :host #keyword {
+        display: inline-block;
+        text-align: left;
+        vertical-align: top;
+      }
+
+      :host #keyword iron-icon[slot="prefix"] {
+        margin-right: 5px;
+        color: #888;
+        height: 22px;
+        width: 22px;
+      }
+
+      :host #keyword iron-icon[slot="suffix"] {
+        color: #888;
+        height: 16px;
+        width: 16px;
+      }
+
+      :host .remark {
+        font-size: 12px;
+        color: #888;
+        margin-bottom: 5px;
+      }
+
+      .count-toggle-button {
+        --paper-toggle-button-checked-bar-color:  var(--paper-pink-500);
+        --paper-toggle-button-checked-button-color:  var(--paper-pink-500);
+        --paper-toggle-button-checked-ink-color: var(--paper-pink-500);
+        --paper-toggle-button-unchecked-bar-color:  var(--paper-indigo-900);
+        --paper-toggle-button-unchecked-button-color:  var(--paper-indigo-900);
+        --paper-toggle-button-unchecked-ink-color: var(--paper-indigo-900);
+        font-size: 12px;
+        color: #888;
+      }
+
+      .count-toggle-button-container {
+        display: inline-block;
+        vertical-align: middle;
+      }
+
+      :host .legends {
+        display: inline-block;
+        vertical-align: middle;
+        margin-left: 20px;
+      }
+
+      :host .legend {
+        display: inline-block;
+        position: relative;
+      }
+
+      :host .legend .background {
+        display: inline-block;
+        position: absolute;
+        left: 0;
+        right: 0;
+        top: 0;
+        bottom: 0;
+        opacity: 0.7;
+        z-index: 0;
+      }
+
+      :host .legend .foreground {
+        display: inline-block;
+        z-index: 0;
+        position: relative;
+        padding: 3px 8px;
+        font-size: 11px;
+        color: #333;
+        font-weight: bold;
+      }
+    </style>
+    <div class="row">
+      <div class="left">
+          <paper-dropdown-menu
+              id="fuzzers"
+              no-animations="true"
+              label="Fuzzer"
+              noink>
+            <paper-listbox
+                slot="dropdown-content"
+                class="dropdown-content"
+                selected="{{params.fuzzer}}"
+                attr-for-selected="value">
+              <paper-item on-click="submit" value="">All</paper-item>
+              <template is="dom-repeat" items="[[fieldValues.fuzzers]]">
+                <paper-item on-click="submit" value="[[sanitise(item)]]">[[item]]</paper-item>
+              </template>
+            </paper-listbox>
+          </paper-dropdown-menu>
+          <paper-dropdown-menu
+              id="jobs"
+              no-animations="true"
+              label="Job"
+              noink>
+            <paper-listbox
+                slot="dropdown-content"
+                class="dropdown-content"
+                selected="{{params.job}}"
+                attr-for-selected="value">
+              <paper-item on-click="submit" value="">All</paper-item>
+              <template is="dom-repeat" items="[[fieldValues.jobs]]">
+                <paper-item on-click="submit" value="[[sanitise(item)]]">[[item]]</paper-item>
+              </template>
+            </paper-listbox>
+          </paper-dropdown-menu>
+          <paper-dropdown-menu
+              id="platformOptions"
+              no-animations="true"
+              label="Platform"
+              noink>
+            <paper-listbox
+                slot="dropdown-content"
+                class="dropdown-content"
+                selected="{{params.platform}}"
+                attr-for-selected="value">
+              <paper-item on-click="submit" value="">All</paper-item>
+              <template is="dom-repeat" items="[[fieldValues.platforms]]">
+                <paper-item on-click="submit" value="[[sanitise(item)]]">[[item]]</paper-item>
+              </template>
+            </paper-listbox>
+          </paper-dropdown-menu>
+          <template is="dom-if" if="[[shouldShowProjects(fieldValues)]]">
+            <paper-dropdown-menu
+                id="projectOptions"
+                no-animations="true"
+                label="Project"
+                noink>
+              <paper-listbox
+                  slot="dropdown-content"
+                  class="dropdown-content"
+                  selected="{{params.project}}"
+                  attr-for-selected="value">
+                <paper-item on-click="submit" value="">All</paper-item>
+                <template is="dom-repeat" items="[[fieldValues.projects]]">
+                  <paper-item on-click="submit" value="[[sanitise(item)]]">[[item]]</paper-item>
+                </template>
+              </paper-listbox>
+            </paper-dropdown-menu>
+          </template>
+        </div>
+        <div class="right">
+          <paper-input
+              id="keyword"
+              autofocus
+              type="text"
+              value="{{params.q}}"
+              focused="{{keywordFocused}}"
+              on-keyup="queueSubmit">
+            <iron-icon icon="icons:search" slot="prefix"></iron-icon>
+            <iron-icon icon="icons:help-outline" title="Search with keywords here, e.g. 'blink platform:windows' or 'MessageFilter'." slot="suffix"></iron-icon>
+          </paper-input>
+          <paper-dropdown-menu
+              id="reproducibleOptions"
+              no-animations="true"
+              label="Reproducible"
+              noink>
+            <paper-listbox
+                slot="dropdown-content"
+                class="dropdown-content"
+                selected="{{params.reproducible}}"
+                attr-for-selected="value">
+              <paper-item on-click="submit" value="">All</paper-item>
+              <paper-item on-click="submit" value="yes">Yes</paper-item>
+              <paper-item on-click="submit" value="no">No</paper-item>
+            </paper-listbox>
+          </paper-dropdown-menu>
+          <paper-dropdown-menu
+              id="securityOptions"
+              no-animations="true"
+              label="Security"
+              noink>
+            <paper-listbox
+                slot="dropdown-content"
+                class="dropdown-content"
+                selected="{{params.security}}"
+                attr-for-selected="value">
+              <paper-item on-click="submit" value="">All</paper-item>
+              <paper-item on-click="submit" value="yes">Yes</paper-item>
+              <paper-item on-click="submit" value="no">No</paper-item>
+            </paper-listbox>
+          </paper-dropdown-menu>
+          <paper-dropdown-menu
+              id="newOptions"
+              no-animations="true"
+              label="New"
+              noink>
+            <paper-listbox
+                slot="dropdown-content"
+                class="dropdown-content"
+                selected="{{params.new}}"
+                attr-for-selected="value">
+              <paper-item on-click="submit" value="">All</paper-item>
+              <paper-item on-click="submit" value="yes">Yes</paper-item>
+              <paper-item on-click="submit" value="no">No</paper-item>
+            </paper-listbox>
+          </paper-dropdown-menu>
+        </div>
+      </div>
+      <div class="row">
+          <small class="remark">[[formatPermissionText(params.permissions)]]</small>
+      </div>
+      <div class="row">
+        <div class="left">
+          <paper-dropdown-menu
+              id="groupOptions"
+              no-animations="true"
+              label="View"
+              noink>
+            <paper-listbox
+                slot="dropdown-content"
+                class="dropdown-content"
+                selected="{{params.group}}"
+                attr-for-selected="value">
+              <paper-item on-click="submit" value="platform">Platform</paper-item>
+              <paper-item on-click="submit" value="reproducible_flag">Reproducibility</paper-item>
+              <paper-item on-click="submit" value="fuzzer_name">Fuzzer</paper-item>
+              <paper-item on-click="submit" value="job_type">Job</paper-item>
+              <paper-item on-click="submit" value="revision">Revision</paper-item>
+            </paper-listbox>
+          </paper-dropdown-menu>
+          <paper-dropdown-menu
+              id="numberOptions"
+              no-animations="true"
+              label="Number"
+              noink>
+            <paper-listbox
+                slot="dropdown-content"
+                class="dropdown-content"
+                selected="{{params.number}}"
+                attr-for-selected="value">
+              <paper-item value="count">Count</paper-item>
+              <paper-item value="percent">Percentage</paper-item>
+            </paper-listbox>
+          </paper-dropdown-menu>
+          <paper-dropdown-menu
+              id="sortOptions"
+              no-animations="true"
+              label="Sort by"
+              noink>
+            <paper-listbox
+                slot="dropdown-content"
+                class="dropdown-content"
+                selected="{{params.sort}}"
+                attr-for-selected="value">
+              <paper-item on-click="submit" value="total_count">Count</paper-item>
+              <paper-item on-click="submit" value="first_index">Recency</paper-item>
+            </paper-listbox>
+          </paper-dropdown-menu>
+        </div>
+        <div class="right">
+          <date-time-picker float-label="true" label="End Time" selected-hour="{{params.end}}" min-hour="[[fieldValues.minHour]]" max-hour="[[fieldValues.maxHour]]" on-submit="submit"></date-time-picker>
+          <paper-input
+              id="days"
+              label="Days"
+              type="text"
+              value="{{params.days}}"
+              on-keyup="queueSubmit">
+          </paper-input>
+          <paper-dropdown-menu
+              id="blockOptions"
+              no-animations="true"
+              label="By"
+              noink>
+            <paper-listbox
+                slot="dropdown-content"
+                class="dropdown-content"
+                selected="{{params.block}}"
+                attr-for-selected="value">
+              <paper-item on-click="submit" value="hour">Hour</paper-item>
+              <paper-item on-click="submit" value="day">Day</paper-item>
+            </paper-listbox>
+          </paper-dropdown-menu>
+        </div>
+      </div>
+  </template>
+  <script>
+    Polymer({
+      is: 'search-control-panel',
+      properties: {
+        fieldValues: Object,
+        params: {
+          type: Object,
+          value: () => { return {}; }
+        },
+        submitId: {
+          type: Number,
+          value: 0
+        },
+        projectedKey: {
+          type: String,
+          notify: true
+        },
+        keywordFocused: Boolean
+      },
+      sanitise(value) {
+        if (value) {
+          return value.trim();
+        } else {
+          return '';
+        }
+      },
+      queueSubmit(ev) {
+        let self = this;
+        let thisId = ++self.submitId;
+
+        if (ev.keyCode == 13) {
+          self.submit();
+        } else {
+          setTimeout(
+              () => {
+                if (self.submitId == thisId) {
+                  self.submit();
+                }
+              },
+              600
+          );
+        }
+      },
+      formatPermissionText(permissions) {
+        if (!permissions) {
+          return '';
+        }
+
+        let filters = [];
+
+        if (permissions.everything) {
+          let securityInclusion = '(excluding security)';
+          if (permissions.isPrivileged) {
+            securityInclusion = '(including security)';
+          }
+
+          filters.push(`everything ${securityInclusion}`);
+        }
+
+        if (permissions.jobs && permissions.jobs.length > 0) {
+          filters.push(
+              `jobs:${permissions.jobs.join(',')} (including security)`);
+        }
+
+        if (permissions.fuzzers
+            && permissions.fuzzers.length > 0) {
+          filters.push(
+              `fuzzers:${permissions.fuzzers.join(',')}` +
+              ' (including security)');
+        }
+
+        if (filters.length > 0) {
+          return `You are allowed to see ${filters.join(' or ')}`;
+        } else {
+          return '';
+        }
+      },
+      submit() {
+        setTimeout(
+          () => {
+            if (this.params.block == 'hour') {
+              let days = parseInt(this.params.days);
+              this.set('params.days', '' + Math.min(days, 3));
+            }
+
+            this.fire('search-button-tapped');
+          },
+          1
+        );
+      },
+      focus() {
+        if (!this.keywordFocused) {
+          this.$.keyword.focus();
+        }
+      },
+      shouldShowProjects(fieldValues) {
+        return fieldValues && fieldValues.projects &&
+            fieldValues.projects.length > 1;
+      },
+    });
+  </script>
+</dom-module>
+
+

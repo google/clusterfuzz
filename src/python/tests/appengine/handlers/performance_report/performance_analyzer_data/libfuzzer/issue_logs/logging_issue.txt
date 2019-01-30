@@ -1,0 +1,157 @@
+Command: /mnt/scratch0/clusterfuzz/bot/builds/chromium-browser-libfuzzer_linux-release-asan_ae530a86793cd6b8b56ce9af9159ac101396e802/revisions/libfuzzer-linux-release-499597/minidump_fuzzer -close_fd_mask=3 -dict=/mnt/scratch0/clusterfuzz/bot/builds/chromium-browser-libfuzzer_linux-release-asan_ae530a86793cd6b8b56ce9af9159ac101396e802/revisions/libfuzzer-linux-release-499597/minidump_fuzzer.dict -max_len=128000 -timeout=25 -rss_limit_mb=2048 -artifact_prefix=/mnt/scratch0/clusterfuzz/bot/inputs/fuzzer-testcases/ -max_total_time=2650 -print_final_stats=1 /mnt/scratch0/clusterfuzz/bot/inputs/fuzzer-testcases-disk/temp/new /mnt/scratch0/clusterfuzz/bot/inputs/data-bundles/global/minidump_fuzzer
+Bot: clusterfuzz-linux-pre-0451
+Time ran: 2655.506391
+Dictionary: 2 entries
+INFO: Seed: 3610843718
+INFO: Loaded 2 modules   (27124 guards): 17127 [0x7f5b57f4e7a0, 0x7f5b57f5f33c), 9997 [0x75c9e8, 0x76661c),
+INFO:        0 files found in /mnt/scratch0/clusterfuzz/bot/inputs/fuzzer-testcases-disk/temp/new
+INFO:     3931 files found in /mnt/scratch0/clusterfuzz/bot/inputs/data-bundles/global/minidump_fuzzer
+INFO: seed corpus: files: 3930 min: 1b max: 122040b total: 10688952b rss: 56Mb
+#1024 pulse  cov: 3097 ft: 7167 corp: 1006/535Kb exec/s: 44 rss: 142Mb
+#2048 pulse  cov: 4093 ft: 8817 corp: 2028/1400Kb exec/s: 62 rss: 151Mb
+-----------------------------------------------------
+Suppressions used:
+  count      bytes template
+      1        796 google_breakpad::MinidumpContext::Read
+-----------------------------------------------------
+
+-----------------------------------------------------
+Suppressions used:
+  count      bytes template
+      2       1592 google_breakpad::MinidumpContext::Read
+      1       1272 google_breakpad::StackwalkerPPC64::GetCallerFrame
+-----------------------------------------------------
+
+-----------------------------------------------------
+Suppressions used:
+  count      bytes template
+      5       3980 google_breakpad::MinidumpContext::Read
+      2       2544 google_breakpad::StackwalkerPPC64::GetCallerFrame
+-----------------------------------------------------
+
+-----------------------------------------------------
+Suppressions used:
+  count      bytes template
+     11       8756 google_breakpad::MinidumpContext::Read
+      3       3816 google_breakpad::StackwalkerPPC64::GetCallerFrame
+-----------------------------------------------------
+
+-----------------------------------------------------
+Suppressions used:
+  count      bytes template
+     21      18172 google_breakpad::MinidumpContext::Read
+      4       5088 google_breakpad::StackwalkerPPC64::GetCallerFrame
+-----------------------------------------------------
+
+-----------------------------------------------------
+Suppressions used:
+  count      bytes template
+     35      30772 google_breakpad::MinidumpContext::Read
+      5       6360 google_breakpad::StackwalkerPPC64::GetCallerFrame
+-----------------------------------------------------
+
+#3938 INITED cov: 5442 ft: 14655 corp: 3808/8060Kb exec/s: 77 rss: 178Mb
+#4096 pulse  cov: 5442 ft: 14655 corp: 3808/8060Kb exec/s: 80 rss: 178Mb
+#4204 REDUCE cov: 5442 ft: 14655 corp: 3808/8060Kb exec/s: 82 rss: 178Mb L: 670/76321 MS: 1 EraseBytes-
+#4829 REDUCE cov: 5442 ft: 14655 corp: 3808/8059Kb exec/s: 86 rss: 197Mb L: 1698/76321 MS: 1 EraseBytes-
+#4877 REDUCE cov: 5442 ft: 14655 corp: 3808/8059Kb exec/s: 87 rss: 197Mb L: 1310/76321 MS: 4 ShuffleBytes-ChangeASCIIInt-ChangeBit-EraseBytes-
+#5272 REDUCE cov: 5442 ft: 14655 corp: 3808/8058Kb exec/s: 92 rss: 197Mb L: 1619/76321 MS: 4 InsertByte-ChangeByte-ChangeByte-EraseBytes-
+-----------------------------------------------------
+Suppressions used:
+  count      bytes template
+     51      44964 google_breakpad::MinidumpContext::Read
+      6       7632 google_breakpad::StackwalkerPPC64::GetCallerFrame
+-----------------------------------------------------
+
+-----------------------------------------------------
+Suppressions used:
+  count      bytes template
+     68      59952 google_breakpad::MinidumpContext::Read
+      7       8904 google_breakpad::StackwalkerPPC64::GetCallerFrame
+-----------------------------------------------------
+
+-----------------------------------------------------
+Suppressions used:
+  count      bytes template
+     86      75736 google_breakpad::MinidumpContext::Read
+      8      10176 google_breakpad::StackwalkerPPC64::GetCallerFrame
+-----------------------------------------------------
+
+-----------------------------------------------------
+Suppressions used:
+  count      bytes template
+    105      92316 google_breakpad::MinidumpContext::Read
+      9      11448 google_breakpad::StackwalkerPPC64::GetCallerFrame
+-----------------------------------------------------
+
+-----------------------------------------------------
+Suppressions used:
+  count      bytes template
+    128     113536 google_breakpad::MinidumpContext::Read
+     10      12720 google_breakpad::StackwalkerPPC64::GetCallerFrame
+-----------------------------------------------------
+
+-----------------------------------------------------
+Suppressions used:
+  count      bytes template
+    155     139396 google_breakpad::MinidumpContext::Read
+     11      13992 google_breakpad::StackwalkerPPC64::GetCallerFrame
+-----------------------------------------------------
+
+-----------------------------------------------------
+Suppressions used:
+  count      bytes template
+    186     169896 google_breakpad::MinidumpContext::Read
+     12      15264 google_breakpad::StackwalkerPPC64::GetCallerFrame
+-----------------------------------------------------
+
+-----------------------------------------------------
+Suppressions used:
+  count      bytes template
+ 533067  510104484 google_breakpad::MinidumpContext::Read
+  15822   20125584 google_breakpad::StackwalkerPPC64::GetCallerFrame
+-----------------------------------------------------
+
+-----------------------------------------------------
+Suppressions used:
+  count      bytes template
+ 534622  511613080 google_breakpad::MinidumpContext::Read
+  15859   20172648 google_breakpad::StackwalkerPPC64::GetCallerFrame
+-----------------------------------------------------
+
+#282594 REDUCE cov: 5442 ft: 14655 corp: 3808/7848Kb exec/s: 106 rss: 197Mb L: 1915/76321 MS: 4 ChangeBit-ChangeByte-ChangeASCIIInt-EraseBytes-
+#282595 REDUCE cov: 5442 ft: 14655 corp: 3808/7847Kb exec/s: 106 rss: 197Mb L: 1411/76321 MS: 5 ChangeBit-ChangeByte-ChangeASCIIInt-EraseBytes-EraseBytes-
+#282691 DONE   cov: 5442 ft: 14655 corp: 3808/7847Kb exec/s: 106 rss: 197Mb
+###### Recommended dictionary. ######
+"\x00\x00\x00\x00\x00\x00\x00\x00" # Uses: 2296
+"\x01\x00\x00\x00" # Uses: 1682
+"\xff\xff\xff\xff" # Uses: 1542
+"c0df0b60d364b8fbee91959e85df20095f4baabe" # Uses: 1387
+"\x01\x00\x00\x00\x00\x00\x00\x00" # Uses: 1338
+"\x00\x00\x00\x00" # Uses: 1307
+"\xff\xff\xff\xff\xff\xff\xff\xff" # Uses: 1066
+"f21e689228519d5a30e6fc3771fdd1b0acb59cf7" # Uses: 1050
+"a4f99bf8a4e917d02e4c458d29fad3930d291356" # Uses: 1049
+"\x01\x00" # Uses: 989
+"\xff\xff" # Uses: 879
+"8a4fe09fd4d9457160cc1001584ca338db62e995" # Uses: 477
+"1200815bc08dae2b100c30fcee7a9bebc3f8d30e" # Uses: 522
+"55a7a49f401c007482f0040cbb2ecb37474fe660" # Uses: 453
+"1eed49f500c2c2b83632306fb143e586843b890f" # Uses: 470
+"/dev/ashmem/" # Uses: 304
+"44aea1b4d55dfc759d667f31bccedc9c105f232f" # Uses: 301
+"a078be611e50f0175f47500cf972f7c96885c2f8" # Uses: 273
+"\x00\x00" # Uses: 8
+###### End of recommended dictionary. ######
+Done 282691 runs in 2655 second(s)
+stat::number_of_executed_units: 282691
+stat::average_exec_per_sec:     106
+stat::new_units_added:          680
+stat::slowest_unit_time_sec:    0
+stat::peak_rss_mb:              197
+-----------------------------------------------------
+Suppressions used:
+  count      bytes template
+ 536177  513121676 google_breakpad::MinidumpContext::Read
+  15896   20219712 google_breakpad::StackwalkerPPC64::GetCallerFrame
+-----------------------------------------------------

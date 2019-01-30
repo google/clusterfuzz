@@ -1,0 +1,10 @@
+#!/bin/bash -ex
+SCRIPT_DIR=$(dirname $(readlink -f "$0"))
+
+$SCRIPT_DIR/run_tests
+$SCRIPT_DIR/run_ndb_patcher_tests
+# TODO(ochang): Make this work. Disabled as it does not work on CI.
+# $SCRIPT_DIR/run_js_tests "$@"
+$SCRIPT_DIR/run_untrusted_test untrusted_runner_integration
+$SCRIPT_DIR/run_untrusted_test corpus_pruning
+$SCRIPT_DIR/run_afl_tests

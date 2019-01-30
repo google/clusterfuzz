@@ -1,0 +1,50 @@
+[1:1:1204/191823:ERROR:image_metadata_extractor.cc(111)] Couldnt load libexif.
+[10929:10929:1204/191825:ERROR:image_metadata_extractor.cc(111)] Couldnt load libexif.
+ASAN:SIGSEGV
+=================================================================
+==8==ERROR: AddressSanitizer: SEGV on unknown address 0x000000000018 (pc 0x7fd8d523feb2 bp 0x7fff279650b0 sp 0x7fff279650a0 T0)
+    #0 0x7fd8d523feb1 in blink::FontMetrics::ascent(blink::FontBaseline) const third_party/WebKit/Source/platform/fonts/FontMetrics.h:93:20
+    #1 0x7fd8d63a0800 in blink::RenderListMarker::updateMargins() third_party/WebKit/Source/core/rendering/RenderListMarker.cpp:1426:29
+    #2 0x7fd8d6399554 in blink::RenderListItem::updateMarkerLocation() third_party/WebKit/Source/core/rendering/RenderListItem.cpp:307:9
+    #3 0x7fd8dbe04fc1 in blink::HTMLLIElement::attach(blink::Node::AttachContext const&) third_party/WebKit/Source/core/html/HTMLLIElement.cpp:101:13
+    #4 0x7fd8d52f3871 in blink::ContainerNode::attachChildren(blink::Node::AttachContext const&) third_party/WebKit/Source/core/dom/ContainerNode.h:303:13
+    #5 0x7fd8d52f3721 in blink::ContainerNode::attach(blink::Node::AttachContext const&) third_party/WebKit/Source/core/dom/ContainerNode.cpp:828:5
+    #6 0x7fd8d53a1a9a in blink::Element::attach(blink::Node::AttachContext const&) third_party/WebKit/Source/core/dom/Element.cpp:1337:5
+    #7 0x7fd8dbe04f48 in blink::HTMLLIElement::attach(blink::Node::AttachContext const&) third_party/WebKit/Source/core/html/HTMLLIElement.cpp:80:5
+    #8 0x7fd8d53fa280 in blink::Node::reattach(blink::Node::AttachContext const&) third_party/WebKit/Source/core/dom/Node.cpp:892:5
+    #9 0x7fd8d53a4074 in blink::Element::recalcOwnStyle(blink::StyleRecalcChange) third_party/WebKit/Source/core/dom/Element.cpp:1543:9
+    #10 0x7fd8d53a3c96 in blink::Element::recalcStyle(blink::StyleRecalcChange, blink::Text*) third_party/WebKit/Source/core/dom/Element.cpp:1489:22
+    #11 0x7fd8d52f7e10 in blink::ContainerNode::recalcChildStyle(blink::StyleRecalcChange) third_party/WebKit/Source/core/dom/ContainerNode.cpp:1227:17
+    #12 0x7fd8d53a3d23 in blink::Element::recalcStyle(blink::StyleRecalcChange, blink::Text*) third_party/WebKit/Source/core/dom/Element.cpp:1504:13
+    #13 0x7fd8d5320c0b in blink::Document::updateStyle(blink::StyleRecalcChange) third_party/WebKit/Source/core/dom/Document.cpp:1874:13
+    #14 0x7fd8d53201c5 in blink::Document::updateRenderTree(blink::StyleRecalcChange) third_party/WebKit/Source/core/dom/Document.cpp:1815:5
+    #15 0x7fd8d5327123 in blink::Document::implicitClose() third_party/WebKit/Source/core/dom/Document.cpp:2559:9
+    #16 0x7fd8d5de0873 in blink::FrameLoader::checkCompleted() third_party/WebKit/Source/core/loader/FrameLoader.cpp:501:9
+    #17 0x7fd8d5dde066 in blink::FrameLoader::finishedParsing() third_party/WebKit/Source/core/loader/FrameLoader.cpp:431:5
+    #18 0x7fd8d533dc35 in blink::Document::finishedParsing() third_party/WebKit/Source/core/dom/Document.cpp:4635:9
+    #19 0x7fd8d5719deb in blink::HTMLDocumentParser::end() third_party/WebKit/Source/core/html/parser/HTMLDocumentParser.cpp:815:5
+    #20 0x7fd8d57115ed in blink::HTMLDocumentParser::prepareToStopParsing() third_party/WebKit/Source/core/html/parser/HTMLDocumentParser.cpp:251:5
+    #21 0x7fd8d5714e58 in blink::HTMLDocumentParser::processParsedChunkFromBackgroundParser(WTF::PassOwnPtr<blink::HTMLDocumentParser::ParsedChunk>) third_party/WebKit/Source/core/html/parser/HTMLDocumentParser.cpp:475:13
+    #22 0x7fd8d5712641 in blink::HTMLDocumentParser::pumpPendingSpeculations() third_party/WebKit/Source/core/html/parser/HTMLDocumentParser.cpp:519:9
+    #23 0x7fd8d5712f95 in blink::HTMLDocumentParser::didReceiveParsedChunkFromBackgroundParser(WTF::PassOwnPtr<blink::HTMLDocumentParser::ParsedChunk>) third_party/WebKit/Source/core/html/parser/HTMLDocumentParser.cpp:349:5
+    #24 0x7fd8d5825bb5 in WTF::FunctionWrapper<void (blink::HTMLDocumentParser::*)(WTF::PassOwnPtr<blink::HTMLDocumentParser::ParsedChunk>)>::operator()(WTF::WeakPtr<blink::HTMLDocumentParser> const&, WTF::PassOwnPtr<blink::HTMLDocumentParser::ParsedChunk>) third_party/WebKit/Source/wtf/Functional.h:88:16
+    #25 0x7fd8d5825a1f in WTF::BoundFunctionImpl<WTF::FunctionWrapper<void (blink::HTMLDocumentParser::*)(WTF::PassOwnPtr<blink::HTMLDocumentParser::ParsedChunk>)>, void (WTF::WeakPtr<blink::HTMLDocumentParser>, WTF::PassOwnPtr<blink::HTMLDocumentParser::ParsedChunk>)>::operator()() third_party/WebKit/Source/wtf/Functional.h:355:16
+    #26 0x7fd8d476499a in WTF::callFunctionObject(void*) third_party/WebKit/Source/wtf/MainThread.cpp:65:5
+    #27 0x7fd8d27e549c in base::internal::InvokeHelper<false, void, base::internal::RunnableAdapter<void (*)(void*)>, void (void* const&)>::MakeItSo(base::internal::RunnableAdapter<void (*)(void*)>, void* const&) base/bind_internal.h:381:5
+    #28 0x7fd8d2923bb6 in base::debug::TaskAnnotator::RunTask(char const*, char const*, base::PendingTask const&) base/debug/task_annotator.cc:63:3
+    #29 0x7fd8d28641e0 in base::MessageLoop::RunTask(base::PendingTask const&) base/message_loop/message_loop.cc:448:3
+    #30 0x7fd8d28648ff in base::MessageLoop::DeferOrRunPendingTask(base::PendingTask const&) base/message_loop/message_loop.cc:458:5
+    #31 0x7fd8d2864dfc in base::MessageLoop::DoWork() base/message_loop/message_loop.cc:567:13
+    #32 0x7fd8d286d1ac in base::MessagePumpDefault::Run(base::MessagePump::Delegate*) base/message_loop/message_pump_default.cc:32:21
+    #33 0x7fd8d2898483 in base::RunLoop::Run() base/run_loop.cc:55:3
+    #34 0x7fd8d2862f42 in base::MessageLoop::Run() base/message_loop/message_loop.cc:310:3
+    #35 0x7fd8da33b5dc in content::RendererMain(content::MainFunctionParams const&) content/renderer/renderer_main.cc:235:7
+    #36 0x7fd8d27cd04e in content::RunZygote(content::MainFunctionParams const&, content::ContentMainDelegate*) content/app/content_main_runner.cc:347:14
+    #37 0x7fd8d27cf45b in content::ContentMainRunnerImpl::Run() content/app/content_main_runner.cc:789:12
+    #38 0x7fd8d27cc5a4 in content::ContentMain(content::ContentMainParams const&) content/app/content_main.cc:19:15
+    #39 0x7fd8d17db9f2 in ChromeMain chrome/app/chrome_main.cc:66:12
+    #40 0x7fd8c76e9de4 in __libc_start_main /build/buildd/eglibc-2.17/csu/libc-start.c:260
+
+AddressSanitizer can not provide additional info.
+SUMMARY: AddressSanitizer: SEGV ??:0 ??
+==8==ABORTING

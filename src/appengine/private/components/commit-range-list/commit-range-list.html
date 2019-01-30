@@ -1,0 +1,389 @@
+<!--
+  Copyright 2018 Google LLC
+
+  Licensed under the Apache License, Version 2.0 (the "License");
+  you may not use this file except in compliance with the License.
+  You may obtain a copy of the License at
+
+       http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+-->
+<link rel="import" href="../../bower_components/polymer/polymer.html">
+<link rel="import" href="../../bower_components/iron-ajax/iron-ajax.html">
+<link rel="import" href="../../bower_components/iron-icon/iron-icon.html">
+<link rel="import" href="../../bower_components/paper-button/paper-button.html">
+<link rel="import" href="../../bower_components/paper-icon-button/paper-icon-button.html">
+<link rel="import" href="../../bower_components/paper-spinner/paper-spinner.html">
+<link rel="import" href="../../bower_components/paper-styles/color.html">
+<link rel="import" href="../common/if-else/if-else.html">
+<link rel="import" href="../common/paginated-list/paginated-list.html">
+<link rel="import" href="../common/render-either/render-either.html">
+<link rel="import" href="search-control-panel.html">
+
+<dom-module id="regression-list">
+  <link rel="import" href="../../stylesheets/main.css" type="css">
+  <link rel="import" href="../technology/technology.css" type="css">
+  <script src="../../javascripts/error.js" type="text/javascript"></script>
+  <template>
+    <style>
+      :host {
+        display: block;
+      }
+
+      :host #mainContent {
+        width: 1000px;
+      }
+
+      :host .error {
+        text-align: left;
+        color: #ca4545;
+        display: block;
+        padding: 30px 60px;
+        box-shadow: 0px 3px 6px rgba(0, 0, 0, 0.2);
+        background-color: #f2f7fa;
+      }
+
+      :host .error .title {
+        display: block;
+        font-weight: bold;
+      }
+
+      :host .error .trace-dump {
+        display: block;
+        overflow: auto;
+        font-family: 'Source Code Pro', monospace;
+        white-space: pre;
+        margin-top: 10px;
+        font-size: 12px;
+      }
+
+      :host .empty {
+        text-align: center;
+        color: #777;
+        display: block;
+        padding: 30px;
+        font-weight: bold;
+        font-size: 18px;
+        box-shadow: 0px 3px 6px rgba(0, 0, 0, 0.2);
+        background-color: #f2f7fa;
+      }
+
+      :host .crashes {
+        display: block;
+        overflow: hidden;
+        box-shadow: 0px 3px 6px rgba(0, 0, 0, 0.2);
+        background-color: #f2f7fa;
+        padding: 3px;
+      }
+
+      :host div.row {
+        margin: 5px 0px 30px;
+      }
+
+      :host div.row > table {
+        display: block;
+        width: 100%;
+      }
+
+      :host div.row > table td.left {
+        width: 576px;
+        vertical-align: top;
+        padding-left: 5px;
+      }
+
+      :host div.row > table td.right {
+        width: 614px;
+        text-align: right;
+        vertical-align: top;
+      }
+
+      :host div.row .type {
+        display: block;
+        padding: 5px 0px;
+        font-size: 16px;
+        font-weight: bold;
+        text-decoration: none;
+      }
+
+      :host div.row a.type, :host div.row a.states {
+        color: #444;
+      }
+
+      :host div.row a.type:hover, :host div.row a.states:hover {
+        color: #4078c0 !important;
+      }
+
+      :host div.row a.type:visited, :host div.row a.states:visited {
+        color: #551A8B !important;
+      }
+
+      :host div.row .states {
+        width: 468px;
+        font-weight: normal;
+        font-family: 'Source Code Pro', monospace;
+        text-decoration: none;
+        white-space: nowrap;
+        overflow: hidden;
+        display: block;
+        line-height: 22px;
+        font-size: 14px;
+      }
+
+      :host .states span {
+        display: block;
+      }
+
+      :host .labels {
+        display: block;
+        white-space: normal;
+      }
+
+      :host .label {
+        font-size: 13px;
+        display: inline-block;
+        margin-right: 5px;
+        border: 1px solid #ccc;
+        color: #ccc;
+        padding: 2px 4px;
+        vertical-align: middle;
+        font-weight: normal;
+        line-height: 12px;
+        text-decoration: none;
+        margin: 5px 0px 0px;
+      }
+
+      :host .label.security {
+        border: 1px solid #FC2929;
+        color: #FC2929;
+      }
+
+      :host .label.testcase-count {
+        border: 1px solid #5319E7;
+        color: #5319E7;
+      }
+
+      :host .testcases {
+        display: block;
+        white-space: normal;
+      }
+
+      :host .label.testcase {
+        border: 1px solid #228B22;
+        color: #228B22;
+        text-decoration: none;
+        cursor: pointer;
+      }
+
+      :host paper-spinner {
+        width: 24px;
+        height: 24px;
+        padding: 8px;
+      }
+
+      :host .crashes .total-count-label {
+        display: block;
+        padding: 5px;
+        font-style: italic;
+        color: #555;
+        font-size: 14px;
+        text-align: center;
+        background-color: #d0d5d7;
+      }
+    </style>
+    <iron-ajax
+      id="ajax"
+      url="/commit-range/load"
+      method="POST"
+      content-type="application/json"
+      body="[[ajaxParams]]"
+      loading="{{loading}}"
+      last-request="{{request}}"
+      last-error="{{error}}"
+      last-response="{{response}}"
+      on-error="handleError"
+      on-request="handleRequest"
+      on-response="handleResponse"
+      debounce-duration="500"></iron-ajax>
+    <app-toolbar>
+      <paper-icon-button icon="menu" onclick="document.getElementById('drawer').toggle()"></paper-icon-button>
+      <div id="title">Crashes by [[params.type]] range</div>
+      <template is="dom-if" if="[[!loading]]">
+        <paper-icon-button class="submit-button" icon="refresh" on-tap="searchButtonTapped"></paper-icon-button>
+      </template>
+      <template is="dom-if" if="[[loading]]">
+        <paper-spinner active="[[loading]]"></paper-spinner>
+      </template>
+    </app-toolbar>
+    <div id="mainContent">
+      <search-control-panel
+          id="searchControlPanel"
+          field-values="[[fieldValues]]"
+          params="{{params}}"
+          loading="[[loading]]"
+          on-search-button-tapped="searchButtonTapped"></search-control-panel>
+      <paginated-list
+          id="paginatedList"
+          result="{{result}}"
+          params="{{params}}"
+          keys="[[paramKeys]]"
+          loading="[[loading]]"
+          on-params-modified="paramsModified">
+        <div class="error" hidden$="[[!shouldShowError(result, result.error)]]">
+          <span class="title">[[result.error.message]]</span>
+          <span class="trace-dump" hidden$="[[!result.error.traceDump]]"
+            >[[result.error.traceDump]]</span>
+        </div>
+        <div class="empty" hidden$="[[!shouldShowEmpty(result, result.items)]]">
+          Didn't find any crash with the current search.<br/>
+        </div>
+        <div class="empty" hidden$="[[!shouldShowRevisionEmpty(result)]]">
+          Please specify the revision.<br/>
+        </div>
+        <div class="crashes" hidden$="[[!shouldShowItems(result, result.items)]]">
+          <div class="total-count-label">[[result.totalCount]] unique crashes have been found.</div>
+          <template is="dom-repeat" items="[[result.items]]">
+            <div class="row">
+              <table cellpadding="0" cellspacing="0" border="0">
+                <tr>
+                  <td class="left">
+                    <a href="/testcase-detail/[[item.testcases.0.testcase_id]]" class="type">
+                      [[item.crash_type]]
+                    </a>
+                    <a href="/testcase-detail/[[item.testcases.0.testcase_id]]"class="states">
+                      <template is="dom-repeat" items="[[splitLines(item.crash_state)]]" as="state">
+                        <span>[[state]]</span>
+                      </template>
+                    </a>
+                    <span class="labels">
+                      <if-else condition="[[item.security_flag]]">
+                        <span slot="t" class="label security" title="The crash is security-related.">Security</span>
+                        <span slot="f" class="label" title="The crash is NOT security-related.">Security</span>
+                      </if-else>
+                      <span class="label testcase-count" title="The number of testcases associated with this crash.">[[item.count]] testcase[[addSIfNeeded(item.count)]]</span>
+                    </span>
+                  </td>
+                  <td class="right">
+                    <span class="testcases">
+                      <template is="dom-repeat" items="[[item.testcases]]" as="testcase">
+                        <a href="/testcase-detail/[[testcase.testcase_id]]" class="label testcase" title="The testcase ID and its regression range.">[[testcase.range_start]]:[[testcase.range_end]]</a>
+                      </template>
+                    </span>
+                  </td>
+                </tr>
+              </table>
+            </div>
+          </template>
+        </div>
+      </paginated-list>
+    </div>
+  </template>
+  <script>
+    Polymer({
+      is: 'regression-list',
+      properties: {
+        result:  Object,
+        fieldValues:  Object,
+        params: Object,
+        paramKeys: {
+          type: Array,
+          value: ['page', 'q', 'revision', 'type']
+        },
+        response: Object,
+        loading: {
+          type: Boolean,
+          value: false
+        }
+      },
+      shouldShowError(result, error) {
+        return !!error;
+      },
+      shouldShowEmpty(result, items) {
+        return !result.isRevisionEmpty && items != null && items.length == 0;
+      },
+      shouldShowRevisionEmpty(result) {
+        return result.isRevisionEmpty;
+      },
+      shouldShowItems(result, items) {
+        return items && items.length > 0;
+      },
+      ready() {
+        if (this.result) {
+          this.set('result.error', this.result.error || null);
+        }
+
+        this.paramKeys.forEach((key) => {
+          if (!this.params[key]) {
+            this.set(`params.${key}`, '');
+          }
+        });
+
+        this.$.paginatedList.init();
+      },
+      searchButtonTapped(ev) {
+        this.params.page = '';
+        this.set('result.page', 1);
+        this.search();
+      },
+      paramsModified(ev) {
+        this.search();
+      },
+      search() {
+        this.ajaxParams = {};
+        let hasParam = false;
+        this.paramKeys.forEach((key) => {
+          if (this.params[key]) {
+            hasParam = key != 'page' && true;
+            this.ajaxParams[key] = this.params[key];
+          }
+        });
+
+        this.$.paginatedList.updateQuery();
+        this.$.ajax.generateRequest();
+      },
+      handleRequest() {
+        var reqs = this.$.ajax.activeRequests;
+        for (let i=0;i<reqs.length;i++) {
+          if (reqs[i] != this.request) {
+            reqs[i].abort();
+          }
+        }
+      },
+      handleResponse() {
+        this.result = this.response;
+        this.set('result.error', null);
+        this.$.paginatedList.save();
+        this.$.searchControlPanel.focus();
+      },
+      handleError() {
+        let error = parseError(this.error);
+        if (!error) {
+          // this.error is undefined because its request is aborted.
+          return;
+        }
+
+        this.set('result.items', null);
+        this.set('result.error', error);
+
+        this.$.paginatedList.save();
+        this.$.searchControlPanel.focus();
+      },
+      addSIfNeeded(count) {
+        if (count > 1) {
+          return 's';
+        } else {
+          return '';
+        }
+      },
+      splitLines(content) {
+        return content.trim().split(/\r?\n/);
+      }
+    });
+  </script>
+</dom-module>
+
+

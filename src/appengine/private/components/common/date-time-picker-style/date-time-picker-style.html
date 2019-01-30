@@ -1,0 +1,91 @@
+<!--
+  Copyright 2018 Google LLC
+
+  Licensed under the Apache License, Version 2.0 (the "License");
+  you may not use this file except in compliance with the License.
+  You may obtain a copy of the License at
+
+       http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+-->
+<link rel="import" href="../../../bower_components/paper-date-picker/paper-date-picker.html">
+<dom-module id="date-time-picker-style">
+  <template>
+    <style include="paper-date-picker-dialog-style">
+      :host {
+        display: inline-block;
+        text-align: left;
+        white-space: normal;
+      }
+
+      :host #mainButton {
+        font-size: 12px;
+        cursor: pointer;
+      }
+
+      :host paper-dialog > div.date-picker {
+        display: block;
+        margin: 0px !important;
+        padding: 0px !important;
+        border-bottom: 1px solid #373b50;
+      }
+
+      :host paper-dialog > div.hour-picker {
+        display: block;
+        margin: 3px !important;
+        padding: 0px !important;
+        width: 512px;
+        text-align: center;
+      }
+
+      #mainButton {
+        @apply(--paper-input--container-input);
+        @apply(--paper-input-container-label);
+        @apply(--paper-dropdown-menu-button);
+      }
+
+      :host paper-button-group {
+        display: block;
+        margin: 0px auto;
+        padding: 0px;
+        width: 512px;
+        text-align: center;
+      }
+
+      :host paper-button-group paper-button {
+        font-size: 14px;
+        margin-bottom: 2px;
+      }
+
+      :host paper-button-group paper-button[active] {
+        background-color: #373b50;
+        color: #fff;
+      }
+
+      :host .remark, :host .error {
+        display: block;
+        font-size: 12px;
+        text-transform: none;
+        margin-top: 0px !important;
+        text-align: center;
+      }
+
+      :host .remark {
+        color: #aaa;
+      }
+
+      :host .error {
+        color: #ca4545;
+      }
+
+      :host [hidden] {
+        display: none !important;
+      }
+    </style>
+  </template>
+</dom-module>

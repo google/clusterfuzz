@@ -1,0 +1,80 @@
+ASAN:DEADLYSIGNAL
+=================================================================
+==1550==ERROR: AddressSanitizer: SEGV on unknown address 0x000000010530 (pc 0x7efef5995c27 bp 0x7fff15768f00 sp 0x7fff15768ef0 T0)
+==1550==The signal is caused by a UNKNOWN memory access.
+==1550==Hint: address points to the zero page.
+    #0 0x7fda4ecc3242 in blink::Member<blink::StyleEngine>::get() const third_party/WebKit/Source/platform/heap/Handle.h:824:29
+    #1 0x7fda4ecc00d1 in blink::Document::styleEngine() third_party/WebKit/Source/core/dom/Document.h:385:71
+    #2 0x7fda4fef7e5c in blink::Document::updateLayoutTreeIgnorePendingStylesheets() third_party/WebKit/Source/core/dom/Document.cpp:1990:53
+    #3 0x7fda4fef825e in blink::Document::updateLayoutIgnorePendingStylesheets(blink::Document::RunPostLayoutTasks) third_party/WebKit/Source/core/dom/Document.cpp:2018:5
+    #4 0x7fda50b99186 in blink::TextIteratorAlgorithm<blink::EditingAlgorithm<blink::NodeTraversal> >::TextIteratorAlgorithm(blink::PositionTemplate<blink::EditingAlgorithm<blink::NodeTraversal> > const&, blink::PositionTemplate<blink::EditingAlgorithm<blink::NodeTraversal> > const&, unsigned int) third_party/WebKit/Source/core/editing/iterators/TextIterator.cpp:150:5
+    #5 0x7fda50ba0f82 in blink::TextIteratorAlgorithm<blink::EditingAlgorithm<blink::NodeTraversal> >::rangeLength(blink::PositionTemplate<blink::EditingAlgorithm<blink::NodeTraversal> > const&, blink::PositionTemplate<blink::EditingAlgorithm<blink::NodeTraversal> > const&, bool) third_party/WebKit/Source/core/editing/iterators/TextIterator.cpp:1096:42
+    #6 0x7fda50bfea62 in blink::TextCheckingParagraph::checkingStart() const third_party/WebKit/Source/core/editing/spellcheck/TextCheckingHelper.cpp:206:27
+    #7 0x7fda50bfe68b in blink::TextCheckingParagraph::isRangeEmpty() const third_party/WebKit/Source/core/editing/spellcheck/TextCheckingHelper.h:73:40
+    #8 0x7fda50bfe5fa in blink::TextCheckingParagraph::isEmpty() const third_party/WebKit/Source/core/editing/spellcheck/TextCheckingHelper.cpp:182:12
+    #9 0x7fda50bf5aa6 in blink::SpellChecker::chunkAndMarkAllMisspellingsAndBadGrammar(unsigned int, blink::TextCheckingParagraph const&) third_party/WebKit/Source/core/editing/spellcheck/SpellChecker.cpp:512:9
+    #10 0x7fda50bf47d0 in blink::SpellChecker::markAllMisspellingsAndBadGrammarInRanges(unsigned int, blink::EphemeralRangeTemplate<blink::EditingAlgorithm<blink::NodeTraversal> > const&, blink::EphemeralRangeTemplate<blink::EditingAlgorithm<blink::NodeTraversal> > const&) third_party/WebKit/Source/core/editing/spellcheck/SpellChecker.cpp:479:5
+    #11 0x7fda50bf3e6d in blink::SpellChecker::markMisspellingsAndBadGrammar(blink::VisibleSelectionTemplate<blink::EditingAlgorithm<blink::NodeTraversal> > const&, bool, blink::VisibleSelectionTemplate<blink::EditingAlgorithm<blink::NodeTraversal> > const&) third_party/WebKit/Source/core/editing/spellcheck/SpellChecker.cpp:640:9
+    #12 0x7fda50bf1826 in blink::SpellChecker::didBeginEditing(blink::Element*) third_party/WebKit/Source/core/editing/spellcheck/SpellChecker.cpp:147:13
+    #13 0x7fda4ff10813 in blink::Document::setFocusedElement(WTF::RawPtr<blink::Element>, blink::FocusParams const&) third_party/WebKit/Source/core/dom/Document.cpp:3673:13
+    #14 0x7fda5115d229 in blink::FocusController::setFocusedElement(blink::Element*, WTF::RawPtr<blink::Frame>, blink::FocusParams const&) third_party/WebKit/Source/core/page/FocusController.cpp:912:36
+    #15 0x7fda5115ca98 in blink::FocusController::setFocusedElement(blink::Element*, WTF::RawPtr<blink::Frame>) third_party/WebKit/Source/core/page/FocusController.cpp:869:12
+    #16 0x7fda50a72023 in blink::FrameSelection::setFocusedNodeIfNeeded() third_party/WebKit/Source/core/editing/FrameSelection.cpp:1112:17
+    #17 0x7fda50a677cc in void blink::FrameSelection::setSelectionAlgorithm<blink::EditingAlgorithm<blink::NodeTraversal> >(blink::VisibleSelectionTemplate<blink::EditingAlgorithm<blink::NodeTraversal> > const&, unsigned int, blink::CursorAlignOnScroll, blink::TextGranularity) third_party/WebKit/Source/core/editing/FrameSelection.cpp:331:9
+    #18 0x7fda50a6fa9a in blink::FrameSelection::selectAll() third_party/WebKit/Source/core/editing/FrameSelection.cpp:864:5
+    #19 0x7fda50b48cb2 in blink::executeSelectAll(blink::LocalFrame&, blink::Event*, blink::EditorCommandSource, WTF::String const&) third_party/WebKit/Source/core/editing/commands/EditorCommand.cpp:1070:5
+    #20 0x7fda50b41c8e in blink::Editor::Command::execute(WTF::String const&, blink::Event*) const third_party/WebKit/Source/core/editing/commands/EditorCommand.cpp:1792:12
+    #21 0x7fda4ff1d5a3 in blink::Document::execCommand(WTF::String const&, bool, WTF::String const&, blink::ExceptionState&) third_party/WebKit/Source/core/dom/Document.cpp:4470:12
+    #22 0x7fda523162d7 in blink::DocumentV8Internal::execCommandMethod(v8::FunctionCallbackInfo<v8::Value> const&) out/Release/gen/blink/bindings/core/v8/V8Document.cpp:4682:19
+    #23 0x7fda5230c9b6 in blink::DocumentV8Internal::execCommandMethodCallback(v8::FunctionCallbackInfo<v8::Value> const&) out/Release/gen/blink/bindings/core/v8/V8Document.cpp:4693:5
+    #24 0x7fda4e73f6f1 in v8::internal::FunctionCallbackArguments::Call(void (*)(v8::FunctionCallbackInfo<v8::Value> const&)) v8/src/arguments.cc:33:3
+    #25 0x7fda4dac0e26 in v8::internal::MaybeHandle<v8::internal::Object> v8::internal::(anonymous namespace)::HandleApiCallHelper<false>(v8::internal::Isolate*, v8::internal::(anonymous namespace)::BuiltinArguments<(v8::internal::BuiltinExtraArguments)1>) v8/src/builtins.cc:3671:34
+    #26 0x7fda4db18613 in v8::internal::Builtin_Impl_HandleApiCall(v8::internal::(anonymous namespace)::BuiltinArguments<(v8::internal::BuiltinExtraArguments)1>, v8::internal::Isolate*) v8/src/builtins.cc:3695:3
+    #27 0x7fda4dac898a in v8::internal::Builtin_HandleApiCall(int, v8::internal::Object**, v8::internal::Isolate*) v8/src/builtins.cc:3692:1
+    #28 0x7fd88a3089da  (<unknown module>)
+    #29 0x7fd88a406df3  (<unknown module>)
+    #30 0x7fd88a3384a3  (<unknown module>)
+    #31 0x7fd88a319da1  (<unknown module>)
+    #28 0x7fda4df1633f in v8::internal::(anonymous namespace)::Invoke(v8::internal::Isolate*, bool, v8::internal::Handle<v8::internal::Object>, v8::internal::Handle<v8::internal::Object>, int, v8::internal::Handle<v8::internal::Object>*, v8::internal::Handle<v8::internal::Object>) v8/src/execution.cc:97:13
+    #29 0x7fda4df1566c in v8::internal::Execution::Call(v8::internal::Isolate*, v8::internal::Handle<v8::internal::Object>, v8::internal::Handle<v8::internal::Object>, int, v8::internal::Handle<v8::internal::Object>*) v8/src/execution.cc:163:10
+    #30 0x7fda4d9c88c3 in v8::Script::Run(v8::Local<v8::Context>) v8/src/api.cc:1717:23
+    #31 0x7fda51ef234f in blink::V8ScriptRunner::runCompiledScript(v8::Isolate*, v8::Local<v8::Script>, blink::ExecutionContext*) third_party/WebKit/Source/bindings/core/v8/V8ScriptRunner.cpp:417:18
+    #32 0x7fda51e31d16 in blink::ScriptController::executeScriptAndReturnValue(v8::Local<v8::Context>, blink::ScriptSourceCode const&, blink::AccessControlStatus, double*) third_party/WebKit/Source/bindings/core/v8/ScriptController.cpp:192:21
+    #33 0x7fda51e3661d in blink::ScriptController::evaluateScriptInMainWorld(blink::ScriptSourceCode const&, blink::AccessControlStatus, blink::ScriptController::ExecuteScriptPolicy, double*) third_party/WebKit/Source/bindings/core/v8/ScriptController.cpp:571:35
+    #34 0x7fda51e36b97 in blink::ScriptController::executeScriptInMainWorld(blink::ScriptSourceCode const&, blink::AccessControlStatus, double*) third_party/WebKit/Source/bindings/core/v8/ScriptController.cpp:544:5
+    #35 0x7fda502be0f6 in blink::ScriptLoader::executeScript(blink::ScriptSourceCode const&, double*) third_party/WebKit/Source/core/dom/ScriptLoader.cpp:431:5
+    #36 0x7fda502ba357 in blink::ScriptLoader::prepareScript(WTF::TextPosition const&, blink::ScriptLoader::LegacyTypeSupport) third_party/WebKit/Source/core/dom/ScriptLoader.cpp:280:14
+    #37 0x7fda50567e90 in blink::HTMLScriptRunner::runScript(blink::Element*, WTF::TextPosition const&) third_party/WebKit/Source/core/html/parser/HTMLScriptRunner.cpp:427:9
+    #38 0x7fda505678e2 in blink::HTMLScriptRunner::execute(WTF::RawPtr<blink::Element>, WTF::TextPosition const&) third_party/WebKit/Source/core/html/parser/HTMLScriptRunner.cpp:283:5
+    #39 0x7fda50525c1b in blink::HTMLDocumentParser::runScriptsForPausedTreeBuilder() third_party/WebKit/Source/core/html/parser/HTMLDocumentParser.cpp:330:9
+    #40 0x7fda50529774 in blink::HTMLDocumentParser::processParsedChunkFromBackgroundParser(WTF::PassOwnPtr<blink::HTMLDocumentParser::ParsedChunk>) third_party/WebKit/Source/core/html/parser/HTMLDocumentParser.cpp:525:13
+    #41 0x7fda505252fe in blink::HTMLDocumentParser::pumpPendingSpeculations() third_party/WebKit/Source/core/html/parser/HTMLDocumentParser.cpp:586:36
+    #42 0x7fda50524ea5 in blink::HTMLDocumentParser::resumeParsingAfterYield() third_party/WebKit/Source/core/html/parser/HTMLDocumentParser.cpp:319:5
+    #43 0x7fda5054f1f2 in WTF::FunctionWrapper<void (blink::HTMLParserScheduler::*)()>::operator()(WTF::WeakPtr<blink::HTMLParserScheduler> const&) third_party/WebKit/Source/wtf/Functional.h:99:16
+    #44 0x7fda5054eb3b in WTF::PartBoundFunctionImpl<1, WTF::FunctionWrapper<void (blink::HTMLParserScheduler::*)()>, void (blink::CrossThreadWeakPersistentThisPointer<blink::HTMLParserScheduler>)>::operator()() third_party/WebKit/Source/wtf/Functional.h:182:16
+    #45 0x7fda5aefa5e4 in blink::CancellableTaskFactory::CancellableTask::run() third_party/WebKit/Source/platform/scheduler/CancellableTaskFactory.cpp:28:9
+    #46 0x7fda55fa9f3e in base::internal::RunnableAdapter<void (*)(scoped_ptr<blink::WebTaskRunner::Task, std::__1::default_delete<blink::WebTaskRunner::Task> >)>::Run(scoped_ptr<blink::WebTaskRunner::Task, std::__1::default_delete<blink::WebTaskRunner::Task> >) base/bind_internal.h:158:12
+    #47 0x7fda55fa9d67 in base::internal::InvokeHelper<false, void, base::internal::RunnableAdapter<void (*)(scoped_ptr<blink::WebTaskRunner::Task, std::__1::default_delete<blink::WebTaskRunner::Task> >)>, base::internal::TypeList<scoped_ptr<blink::WebTaskRunner::Task, std::__1::default_delete<blink::WebTaskRunner::Task> > > >::MakeItSo(base::internal::RunnableAdapter<void (*)(scoped_ptr<blink::WebTaskRunner::Task, std::__1::default_delete<blink::WebTaskRunner::Task> >)>, scoped_ptr<blink::WebTaskRunner::Task, std::__1::default_delete<blink::WebTaskRunner::Task> >) base/bind_internal.h:298:5
+    #48 0x7fda55fa9c03 in base::internal::Invoker<base::IndexSequence<0ul>, base::internal::BindState<base::internal::RunnableAdapter<void (*)(scoped_ptr<blink::WebTaskRunner::Task, std::__1::default_delete<blink::WebTaskRunner::Task> >)>, void (scoped_ptr<blink::WebTaskRunner::Task, std::__1::default_delete<blink::WebTaskRunner::Task> >), base::internal::PassedWrapper<scoped_ptr<blink::WebTaskRunner::Task, std::__1::default_delete<blink::WebTaskRunner::Task> > > >, base::internal::TypeList<base::internal::UnwrapTraits<base::internal::PassedWrapper<scoped_ptr<blink::WebTaskRunner::Task, std::__1::default_delete<blink::WebTaskRunner::Task> > > > >, base::internal::InvokeHelper<false, void, base::internal::RunnableAdapter<void (*)(scoped_ptr<blink::WebTaskRunner::Task, std::__1::default_delete<blink::WebTaskRunner::Task> >)>, base::internal::TypeList<scoped_ptr<blink::WebTaskRunner::Task, std::__1::default_delete<blink::WebTaskRunner::Task> > > >, void ()>::Run(base::internal::BindStateBase*) base/bind_internal.h:348:12
+    #49 0x7fda49e2dac7 in base::debug::TaskAnnotator::RunTask(char const*, base::PendingTask const&) base/debug/task_annotator.cc:51:3
+    #50 0x7fda55fc870d in scheduler::TaskQueueManager::ProcessTaskFromWorkQueue(scheduler::internal::WorkQueue*, scheduler::internal::TaskQueueImpl::Task*) components/scheduler/base/task_queue_manager.cc:286:3
+    #51 0x7fda55fc517e in scheduler::TaskQueueManager::DoWork(base::TimeTicks, bool) components/scheduler/base/task_queue_manager.cc:198:13
+    #52 0x7fda55fcbf9a in base::internal::InvokeHelper<true, void, base::internal::RunnableAdapter<void (scheduler::TaskQueueManager::*)(base::TimeTicks, bool)>, base::internal::TypeList<base::WeakPtr<scheduler::TaskQueueManager> const&, base::TimeTicks const&, bool const&> >::MakeItSo(base::internal::RunnableAdapter<void (scheduler::TaskQueueManager::*)(base::TimeTicks, bool)>, base::WeakPtr<scheduler::TaskQueueManager> const&, base::TimeTicks const&, bool const&) base/bind_internal.h:308:5
+    #53 0x7fda49e2dac7 in base::debug::TaskAnnotator::RunTask(char const*, base::PendingTask const&) base/debug/task_annotator.cc:51:3
+    #54 0x7fda49c94119 in base::MessageLoop::RunTask(base::PendingTask const&) base/message_loop/message_loop.cc:486:3
+    #55 0x7fda49c94ead in base::MessageLoop::DeferOrRunPendingTask(base::PendingTask const&) base/message_loop/message_loop.cc:495:5
+    #56 0x7fda49c95542 in base::MessageLoop::DoWork() base/message_loop/message_loop.cc:607:13
+    #57 0x7fda49ca3b79 in base::MessagePumpDefault::Run(base::MessagePump::Delegate*) base/message_loop/message_pump_default.cc:33:21
+    #58 0x7fda49c935f5 in base::MessageLoop::RunHandler() base/message_loop/message_loop.cc:450:3
+    #59 0x7fda49d02c94 in base::RunLoop::Run() base/run_loop.cc:56:3
+    #60 0x7fda49c90e28 in base::MessageLoop::Run() base/message_loop/message_loop.cc:293:3
+    #61 0x7fda56132666 in content::RendererMain(content::MainFunctionParams const&) content/renderer/renderer_main.cc:226:7
+    #62 0x7fda49b2e308 in content::RunZygote(content::MainFunctionParams const&, content::ContentMainDelegate*) content/app/content_main_runner.cc:294:14
+    #63 0x7fda49b2ff32 in content::RunNamedProcessTypeMain(std::__1::basic_string<char, std::__1::char_traits<char>, std::__1::allocator<char> > const&, content::MainFunctionParams const&, content::ContentMainDelegate*) content/app/content_main_runner.cc:381:12
+    #64 0x7fda49b332a1 in content::ContentMainRunnerImpl::Run() content/app/content_main_runner.cc:742:12
+    #65 0x7fda49b2d051 in content::ContentMain(content::ContentMainParams const&) content/app/content_main.cc:19:15
+    #66 0x7fda48721d59 in ChromeMain chrome/app/chrome_main.cc:67:12
+    #67 0x7fda3dc1fec4 in __libc_start_main /build/buildd/eglibc-2.19/csu/libc-start.c:287
+AddressSanitizer can not provide additional info.
+SUMMARY: AddressSanitizer: SEGV (/mnt/scratch0/clusterfuzz/bot/builds/v8-asan_linux-release_3e8ee0f0e660f39ebe723667101aab55a53e781c/symbolized/release/asan-symbolized-linux-release-v8-component-33791/chrome+0x90a7242)
+==1==ABORTING

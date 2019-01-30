@@ -1,0 +1,32 @@
+ALARM: working on the last Unit for 5 seconds
+       and the timeout value is 4 (use -timeout=N to change)
+==2855== ERROR: libFuzzer: timeout after 5 seconds
+    #0 0x4c2c5e in __sanitizer_print_stack_trace (/mnt/ssd/chromium/src/out/Fuzzer/pdfium_fuzzer+0x4c2c5e)
+    #1 0x53a6e2 in fuzzer::Fuzzer::AlarmCallback() out/Fuzzer/../../third_party/libFuzzer/src/FuzzerLoop.cpp:247:7
+    #2 0x539966 in fuzzer::Fuzzer::StaticAlarmCallback() out/Fuzzer/../../third_party/libFuzzer/src/FuzzerLoop.cpp:195:6
+    #3 0x5b9127 in fuzzer::AlarmHandler(int, siginfo*, void*) out/Fuzzer/../../third_party/libFuzzer/src/FuzzerUtil.cpp:76:3
+    #4 0x7f614710832f  (/lib/x86_64-linux-gnu/libpthread.so.0+0x1032f)
+    #5 0x39cb930 in CFX_ImageTransformer::Continue(IFX_Pause*) out/Fuzzer/../../third_party/pdfium/core/fxge/dib/fx_dib_transform.cpp:549:30
+    #6 0x39c373c in CFX_DIBSource::TransformTo(CFX_Matrix const*, int&, int&, unsigned int, FX_RECT const*) const out/Fuzzer/../../third_party/pdfium/core/fxge/dib/fx_dib_transform.cpp:307:15
+    #7 0x3497933 in CPDF_Type3Cache::RenderGlyph(CPDF_Type3Glyphs*, unsigned int, CFX_Matrix const*, float, float) out/Fuzzer/../../third_party/pdfium/core/fpdfapi/fpdf_render/fpdf_render_text.cpp:209:31
+    #8 0x3495842 in CPDF_Type3Cache::LoadGlyph(unsigned int, CFX_Matrix const*, float, float) out/Fuzzer/../../third_party/pdfium/core/fpdfapi/fpdf_render/fpdf_render_text.cpp:79:7
+    #9 0x349deda in CPDF_RenderStatus::ProcessType3Text(CPDF_TextObject const*, CFX_Matrix const*) out/Fuzzer/../../third_party/pdfium/core/fpdfapi/fpdf_render/fpdf_render_text.cpp:472:44
+    #10 0x3499c5d in CPDF_RenderStatus::ProcessText(CPDF_TextObject const*, CFX_Matrix const*, CFX_PathData*) out/Fuzzer/../../third_party/pdfium/core/fpdfapi/fpdf_render/fpdf_render_text.cpp:234:12
+    #11 0x33fbb69 in CPDF_RenderStatus::ProcessObjectNoClip(CPDF_PageObject const*, CFX_Matrix const*) out/Fuzzer/../../third_party/pdfium/core/fpdfapi/fpdf_render/fpdf_render.cpp:325:14
+    #12 0x33fcf16 in CPDF_RenderStatus::ContinueSingleObject(CPDF_PageObject const*, CFX_Matrix const*, IFX_Pause*) out/Fuzzer/../../third_party/pdfium/core/fpdfapi/fpdf_render/fpdf_render.cpp:293:3
+    #13 0x340c56a in CPDF_ProgressiveRenderer::Continue(IFX_Pause*) out/Fuzzer/../../third_party/pdfium/core/fpdfapi/fpdf_render/fpdf_render.cpp:1026:30
+    #14 0x340a959 in CPDF_ProgressiveRenderer::Start(IFX_Pause*) out/Fuzzer/../../third_party/pdfium/core/fpdfapi/fpdf_render/fpdf_render.cpp:987:3
+    #15 0x314b4b0 in FPDF_RenderPage_Retail(CRenderContext*, void*, int, int, int, int, int, int, int, IFSDK_PAUSE_Adapter*) out/Fuzzer/../../third_party/pdfium/fpdfsdk/fpdfview.cpp:884:26
+    #16 0x3149ed8 in FPDF_RenderPageBitmap out/Fuzzer/../../third_party/pdfium/fpdfsdk/fpdfview.cpp:620:3
+    #17 0x4e81eb in RenderPage(void* const&, void* const&, int) out/Fuzzer/../../pdf/pdfium/fuzzers/pdfium_fuzzer.cc:72:5
+    #18 0x4e7bc9 in RenderPdf(char const*, unsigned long) out/Fuzzer/../../pdf/pdfium/fuzzers/pdfium_fuzzer.cc:164:5
+    #19 0x4e6f8b in LLVMFuzzerTestOneInput out/Fuzzer/../../pdf/pdfium/fuzzers/pdfium_fuzzer.cc:220:3
+    #20 0x547d14 in fuzzer::Fuzzer::ExecuteCallback(unsigned char const*, unsigned long) out/Fuzzer/../../third_party/libFuzzer/src/FuzzerLoop.cpp:490:13
+    #21 0x543b56 in fuzzer::Fuzzer::RunOne(unsigned char const*, unsigned long) out/Fuzzer/../../third_party/libFuzzer/src/FuzzerLoop.cpp:446:3
+    #22 0x50a823 in fuzzer::RunOneTest(fuzzer::Fuzzer*, char const*) out/Fuzzer/../../third_party/libFuzzer/src/FuzzerDriver.cpp:257:6
+    #23 0x50e5a8 in fuzzer::FuzzerDriver(int*, char***, int (*)(unsigned char const*, unsigned long)) out/Fuzzer/../../third_party/libFuzzer/src/FuzzerDriver.cpp:379:9
+    #24 0x5897be in main out/Fuzzer/../../third_party/libFuzzer/src/FuzzerMain.cpp:21:10
+    #25 0x7f6146b3ef44 in __libc_start_main /build/eglibc-oGUzwX/eglibc-2.19/csu/libc-start.c:287
+
+custom-crash-state: pdfium_fuzzer
+SUMMARY: libFuzzer: timeout

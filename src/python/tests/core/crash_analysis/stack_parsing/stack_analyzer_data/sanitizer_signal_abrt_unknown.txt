@@ -1,0 +1,15 @@
+ERROR: AddressSanitizer: ABRT on unknown address 0x000000000001 (pc 0x7f24b70be418 bp 0x0000005b6a80 sp 0x7ffe58419768 T0)
+SCARINESS: 10 (signal)
+  #0 0x7f24b70be417 in gsignal
+  #1 0x7f24b70c0019 in abort
+  #2 0x7f24b70b6bd6 in libc.so.6
+  #3 0x7f24b70b6c81 in __assert_fail
+  #4 0x512b27 in LLVMFuzzerTestOneInput
+  /src/json/test/src/fuzzer-parse_msgpack.cpp:45:13
+  #5 0x5122e3 in main /src/libfuzzer/afl/afl_driver.cpp:287:7
+  #6 0x7f24b70a982f in __libc_start_main
+  #7 0x41b588 in _start
+
+AddressSanitizer can not provide additional info.
+SUMMARY: AddressSanitizer: ABRT (/lib/x86_64-linux-gnu/libc.so.6+0x35417)
+==1==ABORTING

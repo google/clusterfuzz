@@ -1,0 +1,147 @@
+<!--
+  Copyright 2018 Google LLC
+
+  Licensed under the Apache License, Version 2.0 (the "License");
+  you may not use this file except in compliance with the License.
+  You may obtain a copy of the License at
+
+       http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+-->
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>paper-button basic tests</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+
+  <script src="../../../bower_components/iron-test-helpers/mock-interactions.js"></script>
+  <script src="../../../bower_components/web-component-tester/browser.js"></script>
+  <script src="../../../bower_components/webcomponentsjs/webcomponents-lite.js"></script>
+  <script src="../../../javascripts/test-helpers.js"></script>
+
+  <link rel="import" href="../find-similar-issues-panel.html">
+</head>
+<body>
+  <test-fixture id="panel">
+    <template>
+      <find-similar-issues-panel></find-similar-issues-panel>
+    </template>
+  </test-fixture>
+  <script>
+    suite2('<find-similar-issues-panel>', ($) =>{
+      const emptyResponse = JSON.stringify({
+        queryString: "Test test",
+        queryUrl: "http://somethingsomething",
+        issueUrlPrefix: "http://something",
+        items: []
+      });
+      const response = JSON.stringify({
+        queryString: "Test test",
+        queryUrl: "http://somethingsomething",
+        issueUrlPrefix: "http://something",
+        items: [
+          {id: 1234, summary: "Test query"},
+          {id: 9999, summary: "Test query 2"}
+        ]
+      });
+
+      const getUrl = (testcaseId, filterType) => {
+        return '/testcase-detail/find-similar-issues?testcaseId=' +
+                 testcaseId + '&filterType=' + filterType;
+      };
+      const testFlow = (name, type, expectFn) => {
+        test2(
+            name,
+            noop,
+            () => { $.tap(`paper-tab.${type}-button`); },
+            () => {
+              expect($.select('paper-spinner').offsetParent).to.not.be.null;
+              expect($.select('paper-spinner').active).to.be.true;
+
+              let request = $.select('iron-ajax').activeRequests[0];
+              expect(request.url).to.be.eql(getUrl(1000, type));
+
+              $.server.respond();
+              return request.completes;
+            },
+            () => {
+              expect($.select('paper-spinner').offsetParent).to.be.null;
+              expectFn();
+            }
+        );
+      };
+
+      setup(() => {
+        $.server.respondWith('GET', getUrl(1000, 'error'),
+                             [500, jsonHeaders, errorResponse]);
+        $.server.respondWith('GET', getUrl(1000, 'valid'),
+                             [200, jsonHeaders, response]);
+        $.server.respondWith('GET', getUrl(1000, 'empty'),
+                             [200, jsonHeaders, emptyResponse]);
+        $.panel.info = {
+          testcase: {id: 1000, groupId: 1000},
+          find_similar_issues_options: [
+            {'type': "error"},
+            {'type': "valid"},
+            {'type': "empty"}
+          ]
+        };
+      });
+
+      testFlow('show error', 'error', () => {
+        expect($.select('.error').innerHTML).to.include('RandomError');
+      });
+
+      testFlow('shows results', 'valid', () => {
+        expect($.select('.error')).to.be.null;
+        expect($.selectAll('.response-table li')).to.have.lengthOf(2);
+      });
+
+      testFlow('shows no result', 'empty', () => {
+        expect($.select('.error')).to.be.null;
+        expect($.selectAll('.response-table li')).to.have.lengthOf(0);
+        expect($.select('.response-table').innerHTML).to
+            .include('No issues found.');
+      });
+
+      test2(
+          'cancels previous request',
+          noop,
+          () => { $.tap('paper-tab.empty-button'); },
+          () => {
+            expect($.select('paper-spinner').offsetParent).to.not.be.null;
+            expect($.select('paper-spinner').active).to.be.true;
+
+            const req = $.select('iron-ajax').activeRequests[0];
+            expect(req.url).to.be.eql(getUrl(1000, 'empty'))
+
+            $.tap('paper-tab.valid-button');
+
+            return req.completes;
+          },
+          () => {
+            expect($.select('iron-ajax').activeRequests).to.have.lengthOf(1);
+            expect($.select('paper-spinner').offsetParent).to.not.be.null;
+            expect($.select('paper-spinner').active).to.be.true;
+
+            let req2 = $.select('iron-ajax').activeRequests[0];
+            expect(req2.url).to.be.eql(getUrl(1000, 'valid'));
+
+            $.server.respond();
+            return req2.completes;
+          },
+          () => {
+            expect($.select('paper-spinner').offsetParent).to.be.null;
+            expect($.select('.error')).to.be.null;
+            expect($.selectAll('.response-table li')).to.have.lengthOf(2);
+          }
+      );
+    });
+  </script>
+</body>
+</html>

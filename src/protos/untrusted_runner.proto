@@ -1,0 +1,323 @@
+// Copyright 2018 Google LLC
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//      http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+syntax = "proto2";
+
+message GetStatusRequest {
+}
+
+message GetStatusResponse {
+  optional string revision = 1;
+  optional uint64 start_time = 2;
+  optional string bot_name = 3;
+}
+
+// new_process.ProcessResult
+message ProcessResult {
+  repeated string command = 1;
+  optional int32 return_code = 2;
+  optional bytes output = 3;
+  optional double time_executed = 4;
+  optional bool timed_out = 5;
+}
+
+// Build setup.
+message SetupBuildResponse {
+  optional bool result = 1;
+  optional string app_path = 2;
+  optional string app_path_debug = 3;
+  optional string app_dir = 4;
+  optional string build_dir = 5;
+  optional string build_url = 6;
+  optional string fuzz_target = 7;
+}
+
+message SetupRegularBuildRequest {
+  optional string base_build_dir = 1;
+  optional int64 revision = 2;
+  optional string build_url = 3;
+  optional string build_dir_name = 4;
+  map<string, double> target_weights = 5;
+}
+
+message SetupSymbolizedBuildRequest {
+  optional string base_build_dir = 1;
+  optional int64 revision = 2;
+  optional string release_build_url = 3;
+  optional string debug_build_url = 4;
+}
+
+message SetupProductionBuildRequest {
+  optional string base_build_dir = 1;
+  optional string version = 2;
+  optional string build_url = 3;
+  optional string build_type = 4;
+}
+
+// Maps to process_handler.runProcess
+message RunProcessRequest {
+  optional string cmdline = 1;
+  optional string current_working_directory = 2;
+  optional double timeout = 3;
+  optional bool need_shell = 4;
+  repeated string gestures = 5;
+  map<string, string> env_copy = 6;
+  optional bool testcase_run = 7;
+  optional bool ignore_children = 8;
+}
+
+message RunProcessResponse {
+  optional int32 return_code = 1;
+  optional double execution_time = 2;
+  optional bytes output = 3;
+}
+
+// Supported popen args.
+message PopenArgs {
+  optional int32 bufsize = 1;
+  optional string executable = 2;
+  optional bool shell = 3;
+  optional string cwd = 4;
+  map<string, string> env = 5;
+  // to distinguish between empty env and None env.
+  optional bool env_is_set = 6 [default = false];
+}
+
+// Maps to new_process.ProcessRunner.run_and_wait
+message RunAndWaitRequest {
+  optional string executable_path = 1;
+  repeated string default_args = 2;
+  repeated string additional_args = 3;
+  optional double timeout = 4;
+  optional bool terminate_before_kill = 5;
+  optional double terminate_wait_time = 6;
+  optional bytes input_data = 7;
+  optional PopenArgs popen_args = 8;
+  optional uint32 max_stdout_len = 9;
+}
+
+message RunAndWaitResponse {
+  optional ProcessResult result = 1;
+}
+
+message FindBuildFileRequest {
+  optional string filename = 1;
+}
+
+message FindBuildFileResponse {
+  optional bool found = 1;
+  optional string file_path = 2;
+}
+
+message CreateDirectoryRequest {
+  optional string path = 1;
+  optional bool create_intermediates = 2;
+}
+
+message CreateDirectoryResponse {
+  optional bool result = 1;
+}
+
+message RemoveDirectoryRequest {
+  optional string path = 1;
+  optional bool recreate = 2;
+}
+
+message RemoveDirectoryResponse {
+  optional bool result = 1;
+}
+
+// Used for file transfers.
+message FileChunk {
+  optional bytes data = 1;
+}
+
+message CopyFileToResponse {
+  optional bool result = 1;
+}
+
+message CopyFileFromRequest {
+  optional string path = 1;
+}
+
+message UpdateEnvironmentRequest {
+  map<string, string> env = 1;
+}
+
+message UpdateEnvironmentResponse {
+}
+
+message UpdateSourceRequest {
+}
+
+message UpdateSourceResponse {
+}
+
+message SymbolizeStacktraceRequest {
+  optional bytes unsymbolized_crash_stacktrace = 1;
+  optional bool enable_inline_frames = 2;
+}
+
+message SymbolizeStacktraceResponse {
+  optional string symbolized_stacktrace = 1;
+}
+
+message ListFilesRequest {
+  optional string path = 1;
+  optional bool recursive = 2;
+}
+
+message ListFilesResponse {
+  repeated string file_paths = 1;
+}
+
+message GetFuzzTargetsRequest {
+  optional string path = 1;
+}
+
+message GetFuzzTargetsResponse {
+  repeated string fuzz_target_paths = 1;
+}
+
+message CorpusCrash {
+  optional string crash_state = 1;
+  optional string crash_type = 2;
+  optional string crash_address = 3;
+  optional bytes crash_stacktrace = 4;
+  optional string unit_path = 5;
+  optional bool security_flag = 6;
+}
+
+message CoverageInfo {
+  optional int64 corpus_size_units = 5;
+  optional int64 corpus_size_bytes = 6;
+  optional string corpus_location = 7;
+
+  optional string corpus_backup_location = 8;
+
+  optional int64 quarantine_size_units = 9;
+  optional int64 quarantine_size_bytes = 10;
+  optional string quarantine_location = 11;
+}
+
+message CrossPollinateFuzzer {
+  optional FuzzTarget fuzz_target = 1;
+  optional string backup_bucket_name = 2;
+  optional string corpus_engine_name = 3;
+}
+
+message PruneCorpusRequest {
+  optional FuzzTarget fuzz_target = 1;
+  repeated CrossPollinateFuzzer cross_pollinate_fuzzers = 2;
+  optional bool last_execution_failed = 4;
+  optional int64 revision = 5;
+}
+
+message PruneCorpusResponse {
+  optional CoverageInfo coverage_info = 1;
+  repeated CorpusCrash crashes = 2;
+  optional string fuzzer_binary_name = 3;
+  optional int64 revision = 4;
+}
+
+message StatRequest {
+  optional string path = 1;
+}
+
+message StatResponse {
+  optional bool result = 1;
+  optional uint32 st_mode = 2;
+  optional uint64 st_size = 3;
+  optional double st_atime = 5;
+  optional double st_mtime = 6;
+  optional double st_ctime = 7;
+}
+
+message TerminateStaleApplicationInstancesRequest {
+}
+
+message TerminateStaleApplicationInstancesResponse {
+}
+
+message ResetEnvironmentRequest {
+}
+
+message ResetEnvironmentResponse {
+}
+
+message FuzzTarget {
+  optional string engine = 1;
+  optional string project = 2;
+  optional string binary = 3;
+}
+
+// UntrusterRunner service.
+service UntrustedRunner {
+  // Get information about the worker.
+  rpc GetStatus(GetStatusRequest) returns (GetStatusResponse);
+
+  // Set up regular build.
+  rpc SetupRegularBuild(SetupRegularBuildRequest) returns (SetupBuildResponse);
+
+  // Set up symbolized build.
+  rpc SetupSymbolizedBuild(SetupSymbolizedBuildRequest) returns (SetupBuildResponse);
+
+  // Set up production build.
+  rpc SetupProductionBuild(SetupProductionBuildRequest) returns (SetupBuildResponse);
+
+  // Run command using process_handler.runProcess
+  rpc RunProcess(RunProcessRequest) returns (RunProcessResponse);
+
+  // Run command using new_process.ProcessRunner
+  rpc RunAndWait(RunAndWaitRequest) returns (RunAndWaitResponse);
+
+  // Create a directory.
+  rpc CreateDirectory(CreateDirectoryRequest) returns (CreateDirectoryResponse);
+
+  // Remove a directory.
+  rpc RemoveDirectory(RemoveDirectoryRequest) returns (RemoveDirectoryResponse);
+
+  // List files in a directory.
+  rpc ListFiles(ListFilesRequest) returns (ListFilesResponse);
+
+  // Copy file from host to worker.
+  rpc CopyFileTo(stream FileChunk) returns (CopyFileToResponse);
+
+  // Copy file from worker to host.
+  rpc CopyFileFrom(CopyFileFromRequest) returns (stream FileChunk);
+
+  // Call stat() on a path.
+  rpc Stat(StatRequest) returns (StatResponse);
+
+  // Environment variable changes.
+  rpc UpdateEnvironment(UpdateEnvironmentRequest) returns (UpdateEnvironmentResponse);
+
+  // Reset environment variables.
+  rpc ResetEnvironment(ResetEnvironmentRequest) returns (ResetEnvironmentResponse);
+
+  // Update source.
+  rpc UpdateSource(UpdateSourceRequest) returns (UpdateSourceResponse);
+
+  // Symbolize a stacktrace.
+  rpc SymbolizeStacktrace(SymbolizeStacktraceRequest) returns (SymbolizeStacktraceResponse);
+
+  // Terminate stale application instances.
+  rpc TerminateStaleApplicationInstances(TerminateStaleApplicationInstancesRequest) returns (TerminateStaleApplicationInstancesResponse);
+
+  // libFuzzer/AFL specific: get list of fuzz targets.
+  rpc GetFuzzTargets(GetFuzzTargetsRequest) returns (GetFuzzTargetsResponse);
+
+  // libFuzzer specific: corpus pruning
+  rpc PruneCorpus(PruneCorpusRequest) returns (PruneCorpusResponse);
+}

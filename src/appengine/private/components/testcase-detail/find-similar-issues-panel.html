@@ -1,0 +1,204 @@
+<!--
+  Copyright 2018 Google LLC
+
+  Licensed under the Apache License, Version 2.0 (the "License");
+  you may not use this file except in compliance with the License.
+  You may obtain a copy of the License at
+
+       http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+-->
+<link rel="import" href="../../bower_components/polymer/polymer.html">
+<link rel="import" href="../../bower_components/iron-ajax/iron-ajax.html">
+<link rel="import" href="../../bower_components/iron-selector/iron-selector.html">
+<link rel="import" href="../../bower_components/paper-button/paper-button.html">
+<link rel="import" href="../../bower_components/paper-tabs/paper-tabs.html">
+<link rel="import" href="../../bower_components/paper-tabs/paper-tab.html">
+<link rel="import" href="../../bower_components/paper-spinner/paper-spinner.html">
+
+<dom-module id="find-similar-issues-panel">
+  <link rel="import" href="../../stylesheets/main.css" type="css">
+  <link rel="import" href="../technology/technology.css" type="css">
+  <script src="../../javascripts/error.js" type="text/javascript"></script>
+  <template>
+    <style>
+      :host {
+        display: block;
+      }
+
+      :host .section .title > div {
+        display: inline-block;
+      }
+
+      :host .response-table .body ul {
+        padding-left: 18px;
+      }
+
+      :host paper-tabs {
+        height: 16px;
+        font-size: 14px;
+      }
+
+      :host .section > .body {
+        padding: 6px;
+        line-height: 24px;
+      }
+
+      :host .response-table > .body {
+        padding: 10px 0px;
+      }
+
+      :host .response-table > .body > ul {
+        padding: 0px 0px 0px 20px;
+        margin: 0px;
+      }
+
+      :host paper-spinner {
+        margin-right: 10px;
+        vertical-align: middle;
+      }
+
+      :host .error {
+        color: #ca4545;
+      }
+
+      :host .error .title {
+        display: block;
+        font-weight: bold;
+      }
+
+      :host .error .trace-dump {
+        display: block;
+        overflow: auto;
+        font-family: 'Source Code Pro', monospace;
+        white-space: pre;
+        margin-top: 10px;
+        font-size: 12px;
+      }
+
+      :host code {
+        font-size: 10px;
+      }
+
+      :host .title {
+        position: relative;
+      }
+    </style>
+    <iron-ajax
+      id="ajax"
+      url="/testcase-detail/find-similar-issues"
+      method="GET"
+      content-type="application/json"
+      params="[[computeParams(info, filterTypeIndex)]]"
+      loading="{{loading}}"
+      on-request="handleRequest"
+      last-request="{{request}}"
+      last-error="{{originalError}}"
+      last-response="{{response}}"
+      debounce-duration="300"></iron-ajax>
+    <div class="section">
+      <div class="title">
+        <div title="Find issues in the issue tracker with similar crash state / stacktrace.">
+          Find similar issues:
+        </div>
+        <div>
+          <paper-tabs no-bar="true" selected="{{filterTypeIndex}}" on-iron-select="filterSelected">
+            <template id="filterItems" is="dom-repeat" items="[[info.find_similar_issues_options]]">
+              <paper-tab class$="[[item.type]]-button" data-type="[[item.type]]">[[item.label]]</paper-tab>
+            </template>
+          </paper-tabs>
+        </div>
+      </div>
+      <template is="dom-if" if="[[loading]]">
+        <div class="body loading">
+          <paper-spinner active="[[loading]]"></paper-spinner>
+          Finding issues in the issue tracker with similar crash state / stacktrace....
+        </div>
+      </template>
+      <template is="dom-if" if="[[shouldShowError(error, loading)]]">
+        <div class="body error">
+          <span class="title">[[error.message]]</span>
+          <span class="trace-dump">[[error.traceDump]]</span>
+        </div>
+      </template>
+      <template is="dom-if" if="[[shouldShowresponse(response, loading)]]">
+        <div class="body">
+          <div class="response-table">
+            <div class="title">
+              Results from the keywords <a href="[[response.queryUrl]]">[[response.queryString]]</a>
+              <template is="dom-if" if="[[info.testcase.group_id]]">
+                and from its group <a href="/testcases?q=group_id:[[info.testcase.group_id]]">[[info.testcase.group_id]]</a>
+              </template>
+            </div>
+            <div class="body">
+              <template is="dom-if" if="[[nonEmpty(response.items)]]">
+                <ul>
+                  <template is="dom-repeat" items="[[response.items]]">
+                    <li>
+                      <a href="[[response.issueUrlPrefix]][[item.id]]">[[item.id]]</a>
+                      [[item.summary]]
+                    </li>
+                  </template>
+                </ul>
+              </template>
+              <template is="dom-if" if="[[!nonEmpty(response.items)]]">
+                No issues found.
+              </template>
+            </div>
+          </div>
+        </div>
+      </template>
+    </div>
+  </template>
+  <script>
+  Polymer({
+    is: 'find-similar-issues-panel',
+    properties: {
+      info: Object,
+      filterTypeIndex: Number,
+      response: Object,
+      originalError: Object,
+      error: Object,
+      request: Object,
+      loading: Boolean
+    },
+    observers: ['computeError(originalError)'],
+    shouldShowError(error, loading) {
+      return error && !loading;
+    },
+    computeError(originalError) {
+      this.error = parseError(originalError);
+    },
+    shouldShowresponse(response, loading) {
+      return response && !loading;
+    },
+    nonEmpty(items) {
+      return items && items.length > 0;
+    },
+    computeParams(info, filterTypeIndex) {
+      if (filterTypeIndex === undefined) { return; }
+      return {
+        testcaseId: info.testcase.id,
+        filterType: info.find_similar_issues_options[filterTypeIndex].type
+      };
+    },
+    filterSelected() {
+      setTimeout(() => { this.$.ajax.generateRequest(); }, 1);
+    },
+    handleRequest() {
+      var reqs = this.$.ajax.activeRequests;
+      for (var i=0;i<reqs.length;i++) {
+        if (reqs[i] != this.request) {
+          reqs[i].abort();
+        }
+      }
+    }
+  });
+  </script>
+</dom-module>
+

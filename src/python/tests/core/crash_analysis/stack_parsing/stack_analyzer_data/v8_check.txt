@@ -1,0 +1,30 @@
+#
+# Fatal error in ../../src/heap/mark-compact.h, line 54
+# Check failed: !IsImpossible(mark_bit).
+#
+
+==== C stack trace ===============================
+
+ 1: 0xb29b0f4
+ 2: 0xb29b722
+ 3: 0x8efa09d
+ 4: 0x8e6592c
+ 5: 0x87d84a9
+ 6: 0x8835c19
+ 7: 0x9f048dc
+ 8: 0xa70a1bc
+ 9: 0xa6ffa2c
+10: 0xa7279c8
+11: 0xa727de0
+12: 0xa729b5f
+13: 0x8abff10
+14: 0x8ab8e14
+15: 0x81c0f08
+16: 0x8226891
+17: 0x812f610
+18: 0x81580df
+19: 0x81627fe
+20: 0x8164309
+21: __libc_start_main
+22: 0x806081a
+E: Child terminated by signal ‘Illegal instruction’

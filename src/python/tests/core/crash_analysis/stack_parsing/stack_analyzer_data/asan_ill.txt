@@ -1,0 +1,23 @@
+$ ASAN_OPTIONS=handle_sigill=1:symbolize=1 ~/chromium/src/out/Release/v8_wasm_code_fuzzer ./clusterfuzz-testcase-6080637904879616 
+INFO: Seed: 56440552
+INFO: Loaded 0 modules (0 guards): 
+/home/user/chromium/src/out/Release/v8_wasm_code_fuzzer: Running 1 inputs 1 time(s) each.
+Running: ./clusterfuzz-testcase-6080637904879616
+ASAN:DEADLYSIGNAL
+=================================================================
+==89063==ERROR: AddressSanitizer: ILL on unknown address 0x631000001001 (pc 0x631000001001 bp 0x7ffd2297fd70 sp 0x7ffd2297fd58 T0)
+    #0 0x631000001000  (<unknown module>)
+    #1 0x4f6b78 in boom_internal() v8/test/fuzzer/wasm-code.cc:76:7
+    #2 0x4f6c08 in boom_intermediate() v8/test/fuzzer/wasm-code.cc:83:14
+    #3 0x4f6c38 in boom() v8/test/fuzzer/wasm-code.cc:87:7
+    #4 0x4f6cd3 in LLVMFuzzerTestOneInput v8/test/fuzzer/wasm-code.cc:100:6
+    #5 0x5125bd in fuzzer::Fuzzer::ExecuteCallback(unsigned char const*, unsigned long) third_party/libFuzzer/src/FuzzerLoop.cpp:550:13
+    #6 0x512aeb in fuzzer::Fuzzer::RunOne(unsigned char const*, unsigned long) third_party/libFuzzer/src/FuzzerLoop.cpp:501:3
+    #7 0x4f7997 in fuzzer::RunOneTest(fuzzer::Fuzzer*, char const*, unsigned long) third_party/libFuzzer/src/FuzzerDriver.cpp:268:6
+    #8 0x4faa80 in fuzzer::FuzzerDriver(int*, char***, int (*)(unsigned char const*, unsigned long)) third_party/libFuzzer/src/FuzzerDriver.cpp:517:9
+    #9 0x51a108 in main third_party/libFuzzer/src/FuzzerMain.cpp:20:10
+    #10 0x7fc7047d7f44 in __libc_start_main /build/eglibc-oGUzwX/eglibc-2.19/csu/libc-start.c:287
+
+AddressSanitizer can not provide additional info.
+SUMMARY: AddressSanitizer: ILL (<unknown module>) 
+==89063==ABORTING

@@ -1,0 +1,24 @@
+Command: ['/mnt/scratch0/clusterfuzz/bot/builds/chromium-browser-libfuzzer_linux-release-asan_ae530a86793cd6b8b56ce9af9159ac101396e802/revisions/libfuzzer-linux-release-404048/brotli_fuzzer', '-max_len=1280', '-timeout=300', '-rss_limit_mb=3000', '-max_total_time=3250', '-print_final_stats=1', '/mnt/scratch0/clusterfuzz/bot/inputs/fuzzer-testcases-disk/temp/new', '/mnt/scratch0/clusterfuzz/bot/inputs/fuzzers/libfuzzer/libfuzzer_data/brotli_fuzzer']
+Bot: clusterfuzz-linux-pre-0095
+Time ran: 3251.841888
+
+INFO: Seed: 3174484090
+INFO: Loaded 1 modules (5677 guards): [0x954b10, 0x95a3c4),
+Loading corpus: /mnt/scratch0/clusterfuzz/bot/inputs/fuzzers/libfuzzer/libfuzzer_data/brotli_fuzzer
+Loaded 1024/1917 files from /mnt/scratch0/clusterfuzz/bot/inputs/fuzzers/libfuzzer/libfuzzer_data/brotli_fuzzer
+#0  READ   units: 1917 exec/s: 0
+#512  pulse  cov: 621 bits: 2026 indir: 33 units: 1917 exec/s: 170
+#1024 pulse  cov: 699 bits: 3135 indir: 33 units: 1917 exec/s: 85
+#1917 INITED cov: 827 bits: 4914 indir: 33 units: 1881 exec/s: 5
+#1918 NEW    cov: 906 bits: 4914 indir: 39 units: 1882 exec/s: 5 L: 13 MS: 1 EraseByte-
+#2048 pulse  cov: 906 bits: 4914 indir: 39 units: 1882 exec/s: 5
+#4096 pulse  cov: 906 bits: 4914 indir: 39 units: 1882 exec/s: 7
+#8192 pulse  cov: 906 bits: 4914 indir: 39 units: 1882 exec/s: 7
+#16384  pulse  cov: 906 bits: 4914 indir: 39 units: 1882 exec/s: 8
+#28612  DONE   cov: 906 bits: 4914 indir: 39 units: 1882 exec/s: 8
+Done 28612 runs in 3251 second(s)
+stat::number_of_executed_units: 28612
+stat::average_exec_per_sec:     8
+stat::new_units_added:          1
+stat::slowest_unit_time_sec:    0
+stat::peak_rss_mb:              75

@@ -1,0 +1,22 @@
+==25416==WARNING: AddressSanitizer failed to allocate 0x9a9a9a9a000000 bytes
+=================================================================
+==25416==ERROR: AddressSanitizer: allocator is out of memory trying to allocate 0x9a9a9a9a000000 bytes
+    #0 0x10c80e0c2 in __sanitizer_finish_switch_fiber
+    #1 0x10b46ada9 in __libcpp_allocate /b/build/slave/Libfuzzer_Upload_Mac_ASan/build/src/third_party/llvm-build/Release+Asserts/include/c++/v1/new:259:10
+    #2 0x10b46ada9 in allocate /b/build/slave/Libfuzzer_Upload_Mac_ASan/build/src/third_party/llvm-build/Release+Asserts/include/c++/v1/memory:1799
+    #3 0x10b46ada9 in allocate /b/build/slave/Libfuzzer_Upload_Mac_ASan/build/src/third_party/llvm-build/Release+Asserts/include/c++/v1/memory:1548
+    #4 0x10b46ada9 in std::__1::__split_buffer<unsigned char, std::__1::allocator<unsigned char>&>::__split_buffer(unsigned long, unsigned long, std::__1::allocator<unsigned char>&) /b/build/slave/Libfuzzer_Upload_Mac_ASan/build/src/third_party/llvm-build/Release+Asserts/include/c++/v1/__split_buffer:311
+    #5 0x10b46a6b8 in std::__1::vector<unsigned char, std::__1::allocator<unsigned char> >::__append(unsigned long) /b/build/slave/Libfuzzer_Upload_Mac_ASan/build/src/third_party/llvm-build/Release+Asserts/include/c++/v1/vector:1047:53
+    #6 0x10b4648fa in safe_browsing::dmg::HFSForkReadStream::Read(unsigned char*, unsigned long, unsigned long*) /b/build/slave/Libfuzzer_Upload_Mac_ASan/build/src/chrome/utility/safe_browsing/mac/hfs.cc:381:28
+    #7 0x10b46d626 in safe_browsing::dmg::ReadStream::ReadExact(unsigned char*, unsigned long) /b/build/slave/Libfuzzer_Upload_Mac_ASan/build/src/chrome/utility/safe_browsing/mac/read_stream.cc:20:10
+    #8 0x10b463f37 in safe_browsing::dmg::HFSBTreeIterator::Init(safe_browsing::dmg::ReadStream*) /b/build/slave/Libfuzzer_Upload_Mac_ASan/build/src/chrome/utility/safe_browsing/mac/hfs.cc:486:17
+    #9 0x10b4610bd in LLVMFuzzerTestOneInput /b/build/slave/Libfuzzer_Upload_Mac_ASan/build/src/chrome/utility/safe_browsing/mac/hfs_fuzzer.cc:19:21
+    #10 0x10b48cdeb in fuzzer::Fuzzer::ExecuteCallback(unsigned char const*, unsigned long) /b/build/slave/Libfuzzer_Upload_Mac_ASan/build/src/third_party/libFuzzer/src/FuzzerLoop.cpp:515:13
+    #11 0x10b46ee85 in fuzzer::RunOneTest(fuzzer::Fuzzer*, char const*, unsigned long) /b/build/slave/Libfuzzer_Upload_Mac_ASan/build/src/third_party/libFuzzer/src/FuzzerDriver.cpp:280:6
+    #12 0x10b4746c4 in fuzzer::FuzzerDriver(int*, char***, int (*)(unsigned char const*, unsigned long)) /b/build/slave/Libfuzzer_Upload_Mac_ASan/build/src/third_party/libFuzzer/src/FuzzerDriver.cpp:703:9
+    #13 0x10b49d681 in main /b/build/slave/Libfuzzer_Upload_Mac_ASan/build/src/third_party/libFuzzer/src/FuzzerMain.cpp:20:10
+    #14 0x7fff9af635ac in start
+
+==25416==HINT: if you don't care about these errors you may set ASAN_OPTIONS=allocator_may_return_null=1
+SUMMARY: AddressSanitizer: out-of-memory (/b/clusterfuzz/bot/builds/chromium-browser-libfuzzer_mac-release-asan_53aadfd01f0d682b1d94abd5ad7af8a887b5763e/revisions/libfuzzer-mac-release-550895/libclang_rt.asan_osx_dynamic.dylib:x86_64+0x650c2)
+==25416==ABORTING

@@ -1,0 +1,209 @@
+<!--
+  Copyright 2018 Google LLC
+
+  Licensed under the Apache License, Version 2.0 (the "License");
+  you may not use this file except in compliance with the License.
+  You may obtain a copy of the License at
+
+       http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+-->
+<link rel="import" href="../../bower_components/polymer/polymer.html">
+<link rel="import" href="../../bower_components/iron-icon/iron-icon.html">
+<link rel="import" href="../../bower_components/paper-button/paper-button.html">
+<link rel="import" href="../../bower_components/paper-input/paper-input.html">
+<link rel="import" href="../../bower_components/paper-dropdown-menu/paper-dropdown-menu.html">
+<link rel="import" href="../../bower_components/paper-listbox/paper-listbox.html">
+<link rel="import" href="../../bower_components/paper-item/paper-item.html">
+<link rel="import" href="../common/render-either/render-either.html">
+
+<dom-module id="search-control-panel">
+  <link rel="import" href="../technology/technology.css" type="css">
+  <template>
+    <style>
+      :host {
+        display: block;
+      }
+
+      table {
+        width: 100%;
+        margin-bottom: 10px;
+      }
+
+      table td.filters {
+        text-align: right;
+      }
+
+      :host [hidden] {
+        display: none !important;
+      }
+
+      :host #keyword {
+        display: block;
+        width: 400px;
+      }
+
+      :host #keyword iron-icon[slot="prefix"] {
+        margin-right: 5px;
+        color: #888;
+        height: 22px;
+        width: 22px;
+      }
+
+      :host #keyword iron-icon[slot="suffix"] {
+        color: #888;
+        height: 16px;
+        width: 16px;
+      }
+
+      :host #revision {
+        width: 120px;
+        display: inline-block;
+      }
+
+      :host #types {
+        width: 120px;
+      }
+
+      :host .permission-remark {
+        font-size: 12px;
+        color: #888;
+        margin-bottom: 5px;
+      }
+    </style>
+    <table>
+      <tr>
+        <td>
+          <paper-input
+              id="keyword"
+              autofocus
+              type="text"
+              value="{{params.q}}"
+              focused="{{keywordFocused}}"
+              on-keyup="queueSubmit">
+            <iron-icon icon="icons:search" slot="prefix"></iron-icon>
+            <iron-icon icon="icons:help-outline" title="Search with keywords here, e.g. 'blink' or 'MessageFilter'." slot="suffix"></iron-icon>
+          </paper-input>
+        </td>
+        <td class="filters">
+          <paper-dropdown-menu
+              id="types"
+              no-animations="true"
+              label="Type"
+              noink>
+            <paper-listbox
+                slot="dropdown-content"
+                class="dropdown-content"
+                selected="{{params.type}}"
+                attr-for-selected="value">
+              <paper-item on-click="submit" value="regression">Regression</paper-item>
+              <paper-item on-click="submit" value="fixed">Fixed</paper-item>
+            </paper-listbox>
+          </paper-dropdown-menu>
+          <paper-input
+              id="revision"
+              autofocus
+              type="text"
+              value="{{params.revision}}"
+              label="Revision"
+              on-keyup="queueSubmit">
+          </paper-input>
+        </td>
+      </tr>
+      <tr>
+        <td colspan="2">
+          <small class="permission-remark">[[formatPermissionText(params.permissions)]]</small>
+        </td>
+      </tr>
+    </table>
+  </template>
+  <script>
+    Polymer({
+      is: 'search-control-panel',
+      properties: {
+        fieldValues: Object,
+        params: {
+          type: Object,
+          value: () => { return {}; }
+        },
+        submitId: {
+          type: Number,
+          value: 0
+        }
+      },
+      sanitise(value) {
+        if (value) {
+          return value.toLowerCase();
+        } else {
+          return '';
+        }
+      },
+      queueSubmit(ev) {
+        let self = this;
+        let thisId = ++self.submitId;
+
+        if (ev.keyCode == 13) {
+          self.submit();
+        } else {
+          setTimeout(
+              () => {
+                if (self.submitId == thisId) {
+                  self.submit();
+                }
+              },
+              600
+          );
+        }
+      },
+      submit() {
+        setTimeout(() => { this.fire('search-button-tapped'); }, 1);
+      },
+      focus() {
+        if (!this.keywordFocused) {
+          this.$.keyword.focus();
+        }
+      },
+      formatPermissionText(permissions) {
+        if (!permissions) {
+          return '';
+        }
+
+        let filters = [];
+
+        if (permissions.everything) {
+          let securityInclusion = '(excluding security)';
+          if (permissions.isPrivileged) {
+            securityInclusion = '(including security)';
+          }
+
+          filters.push(`everything ${securityInclusion}`);
+        }
+
+        if (permissions.jobs && permissions.jobs.length > 0) {
+          filters.push(
+              `jobs:${permissions.jobs.join(',')} (including security)`);
+        }
+
+        if (permissions.fuzzers
+            && permissions.fuzzers.length > 0) {
+          filters.push(
+              `fuzzers:${permissions.fuzzers.join(',')}` +
+              ' (including security)');
+        }
+
+        if (filters.length > 0) {
+          return `You are allowed to see ${filters.join(' or ')}`;
+        } else {
+          return '';
+        }
+      },
+    });
+  </script>
+</dom-module>
+
+

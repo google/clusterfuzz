@@ -1,0 +1,84 @@
+==2==WARNING: ASan is ignoring requested __asan_handle_no_return: stack top: 0x7ffdac2d7000; bottom 0x7f14c9be2000; size: 0x00e8e26f5000 (1000231358464)
+False positive error reports may follow
+For details see http://code.google.com/p/address-sanitizer/issues/detail?id=189
+[32664:32664:0624/031900:50273919487:INFO:audio_manager_pulse.cc(258)] Failed to connect to the context.  Error: Connection refused
+[32664:32664:0624/031902:50275429431:INFO:CONSOLE(138)] "Uncaught TypeError: Cannot read property replace of undefined", source: file:///mnt/scratch0/clusterfuzz/bot/inputs/fuzzer-common-data-bundles/LayoutTests/resources/js-test.js (138)
+ASSERTION FAILED: start.compareTo(end) <= 0
+../../third_party/WebKit/Source/core/editing/VisibleSelection.cpp(270) : void blink::normalizePositionsAlgorithm(const PositionType &, const PositionType &, PositionType *, PositionType *) [PositionType = blink::PositionAlgorithm<blink::EditingStrategy>]
+1   0x7f161a913b13 WTFReportBacktrace(int)
+2   0x7f162ddcf256
+3   0x7f162ddc0750
+4   0x7f162ddc051d
+5   0x7f162ddbffac
+6   0x7f1625917786
+7   0x7f1625ae0979
+8   0x7f163a01b67d content::RenderWidget::GetSelectionBounds(gfx::Rect*, gfx::Rect*)
+9   0x7f1639f5a7f9 content::RenderViewImpl::GetSelectionBounds(gfx::Rect*, gfx::Rect*)
+10  0x7f163a00e704 content::RenderWidget::UpdateSelectionBounds()
+11  0x7f163a00d2b3 content::RenderWidget::WillBeginCompositorFrame()
+12  0x7f1639a7378c content::RenderWidgetCompositor::WillBeginMainFrame()
+13  0x7f1639a737e7 non-virtual thunk to content::RenderWidgetCompositor::WillBeginMainFrame()
+14  0x7f1644c1c66a cc::LayerTreeHost::WillBeginMainFrame()
+15  0x7f1644e7aebe cc::ThreadProxy::BeginMainFrame(scoped_ptr<cc::ThreadProxy::BeginMainFrameAndCommitState, base::DefaultDeleter<cc::ThreadProxy::BeginMainFrameAndCommitState> >)
+16  0x7f1644eaa5c3
+17  0x7f1644eaa09b
+18  0x7f1644ea9dd9
+19  0x7f1649c6f11f
+20  0x7f1649d0754d base::debug::TaskAnnotator::RunTask(char const*, char const*, base::PendingTask const&)
+21  0x7f16545faef1 scheduler::TaskQueueManager::ProcessTaskFromWorkQueue(unsigned long, bool, base::PendingTask*)
+22  0x7f16545f508c scheduler::TaskQueueManager::DoWork(bool)
+23  0x7f165464349e
+24  0x7f1654642fd0
+25  0x7f1654642d45
+26  0x7f1649c6f11f
+27  0x7f1649d0754d base::debug::TaskAnnotator::RunTask(char const*, char const*, base::PendingTask const&)
+28  0x7f1649efefde base::MessageLoop::RunTask(base::PendingTask const&)
+29  0x7f1649eff658 base::MessageLoop::DeferOrRunPendingTask(base::PendingTask const&)
+30  0x7f1649f00c35 base::MessageLoop::DoWork()
+31  0x7f1649f2e99f base::MessagePumpDefault::Run(base::MessagePump::Delegate*)
+ASAN:SIGSEGV
+=================================================================
+==1==ERROR: AddressSanitizer: SEGV on unknown address 0x00009f7537dd (pc 0x7f162ddcf25d bp 0x7ffdac2cfda0 sp 0x7ffdac2cfc00 T0)
+    #0 0x7f162ddcf25c in void blink::normalizePositionsAlgorithm<blink::PositionAlgorithm<blink::EditingStrategy> >(blink::PositionAlgorithm<blink::EditingStrategy> const&, blink::PositionAlgorithm<blink::EditingStrategy> const&, blink::PositionAlgorithm<blink::EditingStrategy>*, blink::PositionAlgorithm<blink::EditingStrategy>*) third_party/WebKit/Source/core/editing/VisibleSelection.cpp:270:5
+    #1 0x7f162ddc074f in blink::VisibleSelection::normalizePositions(blink::PositionAlgorithm<blink::EditingStrategy> const&, blink::PositionAlgorithm<blink::EditingStrategy> const&, blink::PositionAlgorithm<blink::EditingStrategy>*, blink::PositionAlgorithm<blink::EditingStrategy>*) third_party/WebKit/Source/core/editing/VisibleSelection.cpp:285:12
+    #2 0x7f162ddc051c in blink::VisibleSelection::toNormalizedPositions(blink::PositionAlgorithm<blink::EditingStrategy>&, blink::PositionAlgorithm<blink::EditingStrategy>&) const third_party/WebKit/Source/core/editing/VisibleSelection.cpp:327:9
+    #3 0x7f162ddbffab in blink::VisibleSelection::toNormalizedRange() const third_party/WebKit/Source/core/editing/VisibleSelection.cpp:260:9
+    #4 0x7f1625917785 in blink::FrameSelection::toNormalizedRange() const third_party/WebKit/Source/core/editing/FrameSelection.h:169:70
+    #5 0x7f1625ae0978 in blink::WebViewImpl::selectionBounds(blink::WebRect&, blink::WebRect&) const third_party/WebKit/Source/web/WebViewImpl.cpp:2548:51
+    #6 0x7f163a01b67c in content::RenderWidget::GetSelectionBounds(gfx::Rect*, gfx::Rect*) content/renderer/render_widget.cc:1999:3
+    #7 0x7f1639f5a7f8 in content::RenderViewImpl::GetSelectionBounds(gfx::Rect*, gfx::Rect*) content/renderer/render_view_impl.cc:3360:3
+    #8 0x7f163a00e703 in content::RenderWidget::UpdateSelectionBounds() content/renderer/render_widget.cc:2015:5
+    #9 0x7f163a00d2b2 in content::RenderWidget::WillBeginCompositorFrame() content/renderer/render_widget.cc:1386:3
+    #10 0x7f1639a7378b in content::RenderWidgetCompositor::WillBeginMainFrame() content/renderer/gpu/render_widget_compositor.cc:829:3
+    #11 0x7f1639a737e6 in non-virtual thunk to content::RenderWidgetCompositor::WillBeginMainFrame() content/renderer/gpu/render_widget_compositor.cc:828:30
+    #12 0x7f1644c1c669 in cc::LayerTreeHost::WillBeginMainFrame() cc/trees/layer_tree_host.cc:198:3
+    #13 0x7f1644e7aebd in cc::ThreadProxy::BeginMainFrame(scoped_ptr<cc::ThreadProxy::BeginMainFrameAndCommitState, base::DefaultDeleter<cc::ThreadProxy::BeginMainFrameAndCommitState> >) cc/trees/thread_proxy.cc:737:3
+    #14 0x7f1644eaa5c2 in base::internal::RunnableAdapter<void (cc::ThreadProxy::*)(scoped_ptr<cc::ThreadProxy::BeginMainFrameAndCommitState, base::DefaultDeleter<cc::ThreadProxy::BeginMainFrameAndCommitState> >)>::Run(cc::ThreadProxy*, scoped_ptr<cc::ThreadProxy::BeginMainFrameAndCommitState, base::DefaultDeleter<cc::ThreadProxy::BeginMainFrameAndCommitState> >) base/bind_internal.h:176:12
+    #15 0x7f1644eaa09a in base::internal::InvokeHelper<true, void, base::internal::RunnableAdapter<void (cc::ThreadProxy::*)(scoped_ptr<cc::ThreadProxy::BeginMainFrameAndCommitState, base::DefaultDeleter<cc::ThreadProxy::BeginMainFrameAndCommitState> >)>, base::internal::TypeList<base::WeakPtr<cc::ThreadProxy> const&, scoped_ptr<cc::ThreadProxy::BeginMainFrameAndCommitState, base::DefaultDeleter<cc::ThreadProxy::BeginMainFrameAndCommitState> > > >::MakeItSo(base::internal::RunnableAdapter<void (cc::ThreadProxy::*)(scoped_ptr<cc::ThreadProxy::BeginMainFrameAndCommitState, base::DefaultDeleter<cc::ThreadProxy::BeginMainFrameAndCommitState> >)>, base::WeakPtr<cc::ThreadProxy> const&, scoped_ptr<cc::ThreadProxy::BeginMainFrameAndCommitState, base::DefaultDeleter<cc::ThreadProxy::BeginMainFrameAndCommitState> >) base/bind_internal.h:303:5
+    #16 0x7f1644ea9dd8 in base::internal::Invoker<base::IndexSequence<0ul, 1ul>, base::internal::BindState<base::internal::RunnableAdapter<void (cc::ThreadProxy::*)(scoped_ptr<cc::ThreadProxy::BeginMainFrameAndCommitState, base::DefaultDeleter<cc::ThreadProxy::BeginMainFrameAndCommitState> >)>, void (cc::ThreadProxy*, scoped_ptr<cc::ThreadProxy::BeginMainFrameAndCommitState, base::DefaultDeleter<cc::ThreadProxy::BeginMainFrameAndCommitState> >), base::internal::TypeList<base::WeakPtr<cc::ThreadProxy>, base::internal::PassedWrapper<scoped_ptr<cc::ThreadProxy::BeginMainFrameAndCommitState, base::DefaultDeleter<cc::ThreadProxy::BeginMainFrameAndCommitState> > > > >, base::internal::TypeList<base::internal::UnwrapTraits<base::WeakPtr<cc::ThreadProxy> >, base::internal::UnwrapTraits<base::internal::PassedWrapper<scoped_ptr<cc::ThreadProxy::BeginMainFrameAndCommitState, base::DefaultDeleter<cc::ThreadProxy::BeginMainFrameAndCommitState> > > > >, base::internal::InvokeHelper<true, void, base::internal::RunnableAdapter<void (cc::ThreadProxy::*)(scoped_ptr<cc::ThreadProxy::BeginMainFrameAndCommitState, base::DefaultDeleter<cc::ThreadProxy::BeginMainFrameAndCommitState> >)>, base::internal::TypeList<base::WeakPtr<cc::ThreadProxy> const&, scoped_ptr<cc::ThreadProxy::BeginMainFrameAndCommitState, base::DefaultDeleter<cc::ThreadProxy::BeginMainFrameAndCommitState> > > >, void ()>::Run(base::internal::BindStateBase*) base/bind_internal.h:343:12
+    #17 0x7f1649c6f11e in base::Callback<void ()>::Run() const base/callback.h:396:12
+    #18 0x7f1649d0754c in base::debug::TaskAnnotator::RunTask(char const*, char const*, base::PendingTask const&) base/debug/task_annotator.cc:62:3
+    #19 0x7f16545faef0 in scheduler::TaskQueueManager::ProcessTaskFromWorkQueue(unsigned long, bool, base::PendingTask*) components/scheduler/child/task_queue_manager.cc:690:5
+    #20 0x7f16545f508b in scheduler::TaskQueueManager::DoWork(bool) components/scheduler/child/task_queue_manager.cc:643:9
+    #21 0x7f165464349d in base::internal::RunnableAdapter<void (scheduler::TaskQueueManager::*)(bool)>::Run(scheduler::TaskQueueManager*, bool const&) base/bind_internal.h:176:12
+    #22 0x7f1654642fcf in base::internal::InvokeHelper<true, void, base::internal::RunnableAdapter<void (scheduler::TaskQueueManager::*)(bool)>, base::internal::TypeList<base::WeakPtr<scheduler::TaskQueueManager> const&, bool const&> >::MakeItSo(base::internal::RunnableAdapter<void (scheduler::TaskQueueManager::*)(bool)>, base::WeakPtr<scheduler::TaskQueueManager> const&, bool const&) base/bind_internal.h:303:5
+    #23 0x7f1654642d44 in base::internal::Invoker<base::IndexSequence<0ul, 1ul>, base::internal::BindState<base::internal::RunnableAdapter<void (scheduler::TaskQueueManager::*)(bool)>, void (scheduler::TaskQueueManager*, bool), base::internal::TypeList<base::WeakPtr<scheduler::TaskQueueManager>, bool> >, base::internal::TypeList<base::internal::UnwrapTraits<base::WeakPtr<scheduler::TaskQueueManager> >, base::internal::UnwrapTraits<bool> >, base::internal::InvokeHelper<true, void, base::internal::RunnableAdapter<void (scheduler::TaskQueueManager::*)(bool)>, base::internal::TypeList<base::WeakPtr<scheduler::TaskQueueManager> const&, bool const&> >, void ()>::Run(base::internal::BindStateBase*) base/bind_internal.h:343:12
+    #24 0x7f1649c6f11e in base::Callback<void ()>::Run() const base/callback.h:396:12
+    #25 0x7f1649d0754c in base::debug::TaskAnnotator::RunTask(char const*, char const*, base::PendingTask const&) base/debug/task_annotator.cc:62:3
+    #26 0x7f1649efefdd in base::MessageLoop::RunTask(base::PendingTask const&) base/message_loop/message_loop.cc:456:3
+    #27 0x7f1649eff657 in base::MessageLoop::DeferOrRunPendingTask(base::PendingTask const&) base/message_loop/message_loop.cc:466:5
+    #28 0x7f1649f00c34 in base::MessageLoop::DoWork() base/message_loop/message_loop.cc:578:13
+    #29 0x7f1649f2e99e in base::MessagePumpDefault::Run(base::MessagePump::Delegate*) base/message_loop/message_pump_default.cc:34:21
+    #30 0x7f1649efda53 in base::MessageLoop::RunHandler() base/message_loop/message_loop.cc:422:3
+    #31 0x7f164a088844 in base::RunLoop::Run() base/run_loop.cc:55:3
+    #32 0x7f1649efb736 in base::MessageLoop::Run() base/message_loop/message_loop.cc:286:3
+    #33 0x7f163a095acf in content::RendererMain(content::MainFunctionParams const&) content/renderer/renderer_main.cc:220:7
+    #34 0x7f16350ff4c7 in content::RunZygote(content::MainFunctionParams const&, content::ContentMainDelegate*) content/app/content_main_runner.cc:308:14
+    #35 0x7f16350ffd51 in content::RunNamedProcessTypeMain(std::__1::basic_string<char, std::__1::char_traits<char>, std::__1::allocator<char> > const&, content::MainFunctionParams const&, content::ContentMainDelegate*) content/app/content_main_runner.cc:392:12
+    #36 0x7f16351084fd in content::ContentMainRunnerImpl::Run() content/app/content_main_runner.cc:808:12
+    #37 0x7f16350fda84 in content::ContentMain(content::ContentMainParams const&) content/app/content_main.cc:19:15
+    #38 0x50c7c6 in main content/shell/app/shell_main.cc:49:10
+    #39 0x7f161d013ec4 in __libc_start_main /build/buildd/eglibc-2.19/csu/libc-start.c:287
+AddressSanitizer can not provide additional info.
+SUMMARY: AddressSanitizer: SEGV (/mnt/scratch0/clusterfuzz/bot/builds/chromium-browser-asan_linux-debug/revisions/asan-linux-debug-335874/lib/libblink_web.so+0xa3e925c)
+==1==ABORTING

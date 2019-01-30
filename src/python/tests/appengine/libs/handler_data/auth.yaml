@@ -1,0 +1,32 @@
+# Copyright 2018 Google LLC
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+whitelisted_domains:
+  - example.com
+
+whitelisted_oauth_client_ids:
+  - test-cf-tools.apps.googleusercontent.com
+  - test-cf-tools-ci.apps.googleusercontent.com
+  - test-client-id1.apps.googleusercontent.com
+
+whitelisted_oauth_emails:
+  - test-client-email1@developer.gserviceaccount.com
+  - test-client-email2@developer.gserviceaccount.com
+
+whitelisted_cors_urls:
+  - https?://(.*-dot-)?test-client-site-staging.appspot.com
+  - https?://(.*-dot-)?test-client-site.appspot.com
+
+clusterfuzz_tools_oauth_client_id:
+  test-cf-tools.apps.googleusercontent.com

@@ -1,0 +1,22 @@
+INFO: Seed: 2110822799
+INFO: Loaded 4 modules   (544079 guards): 22687 [0x7f1ec071e560, 0x7f1ec07347dc), 387035 [0x2bd22d0, 0x2d4c23c), 134286 [0x7f1eb6844350, 0x7f1eb68c7588), 71 [0x7f1ec08083b0, 0x7f1ec08084cc), 
+INFO:        1 files found in /tmp/corpus
+INFO: -max_len is not provided; libFuzzer will not generate inputs larger than 4096 bytes
+INFO: seed corpus: files: 1 min: 4096b max: 4096b total: 4096b rss: 109Mb
+AddressSanitizer:DEADLYSIGNAL
+=================================================================
+==209673==ERROR: AddressSanitizer: SEGV on unknown address 0x000000000000 (pc 0x000000000000 bp 0x7ffc387203d0 sp 0x7ffc38720258 T0)
+==209673==Hint: pc points to the zero page.
+==209673==The signal is caused by a READ memory access.
+==209673==Hint: address points to the zero page.
+
+AddressSanitizer can not provide additional info.
+SUMMARY: AddressSanitizer: SEGV (<unknown module>) 
+==209673==ABORTING
+MS: 0 ; base unit: 0000000000000000000000000000000000000000
+artifact_prefix='./'; Test unit written to ./crash-47962ca455bdab9bfabd60c74510beb8fad11087
+stat::number_of_executed_units: 2
+stat::average_exec_per_sec:     0
+stat::new_units_added:          0
+stat::slowest_unit_time_sec:    0
+stat::peak_rss_mb:              111

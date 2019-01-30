@@ -1,0 +1,98 @@
+<!--
+  Copyright 2018 Google LLC
+
+  Licensed under the Apache License, Version 2.0 (the "License");
+  you may not use this file except in compliance with the License.
+  You may obtain a copy of the License at
+
+       http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+-->
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>paper-button basic tests</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+
+  <script src="../../../bower_components/iron-test-helpers/mock-interactions.js"></script>
+  <script src="../../../bower_components/web-component-tester/browser.js"></script>
+  <script src="../../../bower_components/webcomponentsjs/webcomponents-lite.js"></script>
+  <script src="../../../javascripts/test-helpers.js"></script>
+
+  <link rel="import" href="../collapsable-revisions.html">
+</head>
+<body>
+  <test-fixture id="panel">
+    <template>
+      <collapsable-revisions></collapsable-revisions>
+    </template>
+  </test-fixture>
+  <script>
+    suite2('<collapsable-revision>', ($) => {
+      test2(
+          'preview',
+          () => {
+            $.panel.info = {
+              regression: '<b>a</b>',
+              fixed: 'YES',
+              last_tested: 'name: 0:1234<br />',
+              metadata: {
+                progression_pending: true,
+              }
+            };
+          },
+          () => {
+            const cols = $.selectAll('.body td');
+            expect(cols[1].innerHTML.trim()).to.be.eql('<b>a</b>');
+
+            const spans = cols[0].querySelectorAll('span');
+            expect(spans).to.have.lengthOf(2);
+
+            expect(spans[0].innerHTML.trim()).to.be.eql('YES');
+            expect(spans[1].innerHTML.trim()).to.be.eql('name: 0:1234');
+
+            expect($.select('.expand-control')).to.be.null;
+          }
+      );
+
+      test2(
+          'full view',
+          () => {
+            $.panel.info = {
+              regression: 'b<br/>bb',
+              fixed: 'c<br/>cc',
+              last_tested: 'name: 0:1234<br />',
+              metadata: {
+                progression_pending: false,
+              }
+            };
+            $.panel.shouldPreview = false;
+          },
+          () => {
+            const cols = $.selectAll('.body td')
+
+            const regressions = cols[1].querySelectorAll('span');
+            expect(regressions[0].innerHTML.trim()).to.be.eql('b');
+            expect(regressions[1].innerHTML.trim()).to.be.eql('bb');
+
+            const spans = cols[0].querySelectorAll('span');
+            expect(spans).to.have.lengthOf(5);
+            // spans[0] encloses spans[1] and spans[2].
+            expect(spans[1].innerHTML.trim()).to.be.eql('c');
+            expect(spans[2].innerHTML.trim()).to.be.eql('cc');
+            // spans[3] encloses spans[4].
+            expect(spans[4].innerHTML.trim()).to.be.eql('name: 0:1234');
+
+            expect($.select('.expand-control')).to.not.be.null;
+          }
+      );
+    });
+  </script>
+</body>
+</html>
+

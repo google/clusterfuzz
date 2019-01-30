@@ -1,0 +1,36 @@
++----------------------------------------Release Build Stacktrace----------------------------------------+
+/mnt/scratch0/clusterfuzz/bot/builds/chromium-browser-asan_linux-release_4392242b7f59878a2775b4607420a2b37e17ff13/revisions/asan-linux-release-338631/chrome --ignore-gpu-blacklist --allow-file-access-from-files --disable-click-to-play --disable-hang-monitor --dns-prefetch-disable --disable-default-apps --disable-component-update --safebrowsing-disable-auto-update --metrics-recording-only --disable-gpu-watchdog --disable-metrics --disable-popup-blocking --disable-prompt-on-repost --enable-experimental-extension-apis --enable-extension-apps --js-flags="--expose-gc --verify-heap" --new-window --no-default-browser-check --no-first-run --no-process-singleton-dialog --enable-shadow-dom --enable-media-stream --use-gl=osmesa --use-fake-device-for-media-stream --use-fake-ui-for-media-stream --disable-gl-drawing-for-tests --ppapi-flash-path=/mnt/scratch0/clusterfuzz/bot/builds/chromium-browser-asan_linux-release_4392242b7f59878a2775b4607420a2b37e17ff13/revisions/asan-linux-release-338631/flash/libpepflashplayer.so --no-sandbox --user-data-dir=/mnt/scratch0/tmp/user_profile_0 --log-net-log=/mnt/scratch0/tmp/net_log_0 /mnt/scratch0/clusterfuzz/bot/inputs/fuzzer-common-data-bundles/LayoutTests/fast/images/fuzz-twister-embed-does-not-propagate-dimensions-to-object-ancestor1436891642.47.html
+
+[Environment] ASAN_OPTIONS = alloc_dealloc_mismatch=0:strict_memcmp=0:redzone=32:coverage=1:coverage_dir=/mnt/scratch0/tmp/999:detect_leaks=1:detect_stack_use_after_return=1:max_uar_stack_size_log=16:handle_segv=1:symbolize=false:check_malloc_usable_size=0:fast_unwind_on_fatal=1:allocator_may_return_null=1:detect_odr_violation=0:detect_container_overflow=1
+
+[30022:30022:0714/101657:ERROR:browser_main_loop.cc(189)] Running without the SUID sandbox! See https://code.google.com/p/chromium/wiki/LinuxSUIDSandboxDevelopment for more information on developing with the sandbox on.
+[30117:30117:0714/101700:ERROR:renderer_main.cc(200)] Running without renderer sandbox
+NOT SANDBOXED
+-----------------------------------------------------
+Suppressions used:
+  count      bytes template
+    289       8518 libfontconfig
+-----------------------------------------------------
+
+=================================================================
+==30148==ERROR: LeakSanitizer: detected memory leaks
+Direct leak of 4096 byte(s) in 1 object(s) allocated from:
+    #0 0x7f2a12ec034b in operator new[](unsigned long)
+    #1 0x7f28b5b12bec in pepper::AutoBuffer::AllocateBuffer(unsigned long) /home/rtcbldr/ws/St_Make/code/flash/platform/pepper/base/pep_auto_buffer.cpp:69
+    #2 0x7f2a10552fff  (<unknown module>)
+
+Direct leak of 768 byte(s) in 6 object(s) allocated from:
+    #0 0x7f2a12ec01db in operator new(unsigned long)
+    #1 0x7f28b6581a9b in PlatformSocketAddress::PlatformSocketAddress() /home/rtcbldr/ws/St_Make/code/flash/platform/pepper/pep_socket_address.cpp:56
+
+Direct leak of 512 byte(s) in 2 object(s) allocated from:
+    #0 0x7f2a12ec01db in operator new(unsigned long)
+    #1 0x7f28b5b02625 in PlatformPlayer::PlatformPlayer(PlatformGlobals*, MMgc::GC*, CorePlayer*) /home/rtcbldr/ws/St_Make/code/flash/platform/pepper/pep_player.cpp:143
+
+Direct leak of 422 byte(s) in 2 object(s) allocated from:
+    #0 0x7f2a12ec01db in operator new(unsigned long)
+    #1 0x7f28b56c0f78  (/usr/lib/x86_64-linux-gnu/libstdc++.so.6+0xbef78)
+
+Direct leak of 280 byte(s) in 1 object(s) allocated from:
+    #0 0x7f2a12ec01db in operator new(unsigned long)
+    #1 0x7f28b5b201b5 in PepperDisplayContext3D::PepperDisplayContext3D(MMgc::GCAPI::GCRef<coreplayer::View>, SPOINT const&) /home/rtcbldr/ws/St_Make/code/flash/platform/pepper/pep_displaycontext.cpp:391

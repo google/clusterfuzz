@@ -1,0 +1,106 @@
+<!--
+  Copyright 2018 Google LLC
+
+  Licensed under the Apache License, Version 2.0 (the "License");
+  you may not use this file except in compliance with the License.
+  You may obtain a copy of the License at
+
+       http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+-->
+<link rel="import" href="../../bower_components/polymer/polymer.html">
+<link rel="import" href="../../bower_components/paper-styles/shadow.html">
+<link rel="import" href="../../bower_components/paper-tooltip/paper-tooltip.html">
+<link rel="import" href="../../bower_components/app-layout/app-toolbar/app-toolbar.html">
+
+<dom-module id="performance-report">
+  <link rel="import" href="../../stylesheets/main.css" type="css">
+  <link rel="import" href="../technology/technology.css" type="css">
+  <script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
+  <template>
+    <!-- Because the charts' JS don't inject CSS correctly, so we inject them manually.
+         See: https://bugs.chromium.org/p/chromium/issues/detail?id=710594#c5
+         TODO(ochang): Try removing the below <link> to see if it works because
+                       the new gviz version fixes this problem. -->
+    <link rel="stylesheet" href="https://www.gstatic.com/charts/45.2/css/util/util.css" type="text/css">
+    <link rel="stylesheet" href="https://www.gstatic.com/charts/45.2/css/util/format.css" type="text/css">
+    <link rel="stylesheet" href="https://www.gstatic.com/charts/45.2/css/core/tooltip.css" type="text/css">
+    <link rel="stylesheet" href="https://www.gstatic.com/charts/45.2/css/table/table.css" type="text/css">
+    <style>
+      :host th {
+        padding: 0.8em !important;
+        font-size: 14px;
+      }
+
+      :host td {
+        padding: 0.8em !important;
+        font-size: 13px;
+      }
+
+      :host #results {
+        display: block;
+        text-align: center;
+      }
+
+      :host #table_div {
+        display: inline-block;
+        text-align: left;
+        margin: 0px auto;
+      }
+    </style>
+
+    <app-toolbar>
+      <paper-icon-button icon="menu" onclick="document.getElementById('drawer').toggle()"></paper-icon-button>
+      <div id="title">
+        Fuzzer Performance Report: {{info.fuzzer_name}} on {{info.job_type}} <br>
+        {{info.fuzzer_runs}} runs ({{info.total_time}} of CPU time) on {{info.date}}
+      </div>
+    </app-toolbar>
+    <div id="mainContent">
+      <div id="results">
+        <div id="table_div"></div>
+      </div>
+    </div>
+
+  </template>
+  <script>
+    class PerformanceReport extends Polymer.Element {
+      static get is() { return 'performance-report'; }
+
+      static get properties() {
+        return {
+          info: Object,
+          chart: Object
+        };
+      }
+
+      ready() {
+        super.ready();
+
+        // See why we freeze the version here:
+        // https://github.com/google/oss-fuzz/issues/954
+        google.charts.load('45', {'packages':['table']});
+        google.charts.setOnLoadCallback(this.drawTable.bind(this));
+      }
+
+      drawTable() {
+        if (!google || !google.visualization || !google.visualization.Table) {
+          return;
+        }
+
+        this.chart = this.chart || new google.visualization.Table(this.$.table_div);
+        let data = new google.visualization.DataTable(this.info.table_data);
+
+        this.chart.draw(data,
+                        {sortAscending: false, sortColumn: 2, allowHtml: true});
+      }
+    }
+
+    customElements.define(PerformanceReport.is, PerformanceReport);
+  </script>
+</dom-module>

@@ -1,0 +1,32 @@
+E: clusterfuzz: Failed to lock chroot: /var/lib/schroot/session/clusterfuzz: Failed to write session file: File exists
+==16763==WARNING: AddressSanitizer failed to allocate 0xffffffff bytes
+/mnt/scratch0/clusterfuzz/bot/inputs/fuzzer-testcases/fuzz-00919.js:4: RangeError: Invalid array buffer length
+    var __v_4 = new ArrayBuffer(byteLength);
+                ^
+
+
+#
+# Fatal error in ../../src/objects-inl.h, line 3061
+# Check failed: !v8::internal::FLAG_enable_slow_asserts || (object->IsAccessCheckInfo()).
+#
+
+==== C stack trace ===============================
+
+ 1: 0xb2b5b14
+ 2: 0xb2b6142
+ 3: 0x9543acd
+ 4: 0x9545ce5
+ 5: 0x977a2fb
+ 6: 0x98973ef
+ 7: 0x9f9bca2
+ 8: 0x82cccf8
+ 9: 0x82ce064
+10: 0x812fab0
+11: 0x815df3d
+12: 0x8195d8d
+13: 0xb2cd849
+14: 0x810d1b4
+15: 0x80e3b8b
+16: 0xf7246d78
+17: clone
+E: Child terminated by signal ‘Illegal instruction’

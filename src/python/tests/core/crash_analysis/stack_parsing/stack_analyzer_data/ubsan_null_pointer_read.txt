@@ -1,0 +1,20 @@
+Running command: /mnt/scratch0/clusterfuzz/bot/builds/clusterfuzz-builds_gdal_8f5d9038564387e8bdf28161d9e03f1ffb4dfbad/revisions/shape_fuzzer -runs=100 -max_len=3200 -rss_limit_mb=2048 -timeout=25 /54b7eabbbe749c835671693b6efc8858e74f7a6da9e992c7b540801c43a4675c9a7a02522ec4bd1b53f730ab0e78ead1d4ca085deb5433447c45f7987c782ace5a11624a4f77924f3f7c5c0717967c164a40975f5bb5319115786b590df67b52d1ab06fe330fe0f274497c0e0a631458fuzz-1-gdal_shape_fuzzer
+INFO: Seed: 2268466465
+INFO: Loaded 1 modules (468700 guards): [0x57d8ad0, 0x59a2640),
+/mnt/scratch0/clusterfuzz/bot/builds/clusterfuzz-builds_gdal_8f5d9038564387e8bdf28161d9e03f1ffb4dfbad/revisions/shape_fuzzer: Running 1 inputs 100 time(s) each.
+Running: /54b7eabbbe749c835671693b6efc8858e74f7a6da9e992c7b540801c43a4675c9a7a02522ec4bd1b53f730ab0e78ead1d4ca085deb5433447c45f7987c782ace5a11624a4f77924f3f7c5c0717967c164a40975f5bb5319115786b590df67b52d1ab06fe330fe0f274497c0e0a631458fuzz-1-gdal_shape_fuzzer
+shape2ogr.cpp:184:49: runtime error: load of null pointer of type double
+#0 0x1466597 in SHPReadOGRObject(SHPInfo*, int, tagSHPObject*) /src/gdal/gdal/ogr/ogrsf_frmts/shape/shape2ogr.cpp:184:49
+#1 0x14685c7 in SHPReadOGRFeature(SHPInfo*, DBFInfo*, OGRFeatureDefn*, int, tagSHPObject*, char const*) /src/gdal/gdal/ogr/ogrsf_frmts/shape/shape2ogr.cpp:1217:26
+#2 0x1257a83 in OGRShapeLayer::GetNextFeature() /src/gdal/gdal/ogr/ogrsf_frmts/shape/ogrshapelayer.cpp:843:33
+#3 0x4c01ce in OGR_L_GetNextFeature /src/gdal/gdal/ogr/ogrsf_frmts/generic/ogrlayer.cpp:549:48
+#4 0x4392ef in LLVMFuzzerTestOneInput /src/gdal/gdal/fuzzers/shape_fuzzer.cpp:53:32
+#5 0x447dad in fuzzer::Fuzzer::ExecuteCallback(unsigned char const*, unsigned long) /src/libfuzzer/FuzzerLoop.cpp:458:13
+#6 0x448187 in fuzzer::Fuzzer::RunOne(unsigned char const*, unsigned long) /src/libfuzzer/FuzzerLoop.cpp:397:3
+#7 0x439744 in fuzzer::RunOneTest(fuzzer::Fuzzer*, char const*, unsigned long) /src/libfuzzer/FuzzerDriver.cpp:268:6
+#8 0x43d82b in fuzzer::FuzzerDriver(int*, char***, int (*)(unsigned char const*, unsigned long)) /src/libfuzzer/FuzzerDriver.cpp:683:9
+#9 0x4393cc in main /src/libfuzzer/FuzzerMain.cpp:20:10
+#10 0x7fdf25e7d82f in __libc_start_main /build/glibc-9tT8Do/glibc-2.23/csu/libc-start.c:291
+#11 0x4120d8 in _start
+SUMMARY: UndefinedBehaviorSanitizer: undefined-behavior shape2ogr.cpp:184:49 in
+MS: 0 ; base unit: 0000000000000000000000000000000000000000

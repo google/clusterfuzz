@@ -1,0 +1,43 @@
+# Copyright 2018 Google LLC
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+# Application id for the Appengine project (usually same as Google Cloud Project ID).
+application_id: test-clusterfuzz
+
+# Define these if you would like to use a custom domain.
+# domains:
+#   main: test-clusterfuzz.com
+#   redirects:
+#     - test-clusterfuzz.appspot.com
+
+# Files to be deployed on App Engine for ClusterFuzz UI pages. This is kept configurable, but does
+# not need to be changed for most usecases.
+deployment:
+  prod:
+    - prod/app.yaml
+    - prod/cron.yaml
+    - prod/cron-service.yaml
+    - prod/go-cron-service.yaml
+  staging:
+    - staging/staging.yaml
+    - staging/go-cron-service-staging.yaml
+
+# Google analytics tracking id, to provide analytics / usage info for ClusterFuzz UI pages.
+# See https://support.google.com/analytics/answer/1008080.
+ga_tracking_id:
+
+# Site ownership verification tag, usually of the form google<tag_id>.html. This is only applicable
+# if you are using a custom domain.
+# See https://support.google.com/webmasters/answer/35179?hl=en.
+domain_verification_tag: domain-verification-tag

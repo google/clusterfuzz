@@ -1,0 +1,132 @@
+<!--
+  Copyright 2018 Google LLC
+
+  Licensed under the Apache License, Version 2.0 (the "License");
+  you may not use this file except in compliance with the License.
+  You may obtain a copy of the License at
+
+       http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+-->
+<link rel="import" href="../../bower_components/polymer/polymer.html">
+
+<dom-module id="suspected-cls">
+  <link rel="import" href="../../stylesheets/main.css" type="css">
+  <link rel="import" href="../technology/technology.css" type="css">
+  <template>
+    <style>
+      :host {
+        display: block;
+      }
+
+      :host .section > .body {
+        padding: 6px;
+      }
+
+      :host div.expand-control {
+        border-top: 1px dotted #777;
+        text-align: center;
+      }
+
+      :host paper-button {
+        font-size: 12px;
+        padding: 0px;
+        display: block;
+        text-align: center;
+      }
+
+      :host paper-button iron-icon {
+        --iron-icon-width: 16px;
+        --iron-icon-height: 16px;
+      }
+
+      ul {
+        margin-bottom: 0px;
+      }
+
+      .changelist:not(:first-of-type) {
+        margin-top: 1em;
+      }
+    </style>
+    <div class="section">
+      <div class="title">
+        [[getChangelistCount(info)]] Suspected Changelists
+        <template is="dom-if" if="[[info.suspected_cls.suspected_project]]">
+          in [[info.suspected_cls.suspected_project]]
+        </template>
+        <template is="dom-if" if="[[info.suspected_cls.suspected_components]]">
+          ([[formatComponents(info.suspected_cls.suspected_components)]])
+        </template>
+       </div>
+      <div class="body">
+        <if-else condition="[[isFound(info)]]">
+          <span slot="t">
+            <template is="dom-repeat" items="[[info.suspected_cls.changelists]]">
+              <div class="changelist">
+                <a href="[[item.url]]" target="_blank">[[item.description]]</a> by [[item.author]]
+                <template is="dom-if" if="[[!preview]]">
+                  <ul>
+                    <template is="dom-repeat" items="[[item.reasons]]">
+                      <li>[[item]]</li>
+                    </template>
+                  </ul>
+                </template>
+              </div>
+            </template>
+          </span>
+          <span slot="f">
+            Predator was unable to identify any culprit changelists for this test case.
+            <template is="dom-if" if="[[info.suspected_cls.error_message]]">
+              <br/><br/>
+              Reason: [[info.suspected_cls.error_message]]
+            </template>
+          </span>
+        </if-else>
+        <template is="dom-if" if="[[!preview]]">
+          <br/><br/>
+          Are these results wrong? <a href="[[info.suspected_cls.feedback_url]]">Send us feedback</a>.
+        </template>
+      </div>
+      <div class="expand-control">
+        <paper-button on-tap="toggle">
+          <if-else condition="[[preview]]">
+            <span slot="t"><iron-icon icon="icons:expand-more"></iron-icon></span>
+            <span slot="f"><iron-icon icon="icons:expand-less"></iron-icon></span>
+          </if-else>
+        </paper-button>
+      </div>
+    </div>
+  </template>
+  <script>
+    Polymer({
+      is: 'suspected-cls',
+      properties: {
+        info: Object,
+        preview: {
+          type: Boolean,
+          value: true
+        },
+      },
+      isFound(info) {
+        return info && info.suspected_cls && info.suspected_cls.found && this.getChangelistCount(info) > 0;
+      },
+      getChangelistCount(info) {
+        if (!info.suspected_cls || !info.suspected_cls.changelists) return 0;
+        return info.suspected_cls.changelists.length;
+      },
+      formatComponents(components) {
+        return components.join(', ');
+      },
+      toggle() {
+        this.preview = !this.preview;
+      }
+    });
+  </script>
+</dom-module>
+
+

@@ -1,0 +1,239 @@
+<!--
+  Copyright 2018 Google LLC
+
+  Licensed under the Apache License, Version 2.0 (the "License");
+  you may not use this file except in compliance with the License.
+  You may obtain a copy of the License at
+
+       http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+-->
+<link rel="import" href="../../bower_components/iron-form/iron-form.html">
+<link rel="import" href="../../bower_components/iron-icon/iron-icon.html">
+<link rel="import" href="../../bower_components/paper-button/paper-button.html">
+<link rel="import" href="../../bower_components/paper-checkbox/paper-checkbox.html">
+<link rel="import" href="../../bower_components/paper-dialog/paper-dialog.html">
+<link rel="import" href="../../bower_components/paper-input/paper-input.html">
+<link rel="import" href="../../bower_components/paper-tooltip/paper-tooltip.html">
+<link rel="import" href="../../bower_components/polymer/polymer.html">
+
+<link rel="import" href="delete-dialog.html">
+<link rel="import" href="edit-form.html">
+
+<dom-module id="fuzzers-page">
+  <link rel="import" href="../../stylesheets/main.css" type="css">
+  <link rel="import" href="../technology/technology.css" type="css">
+  <script src="../../javascripts/error.js" type="text/javascript"></script>
+  <template>
+    <style>
+      .name {
+        font-size: 16px;
+      }
+
+      .section {
+        margin-left: auto;
+        margin-right: auto;
+      }
+
+      .flex {
+        @apply --layout-horizontal;
+        border-bottom: 1px solid #979a95;
+        width: 100%;
+      }
+
+      .left {
+        padding: 10px;
+        width: 25%;
+      }
+
+      .mid {
+        padding: 10px;
+        width: 30%;
+        text-align: right;
+      }
+
+      .right {
+        padding: 10px;
+        width: 30%;
+        text-align: right;
+      }
+
+      .update {
+        padding: 10px;
+        width: 15%;
+        text-align: right;
+      }
+
+      table {
+        width: 100%;
+      }
+
+      td {
+        font-size: 14px;
+        width: 60%;
+      }
+
+      td.label {
+        color: #979a95;
+        text-align: right;
+        width: 40%;
+      }
+
+      .create {
+        padding-bottom: 10px;
+      }
+    </style>
+
+    <edit-form id="editForm" field-values="[[fieldValues]]" fuzzer="[[fuzzer]]">
+    </edit-form>
+    <delete-dialog id="deleteDialog" field-values="[[fieldValues]]" fuzzer="[[toDelete]]">
+    </delete-dialog>
+
+    <div class="create">
+      <paper-button class="info" raised on-tap="createTapped">Create New</paper-button>
+    </div>
+    <div class="section">
+      <div class="title">Fuzzers</div>
+        <div class="body">
+          <div>
+          <paper-input class="search-box" label="Enter search string here" value="{{searchString::input}}">
+            <iron-icon icon="icons:search" slot="prefix"></iron-icon>
+            <iron-icon icon="icons:help-outline" title="Search by fuzzer name." slot="suffix"></iron-icon>
+          </paper-input>
+          <template is="dom-repeat" items="[[fuzzers]]" initial-count="20" filter="[[computeFilter(searchString)]]">
+            <div class="flex">
+              <div class="left name">
+                [[item.name]]
+              </div>
+              <div class="mid">
+                <table>
+                  <tr>
+                    <td class="label">Logs:</td>
+                    <td>
+                      <template is="dom-if" if="[[item.console_output]]">
+                        <a target="_blank" href="/fuzzers/log/[[item.name]]">
+                          <iron-icon icon="visibility"></iron-icon>
+                        </a>
+                      </template>
+                      <a target="_blank" href="/gcs-redirect?path=/[[fuzzerLogsBucket]]/[[item.name]]">
+                        <iron-icon icon="list"></iron-icon>
+                      </a>
+                    </td>
+                  </tr>
+                  <template is="dom-if" if="[[item.sample_testcase]]">
+                    <tr>
+                      <td class="label">Sample testcase:</td>
+                      <td>
+                        <a target="_blank" href="/viewer?key=[[item.sample_testcase]]">
+                          <iron-icon icon="visibility"></iron-icon>
+                        </a>
+                        <a target="_blank" href="/download/[[item.sample_testcase]]">
+                          <iron-icon icon="file-download"></iron-icon>
+                        </a>
+                      </td>
+                    </tr>
+                  </template>
+                  <tr>
+                    <td class="label">Last result:</td>
+                    <td>
+                      [[formatResult(item.result)]]
+                    </td>
+                  </tr>
+                </table>
+              </div>
+              <div class="right">
+                <table>
+                  <tr>
+                    <td class="label">Updated:</td>
+                    <td>
+                    <if-else condition="[[item.timestamp]]">
+                      <span slot="t">[[formatDate(item.timestamp)]] (r[[item.revision]])</span>
+                      <span slot="f">NA</span>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td class="label">Source:</td>
+                    <td>[[item.source]]</td>
+                  </tr>
+                  <template is="dom-if" if="[[privileged]]">
+                    <template is="dom-if" if="[[item.blobstore_key]]">
+                      <tr>
+                        <td class="label">Download:</td>
+                        <td>
+                            <a href="/download/[[item.blobstore_key]]">
+                              <iron-icon icon="cloud-download"></iron-icon>
+                            </a>
+                            ([[item.file_size]])
+                        </td>
+                      </tr>
+                    </template>
+                  </template>
+                </table>
+              </div>
+              <div class="update">
+                <template is="dom-if" if="[[privileged]]">
+                  <paper-button fuzzer="[[item]]" raised on-tap="editTapped">Edit</paper-button>
+                  <paper-button class="info" fuzzer="[[item]]" raised on-tap="deleteTapped">Delete</paper-button>
+                </template>
+              </div>
+            </div>
+          </template>
+        </div>
+      </div>
+    </template>
+  <script>
+    Polymer({
+      is: 'fuzzers-page',
+      properties: {
+          fuzzer: Object,
+          fuzzers: Array,
+          jobs: Array,
+          privileged: Boolean,
+          fieldValues: Object,
+          toDelete: Boolean,
+      },
+      computeFilter(searchKey) {
+        if (!searchKey)
+          return null;
+
+        searchKey = searchKey.toLowerCase();
+        return (el) => (
+          el.name.toLowerCase().indexOf(searchKey) != -1 ||
+          (el.source && el.source.toLowerCase().indexOf(searchKey) != -1) ||
+          this.formatResult(el.result).toLowerCase().indexOf(searchKey) != -1
+        );
+      },
+      createTapped(e) {
+        this.$.editForm.create = true;
+        this.$.editForm.opened = true;
+        this.fuzzer = {
+          jobs: [],
+        };
+      },
+      editTapped(e) {
+        this.$.editForm.create = false;
+        this.$.editForm.opened = true;
+        this.fuzzer = e.target.fuzzer;
+      },
+      deleteTapped(e) {
+        this.$.deleteDialog.opened = true;
+        this.toDelete = e.target.fuzzer;
+      },
+      formatDate(timestamp) {
+        return new Date(timestamp * 1000).toLocaleString();
+      },
+      formatResult(result) {
+        if (result)
+          return result;
+
+        return 'Not run yet';
+      }
+    });
+  </script>
+</dom-module>
+

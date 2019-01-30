@@ -1,0 +1,85 @@
+{
+  "cacheHit": false, 
+  "kind": "bigquery#queryResponse", 
+  "rows": [
+    {
+      "f": [
+        {
+          "v": "1.477008E9"
+        }, 
+        {
+          "v": "6"
+        }, 
+        {
+          "v": "1.477008E9"
+        }, 
+        {
+          "v": "4693"
+        }
+      ]
+    }, 
+    {
+      "f": [
+        {
+          "v": "1.4771808E9"
+        }, 
+        {
+          "v": "7"
+        }, 
+        {
+          "v": "1.4771808E9"
+        }, 
+        {
+          "v": "214719"
+        }
+      ]
+    }, 
+    {
+      "f": [
+        {
+          "v": "1.4768352E9"
+        }, 
+        {
+          "v": "0"
+        }, 
+        {
+          "v": "1.4768352E9"
+        }, 
+        {
+          "v": "4091"
+        } 
+      ]
+    } 
+  ], 
+  "jobReference": {
+    "projectId": "test", 
+    "jobId": "job_iY2nDgZG0qSwqQGgjSSHKTQT5SI"
+  }, 
+  "jobComplete": true, 
+  "totalRows": "3", 
+  "totalBytesProcessed": "1738904", 
+  "schema": {
+    "fields": [
+      {
+        "type": "TIMESTAMP", 
+        "mode": "NULLABLE", 
+        "name": "j_date"
+      }, 
+      {
+        "type": "INTEGER", 
+        "mode": "NULLABLE", 
+        "name": "j_new_crashes"
+      }, 
+      {
+        "type": "TIMESTAMP", 
+        "mode": "NULLABLE", 
+        "name": "t_date"
+      }, 
+      {
+        "type": "FLOAT", 
+        "mode": "NULLABLE", 
+        "name": "t_blah"
+      } 
+    ]
+  }
+}

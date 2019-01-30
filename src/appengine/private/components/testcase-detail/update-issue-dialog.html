@@ -1,0 +1,98 @@
+<!--
+  Copyright 2018 Google LLC
+
+  Licensed under the Apache License, Version 2.0 (the "License");
+  you may not use this file except in compliance with the License.
+  You may obtain a copy of the License at
+
+       http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+-->
+<link rel="import" href="../../bower_components/polymer/polymer.html">
+<link rel="import" href="../../components/common/ajax-dialog/ajax-dialog.html">
+<link rel="import" href="../../bower_components/paper-checkbox/paper-checkbox.html">
+<link rel="import" href="../../bower_components/paper-input/paper-input.html">
+
+<dom-module id="update-issue-dialog">
+  <link rel="import" href="../technology/technology.css" type="css">
+  <template>
+    <style>
+      :host {
+        display: block;
+      }
+
+      :host .explanation {
+        width: 400px;
+      }
+
+      :host ajax-dialog > * {
+        display: block;
+        margin: 8px 0px;
+      }
+    </style>
+    <ajax-dialog
+        id="dialog"
+        url="/testcase-detail/update-issue"
+        title="Update issue"
+        submit-button="Update"
+        params="[[computeParams(info, issueId, needsSummaryUpdate)]]"
+        response="{{response}}"
+        opened="{{opened}}"
+        on-response="handleResponse">
+     <div class="explanation">
+        This will update an existing issue with this testcase. Note that manual issue updating is not recommended and should be only used in cases when automatic de-duplication failed.
+      </div>
+      <paper-input label="Issue Number" value="{{issueId}}"></paper-input>
+      <paper-checkbox value="True" checked="{{needsSummaryUpdate}}">Update summary on the issue?</paper-checkbox>
+    </ajax-dialog>
+  </template>
+  <script>
+    Polymer({
+      is: 'update-issue-dialog',
+      properties: {
+        info: {
+          type: Object,
+          notify: true
+        },
+        issueId: {
+          type: String,
+          value: ''
+        },
+        needsSummaryUpdate: {
+          type: Boolean,
+          value: false
+        },
+        response: Object,
+        opened: {
+          type: Boolean,
+          notify: true
+        }
+      },
+      observers: ['beforeOpen(opened)'],
+      computeParams(info, issueId, needsSummaryUpdate) {
+        if (!info) { return; }
+        return params = {
+          'testcaseId': info.testcase.id,
+          'issueId': issueId,
+          'needsSummaryUpdate': needsSummaryUpdate,
+          'csrf_token': info.csrf_token,
+        };
+      },
+      beforeOpen(opened) {
+        if (this.info) {
+          this.issueId = this.info.testcase.bug_information;
+        }
+      },
+      handleResponse() {
+        this.info = this.response;
+        this.$.dialog.close();
+      }
+    });
+  </script>
+</dom-module>
+

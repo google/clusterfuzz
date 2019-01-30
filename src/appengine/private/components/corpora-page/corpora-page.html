@@ -1,0 +1,154 @@
+<!--
+  Copyright 2018 Google LLC
+
+  Licensed under the Apache License, Version 2.0 (the "License");
+  you may not use this file except in compliance with the License.
+  You may obtain a copy of the License at
+
+       http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+-->
+<link rel="import" href="../../bower_components/polymer/polymer.html">
+<link rel="import" href="../../bower_components/paper-button/paper-button.html">
+<link rel="import" href="../../bower_components/paper-checkbox/paper-checkbox.html">
+<link rel="import" href="../../bower_components/paper-input/paper-input.html">
+<link rel="import" href="../../bower_components/paper-tooltip/paper-tooltip.html">
+<link rel="import" href="../../bower_components/iron-form/iron-form.html">
+
+<dom-module id="corpora-page">
+  <link rel="import" href="../../stylesheets/main.css" type="css">
+  <link rel="import" href="../technology/technology.css" type="css">
+  <script src="../../javascripts/error.js" type="text/javascript"></script>
+  <template>
+    <style>
+      .help-icon {
+        --iron-icon-height: 16px;
+        --iron-icon-width: 16px;
+      }
+      .name {
+        font-size: 16px;
+      }
+
+      .section {
+        margin-left: auto;
+        margin-right: auto;
+        max-width: 800px;
+      }
+
+      .left {
+        padding: 10px;
+        width: 70%;
+      }
+
+      .right {
+        padding: 10px;
+        width: 30%;
+        text-align: right;
+      }
+
+      .add-left {
+        width: 40%;
+        padding-left: 10px;
+      }
+
+      .add-right {
+        width: 60%;
+        padding-top: 10px;
+      }
+
+      .add-input {
+        padding: 0px;
+      }
+
+      .label {
+        color: #979a95;
+        font-size: 14px;
+      }
+
+      .centered {
+        margin: auto;
+      }
+    </style>
+
+    <div class="section">
+      <div class="title">Create new</div>
+      <div class="flex">
+        <div class="add-left">
+          <iron-form id="create_form" allow-redirect="true">
+            <form action="[[fieldValues.createUrl]]" method="post">
+              <input type="hidden" name="csrf_token" value="[[fieldValues.csrfToken]]" />
+              <paper-input class="add-input" label="Name" name="name" value=""></paper-input>
+              <paper-checkbox name="nfs">
+                Store on NFS
+              </paper-checkbox>
+              <span>
+              <iron-icon class="help-icon" icon="icons:help-outline">
+              </iron-icon>
+              <paper-tooltip>If this is enabled, the corpus is downloaded onto a shared NFS volume instead. Use this for only huge corpora. NFS is also not available everywhere.</paper-tooltip>
+              </span>
+            </form>
+          </iron-form>
+        </div>
+        <div class="add-right">
+          <paper-button on-tap="submitCreate" class="info" raised>Create</paper-button>
+        </div>
+      </div>
+    </div>
+    <div class="section">
+      <div class="title">Corpora</div>
+        <div class="body">
+          <paper-input class="search-box" label="Enter search string here" value="{{searchString::input}}">
+            <iron-icon icon="icons:search" slot="prefix"></iron-icon>
+            <iron-icon icon="icons:help-outline" title="Search by corpus name." slot="suffix"></iron-icon>
+          </paper-input>
+          <template is="dom-repeat" items="[[corpora]]" initial-count="20" filter="[[computeFilter(searchString)]]">
+            <div class="flex">
+              <div class="left name">
+                [[item.name]]
+              </div>
+              <div class="right">
+                <iron-form allow-redirect="true">
+                  <form action="[[fieldValues.deleteUrl]]" method="post">
+                    <input type="hidden" name="csrf_token" value="[[fieldValues.csrfToken]]" />
+                    <input type="hidden" name="key" value="[[item.id]]" />
+                    <a href="https://storage.cloud.google.com/[[item.bucket_name]]"><paper-button raised>View</paper-button></a>
+                    <paper-button on-tap="submitDelete" class="info" raised>Delete</paper-button>
+                  </form>
+                </iron-form>
+              </div>
+            </div>
+          </template>
+        </div>
+      </div>
+    </template>
+  <script>
+    Polymer({
+      is: 'corpora-page',
+      properties: {
+          corpora: Array,
+          fuzzers: Array,
+          jobs: Array,
+          fieldValues: Object,
+      },
+      submitCreate(e) {
+        this.$.create_form.submit();
+      },
+      submitDelete(e) {
+        e.target.parentNode.parentNode.submit();
+      },
+      computeFilter(searchKey) {
+        if (!searchKey)
+          return null;
+
+        searchKey = searchKey.toLowerCase();
+        return (el) => el['name'].toLowerCase().indexOf(searchKey) != -1;
+      }
+    });
+  </script>
+</dom-module>
+

@@ -1,0 +1,24 @@
+$ ASAN_OPTIONS=redzone=32:symbolize=0:detect_stack_use_after_return=1:alloc_dealloc_mismatch=0:detect_leaks=1:print_scariness=1:check_malloc_usable_size=0:max_uar_stack_size_log=16:use_sigaltstack=1:strict_memcmp=0:detect_container_overflow=1:coverage=0:detect_odr_violation=0:allocator_may_return_null=1:handle_segv=1:fast_unwind_on_fatal=1:symbolize=1 ~/chromium/src/out/Release/d8 --random-seed=-559099136 --invoke-weak-callbacks --omit-quit ./clusterfuzz-testcase-5095632168812544.js
+
+
+#
+# Fatal error in ../../v8/src/vector.h, line 24
+# Check failed: length == 0 || (length > 0 && data != __null).
+#
+
+==== C stack trace ===============================
+
+    /home/user/chromium/src/out/Release/d8(backtrace+0x61) [0x7f59ac2bd921]
+    /home/user/chromium/src/out/Release/./libv8_libbase.so(+0x25213) [0x7f59ac220213]
+    /home/user/chromium/src/out/Release/./libv8_libbase.so(V8_Fatal+0x272) [0x7f59ac216a92]
+    /home/user/chromium/src/out/Release/./libv8.so(+0x741549) [0x7f59a9f47549]
+    /home/user/chromium/src/out/Release/./libv8.so(+0x7ded03) [0x7f59a9fe4d03]
+    /home/user/chromium/src/out/Release/./libv8.so(+0x194cd84) [0x7f59ab152d84]
+    /home/user/chromium/src/out/Release/./libv8.so(+0x1946b08) [0x7f59ab14cb08]
+    /home/user/chromium/src/out/Release/./libv8.so(+0x75a0e0) [0x7f59a9f600e0]
+    /home/user/chromium/src/out/Release/./libv8.so(+0x946efe) [0x7f59aa14cefe]
+    /home/user/chromium/src/out/Release/./libv8.so(+0x945120) [0x7f59aa14b120]
+    /home/user/chromium/src/out/Release/./libv8.so(+0x9448a4) [0x7f59aa14a8a4]
+    [0x7f597f904204]
+Received signal 4 ILL_ILLOPN 7f59ac21d40c
+Illegal instruction (core dumped)

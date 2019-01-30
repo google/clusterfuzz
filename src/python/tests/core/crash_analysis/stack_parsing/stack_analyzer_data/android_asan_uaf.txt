@@ -1,0 +1,146 @@
+==378==ERROR: AddressSanitizer: heap-use-after-free on address 0xac80d400 at pc 0xaf036288 bp 0xac9ff740 sp 0xac9ff30c
+
+
+READ of size 2 at 0xac80d400 thread T27 (NuCachedSource2)
+
+    #0 0xaf036287 in strlen
+
+    #1 0xaef0a307 in __strlen_chk bionic/libc/bionic/fortify.cpp:313:16
+
+    #2 0xaf9f961d in strlen bionic/libc/include/string.h:325:12
+    #3 0xaf9f961d in android::AString::setTo(char const*) frameworks/av/media/libstagefright/foundation/AString.cpp:112
+    #4 0xaf9f961d in android::AString::AString(char const*) frameworks/av/media/libstagefright/foundation/AString.cpp:50
+
+    #5 0xaf755afb in android::MediaHTTP::connect(char const*, android::KeyedVector<android::String8, android::String8> const*, long long) frameworks/av/media/libstagefright/http/MediaHTTP.cpp:69:44
+
+    #6 0xaf755e23 in android::MediaHTTP::reconnectAtOffset(long long) frameworks/av/media/libstagefright/http/MediaHTTP.cpp:148:12
+
+    #7 0xaf757563 in android::NuCachedSource2::fetchInternal() frameworks/av/media/libstagefright/NuCachedSource2.cpp:339:13
+
+    #8 0xaf757253 in android::NuCachedSource2::onFetch() frameworks/av/media/libstagefright/NuCachedSource2.cpp:415:9
+
+    #9 0xaf758419 in android::AHandlerReflector<android::NuCachedSource2>::onMessageReceived(android::sp<android::AMessage> const&) frameworks/av/include/media/stagefright/foundation/AHandlerReflector.h:35:13
+
+    #10 0xaf9f37d5 in android::AHandler::deliverMessage(android::sp<android::AMessage> const&) frameworks/av/media/libstagefright/foundation/AHandler.cpp:27:5
+
+    #11 0xaf9f5b35 in android::AMessage::deliver() frameworks/av/media/libstagefright/foundation/AMessage.cpp:382:5
+
+    #12 0xaf9f440b in android::ALooper::loop() frameworks/av/media/libstagefright/foundation/ALooper.cpp:220:5
+
+    #13 0xaf82da85 in android::Thread::_threadLoop(void*) system/core/libutils/Threads.cpp:754:22
+
+    #14 0xaef376c3 in __pthread_start(void*) bionic/libc/bionic/pthread_create.cpp:198:18
+
+    #15 0xaef091cf in __start_thread bionic/libc/bionic/clone.cpp:41:16
+
+
+
+0xac80d400 is located 0 bytes inside of 64-byte region [0xac80d400,0xac80d440)
+
+freed by thread T27 (NuCachedSource2) here:
+
+    #0 0xaf04a90f in __interceptor_free
+
+    #1 0xaf9f966b in android::AString::clear() frameworks/av/media/libstagefright/foundation/AString.cpp:129:9
+
+
+
+previously allocated by thread T26 (generic) here:
+
+    #0 0xaf04afff in __interceptor_realloc
+
+    #1 0xaf9f986b in android::AString::append(char const*, unsigned int) frameworks/av/media/libstagefright/foundation/AString.cpp:195:25
+
+
+
+Thread T27 (NuCachedSource2) created by T26 (generic) here:
+
+    #0 0xaf0324db in pthread_create
+
+    #1 0xaf82d641 in androidCreateRawThreadEtc system/core/libutils/Threads.cpp:160:18
+
+
+
+Thread T26 (generic) created by T25 (NuPlayerDriver ) here:
+
+    #0 0xaf0324db in pthread_create
+
+    #1 0xaf82d641 in androidCreateRawThreadEtc system/core/libutils/Threads.cpp:160:18
+
+
+
+Thread T25 (NuPlayerDriver ) created by T2 (Binder:378_2) here:
+
+    #0 0xaf0324db in pthread_create
+
+    #1 0xaf82d641 in androidCreateRawThreadEtc system/core/libutils/Threads.cpp:160:18
+
+
+
+Thread T2 (Binder:378_2) created by T1 (Binder:378_1) here:
+
+    #0 0xaf0324db in pthread_create
+
+    #1 0xaf82d641 in androidCreateRawThreadEtc system/core/libutils/Threads.cpp:160:18
+
+
+
+Thread T1 (Binder:378_1) created by T0 here:
+
+    #0 0xaf0324db in pthread_create
+
+    #1 0xaf82d641 in androidCreateRawThreadEtc system/core/libutils/Threads.cpp:160:18
+
+    #2 0xaef061b1 in __libc_init bionic/libc/bionic/libc_init_dynamic.cpp:109:8
+
+    #3 0xffffffff  (<unknown module>)
+
+
+
+SUMMARY: AddressSanitizer: heap-use-after-free (/system/lib/libclang_rt.asan-arm-android.so+0x60287)
+
+Shadow bytes around the buggy address:
+  0x15901a30: fa fa fa fa fa fa fa fa fa fa fa fa fa fa fa fa
+  0x15901a40: fa fa fa fa 00 00 00 00 00 00 00 00 fa fa fa fa
+  0x15901a50: 00 00 00 00 00 00 04 fa fa fa fa fa 00 00 00 00
+  0x15901a60: 00 00 04 fa fa fa fa fa 00 00 00 00 00 00 00 fa
+  0x15901a70: fa fa fa fa fd fd fd fd fd fd fd fd fa fa fa fa
+=>0x15901a80:[fd]fd fd fd fd fd fd fd fa fa fa fa fd fd fd fd
+  0x15901a90: fd fd fd fd fa fa fa fa 00 00 00 00 00 00 00 04
+  0x15901aa0: fa fa fa fa 00 00 00 00 00 00 02 fa fa fa fa fa
+  0x15901ab0: fd fd fd fd fd fd fd fd fa fa fa fa 00 00 00 00
+  0x15901ac0: 00 00 00 04 fa fa fa fa fd fd fd fd fd fd fd fd
+  0x15901ad0: fa fa fa fa fd fd fd fd fd fd fd fd fa fa fa fa
+Shadow byte legend (one shadow byte represents 8 application bytes):
+  Addressable:           00
+  Partially addressable: 01 02 03 04 05 06 07
+  Heap left redzone:       fa
+  Heap right redzone:      fb
+  Freed heap region:       fd
+  Stack left redzone:      f1
+  Stack mid redzone:       f2
+  Stack right redzone:     f3
+  Stack partial redzone:   f4
+  Stack after return:      f5
+  Stack use after scope:   f8
+  Global redzone:          f9
+  Global init order:       f6
+  Poisoned by user:        f7
+  Container overflow:      fc
+  Array cookie:            ac
+  Intra object redzone:    bb
+  ASan internal:           fe
+  Left alloca redzone:     ca
+  Right alloca redzone:    cb
+
+==378==ABORTING
+
+--------- ServiceManager (284):
+service 'media.resource_manager' died
+service 'media.player' died
+--------- IMediaDeathNotifier (5901):
+media server died
+error (100, 0)
+Error (100,0)
+--------- mediaserver (5950):
+ServiceManager: 0xab607e40

@@ -1,0 +1,38 @@
+[27629:27629:0603+/master/docs/linux_suid_sandbox_development.md for more information on developing with the sandbox on.
+Xlib:  extension "RANDR" missing on display ":1".
+Xlib:  extension "RANDR" missing on display ":1".
+../../third_party/pdfium/core/fpdfapi/fpdf_page/fpdf_page_parser_old.cpp:298:3: runtime error: index 256 out of bounds for type uint8_t [256]
+    #0 0x7f0fc901002e in CPDF_StreamParser::ParseNextElement() third_party/pdfium/core/fpdfapi/fpdf_page/fpdf_page_parser_old.cpp:298:28
+    #1 0x7f0fc9096213 in CPDF_StreamContentParser::Parse(unsigned char const*, unsigned int, unsigned int) third_party/pdfium/core/fpdfapi/fpdf_page/fpdf_page_parser.cpp:1533:20
+    #2 0x7f0fc9013338 in CPDF_ContentParser::Continue(IFX_Pause*) third_party/pdfium/core/fpdfapi/fpdf_page/fpdf_page_parser_old.cpp:781:24
+    #3 0x7f0fc9001ed8 in CPDF_PageObjectHolder::ContinueParse(IFX_Pause*) third_party/pdfium/core/fpdfapi/fpdf_page/cpdf_pageobjectholder.cpp:28:14
+    #4 0x7f0fc92f1dd3 in CPDFXFA_Page::LoadPDFPage() third_party/pdfium/fpdfsdk/fpdfxfa/fpdfxfa_page.cpp:43:17
+    #5 0x7f0fc92eb075 in CPDFXFA_Document::GetPage(int) third_party/pdfium/fpdfsdk/fpdfxfa/fpdfxfa_doc.cpp:172:15
+    #6 0x7f0fc8f839be in FPDF_GetPageSizeByIndex third_party/pdfium/fpdfsdk/fpdfview.cpp:889:31
+    #7 0x7f0fc3574f28 in chrome_pdf::PDFiumEngine::GetPageSize(int) pdf/pdfium/pdfium_engine.cc:2683:12
+    #8 0x7f0fc35752b5 in chrome_pdf::PDFiumEngine::LoadPageInfo(bool) pdf/pdfium/pdfium_engine.cc:2569:38
+    #9 0x7f0fc3581a92 in chrome_pdf::PDFiumEngine::ContinueLoadingDocument(std::string const&) pdf/pdfium/pdfium_engine.cc:2534:3
+    #10 0x7f0fc3575c87 in chrome_pdf::PDFiumEngine::LoadDocument() pdf/pdfium/pdfium_engine.cc:2436:5
+    #11 0x7f0fc3591795 in operator() ppapi/utility/completion_callback_factory.h:607:9
+    #12 0x7f0fc3591795 in pp::CompletionCallbackFactory<chrome_pdf::DocumentLoader, pp::ThreadSafeThreadTraits>::CallbackData<pp::CompletionCallbackFactory<chrome_pdf::DocumentLoader, pp::ThreadSafeThreadTraits>::Dispatcher0<void (chrome_pdf::DocumentLoader::*)(int)> >::Thunk(void*, int) ppapi/utility/completion_callback_factory.h:584
+    #13 0x7f0fc6bfa460 in PP_RunCompletionCallback ppapi/c/pp_completion_callback.h:240:3
+    #14 0x7f0fc6bfa460 in CallWhileUnlocked<void, PP_CompletionCallback *, int, PP_CompletionCallback *, int> ppapi/shared_impl/proxy_lock.h:135
+    #15 0x7f0fc6bfa460 in ppapi::TrackedCallback::Run(int) ppapi/shared_impl/tracked_callback.cc:141
+    #16 0x7f0fc86815f4 in DispatchResourceReply<ppapi::proxy::URLLoaderResource, void (ppapi::proxy::URLLoaderResource::*)(const ppapi::proxy::ResourceMessageReplyParams &, int), int> ppapi/proxy/dispatch_reply_message.h:35:3
+    #17 0x7f0fc86815f4 in ppapi::proxy::URLLoaderResource::OnReplyReceived(ppapi::proxy::ResourceMessageReplyParams const&, IPC::Message const&) ppapi/proxy/url_loader_resource.cc:249
+    #18 0x7f0fc8622fea in ppapi::proxy::PluginMessageFilter::DispatchResourceReply(ppapi::proxy::ResourceMessageReplyParams const&, IPC::Message const&) ppapi/proxy/plugin_message_filter.cc:116:13
+    #19 0x7f0fc36572c2 in base::debug::TaskAnnotator::RunTask(char const*, base::PendingTask const&) base/debug/task_annotator.cc:51:21
+    #20 0x7f0fc35e02af in base::MessageLoop::RunTask(base::PendingTask const&) base/message_loop/message_loop.cc:475:19
+    #21 0x7f0fc35e0b69 in base::MessageLoop::DeferOrRunPendingTask(base::PendingTask const&) base/message_loop/message_loop.cc:484:5
+    #22 0x7f0fc35e1443 in base::MessageLoop::DoWork() base/message_loop/message_loop.cc:601:13
+    #23 0x7f0fc35e34c6 in base::MessagePumpDefault::Run(base::MessagePump::Delegate*) base/message_loop/message_pump_default.cc:33:31
+    #24 0x7f0fc3606b5c in base::RunLoop::Run() base/run_loop.cc:35:10
+    #25 0x7f0fc35df25c in base::MessageLoop::Run() base/message_loop/message_loop.cc:294:12
+    #26 0x7f0fc96f64e8 in content::PpapiPluginMain(content::MainFunctionParams const&) content/ppapi_plugin/ppapi_plugin_main.cc:137:21
+    #27 0x7f0fc356aad3 in content::RunZygote(content::MainFunctionParams const&, content::ContentMainDelegate*) content/app/content_main_runner.cc:345:14
+    #28 0x7f0fc356cbdf in content::ContentMainRunnerImpl::Run() content/app/content_main_runner.cc:787:12
+    #29 0x7f0fc356a65a in content::ContentMain(content::ContentMainParams const&) content/app/content_main.cc:20:28
+    #30 0x7f0fc2f10889 in ChromeMain chrome/app/chrome_main.cc:84:12
+    #31 0x7f0fb6650f44 in __libc_start_main /build/eglibc-oGUzwX/eglibc-2.19/csu/libc-start.c:287
+    #32 0x7f0fc2ef6ed4 in _start
+SUMMARY: UndefinedBehaviorSanitizer: undefined-behavior ../../third_party/pdfium/core/fpdfapi/fpdf_page/fpdf_page_parser_old.cpp:298:3 in

@@ -1,0 +1,32 @@
+==13931==ERROR: AddressSanitizer: SEGV on unknown address 0x00000011 (pc 0xb2011bf5 bp 0xaee0e750 sp 0xaebff7b0 T8)
+==13931==The signal is caused by a READ memory access.
+==13931==Hint: address points to the zero page.
+#0 0xb2011bf4 in _JavaVM::AttachCurrentThread(_JNIEnv**, void*) libnativehelper/include/nativehelper/jni.h:1060
+#1 0xb2011bf4 in javaAttachThread frameworks/base/core/jni/AndroidRuntime.cpp:1131
+#2 0xb2011bf4 in android::AndroidRuntime::javaThreadShell(void*) frameworks/base/core/jni/AndroidRuntime.cpp:1169
+#3 0xb1e188a9 in thread_data_t::trampoline(thread_data_t const*) system/core/libutils/Threads.cpp:99:16
+#4 0xb2370d0c in __asan::AsanThread::ThreadStart(unsigned long, __sanitizer::atomic_uintptr_t*)
+#5 0xb23550f9 in asan_thread_start(void*)
+#6 0xb1ec8404 in __pthread_start(void*) bionic/libc/bionic/pthread_create.cpp:198:18
+#7 0xb1e73610 in __start_thread bionic/libc/bionic/clone.cpp:41:16
+#8 0xb1e713c6 in __bionic_clone bionic/libc/arch-x86/bionic/__bionic_clone.S:54
+AddressSanitizer can not provide additional info.
+SUMMARY: AddressSanitizer: SEGV (/system/lib/libandroid_runtime.so+0x71bf4)
+Thread T8 (Binder:13931_2) created by T7 (Binder:13931_1) here:
+#0 0xb2354f89 in pthread_create
+#1 0xb1e18714 in androidCreateRawThreadEtc system/core/libutils/Threads.cpp:160:18
+#2 0xb2011cfd in android::AndroidRuntime::javaCreateThreadEtc(int (*)(void*), void*, char const*, int, unsigned int, void**) frameworks/base/core/jni/AndroidRuntime.cpp:1207
+#3 0xb183b361 in android::ProcessState::spawnPooledThread(bool) frameworks/native/libs/binder/ProcessState.cpp:293:9
+#4 0xb1814fc9 in android::IPCThreadState::executeCommand(int) frameworks/native/libs/binder/IPCThreadState.cpp:1169:9
+#5 0xb1814a7e in android::IPCThreadState::getAndExecuteCommand() frameworks/native/libs/binder/IPCThreadState.cpp:445:18
+#6 0xb18152bf in android::IPCThreadState::joinThreadPool(bool) frameworks/native/libs/binder/IPCThreadState.cpp:513:18
+#7 0xb183c12e in android::PoolThread::threadLoop() frameworks/native/libs/binder/ProcessState.cpp:63:9
+#8 0xb1e190d9 in android::Thread::_threadLoop(void*) system/core/libutils/Threads.cpp:751:26
+#9 0xb2011c00 in android::AndroidRuntime::javaThreadShell(void*) frameworks/base/core/jni/AndroidRuntime.cpp:1173
+Thread T7 (Binder:13931_1) created by T0 (Shutdown thread) here:
+#0 0xb2354f89 in pthread_create
+#1 0xb1e18714 in androidCreateRawThreadEtc system/core/libutils/Threads.cpp:160:18
+#2 0xb2011cfd in android::AndroidRuntime::javaCreateThreadEtc(int (*)(void*), void*, char const*, int, unsigned int, void**) frameworks/base/core/jni/AndroidRuntime.cpp:1207
+#3 0xb183b361 in android::ProcessState::spawnPooledThread(bool) frameworks/native/libs/binder/ProcessState.cpp:293:9
+#4 0xb183b253 in android::ProcessState::startThreadPool() frameworks/native/libs/binder/ProcessState.cpp:137:9
+#5 0xb5611f7f in android::AppRuntime::onStarted() frameworks/base/cmds/app_process/app_main.cpp:83:9

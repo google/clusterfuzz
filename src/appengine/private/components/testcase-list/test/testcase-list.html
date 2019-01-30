@@ -1,0 +1,166 @@
+<!--
+  Copyright 2018 Google LLC
+
+  Licensed under the Apache License, Version 2.0 (the "License");
+  you may not use this file except in compliance with the License.
+  You may obtain a copy of the License at
+
+       http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+-->
+<html>
+<head>
+  <script src="../../../bower_components/iron-test-helpers/mock-interactions.js"></script>
+  <script src="../../../bower_components/web-component-tester/browser.js"></script>
+  <script src="../../../bower_components/webcomponentsjs/webcomponents-lite.js"></script>
+  <script src="../../../javascripts/test-helpers.js"></script>
+
+  <link rel="import" href="../testcase-list.html">
+</head>
+<body>
+  <test-fixture id="panel">
+    <template>
+      <testcase-list></testcase-list>
+    </template>
+  </test-fixture>
+  <script>
+    suite2('<testcase-list>', ($) => {
+      const response = JSON.stringify({
+        totalItems: 2000,
+        totalPages: 30,
+        page: 1,
+        pageSize: 20,
+        items: [{}, {}]
+      });
+      const url = '/testcases/load';
+
+      setup(() => {
+        sinon.spy(window.history, 'pushState');
+        sinon.stub(window.query, 'get');
+        $.panel.result = {page: 1, items:[]};
+        $.panel.params = {};
+      });
+
+      teardown(() => {
+        window.history.pushState.restore();
+        window.query.get.restore();
+      });
+
+      test2(
+        'Search all (with showall=1) when params are empty.',
+        () => {
+          $.server.respondWith('POST', url, [200, jsonHeaders, response]);
+          $.panel.search();
+
+          let req = $.select('#ajax').activeRequests[0];
+          let params = JSON.parse(req.xhr.requestBody);
+
+          expect(req.url).to.be.eql(url);
+          expect(params.showall).to.eql('1');
+          expect($.panel.loading).to.be.true;
+
+          $.server.respond();
+          return req.completes;
+        },
+        () => {
+          expect($.panel.result.items).to.have.lengthOf(2);
+          expect(window.history.pushState.args).to.eql(
+              [['', '', window.location.pathname + '?showall=1']]);
+        }
+      );
+
+      test2(
+        'Add showall=1 when params are all empty except page.',
+        () => {
+          $.server.respondWith('POST', url, [200, jsonHeaders, response]);
+          $.panel.params = {page: '5'};
+          $.panel.search();
+
+          let req = $.select('#ajax').activeRequests[0];
+          let params = JSON.parse(req.xhr.requestBody)
+
+          expect(req.url).to.be.eql(url);
+          expect(params).to.be.eql({showall: '1', page: '5'});
+          expect($.panel.loading).to.be.true;
+
+          $.server.respond();
+          return req.completes;
+        },
+        () => {
+          expect($.panel.result.items).to.have.lengthOf(2);
+          expect(window.history.pushState.args).to.eql(
+              [['', '',
+                window.location.pathname + '?page=5&showall=1']]);
+        }
+      );
+
+      test2(
+        'Search',
+        () => {
+          $.server.respondWith('POST', url, [200, jsonHeaders, response]);
+          $.panel.params.issue = 'yes';
+          $.panel.params.page = '2';
+
+          $.panel.search();
+
+          let req = $.select('#ajax').activeRequests[0];
+          let params = JSON.parse(req.xhr.requestBody)
+
+          expect(req.url).to.be.eql(url);
+          expect(params.page).to.be.eql('2');
+          expect(params.issue).to.be.eql('yes');
+          expect(params.showall).to.be.undefined;
+          expect($.panel.loading).to.be.true;
+
+          $.server.respond();
+          return req.completes;
+        },
+        () => {
+          expect($.panel.result.items).to.have.lengthOf(2);
+          expect(window.history.pushState.args).to.eql(
+              [['', '',
+                window.location.pathname + '?issue=yes&page=2']]);
+        }
+      );
+
+      test2(
+        'Search twice cancels the first request',
+        () => {
+          $.server.respondWith('POST', url, [200, jsonHeaders, response]);
+
+          $.panel.params.issue = 'yes';
+          $.panel.params.page = '27';
+          $.panel.search();
+          $.panel.params.page = '30';
+          $.panel.search();
+
+          expect($.select('#ajax').activeRequests).to.have.lengthOf(2);
+          expect($.panel.loading).to.be.true;
+        },
+        () => {
+          expect($.select('#ajax').activeRequests).to.have.lengthOf(1);
+
+          let req = $.select('#ajax').activeRequests[0];
+          expect(req.url).to.be.eql(url);
+          expect(JSON.parse(req.xhr.requestBody).page).to.be.eql('30');
+
+          $.server.respond();
+          return req.completes;
+        },
+        () => {
+          expect($.panel.result.items).to.have.lengthOf(2);
+          expect(window.history.pushState.args).to.eql(
+              [['', '', window.location.pathname + '?issue=yes&page=27'],
+               ['', '', window.location.pathname + '?issue=yes&page=30']]);
+        }
+      );
+    });
+  </script>
+</body>
+</html>
+

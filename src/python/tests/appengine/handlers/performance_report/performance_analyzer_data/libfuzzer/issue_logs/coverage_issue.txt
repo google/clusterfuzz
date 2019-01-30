@@ -1,0 +1,25 @@
+Command: ['/mnt/scratch0/clusterfuzz/bot/builds/chromium-browser-libfuzzer_linux-release-asan_ae530a86793cd6b8b56ce9af9159ac101396e802/revisions/libfuzzer-linux-release-404048/boringssl_spki_fuzzer', '-max_len=1024', '-timeout=300', '-rss_limit_mb=3000', '-max_total_time=3250', '-print_final_stats=1', '/mnt/scratch0/clusterfuzz/bot/inputs/fuzzer-testcases-disk/temp/new', '/mnt/scratch0/clusterfuzz/bot/inputs/fuzzers/libfuzzer/libfuzzer_data/boringssl_spki_fuzzer']
+Bot: clusterfuzz-linux-pre-0045
+Time ran: 3251.059360
+INFO: Seed: 4098462680
+INFO: Loaded 1 modules (5677 guards): [0x954b10, 0x95a3c4),
+Loading corpus: /mnt/scratch0/clusterfuzz/bot/inputs/fuzzers/libfuzzer/libfuzzer_data/boringssl_spki_fuzzer
+#0  READ   units: 480 exec/s: 0
+#482  INITED cov: 853 bits: 1627 indir: 45 units: 115 exec/s: 0
+#65536  pulse  cov: 927 bits: 1629 indir: 51 units: 117 exec/s: 21845
+#131072 pulse  cov: 927 bits: 1629 indir: 51 units: 117 exec/s: 21845
+#262144 pulse  cov: 927 bits: 1629 indir: 51 units: 117 exec/s: 21845
+#524288 pulse  cov: 927 bits: 1629 indir: 51 units: 117 exec/s: 20971
+#1048576  pulse  cov: 927 bits: 1629 indir: 51 units: 117 exec/s: 20164
+#2097152  pulse  cov: 927 bits: 1629 indir: 51 units: 117 exec/s: 19599
+#4194304  pulse  cov: 927 bits: 1631 indir: 51 units: 118 exec/s: 18978
+#8388608  pulse  cov: 927 bits: 1631 indir: 51 units: 118 exec/s: 18477
+#16777216 pulse  cov: 927 bits: 1631 indir: 51 units: 118 exec/s: 18275
+#33554432 pulse  cov: 927 bits: 1631 indir: 51 units: 118 exec/s: 18196
+#60597322 DONE   cov: 927 bits: 1631 indir: 51 units: 118 exec/s: 18639
+Done 60597322 runs in 3251 second(s)
+stat::number_of_executed_units: 60597322
+stat::average_exec_per_sec:     18639
+stat::new_units_added:          0
+stat::slowest_unit_time_sec:    0
+stat::peak_rss_mb:              57

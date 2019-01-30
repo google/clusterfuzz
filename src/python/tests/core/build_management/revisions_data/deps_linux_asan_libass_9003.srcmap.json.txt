@@ -1,0 +1,7 @@
+{
+  "/src/libass": {
+    "type": "git",
+    "url": "https://github.com/libass/libass.git",
+    "rev": "54444451414e3efb4a4c7e319a3f4110e20c7cf2"
+  }
+}

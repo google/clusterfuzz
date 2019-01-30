@@ -1,0 +1,292 @@
+Microsoft (R) Windows Debugger Version 10.0.10240.9 AMD64
+Copyright (c) Microsoft Corporation. All rights reserved.
+
+CommandLine: "C:\Program Files\Internet Explorer\iexplore.exe" -extoff http://127.0.0.1:8000/fuzzer-testcases/fuzz-00176.html
+
+************* Symbol Path validation summary **************
+Response                         Time (ms)     Location
+Deferred                                       srv*c:\symbols64*http://msdl.microsoft.com/download/symbols
+Symbol search path is: srv*c:\symbols64*http://msdl.microsoft.com/download/symbols
+Executable search path is:
+ModLoad: 00007ff6`4ffc0000 00007ff6`50088000   iexplore.exe
+ModLoad: 00007ff8`d31b0000 00007ff8`d335d000   ntdll.dll
+ModLoad: 00007ff8`c8280000 00007ff8`c82ec000   C:\windows\system32\verifier.dll
+Page heap: pid 0xDC8: page heap enabled with flags 0x3.
+ModLoad: 00007ff8`d0ad0000 00007ff8`d0c0e000   C:\windows\system32\KERNEL32.DLL
+ModLoad: 00007ff8`d0410000 00007ff8`d0525000   C:\windows\system32\KERNELBASE.dll
+ModLoad: 00007ff8`cef10000 00007ff8`cef9e000   C:\windows\system32\apphelp.dll
+SHIMVIEW: ShimInfo(Complete)
+ModLoad: 00007ff8`d2960000 00007ff8`d2ad7000   C:\windows\system32\USER32.dll
+ModLoad: 00007ff8`d3040000 00007ff8`d30ea000   C:\windows\system32\msvcrt.dll
+ModLoad: 00007ff8`ceba0000 00007ff8`cec52000   C:\windows\SYSTEM32\shcore.dll
+ModLoad: 00007ff8`c75c0000 00007ff8`c7889000   C:\windows\SYSTEM32\iertutil.dll
+ModLoad: 00007ff8`d0d80000 00007ff8`d0ed0000   C:\windows\system32\GDI32.dll
+ModLoad: 00007ff8`d2d70000 00007ff8`d2f81000   C:\windows\SYSTEM32\combase.dll
+ModLoad: 00007ff8`d0c20000 00007ff8`d0d60000   C:\windows\system32\RPCRT4.dll
+ModLoad: 00007ff8`d0760000 00007ff8`d078e000   C:\windows\system32\SspiCli.dll
+ModLoad: 00007ff8`d0ed0000 00007ff8`d0f29000   C:\windows\SYSTEM32\sechost.dll
+ModLoad: 00007ff8`c26b0000 00007ff8`c356b000   C:\windows\SYSTEM32\IEFRAME.dll
+ModLoad: 00007ff8`d3150000 00007ff8`d31a4000   C:\windows\system32\SHLWAPI.dll
+ModLoad: 00007ff8`d2b50000 00007ff8`d2ce4000   C:\windows\system32\ole32.dll
+ModLoad: 00007ff8`d0a00000 00007ff8`d0ac1000   C:\windows\system32\OLEAUT32.dll
+ModLoad: 00007ff8`d0f30000 00007ff8`d245b000   C:\windows\system32\SHELL32.dll
+ModLoad: 00007ff8`ce460000 00007ff8`ce6da000   C:\windows\WinSxS\amd64_microsoft.windows.common-controls_6595b64144ccf1df_6.0.9600.17810_none_6240b9c7ecbd0bda\comctl32.dll
+ModLoad: 00007ff8`c8080000 00007ff8`c80e2000   C:\Program Files\Internet Explorer\IEShims.dll
+ModLoad: 00007ff8`d2f90000 00007ff8`d303a000   C:\windows\system32\ADVAPI32.dll
+ModLoad: 00007ff8`d0940000 00007ff8`d09f6000   C:\windows\system32\comdlg32.dll
+ModLoad: 00007ff8`cefe0000 00007ff8`cefeb000   C:\windows\SYSTEM32\kernel.appcore.dll
+ModLoad: 00007ff8`d0150000 00007ff8`d015b000   C:\windows\SYSTEM32\CRYPTBASE.dll
+ModLoad: 00007ff8`d00e0000 00007ff8`d0143000   C:\windows\SYSTEM32\bcryptPrimitives.dll
+ModLoad: 00007ff8`c7330000 00007ff8`c7339000   C:\windows\system32\wls0wndh.dll
+ModLoad: 00007ff8`c44c0000 00007ff8`c4645000   C:\windows\SYSTEM32\urlmon.dll
+ModLoad: 00007ff8`c4230000 00007ff8`c44b3000   C:\windows\SYSTEM32\WININET.dll
+ModLoad: 00007ff8`cf8b0000 00007ff8`cf8d1000   C:\windows\SYSTEM32\USERENV.dll
+ModLoad: 00007ff8`d02e0000 00007ff8`d02f5000   C:\windows\SYSTEM32\profapi.dll
+ModLoad: 00007ff8`cb010000 00007ff8`cb05b000   C:\Program Files\Internet Explorer\sqmapi.dll
+ModLoad: 00007ff8`c9ec0000 00007ff8`c9ecc000   C:\windows\SYSTEM32\Secur32.dll
+ModLoad: 00007ff8`d30f0000 00007ff8`d314a000   C:\windows\system32\WS2_32.dll
+ModLoad: 00007ff8`d27a0000 00007ff8`d27a9000   C:\windows\system32\NSI.dll
+ModLoad: 00007ff8`cce80000 00007ff8`cce8c000   C:\windows\SYSTEM32\ondemandconnroutehelper.dll
+ModLoad: 00007ff8`cb2b0000 00007ff8`cb379000   C:\windows\SYSTEM32\winhttp.dll
+ModLoad: 00007ff8`cfb20000 00007ff8`cfb79000   C:\windows\system32\mswsock.dll
+ModLoad: 00007ff8`ccdf0000 00007ff8`cce1a000   C:\windows\SYSTEM32\IPHLPAPI.DLL
+ModLoad: 00007ff8`cd820000 00007ff8`cd82a000   C:\windows\SYSTEM32\WINNSI.DLL
+ModLoad: 00007ff8`cf920000 00007ff8`cf9c4000   C:\windows\SYSTEM32\DNSAPI.dll
+ModLoad: 00007ff8`cb3a0000 00007ff8`cb3aa000   C:\Windows\System32\rasadhlp.dll
+ModLoad: 00007ff8`cccf0000 00007ff8`ccd5b000   C:\windows\System32\fwpuclnt.dll
+ModLoad: 00007ff8`cfb80000 00007ff8`cfba0000   C:\windows\SYSTEM32\CRYPTSP.dll
+ModLoad: 00007ff8`cf7c0000 00007ff8`cf7f6000   C:\windows\system32\rsaenh.dll
+ModLoad: 00007ff8`cfdd0000 00007ff8`cfdf6000   C:\windows\SYSTEM32\bcrypt.dll
+ModLoad: 00007ff8`d0840000 00007ff8`d08f6000   C:\windows\SYSTEM32\clbcatq.dll
+ModLoad: 00007ff8`c7500000 00007ff8`c75ba000   C:\Program Files\Internet Explorer\ieproxy.dll
+ModLoad: 00007ff8`cd940000 00007ff8`cd956000   C:\windows\SYSTEM32\NETAPI32.dll
+ModLoad: 00007ff8`cd8e0000 00007ff8`cd8ec000   C:\windows\SYSTEM32\netutils.dll
+ModLoad: 00007ff8`cfef0000 00007ff8`cff16000   C:\windows\SYSTEM32\srvcli.dll
+ModLoad: 00007ff8`cd880000 00007ff8`cd897000   C:\windows\SYSTEM32\wkscli.dll
+ModLoad: 00007ff8`d0580000 00007ff8`d075f000   C:\windows\system32\CRYPT32.dll
+ModLoad: 00007ff8`d0390000 00007ff8`d03a1000   C:\windows\system32\MSASN1.dll
+ModLoad: 00007ff8`cefa0000 00007ff8`cefaa000   C:\windows\SYSTEM32\DPAPI.dll
+ModLoad: 00007ff8`cd8f0000 00007ff8`cd91b000   C:\windows\SYSTEM32\slc.dll
+ModLoad: 00007ff8`cd850000 00007ff8`cd872000   C:\windows\SYSTEM32\sppc.dll
+ModLoad: 00007ff8`c4190000 00007ff8`c4229000   C:\windows\SYSTEM32\IEUI.dll
+ModLoad: 00007ff8`ceff0000 00007ff8`cf119000   C:\windows\SYSTEM32\UxTheme.dll
+ModLoad: 00007ff8`cd200000 00007ff8`cd26a000   C:\Windows\System32\oleacc.dll
+ModLoad: 00007ff8`ce100000 00007ff8`ce2ae000   C:\windows\system32\windowscodecs.dll
+ModLoad: 00007ff8`ce9a0000 00007ff8`ce9c1000   C:\windows\SYSTEM32\dwmapi.dll
+ModLoad: 00007ff8`c23b0000 00007ff8`c26ab000   C:\windows\system32\explorerframe.dll
+ModLoad: 00007ff8`ce050000 00007ff8`ce0f4000   C:\windows\system32\DUser.dll
+ModLoad: 00007ff8`ce9d0000 00007ff8`ceb91000   C:\windows\system32\DUI70.dll
+ModLoad: 00007ff8`d0900000 00007ff8`d0936000   C:\windows\system32\IMM32.dll
+ModLoad: 00007ff8`d2460000 00007ff8`d25b2000   C:\windows\system32\MSCTF.dll
+ModLoad: 00007ff8`cc870000 00007ff8`cc877000   C:\windows\SYSTEM32\MSIMG32.dll
+ModLoad: 00007ff8`c8c10000 00007ff8`c8c4e000   C:\windows\SYSTEM32\MLANG.dll
+ModLoad: 00007ff8`c0b00000 00007ff8`c23a8000   C:\windows\SYSTEM32\MSHTML.dll
+ModLoad: 00007ff8`cb9f0000 00007ff8`cbb6f000   C:\windows\SYSTEM32\PROPSYS.dll
+ModLoad: 00007ff8`c0830000 00007ff8`c0af3000   C:\Windows\System32\actxprxy.dll
+ModLoad: 00007ff8`d25c0000 00007ff8`d279a000   C:\windows\system32\SETUPAPI.dll
+ModLoad: 00007ff8`d0530000 00007ff8`d057f000   C:\windows\system32\CFGMGR32.dll
+ModLoad: 00007ff8`cc260000 00007ff8`cc2c4000   C:\windows\SYSTEM32\ninput.dll
+ModLoad: 00007ff8`c7f90000 00007ff8`c7fdd000   C:\Windows\System32\Windows.Graphics.dll
+ModLoad: 00007ff8`c0260000 00007ff8`c082f000   C:\Windows\System32\jscript9.dll
+ModLoad: 00007ff8`cc6c0000 00007ff8`cc6d0000   C:\windows\system32\msimtf.dll
+ModLoad: 00007ff8`bfdd0000 00007ff8`c0251000   C:\windows\SYSTEM32\d2d1.dll
+ModLoad: 00007ff8`cd270000 00007ff8`cd45c000   C:\windows\SYSTEM32\DWrite.dll
+ModLoad: 00007ff8`cdb00000 00007ff8`cdb87000   C:\windows\SYSTEM32\dxgi.dll
+ModLoad: 00007ff8`cdd90000 00007ff8`cdfc3000   C:\windows\SYSTEM32\d3d11.dll
+ModLoad: 00007ff8`cc9d0000 00007ff8`ccc2f000   C:\windows\SYSTEM32\d3d10warp.dll
+ModLoad: 00007ff8`ce6e0000 00007ff8`ce740000   C:\windows\SYSTEM32\dcomp.dll
+ModLoad: 00007ff8`cafd0000 00007ff8`cafef000   C:\Windows\System32\vaultcli.dll
+(dc8.9d8): C++ EH exception - code e06d7363 (first chance)
+(dc8.9d8): Integer overflow - code c0000095 (first chance)
+First chance exceptions are reported before any exception handling.
+This exception may be expected and handled.
+No .natvis files found at C:\Program Files (x86)\Windows Kits\10\Debuggers\x64\Visualizers.
+jscript9!Js::TaggedInt::Divide+0x7f:
+00007ff8`c02ed674 f7f9            idiv    eax,ecx
+0:012> cdb: Reading initial command sxd wos; sxd wob; !analyze -v; k; r; ub; q
+*******************************************************************************
+*                                                                             *
+*                        Exception Analysis                                   *
+*                                                                             *
+*******************************************************************************
+
+
+FAULTING_IP:
+jscript9!Js::TaggedInt::Divide+7f
+00007ff8`c02ed674 f7f9            idiv    eax,ecx
+
+EXCEPTION_RECORD:  (.exr -1)
+ExceptionAddress: 00007ff8c02ed674 (jscript9!Js::TaggedInt::Divide+0x000000000000007f)
+   ExceptionCode: c0000095 (Integer overflow)
+  ExceptionFlags: 00000000
+NumberParameters: 0
+
+FAULTING_THREAD:  000009d8
+
+PROCESS_NAME:  iexplore.exe
+
+ERROR_CODE: (NTSTATUS) 0xc0000095 - {EXCEPTION}  Integer overflow.
+
+EXCEPTION_CODE: (NTSTATUS) 0xc0000095 - {EXCEPTION}  Integer overflow.
+
+NTGLOBALFLAG:  2000000
+
+APPLICATION_VERIFIER_FLAGS:  0
+
+APPLICATION_VERIFIER_LOADED: 1
+
+APP:  iexplore.exe
+
+ANALYSIS_VERSION: 10.0.10240.9 amd64fre
+
+BUGCHECK_STR:  STATUS_INTEGER_OVERFLOW_AVRF
+
+DEFAULT_BUCKET_ID:  STATUS_INTEGER_OVERFLOW_AVRF
+
+LAST_CONTROL_TRANSFER:  from 00007ff8c045e70d to 00007ff8c02ed674
+
+STACK_TEXT:
+000000bc`aeaaa440 00007ff8`c045e70d : 00010000`80000000 00010000`ffffffff 000000bc`a8524380 ffff0000`00000000 : jscript9!Js::TaggedInt::Divide+0x7f
+000000bc`aeaaa480 00007ff8`c045e6c5 : 000000bc`aeaaac70 00010000`80000000 00010000`ffffffff 000000bc`a8524380 : jscript9!Js::InterpreterStackFrame::ProfiledDivide+0x2d
+000000bc`aeaaa4e0 00007ff8`c02f21bc : 000000bc`aeaaac70 fffc0000`00000000 00000000`00000005 00000000`00000000 : jscript9!Js::InterpreterStackFrame::Process+0x8000
+000000bc`aeaaa860 00007ff8`c02f213c : 000000bc`aeaaac70 000000bc`aeaaa900 000000c4`b1575c98 00000000`00000008 : jscript9!Js::InterpreterStackFrame::OP_TryCatch+0x68
+000000bc`aeaaa8c0 00007ff8`c0276220 : 000000bc`aeaaac70 000000c4`b3ad0140 000000bc`a8524380 00000000`00000000 : jscript9!Js::InterpreterStackFrame::Process+0x50a7
+000000bc`aeaaac40 000000c4`b3ae0fc3 : 000000bc`aeaab690 00000000`00000000 00000000`00000000 000000c4`b15b2400 : jscript9!Js::InterpreterStackFrame::InterpreterThunk<1>+0x386
+000000bc`aeaab660 00007ff8`c0271e93 : 000000c4`b15b2400 00000000`00000000 00000000`00000000 00000000`00000000 : 0x000000c4`b3ae0fc3
+000000bc`aeaab690 00007ff8`c0271961 : 000000bc`a8517950 00000000`00000000 000000c4`b15b2400 000000bc`a8524380 : jscript9!amd64_CallFunction+0x93
+000000bc`aeaab6e0 00007ff8`c0271b6e : 000000c4`b15b2400 00007ff8`c0261240 000000bc`aeaab780 000000bc`a85adf01 : jscript9!Js::JavascriptFunction::CallFunction<1>+0x6d
+000000bc`aeaab720 00007ff8`c0271c6f : 000000c4`b15b2400 000000bc`aeaab840 000000bc`a8524380 00000000`00000000 : jscript9!Js::JavascriptFunction::CallRootFunction+0x110
+000000bc`aeaab800 00007ff8`c0271bc8 : 000000c4`b15b2400 000000bc`aeaab880 00000000`00000000 000000bc`aeaab898 : jscript9!ScriptSite::CallRootFunction+0x63
+000000bc`aeaab860 00007ff8`c02bf072 : 000000bc`a8443f00 000000c4`b15b2400 000000bc`aeaab950 00000000`00000000 : jscript9!ScriptSite::Execute+0x122
+000000bc`aeaab8f0 00007ff8`c02be7d9 : 000000bc`a8511c40 000000bc`aeaabf00 000000bc`aeaabf40 000000c4`80000082 : jscript9!ScriptEngine::ExecutePendingScripts+0x208
+000000bc`aeaab9e0 00007ff8`c02c0bc4 : 000000bc`a8511c40 000000c4`b091c4f4 000000c4`b0397fe4 000000c4`afc74280 : jscript9!ScriptEngine::ParseScriptTextCore+0x4a5
+000000bc`aeaabb40 00007ff8`c0c9aee1 : 000000bc`a8511c78 000000c4`b091c4f4 000000c4`b0397fe4 000000c4`afc74280 : jscript9!ScriptEngine::ParseScriptText+0xc4
+000000bc`aeaabbf0 00007ff8`c0c9ad4b : 000000c4`b091c4f4 00000000`8000ffff 00000000`00000000 000000c4`afc741a8 : MSHTML!CActiveScriptHolder::ParseScriptText+0xc1
+000000bc`aeaabc70 00007ff8`c0c9a9e5 : 00000000`00000082 000000bc`aeaabdc9 000000c4`afc741a8 00000000`00000008 : MSHTML!CJScript9Holder::ParseScriptText+0xf7
+000000bc`aeaabd20 00007ff8`c0c9bdab : 00000000`00000000 00000000`00000000 000000c4`afc48000 000000c4`afc741a8 : MSHTML!CScriptCollection::ParseScriptText+0x28c
+000000bc`aeaabe00 00007ff8`c0c9b92e : 000000c4`afc741a8 00000000`00000000 00000000`00000000 00000000`00000000 : MSHTML!CScriptData::CommitCode+0x3d9
+000000bc`aeaabfd0 00007ff8`c0c9b6b1 : 000000c4`afc741a8 000000c4`afbfc360 000000c4`afc741a8 00000000`00000000 : MSHTML!CScriptData::Execute+0x283
+000000bc`aeaac090 00007ff8`c1400b57 : 00000000`00000000 000000c4`afbfc360 000000bc`aeaac150 00000000`00000000 : MSHTML!CHtmScriptParseCtx::Execute+0x101
+000000bc`aeaac0d0 00007ff8`c13acd09 : 000000c4`afc64230 000000c4`afc580b0 00007ff8`c0b31f50 00000000`00000000 : MSHTML!CHtmParseBase::Execute+0x235
+000000bc`aeaac170 00007ff8`c0b32554 : 000000c4`afc48000 000000bc`aeaac2b0 00000000`00000001 000000c4`afbf8110 : MSHTML!CHtmPost::Broadcast+0x80
+000000bc`aeaac1b0 00007ff8`c0be688f : 000000c4`afbe0000 00007ff8`d31cc073 00007ff8`c0be68f0 000000bc`a84c2ff4 : MSHTML!CHtmPost::Exec+0x51a
+000000bc`aeaac3c0 00007ff8`c0be67d8 : 000000c4`afc580b0 000000bc`aeaac440 00000000`1849846f 000000c4`afc580b0 : MSHTML!CHtmPost::Run+0x3f
+000000bc`aeaac3f0 00007ff8`c0be8194 : 000000c4`afbe0000 00000000`00000001 000000c4`afc580b0 00000000`00000000 : MSHTML!PostManExecute+0x70
+000000bc`aeaac470 00007ff8`c0beb143 : 000000c4`afc580b0 c0040903`00000000 000000c4`afbe0000 00007ff8`c75c1551 : MSHTML!PostManResume+0xa1
+000000bc`aeaac4b0 00007ff8`c0c7afa7 : 000000c4`afc58160 00000000`00000001 000000c4`afc08000 000000bc`ae38b710 : MSHTML!CHtmPost::OnDwnChanCallback+0x43
+000000bc`aeaac500 00007ff8`c13d9c94 : 000000c4`afbe0000 00000000`00000001 00000000`00000001 00000000`00000001 : MSHTML!CDwnChan::OnMethodCall+0x41
+000000bc`aeaac530 00007ff8`c0b0a415 : 00000000`00000000 000000bc`aeaac8a0 00000000`00000000 00007ff8`c26cc500 : MSHTML!GlobalWndOnMethodCall+0x236
+000000bc`aeaac5d0 00007ff8`d29623fd : 00000000`00c90276 00000000`00008002 00000000`00000000 00000000`00000000 : MSHTML!GlobalWndProc+0x150
+000000bc`aeaac650 00007ff8`d296249d : 00000000`00000000 000000bc`a6d8c4e0 00000000`00c90276 00000000`00000000 : USER32!UserCallWinProcCheckWow+0x149
+000000bc`aeaac720 00007ff8`c2806683 : 00000000`00000001 00000000`00000000 00007ff8`c0b0a2d0 00000000`00000000 : USER32!DispatchMessageWorker+0x396
+000000bc`aeaac7a0 00007ff8`c27b000b : 00007ff8`c75014f0 00007ff8`c75014f0 00000000`00000000 000000bc`adb19f98 : IEFRAME!CTabWindow::_TabWindowThreadProc+0x555
+000000bc`aeaafa20 00007ff8`c75f02ff : 00000000`00000000 00007ff8`c27afc50 000000bc`add21fe0 000000bc`a8413fe0 : IEFRAME!LCIETab_ThreadProc+0x3a3
+000000bc`aeaafb50 00007ff8`c809925f : 00007ff8`c75f02e0 000000bc`add21fe0 000000bc`add21fe0 00000000`00000000 : iertutil!_IsoThreadProc_WrapperToReleaseScope+0x1f
+000000bc`aeaafb80 00007ff8`d0ad13d2 : 00000000`00000000 00007ff8`c80991c0 000000bc`add21fe0 00000000`00000000 : IEShims!NS_CreateThread::DesktopIE_ThreadProc+0x9f
+000000bc`aeaafbd0 00007ff8`d31c54e4 : 00007ff8`d0ad13b0 00000000`00000000 00000000`00000000 00000000`00000000 : KERNEL32!BaseThreadInitThunk+0x22
+000000bc`aeaafc00 00000000`00000000 : 00000000`00000000 00000000`00000000 00000000`00000000 00000000`00000000 : ntdll!RtlUserThreadStart+0x34
+
+
+FOLLOWUP_IP:
+jscript9!Js::TaggedInt::Divide+7f
+00007ff8`c02ed674 f7f9            idiv    eax,ecx
+
+SYMBOL_STACK_INDEX:  0
+
+SYMBOL_NAME:  jscript9!Js::TaggedInt::Divide+7f
+
+FOLLOWUP_NAME:  MachineOwner
+
+MODULE_NAME: jscript9
+
+IMAGE_NAME:  jscript9.dll
+
+DEBUG_FLR_IMAGE_TIMESTAMP:  571a847a
+
+STACK_COMMAND:  ~12s ; kb
+
+BUCKET_ID:  STATUS_INTEGER_OVERFLOW_AVRF_jscript9!Js::TaggedInt::Divide+7f
+
+PRIMARY_PROBLEM_CLASS:  STATUS_INTEGER_OVERFLOW_AVRF_jscript9!Js::TaggedInt::Divide+7f
+
+FAILURE_PROBLEM_CLASS:  STATUS_INTEGER_OVERFLOW_AVRF
+
+FAILURE_EXCEPTION_CODE:  c0000095
+
+FAILURE_IMAGE_NAME:  jscript9.dll
+
+FAILURE_FUNCTION_NAME:  Js::TaggedInt::Divide
+
+FAILURE_SYMBOL_NAME:  jscript9.dll!Js::TaggedInt::Divide
+
+FAILURE_BUCKET_ID:  STATUS_INTEGER_OVERFLOW_AVRF_c0000095_jscript9.dll!Js::TaggedInt::Divide
+
+ANALYSIS_SOURCE:  UM
+
+FAILURE_ID_HASH_STRING:  um:status_integer_overflow_avrf_c0000095_jscript9.dll!js::taggedint::divide
+
+FAILURE_ID_HASH:  {329de461-2bc2-7a02-c807-d3e0017c8aa2}
+
+Followup:     MachineOwner
+---------
+
+Child-SP          RetAddr           Call Site
+000000bc`aeaaa440 00007ff8`c045e70d jscript9!Js::TaggedInt::Divide+0x7f
+000000bc`aeaaa480 00007ff8`c045e6c5 jscript9!Js::InterpreterStackFrame::ProfiledDivide+0x2d
+000000bc`aeaaa4e0 00007ff8`c02f21bc jscript9!Js::InterpreterStackFrame::Process+0x8000
+000000bc`aeaaa860 00007ff8`c02f213c jscript9!Js::InterpreterStackFrame::OP_TryCatch+0x68
+000000bc`aeaaa8c0 00007ff8`c0276220 jscript9!Js::InterpreterStackFrame::Process+0x50a7
+000000bc`aeaaac40 000000c4`b3ae0fc3 jscript9!Js::InterpreterStackFrame::InterpreterThunk<1>+0x386
+000000bc`aeaab660 00007ff8`c0271e93 0x000000c4`b3ae0fc3
+000000bc`aeaab690 00007ff8`c0271961 jscript9!amd64_CallFunction+0x93
+000000bc`aeaab6e0 00007ff8`c0271b6e jscript9!Js::JavascriptFunction::CallFunction<1>+0x6d
+000000bc`aeaab720 00007ff8`c0271c6f jscript9!Js::JavascriptFunction::CallRootFunction+0x110
+000000bc`aeaab800 00007ff8`c0271bc8 jscript9!ScriptSite::CallRootFunction+0x63
+000000bc`aeaab860 00007ff8`c02bf072 jscript9!ScriptSite::Execute+0x122
+000000bc`aeaab8f0 00007ff8`c02be7d9 jscript9!ScriptEngine::ExecutePendingScripts+0x208
+000000bc`aeaab9e0 00007ff8`c02c0bc4 jscript9!ScriptEngine::ParseScriptTextCore+0x4a5
+000000bc`aeaabb40 00007ff8`c0c9aee1 jscript9!ScriptEngine::ParseScriptText+0xc4
+000000bc`aeaabbf0 00007ff8`c0c9ad4b MSHTML!CActiveScriptHolder::ParseScriptText+0xc1
+000000bc`aeaabc70 00007ff8`c0c9a9e5 MSHTML!CJScript9Holder::ParseScriptText+0xf7
+000000bc`aeaabd20 00007ff8`c0c9bdab MSHTML!CScriptCollection::ParseScriptText+0x28c
+000000bc`aeaabe00 00007ff8`c0c9b92e MSHTML!CScriptData::CommitCode+0x3d9
+000000bc`aeaabfd0 00007ff8`c0c9b6b1 MSHTML!CScriptData::Execute+0x283
+000000bc`aeaac090 00007ff8`c1400b57 MSHTML!CHtmScriptParseCtx::Execute+0x101
+000000bc`aeaac0d0 00007ff8`c13acd09 MSHTML!CHtmParseBase::Execute+0x235
+000000bc`aeaac170 00007ff8`c0b32554 MSHTML!CHtmPost::Broadcast+0x80
+000000bc`aeaac1b0 00007ff8`c0be688f MSHTML!CHtmPost::Exec+0x51a
+000000bc`aeaac3c0 00007ff8`c0be67d8 MSHTML!CHtmPost::Run+0x3f
+000000bc`aeaac3f0 00007ff8`c0be8194 MSHTML!PostManExecute+0x70
+000000bc`aeaac470 00007ff8`c0beb143 MSHTML!PostManResume+0xa1
+000000bc`aeaac4b0 00007ff8`c0c7afa7 MSHTML!CHtmPost::OnDwnChanCallback+0x43
+000000bc`aeaac500 00007ff8`c13d9c94 MSHTML!CDwnChan::OnMethodCall+0x41
+000000bc`aeaac530 00007ff8`c0b0a415 MSHTML!GlobalWndOnMethodCall+0x236
+000000bc`aeaac5d0 00007ff8`d29623fd MSHTML!GlobalWndProc+0x150
+000000bc`aeaac650 00007ff8`d296249d USER32!UserCallWinProcCheckWow+0x149
+000000bc`aeaac720 00007ff8`c2806683 USER32!DispatchMessageWorker+0x396
+000000bc`aeaac7a0 00007ff8`c27b000b IEFRAME!CTabWindow::_TabWindowThreadProc+0x555
+000000bc`aeaafa20 00007ff8`c75f02ff IEFRAME!LCIETab_ThreadProc+0x3a3
+000000bc`aeaafb50 00007ff8`c809925f iertutil!_IsoThreadProc_WrapperToReleaseScope+0x1f
+000000bc`aeaafb80 00007ff8`d0ad13d2 IEShims!NS_CreateThread::DesktopIE_ThreadProc+0x9f
+000000bc`aeaafbd0 00007ff8`d31c54e4 KERNEL32!BaseThreadInitThunk+0x22
+000000bc`aeaafc00 00000000`00000000 ntdll!RtlUserThreadStart+0x34
+rax=0000000080000000 rbx=000000c4b1575dcc rcx=00010000ffffffff
+rdx=00000000ffffffff rsi=000000bcaeaaac70 rdi=00000000ffffffff
+rip=00007ff8c02ed674 rsp=000000bcaeaaa440 rbp=000000bcaeaaa5e0
+ r8=0001000080000000  r9=000000bca8524380 r10=000000c4b1575dda
+r11=0000000000000080 r12=fffc000000000000 r13=0000000000000005
+r14=0001000000000000 r15=ffff000000000000
+iopl=0         nv up ei ng nz na pe nc
+cs=0033  ss=002b  ds=002b  es=002b  fs=0053  gs=002b             efl=00010282
+jscript9!Js::TaggedInt::Divide+0x7f:
+00007ff8`c02ed674 f7f9            idiv    eax,ecx
+jscript9!Js::TaggedInt::Divide+0x65:
+00007ff8`c02ed656 0f852e841c00    jne     jscript9!Js::TaggedInt::Divide+0x8d (00007ff8`c04b5a8a)
+00007ff8`c02ed65c 418bc1          mov     eax,r9d
+00007ff8`c02ed65f 48b90000000000000100 mov rcx,1000000000000h
+00007ff8`c02ed669 480bc1          or      rax,rcx
+00007ff8`c02ed66c eb01            jmp     jscript9!Js::TaggedInt::Divide+0xbe (00007ff8`c02ed66f)
+00007ff8`c02ed66e cc              int     3
+00007ff8`c02ed66f 4883c438        add     rsp,38h
+00007ff8`c02ed673 c3              ret
+quit:

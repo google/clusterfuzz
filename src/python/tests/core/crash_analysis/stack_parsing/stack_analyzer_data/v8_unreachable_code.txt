@@ -1,0 +1,4 @@
+#
+# Fatal error in ../../v8/src/compiler/typer.cc, line 1626
+# unreachable code
+#

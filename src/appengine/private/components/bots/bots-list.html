@@ -1,0 +1,165 @@
+<!--
+  Copyright 2018 Google LLC
+
+  Licensed under the Apache License, Version 2.0 (the "License");
+  you may not use this file except in compliance with the License.
+  You may obtain a copy of the License at
+
+       http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+-->
+<link rel="import" href="../../bower_components/polymer/polymer.html">
+<link rel="import" href="../../bower_components/paper-input/paper-input.html">
+<link rel="import" href="../common/if-else/if-else.html">
+
+<dom-module id="bots-list">
+  <link rel="import" href="../../stylesheets/main.css" type="css">
+  <link rel="import" href="../technology/technology.css" type="css">
+  <script src="../../javascripts/error.js" type="text/javascript"></script>
+  <template>
+    <style>
+      div.info {
+        width: 70%;
+        margin: 10px;
+      }
+
+      div.name {
+        font-weight: bold;
+        font-size: 16px;
+      }
+
+      div.content {
+        font-family: 'Source Code Pro', monospace;
+        font-size: 14px;
+      }
+
+      table.labels {
+        width: 30%;
+        padding: 5px;
+      }
+
+      span.label {
+        float: right;
+        text-align: right;
+        font-size: 13px;
+        padding: 2px 4px;
+        margin-top: 5px;
+      }
+
+      span.alive {
+        border: 1px solid #1D8301;
+        color: #1D8301;
+      }
+
+      span.dead {
+        border: 1px solid #FC2929;
+        color: #FC2929;
+      }
+
+      span.revision {
+        border: 1px solid #01579B;
+        color: #01579B;
+      }
+    </style>
+
+    <div id="mainContent">
+      <div class="section">
+        <div class="title">Bot list ([[botCount]])</div>
+        <div class="body">
+          <paper-input
+              class="search-box"
+              label="Enter search string here"
+              autofocus
+              value="{{search}}">
+            <iron-icon icon="icons:search" slot="prefix"></iron-icon>
+            <iron-icon icon="icons:help-outline" title="Filter the bot list to any bots with fields containing the specified string. Use &quot;alive&quot; or &quot;dead&quot; to filter for alive or dead bots." slot="suffix"></iron-icon>
+          </paper-input>
+          <template
+              id="list"
+              is="dom-repeat"
+              items="[[bots]]"
+              filter="[[computeFilter(search)]]"
+              initial-count="20"
+              rendered-item-count="{{botCount}}">
+            <div class="container flex">
+              <div class="info">
+                <div class="name">
+                  [[item.bot_name]]
+                </div>
+                <if-else condition="[[item.task_payload]]">
+                  <div class="content" slot="t">
+                    [[item.task_payload]]<br/>
+                    ends [[formatTime(item.task_end_time)]]
+                  </div>
+                  <div class="content" slot="f">
+                    No task!
+                  </div>
+                </if-else>
+              </div>
+              <table class="labels">
+                <tr>
+                  <td>
+                    <span class$="label [[item.alive]]">
+                      Last Ping - [[formatTime(item.last_beat_time)]]
+                    </span>
+                  </td>
+                </tr>
+                <tr>
+                  <td>
+                    <span class="label revision">
+                      [[item.source_version]]
+                    </span>
+                  </td>
+                </tr>
+              </table>
+            </div>
+          </template>
+        </div>
+      </div>
+    </div>
+  </template>
+  <script>
+    class BotsList extends Polymer.Element {
+      static get is() { return 'bots-list'; }
+
+      static get properties() {
+        return {
+          bots: Array,
+          search: String,
+        };
+      }
+
+      formatTime(secondsFromEpoch) {
+        let date = new Date(secondsFromEpoch * 1000);
+        return date.toLocaleDateString(
+            'en-US',
+            { month: 'short', day: 'numeric',
+              hour: 'numeric', minute: 'numeric'});
+      }
+
+      computeFilter(searchKey) {
+        if (!searchKey)
+          return null;
+
+        // Workaround for bug https://github.com/Polymer/polymer/issues/4729.
+        this.$.list.__initializeChunking();
+
+        var searchStrings = searchKey.split(" ");
+        return (el) => (
+            searchStrings.every(s => (
+                el['bot_name'] && el['bot_name'].includes(s) ||
+                el['task_payload'] && el['task_payload'].includes(s) ||
+                el['alive'] && el['alive'].includes(s))));
+      }
+    }
+
+    customElements.define(BotsList.is, BotsList);
+  </script>
+</dom-module>
+
+

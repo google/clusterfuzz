@@ -1,0 +1,23 @@
+#
+# Test dictionary
+# -------------------
+#
+# Dummy comment
+#
+
+attr_encoding=" encoding=\"1\""
+attr_generic=" a=\"1\""
+
+entity_hex="&#x1;"
+
+# keywords
+"ANY"
+"SYSTEM"
+
+# Various tag parts
+"<"
+"=\"\""
+"=''"
+
+"\x00\xFF\x00\xFF"
+dummy_entry_with_name="----------B"

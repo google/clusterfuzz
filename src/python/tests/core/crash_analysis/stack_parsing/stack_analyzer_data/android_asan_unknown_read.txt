@@ -1,0 +1,14 @@
+==20085==ERROR: AddressSanitizer: SEGV on unknown address 0x74000011 (pc 0xa843fbf5 bp 0xa620e750 sp 0xa5dff7b0 T8)
+==20085==The signal is caused by a READ memory access.
+    #0 0xa843fbf4 in _JavaVM::AttachCurrentThread(_JNIEnv**, void*) libnativehelper/include/nativehelper/jni.h:1060
+    #1 0xa843fbf4 in javaAttachThread frameworks/base/core/jni/AndroidRuntime.cpp:1131
+    #2 0xa843fbf4 in android::AndroidRuntime::javaThreadShell(void*) frameworks/base/core/jni/AndroidRuntime.cpp:1169
+    #3 0xa83bc8a9 in thread_data_t::trampoline(thread_data_t const*) system/core/libutils/Threads.cpp:99:16
+    #4 0xa899bd0c in __asan::AsanThread::ThreadStart(unsigned long, __sanitizer::atomic_uintptr_t*)
+    #5 0xa89800f9 in asan_thread_start(void*)
+    #6 0xa9a7f404 in __pthread_start(void*) bionic/libc/bionic/pthread_create.cpp:198:18
+    #7 0xa9a2a610 in __start_thread bionic/libc/bionic/clone.cpp:41:16
+    #8 0xa9a283c6 in __bionic_clone bionic/libc/arch-x86/bionic/__bionic_clone.S:54
+AddressSanitizer can not provide additional info.
+SUMMARY: AddressSanitizer: SEGV (/system/lib/libandroid_runtime.so+0x71bf4)
+Thread T8 (Binder:20085_2) created by T7 (Binder:20085_1) here:

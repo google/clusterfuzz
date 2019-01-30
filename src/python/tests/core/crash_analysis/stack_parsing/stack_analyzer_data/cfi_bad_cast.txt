@@ -1,0 +1,65 @@
+Xlib:  extension "RANDR" missing on display ":1".
+Xlib:  extension "RANDR" missing on display ":1".
+Error: unrecognized flag --verify-heap
+Try --help for options
+[20699:20699:0207/193754:ERROR:object_proxy.cc(580)] Failed to call method: org.freedesktop.DBus.ObjectManager.GetManagedObjects: object_path= /: org.freedesktop.DBus.Error.ServiceUnknown: The name org.bluez was not provided by any .service files
+[20699:20699:0207/193754:ERROR:object_proxy.cc(580)] Failed to call method: org.freedesktop.DBus.ObjectManager.GetManagedObjects: object_path= /: org.freedesktop.DBus.Error.ServiceUnknown: The name org.bluez was not provided by any .service files
+Error: unrecognized flag --verify-heap
+Try --help for options
+Error: unrecognized flag --verify-heap
+Try --help for options
+Error: unrecognized flag --verify-heap
+Try --help for options
+../../third_party/WebKit/Source/core/layout/LayoutObject.cpp:939:71: runtime error: control flow integrity check for type blink::LayoutObject failed during virtual call (vtable address 0x000000000000)
+0x000000000000: note: invalid vtable
+<memory cannot be printed>
+    #0 0x7f83c1f7acba in blink::LayoutObject::containingBlock() const third_party/WebKit/Source/core/layout/LayoutObject.cpp:939:71
+    #1 0x7f83c1f3a882 in blink::LayoutBox::topLeftLocation() const third_party/WebKit/Source/core/layout/LayoutBox.cpp:4396:35
+    #2 0x7f83c1e60bcc in blink::PaintLayer::updateLayerPosition() third_party/WebKit/Source/core/paint/PaintLayer.cpp:769:27
+    #3 0x7f83c1e609c2 in blink::PaintLayer::updateLayerPositionRecursive() third_party/WebKit/Source/core/paint/PaintLayer.cpp:305:5
+    #4 0x7f83c1e60a77 in blink::PaintLayer::updateLayerPositionRecursive() third_party/WebKit/Source/core/paint/PaintLayer.cpp:323:9
+    #5 0x7f83c1e60a77 in blink::PaintLayer::updateLayerPositionRecursive() third_party/WebKit/Source/core/paint/PaintLayer.cpp:323:9
+    #6 0x7f83c1e608ce in blink::PaintLayer::updateLayerPositionsAfterLayout() third_party/WebKit/Source/core/paint/PaintLayer.cpp:293:5
+    #7 0x7f83c1da5bc6 in blink::FrameView::layout() third_party/WebKit/Source/core/frame/FrameView.cpp:1050:5
+    #8 0x7f83c1baf8f6 in blink::Document::updateLayout() third_party/WebKit/Source/core/dom/Document.cpp:1932:9
+    #9 0x7f83c1bb6d01 in blink::Document::updateLayoutIgnorePendingStylesheets(blink::Document::RunPostLayoutTasks) third_party/WebKit/Source/core/dom/Document.cpp:2019:5
+    #10 0x7f83c1d3c79b in blink::FrameSelection::absoluteCaretBounds() third_party/WebKit/Source/core/editing/FrameSelection.cpp:684:5
+    #11 0x7f83c18d904a in blink::WebViewImpl::selectionBounds(blink::WebRect&, blink::WebRect&) const third_party/WebKit/Source/web/WebViewImpl.cpp:2598:26
+    #12 0x7f83c2baa2c8 in content::RenderWidget::GetSelectionBounds(gfx::Rect*, gfx::Rect*) content/renderer/render_widget.cc:1949:3
+    #13 0x7f83c2ba810e in content::RenderWidget::UpdateSelectionBounds() content/renderer/render_widget.cc:1978:5
+    #14 0x7f83c2ba7faa in content::RenderWidget::WillBeginCompositorFrame() content/renderer/render_widget.cc:1231:3
+    #15 0x7f83c1314c4b in cc::ProxyMain::BeginMainFrame(scoped_ptr<cc::BeginMainFrameAndCommitState, std::default_delete<cc::BeginMainFrameAndCommitState> >) cc/trees/proxy_main.cc:190:3
+    #16 0x7f83c4395639 in base::internal::RunnableAdapter<void (cc::ProxyMain::*)(scoped_ptr<cc::BeginMainFrameAndCommitState, std::default_delete<cc::BeginMainFrameAndCommitState> >)>::Run(cc::ProxyMain*, scoped_ptr<cc::BeginMainFrameAndCommitState, std::default_delete<cc::BeginMainFrameAndCommitState> >) base/bind_internal.h:179:12
+    #17 0x7f83c43955b0 in base::internal::InvokeHelper<true, void, base::internal::RunnableAdapter<void (cc::ProxyMain::*)(scoped_ptr<cc::BeginMainFrameAndCommitState, std::default_delete<cc::BeginMainFrameAndCommitState> >)>, base::internal::TypeList<base::WeakPtr<cc::ProxyMain> const&, scoped_ptr<cc::BeginMainFrameAndCommitState, std::default_delete<cc::BeginMainFrameAndCommitState> > > >::MakeItSo(base::internal::RunnableAdapter<void (cc::ProxyMain::*)(scoped_ptr<cc::BeginMainFrameAndCommitState, std::default_delete<cc::BeginMainFrameAndCommitState> >)>, base::WeakPtr<cc::ProxyMain> const&, scoped_ptr<cc::BeginMainFrameAndCommitState, std::default_delete<cc::BeginMainFrameAndCommitState> >) base/bind_internal.h:308:5
+    #18 0x7f83c4395489 in base::internal::Invoker<base::IndexSequence<0ul, 1ul>, base::internal::BindState<base::internal::RunnableAdapter<void (cc::ProxyMain::*)(scoped_ptr<cc::BeginMainFrameAndCommitState, std::default_delete<cc::BeginMainFrameAndCommitState> >)>, void (cc::ProxyMain*, scoped_ptr<cc::BeginMainFrameAndCommitState, std::default_delete<cc::BeginMainFrameAndCommitState> >), base::WeakPtr<cc::ProxyMain>, base::internal::PassedWrapper<scoped_ptr<cc::BeginMainFrameAndCommitState, std::default_delete<cc::BeginMainFrameAndCommitState> > > >, base::internal::TypeList<base::internal::UnwrapTraits<base::WeakPtr<cc::ProxyMain> >, base::internal::UnwrapTraits<base::internal::PassedWrapper<scoped_ptr<cc::BeginMainFrameAndCommitState, std::default_delete<cc::BeginMainFrameAndCommitState> > > > >, base::internal::InvokeHelper<true, void, base::internal::RunnableAdapter<void (cc::ProxyMain::*)(scoped_ptr<cc::BeginMainFrameAndCommitState, std::default_delete<cc::BeginMainFrameAndCommitState> >)>, base::internal::TypeList<base::WeakPtr<cc::ProxyMain> const&, scoped_ptr<cc::BeginMainFrameAndCommitState, std::default_delete<cc::BeginMainFrameAndCommitState> > > >, void ()>::Run(base::internal::BindStateBase*) base/bind_internal.h:348:12
+    #19 0x7f83c0bc3131 in base::debug::TaskAnnotator::RunTask(char const*, base::PendingTask const&) base/debug/task_annotator.cc:51:3
+    #20 0x7f83c2b6a88c in scheduler::TaskQueueManager::ProcessTaskFromWorkQueue(scheduler::internal::WorkQueue*, scheduler::internal::TaskQueueImpl::Task*) components/scheduler/base/task_queue_manager.cc:286:3
+    #21 0x7f83c2b69de4 in scheduler::TaskQueueManager::DoWork(base::TimeTicks, bool) components/scheduler/base/task_queue_manager.cc:198:13
+    #22 0x7f83c3e00ecc in base::internal::InvokeHelper<true, void, base::internal::RunnableAdapter<void (safe_browsing::IncidentReportingService::*)(safe_browsing::IncidentReportingService::UploadContext*, bool)>, base::internal::TypeList<base::WeakPtr<safe_browsing::IncidentReportingService> const&, safe_browsing::IncidentReportingService::UploadContext* const&, bool const&> >::MakeItSo(base::internal::RunnableAdapter<void (safe_browsing::IncidentReportingService::*)(safe_browsing::IncidentReportingService::UploadContext*, bool)>, base::WeakPtr<safe_browsing::IncidentReportingService> const&, safe_browsing::IncidentReportingService::UploadContext* const&, bool const&) base/bind_internal.h:308:5
+    #23 0x7f83c0bc3131 in base::debug::TaskAnnotator::RunTask(char const*, base::PendingTask const&) base/debug/task_annotator.cc:51:3
+    #24 0x7f83c0b8ac62 in base::MessageLoop::RunTask(base::PendingTask const&) base/message_loop/message_loop.cc:486:3
+    #25 0x7f83c0b8ab2b in base::MessageLoop::DeferOrRunPendingTask(base::PendingTask const&) base/message_loop/message_loop.cc:495:5
+    #26 0x7f83c0b8aae5 in base::MessageLoop::DoWork() base/message_loop/message_loop.cc:607:13
+    #27 0x7f83c0b8c3a3 in base::MessagePumpDefault::Run(base::MessagePump::Delegate*) base/message_loop/message_pump_default.cc:33:21
+    #28 0x7f83c0b8bda7 in base::MessageLoop::RunHandler() base/message_loop/message_loop.cc:450:3
+    #29 0x7f83c0b9cf22 in base::RunLoop::Run() base/run_loop.cc:56:3
+    #30 0x7f83c0b8b73c in base::MessageLoop::Run() base/message_loop/message_loop.cc:293:3
+    #31 0x7f83c2bb0106 in content::RendererMain(content::MainFunctionParams const&) content/renderer/renderer_main.cc:226:7
+    #32 0x7f83c0b4ff3e in content::RunZygote(content::MainFunctionParams const&, content::ContentMainDelegate*) content/app/content_main_runner.cc:294:14
+    #33 0x7f83c4022a94 in content::ContentMainRunnerImpl::Run() content/app/content_main_runner.cc:742:12
+    #34 0x7f83c0b4fa9e in content::ContentMain(content::ContentMainParams const&) content/app/content_main.cc:19:15
+    #35 0x7f83c088ebad in ChromeMain chrome/app/chrome_main.cc:67:12
+    #36 0x7f83b8f72ec4 in __libc_start_main /build/buildd/eglibc-2.19/csu/libc-start.c:287
+    #37 0x7f83c0874e10 in _start
+
+SUMMARY: UndefinedBehaviorSanitizer: undefined-behavior ../../third_party/WebKit/Source/core/layout/LayoutObject.cpp:939:71 in
+Received signal 11 SEGV_MAPERR 0000000000b0
+#0 0x7f83c0b74253 base::debug::StackTrace::StackTrace()
+#1 0x7f83c0b74475 base::debug::(anonymous namespace)::StackDumpSignalHandler()
+#2 0x7f83ba358340 <unknown>
+#3 0x7f83c1f7acbe blink::LayoutObject::containingBlock()
+#4 0x7f83c1f3a883 blink::LayoutBox::topLeftLocation()
+#5 0x7f83c1e60bcd Error: unrecognized flag --verify-heap
+Try --help for options
+blink::PaintLayer::updateLayerPosition()
+       

@@ -1,0 +1,92 @@
+Command: /mnt/scratch0/clusterfuzz/bot/builds/clusterfuzz-builds_expat_05c43072ba20b1c843f72a5a48cffc646c12ba02/revisions/parse_fuzzer -max_len=1024 -dict=/mnt/scratch0/clusterfuzz/bot/builds/clusterfuzz-builds_expat_05c43072ba20b1c843f72a5a48cffc646c12ba02/revisions/xml.dict -use_value_profile=1 -rss_limit_mb=2048 -timeout=25 -artifact_prefix=/ -max_total_time=2950 -print_final_stats=1 /new /expat_parse_fuzzer
+Bot: ossfuzz-linux-0347
+Time ran: 42.382035
+
+Dictionary: 102 entries
+INFO: Seed: 740270087
+INFO: Loaded 1 modules (5677 guards): [0x954b10, 0x95a3c4),
+Loading corpus dir: /new
+Loading corpus dir: /expat_parse_fuzzer
+Loaded 1024/9263 files from /expat_parse_fuzzer
+Loaded 2048/9263 files from /expat_parse_fuzzer
+Loaded 4096/9263 files from /expat_parse_fuzzer
+Loaded 8192/9263 files from /expat_parse_fuzzer
+#0	READ units: 9262
+#4096	pulse  cov: 2737 ft: 12282 corp: 4091/48Kb exec/s: 1365 rss: 123Mb
+#8192	pulse  cov: 3448 ft: 21756 corp: 8157/323Kb exec/s: 1024 rss: 164Mb
+#9262	INITED cov: 3474 ft: 23666 corp: 9080/922Kb exec/s: 771 rss: 166Mb
+#9403	NEW    cov: 3474 ft: 23667 corp: 9081/922Kb exec/s: 783 rss: 166Mb L: 238 MS: 1 ChangeBit-
+#9503	NEW    cov: 3474 ft: 23668 corp: 9082/922Kb exec/s: 791 rss: 166Mb L: 574 MS: 1 ChangeBit-
+#9605	NEW    cov: 3474 ft: 23669 corp: 9083/922Kb exec/s: 800 rss: 166Mb L: 27 MS: 3 ChangeByte-ChangeBit-ChangeByte-
+#9625	NEW    cov: 3474 ft: 23670 corp: 9084/922Kb exec/s: 802 rss: 166Mb L: 93 MS: 3 ManualDict-EraseBytes-ChangeBinInt- DE: "IDREF"-
+#9683	NEW    cov: 3474 ft: 23671 corp: 9085/923Kb exec/s: 806 rss: 166Mb L: 61 MS: 1 ChangeBit-
+#9690	NEW    cov: 3474 ft: 23672 corp: 9086/924Kb exec/s: 807 rss: 166Mb L: 1024 MS: 3 CrossOver-InsertByte-CrossOver-
+#9861	NEW    cov: 3474 ft: 23673 corp: 9087/924Kb exec/s: 821 rss: 166Mb L: 161 MS: 4 ChangeByte-ShuffleBytes-ShuffleBytes-InsertRepeatedBytes-
+#9893	NEW    cov: 3474 ft: 23674 corp: 9088/924Kb exec/s: 824 rss: 166Mb L: 626 MS: 1 InsertRepeatedBytes-
+#9895	NEW    cov: 3474 ft: 23675 corp: 9089/925Kb exec/s: 824 rss: 166Mb L: 1024 MS: 3 InsertRepeatedBytes-InsertRepeatedBytes-CrossOver-
+#9936	NEW    cov: 3474 ft: 23676 corp: 9090/926Kb exec/s: 828 rss: 166Mb L: 551 MS: 4 ChangeASCIIInt-ChangeByte-ShuffleBytes-InsertByte-
+#9948	NEW    cov: 3474 ft: 23677 corp: 9091/926Kb exec/s: 829 rss: 166Mb L: 20 MS: 1 ShuffleBytes-
+#10088	NEW    cov: 3474 ft: 23678 corp: 9092/926Kb exec/s: 840 rss: 166Mb L: 187 MS: 1 ManualDict- DE: "EMPTY"-
+#10118	NEW    cov: 3474 ft: 23679 corp: 9093/926Kb exec/s: 843 rss: 166Mb L: 19 MS: 1 ChangeBit-
+#10164	NEW    cov: 3474 ft: 23680 corp: 9094/926Kb exec/s: 847 rss: 166Mb L: 36 MS: 2 ManualDict-ChangeByte- DE: "/>"-
+#10200	NEW    cov: 3474 ft: 23681 corp: 9095/927Kb exec/s: 850 rss: 166Mb L: 1024 MS: 3 CopyPart-ChangeASCIIInt-InsertByte-
+#10253	NEW    cov: 3474 ft: 23682 corp: 9096/927Kb exec/s: 854 rss: 166Mb L: 180 MS: 1 ChangeByte-
+#10374	NEW    cov: 3474 ft: 23683 corp: 9097/927Kb exec/s: 864 rss: 166Mb L: 30 MS: 2 CMP-InsertByte- DE: "\x01S"-
+#10383	NEW    cov: 3474 ft: 23684 corp: 9098/928Kb exec/s: 865 rss: 166Mb L: 441 MS: 1 ChangeByte-
+#10413	NEW    cov: 3474 ft: 23685 corp: 9099/928Kb exec/s: 867 rss: 166Mb L: 22 MS: 1 InsertByte-
+#10479	NEW    cov: 3474 ft: 23686 corp: 9100/928Kb exec/s: 873 rss: 166Mb L: 535 MS: 2 CMP-ChangeBinInt- DE: "b\x00"-
+#10658	NEW    cov: 3474 ft: 23687 corp: 9101/928Kb exec/s: 888 rss: 166Mb L: 35 MS: 1 ChangeBinInt-
+
+=================================================================
+==1==ERROR: LeakSanitizer: detected memory leaks
+
+Direct leak of 288 byte(s) in 6 object(s) allocated from:
+    #0 0x4d5c18 in malloc _asan_rtl_
+    #1 0x5ca5d2 in addBinding /src/libexpat/expat/lib/xmlparse.c:3191:20
+    #2 0x5c179e in storeAtts /src/libexpat/expat/lib/xmlparse.c:2877:33
+    #3 0x5b99fb in doContent /src/libexpat/expat/lib/xmlparse.c:2521:18
+    #4 0x5ab974 in contentProcessor /src/libexpat/expat/lib/xmlparse.c:2162:27
+    #5 0x59c054 in doProlog /src/libexpat/expat/lib/xmlparse.c:4075:14
+    #6 0x597ed1 in prologProcessor /src/libexpat/expat/lib/xmlparse.c:3798:10
+    #7 0x597978 in prologInitProcessor /src/libexpat/expat/lib/xmlparse.c:3615:10
+    #8 0x593f0f in XML_ParseBuffer /src/libexpat/expat/lib/xmlparse.c:1693:15
+    #9 0x592219 in XML_Parse /src/libexpat/expat/lib/xmlparse.c:1659:14
+    #10 0x513b8d in LLVMFuzzerTestOneInput /src/parse_fuzzer.cc:18:7
+    #11 0x53874e in fuzzer::Fuzzer::ExecuteCallback(unsigned char const*, unsigned long) /src/libfuzzer/FuzzerLoop.cpp:550:13
+    #12 0x538f9b in fuzzer::Fuzzer::RunOne(unsigned char const*, unsigned long) /src/libfuzzer/FuzzerLoop.cpp:501:3
+    #13 0x53d069 in fuzzer::Fuzzer::MutateAndTestOne() /src/libfuzzer/FuzzerLoop.cpp:757:30
+    #14 0x53d847 in fuzzer::Fuzzer::Loop() /src/libfuzzer/FuzzerLoop.cpp:791:5
+    #15 0x51c1b2 in fuzzer::FuzzerDriver(int*, char***, int (*)(unsigned char const*, unsigned long)) /src/libfuzzer/FuzzerDriver.cpp:567:6
+    #16 0x515d88 in main /src/libfuzzer/FuzzerMain.cpp:20:10
+    #17 0x7feb99d1882f in __libc_start_main
+
+Indirect leak of 156 byte(s) in 6 object(s) allocated from:
+    #0 0x4d5c18 in malloc _asan_rtl_
+    #1 0x5ca650 in addBinding /src/libexpat/expat/lib/xmlparse.c:3194:26
+    #2 0x5c179e in storeAtts /src/libexpat/expat/lib/xmlparse.c:2877:33
+    #3 0x5b99fb in doContent /src/libexpat/expat/lib/xmlparse.c:2521:18
+    #4 0x5ab974 in contentProcessor /src/libexpat/expat/lib/xmlparse.c:2162:27
+    #5 0x59c054 in doProlog /src/libexpat/expat/lib/xmlparse.c:4075:14
+    #6 0x597ed1 in prologProcessor /src/libexpat/expat/lib/xmlparse.c:3798:10
+    #7 0x597978 in prologInitProcessor /src/libexpat/expat/lib/xmlparse.c:3615:10
+    #8 0x593f0f in XML_ParseBuffer /src/libexpat/expat/lib/xmlparse.c:1693:15
+    #9 0x592219 in XML_Parse /src/libexpat/expat/lib/xmlparse.c:1659:14
+    #10 0x513b8d in LLVMFuzzerTestOneInput /src/parse_fuzzer.cc:18:7
+    #11 0x53874e in fuzzer::Fuzzer::ExecuteCallback(unsigned char const*, unsigned long) /src/libfuzzer/FuzzerLoop.cpp:550:13
+    #12 0x538f9b in fuzzer::Fuzzer::RunOne(unsigned char const*, unsigned long) /src/libfuzzer/FuzzerLoop.cpp:501:3
+    #13 0x53d069 in fuzzer::Fuzzer::MutateAndTestOne() /src/libfuzzer/FuzzerLoop.cpp:757:30
+    #14 0x53d847 in fuzzer::Fuzzer::Loop() /src/libfuzzer/FuzzerLoop.cpp:791:5
+    #15 0x51c1b2 in fuzzer::FuzzerDriver(int*, char***, int (*)(unsigned char const*, unsigned long)) /src/libfuzzer/FuzzerDriver.cpp:567:6
+    #16 0x515d88 in main /src/libfuzzer/FuzzerMain.cpp:20:10
+    #17 0x7feb99d1882f in __libc_start_main
+
+SUMMARY: AddressSanitizer: 444 byte(s) leaked in 12 allocation(s).
+INFO: to ignore leaks on libFuzzer side use -detect_leaks=0.
+
+MS: 2 ShuffleBytes-CopyPart-; base unit: 04558fb79b72ce9ab99d79ee67612b241c2d6165
+artifact_prefix='/'; Test unit written to /leak-206b022de1b6282f5daabba64a777e1a093abf51
+stat::number_of_executed_units: 94329
+stat::average_exec_per_sec:     2245
+stat::new_units_added:          579
+stat::slowest_unit_time_sec:    0
+stat::peak_rss_mb:              166

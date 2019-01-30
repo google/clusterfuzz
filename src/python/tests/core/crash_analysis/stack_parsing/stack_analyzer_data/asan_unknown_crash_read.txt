@@ -1,0 +1,45 @@
+==1==ERROR: AddressSanitizer: unknown-crash on address 0x000000000006 at pc 0x00000056d8b2 bp 0x7fffff869d10 sp 0x7fffff869d08
+READ of size 8 at 0x000000000006 thread T0
+SCARINESS: 13 (8-byte-read-unknown-crash)
+#0 0x56d8b1 in void rawspeed::FujiDecompressor::copy_line<rawspeed::FujiDecompressor::copy_line_to_xtrans(rawspeed::FujiDecompressor::fuji_compressed_block*, rawspeed::FujiDecompressor::FujiStrip const&, int) const::$_7&>(rawspeed::FujiDecompressor::fuji_compressed_block*, rawspeed::FujiDecompressor::FujiStrip const&, int, rawspeed::FujiDecompressor::copy_line_to_xtrans(rawspeed::FujiDecompressor::fuji_compressed_block*, rawspeed::FujiDecompressor::FujiStrip const&, int) const::$_7&) const librawspeed/src/librawspeed/decompressors/FujiDecompressor.cpp:0:7
+#1 0x56d8b1 in rawspeed::FujiDecompressor::copy_line_to_xtrans(rawspeed::FujiDecompressor::fuji_compressed_block*, rawspeed::FujiDecompressor::FujiStrip const&, int) const librawspeed/src/librawspeed/decompressors/FujiDecompressor.cpp:215
+#2 0x57c3d7 in rawspeed::FujiDecompressor::fuji_decode_strip(rawspeed::FujiDecompressor::fuji_compressed_block*, rawspeed::FujiDecompressor::FujiStrip const&) const librawspeed/src/librawspeed/decompressors/FujiDecompressor.cpp:729:7
+#3 0x57cda3 in rawspeed::FujiDecompressor::decompressThreaded(rawspeed::RawDecompressorThread const*) const librawspeed/src/librawspeed/decompressors/FujiDecompressor.cpp:779:5
+#4 0x567893 in rawspeed::RawDecompressorThread::start_routine(void*) librawspeed/src/librawspeed/decompressors/AbstractParallelizedDecompressor.h:67:22
+#5 0x567393 in rawspeed::AbstractParallelizedDecompressor::decompressOne(unsigned int) const librawspeed/src/librawspeed/decompressors/AbstractParallelizedDecompressor.cpp:39:3
+#6 0x55318b in LLVMFuzzerTestOneInput librawspeed/fuzz/librawspeed/decompressors/FujiDecompressor.cpp:47:7
+#7 0x5b65c0 in fuzzer::Fuzzer::ExecuteCallback(unsigned char const*, unsigned long) /src/libfuzzer/FuzzerLoop.cpp:515:13
+#8 0x58d175 in fuzzer::RunOneTest(fuzzer::Fuzzer*, char const*, unsigned long) /src/libfuzzer/FuzzerDriver.cpp:280:6
+#9 0x598b5b in fuzzer::FuzzerDriver(int*, char***, int (*)(unsigned char const*, unsigned long)) /src/libfuzzer/FuzzerDriver.cpp:703:9
+#10 0x58c818 in main /src/libfuzzer/FuzzerMain.cpp:20:10
+#11 0x7fb3bc0f282f in __libc_start_main /build/glibc-bfm8X4/glibc-2.23/csu/libc-start.c:291
+#12 0x453e78 in _start
+Address 0x000000000006 is a wild pointer.
+SUMMARY: AddressSanitizer: unknown-crash (/mnt/scratch0/clusterfuzz/bot/builds/clusterfuzz-builds_librawspeed_2ff020846f4a5625cb7009ec90f5f5a6dff4f645/revisions/FujiDecompressorFuzzer+0x56d8b1)
+Shadow bytes around the buggy address:
+=>0x00007fff8000:[00]00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+0x00007fff8010: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+0x00007fff8020: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+0x00007fff8030: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+0x00007fff8040: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+0x00007fff8050: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+Shadow byte legend (one shadow byte represents 8 application bytes):
+Addressable:           00
+Partially addressable: 01 02 03 04 05 06 07
+Heap left redzone:       fa
+Freed heap region:       fd
+Stack left redzone:      f1
+Stack mid redzone:       f2
+Stack right redzone:     f3
+Stack after return:      f5
+Stack use after scope:   f8
+Global redzone:          f9
+Global init order:       f6
+Poisoned by user:        f7
+Container overflow:      fc
+Array cookie:            ac
+Intra object redzone:    bb
+ASan internal:           fe
+Left alloca redzone:     ca
+Right alloca redzone:    cb
+==1==ABORTING

@@ -1,0 +1,11 @@
+### ### ### ### ### ### ### ### ### ### ### ### ###
+Fatal signal 6 (SIGABRT), code -6 in tid 24061 (oid.apps.chrome)
+Detects a new minidump 10450b7b-4280-5e94-1777691c-05ff1236.dmp24061 send intent to MinidumpUploadService
+--------- DEBUG (22983):
+*** *** *** *** *** *** *** *** *** *** *** *** *** *** *** ***
+Build fingerprint: google/hammerhead/hammerhead:6.0/MRA59G/2457013:userdebug/dev-keys
+Revision: 0
+ABI: arm
+pid: 24061, tid: 24061, name: oid.apps.chrome  >>> com.google.android.apps.chrome <<<
+signal 6 (SIGABRT), code -6 (SI_TKILL), fault addr --------
+Abort message: [FATAL:compositor_impl_android.cc(550)] Timed out waiting for GPU channel.

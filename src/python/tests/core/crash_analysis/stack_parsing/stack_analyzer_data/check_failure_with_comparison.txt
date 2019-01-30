@@ -1,0 +1,2 @@
+[5:5:0100/000000:FATAL:zygote_linux.cc(449)] Check failed: len > 0 (-1 vs. 0)
+[1:1:0100/000000:FATAL:zygote_linux.cc(420)] Failed to synchronise with parent zygote process

@@ -1,0 +1,272 @@
+<!--
+  Copyright 2018 Google LLC
+
+  Licensed under the Apache License, Version 2.0 (the "License");
+  you may not use this file except in compliance with the License.
+  You may obtain a copy of the License at
+
+       http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+-->
+<link rel="import" href="../../bower_components/polymer/polymer.html">
+<link rel="import" href="../../bower_components/iron-form/iron-form.html">
+<link rel="import" href="../../bower_components/iron-icon/iron-icon.html">
+<link rel="import" href="../../bower_components/paper-button/paper-button.html">
+<link rel="import" href="../../bower_components/paper-dropdown-menu/paper-dropdown-menu.html">
+<link rel="import" href="../../bower_components/paper-input/paper-input.html">
+<link rel="import" href="../../bower_components/paper-input/paper-textarea.html">
+<link rel="import" href="../../bower_components/paper-item/paper-item.html">
+<link rel="import" href="../../bower_components/paper-listbox/paper-listbox.html">
+
+<dom-module id="jobs-page">
+  <link rel="import" href="../../stylesheets/main.css" type="css">
+  <link rel="import" href="../technology/technology.css" type="css">
+  <template>
+    <style>
+      .left {
+        padding: 10px;
+        max-width: 250px;
+        width: 20%;
+      }
+
+      .right {
+        padding: 10px;
+        width: 80%;
+      }
+
+      .label {
+        font-size: 12px;
+        color: var(--paper-input-container-color);
+      }
+
+      paper-textarea {
+        --iron-autogrow-textarea: {
+          overflow: hidden;
+        }
+      }
+
+      :root {
+        --paper-input-container-input-color: var(--primary-text-color);
+      }
+    </style>
+
+    <h2>Templates</h2>
+
+    <div class="section">
+      <div class="title">Add new template</div>
+      <div class="body">
+        <iron-form allow-redirect>
+          <form action="[[fieldValues.update_job_template_url]]" method="post">
+            <input type="hidden" name="csrf_token" value="[[fieldValues.csrf_token]]" />
+            <div class="flex">
+              <div class="left">
+                <paper-input label="Template name" name="name"></paper-input>
+                <br/>
+                <button style="border:none; background:none;" tabindex="-1">
+                  <paper-button class="info" raised>Add</paper-button>
+                </button>
+              </div>
+
+              <div class="right">
+                <paper-textarea label="Environment string (one per line - ENV_VAR=ENV_VALUE)" name="environment_string" value=""></paper-textarea>
+              </div>
+            </div>
+          </form>
+        </iron-form>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="title">Existing templates</div>
+      <div class="body">
+        <paper-input class="search-box" label="Enter search string here" value="{{templateSearchString::input}}">
+          <iron-icon icon="icons:search" slot="prefix"></iron-icon>
+          <iron-icon icon="icons:help-outline" title="Search with keywords in template name or its environment string." slot="suffix"></iron-icon>
+        </paper-input>
+        <template is="dom-repeat" items="[[templates]]" initial-count="20" filter="[[computeFilter(templateSearchString)]]">
+          <iron-form allow-redirect>
+            <form action="[[fieldValues.update_job_template_url]]" method="post">
+              <input type="hidden" name="csrf_token" value="[[fieldValues.csrf_token]]" />
+              <div class="container flex">
+                <div class="left">
+                  <paper-input label="Template name" name="name" value="[[item.name]]" readonly></paper-input>
+                  <br/>
+
+                  <button style="border:none; background:none;" tabindex="-1">
+                    <paper-button raised>Save</paper-button>
+                  </button>
+                </div>
+
+                <div class="right">
+                  <paper-textarea label="Environment String" name="environment_string" value="[[item.environment_string]]" spellcheck="false"></paper-textarea>
+                </div>
+              </div>
+            </form>
+          </iron-form>
+        </template>
+      </div>
+    </div>
+
+    <h2>Jobs</h2>
+
+    <div class="section">
+      <div class="title">Add new job</div>
+      <div class="body">
+        <iron-form id="form_new" allow-redirect>
+          <form action="[[fieldValues.update_job_url]]" method="post">
+            <input type="hidden" name="csrf_token" value="[[fieldValues.csrf_token]]" />
+            <input type="hidden" name="upload_key" id="upload_key_new" />
+            <div class="container flex">
+              <div class="left">
+                <paper-input label="Job name" name="name"></paper-input>
+
+                <paper-dropdown-menu label="Platform" name="platform" no-animations="true" noink>
+                  <paper-listbox slot="dropdown-content" class="dropdown-content">
+                    <template is="dom-repeat" items="[[fieldValues.queues]]">
+                      <paper-item label="[[item.name]]" value="[[item.name]]">[[item.display_name]]</paper-item>
+                    </template>
+                  </paper-listbox>
+                </paper-dropdown-menu>
+
+                <paper-input label="Description (optional)" name="description"></paper-input>
+
+                <paper-textarea label="Templates (optional, one per line)" name="templates" value=""></paper-textarea>
+                <br/>
+
+                <div class="label">
+                  Custom Build (optional)
+                </div>
+                <paper-input type="file" id="file_new" label="File" no-label-float always-float-label$="false"></paper-input>
+                <br/>
+
+                <paper-button class="info" raised on-tap="submitForm" data-index="new">Add</paper-button>
+              </div>
+
+              <div class="right">
+                <paper-textarea label="Environment (one per line - ENV_VAR=ENV_VALUE) " name="environment_string" value=""></paper-textarea>
+              </div>
+            </div>
+          </form>
+        </iron-form>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="title">Existing jobs</div>
+      <div class="body">
+        <paper-input class="search-box" label="Enter search string here" value="{{jobSearchString::input}}">
+          <iron-icon icon="icons:search" slot="prefix"></iron-icon>
+          <iron-icon icon="icons:help-outline" title="Search with keywords in job name or its environment string." slot="suffix"></iron-icon>
+        </paper-input>
+        <template is="dom-repeat" items="[[jobs]]" initial-count="20" filter="[[computeFilter(jobSearchString)]]">
+          <iron-form id="form_[[index]]" allow-redirect>
+            <form action="[[fieldValues.update_job_url]]" method="post">
+              <input type="hidden" name="csrf_token" value="[[fieldValues.csrf_token]]" />
+              <input type="hidden" name="upload_key" id="upload_key_[[index]]" />
+              <div class="container flex">
+                <div class="left">
+                  <paper-input label="Name" name="name" value="[[item.name]]" readonly></paper-input>
+
+                  <paper-dropdown-menu label="Platform" name="platform" no-animations="true" noink>
+                    <paper-listbox selected="[[item.platform]]" attr-for-selected="value" slot="dropdown-content" class="dropdown-content">
+                      <template is="dom-repeat" items="[[fieldValues.queues]]">
+                        <paper-item label="[[item.name]]" value="[[item.name]]">[[item.display_name]]</paper-item>
+                      </template>
+                    </paper-listbox>
+                  </paper-dropdown-menu>
+
+                  <paper-input label="Description (optional)" name="description" value="[[item.description]]"></paper-input>
+
+                  <paper-textarea label="Templates (optional)" name="templates" value="[[getTemplatesString(item.templates)]]"></paper-textarea>
+                  <br/>
+
+                  <div class="label">
+                    Custom Build (optional)
+                  </div>
+                  <template is="dom-if" if="[[item.custom_binary_key]]">
+                    <a href="/download/[[item.custom_binary_key]]">[[item.custom_binary_filename]]</a>
+                  </template>
+                  <paper-input type="file" id="file_[[index]]" label="File" no-label-float always-float-label$="false"></paper-input>
+                  <br/>
+
+                  <paper-button raised on-tap="submitForm" data-index$="[[index]]">Save</paper-button>
+                </div>
+
+                <div class="right">
+                  <paper-textarea label="Environment String" name="environment_string" value="[[item.environment_string]]" spellcheck="false"></paper-textarea>
+                </div>
+              </div>
+            </form>
+          </iron-form>
+        </template>
+      </div>
+    </div>
+  </template>
+  <script>
+    class JobsPage extends Polymer.Element {
+      static get is() { return 'jobs-page'; }
+
+      static get properties() {
+        return {
+          jobs: Array,
+          templates: Array,
+          fieldValues: Object,
+        };
+      }
+
+      getTemplatesString(templates) {
+        return templates.join('\n');
+      }
+
+      submitForm(event) {
+        var index = event.target.dataset.index;
+        var form = this.shadowRoot.getElementById('form_' + index);
+        var file = this.shadowRoot.getElementById('file_' + index);
+        var upload_key =  this.shadowRoot.getElementById('upload_key_' + index);
+        var first_file = file.inputElement.inputElement.files[0];
+
+        if (!first_file) {
+          form.submit();
+          return;
+        }
+
+        var xhr = new XMLHttpRequest();
+        var uploadData = new FormData();
+        uploadData.append('bucket', this.fieldValues.upload_info.bucket);
+        uploadData.append('key', this.fieldValues.upload_info.key);
+        uploadData.append('GoogleAccessId', this.fieldValues.upload_info.google_access_id);
+        uploadData.append('policy', this.fieldValues.upload_info.policy);
+        uploadData.append('signature', this.fieldValues.upload_info.signature);
+        uploadData.append('x-goog-meta-filename', first_file.name);
+        uploadData.append('file', first_file);
+        upload_key.value = this.fieldValues.upload_info.key;
+
+        xhr.open('POST', this.fieldValues.upload_info.url, true);
+        xhr.onreadystatechange = function (e) {
+          if (xhr.readyState != 4)
+            return;
+
+          form.submit();
+        }
+        xhr.send(uploadData);
+      }
+
+      computeFilter(searchKey) {
+        if (!searchKey)
+          return null;
+
+        searchKey = searchKey.toLowerCase();
+        return (el) => (
+            el['name'].toLowerCase().indexOf(searchKey) != -1 ||
+            el['environment_string'].toLowerCase().indexOf(searchKey) != -1);
+      }
+    }
+
+    customElements.define(JobsPage.is, JobsPage);
+  </script>
+</dom-module>

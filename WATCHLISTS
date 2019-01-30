@@ -1,0 +1,10 @@
+{
+  'WATCHLIST_DEFINITIONS': {
+    'all': {
+      'filepath': '.*',
+    },
+  },
+  'WATCHLISTS': {
+    'all': ['clusterfuzz-reviews@google.com'],
+  },
+}

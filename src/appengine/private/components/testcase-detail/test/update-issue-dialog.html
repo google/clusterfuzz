@@ -1,0 +1,74 @@
+<!--
+  Copyright 2018 Google LLC
+
+  Licensed under the Apache License, Version 2.0 (the "License");
+  you may not use this file except in compliance with the License.
+  You may obtain a copy of the License at
+
+       http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+-->
+<html>
+<head>
+  <script src="../../../bower_components/iron-test-helpers/mock-interactions.js"></script>
+  <script src="../../../bower_components/web-component-tester/browser.js"></script>
+  <script src="../../../bower_components/webcomponentsjs/webcomponents-lite.js"></script>
+  <script src="../../../javascripts/test-helpers.js"></script>
+
+  <link rel="import" href="../update-issue-dialog.html">
+</head>
+<body>
+  <test-fixture id="panel">
+    <template>
+      <update-issue-dialog></update-issue-dialog>
+    </template>
+  </test-fixture>
+  <script>
+    suite2('<update-issue-dialog>', ($) => {
+      const response =  JSON.stringify({
+        testcase: {id: 123}
+      });
+      const url = '/testcase-detail/update-issue';
+
+      setup(function() {
+        $.panel.info = {
+          testcase: {id: '456', bug_information: null}
+        };
+      });
+
+      test2(
+          'updates',
+          () => {
+            $.server.respondWith('POST', url, [200, jsonHeaders, response]);
+
+            expect($.select('ajax-dialog').opened).to.be.false;
+            $.panel.opened = true;
+            expect($.select('ajax-dialog').opened).to.be.true;
+
+            $.panel.issueId = '999';
+            $.select('ajax-dialog').submit();
+
+            const req = $.select('ajax-dialog').activeRequests[0];
+            expect(JSON.parse(req.xhr.requestBody)).to.be.eql({
+              testcaseId: '456',
+              issueId: '999',
+              needsSummaryUpdate: false
+            });
+
+            $.server.respond();
+            return req.completes;
+          },
+          () => {
+            expect($.select('ajax-dialog').opened).to.be.false;
+          }
+      );
+    });
+  </script>
+</body>
+</html>
+

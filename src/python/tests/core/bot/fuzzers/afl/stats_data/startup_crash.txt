@@ -1,0 +1,43 @@
+Temporary input directory contains 150 files, Original contains 14500.
+Afl exited with a nonzero exitcode 1
+Fuzz cmd ['/mnt/scratch0/clusterfuzz/resources/platform/linux/minijail0', '-f', '/tmp/tmpnkHou2', '-U', '-m', '0 1337 1', '-T', 'static', '-c', '0', '-n', '-e', '-v', '-p', '-l', '-I', '-k', 'proc,/proc,proc,1', '-P', '/mnt/scratch0/clusterfuzz/bot/inputs/fuzzer-testcases-disk/temp/tmpEMM8L8', '-b', '/mnt/scratch0/clusterfuzz/bot/inputs/fuzzer-testcases-disk/temp/tmpP8_FDL,/tmp,1', '-b', '/lib,/lib,0', '-b', '/lib64,/lib64,0', '-b', '/usr/lib,/usr/lib,0', '-b', '/mnt/scratch0/clusterfuzz/bot/builds/clusterfuzz-builds-afl_libreoffice_1722507a6b01db31fdc90b1e6c8b4b5d1d41878b/revisions,/mnt/scratch0/clusterfuzz/bot/builds/clusterfuzz-builds-afl_libreoffice_1722507a6b01db31fdc90b1e6c8b4b5d1d41878b/revisions,0', '-b', '/bin,/bin,0', '-b', '/usr/bin,/usr/bin,0', '-b', '/mnt/scratch0/clusterfuzz/bot/builds/clusterfuzz-builds-afl_libreoffice_1722507a6b01db31fdc90b1e6c8b4b5d1d41878b/revisions,/out,0', '-b', '/mnt/scratch0/clusterfuzz/bot/inputs/fuzzer-testcases-disk/temp/afl_input_dir,/afl_input_dir,1', '-b', '/mnt/scratch0/clusterfuzz/bot/inputs/fuzzer-testcases-disk/temp/afl_output_dir,/afl_output_dir,1', '/mnt/scratch0/clusterfuzz/bot/builds/clusterfuzz-builds-afl_libreoffice_1722507a6b01db31fdc90b1e6c8b4b5d1d41878b/revisions/afl-fuzz', '-d', '-i/afl_input_dir', '-o/afl_output_dir', '-mnone', '/mnt/scratch0/clusterfuzz/bot/builds/clusterfuzz-builds-afl_libreoffice_1722507a6b01db31fdc90b1e6c8b4b5d1d41878b/revisions/slkfuzzer', '2147483647']
+Output [0;36mafl-fuzz [1;97m2.52b[0m by <lcamtuf@google.com>
+[1;92m[+] [0mLooks like we're not running on a tty, so I'll be a bit less verbose.[0m
+[1;92m[+] [0mYou have 1 CPU core and 2 runnable tasks (utilization: 200%).[0m
+[1;94m[*] [0mChecking core_pattern...[0m
+[1;94m[*] [0mSetting up output directories...[0m
+[1;92m[+] [0mOutput directory exists but deemed OK to reuse.[0m
+[1;94m[*] [0mDeleting old session data...[0m
+[1;92m[+] [0mOutput dir cleanup successful.[0m
+[1;94m[*] [0mScanning '/afl_input_dir'...[0m
+[1;92m[+] [0mNo auto-generated dictionary tokens to reuse.[0m
+[1;94m[*] [0mCreating hard links for all input files...[0m
+[1;94m[*] [0mValidating target binary...[0m
+[1;92m[+] [0m[1;95mPersistent mode binary detected.[0m
+[1;92m[+] [0m[1;95mDeferred forkserver binary detected.[0m
+[1;94m[*] [0mAttempting dry run with 'id:000000,orig:031883d9b6079db4bf7bf3d7d28cf735c770cf17'...[0m
+[1;94m[*] [0mSpinning up the fork server...[0m
+
+[1;91m[-] [0mWhoops, the target binary crashed suddenly, before receiving any input
+    from the fuzzer! There are several probable explanations:
+
+    - The binary is just buggy and explodes entirely on its own. If so, you
+      need to fix the underlying problem or find a better replacement.
+
+    - Less likely, there is a horrible bug in the fuzzer. If other options
+      fail, poke <lcamtuf@coredump.cx> for troubleshooting tips.
+)B[?25h[0m[1;91m
+[-] PROGRAM ABORT : [1;97mFork server crashed with signal 6[1;91m
+         Location : [0minit_forkserver(), afl-fuzz.c:2201
+
+
+Command: /mnt/scratch0/clusterfuzz/bot/builds/clusterfuzz-builds-afl_libreoffice_1722507a6b01db31fdc90b1e6c8b4b5d1d41878b/revisions/afl-fuzz -d -i/afl_input_dir -o/afl_output_dir -mnone /mnt/scratch0/clusterfuzz/bot/builds/clusterfuzz-builds-afl_libreoffice_1722507a6b01db31fdc90b1e6c8b4b5d1d41878b/revisions/slkfuzzer 2147483647
+Bot: oss-fuzz-linux-zone1-worker-libreoffice-p33q
+Time ran: 2.86069011688
+
+cf::fuzzing_strategies: strategy_corpus_subset_150
+stability not in AFL's stats file.
+unique_hangs not in AFL's stats file.
+exec_timeout not in AFL's stats file.
+unique_crashes not in AFL's stats file.
+execs_done not in AFL's stats file.

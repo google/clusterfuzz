@@ -1,0 +1,203 @@
+<!--
+  Copyright 2018 Google LLC
+
+  Licensed under the Apache License, Version 2.0 (the "License");
+  you may not use this file except in compliance with the License.
+  You may obtain a copy of the License at
+
+       http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+-->
+<link rel="import" href="../../bower_components/polymer/polymer.html">
+<link rel="import" href="../../bower_components/paper-styles/shadow.html">
+<link rel="import" href="../../bower_components/paper-tooltip/paper-tooltip.html">
+
+<dom-module id="stats-results">
+  <link rel="import" href="../../stylesheets/main.css" type="css">
+  <link rel="import" href="../technology/technology.css" type="css">
+  <script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
+  <template>
+    <!-- Because the charts' JS don't inject CSS correctly, so we inject them manually.
+         See: https://bugs.chromium.org/p/chromium/issues/detail?id=710594#c5
+         TODO(ochang): Try removing the below <link> to see if it works because
+                       the new gviz version fixes this problem. -->
+    <link rel="stylesheet" href="https://www.gstatic.com/charts/45.2/css/util/util.css" type="text/css">
+    <link rel="stylesheet" href="https://www.gstatic.com/charts/45.2/css/util/format.css" type="text/css">
+    <link rel="stylesheet" href="https://www.gstatic.com/charts/45.2/css/core/tooltip.css" type="text/css">
+    <link rel="stylesheet" href="https://www.gstatic.com/charts/45.2/css/table/table.css" type="text/css">
+    <style>
+      :host th {
+        padding: 0.8em !important;
+        font-size: 14px;
+      }
+
+      :host td {
+        padding: 0.8em !important;
+        white-space: nowrap;
+        font-size: 13px;
+      }
+
+      :host #results {
+        display: block;
+        text-align: center;
+      }
+
+      :host .chart_line {
+        display: inline-block;
+        margin: 20px;
+        width: 95%;
+      }
+
+      :host .chart_table {
+        display: inline-block;
+        text-align: left;
+        margin: 0px auto;
+      }
+    </style>
+    <div id="results" >
+    </div>
+  </template>
+  <script>
+    class StatsResult extends Polymer.Element {
+      static get is() { return 'stats-results'; }
+
+      static get properties() {
+        return {
+          result: {
+            type: Object,
+            observer: 'resultChanged',
+          },
+          chart: Object
+        };
+      }
+
+      ready() {
+        super.ready();
+        // See why we freeze the version here:
+        // https://github.com/google/oss-fuzz/issues/849
+        google.charts.load('45', {'packages': ['corechart', 'table']});
+        google.charts.setOnLoadCallback(() => { this.resultChanged(); });
+      }
+
+      drawTable() {
+        if (!google || !google.visualization || !google.visualization.Table) {
+          return;
+        }
+
+        let chart_div = document.createElement('div');
+        chart_div.setAttribute('class', 'chart_table');
+        this.$.results.appendChild(chart_div);
+
+        let chart = new google.visualization.Table(chart_div);
+        let data = new google.visualization.DataTable(this.result);
+
+        if (this.result) {
+          for (let col of this.result.cols) {
+            if (col.label in this.result.column_descriptions) {
+              col.label += '<paper-tooltip>' + this.result.column_descriptions[col.label]
+                  + '</paper-tooltip>';
+            }
+          }
+        }
+
+        var sortDescending = false;
+        try {
+          if (this.result['cols'][0]['type'] == 'date') {
+            sortDescending = true;
+          }
+        } catch (e) {
+        }
+
+        // Sort by descending or ascending order for column 1.
+        data.sort([{column: 0, desc: sortDescending}]);
+
+        chart.draw(
+            data,
+            {allowHtml: true}
+        );
+      }
+
+      drawTimeSeries() {
+        if (!google || !google.visualization || !google.visualization.LineChart) {
+          return;
+        }
+
+        for (let index = 1; index < this.result.cols.length; index++) {
+          let current_rows = [];
+          for (let row of this.result.rows) {
+            current_rows.push({'c': [row['c'][0], row['c'][index]]})
+          }
+          let current_cols = [this.result.cols[0], this.result.cols[index]];
+          let current_column_descriptions = [this.result.column_descriptions[0], this.result.column_descriptions[index]];
+
+          let current_result = {
+            rows: current_rows,
+            cols: current_cols,
+            current_column_descriptions: current_column_descriptions,
+          }
+
+          let current_chart_div = document.createElement('div');
+          current_chart_div.setAttribute('class', 'chart_line');
+          this.$.results.appendChild(current_chart_div);
+
+          let current_chart = new google.visualization.LineChart(current_chart_div);
+          let current_data = new google.visualization.DataTable(current_result);
+
+          // Sort by descending time in column 1.
+          current_data.sort([{column: 0, desc: false}]);
+
+          let timeFormatter = new google.visualization.DateFormat({
+            pattern: 'MMM dd, hh:mm a'
+          });
+          timeFormatter.format(current_data, 0);
+
+          current_chart.draw(
+              current_data,
+              {
+                colors: ['#4285f4'],
+                fontName: 'Roboto, Noto, sans-serif',
+                fontSize: 12,
+                height: 300,
+                hAxis: {
+                  gridlines: {
+                    count: -1,
+                    units: {
+                      days: {format: ['MMM dd']},
+                      hours: {format: ['HH:mm', 'ha']},
+                    }
+                  },
+                },
+                pointSize: 5,
+                vAxis: {
+                  format: 'short',
+                  viewWindow: {
+                    min: 0,
+                  }
+                },
+              }
+          );
+        }
+      }
+
+      resultChanged() {
+        if (this.result == undefined) { return; }
+
+        // Clear existing results first.
+        this.$.results.innerHTML = '';
+
+        if (this.result.is_timeseries) {
+          this.drawTimeSeries();
+        } else {
+          this.drawTable();
+        }
+      }
+    }
+
+    customElements.define(StatsResult.is, StatsResult);
+  </script>
+</dom-module>

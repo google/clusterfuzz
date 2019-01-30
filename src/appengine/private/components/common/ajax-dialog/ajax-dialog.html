@@ -1,0 +1,201 @@
+<!--
+  Copyright 2018 Google LLC
+
+  Licensed under the Apache License, Version 2.0 (the "License");
+  you may not use this file except in compliance with the License.
+  You may obtain a copy of the License at
+
+       http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+-->
+<link rel="import" href="../../../bower_components/polymer/polymer.html">
+<link rel="import" href="../../../bower_components/iron-ajax/iron-ajax.html">
+<link rel="import" href="../../../bower_components/paper-button/paper-button.html">
+<link rel="import" href="../../../bower_components/paper-dialog/paper-dialog.html">
+<link rel="import" href="../../../bower_components/paper-spinner/paper-spinner.html">
+
+<dom-module id="ajax-dialog">
+  <link rel="import" href="../../technology/technology.css" type="css">
+  <link rel="import" href="../../../stylesheets/main.css" type="css">
+  <script src="../../../javascripts/error.js" type="text/javascript"></script>
+  <template>
+    <style>
+      :host {
+        display: block;
+      }
+
+      :host .body > * {
+        display: block;
+        margin: 3px 0px;
+      }
+
+      :host .body .error {
+        color: #ca4545;
+        font-size: 12px;
+        max-width: 600px;
+      }
+
+      :host .body .error .title {
+        display: block;
+        font-weight: bold;
+      }
+
+      :host .body .error .trace-dump {
+        display: block;
+        overflow: auto;
+        font-family: 'Source Code Pro', monospace;
+        white-space: pre;
+        margin-top: 10px;
+        font-size: 12px;
+      }
+
+      :host paper-spinner {
+        margin-right: 5px;
+      }
+
+      paper-dialog {
+        max-height: 3000px;
+      }
+
+      .buttons {
+        display: -webkit-flex;
+        display: flex;
+        -webkit-flex-direction: row;
+        flex-direction: row;
+      }
+
+      .buttons > .left {
+        flex: 1;
+      }
+
+      .buttons > .right {
+        flex: 1;
+        display: flex;
+        -webkit-justify-content: flex-end;
+        justify-content: flex-end;
+      }
+    </style>
+    <iron-ajax
+      id="ajax"
+      url="[[url]]"
+      method="POST"
+      content-type="[[contentType]]"
+      body="[[params]]"
+      loading="{{loading}}"
+      last-request="{{request}}"
+      last-error="{{originalError}}"
+      last-response="{{response}}"
+      on-response="handleResponse"
+      active-requests="{{activeRequests}}"
+      debounce-duration="1000"></iron-ajax>
+    <paper-dialog id="dialog" opened="{{opened}}" modal>
+      <h2>[[title]]</h2>
+      <div class="body">
+        <slot></slot>
+        <template is="dom-if" if="[[shouldShowError(error, loading)]]">
+          <div class="error">
+            <span class="title">[[error.message]]</span>
+            <template is="dom-if" if="[[error.traceDump]]">
+              <span class="trace-dump">[[error.traceDump]]</span>
+            </template>
+          </div>
+        </template>
+      </div>
+      <div class="buttons">
+        <div class="left">
+          <slot name="more-buttons"></slot>
+        </div>
+        <div class="right">
+          <paper-button class="submit" disabled="[[isDisabled(url, loading)]]" on-tap="submit">
+            <paper-spinner active="[[loading]]"></paper-spinner>
+            [[submitButton]]
+          </paper-button>
+          <paper-button dialog-dismiss disabled="[[isDisabled(url, loading)]]">Cancel</paper-button>
+        </div>
+      </div>
+    </paper-dialog>
+  </template>
+  <script>
+    class AjaxDialog extends Polymer.Element {
+      static get is() { return 'ajax-dialog'; }
+
+      static get properties() {
+        return {
+          title: String,
+          submitButton: String,
+          url: {
+            type: String,
+            value: false
+          },
+          params: Object,
+          loading: Boolean,
+          contentType: {
+            type: String,
+            value: 'application/json'
+          },
+          request: Object,
+          originalError: {
+            type: Object,
+            notify: true,
+          },
+          activeRequests: {
+            type: Array,
+            notify: true
+          },
+          opened: {
+            type: Boolean,
+            notify: true
+          },
+          response: {
+            type: Object,
+            notify: true
+          },
+          beforeSubmit: Object
+        };
+      }
+
+      static get observers() { return ['computeError(originalError)']; }
+
+      isDisabled(url, loading) {
+        return loading || !url;
+      }
+
+      shouldShowError(error, loading) {
+        return error && !loading;
+      }
+
+      computeError(originalError) {
+        if (!originalError) { return; }
+
+        this.dispatchEvent(new CustomEvent(
+              'before-error', {detail: {response: originalError.response}}));
+        this.error = parseError(originalError);
+      }
+
+      open() { this.$.dialog.open(); }
+      close() { this.$.dialog.close(); }
+
+      submit() {
+        this.originalError = null;
+        this.dispatchEvent(new CustomEvent('before-submit'));
+
+        if (this.$.ajax.body) {
+          this.$.ajax.generateRequest();
+        }
+      }
+
+      handleResponse() {
+        // There's no need to dispatch an event here. `response.notify` already
+        // dispatch `on-response` for us.
+      }
+    }
+
+    customElements.define(AjaxDialog.is, AjaxDialog);
+  </script>
+</dom-module>
+

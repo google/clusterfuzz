@@ -1,0 +1,4 @@
+#!/bin/bash -ex
+
+echo "Running ndb patcher tests..."
+NDB_PATCHER_TESTS=1 python butler.py py_unittest -t core -p 'ndb_patcher*'

@@ -1,0 +1,128 @@
+=================================================================
+==1==ERROR: AddressSanitizer: container-overflow on address 0x61000006be40 at pc 0x7f45b62d729b bp 0x7ffc5bdf0430 sp 0x7ffc5bdf0428
+READ of size 4 at 0x61000006be40 thread T0 (chrome)
+SCARINESS: 17 (4-byte-read-container-overflow)
+    #0 0x7f45b62d729a in SkSL::Compiler::addDefinitions(SkSL::BasicBlock::Node const&, std::__1::unordered_map<SkSL::Variable const*, std::__1::unique_ptr<SkSL::Expression, std::__1::default_delete<SkSL::Expression> >*, std::__1::hash<SkSL::Variable const*>, std::__1::equal_to<SkSL::Variable const*>, std::__1::allocator<std::__1::pair<SkSL::Variable const* const, std::__1::unique_ptr<SkSL::Expression, std::__1::default_delete<SkSL::Expression> >*> > >*) /mnt/data/b/c/b/ASAN_Release_Media/src/third_party/skia/src/sksl/SkSLCompiler.cpp:211:18
+    #1 0x7f45b62e01ee in SkSL::Compiler::scanCFG(SkSL::FunctionDefinition&) /mnt/data/b/c/b/ASAN_Release_Media/src/third_party/skia/src/sksl/SkSLCompiler.cpp:883:23
+    #2 0x7f45b62d209a in SkSL::Compiler::internalConvertProgram(SkSL::String, SkSL::Modifiers::Flag*, std::__1::vector<std::__1::unique_ptr<SkSL::ProgramElement, std::__1::default_delete<SkSL::ProgramElement> >, std::__1::allocator<std::__1::unique_ptr<SkSL::ProgramElement, std::__1::default_delete<SkSL::ProgramElement> > > >*) /mnt/data/b/c/b/ASAN_Release_Media/src/third_party/skia/src/sksl/SkSLCompiler.cpp:922:27
+    #3 0x7f45b62e0c29 in SkSL::Compiler::convertProgram(SkSL::Program::Kind, SkSL::String, SkSL::Program::Settings const&) /mnt/data/b/c/b/ASAN_Release_Media/src/third_party/skia/src/sksl/SkSLCompiler.cpp:980:11
+    #4 0x7f45b624b14a in GrGLCompileAndAttachShader(GrGLContext const&, unsigned int, unsigned int, char const**, int*, int, GrGpu::Stats*, SkSL::Program::Settings const&, SkSL::Program::Inputs*) /mnt/data/b/c/b/ASAN_Release_Media/src/third_party/skia/src/gpu/gl/builders/GrGLShaderStringBuilder.cpp:55:28
+    #5 0x7f45b6246fb8 in GrGLProgramBuilder::compileAndAttachShaders(GrGLSLShaderBuilder&, unsigned int, unsigned int, SkTDArray<unsigned int>*, SkSL::Program::Settings const&, SkSL::Program::Inputs*) /mnt/data/b/c/b/ASAN_Release_Media/src/third_party/skia/src/gpu/gl/builders/GrGLProgramBuilder.cpp:79:25
+    #6 0x7f45b6245e99 in GrGLProgramBuilder::finalize() /mnt/data/b/c/b/ASAN_Release_Media/src/third_party/skia/src/gpu/gl/builders/GrGLProgramBuilder.cpp:144:16
+    #7 0x7f45b6244baa in GrGLProgramBuilder::CreateProgram(GrPipeline const&, GrPrimitiveProcessor const&, GrProgramDesc*, GrGLGpu*) /mnt/data/b/c/b/ASAN_Release_Media/src/third_party/skia/src/gpu/gl/builders/GrGLProgramBuilder.cpp:53:20
+    #8 0x7f45b620bfb2 in GrGLGpu::ProgramCache::refProgram(GrGLGpu const*, GrPipeline const&, GrPrimitiveProcessor const&, bool) /mnt/data/b/c/b/ASAN_Release_Media/src/third_party/skia/src/gpu/gl/GrGLGpuProgramCache.cpp:95:32
+    #9 0x7f45b61daf72 in GrGLGpu::flushGLState(GrPipeline const&, GrPrimitiveProcessor const&, bool) /mnt/data/b/c/b/ASAN_Release_Media/src/third_party/skia/src/gpu/gl/GrGLGpu.cpp:1936:47
+    #10 0x7f45b61eb3ba in GrGLGpu::draw(GrPipeline const&, GrPrimitiveProcessor const&, GrMesh const*, int) /mnt/data/b/c/b/ASAN_Release_Media/src/third_party/skia/src/gpu/gl/GrGLGpu.cpp:2654:16
+    #11 0x7f45b66eb53e in GrGpuCommandBuffer::draw(GrPipeline const&, GrPrimitiveProcessor const&, GrMesh const*, int, SkRect const&) /mnt/data/b/c/b/ASAN_Release_Media/src/third_party/skia/src/gpu/GrGpuCommandBuffer.cpp:47:11
+    #12 0x7f45b60c4803 in GrMeshDrawOp::onExecute(GrOpFlushState*) /mnt/data/b/c/b/ASAN_Release_Media/src/third_party/skia/src/gpu/ops/GrMeshDrawOp.cpp:80:33
+    #13 0x7f45b60224c1 in execute /mnt/data/b/c/b/ASAN_Release_Media/src/third_party/skia/src/gpu/ops/GrOp.h:145:49
+    #14 0x7f45b60224c1 in GrRenderTargetOpList::executeOps(GrOpFlushState*) /mnt/data/b/c/b/ASAN_Release_Media/src/third_party/skia/src/gpu/GrRenderTargetOpList.cpp:172
+    #15 0x7f45b5fcf6d1 in GrDrawingManager::internalFlush(GrSurfaceProxy*, GrResourceCache::FlushType) /mnt/data/b/c/b/ASAN_Release_Media/src/third_party/skia/src/gpu/GrDrawingManager.cpp:153:26
+    #16 0x7f45b5fd03dc in flush /mnt/data/b/c/b/ASAN_Release_Media/src/third_party/skia/src/gpu/GrDrawingManager.h:96:15
+    #17 0x7f45b5fd03dc in GrDrawingManager::prepareSurfaceForExternalIO(GrSurfaceProxy*) /mnt/data/b/c/b/ASAN_Release_Media/src/third_party/skia/src/gpu/GrDrawingManager.cpp:191
+    #18 0x7f45b6015d47 in GrRenderTargetContext::prepareForExternalIO() /mnt/data/b/c/b/ASAN_Release_Media/src/third_party/skia/src/gpu/GrRenderTargetContext.cpp:1267:29
+    #19 0x7f45c4e6dfee in blink::Canvas2DLayerBridge::Flush() /mnt/data/b/c/b/ASAN_Release_Media/src/third_party/WebKit/Source/platform/graphics/Canvas2DLayerBridge.cpp:808:38
+    #20 0x7f45c4e7025a in blink::Canvas2DLayerBridge::NewImageSnapshot(blink::AccelerationHint, blink::SnapshotReason) /mnt/data/b/c/b/ASAN_Release_Media/src/third_party/WebKit/Source/platform/graphics/Canvas2DLayerBridge.cpp:1096:3
+    #21 0x7f45c4e6f9b8 in blink::Canvas2DLayerBridge::PrepareTextureMailbox(cc::TextureMailbox*, std::__1::unique_ptr<cc::SingleReleaseCallback, std::__1::default_delete<cc::SingleReleaseCallback> >*) /mnt/data/b/c/b/ASAN_Release_Media/src/third_party/WebKit/Source/platform/graphics/Canvas2DLayerBridge.cpp:932:7
+    #22 0x7f45c0cb40e9 in cc::TextureLayer::Update() /mnt/data/b/c/b/ASAN_Release_Media/src/cc/layers/texture_layer.cc:188:18
+    #23 0x7f45b7f59558 in PaintContent /mnt/data/b/c/b/ASAN_Release_Media/src/cc/trees/layer_tree_host.cc:1066:33
+    #24 0x7f45b7f59558 in cc::LayerTreeHost::DoUpdateLayers(cc::Layer*) /mnt/data/b/c/b/ASAN_Release_Media/src/cc/trees/layer_tree_host.cc:716
+    #25 0x7f45b7f5857c in cc::LayerTreeHost::UpdateLayers() /mnt/data/b/c/b/ASAN_Release_Media/src/cc/trees/layer_tree_host.cc:591:17
+    #26 0x7f45b8006b8e in cc::ProxyMain::BeginMainFrame(std::__1::unique_ptr<cc::BeginMainFrameAndCommitState, std::__1::default_delete<cc::BeginMainFrameAndCommitState> >) /mnt/data/b/c/b/ASAN_Release_Media/src/cc/trees/proxy_main.cc:219:60
+    #27 0x7f45b819fce6 in Invoke<base::WeakPtr<cc::ProxyMain>, std::__1::unique_ptr<cc::BeginMainFrameAndCommitState, std::__1::default_delete<cc::BeginMainFrameAndCommitState> > > /mnt/data/b/c/b/ASAN_Release_Media/src/base/bind_internal.h:214:12
+    #28 0x7f45b819fce6 in MakeItSo<void (cc::ProxyMain::*)(std::__1::unique_ptr<cc::BeginMainFrameAndCommitState, std::__1::default_delete<cc::BeginMainFrameAndCommitState> >), base::WeakPtr<cc::ProxyMain>, std::__1::unique_ptr<cc::BeginMainFrameAndCommitState, std::__1::default_delete<cc::BeginMainFrameAndCommitState> > > /mnt/data/b/c/b/ASAN_Release_Media/src/base/bind_internal.h:305
+    #29 0x7f45b819fce6 in void base::internal::Invoker<base::internal::BindState<void (cc::ProxyMain::*)(std::__1::unique_ptr<cc::BeginMainFrameAndCommitState, std::__1::default_delete<cc::BeginMainFrameAndCommitState> >), base::WeakPtr<cc::ProxyMain>, base::internal::PassedWrapper<std::__1::unique_ptr<cc::BeginMainFrameAndCommitState, std::__1::default_delete<cc::BeginMainFrameAndCommitState> > > >, void ()>::RunImpl<void (cc::ProxyMain::*)(std::__1::unique_ptr<cc::BeginMainFrameAndCommitState, std::__1::default_delete<cc::BeginMainFrameAndCommitState> >), std::__1::tuple<base::WeakPtr<cc::ProxyMain>, base::internal::PassedWrapper<std::__1::unique_ptr<cc::BeginMainFrameAndCommitState, std::__1::default_delete<cc::BeginMainFrameAndCommitState> > > >, 0ul, 1ul>(void (cc::ProxyMain::*&&)(std::__1::unique_ptr<cc::BeginMainFrameAndCommitState, std::__1::default_delete<cc::BeginMainFrameAndCommitState> >), std::__1::tuple<base::WeakPtr<cc::ProxyMain>, base::internal::PassedWrapper<std::__1::unique_ptr<cc::BeginMainFrameAndCommitState, std::__1::default_delete<cc::BeginMainFrameAndCommitState> > > >&&, base::IndexSequence<0ul, 1ul>) /mnt/data/b/c/b/ASAN_Release_Media/src/base/bind_internal.h:361
+    #30 0x7f45b476c264 in Run /mnt/data/b/c/b/ASAN_Release_Media/src/base/callback.h:91:12
+    #31 0x7f45b476c264 in base::debug::TaskAnnotator::RunTask(char const*, base::PendingTask*) /mnt/data/b/c/b/ASAN_Release_Media/src/base/debug/task_annotator.cc:59
+    #32 0x7f45bc7842e6 in blink::scheduler::TaskQueueManager::ProcessTaskFromWorkQueue(blink::scheduler::internal::WorkQueue*, bool, blink::scheduler::LazyNow, base::TimeTicks*) /mnt/data/b/c/b/ASAN_Release_Media/src/third_party/WebKit/Source/platform/scheduler/base/task_queue_manager.cc:531:19
+    #33 0x7f45bc77e32a in blink::scheduler::TaskQueueManager::DoWork(bool) /mnt/data/b/c/b/ASAN_Release_Media/src/third_party/WebKit/Source/platform/scheduler/base/task_queue_manager.cc:329:13
+    #34 0x7f45b476c264 in Run /mnt/data/b/c/b/ASAN_Release_Media/src/base/callback.h:91:12
+    #35 0x7f45b476c264 in base::debug::TaskAnnotator::RunTask(char const*, base::PendingTask*) /mnt/data/b/c/b/ASAN_Release_Media/src/base/debug/task_annotator.cc:59
+    #36 0x7f45b45a1ca6 in base::MessageLoop::RunTask(base::PendingTask*) /mnt/data/b/c/b/ASAN_Release_Media/src/base/message_loop/message_loop.cc:423:19
+    #37 0x7f45b45a2afc in base::MessageLoop::DeferOrRunPendingTask(base::PendingTask) /mnt/data/b/c/b/ASAN_Release_Media/src/base/message_loop/message_loop.cc:434:5
+    #38 0x7f45b45a3efe in base::MessageLoop::DoWork() /mnt/data/b/c/b/ASAN_Release_Media/src/base/message_loop/message_loop.cc:527:13
+    #39 0x7f45b45acfbd in base::MessagePumpDefault::Run(base::MessagePump::Delegate*) /mnt/data/b/c/b/ASAN_Release_Media/src/base/message_loop/message_pump_default.cc:33:31
+    #40 0x7f45b45a0ef7 in base::MessageLoop::RunHandler() /mnt/data/b/c/b/ASAN_Release_Media/src/base/message_loop/message_loop.cc:387:10
+    #41 0x7f45b462737a in base::RunLoop::Run() /mnt/data/b/c/b/ASAN_Release_Media/src/base/run_loop.cc:37:10
+    #42 0x7f45bf19a8a1 in content::RendererMain(content::MainFunctionParams const&) /mnt/data/b/c/b/ASAN_Release_Media/src/content/renderer/renderer_main.cc:200:23
+    #43 0x7f45b38648ad in content::RunZygote(content::MainFunctionParams const&, content::ContentMainDelegate*) /mnt/data/b/c/b/ASAN_Release_Media/src/content/app/content_main_runner.cc:340:14
+    #44 0x7f45b3867fa7 in content::ContentMainRunnerImpl::Run() /mnt/data/b/c/b/ASAN_Release_Media/src/content/app/content_main_runner.cc:703:12
+    #45 0x7f45b388138d in service_manager::Main(service_manager::MainParams const&) /mnt/data/b/c/b/ASAN_Release_Media/src/services/service_manager/embedder/main.cc:450:29
+    #46 0x7f45b3863f2f in content::ContentMain(content::ContentMainParams const&) /mnt/data/b/c/b/ASAN_Release_Media/src/content/app/content_main.cc:19:10
+    #47 0x7f45adfd7db3 in ChromeMain /mnt/data/b/c/b/ASAN_Release_Media/src/chrome/app/chrome_main.cc:111:12
+    #48 0x7f45a34fff44 in __libc_start_main /build/eglibc-MjiXCM/eglibc-2.19/csu/libc-start.c:287
+0x61000006be40 is located 0 bytes inside of 192-byte region [0x61000006be40,0x61000006bf00)
+allocated by thread T0 (chrome) here:
+    #0 0x7f45adfd4da2 in operator new(unsigned long)
+    #1 0x7f45b6791d0b in __allocate /mnt/data/b/c/b/ASAN_Release_Media/src/buildtools/third_party/libc++/trunk/include/new:168:10
+    #2 0x7f45b6791d0b in allocate /mnt/data/b/c/b/ASAN_Release_Media/src/buildtools/third_party/libc++/trunk/include/memory:1729
+    #3 0x7f45b6791d0b in allocate /mnt/data/b/c/b/ASAN_Release_Media/src/buildtools/third_party/libc++/trunk/include/memory:1488
+    #4 0x7f45b6791d0b in __split_buffer /mnt/data/b/c/b/ASAN_Release_Media/src/buildtools/third_party/libc++/trunk/include/__split_buffer:311
+    #5 0x7f45b6791d0b in void std::__1::vector<SkSL::BasicBlock::Node, std::__1::allocator<SkSL::BasicBlock::Node> >::__push_back_slow_path<SkSL::BasicBlock::Node>(SkSL::BasicBlock::Node&&) /mnt/data/b/c/b/ASAN_Release_Media/src/buildtools/third_party/libc++/trunk/include/vector:1572
+    #6 0x7f45b67890b6 in push_back /mnt/data/b/c/b/ASAN_Release_Media/src/buildtools/third_party/libc++/trunk/include/vector:1613:9
+    #7 0x7f45b67890b6 in SkSL::CFGGenerator::addExpression(SkSL::CFG&, std::__1::unique_ptr<SkSL::Expression, std::__1::default_delete<SkSL::Expression> >*, bool) /mnt/data/b/c/b/ASAN_Release_Media/src/third_party/skia/src/sksl/SkSLCFGGenerator.cpp:373
+    #8 0x7f45b678982f in SkSL::CFGGenerator::addExpression(SkSL::CFG&, std::__1::unique_ptr<SkSL::Expression, std::__1::default_delete<SkSL::Expression> >*, bool) /mnt/data/b/c/b/ASAN_Release_Media/src/third_party/skia/src/sksl/SkSLCFGGenerator.cpp:318:27
+    #9 0x7f45b6789bc9 in SkSL::CFGGenerator::addExpression(SkSL::CFG&, std::__1::unique_ptr<SkSL::Expression, std::__1::default_delete<SkSL::Expression> >*, bool) /mnt/data/b/c/b/ASAN_Release_Media/src/third_party/skia/src/sksl/SkSLCFGGenerator.cpp:394:19
+    #10 0x7f45b6789660 in SkSL::CFGGenerator::addExpression(SkSL::CFG&, std::__1::unique_ptr<SkSL::Expression, std::__1::default_delete<SkSL::Expression> >*, bool) /mnt/data/b/c/b/ASAN_Release_Media/src/third_party/skia/src/sksl/SkSLCFGGenerator.cpp:306:27
+    #11 0x7f45b678aa7c in SkSL::CFGGenerator::addStatement(SkSL::CFG&, std::__1::unique_ptr<SkSL::Statement, std::__1::default_delete<SkSL::Statement> >*) /mnt/data/b/c/b/ASAN_Release_Media/src/third_party/skia/src/sksl/SkSLCFGGenerator.cpp:457:19
+    #12 0x7f45b678a9cd in SkSL::CFGGenerator::addStatement(SkSL::CFG&, std::__1::unique_ptr<SkSL::Statement, std::__1::default_delete<SkSL::Statement> >*) /mnt/data/b/c/b/ASAN_Release_Media/src/third_party/skia/src/sksl/SkSLCFGGenerator.cpp:433:17
+    #13 0x7f45b678a9cd in SkSL::CFGGenerator::addStatement(SkSL::CFG&, std::__1::unique_ptr<SkSL::Statement, std::__1::default_delete<SkSL::Statement> >*) /mnt/data/b/c/b/ASAN_Release_Media/src/third_party/skia/src/sksl/SkSLCFGGenerator.cpp:433:17
+    #14 0x7f45b678a9cd in SkSL::CFGGenerator::addStatement(SkSL::CFG&, std::__1::unique_ptr<SkSL::Statement, std::__1::default_delete<SkSL::Statement> >*) /mnt/data/b/c/b/ASAN_Release_Media/src/third_party/skia/src/sksl/SkSLCFGGenerator.cpp:433:17
+    #15 0x7f45b67904c8 in SkSL::CFGGenerator::getCFG(SkSL::FunctionDefinition&) /mnt/data/b/c/b/ASAN_Release_Media/src/third_party/skia/src/sksl/SkSLCFGGenerator.cpp:600:11
+    #16 0x7f45b62df886 in SkSL::Compiler::scanCFG(SkSL::FunctionDefinition&) /mnt/data/b/c/b/ASAN_Release_Media/src/third_party/skia/src/sksl/SkSLCompiler.cpp:837:30
+    #17 0x7f45b62d209a in SkSL::Compiler::internalConvertProgram(SkSL::String, SkSL::Modifiers::Flag*, std::__1::vector<std::__1::unique_ptr<SkSL::ProgramElement, std::__1::default_delete<SkSL::ProgramElement> >, std::__1::allocator<std::__1::unique_ptr<SkSL::ProgramElement, std::__1::default_delete<SkSL::ProgramElement> > > >*) /mnt/data/b/c/b/ASAN_Release_Media/src/third_party/skia/src/sksl/SkSLCompiler.cpp:922:27
+    #18 0x7f45b62e0c29 in SkSL::Compiler::convertProgram(SkSL::Program::Kind, SkSL::String, SkSL::Program::Settings const&) /mnt/data/b/c/b/ASAN_Release_Media/src/third_party/skia/src/sksl/SkSLCompiler.cpp:980:11
+    #19 0x7f45b624b14a in GrGLCompileAndAttachShader(GrGLContext const&, unsigned int, unsigned int, char const**, int*, int, GrGpu::Stats*, SkSL::Program::Settings const&, SkSL::Program::Inputs*) /mnt/data/b/c/b/ASAN_Release_Media/src/third_party/skia/src/gpu/gl/builders/GrGLShaderStringBuilder.cpp:55:28
+    #20 0x7f45b6246fb8 in GrGLProgramBuilder::compileAndAttachShaders(GrGLSLShaderBuilder&, unsigned int, unsigned int, SkTDArray<unsigned int>*, SkSL::Program::Settings const&, SkSL::Program::Inputs*) /mnt/data/b/c/b/ASAN_Release_Media/src/third_party/skia/src/gpu/gl/builders/GrGLProgramBuilder.cpp:79:25
+    #21 0x7f45b6245e99 in GrGLProgramBuilder::finalize() /mnt/data/b/c/b/ASAN_Release_Media/src/third_party/skia/src/gpu/gl/builders/GrGLProgramBuilder.cpp:144:16
+    #22 0x7f45b6244baa in GrGLProgramBuilder::CreateProgram(GrPipeline const&, GrPrimitiveProcessor const&, GrProgramDesc*, GrGLGpu*) /mnt/data/b/c/b/ASAN_Release_Media/src/third_party/skia/src/gpu/gl/builders/GrGLProgramBuilder.cpp:53:20
+    #23 0x7f45b620bfb2 in GrGLGpu::ProgramCache::refProgram(GrGLGpu const*, GrPipeline const&, GrPrimitiveProcessor const&, bool) /mnt/data/b/c/b/ASAN_Release_Media/src/third_party/skia/src/gpu/gl/GrGLGpuProgramCache.cpp:95:32
+    #24 0x7f45b61daf72 in GrGLGpu::flushGLState(GrPipeline const&, GrPrimitiveProcessor const&, bool) /mnt/data/b/c/b/ASAN_Release_Media/src/third_party/skia/src/gpu/gl/GrGLGpu.cpp:1936:47
+    #25 0x7f45b61eb3ba in GrGLGpu::draw(GrPipeline const&, GrPrimitiveProcessor const&, GrMesh const*, int) /mnt/data/b/c/b/ASAN_Release_Media/src/third_party/skia/src/gpu/gl/GrGLGpu.cpp:2654:16
+    #26 0x7f45b66eb53e in GrGpuCommandBuffer::draw(GrPipeline const&, GrPrimitiveProcessor const&, GrMesh const*, int, SkRect const&) /mnt/data/b/c/b/ASAN_Release_Media/src/third_party/skia/src/gpu/GrGpuCommandBuffer.cpp:47:11
+    #27 0x7f45b60c4803 in GrMeshDrawOp::onExecute(GrOpFlushState*) /mnt/data/b/c/b/ASAN_Release_Media/src/third_party/skia/src/gpu/ops/GrMeshDrawOp.cpp:80:33
+    #28 0x7f45b60224c1 in execute /mnt/data/b/c/b/ASAN_Release_Media/src/third_party/skia/src/gpu/ops/GrOp.h:145:49
+    #29 0x7f45b60224c1 in GrRenderTargetOpList::executeOps(GrOpFlushState*) /mnt/data/b/c/b/ASAN_Release_Media/src/third_party/skia/src/gpu/GrRenderTargetOpList.cpp:172
+    #30 0x7f45b5fcf6d1 in GrDrawingManager::internalFlush(GrSurfaceProxy*, GrResourceCache::FlushType) /mnt/data/b/c/b/ASAN_Release_Media/src/third_party/skia/src/gpu/GrDrawingManager.cpp:153:26
+    #31 0x7f45b5fd03dc in flush /mnt/data/b/c/b/ASAN_Release_Media/src/third_party/skia/src/gpu/GrDrawingManager.h:96:15
+    #32 0x7f45b5fd03dc in GrDrawingManager::prepareSurfaceForExternalIO(GrSurfaceProxy*) /mnt/data/b/c/b/ASAN_Release_Media/src/third_party/skia/src/gpu/GrDrawingManager.cpp:191
+    #33 0x7f45b6015d47 in GrRenderTargetContext::prepareForExternalIO() /mnt/data/b/c/b/ASAN_Release_Media/src/third_party/skia/src/gpu/GrRenderTargetContext.cpp:1267:29
+    #34 0x7f45c4e6dfee in blink::Canvas2DLayerBridge::Flush() /mnt/data/b/c/b/ASAN_Release_Media/src/third_party/WebKit/Source/platform/graphics/Canvas2DLayerBridge.cpp:808:38
+    #35 0x7f45c4e7025a in blink::Canvas2DLayerBridge::NewImageSnapshot(blink::AccelerationHint, blink::SnapshotReason) /mnt/data/b/c/b/ASAN_Release_Media/src/third_party/WebKit/Source/platform/graphics/Canvas2DLayerBridge.cpp:1096:3
+    #36 0x7f45c4e6f9b8 in blink::Canvas2DLayerBridge::PrepareTextureMailbox(cc::TextureMailbox*, std::__1::unique_ptr<cc::SingleReleaseCallback, std::__1::default_delete<cc::SingleReleaseCallback> >*) /mnt/data/b/c/b/ASAN_Release_Media/src/third_party/WebKit/Source/platform/graphics/Canvas2DLayerBridge.cpp:932:7
+
+HINT: if you don't care about these errors you may set ASAN_OPTIONS=detect_container_overflow=0.
+If you suspect a false positive see also: https://github.com/google/sanitizers/wiki/AddressSanitizerContainerOverflow.
+SUMMARY: AddressSanitizer: container-overflow (/mnt/scratch0/clusterfuzz/bot/builds/chrome-test-builds_media_linux-release_eb660d5ee526c9c1c1608a71fcbe7a713c490533/revisions/asan-linux-release-468133/chrome+0xb4e329a)
+Shadow bytes around the buggy address:
+  0x0c2080005770: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 fa
+  0x0c2080005780: fa fa fa fa fa fa fa fa fd fd fd fd fd fd fd fd
+  0x0c2080005790: fd fd fd fd fd fd fd fd fd fd fd fd fd fd fd fd
+  0x0c20800057a0: fa fa fa fa fa fa fa fa 00 00 00 00 00 00 00 00
+  0x0c20800057b0: 00 00 00 00 00 00 00 fc fc fc fc fc fc fc fc fc
+=>0x0c20800057c0: fa fa fa fa fa fa fa fa[fc]fc fc fc fc fc fc fc
+  0x0c20800057d0: fc fc fc fc fc fc fc fc fc fc fc fc fc fc fc fc
+  0x0c20800057e0: fa fa fa fa fa fa fa fa 00 00 00 00 00 00 00 00
+  0x0c20800057f0: 00 00 00 00 00 00 00 00 00 00 00 00 00 fc fc fc
+  0x0c2080005800: fa fa fa fa fa fa fa fa fa fa fa fa fa fa fa fa
+  0x0c2080005810: fa fa fa fa fa fa fa fa fa fa fa fa fa fa fa fa
+Shadow byte legend (one shadow byte represents 8 application bytes):
+  Addressable:           00
+  Partially addressable: 01 02 03 04 05 06 07
+  Heap left redzone:       fa
+  Freed heap region:       fd
+  Stack left redzone:      f1
+  Stack mid redzone:       f2
+  Stack right redzone:     f3
+  Stack after return:      f5
+  Stack use after scope:   f8
+  Global redzone:          f9
+  Global init order:       f6
+  Poisoned by user:        f7
+  Container overflow:      fc
+  Array cookie:            ac
+  Intra object redzone:    bb
+  ASan internal:           fe
+  Left alloca redzone:     ca
+  Right alloca redzone:    cb
+==1==ABORTING

@@ -1,0 +1,79 @@
+# Copyright 2018 Google LLC
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+blobs:
+  # Bucket to store blobs, e.g. testcases, fuzzer archives, etc.
+  bucket: test-blobs-bucket
+
+deployment:
+  # Bucket to store deployment artifacts, e.g. source archives, etc.
+  bucket: test-deployment-bucket
+
+bigquery:
+  # Bucket to store bigquery artifacts, e.g. crash stats, etc.
+  bucket: test-bigquery-bucket
+
+backup:
+  # Bucket to store backup artifacts, e.g. datastore data (backup cron), etc.
+  bucket: test-backup-bucket
+
+coverage:
+  reports:
+    bucket: clusterfuzz-test-data
+
+logs:
+  fuzzer:
+    # Bucket to store logs for fuzzer runs.
+    bucket: test-fuzzer-logs-bucket
+
+monitoring:
+  # Flag to indicate if Stackdriver monitoring is enabled or not (disabled by default).
+  enabled: false
+
+env:
+  # Application ID for the Google Cloud Project. In production, this will have a s~ prefix.
+  APPLICATION_ID: test-clusterfuzz
+
+  # Default project name unless overridden in a job definition.
+  PROJECT_NAME: test-project
+
+  # Default bucket to store corpus / useful testcases found during fuzzing. This has sub-directories
+  # for each fuzzer, but not for jobs. So, unless you override this in a job definition, a fuzzer
+  # across different jobs share the same corpus (e.g. useful for different fuzzing engines to
+  # cross-pollinate the corpus).
+  CORPUS_BUCKET: test-corpus-bucket
+
+  # Default bucket to store quarantined corpus items. These items prevent fuzzer from making
+  # progress during fuzzing (e.g. crashes, timeout, etc), so we automatically quarantine them once
+  # they sneak into the corpus somehow. Once the bugs are fixed, items from quarantine are brought
+  # back into the main corpus bucket.
+  QUARANTINE_BUCKET: test-quarantine-bucket
+
+  # Default bucket to store shared corpus across all job types. This is planned for future cross
+  # pollination with other data sources on the web.
+  SHARED_CORPUS_BUCKET: test-shared-corpus-bucket
+
+  # Default bucket to store fuzzing logs from testcase runs. This is different from the fuzzer logs
+  # above which logs the fuzzer run that generates the testcases, whereas this one logs the run of
+  # the testcases against the target application.
+  FUZZ_LOGS_BUCKET: test-fuzz-logs-bucket
+
+  # Default issue tracker name unless overridden in a job definition. Current only supports monorail
+  # issue tracker (disabled by default).
+  # ISSUE_TRACKER: issue-tracker-name
+
+  # Web tests (e.g. html, js tests) to automatically download once a day and provide a default
+  # input to fuzzer as part of --input-dir argument (disabled by default).
+  # WEB_TESTS_URL: 'gs://clusterfuzz-data/web_tests.zip'
+  # UPDATE_WEB_TESTS: true

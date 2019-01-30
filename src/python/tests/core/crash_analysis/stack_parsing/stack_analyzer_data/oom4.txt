@@ -1,0 +1,19 @@
+Running: /mnt/scratch0/clusterfuzz/bot/inputs/fuzzer-testcases/2865ac1ef97c5b82fcbb58bb6e4880f5d2cddf24a003c886d7ac6510dcfuzz-0
+==7320==ERROR: MemorySanitizer: requested allocation size 0x3ff00000000 exceeds maximum supported size of 0x200000000
+#0 0x35c73d in __interceptor_malloc third_party/llvm/compiler-rt/lib/msan/msan_interceptors.cc:907:3
+#1 0x5f2af9 in opj_j2k_update_image_data third_party/pdfium/third_party/libopenjpeg20/j2k.c:9184:50
+#2 0x5f0a40 in opj_j2k_decode_tiles third_party/pdfium/third_party/libopenjpeg20/j2k.c:10734:15
+#3 0x5c4230 in opj_j2k_exec third_party/pdfium/third_party/libopenjpeg20/j2k.c:8090:33
+#4 0x5d5991 in opj_j2k_decode third_party/pdfium/third_party/libopenjpeg20/j2k.c:11019:11
+#5 0x5c1a9d in opj_decode third_party/pdfium/third_party/libopenjpeg20/openjpeg.c:483:16
+#6 0x5b2b76 in CJPX_Decoder::Init(unsigned char const*, unsigned int) third_party/pdfium/core/fxcodec/codec/fx_codec_jpx_opj.cpp:526:11
+#7 0x5b5c9c in CCodec_JpxModule::CreateDecoder(unsigned char const*, unsigned int, CPDF_ColorSpace*) third_party/pdfium/core/fxcodec/codec/fx_codec_jpx_opj.cpp:652:19
+#8 0x3aa1fb in LLVMFuzzerTestOneInput third_party/pdfium/testing/fuzzers/pdf_jpx_fuzzer.cc:23:16
+#9 0x3eac69 in fuzzer::Fuzzer::ExecuteCallback(unsigned char const*, unsigned long) third_party/libFuzzer/src/FuzzerLoop.cpp:526:13
+#10 0x3bc9d0 in fuzzer::RunOneTest(fuzzer::Fuzzer*, char const*, unsigned long) third_party/libFuzzer/src/FuzzerDriver.cpp:280:6
+#11 0x3c7634 in fuzzer::FuzzerDriver(int*, char***, int (*)(unsigned char const*, unsigned long)) third_party/libFuzzer/src/FuzzerDriver.cpp:707:9
+#12 0x40a250 in main third_party/libFuzzer/src/FuzzerMain.cpp:20:10
+#13 0x7f41340d382f in __libc_start_main /build/glibc-Cl5G7W/glibc-2.23/csu/libc-start.c:291
+==7320==HINT: if you don't care about these errors you may set =allocator_may_return_null=1
+custom-crash-state: pdf_jpx_fuzzer
+SUMMARY: MemorySanitizer: allocation-size-too-big (/mnt/scratch0/clusterfuzz/bot/builds/chromium-browser-libfuzzer_linux-release-msan_ae530a86793cd6b8b56ce9af9159ac101396e802/revisions/libfuzzer-linux-release-569934/pdf_jpx_fuzzer+0x35c73d)

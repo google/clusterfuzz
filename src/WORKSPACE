@@ -1,0 +1,84 @@
+load("@bazel_tools//tools/build_defs/repo:http.bzl", "http_archive")
+
+http_archive(
+    name = "io_bazel_rules_go",
+    sha256 = "7be7dc01f1e0afdba6c8eb2b43d2fa01c743be1b9273ab1eaf6c233df078d705",
+    urls = ["https://github.com/bazelbuild/rules_go/releases/download/0.16.5/rules_go-0.16.5.tar.gz"],
+)
+
+http_archive(
+    name = "bazel_gazelle",
+    sha256 = "6e875ab4b6bf64a38c352887760f21203ab054676d9c1b274963907e0768740d",
+    urls = ["https://github.com/bazelbuild/bazel-gazelle/releases/download/0.15.0/bazel-gazelle-0.15.0.tar.gz"],
+)
+
+load("@io_bazel_rules_go//go:def.bzl", "go_rules_dependencies", "go_register_toolchains")
+
+go_rules_dependencies()
+
+go_register_toolchains()
+
+load("@bazel_gazelle//:deps.bzl", "gazelle_dependencies", "go_repository")
+
+gazelle_dependencies()
+
+# Google Cloud client libraries.
+go_repository(
+    name = "com_google_cloud_go",
+    commit = "0ebda48a7f143b1cce9eb37a8c1106ac762a3430",  # v0.34.0
+    importpath = "cloud.google.com/go",
+)
+
+go_repository(
+    name = "org_golang_google_api",
+    commit = "146117f78c63efe78e04021cc321e59fb3c13e50",  # master as of 2018-12-19
+    importpath = "google.golang.org/api",
+)
+
+go_repository(
+    name = "com_github_googleapis_gax_go",
+    commit = "b001040cd31805261cbd978842099e326dfa857b",  # v2.0.2
+    importpath = "github.com/googleapis/gax-go",
+)
+
+go_repository(
+    name = "org_golang_x_oauth2",
+    commit = "d668ce993890a79bda886613ee587a69dd5da7a6",  # master as of 2018-12-03
+    importpath = "golang.org/x/oauth2",
+)
+
+go_repository(
+    name = "org_golang_x_sync",
+    commit = "42b317875d0fa942474b76e1b46a6060d720ae6e",  # master as of 2018-11-07
+    importpath = "golang.org/x/sync",
+)
+
+go_repository(
+    name = "io_opencensus_go",
+    commit = "b7bf3cdb64150a8c8c53b769fdeb2ba581bd4d4b",  # 0.18.0
+    importpath = "go.opencensus.io",
+)
+
+go_repository(
+    name = "io_opencensus_go_contrib_exporter_stackdriver",
+    commit = "2b7f4fc93daf5ec3048fa4fc1c15573466711a17",  # 0.8.0
+    importpath = "contrib.go.opencensus.io/exporter/stackdriver",
+)
+
+go_repository(
+    name = "com_github_pkg_errors",
+    commit = "645ef00459ed84a119197bfb8d8205042c6df63d",  # 0.8.0
+    importpath = "github.com/pkg/errors",
+)
+
+go_repository(
+    name = "com_github_shirou_gopsutil",
+    commit = "0f70a4a06f7a1039305ec9b3ba9c2800f8929fba",  # v2.18.11
+    importpath = "github.com/shirou/gopsutil",
+)
+
+go_repository(
+    name = "in_gopkg_yaml_v2",
+    commit = "51d6538a90f86fe93ac480b35f37b2be17fef232",  # v2.2.2
+    importpath = "gopkg.in/yaml.v2",
+)

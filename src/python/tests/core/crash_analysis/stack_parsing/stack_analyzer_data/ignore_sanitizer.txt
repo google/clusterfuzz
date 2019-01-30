@@ -1,0 +1,47 @@
+=================================================================
+==4712==ERROR: AddressSanitizer: access-violation on unknown address 0x000000000010 (pc 0x7ff7cc4b2426 bp 0x00f6614fee60 sp 0x00f6614feb20 T4)
+==4712==The signal is caused by a READ memory access.
+==4712==Hint: address points to the zero page.
+SCARINESS: 10 (null-deref)
+==4712==*** WARNING: Failed to initialize DbgHelp!              ***
+==4712==*** Most likely this means that the app is already      ***
+==4712==*** using DbgHelp, possibly with incompatible flags.    ***
+==4712==*** Due to technical reasons, symbolization might crash ***
+==4712==*** or produce wrong results.                           ***
+#EOF
+==4712==WARNING: Failed to use and restart external symbolizer!
+    #0 0x7ff7cc4b2425 in _sanitizer_get_unmapped_bytes+0x1f1b8f5 (c:\clusterfuzz\bot\builds\chromium-browser-asan_win32-release_x64_e8abf88e7a5ec8bcd0cd391cfae402f143e8ddb2\revisions\asan-win32-release_x64-547370\content_shell.exe+0xb802425)
+    #1 0x7ff7cc4b6eeb in _sanitizer_get_unmapped_bytes+0x1f203bb (c:\clusterfuzz\bot\builds\chromium-browser-asan_win32-release_x64_e8abf88e7a5ec8bcd0cd391cfae402f143e8ddb2\revisions\asan-win32-release_x64-547370\content_shell.exe+0xb806eeb)
+    #2 0x7ff7c6aa923b in _sanitizer_purge_allocator+0x317b2b (c:\clusterfuzz\bot\builds\chromium-browser-asan_win32-release_x64_e8abf88e7a5ec8bcd0cd391cfae402f143e8ddb2\revisions\asan-win32-release_x64-547370\content_shell.exe+0x5df923b)
+    #3 0x7ff7c6b5f7b5 in GetHandleVerifier+0x31e95 (c:\clusterfuzz\bot\builds\chromium-browser-asan_win32-release_x64_e8abf88e7a5ec8bcd0cd391cfae402f143e8ddb2\revisions\asan-win32-release_x64-547370\content_shell.exe+0x5eaf7b5)
+    #4 0x7ff7c6b5dfe7 in GetHandleVerifier+0x306c7 (c:\clusterfuzz\bot\builds\chromium-browser-asan_win32-release_x64_e8abf88e7a5ec8bcd0cd391cfae402f143e8ddb2\revisions\asan-win32-release_x64-547370\content_shell.exe+0x5eadfe7)
+    #5 0x7ff7c6b78da0 in GetHandleVerifier+0x4b480 (c:\clusterfuzz\bot\builds\chromium-browser-asan_win32-release_x64_e8abf88e7a5ec8bcd0cd391cfae402f143e8ddb2\revisions\asan-win32-release_x64-547370\content_shell.exe+0x5ec8da0)
+    #6 0x7ff7c69a39bf in _sanitizer_purge_allocator+0x2122af (c:\clusterfuzz\bot\builds\chromium-browser-asan_win32-release_x64_e8abf88e7a5ec8bcd0cd391cfae402f143e8ddb2\revisions\asan-win32-release_x64-547370\content_shell.exe+0x5cf39bf)
+    #7 0x7ff7c6777718 in _asan_set_seh_filter+0xba8 (c:\clusterfuzz\bot\builds\chromium-browser-asan_win32-release_x64_e8abf88e7a5ec8bcd0cd391cfae402f143e8ddb2\revisions\asan-win32-release_x64-547370\content_shell.exe+0x5ac7718)
+    #8 0x7ffe57838363 in BaseThreadInitThunk+0x13 (C:\Windows\System32\KERNEL32.DLL+0x8363)
+    #9 0x7ffe57cc7090 in RtlUserThreadStart+0x20 (C:\Windows\SYSTEM32\ntdll.dll+0x67090)
+
+AddressSanitizer can not provide additional info.
+SUMMARY: AddressSanitizer: access-violation (c:\clusterfuzz\bot\builds\chromium-browser-asan_win32-release_x64_e8abf88e7a5ec8bcd0cd391cfae402f143e8ddb2\revisions\asan-win32-release_x64-547370\content_shell.exe+0xb802425) in _sanitizer_get_unmapped_bytes+0x1f1b8f5
+Thread T4 created by T0 here:
+    #0 0x7ff7c6776640 in _asan_wrap_CreateThread+0x90 (c:\clusterfuzz\bot\builds\chromium-browser-asan_win32-release_x64_e8abf88e7a5ec8bcd0cd391cfae402f143e8ddb2\revisions\asan-win32-release_x64-547370\content_shell.exe+0x5ac6640)
+    #1 0x7ff7c69a2fcb in _sanitizer_purge_allocator+0x2118bb (c:\clusterfuzz\bot\builds\chromium-browser-asan_win32-release_x64_e8abf88e7a5ec8bcd0cd391cfae402f143e8ddb2\revisions\asan-win32-release_x64-547370\content_shell.exe+0x5cf2fcb)
+    #2 0x7ff7c6b77afa in GetHandleVerifier+0x4a1da (c:\clusterfuzz\bot\builds\chromium-browser-asan_win32-release_x64_e8abf88e7a5ec8bcd0cd391cfae402f143e8ddb2\revisions\asan-win32-release_x64-547370\content_shell.exe+0x5ec7afa)
+    #3 0x7ff7c6b77744 in GetHandleVerifier+0x49e24 (c:\clusterfuzz\bot\builds\chromium-browser-asan_win32-release_x64_e8abf88e7a5ec8bcd0cd391cfae402f143e8ddb2\revisions\asan-win32-release_x64-547370\content_shell.exe+0x5ec7744)
+    #4 0x7ff7c6b6db23 in GetHandleVerifier+0x40203 (c:\clusterfuzz\bot\builds\chromium-browser-asan_win32-release_x64_e8abf88e7a5ec8bcd0cd391cfae402f143e8ddb2\revisions\asan-win32-release_x64-547370\content_shell.exe+0x5ebdb23)
+    #5 0x7ff7c6b6cf8b in GetHandleVerifier+0x3f66b (c:\clusterfuzz\bot\builds\chromium-browser-asan_win32-release_x64_e8abf88e7a5ec8bcd0cd391cfae402f143e8ddb2\revisions\asan-win32-release_x64-547370\content_shell.exe+0x5ebcf8b)
+    #6 0x7ff7c6b44ff2 in GetHandleVerifier+0x176d2 (c:\clusterfuzz\bot\builds\chromium-browser-asan_win32-release_x64_e8abf88e7a5ec8bcd0cd391cfae402f143e8ddb2\revisions\asan-win32-release_x64-547370\content_shell.exe+0x5e94ff2)
+    #7 0x7ff7ca3dc6f0 in IsSandboxedProcess+0x64fc80 (c:\clusterfuzz\bot\builds\chromium-browser-asan_win32-release_x64_e8abf88e7a5ec8bcd0cd391cfae402f143e8ddb2\revisions\asan-win32-release_x64-547370\content_shell.exe+0x972c6f0)
+    #8 0x7ff7cda2f9d6 in _sanitizer_get_unmapped_bytes+0x3498ea6 (c:\clusterfuzz\bot\builds\chromium-browser-asan_win32-release_x64_e8abf88e7a5ec8bcd0cd391cfae402f143e8ddb2\revisions\asan-win32-release_x64-547370\content_shell.exe+0xcd7f9d6)
+    #9 0x7ff7cd7c7a64 in _sanitizer_get_unmapped_bytes+0x3230f34 (c:\clusterfuzz\bot\builds\chromium-browser-asan_win32-release_x64_e8abf88e7a5ec8bcd0cd391cfae402f143e8ddb2\revisions\asan-win32-release_x64-547370\content_shell.exe+0xcb17a64)
+    #10 0x7ff7cd7c852c in _sanitizer_get_unmapped_bytes+0x32319fc (c:\clusterfuzz\bot\builds\chromium-browser-asan_win32-release_x64_e8abf88e7a5ec8bcd0cd391cfae402f143e8ddb2\revisions\asan-win32-release_x64-547370\content_shell.exe+0xcb1852c)
+    #11 0x7ff7cd6ded41 in _sanitizer_get_unmapped_bytes+0x3148211 (c:\clusterfuzz\bot\builds\chromium-browser-asan_win32-release_x64_e8abf88e7a5ec8bcd0cd391cfae402f143e8ddb2\revisions\asan-win32-release_x64-547370\content_shell.exe+0xca2ed41)
+    #12 0x7ff7c283d0e8  (c:\clusterfuzz\bot\builds\chromium-browser-asan_win32-release_x64_e8abf88e7a5ec8bcd0cd391cfae402f143e8ddb2\revisions\asan-win32-release_x64-547370\content_shell.exe+0x1b8d0e8)
+    #13 0x7ff7c9eaae3c in IsSandboxedProcess+0x11e3cc (c:\clusterfuzz\bot\builds\chromium-browser-asan_win32-release_x64_e8abf88e7a5ec8bcd0cd391cfae402f143e8ddb2\revisions\asan-win32-release_x64-547370\content_shell.exe+0x91fae3c)
+    #14 0x7ff7c283bd76  (c:\clusterfuzz\bot\builds\chromium-browser-asan_win32-release_x64_e8abf88e7a5ec8bcd0cd391cfae402f143e8ddb2\revisions\asan-win32-release_x64-547370\content_shell.exe+0x1b8bd76)
+    #15 0x7ff7c0cb11d4  (c:\clusterfuzz\bot\builds\chromium-browser-asan_win32-release_x64_e8abf88e7a5ec8bcd0cd391cfae402f143e8ddb2\revisions\asan-win32-release_x64-547370\content_shell.exe+0x11d4)
+    #16 0x7ff7d0c22728 in _lsan_unregister_root_region+0x487c18 (c:\clusterfuzz\bot\builds\chromium-browser-asan_win32-release_x64_e8abf88e7a5ec8bcd0cd391cfae402f143e8ddb2\revisions\asan-win32-release_x64-547370\content_shell.exe+0xff72728)
+    #17 0x7ffe57838363 in BaseThreadInitThunk+0x13 (C:\Windows\System32\KERNEL32.DLL+0x8363)
+    #18 0x7ffe57cc7090 in RtlUserThreadStart+0x20 (C:\Windows\SYSTEM32\ntdll.dll+0x67090)
+
+==4712==ABORTING

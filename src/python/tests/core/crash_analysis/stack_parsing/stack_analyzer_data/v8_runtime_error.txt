@@ -1,0 +1,15 @@
+#
+# Runtime error in ../../src/runtime/runtime-test.cc, line 87
+#
+# args[0]->IsJSFunction()
+
+==== C stack trace ===============================
+
+ 1: 0x34cdfb0
+ 2: 0x34ce63d
+ 3: 0x332661a
+ 4: 0x3325b71
+ 5: 0x7f7256306187
+Caught: illegal access
+Caught: ReferenceError: debug is not defined
+Caught: ReferenceError: foo is not defined

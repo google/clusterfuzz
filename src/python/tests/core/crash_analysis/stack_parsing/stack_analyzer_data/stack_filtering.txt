@@ -1,0 +1,289 @@
+shell am start -a android.intent.action.VIEW -n com.google.android.apps.chrome/.Main file:///sdcard/fuzzer-testcases/fuzz-cfdependency-image-surku-29.26640.1434648690712.2540.gif.html
+
+START u0 {act=android.intent.action.VIEW dat=file:///sdcard/fuzzer-testcases/fuzz-cfdependency-image-surku-29.26640.1434648690712.2540.gif.html flg=0x10000000 cmp=com.google.android.apps.chrome/.Main} from pid 14561
+file:// Uri exposed through Intent.getData()
+java.lang.Throwable: file:// Uri exposed through Intent.getData()
+	at android.os.StrictMode.onFileUriExposed(StrictMode.java:1597)
+	at android.net.Uri.checkFileUriExposed(Uri.java:2338)
+	at android.content.Intent.prepareToLeaveProcess(Intent.java:7194)
+	at android.app.Instrumentation.execStartActivity(Instrumentation.java:1418)
+	at android.app.Activity.startActivityForResult(Activity.java:3424)
+	at android.app.Activity.startActivityForResult(Activity.java:3385)
+	at android.app.Activity.startActivity(Activity.java:3627)
+	at android.app.Activity.startActivity(Activity.java:3595)
+	at org.chromium.chrome.browser.document.ChromeLauncherActivity.launchTabbedMode(ChromeLauncherActivity.java:616)
+	at org.chromium.chrome.browser.document.ChromeLauncherActivity.onCreate(ChromeLauncherActivity.java:178)
+	at android.app.Activity.performCreate(Activity.java:5231)
+	at android.app.Instrumentation.callActivityOnCreate(Instrumentation.java:1087)
+	at android.app.ActivityThread.performLaunchActivity(ActivityThread.java:2148)
+	at android.app.ActivityThread.handleLaunchActivity(ActivityThread.java:2233)
+	at android.app.ActivityThread.access$800(ActivityThread.java:135)
+	at android.app.ActivityThread$H.handleMessage(ActivityThread.java:1196)
+	at android.os.Handler.dispatchMessage(Handler.java:102)
+	at android.os.Looper.loop(Looper.java:136)
+	at android.app.ActivityThread.main(ActivityThread.java:5001)
+	at java.lang.reflect.Method.invokeNative(Native Method)
+	at java.lang.reflect.Method.invoke(Method.java:515)
+	at com.android.internal.os.ZygoteInit$MethodAndArgsCaller.run(ZygoteInit.java:785)
+	at com.android.internal.os.ZygoteInit.main(ZygoteInit.java:601)
+	at dalvik.system.NativeStart.main(Native Method)
+START u0 {act=android.intent.action.VIEW dat=file:///sdcard/fuzzer-testcases/fuzz-cfdependency-image-surku-29.26640.1434648690712.2540.gif.html flg=0x14000000 cmp=com.google.android.apps.chrome/org.chromium.chrome.browser.ChromeTabbedActivity} from pid 10664
+Duplicate finish request for ActivityRecord{45714aa0 u0 com.google.android.apps.chrome/.Main t158 f}
+Start proc com.google.android.apps.chrome:sandboxed_process10 for service com.google.android.apps.chrome/org.chromium.content.app.SandboxedProcessService10: pid=14573 uid=99429 gids={}
+Creating new ChildProcessService pid=14573
+VFY: unable to resolve instance field 69
+DexOpt: unable to optimize instance field ref 0x0045 at 0x16 in Lorg/chromium/base/library_loader/LibraryLoader;.getLibraryApkPath
+DexOpt: unable to optimize instance field ref 0x0045 at 0x1b in Lorg/chromium/base/library_loader/LibraryLoader;.getLibraryApkPath
+DexOpt: unable to optimize instance field ref 0x003b at 0x25 in Lorg/chromium/base/library_loader/LibraryLoader;.getLibraryApkPath
+[ERROR:process_posix.cc(369)] Not implemented reached in bool base::Process::SetProcessBackgrounded(bool)
+Skipping unknown process pid 14627
+Time to load native libraries: 5110 ms (timestamps 7188-2298)
+Expected native library version number "45.0.2436.0",actual native library version number "45.0.2436.0"
+[INFO:library_loader_hooks.cc(118)] Chromium logging enabled: level = 0, default verbosity = 0
+Fatal signal 6 (SIGABRT) at 0x000038ed (code=-6), thread 14630 (CompositorTileW)
+*** *** *** *** *** *** *** *** *** *** *** *** *** *** *** ***
+Build fingerprint: google/hammerhead/hammerhead:4.4.4/KTU84P/1227136:userdebug/dev-keys
+Revision: 11
+pid: 14573, tid: 14630, name: CompositorTileW  >>> com.google.android.apps.chrome:sandboxed_process10 <<<
+signal 6 (SIGABRT), code -6 (SI_TKILL), fault addr --------
+    r0 00000000  r1 00003926  r2 00000006  r3 00000000
+    r4 00000006  r5 00000016  r6 00003926  r7 0000010c
+    r8 43535f60  r9 9fddb7c0  sl 9fddb7a0  fp 9fddb778
+    ip 00000035  sp 9fddb710  lr 405a2fe5  pc 405b1f90  cpsr 000f0010
+    d0  0000000000000000  d1  0000000000000000
+    d2  0000000000000000  d3  0000000000000000
+    d4  4150000000000000  d5  bebbbd41c5d26bf1
+    d6  3e66376972bea4d0  d7  3f11566aaf25de2c
+    d8  0000000000000000  d9  0000000000000000
+    d10 0000000000000000  d11 0000000000000000
+    d12 0000000000000000  d13 0000000000000000
+    d14 0000000000000000  d15 0000000000000000
+    d16 7e37e43c8800759c  d17 7e37e43c8800759c
+    d18 4000000000000000  d19 3e3207d480000000
+    d20 3fc555555555553e  d21 bf66c16c16bebd93
+    d22 3ca6794cde000000  d23 4150000000000000
+    d24 394f912afe8f0909  d25 3e3207d474c35991
+    d26 402de2131658449e  d27 4000000000000000
+    d28 3fffffffffffffff  d29 bca6794cde000000
+    d30 3ff0000000000000  d31 4150000000000001
+    scr 80000010
+
+backtrace:
+    #0 0x00021f90 in tgkill /bionic/libc/arch-arm/bionic/tgkill.S:46
+    #1 0x00012fe1 in pthread_kill /bionic/libc/bionic/pthread_kill.cpp:49
+    #2 0x000131f5 in raise /bionic/libc/bionic/raise.cpp:32
+    #3 0x00011f2b in __libc_android_abort /bionic/libc/bionic/abort.cpp:55
+    #4 0x00021844 in abort /bionic/libc/arch-arm/bionic/abort_arm.S:41
+    #5 0x0011ae0c in base::debug::BreakDebugger() base/debug/debugger_posix.cc:216:5
+    #6 0x002019a8 in logging::LogMessage::~LogMessage() base/logging.cc:639:7
+    #7 0x002c6324 in base::(anonymous namespace)::OnTotallyStillHaveMemory(unsigned int) base/process/memory.cc:18:3
+    #8 0x01b5dad4 in content::ChildDiscardableSharedMemoryManager::AllocateLockedDiscardableSharedMemory(unsigned int, int) content/child/child_discardable_shared_memory_manager.cc:278:5
+    #9 0x01b5cc6c in content::ChildDiscardableSharedMemoryManager::AllocateLockedDiscardableMemory(unsigned int) content/child/child_discardable_shared_memory_manager.cc:170:7
+    #10 0x00a24208 in SkDiscardableMemory::Create(unsigned int) skia/ext/SkDiscardableMemory_chrome.cc:31:7
+    #11 0x002339e4 in SkDiscardablePixelRef::onNewLockPixels(SkPixelRef::LockRec*) third_party/skia/src/lazy/SkDiscardablePixelRef.cpp:61:30
+    #12 0x003bf510 in SkPixelRef::lockPixels() third_party/skia/src/core/SkPixelRef.cpp:195:14
+    #13 0x006eaffc in cc::(anonymous namespace)::ImageDecodeTaskImpl::RunOnWorkerThread() cc/tiles/tile_manager.cc:166:5
+    #14 0x0053904c in cc::TaskGraphRunner::RunTaskWithLockAcquired() cc/raster/task_graph_runner.cc:423:5
+    #15 0x005369fc in cc::TaskGraphRunner::Run() cc/raster/task_graph_runner.cc:366:5
+    #16 0x00434fb4 in base::SimpleThread::ThreadMain() base/threading/simple_thread.cc:66:3
+    #17 0x00411c70 in base::(anonymous namespace)::ThreadFunc(void*) base/threading/platform_thread_posix.cc:76:3
+    #18 0x0000d170 in __thread_entry /bionic/libc/bionic/pthread_create.cpp:105
+    #19 0x0000d308 in pthread_create /bionic/libc/bionic/pthread_create.cpp:224
+
+stack:
+         9fddb6d0  7a82fb4d  /data/app-lib/com.google.android.apps.chrome-1/libc++_shared.so
+         9fddb6d4  6022478c  /dev/ashmem/dalvik-heap (deleted)
+         9fddb6d8  9fddb871  [stack:14630]
+         9fddb6dc  80cb9a90
+         9fddb6e0  13fbb6ce
+         9fddb6e4  13fbb6ce
+         9fddb6e8  9fddb690  [stack:14630]
+         9fddb6ec  9fddb670  [stack:14630]
+         9fddb6f0  13fbb63c
+         9fddb6f4  00000000
+         9fddb6f8  9fddb1e0  [stack:14630]
+         9fddb6fc  dc3c3a31
+         9fddb700  ffff0fa0  [vectors]
+         9fddb704  9fddb758  [stack:14630]
+         9fddb708  405da1d8  /system/lib/libc.so
+         9fddb70c  4360b410
+    #00  9fddb710  00000006
+         9fddb714  00000016
+         9fddb718  00003926
+         9fddb71c  00000035
+         9fddb720  00000035
+         9fddb724  405a2fe5  /system/lib/libc.so (pthread_kill+52)
+    #01  9fddb728  00000006
+         9fddb72c  00000000
+         9fddb730  9fddbc60  [stack:14630]
+         9fddb734  405a31f9  /system/lib/libc.so (raise+14)
+    #02  9fddb738  9fddb744  [stack:14630]
+         9fddb73c  405a1f2f  /system/lib/libc.so
+
+memory near r1:
+    00003904 ffffffff ffffffff ffffffff ffffffff
+    00003914 ffffffff ffffffff ffffffff ffffffff
+    00003924 ffffffff ffffffff ffffffff ffffffff
+    00003934 ffffffff ffffffff ffffffff ffffffff
+    00003944 ffffffff ffffffff ffffffff ffffffff
+    00003954 ffffffff ffffffff ffffffff ffffffff
+    00003964 ffffffff ffffffff ffffffff ffffffff
+    00003974 ffffffff ffffffff ffffffff ffffffff
+    00003984 ffffffff ffffffff ffffffff ffffffff
+    00003994 ffffffff ffffffff ffffffff ffffffff
+    000039a4 ffffffff ffffffff ffffffff ffffffff
+    000039b4 ffffffff ffffffff ffffffff ffffffff
+    000039c4 ffffffff ffffffff ffffffff ffffffff
+    000039d4 ffffffff ffffffff ffffffff ffffffff
+    000039e4 ffffffff ffffffff ffffffff ffffffff
+    000039f4 ffffffff ffffffff ffffffff ffffffff
+
+memory near r6:
+    00003904 ffffffff ffffffff ffffffff ffffffff
+    00003914 ffffffff ffffffff ffffffff ffffffff
+    00003924 ffffffff ffffffff ffffffff ffffffff
+    00003934 ffffffff ffffffff ffffffff ffffffff
+    00003944 ffffffff ffffffff ffffffff ffffffff
+    00003954 ffffffff ffffffff ffffffff ffffffff
+    00003964 ffffffff ffffffff ffffffff ffffffff
+    00003974 ffffffff ffffffff ffffffff ffffffff
+    00003984 ffffffff ffffffff ffffffff ffffffff
+    00003994 ffffffff ffffffff ffffffff ffffffff
+    000039a4 ffffffff ffffffff ffffffff ffffffff
+    000039b4 ffffffff ffffffff ffffffff ffffffff
+    000039c4 ffffffff ffffffff ffffffff ffffffff
+    000039d4 ffffffff ffffffff ffffffff ffffffff
+    000039e4 ffffffff ffffffff ffffffff ffffffff
+    000039f4 ffffffff ffffffff ffffffff ffffffff
+
+memory near r8:
+    43535f40 cc6e96b9 43535f50 00000000 00000000
+    43535f50 00169f02 0cffffff 00000040 6b8000a0
+    43535f60 5441465b 6d3a4c41 726f6d65 63632e79
+    43535f70 29383128 754f205d 666f2074 6d656d20
+    43535f80 2e79726f 7a697320 30323d65 34313630
+    43535f90 32373037 bebe000a bebebebe bebebebe
+    43535fa0 cc6e96b9 43535fb0 00000000 00000000
+    43535fb0 00169f02 0cffffff 00000040 6400009a
+    43535fc0 5441465b 6d3a4c41 726f6d65 63632e79
+    43535fd0 29383128 754f205d 666f2074 6d656d20
+    43535fe0 2e79726f 7a697320 30323d65 34313630
+    43535ff0 32373037 0000000a 00000000 00000000
+    43536000 00000000 00000000 00000000 00000000
+    43536010 00000000 00000000 00000000 00000000
+    43536020 00000000 00000000 00000000 00000000
+    43536030 00000000 00000000 00000000 00000000
+
+memory near r9:
+    9fddb7a0 00000041 00000035 43535f60 9fddb804
+    9fddb7b0 9fddbd7c 400b1b44 00000002 42eb6df0
+    9fddb7c0 5441465b 6d3a4c41 726f6d65 63632e79
+    9fddb7d0 29383128 754f205d 666f2074 6d656d20
+    9fddb7e0 2e79726f 7a697320 30323d65 34313630
+    9fddb7f0 32373037 0000000a 00000000 00000000
+    9fddb800 00000000 00000000 00000000 00000000
+    9fddb810 400bd894 9fddb944 0000000c 9fddb950
+    9fddb820 9fddb83c 9fddb8a0 00000020 00000020
+    9fddb830 9fddb8e8 7a812d30 9fddb8a0 00000000
+    9fddb840 9fddb944 0000000c 80cb39d0 80cb39cc
+    9fddb850 80cb39c8 80cb36a0 80cb39e0 80cb39d8
+    9fddb860 80cb39c4 80cb36a0 9fddbd40 80cb36a0
+    9fddb870 80cb36a0 80cb36a0 80cb36a0 00000003
+    9fddb880 0000093c 9fddb8e0 13fbb714 9fddbd28
+    9fddb890 9fddbd68 9fddb8a0 9fddb990 8071cc44
+
+memory near sl:
+    9fddb780 41b58ab3 80c9e862 808cac84 400bb004
+    9fddb790 7a85a078 9fddbd49 9fddbc30 4004a0b4
+    9fddb7a0 00000041 00000035 43535f60 9fddb804
+    9fddb7b0 9fddbd7c 400b1b44 00000002 42eb6df0
+    9fddb7c0 5441465b 6d3a4c41 726f6d65 63632e79
+    9fddb7d0 29383128 754f205d 666f2074 6d656d20
+    9fddb7e0 2e79726f 7a697320 30323d65 34313630
+    9fddb7f0 32373037 0000000a 00000000 00000000
+    9fddb800 00000000 00000000 00000000 00000000
+    9fddb810 400bd894 9fddb944 0000000c 9fddb950
+    9fddb820 9fddb83c 9fddb8a0 00000020 00000020
+    9fddb830 9fddb8e8 7a812d30 9fddb8a0 00000000
+    9fddb840 9fddb944 0000000c 80cb39d0 80cb39cc
+    9fddb850 80cb39c8 80cb36a0 80cb39e0 80cb39d8
+    9fddb860 80cb39c4 80cb36a0 9fddbd40 80cb36a0
+    9fddb870 80cb36a0 80cb36a0 80cb36a0 00000003
+
+memory near fp:
+    9fddb758 00008e1c 00008e1c 000127fc 405b1848
+    9fddb768 405b20dc 807e4e10 00000000 9fddb7a0
+    9fddb778 9fddbcf8 808cb9ac 41b58ab3 80c9e862
+    9fddb788 808cac84 400bb004 7a85a078 9fddbd49
+    9fddb798 9fddbc30 4004a0b4 00000041 00000035
+    9fddb7a8 43535f60 9fddb804 9fddbd7c 400b1b44
+    9fddb7b8 00000002 42eb6df0 5441465b 6d3a4c41
+    9fddb7c8 726f6d65 63632e79 29383128 754f205d
+    9fddb7d8 666f2074 6d656d20 2e79726f 7a697320
+    9fddb7e8 30323d65 34313630 32373037 0000000a
+    9fddb7f8 00000000 00000000 00000000 00000000
+    9fddb808 00000000 00000000 400bd894 9fddb944
+    9fddb818 0000000c 9fddb950 9fddb83c 9fddb8a0
+    9fddb828 00000020 00000020 9fddb8e8 7a812d30
+    9fddb838 9fddb8a0 00000000 9fddb944 0000000c
+    9fddb848 80cb39d0 80cb39cc 80cb39c8 80cb36a0
+
+memory near sp:
+    9fddb6f0 13fbb63c 00000000 9fddb1e0 dc3c3a31
+    9fddb700 ffff0fa0 9fddb758 405da1d8 4360b410
+    9fddb710 00000006 00000016 00003926 00000035
+    9fddb720 00000035 405a2fe5 00000006 00000000
+    9fddb730 9fddbc60 405a31f9 9fddb744 405a1f2f
+    9fddb740 43535f60 ffffffdf 9fddb778 13fbb400
+    9fddb750 000127fc 9fddbc60 00008e1c 00008e1c
+    9fddb760 000127fc 405b1848 405b20dc 807e4e10
+    9fddb770 00000000 9fddb7a0 9fddbcf8 808cb9ac
+    9fddb780 41b58ab3 80c9e862 808cac84 400bb004
+    9fddb790 7a85a078 9fddbd49 9fddbc30 4004a0b4
+    9fddb7a0 00000041 00000035 43535f60 9fddb804
+    9fddb7b0 9fddbd7c 400b1b44 00000002 42eb6df0
+    9fddb7c0 5441465b 6d3a4c41 726f6d65 63632e79
+    9fddb7d0 29383128 754f205d 666f2074 6d656d20
+    9fddb7e0 2e79726f 7a697320 30323d65 34313630
+
+code around pc:
+    405b1f70 e8bd00f0 e3700a01 912fff1e e2600000
+    405b1f80 ea006d81 e92d50f0 e3a07f43 ef000000
+    405b1f90 e8bd50f0 e3700a01 912fff1e e2600000
+    405b1fa0 ea006d79 e92d50f0 e3a070ee ef000000
+    405b1fb0 e8bd50f0 e3700a01 912fff1e e2600000
+    405b1fc0 ea006d71 f200429a bf008069 f040f891
+    405b1fd0 4001e92d d3412a10 0300f1c0 030ff013
+    405b1fe0 eba2d01d ea5f0203 bf447cc3 eb01f811
+    405b1ff0 eb01f800 f811bf21 f811cb01 f800eb01
+    405b2000 f800cb01 ea5feb01 da037c43 030df9a1
+    405b2010 031df980 f921d303 f900070d 3a40071d
+    405b2020 f921d30b f921020d f891420d 3a40f100
+    405b2030 022df900 422df900 3220d2f3 f921d305
+    405b2040 f1a2020d f9000220 f102022d f0120220
+    405b2050 d0030f10 0a0df921 0a2df900 7c42ea5f
+    405b2060 f921d303 f900070d da03070d 030df9a1
+
+code around lr:
+    405a2fc4 447b4b13 42b3e010 6a1ed10e 44784811
+    405a2fd4 ec84f7fb ea0ef00d 46224631 efd0f00e
+    405a2fe4 d00a3001 e00b2400 2b00681b 480ad1eb
+    405a2ff4 44782403 ec72f7fb f001e002 6804fa23
+    405a3004 fa20f001 46206005 bf00bd70 0003b3de
+    405a3014 0003b3d2 0003b3ca 0003b3a6 bf7ef7ff
+    405a3024 4a3e4b3d e92d447b b08b43f0 4606589c
+    405a3034 6823460d 930946a1 fa04f001 8000f8d0
+    405a3044 d0482d00 f00f4628 280fff9b d8444604
+    405a3054 ffe4f7ff d1064286 4629200f e8d8f00d
+    405a3064 d03c2800 482ee02e f7fb4478 482debb6
+    405a3074 e0154478 d11342b0 482b6a06 f7fb4478
+    405a3084 4a2aec2e 46332120 a801447a f83af013
+    405a3094 a8012101 fb54f01a 46061c42 e011d104
+    405a30a4 28006800 e02cd1e6 46294630 f00d4622
+    405a30b4 1c43e914 d11e4607 f9c4f001 29046801
+Copying /data/tombstones/tombstone_01 to DropBox (SYSTEM_TOMBSTONE)
+onServiceDisconnected (crash or killed by oom): pid=14573
+Process com.google.android.apps.chrome:sandboxed_process10 (pid 14573) has died.
+Scheduling restart of crashed service com.google.android.apps.chrome/org.chromium.content.app.SandboxedProcessService10 in 1000ms
+renderProcessGone() for tab id: 30, oom protected: true, already needs reload: false
+/data/data/com.google.android.apps.chrome/cache/Crash Reports does not exist!

@@ -1,0 +1,35 @@
+#
+# Test dictionary
+# -------------------
+#
+# Dummy comment
+#
+
+attr_encoding=" encoding=\"1\""
+attr_generic=" a=\"1\""
+
+entity_hex="&#x1;"
+
+# keywords
+"ANY"
+"SYSTEM"
+
+# Various tag parts
+"<"
+"=\"\""
+"=''"
+
+"\x00\xFF\x00\xFF"
+dummy_entry_with_name="----------B"
+
+# Recommended dictionary stored in GCS.
+"x\x0a"
+"\x00\x00\x00\x00"
+"*\x0a"
+"1337"
+"XXXXXX"
+"\x05\x17\x10"
+"\x0e-\x0a"
+"----BEG---B"
+"}\x0a"
+"----BEG---"

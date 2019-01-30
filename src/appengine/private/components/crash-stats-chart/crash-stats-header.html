@@ -1,0 +1,171 @@
+<!--
+  Copyright 2018 Google LLC
+
+  Licensed under the Apache License, Version 2.0 (the "License");
+  you may not use this file except in compliance with the License.
+  You may obtain a copy of the License at
+
+       http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+-->
+<link rel="import" href="../../bower_components/polymer/polymer.html">
+
+<dom-module id="crash-stats-header">
+  <link rel="import" href="../../stylesheets/main.css" type="css">
+  <link rel="import" href="../technology/technology.css" type="css">
+  <script src="../../javascripts/error.js" type="text/javascript"></script>
+  <template>
+    <style>
+      :host {
+        display: block;
+      }
+
+      :host .x-axis {
+        display: block;
+        font-size: 0;
+        margin-top: 8px;
+        text-align: right;
+        white-space: nowrap;
+        height: 35px;
+        position: relative;
+      }
+
+      :host .x-axis > div {
+        width: 10px;
+        height: 35px;
+        border-right: 1px dashed #888;
+        position: absolute;
+        display: inline-block;
+        left: 0px;
+        bottom: 0px;
+        z-index: 10;
+      }
+
+      :host .x-axis > div > div {
+        font-size: 11px;
+        color: #888;
+        position: absolute;
+        right: -6px;
+        bottom: 2px;
+        width: 40px;
+        text-align: right;
+
+        /* Safari */
+        -webkit-transform: rotate(-90deg);
+
+        /* Firefox */
+        -moz-transform: rotate(-90deg);
+
+        /* IE */
+        -ms-transform: rotate(-90deg);
+
+        /* Opera */
+        -o-transform: rotate(-90deg);
+
+        /* Internet Explorer */
+        filter: progid:DXImageTransform.Microsoft.BasicImage(rotation=3);
+      }
+    </style>
+    <div class="x-axis">
+      <template is="dom-repeat" items="[[computeIndicators(end, days, block, headerWidth)]]">
+        <div style$="left: [[item.left]]px;">
+          <div>
+            [[maybeShowDate(item)]]</br/>
+            [[item.time]]
+          </div>
+        </div>
+      </template>
+    </div>
+  </template>
+  <script>
+    Polymer({
+      is: 'crash-stats-header',
+      properties: {
+          end: {
+              type: Number,
+              value: 0
+          },
+          days: {
+              type: Number,
+              value: 0
+          },
+          block: String,
+          headerWidth: Number,
+          numberOfIndicators: {
+              type: Number,
+              value: 14
+          }
+      },
+      formatTime(hours) {
+        let date = new Date(hours * 60 * 60 * 1000);
+        return date.toLocaleTimeString('en-US', {hour: 'numeric'});
+      },
+      formatDate(hours) {
+        let date = new Date(hours * 60 * 60 * 1000);
+        return date.toLocaleDateString(
+            'en-US', {month: 'short', day: 'numeric'})
+      },
+      computeIndicators(endHour, days, block, headerWidth) {
+        let leftMost = 53;
+        let rightMost = headerWidth - 10;
+
+        let timeSpan = block == 'hour' ? 1 : 24;
+        let startHour = endHour - days * 24 + timeSpan;
+        let numSlots = (block == 'hour' ? days * 24 : days);
+        let slotWidth = parseFloat(rightMost - leftMost) / numSlots;
+        let numIndicators = Math.min(numSlots, this.numberOfIndicators);
+        let numSlotsPerOneIndicator = parseInt(numSlots / numIndicators);
+
+        let currentLeft = leftMost;
+        let currentHour = startHour - timeSpan;
+        let previousDate = this.formatDate(currentHour);
+        let indicators = [{
+            date: previousDate,
+            shouldShowDate: true,
+            time: this.formatTime(currentHour),
+            left: currentLeft
+        }]
+
+        // The rightmost indicator is hardcoded.
+        for (let i=0;i<(numIndicators - 1);i++) {
+          let addedSlots = numSlotsPerOneIndicator;
+          addedSlots += (i < (numSlots % numIndicators)) ? 1 : 0;
+          currentLeft += slotWidth * addedSlots;
+          currentHour += addedSlots * timeSpan;
+
+          let date = this.formatDate(currentHour);
+
+          indicators.push({
+              date: date,
+              shouldShowDate: date != previousDate,
+              time: this.formatTime(currentHour),
+              left: currentLeft
+          });
+
+          previousDate = date;
+        }
+
+        indicators.push({
+            date: this.formatDate(endHour),
+            shouldShowDate: true,
+            time: this.formatTime(endHour),
+            left: rightMost - 1
+        });
+
+        return indicators;
+      },
+      maybeShowDate(item) {
+        if (item.shouldShowDate) {
+          return item.date;
+        } else {
+          return '';
+        }
+      }
+    });
+  </script>
+</dom-module>

@@ -1,0 +1,28 @@
+Xlib:  extension "RANDR" missing on display ":1".
+#READY
+Xlib:  extension "RANDR" missing on display ":1".
+Content-Type: text/plain
+REGRESSION: Selecting "Edit Html" tab in Blogger causes crash (Assertion failed: isRange()) .
+#EOF
+#EOF
+#EOF
+-----------------------------------------------------
+Suppressions used:
+  count      bytes template
+   5415     157646 libfontconfig
+-----------------------------------------------------
+[13906:13906:0721/063600:371439759870:FATAL:render_process_host_impl.cc(2141)] Check failed: host->listeners_.IsEmpty().
+#0 0x000000485c71 __interceptor_backtrace
+#1 0x0000006a3ab0 base::debug::StackTrace::StackTrace()
+#2 0x0000006d90a5 logging::LogMessage::~LogMessage()
+#3 0x00000a385775 content::RenderProcessHostImpl::CheckAllTerminated()
+#4 0x00000a94caed content::BrowserMainLoop::ShutdownThreadsAndCleanUp()
+#5 0x00000a0d17fe content::BrowserMainRunnerImpl::Shutdown()
+#6 0x000000510611 LayoutTestBrowserMain()
+#7 0x00000050f150 content::ShellMainDelegate::RunProcess()
+#8 0x00000064a651 content::RunNamedProcessTypeMain()
+#9 0x00000064cdd6 content::ContentMainRunnerImpl::Run()
+#10 0x0000006472ce content::ContentMain()
+#11 0x00000050d1d3 main
+#12 0x7ff22d2b9f45 __libc_start_main
+#13 0x0000004421b9 <unknown>

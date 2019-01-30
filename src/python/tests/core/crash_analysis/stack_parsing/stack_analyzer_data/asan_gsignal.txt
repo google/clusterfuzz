@@ -1,0 +1,41 @@
+=================================================================
+==14797==ERROR: AddressSanitizer: SEGV on unknown address 0x03e9000039cd (pc 0x7f96fbdfec37 bp 0x7ffe5a1e1a00 sp 0x7ffe5a1e18c8 T0)
+SCARINESS: 10 (signal)
+    #0 0x7f96fbdfec36 in gsignal /build/eglibc-oGUzwX/eglibc-2.19/signal/../nptl/sysdeps/unix/sysv/linux/raise.c:56
+    #1 0x6c7e47 in base::debug::BreakDebugger() base/debug/debugger_posix.cc:249:3
+    #2 0x5ed74e in logging::LogMessage::~LogMessage() base/logging.cc:748:7
+    #3 0xe099d8 in url::(anonymous namespace)::UIDNAWrapper::UIDNAWrapper() url/url_canon_icu.cc:104:7
+    #4 0xe09601 in base::DefaultLazyInstanceTraits<url::(anonymous namespace)::UIDNAWrapper>::New(void*) base/lazy_instance.h:69:27
+    #5 0xe092bd in base::internal::LeakyLazyInstanceTraits<url::(anonymous namespace)::UIDNAWrapper>::New(void*) base/lazy_instance.h:98:12
+    #6 0xe09240 in base::LazyInstance<url::(anonymous namespace)::UIDNAWrapper, base::internal::LeakyLazyInstanceTraits<url::(anonymous namespace)::UI
+DNAWrapper> >::Pointer() base/lazy_instance.h:163:11
+    #7 0xe08b3d in base::LazyInstance<url::(anonymous namespace)::UIDNAWrapper, base::internal::LeakyLazyInstanceTraits<url::(anonymous namespace)::UI
+DNAWrapper> >::Get() base/lazy_instance.h:137:13
+    #8 0xe0838a in url::IDNToASCII(unsigned short const*, int, url::CanonOutputT<unsigned short>*) url/url_canon_icu.cc:168:26
+    #9 0xddb90d in url::(anonymous namespace)::DoIDNHost(unsigned short const*, int, url::CanonOutputT<char>*) url/url_canon_host.cc:177:8
+    #10 0xddb608 in url::(anonymous namespace)::DoComplexHost(char const*, int, bool, bool, url::CanonOutputT<char>*) url/url_canon_host.cc:275:10
+    #11 0xdd8f0d in void url::(anonymous namespace)::DoHost<char, unsigned char>(char const*, url::Component const&, url::CanonOutputT<char>*, url::Ca
+nonHostInfo*) url/url_canon_host.cc:335:15
+    #12 0xdd8471 in url::CanonicalizeHost(char const*, url::Component const&, url::CanonOutputT<char>*, url::Component*) url/url_canon_host.cc:370:3
+    #13 0xdf3a7a in bool url::(anonymous namespace)::DoCanonicalizeStandardURL<char, unsigned char>(url::URLComponentSource<char> const&, url::Parsed 
+const&, url::CharsetConverter*, url::CanonOutputT<char>*, url::Parsed*) url/url_canon_stdurl.cc:45:16
+    #14 0xdf349c in url::CanonicalizeStandardURL(char const*, int, url::Parsed const&, url::CharsetConverter*, url::CanonOutputT<char>*, url::Parsed*)
+ url/url_canon_stdurl.cc:133:10
+    #15 0xdfbd76 in bool url::(anonymous namespace)::DoCanonicalize<char>(char const*, int, bool, url::CharsetConverter*, url::CanonOutputT<char>*, ur
+l::Parsed*) url/url_util.cc:210:15
+    #16 0xdfb5be in url::Canonicalize(char const*, int, bool, url::CharsetConverter*, url::CanonOutputT<char>*, url::Parsed*) url/url_util.cc:497:10
+    #17 0xdb4a30 in void GURL::InitCanonical<std::__1::basic_string<char, std::__1::char_traits<char>, std::__1::allocator<char> > >(base::BasicString
+Piece<std::__1::basic_string<char, std::__1::char_traits<char>, std::__1::allocator<char> > >, bool) url/gurl.cc:115:15
+    #18 0xda1571 in GURL::GURL(base::BasicStringPiece<std::__1::basic_string<char, std::__1::char_traits<char>, std::__1::allocator<char> > >) url/gur
+l.cc:82:3
+    #19 0x4ef46f in LLVMFuzzerTestOneInput net/base/parse_data_url_fuzzer.cc:17:23
+    #20 0x531764 in fuzzer::Fuzzer::ExecuteCallback(unsigned char const*, unsigned long) third_party/libFuzzer/src/FuzzerLoop.cpp:488:13
+    #21 0x52d5a6 in fuzzer::Fuzzer::RunOne(unsigned char const*, unsigned long) third_party/libFuzzer/src/FuzzerLoop.cpp:444:3
+    #22 0x4f1203 in fuzzer::RunOneTest(fuzzer::Fuzzer*, char const*) third_party/libFuzzer/src/FuzzerDriver.cpp:257:6
+    #23 0x4f4f75 in fuzzer::FuzzerDriver(int*, char***, int (*)(unsigned char const*, unsigned long)) third_party/libFuzzer/src/FuzzerDriver.cpp:379:9
+    #24 0x57316e in main third_party/libFuzzer/src/FuzzerMain.cpp:21:10
+    #25 0x7f96fbde9f44 in __libc_start_main /build/eglibc-oGUzwX/eglibc-2.19/csu/libc-start.c:287
+
+AddressSanitizer can not provide additional info.
+SUMMARY: AddressSanitizer: SEGV /build/eglibc-oGUzwX/eglibc-2.19/signal/../nptl/sysdeps/unix/sysv/linux/raise.c:56 in gsignal
+==14797==ABORTING

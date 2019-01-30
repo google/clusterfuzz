@@ -1,0 +1,749 @@
+<!--
+  Copyright 2018 Google LLC
+
+  Licensed under the Apache License, Version 2.0 (the "License");
+  you may not use this file except in compliance with the License.
+  You may obtain a copy of the License at
+
+       http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+-->
+<link rel="import" href="../../bower_components/polymer/polymer.html">
+<link rel="import" href="../../bower_components/iron-icon/iron-icon.html">
+<link rel="import" href="../common/confirm-dialog/confirm-dialog.html">
+<link rel="import" href="../common/if-else/if-else.html">
+<link rel="import" href="../common/page-title/page-title.html">
+<link rel="import" href="../common/render-either/render-either.html">
+<link rel="import" href="../common/impact-button/impact-button.html">
+<link rel="import" href="collapsable-revisions.html">
+<link rel="import" href="crash-stacktrace.html">
+<link rel="import" href="crash-stats.html">
+<link rel="import" href="create-issue-dialog.html">
+<link rel="import" href="delete-dialog.html">
+<link rel="import" href="find-similar-issues-panel.html">
+<link rel="import" href="redo-dialog.html">
+<link rel="import" href="refresh-button.html">
+<link rel="import" href="suspected-cls.html">
+<link rel="import" href="update-issue-dialog.html">
+
+<dom-module id="testcase-detail">
+  <link rel="import" href="../../stylesheets/main.css" type="css">
+  <link rel="import" href="../technology/technology.css" type="css">
+  <script src="../common/paginated-list/query.js"></script>
+  <template>
+    <style>
+      :host {
+        display: block;
+      }
+
+      :host td.value paper-icon-button, :host .section .title paper-icon-button {
+        padding: 0px;
+        width: 16px;
+        height: 16px;
+        margin-left: 3px;
+        vertical-align: text-top;
+      }
+
+      :host #title iron-icon {
+        vertical-align: middle;
+        margin-top: -3px;
+        width: 32px;
+        height: 32px;
+      }
+
+      :host .fixed {
+        font-weight: bold;
+        color: #1D8301;
+      }
+
+      :host .fixed-help {
+        padding: 0px;
+        width: 16px;
+        height: 16px;
+        margin-left: 3px;
+        vertical-align: text-top;
+      }
+
+      :host .not-fixed {
+        font-weight: bold;
+        color: #db5656;
+      }
+
+      impact-button {
+        display: block;
+        --impact-button-color: #3a80b0;
+      }
+
+      :host .body.code {
+        font-family: 'Source Code Pro', monospace;
+        font-size: 14px;
+        white-space: pre;
+        padding: 5px;
+      }
+
+      :host .reproduce-tool {
+        padding: 5px 10px;
+        line-height: 16px;
+        font-size: 13px;
+        color: #888;
+        border-top: 1px dotted #ccc;
+        background-color: #e1e6e9;
+      }
+
+      :host .reproduce-tool code {
+        border-radius: 3px;
+        padding: 0px 5px;
+        font-family: 'Source Code Pro', monospace;
+        color: #444;
+        white-space: nowrap;
+      }
+    </style>
+    <page-title title="[[formatTitleWithCheckmark(info)]]"></page-title>
+    <template is="dom-if" if="[[shouldShowIssueFunctions(info)]]">
+      <create-issue-dialog id="createIssueDialog" info="{{info}}" opened="{{createIssueDialogOpened}}">
+      </create-issue-dialog>
+      <update-issue-dialog id="updateIssueDialog" info="{{info}}" opened="{{updateIssueDialogOpened}}">
+      </update-issue-dialog>
+      <confirm-dialog
+          id="removeIssueDialog"
+          url="/testcase-detail/remove-issue"
+          params$='{"testcaseId": "[[info.testcase.id]]", "csrf_token": "[[info.csrf_token]]"}'
+          response="{{info}}"
+          opened="{{removeIssueDialogOpened}}"
+          title="Unassign issue">
+        Please confirm that you want to unassign
+        <a href="[[info.issue_url]][[info.testcase.bug_information]]">the issue [[info.testcase.bug_information]]</a>
+        from this testcase.
+      </confirm-dialog>
+    </template>
+    <redo-dialog id="redoDialog" info="{{info}}" opened="{{redoDialogOpened}}"></redo-dialog>
+    <delete-dialog id="deleteDialog" info="[[info]]" opened="{{deleteDialogOpened}}"></delete-dialog>
+    <confirm-dialog
+        id="updateFromTrunkDialog"
+        url="/testcase-detail/update-from-trunk"
+        params$='{"testcaseId": "[[info.testcase.id]]", "csrf_token": "[[info.csrf_token]]"}'
+        response="{{info}}"
+        opened="{{updateFromTrunkDialogOpened}}"
+        title="Update last tested stacktrace"
+        content="Please confirm that you want to update last tested stacktrace using trunk build."></confirm-dialog>
+    <confirm-dialog
+        id="removeDuplicateDialog"
+        url="/testcase-detail/remove-duplicate"
+        params$='{"testcaseId": "[[info.testcase.id]]", "csrf_token": "[[info.csrf_token]]"}'
+        response="{{info}}"
+        opened="{{removeDuplicateDialogOpened}}"
+        title="Remove duplicate"
+        content="Please confirm that you want to remove the duplicate status of this testcase."></confirm-dialog>
+    <confirm-dialog
+        id="markSecurityDialog"
+        url="/testcase-detail/mark-security"
+        params$='{"testcaseId": "[[info.testcase.id]]", "csrf_token": "[[info.csrf_token]]"}'
+        response="{{info}}"
+        opened="{{markSecurityDialogOpened}}"
+        title="Mark security"
+        content="Please confirm that you want to mark this testcase as security-related."></confirm-dialog>
+    <confirm-dialog
+        id="markUnconfirmedDialog"
+        url="/testcase-detail/mark-unconfirmed"
+        params$='{"testcaseId": "[[info.testcase.id]]", "csrf_token": "[[info.csrf_token]]"}'
+        response="{{info}}"
+        opened="{{markUnconfirmedDialogOpened}}"
+        title="Mark unconfirmed"
+        content="Please confirm that you want to mark this testcase as unconfirmed."></confirm-dialog>
+    <confirm-dialog
+        id="removeGroupDialog"
+        url="/testcase-detail/remove-group"
+        params$='{"testcaseId": "[[info.testcase.id]]", "csrf_token": "[[info.csrf_token]]"}'
+        response="{{info}}"
+        opened="{{removeGroupDialogOpened}}"
+        title="Remove from group"
+        content="Please confirm that you want to remove this testcase from the group."></confirm-dialog>
+    <confirm-dialog
+        id="markFixedDialog"
+        url="/testcase-detail/mark-fixed"
+        params$='{"testcaseId": "[[info.testcase.id]]", "csrf_token": "[[info.csrf_token]]"}'
+        response="{{info}}"
+        opened="{{markFixedDialogOpened}}"
+        title="Mark fixed"
+        content="Please confirm that you want to mark this testcase as fixed."></confirm-dialog>
+    <app-toolbar>
+      <paper-icon-button icon="menu" onclick="document.getElementById('drawer').toggle()"></paper-icon-button>
+      <div id="title">
+        <template is="dom-if" if="[[isFixed(info)]]">
+          <iron-icon icon="icons:check-box" title="The crash has been fixed."></iron-icon>
+        </template>
+        {{formatTitle(info)}}
+      </div>
+      <refresh-button info="{{info}}"></refresh-button>
+    </app-toolbar>
+    <div id="mainContent">
+      <div id="testcase-detail-page">
+        <div class="tools">
+          <template is="dom-if" if="[[shouldShowTools(info)]]">
+            <template is="dom-if" if="[[shouldShowIssueFunctions(info)]]">
+              <template is="dom-if" if="[[!info.testcase.bug_information]]">
+                <paper-button raised default toggles active="{{createIssueDialogOpened}}">Create issue</paper-button>
+                <template is="dom-if" if="[[info.is_admin_or_not_oss_fuzz]]">
+                  <paper-button raised default toggles active="{{updateIssueDialogOpened}}">Update issue</paper-button>
+                </template>
+              </template>
+            </template>
+            <paper-button raised default toggles active="{{redoDialogOpened}}" title="Choose tasks (e.g. minimize, regressed) to re-run.">Redo task</paper-button>
+          </template>
+          <template is="dom-if" if="[[info.privileged_user]]">
+            <paper-button raised default toggles active="{{deleteDialogOpened}}" hidden$="[[!info.is_admin]]">Delete</paper-button>
+          </template>
+        </div>
+        <div class="section">
+          <div class="title">Overview</div>
+          <div class="body">
+            <table cellpadding="0" cellspacing="0" class="overview">
+              <tr>
+                <td class="label crash-state">
+                  <span class="help" title="State generated from important stack frames in crash stack (used for de-duplication).">Crash State:</span>
+                </td>
+                <td colspan="5" class="value crash-state">
+                  <if-else condition="[[nonEmpty(info.crash_state_lines)]]">
+                    <span slot="t">
+                      <template is="dom-repeat" items="[[info.crash_state_lines]]">
+                        <div>[[item]]</div>
+                      </template>
+                    </span>
+                    <span slot="f">---</span>
+                  </if-else>
+                </td>
+              </tr>
+              <tr>
+                <td class="label">
+                  <span class="help" title="Type of crash (e.g. heap buffer overflow).">Crash Type:</span>
+                </td>
+                <td class="value">
+                  <if-else condition="[[isUnknown(info.crash_type)]]">
+                    <span slot="t" class="help" title="Unable to determine the type of crash from the stacktrace.">UNKNOWN</span>
+                    <render-either slot="f" main="[[info.crash_type]]" else="---"></render-either>
+                  </if-else>
+                </td>
+                <template is="dom-if" if="[[getFuzzerName(info)]]">
+                  <td class="label">
+                    <span class="help" title="Fuzzer that generated the testcase.">Fuzzer:</span>
+                  </td>
+                  <td class="value">
+                    <a href$="/testcases?fuzzer=[[getFuzzerName(info)]]">
+                      [[getFuzzerName(info)]]
+                    </a>
+                  </td>
+                </template>
+                <template is="dom-if" if="[[info.testcase.uploader_email]]">
+                  <td class="label">
+                    <span class="help" title="Email address of person that uploaded the testcase.">Uploader:</span>
+                  </td>
+                  <td class="value">
+                    [[info.testcase.uploader_email]]
+                  </td>
+                </template>
+                <td class="label">
+                  <span class="help" title="Whether or not this crash has security implications (with recommended severity).">Security:</span>
+                </td>
+                <td class="value">
+                  <if-else condition="[[isStatusReady(info)]]">
+                    <if-else slot="t" condition="[[info.testcase.security_flag]]">
+                      <strong slot="t">YES (<render-either main="[[info.security_severity]]" else="Unknown"></render-either>)</strong>
+                      <span slot="f">
+                        NO
+                        <template is="dom-if" if="[[info.is_admin]]">
+                          <paper-icon-button icon="create" toggles active="{{markSecurityDialogOpened}}" title="Mark as a security-related crash."></paper-icon-button>
+                        </template>
+                      </span>
+                    </if-else>
+                    <span slot="f">NA</span>
+                  </if-else>
+                </td>
+              </tr>
+              <tr>
+                <td class="label">
+                  <span class="help" title="Address where the crash occurred.">Crash Address:</span>
+                </td>
+                <td class="value">
+                  <render-either main="[[info.testcase.crash_address]]" else="---"></render-either>
+                </td>
+                <td class="label">
+                  <span class="help" title="Job that specifies the build configuration.">Job Type:</span>
+                </td>
+                <td class="value">
+                  <a href$="/testcases?job=[[info.testcase.job_type]]">[[info.testcase.job_type]]</a>
+                </td>
+                <td class="label">
+                  <span class="help" title="Whether or not the crash is reliably reproducible (“No” for flaky test cases).">Reliably reproduces:</span>
+                </td>
+                <td class="value">
+                  <if-else condition="[[isStatusReady(info)]]">
+                    <span slot="t">
+                      <if-else condition="[[info.testcase.one_time_crasher_flag]]">
+                        <strong slot="t">NO</strong>
+                        <span slot="f">
+                          YES
+                          <template is="dom-if" if="[[info.is_admin]]">
+                            <paper-icon-button icon="highlight-off" toggles active="{{markUnconfirmedDialogOpened}}" title="Mark as an unconfirmed crash"></paper-icon-button>
+                          </template>
+                        </span>
+                      </if-else>
+                    </span>
+                    <span slot="f">NA</span>
+                  </if-else>
+                </td>
+              </tr>
+              <tr>
+                <td class="label">
+                  <span class="help" title="Issue in the issue tracker that is associated with this test case.">Issue:</span>
+                </td>
+                <td class="value">
+                  <if-else condition="[[info.testcase.bug_information]]">
+                    <span slot="t">
+                      <a href="[[info.issue_url]][[info.testcase.bug_information]]">[[info.testcase.bug_information]]</a>
+                      <paper-icon-button icon="highlight-off" toggles hidden$="[[!info.is_admin]]" active="{{removeIssueDialogOpened}}" title="Unassign the issue from this testcase"></paper-icon-button>
+                    </span>
+                    <span slot="f">
+                      <if-else condition="[[info.testcase.group_bug_information]]">
+                        <a slot="t" href="[[info.issue_url]][[info.testcase.group_bug_information]]">[[info.testcase.group_bug_information]]</a> (from its group)
+                        <span slot="f">None</span>
+                      </if-else>
+                    </span>
+                  </if-else>
+                </td>
+                <td class="label">
+                  <span class="help" title="OS where the crash occurred.">Platform:</span>
+                 </td>
+                <td class="value">
+                  <if-else condition="[[info.testcase.platform]]">
+                    <a slot="t" href$="/testcases?q=platform%3A[[info.testcase.platform_id]]">
+                      [[info.testcase.platform_id]]
+                    </a>
+                    <span slot="f">NA</span>
+                  </if-else>
+                </td>
+                <td class="label">
+                  <span class="help" title="Whether or not the crash is fixed. If yes, please see the fixed revision range below.">Fixed:</span>
+                </td>
+                <td class="value">
+                  <if-else condition="[[info.metadata.progression_pending]]">
+                    <span slot="t">Pending</span>
+                    <span slot="f">
+                      <if-else condition="[[isFixed(info)]]">
+                        <span class="fixed" slot="t">YES</span>
+                        <span slot="f">
+                          <if-else condition="[[isNotFixed(info)]]">
+                            <span class="not-fixed" slot="t">NO</span>
+                            <span slot="f">
+                              [[info.fixed]]
+                              <template is="dom-repeat" items="[[fixedHelpText(info)]]">
+                                <iron-icon class="fixed-help" icon="icons:help-outline" title="[[item]]"></iron-icon>
+                              </template>
+                            </span>
+                          </if-else>
+                          <template is="dom-if" if="[[info.is_admin]]">
+                            <paper-icon-button icon="create" hidden$="[[!info.testcase.one_time_crasher_flag]]" toggles active="{{markFixedDialogOpened}}" title="Mark as fixed"></paper-icon-button>
+                          </template>
+                        </span>
+                      </if-else>
+                    </span>
+                  </if-else>
+                </td>
+              </tr>
+              <tr>
+                <td class="label">Created:</td>
+                <td class="value">
+                  <if-else condition="[[info.timestamp]]">
+                    <span slot="t">[[formatTime(info.timestamp)]]</span>
+                    <span slot="f">NA</span>
+                  </if-else>
+                </td>
+                <td class="label">
+                  <span class="help" title="Memory tool instrumentation used.">[[info.memory_tool_display_label]]:</span>
+                </td>
+                <td class="value">[[info.memory_tool_display_value]]</td>
+                <template is="dom-if" if="[[info.show_impact]]">
+                  <td class="label">
+                    <span class="help" title="Whether or not this crash impacts current beta and stable builds.">Impacts:</span>
+                  </td>
+                  <td class="value impacts">
+                    <if-else condition="[[info.testcase.is_impact_set_flag]]">
+                      <span slot="t">
+                        <if-else condition="[[info.impacts_production]]">
+                          <span slot="t">
+                            <template is="dom-if" if="[[info.testcase.impact_stable_version]]">
+                              <impact-button
+                                  release="Stable"
+                                  version="[[info.testcase.impact_stable_version]]"
+                                  likely="[[info.testcase.impact_stable_version_likely]]"></impact-button>
+                            </template>
+                            <template is="dom-if" if="[[info.testcase.impact_beta_version]]">
+                              <impact-button
+                                  release="Beta"
+                                  version="[[info.testcase.impact_beta_version]]"
+                                  likely="[[info.testcase.impact_beta_version_likely]]"></impact-button>
+                            </template>
+                          </span>
+                          <span slot="f">Head</span>
+                        </if-else>
+                      </span>
+                      <span slot="f">Pending</span>
+                    </if-else>
+                  </td>
+                </template>
+              </tr>
+              <tr>
+                <td class="label">Project:</td>
+                <td class="value">
+                  <if-else condition="[[info.testcase.project_name]]">
+                    <a slot="t" href$="/testcases?project=[[info.testcase.project_name]]">[[info.testcase.project_name]]</a>
+                    <span slot="f">---</span>
+                  </if-else>
+                </td>
+                <template is="dom-if" if="[[info.auto_delete_timestamp]]">
+                  <td class="label">
+                    <span class="help" title="Time of deletion, applicable to unreproducible testcases with no associated bug.">Deletion:</span>
+                  </td>
+                  <td class="value">
+                    Will be auto-deleted on [[formatDate(info.auto_delete_timestamp)]] if flaky crash no longer seen
+                  </td>
+                </template>
+                <template is="dom-if" if="[[info.auto_close_timestamp]]">
+                  <td class="label">
+                    <span class="help" title="Time of closure, applicable to unreproducible testcases with an associated bug.">Closure:</span>
+                  </td>
+                  <td class="value">
+                    Will be auto-closed on [[formatDate(info.auto_close_timestamp)]] if flaky crash no longer seen
+                  </td>
+                </template>
+                <template is="dom-if" if="[[shouldShowStatus(info)]]">
+                  <td class="label">Status:</td>
+                  <td class="value">
+                    <if-else condition="[[shouldShowDuplicateStatus(info)]]">
+                      <span slot="t">
+                        <a href="/testcase-detail/[[info.testcase.duplicate_of]]">Duplicate of testcase [[info.testcase.duplicate_of]]</a>
+                        <template is="dom-if" if="[[info.is_admin]]">
+                          <paper-icon-button icon="highlight-off" toggles active="{{removeDuplicateDialogOpened}}" title="Remove the duplicate status"></paper-icon-button>
+                        </template>
+                      </span>
+                      <span slot="f">
+                        <if-else condition="[[shouldShowPendingStatus(info)]]">
+                          <span slot="t">Pending, refreshes every 5 minutes.</span>
+                          <span slot="f">[[info.testcase.status]]</span>
+                        </if-else>
+                      </span>
+                    </if-else>
+                  </td>
+                </template>
+              </tr>
+              <template is="dom-if" if="[[info.testcase.group_id]]">
+                <tr>
+                  <td class="label">
+                    <span class="help" title="Click to see crashes with same and similar looking stacks (grouped by a 'Group ID').">Related:</span>
+                  </td>
+                  <td class="value">
+                    <a href="/testcases?q=group%3A[[info.testcase.group_id]]">Group [[info.testcase.group_id]]</a>
+                    <paper-icon-button icon="highlight-off" toggles hidden$="[[!info.is_admin]]" active="{{removeGroupDialogOpened}}" title="Remove this testcase from the group."></paper-icon-button>
+                  </td>
+                </tr>
+              </template>
+            </table>
+            <div class="artifacts">
+              <template is="dom-if" if="[[nonEmpty(info.testcase.gestures)]]">
+                <div class="gestures">
+                  <span class="title">
+                    <a title="Keyboard and mouse events that are additionally required to trigger this crash. Click to see additional help page." class="help" href="http://dev.chromium.org/Home/chromium-security/bugs/using-clusterfuzz#TOC-Interaction-gestures">Interaction Gestures:</a>
+                  </span>
+                  <span class="content">
+                    <template is="dom-if" if="[[info.testcase.video]]">
+                      <a href="/download/[[info.testcase.video]]"><iron-icon title="Download a video of the crash getting triggered." icon="icons:cloud-download"></iron-icon></a>
+                    </template>
+                    <small>[[serializeGestures(info)]]</small>
+                  </span>
+                </div>
+              </template>
+              <div>
+                <span class="title">Minimized Testcase:</span>
+                <span class="content">
+                  <if-else condition="[[shouldShowMinimizedKeys(info)]]">
+                    <if-else slot="t" condition="[[info.testcase.minimized_keys]]">
+                      <span slot="t">
+                        <template is="dom-if" if="[[shouldShowMinimizedKeysBlob(info)]]">
+                          <a href="/viewer?testcase_id=[[info.testcase.id]]&key=[[info.testcase.minimized_keys]]"><iron-icon icon="icons:visibility"></iron-icon></a>
+                        </template>
+                        <a href="/download/[[info.testcase.minimized_keys]]?testcase_id={{info.testcase.id}}"><iron-icon icon="icons:cloud-download"></iron-icon></a>
+                        <small>([[info.minimized_testcase_size]])</small>
+                      </span>
+                      <span slot="f">Pending</span>
+                    </if-else>
+                    <span slot="f">NA</span>
+                  </if-else>
+                </span>
+              </div>
+              <div>
+                <span class="title">Unminimized Testcase:</span>
+                <span class="content">
+                  <template is="dom-if" if="[[shouldShowUnminimizedKeysBlob(info)]]">
+                    <a href="/viewer?testcase_id=[[info.testcase.id]]&key=[[info.testcase.fuzzed_keys]]"><iron-icon icon="icons:visibility"></iron-icon></a>
+                  </template>
+                  <a href="/download/[[info.testcase.fuzzed_keys]]?testcase_id=[[info.testcase.id]]"><iron-icon icon="icons:cloud-download"></iron-icon></a>
+                  <template is="dom-if" if="[[info.original_testcase_size]]">
+                    <small>([[info.original_testcase_size]])</small>
+                  </template>
+                </span>
+              </div>
+
+              <div>
+                <span class="title help" title="Re-upload in case of trying with different params (e.g. different platform)">Re-upload testcase:</span>
+                <span class="content">
+                  <a href="[[computeUploadUrl(info)]]"><iron-icon icon="icons:backup"></iron-icon></a>
+                </span>
+              </div>
+
+              <template is="dom-if" if="[[info.metadata.original_file_path]]">
+                <div>
+                  <span class="title">Original File:</span>
+                  <span class="content">[[info.metadata.original_file_path]]</span>
+                </div>
+              </template>
+
+              <template is="dom-if" if="[[info.metadata.build_url]]">
+                <div>
+                  <span class="title">Build:</span>
+                  <span class="content">
+                    <a href="[[info.metadata.build_url]]"><iron-icon icon="icons:cloud-download"></iron-icon></a>
+                  </span>
+                </div>
+              </template>
+
+              <template is="dom-if" if="[[info.metadata.build_key]]">
+                <div>
+                  <span class="title">Build:</span>
+                  <span class="content"><a href="/download/[[info.metadata.build_key]]"><iron-icon icon="icons:cloud-download"></iron-icon></a></span>
+                </div>
+              </template>
+
+              <template is="dom-if" if="[[info.testcase.minidump_keys]]">
+                <div>
+                  <span class="title">Minidump:</span>
+                  <span class="content"><a href="/download/[[info.testcase.minidump_keys]]"><iron-icon icon="icons:cloud-download"></iron-icon></a></span>
+                </div>
+              </template>
+
+              <template is="dom-if" if="[[info.metadata.crash_id]]">
+                <div>
+                  <span class="title">Crash Report ID:</span>
+                  <span class="content"><a href="http://crash/browse?stbtiq=[[info.metadata.crash_id]]"><iron-icon icon="icons:search"></iron-icon></a></span>
+                </div>
+              </template>
+            </div>
+          </div>
+        </div>
+        <template is="dom-if" if="[[info.reproduction_help_url]]">
+          <div class="section">
+            <div class="title">Reproduce bug</div>
+            <div class="body padding">See <a href="[[info.reproduction_help_url]]">[[info.reproduction_help_url]]</a> for instructions to reproduce this bug locally.</div>
+          </div>
+        </template>
+        <template is="dom-if" if="[[shouldShowFindSimilarIssuesPanel(info)]]">
+          <find-similar-issues-panel info="[[info]]"></find-similar-issues-panel>
+        </template>
+        <template is="dom-if" if="[[isStatusReady(info)]]">
+          <div class="section">
+            <collapsable-revisions info="{{info}}"></collapsable-revisions>
+          </div>
+        </template>
+        <template is="dom-if" if="[[info.suspected_cls]]">
+          <suspected-cls info="[[info]]"></suspected-cls>
+        </template>
+        <div class="section">
+          <div class="title">
+            Crash Stacktrace
+            <paper-icon-button icon="refresh" toggles active="{{updateFromTrunkDialogOpened}}" title="Update last tested stacktrace using trunk build"></paper-icon-button>
+          </div>
+          <div class="body">
+            <template is="dom-if" if="[[!isFixed(info)]]">
+              <template is="dom-if" if="[[nonEmpty(info.last_tested_crash_stacktrace.lines)]]">
+                <crash-stacktrace
+                    stacktrace="[[info.last_tested_crash_stacktrace]]"
+                    name="Last Tested Stacktrace"></crash-stacktrace>
+              </template>
+            </template>
+            <template is="dom-if" if="[[nonEmpty(info.crash_stacktrace.lines)]]">
+              <crash-stacktrace
+                  stacktrace="[[info.crash_stacktrace]]"
+                  name="Original Stacktrace"></crash-stacktrace>
+            </template>
+            <template is="dom-if" if="[[nonEmpty(info.second_crash_stacktrace.lines)]]">
+              <crash-stacktrace
+                  stacktrace="[[info.second_crash_stacktrace]]"
+                  name="Second Stacktrace"></crash-stacktrace>
+            </template>
+          </div>
+        </div>
+        <crash-stats
+            end="[[info.stats.max_hour]]"
+            min-hour="[[info.stats.min_hour]]"
+            max-hour="[[info.stats.max_hour]]"
+            testcase-id="[[info.testcase.id]]"></crash-stats>
+
+        <template is="dom-if" if="[[info.metadata.gn_args]]">
+          <div class="section">
+            <div class="title">GN config (args.gn)</div>
+            <div class="body code">[[info.metadata.gn_args]]</div>
+          </div>
+        </template>
+
+        <div class="section">
+          <div class="title">Metadata</div>
+          <div class="body padding pre-line">[[info.footer]]</div>
+        </div>
+      </div>
+    </div>
+  </template>
+  <script>
+    Polymer({
+      is: 'testcase-detail',
+      properties: {
+        info:  Object,
+      },
+      shouldShowTools(info) {
+        return !info.external_user && info.testcase.status != 'Pending';
+      },
+      shouldShowIssueFunctions(info) {
+        return info.has_issue_tracker;
+      },
+      shouldShowFindSimilarIssuesPanel(info) {
+        return (this.shouldShowTools(info)
+                && this.shouldShowIssueFunctions(info)
+                && info.is_admin_or_not_oss_fuzz);
+      },
+      shouldShowStatus(info) {
+        return info.testcase.status != 'Processed' || info.needs_refresh;
+      },
+      shouldShowDuplicateStatus(info) {
+        return info.testcase.status == 'Duplicate';
+      },
+      shouldShowPendingStatus(info) {
+        return (info.testcase.status == 'Pending'
+                || info.testcase.status == 'Unreproducible, retrying'
+                || info.needs_refresh);
+      },
+      shouldShowMinimizedKeysBlob(info) {
+        return (!info.external_user
+                && ![2, 3].includes(info.testcase.archive_state)
+                && !info.testcase.binary_flag);
+      },
+      shouldShowUnminimizedKeysBlob(info) {
+        return (!info.external_user
+                && ![1, 3].includes(info.testcase.archive_state)
+                && !info.testcase.binary_flag);
+      },
+      isStatusReady(info) {
+        return (info.testcase.status == 'Processed'
+                || info.testcase.status == 'Duplicate');
+      },
+      isNA(value) {
+        return value == 'NA';
+      },
+      isFixed(info) {
+        return info.fixed == 'YES';
+      },
+      isNotFixed(info) {
+        return info.fixed == 'NO';
+      },
+      nonEmpty(value) {
+        return value && value.length > 0;
+      },
+      formatDate(secondsFromEpoch) {
+        let date = new Date(secondsFromEpoch * 1000);
+        return date.toLocaleDateString(
+            'en-US',
+            {weekday:'short', year:'numeric', month:'short', day:'numeric'});
+      },
+      formatTime(secondsFromEpoch) {
+        let date = new Date(secondsFromEpoch * 1000);
+        return date.toLocaleDateString(
+            'en-US',
+            {weekday:'short', year:'numeric', month:'short', day:'numeric',
+             hour:'numeric', minute:'numeric'});
+      },
+      formatTitleWithCheckmark(info) {
+        return this.formatTitle(info, this.isFixed(info));
+      },
+      formatTitle(info, includeFixedStatus) {
+        if (this.isStatusReady(info)) {
+          let title = info.testcase.crash_type;
+          if (info.crash_state_lines && info.crash_state_lines.length > 0) {
+            title += ' · ';
+            if (info.crash_state_lines[0].length > 60) {
+              title += info.crash_state_lines[0].substring(0, 57) + '...';
+            } else {
+              title += info.crash_state_lines[0];
+            }
+          }
+
+          if (includeFixedStatus) {
+            title = '\u2713 ' + title;
+          }
+
+          return title || '-';
+        } else {
+          return info.testcase.status;
+        }
+      },
+      getFuzzerName(info) {
+        return (info.testcase.overridden_fuzzer_name ||
+                info.testcase.fuzzer_name || '');
+      },
+      shouldShowMinimizedKeys(info) {
+        return this.isStatusReady(info) &&
+            !this.isNA(info.testcase.minimized_keys);
+      },
+      isUnknown(crashType) {
+        return crashType == 'UNKNOWN';
+      },
+      fixedHelpText(info) {
+        if (info.fixed == 'NA') {
+          return [
+              'We cannot determine if the crash is fixed. One of the ' +
+              'possible reasons is that the crash is unreproducible.'
+          ];
+        } else {
+          return [];
+        }
+      },
+      serializeGestures(info) {
+        if (info.testcase.gestures) {
+          return JSON.stringify(info.testcase.gestures);
+        } else {
+          return null;
+        }
+      },
+      computeUploadUrl(info) {
+        let target = null;
+        let jobLower = info.testcase.job_type.toLowerCase();
+        if (jobLower.includes('libfuzzer')) {
+          target = info.testcase.overridden_fuzzer_name.substring('libFuzzer_'.length);
+        } else if (jobLower.includes('afl')) {
+          target = info.testcase.overridden_fuzzer_name.substring('afl_'.length);
+        }
+        let q = window.query.compute(
+            {
+              testcaseId: info.testcase.id,
+              job: info.testcase.job_type,
+              target: target,
+              gestures: this.serializeGestures(info)
+            },
+            ['testcaseId', 'job', 'target', 'gestures']
+        )
+        return '/upload-testcase?upload=true&' + q;
+      }
+    });
+  </script>
+</dom-module>
+

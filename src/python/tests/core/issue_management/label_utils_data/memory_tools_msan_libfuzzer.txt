@@ -1,0 +1,101 @@
+python  /mnt/scratch0/clusterfuzz/bot/inputs/fuzzers/libfuzzer/libFuzzer/launcher.py /mnt/scratch0/clusterfuzz/bot/inputs/fuzzer-testcases/fuzz-3-skia_pathop_fuzzer skia_pathop_fuzzer /mnt/scratch0/clusterfuzz/bot/inputs/fuzzers/libfuzzer/libfuzzer_data/skia_pathop_fuzzer -max_len=512 -timeout=300
+
+[Crash Revision] r406546
+[Environment] MSAN_OPTIONS = print_stats=1:symbolize=1:coverage=0
+
+Command: [/mnt/scratch0/clusterfuzz/bot/builds/chromium-browser-libfuzzer_linux-release-msan_ae530a86793cd6b8b56ce9af9159ac101396e802/revisions/libfuzzer-linux-release-406546/skia_pathop_fuzzer, -max_len=512, -timeout=300, -rss_limit_mb=3000, -max_total_time=3250, -print_final_stats=1, /mnt/scratch0/clusterfuzz/bot/inputs/fuzzer-testcases-disk/temp/new, /mnt/scratch0/clusterfuzz/bot/inputs/fuzzers/libfuzzer/libfuzzer_data/skia_pathop_fuzzer]
+Bot: clusterfuzz-linux-pre-0506
+Time ran: 18.475050
+
+INFO: Seed: 3178887206
+Loading corpus: /mnt/scratch0/clusterfuzz/bot/inputs/fuzzers/libfuzzer/libfuzzer_data/skia_pathop_fuzzer
+Loaded 1024/4304 files from /mnt/scratch0/clusterfuzz/bot/inputs/fuzzers/libfuzzer/libfuzzer_data/skia_pathop_fuzzer
+Loaded 2048/4304 files from /mnt/scratch0/clusterfuzz/bot/inputs/fuzzers/libfuzzer/libfuzzer_data/skia_pathop_fuzzer
+Loaded 4096/4304 files from /mnt/scratch0/clusterfuzz/bot/inputs/fuzzers/libfuzzer/libfuzzer_data/skia_pathop_fuzzer
+#0  READ   units: 4304 exec/s: 0
+[0720/191116:INFO:SkPathOpsCubic.cpp(482)] !c
+[0720/191116:INFO:SkPathOpsCubic.cpp(482)] !c
+[0720/191116:INFO:SkPathOpsCubic.cpp(482)] !c
+[0720/191116:INFO:SkPathOpsCubic.cpp(482)] !c
+[0720/191116:INFO:SkPathOpsCubic.cpp(482)] !c
+[0720/191116:INFO:SkPathOpsCubic.cpp(482)] !c
+[0720/191116:INFO:SkPathOpsCubic.cpp(482)] !c
+[0720/191116:INFO:SkPathOpsCubic.cpp(482)] !c
+[0720/191116:INFO:SkPathOpsCubic.cpp(482)] !c
+[0720/191116:INFO:SkPathOpsCubic.cpp(482)] !c
+[0720/191117:INFO:SkPathOpsCubic.cpp(482)] !c
+[0720/191117:INFO:SkPathOpsCubic.cpp(482)] !c
+[0720/191117:INFO:SkPathOpsCubic.cpp(482)] !c
+[0720/191117:INFO:SkPathOpsCubic.cpp(482)] !c
+[0720/191117:INFO:SkPathOpsCubic.cpp(482)] !c
+[0720/191117:INFO:SkPathOpsCubic.cpp(482)] !c
+[0720/191117:INFO:SkPathOpsCubic.cpp(482)] !c
+[0720/191117:INFO:SkPathOpsCubic.cpp(482)] !c
+[0720/191117:INFO:SkPathOpsCubic.cpp(482)] !c
+[0720/191117:INFO:SkPathOpsCubic.cpp(482)] !c
+[0720/191117:INFO:SkPathOpsCubic.cpp(482)] !c
+[0720/191117:INFO:SkPathOpsCubic.cpp(482)] !c
+[0720/191117:INFO:SkPathOpsCubic.cpp(482)] !c
+[0720/191117:INFO:SkPathOpsCubic.cpp(482)] !c
+[0720/191117:INFO:SkPathOpsCubic.cpp(482)] !c
+[0720/191117:INFO:SkPathOpsCubic.cpp(482)] !c
+[0720/191117:INFO:SkPathOpsCubic.cpp(482)] !c
+[0720/191117:INFO:SkPathOpsCubic.cpp(482)] !c
+[0720/191117:INFO:SkPathOpsCubic.cpp(482)] !c
+[0720/191117:INFO:SkPathOpsCubic.cpp(482)] !c
+[0720/191117:INFO:SkPathOpsCubic.cpp(482)] !c
+[0720/191117:INFO:SkPathOpsCubic.cpp(482)] !c
+[0720/191117:INFO:SkPathOpsCubic.cpp(482)] !c
+[0720/191117:INFO:SkPathOpsCubic.cpp(482)] !c
+[0720/191117:INFO:SkPathOpsCubic.cpp(482)] !c
+[0720/191117:INFO:SkPathOpsCubic.cpp(482)] !c
+[0720/191117:INFO:SkPathOpsCubic.cpp(482)] !c
+[0720/191117:INFO:SkPathOpsCubic.cpp(482)] !c
+[0720/191117:INFO:SkPathOpsCubic.cpp(482)] !c
+[0720/191117:INFO:SkPathOpsCubic.cpp(482)] !c
+[0720/191131:INFO:SkPathOpsQuad.cpp(170)] !q
+[0720/191131:INFO:SkPathOpsQuad.cpp(170)] !q
+[0720/191131:INFO:SkPathOpsQuad.cpp(170)] !q
+[0720/191131:INFO:SkPathOpsQuad.cpp(170)] !q
+[0720/191131:INFO:SkPathOpsQuad.cpp(170)] !q
+[0720/191131:INFO:SkPathOpsQuad.cpp(170)] !q
+[0720/191131:INFO:SkPathOpsQuad.cpp(170)] !q
+[0720/191131:INFO:SkPathOpsQuad.cpp(170)] !q
+[0720/191132:INFO:SkPathOpsCubic.cpp(482)] !c
+[0720/191132:INFO:SkPathOpsCubic.cpp(482)] !c
+[0720/191132:INFO:SkPathOpsCubic.cpp(482)] !c
+==21542==WARNING: MemorySanitizer: use-of-uninitialized-value
+    #0 0x568a6a in SkDPoint::approximatelyEqual(SkDPoint const&) const third_party/skia/src/pathops/SkPathOpsPoint.h:151:41
+    #1 0x711040 in SkTSect<SkDConic, SkDConic>::binarySearchCoin(SkTSect<SkDConic, SkDConic>*, double, double, double*, double*) third_party/skia/src/pathops/SkPathOpsTSect.h:924:15
+    #2 0x70a7a7 in SkTSect<SkDConic, SkDConic>::extractCoincident(SkTSect<SkDConic, SkDConic>*, SkTSpan<SkDConic, SkDConic>*, SkTSpan<SkDConic, SkDConic>*) third_party/skia/src/pathops/SkPathOpsTSect.h:1144:22
+    #3 0x6f6f72 in SkTSect<SkDConic, SkDConic>::coincidentCheck(SkTSect<SkDConic, SkDConic>*) third_party/skia/src/pathops/SkPathOpsTSect.h:970:31
+    #4 0x6698c7 in SkTSect<SkDConic, SkDConic>::BinarySearch(SkTSect<SkDConic, SkDConic>*, SkTSect<SkDConic, SkDConic>*, SkIntersections*) third_party/skia/src/pathops/SkPathOpsTSect.h:2094:20
+    #5 0x667256 in SkIntersections::intersect(SkDConic const&, SkDConic const&) third_party/skia/src/pathops/SkPathOpsTSect.cpp:27:5
+    #6 0x5cc103 in AddIntersectTs(SkOpContour*, SkOpContour*, SkOpCoincidence*) third_party/skia/src/pathops/SkAddIntersections.cpp:446:38
+    #7 0x58e3ed in OpDebug(SkPath const&, SkPath const&, SkPathOp, SkPath*) third_party/skia/src/pathops/SkPathOpsOp.cpp:305:16
+    #8 0x52ae77 in SkOpBuilder::resolve(SkPath*) third_party/skia/src/pathops/SkOpBuilder.cpp:147:18
+    #9 0x48ec7b in LLVMFuzzerTestOneInput testing/libfuzzer/fuzzers/skia_pathop_fuzzer.cc:27:11
+    #10 0x4b0f01 in fuzzer::Fuzzer::ExecuteCallback(unsigned char const*, unsigned long) third_party/libFuzzer/src/FuzzerLoop.cpp:488:13
+    #11 0x4ade0a in fuzzer::Fuzzer::RunOne(unsigned char const*, unsigned long) third_party/libFuzzer/src/FuzzerLoop.cpp:444:3
+    #12 0x4af5a1 in RunOne third_party/libFuzzer/src/FuzzerInternal.h:429:39
+    #13 0x4af5a1 in fuzzer::Fuzzer::ShuffleAndMinimize() third_party/libFuzzer/src/FuzzerLoop.cpp:402
+    #14 0x49665c in fuzzer::FuzzerDriver(int*, char***, int (*)(unsigned char const*, unsigned long)) third_party/libFuzzer/src/FuzzerDriver.cpp:412:5
+    #15 0x4cb4d0 in main third_party/libFuzzer/src/FuzzerMain.cpp:21:10
+    #16 0x7f8292561f44 in __libc_start_main /build/eglibc-oGUzwX/eglibc-2.19/csu/libc-start.c:287
+    #17 0x421e5c in _start (/mnt/scratch0/clusterfuzz/bot/builds/chromium-browser-libfuzzer_linux-release-msan_ae530a86793cd6b8b56ce9af9159ac101396e802/revisions/libfuzzer-linux-release-406546/skia_pathop_fuzzer+0x421e5c)
+
+  Uninitialized value was created by an allocation of oppPt in the stack frame of function _ZN7SkTSectI8SkDConicS0_E16binarySearchCoinEPS1_ddPdS3_
+    #0 0x7101c0 in SkTSect<SkDConic, SkDConic>::binarySearchCoin(SkTSect<SkDConic, SkDConic>*, double, double, double*, double*) third_party/skia/src/pathops/SkPathOpsTSect.h:878
+
+SUMMARY: MemorySanitizer: use-of-uninitialized-value third_party/skia/src/pathops/SkPathOpsPoint.h:151:41 in SkDPoint::approximatelyEqual(SkDPoint const&) const
+Unique heap origins: 2192
+Stack depot allocated bytes: 293176
+Unique origin histories: 3155
+History depot allocated bytes: 75720
+Exiting
+artifact_prefix=./; Test unit written to ./crash-ee9eb3b0f2bdbcc9ba0fcbb79917f9fb7dc738d2
+stat::number_of_executed_units: 2029
+stat::average_exec_per_sec:     112
+stat::new_units_added:          0
+stat::slowest_unit_time_sec:    0
+stat::peak_rss_mb:              74

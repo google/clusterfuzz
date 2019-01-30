@@ -1,0 +1,59 @@
+[18334:18334:0303/172027:ERROR:gl_implementation_osmesa.cc(22)] Failed to load /mnt/scratch0/clusterfuzz/bot/builds/linux_msan_chrome_ipc/custom/libosmesa.so: /mnt/scratch0/clusterfuzz/bot/builds/linux_msan_chrome_ipc/custom/libosmesa.so: cannot open shared object file: No such file or directory
+[18334:18334:0303/172027:ERROR:gpu_child_thread.cc(161)] Exiting GPU process due to errors during initialization
+[18306:18306:0303/172030:ERROR:extension_downloader.cc(695)] Invalid URL:  for extension nmmhkkegccagdldgiimedpiccmgmieda
+Uninitialized bytes in __interceptor_write at offset 24 inside [0x60c000059e20, 28)
+==18306== WARNING: MemorySanitizer: use-of-uninitialized-value
+    #0 0x7fcf2c332fe2 in content::BrowserMessageFilter::Send(IPC::Message*) content/public/browser/browser_message_filter.cc:144:12
+    #1 0x7fcf1efb30a4 in ChromeNetBenchmarkingMessageFilter::OnMessageReceived(IPC::Message const&) ipc/ipc_message_utils.h:904:5
+    #2 0x7fcf2c334dc1 in content::BrowserMessageFilter::Internal::OnMessageReceived(IPC::Message const&) content/public/browser/browser_message_filter.cc:89:15
+    #3 0x7fcf227e6cb1 in IPC::MessageFilterRouter::TryFilters(IPC::Message const&) ipc/message_filter_router.cc:18:9
+    #4 0x7fcf227b32ab in IPC::ChannelProxy::Context::TryFilters(IPC::Message const&) ipc/ipc_channel_proxy.cc:75:7
+    #5 0x7fcf227b374c in IPC::ChannelProxy::Context::OnMessageReceived(IPC::Message const&) ipc/ipc_channel_proxy.cc:92:8
+    #6 0x7fcf227c0431 in IPC::internal::ChannelReader::DispatchInputData(char const*, int) ipc/ipc_channel_reader.cc:96:9
+    #7 0x7fcf227bf95b in IPC::internal::ChannelReader::ProcessIncomingMessages() ipc/ipc_channel_reader.cc:32:10
+    #8 0x7fcf227a4f4e in IPC::ChannelPosix::OnFileCanReadWithoutBlocking(int) ipc/ipc_channel_posix.cc:708:10
+
+  Uninitialized value was stored to memory at
+    #0 0x7fcf20a113d4 in void Pickle::WriteBytesStatic<4ul>(void const*) base/pickle.cc:368:3
+    #1 0x7fcf1efb303a in ChromeNetBenchmarkingMessageFilter::OnMessageReceived(IPC::Message const&) base/pickle.h:293:5
+    #2 0x7fcf2c334dc1 in content::BrowserMessageFilter::Internal::OnMessageReceived(IPC::Message const&) content/public/browser/browser_message_filter.cc:89:15
+    #3 0x7fcf227e6cb1 in IPC::MessageFilterRouter::TryFilters(IPC::Message const&) ipc/message_filter_router.cc:18:9
+    #4 0x7fcf227b32ab in IPC::ChannelProxy::Context::TryFilters(IPC::Message const&) ipc/ipc_channel_proxy.cc:75:7
+    #5 0x7fcf227b374c in IPC::ChannelProxy::Context::OnMessageReceived(IPC::Message const&) ipc/ipc_channel_proxy.cc:92:8
+    #6 0x7fcf227c0431 in IPC::internal::ChannelReader::DispatchInputData(char const*, int) ipc/ipc_channel_reader.cc:96:9
+    #7 0x7fcf227bf95b in IPC::internal::ChannelReader::ProcessIncomingMessages() ipc/ipc_channel_reader.cc:32:10
+    #8 0x7fcf227a4f4e in IPC::ChannelPosix::OnFileCanReadWithoutBlocking(int) ipc/ipc_channel_posix.cc:708:10
+    #9 0x7fcf2093cafc in base::MessagePumpLibevent::OnLibeventNotification(int, short, void*) base/message_loop/message_pump_libevent.cc:99:3
+    #10 0x7fcf20ba2548 in event_base_loop third_party/libevent/event.c:373:4
+    #11 0x7fcf2093dc01 in base::MessagePumpLibevent::Run(base::MessagePump::Delegate*) base/message_loop/message_pump_libevent.cc:236:5
+    #12 0x7fcf20a2deb6 in base::RunLoop::Run() base/run_loop.cc:55:3
+    #13 0x7fcf209d7164 in base::MessageLoop::Run() base/message_loop/message_loop.cc:307:3
+    #14 0x7fcf2c3e507a in content::BrowserThreadImpl::IOThreadRun(base::MessageLoop*) content/browser/browser_thread_impl.cc:218:3
+    #15 0x7fcf2c3e5576 in content::BrowserThreadImpl::Run(base::MessageLoop*) content/browser/browser_thread_impl.cc:253:14
+    #16 0x7fcf20adfddf in base::Thread::ThreadMain() base/threading/thread.cc:228:5
+    #17 0x7fcf20aceb15 in base::(anonymous namespace)::ThreadFunc(void*) base/threading/platform_thread_posix.cc:80:3
+    #18 0x7fcf15e1e181 in start_thread /build/buildd/eglibc-2.19/nptl/pthread_create.c:312
+
+  Uninitialized value was stored to memory at
+    #0 0x7fcf1efb3186 in ChromeNetBenchmarkingMessageFilter::OnMessageReceived(IPC::Message const&) ipc/ipc_message_utils.h:145:5
+    #1 0x7fcf2c334dc1 in content::BrowserMessageFilter::Internal::OnMessageReceived(IPC::Message const&) content/public/browser/browser_message_filter.cc:89:15
+    #2 0x7fcf227e6cb1 in IPC::MessageFilterRouter::TryFilters(IPC::Message const&) ipc/message_filter_router.cc:18:9
+    #3 0x7fcf227b32ab in IPC::ChannelProxy::Context::TryFilters(IPC::Message const&) ipc/ipc_channel_proxy.cc:75:7
+    #4 0x7fcf227b374c in IPC::ChannelProxy::Context::OnMessageReceived(IPC::Message const&) ipc/ipc_channel_proxy.cc:92:8
+    #5 0x7fcf227c0431 in IPC::internal::ChannelReader::DispatchInputData(char const*, int) ipc/ipc_channel_reader.cc:96:9
+    #6 0x7fcf227bf95b in IPC::internal::ChannelReader::ProcessIncomingMessages() ipc/ipc_channel_reader.cc:32:10
+    #7 0x7fcf227a4f4e in IPC::ChannelPosix::OnFileCanReadWithoutBlocking(int) ipc/ipc_channel_posix.cc:708:10
+    #8 0x7fcf2093cafc in base::MessagePumpLibevent::OnLibeventNotification(int, short, void*) base/message_loop/message_pump_libevent.cc:99:3
+    #9 0x7fcf20ba2548 in event_base_loop third_party/libevent/event.c:373:4
+    #10 0x7fcf2093dc01 in base::MessagePumpLibevent::Run(base::MessagePump::Delegate*) base/message_loop/message_pump_libevent.cc:236:5
+    #11 0x7fcf20a2deb6 in base::RunLoop::Run() base/run_loop.cc:55:3
+    #12 0x7fcf209d7164 in base::MessageLoop::Run() base/message_loop/message_loop.cc:307:3
+    #13 0x7fcf2c3e507a in content::BrowserThreadImpl::IOThreadRun(base::MessageLoop*) content/browser/browser_thread_impl.cc:218:3
+    #14 0x7fcf2c3e5576 in content::BrowserThreadImpl::Run(base::MessageLoop*) content/browser/browser_thread_impl.cc:253:14
+    #15 0x7fcf20adfddf in base::Thread::ThreadMain() base/threading/thread.cc:228:5
+    #16 0x7fcf20aceb15 in base::(anonymous namespace)::ThreadFunc(void*) base/threading/platform_thread_posix.cc:80:3
+    #17 0x7fcf15e1e181 in start_thread /build/buildd/eglibc-2.19/nptl/pthread_create.c:312
+
+  invalid origin id(0)
+SUMMARY: MemorySanitizer: use-of-uninitialized-value ??:0 ??
+Exiting

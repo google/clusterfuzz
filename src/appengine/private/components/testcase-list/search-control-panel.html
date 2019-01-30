@@ -1,0 +1,352 @@
+<!--
+  Copyright 2018 Google LLC
+
+  Licensed under the Apache License, Version 2.0 (the "License");
+  you may not use this file except in compliance with the License.
+  You may obtain a copy of the License at
+
+       http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+-->
+<link rel="import" href="../../bower_components/polymer/polymer.html">
+<link rel="import" href="../../bower_components/iron-icon/iron-icon.html">
+<link rel="import" href="../../bower_components/paper-button/paper-button.html">
+<link rel="import" href="../../bower_components/paper-input/paper-input.html">
+<link rel="import" href="../../bower_components/paper-dropdown-menu/paper-dropdown-menu.html">
+<link rel="import" href="../../bower_components/paper-listbox/paper-listbox.html">
+<link rel="import" href="../../bower_components/paper-item/paper-item.html">
+<link rel="import" href="../common/render-either/render-either.html">
+
+<dom-module id="search-control-panel">
+  <link rel="import" href="../technology/technology.css" type="css">
+  <template>
+    <style>
+      :host {
+        display: block;
+      }
+
+      table {
+        width: 100%;
+        margin-bottom: 10px;
+      }
+
+      table td.filters {
+        text-align: right;
+      }
+
+      paper-dropdown-menu {
+        width: 60px;
+
+        --paper-input-container-label: {
+          color: #666;
+          font-size: 18px;
+        };
+        --paper-input-container-input: {
+          color: #888;
+          font-size: 14px;
+        };
+      }
+
+      #jobs, #fuzzers {
+        width: 160px;
+      }
+
+      #reproducibleOptions {
+        width: 90px;
+      }
+
+      #issue {
+        width: 110px;
+      }
+
+      #status {
+        width: 125px;
+      }
+
+      #impactOptions {
+        width: 80px;
+      }
+
+      :host #projects {
+        width: 100px;
+      }
+
+      :host [hidden] {
+        display: none !important;
+      }
+
+      :host #keyword {
+        display: block;
+        width: 400px;
+      }
+
+      :host #keyword iron-icon[slot="prefix"] {
+        margin-right: 5px;
+        color: #888;
+        height: 22px;
+        width: 22px;
+      }
+
+      :host #keyword iron-icon[slot="suffix"] {
+        color: #888;
+        height: 16px;
+        width: 16px;
+      }
+
+      :host .permission-remark {
+        font-size: 12px;
+        color: #888;
+      }
+    </style>
+    <table>
+      <tr>
+        <td>
+          <paper-input
+              id="keyword"
+              autofocus
+              type="text"
+              value="{{params.q}}"
+              focused="{{keywordFocused}}"
+              on-keyup="queueSubmit">
+            <iron-icon icon="icons:search" slot="prefix"></iron-icon>
+            <iron-icon icon="icons:help-outline" title="Search with keywords here, e.g. 'MyFunction platform:windows' or 'issue:12345'." slot="suffix"></iron-icon>
+          </paper-input>
+        </td>
+        <td class="filters">
+          <template is="dom-if" if="[[shouldShowProjects(fieldValues)]]">
+            <paper-dropdown-menu
+                id="projects"
+                no-animations="true"
+                label="Project"
+                noink>
+              <paper-listbox
+                  slot="dropdown-content"
+                  selected="{{params.project}}"
+                  attr-for-selected="value">
+                <paper-item on-click="submit" value="">All</paper-item>
+                <template is="dom-repeat" items="[[fieldValues.projects]]">
+                  <paper-item on-click="submit" value="[[sanitise(item)]]">[[item]]</paper-item>
+                </template>
+              </paper-listbox>
+            </paper-dropdown-menu>
+          </template>
+          <paper-dropdown-menu
+              id="fuzzers"
+              no-animations="true"
+              label="Fuzzer"
+              noink>
+            <paper-listbox
+                slot="dropdown-content"
+                selected="{{params.fuzzer}}"
+                attr-for-selected="value">
+              <paper-item on-click="submit" value="">All</paper-item>
+              <template is="dom-repeat" items="[[fieldValues.fuzzers]]">
+                <paper-item on-click="submit" value="[[sanitise(item)]]">[[item]]</paper-item>
+              </template>
+            </paper-listbox>
+          </paper-dropdown-menu>
+          <paper-dropdown-menu
+              id="jobs"
+              no-animations="true"
+              label="Job"
+              noink>
+            <paper-listbox
+                slot="dropdown-content"
+                selected="{{params.job}}"
+                attr-for-selected="value">
+              <paper-item on-click="submit" value="">All</paper-item>
+              <template is="dom-repeat" items="[[fieldValues.jobs]]">
+                <paper-item on-click="submit" value="[[sanitise(item)]]">[[item]]</paper-item>
+              </template>
+            </paper-listbox>
+          </paper-dropdown-menu>
+          <template is="dom-if" if="[[fieldValues.shouldShowImpact]]">
+            <paper-dropdown-menu
+                id="impactOptions"
+                no-animations="true"
+                label="Impact"
+                noink>
+              <paper-listbox
+                  slot="dropdown-content"
+                  selected="{{params.impact}}"
+                  attr-for-selected="value">
+                <paper-item on-click="submit" value="">All</paper-item>
+                <paper-item on-click="submit" value="stable">Stable</paper-item>
+                <paper-item on-click="submit" value="beta">Beta</paper-item>
+                <paper-item on-click="submit" value="head">Head</paper-item>
+              </paper-listbox>
+            </paper-dropdown-menu>
+          </template>
+          <paper-dropdown-menu
+              id="reproducibleOptions"
+              no-animations="true"
+              label="Reproducible"
+              noink>
+            <paper-listbox
+                slot="dropdown-content"
+                selected="{{params.reproducible}}"
+                attr-for-selected="value">
+              <paper-item on-click="submit" value="">All</paper-item>
+              <paper-item on-click="submit" value="yes">Yes</paper-item>
+              <paper-item on-click="submit" value="no">No</paper-item>
+            </paper-listbox>
+          </paper-dropdown-menu>
+          <paper-dropdown-menu
+              id="securityOptions"
+              no-animations="true"
+              label="Security"
+              noink>
+            <paper-listbox
+                slot="dropdown-content"
+                selected="{{params.security}}"
+                attr-for-selected="value">
+              <paper-item on-click="submit" value="">All</paper-item>
+              <paper-item on-click="submit" value="yes">Yes</paper-item>
+              <paper-item on-click="submit" value="no">No</paper-item>
+            </paper-listbox>
+          </paper-dropdown-menu>
+          <paper-dropdown-menu
+              id="issue"
+              no-animations="true"
+              label="Issue"
+              noink>
+            <paper-listbox
+                slot="dropdown-content"
+                selected="{{params.issue}}"
+                attr-for-selected="value">
+              <paper-item on-click="submit" value="">All</paper-item>
+              <paper-item on-click="submit" value="yes">Yes (has bug)</paper-item>
+              <paper-item on-click="submit" value="no">No (no bug)</paper-item>
+            </paper-listbox>
+          </paper-dropdown-menu>
+          <paper-dropdown-menu
+              id="status"
+              no-animations="true"
+              label="Status"
+              noink>
+            <paper-listbox
+                slot="dropdown-content"
+                selected="{{params.open}}"
+                attr-for-selected="value">
+              <paper-item on-click="submit" value="">All</paper-item>
+              <paper-item on-click="submit" value="yes">Open (not fixed)</paper-item>
+              <paper-item on-click="submit" value="no">Closed (fixed)</paper-item>
+            </paper-listbox>
+          </paper-dropdown-menu>
+        </td>
+      </tr>
+      <tr>
+        <td colspan="2">
+          <small class="permission-remark">[[formatPermissionText(params.permissions)]]</small>
+        </td>
+      </tr>
+    </table>
+  </template>
+  <script>
+    class SearchControlPanel extends Polymer.Element {
+      static get is() { return 'search-control-panel'; }
+
+      static get properties() {
+        return {
+          fieldValues: Object,
+          params: {
+            type: Object,
+            value: () => { return {}; },
+            notify: true
+          },
+          submitId: {
+            type: Number,
+            value: 0
+          },
+          keywordFocused: Boolean
+        };
+      }
+
+      sanitise(value) {
+        if (value) {
+          return value.trim();
+        } else {
+          return '';
+        }
+      }
+
+      queueSubmit(ev) {
+        let self = this;
+        let thisId = ++self.submitId;
+
+        if (ev.keyCode == 13) {
+          self.submit();
+        } else {
+          setTimeout(
+              () => {
+                if (self.submitId == thisId) {
+                  self.submit();
+                }
+              },
+              600
+          );
+        }
+      }
+
+      formatPermissionText(permissions) {
+        if (!permissions) {
+          return '';
+        }
+
+        let filters = [];
+
+        if (permissions.everything) {
+          let securityInclusion = '(excluding security)';
+          if (permissions.isPrivileged) {
+            securityInclusion = '(including security)';
+          }
+
+          filters.push(`everything ${securityInclusion}`);
+        }
+
+        if (permissions.jobs && permissions.jobs.length > 0) {
+          filters.push(
+              `jobs:${permissions.jobs.join(',')} (including security)`);
+        }
+
+        if (permissions.fuzzers
+            && permissions.fuzzers.length > 0) {
+          filters.push(
+              `fuzzers:${permissions.fuzzers.join(',')}` +
+              ' (including security)');
+        }
+
+        if (filters.length > 0) {
+          return `You are allowed to see ${filters.join(' or ')}`;
+        } else {
+          return '';
+        }
+      }
+
+      submit() {
+        setTimeout(() => {
+          this.dispatchEvent(new CustomEvent('search-button-tapped'));
+        }, 0);
+      }
+
+      focus() {
+        if (!this.keywordFocused) {
+          this.$.keyword.focus();
+        }
+      }
+
+      shouldShowProjects(fieldValues) {
+        return fieldValues && fieldValues.projects &&
+            fieldValues.projects.length > 1;
+      }
+    }
+
+    customElements.define(SearchControlPanel.is, SearchControlPanel);
+  </script>
+</dom-module>
+

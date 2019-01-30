@@ -1,0 +1,125 @@
+[1:1:0606/183214.734760:FATAL:SVGElement.cpp(443)] Security DCHECK failed: !root_parent->IsSVGElement() || !ToSVGElement(root_parent) ->elements_with_relative_lengths_.Contains(this).
+
+ASAN:DEADLYSIGNAL
+=================================================================
+==1==ERROR: AddressSanitizer: ABRT on unknown address 0x03e900000001 (pc 0x7f2500b1dc37 bp 0x7fff03998210 sp 0x7fff039980d8 T0)
+SCARINESS: 10 (signal)
+    #0 0x7f2500b1dc36 in gsignal /build/eglibc-MjiXCM/eglibc-2.19/nptl/sysdeps/unix/sysv/linux/raise.c:56
+    #1 0x7f250ddfd0e2 in logging::LogMessage::~LogMessage() base/logging.cc:783:7
+    #2 0x7f2517714f19 in blink::SVGElement::RemovedFrom(blink::ContainerNode*) third_party/WebKit/Source/core/svg/SVGElement.cpp:441:3
+    #3 0x7f251c4b5cda in blink::ContainerNode::NotifyNodeRemoved(blink::Node&) third_party/WebKit/Source/core/dom/ContainerNode.cpp:842:10
+    #4 0x7f251c4b627b in blink::ContainerNode::RemoveChildren(blink::SubtreeModificationAction) third_party/WebKit/Source/core/dom/ContainerNode.cpp:721:9
+    #5 0x7f251cb22de9 in blink::ReplaceChildrenWithFragment(blink::ContainerNode*, blink::DocumentFragment*, blink::ExceptionState&) third_party/WebKit/Source/core/editing/serializers/Serialization.cpp:706:19
+    #6 0x7f251c5feba8 in blink::Element::setInnerHTML(WTF::String const&, blink::ExceptionState&) third_party/WebKit/Source/core/dom/Element.cpp:2914:5
+    #7 0x7f251b5dc3cf in innerHTMLAttributeSetter out/Release/gen/blink/bindings/core/v8/V8Element.cpp:337:9
+    #8 0x7f251b5dc3cf in blink::V8Element::innerHTMLAttributeSetterCallback(v8::FunctionCallbackInfo<v8::Value> const&) out/Release/gen/blink/bindings/core/v8/V8Element.cpp:2139
+    #8 0x7f24cf184642  (<unknown module>)
+    #9 0x7f24cf0eef8a  (<unknown module>)
+    #10 0x7f24cf0bb8b4  (<unknown module>)
+    #11 0x7f24cf005bda  (<unknown module>)
+    #12 0x7f24cf0bac78  (<unknown module>)
+    #13 0x7f24cf00410c  (<unknown module>)
+    #9 0x7f250b6839cf in v8::internal::(anonymous namespace)::Invoke(v8::internal::Isolate*, bool, v8::internal::Handle<v8::internal::Object>, v8::internal::Handle<v8::internal::Object>, int, v8::internal::Handle<v8::internal::Object>*, v8::internal::Handle<v8::internal::Object>, v8::internal::Execution::MessageHandling) v8/src/execution.cc:145:13
+    #10 0x7f250b683167 in CallInternal v8/src/execution.cc:181:10
+    #11 0x7f250b683167 in v8::internal::Execution::Call(v8::internal::Isolate*, v8::internal::Handle<v8::internal::Object>, v8::internal::Handle<v8::internal::Object>, int, v8::internal::Handle<v8::internal::Object>*) v8/src/execution.cc:191
+    #12 0x7f250a97e944 in v8::Function::Call(v8::Local<v8::Context>, v8::Local<v8::Value>, int, v8::Local<v8::Value>*) v8/src/api.cc:5255:7
+    #13 0x7f251b462389 in blink::V8ScriptRunner::CallFunction(v8::Local<v8::Function>, blink::ExecutionContext*, v8::Local<v8::Value>, int, v8::Local<v8::Value>*, v8::Isolate*) third_party/WebKit/Source/bindings/core/v8/V8ScriptRunner.cpp:679:17
+    #14 0x7f251b4db5dc in blink::V8EventListener::CallListenerFunction(blink::ScriptState*, v8::Local<v8::Value>, blink::Event*) third_party/WebKit/Source/bindings/core/v8/V8EventListener.cpp:115:8
+    #15 0x7f251b4d738c in blink::V8AbstractEventListener::InvokeEventHandler(blink::ScriptState*, blink::Event*, v8::Local<v8::Value>) third_party/WebKit/Source/bindings/core/v8/V8AbstractEventListener.cpp:146:20
+    #16 0x7f251b4d6df1 in blink::V8AbstractEventListener::HandleEvent(blink::ScriptState*, blink::Event*) third_party/WebKit/Source/bindings/core/v8/V8AbstractEventListener.cpp:104:3
+    #17 0x7f251b4d6a45 in blink::V8AbstractEventListener::handleEvent(blink::ExecutionContext*, blink::Event*) third_party/WebKit/Source/bindings/core/v8/V8AbstractEventListener.cpp:92:3
+    #18 0x7f25165eaf9e in blink::EventTarget::FireEventListeners(blink::Event*, blink::EventTargetData*, blink::HeapVector<blink::RegisteredEventListener, 1ul>&) third_party/WebKit/Source/core/events/EventTarget.cpp:751:15
+    #19 0x7f25165e8b66 in blink::EventTarget::FireEventListeners(blink::Event*) third_party/WebKit/Source/core/events/EventTarget.cpp:611:29
+    #20 0x7f251c6dc2a3 in blink::Node::HandleLocalEvents(blink::Event&) third_party/WebKit/Source/core/dom/Node.cpp:2172:3
+    #21 0x7f25165f5b8b in blink::NodeEventContext::HandleLocalEvents(blink::Event&) const third_party/WebKit/Source/core/events/NodeEventContext.cpp:63:10
+    #22 0x7f25165c591f in blink::EventDispatcher::DispatchEventAtBubbling() third_party/WebKit/Source/core/events/EventDispatcher.cpp:221:19
+    #23 0x7f25165c43c0 in blink::EventDispatcher::Dispatch() third_party/WebKit/Source/core/events/EventDispatcher.cpp:156:9
+    #24 0x7f25165c25e5 in blink::EventDispatcher::DispatchEvent(blink::Node&, blink::EventDispatchMediator*) third_party/WebKit/Source/core/events/EventDispatcher.cpp:59:20
+    #25 0x7f25165f642d in DispatchEvent third_party/WebKit/Source/core/events/ScopedEventQueue.cpp:77:3
+    #26 0x7f25165f642d in blink::ScopedEventQueue::EnqueueEventDispatchMediator(blink::EventDispatchMediator*) third_party/WebKit/Source/core/events/ScopedEventQueue.cpp:63
+    #27 0x7f251c6dc8d1 in DispatchScopedEvent third_party/WebKit/Source/core/dom/Node.cpp:2177:3
+    #28 0x7f251c6dc8d1 in blink::Node::DispatchSubtreeModifiedEvent() third_party/WebKit/Source/core/dom/Node.cpp:2195
+    #29 0x7f251c4aff38 in blink::ContainerNode::DidInsertNodeVector(blink::HeapVector<blink::Member<blink::Node>, 11ul> const&, blink::Node*, blink::HeapVector<blink::Member<blink::Node>, 11ul> const&) third_party/WebKit/Source/core/dom/ContainerNode.cpp:273:3
+    #30 0x7f251c4b2de2 in blink::ContainerNode::ReplaceChild(blink::Node*, blink::Node*, blink::ExceptionState&) third_party/WebKit/Source/core/dom/ContainerNode.cpp:523:3
+    #31 0x7f251c6bd972 in blink::Node::replaceChild(blink::Node*, blink::Node*, blink::ExceptionState&) third_party/WebKit/Source/core/dom/Node.cpp:432:35
+    #32 0x7f251b62cf14 in replaceChildMethodForMainWorld out/Release/gen/blink/bindings/core/v8/V8Node.cpp:651:24
+    #33 0x7f251b62cf14 in blink::V8Node::replaceChildMethodCallbackForMainWorld(v8::FunctionCallbackInfo<v8::Value> const&) out/Release/gen/blink/bindings/core/v8/V8Node.cpp:871
+    #34 0x7f250a916a70 in v8::internal::FunctionCallbackArguments::Call(void (*)(v8::FunctionCallbackInfo<v8::Value> const&)) v8/src/api-arguments.cc:25:3
+    #35 0x7f250ab33ae5 in v8::internal::MaybeHandle<v8::internal::Object> v8::internal::(anonymous namespace)::HandleApiCallHelper<false>(v8::internal::Isolate*, v8::internal::Handle<v8::internal::HeapObject>, v8::internal::Handle<v8::internal::HeapObject>, v8::internal::Handle<v8::internal::FunctionTemplateInfo>, v8::internal::Handle<v8::internal::Object>, v8::internal::BuiltinArguments) v8/src/builtins/builtins-api.cc:112:36
+    #36 0x7f250ab30cc2 in v8::internal::Builtin_Impl_HandleApiCall(v8::internal::BuiltinArguments, v8::internal::Isolate*) v8/src/builtins/builtins-api.cc:142:5
+    #38 0x7f24cf00463c  (<unknown module>)
+    #39 0x7f24cf0f4e09  (<unknown module>)
+    #40 0x7f24cf0bb8b4  (<unknown module>)
+    #41 0x7f24cf005bda  (<unknown module>)
+    #42 0x7f24cf0bac78  (<unknown module>)
+    #43 0x7f24cf00410c  (<unknown module>)
+    #37 0x7f250b6839cf in v8::internal::(anonymous namespace)::Invoke(v8::internal::Isolate*, bool, v8::internal::Handle<v8::internal::Object>, v8::internal::Handle<v8::internal::Object>, int, v8::internal::Handle<v8::internal::Object>*, v8::internal::Handle<v8::internal::Object>, v8::internal::Execution::MessageHandling) v8/src/execution.cc:145:13
+    #38 0x7f250b683167 in CallInternal v8/src/execution.cc:181:10
+    #39 0x7f250b683167 in v8::internal::Execution::Call(v8::internal::Isolate*, v8::internal::Handle<v8::internal::Object>, v8::internal::Handle<v8::internal::Object>, int, v8::internal::Handle<v8::internal::Object>*) v8/src/execution.cc:191
+    #40 0x7f250a97e944 in v8::Function::Call(v8::Local<v8::Context>, v8::Local<v8::Value>, int, v8::Local<v8::Value>*) v8/src/api.cc:5255:7
+    #41 0x7f251b462389 in blink::V8ScriptRunner::CallFunction(v8::Local<v8::Function>, blink::ExecutionContext*, v8::Local<v8::Value>, int, v8::Local<v8::Value>*, v8::Isolate*) third_party/WebKit/Source/bindings/core/v8/V8ScriptRunner.cpp:679:17
+    #42 0x7f251b4db5dc in blink::V8EventListener::CallListenerFunction(blink::ScriptState*, v8::Local<v8::Value>, blink::Event*) third_party/WebKit/Source/bindings/core/v8/V8EventListener.cpp:115:8
+    #43 0x7f251b4d738c in blink::V8AbstractEventListener::InvokeEventHandler(blink::ScriptState*, blink::Event*, v8::Local<v8::Value>) third_party/WebKit/Source/bindings/core/v8/V8AbstractEventListener.cpp:146:20
+    #44 0x7f251b4d6df1 in blink::V8AbstractEventListener::HandleEvent(blink::ScriptState*, blink::Event*) third_party/WebKit/Source/bindings/core/v8/V8AbstractEventListener.cpp:104:3
+    #45 0x7f251b4d6a45 in blink::V8AbstractEventListener::handleEvent(blink::ExecutionContext*, blink::Event*) third_party/WebKit/Source/bindings/core/v8/V8AbstractEventListener.cpp:92:3
+    #46 0x7f25165eaf9e in blink::EventTarget::FireEventListeners(blink::Event*, blink::EventTargetData*, blink::HeapVector<blink::RegisteredEventListener, 1ul>&) third_party/WebKit/Source/core/events/EventTarget.cpp:751:15
+    #47 0x7f25165e8b66 in blink::EventTarget::FireEventListeners(blink::Event*) third_party/WebKit/Source/core/events/EventTarget.cpp:611:29
+    #48 0x7f251c6dc2a3 in blink::Node::HandleLocalEvents(blink::Event&) third_party/WebKit/Source/core/dom/Node.cpp:2172:3
+    #49 0x7f25165f5b8b in blink::NodeEventContext::HandleLocalEvents(blink::Event&) const third_party/WebKit/Source/core/events/NodeEventContext.cpp:63:10
+    #50 0x7f25165c524d in blink::EventDispatcher::DispatchEventAtCapturing() third_party/WebKit/Source/core/events/EventDispatcher.cpp:194:19
+    #51 0x7f25165c415d in blink::EventDispatcher::Dispatch() third_party/WebKit/Source/core/events/EventDispatcher.cpp:154:9
+    #52 0x7f25165c25e5 in blink::EventDispatcher::DispatchEvent(blink::Node&, blink::EventDispatchMediator*) third_party/WebKit/Source/core/events/EventDispatcher.cpp:59:20
+    #53 0x7f25165f6acf in DispatchEvent third_party/WebKit/Source/core/events/ScopedEventQueue.cpp:77:3
+    #54 0x7f25165f6acf in DispatchAllEvents third_party/WebKit/Source/core/events/ScopedEventQueue.cpp:71
+    #55 0x7f25165f6acf in blink::ScopedEventQueue::DecrementScopingLevel() third_party/WebKit/Source/core/events/ScopedEventQueue.cpp:95
+    #56 0x7f251c897340 in blink::DOMSelection::deleteFromDocument() third_party/WebKit/Source/core/editing/DOMSelection.cpp:682:12
+    #57 0x7f251baa46b9 in deleteFromDocumentMethod out/Release/gen/blink/bindings/core/v8/V8Selection.cpp:414:9
+    #58 0x7f251baa46b9 in blink::V8Selection::deleteFromDocumentMethodCallback(v8::FunctionCallbackInfo<v8::Value> const&) out/Release/gen/blink/bindings/core/v8/V8Selection.cpp:604
+    #59 0x7f250a916a70 in v8::internal::FunctionCallbackArguments::Call(void (*)(v8::FunctionCallbackInfo<v8::Value> const&)) v8/src/api-arguments.cc:25:3
+    #60 0x7f250ab33ae5 in v8::internal::MaybeHandle<v8::internal::Object> v8::internal::(anonymous namespace)::HandleApiCallHelper<false>(v8::internal::Isolate*, v8::internal::Handle<v8::internal::HeapObject>, v8::internal::Handle<v8::internal::HeapObject>, v8::internal::Handle<v8::internal::FunctionTemplateInfo>, v8::internal::Handle<v8::internal::Object>, v8::internal::BuiltinArguments) v8/src/builtins/builtins-api.cc:112:36
+    #61 0x7f250ab30cc2 in v8::internal::Builtin_Impl_HandleApiCall(v8::internal::BuiltinArguments, v8::internal::Isolate*) v8/src/builtins/builtins-api.cc:142:5
+    #65 0x7f24cf00463c  (<unknown module>)
+    #66 0x7f24cf0f4b88  (<unknown module>)
+    #67 0x7f24cf0bb8b4  (<unknown module>)
+    #68 0x7f24cf0bac78  (<unknown module>)
+    #69 0x7f24cf00410c  (<unknown module>)
+    #62 0x7f250b6839cf in v8::internal::(anonymous namespace)::Invoke(v8::internal::Isolate*, bool, v8::internal::Handle<v8::internal::Object>, v8::internal::Handle<v8::internal::Object>, int, v8::internal::Handle<v8::internal::Object>*, v8::internal::Handle<v8::internal::Object>, v8::internal::Execution::MessageHandling) v8/src/execution.cc:145:13
+    #63 0x7f250b683167 in CallInternal v8/src/execution.cc:181:10
+    #64 0x7f250b683167 in v8::internal::Execution::Call(v8::internal::Isolate*, v8::internal::Handle<v8::internal::Object>, v8::internal::Handle<v8::internal::Object>, int, v8::internal::Handle<v8::internal::Object>*) v8/src/execution.cc:191
+    #65 0x7f250a939177 in v8::Script::Run(v8::Local<v8::Context>) v8/src/api.cc:2057:7
+    #66 0x7f251b45ffd5 in blink::V8ScriptRunner::RunCompiledScript(v8::Isolate*, v8::Local<v8::Script>, blink::ExecutionContext*) third_party/WebKit/Source/bindings/core/v8/V8ScriptRunner.cpp:573:22
+    #67 0x7f251b40a9ec in blink::ScriptController::ExecuteScriptAndReturnValue(v8::Local<v8::Context>, blink::ScriptSourceCode const&, blink::AccessControlStatus) third_party/WebKit/Source/bindings/core/v8/ScriptController.cpp:135:10
+    #68 0x7f251b40d057 in blink::ScriptController::EvaluateScriptInMainWorld(blink::ScriptSourceCode const&, blink::AccessControlStatus, blink::ScriptController::ExecuteScriptPolicy) third_party/WebKit/Source/bindings/core/v8/ScriptController.cpp:313:33
+    #69 0x7f251b40d5df in blink::ScriptController::ExecuteScriptInMainWorld(blink::ScriptSourceCode const&, blink::AccessControlStatus) third_party/WebKit/Source/bindings/core/v8/ScriptController.cpp:283:3
+    #70 0x7f251f25ae05 in blink::ScriptLoader::DoExecuteScript(blink::Script const*) third_party/WebKit/Source/core/dom/ScriptLoader.cpp:883:11
+    #71 0x7f251f25521f in ExecuteScript third_party/WebKit/Source/core/dom/ScriptLoader.cpp:789:17
+    #72 0x7f251f25521f in blink::ScriptLoader::PrepareScript(WTF::TextPosition const&, blink::ScriptLoader::LegacyTypeSupport) third_party/WebKit/Source/core/dom/ScriptLoader.cpp:677
+    #73 0x7f251ce28ddd in blink::HTMLParserScriptRunner::ProcessScriptElementInternal(blink::Element*, WTF::TextPosition const&) third_party/WebKit/Source/core/html/parser/HTMLParserScriptRunner.cpp:627:20
+    #74 0x7f251ce285f8 in blink::HTMLParserScriptRunner::ProcessScriptElement(blink::Element*, WTF::TextPosition const&) third_party/WebKit/Source/core/html/parser/HTMLParserScriptRunner.cpp:408:3
+    #75 0x7f251cdc609e in RunScriptsForPausedTreeBuilder third_party/WebKit/Source/core/html/parser/HTMLDocumentParser.cpp:292:21
+    #76 0x7f251cdc609e in blink::HTMLDocumentParser::ProcessTokenizedChunkFromBackgroundParser(std::__1::unique_ptr<blink::HTMLDocumentParser::TokenizedChunk, std::__1::default_delete<blink::HTMLDocumentParser::TokenizedChunk> >) third_party/WebKit/Source/core/html/parser/HTMLDocumentParser.cpp:574
+    #77 0x7f251cdbec0b in blink::HTMLDocumentParser::PumpPendingSpeculations() third_party/WebKit/Source/core/html/parser/HTMLDocumentParser.cpp:632:9
+    #78 0x7f251619008f in Run base/callback.h:80:12
+    #79 0x7f251619008f in operator() third_party/WebKit/Source/platform/wtf/Functional.h:221
+    #80 0x7f251619008f in blink::TaskHandle::Runner::Run(blink::TaskHandle const&) third_party/WebKit/Source/platform/WebTaskRunner.cpp:75
+    #81 0x7f250dff6f81 in Run base/callback.h:91:12
+    #82 0x7f250dff6f81 in base::debug::TaskAnnotator::RunTask(char const*, base::PendingTask*) base/debug/task_annotator.cc:59
+    #83 0x7f251657ad0a in blink::scheduler::TaskQueueManager::ProcessTaskFromWorkQueue(blink::scheduler::internal::WorkQueue*, bool, blink::scheduler::LazyNow, base::TimeTicks*) third_party/WebKit/Source/platform/scheduler/base/task_queue_manager.cc:531:19
+    #84 0x7f2516574018 in blink::scheduler::TaskQueueManager::DoWork(bool) third_party/WebKit/Source/platform/scheduler/base/task_queue_manager.cc:329:13
+    #85 0x7f250dff6f81 in Run base/callback.h:91:12
+    #86 0x7f250dff6f81 in base::debug::TaskAnnotator::RunTask(char const*, base::PendingTask*) base/debug/task_annotator.cc:59
+    #87 0x7f250de19969 in base::MessageLoop::RunTask(base::PendingTask*) base/message_loop/message_loop.cc:418:19
+    #88 0x7f250de1aa80 in base::MessageLoop::DeferOrRunPendingTask(base::PendingTask) base/message_loop/message_loop.cc:429:5
+    #89 0x7f250de1ba24 in base::MessageLoop::DoWork() base/message_loop/message_loop.cc:536:13
+    #90 0x7f250de23f5f in base::MessagePumpDefault::Run(base::MessagePump::Delegate*) base/message_loop/message_pump_default.cc:33:31
+    #91 0x7f250dea989a in base::RunLoop::Run() base/run_loop.cc:111:14
+    #92 0x7f251808f08d in content::RendererMain(content::MainFunctionParams const&) content/renderer/renderer_main.cc:219:23
+    #93 0x7f250cf041d0 in content::RunZygote(content::MainFunctionParams const&, content::ContentMainDelegate*) content/app/content_main_runner.cc:340:14
+    #94 0x7f250cf08126 in content::ContentMainRunnerImpl::Run() content/app/content_main_runner.cc:704:12
+    #95 0x7f250cf24f3e in service_manager::Main(service_manager::MainParams const&) services/service_manager/embedder/main.cc:469:29
+    #96 0x7f250cf0386f in content::ContentMain(content::ContentMainParams const&) content/app/content_main.cc:19:10
+    #97 0x7f25073ca3f3 in ChromeMain chrome/app/chrome_main.cc:109:12
+    #98 0x7f2500b08f44 in __libc_start_main /build/eglibc-MjiXCM/eglibc-2.19/csu/libc-start.c:287
+AddressSanitizer can not provide additional info.
+SUMMARY: AddressSanitizer: ABRT (/lib/x86_64-linux-gnu/libc.so.6+0x36c36)
+==1==ABORTING

@@ -1,0 +1,8 @@
+./bad_example_no_instrumentation /tmp/corpus/
+INFO: Seed: 1779873601
+INFO: Loaded 1 modules (5677 guards): [0x954b10, 0x95a3c4),
+INFO:        2 files found in /tmp/corpus/
+INFO: -max_len is not provided; libFuzzer will not generate inputs larger than 4096 bytes
+INFO: seed corpus: files: 2 min: 7b max: 16b total: 23b rss: 43Mb
+#3  INITED exec/s: 0 rss: 43Mb
+ERROR: no interesting inputs were found. Is the code instrumented for coverage? Exiting.

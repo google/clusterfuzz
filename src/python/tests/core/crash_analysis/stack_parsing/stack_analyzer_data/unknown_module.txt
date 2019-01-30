@@ -1,0 +1,7 @@
+==3304==ERROR: AddressSanitizer: access-violation on unknown address 0x0ec3fdec (pc 0x0ec3fdec bp 0x00000000 sp 0x0ec3fde8 T16777215)
+[0624/081056:ERROR:client_util.cc(272)] Could not find exported function RelaunchChromeBrowserWithNewCommandLineIfNeeded
+    #0 0xec3fdeb  (<unknown module>)
+
+AddressSanitizer can not provide additional info.
+SUMMARY: AddressSanitizer: SEGV (<unknown module>)
+==3304==ABORTING

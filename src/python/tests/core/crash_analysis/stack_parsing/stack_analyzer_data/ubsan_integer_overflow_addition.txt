@@ -1,0 +1,29 @@
+[8593:8593:0602/072527:ERROR:browser_main_loop.cc(184)] Running without the SUID sandbox! See https://code.google.com/p/chromium/wiki/LinuxSUIDSandboxDevelopment for more information on developing with the sandbox on.
+[8624:8624:0602/072527:ERROR:renderer_main.cc(200)] Running without renderer sandbox
+[8632:8632:0602/072527:ERROR:renderer_main.cc(200)] Running without renderer sandbox
+[8633:8633:0602/072527:ERROR:renderer_main.cc(200)] Running without renderer sandbox
+[8636:8636:0602/072527:ERROR:renderer_main.cc(200)] Running without renderer sandbox
+[8641:8641:0602/072527:ERROR:renderer_main.cc(200)] Running without renderer sandbox
+[8673:8673:0602/072529:ERROR:renderer_main.cc(200)] Running without renderer sandbox
+../../ui/gfx/geometry/point.h:64:8: runtime error: signed integer overflow: -2147483648 + -132 cannot be represented in type int
+    #0 0x7f823776a6f3 in gfx::Point::operator+=(gfx::Vector2d const&) ui/gfx/geometry/point.h:64:8
+    #1 0x7f823780a706 in gfx::Rect::Inset(int, int, int, int) ui/gfx/geometry/rect.cc:66:11
+    #2 0x7f8237f2bcdd in cc::PictureLayerTiling::ComputeTilePriorityRects(gfx::Rect const&, float, double, cc::Occlusion const&) cc/tiles/picture_layer_tiling.cc:641:3
+    #3 0x7f8237df1518 in cc::PictureLayerTilingSet::UpdateTilePriorities(gfx::Rect const&, float, double, cc::Occlusion const&, bool) cc/tiles/picture_layer_tiling_set.cc:367:16
+    #4 0x7f8237d993d7 in cc::PictureLayerImpl::UpdateTiles(bool) cc/layers/picture_layer_impl.cc:457:18
+    #5 0x7f8237e4b458 in cc::LayerTreeImpl::UpdateDrawProperties(bool) cc/trees/layer_tree_impl.cc:681:34
+    #6 0x7f8237e29315 in cc::LayerTreeHostImpl::CommitComplete() cc/trees/layer_tree_host_impl.cc:325:5
+    #7 0x7f8237e75295 in cc::ThreadProxy::ScheduledActionCommit() cc/trees/thread_proxy.cc:1028:3
+    #8 0x7f8237f1c64c in cc::Scheduler::ProcessScheduledActions() cc/scheduler/scheduler.cc:700:9
+    #9 0x7f8237f1cdb6 in cc::Scheduler::NotifyReadyToCommit() cc/scheduler/scheduler.cc:241:3
+    #10 0x7f8236da129e in base::debug::TaskAnnotator::RunTask(char const*, char const*, base::PendingTask const&) base/debug/task_annotator.cc:62:3
+    #11 0x7f8236d2ae86 in base::MessageLoop::RunTask(base::PendingTask const&) base/message_loop/message_loop.cc:458:3
+    #12 0x7f8236d2b4f9 in base::MessageLoop::DeferOrRunPendingTask(base::PendingTask const&) base/message_loop/message_loop.cc:468:5
+    #13 0x7f8236d2b8d3 in base::MessageLoop::DoWork() base/message_loop/message_loop.cc:580:13
+    #14 0x7f8236d2df56 in base::MessagePumpDefault::Run(base::MessagePump::Delegate*) base/message_loop/message_pump_default.cc:34:21
+    #15 0x7f8236d46f3c in base::RunLoop::Run() base/run_loop.cc:55:3
+    #16 0x7f8236d29edc in base::MessageLoop::Run() base/message_loop/message_loop.cc:286:3
+    #17 0x7f8236d7251c in base::Thread::ThreadMain() base/threading/thread.cc:248:3
+    #18 0x7f8236d6bd73 in base::(anonymous namespace)::ThreadFunc(void*) base/threading/platform_thread_posix.cc:77:3
+    #19 0x7f822b6b5181 in start_thread /build/buildd/eglibc-2.19/nptl/pthread_create.c:312
+    #20 0x7f822a16d47c in clone /build/buildd/eglibc-2.19/sysdeps/unix/sysv/linux/x86_64/clone.S:111

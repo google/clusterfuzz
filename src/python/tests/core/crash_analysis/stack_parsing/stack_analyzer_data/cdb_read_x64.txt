@@ -1,0 +1,745 @@
+Executable search path is:
+ModLoad: 00000001`3f880000 00000001`3f948000   iexplore.exe
+ModLoad: 00000000`770b0000 00000000`77259000   ntdll.dll
+ModLoad: 00000000`76f90000 00000000`770af000   C:\Windows\system32\kernel32.dll
+ModLoad: 000007fe`fd190000 000007fe`fd1fc000   C:\Windows\system32\KERNELBASE.dll
+ModLoad: 00000000`76e90000 00000000`76f8a000   C:\Windows\system32\USER32.dll
+ModLoad: 000007fe`fe8f0000 000007fe`fe957000   C:\Windows\system32\GDI32.dll
+ModLoad: 000007fe`fee10000 000007fe`fee1e000   C:\Windows\system32\LPK.dll
+ModLoad: 000007fe`fe9e0000 000007fe`feaa9000   C:\Windows\system32\USP10.dll
+ModLoad: 000007fe`fecc0000 000007fe`fed5f000   C:\Windows\system32\msvcrt.dll
+ModLoad: 000007fe`fce80000 000007fe`fce85000   C:\Windows\system32\api-ms-win-downlevel-advapi32-l1-1-0.dll
+ModLoad: 000007fe`ff030000 000007fe`ff10b000   C:\Windows\system32\advapi32.DLL
+ModLoad: 000007fe`fee20000 000007fe`fee3f000   C:\Windows\SYSTEM32\sechost.dll
+ModLoad: 000007fe`fd2c0000 000007fe`fd3ed000   C:\Windows\system32\RPCRT4.dll
+ModLoad: 000007fe`f5900000 000007fe`f5904000   C:\Windows\system32\api-ms-win-downlevel-shell32-l1-1-0.dll
+ModLoad: 000007fe`fdb60000 000007fe`fe8e9000   C:\Windows\system32\shell32.DLL
+ModLoad: 000007fe`fed60000 000007fe`fedd1000   C:\Windows\system32\SHLWAPI.dll
+ModLoad: 000007fe`fd500000 000007fe`fd7c7000   C:\Windows\system32\iertutil.dll
+ModLoad: 000007fe`fceb0000 000007fe`fceb4000   C:\Windows\system32\api-ms-win-downlevel-version-l1-1-0.dll
+ModLoad: 000007fe`fbf10000 000007fe`fbf1c000   C:\Windows\system32\version.DLL
+ModLoad: 000007fe`fce90000 000007fe`fce94000   C:\Windows\system32\api-ms-win-downlevel-user32-l1-1-0.dll
+ModLoad: 000007fe`fcf00000 000007fe`fcf03000   C:\Windows\system32\api-ms-win-downlevel-normaliz-l1-1-0.dll
+ModLoad: 00000000`77280000 00000000`77283000   C:\Windows\system32\normaliz.DLL
+ModLoad: 000007fe`fcea0000 000007fe`fcea4000   C:\Windows\system32\api-ms-win-downlevel-shlwapi-l1-1-0.dll
+ModLoad: 000007fe`fede0000 000007fe`fee0e000   C:\Windows\system32\IMM32.DLL
+ModLoad: 000007fe`fd3f0000 000007fe`fd4f9000   C:\Windows\system32\MSCTF.dll
+ModLoad: 000007fe`fccc0000 000007fe`fcccf000   C:\Windows\system32\CRYPTBASE.DLL
+ModLoad: 000007fe`f15d0000 000007fe`f239f000   C:\Windows\system32\IEFRAME.dll
+ModLoad: 000007fe`feab0000 000007fe`fecb3000   C:\Windows\system32\ole32.dll
+ModLoad: 000007fe`fda80000 000007fe`fdb57000   C:\Windows\system32\OLEAUT32.dll
+ModLoad: 000007fe`fb750000 000007fe`fb944000   C:\Windows\WinSxS\amd64_microsoft.windows.common-controls_6595b64144ccf1df_6.0.7601.18837_none_fa3b1e3d17594757\comctl32.dll
+ModLoad: 000007fe`f24f0000 000007fe`f2552000   C:\Program Files\Internet Explorer\IEShims.dll
+ModLoad: 000007fe`fd220000 000007fe`fd2b7000   C:\Windows\system32\comdlg32.dll
+ModLoad: 000007fe`fd7d0000 000007fe`fd955000   C:\Windows\system32\urlmon.dll
+ModLoad: 000007fe`fcf10000 000007fe`fcf14000   C:\Windows\system32\api-ms-win-downlevel-ole32-l1-1-0.dll
+ModLoad: 000007fe`ff160000 000007fe`ff3ba000   C:\Windows\system32\WININET.dll
+ModLoad: 000007fe`fd0d0000 000007fe`fd0ee000   C:\Windows\system32\USERENV.dll
+ModLoad: 000007fe`fce70000 000007fe`fce7f000   C:\Windows\system32\profapi.dll
+ModLoad: 000007fe`f3160000 000007fe`f31a8000   C:\Program Files\Internet Explorer\sqmapi.dll
+ModLoad: 000007fe`fcbe0000 000007fe`fcbeb000   C:\Windows\system32\Secur32.dll
+ModLoad: 000007fe`fcc30000 000007fe`fcc55000   C:\Windows\system32\SSPICLI.DLL
+ModLoad: 000007fe`f5780000 000007fe`f5784000   C:\Windows\system32\api-ms-win-downlevel-advapi32-l2-1-0.dll
+ModLoad: 000007fe`ff110000 000007fe`ff15d000   C:\Windows\system32\WS2_32.dll
+ModLoad: 000007fe`ff020000 000007fe`ff028000   C:\Windows\system32\NSI.dll
+ModLoad: 000007fe`f7050000 000007fe`f70c1000   C:\Windows\system32\winhttp.dll
+ModLoad: 000007fe`f6fe0000 000007fe`f7044000   C:\Windows\system32\webio.dll
+ModLoad: 000007fe`fc600000 000007fe`fc655000   C:\Windows\system32\mswsock.dll
+ModLoad: 000007fe`fc5f0000 000007fe`fc5f7000   C:\Windows\System32\wship6.dll
+ModLoad: 000007fe`fd960000 000007fe`fd9f9000   C:\Windows\system32\CLBCatQ.DLL
+ModLoad: 000007fe`fb280000 000007fe`fb2a7000   C:\Windows\system32\IPHLPAPI.DLL
+ModLoad: 000007fe`fb240000 000007fe`fb24b000   C:\Windows\system32\WINNSI.DLL
+ModLoad: 000007fe`f6440000 000007fe`f64b4000   C:\Windows\System32\netprofm.dll
+ModLoad: 000007fe`fb950000 000007fe`fb965000   C:\Windows\System32\nlaapi.dll
+ModLoad: 000007fe`fc660000 000007fe`fc678000   C:\Windows\system32\CRYPTSP.dll
+ModLoad: 000007fe`fc360000 000007fe`fc3a7000   C:\Windows\system32\rsaenh.dll
+ModLoad: 000007fe`fcd70000 000007fe`fcd84000   C:\Windows\system32\RpcRtRemote.dll
+ModLoad: 000007fe`f5870000 000007fe`f587c000   C:\Windows\System32\npmproxy.dll
+ModLoad: 000007fe`fc010000 000007fe`fc017000   C:\Windows\System32\wshtcpip.dll
+ModLoad: 000007fe`fc480000 000007fe`fc4db000   C:\Windows\system32\DNSAPI.dll
+ModLoad: 000007fe`fa580000 000007fe`fa588000   C:\Windows\system32\rasadhlp.dll
+ModLoad: 000007fe`fb140000 000007fe`fb193000   C:\Windows\System32\fwpuclnt.dll
+ModLoad: 000007fe`f3ed0000 000007fe`f3ed4000   C:\Windows\system32\api-ms-win-downlevel-shlwapi-l2-1-0.dll
+ModLoad: 000007fe`f2430000 000007fe`f24ea000   C:\Program Files\Internet Explorer\ieproxy.dll
+ModLoad: 000007fe`fcf20000 000007fe`fd08d000   C:\Windows\system32\CRYPT32.dll
+ModLoad: 000007fe`fce60000 000007fe`fce6f000   C:\Windows\system32\MSASN1.dll
+ModLoad: 000007fe`f1530000 000007fe`f15c9000   C:\Windows\system32\IEUI.dll
+ModLoad: 000007fe`fb6b0000 000007fe`fb706000   C:\Windows\system32\UxTheme.dll
+ModLoad: 000007fe`f3680000 000007fe`f36d4000   C:\Windows\system32\oleacc.dll
+ModLoad: 000007fe`fab10000 000007fe`fac71000   C:\Windows\system32\windowscodecs.dll
+ModLoad: 000007fe`faec0000 000007fe`faed8000   C:\Windows\system32\dwmapi.dll
+ModLoad: 000007fe`f1360000 000007fe`f152a000   C:\Windows\system32\explorerframe.dll
+ModLoad: 000007fe`fb1f0000 000007fe`fb233000   C:\Windows\system32\DUser.dll
+ModLoad: 000007fe`fb320000 000007fe`fb412000   C:\Windows\system32\DUI70.dll
+ModLoad: 000007fe`fcc60000 000007fe`fccb7000   C:\Windows\system32\apphelp.dll
+ModLoad: 000007fe`ef6e0000 000007fe`f0eef000   C:\Windows\system32\MSHTML.dll
+ModLoad: 000007fe`f0f90000 000007fe`f1354000   C:\Windows\system32\d2d1.dll
+ModLoad: 000007fe`ef540000 000007fe`ef6d7000   C:\Windows\system32\DWrite.dll
+ModLoad: 000007fe`f23d0000 000007fe`f242d000   C:\Windows\system32\dxgi.dll
+ModLoad: 000007fe`f3760000 000007fe`f377f000   C:\Windows\system32\DXGIDebug.dll
+ModLoad: 000007fe`fee40000 000007fe`ff017000   C:\Windows\system32\setupapi.dll
+ModLoad: 000007fe`fcec0000 000007fe`fcef6000   C:\Windows\system32\CFGMGR32.dll
+ModLoad: 000007fe`fd200000 000007fe`fd21a000   C:\Windows\system32\DEVOBJ.dll
+ModLoad: 000007fe`fd090000 000007fe`fd0cb000   C:\Windows\system32\WINTRUST.dll
+ModLoad: 000007fe`f0f50000 000007fe`f0f8b000   C:\Windows\system32\MLANG.dll
+ModLoad: 000007fe`faf40000 000007fe`fb06c000   C:\Windows\system32\PROPSYS.dll
+ModLoad: 000007fe`faee0000 000007fe`faef1000   C:\Windows\system32\dhcpcsvc6.DLL
+ModLoad: 000007fe`faea0000 000007fe`faeb8000   C:\Windows\system32\dhcpcsvc.DLL
+ModLoad: 000007fe`fee40000 000007fe`ff017000   C:\Windows\system32\SETUPAPI.dll
+ModLoad: 000007fe`fcec0000 000007fe`fcef6000   C:\Windows\system32\CFGMGR32.dll
+ModLoad: 000007fe`fd200000 000007fe`fd21a000   C:\Windows\system32\DEVOBJ.dll
+ModLoad: 000007fe`fc7b0000 000007fe`fc7d2000   C:\Windows\system32\bcrypt.dll
+ModLoad: 000007fe`fc2a0000 000007fe`fc2ec000   C:\Windows\system32\bcryptprimitives.dll
+ModLoad: 000007fe`eef90000 000007fe`ef53f000   C:\Windows\System32\jscript9.dll
+ModLoad: 000007fe`f3750000 000007fe`f375e000   C:\Windows\system32\msimtf.dll
+(ec4.f40): Access violation - code c0000005 (first chance)
+First chance exceptions are reported before any exception handling.
+This exception may be expected and handled.
+*** ERROR: Symbol file could not be found.  Defaulted to export symbols for C:\Windows\system32\MSHTML.dll -
+MSHTML!Ordinal101+0x3c4da:
+000007fe`ef725a3a f7401000001000  test    dword ptr [rax+10h],100000h ds:00000000`00000010=????????
+0:011> cdb: Reading initial command .foreach(exc {sx}) {.catch{sxd ${exc}}}; g; !analyze -v; k; q
+           ^ Syntax error in sxd -
+Couldnt resolve error at Create
+Couldnt resolve error at thread
+           ^ Syntax error in sxd -
+Couldnt resolve error at ignore
+           ^ Syntax error in sxd -
+Couldnt resolve error at Exit
+Couldnt resolve error at thread
+           ^ Syntax error in sxd -
+Couldnt resolve error at ignore
+           ^ Syntax error in sxd -
+Couldnt resolve error at Create
+Couldnt resolve error at process
+           ^ Syntax error in sxd -
+Couldnt resolve error at ignore
+           ^ Syntax error in sxd -
+Couldnt resolve error at Exit
+Couldnt resolve error at process
+           ^ Syntax error in sxd -
+Couldnt resolve error at break
+           ^ Syntax error in sxd -
+Couldnt resolve error at Load
+Couldnt resolve error at module
+           ^ Syntax error in sxd -
+Couldnt resolve error at output
+           ^ Syntax error in sxd -
+Couldnt resolve error at Unload
+Couldnt resolve error at module
+           ^ Syntax error in sxd -
+Couldnt resolve error at ignore
+           ^ Syntax error in sxd -
+Couldnt resolve error at System
+Couldnt resolve error at error
+           ^ Syntax error in sxd -
+Couldnt resolve error at ignore
+           ^ Syntax error in sxd -
+Couldnt resolve error at Initial
+Couldnt resolve error at breakpoint
+           ^ Syntax error in sxd -
+Couldnt resolve error at ignore
+           ^ Syntax error in sxd -
+Couldnt resolve error at Initial
+Couldnt resolve error at module
+Couldnt resolve error at load
+           ^ Syntax error in sxd -
+Couldnt resolve error at ignore
+           ^ Syntax error in sxd -
+Couldnt resolve error at Debuggee
+Couldnt resolve error at output
+           ^ Syntax error in sxd -
+Couldnt resolve error at output
+           ^ Syntax error in sxd -
+Couldnt resolve error at Access
+Couldnt resolve error at violation
+           ^ Syntax error in sxd -
+Couldnt resolve error at break
+           ^ Syntax error in sxd -
+Numeric expression missing from <EOL>
+Couldnt resolve error at handled
+           ^ Syntax error in sxd -
+Couldnt resolve error at Assertion
+Couldnt resolve error at failure
+           ^ Syntax error in sxd -
+Couldnt resolve error at break
+           ^ Syntax error in sxd -
+Numeric expression missing from <EOL>
+Couldnt resolve error at handled
+           ^ Syntax error in sxd -
+Couldnt resolve error at Application
+Couldnt resolve error at hang
+           ^ Syntax error in sxd -
+Couldnt resolve error at break
+           ^ Syntax error in sxd -
+Numeric expression missing from <EOL>
+Couldnt resolve error at handled
+           ^ Syntax error in sxd -
+Couldnt resolve error at Break
+Couldnt resolve error at instruction
+Couldnt resolve error at exception
+           ^ Syntax error in sxd -
+Couldnt resolve error at break
+           ^ Syntax error in sxd -
+Couldnt resolve error at Break
+Couldnt resolve error at instruction
+Couldnt resolve error at exception
+Couldnt resolve error at continue
+           ^ Syntax error in sxd -
+Couldnt resolve error at handled
+           ^ Syntax error in sxd -
+Numeric expression missing from <EOL>
+Couldnt resolve error at exception
+           ^ Syntax error in sxd -
+Couldnt resolve error at second-chance
+Couldnt resolve error at break
+           ^ Syntax error in sxd -
+Numeric expression missing from <EOL>
+Couldnt resolve error at handled
+           ^ Syntax error in sxd -
+Couldnt resolve error at exception
+           ^ Syntax error in sxd -
+Couldnt resolve error at second-chance
+Couldnt resolve error at break
+           ^ Syntax error in sxd -
+Numeric expression missing from <EOL>
+Couldnt resolve error at handled
+           ^ Syntax error in sxd -
+Couldnt resolve error at notification
+Couldnt resolve error at exception
+           ^ Syntax error in sxd -
+Couldnt resolve error at second-chance
+Couldnt resolve error at break
+           ^ Syntax error in sxd -
+Couldnt resolve error at handled
+           ^ Syntax error in sxd -
+Couldnt resolve error at Control-Break
+Couldnt resolve error at exception
+           ^ Syntax error in sxd -
+Couldnt resolve error at break
+           ^ Syntax error in sxd -
+Couldnt resolve error at Control-Break
+Couldnt resolve error at exception
+Couldnt resolve error at continue
+           ^ Syntax error in sxd -
+Couldnt resolve error at handled
+           ^ Syntax error in sxd -
+Couldnt resolve error at Control-C
+Couldnt resolve error at exception
+           ^ Syntax error in sxd -
+Couldnt resolve error at break
+           ^ Syntax error in sxd -
+Couldnt resolve error at Control-C
+Couldnt resolve error at exception
+Couldnt resolve error at continue
+           ^ Syntax error in sxd -
+Couldnt resolve error at handled
+           ^ Syntax error in sxd -
+Couldnt resolve error at Data
+Couldnt resolve error at misaligned
+           ^ Syntax error in sxd -
+Couldnt resolve error at break
+           ^ Syntax error in sxd -
+Numeric expression missing from <EOL>
+Couldnt resolve error at handled
+           ^ Syntax error in sxd -
+Couldnt resolve error at Debugger
+Couldnt resolve error at command
+Couldnt resolve error at exception
+           ^ Syntax error in sxd -
+Couldnt resolve error at ignore
+           ^ Syntax error in sxd -
+Couldnt resolve error at handled
+           ^ Syntax error in sxd -
+Couldnt resolve error at Guard
+Couldnt resolve error at page
+Couldnt resolve error at violation
+           ^ Syntax error in sxd -
+Couldnt resolve error at break
+           ^ Syntax error in sxd -
+Numeric expression missing from <EOL>
+Couldnt resolve error at handled
+           ^ Syntax error in sxd -
+Couldnt resolve error at Illegal
+Couldnt resolve error at instruction
+           ^ Syntax error in sxd -
+Couldnt resolve error at second-chance
+Couldnt resolve error at break
+           ^ Syntax error in sxd -
+Numeric expression missing from <EOL>
+Couldnt resolve error at handled
+           ^ Syntax error in sxd -
+Couldnt resolve error at In-page
+Couldnt resolve error at I/O
+Couldnt resolve error at error
+           ^ Syntax error in sxd -
+Couldnt resolve error at break
+           ^ Syntax error in sxd -
+Numeric expression missing from <EOL>
+Couldnt resolve error at handled
+           ^ Syntax error in sxd -
+Couldnt resolve error at Integer
+Couldnt resolve error at divide-by-zero
+           ^ Syntax error in sxd -
+Couldnt resolve error at break
+           ^ Syntax error in sxd -
+Numeric expression missing from <EOL>
+Couldnt resolve error at handled
+           ^ Syntax error in sxd -
+Couldnt resolve error at Integer
+Couldnt resolve error at overflow
+           ^ Syntax error in sxd -
+Couldnt resolve error at break
+           ^ Syntax error in sxd -
+Numeric expression missing from <EOL>
+Couldnt resolve error at handled
+           ^ Syntax error in sxd -
+Couldnt resolve error at Invalid
+Couldnt resolve error at handle
+           ^ Syntax error in sxd -
+Couldnt resolve error at break
+           ^ Syntax error in sxd -
+Couldnt resolve error at Invalid
+Couldnt resolve error at handle
+Couldnt resolve error at continue
+           ^ Syntax error in sxd -
+Numeric expression missing from <EOL>
+Couldnt resolve error at handled
+           ^ Syntax error in sxd -
+Couldnt resolve error at Invalid
+Couldnt resolve error at lock
+Couldnt resolve error at sequence
+           ^ Syntax error in sxd -
+Couldnt resolve error at break
+           ^ Syntax error in sxd -
+Numeric expression missing from <EOL>
+Couldnt resolve error at handled
+           ^ Syntax error in sxd -
+Couldnt resolve error at Invalid
+Couldnt resolve error at system
+Couldnt resolve error at call
+           ^ Syntax error in sxd -
+Couldnt resolve error at break
+           ^ Syntax error in sxd -
+Numeric expression missing from <EOL>
+Couldnt resolve error at handled
+           ^ Syntax error in sxd -
+Couldnt resolve error at Port
+Couldnt resolve error at disconnected
+           ^ Syntax error in sxd -
+Couldnt resolve error at second-chance
+Couldnt resolve error at break
+           ^ Syntax error in sxd -
+Numeric expression missing from <EOL>
+Couldnt resolve error at handled
+           ^ Syntax error in sxd -
+Couldnt resolve error at Service
+Couldnt resolve error at hang
+           ^ Syntax error in sxd -
+Couldnt resolve error at break
+           ^ Syntax error in sxd -
+Numeric expression missing from <EOL>
+Couldnt resolve error at handled
+           ^ Syntax error in sxd -
+Couldnt resolve error at Single
+Couldnt resolve error at step
+Couldnt resolve error at exception
+           ^ Syntax error in sxd -
+Couldnt resolve error at break
+           ^ Syntax error in sxd -
+Couldnt resolve error at Single
+Couldnt resolve error at step
+Couldnt resolve error at exception
+Couldnt resolve error at continue
+           ^ Syntax error in sxd -
+Couldnt resolve error at handled
+           ^ Syntax error in sxd -
+Couldnt resolve error at Security
+Couldnt resolve error at check
+Couldnt resolve error at failure
+Numeric expression missing from or
+Couldnt resolve error at stack
+Couldnt resolve error at buffer
+Couldnt resolve error at overrun
+           ^ Syntax error in sxd -
+Couldnt resolve error at break
+           ^ Syntax error in sxd -
+Numeric expression missing from <EOL>
+Couldnt resolve error at handled
+           ^ Syntax error in sxd -
+Couldnt resolve error at Stack
+Couldnt resolve error at overflow
+           ^ Syntax error in sxd -
+Couldnt resolve error at break
+           ^ Syntax error in sxd -
+Numeric expression missing from <EOL>
+Couldnt resolve error at handled
+           ^ Syntax error in sxd -
+Couldnt resolve error at Verifier
+Couldnt resolve error at stop
+           ^ Syntax error in sxd -
+Couldnt resolve error at break
+           ^ Syntax error in sxd -
+Numeric expression missing from <EOL>
+Couldnt resolve error at handled
+           ^ Syntax error in sxd -
+Couldnt resolve error at Visual
+Numeric expression missing from <EOL>
+Couldnt resolve error at exception
+           ^ Syntax error in sxd -
+Couldnt resolve error at ignore
+           ^ Syntax error in sxd -
+Couldnt resolve error at handled
+           ^ Syntax error in sxd -
+Couldnt resolve error at Wake
+Couldnt resolve error at debugger
+           ^ Syntax error in sxd -
+Couldnt resolve error at break
+           ^ Syntax error in sxd -
+Numeric expression missing from <EOL>
+Couldnt resolve error at handled
+           ^ Syntax error in sxd -
+Couldnt resolve error at Windows
+Couldnt resolve error at Runtime
+Couldnt resolve error at Originate
+Couldnt resolve error at Error
+           ^ Syntax error in sxd -
+Couldnt resolve error at second-chance
+Couldnt resolve error at break
+           ^ Syntax error in sxd -
+Numeric expression missing from <EOL>
+Couldnt resolve error at handled
+           ^ Syntax error in sxd -
+Couldnt resolve error at Windows
+Couldnt resolve error at Runtime
+Couldnt resolve error at Transform
+Couldnt resolve error at Error
+           ^ Syntax error in sxd -
+Couldnt resolve error at second-chance
+Couldnt resolve error at break
+           ^ Syntax error in sxd -
+Numeric expression missing from <EOL>
+Couldnt resolve error at handled
+           ^ Syntax error in sxd -
+Couldnt resolve error at WOW64
+Couldnt resolve error at breakpoint
+           ^ Syntax error in sxd -
+Couldnt resolve error at break
+           ^ Syntax error in sxd -
+Couldnt resolve error at handled
+           ^ Syntax error in sxd -
+Couldnt resolve error at WOW64
+Couldnt resolve error at single
+Couldnt resolve error at step
+Couldnt resolve error at exception
+           ^ Syntax error in sxd -
+Couldnt resolve error at break
+           ^ Syntax error in sxd -
+Couldnt resolve error at handled
+           ^ Syntax error in sxd -
+Couldnt resolve error at Other
+Couldnt resolve error at exception
+           ^ Syntax error in sxd -
+Couldnt resolve error at second-chance
+Couldnt resolve error at break
+           ^ Syntax error in sxd -
+Numeric expression missing from <EOL>
+Couldnt resolve error at handled
+(ec4.f40): Access violation - code c0000005 (!!! second chance !!!)
+*******************************************************************************
+*                                                                             *
+*                        Exception Analysis                                   *
+*                                                                             *
+*******************************************************************************
+
+*** ERROR: Symbol file could not be found.  Defaulted to export symbols for C:\Windows\System32\jscript9.dll -
+*** ERROR: Symbol file could not be found.  Defaulted to export symbols for ntdll.dll -
+*** ERROR: Symbol file could not be found.  Defaulted to export symbols for C:\Windows\system32\USER32.dll -
+*** ERROR: Symbol file could not be found.  Defaulted to export symbols for C:\Windows\system32\IEFRAME.dll -
+*** ERROR: Symbol file could not be found.  Defaulted to export symbols for C:\Windows\system32\iertutil.dll -
+*** ERROR: Symbol file could not be found.  Defaulted to export symbols for C:\Program Files\Internet Explorer\IEShims.dll -
+*** ERROR: Symbol file could not be found.  Defaulted to export symbols for C:\Windows\system32\kernel32.dll -
+***** OS symbols are WRONG. Please fix symbols to do analysis.
+
+*************************************************************************
+***                                                                   ***
+***                                                                   ***
+***    Either you specified an unqualified symbol, or your debugger   ***
+***    doesnt have full symbol information.  Unqualified symbol      ***
+***    resolution is turned off by default. Please either specify a   ***
+***    fully qualified symbol module!symbolname, or enable resolution ***
+***    of unqualified symbols by typing ".symopt- 100". Note that   ***
+***    enabling unqualified symbol resolution with network symbol     ***
+***    server shares in the symbol path may cause the debugger to     ***
+***    appear to hang for long periods of time when an incorrect      ***
+***    symbol name is typed or the network symbol server is down.     ***
+***                                                                   ***
+***    For some commands to work properly, your symbol path           ***
+***    must point to .pdb files that have full type information.      ***
+***                                                                   ***
+***    Certain .pdb files (such as the public OS symbols) do not      ***
+***    contain the required information.  Contact the group that      ***
+***    provided you with these symbols if you need this command to    ***
+***    work.                                                          ***
+***                                                                   ***
+***    Type referenced: ntdll!_PEB                                    ***
+***                                                                   ***
+*************************************************************************
+*************************************************************************
+***                                                                   ***
+***                                                                   ***
+***    Either you specified an unqualified symbol, or your debugger   ***
+***    doesnt have full symbol information.  Unqualified symbol      ***
+***    resolution is turned off by default. Please either specify a   ***
+***    fully qualified symbol module!symbolname, or enable resolution ***
+***    of unqualified symbols by typing ".symopt- 100". Note that   ***
+***    enabling unqualified symbol resolution with network symbol     ***
+***    server shares in the symbol path may cause the debugger to     ***
+***    appear to hang for long periods of time when an incorrect      ***
+***    symbol name is typed or the network symbol server is down.     ***
+***                                                                   ***
+***    For some commands to work properly, your symbol path           ***
+***    must point to .pdb files that have full type information.      ***
+***                                                                   ***
+***    Certain .pdb files (such as the public OS symbols) do not      ***
+***    contain the required information.  Contact the group that      ***
+***    provided you with these symbols if you need this command to    ***
+***    work.                                                          ***
+***                                                                   ***
+***    Type referenced: nt!IMAGE_NT_HEADERS32                         ***
+***                                                                   ***
+*************************************************************************
+*** ERROR: Module load completed but symbols could not be loaded for iexplore.exe
+*********************************************************************
+* Symbols can not be loaded because symbol path is not initialized. *
+*                                                                   *
+* The Symbol Path can be set by:                                    *
+*   using the _NT_SYMBOL_PATH environment variable.                 *
+*   using the -y <symbol_path> argument when starting the debugger. *
+*   using .sympath and .sympath+                                    *
+*********************************************************************
+*********************************************************************
+* Symbols can not be loaded because symbol path is not initialized. *
+*                                                                   *
+* The Symbol Path can be set by:                                    *
+*   using the _NT_SYMBOL_PATH environment variable.                 *
+*   using the -y <symbol_path> argument when starting the debugger. *
+*   using .sympath and .sympath+                                    *
+*********************************************************************
+*********************************************************************
+* Symbols can not be loaded because symbol path is not initialized. *
+*                                                                   *
+* The Symbol Path can be set by:                                    *
+*   using the _NT_SYMBOL_PATH environment variable.                 *
+*   using the -y <symbol_path> argument when starting the debugger. *
+*   using .sympath and .sympath+                                    *
+*********************************************************************
+*********************************************************************
+* Symbols can not be loaded because symbol path is not initialized. *
+*                                                                   *
+* The Symbol Path can be set by:                                    *
+*   using the _NT_SYMBOL_PATH environment variable.                 *
+*   using the -y <symbol_path> argument when starting the debugger. *
+*   using .sympath and .sympath+                                    *
+*********************************************************************
+*** ERROR: Symbol file could not be found.  Defaulted to export symbols for C:\Windows\system32\KERNELBASE.dll -
+*** ERROR: Symbol file could not be found.  Defaulted to export symbols for C:\Windows\system32\mswsock.dll -
+*** ERROR: Symbol file could not be found.  Defaulted to export symbols for C:\Windows\system32\WS2_32.dll -
+*** ERROR: Symbol file could not be found.  Defaulted to export symbols for C:\Windows\system32\WININET.dll -
+*********************************************************************
+* Symbols can not be loaded because symbol path is not initialized. *
+*                                                                   *
+* The Symbol Path can be set by:                                    *
+*   using the _NT_SYMBOL_PATH environment variable.                 *
+*   using the -y <symbol_path> argument when starting the debugger. *
+*   using .sympath and .sympath+                                    *
+*********************************************************************
+*********************************************************************
+* Symbols can not be loaded because symbol path is not initialized. *
+*                                                                   *
+* The Symbol Path can be set by:                                    *
+*   using the _NT_SYMBOL_PATH environment variable.                 *
+*   using the -y <symbol_path> argument when starting the debugger. *
+*   using .sympath and .sympath+                                    *
+*********************************************************************
+*********************************************************************
+* Symbols can not be loaded because symbol path is not initialized. *
+*                                                                   *
+* The Symbol Path can be set by:                                    *
+*   using the _NT_SYMBOL_PATH environment variable.                 *
+*   using the -y <symbol_path> argument when starting the debugger. *
+*   using .sympath and .sympath+                                    *
+*********************************************************************
+*********************************************************************
+* Symbols can not be loaded because symbol path is not initialized. *
+*                                                                   *
+* The Symbol Path can be set by:                                    *
+*   using the _NT_SYMBOL_PATH environment variable.                 *
+*   using the -y <symbol_path> argument when starting the debugger. *
+*   using .sympath and .sympath+                                    *
+*********************************************************************
+*** ERROR: Symbol file could not be found.  Defaulted to export symbols for C:\Windows\system32\ole32.dll -
+*** ERROR: Symbol file could not be found.  Defaulted to export symbols for C:\Windows\system32\RPCRT4.dll -
+*** ERROR: Symbol file could not be found.  Defaulted to export symbols for C:\Windows\system32\IEUI.dll -
+*** ERROR: Symbol file could not be found.  Defaulted to export symbols for C:\Windows\system32\msvcrt.dll -
+*** ERROR: Symbol file could not be found.  Defaulted to export symbols for C:\Windows\system32\SHLWAPI.dll -
+*** ERROR: Symbol file could not be found.  Defaulted to export symbols for C:\Windows\system32\shell32.DLL -
+
+FAULTING_IP:
+MSHTML!Ordinal101+3c4da
+000007fe`ef725a3a f7401000001000  test    dword ptr [rax+10h],100000h
+
+EXCEPTION_RECORD:  ffffffffffffffff -- (.exr 0xffffffffffffffff)
+ExceptionAddress: 000007feef725a3a (MSHTML!Ordinal101+0x000000000003c4da)
+   ExceptionCode: c0000005 (Access violation)
+  ExceptionFlags: 00000001
+NumberParameters: 2
+   Parameter[0]: 0000000000000000
+   Parameter[1]: 0000000000000010
+Attempt to read from address 0000000000000010
+
+FAULTING_THREAD:  0000000000000f40
+
+DEFAULT_BUCKET_ID:  WRONG_SYMBOLS
+
+PROCESS_NAME:  iexplore.exe
+
+ADDITIONAL_DEBUG_TEXT:
+You can run .symfix; .reload to try to fix the symbol path and load symbols.
+
+MODULE_NAME: MSHTML
+
+FAULTING_MODULE: 00000000770b0000 ntdll
+
+DEBUG_FLR_IMAGE_TIMESTAMP:  55cedef8
+
+ERROR_CODE: (NTSTATUS) 0xc0000005 - The instruction at 0x%08lx referenced memory at 0x%08lx. The memory could not be %s.
+
+EXCEPTION_CODE: (NTSTATUS) 0xc0000005 - The instruction at 0x%08lx referenced memory at 0x%08lx. The memory could not be %s.
+
+EXCEPTION_PARAMETER1:  0000000000000000
+
+EXCEPTION_PARAMETER2:  0000000000000010
+
+READ_ADDRESS:  0000000000000010
+
+FOLLOWUP_IP:
+MSHTML!Ordinal101+3c4da
+000007fe`ef725a3a f7401000001000  test    dword ptr [rax+10h],100000h
+
+APP:  iexplore.exe
+
+PRIMARY_PROBLEM_CLASS:  WRONG_SYMBOLS
+
+BUGCHECK_STR:  APPLICATION_FAULT_WRONG_SYMBOLS
+
+LAST_CONTROL_TRANSFER:  from 000007fef018f1d9 to 000007feef725a3a
+
+STACK_TEXT:
+00000000`04deadb8 000007fe`f018f1d9 : 00000000`00000000 00000000`04b53de0 00000000`04deae80 00000000`00000000 : MSHTML!Ordinal101+0x3c4da
+00000000`04deadc0 000007fe`ef846397 : 00000000`036091f0 00000000`00000000 00000000`036091f0 00000000`04deae80 : MSHTML!CreateCoreWebView+0x427cf9
+00000000`04deadf0 000007fe`ef8443cd : 00000000`04b53de0 00000000`04deae80 00000000`00000000 00000000`00000000 : MSHTML!Ordinal107+0x71767
+00000000`04deae30 000007fe`ef844333 : 00000000`00000000 00000000`04deaf18 00000000`00000000 00000000`00000000 : MSHTML!Ordinal107+0x6f79d
+00000000`04deae70 000007fe`eef99a73 : 00000000`0408ed80 000007fe`10000001 00000000`0399a2a0 00000000`00000001 : MSHTML!Ordinal107+0x6f703
+00000000`04deaef0 000007fe`eef9e66c : 00000000`00494fd0 00000000`00008000 00000000`004989f0 00000000`04deafd8 : jscript9!JsVarToExtension+0x7343
+00000000`04deaf40 000007fe`eef99a73 : 00000000`0408ed80 00000000`10000001 00000000`0399a2a0 00000000`00000001 : jscript9!JsVarToExtension+0xbf3c
+00000000`04deafe0 000007fe`ef1d1257 : 00000000`00494fd0 00000000`00000008 00000000`0399a2a0 00000000`000003b7 : jscript9!JsVarToExtension+0x7343
+00000000`04deb030 000007fe`eef9d520 : 00000000`04deb400 00000000`037dd000 00000000`004989f0 00000000`00000000 : jscript9!DllCanUnloadNow+0xcb447
+00000000`04deb3d0 00000000`03d30fc3 : 00000000`04deb620 00000000`00000000 00000000`00000000 00000000`0398b880 : jscript9!JsVarToExtension+0xadf0
+00000000`04deb5f0 000007fe`eef99a73 : 00000000`0398b880 00000000`00000000 00000000`00000000 00000000`00000000 : 0x3d30fc3
+00000000`04deb620 000007fe`eef9952d : 00000000`00494fd0 00000000`00000000 00000000`0398b880 00000000`004989f0 : jscript9!JsVarToExtension+0x7343
+00000000`04deb670 000007fe`eef99742 : 00000000`0398b880 000007fe`eef91240 00000000`04deb710 00000000`00490001 : jscript9!JsVarToExtension+0x6dfd
+00000000`04deb6b0 000007fe`eef99847 : 00000000`0398b880 00000000`04deb7d0 00000000`004989f0 00000000`00000000 : jscript9!JsVarToExtension+0x7012
+00000000`04deb790 000007fe`eef9979c : 00000000`0398b880 00000000`04deb810 00000000`00000000 00000000`04deb828 : jscript9!JsVarToExtension+0x7117
+00000000`04deb7f0 000007fe`ef02e216 : 00000000`004988f0 00000000`0398b880 00000000`04deb8e0 00000000`00000000 : jscript9!JsVarToExtension+0x706c
+00000000`04deb880 000007fe`ef02d6dd : 00000000`00494c10 00000000`04debe90 00000000`04debed0 00000000`80000082 : jscript9!DllGetClassObject+0x7aa86
+00000000`04deb970 000007fe`ef02f3d4 : 00000000`00494c10 00000000`03600bd4 00000000`03603d14 00000000`04b54030 : jscript9!DllGetClassObject+0x79f4d
+00000000`04debad0 000007fe`ef9bbdb1 : 00000000`00494c48 00000000`03600bd4 00000000`03603d14 00000000`04b54030 : jscript9!DllGetClassObject+0x7bc44
+00000000`04debb80 000007fe`ef88631b : 00000000`03600bd4 00000000`8000ffff 00000000`00000000 00000000`04b53f58 : MSHTML!Ordinal105+0x589a1
+00000000`04debc00 000007fe`ef885fa1 : 00000000`00000082 00000000`04debd59 00000000`04b53f58 00000000`00000013 : MSHTML!GetWebPlatformObject+0x32fdb
+00000000`04debcb0 000007fe`ef887381 : 00000000`00000000 00000000`00000000 00000000`00000082 00000000`04b53f58 : MSHTML!GetWebPlatformObject+0x32c61
+00000000`04debd90 000007fe`ef886ef2 : 00000000`04b53f58 00000000`00000000 00000000`00000000 00000000`00000000 : MSHTML!GetWebPlatformObject+0x34041
+00000000`04debf60 000007fe`ef886b41 : 00000000`04b53f58 00000000`035c3720 00000000`04b53f58 00000000`00000000 : MSHTML!GetWebPlatformObject+0x33bb2
+00000000`04dec020 000007fe`effc7a24 : 000011fc`7c278f16 00000000`035c3720 00000000`04dec0e9 00000000`0360ec10 : MSHTML!GetWebPlatformObject+0x33801
+00000000`04dec060 000007fe`ef769309 : 00000000`04b53160 000007fe`ef768ce0 00000000`003e79c0 00000000`00000000 : MSHTML!CreateCoreWebView+0x260544
+00000000`04dec150 000007fe`ef7ce00f : 00000000`0043bbf0 00000000`00000002 000007fe`ef7ce070 000007fe`ef7d8ba6 : MSHTML!Ordinal101+0x7fda9
+00000000`04dec360 000007fe`ef7cdf58 : 00000000`0360ec10 00000000`04dec400 00000000`003f40db 00000000`0360ec10 : MSHTML!Ordinal101+0xe4aaf
+00000000`04dec390 000007fe`ef7cf6f3 : 00000000`035a6460 00000000`00000001 00000000`0360ec10 00000000`00000002 : MSHTML!Ordinal101+0xe49f8
+00000000`04dec410 000007fe`ef7d32c3 : 00000000`0360ec10 c0040903`00000000 00000000`035a6400 000007fe`fd50153e : MSHTML!Ordinal101+0xe6193
+00000000`04dec450 000007fe`ef7adb67 : 00000000`003c5070 00000000`03606901 000007fe`ef76bd10 00000000`00000008 : MSHTML!Ordinal101+0xe9d63
+00000000`04dec4a0 000007fe`ef6f2db0 : 00000000`035a6460 00000000`00000001 00000000`00000001 00000000`000003ea : MSHTML!Ordinal101+0xc4607
+00000000`04dec4d0 000007fe`ef6eaf8c : 00000000`00000000 00000000`04dec840 00000000`0000000d 000007fe`f15f4b80 : MSHTML!Ordinal101+0x9850
+00000000`04dec570 00000000`76ea9bd1 : 00000000`0061005e 00000000`00008002 00000000`00000000 00000000`00000000 : MSHTML!Ordinal101+0x1a2c
+00000000`04dec600 00000000`76ea98da : 00000000`04dec7a0 000007fe`ef6eb030 00000000`00000001 00000000`008873b0 : USER32!TranslateMessageEx+0x2a1
+00000000`04dec6c0 000007fe`f15d3fdb : 00000000`00000000 00000000`00000000 000007fe`ef6eb030 00000000`00000000 : USER32!TranslateMessage+0x1ea
+00000000`04dec740 000007fe`f16ba68b : 000007fe`f24314f0 000007fe`f24314f0 00000000`00000000 00000000`0355bb68 : IEFRAME!Ordinal224+0x2b5b
+00000000`04def9c0 000007fe`fd52fb6f : 00000000`00000002 000007fe`f16ba2d0 00000000`00000000 00000000`0048a8e0 : IEFRAME!IEGetWriteableHKCU+0x89cb
+00000000`04defaf0 000007fe`f250923f : 000007fe`fd52fb50 00000000`00000000 00000000`00000000 00000000`00000000 : iertutil!Ordinal403+0x31f
+00000000`04defb20 00000000`76fa5a4d : 00000000`00000000 00000000`00000000 00000000`00000000 00000000`00000000 : IEShims!IEShims_SetRedirectRegistryForThread+0xa39f
+00000000`04defb70 00000000`770db831 : 00000000`00000000 00000000`00000000 00000000`00000000 00000000`00000000 : kernel32!BaseThreadInitThunk+0xd
+00000000`04defba0 00000000`00000000 : 00000000`00000000 00000000`00000000 00000000`00000000 00000000`00000000 : ntdll!RtlUserThreadStart+0x21
+
+
+SYMBOL_STACK_INDEX:  0
+
+SYMBOL_NAME:  mshtml!Ordinal101+3c4da
+
+FOLLOWUP_NAME:  MachineOwner
+
+IMAGE_NAME:  MSHTML.dll
+
+STACK_COMMAND:  ~11s ; kb
+
+BUCKET_ID:  WRONG_SYMBOLS
+
+FAILURE_BUCKET_ID:  WRONG_SYMBOLS_c0000005_MSHTML.dll!Ordinal101
+
+WATSON_STAGEONE_URL:  http://watson.microsoft.com/StageOne/iexplore_exe/11_0_9600_18015/55cec23b/MSHTML_dll/11_0_9600_18015/55cedef8/c0000005/00045a3a.htm?Retriage=1
+
+Followup: MachineOwner
+---------
+
+Child-SP          RetAddr           Call Site
+00000000`04deadb8 000007fe`f018f1d9 MSHTML!Ordinal101+0x3c4da
+00000000`04deadc0 000007fe`ef846397 MSHTML!CreateCoreWebView+0x427cf9
+00000000`04deadf0 000007fe`ef8443cd MSHTML!Ordinal107+0x71767
+00000000`04deae30 000007fe`ef844333 MSHTML!Ordinal107+0x6f79d
+00000000`04deae70 000007fe`eef99a73 MSHTML!Ordinal107+0x6f703
+00000000`04deaef0 000007fe`eef9e66c jscript9!JsVarToExtension+0x7343
+00000000`04deaf40 000007fe`eef99a73 jscript9!JsVarToExtension+0xbf3c
+00000000`04deafe0 000007fe`ef1d1257 jscript9!JsVarToExtension+0x7343
+00000000`04deb030 000007fe`eef9d520 jscript9!DllCanUnloadNow+0xcb447
+00000000`04deb3d0 00000000`03d30fc3 jscript9!JsVarToExtension+0xadf0
+00000000`04deb5f0 000007fe`eef99a73 0x3d30fc3
+00000000`04deb620 000007fe`eef9952d jscript9!JsVarToExtension+0x7343
+00000000`04deb670 000007fe`eef99742 jscript9!JsVarToExtension+0x6dfd
+00000000`04deb6b0 000007fe`eef99847 jscript9!JsVarToExtension+0x7012
+00000000`04deb790 000007fe`eef9979c jscript9!JsVarToExtension+0x7117
+00000000`04deb7f0 000007fe`ef02e216 jscript9!JsVarToExtension+0x706c
+00000000`04deb880 000007fe`ef02d6dd jscript9!DllGetClassObject+0x7aa86
+00000000`04deb970 000007fe`ef02f3d4 jscript9!DllGetClassObject+0x79f4d
+00000000`04debad0 000007fe`ef9bbdb1 jscript9!DllGetClassObject+0x7bc44
+00000000`04debb80 000007fe`ef88631b MSHTML!Ordinal105+0x589a1
+00000000`04debc00 000007fe`ef885fa1 MSHTML!GetWebPlatformObject+0x32fdb
+00000000`04debcb0 000007fe`ef887381 MSHTML!GetWebPlatformObject+0x32c61
+00000000`04debd90 000007fe`ef886ef2 MSHTML!GetWebPlatformObject+0x34041
+00000000`04debf60 000007fe`ef886b41 MSHTML!GetWebPlatformObject+0x33bb2
+00000000`04dec020 000007fe`effc7a24 MSHTML!GetWebPlatformObject+0x33801
+00000000`04dec060 000007fe`ef769309 MSHTML!CreateCoreWebView+0x260544
+00000000`04dec150 000007fe`ef7ce00f MSHTML!Ordinal101+0x7fda9
+00000000`04dec360 000007fe`ef7cdf58 MSHTML!Ordinal101+0xe4aaf
+00000000`04dec390 000007fe`ef7cf6f3 MSHTML!Ordinal101+0xe49f8
+00000000`04dec410 000007fe`ef7d32c3 MSHTML!Ordinal101+0xe6193
+00000000`04dec450 000007fe`ef7adb67 MSHTML!Ordinal101+0xe9d63
+00000000`04dec4a0 000007fe`ef6f2db0 MSHTML!Ordinal101+0xc4607
+00000000`04dec4d0 000007fe`ef6eaf8c MSHTML!Ordinal101+0x9850
+00000000`04dec570 00000000`76ea9bd1 MSHTML!Ordinal101+0x1a2c
+00000000`04dec600 00000000`76ea98da USER32!TranslateMessageEx+0x2a1
+00000000`04dec6c0 000007fe`f15d3fdb USER32!TranslateMessage+0x1ea
+00000000`04dec740 000007fe`f16ba68b IEFRAME!Ordinal224+0x2b5b
+00000000`04def9c0 000007fe`fd52fb6f IEFRAME!IEGetWriteableHKCU+0x89cb
+00000000`04defaf0 000007fe`f250923f iertutil!Ordinal403+0x31f
+00000000`04defb20 00000000`76fa5a4d IEShims!IEShims_SetRedirectRegistryForThread+0xa39f
+00000000`04defb70 00000000`770db831 kernel32!BaseThreadInitThunk+0xd
+00000000`04defba0 00000000`00000000 ntdll!RtlUserThreadStart+0x21
+quit:

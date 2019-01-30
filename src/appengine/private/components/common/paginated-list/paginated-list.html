@@ -1,0 +1,119 @@
+<!--
+  Copyright 2018 Google LLC
+
+  Licensed under the Apache License, Version 2.0 (the "License");
+  you may not use this file except in compliance with the License.
+  You may obtain a copy of the License at
+
+       http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+-->
+<!--
+  paginated-list shows a list of items with a pagination control. It handles
+  changing pages, back button, and forward button.
+-->
+<link rel="import" href="../../../bower_components/polymer/polymer.html">
+<link rel="import" href="../../../bower_components/paper-button/paper-button.html">
+<link rel="import" href="../../../bower_components/paper-spinner/paper-spinner.html">
+<link rel="import" href="pagination-control-panel.html">
+
+<dom-module id="paginated-list">
+  <script src="query.js"></script>
+  <script src="storage.js"></script>
+  <template>
+    <style>
+      :host {
+        display: block;
+      }
+    </style>
+    <slot></slot>
+    <pagination-control-panel
+        result="[[result]]"
+        loading="[[loading]]"
+        on-page-tapped="pageTapped"></pagination-control-panel>
+  </template>
+  <script>
+    Polymer({
+      is: 'paginated-list',
+      properties: {
+        result: {
+          type: Object,
+          notify: true
+        },
+        params: {
+          type: Object,
+          value: () => { return {}; },
+          notify: true
+        },
+        keys: Array,
+        loading: Boolean,
+      },
+      updateParams() {
+        this.params = query.toObject(query.get(), this.keys);
+      },
+      updateQuery() {
+        let queryString = this.computeQuery();
+        if (queryString != query.get()) {
+          // The below doesn't trigger the event pushstate. Therefore,
+          // it doesn't cause an infinite loop.
+          if (queryString != '') {
+            queryString = '?' + queryString;
+          }
+          window.history.pushState(
+              '', '', window.location.pathname + queryString);
+        }
+      },
+      save() {
+        storage.save(this.computeQuery(), this.result);
+      },
+      computeQuery() {
+        if (this.params.page == '1') {
+          delete this.params.page;
+        }
+        return query.compute(this.params, this.keys);
+      },
+      init() {
+        let self = this;
+        let handleNavigationButton = () => {
+          self.updateParams();
+
+          let result = storage.get(self.computeQuery());
+          if (!!result) {
+            self.result = result;
+          } else {
+            self.changeParams(self.params.page || '1');
+          }
+        };
+
+        // TODO(tanin): It currently doesn't work correctly if user clicks
+        // back from another page (different URL).
+        // However, it works with back/forward buttons within this page.
+        storage.clear();
+        this.save();
+
+        // A test faking a back button.
+        window.addEventListener('fakepopstate', handleNavigationButton);
+        // User pressing the back button.
+        window.addEventListener('popstate', handleNavigationButton);
+        // User pressing the forward button.
+        window.addEventListener('pushstate', handleNavigationButton);
+      },
+      pageTapped(ev) {
+        this.changeParams(ev.detail);
+      },
+      changeParams(page) {
+        this.params.page = ('' + page);
+        this.set('result.page', parseInt(page));
+        this.updateQuery();
+
+        this.fire('params-modified', this.params);
+      },
+    });
+  </script>
+</dom-module>
+

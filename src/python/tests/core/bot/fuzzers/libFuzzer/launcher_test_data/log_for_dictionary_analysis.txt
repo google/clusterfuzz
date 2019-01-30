@@ -1,0 +1,86 @@
+Command: /mnt/scratch0/clusterfuzz/bot/builds/chromium-browser-libfuzzer_linux-release-asan_ae530a86793cd6b8b56ce9af9159ac101396e802/revisions/libfuzzer-linux-release-440717/boringssl_read_pem_fuzzer -max_len=512 -rss_limit_mb=2048 -timeout=25 -artifact_prefix=/mnt/scratch0/clusterfuzz/bot/inputs/fuzzer-testcases/ -max_total_time=2350 -print_final_stats=1 /mnt/scratch0/clusterfuzz/bot/inputs/fuzzer-testcases-disk/temp/new /mnt/scratch0/clusterfuzz/bot/inputs/fuzzers/libfuzzer/libfuzzer_data/boringssl_read_pem_fuzzer
+Bot: clusterfuzz-linux-pre-0288
+Time ran: 2351.079993
+
+INFO: Seed: 2680343045
+INFO: Loaded 0 modules (0 guards):
+Loading corpus dir: /mnt/scratch0/clusterfuzz/bot/inputs/fuzzer-testcases-disk/temp/new
+Loading corpus dir: /mnt/scratch0/clusterfuzz/bot/inputs/fuzzers/libfuzzer/libfuzzer_data/boringssl_read_pem_fuzzer
+#0  READ units: 297
+#297  INITED cov: 323 bits: 417 indir: 23 corp: 141/14618b exec/s: 0 rss: 67Mb
+#131072 pulse  cov: 323 bits: 417 indir: 23 corp: 141/14618b exec/s: 43690 rss: 67Mb
+#262144 pulse  cov: 323 bits: 417 indir: 23 corp: 141/14618b exec/s: 43690 rss: 67Mb
+#524288 pulse  cov: 323 bits: 417 indir: 23 corp: 141/14618b exec/s: 40329 rss: 67Mb
+#1000830  NEW    cov: 323 bits: 419 indir: 23 corp: 142/14986b exec/s: 38493 rss: 67Mb L: 368 MS: 3 ChangeASCIIInt-CMP-ShuffleBytes- DE: "\xff\xff\xff\xff"-
+#1048576  pulse  cov: 323 bits: 419 indir: 23 corp: 142/14986b exec/s: 38836 rss: 67Mb
+#2097152  pulse  cov: 323 bits: 419 indir: 23 corp: 142/14986b exec/s: 38130 rss: 67Mb
+#4194304  pulse  cov: 323 bits: 419 indir: 23 corp: 142/14986b exec/s: 37786 rss: 67Mb
+#8388608  pulse  cov: 323 bits: 419 indir: 23 corp: 142/14986b exec/s: 37617 rss: 67Mb
+#16777216 pulse  cov: 323 bits: 419 indir: 23 corp: 142/14986b exec/s: 37617 rss: 67Mb
+#33554432 pulse  cov: 323 bits: 419 indir: 23 corp: 142/14986b exec/s: 37829 rss: 67Mb
+#67108864 pulse  cov: 323 bits: 419 indir: 23 corp: 142/14986b exec/s: 37282 rss: 67Mb
+#87136372 DONE   cov: 323 bits: 419 indir: 23 corp: 142/14986b exec/s: 37063 rss: 67Mb
+###### Recommended dictionary. ######
+"prin" # Uses: 137816
+"experiment" # Uses: 179221
+"print_final_stat" # Uses: 339784
+"load_coverage_summa" # Uses: 92432
+"\x00\x00\x00\x00" # Uses: 477863
+"use_indir_calls" # Uses: 141355
+"print_final_st" # Uses: 143218
+"\x00\x00" # Uses: 508043
+"print_f" # Uses: 42784
+"artifact_prefix=/mnt/" # Uses: 256828
+"output" # Uses: 343080
+"\x01\x00" # Uses: 56327
+"\xff\xff" # Uses: 95897
+"timeout_exitcode" # Uses: 112239
+"seed" # Uses: 514156
+"jobs" # Uses: 523096
+"print_fina" # Uses: 79718
+"load_coverage_summary" # Uses: 288048
+"shuffle" # Uses: 353716
+"\x00\x00\x00\x00\x00\x00\x00\x00" # Uses: 130722
+"save_coverage_summa" # Uses: 254865
+"\x01\x00\x00\x00" # Uses: 414966
+"flagfi" # Uses: 311689
+"rss_limit_mb" # Uses: 356993
+"dump_coverage" # Uses: 31851
+"handle_abrt" # Uses: 12084
+"artifact_prefix" # Uses: 353713
+"print_final_stats=1" # Uses: 276900
+"merge_control_file" # Uses: 424566
+"print_final_sta" # Uses: 233558
+"trace_malloc" # Uses: 478145
+"print_final_stats=" # Uses: 303389
+"dict" # Uses: 37806
+"prefer_small" # Uses: 567704
+"close_fd_mask" # Uses: 193179
+"output_csv" # Uses: 4015
+"\xff\xff\xff\xff\xff\xff\xff\xff" # Uses: 296188
+"report_slow_units" # Uses: 226598
+"rss_limit_m" # Uses: 69428
+"print_final_" # Uses: 507123
+"use_counters" # Uses: 410805
+"\xff\xff\xff\xff" # Uses: 265256
+"handle_segv" # Uses: 369539
+"rss_limit_mb=" # Uses: 304721
+"exact_artifact_path" # Uses: 15953
+"print_final_stats" # Uses: 20811
+"minimize_crash" # Uses: 25484
+"rss_limit_mb=2048" # Uses: 453139
+"print_fin" # Uses: 569532
+"workers" # Uses: 496898
+"use_value_profile" # Uses: 520033
+"\x01\x00\x00\x00\x00\x00\x00\x00" # Uses: 129750
+"print_pcs" # Uses: 222368
+"timeout=25" # Uses: 480912
+"print_corpus_stat" # Uses: 428870
+"use_cmp" # Uses: 464786
+###### End of recommended dictionary. ######
+Done 87136372 runs in 2351 second(s)
+stat::number_of_executed_units: 87136372
+stat::average_exec_per_sec:     37063
+stat::new_units_added:          1
+stat::slowest_unit_time_sec:    0
+stat::peak_rss_mb:              67

@@ -1,0 +1,195 @@
+# Copyright 2018 Google LLC
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+imports:
+  - path: engine_stats.jinja
+
+resources:
+  - name: libFuzzer
+    type: engine_stats.jinja
+  - name: afl
+    type: engine_stats.jinja
+  - name: main-dataset
+    type: gcp-types/bigquery-v2:datasets
+    properties:
+      datasetReference:
+        datasetId: main
+  - name: crashes-table
+    type: gcp-types/bigquery-v2:tables
+    properties:
+      datasetId: $(ref.main-dataset.datasetReference.datasetId)
+      tableReference:
+        tableId: crashes
+      timePartitioning:
+        type: DAY
+      schema:
+        fields:
+          - mode: REQUIRED
+            name: crash_type
+            type: STRING
+          - mode: REQUIRED
+            name: crash_state
+            type: STRING
+          - mode: REQUIRED
+            name: created_at
+            type: TIMESTAMP
+          - mode: REQUIRED
+            name: platform
+            type: STRING
+          - mode: REQUIRED
+            name: crash_time_in_ms
+            type: INTEGER
+          - mode: REQUIRED
+            name: parent_fuzzer_name
+            type: STRING
+            description: The fuzzing engine name. e.g. libFuzzer or afl.
+          - mode: REQUIRED
+            name: fuzzer_name
+            type: STRING
+          - mode: REQUIRED
+            name: job_type
+            type: STRING
+          - mode: REQUIRED
+            name: security_flag
+            type: BOOLEAN
+          - mode: REQUIRED
+            name: reproducible_flag
+            description: Whether or not the crash is consistently reproducible.
+            type: BOOLEAN
+          - mode: REQUIRED
+            name: revision
+            type: STRING
+          - mode: REQUIRED
+            name: new_flag
+            description: Whether or not this crash should create a new testcase.
+            type: BOOLEAN
+          - mode: NULLABLE
+            name: is_custom_binary
+            type: BOOLEAN
+          - mode: NULLABLE
+            name: project
+            type: STRING
+          - mode: NULLABLE
+            name: testcase_id
+            type: STRING
+  - name: crash-stats-table
+    type: gcp-types/bigquery-v2:tables
+    properties:
+      datasetId: $(ref.main-dataset.datasetReference.datasetId)
+      tableReference:
+        tableId: crash_stats
+      timePartitioning:
+        type: DAY
+      schema:
+        fields:
+          - name: count
+            type: INTEGER
+          - name: crash_type
+            type: STRING
+          - name: crash_state
+            type: STRING
+          - name: security_flag
+            type: BOOLEAN
+          - name: parent_fuzzer_name
+            type: STRING
+            description: The fuzzing engine name. e.g. libFuzzer or afl.
+          - name: fuzzer_name
+            type: STRING
+          - name: job_type
+            type: STRING
+          - name: revision
+            type: STRING
+          - name: parent_platform
+            type: STRING
+          - name: platform
+            type: STRING
+          - name: project
+            type: STRING
+          - name: reproducible_flag
+            type: BOOLEAN
+            description: Whether or not the crash is consistently reproducible.
+          - name: hour
+            type: INTEGER
+          - name: min_crash_time_in_ms
+            type: INTEGER
+          - name: max_crash_time_in_ms
+            type: INTEGER
+          - name: sum_crash_time_in_ms
+            type: INTEGER
+          - name: sum_square_crash_time_in_ms
+            type: INTEGER
+          - name: new_flag
+            type: BOOLEAN
+            description: Whether or not this crash should create a new testcase.
+  - name: fixed-table
+    type: gcp-types/bigquery-v2:tables
+    properties:
+      datasetId: $(ref.main-dataset.datasetReference.datasetId)
+      tableReference:
+        tableId: fixeds
+      timePartitioning:
+        type: DAY
+      schema:
+        fields:
+          - name: testcase_id
+            type: STRING
+          - name: crash_type
+            type: STRING
+          - name: crash_state
+            type: STRING
+          - name: security_flag
+            type: BOOLEAN
+          - name: parent_fuzzer_name
+            type: STRING
+            description: The fuzzing engine name. e.g. libFuzzer or afl.
+          - name: fuzzer_name
+            type: STRING
+          - name: job_type
+            type: STRING
+          - name: created_at
+            type: INTEGER
+          - name: fixed_range_start
+            type: INTEGER
+          - name: fixed_range_end
+            type: INTEGER
+  - name: regressions-table
+    type: gcp-types/bigquery-v2:tables
+    properties:
+      datasetId: $(ref.main-dataset.datasetReference.datasetId)
+      tableReference:
+        tableId: regressions
+      timePartitioning:
+        type: DAY
+      schema:
+        fields:
+          - name: testcase_id
+            type: STRING
+          - name: crash_type
+            type: STRING
+          - name: crash_state
+            type: STRING
+          - name: security_flag
+            type: BOOLEAN
+          - name: parent_fuzzer_name
+            type: STRING
+            description: The fuzzing engine name. e.g. libFuzzer or afl.
+          - name: fuzzer_name
+            type: STRING
+          - name: job_type
+            type: STRING
+          - name: created_at
+            type: INTEGER
+          - name: regression_range_start
+            type: INTEGER
+          - name: regression_range_end
+            type: INTEGER

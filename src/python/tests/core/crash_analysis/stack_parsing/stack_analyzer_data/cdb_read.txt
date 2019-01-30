@@ -1,0 +1,113 @@
+(14a8.c04): Access violation - code c0000005 (!!! second chance !!!)
+ERROR: FindPlugIns 80070005
+ERROR: Some plugins may not be available [80070005]
+*******************************************************************************
+*                                                                             *
+*                        Exception Analysis                                   *
+*                                                                             *
+*******************************************************************************
+
+
+FAULTING_IP:
+ConsoleApplication2!crash+1e
+00fd13de a100000000      mov     eax,dword ptr ds:[00000000h]
+
+EXCEPTION_RECORD:  ffffffffffffffff -- (.exr 0xffffffffffffffff)
+ExceptionAddress: 0000000000fd13de (ConsoleApplication2!crash+0x000000000000001e
+)
+   ExceptionCode: c0000005 (Access violation)
+  ExceptionFlags: 00000000
+NumberParameters: 2
+   Parameter[0]: 0000000000000000
+   Parameter[1]: 0000000000000000
+Attempt to read from address 0000000000000000
+
+FAULTING_THREAD:  0000000000000c04
+
+PROCESS_NAME:  ConsoleApplication2.exe
+
+ERROR_CODE: (NTSTATUS) 0xc0000005 - The instruction at 0x%08lx referenced memory
+ at 0x%08lx. The memory could not be %s.
+
+EXCEPTION_CODE: (NTSTATUS) 0xc0000005 - The instruction at 0x%08lx referenced me
+mory at 0x%08lx. The memory could not be %s.
+
+EXCEPTION_PARAMETER1:  0000000000000000
+
+EXCEPTION_PARAMETER2:  0000000000000000
+
+READ_ADDRESS:  0000000000000000
+
+FOLLOWUP_IP:
+ConsoleApplication2!crash+1e
+00fd13de a100000000      mov     eax,dword ptr ds:[00000000h]
+
+NTGLOBALFLAG:  70
+
+APPLICATION_VERIFIER_FLAGS:  0
+
+APP:  consoleapplication2.exe
+
+BUGCHECK_STR:  APPLICATION_FAULT_NULL_POINTER_READ_ZEROED_STACK
+
+PRIMARY_PROBLEM_CLASS:  NULL_POINTER_READ
+
+DEFAULT_BUCKET_ID:  NULL_POINTER_READ
+
+LAST_CONTROL_TRANSFER:  from 0000000000fd1423 to 0000000000fd13de
+
+STACK_TEXT:
+002df7e4 00fd1423 00fd1078 00fd1078 7f956000 ConsoleApplication2!crash+0x1e
+002df8b8 00fd1969 00000001 00328df8 0032e9c0 ConsoleApplication2!wmain+0x23
+002df908 00fd1b5d 002df924 766b7c04 7f956000 ConsoleApplication2!__tmainCRTStart
+up+0x199
+002df910 766b7c04 7f956000 766b7be0 70f6b3dc ConsoleApplication2!wmainCRTStartup
++0xd
+002df924 770bad1f 7f956000 719abd8a 00000000 KERNEL32!BaseThreadInitThunk+0x24
+002df96c 770bacea ffffffff 770a024a 00000000 ntdll_77060000!__RtlUserThreadStart
++0x2f
+002df97c 00000000 00fd1078 7f956000 00000000 ntdll_77060000!_RtlUserThreadStart+
+0x1b
+
+
+FAULTING_SOURCE_LINE:  c:\users\mbarbella\documents\visual studio 2013\projects\
+consoleapplication2\consoleapplication2\consoleapplication2.cpp
+
+FAULTING_SOURCE_FILE:  c:\users\mbarbella\documents\visual studio 2013\projects\
+consoleapplication2\consoleapplication2\consoleapplication2.cpp
+
+FAULTING_SOURCE_LINE_NUMBER:  8
+
+SYMBOL_STACK_INDEX:  0
+
+SYMBOL_NAME:  consoleapplication2!crash+1e
+
+FOLLOWUP_NAME:  MachineOwner
+
+MODULE_NAME: ConsoleApplication2
+
+IMAGE_NAME:  ConsoleApplication2.exe
+
+DEBUG_FLR_IMAGE_TIMESTAMP:  55e9df5c
+
+STACK_COMMAND:  ~0s ; kb
+
+FAILURE_BUCKET_ID:  NULL_POINTER_READ_c0000005_ConsoleApplication2.exe!crash
+
+BUCKET_ID:  APPLICATION_FAULT_NULL_POINTER_READ_ZEROED_STACK_consoleapplication2
+!crash+1e
+
+Followup: MachineOwner
+---------
+
+ChildEBP RetAddr
+002df7e4 00fd1423 ConsoleApplication2!crash+0x1e
+002df7e4 00fd1433 ConsoleApplication2!ggg+0x1f
+002df7e4 00fd1443 ConsoleApplication2!fff+0x1c
+002df8b8 00fd1969 ConsoleApplication2!wmain+0x23
+002df908 00fd1b5d ConsoleApplication2!__tmainCRTStartup+0x199
+002df910 766b7c04 ConsoleApplication2!wmainCRTStartup+0xd
+002df924 770bad1f KERNEL32!BaseThreadInitThunk+0x24
+002df96c 770bacea ntdll_77060000!__RtlUserThreadStart+0x2f
+002df97c 00000000 ntdll_77060000!_RtlUserThreadStart+0x1b
+quit:

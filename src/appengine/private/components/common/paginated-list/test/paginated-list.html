@@ -1,0 +1,114 @@
+<!--
+  Copyright 2018 Google LLC
+
+  Licensed under the Apache License, Version 2.0 (the "License");
+  you may not use this file except in compliance with the License.
+  You may obtain a copy of the License at
+
+       http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+-->
+<html>
+<head>
+  <script src="../../../../bower_components/iron-test-helpers/mock-interactions.js"></script>
+  <script src="../../../../bower_components/web-component-tester/browser.js"></script>
+  <script src="../../../../bower_components/webcomponentsjs/webcomponents-lite.js"></script>
+  <script src="../../../../javascripts/test-helpers.js"></script>
+
+  <link rel="import" href="../paginated-list.html">
+</head>
+<body>
+  <test-fixture id="panel">
+    <template>
+      <paginated-list></paginated-list>
+    </template>
+  </test-fixture>
+  <script>
+    suite2('<paginated-list>', ($) => {
+      setup(() => {
+        window.storage.clear();
+        sinon.spy(window.history, 'pushState');
+        sinon.stub(window.query, 'get');
+        sinon.spy($.panel, 'fire');
+        $.panel.keys = ['page', 'test'];
+      });
+
+      teardown(() => {
+        window.history.pushState.restore();
+        window.query.get.restore();
+        $.panel.fire.restore();
+      });
+
+      test2(
+        'Use back button and restore from cache',
+        () => {
+          window.query.get.returns('page=1');
+          $.panel.init();
+          $.panel.result = {page: 1, data: 'aa'};
+          $.panel.save();
+
+          window.query.get.returns('page=2');
+          $.panel.updateParams();
+          $.panel.result = {page: 2, data: 'bb'};
+          $.panel.save();
+
+          window.query.get.returns('page=1');
+          window.dispatchEvent(new CustomEvent('fakepopstate'));
+        },
+        () => {
+          expect($.panel.result).to.eql({page: 1, data: 'aa'});
+          expect($.panel.params).to.eql({});
+          $.panel.fire.calledWith('params-modified', sinon.match.any);
+        }
+      );
+
+      test2(
+        'Use back button and fail to restore from cache',
+        () => {
+          window.query.get.returns('page=1');
+          $.panel.init();
+          $.panel.result = {page: 1, data: 'aa'};
+          $.panel.save();
+
+          window.query.get.returns('page=2');
+          $.panel.updateParams();
+          $.panel.result = {page: 2, data: 'bb'};
+          $.panel.save();
+
+          window.query.get.returns('page=3');
+          window.dispatchEvent(new CustomEvent('fakepopstate'));
+        },
+        () => {
+          expect($.panel.result).to.eql({page: 3, data: 'bb'});
+          expect($.panel.params).to.eql({page: '3'});
+          $.panel.fire.calledWithExactly(
+              'params-modified', {page: '3', test: ''});
+        }
+      );
+
+      test2(
+        'Change page',
+        () => {
+          window.query.get.returns('page=1');
+          $.panel.init();
+          $.panel.result = {page: 1, data: 'aa'};
+          $.panel.pageTapped({detail: 4});
+
+          expect($.panel.params).to.eql({page: '4'});
+          expect($.panel.result).to.eql({page: 4, data: 'aa'});
+          expect(window.history.pushState.args).to.eql(
+              [['', '', window.location.pathname + '?page=4']]);
+          $.panel.fire.calledWithExactly(
+              'params-modified', {page: '4'});
+        }
+      );
+    });
+  </script>
+</body>
+</html>
+

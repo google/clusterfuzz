@@ -1,0 +1,36 @@
+--------- AMessage (11271):
+failed to post message as target looper for handler 0 is gone.
+--------- GceGrallocRegionRegistry (1236):
+Mapped gralloc-1236.1286 hnd=0xb0e3c1b0 fd=40 base=0xb55c0000 format=YV12(0x32315659) width=176 height=144
+--------- GceGrallocRegionRegistry (11271):
+Mapped gralloc-1236.1286 hnd=0xb1003230 fd=14 base=0xb1ed4000 format=YV12(0x32315659) width=176 height=144
+--------- GceGrallocRegionRegistry (1236):
+Mapped gralloc-1236.1287 hnd=0xb0e3c2d0 fd=41 base=0xb3f96000 format=YV12(0x32315659) width=176 height=144
+--------- GceGrallocRegionRegistry (11271):
+Mapped gralloc-1236.1287 hnd=0xb2454ae0 fd=18 base=0xb1ec9000 format=YV12(0x32315659) width=176 height=144
+--------- libc (1236):
+Fatal signal 11 (SIGSEGV), code 2, fault addr 0xb6e43000 in tid 1544 (surfaceflinger)
+Fatal signal 11 (SIGSEGV), code 2, fault addr 0xb6e43800 in tid 1543 (surfaceflinger)
+Another thread contacted debuggerd first; not contacting debuggerd.
+--------- DEBUG (1239):
+*** *** *** *** *** *** *** *** *** *** *** *** *** *** *** ***
+Build fingerprint: generic/gce_x86_phone/gce_x86:6.0.1/MMB30D.MZC89/2724882:userdebug/test-keys
+Revision: 0
+ABI: x86
+--------- NativeCrashListener (1568):
+Couldnt find ProcessRecord for pid 1236
+--------- DEBUG (1239):
+pid: 1236, tid: 1544, name: surfaceflinger  >>> /system/bin/surfaceflinger <<<
+signal 11 (SIGSEGV), code 2 (SEGV_ACCERR), fault addr 0xb6e43000
+AM write failed: Broken pipe
+    eax 0009f400  ebx 0000000f  ecx b4b02010  edx b3b6a810
+    esi b6bc6000  edi b4480010
+    xcs 00000073  xds 0000007b  xes 0000007b  xfs 00000000  xss 0000007b
+    eip b472a333  ebp 00000120  esp b40bd5d0  flags 00010206
+
+backtrace:
+    #0 0x00000333 in
+
+Tombstone written to: /data/tombstones/tombstone_01
+--------- BootReceiver (1568):
+Copying /data/tombstones/tombstone_01 to DropBox (SYSTEM_TOMBSTONE)

@@ -1,0 +1,37 @@
+python  /mnt/scratch0/clusterfuzz/bot/inputs/fuzzers/afl/launcher.py /mnt/scratch0/clusterfuzz/bot/inputs/fuzzer-testcases/fuzz-0-skia_path_fuzzer skia_path_fuzzer /mnt/scratch0/clusterfuzz/bot/inputs/fuzzer-common-data-bundles/skia_path_fuzzer
+
+[Crash Revision] r406205
+[Environment] ASAN_OPTIONS = redzone=16:symbolize=0:detect_stack_use_after_return=1:alloc_dealloc_mismatch=0:detect_leaks=1:print_scariness=1:check_malloc_usable_size=0:max_uar_stack_size_log=16:use_sigaltstack=1:strict_memcmp=0:detect_container_overflow=1:coverage=0:detect_odr_violation=0:allocator_may_return_null=1:handle_segv=1:fast_unwind_on_fatal=1
+[Environment] LSAN_OPTIONS = suppressions=/mnt/scratch0/clusterfuzz/scripts/suppressions/lsan_suppressions.txt
+
+Command: [/mnt/scratch0/clusterfuzz/bot/builds/chromium-browser-afl_linux-release-asan_ea2fe5dc76ad0840fb2bae7b6047f82cd9605438/revisions/afl-linux-release-406205/afl-fuzz, -d, -i/mnt/scratch0/clusterfuzz/bot/inputs/fuzzer-common-data-bundles/skia_path_fuzzer, -o/mnt/scratch0/clusterfuzz/bot/inputs/fuzzer-testcases-disk/temp/output, -mnone, /mnt/scratch0/clusterfuzz/bot/builds/chromium-browser-afl_linux-release-asan_ea2fe5dc76ad0840fb2bae7b6047f82cd9605438/revisions/afl-linux-release-406205/skia_path_fuzzer, 2147483647]
+Bot: clusterfuzz-linux-pre-0424
+Time ran: 146.950697899
+minimizing corpus
+{afl_version: 2.14, unique_crashes: 1, cur_path: 242, slowest_unit_time_sec: 0, last_path: 1468919773, paths_found: 1, variable_paths: 0, paths_imported: 0, exec_timeout: 260, last_update: 1468919794, last_hang: 1468919793, cycles_done: 0, peak_rss_mb: 19, last_crash: 1468919794, execs_done: 513337, start_time: 1468919649, unique_hangs: 1, fuzzer_pid: 21229, bitmap_cvg: 6.26, paths_total: 4174, pending_favs: 358, max_depth: 2, paths_favored: 369, execs_per_sec: 4766.17, pending_total: 4160}
+STATS:
+Average exec/sec 3493.26
+Unique Hangs 1
+Peak RSS (MB) 19
+Testcases executed 513337
+Slowest unit time (secs) 0
+New units added 9
+=================================================================
+==21249==ERROR: AddressSanitizer: heap-buffer-overflow on address 0x60e000248c94 at pc 0x000000680569 bp 0x7ffcbad15680 sp 0x7ffcbad15678
+READ of size 2 at 0x60e000248c94 thread T0
+SCARINESS: 24 (2-byte-read-heap-buffer-overflow-far-from-bounds)
+    #0 0x680568 in Break third_party/skia/src/core/SkAntiRun.h:144:21
+    #1 0x680568 in add third_party/skia/src/core/SkAntiRun.h:77
+    #2 0x680568 in SuperBlitter::blitH(int, int, int) third_party/skia/src/core/SkScan_AntiPath.cpp:247
+    #3 0x696da8 in walk_edges third_party/skia/src/core/SkScan_Path.cpp:207:26
+    #4 0x696da8 in sk_fill_path(SkPath const&, SkIRect const*, SkBlitter*, int, int, int, SkRegion const&) third_party/skia/src/core/SkScan_Path.cpp:514
+    #5 0x68371a in SkScan::AntiFillPath(SkPath const&, SkRegion const&, SkBlitter*, bool) third_party/skia/src/core/SkScan_AntiPath.cpp:722:9
+    #6 0x684077 in SkScan::AntiFillPath(SkPath const&, SkRasterClip const&, SkBlitter*) third_party/skia/src/core/SkScan_AntiPath.cpp:759:9
+    #7 0x57a5ff in SkDraw::drawDevPath(SkPath const&, SkPaint const&, bool, SkBlitter*, bool) const third_party/skia/src/core/SkDraw.cpp:1098:5
+    #8 0x57b002 in SkDraw::drawPath(SkPath const&, SkPaint const&, SkMatrix const*, bool, bool, SkBlitter*) const third_party/skia/src/core/SkDraw.cpp:1191:11
+    #9 0x9770f1 in drawPath third_party/skia/include/core/SkDraw.h:54:15
+    #10 0x9770f1 in SkBitmapDevice::drawPath(SkDraw const&, SkPath const&, SkPaint const&, SkMatrix const*, bool) third_party/skia/src/core/SkBitmapDevice.cpp:236
+    #11 0x552437 in SkCanvas::onDrawPath(SkPath const&, SkPaint const&) third_party/skia/src/core/SkCanvas.cpp:2269:23
+    #12 0x4edce1 in LLVMFuzzerTestOneInput testing/libfuzzer/fuzzers/skia_path_fuzzer.cc:62:25
+    #13 0x4ee568 in main third_party/libFuzzer/src/afl/afl_driver.cpp:273:7
+    #14 0x7faa1ba73f44 in __libc_start_main /build/eglibc-oGUzwX/eglibc-2.19/csu/libc-start.c:287

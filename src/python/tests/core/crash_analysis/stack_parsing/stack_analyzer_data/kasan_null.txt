@@ -1,0 +1,50 @@
+==================================================================
+BUG: KASAN: user-memory-access on address 0000000000000040
+Write of size 4 by task crash/2525
+CPU: 3 PID: 2525 Comm: crash Tainted: G    BU         3.18.0 #52
+Hardware name: Google Tegra210 Smaug Rev 1,3+ (DT)
+Call trace:
+[<ffffffc0002099e8>] dump_backtrace+0x0/0x148 arch/arm64/kernel/traps.c:90
+[<ffffffc000209b40>] show_stack+0x10/0x1c arch/arm64/kernel/traps.c:171
+[<     inline     >] __dump_stack lib/dump_stack.c:15
+[<ffffffc000e85bfc>] dump_stack+0x74/0xc8 lib/dump_stack.c:50
+[<ffffffc000364ae8>] kasan_report_user_access+0x80/0xa8 mm/kasan/report.c:209
+[<     inline     >] check_memory_region mm/kasan/kasan.c:248
+[<ffffffc000363ff4>] __asan_store4+0x34/0xa0 mm/kasan/kasan.c:490
+[<ffffffc000bd5760>] snd_seq_fifo_clear+0x20/0xec sound/core/seq/seq_fifo.c:96
+[<ffffffc000bcee90>] snd_seq_ioctl_remove_events+0x90/0xc4 sound/core/seq/seq_clientmgr.c:1966
+[<ffffffc000bce36c>] snd_seq_do_ioctl+0x100/0x124 sound/core/seq/seq_clientmgr.c:2209
+[<ffffffc000bce3c8>] snd_seq_ioctl+0x38/0x4c sound/core/seq/seq_clientmgr.c:2224
+[<     inline     >] vfs_ioctl fs/ioctl.c:43
+[<ffffffc000382334>] do_vfs_ioctl+0x600/0x714 fs/ioctl.c:598
+[<     inline     >] SYSC_ioctl fs/ioctl.c:613
+[<ffffffc0003824a4>] SyS_ioctl+0x5c/0x88 fs/ioctl.c:604
+==================================================================
+
+==================================================================
+Unable to handle kernel NULL pointer dereference at virtual address 00000040
+pgd = ffffffc01c492000
+[00000040] *pgd=000000011aa27003, *pud=000000011aa27003, *pmd=0000000000000000
+Internal error: Oops: 96000046 [#1] PREEMPT SMP
+CPU: 3 PID: 2525 Comm: crash Tainted: G    BU         3.18.0 #52
+Hardware name: Google Tegra210 Smaug Rev 1,3+ (DT)
+task: ffffffc015800000 ti: ffffffc0805a0000 task.ti: ffffffc0805a0000
+PC is at[<      none      >] snd_seq_fifo_clear+0x24/0xec sound/core/seq/seq_fifo.c:101
+LR is at[<      none      >] snd_seq_fifo_clear+0x24/0xec sound/core/seq/seq_fifo.c:101
+pc : [<ffffffc000bd5764>] lr : [<ffffffc000bd5764>] pstate: 20000145
+sp : ffffffc0805a3cc0
+x29: ffffffc0805a3cc0 x28: ffffffc0805a0000
+x27: ffffffc001635000 x26: 000000000000001d
+x25: 0000000000000119 x24: 0000000000000003
+x23: 0000000000000003 x22: 000000004040534e
+x21: ffffffc05b816000 x20: 00000000fffffff2
+x19: 0000000000000000 x18: 0000007fa9e88458
+x17: 0000007faa0108e4 x16: ffffffc000382448
+x15: 0000007ff5ada3c8 x14: 3d3d3d3d3d3d3d3d
+x13: 3d3d3d3d3d3d3d3d x12: 3d3d3d3d3d3d3d3d
+x11: 3d3d3d3d3d3d3d3d x10: 0000000000000000
+x9 : ffffffc0805a3a10 x8 : ffffffc015800650
+x7 : ffffff8802b008e1 x6 : 000000000000000e
+x5 : 0000000000000000 x4 : ffffff88100b4000
+x3 : ffffffc000e89cc4 x2 : dfffff9000000000
+x1 : 0000000000000000 x0 : 0000000000000001

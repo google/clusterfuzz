@@ -1,0 +1,89 @@
+<!--
+  Copyright 2018 Google LLC
+
+  Licensed under the Apache License, Version 2.0 (the "License");
+  you may not use this file except in compliance with the License.
+  You may obtain a copy of the License at
+
+       http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+-->
+<html>
+<head>
+  <script src="../../../bower_components/iron-test-helpers/mock-interactions.js"></script>
+  <script src="../../../bower_components/web-component-tester/browser.js"></script>
+  <sript src="../../../bower_components/webcomponentsjs/webcomponents-lite.js"></script>
+
+  <script src="../../../javascripts/test-helpers.js"></script>
+
+  <link rel="import" href="../redo-dialog.html">
+</head>
+<body>
+  <test-fixture id="panel">
+    <template>
+      <redo-dialog></redo-dialog>
+    </template>
+  </test-fixture>
+  <script>
+    suite2('<redo-dialog>', ($) =>{
+      const response =  JSON.stringify({
+        testcase: {id: 123}
+      });
+      const testFlow = (name, task, resp, expectFn) => {
+        test2(
+            name,
+            noop,
+            () => {
+              $.server.respondWith('POST', '/testcase-detail/redo', resp);
+
+              expect($.select('ajax-dialog').opened).to.be.false;
+              $.panel.opened = true;
+              expect($.select('ajax-dialog').opened).to.be.true;
+
+              $.tap(`paper-checkbox.${task}-checkbox`);
+              $.select('ajax-dialog').submit();
+            },
+            () => {
+              const request = $.select('ajax-dialog').activeRequests[0];
+              expect(request.url).to.be.eql('/testcase-detail/redo');
+
+              $.server.respond();
+              return request.completes;
+            },
+            expectFn
+        );
+      };
+
+      setup(() => {
+        $.panel.info = {
+          testcase: {
+            id: '123'
+          },
+          show_blame: true,
+          show_impact: true,
+          footer: ''
+        };
+      });
+
+      ['minimize', 'regression', 'impact', 'blame', 'progression'].forEach(
+          (task) => {
+            testFlow(
+                `Redo ${task}`,
+                task,
+                response,
+                () => {
+                  expect($.select('ajax-dialog').opened).to.be.false;
+                }
+            );
+          }
+      );
+    });
+  </script>
+</body>
+</html>
+

@@ -1,0 +1,280 @@
+--------- chromium (30391):
+[INFO:CONSOLE(6958)] "Failed to set the currentTime property on HTMLMediaElement: The provided double value is non-finite.", source: file:///sdcard/fuzzer-testcases/fuzz-flicker-cfdependency-psshtest1438965631.66.mp4.html (6958)
+[INFO:CONSOLE(6958)] "Failed to set the volume property on HTMLMediaElement: The volume provided (23701.9) is outside the range [0, 1].", source: file:///sdcard/fuzzer-testcases/fuzz-flicker-cfdependency-psshtest1438965631.66.mp4.html (6958)
+[INFO:CONSOLE(6958)] "Failed to set the currentTime property on HTMLMediaElement: The provided double value is non-finite.", source: file:///sdcard/fuzzer-testcases/fuzz-flicker-cfdependency-psshtest1438965631.66.mp4.html (6958)
+[INFO:CONSOLE(6958)] "Failed to execute end on TimeRanges: The index provided (18895) is greater than the maximum bound (0).", source: file:///sdcard/fuzzer-testcases/fuzz-flicker-cfdependency-psshtest1438965631.66.mp4.html (6958)
+[INFO:CONSOLE(6958)] "Failed to execute start on TimeRanges: The index provided (62) is greater than the maximum bound (1).", source: file:///sdcard/fuzzer-testcases/fuzz-flicker-cfdependency-psshtest1438965631.66.mp4.html (6958)
+[INFO:CONSOLE(6958)] "Failed to execute start on TimeRanges: The index provided (63893) is greater than the maximum bound (0).", source: file:///sdcard/fuzzer-testcases/fuzz-flicker-cfdependency-psshtest1438965631.66.mp4.html (6958)
+--------- MediaFocusControl (2803):
+ AudioFocus  requestAudioFocus() from android.media.AudioManager@fe69bd3org.chromium.media.MediaPlayerListener@c28322b req=3flags=0x0
+--------- chromium (30391):
+[INFO:CONSOLE(6958)] "Failed to execute end on TimeRanges: The index provided (23) is greater than the maximum bound (1).", source: file:///sdcard/fuzzer-testcases/fuzz-flicker-cfdependency-psshtest1438965631.66.mp4.html (6958)
+--------- GenericSource (29901):
+start
+frameworks/av/media/libstagefright/MPEG4Extractor.cpp:3600 CHECK(mFormat->findInt32(kKeyCryptoDefaultIVSize, &ivlength)) failed.
+Fatal signal 6 (SIGABRT), code -6 in tid 30679 (generic)
+--------- DEBUG (10057):
+*** *** *** *** *** *** *** *** *** *** *** *** *** *** *** ***
+Build fingerprint: google/razor/flo:6.0/MRA37C/2145366:userdebug/dev-keys
+Revision: 0
+ABI: arm
+--------- NativeCrashListener (2803):
+Couldnt find ProcessRecord for pid 29901
+--------- DEBUG (10057):
+pid: 29901, tid: 30679, name: generic  >>> /system/bin/mediaserver <<<
+AM write failed: Broken pipe
+signal 6 (SIGABRT), code -6 (SI_TKILL), fault addr --------
+Abort message: frameworks/av/media/libstagefright/MPEG4Extractor.cpp:3600 CHECK(mFormat->findInt32(kKeyCryptoDefaultIVSize, &ivlength)) failed.
+    r0 00000000  r1 000077d7  r2 00000006  r3 aec2e978
+    r4 aec2e980  r5 aec2e930  r6 00000009  r7 0000010c
+    r8 00000000  r9 00000000  sl aec2e460  fp b3b17c00
+    ip 00000006  sp aec2dfc8  lr b6a5dae9  pc b6a5f208  cpsr 400f0010
+
+backtrace:
+    #0 0x00041208 in tgkill /bionic/libc/arch-arm/syscalls/tgkill.S:9
+    #1 0x0003fae5 in pthread_kill /bionic/libc/bionic/pthread_kill.cpp:45
+    #2 0x0001c30f in raise /bionic/libc/bionic/raise.cpp:34
+    #3 0x000194c1 in __libc_android_abort /bionic/libc/bionic/abort.cpp:47
+    #4 0x000174ac in abort /bionic/libc/arch-arm/bionic/abort_arm.S:43
+    #5 0x0000860b in __android_log_assert /system/core/liblog/logd_write.c:459
+    #6 0x000947b5 in android::MPEG4Source::parseSampleAuxiliaryInformationOffsets(long long, long long) /frameworks/av/media/libstagefright/MPEG4Extractor.cpp:3600:5
+    #7 0x000939fb in android::MPEG4Source::parseChunk(long long*) /frameworks/av/media/libstagefright/MPEG4Extractor.cpp:3462:24
+    #8 0x00093ab1 in android::MPEG4Source::parseChunk(long long*) /frameworks/av/media/libstagefright/MPEG4Extractor.cpp:3407:32
+    #9 0x00093ab1 in android::MPEG4Source::parseChunk(long long*) /frameworks/av/media/libstagefright/MPEG4Extractor.cpp:3407:32
+    #10 0x000951cb in android::MPEG4Source::fragmentedRead(android::MediaBuffer**, android::MediaSource::ReadOptions const*) /frameworks/av/media/libstagefright/MPEG4Extractor.cpp:4265:13
+    #11 0x000948b1 in android::MPEG4Source::read(android::MediaBuffer**, android::MediaSource::ReadOptions const*) /frameworks/av/media/libstagefright/MPEG4Extractor.cpp:3947:16
+    #12 0x00066471 in android::NuPlayer::GenericSource::readBuffer(android::media_track_type, long long, long long*, bool) /frameworks/av/media/libmediaplayerservice/nuplayer/GenericSource.cpp:1508:24
+    #13 0x00067583 in android::NuPlayer::GenericSource::doSeek(long long) /frameworks/av/media/libmediaplayerservice/nuplayer/GenericSource.cpp:1316:9
+    #14 0x00066905 in android::NuPlayer::GenericSource::onSeek(android::sp<android::AMessage>) /frameworks/av/media/libmediaplayerservice/nuplayer/GenericSource.cpp:1300:20
+    #15 0x00065ef7 in android::NuPlayer::GenericSource::onMessageReceived(android::sp<android::AMessage> const&) /frameworks/av/media/libmediaplayerservice/nuplayer/GenericSource.cpp:839:11
+    #16 0x0000b2c9 in android::AHandler::deliverMessage(android::sp<android::AMessage> const&) /frameworks/av/media/libstagefright/foundation/AHandler.cpp:27:5
+    #17 0x0000d253 in android::AMessage::deliver() /frameworks/av/media/libstagefright/foundation/AMessage.cpp:354:5
+    #18 0x0000bcb7 in android::ALooper::loop() /frameworks/av/media/libstagefright/foundation/ALooper.cpp:216:5
+    #19 0x00010041 in android::Thread::_threadLoop(void*) /system/core/libutils/Threads.cpp:758
+    #20 0x0003f3e7 in __pthread_start(void*) /bionic/libc/bionic/pthread_create.cpp:199
+    #21 0x00019b43 in __start_thread /bionic/libc/bionic/clone.cpp:41
+--------- libc (30687):
+/system/bin/sh: using libc.debug.malloc 5 (fill)
+logcat: using libc.debug.malloc 5 (fill)
+
+
+----------------------------------------Memory Statistics----------------------------------------
+
+USER      PID   PPID  VSIZE  RSS  CPU  WCHAN            PC  NAME
+root      1     0     2216   896   2  sys_epoll_ 0006f464 S /init
+root      2     0     0      0     0    kthreadd 00000000 S kthreadd
+root      3     2     0      0     0  run_ksofti 00000000 S ksoftirqd/0
+root      6     2     0      0     0  cpu_stoppe 00000000 S migration/0
+root      16    2     0      0     1  rescuer_th 00000000 S khelper
+root      17    2     0      0     1  rescuer_th 00000000 S suspend_sys_syn
+root      18    2     0      0     1  rescuer_th 00000000 S suspend
+root      19    2     0      0     0  worker_thr 00000000 S kworker/0:1
+root      23    2     0      0     1  irq_thread 00000000 S irq/203-msmdata
+root      24    2     0      0     0  bdi_sync_s 00000000 S sync_supers
+root      25    2     0      0     0  bdi_forker 00000000 S bdi-default
+root      26    2     0      0     1  rescuer_th 00000000 S kblockd
+root      27    2     0      0     0  msm_slim_r 00000000 S msm_slim_ctrl_r
+root      28    2     0      0     1  hub_thread 00000000 S khubd
+root      29    2     0      0     1  irq_thread 00000000 S irq/84-msm_iomm
+root      30    2     0      0     1  irq_thread 00000000 S irq/84-msm_iomm
+root      31    2     0      0     1  irq_thread 00000000 S irq/96-msm_iomm
+root      32    2     0      0     1  irq_thread 00000000 S irq/96-msm_iomm
+root      33    2     0      0     1  irq_thread 00000000 S irq/94-msm_iomm
+root      34    2     0      0     1  irq_thread 00000000 S irq/94-msm_iomm
+root      35    2     0      0     1  irq_thread 00000000 S irq/92-msm_iomm
+root      36    2     0      0     1  irq_thread 00000000 S irq/92-msm_iomm
+root      37    2     0      0     1  irq_thread 00000000 S irq/100-msm_iom
+root      38    2     0      0     1  irq_thread 00000000 S irq/100-msm_iom
+root      39    2     0      0     1  irq_thread 00000000 S irq/86-msm_iomm
+root      40    2     0      0     1  irq_thread 00000000 S irq/86-msm_iomm
+root      41    2     0      0     1  irq_thread 00000000 S irq/90-msm_iomm
+root      42    2     0      0     1  irq_thread 00000000 S irq/90-msm_iomm
+root      43    2     0      0     1  irq_thread 00000000 S irq/88-msm_iomm
+root      44    2     0      0     1  irq_thread 00000000 S irq/102-msm_iom
+root      45    2     0      0     1  irq_thread 00000000 S irq/102-msm_iom
+root      46    2     0      0     1  irq_thread 00000000 S irq/98-msm_iomm
+root      47    2     0      0     1  irq_thread 00000000 S irq/98-msm_iomm
+root      48    2     0      0     1  irq_thread 00000000 S irq/243-msm_iom
+root      49    2     0      0     1  irq_thread 00000000 S irq/243-msm_iom
+root      50    2     0      0     1  irq_thread 00000000 S irq/269-msm_iom
+root      51    2     0      0     1  irq_thread 00000000 S irq/269-msm_iom
+root      52    2     0      0     1  rescuer_th 00000000 S l2cap
+root      53    2     0      0     1  rescuer_th 00000000 S a2mp
+root      54    2     0      0     1  rescuer_th 00000000 S cfg80211
+root      55    2     0      0     1  rescuer_th 00000000 S rpciod
+root      57    2     0      0     1  rescuer_th 00000000 S modem_notifier
+root      58    2     0      0     1  rescuer_th 00000000 S smd_channel_clo
+root      59    2     0      0     1  rescuer_th 00000000 S smsm_cb_wq
+root      60    2     0      0     3  worker_thr 00000000 S kworker/u:1
+root      61    2     0      0     1  rescuer_th 00000000 S qmi
+root      62    2     0      0     1  rescuer_th 00000000 S nmea
+root      63    2     0      0     1  rescuer_th 00000000 S msm_ipc_router
+root      64    2     0      0     1  rescuer_th 00000000 S apr_driver
+root      65    2     0      0     0      kswapd 00000000 S kswapd0
+root      66    2     0      0     1  fsnotify_m 00000000 S fsnotify_mark
+root      67    2     0      0     1  rescuer_th 00000000 S nfsiod
+root      68    2     0      0     1  rescuer_th 00000000 S cifsiod
+root      69    2     0      0     1  rescuer_th 00000000 S crypto
+root      84    2     0      0     1  rescuer_th 00000000 S mdp_dma_wq
+root      85    2     0      0     1  rescuer_th 00000000 S mdp_vsync_wq
+root      86    2     0      0     1  rescuer_th 00000000 S mdp_pipe_ctrl_w
+root      87    2     0      0     1  rescuer_th 00000000 S mdp_cursor_ctrl
+root      88    2     0      0     0  msm_fb_com 00000000 S msmfb_commit_th
+root      89    2     0      0     1  rescuer_th 00000000 S hdmi_hdcp
+root      90    2     0      0     1  irq_thread 00000000 S irq/111-hdmi_ms
+root      91    2     0      0     1  rescuer_th 00000000 S dtv_work
+root      92    2     0      0     1  msm_fb_com 00000000 S msmfb_commit_th
+root      93    2     0      0     1  rescuer_th 00000000 S vidc_worker_que
+root      94    2     0      0     1  rescuer_th 00000000 S vidc_timer_wq
+root      95    2     0      0     1  rescuer_th 00000000 S smux_notify_wq
+root      96    2     0      0     1  rescuer_th 00000000 S smux_tx_wq
+root      97    2     0      0     1  rescuer_th 00000000 S smux_rx_wq
+root      98    2     0      0     1  rescuer_th 00000000 S smux_loopback_w
+root      99    2     0      0     1  rescuer_th 00000000 S diag_wq
+root      100   2     0      0     1  rescuer_th 00000000 S hsic_diag_wq
+root      101   2     0      0     1  rescuer_th 00000000 S hsic_2_diag_wq
+root      102   2     0      0     1  rescuer_th 00000000 S smux_diag_wq
+root      103   2     0      0     1  rescuer_th 00000000 S diag_cntl_wq
+root      104   2     0      0     1  rescuer_th 00000000 S diag_dci_wq
+root      105   2     0      0     1  rescuer_th 00000000 S kgsl-3d0
+root      106   2     0      0     1  rescuer_th 00000000 S anx7808_work
+root      107   2     0      0     1  irq_thread 00000000 S irq/295-anx7808
+root      109   2     0      0     1  worker_thr 00000000 S kworker/u:3
+root      110   2     0      0     0  irq_thread 00000000 S irq/330-wcd9xxx
+root      111   2     0      0     1  rescuer_th 00000000 S spi_qsd.0
+root      114   2     0      0     1  rescuer_th 00000000 S usbnet
+root      115   2     0      0     1  rescuer_th 00000000 S smb345_wq
+root      116   2     0      0     0  worker_thr 00000000 S kworker/0:2
+root      117   2     0      0     1  rescuer_th 00000000 S bq27541_battery
+root      118   2     0      0     1  rescuer_th 00000000 S msm_otg_acok_wq
+root      119   2     0      0     1  rescuer_th 00000000 S msm_otg_id_pin_
+root      120   2     0      0     1  rescuer_th 00000000 S mdm_bridge
+root      121   2     0      0     1  rescuer_th 00000000 S ks_bridge:1
+root      122   2     0      0     1  rescuer_th 00000000 S ks_bridge:2
+root      123   2     0      0     1  rescuer_th 00000000 S ks_bridge:3
+root      124   2     0      0     1  rescuer_th 00000000 S ks_bridge:4
+root      125   2     0      0     1  rescuer_th 00000000 S k_rmnet_mux_wor
+root      126   2     0      0     1  rescuer_th 00000000 S f_mtp
+root      127   2     0      0     1  sleep_thre 00000000 S file-storage
+root      128   2     0      0     1  rescuer_th 00000000 S uether
+root      129   2     0      0     1  rescuer_th 00000000 S kpsmoused
+root      130   2     0      0     1  rescuer_th 00000000 S elan_wq
+root      131   2     0      0     1  rescuer_th 00000000 S i2c_touchsensor
+root      132   2     0      0     1  rescuer_th 00000000 S lid_wq
+root      133   2     0      0     1  rescuer_th 00000000 S dvfs_test_workq
+root      134   2     0      0     1  dbs_sync_t 00000000 D dbs_sync/0
+root      135   2     0      0     1  dbs_sync_t 00000000 D dbs_sync/1
+root      136   2     0      0     1  dbs_sync_t 00000000 D dbs_sync/2
+root      137   2     0      0     1  dbs_sync_t 00000000 D dbs_sync/3
+root      138   2     0      0     1  cpufreq_in 00000000 S kinteractiveup
+root      139   2     0      0     1  rescuer_th 00000000 S binder
+root      140   2     0      0     0  mmc_queue_ 00000000 S mmcqd/0
+root      143   2     0      0     1  rescuer_th 00000000 S detection
+root      144   2     0      0     1  rescuer_th 00000000 S button_press
+root      145   2     0      0     1  rescuer_th 00000000 S button_release
+root      146   2     0      0     1  rfcomm_run 00000000 S krfcommd
+root      147   2     0      0     1  rescuer_th 00000000 S msm-cpufreq
+root      148   2     0      0     1  rescuer_th 00000000 S rq_stats
+root      149   2     0      0     1  rescuer_th 00000000 S deferwq
+root      150   1     1956   656   0  poll_sched 00066a68 S /sbin/ueventd
+root      152   2     0      0     1  rescuer_th 00000000 S ext4-dio-unwrit
+root      155   2     0      0     0  bdi_writeb 00000000 S flush-179:0
+root      157   2     0      0     0  kjournald2 00000000 S jbd2/mmcblk0p23
+root      158   2     0      0     1  rescuer_th 00000000 S ext4-dio-unwrit
+root      162   2     0      0     2  kjournald2 00000000 S jbd2/mmcblk0p30
+root      163   2     0      0     1  rescuer_th 00000000 S ext4-dio-unwrit
+root      164   2     0      0     1  kjournald2 00000000 S jbd2/mmcblk0p4-
+root      165   2     0      0     1  rescuer_th 00000000 S ext4-dio-unwrit
+root      171   2     0      0     2  rescuer_th 00000000 S IPCRTR
+root      172   2     0      0     2  rescuer_th 00000000 S ipc_rtr_q6_ipcr
+logd      173   1     12988  2956  2  sys_rt_sig b6e92ebc S /system/bin/logd
+root      174   1     9108   2332  0  hrtimer_na b6ced0cc S /system/bin/vold
+root      179   2     0      0     3  kauditd_th 00000000 S kauditd
+root      185   1     2444   340   1  sys_epoll_ 0003454c S /sbin/healthd
+root      186   1     3064   1088  0  sys_epoll_ b6eb6b74 S /system/bin/lmkd
+system    187   1     2952   1088  3  binder_thr b6e89654 S /system/bin/servicemanager
+shell     190   1     3032   1108  0  n_tty_read b6e2c880 S /system/bin/sh
+drm       193   1     16876  5620  0  binder_thr b6d04654 S /system/bin/drmserver
+root      195   1     2748   1176  1  unix_strea b6e65880 S /system/bin/installd
+keystore  197   1     5732   2044  1  binder_thr b6ceb654 S /system/bin/keystore
+nobody    199   1     8008   1132  0  poll_sched b6dddb28 S /system/bin/rmt_storage
+radio     200   1     7268   900   0  futex_wait b6cca5e8 S /system/bin/bridgemgrd
+root      201   1     25300  1232  3  futex_wait b6dc75e8 S /system/bin/thermald
+root      203   1     9496   1068  0  futex_wait b6dbd5e8 S /system/bin/mpdecision
+system    208   1     5236   1684  1  binder_thr b6d1f654 S /system/bin/gatekeeperd
+root      229   1     2764   1076  0  hrtimer_na b6e780cc S /system/xbin/perfprofd
+camera    231   1     16160  3416  3      msleep b6df7654 D /system/bin/mm-qcamera-daemon
+system    233   1     4140   968   1     do_wait b6e74160 S /system/bin/qseecomd
+system    245   233   6256   724   1  sys_rt_sig b6e73ebc S /system/bin/qseecomd
+root      1032  2     0      0     1  rescuer_th 00000000 S IPCRTR
+root      1033  2     0      0     1  rescuer_th 00000000 S ipc_rtr_smd_ipc
+root      2466  1     7076   528   2  poll_sched 0002b0d4 S /sbin/adbd
+root      2559  1     15332  2184  0  hrtimer_na b6d8d0cc S /system/bin/netd
+system    2560  1     108032 11900 1  sys_epoll_ b6d6cb74 S /system/bin/surfaceflinger
+root      2561  1     1506972 66344 0  poll_sched b6caf8bc S zygote
+root      2626  2466  3212   1176  0  __skb_recv b6e15988 S logcat
+system    2803  2561  1685056 114424 3  sys_epoll_ b6caeb74 S system_server
+media_rw  2975  174   6668   1688  2  inotify_re b6e25880 S /system/bin/sdcard
+u0_a24    3009  2561  985184 126188 2  sys_epoll_ b6caeb74 S com.android.systemui
+u0_a6     3028  2561  865624 50484 2  sys_epoll_ b6caeb74 S android.process.media
+u0_a4     3150  2561  865772 49196 2  sys_epoll_ b6caeb74 S android.process.acore
+u0_a26    3190  2561  1550696 46532 0  sys_epoll_ b6caeb74 S com.google.android.googlequicksearchbox:interactor
+u0_a57    3204  2561  882096 56012 3  sys_epoll_ b6caeb74 S com.google.android.inputmethod.latin
+u0_a9     3225  2561  982212 72664 0  sys_epoll_ b6caeb74 S com.google.android.gms.persistent
+nfc       3239  2561  884036 51752 0  sys_epoll_ b6caeb74 S com.android.nfc
+u0_a80    3255  2561  858748 39604 1  sys_epoll_ b6caeb74 S com.nuance.xt9.input
+radio     3272  2561  880224 55816 0  sys_epoll_ b6caeb74 S com.android.phone
+u0_a15    3288  2561  1573944 76720 3  sys_epoll_ b6caeb74 S com.android.launcher
+u0_a9     3329  2561  989240 75928 0  sys_epoll_ b6caeb74 S com.google.process.gapps
+u0_a26    3377  2561  1580512 75248 2  sys_epoll_ b6caeb74 S com.google.android.googlequicksearchbox:search
+u0_a9     3495  2561  1107228 76184 2  sys_epoll_ b6caeb74 S com.google.android.gms
+u0_a9     3570  2561  956020 53404 0  sys_epoll_ b6caeb74 S com.google.android.gms.wearable
+u0_a19    3610  2561  907112 54808 1  sys_epoll_ b6caeb74 S com.android.vending
+u0_a54    3824  2561  889348 62800 0  sys_epoll_ b6caeb74 S com.google.android.talk
+bluetooth 3886  2561  894992 51644 1  sys_epoll_ b6caeb74 S com.android.bluetooth
+u0_a2     3897  2561  859348 46156 0  sys_epoll_ b6caeb74 S com.android.providers.calendar
+u0_a71    4265  2561  869644 49168 0  sys_epoll_ b6caeb74 S com.google.android.deskclock
+u0_a73    4305  2561  867808 45156 1  sys_epoll_ b6caeb74 S com.google.android.gm.exchange
+root      4553  2     0      0     1  VosWDThrea 00000000 S WD_Thread
+root      4554  2     0      0     1  VosMCThrea 00000000 S MC_Thread
+root      4555  2     0      0     2  VosTXThrea 00000000 S TX_Thread
+root      4556  2     0      0     1  VosRXThrea 00000000 S RX_Thread
+wifi      4563  1     6124   2908  1  poll_sched b6e4db28 S /system/bin/wpa_supplicant
+u0_a8     4564  2561  871084 45300 2  sys_epoll_ b6caeb74 S com.google.android.apps.gcs
+root      4602  1     11464  868   2  poll_sched b6e42b28 S /data/local/tmp/device_forwarder
+u0_a70    4689  2561  1585612 55344 0  sys_epoll_ b6caeb74 S com.google.android.apps.plus
+root      4796  2     0      0     1  rescuer_th 00000000 S msm_sat0
+root      4988  2     0      0     0  worker_thr 00000000 S kworker/0:3
+u0_a14    5508  2561  860860 41436 1  sys_epoll_ b6caeb74 S com.google.android.partnersetup
+u0_a66    5588  2561  858548 42852 0  sys_epoll_ b6caeb74 S com.android.providers.partnerbookmarks
+root      5765  2     0      0     1  worker_thr 00000000 S kworker/u:0
+root      5766  2     0      0     1  worker_thr 00000000 S kworker/u:2
+root      5924  2     0      0     0  worker_thr 00000000 S kworker/u:4
+root      8070  2     0      0     0  worker_thr 00000000 S kworker/u:9
+root      10057 1     4372   1860  2  __skb_recv b6e42c40 S /system/bin/debuggerd
+u0_a42    14457 2561  862156 43140 1  sys_epoll_ b6caeb74 S com.android.documentsui
+u0_a5     14476 2561  857192 40504 1  sys_epoll_ b6caeb74 S com.android.defcontainer
+u0_a7     14497 2561  857312 41548 1  sys_epoll_ b6caeb74 S com.android.externalstorage
+u0_a43    14519 2561  966752 62488 2  sys_epoll_ b6caeb74 S com.google.android.apps.docs
+root      21321 2     0      0     0  worker_thr 00000000 S kworker/u:5
+root      21790 2     0      0     0  worker_thr 00000000 S kworker/0:0
+root      25049 2     0      0     1  worker_thr 00000000 S kworker/u:6
+nobody    27651 1     12572  1292  0  poll_sched b6caab28 S /system/bin/sensors.qcom
+root      27920 2     0      0     0  worker_thr 00000000 S kworker/0:4
+root      30558 2     0      0     1  cpu_stoppe 00000000 S migration/1
+root      30559 2     0      0     1  worker_thr 00000000 S kworker/1:0
+root      30560 2     0      0     1  run_ksofti 00000000 S ksoftirqd/1
+root      30568 2     0      0     1  worker_thr 00000000 S kworker/1:1
+root      30600 2     0      0     1  worker_thr 00000000 S kworker/1:2
+root      30652 2     0      0     2  cpu_stoppe 00000000 S migration/2
+root      30653 2     0      0     2  worker_thr 00000000 S kworker/2:0
+root      30654 2     0      0     2  run_ksofti 00000000 S ksoftirqd/2
+root      30658 2     0      0     2  worker_thr 00000000 S kworker/2:1
+root      30663 2     0      0     2  worker_thr 00000000 S kworker/2:2
+media     30694 1     19248  5916  1     do_wait b6a9073c S media.log
+root      30700 2     0      0     3  cpu_stoppe 00000000 S migration/3
+root      30701 2     0      0     3  worker_thr 00000000 S kworker/3:0
+root      30702 2     0      0     3  run_ksofti 00000000 S ksoftirqd/3
+root      30703 2     0      0     3  worker_thr 00000000 S kworker/3:1
+media     30706 30694 40244  3036  3  msm_post_e b6a90d10 S /system/bin/mediaserver
+root      30720 2466  2876   968   1           0 b6e46880 R ps

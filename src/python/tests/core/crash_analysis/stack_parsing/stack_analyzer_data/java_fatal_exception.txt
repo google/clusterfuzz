@@ -1,0 +1,953 @@
+logcat: using libc.debug.malloc 5 (fill)
+Alloc concurrent mark sweep GC freed 2(64B) AllocSpace objects, 0(0B) LOS objects, 6% free, 235MB/251MB, paused 458us total 17.536ms
+Forcing collection of SoftReferences for 30MB allocation
+Starting a blocking GC Alloc
+Alloc concurrent mark sweep GC freed 3(96B) AllocSpace objects, 0(0B) LOS objects, 6% free, 235MB/251MB, paused 313us total 16.529ms
+Throwing OutOfMemoryError "Failed to allocate a 31784972 byte allocation with 16776048 free bytes and 20MB until OOM"
+Cant decode file
+java.lang.OutOfMemoryError: Failed to allocate a 31784972 byte allocation with 16776048 free bytes and 20MB until OOM
+	at dalvik.system.VMRuntime.newNonMovableArray(Native Method)
+	at android.graphics.BitmapFactory.nativeDecodeFileDescriptor(Native Method)
+	at android.graphics.BitmapFactory.decodeFileDescriptor(BitmapFactory.java:672)
+	at android.app.WallpaperManager$Globals.getCurrentWallpaperLocked(WallpaperManager.java:307)
+	at android.app.WallpaperManager$Globals.peekWallpaperBitmap(WallpaperManager.java:272)
+	at android.app.WallpaperManager.getBitmap(WallpaperManager.java:623)
+	at com.android.systemui.ImageWallpaper$DrawableEngine.updateWallpaperLocked(ImageWallpaper.java:426)
+	at com.android.systemui.ImageWallpaper$DrawableEngine.updateSurfaceSize(ImageWallpaper.java:196)
+	at com.android.systemui.ImageWallpaper$DrawableEngine.onCreate(ImageWallpaper.java:179)
+	at android.service.wallpaper.WallpaperService$Engine.attach(WallpaperService.java:872)
+	at android.service.wallpaper.WallpaperService$IWallpaperEngineWrapper.executeMessage(WallpaperService.java:1163)
+	at com.android.internal.os.HandlerCaller$MyHandler.handleMessage(HandlerCaller.java:37)
+	at android.os.Handler.dispatchMessage(Handler.java:102)
+	at android.os.Looper.loop(Looper.java:148)
+	at android.app.ActivityThread.main(ActivityThread.java:5415)
+	at java.lang.reflect.Method.invoke(Native Method)
+	at com.android.internal.os.ZygoteInit$MethodAndArgsCaller.run(ZygoteInit.java:725)
+	at com.android.internal.os.ZygoteInit.main(ZygoteInit.java:615)
+Starting a blocking GC Alloc
+Starting a blocking GC Alloc
+Starting a blocking GC Alloc
+Alloc partial concurrent mark sweep GC freed 16(824B) AllocSpace objects, 0(0B) LOS objects, 6% free, 235MB/251MB, paused 323us total 15.212ms
+Starting a blocking GC Alloc
+Alloc concurrent mark sweep GC freed 9(304B) AllocSpace objects, 0(0B) LOS objects, 6% free, 235MB/251MB, paused 333us total 17.732ms
+Forcing collection of SoftReferences for 30MB allocation
+Starting a blocking GC Alloc
+Alloc concurrent mark sweep GC freed 3(96B) AllocSpace objects, 0(0B) LOS objects, 6% free, 235MB/251MB, paused 319us total 17.712ms
+Throwing OutOfMemoryError "Failed to allocate a 31784972 byte allocation with 16776720 free bytes and 20MB until OOM"
+Starting a blocking GC Alloc
+Starting a blocking GC Alloc
+Starting a blocking GC Alloc
+Alloc partial concurrent mark sweep GC freed 4(128B) AllocSpace objects, 0(0B) LOS objects, 6% free, 235MB/251MB, paused 342us total 16.253ms
+Starting a blocking GC Alloc
+Alloc concurrent mark sweep GC freed 2(64B) AllocSpace objects, 0(0B) LOS objects, 6% free, 235MB/251MB, paused 327us total 17.682ms
+Forcing collection of SoftReferences for 30MB allocation
+Starting a blocking GC Alloc
+Alloc concurrent mark sweep GC freed 3(96B) AllocSpace objects, 0(0B) LOS objects, 6% free, 235MB/251MB, paused 369us total 17.505ms
+Throwing OutOfMemoryError "Failed to allocate a 31784972 byte allocation with 16776048 free bytes and 20MB until OOM"
+Cant decode stream
+java.lang.OutOfMemoryError: Failed to allocate a 31784972 byte allocation with 16776048 free bytes and 20MB until OOM
+	at dalvik.system.VMRuntime.newNonMovableArray(Native Method)
+	at android.graphics.BitmapFactory.nativeDecodeAsset(Native Method)
+	at android.graphics.BitmapFactory.decodeStream(BitmapFactory.java:609)
+	at android.app.WallpaperManager$Globals.getDefaultWallpaperLocked(WallpaperManager.java:330)
+	at android.app.WallpaperManager$Globals.peekWallpaperBitmap(WallpaperManager.java:278)
+	at android.app.WallpaperManager.getBitmap(WallpaperManager.java:623)
+	at com.android.systemui.ImageWallpaper$DrawableEngine.updateWallpaperLocked(ImageWallpaper.java:426)
+	at com.android.systemui.ImageWallpaper$DrawableEngine.updateSurfaceSize(ImageWallpaper.java:196)
+	at com.android.systemui.ImageWallpaper$DrawableEngine.onCreate(ImageWallpaper.java:179)
+	at android.service.wallpaper.WallpaperService$Engine.attach(WallpaperService.java:872)
+	at android.service.wallpaper.WallpaperService$IWallpaperEngineWrapper.executeMessage(WallpaperService.java:1163)
+	at com.android.internal.os.HandlerCaller$MyHandler.handleMessage(HandlerCaller.java:37)
+	at android.os.Handler.dispatchMessage(Handler.java:102)
+	at android.os.Looper.loop(Looper.java:148)
+	at android.app.ActivityThread.main(ActivityThread.java:5415)
+	at java.lang.reflect.Method.invoke(Native Method)
+	at com.android.internal.os.ZygoteInit$MethodAndArgsCaller.run(ZygoteInit.java:725)
+	at com.android.internal.os.ZygoteInit.main(ZygoteInit.java:615)
+Unable to load wallpaper!
+java.lang.NullPointerException: Attempt to invoke virtual method int android.graphics.Bitmap.getWidth() on a null object reference
+	at com.android.systemui.ImageWallpaper$DrawableEngine.updateWallpaperLocked(ImageWallpaper.java:427)
+	at com.android.systemui.ImageWallpaper$DrawableEngine.updateSurfaceSize(ImageWallpaper.java:196)
+	at com.android.systemui.ImageWallpaper$DrawableEngine.onCreate(ImageWallpaper.java:179)
+	at android.service.wallpaper.WallpaperService$Engine.attach(WallpaperService.java:872)
+	at android.service.wallpaper.WallpaperService$IWallpaperEngineWrapper.executeMessage(WallpaperService.java:1163)
+	at com.android.internal.os.HandlerCaller$MyHandler.handleMessage(HandlerCaller.java:37)
+	at android.os.Handler.dispatchMessage(Handler.java:102)
+	at android.os.Looper.loop(Looper.java:148)
+	at android.app.ActivityThread.main(ActivityThread.java:5415)
+	at java.lang.reflect.Method.invoke(Native Method)
+	at com.android.internal.os.ZygoteInit$MethodAndArgsCaller.run(ZygoteInit.java:725)
+	at com.android.internal.os.ZygoteInit.main(ZygoteInit.java:615)
+Attempted to add wallpaper window with unknown token android.os.Binder@b6aa1b7.  Aborting.
+Failed to add window while updating wallpaper surface.
+Attempted to add wallpaper window with unknown token android.os.Binder@1cb5386.  Aborting.
+Failed to add window while updating wallpaper surface.
+Starting a blocking GC Alloc
+Starting a blocking GC Alloc
+Alloc sticky concurrent mark sweep GC freed 2041(421KB) AllocSpace objects, 1(36KB) LOS objects, 6% free, 235MB/251MB, paused 363us total 5.666ms
+Starting a blocking GC Alloc
+Alloc partial concurrent mark sweep GC freed 85(11KB) AllocSpace objects, 0(0B) LOS objects, 6% free, 235MB/251MB, paused 330us total 19.825ms
+Starting a blocking GC Alloc
+Alloc concurrent mark sweep GC freed 10(392B) AllocSpace objects, 0(0B) LOS objects, 6% free, 235MB/251MB, paused 329us total 18.025ms
+Forcing collection of SoftReferences for 30MB allocation
+Starting a blocking GC Alloc
+Alloc concurrent mark sweep GC freed 4(144B) AllocSpace objects, 0(0B) LOS objects, 6% free, 235MB/251MB, paused 334us total 18.932ms
+Throwing OutOfMemoryError "Failed to allocate a 31784972 byte allocation with 16776048 free bytes and 20MB until OOM"
+Starting a blocking GC Alloc
+Starting a blocking GC Alloc
+Starting a blocking GC Alloc
+Alloc partial concurrent mark sweep GC freed 4(128B) AllocSpace objects, 0(0B) LOS objects, 6% free, 235MB/251MB, paused 341us total 16.605ms
+Starting a blocking GC Alloc
+/system/bin/sh: using libc.debug.malloc 5 (fill)
+Alloc concurrent mark sweep GC freed 2(64B) AllocSpace objects, 0(0B) LOS objects, 6% free, 235MB/251MB, paused 346us total 17.620ms
+Forcing collection of SoftReferences for 30MB allocation
+Starting a blocking GC Alloc
+/system/bin/sh: using libc.debug.malloc 5 (fill)
+Alloc concurrent mark sweep GC freed 3(96B) AllocSpace objects, 0(0B) LOS objects, 6% free, 235MB/251MB, paused 329us total 18.563ms
+Throwing OutOfMemoryError "Failed to allocate a 31784972 byte allocation with 16776048 free bytes and 20MB until OOM"
+Cant decode file
+java.lang.OutOfMemoryError: Failed to allocate a 31784972 byte allocation with 16776048 free bytes and 20MB until OOM
+	at dalvik.system.VMRuntime.newNonMovableArray(Native Method)
+	at android.graphics.BitmapFactory.nativeDecodeFileDescriptor(Native Method)
+	at android.graphics.BitmapFactory.decodeFileDescriptor(BitmapFactory.java:672)
+	at android.app.WallpaperManager$Globals.getCurrentWallpaperLocked(WallpaperManager.java:307)
+	at android.app.WallpaperManager$Globals.peekWallpaperBitmap(WallpaperManager.java:272)
+	at android.app.WallpaperManager.getBitmap(WallpaperManager.java:623)
+	at com.android.systemui.ImageWallpaper$DrawableEngine.updateWallpaperLocked(ImageWallpaper.java:426)
+	at com.android.systemui.ImageWallpaper$DrawableEngine.updateSurfaceSize(ImageWallpaper.java:196)
+	at com.android.systemui.ImageWallpaper$DrawableEngine.onCreate(ImageWallpaper.java:179)
+	at android.service.wallpaper.WallpaperService$Engine.attach(WallpaperService.java:872)
+	at android.service.wallpaper.WallpaperService$IWallpaperEngineWrapper.executeMessage(WallpaperService.java:1163)
+	at com.android.internal.os.HandlerCaller$MyHandler.handleMessage(HandlerCaller.java:37)
+	at android.os.Handler.dispatchMessage(Handler.java:102)
+	at android.os.Looper.loop(Looper.java:148)
+	at android.app.ActivityThread.main(ActivityThread.java:5415)
+	at java.lang.reflect.Method.invoke(Native Method)
+	at com.android.internal.os.ZygoteInit$MethodAndArgsCaller.run(ZygoteInit.java:725)
+	at com.android.internal.os.ZygoteInit.main(ZygoteInit.java:615)
+Starting a blocking GC Alloc
+Starting a blocking GC Alloc
+Starting a blocking GC Alloc
+Alloc partial concurrent mark sweep GC freed 16(824B) AllocSpace objects, 0(0B) LOS objects, 6% free, 235MB/251MB, paused 320us total 16.163ms
+Starting a blocking GC Alloc
+Alloc concurrent mark sweep GC freed 9(304B) AllocSpace objects, 0(0B) LOS objects, 6% free, 235MB/251MB, paused 328us total 18.097ms
+Forcing collection of SoftReferences for 30MB allocation
+Starting a blocking GC Alloc
+Alloc concurrent mark sweep GC freed 3(96B) AllocSpace objects, 0(0B) LOS objects, 6% free, 235MB/251MB, paused 340us total 18.204ms
+Throwing OutOfMemoryError "Failed to allocate a 31784972 byte allocation with 16776720 free bytes and 20MB until OOM"
+Starting a blocking GC Alloc
+Starting a blocking GC Alloc
+Starting a blocking GC Alloc
+Alloc partial concurrent mark sweep GC freed 6(192B) AllocSpace objects, 0(0B) LOS objects, 6% free, 235MB/251MB, paused 330us total 16.633ms
+Starting a blocking GC Alloc
+Alloc concurrent mark sweep GC freed 3(96B) AllocSpace objects, 0(0B) LOS objects, 6% free, 235MB/251MB, paused 320us total 16.774ms
+Forcing collection of SoftReferences for 30MB allocation
+Starting a blocking GC Alloc
+Alloc concurrent mark sweep GC freed 3(96B) AllocSpace objects, 0(0B) LOS objects, 6% free, 235MB/251MB, paused 311us total 16.779ms
+Throwing OutOfMemoryError "Failed to allocate a 31784972 byte allocation with 16776048 free bytes and 20MB until OOM"
+Cant decode stream
+java.lang.OutOfMemoryError: Failed to allocate a 31784972 byte allocation with 16776048 free bytes and 20MB until OOM
+	at dalvik.system.VMRuntime.newNonMovableArray(Native Method)
+	at android.graphics.BitmapFactory.nativeDecodeAsset(Native Method)
+	at android.graphics.BitmapFactory.decodeStream(BitmapFactory.java:609)
+	at android.app.WallpaperManager$Globals.getDefaultWallpaperLocked(WallpaperManager.java:330)
+	at android.app.WallpaperManager$Globals.peekWallpaperBitmap(WallpaperManager.java:278)
+	at android.app.WallpaperManager.getBitmap(WallpaperManager.java:623)
+	at com.android.systemui.ImageWallpaper$DrawableEngine.updateWallpaperLocked(ImageWallpaper.java:426)
+	at com.android.systemui.ImageWallpaper$DrawableEngine.updateSurfaceSize(ImageWallpaper.java:196)
+	at com.android.systemui.ImageWallpaper$DrawableEngine.onCreate(ImageWallpaper.java:179)
+	at android.service.wallpaper.WallpaperService$Engine.attach(WallpaperService.java:872)
+	at android.service.wallpaper.WallpaperService$IWallpaperEngineWrapper.executeMessage(WallpaperService.java:1163)
+	at com.android.internal.os.HandlerCaller$MyHandler.handleMessage(HandlerCaller.java:37)
+	at android.os.Handler.dispatchMessage(Handler.java:102)
+	at android.os.Looper.loop(Looper.java:148)
+	at android.app.ActivityThread.main(ActivityThread.java:5415)
+	at java.lang.reflect.Method.invoke(Native Method)
+	at com.android.internal.os.ZygoteInit$MethodAndArgsCaller.run(ZygoteInit.java:725)
+	at com.android.internal.os.ZygoteInit.main(ZygoteInit.java:615)
+Unable to load wallpaper!
+java.lang.NullPointerException: Attempt to invoke virtual method int android.graphics.Bitmap.getWidth() on a null object reference
+	at com.android.systemui.ImageWallpaper$DrawableEngine.updateWallpaperLocked(ImageWallpaper.java:427)
+	at com.android.systemui.ImageWallpaper$DrawableEngine.updateSurfaceSize(ImageWallpaper.java:196)
+	at com.android.systemui.ImageWallpaper$DrawableEngine.onCreate(ImageWallpaper.java:179)
+	at android.service.wallpaper.WallpaperService$Engine.attach(WallpaperService.java:872)
+	at android.service.wallpaper.WallpaperService$IWallpaperEngineWrapper.executeMessage(WallpaperService.java:1163)
+	at com.android.internal.os.HandlerCaller$MyHandler.handleMessage(HandlerCaller.java:37)
+	at android.os.Handler.dispatchMessage(Handler.java:102)
+	at android.os.Looper.loop(Looper.java:148)
+	at android.app.ActivityThread.main(ActivityThread.java:5415)
+	at java.lang.reflect.Method.invoke(Native Method)
+	at com.android.internal.os.ZygoteInit$MethodAndArgsCaller.run(ZygoteInit.java:725)
+	at com.android.internal.os.ZygoteInit.main(ZygoteInit.java:615)
+Attempted to add wallpaper window with unknown token android.os.Binder@80f9889.  Aborting.
+Failed to add window while updating wallpaper surface.
+Attempted to add wallpaper window with unknown token android.os.Binder@787699.  Aborting.
+Failed to add window while updating wallpaper surface.
+Starting a blocking GC Alloc
+Starting a blocking GC Alloc
+Starting a blocking GC Alloc
+Alloc partial concurrent mark sweep GC freed 89(11KB) AllocSpace objects, 0(0B) LOS objects, 6% free, 235MB/251MB, paused 376us total 16.871ms
+Starting a blocking GC Alloc
+Alloc concurrent mark sweep GC freed 7(256B) AllocSpace objects, 0(0B) LOS objects, 6% free, 235MB/251MB, paused 313us total 16.648ms
+Forcing collection of SoftReferences for 30MB allocation
+Starting a blocking GC Alloc
+Alloc concurrent mark sweep GC freed 3(96B) AllocSpace objects, 0(0B) LOS objects, 6% free, 235MB/251MB, paused 364us total 17.020ms
+Throwing OutOfMemoryError "Failed to allocate a 31784972 byte allocation with 16777216 free bytes and 20MB until OOM"
+Starting a blocking GC Alloc
+Starting a blocking GC Alloc
+Starting a blocking GC Alloc
+Alloc partial concurrent mark sweep GC freed 6(192B) AllocSpace objects, 0(0B) LOS objects, 6% free, 235MB/251MB, paused 385us total 15.630ms
+Starting a blocking GC Alloc
+Alloc concurrent mark sweep GC freed 3(96B) AllocSpace objects, 0(0B) LOS objects, 6% free, 235MB/251MB, paused 340us total 16.765ms
+Forcing collection of SoftReferences for 30MB allocation
+Starting a blocking GC Alloc
+Alloc concurrent mark sweep GC freed 3(96B) AllocSpace objects, 0(0B) LOS objects, 6% free, 235MB/251MB, paused 314us total 17.011ms
+Throwing OutOfMemoryError "Failed to allocate a 31784972 byte allocation with 16777216 free bytes and 20MB until OOM"
+Cant decode file
+java.lang.OutOfMemoryError: Failed to allocate a 31784972 byte allocation with 16777216 free bytes and 20MB until OOM
+	at dalvik.system.VMRuntime.newNonMovableArray(Native Method)
+	at android.graphics.BitmapFactory.nativeDecodeFileDescriptor(Native Method)
+	at android.graphics.BitmapFactory.decodeFileDescriptor(BitmapFactory.java:672)
+	at android.app.WallpaperManager$Globals.getCurrentWallpaperLocked(WallpaperManager.java:307)
+	at android.app.WallpaperManager$Globals.peekWallpaperBitmap(WallpaperManager.java:272)
+	at android.app.WallpaperManager.getBitmap(WallpaperManager.java:623)
+	at com.android.systemui.ImageWallpaper$DrawableEngine.updateWallpaperLocked(ImageWallpaper.java:426)
+	at com.android.systemui.ImageWallpaper$DrawableEngine.updateSurfaceSize(ImageWallpaper.java:196)
+	at com.android.systemui.ImageWallpaper$DrawableEngine.onCreate(ImageWallpaper.java:179)
+	at android.service.wallpaper.WallpaperService$Engine.attach(WallpaperService.java:872)
+	at android.service.wallpaper.WallpaperService$IWallpaperEngineWrapper.executeMessage(WallpaperService.java:1163)
+	at com.android.internal.os.HandlerCaller$MyHandler.handleMessage(HandlerCaller.java:37)
+	at android.os.Handler.dispatchMessage(Handler.java:102)
+	at android.os.Looper.loop(Looper.java:148)
+	at android.app.ActivityThread.main(ActivityThread.java:5415)
+	at java.lang.reflect.Method.invoke(Native Method)
+	at com.android.internal.os.ZygoteInit$MethodAndArgsCaller.run(ZygoteInit.java:725)
+	at com.android.internal.os.ZygoteInit.main(ZygoteInit.java:615)
+Starting a blocking GC Alloc
+Starting a blocking GC Alloc
+Starting a blocking GC Alloc
+Alloc partial concurrent mark sweep GC freed 16(824B) AllocSpace objects, 0(0B) LOS objects, 6% free, 235MB/251MB, paused 327us total 15.586ms
+Starting a blocking GC Alloc
+Alloc concurrent mark sweep GC freed 9(304B) AllocSpace objects, 0(0B) LOS objects, 6% free, 235MB/251MB, paused 311us total 17.025ms
+Forcing collection of SoftReferences for 30MB allocation
+Starting a blocking GC Alloc
+Alloc concurrent mark sweep GC freed 3(96B) AllocSpace objects, 0(0B) LOS objects, 6% free, 235MB/251MB, paused 320us total 16.833ms
+Throwing OutOfMemoryError "Failed to allocate a 31784972 byte allocation with 16777216 free bytes and 20MB until OOM"
+Starting a blocking GC Alloc
+Starting a blocking GC Alloc
+Starting a blocking GC Alloc
+Alloc partial concurrent mark sweep GC freed 6(192B) AllocSpace objects, 0(0B) LOS objects, 6% free, 235MB/251MB, paused 342us total 15.872ms
+Starting a blocking GC Alloc
+Alloc concurrent mark sweep GC freed 3(96B) AllocSpace objects, 0(0B) LOS objects, 6% free, 235MB/251MB, paused 317us total 16.634ms
+Forcing collection of SoftReferences for 30MB allocation
+Starting a blocking GC Alloc
+Alloc concurrent mark sweep GC freed 3(96B) AllocSpace objects, 0(0B) LOS objects, 6% free, 235MB/251MB, paused 326us total 17.142ms
+Throwing OutOfMemoryError "Failed to allocate a 31784972 byte allocation with 16777216 free bytes and 20MB until OOM"
+Cant decode stream
+java.lang.OutOfMemoryError: Failed to allocate a 31784972 byte allocation with 16777216 free bytes and 20MB until OOM
+	at dalvik.system.VMRuntime.newNonMovableArray(Native Method)
+	at android.graphics.BitmapFactory.nativeDecodeAsset(Native Method)
+	at android.graphics.BitmapFactory.decodeStream(BitmapFactory.java:609)
+	at android.app.WallpaperManager$Globals.getDefaultWallpaperLocked(WallpaperManager.java:330)
+	at android.app.WallpaperManager$Globals.peekWallpaperBitmap(WallpaperManager.java:278)
+	at android.app.WallpaperManager.getBitmap(WallpaperManager.java:623)
+	at com.android.systemui.ImageWallpaper$DrawableEngine.updateWallpaperLocked(ImageWallpaper.java:426)
+	at com.android.systemui.ImageWallpaper$DrawableEngine.updateSurfaceSize(ImageWallpaper.java:196)
+	at com.android.systemui.ImageWallpaper$DrawableEngine.onCreate(ImageWallpaper.java:179)
+	at android.service.wallpaper.WallpaperService$Engine.attach(WallpaperService.java:872)
+	at android.service.wallpaper.WallpaperService$IWallpaperEngineWrapper.executeMessage(WallpaperService.java:1163)
+	at com.android.internal.os.HandlerCaller$MyHandler.handleMessage(HandlerCaller.java:37)
+	at android.os.Handler.dispatchMessage(Handler.java:102)
+	at android.os.Looper.loop(Looper.java:148)
+	at android.app.ActivityThread.main(ActivityThread.java:5415)
+	at java.lang.reflect.Method.invoke(Native Method)
+	at com.android.internal.os.ZygoteInit$MethodAndArgsCaller.run(ZygoteInit.java:725)
+	at com.android.internal.os.ZygoteInit.main(ZygoteInit.java:615)
+Unable to load wallpaper!
+java.lang.NullPointerException: Attempt to invoke virtual method int android.graphics.Bitmap.getWidth() on a null object reference
+	at com.android.systemui.ImageWallpaper$DrawableEngine.updateWallpaperLocked(ImageWallpaper.java:427)
+	at com.android.systemui.ImageWallpaper$DrawableEngine.updateSurfaceSize(ImageWallpaper.java:196)
+	at com.android.systemui.ImageWallpaper$DrawableEngine.onCreate(ImageWallpaper.java:179)
+	at android.service.wallpaper.WallpaperService$Engine.attach(WallpaperService.java:872)
+	at android.service.wallpaper.WallpaperService$IWallpaperEngineWrapper.executeMessage(WallpaperService.java:1163)
+	at com.android.internal.os.HandlerCaller$MyHandler.handleMessage(HandlerCaller.java:37)
+	at android.os.Handler.dispatchMessage(Handler.java:102)
+	at android.os.Looper.loop(Looper.java:148)
+	at android.app.ActivityThread.main(ActivityThread.java:5415)
+	at java.lang.reflect.Method.invoke(Native Method)
+	at com.android.internal.os.ZygoteInit$MethodAndArgsCaller.run(ZygoteInit.java:725)
+	at com.android.internal.os.ZygoteInit.main(ZygoteInit.java:615)
+app_process: using libc.debug.malloc 5 (fill)
+Attempted to add wallpaper window with unknown token android.os.Binder@6dd08cb.  Aborting.
+Failed to add window while updating wallpaper surface.
+Attempted to add wallpaper window with unknown token android.os.Binder@e14765b.  Aborting.
+Failed to add window while updating wallpaper surface.
+Starting a blocking GC Alloc
+Starting a blocking GC Alloc
+Alloc sticky concurrent mark sweep GC freed 2041(421KB) AllocSpace objects, 1(36KB) LOS objects, 6% free, 235MB/251MB, paused 647us total 6.260ms
+Starting a blocking GC Alloc
+Alloc partial concurrent mark sweep GC freed 89(11KB) AllocSpace objects, 0(0B) LOS objects, 6% free, 235MB/251MB, paused 548us total 24.243ms
+Starting a blocking GC Alloc
+register_android_hardware_Radio DONE
+Alloc concurrent mark sweep GC freed 7(256B) AllocSpace objects, 0(0B) LOS objects, 6% free, 235MB/251MB, paused 378us total 20.189ms
+Forcing collection of SoftReferences for 30MB allocation
+Starting a blocking GC Alloc
+Alloc concurrent mark sweep GC freed 3(96B) AllocSpace objects, 0(0B) LOS objects, 6% free, 235MB/251MB, paused 311us total 17.371ms
+Throwing OutOfMemoryError "Failed to allocate a 31784972 byte allocation with 16776048 free bytes and 20MB until OOM"
+Starting a blocking GC Alloc
+Starting a blocking GC Alloc
+Starting a blocking GC Alloc
+Alloc partial concurrent mark sweep GC freed 6(192B) AllocSpace objects, 0(0B) LOS objects, 6% free, 235MB/251MB, paused 332us total 14.673ms
+Starting a blocking GC Alloc
+Alloc concurrent mark sweep GC freed 3(96B) AllocSpace objects, 0(0B) LOS objects, 6% free, 235MB/251MB, paused 315us total 15.540ms
+Forcing collection of SoftReferences for 30MB allocation
+Starting a blocking GC Alloc
+Alloc concurrent mark sweep GC freed 3(96B) AllocSpace objects, 0(0B) LOS objects, 6% free, 235MB/251MB, paused 314us total 15.946ms
+Throwing OutOfMemoryError "Failed to allocate a 31784972 byte allocation with 16776048 free bytes and 20MB until OOM"
+Cant decode file
+java.lang.OutOfMemoryError: Failed to allocate a 31784972 byte allocation with 16776048 free bytes and 20MB until OOM
+	at dalvik.system.VMRuntime.newNonMovableArray(Native Method)
+	at android.graphics.BitmapFactory.nativeDecodeFileDescriptor(Native Method)
+	at android.graphics.BitmapFactory.decodeFileDescriptor(BitmapFactory.java:672)
+	at android.app.WallpaperManager$Globals.getCurrentWallpaperLocked(WallpaperManager.java:307)
+	at android.app.WallpaperManager$Globals.peekWallpaperBitmap(WallpaperManager.java:272)
+	at android.app.WallpaperManager.getBitmap(WallpaperManager.java:623)
+	at com.android.systemui.ImageWallpaper$DrawableEngine.updateWallpaperLocked(ImageWallpaper.java:426)
+	at com.android.systemui.ImageWallpaper$DrawableEngine.updateSurfaceSize(ImageWallpaper.java:196)
+	at com.android.systemui.ImageWallpaper$DrawableEngine.onCreate(ImageWallpaper.java:179)
+	at android.service.wallpaper.WallpaperService$Engine.attach(WallpaperService.java:872)
+	at android.service.wallpaper.WallpaperService$IWallpaperEngineWrapper.executeMessage(WallpaperService.java:1163)
+	at com.android.internal.os.HandlerCaller$MyHandler.handleMessage(HandlerCaller.java:37)
+	at android.os.Handler.dispatchMessage(Handler.java:102)
+	at android.os.Looper.loop(Looper.java:148)
+	at android.app.ActivityThread.main(ActivityThread.java:5415)
+	at java.lang.reflect.Method.invoke(Native Method)
+	at com.android.internal.os.ZygoteInit$MethodAndArgsCaller.run(ZygoteInit.java:725)
+	at com.android.internal.os.ZygoteInit.main(ZygoteInit.java:615)
+Starting a blocking GC Alloc
+Starting a blocking GC Alloc
+Starting a blocking GC Alloc
+Alloc partial concurrent mark sweep GC freed 16(824B) AllocSpace objects, 0(0B) LOS objects, 6% free, 235MB/251MB, paused 331us total 15.082ms
+Starting a blocking GC Alloc
+Alloc concurrent mark sweep GC freed 9(304B) AllocSpace objects, 0(0B) LOS objects, 6% free, 235MB/251MB, paused 312us total 15.942ms
+Forcing collection of SoftReferences for 30MB allocation
+Starting a blocking GC Alloc
+Alloc concurrent mark sweep GC freed 3(96B) AllocSpace objects, 0(0B) LOS objects, 6% free, 235MB/251MB, paused 317us total 16.700ms
+Throwing OutOfMemoryError "Failed to allocate a 31784972 byte allocation with 16776048 free bytes and 20MB until OOM"
+Starting a blocking GC Alloc
+Starting a blocking GC Alloc
+Starting a blocking GC Alloc
+Alloc partial concurrent mark sweep GC freed 6(192B) AllocSpace objects, 0(0B) LOS objects, 6% free, 235MB/251MB, paused 340us total 15.966ms
+Starting a blocking GC Alloc
+Alloc concurrent mark sweep GC freed 3(96B) AllocSpace objects, 0(0B) LOS objects, 6% free, 235MB/251MB, paused 329us total 17.811ms
+Forcing collection of SoftReferences for 30MB allocation
+Starting a blocking GC Alloc
+Alloc concurrent mark sweep GC freed 3(96B) AllocSpace objects, 0(0B) LOS objects, 6% free, 235MB/251MB, paused 325us total 16.837ms
+Throwing OutOfMemoryError "Failed to allocate a 31784972 byte allocation with 16776048 free bytes and 20MB until OOM"
+Cant decode stream
+java.lang.OutOfMemoryError: Failed to allocate a 31784972 byte allocation with 16776048 free bytes and 20MB until OOM
+	at dalvik.system.VMRuntime.newNonMovableArray(Native Method)
+	at android.graphics.BitmapFactory.nativeDecodeAsset(Native Method)
+	at android.graphics.BitmapFactory.decodeStream(BitmapFactory.java:609)
+	at android.app.WallpaperManager$Globals.getDefaultWallpaperLocked(WallpaperManager.java:330)
+	at android.app.WallpaperManager$Globals.peekWallpaperBitmap(WallpaperManager.java:278)
+	at android.app.WallpaperManager.getBitmap(WallpaperManager.java:623)
+	at com.android.systemui.ImageWallpaper$DrawableEngine.updateWallpaperLocked(ImageWallpaper.java:426)
+	at com.android.systemui.ImageWallpaper$DrawableEngine.updateSurfaceSize(ImageWallpaper.java:196)
+	at com.android.systemui.ImageWallpaper$DrawableEngine.onCreate(ImageWallpaper.java:179)
+	at android.service.wallpaper.WallpaperService$Engine.attach(WallpaperService.java:872)
+	at android.service.wallpaper.WallpaperService$IWallpaperEngineWrapper.executeMessage(WallpaperService.java:1163)
+	at com.android.internal.os.HandlerCaller$MyHandler.handleMessage(HandlerCaller.java:37)
+	at android.os.Handler.dispatchMessage(Handler.java:102)
+	at android.os.Looper.loop(Looper.java:148)
+	at android.app.ActivityThread.main(ActivityThread.java:5415)
+	at java.lang.reflect.Method.invoke(Native Method)
+	at com.android.internal.os.ZygoteInit$MethodAndArgsCaller.run(ZygoteInit.java:725)
+	at com.android.internal.os.ZygoteInit.main(ZygoteInit.java:615)
+Unable to load wallpaper!
+java.lang.NullPointerException: Attempt to invoke virtual method int android.graphics.Bitmap.getWidth() on a null object reference
+	at com.android.systemui.ImageWallpaper$DrawableEngine.updateWallpaperLocked(ImageWallpaper.java:427)
+	at com.android.systemui.ImageWallpaper$DrawableEngine.updateSurfaceSize(ImageWallpaper.java:196)
+	at com.android.systemui.ImageWallpaper$DrawableEngine.onCreate(ImageWallpaper.java:179)
+	at android.service.wallpaper.WallpaperService$Engine.attach(WallpaperService.java:872)
+	at android.service.wallpaper.WallpaperService$IWallpaperEngineWrapper.executeMessage(WallpaperService.java:1163)
+	at com.android.internal.os.HandlerCaller$MyHandler.handleMessage(HandlerCaller.java:37)
+	at android.os.Handler.dispatchMessage(Handler.java:102)
+	at android.os.Looper.loop(Looper.java:148)
+	at android.app.ActivityThread.main(ActivityThread.java:5415)
+	at java.lang.reflect.Method.invoke(Native Method)
+	at com.android.internal.os.ZygoteInit$MethodAndArgsCaller.run(ZygoteInit.java:725)
+	at com.android.internal.os.ZygoteInit.main(ZygoteInit.java:615)
+Attempted to add wallpaper window with unknown token android.os.Binder@c8da6fd.  Aborting.
+Failed to add window while updating wallpaper surface.
+Attempted to add wallpaper window with unknown token android.os.Binder@f73280d.  Aborting.
+Failed to add window while updating wallpaper surface.
+Starting a blocking GC Alloc
+Starting a blocking GC Alloc
+Starting a blocking GC Alloc
+Alloc partial concurrent mark sweep GC freed 78(11KB) AllocSpace objects, 0(0B) LOS objects, 6% free, 235MB/251MB, paused 333us total 15.986ms
+Starting a blocking GC Alloc
+Alloc concurrent mark sweep GC freed 18(560B) AllocSpace objects, 0(0B) LOS objects, 6% free, 235MB/251MB, paused 309us total 16.614ms
+Forcing collection of SoftReferences for 30MB allocation
+Starting a blocking GC Alloc
+Alloc concurrent mark sweep GC freed 3(96B) AllocSpace objects, 0(0B) LOS objects, 6% free, 235MB/251MB, paused 313us total 16.723ms
+Throwing OutOfMemoryError "Failed to allocate a 31784972 byte allocation with 16776048 free bytes and 20MB until OOM"
+Starting a blocking GC Alloc
+Starting a blocking GC Alloc
+Starting a blocking GC Alloc
+Alloc partial concurrent mark sweep GC freed 6(192B) AllocSpace objects, 0(0B) LOS objects, 6% free, 235MB/251MB, paused 322us total 15.433ms
+Starting a blocking GC Alloc
+Alloc concurrent mark sweep GC freed 3(96B) AllocSpace objects, 0(0B) LOS objects, 6% free, 235MB/251MB, paused 315us total 16.687ms
+Forcing collection of SoftReferences for 30MB allocation
+Starting a blocking GC Alloc
+Alloc concurrent mark sweep GC freed 3(96B) AllocSpace objects, 0(0B) LOS objects, 6% free, 235MB/251MB, paused 318us total 16.587ms
+Throwing OutOfMemoryError "Failed to allocate a 31784972 byte allocation with 16776048 free bytes and 20MB until OOM"
+Cant decode file
+java.lang.OutOfMemoryError: Failed to allocate a 31784972 byte allocation with 16776048 free bytes and 20MB until OOM
+	at dalvik.system.VMRuntime.newNonMovableArray(Native Method)
+	at android.graphics.BitmapFactory.nativeDecodeFileDescriptor(Native Method)
+	at android.graphics.BitmapFactory.decodeFileDescriptor(BitmapFactory.java:672)
+	at android.app.WallpaperManager$Globals.getCurrentWallpaperLocked(WallpaperManager.java:307)
+	at android.app.WallpaperManager$Globals.peekWallpaperBitmap(WallpaperManager.java:272)
+	at android.app.WallpaperManager.getBitmap(WallpaperManager.java:623)
+	at com.android.systemui.ImageWallpaper$DrawableEngine.updateWallpaperLocked(ImageWallpaper.java:426)
+	at com.android.systemui.ImageWallpaper$DrawableEngine.updateSurfaceSize(ImageWallpaper.java:196)
+	at com.android.systemui.ImageWallpaper$DrawableEngine.onCreate(ImageWallpaper.java:179)
+	at android.service.wallpaper.WallpaperService$Engine.attach(WallpaperService.java:872)
+	at android.service.wallpaper.WallpaperService$IWallpaperEngineWrapper.executeMessage(WallpaperService.java:1163)
+	at com.android.internal.os.HandlerCaller$MyHandler.handleMessage(HandlerCaller.java:37)
+	at android.os.Handler.dispatchMessage(Handler.java:102)
+	at android.os.Looper.loop(Looper.java:148)
+	at android.app.ActivityThread.main(ActivityThread.java:5415)
+	at java.lang.reflect.Method.invoke(Native Method)
+	at com.android.internal.os.ZygoteInit$MethodAndArgsCaller.run(ZygoteInit.java:725)
+	at com.android.internal.os.ZygoteInit.main(ZygoteInit.java:615)
+Starting a blocking GC Alloc
+Starting a blocking GC Alloc
+Starting a blocking GC Alloc
+Alloc partial concurrent mark sweep GC freed 16(824B) AllocSpace objects, 0(0B) LOS objects, 6% free, 235MB/251MB, paused 320us total 16.125ms
+Starting a blocking GC Alloc
+Alloc concurrent mark sweep GC freed 7(240B) AllocSpace objects, 0(0B) LOS objects, 6% free, 235MB/251MB, paused 317us total 16.872ms
+Forcing collection of SoftReferences for 30MB allocation
+Starting a blocking GC Alloc
+Alloc concurrent mark sweep GC freed 2(64B) AllocSpace objects, 0(0B) LOS objects, 6% free, 235MB/251MB, paused 315us total 16.958ms
+Throwing OutOfMemoryError "Failed to allocate a 31784972 byte allocation with 16777216 free bytes and 20MB until OOM"
+Starting a blocking GC Alloc
+Starting a blocking GC Alloc
+Starting a blocking GC Alloc
+Alloc partial concurrent mark sweep GC freed 6(192B) AllocSpace objects, 0(0B) LOS objects, 6% free, 235MB/251MB, paused 330us total 15.999ms
+Starting a blocking GC Alloc
+Alloc concurrent mark sweep GC freed 3(96B) AllocSpace objects, 0(0B) LOS objects, 6% free, 235MB/251MB, paused 322us total 16.921ms
+Forcing collection of SoftReferences for 30MB allocation
+Starting a blocking GC Alloc
+Alloc concurrent mark sweep GC freed 3(96B) AllocSpace objects, 0(0B) LOS objects, 6% free, 235MB/251MB, paused 324us total 38.653ms
+Throwing OutOfMemoryError "Failed to allocate a 31784972 byte allocation with 16777216 free bytes and 20MB until OOM"
+Cant decode stream
+java.lang.OutOfMemoryError: Failed to allocate a 31784972 byte allocation with 16777216 free bytes and 20MB until OOM
+	at dalvik.system.VMRuntime.newNonMovableArray(Native Method)
+	at android.graphics.BitmapFactory.nativeDecodeAsset(Native Method)
+	at android.graphics.BitmapFactory.decodeStream(BitmapFactory.java:609)
+	at android.app.WallpaperManager$Globals.getDefaultWallpaperLocked(WallpaperManager.java:330)
+	at android.app.WallpaperManager$Globals.peekWallpaperBitmap(WallpaperManager.java:278)
+	at android.app.WallpaperManager.getBitmap(WallpaperManager.java:623)
+	at com.android.systemui.ImageWallpaper$DrawableEngine.updateWallpaperLocked(ImageWallpaper.java:426)
+	at com.android.systemui.ImageWallpaper$DrawableEngine.updateSurfaceSize(ImageWallpaper.java:196)
+	at com.android.systemui.ImageWallpaper$DrawableEngine.onCreate(ImageWallpaper.java:179)
+	at android.service.wallpaper.WallpaperService$Engine.attach(WallpaperService.java:872)
+	at android.service.wallpaper.WallpaperService$IWallpaperEngineWrapper.executeMessage(WallpaperService.java:1163)
+	at com.android.internal.os.HandlerCaller$MyHandler.handleMessage(HandlerCaller.java:37)
+	at android.os.Handler.dispatchMessage(Handler.java:102)
+	at android.os.Looper.loop(Looper.java:148)
+	at android.app.ActivityThread.main(ActivityThread.java:5415)
+	at java.lang.reflect.Method.invoke(Native Method)
+	at com.android.internal.os.ZygoteInit$MethodAndArgsCaller.run(ZygoteInit.java:725)
+	at com.android.internal.os.ZygoteInit.main(ZygoteInit.java:615)
+Unable to load wallpaper!
+java.lang.NullPointerException: Attempt to invoke virtual method int android.graphics.Bitmap.getWidth() on a null object reference
+	at com.android.systemui.ImageWallpaper$DrawableEngine.updateWallpaperLocked(ImageWallpaper.java:427)
+	at com.android.systemui.ImageWallpaper$DrawableEngine.updateSurfaceSize(ImageWallpaper.java:196)
+	at com.android.systemui.ImageWallpaper$DrawableEngine.onCreate(ImageWallpaper.java:179)
+	at android.service.wallpaper.WallpaperService$Engine.attach(WallpaperService.java:872)
+	at android.service.wallpaper.WallpaperService$IWallpaperEngineWrapper.executeMessage(WallpaperService.java:1163)
+	at com.android.internal.os.HandlerCaller$MyHandler.handleMessage(HandlerCaller.java:37)
+	at android.os.Handler.dispatchMessage(Handler.java:102)
+	at android.os.Looper.loop(Looper.java:148)
+	at android.app.ActivityThread.main(ActivityThread.java:5415)
+	at java.lang.reflect.Method.invoke(Native Method)
+	at com.android.internal.os.ZygoteInit$MethodAndArgsCaller.run(ZygoteInit.java:725)
+	at com.android.internal.os.ZygoteInit.main(ZygoteInit.java:615)
+Attempted to add wallpaper window with unknown token android.os.Binder@67f893e.  Aborting.
+Failed to add window while updating wallpaper surface.
+Attempted to add wallpaper window with unknown token android.os.Binder@de97c2f.  Aborting.
+Failed to add window while updating wallpaper surface.
+Starting a blocking GC Alloc
+Starting a blocking GC Alloc
+Starting a blocking GC Alloc
+Alloc partial concurrent mark sweep GC freed 89(11KB) AllocSpace objects, 0(0B) LOS objects, 6% free, 235MB/251MB, paused 328us total 17.427ms
+Starting a blocking GC Alloc
+Alloc concurrent mark sweep GC freed 7(256B) AllocSpace objects, 0(0B) LOS objects, 6% free, 235MB/251MB, paused 327us total 19.163ms
+Forcing collection of SoftReferences for 30MB allocation
+Starting a blocking GC Alloc
+Alloc concurrent mark sweep GC freed 3(96B) AllocSpace objects, 0(0B) LOS objects, 6% free, 235MB/251MB, paused 322us total 18.407ms
+Throwing OutOfMemoryError "Failed to allocate a 31784972 byte allocation with 16777216 free bytes and 20MB until OOM"
+Starting a blocking GC Alloc
+Starting a blocking GC Alloc
+Starting a blocking GC Alloc
+Alloc partial concurrent mark sweep GC freed 6(192B) AllocSpace objects, 0(0B) LOS objects, 6% free, 235MB/251MB, paused 333us total 16.266ms
+Starting a blocking GC Alloc
+Alloc concurrent mark sweep GC freed 3(96B) AllocSpace objects, 0(0B) LOS objects, 6% free, 235MB/251MB, paused 320us total 16.954ms
+Forcing collection of SoftReferences for 30MB allocation
+Starting a blocking GC Alloc
+Alloc concurrent mark sweep GC freed 3(96B) AllocSpace objects, 0(0B) LOS objects, 6% free, 235MB/251MB, paused 321us total 16.968ms
+Throwing OutOfMemoryError "Failed to allocate a 31784972 byte allocation with 16777216 free bytes and 20MB until OOM"
+Cant decode file
+java.lang.OutOfMemoryError: Failed to allocate a 31784972 byte allocation with 16777216 free bytes and 20MB until OOM
+	at dalvik.system.VMRuntime.newNonMovableArray(Native Method)
+	at android.graphics.BitmapFactory.nativeDecodeFileDescriptor(Native Method)
+	at android.graphics.BitmapFactory.decodeFileDescriptor(BitmapFactory.java:672)
+	at android.app.WallpaperManager$Globals.getCurrentWallpaperLocked(WallpaperManager.java:307)
+	at android.app.WallpaperManager$Globals.peekWallpaperBitmap(WallpaperManager.java:272)
+	at android.app.WallpaperManager.getBitmap(WallpaperManager.java:623)
+	at com.android.systemui.ImageWallpaper$DrawableEngine.updateWallpaperLocked(ImageWallpaper.java:426)
+	at com.android.systemui.ImageWallpaper$DrawableEngine.updateSurfaceSize(ImageWallpaper.java:196)
+	at com.android.systemui.ImageWallpaper$DrawableEngine.onCreate(ImageWallpaper.java:179)
+	at android.service.wallpaper.WallpaperService$Engine.attach(WallpaperService.java:872)
+	at android.service.wallpaper.WallpaperService$IWallpaperEngineWrapper.executeMessage(WallpaperService.java:1163)
+	at com.android.internal.os.HandlerCaller$MyHandler.handleMessage(HandlerCaller.java:37)
+	at android.os.Handler.dispatchMessage(Handler.java:102)
+	at android.os.Looper.loop(Looper.java:148)
+	at android.app.ActivityThread.main(ActivityThread.java:5415)
+	at java.lang.reflect.Method.invoke(Native Method)
+	at com.android.internal.os.ZygoteInit$MethodAndArgsCaller.run(ZygoteInit.java:725)
+	at com.android.internal.os.ZygoteInit.main(ZygoteInit.java:615)
+Starting a blocking GC Alloc
+Starting a blocking GC Alloc
+Starting a blocking GC Alloc
+Alloc partial concurrent mark sweep GC freed 16(824B) AllocSpace objects, 0(0B) LOS objects, 6% free, 235MB/251MB, paused 326us total 16.344ms
+Starting a blocking GC Alloc
+Alloc concurrent mark sweep GC freed 9(304B) AllocSpace objects, 0(0B) LOS objects, 6% free, 235MB/251MB, paused 324us total 17.314ms
+Forcing collection of SoftReferences for 30MB allocation
+Starting a blocking GC Alloc
+Alloc concurrent mark sweep GC freed 3(96B) AllocSpace objects, 0(0B) LOS objects, 6% free, 235MB/251MB, paused 322us total 16.861ms
+Throwing OutOfMemoryError "Failed to allocate a 31784972 byte allocation with 16777216 free bytes and 20MB until OOM"
+Starting a blocking GC Alloc
+Starting a blocking GC Alloc
+Starting a blocking GC Alloc
+Alloc partial concurrent mark sweep GC freed 6(192B) AllocSpace objects, 0(0B) LOS objects, 6% free, 235MB/251MB, paused 350us total 16.084ms
+Starting a blocking GC Alloc
+Alloc concurrent mark sweep GC freed 3(96B) AllocSpace objects, 0(0B) LOS objects, 6% free, 235MB/251MB, paused 325us total 16.839ms
+Forcing collection of SoftReferences for 30MB allocation
+Starting a blocking GC Alloc
+ANR in com.android.systemui
+PID: 6175
+Reason: Broadcast of Intent { act=android.intent.action.TIME_TICK flg=0x50000014 (has extras) }
+Load: 14.67 / 12.04 / 6.64
+CPU usage from 5220ms to 127ms ago:
+  96% 381/drmserver: 96% user + 0% kernel
+  89% 6175/com.android.systemui: 74% user + 15% kernel / faults: 40843 minor
+  10% 5941/system_server: 3.5% user + 6.8% kernel / faults: 322 minor
+  7% 3383/adbd: 1.3% user + 5.6% kernel / faults: 886 minor
+  6.4% 250/logd: 4.1% user + 2.3% kernel / faults: 11 minor
+  3.1% 212/irq/163-dwc3: 0% user + 3.1% kernel
+  2.3% 3634/logcat: 0.9% user + 1.3% kernel
+  1.5% 12854/kworker/0:3: 0% user + 1.5% kernel
+  1.1% 214/mmcqd/0: 0% user + 1.1% kernel
+  0.7% 35/kworker/u8:2: 0% user + 0.7% kernel
+  0.7% 282/kworker/u8:6: 0% user + 0.7% kernel
+  0.7% 333/kworker/u8:7: 0% user + 0.7% kernel
+  0.5% 6/kworker/u8:0: 0% user + 0.5% kernel
+  0.5% 9973/com.android.defcontainer: 0.3% user + 0.1% kernel / faults: 382 minor
+  0.3% 30/kworker/u9:0: 0% user + 0.3% kernel
+  0.3% 200/kworker/u8:3: 0% user + 0.3% kernel
+  0.3% 218/kworker/1:2: 0% user + 0.3% kernel
+  0% 391/adspd: 0% user + 0% kernel
+  0.3% 9960/com.google.android.gms: 0.1% user + 0.1% kernel / faults: 334 minor
+  0.1% 8/rcu_preempt: 0% user + 0.1% kernel
+  0.1% 25/kworker/0:1H: 0% user + 0.1% kernel
+  0.1% 42/kworker/3:1H: 0% user + 0.1% kernel
+  0% 165/kworker/0:2: 0% user + 0% kernel
+  0.1% 172/cfinteractive: 0% user + 0.1% kernel
+  0.1% 193/irq/33-bw_hwmon: 0% user + 0.1% kernel
+  0% 203/irq/437-smb135x: 0% user + 0% kernel
+  0.1% 275/healthd: 0% user + 0.1% kernel
+  0% 334/kworker/u8:8: 0% user + 0% kernel
+  0.1% 368/dmcrypt_write: 0% user + 0.1% kernel
+  0.1% 370/kworker/3:2: 0% user + 0.1% kernel
+  0.1% 374/jbd2/dm-1-8: 0% user + 0.1% kernel
+  0.1% 6469/com.google.android.gms.persistent: 0.1% user + 0% kernel / faults: 269 minor
+  0.1% 6528/com.google.android.googlequicksearchbox: 0.1% user + 0% kernel / faults: 16 minor
+64% TOTAL: 52% user + 11% kernel + 0.5% iowait + 0% softirq
+CPU usage from 3886ms to 4420ms later:
+  94% 381/drmserver: 94% user + 0% kernel
+    94% 2081/Binder_2: 94% user + 0% kernel
+  81% 6175/com.android.systemui: 71% user + 10% kernel / faults: 3964 minor
+    78% 6175/ndroid.systemui: 69% user + 8.8% kernel
+  14% 5941/system_server: 8.9% user + 5.3% kernel / faults: 6 minor
+    8.9% 5960/ActivityManager: 3.5% user + 5.3% kernel
+    1.7% 5941/system_server: 1.7% user + 0% kernel
+    1.7% 5968/FileObserver: 1.7% user + 0% kernel
+    1.7% 6520/Binder_6: 1.7% user + 0% kernel
+  6.9% 333/kworker/u8:7: 0% user + 6.9% kernel
+  7.1% 3383/adbd: 0% user + 7.1% kernel / faults: 55 minor
+    5.3% 3383/adbd: 0% user + 5.3% kernel
+    1.7% 3385/adbd: 0% user + 1.7% kernel
+    1.7% 3386/adbd: 0% user + 1.7% kernel
+  3.8% 6/kworker/u8:0: 0% user + 3.8% kernel
+  4% 200/kworker/u8:3: 0% user + 4% kernel
+  2.5% 35/kworker/u8:2: 0% user + 2.5% kernel
+  3.5% 212/irq/163-dwc3: 0% user + 3.5% kernel
+  2.7% 214/mmcqd/0: 0% user + 2.7% kernel
+  2.7% 250/logd: 1.3% user + 1.3% kernel
+    2.7% 255/logd.writer: 2.7% user + 0% kernel
+    1.3% 3637/logd.reader.per: 0% user + 1.3% kernel
+  1.2% 12/ksoftirqd/1: 0% user + 1.2% kernel
+  1.2% 39/khubd: 0% user + 1.2% kernel
+  1.3% 282/kworker/u8:6: 0% user + 1.3% kernel
+  1.7% 3634/logcat: 1.7% user + 0% kernel
+  1.6% 12854/kworker/0:3: 0% user + 1.6% kernel
+62% TOTAL: 44% user + 13% kernel + 4.3% iowait
+Killing 6175:com.android.systemui/u0a30 (adj -12): bg anr
+channel 6c5a656 StatusBar (server) ~ Consumer closed input channel or an error occurred.  events=0x9
+channel 6c5a656 StatusBar (server) ~ Channel is unrecoverably broken and will be disposed!
+channel f1c0f5c NavigationBar (server) ~ Consumer closed input channel or an error occurred.  events=0x9
+channel f1c0f5c NavigationBar (server) ~ Channel is unrecoverably broken and will be disposed!
+channel a9a235d AssistPreviewPanel (server) ~ Consumer closed input channel or an error occurred.  events=0x9
+channel a9a235d AssistPreviewPanel (server) ~ Channel is unrecoverably broken and will be disposed!
+WIN DEATH: Window{f1c0f5c u0 NavigationBar}
+Attempted to unregister already unregistered input channel f1c0f5c NavigationBar (server)
+*** Keyguard disconnected (boo!)
+Wallpaper service gone: ComponentInfo{com.android.systemui/com.android.systemui.ImageWallpaper}
+Failed to report resized to the client of Window{6c5a656 u0 StatusBar}, removing this window.
+Attempted to unregister already unregistered input channel 6c5a656 StatusBar (server)
+RemoteException caught trying to send a callback msg for NetworkRequest [ id=3, legacyType=-1, [] ]
+Current remote volume controller died, unregistering
+binder died for pkg=com.android.systemui
+Error calling dismiss
+android.os.DeadObjectException
+	at android.os.BinderProxy.transactNative(Native Method)
+	at android.os.BinderProxy.transact(Binder.java:503)
+	at android.media.IVolumeController$Stub$Proxy.dismiss(IVolumeController.java:162)
+	at com.android.server.audio.AudioService$VolumeController.postDismiss(AudioService.java:5827)
+	at com.android.server.audio.AudioService.setVolumeController(AudioService.java:5675)
+	at com.android.server.audio.AudioService$4.binderDied(AudioService.java:5684)
+	at android.os.BinderProxy.sendDeathNotice(Binder.java:558)
+Failure sending broadcast Intent { act=android.intent.action.BATTERY_CHANGED flg=0x60000010 (has extras) }
+android.os.DeadObjectException
+	at android.os.BinderProxy.transactNative(Native Method)
+	at android.os.BinderProxy.transact(Binder.java:503)
+	at android.app.ApplicationThreadProxy.scheduleRegisteredReceiver(ApplicationThreadNative.java:1120)
+	at com.android.server.am.BroadcastQueue.performReceiveLocked(BroadcastQueue.java:454)
+	at com.android.server.am.BroadcastQueue.deliverToRegisteredReceiverLocked(BroadcastQueue.java:541)
+	at com.android.server.am.BroadcastQueue.processNextBroadcast(BroadcastQueue.java:602)
+	at com.android.server.am.BroadcastQueue$BroadcastHandler.handleMessage(BroadcastQueue.java:167)
+	at android.os.Handler.dispatchMessage(Handler.java:102)
+	at android.os.Looper.loop(Looper.java:148)
+	at android.os.HandlerThread.run(HandlerThread.java:61)
+	at com.android.server.ServiceThread.run(ServiceThread.java:46)
+Failure sending broadcast Intent { act=android.intent.action.BATTERY_CHANGED flg=0x60000010 (has extras) }
+android.os.DeadObjectException
+	at android.os.BinderProxy.transactNative(Native Method)
+	at android.os.BinderProxy.transact(Binder.java:503)
+	at android.app.ApplicationThreadProxy.scheduleRegisteredReceiver(ApplicationThreadNative.java:1120)
+	at com.android.server.am.BroadcastQueue.performReceiveLocked(BroadcastQueue.java:454)
+	at com.android.server.am.BroadcastQueue.deliverToRegisteredReceiverLocked(BroadcastQueue.java:541)
+	at com.android.server.am.BroadcastQueue.processNextBroadcast(BroadcastQueue.java:602)
+	at com.android.server.am.BroadcastQueue$BroadcastHandler.handleMessage(BroadcastQueue.java:167)
+	at android.os.Handler.dispatchMessage(Handler.java:102)
+	at android.os.Looper.loop(Looper.java:148)
+	at android.os.HandlerThread.run(HandlerThread.java:61)
+	at com.android.server.ServiceThread.run(ServiceThread.java:46)
+Failure sending broadcast Intent { act=android.intent.action.BATTERY_CHANGED flg=0x60000010 (has extras) }
+android.os.DeadObjectException
+	at android.os.BinderProxy.transactNative(Native Method)
+	at android.os.BinderProxy.transact(Binder.java:503)
+	at android.app.ApplicationThreadProxy.scheduleRegisteredReceiver(ApplicationThreadNative.java:1120)
+	at com.android.server.am.BroadcastQueue.performReceiveLocked(BroadcastQueue.java:454)
+	at com.android.server.am.BroadcastQueue.deliverToRegisteredReceiverLocked(BroadcastQueue.java:541)
+	at com.android.server.am.BroadcastQueue.processNextBroadcast(BroadcastQueue.java:602)
+	at com.android.server.am.BroadcastQueue$BroadcastHandler.handleMessage(BroadcastQueue.java:167)
+	at android.os.Handler.dispatchMessage(Handler.java:102)
+	at android.os.Looper.loop(Looper.java:148)
+	at android.os.HandlerThread.run(HandlerThread.java:61)
+	at com.android.server.ServiceThread.run(ServiceThread.java:46)
+WIN DEATH: Window{a9a235d u0 AssistPreviewPanel}
+Attempted to unregister already unregistered input channel a9a235d AssistPreviewPanel (server)
+Failure sending broadcast Intent { act=android.intent.action.BATTERY_CHANGED flg=0x60000010 (has extras) }
+android.os.DeadObjectException
+	at android.os.BinderProxy.transactNative(Native Method)
+	at android.os.BinderProxy.transact(Binder.java:503)
+	at android.app.ApplicationThreadProxy.scheduleRegisteredReceiver(ApplicationThreadNative.java:1120)
+	at com.android.server.am.BroadcastQueue.performReceiveLocked(BroadcastQueue.java:454)
+	at com.android.server.am.BroadcastQueue.deliverToRegisteredReceiverLocked(BroadcastQueue.java:541)
+	at com.android.server.am.BroadcastQueue.processNextBroadcast(BroadcastQueue.java:602)
+	at com.android.server.am.BroadcastQueue$BroadcastHandler.handleMessage(BroadcastQueue.java:167)
+	at android.os.Handler.dispatchMessage(Handler.java:102)
+	at android.os.Looper.loop(Looper.java:148)
+	at android.os.HandlerThread.run(HandlerThread.java:61)
+	at com.android.server.ServiceThread.run(ServiceThread.java:46)
+Failure sending broadcast Intent { act=android.intent.action.BATTERY_CHANGED flg=0x60000010 (has extras) }
+android.os.DeadObjectException
+	at android.os.BinderProxy.transactNative(Native Method)
+	at android.os.BinderProxy.transact(Binder.java:503)
+	at android.app.ApplicationThreadProxy.scheduleRegisteredReceiver(ApplicationThreadNative.java:1120)
+	at com.android.server.am.BroadcastQueue.performReceiveLocked(BroadcastQueue.java:454)
+	at com.android.server.am.BroadcastQueue.deliverToRegisteredReceiverLocked(BroadcastQueue.java:541)
+	at com.android.server.am.BroadcastQueue.processNextBroadcast(BroadcastQueue.java:602)
+	at com.android.server.am.BroadcastQueue$BroadcastHandler.handleMessage(BroadcastQueue.java:167)
+	at android.os.Handler.dispatchMessage(Handler.java:102)
+	at android.os.Looper.loop(Looper.java:148)
+	at android.os.HandlerThread.run(HandlerThread.java:61)
+	at com.android.server.ServiceThread.run(ServiceThread.java:46)
+Failure sending broadcast Intent { act=android.intent.action.BATTERY_CHANGED flg=0x60000010 (has extras) }
+android.os.DeadObjectException
+	at android.os.BinderProxy.transactNative(Native Method)
+	at android.os.BinderProxy.transact(Binder.java:503)
+	at android.app.ApplicationThreadProxy.scheduleRegisteredReceiver(ApplicationThreadNative.java:1120)
+	at com.android.server.am.BroadcastQueue.performReceiveLocked(BroadcastQueue.java:454)
+	at com.android.server.am.BroadcastQueue.deliverToRegisteredReceiverLocked(BroadcastQueue.java:541)
+	at com.android.server.am.BroadcastQueue.processNextBroadcast(BroadcastQueue.java:602)
+	at com.android.server.am.BroadcastQueue$BroadcastHandler.handleMessage(BroadcastQueue.java:167)
+	at android.os.Handler.dispatchMessage(Handler.java:102)
+	at android.os.Looper.loop(Looper.java:148)
+	at android.os.HandlerThread.run(HandlerThread.java:61)
+	at com.android.server.ServiceThread.run(ServiceThread.java:46)
+failed to open /acct/uid_10030/pid_6175/cgroup.procs: No such file or directory
+Process com.android.systemui (pid 6175) has died
+Scheduling restart of crashed service com.android.systemui/.ImageWallpaper in 0ms
+Scheduling restart of crashed service com.android.systemui/.keyguard.KeyguardService in 0ms
+Scheduling restart of crashed service com.android.systemui/.SystemUIService in 0ms
+finishReceiver [foreground] called but state is IDLE
+Already have existing proc ProcessRecord{9cb5088 6175:com.android.systemui/u0a30} when adding ProcessRecord{9cb5088 6175:com.android.systemui/u0a30}
+Start proc 13954:com.android.systemui/u0a30 for restart com.android.systemui
+Failure sending broadcast Intent { act=android.intent.action.TIME_TICK flg=0x50000014 (has extras) }
+android.os.RemoteException: app.thread must not be null
+	at com.android.server.am.BroadcastQueue.performReceiveLocked(BroadcastQueue.java:458)
+	at com.android.server.am.BroadcastQueue.deliverToRegisteredReceiverLocked(BroadcastQueue.java:541)
+	at com.android.server.am.BroadcastQueue.processNextBroadcast(BroadcastQueue.java:759)
+	at com.android.server.am.BroadcastQueue$BroadcastHandler.handleMessage(BroadcastQueue.java:167)
+	at android.os.Handler.dispatchMessage(Handler.java:102)
+	at android.os.Looper.loop(Looper.java:148)
+	at android.os.HandlerThread.run(HandlerThread.java:61)
+	at com.android.server.ServiceThread.run(ServiceThread.java:46)
+Failure sending broadcast Intent { act=android.intent.action.TIME_TICK flg=0x50000014 (has extras) }
+android.os.RemoteException: app.thread must not be null
+	at com.android.server.am.BroadcastQueue.performReceiveLocked(BroadcastQueue.java:458)
+	at com.android.server.am.BroadcastQueue.deliverToRegisteredReceiverLocked(BroadcastQueue.java:541)
+	at com.android.server.am.BroadcastQueue.processNextBroadcast(BroadcastQueue.java:759)
+	at com.android.server.am.BroadcastQueue$BroadcastHandler.handleMessage(BroadcastQueue.java:167)
+	at android.os.Handler.dispatchMessage(Handler.java:102)
+	at android.os.Looper.loop(Looper.java:148)
+	at android.os.HandlerThread.run(HandlerThread.java:61)
+	at com.android.server.ServiceThread.run(ServiceThread.java:46)
+Failure sending broadcast Intent { act=android.intent.action.TIME_TICK flg=0x50000014 (has extras) }
+android.os.RemoteException: app.thread must not be null
+	at com.android.server.am.BroadcastQueue.performReceiveLocked(BroadcastQueue.java:458)
+	at com.android.server.am.BroadcastQueue.deliverToRegisteredReceiverLocked(BroadcastQueue.java:541)
+	at com.android.server.am.BroadcastQueue.processNextBroadcast(BroadcastQueue.java:759)
+	at com.android.server.am.BroadcastQueue$BroadcastHandler.handleMessage(BroadcastQueue.java:167)
+	at android.os.Handler.dispatchMessage(Handler.java:102)
+	at android.os.Looper.loop(Looper.java:148)
+	at android.os.HandlerThread.run(HandlerThread.java:61)
+	at com.android.server.ServiceThread.run(ServiceThread.java:46)
+Failure sending broadcast Intent { act=android.intent.action.TIME_TICK flg=0x50000014 (has extras) }
+android.os.RemoteException: app.thread must not be null
+	at com.android.server.am.BroadcastQueue.performReceiveLocked(BroadcastQueue.java:458)
+	at com.android.server.am.BroadcastQueue.deliverToRegisteredReceiverLocked(BroadcastQueue.java:541)
+	at com.android.server.am.BroadcastQueue.processNextBroadcast(BroadcastQueue.java:759)
+	at com.android.server.am.BroadcastQueue$BroadcastHandler.handleMessage(BroadcastQueue.java:167)
+	at android.os.Handler.dispatchMessage(Handler.java:102)
+	at android.os.Looper.loop(Looper.java:148)
+	at android.os.HandlerThread.run(HandlerThread.java:61)
+	at com.android.server.ServiceThread.run(ServiceThread.java:46)
+Failure sending broadcast Intent { act=android.intent.action.TIME_TICK flg=0x50000014 (has extras) }
+android.os.RemoteException: app.thread must not be null
+	at com.android.server.am.BroadcastQueue.performReceiveLocked(BroadcastQueue.java:458)
+	at com.android.server.am.BroadcastQueue.deliverToRegisteredReceiverLocked(BroadcastQueue.java:541)
+	at com.android.server.am.BroadcastQueue.processNextBroadcast(BroadcastQueue.java:759)
+	at com.android.server.am.BroadcastQueue$BroadcastHandler.handleMessage(BroadcastQueue.java:167)
+	at android.os.Handler.dispatchMessage(Handler.java:102)
+	at android.os.Looper.loop(Looper.java:148)
+	at android.os.HandlerThread.run(HandlerThread.java:61)
+	at com.android.server.ServiceThread.run(ServiceThread.java:46)
+Failure sending broadcast Intent { act=android.intent.action.TIME_TICK flg=0x50000014 (has extras) }
+android.os.RemoteException: app.thread must not be null
+	at com.android.server.am.BroadcastQueue.performReceiveLocked(BroadcastQueue.java:458)
+	at com.android.server.am.BroadcastQueue.deliverToRegisteredReceiverLocked(BroadcastQueue.java:541)
+	at com.android.server.am.BroadcastQueue.processNextBroadcast(BroadcastQueue.java:759)
+	at com.android.server.am.BroadcastQueue$BroadcastHandler.handleMessage(BroadcastQueue.java:167)
+	at android.os.Handler.dispatchMessage(Handler.java:102)
+	at android.os.Looper.loop(Looper.java:148)
+	at android.os.HandlerThread.run(HandlerThread.java:61)
+	at com.android.server.ServiceThread.run(ServiceThread.java:46)
+Failure sending broadcast Intent { act=android.intent.action.TIME_TICK flg=0x50000014 (has extras) }
+android.os.RemoteException: app.thread must not be null
+	at com.android.server.am.BroadcastQueue.performReceiveLocked(BroadcastQueue.java:458)
+	at com.android.server.am.BroadcastQueue.deliverToRegisteredReceiverLocked(BroadcastQueue.java:541)
+	at com.android.server.am.BroadcastQueue.processNextBroadcast(BroadcastQueue.java:759)
+	at com.android.server.am.BroadcastQueue$BroadcastHandler.handleMessage(BroadcastQueue.java:167)
+	at android.os.Handler.dispatchMessage(Handler.java:102)
+	at android.os.Looper.loop(Looper.java:148)
+	at android.os.HandlerThread.run(HandlerThread.java:61)
+	at com.android.server.ServiceThread.run(ServiceThread.java:46)
+Failure sending broadcast Intent { act=android.intent.action.TIME_TICK flg=0x50000014 (has extras) }
+android.os.RemoteException: app.thread must not be null
+	at com.android.server.am.BroadcastQueue.performReceiveLocked(BroadcastQueue.java:458)
+	at com.android.server.am.BroadcastQueue.deliverToRegisteredReceiverLocked(BroadcastQueue.java:541)
+	at com.android.server.am.BroadcastQueue.processNextBroadcast(BroadcastQueue.java:759)
+	at com.android.server.am.BroadcastQueue$BroadcastHandler.handleMessage(BroadcastQueue.java:167)
+	at android.os.Handler.dispatchMessage(Handler.java:102)
+	at android.os.Looper.loop(Looper.java:148)
+	at android.os.HandlerThread.run(HandlerThread.java:61)
+	at com.android.server.ServiceThread.run(ServiceThread.java:46)
+Failed looking up window
+java.lang.IllegalArgumentException: Requested window android.os.BinderProxy@493871 does not exist
+	at com.android.server.wm.WindowManagerService.windowForClientLocked(WindowManagerService.java:8699)
+	at com.android.server.wm.WindowManagerService.windowForClientLocked(WindowManagerService.java:8690)
+	at com.android.server.wm.WindowState$DeathRecipient.binderDied(WindowState.java:1208)
+	at android.os.BinderProxy.sendDeathNotice(Binder.java:558)
+WIN DEATH: null
+Ignoring removeGeofence because network location is disabled.
+Removing dialog suppression flag for package com.google.wireless.android.security.serviceprobe
+ClassLoader referenced unknown path: /system/priv-app/SystemUI/lib/arm
+doRemovePackageData com.google.wireless.android.security.serviceprobe
+setApplicationContext called twice! old=com.google.android.velvet.VelvetApplication@2f7e052 new=com.google.android.velvet.VelvetApplication@2f7e052
+Starting SystemUI services.
+onFinishInput()
+cancelLanguageModelFlush()
+setApplicationContext called twice! old=com.google.android.velvet.VelvetApplication@2f7e052 new=com.google.android.velvet.VelvetApplication@2f7e052
+setApplicationContext called twice! old=com.google.android.velvet.VelvetApplication@2f7e052 new=com.google.android.velvet.VelvetApplication@2f7e052
+setApplicationContext called twice! old=com.google.android.velvet.VelvetApplication@2f7e052 new=com.google.android.velvet.VelvetApplication@2f7e052
+setApplicationContext called twice! old=com.google.android.velvet.VelvetApplication@2f7e052 new=com.google.android.velvet.VelvetApplication@2f7e052
+setApplicationContext called twice! old=com.google.android.velvet.VelvetApplication@2f7e052 new=com.google.android.velvet.VelvetApplication@2f7e052
+Not late-enabling -Xcheck:jni (already on)
+showStatusIcon on inactive InputConnection
+Start proc 13970:com.google.wireless.android.security.serviceprobe/u0a107 for broadcast com.google.wireless.android.security.serviceprobe/.FuzzerReceiver
+ClassLoader referenced unknown path: /data/app/com.google.wireless.android.security.serviceprobe-1/lib/arm
+Using client-side OMX mux.
+A component of name OMX.qcom.audio.decoder.aac already exists, ignoring this one.
+setApplicationContext called twice! old=com.google.android.velvet.VelvetApplication@2f7e052 new=com.google.android.velvet.VelvetApplication@2f7e052
+setApplicationContext called twice! old=com.google.android.velvet.VelvetApplication@2f7e052 new=com.google.android.velvet.VelvetApplication@2f7e052
+getInputForAttr uid 10107 tried to pass itself off as 0
+writeEvent collection_started
+* ERROR running fuzzer: java.lang.IllegalArgumentException
+Using client-side OMX mux.
+A component of name OMX.qcom.audio.decoder.aac already exists, ignoring this one.
+QUALCOMM build                   : 4436883, Iff6937fcf5
+Build Date                       : 06/04/15
+OpenGL ES Shader Compiler Version: E031.26.00.02
+Local Branch                     : master-M5
+Remote Branch                    :
+Remote Branch                    :
+Reconstruct Branch               :
+<gsl_device_getinfo_ext:1163>: Requested extened device info; but it isnt supported
+Initialized EGL, version 1.4
+GetNativeFormatFromQctPixelFormat: Invalid qct format (611)
+GetNativeFormatFromQctPixelFormat: Invalid qct format (611)
+GetNativeFormatFromQctPixelFormat: Invalid qct format (611)
+GetNativeFormatFromQctPixelFormat: Invalid qct format (611)
+GetNativeFormatFromQctPixelFormat: Invalid qct format (612)
+GetNativeFormatFromQctPixelFormat: Invalid qct format (612)
+GetNativeFormatFromQctPixelFormat: Invalid qct format (612)
+GetNativeFormatFromQctPixelFormat: Invalid qct format (612)
+Using client-side OMX mux.
+A component of name OMX.qcom.audio.decoder.aac already exists, ignoring this one.
+0xb09b1000 Launching thread(s), CPUs 4
+writeEvent level_changed STREAM_BLUETOOTH_SCO 7
+writeEvent level_changed STREAM_MUSIC 11
+writeEvent level_changed STREAM_RING 2
+writeEvent mute_changed STREAM_RING true
+writeEvent level_changed STREAM_SYSTEM 2
+writeEvent mute_changed STREAM_SYSTEM true
+writeEvent level_changed STREAM_VOICE_CALL 4
+writeEvent zen_mode_changed alarms
+*** Keyguard connected (yay!)
+*** register callback for com.android.systemui.keyguard.KeyguardViewMediator$1@f558525
+*** unregister callback for null
+QUALCOMM build                   : 4436883, Iff6937fcf5
+Build Date                       : 06/04/15
+OpenGL ES Shader Compiler Version: E031.26.00.02
+Local Branch                     : master-M5
+Remote Branch                    :
+Remote Branch                    :
+Reconstruct Branch               :
+<gsl_device_getinfo_ext:1163>: Requested extened device info; but it isnt supported
+GetNativeFormatFromQctPixelFormat: Invalid qct format (611)
+GetNativeFormatFromQctPixelFormat: Invalid qct format (611)
+GetNativeFormatFromQctPixelFormat: Invalid qct format (611)
+GetNativeFormatFromQctPixelFormat: Invalid qct format (611)
+GetNativeFormatFromQctPixelFormat: Invalid qct format (612)
+GetNativeFormatFromQctPixelFormat: Invalid qct format (612)
+GetNativeFormatFromQctPixelFormat: Invalid qct format (612)
+GetNativeFormatFromQctPixelFormat: Invalid qct format (612)
+action android.intent.action.SIM_STATE_CHANGED state: ABSENT slotId: 0 subid: -2
+/system/bin/sh: using libc.debug.malloc 5 (fill)
+mkdir: using libc.debug.malloc 5 (fill)
+registerStatusBar bar=com.android.internal.statusbar.IStatusBar$Stub$Proxy@811d045
+Enable transport text marquee
+*** register callback for com.android.systemui.statusbar.phone.UnlockMethodCache$1@d376a27
+*** unregister callback for null
+*** register callback for com.android.systemui.statusbar.phone.KeyguardBottomAreaView$5@20167d
+*** unregister callback for null
+*** register callback for com.android.systemui.statusbar.KeyguardIndicationController$1@71ba5a1
+*** unregister callback for null
+FATAL EXCEPTION: ConnectivityManager
+Process: com.android.systemui, PID: 13954
+java.util.ConcurrentModificationException
+	at java.util.ArrayList$ArrayListIterator.next(ArrayList.java:573)
+	at com.android.systemui.statusbar.policy.SecurityControllerImpl.fireCallbacks(SecurityControllerImpl.java:195)
+	at com.android.systemui.statusbar.policy.SecurityControllerImpl.-wrap0(SecurityControllerImpl.java)
+	at com.android.systemui.statusbar.policy.SecurityControllerImpl$1.onAvailable(SecurityControllerImpl.java:223)
+	at android.net.ConnectivityManager$CallbackHandler.handleMessage(ConnectivityManager.java:2230)
+	at android.os.Handler.dispatchMessage(Handler.java:102)
+	at android.os.Looper.loop(Looper.java:148)
+	at android.os.HandlerThread.run(HandlerThread.java:61)
+Sending signal. PID: 13954 SIG: 9
+/system/bin/sh: using libc.debug.malloc 5 (fill)
+dumpsys: using libc.debug.malloc 5 (fill)
+Current remote volume controller died, unregistering
+Error calling dismiss
+android.os.DeadObjectException
+	at android.os.BinderProxy.transactNative(Native Method)
+	at android.os.BinderProxy.transact(Binder.java:503)
+	at android.media.IVolumeController$Stub$Proxy.dismiss(IVolumeController.java:162)
+	at com.android.server.audio.AudioService$VolumeController.postDismiss(AudioService.java:5827)
+	at com.android.server.audio.AudioService.setVolumeController(AudioService.java:5675)
+	at com.android.server.audio.AudioService$4.binderDied(AudioService.java:5684)
+	at android.os.BinderProxy.sendDeathNotice(Binder.java:558)
+binder died for pkg=com.android.systemui
+WIN DEATH: Window{d8b28bc u0 com.android.systemui.ImageWallpaper}
+*** Keyguard disconnected (boo!)
+Wallpaper service gone: ComponentInfo{com.android.systemui/com.android.systemui.ImageWallpaper}
+Reverting to built-in wallpaper!
+Process com.android.systemui (pid 13954) has died
+Scheduling restart of crashed service com.android.systemui/.ImageWallpaper in 0ms
+Scheduling restart of crashed service com.android.systemui/.keyguard.KeyguardService in 0ms
+Scheduling restart of crashed service com.android.systemui/.SystemUIService in 0ms
+RemoteException caught trying to send a callback msg for NetworkRequest [ id=32, legacyType=-1, [] ]
+Already have existing proc ProcessRecord{9cb5088 13954:com.android.systemui/u0a30} when adding ProcessRecord{9cb5088 13954:com.android.systemui/u0a30}
+Start proc 14018:com.android.systemui/u0a30 for restart com.android.systemui
+/system/bin/sh: using libc.debug.malloc 5 (fill)
+setApplicationContext called twice! old=com.google.android.velvet.VelvetApplication@2f7e052 new=com.google.android.velvet.VelvetApplication@2f7e052
+logcat: using libc.debug.malloc 5 (fill)
+ClassLoader referenced unknown path: /system/priv-app/SystemUI/lib/arm
+Starting SystemUI services.
+Using client-side OMX mux.
+writeEvent collection_started
+A component of name OMX.qcom.audio.decoder.aac already exists, ignoring this one.
+Using client-side OMX mux.
+A component of name OMX.qcom.audio.decoder.aac already exists, ignoring this one.
+Using client-side OMX mux.
+A component of name OMX.qcom.audio.decoder.aac already exists, ignoring this one.
+writeEvent level_changed STREAM_BLUETOOTH_SCO 7
+writeEvent level_changed STREAM_MUSIC 11
+writeEvent level_changed STREAM_RING 2
+writeEvent mute_changed STREAM_RING true
+writeEvent level_changed STREAM_SYSTEM 2
+writeEvent mute_changed STREAM_SYSTEM true
+writeEvent level_changed STREAM_VOICE_CALL 4
+writeEvent zen_mode_changed alarms
+*** Keyguard connected (yay!)
+*** register callback for com.android.systemui.keyguard.KeyguardViewMediator$1@f558525
+*** unregister callback for null
+/system/bin/sh: using libc.debug.malloc 5 (fill)
+logcat: using libc.debug.malloc 5 (fill)

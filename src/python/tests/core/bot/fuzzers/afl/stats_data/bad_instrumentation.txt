@@ -1,0 +1,30 @@
+[0;36mafl-fuzz [1;97m2.52b[0m by <lcamtuf@google.com>
+[1;92m[+] [0mLooks like we're not running on a tty, so I'll be a bit less verbose.[0m
+[1;92m[+] [0mYou have 56 CPU cores and 3 runnable tasks (utilization: 5%).[0m
+[1;92m[+] [0mTry parallel jobs - see docs/parallel_fuzzing.txt.[0m
+[1;94m[*] [0mChecking CPU core loadout...[0m
+[1;92m[+] [0mFound a free CPU core, binding to #0.[0m
+[1;94m[*] [0mChecking core_pattern...[0m
+[1;94m[*] [0mChecking CPU scaling governor...[0m
+[1;94m[*] [0mSetting up output directories...[0m
+[1;92m[+] [0mOutput directory exists but deemed OK to reuse.[0m
+[1;94m[*] [0mDeleting old session data...[0m
+[1;92m[+] [0mOutput dir cleanup successful.[0m
+[1;94m[*] [0mScanning '/tmp/i'...[0m
+[1;92m[+] [0mNo auto-generated dictionary tokens to reuse.[0m
+[1;94m[*] [0mCreating hard links for all input files...[0m
+[1;94m[*] [0mValidating target binary...[0m
+
+[1;91m[-] [0mLooks like the target binary is not instrumented! The fuzzer depends on
+    compile-time instrumentation to isolate interesting test cases while
+    mutating the input data. For more information, and for tips on how to
+    instrument binaries, please see docs/README.
+
+    When source code is not available, you may be able to leverage QEMU
+    mode support. Consult the README for tips on how to enable this.
+    (It is also possible to use afl-fuzz as a traditional, "dumb" fuzzer.
+    For that, you can use the -n option - but expect much worse results.)
+[?25h[0m[1;91m
+[-] PROGRAM ABORT : [1;97mNo instrumentation detected[1;91m
+         Location : [0mcheck_binary(), ../../third_party/afl/src/afl-fuzz.c:6920
+

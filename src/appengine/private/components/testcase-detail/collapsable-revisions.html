@@ -1,0 +1,212 @@
+<!--
+  Copyright 2018 Google LLC
+
+  Licensed under the Apache License, Version 2.0 (the "License");
+  you may not use this file except in compliance with the License.
+  You may obtain a copy of the License at
+
+       http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+-->
+<link rel="import" href="../../bower_components/polymer/polymer.html">
+<link rel="import" href="../../components/common/confirm-dialog/confirm-dialog.html">
+<link rel="import" href="../../components/common/if-else/if-else.html">
+<link rel="import" href="../../bower_components/paper-icon-button/paper-icon-button.html">
+
+<dom-module id="collapsable-revisions">
+  <link rel="import" href="../../stylesheets/main.css" type="css">
+  <link rel="import" href="../technology/technology.css" type="css">
+  <template>
+    <style>
+      :host {
+        display: block;
+      }
+
+      :host table.revision {
+        width: 100%;
+      }
+
+      :host table.revision tr.title td {
+        width: 33%;
+        text-align: left;
+        font-size: 14px;
+        padding: 4px 6px;
+        background-color: #373b50;
+        color: #fff;
+        border-left: 1px dotted #ccc;
+      }
+
+      :host table.revision tr.title td .help {
+        text-transform: uppercase;
+        cursor: help;
+      }
+
+      :host table.revision tr.title td:first-child {
+        border-left: 0px;
+      }
+
+      :host table.revision tr.body td {
+        width: 50%;
+        padding: 4px 6px;
+        border-left: 1px dotted #777;
+        font-size: 13px;
+        vertical-align: top;
+      }
+
+      :host table.revision tr.body.full td span {
+        display: block;
+        width: 100%;
+        white-space: nowrap;
+        overflow: hidden;
+        margin-bottom: 2px;
+      }
+
+      :host table.revision tr.body.preview td span {
+        display: inline-block;
+        margin-right: 3px;
+        white-space: nowrap;
+        overflow: hidden;
+      }
+
+      :host table.revision tr.body td small {
+        font-size: 11px;
+      }
+
+      :host table.revision tr.body td:first-child {
+        border-left: 0px;
+      }
+
+      :host table.revision tr.expand-control td {
+        border-top: 1px dotted #777;
+        text-align: center;
+      }
+
+      :host paper-button {
+        font-size: 12px;
+        padding: 0px;
+        display: block;
+        text-align: center;
+      }
+
+      :host paper-icon-button {
+        padding: 0px;
+        height: 16px;
+        width: 16px;
+        margin-left: 3px;
+        vertical-align: text-top;
+      }
+
+      :host paper-button iron-icon {
+        --iron-icon-width: 16px;
+        --iron-icon-height: 16px;
+      }
+    </style>
+    <table cellpadding="0" cellspacing="0" class="revision">
+      <tr class="title">
+        <td>
+          <if-else condition="[[showFixed]]">
+            <span slot="t" class="help" title="Revision range that this crash was fixed in.">Fixed Revision Range</span>
+            <span slot="f" class="help" title="Revision that this crash was last tested with.">Last Tested Revision</span>
+          </if-else>
+        </td>
+        <td>
+          <span class="help" title="Revision range that this crash was introduced in.">Regression Revision Range</span>
+        </td>
+      </tr>
+      <template is="dom-if" if="[[shouldPreview]]">
+        <tr class="body preview">
+          <td>
+            <if-else condition="[[showFixed]]">
+              <span slot="t" inner-h-t-m-l="[[fixedRevisionLines.0]]"></span>
+              <span slot="f" inner-h-t-m-l="[[lastTestedRevisionLines.0]]"></span>
+            </if-else>
+          </td>
+          <td inner-h-t-m-l="[[regressionRevisionLines.0]]"></td>
+        </tr>
+      </template>
+      <template is="dom-if" if="[[!shouldPreview]]">
+        <tr class="body full">
+          <td>
+            <if-else condition="[[showFixed]]">
+              <span slot="t">
+                <template is="dom-repeat" items="[[fixedRevisionLines]]">
+                  <span inner-h-t-m-l="[[item]]"></span>
+                </template>
+              </span>
+              <span slot="f">
+                <template is="dom-repeat" items="[[lastTestedRevisionLines]]">
+                  <span inner-h-t-m-l="[[item]]"></span>
+                </template>
+              </span>
+            </if-else>
+          </td>
+          <td>
+            <template is="dom-repeat" items="[[regressionRevisionLines]]">
+              <span inner-h-t-m-l="[[item]]"></span>
+            </template>
+          </td>
+        </tr>
+      </template>
+      <template is="dom-if" if="[[canExpand(showFixed, lastTestedRevisionLines, fixedRevisionLines, regressionRevisionLines)]]">
+        <tr class="expand-control">
+          <td colspan="6">
+            <paper-button on-tap="toggle">
+              <if-else condition="[[shouldPreview]]">
+                <iron-icon slot="t" icon="icons:expand-more"></iron-icon>
+                <iron-icon slot="f" icon="icons:expand-less"></iron-icon>
+              </if-else>
+            </paper-button>
+          </td>
+        </tr>
+      </template>
+    </table>
+  </template>
+  <script>
+    Polymer({
+      is: 'collapsable-revisions',
+      properties: {
+        info: Object,
+        regressionRevisionLines: Array,
+        fixedRevisionLines: Array,
+        lastTestedRevisionLines: Array,
+        shouldPreview: {
+          type: Boolean,
+          value: true
+        },
+        showFixed: {
+          type: Boolean,
+          value: true
+        }
+      },
+      observers: ['infoChanged(info)'],
+      infoChanged(info) {
+        let brRegex = /\s*<\s*br\s*\/?\s*>\s*/;
+        this.regressionRevisionLines = info.regression.split(brRegex).filter(Boolean);
+        this.fixedRevisionLines = (info.fixed_full || info.fixed).split(brRegex).filter(Boolean);
+        this.lastTestedRevisionLines = (info.last_tested || '').split(brRegex).filter(Boolean);
+        this.showFixed = info.fixed == 'YES';
+      },
+      canExpand(showFixed, lastTestedRevisionLines, fixedRevisionLines, regressionRevisionLines) {
+        if (regressionRevisionLines && regressionRevisionLines.length > 1)
+          return true;
+
+        if (showFixed)
+          return fixedRevisionLines && fixedRevisionLines.length > 1;
+        else
+          return lastTestedRevisionLines && lastTestedRevisionLines.length > 1;
+      },
+      toggle() {
+        this.shouldPreview = !this.shouldPreview;
+      },
+      shouldShowMarkFixed(info) {
+        return info.testcase.fixed == '' || info.testcase.fixed == 'NA';
+      },
+    });
+  </script>
+</dom-module>
+

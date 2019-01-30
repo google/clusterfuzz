@@ -1,0 +1,618 @@
+Numeric expression missing from <EOL>
+Couldnt resolve error at handled
+(944.e8c): Stack overflow - code c00000fd (!!! second chance !!!)
+*******************************************************************************
+*                                                                             *
+*                        Exception Analysis                                   *
+*                                                                             *
+*******************************************************************************
+
+*** ERROR: Symbol file could not be found.  Defaulted to export symbols for ntdll.dll -
+***** OS symbols are WRONG. Please fix symbols to do analysis.
+
+*************************************************************************
+***                                                                   ***
+***                                                                   ***
+***    Either you specified an unqualified symbol, or your debugger   ***
+***    doesnt have full symbol information.  Unqualified symbol      ***
+***    resolution is turned off by default. Please either specify a   ***
+***    fully qualified symbol module!symbolname, or enable resolution ***
+***    of unqualified symbols by typing ".symopt- 100". Note that   ***
+***    enabling unqualified symbol resolution with network symbol     ***
+***    server shares in the symbol path may cause the debugger to     ***
+***    appear to hang for long periods of time when an incorrect      ***
+***    symbol name is typed or the network symbol server is down.     ***
+***                                                                   ***
+***    For some commands to work properly, your symbol path           ***
+***    must point to .pdb files that have full type information.      ***
+***                                                                   ***
+***    Certain .pdb files (such as the public OS symbols) do not      ***
+***    contain the required information.  Contact the group that      ***
+***    provided you with these symbols if you need this command to    ***
+***    work.                                                          ***
+***                                                                   ***
+***    Type referenced: ntdll!_PEB                                    ***
+***                                                                   ***
+*************************************************************************
+*********************************************************************
+* Symbols can not be loaded because symbol path is not initialized. *
+*                                                                   *
+* The Symbol Path can be set by:                                    *
+*   using the _NT_SYMBOL_PATH environment variable.                 *
+*   using the -y <symbol_path> argument when starting the debugger. *
+*   using .sympath and .sympath+                                    *
+*********************************************************************
+*********************************************************************
+* Symbols can not be loaded because symbol path is not initialized. *
+*                                                                   *
+* The Symbol Path can be set by:                                    *
+*   using the _NT_SYMBOL_PATH environment variable.                 *
+*   using the -y <symbol_path> argument when starting the debugger. *
+*   using .sympath and .sympath+                                    *
+*********************************************************************
+*************************************************************************
+***                                                                   ***
+***                                                                   ***
+***    Either you specified an unqualified symbol, or your debugger   ***
+***    doesnt have full symbol information.  Unqualified symbol      ***
+***    resolution is turned off by default. Please either specify a   ***
+***    fully qualified symbol module!symbolname, or enable resolution ***
+***    of unqualified symbols by typing ".symopt- 100". Note that   ***
+***    enabling unqualified symbol resolution with network symbol     ***
+***    server shares in the symbol path may cause the debugger to     ***
+***    appear to hang for long periods of time when an incorrect      ***
+***    symbol name is typed or the network symbol server is down.     ***
+***                                                                   ***
+***    For some commands to work properly, your symbol path           ***
+***    must point to .pdb files that have full type information.      ***
+***                                                                   ***
+***    Certain .pdb files (such as the public OS symbols) do not      ***
+***    contain the required information.  Contact the group that      ***
+***    provided you with these symbols if you need this command to    ***
+***    work.                                                          ***
+***                                                                   ***
+***    Type referenced: nt!IMAGE_NT_HEADERS32                         ***
+***                                                                   ***
+*************************************************************************
+*********************************************************************
+* Symbols can not be loaded because symbol path is not initialized. *
+*                                                                   *
+* The Symbol Path can be set by:                                    *
+*   using the _NT_SYMBOL_PATH environment variable.                 *
+*   using the -y <symbol_path> argument when starting the debugger. *
+*   using .sympath and .sympath+                                    *
+*********************************************************************
+*********************************************************************
+* Symbols can not be loaded because symbol path is not initialized. *
+*                                                                   *
+* The Symbol Path can be set by:                                    *
+*   using the _NT_SYMBOL_PATH environment variable.                 *
+*   using the -y <symbol_path> argument when starting the debugger. *
+*   using .sympath and .sympath+                                    *
+*********************************************************************
+*** ERROR: Symbol file could not be found.  Defaulted to export symbols for C:\Windows\system32\USER32.dll -
+*** ERROR: Symbol file could not be found.  Defaulted to export symbols for C:\Windows\system32\IEFRAME.dll -
+*** ERROR: Module load completed but symbols could not be loaded for iexplore.exe
+*** ERROR: Symbol file could not be found.  Defaulted to export symbols for C:\Windows\system32\kernel32.dll -
+*********************************************************************
+* Symbols can not be loaded because symbol path is not initialized. *
+*                                                                   *
+* The Symbol Path can be set by:                                    *
+*   using the _NT_SYMBOL_PATH environment variable.                 *
+*   using the -y <symbol_path> argument when starting the debugger. *
+*   using .sympath and .sympath+                                    *
+*********************************************************************
+*********************************************************************
+* Symbols can not be loaded because symbol path is not initialized. *
+*                                                                   *
+* The Symbol Path can be set by:                                    *
+*   using the _NT_SYMBOL_PATH environment variable.                 *
+*   using the -y <symbol_path> argument when starting the debugger. *
+*   using .sympath and .sympath+                                    *
+*********************************************************************
+*********************************************************************
+* Symbols can not be loaded because symbol path is not initialized. *
+*                                                                   *
+* The Symbol Path can be set by:                                    *
+*   using the _NT_SYMBOL_PATH environment variable.                 *
+*   using the -y <symbol_path> argument when starting the debugger. *
+*   using .sympath and .sympath+                                    *
+*********************************************************************
+*********************************************************************
+* Symbols can not be loaded because symbol path is not initialized. *
+*                                                                   *
+* The Symbol Path can be set by:                                    *
+*   using the _NT_SYMBOL_PATH environment variable.                 *
+*   using the -y <symbol_path> argument when starting the debugger. *
+*   using .sympath and .sympath+                                    *
+*********************************************************************
+*********************************************************************
+* Symbols can not be loaded because symbol path is not initialized. *
+*                                                                   *
+* The Symbol Path can be set by:                                    *
+*   using the _NT_SYMBOL_PATH environment variable.                 *
+*   using the -y <symbol_path> argument when starting the debugger. *
+*   using .sympath and .sympath+                                    *
+*********************************************************************
+*********************************************************************
+* Symbols can not be loaded because symbol path is not initialized. *
+*                                                                   *
+* The Symbol Path can be set by:                                    *
+*   using the _NT_SYMBOL_PATH environment variable.                 *
+*   using the -y <symbol_path> argument when starting the debugger. *
+*   using .sympath and .sympath+                                    *
+*********************************************************************
+*** ERROR: Symbol file could not be found.  Defaulted to export symbols for C:\Windows\system32\iertutil.dll -
+*** ERROR: Symbol file could not be found.  Defaulted to export symbols for C:\Windows\system32\KERNELBASE.dll -
+*** ERROR: Symbol file could not be found.  Defaulted to export symbols for C:\Windows\system32\WININET.dll -
+*********************************************************************
+* Symbols can not be loaded because symbol path is not initialized. *
+*                                                                   *
+* The Symbol Path can be set by:                                    *
+*   using the _NT_SYMBOL_PATH environment variable.                 *
+*   using the -y <symbol_path> argument when starting the debugger. *
+*   using .sympath and .sympath+                                    *
+*********************************************************************
+*********************************************************************
+* Symbols can not be loaded because symbol path is not initialized. *
+*                                                                   *
+* The Symbol Path can be set by:                                    *
+*   using the _NT_SYMBOL_PATH environment variable.                 *
+*   using the -y <symbol_path> argument when starting the debugger. *
+*   using .sympath and .sympath+                                    *
+*********************************************************************
+*********************************************************************
+* Symbols can not be loaded because symbol path is not initialized. *
+*                                                                   *
+* The Symbol Path can be set by:                                    *
+*   using the _NT_SYMBOL_PATH environment variable.                 *
+*   using the -y <symbol_path> argument when starting the debugger. *
+*   using .sympath and .sympath+                                    *
+*********************************************************************
+*********************************************************************
+* Symbols can not be loaded because symbol path is not initialized. *
+*                                                                   *
+* The Symbol Path can be set by:                                    *
+*   using the _NT_SYMBOL_PATH environment variable.                 *
+*   using the -y <symbol_path> argument when starting the debugger. *
+*   using .sympath and .sympath+                                    *
+*********************************************************************
+*** ERROR: Symbol file could not be found.  Defaulted to export symbols for C:\Windows\system32\mswsock.dll -
+*** ERROR: Symbol file could not be found.  Defaulted to export symbols for C:\Windows\system32\WS2_32.dll -
+*********************************************************************
+* Symbols can not be loaded because symbol path is not initialized. *
+*                                                                   *
+* The Symbol Path can be set by:                                    *
+*   using the _NT_SYMBOL_PATH environment variable.                 *
+*   using the -y <symbol_path> argument when starting the debugger. *
+*   using .sympath and .sympath+                                    *
+*********************************************************************
+*********************************************************************
+* Symbols can not be loaded because symbol path is not initialized. *
+*                                                                   *
+* The Symbol Path can be set by:                                    *
+*   using the _NT_SYMBOL_PATH environment variable.                 *
+*   using the -y <symbol_path> argument when starting the debugger. *
+*   using .sympath and .sympath+                                    *
+*********************************************************************
+*** ERROR: Symbol file could not be found.  Defaulted to export symbols for C:\Windows\system32\ole32.dll -
+*** ERROR: Symbol file could not be found.  Defaulted to export symbols for C:\Program Files\Internet Explorer\IEShims.dll -
+*** ERROR: Symbol file could not be found.  Defaulted to export symbols for C:\Windows\system32\IEUI.dll -
+*** ERROR: Symbol file could not be found.  Defaulted to export symbols for C:\Windows\system32\msvcrt.dll -
+*** ERROR: Symbol file could not be found.  Defaulted to export symbols for C:\Windows\System32\jscript9.dll -
+*** ERROR: Symbol file could not be found.  Defaulted to export symbols for C:\Windows\system32\shell32.DLL -
+*** ERROR: Symbol file could not be found.  Defaulted to export symbols for C:\Windows\system32\SHLWAPI.dll -
+*** ERROR: Symbol file could not be found.  Defaulted to export symbols for C:\Windows\system32\D3D10Warp.dll -
+
+FAULTING_IP:
+MSHTML!RunHTMLApplication+4f313c
+000007fe`f061340c 8bf0            mov     esi,eax
+
+EXCEPTION_RECORD:  ffffffffffffffff -- (.exr 0xffffffffffffffff)
+ExceptionAddress: 000007feef2f9662 (MSHTML!Ordinal101+0x0000000000010102)
+   ExceptionCode: c00000fd (Stack overflow)
+  ExceptionFlags: 00000001
+NumberParameters: 2
+   Parameter[0]: 0000000000000001
+   Parameter[1]: 0000000004f13f80
+
+FAULTING_THREAD:  0000000000000e8c
+
+DEFAULT_BUCKET_ID:  WRONG_SYMBOLS
+
+PROCESS_NAME:  iexplore.exe
+
+ADDITIONAL_DEBUG_TEXT:
+You can run .symfix; .reload to try to fix the symbol path and load symbols.
+
+MODULE_NAME: MSHTML
+
+FAULTING_MODULE: 0000000077a70000 ntdll
+
+DEBUG_FLR_IMAGE_TIMESTAMP:  55cedef8
+
+ERROR_CODE: (NTSTATUS) 0xc00000fd - A new guard page for the stack cannot be created.
+
+EXCEPTION_CODE: (NTSTATUS) 0xc00000fd - A new guard page for the stack cannot be created.
+
+EXCEPTION_PARAMETER1:  0000000000000001
+
+EXCEPTION_PARAMETER2:  0000000004f13f80
+
+RECURRING_STACK: From frames 0xb to 0xb
+
+APP:  iexplore.exe
+
+PRIMARY_PROBLEM_CLASS:  WRONG_SYMBOLS
+
+BUGCHECK_STR:  APPLICATION_FAULT_WRONG_SYMBOLS_STACK_OVERFLOW
+
+LAST_CONTROL_TRANSFER:  from 000007feef2eba34 to 000007feef2f9662
+
+STACK_TEXT:
+00000000`04f13f70 000007fe`ef2eba34 : 00000000`05580090 00000000`00000481 00000000`00000a52 000007fe`ef3617b2 : MSHTML!Ordinal101+0x10102
+00000000`04f14390 000007fe`ef53fae6 : 00000000`0053fd40 00000000`00000000 00000000`0053fd40 00000000`05295950 : MSHTML!Ordinal101+0x24d4
+00000000`04f14500 000007fe`ef3617b2 : 00000000`05295950 00000000`00000000 000007fe`ef35a040 00000000`05295320 : MSHTML!GetWebPlatformObject+0xec7a6
+00000000`04f14530 000007fe`efbd30f9 : 00000000`05295950 00000000`079a29d0 00000000`0798c5c0 00000000`00000000 : MSHTML!Ordinal101+0x78252
+00000000`04f14560 000007fe`ef35a02e : 00000000`05295950 000007fe`ef359ff0 00000000`00000003 000007fe`ef5c54c0 : MSHTML!CreateCoreWebView+0x26bc19
+00000000`04f14590 000007fe`ef5bee76 : 00000000`0798c530 00000000`079a29d0 00000000`0798c620 00000000`00000000 : MSHTML!Ordinal101+0x70ace
+00000000`04f145c0 000007fe`ef2e5289 : 00000000`0798c530 00000000`0798c530 00000000`00000000 00000000`04f14710 : MSHTML!Ordinal105+0x5ba66
+00000000`04f145f0 000007fe`ef5cc56e : 00000000`0798c530 00000000`04f14670 00000000`04f14710 00000000`ffffffff : MSHTML+0x5289
+00000000`04f14620 000007fe`f0618d7f : 00000000`04f14670 00000000`00000001 00000000`ffffffff 00000000`00000000 : MSHTML!Ordinal105+0x6915e
+00000000`04f14650 000007fe`f061341e : 00000000`04f14710 00000000`ffffffff 00000000`00000000 00000000`04f14738 : MSHTML!RunHTMLApplication+0x4f8aaf
+00000000`04f146c0 000007fe`f061340c : 00000000`0794f1a0 00000000`04f147b0 00000000`00000001 00000000`00000000 : MSHTML!RunHTMLApplication+0x4f314e
+00000000`04f14760 000007fe`f061340c : 00000000`0794f1a0 00000000`04f14850 00000000`00000001 00000000`00000000 : MSHTML!RunHTMLApplication+0x4f313c
+00000000`04f14800 000007fe`f061340c : 00000000`0794f1a0 00000000`04f148f0 00000000`00000001 00000000`00000000 : MSHTML!RunHTMLApplication+0x4f313c
+00000000`04f148a0 000007fe`f061340c : 00000000`0794f1a0 00000000`04f14990 00000000`00000001 00000000`00000000 : MSHTML!RunHTMLApplication+0x4f313c
+00000000`04f14940 000007fe`f061340c : 00000000`0794f1a0 00000000`04f14a30 00000000`00000001 00000000`00000000 : MSHTML!RunHTMLApplication+0x4f313c
+00000000`04f149e0 000007fe`f061340c : 00000000`0794f1a0 00000000`04f14ad0 00000000`00000001 00000000`00000000 : MSHTML!RunHTMLApplication+0x4f313c
+00000000`04f14a80 000007fe`f061340c : 00000000`0794f1a0 00000000`04f14b70 00000000`00000001 00000000`00000000 : MSHTML!RunHTMLApplication+0x4f313c
+00000000`04f14b20 000007fe`f061340c : 00000000`0794f1a0 00000000`04f14c10 00000000`00000001 00000000`00000000 : MSHTML!RunHTMLApplication+0x4f313c
+00000000`04f14bc0 000007fe`f061340c : 00000000`0794f1a0 00000000`04f14cb0 00000000`00000001 00000000`00000000 : MSHTML!RunHTMLApplication+0x4f313c
+00000000`04f14c60 000007fe`f061340c : 00000000`0794f1a0 00000000`04f14d50 00000000`00000001 00000000`00000000 : MSHTML!RunHTMLApplication+0x4f313c
+00000000`04f14d00 000007fe`f061340c : 00000000`0794f1a0 00000000`04f14df0 00000000`00000001 00000000`00000000 : MSHTML!RunHTMLApplication+0x4f313c
+00000000`04f14da0 000007fe`f061340c : 00000000`0794f1a0 00000000`04f14e90 00000000`00000001 00000000`00000000 : MSHTML!RunHTMLApplication+0x4f313c
+00000000`04f14e40 000007fe`f061340c : 00000000`0794f1a0 00000000`04f14f30 00000000`00000001 00000000`00000000 : MSHTML!RunHTMLApplication+0x4f313c
+00000000`04f14ee0 000007fe`f061340c : 00000000`0794f1a0 00000000`04f14fd0 00000000`00000001 00000000`00000000 : MSHTML!RunHTMLApplication+0x4f313c
+00000000`04f14f80 000007fe`f061340c : 00000000`0794f1a0 00000000`04f15070 00000000`00000001 00000000`00000000 : MSHTML!RunHTMLApplication+0x4f313c
+00000000`04f15020 000007fe`f061340c : 00000000`0794f1a0 00000000`04f15110 00000000`00000001 00000000`00000000 : MSHTML!RunHTMLApplication+0x4f313c
+00000000`04f150c0 000007fe`f061340c : 00000000`0794f1a0 00000000`04f151b0 00000000`00000001 00000000`00000000 : MSHTML!RunHTMLApplication+0x4f313c
+00000000`04f15160 000007fe`f061340c : 00000000`0794f1a0 00000000`04f15250 00000000`00000001 00000000`00000000 : MSHTML!RunHTMLApplication+0x4f313c
+00000000`04f15200 000007fe`f061340c : 00000000`0794f1a0 00000000`04f152f0 00000000`00000001 00000000`00000000 : MSHTML!RunHTMLApplication+0x4f313c
+00000000`04f152a0 000007fe`f061340c : 00000000`0794f1a0 00000000`04f15390 00000000`00000001 00000000`00000000 : MSHTML!RunHTMLApplication+0x4f313c
+00000000`04f15340 000007fe`f061340c : 00000000`0794f1a0 00000000`04f15430 00000000`00000001 00000000`00000000 : MSHTML!RunHTMLApplication+0x4f313c
+00000000`04f153e0 000007fe`f061340c : 00000000`0794f1a0 00000000`04f154d0 00000000`00000001 00000000`00000000 : MSHTML!RunHTMLApplication+0x4f313c
+00000000`04f15480 000007fe`f061340c : 00000000`0794f1a0 00000000`04f15570 00000000`00000001 00000000`00000000 : MSHTML!RunHTMLApplication+0x4f313c
+00000000`04f15520 000007fe`f061340c : 00000000`0794f1a0 00000000`04f15610 00000000`00000001 00000000`00000000 : MSHTML!RunHTMLApplication+0x4f313c
+00000000`04f155c0 000007fe`f061340c : 00000000`0794f1a0 00000000`04f156b0 00000000`00000001 00000000`00000000 : MSHTML!RunHTMLApplication+0x4f313c
+00000000`04f15660 000007fe`f061340c : 00000000`0794f1a0 00000000`04f15750 00000000`00000001 00000000`00000000 : MSHTML!RunHTMLApplication+0x4f313c
+00000000`04f15700 000007fe`f061340c : 00000000`0794f1a0 00000000`04f157f0 00000000`00000001 00000000`00000000 : MSHTML!RunHTMLApplication+0x4f313c
+00000000`04f157a0 000007fe`f061340c : 00000000`0794f1a0 00000000`04f15890 00000000`00000001 00000000`00000000 : MSHTML!RunHTMLApplication+0x4f313c
+00000000`04f15840 000007fe`f061340c : 00000000`0794f1a0 00000000`04f15930 00000000`00000001 00000000`00000000 : MSHTML!RunHTMLApplication+0x4f313c
+00000000`04f158e0 000007fe`f061340c : 00000000`0794f1a0 00000000`04f159d0 00000000`00000001 00000000`00000000 : MSHTML!RunHTMLApplication+0x4f313c
+00000000`04f15980 000007fe`f061340c : 00000000`0794f1a0 00000000`04f15a70 00000000`00000001 00000000`00000000 : MSHTML!RunHTMLApplication+0x4f313c
+00000000`04f15a20 000007fe`f061340c : 00000000`0794f1a0 00000000`04f15b10 00000000`00000001 00000000`00000000 : MSHTML!RunHTMLApplication+0x4f313c
+00000000`04f15ac0 000007fe`f061340c : 00000000`0794f1a0 00000000`04f15bb0 00000000`00000001 00000000`00000000 : MSHTML!RunHTMLApplication+0x4f313c
+00000000`04f15b60 000007fe`f061340c : 00000000`0794f1a0 00000000`04f15c50 00000000`00000001 00000000`00000000 : MSHTML!RunHTMLApplication+0x4f313c
+00000000`04f15c00 000007fe`f061340c : 00000000`0794f1a0 00000000`04f15cf0 00000000`00000001 00000000`00000000 : MSHTML!RunHTMLApplication+0x4f313c
+00000000`04f15ca0 000007fe`f061340c : 00000000`0794f1a0 00000000`04f15d90 00000000`00000001 00000000`00000000 : MSHTML!RunHTMLApplication+0x4f313c
+00000000`04f15d40 000007fe`f061340c : 00000000`0794f1a0 00000000`04f15e30 00000000`00000001 00000000`00000000 : MSHTML!RunHTMLApplication+0x4f313c
+00000000`04f15de0 000007fe`f061340c : 00000000`0794f1a0 00000000`04f15ed0 00000000`00000001 00000000`00000000 : MSHTML!RunHTMLApplication+0x4f313c
+00000000`04f15e80 000007fe`f061340c : 00000000`0794f1a0 00000000`04f15f70 00000000`00000001 00000000`00000000 : MSHTML!RunHTMLApplication+0x4f313c
+00000000`04f15f20 000007fe`f061340c : 00000000`0794f1a0 00000000`04f16010 00000000`00000001 00000000`00000000 : MSHTML!RunHTMLApplication+0x4f313c
+00000000`04f15fc0 000007fe`f061340c : 00000000`0794f1a0 00000000`04f160b0 00000000`00000001 00000000`00000000 : MSHTML!RunHTMLApplication+0x4f313c
+00000000`04f16060 000007fe`f061340c : 00000000`0794f1a0 00000000`04f16150 00000000`00000001 00000000`00000000 : MSHTML!RunHTMLApplication+0x4f313c
+00000000`04f16100 000007fe`f061340c : 00000000`0794f1a0 00000000`04f161f0 00000000`00000001 00000000`00000000 : MSHTML!RunHTMLApplication+0x4f313c
+00000000`04f161a0 000007fe`f061340c : 00000000`0794f1a0 00000000`04f16290 00000000`00000001 00000000`00000000 : MSHTML!RunHTMLApplication+0x4f313c
+00000000`04f16240 000007fe`f061340c : 00000000`0794f1a0 00000000`04f16330 00000000`00000001 00000000`00000000 : MSHTML!RunHTMLApplication+0x4f313c
+00000000`04f162e0 000007fe`f061340c : 00000000`0794f1a0 00000000`04f163d0 00000000`00000001 00000000`00000000 : MSHTML!RunHTMLApplication+0x4f313c
+00000000`04f16380 000007fe`f061340c : 00000000`0794f1a0 00000000`04f16470 00000000`00000001 00000000`00000000 : MSHTML!RunHTMLApplication+0x4f313c
+00000000`04f16420 000007fe`f061340c : 00000000`0794f1a0 00000000`04f16510 00000000`00000001 00000000`00000000 : MSHTML!RunHTMLApplication+0x4f313c
+00000000`04f164c0 000007fe`f061340c : 00000000`0794f1a0 00000000`04f165b0 00000000`00000001 00000000`00000000 : MSHTML!RunHTMLApplication+0x4f313c
+00000000`04f16560 000007fe`f061340c : 00000000`0794f1a0 00000000`04f16650 00000000`00000001 00000000`00000000 : MSHTML!RunHTMLApplication+0x4f313c
+00000000`04f16600 000007fe`f061340c : 00000000`0794f1a0 00000000`04f166f0 00000000`00000001 00000000`00000000 : MSHTML!RunHTMLApplication+0x4f313c
+00000000`04f166a0 000007fe`f061340c : 00000000`0794f1a0 00000000`04f16790 00000000`00000001 00000000`00000000 : MSHTML!RunHTMLApplication+0x4f313c
+00000000`04f16740 000007fe`f061340c : 00000000`0794f1a0 00000000`04f16830 00000000`00000001 00000000`00000000 : MSHTML!RunHTMLApplication+0x4f313c
+00000000`04f167e0 000007fe`f061340c : 00000000`0794f1a0 00000000`04f168d0 00000000`00000001 00000000`00000000 : MSHTML!RunHTMLApplication+0x4f313c
+00000000`04f16880 000007fe`f061340c : 00000000`0794f1a0 00000000`04f16970 00000000`00000001 00000000`00000000 : MSHTML!RunHTMLApplication+0x4f313c
+00000000`04f16920 000007fe`f061340c : 00000000`0794f1a0 00000000`04f16a10 00000000`00000001 00000000`00000000 : MSHTML!RunHTMLApplication+0x4f313c
+00000000`04f169c0 000007fe`f061340c : 00000000`0794f1a0 00000000`04f16ab0 00000000`00000001 00000000`00000000 : MSHTML!RunHTMLApplication+0x4f313c
+00000000`04f16a60 000007fe`f061340c : 00000000`0794f1a0 00000000`04f16b50 00000000`00000001 00000000`00000000 : MSHTML!RunHTMLApplication+0x4f313c
+00000000`04f16b00 000007fe`f061340c : 00000000`0794f1a0 00000000`04f16bf0 00000000`00000001 00000000`00000000 : MSHTML!RunHTMLApplication+0x4f313c
+00000000`04f16ba0 000007fe`f061340c : 00000000`0794f1a0 00000000`04f16c90 00000000`00000001 00000000`00000000 : MSHTML!RunHTMLApplication+0x4f313c
+00000000`04f16c40 000007fe`f061340c : 00000000`0794f1a0 00000000`04f16d30 00000000`00000001 00000000`00000000 : MSHTML!RunHTMLApplication+0x4f313c
+00000000`04f16ce0 000007fe`f061340c : 00000000`0794f1a0 00000000`04f16dd0 00000000`00000001 00000000`00000000 : MSHTML!RunHTMLApplication+0x4f313c
+00000000`04f16d80 000007fe`f061340c : 00000000`0794f1a0 00000000`04f16e70 00000000`00000001 00000000`00000000 : MSHTML!RunHTMLApplication+0x4f313c
+00000000`04f16e20 000007fe`f061340c : 00000000`0794f1a0 00000000`04f16f10 00000000`00000001 00000000`00000000 : MSHTML!RunHTMLApplication+0x4f313c
+00000000`04f16ec0 000007fe`f061340c : 00000000`0794f1a0 00000000`04f16fb0 00000000`00000001 00000000`00000000 : MSHTML!RunHTMLApplication+0x4f313c
+00000000`04f16f60 000007fe`f061340c : 00000000`0794f1a0 00000000`04f17050 00000000`00000001 00000000`00000000 : MSHTML!RunHTMLApplication+0x4f313c
+00000000`04f17000 000007fe`f061340c : 00000000`0794f1a0 00000000`04f170f0 00000000`00000001 00000000`00000000 : MSHTML!RunHTMLApplication+0x4f313c
+00000000`04f170a0 000007fe`f061340c : 00000000`0794f1a0 00000000`04f17190 00000000`00000001 00000000`00000000 : MSHTML!RunHTMLApplication+0x4f313c
+00000000`04f17140 000007fe`f061340c : 00000000`0794f1a0 00000000`04f17230 00000000`00000001 00000000`00000000 : MSHTML!RunHTMLApplication+0x4f313c
+00000000`04f171e0 000007fe`f061340c : 00000000`0794f1a0 00000000`04f172d0 00000000`00000001 00000000`00000000 : MSHTML!RunHTMLApplication+0x4f313c
+00000000`04f17280 000007fe`f061340c : 00000000`0794f1a0 00000000`04f17370 00000000`00000001 00000000`00000000 : MSHTML!RunHTMLApplication+0x4f313c
+00000000`04f17320 000007fe`f061340c : 00000000`0794f1a0 00000000`04f17410 00000000`00000001 00000000`00000000 : MSHTML!RunHTMLApplication+0x4f313c
+00000000`04f173c0 000007fe`f061340c : 00000000`0794f1a0 00000000`04f174b0 00000000`00000001 00000000`00000000 : MSHTML!RunHTMLApplication+0x4f313c
+00000000`04f17460 000007fe`f061340c : 00000000`0794f1a0 00000000`04f17550 00000000`00000001 00000000`00000000 : MSHTML!RunHTMLApplication+0x4f313c
+
+FOLLOWUP_IP:
+MSHTML!RunHTMLApplication+4f313c
+000007fe`f061340c 8bf0            mov     esi,eax
+
+SYMBOL_STACK_INDEX:  b
+
+SYMBOL_NAME:  mshtml!RunHTMLApplication+4f313c
+
+FOLLOWUP_NAME:  MachineOwner
+
+IMAGE_NAME:  MSHTML.dll
+
+STACK_COMMAND:  ~11s ; kb
+
+BUCKET_ID:  WRONG_SYMBOLS
+
+FAILURE_BUCKET_ID:  WRONG_SYMBOLS_c00000fd_MSHTML.dll!RunHTMLApplication
+
+WATSON_STAGEONE_URL:  http://watson.microsoft.com/StageOne/iexplore_exe/11_0_9600_18015/55cec23b/MSHTML_dll/11_0_9600_18015/55cedef8/c00000fd/00019662.htm?Retriage=1
+
+Followup: MachineOwner
+---------
+
+Child-SP          RetAddr           Call Site
+00000000`04f13f70 000007fe`ef2eba34 MSHTML!Ordinal101+0x10102
+00000000`04f14390 000007fe`ef53fae6 MSHTML!Ordinal101+0x24d4
+00000000`04f14500 000007fe`ef3617b2 MSHTML!GetWebPlatformObject+0xec7a6
+00000000`04f14530 000007fe`efbd30f9 MSHTML!Ordinal101+0x78252
+00000000`04f14560 000007fe`ef35a02e MSHTML!CreateCoreWebView+0x26bc19
+00000000`04f14590 000007fe`ef5bee76 MSHTML!Ordinal101+0x70ace
+00000000`04f145c0 000007fe`ef2e5289 MSHTML!Ordinal105+0x5ba66
+00000000`04f145f0 000007fe`ef5cc56e MSHTML+0x5289
+00000000`04f14620 000007fe`f0618d7f MSHTML!Ordinal105+0x6915e
+00000000`04f14650 000007fe`f061341e MSHTML!RunHTMLApplication+0x4f8aaf
+00000000`04f146c0 000007fe`f061340c MSHTML!RunHTMLApplication+0x4f314e
+00000000`04f14760 000007fe`f061340c MSHTML!RunHTMLApplication+0x4f313c
+00000000`04f14800 000007fe`f061340c MSHTML!RunHTMLApplication+0x4f313c
+00000000`04f148a0 000007fe`f061340c MSHTML!RunHTMLApplication+0x4f313c
+00000000`04f14940 000007fe`f061340c MSHTML!RunHTMLApplication+0x4f313c
+00000000`04f149e0 000007fe`f061340c MSHTML!RunHTMLApplication+0x4f313c
+00000000`04f14a80 000007fe`f061340c MSHTML!RunHTMLApplication+0x4f313c
+00000000`04f14b20 000007fe`f061340c MSHTML!RunHTMLApplication+0x4f313c
+00000000`04f14bc0 000007fe`f061340c MSHTML!RunHTMLApplication+0x4f313c
+00000000`04f14c60 000007fe`f061340c MSHTML!RunHTMLApplication+0x4f313c
+00000000`04f14d00 000007fe`f061340c MSHTML!RunHTMLApplication+0x4f313c
+00000000`04f14da0 000007fe`f061340c MSHTML!RunHTMLApplication+0x4f313c
+00000000`04f14e40 000007fe`f061340c MSHTML!RunHTMLApplication+0x4f313c
+00000000`04f14ee0 000007fe`f061340c MSHTML!RunHTMLApplication+0x4f313c
+00000000`04f14f80 000007fe`f061340c MSHTML!RunHTMLApplication+0x4f313c
+00000000`04f15020 000007fe`f061340c MSHTML!RunHTMLApplication+0x4f313c
+00000000`04f150c0 000007fe`f061340c MSHTML!RunHTMLApplication+0x4f313c
+00000000`04f15160 000007fe`f061340c MSHTML!RunHTMLApplication+0x4f313c
+00000000`04f15200 000007fe`f061340c MSHTML!RunHTMLApplication+0x4f313c
+00000000`04f152a0 000007fe`f061340c MSHTML!RunHTMLApplication+0x4f313c
+00000000`04f15340 000007fe`f061340c MSHTML!RunHTMLApplication+0x4f313c
+00000000`04f153e0 000007fe`f061340c MSHTML!RunHTMLApplication+0x4f313c
+00000000`04f15480 000007fe`f061340c MSHTML!RunHTMLApplication+0x4f313c
+00000000`04f15520 000007fe`f061340c MSHTML!RunHTMLApplication+0x4f313c
+00000000`04f155c0 000007fe`f061340c MSHTML!RunHTMLApplication+0x4f313c
+00000000`04f15660 000007fe`f061340c MSHTML!RunHTMLApplication+0x4f313c
+00000000`04f15700 000007fe`f061340c MSHTML!RunHTMLApplication+0x4f313c
+00000000`04f157a0 000007fe`f061340c MSHTML!RunHTMLApplication+0x4f313c
+00000000`04f15840 000007fe`f061340c MSHTML!RunHTMLApplication+0x4f313c
+00000000`04f158e0 000007fe`f061340c MSHTML!RunHTMLApplication+0x4f313c
+00000000`04f15980 000007fe`f061340c MSHTML!RunHTMLApplication+0x4f313c
+00000000`04f15a20 000007fe`f061340c MSHTML!RunHTMLApplication+0x4f313c
+00000000`04f15ac0 000007fe`f061340c MSHTML!RunHTMLApplication+0x4f313c
+00000000`04f15b60 000007fe`f061340c MSHTML!RunHTMLApplication+0x4f313c
+00000000`04f15c00 000007fe`f061340c MSHTML!RunHTMLApplication+0x4f313c
+00000000`04f15ca0 000007fe`f061340c MSHTML!RunHTMLApplication+0x4f313c
+00000000`04f15d40 000007fe`f061340c MSHTML!RunHTMLApplication+0x4f313c
+00000000`04f15de0 000007fe`f061340c MSHTML!RunHTMLApplication+0x4f313c
+00000000`04f15e80 000007fe`f061340c MSHTML!RunHTMLApplication+0x4f313c
+00000000`04f15f20 000007fe`f061340c MSHTML!RunHTMLApplication+0x4f313c
+00000000`04f15fc0 000007fe`f061340c MSHTML!RunHTMLApplication+0x4f313c
+00000000`04f16060 000007fe`f061340c MSHTML!RunHTMLApplication+0x4f313c
+00000000`04f16100 000007fe`f061340c MSHTML!RunHTMLApplication+0x4f313c
+00000000`04f161a0 000007fe`f061340c MSHTML!RunHTMLApplication+0x4f313c
+00000000`04f16240 000007fe`f061340c MSHTML!RunHTMLApplication+0x4f313c
+00000000`04f162e0 000007fe`f061340c MSHTML!RunHTMLApplication+0x4f313c
+00000000`04f16380 000007fe`f061340c MSHTML!RunHTMLApplication+0x4f313c
+00000000`04f16420 000007fe`f061340c MSHTML!RunHTMLApplication+0x4f313c
+00000000`04f164c0 000007fe`f061340c MSHTML!RunHTMLApplication+0x4f313c
+00000000`04f16560 000007fe`f061340c MSHTML!RunHTMLApplication+0x4f313c
+00000000`04f16600 000007fe`f061340c MSHTML!RunHTMLApplication+0x4f313c
+00000000`04f166a0 000007fe`f061340c MSHTML!RunHTMLApplication+0x4f313c
+00000000`04f16740 000007fe`f061340c MSHTML!RunHTMLApplication+0x4f313c
+00000000`04f167e0 000007fe`f061340c MSHTML!RunHTMLApplication+0x4f313c
+00000000`04f16880 000007fe`f061340c MSHTML!RunHTMLApplication+0x4f313c
+00000000`04f16920 000007fe`f061340c MSHTML!RunHTMLApplication+0x4f313c
+00000000`04f169c0 000007fe`f061340c MSHTML!RunHTMLApplication+0x4f313c
+00000000`04f16a60 000007fe`f061340c MSHTML!RunHTMLApplication+0x4f313c
+00000000`04f16b00 000007fe`f061340c MSHTML!RunHTMLApplication+0x4f313c
+00000000`04f16ba0 000007fe`f061340c MSHTML!RunHTMLApplication+0x4f313c
+00000000`04f16c40 000007fe`f061340c MSHTML!RunHTMLApplication+0x4f313c
+00000000`04f16ce0 000007fe`f061340c MSHTML!RunHTMLApplication+0x4f313c
+00000000`04f16d80 000007fe`f061340c MSHTML!RunHTMLApplication+0x4f313c
+00000000`04f16e20 000007fe`f061340c MSHTML!RunHTMLApplication+0x4f313c
+00000000`04f16ec0 000007fe`f061340c MSHTML!RunHTMLApplication+0x4f313c
+00000000`04f16f60 000007fe`f061340c MSHTML!RunHTMLApplication+0x4f313c
+00000000`04f17000 000007fe`f061340c MSHTML!RunHTMLApplication+0x4f313c
+00000000`04f170a0 000007fe`f061340c MSHTML!RunHTMLApplication+0x4f313c
+00000000`04f17140 000007fe`f061340c MSHTML!RunHTMLApplication+0x4f313c
+00000000`04f171e0 000007fe`f061340c MSHTML!RunHTMLApplication+0x4f313c
+00000000`04f17280 000007fe`f061340c MSHTML!RunHTMLApplication+0x4f313c
+00000000`04f17320 000007fe`f061340c MSHTML!RunHTMLApplication+0x4f313c
+00000000`04f173c0 000007fe`f061340c MSHTML!RunHTMLApplication+0x4f313c
+00000000`04f17460 000007fe`f061340c MSHTML!RunHTMLApplication+0x4f313c
+00000000`04f17500 000007fe`f061340c MSHTML!RunHTMLApplication+0x4f313c
+00000000`04f175a0 000007fe`f061340c MSHTML!RunHTMLApplication+0x4f313c
+00000000`04f17640 000007fe`f061340c MSHTML!RunHTMLApplication+0x4f313c
+00000000`04f176e0 000007fe`f061340c MSHTML!RunHTMLApplication+0x4f313c
+00000000`04f17780 000007fe`f061340c MSHTML!RunHTMLApplication+0x4f313c
+00000000`04f17820 000007fe`f061340c MSHTML!RunHTMLApplication+0x4f313c
+00000000`04f178c0 000007fe`f061340c MSHTML!RunHTMLApplication+0x4f313c
+00000000`04f17960 000007fe`f061340c MSHTML!RunHTMLApplication+0x4f313c
+00000000`04f17a00 000007fe`f061340c MSHTML!RunHTMLApplication+0x4f313c
+00000000`04f17aa0 000007fe`f061340c MSHTML!RunHTMLApplication+0x4f313c
+00000000`04f17b40 000007fe`f061340c MSHTML!RunHTMLApplication+0x4f313c
+00000000`04f17be0 000007fe`f061340c MSHTML!RunHTMLApplication+0x4f313c
+00000000`04f17c80 000007fe`f061340c MSHTML!RunHTMLApplication+0x4f313c
+00000000`04f17d20 000007fe`f061340c MSHTML!RunHTMLApplication+0x4f313c
+00000000`04f17dc0 000007fe`f061340c MSHTML!RunHTMLApplication+0x4f313c
+00000000`04f17e60 000007fe`f061340c MSHTML!RunHTMLApplication+0x4f313c
+00000000`04f17f00 000007fe`f061340c MSHTML!RunHTMLApplication+0x4f313c
+00000000`04f17fa0 000007fe`f061340c MSHTML!RunHTMLApplication+0x4f313c
+00000000`04f18040 000007fe`f061340c MSHTML!RunHTMLApplication+0x4f313c
+00000000`04f180e0 000007fe`f061340c MSHTML!RunHTMLApplication+0x4f313c
+00000000`04f18180 000007fe`f061340c MSHTML!RunHTMLApplication+0x4f313c
+00000000`04f18220 000007fe`f061340c MSHTML!RunHTMLApplication+0x4f313c
+00000000`04f182c0 000007fe`f061340c MSHTML!RunHTMLApplication+0x4f313c
+00000000`04f18360 000007fe`f061340c MSHTML!RunHTMLApplication+0x4f313c
+00000000`04f18400 000007fe`f061340c MSHTML!RunHTMLApplication+0x4f313c
+00000000`04f184a0 000007fe`f061340c MSHTML!RunHTMLApplication+0x4f313c
+00000000`04f18540 000007fe`f061340c MSHTML!RunHTMLApplication+0x4f313c
+00000000`04f185e0 000007fe`f061340c MSHTML!RunHTMLApplication+0x4f313c
+00000000`04f18680 000007fe`f061340c MSHTML!RunHTMLApplication+0x4f313c
+00000000`04f18720 000007fe`f061340c MSHTML!RunHTMLApplication+0x4f313c
+00000000`04f187c0 000007fe`f061340c MSHTML!RunHTMLApplication+0x4f313c
+00000000`04f18860 000007fe`f061340c MSHTML!RunHTMLApplication+0x4f313c
+00000000`04f18900 000007fe`f061340c MSHTML!RunHTMLApplication+0x4f313c
+00000000`04f189a0 000007fe`f061340c MSHTML!RunHTMLApplication+0x4f313c
+00000000`04f18a40 000007fe`f061340c MSHTML!RunHTMLApplication+0x4f313c
+00000000`04f18ae0 000007fe`f061340c MSHTML!RunHTMLApplication+0x4f313c
+00000000`04f18b80 000007fe`f061340c MSHTML!RunHTMLApplication+0x4f313c
+00000000`04f18c20 000007fe`f061340c MSHTML!RunHTMLApplication+0x4f313c
+00000000`04f18cc0 000007fe`f061340c MSHTML!RunHTMLApplication+0x4f313c
+00000000`04f18d60 000007fe`f061340c MSHTML!RunHTMLApplication+0x4f313c
+00000000`04f18e00 000007fe`f061340c MSHTML!RunHTMLApplication+0x4f313c
+00000000`04f18ea0 000007fe`f061340c MSHTML!RunHTMLApplication+0x4f313c
+00000000`04f18f40 000007fe`f061340c MSHTML!RunHTMLApplication+0x4f313c
+00000000`04f18fe0 000007fe`f061340c MSHTML!RunHTMLApplication+0x4f313c
+00000000`04f19080 000007fe`f061340c MSHTML!RunHTMLApplication+0x4f313c
+00000000`04f19120 000007fe`f061340c MSHTML!RunHTMLApplication+0x4f313c
+00000000`04f191c0 000007fe`f061340c MSHTML!RunHTMLApplication+0x4f313c
+00000000`04f19260 000007fe`f061340c MSHTML!RunHTMLApplication+0x4f313c
+00000000`04f19300 000007fe`f061340c MSHTML!RunHTMLApplication+0x4f313c
+00000000`04f193a0 000007fe`f061340c MSHTML!RunHTMLApplication+0x4f313c
+00000000`04f19440 000007fe`f061340c MSHTML!RunHTMLApplication+0x4f313c
+00000000`04f194e0 000007fe`f061340c MSHTML!RunHTMLApplication+0x4f313c
+00000000`04f19580 000007fe`f061340c MSHTML!RunHTMLApplication+0x4f313c
+00000000`04f19620 000007fe`f061340c MSHTML!RunHTMLApplication+0x4f313c
+00000000`04f196c0 000007fe`f061340c MSHTML!RunHTMLApplication+0x4f313c
+00000000`04f19760 000007fe`f061340c MSHTML!RunHTMLApplication+0x4f313c
+00000000`04f19800 000007fe`f061340c MSHTML!RunHTMLApplication+0x4f313c
+00000000`04f198a0 000007fe`f061340c MSHTML!RunHTMLApplication+0x4f313c
+00000000`04f19940 000007fe`f061340c MSHTML!RunHTMLApplication+0x4f313c
+00000000`04f199e0 000007fe`f061340c MSHTML!RunHTMLApplication+0x4f313c
+00000000`04f19a80 000007fe`f061340c MSHTML!RunHTMLApplication+0x4f313c
+00000000`04f19b20 000007fe`f061340c MSHTML!RunHTMLApplication+0x4f313c
+00000000`04f19bc0 000007fe`f061340c MSHTML!RunHTMLApplication+0x4f313c
+00000000`04f19c60 000007fe`f061340c MSHTML!RunHTMLApplication+0x4f313c
+00000000`04f19d00 000007fe`f061340c MSHTML!RunHTMLApplication+0x4f313c
+00000000`04f19da0 000007fe`f061340c MSHTML!RunHTMLApplication+0x4f313c
+00000000`04f19e40 000007fe`f061340c MSHTML!RunHTMLApplication+0x4f313c
+00000000`04f19ee0 000007fe`f061340c MSHTML!RunHTMLApplication+0x4f313c
+00000000`04f19f80 000007fe`f061340c MSHTML!RunHTMLApplication+0x4f313c
+00000000`04f1a020 000007fe`f061340c MSHTML!RunHTMLApplication+0x4f313c
+00000000`04f1a0c0 000007fe`f061340c MSHTML!RunHTMLApplication+0x4f313c
+00000000`04f1a160 000007fe`f061340c MSHTML!RunHTMLApplication+0x4f313c
+00000000`04f1a200 000007fe`f061340c MSHTML!RunHTMLApplication+0x4f313c
+00000000`04f1a2a0 000007fe`f061340c MSHTML!RunHTMLApplication+0x4f313c
+00000000`04f1a340 000007fe`f061340c MSHTML!RunHTMLApplication+0x4f313c
+00000000`04f1a3e0 000007fe`f061340c MSHTML!RunHTMLApplication+0x4f313c
+00000000`04f1a480 000007fe`f061340c MSHTML!RunHTMLApplication+0x4f313c
+00000000`04f1a520 000007fe`f061340c MSHTML!RunHTMLApplication+0x4f313c
+00000000`04f1a5c0 000007fe`f061340c MSHTML!RunHTMLApplication+0x4f313c
+00000000`04f1a660 000007fe`f061340c MSHTML!RunHTMLApplication+0x4f313c
+00000000`04f1a700 000007fe`f061340c MSHTML!RunHTMLApplication+0x4f313c
+00000000`04f1a7a0 000007fe`f061340c MSHTML!RunHTMLApplication+0x4f313c
+00000000`04f1a840 000007fe`f061340c MSHTML!RunHTMLApplication+0x4f313c
+00000000`04f1a8e0 000007fe`f061340c MSHTML!RunHTMLApplication+0x4f313c
+00000000`04f1a980 000007fe`f061340c MSHTML!RunHTMLApplication+0x4f313c
+00000000`04f1aa20 000007fe`f061340c MSHTML!RunHTMLApplication+0x4f313c
+00000000`04f1aac0 000007fe`f061340c MSHTML!RunHTMLApplication+0x4f313c
+00000000`04f1ab60 000007fe`f061340c MSHTML!RunHTMLApplication+0x4f313c
+00000000`04f1ac00 000007fe`f061340c MSHTML!RunHTMLApplication+0x4f313c
+00000000`04f1aca0 000007fe`f061340c MSHTML!RunHTMLApplication+0x4f313c
+00000000`04f1ad40 000007fe`f061340c MSHTML!RunHTMLApplication+0x4f313c
+00000000`04f1ade0 000007fe`f061340c MSHTML!RunHTMLApplication+0x4f313c
+00000000`04f1ae80 000007fe`f061340c MSHTML!RunHTMLApplication+0x4f313c
+00000000`04f1af20 000007fe`f061340c MSHTML!RunHTMLApplication+0x4f313c
+00000000`04f1afc0 000007fe`f061340c MSHTML!RunHTMLApplication+0x4f313c
+00000000`04f1b060 000007fe`f061340c MSHTML!RunHTMLApplication+0x4f313c
+00000000`04f1b100 000007fe`f061340c MSHTML!RunHTMLApplication+0x4f313c
+00000000`04f1b1a0 000007fe`f061340c MSHTML!RunHTMLApplication+0x4f313c
+00000000`04f1b240 000007fe`f061340c MSHTML!RunHTMLApplication+0x4f313c
+00000000`04f1b2e0 000007fe`f061340c MSHTML!RunHTMLApplication+0x4f313c
+00000000`04f1b380 000007fe`f061340c MSHTML!RunHTMLApplication+0x4f313c
+00000000`04f1b420 000007fe`f061340c MSHTML!RunHTMLApplication+0x4f313c
+00000000`04f1b4c0 000007fe`f061340c MSHTML!RunHTMLApplication+0x4f313c
+00000000`04f1b560 000007fe`f061340c MSHTML!RunHTMLApplication+0x4f313c
+00000000`04f1b600 000007fe`f061340c MSHTML!RunHTMLApplication+0x4f313c
+00000000`04f1b6a0 000007fe`f061340c MSHTML!RunHTMLApplication+0x4f313c
+00000000`04f1b740 000007fe`f061340c MSHTML!RunHTMLApplication+0x4f313c
+00000000`04f1b7e0 000007fe`f061340c MSHTML!RunHTMLApplication+0x4f313c
+00000000`04f1b880 000007fe`f061340c MSHTML!RunHTMLApplication+0x4f313c
+00000000`04f1b920 000007fe`f061340c MSHTML!RunHTMLApplication+0x4f313c
+00000000`04f1b9c0 000007fe`f061340c MSHTML!RunHTMLApplication+0x4f313c
+00000000`04f1ba60 000007fe`f061340c MSHTML!RunHTMLApplication+0x4f313c
+00000000`04f1bb00 000007fe`f061340c MSHTML!RunHTMLApplication+0x4f313c
+00000000`04f1bba0 000007fe`f061340c MSHTML!RunHTMLApplication+0x4f313c
+00000000`04f1bc40 000007fe`f061340c MSHTML!RunHTMLApplication+0x4f313c
+00000000`04f1bce0 000007fe`f061340c MSHTML!RunHTMLApplication+0x4f313c
+00000000`04f1bd80 000007fe`f061340c MSHTML!RunHTMLApplication+0x4f313c
+00000000`04f1be20 000007fe`f061340c MSHTML!RunHTMLApplication+0x4f313c
+00000000`04f1bec0 000007fe`f061340c MSHTML!RunHTMLApplication+0x4f313c
+00000000`04f1bf60 000007fe`f061340c MSHTML!RunHTMLApplication+0x4f313c
+00000000`04f1c000 000007fe`f061340c MSHTML!RunHTMLApplication+0x4f313c
+00000000`04f1c0a0 000007fe`f061340c MSHTML!RunHTMLApplication+0x4f313c
+00000000`04f1c140 000007fe`f061340c MSHTML!RunHTMLApplication+0x4f313c
+00000000`04f1c1e0 000007fe`f061340c MSHTML!RunHTMLApplication+0x4f313c
+00000000`04f1c280 000007fe`f061340c MSHTML!RunHTMLApplication+0x4f313c
+00000000`04f1c320 000007fe`f061340c MSHTML!RunHTMLApplication+0x4f313c
+00000000`04f1c3c0 000007fe`f061340c MSHTML!RunHTMLApplication+0x4f313c
+00000000`04f1c460 000007fe`f061340c MSHTML!RunHTMLApplication+0x4f313c
+00000000`04f1c500 000007fe`f061340c MSHTML!RunHTMLApplication+0x4f313c
+00000000`04f1c5a0 000007fe`f061340c MSHTML!RunHTMLApplication+0x4f313c
+00000000`04f1c640 000007fe`f061340c MSHTML!RunHTMLApplication+0x4f313c
+00000000`04f1c6e0 000007fe`f061340c MSHTML!RunHTMLApplication+0x4f313c
+00000000`04f1c780 000007fe`f061340c MSHTML!RunHTMLApplication+0x4f313c
+00000000`04f1c820 000007fe`f061340c MSHTML!RunHTMLApplication+0x4f313c
+00000000`04f1c8c0 000007fe`f061340c MSHTML!RunHTMLApplication+0x4f313c
+00000000`04f1c960 000007fe`f061340c MSHTML!RunHTMLApplication+0x4f313c
+00000000`04f1ca00 000007fe`f061340c MSHTML!RunHTMLApplication+0x4f313c
+00000000`04f1caa0 000007fe`f061340c MSHTML!RunHTMLApplication+0x4f313c
+00000000`04f1cb40 000007fe`f061340c MSHTML!RunHTMLApplication+0x4f313c
+00000000`04f1cbe0 000007fe`f061340c MSHTML!RunHTMLApplication+0x4f313c
+00000000`04f1cc80 000007fe`f061340c MSHTML!RunHTMLApplication+0x4f313c
+00000000`04f1cd20 000007fe`f061340c MSHTML!RunHTMLApplication+0x4f313c
+00000000`04f1cdc0 000007fe`f061340c MSHTML!RunHTMLApplication+0x4f313c
+00000000`04f1ce60 000007fe`f061340c MSHTML!RunHTMLApplication+0x4f313c
+00000000`04f1cf00 000007fe`f061340c MSHTML!RunHTMLApplication+0x4f313c
+00000000`04f1cfa0 000007fe`f061340c MSHTML!RunHTMLApplication+0x4f313c
+00000000`04f1d040 000007fe`f061340c MSHTML!RunHTMLApplication+0x4f313c
+00000000`04f1d0e0 000007fe`f061340c MSHTML!RunHTMLApplication+0x4f313c
+00000000`04f1d180 000007fe`f061340c MSHTML!RunHTMLApplication+0x4f313c
+00000000`04f1d220 000007fe`f061340c MSHTML!RunHTMLApplication+0x4f313c
+00000000`04f1d2c0 000007fe`f061340c MSHTML!RunHTMLApplication+0x4f313c
+00000000`04f1d360 000007fe`f061340c MSHTML!RunHTMLApplication+0x4f313c
+00000000`04f1d400 000007fe`f061340c MSHTML!RunHTMLApplication+0x4f313c
+00000000`04f1d4a0 000007fe`f061340c MSHTML!RunHTMLApplication+0x4f313c
+00000000`04f1d540 000007fe`f061340c MSHTML!RunHTMLApplication+0x4f313c
+00000000`04f1d5e0 000007fe`f061340c MSHTML!RunHTMLApplication+0x4f313c
+00000000`04f1d680 000007fe`f061340c MSHTML!RunHTMLApplication+0x4f313c
+00000000`04f1d720 000007fe`f061340c MSHTML!RunHTMLApplication+0x4f313c
+00000000`04f1d7c0 000007fe`f061340c MSHTML!RunHTMLApplication+0x4f313c
+00000000`04f1d860 000007fe`f061340c MSHTML!RunHTMLApplication+0x4f313c
+00000000`04f1d900 000007fe`f061340c MSHTML!RunHTMLApplication+0x4f313c
+00000000`04f1d9a0 000007fe`f061340c MSHTML!RunHTMLApplication+0x4f313c
+00000000`04f1da40 000007fe`f061340c MSHTML!RunHTMLApplication+0x4f313c
+00000000`04f1dae0 000007fe`f061340c MSHTML!RunHTMLApplication+0x4f313c
+00000000`04f1db80 000007fe`f061340c MSHTML!RunHTMLApplication+0x4f313c
+00000000`04f1dc20 000007fe`f061340c MSHTML!RunHTMLApplication+0x4f313c
+00000000`04f1dcc0 000007fe`f061340c MSHTML!RunHTMLApplication+0x4f313c
+00000000`04f1dd60 000007fe`f061340c MSHTML!RunHTMLApplication+0x4f313c
+00000000`04f1de00 000007fe`f061340c MSHTML!RunHTMLApplication+0x4f313c
+00000000`04f1dea0 000007fe`f061340c MSHTML!RunHTMLApplication+0x4f313c
+00000000`04f1df40 000007fe`f061340c MSHTML!RunHTMLApplication+0x4f313c
+00000000`04f1dfe0 000007fe`f061340c MSHTML!RunHTMLApplication+0x4f313c
+quit:

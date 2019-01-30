@@ -1,0 +1,210 @@
+Command: ['/mnt/scratch0/clusterfuzz/bot/builds/chromium-browser-libfuzzer_linux-release-asan_ae530a86793cd6b8b56ce9af9159ac101396e802/revisions/libfuzzer-linux-release-404048/base_json_reader_fuzzer', '-max_len=9592', '-timeout=300', '-rss_limit_mb=3000', '-max_total_time=3250', '-print_final_stats=1', '/mnt/scratch0/clusterfuzz/bot/inputs/fuzzer-testcases-disk/temp/new', '/mnt/scratch0/clusterfuzz/bot/inputs/fuzzers/libfuzzer/libfuzzer_data/base_json_reader_fuzzer']
+Bot: clusterfuzz-linux-pre-0100
+Time ran: 1.122962
+
+INFO: Seed: 4694942
+INFO: Loaded 1 modules (5677 guards): [0x954b10, 0x95a3c4),
+Loading corpus: /mnt/scratch0/clusterfuzz/bot/inputs/fuzzers/libfuzzer/libfuzzer_data/base_json_reader_fuzzer
+Loaded 1024/1705 files from /mnt/scratch0/clusterfuzz/bot/inputs/fuzzers/libfuzzer/libfuzzer_data/base_json_reader_fuzzer
+#0  READ   units: 1705 exec/s: 0
+
+=================================================================
+==15262==ERROR: LeakSanitizer: detected memory leaks
+
+Direct leak of 320 byte(s) in 2 object(s) allocated from:
+    #0 0x4bd9ec in __interceptor_malloc (/mnt/scratch0/clusterfuzz/bot/builds/chromium-browser-libfuzzer_linux-release-asan_ae530a86793cd6b8b56ce9af9159ac101396e802/revisions/libfuzzer-linux-release-404048/base_json_reader_fuzzer+0x4bd9ec)
+    #1 0x56d34f in dmg_fp::Balloc(int) base/third_party/dmg_fp/dtoa.cc:567:18
+    #2 0x571141 in dmg_fp::diff(dmg_fp::Bigint*, dmg_fp::Bigint*) base/third_party/dmg_fp/dtoa.cc:1102:6
+    #3 0x565590 in dmg_fp::strtod(char const*, char**) base/third_party/dmg_fp/dtoa.cc:2993:11
+    #4 0x55b1ea in base::StringToDouble(std::__1::basic_string<char, std::__1::char_traits<char>, std::__1::allocator<char> > const&, double*) base/strings/string_number_conversions.cc:421:13
+    #5 0x550388 in base::internal::JSONParser::ConsumeNumber() base/json/json_parser.cc:898:7
+    #6 0x54b782 in ParseNextToken base/json/json_parser.cc:473:10
+    #7 0x54b782 in base::internal::JSONParser::Parse(base::BasicStringPiece<std::__1::basic_string<char, std::__1::char_traits<char>, std::__1::allocator<char> > >) base/json/json_parser.cc:242
+    #8 0x54aa29 in base::JSONReader::Read(base::BasicStringPiece<std::__1::basic_string<char, std::__1::char_traits<char>, std::__1::allocator<char> > >) base/json/json_reader.cc:48:17
+    #9 0x4eac4b in LLVMFuzzerTestOneInput testing/libfuzzer/fuzzers/base_json_reader_fuzzer.cc:16:3
+    #10 0x4fe327 in fuzzer::Fuzzer::ExecuteCallback(unsigned char const*, unsigned long) third_party/libFuzzer/src/FuzzerLoop.cpp:490:13
+    #11 0x4fca20 in fuzzer::Fuzzer::RunOne(unsigned char const*, unsigned long) third_party/libFuzzer/src/FuzzerLoop.cpp:446:3
+    #12 0x4fd545 in RunOne third_party/libFuzzer/src/FuzzerInternal.h:426:39
+    #13 0x4fd545 in fuzzer::Fuzzer::ShuffleAndMinimize() third_party/libFuzzer/src/FuzzerLoop.cpp:404
+    #14 0x4eedf9 in fuzzer::FuzzerDriver(int*, char***, int (*)(unsigned char const*, unsigned long)) third_party/libFuzzer/src/FuzzerDriver.cpp:412:5
+    #15 0x50ce06 in main third_party/libFuzzer/src/FuzzerMain.cpp:21:10
+    #16 0x7f4407269f44 in __libc_start_main /build/eglibc-oGUzwX/eglibc-2.19/csu/libc-start.c:287
+
+Direct leak of 160 byte(s) in 1 object(s) allocated from:
+    #0 0x4bd9ec in __interceptor_malloc (/mnt/scratch0/clusterfuzz/bot/builds/chromium-browser-libfuzzer_linux-release-asan_ae530a86793cd6b8b56ce9af9159ac101396e802/revisions/libfuzzer-linux-release-404048/base_json_reader_fuzzer+0x4bd9ec)
+    #1 0x56d34f in dmg_fp::Balloc(int) base/third_party/dmg_fp/dtoa.cc:567:18
+    #2 0x571141 in dmg_fp::diff(dmg_fp::Bigint*, dmg_fp::Bigint*) base/third_party/dmg_fp/dtoa.cc:1102:6
+    #3 0x565590 in dmg_fp::strtod(char const*, char**) base/third_party/dmg_fp/dtoa.cc:2993:11
+    #4 0x55b1ea in base::StringToDouble(std::__1::basic_string<char, std::__1::char_traits<char>, std::__1::allocator<char> > const&, double*) base/strings/string_number_conversions.cc:421:13
+    #5 0x550388 in base::internal::JSONParser::ConsumeNumber() base/json/json_parser.cc:898:7
+    #6 0x54e9e0 in base::internal::JSONParser::ConsumeList() base/json/json_parser.cc:577:19
+    #7 0x54e9e0 in base::internal::JSONParser::ConsumeList() base/json/json_parser.cc:577:19
+    #8 0x54e9e0 in base::internal::JSONParser::ConsumeList() base/json/json_parser.cc:577:19
+    #9 0x54e9e0 in base::internal::JSONParser::ConsumeList() base/json/json_parser.cc:577:19
+    #10 0x54e9e0 in base::internal::JSONParser::ConsumeList() base/json/json_parser.cc:577:19
+    #11 0x54e9e0 in base::internal::JSONParser::ConsumeList() base/json/json_parser.cc:577:19
+    #12 0x54e9e0 in base::internal::JSONParser::ConsumeList() base/json/json_parser.cc:577:19
+    #13 0x54b782 in ParseNextToken base/json/json_parser.cc:473:10
+    #14 0x54b782 in base::internal::JSONParser::Parse(base::BasicStringPiece<std::__1::basic_string<char, std::__1::char_traits<char>, std::__1::allocator<char> > >) base/json/json_parser.cc:242
+    #15 0x54aa29 in base::JSONReader::Read(base::BasicStringPiece<std::__1::basic_string<char, std::__1::char_traits<char>, std::__1::allocator<char> > >) base/json/json_reader.cc:48:17
+    #16 0x4eac4b in LLVMFuzzerTestOneInput testing/libfuzzer/fuzzers/base_json_reader_fuzzer.cc:16:3
+    #17 0x4fe327 in fuzzer::Fuzzer::ExecuteCallback(unsigned char const*, unsigned long) third_party/libFuzzer/src/FuzzerLoop.cpp:490:13
+    #18 0x4fca20 in fuzzer::Fuzzer::RunOne(unsigned char const*, unsigned long) third_party/libFuzzer/src/FuzzerLoop.cpp:446:3
+    #19 0x4fd545 in RunOne third_party/libFuzzer/src/FuzzerInternal.h:426:39
+    #20 0x4fd545 in fuzzer::Fuzzer::ShuffleAndMinimize() third_party/libFuzzer/src/FuzzerLoop.cpp:404
+    #21 0x4eedf9 in fuzzer::FuzzerDriver(int*, char***, int (*)(unsigned char const*, unsigned long)) third_party/libFuzzer/src/FuzzerDriver.cpp:412:5
+    #22 0x50ce06 in main third_party/libFuzzer/src/FuzzerMain.cpp:21:10
+    #23 0x7f4407269f44 in __libc_start_main /build/eglibc-oGUzwX/eglibc-2.19/csu/libc-start.c:287
+
+Indirect leak of 160 byte(s) in 1 object(s) allocated from:
+    #0 0x4bd9ec in __interceptor_malloc (/mnt/scratch0/clusterfuzz/bot/builds/chromium-browser-libfuzzer_linux-release-asan_ae530a86793cd6b8b56ce9af9159ac101396e802/revisions/libfuzzer-linux-release-404048/base_json_reader_fuzzer+0x4bd9ec)
+    #1 0x56d34f in dmg_fp::Balloc(int) base/third_party/dmg_fp/dtoa.cc:567:18
+    #2 0x56ede4 in dmg_fp::mult(dmg_fp::Bigint*, dmg_fp::Bigint*) base/third_party/dmg_fp/dtoa.cc:829:6
+    #3 0x56523a in dmg_fp::strtod(char const*, char**) base/third_party/dmg_fp/dtoa.cc:2981:10
+    #4 0x55b1ea in base::StringToDouble(std::__1::basic_string<char, std::__1::char_traits<char>, std::__1::allocator<char> > const&, double*) base/strings/string_number_conversions.cc:421:13
+    #5 0x550388 in base::internal::JSONParser::ConsumeNumber() base/json/json_parser.cc:898:7
+    #6 0x54e9e0 in base::internal::JSONParser::ConsumeList() base/json/json_parser.cc:577:19
+    #7 0x54e9e0 in base::internal::JSONParser::ConsumeList() base/json/json_parser.cc:577:19
+    #8 0x54e9e0 in base::internal::JSONParser::ConsumeList() base/json/json_parser.cc:577:19
+    #9 0x54e9e0 in base::internal::JSONParser::ConsumeList() base/json/json_parser.cc:577:19
+    #10 0x54e9e0 in base::internal::JSONParser::ConsumeList() base/json/json_parser.cc:577:19
+    #11 0x54e9e0 in base::internal::JSONParser::ConsumeList() base/json/json_parser.cc:577:19
+    #12 0x54e9e0 in base::internal::JSONParser::ConsumeList() base/json/json_parser.cc:577:19
+    #13 0x54b782 in ParseNextToken base/json/json_parser.cc:473:10
+    #14 0x54b782 in base::internal::JSONParser::Parse(base::BasicStringPiece<std::__1::basic_string<char, std::__1::char_traits<char>, std::__1::allocator<char> > >) base/json/json_parser.cc:242
+    #15 0x54aa29 in base::JSONReader::Read(base::BasicStringPiece<std::__1::basic_string<char, std::__1::char_traits<char>, std::__1::allocator<char> > >) base/json/json_reader.cc:48:17
+    #16 0x4eac4b in LLVMFuzzerTestOneInput testing/libfuzzer/fuzzers/base_json_reader_fuzzer.cc:16:3
+    #17 0x4fe327 in fuzzer::Fuzzer::ExecuteCallback(unsigned char const*, unsigned long) third_party/libFuzzer/src/FuzzerLoop.cpp:490:13
+    #18 0x4fca20 in fuzzer::Fuzzer::RunOne(unsigned char const*, unsigned long) third_party/libFuzzer/src/FuzzerLoop.cpp:446:3
+    #19 0x4fd545 in RunOne third_party/libFuzzer/src/FuzzerInternal.h:426:39
+    #20 0x4fd545 in fuzzer::Fuzzer::ShuffleAndMinimize() third_party/libFuzzer/src/FuzzerLoop.cpp:404
+    #21 0x4eedf9 in fuzzer::FuzzerDriver(int*, char***, int (*)(unsigned char const*, unsigned long)) third_party/libFuzzer/src/FuzzerDriver.cpp:412:5
+    #22 0x50ce06 in main third_party/libFuzzer/src/FuzzerMain.cpp:21:10
+    #23 0x7f4407269f44 in __libc_start_main /build/eglibc-oGUzwX/eglibc-2.19/csu/libc-start.c:287
+
+Indirect leak of 160 byte(s) in 1 object(s) allocated from:
+    #0 0x4bd9ec in __interceptor_malloc (/mnt/scratch0/clusterfuzz/bot/builds/chromium-browser-libfuzzer_linux-release-asan_ae530a86793cd6b8b56ce9af9159ac101396e802/revisions/libfuzzer-linux-release-404048/base_json_reader_fuzzer+0x4bd9ec)
+    #1 0x56d34f in dmg_fp::Balloc(int) base/third_party/dmg_fp/dtoa.cc:567:18
+    #2 0x56ede4 in dmg_fp::mult(dmg_fp::Bigint*, dmg_fp::Bigint*) base/third_party/dmg_fp/dtoa.cc:829:6
+    #3 0x56e4ea in dmg_fp::pow5mult(dmg_fp::Bigint*, int) base/third_party/dmg_fp/dtoa.cc:946:9
+    #4 0x565227 in dmg_fp::strtod(char const*, char**) base/third_party/dmg_fp/dtoa.cc:2980:9
+    #5 0x55b1ea in base::StringToDouble(std::__1::basic_string<char, std::__1::char_traits<char>, std::__1::allocator<char> > const&, double*) base/strings/string_number_conversions.cc:421:13
+    #6 0x550388 in base::internal::JSONParser::ConsumeNumber() base/json/json_parser.cc:898:7
+    #7 0x54b782 in ParseNextToken base/json/json_parser.cc:473:10
+    #8 0x54b782 in base::internal::JSONParser::Parse(base::BasicStringPiece<std::__1::basic_string<char, std::__1::char_traits<char>, std::__1::allocator<char> > >) base/json/json_parser.cc:242
+    #9 0x54aa29 in base::JSONReader::Read(base::BasicStringPiece<std::__1::basic_string<char, std::__1::char_traits<char>, std::__1::allocator<char> > >) base/json/json_reader.cc:48:17
+    #10 0x4eac4b in LLVMFuzzerTestOneInput testing/libfuzzer/fuzzers/base_json_reader_fuzzer.cc:16:3
+    #11 0x4fe327 in fuzzer::Fuzzer::ExecuteCallback(unsigned char const*, unsigned long) third_party/libFuzzer/src/FuzzerLoop.cpp:490:13
+    #12 0x4fca20 in fuzzer::Fuzzer::RunOne(unsigned char const*, unsigned long) third_party/libFuzzer/src/FuzzerLoop.cpp:446:3
+    #13 0x4fd545 in RunOne third_party/libFuzzer/src/FuzzerInternal.h:426:39
+    #14 0x4fd545 in fuzzer::Fuzzer::ShuffleAndMinimize() third_party/libFuzzer/src/FuzzerLoop.cpp:404
+    #15 0x4eedf9 in fuzzer::FuzzerDriver(int*, char***, int (*)(unsigned char const*, unsigned long)) third_party/libFuzzer/src/FuzzerDriver.cpp:412:5
+    #16 0x50ce06 in main third_party/libFuzzer/src/FuzzerMain.cpp:21:10
+    #17 0x7f4407269f44 in __libc_start_main /build/eglibc-oGUzwX/eglibc-2.19/csu/libc-start.c:287
+
+Indirect leak of 160 byte(s) in 1 object(s) allocated from:
+    #0 0x4bd9ec in __interceptor_malloc (/mnt/scratch0/clusterfuzz/bot/builds/chromium-browser-libfuzzer_linux-release-asan_ae530a86793cd6b8b56ce9af9159ac101396e802/revisions/libfuzzer-linux-release-404048/base_json_reader_fuzzer+0x4bd9ec)
+    #1 0x56d34f in dmg_fp::Balloc(int) base/third_party/dmg_fp/dtoa.cc:567:18
+    #2 0x56f611 in dmg_fp::lshift(dmg_fp::Bigint*, int) base/third_party/dmg_fp/dtoa.cc:993:7
+    #3 0x565486 in dmg_fp::strtod(char const*, char**) base/third_party/dmg_fp/dtoa.cc:2986:9
+    #4 0x55b1ea in base::StringToDouble(std::__1::basic_string<char, std::__1::char_traits<char>, std::__1::allocator<char> > const&, double*) base/strings/string_number_conversions.cc:421:13
+    #5 0x550388 in base::internal::JSONParser::ConsumeNumber() base/json/json_parser.cc:898:7
+    #6 0x54b782 in ParseNextToken base/json/json_parser.cc:473:10
+    #7 0x54b782 in base::internal::JSONParser::Parse(base::BasicStringPiece<std::__1::basic_string<char, std::__1::char_traits<char>, std::__1::allocator<char> > >) base/json/json_parser.cc:242
+    #8 0x54aa29 in base::JSONReader::Read(base::BasicStringPiece<std::__1::basic_string<char, std::__1::char_traits<char>, std::__1::allocator<char> > >) base/json/json_reader.cc:48:17
+    #9 0x4eac4b in LLVMFuzzerTestOneInput testing/libfuzzer/fuzzers/base_json_reader_fuzzer.cc:16:3
+    #10 0x4fe327 in fuzzer::Fuzzer::ExecuteCallback(unsigned char const*, unsigned long) third_party/libFuzzer/src/FuzzerLoop.cpp:490:13
+    #11 0x4fca20 in fuzzer::Fuzzer::RunOne(unsigned char const*, unsigned long) third_party/libFuzzer/src/FuzzerLoop.cpp:446:3
+    #12 0x4fd545 in RunOne third_party/libFuzzer/src/FuzzerInternal.h:426:39
+    #13 0x4fd545 in fuzzer::Fuzzer::ShuffleAndMinimize() third_party/libFuzzer/src/FuzzerLoop.cpp:404
+    #14 0x4eedf9 in fuzzer::FuzzerDriver(int*, char***, int (*)(unsigned char const*, unsigned long)) third_party/libFuzzer/src/FuzzerDriver.cpp:412:5
+    #15 0x50ce06 in main third_party/libFuzzer/src/FuzzerMain.cpp:21:10
+    #16 0x7f4407269f44 in __libc_start_main /build/eglibc-oGUzwX/eglibc-2.19/csu/libc-start.c:287
+
+Indirect leak of 160 byte(s) in 1 object(s) allocated from:
+    #0 0x4bd9ec in __interceptor_malloc (/mnt/scratch0/clusterfuzz/bot/builds/chromium-browser-libfuzzer_linux-release-asan_ae530a86793cd6b8b56ce9af9159ac101396e802/revisions/libfuzzer-linux-release-404048/base_json_reader_fuzzer+0x4bd9ec)
+    #1 0x56d34f in dmg_fp::Balloc(int) base/third_party/dmg_fp/dtoa.cc:567:18
+    #2 0x56ede4 in dmg_fp::mult(dmg_fp::Bigint*, dmg_fp::Bigint*) base/third_party/dmg_fp/dtoa.cc:829:6
+    #3 0x56523a in dmg_fp::strtod(char const*, char**) base/third_party/dmg_fp/dtoa.cc:2981:10
+    #4 0x55b1ea in base::StringToDouble(std::__1::basic_string<char, std::__1::char_traits<char>, std::__1::allocator<char> > const&, double*) base/strings/string_number_conversions.cc:421:13
+    #5 0x550388 in base::internal::JSONParser::ConsumeNumber() base/json/json_parser.cc:898:7
+    #6 0x54b782 in ParseNextToken base/json/json_parser.cc:473:10
+    #7 0x54b782 in base::internal::JSONParser::Parse(base::BasicStringPiece<std::__1::basic_string<char, std::__1::char_traits<char>, std::__1::allocator<char> > >) base/json/json_parser.cc:242
+    #8 0x54aa29 in base::JSONReader::Read(base::BasicStringPiece<std::__1::basic_string<char, std::__1::char_traits<char>, std::__1::allocator<char> > >) base/json/json_reader.cc:48:17
+    #9 0x4eac4b in LLVMFuzzerTestOneInput testing/libfuzzer/fuzzers/base_json_reader_fuzzer.cc:16:3
+    #10 0x4fe327 in fuzzer::Fuzzer::ExecuteCallback(unsigned char const*, unsigned long) third_party/libFuzzer/src/FuzzerLoop.cpp:490:13
+    #11 0x4fca20 in fuzzer::Fuzzer::RunOne(unsigned char const*, unsigned long) third_party/libFuzzer/src/FuzzerLoop.cpp:446:3
+    #12 0x4fd545 in RunOne third_party/libFuzzer/src/FuzzerInternal.h:426:39
+    #13 0x4fd545 in fuzzer::Fuzzer::ShuffleAndMinimize() third_party/libFuzzer/src/FuzzerLoop.cpp:404
+    #14 0x4eedf9 in fuzzer::FuzzerDriver(int*, char***, int (*)(unsigned char const*, unsigned long)) third_party/libFuzzer/src/FuzzerDriver.cpp:412:5
+    #15 0x50ce06 in main third_party/libFuzzer/src/FuzzerMain.cpp:21:10
+    #16 0x7f4407269f44 in __libc_start_main /build/eglibc-oGUzwX/eglibc-2.19/csu/libc-start.c:287
+
+Indirect leak of 160 byte(s) in 1 object(s) allocated from:
+    #0 0x4bd9ec in __interceptor_malloc (/mnt/scratch0/clusterfuzz/bot/builds/chromium-browser-libfuzzer_linux-release-asan_ae530a86793cd6b8b56ce9af9159ac101396e802/revisions/libfuzzer-linux-release-404048/base_json_reader_fuzzer+0x4bd9ec)
+    #1 0x56d34f in dmg_fp::Balloc(int) base/third_party/dmg_fp/dtoa.cc:567:18
+    #2 0x56ede4 in dmg_fp::mult(dmg_fp::Bigint*, dmg_fp::Bigint*) base/third_party/dmg_fp/dtoa.cc:829:6
+    #3 0x56e4ea in dmg_fp::pow5mult(dmg_fp::Bigint*, int) base/third_party/dmg_fp/dtoa.cc:946:9
+    #4 0x565227 in dmg_fp::strtod(char const*, char**) base/third_party/dmg_fp/dtoa.cc:2980:9
+    #5 0x55b1ea in base::StringToDouble(std::__1::basic_string<char, std::__1::char_traits<char>, std::__1::allocator<char> > const&, double*) base/strings/string_number_conversions.cc:421:13
+    #6 0x550388 in base::internal::JSONParser::ConsumeNumber() base/json/json_parser.cc:898:7
+    #7 0x54e9e0 in base::internal::JSONParser::ConsumeList() base/json/json_parser.cc:577:19
+    #8 0x54e9e0 in base::internal::JSONParser::ConsumeList() base/json/json_parser.cc:577:19
+    #9 0x54e9e0 in base::internal::JSONParser::ConsumeList() base/json/json_parser.cc:577:19
+    #10 0x54e9e0 in base::internal::JSONParser::ConsumeList() base/json/json_parser.cc:577:19
+    #11 0x54e9e0 in base::internal::JSONParser::ConsumeList() base/json/json_parser.cc:577:19
+    #12 0x54e9e0 in base::internal::JSONParser::ConsumeList() base/json/json_parser.cc:577:19
+    #13 0x54e9e0 in base::internal::JSONParser::ConsumeList() base/json/json_parser.cc:577:19
+    #14 0x54b782 in ParseNextToken base/json/json_parser.cc:473:10
+    #15 0x54b782 in base::internal::JSONParser::Parse(base::BasicStringPiece<std::__1::basic_string<char, std::__1::char_traits<char>, std::__1::allocator<char> > >) base/json/json_parser.cc:242
+    #16 0x54aa29 in base::JSONReader::Read(base::BasicStringPiece<std::__1::basic_string<char, std::__1::char_traits<char>, std::__1::allocator<char> > >) base/json/json_reader.cc:48:17
+    #17 0x4eac4b in LLVMFuzzerTestOneInput testing/libfuzzer/fuzzers/base_json_reader_fuzzer.cc:16:3
+    #18 0x4fe327 in fuzzer::Fuzzer::ExecuteCallback(unsigned char const*, unsigned long) third_party/libFuzzer/src/FuzzerLoop.cpp:490:13
+    #19 0x4fca20 in fuzzer::Fuzzer::RunOne(unsigned char const*, unsigned long) third_party/libFuzzer/src/FuzzerLoop.cpp:446:3
+    #20 0x4fd545 in RunOne third_party/libFuzzer/src/FuzzerInternal.h:426:39
+    #21 0x4fd545 in fuzzer::Fuzzer::ShuffleAndMinimize() third_party/libFuzzer/src/FuzzerLoop.cpp:404
+    #22 0x4eedf9 in fuzzer::FuzzerDriver(int*, char***, int (*)(unsigned char const*, unsigned long)) third_party/libFuzzer/src/FuzzerDriver.cpp:412:5
+    #23 0x50ce06 in main third_party/libFuzzer/src/FuzzerMain.cpp:21:10
+    #24 0x7f4407269f44 in __libc_start_main /build/eglibc-oGUzwX/eglibc-2.19/csu/libc-start.c:287
+
+Indirect leak of 160 byte(s) in 1 object(s) allocated from:
+    #0 0x4bd9ec in __interceptor_malloc (/mnt/scratch0/clusterfuzz/bot/builds/chromium-browser-libfuzzer_linux-release-asan_ae530a86793cd6b8b56ce9af9159ac101396e802/revisions/libfuzzer-linux-release-404048/base_json_reader_fuzzer+0x4bd9ec)
+    #1 0x56d34f in dmg_fp::Balloc(int) base/third_party/dmg_fp/dtoa.cc:567:18
+    #2 0x56f611 in dmg_fp::lshift(dmg_fp::Bigint*, int) base/third_party/dmg_fp/dtoa.cc:993:7
+    #3 0x565486 in dmg_fp::strtod(char const*, char**) base/third_party/dmg_fp/dtoa.cc:2986:9
+    #4 0x55b1ea in base::StringToDouble(std::__1::basic_string<char, std::__1::char_traits<char>, std::__1::allocator<char> > const&, double*) base/strings/string_number_conversions.cc:421:13
+    #5 0x550388 in base::internal::JSONParser::ConsumeNumber() base/json/json_parser.cc:898:7
+    #6 0x54e9e0 in base::internal::JSONParser::ConsumeList() base/json/json_parser.cc:577:19
+    #7 0x54e9e0 in base::internal::JSONParser::ConsumeList() base/json/json_parser.cc:577:19
+    #8 0x54e9e0 in base::internal::JSONParser::ConsumeList() base/json/json_parser.cc:577:19
+    #9 0x54e9e0 in base::internal::JSONParser::ConsumeList() base/json/json_parser.cc:577:19
+    #10 0x54e9e0 in base::internal::JSONParser::ConsumeList() base/json/json_parser.cc:577:19
+    #11 0x54e9e0 in base::internal::JSONParser::ConsumeList() base/json/json_parser.cc:577:19
+    #12 0x54e9e0 in base::internal::JSONParser::ConsumeList() base/json/json_parser.cc:577:19
+    #13 0x54b782 in ParseNextToken base/json/json_parser.cc:473:10
+    #14 0x54b782 in base::internal::JSONParser::Parse(base::BasicStringPiece<std::__1::basic_string<char, std::__1::char_traits<char>, std::__1::allocator<char> > >) base/json/json_parser.cc:242
+    #15 0x54aa29 in base::JSONReader::Read(base::BasicStringPiece<std::__1::basic_string<char, std::__1::char_traits<char>, std::__1::allocator<char> > >) base/json/json_reader.cc:48:17
+    #16 0x4eac4b in LLVMFuzzerTestOneInput testing/libfuzzer/fuzzers/base_json_reader_fuzzer.cc:16:3
+    #17 0x4fe327 in fuzzer::Fuzzer::ExecuteCallback(unsigned char const*, unsigned long) third_party/libFuzzer/src/FuzzerLoop.cpp:490:13
+    #18 0x4fca20 in fuzzer::Fuzzer::RunOne(unsigned char const*, unsigned long) third_party/libFuzzer/src/FuzzerLoop.cpp:446:3
+    #19 0x4fd545 in RunOne third_party/libFuzzer/src/FuzzerInternal.h:426:39
+    #20 0x4fd545 in fuzzer::Fuzzer::ShuffleAndMinimize() third_party/libFuzzer/src/FuzzerLoop.cpp:404
+    #21 0x4eedf9 in fuzzer::FuzzerDriver(int*, char***, int (*)(unsigned char const*, unsigned long)) third_party/libFuzzer/src/FuzzerDriver.cpp:412:5
+    #22 0x50ce06 in main third_party/libFuzzer/src/FuzzerMain.cpp:21:10
+    #23 0x7f4407269f44 in __libc_start_main /build/eglibc-oGUzwX/eglibc-2.19/csu/libc-start.c:287
+
+SUMMARY: AddressSanitizer: 1440 byte(s) leaked in 9 allocation(s).
+
+INFO: a leak has been found in the initial corpus.
+
+INFO: to ignore leaks on libFuzzer side use -detect_leaks=0.
+
+0xd,0x5b,0x5b,0x36,0x65,0x2d,0x36,0x31,0x2c,0x20,0x5b,0x5b,0x32,0x65,0x2d,0x36,0x34,0x2c,0x5b,0xd,0x5b,0x5b,0x36,0x65,0x2d,0x32,0x38,0x39,0x2c,0x5b,0x36,0x32,0x34,0x45,0x36,0x35,0x2c,0x5b,0x5b,0x31,0x45,0x2d,0x32,0x36,0x32,0x2c,0x5b,0x5b,0x36,0x45,0x34,0x34,0x2c,0x5b,0x5b,0xa,0x35,0x34,0x36,0x2c,0xd,0x5b,0x2d,0x34,0x35,0x30,0x39,0x33,0x34,0x34,0x34,0x31,0x39,0x39,0x30,0x34,0x34,0x31,0x33,0x36,0x39,0x36,0x45,0x32,0x2c,0x5b,0x5b,0xd,0x5b,0x2d,0x34,0x35,0x30,0x39,0x30,0x34,0x34,0x34,0x31,0x39,0x39,0x30,0x34,0x34,0x31,0x33,0x36,0x39,0x36,0x45,0x32,0x2c,0x5b,0x5b,0x2d,0x39,0x30,0x31,0x38,0x30,0x38,0x38,0x38,0x32,0x45,0x36,0x35,0x2c,0x5b,0x34,0x36,0x38,0x45,0x32,0x38,0x31,0x2c,0x5b,0x31,0x39,0x32,0x45,0x33,0x30,0x36,0x2c,0x5b,0x38,0x45,0x31,0x39,0x34,0x2c,0x5b,0x39,0x32,0x45,0x33,0x30,0x36,0x2c,0x5b,0x33,0x45,0x30,0x5b,0x2c,0x36,0x36,0x20,0xd,0x5b,0x5b,0x33,0x65,0x2d,0x33,0x30,0x31,0x2c,0x20,0xd,0x5b,0x34,0x65,0x2d,0x33,0x30,0x33,0x2c,0x5b,0x5b,0xd,0x5b,0x5b,0x2f,0x30,0x2e,0x30,0x30,0x32,0x38,0x30,0x30,0x32,0x65,
+\x0d[[6e-61, [[2e-64,[\x0d[[6e-289,[624E65,[[1E-262,[[6E44,[[\x0a546,\x0d[-4509344419904413696E2,[[\x0d[-4509044419904413696E2,[[-901808882E65,[468E281,[192E306,[8E194,[92E306,[3E0[,66 \x0d[[3e-301, \x0d[4e-303,[[\x0d[[/0.0028002e
+artifact_prefix='./'; Test unit written to ./leak-924728d6afc4804df78818a4c9962d4e0b946dc9
+Base64: DVtbNmUtNjEsIFtbMmUtNjQsWw1bWzZlLTI4OSxbNjI0RTY1LFtbMUUtMjYyLFtbNkU0NCxbWwo1NDYsDVstNDUwOTM0NDQxOTkwNDQxMzY5NkUyLFtbDVstNDUwOTA0NDQxOTkwNDQxMzY5NkUyLFtbLTkwMTgwODg4MkU2NSxbNDY4RTI4MSxbMTkyRTMwNixbOEUxOTQsWzkyRTMwNixbM0UwWyw2NiANW1szZS0zMDEsIA1bNGUtMzAzLFtbDVtbLzAuMDAyODAwMmU=
+stat::number_of_executed_units: 1230
+stat::average_exec_per_sec:     0
+stat::new_units_added:          0
+stat::slowest_unit_time_sec:    0
+stat::peak_rss_mb:              57

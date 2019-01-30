@@ -1,0 +1,142 @@
+Fatal signal 6 (SIGABRT), code -6 in tid 10856 (CrRendererMain)
+--------- DEBUG (193):
+*** *** *** *** *** *** *** *** *** *** *** *** *** *** *** ***
+Build fingerprint: 'google/hammerhead/hammerhead:5.1.1/LMY49S/3276206:userdebug/dev-keys'
+Revision: '11'
+ABI: 'arm'
+pid: 10823, tid: 10856, name: CrRendererMain  >>> com.google.android.apps.chrome:sandboxed_process0 <<<
+signal 6 (SIGABRT), code -6 (SI_TKILL), fault addr --------
+Abort message: '[FATAL:StringView.h(209)] Security DCHECK failed: offset + length <= impl.length().
+    #0 0x2f69cb8d in logging::LogMessage::~LogMessage() /b/build/slave/clang-release-builder-l/build/src/base/logging.cc:532:29
+    #1 0x3b39adb7 in set /b/build/slave/clang-release-builder-l/build/src/third_party/WebKit/Source/wtf/text/StringView.h:209:3
+    #2 0x3b39adb7 in StringView /b/build/slave/clang-release-builder-l/build/src/third_party/WebKit/Source/wtf/text/StringView.h:187
+    #3 0x3b39adb7 in StringView /b/build/slave/clang-release-builder-l/build/src/third_party/WebKit/Source/wtf/text/WTFString.h:639
+    #4 0x3b39adb7 in blink::InlineTextBox::constructTextRun(blink::ComputedStyle const&, WTF::StringBuilder*) const /b/build/slave/clang-release-build
+er-l/build/src/third_party/WebKit/Source/core/layout/line/InlineTextBox.cpp:619
+    #5 0x3b39a531 in blink::InlineTextBox::localSelectionRect(int, int) const /b/build/slave/clang-release-builder-l/build/src/third_party/WebKit/Sour
+ce/core/layout/line/InlineTextBox.cpp:239:7
+    #6 0x31701067 in blink::LayoutText::localSelectionRect() const /b/build/slave/clang-release-builder-l/build/src/third_party/WebKit/Source/core/lay
+out/LayoutText.cpp:1886:21
+#04 0x31700955 /data/app/com.google.android.apps.c
+    r0 00000000  r1 00002a68  r2 00000006  r3 00000000
+    r4 3fa38db8  r5 00000006  r6 00000002  r7 0000010c
+    r8 3fa34c70  r9 07f46894  sl 3fa34c74  fp 3fa34610
+    ip 00002a68  sp 3fa34448  lr b68823c5  pc b68a5870  cpsr 600d0010
+
+backtrace:
+    #0 0x0003a870 in tgkill /buildbot/src/android/lmp-mr1-release/bionic/libc/arch-arm/syscalls/tgkill.S:9
+    #1 0x000173c1 in pthread_kill /buildbot/src/android/lmp-mr1-release/bionic/libc/bionic/pthread_kill.cpp:49
+    #2 0x00017fd3 in raise /buildbot/src/android/lmp-mr1-release/bionic/libc/bionic/raise.cpp:32
+    #3 0x00014795 in __libc_android_abort /buildbot/src/android/lmp-mr1-release/bionic/libc/bionic/abort.cpp:47
+    #4 0x00012f44 in abort /buildbot/src/android/lmp-mr1-release/bionic/libc/arch-arm/bionic/abort_arm.S:43
+    #5 0x03417db9 in DebugBreak /b/build/slave/clang-release-builder-l/build/src/base/debug/debugger_posix.cc:221:5
+    #6 0x03417db9 in base::debug::BreakDebugger() /b/build/slave/clang-release-builder-l/build/src/base/debug/debugger_posix.cc:251
+    #7 0x00e320df in logging::LogMessage::~LogMessage() /b/build/slave/clang-release-builder-l/build/src/base/logging.cc:748:7
+    #8 0x0cb2fdb5 in set /b/build/slave/clang-release-builder-l/build/src/third_party/WebKit/Source/wtf/text/StringView.h:209:3
+    #9 0x0cb2fdb5 in StringView /b/build/slave/clang-release-builder-l/build/src/third_party/WebKit/Source/wtf/text/StringView.h:187
+    #10 0x0cb2fdb5 in StringView /b/build/slave/clang-release-builder-l/build/src/third_party/WebKit/Source/wtf/text/WTFString.h:639
+    #11 0x0cb2fdb5 in blink::InlineTextBox::constructTextRun(blink::ComputedStyle const&, WTF::StringBuilder*) const /b/build/slave/clang-release-buil
+der-l/build/src/third_party/WebKit/Source/core/layout/line/InlineTextBox.cpp:619
+    #12 0x0cb2f52f in blink::InlineTextBox::localSelectionRect(int, int) const /b/build/slave/clang-release-builder-l/build/src/third_party/WebKit/Sou
+rce/core/layout/line/InlineTextBox.cpp:239:7
+    #13 0x02e96067 in blink::LayoutText::localSelectionRect() const /b/build/slave/clang-release-builder-l/build/src/third_party/WebKit/Source/core/la
+yout/LayoutText.cpp:1886:21
+    #14 0x02e95953 in blink::LayoutText::localVisualRect() const /b/build/slave/clang-release-builder-l/build/src/third_party/WebKit/Source/core/layou
+t/LayoutText.cpp:1853:42
+    #15 0x027d4f6b in blink::PaintInvalidationState::computeVisualRectInBacking() const /b/build/slave/clang-release-builder-l/build/src/third_party/W
+ebKit/Source/core/layout/PaintInvalidationState.cpp:456:37
+    #16 0x027d4949 in blink::LayoutObject::invalidatePaintIfNeeded(blink::PaintInvalidationState const&) /b/build/slave/clang-release-builder-l/build/
+src/third_party/WebKit/Source/core/layout/LayoutObject.cpp:1204:50
+    #17 0x02e9566b in blink::LayoutObject::invalidateTreeIfNeeded(blink::PaintInvalidationState const&) /b/build/slave/clang-release-builder-l/build/s
+rc/third_party/WebKit/Source/core/layout/LayoutObject.cpp:1152:7
+    #18 0x027dd3ab in blink::LayoutObject::invalidatePaintOfSubtreesIfNeeded(blink::PaintInvalidationState const&) /b/build/slave/clang-release-builde
+r-l/build/src/third_party/WebKit/Source/core/layout/LayoutObject.cpp:1170:12
+    #19 0x027d2979 in blink::LayoutBoxModelObject::invalidateTreeIfNeeded(blink::PaintInvalidationState const&) /b/build/slave/clang-release-builder-l
+/build/src/third_party/WebKit/Source/core/layout/LayoutBoxModelObject.cpp:513:3
+    #20 0x027dd3ab in blink::LayoutObject::invalidatePaintOfSubtreesIfNeeded(blink::PaintInvalidationState const&) /b/build/slave/clang-release-builde
+r-l/build/src/third_party/WebKit/Source/core/layout/LayoutObject.cpp:1170:12
+    #21 0x027d2979 in blink::LayoutBoxModelObject::invalidateTreeIfNeeded(blink::PaintInvalidationState const&) /b/build/slave/clang-release-builder-l
+/build/src/third_party/WebKit/Source/core/layout/LayoutBoxModelObject.cpp:513:3
+    #22 0x027dd3ab in blink::LayoutObject::invalidatePaintOfSubtreesIfNeeded(blink::PaintInvalidationState const&) /b/build/slave/clang-release-builde
+r-l/build/src/third_party/WebKit/Source/core/layout/LayoutObject.cpp:1170:12
+    #23 0x027d2979 in blink::LayoutBoxModelObject::invalidateTreeIfNeeded(blink::PaintInvalidationState const&) /b/build/slave/clang-release-builder-l
+/build/src/third_party/WebKit/Source/core/layout/LayoutBoxModelObject.cpp:513:3
+    #24 0x027dd3ab in blink::LayoutObject::invalidatePaintOfSubtreesIfNeeded(blink::PaintInvalidationState const&) /b/build/slave/clang-release-builde
+r-l/build/src/third_party/WebKit/Source/core/layout/LayoutObject.cpp:1170:12
+    #25 0x027d2979 in blink::LayoutBoxModelObject::invalidateTreeIfNeeded(blink::PaintInvalidationState const&) /b/build/slave/clang-release-builder-l
+/build/src/third_party/WebKit/Source/core/layout/LayoutBoxModelObject.cpp:513:3
+    #26 0x027dd3ab in blink::LayoutObject::invalidatePaintOfSubtreesIfNeeded(blink::PaintInvalidationState const&) /b/build/slave/clang-release-builde
+r-l/build/src/third_party/WebKit/Source/core/layout/LayoutObject.cpp:1170:12
+    #27 0x027d2979 in blink::LayoutBoxModelObject::invalidateTreeIfNeeded(blink::PaintInvalidationState const&) /b/build/slave/clang-release-builder-l
+/build/src/third_party/WebKit/Source/core/layout/LayoutBoxModelObject.cpp:513:3
+    #28 0x027dd3ab in blink::LayoutObject::invalidatePaintOfSubtreesIfNeeded(blink::PaintInvalidationState const&) /b/build/slave/clang-release-builde
+r-l/build/src/third_party/WebKit/Source/core/layout/LayoutObject.cpp:1170:12
+    #29 0x027d2979 in blink::LayoutBoxModelObject::invalidateTreeIfNeeded(blink::PaintInvalidationState const&) /b/build/slave/clang-release-builder-l
+/build/src/third_party/WebKit/Source/core/layout/LayoutBoxModelObject.cpp:513:3
+    #30 0x027cf537 in invalidateTreeIfNeeded /b/build/slave/clang-release-builder-l/build/src/third_party/WebKit/Source/core/layout/api/LayoutItem.h:2
+03:21
+    #31 0x027cf537 in blink::FrameView::invalidateTreeIfNeeded(blink::PaintInvalidationState const&) /b/build/slave/clang-release-builder-l/build/src/
+third_party/WebKit/Source/core/frame/FrameView.cpp:1278
+    #32 0x027cd657 in blink::FrameView::invalidateTreeIfNeededRecursiveInternal() /b/build/slave/clang-release-builder-l/build/src/third_party/WebKit/
+Source/core/frame/FrameView.cpp:3141:5
+    #33 0x027cd3c7 in blink::FrameView::invalidateTreeIfNeededRecursive() /b/build/slave/clang-release-builder-l/build/src/third_party/WebKit/Source/c
+ore/frame/FrameView.cpp:3122:3
+    #34 0x02633c45 in blink::FrameView::updateLifecyclePhasesInternal(blink::DocumentLifecycle::LifecycleState) /b/build/slave/clang-release-builder-l
+/build/src/third_party/WebKit/Source/core/frame/FrameView.cpp:2867:11
+    #35 0x02633841 in blink::PageAnimator::updateAllLifecyclePhases(blink::LocalFrame&) /b/build/slave/clang-release-builder-l/build/src/third_party/W
+ebKit/Source/core/page/PageAnimator.cpp:86:9
+    #36 0x02632b41 in blink::WebViewImpl::updateAllLifecyclePhases() /b/build/slave/clang-release-builder-l/build/src/third_party/WebKit/Source/web/We
+bViewImpl.cpp:1985:3
+    #37 0x02849483 in cc::ProxyMain::BeginMainFrame(std::__ndk1::unique_ptr<cc::BeginMainFrameAndCommitState, std::__ndk1::default_delete<cc::BeginMai
+nFrameAndCommitState> >) /b/build/slave/clang-release-builder-l/build/src/cc/trees/proxy_main.cc:181:21
+    #38 0x02848c05 in Invoke<const base::WeakPtr<cc::ProxyMain> &, std::__ndk1::unique_ptr<cc::BeginMainFrameAndCommitState, std::__ndk1::default_dele
+te<cc::BeginMainFrameAndCommitState> > > /b/build/slave/clang-release-builder-l/build/src/base/bind_internal.h:214:12
+    #39 0x02848c05 in MakeItSo<void (cc::ProxyMain::*const &)(std::__ndk1::unique_ptr<cc::BeginMainFrameAndCommitState, std::__ndk1::default_delete<cc
+::BeginMainFrameAndCommitState> >), const base::WeakPtr<cc::ProxyMain> &, std::__ndk1::unique_ptr<cc::BeginMainFrameAndCommitState, std::__ndk1::defau
+lt_delete<cc::BeginMainFrameAndCommitState> > > /b/build/slave/clang-release-builder-l/build/src/base/bind_internal.h:305
+    #40 0x02848c05 in void base::internal::Invoker<base::internal::BindState<void (cc::ProxyMain::*)(std::__ndk1::unique_ptr<cc::BeginMainFrameAndComm
+itState, std::__ndk1::default_delete<cc::BeginMainFrameAndCommitState> >), base::WeakPtr<cc::ProxyMain>, base::internal::PassedWrapper<std::__ndk1::un
+ique_ptr<cc::BeginMainFrameAndCommitState, std::__ndk1::default_delete<cc::BeginMainFrameAndCommitState> > > >, void ()>::RunImpl<void (cc::ProxyMain:
+:* const&)(std::__ndk1::unique_ptr<cc::BeginMainFrameAndCommitState, std::__ndk1::default_delete<cc::BeginMainFrameAndCommitState> >), std::__ndk1::tu
+ple<base::WeakPtr<cc::ProxyMain>, base::internal::PassedWrapper<std::__ndk1::unique_ptr<cc::BeginMainFrameAndCommitState, std::__ndk1::default_delete<
+cc::BeginMainFrameAndCommitState> > > > const&, 0u, 1u>(void (cc::ProxyMain::* const&)(std::__ndk1::unique_ptr<cc::BeginMainFrameAndCommitState, std::
+__ndk1::default_delete<cc::BeginMainFrameAndCommitState> >), std::__ndk1::tuple<base::WeakPtr<cc::ProxyMain>, base::internal::PassedWrapper<std::__ndk
+1::unique_ptr<cc::BeginMainFrameAndCommitState, std::__ndk1::default_delete<cc::BeginMainFrameAndCommitState> > > > const&, base::IndexSequence<0u, 1u
+>) /b/build/slave/clang-release-builder-l/build/src/base/bind_internal.h:361
+    #41 0x01b156bd in Run /b/build/slave/clang-release-builder-l/build/src/base/callback.h:68:12
+    #42 0x01b156bd in base::debug::TaskAnnotator::RunTask(char const*, base::PendingTask*) /b/build/slave/clang-release-builder-l/build/src/base/debug
+/task_annotator.cc:52
+    #43 0x023e9145 in blink::scheduler::TaskQueueManager::ProcessTaskFromWorkQueue(blink::scheduler::internal::WorkQueue*) /b/build/slave/clang-releas
+e-builder-l/build/src/third_party/WebKit/Source/platform/scheduler/base/task_queue_manager.cc:359:19
+    #44 0x023e55db in blink::scheduler::TaskQueueManager::DoWork(base::TimeTicks, bool) /b/build/slave/clang-release-builder-l/build/src/third_party/W
+ebKit/Source/platform/scheduler/base/task_queue_manager.cc:251:13
+    #45 0x023e5193 in void base::internal::FunctorTraits<void (blink::scheduler::TaskQueueManager::*)(base::TimeTicks, bool), void>::Invoke<base::Weak
+Ptr<blink::scheduler::TaskQueueManager> const&, base::TimeTicks const&, bool const&>(void (blink::scheduler::TaskQueueManager::*)(base::TimeTicks, boo
+l), base::WeakPtr<blink::scheduler::TaskQueueManager> const&, base::TimeTicks const&, bool const&) /b/build/slave/clang-release-builder-l/build/src/ba
+se/bind_internal.h:214:12
+    #46 0x023e50d9 in MakeItSo<void (blink::scheduler::TaskQueueManager::*const &)(base::TimeTicks, bool), const base::WeakPtr<blink::scheduler::TaskQ
+ueueManager> &, const base::TimeTicks &, const bool &> /b/build/slave/clang-release-builder-l/build/src/base/bind_internal.h:305:5
+    #47 0x023e50d9 in RunImpl<void (blink::scheduler::TaskQueueManager::*const &)(base::TimeTicks, bool), const std::__ndk1::tuple<base::WeakPtr<blink
+::scheduler::TaskQueueManager>, base::TimeTicks, bool> &, 0, 1, 2> /b/build/slave/clang-release-builder-l/build/src/base/bind_internal.h:361
+    #48 0x023e50d9 in base::internal::Invoker<base::internal::BindState<void (blink::scheduler::TaskQueueManager::*)(base::TimeTicks, bool), base::Wea
+kPtr<blink::scheduler::TaskQueueManager>, base::TimeTicks, bool>, void ()>::Run(base::internal::BindStateBase*) /b/build/slave/clang-release-builder-l
+/build/src/base/bind_internal.h:339
+    #49 0x01b156bd in Run /b/build/slave/clang-release-builder-l/build/src/base/callback.h:68:12
+    #50 0x01b156bd in base::debug::TaskAnnotator::RunTask(char const*, base::PendingTask*) /b/build/slave/clang-release-builder-l/build/src/base/debug
+/task_annotator.cc:52
+    #51 0x01b145c3 in base::MessageLoop::RunTask(base::PendingTask*) /b/build/slave/clang-release-builder-l/build/src/base/message_loop/message_loop.c
+c:413:19
+    #52 0x01b13d7b in base::MessageLoop::DeferOrRunPendingTask(base::PendingTask) /b/build/slave/clang-release-builder-l/build/src/base/message_loop/m
+essage_loop.cc:422:5
+    #53 0x01b10dc1 in base::MessageLoop::DoWork() /b/build/slave/clang-release-builder-l/build/src/base/message_loop/message_loop.cc:515:13
+    #54 0x01b30145 in base::MessagePumpDefault::Run(base::MessagePump::Delegate*) /b/build/slave/clang-release-builder-l/build/src/base/message_loop/m
+essage_pump_default.cc:33:31
+    #55 0x01b102dd in base::MessageLoop::RunHandler() /b/build/slave/clang-release-builder-l/build/src/base/message_loop/message_loop.cc:378:10
+    #56 0x01b0ff85 in base::RunLoop::Run() /b/build/slave/clang-release-builder-l/build/src/base/run_loop.cc:36:10
+    #57 0x022692e3 in content::RendererMain(content::MainFunctionParams const&) /b/build/slave/clang-release-builder-l/build/src/content/renderer/rend
+erer_main.cc:200:23
+    #58 0x00f7d305 in content::ContentMainRunnerImpl::Run() /b/build/slave/clang-release-builder-l/build/src/content/app/content_main_runner.cc:786:12
+    #59 0x00e75cd9 in Start /b/build/slave/clang-release-builder-l/build/src/content/app/android/content_main.cc:46:34
+    #60 0x00e75cd9 in Java_org_chromium_content_app_ContentMain_nativeStart /b/build/slave/clang-release-builder-l/build/src/out/Release/gen/content/p
+ublic/android/content_jni_headers/content/jni/ContentMain_jni.h:38
+    #61 0x003b7c3d in data@app@com.google.android.apps.chrome-1@base.apk@classes.dex

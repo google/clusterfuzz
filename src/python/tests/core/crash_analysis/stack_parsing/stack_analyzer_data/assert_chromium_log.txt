@@ -1,0 +1,54 @@
+Command: ['/mnt/scratch0/clusterfuzz/bot/builds/chromium-browser-libfuzzer_linux-release-asan_ae530a86793cd6b8b56ce9af9159ac101396e802/revisions/libfuzzer-linux-release-428862/base_json_correctness_fuzzer', '-max_len=9683', '-timeout=3595', '-rss_limit_mb=1024', '-max_total_time=2350', '-print_final_stats=1', '/mnt/scratch0/clusterfuzz/bot/inputs/fuzzer-testcases-disk/temp/new', '/mnt/scratch0/clusterfuzz/bot/inputs/fuzzers/libfuzzer/libfuzzer_data/base_json_correctness_fuzzer']
+Bot: clusterfuzz-linux-pre-0381
+Time ran: 0.165543
+
+INFO: Seed: 2687657031
+INFO: Loaded 0 modules (0 guards):
+Loading corpus dir: /mnt/scratch0/clusterfuzz/bot/inputs/fuzzer-testcases-disk/temp/new
+Loading corpus dir: /mnt/scratch0/clusterfuzz/bot/inputs/fuzzers/libfuzzer/libfuzzer_data/base_json_correctness_fuzzer
+#0	READ units: 413
+#413	INITED cov: 987 bits: 2488 indir: 33 corp: 317/58Kb exec/s: 0 rss: 67Mb
+[1101/111812:FATAL:correctness_fuzzer.cc(51)] Assert failed: parsed_output == double_parsed_output. Parser/Writer mismatch.
+Input="\"trueGGu)u\\u0019\\u0019\\u0019\\u0019\\u0019\\u0019\\u0019\\u0019\\u0019\\u0019\\u0019(\\u0019\\u00199\\u0000\\u0000\\u0000\\u0000\\u0000\\u0000\\u0000\\u0000\\u0000\\u0000\\u0000\\u0000\\u0000\\u0000\\u0000\\u0000\\u0000\\u0000\\u0000\\u0000\\u0000\\u0000\\u0000\\u0000\\u0000\\u0000\\u0000\\u0000\\u0000\\u0000\\u0000\\u0000\\u0000\\u0000\\u0000\\u0000\\u0000\\u0000\\u0000\\u0000\\u0000\\u0000\\u0000\\u0000\\u0000\\u0000\\u0000\\u0000\\u0000\\u0000\\u0000\\u0000\\u0000\\u0000\\u0000\\u0000\\u0000\\u0000\\u0000\\u0000\\u0000\\u0000\\u0000\\u0000\\u0000\\u0000\\u0000\\u0000\\u0000\\u0000\\u0000\\u0000\\u0000\\u0000\\u0000\\u0000\\u0000\\u0000\\u0000\\u0000\\u0000\\u0000\\u0000\\u0000\\u0000\\u0000\\u0000\\u0000\\u0000\\u0000\\u0000\\u0000\\u0000\\u0000\\u0000\\u0000\\u0000\\u0000\\u0019\\u0019\\u0019\\u0019\\u0019\\u0019\\u0019\\u0019\\u0019uuuuuuuuuuuuuuuuuuuuuuuur;GyGGGGGGGGGGGGGGGGGuuuuuuuuuuuuuuuuur;GyGGGGGGGGGGGGGGGGGGyGGGGGGGGGGGGGGGGGGGGGGGGGKGGGGG\""
+Output="\"trueGGu)u\\u0019\\u0019\\u0019\\u0019\\u0019\\u0019\\u0019\\u0019\\u0019\\u0019\\u0019(\\u0019\\u00199\\u0019\\u0019\\u0019\\u0019\\u0019\\u0019\\u0019\\u0019\\u0019uuuuuuuuuuuuuuuuuuuuuuuur;GyGGGGGGGGGGGGGGGGGuuuuuuuuuuuuuuuuur;GyGGGGGGGGGGGGGGGGGGyGGGGGGGGGGGGGGGGGGGGGGGGGKGGGGG\""
+#0 0x00000046bef1 __interceptor_backtrace
+#1 0x000000579d06 base::debug::StackTrace::StackTrace()
+#2 0x000000536e6c logging::LogMessage::~LogMessage()
+#3 0x0000004f3cb6 LLVMFuzzerTestOneInput
+#4 0x00000050eef6 fuzzer::Fuzzer::ExecuteCallback()
+#5 0x00000050f3a0 fuzzer::Fuzzer::RunOne()
+#6 0x00000051105f fuzzer::Fuzzer::MutateAndTestOne()
+#7 0x000000511498 fuzzer::Fuzzer::Loop()
+#8 0x0000004f8606 fuzzer::FuzzerDriver()
+#9 0x000000515b99 main
+#10 0x7f4873ae0f45 __libc_start_main
+#11 0x00000042081d <unknown>
+
+ASAN:DEADLYSIGNAL
+=================================================================
+==11335==ERROR: AddressSanitizer: ABRT on unknown address 0x03e900002c47 (pc 0x7f4873af5c37 bp 0x7ffc18a25410 sp 0x7ffc18a252d8 T0)
+SCARINESS: 10 (signal)
+    #0 0x7f4873af5c36 in gsignal /build/eglibc-oGUzwX/eglibc-2.19/signal/../nptl/sysdeps/unix/sysv/linux/raise.c:56
+    #1 0x5374e5 in logging::LogMessage::~LogMessage() base/logging.cc:748:7
+    #2 0x4f3cb5 in LLVMFuzzerTestOneInput base/json/correctness_fuzzer.cc:51:3
+    #3 0x50eef5 in fuzzer::Fuzzer::ExecuteCallback(unsigned char const*, unsigned long) third_party/libFuzzer/src/FuzzerLoop.cpp:515:13
+    #4 0x50f39f in fuzzer::Fuzzer::RunOne(unsigned char const*, unsigned long) third_party/libFuzzer/src/FuzzerLoop.cpp:469:3
+    #5 0x51105e in fuzzer::Fuzzer::MutateAndTestOne() third_party/libFuzzer/src/FuzzerLoop.cpp:701:30
+    #6 0x511497 in fuzzer::Fuzzer::Loop() third_party/libFuzzer/src/FuzzerLoop.cpp:734:5
+    #7 0x4f8605 in fuzzer::FuzzerDriver(int*, char***, int (*)(unsigned char const*, unsigned long)) third_party/libFuzzer/src/FuzzerDriver.cpp:524:5
+    #8 0x515b98 in main third_party/libFuzzer/src/FuzzerMain.cpp:20:10
+    #9 0x7f4873ae0f44 in __libc_start_main /build/eglibc-oGUzwX/eglibc-2.19/csu/libc-start.c:287
+
+AddressSanitizer can not provide additional info.
+SUMMARY: AddressSanitizer: ABRT /build/eglibc-oGUzwX/eglibc-2.19/signal/../nptl/sysdeps/unix/sysv/linux/raise.c:56 in gsignal
+==11335==ABORTING
+MS: 3 ChangeBinInt-InsertByte-InsertRepeatedBytes-; base unit: f5c4b4d152d846bfc80035b822d47d9b5b233734
+0x22,0x74,0x72,0x75,0x65,0x47,0x47,0x75,0x29,0x75,0x19,0x19,0x19,0x19,0x19,0x19,0x19,0x19,0x19,0x19,0x19,0x28,0x19,0x19,0x39,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x19,0x19,0x19,0x19,0x19,0x19,0x19,0x19,0x19,0x75,0x75,0x75,0x75,0x75,0x75,0x75,0x75,0x75,0x75,0x75,0x75,0x75,0x75,0x75,0x75,0x75,0x75,0x75,0x75,0x75,0x75,0x75,0x75,0x72,0x3b,0x47,0x79,0x47,0x47,0x47,0x47,0x47,0x47,0x47,0x47,0x47,0x47,0x47,0x47,0x47,0x47,0x47,0x47,0x47,0x75,0x75,0x75,0x75,0x75,0x75,0x75,0x75,0x75,0x75,0x75,0x75,0x75,0x75,0x75,0x75,0x75,0x72,0x3b,0x47,0x79,0x47,0x47,0x47,0x47,0x47,0x47,0x47,0x47,0x47,0x47,0x47,0x47,0x47,0x47,0x47,0x47,0x47,0x47,0x79,0x47,0x47,0x47,0x47,0x47,0x47,0x47,0x47,0x47,0x47,0x47,0x47,0x47,0x47,0x47,0x47,0x47,0x47,0x47,0x47,0x47,0x47,0x47,0x47,0x47,0x4b,0x47,0x47,0x47,0x47,0x47,0x22,0x62,
+\"trueGGu)u\x19\x19\x19\x19\x19\x19\x19\x19\x19\x19\x19(\x19\x199\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x19\x19\x19\x19\x19\x19\x19\x19\x19uuuuuuuuuuuuuuuuuuuuuuuur;GyGGGGGGGGGGGGGGGGGuuuuuuuuuuuuuuuuur;GyGGGGGGGGGGGGGGGGGGyGGGGGGGGGGGGGGGGGGGGGGGGGKGGGGG\"b
+artifact_prefix='./'; Test unit written to ./crash-a3f8c1ab8aa1486c8f0631eba08eece7a73bbbf8
+Base64: InRydWVHR3UpdRkZGRkZGRkZGRkZKBkZOQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAGRkZGRkZGRkZdXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1cjtHeUdHR0dHR0dHR0dHR0dHR0dHdXV1dXV1dXV1dXV1dXV1dXVyO0d5R0dHR0dHR0dHR0dHR0dHR0dHeUdHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dLR0dHR0ciYg==
+stat::number_of_executed_units: 521
+stat::average_exec_per_sec:     0
+stat::new_units_added:          0
+stat::slowest_unit_time_sec:    0
+stat::peak_rss_mb:              67

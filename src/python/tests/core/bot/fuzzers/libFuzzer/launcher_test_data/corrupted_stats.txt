@@ -1,0 +1,58 @@
+Command: 'c:\clusterfuzz\bot\builds\chromium-browser-libfuzzer_win32-release_x64-asan_4834a5339bd661fb993ed9448e3738d3c07ca989\revisions\libfuzzer-win32-release_x64-599761\mediasource_MP3_pipeline_integration_fuzzer.exe' -timeout=25 -rss_limit_mb=2048 '-artifact_prefix=c:\clusterfuzz\bot\inputs\fuzzer-testcases/' -max_total_time=2650 -print_final_stats=1 'c:\clusterfuzz\bot\inputs\fuzzer-testcases-disk\temp\new' 'c:\clusterfuzz\bot\inputs\data-bundles\global\mediasource_MP3_pipeline_integration_fuzzer'
+Bot: clusterfuzz-windows-zone2-pre-w93p
+Time ran: 29.046000
+
+INFO: Seed: 1776138335
+INFO: Loaded 1 modules   (685270 inline 8-bit counters): 685270 [00007FF72FB8CE48, 00007FF72FC3431E),
+INFO: Loaded 1 PC tables (685270 PCs): 685270 [00007FF72ED0F248,00007FF72F783FA8),
+INFO:        0 files found in c:\clusterfuzz\bot\inputs\fuzzer-testcases-disk\temp\new
+INFO:     4060 files found in c:\clusterfuzz\bot\inputs\data-bundles\global\mediasource_MP3_pipeline_integration_fuzzer
+INFO: -max_len is not provided; libFuzzer will not generate inputs larger than 1048576 bytes
+INFO: seed corpus: files: 4060 min: 1b max: 1048576b total: 205545310b rss: 93Mb
+#64 pulse  cov: 3681 ft: 4268 corp: 29/64b lim: 4 exec/s: 32 rss: 350Mb
+#1024   pulse  cov: 7736 ft: 12666 corp: 340/7087b lim: 4 exec/s: 40 rss: 1901Mb
+==4044== ERROR: libFuzzer: out-of-memory (used: 2055Mb; limit: 2048Mb)
+   To change the out-of-memory limit use -rss_limit_mb=<N>
+
+MS: 0 ; base unit: 0000000000000000000000000000000000000000
+0xff,0xff,0xff,0x1,0x0,0x0,0x0,0xc,0xc,0xc,0xc,0xc,0xff,0xf2,0x14,0xe3,0x0,0x2a,0x0,0x0,0x0,0x0,0x15,0xcf,0xff,0x0,0x37,0x4,0x37,0x55,0x8c,0x2c,0xc,0xc,0xc,0xc,0xff,0xf2,0x14,0x39,0x0,0x63,0x0,0x0,0x15,0x0,0x32,0xc,0x33,0xc,0x14,0xc,
+\xff\xff\xff\x01\x00\x00\x00\x0c\x0c\x0c\x0c\x0c\xff\xf2\x14\xe3\x00*\x00\x00\x00\x00\x15\xcf\xff\x007\x047U\x8c,\x0c\x0c\x0c\x0c\xff\xf2\x149\x00c\x00\x00\x15\x002\x0c3\x0c\x14\x0c
+artifact_prefix='c:\clusterfuzz\bot\inputs\fuzzer-testcases/'; Test unit written to c:\clusterfuzz\bot\inputs\fuzzer-testcases/oom-2b1256adb7bff4d0b70a3edca49756177ef40306
+Base64: ////AQAAAAwMDAwM//IU4wAqAAAAABXP/wA3BDdVjCwMDAwM//IUOQBjAAAVADIMMwwUDA==
+custom-crash-state: mediasource_MP3_pipeline_integration_fuzzer
+SUMMARY: libFuzzer: out-of-memory
+stat::number_of_executed_units: 1142
+stat::average_exec_per_sec:     40
+stat::new_units_added:          0
+stat::slowest_unit_time_sec:    0
+stat::peak_rss_mb:              2../../media/test/mock_media_source.cc(141): error: Expected equality of these values:
+055
+  expect_append_success_
+    Which is: true
+  success
+    Which is: false
+Stack trace:
+Backtrace:
+    testing::internal::UnitTestImpl::CurrentOsStackTraceExceptTop [0x00007FF7281F2C47+257] (C:\b\s\w\ir\cache\builder\src\third_party\googletest\src\googletest\src\gtest.cc:846)
+    testing::internal::AssertHelper::operator= [0x00007FF7281F1941+271] (C:\b\s\w\ir\cache\builder\src\third_party\googletest\src\googletest\src\gtest.cc:421)
+    media::MockMediaSource::AppendData [0x00007FF728102CAC+2096] (C:\b\s\w\ir\cache\builder\src\media\test\mock_media_source.cc:141)
+    media::MockMediaSource::DemuxerOpenedTask [0x00007FF728104D04+1186] (C:\b\s\w\ir\cache\builder\src\media\test\mock_media_source.cc:229)
+    base::debug::TaskAnnotator::RunTask [0x00007FF72B44CB30+976] (C:\b\s\w\ir\cache\builder\src\base\debug\task_annotator.cc:99)
+    base::MessageLoop::RunTask [0x00007FF72A86E561+945] (C:\b\s\w\ir\cache\builder\src\base\message_loop\message_loop.cc:434)
+    base::MessageLoop::DoWork [0x00007FF72A86F977+1783] (C:\b\s\w\ir\cache\builder\src\base\message_loop\message_loop.cc:517)
+    base::MessagePumpDefault::Run [0x00007FF72B4564F8+616] (C:\b\s\w\ir\cache\builder\src\base\message_loop\message_pump_default.cc:37)
+    base::RunLoop::Run [0x00007FF729E0416B+251] (C:\b\s\w\ir\cache\builder\src\base\run_loop.cc:108)
+    media::PipelineIntegrationTestBase::RunUntilQuitOrError [0x00007FF728137333+281] (C:\b\s\w\ir\cache\builder\src\media\test\pipeline_integration_test_base.cc:660)
+    media::PipelineIntegrationTestBase::RunUntilQuitOrEndedOrError [0x00007FF72812BB05+261] (C:\b\s\w\ir\cache\builder\src\media\test\pipeline_integration_test_base.cc:672)
+    media::PipelineIntegrationTestBase::StartPipelineWithMediaSource [0x00007FF72813DC5C+9794] (C:\b\s\w\ir\cache\builder\src\media\test\pipeline_integration_test_base.cc:647)
+    media::MediaSourcePipelineIntegrationFuzzerTest::RunTest [0x00007FF7280F2492+750] (C:\b\s\w\ir\cache\builder\src\media\test\pipeline_integration_fuzzertest.cc:208)
+    LLVMFuzzerTestOneInput [0x00007FF7280F1B9E+668] (C:\b\s\w\ir\cache\builder\src\media\test\pipeline_integration_fuzzertest.cc:251)
+    fuzzer::Fuzzer::ExecuteCallback [0x00007FF728184B58+280] (C:\b\s\w\ir\cache\builder\src\third_party\libFuzzer\src\FuzzerLoop.cpp:571)
+    fuzzer::Fuzzer::TryDetectingAMemoryLeak [0x00007FF728185725+93] (C:\b\s\w\ir\cache\builder\src\third_party\libFuzzer\src\FuzzerLoop.cpp:646)
+    fuzzer::Fuzzer::ReadAndExecuteSeedCorpora [0x00007FF728185F20+1192] (C:\b\s\w\ir\cache\builder\src\third_party\libFuzzer\src\FuzzerLoop.cpp:786)
+    fuzzer::Fuzzer::Loop [0x00007FF7281860B2+34] (C:\b\s\w\ir\cache\builder\src\third_party\libFuzzer\src\FuzzerLoop.cpp:806)
+    fuzzer::FuzzerDriver [0x00007FF72817EA8D+5182] (C:\b\s\w\ir\cache\builder\src\third_party\libFuzzer\src\FuzzerDriver.cpp:766)
+    main [0x00007FF72818AC09+53] (C:\b\s\w\ir\cache\builder\src\third_party\libFuzzer\src\FuzzerMain.cpp:20)
+    __scrt_common_main_seh [0x00007FF72D6D6A80+268] (f:\dd\vctools\crt\vcstartup\src\startup\exe_common.inl:283)
+    BaseThreadInitThunk [0x00007FFCA72D8364+20]
+    RtlUserThreadStart [0x00007FFCA98D7091+33]

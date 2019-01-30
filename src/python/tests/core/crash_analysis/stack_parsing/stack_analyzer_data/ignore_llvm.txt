@@ -1,0 +1,113 @@
+=================================================================
+==46471==ERROR: AddressSanitizer: heap-use-after-free on address 0x6120000746b0 at pc 0x000110615e7e bp 0x7fff58c768f0 sp 0x7fff58c768e8
+READ of size 8 at 0x6120000746b0 thread T0
+SCARINESS: 51 (8-byte-read-heap-use-after-free)
+    #0 0x110615e7d in size /b/c/b/Mac_ASAN_Release_Media/src/third_party/llvm-build/Release+Asserts/include/c++/v1/__hash_table:807:55
+    #1 0x110615e7d in bucket_count /b/c/b/Mac_ASAN_Release_Media/src/third_party/llvm-build/Release+Asserts/include/c++/v1/__hash_table:1122
+    #2 0x110615e7d in __emplace_unique_key_args<cc::BeginFrameSource *, const std::__1::piecewise_construct_t &, std::__1::tuple<cc::BeginFrameSource *const &>, std::__1::tuple<> > /b/c/b/Mac_ASAN_Release_Media/src/third_party/llvm-build/Release+Asserts/include/c++/v1/__hash_table:1953
+    #3 0x110615e7d in std::__1::unordered_map<cc::BeginFrameSource*, unsigned int, std::__1::hash<cc::BeginFrameSource*>, std::__1::equal_to<cc::BeginFrameSource*>, std::__1::allocator<std::__1::pair<cc::BeginFrameSource* const, unsigned int> > >::operator[](cc::BeginFrameSource* const&) /b/c/b/Mac_ASAN_Release_Media/src/third_party/llvm-build/Release+Asserts/include/c++/v1/unordered_map:1422
+    #4 0x1106164b8 in cc::SurfaceManager::UnregisterBeginFrameSource(cc::BeginFrameSource*) /b/c/b/Mac_ASAN_Release_Media/src/cc/surfaces/surface_manager.cc:196:24
+    #5 0x1105b76f5 in cc::Display::~Display() /b/c/b/Mac_ASAN_Release_Media/src/cc/surfaces/display.cc:57:25
+    #6 0x1105b7f2a in ~Display /b/c/b/Mac_ASAN_Release_Media/src/cc/surfaces/display.cc:53:21
+    #7 0x1105b7f2a in cc::Display::~Display() /b/c/b/Mac_ASAN_Release_Media/src/cc/surfaces/display.cc:53
+    #8 0x10ba9498e in operator() /b/c/b/Mac_ASAN_Release_Media/src/third_party/llvm-build/Release+Asserts/include/c++/v1/memory:2565:13
+    #9 0x10ba9498e in reset /b/c/b/Mac_ASAN_Release_Media/src/third_party/llvm-build/Release+Asserts/include/c++/v1/memory:2771
+    #10 0x10ba9498e in ~unique_ptr /b/c/b/Mac_ASAN_Release_Media/src/third_party/llvm-build/Release+Asserts/include/c++/v1/memory:2739
+    #11 0x10ba9498e in ~unique_ptr /b/c/b/Mac_ASAN_Release_Media/src/third_party/llvm-build/Release+Asserts/include/c++/v1/memory:2739
+    #12 0x10ba9498e in ~PerCompositorData /b/c/b/Mac_ASAN_Release_Media/src/content/browser/compositor/gpu_process_transport_factory.cc:165
+    #13 0x10ba9498e in ~PerCompositorData /b/c/b/Mac_ASAN_Release_Media/src/content/browser/compositor/gpu_process_transport_factory.cc:165
+    #14 0x10ba9498e in operator() /b/c/b/Mac_ASAN_Release_Media/src/third_party/llvm-build/Release+Asserts/include/c++/v1/memory:2565
+    #15 0x10ba9498e in reset /b/c/b/Mac_ASAN_Release_Media/src/third_party/llvm-build/Release+Asserts/include/c++/v1/memory:2771
+    #16 0x10ba9498e in ~unique_ptr /b/c/b/Mac_ASAN_Release_Media/src/third_party/llvm-build/Release+Asserts/include/c++/v1/memory:2739
+    #17 0x10ba9498e in ~unique_ptr /b/c/b/Mac_ASAN_Release_Media/src/third_party/llvm-build/Release+Asserts/include/c++/v1/memory:2739
+    #18 0x10ba9498e in ~pair /b/c/b/Mac_ASAN_Release_Media/src/third_party/llvm-build/Release+Asserts/include/c++/v1/utility:296
+    #19 0x10ba9498e in ~pair /b/c/b/Mac_ASAN_Release_Media/src/third_party/llvm-build/Release+Asserts/include/c++/v1/utility:296
+    #20 0x10ba9498e in __destroy<std::__1::pair<ui::Compositor *const, std::__1::unique_ptr<content::GpuProcessTransportFactory::PerCompositorData, std::__1::default_delete<content::GpuProcessTransportFactory::PerCompositorData> > > > /b/c/b/Mac_ASAN_Release_Media/src/third_party/llvm-build/Release+Asserts/include/c++/v1/memory:1699
+    #21 0x10ba9498e in destroy<std::__1::pair<ui::Compositor *const, std::__1::unique_ptr<content::GpuProcessTransportFactory::PerCompositorData, std::__1::default_delete<content::GpuProcessTransportFactory::PerCompositorData> > > > /b/c/b/Mac_ASAN_Release_Media/src/third_party/llvm-build/Release+Asserts/include/c++/v1/memory:1562
+    #22 0x10ba9498e in std::__1::__tree<std::__1::__value_type<ui::Compositor*, std::__1::unique_ptr<content::GpuProcessTransportFactory::PerCompositorData, std::__1::default_delete<content::GpuProcessTransportFactory::PerCompositorData> > >, std::__1::__map_value_compare<ui::Compositor*, std::__1::__value_type<ui::Compositor*, std::__1::unique_ptr<content::GpuProcessTransportFactory::PerCompositorData, std::__1::default_delete<content::GpuProcessTransportFactory::PerCompositorData> > >, std::__1::less<ui::Compositor*>, true>, std::__1::allocator<std::__1::__value_type<ui::Compositor*, std::__1::unique_ptr<content::GpuProcessTransportFactory::PerCompositorData, std::__1::default_delete<content::GpuProcessTransportFactory::PerCompositorData> > > > >::destroy(std::__1::__tree_node<std::__1::__value_type<ui::Compositor*, std::__1::unique_ptr<content::GpuProcessTransportFactory::PerCompositorData, std::__1::default_delete<content::GpuProcessTransportFactory::PerCompositorData> > >, void*>*) /b/c/b/Mac_ASAN_Release_Media/src/third_party/llvm-build/Release+Asserts/include/c++/v1/__tree:1793
+    #23 0x10ba882fe in ~GpuProcessTransportFactory /b/c/b/Mac_ASAN_Release_Media/src/content/browser/compositor/gpu_process_transport_factory.cc:190:59
+    #24 0x10ba882fe in ~GpuProcessTransportFactory /b/c/b/Mac_ASAN_Release_Media/src/content/browser/compositor/gpu_process_transport_factory.cc:190
+    #25 0x10ba882fe in non-virtual thunk to content::GpuProcessTransportFactory::~GpuProcessTransportFactory() /b/c/b/Mac_ASAN_Release_Media/src/content/browser/compositor/gpu_process_transport_factory.cc:190
+    #26 0x10ba98a09 in content::ImageTransportFactory::Terminate() /b/c/b/Mac_ASAN_Release_Media/src/content/browser/compositor/image_transport_factory.cc:50:3
+    #27 0x10aacbae3 in content::BrowserMainLoop::ShutdownThreadsAndCleanUp() /b/c/b/Mac_ASAN_Release_Media/src/content/browser/browser_main_loop.cc:1027:5
+    #28 0x10aad70a7 in content::BrowserMainRunnerImpl::Shutdown() /b/c/b/Mac_ASAN_Release_Media/src/content/browser/browser_main_runner.cc:211:19
+    #29 0x10be5663c in LayoutTestBrowserMain(content::MainFunctionParams const&, std::__1::unique_ptr<content::BrowserMainRunner, std::__1::default_delete<content::BrowserMainRunner> > const&) /b/c/b/Mac_ASAN_Release_Media/src/content/shell/browser/layout_test/layout_test_browser_main.cc:149:16
+    #30 0x10bdb32b7 in content::ShellMainDelegate::RunProcess(std::__1::basic_string<char, std::__1::char_traits<char>, std::__1::allocator<char> > const&, content::MainFunctionParams const&) /b/c/b/Mac_ASAN_Release_Media/src/content/shell/app/shell_main_delegate.cc:294:16
+    #31 0x10a80434e in content::RunNamedProcessTypeMain(std::__1::basic_string<char, std::__1::char_traits<char>, std::__1::allocator<char> > const&, content::MainFunctionParams const&, content::ContentMainDelegate*) /b/c/b/Mac_ASAN_Release_Media/src/content/app/content_main_runner.cc:405:35
+    #32 0x10a80702c in content::ContentMainRunnerImpl::Run() /b/c/b/Mac_ASAN_Release_Media/src/content/app/content_main_runner.cc:786:12
+    #33 0x10a803613 in content::ContentMain(content::ContentMainParams const&) /b/c/b/Mac_ASAN_Release_Media/src/content/app/content_main.cc:20:28
+    #34 0x106f922a4 in Content Shell Framework
+    #35 0x106f86e03 in start
+0x6120000746b0 is located 240 bytes inside of 272-byte region [0x6120000745c0,0x6120000746d0)
+freed by thread T0 here:
+    #0 0x11fd23336 in __asan_memmove
+    #1 0x10ba87e69 in operator() /b/c/b/Mac_ASAN_Release_Media/src/third_party/llvm-build/Release+Asserts/include/c++/v1/memory:2565:13
+    #2 0x10ba87e69 in reset /b/c/b/Mac_ASAN_Release_Media/src/third_party/llvm-build/Release+Asserts/include/c++/v1/memory:2771
+    #3 0x10ba87e69 in ~unique_ptr /b/c/b/Mac_ASAN_Release_Media/src/third_party/llvm-build/Release+Asserts/include/c++/v1/memory:2739
+    #4 0x10ba87e69 in ~unique_ptr /b/c/b/Mac_ASAN_Release_Media/src/third_party/llvm-build/Release+Asserts/include/c++/v1/memory:2739
+    #5 0x10ba87e69 in content::GpuProcessTransportFactory::~GpuProcessTransportFactory() /b/c/b/Mac_ASAN_Release_Media/src/content/browser/compositor/gpu_process_transport_factory.cc:197
+    #6 0x10ba882fe in ~GpuProcessTransportFactory /b/c/b/Mac_ASAN_Release_Media/src/content/browser/compositor/gpu_process_transport_factory.cc:190:59
+    #7 0x10ba882fe in ~GpuProcessTransportFactory /b/c/b/Mac_ASAN_Release_Media/src/content/browser/compositor/gpu_process_transport_factory.cc:190
+    #8 0x10ba882fe in non-virtual thunk to content::GpuProcessTransportFactory::~GpuProcessTransportFactory() /b/c/b/Mac_ASAN_Release_Media/src/content/browser/compositor/gpu_process_transport_factory.cc:190
+    #9 0x10ba98a09 in content::ImageTransportFactory::Terminate() /b/c/b/Mac_ASAN_Release_Media/src/content/browser/compositor/image_transport_factory.cc:50:3
+    #10 0x10aacbae3 in content::BrowserMainLoop::ShutdownThreadsAndCleanUp() /b/c/b/Mac_ASAN_Release_Media/src/content/browser/browser_main_loop.cc:1027:5
+    #11 0x10aad70a7 in content::BrowserMainRunnerImpl::Shutdown() /b/c/b/Mac_ASAN_Release_Media/src/content/browser/browser_main_runner.cc:211:19
+    #12 0x10be5663c in LayoutTestBrowserMain(content::MainFunctionParams const&, std::__1::unique_ptr<content::BrowserMainRunner, std::__1::default_delete<content::BrowserMainRunner> > const&) /b/c/b/Mac_ASAN_Release_Media/src/content/shell/browser/layout_test/layout_test_browser_main.cc:149:16
+    #13 0x10bdb32b7 in content::ShellMainDelegate::RunProcess(std::__1::basic_string<char, std::__1::char_traits<char>, std::__1::allocator<char> > const&, content::MainFunctionParams const&) /b/c/b/Mac_ASAN_Release_Media/src/content/shell/app/shell_main_delegate.cc:294:16
+    #14 0x10a80434e in content::RunNamedProcessTypeMain(std::__1::basic_string<char, std::__1::char_traits<char>, std::__1::allocator<char> > const&, content::MainFunctionParams const&, content::ContentMainDelegate*) /b/c/b/Mac_ASAN_Release_Media/src/content/app/content_main_runner.cc:405:35
+    #15 0x10a80702c in content::ContentMainRunnerImpl::Run() /b/c/b/Mac_ASAN_Release_Media/src/content/app/content_main_runner.cc:786:12
+    #16 0x10a803613 in content::ContentMain(content::ContentMainParams const&) /b/c/b/Mac_ASAN_Release_Media/src/content/app/content_main.cc:20:28
+    #17 0x106f922a4 in Content Shell Framework
+    #18 0x106f86e03 in start
+
+previously allocated by thread T0 here:
+    #0 0x11fd2316c in __asan_memmove
+    #1 0x10c97b96f in operator new(unsigned long) /b/c/b/Mac_ASAN_Release_Media/src/buildtools/third_party/libc++abi/trunk/src/cxa_new_delete.cpp:44:17
+    #2 0x10ba878b7 in content::GpuProcessTransportFactory::GpuProcessTransportFactory() /b/c/b/Mac_ASAN_Release_Media/src/content/browser/compositor/gpu_process_transport_factory.cc:181:39
+    #3 0x10ba9896f in content::ImageTransportFactory::Initialize() /b/c/b/Mac_ASAN_Release_Media/src/content/browser/compositor/image_transport_factory.cc:31:18
+    #4 0x10aac600d in content::BrowserMainLoop::BrowserThreadsStarted() /b/c/b/Mac_ASAN_Release_Media/src/content/browser/browser_main_loop.cc:1232:3
+    #5 0x10b837f69 in Run /b/c/b/Mac_ASAN_Release_Media/src/base/callback.h:388:12
+    #6 0x10b837f69 in content::StartupTaskRunner::RunAllTasksNow() /b/c/b/Mac_ASAN_Release_Media/src/content/browser/startup_task_runner.cc:45
+    #7 0x10aac3af7 in content::BrowserMainLoop::CreateStartupTasks() /b/c/b/Mac_ASAN_Release_Media/src/content/browser/browser_main_loop.cc:827:25
+    #8 0x10aad6408 in content::BrowserMainRunnerImpl::Initialize(content::MainFunctionParams const&) /b/c/b/Mac_ASAN_Release_Media/src/content/browser/browser_main_runner.cc:140:17
+    #9 0x10be55df3 in LayoutTestBrowserMain(content::MainFunctionParams const&, std::__1::unique_ptr<content::BrowserMainRunner, std::__1::default_delete<content::BrowserMainRunner> > const&) /b/c/b/Mac_ASAN_Release_Media/src/content/shell/browser/layout_test/layout_test_browser_main.cc:128:32
+    #10 0x10bdb32b7 in content::ShellMainDelegate::RunProcess(std::__1::basic_string<char, std::__1::char_traits<char>, std::__1::allocator<char> > const&, content::MainFunctionParams const&) /b/c/b/Mac_ASAN_Release_Media/src/content/shell/app/shell_main_delegate.cc:294:16
+    #11 0x10a80434e in content::RunNamedProcessTypeMain(std::__1::basic_string<char, std::__1::char_traits<char>, std::__1::allocator<char> > const&, content::MainFunctionParams const&, content::ContentMainDelegate*) /b/c/b/Mac_ASAN_Release_Media/src/content/app/content_main_runner.cc:405:35
+    #12 0x10a80702c in content::ContentMainRunnerImpl::Run() /b/c/b/Mac_ASAN_Release_Media/src/content/app/content_main_runner.cc:786:12
+    #13 0x10a803613 in content::ContentMain(content::ContentMainParams const&) /b/c/b/Mac_ASAN_Release_Media/src/content/app/content_main.cc:20:28
+    #14 0x106f922a4 in Content Shell Framework
+    #15 0x106f86e03 in start
+
+SUMMARY: AddressSanitizer: heap-use-after-free (/b/clusterfuzz/bot/builds/chrome-test-builds_media_mac-release_e6940505d6c387d688e04a7feeb7e2019c3efe81/revisions/asan-mac-release-415600/Content Shell.app/Contents/Frameworks/Content Shell Framework.framework/Content Shell Framework+0x9685e7d)
+Shadow bytes around the buggy address:
+  0x1c240000e880: fa fa fa fa fa fa fa fa fd fd fd fd fd fd fd fd
+  0x1c240000e890: fd fd fd fd fd fd fd fd fd fd fd fd fd fd fd fd
+  0x1c240000e8a0: fd fd fd fd fd fd fd fd fd fd fa fa fa fa fa fa
+  0x1c240000e8b0: fa fa fa fa fa fa fa fa fd fd fd fd fd fd fd fd
+  0x1c240000e8c0: fd fd fd fd fd fd fd fd fd fd fd fd fd fd fd fd
+=>0x1c240000e8d0: fd fd fd fd fd fd[fd]fd fd fd fa fa fa fa fa fa
+  0x1c240000e8e0: fa fa fa fa fa fa fa fa 00 00 00 00 00 00 00 00
+  0x1c240000e8f0: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+  0x1c240000e900: 00 00 00 00 00 00 00 00 00 00 fa fa fa fa fa fa
+  0x1c240000e910: fa fa fa fa fa fa fa fa 00 00 00 00 00 00 00 00
+  0x1c240000e920: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+Shadow byte legend (one shadow byte represents 8 application bytes):
+  Addressable:           00
+  Partially addressable: 01 02 03 04 05 06 07
+  Heap left redzone:       fa
+  Freed heap region:       fd
+  Stack left redzone:      f1
+  Stack mid redzone:       f2
+  Stack right redzone:     f3
+  Stack after return:      f5
+  Stack use after scope:   f8
+  Global redzone:          f9
+  Global init order:       f6
+  Poisoned by user:        f7
+  Container overflow:      fc
+  Array cookie:            ac
+  Intra object redzone:    bb
+  ASan internal:           fe
+  Left alloca redzone:     ca
+  Right alloca redzone:    cb
+==46471==ABORTING

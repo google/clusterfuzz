@@ -1,0 +1,93 @@
+--------- chromium (32591):
+[FATAL:memory.cc(19)] Out of memory. size=4194304
+#00 0xa3832e11 /data/app/com.google.android.apps.chrome-1/lib/arm/libchrome.so+0x002dce11
+#01 0xac678e5d /data/app/com.google.android.apps.chrome-1/lib/arm/libchrome.so+0x09122e5d
+#02 0xa55e8d3f /data/app/com.google.android.apps.chrome-1/lib/arm/libchrome.so+0x02092d3f
+#03 0xa55e8391 /data/app/com.google.android.apps.chrome-1/lib/arm/libchrome.so+0x02092391
+#04 0xa70f98c5 /data/app/com.google.android.apps.chrome-1/lib/arm/libchrome.so+0x03ba38c5
+#05 0xa70f8b0d /data/app/com.google.android.apps.chrome-1/lib/arm/libchrome.so+0x03ba2b0d
+#06 0xa70f7edd /data/app/com.google.android.apps.chrome-1/lib/arm/libchrome.so+0x03ba1edd
+#07 0xa7100579 /data/app/com.google.android.apps.chrome-1/lib/arm/libchrome.so+0x03baa579
+#08 0xa4cb7c95 /data/app/com.google.android.apps.chrome-1/lib/arm/libchrome.so+0x01761c95
+#09 0xa4cb7751 /data/app/com.google.android.apps.chrome-1/lib/arm/libchrome.so+0x01761751
+#10 0xa4cb76bb /data/app/com.google.android.apps.chrome-1/lib/arm/libchrome.so+0x017616bb
+#11 0xa426e545 /data/app/com.google.android.apps.chrome-1/lib/arm/libchrome.so+0x00d18545
+#12 0xa424a441 /data/app/com.google.android.apps.chrome-1/lib/arm/libchrome.so+0x00cf4441
+#13 0xb67233e7 /system/lib/libc.so+0x0003f3e7
+#14 0xb66fdb43 /system/lib/libc.so+0x00019b43
+#15 0xffffffff <unknown>
+
+--------- Keyboard.Facilitator (1217):
+onFinishInput()
+--------- google-breakpad (32591):
+Cannot upload crash dump: failed to open
+### ### ### ### ### ### ### ### ### ### ### ### ###
+Chrome build fingerprint:
+Developer Build
+1
+### ### ### ### ### ### ### ### ### ### ### ### ###
+Fatal signal 6 (SIGABRT), code -6 in tid 32616 (CompositorTileW)
+--------- SELinux (199):
+SELinux: Loaded file_contexts contexts from /file_contexts.
+SELinux: Loaded file_contexts contexts from /file_contexts.
+*** *** *** *** *** *** *** *** *** *** *** *** *** *** *** ***
+Build fingerprint: google/hammerhead/hammerhead:6.0/MRA59G/2457013:userdebug/dev-keys
+Revision: 0
+ABI: arm
+pid: 32591, tid: 32616, name: CompositorTileW  >>> com.google.android.apps.chrome:sandboxed_process6 <<<
+signal 6 (SIGABRT), code -6 (SI_TKILL), fault addr --------
+Abort message: [FATAL:memory.cc(19)] Out of memory. size=4194304
+#00 0xa3832e11 /data/app/com.google.android.apps.chrome-1/lib/arm/libchrome.so+0x002dce11
+#01 0xac678e5d /data/app/com.google.android.apps.chrome-1/lib/arm/libchrome.so+0x09122e5d
+#02 0xa55e8d3f /data/app/com.google.android.apps.chrome-1/lib/arm/libchrome.so+0x02092d3f
+#03 0xa55e8391 /data/app/com.google.android.apps.chrome-1/lib/arm/libchrome.so+0x02092391
+#04 0xa70f98c5 /data/app/com.google.android.apps.chrome-1/lib/arm/libchrome.so+0x03ba
+    r0 00000000  r1 00007f68  r2 00000006  r3 a17fd978
+    r4 a17fd980  r5 a17fd930  r6 00000016  r7 0000010c
+    r8 a17fc960  r9 142ff850  sl a17fc964  fp a17fc3f0
+    ip 00000006  sp a17fc228  lr b6723ae9  pc b67252dc  cpsr 400d0010
+
+backtrace:
+    #0 0x000412dc in tgkill bionic/libc/arch-arm/syscalls/tgkill.S:9
+    #1 0x0003fae5 in pthread_kill bionic/libc/bionic/pthread_kill.cpp:45
+    #2 0x0001c30f in raise bionic/libc/bionic/raise.cpp:34
+    #3 0x000194c1 in __libc_android_abort bionic/libc/bionic/abort.cpp:47
+    #4 0x000174ac in abort bionic/libc/arch-arm/bionic/abort_arm.S:43
+    #5 0x090efc37 in copy third_party/android_tools/ndk/sources/cxx-stl/llvm-libc++/libcxx/include/string:662:32
+    #6 0x090efc37 in __init third_party/android_tools/ndk/sources/cxx-stl/llvm-libc++/libcxx/include/string:2040
+    #7 0x090efc37 in basic_string third_party/android_tools/ndk/sources/cxx-stl/llvm-libc++/libcxx/include/string:2049
+    #8 0x090efc37 in content::(anonymous namespace)::PeerConnectionUMAObserver::IncrementSparseEnumCounter(webrtc::PeerConnectionEnumCounterType, int) content/renderer/media/rtc_peer_connection_handler.cc:632
+    #9 0x002dd363 in void std::__1::__tree_right_rotate<std::__1::__tree_node_base<void*>*>(std::__1::__tree_node_base<void*>*) third_party/android_tools/ndk/sources/cxx-stl/llvm-libc++/libcxx/include/__tree:227:25
+    #10 0x09122e5b in __destruct_at_end third_party/android_tools/ndk/sources/cxx-stl/llvm-libc++/libcxx/include/__split_buffer:309:26
+    #11 0x09122e5b in __destruct_at_end third_party/android_tools/ndk/sources/cxx-stl/llvm-libc++/libcxx/include/__split_buffer:136
+    #12 0x09122e5b in clear third_party/android_tools/ndk/sources/cxx-stl/llvm-libc++/libcxx/include/__split_buffer:83
+    #13 0x09122e5b in std::__1::__split_buffer<std::__1::unique_ptr<base::SharedMemory, std::__1::default_delete<base::SharedMemory> >, std::__1::allocator<std::__1::unique_ptr<base::SharedMemory, std::__1::default_delete<base::SharedMemory> > >&>::~__split_buffer() third_party/android_tools/ndk/sources/cxx-stl/llvm-libc++/libcxx/include/__split_buffer:355
+    #14 0x02092d3d in SkCanvas::onDrawImageRect(SkImage const*, SkRect const*, SkRect const&, SkPaint const*, SkCanvas::SrcRectConstraint) third_party/skia/src/core/SkCanvas.cpp:2337:1
+    #15 0x0209238f in __lower_bound<unsigned int> third_party/android_tools/ndk/sources/cxx-stl/llvm-libc++/libcxx/include/__tree:2105:58
+    #16 0x0209238f in find<unsigned int> third_party/android_tools/ndk/sources/cxx-stl/llvm-libc++/libcxx/include/__tree:2028
+    #17 0x0209238f in find third_party/android_tools/ndk/sources/cxx-stl/llvm-libc++/libcxx/include/map:1090
+    #18 0x0209238f in Peek base/containers/mru_cache.h:124
+    #19 0x0209238f in UnrefImageInternal cc/tiles/gpu_image_decode_controller.cc:558
+    #20 0x0209238f in cc::GpuImageDecodeController::DrawWithImageFinished(cc::DrawImage const&, cc::DecodedDrawImage const&) cc/tiles/gpu_image_decode_controller.cc:364
+    #21 0x03ba38c5 in cc::CompositorTimingHistory::AsValueInto(base::trace_event::TracedValue*) const cc/scheduler/compositor_timing_history.cc:414:1
+    #22 0x03ba2b0b in swap<unsigned int> third_party/android_tools/ndk/sources/cxx-stl/llvm-libc++/libcxx/include/type_traits:3307:9
+    #23 0x03ba2b0b in swap third_party/android_tools/ndk/sources/cxx-stl/llvm-libc++/libcxx/include/memory:2209
+    #24 0x03ba2b0b in swap third_party/android_tools/ndk/sources/cxx-stl/llvm-libc++/libcxx/include/memory:2379
+    #25 0x03ba2b0b in swap third_party/android_tools/ndk/sources/cxx-stl/llvm-libc++/libcxx/include/__tree:1462
+    #26 0x03ba2b0b in swap third_party/android_tools/ndk/sources/cxx-stl/llvm-libc++/libcxx/include/set:638
+    #27 0x03ba2b0b in cc::BackToBackBeginFrameSource::SendPendingBeginFrames() cc/scheduler/begin_frame_source.cc:156
+    #28 0x03ba1edb in cc::BackToBackBeginFrameSource::AddObserver(cc::BeginFrameObserver*) cc/scheduler/begin_frame_source.cc:116:1
+    #29 0x03baa577 in std::__1::vector<std::__1::unique_ptr<cc::TilingSetEvictionQueue, std::__1::default_delete<cc::TilingSetEvictionQueue> >, std::__1::allocator<std::__1::unique_ptr<cc::TilingSetEvictionQueue, std::__1::default_delete<cc::TilingSetEvictionQueue> > > >::__swap_out_circular_buffer(std::__1::__split_buffer<std::__1::unique_ptr<cc::TilingSetEvictionQueue, std::__1::default_delete<cc::TilingSetEvictionQueue> >, std::__1::allocator<std::__1::unique_ptr<cc::TilingSetEvictionQueue, std::__1::default_delete<cc::TilingSetEvictionQueue> > >&>&) third_party/android_tools/ndk/sources/cxx-stl/llvm-libc++/libcxx/include/vector:882:18
+    #30 0x01761c95 in std::__1::map<std::__1::basic_string<char, std::__1::char_traits<char>, std::__1::allocator<char> >, media::internal::MimeUtil::CodecEntry, std::__1::less<std::__1::basic_string<char, std::__1::char_traits<char>, std::__1::allocator<char> > >, std::__1::allocator<std::__1::pair<std::__1::basic_string<char, std::__1::char_traits<char>, std::__1::allocator<char> > const, media::internal::MimeUtil::CodecEntry> > >::operator[](std::__1::basic_string<char, std::__1::char_traits<char>, std::__1::allocator<char> >&&) third_party/android_tools/ndk/sources/cxx-stl/llvm-libc++/libcxx/include/map:1388:36
+    #31 0x0176174f in media::internal::MimeUtil::InitializeMimeTypeMaps() media/base/mime_util_internal.cc:292
+    #32 0x017616b9 in media::ArePlatformDecodersAvailable() media/base/media.cc:109:3
+    #33 0x00d18545 in Version third_party/leveldatabase/src/db/version_set.h:151:35
+    #34 0x00d18545 in leveldb::VersionSet::VersionSet(std::__1::basic_string<char, std::__1::char_traits<char>, std::__1::allocator<char> > const&, leveldb::Options const*, leveldb::TableCache*, leveldb::InternalKeyComparator const*) third_party/leveldatabase/src/db/version_set.cc:782
+    #35 0x00cf4441 in swap<v8::AllocationProfile::Node **> third_party/android_tools/ndk/sources/cxx-stl/llvm-libc++/libcxx/include/type_traits:3307:9
+    #36 0x00cf4441 in push_back third_party/android_tools/ndk/sources/cxx-stl/llvm-libc++/libcxx/include/__split_buffer:564
+    #37 0x00cf4441 in std::__1::deque<v8::AllocationProfile::Node, std::__1::allocator<v8::AllocationProfile::Node> >::__add_back_capacity() third_party/android_tools/ndk/sources/cxx-stl/llvm-libc++/libcxx/include/deque:2410
+    #38 0x0003f3e7 in __pthread_start(void*) bionic/libc/bionic/pthread_create.cpp:199
+    #39 0x00019b43 in __start_thread bionic/libc/bionic/clone.cpp:41
+
+Tombstone written to: /data/tombstones/tombstone_00
+AM write failed: Broken pipe

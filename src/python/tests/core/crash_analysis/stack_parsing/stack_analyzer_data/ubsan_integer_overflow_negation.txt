@@ -1,0 +1,53 @@
+[26693:26693:0603+/master/docs/linux_suid_sandbox_development.md for more information on developing with the sandbox on.
+Xlib:  extension "RANDR" missing on display ":1".
+Xlib:  extension "RANDR" missing on display ":1".
+../../third_party/WebKit/Source/core/css/parser/CSSSelectorParser.cpp:713:25: runtime error: negation of -2147483648 cannot be represented in type int; cast to an unsigned type to negate this value to itself
+    #0 0x7fb8bb6edec2 in blink::CSSSelectorParser::consumeANPlusB(blink::CSSParserTokenRange&, std::pair<int, int>&) third_party/WebKit/Source/core/css/parser/CSSSelectorParser.cpp:713:25
+    #1 0x7fb8bb6ecec9 in blink::CSSSelectorParser::consumePseudo(blink::CSSParserTokenRange&) third_party/WebKit/Source/core/css/parser/CSSSelectorParser.cpp:555:18
+    #2 0x7fb8bb6eba29 in blink::CSSSelectorParser::consumeSimpleSelector(blink::CSSParserTokenRange&) third_party/WebKit/Source/core/css/parser/CSSSelectorParser.cpp:348:20
+    #3 0x7fb8bb6eae7f in blink::CSSSelectorParser::consumeCompoundSelector(blink::CSSParserTokenRange&) third_party/WebKit/Source/core/css/parser/CSSSelectorParser.cpp:306:55
+    #4 0x7fb8bb6ea6f4 in blink::CSSSelectorParser::consumeComplexSelector(blink::CSSParserTokenRange&) third_party/WebKit/Source/core/css/parser/CSSSelectorParser.cpp:176:42
+    #5 0x7fb8bb6ea24b in blink::CSSSelectorParser::consumeComplexSelectorList(blink::CSSParserTokenRange&) third_party/WebKit/Source/core/css/parser/CSSSelectorParser.cpp:108:42
+    #6 0x7fb8bb6ea181 in blink::CSSSelectorParser::parseSelector(blink::CSSParserTokenRange, blink::CSSParserContext const&, blink::StyleSheetContents*) third_party/WebKit/Source/core/css/parser/CSSSelectorParser.cpp:91:37
+    #7 0x7fb8bb6c53fc in blink::CSSParserImpl::consumeStyleRule(blink::CSSParserTokenRange, blink::CSSParserTokenRange) third_party/WebKit/Source/core/css/parser/CSSParserImpl.cpp:685:36
+    #8 0x7fb8bb6c0bea in blink::CSSParserImpl::consumeQualifiedRule(blink::CSSParserTokenRange&, blink::CSSParserImpl::AllowedRulesType) third_party/WebKit/Source/core/css/parser/CSSParserImpl.cpp:425:16
+    #9 0x7fb8bb6c0fd8 in consumeRuleList<(lambda at ../../third_party/WebKit/Source/core/css/parser/CSSParserImpl.cpp:173:88)> third_party/WebKit/Source/core/css/parser/CSSParserImpl.cpp:340:20
+    #10 0x7fb8bb6c0fd8 in blink::CSSParserImpl::parseStyleSheet(WTF::String const&, blink::CSSParserContext const&, blink::StyleSheetContents*) third_party/WebKit/Source/core/css/parser/CSSParserImpl.cpp:173
+    #11 0x7fb8bb6a8228 in blink::StyleSheetContents::parseStringAtPosition(WTF::String const&, WTF::TextPosition const&) third_party/WebKit/Source/core/css/StyleSheetContents.cpp:366:5
+    #12 0x7fb8bb315cf4 in blink::StyleEngine::parseSheet(blink::Element*, WTF::String const&, WTF::TextPosition) third_party/WebKit/Source/core/dom/StyleEngine.cpp:537:29
+    #13 0x7fb8bb315a33 in blink::StyleEngine::createSheet(blink::Element*, WTF::String const&, WTF::TextPosition, blink::StyleEngineContext&) third_party/WebKit/Source/core/dom/StyleEngine.cpp:515:22
+    #14 0x7fb8bfc0ec0c in blink::StyleElement::createSheet(blink::Element*, WTF::String const&) third_party/WebKit/Source/core/dom/StyleElement.cpp:194:47
+    #15 0x7fb8bfc0e485 in blink::StyleElement::process(blink::Element*) third_party/WebKit/Source/core/dom/StyleElement.cpp:141:12
+    #16 0x7fb8bfc0e91c in blink::StyleElement::finishParsingChildren(blink::Element*) third_party/WebKit/Source/core/dom/StyleElement.cpp:132:31
+    #17 0x7fb8bb47f028 in blink::HTMLStyleElement::finishParsingChildren() third_party/WebKit/Source/core/html/HTMLStyleElement.cpp:75:59
+    #18 0x7fb8bb5c37b1 in blink::HTMLElementStack::popCommon() third_party/WebKit/Source/core/html/parser/HTMLElementStack.cpp:573:12
+    #19 0x7fb8bb53ab7b in blink::HTMLTreeBuilder::processEndOfFile(blink::AtomicHTMLToken*) third_party/WebKit/Source/core/html/parser/HTMLTreeBuilder.cpp:2510:32
+    #20 0x7fb8bb533075 in blink::HTMLTreeBuilder::constructTree(blink::AtomicHTMLToken*) third_party/WebKit/Source/core/html/parser/HTMLTreeBuilder.cpp:380:9
+    #21 0x7fb8bb4eae86 in blink::HTMLDocumentParser::constructTreeFromCompactHTMLToken(blink::CompactHTMLToken const&) third_party/WebKit/Source/core/html/parser/HTMLDocumentParser.cpp:655:20
+    #22 0x7fb8bb4ea457 in blink::HTMLDocumentParser::processParsedChunkFromBackgroundParser(WTF::OwnPtr<blink::HTMLDocumentParser::ParsedChunk>) third_party/WebKit/Source/core/html/parser/HTMLDocumentParser.cpp:452:9
+    #23 0x7fb8bb4e729f in blink::HTMLDocumentParser::pumpPendingSpeculations() third_party/WebKit/Source/core/html/parser/HTMLDocumentParser.cpp:528:36
+    #24 0x7fb8bb4fc9ad in void WTF::PartBoundFunctionImpl<(WTF::FunctionThreadAffinity)1, std::tuple<blink::CrossThreadWeakPersistentThisPointer<blink::HTMLParserScheduler>&&>, WTF::FunctionWrapper<void (blink::HTMLParserScheduler::*)()>>::callInternal<0ul>(base::IndexSequence<0ul> const&) third_party/WebKit/Source/wtf/Functional.h:350:16
+    #25 0x7fb8bb4fc629 in WTF::PartBoundFunctionImpl<(WTF::FunctionThreadAffinity)1, std::tuple<blink::CrossThreadWeakPersistentThisPointer<blink::HTMLParserScheduler>&&>, WTF::FunctionWrapper<void (blink::HTMLParserScheduler::*)()>>::operator()() third_party/WebKit/Source/wtf/Functional.h:341:16
+    #26 0x7fb8c00fd2bc in void base::internal::RunnableAdapter<void (*)(std::unique_ptr<blink::WebTaskRunner::Task, std::default_delete<blink::WebTaskRunner::Task> >)>::Run<std::unique_ptr<blink::WebTaskRunner::Task, std::default_delete<blink::WebTaskRunner::Task> > >(std::unique_ptr<blink::WebTaskRunner::Task, std::default_delete<blink::WebTaskRunner::Task> >&&) base/bind_internal.h:160:12
+    #27 0x7fb8c00fd25c in MakeItSo<base::internal::RunnableAdapter<void (*)(std::unique_ptr<blink::WebTaskRunner::Task, std::default_delete<blink::WebTaskRunner::Task> >)> &, std::unique_ptr<blink::WebTaskRunner::Task, std::default_delete<blink::WebTaskRunner::Task> > > base/bind_internal.h:312:38
+    #28 0x7fb8c00fd25c in base::internal::Invoker<base::IndexSequence<0ul>, base::internal::BindState<base::internal::RunnableAdapter<void (*)(std::unique_ptr<blink::WebTaskRunner::Task, std::default_delete<blink::WebTaskRunner::Task> >)>, void (std::unique_ptr<blink::WebTaskRunner::Task, std::default_delete<blink::WebTaskRunner::Task> >), base::internal::PassedWrapper<std::unique_ptr<blink::WebTaskRunner::Task, std::default_delete<blink::WebTaskRunner::Task> > > >, false, void ()>::Run(base::internal::BindStateBase*) base/bind_internal.h:364
+    #29 0x7fb8b8cf9702 in base::debug::TaskAnnotator::RunTask(char const*, base::PendingTask const&) base/debug/task_annotator.cc:51:21
+    #30 0x7fb8c01075bf in scheduler::TaskQueueManager::ProcessTaskFromWorkQueue(scheduler::internal::WorkQueue*, scheduler::internal::TaskQueueImpl::Task*) components/scheduler/base/task_queue_manager.cc:289:19
+    #31 0x7fb8c0105cff in scheduler::TaskQueueManager::DoWork(base::TimeTicks, bool) components/scheduler/base/task_queue_manager.cc:201:13
+    #32 0x7fb8c0108a9f in void base::internal::InvokeHelper<true, void>::MakeItSo<base::internal::RunnableAdapter<void (scheduler::TaskQueueManager::*)(base::TimeTicks, bool)>&, base::WeakPtr<scheduler::TaskQueueManager>, base::TimeTicks const&, bool const&>(base::internal::RunnableAdapter<void (scheduler::TaskQueueManager::*)(base::TimeTicks, bool)>&, base::WeakPtr<scheduler::TaskQueueManager>, base::TimeTicks const&, bool const&) base/bind_internal.h:325:38
+    #33 0x7fb8c0108a00 in base::internal::Invoker<base::IndexSequence<0ul, 1ul, 2ul>, base::internal::BindState<base::internal::RunnableAdapter<void (scheduler::TaskQueueManager::*)(base::TimeTicks, bool)>, void (scheduler::TaskQueueManager*, base::TimeTicks, bool), base::WeakPtr<scheduler::TaskQueueManager>, base::TimeTicks, bool>, true, void ()>::Run(base::internal::BindStateBase*) base/bind_internal.h:364:12
+    #34 0x7fb8b8cf9702 in base::debug::TaskAnnotator::RunTask(char const*, base::PendingTask const&) base/debug/task_annotator.cc:51:21
+    #35 0x7fb8b8c826ef in base::MessageLoop::RunTask(base::PendingTask const&) base/message_loop/message_loop.cc:475:19
+    #36 0x7fb8b8c82fa9 in base::MessageLoop::DeferOrRunPendingTask(base::PendingTask const&) base/message_loop/message_loop.cc:484:5
+    #37 0x7fb8b8c83883 in base::MessageLoop::DoWork() base/message_loop/message_loop.cc:601:13
+    #38 0x7fb8b8c85906 in base::MessagePumpDefault::Run(base::MessagePump::Delegate*) base/message_loop/message_pump_default.cc:33:31
+    #39 0x7fb8b8ca8f9c in base::RunLoop::Run() base/run_loop.cc:35:10
+    #40 0x7fb8b8c8169c in base::MessageLoop::Run() base/message_loop/message_loop.cc:294:12
+    #41 0x7fb8bda0e414 in content::RendererMain(content::MainFunctionParams const&) content/renderer/renderer_main.cc:199:37
+    #42 0x7fb8b8c0cf13 in content::RunZygote(content::MainFunctionParams const&, content::ContentMainDelegate*) content/app/content_main_runner.cc:345:14
+    #43 0x7fb8b8c0f01f in content::ContentMainRunnerImpl::Run() content/app/content_main_runner.cc:787:12
+    #44 0x7fb8b8c0ca9a in content::ContentMain(content::ContentMainParams const&) content/app/content_main.cc:20:28
+    #45 0x7fb8b85b2cc9 in ChromeMain chrome/app/chrome_main.cc:84:12
+    #46 0x7fb8abcedf44 in __libc_start_main /build/eglibc-oGUzwX/eglibc-2.19/csu/libc-start.c:287
+    #47 0x7fb8b8599314 in _start
+SUMMARY: UndefinedBehaviorSanitizer: undefined-behavior ../../third_party/WebKit/Source/core/css/parser/CSSSelectorParser.cpp:713:25

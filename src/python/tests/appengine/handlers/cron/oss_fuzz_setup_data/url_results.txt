@@ -1,0 +1,244 @@
+{
+  'https://api.github.com/repos/google/oss-fuzz/git/trees/master?client_id=client_id&client_secret=client_secret': """
+{
+  "sha": "b66e9d362c61844c3053be4c33d9b341942781f0",
+  "url": "https://api.github.com/repos/google/oss-fuzz/git/trees/b66e9d362c61844c3053be4c33d9b341942781f0",
+  "tree": [
+    {
+      "path": ".gitignore",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "7176ea156b225cd6d265f4050b04d47e7f1b03eb",
+      "size": 22,
+      "url": "https://api.github.com/repos/google/oss-fuzz/git/blobs/7176ea156b225cd6d265f4050b04d47e7f1b03eb"
+    },
+    {
+      "path": "CONTRIBUTING",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "2827b7d3fa277e2daab95ea3cfaff1c2bfc1389e",
+      "size": 1452,
+      "url": "https://api.github.com/repos/google/oss-fuzz/git/blobs/2827b7d3fa277e2daab95ea3cfaff1c2bfc1389e"
+    },
+    {
+      "path": "LICENSE",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "8dada3edaf50dbc082c9a125058f25def75e625a",
+      "size": 11357,
+      "url": "https://api.github.com/repos/google/oss-fuzz/git/blobs/8dada3edaf50dbc082c9a125058f25def75e625a"
+    },
+    {
+      "path": "README.md",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "96483be52c5ffac3301f6101b99eb9fe1ab50715",
+      "size": 6117,
+      "url": "https://api.github.com/repos/google/oss-fuzz/git/blobs/96483be52c5ffac3301f6101b99eb9fe1ab50715"
+    },
+    {
+      "path": "docs",
+      "mode": "040000",
+      "type": "tree",
+      "sha": "301d4e59bff3c4832e7bb3fd85f1c4befa4fbde7",
+      "url": "https://api.github.com/repos/google/oss-fuzz/git/trees/301d4e59bff3c4832e7bb3fd85f1c4befa4fbde7"
+    },
+    {
+      "path": "infra",
+      "mode": "040000",
+      "type": "tree",
+      "sha": "f8f958b879cc920c3f828daf1f317d9b874d6d4a",
+      "url": "https://api.github.com/repos/google/oss-fuzz/git/trees/f8f958b879cc920c3f828daf1f317d9b874d6d4a"
+    },
+    {
+      "path": "projects",
+      "mode": "040000",
+      "type": "tree",
+      "sha": "dd3c2d0adf6151868fc8ecdfb28c005d09952885",
+      "url": "https://api.github.com/repos/google/oss-fuzz/git/trees/dd3c2d0adf6151868fc8ecdfb28c005d09952885"
+    }
+  ],
+  "truncated": false
+}
+""",
+  'https://api.github.com/repos/google/oss-fuzz/git/trees/dd3c2d0adf6151868fc8ecdfb28c005d09952885?client_id=client_id&client_secret=client_secret': """
+{
+  "sha": "dd3c2d0adf6151868fc8ecdfb28c005d09952885",
+  "url": "https://api.github.com/repos/google/oss-fuzz/git/trees/dd3c2d0adf6151868fc8ecdfb28c005d09952885",
+  "tree": [
+    {
+      "path": "README.md",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "b5dee27a34674614756c7a0b4cee75b04d109511",
+      "size": 1845,
+      "url": "https://api.github.com/repos/google/oss-fuzz/git/blobs/b5dee27a34674614756c7a0b4cee75b04d109511"
+    },
+    {
+      "path": "all.sh",
+      "mode": "100755",
+      "type": "blob",
+      "sha": "d23449d2763af7f98e468512366ae0a5220a0573",
+      "size": 1175,
+      "url": "https://api.github.com/repos/google/oss-fuzz/git/blobs/d23449d2763af7f98e468512366ae0a5220a0573"
+    },
+    {
+      "path": "boringssl",
+      "mode": "040000",
+      "type": "tree",
+      "sha": "a0db6a2c8fa5c18693527e812c4d1d7994c2c8a1",
+      "url": "https://api.github.com/repos/google/oss-fuzz/git/trees/a0db6a2c8fa5c18693527e812c4d1d7994c2c8a1"
+    },
+    {
+      "path": "curl",
+      "mode": "040000",
+      "type": "tree",
+      "sha": "f9599b2b6ee51af4fc8c4d522703d120cd689557",
+      "url": "https://api.github.com/repos/google/oss-fuzz/git/trees/f9599b2b6ee51af4fc8c4d522703d120cd689557"
+    },
+    {
+      "path": "freetype2",
+      "mode": "040000",
+      "type": "tree",
+      "sha": "ab599b2b6ee51df48c8c4d522703d120cd68984d",
+      "url": "https://api.github.com/repos/google/oss-fuzz/git/trees/ab599b2b6ee51df48c8c4d522703d120cd68984d"
+    }
+  ],
+  "truncated": false
+}
+""",
+  'https://api.github.com/repos/google/oss-fuzz/git/trees/a0db6a2c8fa5c18693527e812c4d1d7994c2c8a1?client_id=client_id&client_secret=client_secret': """
+{
+  "sha": "826eb46900edf113afb31c1ae4f1d04073c7bafe",
+  "url": "https://api.github.com/repos/google/oss-fuzz/git/trees/826eb46900edf113afb31c1ae4f1d04073c7bafe",
+  "tree": [
+    {
+      "path": "Dockerfile",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "0368f8166f92043678183473f6cc225a5b316e75",
+      "size": 851,
+      "url": "https://api.github.com/repos/google/oss-fuzz/git/blobs/0368f8166f92043678183473f6cc225a5b316e75"
+    },
+    {
+      "path": "build.sh",
+      "mode": "100755",
+      "type": "blob",
+      "sha": "832b96654c925875158c58dfa4044f2c86e6d0c3",
+      "size": 1450,
+      "url": "https://api.github.com/repos/google/oss-fuzz/git/blobs/832b96654c925875158c58dfa4044f2c86e6d0c3"
+    },
+    {
+      "path": "project.yaml",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "e57f1846ff0fdbb0fe08e98ca38b6235008b41be",
+      "size": 58,
+      "url": "https://api.github.com/repos/google/oss-fuzz/git/blobs/e57f1846ff0fdbb0fe08e98ca38b6235008b41be"
+    }
+  ],
+  "truncated": false
+}
+""",
+	'https://api.github.com/repos/google/oss-fuzz/git/blobs/e57f1846ff0fdbb0fe08e98ca38b6235008b41be?client_id=client_id&client_secret=client_secret': """
+{
+  "sha": "e57f1846ff0fdbb0fe08e98ca38b6235008b41be",
+  "size": 58,
+  "url": "https://api.github.com/repos/google/oss-fuzz/git/blobs/e57f1846ff0fdbb0fe08e98ca38b6235008b41be",
+  "content": "aG9tZXBhZ2U6ICJodHRwczovL2JvcmluZ3NzbC5nb29nbGVzb3VyY2UuY29t\\nL2JvcmluZ3NzbC8iCg==\\n",
+  "encoding": "base64"
+}
+""",
+  'https://api.github.com/repos/google/oss-fuzz/git/trees/f9599b2b6ee51af4fc8c4d522703d120cd689557?client_id=client_id&client_secret=client_secret': """
+{
+  "sha": "16a5dfd0dc530cc029f781c5806d0427fda37d3b",
+  "url": "https://api.github.com/repos/google/oss-fuzz/git/trees/16a5dfd0dc530cc029f781c5806d0427fda37d3b",
+  "tree": [
+    {
+      "path": "build.sh",
+      "mode": "100755",
+      "type": "blob",
+      "sha": "35deec899801071e24dbcde9753d6e595ac628f5",
+      "size": 1132,
+      "url": "https://api.github.com/repos/google/oss-fuzz/git/blobs/35deec899801071e24dbcde9753d6e595ac628f5"
+    },
+    {
+      "path": "curl_fuzzer.cc",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "b292e346eb9aff1d486df47b46b05e0b7ed13b5f",
+      "size": 3836,
+      "url": "https://api.github.com/repos/google/oss-fuzz/git/blobs/b292e346eb9aff1d486df47b46b05e0b7ed13b5f"
+    },
+    {
+      "path": "curl_fuzzer.options",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "e8e81518942d5e9aea6d44edbcd2e8b8d00b9fb8",
+      "size": 44,
+      "url": "https://api.github.com/repos/google/oss-fuzz/git/blobs/e8e81518942d5e9aea6d44edbcd2e8b8d00b9fb8"
+    },
+    {
+      "path": "http.dict",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "57b7b4372ff91e3c3968c088b220d118ce334062",
+      "size": 467,
+      "url": "https://api.github.com/repos/google/oss-fuzz/git/blobs/57b7b4372ff91e3c3968c088b220d118ce334062"
+    },
+    {
+      "path": "project.yaml",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "30580bab5896f92de90e904cda76ecdb41c6397a",
+      "size": 34,
+      "url": "https://api.github.com/repos/google/oss-fuzz/git/blobs/30580bab5896f92de90e904cda76ecdb41c6397a"
+    }
+  ],
+  "truncated": false
+}
+""",
+	'https://api.github.com/repos/google/oss-fuzz/git/blobs/30580bab5896f92de90e904cda76ecdb41c6397a?client_id=client_id&client_secret=client_secret': """
+{
+  "sha": "30580bab5896f92de90e904cda76ecdb41c6397a",
+  "size": 34,
+  "url": "https://api.github.com/repos/google/oss-fuzz/git/blobs/30580bab5896f92de90e904cda76ecdb41c6397a",
+  "content": "aG9tZXBhZ2U6ICJodHRwczovL2N1cmwuaGF4eC5zZS8iCmRvY2tlcmZpbGU6CiAgZ2l0OiBmYWtlCiAgcGF0aDogcGF0aC9Eb2NrZXJmaWxlCg==\\n",
+  "encoding": "base64"
+}
+""",
+  'https://api.github.com/repos/google/oss-fuzz/git/trees/ab599b2b6ee51df48c8c4d522703d120cd68984d?client_id=client_id&client_secret=client_secret': """
+{
+  "sha": "eb6d39cb6ca1d7c16cc587e223205a6b6eefe631",
+  "url": "https://api.github.com/repos/google/oss-fuzz/git/trees/eb6d39cb6ca1d7c16cc587e223205a6b6eefe631",
+  "tree": [
+    {
+      "path": "build.sh",
+      "mode": "100755",
+      "type": "blob",
+      "sha": "710f533d9e4c73b0e0ddead6dbe05184105f130c",
+      "size": 929,
+      "url": "https://api.github.com/repos/google/oss-fuzz/git/blobs/710f533d9e4c73b0e0ddead6dbe05184105f130c"
+    },
+    {
+      "path": "project.yaml",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "46400ddfc8f2db662f70d6f09190dadc31244a58",
+      "size": 38,
+      "url": "https://api.github.com/repos/google/oss-fuzz/git/blobs/46400ddfc8f2db662f70d6f09190dadc31244a58"
+    }
+  ],
+  "truncated": false
+}
+""",
+  'https://api.github.com/repos/google/oss-fuzz/git/blobs/46400ddfc8f2db662f70d6f09190dadc31244a58?client_id=client_id&client_secret=client_secret': """
+{
+  "sha": "46400ddfc8f2db662f70d6f09190dadc31244a58",
+  "size": 38,
+  "url": "https://api.github.com/repos/google/oss-fuzz/git/blobs/46400ddfc8f2db662f70d6f09190dadc31244a58",
+  "content": "aG9tZXBhZ2U6ICJodHRwczovL3d3dy5mcmVldHlwZS5vcmcvIgo=\\n",
+  "encoding": "base64"
+}
+"""
+}

@@ -1,0 +1,151 @@
+<!--
+  Copyright 2018 Google LLC
+
+  Licensed under the Apache License, Version 2.0 (the "License");
+  you may not use this file except in compliance with the License.
+  You may obtain a copy of the License at
+
+       http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+-->
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>paper-button basic tests</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+
+  <script src="../../../bower_components/iron-test-helpers/mock-interactions.js"></script>
+  <script src="../../../bower_components/web-component-tester/browser.js"></script>
+  <script src="../../../bower_components/webcomponentsjs/webcomponents-lite.js"></script>
+  <script src="../../../javascripts/test-helpers.js"></script>
+
+  <link rel="import" href="../suspected-cls.html">
+</head>
+<body>
+  <test-fixture id="panel">
+    <template>
+      <suspected-cls></suspected-cls>
+    </template>
+  </test-fixture>
+  <script>
+    suite2('<suspected-cls>', ($) => {
+
+      test2(
+          'cl description is displayed when present',
+          () => {
+            $.panel.info = {
+              suspected_cls: {
+                found: true,
+                changelists: [
+                   { url: 'https://cl/', description: 'cl description', author: 'dev@chromium.org', reasons: ['reason1', 'reason2'] }
+                ],
+                feedback_url: 'https://feedback/',
+                error_message: 'no error',
+              }
+            };
+          },
+          () => {
+            const body = $.select('.body')
+            expect(body.textContent.trim()).to.include('cl description');
+            expect(body.textContent.trim()).not.to.include('https://cl/');
+            expect(body.innerHTML.trim()).not.to.include('https://feedback/');
+            expect(body.textContent.trim()).not.to.include('reason1');
+          }
+      );
+
+      test2(
+          'error is displayed if found is false',
+          () => {
+            $.panel.info = {
+              suspected_cls: {
+                found: false,
+                changelists: [],
+                feedback_url: 'https://feedback/',
+                error_message: 'failed to parse stacktrace',
+              }
+            };
+          },
+          () => {
+            const body = $.select('.body');
+            expect(body.textContent.trim()).to.include('failed to parse stacktrace');
+            expect(body.textContent.trim()).not.to.include('https://feedback/');
+          }
+      );
+
+      test2(
+          'error is displayed if no cl is found',
+          () => {
+            $.panel.info = {
+              suspected_cls: {
+                found: true,
+                changelists: [],
+                feedback_url: 'https://feedback/',
+              }
+            };
+          },
+          () => {
+            const body = $.select('.body');
+            expect(body.textContent.trim()).to.include('Predator was unable to identify');
+            expect(body.textContent.trim()).not.to.include('https://feedback/');
+          }
+      );
+
+      test2(
+          'expanded display contains reasons and feedback url',
+          () => {
+            $.panel.info = {
+              suspected_cls: {
+                found: true,
+                changelists: [
+                   { url: 'https://cl/', description: 'cl description', author: 'dev@chromium.org', reasons: ['reason1', 'reason2'] }
+                ],
+                feedback_url: 'https://feedback/',
+                error_message: 'failed to parse stacktrace',
+              }
+            };
+            $.panel.preview = false;
+          },
+          () => {
+            const body = $.select('.body');
+            expect(body.innerHTML.trim()).to.include('https://feedback/');
+            expect(body.textContent.trim()).to.include('reason1');
+            expect(body.textContent.trim()).to.include('reason2');
+          }
+      );
+
+      test2(
+          'ensure component and project are in the title when present',
+          () => {
+            $.panel.info = {
+              suspected_cls: {
+                found: true,
+                suspected_components: ['Component', 'Other>Component'],
+                suspected_project: 'some project',
+                changelists: [
+                   { url: 'https://cl/', description: 'cl description', author: 'dev@chromium.org', reasons: ['reason1', 'reason2'] }
+                ],
+                feedback_url: 'https://feedback/',
+                error_message: 'no error',
+              }
+            };
+            $.panel.preview = false;
+          },
+          () => {
+            const title = $.select('.title');
+            expect(title.textContent.trim()).to.include('some project');
+            expect(title.textContent.trim()).to.include('Component, Other>Component');
+          }
+      );
+
+    });
+  </script>
+</body>
+</html>
+
+
+

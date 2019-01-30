@@ -1,0 +1,130 @@
+<!--
+  Copyright 2018 Google LLC
+
+  Licensed under the Apache License, Version 2.0 (the "License");
+  you may not use this file except in compliance with the License.
+  You may obtain a copy of the License at
+
+       http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+-->
+<html>
+<head>
+  <script src="../../../bower_components/iron-test-helpers/mock-interactions.js"></script>
+  <script src="../../../bower_components/web-component-tester/browser.js"></script>
+  <script src="../../../bower_components/webcomponentsjs/webcomponents-lite.js"></script>
+  <script src="../../../javascripts/test-helpers.js"></script>
+
+  <link rel="import" href="../search-control-panel.html">
+</head>
+<body>
+  <test-fixture id="panel">
+    <template>
+      <search-control-panel></search-control-panel>
+    </template>
+  </test-fixture>
+  <script>
+    suite2('<search-control-panel>', ($) => {
+      let getItems = (selector) => {
+        let paperItems = $.selectAll(selector + ' paper-item');
+        let labels = [];
+        for (item of paperItems) {
+          labels.push(item.textContent.trim());
+        }
+        return labels;
+      };
+
+      let clock;
+
+      setup(() => {
+        $.panel.fieldValues = {
+          projects: ['b', 'bb'],
+          fuzzers: ['f'],
+          jobs: ['j']
+        };
+        $.panel.params = {
+          permissions: {
+            everything: true,
+            isPrivileged: true,
+            jobs: ['jj'],
+            fuzzers: ['ff']
+          }
+        };
+        clock = sinon.useFakeTimers();
+        sinon.spy($.panel, 'submit');
+      });
+
+      teardown(() => {
+        clock.restore();
+        $.panel.submit.restore();
+      });
+
+      test2(
+          'Render',
+          noop,
+          () => {
+            expect(getItems('#projects')).to.eql(['All', 'b', 'bb']);
+            expect(getItems('#fuzzers')).to.eql(['All', 'f']);
+            expect(getItems('#jobs')).to.eql(['All', 'j']);
+            expect($.select('.permission-remark').innerHTML).to.include(
+                'You are allowed to see everything (including security) or' +
+                ' jobs:jj (including security) or fuzzers:ff (including' +
+                ' security)')
+          }
+      );
+
+      test2(
+          'Delay on submit when pressing a key',
+          () => {
+            expect($.panel.submitId).to.eql(0);
+            MockInteractions.pressAndReleaseKeyOn($.select('#keyword'), 59);
+          },
+          () => {
+            clock.tick(10);
+            expect($.panel.submitId).to.eql(1);
+            clock.tick(600);
+            sinon.assert.calledOnce($.panel.submit);
+          }
+      );
+
+      test2(
+          'Cancel previous submission',
+          () => {
+            expect($.panel.submitId).to.eql(0);
+            MockInteractions.pressAndReleaseKeyOn($.select('#keyword'), 59);
+          },
+          () => {
+            clock.tick(10);
+            expect($.panel.submitId).to.eql(1);
+            clock.tick(589);
+            sinon.assert.notCalled($.panel.submit);
+
+            MockInteractions.pressAndReleaseKeyOn($.select('#keyword'), 59);
+            clock.tick(601);
+
+            sinon.assert.calledOnce($.panel.submit);
+          }
+      );
+
+      test2(
+          'Submit immediately when pressing Enter',
+          () => {
+            expect($.panel.submitId).to.eql(0);
+            MockInteractions.pressAndReleaseKeyOn($.select('#keyword'), 13);
+          },
+          () => {
+            clock.tick(10);
+            expect($.panel.submitId).to.eql(1);
+            sinon.assert.calledOnce($.panel.submit);
+          }
+      );
+    });
+  </script>
+</body>
+</html>
+

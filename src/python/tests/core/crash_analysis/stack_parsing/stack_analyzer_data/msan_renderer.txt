@@ -1,0 +1,74 @@
+==1==WARNING: MemorySanitizer: use-of-uninitialized-value
+    #0 0x7fb5e67afa71 in blink::LayoutBox::addOverflowFromChild(blink::LayoutBox*, blink::LayoutSize const&) third_party/WebKit/Source/core/layout/LayoutBox.cpp:4074:9
+    #1 0x7fb5e6b61bea in addOverflowFromChild third_party/WebKit/Source/core/layout/LayoutBox.h:387:51
+    #2 0x7fb5e6b61bea in blink::LayoutTableSection::computeOverflowFromCells(unsigned int, unsigned int) third_party/WebKit/Source/core/layout/LayoutTableSection.cpp:1119
+    #3 0x7fb5e6b632e5 in blink::LayoutTableSection::recalcChildOverflowAfterStyleChange() third_party/WebKit/Source/core/layout/LayoutTableSection.cpp:1164:9
+    #4 0x7fb5e6ad6d4d in blink::LayoutTable::recalcChildOverflowAfterStyleChange() third_party/WebKit/Source/core/layout/LayoutTable.cpp:425:36
+    #5 0x7fb5e664f933 in blink::LayoutBlock::recalcOverflowAfterStyleChange() third_party/WebKit/Source/core/layout/LayoutBlock.cpp:2759:35
+    #6 0x7fb5e6650706 in recalcNormalFlowChildOverflowIfNeeded third_party/WebKit/Source/core/layout/LayoutBlock.cpp:2717:12
+    #7 0x7fb5e6650706 in blink::LayoutBlock::recalcChildOverflowAfterStyleChange() third_party/WebKit/Source/core/layout/LayoutBlock.cpp:2732
+    #8 0x7fb5e664f933 in blink::LayoutBlock::recalcOverflowAfterStyleChange() third_party/WebKit/Source/core/layout/LayoutBlock.cpp:2759:35
+    #9 0x7fb5e6650706 in recalcNormalFlowChildOverflowIfNeeded third_party/WebKit/Source/core/layout/LayoutBlock.cpp:2717:12
+    #10 0x7fb5e6650706 in blink::LayoutBlock::recalcChildOverflowAfterStyleChange() third_party/WebKit/Source/core/layout/LayoutBlock.cpp:2732
+    #11 0x7fb5e664f933 in blink::LayoutBlock::recalcOverflowAfterStyleChange() third_party/WebKit/Source/core/layout/LayoutBlock.cpp:2759:35
+    #12 0x7fb5e6650706 in recalcNormalFlowChildOverflowIfNeeded third_party/WebKit/Source/core/layout/LayoutBlock.cpp:2717:12
+    #13 0x7fb5e6650706 in blink::LayoutBlock::recalcChildOverflowAfterStyleChange() third_party/WebKit/Source/core/layout/LayoutBlock.cpp:2732
+    #14 0x7fb5e664f933 in blink::LayoutBlock::recalcOverflowAfterStyleChange() third_party/WebKit/Source/core/layout/LayoutBlock.cpp:2759:35
+    #15 0x7fb5e52c6bd0 in blink::FrameView::recalcOverflowAfterStyleChange() third_party/WebKit/Source/core/frame/FrameView.cpp:632:5
+    #16 0x7fb5e3542f90 in blink::Document::updateStyle() third_party/WebKit/Source/core/dom/Document.cpp:1807:5
+    #17 0x7fb5e352802d in blink::Document::updateLayoutTree() third_party/WebKit/Source/core/dom/Document.cpp:1736:5
+    #18 0x7fb5e5303a30 in blink::FrameView::updateStyleAndLayoutIfNeededRecursiveInternal() third_party/WebKit/Source/core/frame/FrameView.cpp:2587:5
+    #19 0x7fb5e52fdca9 in blink::FrameView::updateStyleAndLayoutIfNeededRecursive() third_party/WebKit/Source/core/frame/FrameView.cpp:2570:5
+    #20 0x7fb5e52fb48a in blink::FrameView::updateLifecyclePhasesInternal(blink::FrameView::LifeCycleUpdateOption) third_party/WebKit/Source/core/frame/FrameView.cpp:2416:5
+    #21 0x7fb5e5b08bd9 in blink::PageAnimator::updateAllLifecyclePhases(blink::LocalFrame&) third_party/WebKit/Source/core/page/PageAnimator.cpp:82:5
+    #22 0x7fb5e0bdf5fc in blink::WebViewImpl::updateAllLifecyclePhases() third_party/WebKit/Source/web/WebViewImpl.cpp:1975:5
+    #23 0x7fb5eebad25c in content::RenderWidgetCompositor::UpdateLayerTreeHost() content/renderer/gpu/render_widget_compositor.cc:921:3
+    #24 0x7fb5f3a32879 in cc::ProxyMain::BeginMainFrame(std::__1::unique_ptr<cc::BeginMainFrameAndCommitState, std::__1::default_delete<cc::BeginMainFrameAndCommitState> >) cc/trees/proxy_main.cc:206:3
+    #25 0x7fb5f3a6cc80 in Run<std::__1::unique_ptr<cc::BeginMainFrameAndCommitState, std::__1::default_delete<cc::BeginMainFrameAndCommitState> > > base/bind_internal.h:181:12
+    #26 0x7fb5f3a6cc80 in MakeItSo<base::WeakPtr<cc::ProxyMain>, std::__1::unique_ptr<cc::BeginMainFrameAndCommitState, std::__1::default_delete<cc::BeginMainFrameAndCommitState> > > base/bind_internal.h:334
+    #27 0x7fb5f3a6cc80 in base::internal::Invoker<base::IndexSequence<0ul, 1ul>, base::internal::BindState<base::internal::RunnableAdapter<void (cc::ProxyMain::*)(std::__1::unique_ptr<cc::BeginMainFrameAndCommitState, std::__1::default_delete<cc::BeginMainFrameAndCommitState> >)>, void (cc::ProxyMain*, std::__1::unique_ptr<cc::BeginMainFrameAndCommitState, std::__1::default_delete<cc::BeginMainFrameAndCommitState> >), base::WeakPtr<cc::ProxyMain>&, base::internal::PassedWrapper<std::__1::unique_ptr<cc::BeginMainFrameAndCommitState, std::__1::default_delete<cc::BeginMainFrameAndCommitState> > > >, base::internal::InvokeHelper<true, void, base::internal::RunnableAdapter<void (cc::ProxyMain::*)(std::__1::unique_ptr<cc::BeginMainFrameAndCommitState, std::__1::default_delete<cc::BeginMainFrameAndCommitState> >)> >, void ()>::Run(base::internal::BindStateBase*) base/bind_internal.h:372
+    #28 0x7fb5d85bb7d9 in Run base/callback.h:397:12
+    #29 0x7fb5d85bb7d9 in base::debug::TaskAnnotator::RunTask(char const*, base::PendingTask const&) base/debug/task_annotator.cc:51
+    #30 0x7fb5f7a119c4 in scheduler::TaskQueueManager::ProcessTaskFromWorkQueue(scheduler::internal::WorkQueue*, scheduler::internal::TaskQueueImpl::Task*) components/scheduler/base/task_queue_manager.cc:289:3
+    #31 0x7fb5f7a09c20 in scheduler::TaskQueueManager::DoWork(base::TimeTicks, bool) components/scheduler/base/task_queue_manager.cc:201:13
+    #32 0x7fb5f7a19b0d in Run<const base::TimeTicks &, const bool &> base/bind_internal.h:181:12
+    #33 0x7fb5f7a19b0d in MakeItSo<base::WeakPtr<scheduler::TaskQueueManager>, const base::TimeTicks &, const bool &> base/bind_internal.h:334
+    #34 0x7fb5f7a19b0d in base::internal::Invoker<base::IndexSequence<0ul, 1ul, 2ul>, base::internal::BindState<base::internal::RunnableAdapter<void (scheduler::TaskQueueManager::*)(base::TimeTicks, bool)>, void (scheduler::TaskQueueManager*, base::TimeTicks, bool), base::WeakPtr<scheduler::TaskQueueManager>, base::TimeTicks&, bool>, base::internal::InvokeHelper<true, void, base::internal::RunnableAdapter<void (scheduler::TaskQueueManager::*)(base::TimeTicks, bool)> >, void ()>::Run(base::internal::BindStateBase*) base/bind_internal.h:372
+    #35 0x7fb5d85bb7d9 in Run base/callback.h:397:12
+    #36 0x7fb5d85bb7d9 in base::debug::TaskAnnotator::RunTask(char const*, base::PendingTask const&) base/debug/task_annotator.cc:51
+    #37 0x7fb5d8375ecb in base::MessageLoop::RunTask(base::PendingTask const&) base/message_loop/message_loop.cc:479:3
+    #38 0x7fb5d8377f3c in base::MessageLoop::DeferOrRunPendingTask(base::PendingTask const&) base/message_loop/message_loop.cc:488:5
+    #39 0x7fb5d8379a64 in base::MessageLoop::DoDelayedWork(base::TimeTicks*) base/message_loop/message_loop.cc:638:10
+    #40 0x7fb5d8388ead in base::MessagePumpDefault::Run(base::MessagePump::Delegate*) base/message_loop/message_pump_default.cc:37:17
+    #41 0x7fb5d841f226 in base::RunLoop::Run() base/run_loop.cc:35:3
+    #42 0x7fb5d8371ebd in base::MessageLoop::Run() base/message_loop/message_loop.cc:295:3
+    #43 0x7fb5ee63dbd1 in content::RendererMain(content::MainFunctionParams const&) content/renderer/renderer_main.cc:219:7
+    #44 0x7fb5d817022f in content::RunZygote(content::MainFunctionParams const&, content::ContentMainDelegate*) content/app/content_main_runner.cc:306:14
+    #45 0x7fb5d817380b in content::RunNamedProcessTypeMain(std::__1::basic_string<char, std::__1::char_traits<char>, std::__1::allocator<char> > const&, content::MainFunctionParams const&, content::ContentMainDelegate*) content/app/content_main_runner.cc:389:12
+    #46 0x7fb5d8177779 in content::ContentMainRunnerImpl::Run() content/app/content_main_runner.cc:742:12
+    #47 0x7fb5d816e3d6 in content::ContentMain(content::ContentMainParams const&) content/app/content_main.cc:20:15
+    #48 0x7fb5d6722e69 in ChromeMain chrome/app/chrome_main.cc:84:12
+    #49 0x7fb5d6722bf1 in main chrome/app/chrome_exe_main_aura.cc:17:10
+    #50 0x7fb5cb080ec4 in __libc_start_main /build/eglibc-3GlaMS/eglibc-2.19/csu/libc-start.c:287
+    #51 0x7fb5d66bb224 in _start
+  Uninitialized value was created by a heap deallocation
+    #0 0x7fb5d66d97b2 in __interceptor_free
+    #1 0x7fb5e37dcdb8 in blink::Node::detach(blink::Node::AttachContext const&) third_party/WebKit/Source/core/dom/Node.cpp:843:9
+    #2 0x7fb5e3494db0 in blink::ContainerNode::detach(blink::Node::AttachContext const&) third_party/WebKit/Source/core/dom/ContainerNode.cpp:763:5
+    #3 0x7fb5e36a006b in blink::Element::detach(blink::Node::AttachContext const&) third_party/WebKit/Source/core/dom/Element.cpp:1579:5
+    #4 0x7fb5e37dc7a6 in blink::Node::reattach(blink::Node::AttachContext const&) third_party/WebKit/Source/core/dom/Node.cpp:820:9
+    #5 0x7fb5e36a61c0 in blink::Element::recalcOwnStyle(blink::StyleRecalcChange) third_party/WebKit/Source/core/dom/Element.cpp:1751:9
+    #6 0x7fb5e36a408c in blink::Element::recalcStyle(blink::StyleRecalcChange, blink::Text*) third_party/WebKit/Source/core/dom/Element.cpp:1691:22
+    #7 0x7fb5e349fd4f in blink::ContainerNode::recalcChildStyle(blink::StyleRecalcChange) third_party/WebKit/Source/core/dom/ContainerNode.cpp:1199:17
+    #8 0x7fb5e36a4ab8 in blink::Element::recalcStyle(blink::StyleRecalcChange, blink::Text*) third_party/WebKit/Source/core/dom/Element.cpp:1707:13
+    #9 0x7fb5e349fd4f in blink::ContainerNode::recalcChildStyle(blink::StyleRecalcChange) third_party/WebKit/Source/core/dom/ContainerNode.cpp:1199:17
+    #10 0x7fb5e36a4ab8 in blink::Element::recalcStyle(blink::StyleRecalcChange, blink::Text*) third_party/WebKit/Source/core/dom/Element.cpp:1707:13
+    #11 0x7fb5e349fd4f in blink::ContainerNode::recalcChildStyle(blink::StyleRecalcChange) third_party/WebKit/Source/core/dom/ContainerNode.cpp:1199:17
+    #12 0x7fb5e36a4ab8 in blink::Element::recalcStyle(blink::StyleRecalcChange, blink::Text*) third_party/WebKit/Source/core/dom/Element.cpp:1707:13
+    #13 0x7fb5e349fd4f in blink::ContainerNode::recalcChildStyle(blink::StyleRecalcChange) third_party/WebKit/Source/core/dom/ContainerNode.cpp:1199:17
+    #14 0x7fb5e36a4ab8 in blink::Element::recalcStyle(blink::StyleRecalcChange, blink::Text*) third_party/WebKit/Source/core/dom/Element.cpp:1707:13
+    #15 0x7fb5e349fd4f in blink::ContainerNode::recalcChildStyle(blink::StyleRecalcChange) third_party/WebKit/Source/core/dom/ContainerNode.cpp:1199:17
+    #16 0x7fb5e36a4ab8 in blink::Element::recalcStyle(blink::StyleRecalcChange, blink::Text*) third_party/WebKit/Source/core/dom/Element.cpp:1707:13
+    #17 0x7fb5e3542c56 in blink::Document::updateStyle() third_party/WebKit/Source/core/dom/Document.cpp:1802:13
+    #18 0x7fb5e352802d in blink::Document::updateLayoutTree() third_party/WebKit/Source/core/dom/Document.cpp:1736:5
+    #19 0x7fb5e5303a30 in blink::FrameView::updateStyleAndLayoutIfNeededRecursiveInternal() third_party/WebKit/Source/core/frame/FrameView.cpp:2587:5

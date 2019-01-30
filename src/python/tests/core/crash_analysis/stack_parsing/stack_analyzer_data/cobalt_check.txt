@@ -1,0 +1,105 @@
+[0922/115903:FATAL:font_list.cc(299)] Check failed: space_width_ > 0 (0 vs. 0)
+base::debug::StackTrace::StackTrace() [0x13d6753]
+logging::LogMessage::~LogMessage() [0x13d282d]
+cobalt::dom::FontList::GenerateSpaceWidth() [0x1bfc00c]
+cobalt::dom::FontList::GetSpaceWidth() [0x1bfbcfe]
+cobalt::layout::TextBox::GetTrailingWhiteSpaceWidth() [0x42b0ad1]
+cobalt::layout::TextBox::UpdateContentSizeAndMargins() [0x42afac5]
+cobalt::layout::Box::UpdateSize() [0x41ef258]
+cobalt::layout::LineBox::BeginAddChildAndMaybeOverflow() [0x425b551]
+cobalt::layout::InlineContainerBox::UpdateContentSizeAndMargins() [0x4231989]
+cobalt::layout::Box::UpdateSize() [0x41ef258]
+cobalt::layout::LineBox::TryAddChildAndMaybeWrap() [0x4258bb8]
+cobalt::layout::InlineFormattingContext::TryAddChildAndMaybeWrap() [0x425151b]
+cobalt::layout::AnonymousBlockBox::UpdateRectOfInFlowChildBoxes() [0x423d0ba]
+cobalt::layout::BlockContainerBox::UpdateContentHeightAndMargins() [0x4248032]
+cobalt::layout::BlockContainerBox::UpdateContentSizeAndMargins() [0x424db69]
+cobalt::layout::Box::UpdateSize() [0x41ef258]
+cobalt::layout::BlockFormattingContext::UpdateRect() [0x425421c]
+cobalt::layout::BlockFormattingBlockContainerBox::UpdateRectOfInFlowChildBoxes() [0x4239ea5]
+cobalt::layout::BlockContainerBox::UpdateContentHeightAndMargins() [0x4248032]
+cobalt::layout::BlockContainerBox::UpdateContentSizeAndMargins() [0x424db69]
+cobalt::layout::Box::UpdateSize() [0x41ef258]
+cobalt::layout::BlockFormattingContext::UpdateRect() [0x425421c]
+cobalt::layout::BlockFormattingBlockContainerBox::UpdateRectOfInFlowChildBoxes() [0x4239ea5]
+cobalt::layout::BlockContainerBox::UpdateContentHeightAndMargins() [0x4248032]
+cobalt::layout::BlockContainerBox::UpdateContentSizeAndMargins() [0x424db69]
+cobalt::layout::Box::UpdateSize() [0x41ef258]
+cobalt::layout::BlockFormattingContext::UpdateRect() [0x425421c]
+cobalt::layout::BlockFormattingBlockContainerBox::UpdateRectOfInFlowChildBoxes() [0x4239ea5]
+cobalt::layout::BlockContainerBox::UpdateContentHeightAndMargins() [0x4248032]
+cobalt::layout::BlockContainerBox::UpdateContentSizeAndMargins() [0x424db69]
+cobalt::layout::Box::UpdateSize() [0x41ef258]
+cobalt::layout::UpdateComputedStylesAndLayoutBoxTree() [0x41dd320]
+cobalt::layout::LayoutManager::Impl::DoLayoutAndProduceRenderTree() [0x41d7793]
+base::Timer::RunScheduledTask() [0x1492b58]
+base::BaseTimerTaskInternal::Run() [0x1493027]
+MessageLoop::RunTask() [0x13e283b]
+MessageLoop::DoDelayedWork() [0x13e3ce6]
+base::MessagePumpDefault::Run() [0x13ead23]
+MessageLoop::RunInternal() [0x13e189a]
+base::RunLoop::Run() [0x1429dfa]
+MessageLoop::Run() [0x13dfd87]
+base::Thread::ThreadMain() [0x1488773]
+base::(anonymous namespace)::ThreadFunc() [0x148309e]
+(anonymous namespace)::ThreadFunc() [0x14e8d53]
+start_thread [0x7fb2b2990184]
+<unknown> [0x7fb2b1a8abed]
+<unknown> [0x7fb2b1a8abed]
+ASAN:DEADLYSIGNAL
+=================================================================
+==8173==ERROR: AddressSanitizer: ILL on unknown address 0x0000014e7ce9 (pc 0x0000014e7ce9 bp 0x7fb2a02f02e0 sp 0x7fb2a02f02e0 T17)
+SCARINESS: 10 (signal)
+    #0 0x14e7ce8 in SbSystemBreakIntoDebugger /home/youtube-steel-buildbot/buildbot/cobalt_rc_12/workdir/src/starboard/shared/posix/system_break_into_debugger.cc:23:3
+    #1 0x13d7c2d in base::debug::BreakDebugger() /home/youtube-steel-buildbot/buildbot/cobalt_rc_12/workdir/src/base/debug/debugger_starboard.cc:37:3
+    #2 0x13d2f31 in logging::LogMessage::~LogMessage() /usr/include/c++/4.8/bits/basic_string.h:0:8
+    #3 0x1bfc00b in cobalt::dom::FontList::GenerateSpaceWidth() /home/youtube-steel-buildbot/buildbot/cobalt_rc_12/workdir/src/cobalt/dom/font_list.cc:299:5
+    #4 0x1bfbcfd in cobalt::dom::FontList::GetSpaceWidth() /home/youtube-steel-buildbot/buildbot/cobalt_rc_12/workdir/src/cobalt/dom/font_list.cc:170:3
+    #5 0x42b0ad0 in cobalt::layout::TextBox::GetTrailingWhiteSpaceWidth() const /home/youtube-steel-buildbot/buildbot/cobalt_rc_12/workdir/src/cobalt/layout/text_box.cc:685:39
+    #6 0x42afac4 in cobalt::layout::TextBox::UpdateContentSizeAndMargins(cobalt::layout::LayoutParams const&) /home/youtube-steel-buildbot/buildbot/cobalt_rc_12/workdir/src/cobalt/layout/text_box.cc:162:13
+    #7 0x41ef257 in cobalt::layout::Box::UpdateSize(cobalt::layout::LayoutParams const&) /home/youtube-steel-buildbot/buildbot/cobalt_rc_12/workdir/src/cobalt/layout/box.cc:118:3
+    #8 0x425b550 in cobalt::layout::LineBox::UpdateSizePreservingTrailingWhiteSpace(cobalt::layout::Box*) /home/youtube-steel-buildbot/buildbot/cobalt_rc_12/workdir/src/cobalt/layout/line_box.cc:224:14
+    #9 0x425b550 in cobalt::layout::LineBox::BeginAddChildAndMaybeOverflow(cobalt::layout::Box*) /home/youtube-steel-buildbot/buildbot/cobalt_rc_12/workdir/src/cobalt/layout/line_box.cc:141
+    #10 0x4231988 in cobalt::layout::InlineContainerBox::UpdateContentSizeAndMargins(cobalt::layout::LayoutParams const&) /home/youtube-steel-buildbot/buildbot/cobalt_rc_12/workdir/src/cobalt/layout/inline_container_box.cc:110:14
+    #11 0x41ef257 in cobalt::layout::Box::UpdateSize(cobalt::layout::LayoutParams const&) /home/youtube-steel-buildbot/buildbot/cobalt_rc_12/workdir/src/cobalt/layout/box.cc:118:3
+    #12 0x4258bb7 in cobalt::layout::LineBox::UpdateSizePreservingTrailingWhiteSpace(cobalt::layout::Box*) /home/youtube-steel-buildbot/buildbot/cobalt_rc_12/workdir/src/cobalt/layout/line_box.cc:224:14
+    #13 0x4258bb7 in cobalt::layout::LineBox::TryAddChildAndMaybeWrap(cobalt::layout::Box*) /home/youtube-steel-buildbot/buildbot/cobalt_rc_12/workdir/src/cobalt/layout/line_box.cc:70
+    #14 0x425151a in cobalt::layout::InlineFormattingContext::TryAddChildAndMaybeWrap(cobalt::layout::Box*) /home/youtube-steel-buildbot/buildbot/cobalt_rc_12/workdir/src/cobalt/layout/inline_formatting_context.cc:55:43
+    #15 0x423d0b9 in cobalt::layout::AnonymousBlockBox::UpdateRectOfInFlowChildBoxes(cobalt::layout::LayoutParams const&) /home/youtube-steel-buildbot/buildbot/cobalt_rc_12/workdir/src/cobalt/layout/anonymous_block_box.cc:157:36
+    #16 0x4248031 in cobalt::layout::BlockContainerBox::UpdateContentHeightAndMargins(cobalt::layout::SizeLayoutUnit const&, starboard::optional<cobalt::layout::LayoutUnit> const&, starboard::optional<cobalt::layout::LayoutUnit> const&, starboard::optional<cobalt::layout::LayoutUnit> const&, starboard::optional<cobalt::layout::LayoutUnit> const&, starboard::optional<cobalt::layout::LayoutUnit> const&) /home/youtube-steel-buildbot/buildbot/cobalt_rc_12/workdir/src/cobalt/layout/block_container_box.cc:117:7
+    #17 0x424db68 in cobalt::layout::BlockContainerBox::UpdateContentSizeAndMargins(cobalt::layout::LayoutParams const&) /home/youtube-steel-buildbot/buildbot/cobalt_rc_12/workdir/src/cobalt/layout/block_container_box.cc:209:3
+    #18 0x41ef257 in cobalt::layout::Box::UpdateSize(cobalt::layout::LayoutParams const&) /home/youtube-steel-buildbot/buildbot/cobalt_rc_12/workdir/src/cobalt/layout/box.cc:118:3
+    #19 0x425421b in cobalt::layout::BlockFormattingContext::UpdateRect(cobalt::layout::Box*) /home/youtube-steel-buildbot/buildbot/cobalt_rc_12/workdir/src/cobalt/layout/block_formatting_context.cc:34:14
+    #20 0x4239ea4 in cobalt::layout::BlockFormattingBlockContainerBox::UpdateRectOfInFlowChildBoxes(cobalt::layout::LayoutParams const&) /home/youtube-steel-buildbot/buildbot/cobalt_rc_12/workdir/src/cobalt/layout/block_formatting_block_container_box.cc:74:33
+    #21 0x4248031 in cobalt::layout::BlockContainerBox::UpdateContentHeightAndMargins(cobalt::layout::SizeLayoutUnit const&, starboard::optional<cobalt::layout::LayoutUnit> const&, starboard::optional<cobalt::layout::LayoutUnit> const&, starboard::optional<cobalt::layout::LayoutUnit> const&, starboard::optional<cobalt::layout::LayoutUnit> const&, starboard::optional<cobalt::layout::LayoutUnit> const&) /home/youtube-steel-buildbot/buildbot/cobalt_rc_12/workdir/src/cobalt/layout/block_container_box.cc:117:7
+    #22 0x424db68 in cobalt::layout::BlockContainerBox::UpdateContentSizeAndMargins(cobalt::layout::LayoutParams const&) /home/youtube-steel-buildbot/buildbot/cobalt_rc_12/workdir/src/cobalt/layout/block_container_box.cc:209:3
+    #23 0x41ef257 in cobalt::layout::Box::UpdateSize(cobalt::layout::LayoutParams const&) /home/youtube-steel-buildbot/buildbot/cobalt_rc_12/workdir/src/cobalt/layout/box.cc:118:3
+    #24 0x425421b in cobalt::layout::BlockFormattingContext::UpdateRect(cobalt::layout::Box*) /home/youtube-steel-buildbot/buildbot/cobalt_rc_12/workdir/src/cobalt/layout/block_formatting_context.cc:34:14
+    #25 0x4239ea4 in cobalt::layout::BlockFormattingBlockContainerBox::UpdateRectOfInFlowChildBoxes(cobalt::layout::LayoutParams const&) /home/youtube-steel-buildbot/buildbot/cobalt_rc_12/workdir/src/cobalt/layout/block_formatting_block_container_box.cc:74:33
+    #26 0x4248031 in cobalt::layout::BlockContainerBox::UpdateContentHeightAndMargins(cobalt::layout::SizeLayoutUnit const&, starboard::optional<cobalt::layout::LayoutUnit> const&, starboard::optional<cobalt::layout::LayoutUnit> const&, starboard::optional<cobalt::layout::LayoutUnit> const&, starboard::optional<cobalt::layout::LayoutUnit> const&, starboard::optional<cobalt::layout::LayoutUnit> const&) /home/youtube-steel-buildbot/buildbot/cobalt_rc_12/workdir/src/cobalt/layout/block_container_box.cc:117:7
+    #27 0x424db68 in cobalt::layout::BlockContainerBox::UpdateContentSizeAndMargins(cobalt::layout::LayoutParams const&) /home/youtube-steel-buildbot/buildbot/cobalt_rc_12/workdir/src/cobalt/layout/block_container_box.cc:209:3
+    #28 0x41ef257 in cobalt::layout::Box::UpdateSize(cobalt::layout::LayoutParams const&) /home/youtube-steel-buildbot/buildbot/cobalt_rc_12/workdir/src/cobalt/layout/box.cc:118:3
+    #29 0x425421b in cobalt::layout::BlockFormattingContext::UpdateRect(cobalt::layout::Box*) /home/youtube-steel-buildbot/buildbot/cobalt_rc_12/workdir/src/cobalt/layout/block_formatting_context.cc:34:14
+    #30 0x4239ea4 in cobalt::layout::BlockFormattingBlockContainerBox::UpdateRectOfInFlowChildBoxes(cobalt::layout::LayoutParams const&) /home/youtube-steel-buildbot/buildbot/cobalt_rc_12/workdir/src/cobalt/layout/block_formatting_block_container_box.cc:74:33
+    #31 0x4248031 in cobalt::layout::BlockContainerBox::UpdateContentHeightAndMargins(cobalt::layout::SizeLayoutUnit const&, starboard::optional<cobalt::layout::LayoutUnit> const&, starboard::optional<cobalt::layout::LayoutUnit> const&, starboard::optional<cobalt::layout::LayoutUnit> const&, starboard::optional<cobalt::layout::LayoutUnit> const&, starboard::optional<cobalt::layout::LayoutUnit> const&) /home/youtube-steel-buildbot/buildbot/cobalt_rc_12/workdir/src/cobalt/layout/block_container_box.cc:117:7
+    #32 0x424db68 in cobalt::layout::BlockContainerBox::UpdateContentSizeAndMargins(cobalt::layout::LayoutParams const&) /home/youtube-steel-buildbot/buildbot/cobalt_rc_12/workdir/src/cobalt/layout/block_container_box.cc:209:3
+    #33 0x41ef257 in cobalt::layout::Box::UpdateSize(cobalt::layout::LayoutParams const&) /home/youtube-steel-buildbot/buildbot/cobalt_rc_12/workdir/src/cobalt/layout/box.cc:118:3
+    #34 0x41dd31f in cobalt::layout::UpdateComputedStylesAndLayoutBoxTree(icu_56::Locale const&, scoped_refptr<cobalt::dom::Document> const&, int, cobalt::layout::UsedStyleProvider*, cobalt::layout::LayoutStatTracker*, icu_56::BreakIterator*, icu_56::BreakIterator*, scoped_refptr<cobalt::layout::BlockLevelBlockContainerBox>*) /home/youtube-steel-buildbot/buildbot/cobalt_rc_12/workdir/src/cobalt/layout/layout.cc:126:34
+    #35 0x41d7792 in cobalt::layout::LayoutManager::Impl::DoLayoutAndProduceRenderTree() /home/youtube-steel-buildbot/buildbot/cobalt_rc_12/workdir/src/cobalt/layout/layout_manager.cc:364:7
+    #36 0x1492b57 in base::Callback<void ()>::Run() const /home/youtube-steel-buildbot/buildbot/cobalt_rc_12/workdir/src/base/callback.h:412:12
+    #37 0x1492b57 in base::Timer::RunScheduledTask() /home/youtube-steel-buildbot/buildbot/cobalt_rc_12/workdir/src/base/timer.cc:240
+    #38 0x1493026 in base::BaseTimerTaskInternal::Run() /home/youtube-steel-buildbot/buildbot/cobalt_rc_12/workdir/src/base/timer.cc:48:12
+    #39 0x13e283a in base::Callback<void ()>::Run() const /home/youtube-steel-buildbot/buildbot/cobalt_rc_12/workdir/src/base/callback.h:412:12
+    #40 0x13e283a in MessageLoop::RunTask(base::PendingTask const&) /home/youtube-steel-buildbot/buildbot/cobalt_rc_12/workdir/src/base/message_loop.cc:548
+    #41 0x13e3ce5 in MessageLoop::DeferOrRunPendingTask(base::PendingTask const&) /home/youtube-steel-buildbot/buildbot/cobalt_rc_12/workdir/src/base/message_loop.cc:560:5
+    #42 0x13e3ce5 in MessageLoop::DoDelayedWork(base::TimeTicks*) /home/youtube-steel-buildbot/buildbot/cobalt_rc_12/workdir/src/base/message_loop.cc:782
+    #43 0x13ead22 in base::MessagePumpDefault::Run(base::MessagePump::Delegate*) /home/youtube-steel-buildbot/buildbot/cobalt_rc_12/workdir/src/base/message_pump_default.cc:35:27
+    #44 0x13e1899 in MessageLoop::RunInternal() /home/youtube-steel-buildbot/buildbot/cobalt_rc_12/workdir/src/base/message_loop.cc:491:10
+    #45 0x1429df9 in base::RunLoop::Run() /home/youtube-steel-buildbot/buildbot/cobalt_rc_12/workdir/src/base/run_loop.cc:47:10
+    #46 0x13dfd86 in MessageLoop::Run() /home/youtube-steel-buildbot/buildbot/cobalt_rc_12/workdir/src/base/message_loop.cc:363:12
+    #47 0x1488772 in base::Thread::ThreadMain() /home/youtube-steel-buildbot/buildbot/cobalt_rc_12/workdir/src/base/threading/thread.cc:212:5
+    #48 0x148309d in base::(anonymous namespace)::ThreadFunc(void*) /home/youtube-steel-buildbot/buildbot/cobalt_rc_12/workdir/src/base/threading/platform_thread_starboard.cc:44:13
+    #49 0x14e8d52 in (anonymous namespace)::ThreadFunc(void*) /home/youtube-steel-buildbot/buildbot/cobalt_rc_12/workdir/src/starboard/shared/pthread/thread_create.cc:71:10
+    #50 0x7fb2b2990183 in start_thread /build/eglibc-MjiXCM/eglibc-2.19/nptl/pthread_create.c:312
+AddressSanitizer can not provide additional info.
+SUMMARY: AddressSanitizer: ILL (/mnt/scratch0/clusterfuzz/bot/builds/cobalt-builds_linux-devel-asan_08e56780ffe0b265ae7807a86955f2ec0d67953a/symbolized/release/cobalt+0x14e7ce8)

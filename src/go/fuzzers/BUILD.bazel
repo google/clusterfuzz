@@ -1,0 +1,19 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "go_default_library",
+    srcs = ["fuzzers.go"],
+    importpath = "clusterfuzz/go/fuzzers",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//go/base/fs:go_default_library",
+    ],
+)
+
+go_test(
+    name = "go_default_test",
+    srcs = ["fuzzers_test.go"],
+    data = glob(["testdata/**"]),
+    embed = [":go_default_library"],
+    importpath = "clusterfuzz/go/fuzzers",
+)

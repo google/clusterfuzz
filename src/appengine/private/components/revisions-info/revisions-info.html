@@ -1,0 +1,105 @@
+<!--
+  Copyright 2018 Google LLC
+
+  Licensed under the Apache License, Version 2.0 (the "License");
+  you may not use this file except in compliance with the License.
+  You may obtain a copy of the License at
+
+       http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+-->
+<link rel="import" href="../../bower_components/polymer/polymer.html">
+<link rel="import" href="../common/if-else/if-else.html">
+
+<dom-module id="revisions-info">
+  <link rel="import" href="../../stylesheets/main.css" type="css">
+  <link rel="import" href="../technology/technology.css" type="css">
+  <template>
+    <style>
+      :host table {
+        background-color: #f2f7fa;
+        box-shadow: 0px 3px 6px rgba(0, 0, 0, 0.2);
+        margin: 20px auto;
+      }
+
+      :host table tr.title td {
+        width: 50%;
+        text-align: left;
+        font-size: 15px;
+        text-transform: uppercase;
+        padding: 4px 8px;
+        background-color: #373b50;
+        color: #fff;
+        border-left: 1px dotted #ccc;
+      }
+
+      :host table tr.title td:first-child {
+        border-left: 0px;
+      }
+
+      :host table tr.body td {
+        width: 50%;
+        padding: 4px 8px;
+        border-left: 1px dotted #777;
+        font-size: 14px;
+        vertical-align: top;
+      }
+
+      :host table tr.body td span {
+        display: block;
+        width: 100%;
+        white-space: nowrap;
+        overflow: hidden;
+        margin-bottom: 2px;
+      }
+
+      :host table tr.body td:first-child {
+        border-left: 0px;
+      }
+
+      :host table tr.body:hover {
+        background-color: #e1e6e9;
+      }
+
+    </style>
+    <table cellpadding="0" cellspacing="0">
+      <tr class="title">
+        <td>
+          <span>Component</span>
+        </td>
+        <td>
+          <span>Revision Range</span>
+        </td>
+      </tr>
+      <template is="dom-repeat" items="[[info.componentRevisionsList]]">
+        <tr class="body">
+          <td>
+            <span>[[item.component]]</span>
+          </td>
+          <td>
+            <if-else condition="[[item.link_url]]">
+              <span slot="t" >
+                <a href="[[item.link_url]]">[[item.link_text]]</a>
+              </span>
+              <span slot="f">[[item.link_text]]</span>
+            </if-else>
+          </td>
+        </tr>
+      </template>
+    </table>
+  </template>
+  <script>
+    Polymer({
+      is: 'revisions-info',
+      properties: {
+        info: Object,
+      },
+    });
+  </script>
+</dom-module>
+

@@ -1,0 +1,21 @@
+GLib:ERROR:../../src/glib/glib/gvariant-parser.c:709:ast_array_get_pattern: assertion failed: (j < i)
+UndefinedBehaviorSanitizer:DEADLYSIGNAL
+==1==ERROR: UndefinedBehaviorSanitizer: ABRT on unknown address 0x000000000001 (pc 0x7f2c2a6aa428 bp 0x7ffd4a2c6d90 sp 0x7ffd4a2c6bf8 T1)
+    #0 0x7f2c2a6aa427 in gsignal /build/glibc-Cl5G7W/glibc-2.23/sysdeps/unix/sysv/linux/raise.c:54
+    #1 0x7f2c2a6ac029 in abort /build/glibc-Cl5G7W/glibc-2.23/stdlib/abort.c:89
+    #2 0x447348 in g_assertion_message /src/glib/glib/gtestutils.c:2621:5
+    #3 0x4473d3 in g_assertion_message_expr /src/glib/glib/gtestutils.c:2644:3
+    #4 0x46c316 in ast_array_get_pattern /src/glib/glib/gvariant-parser.c:709:15
+    #5 0x46bb76 in array_get_pattern /src/glib/glib/gvariant-parser.c:889:13
+    #6 0x467ef9 in ast_resolve /src/glib/glib/gvariant-parser.c:595:13
+    #7 0x467967 in g_variant_parse /src/glib/glib/gvariant-parser.c:2395:18
+    #8 0x4336ce in LLVMFuzzerTestOneInput /src/glib/fuzzing/fuzz_variant_text.c:12:13
+    #9 0x4b8948 in fuzzer::Fuzzer::ExecuteCallback(unsigned char const*, unsigned long) /src/libfuzzer/FuzzerLoop.cpp:571:15
+    #10 0x4a8f62 in fuzzer::RunOneTest(fuzzer::Fuzzer*, char const*, unsigned long) /src/libfuzzer/FuzzerDriver.cpp:280:6
+    #11 0x4acbdb in fuzzer::FuzzerDriver(int*, char***, int (*)(unsigned char const*, unsigned long)) /src/libfuzzer/FuzzerDriver.cpp:713:9
+    #12 0x4a8ce8 in main /src/libfuzzer/FuzzerMain.cpp:20:10
+    #13 0x7f2c2a69582f in __libc_start_main /build/glibc-Cl5G7W/glibc-2.23/csu/libc-start.c:291
+    #14 0x408138 in _start
+UndefinedBehaviorSanitizer can not provide additional info.
+SUMMARY: UndefinedBehaviorSanitizer: ABRT (/lib/x86_64-linux-gnu/libc.so.6+0x35427)
+==1==ABORTING

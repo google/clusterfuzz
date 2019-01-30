@@ -1,0 +1,82 @@
+
+=================================================================
+==14970==ERROR: AddressSanitizer: heap-buffer-overflow on address 0x61b00001f7d0 at pc 0x00000064801b bp 0x7ffce478dbd0 sp 0x7ffce478dbc8
+READ of size 4 at 0x61b00001f7d0 thread T0
+    #0 0x64801a in read_scalar(unsigned int const*&) third_party/skia/src/core/SkPaint.cpp:1819:15
+    #1 0x647ac5 in SkPaint::unflatten(SkReadBuffer&) third_party/skia/src/core/SkPaint.cpp:1954:25
+    #2 0xb1dee7 in SkLayerRasterizer::ReadLayers(SkReadBuffer&) third_party/skia/src/effects/SkLayerRasterizer.cpp:160:9
+    #3 0xb1ddd8 in SkLayerRasterizer::CreateProc(SkReadBuffer&) third_party/skia/src/effects/SkLayerRasterizer.cpp:149:34
+    #4 0x706252 in SkValidatingReadBuffer::readFlattenable(SkFlattenable::Type) third_party/skia/src/core/SkValidatingReadBuffer.cpp:250:15
+    #5 0x647d54 in SkPaint::unflatten(SkReadBuffer&) third_party/skia/src/core/SkPaint.cpp:1980:41
+    #6 0xb566e7 in SkPaintImageFilter::CreateProc(SkReadBuffer&) third_party/skia/src/effects/SkPaintImageFilter.cpp:27:5
+    #7 0x706252 in SkValidatingReadBuffer::readFlattenable(SkFlattenable::Type) third_party/skia/src/core/SkValidatingReadBuffer.cpp:250:15
+    #8 0x5d76cc in SkImageFilter::Common::unflatten(SkReadBuffer&, int) third_party/skia/src/core/SkImageFilter.cpp:162:26
+    #9 0xb50660 in SkDilateImageFilter::CreateProc(SkReadBuffer&) third_party/skia/src/effects/SkMorphologyImageFilter.cpp:169:5
+    #10 0x706252 in SkValidatingReadBuffer::readFlattenable(SkFlattenable::Type) third_party/skia/src/core/SkValidatingReadBuffer.cpp:250:15
+    #11 0x5d76cc in SkImageFilter::Common::unflatten(SkReadBuffer&, int) third_party/skia/src/core/SkImageFilter.cpp:162:26
+    #12 0xb50320 in SkErodeImageFilter::CreateProc(SkReadBuffer&) third_party/skia/src/effects/SkMorphologyImageFilter.cpp:162:5
+    #13 0x706252 in SkValidatingReadBuffer::readFlattenable(SkFlattenable::Type) third_party/skia/src/core/SkValidatingReadBuffer.cpp:250:15
+    #14 0x5d76cc in SkImageFilter::Common::unflatten(SkReadBuffer&, int) third_party/skia/src/core/SkImageFilter.cpp:162:26
+    #15 0xb55d56 in SkOffsetImageFilter::CreateProc(SkReadBuffer&) third_party/skia/src/effects/SkOffsetImageFilter.cpp:94:5
+    #16 0x706252 in SkValidatingReadBuffer::readFlattenable(SkFlattenable::Type) third_party/skia/src/core/SkValidatingReadBuffer.cpp:250:15
+    #17 0x5d76cc in SkImageFilter::Common::unflatten(SkReadBuffer&, int) third_party/skia/src/core/SkImageFilter.cpp:162:26
+    #18 0xae7c85 in SkBlurImageFilter::CreateProc(SkReadBuffer&) third_party/skia/src/effects/SkBlurImageFilter.cpp:43:5
+    #19 0x706252 in SkValidatingReadBuffer::readFlattenable(SkFlattenable::Type) third_party/skia/src/core/SkValidatingReadBuffer.cpp:250:15
+    #20 0x5d76cc in SkImageFilter::Common::unflatten(SkReadBuffer&, int) third_party/skia/src/core/SkImageFilter.cpp:162:26
+    #21 0xb68fc8 in SkXfermodeImageFilter::CreateProc(SkReadBuffer&) third_party/skia/src/effects/SkXfermodeImageFilter.cpp:37:5
+    #22 0x706252 in SkValidatingReadBuffer::readFlattenable(SkFlattenable::Type) third_party/skia/src/core/SkValidatingReadBuffer.cpp:250:15
+    #23 0x5d76cc in SkImageFilter::Common::unflatten(SkReadBuffer&, int) third_party/skia/src/core/SkImageFilter.cpp:162:26
+    #24 0xb4ce8d in SkMergeImageFilter::CreateProc(SkReadBuffer&) third_party/skia/src/effects/SkMergeImageFilter.cpp:127:10
+    #25 0x706252 in SkValidatingReadBuffer::readFlattenable(SkFlattenable::Type) third_party/skia/src/core/SkValidatingReadBuffer.cpp:250:15
+    #26 0x5d0544 in SkValidatingDeserializeFlattenable(void const*, unsigned long, SkFlattenable::Type) third_party/skia/src/core/SkFlattenableSerialization.cpp:26:12
+    #27 0x4e2325 in (anonymous namespace)::RunTestCase(std::__1::basic_string<char, std::__1::char_traits<char>, std::__1::allocator<char> >&, SkBitmap&, SkCanvas*) skia/tools/filter_fuzz_stub/filter_fuzz_stub.cc:31:32
+    #28 0x4e17c9 in (anonymous namespace)::ReadAndRunTestCase(char const*, SkBitmap&, SkCanvas*) skia/tools/filter_fuzz_stub/filter_fuzz_stub.cc:66:3
+    #29 0x4e1313 in main skia/tools/filter_fuzz_stub/filter_fuzz_stub.cc:85:10
+    #30 0x7efeb0640ec4 in __libc_start_main /build/buildd/eglibc-2.19/csu/libc-start.c:287
+0x61b00001f7d0 is located 0 bytes to the right of 1616-byte region [0x61b00001f180,0x61b00001f7d0)
+allocated by thread T0 here:
+    #0 0x4df1eb in operator new(unsigned long)
+    #1 0x7efeb0fcdd77  (/mnt/scratch0/clusterfuzz/bot/builds/chromium-browser-asan_linux-release_4392242b7f59878a2775b4607420a2b37e17ff13/symbolized/release/asan-symbolized-linux-release-368762/lib/libc++.so+0x1b5d77)
+    #2 0x7efeb0fcd3f9  (/mnt/scratch0/clusterfuzz/bot/builds/chromium-browser-asan_linux-release_4392242b7f59878a2775b4607420a2b37e17ff13/symbolized/release/asan-symbolized-linux-release-368762/lib/libc++.so+0x1b53f9)
+    #1 0x4e9382 in base::ReadFileToString(base::FilePath const&, std::__1::basic_string<char, std::__1::char_traits<char>, std::__1::allocator<char> >*, unsigned long) base/files/file_util.cc:149:7
+    #2 0x4e1f0a in (anonymous namespace)::ReadTestCase(char const*, std::__1::basic_string<char, std::__1::char_traits<char>, std::__1::allocator<char> >*) skia/tools/filter_fuzz_stub/filter_fuzz_stub.cc:19:8
+    #3 0x4e17a7 in (anonymous namespace)::ReadAndRunTestCase(char const*, SkBitmap&, SkCanvas*) skia/tools/filter_fuzz_stub/filter_fuzz_stub.cc:63:8
+    #4 0x4e1313 in main skia/tools/filter_fuzz_stub/filter_fuzz_stub.cc:85:10
+    #5 0x7efeb0640ec4 in __libc_start_main /build/buildd/eglibc-2.19/csu/libc-start.c:287
+
+SUMMARY: AddressSanitizer: heap-buffer-overflow (/mnt/scratch0/clusterfuzz/bot/builds/chromium-browser-asan_linux-release_4392242b7f59878a2775b4607420a2b37e17ff13/symbolized/release/asan-symbolized-linux-release-368762/filter_fuzz_stub+0x64801a)
+Shadow bytes around the buggy address:
+  0x0c367fffbea0: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+  0x0c367fffbeb0: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+  0x0c367fffbec0: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+  0x0c367fffbed0: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+  0x0c367fffbee0: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+=>0x0c367fffbef0: 00 00 00 00 00 00 00 00 00 00[fa]fa fa fa fa fa
+  0x0c367fffbf00: fa fa fa fa fa fa fa fa fa fa fa fa fa fa fa fa
+  0x0c367fffbf10: fa fa fa fa fa fa fa fa fa fa fa fa fa fa fa fa
+  0x0c367fffbf20: fa fa fa fa fa fa fa fa fa fa fa fa fa fa fa fa
+  0x0c367fffbf30: fa fa fa fa fa fa fa fa fa fa fa fa fa fa fa fa
+  0x0c367fffbf40: fa fa fa fa fa fa fa fa fa fa fa fa fa fa fa fa
+Shadow byte legend (one shadow byte represents 8 application bytes):
+  Addressable:           00
+  Partially addressable: 01 02 03 04 05 06 07
+  Heap left redzone:       fa
+  Heap right redzone:      fb
+  Freed heap region:       fd
+  Stack left redzone:      f1
+  Stack mid redzone:       f2
+  Stack right redzone:     f3
+  Stack partial redzone:   f4
+  Stack after return:      f5
+  Stack use after scope:   f8
+  Global redzone:          f9
+  Global init order:       f6
+  Poisoned by user:        f7
+  Container overflow:      fc
+  Array cookie:            ac
+  Intra object redzone:    bb
+  ASan internal:           fe
+  Left alloca redzone:     ca
+  Right alloca redzone:    cb
+==14970==ABORTING
+

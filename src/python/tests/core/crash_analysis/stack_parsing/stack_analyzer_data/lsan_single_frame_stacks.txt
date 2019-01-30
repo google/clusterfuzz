@@ -1,0 +1,15 @@
+-----------------------------------------------------
+Suppressions used:
+  count      bytes template
+    581      16883 libfontconfig
+-----------------------------------------------------
+
+=================================================================
+==31049==ERROR: LeakSanitizer: detected memory leaks
+Direct leak of 1 byte(s) in 1 object(s) allocated from:
+    #0 0x7f1d1174876b in f(unsigned long) /usr/include/blah.h:88
+
+Direct leak of 1 byte(s) in 1 object(s) allocated from:
+    #0 0x7f1d1174876c in g(unsigned long) /usr/include/blah.h:89
+
+SUMMARY: AddressSanitizer: 2 byte(s) leaked in 2 allocation(s).

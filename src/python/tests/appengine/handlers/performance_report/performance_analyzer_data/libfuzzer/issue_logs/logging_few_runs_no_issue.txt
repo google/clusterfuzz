@@ -1,0 +1,40 @@
+Command: /mnt/scratch0/clusterfuzz/bot/builds/clusterfuzz-builds_libass_c0d47cbeeff17eccc800e21f931b7356c6ed6752/revisions/libass_fuzzer -max_len=5546 -dict=/mnt/scratch0/clusterfuzz/bot/builds/clusterfuzz-builds_libass_c0d47cbeeff17eccc800e21f931b7356c6ed6752/revisions/ass.dict -use_value_profile=1 -rss_limit_mb=2048 -timeout=25 -artifact_prefix=/ -max_total_time=2950 -print_final_stats=1 /new /subset
+Bot: ossfuzz-linux-2370
+Time ran: 0.275567
+
+WARNING: Failed to find function "__sanitizer_print_stack_trace".
+Dictionary: 173363 entries
+INFO: Seed: 41300100
+INFO: Loaded 1 modules (5643 guards): [0xa9ed10, 0xaa453c),
+Loading corpus dir: /new
+Loading corpus dir: /subset
+#0	READ units: 2
+Fontconfig error: Cannot load default config file
+Fontconfig error: Cannot load default config file
+#2	INITED cov: 350 ft: 1586 corp: 2/2004b exec/s: 0 rss: 22Mb
+ass.c:686:60: runtime error: left shift of negative value -33
+    #0 0x486dfa in decode_chars /src/libass/libass/ass.c:686:60
+    #1 0x47d16e in decode_font /src/libass/libass/ass.c:722:13
+    #2 0x47213a in process_text /src/libass/libass/ass.c:852:9
+    #3 0x477e5e in parse_memory /src/libass/libass/ass.c:1143:5
+    #4 0x47763e in ass_read_memory /src/libass/libass/ass.c:1193:13
+    #5 0x432d46 in LLVMFuzzerTestOneInput /src/libass_fuzzer.cc:39:22
+    #6 0x449f3b in fuzzer::Fuzzer::ExecuteCallback(unsigned char const*, unsigned long) /src/libfuzzer/FuzzerLoop.cpp:550:13
+    #7 0x44a200 in fuzzer::Fuzzer::RunOne(unsigned char const*, unsigned long) /src/libfuzzer/FuzzerLoop.cpp:501:3
+    #8 0x44afbd in fuzzer::Fuzzer::MutateAndTestOne() /src/libfuzzer/FuzzerLoop.cpp:757:30
+    #9 0x44b25a in fuzzer::Fuzzer::Loop() /src/libfuzzer/FuzzerLoop.cpp:791:5
+    #10 0x43535e in fuzzer::FuzzerDriver(int*, char***, int (*)(unsigned char const*, unsigned long)) /src/libfuzzer/FuzzerDriver.cpp:567:6
+    #11 0x43337c in main /src/libfuzzer/FuzzerMain.cpp:20:10
+    #12 0x7f5670b3f82f in __libc_start_main
+    #13 0x40a1b8 in _start
+
+SUMMARY: UndefinedBehaviorSanitizer: undefined-behavior ass.c:686:60 in
+MS: 1 CopyPart-; base unit: 9558d78eb2f165401eb26db7e743160936f7c09a
+artifact_prefix='/'; Test unit written to /crash-eca308e7c6f8984c9ae66e60685ad61e4461e91f
+stat::number_of_executed_units: 3
+stat::average_exec_per_sec:     0
+stat::new_units_added:          0
+stat::slowest_unit_time_sec:    0
+stat::peak_rss_mb:              23
+
+cf::fuzzing_strategies: corpus_subset_2,recommended_dict,value_profile

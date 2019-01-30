@@ -1,0 +1,85 @@
+=================================================================
+==1==ERROR: LeakSanitizer: detected memory leaks
+
+Indirect leak of 96 byte(s) in 2 object(s) allocated from:
+    #0 0x4d5058 in malloc _asan_rtl_
+    #1 0x80469a in xmlNewDocElementContent /src/libxml2/valid.c:952:34
+    #2 0x6c92c9 in xmlParseElementMixedContentDecl /src/libxml2/parser.c:6262:11
+    #3 0x6cfde3 in xmlParseElementContentDecl /src/libxml2/parser.c:6677:16
+    #4 0x6d2a96 in xmlParseElementDecl /src/libxml2/parser.c:6745:12
+    #5 0x6d3d93 in xmlParseMarkupDecl /src/libxml2/parser.c:6997:4
+    #6 0x718cb8 in xmlParseInternalSubset /src/libxml2/parser.c:8473:6
+    #7 0x717142 in xmlParseDocument /src/libxml2/parser.c:10921:6
+    #8 0x7455d0 in xmlDoRead /src/libxml2/parser.c:15432:5
+    #9 0x745a32 in xmlReadMemory /src/libxml2/parser.c:15518:13
+    #10 0x512b96 in LLVMFuzzerTestOneInput /src/libxml2_xml_read_memory_fuzzer.cc:17:18
+    #11 0x589918 in fuzzer::Fuzzer::ExecuteCallback(unsigned char const*, unsigned long) /src/libfuzzer/FuzzerLoop.cpp:550:13
+    #12 0x58a664 in fuzzer::Fuzzer::RunOne(unsigned char const*, unsigned long) /src/libfuzzer/FuzzerLoop.cpp:501:3
+    #13 0x5912b5 in fuzzer::Fuzzer::MutateAndTestOne() /src/libfuzzer/FuzzerLoop.cpp:757:30
+    #14 0x592323 in fuzzer::Fuzzer::Loop() /src/libfuzzer/FuzzerLoop.cpp:791:5
+    #15 0x521899 in fuzzer::FuzzerDriver(int*, char***, int (*)(unsigned char const*, unsigned long)) /src/libfuzzer/FuzzerDriver.cpp:567:6
+    #16 0x512dd8 in main /src/libfuzzer/FuzzerMain.cpp:20:10
+    #17 0x7f68b269182f in __libc_start_main
+
+Indirect leak of 96 byte(s) in 2 object(s) allocated from:
+    #0 0x4d5058 in malloc _asan_rtl_
+    #1 0x80469a in xmlNewDocElementContent /src/libxml2/valid.c:952:34
+    #2 0x6c924e in xmlParseElementMixedContentDecl /src/libxml2/parser.c:6260:14
+    #3 0x6cfde3 in xmlParseElementContentDecl /src/libxml2/parser.c:6677:16
+    #4 0x6d2a96 in xmlParseElementDecl /src/libxml2/parser.c:6745:12
+    #5 0x6d3d93 in xmlParseMarkupDecl /src/libxml2/parser.c:6997:4
+    #6 0x718cb8 in xmlParseInternalSubset /src/libxml2/parser.c:8473:6
+    #7 0x717142 in xmlParseDocument /src/libxml2/parser.c:10921:6
+    #8 0x7455d0 in xmlDoRead /src/libxml2/parser.c:15432:5
+    #9 0x745a32 in xmlReadMemory /src/libxml2/parser.c:15518:13
+    #10 0x512b96 in LLVMFuzzerTestOneInput /src/libxml2_xml_read_memory_fuzzer.cc:17:18
+    #11 0x589918 in fuzzer::Fuzzer::ExecuteCallback(unsigned char const*, unsigned long) /src/libfuzzer/FuzzerLoop.cpp:550:13
+    #12 0x58a664 in fuzzer::Fuzzer::RunOne(unsigned char const*, unsigned long) /src/libfuzzer/FuzzerLoop.cpp:501:3
+    #13 0x5912b5 in fuzzer::Fuzzer::MutateAndTestOne() /src/libfuzzer/FuzzerLoop.cpp:757:30
+    #14 0x592323 in fuzzer::Fuzzer::Loop() /src/libfuzzer/FuzzerLoop.cpp:791:5
+    #15 0x521899 in fuzzer::FuzzerDriver(int*, char***, int (*)(unsigned char const*, unsigned long)) /src/libfuzzer/FuzzerDriver.cpp:567:6
+    #16 0x512dd8 in main /src/libfuzzer/FuzzerMain.cpp:20:10
+    #17 0x7f68b269182f in __libc_start_main
+
+Indirect leak of 48 byte(s) in 1 object(s) allocated from:
+    #0 0x4d5058 in malloc _asan_rtl_
+    #1 0x80469a in xmlNewDocElementContent /src/libxml2/valid.c:952:34
+    #2 0x6c8e89 in xmlParseElementMixedContentDecl /src/libxml2/parser.c:6247:18
+    #3 0x6cfde3 in xmlParseElementContentDecl /src/libxml2/parser.c:6677:16
+    #4 0x6d2a96 in xmlParseElementDecl /src/libxml2/parser.c:6745:12
+    #5 0x6d3d93 in xmlParseMarkupDecl /src/libxml2/parser.c:6997:4
+    #6 0x718cb8 in xmlParseInternalSubset /src/libxml2/parser.c:8473:6
+    #7 0x717142 in xmlParseDocument /src/libxml2/parser.c:10921:6
+    #8 0x7455d0 in xmlDoRead /src/libxml2/parser.c:15432:5
+    #9 0x745a32 in xmlReadMemory /src/libxml2/parser.c:15518:13
+    #10 0x512b96 in LLVMFuzzerTestOneInput /src/libxml2_xml_read_memory_fuzzer.cc:17:18
+    #11 0x589918 in fuzzer::Fuzzer::ExecuteCallback(unsigned char const*, unsigned long) /src/libfuzzer/FuzzerLoop.cpp:550:13
+    #12 0x58a664 in fuzzer::Fuzzer::RunOne(unsigned char const*, unsigned long) /src/libfuzzer/FuzzerLoop.cpp:501:3
+    #13 0x5912b5 in fuzzer::Fuzzer::MutateAndTestOne() /src/libfuzzer/FuzzerLoop.cpp:757:30
+    #14 0x592323 in fuzzer::Fuzzer::Loop() /src/libfuzzer/FuzzerLoop.cpp:791:5
+    #15 0x521899 in fuzzer::FuzzerDriver(int*, char***, int (*)(unsigned char const*, unsigned long)) /src/libfuzzer/FuzzerDriver.cpp:567:6
+    #16 0x512dd8 in main /src/libfuzzer/FuzzerMain.cpp:20:10
+    #17 0x7f68b269182f in __libc_start_main
+
+Indirect leak of 48 byte(s) in 1 object(s) allocated from:
+    #0 0x4d5058 in malloc _asan_rtl_
+    #1 0x80469a in xmlNewDocElementContent /src/libxml2/valid.c:952:34
+    #2 0x6c90f0 in xmlParseElementMixedContentDecl /src/libxml2/parser.c:6253:16
+    #3 0x6cfde3 in xmlParseElementContentDecl /src/libxml2/parser.c:6677:16
+    #4 0x6d2a96 in xmlParseElementDecl /src/libxml2/parser.c:6745:12
+    #5 0x6d3d93 in xmlParseMarkupDecl /src/libxml2/parser.c:6997:4
+    #6 0x718cb8 in xmlParseInternalSubset /src/libxml2/parser.c:8473:6
+    #7 0x717142 in xmlParseDocument /src/libxml2/parser.c:10921:6
+    #8 0x7455d0 in xmlDoRead /src/libxml2/parser.c:15432:5
+    #9 0x745a32 in xmlReadMemory /src/libxml2/parser.c:15518:13
+    #10 0x512b96 in LLVMFuzzerTestOneInput /src/libxml2_xml_read_memory_fuzzer.cc:17:18
+    #11 0x589918 in fuzzer::Fuzzer::ExecuteCallback(unsigned char const*, unsigned long) /src/libfuzzer/FuzzerLoop.cpp:550:13
+    #12 0x58a664 in fuzzer::Fuzzer::RunOne(unsigned char const*, unsigned long) /src/libfuzzer/FuzzerLoop.cpp:501:3
+    #13 0x5912b5 in fuzzer::Fuzzer::MutateAndTestOne() /src/libfuzzer/FuzzerLoop.cpp:757:30
+    #14 0x592323 in fuzzer::Fuzzer::Loop() /src/libfuzzer/FuzzerLoop.cpp:791:5
+    #15 0x521899 in fuzzer::FuzzerDriver(int*, char***, int (*)(unsigned char const*, unsigned long)) /src/libfuzzer/FuzzerDriver.cpp:567:6
+    #16 0x512dd8 in main /src/libfuzzer/FuzzerMain.cpp:20:10
+    #17 0x7f68b269182f in __libc_start_main
+
+SUMMARY: AddressSanitizer: 288 byte(s) leaked in 6 allocation(s).
+INFO: to ignore leaks on libFuzzer side use -detect_leaks=0.

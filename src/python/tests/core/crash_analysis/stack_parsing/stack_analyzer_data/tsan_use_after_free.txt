@@ -1,0 +1,411 @@
+==================
+WARNING: ThreadSanitizer: heap-use-after-free (pid=26043)
+  Read of size 1 at 0x7d040009c4c8 by main thread (mutexes: write M21069, write M21097, write M21068, write M20937):
+    #0 0x7fe7eda2b1bf in memcpy (/mnt/scratch0/clusterfuzz/bot/builds/chromium-browser-tsan_linux-release_e1f0dbf462d779d5196ef318a224a998657a9c66/revisions/tsan-linux-release-381668/chrome+0xbd61be)
+    #1 0x7fe7e9d5edae in memcpy /usr/include/x86_64-linux-gnu/bits/string3.h:51
+    #2 0x7fe7e5c0ff1f in _gdk_window_process_updates_recurse /build/gtk+2.0-KsZSEA/gtk+2.0-2.24.23/gdk/gdkwindow.c:5484
+    #3 0x7fe7ee0a111c in base::MessageLoop::RunHandler() base/message_loop/message_loop.cc:440:3
+    #4 0x7fe7ee0c2967 in base::RunLoop::Run() base/run_loop.cc:35:3
+    #5 0x7fe7eddc078c in ChromeBrowserMainParts::MainMessageLoopRun(int*) chrome/browser/chrome_browser_main.cc:1820:3
+    #6 0x7fe7f1f415c1 in content::BrowserMainLoop::RunMainMessageLoopParts() content/browser/browser_main_loop.cc:959:21
+    #7 0x7fe7f1c36718 in content::BrowserMainRunnerImpl::Run() content/browser/browser_main_runner.cc:152:5
+    #8 0x7fe7f1c35df8 in content::BrowserMain(content::MainFunctionParams const&) content/browser/browser_main.cc:44:15
+    #9 0x7fe7ee02cf9c in content::RunNamedProcessTypeMain(std::__1::basic_string<char, std::__1::char_traits<char>, std::__1::allocator<char> > const&, content::MainFunctionParams const&, content::ContentMainDelegate*) content/app/content_main_runner.cc:399:14
+    #10 0x7fe7ee02dd12 in content::ContentMainRunnerImpl::Run() content/app/content_main_runner.cc:772:12
+    #11 0x7fe7ee02bf7f in content::ContentMain(content::ContentMainParams const&) content/app/content_main.cc:19:15
+    #12 0x7fe7eda8a488 in ChromeMain chrome/app/chrome_main.cc:84:12
+    #13 0x7fe7eda8a3ff in main chrome/app/chrome_exe_main_aura.cc:17:10
+
+  Previous write of size 8 at 0x7d040009c4c8 by main thread (mutexes: write M21069, write M21097, write M21068, write M20937):
+    #0 0x7fe7eda2adf1 in free (/mnt/scratch0/clusterfuzz/bot/builds/chromium-browser-tsan_linux-release_e1f0dbf462d779d5196ef318a224a998657a9c66/revisions/tsan-linux-release-381668/chrome+0xbd5df0)
+    #1 0x7fe7ecd659ba in ft_free third_party/freetype2/src/src/base/ftsystem.c:130:5
+    #2 0x7fe7ecd77776 in FT_Stream_ExitFrame third_party/freetype2/src/src/base/ftutil.c:171:7
+    #3 0x7fe7ecdc02ce in Load_SBit_Image third_party/freetype2/src/src/sfnt/ttsbit.c:1237:7
+    #4 0x7fe7ecdbc0a7 in tt_face_load_sbit_image third_party/freetype2/src/src/sfnt/ttsbit.c:1476:13
+    #5 0x7fe7ecdc3698 in Load_Glyph third_party/freetype2/src/src/truetype/ttgload.c:1790:13
+    #6 0x7fe7ecd6641a in FT_Load_Glyph third_party/freetype2/src/src/base/ftobjs.c:690:15
+    #7 0x7fe7e9d5efeb in _cairo_ft_scaled_glyph_init /build/buildd/cairo-1.13.0~20140204/src/cairo-ft-font.c:2249
+    #8 0x7fe7e5c0ff1f in _gdk_window_process_updates_recurse /build/gtk+2.0-KsZSEA/gtk+2.0-2.24.23/gdk/gdkwindow.c:5484
+    #9 0x7fe7ee0a111c in base::MessageLoop::RunHandler() base/message_loop/message_loop.cc:440:3
+    #10 0x7fe7ee0c2967 in base::RunLoop::Run() base/run_loop.cc:35:3
+    #11 0x7fe7eddc078c in ChromeBrowserMainParts::MainMessageLoopRun(int*) chrome/browser/chrome_browser_main.cc:1820:3
+    #12 0x7fe7f1f415c1 in content::BrowserMainLoop::RunMainMessageLoopParts() content/browser/browser_main_loop.cc:959:21
+    #13 0x7fe7f1c36718 in content::BrowserMainRunnerImpl::Run() content/browser/browser_main_runner.cc:152:5
+    #14 0x7fe7f1c35df8 in content::BrowserMain(content::MainFunctionParams const&) content/browser/browser_main.cc:44:15
+    #15 0x7fe7ee02cf9c in content::RunNamedProcessTypeMain(std::__1::basic_string<char, std::__1::char_traits<char>, std::__1::allocator<char> > const&, content::MainFunctionParams const&, content::ContentMainDelegate*) content/app/content_main_runner.cc:399:14
+    #16 0x7fe7ee02dd12 in content::ContentMainRunnerImpl::Run() content/app/content_main_runner.cc:772:12
+    #17 0x7fe7ee02bf7f in content::ContentMain(content::ContentMainParams const&) content/app/content_main.cc:19:15
+    #18 0x7fe7eda8a488 in ChromeMain chrome/app/chrome_main.cc:84:12
+    #19 0x7fe7eda8a3ff in main chrome/app/chrome_exe_main_aura.cc:17:10
+
+  Location is heap block of size 8 at 0x7d040009c4c0 allocated by main thread:
+    #0 0x7fe7eda2a9d5 in malloc (/mnt/scratch0/clusterfuzz/bot/builds/chromium-browser-tsan_linux-release_e1f0dbf462d779d5196ef318a224a998657a9c66/revisions/tsan-linux-release-381668/chrome+0xbd59d4)
+    #1 0x7fe7ecd6594a in ft_alloc third_party/freetype2/src/src/base/ftsystem.c:74:12
+    #2 0x7fe7ecd69f0b in ft_glyphslot_alloc_bitmap third_party/freetype2/src/src/base/ftutil.c:76:15
+    #3 0x7fe7ecdbfbf0 in Load_SBit_Image third_party/freetype2/src/src/sfnt/ttsbit.c:1313:15
+    #4 0x7fe7ecdbc0a7 in tt_face_load_sbit_image third_party/freetype2/src/src/sfnt/ttsbit.c:1476:13
+    #5 0x7fe7ecdc3698 in Load_Glyph third_party/freetype2/src/src/truetype/ttgload.c:1790:13
+    #6 0x7fe7ecd6641a in FT_Load_Glyph third_party/freetype2/src/src/base/ftobjs.c:690:15
+    #7 0x7fe7e9d5efeb in _cairo_ft_scaled_glyph_init /build/buildd/cairo-1.13.0~20140204/src/cairo-ft-font.c:2249
+    #8 0x7fe7e5c0ff1f in _gdk_window_process_updates_recurse /build/gtk+2.0-KsZSEA/gtk+2.0-2.24.23/gdk/gdkwindow.c:5484
+    #9 0x7fe7ee0a111c in base::MessageLoop::RunHandler() base/message_loop/message_loop.cc:440:3
+    #10 0x7fe7ee0c2967 in base::RunLoop::Run() base/run_loop.cc:35:3
+    #11 0x7fe7eddc078c in ChromeBrowserMainParts::MainMessageLoopRun(int*) chrome/browser/chrome_browser_main.cc:1820:3
+    #12 0x7fe7f1f415c1 in content::BrowserMainLoop::RunMainMessageLoopParts() content/browser/browser_main_loop.cc:959:21
+    #13 0x7fe7f1c36718 in content::BrowserMainRunnerImpl::Run() content/browser/browser_main_runner.cc:152:5
+    #14 0x7fe7f1c35df8 in content::BrowserMain(content::MainFunctionParams const&) content/browser/browser_main.cc:44:15
+    #15 0x7fe7ee02cf9c in content::RunNamedProcessTypeMain(std::__1::basic_string<char, std::__1::char_traits<char>, std::__1::allocator<char> > const&, content::MainFunctionParams const&, content::ContentMainDelegate*) content/app/content_main_runner.cc:399:14
+    #16 0x7fe7ee02dd12 in content::ContentMainRunnerImpl::Run() content/app/content_main_runner.cc:772:12
+    #17 0x7fe7ee02bf7f in content::ContentMain(content::ContentMainParams const&) content/app/content_main.cc:19:15
+    #18 0x7fe7eda8a488 in ChromeMain chrome/app/chrome_main.cc:84:12
+    #19 0x7fe7eda8a3ff in main chrome/app/chrome_exe_main_aura.cc:17:10
+
+  Mutex M21069 (0x7d0c001878c0) created at:
+    #0 0x7fe7eda2dc04 in pthread_mutex_init (/mnt/scratch0/clusterfuzz/bot/builds/chromium-browser-tsan_linux-release_e1f0dbf462d779d5196ef318a224a998657a9c66/revisions/tsan-linux-release-381668/chrome+0xbd8c03)
+    #0 0x7fe7ebf4f5b8 in libglib-2.0.so.0
+    #2 0x7fe7e5c0ff1f in _gdk_window_process_updates_recurse /build/gtk+2.0-KsZSEA/gtk+2.0-2.24.23/gdk/gdkwindow.c:5484
+    #3 0x7fe7ee0a111c in base::MessageLoop::RunHandler() base/message_loop/message_loop.cc:440:3
+    #4 0x7fe7ee0c2967 in base::RunLoop::Run() base/run_loop.cc:35:3
+    #5 0x7fe7eddc078c in ChromeBrowserMainParts::MainMessageLoopRun(int*) chrome/browser/chrome_browser_main.cc:1820:3
+    #6 0x7fe7f1f415c1 in content::BrowserMainLoop::RunMainMessageLoopParts() content/browser/browser_main_loop.cc:959:21
+    #7 0x7fe7f1c36718 in content::BrowserMainRunnerImpl::Run() content/browser/browser_main_runner.cc:152:5
+    #8 0x7fe7f1c35df8 in content::BrowserMain(content::MainFunctionParams const&) content/browser/browser_main.cc:44:15
+    #9 0x7fe7ee02cf9c in content::RunNamedProcessTypeMain(std::__1::basic_string<char, std::__1::char_traits<char>, std::__1::allocator<char> > const&, content::MainFunctionParams const&, content::ContentMainDelegate*) content/app/content_main_runner.cc:399:14
+    #10 0x7fe7ee02dd12 in content::ContentMainRunnerImpl::Run() content/app/content_main_runner.cc:772:12
+    #11 0x7fe7ee02bf7f in content::ContentMain(content::ContentMainParams const&) content/app/content_main.cc:19:15
+    #12 0x7fe7eda8a488 in ChromeMain chrome/app/chrome_main.cc:84:12
+    #13 0x7fe7eda8a3ff in main chrome/app/chrome_exe_main_aura.cc:17:10
+
+  Mutex M21097 (0x7d54000a17f0) created at:
+    #0 0x7fe7eda4566f in pthread_mutex_lock (/mnt/scratch0/clusterfuzz/bot/builds/chromium-browser-tsan_linux-release_e1f0dbf462d779d5196ef318a224a998657a9c66/revisions/tsan-linux-release-381668/chrome+0xbf066e)
+    #1 0x7fe7e9d0de07 in _cairo_scaled_font_freeze_cache /build/buildd/cairo-1.13.0~20140204/src/cairo-scaled-font.c:798
+    #2 0x7fe7e5c0ff1f in _gdk_window_process_updates_recurse /build/gtk+2.0-KsZSEA/gtk+2.0-2.24.23/gdk/gdkwindow.c:5484
+    #3 0x7fe7ee0a111c in base::MessageLoop::RunHandler() base/message_loop/message_loop.cc:440:3
+    #4 0x7fe7ee0c2967 in base::RunLoop::Run() base/run_loop.cc:35:3
+    #5 0x7fe7eddc078c in ChromeBrowserMainParts::MainMessageLoopRun(int*) chrome/browser/chrome_browser_main.cc:1820:3
+    #6 0x7fe7f1f415c1 in content::BrowserMainLoop::RunMainMessageLoopParts() content/browser/browser_main_loop.cc:959:21
+    #7 0x7fe7f1c36718 in content::BrowserMainRunnerImpl::Run() content/browser/browser_main_runner.cc:152:5
+    #8 0x7fe7f1c35df8 in content::BrowserMain(content::MainFunctionParams const&) content/browser/browser_main.cc:44:15
+    #9 0x7fe7ee02cf9c in content::RunNamedProcessTypeMain(std::__1::basic_string<char, std::__1::char_traits<char>, std::__1::allocator<char> > const&, content::MainFunctionParams const&, content::ContentMainDelegate*) content/app/content_main_runner.cc:399:14
+    #10 0x7fe7ee02dd12 in content::ContentMainRunnerImpl::Run() content/app/content_main_runner.cc:772:12
+    #11 0x7fe7ee02bf7f in content::ContentMain(content::ContentMainParams const&) content/app/content_main.cc:19:15
+    #12 0x7fe7eda8a488 in ChromeMain chrome/app/chrome_main.cc:84:12
+    #13 0x7fe7eda8a3ff in main chrome/app/chrome_exe_main_aura.cc:17:10
+
+  Mutex M21068 (0x7d7800009028) created at:
+    #0 0x7fe7eda2dc04 in pthread_mutex_init (/mnt/scratch0/clusterfuzz/bot/builds/chromium-browser-tsan_linux-release_e1f0dbf462d779d5196ef318a224a998657a9c66/revisions/tsan-linux-release-381668/chrome+0xbd8c03)
+    #1 0x7fe7e9cd561b in _cairo_device_init /build/buildd/cairo-1.13.0~20140204/src/cairo-device.c:177
+    #2 0x7fe7e5c0ff1f in _gdk_window_process_updates_recurse /build/gtk+2.0-KsZSEA/gtk+2.0-2.24.23/gdk/gdkwindow.c:5484
+    #3 0x7fe7ee0a111c in base::MessageLoop::RunHandler() base/message_loop/message_loop.cc:440:3
+    #4 0x7fe7ee0c2967 in base::RunLoop::Run() base/run_loop.cc:35:3
+    #5 0x7fe7eddc078c in ChromeBrowserMainParts::MainMessageLoopRun(int*) chrome/browser/chrome_browser_main.cc:1820:3
+    #6 0x7fe7f1f415c1 in content::BrowserMainLoop::RunMainMessageLoopParts() content/browser/browser_main_loop.cc:959:21
+    #7 0x7fe7f1c36718 in content::BrowserMainRunnerImpl::Run() content/browser/browser_main_runner.cc:152:5
+    #8 0x7fe7f1c35df8 in content::BrowserMain(content::MainFunctionParams const&) content/browser/browser_main.cc:44:15
+    #9 0x7fe7ee02cf9c in content::RunNamedProcessTypeMain(std::__1::basic_string<char, std::__1::char_traits<char>, std::__1::allocator<char> > const&, content::MainFunctionParams const&, content::ContentMainDelegate*) content/app/content_main_runner.cc:399:14
+    #10 0x7fe7ee02dd12 in content::ContentMainRunnerImpl::Run() content/app/content_main_runner.cc:772:12
+    #11 0x7fe7ee02bf7f in content::ContentMain(content::ContentMainParams const&) content/app/content_main.cc:19:15
+    #12 0x7fe7eda8a488 in ChromeMain chrome/app/chrome_main.cc:84:12
+    #13 0x7fe7eda8a3ff in main chrome/app/chrome_exe_main_aura.cc:17:10
+
+  Mutex M20937 (0x7d44000c76d0) created at:
+    #0 0x7fe7eda4566f in pthread_mutex_lock (/mnt/scratch0/clusterfuzz/bot/builds/chromium-browser-tsan_linux-release_e1f0dbf462d779d5196ef318a224a998657a9c66/revisions/tsan-linux-release-381668/chrome+0xbf066e)
+    #1 0x7fe7e9d5d5b5 in _cairo_ft_unscaled_font_lock_face /build/buildd/cairo-1.13.0~20140204/src/cairo-ft-font.c:649
+    #2 0x7fe7f15808d7 in ui::SelectFileDialog::SelectFile(ui::SelectFileDialog::Type, std::__1::basic_string<unsigned short, base::string16_char_traits, std::__1::allocator<unsigned short> > const&, base::FilePath const&, ui::SelectFileDialog::FileTypeInfo const*, int, std::__1::basic_string<char, std::__1::char_traits<char>, std::__1::allocator<char> > const&, aura::Window*, void*) ui/shell_dialogs/select_file_dialog.cc:100:3
+    #3 0x7fe7eddd4846 in SavePackageFilePicker::SavePackageFilePicker(content::WebContents*, base::FilePath const&, std::__1::basic_string<char, std::__1::char_traits<char>, std::__1::allocator<char> > const&, bool, DownloadPrefs*, base::Callback<void (base::FilePath const&, content::SavePageType, base::Callback<void (content::DownloadItem*), (base::internal::CopyMode)1> const&), (base::internal::CopyMode)1> const&) chrome/browser/download/save_package_file_picker.cc:214:5
+    #4 0x7fe7eddc5793 in ChromeDownloadManagerDelegate::ChooseSavePath(content::WebContents*, base::FilePath const&, std::__1::basic_string<char, std::__1::char_traits<char>, std::__1::allocator<char> > const&, bool, base::Callback<void (base::FilePath const&, content::SavePageType, base::Callback<void (content::DownloadItem*), (base::internal::CopyMode)1> const&), (base::internal::CopyMode)1> const&) chrome/browser/download/chrome_download_manager_delegate.cc:425:7
+    #5 0x7fe7f1fbd856 in content::SavePackage::ContinueGetSaveInfo(base::FilePath const&, bool) content/browser/download/save_package.cc:1473:3
+    #6 0x7fe7f1fc67cf in base::internal::Invoker<base::IndexSequence<0ul, 1ul, 2ul>, base::internal::BindState<base::internal::RunnableAdapter<void (content::SavePackage::*)(base::FilePath const&, bool)>, void (content::SavePackage*, base::FilePath const&, bool), content::SavePackage*, base::FilePath&, bool&>, base::internal::InvokeHelper<false, void, base::internal::RunnableAdapter<void (content::SavePackage::*)(base::FilePath const&, bool)> >, void ()>::Run(base::internal::BindStateBase*) base/bind_internal.h:181:12
+    #7 0x7fe7ee11805e in base::debug::TaskAnnotator::RunTask(char const*, base::PendingTask const&) base/callback.h:397:12
+    #8 0x7fe7ee0a1723 in base::MessageLoop::RunTask(base::PendingTask const&) base/message_loop/message_loop.cc:476:3
+    #9 0x7fe7ee0a1cbe in base::MessageLoop::DeferOrRunPendingTask(base::PendingTask const&) base/message_loop/message_loop.cc:485:5
+    #10 0x7fe7ee0a20a6 in base::MessageLoop::DoWork() base/message_loop/message_loop.cc:597:13
+    #11 0x7fe7ee1162d8 in base::(anonymous namespace)::WorkSourceDispatch(_GSource*, int (*)(void*), void*) base/message_loop/message_pump_glib.cc:267:7
+    #12 0x7fe7ebf0de04 in g_main_context_dispatch (/lib/x86_64-linux-gnu/libglib-2.0.so.0+0x48e03)
+    #13 0x7fe7ee0a111c in base::MessageLoop::RunHandler() base/message_loop/message_loop.cc:440:3
+    #14 0x7fe7ee0c2967 in base::RunLoop::Run() base/run_loop.cc:35:3
+    #15 0x7fe7eddc078c in ChromeBrowserMainParts::MainMessageLoopRun(int*) chrome/browser/chrome_browser_main.cc:1820:3
+    #16 0x7fe7f1f415c1 in content::BrowserMainLoop::RunMainMessageLoopParts() content/browser/browser_main_loop.cc:959:21
+    #17 0x7fe7f1c36718 in content::BrowserMainRunnerImpl::Run() content/browser/browser_main_runner.cc:152:5
+    #18 0x7fe7f1c35df8 in content::BrowserMain(content::MainFunctionParams const&) content/browser/browser_main.cc:44:15
+    #19 0x7fe7ee02cf9c in content::RunNamedProcessTypeMain(std::__1::basic_string<char, std::__1::char_traits<char>, std::__1::allocator<char> > const&, content::MainFunctionParams const&, content::ContentMainDelegate*) content/app/content_main_runner.cc:399:14
+    #20 0x7fe7ee02dd12 in content::ContentMainRunnerImpl::Run() content/app/content_main_runner.cc:772:12
+    #21 0x7fe7ee02bf7f in content::ContentMain(content::ContentMainParams const&) content/app/content_main.cc:19:15
+    #22 0x7fe7eda8a488 in ChromeMain chrome/app/chrome_main.cc:84:12
+    #23 0x7fe7eda8a3ff in main chrome/app/chrome_exe_main_aura.cc:17:10
+SUMMARY: ThreadSanitizer: heap-use-after-free (/mnt/scratch0/clusterfuzz/bot/builds/chromium-browser-tsan_linux-release_e1f0dbf462d779d5196ef318a224a998657a9c66/revisions/tsan-linux-release-381668/chrome+0xbd61be) in __interceptor_memcpy
+==================
+==================
+WARNING: ThreadSanitizer: heap-use-after-free (pid=26043)
+  Read of size 1 at 0x7d08001379d8 by main thread (mutexes: write M21069, write M21097, write M21068, write M20937):
+    #0 0x7fe7eda2b1bf in memcpy (/mnt/scratch0/clusterfuzz/bot/builds/chromium-browser-tsan_linux-release_e1f0dbf462d779d5196ef318a224a998657a9c66/revisions/tsan-linux-release-381668/chrome+0xbd61be)
+    #1 0x7fe7e9d5edae in memcpy /usr/include/x86_64-linux-gnu/bits/string3.h:51
+    #2 0x7fe7e5c0ff1f in _gdk_window_process_updates_recurse /build/gtk+2.0-KsZSEA/gtk+2.0-2.24.23/gdk/gdkwindow.c:5484
+    #3 0x7fe7ee0a111c in base::MessageLoop::RunHandler() base/message_loop/message_loop.cc:440:3
+    #4 0x7fe7ee0c2967 in base::RunLoop::Run() base/run_loop.cc:35:3
+    #5 0x7fe7eddc078c in ChromeBrowserMainParts::MainMessageLoopRun(int*) chrome/browser/chrome_browser_main.cc:1820:3
+    #6 0x7fe7f1f415c1 in content::BrowserMainLoop::RunMainMessageLoopParts() content/browser/browser_main_loop.cc:959:21
+    #7 0x7fe7f1c36718 in content::BrowserMainRunnerImpl::Run() content/browser/browser_main_runner.cc:152:5
+    #8 0x7fe7f1c35df8 in content::BrowserMain(content::MainFunctionParams const&) content/browser/browser_main.cc:44:15
+    #9 0x7fe7ee02cf9c in content::RunNamedProcessTypeMain(std::__1::basic_string<char, std::__1::char_traits<char>, std::__1::allocator<char> > const&, content::MainFunctionParams const&, content::ContentMainDelegate*) content/app/content_main_runner.cc:399:14
+    #10 0x7fe7ee02dd12 in content::ContentMainRunnerImpl::Run() content/app/content_main_runner.cc:772:12
+    #11 0x7fe7ee02bf7f in content::ContentMain(content::ContentMainParams const&) content/app/content_main.cc:19:15
+    #12 0x7fe7eda8a488 in ChromeMain chrome/app/chrome_main.cc:84:12
+    #13 0x7fe7eda8a3ff in main chrome/app/chrome_exe_main_aura.cc:17:10
+
+  Previous write of size 8 at 0x7d08001379d8 by main thread (mutexes: write M21069, write M21097, write M21068, write M20937):
+    #0 0x7fe7eda2adf1 in free (/mnt/scratch0/clusterfuzz/bot/builds/chromium-browser-tsan_linux-release_e1f0dbf462d779d5196ef318a224a998657a9c66/revisions/tsan-linux-release-381668/chrome+0xbd5df0)
+    #1 0x7fe7ecd659ba in ft_free third_party/freetype2/src/src/base/ftsystem.c:130:5
+    #2 0x7fe7ecd660e5 in FT_Load_Glyph third_party/freetype2/src/src/base/ftutil.c:171:7
+    #3 0x7fe7e9d5efeb in _cairo_ft_scaled_glyph_init /build/buildd/cairo-1.13.0~20140204/src/cairo-ft-font.c:2249
+    #4 0x7fe7e5c0ff1f in _gdk_window_process_updates_recurse /build/gtk+2.0-KsZSEA/gtk+2.0-2.24.23/gdk/gdkwindow.c:5484
+    #5 0x7fe7ee0a111c in base::MessageLoop::RunHandler() base/message_loop/message_loop.cc:440:3
+    #6 0x7fe7ee0c2967 in base::RunLoop::Run() base/run_loop.cc:35:3
+    #7 0x7fe7eddc078c in ChromeBrowserMainParts::MainMessageLoopRun(int*) chrome/browser/chrome_browser_main.cc:1820:3
+    #8 0x7fe7f1f415c1 in content::BrowserMainLoop::RunMainMessageLoopParts() content/browser/browser_main_loop.cc:959:21
+    #9 0x7fe7f1c36718 in content::BrowserMainRunnerImpl::Run() content/browser/browser_main_runner.cc:152:5
+    #10 0x7fe7f1c35df8 in content::BrowserMain(content::MainFunctionParams const&) content/browser/browser_main.cc:44:15
+    #11 0x7fe7ee02cf9c in content::RunNamedProcessTypeMain(std::__1::basic_string<char, std::__1::char_traits<char>, std::__1::allocator<char> > const&, content::MainFunctionParams const&, content::ContentMainDelegate*) content/app/content_main_runner.cc:399:14
+    #12 0x7fe7ee02dd12 in content::ContentMainRunnerImpl::Run() content/app/content_main_runner.cc:772:12
+    #13 0x7fe7ee02bf7f in content::ContentMain(content::ContentMainParams const&) content/app/content_main.cc:19:15
+    #14 0x7fe7eda8a488 in ChromeMain chrome/app/chrome_main.cc:84:12
+    #15 0x7fe7eda8a3ff in main chrome/app/chrome_exe_main_aura.cc:17:10
+
+  Location is heap block of size 24 at 0x7d08001379c0 allocated by main thread:
+    #0 0x7fe7eda2a9d5 in malloc (/mnt/scratch0/clusterfuzz/bot/builds/chromium-browser-tsan_linux-release_e1f0dbf462d779d5196ef318a224a998657a9c66/revisions/tsan-linux-release-381668/chrome+0xbd59d4)
+    #1 0x7fe7ecd6594a in ft_alloc third_party/freetype2/src/src/base/ftsystem.c:74:12
+    #2 0x7fe7ecd69f0b in ft_glyphslot_alloc_bitmap third_party/freetype2/src/src/base/ftutil.c:76:15
+    #3 0x7fe7ecdbfbf0 in Load_SBit_Image third_party/freetype2/src/src/sfnt/ttsbit.c:1313:15
+    #4 0x7fe7ecdbc0a7 in tt_face_load_sbit_image third_party/freetype2/src/src/sfnt/ttsbit.c:1476:13
+    #5 0x7fe7ecdc3698 in Load_Glyph third_party/freetype2/src/src/truetype/ttgload.c:1790:13
+    #6 0x7fe7ecd6641a in FT_Load_Glyph third_party/freetype2/src/src/base/ftobjs.c:690:15
+    #7 0x7fe7e9d5efeb in _cairo_ft_scaled_glyph_init /build/buildd/cairo-1.13.0~20140204/src/cairo-ft-font.c:2249
+    #8 0x7fe7e5c0ff1f in _gdk_window_process_updates_recurse /build/gtk+2.0-KsZSEA/gtk+2.0-2.24.23/gdk/gdkwindow.c:5484
+    #9 0x7fe7ee0a111c in base::MessageLoop::RunHandler() base/message_loop/message_loop.cc:440:3
+    #10 0x7fe7ee0c2967 in base::RunLoop::Run() base/run_loop.cc:35:3
+    #11 0x7fe7eddc078c in ChromeBrowserMainParts::MainMessageLoopRun(int*) chrome/browser/chrome_browser_main.cc:1820:3
+    #12 0x7fe7f1f415c1 in content::BrowserMainLoop::RunMainMessageLoopParts() content/browser/browser_main_loop.cc:959:21
+    #13 0x7fe7f1c36718 in content::BrowserMainRunnerImpl::Run() content/browser/browser_main_runner.cc:152:5
+    #14 0x7fe7f1c35df8 in content::BrowserMain(content::MainFunctionParams const&) content/browser/browser_main.cc:44:15
+    #15 0x7fe7ee02cf9c in content::RunNamedProcessTypeMain(std::__1::basic_string<char, std::__1::char_traits<char>, std::__1::allocator<char> > const&, content::MainFunctionParams const&, content::ContentMainDelegate*) content/app/content_main_runner.cc:399:14
+    #16 0x7fe7ee02dd12 in content::ContentMainRunnerImpl::Run() content/app/content_main_runner.cc:772:12
+    #17 0x7fe7ee02bf7f in content::ContentMain(content::ContentMainParams const&) content/app/content_main.cc:19:15
+    #18 0x7fe7eda8a488 in ChromeMain chrome/app/chrome_main.cc:84:12
+    #19 0x7fe7eda8a3ff in main chrome/app/chrome_exe_main_aura.cc:17:10
+
+  Mutex M21069 (0x7d0c001878c0) created at:
+    #0 0x7fe7eda2dc04 in pthread_mutex_init (/mnt/scratch0/clusterfuzz/bot/builds/chromium-browser-tsan_linux-release_e1f0dbf462d779d5196ef318a224a998657a9c66/revisions/tsan-linux-release-381668/chrome+0xbd8c03)
+    #1 0x7fe7ebf4f5b8 in libglib-2.0.so.0
+    #2 0x7fe7e5c0ff1f in _gdk_window_process_updates_recurse /build/gtk+2.0-KsZSEA/gtk+2.0-2.24.23/gdk/gdkwindow.c:5484
+    #3 0x7fe7ee0a111c in base::MessageLoop::RunHandler() base/message_loop/message_loop.cc:440:3
+    #4 0x7fe7ee0c2967 in base::RunLoop::Run() base/run_loop.cc:35:3
+    #5 0x7fe7eddc078c in ChromeBrowserMainParts::MainMessageLoopRun(int*) chrome/browser/chrome_browser_main.cc:1820:3
+    #6 0x7fe7f1f415c1 in content::BrowserMainLoop::RunMainMessageLoopParts() content/browser/browser_main_loop.cc:959:21
+    #7 0x7fe7f1c36718 in content::BrowserMainRunnerImpl::Run() content/browser/browser_main_runner.cc:152:5
+    #8 0x7fe7f1c35df8 in content::BrowserMain(content::MainFunctionParams const&) content/browser/browser_main.cc:44:15
+    #9 0x7fe7ee02cf9c in content::RunNamedProcessTypeMain(std::__1::basic_string<char, std::__1::char_traits<char>, std::__1::allocator<char> > const&, content::MainFunctionParams const&, content::ContentMainDelegate*) content/app/content_main_runner.cc:399:14
+    #10 0x7fe7ee02dd12 in content::ContentMainRunnerImpl::Run() content/app/content_main_runner.cc:772:12
+    #11 0x7fe7ee02bf7f in content::ContentMain(content::ContentMainParams const&) content/app/content_main.cc:19:15
+    #12 0x7fe7eda8a488 in ChromeMain chrome/app/chrome_main.cc:84:12
+    #13 0x7fe7eda8a3ff in main chrome/app/chrome_exe_main_aura.cc:17:10
+
+  Mutex M21097 (0x7d54000a17f0) created at:
+    #0 0x7fe7eda4566f in pthread_mutex_lock (/mnt/scratch0/clusterfuzz/bot/builds/chromium-browser-tsan_linux-release_e1f0dbf462d779d5196ef318a224a998657a9c66/revisions/tsan-linux-release-381668/chrome+0xbf066e)
+    #1 0x7fe7e9d0de07 in _cairo_scaled_font_freeze_cache /build/buildd/cairo-1.13.0~20140204/src/cairo-scaled-font.c:798
+    #2 0x7fe7e5c0ff1f in _gdk_window_process_updates_recurse /build/gtk+2.0-KsZSEA/gtk+2.0-2.24.23/gdk/gdkwindow.c:5484
+    #3 0x7fe7ee0a111c in base::MessageLoop::RunHandler() base/message_loop/message_loop.cc:440:3
+    #4 0x7fe7ee0c2967 in base::RunLoop::Run() base/run_loop.cc:35:3
+    #5 0x7fe7eddc078c in ChromeBrowserMainParts::MainMessageLoopRun(int*) chrome/browser/chrome_browser_main.cc:1820:3
+    #6 0x7fe7f1f415c1 in content::BrowserMainLoop::RunMainMessageLoopParts() content/browser/browser_main_loop.cc:959:21
+    #7 0x7fe7f1c36718 in content::BrowserMainRunnerImpl::Run() content/browser/browser_main_runner.cc:152:5
+    #8 0x7fe7f1c35df8 in content::BrowserMain(content::MainFunctionParams const&) content/browser/browser_main.cc:44:15
+    #9 0x7fe7ee02cf9c in content::RunNamedProcessTypeMain(std::__1::basic_string<char, std::__1::char_traits<char>, std::__1::allocator<char> > const&, content::MainFunctionParams const&, content::ContentMainDelegate*) content/app/content_main_runner.cc:399:14
+    #10 0x7fe7ee02dd12 in content::ContentMainRunnerImpl::Run() content/app/content_main_runner.cc:772:12
+    #11 0x7fe7ee02bf7f in content::ContentMain(content::ContentMainParams const&) content/app/content_main.cc:19:15
+    #12 0x7fe7eda8a488 in ChromeMain chrome/app/chrome_main.cc:84:12
+    #13 0x7fe7eda8a3ff in main chrome/app/chrome_exe_main_aura.cc:17:10
+
+  Mutex M21068 (0x7d7800009028) created at:
+    #0 0x7fe7eda2dc04 in pthread_mutex_init (/mnt/scratch0/clusterfuzz/bot/builds/chromium-browser-tsan_linux-release_e1f0dbf462d779d5196ef318a224a998657a9c66/revisions/tsan-linux-release-381668/chrome+0xbd8c03)
+    #1 0x7fe7e9cd561b in _cairo_device_init /build/buildd/cairo-1.13.0~20140204/src/cairo-device.c:177
+    #2 0x7fe7e5c0ff1f in _gdk_window_process_updates_recurse /build/gtk+2.0-KsZSEA/gtk+2.0-2.24.23/gdk/gdkwindow.c:5484
+    #3 0x7fe7ee0a111c in base::MessageLoop::RunHandler() base/message_loop/message_loop.cc:440:3
+    #4 0x7fe7ee0c2967 in base::RunLoop::Run() base/run_loop.cc:35:3
+    #5 0x7fe7eddc078c in ChromeBrowserMainParts::MainMessageLoopRun(int*) chrome/browser/chrome_browser_main.cc:1820:3
+    #6 0x7fe7f1f415c1 in content::BrowserMainLoop::RunMainMessageLoopParts() content/browser/browser_main_loop.cc:959:21
+    #7 0x7fe7f1c36718 in content::BrowserMainRunnerImpl::Run() content/browser/browser_main_runner.cc:152:5
+    #8 0x7fe7f1c35df8 in content::BrowserMain(content::MainFunctionParams const&) content/browser/browser_main.cc:44:15
+    #9 0x7fe7ee02cf9c in content::RunNamedProcessTypeMain(std::__1::basic_string<char, std::__1::char_traits<char>, std::__1::allocator<char> > const&, content::MainFunctionParams const&, content::ContentMainDelegate*) content/app/content_main_runner.cc:399:14
+    #10 0x7fe7ee02dd12 in content::ContentMainRunnerImpl::Run() content/app/content_main_runner.cc:772:12
+    #11 0x7fe7ee02bf7f in content::ContentMain(content::ContentMainParams const&) content/app/content_main.cc:19:15
+    #12 0x7fe7eda8a488 in ChromeMain chrome/app/chrome_main.cc:84:12
+    #13 0x7fe7eda8a3ff in main chrome/app/chrome_exe_main_aura.cc:17:10
+
+  Mutex M20937 (0x7d44000c76d0) created at:
+    #0 0x7fe7eda4566f in pthread_mutex_lock (/mnt/scratch0/clusterfuzz/bot/builds/chromium-browser-tsan_linux-release_e1f0dbf462d779d5196ef318a224a998657a9c66/revisions/tsan-linux-release-381668/chrome+0xbf066e)
+    #1 0x7fe7e9d5d5b5 in _cairo_ft_unscaled_font_lock_face /build/buildd/cairo-1.13.0~20140204/src/cairo-ft-font.c:649
+    #2 0x7fe7f15808d7 in ui::SelectFileDialog::SelectFile(ui::SelectFileDialog::Type, std::__1::basic_string<unsigned short, base::string16_char_traits, std::__1::allocator<unsigned short> > const&, base::FilePath const&, ui::SelectFileDialog::FileTypeInfo const*, int, std::__1::basic_string<char, std::__1::char_traits<char>, std::__1::allocator<char> > const&, aura::Window*, void*) ui/shell_dialogs/select_file_dialog.cc:100:3
+    #3 0x7fe7eddd4846 in SavePackageFilePicker::SavePackageFilePicker(content::WebContents*, base::FilePath const&, std::__1::basic_string<char, std::__1::char_traits<char>, std::__1::allocator<char> > const&, bool, DownloadPrefs*, base::Callback<void (base::FilePath const&, content::SavePageType, base::Callback<void (content::DownloadItem*), (base::internal::CopyMode)1> const&), (base::internal::CopyMode)1> const&) chrome/browser/download/save_package_file_picker.cc:214:5
+    #4 0x7fe7eddc5793 in ChromeDownloadManagerDelegate::ChooseSavePath(content::WebContents*, base::FilePath const&, std::__1::basic_string<char, std::__1::char_traits<char>, std::__1::allocator<char> > const&, bool, base::Callback<void (base::FilePath const&, content::SavePageType, base::Callback<void (content::DownloadItem*), (base::internal::CopyMode)1> const&), (base::internal::CopyMode)1> const&) chrome/browser/download/chrome_download_manager_delegate.cc:425:7
+    #5 0x7fe7f1fbd856 in content::SavePackage::ContinueGetSaveInfo(base::FilePath const&, bool) content/browser/download/save_package.cc:1473:3
+    #6 0x7fe7f1fc67cf in base::internal::Invoker<base::IndexSequence<0ul, 1ul, 2ul>, base::internal::BindState<base::internal::RunnableAdapter<void (content::SavePackage::*)(base::FilePath const&, bool)>, void (content::SavePackage*, base::FilePath const&, bool), content::SavePackage*, base::FilePath&, bool&>, base::internal::InvokeHelper<false, void, base::internal::RunnableAdapter<void (content::SavePackage::*)(base::FilePath const&, bool)> >, void ()>::Run(base::internal::BindStateBase*) base/bind_internal.h:181:12
+    #7 0x7fe7ee11805e in base::debug::TaskAnnotator::RunTask(char const*, base::PendingTask const&) base/callback.h:397:12
+    #8 0x7fe7ee0a1723 in base::MessageLoop::RunTask(base::PendingTask const&) base/message_loop/message_loop.cc:476:3
+    #9 0x7fe7ee0a1cbe in base::MessageLoop::DeferOrRunPendingTask(base::PendingTask const&) base/message_loop/message_loop.cc:485:5
+    #10 0x7fe7ee0a20a6 in base::MessageLoop::DoWork() base/message_loop/message_loop.cc:597:13
+    #11 0x7fe7ee1162d8 in base::(anonymous namespace)::WorkSourceDispatch(_GSource*, int (*)(void*), void*) base/message_loop/message_pump_glib.cc:267:7
+    #12 0x7fe7ebf0de04 in g_main_context_dispatch (/lib/x86_64-linux-gnu/libglib-2.0.so.0+0x48e03)
+    #13 0x7fe7ee0a111c in base::MessageLoop::RunHandler() base/message_loop/message_loop.cc:440:3
+    #14 0x7fe7ee0c2967 in base::RunLoop::Run() base/run_loop.cc:35:3
+    #15 0x7fe7eddc078c in ChromeBrowserMainParts::MainMessageLoopRun(int*) chrome/browser/chrome_browser_main.cc:1820:3
+    #16 0x7fe7f1f415c1 in content::BrowserMainLoop::RunMainMessageLoopParts() content/browser/browser_main_loop.cc:959:21
+    #17 0x7fe7f1c36718 in content::BrowserMainRunnerImpl::Run() content/browser/browser_main_runner.cc:152:5
+    #18 0x7fe7f1c35df8 in content::BrowserMain(content::MainFunctionParams const&) content/browser/browser_main.cc:44:15
+    #19 0x7fe7ee02cf9c in content::RunNamedProcessTypeMain(std::__1::basic_string<char, std::__1::char_traits<char>, std::__1::allocator<char> > const&, content::MainFunctionParams const&, content::ContentMainDelegate*) content/app/content_main_runner.cc:399:14
+    #20 0x7fe7ee02dd12 in content::ContentMainRunnerImpl::Run() content/app/content_main_runner.cc:772:12
+    #21 0x7fe7ee02bf7f in content::ContentMain(content::ContentMainParams const&) content/app/content_main.cc:19:15
+    #22 0x7fe7eda8a488 in ChromeMain chrome/app/chrome_main.cc:84:12
+    #23 0x7fe7eda8a3ff in main chrome/app/chrome_exe_main_aura.cc:17:10
+
+SUMMARY: ThreadSanitizer: heap-use-after-free (/mnt/scratch0/clusterfuzz/bot/builds/chromium-browser-tsan_linux-release_e1f0dbf462d779d5196ef318a224a998657a9c66/revisions/tsan-linux-release-381668/chrome+0xbd61be) in __interceptor_memcpy
+==================
+
++----------------------------------------Release Build Unsymbolized Stacktrace (diff)----------------------------------------+
+
+  Mutex M21069 (0x7d0c001878c0) created at:
+    #0 0x7fe7eda2dc04 in pthread_mutex_init (/mnt/scratch0/clusterfuzz/bot/builds/chromium-browser-tsan_linux-release_e1f0dbf462d779d5196ef318a224a998657a9c66/revisions/tsan-linux-release-381668/chrome+0xbd8c03)
+    #1 0x7fe7ebf4f5b8  (/lib/x86_64-linux-gnu/libglib-2.0.so.0+0x8a5b7)
+    #2 0x7fe7e5c0ff1f in _gdk_window_process_updates_recurse /build/gtk+2.0-KsZSEA/gtk+2.0-2.24.23/gdk/gdkwindow.c:5484
+    #3 0x7fe7ee0a111c in base::MessageLoop::RunHandler() base/message_loop/message_loop.cc:440:3
+    #4 0x7fe7ee0c2967 in base::RunLoop::Run() base/run_loop.cc:35:3
+    #5 0x7fe7eddc078c in ChromeBrowserMainParts::MainMessageLoopRun(int*) chrome/browser/chrome_browser_main.cc:1820:3
+    #6 0x7fe7f1f415c1 in content::BrowserMainLoop::RunMainMessageLoopParts() content/browser/browser_main_loop.cc:959:21
+    #7 0x7fe7f1c36718 in content::BrowserMainRunnerImpl::Run() content/browser/browser_main_runner.cc:152:5
+    #8 0x7fe7f1c35df8 in content::BrowserMain(content::MainFunctionParams const&) content/browser/browser_main.cc:44:15
+    #9 0x7fe7ee02cf9c in content::RunNamedProcessTypeMain(std::__1::basic_string<char, std::__1::char_traits<char>, std::__1::allocator<char> > const&, content::MainFunctionParams const&, content::ContentMainDelegate*) content/app/content_main_runner.cc:399:14
+    #10 0x7fe7ee02dd12 in content::ContentMainRunnerImpl::Run() content/app/content_main_runner.cc:772:12
+    #11 0x7fe7ee02bf7f in content::ContentMain(content::ContentMainParams const&) content/app/content_main.cc:19:15
+    #12 0x7fe7eda8a488 in ChromeMain chrome/app/chrome_main.cc:84:12
+    #13 0x7fe7eda8a3ff in main chrome/app/chrome_exe_main_aura.cc:17:10
+
+  Mutex M21097 (0x7d54000a17f0) created at:
+    #0 0x7fe7eda4566f in pthread_mutex_lock (/mnt/scratch0/clusterfuzz/bot/builds/chromium-browser-tsan_linux-release_e1f0dbf462d779d5196ef318a224a998657a9c66/revisions/tsan-linux-release-381668/chrome+0xbf066e)
+    #1 0x7fe7e9d0de07 in _cairo_scaled_font_freeze_cache /build/buildd/cairo-1.13.0~20140204/src/cairo-scaled-font.c:798
+    #2 0x7fe7e5c0ff1f in _gdk_window_process_updates_recurse /build/gtk+2.0-KsZSEA/gtk+2.0-2.24.23/gdk/gdkwindow.c:5484
+    #3 0x7fe7ee0a111c in base::MessageLoop::RunHandler() base/message_loop/message_loop.cc:440:3
+    #4 0x7fe7ee0c2967 in base::RunLoop::Run() base/run_loop.cc:35:3
+    #5 0x7fe7eddc078c in ChromeBrowserMainParts::MainMessageLoopRun(int*) chrome/browser/chrome_browser_main.cc:1820:3
+    #6 0x7fe7f1f415c1 in content::BrowserMainLoop::RunMainMessageLoopParts() content/browser/browser_main_loop.cc:959:21
+    #7 0x7fe7f1c36718 in content::BrowserMainRunnerImpl::Run() content/browser/browser_main_runner.cc:152:5
+    #8 0x7fe7f1c35df8 in content::BrowserMain(content::MainFunctionParams const&) content/browser/browser_main.cc:44:15
+    #9 0x7fe7ee02cf9c in content::RunNamedProcessTypeMain(std::__1::basic_string<char, std::__1::char_traits<char>, std::__1::allocator<char> > const&, content::MainFunctionParams const&, content::ContentMainDelegate*) content/app/content_main_runner.cc:399:14
+    #10 0x7fe7ee02dd12 in content::ContentMainRunnerImpl::Run() content/app/content_main_runner.cc:772:12
+    #11 0x7fe7ee02bf7f in content::ContentMain(content::ContentMainParams const&) content/app/content_main.cc:19:15
+    #12 0x7fe7eda8a488 in ChromeMain chrome/app/chrome_main.cc:84:12
+    #13 0x7fe7eda8a3ff in main chrome/app/chrome_exe_main_aura.cc:17:10
+
+  Mutex M21068 (0x7d7800009028) created at:
+    #0 0x7fe7eda2dc04 in pthread_mutex_init (/mnt/scratch0/clusterfuzz/bot/builds/chromium-browser-tsan_linux-release_e1f0dbf462d779d5196ef318a224a998657a9c66/revisions/tsan-linux-release-381668/chrome+0xbd8c03)
+    #1 0x7fe7e9cd561b in _cairo_device_init /build/buildd/cairo-1.13.0~20140204/src/cairo-device.c:177
+    #2 0x7fe7e5c0ff1f in _gdk_window_process_updates_recurse /build/gtk+2.0-KsZSEA/gtk+2.0-2.24.23/gdk/gdkwindow.c:5484
+    #3 0x7fe7ee0a111c in base::MessageLoop::RunHandler() base/message_loop/message_loop.cc:440:3
+    #4 0x7fe7ee0c2967 in base::RunLoop::Run() base/run_loop.cc:35:3
+    #5 0x7fe7eddc078c in ChromeBrowserMainParts::MainMessageLoopRun(int*) chrome/browser/chrome_browser_main.cc:1820:3
+    #6 0x7fe7f1f415c1 in content::BrowserMainLoop::RunMainMessageLoopParts() content/browser/browser_main_loop.cc:959:21
+    #7 0x7fe7f1c36718 in content::BrowserMainRunnerImpl::Run() content/browser/browser_main_runner.cc:152:5
+    #8 0x7fe7f1c35df8 in content::BrowserMain(content::MainFunctionParams const&) content/browser/browser_main.cc:44:15
+    #9 0x7fe7ee02cf9c in content::RunNamedProcessTypeMain(std::__1::basic_string<char, std::__1::char_traits<char>, std::__1::allocator<char> > const&, content::MainFunctionParams const&, content::ContentMainDelegate*) content/app/content_main_runner.cc:399:14
+    #10 0x7fe7ee02dd12 in content::ContentMainRunnerImpl::Run() content/app/content_main_runner.cc:772:12
+    #11 0x7fe7ee02bf7f in content::ContentMain(content::ContentMainParams const&) content/app/content_main.cc:19:15
+    #12 0x7fe7eda8a488 in ChromeMain chrome/app/chrome_main.cc:84:12
+    #13 0x7fe7eda8a3ff in main chrome/app/chrome_exe_main_aura.cc:17:10
+
+  Mutex M20937 (0x7d44000c76d0) created at:
+    #0 0x7fe7eda4566f in pthread_mutex_lock (/mnt/scratch0/clusterfuzz/bot/builds/chromium-browser-tsan_linux-release_e1f0dbf462d779d5196ef318a224a998657a9c66/revisions/tsan-linux-release-381668/chrome+0xbf066e)
+    #1 0x7fe7e9d5d5b5 in _cairo_ft_unscaled_font_lock_face /build/buildd/cairo-1.13.0~20140204/src/cairo-ft-font.c:649
+    #2 0x7fe7f15808d7 in ui::SelectFileDialog::SelectFile(ui::SelectFileDialog::Type, std::__1::basic_string<unsigned short, base::string16_char_traits, std::__1::allocator<unsigned short> > const&, base::FilePath const&, ui::SelectFileDialog::FileTypeInfo const*, int, std::__1::basic_string<char, std::__1::char_traits<char>, std::__1::allocator<char> > const&, aura::Window*, void*) ui/shell_dialogs/select_file_dialog.cc:100:3
+    #3 0x7fe7eddd4846 in SavePackageFilePicker::SavePackageFilePicker(content::WebContents*, base::FilePath const&, std::__1::basic_string<char, std::__1::char_traits<char>, std::__1::allocator<char> > const&, bool, DownloadPrefs*, base::Callback<void (base::FilePath const&, content::SavePageType, base::Callback<void (content::DownloadItem*), (base::internal::CopyMode)1> const&), (base::internal::CopyMode)1> const&) chrome/browser/download/save_package_file_picker.cc:214:5
+    #4 0x7fe7eddc5793 in ChromeDownloadManagerDelegate::ChooseSavePath(content::WebContents*, base::FilePath const&, std::__1::basic_string<char, std::__1::char_traits<char>, std::__1::allocator<char> > const&, bool, base::Callback<void (base::FilePath const&, content::SavePageType, base::Callback<void (content::DownloadItem*), (base::internal::CopyMode)1> const&), (base::internal::CopyMode)1> const&) chrome/browser/download/chrome_download_manager_delegate.cc:425:7
+    #5 0x7fe7f1fbd856 in content::SavePackage::ContinueGetSaveInfo(base::FilePath const&, bool) content/browser/download/save_package.cc:1473:3
+    #6 0x7fe7f1fc67cf in base::internal::Invoker<base::IndexSequence<0ul, 1ul, 2ul>, base::internal::BindState<base::internal::RunnableAdapter<void (content::SavePackage::*)(base::FilePath const&, bool)>, void (content::SavePackage*, base::FilePath const&, bool), content::SavePackage*, base::FilePath&, bool&>, base::internal::InvokeHelper<false, void, base::internal::RunnableAdapter<void (content::SavePackage::*)(base::FilePath const&, bool)> >, void ()>::Run(base::internal::BindStateBase*) base/bind_internal.h:181:12
+    #7 0x7fe7ee11805e in base::debug::TaskAnnotator::RunTask(char const*, base::PendingTask const&) base/callback.h:397:12
+    #8 0x7fe7ee0a1723 in base::MessageLoop::RunTask(base::PendingTask const&) base/message_loop/message_loop.cc:476:3
+    #9 0x7fe7ee0a1cbe in base::MessageLoop::DeferOrRunPendingTask(base::PendingTask const&) base/message_loop/message_loop.cc:485:5
+    #10 0x7fe7ee0a20a6 in base::MessageLoop::DoWork() base/message_loop/message_loop.cc:597:13
+    #11 0x7fe7ee1162d8 in base::(anonymous namespace)::WorkSourceDispatch(_GSource*, int (*)(void*), void*) base/message_loop/message_pump_glib.cc:267:7
+    #12 0x7fe7ebf0de04 in g_main_context_dispatch (/lib/x86_64-linux-gnu/libglib-2.0.so.0+0x48e03)
+    #13 0x7fe7ee0a111c in base::MessageLoop::RunHandler() base/message_loop/message_loop.cc:440:3
+    #14 0x7fe7ee0c2967 in base::RunLoop::Run() base/run_loop.cc:35:3
+    #15 0x7fe7eddc078c in ChromeBrowserMainParts::MainMessageLoopRun(int*) chrome/browser/chrome_browser_main.cc:1820:3
+    #16 0x7fe7f1f415c1 in content::BrowserMainLoop::RunMainMessageLoopParts() content/browser/browser_main_loop.cc:959:21
+    #17 0x7fe7f1c36718 in content::BrowserMainRunnerImpl::Run() content/browser/browser_main_runner.cc:152:5
+    #18 0x7fe7f1c35df8 in content::BrowserMain(content::MainFunctionParams const&) content/browser/browser_main.cc:44:15
+    #19 0x7fe7ee02cf9c in content::RunNamedProcessTypeMain(std::__1::basic_string<char, std::__1::char_traits<char>, std::__1::allocator<char> > const&, content::MainFunctionParams const&, content::ContentMainDelegate*) content/app/content_main_runner.cc:399:14
+    #20 0x7fe7ee02dd12 in content::ContentMainRunnerImpl::Run() content/app/content_main_runner.cc:772:12
+    #21 0x7fe7ee02bf7f in content::ContentMain(content::ContentMainParams const&) content/app/content_main.cc:19:15
+    #22 0x7fe7eda8a488 in ChromeMain chrome/app/chrome_main.cc:84:12
+    #23 0x7fe7eda8a3ff in main chrome/app/chrome_exe_main_aura.cc:17:10
+SUMMARY: ThreadSanitizer: heap-use-after-free (/mnt/scratch0/clusterfuzz/bot/builds/chromium-browser-tsan_linux-release_e1f0dbf462d779d5196ef318a224a998657a9c66/revisions/tsan-linux-release-381668/chrome+0xbd61be) in __interceptor_memcpy
+==================
+==================
+WARNING: ThreadSanitizer: heap-use-after-free (pid=26043)
+  Read of size 1 at 0x7d08001379d8 by main thread (mutexes: write M21069, write M21097, write M21068, write M20937):
+    #0 0x7fe7eda2b1bf in memcpy (/mnt/scratch0/clusterfuzz/bot/builds/chromium-browser-tsan_linux-release_e1f0dbf462d779d5196ef318a224a998657a9c66/revisions/tsan-linux-release-381668/chrome+0xbd61be)
+    #1 0x7fe7e9d5edae in memcpy /usr/include/x86_64-linux-gnu/bits/string3.h:51
+    #2 0x7fe7e5c0ff1f in _gdk_window_process_updates_recurse /build/gtk+2.0-KsZSEA/gtk+2.0-2.24.23/gdk/gdkwindow.c:5484
+    #3 0x7fe7ee0a111c in base::MessageLoop::RunHandler() base/message_loop/message_loop.cc:440:3
+    #4 0x7fe7ee0c2967 in base::RunLoop::Run() base/run_loop.cc:35:3
+    #5 0x7fe7eddc078c in ChromeBrowserMainParts::MainMessageLoopRun(int*) chrome/browser/chrome_browser_main.cc:1820:3
+    #6 0x7fe7f1f415c1 in content::BrowserMainLoop::RunMainMessageLoopParts() content/browser/browser_main_loop.cc:959:21
+    #7 0x7fe7f1c36718 in content::BrowserMainRunnerImpl::Run() content/browser/browser_main_runner.cc:152:5
+    #8 0x7fe7f1c35df8 in content::BrowserMain(content::MainFunctionParams const&) content/browser/browser_main.cc:44:15
+    #9 0x7fe7ee02cf9c in content::RunNamedProcessTypeMain(std::__1::basic_string<char, std::__1::char_traits<char>, std::__1::allocator<char> > const&, content::MainFunctionParams const&, content::ContentMainDelegate*) content/app/content_main_runner.cc:399:14
+    #10 0x7fe7ee02dd12 in content::ContentMainRunnerImpl::Run() content/app/content_main_runner.cc:772:12
+    #11 0x7fe7ee02bf7f in content::ContentMain(content::ContentMainParams const&) content/app/content_main.cc:19:15
+    #12 0x7fe7eda8a488 in ChromeMain chrome/app/chrome_main.cc:84:12
+    #13 0x7fe7eda8a3ff in main chrome/app/chrome_exe_main_aura.cc:17:10
+
+  Previous write of size 8 at 0x7d08001379d8 by main thread (mutexes: write M21069, write M21097, write M21068, write M20937):
+    #0 0x7fe7eda2adf1 in free (/mnt/scratch0/clusterfuzz/bot/builds/chromium-browser-tsan_linux-release_e1f0dbf462d779d5196ef318a224a998657a9c66/revisions/tsan-linux-release-381668/chrome+0xbd5df0)
+    #1 0x7fe7ecd659ba in ft_free third_party/freetype2/src/src/base/ftsystem.c:130:5
+    #2 0x7fe7ecd660e5 in FT_Load_Glyph third_party/freetype2/src/src/base/ftutil.c:171:7
+    #3 0x7fe7e9d5efeb in _cairo_ft_scaled_glyph_init /build/buildd/cairo-1.13.0~20140204/src/cairo-ft-font.c:2249
+    #4 0x7fe7e5c0ff1f in _gdk_window_process_updates_recurse /build/gtk+2.0-KsZSEA/gtk+2.0-2.24.23/gdk/gdkwindow.c:5484
+    #5 0x7fe7ee0a111c in base::MessageLoop::RunHandler() base/message_loop/message_loop.cc:440:3
+    #6 0x7fe7ee0c2967 in base::RunLoop::Run() base/run_loop.cc:35:3
+    #7 0x7fe7eddc078c in ChromeBrowserMainParts::MainMessageLoopRun(int*) chrome/browser/chrome_browser_main.cc:1820:3
+    #8 0x7fe7f1f415c1 in content::BrowserMainLoop::RunMainMessageLoopParts() content/browser/browser_main_loop.cc:959:21
+    #9 0x7fe7f1c36718 in content::BrowserMainRunnerImpl::Run() content/browser/browser_main_runner.cc:152:5
+    #10 0x7fe7f1c35df8 in content::BrowserMain(content::MainFunctionParams const&) content/browser/browser_main.cc:44:15
+    #11 0x7fe7ee02cf9c in content::RunNamedProcessTypeMain(std::__1::basic_string<char, std::__1::char_traits<char>, std::__1::allocator<char> > const&, content::MainFunctionParams const&, content::ContentMainDelegate*) content/app/content_main_runner.cc:399:14
+    #12 0x7fe7ee02dd12 in content::ContentMainRunnerImpl::Run() content/app/content_main_runner.cc:772:12
+    #13 0x7fe7ee02bf7f in content::ContentMain(content::ContentMainParams const&) content/app/content_main.cc:19:15
+    #14 0x7fe7eda8a488 in ChromeMain chrome/app/chrome_main.cc:84:12
+    #15 0x7fe7eda8a3ff in main chrome/app/chrome_exe_main_aura.cc:17:10
+
+  Location is heap block of size 24 at 0x7d08001379c0 allocated by main thread:
+    #0 0x7fe7eda2a9d5 in malloc (/mnt/scratch0/clusterfuzz/bot/builds/chromium-browser-tsan_linux-release_e1f0dbf462d779d5196ef318a224a998657a9c66/revisions/tsan-linux-release-381668/chrome+0xbd59d4)
+    #1 0x7fe7ecd6594a in ft_alloc third_party/freetype2/src/src/base/ftsystem.c:74:12
+    #2 0x7fe7ecd69f0b in ft_glyphslot_alloc_bitmap third_party/freetype2/src/src/base/ftutil.c:76:15
+    #3 0x7fe7ecdbfbf0 in Load_SBit_Image third_party/freetype2/src/src/sfnt/ttsbit.c:1313:15
+    #4 0x7fe7ecdbc0a7 in tt_face_load_sbit_image third_party/freetype2/src/src/sfnt/ttsbit.c:1476:13
+    #5 0x7fe7ecdc3698 in Load_Glyph third_party/freetype2/src/src/truetype/ttgload.c:1790:13
+    #6 0x7fe7ecd6641a in FT_Load_Glyph third_party/freetype2/src/src/base/ftobjs.c:690:15
+    #7 0x7fe7e9d5efeb in _cairo_ft_scaled_glyph_init /build/buildd/cairo-1.13.0~20140204/src/cairo-ft-font.c:2249
+    #8 0x7fe7e5c0ff1f in _gdk_window_process_updates_recurse /build/gtk+2.0-KsZSEA/gtk+2.0-2.24.23/gdk/gdkwindow.c:5484
+    #9 0x7fe7ee0a111c in base::MessageLoop::RunHandler() base/message_loop/message_loop.cc:440:3
+    #10 0x7fe7ee0c2967 in base::RunLoop::Run() base/run_loop.cc:35:3
+    #11 0x7fe7eddc078c in ChromeBrowserMainParts::MainMessageLoopRun(int*) chrome/browser/chrome_browser_main.cc:1820:3
+    #12 0x7fe7f1f415c1 in content::BrowserMainLoop::RunMainMessageLoopParts() content/browser/browser_main_loop.cc:959:21
+    #13 0x7fe7f1c36718 in content::BrowserMainRunnerImpl::Run() content/browser/browser_main_runner.cc:152:5
+    #14 0x7fe7f1c35df8 in content::BrowserMain(content::MainFunctionParams const&) content/browser/browser_main.cc:44:15
+    #15 0x7fe7ee02cf9c in content::RunNamedProcessTypeMain(std::__1::basic_string<char, std::__1::char_traits<char>, std::__1::allocator<char> > const&, content::MainFunctionParams const&, content::ContentMainDelegate*) content/app/content_main_runner.cc:399:14
+    #16 0x7fe7ee02dd12 in content::ContentMainRunnerImpl::Run() content/app/content_main_runner.cc:772:12
+    #17 0x7fe7ee02bf7f in content::ContentMain(content::ContentMainParams const&) content/app/content_main.cc:19:15
+    #18 0x7fe7eda8a488 in ChromeMain chrome/app/chrome_main.cc:84:12
+    #19 0x7fe7eda8a3ff in main chrome/app/chrome_exe_main_aura.cc:17:10
+
+  Mutex M21069 (0x7d0c001878c0) created at:
+    #0 0x7fe7eda2dc04 in pthread_mutex_init (/mnt/scratch0/clusterfuzz/bot/builds/chromium-browser-tsan_linux-release_e1f0dbf462d779d5196ef318a224a998657a9c66/revisions/tsan-linux-release-381668/chrome+0xbd8c03)
+    #1 0x7fe7ebf4f5b8  (/lib/x86_64-linux-gnu/libglib-2.0.so.0+0x8a5b7)
+    #2 0x7fe7e5c0ff1f in _gdk_window_process_updates_recurse /build/gtk+2.0-KsZSEA/gtk+2.0-2.24.23/gdk/gdkwindow.c:5484       

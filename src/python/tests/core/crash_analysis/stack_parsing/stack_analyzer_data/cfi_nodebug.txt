@@ -1,0 +1,10 @@
+Received signal 4 ILL_ILLOPN 7fdf1d27c590
+CFI: Most likely a control flow integrity violation; for more information see:
+https://www.chromium.org/developers/testing/control-flow-integrity
+#0 0x7fdf1ae337a8 in abc::def() /blah/blah.cc:111
+#1 0x7fdf14feb340 in foo() /blah/hello.cc:3
+#2 0xbeefbeefbeef in bar() /blah/hello.cc:5
+#3 133713371337ff in hack() /blah/hack.cc:55
+  dx: 0000000000000529  ax: 0000000000001fe9  cx: 0000000000000017  sp: 00007fff77dd82d8
+  ip: 00007fdf1d27c590 efl: 0000000000010202 cgf: ffff000000000033 erf: 0000000000000000
+[end of stack trace]

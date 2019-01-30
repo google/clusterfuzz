@@ -1,0 +1,40 @@
+[3236:3236:0629/123027:ERROR:browser_main_loop.cc(189)] Running without the SUID sandbox! See https://code.google.com/p/chromium/wiki/LinuxSUIDSandboxDevelopment for more information on developing with the sandbox on.
+[3294:3294:0629/123027:ERROR:renderer_main.cc(200)] Running without renderer sandbox
+[3349:3349:0629/123028:ERROR:renderer_main.cc(200)] Running without renderer sandbox
+compilation error: file  line 1 element output
+invalid value for method: undefined
+
+=================================================================
+==3236==ERROR: LeakSanitizer: detected memory leaks
+
+Indirect leak of 3079 byte(s) in 252 object(s) allocated from:
+    #0 0x7f3b595f8acb in __interceptor_malloc ??:?
+    #1 0x7f3b4ed87839 in __GI___strdup /build/buildd/eglibc-2.19/string/strdup.c:42
+
+-----------------------------------------------------
+Suppressions used:
+  count      bytes template
+    360      17792 libfontconfig
+-----------------------------------------------------
+
+SUMMARY: AddressSanitizer: 3079 byte(s) leaked in 252 allocation(s).
+
+=================================================================
+==3294==ERROR: LeakSanitizer: detected memory leaks
+
+Direct leak of 10 byte(s) in 1 object(s) allocated from:
+<b>    #0 0x7fef9d463acb in __interceptor_malloc ??:?</b>
+<b>    #1 0x7fefa091110b in xmlStrndup /mnt/data/b/build/slave/ASAN_Release__symbolized_/build/src/out/Release/../../third_party/libxml/src/xmlstring.c:45</b>
+<b>    #2 0x7fefa09112f7 in xmlStrdup /mnt/data/b/build/slave/ASAN_Release__symbolized_/build/src/out/Release/../../third_party/libxml/src/xmlstring.c:71</b>
+<b>    #3 0x7fefa088726b in xmlGetPropNodeValueInternal /mnt/data/b/build/slave/ASAN_Release__symbolized_/build/src/out/Release/../../third_party/libxml/src/tree.c:6593</b>
+<b>    #4 0x7fefa0884779 in xmlGetNsProp /mnt/data/b/build/slave/ASAN_Release__symbolized_/build/src/out/Release/../../third_party/libxml/src/tree.c:6744</b>
+<b>    #5 0x7fefadf0440e in xsltParseStylesheetOutput /mnt/data/b/build/slave/ASAN_Release__symbolized_/build/src/out/Release/../../third_party/libxslt/libxslt/xslt.c:1186</b>
+
+SUMMARY: AddressSanitizer: 10 byte(s) leaked in 1 allocation(s).
+[0629/123031:ERROR:nacl_helper_linux.cc(317)] NaCl helper process running without a sandbox!
+Most likely you need to configure your SUID sandbox correctly
+-----------------------------------------------------
+Suppressions used:
+  count      bytes template
+      3      18072 libGL.so
+-----------------------------------------------------

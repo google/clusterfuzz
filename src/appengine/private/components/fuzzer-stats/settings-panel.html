@@ -1,0 +1,193 @@
+<!--
+  Copyright 2018 Google LLC
+
+  Licensed under the Apache License, Version 2.0 (the "License");
+  you may not use this file except in compliance with the License.
+  You may obtain a copy of the License at
+
+       http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+-->
+<link rel="import" href="../../bower_components/polymer/polymer.html">
+<link rel="import" href="../../bower_components/iron-icon/iron-icon.html">
+<link rel="import" href="../../bower_components/paper-button/paper-button.html">
+<link rel="import" href="../../bower_components/paper-input/paper-input.html">
+<link rel="import" href="../../bower_components/paper-material/paper-material.html">
+<link rel="import" href="../../bower_components/paper-styles/color.html">
+<link rel="import" href="../../bower_components/paper-dropdown-menu/paper-dropdown-menu.html">
+<link rel="import" href="../../bower_components/paper-item/paper-item.html">
+<link rel="import" href="../../bower_components/paper-listbox/paper-listbox.html">
+<link rel="import" href="../common/render-either/render-either.html">
+<link rel="import" href="date-picker.html">
+
+<dom-module id="settings-panel">
+  <link rel="import" href="../technology/technology.css" type="css">
+  <template>
+    <style>
+      :host {
+        display: block;
+        text-align: center;
+      }
+
+      :host .settings-panel {
+        padding: 5px 10px;
+        display: inline-block;
+        @apply --shadow-elevation-2dp;
+      }
+
+      :host .settings-panel paper-button {
+        vertical-align: baseline;
+      }
+
+      :host .settings-panel span {
+        display: inline-block;
+        width: 150px;
+      }
+
+      :host .settings-panel paper-dropdown-menu {
+        width: 160px;
+      }
+
+      :host .date {
+        width: 160px;
+        display: inline-block;
+      }
+
+      :host #fuzzerName {
+        width: 200px;
+      }
+
+      :host #jobType {
+        width: 200px;
+      }
+    </style>
+    <div class="settings-panel">
+      <paper-dropdown-menu id="fuzzerName" no-animations="true" label="Fuzzer name" noink>
+        <paper-listbox selected="{{settings.fuzzer}}" attr-for-selected="value" slot="dropdown-content" class="dropdown-content">
+          <paper-item value="">All</paper-item>
+          <template is="dom-repeat" items="[[fuzzers]]">
+            <paper-item value="{{item}}">{{item}}</paper-item>
+          </template>
+        </paper-listbox>
+      </paper-dropdown-menu>
+      <paper-dropdown-menu id="jobType" no-animations="true" label="Job type" noink>
+        <paper-listbox class="dropdown-content" attr-for-selected="value" slot="dropdown-content" selected="{{settings.job}}">
+          <paper-item value="">All</paper-item>
+          <template is="dom-repeat" items="[[jobs]]">
+            <paper-item value="{{item}}">{{item}}</paper-item>
+          </template>
+        </paper-listbox>
+      </paper-dropdown-menu>
+      <paper-dropdown-menu disabled="[[settingsDisabled]]" id="groupBy" no-animations="true" label="Group by" noink>
+        <paper-listbox slot="dropdown-content" class="dropdown-content" attr-for-selected="value" selected="{{settings.group_by}}">
+          <template is="dom-repeat" items="[[groupByOptions]]">
+            <paper-item value="{{item.value}}">{{item.label}}</paper-item>
+          </template>
+        </paper-listbox>
+      </paper-dropdown-menu>
+      <date-picker label="Start date (UTC)" value="{{settings.date_start}}"></date-picker>
+      <date-picker disabled="[[settingsDisabled]]" label="End date (UTC, inclusive)" value="{{settings.date_end}}"></date-picker>
+      <paper-button disabled="[[disableSubmit]]" id="submit" raised primary on-tap="submit">
+        Submit
+      </paper-button>
+    </div>
+  </template>
+  <script>
+    Polymer({
+      is: 'settings-panel',
+
+      properties: {
+        loading: {
+          type: Boolean,
+          value: false,
+        },
+
+        disableSubmit: {
+          type: Boolean,
+          computed: 'shouldDisableSubmit(submitDisabled, loading)',
+        },
+
+        submitDisabled: {
+          type: Boolean,
+          value: true,
+        },
+
+        settingsDisabled: {
+          type: Boolean,
+          value: true,
+        },
+
+        settings: Object,
+      },
+
+      observers: [
+        'fuzzerOrJobChanged(settings.*)',
+      ],
+
+      computeGroupBy() {
+        var groupByTime = {
+          value: 'by-time',
+          label: 'Time (Graph)',
+        };
+
+        var groupByDay = {
+          value: 'by-day',
+          label: 'Day (Table)',
+        };
+
+        var groupByRevision = {
+          value: 'by-revision',
+          label: 'Revision (Table)',
+        };
+
+        var groupByJob = {
+          value: 'by-job',
+          label: 'Job (Table)',
+        };
+
+        var groupByFuzzer = {
+          value: 'by-fuzzer',
+          label: 'Fuzzer (Table)',
+        };
+
+        if (this.settings.fuzzer && this.settings.job) {
+          this.groupByOptions = [ groupByDay, groupByRevision, groupByFuzzer, groupByTime ];
+        } else if (this.settings.fuzzer) {
+          this.groupByOptions = [ groupByDay, groupByJob, groupByFuzzer, groupByTime ];
+        } else {
+          this.groupByOptions = [];
+        }
+
+        if (this.groupByOptions.length && !this.settings.group_by) {
+          this.set('settings.group_by', this.groupByOptions[0].value);
+        }
+      },
+
+      fuzzerOrJobChanged(cr) {
+        this.computeGroupBy();
+        this.enableSettings();
+      },
+
+      enableSettings() {
+        this.settingsDisabled = !this.settings.fuzzer;
+        this.submitDisabled = this.settingsDisabled ||
+          !this.settings.group_by || !this.settings.date_start ||
+          !this.settings.date_end;
+      },
+
+      submit() {
+        this.fire('submit-tapped');
+      },
+
+      shouldDisableSubmit(submitDisabled, loading) {
+        return submitDisabled || loading;
+      },
+    });
+  </script>
+</dom-module>
+

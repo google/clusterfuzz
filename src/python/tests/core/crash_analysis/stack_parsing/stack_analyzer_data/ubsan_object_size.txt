@@ -1,0 +1,17 @@
+WARNING: Failed to find function "__sanitizer_print_stack_trace".
+INFO: Seed: 3732777204
+INFO: Loaded 0 modules (0 guards): 
+/home/user/chromium/src/out/ubsan/zlib_uncompress_fuzzer: Running 1 inputs 1 time(s) each.
+Running: ./crash-9e44b23c5648e3595188d48c60848346268573f0
+../../testing/libfuzzer/fuzzers/zlib_uncompress_fuzzer.cc:13:11: runtime error: load of address 0x000106c07ef8 with insufficient space for an object of type 'unsigned int'
+    #0 0x426e58 in boom_internal testing/libfuzzer/fuzzers/zlib_uncompress_fuzzer.cc:13:5
+    #1 0x426e58 in another_boom testing/libfuzzer/fuzzers/zlib_uncompress_fuzzer.cc:20
+    #2 0x426e58 in boom testing/libfuzzer/fuzzers/zlib_uncompress_fuzzer.cc:24
+    #3 0x426e58 in LLVMFuzzerTestOneInput testing/libfuzzer/fuzzers/zlib_uncompress_fuzzer.cc:41
+    #4 0x43a522 in fuzzer::Fuzzer::ExecuteCallback(unsigned char const*, unsigned long) third_party/libFuzzer/src/FuzzerLoop.cpp:550:13
+    #5 0x43a7ea in fuzzer::Fuzzer::RunOne(unsigned char const*, unsigned long) third_party/libFuzzer/src/FuzzerLoop.cpp:501:3
+    #6 0x42749b in fuzzer::RunOneTest(fuzzer::Fuzzer*, char const*, unsigned long) third_party/libFuzzer/src/FuzzerDriver.cpp:268:6
+    #7 0x42960c in fuzzer::FuzzerDriver(int*, char***, int (*)(unsigned char const*, unsigned long)) third_party/libFuzzer/src/FuzzerDriver.cpp:517:9
+    #8 0x43de5e in main third_party/libFuzzer/src/FuzzerMain.cpp:20:10
+    #9 0x7f6c49972f44 in __libc_start_main /build/eglibc-oGUzwX/eglibc-2.19/csu/libc-start.c:287
+    #10 0x40abac in _start (/home/user/chromium/src/out/ubsan/zlib_uncompress_fuzzer+0x40abac)

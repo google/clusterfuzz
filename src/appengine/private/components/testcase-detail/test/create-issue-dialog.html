@@ -1,0 +1,120 @@
+<!--
+  Copyright 2018 Google LLC
+
+  Licensed under the Apache License, Version 2.0 (the "License");
+  you may not use this file except in compliance with the License.
+  You may obtain a copy of the License at
+
+       http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+-->
+<html>
+<head>
+  <script src="../../../bower_components/iron-test-helpers/mock-interactions.js"></script>
+  <script src="../../../bower_components/web-component-tester/browser.js"></script>
+  <script src="../../../bower_components/webcomponentsjs/webcomponents-lite.js"></script>
+  <script src="../../../javascripts/test-helpers.js"></script>
+
+  <link rel="import" href="../create-issue-dialog.html">
+</head>
+<body>
+  <test-fixture id="panel">
+    <template>
+      <create-issue-dialog></create-issue-dialog>
+    </template>
+  </test-fixture>
+  <script>
+    suite2('<create-issue-dialog>', ($) => {
+      const response = JSON.stringify({
+        testcase: {bug_information: '1234'},
+        security_severities: [
+          {name: 'Critical', value: 0},
+          {name: 'High', value: 1, default: true},
+          {name: 'Medium', value: 2}
+        ]
+      });
+      const url = '/testcase-detail/create-issue';
+
+      setup(function() {
+        $.panel.info = {
+          testcase: {
+            id: '456',
+            security_flag: true,
+            bug_information: null
+          },
+          security_severity: 'Critical',
+          security_severities: [
+            {name: 'Critical', value: 0},
+            {name: 'High', value: 1, default: true},
+            {name: 'Medium', value: 2}
+          ]
+        };
+      });
+
+      const testSucceed = (name, expectedBody, initFn, inputFn) => {
+        test2(
+            name,
+            noop,
+            initFn,
+            () => {
+              $.server.respondWith('POST', url, [200, jsonHeaders, response]);
+
+              expect($.select('ajax-dialog').opened).to.be.false;
+              $.panel.opened = true;
+              expect($.select('ajax-dialog').opened).to.be.true;
+
+              inputFn();
+            },
+            () => {
+              $.select('ajax-dialog').submit();
+            },
+            () => {
+              const req = $.select('ajax-dialog').activeRequests[0];
+              expect(JSON.parse(req.xhr.requestBody)).to.be.eql(expectedBody);
+
+              $.server.respond();
+              return req.completes;
+            },
+            () => {
+              expect($.select('ajax-dialog').opened).to.be.false;
+            }
+        );
+      };
+
+      testSucceed(
+          'creates with recommended severity',
+          {testcaseId: '456', ccMe: false, severity: 2},
+          () => { $.panel.set('info.security_severity', 'Medium'); },
+          () => {}
+      );
+
+      testSucceed(
+          'creates with defaulted severity',
+          {testcaseId: '456', ccMe: false, severity: 1},
+          () => { $.panel.set('info.security_severity', null); },
+          () => {}
+      );
+
+      testSucceed(
+          'creates with ccMe',
+          {testcaseId: '456', ccMe: true, severity: 1},
+          () => { $.panel.set('info.security_severity', null); },
+          () => { $.tap('paper-checkbox'); }
+      );
+
+      testSucceed(
+          'creates without security',
+          {testcaseId: '456', ccMe: false},
+          () => { $.panel.set('info.testcase.security_flag', false); },
+          () => {}
+      );
+    });
+  </script>
+</body>
+</html>
+

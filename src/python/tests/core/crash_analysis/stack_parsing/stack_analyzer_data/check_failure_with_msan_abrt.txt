@@ -1,0 +1,41 @@
+[0322/192646.353108:FATAL:string_piece.h(223)] Check failed: i < length_.
+#0 0x00000029f221 <unknown>
+#1 0x0000003847a7 <unknown>
+#2 0x0000003813e9 <unknown>
+#3 0x0000003e770d <unknown>
+#4 0x00000036c7b1 <unknown>
+#5 0x00000036a8fe <unknown>
+#6 0x000000368bcf <unknown>
+#7 0x000000365c2e <unknown>
+#8 0x000000364faf <unknown>
+#9 0x000000363820 <unknown>
+#10 0x0000002d5b21 <unknown>
+#11 0x00000030b44a <unknown>
+#12 0x0000002d6e81 <unknown>
+ #13 0x0000002e2475 <unknown>
+#14 0x00000032b361 <unknown>
+#15 0x7f60199b2830 <unknown>
+#16 0x00000026302a <unknown>
+MemorySanitizer:DEADLYSIGNAL
+==18344==ERROR: MemorySanitizer: ABRT on unknown address 0x0539000047a8 (pc 0x7f60199c7428 bp 0x7fff52f63cf0 sp 0x7fff52f63bb8 T18344)
+    #0 0x7f60199c7427 in gsignal /build/glibc-Cl5G7W/glibc-2.23/sysdeps/unix/sysv/linux/raise.c:54
+    #1 0x7f60199c9029 in abort /build/glibc-Cl5G7W/glibc-2.23/stdlib/abort.c:89
+    #2 0x386f63 in base::debug::BreakDebugger() base/debug/debugger_posix.cc:258:3
+    #3 0x3818c6 in logging::LogMessage::~LogMessage() base/logging.cc:855:7
+    #4 0x3e770c in base::BasicStringPiece<std::__1::basic_string<char, std::__1::char_traits<char>,   std::__1::allocator<char> > >::operator[](unsigned long) const base/strings/string_piece.h:223:5
+    #5 0x36c7b0 in base::internal::JSONParser::ConsumeStringRaw(base::internal::JSONParser::StringBuilder*) base/json/json_parser.cc:515:15
+    #6 0x36a8fd in base::internal::JSONParser::ConsumeString() base/json/json_parser.cc:453:8
+    #7 0x368bce in base::internal::JSONParser::ParseToken(base::internal::JSONParser::Token) base/json/json_parser.cc:320:14
+    #8 0x365c2d in base::internal::JSONParser::ParseNextToken() base/json/json_parser.cc:310:10
+    #9 0x364fae in base::internal::JSONParser::Parse(base::BasicStringPiece<std::__1::basic_string<char, std::__1::char_traits<char>, std::__1::allocator<char> > >) base/json/json_parser.cc:100:24
+    #10 0x36381f in base::JSONReader::ReadAndReturnError(base::BasicStringPiece<std::__1::basic_string<char, std::__1::char_traits<char>, std::__1::allocator<char> > >, int, int*, std::__1::basic_string<char, std::__1::char_traits<char>, std::__1::allocator<char> >*, int*, int*) base/json/json_reader.cc:68:33
+    #11 0x2d5b20 in LLVMFuzzerTestOneInput base/json/json_reader_fuzzer.cc:24:3
+    #12 0x30b449 in fuzzer::Fuzzer::ExecuteCallback(unsigned char const*, unsigned long) third_party/libFuzzer/src/FuzzerLoop.cpp:515:13
+    #13 0x2d6e80 in fuzzer::RunOneTest(fuzzer::Fuzzer*, char const*, unsigned long) third_party/libFuzzer/src/FuzzerDriver.cpp:280:6
+    #14 0x2e2474 in fuzzer::FuzzerDriver(int*, char***, int (*)(unsigned char const*, unsigned long)) third_party/libFuzzer/src/FuzzerDriver.cpp:703:9
+    #15 0x32b360 in main third_party/libFuzzer/src/FuzzerMain.cpp:20:10
+    #16 0x7f60199b282f in __libc_start_main /build/glibc-Cl5G7W/glibc-2.23/csu/libc-start.c:291
+    #17 0x263029 in _start
+MemorySanitizer can not provide additional info.
+SUMMARY: MemorySanitizer: ABRT (/lib/x86_64-linux-gnu/libc.so.6+0x35427)
+==18344==ABORTING

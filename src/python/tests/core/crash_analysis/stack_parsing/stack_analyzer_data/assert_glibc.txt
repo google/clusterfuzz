@@ -1,0 +1,18 @@
+chewing_default_fuzzer: tree.c:860: RecordNode *DuplicateRecordAndInsertInterval(const RecordNode *, TreeDataType *, const int): Assertion `record failed.
+ASAN:DEADLYSIGNAL
+=================================================================
+==1==ERROR: AddressSanitizer: ABRT on unknown address 0x000000000001 (pc 0x7faed4efa418 bp 0x000000734960 sp 0x7ffc43b364e8 T0)
+SCARINESS: 10 (signal)
+#0 0x7faed4efa417 in gsignal (/lib/x86_64-linux-gnu/libc.so.6+0x35417)
+#1 0x7faed4efc019 in abort (/lib/x86_64-linux-gnu/libc.so.6+0x37019)
+#0 0x7faed4ef2bd6 in libc.so.6
+#3 0x7faed4ef2c81 in __assert_fail (/lib/x86_64-linux-gnu/libc.so.6+0x2dc81)
+#4 0x550d27 in DuplicateRecordAndInsertInterval /src/libchewing/src/tree.c:860:5
+#5 0x5490c1 in DoDpPhrasing /src/libchewing/src/tree.c:977:19
+#6 0x5447a9 in Phrasing /src/libchewing/src/tree.c:1019:9
+#7 0x532cfc in CallPhrasing /src/libchewing/src/chewingutil.c:746:5
+#8 0x51ca3c in chewing_handle_Default /src/libchewing/src/chewingio.c:1601:9
+#9 0x51aaaf in chewing_handle_Space /src/libchewing/src/chewingio.c:811:16
+#10 0x50fd2d in type_single_keystroke /src/libchewing/test/testhelper.c:174:13
+#11 0x50ed82 in stress_main /src/libchewing/test/stress.c:222:7
+#12 0x50ce27 in LLVMFuzzerTestOneInput /src/chewing_default_fuzzer.c:12:3

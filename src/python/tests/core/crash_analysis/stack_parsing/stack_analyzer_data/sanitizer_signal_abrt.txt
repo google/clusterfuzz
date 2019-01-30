@@ -1,0 +1,9 @@
+ASAN:SIGABRT
+==28640==ERROR: AddressSanitizer: ABRT (pc 0x7f8632666425 sp 0x7fff0cae8f08 bp 0x7fff0cae91d0 T0)
+    #0 0x7f8632666424 (/lib/x86_64-linux-gnu/libc-2.15.so+0x36424)
+    #1 0x7f8632669b8a (/lib/x86_64-linux-gnu/libc-2.15.so+0x39b8a)
+    #2 0x42b11e (/tmp/coredump+0x42b11e)
+    #3 0x7f863265176c (/lib/x86_64-linux-gnu/libc-2.15.so+0x2176c)
+    #4 0x42ae7c (/tmp/coredump+0x42ae7c)
+Aborted (core dumped)
+

@@ -1,0 +1,16 @@
+#READY
+[15121:3079:0603/143054:1870512625538198:FATAL:fling_curve.cc(48)] Check failed: max_start_velocity > 0 (0 vs. 0)
+0   Content Shell Framework             0x000000010a99b743 _ZN4base5debug10StackTraceC1Ev + 19
+1   Content Shell Framework             0x000000010a9dd9e8 _ZN7logging10LogMessageD2Ev + 392
+2   Content Shell Framework             0x000000010cbf477a _ZN2ui10FlingCurveC2ERKN3gfx9Vector2dFEN4base9TimeTicksE + 698
+3   Content Shell Framework             0x0000000114f10eef _ZN2ui19WebGestureCurveImpl30CreateFromDefaultPlatformCurveERKN3gfx9Vector2dFES4_b + 79
+4   Content Shell Framework             0x0000000114d580bd _ZN7content17BlinkPlatformImpl25createFlingAnimationCurveEN5blink16WebGestureDeviceERKNS1_13WebFloatPointERKNS1_7WebSizeE + 509
+5   Content Shell Framework             0x0000000110208948 _ZN5blink11WebViewImpl18handleGestureEventERKNS_15WebGestureEventE + 2264
+6   Content Shell Framework             0x00000001100edfc9 _ZN5blink18PageWidgetDelegate16handleInputEventERNS_22PageWidgetEventHandlerERKNS_13WebInputEventEPNS_10LocalFrameE + 1417
+7   Content Shell Framework             0x000000011020e303 _ZN5blink11WebViewImpl16handleInputEventERKNS_13WebInputEventE + 2403
+8   Content Shell Framework             0x000000011686f795 _ZN11test_runner11EventSender17GestureFlingStartEffffPN3gin9ArgumentsE + 1925
+9   Content Shell Framework             0x000000011689311f _ZN3gin8internal10DispatcherIFvPN11test_runner19EventSenderBindingsEffffPNS_9ArgumentsEEE18DispatchToCallbackERKN2v820FunctionCallbackInfoINS9_5ValueEEE + 1199
+10  Content Shell Framework             0x000000010e8ba3ed _ZN2v88internal25FunctionCallbackArguments4CallEPFvRKNS_20FunctionCallbackInfoINS_5ValueEEEE + 1069
+11  Content Shell Framework             0x000000010e967f3c _ZN2v88internal12_GLOBAL__N_119HandleApiCallHelperEPNS0_7IsolateENS1_16BuiltinArgumentsILNS0_21BuiltinExtraArgumentsE3EEE + 3356
+12  Content Shell Framework             0x000000010e96cd34 _ZN2v88internalL21Builtin_HandleApiCallEiPPNS0_6ObjectEPNS0_7IsolateE + 372
+13  ???                                 0x00000001221063c7 0x0 + 4866466759

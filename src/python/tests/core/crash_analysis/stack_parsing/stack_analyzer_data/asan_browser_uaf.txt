@@ -1,0 +1,161 @@
+
+=================================================================
+==14363==ERROR: AddressSanitizer: heap-use-after-free on address 0x612000129b40 at pc 0x7f8dd3de9d09 bp 0x7f8c4dedd5c0 sp 0x7f8c4dedd5b8
+READ of size 8 at 0x612000129b40 thread T30 (MidiSendThread)
+    #0 0x7f8dd3de9d08 in base::internal::RunnableAdapter<void (media::midi::MidiManagerClient::*)(unsigned long)>::Run(media::midi::MidiManagerClient*, unsigned long const&) base/bind_internal.h:178:12
+    #1 0x7f8dd3de99de in base::internal::InvokeHelper<false, void, base::internal::RunnableAdapter<void (media::midi::MidiManagerClient::*)(unsigned long)>, base::internal::TypeList<media::midi::MidiManagerClient*, unsigned long const&> >::MakeItSo(base::internal::RunnableAdapter<void (media::midi::MidiManagerClient::*)(unsigned long)>, media::midi::MidiManagerClient*, unsigned long const&) base/bind_internal.h:295:5
+    #2 0x7f8dc3c20537 in base::debug::TaskAnnotator::RunTask(char const*, base::PendingTask const&) base/debug/task_annotator.cc:51:3
+    #3 0x7f8dc3aa9b59 in base::MessageLoop::RunTask(base::PendingTask const&) base/message_loop/message_loop.cc:482:3
+    #4 0x7f8dc3aaa8ed in base::MessageLoop::DeferOrRunPendingTask(base::PendingTask const&) base/message_loop/message_loop.cc:491:5
+    #5 0x7f8dc3aaaf42 in base::MessageLoop::DoWork() base/message_loop/message_loop.cc:603:13
+    #6 0x7f8dc3ab7c15 in base::MessagePumpDefault::Run(base::MessagePump::Delegate*) base/message_loop/message_pump_default.cc:32:21
+    #7 0x7f8dc3aa9035 in base::MessageLoop::RunHandler() base/message_loop/message_loop.cc:446:3
+    #8 0x7f8dc3b062a4 in base::RunLoop::Run() base/run_loop.cc:55:3
+    #9 0x7f8dc3aa65d8 in base::MessageLoop::Run() base/message_loop/message_loop.cc:289:3
+    #10 0x7f8dc3ba2c07 in base::Thread::ThreadMain() base/threading/thread.cc:251:3
+    #11 0x7f8dc3b8ed9c in base::(anonymous namespace)::ThreadFunc(void*) base/threading/platform_thread_posix.cc:64:3
+    #12 0x7f8db9013181 in start_thread /build/buildd/eglibc-2.19/nptl/pthread_create.c:312
+0x612000129b40 is located 64 bytes inside of 256-byte region [0x612000129b00,0x612000129c00)
+freed by thread T15 (Chrome_IOThread) here:
+    #0 0x7f8dc2627d2b in operator delete(void*)
+    #1 0x7f8dcd81cbab in void content::BrowserThread::DeleteOnThread<(content::BrowserThread::ID)6>::Destruct<content::MidiHost>(content::MidiHost const*) content/public/browser/browser_thread.h:257:9
+    #2 0x7f8dc2670924 in base::RefCountedThreadSafe<content::BrowserMessageFilter, content::BrowserMessageFilterTraits>::Release() const base/memory/ref_counted.h:184:7
+    #3 0x7f8dccaab52c in scoped_refptr<content::BrowserMessageFilter>::~scoped_refptr() base/memory/ref_counted.h:298:7
+    #4 0x7f8dccaabac9 in base::internal::BindState<base::internal::RunnableAdapter<bool (content::BrowserMessageFilter::*)(IPC::Message*)>, void (content::BrowserMessageFilter*, IPC::Message*), base::internal::TypeList<content::BrowserMessageFilter*, IPC::Message*> >::Destroy(base::internal::BindStateBase*) base/bind_internal.h:417:5
+    #5 0x7f8dc3a0d98a in base::internal::BindStateBase::Release() base/callback_internal.cc:18:5
+    #6 0x7f8dc3a0dfbc in scoped_refptr<base::internal::BindStateBase>::~scoped_refptr() base/memory/ref_counted.h:298:7
+    #7 0x7f8dc3addbbb in base::PendingTask::~PendingTask() base/pending_task.cc:34:1
+    #8 0x7f8dc3aab13d in base::MessageLoop::DoWork() base/message_loop/message_loop.cc:606:5
+    #9 0x7f8dc39f33fb in base::MessagePumpLibevent::Run(base::MessagePump::Delegate*) base/message_loop/message_pump_libevent.cc:237:21
+    #10 0x7f8dc3aa9035 in base::MessageLoop::RunHandler() base/message_loop/message_loop.cc:446:3
+    #11 0x7f8dc3b062a4 in base::RunLoop::Run() base/run_loop.cc:55:3
+    #12 0x7f8dc3aa65d8 in base::MessageLoop::Run() base/message_loop/message_loop.cc:289:3
+    #13 0x7f8dccb35f35 in content::BrowserThreadImpl::IOThreadRun(base::MessageLoop*) content/browser/browser_thread_impl.cc:211:3
+    #14 0x7f8dccb3633e in content::BrowserThreadImpl::Run(base::MessageLoop*) content/browser/browser_thread_impl.cc:246:14
+    #15 0x7f8dc3ba2c07 in base::Thread::ThreadMain() base/threading/thread.cc:251:3
+    #16 0x7f8dc3b8ed9c in base::(anonymous namespace)::ThreadFunc(void*) base/threading/platform_thread_posix.cc:64:3
+    #17 0x7f8db9013181 in start_thread /build/buildd/eglibc-2.19/nptl/pthread_create.c:312
+
+previously allocated by thread T0 (chrome) here:
+    #0 0x7f8dc262776b in operator new(unsigned long)
+    #1 0x7f8dcce834e1 in content::RenderProcessHostImpl::CreateMessageFilters() content/browser/renderer_host/render_process_host_impl.cc:898:7
+    #2 0x7f8dcce819e5 in content::RenderProcessHostImpl::Init() content/browser/renderer_host/render_process_host_impl.cc:721:3
+    #3 0x7f8dccc852af in content::RenderFrameHostManager::InitRenderView(content::RenderViewHostImpl*, content::RenderFrameProxyHost*) content/browser/frame_host/render_frame_host_manager.cc:2028:8
+    #4 0x7f8dccc8333d in content::RenderFrameHostManager::Navigate(GURL const&, content::FrameNavigationEntry const&, content::NavigationEntryImpl const&) content/browser/frame_host/render_frame_host_manager.cc:421:10
+    #5 0x7f8dcd6958d1 in content::NavigatorImpl::NavigateToEntry(content::FrameTreeNode*, content::FrameNavigationEntry const&, content::NavigationEntryImpl const&, content::NavigationController::ReloadType, bool, bool) content/browser/frame_host/navigator_impl.cc:315:7
+    #6 0x7f8dcd697736 in content::NavigatorImpl::NavigateToPendingEntry(content::FrameTreeNode*, content::FrameNavigationEntry const&, content::NavigationController::ReloadType, bool) content/browser/frame_host/navigator_impl.cc:393:10
+    #7 0x7f8dccc1cc62 in content::NavigationControllerImpl::NavigateToPendingEntryInternal(content::NavigationController::ReloadType) content/browser/frame_host/navigation_controller_impl.cc:1796:12
+    #8 0x7f8dccc0ca69 in content::NavigationControllerImpl::NavigateToPendingEntry(content::NavigationController::ReloadType) content/browser/frame_host/navigation_controller_impl.cc:1773:18
+    #9 0x7f8dccc0db19 in content::NavigationControllerImpl::LoadEntry(scoped_ptr<content::NavigationEntryImpl, std::__1::default_delete<content::NavigationEntryImpl> >) content/browser/frame_host/navigation_controller_impl.cc:441:3
+    #10 0x7f8dccc1146b in content::NavigationControllerImpl::LoadURLWithParams(content::NavigationController::LoadURLParams const&) content/browser/frame_host/navigation_controller_impl.cc:806:3
+    #11 0x7f8dcc04ef7c in (anonymous namespace)::LoadURLInContents(content::WebContents*, GURL const&, chrome::NavigateParams*) chrome/browser/ui/browser_navigator.cc:290:3
+    #12 0x7f8dcc04b0af in chrome::Navigate(chrome::NavigateParams*) chrome/browser/ui/browser_navigator.cc:547:9
+    #13 0x7f8dcc0b851d in StartupBrowserCreatorImpl::OpenTabsInBrowser(Browser*, bool, std::__1::vector<StartupTab, std::__1::allocator<StartupTab> > const&, chrome::HostDesktopType) chrome/browser/ui/startup/startup_browser_creator_impl.cc:774:5
+    #14 0x7f8dcc0b4f74 in StartupBrowserCreatorImpl::ProcessSpecifiedURLs(std::__1::vector<GURL, std::__1::allocator<GURL> > const&, chrome::HostDesktopType) chrome/browser/ui/startup/startup_browser_creator_impl.cc:693:22
+    #15 0x7f8dcc0b3f85 in StartupBrowserCreatorImpl::ProcessStartupURLs(std::__1::vector<GURL, std::__1::allocator<GURL> > const&, chrome::HostDesktopType) chrome/browser/ui/startup/startup_browser_creator_impl.cc:629:22
+    #16 0x7f8dcc0b2309 in StartupBrowserCreatorImpl::ProcessLaunchURLs(bool, std::__1::vector<GURL, std::__1::allocator<GURL> > const&, chrome::HostDesktopType) chrome/browser/ui/startup/startup_browser_creator_impl.cc:515:26
+    #17 0x7f8dcc0b0c16 in StartupBrowserCreatorImpl::Launch(Profile*, std::__1::vector<GURL, std::__1::allocator<GURL> > const&, bool, chrome::HostDesktopType) chrome/browser/ui/startup/startup_browser_creator_impl.cc:348:5
+    #18 0x7f8dcc0a7e6d in StartupBrowserCreator::LaunchBrowser(base::CommandLine const&, Profile*, base::FilePath const&, chrome::startup::IsProcessStartup, chrome::startup::IsFirstRun) chrome/browser/ui/startup/startup_browser_creator.cc:382:27
+    #19 0x7f8dcc0a6ee2 in StartupBrowserCreator::ProcessCmdLineImpl(base::CommandLine const&, base::FilePath const&, bool, Profile*, std::__1::vector<Profile*, std::__1::allocator<Profile*> > const&, StartupBrowserCreator*) chrome/browser/ui/startup/startup_browser_creator.cc:832:12
+    #20 0x7f8dcc0a5658 in StartupBrowserCreator::Start(base::CommandLine const&, base::FilePath const&, Profile*, std::__1::vector<Profile*, std::__1::allocator<Profile*> > const&) chrome/browser/ui/startup/startup_browser_creator.cc:326:10
+    #21 0x7f8dc3052bf4 in ChromeBrowserMainParts::PreMainMessageLoopRunImpl() chrome/browser/chrome_browser_main.cc:1694:24
+    #22 0x7f8dc3050fb7 in ChromeBrowserMainParts::PreMainMessageLoopRun() chrome/browser/chrome_browser_main.cc:1122:18
+    #23 0x7f8dcd4a4588 in content::BrowserMainLoop::PreMainMessageLoopRun() content/browser/browser_main_loop.cc:943:5
+    #24 0x7f8dcd4ae631 in base::internal::InvokeHelper<false, int, base::internal::RunnableAdapter<int (content::BrowserMainLoop::*)()>, base::internal::TypeList<content::BrowserMainLoop*> >::MakeItSo(base::internal::RunnableAdapter<int (content::BrowserMainLoop::*)()>, content::BrowserMainLoop*) base/bind_internal.h:288:12
+    #25 0x7f8dcda6f7ce in content::StartupTaskRunner::RunAllTasksNow() content/browser/startup_task_runner.cc:45:14
+    #26 0x7f8dcd4a13d1 in content::BrowserMainLoop::CreateStartupTasks() content/browser/browser_main_loop.cc:821:3
+    #27 0x7f8dccb2fd99 in content::BrowserMainRunnerImpl::Initialize(content::MainFunctionParams const&) content/browser/browser_main_runner.cc:220:5
+    #28 0x7f8dccb2e7a7 in content::BrowserMain(content::MainFunctionParams const&) content/browser/browser_main.cc:40:19
+    #29 0x7f8dc3953b07 in content::RunNamedProcessTypeMain(std::__1::basic_string<char, std::__1::char_traits<char>, std::__1::allocator<char> > const&, content::MainFunctionParams const&, content::ContentMainDelegate*) content/app/content_main_runner.cc:378:14
+    #30 0x7f8dc3956691 in content::ContentMainRunnerImpl::Run() content/app/content_main_runner.cc:786:12
+    #31 0x7f8dc3951be1 in content::ContentMain(content::ContentMainParams const&) content/app/content_main.cc:19:15
+    #32 0x7f8dc26298f9 in ChromeMain chrome/app/chrome_main.cc:66:12
+    #33 0x7f8db7a30ec4 in __libc_start_main /build/buildd/eglibc-2.19/csu/libc-start.c:287
+
+Thread T30 (MidiSendThread) created by T15 (Chrome_IOThread) here:
+    #0 0x7f8dc25e7789 in __interceptor_pthread_create
+    #1 0x7f8dc3b8dfc3 in base::(anonymous namespace)::CreateThread(unsigned long, bool, base::PlatformThread::Delegate*, base::PlatformThreadHandle*, base::ThreadPriority) base/threading/platform_thread_posix.cc:103:13
+    #2 0x7f8dc3ba1c28 in base::Thread::StartWithOptions(base::Thread::Options const&) base/threading/thread.cc:113:10
+    #3 0x7f8dc3ba197e in base::Thread::Start() base/threading/thread.cc:83:10
+    #4 0x7f8dd3dd0545 in media::midi::MidiManagerAlsa::DispatchSendMidiData(media::midi::MidiManagerClient*, unsigned int, std::__1::vector<unsigned char, std::__1::allocator<unsigned char> > const&, double) media/midi/midi_manager_alsa.cc:285:5
+    #5 0x7f8dcd81da5f in content::MidiHost::OnSendData(unsigned int, std::__1::vector<unsigned char, std::__1::allocator<unsigned char> > const&, double) content/browser/media/midi_host.cc:127:5
+    #6 0x7f8dcd81d3f3 in bool MidiHostMsg_SendData::Dispatch<content::MidiHost, content::MidiHost, void, void (content::MidiHost::*)(unsigned int, std::__1::vector<unsigned char, std::__1::allocator<unsigned char> > const&, double)>(IPC::Message const*, content::MidiHost*, content::MidiHost*, void*, void (content::MidiHost::*)(unsigned int, std::__1::vector<unsigned char, std::__1::allocator<unsigned char> > const&, double)) content/common/media/midi_messages.h:38:1
+    #7 0x7f8dcd81cf79 in content::MidiHost::OnMessageReceived(IPC::Message const&) content/browser/media/midi_host.cc:77:5
+    #8 0x7f8dccaa98e9 in content::BrowserMessageFilter::Internal::OnMessageReceived(IPC::Message const&) content/public/browser/browser_message_filter.cc:67:14
+    #9 0x7f8dc639992a in IPC::(anonymous namespace)::TryFiltersImpl(std::__1::vector<IPC::MessageFilter*, std::__1::allocator<IPC::MessageFilter*> >&, IPC::Message const&) ipc/message_filter_router.cc:20:9
+    #10 0x7f8dc6399753 in IPC::MessageFilterRouter::TryFilters(IPC::Message const&) ipc/message_filter_router.cc:85:10
+    #11 0x7f8dc6364839 in IPC::ChannelProxy::Context::TryFilters(IPC::Message const&) ipc/ipc_channel_proxy.cc:73:7
+    #12 0x7f8dc6364de1 in IPC::ChannelProxy::Context::OnMessageReceived(IPC::Message const&) ipc/ipc_channel_proxy.cc:90:8
+    #13 0x7f8dc63718dd in IPC::internal::ChannelReader::DispatchMessage(IPC::Message*) ipc/ipc_channel_reader.cc:76:3
+    #14 0x7f8dc63727f2 in IPC::internal::ChannelReader::HandleExternalMessage(IPC::Message*, std::__1::vector<IPC::BrokerableAttachment::AttachmentId, std::__1::allocator<IPC::BrokerableAttachment::AttachmentId> > const&) ipc/ipc_channel_reader.cc:205:7
+    #15 0x7f8dc6372302 in IPC::internal::ChannelReader::HandleTranslatedMessage(IPC::Message*, std::__1::vector<IPC::BrokerableAttachment::AttachmentId, std::__1::allocator<IPC::BrokerableAttachment::AttachmentId> > const&) ipc/ipc_channel_reader.cc:186:10
+    #16 0x7f8dc637023d in IPC::internal::ChannelReader::TranslateInputData(char const*, int) ipc/ipc_channel_reader.cc:107:12
+    #17 0x7f8dc636fc07 in IPC::internal::ChannelReader::ProcessIncomingMessages() ipc/ipc_channel_reader.cc:40:10
+    #18 0x7f8dc6357190 in IPC::ChannelPosix::OnFileCanReadWithoutBlocking(int) ipc/ipc_channel_posix.cc:667:9
+    #19 0x7f8dc39f02b3 in base::MessagePumpLibevent::FileDescriptorWatcher::OnFileCanReadWithoutBlocking(int, base::MessagePumpLibevent*) base/message_loop/message_pump_libevent.cc:104:3
+    #20 0x7f8dc39f1c1e in base::MessagePumpLibevent::OnLibeventNotification(int, short, void*) base/message_loop/message_pump_libevent.cc:372:5
+    #21 0x7f8dc3cb27be in event_process_active third_party/libevent/event.c:388:4
+    #22 0x7f8dc3cb0bbe in event_base_loop third_party/libevent/event.c:540:4
+    #23 0x7f8dc39f3304 in base::MessagePumpLibevent::Run(base::MessagePump::Delegate*) base/message_loop/message_pump_libevent.cc:274:9
+    #24 0x7f8dc3aa9035 in base::MessageLoop::RunHandler() base/message_loop/message_loop.cc:446:3
+    #25 0x7f8dc3b062a4 in base::RunLoop::Run() base/run_loop.cc:55:3
+    #26 0x7f8dc3aa65d8 in base::MessageLoop::Run() base/message_loop/message_loop.cc:289:3
+    #27 0x7f8dccb35f35 in content::BrowserThreadImpl::IOThreadRun(base::MessageLoop*) content/browser/browser_thread_impl.cc:211:3
+    #28 0x7f8dccb3633e in content::BrowserThreadImpl::Run(base::MessageLoop*) content/browser/browser_thread_impl.cc:246:14
+    #29 0x7f8dc3ba2c07 in base::Thread::ThreadMain() base/threading/thread.cc:251:3
+    #30 0x7f8dc3b8ed9c in base::(anonymous namespace)::ThreadFunc(void*) base/threading/platform_thread_posix.cc:64:3
+    #31 0x7f8db9013181 in start_thread /build/buildd/eglibc-2.19/nptl/pthread_create.c:312
+
+Thread T15 (Chrome_IOThread) created by T0 (chrome) here:
+    #0 0x7f8dc25e7789 in __interceptor_pthread_create
+    #1 0x7f8dc3b8dfc3 in base::(anonymous namespace)::CreateThread(unsigned long, bool, base::PlatformThread::Delegate*, base::PlatformThreadHandle*, base::ThreadPriority) base/threading/platform_thread_posix.cc:103:13
+    #2 0x7f8dc3ba1c28 in base::Thread::StartWithOptions(base::Thread::Options const&) base/threading/thread.cc:113:10
+    #3 0x7f8dccb36cbe in content::BrowserThreadImpl::StartWithOptions(base::Thread::Options const&) content/browser/browser_thread_impl.cc:301:10
+    #4 0x7f8dcd4a21f3 in content::BrowserMainLoop::CreateThreads() content/browser/browser_main_loop.cc:912:12
+    #5 0x7f8dcd4ae631 in base::internal::InvokeHelper<false, int, base::internal::RunnableAdapter<int (content::BrowserMainLoop::*)()>, base::internal::TypeList<content::BrowserMainLoop*> >::MakeItSo(base::internal::RunnableAdapter<int (content::BrowserMainLoop::*)()>, content::BrowserMainLoop*) base/bind_internal.h:288:12
+    #6 0x7f8dcda6f7ce in content::StartupTaskRunner::RunAllTasksNow() content/browser/startup_task_runner.cc:45:14
+    #7 0x7f8dcd4a13d1 in content::BrowserMainLoop::CreateStartupTasks() content/browser/browser_main_loop.cc:821:3
+    #8 0x7f8dccb2fd99 in content::BrowserMainRunnerImpl::Initialize(content::MainFunctionParams const&) content/browser/browser_main_runner.cc:220:5
+    #9 0x7f8dccb2e7a7 in content::BrowserMain(content::MainFunctionParams const&) content/browser/browser_main.cc:40:19
+    #10 0x7f8dc3953b07 in content::RunNamedProcessTypeMain(std::__1::basic_string<char, std::__1::char_traits<char>, std::__1::allocator<char> > const&, content::MainFunctionParams const&, content::ContentMainDelegate*) content/app/content_main_runner.cc:378:14
+    #11 0x7f8dc3956691 in content::ContentMainRunnerImpl::Run() content/app/content_main_runner.cc:786:12
+    #12 0x7f8dc3951be1 in content::ContentMain(content::ContentMainParams const&) content/app/content_main.cc:19:15
+    #13 0x7f8dc26298f9 in ChromeMain chrome/app/chrome_main.cc:66:12
+    #14 0x7f8db7a30ec4 in __libc_start_main /build/buildd/eglibc-2.19/csu/libc-start.c:287
+
+SUMMARY: AddressSanitizer: heap-use-after-free (/mnt/scratch0/clusterfuzz/bot/builds/chromium-browser-asan_linux-release_4392242b7f59878a2775b4607420a2b37e17ff13/symbolized/release/asan-symbolized-linux-release-363079/chrome+0x143e8d08)
+Shadow bytes around the buggy address:
+  0x0c248001d310: fd fd fd fd fd fd fd fd fd fd fd fd fa fa fa fa
+  0x0c248001d320: fa fa fa fa fa fa fa fa fa fa fa fa fa fa fa fa
+  0x0c248001d330: fd fd fd fd fd fd fd fd fd fd fd fd fd fd fd fd
+  0x0c248001d340: fd fd fd fd fd fd fd fd fd fd fd fd fd fa fa fa
+  0x0c248001d350: fa fa fa fa fa fa fa fa fa fa fa fa fa fa fa fa
+=>0x0c248001d360: fd fd fd fd fd fd fd fd[fd]fd fd fd fd fd fd fd
+  0x0c248001d370: fd fd fd fd fd fd fd fd fd fd fd fd fd fd fd fd
+  0x0c248001d380: fa fa fa fa fa fa fa fa fa fa fa fa fa fa fa fa
+  0x0c248001d390: fd fd fd fd fd fd fd fd fd fd fd fd fd fd fd fd
+  0x0c248001d3a0: fd fd fd fd fd fd fd fd fd fd fd fa fa fa fa fa
+  0x0c248001d3b0: fa fa fa fa fa fa fa fa fa fa fa fa fa fa fa fa
+Shadow byte legend (one shadow byte represents 8 application bytes):
+  Addressable:           00
+  Partially addressable: 01 02 03 04 05 06 07
+  Heap left redzone:       fa
+  Heap right redzone:      fb
+  Freed heap region:       fd
+  Stack left redzone:      f1
+  Stack mid redzone:       f2
+  Stack right redzone:     f3
+  Stack partial redzone:   f4
+  Stack after return:      f5
+  Stack use after scope:   f8
+  Global redzone:          f9
+  Global init order:       f6
+  Poisoned by user:        f7
+  Container overflow:      fc
+  Array cookie:            ac
+  Intra object redzone:    bb
+  ASan internal:           fe
+  Left alloca redzone:     ca
+  Right alloca redzone:    cb
+==14363==ABORTING
+

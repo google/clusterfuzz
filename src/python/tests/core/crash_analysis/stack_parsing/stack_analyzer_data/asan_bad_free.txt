@@ -1,0 +1,17 @@
+==1==ERROR: AddressSanitizer: attempting free on address which was not malloc()-ed: 0x00000a5742f0 in thread T0
+SCARINESS: 40 (bad-free)
+    #0 0x420510 in __interceptor_cfree.localalias.0 /src/llvm/projects/compiler-rt/lib/asan/asan_malloc_linux.cc:54
+    #1 0x477d65 in _gnutls_buffer_append_printf /src/gnutls/lib/str.c:331:2
+    #2 0x461045 in print_cert /src/gnutls/lib/x509/output.c:1398:4
+    #3 0x45eee9 in gnutls_x509_crt_print /src/gnutls/lib/x509/output.c:1905:3
+    #4 0x45e3ec in LLVMFuzzerTestOneInput /src/gnutls/devel/fuzz/gnutls_x509_parser_fuzzer.cc:40:15
+    #5 0x949308 in fuzzer::Fuzzer::ExecuteCallback(unsigned char const*, unsigned long) /src/libfuzzer/FuzzerLoop.cpp:546:13
+    #6 0x94a064 in fuzzer::Fuzzer::RunOne(unsigned char const*, unsigned long) /src/libfuzzer/FuzzerLoop.cpp:497:3
+    #7 0x8d6e87 in fuzzer::RunOneTest(fuzzer::Fuzzer*, char const*, unsigned long) /src/libfuzzer/FuzzerDriver.cpp:267:6
+    #8 0x8df0bd in fuzzer::FuzzerDriver(int*, char***, int (*)(unsigned char const*, unsigned long)) /src/libfuzzer/FuzzerDriver.cpp:486:9
+    #9 0x8d52e8 in main /src/libfuzzer/FuzzerMain.cpp:20:10
+    #10 0x7fabc7bb482f in __libc_start_main (/lib/x86_64-linux-gnu/libc.so.6+0x2082f)
+    #11 0x368028 in _start (/mnt/scratch0/clusterfuzz/bot/builds/clusterfuzz-builds_gnutls_7679aa0e59b24ed63ab362aea60b8fc3a34a955a/revisions/gnutls_x509_parser_fuzzer+0x368028)
+Address 0x00000a5742f0 is a wild pointer.
+SUMMARY: AddressSanitizer: bad-free /src/llvm/projects/compiler-rt/lib/asan/asan_malloc_linux.cc:54 in __interceptor_cfree.localalias.0
+==1==ABORTING

@@ -1,0 +1,71 @@
+Dictionary: 9 entries
+INFO: Seed: 3427065834
+INFO: Loaded 2 modules   (398467 guards): 17127 [0x7fc4488667a0, 0x7fc44887733c), 381340 [0x398aaa0, 0x3aff110),
+INFO:        0 files found in /mnt/scratch0/clusterfuzz/bot/inputs/fuzzer-testcases-disk/temp/new
+INFO:      652 files found in /mnt/scratch0/clusterfuzz/bot/inputs/data-bundles/global/pdf_codec_gif_fuzzer
+INFO: seed corpus: files: 651 min: 1b max: 686513b total: 7972929b rss: 56Mb
+#64 pulse  cov: 1390 ft: 1144 corp: 63/1237b exec/s: 16 rss: 525Mb
+#128  pulse  cov: 1508 ft: 1476 corp: 126/3211b exec/s: 12 rss: 1189Mb
+#256  pulse  cov: 1581 ft: 2280 corp: 249/8021b exec/s: 10 rss: 1189Mb
+#512  pulse  cov: 1588 ft: 3471 corp: 488/116Kb exec/s: 13 rss: 1189Mb
+#652  INITED cov: 1603 ft: 3572 corp: 533/293Kb exec/s: 16 rss: 1189Mb
+#1024 pulse  cov: 1603 ft: 3572 corp: 533/293Kb exec/s: 18 rss: 1197Mb
+=================================================================
+==23802==ERROR: AddressSanitizer: heap-buffer-overflow on address 0x60200001f350 at pc 0x000001d87af7 bp 0x7ffcc22c1280 sp 0x7ffcc22c1278
+READ of size 4 at 0x60200001f350 thread T0
+SCARINESS: 27 (4-byte-read-heap-buffer-overflow-far-from-bounds)
+    #0 0x1d87af6 in CCodec_ProgressiveDecoder::ReSampleScanline(CFX_RetainPtr<CFX_DIBitmap> const&, int, unsigned char*, CCodec_ProgressiveDecoder::FXCodec_Format) third_party/pdfium/core/fxcodec/codec/fx_codec_progress.cpp:1581:34
+    #1 0x1d8575f in CCodec_ProgressiveDecoder::GifReadScanline(int, unsigned char*) third_party/pdfium/core/fxcodec/codec/fx_codec_progress.cpp:733:3
+    #2 0x1da31d4 in gif_load_frame(CGifContext*, int) third_party/pdfium/core/fxcodec/lgif/fx_gif.cpp:643:22
+    #3 0x1d7d165 in CCodec_GifModule::LoadFrame(CCodec_GifModule::Context*, int, CFX_DIBAttribute*) third_party/pdfium/core/fxcodec/codec/ccodec_gifmodule.cpp:61:25
+    #4 0x1d918c8 in CCodec_ProgressiveDecoder::ContinueDecode() third_party/pdfium/core/fxcodec/codec/fx_codec_progress.cpp:2116:25
+    #5 0x4f0ecb in XFACodecFuzzer::Fuzz(unsigned char const*, unsigned long, FXCODEC_IMAGE_TYPE) third_party/pdfium/testing/libfuzzer/xfa_codec_fuzzer.h:48:25
+    #6 0x5140a0 in fuzzer::Fuzzer::ExecuteCallback(unsigned char const*, unsigned long) third_party/libFuzzer/src/FuzzerLoop.cpp:463:13
+    #7 0x513526 in fuzzer::Fuzzer::RunOne(unsigned char const*, unsigned long, bool, fuzzer::InputInfo*) third_party/libFuzzer/src/FuzzerLoop.cpp:392:3
+    #8 0x517384 in fuzzer::Fuzzer::MutateAndTestOne() third_party/libFuzzer/src/FuzzerLoop.cpp:587:9
+    #9 0x51878e in fuzzer::Fuzzer::Loop(std::__1::vector<std::__1::basic_string<char, std::__1::char_traits<char>, std::__1::allocator<char> >, fuzzer::fuzzer_allocator<std::__1::basic_string<char, std::__1::char_traits<char>, std::__1::allocator<char> > > > const&) third_party/libFuzzer/src/FuzzerLoop.cpp:699:5
+    #10 0x4fc319 in fuzzer::FuzzerDriver(int*, char***, int (*)(unsigned char const*, unsigned long)) third_party/libFuzzer/src/FuzzerDriver.cpp:738:6
+    #11 0x529da8 in main third_party/libFuzzer/src/FuzzerMain.cpp:20:10
+    #12 0x7fc446dcef44 in __libc_start_main /build/eglibc-SvCtMH/eglibc-2.19/csu/libc-start.c:287
+
+Address 0x60200001f350 is a wild pointer.
+SUMMARY: AddressSanitizer: heap-buffer-overflow third_party/pdfium/core/fxcodec/codec/fx_codec_progress.cpp:1581:34 in CCodec_ProgressiveDecoder::ReSampleScanline(CFX_RetainPtr<CFX_DIBitmap> const&, int, unsigned char*, CCodec_ProgressiveDecoder::FXCodec_Format)
+Shadow bytes around the buggy address:
+  0x0c047fffbe10: fa fa fa fa fa fa fa fa fa fa fa fa fa fa fa fa
+  0x0c047fffbe20: fa fa fa fa fa fa fa fa fa fa fa fa fa fa fa fa
+  0x0c047fffbe30: fa fa fa fa fa fa fa fa fa fa fa fa fa fa fa fa
+  0x0c047fffbe40: fa fa fa fa fa fa fa fa fa fa fa fa fa fa fd fd
+  0x0c047fffbe50: fa fa fa fa fa fa fa fa fa fa fa fa fa fa fa fa
+=>0x0c047fffbe60: fa fa 00 00 fa fa fa fa fa fa[fa]fa fa fa fa fa
+  0x0c047fffbe70: fa fa fa fa fa fa fa fa fa fa fa fa fa fa fa fa
+  0x0c047fffbe80: fa fa fa fa fa fa fa fa fa fa fa fa fa fa fa fa
+  0x0c047fffbe90: fa fa fa fa fa fa fa fa fa fa fa fa fa fa fa fa
+  0x0c047fffbea0: fa fa fa fa fa fa fa fa fa fa fa fa fa fa fd fa
+  0x0c047fffbeb0: fa fa fa fa fa fa fa fa fa fa fa fa fa fa fa fa
+Shadow byte legend (one shadow byte represents 8 application bytes):
+  Addressable:           00
+  Partially addressable: 01 02 03 04 05 06 07
+  Heap left redzone:       fa
+  Freed heap region:       fd
+  Stack left redzone:      f1
+  Stack mid redzone:       f2
+  Stack right redzone:     f3
+  Stack after return:      f5
+  Stack use after scope:   f8
+  Global redzone:          f9
+  Global init order:       f6
+  Poisoned by user:        f7
+  Container overflow:      fc
+  Array cookie:            ac
+  Intra object redzone:    bb
+  ASan internal:           fe
+  Left alloca redzone:     ca
+  Right alloca redzone:    cb
+==23802==ABORTING
+MS: 2 EraseBytes-InsertByte-; base unit: 70046c60308ee131bcb068270efa867866b12eeb
+artifact_prefix='/fake/'; Test unit written to /fake/crash-1e15825e6f0b2240a5af75d84214adda1b6b5340
+stat::number_of_executed_units: 1249
+stat::average_exec_per_sec:     21
+stat::new_units_added:          0
+stat::slowest_unit_time_sec:    0
+stat::peak_rss_mb:              1197

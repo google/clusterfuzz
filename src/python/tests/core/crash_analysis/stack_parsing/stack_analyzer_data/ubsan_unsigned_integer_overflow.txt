@@ -1,0 +1,23 @@
+# UBSAN_OPTIONS=print_stacktrace=1:halt_on_error=1 ./libxml2_xml_read_memory_fuzzer ./clusterfuzz-testcase-minimized-4665260818563072 
+INFO: Seed: 1671544109
+INFO: Loaded 1 modules   (42935 guards): 42935 [0x941e00, 0x96bcdc), 
+./libxml2_xml_read_memory_fuzzer: Running 1 inputs 1 time(s) each.
+Running: ./clusterfuzz-testcase-minimized-4665260818563072
+hash.c:93:36: runtime error: unsigned integer overflow: 17532559471080431424 + 1581696035230394591 cannot be represented in type 'unsigned long'
+    #0 0x4abe12 in xmlHashComputeKey /src/libxml2/hash.c:93:36
+    #1 0x4aab25 in xmlHashAddEntry3 /src/libxml2/hash.c:551:11
+    #2 0x583957 in xmlAddEntity /src/libxml2/entities.c:246:9
+    #3 0x583a10 in xmlAddDocEntity /src/libxml2/entities.c:372:11
+    #4 0x56f3a5 in xmlSAX2EntityDecl /src/libxml2/SAX2.c:677:8
+    #5 0x46fd2d in xmlParseEntityDecl /src/libxml2/parser.c:5435:7
+    #6 0x4758b2 in xmlParseMarkupDecl /src/libxml2/parser.c:6796:4
+    #7 0x48285a in xmlParseInternalSubset /src/libxml2/parser.c:8288:6
+    #8 0x48217e in xmlParseDocument /src/libxml2/parser.c:10682:6
+    #9 0x48c41b in xmlDoRead /src/libxml2/parser.c:15185:5
+    #10 0x42d97f in LLVMFuzzerTestOneInput /src/libxml2_xml_read_memory_fuzzer.cc:34:20
+    #11 0x43aeed in fuzzer::Fuzzer::ExecuteCallback(unsigned char const*, unsigned long) /src/libfuzzer/FuzzerLoop.cpp:471:13
+    #12 0x42e9a4 in fuzzer::RunOneTest(fuzzer::Fuzzer*, char const*, unsigned long) /src/libfuzzer/FuzzerDriver.cpp:273:6
+    #13 0x4329e9 in fuzzer::FuzzerDriver(int*, char***, int (*)(unsigned char const*, unsigned long)) /src/libfuzzer/FuzzerDriver.cpp:690:9
+    #14 0x42e6f8 in main /src/libfuzzer/FuzzerMain.cpp:20:10
+    #15 0x7f5ea102c82f in __libc_start_main (/lib/x86_64-linux-gnu/libc.so.6+0x2082f)
+    #16 0x406998 in _start (/out/libxml2_xml_read_memory_fuzzer+0x406998)
