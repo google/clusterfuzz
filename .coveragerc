@@ -2,8 +2,7 @@
 branch = True
 
 omit =
-    src/python/fuzzers/ml/rnn/*
-    src/tests/*
+    src/python/tests/*
     src/third_party/*
 
 source = src
