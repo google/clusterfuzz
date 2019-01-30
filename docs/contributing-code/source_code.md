@@ -27,8 +27,8 @@ permalink: /contributing-code/source-code/
   * **appengine** - App Engine specific files (Python 2).
     * **handlers** - backend code for various web pages.
     * **libs** - general helper libraries (e.g. access control).
-    * **private** - components code for various web pages (Polymer 2).
-    * **templates** - template code of various web pages (Polymer 2).
+    * **private** - original template code for various web pages (Polymer 2).
+    * **templates** - auto-generated minimized template code for various web pages (Polymer 2).
   * **go** - go code.
   * **python** - python 2 code.
     * **bot** - bot specific code.
