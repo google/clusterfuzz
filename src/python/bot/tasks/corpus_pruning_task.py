@@ -493,7 +493,7 @@ class CrossPollinator(object):
   def run(self, timeout):
     """Merge testcases from corpus from other fuzz targets."""
     if not shell.get_directory_file_count(self.context.shared_corpus_path):
-      logs.log_error('No files found in shared corpus, skip merge.')
+      logs.log('No files found in shared corpus, skip merge.')
       return
 
     # Run pruning on the shared corpus and log the result in case of error.
