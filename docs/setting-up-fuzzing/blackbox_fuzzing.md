@@ -9,7 +9,6 @@ permalink: /setting-up-fuzzing/blackbox-fuzzing/
 # Blackbox fuzzing
 This page walks you through setting up your first [blackbox fuzzer].
 
----
 - TOC
 {:toc}
 ---
@@ -18,7 +17,8 @@ This page walks you through setting up your first [blackbox fuzzer].
 In order to begin fuzzing, you need to build your target with a [sanitizer]. The
 most commonly used [sanitizer] for fuzzing is [Address
 Sanitizer](https://clang.llvm.org/docs/AddressSanitizer.html), which instruments
-your code with checks for memory safety issues.
+your code with checks for memory safety issues. Clang is the supported
+compiler, but GCC may also work.
 
 This is dependent on the build system of your project. At a very high level, this
 will mean adding the `-fsanitize=address` flag to your C/C++ compiler flags.
@@ -27,8 +27,11 @@ will mean adding the `-fsanitize=address` flag to your C/C++ compiler flags.
 A [job] type is a specification for how to run a particular target program for
 fuzzing. It consists of environment variables values.
 
-For example, a basic job type for a binary called `app` might look like:
+The name of the [job] is **important**, and must include either `asan`, `msan`,
+`ubsan`, or `tsan` in its name depending on which [sanitizer] you are using. For
+example, a valid name may be `asan_app`.
 
+A basic job type for a binary called `app` might look like:
 ```
 APP_NAME = app
 APP_ARGS = -args -to -pass -to -app
@@ -43,11 +46,13 @@ Breaking this down,
    rather than pulling from a GCS bucket.
 4. `TEST_TIMEOUT` is the maximum timeout per individual testcase.
 
-### Job name
-The name of the [job] is **important**, and must include either `asan`, `msan`,
-`ubsan`, or `tsan` in its name depending on which [sanitizer] you are using.
-
-For example, the job above may be named `asan_app`.
+To create a job:
+1. Navigate to the *Jobs* page.
+2. Click "ADD NEW JOB".
+3. Fill out the "Name" and "Platform".
+4. Select your build (your zip containing the fuzz target binary) to upload as a
+  "Custom Build".
+5. Use the "ADD" button to add the job to ClusterFuzz.
 
 ## Uploading a fuzzer
 A [blackbox fuzzer] on ClusterFuzz is a program which accepts a corpus as
@@ -65,17 +70,23 @@ The main entrypoint for this fuzzer should be a filename which starts with
 `run`. For example, a fuzzer in Python may be named `run.py`.
 
 To upload this to ClusterFuzz, package this into a zip archive along with its
-dependencies and follow the upload steps on the *Fuzzers* page. Remember to
-associate this fuzzer with the job name(s) created above, which is a necessary
-step to actually start running this fuzzer against those job(s).
+dependencies and:
+1. Navigate to the *Fuzzers* page.
+2. Click the "CREATE NEW" button.
+3. Select the fuzzer archive for upload.
+4. Click "Select/modify jobs".
+5. Mark the job(s) created above.
+6. Click "SUBMIT".
 
 ## Checking results
 Give the bots some time to start running your uploaded fuzzers. You can check
 which bots are running your fuzzers by checking the *Bots* page. Once a bot
 has finished running your fuzzer, you can see a sample console output from the
-run and a sample testcase by visiting the Fuzzers page (see second column).
+run and a sample testcase by visiting the *Fuzzers* page (see second column). You
+may check [bot logs] as well.
 
 [blackbox fuzzer]: {{ site.baseurl }}/reference/coverage-guided-vs-blackbox/#blackbox-fuzzing
 [fuzzer]: {{ site.baseurl }}/reference/glossary/#fuzzer
 [job]: {{ site.baseurl }}/reference/glossary/#job-type
 [sanitizer]: {{ site.baseurl }}/reference/glossary/#sanitizer
+[bot logs]: {{ site.baseurl }}/getting-started/local-instance/#viewing-logs

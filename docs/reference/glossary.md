@@ -21,6 +21,10 @@ A machine which runs ClusterFuzz [tasks](#task).
 A set of inputs for a [fuzz target](#fuzz-target). In most contexts, it refers
 to a set of minimal test inputs that generate maximal code coverage.
 
+## Corpus pruning
+A task which takes a [corpus](#corpus) and removes unnecessary inputs while
+maintaining the same code coverage.
+
 ## Fuzz target
 A function or program that accepts an array of bytes and does something
 interesting with these bytes using the API under test. See the
