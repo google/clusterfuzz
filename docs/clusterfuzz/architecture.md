@@ -10,8 +10,17 @@ parent: ClusterFuzz
 ![overview]({{ site.baseurl }}/images/overview.png)
 
 ClusterFuzz provides an automated end-to-end infrastructure for finding and
-triaging crashes, minimizing reproducers, bisecting, and verification of fixes.
+triaging crashes, minimizing reproducers, [bisecting], and verification of fixes.
 
+- TOC
+{:toc}
+
+---
+
+## Supported platforms
+ClusterFuzz runs on Linux, macOS, and Windows.
+
+## Requirements
 It runs on the [Google Cloud Platform](https://cloud.google.com/), and depends
 on a number of services:
 - Compute Engine (Not strictly necessary. Bots can run anywhere).
@@ -24,16 +33,12 @@ on a number of services:
 
 **Note**: The only bug tracker supported now is the Chromium hosted
 [Monorail](https://opensource.google.com/projects/monorail). Support for custom
-bug trackers will be added in the future.
+bug trackers will be added in the near future.
 
+### Local instance
 It's possible to run ClusterFuzz locally without these dependencies by using
 local Google Cloud emulators, but some features which depend on BigQuery and
 Stackdriver will be disabled due to lack of emulator support.
-
-- TOC
-{:toc}
-
----
 
 ## Operation
 The two main components of ClusterFuzz are:
@@ -41,15 +46,15 @@ The two main components of ClusterFuzz are:
 - App Engine instance
 - A pool of [bots]({{ site.baseurl }}/reference/glossary/#bot)
 
-The App Engine instance provides a Web UI to access crashes, stats and other
-information. It's also responsible for scheduling regular cron jobs.
+The App Engine instance provides a web interface to access crashes, stats and
+other information. It's also responsible for scheduling regular cron jobs.
 
 Bots are machines which run scheduled tasks. They lease tasks from platform
 specific queues. The main tasks that bots run are:
 - `fuzz`: Run a fuzzing session.
 - `progression`: Check if a testcase still reproduces or if it's fixed.
 - `regression`: Calculate the revision range in which a crash was introduced.
-- `minimize`: Perform testcase minimization.
+- `minimize`: Perform testcase [minimization].
 - `corpus_pruning`: Minimize a [corpus]({{ site.baseurl
   }}/reference/glossary/#corpus }}) to smallest size based on coverage (libFuzzer only).
 - `analyze`: Run a manually uploaded testcase against a job to see if it crashes.
@@ -64,3 +69,6 @@ it's recommended to scale using these machines.
 Non-preemptible machines are not expected to shutdown. They are able to run all
 tasks (including `fuzz`) and other critical tasks such as `progression` which
 must run uninterrupted.
+
+[bisecting]: https://en.wikipedia.org/wiki/Bisection_(software_engineering)
+[minimization]: {{ site.baseurl }}/reference/glossary/#minimization
