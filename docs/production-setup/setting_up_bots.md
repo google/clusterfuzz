@@ -19,8 +19,9 @@ This page walks you through the process of setting up bots on one of the support
 Linux is the preferred platform for fuzzing because of its comprehensive support for all
 [sanitizer] and [fuzzing engine] types.
 
-It is recommended to use each sanitizer its own [build] and [job] definition (except LSan), as
-there are performance and bug finding efficiency issues with combining them.
+It is recommended to use each sanitizer its own [build] and [job] definition
+(except [LeakSanitizer]), as there are performance and bug finding efficiency issues with
+combining them.
 
 By default, ClusterFuzz configuration files in `$CONFIG_DIR/gce/clusters.yaml` define 1 Linux
 regular bot and 2 [preemptible] bots on Google Compute Engine. These can be configured by
