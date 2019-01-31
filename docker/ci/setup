@@ -14,10 +14,4 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-if [ -z "$DEV_APPSERVER_KEY_BUCKET" ]; then
-  echo DEV_APPSERVER_KEY_BUCKET needs to be specified.
-  exit 1
-fi
-
-gsutil cp gs://$DEV_APPSERVER_KEY_BUCKET/key.pem /tmp/key.pem
 python butler.py bootstrap
