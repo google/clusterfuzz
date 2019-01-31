@@ -7,7 +7,7 @@ parent: Workflows
 grand_parent: Using ClusterFuzz
 ---
 
-# Overview
+# Triaging new crashes
 
 ClusterFuzz was built to remove as much manual work from fuzzing as possible.
 Bug triage, in particular, has historically been a difficult and manual process.

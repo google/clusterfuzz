@@ -7,7 +7,7 @@ parent: Workflows
 grand_parent: Using ClusterFuzz
 ---
 
-# Overview
+# Fixing a bug
 
 As important as it is to find bugs, that wouldn't be useful if it wasn't also
 easy for developers to fix them. ClusterFuzz provides the necessary information

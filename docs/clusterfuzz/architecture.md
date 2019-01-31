@@ -6,7 +6,7 @@ nav_order: 1
 parent: ClusterFuzz
 ---
 
-# Overview
+# Architecture
 ![overview]({{ site.baseurl }}/images/overview.png)
 
 ClusterFuzz provides an automated end-to-end infrastructure for finding and
