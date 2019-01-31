@@ -23,7 +23,7 @@ can follow the [local instructions] directly.
 
 ---
 
-# Creating a job type
+## Creating a job type
 
 To allow ClusterFuzz to take advantage of your [build pipeline] you must point
 to the [Google Cloud Storage] bucket where your builds are stored in your job
@@ -56,16 +56,16 @@ expression represents the revision number.
 For a complete list of options, checkout `bot/env.yaml` in the source
 checkout.
 
-# Advanced options
+## Advanced options
 
-## Ignoring outdated revisions
+### Ignoring outdated revisions
 
 In addition to the variables defined above, you may also define the
 `MIN_REVISION` variable. This can be useful when you make significant,
 non-backwards-compatible changes in your build such that older revisions will
 not work properly and need to be discarded.
 
-## Linking to documentation
+### Linking to documentation
 
 A job can specify a `HELP_URL` which each test case report for this job will
 link to. This allows you to provide instructions to developers on how they
