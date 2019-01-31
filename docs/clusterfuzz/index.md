@@ -9,7 +9,7 @@ has_children: true
 # ClusterFuzz
 
 <p align="center">
-  <img src="{{ site.baseurl }}/images/logo.png" width="400" height="322">
+  <img src="{{ site.baseurl }}/images/logo.png" width="400">
 </p>
 
 ClusterFuzz is a scalable [fuzzing](https://en.wikipedia.org/wiki/Fuzzing)
