@@ -19,6 +19,7 @@ import shlex
 import shutil
 import subprocess
 import sys
+import tempfile
 
 from metrics import logs
 from system import environment
@@ -127,6 +128,29 @@ def clear_temp_directory(clear_user_profile_directories=True):
     return
 
   remove_directory(user_profile_root_directory, recreate=True)
+
+
+@environment.local_noop
+def clear_system_temp_directory():
+  """Clear system specific temp directory. Use a custom cleanup rather than
+  using |remove_directory| since it recreates the directory and can mess up
+  permissions and symlinks."""
+
+  def _delete_object(path, delete_func):
+    """Delete a object with its delete function, ignoring any error."""
+    try:
+      delete_func(path)
+    except:
+      pass
+
+  system_temp_directory = tempfile.gettempdir()
+  for root, dirs, files in os.walk(system_temp_directory, topdown=False):
+    for name in files:
+      _delete_object(os.path.join(root, name), os.remove)
+
+    for name in dirs:
+      _delete_object(os.path.join(root, name), os.rmdir)
+  logs.log('Cleared system temp directory: %s' % system_temp_directory)
 
 
 def clear_testcase_directories():

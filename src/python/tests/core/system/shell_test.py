@@ -20,7 +20,7 @@ from pyfakefs import fake_filesystem_unittest
 
 from system import environment
 from system import shell
-from tests.test_libs import helpers
+from tests.test_libs import helpers as test_helpers
 from tests.test_libs import test_utils
 
 
@@ -68,7 +68,7 @@ class RemoveDirectoryTest(unittest.TestCase):
   """Tests for remove_directory."""
 
   def setUp(self):
-    helpers.patch(self, [
+    test_helpers.patch(self, [
         'os.chmod',
         'os.mkdir',
         'os.path.exists',
@@ -207,3 +207,37 @@ class WhichTest(fake_filesystem_unittest.TestCase):
 
   def test(self):
     self.assertEqual('/bin/ls', shell.which('ls'))
+
+
+class ClearSystemTempDirectoryTest(fake_filesystem_unittest.TestCase):
+  """Tests for clear_system_temp_directory."""
+
+  def setUp(self):
+    test_helpers.patch(self, [
+        'tempfile.gettempdir',
+    ])
+    self.mock.gettempdir.return_value = '/tmp'
+
+    test_utils.set_up_pyfakefs(self)
+
+  def test(self):
+    """Test clear_system_temp_directory works as expected."""
+    self.fs.CreateFile('/tmp/aa/bb.txt', contents='abc')
+    self.fs.CreateFile('/tmp/cc/dd/ee.txt', contents='def')
+    self.fs.CreateDirectory('/tmp/ff/gg')
+    self.fs.CreateDirectory('/tmp/hh')
+    self.fs.CreateDirectory('/unrelated')
+    self.fs.CreateFile('/unrelated/zz.txt', contents='zzz')
+    os.symlink('/unrelated/zz.txt', '/tmp/hh/gg.txt')
+    os.symlink('/unrelated', '/tmp/ii')
+
+    shell.clear_system_temp_directory()
+
+    self.assertTrue(os.path.exists('/tmp'))
+    self.assertTrue(os.path.exists('/unrelated'))
+    self.assertEqual(shell.get_directory_file_count('/tmp'), 0)
+    self.assertEqual(shell.get_directory_file_count('/unrelated'), 1)
+    self.assertFalse(os.path.exists('/tmp/aa/bb.txt'))
+    self.assertFalse(os.path.exists('/tmp/cc/dd/ee.txt'))
+    self.assertFalse(os.path.exists('/tmp/ff/gg'))
+    self.assertFalse(os.path.exists('/tmp/hh'))

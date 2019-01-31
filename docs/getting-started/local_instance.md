@@ -32,17 +32,17 @@ This may take a few seconds to start. Once you see output starting with
 ## Running a local bot instance
 
 ```bash
-$ python butler.py run_bot --name my-bot /tmp/my-bot  # rename my-bot to anything
+$ python butler.py run_bot --name my-bot /path/to/my-bot  # rename my-bot to anything
 ```
 
-This creates a copy of ClusterFuzz source under `/tmp/my-bot/clusterfuzz` and runs
+This creates a copy of ClusterFuzz source under `/path/to/my-bot/clusterfuzz` and runs
 the bot using it. Most of the bot artifacts like logs, fuzzers, corpora, etc are
 created inside the `bot` sub-folder.
 
 ### Viewing logs
 
 ```bash
-$ cd /tmp/my-bot/clusterfuzz/bot/logs
+$ cd /path/to/my-bot/clusterfuzz/bot/logs
 $ tail -f bot.log
 ```
 

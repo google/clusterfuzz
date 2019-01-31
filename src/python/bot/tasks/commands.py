@@ -76,8 +76,9 @@ def cleanup_task_state():
   # Clear build urls, temp and testcase directories.
   shell.clear_build_urls_directory()
   shell.clear_crash_stacktraces_directory()
-  shell.clear_temp_directory()
   shell.clear_testcase_directories()
+  shell.clear_temp_directory()
+  shell.clear_system_temp_directory()
 
   # Reset memory tool environment variables.
   environment.reset_current_memory_tool_options()
