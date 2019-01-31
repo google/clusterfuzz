@@ -14,14 +14,10 @@
 
 steps:
 - name: 'gcr.io/clusterfuzz-images/ci'
-  dir: 'clusterfuzz'
   args: ['setup']
   env:
-    - DEV_APPSERVER_KEY_BUCKET=clusterfuzz-dev-appserver
+    - DEV_APPSERVER_KEY_BUCKET=will-be-removed
 - name: 'gcr.io/clusterfuzz-images/ci'
-  dir: 'clusterfuzz'
-  env:
-    - CLUSTERFUZZ_DEV_APPSERVER_KEY_PATH=/tmp/key.pem
   args:
     - 'bash'
     - '-ex'
