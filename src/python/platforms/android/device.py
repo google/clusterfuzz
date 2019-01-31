@@ -118,10 +118,6 @@ SANITIZER_TOOL_TO_FILE_MAPPINGS = {
 }
 SCREEN_LOCK_SEARCH_STRING = 'mShowingLockscreen=true'
 SCREEN_ON_SEARCH_STRING = 'Display Power: state=ON'
-SLOW_BATTERY_CHARGE_DEVICES = [
-    'flounder',
-    'flounder_lte',
-]
 SYSTEM_WEBVIEW_APK_NAME = 'SystemWebViewGoogle.apk'
 SYSTEM_WEBVIEW_DIRS = [
     '/system/app/webview',
@@ -285,14 +281,7 @@ def wait_for_battery_charge_if_needed():
                                                   LOW_BATTERY_LEVEL_THRESHOLD)
   battery_temperature_threshold = environment.get_value(
       'MAX_BATTERY_TEMPERATURE_THRESHOLD', MAX_BATTERY_TEMPERATURE_THRESHOLD)
-  device_codename = environment.get_value('DEVICE_CODENAME', get_codename())
   device_restarted = False
-
-  # TODO(unassigned): Make this configurable.
-  # Hack for slow charge devices such as Nexus 9s.
-  battery_charge_wait_time = BATTERY_CHARGE_INTERVAL
-  if device_codename in SLOW_BATTERY_CHARGE_DEVICES:
-    battery_charge_wait_time *= 2
 
   while 1:
     battery_information = get_battery_information()
@@ -329,7 +318,7 @@ def wait_for_battery_charge_if_needed():
     # Nexus 9s).
     turn_off_display_if_needed()
     adb.stop_shell()
-    time.sleep(battery_charge_wait_time)
+    time.sleep(BATTERY_CHARGE_INTERVAL)
     adb.start_shell()
 
 
