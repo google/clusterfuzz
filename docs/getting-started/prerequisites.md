@@ -6,23 +6,21 @@ nav_order: 1
 permalink: /getting-started/prerequisites/
 ---
 
+# Prerequisites
+
 - TOC
 {:toc}
 
 ---
 ## Requirements
-ClusterFuzz is written in Python 2.7 and Go.
+See [this]({{ base.siteurl }}/architecture/#requirements) page for requirements.
 
-Many features of ClusterFuzz depend on the [Google Cloud
-Platform](https://cloud.google.com/). However, it's possible to run it locally
-without these dependencies for testing purposes.
+Many features of ClusterFuzz depend on [Google Cloud
+Platform](https://cloud.google.com) services. However, it's possible to run it
+locally without these dependencies for testing purposes.
 
-### Supported platforms for fuzzing
-- Linux
-- Windows
-- macOS
-
-Local development is only supported on Linux.
+While ClusterFuzz runs on a number of platforms, local development is only
+supported on **Linux**.
 
 ## Getting the code
 ```bash

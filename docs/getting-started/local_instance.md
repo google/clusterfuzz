@@ -8,10 +8,13 @@ permalink: /getting-started/local-instance/
 
 # Local instance of ClusterFuzz
 You can run a local instance of ClusterFuzz to test core functionality. Note that some features
-(e.g. crash and fuzzer statistics) are disabled to due to lack of Google Cloud emulators.
+(e.g. [crash] and [fuzzer statistics]) are disabled to due to lack of Google Cloud emulators.
 
 - TOC
 {:toc}
+
+[crash]: {{ site.baseurl }}/using-clusterfuzz/ui-overview/#crash-statistics
+[fuzzer statistics]: {{ site.baseurl }}/using-clusterfuzz/ui-overview/#fuzzer-statistics
 
 ---
 
@@ -50,10 +53,12 @@ Until you set up the fuzzing jobs, you will see a harmless error in the logs -
 `Failed to get any fuzzing tasks`.
 
 ## Local Google Cloud Storage
-We simulate Google Cloud Storage using your local filesystem. By default, this
+We simulate [Google Cloud Storage] using your local filesystem. By default, this
 is stored at `local/storage/local_gcs` in your checkout. You can override it using
 `--storage-path` when running `run_server` command and then specifying the same path using
 `--server-storage-path` when running `run_bot` command.
 
 Under this location, objects are stored in `<bucket>/objects/<object path>` and
 metadata is stored in `<bucket>/metadata/<object path>`.
+
+[Google Cloud Storage]: https://cloud.google.com/storage/
