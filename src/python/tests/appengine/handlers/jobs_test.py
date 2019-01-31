@@ -55,8 +55,7 @@ class JobsTest(unittest.TestCase):
   def test_get_results(self):
     """Test get_results."""
     job = self._create_job(
-        'test_job', 'REVISION_PATTERN = .*-([0-9]+).zip\n'
-        'APP_NAME = launcher.py\n')
+        'test_job', 'APP_NAME = launcher.py\n')
     expected = {
         'templates': [],
         'jobs': [job],

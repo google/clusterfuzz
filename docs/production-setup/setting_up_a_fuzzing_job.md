@@ -26,11 +26,11 @@ can follow the [local instructions] directly.
 # Creating a job type
 
 To allow ClusterFuzz to take advantage of your [build pipeline] you must point
-to the bucket where your builds are stored in your job definition.
+to the [Google Cloud Storage] bucket where your builds are stored in your job
+definition.
 
 ```
 RELEASE_BUILD_BUCKET_PATH = gs://my-bucket/my-build-([0-9]+).zip
-REVISION_PATTERN = -([0-9]+).zip
 
 APP_NAME = myapp
 APP_ARGS = -args -to -pass -to -myapp
@@ -38,22 +38,23 @@ APP_ARGS = -args -to -pass -to -myapp
 ```
 
 The `RELEASE_BUILD_BUCKET_PATH` in the above example is a regular expression
-that specifies which bucket to read files from. Any files in the bucket that
-match the specified expression are treated as potential builds for this job.
+that specifies which bucket to read build archives from. Any files in the bucket
+that match the specified expression are treated as potential builds for this job.
 In this example, a build at the path `gs://my-bucket/my-build-123.zip` would be
 a match, and would be used by this job.
 
-The `REVISION_PATTERN` is used to compute the "revision number" for this build.
-This is used to determine which builds are newer than others. The build with the
-highest revision number will always be selected for fuzzing. ClusterFuzz expects
-that any build with a greater revision number than another is the newer build.
+The `([0-9]+)` regex in `RELEASE_BUILD_BUCKET_PATH` is used to compute the
+[revision number] for this build. This is used to determine which builds are
+newer than others. The build with the highest revision number will always be
+selected for fuzzing. ClusterFuzz expects that any build with a greater revision
+number than another is the newer build.
 
-Note the parentheses around the revision number in both expressions. These are
-match groups that ClusterFuzz uses to determine which part of the expression
-represents the revision number, and are required.
+**Note**: The parentheses around the revision number regex are required and
+is the match group that ClusterFuzz uses to determine which part of the
+expression represents the revision number.
 
-For other options not related to build, see the more general [local
-instructions].
+For a complete list of options, checkout `bot/env.yaml` in the source
+checkout.
 
 # Advanced options
 
@@ -62,7 +63,7 @@ instructions].
 In addition to the variables defined above, you may also define the
 `MIN_REVISION` variable. This can be useful when you make significant,
 non-backwards-compatible changes in your build such that older revisions will
-not work properly.
+not work properly and need to be discarded.
 
 ## Linking to documentation
 
@@ -72,3 +73,5 @@ should treat the bugs they are assigned.
 
 [build pipeline]: {{ site.baseurl }}/production-setup/build-pipeline/
 [local instructions]: {{ site.baseurl }}/setting-up-fuzzing/
+[Google Cloud Storage]: https://cloud.google.com/storage/
+[revision number]: {{ site.baseurl }}/reference/glossary/#revision
