@@ -63,8 +63,8 @@ Looking at the code coverage report, you can see which exact parts of the target
 program are tested by the fuzzer and which parts are never executed. If you set
 up a [code coverage builder](/using-clusterfuzz/advanced/code-coverage/) for
 ClusterFuzz, you can find links to the coverage reports on the fuzzer stats
-page. Otherwise, you can always generate code coverage reports locally. For C
-and C++ targets, we recommend using [Clang Source-based Code Coverage].
+page. Otherwise, you can generate code coverage reports locally. For C and C++
+targets, we recommend using [Clang Source-based Code Coverage].
 
 ## Fuzzer logs
 
