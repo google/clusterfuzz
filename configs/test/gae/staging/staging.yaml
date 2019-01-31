@@ -34,7 +34,7 @@ handlers:
 inbound_services:
   - warmup
 
-instance_class: B8
+instance_class: B4
 
 libraries:
   - name: jinja2
