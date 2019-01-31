@@ -81,20 +81,8 @@ To verify that your project is successfully deployed.
   [here](https://appengine.google.com/datastore/indexes).
 
 - Verify that the bots are successfully created [here](https://console.cloud.google.com/compute/instances).
-  Bots are automatically created via a cron that runs every 30 minutes. For the first time, you can
-  manually force it by visiting the `Cron jobs` page [here](https://console.cloud.google.com/appengine/cronjobs)
-  and then running the `/manage-vms` cron job. The default settings create 1 regular linux bot and
-  2 [preemptible](https://cloud.google.com/preemptible-vms/) linux bots on GCE. This can be
-  configured by modifying `/path/to/myconfig/gce/clusters.yaml`.
-
-  If you plan to add windows bot(s), you need set the admin password in the `windows-password`
-  project metadata attribute. The password must meet the windows password policy requirements. This
-  allows you to rdp into the bot(s) with the `clusterfuzz` username (admin) and your configured
-  password.
-
-  ```bash
-  $ gcloud compute project-info add-metadata --metadata-from-file=windows-password=/path/to/password-file --project=$CLOUD_PROJECT_ID
-  ```
+  The defaults are 1 regular linux bot and 2
+  [preemptible](https://cloud.google.com/preemptible-vms/) linux bots on Google Compute Engine.
 
 ## Deploying new changes
 Now that the initial setup is complete, you may deploy further changes by
@@ -105,9 +93,8 @@ $ python butler.py deploy --config-dir=$CONFIG_DIR --prod --force
 ```
 
 ## Configuring number of bots
-By default we create 1 non-preemptible Linux VM and 2 [preemptible] Linux VMs on
-[Google Compute Engine]. This can be controlled via
-`/path/to/myconfig/gce/clusters.yaml`.
+See this [page]({{ site.baseurl }}/production-setup/setting-up-bots) for instructions
+to setup the bots.
 
 Once you make changes to the `clusters.yaml` file, you must re-deploy by
 following the [previous section](#deploying-new-changes). An App Engine cron job
