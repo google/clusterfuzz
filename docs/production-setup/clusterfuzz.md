@@ -61,8 +61,9 @@ $ python butler.py create_config --oauth-client-secrets-path=$CLIENT_SECRETS_PAT
 
 This can take a few minutes to finish, so please be patient.
 
-Check out the configuration yaml files in `/path/to/myconfig` directory and change the defaults
-to suit your usecases. Some common configuration items include:
+Check out the configuration yaml files in `/path/to/myconfig` directory and
+change the defaults to suit your use cases. Some common configuration items
+include:
 * Change the default project name using `env.PROJECT_NAME` attribute in `project.yaml`.
 * Add access for all users of a domain using `whitelisted_domains` attribute in `gae/auth.yaml`.
 * Use a custom domain for hosting (instead of `appspot.com`) using `domains` attribute in
