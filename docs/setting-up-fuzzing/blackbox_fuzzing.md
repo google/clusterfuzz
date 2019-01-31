@@ -77,5 +77,5 @@ run and a sample testcase by visiting the Fuzzers page (see second column).
 
 [blackbox fuzzer]: {{ site.baseurl }}/reference/coverage-guided-vs-blackbox/#blackbox-fuzzing
 [fuzzer]: {{ site.baseurl }}/reference/glossary/#fuzzer
-[job]: {{ site.baseurl }}/reference/glossary/#job
+[job]: {{ site.baseurl }}/reference/glossary/#job-type
 [sanitizer]: {{ site.baseurl }}/reference/glossary/#sanitizer
