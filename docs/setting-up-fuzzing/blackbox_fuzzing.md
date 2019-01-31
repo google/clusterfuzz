@@ -7,12 +7,7 @@ permalink: /setting-up-fuzzing/blackbox-fuzzing/
 ---
 
 # Blackbox fuzzing
-
-This page walks you through setting up your first [blackbox fuzzer]. A blackbox
-fuzzer generates static testcases, that are later run against a target program
-one at a time. Blackbox fuzzers are useful for cases when your target expects structured
-grammar input (e.g. HTML, Javascript, etc), so the fuzzer can create inputs that obey
-the parsing and lexical rules of that particular grammar.
+This page walks you through setting up your first [blackbox fuzzer].
 
 ---
 - TOC
@@ -80,7 +75,7 @@ which bots are running your fuzzers by checking the *Bots* page. Once a bot
 has finished running your fuzzer, you can see a sample console output from the
 run and a sample testcase by visiting the Fuzzers page (see second column).
 
-[blackbox fuzzer]: https://en.wikipedia.org/wiki/Fuzzing#Aware_of_program_structure
+[blackbox fuzzer]: {{ site.baseurl }}/reference/coverage-guided-vs-blackbox/#blackbox-fuzzing
 [fuzzer]: {{ site.baseurl }}/reference/glossary/#fuzzer
 [job]: {{ site.baseurl }}/reference/glossary/#job
 [sanitizer]: {{ site.baseurl }}/reference/glossary/#sanitizer

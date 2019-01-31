@@ -7,7 +7,8 @@ permalink: /setting-up-fuzzing/libfuzzer-and-afl/
 ---
 
 # libFuzzer and AFL
-This page walks you through setting up [libFuzzer] and [AFL] fuzzing.
+This page walks you through setting up [coverage guided fuzzing] using
+[libFuzzer] or [AFL].
 
 - TOC
 {:toc}
@@ -124,3 +125,4 @@ also use libFuzzer as ClusterFuzz will use it for minimization and pruning.
 [bot logs]: {{ site.baseurl }}/getting-started/local-instance/#viewing-logs
 [fuzzer stats]: {{ site.baseurl }}/ui-overview/#Fuzzer-Statistics
 [crash stats]: {{ site.baseurl }}/ui-overview/#Crash-Statistics
+[coverage guided fuzzing]: {{ site.baseurl }}/reference/coverage-guided-vs-blackbox/#coverage-guided-fuzzing
