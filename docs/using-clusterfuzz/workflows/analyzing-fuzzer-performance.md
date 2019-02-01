@@ -12,40 +12,53 @@ grand_parent: Using ClusterFuzz
 ClusterFuzz automates fuzzing as much as possible, but it's responsibility of
 the users to write and maintain fuzzers in order to find security
 vulnerabilities and other software bugs. This page gives some recommendations on
-how to analyze performance of the fuzzers running on ClusterFuzz infrastructure.
+how to analyze the performance of the fuzzers running on ClusterFuzz.
+
+**Note**: this page only applies for [coverage guided]() [fuzz targets] using
+[libFuzzer] or [AFL].
+
+[AFL]: http://lcamtuf.coredump.cx/afl/
+[libFuzzer]: https://llvm.org/docs/LibFuzzer.html
+[coverage guided]: {{ site.baseurl }}/reference/coverage-guided-vs-blackbox/
+[fuzz targets]: {{ site.baseurl }}/reference/glossary/#fuzz-target
 
 - TOC
 {:toc}
 
-## When to analyze fuzzer performance
+---
 
-It's important to regularly monitor the performance of fuzzers, especially after
-a new fuzzer is created. If a fuzzer keeps finding new issues, it might be more
-important to prioritize fixing those issues first, but if a fuzzer has not
+## When to analyze fuzz target performance
+
+It's important to regularly monitor the performance of fuzz targets, especially after
+a new target is created. If a target keeps finding new issues, it might be more
+important to prioritize fixing those issues first, but if a target has not
 reported anything for a while, that is a strong signal that you need to check
 its performance.
 
 ## Performance factors
 
-* Speed is crucial for fuzzing. There is no minimum threshold. The faster a
-fuzzer generates testcases, the better.
-* Code coverage should grow over time. A fuzzer should be continuously
-generating new "interesting" testcases that exercise various parts of the target
-program.
-* Blocking issues should be resolved. If a fuzzer frequently reports a Timeout,
-Out-of-Memory, or other crashes, it will be blocking fuzzer's progress.
+* **Speed** is crucial for fuzzing. There is no minimum threshold. The faster a fuzz
+  target generates testcases, the better.
+* **Code coverage** should grow over time. A fuzz target should be continuously
+  generating new "interesting" testcases that exercise various parts of the
+  target program.
+* **Blocking issues** should be resolved. If a fuzz target frequently reports a
+  Timeout, Out-of-Memory, or other crashes, it will be blocking the target from
+  finding more interesting issues.
 
 ## Fuzzer stats
 
-The fuzzer stats page provides various metrics on fuzzer performance. Using the
-filters on the page, you can see how those metrics (e.g. execution speed or
+The *Fuzzer Stats* page provides various metrics on fuzzer performance. Using
+the filters on the page, you can see how those metrics (e.g. execution speed or
 number of crashes) change over time (if you choose "Group by Day") or compare
-different fuzzers to each other ("Group by Fuzzer"). There is also "Group by
+different fuzzers to each other ("Group by Fuzzer"). There is also a "Group by
 Time" filter that shows fuzzer stats as charts rather than raw numbers.
 
-This feature requires [production setup]({{ site.baseurl }}/production-setup/),
-as fuzzer stats are stored in BigQuery. The stats are usually delayed by up to
+This feature requires a [production setup]({{ site.baseurl }}/production-setup/),
+as fuzzer stats are stored in [BigQuery]. The stats are usually delayed by up to
 24 hours, as data is uploaded to BigQuery once a day.
+
+[BigQuery]: https://cloud.google.com/bigquery/
 
 ## Performance report
 
@@ -53,18 +66,17 @@ ClusterFuzz provides automatically generated performance reports that identify
 performance issues and give recommendations on how those issues can be resolved.
 The reports also prioritize the issues detected and provide fuzzer log examples.
 
-This feature currently only works with fuzz targets using libFuzzer fuzzing
-engine.
-
 ## Coverage report
 
 Code coverage is a very important metric for evaluating performance of a fuzzer.
 Looking at the code coverage report, you can see which exact parts of the target
 program are tested by the fuzzer and which parts are never executed. If you set
-up a [code coverage builder](/using-clusterfuzz/advanced/code-coverage/) for
-ClusterFuzz, you can find links to the coverage reports on the fuzzer stats
-page. Otherwise, you can generate code coverage reports locally. For C and C++
-targets, we recommend using [Clang Source-based Code Coverage].
+up a [code coverage builder] for ClusterFuzz, you can find links to the coverage
+reports on the fuzzer stats page. Otherwise, you can generate code coverage
+reports locally. For C and C++ targets, we recommend using [Clang Source-based
+Code Coverage].
+
+[code coverage builder]: {{ site.baseurl }}/using-clusterfuzz/advanced/code-coverage/
 
 ## Fuzzer logs
 

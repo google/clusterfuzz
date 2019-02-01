@@ -25,6 +25,29 @@ to a set of minimal test inputs that generate maximal code coverage.
 A task which takes a [corpus](#corpus) and removes unnecessary inputs while
 maintaining the same code coverage.
 
+## Crash state
+A signature that we generate from the crash stacktrace for deduplication
+purposes.
+
+## Crash type
+The type of a crash. ClusterFuzz uses this to determine the severity.
+
+For security vulnerabilities this may be (but not limited to):
+- Bad-cast
+- Heap-buffer-overflow
+- Heap-double-free
+- Heap-use-after-free
+- Stack-buffer-overflow
+- Stack-use-after-return
+- Use-after-poison
+
+Other crash types include:
+- Null-dereference
+- Timeout
+- Out-of-memory
+- Stack-overflow
+- ASSERT
+
 ## Fuzz target
 A function or program that accepts an array of bytes and does something
 interesting with these bytes using the API under test. See the
@@ -53,6 +76,10 @@ where the builds are located. Consists of environment variable values.
 A [task](#task) that tries to minimize a [testcase](#testcase) to its smallest
 possible size, such that it still triggers the same underlying bug on the target
 program.
+
+## Reliability of reproduction
+A crash is reliably reproducible if the target program consistently crashes with
+the same [crash state](#crash-state) for the given input.
 
 ## Regression range
 A range of commits in which the bug was originally introduced. It is of the form
