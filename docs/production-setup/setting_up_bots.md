@@ -23,9 +23,58 @@ It is recommended to use each sanitizer its own [build] and [job] definition
 (except [LeakSanitizer]), as there are performance and bug finding efficiency issues with
 combining them.
 
-By default, ClusterFuzz configuration files in `$CONFIG_DIR/gce/clusters.yaml` define 1 Linux
-regular bot and 2 [preemptible] bots on Google Compute Engine. These can be configured by
-changing the `instance_count` in the cluster definition as shown below:
+By default, ClusterFuzz configuration file creates 1 Linux regular bot and 2 [preemptible] bots on
+[Google Compute Engine]. You can configure them by following the instructions provided
+[here](#google-compute-engine-cluster) and [here](#google-compute-engine-instance-template).
+
+It is recommended to have the majority of your bots as preemptibles since they are much cheaper
+and do not impact the production workload in any significant way (since only fuzzing tasks are
+executed there). You still need some regular bots (non-preemptibles) to execute other tasks
+e.g. post-operation tasks after a crash is discovered like minimization, regression, etc.
+
+
+## Windows
+
+Windows is a supported platform for fuzzing. Currently, only [AddressSanitizer]() [sanitizer]
+and [libFuzzer]() [fuzzing engine] are available for use on this platform.
+
+By default, ClusterFuzz configuration files do not enable any Windows bots. You can enable them
+easily by following the instructions provided
+[here](#google-compute-engine-cluster) and [here](#google-compute-engine-instance-template).
+
+You also need to [set a password](#windows-password-setup) for the administrator account on the
+bots.
+
+## macOS
+
+Mac is a supported platform for fuzzing. Currently, only [AddressSanitizer], [LeakSanitizer],
+[UndefinedBehaviorSanitizer] and [ThreadSanitizer] [sanitizer] are available on this platform.
+For [fuzzing engine], only [libFuzzer] is available on this platform.
+
+Mac is not a supported platform on [Google Compute Engine], so you would need to run it on
+physical hardware or some sort of virtualization running of top of it.
+
+Following are the steps to setup and run ClusterFuzz:
+
+* Create a service account key file using the steps provided
+[here](https://cloud.google.com/docs/authentication/getting-started).
+* Run the provided startup script.
+
+```bash
+$ export CLOUD_PROJECT_ID=<your project id>
+$ export CONFIG_DIR=/path/to/myconfig
+$ export GOOGLE_APPLICATION_CREDENTIALS=/path/to/service-account-key.json
+$ $CONFIG_DIR/bot/setup/mac.bash
+```
+
+## Configuration
+
+### Google Compute Engine Cluster
+
+You can configure a cluster of bots on [Google Compute Engine] by modifying the configuration file
+`$CONFIG_DIR/gce/clusters.yaml`. The clusters definition is in the `<your project id>/clusters`
+attribute of this yaml file. An example definition for linux [preemptible] and regular bot is:
+
 ```bash
 # Regular bots run all task types (e.g fuzzing, minimize, etc).
 clusterfuzz-linux:
@@ -42,17 +91,24 @@ clusterfuzz-linux-pre:
   distribute: False
 ```
 
-It is recommended to have the majority of your bots as preemptibles since they are much cheaper
-and they do not impact the production workload in any significant way (since only fuzzing tasks
-are executed there). You still need some regular bots (non-preemtible) to execute other tasks
-e.g. post-operation tasks after a crash is discovered like minimization, regression, etc.
+You can modify the number of bots by first un-commenting the cluster definition, and then changing
+the value in the `instance_count` variable. You can also create your own
+[instance template](#google-compute-engine-instance-template) and then define a new
+cluster section here.
 
-You can customize the properties of these bot as well. This is done by modifying the instance
-template of the bot in the same file. For example, you can configure the size of the disk using
-`diskSizeGb` attribute. Read more about instance templates
-[here](https://cloud.google.com/compute/docs/instance-templates/).
+**NOTE**:
+* Make sure to [deploy] new changes. Otherwise, they will not be reflected in production.
 
-```bash
+### Google Compute Engine Instance Template
+
+You can read more about instance templates
+[here](https://cloud.google.com/compute/docs/instance-templates). Instance templates
+define the properties of a bot (e.g. source image, disk space, network config). They are
+defined after the clusters configuration section in `$CONFIG_DIR/gce/clusters.yaml`.
+An example for a linux regular bot is:
+
+
+```aidl
 instance_templates:
   - name: clusterfuzz-linux
     description: '{"version": 1}'
@@ -64,62 +120,56 @@ instance_templates:
           initializeParams:
             sourceImage: projects/cos-cloud/global/images/family/cos-stable
             diskSizeGb: 100
-  ...
+            diskType: pd-standard
+      metadata:
+        items:
+          - key: docker-image
+            value: gcr.io/clusterfuzz-images/base:4e159c4-201812210404
+          - key: user-data
+            value: file://linux-init.yaml
+      serviceAccounts:
+        - email: my-project-id-service-account-email
+          scopes:
+            - https://www.googleapis.com/auth/cloud-platform
+            - https://www.googleapis.com/auth/prodxmon
+      networkInterfaces:
+        - network: global/networks/default
+          accessConfigs:
+            - type: ONE_TO_ONE_NAT
+              name: 'External NAT'
 ```
+
+For example, you can configure the size of the disk using `diskSizeGb` attribute.
 
 **NOTE**:
 * After making a change in the instance template, you must increment the version by 1.
-* Make sure to [deploy] new changes. Otherwise, they will not reflect in production.
-* Once deployed, bots are automatically created via a cron that runs every 30 minutes.
-  You can manually force it by visiting the `Cron jobs` page
-  [here](https://console.cloud.google.com/appengine/cronjobs) and then running the
-  `/manage-vms` cron job.
+* Make sure to [deploy] new changes. Otherwise, they will not be reflected in production.
 
-## Windows
+### Windows Password Setup
 
-Windows is a supported platform for fuzzing. Currently, only [AddressSanitizer] [sanitizer]
-and [libFuzzer] [fuzzing engine] are available for use on this platform.
-
-By default, ClusterFuzz configuration files in `$CONFIG_DIR/gce/clusters.yaml` do not
-enable any Windows bots. You can enable them easily by un-commenting any of the
-`clusterfuzz-windows-*` cluster definitions.
-
-```bash
-clusterfuzz-windows:
-  gce_zone: gce-zone
-  instance_count: 1
-  instance_template: clusterfuzz-windows
-  distribute: False
-
-clusterfuzz-windows-pre:
-  gce_zone: gce-zone
-  instance_count: 1
-  instance_template: clusterfuzz-windows-pre
-  distribute: False
-```
-
-Similar to [Linux](#linux) bots, you can configure any of the instance templates to suit your needs.
-
-In addition to the steps above, you also need to set the admin password in the `windows-password`
-project metadata attribute. The password must satisfy the windows password policy requirements.
+Before enabling windows bots on [Google Compute Engine], you need to set the administrator password
+in the `windows-password` metadata attribute. The password must satisfy the windows password policy
+requirements. To set it, run:
 
 ```bash
 $ gcloud compute project-info add-metadata \
     --metadata-from-file=windows-password=/path/to/password-file --project=$CLOUD_PROJECT_ID
 ```
-This allows you to rdp into any of your windows bot(s) with the `clusterfuzz` username (admin) and
-your configured password.
+This allows you to remote desktop into your windows bots with the `clusterfuzz` username (admin)
+and your configured password.
 
-## Mac
+### Deploying new changes
 
-Mac is a supported platform for fuzzing. Currently, only [AddressSanitizer], [LeakSanitizer],
-[UndefinedBehaviorSanitizer] and [ThreadSanitizer] [sanitizer] are available on this platform.
-For [fuzzing engine], only [libFuzzer] is available on this platform.
+Read the instructions [here]({{ site.baseurl }}/production-setup/clusterfuzz/#deploying-new-changes)
+to deploy new changes.
 
-TODO: Add setup instructions
+Once deployed, bots are automatically created via a cron that runs every *30 minutes*.
+You can manually force it by visiting the `Cron jobs` page
+[here](https://console.cloud.google.com/appengine/cronjobs) and running the
+`/manage-vms` cron job.
 
 [build]: {{ site.baseurl }}/production-setup/build-pipeline
-[deploy]: {{ site.baseurl }}/production-setup/clusterfuzz/#deploying-new-changes
+[deploy]: #deploying-new-changes
 [fuzzing engine]: {{ site.baseurl }}/reference/glossary/#fuzzing-engine
 [job]: {{ site.baseurl }}/reference/glossary/#job-type
 [preemptible]: {{ site.baseurl }}/architecture/#bots
@@ -131,3 +181,4 @@ TODO: Add setup instructions
 [ThreadSanitizer]: https://clang.llvm.org/docs/ThreadSanitizer.html
 [AFL]: http://lcamtuf.coredump.cx/afl/
 [libFuzzer]: https://llvm.org/docs/LibFuzzer.html
+[Google Compute Engine]: https://cloud.google.com/compute
