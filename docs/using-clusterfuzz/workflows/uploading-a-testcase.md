@@ -10,7 +10,7 @@ grand_parent: Using ClusterFuzz
 # Uploading a testcase
 
 You may often have a testcase that you want to run against your latest production build to check if
-it crashes. ClusterFuzz provides the `Upload Testcase` page for this purpose, which can give details
+it crashes. ClusterFuzz provides the *Upload Testcase* page for this purpose, which can give details
 about the crash, e.g. crash stacktrace, when was it introduced, etc.
 
 - TOC
@@ -48,7 +48,7 @@ To upload a new testcase:
 
 ## Check status
 
-Once you upload a new testcase, you will be redirected to the `Testcase Details` page. This page
+Once you upload a new testcase, you will be redirected to the *Testcase Details* page. This page
 auto-refreshes every *5 minutes* to provide the latest results. At first, it tries to find if the
 testcase results in a crash or not. If it does not, it sets the status as **Unreproducible**. 
 Otherwise if it does crash, then it starts with first updating the crash parameters in the

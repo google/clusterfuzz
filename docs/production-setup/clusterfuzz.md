@@ -32,6 +32,10 @@ Export the project id in environment for later use:
 $ export CLOUD_PROJECT_ID=<your project id>
 ```
 
+If you're new to Google Cloud you may be eligible for [trial credit].
+
+[trial credit]: https://cloud.google.com/free/docs/gcp-free-tier#free-trial
+
 ## Create OAuth credentials
 Follow [these instructions](https://developers.google.com/identity/protocols/OAuth2InstalledApp#creatingcred)
 to create OAuth credentials for our project setup script. When prompted for an
