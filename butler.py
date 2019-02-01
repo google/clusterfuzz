@@ -145,13 +145,8 @@ def main():
       help=('Do not close browser when tests '
             'finish. Good for debugging.'))
 
-  subparsers.add_parser(
-      'py_format',
-      help='Format changed python code in current branch (using yapf).')
-
-  subparsers.add_parser(
-      'go_format',
-      help='Format changed go code in current branch (using gofmt).')
+  subparsers.add_parser('format', help='Format changed code in current branch.')
+  subparsers.add_parser('lint', help='Lint changed code in current branch.')
 
   parser_package = subparsers.add_parser(
       'package', help='Package clusterfuzz with a staging revision')

@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""Format changed go code in current branch."""
+"""Format changed code in current branch."""
 
 import os
 
@@ -19,14 +19,20 @@ from local.butler import common
 
 
 def execute(_):
-  """Format changed code using yapf."""
-  _, output = common.execute('git diff --name-only origin...')
+  """Format changed code."""
+  _, output = common.execute('git diff --name-only FETCH_HEAD')
 
+  py_changed_file_paths = [
+      f for f in output.splitlines() if f.endswith('.py') and
+      # Exclude auto-generated files.
+      not f.endswith('_pb2.py') and not f.endswith('_pb2_grpc.py')
+  ]
   go_changed_file_paths = [f for f in output.splitlines() if f.endswith('.go')]
-  if not go_changed_file_paths:
-    print 'No changed files found, nothing to format.'
-    return
+
+  for file_path in py_changed_file_paths:
+    if os.path.exists(file_path):
+      common.execute('yapf -i ' + file_path)
 
   for file_path in go_changed_file_paths:
     if os.path.exists(file_path):
-      common.execute('gofmt -w %s' % file_path)
+      common.execute('gofmt -w ' + file_path)
