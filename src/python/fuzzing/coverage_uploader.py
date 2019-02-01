@@ -81,8 +81,6 @@ def upload_testcases_if_needed(fuzzer_name, testcase_list, testcase_directory):
 
   list_gcs_url = gcs_base_url + '/' + LIST_FILE_BASENAME
   if not storage.write_data('\n'.join(testcase_list), list_gcs_url):
-    logs.log_error('Failed to write test case list to {gcs_url}'.format(
-        gcs_url=list_gcs_url))
     return
 
   runner.rsync(testcase_directory, gcs_base_url)
