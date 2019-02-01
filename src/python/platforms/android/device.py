@@ -21,7 +21,6 @@ import random
 import re
 import socket
 import time
-import utils
 
 try:
   from shlex import quote
@@ -803,7 +802,7 @@ def get_debug_props_and_values():
   # https://android.googlesource.com/platform/bionic/+/master/libc/malloc_debug/README.md
   if debug_malloc_enabled:
     build_version = get_build_version()
-    if utils.is_build_at_least(build_version, 'N'):
+    if is_build_at_least(build_version, 'N'):
       # FIXME: See b/30068677. 'backtrace' and 'free_track' options are
       # extremely expensive. Skip them for now until performance issues
       # are resolved.
@@ -1118,7 +1117,7 @@ def upgrade_gms_core_if_needed():
   # FIXME: Add support for GMSCore update for N and higher. These builds are no
   # longer stored on build apiary.
   build_version = get_build_version()
-  if utils.is_build_at_least(build_version, 'N'):
+  if is_build_at_least(build_version, 'N'):
     return
 
   # Check if an update is needed based on last recorded GmsCore update time.
@@ -1384,7 +1383,7 @@ def configure_build_properties_if_needed():
   # Keep verified boot disabled for M and higher releases. This makes it easy
   # to modify system's app_process to load asan libraries.
   build_version = get_build_version()
-  if utils.is_build_at_least(build_version, 'M'):
+  if is_build_at_least(build_version, 'M'):
     adb.run_as_root()
     adb.run_adb_command('disable-verity')
     reboot()
@@ -1394,7 +1393,7 @@ def configure_build_properties_if_needed():
   adb.remount()
 
   # Remove seccomp policies (on N and higher) as ASan requires extra syscalls.
-  if utils.is_build_at_least(build_version, 'N'):
+  if is_build_at_least(build_version, 'N'):
     policy_files = adb.run_adb_shell_command(
         ['find', '/system/etc/seccomp_policy/', '-type', 'f'])
     for policy_file in policy_files.splitlines():
@@ -1417,3 +1416,22 @@ def configure_build_properties_if_needed():
   # Set persistent cache key containing and md5sum.
   current_md5 = adb.get_file_checksum(BUILD_PROP_PATH)
   persistent_cache.set_value(BUILD_PROP_MD5_KEY, current_md5)
+
+
+def is_build_at_least(current_version, other_version):
+  """Returns whether or not |current_version| is at least as new as
+  |other_version|."""
+  if current_version is None:
+    return False
+
+  # Special-cases for master builds.
+  if current_version == 'A':
+    # If the current build is master, we consider it at least as new as any
+    # other.
+    return True
+
+  if other_version == 'A':
+    # Since this build is not master, it is not at least as new as master.
+    return False
+
+  return current_version >= other_version
