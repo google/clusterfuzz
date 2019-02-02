@@ -427,23 +427,6 @@ def remove_directory(directory, recreate=False, ignore_errors=False):
   return True
 
 
-def start_dbus_daemon():
-  """Start DBUS Daemon."""
-  try:
-    dbus_output = subprocess.check_output(
-        ['dbus-launch'], env={
-            'DISPLAY': ':0'
-        }).split('\n')
-    for line in dbus_output:
-      m = re.match(r'([^=]+)\=(.+)', line)
-      if not m:
-        continue
-
-      environment.set_value(m.group(1), m.group(2))
-  except:
-    logs.log_error('Error in starting DBUS daemon.')
-
-
 # Copy of shutil.which from Python 3.3 (unavailable in Python 2.7).
 # pylint: disable=bad-inline-option,g-inconsistent-quotes,redefined-builtin
 # yapf: disable

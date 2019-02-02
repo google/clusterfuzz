@@ -13,20 +13,9 @@
 # limitations under the License.
 """Linux init scripts."""
 
-from distutils import spawn
-
 from bot.init_scripts import init_runner
-from system import process_handler
-from system import shell
 
 
 def run():
   """Run Linux initialization."""
   init_runner.run()
-
-  has_dbus = bool(spawn.find_executable('dbus-launch'))
-  if has_dbus:
-    # Restart user dbus daemon.
-    process_handler.terminate_processes_matching_names(['dbus-daemon'])
-
-    shell.start_dbus_daemon()
