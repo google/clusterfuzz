@@ -78,9 +78,10 @@ class UpdateJob(base_handler.GcsUploadHandler):
   @handler.require_csrf_token
   def post(self):
     """Handle a post request."""
-    name = self.request.get('name', '').strip()
+    name = self.request.get('name')
     if not name:
       raise helpers.EarlyExitException('Please give this job a name!', 400)
+
     if not data_types.Job.VALID_NAME_REGEX.match(name):
       raise helpers.EarlyExitException(
           'Job name can only contain letters, numbers, dashes and underscores.',
@@ -159,9 +160,10 @@ class UpdateJobTemplate(base_handler.Handler):
   @handler.post(handler.FORM, handler.HTML)
   def post(self):
     """Handle a post request."""
-    name = self.request.get('name').strip()
+    name = self.request.get('name')
     if not name:
       raise helpers.EarlyExitException('Please give this template a name!', 400)
+
     if not data_types.Job.VALID_NAME_REGEX.match(name):
       raise helpers.EarlyExitException(
           'Template name can only contain letters, numbers, dashes and '

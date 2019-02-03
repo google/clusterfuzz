@@ -211,11 +211,11 @@ class CreateHandler(BaseEditHandler):
   @handler.require_csrf_token
   def post(self):
     """Handle a post request."""
-    name = self.request.get('name').strip()
+    name = self.request.get('name')
     if not name:
       raise helpers.EarlyExitException('Please give the fuzzer a name!', 400)
 
-    elif not data_types.Fuzzer.VALID_NAME_REGEX.match(name):
+    if not data_types.Fuzzer.VALID_NAME_REGEX.match(name):
       raise helpers.EarlyExitException(
           'Fuzzer name can only contain letters, numbers, dashes and '
           'underscores.', 400)
