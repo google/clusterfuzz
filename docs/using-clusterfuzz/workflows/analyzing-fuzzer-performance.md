@@ -14,8 +14,8 @@ the users to write and maintain fuzzers in order to find security
 vulnerabilities and other software bugs. This page gives some recommendations on
 how to analyze the performance of the fuzzers running on ClusterFuzz.
 
-**Note**: this page only applies for [coverage guided]() [fuzz targets] using
-[libFuzzer] or [AFL].
+**Note**: this page only applies to [fuzz targets] doing [coverage guided]
+fuzzing with [libFuzzer] or [AFL].
 
 [AFL]: http://lcamtuf.coredump.cx/afl/
 [libFuzzer]: https://llvm.org/docs/LibFuzzer.html
@@ -29,16 +29,16 @@ how to analyze the performance of the fuzzers running on ClusterFuzz.
 
 ## When to analyze fuzz target performance
 
-It's important to regularly monitor the performance of fuzz targets, especially after
-a new target is created. If a target keeps finding new issues, it might be more
-important to prioritize fixing those issues first, but if a target has not
+It's important to regularly monitor the performance of fuzz targets, especially
+after a new target is created. If a target keeps finding new issues, it might be
+more important to prioritize fixing those issues first, but if a target has not
 reported anything for a while, that is a strong signal that you need to check
 its performance.
 
 ## Performance factors
 
-* **Speed** is crucial for fuzzing. There is no minimum threshold. The faster a fuzz
-  target generates testcases, the better.
+* **Speed** is crucial for fuzzing. There is no minimum threshold. The faster a
+  fuzz target generates testcases, the better.
 * **Code coverage** should grow over time. A fuzz target should be continuously
   generating new "interesting" testcases that exercise various parts of the
   target program.
