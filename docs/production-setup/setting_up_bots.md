@@ -101,7 +101,7 @@ and then changing the value in the `instance_count` attribute. You can also
 create your own [instance template](#google-compute-engine-instance-template)
 and then define a new cluster section here.
 
-**NOTE**:
+**Note**:
 * Make sure to [deploy] new changes. Otherwise, they will not be reflected in
 production.
 
@@ -148,7 +148,7 @@ instance_templates:
 For example, you can configure the size of the disk using `diskSizeGb`
 attribute.
 
-**NOTE**:
+**Note**:
 * After making a change in the instance template, you must increment the version
 by 1.
 * Make sure to [deploy] new changes. Otherwise, they will not be reflected in
