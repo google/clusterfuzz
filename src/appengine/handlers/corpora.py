@@ -27,6 +27,7 @@ class Handler(base_handler.Handler):
 
   @handler.check_user_access(need_privileged_access=False)
   @handler.get(handler.HTML)
+  @handler.unsupported_on_local_server
   def get(self):
     """Handle a get request."""
     data_bundles = list(data_types.DataBundle.query().order(
