@@ -141,7 +141,6 @@ set +x
 echo "
 
 Installation succeeded!
-If you didn't run this script with 'source',
 Please load virtualenv environment by running 'source ENV/bin/activate'.
 
 "

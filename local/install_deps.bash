@@ -15,7 +15,7 @@
 # limitations under the License.
 
 if [ "$(uname)" == "Darwin" ]; then
-  source $(dirname "$0")/install_deps_macos.bash
+  $(dirname "$0")/install_deps_macos.bash
 else
-  source $(dirname "$0")/install_deps_linux.bash
+  $(dirname "$0")/install_deps_linux.bash
 fi

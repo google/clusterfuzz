@@ -24,7 +24,7 @@ def check_virtualenv():
   if not is_in_virtualenv:
     raise Exception(
         'You are not in a virtual env environment. Please install it with'
-        ' `source ./local/install_deps.bash` or load it with'
+        ' `./local/install_deps.bash` or load it with'
         ' `source ENV/bin/activate`. Then, you can re-run this command.')
 
 
