@@ -35,10 +35,8 @@ bootcmd:
   # Note that NVIDIA_DRIVER_VERSION can be used with a particular CUDA version
   # only, e.g. CUDA 9.0 needs drivers version 384.130. CUDA and TensorFlow are
   # being installed in clusterfuzz/docker/internal-ml-with-gpu image.
-  # Pre-built TensorFlow binaries require CUDA 9.0 as well, so we use this config.
-  # Nvidia drivers ver. 384.130 for Ubuntu are not available on Nvidia website.
-  # We use a debian package downloaded from GCE Ubuntu instance (via apt download)
-  # and uploaded to clusterfuzz-data GCS bucket (see NVIDIA_DRIVER_DOWNLOAD_URL).
+  # Pre-built TensorFlow binaries require CUDA 9.0 as well, so we use this
+  # config.
 write_files:
   - path: /etc/bot-env
     permissions: 0644

@@ -12,7 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Application id for the Appengine project (usually same as Google Cloud Project ID).
+# Application id for the Appengine project (usually same as Google Cloud Project
+# ID).
 application_id: test-clusterfuzz
 
 # Define these if you would like to use a custom domain.
@@ -21,8 +22,8 @@ application_id: test-clusterfuzz
 #   redirects:
 #     - test-clusterfuzz.appspot.com
 
-# Files to be deployed on App Engine for ClusterFuzz UI pages. This is kept configurable, but does
-# not need to be changed for most usecases.
+# Files to be deployed on App Engine for ClusterFuzz UI pages. This is kept
+# configurable, but does not need to be changed for most usecases.
 deployment:
   prod:
     - prod/app.yaml
@@ -33,11 +34,11 @@ deployment:
     - staging/staging.yaml
     - staging/go-cron-service-staging.yaml
 
-# Google analytics tracking id, to provide analytics / usage info for ClusterFuzz UI pages.
-# See https://support.google.com/analytics/answer/1008080.
+# Google analytics tracking id, to provide analytics / usage info for
+# ClusterFuzz UI pages. See https://support.google.com/analytics/answer/1008080.
 ga_tracking_id:
 
-# Site ownership verification tag, usually of the form google<tag_id>.html. This is only applicable
-# if you are using a custom domain.
+# Site ownership verification tag, usually of the form google<tag_id>.html. This
+# is only applicable if you are using a custom domain.
 # See https://support.google.com/webmasters/answer/35179?hl=en.
 domain_verification_tag: domain-verification-tag

@@ -14,7 +14,8 @@
 
 test-clusterfuzz:
   clusters:
-    # Regular bots run all task types (e.g fuzzing, minimize, regression, impact, progression, etc).
+    # Regular bots run all task types (e.g fuzzing, minimize, regression,
+    # impact, progression, etc).
     clusterfuzz-linux:
       gce_zone: gce-zone
       instance_count: 1

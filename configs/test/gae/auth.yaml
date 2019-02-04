@@ -12,8 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Users in these domains are whitelisted to access ClusterFuzz. They can access all parts except
-# the privileged ones (e.g. uploading a fuzzer, creating new jobs, viewing security bugs, etc).
+# Users in these domains are whitelisted to access ClusterFuzz. They can access
+# all parts except the privileged ones (e.g. uploading a fuzzer, creating new
+# jobs, viewing security bugs, etc).
 whitelisted_domains:
 #  - example.com
 
