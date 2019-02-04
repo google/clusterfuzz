@@ -31,6 +31,7 @@ def execute(args):
     os.environ['DATASTORE_EMULATOR_HOST'] = constants.DATASTORE_EMULATOR_HOST
     os.environ['PUBSUB_EMULATOR_HOST'] = constants.PUBSUB_EMULATOR_HOST
     os.environ['DATASTORE_USE_PROJECT_ID_AS_APP_ID'] = 'true'
+    os.environ['LOCAL_DEVELOPMENT'] = 'True'
 
   if not args.non_dry_run:
     print('Running in dry-run mode, no datastore writes are committed. '

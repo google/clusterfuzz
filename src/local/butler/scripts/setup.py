@@ -84,12 +84,14 @@ class BaseBuiltinFuzzerDefaults(object):
     self.name = None
     self.stats_column_descriptions = None
     self.stats_columns = None
+    self.key_id = None
 
   def create_fuzzer(self):
     """Create a Fuzzer data_type with columns set to the defaults specified by
     this object."""
     assert self.name is not None
     return data_types.Fuzzer(
+        id=self.key_id,
         revision=self.revision,
         file_size=self.file_size,
         source=self.source,
@@ -106,6 +108,7 @@ class LibFuzzerDefaults(BaseBuiltinFuzzerDefaults):
     super(LibFuzzerDefaults, self).__init__()
     # Override empty values from parent.
     self.name = 'libFuzzer'
+    self.key_id = 1337
     # Use single quotes since the string ends in a double quote.
     # pylint: disable=line-too-long
     self.stats_column_descriptions = '''fuzzer: "Fuzz target"
@@ -157,6 +160,7 @@ class AflDefaults(BaseBuiltinFuzzerDefaults):
     super(AflDefaults, self).__init__()
     # Override empty values from parent.
     self.name = 'afl'
+    self.key_id = 1338
     # Use single quotes since the string ends in a double quote.
     # pylint: disable=line-too-long
     self.stats_column_descriptions = '''fuzzer: "Fuzz target"
