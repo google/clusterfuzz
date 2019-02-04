@@ -172,25 +172,25 @@ def get_result(this):
 
 
 class Handler(base_handler.Handler):
-  """Handler that gets the crash stats when user first lands on the page."""
+  """Handler that lists testcases whose regression range contains a revision."""
 
   @handler.get(handler.HTML)
   @handler.unsupported_on_local_server
   def get(self):
-    """Get and render the crash stats in HTML."""
+    """Get and render the commit range in HTML."""
     result, params = get_result(self)
     self.render('commit_range.html', {'result': result, 'params': params})
 
 
 class JsonHandler(base_handler.Handler):
-  """Handler that gets the crash stats when user interacts with the page."""
+  """JSON handler used for dynamic updates of commit ranges."""
 
   # See: https://bugs.chromium.org/p/chromium/issues/detail?id=760669
   @handler.oauth
   @handler.allowed_cors
   @handler.post(handler.JSON, handler.JSON)
   def post(self):
-    """Get and render the crash stats in JSON."""
+    """Get and render the commit range in JSON."""
     result, params = get_result(self)
     result['params'] = params
     self.render_json(result)

@@ -90,6 +90,7 @@ def _get_host_workers_heartbeats():
 class Handler(base_handler.Handler):
   """Handler that gets the bot list."""
 
+  @handler.check_user_access(need_privileged_access=False)
   @handler.get(handler.HTML)
   def get(self):
     """Render the bot list HTML."""
@@ -110,13 +111,12 @@ class DeadBotsHandler(base_handler.Handler):
   @handler.get(handler.JSON)
   def get(self):
     """Render dead bots as json (used by automated scripts)."""
-    # TODO(mbarbella): This is specific to the chromium use case. We should
-    # find a better way to handle it.
-    if utils.is_oss_fuzz():
-      raise helpers.EarlyExitException('Dead bots unavailable for OSS-Fuzz.',
-                                       400)
-    else:
+
+    # This a publicly exposed chromium-specific page.
+    if utils.is_chromium():
       heartbeats = ndb_utils.get_all_from_model(data_types.Heartbeat)
+    else:
+      raise helpers.EarlyExitException('Dead bots list unavailable.', 400)
 
     result = {}
     alive_cutoff = _get_alive_cutoff()
