@@ -599,6 +599,11 @@ def create_additional_tasks(testcase):
 
 def should_attempt_phase(testcase, phase):
   """Return true if we should we attempt a minimization phase."""
+  if (phase == MinimizationPhase.ARGUMENTS and
+      environment.is_engine_fuzzer_job()):
+    # Should not minimize arguments list for engine based fuzzer jobs.
+    return False
+
   current_phase = testcase.get_metadata(
       'minimization_phase', default=MinimizationPhase.GESTURES)
   return phase >= current_phase
