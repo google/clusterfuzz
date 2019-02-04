@@ -31,9 +31,7 @@ for source_file in `find private/templates -iname '*.html'`; do
   build_one_file $source_file private/templates templates
 done;
 
-while wait -n; do
-  sleep 1
-done;
+wait
 
 if [[ $(find private/templates -size +0 | wc -l) != $(find templates -size +0 | wc -l) ]]; then
   echo "Polymer Bundler build failed. Difference between unbuilt and built files:"

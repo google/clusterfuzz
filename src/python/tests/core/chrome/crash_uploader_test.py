@@ -105,6 +105,7 @@ class CrashReportsTest(CrashBaseTest):
     self.assertEqual(my_actual_report_info.version,
                      my_expected_report_info.version)
 
+  @test_utils.supported_platforms('LINUX')
   def test_parse_output_to_processed_report(self):
     """Tests if given output parses to the expected symbolized stack bytes."""
     self.needs_file_delete = False

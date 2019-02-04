@@ -167,7 +167,7 @@ def kill_process(name):
         'wmic process where (commandline like "%%%s%%") delete' % name,
         exit_on_error=False)
   elif platform.system() in ['Linux', 'Darwin']:
-    execute('pkill --signal=9 -f "%s"' % name, exit_on_error=False)
+    execute('pkill -KILL -f "%s"' % name, exit_on_error=False)
   else:
     raise Exception('Unknown platform: %s.' % platform.system())
 

@@ -36,6 +36,8 @@ TEST_DIR = os.path.join(
     os.path.dirname(os.path.realpath(__file__)), 'corpus_pruning_task_data')
 
 
+# TODO(unassigned): Support macOS.
+@test_utils.supported_platforms('LINUX')
 @test_utils.with_cloud_emulators('datastore')
 class CorpusPruningTest(unittest.TestCase):
   """Corpus pruning tests."""

@@ -19,6 +19,7 @@ import httplib2
 import json
 import threading
 
+from google.auth import credentials
 import googleapiclient
 from googleapiclient import discovery
 
@@ -88,7 +89,8 @@ class PubSubClient(object):
       discovery_doc = json.loads(discovery_doc)
       discovery_doc['rootUrl'] = 'http://{}/'.format(emulator_host)
 
-      self._local.api_client = discovery.build_from_document(discovery_doc)
+      self._local.api_client = discovery.build_from_document(
+          discovery_doc, credentials=credentials.AnonymousCredentials())
     else:
       self._local.api_client = discovery.build(
           'pubsub', 'v1', cache_discovery=False)

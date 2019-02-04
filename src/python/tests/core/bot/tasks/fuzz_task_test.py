@@ -855,7 +855,7 @@ class ProcessCrashesTest(fake_filesystem_unittest.TestCase):
       expected_crash_infos = [None] * len(actual_crash_infos)
     else:
       expected_saved_crash_info = crash_uploader.CrashReportInfo(
-          product='Chrome_Linux',
+          product='Chrome_' + environment.platform().lower().capitalize(),
           version='this.is.fake.ver',
           serialized_crash_stack_frames='f00df00d')
       expected_crash_infos = [

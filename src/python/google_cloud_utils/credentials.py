@@ -13,7 +13,10 @@
 # limitations under the License.
 """Cloud credential helpers."""
 
+from google.auth import credentials
+
 from base import retry
+from system import environment
 
 try:
   import google.auth
@@ -26,10 +29,24 @@ FAIL_RETRIES = 5
 FAIL_WAIT = 10
 
 
+def _use_anonymous_credentials():
+  """Returns whether or not to use anonymous credentials."""
+  if (environment.get_value('INTEGRATION') or
+      environment.get_value('UNTRUSTED_RUNNER_TESTS')):
+    # Integration tests need real credentials.
+    return False
+
+  return (environment.get_value('LOCAL_DEVELOPMENT') or
+          environment.get_value('PY_UNITTESTS'))
+
+
 @retry.wrap(
     retries=FAIL_RETRIES,
     delay=FAIL_WAIT,
     function='google_cloud_utils.credentials.get_default')
 def get_default(scopes=None):
   """Get default Google Cloud credentials."""
+  if _use_anonymous_credentials():
+    return credentials.AnonymousCredentials(), ''
+
   return google.auth.default(scopes=scopes)

@@ -354,3 +354,15 @@ def set_up_pyfakefs(test_self):
   """Helper to set up Pyfakefs."""
   test_self.setUpPyfakefs()
   test_self.fs.add_real_directory(environment.get_config_directory())
+
+
+def supported_platforms(*platforms):
+  """Decorator for enabling tests only on certain platforms."""
+
+  def decorator(func):  # pylint: disable=unused-argument
+    """Decorator."""
+    return unittest.skipIf(environment.platform() not in platforms,
+                           'Unsupported platform.')(
+                               func)
+
+  return decorator

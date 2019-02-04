@@ -45,8 +45,10 @@ class LauncherTestBase(fake_filesystem_unittest.TestCase):
   def setUp(self):
     test_utils.set_up_pyfakefs(self)
     self.fs.CreateDirectory(self.INPUT_DIR)
-    self._create_file(fuzzer.AFL_DUMMY_INPUT)
+    if not os.path.exists(self.TEMP_DIR):
+      self.fs.CreateDirectory(self.TEMP_DIR)
 
+    self._create_file(fuzzer.AFL_DUMMY_INPUT)
     test_helpers.patch(self, [
         'bot.fuzzers.utils.get_temp_dir',
     ])

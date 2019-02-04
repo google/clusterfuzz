@@ -1,8 +1,8 @@
 load("@io_bazel_rules_go//go:def.bzl", "go_path")
 
-sh_binary(
+py_binary(
     name = "create_gopath",
-    srcs = ["create_gopath.sh"],
+    srcs = ["create_gopath.py"],
     args = [
         "$(location :gopath)",
     ],

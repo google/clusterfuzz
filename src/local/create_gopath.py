@@ -1,5 +1,3 @@
-#!/bin/bash
-#
 # Copyright 2019 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -13,7 +11,11 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+"""GOPATH helper."""
 
-# Print the GOPATH.
-readlink -f $1
+from __future__ import print_function
 
+import os
+import sys
+
+print(os.path.realpath(sys.argv[1]))

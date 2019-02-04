@@ -190,8 +190,8 @@ class LauncherTest(fake_fs_unittest.TestCase):
     self.fs.CreateDirectory(FAKE_ROOT_DIR)
     self.fs.CreateDirectory(os.path.join(FAKE_ROOT_DIR, 'bot', 'logs'))
     self.fs.CreateFile(
-        os.path.join(FAKE_ROOT_DIR, 'resources', 'platform', 'linux',
-                     'llvm-symbolizer'))
+        os.path.join(FAKE_ROOT_DIR, 'resources', 'platform',
+                     environment.platform().lower(), 'llvm-symbolizer'))
 
     test_helpers.patch(self, [
         'atexit.register',
@@ -1419,12 +1419,12 @@ class LauncherTest(fake_fs_unittest.TestCase):
           '1',
           '9',
       ], [
-          '/fake_root/resources/platform/linux/minijail0', '-f', '/tmpfile',
-          '-U', '-m', '0 1000 1', '-T', 'static', '-c', '0', '-n', '-v', '-p',
-          '-l', '-I', '-k', 'proc,/proc,proc,1', '-P',
-          '/fake/inputs-disk/temp-1337/CHROOT', '-b',
-          '/fake/inputs-disk/temp-1337/TEMP,/tmp,1', '-b', '/lib,/lib,0', '-b',
-          '/lib64,/lib64,0', '-b', '/usr/lib,/usr/lib,0', '-b',
+          '/fake_root/resources/platform/{}/minijail0'.format(
+              environment.platform().lower()), '-f', '/tmpfile', '-U', '-m',
+          '0 1000 1', '-T', 'static', '-c', '0', '-n', '-v', '-p', '-l', '-I',
+          '-k', 'proc,/proc,proc,1', '-P', '/fake/inputs-disk/temp-1337/CHROOT',
+          '-b', '/fake/inputs-disk/temp-1337/TEMP,/tmp,1', '-b', '/lib,/lib,0',
+          '-b', '/lib64,/lib64,0', '-b', '/usr/lib,/usr/lib,0', '-b',
           '/fake/build_dir,/fake/build_dir,0', '-b', '/fake/build_dir,/out,0',
           '-b', '/fake/main_corpus_dir,/main_corpus_dir,1', '-b',
           '/fake/inputs-disk/temp-1337/new,/new,1', '-b',
@@ -1433,12 +1433,12 @@ class LauncherTest(fake_fs_unittest.TestCase):
           '-timeout=25', '-artifact_prefix=/', '-max_total_time=2650',
           '-print_final_stats=1', '/new', '/subset'
       ], [
-          '/fake_root/resources/platform/linux/minijail0', '-f', '/tmpfile',
-          '-U', '-m', '0 1000 1', '-T', 'static', '-c', '0', '-n', '-v', '-p',
-          '-l', '-I', '-k', 'proc,/proc,proc,1', '-P',
-          '/fake/inputs-disk/temp-1337/CHROOT', '-b',
-          '/fake/inputs-disk/temp-1337/TEMP,/tmp,1', '-b', '/lib,/lib,0', '-b',
-          '/lib64,/lib64,0', '-b', '/usr/lib,/usr/lib,0', '-b',
+          '/fake_root/resources/platform/{}/minijail0'.format(
+              environment.platform().lower()), '-f', '/tmpfile', '-U', '-m',
+          '0 1000 1', '-T', 'static', '-c', '0', '-n', '-v', '-p', '-l', '-I',
+          '-k', 'proc,/proc,proc,1', '-P', '/fake/inputs-disk/temp-1337/CHROOT',
+          '-b', '/fake/inputs-disk/temp-1337/TEMP,/tmp,1', '-b', '/lib,/lib,0',
+          '-b', '/lib64,/lib64,0', '-b', '/usr/lib,/usr/lib,0', '-b',
           '/fake/build_dir,/fake/build_dir,0', '-b', '/fake/build_dir,/out,0',
           '-b', '/fake/main_corpus_dir,/main_corpus_dir,1', '-b',
           '/fake/inputs-disk/temp-1337/new,/new,1', '-b',
@@ -1501,12 +1501,12 @@ class LauncherTest(fake_fs_unittest.TestCase):
           '1',
           '9',
       ], [
-          '/fake_root/resources/platform/linux/minijail0', '-f', '/tmpfile',
-          '-U', '-m', '0 1000 1', '-T', 'static', '-c', '0', '-n', '-v', '-p',
-          '-l', '-I', '-k', 'proc,/proc,proc,1', '-P',
-          '/fake/inputs-disk/temp-1337/CHROOT', '-b',
-          '/fake/inputs-disk/temp-1337/TEMP,/tmp,1', '-b', '/lib,/lib,0', '-b',
-          '/lib64,/lib64,0', '-b', '/usr/lib,/usr/lib,0', '-b',
+          '/fake_root/resources/platform/{}/minijail0'.format(
+              environment.platform().lower()), '-f', '/tmpfile', '-U', '-m',
+          '0 1000 1', '-T', 'static', '-c', '0', '-n', '-v', '-p', '-l', '-I',
+          '-k', 'proc,/proc,proc,1', '-P', '/fake/inputs-disk/temp-1337/CHROOT',
+          '-b', '/fake/inputs-disk/temp-1337/TEMP,/tmp,1', '-b', '/lib,/lib,0',
+          '-b', '/lib64,/lib64,0', '-b', '/usr/lib,/usr/lib,0', '-b',
           '/fake/build_dir,/fake/build_dir,0', '-b', '/fake/build_dir,/out,0',
           '-b', '/fake/inputs-disk/temp-1337/new,/new,1', '-b',
           '/fake/main_corpus_dir,/main_corpus_dir,1',
@@ -1514,12 +1514,12 @@ class LauncherTest(fake_fs_unittest.TestCase):
           '-timeout=25', '-artifact_prefix=/', '-max_total_time=2650',
           '-print_final_stats=1', '/new', '/main_corpus_dir'
       ], [
-          '/fake_root/resources/platform/linux/minijail0', '-f', '/tmpfile',
-          '-U', '-m', '0 1000 1', '-T', 'static', '-c', '0', '-n', '-v', '-p',
-          '-l', '-I', '-k', 'proc,/proc,proc,1', '-P',
-          '/fake/inputs-disk/temp-1337/CHROOT', '-b',
-          '/fake/inputs-disk/temp-1337/TEMP,/tmp,1', '-b', '/lib,/lib,0', '-b',
-          '/lib64,/lib64,0', '-b', '/usr/lib,/usr/lib,0', '-b',
+          '/fake_root/resources/platform/{}/minijail0'.format(
+              environment.platform().lower()), '-f', '/tmpfile', '-U', '-m',
+          '0 1000 1', '-T', 'static', '-c', '0', '-n', '-v', '-p', '-l', '-I',
+          '-k', 'proc,/proc,proc,1', '-P', '/fake/inputs-disk/temp-1337/CHROOT',
+          '-b', '/fake/inputs-disk/temp-1337/TEMP,/tmp,1', '-b', '/lib,/lib,0',
+          '-b', '/lib64,/lib64,0', '-b', '/usr/lib,/usr/lib,0', '-b',
           '/fake/build_dir,/fake/build_dir,0', '-b', '/fake/build_dir,/out,0',
           '-b', '/fake/inputs-disk/temp-1337/new,/new,1', '-b',
           '/fake/main_corpus_dir,/main_corpus_dir,1',
