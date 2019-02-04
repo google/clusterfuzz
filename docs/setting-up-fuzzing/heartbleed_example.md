@@ -81,7 +81,7 @@ after that you should see a stack trace and the string:
 `AddressSanitizer: heap-buffer-overflow` in the logs.
 
 This is the heartbleed vulnerability. Go to the ClusterFuzz homepage (ie: the
-Testcases page) and you will see a testcase titled (Heap-buffer-overflow
-READ{*}). This is the heartbleed vulnerability found by ClusterFuzz.
+Testcases page) and you will see a testcase titled "Heap-buffer-overflow
+READ{*}". This is the heartbleed vulnerability found by ClusterFuzz.
 
 [bot logs]: {{ site.baseurl }}/getting-started/local-instance/#viewing-logs

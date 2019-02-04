@@ -42,7 +42,7 @@ greater which you can download from the [LLVM Snapshot Builds page].
 
 ## Builds
 
-### LibFuzzer
+### libFuzzer
 LibFuzzer targets are easy to build. Just compile a [fuzz target] with
 `-fsanitize=fuzzer` and a [sanitizer] such as [AddressSanitizer]
 (`-fsanitize=address`).
@@ -93,10 +93,10 @@ To create a job for libFuzzer or AFL:
 1. Navigate to the *Jobs* page.
 2. Go to the form to "ADD NEW JOB".
 3. Fill out the "Name" and "Platform" (LINUX).
-  1. If setting up an **AFL** job, use the templates **"afl"** and **"engine_asan"**.
-  2. If setting up a **libFuzzer** job, use the templates **"libfuzzer"** and
-     **"engine_SANITIZER"** depending on which sanitizer you are using (e.g.
-     "libfuzzer_asan").
+    1. If setting up an **AFL** job, use the templates **"afl"** and **"engine_asan"**.
+    2. If setting up a **libFuzzer** job, use the templates **"libfuzzer"** and
+       **"engine_SANITIZER"** depending on which sanitizer you are using (e.g.
+       "libfuzzer_asan").
 4. Select your build (your zip containing the fuzz target binary) to upload as a
   "Custom Build".
 5. Use the "ADD" button to add the job to ClusterFuzz.
@@ -113,7 +113,7 @@ Next we must let ClusterFuzz know which fuzzer the job can be used with:
 ### Enabling corpus pruning
 It is important that you enable [corpus pruning] to run once a day to prevent
 uncontrolled corpus growth. This **must** be done by setting `CORPUS_PRUNE =
-True` in the Environment String for your **libFuzzer ASan** job. 
+True` in the Environment String for your **libFuzzer ASan** job.
 
 ## Checking results
 You can observe ClusterFuzz fuzzing your build by looking at the [bot logs]. Any
@@ -140,3 +140,4 @@ also use libFuzzer which supports these tasks.
 [coverage guided fuzzing]: {{ site.baseurl }}/reference/coverage-guided-vs-blackbox/#coverage-guided-fuzzing
 [fuzzer stats]: {{ site.baseurl }}/using-clusterfuzz/ui-overview/#fuzzer-statistics
 [crash stats]: {{ site.baseurl }}/using-clusterfuzz/ui-overview/#crash-statistics
+[Setting up a fuzzing job]: {{ site.baseurl }}/production-setup/#setting-up-fuzzing-job/
