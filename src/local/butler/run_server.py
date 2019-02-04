@@ -109,6 +109,8 @@ def start_cron_threads():
   crons = (
       (90, 'cleanup'),
       (60, 'triage'),
+      (6 * 3600, 'schedule-progression-tasks'),
+      (12 * 3600, 'schedule-corpus-pruning'),
   )
 
   for interval, cron in crons:
