@@ -215,6 +215,14 @@ def create_buckets(project_id, buckets):
       gsutil.run('mb', '-p', project_id, 'gs://' + bucket)
 
 
+def set_cors(config_dir, buckets):
+  """Sets cors settings."""
+  gsutil = common.Gsutil()
+  cors_file_path = os.path.join(config_dir, 'gae', 'cors.json')
+  for bucket in buckets:
+    gsutil.run('cors', 'set', cors_file_path, 'gs://' + bucket)
+
+
 def execute(args):
   # Check this early on, as the deployment at the end would fail otherwise.
   if common.is_git_dirty():
@@ -231,9 +239,10 @@ def execute(args):
   appspot_domain = 'https://' + args.project_id + '.appspot.com/'
   domain_verification_tag = verifier.get_domain_verification_tag(appspot_domain)
 
+  blobs_bucket = project_bucket(args.project_id, 'blobs')
   deployment_bucket = project_bucket(args.project_id, 'deployment')
   bucket_replacements = (
-      ('test-blobs-bucket', project_bucket(args.project_id, 'blobs')),
+      ('test-blobs-bucket', blobs_bucket),
       ('test-deployment-bucket', deployment_bucket),
       ('test-bigquery-bucket', project_bucket(args.project_id, 'bigquery')),
       ('test-backup-bucket', project_bucket(args.project_id, 'backup')),
@@ -265,6 +274,9 @@ def execute(args):
 
   # Create buckets now that domain is verified.
   create_buckets(args.project_id, [bucket for _, bucket in bucket_replacements])
+
+  # Set CORS settings on the buckets.
+  set_cors(args.new_config_dir, [blobs_bucket])
 
   # Set deployment bucket for the cloud project.
   gcloud.run('compute', 'project-info', 'add-metadata',
