@@ -27,7 +27,6 @@ from google_cloud_utils import storage
 from system import environment
 
 STORAGE_URL = 'https://storage.googleapis.com/%s'
-UPLOAD_STORAGE_URL = 'https://%s.storage-upload.googleapis.com'
 DEFAULT_URL_VALID_SECONDS = 30 * 60  # 30 minutes.
 MAX_UPLOAD_SIZE = 15 * 1024 * 1024 * 1024  # 15 GB.
 
@@ -113,7 +112,7 @@ def prepare_upload(bucket_name, path, expiry=DEFAULT_URL_VALID_SECONDS):
     signature = 'SIGNATURE'
     service_account_name = 'service_account'
   else:
-    url = UPLOAD_STORAGE_URL % bucket_name
+    url = STORAGE_URL % bucket_name
     signature = base64.b64encode(app_identity.sign_blob(policy)[1])
     service_account_name = app_identity.get_service_account_name()
 
