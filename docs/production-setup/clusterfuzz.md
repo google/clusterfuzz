@@ -15,6 +15,11 @@ using ClusterFuzz.
 
 ---
 
+## Prerequisites
+
+Make sure to go through
+[Prerequisites]({{ site.baseurl }}/getting-started/prerequisites/) page first.
+
 ## Create a new Google Cloud project
 
 Follow [these instructions](https://cloud.google.com/resource-manager/docs/creating-managing-projects)
@@ -38,8 +43,10 @@ If you're new to Google Cloud you may be eligible for [trial credit].
 
 ## Create OAuth credentials
 Follow [these instructions](https://developers.google.com/identity/protocols/OAuth2InstalledApp#creatingcred)
-to create OAuth credentials for our project setup script. When prompted for an
-credential type, choose `OAuth client ID -> Other` and provide a name.
+to create OAuth credentials for our project setup script. Choose
+`OAuth client ID` credential type. When prompted for an application type, choose
+`Other`. You may also need to fill in the application name on "OAuth consent
+screen" tab, enter any name of your choice, e.g. `MyClusterFuzz`.
 
 Download these credentials as JSON and place it somewhere safe. Export the path in environment
 for later use:
@@ -98,7 +105,7 @@ $ python butler.py deploy --config-dir=$CONFIG_DIR --prod --force
 ```
 
 ## Configuring number of bots
-See this [page]({{ site.baseurl }}/production-setup/setting-up-bots) for instructions
+See this [page]({{ site.baseurl }}/production-setup/setting-up-bots/) for instructions
 to setup the bots.
 
 Once you make changes to the `clusters.yaml` file, you must re-deploy by

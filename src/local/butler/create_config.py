@@ -19,6 +19,7 @@ import json
 import os
 import shutil
 import subprocess
+import sys
 
 from google_auth_oauthlib.flow import InstalledAppFlow
 from googleapiclient import discovery
@@ -53,7 +54,6 @@ _REQUIRED_SERVICES = (
     'siteverification.googleapis.com',
     'sourcerepo.googleapis.com',
     'stackdriver.googleapis.com',
-    'stackdriverprovisioning.googleapis.com',
     'storage-api.googleapis.com',
     'storage-component.googleapis.com',
 )
@@ -216,6 +216,11 @@ def create_buckets(project_id, buckets):
 
 
 def execute(args):
+  # Check this early on, as the deployment at the end would fail otherwise.
+  if common.is_git_dirty():
+    print('Your checkout contains uncommitted changes. Cannot proceed.')
+    sys.exit(1)
+
   """Create a new config directory and deployment."""
   verifier = DomainVerifier(args.oauth_client_secrets_path)
 
