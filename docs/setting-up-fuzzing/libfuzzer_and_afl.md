@@ -27,7 +27,7 @@ the example commands:
 
 ```bash
 export CC=path/to/clang
-export CXX=path/to/clang
+export CXX=path/to/clang++
 ```
 
 ### Platform
@@ -48,7 +48,7 @@ LibFuzzer targets are easy to build. Just compile a [fuzz target] with
 (`-fsanitize=address`).
 
 ```bash
-$ $CC -fsanitize=address,fuzzer fuzzer.cc -o fuzzer
+$ $CXX -fsanitize=address,fuzzer fuzzer.cc -o fuzzer
 # Test out the build by fuzzing it.
 $ ./fuzzer -runs=10
 # Create a fuzzer build to upload to ClusterFuzz.
@@ -71,7 +71,7 @@ using `-fsanitize-coverage=trace-pc-guard`.
 ```bash
 # Build afl-fuzz and FuzzingEngine.a
 $ ./build_afl.bash
-$ $CC -fsanitize=address -fsanitize-coverage=trace-pc-guard fuzzer.cc FuzzingEngine.a -o fuzzer
+$ $CXX -fsanitize=address -fsanitize-coverage=trace-pc-guard fuzzer.cc FuzzingEngine.a -o fuzzer
 # Test out the build by fuzzing it. INPUT_CORPUS is a directory containing files. Ctrl-C when done.
 $ AFL_SKIP_CPUFREQ=1 ./afl-fuzz -i $INPUT_CORPUS -o output -m none ./fuzzer
 # Create a fuzzer build to upload to ClusterFuzz.
@@ -80,64 +80,69 @@ $ zip fuzzer-build.zip fuzzer afl-fuzz afl-showmap
 
 AFL builds are zip files that contain any targets you want to fuzz, their
 dependencies, and AFL's dependencies: `afl-fuzz` and `afl-showmap` (both built
-by the script).
+by the [script]).
 
 AFL only supports [AddressSanitizer].
 
 ## Creating a job type
-LibFuzzer jobs **must** contain the string 'libfuzzer' in their name, AFL jobs
-**must** contain the string 'afl' in their name. `libfuzzer_asan` and `afl_asan`
-are examples of correct names for libFuzzer and AFL jobs that use [ASan].
+LibFuzzer jobs **must** contain the string **"libfuzzer"** in their name, AFL
+jobs **must** contain the string **"afl"** in their name.
+**"libfuzzer_asan_my_project"** and **"afl_asan_my_project"** are examples of
+correct names for libFuzzer and AFL jobs that use [ASan].
 
 To create a job for libFuzzer or AFL:
 1. Navigate to the *Jobs* page.
 2. Go to the form to "ADD NEW JOB".
 3. Fill out the "Name" and "Platform" (LINUX).
-    1. If setting up an **AFL** job, use the templates **"afl"** and **"engine_asan"**.
-    2. If setting up a **libFuzzer** job, use the templates **"libfuzzer"** and
-       **"engine_SANITIZER"** depending on which sanitizer you are using (e.g.
-       "libfuzzer_asan").
+  1. If setting up an **AFL** job, use the templates **"afl"** and
+     **"engine_asan"**.
+  2. If setting up a **libFuzzer** job, use the templates **"libfuzzer"** and
+     **"engine_$SANITIZER"** depending on which sanitizer you are using (e.g.
+     **"engine_asan"**).
 4. Select your build (your zip containing the fuzz target binary) to upload as a
-  "Custom Build".
+   "Custom Build". If you are running ClusterFuzz in production, it is
+   recommended to set up a [build pipeline] and follow [these] instructions on
+   providing continuous builds rather than using a "Custom Build".
 5. Use the "ADD" button to add the job to ClusterFuzz.
 
 Next we must let ClusterFuzz know which fuzzer the job can be used with:
 1. Navigate to the *Fuzzers* page.
-2. Edit the desired fuzzer (afl or libFuzzer).
+2. Click "EDIT" for the desired fuzzer (afl or libFuzzer).
 3. Click "Select/modify jobs".
 4. Mark the desired job.
 5. Click "SUBMIT".
 
 [ASan]: https://github.com/google/sanitizers/wiki/AddressSanitizer
+[these]: {{ site.baseurl }}/production-setup/setting-up-fuzzing-job/
 
 ### Enabling corpus pruning
 It is important that you enable [corpus pruning] to run once a day to prevent
-uncontrolled corpus growth. This **must** be done by setting `CORPUS_PRUNE =
-True` in the Environment String for your **libFuzzer ASan** job.
+uncontrolled corpus growth. This **must** be done by setting **"CORPUS_PRUNE =
+True"** in the Environment String for your **libFuzzer ASan** job.
 
 ## Checking results
 You can observe ClusterFuzz fuzzing your build by looking at the [bot logs]. Any
-bugs it finds can be found on the *Testcases* page. If you are running ClusterFuzz
-in production (ie: not locally), you can also view [crash stats] and [fuzzer
-stats] (one generally needs to wait a day to view fuzzer stats).
+bugs it finds can be found on the *Testcases* page. If you are running
+ClusterFuzz in production (ie: not locally), you can also view [crash stats] and
+[fuzzer stats] (one generally needs to wait a day to view fuzzer stats).
 
 ## AFL limitations
 Though ClusterFuzz supports fuzzing with AFL, it doesn't support using it for
 [corpus pruning] and [crash minimization]. Therefore, if you use AFL, you should
 also use libFuzzer which supports these tasks.
 
-[corpus pruning]: {{ site.baseurl }}/reference/glossary/#corpus-pruning
-[crash minimization]: {{ site.baseurl }}/reference/glossary/#minimization
 [AFL]: http://lcamtuf.coredump.cx/afl/
-[libFuzzer]: https://llvm.org/docs/LibFuzzer.html
-[fuzz target]:https://llvm.org/docs/LibFuzzer.html#id22
 [AddressSanitizer]: https://github.com/google/sanitizers/wiki/AddressSanitizer
 [Clang releases page]: http://releases.llvm.org/download.html
-[latest AFL source]:http://lcamtuf.coredump.cx/afl/releases/afl-latest.tgz
 [afl_driver.cpp]: https://raw.githubusercontent.com/llvm-mirror/compiler-rt/master/lib/fuzzer/afl/afl_driver.cpp
-[script]: {{ site.baseurl }}/setting-up-fuzzing/build_afl.bash
 [bot logs]: {{ site.baseurl }}/getting-started/local-instance/#viewing-logs
+[build pipeline]: {{ site.baseurl }}/production-setup/build-pipeline/
+[corpus pruning]: {{ site.baseurl }}/reference/glossary/#corpus-pruning
 [coverage guided fuzzing]: {{ site.baseurl }}/reference/coverage-guided-vs-blackbox/#coverage-guided-fuzzing
-[fuzzer stats]: {{ site.baseurl }}/using-clusterfuzz/ui-overview/#fuzzer-statistics
+[crash minimization]: {{ site.baseurl }}/reference/glossary/#minimization
 [crash stats]: {{ site.baseurl }}/using-clusterfuzz/ui-overview/#crash-statistics
-[Setting up a fuzzing job]: {{ site.baseurl }}/production-setup/#setting-up-fuzzing-job/
+[fuzz target]:https://llvm.org/docs/LibFuzzer.html#id22
+[fuzzer stats]: {{ site.baseurl }}/using-clusterfuzz/ui-overview/#fuzzer-statistics
+[latest AFL source]:http://lcamtuf.coredump.cx/afl/releases/afl-latest.tgz
+[libFuzzer]: https://llvm.org/docs/LibFuzzer.html
+[script]: {{ site.baseurl }}/setting-up-fuzzing/build_afl.bash
