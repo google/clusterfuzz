@@ -20,7 +20,7 @@ However, it's possible to run it locally without these dependencies for testing
 purposes.
 
 While ClusterFuzz runs on a number of platforms, local development is only
-supported on **Linux**.
+supported on **Linux** and **macOS**.
 
 ## Getting the code
 ```bash
@@ -54,17 +54,21 @@ Install the Go programming language by following the instructions
 
 
 ### Other dependencies
-We provide a script for installing all other development dependencies on Linux.
-Our supported distros include:
+We provide a script for installing all other development dependencies on Linux
+and macOS.
+
+Our supported systems include:
 
 - **Ubuntu** (14.04, 16.04, 17.10, 18.04, 18.10)
 - **Debian** 8 (jessie) or later
+- Recent version of **macOS** with [homebrew] (experimental)
 
 To install the dependencies, run the script:
-
 ```bash
 $ local/install_deps.bash
 ```
+
+[homebrew]: https://brew.sh/
 
 ## Loading virtualenv
 Activate the virtualenv created by the `local/install_deps.bash` script. This
