@@ -18,7 +18,7 @@ triaging crashes, minimizing reproducers, [bisecting], and verification of fixes
 ---
 
 ## Supported platforms
-ClusterFuzz is written in Python and Go. It runs on Linux, macOS, and Windows.
+ClusterFuzz is written in Python and Go. It runs on **Linux**, **macOS**, and **Windows**.
 
 ## Requirements
 It runs on the [Google Cloud Platform](https://cloud.google.com/), and depends

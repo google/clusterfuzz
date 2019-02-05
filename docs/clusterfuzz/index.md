@@ -27,6 +27,7 @@ a software project's development process:
 - Regression finding through [bisection](https://en.wikipedia.org/wiki/Bisection_(software_engineering)).
 - Statistics for analyzing fuzzer performance, and crash rates.
 - Easy to use web interface for management and viewing crashes.
+- Support for [coverage guided fuzzing] and [blackbox fuzzing].
 
 [Monorail]: https://opensource.google.com/projects/monorail
 
@@ -40,3 +41,5 @@ in Chrome and [~11,000] bugs in over [160] open source projects integrated with
 [160]: https://github.com/google/oss-fuzz/tree/master/projects
 [OSS-Fuzz]: https://github.com/google/oss-fuzz
 [Monorail]: https://opensource.google.com/projects/monorail
+[blackbox fuzzing]: {{ site.baseurl }}/setting-up-fuzzing/blackbox-fuzzing
+[coverage guided fuzzing]: {{ site.baseurl }}/setting-up-fuzzing/libfuzzer-and-afl

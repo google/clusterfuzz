@@ -101,7 +101,9 @@ To verify that your project is successfully deployed.
   [here](https://console.cloud.google.com/compute/instances). The defaults are 1
   regular linux bot and 2
   [preemptible](https://cloud.google.com/preemptible-vms/) linux bots on Google
-  Compute Engine.
+  Compute Engine. This can take upto *30 minutes*, unless the cron job is triggered
+  manually (see instructions
+  [here]({{ site.baseurl }}/production-setup/setting-up-bots/#deploying-new-changes)).
 
 ## Deploying new changes
 Now that the initial setup is complete, you may deploy further changes by

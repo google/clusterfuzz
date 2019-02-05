@@ -18,6 +18,7 @@ a software project's development process:
 - Regression finding through [bisection](https://en.wikipedia.org/wiki/Bisection_(software_engineering)).
 - Statistics for analyzing fuzzer performance, and crash rates.
 - Easy to use web interface for management and viewing crashes.
+- Support for coverage guided fuzzing and blackbox fuzzing.
 
 ## Overview
 

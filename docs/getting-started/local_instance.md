@@ -43,6 +43,11 @@ This creates a copy of ClusterFuzz source under `/path/to/my-bot/clusterfuzz`
 and runs the bot using it. Most of the bot artifacts like logs, fuzzers,
 corpora, etc are created inside the `bot` subdirectory.
 
+If you plan to fuzz native GUI applications, it is advisable to run this command
+in a virtual framebuffer (e.g. [Xvfb](https://en.wikipedia.org/wiki/Xvfb)).
+Otherwise, you will see GUI dialogs while fuzzing and will be unable to use the
+machine with ease.
+
 ### Viewing logs
 
 ```bash
@@ -50,8 +55,8 @@ $ cd /path/to/my-bot/clusterfuzz/bot/logs
 $ tail -f bot.log
 ```
 
-Until you set up the fuzzing jobs, you will see a harmless error in the logs -
-`Failed to get any fuzzing tasks`.
+Until you [set up the fuzzing jobs]({{ site.baseurl }}/setting-up-fuzzing),
+you will see a harmless error in the logs - `Failed to get any fuzzing tasks`.
 
 ## Local Google Cloud Storage
 We simulate [Google Cloud Storage] using your local filesystem. By default, this

@@ -43,8 +43,9 @@ $ gcloud auth login
 
 ### Python programming language
 Install Python 2.7. You can download it
-[here](https://www.python.org/downloads/release/python-2715/). If you already
-have Python installed, you can verify its version by running `python --version`.
+[here](https://www.python.org/downloads/release/python-2715/).
+
+If you already have Python installed, you can verify its version by running `python --version`.
 The required version is 2.7.10 or newer.
 
 ### Go programming language
