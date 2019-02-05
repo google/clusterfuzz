@@ -92,7 +92,7 @@ correct names for libFuzzer and AFL jobs that use [ASan].
 
 To create a job for libFuzzer or AFL:
 1. Navigate to the *Jobs* page.
-2. Go to the form to "ADD NEW JOB".
+2. Go to the "ADD NEW JOB" form.
 3. Fill out the "Name" and "Platform" (LINUX).
   1. If setting up an **AFL** job, use the templates **"afl"** and
      **"engine_asan"**.

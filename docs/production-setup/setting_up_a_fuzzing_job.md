@@ -42,7 +42,7 @@ definition.
 
 ```
 RELEASE_BUILD_BUCKET_PATH = gs://my-bucket/my-build-([0-9]+).zip
-CUSTOM_BUILD = False
+CUSTOM_BINARY = False
 
 # These are only needed for blackbox fuzzing.
 APP_NAME = myapp
