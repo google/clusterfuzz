@@ -15,13 +15,15 @@
 # in the templates via {{ site.myvariable }}.
 title: ClusterFuzz
 description: Documentation for ClusterFuzz
-baseurl: "" # the subpath of your site, e.g. /blog
+baseurl: "/clusterfuzz/" # the subpath of your site, e.g. /blog
 url: "" # the base hostname & protocol for your site, e.g. http://example.com
 
 # Build settings
 markdown: kramdown
-theme: just-the-docs
+remote_theme: pmarsceill/just-the-docs
 search_enabled: true
+
+ga_tracking: UA-88024544-3
 
 # Exclude from processing.
 exclude:
