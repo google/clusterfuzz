@@ -121,6 +121,7 @@ def start_cron_threads():
 
 def execute(args):
   """Run the server."""
+  os.environ['LOCAL_DEVELOPMENT'] = 'True'
   common.kill_leftover_emulators()
 
   if not args.skip_install_deps:
@@ -177,6 +178,7 @@ def execute(args):
         '--require_indexes=true --log_level={log_level} '
         '--dev_appserver_log_level={log_level} '
         '--support_datastore_emulator=true '
+        '--env_var LOCAL_DEVELOPMENT=True '
         '--env_var PUBSUB_EMULATOR_HOST={pubsub_emulator_host} '
         '--env_var LOCAL_GCS_BUCKETS_PATH=local_gcs '
         '--env_var LOCAL_GCS_SERVER_HOST={local_gcs_server_host} '

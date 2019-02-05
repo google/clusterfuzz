@@ -24,6 +24,7 @@ from googleapiclient import discovery
 from base import retry
 from base import utils
 from config import local_config
+from google_cloud_utils import credentials
 from metrics import logs
 from system import environment
 
@@ -40,7 +41,11 @@ QUERY_RETRY_DELAY = 3
     function='google_cloud_utils.big_query.get_api_client')
 def get_api_client():
   """Return an api client for bigquery."""
-  return discovery.build('bigquery', 'v2', cache_discovery=False)
+  return discovery.build(
+      'bigquery',
+      'v2',
+      cache_discovery=False,
+      credentials=credentials.get_default()[0])
 
 
 def get_bucket():

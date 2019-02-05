@@ -19,11 +19,11 @@ import httplib2
 import json
 import threading
 
-from google.auth import credentials
 import googleapiclient
 from googleapiclient import discovery
 
 from base import retry
+from google_cloud_utils import credentials
 from system import environment
 
 MAX_ACK_DEADLINE = 10 * 60  # 10 minutes (the maximum).
@@ -82,6 +82,7 @@ class PubSubClient(object):
       return self._local.api_client
 
     emulator_host = environment.get_value('PUBSUB_EMULATOR_HOST')
+    creds = credentials.get_default()[0]
     if emulator_host:
       # Replace real discovery document's root url with the emulator.
       _, discovery_doc = httplib2.Http().request(
@@ -90,10 +91,10 @@ class PubSubClient(object):
       discovery_doc['rootUrl'] = 'http://{}/'.format(emulator_host)
 
       self._local.api_client = discovery.build_from_document(
-          discovery_doc, credentials=credentials.AnonymousCredentials())
+          discovery_doc, credentials=creds)
     else:
       self._local.api_client = discovery.build(
-          'pubsub', 'v1', cache_discovery=False)
+          'pubsub', 'v1', cache_discovery=False, credentials=creds)
 
     return self._local.api_client
 
