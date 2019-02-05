@@ -112,7 +112,7 @@ Next we must let ClusterFuzz know which fuzzer the job can be used with:
 4. Mark the desired job.
 5. Click "SUBMIT".
 
-[ASan]: https://github.com/google/sanitizers/wiki/AddressSanitizer
+[ASan]: https://clang.llvm.org/docs/AddressSanitizer.html
 [these]: {{ site.baseurl }}/production-setup/setting-up-fuzzing-job/
 
 ### Enabling corpus pruning
@@ -132,7 +132,7 @@ Though ClusterFuzz supports fuzzing with AFL, it doesn't support using it for
 also use libFuzzer which supports these tasks.
 
 [AFL]: http://lcamtuf.coredump.cx/afl/
-[AddressSanitizer]: https://github.com/google/sanitizers/wiki/AddressSanitizer
+[AddressSanitizer]: https://clang.llvm.org/docs/AddressSanitizer.html
 [Clang releases page]: http://releases.llvm.org/download.html
 [afl_driver.cpp]: https://raw.githubusercontent.com/llvm-mirror/compiler-rt/master/lib/fuzzer/afl/afl_driver.cpp
 [bot logs]: {{ site.baseurl }}/getting-started/local-instance/#viewing-logs
