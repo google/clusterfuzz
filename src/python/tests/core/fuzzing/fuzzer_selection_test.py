@@ -88,8 +88,8 @@ class UpdateMappingsForFuzzerTest(unittest.TestCase):
     self.assertIn('job_1', mappings)
     self.assertIn('job_2', mappings)
 
-  def test_mapping_removed(self):
-    """Ensure that mappings are removed properly."""
+  def test_mapping_subsituted(self):
+    """Ensure that mappings are subsituted properly."""
     fuzzer = data_types.Fuzzer()
     fuzzer.name = 'adding_jobs'
     fuzzer.jobs = ['job_1']
@@ -107,6 +107,18 @@ class UpdateMappingsForFuzzerTest(unittest.TestCase):
     mappings = _get_job_list_for_fuzzer(fuzzer)
     self.assertNotIn('job_1', mappings)
     self.assertIn('job_2', mappings)
+
+  def test_mapping_removed(self):
+    """Ensure that mappings are removed properly."""
+    fuzzer = data_types.Fuzzer()
+    fuzzer.name = 'adding_jobs'
+    fuzzer.jobs = ['job_1']
+    fuzzer.put()
+
+    fuzzer_selection.update_mappings_for_fuzzer(fuzzer, [])
+
+    mappings = _get_job_list_for_fuzzer(fuzzer)
+    self.assertEqual([], mappings)
 
 
 @test_utils.with_cloud_emulators('datastore')

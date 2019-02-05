@@ -29,7 +29,7 @@ WeightedTarget = collections.namedtuple('WeightedTarget', ['target', 'weight'])
 
 def update_mappings_for_fuzzer(fuzzer, mappings=None):
   """Clear existing mappings for a fuzzer, and replace them."""
-  if not mappings:
+  if mappings is None:
     mappings = fuzzer.jobs
 
   query = data_types.FuzzerJob.query()
