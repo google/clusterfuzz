@@ -309,8 +309,6 @@ def main():
       cwd=tests_directory)
   subprocess.check_call(
       ['gsutil', 'cp', tests_archive_local, tests_archive_remote])
-  subprocess.check_call(
-      ['gsutil', 'acl', 'set', 'public-read', tests_archive_remote])
 
   logs.log('Completed cycle, sleeping for %s seconds.' % sync_interval)
   time.sleep(sync_interval)
