@@ -90,7 +90,6 @@ def _setup_environment_and_configs(args, appengine_path):
     os.mkdir(tmpdir)
   os.environ['BOT_TMPDIR'] = tmpdir
 
-  os.environ['DISPLAY'] = ':1'
   os.environ['KILL_STALE_INSTANCES'] = 'False'
   os.environ['LOCAL_DEVELOPMENT'] = 'True'
   os.environ['DATASTORE_EMULATOR_HOST'] = constants.DATASTORE_EMULATOR_HOST
