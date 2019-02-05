@@ -25,6 +25,10 @@ search_enabled: true
 
 ga_tracking: UA-88024544-3
 
+aux_links:
+  "ClusterFuzz on GitHub":
+    - https://github.com/google/clusterfuzz
+
 # Exclude from processing.
 exclude:
   - Gemfile
