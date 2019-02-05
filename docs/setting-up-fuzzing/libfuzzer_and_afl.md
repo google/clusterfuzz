@@ -31,13 +31,12 @@ export CXX=path/to/clang++
 ```
 
 ### Platform
-This document assumes you are using Linux and have a ClusterFuzz server and bot
-running on Linux, see [here] for how to do that. The examples should work on
-Windows and macOS where libFuzzer is fully supported. For Windows, you will need
+libFuzzer is supported on Linux, macOS, and Windows. For Windows, you will need
 to change the commands to work in cmd.exe and you will need Clang **9.0** or
 greater which you can download from the [LLVM Snapshot Builds page].
 
-[here]: {{ site.baseurl }}/getting-started/local-instance/
+AFL is only supported on Linux.
+
 [LLVM Snapshot Builds page]: https://llvm.org/builds/
 
 ## Builds
