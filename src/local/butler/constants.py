@@ -29,10 +29,6 @@ PACKAGE_TARGET_ZIP_DIRECTORY = 'deployment'
 # Deprecated source archive name.
 LEGACY_ZIP_NAME = 'clusterfuzz-source.zip'
 
-# Deprecated source archive path in local deployment directory.
-LEGACY_PACKAGE_ZIP_PATH = os.path.join(PACKAGE_TARGET_ZIP_DIRECTORY,
-                                       LEGACY_ZIP_NAME)
-
 # File containing the source revision information.
 PACKAGE_TARGET_MANIFEST_PATH = os.path.join('src', 'appengine', 'resources',
                                             'clusterfuzz-source.manifest')

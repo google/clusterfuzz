@@ -18,7 +18,6 @@ import datetime
 import json
 import os
 import re
-import shutil
 import sys
 import time
 
@@ -358,17 +357,11 @@ def execute(args):
     for platform_name in platforms:
       package_zip_paths.append(
           package.package(revision, platform_name=platform_name))
-
-    # TODO(ochang): Remove this once all images are updated.
-    # Copy linux package to legacy zip path.
-    assert platforms[-1] == 'linux'
-    shutil.copy(package_zip_paths[-1], constants.LEGACY_PACKAGE_ZIP_PATH)
-    package_zip_paths.append(constants.LEGACY_PACKAGE_ZIP_PATH)
   else:
     # package.package calls these, so only set these up if we're not packaging,
     # since they can be fairly slow.
     appengine.symlink_dirs()
-    common.install_dependencies()
+    common.install_dependencies('linux')
     with open(constants.PACKAGE_TARGET_MANIFEST_PATH, 'w') as f:
       f.write('%s\n' % revision)
 
@@ -388,3 +381,7 @@ def execute(args):
 
   with open(constants.PACKAGE_TARGET_MANIFEST_PATH) as f:
     print 'Source updated to %s' % f.read()
+
+  if platforms[-1] != common.get_platform():
+    # Make sure the installed dependencies are for the current platform.
+    common.install_dependencies()

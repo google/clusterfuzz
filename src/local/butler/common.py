@@ -162,14 +162,13 @@ def execute(command,
 
 def kill_process(name):
   """Kill the process by its name."""
-  if platform.system() == 'Windows':
+  plt = get_platform()
+  if plt == 'windows':
     execute(
         'wmic process where (commandline like "%%%s%%") delete' % name,
         exit_on_error=False)
-  elif platform.system() in ['Linux', 'Darwin']:
+  elif plt in ['linux', 'macos']:
     execute('pkill -KILL -f "%s"' % name, exit_on_error=False)
-  else:
-    raise Exception('Unknown platform: %s.' % platform.system())
 
 
 def is_git_dirty():
@@ -184,14 +183,13 @@ def _install_chromedriver():
   version_request = urllib2.urlopen(constants.CHROMEDRIVER_VERSION_URL)
   version = version_request.read().strip()
 
-  if platform.system() == 'Linux':
+  plt = get_platform()
+  if plt == 'linux':
     archive_name = 'chromedriver_linux64.zip'
-  elif platform.system() == 'Darwin':
+  elif plt == 'macos':
     archive_name = 'chromedriver_mac64.zip'
-  elif platform.system() == 'Windows':
+  elif plt == 'windows':
     archive_name = 'chromedriver_win32.zip'
-  else:
-    raise Exception('Unknown platform: %s.' % platform.system())
 
   archive_request = urllib2.urlopen(
       constants.CHROMEDRIVER_DOWNLOAD_PATTERN.format(
@@ -201,7 +199,7 @@ def _install_chromedriver():
 
   binary_directory = 'bin'
   chromedriver_binary = 'chromedriver'
-  if platform.system() == 'Windows':
+  if get_platform() == 'windows':
     binary_directory = 'Scripts'
     chromedriver_binary += '.exe'
   output_directory = os.path.join(
@@ -287,7 +285,7 @@ def symlink(src, target):
   except:
     pass
 
-  if platform.system() == 'Windows':
+  if get_platform() == 'windows':
     execute(r'cmd /c mklink /j %s %s' % (target, src))
   else:
     os.symlink(src, target)
@@ -343,3 +341,15 @@ def kill_leftover_emulators():
   kill_process('dev_appserver.py')
   kill_process('CloudDatastore.jar')
   kill_process('pubsub-emulator')
+
+
+def get_platform():
+  """Get the platform."""
+  if platform.system() == 'Linux':
+    return 'linux'
+  elif platform.system() == 'Darwin':
+    return 'macos'
+  elif platform.system() == 'Windows':
+    return 'windows'
+  else:
+    raise Exception('Unknown platform: %s.' % platform.system())

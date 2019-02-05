@@ -82,3 +82,9 @@ go_repository(
     commit = "51d6538a90f86fe93ac480b35f37b2be17fef232",  # v2.2.2
     importpath = "gopkg.in/yaml.v2",
 )
+
+go_repository(
+    name = "org_golang_x_sys",
+    commit = "41f3e6584952bb034a481797859f6ab34b6803bd",  # master as of 2019-02-04
+    importpath = "golang.org/x/sys",
+)
