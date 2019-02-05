@@ -88,6 +88,7 @@ def _setup_environment_and_configs(args, appengine_path):
   tmpdir = os.path.join(clusterfuzz_dir, 'bot_tmpdir')
   if not os.path.exists(tmpdir):
     os.mkdir(tmpdir)
+  os.environ['TMPDIR'] = tmpdir
   os.environ['BOT_TMPDIR'] = tmpdir
 
   os.environ['KILL_STALE_INSTANCES'] = 'False'

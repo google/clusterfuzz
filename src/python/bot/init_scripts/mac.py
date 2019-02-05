@@ -15,10 +15,10 @@
 
 import os
 import re
+import shutil
 import subprocess
 
 from bot.init_scripts import init_runner
-from system import shell
 
 # Example: ('Path: /var/folders/bg/tn9j_qb532s4fz11rzz7m6sc0000gm/0'
 #           '//com.apple.LaunchServices-134500.csstore')
@@ -52,8 +52,12 @@ def get_launch_service_path():
 def clear_launch_service_data():
   """See crbug.com/661221 for more info."""
   path = get_launch_service_path()
-  shell.remove_directory(os.path.join(path, '0'))
-  shell.remove_directory(os.path.join(path, 'T'))
+  if not path or not os.path.exists(path):
+    return
+  # Best effort removal. We use shutil instead of shell.remove_directory since
+  # it's too noisy and there are many files that cannot be removed.
+  shutil.rmtree(os.path.join(path, '0'), ignore_errors=True)
+  shutil.rmtree(os.path.join(path, 'T'), ignore_errors=True)
 
 
 def run():

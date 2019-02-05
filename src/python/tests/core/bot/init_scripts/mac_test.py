@@ -25,8 +25,11 @@ class RunTest(unittest.TestCase):
 
   def setUp(self):
     helpers.patch(self, [
-        'os.path.expanduser', 'system.shell.remove_directory',
-        'system.shell.remove_file', 'subprocess.Popen'
+        'os.path.expanduser',
+        'system.shell.remove_directory',
+        'shutil.rmtree',
+        'subprocess.Popen',
+        'os.path.exists',
     ])
     self.popen = mock.Mock()
     self.stdout = []
@@ -51,7 +54,12 @@ class RunTest(unittest.TestCase):
     ]
     mac.run()
 
-    self.mock.remove_directory.assert_has_calls([
-        mock.call('/var/folders/bg/tn9j_qb532s4fz11rzz7m6sc0000gm/0'),
-        mock.call('/var/folders/bg/tn9j_qb532s4fz11rzz7m6sc0000gm/T')
+    self.mock.exists.return_value = True
+    self.mock.rmtree.assert_has_calls([
+        mock.call(
+            '/var/folders/bg/tn9j_qb532s4fz11rzz7m6sc0000gm/0',
+            ignore_errors=True),
+        mock.call(
+            '/var/folders/bg/tn9j_qb532s4fz11rzz7m6sc0000gm/T',
+            ignore_errors=True)
     ])
