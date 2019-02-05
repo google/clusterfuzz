@@ -168,9 +168,7 @@ def main():
   parser_deploy.add_argument(
       '--targets', nargs='*', default=['appengine', 'zips'])
   parser_deploy.add_argument(
-      '--only-python',
-      action='store_true',
-      help='Deploy python App Engine services only.')
+      '--with-go', action='store_true', help='Deploy Go services.')
 
   parser_run_server = subparsers.add_parser(
       'run_server', help='Run the local Clusterfuzz server.')

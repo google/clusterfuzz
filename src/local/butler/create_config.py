@@ -191,16 +191,16 @@ def deploy_appengine(gcloud, config_dir, appengine_region):
     gcloud.run('app', 'create', '--region=' + appengine_region)
 
   subprocess.check_call([
-      'python', 'butler.py', 'deploy', '--force', '--only-python', '--targets',
-      'appengine', '--prod', '--config-dir', config_dir
+      'python', 'butler.py', 'deploy', '--force', '--targets', 'appengine',
+      '--prod', '--config-dir', config_dir
   ])
 
 
 def deploy_zips(config_dir):
   """Deploy source zips."""
   subprocess.check_call([
-      'python', 'butler.py', 'deploy', '--force', '--only-python', '--targets',
-      'zips', '--prod', '--config-dir', config_dir
+      'python', 'butler.py', 'deploy', '--force', '--targets', 'zips', '--prod',
+      '--config-dir', config_dir
   ])
 
 
@@ -228,7 +228,6 @@ def execute(args):
   if common.is_git_dirty():
     print('Your checkout contains uncommitted changes. Cannot proceed.')
     sys.exit(1)
-
   """Create a new config directory and deployment."""
   verifier = DomainVerifier(args.oauth_client_secrets_path)
 

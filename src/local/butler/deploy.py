@@ -372,7 +372,7 @@ def execute(args):
            ' Please fix.') % (too_large_file_path, APPENGINE_FILESIZE_LIMIT))
     sys.exit(1)
 
-  deploy_go = not args.only_python
+  deploy_go = args.with_go
   if args.staging:
     _staging_deployment_helper(deploy_go)
   else:

@@ -27,9 +27,9 @@ echo 'Deploying...'
 EXTRA_ARGS=''
 if has_python_changes_only; then
   echo 'Only Python App Engine services.'
-  EXTRA_ARGS='--only-python'
 else
   echo 'All App Engine services.'
+  EXTRA_ARGS='--with-go'
 fi
 
 for config_dir in "$@"; do
