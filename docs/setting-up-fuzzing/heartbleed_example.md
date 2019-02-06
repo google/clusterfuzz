@@ -8,13 +8,14 @@ permalink: /setting-up-fuzzing/heartbleed-example/
 
 # Finding Heartbleed
 
+This tutorial will show you how to find [Heartbleed] using libFuzzer and
+ClusterFuzz.
+
 - TOC
 {:toc}
 ---
 
-## Introduction and prerequisites
-This tutorial will show you how to find [Heartbleed] using libFuzzer and
-ClusterFuzz.
+## Prerequisites
 
 See the [compiler section] in the libFuzzer and AFL documentation for how to get
 a working compiler for following along with the examples below.
