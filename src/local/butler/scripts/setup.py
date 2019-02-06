@@ -48,23 +48,24 @@ ENABLE_GESTURES = False
 THREAD_DELAY  = 30.0
 """
 
-ENGINE_ASAN_TEMPLATE = """LSAN = True
+LIBFUZZER_ASAN_TEMPLATE = """LSAN = True
+CORPUS_PRUNE = True
 ADDITIONAL_ASAN_OPTIONS = quarantine_size_mb=64:strict_memcmp=1:symbolize=0:fast_unwind_on_fatal=0:allocator_release_to_os_interval_ms=500
 """
 
-ENGINE_MSAN_TEMPLATE = ('ADDITIONAL_MSAN_OPTIONS = symbolize=0:print_stats=1:'
-                        'allocator_release_to_os_interval_ms=500:'
-                        'halt_on_error=1')
+LIBFUZZER_MSAN_TEMPLATE = (
+    'ADDITIONAL_MSAN_OPTIONS = symbolize=0:print_stats=1:'
+    'allocator_release_to_os_interval_ms=500:halt_on_error=1')
 
-ENGINE_UBSAN_TEMPLATE = """LSAN = False
+LIBFUZZER_UBSAN_TEMPLATE = """LSAN = False
 ADDITIONAL_UBSAN_OPTIONS = symbolize=0:allocator_release_to_os_interval_ms=500
 """
 
 TEMPLATES = {
     'afl': AFL_TEMPLATE,
-    'engine_asan': ENGINE_ASAN_TEMPLATE,
-    'engine_msan': ENGINE_MSAN_TEMPLATE,
-    'engine_ubsan': ENGINE_UBSAN_TEMPLATE,
+    'libfuzzer_asan': LIBFUZZER_ASAN_TEMPLATE,
+    'libfuzzer_msan': LIBFUZZER_MSAN_TEMPLATE,
+    'libfuzzer_ubsan': LIBFUZZER_UBSAN_TEMPLATE,
     'libfuzzer': LIBFUZZER_TEMPLATE,
 }
 

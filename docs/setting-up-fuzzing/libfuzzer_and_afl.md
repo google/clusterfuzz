@@ -94,11 +94,10 @@ To create a job for libFuzzer or AFL:
 1. Navigate to the *Jobs* page.
 2. Go to the "ADD NEW JOB" form.
 3. Fill out the "Name" and "Platform" (LINUX).
-  1. If setting up an **AFL** job, use the templates **"afl"** and
-     **"engine_asan"**.
+  1. If setting up an **AFL** job, use the template **"afl_asan"**.
   2. If setting up a **libFuzzer** job, use the templates **"libfuzzer"** and
-     **"engine_$SANITIZER"** depending on which sanitizer you are using (e.g.
-     **"engine_asan"**).
+     **"libfuzzer_$SANITIZER"** depending on which sanitizer you are using (e.g.
+     **"libfuzzer_asan"**).
 4. Select your build (your zip containing the fuzz target binary) to upload as a
    "Custom Build". If you are running ClusterFuzz in production, it is
    recommended to set up a [build pipeline] and follow [these] instructions on
