@@ -8,7 +8,8 @@ permalink: /setting-up-fuzzing/libfuzzer-and-afl/
 
 # libFuzzer and AFL
 This page walks you through setting up [coverage guided fuzzing] using
-[libFuzzer] or [AFL].
+[libFuzzer] or [AFL]. It also serves as a reference for using more advanced
+features such as dictionaries and seed corpus.
 
 - TOC
 {:toc}
@@ -124,6 +125,30 @@ You can observe ClusterFuzz fuzzing your build by looking at the [bot logs]. Any
 bugs it finds can be found on the *Testcases* page. If you are running
 ClusterFuzz in production (ie: not locally), you can also view [crash stats] and
 [fuzzer stats] (one generally needs to wait a day to view fuzzer stats).
+
+## Seed corpus
+You can optionally upload a zip file in your build containing sample inputs for
+ClusterFuzz to give to your fuzzer. We call this a seed corpus. For a given fuzz
+target, ClusterFuzz will use a file as a seed corpus if:
+
+* It is in the same directory in the build as the fuzz target.
+* It has the same name as the fuzz target (not including `.exe` extension)
+  followed by `_seed_corpus.zip` (i.e. `<fuzz_target>_seed_corpus.zip` for
+  `<fuzz_target>`).
+
+We recommend zipping directories of interesting inputs at build time to create a
+seed corpus.
+
+## Dictionaries
+ClusterFuzz supports using [libFuzzer/AFL Dictionaries]. A dictionary is a list
+of tokens that AFL or libFuzzer can insert during fuzzing. For a given fuzz
+target, ClusterFuzz will use a file as a dictionary if:
+
+* It is in the same directory in the build as the fuzz target.
+* It has the same name as the fuzz target (not including `.exe` extension)
+  followed by `.dict` (i.e. `<fuzz_target>.dict` for `<fuzz_target>`).
+
+[libFuzzer/AFL Dictionaries]: https://llvm.org/docs/LibFuzzer.html#dictionaries
 
 ## AFL limitations
 Though ClusterFuzz supports fuzzing with AFL, it doesn't support using it for
