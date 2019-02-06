@@ -17,6 +17,9 @@ from config import db_config
 from handlers import base_handler
 from libs import helpers
 
+DEFAULT_DOCUMENTATION_URL = 'https://google.github.io/clusterfuzz/'
+DEFAULT_BUG_REPORT_URL = 'https://github.com/google/clusterfuzz/issues'
+
 
 class DocumentationHandler(base_handler.Handler):
   """Redirect to documentation."""
@@ -25,8 +28,7 @@ class DocumentationHandler(base_handler.Handler):
     """Get the HTML page."""
     documentation_url = db_config.get_value('documentation_url')
     if not documentation_url:
-      raise helpers.EarlyExitException(
-          'Documentation url is not set in configuration.', 400)
+      documentation_url = DEFAULT_DOCUMENTATION_URL
 
     self.redirect(documentation_url)
 
@@ -38,7 +40,6 @@ class ReportBugHandler(base_handler.Handler):
     """Get the HTML page."""
     bug_report_url = db_config.get_value('bug_report_url')
     if not bug_report_url:
-      raise helpers.EarlyExitException(
-          'Bug report url is not set in configuration.', 400)
+      bug_report_url = DEFAULT_BUG_REPORT_URL
 
     self.redirect(bug_report_url)
