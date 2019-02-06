@@ -140,7 +140,8 @@ We recommend zipping directories of interesting inputs at build time to create a
 seed corpus.
 
 ## Dictionaries
-ClusterFuzz supports using [libFuzzer/AFL Dictionaries]. For a given fuzz
+ClusterFuzz supports using [libFuzzer/AFL Dictionaries]. A dictionary is a list
+of tokens that AFL or libFuzzer can insert during fuzzing. For a given fuzz
 target, ClusterFuzz will use a file as a dictionary if:
 
 * It is in the same directory in the build as the fuzz target.
