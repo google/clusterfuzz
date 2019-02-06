@@ -114,11 +114,6 @@ Next we must let ClusterFuzz know which fuzzer the job can be used with:
 [ASan]: https://clang.llvm.org/docs/AddressSanitizer.html
 [these]: {{ site.baseurl }}/production-setup/setting-up-fuzzing-job/
 
-### Enabling corpus pruning
-It is important that you enable [corpus pruning] to run once a day to prevent
-uncontrolled corpus growth. This **must** be done by setting **"CORPUS_PRUNE =
-True"** in the Environment String for your **libFuzzer ASan** job.
-
 ## Checking results
 You can observe ClusterFuzz fuzzing your build by looking at the [bot logs]. Any
 bugs it finds can be found on the *Testcases* page. If you are running
