@@ -76,5 +76,5 @@ env:
 
   # Web tests (e.g. html, js tests) to automatically download once a day and provide a default
   # input to fuzzer as part of --input-dir argument (disabled by default).
-  # WEB_TESTS_URL: 'gs://clusterfuzz-data/web_tests.zip'
+  # WEB_TESTS_URL: 'gs://bucket/path-to-tests-archive.zip'
   # UPDATE_WEB_TESTS: true
