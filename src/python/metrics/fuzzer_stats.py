@@ -384,13 +384,17 @@ class BaseCoverageField(object):
     """Return coverage information."""
     coverage_info = None
     if group_by == QueryGroupBy.GROUP_BY_DAY:
-      # Return coverage data for the day.
+      # Return coverage data for the fuzzer and the day.
       coverage_info = self.ctx.get_coverage_info(self.ctx.fuzzer,
                                                  group_by_value)
 
     elif group_by == QueryGroupBy.GROUP_BY_FUZZER:
-      # Return latest coverage data.
+      # Return latest coverage data for each fuzzer.
       coverage_info = self.ctx.get_coverage_info(group_by_value)
+
+    elif group_by == QueryGroupBy.GROUP_BY_JOB:
+      # Return the latest coverage data for the fuzzer.
+      coverage_info = self.ctx.get_coverage_info(self.ctx.fuzzer)
 
     return coverage_info
 
