@@ -509,8 +509,16 @@ def track_task_start(task, task_duration):
   persistent_cache.set_value(TASK_PAYLOAD_KEY, task.payload())
   persistent_cache.set_value(TASK_END_TIME_KEY, time.time() + task_duration)
 
+  # Don't wait on |run_heartbeat|, update task information as soon as it starts.
+  from datastore import data_handler
+  data_handler.update_heartbeat(force_update=True)
+
 
 def track_task_end():
   """Remove cached task information."""
   persistent_cache.delete_value(TASK_PAYLOAD_KEY)
   persistent_cache.delete_value(TASK_END_TIME_KEY)
+
+  # Don't wait on |run_heartbeat|, remove task information as soon as it ends.
+  from datastore import data_handler
+  data_handler.update_heartbeat(force_update=True)

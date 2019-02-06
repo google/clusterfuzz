@@ -853,34 +853,22 @@ def update_task_status(task_name, status, expiry_interval=None):
 # ------------------------------------------------------------------------------
 
 
-def update_heartbeat():
+def update_heartbeat(force_update=False):
   """Updates heartbeat with current timestamp and log data."""
   # Check if the heartbeat was recently updated. If yes, bail out.
   last_modified_time = persistent_cache.get_value(
       HEARTBEAT_LAST_UPDATE_KEY, constructor=datetime.datetime.utcfromtimestamp)
-  if (last_modified_time is not None and not dates.time_has_expired(
-      last_modified_time, seconds=data_types.HEARTBEAT_WAIT_INTERVAL)):
+  if (not force_update and last_modified_time and
+      not dates.time_has_expired(last_modified_time,
+                                 seconds=data_types.HEARTBEAT_WAIT_INTERVAL)):
     return 0
 
   bot_name = environment.get_value('BOT_NAME')
   current_time = datetime.datetime.utcnow()
 
   try:
-    # TODO(ochang): Get heartbeat by key and remove duplicate cleanup once
-    # entities are updated.
-    heartbeats = ndb_utils.get_all_from_query(
-        data_types.Heartbeat.query(data_types.Heartbeat.bot_name == bot_name))
-
-    # Remove all heartbeat objects other than the first one. This is rare unless
-    # both bot and heartbeat scripts update the heartbeat at exactly the same
-    # time.
-    heartbeats_to_delete = list(heartbeats)
-    if heartbeats_to_delete:
-      heartbeat = heartbeats_to_delete.pop()
-
-      if heartbeats_to_delete:
-        ndb.delete_multi([heartbeat.key for heartbeat in heartbeats_to_delete])
-    else:
+    heartbeat = ndb.Key(data_types.Heartbeat, bot_name).get()
+    if not heartbeat:
       heartbeat = data_types.Heartbeat()
       heartbeat.bot_name = bot_name
 
