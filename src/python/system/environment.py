@@ -848,13 +848,9 @@ def set_bot_environment():
     # If not defined, default to host name.
     os.environ['BOT_NAME'] = socket.gethostname().lower()
 
-  # Some applications may rely on the TMPDIR environment variable. To avoid any
-  # unintended behavior, we want to unset this and use BOT_TMPDIR.
-  try:
-    os.environ['BOT_TMPDIR'] = os.environ['TMPDIR']
-    del os.environ['TMPDIR']
-  except KeyError:
-    pass
+  # Set BOT_TMPDIR if not already set.
+  if not get_value('BOT_TMPDIR'):
+    os.environ['BOT_TMPDIR'] = os.path.join(bot_dir, 'tmp')
 
   # Sets the default configuration. Can be overridden by job environment.
   set_default_vars()
