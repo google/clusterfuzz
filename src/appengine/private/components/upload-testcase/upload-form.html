@@ -109,7 +109,7 @@
           If you don't choose a file, the testcase from <a href="/testcase-detail/[[uploadParams.testcaseId]]">[[uploadParams.testcaseId]]</a> will be used.
         </span>
       </template>
-      <paper-input value="{{uploadParams.file}}" no-label-float always-float-label$="false" type="file" id="file" label="File"></paper-input>
+      <paper-input value="{{uploadParams.file}}" no-label-float always-float-label$="false" type="file" id="file" label="File" title="Test case file or archive. If an archive is uploaded, a file containing &quot;fuzz-&quot;, &quot;run&quot;, &quot;index.&quot;, or &quot;crash.&quot; will be treated as the test case and the rest as resources."></paper-input>
       <div class="inline wide">
         <paper-dropdown-menu
             no-animations="true"
