@@ -28,13 +28,13 @@ to create a new Google Cloud Project.
 Verify that your project is successfully created using
 
 ```bash
-$ gcloud projects describe <your project id>
+gcloud projects describe <your project id>
 ```
 
 Export the project id in environment for later use:
 
 ```bash
-$ export CLOUD_PROJECT_ID=<your project id>
+export CLOUD_PROJECT_ID=<your project id>
 ```
 
 If you're new to Google Cloud you may be eligible for [trial credit].
@@ -54,7 +54,7 @@ for later use:
 e.g.
 
 ```bash
-$ export CLIENT_SECRETS_PATH=/path/to/your/client_secrets.json
+export CLIENT_SECRETS_PATH=/path/to/your/client_secrets.json
 ```
 
 ## Run the project setup script
@@ -65,9 +65,9 @@ This script also creates a config directory for you, which contains some default
 settings for your deployment and can be later updated.
 
 ```bash
-$ mkdir /path/to/myconfig  # Any directory outside the ClusterFuzz source repository will work.
-$ export CONFIG_DIR=/path/to/myconfig
-$ python butler.py create_config --oauth-client-secrets-path=$CLIENT_SECRETS_PATH --project-id=$CLOUD_PROJECT_ID $CONFIG_DIR
+mkdir /path/to/myconfig  # Any directory outside the ClusterFuzz source repository will work.
+export CONFIG_DIR=/path/to/myconfig
+python butler.py create_config --oauth-client-secrets-path=$CLIENT_SECRETS_PATH --project-id=$CLOUD_PROJECT_ID $CONFIG_DIR
 ```
 
 This can take a few minutes to finish, so please be patient. The script also
@@ -110,7 +110,7 @@ Now that the initial setup is complete, you may deploy further changes by
 running:
 
 ```bash
-$ python butler.py deploy --config-dir=$CONFIG_DIR --prod --force
+python butler.py deploy --config-dir=$CONFIG_DIR --prod --force
 ```
 
 ## Configuring number of bots

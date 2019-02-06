@@ -23,10 +23,10 @@ lack of Google Cloud emulators.
 
 ```bash
 # If you run the server for the first time or want to reset all data.
-$ python butler.py run_server --bootstrap
+python butler.py run_server --bootstrap
 
 # In all the other cases, do not use "--bootstrap" flag.
-$ python butler.py run_server
+python butler.py run_server
 ```
 
 This may take a few seconds to start. Once you see output starting with
@@ -36,7 +36,7 @@ This may take a few seconds to start. Once you see output starting with
 ## Running a local bot instance
 
 ```bash
-$ python butler.py run_bot --name my-bot /path/to/my-bot  # rename my-bot to anything
+python butler.py run_bot --name my-bot /path/to/my-bot  # rename my-bot to anything
 ```
 
 This creates a copy of ClusterFuzz source under `/path/to/my-bot/clusterfuzz`
@@ -51,8 +51,8 @@ machine with ease.
 ### Viewing logs
 
 ```bash
-$ cd /path/to/my-bot/clusterfuzz/bot/logs
-$ tail -f bot.log
+cd /path/to/my-bot/clusterfuzz/bot/logs
+tail -f bot.log
 ```
 
 Until you [set up the fuzzing jobs]({{ site.baseurl }}/setting-up-fuzzing),

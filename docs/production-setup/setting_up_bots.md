@@ -65,10 +65,10 @@ Following are the steps to setup and run ClusterFuzz:
 * Run the provided startup script.
 
 ```bash
-$ export CLOUD_PROJECT_ID=<your project id>
-$ export CONFIG_DIR=/path/to/myconfig
-$ export GOOGLE_APPLICATION_CREDENTIALS=/path/to/service-account-key.json
-$ $CONFIG_DIR/bot/setup/mac.bash
+export CLOUD_PROJECT_ID=<your project id>
+export CONFIG_DIR=/path/to/myconfig
+export GOOGLE_APPLICATION_CREDENTIALS=/path/to/service-account-key.json
+$CONFIG_DIR/bot/setup/mac.bash
 ```
 
 ## Configuration
@@ -161,8 +161,8 @@ administrator password in the `windows-password` metadata attribute. The
 password must satisfy the windows password policy requirements. To set it, run:
 
 ```bash
-$ gcloud compute project-info add-metadata \
-    --metadata-from-file=windows-password=/path/to/password-file --project=$CLOUD_PROJECT_ID
+gcloud compute project-info add-metadata \
+  --metadata-from-file=windows-password=/path/to/password-file --project=$CLOUD_PROJECT_ID
 ```
 
 This allows you to connect via remote desktop into your windows bots with the

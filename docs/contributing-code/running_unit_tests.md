@@ -19,7 +19,7 @@ You can run unit tests for the core functionality using:
 ### Python code
 
 ```bash
-$ python butler.py py_unittest -t core
+python butler.py py_unittest -t core
 ```
 
 Optional switches you can use:
@@ -32,7 +32,7 @@ a particular prefix. E.g. `-p libfuzzer_*` will execute all libFuzzer tests.
 ### Go code
 
 ```bash
-$ python butler.py go_unittest
+python butler.py go_unittest
 ```
 
 Optional switch you can use:
@@ -44,7 +44,7 @@ Most of the App Engine code is written in Python. You can run unit tests for the
 changes (e.g. UI, cron) using:
 
 ```bash
-$ python butler.py py_unittest -t appengine
+python butler.py py_unittest -t appengine
 ```
 
 You can use any switch as defined above in the python core changes section.
