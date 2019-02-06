@@ -709,10 +709,12 @@ class Config(Model):
   reproduction_help_url = ndb.StringProperty(default='')
 
   # Documentation url.
-  documentation_url = ndb.StringProperty(default='')
+  documentation_url = ndb.StringProperty(
+      default='https://google.github.io/clusterfuzz/')
 
   # Bug report url.
-  bug_report_url = ndb.StringProperty(default='')
+  bug_report_url = ndb.StringProperty(
+      default='https://github.com/google/clusterfuzz/issues')
 
   # Platforms that coverage is supported for.
   platform_group_mappings = ndb.TextProperty(default='')
