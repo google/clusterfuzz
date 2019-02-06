@@ -14,7 +14,9 @@ supported platforms: **Linux**, **Windows** and **macOS**.
 {:toc}
 ---
 
-## Linux
+## Platforms
+
+### Linux
 
 Linux is the preferred platform for fuzzing because of its comprehensive support
 for all [sanitizer] and [fuzzing engine] types.
@@ -34,7 +36,7 @@ way (since only fuzzing tasks are executed there). You still need some regular
 bots (non-preemptibles) to execute other tasks e.g. post-operation tasks after a
 crash is discovered like minimization, regression, etc.
 
-## Windows
+### Windows
 
 Windows is a supported platform for fuzzing. Currently, only
 [AddressSanitizer] ([sanitizer]) and [libFuzzer] ([fuzzing engine]) are
@@ -48,7 +50,7 @@ can enable them easily by following the instructions provided
 You also need to [set a password](#windows-password-setup) for the administrator
 account on the bots.
 
-## macOS
+### macOS
 
 Mac is a supported platform for fuzzing. Currently, only [AddressSanitizer],
 [LeakSanitizer], [UndefinedBehaviorSanitizer] and [ThreadSanitizer] [sanitizer]
@@ -174,10 +176,38 @@ Read the instructions
 [here]({{ site.baseurl }}/production-setup/clusterfuzz/#deploying-new-changes)
 to deploy new changes.
 
-Once deployed, bots are automatically created via a cron task that runs every
-*30 minutes*. You can manually force it by visiting the `Cron jobs` page
+## Verification
+
+### Google Compute Engine bots
+
+Once deployed, bots are automatically created via an App Engine cron task that
+runs every *30 minutes*. For faster results, you can manually force it by
+visiting the `Cron jobs` page
 [here](https://console.cloud.google.com/appengine/cronjobs) and running the
 `/manage-vms` cron job.
+
+After the cron job finishes, check this
+[page](https://console.cloud.google.com/compute/instanceGroups/list) to ensure
+that all instances are created for this particular
+[instance group](#google-compute-engine-cluster).
+
+If you see a spinning circle next to the instance group, for longer than a
+few minutes, it can indicate that an error occurred. You can click the instance
+group name to see the error message (e.g. insufficient resource quota).
+
+**Note**: The default quota for compute resources such as "CPUs",
+"In-use IP addresses" and "Persistent Disk Standard (GB)" might be
+insufficient for your fuzzing cluster needs. You can check your
+current quota [here](https://console.cloud.google.com/iam-admin/quotas)
+and request more resources as needed.
+
+### Non-Google Compute Engine bots
+
+These bots should start within a minute after the startup script finishes
+execution (e.g. `$CONFIG_DIR/bot/setup/mac.bash` for macOS).
+
+You can verify the bots started by checking that their hostnames show up on
+the *Bots* page.
 
 [build]: {{ site.baseurl }}/production-setup/build-pipeline
 [deploy]: #deploying-new-changes

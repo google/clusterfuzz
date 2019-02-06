@@ -97,13 +97,11 @@ To verify that your project is successfully deployed.
   deployment finished. You can check the status
   [here](https://appengine.google.com/datastore/indexes).
 
-* Verify that the bots are successfully created
-  [here](https://console.cloud.google.com/compute/instances). The defaults are 1
-  regular linux bot and 2
+* Verify that the bots are successfully created using the instructions
+  [here]({{ site.baseurl }}//production-setup/setting-up-bots#google-compute-engine-bots).
+  The defaults are 1 regular linux bot and 2
   [preemptible](https://cloud.google.com/preemptible-vms/) linux bots on Google
-  Compute Engine. This can take upto *30 minutes*, unless the cron job is triggered
-  manually (see instructions
-  [here]({{ site.baseurl }}/production-setup/setting-up-bots/#deploying-new-changes)).
+  Compute Engine.
 
 ## Deploying new changes
 Now that the initial setup is complete, you may deploy further changes by
