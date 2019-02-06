@@ -327,7 +327,7 @@
                           on-tap="filterProject"
                           data-project$="[[item.projectName]]"
                           class="label project clickable"
-                          title="The crash is associated with [[item.projectName]] project.">
+                          title="The crash is associated with the [[item.projectName]] project.">
                         Project [[item.projectName]]
                       </span>
                     </template>
@@ -336,7 +336,7 @@
                           on-tap="filterPlatform"
                           data-platform$="[[item.platform]]"
                           class="label platform clickable"
-                          title="The crash was found on [[item.platform]] OS.">
+                          title="The crash was found on [[item.platform]].">
                         Platform [[item.platform]]
                       </span>
                     </template>
@@ -360,13 +360,13 @@
                           data-security="yes"
                           slot="t"
                           class="label security clickable"
-                          title="The crash is security-related.">Security</span>
+                          title="The crash is security-relevant.">Security</span>
                       <span
                           on-tap="filterSecurity"
                           data-security="no"
                           slot="f"
                           class="label clickable"
-                          title="The crash is NOT security-related.">Security</span>
+                          title="The crash is NOT security-relevant.">Security</span>
                     </if-else>
                   </td>
                 </tr>
@@ -407,7 +407,7 @@
                           </span>
                           <span slot="f" class="label impact" title="The crash impacs Head." on-tap="filterImpact" data-impact="head">Head</span>
                         </if-else>
-                        <span slot="f" class="label" title="The crash's impacts are not computed yet.">Impact is pending</span>
+                        <span slot="f" class="label" title="The crash's impacted versions are not computed yet.">Impact is pending</span>
                       </if-else>
                     </template>
                   </td>
