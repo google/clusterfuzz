@@ -30,4 +30,4 @@ a software project's development process:
 You can find detailed documentation [here](https://google.github.io/clusterfuzz).
 
 ## Getting Help
-You can [file an issue](https://github.com/google/clusterfuzz/issues/new) to ask questions or for help.
+You can [file an issue](https://github.com/google/clusterfuzz/issues/new) to ask questions, request features, or for help.
