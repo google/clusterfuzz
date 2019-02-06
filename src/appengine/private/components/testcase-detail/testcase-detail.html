@@ -455,7 +455,7 @@
             <div class="artifacts">
               <template is="dom-if" if="[[nonEmpty(info.testcase.gestures)]]">
                 <div class="gestures">
-                  <span class="help" title="Keyboard and mouse events that are additionally required to trigger this crash.">Interaction Gestures:</span>
+                  <span class="title help" title="Keyboard and mouse events that are additionally required to trigger this crash.">Interaction Gestures:</span>
                   <span class="content">
                     <template is="dom-if" if="[[info.testcase.video]]">
                       <a href="/download/[[info.testcase.video]]"><iron-icon title="Download a video of the crash getting triggered." icon="icons:cloud-download"></iron-icon></a>
