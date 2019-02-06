@@ -47,7 +47,7 @@ sudo launchctl limit maxfiles 2048 unlimited
 sudo ulimit -n 4096
 
 echo "Installing ClusterFuzz package dependencies (requires sudo)."
-sudo pip install crcmod==1.7 psutil==5.4.7 pyOpenSSL==17.2.0
+sudo pip install --ignore-installed crcmod==1.7 psutil==5.4.7 pyOpenSSL==17.2.0
 
 echo "Creating directory $INSTALL_DIRECTORY."
 if [ ! -d "$INSTALL_DIRECTORY" ]; then
@@ -59,23 +59,36 @@ cd $INSTALL_DIRECTORY
 echo "Fetching Google Cloud SDK."
 if [ ! -d "$INSTALL_DIRECTORY/$GOOGLE_CLOUD_SDK" ]; then
   curl -O "https://dl.google.com/dl/cloudsdk/channels/rapid/downloads/$GOOGLE_CLOUD_SDK_ARCHIVE"
-  tar -xzvf $GOOGLE_CLOUD_SDK_ARCHIVE
+  tar -xzf $GOOGLE_CLOUD_SDK_ARCHIVE
   rm $GOOGLE_CLOUD_SDK_ARCHIVE
 fi
 
 echo "Activating credentials with the Google Cloud SDK."
 $GSUTIL_PATH/gcloud auth activate-service-account --key-file=$GOOGLE_APPLICATION_CREDENTIALS
 
+echo "Specifying the proper Boto configuration file."
+
+# Otherwise, gsutil will error out due to multiple types of configured
+# credentials. For more information about this, see
+# https://cloud.google.com/storage/docs/gsutil/commands/config#configuration-file-selection-procedure
+BOTO_CONFIG_PATH=$($GSUTIL_PATH/gsutil -D 2>&1 | grep "config_file_list" | egrep -o "/[^']+gserviceaccount\.com/\.boto")
+
+if [ -f $BOTO_CONFIG_PATH ]; then
+  export BOTO_CONFIG="$BOTO_CONFIG_PATH"
+else
+  echo "WARNING: failed to identify the Boto configuration file and specify BOTO_CONFIG env."
+fi
+
 echo "Fetching Google App Engine SDK."
 if [ ! -d "$INSTALL_DIRECTORY/$APPENGINE" ]; then
   curl -O "https://commondatastorage.googleapis.com/clusterfuzz-data/$APPENGINE_FILE"
-  unzip $APPENGINE_FILE
+  unzip -q $APPENGINE_FILE
   rm $APPENGINE_FILE
 fi
 
 echo "Downloading ClusterFuzz source code."
 $GSUTIL_PATH/gsutil cp gs://$DEPLOYMENT_BUCKET/macos.zip clusterfuzz-source.zip
-unzip clusterfuzz-source.zip
+unzip -q clusterfuzz-source.zip
 
 echo "Running ClusterFuzz."
 NFS_ROOT="$NFS_ROOT" GOOGLE_APPLICATION_CREDENTIALS="$GOOGLE_APPLICATION_CREDENTIALS" ROOT_DIR="$ROOT_DIR" PYTHONPATH="$PYTHONPATH" GSUTIL_PATH="$GSUTIL_PATH" python $ROOT_DIR/src/python/bot/startup/run.py &
