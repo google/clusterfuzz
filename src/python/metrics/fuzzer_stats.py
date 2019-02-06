@@ -35,7 +35,6 @@ from system import shell
 
 STATS_FILE_EXTENSION = '.stats2'
 
-COVERAGE_REPORT_HANDLER_PATH = '/coverage-report/job/{job}/{date}'
 PERFORMANCE_REPORT_VIEWER_PATH = '/performance-report/{fuzzer}/{job}/{date}'
 
 JOB_RUN_SCHEMA = {
@@ -385,13 +384,17 @@ class BaseCoverageField(object):
     """Return coverage information."""
     coverage_info = None
     if group_by == QueryGroupBy.GROUP_BY_DAY:
-      # Return coverage data for the day.
+      # Return coverage data for the fuzzer and the day.
       coverage_info = self.ctx.get_coverage_info(self.ctx.fuzzer,
                                                  group_by_value)
 
     elif group_by == QueryGroupBy.GROUP_BY_FUZZER:
-      # Return latest coverage data.
+      # Return latest coverage data for each fuzzer.
       coverage_info = self.ctx.get_coverage_info(group_by_value)
+
+    elif group_by == QueryGroupBy.GROUP_BY_JOB:
+      # Return the latest coverage data for the fuzzer.
+      coverage_info = self.ctx.get_coverage_info(self.ctx.fuzzer)
 
     return coverage_info
 
@@ -505,36 +508,14 @@ class CoverageReportField(BaseCoverageField):
   def __init__(self, ctx=None):
     super(CoverageReportField, self).__init__(ctx)
 
-  def _build_link(self, group_by, group_by_value):
-    """Construct an URL for the coverage report handler."""
-    job = self.ctx.single_job_or_none()
-    date = 'latest'
-
-    if group_by == QueryGroupBy.GROUP_BY_JOB:
-      job = group_by_value
-    elif group_by == QueryGroupBy.GROUP_BY_DAY:
-      date = group_by_value
-
-    if not job:
-      return None
-
-    return COVERAGE_REPORT_HANDLER_PATH.format(job=job, date=date)
-
   def get(self, group_by, group_by_value):
     """Return data."""
     coverage_info = self.get_coverage_info(group_by, group_by_value)
-    if coverage_info and coverage_info.html_report_url:
-      # Link to the report directly if available in CoverageInformation.
-      link = coverage_info.html_report_url
-    else:
-      # Link to the coverage handler (e.g. stats for a project grouped by day).
-      link = self._build_link(group_by, group_by_value)
-
-    if not link:
+    if not coverage_info or not coverage_info.html_report_url:
       return None
 
     display_value = 'Coverage'
-    return BuiltinFieldData(display_value, link=link)
+    return BuiltinFieldData(display_value, link=coverage_info.html_report_url)
 
 
 def _logs_bucket_key_fn(func, args, kwargs):  # pylint: disable=unused-argument
