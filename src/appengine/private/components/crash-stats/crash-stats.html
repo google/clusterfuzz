@@ -311,18 +311,18 @@
                       </span>
                     </template>
                     <span class="labels">
-                      <span class="label project" title="The crash is associated with [[item.projectName]] project.">Project [[item.projectName]]</span>
+                      <span class="label project" title="The crash is associated with the [[item.projectName]] project.">Project [[item.projectName]]</span>
                       <if-else condition="[[item.isSecurity]]">
-                        <span slot="t" class="label security" title="The crash is security-related.">Security</span>
-                        <span slot="f" class="label" title="The crash is NOT security-related.">Security</span>
+                        <span slot="t" class="label security" title="The crash is security-relevant.">Security</span>
+                        <span slot="f" class="label" title="The crash is NOT security-relevant.">Security</span>
                       </if-else>
                       <if-else condition="[[item.isReproducible]]">
-                        <span slot="t" class="label reproducible" title="The crash is reliably reproducible at least once over the selected time period.">Reliably reproduces</span>
-                        <span slot="f" class="label" title="The crash is not reliably reproducible over the selected time period.">Reliably reproduces</span>
+                        <span slot="t" class="label reproducible" title="Found at least one reliably reproducible occurrence of the crash over the selected time period.">Reliably reproduces</span>
+                        <span slot="f" class="label" title="The crash was consistently not reproducible over the selected time period.">Reliably reproduces</span>
                       </if-else>
                       <if-else condition="[[item.isNew]]">
-                        <span slot="t" class="label new" title="The crash is considered as 'new' within the selected time period.">New</span>
-                        <span slot="f" class="label" title="The crash is NOT considered as 'new' within the selected time period.">New</span>
+                        <span slot="t" class="label new" title="The crash was discovered (or rediscovered) in the selected time period.">New</span>
+                        <span slot="f" class="label" title="The crash was discovered before the selected time period.">New</span>
                       </if-else>
                       <template is="dom-repeat" items="[[getIssue(item)]]" as="issue">
                         <a class="label issue" href="/issue/[[item.testcase.id]]/[[issue.number]]" title="[[issue.title]]">Issue [[issue.number]]</a>
