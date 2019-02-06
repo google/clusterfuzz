@@ -98,9 +98,19 @@ An example of `.srcmap.json` for a libpng build:
 }
 ```
 
+## Other artifacts and runtime dependencies
+
+If your target program requires any additional runtime dependencies or artifacts
+such as [seed corpus] or a [dictionary] for [libFuzzer or AFL], all these files
+should be placed in the same directory as the target executable and be included
+in the build archive.
+
 ## Build pipeline solutions
 Most of the Continuous Integration systems can be used for providing builds to
 ClusterFuzz. Examples include [Google Cloud Build](https://cloud.google.com/cloud-build/docs/),
 [Jenkins](https://jenkins.io/), and others.
 
+[libFuzzer or AFL]:{{ site.baseurl }}/setting-up-fuzzing/libfuzzer_and_afl/
+[seed corpus]: {{ site.baseurl }}/setting-up-fuzzing/libfuzzer_and_afl/#seed-corpus
+[dictionary]: {{ site.baseurl }}/setting-up-fuzzing/libfuzzer_and_afl/#dictionaries
 [setting up a fuzzing job]: {{ site.baseurl }}/production-setup/setting-up-fuzzing-job
