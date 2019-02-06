@@ -172,7 +172,7 @@
         <paper-checkbox value="true" checked="{{uploadParams.http}}">Load testcase from HTTP server.</paper-checkbox>
       </template>
       <paper-checkbox value="true" checked="{{uploadParams.multiple}}">Test every file in archive independently.</paper-checkbox>
-      <template is="dom-if" if="[[!fieldValues.isExternalUser]]">
+      <template is="dom-if" if="[[shouldShowUpdateCheckbox()]]">
         <paper-checkbox value="true" checked="{{uploadParams.updateIssue}}">Update issue's title based on crash result.</paper-checkbox>
       </template>
       <template is="dom-if" if="[[fieldValues.isChromium]]">
@@ -278,6 +278,10 @@
 
       shouldShowIssueField() {
         return this.fieldValues.hasIssueTracker && !this.fieldValues.isExternalUser;
+      }
+
+      shouldShowUpdateCheckbox() {
+        return this.shouldShowIssueField() && !this.fieldValues.isExternalUser;
       }
 
       shouldShowTargetNames(job) {
