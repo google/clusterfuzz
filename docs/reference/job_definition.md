@@ -1,16 +1,15 @@
 ---
 layout: default
-title: Job definition reference
-parent: Setting up fuzzing
-nav_order: 4
-permalink: /setting-up-fuzzing/job-definition-reference/
+title: Job definition
+parent: Reference
+nav_order: 3
+permalink: /reference/job-definition/
 ---
 
-# Job definition reference
+# Job definition
 
 This page walks you through various options that can be used for configuring a
-ClusterFuzz [job]. You may not need to use many of these options. This page is
-just a reference.
+ClusterFuzz [job]. You may not need to use many of these options.
 
 - TOC
 {:toc}
@@ -27,34 +26,36 @@ definition.
 
 * **CUSTOM_BINARY**: indicates whether a job uses a manually uploaded build or
   not. Use `CUSTOM_BINARY = True` if you upload a build when creating a job. If
-  you use **RELEASE_BUILD_BUCKET_PATH** to specify a build stored in GCS, use
-  `CUSTOM_BINARY = False`.
+  you use **RELEASE_BUILD_BUCKET_PATH** to specify a build stored in a [Google
+  Cloud Storage] bucket, use `CUSTOM_BINARY = False`.
 * **RELEASE_BUILD_BUCKET_PATH**: indicates a path to the build that is uploaded
   to [Google Cloud Storage] bucket. See [specifying a continuous build] for more
   detail.
 * **ADDITIONAL_ASAN_OPTIONS**: provides a way to specify custom [runtime flags
   for AddressSanitizer]. The values specified here will overwrite the default
-  values used by ClusterFuzz. The same variable is available for the other
-  sanitizers, i.e. **ADDITIONAL_MSAN_OPTIONS** or **ADDITIONAL_UBSAN_OPTIONS**.
+  values used by ClusterFuzz. The same type of variable is available for the
+  other sanitizers, i.e. **ADDITIONAL_MSAN_OPTIONS** or
+  **ADDITIONAL_UBSAN_OPTIONS** (see an example below on this page).
 
 ### LibFuzzer and AFL specific
 
-* **CORPUS_PRUNE**: indicates whether a corpus pruning needs to be done using a
-  given job. The default value is `False`. It's recommended to use `CORPUS_PRUNE
-  = True` for libFuzzer ASan jobs only. Enabling pruning for a one job only is
-  sufficient, as other libFuzzer and AFL jobs use the same corpus when running
-  the same fuzz targets.
+* **CORPUS_PRUNE**: indicates whether a [corpus pruning] needs to be done using
+  a given job. The default value is `False`. It's recommended to use
+  `CORPUS_PRUNE = True` for libFuzzer ASan jobs only. Enabling pruning for a one
+  job only is sufficient, as other libFuzzer and AFL jobs use the same corpus
+  when running the same fuzz targets.
 * **CORPUS_BUCKET**: TODO!
 * **CORPUS_FUZZER_NAME_OVERRIDE**: TODO!
 
 ### Blackbox fuzzing specific
 
-* **APP_NAME**: indicates the name of a target application to be tested.
+* **APP_NAME**: indicates the file name of a target application to be tested.
 * **APP_ARGS**: arguments to be passed to the target application. This variable
   should include both optional and required arguments you want to pass.
 * **REQUIRED_APP_ARGS**: arguments that must be passed to the target
   application. These arguments will be always used, while the others specified
-  in **APP_ARGS** and not specified here can be skipped by ClusterFuzz.
+  in **APP_ARGS** and not specified here can be removed by ClusterFuzz during
+  testcase minimization if they aren't needed to reproduce a crash.
 * **TEST_TIMEOUT**: indicates how many seconds a target application can spend on
   processing an individual testcase.
 
@@ -149,6 +150,7 @@ ADDITIONAL_ASAN_OPTIONS = allocator_may_return_null=0
 ```
 
 [Google Cloud Storage]: https://cloud.google.com/storage/
+[corpus pruning]: {{ site.baseurl }}/reference/glossary/#corpus-pruning
 [job]: {{ site.baseurl }}/reference/glossary/#job-type
 [runtime flags for AddressSanitizer]: https://github.com/google/sanitizers/wiki/AddressSanitizerFlags#run-time-flags
 [specifying a continuous build]: {{ site.baseurl }}/production-setup/setting-up-fuzzing-job/#specifying-a-continuous-build
