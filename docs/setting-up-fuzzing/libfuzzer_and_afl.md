@@ -128,25 +128,24 @@ ClusterFuzz in production (ie: not locally), you can also view [crash stats] and
 
 ## Seed corpus
 You can optionally upload a zip file in your build containing sample inputs for
-ClusterFuzz to give to your fuzzer. We call this a seed corpus.
+ClusterFuzz to give to your fuzzer. We call this a seed corpus. For a given fuzz
+target, ClusterFuzz will use a file as a seed corpus if:
 
-ClusterFuzz will use a file as a seed corpus if:
-
-* It is in the same directory in the build as the target.
-* It has the same name as the target (not including `.exe` extension) followed
-  by `_seed_corpus.zip` (i.e. `<fuzz_target>_seed_corpus.zip` for
+* It is in the same directory in the build as the fuzz target.
+* It has the same name as the fuzz target (not including `.exe` extension)
+  followed by `_seed_corpus.zip` (i.e. `<fuzz_target>_seed_corpus.zip` for
   `<fuzz_target>`).
 
 We recommend zipping directories of interesting inputs at build time to create a
 seed corpus.
 
 ## Dictionaries
-ClusterFuzz supports using [libFuzzer/AFL Dictionaries]. For a given fuzz target
-ClusterFuzz will use a file as a dictionary if:
+ClusterFuzz supports using [libFuzzer/AFL Dictionaries]. For a given fuzz
+target, ClusterFuzz will use a file as a dictionary if:
 
-* It is in the same directory in the build as the target.
-* It has the same name as the target (not including `.exe` extension) followed
-  by `.dict` (i.e. `<fuzz_target>.dict` for `<fuzz_target>`).
+* It is in the same directory in the build as the fuzz target.
+* It has the same name as the fuzz target (not including `.exe` extension)
+  followed by `.dict` (i.e. `<fuzz_target>.dict` for `<fuzz_target>`).
 
 [libFuzzer/AFL Dictionaries]: https://llvm.org/docs/LibFuzzer.html#dictionaries
 
