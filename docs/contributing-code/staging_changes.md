@@ -26,7 +26,7 @@ scale.
 You can test your UI or cron changes on a staging server instance using:
 
 ```bash
-$ python butler.py deploy --staging --config-dir=$CONFIG_DIR
+python butler.py deploy --staging --config-dir=$CONFIG_DIR
 ```
 
 Once deployed, the changes will be visible on `https://staging-dot-<your project id>.appspot.com`.
@@ -39,11 +39,11 @@ changes that may impact the data in the production database.
 You can test code changes on a particular compute engine bot using:
 
 ```bash
-$ python butler.py remote \
-    --instance-name <your instance name> \
-    --project <your project id> \
-    --zone <your project zone> \
-    stage --config-dir=$CONFIG_DIR
+python butler.py remote \
+  --instance-name <your instance name> \
+  --project <your project id> \
+  --zone <your project zone> \
+  stage --config-dir=$CONFIG_DIR
 ```
 
 **Note**:

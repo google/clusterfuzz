@@ -47,11 +47,11 @@ LibFuzzer targets are easy to build. Just compile a [fuzz target] with
 (`-fsanitize=address`).
 
 ```bash
-$ $CXX -fsanitize=address,fuzzer fuzzer.cc -o fuzzer
+$CXX -fsanitize=address,fuzzer fuzzer.cc -o fuzzer
 # Test out the build by fuzzing it.
-$ ./fuzzer -runs=10
+./fuzzer -runs=10
 # Create a fuzzer build to upload to ClusterFuzz.
-$ zip fuzzer-build.zip fuzzer
+zip fuzzer-build.zip fuzzer
 ```
 
 libFuzzer builds are zip files that contain any targets you want to fuzz and
@@ -69,12 +69,12 @@ using `-fsanitize-coverage=trace-pc-guard`.
 
 ```bash
 # Build afl-fuzz and FuzzingEngine.a
-$ ./build_afl.bash
-$ $CXX -fsanitize=address -fsanitize-coverage=trace-pc-guard fuzzer.cc FuzzingEngine.a -o fuzzer
+./build_afl.bash
+$CXX -fsanitize=address -fsanitize-coverage=trace-pc-guard fuzzer.cc FuzzingEngine.a -o fuzzer
 # Test out the build by fuzzing it. INPUT_CORPUS is a directory containing files. Ctrl-C when done.
-$ AFL_SKIP_CPUFREQ=1 ./afl-fuzz -i $INPUT_CORPUS -o output -m none ./fuzzer
+AFL_SKIP_CPUFREQ=1 ./afl-fuzz -i $INPUT_CORPUS -o output -m none ./fuzzer
 # Create a fuzzer build to upload to ClusterFuzz.
-$ zip fuzzer-build.zip fuzzer afl-fuzz afl-showmap
+zip fuzzer-build.zip fuzzer afl-fuzz afl-showmap
 ```
 
 AFL builds are zip files that contain any targets you want to fuzz, their

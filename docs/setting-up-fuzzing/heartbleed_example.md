@@ -29,28 +29,28 @@ Run these commands to build a libFuzzer target for OpenSSL:
 [comment]: <> (TODO(metzman): Check that the URLs work when repo gets published.)
 ```bash
 # Download and unpack a vulnerable version of OpenSSL:
-$ curl -O https://www.openssl.org/source/openssl-1.0.1f.tar.gz
-$ tar xf openssl-1.0.1f.tar.gz
+curl -O https://www.openssl.org/source/openssl-1.0.1f.tar.gz
+tar xf openssl-1.0.1f.tar.gz
 
 # Build OpenSSL with ASan and fuzzer instrumentation:
-$ cd openssl-1.0.1f/
-$ ./config
+cd openssl-1.0.1f/
+./config
 
 # $CC must be pointing to clang binary, see the "compiler section" link above.
-$ make CC="$CC -g -fsanitize=address,fuzzer-no-link"
-$ cd ..
+make CC="$CC -g -fsanitize=address,fuzzer-no-link"
+cd ..
 
 # Download the fuzz target and its data dependencies:
-$ curl -O https://raw.githubusercontent.com/google/clusterfuzz/master/docs/setting-up-fuzzing/heartbleed/handshake-fuzzer.cc
-$ curl -O https://raw.githubusercontent.com/google/clusterfuzz/master/docs/setting-up-fuzzing/heartbleed/server.key
-$ curl -O https://raw.githubusercontent.com/google/clusterfuzz/master/docs/setting-up-fuzzing/heartbleed/server.pem
+curl -O https://raw.githubusercontent.com/google/clusterfuzz/master/docs/setting-up-fuzzing/heartbleed/handshake-fuzzer.cc
+curl -O https://raw.githubusercontent.com/google/clusterfuzz/master/docs/setting-up-fuzzing/heartbleed/server.key
+curl -O https://raw.githubusercontent.com/google/clusterfuzz/master/docs/setting-up-fuzzing/heartbleed/server.pem
 
 # Build OpenSSL fuzz target for ClusterFuzz ($CXX points to clang++ binary):
-$ $CXX -g handshake-fuzzer.cc -fsanitize=address,fuzzer openssl-1.0.1f/libssl.a \
+$CXX -g handshake-fuzzer.cc -fsanitize=address,fuzzer openssl-1.0.1f/libssl.a \
   openssl-1.0.1f/libcrypto.a -std=c++17 -Iopenssl-1.0.1f/include/ -lstdc++fs   \
   -ldl -lstdc++ -o handshake-fuzzer
 
-$ zip openssl-fuzzer-build.zip handshake-fuzzer server.key server.pem
+zip openssl-fuzzer-build.zip handshake-fuzzer server.key server.pem
 ```
 
 ## Uploading the fuzzer to ClusterFuzz

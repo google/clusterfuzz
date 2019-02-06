@@ -24,8 +24,8 @@ supported on **Linux** and **macOS**.
 
 ## Getting the code
 ```bash
-$ git clone https://github.com/google/clusterfuzz
-$ cd clusterfuzz
+git clone https://github.com/google/clusterfuzz
+cd clusterfuzz
 ```
 
 ## Installing prerequisites
@@ -37,8 +37,8 @@ Install the Google Cloud SDK by following the instructions
 Once this is done, run:
 
 ```bash
-$ gcloud auth application-default login
-$ gcloud auth login
+gcloud auth application-default login
+gcloud auth login
 ```
 
 ### Python programming language
@@ -65,7 +65,7 @@ Our supported systems include:
 
 To install the dependencies, run the script:
 ```bash
-$ local/install_deps.bash
+local/install_deps.bash
 ```
 
 [homebrew]: https://brew.sh/
@@ -75,10 +75,10 @@ Activate the virtualenv created by the `local/install_deps.bash` script. This
 loads all the python dependencies in the current environment.
 
 ```bash
-$ source ENV/bin/activate
+source ENV/bin/activate
 ```
 
 Verify everything works by running:
 ```bash
-$ python butler.py --help
+python butler.py --help
 ```
