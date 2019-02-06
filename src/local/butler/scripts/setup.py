@@ -34,7 +34,7 @@ ENABLE_GESTURES = False
 THREAD_DELAY = 30.0
 """
 
-AFL_TEMPLATE = """APP_NAME = launcher.py
+AFL_ASAN_TEMPLATE = """APP_NAME = launcher.py
 MAX_FUZZ_THREADS = 1
 MAX_TESTCASES = 4
 FUZZ_TEST_TIMEOUT = 4800
@@ -63,7 +63,7 @@ ADDITIONAL_UBSAN_OPTIONS = symbolize=0:allocator_release_to_os_interval_ms=500
 """
 
 TEMPLATES = {
-    'afl': AFL_TEMPLATE,
+    'afl_asan': AFL_ASAN_TEMPLATE,
     'libfuzzer_asan': LIBFUZZER_ASAN_TEMPLATE,
     'libfuzzer_msan': LIBFUZZER_MSAN_TEMPLATE,
     'libfuzzer_ubsan': LIBFUZZER_UBSAN_TEMPLATE,
