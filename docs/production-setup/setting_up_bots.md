@@ -73,7 +73,7 @@ Following are the steps to setup and run ClusterFuzz:
 export CLOUD_PROJECT_ID=<your project id>
 export CONFIG_DIR=/path/to/myconfig
 export GOOGLE_APPLICATION_CREDENTIALS=/path/to/service-account-key.json
-export INSTALL_DIRECTORY=/path/to/install/clusterfuzz/and/dependencies
+export INSTALL_DIRECTORY=/path/where/to/install/clusterfuzz-and-dependencies/to
 $CONFIG_DIR/bot/setup/mac.bash
 ```
 
