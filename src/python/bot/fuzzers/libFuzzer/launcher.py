@@ -153,9 +153,6 @@ def do_recommended_dictionary():
 
 def do_value_profile():
   """Return whether or not to do value profile."""
-  # TODO(metzman): Reenable when value profile works on Windows.
-  if IS_WIN:
-    return False
   return engine_common.decide_with_probability(
       engine_common.get_strategy_probability(
           strategy.VALUE_PROFILE_STRATEGY, default=VALUE_PROFILE_PROBABILITY))
