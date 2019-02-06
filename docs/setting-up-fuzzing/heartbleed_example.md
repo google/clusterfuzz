@@ -26,6 +26,7 @@ a working compiler for following along with the examples below.
 ## Building a libFuzzer target for OpenSSL
 Run these commands to build a libFuzzer target for OpenSSL:
 
+[comment]: <> (TODO(metzman): Check that the URLs work when repo gets published.)
 ```bash
 # Download and unpack a vulnerable version of OpenSSL:
 curl -O https://www.openssl.org/source/openssl-1.0.1f.tar.gz
