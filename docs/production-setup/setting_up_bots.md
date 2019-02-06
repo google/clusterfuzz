@@ -62,14 +62,18 @@ run it on physical hardware or some sort of virtualization running on top of it.
 
 Following are the steps to setup and run ClusterFuzz:
 
-* Create a service account key file using the steps provided
+* Create a service account key following the instructions provided
 [here](https://cloud.google.com/docs/authentication/getting-started).
+  * Choose "Compute Engine" service account type.
+  * Choose "JSON" key type.
+* Securely transfer the downloaded key file to the macOS computer.
 * Run the provided startup script.
 
 ```bash
 export CLOUD_PROJECT_ID=<your project id>
 export CONFIG_DIR=/path/to/myconfig
 export GOOGLE_APPLICATION_CREDENTIALS=/path/to/service-account-key.json
+export INSTALL_DIRECTORY=/path/where/to/install/clusterfuzz-and-dependencies/to
 $CONFIG_DIR/bot/setup/mac.bash
 ```
 
