@@ -14,7 +14,9 @@ supported platforms: **Linux**, **Windows** and **macOS**.
 {:toc}
 ---
 
-## Linux
+## Platforms
+
+### Linux
 
 Linux is the preferred platform for fuzzing because of its comprehensive support
 for all [sanitizer] and [fuzzing engine] types.
@@ -34,7 +36,7 @@ way (since only fuzzing tasks are executed there). You still need some regular
 bots (non-preemptibles) to execute other tasks e.g. post-operation tasks after a
 crash is discovered like minimization, regression, etc.
 
-## Windows
+### Windows
 
 Windows is a supported platform for fuzzing. Currently, only
 [AddressSanitizer] ([sanitizer]) and [libFuzzer] ([fuzzing engine]) are
@@ -48,7 +50,7 @@ can enable them easily by following the instructions provided
 You also need to [set a password](#windows-password-setup) for the administrator
 account on the bots.
 
-## macOS
+### macOS
 
 Mac is a supported platform for fuzzing. Currently, only [AddressSanitizer],
 [LeakSanitizer], [UndefinedBehaviorSanitizer] and [ThreadSanitizer] [sanitizer]
@@ -71,9 +73,9 @@ $ export GOOGLE_APPLICATION_CREDENTIALS=/path/to/service-account-key.json
 $ $CONFIG_DIR/bot/setup/mac.bash
 ```
 
-# Configuration
+## Configuration
 
-## Google Compute Engine Cluster
+### Google Compute Engine Cluster
 
 You can configure a cluster of bots on [Google Compute Engine] by modifying the
 configuration file `$CONFIG_DIR/gce/clusters.yaml`. The clusters definition is
@@ -105,7 +107,7 @@ and then define a new cluster section here.
 * Make sure to [deploy] new changes. Otherwise, they will not be reflected in
 production.
 
-## Google Compute Engine Instance Template
+### Google Compute Engine Instance Template
 
 You can read more about instance templates
 [here](https://cloud.google.com/compute/docs/instance-templates). Instance
@@ -154,7 +156,7 @@ by 1.
 * Make sure to [deploy] new changes. Otherwise, they will not be reflected in
 production.
 
-## Windows password setup
+### Windows password setup
 
 Before enabling windows bots on [Google Compute Engine], you need to set the
 administrator password in the `windows-password` metadata attribute. The
@@ -168,7 +170,7 @@ $ gcloud compute project-info add-metadata \
 This allows you to connect via remote desktop into your windows bots with the
 `clusterfuzz` username (admin) and your configured password.
 
-## Deploying new changes
+### Deploying new changes
 
 Read the instructions
 [here]({{ site.baseurl }}/production-setup/clusterfuzz/#deploying-new-changes)
@@ -202,10 +204,10 @@ and request more resources as needed.
 ### Non-Google Compute Engine bots
 
 These bots should start within a minute after the startup script finishes
-execution (e.g. `$CONFIG_DIR/bot/setup/mac.bash` for mac).
+execution (e.g. `$CONFIG_DIR/bot/setup/mac.bash` for macOS).
 
 You can verify the bots started by checking that their hostnames show up on
-the *Bots page*.
+the *Bots* page.
 
 [build]: {{ site.baseurl }}/production-setup/build-pipeline
 [deploy]: #deploying-new-changes
