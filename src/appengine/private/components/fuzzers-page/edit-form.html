@@ -56,8 +56,8 @@
       }
 
       .inline.narrow > * {
-        width: 180px;
-        margin: 0 5px
+        width: 350px;
+        margin: 0 5px;
       }
 
       #file {
@@ -103,7 +103,12 @@
         </div>
       </template>
       <div class="inline narrow">
-        <paper-input label="Name" value="{{fuzzer.name}}" readonly="[[nameIsReadOnly(create)]]"></paper-input>
+        <paper-input
+            label="Name"
+            value="{{fuzzer.name}}"
+            readonly="[[nameIsReadOnly(create)]]"
+            title="Name of fuzzer. Allowed characters include letters, numbers, dashes and underscores.">
+        </paper-input>
       </div>
       <div class="inline narrow">
         <paper-menu-button
@@ -112,12 +117,18 @@
             ignore-select="true"
             noink>
           <div slot="dropdown-trigger">
-            <paper-input readonly label="Select/modify jobs">
+            <paper-input
+                readonly
+                label="Select/modify jobs"
+                title="Set of jobs to run with this fuzzer.">
               <iron-icon icon="paper-dropdown-menu:arrow-drop-down" suffix slot="suffix"></iron-icon>
             </paper-input>
           </div>
-          <paper-listbox slot="dropdown-content" multi slot="dropdown-content"
-              attr-for-selected="value" selected-values="{{fuzzer.jobs}}"
+          <paper-listbox
+              slot="dropdown-content"
+              multi slot="dropdown-content"
+              attr-for-selected="value"
+              selected-values="{{fuzzer.jobs}}"
               selected-attribute="checked">
             <template is="dom-repeat" items="[[fieldValues.jobs]]">
               <paper-checkbox class="job-checkbox" value="[[item]]">
@@ -125,6 +136,7 @@
               </paper-checkbox>
             </template>
           </paper-listbox>
+        </paper-menu-button>
       </div>
       <div class="inline narrow">
         </paper-menu-button>
@@ -147,35 +159,50 @@
         <paper-input id="file" type="file" value="{{file}}" label="Fuzzer archive"></paper-input>
       </div>
       <div class="inline narrow">
-        <paper-input label="Script path (optional)" value="{{fuzzer.executable_path}}">
-          <a slot="suffix" target="_blank" href="http://dev.chromium.org/Home/chromium-security/bugs/using-clusterfuzz#TOC-Executable-path">
-            <iron-icon class="help-icon" icon="icons:help-outline" suffix></iron-icon>
-          </a>
+        <paper-input
+            label="Script path (optional)"
+            value="{{fuzzer.executable_path}}"
+            title="Relative path to main file that executes fuzzer. If not provided, uses the first file with 'run' in name.">
         </paper-input>
       </div>
       <div class="inline narrow">
-        <paper-input label="Launcher path (optional)" value="{{fuzzer.launcher_script}}">
-          <a slot="suffix" target="_blank" href="http://dev.chromium.org/Home/chromium-security/bugs/using-clusterfuzz#TOC-Launcher-script">
-            <iron-icon class="help-icon" icon="icons:help-outline" suffix></iron-icon>
-          </a>
+        <paper-input
+            label="Launcher path (optional)"
+            value="{{fuzzer.launcher_script}}"
+            title="Relative path to wrapper script that executes application. Executed as: <launcher_path> <app_path> --app_args">
         </paper-input>
       </div>
       <div class="inline narrow">
-        <paper-input type="number" label="Testcase timeout (optional)" value="{{fuzzer.timeout}}">
-          <a slot="suffix" target="_blank" href="http://dev.chromium.org/Home/chromium-security/bugs/using-clusterfuzz#TOC-Timeout">
-            <iron-icon class="help-icon" icon="icons:help-outline" suffix></iron-icon>
-          </a>
+        <paper-input
+            type="number"
+            label="Testcase timeout (optional)"
+            value="{{fuzzer.timeout}}"
+            title="Time in seconds to run a testcase for. If provided, this overrides TEST_TIMEOUT defined in jobs.">
         </paper-input>
       </div>
       <div class="inline narrow">
-        <paper-input type="number" label="Max generated testcases (optional)" value="{{fuzzer.max_testcases}}"></paper-input>
+        <paper-input
+            type="number"
+            label="Max generated testcases (optional)"
+            value="{{fuzzer.max_testcases}}"
+            title="Upper limit on number of testcases generated. If provided, this overrides MAX_TESTCASES defined in jobs.">
+        </paper-input>
       </div>
       <div class="inline narrow">
-        <paper-textarea rows="5" label="Environment variables (a=b, one per line)" value="{{fuzzer.additional_environment_string}}" on-input="envVarsChanged"></paper-textarea>
+        <paper-textarea
+            rows="5"
+            label="Environment variables (a=b, one per line)"
+            value="{{fuzzer.additional_environment_string}}"
+            on-input="envVarsChanged"
+            title="Additional environment variables. If provided, these variables override ones defined in jobs.">
+        </paper-textarea>
       </div>
       <div class="inline narrow">
         <paper-checkbox checked="{{fuzzer.external_contribution}}">External contribution</paper-checkbox>
+
+        <!-- TODO: Re-enable after the differential fuzzing is implemented.
         <paper-checkbox checked="{{fuzzer.differential}}">Differential fuzzer</paper-checkbox>
+        -->
       </div>
     </ajax-dialog>
     <iron-ajax
