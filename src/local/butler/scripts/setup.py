@@ -46,6 +46,7 @@ CORPUS_FUZZER_NAME_OVERRIDE = libFuzzer
 ADDITIONAL_PROCESSES_TO_KILL = afl-fuzz afl-showmap
 ENABLE_GESTURES = False
 THREAD_DELAY  = 30.0
+ADDITIONAL_ASAN_OPTIONS = quarantine_size_mb=64:strict_memcmp=1:symbolize=0:fast_unwind_on_fatal=0:allocator_release_to_os_interval_ms=500
 """
 
 LIBFUZZER_ASAN_TEMPLATE = """LSAN = True
