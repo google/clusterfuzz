@@ -83,8 +83,14 @@ A job can specify a `HELP_URL` which each test case report for this job will
 link to. This allows you to provide instructions to developers on how they
 should treat the bugs they are assigned.
 
+### Job definition reference
+
+For a more comprehensive overview of the options, see the [job definition]
+reference page.
+
+[Google Cloud Storage]: https://cloud.google.com/storage/
 [coverage guided vs blackbox]: {{ site.baseurl }}/reference/coverage-guided-vs-blackbox/
 [build pipeline]: {{ site.baseurl }}/production-setup/build-pipeline/
-[setting up fuzzing]: {{ site.baseurl }}/setting-up-fuzzing/
-[Google Cloud Storage]: https://cloud.google.com/storage/
+[job definition]: {{ site.baseurl }}/reference/job-definition/
 [revision number]: {{ site.baseurl }}/reference/glossary/#revision
+[setting up fuzzing]: {{ site.baseurl }}/setting-up-fuzzing/
