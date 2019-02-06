@@ -71,9 +71,9 @@ $ export GOOGLE_APPLICATION_CREDENTIALS=/path/to/service-account-key.json
 $ $CONFIG_DIR/bot/setup/mac.bash
 ```
 
-## Configuration
+# Configuration
 
-### Google Compute Engine Cluster
+## Google Compute Engine Cluster
 
 You can configure a cluster of bots on [Google Compute Engine] by modifying the
 configuration file `$CONFIG_DIR/gce/clusters.yaml`. The clusters definition is
@@ -105,7 +105,7 @@ and then define a new cluster section here.
 * Make sure to [deploy] new changes. Otherwise, they will not be reflected in
 production.
 
-### Google Compute Engine Instance Template
+## Google Compute Engine Instance Template
 
 You can read more about instance templates
 [here](https://cloud.google.com/compute/docs/instance-templates). Instance
@@ -154,7 +154,7 @@ by 1.
 * Make sure to [deploy] new changes. Otherwise, they will not be reflected in
 production.
 
-### Windows password setup
+## Windows password setup
 
 Before enabling windows bots on [Google Compute Engine], you need to set the
 administrator password in the `windows-password` metadata attribute. The
@@ -168,16 +168,44 @@ $ gcloud compute project-info add-metadata \
 This allows you to connect via remote desktop into your windows bots with the
 `clusterfuzz` username (admin) and your configured password.
 
-### Deploying new changes
+## Deploying new changes
 
 Read the instructions
 [here]({{ site.baseurl }}/production-setup/clusterfuzz/#deploying-new-changes)
 to deploy new changes.
 
-Once deployed, bots are automatically created via a cron task that runs every
-*30 minutes*. You can manually force it by visiting the `Cron jobs` page
+## Verification
+
+### Google Compute Engine bots
+
+Once deployed, bots are automatically created via an App Engine cron task that
+runs every *30 minutes*. For faster results, you can manually force it by
+visiting the `Cron jobs` page
 [here](https://console.cloud.google.com/appengine/cronjobs) and running the
 `/manage-vms` cron job.
+
+After the cron job finishes, check this
+[page](https://console.cloud.google.com/compute/instanceGroups/list) to ensure
+that all instances are created for this particular
+[instance group](#google-compute-engine-cluster).
+
+If you see a spinning circle next to the instance group, for longer than a
+few minutes, it can indicate that an error occurred. You can click the instance
+group name to see the error message (e.g. insufficient resource quota).
+
+**Note**: The default quota for compute resources such as "CPUs",
+"In-use IP addresses" and "Persistent Disk Standard (GB)" might be
+insufficient for your fuzzing cluster needs. You can check your
+current quota [here](https://console.cloud.google.com/iam-admin/quotas)
+and request more resources as needed.
+
+### Non-Google Compute Engine bots
+
+These bots should start within a minute after the startup script finishes
+execution (e.g. `$CONFIG_DIR/bot/setup/mac.bash` for mac).
+
+You can verify the bots started by checking that their hostnames show up on
+the *Bots page*.
 
 [build]: {{ site.baseurl }}/production-setup/build-pipeline
 [deploy]: #deploying-new-changes
