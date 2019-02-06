@@ -62,7 +62,7 @@ run it on physical hardware or some sort of virtualization running on top of it.
 
 Following are the steps to setup and run ClusterFuzz:
 
-* Create a service account key using the steps provided
+* Create a service account key following the instructions provided
 [here](https://cloud.google.com/docs/authentication/getting-started).
   * Choose "Compute Engine" service account type.
   * Choose "JSON" key type.
