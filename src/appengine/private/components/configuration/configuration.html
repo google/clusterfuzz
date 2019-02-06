@@ -96,7 +96,7 @@
               <tr>
                 <td class="label">
                   <div class="help" title="Link to documentation on reproducing crashes">
-                    Reproduction help url
+                    Crash reproduction help url
                   </div>
                 </td>
                 <td>
@@ -107,7 +107,7 @@
               <tr>
                 <td class="label">
                   <div class="help" title="Contact string to display on pages (e.g. error)">
-                    Contact string
+                    Administrator contact string
                   </div>
                 </td>
                 <td>
@@ -304,10 +304,10 @@
                     <paper-input label="Email" name="email"></paper-input>
                   </td>
                   <td>
-                    <paper-input label="Entity (fuzzer or job)" name="entity_name"></paper-input>
+                    <paper-input label="Fuzzer or job name" name="entity_name"></paper-input>
                   </td>
                   <td>
-                    <paper-dropdown-menu label="Entity Kind" name="entity_kind" no-animations="true" noink>
+                    <paper-dropdown-menu label="Type (fuzzer or job)" name="entity_kind" no-animations="true" noink>
                       <paper-listbox slot="dropdown-content" class="dropdown-content">
                         <template is="dom-repeat" items="[[fieldValues.user_permission_entity_kinds]]">
                           <paper-item label="[[item.name]]" value="[[item.value]]">[[item.name]]</paper-item>
@@ -316,7 +316,7 @@
                     </paper-dropdown-menu>
                   </td>
                   <td>
-                    <paper-dropdown-menu label="Auto CC" name="auto_cc" no-animations="true" noink>
+                    <paper-dropdown-menu label="Auto CC bug types" name="auto_cc" no-animations="true" noink>
                       <paper-listbox slot="dropdown-content" class="dropdown-content">
                         <template is="dom-repeat" items="[[fieldValues.user_permission_auto_cc_types]]">
                           <paper-item label="[[item.name]]" value="[[item.value]]">[[item.name]]</paper-item>
@@ -325,11 +325,11 @@
                     </paper-dropdown-menu>
                   </td>
                   <td>
-                    <paper-checkbox name="is_prefix">Prefix</paper-checkbox>
+                    <paper-checkbox name="is_prefix" title="Instead of matching the name field exactly, match all fuzzers or jobs prefixed by that name.">Prefix</paper-checkbox>
                   </td>
                   <td>
                     <button style="border:none; background:none;" tabindex="-1">
-                      <paper-button class="info" raised>Add</paper-button>
+                      <paper-button class="info" raised>Grant access</paper-button>
                     </button>
                   </td>
                 </tr>
