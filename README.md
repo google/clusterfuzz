@@ -38,6 +38,9 @@ in Chrome and [~11,000] bugs in over [160] open source projects integrated with
 You can [file an issue](https://github.com/google/clusterfuzz/issues/new) to ask questions, request features, 
 or ask for help.
 
+## Staying Up to Date
+We will use [clusterfuzz-announce(#)googlegroups.com](https://groups.google.com/forum/#!forum/clusterfuzz-announce) to make announcements about ClusterFuzz.
+
 [~16,000]: https://bugs.chromium.org/p/chromium/issues/list?can=1&q=label%3AClusterFuzz+-status%3AWontFix%2CDuplicate
 [~11,000]: https://bugs.chromium.org/p/oss-fuzz/issues/list?can=1&q=-status%3AWontFix%2CDuplicate+-Infra
 [160]: https://github.com/google/oss-fuzz/tree/master/projects
