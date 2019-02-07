@@ -62,7 +62,7 @@ First we need to create a job:
 * Navigate to the *Jobs* page.
 * Go to the "ADD NEW JOB" form.
 * Fill out a job with the following:
-    * **"libfuzzer_asan_linux_heartbleed"** for the "Name".
+    * **"libfuzzer_asan_linux_openssl"** for the "Name".
     * **"LINUX"** for the "Platform".
     * **"libfuzzer"** and **"engine_asan"** for the "Templates".
     * `CORPUS_PRUNE = True` for the "Environment String".
@@ -71,7 +71,7 @@ First we need to create a job:
 
 Then enable the job by going to the *Fuzzer* page and editing libFuzzer:
 * Click "Select/modify jobs".
-* Mark "libfuzzer_asan_linux_heartbleed".
+* Mark "libfuzzer_asan_linux_openssl".
 * Press "SUBMIT".
 
 ## Fuzzing and seeing results

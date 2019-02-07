@@ -72,7 +72,7 @@ program must take the following named arguments:
 3. `--no_of_files <n>`. This is the number of testcases which the fuzzer should
    write to the output directory.
 
-The main entrypoint for this fuzzer should be a filename which starts with
+The main entry point for this fuzzer should be a filename which starts with
 `run`. For example, a fuzzer in Python may be named `run.py`.
 
 To upload this to ClusterFuzz, package this into a zip archive along with its

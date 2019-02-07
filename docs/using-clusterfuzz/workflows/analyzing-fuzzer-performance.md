@@ -31,7 +31,7 @@ fuzzing with [libFuzzer] or [AFL].
 
 It's important to regularly monitor the performance of fuzz targets, especially
 after a new target is created. If a target finds many new crashes, fixing them
-is probably more important than analyzing perfomance. But if a target has not
+is probably more important than analyzing performance. But if a target has not
 found any crashes in a while, you should probably examine its performance.
 
 ## Performance factors
