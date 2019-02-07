@@ -9,10 +9,10 @@ grand_parent: Using ClusterFuzz
 
 # Analyzing fuzzer performance
 
-ClusterFuzz automates fuzzing as much as possible, but it's responsibility of
-the users to write and maintain fuzzers in order to find security
-vulnerabilities and other software bugs. This page gives some recommendations on
-how to analyze the performance of the fuzzers running on ClusterFuzz.
+ClusterFuzz automates fuzzing as much as possible, but it's the responsibility
+of users to write and maintain fuzzers that can find security bugs. This page
+gives recommendations on how to analyze the performance of the fuzzers running
+on ClusterFuzz.
 
 **Note**: this page only applies to [fuzz targets] doing [coverage guided]
 fuzzing with [libFuzzer] or [AFL].
@@ -30,10 +30,9 @@ fuzzing with [libFuzzer] or [AFL].
 ## When to analyze fuzz target performance
 
 It's important to regularly monitor the performance of fuzz targets, especially
-after a new target is created. If a target keeps finding new issues, it might be
-more important to prioritize fixing those issues first, but if a target has not
-reported anything for a while, that is a strong signal that you need to check
-its performance.
+after a new target is created. If a target finds many new crashes, fixing them
+is probably more important than analyzing performance. But if a target has not
+found any crashes in a while, you should probably examine its performance.
 
 ## Performance factors
 
@@ -48,11 +47,12 @@ its performance.
 
 ## Fuzzer stats
 
-The *Fuzzer Stats* page provides various metrics on fuzzer performance. Using
+The *Fuzzer stats* page provides metrics on fuzzer performance. Using
 the filters on the page, you can see how those metrics (e.g. execution speed or
-number of crashes) change over time (if you choose "Group by Day") or compare
-different fuzzers to each other ("Group by Fuzzer"). There is also a "Group by
-Time" filter that shows fuzzer stats as charts rather than raw numbers.
+number of crashes) change over time (if you choose "Group by Day"). You can
+compare different fuzzers to one another using "Group by Fuzzer". There is also
+a "Group by Time" filter that shows fuzzer stats as charts rather than raw
+numbers.
 
 This feature requires a [production setup]({{ site.baseurl }}/production-setup/),
 as fuzzer stats are stored in [BigQuery]. The stats are usually delayed by up to
@@ -64,15 +64,16 @@ as fuzzer stats are stored in [BigQuery]. The stats are usually delayed by up to
 
 ClusterFuzz provides automatically generated performance reports that identify
 performance issues and give recommendations on how those issues can be resolved.
-The reports also prioritize the issues detected and provide fuzzer log examples.
+The reports also prioritize issues and provide fuzzer logs that demonstrate the
+issues.
 
 ## Coverage report
 
-Code coverage is a very important metric for evaluating performance of a fuzzer.
+Code coverage is a very important metric for evaluating fuzzer performance.
 Looking at the code coverage report, you can see which exact parts of the target
 program are tested by the fuzzer and which parts are never executed. If you set
 up a [code coverage builder] for ClusterFuzz, you can find links to the coverage
-reports on the fuzzer stats page. Otherwise, you can generate code coverage
+reports on the Fuzzer stats page. Otherwise, you can generate code coverage
 reports locally. For C and C++ targets, we recommend using [Clang Source-based
 Code Coverage].
 
@@ -80,11 +81,10 @@ Code Coverage].
 
 ## Fuzzer logs
 
-If none of the above gives you enough information about performance of a fuzzer,
-looking into the fuzzer logs will be the next step. On the fuzzer stats page,
-you can find a link to the GCS bucket storing the logs. You can also manually
-navigate to that bucket using either
-[gsutil](https://cloud.google.com/storage/docs/gsutil) tool or Google Cloud
-Storage web interface.
+If none of the above gives you enough information about fuzzer performance,
+looking into the fuzzer logs may help. On the fuzzer stats page, you can find a
+link to the GCS bucket storing the logs. You can also navigate to that manually
+using the Google Cloud Storage [web interface].
 
 [Clang Source-based Code Coverage]: https://clang.llvm.org/docs/SourceBasedCodeCoverage.html
+[web interface]: https://console.cloud.google.com/storage/browser

@@ -98,13 +98,14 @@ at `1` and is incremented or can be a date format (e.g. `20190110`).
 A [dynamic testing](https://en.wikipedia.org/wiki/Dynamic_testing) tool that
 uses compile-time instrumentation to detect bugs during program execution.
 Examples:
-* [ASan]
-* [LSan](https://clang.llvm.org/docs/LeakSanitizer.html)
-* [MSan](https://clang.llvm.org/docs/MemorySanitizer.html)
+* [ASan] (aka AddressSanitizer)
+* [LSan](https://clang.llvm.org/docs/LeakSanitizer.html) (aka LeakSanitizer)
+* [MSan](https://clang.llvm.org/docs/MemorySanitizer.html) (aka MemorySanitizer)
 * [UBSan](https://clang.llvm.org/docs/UndefinedBehaviorSanitizer.html)
-* [TSan](https://clang.llvm.org/docs/ThreadSanitizer.html)
+  (aka UndefinedBehaviorSanitizer)
+* [TSan](https://clang.llvm.org/docs/ThreadSanitizer.html) (aka ThreadSanitizer)
 
-Sanitizers are best supported by the [clang](https://releases.llvm.org/download.html)
+Sanitizers are best supported by the [clang]
 compiler. [ASan], or AddressSanitizer, is usually the most important sanitizer
 as it reveals the most memory corruption bugs.
 
@@ -120,3 +121,4 @@ these refer to the input that needs to be passed to the target program.
 [ASan]: https://clang.llvm.org/docs/AddressSanitizer.html
 [libFuzzer]: https://llvm.org/docs/LibFuzzer.html
 [AFL]: http://lcamtuf.coredump.cx/afl/
+[clang]: https://releases.llvm.org/download.html

@@ -46,7 +46,7 @@ Install Python 2.7. You can download it
 [here](https://www.python.org/downloads/release/python-2715/).
 
 If you already have Python installed, you can verify its version by running `python --version`.
-The required version is 2.7.10 or newer.
+The minimum required version is 2.7.10.
 
 ### Go programming language
 Install the Go programming language by following the instructions
@@ -61,7 +61,7 @@ Our supported systems include:
 
 - **Ubuntu** (14.04, 16.04, 17.10, 18.04, 18.10)
 - **Debian** 8 (jessie) or later
-- Recent version of **macOS** with [homebrew] (experimental)
+- Recent versions of **macOS** with [homebrew] (experimental)
 
 To install the dependencies, run the script:
 ```bash

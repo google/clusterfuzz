@@ -26,7 +26,7 @@ Optional switches you can use:
 * `-m`: Execute tests in-parallel (recommended).
 * `-v`: Run tests in verbose mode (with INFO log level).
 * `-u`: Show output from `print` (useful for debugging).
-* `-p <test_name / test_prefix_with_wilcards>`: Execute a particular test or set of tests matching
+* `-p <test_name/test_prefix_with_wildcards>`: Execute a particular test or set of tests matching
 a particular prefix. E.g. `-p libfuzzer_*` will execute all libFuzzer tests.
 
 ### Go code

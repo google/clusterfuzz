@@ -7,7 +7,7 @@ nav_order: 4
 ---
 
 # Setting up bots
-This page walks you through the process of setting up bots on one of the
+This page walks you through the process of setting up bots on each of the
 supported platforms: **Linux**, **Windows** and **macOS**.
 
 - TOC
@@ -25,22 +25,21 @@ It is recommended to use each sanitizer its own [build] and [job] definition
 (except [LeakSanitizer]), as there are performance and bug finding efficiency
 issues with combining them.
 
-By default, ClusterFuzz configuration file creates 1 Linux regular bot and 2
-[preemptible] bots on [Google Compute Engine]. You can configure them by
+By default, the ClusterFuzz configuration file creates 1 regular Linux bot and 2
+[preemptible] Linux bots on [Google Compute Engine]. You can configure them by
 following the instructions provided [here](#google-compute-engine-cluster) and
 [here](#google-compute-engine-instance-template).
 
-It is recommended to have the majority of your bots as preemptibles since they
-are much cheaper and do not impact the production workload in any significant
-way (since only fuzzing tasks are executed there). You still need some regular
-bots (non-preemptibles) to execute other tasks e.g. post-operation tasks after a
-crash is discovered like minimization, regression, etc.
+We recommend that you use preemptibles for most of your bots because they
+are much cheaper and perform almost as well. You still need some regular
+bots (non-preemptibles) to execute other tasks, such as the tasks that run after
+a crash is discovered (minimization, regression, etc).
 
 ### Windows
 
-Windows is a supported platform for fuzzing. Currently, only
-[AddressSanitizer] ([sanitizer]) and [libFuzzer] ([fuzzing engine]) are
-available for use on this platform.
+Windows is a supported platform for fuzzing. The only [sanitizer] supported on
+Windows is [AddressSanitizer]. The only [fuzzing engine] supported on Windows
+is [libFuzzer].
 
 By default, ClusterFuzz configuration files do not enable any Windows bots. You
 can enable them easily by following the instructions provided
@@ -52,15 +51,15 @@ account on the bots.
 
 ### macOS
 
-Mac is a supported platform for fuzzing. Currently, only [AddressSanitizer],
-[LeakSanitizer], [UndefinedBehaviorSanitizer] and [ThreadSanitizer] [sanitizer]
-are available on this platform. For [fuzzing engine], only [libFuzzer] is
-available on this platform.
+Mac is a supported platform for fuzzing. The sanitizers supported on Mac are
+[AddressSanitizer], [LeakSanitizer], [UndefinedBehaviorSanitizer]
+and [ThreadSanitizer]. The only [fuzzing engine] supported on Mac is
+[libFuzzer].
 
 Mac is not a supported platform on [Google Compute Engine], so you would need to
 run it on physical hardware or some sort of virtualization running on top of it.
 
-Following are the steps to setup and run ClusterFuzz:
+Below are the steps to set up and run ClusterFuzz:
 
 * Create a service account key following the instructions provided
 [here](https://cloud.google.com/docs/authentication/getting-started).
@@ -83,8 +82,8 @@ $CONFIG_DIR/bot/setup/mac.bash
 
 You can configure a cluster of bots on [Google Compute Engine] by modifying the
 configuration file `$CONFIG_DIR/gce/clusters.yaml`. The clusters definition is
-in the `<your project id>/clusters` attribute of this yaml file. An example
-definition for linux [preemptible] and regular bot is:
+in the `<your project id>/clusters` attribute of this yaml file. Below are
+example definitions for [preemptible] and regular Linux bots:
 
 ```bash
 # Regular bots run all task types (e.g fuzzing, minimize, etc).
@@ -117,7 +116,7 @@ You can read more about instance templates
 [here](https://cloud.google.com/compute/docs/instance-templates). Instance
 templates define the properties of a bot (e.g. source image, disk space, network
 config). They are defined after the clusters configuration section in
-`$CONFIG_DIR/gce/clusters.yaml`. An example for a linux regular bot is:
+`$CONFIG_DIR/gce/clusters.yaml`. Below is an example for a regular Linux bot:
 
 
 ```aidl

@@ -23,12 +23,12 @@ LibFuzzer and AFL need to use instrumentation from the Clang compiler. In our
 documentation, we use features provided by Clang **6.0** or greater. To get a
 Clang that can be used to follow the examples, download one from the [Clang
 releases page] or install one using your package manager. We will refer to these
-compilers as `$CC` and `$CXX`. Set these in the environment so that you can easily
-copy and paste the example commands:
+compilers as `$CC` and `$CXX`. Set these in the environment so that you can copy
+and paste the example commands:
 
 ```bash
-export CC=path/to/clang
-export CXX=path/to/clang++
+export CC=/path/to/clang
+export CXX=/path/to/clang++
 ```
 
 ### Platform
@@ -43,7 +43,7 @@ AFL is only supported on Linux.
 ## Builds
 
 ### libFuzzer
-LibFuzzer targets are easy to build. Just compile a [fuzz target] with
+LibFuzzer targets are easy to build. Just compile and link a [fuzz target] with
 `-fsanitize=fuzzer` and a [sanitizer] such as [AddressSanitizer]
 (`-fsanitize=address`).
 
@@ -62,15 +62,17 @@ their dependencies.
 
 ### AFL
 ClusterFuzz supports fuzzing libFuzzer harness functions
-(`LLVMFuzzerTestOneInput`) with AFL. To compile a fuzz target for AFL, run our
-[script] which downloads and builds AFL and `FuzzingEngine.a`, a library you can
-link the target against to make it AFL compatible. Then compile your target
-using `-fsanitize-coverage=trace-pc-guard`.
+(`LLVMFuzzerTestOneInput`) with AFL. AFL must be used with [AddressSanitizer].
+To build a fuzz target for AFL, run our [script] which downloads and builds AFL
+and `FuzzingEngine.a`, a library you can link the target against to make it AFL
+compatible. Then compile and link your target using
+`-fsanitize-coverage=trace-pc-guard` and `-fsanitize=address`.
 
 
 ```bash
 # Build afl-fuzz and FuzzingEngine.a
 ./build_afl.bash
+# Compile target using ASan, coverage instrumentation, and link against FuzzingEngine.a
 $CXX -fsanitize=address -fsanitize-coverage=trace-pc-guard fuzzer.cc FuzzingEngine.a -o fuzzer
 # Test out the build by fuzzing it. INPUT_CORPUS is a directory containing files. Ctrl-C when done.
 AFL_SKIP_CPUFREQ=1 ./afl-fuzz -i $INPUT_CORPUS -o output -m none ./fuzzer
@@ -82,13 +84,12 @@ AFL builds are zip files that contain any targets you want to fuzz, their
 dependencies, and AFL's dependencies: `afl-fuzz` and `afl-showmap` (both built
 by the [script]).
 
-AFL only supports [AddressSanitizer].
-
 ## Creating a job type
 LibFuzzer jobs **must** contain the string **"libfuzzer"** in their name, AFL
-jobs **must** contain the string **"afl"** in their name.
+jobs **must** contain the string **"afl"** in their name. Jobs must also contain
+the name of the sanitizer they are using (e.g. "asan", "msan",  or "ubsan").
 **"libfuzzer_asan_my_project"** and **"afl_asan_my_project"** are examples of
-correct names for libFuzzer and AFL jobs that use [ASan].
+correct names for libFuzzer and AFL jobs that use AddressSanitizer.
 
 To create a job for libFuzzer or AFL:
 1. Navigate to the *Jobs* page.
@@ -112,13 +113,12 @@ Next we must let ClusterFuzz know which fuzzer the job can be used with:
 4. Mark the desired job.
 5. Click "SUBMIT".
 
-[ASan]: https://clang.llvm.org/docs/AddressSanitizer.html
 [these]: {{ site.baseurl }}/production-setup/setting-up-fuzzing-job/
 
 ### Enabling corpus pruning
 It is important that you enable [corpus pruning] to run once a day to prevent
-uncontrolled corpus growth. This **must** be done by setting **"CORPUS_PRUNE =
-True"** in the Environment String for your **libFuzzer ASan** job.
+uncontrolled corpus growth. This **must** be done by setting `CORPUS_PRUNE =
+True` in the **"Environment String"** for your libFuzzer ASan job.
 
 ## Checking results
 You can observe ClusterFuzz fuzzing your build by looking at the [bot logs]. Any

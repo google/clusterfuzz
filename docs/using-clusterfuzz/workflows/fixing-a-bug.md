@@ -9,9 +9,9 @@ grand_parent: Using ClusterFuzz
 
 # Fixing a bug
 
-As important as it is to find bugs, that wouldn't be useful if it wasn't also
-easy for developers to fix them. ClusterFuzz provides the necessary information
-to reproduce issues, then confirms that fixes are correct.
+Finding bugs is primarily useful if it can help get bugs fixed. To make fixing
+bugs easier, ClusterFuzz provides the necessary information to reproduce issues,
+and confirms that fixes are correct.
 
 This document focuses on the testcase details page, since it contains the
 majority of the relevant information for fixing a bug.
