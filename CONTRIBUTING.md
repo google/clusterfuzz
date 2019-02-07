@@ -29,4 +29,6 @@ This project follows
 
 ## Contributing code
 
-Please follow the instructions in *Contributing code* section in the ClusterFuzz documentation.
+Please follow the instructions in
+[Contributing code](https://google.github.io/clusterfuzz/contributing-code/)
+section in the ClusterFuzz documentation.
