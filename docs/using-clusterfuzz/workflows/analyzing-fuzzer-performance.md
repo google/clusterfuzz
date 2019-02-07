@@ -73,7 +73,7 @@ Code coverage is a very important metric for evaluating fuzzer performance.
 Looking at the code coverage report, you can see which exact parts of the target
 program are tested by the fuzzer and which parts are never executed. If you set
 up a [code coverage builder] for ClusterFuzz, you can find links to the coverage
-reports on the Fuzzer Stats page. Otherwise, you can generate code coverage
+reports on the Fuzzer stats page. Otherwise, you can generate code coverage
 reports locally. For C and C++ targets, we recommend using [Clang Source-based
 Code Coverage].
 
@@ -84,6 +84,7 @@ Code Coverage].
 If none of the above gives you enough information about fuzzer performance,
 looking into the fuzzer logs may help. On the fuzzer stats page, you can find a
 link to the GCS bucket storing the logs. You can also navigate to that manually
-using the Google Cloud Storage web interface.
+using the Google Cloud Storage [web interface].
 
 [Clang Source-based Code Coverage]: https://clang.llvm.org/docs/SourceBasedCodeCoverage.html
+[web interface]: https://console.cloud.google.com/storage/browser

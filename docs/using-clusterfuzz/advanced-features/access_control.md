@@ -37,10 +37,10 @@ They do not have access to the following pages:
 
 ## Privileged users
 
-Privileged users are usually a restricted set of people that define the inner workings
-of the ClusterFuzz sub-system. These users can access all pages that a regular user can.
+Privileged users have unrestricted access to most parts of ClusterFuzz. These
+users can access all pages that a regular user can.
 However, privileged users can also:
-* Access to security bugs (Security: "YES" in report).
+* Access security bugs (Security: "YES" in report).
 * Upload new fuzzers on Fuzzers page.
 * Upload new corpora on Corpora page.
 * Create new jobs on Jobs page.

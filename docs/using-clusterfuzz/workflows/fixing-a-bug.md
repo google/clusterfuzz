@@ -9,7 +9,7 @@ grand_parent: Using ClusterFuzz
 
 # Fixing a bug
 
-Finding bugs is primarily useful if it can get get bugs fixed. To make fixing
+Finding bugs is primarily useful if it can help get bugs fixed. To make fixing
 bugs easier, ClusterFuzz provides the necessary information to reproduce issues,
 and confirms that fixes are correct.
 

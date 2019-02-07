@@ -31,8 +31,7 @@ following the instructions provided [here](#google-compute-engine-cluster) and
 [here](#google-compute-engine-instance-template).
 
 We recommend that you use preemptibles for most of your bots because they
-are much cheaper and do not impact the production workload in any significant
-way (since only fuzzing tasks are executed there). You still need some regular
+are much cheaper and perform almost as well. You still need some regular
 bots (non-preemptibles) to execute other tasks, such as the tasks that run after
 a crash is discovered (minimization, regression, etc).
 

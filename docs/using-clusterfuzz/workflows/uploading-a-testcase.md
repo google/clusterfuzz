@@ -10,10 +10,10 @@ grand_parent: Using ClusterFuzz
 # Uploading a testcase
 
 You may have a testcase that you want to run against your latest production
-build to check if it crashes. ClusterFuzz provides the *Upload Testcase* page
-for this purpose. The Upload Testcase page can run binaries with a testcase and
-give details about the crash, such as, the crash stacktrace, when the crash was
-introduced, etc.
+build and check if it crashes. ClusterFuzz provides the *Upload Testcase* page
+for this purpose. The *Upload Testcase* page can run binaries with a testcase
+and give details about the crash, such as, the crash stacktrace, when the crash
+was introduced, etc.
 
 - TOC
 {:toc}
