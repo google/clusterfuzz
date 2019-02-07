@@ -116,7 +116,7 @@
                   <form action="[[fieldValues.deleteUrl]]" method="post">
                     <input type="hidden" name="csrf_token" value="[[fieldValues.csrfToken]]" />
                     <input type="hidden" name="key" value="[[item.id]]" />
-                    <a href="https://storage.cloud.google.com/[[item.bucket_name]]"><paper-button raised>View</paper-button></a>
+                    <a href="https://storage.cloud.google.com/[[item.bucket_name]]"><paper-button raised>View / store</paper-button></a>
                     <paper-button on-tap="submitDelete" class="info" raised>Delete</paper-button>
                   </form>
                 </iron-form>
