@@ -70,6 +70,7 @@ from handlers.testcase_detail import remove_group
 from handlers.testcase_detail import remove_issue
 from handlers.testcase_detail import update_from_trunk
 from handlers.testcase_detail import update_issue
+from system import environment
 
 
 class _TrailingSlashRemover(webapp2.RequestHandler):
@@ -222,4 +223,5 @@ if main_domain and redirect_domains:
         ]))
 
 app = webapp2.WSGIApplication(
-    _CRON_ROUTES + _DOMAIN_ROUTES + _ROUTES, debug=False)
+    _CRON_ROUTES + _DOMAIN_ROUTES + _ROUTES,
+    debug=environment.is_running_on_app_engine_development())
