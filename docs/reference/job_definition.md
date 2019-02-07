@@ -63,8 +63,6 @@ ClusterFuzz.
 
 ### LibFuzzer and AFL
 
----
-
 **Job name**: `libfuzzer_asan_zlib`
 
 **Platform**: `LINUX`
@@ -124,9 +122,9 @@ RELEASE_BUILD_BUCKET_PATH = gs://clusterfuzz-builds-afl/zlib/zlib-address-([0-9]
 CUSTOM_BINARY = False
 ```
 
-### Blackbox fuzzing
-
 ---
+
+### Blackbox fuzzing
 
 **Job name**: `asan_linux_chrome`
 
