@@ -98,7 +98,7 @@ To verify that your project is successfully deployed.
   [here](https://appengine.google.com/datastore/indexes).
 
 * Verify that the bots are successfully created using the instructions
-  [here]({{ site.baseurl }}//production-setup/setting-up-bots#google-compute-engine-bots).
+  [here]({{ site.baseurl }}/production-setup/setting-up-bots#google-compute-engine-bots).
   The defaults are 1 regular linux bot and 2
   [preemptible](https://cloud.google.com/preemptible-vms/) linux bots on Google
   Compute Engine.
