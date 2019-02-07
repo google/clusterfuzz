@@ -19,7 +19,7 @@ scale.
 
 ## Prerequisites
 
-* Need an already deployed [production setup].
+* You need to have a [production setup] deployed.
 
 ## App Engine changes
 

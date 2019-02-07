@@ -51,7 +51,7 @@ Other crash types include:
 ## Fuzz target
 A function or program that accepts an array of bytes and does something
 interesting with these bytes using the API under test. See the
-[libFuzzer docs](https://llvm.org/docs/LibFuzzer.html#fuzz-target)
+[libFuzzer documentation](https://llvm.org/docs/LibFuzzer.html#fuzz-target)
 for a more detailed explanation. A fuzz target is typically given the array of
 bytes by [libFuzzer] or [AFL] for coverage guided fuzzing.
 
@@ -105,9 +105,9 @@ Examples:
   (aka UndefinedBehaviorSanitizer)
 * [TSan](https://clang.llvm.org/docs/ThreadSanitizer.html) (aka ThreadSanitizer)
 
-Sanitizers are best supported by the [clang]
-compiler. [ASan], or AddressSanitizer, is usually the most important sanitizer
-as it reveals the most memory corruption bugs.
+Sanitizers are best supported by the [Clang] compiler. [ASan], or
+AddressSanitizer, is usually the most important sanitizer as it reveals the most
+memory corruption bugs.
 
 ## Task
 A unit of work to be performed by a [bot](#bot), such as a fuzzing session or
@@ -121,4 +121,4 @@ these refer to the input that needs to be passed to the target program.
 [ASan]: https://clang.llvm.org/docs/AddressSanitizer.html
 [libFuzzer]: https://llvm.org/docs/LibFuzzer.html
 [AFL]: http://lcamtuf.coredump.cx/afl/
-[clang]: https://releases.llvm.org/download.html
+[Clang]: https://clang.llvm.org/

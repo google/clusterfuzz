@@ -55,7 +55,7 @@ cd /path/to/my-bot/clusterfuzz/bot/logs
 tail -f bot.log
 ```
 
-Until you [set up the fuzzing jobs]({{ site.baseurl }}/setting-up-fuzzing),
+Until you [set up the fuzzing jobs]({{ site.baseurl }}/setting-up-fuzzing/),
 you will see a harmless error in the logs - `Failed to get any fuzzing tasks`.
 
 ## Local Google Cloud Storage

@@ -15,7 +15,7 @@ permalink: /getting-started/prerequisites/
 ## Requirements
 Many features of ClusterFuzz depend on [Google Cloud
 Platform](https://cloud.google.com) services (see
-[this]({{ base.siteurl }}/architecture/#requirements) page for more details).
+[this]({{ site.baseurl }}/architecture/#requirements) page for more details).
 However, it's possible to run it locally without these dependencies for testing
 purposes.
 

@@ -113,4 +113,4 @@ ClusterFuzz. Examples include [Google Cloud Build](https://cloud.google.com/clou
 [libFuzzer or AFL]:{{ site.baseurl }}/setting-up-fuzzing/libfuzzer_and_afl/
 [seed corpus]: {{ site.baseurl }}/setting-up-fuzzing/libfuzzer_and_afl/#seed-corpus
 [dictionary]: {{ site.baseurl }}/setting-up-fuzzing/libfuzzer_and_afl/#dictionaries
-[setting up a fuzzing job]: {{ site.baseurl }}/production-setup/setting-up-fuzzing-job
+[setting up a fuzzing job]: {{ site.baseurl }}/production-setup/setting-up-fuzzing-job/

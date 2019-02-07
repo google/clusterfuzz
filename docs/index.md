@@ -42,5 +42,5 @@ in Chrome and [~11,000] bugs in over [160] open source projects integrated with
 [160]: https://github.com/google/oss-fuzz/tree/master/projects
 [OSS-Fuzz]: https://github.com/google/oss-fuzz
 [Monorail]: https://opensource.google.com/projects/monorail
-[blackbox fuzzing]: {{ site.baseurl }}/setting-up-fuzzing/blackbox-fuzzing
-[coverage guided fuzzing]: {{ site.baseurl }}/setting-up-fuzzing/libfuzzer-and-afl
+[blackbox fuzzing]: {{ site.baseurl }}/setting-up-fuzzing/blackbox-fuzzing/
+[coverage guided fuzzing]: {{ site.baseurl }}/setting-up-fuzzing/libfuzzer-and-afl/
