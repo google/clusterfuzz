@@ -38,7 +38,7 @@ guidance on how to set up a job for each of those.
 
 To allow ClusterFuzz to take advantage of your [build pipeline] you must point
 to the [Google Cloud Storage] bucket where your builds are stored in your job
-definition.
+definition's "Environment String".
 
 ```
 RELEASE_BUILD_BUCKET_PATH = gs://my-bucket/my-build-([0-9]+).zip

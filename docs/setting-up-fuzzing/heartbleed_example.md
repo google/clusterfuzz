@@ -17,8 +17,10 @@ ClusterFuzz.
 
 ## Prerequisites
 
+We assume you are using a Linux bot.
 See the [compiler section] in the libFuzzer and AFL documentation for how to get
-a working compiler for following along with the examples below.
+a working compiler for following along with the examples below. Make sure to set
+`CC` and `CXX`.
 
 [Heartbleed]: https://en.wikipedia.org/wiki/Heartbleed
 [Getting Started]: {{ site.baseurl }}/getting-started/
@@ -60,15 +62,16 @@ First we need to create a job:
 * Navigate to the *Jobs* page.
 * Go to the "ADD NEW JOB" form.
 * Fill out a job with the following:
-    * **"libfuzzer_asan_linux_openssl"** for the "Name".
+    * **"libfuzzer_asan_linux_heartbleed"** for the "Name".
     * **"LINUX"** for the "Platform".
     * **"libfuzzer"** and **"engine_asan"** for the "Templates".
+    * `CORPUS_PRUNE = True` for the "Environment String".
 * Select openssl-fuzzer-build.zip to upload as a "Custom Build".
 * Use the "ADD" button to add the job to ClusterFuzz.
 
 Then enable the job by going to the *Fuzzer* page and editing libFuzzer:
 * Click "Select/modify jobs".
-* Mark "libfuzzer_asan_linux_openssl".
+* Mark "libfuzzer_asan_linux_heartbleed".
 * Press "SUBMIT".
 
 ## Fuzzing and seeing results

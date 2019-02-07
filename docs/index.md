@@ -18,7 +18,7 @@ infrastructure which finds security and stability issues in software.
 It is used by Google for fuzzing the Chrome Browser, and serves as the fuzzing
 backend for [OSS-Fuzz].
 
-ClusterFuzz provides many features which help seamlessly integrate fuzzing into
+ClusterFuzz provides many features to seamlessly integrate fuzzing into
 a software project's development process:
 - Highly scalable. Google's internal instance runs on over 25,000 machines.
 - Accurate deduplication of crashes.
@@ -27,7 +27,7 @@ a software project's development process:
 - Regression finding through [bisection](https://en.wikipedia.org/wiki/Bisection_(software_engineering)).
 - Statistics for analyzing fuzzer performance, and crash rates.
 - Easy to use web interface for management and viewing crashes.
-- Support for [coverage guided fuzzing] and [blackbox fuzzing].
+- Support for [coverage guided fuzzing] (e.g. AFL) and [blackbox fuzzing].
 
 [Monorail]: https://opensource.google.com/projects/monorail
 
