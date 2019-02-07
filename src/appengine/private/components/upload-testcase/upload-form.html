@@ -52,7 +52,7 @@
       }
 
       .inline.narrow > * {
-        width: 130px;
+        width: 180px;
         margin: 5px;
       }
 
@@ -151,20 +151,20 @@
       </template>
       <div class="inline narrow">
         <template is="dom-if" if="[[shouldShowIssueField()]]">
-          <paper-input value="{{uploadParams.issue}}" label="Issue ID" title="Issue ID in the associated project's tracker to update for this test case."></paper-input>
+          <paper-input value="{{uploadParams.issue}}" label="Issue ID (optional)" title="Issue ID in the associated project's tracker to update for this test case."></paper-input>
         </template>
-        <paper-input value="{{uploadParams.revision}}" label="Commit position" title="Integer representing the revision / commit position (rather than hash) associated with the build to use. By default, the most recent is selected."></paper-input>
-        <paper-input value="{{uploadParams.timeout}}" label="Timeout" title="Time in seconds to wait before determining that the test case is not reproducible. In general this value should be less than 60 seconds, and it may not exceed 120 due to time constraints on tasks."></paper-input>
-        <paper-input value="{{uploadParams.retries}}" label="Retries" title="Number of times to run the test case before determining that it's not reproducible. If you aren't sure that it's necessary, don't specify a value here. By default, it will retry up to 10 times."></paper-input>
+        <paper-input value="{{uploadParams.revision}}" label="Revision (optional)" title="Integer representing the revision / commit position (rather than hash) associated with the build to use. By default, the most recent is selected."></paper-input>
+        <paper-input value="{{uploadParams.timeout}}" label="Timeout (optional)" title="Time in seconds to wait before determining that the test case is not reproducible. In general this value should be less than 60 seconds, and it may not exceed 120 due to time constraints on tasks."></paper-input>
+        <paper-input value="{{uploadParams.retries}}" label="Retries (optional)" title="Number of times to run the test case before determining that it's not reproducible. If you aren't sure that it's necessary, don't specify a value here. By default, it will retry up to 10 times."></paper-input>
       </div>
       <div class="inline wide">
-        <paper-input value="{{uploadParams.args}}" label="Command-line arguments" title="Additional command line flags to append when running this test case. Only necessary if a flag that isn't part of the job definition is required."></paper-input>
-        <paper-input value="{{uploadParams.gestures}}" label="Gestures" title="A string representing gestures to use with this test case. It's generally not possible to manually create a gesture string. This tends to be used when re-uploading existing test cases which require gestures."></paper-input>
+        <paper-input value="{{uploadParams.args}}" label="Command-line arguments (optional)" title="Additional command line flags to append when running this test case. Only necessary if a flag that isn't part of the job definition is required."></paper-input>
+        <paper-input value="{{uploadParams.gestures}}" label="Gestures (optional)" title="A string representing gestures to use with this test case. It's generally not possible to manually create a gesture string. This tends to be used when re-uploading existing test cases which require gestures."></paper-input>
       </div>
       <template is="dom-if" if="[[isAndroid(uploadParams.job)]]">
         <div class="inline wide">
-          <paper-input value="{{uploadParams.cmd}}" label="Launch command (Android only)"></paper-input>
-          <paper-input value="{{uploadParams.platform}}" label="Platform ID (Android only)"></paper-input>
+          <paper-input value="{{uploadParams.cmd}}" label="Launch command (Android only) (optional)"></paper-input>
+          <paper-input value="{{uploadParams.platform}}" label="Platform ID (Android only) (optional)"></paper-input>
         </div>
       </template>
       <br/>
