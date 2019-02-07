@@ -11,7 +11,7 @@ grand_parent: Using ClusterFuzz
 
 You may have a testcase that you want to run against your latest production
 build to check if it crashes. ClusterFuzz provides the *Upload Testcase* page
-for this purpose. The Upload Testcase page can run binaries on a testcase and
+for this purpose. The Upload Testcase page can run binaries with a testcase and
 give details about the crash, such as, the crash stacktrace, when the crash was
 introduced, etc.
 
@@ -41,7 +41,7 @@ To upload a new testcase:
    you would need to provide the name of the *fuzz target* to use. This is
    required as an application build can contain multiple fuzz target binaries.
 6. Provide values for any of the other optional fields in the form. Examples:
-     1. You can provide a *Commit Position* / *Revision* to run it against a
+     1. You can provide a *Commit Position/Revision* to run it against a
         particular [revision].  This is usually used to check a crash against an
         older version of the application.
      2. If you want your testcase to be served from a http server, you can check

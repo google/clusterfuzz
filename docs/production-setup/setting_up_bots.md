@@ -18,9 +18,8 @@ supported platforms: **Linux**, **Windows** and **macOS**.
 
 ### Linux
 
-Linux is the preferred platform for fuzzing because it has best support for
-different [sanitizer] and [fuzzing engine] types. It supports all that are
-supported by ClusterFuzz.
+Linux is the preferred platform for fuzzing because of its comprehensive support
+for all [sanitizer] and [fuzzing engine] types.
 
 It is recommended to use each sanitizer its own [build] and [job] definition
 (except [LeakSanitizer]), as there are performance and bug finding efficiency

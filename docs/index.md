@@ -27,7 +27,8 @@ a software project's development process:
 - Regression finding through [bisection](https://en.wikipedia.org/wiki/Bisection_(software_engineering)).
 - Statistics for analyzing fuzzer performance, and crash rates.
 - Easy to use web interface for management and viewing crashes.
-- Support for [coverage guided fuzzing] (e.g. AFL) and [blackbox fuzzing].
+- Support for [coverage guided fuzzing] (e.g. libFuzzer and AFL) and
+  [blackbox fuzzing].
 
 [Monorail]: https://opensource.google.com/projects/monorail
 
