@@ -49,7 +49,7 @@ Breaking this down,
    pass.
 3. `REQUIRED_APP_ARGS` are arguments that must be passed to the target
    application. These arguments will be always used, while the others specified
-   in APP_ARGS and not specified here can be removed by ClusterFuzz during
+   in `APP_ARGS` and not specified here can be removed by ClusterFuzz during
    testcase minimization if they aren't needed to reproduce a crash.
 4. `CUSTOM_BINARY` indicates whether or not to use a user uploaded archive,
    rather than pulling from a GCS bucket.
