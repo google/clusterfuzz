@@ -1,1 +1,1 @@
-Placeholder for temporary files.
+Placeholder for temporary files generated during fuzzing.
