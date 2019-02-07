@@ -44,8 +44,6 @@ definition.
   `CORPUS_PRUNE = True` for libFuzzer ASan jobs only. Enabling pruning for a one
   job only is sufficient, as other libFuzzer and AFL jobs use the same corpus
   when running the same fuzz targets.
-* **CORPUS_BUCKET**: TODO!
-* **CORPUS_FUZZER_NAME_OVERRIDE**: TODO!
 
 ### Blackbox fuzzing specific
 
