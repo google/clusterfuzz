@@ -161,7 +161,7 @@ class RemoveDirectoryTest(unittest.TestCase):
 
     onerror(fake_fn, 'dir/child', ImportError())
 
-    self.mock.chmod.assert_has_calls([mock.call('dir/child', 0750)])
+    self.mock.chmod.assert_has_calls([mock.call('dir/child', 0o750)])
     fake_fn.assert_has_calls([mock.call('dir/child')])
 
 

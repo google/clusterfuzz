@@ -13,6 +13,8 @@
 # limitations under the License.
 """Copy corpus from one bucket to another, keeping project name in mind."""
 
+from __future__ import print_function
+
 import argparse
 import datetime
 import random
@@ -32,19 +34,19 @@ make sure that contents of the buckets will be exactly the same."""
 
 def _run_command(command):
   """Runs a command and prints it."""
-  print 'Running command [{time}]:'.format(
-      time=datetime.datetime.now().strftime('%H:%M:%S')), ' '.join(command)
+  print('Running command [{time}]:'.format(
+      time=datetime.datetime.now().strftime('%H:%M:%S')), ' '.join(command))
 
   for _ in xrange(RETRY_COUNT):
     try:
       return subprocess.check_output(command, stderr=subprocess.STDOUT)
     except subprocess.CalledProcessError as e:
-      print 'Command failed with non-zero exit code. Output:\n%s' % e.output
+      print('Command failed with non-zero exit code. Output:\n%s' % e.output)
 
-    print 'Sleeping a few seconds before retrying.'
+    print('Sleeping a few seconds before retrying.')
     time.sleep(random.randint(0, SLEEP_WAIT))
 
-  print 'Failed to run command, exiting.'
+  print('Failed to run command, exiting.')
   sys.exit(-1)
 
 
@@ -80,7 +82,7 @@ def _copy_corpus(source_bucket, source_project, target_bucket, target_project):
     _run_command(
         [GSUTIL_CMD, '-m', 'rsync', '-d', '-r', source_url, target_url])
 
-  print 'Copy corpus finished successfully.'
+  print('Copy corpus finished successfully.')
 
 
 def main():

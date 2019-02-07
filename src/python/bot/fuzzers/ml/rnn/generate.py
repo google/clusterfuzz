@@ -13,6 +13,8 @@
 # limitations under the License.
 """Generate inputs using ml rnn model."""
 
+from __future__ import print_function
+
 import argparse
 import math
 import os
@@ -69,7 +71,7 @@ def main(args):
   timestamp = str(math.trunc(time.time()))
 
   with tf.Session() as session:
-    print '\nusing model {} to generate {} inputs...'.format(model_path, count)
+    print('\nusing model {} to generate {} inputs...'.format(model_path, count))
 
     # Restore the model.
     new_saver = tf.train.import_meta_graph(model_path +
@@ -123,8 +125,8 @@ def main(args):
           output, new_state = session.run(
               ['output_onehot:0', 'next_state:0'], feed_dict=feed_dict)
         except ValueError:
-          print >> sys.stderr, ('Failed to run TensorFlow operations since '
-                                'model parameters do not match.')
+          print('Failed to run TensorFlow operations since model parameters do '
+                'not match.', file=sys.stderr)
           return constants.ExitCode.TENSORFLOW_ERROR
 
         for i in range(BATCH_SIZE):
@@ -148,15 +150,15 @@ def main(args):
 
         with open(new_file_path, 'wb') as new_file:
           new_file.write(new_file_byte_array)
-        print 'generate input: {}, feed byte: {}, input length: {}'.format(
-            new_file_path, new_files_bytes[i][0], new_file_length)
+        print('generate input: {}, feed byte: {}, input length: {}'.format(
+            new_file_path, new_files_bytes[i][0], new_file_length))
 
         # Have we got enough inputs?
         new_units_count += 1
         if new_units_count >= count:
           break
 
-    print 'Done.'
+    print('Done.')
     return constants.ExitCode.SUCCESS
 
 
@@ -170,12 +172,12 @@ def validate_paths(args):
     True if all paths are valid, False otherwise.
   """
   if not os.path.exists(args.input_dir):
-    print >> sys.stderr, 'Input directory {} does not exist'.format(
-        args.input_dir)
+    print('Input directory {} does not exist'.format(args.input_dir),
+          file=sys.stderr)
     return False
 
   if not utils.validate_model_path(args.model_path):
-    print >> sys.stderr, 'Model {} does not exist'.format(args.model_path)
+    print('Model {} does not exist'.format(args.model_path), file=sys.stderr)
     return False
 
   if not os.path.exists(args.output_dir):

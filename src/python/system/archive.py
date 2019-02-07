@@ -255,16 +255,16 @@ def unpack(archive_path,
         # reasons.
         external_attr = zip_archive.getinfo(filename).external_attr >> 16
         if oct(external_attr).startswith(FILE_ATTRIBUTE):
-          old_mode = external_attr & 07777
-          new_mode = external_attr & 0777
-          new_mode |= 0440
-          needs_execute_permission = external_attr & 0100
+          old_mode = external_attr & 0o7777
+          new_mode = external_attr & 0o777
+          new_mode |= 0o440
+          needs_execute_permission = external_attr & 0o100
 
           if new_mode != old_mode or needs_execute_permission:
             # Default extract condition is 640 which is safe.
             # |new_mode| might have read+write+execute bit for
             # others, so remove those.
-            new_mode &= 0770
+            new_mode &= 0o770
 
             os.chmod(extracted_path, new_mode)
 

@@ -13,6 +13,8 @@
 # limitations under the License.
 """Integration tests for AFL launcher.py."""
 
+from __future__ import print_function
+
 import getpass
 import mock
 import os
@@ -44,7 +46,7 @@ if (environment.get_value('AFL_INTEGRATION_TESTS') and
         'Please run \'echo core | sudo tee /proc/sys/kernel/core_pattern\'')
 
   # mknod needs to run as sudo to create /dev/null and /dev/urandom.
-  print 'AFL integration tests require sudo to run.'
+  print('AFL integration tests require sudo to run.')
   SUDO_PASSWORD = getpass.getpass('please enter your password (for sudo): ')
 else:
   SUDO_PASSWORD = ''
@@ -350,7 +352,7 @@ class TestLauncher(BaseLauncherTest):
 
 def _run_with_sudo(command):
   """Run a command (list) with sudo privileges."""
-  print 'Running (with sudo): %s' % ' '.join(command)
+  print('Running (with sudo): %s' % ' '.join(command))
   popen = subprocess.Popen(
       ['sudo', '-S'] + command,
       stdin=subprocess.PIPE,

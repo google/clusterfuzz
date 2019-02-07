@@ -13,6 +13,8 @@
 # limitations under the License.
 """Minimizer helper functions."""
 
+from __future__ import print_function
+
 import os
 import shlex
 import subprocess
@@ -110,20 +112,20 @@ def single_test_run(test_path):
   args = test_command + [test_path]
   try:
     console_output = subprocess.check_output(args, stderr=subprocess.STDOUT)
-  except subprocess.CalledProcessError, error:
+  except subprocess.CalledProcessError as error:
     console_output = error.output
 
   # If we meet one of these conditions, assume we crashed.
   if ((has_marker(console_output, STACKTRACE_TOOL_MARKERS) and
        has_marker(console_output, STACKTRACE_END_MARKERS)) or
       has_marker(console_output, CHECK_FAILURE_MARKERS)):
-    print 'Crashed, current test size %s.' % (
-        get_size_string(os.path.getsize(test_path)))
+    print('Crashed, current test size %s.' % (
+        get_size_string(os.path.getsize(test_path))))
     return False
 
   # No crash, test passed.
-  print 'Not crashed, current test size %s.' % (
-      get_size_string(os.path.getsize(test_path)))
+  print('Not crashed, current test size %s.' % (
+      get_size_string(os.path.getsize(test_path))))
   return True
 
 

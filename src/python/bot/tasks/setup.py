@@ -452,7 +452,7 @@ def update_fuzzer_and_data_bundles(fuzzer_name):
       return False
 
     # Make fuzzer executable.
-    os.chmod(fuzzer_path, 0750)
+    os.chmod(fuzzer_path, 0o750)
 
     # Cleanup unneeded archive.
     shell.remove_file(archive_path)

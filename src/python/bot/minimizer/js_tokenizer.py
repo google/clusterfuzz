@@ -13,6 +13,8 @@
 # limitations under the License.
 """Basic tokenizer for javascript tests."""
 
+from __future__ import print_function
+
 import sys
 
 
@@ -133,7 +135,7 @@ def combine_tokens(tokens):
 
 def main():
   if len(sys.argv) < 2:
-    print 'Usage: %s <file to tokenize> [<level>]' % sys.argv[0]
+    print('Usage: %s <file to tokenize> [<level>]' % sys.argv[0])
     sys.exit(1)
 
   tokenizers = [
@@ -146,7 +148,7 @@ def main():
     level = int(sys.argv[2])
     assert level in xrange(0, len(tokenizers))
 
-  print tokenizers[level](open(sys.argv[1]).read())
+  print(tokenizers[level](open(sys.argv[1]).read()))
 
 
 if __name__ == '__main__':

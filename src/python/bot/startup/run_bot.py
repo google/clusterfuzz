@@ -13,6 +13,8 @@
 # limitations under the License.
 """Bot startup script."""
 
+from __future__ import print_function
+
 # We want to use utf-8 encoding everywhere throughout the application
 # instead of the default 'ascii' encoding. This must happen before any
 # other imports.
@@ -125,7 +127,7 @@ def main():
   if not root_directory:
     print('Please set ROOT_DIR environment variable to the root of the source '
           'checkout before running. Exiting.')
-    print 'For an example, check init.bash in the local directory.'
+    print('For an example, check init.bash in the local directory.')
     return
 
   dates.initialize_timezone_from_environment()
@@ -151,10 +153,10 @@ def main():
 
     # Print the error trace to the console.
     if not clean_exit:
-      print 'Exception occurred while running "%s".' % task_payload
-      print '-' * 80
-      print error_stacktrace
-      print '-' * 80
+      print('Exception occurred while running "%s".' % task_payload)
+      print('-' * 80)
+      print(error_stacktrace)
+      print('-' * 80)
 
     should_terminate = (
         clean_exit or errors.error_in_list(error_stacktrace,

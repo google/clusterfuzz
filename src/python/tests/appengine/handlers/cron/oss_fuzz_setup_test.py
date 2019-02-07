@@ -1254,81 +1254,81 @@ class OssFuzzSetupTest(unittest.TestCase):
     ]
 
     self.assertItemsEqual(all_permissions, [{
-        'entity_kind': 1L,
+        'entity_kind': 1,
         'is_prefix': False,
-        'auto_cc': 1L,
+        'auto_cc': 1,
         'entity_name': u'libfuzzer_asan_lib1',
         'email': u'primary@example.com'
     }, {
-        'entity_kind': 1L,
+        'entity_kind': 1,
         'is_prefix': False,
-        'auto_cc': 1L,
+        'auto_cc': 1,
         'entity_name': u'libfuzzer_ubsan_lib1',
         'email': u'primary@example.com'
     }, {
-        'entity_kind': 1L,
+        'entity_kind': 1,
         'is_prefix': False,
-        'auto_cc': 1L,
+        'auto_cc': 1,
         'entity_name': u'libfuzzer_ubsan_lib1',
         'email': u'user@example.com'
     }, {
-        'entity_kind': 1L,
+        'entity_kind': 1,
         'is_prefix': False,
-        'auto_cc': 1L,
+        'auto_cc': 1,
         'entity_name': u'libfuzzer_ubsan_lib1',
         'email': u'user2@googlemail.com'
     }, {
-        'entity_kind': 1L,
+        'entity_kind': 1,
         'is_prefix': False,
-        'auto_cc': 1L,
+        'auto_cc': 1,
         'entity_name': u'libfuzzer_asan_lib1',
         'email': u'user@example.com'
     }, {
-        'entity_kind': 1L,
+        'entity_kind': 1,
         'is_prefix': False,
-        'auto_cc': 1L,
+        'auto_cc': 1,
         'entity_name': u'libfuzzer_asan_lib1',
         'email': u'user2@googlemail.com'
     }, {
-        'entity_kind': 1L,
+        'entity_kind': 1,
         'is_prefix': False,
-        'auto_cc': 1L,
+        'auto_cc': 1,
         'entity_name': u'afl_asan_lib1',
         'email': u'primary@example.com'
     }, {
-        'entity_kind': 1L,
+        'entity_kind': 1,
         'is_prefix': False,
-        'auto_cc': 1L,
+        'auto_cc': 1,
         'entity_name': u'afl_asan_lib1',
         'email': u'user@example.com'
     }, {
-        'entity_kind': 1L,
+        'entity_kind': 1,
         'is_prefix': False,
-        'auto_cc': 1L,
+        'auto_cc': 1,
         'entity_name': u'afl_asan_lib1',
         'email': u'user2@googlemail.com'
     }, {
-        'entity_kind': 1L,
+        'entity_kind': 1,
         'is_prefix': False,
-        'auto_cc': 1L,
+        'auto_cc': 1,
         'entity_name': u'libfuzzer_msan_lib3',
         'email': u'user@example.com'
     }, {
-        'entity_kind': 1L,
+        'entity_kind': 1,
         'is_prefix': False,
-        'auto_cc': 1L,
+        'auto_cc': 1,
         'entity_name': u'libfuzzer_ubsan_lib3',
         'email': u'user@example.com'
     }, {
-        'entity_kind': 1L,
+        'entity_kind': 1,
         'is_prefix': False,
-        'auto_cc': 1L,
+        'auto_cc': 1,
         'entity_name': u'libfuzzer_asan_lib3',
         'email': u'user@example.com'
     }, {
-        'entity_kind': 1L,
+        'entity_kind': 1,
         'is_prefix': False,
-        'auto_cc': 1L,
+        'auto_cc': 1,
         'entity_name': u'asan_lib4',
         'email': u'user@example.com'
     }])

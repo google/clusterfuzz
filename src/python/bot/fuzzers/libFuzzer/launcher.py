@@ -12,6 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """libFuzzer launcher."""
+
+from __future__ import print_function
+
 # pylint: disable=g-statement-before-imports
 try:
   # ClusterFuzz dependencies.
@@ -173,7 +176,7 @@ def add_recommended_dictionary(arguments, fuzzer_name, fuzzer_path):
     if not dict_manager.download_recommended_dictionary_from_gcs(
         recommended_dictionary_path):
       return False
-  except Exception, ex:
+  except Exception as ex:
     logs.log_error(
         'Exception downloading recommended dictionary:\n%s.' % str(ex))
     return False
@@ -499,14 +502,14 @@ def load_testcase_if_exists(fuzzer_runner,
   result = fuzzer_runner.run_single_testcase(
       testcase_file_path, additional_args=arguments)
 
-  print 'Running command:', get_printable_command(
-      result.command, fuzzer_runner.executable_path, use_minijail)
+  print('Running command:', get_printable_command(
+      result.command, fuzzer_runner.executable_path, use_minijail))
   output_lines = result.output.splitlines()
 
   # Parse performance features to extract custom crash flags.
   parsed_stats = stats.parse_performance_features(output_lines, [], [])
   add_custom_crash_state_if_needed(fuzzer_name, output_lines, parsed_stats)
-  print '\n'.join(output_lines)
+  print('\n'.join(output_lines))
 
 
 def parse_log_stats(log_lines):
@@ -605,9 +608,9 @@ def minimize_testcase(runner, testcase_file_path, minimize_to, minimize_timeout,
       minimize_timeout,
       additional_args=arguments)
 
-  print 'Running command:', get_printable_command(
-      result.command, runner.executable_path, use_minijail)
-  print result.output
+  print('Running command:', get_printable_command(
+      result.command, runner.executable_path, use_minijail))
+  print(result.output)
 
 
 def cleanse_testcase(runner, testcase_file_path, cleanse_to, cleanse_timeout,
@@ -631,9 +634,9 @@ def cleanse_testcase(runner, testcase_file_path, cleanse_to, cleanse_timeout,
       cleanse_timeout,
       additional_args=arguments)
 
-  print 'Running command:', get_printable_command(
-      result.command, runner.executable_path, use_minijail)
-  print result.output
+  print('Running command:', get_printable_command(
+      result.command, runner.executable_path, use_minijail))
+  print(result.output)
 
 
 def get_printable_command(command, fuzzer_path, use_minijail):
@@ -831,8 +834,8 @@ def main(argv):
   if use_minijail:
     # Remove minijail prefix.
     command = engine_common.strip_minijail_command(command, fuzzer_path)
-  print log_header_format % (engine_common.get_command_quoted(command),
-                             bot_name, fuzz_result.time_executed)
+  print(log_header_format % (engine_common.get_command_quoted(command),
+                             bot_name, fuzz_result.time_executed))
 
   # Parse stats information based on libFuzzer output.
   parsed_stats = parse_log_stats(log_lines)
@@ -930,18 +933,18 @@ def main(argv):
   # Add custom crash state based on fuzzer name (if needed).
   add_custom_crash_state_if_needed(fuzzer_name, log_lines, parsed_stats)
   for line in log_lines:
-    print line
+    print(line)
 
   # Add fuzzing strategies used.
   engine_common.print_fuzzing_strategies(fuzzing_strategies)
 
   # Add merge error (if any).
   if merge_error:
-    print data_types.CRASH_STACKTRACE_END_MARKER
-    print merge_error
-    print 'Command:', get_printable_command(merge_result.command, fuzzer_path,
-                                            use_minijail)
-    print merge_result.output
+    print(data_types.CRASH_STACKTRACE_END_MARKER)
+    print(merge_error)
+    print('Command:', get_printable_command(merge_result.command, fuzzer_path,
+                                            use_minijail))
+    print(merge_result.output)
 
   # Remove dictionary argument used for fuzzing, it is not needed for analysis.
   fuzzer_utils.extract_argument(arguments, constants.DICT_FLAG)

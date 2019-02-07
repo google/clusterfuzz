@@ -340,7 +340,7 @@ def get_llvm_symbolizer_path():
     return None
 
   # Make sure that llvm symbolizer binary is executable.
-  os.chmod(llvm_symbolizer_path, 0750)
+  os.chmod(llvm_symbolizer_path, 0o750)
   return llvm_symbolizer_path
 
 

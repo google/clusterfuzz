@@ -114,7 +114,7 @@ def backup_corpus(backup_bucket_name, corpus, directory):
     if not storage.copy_blob(dated_backup_url, latest_backup_url):
       logs.log_error(
           'Failed to update latest corpus backup at "%s"' % latest_backup_url)
-  except Exception, ex:
+  except Exception as ex:
     logs.log_error(
         'backup_corpus failed: %s\n' % str(ex),
         backup_bucket_name=backup_bucket_name,

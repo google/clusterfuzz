@@ -13,6 +13,8 @@
 # limitations under the License.
 """Run minimizers with default configuration from the command line."""
 
+from __future__ import print_function
+
 import argparse
 import os
 import sys
@@ -69,18 +71,18 @@ def main():
     with open(file_path, 'rb') as file_handle:
       data = file_handle.read()
   except IOError:
-    print 'Unable to open input file %s.' % file_path
+    print('Unable to open input file %s.' % file_path)
     sys.exit(1)
 
   # Do not print an additional newline after minimization.
   minimized_output = selected_minimizer.run(
       data, thread_count=thread_count, file_extension=file_extension)
-  print 'Writing minimized output to %s.' % output_file_path
+  print('Writing minimized output to %s.' % output_file_path)
   try:
     with open(output_file_path, 'wb') as file_handle:
       file_handle.write(minimized_output)
   except IOError:
-    print 'Unable to write output file %s.' % output_file_path
+    print('Unable to write output file %s.' % output_file_path)
     sys.exit(1)
 
 

@@ -13,6 +13,8 @@
 # limitations under the License.
 """Heartbeat script wrapper."""
 
+from __future__ import print_function
+
 # We want to use utf-8 encoding everywhere throughout the application
 # instead of the default 'ascii' encoding. This must happen before any
 # other imports.
@@ -40,7 +42,7 @@ BEAT_SCRIPT = 'heartbeat.py'
 def main():
   """Update the heartbeat if there is bot activity."""
   if len(sys.argv) < 2:
-    print 'Usage: %s <log file>' % sys.argv[0]
+    print('Usage: %s <log file>' % sys.argv[0])
     return
 
   environment.set_bot_environment()

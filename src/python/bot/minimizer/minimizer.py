@@ -546,7 +546,7 @@ class Minimizer(object):
     """Wrapper to perform common tasks and call |_execute|."""
     try:
       testcase = self._execute(data)
-    except errors.MinimizationDeadlineExceededError, error:
+    except errors.MinimizationDeadlineExceededError as error:
       # When a MinimizationDeadlineExceededError is raised, the partially
       # minimized test case is stored with it so that we can recover the work
       # that had been done up to that point.

@@ -118,7 +118,7 @@ def clear_temp_directory(clear_user_profile_directories=True):
   """Clear the temporary directories."""
   temp_directory = environment.get_value('BOT_TMPDIR')
   remove_directory(temp_directory, recreate=True)
-  os.chmod(temp_directory, 0777)
+  os.chmod(temp_directory, 0o777)
 
   if not clear_user_profile_directories:
     return
@@ -372,7 +372,7 @@ def remove_directory(directory, recreate=False, ignore_errors=False):
     This is needed on Windows."""
 
     try:
-      os.chmod(path, 0750)
+      os.chmod(path, 0o750)
     except:
       # If this is tmpfs, we will probably fail.
       pass

@@ -13,6 +13,8 @@
 # limitations under the License.
 """Train ml rnn model."""
 
+from __future__ import print_function
+
 import argparse
 import math
 import os
@@ -190,15 +192,15 @@ def main(args):
 
   # We continue training on exsiting model, or start with a new model.
   if existing_model:
-    print 'Continue training on existing model: {}'.format(existing_model)
+    print('Continue training on existing model: {}'.format(existing_model))
     try:
       saver.restore(session, existing_model)
     except:
-      print >> sys.stderr, ('Failed to restore existing model since model '
-                            'parameters do not match.')
+      print('Failed to restore existing model since model parameters do not '
+            'match.', file=sys.stderr)
       return constants.ExitCode.TENSORFLOW_ERROR
   else:
-    print 'No existing model provided. Start training with a new model.'
+    print('No existing model provided. Start training with a new model.')
     session.run(tf.global_variables_initializer())
 
   # Num of bytes we have trained so far.
@@ -286,7 +288,7 @@ def main(args):
         rc = utils.sample_from_probabilities(ryo, topn=10 if epoch <= 1 else 2)
         sample.append(rc)
         ry = np.array([[rc]])
-      print repr(utils.decode_to_text(sample))
+      print(repr(utils.decode_to_text(sample)))
       utils.print_text_generation_footer()
 
     # Save a checkpoint every `10 * frequency` batches. Each checkpoint is
@@ -295,7 +297,7 @@ def main(args):
       saved_model_name = constants.RNN_MODEL_NAME + '_' + timestamp
       saved_model_path = os.path.join(model_dir, saved_model_name)
       saved_model = saver.save(session, saved_model_path, global_step=steps)
-      print 'Saved model: {}'.format(saved_model)
+      print('Saved model: {}'.format(saved_model))
 
     # Display progress bar.
     if debug:
@@ -309,7 +311,7 @@ def main(args):
   saved_model_name = constants.RNN_MODEL_NAME + '_' + timestamp
   saved_model_path = os.path.join(model_dir, saved_model_name)
   saved_model = saver.save(session, saved_model_path, global_step=steps)
-  print 'Saved model: {}'.format(saved_model)
+  print('Saved model: {}'.format(saved_model))
 
   return constants.ExitCode.SUCCESS
 
@@ -324,8 +326,8 @@ def validate_paths(args):
     True if all paths are valid, False otherwise.
   """
   if not os.path.exists(args.input_dir):
-    print >> sys.stderr, 'Input directory {} does not exist'.format(
-        args.input_dir)
+    print('Input directory {} does not exist'.format(args.input_dir),
+          file=sys.stderr)
     return False
 
   if not os.path.exists(args.model_dir):
@@ -335,8 +337,8 @@ def validate_paths(args):
     os.mkdir(args.log_dir)
 
   if args.existing_model and not utils.validate_model_path(args.existing_model):
-    print >> sys.stderr, 'Existing model {} does not exist'.format(
-        args.existing_model)
+    print('Existing model {} does not exist'.format(args.existing_model),
+          file=sys.stderr)
     return False
 
   return True
