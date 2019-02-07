@@ -56,7 +56,7 @@ specific queues. The main tasks that bots run are:
 - `regression`: Calculate the revision range in which a crash was introduced.
 - `minimize`: Perform testcase [minimization].
 - `corpus_pruning`: Minimize a [corpus]({{ site.baseurl
-  }}/reference/glossary/#corpus }}) to smallest size based on coverage (libFuzzer only).
+  }}/reference/glossary/#corpus) to smallest size based on coverage (libFuzzer only).
 - `analyze`: Run a manually uploaded testcase against a job to see if it crashes.
 
 ### Bots

@@ -212,7 +212,7 @@ execution (e.g. `$CONFIG_DIR/bot/setup/mac.bash` for macOS).
 You can verify the bots started by checking that their hostnames show up on
 the *Bots* page.
 
-[build]: {{ site.baseurl }}/production-setup/build-pipeline
+[build]: {{ site.baseurl }}/production-setup/build-pipeline/
 [deploy]: #deploying-new-changes
 [fuzzing engine]: {{ site.baseurl }}/reference/glossary/#fuzzing-engine
 [job]: {{ site.baseurl }}/reference/glossary/#job-type

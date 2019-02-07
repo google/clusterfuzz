@@ -83,5 +83,5 @@ it only reproduces on a specific platform, a large behavior change on that
 platform may be the culprit. For a non-reproducible crash, it may be useful to
 know that it started occurring 3 days ago, the same time as a risky change.
 
-[Access control]: {{ site.baseurl }}/using-clusterfuzz/advanced/access-control
+[Access control]: {{ site.baseurl }}/using-clusterfuzz/advanced/access-control/
 [statistics]: {{ site.baseurl }}/using-clusterfuzz/ui-overview/#crash-statistics
