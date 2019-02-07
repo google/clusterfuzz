@@ -223,5 +223,5 @@ if main_domain and redirect_domains:
         ]))
 
 app = webapp2.WSGIApplication(
-    _CRON_ROUTES + _DOMAIN_ROUTES + _ROUTES, debug=False)
-#    debug=environment.is_running_on_app_engine_development())
+    _CRON_ROUTES + _DOMAIN_ROUTES + _ROUTES,
+    debug=environment.is_running_on_app_engine_development())
