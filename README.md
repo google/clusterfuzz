@@ -29,6 +29,16 @@ a software project's development process:
 ## Documentation
 You can find detailed documentation [here](https://google.github.io/clusterfuzz).
 
+## Trophies
+As of January 2019, ClusterFuzz has found [~16,000] bugs
+in Chrome and [~11,000] bugs in over [160] open source projects integrated with
+[OSS-Fuzz].
+
 ## Getting Help
 You can [file an issue](https://github.com/google/clusterfuzz/issues/new) to ask questions, request features, 
 or ask for help.
+
+[~16,000]: https://bugs.chromium.org/p/chromium/issues/list?can=1&q=label%3AClusterFuzz+-status%3AWontFix%2CDuplicate
+[~11,000]: https://bugs.chromium.org/p/oss-fuzz/issues/list?can=1&q=-status%3AWontFix%2CDuplicate+-Infra
+[160]: https://github.com/google/oss-fuzz/tree/master/projects
+[OSS-Fuzz]: https://github.com/google/oss-fuzz
