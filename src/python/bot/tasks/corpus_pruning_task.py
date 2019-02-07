@@ -725,6 +725,9 @@ def _get_cross_pollinate_fuzzers(engine, current_fuzzer_name):
       continue
 
     backup_bucket_name = job.get_environment().get('BACKUP_BUCKET')
+    if not backup_bucket_name:
+      continue
+
     corpus_engine_name = job.get_environment().get(
         'CORPUS_FUZZER_NAME_OVERRIDE', engine)
 
