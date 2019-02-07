@@ -53,8 +53,8 @@ account on the bots.
 
 ### macOS
 
-Mac is a supported platform for fuzzing. The sanitizers supported on this
-platform are [AddressSanitizer], [LeakSanitizer], [UndefinedBehaviorSanitizer]
+Mac is a supported platform for fuzzing. The sanitizers supported on Mac are
+[AddressSanitizer], [LeakSanitizer], [UndefinedBehaviorSanitizer]
 and [ThreadSanitizer]. The only [fuzzing engine] supported on Mac is
 [libFuzzer].
 
@@ -80,7 +80,7 @@ $CONFIG_DIR/bot/setup/mac.bash
 
 You can configure a cluster of bots on [Google Compute Engine] by modifying the
 configuration file `$CONFIG_DIR/gce/clusters.yaml`. The clusters definition is
-in the `<your project id>/clusters` attribute of this yaml file. Here are
+in the `<your project id>/clusters` attribute of this yaml file. Below are
 example definitions for [preemptible] and regular Linux bots:
 
 ```bash

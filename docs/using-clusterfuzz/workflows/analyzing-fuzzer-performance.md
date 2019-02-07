@@ -10,9 +10,9 @@ grand_parent: Using ClusterFuzz
 # Analyzing fuzzer performance
 
 ClusterFuzz automates fuzzing as much as possible, but it's the responsibility
-of the users to write and maintain fuzzers that can find security bugs. This
-page gives recommendations on how to analyze the performance of the fuzzers
-running on ClusterFuzz.
+of users to write and maintain fuzzers that can find security bugs. This page
+gives recommendations on how to analyze the performance of the fuzzers running
+on ClusterFuzz.
 
 **Note**: this page only applies to [fuzz targets] doing [coverage guided]
 fuzzing with [libFuzzer] or [AFL].
