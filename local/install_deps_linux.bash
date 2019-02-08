@@ -67,15 +67,17 @@ if [ "$distro_codename" != "rodete" ]; then
 
 fi
 
-# Install JDK, prerequisite for bazel.
+# Set java_package so we know which to install.
 if [ "$distro_codename" == "trusty" ]; then
   sudo add-apt-repository -y ppa:webupd8team/java
-  sudo apt-get update
-  sudo apt-get install -y oracle-java8-installer
+  java_package=oracle-java8-installer
 else
-  sudo apt-get update
-  sudo apt-get install -y openjdk-8-jdk
+  java_package=openjdk-8-jdk
 fi
+
+# Install Java
+sudo apt-get update
+sudo apt-get install -y $java_package
 
 # Install apt-get packages.
 sudo apt-get install -y \
