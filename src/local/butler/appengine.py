@@ -136,9 +136,7 @@ def symlink_dirs():
 
 def build_templates():
   """Build template files used in appengine."""
-  local_dir = os.path.join(
-      os.path.dirname(__file__), os.pardir, os.pardir, os.pardir, 'local')
-  common.execute('./polymer_bundler.bash', cwd=local_dir)
+  common.execute('./polymer_bundler.bash', cwd='local')
 
 
 def symlink_config_dir():
