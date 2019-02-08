@@ -34,12 +34,19 @@ cd clusterfuzz
 Install the Google Cloud SDK by following the instructions
 [here](https://cloud.google.com/sdk/).
 
-Once this is done, run:
+### (Optional) Log in to your Google Cloud account
+This is **not** necessary if you are simply running ClusterFuzz [locally].
+
+If you are planning to set up ClusterFuzz in [production], you should
+authenticate your account with the `gcloud` tool:
 
 ```bash
 gcloud auth application-default login
 gcloud auth login
 ```
+
+[production]: {{ "/production-setup/" | relative_url }}
+[locally]: {{ "/getting-started/local-instance/" | relative_url }}
 
 ### Python programming language
 Install Python 2.7. You can download it
