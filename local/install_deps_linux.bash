@@ -81,6 +81,7 @@ sudo apt-get install -y \
     bazel \
     docker-ce \
     google-cloud-sdk \
+    $java_package    \
     liblzma-dev \
     python-dev \
     python-pip \
