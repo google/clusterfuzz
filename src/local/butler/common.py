@@ -147,7 +147,7 @@ def execute(command,
 
   print_string = 'Running: %s' % command
   if cwd:
-    print_string += " (dir='%s')" % cwd
+    print_string += " (cwd='%s')" % cwd
   _print(print_string)
 
   proc = execute_async(command, extra_environments, cwd=cwd)
