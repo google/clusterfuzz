@@ -130,9 +130,8 @@ def symlink_dirs():
   if os.path.exists(local_gcs_symlink_path):
     os.remove(local_gcs_symlink_path)
 
-  _, output = common.execute(
-      'bazel run //local:create_gopath 2>/dev/null', cwd='src')
-  os.environ['GOPATH'] = output.strip()
+  _, output = common.execute('bazel run //local:create_gopath', cwd='src')
+  os.environ['GOPATH'] = output.splitlines()[-1]
 
 
 def build_templates():
