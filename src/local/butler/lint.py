@@ -21,7 +21,11 @@ from local.butler import common
 
 def execute(_):
   """Lint changed code."""
-  _, output = common.execute('git diff --name-only FETCH_HEAD')
+  if "GOOGLE_CLOUDBUILD" in os.environ:
+    # Explicitly compare against master if we're running on the CI
+    _, output = common.execute('git diff --name-only master FETCH_HEAD')
+  else:
+    _, output = common.execute('git diff --name-only FETCH_HEAD')
 
   py_changed_file_paths = [
       f for f in output.splitlines() if f.endswith('.py') and
