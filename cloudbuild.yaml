@@ -15,9 +15,9 @@
 steps:
 - name: 'gcr.io/clusterfuzz-images/ci'
   args:
-    - bash
-    - -c
-    - env
+    - 'bash'
+    - '-c'
+    - 'env'
 timeout: 3600s
 options:
   machineType: N1_HIGHCPU_32
