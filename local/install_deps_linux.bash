@@ -87,7 +87,7 @@ sudo apt-get install -y \
     python-pip \
     unzip \
     xvfb
-sudo pip install --upgrade virtualenv
+sudo pip install virtualenv
 
 # Install patchelf (latest version, also unavailable on 14.04).
 (cd /tmp && \
