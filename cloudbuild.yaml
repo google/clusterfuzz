@@ -27,4 +27,4 @@ steps:
     - SHORT_SHA=$SHORT_SHA
 timeout: 3600s
 options:
-  machineType: N1_HIGHCPU_32   
+  machineType: N1_HIGHCPU_32    
