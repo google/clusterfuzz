@@ -14,13 +14,20 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-if ! which brew 2>&1 > /dev/null; then
+if ! which brew > /dev/null 2>&1; then
   echo 'Please install homebrew (https://brew.sh).'
   exit 1
 fi
 
-brew tap bazelbuild/tap
-brew tap-pin bazelbuild/tap
+bazel_tap="bazelbuild/tap"
+
+if ! brew tap | grep $bazel_tap > /dev/null 2>&1; then
+  brew tap $bazel_tap
+fi
+
+if ! brew tap --list-pinned | grep $bazel_tap > /dev/null 2>&1; then
+  brew tap-pin $bazel_tap
+fi
 
 brew install \
     bazel \
