@@ -18,6 +18,13 @@ steps:
     - 'bash'
     - '-c'
     - 'env'
+  env:
+    - REPO_NAME=$REPO_NAME
+    - BRANCH_NAME=$BRANCH_NAME
+    - TAG_NAME=$TAG_NAME
+    - REVISION_ID=$REVISION_ID
+    - COMMIT_SHA=$COMMIT_SHA
+    - SHORT_SHA=$SHORT_SHA
 timeout: 3600s
 options:
   machineType: N1_HIGHCPU_32  
