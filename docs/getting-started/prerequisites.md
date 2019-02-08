@@ -35,9 +35,10 @@ Install the Google Cloud SDK by following the instructions
 [here](https://cloud.google.com/sdk/).
 
 ### (Optional) Log in to your Google Cloud account
+This is **not** necessary if you are simply running ClusterFuzz [locally].
+
 If you are planning to set up ClusterFuzz in [production], you should
-authenticate your account with the `gcloud` tool. This is **not** necessary if
-you are simply running ClusterFuzz [locally].
+authenticate your account with the `gcloud` tool:
 
 ```bash
 gcloud auth application-default login
