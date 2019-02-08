@@ -75,11 +75,8 @@ else
   java_package=openjdk-8-jdk
 fi
 
-# Install Java
-sudo apt-get update
-sudo apt-get install -y $java_package
-
 # Install apt-get packages.
+sudo apt-get update
 sudo apt-get install -y \
     bazel \
     docker-ce \
