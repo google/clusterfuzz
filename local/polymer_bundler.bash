@@ -19,10 +19,17 @@ build_one_file() {
   local deployment_directory=$3
   local deployment_file="${source_file/$source_directory/$deployment_directory}"
   mkdir -p `dirname $deployment_file`
-  polymer-bundler --inline-scripts --inline-css --strip-comments --out-file=$deployment_file $source_file &
+  polymer-bundler --inline-scripts --inline-css --strip-comments --out-file=$deployment_file $source_file
 }
 
 cd $( dirname ${BASH_SOURCE[0]} )/../src/appengine
+mkdir templates 2> /dev/null
+
+if [[ $(find private -type f -printf "%T@\n" | sort -n | tail -1 | awk -F. '{ print $1 }') -le $(find templates -type f -printf "%T@\n" | sort -n | head -1 | awk -F. '{ print $1 }') ]]; then
+  echo "App Engine templates up to date!"
+  exit 0
+fi;
+
 rm -r templates > /dev/null 2>&1
 
 echo "Building templates for App Engine..."
@@ -30,8 +37,6 @@ echo "Building templates for App Engine..."
 for source_file in `find private/templates -iname '*.html'`; do
   build_one_file $source_file private/templates templates
 done;
-
-wait
 
 if [[ $(find private/templates -size +0 | wc -l) != $(find templates -size +0 | wc -l) ]]; then
   echo "Polymer Bundler build failed. Difference between unbuilt and built files:"
