@@ -64,15 +64,17 @@ if [ "$distro_codename" != "rodete" ]; then
       sudo tee -a /etc/apt/sources.list.d/google-cloud-sdk.list
   curl https://packages.cloud.google.com/apt/doc/apt-key.gpg | \
       sudo apt-key add -
+
+  if [ "$distro_codename" == "trusty" ]; then
+    sudo add-apt-repository -y ppa:webupd8team/java
+  fi
+  sudo apt-get update
 fi
 
 # Install JDK, prerequisite for bazel.
 if [ "$distro_codename" == "trusty" ]; then
-  sudo add-apt-repository -y ppa:webupd8team/java
-  sudo apt-get update
   sudo apt-get install -y oracle-java8-installer
 else
-  sudo apt-get update
   sudo apt-get install -y openjdk-8-jdk
 fi
 
