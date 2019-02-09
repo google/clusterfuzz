@@ -1400,11 +1400,11 @@ def main(argv):
     command = engine_common.strip_minijail_command(command,
                                                    runner.afl_fuzz_path)
   # Print info for the fuzzer logs.
-  print('Command: {0}\n'
-        'Bot: {1}\n'
-        'Time ran: {2}\n').format(
+  print(('Command: {0}\n'
+         'Bot: {1}\n'
+         'Time ran: {2}\n').format(
             engine_common.get_command_quoted(command), BOT_NAME,
-            fuzz_result.time_executed)
+            fuzz_result.time_executed))
 
   print(fuzz_result.output)
   runner.strategies.print_strategies()
