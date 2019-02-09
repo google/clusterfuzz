@@ -37,9 +37,9 @@ def build_file(filename):
   """Build a single file using polymer-bundler."""
   input_filename = os.path.join('private', 'templates', filename)
   output_filename = os.path.join('templates', filename)
-  os.system(
-      'polymer-bundler --inline-scripts --inline-css --strip-comments --out-file={output_filename} {input_filename}'.
-      format(output_filename=output_filename, input_filename=input_filename))
+  os.system('polymer-bundler --inline-scripts --inline-css --strip-comments '
+            '--out-file={output_filename} {input_filename}'.format(
+                output_filename=output_filename, input_filename=input_filename))
 
   if os.path.exists(output_filename) and os.path.getsize(output_filename):
     return True
