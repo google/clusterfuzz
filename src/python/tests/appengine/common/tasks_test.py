@@ -154,6 +154,7 @@ class LeaseTaskTest(unittest.TestCase):
 
     self.temp_dir = tempfile.mkdtemp()
     os.environ['CACHE_DIR'] = self.temp_dir
+    os.environ['BOT_NAME'] = 'bot'
 
   def tearDown(self):
     shutil.rmtree(self.temp_dir, ignore_errors=True)
