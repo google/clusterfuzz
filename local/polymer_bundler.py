@@ -14,13 +14,12 @@
 
 from __future__ import print_function
 
+import multiprocessing
 import os
-
-from multiprocessing import Pool
+import sys
 
 APPENGINE_DIRECTORY = os.path.join(
     os.path.dirname(__file__), os.pardir, 'src', 'appengine')
-PROCESS_COUNT = 5
 
 
 def get_file_modified_times(directory):
@@ -55,7 +54,7 @@ def main():
   first_bundled_time = min(bundled_change_times) if bundled_change_times else 0
   latest_unbundled_time = max(get_file_modified_times('private'))
   if latest_unbundled_time < first_bundled_time:
-    print('App Engine templates are up to date!')
+    print('App Engine templates are up to date.')
     return
 
   print('Building templates for App Engine...')
@@ -64,13 +63,14 @@ def main():
     os.mkdir('templates')
 
   template_names = os.listdir(os.path.join('private', 'templates'))
-  pool = Pool(PROCESS_COUNT)
+  pool = multiprocessing.Pool(max(multiprocessing.cpu_count() / 2, 1))
   result = pool.map(build_file, template_names)
 
-  if all(result):
-    print('App Engine templates built successfully!')
-  else:
-    print('Failed to build App Engine templates!')
+  if not all(result):
+    print('Failed to build App Engine templates.')
+    sys.exit(1)
+
+  print('App Engine templates built successfully.')
 
 
 if __name__ == '__main__':
