@@ -142,6 +142,7 @@ class GetTaskTest(unittest.TestCase):
     self.assertEqual('test override job', task.payload())
 
 
+@test_utils.with_cloud_emulators('datastore')
 class LeaseTaskTest(unittest.TestCase):
   """Tests for leasing tasks."""
 
