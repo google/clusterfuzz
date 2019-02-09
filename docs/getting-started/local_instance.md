@@ -30,7 +30,7 @@ python butler.py run_server
 ```
 
 This may take a few seconds to start. Once you see output line like
-`INFO <timestamp> instance.py:<num>] Instance PID`, you should be able to navigate to
+`INFO <timestamp> admin_server.py:<num>] Starting admin server`, you should be able to navigate to
 [http://localhost:9000](http://localhost:9000) to view the web interface.
 
 ## Running a local bot instance
