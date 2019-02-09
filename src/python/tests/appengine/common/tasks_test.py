@@ -142,7 +142,6 @@ class GetTaskTest(unittest.TestCase):
     self.assertEqual('test override job', task.payload())
 
 
-@test_utils.with_cloud_emulators('datastore')
 class LeaseTaskTest(unittest.TestCase):
   """Tests for leasing tasks."""
 
@@ -151,11 +150,11 @@ class LeaseTaskTest(unittest.TestCase):
 
     helpers.patch(self, [
         'time.time',
+        'data_handler.update_heartbeat'
     ])
 
     self.temp_dir = tempfile.mkdtemp()
     os.environ['CACHE_DIR'] = self.temp_dir
-    os.environ['BOT_NAME'] = 'bot'
 
   def tearDown(self):
     shutil.rmtree(self.temp_dir, ignore_errors=True)
