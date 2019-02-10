@@ -49,7 +49,6 @@ Otherwise, you will see GUI dialogs while fuzzing and will be unable to use the
 machine with ease.
 
 ### Viewing logs
-
 ```bash
 cd /path/to/my-bot/clusterfuzz/bot/logs
 tail -f bot.log
