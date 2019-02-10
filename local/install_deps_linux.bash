@@ -89,16 +89,22 @@ sudo apt-get install -y \
     unzip \
     xvfb
 
-# Install patchelf (latest version, also unavailable on 14.04).
+# Install patchelf - latest version not available on some older distros so we
+# compile from source.
 # Needed for MemorySanitizer to patch instrumented system libraries into the
 # target binary (using RPATH).
-(cd /tmp && \
-    curl -sS https://nixos.org/releases/patchelf/patchelf-0.9/patchelf-0.9.tar.bz2 \
-    | tar -C /tmp -xj && \
-    cd /tmp/patchelf-*/ && \
-    ./configure && \
-    sudo make install && \
-    sudo rm -rf /tmp/patchelf-*)
+unsupported_codenames="(trusty|xenial|jessie)"
+if [[ $distro_codename =~ $unsupported_codenames ]]; then
+    (cd /tmp && \
+        curl -sS https://nixos.org/releases/patchelf/patchelf-0.9/patchelf-0.9.tar.bz2 \
+        | tar -C /tmp -xj && \
+        cd /tmp/patchelf-*/ && \
+        ./configure && \
+        sudo make install && \
+        sudo rm -rf /tmp/patchelf-*)
+else
+    sudo apt-get install -y patchelf
+fi
 
 # Setup virtualenv.
 rm -rf ENV
