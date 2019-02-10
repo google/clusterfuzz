@@ -149,6 +149,7 @@ class LeaseTaskTest(unittest.TestCase):
     helpers.patch_environ(self)
 
     helpers.patch(self, [
+        'datastore.data_handler.update_heartbeat',
         'time.time',
     ])
 
