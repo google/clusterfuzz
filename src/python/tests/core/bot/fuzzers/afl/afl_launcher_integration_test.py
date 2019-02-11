@@ -19,7 +19,6 @@ import os
 import re
 import shutil
 import StringIO
-import subprocess
 import unittest
 
 from bot.fuzzers import engine_common
