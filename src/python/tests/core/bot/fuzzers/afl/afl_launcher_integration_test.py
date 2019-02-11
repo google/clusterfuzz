@@ -299,8 +299,7 @@ class LauncherTest(unittest.TestCase):
     self.assertIn(
         'Command: {0}/afl-fuzz -mnone -o{1}/temp-1337/afl_output_dir '
         '-i{1}/corpus {0}/test_fuzzer 2147483647'.format(
-            DATA_DIRECTORY, TEMP_DIRECTORY),
-        output)
+            DATA_DIRECTORY, TEMP_DIRECTORY), output)
 
     # New items should've been added to the corpus.
     self.assertNotEqual(len(os.listdir(os.environ['FUZZ_CORPUS_DIR'])), 0)
