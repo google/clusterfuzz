@@ -1,6 +1,5 @@
 crcmod==1.7
 psutil==5.4.7
-pyOpenSSL==19.0.0
 tensorflow==1.8.0
 
 # The following are added by pip freeze.

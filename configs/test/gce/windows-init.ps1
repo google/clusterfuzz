@@ -153,7 +153,7 @@ cmd /c c:\python27\python -m ensurepip --default-pip
 cmd /c c:\python27\python -m pip install -U pip
 cmd /c c:\python27\python -m pip install -U setuptools
 cmd /c c:\python27\python -m pip install -U wheel
-cmd /c c:\python27\python -m pip install crcmod==1.7 pyOpenSSL==17.4.0 pywinauto==0.6.4 psutil==5.4.7
+cmd /c c:\python27\python -m pip install crcmod==1.7 pywinauto==0.6.4 psutil==5.4.7
 
 # Install NodeJS.
 $fileName = "$tmp\nodejs.zip"

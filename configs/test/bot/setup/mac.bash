@@ -50,7 +50,7 @@ echo "Installing ClusterFuzz package dependencies (requires sudo)."
 
 # pip may fail on some macOS versions if run without "--ignore-installed".
 # For more context, see https://github.com/pypa/pip/issues/3165.
-sudo pip install --ignore-installed crcmod==1.7 psutil==5.4.7 pyOpenSSL==17.2.0
+sudo pip install --ignore-installed crcmod==1.7 psutil==5.4.7
 
 echo "Creating directory $INSTALL_DIRECTORY."
 if [ ! -d "$INSTALL_DIRECTORY" ]; then
