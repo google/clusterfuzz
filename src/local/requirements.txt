@@ -1,12 +1,12 @@
-ansible==2.2.1.0
+ansible==2.7.7
 crcmod==1.7
 Fabric==1.12.0
 google-compute-engine==2.8.13
 grpcio-tools==1.15.0
 nodeenv==1.0.0
-paramiko==1.17.2
+paramiko==2.4.2
 psutil==5.4.7
 pylint==1.9.3
-pyOpenSSL==17.2.0
+pyOpenSSL==19.0.0
 tensorflow==1.8.0
 yapf==0.22.0
