@@ -30,7 +30,7 @@ steps:
     rm -rf tmp
 - id: Lint
   name: 'gcr.io/clusterfuzz-images/ci'
-  args: ['python', 'butler.py', 'lint']
+  args: ['python3', 'butler.py', 'lint']
   env:
     - 'GOOGLE_CLOUDBUILD=1'
 - name: 'gcr.io/clusterfuzz-images/ci'
