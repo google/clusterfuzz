@@ -8,4 +8,3 @@ paramiko==2.4.2
 psutil==5.4.7
 pyOpenSSL==19.0.0
 tensorflow==1.8.0
-yapf==0.22.0
