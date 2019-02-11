@@ -346,8 +346,9 @@ class AflFuzzInputDirectory(object):
 
   def restore_if_needed(self):
     """Restore the original input directory if self.original_input_directory is
-    set. Used to by merge() to get rid of the temporary input directory if it
-    exists and merge new units into the original input directory.
+    set. Used to by libfuzzerize_corpus() to get rid of the temporary input
+    directory if it exists and merge new units into the original input
+    directory.
     """
     if self.original_input_directory is None:
       return
@@ -522,21 +523,11 @@ class AflRunnerCommon(object):
     for env_var, value in config.additional_env_vars.iteritems():
       environment.set_value(env_var, value)
 
-    self._showmap_output_path = None
+    self.showmap_output_path = os.path.join(fuzzer_utils.get_temp_dir(),
+                                            self.SHOWMAP_FILENAME)
     self.merge_timeout = engine_common.get_merge_timeout(DEFAULT_MERGE_TIMEOUT)
     self.showmap_no_output_logged = False
     self._fuzz_args = []
-
-  @property
-  def showmap_output_path(self):
-    """Returns the showmap output path."""
-    # Initialize _showmap_output_path lazily since MiniJailRunner needs to
-    # execute its __init__ before it can be set.
-    if self._showmap_output_path is None:
-      self._showmap_output_path = os.path.join(fuzzer_utils.get_temp_dir(),
-                                               self.SHOWMAP_FILENAME)
-
-    return self._showmap_output_path
 
   @property
   def stderr_file_path(self):
@@ -655,46 +646,35 @@ class AflRunnerCommon(object):
     cls.set_arg(afl_args, constants.TIMEOUT_FLAG, timeout_value)
     return afl_args
 
-  def generate_afl_args(self,
-                        afl_input=None,
-                        afl_output=None,
-                        mem_limit=constants.MAX_MEMORY_LIMIT):
+  def generate_afl_args(self, use_showmap=False):
     """Generate arguments to pass to Process.run_and_wait.
 
     Args:
-      afl_input: Initial corpus directory passed as -i parameter to the afl
-      tool. Defaults to self.afl_input.input_directory.
-
-      afl_output: Output directory where afl stores corpus and stats, passed as
-      -o parameter to the afl tool. Defaults to
-      self.afl_output.output_directory.
-
-      mem_limit: Virtual memory limit afl enforces on target binary, passed as
-      -m parameter to the afl tool. Defaults to constants.MAX_MEMORY_LIMIT.
+      use_showmap: Are arguments generated to pass to afl-showmap.
 
     Returns:
       A list built from the function's arguments that can be passed as the
       additional_args argument to Process.run_and_wait.
-
     """
 
-    if afl_input is None:
-      afl_input = self.afl_input.input_directory
-
-    if afl_output is None:
+    if use_showmap:
+      afl_output = self.showmap_output_path
+    else:
       afl_output = self.afl_output.output_directory
 
     afl_args = [
-        constants.INPUT_FLAG + afl_input, constants.OUTPUT_FLAG + afl_output,
-        constants.MEMORY_LIMIT_FLAG + str(mem_limit)
+        constants.MEMORY_LIMIT_FLAG + str(constants.MAX_MEMORY_LIMIT),
+        constants.OUTPUT_FLAG + afl_output,
     ]
 
-    afl_args.extend(self.config.additional_afl_arguments)
+    if use_showmap:
+      num_executions = '1'
+    else:
+      num_executions = str(self.config.num_persistent_executions)
+      afl_args.extend(self.config.additional_afl_arguments)
+      afl_args.append(constants.INPUT_FLAG + self.afl_input.input_directory)
 
-    afl_args.extend(
-        [self.target_path,
-         str(self.config.num_persistent_executions)])
-
+    afl_args.extend([self.target_path, num_executions])
     return afl_args
 
   def should_try_fuzzing(self, max_total_time, num_retries):
@@ -987,20 +967,10 @@ class AflRunnerCommon(object):
       del os.environ[constants.STDERR_FILENAME_ENV_VAR]
     except KeyError:
       pass
+
     self._executable_path = self.afl_showmap_path
-    # Hack around minijail.
-    showmap_args = self._fuzz_args
-    showmap_args[-1] = '1'
+    showmap_args = self.generate_afl_args(use_showmap=True)
     # Remove arguments for afl-fuzz.
-    self.remove_arg(showmap_args, constants.INPUT_FLAG)
-    self.remove_arg(showmap_args, constants.DICT_FLAG)
-    self.remove_arg(showmap_args, constants.SKIP_DETERMINISTIC_FLAG)
-
-    showmap_output_path = self.showmap_output_path
-    idx = self.get_arg_index(showmap_args, constants.OUTPUT_FLAG)
-    assert idx != -1
-    self.set_arg(showmap_args, constants.OUTPUT_FLAG, showmap_output_path)
-
     input_dir = self.afl_input.input_directory
     corpus_features = set()
     input_inodes = set()

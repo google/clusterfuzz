@@ -256,10 +256,9 @@ class LauncherTest(unittest.TestCase):
 
     output = run_launcher(testcase_path, 'easy_crash_fuzzer')
     self.assertIn(
-        'Command: {0}/afl-fuzz -i{1}/corpus '
-        '-o{1}/temp-1337/afl_output_dir -mnone '
-        '{0}/easy_crash_fuzzer 2147483647'.format(DATA_DIRECTORY,
-                                                  TEMP_DIRECTORY), output)
+        'Command: {0}/afl-fuzz -mnone -o{1}/temp-1337/afl_output_dir '
+        '-i{1}/corpus {0}/easy_crash_fuzzer 2147483647'.format(
+            DATA_DIRECTORY, TEMP_DIRECTORY), output)
 
     self.assertIn('ERROR: AddressSanitizer: heap-use-after-free on address',
                   output)
@@ -283,10 +282,9 @@ class LauncherTest(unittest.TestCase):
         f.write('A' * 256)
     output = run_launcher(testcase_path, 'test_fuzzer')
     self.assertIn(
-        'Command: {0}/afl-fuzz -d -i{1}/redundant_corpus '
-        '-o{1}/temp-1337/afl_output_dir -mnone '
-        '{0}/test_fuzzer 2147483647'.format(DATA_DIRECTORY, TEMP_DIRECTORY),
-        output)
+        'Command: {0}/afl-fuzz -d -mnone -o{1}/temp-1337/afl_output_dir '
+        '-i{1}/redundant_corpus {0}/test_fuzzer 2147483647'.format(
+            DATA_DIRECTORY, TEMP_DIRECTORY), output)
 
     self.assertIn('Merging corpus.', self.logged_messages)
     self.assertNotIn('Timed out in merge', ' '.join(self.logged_messages))
@@ -299,9 +297,9 @@ class LauncherTest(unittest.TestCase):
     testcase_path = setup_testcase_and_corpus('empty', 'corpus', fuzz=True)
     output = run_launcher(testcase_path, 'test_fuzzer')
     self.assertIn(
-        'Command: {0}/afl-fuzz -i{1}/corpus '
-        '-o{1}/temp-1337/afl_output_dir -mnone '
-        '{0}/test_fuzzer 2147483647'.format(DATA_DIRECTORY, TEMP_DIRECTORY),
+        'Command: {0}/afl-fuzz -mnone -o{1}/temp-1337/afl_output_dir '
+        '-i{1}/corpus {0}/test_fuzzer 2147483647'.format(
+            DATA_DIRECTORY, TEMP_DIRECTORY),
         output)
 
     # New items should've been added to the corpus.
@@ -314,10 +312,9 @@ class LauncherTest(unittest.TestCase):
     testcase_path = setup_testcase_and_corpus('empty', 'corpus', fuzz=True)
     output = run_launcher(testcase_path, 'always_crash_fuzzer')
     self.assertIn(
-        'Command: {0}/afl-fuzz -i{1}/corpus '
-        '-o{1}/temp-1337/afl_output_dir -mnone '
-        '{0}/always_crash_fuzzer 2147483647'.format(DATA_DIRECTORY,
-                                                    TEMP_DIRECTORY), output)
+        'Command: {0}/afl-fuzz -mnone -o{1}/temp-1337/afl_output_dir '
+        '-i{1}/corpus {0}/always_crash_fuzzer 2147483647'.format(
+            DATA_DIRECTORY, TEMP_DIRECTORY), output)
 
     self.assertIn(
         'ERROR: AddressSanitizer: SEGV on unknown address '
