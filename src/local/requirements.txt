@@ -6,7 +6,5 @@ grpcio-tools==1.15.0
 nodeenv==1.0.0
 paramiko==2.4.2
 psutil==5.4.7
-pylint==1.9.3
 pyOpenSSL==19.0.0
 tensorflow==1.8.0
-yapf==0.22.0

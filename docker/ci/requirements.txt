@@ -12,6 +12,7 @@ parameterized==0.6.1
 pbr==1.10.0
 pycrypto==2.6.1
 pyfakefs==3.4.3
+pylint==1.9.3
 python-mimeparse==1.5.2
 selenium==2.53.6
 six==1.11.0
@@ -20,3 +21,4 @@ traceback2==1.4.0
 unittest2==1.1.0
 waitress==1.0.0
 WebTest==2.0.23
+yapf==0.22.0
