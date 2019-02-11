@@ -527,7 +527,6 @@ class AflRunnerCommon(object):
                                             self.SHOWMAP_FILENAME)
     self.merge_timeout = engine_common.get_merge_timeout(DEFAULT_MERGE_TIMEOUT)
     self.showmap_no_output_logged = False
-    self._fuzz_args = []
 
   @property
   def stderr_file_path(self):
@@ -902,7 +901,7 @@ class AflRunnerCommon(object):
 
     assert self.initial_max_total_time > 0
 
-    self._fuzz_args = self.generate_afl_args()
+    fuzz_args = self.generate_afl_args()
 
     # Enable AFL's 'quick & dirty mode' which disable deterministic steps if
     # we have already done them. See
@@ -913,9 +912,9 @@ class AflRunnerCommon(object):
     # chance to run again if terminated early. This is only conceivable for
     # fuzzers with large seed corpora and short timeouts.
     if self.afl_input.skip_deterministic:
-      self._fuzz_args.insert(0, constants.SKIP_DETERMINISTIC_FLAG)
+      fuzz_args.insert(0, constants.SKIP_DETERMINISTIC_FLAG)
 
-    return self.run_afl_fuzz(self._fuzz_args)
+    return self.run_afl_fuzz(fuzz_args)
 
   def get_file_features(self, input_file_path, showmap_args):
     """Get the features (edge hit counts) of |input_file_path| using
