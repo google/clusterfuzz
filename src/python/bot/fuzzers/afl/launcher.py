@@ -669,9 +669,9 @@ class AflRunnerCommon(object):
     if use_showmap:
       num_executions = '1'
     else:
-      num_executions = str(self.config.num_persistent_executions)
-      afl_args.extend(self.config.additional_afl_arguments)
       afl_args.append(constants.INPUT_FLAG + self.afl_input.input_directory)
+      afl_args.extend(self.config.additional_afl_arguments)
+      num_executions = str(self.config.num_persistent_executions)
 
     afl_args.extend([self.target_path, num_executions])
     return afl_args
