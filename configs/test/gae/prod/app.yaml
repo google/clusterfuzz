@@ -39,10 +39,6 @@ instance_class: B4
 libraries:
   - name: jinja2
     version: latest
-  - name: pycrypto
-    version: latest
-  - name: ssl
-    version: latest
 
 basic_scaling:
   max_instances: 7

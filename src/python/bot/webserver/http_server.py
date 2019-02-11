@@ -122,7 +122,7 @@ class RequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
 
 
 def run_server(host, port):
-  """Run the HTTP/HTTPS server on the given port."""
+  """Run the HTTP server on the given port."""
   httpd = BotHTTPServer((host, port), RequestHandler)
   httpd.serve_forever()
 
