@@ -54,9 +54,6 @@ RUN pip install -r /tmp/requirements.txt && pip install --upgrade pip
 
 ENV APPENGINE_DIRECTORY $APPENGINE_SDK_PATH
 
-RUN git clone https://chromium.googlesource.com/chromium/tools/depot_tools.git /depot_tools
-ENV PATH /depot_tools:$PATH
-
 ENV TEST_BOT_ENVIRONMENT 1
 ENV PYTHONDONTWRITEBYTECODE 1
 
