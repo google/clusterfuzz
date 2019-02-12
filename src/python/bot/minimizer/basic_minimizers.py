@@ -16,6 +16,7 @@
 import minimizer
 
 
+# pylint:disable=abstract-method
 class SinglePassMinimizer(minimizer.Minimizer):
   """Do a single pass over the token list."""
 

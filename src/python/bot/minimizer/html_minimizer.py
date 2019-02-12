@@ -27,7 +27,7 @@ SCRIPT_START_STRING = '<script'
 SCRIPT_END_STRING = '</script>'
 
 
-class HTMLMinimizer(minimizer.Minimizer):
+class HTMLMinimizer(minimizer.Minimizer):  # pylint:disable=abstract-method
   """Specialized HTML minimizer.
 
      Note that this will not work properly with normal tokenizers. It simply

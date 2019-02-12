@@ -68,8 +68,8 @@ def get_size_string(size):
     return '%d KB' % (size >> 10)
   elif size < 1 << 30:
     return '%d MB' % (size >> 20)
-  else:
-    return '%d GB' % (size >> 30)
+
+  return '%d GB' % (size >> 30)
 
 
 def has_marker(stacktrace, marker_list):

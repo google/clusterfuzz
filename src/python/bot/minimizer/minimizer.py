@@ -368,12 +368,12 @@ class Testcase(object):
     if not test_passed:
       for token in aggregate_hypothesis:
         self.required_tokens[token] = False
-      return True
+      return
 
     # Passed (no crash). We need to try a bit harder to resolve this conflict.
     if len(hypotheses) == 1:
       # We really cannot remove this token. No additional work to be done.
-      return False
+      return
 
     front = hypotheses[:len(hypotheses) / 2]
     back = hypotheses[len(hypotheses) / 2:]
@@ -381,7 +381,7 @@ class Testcase(object):
     # If we could remove either one of two hypotheses, favor removing the first.
     front_merged_successfully = self._attempt_merge(front)
     self._attempt_merge(back, sibling_merge_succeeded=front_merged_successfully)
-    return False
+    return
 
   def _do_single_pass_process(self):
     """Process through a single pass of our test queue."""
