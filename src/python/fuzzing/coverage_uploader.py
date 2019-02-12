@@ -16,6 +16,7 @@
 import os
 
 from base import utils
+from bot.fuzzers import builtin_fuzzers
 from config import local_config
 from google_cloud_utils import gsutil
 from google_cloud_utils import storage
@@ -30,6 +31,11 @@ TESTCASES_PER_DAY = 1000
 
 def upload_testcases_if_needed(fuzzer_name, testcase_list, testcase_directory):
   """Upload test cases from the list to a cloud storage bucket."""
+  # Since builtin fuzzers have a coverage minimized corpus, no need to upload
+  # test case samples for them.
+  if fuzzer_name in builtin_fuzzers.BUILTIN_FUZZERS:
+    return
+
   bucket_name = local_config.ProjectConfig().get(
       'coverage.fuzzer-testcases.bucket')
   if not bucket_name:
