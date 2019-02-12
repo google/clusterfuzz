@@ -34,7 +34,7 @@ This may take a few seconds to start. Once you see an output line like
 able to navigate to [http://localhost:9000](http://localhost:9000) to view the
 web interface. Note that the local instance may use ports other than 9000, such
 as 9008, for things like uploading files. Therefore, using port forwarding to
-access a dev server may break.
+access a local instance may break.
 
 ## Running a local bot instance
 
