@@ -27,7 +27,7 @@ a software project's development process:
 </p>
 
 ## Documentation
-You can find detailed documentation [here](https://google.github.io/clusterfuzz).
+You can look into detailed [documentation](https://google.github.io/clusterfuzz) and [blog](https://opensource.googleblog.com/2019/02/open-sourcing-clusterfuzz.html) on clusterfuzz.
 
 ## Trophies
 As of January 2019, ClusterFuzz has found [~16,000] bugs
