@@ -109,9 +109,6 @@ def _setup_environment_and_configs(args, appengine_path):
 
 def execute(args):
   """Run the bot."""
-  if not args.skip_install_deps:
-    common.install_dependencies()
-
   appengine_path = appengine.find_sdk_path()
 
   _setup_bot_directory(args)

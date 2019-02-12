@@ -210,11 +210,6 @@ def main():
   parser_run_bot.add_argument(
       '--name', default='test-bot', help='Name of the bot.')
   parser_run_bot.add_argument(
-      '--skip-install-deps',
-      action='store_true',
-      help=('Don\'t install dependencies before running this command (useful '
-            'when you\'re restarting the bot often).'))
-  parser_run_bot.add_argument(
       '--server-storage-path',
       default='local/storage',
       help='Server storage path.')
