@@ -34,7 +34,7 @@ DATA_DIRECTORY = os.path.join(TEST_PATH, 'data')
 
 # Running AFL tests require potential changes to the system, so only run this
 # behind a flag.
-if (environment.get_value('INTEGRATION') and
+if (environment.get_value('AFL_INTEGRATION_TESTS') and
     not environment.get_value('TEST_BOT_ENVIRONMENT')):
   if os.path.exists('/proc/sys/kernel/core_pattern'):
     assert open('/proc/sys/kernel/core_pattern').read().strip() == 'core', (
@@ -135,8 +135,8 @@ def mocked_fuzz(runner):
       command=[], return_code=0, output='', time_executed=1)
 
 
-@unittest.skipIf(not environment.get_value('INTEGRATION'),
-                 'INTEGRATION=1 must be set')
+@unittest.skipIf(not environment.get_value('AFL_INTEGRATION_TESTS'),
+                 'AFL_INTEGRATION_TESTS=1 must be set')
 class LauncherTest(unittest.TestCase):
   """AFL launcher tests."""
 
