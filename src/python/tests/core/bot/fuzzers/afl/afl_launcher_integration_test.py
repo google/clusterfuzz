@@ -317,6 +317,10 @@ class LauncherTest(unittest.TestCase):
   def test_single_testcase_crash(self):
     """Tests launcher with a crashing testcase."""
     testcase_path = setup_testcase_and_corpus('crash', 'empty_corpus')
+
+    # Save original contents of testcase.
+    with open(testcase_path) as file_handle:
+      testcase_data = file_handle.read()
     output = run_launcher(testcase_path, 'test_fuzzer')
     self.assertIn(
         'ERROR: AddressSanitizer: SEGV on unknown address 0x000000000000',
@@ -324,3 +328,7 @@ class LauncherTest(unittest.TestCase):
 
     # Make sure we didn't fuzz.
     self.assertNotIn('afl-fuzz', output)
+
+    # Ensure the testcase didn't change.
+    with open(testcase_path) as file_handle:
+      self.assertEqual(testcase_data, file_handle.read())
