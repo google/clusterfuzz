@@ -135,7 +135,7 @@ instance_templates:
       metadata:
         items:
           - key: docker-image
-            value: gcr.io/clusterfuzz-images/base:3c30284-201902062210
+            value: gcr.io/clusterfuzz-images/base:c44bf3f-201902112042
           - key: user-data
             value: file://linux-init.yaml
       serviceAccounts:
