@@ -13,7 +13,6 @@
 # limitations under the License.
 """Integration tests for AFL launcher.py."""
 
-import getpass
 import mock
 import os
 import re
@@ -35,18 +34,12 @@ DATA_DIRECTORY = os.path.join(TEST_PATH, 'data')
 
 # Running AFL tests require potential changes to the system, so only run this
 # behind a flag.
-if (environment.get_value('AFL_INTEGRATION_TESTS') and
+if (environment.get_value('INTEGRATION') and
     not environment.get_value('TEST_BOT_ENVIRONMENT')):
   if os.path.exists('/proc/sys/kernel/core_pattern'):
     assert open('/proc/sys/kernel/core_pattern').read().strip() == 'core', (
         'AFL needs core_pattern to be set to core. '
         'Please run \'echo core | sudo tee /proc/sys/kernel/core_pattern\'')
-
-  # mknod needs to run as sudo to create /dev/null and /dev/urandom.
-  print 'AFL integration tests require sudo to run.'
-  SUDO_PASSWORD = getpass.getpass('please enter your password (for sudo): ')
-else:
-  SUDO_PASSWORD = ''
 
 
 def clear_temp_dir():
@@ -142,8 +135,8 @@ def mocked_fuzz(runner):
       command=[], return_code=0, output='', time_executed=1)
 
 
-@unittest.skipIf(not environment.get_value('AFL_INTEGRATION_TESTS'),
-                 'AFL_INTEGRATION_TESTS=1 must be set')
+@unittest.skipIf(not environment.get_value('INTEGRATION'),
+                 'INTEGRATION=1 must be set')
 class LauncherTest(unittest.TestCase):
   """AFL launcher tests."""
 
