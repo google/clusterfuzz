@@ -310,7 +310,7 @@ def has_file_in_path(filename):
   return False
 
 
-def _get_test_bucket(env_var):
+def test_bucket(env_var):
   """Get the integration test bucket."""
   bucket = os.getenv(env_var)
   if not bucket:
@@ -321,15 +321,13 @@ def _get_test_bucket(env_var):
 
 
 def blobs_bucket_for_user():
-  """Get the blobs bucket for the current user. Creates one if it doesn't not
-  exist."""
-  return _get_test_bucket('TEST_BLOBS_BUCKET')
+  """Get the blobs bucket for the current user."""
+  return test_bucket('TEST_BLOBS_BUCKET')
 
 
 def test_bucket_for_user():
-  """Get the test bucket for the current user. Creates one if it doesn't not
-  exist."""
-  return _get_test_bucket('TEST_BUCKET')
+  """Get the test bucket for the current user."""
+  return test_bucket('TEST_BUCKET')
 
 
 def kill_leftover_emulators():

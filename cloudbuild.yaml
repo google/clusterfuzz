@@ -41,6 +41,10 @@ steps:
   env:
     - TEST_BLOBS_BUCKET=clusterfuzz-ci-blobs
     - TEST_BUCKET=clusterfuzz-ci-test
+    - TEST_CORPUS_BUCKET=clusterfuzz-ci-corpus
+    - TEST_QUARANTINE_BUCKET=clusterfuzz-ci-quarantine
+    - TEST_BACKUP_BUCKET=clusterfuzz-ci-backup
+    - TEST_COVERAGE_BUCKET=clusterfuzz-ci-coverage
 timeout: 3600s
 options:
   machineType: N1_HIGHCPU_32
