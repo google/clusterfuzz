@@ -667,6 +667,8 @@ class AflRunnerCommon(object):
     ]
 
     if use_showmap:
+      # We don't need to pass afl-showmap an input directory or additional afl
+      # arguments (e.g. dict).
       num_executions = '1'
     else:
       afl_args.append(constants.INPUT_FLAG + self.afl_input.input_directory)
