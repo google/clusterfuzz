@@ -33,7 +33,7 @@ def upload_testcases_if_needed(fuzzer_name, testcase_list, testcase_directory):
   """Upload test cases from the list to a cloud storage bucket."""
   # Since builtin fuzzers have a coverage minimized corpus, no need to upload
   # test case samples for them.
-  if fuzzer_name not in builtin_fuzzers.BUILTIN_FUZZERS:
+  if fuzzer_name in builtin_fuzzers.BUILTIN_FUZZERS:
     return
 
   bucket_name = local_config.ProjectConfig().get(
