@@ -40,8 +40,6 @@ class BlobsTest(unittest.TestCase):
         'google_cloud_utils.storage.get',
     ])
 
-    os.environ['BLOBS_BUCKET_FOR_TESTING'] = 'blobs-bucket'
-
     self.mock.is_running_on_app_engine.return_value = True
 
     blobs.BlobInfo(

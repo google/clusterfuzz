@@ -1078,9 +1078,9 @@ def get_object_size(cloud_storage_file_path):
 def blobs_bucket():
   """Get the blobs bucket name."""
   # Allow tests to override blobs bucket name safely.
-  blobs_bucket_for_testing = environment.get_value('BLOBS_BUCKET_FOR_TESTING')
-  if blobs_bucket_for_testing:
-    return blobs_bucket_for_testing
+  test_blobs_bucket = environment.get_value('TEST_BLOBS_BUCKET')
+  if test_blobs_bucket:
+    return test_blobs_bucket
 
   assert not environment.get_value('PY_UNITTESTS')
   return local_config.ProjectConfig().get('blobs.bucket')

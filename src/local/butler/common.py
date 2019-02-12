@@ -320,16 +320,6 @@ def test_bucket(env_var):
   return bucket
 
 
-def blobs_bucket_for_user():
-  """Get the blobs bucket for the current user."""
-  return test_bucket('TEST_BLOBS_BUCKET')
-
-
-def test_bucket_for_user():
-  """Get the test bucket for the current user."""
-  return test_bucket('TEST_BUCKET')
-
-
 def kill_leftover_emulators():
   """Kill leftover instances of cloud emulators and dev_appserver."""
   kill_process('dev_appserver.py')

@@ -235,7 +235,6 @@ def execute(args):
 
   if os.getenv('INTEGRATION') or os.getenv('UNTRUSTED_RUNNER_TESTS'):
     # Set up per-user buckets used by integration tests.
-    os.environ['BLOBS_BUCKET_FOR_TESTING'] = common.blobs_bucket_for_user()
     os.environ['CORPUS_BUCKET'] = common.test_bucket('TEST_CORPUS_BUCKET')
     os.environ['QUARANTINE_BUCKET'] = common.test_bucket(
         'TEST_QUARANTINE_BUCKET')

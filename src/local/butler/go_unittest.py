@@ -34,11 +34,11 @@ def execute(args):
       '--test_env=CONFIG_DIR_OVERRIDE={config_dir_override} '
       '--test_env=ROOT_DIR={root_dir} '
       '--test_env=INTEGRATION={integration} '
-      '--test_env=CLUSTERFUZZ_MUTABLE_TEST_BUCKET={test_bucket} //...'.format(
+      '--test_env=TEST_BUCKET={test_bucket} //...'.format(
           home=os.getenv('HOME'),
           test_output_arg=test_output_arg,
           config_dir_override=os.path.abspath(os.path.join('configs', 'test')),
           root_dir=os.getenv('ROOT_DIR'),
           integration=os.getenv('INTEGRATION', '0'),
-          test_bucket=common.test_bucket_for_user()),
+          test_bucket=common.test_bucket('TEST_BUCKET')),
       cwd=go_directory)
