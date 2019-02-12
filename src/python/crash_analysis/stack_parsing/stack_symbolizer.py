@@ -526,7 +526,6 @@ def filter_binary_path(binary_path):
     app_directory = os.path.dirname(app_path)
     binary_filename = os.path.basename(binary_path)
     nfs_directory = environment.get_value('NFS_ROOT')
-    root_directory = environment.get_value('ROOT_DIR')
     symbols_directory = environment.get_value('SYMBOLS_DIR')
 
     # Try to find the library in the build directory first.
