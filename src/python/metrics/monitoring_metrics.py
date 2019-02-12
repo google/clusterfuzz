@@ -74,29 +74,6 @@ FUZZER_RETURN_CODE_COUNT = monitor.CounterMetric(
     ],
 )
 
-JOB_FUZZ_TIME = monitor.CumulativeDistributionMetric(
-    'task/fuzz/job/time',
-    bucketer=monitor.GeometricBucketer(
-        growth_factor=10**0.05, num_finite_buckets=100),
-    description=('The distribution of how long fuzzing take '
-                 '(grouped by job type)'),
-    field_spec=[
-        monitor.StringField('job'),
-        monitor.BooleanField('timeout'),
-    ],
-)
-
-FUZZER_FUZZ_TIME = monitor.CumulativeDistributionMetric(
-    'task/fuzz/fuzzer/time',
-    bucketer=monitor.GeometricBucketer(
-        growth_factor=10**0.05, num_finite_buckets=100),
-    description='The distribution of how long fuzzing take (grouped by fuzzer)',
-    field_spec=[
-        monitor.StringField('fuzzer'),
-        monitor.BooleanField('timeout'),
-    ],
-)
-
 FUZZER_TOTAL_FUZZ_TIME = monitor.CounterMetric(
     'task/fuzz/fuzzer/total_time',
     description=('The total fuzz time in seconds '
@@ -168,17 +145,6 @@ TASK_COUNT = monitor.CounterMetric(
     field_spec=[
         monitor.StringField('task'),
         monitor.StringField('job'),
-    ])
-
-TASK_TIME = monitor.CumulativeDistributionMetric(
-    'task/dist_time',
-    bucketer=monitor.GeometricBucketer(
-        growth_factor=10**0.05, num_finite_buckets=100),
-    description='The distribution of how long tasks take',
-    field_spec=[
-        monitor.StringField('task'),
-        monitor.StringField('job'),
-        monitor.BooleanField('error'),
     ])
 
 WEIGHT_ADJUSTMENT = monitor.CounterMetric(

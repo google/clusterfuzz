@@ -44,17 +44,6 @@ class MonitorTest(unittest.TestCase):
             'task': 'task',
             'job': 'job'
         }))
-    task_time = monitoring_metrics.TASK_TIME.get({
-        'task': 'task',
-        'job': 'job',
-        'error': False
-    })
-    self.assertEqual(5, task_time.sum)
-    self.assertEqual(1, task_time.count)
-
-    expected_buckets = [0 for _ in xrange(102)]
-    expected_buckets[14] = 1
-    self.assertListEqual(expected_buckets, task_time.buckets)
 
   def test_empty(self):
     """Test empty."""
@@ -70,17 +59,6 @@ class MonitorTest(unittest.TestCase):
                          'task': '',
                          'job': ''
                      }))
-    task_time = monitoring_metrics.TASK_TIME.get({
-        'task': '',
-        'job': '',
-        'error': False
-    })
-    self.assertEqual(5, task_time.sum)
-    self.assertEqual(1, task_time.count)
-
-    expected_buckets = [0 for _ in xrange(102)]
-    expected_buckets[14] = 1
-    self.assertListEqual(expected_buckets, task_time.buckets)
 
   def test_exception(self):
     """Test raising exception."""
@@ -98,14 +76,3 @@ class MonitorTest(unittest.TestCase):
             'task': 'task',
             'job': 'job'
         }))
-    task_time = monitoring_metrics.TASK_TIME.get({
-        'task': 'task',
-        'job': 'job',
-        'error': True
-    })
-    self.assertEqual(5, task_time.sum)
-    self.assertEqual(1, task_time.count)
-
-    expected_buckets = [0 for _ in xrange(102)]
-    expected_buckets[14] = 1
-    self.assertListEqual(expected_buckets, task_time.buckets)
