@@ -36,7 +36,7 @@ web interface.
 Note: the local instance may use ports [other than 9000](https://github.com/google/clusterfuzz/blob/master/src/local/butler/constants.py),
 such as 9008, for things like uploading files. Therefore, using the local
 instance may break if the needed ports are unavailable or if you can only access
-some of the needed ports (such as when port forwarding only 9000).
+some of the needed ports from your browser.
 
 ## Running a local bot instance
 
