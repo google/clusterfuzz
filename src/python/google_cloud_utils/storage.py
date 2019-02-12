@@ -510,8 +510,8 @@ class GcsBlobInfo(object):
     try:
       return GcsBlobInfo(blobs_bucket(), key)
     except Exception as exception:
-      logs.log_error('Failed to get blob from key %s.' % key,
-                     exception=exception)
+      logs.log_error(
+          'Failed to get blob from key %s.' % key, exception=exception)
       return None
 
   @staticmethod
