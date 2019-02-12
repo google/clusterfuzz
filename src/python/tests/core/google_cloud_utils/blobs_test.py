@@ -14,7 +14,6 @@
 """Tests for blobs."""
 
 import mock
-import os
 import unittest
 
 from google_cloud_utils import blobs
