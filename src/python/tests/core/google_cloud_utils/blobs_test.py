@@ -13,8 +13,10 @@
 # limitations under the License.
 """Tests for blobs."""
 
-import mock
+import os
 import unittest
+
+import mock
 
 from google_cloud_utils import blobs
 from tests.test_libs import helpers
