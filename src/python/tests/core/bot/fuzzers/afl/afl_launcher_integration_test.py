@@ -13,13 +13,11 @@
 # limitations under the License.
 """Integration tests for AFL launcher.py."""
 
-import getpass
 import mock
 import os
 import re
 import shutil
 import StringIO
-import subprocess
 import unittest
 
 from bot.fuzzers import engine_common
@@ -42,12 +40,6 @@ if (environment.get_value('AFL_INTEGRATION_TESTS') and
     assert open('/proc/sys/kernel/core_pattern').read().strip() == 'core', (
         'AFL needs core_pattern to be set to core. '
         'Please run \'echo core | sudo tee /proc/sys/kernel/core_pattern\'')
-
-  # mknod needs to run as sudo to create /dev/null and /dev/urandom.
-  print 'AFL integration tests require sudo to run.'
-  SUDO_PASSWORD = getpass.getpass('please enter your password (for sudo): ')
-else:
-  SUDO_PASSWORD = ''
 
 
 def clear_temp_dir():
@@ -145,8 +137,8 @@ def mocked_fuzz(runner):
 
 @unittest.skipIf(not environment.get_value('AFL_INTEGRATION_TESTS'),
                  'AFL_INTEGRATION_TESTS=1 must be set')
-class BaseLauncherTest(unittest.TestCase):
-  """Base AFL launcher tests."""
+class LauncherTest(unittest.TestCase):
+  """AFL launcher tests."""
 
   def setUp(self):
     os.environ['BUILD_DIR'] = DATA_DIRECTORY
@@ -172,7 +164,7 @@ class BaseLauncherTest(unittest.TestCase):
   def tearDown(self):
     clear_temp_dir()
 
-  def _test_abnormal_return_code(self):
+  def test_abnormal_return_code(self):
     """Test that abnormal return codes from single runs of the fuzz target (eg:
     not 0 or 1, which is ASAN's return code for errors) are logged."""
     test_helpers.patch(self, ['metrics.logs.log_error'])
@@ -182,7 +174,17 @@ class BaseLauncherTest(unittest.TestCase):
         'AFL target exited with abnormal exit code: 255.',
         output='ERROR: returning 255\n')
 
-  def _test_libfuzzerize_corpus(self, mock_get_timeout):
+  def test_assert(self):
+    """Tests launcher with a crashing testcase(assert)."""
+    os.environ['ASAN_OPTIONS'] = 'handle_abort=1'
+    testcase_path = setup_testcase_and_corpus('crash', 'empty_corpus')
+    output = run_launcher(testcase_path, 'assert_fail')
+    self.assertIn('Assertion `false\' failed.', output)
+    self.assertIn('ERROR: AddressSanitizer: ABRT on unknown address', output)
+
+  @no_errors
+  @mock.patch('bot.fuzzers.afl.launcher.get_fuzz_timeout')
+  def test_libfuzzerize_corpus(self, mock_get_timeout):
     """Test that libfuzzerize_corpus properly merges new testcases back into
     the corpus."""
     mock_get_timeout.return_value = get_fuzz_timeout(5.0)
@@ -235,31 +237,50 @@ class BaseLauncherTest(unittest.TestCase):
         sorted(os.listdir(input_corpus)))
     self.assertIn('Merge completed successfully.', self.logged_messages)
 
+  @mock.patch('bot.fuzzers.afl.launcher.get_fuzz_timeout')
+  def test_fuzz_crash(self, mock_get_timeout):
+    """Tests fuzzing (crash)."""
+    # *WARNING* Do not lower the fuzz timeout unless you really know what you
+    # are doing. Doing so will cause the test to fail on rare ocassion, which
+    # will break deploys.
+    mock_get_timeout.return_value = get_fuzz_timeout(90.0)
+    testcase_path = setup_testcase_and_corpus('empty', 'corpus', fuzz=True)
 
-class TestLauncher(BaseLauncherTest):
-  """AFL launcher tests."""
+    output = run_launcher(testcase_path, 'easy_crash_fuzzer')
+    self.assertIn(
+        'Command: {0}/afl-fuzz -mnone -o{1}/temp-1337/afl_output_dir '
+        '-i{1}/corpus {0}/easy_crash_fuzzer 2147483647'.format(
+            DATA_DIRECTORY, TEMP_DIRECTORY), output)
 
-  def test_abnormal_return_code(self):
-    self._test_abnormal_return_code()
+    self.assertIn('ERROR: AddressSanitizer: heap-use-after-free on address',
+                  output)
 
-  def test_single_testcase_crash(self):
-    """Tests launcher with a crashing testcase."""
-    testcase_path = setup_testcase_and_corpus('crash', 'empty_corpus')
+    # Testcase should've been copied back.
+    self.assertGreaterEqual(os.path.getsize(testcase_path), 3)
+    with open(testcase_path) as f:
+      self.assertEqual(f.read()[:3], 'ABC')
+
+  @no_errors
+  @mock.patch('bot.fuzzers.afl.launcher.get_fuzz_timeout')
+  def test_fuzz_merge(self, mock_get_timeout):
+    """Tests fuzzing with merge."""
+    mock_get_timeout.return_value = get_fuzz_timeout(5.0)
+    testcase_path = setup_testcase_and_corpus(
+        'empty', 'redundant_corpus', fuzz=True)
+    corpus_path = os.environ['FUZZ_CORPUS_DIR']
+
+    for i in xrange(100):
+      with open(os.path.join(corpus_path, '%04d' % i), 'w') as f:
+        f.write('A' * 256)
     output = run_launcher(testcase_path, 'test_fuzzer')
     self.assertIn(
-        'ERROR: AddressSanitizer: SEGV on unknown address 0x000000000000',
-        output)
+        'Command: {0}/afl-fuzz -d -mnone -o{1}/temp-1337/afl_output_dir '
+        '-i{1}/redundant_corpus {0}/test_fuzzer 2147483647'.format(
+            DATA_DIRECTORY, TEMP_DIRECTORY), output)
 
-    # Make sure we didn't fuzz.
-    self.assertNotIn('afl-fuzz', output)
-
-  def test_assert(self):
-    """Tests launcher with a crashing testcase(assert)."""
-    os.environ['ASAN_OPTIONS'] = 'handle_abort=1'
-    testcase_path = setup_testcase_and_corpus('crash', 'empty_corpus')
-    output = run_launcher(testcase_path, 'assert_fail')
-    self.assertIn('Assertion `false\' failed.', output)
-    self.assertIn('ERROR: AddressSanitizer: ABRT on unknown address', output)
+    self.assertIn('Merging corpus.', self.logged_messages)
+    self.assertNotIn('Timed out in merge', ' '.join(self.logged_messages))
+    self.assertIn('Merge completed successfully.', self.logged_messages)
 
   @mock.patch('bot.fuzzers.afl.launcher.get_fuzz_timeout')
   def test_fuzz_no_crash(self, mock_get_timeout):
@@ -268,10 +289,9 @@ class TestLauncher(BaseLauncherTest):
     testcase_path = setup_testcase_and_corpus('empty', 'corpus', fuzz=True)
     output = run_launcher(testcase_path, 'test_fuzzer')
     self.assertIn(
-        'Command: {0}/afl-fuzz -i{1}/corpus '
-        '-o{1}/temp-1337/afl_output_dir -mnone '
-        '{0}/test_fuzzer 2147483647'.format(DATA_DIRECTORY, TEMP_DIRECTORY),
-        output)
+        'Command: {0}/afl-fuzz -mnone -o{1}/temp-1337/afl_output_dir '
+        '-i{1}/corpus {0}/test_fuzzer 2147483647'.format(
+            DATA_DIRECTORY, TEMP_DIRECTORY), output)
 
     # New items should've been added to the corpus.
     self.assertNotEqual(len(os.listdir(os.environ['FUZZ_CORPUS_DIR'])), 0)
@@ -283,10 +303,9 @@ class TestLauncher(BaseLauncherTest):
     testcase_path = setup_testcase_and_corpus('empty', 'corpus', fuzz=True)
     output = run_launcher(testcase_path, 'always_crash_fuzzer')
     self.assertIn(
-        'Command: {0}/afl-fuzz -i{1}/corpus '
-        '-o{1}/temp-1337/afl_output_dir -mnone '
-        '{0}/always_crash_fuzzer 2147483647'.format(DATA_DIRECTORY,
-                                                    TEMP_DIRECTORY), output)
+        'Command: {0}/afl-fuzz -mnone -o{1}/temp-1337/afl_output_dir '
+        '-i{1}/corpus {0}/always_crash_fuzzer 2147483647'.format(
+            DATA_DIRECTORY, TEMP_DIRECTORY), output)
 
     self.assertIn(
         'ERROR: AddressSanitizer: SEGV on unknown address '
@@ -295,95 +314,13 @@ class TestLauncher(BaseLauncherTest):
     # Testcase (non-zero) should've been copied back.
     self.assertNotEqual(os.path.getsize(testcase_path), 0)
 
-  @mock.patch('bot.fuzzers.afl.launcher.get_fuzz_timeout')
-  def test_fuzz_crash(self, mock_get_timeout):
-    """Tests fuzzing (crash)."""
-    # *WARNING* Do not lower the fuzz timeout unless you really know what you
-    # are doing. Doing so will cause the test to fail on rare ocassion, which
-    # will break deploys.
-    mock_get_timeout.return_value = get_fuzz_timeout(90.0)
-    testcase_path = setup_testcase_and_corpus('empty', 'corpus', fuzz=True)
-
-    output = run_launcher(testcase_path, 'easy_crash_fuzzer')
-    self.assertIn(
-        'Command: {0}/afl-fuzz -i{1}/corpus '
-        '-o{1}/temp-1337/afl_output_dir -mnone '
-        '{0}/easy_crash_fuzzer 2147483647'.format(DATA_DIRECTORY,
-                                                  TEMP_DIRECTORY), output)
-
-    self.assertIn('ERROR: AddressSanitizer: heap-use-after-free on address',
-                  output)
-
-    # Testcase should've been copied back.
-    self.assertGreaterEqual(os.path.getsize(testcase_path), 3)
-    with open(testcase_path) as f:
-      self.assertEqual(f.read()[:3], 'ABC')
-
-  @no_errors
-  @mock.patch('bot.fuzzers.afl.launcher.get_fuzz_timeout')
-  def test_fuzz_merge(self, mock_get_timeout):
-    """Tests fuzzing with merge."""
-    mock_get_timeout.return_value = get_fuzz_timeout(5.0)
-    testcase_path = setup_testcase_and_corpus(
-        'empty', 'redundant_corpus', fuzz=True)
-    corpus_path = os.environ['FUZZ_CORPUS_DIR']
-
-    for i in xrange(100):
-      with open(os.path.join(corpus_path, '%04d' % i), 'w') as f:
-        f.write('A' * 256)
-    output = run_launcher(testcase_path, 'test_fuzzer')
-    self.assertIn(
-        'Command: {0}/afl-fuzz -d -i{1}/redundant_corpus '
-        '-o{1}/temp-1337/afl_output_dir -mnone '
-        '{0}/test_fuzzer 2147483647'.format(DATA_DIRECTORY, TEMP_DIRECTORY),
-        output)
-
-    self.assertIn('Merging corpus.', self.logged_messages)
-    self.assertNotIn('Timed out in merge', ' '.join(self.logged_messages))
-    self.assertIn('Merge completed successfully.', self.logged_messages)
-
-  @no_errors
-  @mock.patch('bot.fuzzers.afl.launcher.get_fuzz_timeout')
-  def test_libfuzzerize_corpus(self, mock_get_timeout):
-    self._test_libfuzzerize_corpus(mock_get_timeout)
-
-
-def _run_with_sudo(command):
-  """Run a command (list) with sudo privileges."""
-  print 'Running (with sudo): %s' % ' '.join(command)
-  popen = subprocess.Popen(
-      ['sudo', '-S'] + command,
-      stdin=subprocess.PIPE,
-      stdout=subprocess.PIPE,
-      stderr=subprocess.STDOUT)
-  popen.communicate(input=SUDO_PASSWORD + '\n')
-  assert popen.returncode == 0
-
-
-def _mknod(_, path, file_type, major, minor):
-  """Creates a special file."""
-  _run_with_sudo(
-      ['mknod', '-m', '666', path, file_type,
-       str(major),
-       str(minor)])
-
-
-class TestLauncherMinijail(BaseLauncherTest):
-  """AFL launcher tests."""
-
-  def setUp(self):
-    super(TestLauncherMinijail, self).setUp()
-    launcher.USE_MINIJAIL = True
-    test_helpers.patch(self, ['system.minijail.MinijailChroot._mknod'])
-
-    self.mock._mknod.side_effect = _mknod  # pylint: disable=protected-access
-
-  def test_abnormal_return_code(self):
-    self._test_abnormal_return_code()
-
   def test_single_testcase_crash(self):
     """Tests launcher with a crashing testcase."""
     testcase_path = setup_testcase_and_corpus('crash', 'empty_corpus')
+
+    # Save original contents of testcase.
+    with open(testcase_path) as file_handle:
+      testcase_data = file_handle.read()
     output = run_launcher(testcase_path, 'test_fuzzer')
     self.assertIn(
         'ERROR: AddressSanitizer: SEGV on unknown address 0x000000000000',
@@ -392,67 +329,6 @@ class TestLauncherMinijail(BaseLauncherTest):
     # Make sure we didn't fuzz.
     self.assertNotIn('afl-fuzz', output)
 
-  @mock.patch('bot.fuzzers.afl.launcher.get_fuzz_timeout')
-  def test_fuzz_no_crash(self, mock_get_timeout):
-    """Tests fuzzing (no crash)."""
-    mock_get_timeout.return_value = get_fuzz_timeout(5.0)
-    testcase_path = setup_testcase_and_corpus('empty', 'corpus', fuzz=True)
-    output = run_launcher(testcase_path, 'test_fuzzer')
-    self.assertIn(
-        'Command: {0}/afl-fuzz -i/corpus '
-        '-o/afl_output_dir -mnone {0}/test_fuzzer '
-        '2147483647'.format(DATA_DIRECTORY), output)
-
-    # New items should've been added to the corpus.
-    self.assertIn('FUZZ_CORPUS_DIR', os.environ)
-    self.assertNotEqual(len(os.listdir(os.environ['FUZZ_CORPUS_DIR'])), 0)
-
-  @mock.patch('bot.fuzzers.afl.launcher.get_fuzz_timeout')
-  def test_fuzz_crash(self, mock_get_timeout):
-    """Tests fuzzing (crash)."""
-    # *WARNING* Do not lower the fuzz timeout unless you really know what you
-    # are doing. Doing so will cause the test to fail on rare ocassion, which
-    # will break deploys.
-    mock_get_timeout.return_value = get_fuzz_timeout(90.0)
-    testcase_path = setup_testcase_and_corpus('empty', 'corpus', fuzz=True)
-
-    output = run_launcher(testcase_path, 'easy_crash_fuzzer')
-    self.assertIn(
-        'Command: {0}/afl-fuzz -i/corpus '
-        '-o/afl_output_dir -mnone '
-        '{0}/easy_crash_fuzzer 2147483647'.format(DATA_DIRECTORY), output)
-
-    self.assertIn('ERROR: AddressSanitizer: heap-use-after-free on address',
-                  output)
-
-    # Testcase should've been copied back.
-    self.assertGreaterEqual(os.path.getsize(testcase_path), 3)
-    with open(testcase_path) as f:
-      self.assertEqual(f.read()[:3], 'ABC')
-
-  @no_errors
-  @mock.patch('bot.fuzzers.afl.launcher.get_fuzz_timeout')
-  def test_fuzz_merge(self, mock_get_timeout):
-    """Tests fuzzing with merge."""
-    mock_get_timeout.return_value = get_fuzz_timeout(5.0)
-    testcase_path = setup_testcase_and_corpus(
-        'empty', 'redundant_corpus', fuzz=True)
-    corpus_path = os.environ['FUZZ_CORPUS_DIR']
-    for i in xrange(100):
-      with open(os.path.join(corpus_path, '%04d' % i), 'w') as f:
-        f.write('A' * 256)
-
-    output = run_launcher(testcase_path, 'test_fuzzer')
-    self.assertIn(
-        'Command: {0}/afl-fuzz -d -i/redundant_corpus '
-        '-o/afl_output_dir -mnone '
-        '{0}/test_fuzzer 2147483647'.format(DATA_DIRECTORY), output)
-
-    self.assertIn('Merging corpus.', self.logged_messages)
-    self.assertNotIn('Timed out in merge', ' '.join(self.logged_messages))
-    self.assertIn('Merge completed successfully.', self.logged_messages)
-
-  @no_errors
-  @mock.patch('bot.fuzzers.afl.launcher.get_fuzz_timeout')
-  def test_libfuzzerize_corpus(self, mock_get_timeout):
-    self._test_libfuzzerize_corpus(mock_get_timeout)
+    # Ensure the testcase didn't change.
+    with open(testcase_path) as file_handle:
+      self.assertEqual(testcase_data, file_handle.read())
