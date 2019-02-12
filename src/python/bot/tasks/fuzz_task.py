@@ -286,14 +286,6 @@ class _TrackFuzzTime(object):
 
   def __exit__(self, exc_type, value, traceback):
     duration = self.time.time() - self.start_time
-    monitoring_metrics.FUZZER_FUZZ_TIME.add(duration, {
-        'fuzzer': self.fuzzer_name,
-        'timeout': self.timeout
-    })
-    monitoring_metrics.JOB_FUZZ_TIME.add(duration, {
-        'job': self.job_type,
-        'timeout': self.timeout
-    })
     monitoring_metrics.FUZZER_TOTAL_FUZZ_TIME.increment_by(
         int(duration), {
             'fuzzer': self.fuzzer_name,

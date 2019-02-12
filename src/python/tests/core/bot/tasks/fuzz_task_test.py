@@ -175,31 +175,6 @@ class TrackFuzzTimeTest(unittest.TestCase):
       time_module.advance(5)
       tracker.timeout = timeout
 
-    job_type_time = monitoring_metrics.JOB_FUZZ_TIME.get({
-        'job': 'job',
-        'timeout': timeout
-    })
-    self.assertEqual(5, job_type_time.sum)
-    self.assertEqual(1, job_type_time.count)
-
-    expected_buckets = [0 for _ in xrange(102)]
-    expected_buckets[14] = 1
-    self.assertListEqual(expected_buckets, job_type_time.buckets)
-
-    job_type_total_time = monitoring_metrics.JOB_TOTAL_FUZZ_TIME.get({
-        'job': 'job',
-        'timeout': timeout
-    })
-    self.assertEqual(5, job_type_total_time)
-
-    fuzzer_time = monitoring_metrics.FUZZER_FUZZ_TIME.get({
-        'fuzzer': 'fuzzer',
-        'timeout': timeout
-    })
-    self.assertEqual(5, fuzzer_time.sum)
-    self.assertEqual(1, fuzzer_time.count)
-    self.assertListEqual(expected_buckets, fuzzer_time.buckets)
-
     fuzzer_total_time = monitoring_metrics.FUZZER_TOTAL_FUZZ_TIME.get({
         'fuzzer': 'fuzzer',
         'timeout': timeout
