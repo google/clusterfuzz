@@ -509,7 +509,8 @@ class GcsBlobInfo(object):
   def from_key(key):
     try:
       return GcsBlobInfo(blobs_bucket(), key)
-    except Exception:
+    except Exception as exception:
+      logs.log_error(str(exception))
       return None
 
   @staticmethod
