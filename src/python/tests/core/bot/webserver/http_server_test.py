@@ -34,15 +34,15 @@ class TestRequestHandler(http_server.RequestHandler):
     def write(self, data):
       self.contents += data
 
-  def __init__(self, path):
+  def __init__(self, path):  # pylint: disable=super-init-not-called
     self.response_code = 0
     self.wfile = self.TestWFile()
     self.path = path
 
-  def send_response(self, response_code, _=None):
+  def send_response(self, response_code, _=None):  # pylint: disable=arguments-differ
     self.response_code = response_code
 
-  def send_header(self, *_):
+  def send_header(self, *_):  # pylint: disable=arguments-differ
     pass
 
   def end_headers(self):
