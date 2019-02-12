@@ -40,6 +40,7 @@ class BlobsTest(unittest.TestCase):
     ])
 
     self.mock.is_running_on_app_engine.return_value = True
+    os.environ['TEST_BLOBS_BUCKET'] = 'blobs-bucket'
 
     blobs.BlobInfo(
         id='legacyblobkey',
