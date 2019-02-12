@@ -35,9 +35,9 @@ from tests.test_libs import untrusted_runner_helpers
 TEST_DIR = os.path.join(
     os.path.dirname(os.path.realpath(__file__)), 'corpus_pruning_task_data')
 
-TEST_BUCKET_GLOBAL = 'clusterfuzz-test-global-bundle'
-TEST_BUCKET_SHARED = 'clusterfuzz-test-shared-corpus'
-TEST_BUCKET_TEST2_BACKUP = 'clusterfuzz-test2-backup-bucket'
+TEST_GLOBAL_BUCKET = 'clusterfuzz-test-global-bundle'
+TEST_SHARED_BUCKET = 'clusterfuzz-test-shared-corpus'
+TEST2_BACKUP_BUCKET = 'clusterfuzz-test2-backup-bucket'
 
 
 # TODO(unassigned): Support macOS.
@@ -294,7 +294,7 @@ class CorpusPruningTestUntrusted(
         last_run=datetime.datetime.now()).put()
 
     environment.set_value('USE_MINIJAIL', True)
-    environment.set_value('SHARED_CORPUS_BUCKET', TEST_BUCKET_SHARED)
+    environment.set_value('SHARED_CORPUS_BUCKET', TEST_SHARED_BUCKET)
 
     # Set up remote corpora.
     self.corpus = corpus_manager.FuzzTargetCorpus('libFuzzer', 'test_fuzzer')
@@ -305,7 +305,7 @@ class CorpusPruningTestUntrusted(
     self.quarantine_corpus.rsync_from_disk(
         os.path.join(TEST_DIR, 'quarantine'), delete=True)
 
-    self.mock.get_data_bundle_bucket_name.return_value = TEST_BUCKET_GLOBAL
+    self.mock.get_data_bundle_bucket_name.return_value = TEST_GLOBAL_BUCKET
     data_types.DataBundle(
         name='bundle', is_local=True, sync_to_worker=True).put()
 
@@ -327,7 +327,7 @@ class CorpusPruningTestUntrusted(
     corpus_backup_dir = ('gs://{bucket}/corpus/libfuzzer/test2_fuzzer/')
     gsutil.GSUtilRunner().run_gsutil([
         'cp', (corpus_backup_dir +
-               'backup.zip').format(bucket=TEST_BUCKET_TEST2_BACKUP),
+               'backup.zip').format(bucket=TEST2_BACKUP_BUCKET),
         (corpus_backup_dir +
          '%s.zip' % corpus_backup_date).format(bucket=self.backup_bucket)
     ])

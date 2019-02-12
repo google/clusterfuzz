@@ -28,6 +28,11 @@ def execute(args):
   else:
     test_output_arg = '--test_output=errors'
 
+  if os.getenv('INTEGRATION') == '1':
+    test_bucket = common.test_bucket('TEST_BUCKET')
+  else:
+    test_bucket = ''
+
   common.execute(
       'bazel test --sandbox_writable_path={home} '  # Necessary for gcloud.
       '{test_output_arg} '
@@ -40,5 +45,5 @@ def execute(args):
           config_dir_override=os.path.abspath(os.path.join('configs', 'test')),
           root_dir=os.getenv('ROOT_DIR'),
           integration=os.getenv('INTEGRATION', '0'),
-          test_bucket=common.test_bucket('TEST_BUCKET')),
+          test_bucket=test_bucket),
       cwd=go_directory)
