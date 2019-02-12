@@ -15,7 +15,6 @@
 
 from config import db_config
 from handlers import base_handler
-from libs import helpers
 
 DEFAULT_DOCUMENTATION_URL = 'https://google.github.io/clusterfuzz/'
 DEFAULT_BUG_REPORT_URL = 'https://github.com/google/clusterfuzz/issues'
