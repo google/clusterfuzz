@@ -311,32 +311,26 @@ def has_file_in_path(filename):
   return False
 
 
+def _get_test_bucket(env_var):
+  """Get the integration test bucket."""
+  bucket = os.getenv(env_var)
+  if not bucket:
+    raise RuntimeError(
+        'You need to specify {var} for integration testing'.format(var=env_var))
+
+  return bucket
+
+
 def blobs_bucket_for_user():
   """Get the blobs bucket for the current user. Creates one if it doesn't not
   exist."""
-  blobs_bucket = create_user_bucket('clusterfuzz-testing-blobs')
-  execute('gsutil cors set {cors_file_path} gs://{bucket}'.format(
-      cors_file_path=os.path.join('local', 'blobs_cors.json'),
-      bucket=blobs_bucket))
-
-  return blobs_bucket
+  return _get_test_bucket('TEST_BLOBS_BUCKET')
 
 
 def test_bucket_for_user():
   """Get the test bucket for the current user. Creates one if it doesn't not
   exist."""
-  test_bucket = create_user_bucket('clusterfuzz-testing')
-  return test_bucket
-
-
-def create_user_bucket(bucket):
-  """Create a user-specific bucket for testing purposes."""
-  bucket += '-' + getpass.getuser()
-  execute(
-      'gsutil defstorageclass get gs://{bucket} || '
-      'gsutil mb -p clusterfuzz-testing gs://{bucket}'.format(bucket=bucket))
-
-  return bucket
+  return _get_test_bucket('TEST_BUCKET')
 
 
 def kill_leftover_emulators():
