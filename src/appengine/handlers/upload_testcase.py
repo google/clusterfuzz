@@ -542,5 +542,5 @@ class UploadHandlerOAuth(base_handler.Handler, UploadHandlerCommon,
 
   @handler.oauth
   @handler.post(handler.FORM, handler.JSON)
-  def post(self):
+  def post(self, *args):
     self.do_post()
