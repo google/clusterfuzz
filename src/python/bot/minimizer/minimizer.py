@@ -381,7 +381,6 @@ class Testcase(object):
     # If we could remove either one of two hypotheses, favor removing the first.
     front_merged_successfully = self._attempt_merge(front)
     self._attempt_merge(back, sibling_merge_succeeded=front_merged_successfully)
-    return
 
   def _do_single_pass_process(self):
     """Process through a single pass of our test queue."""
