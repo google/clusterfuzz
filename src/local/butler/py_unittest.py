@@ -235,15 +235,11 @@ def execute(args):
 
   if os.getenv('INTEGRATION') or os.getenv('UNTRUSTED_RUNNER_TESTS'):
     # Set up per-user buckets used by integration tests.
-    os.environ['BLOBS_BUCKET_FOR_TESTING'] = common.blobs_bucket_for_user()
-    os.environ['CORPUS_BUCKET'] = common.create_user_bucket(
-        'clusterfuzz-corpus')
-    os.environ['QUARANTINE_BUCKET'] = common.create_user_bucket(
-        'clusterfuzz-quarantine')
-    os.environ['BACKUP_BUCKET'] = common.create_user_bucket(
-        'clusterfuzz-backup')
-    os.environ['COVERAGE_BUCKET'] = common.create_user_bucket(
-        'clusterfuzz-coverage')
+    os.environ['CORPUS_BUCKET'] = common.test_bucket('TEST_CORPUS_BUCKET')
+    os.environ['QUARANTINE_BUCKET'] = common.test_bucket(
+        'TEST_QUARANTINE_BUCKET')
+    os.environ['BACKUP_BUCKET'] = common.test_bucket('TEST_BACKUP_BUCKET')
+    os.environ['COVERAGE_BUCKET'] = common.test_bucket('TEST_COVERAGE_BUCKET')
 
   # Kill leftover instances of emulators and dev appserver.
   common.kill_leftover_emulators()

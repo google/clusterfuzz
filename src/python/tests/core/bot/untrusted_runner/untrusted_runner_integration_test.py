@@ -42,6 +42,8 @@ TEST_FILE_CONTENTS = ('A' * config.FILE_TRANSFER_CHUNK_SIZE +
                       'B' * config.FILE_TRANSFER_CHUNK_SIZE +
                       'C' * (config.FILE_TRANSFER_CHUNK_SIZE / 2))
 
+TEST_BUNDLE_BUCKET = 'clusterfuzz-test-bundle'
+
 
 def _dirs_equal(dircmp):
   if dircmp.left_only or dircmp.right_only or dircmp.diff_files:
@@ -507,7 +509,7 @@ class UntrustedRunnerIntegrationTest(
 
   def test_update_data_bundle(self):
     """Test update_data_bundle."""
-    self.mock.get_data_bundle_bucket_name.return_value = 'cf_test_bundle'
+    self.mock.get_data_bundle_bucket_name.return_value = TEST_BUNDLE_BUCKET
     fuzzer = data_types.Fuzzer.query(data_types.Fuzzer.name == 'fuzzer').get()
     bundle = data_types.DataBundle.query(
         data_types.DataBundle.name == 'bundle').get()

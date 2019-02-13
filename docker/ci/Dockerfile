@@ -20,6 +20,7 @@ RUN curl -sL https://deb.nodesource.com/setup_11.x | sudo -E bash -
 RUN apt-get update && \
     apt-get install -y \
         git \
+        golang-go \
         google-cloud-sdk-app-engine-go \
         google-cloud-sdk-app-engine-python \
         google-cloud-sdk-app-engine-python-extras \

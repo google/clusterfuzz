@@ -13,9 +13,10 @@
 # limitations under the License.
 """Tests for blobs."""
 
-import mock
 import os
 import unittest
+
+import mock
 
 from google_cloud_utils import blobs
 from tests.test_libs import helpers
@@ -40,9 +41,8 @@ class BlobsTest(unittest.TestCase):
         'google_cloud_utils.storage.get',
     ])
 
-    os.environ['BLOBS_BUCKET_FOR_TESTING'] = 'blobs-bucket'
-
     self.mock.is_running_on_app_engine.return_value = True
+    os.environ['TEST_BLOBS_BUCKET'] = 'blobs-bucket'
 
     blobs.BlobInfo(
         id='legacyblobkey',

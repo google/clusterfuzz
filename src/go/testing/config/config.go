@@ -29,7 +29,7 @@ func IntegrationTestBucketStatic() string {
 // integration tests.
 func IntegrationTestBucketMutable() string {
 	// TODO(ochang): Before running tests, clear this bucket.
-	return os.Getenv("CLUSTERFUZZ_MUTABLE_TEST_BUCKET")
+	return os.Getenv("TEST_BUCKET")
 }
 
 // IntegrationTestsEnabled returns whether or not integration tests are enabled.

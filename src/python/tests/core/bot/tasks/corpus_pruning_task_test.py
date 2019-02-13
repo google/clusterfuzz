@@ -35,6 +35,10 @@ from tests.test_libs import untrusted_runner_helpers
 TEST_DIR = os.path.join(
     os.path.dirname(os.path.realpath(__file__)), 'corpus_pruning_task_data')
 
+TEST_GLOBAL_BUCKET = 'clusterfuzz-test-global-bundle'
+TEST_SHARED_BUCKET = 'clusterfuzz-test-shared-corpus'
+TEST2_BACKUP_BUCKET = 'clusterfuzz-test2-backup-bucket'
+
 
 # TODO(unassigned): Support macOS.
 @test_utils.supported_platforms('LINUX')
@@ -267,8 +271,9 @@ class CorpusPruningTestUntrusted(
     job = data_types.Job(
         name='libfuzzer_asan_job2',
         environment_string=('APP_NAME = test2_fuzzer\n'
-                            'BACKUP_BUCKET = clusterfuzz-test2-backup-bucket\n'
-                            'CORPUS_FUZZER_NAME_OVERRIDE = libfuzzer\n'))
+                            'BACKUP_BUCKET = {backup_bucket}\n'
+                            'CORPUS_FUZZER_NAME_OVERRIDE = libfuzzer\n'.format(
+                                backup_bucket=self.backup_bucket)))
     job.put()
 
     os.environ['PROJECT_NAME'] = 'oss-fuzz'
@@ -289,8 +294,7 @@ class CorpusPruningTestUntrusted(
         last_run=datetime.datetime.now()).put()
 
     environment.set_value('USE_MINIJAIL', True)
-    environment.set_value('SHARED_CORPUS_BUCKET',
-                          'clusterfuzz-test-shared-corpus')
+    environment.set_value('SHARED_CORPUS_BUCKET', TEST_SHARED_BUCKET)
 
     # Set up remote corpora.
     self.corpus = corpus_manager.FuzzTargetCorpus('libFuzzer', 'test_fuzzer')
@@ -301,8 +305,7 @@ class CorpusPruningTestUntrusted(
     self.quarantine_corpus.rsync_from_disk(
         os.path.join(TEST_DIR, 'quarantine'), delete=True)
 
-    self.mock.get_data_bundle_bucket_name.return_value = (
-        'clusterfuzz-test-global-bundle')
+    self.mock.get_data_bundle_bucket_name.return_value = TEST_GLOBAL_BUCKET
     data_types.DataBundle(
         name='bundle', is_local=True, sync_to_worker=True).put()
 
@@ -321,11 +324,12 @@ class CorpusPruningTestUntrusted(
     corpus_backup_date = (
         datetime.datetime.utcnow().date() -
         datetime.timedelta(days=data_types.CORPUS_BACKUP_PUBLIC_LOOKBACK_DAYS))
-    corpus_backup_dir = (
-        'gs://clusterfuzz-test2-backup-bucket/corpus/libfuzzer/test2_fuzzer/')
+    corpus_backup_dir = ('gs://{bucket}/corpus/libfuzzer/test2_fuzzer/')
     gsutil.GSUtilRunner().run_gsutil([
-        'cp', (corpus_backup_dir + 'backup.zip'),
-        (corpus_backup_dir + '%s.zip' % corpus_backup_date)
+        'cp',
+        (corpus_backup_dir + 'backup.zip').format(bucket=TEST2_BACKUP_BUCKET),
+        (corpus_backup_dir +
+         '%s.zip' % corpus_backup_date).format(bucket=self.backup_bucket)
     ])
 
   def tearDown(self):
