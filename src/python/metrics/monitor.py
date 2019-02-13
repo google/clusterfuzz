@@ -41,7 +41,7 @@ from metrics import logs
 from system import environment
 
 CUSTOM_METRIC_PREFIX = 'custom.googleapis.com/'
-FLUSH_INTERVAL_SECONDS = 20 * 60  # 20 minutes.
+FLUSH_INTERVAL_SECONDS = 10 * 60  # 10 minutes.
 RETRY_DEADLINE_SECONDS = 90
 MAX_TIME_SERIES_PER_CALL = 200
 
