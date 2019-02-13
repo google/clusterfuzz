@@ -858,9 +858,8 @@ def update_heartbeat(force_update=False):
   # Check if the heartbeat was recently updated. If yes, bail out.
   last_modified_time = persistent_cache.get_value(
       HEARTBEAT_LAST_UPDATE_KEY, constructor=datetime.datetime.utcfromtimestamp)
-  if (not force_update and last_modified_time and
-      not dates.time_has_expired(last_modified_time,
-                                 seconds=data_types.HEARTBEAT_WAIT_INTERVAL)):
+  if (not force_update and last_modified_time and not dates.time_has_expired(
+      last_modified_time, seconds=data_types.HEARTBEAT_WAIT_INTERVAL)):
     return 0
 
   bot_name = environment.get_value('BOT_NAME')

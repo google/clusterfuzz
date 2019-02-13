@@ -28,7 +28,7 @@ from tests.test_libs import test_utils
 class TestEngineFuzzer(builtin.EngineFuzzer):
   """A test engine fuzzer."""
 
-  def generate_arguments(self, *_):
+  def generate_arguments(self, *_):  # pylint: disable=arguments-differ
     return '-arg1 -arg2'
 
 
