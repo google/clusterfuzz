@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+"""Uses polymer-bundler to combine resources to reduce number of requests."""
 
 from __future__ import print_function
 
@@ -48,6 +49,7 @@ def build_file(filename):
 
 
 def main():
+  """Use polymer-bundler to compile templates."""
   os.chdir(APPENGINE_DIRECTORY)
 
   bundled_change_times = get_file_modified_times('templates')
