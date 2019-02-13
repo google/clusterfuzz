@@ -25,11 +25,11 @@ from system import shell
 
 try:
   from google_cloud_utils import gsutil
-  DEFAULT_GSUTIL_RUNNER = gsutil.GSUtilRunner  # pylint: disable=invalid-name
+  DefaultGSUtilRunner = gsutil.GSUtilRunner
 except:
   # This is expected to fail on App Engine.
   gsutil = None
-  DEFAULT_GSUTIL_RUNNER = None
+  DefaultGSUtilRunner = None
 
 BACKUP_ARCHIVE_FORMAT = 'zip'
 CORPUS_FILES_SYNC_TIMEOUT = 60 * 60
@@ -204,7 +204,7 @@ class GcsCorpus(object):
                bucket_name,
                bucket_path='/',
                log_results=True,
-               _gsutil_runner=DEFAULT_GSUTIL_RUNNER):
+               _gsutil_runner=DefaultGSUtilRunner):
     """Inits the GcsCorpus.
 
     Args:
@@ -311,7 +311,7 @@ class FuzzTargetCorpus(GcsCorpus):
                project_qualified_target_name,
                quarantine=False,
                log_results=True,
-               _gsutil_runner=DEFAULT_GSUTIL_RUNNER):
+               _gsutil_runner=DefaultGSUtilRunner):
     """Inits the FuzzTargetCorpus.
 
     Args:
