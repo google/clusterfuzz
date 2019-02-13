@@ -34,8 +34,8 @@ FILE_COPY_BUFFER_SIZE = 10 * 1024 * 1024  # 10 MB.
 HANDLE_OUTPUT_FILE_TYPE_REGEX = re.compile(
     r'.*pid:\s*(\d+)\s*type:\s*File\s*([a-fA-F0-9]+):\s*(.*)')
 
-
 _system_temp_dir = None
+
 
 def copy_file(source_file_path, destination_file_path):
   """Faster version of shutil.copy with buffer size."""
