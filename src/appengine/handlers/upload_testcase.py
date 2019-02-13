@@ -109,7 +109,7 @@ def _read_to_stringio(gcs_path):
   """Return a StringIO representing a GCS object."""
   data = storage.read_data(gcs_path)
   if not data:
-    raise helpers.EarlyExitException('Failed to read uploaded archive.')
+    raise helpers.EarlyExitException('Failed to read uploaded archive.', 500)
 
   return StringIO.StringIO(data)
 
@@ -542,5 +542,5 @@ class UploadHandlerOAuth(base_handler.Handler, UploadHandlerCommon,
 
   @handler.oauth
   @handler.post(handler.FORM, handler.JSON)
-  def post(self):
+  def post(self, *args):
     self.do_post()

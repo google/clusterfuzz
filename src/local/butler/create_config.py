@@ -224,11 +224,11 @@ def set_cors(config_dir, buckets):
 
 
 def execute(args):
+  """Create a new config directory and deployment."""
   # Check this early on, as the deployment at the end would fail otherwise.
   if common.is_git_dirty():
     print('Your checkout contains uncommitted changes. Cannot proceed.')
     sys.exit(1)
-  """Create a new config directory and deployment."""
   verifier = DomainVerifier(args.oauth_client_secrets_path)
 
   gcloud = common.Gcloud(args.project_id)

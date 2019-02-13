@@ -308,7 +308,6 @@ def process_command(task):
           environment_string = minimize_job.get_environment_string()
           environment_string += '\nORIGINAL_JOB_NAME = %s\n' % job_name
           job_name = minimize_job_override
-          job = minimize_job
         else:
           logs.log_error(
               'Job for minimization not found: %s.' % minimize_job_override)

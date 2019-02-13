@@ -25,7 +25,9 @@ from system import shell
 
 try:
   from google_cloud_utils import gsutil
-  DEFAULT_GSUTIL_RUNNER = gsutil.GSUtilRunner
+  # Disable "invalid-name" because fixing the issue will cause pylint to
+  # complain the None assignment is incorrectly named.
+  DEFAULT_GSUTIL_RUNNER = gsutil.GSUtilRunner  # pylint: disable=invalid-name
 except:
   # This is expected to fail on App Engine.
   gsutil = None

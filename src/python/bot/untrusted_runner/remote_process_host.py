@@ -71,7 +71,7 @@ class RemoteProcessRunner(new_process.ProcessRunner):
     super(RemoteProcessRunner, self).__init__(
         executable_path, default_args=default_args)
 
-  def run(self, **kwargs):
+  def run(self, **kwargs):  # pylint: disable=arguments-differ
     # TODO(ochang): This can be implemented, but isn't necessary yet.
     raise NotImplementedError
 

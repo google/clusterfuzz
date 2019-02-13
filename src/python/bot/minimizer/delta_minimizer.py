@@ -20,10 +20,10 @@ import utils
 class DeltaTestcase(minimizer.Testcase):
   """Test case for the delta minimizer."""
 
-  def _process_test_result(self, result, hypothesis):
-    """Update state based on the test result and hypothesis."""
+  def _process_test_result(self, test_passed, hypothesis):
+    """Update state based on test_passed and hypothesis."""
     # If we crashed or cannot split the test into smaller chunks, we're done.
-    if not result or len(hypothesis) <= 1:
+    if not test_passed or len(hypothesis) <= 1:
       return
 
     # Test passed. Break this up into sub-tests.

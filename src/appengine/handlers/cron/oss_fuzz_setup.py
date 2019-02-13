@@ -183,8 +183,6 @@ def get_github_url(url):
         'Failed to get url with code %d and response %s.' % (e.code, e.read()))
     raise
 
-  return None
-
 
 def find_github_item_url(github_json, name):
   """Get url of a blob/tree from a github json response."""

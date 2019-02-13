@@ -16,7 +16,7 @@
 import minimizer
 
 
-class SinglePassMinimizer(minimizer.Minimizer):
+class SinglePassMinimizer(minimizer.Minimizer):  # pylint:disable=abstract-method
   """Do a single pass over the token list."""
 
   def _execute(self, data):
@@ -30,7 +30,7 @@ class SinglePassMinimizer(minimizer.Minimizer):
     return testcase
 
 
-class EmptyTokenRemover(minimizer.Minimizer):
+class EmptyTokenRemover(minimizer.Minimizer):  # pylint:disable=abstract-method
   """Attempt to remove empty tokens."""
 
   def __init__(self, *args, **kwargs):
