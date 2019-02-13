@@ -16,11 +16,15 @@
 import os
 import sys
 
+from local.butler import appengine
 from local.butler import common
 
 
 def execute(_):
   """Lint changed code."""
+  pythonpath = os.getenv('PYTHONPATH', '')
+  os.environ['PYTHONPATH'] = appengine.find_sdk_path() + ':' + pythonpath
+
   if "GOOGLE_CLOUDBUILD" in os.environ:
     # Explicitly compare against master if we're running on the CI
     _, output = common.execute('git diff --name-only master FETCH_HEAD')
