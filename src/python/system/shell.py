@@ -35,6 +35,8 @@ HANDLE_OUTPUT_FILE_TYPE_REGEX = re.compile(
     r'.*pid:\s*(\d+)\s*type:\s*File\s*([a-fA-F0-9]+):\s*(.*)')
 
 
+_system_temp_dir = None
+
 def copy_file(source_file_path, destination_file_path):
   """Faster version of shutil.copy with buffer size."""
   if not os.path.exists(source_file_path):
@@ -141,17 +143,22 @@ def clear_system_temp_directory():
     except:
       pass
 
-  system_temp_directory = tempfile.gettempdir()
+  # Cache system temp directory to avoid iterating through the system dir list
+  # on every gettempdir call. Also, it helps to avoid a case where temp dir
+  # fills up the disk and gets ignored by gettempdir.
+  global _system_temp_dir
+  if not _system_temp_dir:
+    _system_temp_dir = tempfile.gettempdir()
 
   # Use a custom cleanup rather than using |remove_directory| since it
   # recreates the directory and can mess up permissions and symlinks.
-  for root, dirs, files in os.walk(system_temp_directory, topdown=False):
+  for root, dirs, files in os.walk(_system_temp_dir, topdown=False):
     for name in files:
       _delete_object(os.path.join(root, name), os.remove)
 
     for name in dirs:
       _delete_object(os.path.join(root, name), os.rmdir)
-  logs.log('Cleared system temp directory: %s' % system_temp_directory)
+  logs.log('Cleared system temp directory: %s' % _system_temp_dir)
 
 
 def clear_testcase_directories():
