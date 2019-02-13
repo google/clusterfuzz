@@ -1,6 +1,6 @@
 ansible==2.7.7
 crcmod==1.7
-Fabric==1.12.0
+Fabric==1.14.1
 google-compute-engine==2.8.13
 grpcio-tools==1.15.0
 nodeenv==1.0.0
