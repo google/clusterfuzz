@@ -249,6 +249,7 @@ class OssFuzzSetupTest(unittest.TestCase):
             'sanitizers': ['address'],
             'fuzzing_engines': ['libfuzzer',],
             'experimental': True,
+            'selective_unpack': True,
         }),
     ]
 
@@ -397,7 +398,8 @@ class OssFuzzSetupTest(unittest.TestCase):
         'REVISION_VARS_URL = https://commondatastorage.googleapis.com/'
         'clusterfuzz-builds/lib5/lib5-address-%s.srcmap.json\n'
         'MANAGED = True\n'
-        'EXPERIMENTAL = True\n')
+        'EXPERIMENTAL = True\n'
+        'UNPACK_ALL_FUZZ_TARGETS_AND_FILES = False\n')
 
     config = db_config.get()
     self.maxDiff = None  # pylint: disable=invalid-name
@@ -927,20 +929,6 @@ class OssFuzzSetupTest(unittest.TestCase):
                     'members': ['serviceAccount:lib1@serviceaccount.com']
                 }]
             },
-            bucket='artifacts.clusterfuzz-images.appspot.com'),
-        mock.call(
-            body={
-                'resourceId':
-                    'fake',
-                'kind':
-                    'storage#policy',
-                'etag':
-                    'fake',
-                'bindings': [{
-                    'role': 'roles/storage.objectViewer',
-                    'members': ['serviceAccount:lib1@serviceaccount.com']
-                }]
-            },
             bucket='test-shared-corpus-bucket'),
         mock.call(
             body={
@@ -1026,20 +1014,6 @@ class OssFuzzSetupTest(unittest.TestCase):
                 }]
             },
             bucket='clusterfuzz-external-deployment'),
-        mock.call(
-            body={
-                'resourceId':
-                    'fake',
-                'kind':
-                    'storage#policy',
-                'etag':
-                    'fake',
-                'bindings': [{
-                    'role': 'roles/storage.objectViewer',
-                    'members': ['serviceAccount:lib2@serviceaccount.com']
-                }]
-            },
-            bucket='artifacts.clusterfuzz-images.appspot.com'),
         mock.call(
             body={
                 'resourceId':
@@ -1192,20 +1166,6 @@ class OssFuzzSetupTest(unittest.TestCase):
                 }]
             },
             bucket='clusterfuzz-external-deployment'),
-        mock.call(
-            body={
-                'resourceId':
-                    'fake',
-                'kind':
-                    'storage#policy',
-                'etag':
-                    'fake',
-                'bindings': [{
-                    'role': 'roles/storage.objectViewer',
-                    'members': ['serviceAccount:lib3@serviceaccount.com']
-                }]
-            },
-            bucket='artifacts.clusterfuzz-images.appspot.com'),
         mock.call(
             body={
                 'resourceId':
