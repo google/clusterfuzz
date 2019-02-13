@@ -479,6 +479,10 @@ def sync_cf_job(project, info, corpus_bucket, quarantine_bucket, logs_bucket,
         logs.log_error('Invalid view restriction setting %s for project %s.' %
                        (view_restrictions, project))
 
+    selective_unpack = info.get('selective_unpack')
+    if selective_unpack:
+      job.environment_string += 'UNPACK_ALL_FUZZ_TARGETS_AND_FILES = False\n'
+
     job.put()
 
 
@@ -736,8 +740,6 @@ class Handler(base_handler.Handler):
       storage.create_bucket_if_needed(logs_bucket_name, LOGS_LIFECYCLE)
 
       try:
-        # Note: This is expermiental and uses an alpha storage API that could
-        # break at any time.
         add_bucket_iams(info, client, backup_bucket_name, service_account)
         add_bucket_iams(info, client, corpus_bucket_name, service_account)
         add_bucket_iams(info, client, logs_bucket_name, service_account)
@@ -749,9 +751,6 @@ class Handler(base_handler.Handler):
       # shared corpus buckets.
       add_service_account_to_bucket(client, _deployment_bucket_name(),
                                     service_account, OBJECT_VIEWER_IAM_ROLE)
-      # TODO(ochang): Remove this once bucket is public.
-      add_service_account_to_bucket(client, IMAGE_BUCKET_NAME, service_account,
-                                    OBJECT_VIEWER_IAM_ROLE)
       add_service_account_to_bucket(client, _shared_corpus_bucket_name(),
                                     service_account, OBJECT_VIEWER_IAM_ROLE)
 
