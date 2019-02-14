@@ -55,7 +55,7 @@ def start_bot_instance(instance_num):
     os.mkdir(tmp_directory)
 
   env['ROOT_DIR'] = bot_root_directory
-  env['TMPDIR'] = tmp_directory
+  env['BOT_TMPDIR'] = tmp_directory
   env['PYTHONPATH'] = (
       '%s/src:%s' % (bot_root_directory, env['APPENGINE_SDK_PATH']))
 
