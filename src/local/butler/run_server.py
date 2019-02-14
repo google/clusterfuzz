@@ -96,6 +96,7 @@ def start_cron_threads():
   request_timeout = 10 * 60  # 10 minutes.
 
   def trigger(interval_seconds, target):
+    """Trigger a cron job."""
     while True:
       time.sleep(interval_seconds)
 
