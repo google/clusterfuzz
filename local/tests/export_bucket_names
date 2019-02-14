@@ -1,0 +1,7 @@
+#!/bin/bash -x
+export TEST_BUCKET="clusterfuzz-testing-$USER"
+export TEST_BLOBS_BUCKET="clusterfuzz-testing-blobs-$USER"
+export TEST_QUARANTINE_BUCKET="clusterfuzz-quarantine-$USER"
+export TEST_CORPUS_BUCKET="clusterfuzz-corpus-$USER"
+export TEST_BACKUP_BUCKET="clusterfuzz-backup-$USER"
+export TEST_COVERAGE_BUCKET="clusterfuzz-coverage-$USER"
