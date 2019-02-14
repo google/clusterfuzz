@@ -99,12 +99,15 @@ def start_cron_threads():
     while True:
       time.sleep(interval_seconds)
 
-      url = 'http://{host}/{target}'.format(
-          host=constants.CRON_SERVICE_HOST, target=target)
-      request = urllib2.Request(url)
-      request.add_header('X-Appengine-Cron', 'true')
-      response = urllib2.urlopen(request, timeout=request_timeout)
-      response.read(60)  # wait for request to finish.
+      try:
+        url = 'http://{host}/{target}'.format(
+            host=constants.CRON_SERVICE_HOST, target=target)
+        request = urllib2.Request(url)
+        request.add_header('X-Appengine-Cron', 'true')
+        response = urllib2.urlopen(request, timeout=request_timeout)
+        response.read(60)  # wait for request to finish.
+      except Exception:
+        continue
 
   crons = (
       (90, 'cleanup'),
