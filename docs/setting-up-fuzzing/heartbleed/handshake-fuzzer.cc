@@ -22,9 +22,15 @@
 #include <stddef.h>
 #include <stdio.h>
 #include <string>
-#include <filesystem>
 
+#ifdef __cpp_lib_filesystem
+#include <filesystem>
 static std::filesystem::path filepath;
+#else
+#include <experimental/filesystem>
+static std::experimental::filesystem::path filepath;
+#endif
+
 static SSL_CTX *sctx;
 
 class  Environment {
