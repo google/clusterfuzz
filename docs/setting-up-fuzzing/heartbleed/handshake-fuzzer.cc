@@ -30,6 +30,7 @@ static std::filesystem::path filepath;
 #include <experimental/filesystem>
 static std::experimental::filesystem::path filepath;
 #endif
+
 static SSL_CTX *sctx;
 
 class  Environment {
