@@ -149,8 +149,7 @@ def _get_build_bucket_for_engine(engine):
   if engine == 'none':
     return NO_ENGINE_BUILD_BUCKET
 
-  assert OssFuzzSetupException('Invalid fuzzing engine.')
-  return None  # Otherwise pylint is not happy.
+  raise OssFuzzSetupException('Invalid fuzzing engine.')
 
 
 def _to_experimental_job(job_info):
