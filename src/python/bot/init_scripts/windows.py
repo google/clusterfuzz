@@ -19,6 +19,7 @@ import subprocess
 from base import retry
 from base import utils
 from bot.init_scripts import init_runner
+from metrics import logs
 from system import environment
 from system import shell
 
@@ -65,6 +66,7 @@ def remount_if_needed():
   subprocess.call(['umount', '-f', nfs_root])
 
   # Mount the nfs drive.
+  logs.log_warn('Trying to remount the NFS volume.')
 
   nfs_volume_path = '%s:/%s' % (nfs_host, nfs_volume)
   subprocess.check_call([
