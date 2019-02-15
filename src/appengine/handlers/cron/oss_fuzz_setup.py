@@ -215,7 +215,7 @@ def get_projects():
       continue
 
     projects_yaml = get_github_url(project_yaml_url)
-    info = yaml.load(base64.b64decode(projects_yaml['content']))
+    info = yaml.safe_load(base64.b64decode(projects_yaml['content']))
 
     has_dockerfile = (
         find_github_item_url(item_json, 'Dockerfile') or 'dockerfile' in info)
