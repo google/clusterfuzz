@@ -34,7 +34,10 @@ class DeployTest(fake_filesystem_unittest.TestCase):
   def setUp(self):
     real_cwd = os.path.realpath(os.getcwd())
     test_utils.set_up_pyfakefs(self)
-    self.fs.add_real_directory(real_cwd, read_only=False, lazy_read=False)
+    self.fs.add_real_directory(os.path.join(real_cwd, 'src', 'appengine'),
+                               read_only=False)
+    self.fs.add_real_directory(os.path.join(real_cwd, 'src', 'go', 'server'),
+                               read_only=False)
     os.chdir(real_cwd)
 
     helpers.patch_environ(self)
