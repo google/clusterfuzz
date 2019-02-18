@@ -7,9 +7,4 @@ services:
 before_install:
   - docker pull gcr.io/clusterfuzz-images/ci
 
-jobs:
-  include:
-    - stage: lint
-      script: docker run -ti --rm -e TRAVIS_BRANCH=$TRAVIS_BRANCH -v $TRAVIS_BUILD_DIR:/workspace gcr.io/clusterfuzz-images/ci python butler.py lint
-    - stage: unit tests
-      script: docker run -ti --rm -v $TRAVIS_BUILD_DIR:/workspace gcr.io/clusterfuzz-images/ci local/tests/run_tests
+script: travis_build.bash
