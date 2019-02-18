@@ -25,9 +25,12 @@ def execute(_):
   pythonpath = os.getenv('PYTHONPATH', '')
   os.environ['PYTHONPATH'] = appengine.find_sdk_path() + ':' + pythonpath
 
-  if "GOOGLE_CLOUDBUILD" in os.environ:
+  if 'GOOGLE_CLOUDBUILD' in os.environ:
     # Explicitly compare against master if we're running on the CI
     _, output = common.execute('git diff --name-only master FETCH_HEAD')
+  elif 'TRAVIS_BRANCH' in os.environ:
+    _, output = common.execute(
+        'git diff --name-only --diff-filter=AM HEAD...$TRAVIS_BRANCH')
   else:
     _, output = common.execute('git diff --name-only FETCH_HEAD')
 
