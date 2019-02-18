@@ -10,6 +10,6 @@ before_install:
 jobs:
   include:
     - stage: lint
-      script: docker run -ti --rm -v -e TRAVIS_BRANCH=$TRAVIS_BRANCH $TRAVIS_BUILD_DIR:/workspace python butler.py lint
+      script: docker run -ti --rm -v -e TRAVIS_BRANCH=$TRAVIS_BRANCH $TRAVIS_BUILD_DIR:/workspace gcr.io/clusterfuzz-images/ci python butler.py lint
     - stage: unit tests
-      script: docker run -ti --rm -v $TRAVIS_BUILD_DIR:/workspace local/run_tests
+      script: docker run -ti --rm -v $TRAVIS_BUILD_DIR:/workspace gcr.io/clusterfuzz-images/ci local/run_tests
