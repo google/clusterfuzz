@@ -7,4 +7,4 @@ services:
 before_install:
   - docker pull gcr.io/clusterfuzz-images/ci
 
-script: travis_build.bash
+script: ./travis_build.bash
