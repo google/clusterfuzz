@@ -8,4 +8,4 @@ before_install:
   - git fetch origin +refs/heads/$TRAVIS_BRANCH
   - docker pull gcr.io/clusterfuzz-images/ci
 
-script: ./travis_build.bash
+script: ./local/tests/travis_build.bash

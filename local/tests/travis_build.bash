@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/bash -ex
 
 export IMAGE=gcr.io/clusterfuzz-images/ci
 
