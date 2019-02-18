@@ -170,7 +170,6 @@ class RegularBuildTest(fake_filesystem_unittest.TestCase):
 
     test_helpers.patch_environ(self)
 
-    os.environ['ROOT_DIR'] = '/'
     os.environ['BUILDS_DIR'] = '/builds'
     os.environ['FAIL_RETRIES'] = '1'
     os.environ['APP_NAME'] = FAKE_APP_NAME
@@ -287,7 +286,6 @@ class RegularLibFuzzerBuildTest(fake_filesystem_unittest.TestCase):
 
     test_helpers.patch_environ(self)
 
-    os.environ['ROOT_DIR'] = '/'
     os.environ['BUILDS_DIR'] = '/builds'
     os.environ['FAIL_RETRIES'] = '1'
     os.environ['APP_NAME'] = FAKE_APP_NAME
@@ -449,7 +447,6 @@ class SymbolizedBuildTest(fake_filesystem_unittest.TestCase):
 
     test_helpers.patch_environ(self)
 
-    os.environ['ROOT_DIR'] = '/'
     os.environ['BUILDS_DIR'] = '/builds'
     os.environ['FAIL_RETRIES'] = '1'
     os.environ['APP_NAME'] = FAKE_APP_NAME
@@ -654,7 +651,6 @@ class ProductionBuildTest(fake_filesystem_unittest.TestCase):
 
     test_helpers.patch_environ(self)
 
-    os.environ['ROOT_DIR'] = '/'
     os.environ['BUILDS_DIR'] = '/builds'
     os.environ['FAIL_RETRIES'] = '1'
     os.environ['APP_NAME'] = FAKE_APP_NAME
@@ -782,7 +778,6 @@ class CustomBuildTest(fake_filesystem_unittest.TestCase):
         'time.time',
     ])
 
-    os.environ['ROOT_DIR'] = '/'
     os.environ['BUILDS_DIR'] = '/builds'
     os.environ['FAIL_RETRIES'] = '1'
     os.environ['APP_NAME'] = FAKE_APP_NAME
@@ -886,7 +881,6 @@ class SystemBuildTest(fake_filesystem_unittest.TestCase):
 
     test_helpers.patch_environ(self)
 
-    os.environ['ROOT_DIR'] = '/'
     os.environ['BUILDS_DIR'] = '/builds'
     os.environ['FAIL_RETRIES'] = '1'
     os.environ['APP_NAME'] = FAKE_APP_NAME

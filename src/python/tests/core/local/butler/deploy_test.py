@@ -38,7 +38,6 @@ class DeployTest(fake_filesystem_unittest.TestCase):
                                read_only=False)
     self.fs.add_real_directory(os.path.join(real_cwd, 'src', 'go', 'server'),
                                read_only=False)
-    os.chdir(real_cwd)
 
     helpers.patch_environ(self)
     helpers.patch(self, [

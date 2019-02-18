@@ -352,9 +352,11 @@ def with_cloud_emulators(*emulator_names):
 
 def set_up_pyfakefs(test_self):
   """Helper to set up Pyfakefs."""
+  real_cwd = os.path.realpath(os.getcwd())
   config_dir = os.path.realpath(environment.get_config_directory())
   test_self.setUpPyfakefs()
-  test_self.fs.add_real_directory(config_dir)
+  test_self.fs.add_real_directory(config_dir, lazy_read=False)
+  os.chdir(real_cwd)
 
 
 def supported_platforms(*platforms):
