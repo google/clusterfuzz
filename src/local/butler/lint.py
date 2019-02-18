@@ -30,7 +30,7 @@ def execute(_):
     _, output = common.execute('git diff --name-only master FETCH_HEAD')
   elif 'TRAVIS_BRANCH' in os.environ:
     _, output = common.execute(
-        'git diff --name-only --diff-filter=AM HEAD...$TRAVIS_BRANCH')
+        'git diff --name-only HEAD $(git merge-base HEAD FETCH_HEAD)')
   else:
     _, output = common.execute('git diff --name-only FETCH_HEAD')
 
