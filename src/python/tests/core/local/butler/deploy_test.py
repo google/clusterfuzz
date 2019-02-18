@@ -32,10 +32,9 @@ class DeployTest(fake_filesystem_unittest.TestCase):
   """Deploy tests."""
 
   def setUp(self):
-    print os.getcwd(), os.path.realpath(os.getcwd())
     real_cwd = os.path.realpath(os.getcwd())
     test_utils.set_up_pyfakefs(self)
-    self.fs.add_real_directory(real_cwd, read_only=False)
+    self.fs.add_real_directory(real_cwd, read_only=False, lazy_read=False)
     os.chdir(real_cwd)
 
     helpers.patch_environ(self)
