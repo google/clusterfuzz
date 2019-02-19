@@ -8,7 +8,7 @@
           "v": "testFuzzer_1_fuzzer"
         }, 
         {
-          "v": "job1"
+          "v": "job"
         },
         {
           "v": "testFuzzer_1_fuzzer"
