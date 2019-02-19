@@ -29,7 +29,7 @@ func TestMain(m *testing.M) {
 	os.Setenv("GOOGLE_CLOUD_PROJECT", os.Getenv("DATASTORE_PROJECT_ID"))
 	db.Init()
 
-	buckets.RegisterProvider(gcs.Scheme, gcs.New())
+	buckets.RegisterProvider(gcs.Scheme, gcs.NewForTesting())
 
 	result := m.Run()
 	emulators.Cleanup(emulator)
