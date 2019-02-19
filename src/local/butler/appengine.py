@@ -73,6 +73,7 @@ def copy_yamls_and_preprocess(paths):
     if os.path.exists(rebased_path):
       os.remove(rebased_path)
     shutil.copy(path, rebased_path)
+    os.chmod(rebased_path, 0600)
 
     _add_env_vars_if_needed(rebased_path)
     rebased_paths.append(rebased_path)
