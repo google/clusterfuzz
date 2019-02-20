@@ -30,7 +30,7 @@ An LLVM-based toolchain is needed for full ClusterFuzz support for two reasons:
 We strongly recommend using an LLVM-based toolchain. That said, you may be able
 to use some parts of ClusterFuzz with [GCC](https://gcc.gnu.org/) or extend
 ClusterFuzz to support your use of GCC. However, if you do this, you are in
-unexplored territory and we can not support this. GCC can probably be used for
+unexplored territory and we can not support this. GCC may work for
 [blackbox fuzzing]({{ site.baseurl }}/setting-up-fuzzing/blackbox-fuzzing/)
 without modifying ClusterFuzz since GCC supports ASan. Using GCC with AFL or
 libFuzzer would probably require considerable changes to ClusterFuzz to get
