@@ -12,14 +12,12 @@ permalink: /reference/faq/
 # What languages does ClusterFuzz support?
 
 ClusterFuzz definitely supports C, C++ when compiled with
-[clang](https://clang.llvm.org/). It should also support Rust and it probably
-supports other languages that can be compiled with an LLVM-based toolchain (e.g.
-Swift).
+[clang](https://clang.llvm.org/). It also supports Rust and it probably supports
+other languages that can be compiled with an LLVM-based toolchain (e.g. Swift).
 
-## Why is an LLVM-based toolchain required?
+## Why is an LLVM-based toolchain needed for full support?
 
-An LLVM-based toolchain is required (or at least strongly recommended) for two
-reasons:
+An LLVM-based toolchain is needed for full ClusterFuzz support for two reasons:
 * Because ClusterFuzz relies on LLVM [sanitizers]({{ site.baseurl }}/reference/glossary/#Sanitizer) 
   for detecting and identifying bugs.
 
