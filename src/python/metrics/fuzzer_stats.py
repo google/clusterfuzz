@@ -393,7 +393,9 @@ class BaseCoverageField(object):
       coverage_info = self.ctx.get_coverage_info(group_by_value)
 
     elif group_by == QueryGroupBy.GROUP_BY_JOB:
-      # Return the latest coverage data for the fuzzer.
+      # Return the latest coverage data for the fuzzer. Even though we group by
+      # job here, coverage information does not differ accross jobs. As of now,
+      # it only depends on the fuzzer name and the date.
       coverage_info = self.ctx.get_coverage_info(self.ctx.fuzzer)
 
     return coverage_info
