@@ -31,7 +31,7 @@ reasons:
 We strongly recommend using an LLVM-based toolchain. That said, you may be able
 to use some parts of ClusterFuzz with [gcc](https://gcc.gnu.org/) or extend
 ClusterFuzz to support your use of gcc. However, if you do this, you are in
-unexplored territory and we can not support this. gcc can probably be used for
+unexplored territory and we can not support this. Gcc can probably be used for
 [blackbox fuzzing]({{ site.baseurl }}/setting-up-fuzzing/blackbox-fuzzing/)
 without modifying ClusterFuzz since gcc supports ASan. Using gcc with AFL or
 libFuzzer would probably require considerable changes to ClusterFuzz to get
