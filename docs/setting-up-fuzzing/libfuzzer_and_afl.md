@@ -20,11 +20,12 @@ features such as dictionaries and seed corpus.
 
 ### Compiler
 LibFuzzer and AFL need to use instrumentation from the Clang compiler. In our
-documentation, we use features provided by Clang **6.0** or greater. To get a
-Clang that can be used to follow the examples, download one from the [Clang
-releases page] or install one using your package manager. We will refer to these
-compilers as `$CC` and `$CXX`. Set these in the environment so that you can copy
-and paste the example commands:
+documentation, we use features provided by Clang **6.0** or greater. However, we
+recommend using as close to ToT clang as possible. To get a Clang that can be
+used to follow the examples, download one from the [Clang releases page] or
+install one using your package manager. We will refer to these compilers as
+`$CC` and `$CXX`. Set these in the environment so that you can copy and paste
+the example commands:
 
 ```bash
 export CC=/path/to/clang
