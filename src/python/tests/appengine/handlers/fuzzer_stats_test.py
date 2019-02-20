@@ -192,7 +192,9 @@ class TestBuildResults(unittest.TestCase):
 
   def test_build_by_job(self):
     """Tests basic build_results with valid parameters (group by job)."""
-    build_args = [ 'testFuzzer_1_fuzzer', None, 'by-job', '2016-10-20', '2016-10-21' ]
+    build_args = [
+        'testFuzzer_1_fuzzer', None, 'by-job', '2016-10-20', '2016-10-21'
+    ]
     self.client.raw_query.return_value = _mock_query(*build_args)
     result = fuzzer_stats.build_results(*build_args)
 
