@@ -19,26 +19,7 @@ if ! which brew > /dev/null 2>&1; then
   exit 1
 fi
 
-bazel_tap="bazelbuild/tap"
-
-if ! brew tap | grep $bazel_tap > /dev/null 2>&1; then
-  brew tap $bazel_tap
-fi
-
-if ! brew tap --list-pinned | grep $bazel_tap > /dev/null 2>&1; then
-  brew tap-pin $bazel_tap
-fi
-
-brew install \
-    bazel \
-    golang \
-    node \
-    nodeenv \
-    npm \
-    pkill \
-    python@2 \
-    xz
-
+brew bundle --file=$(dirname "$0")/Brewfile
 pip install virtualenv
 
 # Setup virtualenv.
