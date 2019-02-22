@@ -138,11 +138,14 @@ def chrome_dsym_hints(binary):
 
 def disable_buffering():
   """Make this process and child processes stdout unbuffered."""
-  if not os.environ.get('PYTHONUNBUFFERED'):
-    # Since sys.stdout is a C++ object, it's impossible to do
-    # sys.stdout.write = lambda...
+  os.environ['PYTHONUNBUFFERED'] = 'x'
+
+  if not isinstance(sys.stdout, LineBuffered):
+    # Don't wrap sys.stdout if it is already wrapped.
+    # See https://github.com/google/clusterfuzz/issues/234 for why.
+    # Since sys.stdout is a C++ object, it's impossible to do sys.stdout.write =
+    # lambda...
     sys.stdout = LineBuffered(sys.stdout)
-    os.environ['PYTHONUNBUFFERED'] = 'x'
 
 
 def fix_filename(file_name):
