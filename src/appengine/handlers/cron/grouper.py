@@ -99,6 +99,7 @@ def group_testcases():
     # Remove duplicates early on to avoid large groups.
     if (not testcase.bug_information and not testcase.uploader_email and
         has_testcase_with_same_params(testcase, testcase_map)):
+      logs.log('Deleting duplicate testcase %s.' % testcase_id)
       testcase.key.delete()
       continue
 
