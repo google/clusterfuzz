@@ -11,6 +11,7 @@ go_library(
         "@com_github_pkg_errors//:go_default_library",
         "@com_google_cloud_go//storage:go_default_library",
         "@org_golang_google_api//iterator:go_default_library",
+        "@org_golang_google_api//option:go_default_library",
     ],
 )
 

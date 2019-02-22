@@ -1,0 +1,85 @@
+{
+  "cacheHit": true, 
+  "kind": "bigquery#queryResponse", 
+  "rows": [
+    {
+      "f": [
+        {
+          "v": "testFuzzer_1_fuzzer"
+        }, 
+        {
+          "v": "job"
+        },
+        {
+          "v": "testFuzzer_1_fuzzer"
+        }, 
+        {
+          "v": "2"
+        } 
+      ]
+    }, 
+    {
+      "f": [
+        {
+          "v": "testFuzzer_1_fuzzer"
+        }, 
+        {
+          "v": "job2"
+        },
+        {
+          "v": "testFuzzer_1_fuzzer"
+        }, 
+        {
+          "v": "5"
+        } 
+      ]
+    }, 
+    {
+      "f": [
+        {
+          "v": "testFuzzer_1_fuzzer"
+        }, 
+        {
+          "v": "job3"
+        },
+        {
+          "v": "testFuzzer_1_fuzzer"
+        }, 
+        {
+          "v": "123"
+        } 
+      ]
+    }
+  ], 
+  "jobReference": {
+    "projectId": "testbed-test",
+    "jobId": "job_4DYbF3yc1TqH1dD7xo07WUIuhTc"
+  }, 
+  "jobComplete": true, 
+  "totalRows": "3", 
+  "totalBytesProcessed": "0",
+  "schema": {
+    "fields": [
+      {
+        "type": "STRING",
+        "mode": "NULLABLE",
+        "name": "j_fuzzer"
+      }, 
+      {
+        "type": "STRING",
+        "mode": "NULLABLE",
+        "name": "j_job"
+      },
+			{ "mode": "NULLABLE",
+				"name": "t_fuzzer",
+				"type": "STRING"
+			},
+      {
+        "type": "INTEGER",
+        "mode": "NULLABLE",
+        "name": "new_crashes"
+      }
+    ]
+  }
+}
+

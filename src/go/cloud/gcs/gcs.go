@@ -23,6 +23,7 @@ import (
 	"cloud.google.com/go/storage"
 	"github.com/pkg/errors"
 	"google.golang.org/api/iterator"
+	"google.golang.org/api/option"
 
 	"clusterfuzz/go/base/buckets"
 	"clusterfuzz/go/base/logs"
@@ -50,15 +51,25 @@ type iteratorAdapter struct {
 	bucket string
 }
 
-// New creates a new buckets.Provider for GCS.
-func New() buckets.Provider {
+// newWithOptions returns a new Provider with the given options.
+func newWithOptions(options ...option.ClientOption) buckets.Provider {
 	ctx := context.Background()
-	client, err := storage.NewClient(ctx)
+	client, err := storage.NewClient(ctx, options...)
 	if err != nil {
 		logs.Panicf("Failed to get GCS client: %v", err)
 	}
 
 	return &bucketProvider{client}
+}
+
+// New creates a new buckets.Provider for GCS.
+func New() buckets.Provider {
+	return newWithOptions()
+}
+
+// NewForTesting creates a new buckets.Provider for testing.
+func NewForTesting() buckets.Provider {
+	return newWithOptions(option.WithoutAuthentication())
 }
 
 // getObject returns the storage.ObjectHandle for the given bucket and path.
