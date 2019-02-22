@@ -138,7 +138,7 @@ def chrome_dsym_hints(binary):
 
 def disable_buffering():
   """Make this process and child processes stdout unbuffered."""
-  os.environ['PYTHONUNBUFFERED'] = 'x'
+  os.environ['PYTHONUNBUFFERED'] = '1'
 
   if not isinstance(sys.stdout, LineBuffered):
     # Don't wrap sys.stdout if it is already wrapped.
