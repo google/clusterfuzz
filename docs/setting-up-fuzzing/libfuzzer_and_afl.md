@@ -20,16 +20,23 @@ features such as dictionaries and seed corpus.
 
 ### Compiler
 LibFuzzer and AFL need to use instrumentation from the Clang compiler. In our
-documentation, we use features provided by Clang **6.0** or greater. To get a
-Clang that can be used to follow the examples, download one from the [Clang
-releases page] or install one using your package manager. We will refer to these
-compilers as `$CC` and `$CXX`. Set these in the environment so that you can copy
-and paste the example commands:
+documentation, we use features provided by Clang **6.0** or greater. However,
+for serious use of ClusterFuzz, we recommend using as close to trunk Clang as
+possible. To get a Clang build that is close to trunk you can download it from
+the [snapshots page] (Windows) or follow the instructions on the [apt page]
+(Ubuntu/Debian). Otherwise you can download a Clang release from the [releases
+page] or install one using your package manager. We will refer to these
+compilers in examples as `$CC` and `$CXX`. Set these in the environment so that
+you can copy and paste the example commands:
 
 ```bash
 export CC=/path/to/clang
 export CXX=/path/to/clang++
 ```
+
+[releases page]: http://releases.llvm.org/download.html
+[apt page]: https://apt.llvm.org/
+[snapshots page]: https://llvm.org/builds/
 
 ### Platform
 libFuzzer is supported on Linux, macOS, and Windows. For Windows, you will need
@@ -37,8 +44,6 @@ to change the commands to work in cmd.exe and you will need Clang **9.0** or
 greater which you can download from the [LLVM Snapshot Builds page].
 
 AFL is only supported on Linux.
-
-[LLVM Snapshot Builds page]: https://llvm.org/builds/
 
 ## Builds
 
@@ -157,7 +162,6 @@ also use libFuzzer which supports these tasks.
 
 [AFL]: http://lcamtuf.coredump.cx/afl/
 [AddressSanitizer]: https://clang.llvm.org/docs/AddressSanitizer.html
-[Clang releases page]: http://releases.llvm.org/download.html
 [afl_driver.cpp]: https://raw.githubusercontent.com/llvm-mirror/compiler-rt/master/lib/fuzzer/afl/afl_driver.cpp
 [bot logs]: {{ site.baseurl }}/getting-started/local-instance/#viewing-logs
 [build pipeline]: {{ site.baseurl }}/production-setup/build-pipeline/
