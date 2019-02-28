@@ -799,8 +799,7 @@ def main(argv):
   if do_fork():
     # TODO(metzman): Use `-fork=2` on Windows.
     arguments.append('%s%d' % (constants.FORK_FLAG, 1))
-    fuzzing_strategies.append(strategy.FORK_STRATEGY)
-    fuzzing_strategies.append('%s_%d', strategy.FORK_STRATEGY)
+    fuzzing_strategies.append('%s_%d' % (strategy.FORK_STRATEGY, 1))
 
   # Execute the fuzzer binary with original arguments.
   fuzz_result = runner.fuzz(
