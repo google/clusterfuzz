@@ -40,6 +40,16 @@ CLUSTERFUZZ_AUTHORIZATION_IDENTITY = 'x-clusterfuzz-identity'
 VERIFICATION_CODE_PREFIX = 'VerificationCode '
 BEARER_PREFIX = 'Bearer '
 
+DEFAULT_CSP = (
+    'default-src \'none\';'
+    'script-src \'unsafe-inline\' \'unsafe-eval\' '
+    'www.google-analytics.com www.gstatic.com; '
+    'style-src \'unsafe-inline\' fonts.googleapis.com www.gstatic.com;'
+    'font-src \'self\' fonts.gstatic.com; '
+    'connect-src \'self\'; '
+    'img-src \'self\'; '
+    'manifest-src \'self\';')
+
 _auth_config_obj = None
 
 
@@ -353,6 +363,8 @@ def post(request_content_type, response_content_type):
         self.response.headers['Content-Type'] = 'application/json'
       elif response_content_type == TEXT:
         self.response.headers['Content-Type'] = 'text/plain'
+      elif response_content_type == HTML:
+        self.response.headers['Content-Security-Policy'] = DEFAULT_CSP
 
       if request_content_type == JSON:
         extend_json_request(self.request)
@@ -379,6 +391,8 @@ def get(response_content_type):
         self.response.headers['Content-Type'] = 'application/json'
       elif response_content_type == TEXT:
         self.response.headers['Content-Type'] = 'text/plain'
+      elif response_content_type == HTML:
+        self.response.headers['Content-Security-Policy'] = DEFAULT_CSP
 
       extend_request(self.request, self.request.params)
       return func(self, *args, **kwargs)
