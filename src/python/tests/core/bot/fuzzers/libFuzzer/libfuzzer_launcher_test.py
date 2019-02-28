@@ -692,6 +692,7 @@ class LauncherTest(fake_fs_unittest.TestCase):
         'strategy_value_profile': 0,
         'timeout_count': 0
     }
+
     self.assertEqual(parsed_stats, expected_stats)
 
   def test_parse_log_and_stats_crash(self):
