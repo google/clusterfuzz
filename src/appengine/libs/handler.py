@@ -41,7 +41,7 @@ VERIFICATION_CODE_PREFIX = 'VerificationCode '
 BEARER_PREFIX = 'Bearer '
 
 DEFAULT_CSP = (
-    'default-src \'none\';'
+    'default-src \'none\'; '
     'script-src \'unsafe-inline\' \'unsafe-eval\' '
     'www.google-analytics.com www.gstatic.com; '
     'style-src \'unsafe-inline\' fonts.googleapis.com www.gstatic.com;'
