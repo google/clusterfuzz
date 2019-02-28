@@ -44,7 +44,7 @@ DEFAULT_CSP = (
     'default-src \'none\'; '
     'script-src \'unsafe-inline\' \'unsafe-eval\' '
     'www.google-analytics.com www.gstatic.com; '
-    'style-src \'unsafe-inline\' fonts.googleapis.com www.gstatic.com;'
+    'style-src \'unsafe-inline\' fonts.googleapis.com www.gstatic.com; '
     'font-src \'self\' fonts.gstatic.com; '
     'connect-src \'self\'; '
     'img-src \'self\'; '
