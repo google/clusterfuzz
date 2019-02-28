@@ -140,14 +140,13 @@ def parse_fuzzing_strategies(log_lines, strategies):
 
   for line in strategies:
     parse_line_for_strategy_prefix(line, strategy.CORPUS_SUBSET_STRATEGY)
+    parse_line_for_strategy_prefix(line, strategy.FORK_STRATEGY)
 
   # Other strategies are either ON or OFF, without arbitrary values.
   if strategy.CORPUS_MUTATION_RADAMSA_STRATEGY in strategies:
     stats['strategy_corpus_mutations_radamsa'] = 1
   if strategy.CORPUS_MUTATION_ML_RNN_STRATEGY in strategies:
     stats['strategy_corpus_mutations_ml_rnn'] = 1
-  if strategy.FORK_STRATEGY in strategies:
-    stats['strategy_fork'] = 1
   if strategy.RANDOM_MAX_LENGTH_STRATEGY in strategies:
     stats['strategy_random_max_len'] = 1
   if strategy.RECOMMENDED_DICTIONARY_STRATEGY in strategies:

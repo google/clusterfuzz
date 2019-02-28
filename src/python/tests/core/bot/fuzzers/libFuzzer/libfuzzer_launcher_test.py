@@ -398,7 +398,7 @@ class LauncherTest(fake_fs_unittest.TestCase):
               'strategy_corpus_subset':
                   50,
               'strategy_fork':
-                  0,
+                  1,
               'strategy_random_max_len':
                   1,
               'strategy_recommended_dict':
@@ -692,7 +692,6 @@ class LauncherTest(fake_fs_unittest.TestCase):
         'strategy_value_profile': 0,
         'timeout_count': 0
     }
-
     self.assertEqual(parsed_stats, expected_stats)
 
   def test_parse_log_and_stats_crash(self):
@@ -881,6 +880,7 @@ class LauncherTest(fake_fs_unittest.TestCase):
         'strategy_corpus_mutations_radamsa': 0,
         'strategy_corpus_mutations_ml_rnn': 0,
         'strategy_corpus_subset': 1,
+        'strategy_fork': 0,
         'strategy_random_max_len': 0,
         'strategy_recommended_dict': 0,
         'strategy_value_profile': 0,
@@ -1236,6 +1236,8 @@ class LauncherTest(fake_fs_unittest.TestCase):
               'strategy_corpus_mutations_ml_rnn':
                   0,
               'strategy_corpus_subset':
+                  0,
+              'strategy_fork':
                   0,
               'strategy_random_max_len':
                   0,

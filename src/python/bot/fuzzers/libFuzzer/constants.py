@@ -24,6 +24,8 @@ ARTIFACT_PREFIX_FLAG = '-artifact_prefix='
 
 DICT_FLAG = '-dict='
 
+FORK_FLAG = '-fork='
+
 MAX_LEN_FLAG = '-max_len='
 
 MAX_TOTAL_TIME_FLAG = '-max_total_time='
@@ -40,8 +42,6 @@ EXACT_ARTIFACT_PATH_FLAG = '-exact_artifact_path='
 ANALYZE_DICT_ARGUMENT = '-analyze_dict=1'
 
 CLEANSE_CRASH_ARGUMENT = '-cleanse_crash=1'
-
-FORK_ARGUMENT = '-fork=1'
 
 MERGE_ARGUMENT = '-merge=1'
 
