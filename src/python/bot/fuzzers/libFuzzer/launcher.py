@@ -96,6 +96,8 @@ MERGED_DICT_SUFFIX = '.merged'
 
 ENGINE_ERROR_MESSAGE = 'libFuzzer: engine encountered an error.'
 
+FORK_PROBABILITY = 0.1
+
 
 class Generator(object):
   """Generators we can use."""
@@ -156,6 +158,13 @@ def do_value_profile():
   return engine_common.decide_with_probability(
       engine_common.get_strategy_probability(
           strategy.VALUE_PROFILE_STRATEGY, default=VALUE_PROFILE_PROBABILITY))
+
+
+def do_fork():
+  """Return whether or not to do fork mode."""
+  return engine_common.decide_with_probability(
+      engine_common.get_strategy_probability(
+          strategy.FORK_STRATEGY, default=FORK_PROBABILITY))
 
 
 def add_recommended_dictionary(arguments, fuzzer_name, fuzzer_path):
@@ -786,6 +795,10 @@ def main(argv):
   if do_value_profile():
     arguments.append(constants.VALUE_PROFILE_ARGUMENT)
     fuzzing_strategies.append(strategy.VALUE_PROFILE_STRATEGY)
+
+  if do_fork():
+    arguments.append(constants.FORK_ARGUMENT)
+    fuzzing_strategies.append(strategy.FORK_STRATEGY)
 
   # Execute the fuzzer binary with original arguments.
   fuzz_result = runner.fuzz(

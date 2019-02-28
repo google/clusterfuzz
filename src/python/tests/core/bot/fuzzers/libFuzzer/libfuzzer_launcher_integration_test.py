@@ -100,6 +100,7 @@ class BaseLauncherTest(unittest.TestCase):
         'bot.fuzzers.engine_common.do_corpus_subset',
         'bot.fuzzers.engine_common.get_merge_timeout',
         'bot.fuzzers.engine_common.random_choice',
+        'bot.fuzzers.libFuzzer.launcher.do_fork',
         'bot.fuzzers.libFuzzer.launcher.do_ml_rnn_generator',
         'bot.fuzzers.libFuzzer.launcher.do_radamsa_generator',
         'bot.fuzzers.libFuzzer.launcher.do_random_max_length',
@@ -116,6 +117,7 @@ class BaseLauncherTest(unittest.TestCase):
     self.mock.getpid.return_value = 1337
 
     self.mock.do_corpus_subset.return_value = False
+    self.mock.do_fork.return_value = False
     self.mock.do_ml_rnn_generator.return_value = False
     self.mock.do_radamsa_generator.return_value = False
     self.mock.do_random_max_length.return_value = False

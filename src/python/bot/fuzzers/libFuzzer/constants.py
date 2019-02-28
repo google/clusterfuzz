@@ -41,6 +41,8 @@ ANALYZE_DICT_ARGUMENT = '-analyze_dict=1'
 
 CLEANSE_CRASH_ARGUMENT = '-cleanse_crash=1'
 
+FORK_ARGUMENT = '-fork=1'
+
 MERGE_ARGUMENT = '-merge=1'
 
 MINIMIZE_CRASH_ARGUMENT = '-minimize_crash=1'

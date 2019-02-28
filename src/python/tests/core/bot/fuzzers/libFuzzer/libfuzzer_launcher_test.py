@@ -197,6 +197,7 @@ class LauncherTest(fake_fs_unittest.TestCase):
         'atexit.register',
         'base.utils.default_project_name',
         'bot.fuzzers.engine_common.do_corpus_subset',
+        'bot.fuzzers.libFuzzer.launcher.do_fork',
         'bot.fuzzers.libFuzzer.launcher.do_ml_rnn_generator',
         'bot.fuzzers.libFuzzer.launcher.do_radamsa_generator',
         'bot.fuzzers.libFuzzer.launcher.do_random_max_length',
@@ -214,6 +215,7 @@ class LauncherTest(fake_fs_unittest.TestCase):
     self.mock.getpid.return_value = 1337
 
     self.mock.do_corpus_subset.return_value = False
+    self.mock.do_fork.return_value = False
     self.mock.do_ml_rnn_generator.return_value = False
     self.mock.do_radamsa_generator.return_value = False
     self.mock.do_random_max_length.return_value = False
@@ -395,6 +397,8 @@ class LauncherTest(fake_fs_unittest.TestCase):
                   0,
               'strategy_corpus_subset':
                   50,
+              'strategy_fork':
+                  0,
               'strategy_random_max_len':
                   1,
               'strategy_recommended_dict':
@@ -592,6 +596,8 @@ class LauncherTest(fake_fs_unittest.TestCase):
                   0,
               'strategy_corpus_subset':
                   0,
+              'strategy_fork':
+                  0,
               'strategy_random_max_len':
                   0,
               'strategy_recommended_dict':
@@ -680,6 +686,7 @@ class LauncherTest(fake_fs_unittest.TestCase):
         'strategy_corpus_mutations_radamsa': 1,
         'strategy_corpus_mutations_ml_rnn': 0,
         'strategy_corpus_subset': 50,
+        'strategy_fork': 1,
         'strategy_random_max_len': 1,
         'strategy_recommended_dict': 0,
         'strategy_value_profile': 0,
@@ -730,6 +737,7 @@ class LauncherTest(fake_fs_unittest.TestCase):
         'strategy_corpus_mutations_radamsa': 0,
         'strategy_corpus_mutations_ml_rnn': 0,
         'strategy_corpus_subset': 0,
+        'strategy_fork': 0,
         'strategy_random_max_len': 0,
         'strategy_recommended_dict': 0,
         'strategy_value_profile': 0,
@@ -774,6 +782,7 @@ class LauncherTest(fake_fs_unittest.TestCase):
         'strategy_corpus_mutations_radamsa': 0,
         'strategy_corpus_mutations_ml_rnn': 0,
         'strategy_corpus_subset': 0,
+        'strategy_fork': 0,
         'strategy_random_max_len': 0,
         'strategy_recommended_dict': 0,
         'strategy_value_profile': 0,
@@ -823,6 +832,7 @@ class LauncherTest(fake_fs_unittest.TestCase):
         'strategy_corpus_mutations_radamsa': 0,
         'strategy_corpus_mutations_ml_rnn': 0,
         'strategy_corpus_subset': 0,
+        'strategy_fork': 0,
         'strategy_random_max_len': 0,
         'strategy_recommended_dict': 0,
         'strategy_value_profile': 0,
@@ -920,6 +930,7 @@ class LauncherTest(fake_fs_unittest.TestCase):
         'strategy_corpus_mutations_radamsa': 0,
         'strategy_corpus_mutations_ml_rnn': 0,
         'strategy_corpus_subset': 0,
+        'strategy_fork': 0,
         'strategy_random_max_len': 0,
         'strategy_recommended_dict': 0,
         'strategy_value_profile': 0,
@@ -968,6 +979,7 @@ class LauncherTest(fake_fs_unittest.TestCase):
         'strategy_corpus_mutations_radamsa': 0,
         'strategy_corpus_mutations_ml_rnn': 0,
         'strategy_corpus_subset': 0,
+        'strategy_fork': 0,
         'strategy_random_max_len': 0,
         'strategy_recommended_dict': 0,
         'strategy_value_profile': 0,
@@ -1017,6 +1029,7 @@ class LauncherTest(fake_fs_unittest.TestCase):
         'strategy_corpus_mutations_radamsa': 1,
         'strategy_corpus_mutations_ml_rnn': 0,
         'strategy_corpus_subset': 0,
+        'strategy_fork': 0,
         'strategy_random_max_len': 0,
         'strategy_recommended_dict': 0,
         'strategy_value_profile': 0,
