@@ -800,8 +800,8 @@ def main(argv):
     # TODO(metzman): Use `-fork=2` on Windows.
     num_fuzz_processes = 1
     arguments.append('%s%d' % (constants.FORK_FLAG, num_fuzz_processes))
-    fuzzing_strategies.append('%s_%d' % (strategy.FORK_STRATEGY,
-                                         num_fuzz_processes))
+    fuzzing_strategies.append(
+        '%s_%d' % (strategy.FORK_STRATEGY, num_fuzz_processes))
 
   # Execute the fuzzer binary with original arguments.
   fuzz_result = runner.fuzz(
