@@ -24,6 +24,8 @@ ARTIFACT_PREFIX_FLAG = '-artifact_prefix='
 
 DICT_FLAG = '-dict='
 
+FORK_FLAG = '-fork='
+
 MAX_LEN_FLAG = '-max_len='
 
 MAX_TOTAL_TIME_FLAG = '-max_total_time='

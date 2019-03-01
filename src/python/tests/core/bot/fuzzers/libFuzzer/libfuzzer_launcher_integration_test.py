@@ -100,6 +100,7 @@ class BaseLauncherTest(unittest.TestCase):
         'bot.fuzzers.engine_common.do_corpus_subset',
         'bot.fuzzers.engine_common.get_merge_timeout',
         'bot.fuzzers.engine_common.random_choice',
+        'bot.fuzzers.libFuzzer.launcher.do_fork',
         'bot.fuzzers.libFuzzer.launcher.do_ml_rnn_generator',
         'bot.fuzzers.libFuzzer.launcher.do_radamsa_generator',
         'bot.fuzzers.libFuzzer.launcher.do_random_max_length',
@@ -116,6 +117,7 @@ class BaseLauncherTest(unittest.TestCase):
     self.mock.getpid.return_value = 1337
 
     self.mock.do_corpus_subset.return_value = False
+    self.mock.do_fork.return_value = False
     self.mock.do_ml_rnn_generator.return_value = False
     self.mock.do_radamsa_generator.return_value = False
     self.mock.do_random_max_length.return_value = False
@@ -134,9 +136,6 @@ class BaseLauncherTest(unittest.TestCase):
     self.assertIn('stat::peak_rss_mb:', output)
 
     self.assertTrue(os.path.exists(testcase_path + '.stats2'))
-
-  def assert_corpus_loaded(self, output, directory):
-    self.assertIn('Loading corpus dir: ' + directory, output)
 
 
 @test_utils.integration
@@ -184,10 +183,6 @@ class TestLauncher(BaseLauncherTest):
     self.assertIn(expected, output)
     self.assert_has_stats(output, testcase_path)
 
-    self.assert_corpus_loaded(output,
-                              os.path.join(TEMP_DIRECTORY, 'temp-1337', 'new'))
-    self.assert_corpus_loaded(output, os.path.join(TEMP_DIRECTORY, 'corpus'))
-
     # New items should've been added to the corpus.
     self.assertNotEqual(len(os.listdir(os.environ['FUZZ_CORPUS_DIR'])), 0)
 
@@ -205,10 +200,6 @@ class TestLauncher(BaseLauncherTest):
             build_dir=DATA_DIRECTORY, temp_dir=TEMP_DIRECTORY))
     self.assertIn(expected, output)
     self.assert_has_stats(output, testcase_path)
-
-    self.assert_corpus_loaded(output,
-                              os.path.join(TEMP_DIRECTORY, 'temp-1337', 'new'))
-    self.assert_corpus_loaded(output, os.path.join(TEMP_DIRECTORY, 'corpus'))
 
     self.assertIn('Test unit written to {0}/crash-'.format(TEMP_DIRECTORY),
                   output)
@@ -236,13 +227,6 @@ class TestLauncher(BaseLauncherTest):
             build_dir=DATA_DIRECTORY, temp_dir=TEMP_DIRECTORY))
     self.assertIn(expected, output)
     self.assert_has_stats(output, testcase_path)
-
-    self.assert_corpus_loaded(output,
-                              os.path.join(TEMP_DIRECTORY, 'temp-1337', 'new'))
-    self.assert_corpus_loaded(
-        output, os.path.join(TEMP_DIRECTORY, 'temp-1337', 'subset'))
-
-    self.assertIn('READ units: 10', output)
 
   def test_minimize(self):
     """Tests minimize."""
@@ -414,9 +398,6 @@ class TestLauncherMinijail(BaseLauncherTest):
     self.assertIn(expected, output)
     self.assert_has_stats(output, testcase_path)
 
-    self.assert_corpus_loaded(output, '/new')
-    self.assert_corpus_loaded(output, '/corpus')
-
     # New items should've been added to the corpus.
     self.assertIn('FUZZ_CORPUS_DIR', os.environ)
     self.assertNotEqual(len(os.listdir(os.environ['FUZZ_CORPUS_DIR'])), 0)
@@ -433,9 +414,6 @@ class TestLauncherMinijail(BaseLauncherTest):
                 '/corpus'.format(build_dir=DATA_DIRECTORY))
     self.assertIn(expected, output)
     self.assert_has_stats(output, testcase_path)
-
-    self.assert_corpus_loaded(output, '/new')
-    self.assert_corpus_loaded(output, '/corpus')
 
     self.assertIn('Test unit written to /crash-', output)
     self.assertIn(
@@ -461,10 +439,6 @@ class TestLauncherMinijail(BaseLauncherTest):
                 '/new /subset'.format(build_dir=DATA_DIRECTORY))
     self.assertIn(expected, output)
     self.assert_has_stats(output, testcase_path)
-
-    self.assert_corpus_loaded(output, '/new')
-    self.assert_corpus_loaded(output, '/subset')
-    self.assertIn('READ units: 10', output)
 
   @mock.patch('bot.fuzzers.libFuzzer.launcher.get_fuzz_timeout')
   def test_out_directory(self, mock_get_timeout):

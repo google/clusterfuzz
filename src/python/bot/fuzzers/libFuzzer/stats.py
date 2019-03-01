@@ -140,6 +140,7 @@ def parse_fuzzing_strategies(log_lines, strategies):
 
   for line in strategies:
     parse_line_for_strategy_prefix(line, strategy.CORPUS_SUBSET_STRATEGY)
+    parse_line_for_strategy_prefix(line, strategy.FORK_STRATEGY)
 
   # Other strategies are either ON or OFF, without arbitrary values.
   if strategy.CORPUS_MUTATION_RADAMSA_STRATEGY in strategies:
@@ -187,6 +188,7 @@ def parse_performance_features(log_lines, strategies, arguments):
       'strategy_corpus_mutations_radamsa': 0,
       'strategy_corpus_mutations_ml_rnn': 0,
       'strategy_corpus_subset': 0,
+      'strategy_fork': 0,
       'strategy_random_max_len': 0,
       'strategy_recommended_dict': 0,
       'strategy_value_profile': 0,
