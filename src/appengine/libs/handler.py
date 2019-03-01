@@ -46,7 +46,7 @@ DEFAULT_CSP = (
     'www.google-analytics.com www.gstatic.com; '
     'style-src \'unsafe-inline\' fonts.googleapis.com www.gstatic.com; '
     'font-src \'self\' fonts.gstatic.com; '
-    'connect-src \'self\'; '
+    'connect-src \'self\' storage.googleapis.com; '
     'img-src \'self\'; '
     'manifest-src \'self\';')
 
