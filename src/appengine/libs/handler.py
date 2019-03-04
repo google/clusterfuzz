@@ -27,6 +27,7 @@ from config import db_config
 from config import local_config
 from datastore import data_types
 from libs import access
+from libs import csp
 from libs import helpers
 from system import environment
 
@@ -39,16 +40,6 @@ CLUSTERFUZZ_AUTHORIZATION_HEADER = 'x-clusterfuzz-authorization'
 CLUSTERFUZZ_AUTHORIZATION_IDENTITY = 'x-clusterfuzz-identity'
 VERIFICATION_CODE_PREFIX = 'VerificationCode '
 BEARER_PREFIX = 'Bearer '
-
-DEFAULT_CSP = (
-    'default-src \'none\'; '
-    'script-src \'unsafe-inline\' \'unsafe-eval\' '
-    'www.google-analytics.com www.gstatic.com; '
-    'style-src \'unsafe-inline\' fonts.googleapis.com www.gstatic.com; '
-    'font-src \'self\' fonts.gstatic.com; '
-    'connect-src \'self\' storage.googleapis.com; '
-    'img-src \'self\'; '
-    'manifest-src \'self\';')
 
 _auth_config_obj = None
 
@@ -364,7 +355,7 @@ def post(request_content_type, response_content_type):
       elif response_content_type == TEXT:
         self.response.headers['Content-Type'] = 'text/plain'
       elif response_content_type == HTML:
-        self.response.headers['Content-Security-Policy'] = DEFAULT_CSP
+        self.response.headers['Content-Security-Policy'] = csp.get_default()
 
       if request_content_type == JSON:
         extend_json_request(self.request)
@@ -392,7 +383,7 @@ def get(response_content_type):
       elif response_content_type == TEXT:
         self.response.headers['Content-Type'] = 'text/plain'
       elif response_content_type == HTML:
-        self.response.headers['Content-Security-Policy'] = DEFAULT_CSP
+        self.response.headers['Content-Security-Policy'] = csp.get_default()
 
       extend_request(self.request, self.request.params)
       return func(self, *args, **kwargs)
