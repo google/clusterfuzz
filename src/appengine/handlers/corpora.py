@@ -48,6 +48,7 @@ class CreateHandler(base_handler.Handler):
   """Create a corpus."""
 
   @handler.check_user_access(need_privileged_access=True)
+  @handler.post(handler.FORM, handler.HTML)
   @handler.require_csrf_token
   def post(self):
     """Handle a post request."""
@@ -93,6 +94,7 @@ class DeleteHandler(base_handler.Handler):
   """Delete a corpus."""
 
   @handler.check_user_access(need_privileged_access=True)
+  @handler.post(handler.FORM, handler.HTML)
   @handler.require_csrf_token
   def post(self):
     """Handle a post request."""
