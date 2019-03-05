@@ -606,6 +606,7 @@ def is_admin_or_not_oss_fuzz():
 class Handler(base_handler.Handler):
   """Handler that shows a testcase in detail."""
 
+  @handler.get(handler.HTML)
   def get(self, testcase_id):
     """Serve the testcase detail HTML page."""
     values = {'info': get_testcase_detail_by_id(testcase_id)}
