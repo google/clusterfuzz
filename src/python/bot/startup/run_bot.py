@@ -46,6 +46,7 @@ from datastore import data_handler
 from metrics import logs
 from metrics import monitor
 from metrics import monitoring_metrics
+from metrics import profiler
 from system import environment
 
 
@@ -124,6 +125,9 @@ def main():
   dates.initialize_timezone_from_environment()
   environment.set_bot_environment()
   monitor.initialize()
+
+  if not profiler.start_if_needed('python_profiler_bot'):
+    sys.exit(-1)
 
   if environment.is_trusted_host(ensure_connected=False):
     from bot.untrusted_runner import host
