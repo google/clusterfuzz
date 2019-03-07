@@ -37,6 +37,7 @@ from bot.fuzzers import utils as fuzzer_utils
 from datastore import data_types
 from fuzzer import write_dummy_file
 from metrics import logs
+from metrics import profiler
 from system import environment
 from system import minijail
 from system import new_process
@@ -1324,6 +1325,8 @@ def main(argv):
           'engine': 'afl',
           'job_name': environment.get_value('JOB_NAME')
       })
+
+  profiler.start_if_needed('afl_launcher')
 
   build_directory = environment.get_value('BUILD_DIR')
   fuzzer_path = engine_common.find_fuzzer_path(build_directory, target_name)

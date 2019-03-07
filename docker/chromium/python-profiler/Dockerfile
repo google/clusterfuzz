@@ -13,4 +13,5 @@
 # limitations under the License.
 FROM gcr.io/clusterfuzz-images/chromium/base
 
+# Defines whether we should import and start Google Cloud Profiler.
 ENV USE_PYTHON_PROFILER True

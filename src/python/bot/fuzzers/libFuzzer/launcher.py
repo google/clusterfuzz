@@ -42,6 +42,7 @@ from bot.fuzzers import utils as fuzzer_utils
 from bot.fuzzers.ml.rnn import generator as ml_rnn_generator
 from datastore import data_types
 from metrics import logs
+from metrics import profiler
 from system import environment
 from system import minijail
 from system import new_process
@@ -662,6 +663,8 @@ def main(argv):
           'engine': 'libFuzzer',
           'job_name': environment.get_value('JOB_NAME')
       })
+
+  profiler.start_if_needed('libfuzzer_launcher')
 
   # Make sure that the fuzzer binary exists.
   build_directory = environment.get_value('BUILD_DIR')
