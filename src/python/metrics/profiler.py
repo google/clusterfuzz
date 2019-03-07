@@ -18,7 +18,8 @@ from system import environment
 
 
 def start_if_needed(service):
-  """Start profiler if |USE_PYTHON_PROFILER| environment variable is set."""
+  """Start Google Cloud Profiler if |USE_PYTHON_PROFILER| environment variable
+  is set."""
   if not environment.get_value('USE_PYTHON_PROFILER'):
     return True
 
