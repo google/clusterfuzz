@@ -25,6 +25,7 @@ from handlers import configuration
 from handlers import corpora
 from handlers import coverage_report
 from handlers import crash_stats
+from handlers import csp_reports
 from handlers import domain_verifier
 from handlers import download
 from handlers import fuzzer_stats
@@ -162,6 +163,7 @@ _ROUTES = [
     ('/corpora', corpora.Handler),
     ('/corpora/create', corpora.CreateHandler),
     ('/corpora/delete', corpora.DeleteHandler),
+    ('/csp-reports', csp_reports.CspReportHandler),
     ('/docs', help_redirector.DocumentationHandler),
     ('/download/?([^/]+)?', download.Handler),
     ('/fuzzers', fuzzers.Handler),
