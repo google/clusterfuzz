@@ -25,7 +25,6 @@ from handlers import configuration
 from handlers import corpora
 from handlers import coverage_report
 from handlers import crash_stats
-from handlers import csp_reports
 from handlers import domain_verifier
 from handlers import download
 from handlers import fuzzer_stats
@@ -36,6 +35,7 @@ from handlers import home
 from handlers import issue_redirector
 from handlers import jobs
 from handlers import parse_stacktrace
+from handlers import report_csp_failure
 from handlers import revisions_info
 from handlers import testcase_list
 from handlers import upload_testcase
@@ -163,7 +163,6 @@ _ROUTES = [
     ('/corpora', corpora.Handler),
     ('/corpora/create', corpora.CreateHandler),
     ('/corpora/delete', corpora.DeleteHandler),
-    ('/csp-reports', csp_reports.CspReportHandler),
     ('/docs', help_redirector.DocumentationHandler),
     ('/download/?([^/]+)?', download.Handler),
     ('/fuzzers', fuzzers.Handler),
@@ -182,6 +181,7 @@ _ROUTES = [
     ('/update-job-template', jobs.UpdateJobTemplate),
     ('/parse_stacktrace', parse_stacktrace.Handler),
     ('/performance-report/(.+)/(.+)/(.+)', show_performance_report.Handler),
+    ('/report-csp-failure', report_csp_failure.ReportCspFailureHandler),
     ('/testcase', show_testcase.DeprecatedHandler),
     ('/testcase-detail/([0-9]+)', show_testcase.Handler),
     ('/testcase-detail/crash-stats', crash_stats_on_testcase.Handler),

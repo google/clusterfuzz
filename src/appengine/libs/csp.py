@@ -101,7 +101,7 @@ def get_default_builder():
   builder.add('worker-src', 'none', quote=True)
 
   # Add reporting so that violations don't break things silently.
-  builder.add('report-uri', '/csp-reports')
+  builder.add('report-uri', '/report-csp-failure')
 
   # TODO(mbarbella): Try to improve the policy by limiting the additions below.
 

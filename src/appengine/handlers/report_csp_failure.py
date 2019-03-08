@@ -15,24 +15,19 @@
 
 from handlers import base_handler
 from libs import handler
+from libs import helpers
 from metrics import logs
 
 
-class CspReportHandler(base_handler.Handler):
+class ReportCspFailureHandler(base_handler.Handler):
   """Redirect to documentation."""
-
-  def log_csp_violation(self):
-    """Create an error log for a CSP violation."""
-    logs.log_error('CSP violation: {}'.format(self.request.get('csp-report')))
-
-  @handler.get(handler.JSON)
-  @handler.check_user_access(need_privileged_access=False)
-  def get(self):
-    """Handle a GET request."""
-    self.log_csp_violation()
 
   @handler.post(handler.JSON, handler.JSON)
   @handler.check_user_access(need_privileged_access=False)
   def post(self):
     """Handle a POST request."""
-    self.log_csp_violation()
+    report = self.request.get('csp-report')
+    if not report:
+      raise helpers.EarlyExitException('No CSP report.', 400)
+
+    logs.log_error('CSP violation: {}'.format(report))
