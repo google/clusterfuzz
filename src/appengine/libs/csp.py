@@ -91,8 +91,8 @@ def get_default_builder():
   # Some upload forms require us to connect to the cloud storage API.
   builder.add('connect-src', 'storage.googleapis.com')
 
-  # Mixed content is unexpected and should be considered a bug.
-  builder.add_sourceless('block-all-mixed-content')
+  # Mixed content is unexpected, but upgrade requests rather than block.
+  builder.add_sourceless('upgrade-insecure-requests')
 
   # We don't expect object to be used, but it doesn't fall back to default-src.
   builder.add('object-src', 'none', quote=True)
