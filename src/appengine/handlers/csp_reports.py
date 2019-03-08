@@ -26,11 +26,13 @@ class CspReportHandler(base_handler.Handler):
     logs.log_error('CSP violation: {}'.format(self.request.get('csp-report')))
 
   @handler.get(handler.JSON)
+  @handler.check_user_access(need_privileged_access=False)
   def get(self):
     """Handle a GET request."""
     self.log_csp_violation()
 
   @handler.post(handler.JSON, handler.JSON)
+  @handler.check_user_access(need_privileged_access=False)
   def post(self):
     """Handle a POST request."""
     self.log_csp_violation()

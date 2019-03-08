@@ -29,11 +29,11 @@ class CSPBuilderTest(unittest.TestCase):
     builder.add('connect-src', 'self', quote=True)
     builder.add('script-src', 'self', quote=True)
     builder.add('script-src', 'scripts.test.tld')
-    builder.add_sourceless('block-all-mixed-content')
+    builder.add_sourceless('upgrade-insecure-requests')
 
     self.assertEqual(
-        str(builder), "block-all-mixed-content; connect-src 'self'; "
-        "default-src 'none'; script-src 'self' scripts.test.tld;")
+        str(builder), "connect-src 'self'; default-src 'none'; "
+        "script-src 'self' scripts.test.tld; upgrade-insecure-requests;")
 
   def test_policy_modification(self):
     """Ensure that policies can be modified."""
