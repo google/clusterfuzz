@@ -20,7 +20,7 @@ from metrics import logs
 
 
 class ReportCspFailureHandler(base_handler.Handler):
-  """Redirect to documentation."""
+  """Log failures on HTML pages caused by CSP."""
 
   @handler.post(handler.JSON, handler.JSON)
   @handler.check_user_access(need_privileged_access=False)
