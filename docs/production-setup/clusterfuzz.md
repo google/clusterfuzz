@@ -65,7 +65,7 @@ This script also creates a config directory for you, which contains some default
 settings for your deployment and can be later updated.
 
 ```bash
-mkdir /path/to/myconfig  # Any directory outside the ClusterFuzz source repository will work.
+mkdir /path/to/myconfig  # Any EMPTY directory outside the ClusterFuzz source repository.
 export CONFIG_DIR=/path/to/myconfig
 python butler.py create_config --oauth-client-secrets-path=$CLIENT_SECRETS_PATH --project-id=$CLOUD_PROJECT_ID $CONFIG_DIR
 ```
