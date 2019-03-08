@@ -35,6 +35,7 @@ from handlers import home
 from handlers import issue_redirector
 from handlers import jobs
 from handlers import parse_stacktrace
+from handlers import report_csp_failure
 from handlers import revisions_info
 from handlers import testcase_list
 from handlers import upload_testcase
@@ -180,6 +181,7 @@ _ROUTES = [
     ('/update-job-template', jobs.UpdateJobTemplate),
     ('/parse_stacktrace', parse_stacktrace.Handler),
     ('/performance-report/(.+)/(.+)/(.+)', show_performance_report.Handler),
+    ('/report-csp-failure', report_csp_failure.ReportCspFailureHandler),
     ('/testcase', show_testcase.DeprecatedHandler),
     ('/testcase-detail/([0-9]+)', show_testcase.Handler),
     ('/testcase-detail/crash-stats', crash_stats_on_testcase.Handler),

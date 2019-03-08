@@ -33,6 +33,13 @@ class CSPBuilder(object):
             source=source, directive=directive))
     self.directives[directive].append(source)
 
+  def add_sourceless(self, directive):
+    assert directive not in self.directives, (
+        'Sourceless directive "{directive}" already exists.'.format(
+            directive=directive))
+
+    self.directives[directive] = []
+
   def remove(self, directive, source, quote=False):
     """Remove a source for a given directive."""
     if quote:
@@ -83,6 +90,18 @@ def get_default_builder():
 
   # Some upload forms require us to connect to the cloud storage API.
   builder.add('connect-src', 'storage.googleapis.com')
+
+  # Mixed content is unexpected, but upgrade requests rather than block.
+  builder.add_sourceless('upgrade-insecure-requests')
+
+  # We don't expect object to be used, but it doesn't fall back to default-src.
+  builder.add('object-src', 'none', quote=True)
+
+  # We don't expect workers to be used, but they fall back to script-src.
+  builder.add('worker-src', 'none', quote=True)
+
+  # Add reporting so that violations don't break things silently.
+  builder.add('report-uri', '/report-csp-failure')
 
   # TODO(mbarbella): Try to improve the policy by limiting the additions below.
 
