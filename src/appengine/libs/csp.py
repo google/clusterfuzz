@@ -85,9 +85,10 @@ def get_default_builder():
   # Google Analytics also uses img-src.
   builder.add('img-src', 'www.google-analytics.com')
 
-  # External style. Used for fonts and charting libraries.
+  # External style. Used for fonts, charting libraries, and code formatter.
   builder.add('style-src', 'fonts.googleapis.com')
   builder.add('style-src', 'www.gstatic.com')
+  builder.add('style-src', 'cdn.rawgit.com')
 
   # External fonts.
   builder.add('font-src', 'fonts.gstatic.com')
