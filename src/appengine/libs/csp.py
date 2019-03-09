@@ -77,9 +77,13 @@ def get_default_builder():
   builder.add('img-src', 'self', quote=True)
   builder.add('manifest-src', 'self', quote=True)
 
-  # External scripts. Google analytics and charting libraries we depend on.
+  # External scripts. Google analytics, charting libraries, and code formatter.
   builder.add('script-src', 'www.google-analytics.com')
   builder.add('script-src', 'www.gstatic.com')
+  builder.add('script-src', 'cdn.rawgit.com')
+
+  # Google Analytics also uses img-src.
+  builder.add('img-src', 'www.google-analytics.com')
 
   # External style. Used for fonts and charting libraries.
   builder.add('style-src', 'fonts.googleapis.com')
