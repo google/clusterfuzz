@@ -77,11 +77,14 @@ def get_default_builder():
   builder.add('img-src', 'self', quote=True)
   builder.add('manifest-src', 'self', quote=True)
 
-  # External scripts. Google analytics and charting libraries we depend on.
+  # External scripts. Google analytics, charting libraries.
   builder.add('script-src', 'www.google-analytics.com')
   builder.add('script-src', 'www.gstatic.com')
 
-  # External style. Used for fonts and charting libraries.
+  # Google Analytics also uses img-src.
+  builder.add('img-src', 'www.google-analytics.com')
+
+  # External style. Used for fonts, charting libraries.
   builder.add('style-src', 'fonts.googleapis.com')
   builder.add('style-src', 'www.gstatic.com')
 
@@ -114,6 +117,10 @@ def get_default_builder():
 
   # Our Polymer Bundler usage also requires inline style.
   builder.add('style-src', 'unsafe-inline', quote=True)
+
+  # Code prettifier hosted on cdn.rawgit.com. This is not a trusted origin.
+  builder.add('style-src', 'cdn.rawgit.com')
+  builder.add('script-src', 'cdn.rawgit.com')
 
   return builder
 
