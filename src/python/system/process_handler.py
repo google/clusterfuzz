@@ -567,6 +567,8 @@ def terminate_stale_application_instances():
   else:
     # Handle Linux and Mac platforms.
     processes_to_kill += [
+        'addr2line',
+        'atos',
         'chrome-devel-sandbox',
         'gdb',
         'nacl_helper',
