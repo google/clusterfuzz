@@ -192,8 +192,10 @@ def get_stack_frame(binary, addr, function_name, file_name):
 
 def is_valid_arch(s):
   """Check if this is a valid supported architecture."""
-  return s in ["i386", "x86_64", "x86_64h", "arm", "armv6", "armv7", "armv7s",
-               "armv7k", "arm64", "powerpc64", "powerpc64le", "s390x", "s390"]
+  return s in [
+      "i386", "x86_64", "x86_64h", "arm", "armv6", "armv7", "armv7s", "armv7k",
+      "arm64", "powerpc64", "powerpc64le", "s390x", "s390"
+  ]
 
 
 def guess_arch(address):
@@ -496,7 +498,7 @@ class SymbolizationLoop(object):
       # Arch can be embedded in the filename, e.g.: "libabc.dylib:x86_64h"
       colon_pos = binary.rfind(":")
       if colon_pos != -1:
-        maybe_arch = binary[colon_pos+1:]
+        maybe_arch = binary[colon_pos + 1:]
         if is_valid_arch(maybe_arch):
           arch = maybe_arch
           binary = binary[0:colon_pos]
@@ -511,7 +513,8 @@ class SymbolizationLoop(object):
       symbolized_line = self.symbolize_address(addr, binary, offset, arch)
       if not symbolized_line:
         if original_binary != binary:
-          symbolized_line = self.symbolize_address(addr, original_binary, offset, arch)
+          symbolized_line = self.symbolize_address(addr, original_binary,
+                                                   offset, arch)
 
       if not symbolized_line:
         symbolized_crash_stacktrace += u'%s\n' % self.current_line
