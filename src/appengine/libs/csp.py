@@ -118,10 +118,6 @@ def get_default_builder():
   # Our Polymer Bundler usage also requires inline style.
   builder.add('style-src', 'unsafe-inline', quote=True)
 
-  # Code prettifier hosted on cdn.rawgit.com. This is not a trusted origin.
-  builder.add('style-src', 'cdn.rawgit.com')
-  builder.add('script-src', 'cdn.rawgit.com')
-
   return builder
 
 
