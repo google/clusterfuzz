@@ -190,6 +190,12 @@ def get_stack_frame(binary, addr, function_name, file_name):
   return '%s in %s %s' % (addr, function_name, file_name)
 
 
+def is_valid_arch(s):
+  """Check if this is a valid supported architecture."""
+  return s in ["i386", "x86_64", "x86_64h", "arm", "armv6", "armv7", "armv7s",
+               "armv7k", "arm64", "powerpc64", "powerpc64le", "s390x", "s390"]
+
+
 def guess_arch(address):
   """Guess which architecture we're running on (32/64).
   10 = len('0x') + 8 hex digits."""
@@ -360,10 +366,10 @@ class UnbufferedLineConverter(object):
 
 class DarwinSymbolizer(Symbolizer):
 
-  def __init__(self, addr, binary):
+  def __init__(self, addr, binary, arch):
     super(DarwinSymbolizer, self).__init__()
     self.binary = binary
-    self.arch = guess_arch(addr)
+    self.arch = arch
     self.open_atos()
 
   def open_atos(self):
@@ -414,9 +420,9 @@ class ChainSymbolizer(Symbolizer):
     self.symbolizer_list.append(symbolizer)
 
 
-def SystemSymbolizerFactory(system, addr, binary):
+def SystemSymbolizerFactory(system, addr, binary, arch):
   if system == 'darwin':
-    return DarwinSymbolizer(addr, binary)
+    return DarwinSymbolizer(addr, binary, arch)
   elif system.startswith('linux'):
     return Addr2LineSymbolizer(binary)
 
@@ -433,7 +439,7 @@ class SymbolizationLoop(object):
     self.last_llvm_symbolizer = None
     self.dsym_hints = set([])
 
-  def symbolize_address(self, addr, binary, offset):
+  def symbolize_address(self, addr, binary, offset, arch):
     # On non-Darwin (i.e. on platforms without .dSYM debug info) always use
     # a single symbolizer binary.
     # On Darwin, if the dsym hint producer is present:
@@ -455,7 +461,7 @@ class SymbolizationLoop(object):
         self.llvm_symbolizers[binary] = self.last_llvm_symbolizer
       else:
         self.last_llvm_symbolizer = LLVMSymbolizerFactory(
-            self.system, guess_arch(addr), self.dsym_hints)
+            self.system, arch, self.dsym_hints)
         self.llvm_symbolizers[binary] = self.last_llvm_symbolizer
 
     # Use the chain of symbolizers:
@@ -467,7 +473,7 @@ class SymbolizationLoop(object):
     if result is None:
       # Initialize system symbolizer only if other symbolizers failed.
       symbolizers[binary].append_symbolizer(
-          SystemSymbolizerFactory(self.system, addr, binary))
+          SystemSymbolizerFactory(self.system, addr, binary, arch))
       result = symbolizers[binary].symbolize(addr, binary, offset)
     # The system symbolizer must produce some result.
     assert result
@@ -486,16 +492,26 @@ class SymbolizationLoop(object):
         symbolized_crash_stacktrace += u'%s\n' % self.current_line
         continue
       _, frameno_str, addr, binary, offset = match.groups()
+      arch = ""
+      # Arch can be embedded in the filename, e.g.: "libabc.dylib:x86_64h"
+      colon_pos = binary.rfind(":")
+      if colon_pos != -1:
+        maybe_arch = binary[colon_pos+1:]
+        if is_valid_arch(maybe_arch):
+          arch = maybe_arch
+          binary = binary[0:colon_pos]
+      if arch == "":
+        arch = guess_arch(addr)
       if frameno_str == '0':
         # Assume that frame #0 is the first frame of new stack trace.
         self.frame_no = 0
       original_binary = binary
       if self.binary_path_filter:
         binary = self.binary_path_filter(binary)
-      symbolized_line = self.symbolize_address(addr, binary, offset)
+      symbolized_line = self.symbolize_address(addr, binary, offset, arch)
       if not symbolized_line:
         if original_binary != binary:
-          symbolized_line = self.symbolize_address(addr, binary, offset)
+          symbolized_line = self.symbolize_address(addr, original_binary, offset, arch)
 
       if not symbolized_line:
         symbolized_crash_stacktrace += u'%s\n' % self.current_line
