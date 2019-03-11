@@ -32,7 +32,6 @@ import os
 import re
 import subprocess
 import sys
-import traceback
 
 from base import utils
 from google_cloud_utils import storage
@@ -289,7 +288,7 @@ class LLVMSymbolizer(Symbolizer):
         result.append(get_stack_frame(binary, addr, function_name, file_name))
 
     except Exception:
-      logs.log_error('%s\n%s' % (symbolizer_input, traceback.format_exc(15)))
+      logs.log_error('%s' % symbolizer_input)
       result = []
     if not result:
       result = None
@@ -327,8 +326,7 @@ class Addr2LineSymbolizer(Symbolizer):
       function_name = self.pipe.stdout.readline().rstrip()
       file_name = self.pipe.stdout.readline().rstrip()
     except Exception:
-      logs.log_error(
-          '%s %s\n%s' % (binary, str(offset), traceback.format_exc(15)))
+      logs.log_error('%s %s' % (binary, str(offset)))
       function_name = ''
       file_name = ''
 
@@ -398,8 +396,7 @@ class DarwinSymbolizer(Symbolizer):
       else:
         return ['%s in %s' % (addr, atos_line)]
     except Exception:
-      logs.log_error(
-          '%s %s\n%s' % (binary, str(offset), traceback.format_exc(15)))
+      logs.log_error('%s %s' % (binary, str(offset)))
       return ['{} ({}:{}+{})'.format(addr, binary, self.arch, offset)]
 
 
