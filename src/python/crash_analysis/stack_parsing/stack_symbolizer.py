@@ -288,7 +288,8 @@ class LLVMSymbolizer(Symbolizer):
         result.append(get_stack_frame(binary, addr, function_name, file_name))
 
     except Exception:
-      logs.log_error('%s' % symbolizer_input)
+      logs.log_error('Symboization using llvm-symbolizer failed for: "%s".' %
+                     symbolizer_input)
       result = []
     if not result:
       result = None
@@ -326,7 +327,8 @@ class Addr2LineSymbolizer(Symbolizer):
       function_name = self.pipe.stdout.readline().rstrip()
       file_name = self.pipe.stdout.readline().rstrip()
     except Exception:
-      logs.log_error('%s %s' % (binary, str(offset)))
+      logs.log_error('Symbolization using addr2line failed for: "%s %s".' %
+                     (binary, str(offset)))
       function_name = ''
       file_name = ''
 
@@ -396,7 +398,8 @@ class DarwinSymbolizer(Symbolizer):
       else:
         return ['%s in %s' % (addr, atos_line)]
     except Exception:
-      logs.log_error('%s %s' % (binary, str(offset)))
+      logs.log_error('Symbolization using atos failed for "%s %s".' %
+                     (binary, str(offset)))
       return ['{} ({}:{}+{})'.format(addr, binary, self.arch, offset)]
 
 
