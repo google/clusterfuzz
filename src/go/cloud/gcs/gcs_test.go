@@ -115,7 +115,7 @@ func TestWriteObject(t *testing.T) {
 	path := fmt.Sprintf("gs://%s/%s/test_write_object", config.IntegrationTestBucketMutable(), bucketTestDir)
 	err := buckets.WriteObjectBytes(context.Background(), path, expected)
 	if err != nil {
-		t.Fatalf("buckets.WriteObjectBytes failed unexpectedly: %v.", err)
+		t.Fatalf("buckets.WriteObjectBytes failed unexpectedly: %v.\n%s", err, path)
 	}
 
 	data, err := buckets.ReadObjectBytes(context.Background(), path)
