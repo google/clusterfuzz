@@ -30,7 +30,6 @@ from metrics import fuzzer_logs
 from metrics import fuzzer_stats
 from metrics import logs
 from platforms import android
-from platforms import fuchsia
 from system import archive
 from system import environment
 from system import process_handler
@@ -754,7 +753,7 @@ def get_command_line_for_application(file_to_run='',
       # command - just use app_name.
       if os.path.basename(launcher) != app_name:
         command += launcher + ' '
-    elif plt in ['ANDROID', 'FUCHSIA']:
+    elif plt in ['ANDROID']:
       # Android-specific testcase path fixup for fuzzers that don't rely on
       # launcher scripts.
       local_testcases_directory = environment.get_value('FUZZ_INPUTS')
@@ -848,9 +847,8 @@ def get_command_line_for_application(file_to_run='',
     return android.adb.get_application_launch_command(
         all_app_args, testcase_path, testcase_file_url)
 
-  elif plt == 'FUCHSIA' and not launcher:
-    return fuchsia.device.get_application_launch_command(
-        all_app_args, testcase_path)
+  # TODO(flowerhack): If we'd like blackbox fuzzing support for Fuchsia, here's
+  # where to add in our app's launch command.
 
   # Decide which directory we will run the application from.
   # We are using |app_directory| since it helps to locate pdbs
