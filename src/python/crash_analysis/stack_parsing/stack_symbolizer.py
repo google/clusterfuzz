@@ -288,7 +288,7 @@ class LLVMSymbolizer(Symbolizer):
         result.append(get_stack_frame(binary, addr, function_name, file_name))
 
     except Exception:
-      logs.log_error('Symboization using llvm-symbolizer failed for: "%s".' %
+      logs.log_error('Symbolization using llvm-symbolizer failed for: "%s".' %
                      symbolizer_input)
       result = []
     if not result:
@@ -398,7 +398,7 @@ class DarwinSymbolizer(Symbolizer):
       else:
         return ['%s in %s' % (addr, atos_line)]
     except Exception:
-      logs.log_error('Symbolization using atos failed for "%s %s".' %
+      logs.log_error('Symbolization using atos failed for: "%s %s".' %
                      (binary, str(offset)))
       return ['{} ({}:{}+{})'.format(addr, binary, self.arch, offset)]
 
