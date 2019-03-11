@@ -32,7 +32,6 @@ import os
 import re
 import subprocess
 import sys
-import traceback
 
 from base import utils
 from google_cloud_utils import storage
@@ -289,7 +288,8 @@ class LLVMSymbolizer(Symbolizer):
         result.append(get_stack_frame(binary, addr, function_name, file_name))
 
     except Exception:
-      logs.log_error('%s\n%s' % (symbolizer_input, traceback.format_exc(15)))
+      logs.log_error('Symbolization using llvm-symbolizer failed for: "%s".' %
+                     symbolizer_input)
       result = []
     if not result:
       result = None
@@ -327,8 +327,8 @@ class Addr2LineSymbolizer(Symbolizer):
       function_name = self.pipe.stdout.readline().rstrip()
       file_name = self.pipe.stdout.readline().rstrip()
     except Exception:
-      logs.log_error(
-          '%s %s\n%s' % (binary, str(offset), traceback.format_exc(15)))
+      logs.log_error('Symbolization using addr2line failed for: "%s %s".' %
+                     (binary, str(offset)))
       function_name = ''
       file_name = ''
 
@@ -382,23 +382,25 @@ class DarwinSymbolizer(Symbolizer):
     """Overrides Symbolizer.symbolize."""
     if self.binary != binary:
       return None
-    if not os.path.exists(binary):
-      # If the binary doesn't exist atos will exit which will lead to IOError
-      # exceptions being raised later on so just don't try to symbolize.
+
+    try:
+      atos_line = self.atos.convert('0x%x' % int(offset, 16))
+      while 'got symbolicator for' in atos_line:
+        atos_line = self.atos.readline()
+      # A well-formed atos response looks like this:
+      #   foo(type1, type2) (in object.name) (filename.cc:80)
+      match = re.match('^(.*) \(in (.*)\) \((.*:\d*)\)$', atos_line)
+      if match:
+        function_name = match.group(1)
+        function_name = re.sub('\(.*?\)', '', function_name)
+        file_name = match.group(3)
+        return [get_stack_frame(binary, addr, function_name, file_name)]
+      else:
+        return ['%s in %s' % (addr, atos_line)]
+    except Exception:
+      logs.log_error('Symbolization using atos failed for: "%s %s".' %
+                     (binary, str(offset)))
       return ['{} ({}:{}+{})'.format(addr, binary, self.arch, offset)]
-    atos_line = self.atos.convert('0x%x' % int(offset, 16))
-    while 'got symbolicator for' in atos_line:
-      atos_line = self.atos.readline()
-    # A well-formed atos response looks like this:
-    #   foo(type1, type2) (in object.name) (filename.cc:80)
-    match = re.match('^(.*) \(in (.*)\) \((.*:\d*)\)$', atos_line)
-    if match:
-      function_name = match.group(1)
-      function_name = re.sub('\(.*?\)', '', function_name)
-      file_name = match.group(3)
-      return [get_stack_frame(binary, addr, function_name, file_name)]
-    else:
-      return ['%s in %s' % (addr, atos_line)]
 
 
 # Chain several symbolizers so that if one symbolizer fails, we fall back
