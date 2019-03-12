@@ -1386,3 +1386,33 @@ class SortBuildUrlsByRevisionTest(unittest.TestCase):
     actual_result = build_manager._sort_build_urls_by_revision(
         build_urls, bucket_path, reverse=True)
     self.assertEqual(expected_result, actual_result)
+
+  def test_bucket_root(self):
+    """Tests regular case on bucket root with and without reverse flag set."""
+    bucket_path = ('gs://chromium-browser-libfuzzer/'
+                   'libfuzzer-linux-release-([0-9]+).zip')
+    build_urls = [
+        'libfuzzer-linux-release-359936.zip',
+        'libfuzzer-linux-release-359950.zip',
+        'libfuzzer-linux-release-359945.zip',
+        'libfuzzer-linux-release-359953.zip',
+    ]
+    expected_result = [
+        'gs://chromium-browser-libfuzzer/libfuzzer-linux-release-359953.zip',
+        'gs://chromium-browser-libfuzzer/libfuzzer-linux-release-359950.zip',
+        'gs://chromium-browser-libfuzzer/libfuzzer-linux-release-359945.zip',
+        'gs://chromium-browser-libfuzzer/libfuzzer-linux-release-359936.zip'
+    ]
+    actual_result = build_manager._sort_build_urls_by_revision(
+        build_urls, bucket_path, reverse=True)
+    self.assertEqual(expected_result, actual_result)
+
+    expected_result = [
+        'gs://chromium-browser-libfuzzer/libfuzzer-linux-release-359936.zip',
+        'gs://chromium-browser-libfuzzer/libfuzzer-linux-release-359945.zip',
+        'gs://chromium-browser-libfuzzer/libfuzzer-linux-release-359950.zip',
+        'gs://chromium-browser-libfuzzer/libfuzzer-linux-release-359953.zip',
+    ]
+    actual_result = build_manager._sort_build_urls_by_revision(
+        build_urls, bucket_path, reverse=False)
+    self.assertEqual(expected_result, actual_result)

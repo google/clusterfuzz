@@ -916,8 +916,13 @@ def _sort_build_urls_by_revision(build_urls, bucket_path, reverse):
   filename_by_revision_dict = {}
 
   _, base_path = storage.get_bucket_name_and_path(base_url)
+  base_path_with_seperator = base_path + '/' if base_path else ''
+
   for build_url in build_urls:
-    match = re.match(base_path + '/(%s)' % file_pattern, build_url)
+    match_pattern = '{base_path_with_seperator}({file_pattern})'.format(
+        base_path_with_seperator=base_path_with_seperator,
+        file_pattern=file_pattern)
+    match = re.match(match_pattern, build_url)
     if match:
       filename = match.group(1)
       revision = match.group(2)
@@ -1031,21 +1036,26 @@ def setup_trunk_build():
 
   release_build_urls = get_build_urls_list(release_build_bucket_path)
   if not release_build_urls:
-    logs.log_error('Error getting list of release build urls.')
+    logs.log_error('Error getting list of release build urls from %s.' %
+                   release_build_bucket_path)
     return None
 
   other_build_url_lists = []
   if sym_release_build_bucket_path:
     sym_release_build_urls = get_build_urls_list(sym_release_build_bucket_path)
     if not sym_release_build_urls:
-      logs.log_error('Error getting list of symbolized release build urls.')
+      logs.log_error(
+          'Error getting list of symbolized release build urls from %s.' %
+          sym_release_build_bucket_path)
       return None
     other_build_url_lists.append((sym_release_build_bucket_path,
                                   sym_release_build_urls))
   if sym_debug_build_bucket_path:
     sym_debug_builds_urls = get_build_urls_list(sym_debug_build_bucket_path)
     if not sym_debug_builds_urls:
-      logs.log_error('Error getting list of symbolized debug build urls.')
+      logs.log_error(
+          'Error getting list of symbolized debug build urls from %s.' %
+          sym_debug_build_bucket_path)
       return None
     other_build_url_lists.append((sym_debug_build_bucket_path,
                                   sym_debug_builds_urls))
@@ -1121,7 +1131,9 @@ def setup_symbolized_builds(revision):
 
   # We should at least have a symbolized debug or release build.
   if not sym_release_build_urls and not sym_debug_build_urls:
-    logs.log_error('Error getting list of symbolized build urls.')
+    logs.log_error(
+        'Error getting list of symbolized build urls from (%s, %s).' %
+        (sym_release_build_bucket_path, sym_debug_build_bucket_path))
     return None
 
   sym_release_build_url = revisions.find_build_url(
@@ -1191,7 +1203,8 @@ def setup_production_build(build_type):
 
   build_urls = get_build_urls_list(build_bucket_path)
   if not build_urls:
-    logs.log_error('Error getting list of build urls.')
+    logs.log_error(
+        'Error getting list of build urls from %s.' % build_bucket_path)
     return None
 
   # First index is the latest build for that version.
