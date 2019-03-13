@@ -583,11 +583,14 @@
             </template>
           </div>
         </div>
-        <crash-stats
-            end="[[info.stats.max_hour]]"
-            min-hour="[[info.stats.min_hour]]"
-            max-hour="[[info.stats.max_hour]]"
-            testcase-id="[[info.testcase.id]]"></crash-stats>
+
+        <template is="dom-if" if="[[!info.is_local_development]]">
+          <crash-stats
+              end="[[info.stats.max_hour]]"
+              min-hour="[[info.stats.min_hour]]"
+              max-hour="[[info.stats.max_hour]]"
+              testcase-id="[[info.testcase.id]]"></crash-stats>
+        </template>
 
         <template is="dom-if" if="[[info.metadata.gn_args]]">
           <div class="section">
