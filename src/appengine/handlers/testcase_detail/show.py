@@ -526,25 +526,44 @@ def get_testcase_detail(testcase):
 
   helpers.log('Testcase %s' % testcase.key.id(), helpers.VIEW_OPERATION)
   return {
-      'id': testcase.key.id(),
-      'crash_type': crash_type,
-      'crash_address': crash_address,
-      'crash_state': crash_state,  # Used by reproduce tool.
-      'crash_state_lines': crash_state_lines,
-      'crash_revision': testcase.crash_revision,
-      'csrf_token': form.generate_csrf_token(),
-      'external_user': external_user,
-      'footer': testcase.comments,
-      'fixed': fixed,
-      'fixed_full': fixed_full,
-      'issue_url': issue_url,
-      'is_admin': users.is_current_user_admin(),
-      'metadata': metadata,
-      'minimized_testcase_size': minimized_testcase_size,
-      'needs_refresh': needs_refresh,
-      'original_testcase_size': original_testcase_size,
-      'privileged_user': privileged_user,
-      'regression': regression,
+      'id':
+          testcase.key.id(),
+      'crash_type':
+          crash_type,
+      'crash_address':
+          crash_address,
+      'crash_state':
+          crash_state,  # Used by reproduce tool.
+      'crash_state_lines':
+          crash_state_lines,
+      'crash_revision':
+          testcase.crash_revision,
+      'csrf_token':
+          form.generate_csrf_token(),
+      'external_user':
+          external_user,
+      'footer':
+          testcase.comments,
+      'fixed':
+          fixed,
+      'fixed_full':
+          fixed_full,
+      'issue_url':
+          issue_url,
+      'is_admin':
+          users.is_current_user_admin(),
+      'metadata':
+          metadata,
+      'minimized_testcase_size':
+          minimized_testcase_size,
+      'needs_refresh':
+          needs_refresh,
+      'original_testcase_size':
+          original_testcase_size,
+      'privileged_user':
+          privileged_user,
+      'regression':
+          regression,
       'crash_stacktrace': {
           'lines':
               crash_stacktrace,
@@ -574,28 +593,46 @@ def get_testcase_detail(testcase):
               revisions.get_real_revision(
                   last_tested_crash_revision, testcase.job_type, display=True)
       },
-      'security_severity': security_severity,
-      'security_severities': data_types.SecuritySeverity.list(),
+      'security_severity':
+          security_severity,
+      'security_severities':
+          data_types.SecuritySeverity.list(),
       'stats': {
           'min_hour': crash_stats.get_min_hour(),
           'max_hour': crash_stats.get_max_hour(),
       },
-      'suspected_cls': _parse_suspected_cls(metadata.get('predator_result')),
-      'testcase': testcase,
-      'timestamp': utils.utc_datetime_to_timestamp(testcase.timestamp),
-      'show_blame': testcase.has_blame(),
-      'show_impact': testcase.has_impacts(),
-      'impacts_production': testcase.impacts_production(),
-      'find_similar_issues_options': FIND_SIMILAR_ISSUES_OPTIONS,
-      'auto_delete_timestamp': auto_delete_timestamp,
-      'auto_close_timestamp': auto_close_timestamp,
-      'memory_tool_display_label': memory_tool_display_label,
-      'memory_tool_display_value': memory_tool_display_value,
-      'last_tested': last_tested,
-      'is_admin_or_not_oss_fuzz': is_admin_or_not_oss_fuzz(),
-      'has_issue_tracker': has_issue_tracker,
-      'reproduction_help_url': reproduction_help_url,
-      'is_local_development': environment.is_running_on_app_engine_development(),
+      'suspected_cls':
+          _parse_suspected_cls(metadata.get('predator_result')),
+      'testcase':
+          testcase,
+      'timestamp':
+          utils.utc_datetime_to_timestamp(testcase.timestamp),
+      'show_blame':
+          testcase.has_blame(),
+      'show_impact':
+          testcase.has_impacts(),
+      'impacts_production':
+          testcase.impacts_production(),
+      'find_similar_issues_options':
+          FIND_SIMILAR_ISSUES_OPTIONS,
+      'auto_delete_timestamp':
+          auto_delete_timestamp,
+      'auto_close_timestamp':
+          auto_close_timestamp,
+      'memory_tool_display_label':
+          memory_tool_display_label,
+      'memory_tool_display_value':
+          memory_tool_display_value,
+      'last_tested':
+          last_tested,
+      'is_admin_or_not_oss_fuzz':
+          is_admin_or_not_oss_fuzz(),
+      'has_issue_tracker':
+          has_issue_tracker,
+      'reproduction_help_url':
+          reproduction_help_url,
+      'is_local_development':
+          environment.is_running_on_app_engine_development(),
   }
 
 
