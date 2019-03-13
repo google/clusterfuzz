@@ -120,7 +120,11 @@ def symlink_dirs():
   common.symlink(
       src=os.path.join('src', 'python'),
       target=os.path.join(SRC_DIR_PY, 'python'))
-  common.symlink(
+  # While importing third party modules, we may call pkg_resources.
+  # pkg_resources normalizes paths by calling os.path.realpath on them, which is
+  # incompatible with the App Engine sandbox since the resulting path will no
+  # longer be under appengine/.
+  common.copy_dir(
       src=os.path.join('src', 'third_party'),
       target=os.path.join(SRC_DIR_PY, 'third_party'))
 
