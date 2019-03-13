@@ -163,6 +163,11 @@ def do_value_profile():
 
 def do_fork():
   """Return whether or not to do fork mode."""
+  # TODO(metzman): Find a workaround for Windows command line limit before
+  # re-enabling this.
+  if environment.platform() == 'WINDOWS':
+    return False
+
   return engine_common.decide_with_probability(
       engine_common.get_strategy_probability(
           strategy.FORK_STRATEGY, default=FORK_PROBABILITY))
@@ -803,8 +808,8 @@ def main(argv):
     fuzzing_strategies.append(strategy.VALUE_PROFILE_STRATEGY)
 
   if do_fork():
-    # TODO(metzman): Use `-fork=2` on Windows.
-    num_fuzz_processes = 1
+    max_fuzz_threads = environment.get_value('MAX_FUZZ_THREADS', 1)
+    num_fuzz_processes = max(1, multiprocessing.cpu_count() / max_fuzz_threads)
     arguments.append('%s%d' % (constants.FORK_FLAG, num_fuzz_processes))
     fuzzing_strategies.append(
         '%s_%d' % (strategy.FORK_STRATEGY, num_fuzz_processes))
