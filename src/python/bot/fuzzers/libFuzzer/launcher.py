@@ -488,6 +488,9 @@ def remove_fuzzing_arguments(arguments):
   # Remove custom '-runs' argument.
   fuzzer_utils.extract_argument(arguments, constants.RUNS_FLAG)
 
+  # Remove `-fork' argument since it overrides '-merge' argument.
+  fuzzer_utils.extract_argument(arguments, constants.FORK_FLAG)
+
 
 def load_testcase_if_exists(fuzzer_runner,
                             testcase_file_path,
@@ -875,6 +878,9 @@ def main(argv):
       'fuzzing_time_percent': fuzzing_time_percent,
   }
 
+  # Remove fuzzing arguments before merge and dictionary analysis step.
+  remove_fuzzing_arguments(arguments)
+
   # Make a decision on whether merge step is needed at all. If there are no
   # new units added by libFuzzer run, then no need to do merge at all.
   new_units_added = parsed_stats.get('new_units_added', 0)
@@ -962,8 +968,6 @@ def main(argv):
                                             use_minijail)
     print merge_result.output
 
-  # Remove dictionary argument used for fuzzing, it is not needed for analysis.
-  fuzzer_utils.extract_argument(arguments, constants.DICT_FLAG)
   analyze_and_update_recommended_dictionary(runner, fuzzer_name, log_lines,
                                             corpus_directory, arguments)
 
