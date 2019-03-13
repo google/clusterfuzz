@@ -21,6 +21,7 @@ except ImportError:
   pass
 
 import atexit
+import multiprocessing
 import os
 import random
 import re
