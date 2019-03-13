@@ -355,7 +355,9 @@ def post(request_content_type, response_content_type):
       elif response_content_type == TEXT:
         self.response.headers['Content-Type'] = 'text/plain'
       elif response_content_type == HTML:
-        self.response.headers['Content-Security-Policy'] = csp.get_default()
+        # Don't enforce content security policies in local development mode.
+        if not environment.is_running_on_app_engine_development():
+          self.response.headers['Content-Security-Policy'] = csp.get_default()
 
       if request_content_type == JSON:
         extend_json_request(self.request)
@@ -383,7 +385,9 @@ def get(response_content_type):
       elif response_content_type == TEXT:
         self.response.headers['Content-Type'] = 'text/plain'
       elif response_content_type == HTML:
-        self.response.headers['Content-Security-Policy'] = csp.get_default()
+        # Don't enforce content security policies in local development mode.
+        if not environment.is_running_on_app_engine_development():
+          self.response.headers['Content-Security-Policy'] = csp.get_default()
 
       extend_request(self.request, self.request.params)
       return func(self, *args, **kwargs)
