@@ -300,6 +300,17 @@ def symlink(src, target):
       src=src, target=target))
 
 
+def copy_dir(src, target):
+  """Copy directory."""
+  if os.path.islink(target):
+    os.remove(target)
+
+  if os.path.isdir(target):
+    shutil.rmtree(target, ignore_errors=True)
+
+  shutil.copytree(src, target)
+
+
 def has_file_in_path(filename):
   """Check to see if filename exists in the user's PATH."""
   path = os.getenv('PATH')
