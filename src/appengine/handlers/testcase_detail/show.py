@@ -595,6 +595,7 @@ def get_testcase_detail(testcase):
       'is_admin_or_not_oss_fuzz': is_admin_or_not_oss_fuzz(),
       'has_issue_tracker': has_issue_tracker,
       'reproduction_help_url': reproduction_help_url,
+      'is_local_development': environment.is_running_on_app_engine_development(),
   }
 
 
