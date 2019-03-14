@@ -86,11 +86,11 @@ def start_process(process_handle):
     # and not as string.
     subprocess.list2cmdline_orig = subprocess.list2cmdline
     subprocess.list2cmdline = lambda s: s[0]
-
-  process_handle.run()
-
-  if is_win:
-    subprocess.list2cmdline = subprocess.list2cmdline_orig
+  try:
+    process_handle.run()
+  finally:
+    if is_win:
+      subprocess.list2cmdline = subprocess.list2cmdline_orig
 
 
 def cleanup_defunct_processes():
