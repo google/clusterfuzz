@@ -28,6 +28,15 @@ git clone https://github.com/google/clusterfuzz
 cd clusterfuzz
 ```
 
+We recommend that you use the [last release version](https://github.com/google/clusterfuzz/releases/latest)
+of our code for stability reasons (rather than master branch).
+You can checkout a particular release using:
+
+```bash
+git checkout tags/vX.Y.Z
+```
+where X.Y.Z is the release version (e.g. 1.0.1). 
+
 ## Installing prerequisites
 
 ### Google Cloud SDK
