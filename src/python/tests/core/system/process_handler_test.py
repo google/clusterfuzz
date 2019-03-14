@@ -34,7 +34,7 @@ class MockProcess(object):
     return self._info
 
 
-class TerminateProcessesMatchingName(unittest.TestCase):
+class TerminateProcessesMatchingNameTest(unittest.TestCase):
   """Tests terminate_processes_matching_names."""
 
   def setUp(self):
@@ -96,7 +96,7 @@ class TerminateProcessesMatchingName(unittest.TestCase):
     self.assertEqual(0, self.mock.terminate_process.call_count)
 
 
-class TerminateProcessesMatchingPath(unittest.TestCase):
+class TerminateProcessesMatchingPathTest(unittest.TestCase):
   """Tests terminate_processes_matching_names."""
 
   def setUp(self):

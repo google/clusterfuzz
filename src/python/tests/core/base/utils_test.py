@@ -453,3 +453,33 @@ class FileHashTest(fake_filesystem_unittest.TestCase):
       file_handle.write('A' * 60000)
     self.assertEqual('8360c01cef8aa7001d1dd8964b9921d4c187da29',
                      utils.file_hash(self.test_file))
+
+
+class GetExecuteCommand(unittest.TestCase):
+  """Test that the correct commands to run a script are returned."""
+
+  def call_and_assert_helper(self, expected_command, file_to_execute):
+    """Call utils.get_execute_command on |file_to_execute| and assert result
+    equal to |expected_command|."""
+    self.assertEqual(expected_command,
+                     utils.get_execute_command(file_to_execute))
+
+  def test_standard_script(self):
+    """Test correct command returned for python script."""
+    script_name = 'script.py'
+    expected_command = 'python %s' % script_name
+    self.call_and_assert_helper(expected_command, script_name)
+
+  def test_java(self):
+    """Test correct launch command returned for Java class."""
+    script_name = 'javaclassfile.class'
+    expected_command = 'java javaclassfile'
+    self.call_and_assert_helper(expected_command, script_name)
+
+  def test_binary(self):
+    """Test correct launch command returned for a binary (executable) file."""
+    executable_name = 'executable'
+    self.call_and_assert_helper(executable_name, executable_name)
+
+    executable_name += '.exe'
+    self.call_and_assert_helper(executable_name, executable_name)

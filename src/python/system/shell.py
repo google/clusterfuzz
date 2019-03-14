@@ -310,7 +310,7 @@ def get_interpreter_for_command(command):
   try:
     return interpreter_extension_map[os.path.splitext(command)[1]]
   except KeyError:
-    return ''
+    return None
 
 
 def move(src, dst):
