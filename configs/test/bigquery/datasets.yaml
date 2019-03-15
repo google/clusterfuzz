@@ -193,3 +193,19 @@ resources:
             type: INTEGER
           - name: regression_range_end
             type: INTEGER
+  - name: fuzzer-weights-table
+    type: gcp-types/bigquery-v2:tables
+    properties:
+      datasetId: $(ref.main-dataset.datasetReference.datasetId)
+      tableReference:
+        tableId: fuzzer_weights
+      timePartitioning:
+        type: DAY
+      schema:
+        fields:
+          - name: fuzzer
+            type: STRING
+          - name: job
+            type: STRING
+          - name: weight
+            type: FLOAT

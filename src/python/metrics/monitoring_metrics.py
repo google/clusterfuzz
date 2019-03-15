@@ -146,10 +146,3 @@ TASK_COUNT = monitor.CounterMetric(
         monitor.StringField('task'),
         monitor.StringField('job'),
     ])
-
-WEIGHT_ADJUSTMENT = monitor.CounterMetric(
-    'cron/weight_adjusments',
-    description='Fuzzer weight adjustments',
-    field_spec=[
-        monitor.StringField('reason'),
-    ])
