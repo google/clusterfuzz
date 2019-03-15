@@ -295,8 +295,8 @@ def get_free_disk_space(path='/'):
   return psutil.disk_usage(path).free
 
 
-def get_interpreter_for_command(command):
-  """Gives the interpreter needed to run the command."""
+def get_interpreter(file_to_execute):
+  """Gives the interpreter needed to execute |file_to_execute|."""
   interpreter_extension_map = {
       '.bash': 'bash',
       '.class': 'java',
@@ -308,9 +308,24 @@ def get_interpreter_for_command(command):
   }
 
   try:
-    return interpreter_extension_map[os.path.splitext(command)[1]]
+    return interpreter_extension_map[os.path.splitext(file_to_execute)[1]]
   except KeyError:
-    return ''
+    return None
+
+
+def get_execute_command(file_to_execute):
+  """Return command to execute |file_to_execute|."""
+  interpreter_path = get_interpreter(file_to_execute)
+
+  # Hack for Java scripts.
+  file_to_execute = file_to_execute.replace('.class', '')
+
+  if interpreter_path:
+    command = '%s %s' % (interpreter_path, file_to_execute)
+  else:
+    # Handle executables that don't need an interpreter.
+    command = file_to_execute
+  return command
 
 
 def move(src, dst):

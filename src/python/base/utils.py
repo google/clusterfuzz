@@ -33,7 +33,6 @@ from base import retry
 from config import local_config
 from metrics import logs
 from system import environment
-from system import shell
 
 try:
   import psutil
@@ -306,17 +305,6 @@ def get_file_contents_with_fatal_error_on_failure(path):
     logs.log_error('Unable to read file `%s\'' % path)
 
   raise errors.BadStateError
-
-
-def get_launch_path_for_script(script_directory, script_filename):
-  """Return launch path for a script."""
-  # Hack for Java Scripts.
-  script_filename = script_filename.replace('.class', '')
-
-  interpreter_path = shell.get_interpreter_for_command(script_filename)
-  script_absolute_path = os.path.join(script_directory, script_filename)
-  script_launch_path = '%s %s' % (interpreter_path, script_absolute_path)
-  return script_launch_path
 
 
 def get_line_seperator(label=''):
