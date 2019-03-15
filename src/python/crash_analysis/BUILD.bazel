@@ -4,18 +4,16 @@ licenses(["notice"])  # Apache 2.0
 
 py_library(
     name = "crash_analysis",
-    deps = [],
     srcs = [
         "__init__.py",
-        "crash_comparer.py",
-        "severity_analyzer.py",
-        "crash_result.py",
         "crash_analyzer.py",
+        "crash_comparer.py",
+        "crash_result.py",
+        "severity_analyzer.py",
         "stack_parsing/stack_analyzer.py",
         "stack_parsing/stack_parser.py",
         "stack_parsing/stack_symbolizer.py",
     ],
     srcs_version = "PY2ONLY",
+    deps = [],
 )
-
-
