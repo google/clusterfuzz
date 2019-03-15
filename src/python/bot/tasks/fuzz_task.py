@@ -759,7 +759,8 @@ def run_fuzzer(fuzzer, fuzzer_directory, testcase_directory, data_directory,
       return error_occurred, None, None, None, None
 
     # Build the fuzzer command execution string.
-    command = shell.get_execute_command(fuzzer.executable_path)
+    command = shell.get_execute_command(fuzzer_executable)
+
     # NodeJS and shell script expect space seperator for arguments.
     if command.startswith('node ') or command.startswith('sh '):
       argument_seperator = ' '
