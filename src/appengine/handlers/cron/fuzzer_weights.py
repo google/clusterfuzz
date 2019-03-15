@@ -19,12 +19,12 @@ import datetime
 from base import utils
 from datastore import data_handler
 from datastore import data_types
+from datastore import ndb_utils
 from google_cloud_utils import big_query
 from handlers import base_handler
 from libs import handler
 from metrics import fuzzer_stats
 from metrics import logs
-from metrics import monitoring_metrics
 
 QuerySpecification = collections.namedtuple(
     'QuerySpecification',
@@ -252,7 +252,7 @@ def _update_match(matched_specifications, fuzzer, job, specification):
 
 
 def update_weight_for_target(fuzz_target_name, job, specification):
-  """Set the weight for a paritcular target."""
+  """Set the weight for a particular target."""
   target_job = data_handler.get_fuzz_target_job(fuzz_target_name, job)
 
   if not target_job:
@@ -263,9 +263,7 @@ def update_weight_for_target(fuzz_target_name, job, specification):
   weight = specification.adjusted_weight
   logs.log('Adjusted weight to %f for target %s and job %s (%s).' %
            (weight, fuzz_target_name, job, specification.reason))
-  monitoring_metrics.WEIGHT_ADJUSTMENT.increment({
-      'reason': specification.reason
-  })
+
   target_job.weight = weight
   target_job.put()
 
@@ -294,9 +292,9 @@ def update_target_weights_for_engine(client, engine, specifications):
   # All fuzzers with non-default weights must be tracked with a special
   # specification. This ensures that they will be restored to normal weight
   # once conditions causing adjustments are no longer met.
-  target_jobs = data_types.FuzzTargetJob.query(
-      data_types.FuzzTarget.engine == engine).filter(
-          data_types.FuzzTargetJob.weight != 1.0)
+  target_jobs = ndb_utils.get_all_from_query(
+      data_types.FuzzTargetJob.query(data_types.FuzzTarget.engine == engine)
+      .filter(data_types.FuzzTargetJob.weight != 1.0))
 
   for target_job in target_jobs:
     matched_specifications[(target_job.fuzz_target_name,
@@ -317,6 +315,22 @@ def update_target_weights_for_engine(client, engine, specifications):
   logs.log('Weight adjustments complete for engine %s.' % engine)
 
 
+def store_current_weights_in_bigquery():
+  """Update a bigquery table containing the daily stats."""
+  rows = []
+  target_jobs = ndb_utils.get_all_from_model(data_types.FuzzTargetJob)
+  for target_job in target_jobs:
+    row = {
+        'fuzzer': target_job.fuzz_target_name,
+        'job': target_job.job,
+        'weight': target_job.weight
+    }
+    rows.append(big_query.Insert(row, None))
+
+  client = big_query.Client(dataset_id='main', table_id='fuzzer_weights')
+  client.insert(rows)
+
+
 class Handler(base_handler.Handler):
   """Handler to periodically update fuzz target weights based on performance."""
 
@@ -327,3 +341,5 @@ class Handler(base_handler.Handler):
     update_target_weights_for_engine(client, 'libFuzzer',
                                      LIBFUZZER_SPECIFICATIONS)
     update_target_weights_for_engine(client, 'afl', AFL_SPECIFICATIONS)
+
+    store_current_weights_in_bigquery()
