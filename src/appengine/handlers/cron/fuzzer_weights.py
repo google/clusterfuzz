@@ -292,9 +292,9 @@ def update_target_weights_for_engine(client, engine, specifications):
   # All fuzzers with non-default weights must be tracked with a special
   # specification. This ensures that they will be restored to normal weight
   # once conditions causing adjustments are no longer met.
-  target_jobs = ndb_utils.get_all_from_query(
-      data_types.FuzzTargetJob.query(data_types.FuzzTarget.engine == engine)
-      .filter(data_types.FuzzTargetJob.weight != 1.0))
+  target_jobs = data_types.FuzzTargetJob.query(
+      data_types.FuzzTarget.engine == engine).filter(
+          data_types.FuzzTargetJob.weight != 1.0)
 
   for target_job in target_jobs:
     matched_specifications[(target_job.fuzz_target_name,

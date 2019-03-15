@@ -140,6 +140,7 @@ class TestUpdateChildWeightsForParentFuzzer(unittest.TestCase):
     test_helpers.patch_environ(self)
     test_helpers.patch(self, [
         'handlers.cron.fuzzer_weights._query_helper',
+        'handlers.cron.fuzzer_weights.store_current_weights_in_bigquery',
         'handlers.cron.fuzzer_weights.update_weight_for_target',
     ])
 
