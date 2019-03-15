@@ -4,7 +4,6 @@ licenses(["notice"])  # Apache 2.0
 
 py_library(
     name = "base",
-    deps = [],
     srcs = [
         "__init__.py",
         "dates.py",
@@ -20,6 +19,5 @@ py_library(
         "utils.py",
     ],
     srcs_version = "PY2ONLY",
+    deps = [],
 )
-
-

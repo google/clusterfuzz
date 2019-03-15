@@ -1,4 +1,5 @@
 package(default_visibility = ["//visibility:public"])
+
 load("@bazel_gazelle//:def.bzl", "gazelle")
 
 licenses(["notice"])  # Apache 2.0
@@ -12,6 +13,7 @@ gazelle(
 
 py_library(
     name = "clusterfuzz",
+    srcs_version = "PY2ONLY",
     deps = [
         "//python/base",
         "//python/config",
@@ -19,5 +21,4 @@ py_library(
         "//python/metrics",
         "//python/system",
     ],
-    srcs_version = "PY2ONLY",
 )

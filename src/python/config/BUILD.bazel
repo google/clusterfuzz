@@ -4,13 +4,11 @@ licenses(["notice"])  # Apache 2.0
 
 py_library(
     name = "config",
-    deps = [],
     srcs = [
         "__init__.py",
         "db_config.py",
         "local_config.py",
     ],
     srcs_version = "PY2ONLY",
+    deps = [],
 )
-
-
