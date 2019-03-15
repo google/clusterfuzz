@@ -325,7 +325,7 @@ def store_current_weights_in_bigquery():
         'job': target_job.job,
         'weight': target_job.weight
     }
-    rows.append(big_query.Insert(row, None))
+    rows.append(big_query.Insert(row=row, insert_id=None))
 
   client = big_query.Client(dataset_id='main', table_id='fuzzer_weights')
   client.insert(rows)
