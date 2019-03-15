@@ -3,11 +3,12 @@ package(default_visibility = ["//visibility:public"])
 licenses(["notice"])  # Apache 2.0
 
 py_library(
-    name = "stack_parsing",
+    name = "config",
     deps = [],
     srcs = [
-        "stack_analyzer.py",
-        "stack_parser.py",
+        "__init__.py",
+        "db_config.py",
+        "local_config.py",
     ],
     srcs_version = "PY2ONLY",
 )

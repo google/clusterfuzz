@@ -1,0 +1,23 @@
+package(default_visibility = ["//visibility:public"])
+
+py_library(
+    name = "base",
+    deps = [],
+    srcs = [
+        "__init__.py",
+        "dates.py",
+        "errors.py",
+        "external_users.py",
+        "json_utils.py",
+        "memoize.py",
+        "modules.py",
+        "persistent_cache.py",
+        "retry.py",
+        "tasks.py",
+        "untrusted.py",
+        "utils.py",
+    ],
+    srcs_version = "PY2ONLY",
+)
+
+
