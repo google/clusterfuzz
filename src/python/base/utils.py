@@ -33,7 +33,6 @@ from base import retry
 from config import local_config
 from metrics import logs
 from system import environment
-from system import shell
 
 try:
   import psutil
@@ -306,21 +305,6 @@ def get_file_contents_with_fatal_error_on_failure(path):
     logs.log_error('Unable to read file `%s\'' % path)
 
   raise errors.BadStateError
-
-
-def get_execute_command(file_to_execute):
-  """Return command to execute |file_to_execute|."""
-  interpreter_path = shell.get_interpreter_for_command(file_to_execute)
-
-  # Hack for Java scripts.
-  file_to_execute = file_to_execute.replace('.class', '')
-
-  if interpreter_path:
-    execute_command = '%s %s' % (interpreter_path, file_to_execute)
-  else:
-    # Handle executables that don't need an interpreter.
-    execute_command = file_to_execute
-  return execute_command
 
 
 def get_line_seperator(label=''):

@@ -52,7 +52,7 @@ def main():
   # Get absolute path to heartbeat script and interpreter needed to execute it.
   startup_scripts_directory = environment.get_startup_scripts_directory()
   beat_script_path = os.path.join(startup_scripts_directory, BEAT_SCRIPT)
-  beat_interpreter = shell.get_interpreter_for_command(beat_script_path)
+  beat_interpreter = shell.get_interpreter(beat_script_path)
   assert beat_interpreter
 
   while True:

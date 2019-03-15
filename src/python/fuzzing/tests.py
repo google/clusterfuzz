@@ -689,7 +689,7 @@ def get_command_line_for_application(file_to_run='',
     app_path = '"%s"' % app_path
 
   # Prepend command with interpreter if it is a script.
-  interpreter = shell.get_interpreter_for_command(app_name)
+  interpreter = shell.get_interpreter(app_name)
   if interpreter:
     app_path = '%s %s' % (interpreter, app_path)
 
