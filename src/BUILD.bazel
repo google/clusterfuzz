@@ -6,3 +6,11 @@ gazelle(
     name = "gazelle",
     prefix = "clusterfuzz",
 )
+
+py_library(
+    name = "clusterfuzz",
+    deps = [
+        "//python/crash_analysis/stack_parsing",
+    ],
+    srcs_version = "PY2ONLY",
+)

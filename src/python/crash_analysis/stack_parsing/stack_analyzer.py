@@ -20,7 +20,6 @@ import subprocess
 from base import utils
 from crash_analysis import crash_analyzer
 from crash_analysis.stack_parsing import stack_parser
-from crash_analysis.stack_parsing import stack_symbolizer
 from system import environment
 
 C_CPP_EXTENSIONS = ['c', 'cc', 'cpp', 'cxx', 'h', 'hh', 'hpp', 'hxx']
@@ -1000,6 +999,8 @@ def get_crash_data(crash_data, symbolize_flag=True):
   (helps in testcase deduplication)."""
   # Decide whether to symbolize or not symbolize the input stacktrace.
   if symbolize_flag:
+    # Defer imports since stack_symbolizer pulls in a lot of things.
+    from crash_analysis.stack_parsing import stack_symbolizer
     crash_stacktrace_with_inlines = stack_symbolizer.symbolize_stacktrace(
         crash_data, enable_inline_frames=True)
     crash_stacktrace_without_inlines = stack_symbolizer.symbolize_stacktrace(
