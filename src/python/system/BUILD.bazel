@@ -1,0 +1,19 @@
+package(default_visibility = ["//visibility:public"])
+
+py_library(
+    name = "system",
+    deps = [],
+    srcs = [
+        "__init__.py",
+        "archive.py",
+        "environment.py",
+        "minijail.py",
+        "new_process.py",
+        "path_patcher.py",
+        "process_handler.py",
+        "shell.py",
+    ],
+    srcs_version = "PY2ONLY",
+)
+
+

@@ -1,0 +1,19 @@
+package(default_visibility = ["//visibility:public"])
+
+py_library(
+    name = "metrics",
+    deps = [],
+    srcs = [
+        "__init__.py",
+        "crash_stats.py",
+        "fuzzer_logs.py",
+        "fuzzer_stats.py",
+        "logs.py",
+        "monitoring_metrics.py",
+        "monitor.py",
+        "profiler.py",
+    ],
+    srcs_version = "PY2ONLY",
+)
+
+
