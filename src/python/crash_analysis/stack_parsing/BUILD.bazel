@@ -1,0 +1,13 @@
+package(default_visibility = ["//visibility:public"])
+
+py_library(
+  name = "stack_parsing",
+  deps = [],
+  srcs = [
+    "stack_analyzer.py",
+    "stack_parser.py",
+  ],
+  srcs_version = "PY2ONLY",
+)
+
+
