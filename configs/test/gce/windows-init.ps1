@@ -93,49 +93,49 @@ if (!(Test-Path ($tmp2))) {
 # Download Windows 10 SDK.
 $fileName = "$tmp\winsdksetup.exe"
 if (!(Test-Path ($fileName))) {
-  $webclient.DownloadFile("https://commondatastorage.googleapis.com/clusterfuzz-data/winsdksetup.exe", $fileName)
+  $webClient.DownloadFile("https://commondatastorage.googleapis.com/clusterfuzz-data/winsdksetup.exe", $fileName)
   cmd /c $fileName /q
 }
 
 # Download Visual C++ 2013 redistributable package (64-bit).
 $fileName = "$tmp\vcredist_x64.exe"
 if (!(Test-Path ($fileName))) {
-  $webclient.DownloadFile("https://commondatastorage.googleapis.com/clusterfuzz-data/vcredist_x64.exe", $fileName)
+  $webClient.DownloadFile("https://commondatastorage.googleapis.com/clusterfuzz-data/vcredist_x64.exe", $fileName)
   cmd /c $fileName /q
 }
 
 # Download Visual C++ 2013 redistributable package (32-bit).
 $fileName = "$tmp\vcredist_x86.exe"
 if (!(Test-Path ($fileName))) {
-  $webclient.DownloadFile("https://commondatastorage.googleapis.com/clusterfuzz-data/vcredist_x86.exe", $fileName)
+  $webClient.DownloadFile("https://commondatastorage.googleapis.com/clusterfuzz-data/vcredist_x86.exe", $fileName)
   cmd /c $fileName /q
 }
 
 # Download VS 2008 compiler for python packages.
 $fileName = "$tmp\VCForPython27.msi"
 if (!(Test-Path ($fileName))) {
-  $webclient.DownloadFile("https://commondatastorage.googleapis.com/clusterfuzz-data/VCForPython27.msi", $fileName)
+  $webClient.DownloadFile("https://commondatastorage.googleapis.com/clusterfuzz-data/VCForPython27.msi", $fileName)
   cmd /c msiexec /i $fileName /quiet /qn /norestart
 }
 
 # Download msdia120.dll, needed for llvm symbolizer to work.
 $fileName = "$tmp\msdia120.dll"
 if (!(Test-Path ($fileName))) {
-  $webclient.DownloadFile("https://commondatastorage.googleapis.com/clusterfuzz-data/msdia120.dll", $fileName)
+  $webClient.DownloadFile("https://commondatastorage.googleapis.com/clusterfuzz-data/msdia120.dll", $fileName)
   cmd /c regsvr32 /s $fileName
 }
 
 # Download msdia140.dll, needed for llvm symbolizer to work.
 $fileName = "$tmp\msdia140.dll"
 if (!(Test-Path ($fileName))) {
-  $webclient.DownloadFile("https://commondatastorage.googleapis.com/clusterfuzz-data/msdia140.dll", $fileName)
+  $webClient.DownloadFile("https://commondatastorage.googleapis.com/clusterfuzz-data/msdia140.dll", $fileName)
   cmd /c regsvr32 /s $fileName
 }
 
 # Install Python 2.7.15.
 $fileName = "$tmp\python-2.7.15.amd64.msi"
 if (!(Test-Path ($fileName))) {
-  $webclient.DownloadFile("https://commondatastorage.googleapis.com/clusterfuzz-data/python-2.7.15.amd64.msi", $fileName)
+  $webClient.DownloadFile("https://commondatastorage.googleapis.com/clusterfuzz-data/python-2.7.15.amd64.msi", $fileName)
   Remove-Item c:\python27 -Recurse -ErrorAction Ignore
   cmd /c msiexec /qn /i $fileName TARGETDIR=c:\python27
 }
@@ -143,8 +143,8 @@ if (!(Test-Path ($fileName))) {
 # Download Appengine SDK.
 $fileName = "$tmp\$appengineFile"
 if (!(Test-Path ($fileName))) {
-  $webclient.DownloadFile("https://commondatastorage.googleapis.com/clusterfuzz-data/$appengineFile", $fileName)
-    Remove-Item $appengineDir -Recurse -ErrorAction Ignore
+  $webClient.DownloadFile("https://commondatastorage.googleapis.com/clusterfuzz-data/$appengineFile", $fileName)
+  Remove-Item $appengineDir -Recurse -ErrorAction Ignore
   unzip $fileName
 }
 
@@ -158,42 +158,43 @@ cmd /c c:\python27\python -m pip install crcmod==1.7 pywinauto==0.6.4 psutil==5.
 # Install NodeJS.
 $fileName = "$tmp\nodejs.zip"
 if (!(Test-Path ($fileName))) {
-  $webclient.DownloadFile("https://commondatastorage.googleapis.com/clusterfuzz-data/nodejs.zip", $fileName)
+  $webClient.DownloadFile("https://commondatastorage.googleapis.com/clusterfuzz-data/nodejs.zip", $fileName)
   unzip $fileName
 }
 
 # Install Java.
-$fileName = "$tmp\jre-7u80-windows-i586.exe"
+$fileName = "$tmp\openjdk-11.0.2_windows-x64_bin.zip"
 if (!(Test-Path ($fileName))) {
-  $webclient.DownloadFile("https://commondatastorage.googleapis.com/clusterfuzz-data/jre-7u80-windows-i586.exe", $fileName)
-  cmd /c $fileName /s INSTALLDIR=c:\java STATIC=1
+  $webClient.DownloadFile("https://commondatastorage.googleapis.com/clusterfuzz-data/openjdk-11.0.2_windows-x64_bin.zip", $fileName)
+  unzip $fileName
+  mv C:\jdk-11.0.2 C:\java
 }
 
 # Install Chrome, helps to install the google crash handler.
 $fileName = "$tmp\ChromeSetup.exe"
 if (!(Test-Path ($fileName))) {
-  $webclient.DownloadFile("https://commondatastorage.googleapis.com/clusterfuzz-data/ChromeSetup.exe", $fileName)
+  $webClient.DownloadFile("https://commondatastorage.googleapis.com/clusterfuzz-data/ChromeSetup.exe", $fileName)
   cmd /c $fileName /silent /installsource silent /install
 }
 
 # Install Google crash handler.
 $fileName = "$tmp\GoogleUpdateSetup.exe"
 if (!(Test-Path ($fileName))) {
-  $webclient.DownloadFile("https://commondatastorage.googleapis.com/clusterfuzz-data/GoogleUpdateSetup.exe", $fileName)
+  $webClient.DownloadFile("https://commondatastorage.googleapis.com/clusterfuzz-data/GoogleUpdateSetup.exe", $fileName)
   cmd /c $fileName /install "runtime=true^&needsadmin=false" /silent
 }
 
 # Download PSTools
 $fileName = "$tmp\pstools.zip"
 if (!(Test-Path ($fileName))) {
-  $webclient.DownloadFile("https://commondatastorage.googleapis.com/clusterfuzz-data/PSTools.zip", $fileName)
+  $webClient.DownloadFile("https://commondatastorage.googleapis.com/clusterfuzz-data/PSTools.zip", $fileName)
   unzip $fileName
 }
 
 # Download and install google-fluentd
 $fileName = "$tmp\StackdrvierLogging-v1-3.exe"
 if (!(Test-Path ($fileName))) {
-  $webclient.DownloadFile("https://dl.google.com/cloudagents/windows/StackdriverLogging-v1-3.exe", $fileName)
+  $webClient.DownloadFile("https://dl.google.com/cloudagents/windows/StackdriverLogging-v1-3.exe", $fileName)
   cmd /c $fileName /S
 
   $configFile = "C:\GoogleStackdriverLoggingAgent\fluent.conf"
@@ -220,7 +221,7 @@ if (!(Test-Path ($fileName))) {
 $nvidiaDriverVersion = "391.29"
 $fileName = "$tmp\$nvidiaDriverVersion-tesla-desktop-winserver2016-international.exe"
 if ($gpu -and !(Test-Path ($fileName))) {
-  $webclient.DownloadFile("https://commondatastorage.googleapis.com/clusterfuzz-data/$nvidiaDriverVersion-tesla-desktop-winserver2016-international.exe", $fileName)
+  $webClient.DownloadFile("https://commondatastorage.googleapis.com/clusterfuzz-data/$nvidiaDriverVersion-tesla-desktop-winserver2016-international.exe", $fileName)
 
   # Unpack files by running installer, then run setup.exe from extracted path.
   cmd /c $fileName -s
@@ -231,7 +232,7 @@ if ($gpu -and !(Test-Path ($fileName))) {
 $nvidiaGridDriverVersion = "386.09"
 $fileName = "$tmp\${nvidiaGridDriverVersion}_grid_win10_server2016_64bit_international.exe"
 if ($gpu -and !(Test-Path ($fileName))) {
-  $webclient.DownloadFile("https://commondatastorage.googleapis.com/clusterfuzz-data/${nvidiaGridDriverVersion}_grid_win10_server2016_64bit_international.exe", $fileName)
+  $webClient.DownloadFile("https://commondatastorage.googleapis.com/clusterfuzz-data/${nvidiaGridDriverVersion}_grid_win10_server2016_64bit_international.exe", $fileName)
 
   # Unpack files by running installer, then run setup.exe from extracted path.
   cmd /c $fileName -s
@@ -247,7 +248,7 @@ cmd /c w32tm /resync
 # Setup OpenSSH
 $fileName = "$tmp\OpenSSH-Win64.zip"
 if (!(Test-Path ($fileName))) {
-  $webclient.DownloadFile("https://commondatastorage.googleapis.com/clusterfuzz-data/OpenSSH-Win64.zip", $fileName)
+  $webClient.DownloadFile("https://commondatastorage.googleapis.com/clusterfuzz-data/OpenSSH-Win64.zip", $fileName)
   unzip $fileName 'c:\Program Files'
   # OpenSSH needs to be in c:\Program Files\OpenSSH because its default
   # sshd_config expects that folder.
