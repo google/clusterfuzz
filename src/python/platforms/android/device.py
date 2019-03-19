@@ -317,10 +317,6 @@ def configure_wifi_and_airplane_mode(wifi_enabled=False):
   # turned on via gestures.
   adb.disable_airplane_mode()
 
-  # GCE uses Ethernet, nothing to do here.
-  if adb.is_gce():
-    return
-
   # Need to disable wifi before changing configuration.
   adb.disable_wifi()
 
@@ -331,10 +327,16 @@ def configure_wifi_and_airplane_mode(wifi_enabled=False):
     # No more work to do, we already disabled it at start.
     return
 
-  config = db_config.get()
-  if not config.wifi_ssid:
-    # No wifi config is set, skip.
-    return
+  if adb.is_gce():
+    wifi_ssid = 'VirtWifi'
+    wifi_password = ''
+  else:
+    config = db_config.get()
+    if not config.wifi_ssid:
+      logs.log('No wifi ssid is set, skipping wifi config.')
+      return
+    wifi_ssid = config.wifi_ssid
+    wifi_password = config.wifi_password or ''
 
   adb.enable_wifi()
 
@@ -348,14 +350,14 @@ def configure_wifi_and_airplane_mode(wifi_enabled=False):
 
   connect_wifi_command = (
       'am instrument -e method connectToNetwork -e ssid {ssid} ')
-  if config.wifi_password:
+  if wifi_password:
     connect_wifi_command += '-e psk {password} '
   connect_wifi_command += '-w {call_path}'
 
   output = adb.run_adb_shell_command(
       connect_wifi_command.format(
-          ssid=quote(config.wifi_ssid),
-          password=quote(config.wifi_password),
+          ssid=quote(wifi_ssid),
+          password=quote(wifi_password),
           call_path=WIFI_UTIL_CALL_PATH))
   if 'result=true' not in output:
     logs.log_error('Failed to connect to wifi.', output=output)

@@ -748,9 +748,6 @@ def get_command_line_for_application(file_to_run='',
     # Check if the testcase needs to be loaded over http.
     # TODO(ochang): Make this work for trusted/untrusted.
     http_ip = '127.0.0.1'
-    if environment.get_value('ANDROID_GCE'):
-      http_ip = environment.get_value('ANDROID_GCE_HOST_IP')
-
     http_port_1 = environment.get_value('HTTP_PORT_1', 8000)
     relative_testcase_path = file_to_run[len(input_directory + os.path.sep):]
     relative_testcase_path = relative_testcase_path.replace('\\', '/')
