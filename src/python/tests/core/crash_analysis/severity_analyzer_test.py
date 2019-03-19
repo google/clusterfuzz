@@ -193,5 +193,5 @@ class SeverityAnalyzerTest(unittest.TestCase):
     """Tests a browser process bug is recognized as such."""
     self.assertEqual(
         'browser',
-        severity_analyzer.SeverityAnalyzerSanitizerChrome._find_process_type(
+        severity_analyzer.SeverityAnalyzerSanitizerChrome._find_process_type(  # pylint: disable=protected-access
             self._read_test_data('uaf_browser.txt')))
