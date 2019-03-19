@@ -1044,6 +1044,10 @@ def unlock_screen_if_locked():
 
 def flash_to_latest_build_if_needed():
   """Wipes user data, resetting the device to original factory state."""
+  if environment.get_value('LOCAL_DEVELOPMENT'):
+    # Don't reimage local development devices.
+    return
+
   run_timeout = environment.get_value('RUN_TIMEOUT')
   if run_timeout:
     # If we have a run timeout, then we are already scheduled to bail out and

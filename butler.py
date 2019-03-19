@@ -214,6 +214,10 @@ def main():
       default='local/storage',
       help='Server storage path.')
   parser_run_bot.add_argument('directory', help='Directory to create bot in.')
+  parser_run_bot.add_argument(
+      '--android-serial',
+      help='Serial number of an Android device to connect to instead of '
+      'running normally.')
 
   parser_remote = subparsers.add_parser(
       'remote', help=('Run command-line tasks on a remote bot.'))

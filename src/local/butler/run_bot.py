@@ -106,6 +106,10 @@ def _setup_environment_and_configs(args, appengine_path):
 
     os.environ['LOCAL_GCS_BUCKETS_PATH'] = local_gcs_buckets_path
 
+  if args.android_serial:
+    os.environ['OS_OVERRIDE'] = 'ANDROID'
+    os.environ['ANDROID_SERIAL'] = args.android_serial
+
 
 def execute(args):
   """Run the bot."""
