@@ -71,12 +71,6 @@ function adb_root {
   if [ $use_su -eq 0 ]; then
     $ADB root
   fi
-
-  # Hack for Android on GCE.
-  # Root might restart the devices's adbd, requiring us to reconnect.
-  if [[ x$ANDROID_GCE == "xTrue" ]]; then    
-    $ADB connect $device
-  fi
 }
 
 function adb_wait_for_device {

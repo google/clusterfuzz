@@ -323,8 +323,8 @@ def get_application_launch_command(app_args, testcase_path, testcase_file_url):
 
 def get_device_path():
   """Return device path."""
-  if environment.get_value('ANDROID_GCE'):
-    return ''
+  if is_gce():
+    return None
 
   devices = get_devices()
   device_serial = environment.get_value('ANDROID_SERIAL')
@@ -332,7 +332,7 @@ def get_device_path():
     if device_serial == device.serial:
       return device.path
 
-  return ''
+  return None
 
 
 def get_devices():
@@ -501,7 +501,6 @@ def hard_reset():
     bad_state_reached()
 
   else:
-    # For non-Nexus devices, need to set debug mode as low. See b/25423901.
     # Try hard-reset via sysrq-trigger (requires root).
     hard_reset_sysrq_cmd = get_adb_command_line(
         'shell echo b \\> /proc/sysrq-trigger')
@@ -512,6 +511,12 @@ def hard_reset():
     soft_reset_cmd = get_adb_command_line('reboot')
     execute_command(
         soft_reset_cmd, timeout=RECOVERY_CMD_TIMEOUT, log_error=True)
+
+
+def is_gce():
+  """Returns if we are running in GCE environment."""
+  android_serial = environment.get_value('ANDROID_SERIAL')
+  return android_serial.startswith('127.0.0.1:')
 
 
 def is_package_installed(package_name):
@@ -552,24 +557,7 @@ def read_data_from_file(file_path):
 
 def reboot():
   """Reboots device."""
-  is_remote_device = environment.get_value('ANDROID_GCE')
-  log_error = False
-  recover = True
-  timeout = None
-  if is_remote_device:
-    # Hack for ADB over remote connections: reboot hangs adb, so we set a small
-    # timeout. Also, disable attempting to recover from a reboot, otherwise
-    # we'll attempt to reboot again and do unnecessary recovery since the
-    # initial command timed out.
-    recover = False
-    timeout = REMOTE_REBOOT_TIMEOUT
-
-  run_adb_command(
-      'reboot', log_error=log_error, timeout=timeout, recover=recover)
-
-  if is_remote_device:
-    # Reboot also disconnects us, so we must reconnect.
-    connect_remote(reconnect=True)
+  run_adb_command('reboot')
 
 
 def recreate_virtual_device():
@@ -644,7 +632,7 @@ def reset_device_connection():
 
 def reset_usb():
   """Reset USB bus for a device serial."""
-  if environment.get_value('ANDROID_GCE'):
+  if is_gce():
     # Nothing to do here.
     return
 
@@ -724,12 +712,7 @@ def run_as_root():
     return
 
   wait_for_device()
-  output = run_adb_command('root')
-
-  if environment.get_value('ANDROID_GCE') and 'restarting adbd' in output:
-    # root may restart the device's adbd, which requires a reconnect.
-    connect_remote(reconnect=True)
-
+  run_adb_command('root')
   wait_for_device()
 
 
@@ -745,11 +728,6 @@ def run_adb_command(cmd,
     logs.log('Running: adb %s' % cmd)
   if not timeout:
     timeout = environment.get_value('ADB_TIMEOUT')
-
-  is_remote_device = environment.get_value('ANDROID_GCE')
-  if is_remote_device and get_device_state() != 'device':
-    # If the GCE device is not connected, reconnect.
-    connect_remote(reconnect=True)
 
   output = execute_command(get_adb_command_line(cmd), timeout, log_error)
   if not recover:
@@ -818,7 +796,7 @@ def run_adb_shell_command(cmd,
 
 def run_fastboot_command(cmd, log_output=True, log_error=True, timeout=None):
   """Run a command in fastboot shell."""
-  if environment.get_value('ANDROID_GCE'):
+  if is_gce():
     # We can't run fastboot commands on Android GCE instances.
     return None
 
@@ -902,15 +880,6 @@ def stop_shell():
   """Stops shell."""
   # Make sure we are running as root.
   run_as_root()
-
-  if environment.get_value('ANDROID_GCE'):
-    # Workaround for ethernet issues during stop/start: stop eth0 first.
-    # See b/22854645.
-    # If this happens too quickly one after the other, we could still get into a
-    # bad (hanging) state. However, it shouldn't be a problem because
-    # start_shell calls wait_until_fully_booted().
-    run_adb_shell_command('stop dhcpcd_eth0')
-
   run_adb_shell_command('stop')
 
 
@@ -935,12 +904,7 @@ def update_key_in_sqlite_db(database_path, table_name, key_name, key_value):
 
 def wait_for_device():
   """Waits indefinitely for the device to come online."""
-  if environment.get_value('ANDROID_GCE'):
-    # wait-for-device will never return for remote GCE instances if we're not
-    # already connected. Instead, try connecting if we're not connected.
-    connect_remote(reconnect=False)
-  else:
-    run_adb_command('wait-for-device')
+  run_adb_command('wait-for-device')
 
 
 def wait_until_fully_booted():
