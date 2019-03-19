@@ -642,7 +642,6 @@ def initialize_device():
   # General device configuration settings.
   configure_build_properties_if_needed()
   configure_device_settings()
-  upgrade_gms_core_if_needed()
 
   # FIXME: This functionality is disabled until a user account is whitelisted so
   # as to not trigger GAIA alerts.
