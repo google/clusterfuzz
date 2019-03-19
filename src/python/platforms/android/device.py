@@ -78,11 +78,6 @@ FLASH_IMAGE_FILES = [
 FLASH_RETRIES = 3
 FLASH_REBOOT_BOOTLOADER_WAIT = 15
 FLASH_REBOOT_WAIT = 5 * 60
-GMSCORE_APK_NAME = 'GmsCore'
-GMSCORE_BRANCH = 'ub-gcore-v2-release'  # FIXME: Deprecate this old release.
-GMSCORE_BRANCH_REGEX = r'gcore-([^-]+)'
-GMSCORE_TARGET = 'GmsCore'
-GMSCORE_UPDATE_INTERVAL = 1 * 24 * 60 * 60
 KERNEL_LOG_FILES = [
     '/proc/last_kmsg',
     '/sys/fs/pstore/console-ramoops',
@@ -103,8 +98,6 @@ LOW_MEMORY_REGEX = re.compile(
     r'Low on memory:|'
     r'lowmemorykiller: Killing|'
     r'to\s+free.*because\s+cache.*is\s+below\s+limit.*for\s+oom_', re.DOTALL)
-MEDIA_CODECS_CONFIG_BACKUP_PATH = '/etc/media_codecs.xml.orig'
-MEDIA_CODECS_CONFIG_PATH = '/etc/media_codecs.xml'
 MEMORY_CONSTRAINED_DEVICES = [
     '4560MMX_sprout',
     '4560MMX_b_sprout',
@@ -142,11 +135,8 @@ BUILD_PROP_MD5_KEY = 'android_build_prop_md5'
 LAST_BATTERY_CHECK_TIME_KEY = 'android_last_battery_check'
 LAST_FLASH_BUILD_KEY = 'android_last_flash'
 LAST_FLASH_TIME_KEY = 'android_last_flash_time'
-LAST_GMSCORE_UPDATE_BUILD_KEY = 'android_last_gmscore_update'
-LAST_GMSCORE_UPDATE_TIME_KEY = 'android_last_gmscore_update_time'
 LAST_TEST_ACCOUNT_CHECK_KEY = 'android_last_test_account_check'
 SCHEDULED_GCE_REIMAGE_TIME_KEY = 'android_gce_reimage_time'
-SW_MEDIA_CODECS_FILE = 'sw_media_codecs.xml'
 
 
 def add_test_accounts_if_needed():
@@ -260,12 +250,12 @@ def configure_device_settings():
 def wait_for_battery_charge_if_needed():
   """Check device battery and make sure it is charged beyond minimum level and
   temperature thresholds."""
+  # Battery levels are not applicable on GCE.
+  if adb.is_gce():
+    return
+
   # Make sure device is online.
   adb.wait_for_device()
-
-  # We don't care about battery levels on GCE.
-  if environment.get_value('ANDROID_GCE'):
-    return
 
   # Skip battery check if done recently.
   last_battery_check_time = persistent_cache.get_value(
@@ -328,7 +318,7 @@ def configure_wifi_and_airplane_mode(wifi_enabled=False):
   adb.disable_airplane_mode()
 
   # GCE uses Ethernet, nothing to do here.
-  if environment.get_value('ANDROID_GCE'):
+  if adb.is_gce():
     return
 
   # Need to disable wifi before changing configuration.
@@ -652,8 +642,6 @@ def initialize_device():
   # General device configuration settings.
   configure_build_properties_if_needed()
   configure_device_settings()
-  setup_software_decoders_if_needed()
-  upgrade_gms_core_if_needed()
 
   # FIXME: This functionality is disabled until a user account is whitelisted so
   # as to not trigger GAIA alerts.
@@ -684,48 +672,6 @@ def initialize_device():
   unlock_screen_if_locked()
 
   # FIXME: Should we should revert back to regular user permission ?
-
-
-def force_software_decoders_if_needed():
-  """Forces android device to use software decoders."""
-  # Return if the backup file already exists.
-  if adb.file_exists(MEDIA_CODECS_CONFIG_BACKUP_PATH):
-    return
-
-  # Copy the original file so we can revert to it later.
-  adb.run_as_root()
-  adb.remount()
-  adb.run_adb_shell_command(
-      ['cp', MEDIA_CODECS_CONFIG_PATH, MEDIA_CODECS_CONFIG_BACKUP_PATH])
-
-  # Push the new media codecs config file
-  local_codecs_config_path = os.path.join(
-      environment.get_platform_resources_directory(), SW_MEDIA_CODECS_FILE)
-  adb.run_adb_command(
-      ['push', local_codecs_config_path, MEDIA_CODECS_CONFIG_PATH])
-
-
-def revert_software_decoders_if_needed():
-  """Cleans up a forced switch to software decoders from a previous run."""
-  # If the media_codecs.xml.orig file does not exist, we don't need to do
-  # anything.
-  if not adb.file_exists(MEDIA_CODECS_CONFIG_BACKUP_PATH):
-    return
-
-  # Otherwise, rename the file back to media_codecs.xml.
-  adb.run_as_root()
-  adb.remount()
-  adb.run_adb_shell_command(
-      ['mv', MEDIA_CODECS_CONFIG_BACKUP_PATH, MEDIA_CODECS_CONFIG_PATH])
-
-
-def setup_software_decoders_if_needed():
-  """Sets up software decoders if needed."""
-  if environment.get_value('USE_SOFTWARE_DECODERS'):
-    force_software_decoders_if_needed()
-    return
-
-  revert_software_decoders_if_needed()
 
 
 def google_device():
@@ -791,13 +737,10 @@ def get_debug_props_and_values():
   # 10 - For adding pre-, post- allocation stubs in order to detect overruns.
   # FIXME: We cannot use =10 since it enables memory leaks and causes device to
   # die within minutes. See b/19145921.
-  # FIXME: Can't enable on samsung devices, boot loop on startup. b/25156326.
   device_codename = environment.get_value('DEVICE_CODENAME', get_codename())
-  product_brand = environment.get_value('PRODUCT_BRAND', get_product_brand())
   debug_malloc_enabled = (
       enable_debug_checks and not get_sanitizer_tool_name() and
-      device_codename not in MEMORY_CONSTRAINED_DEVICES and
-      product_brand != 'samsung')
+      device_codename not in MEMORY_CONSTRAINED_DEVICES)
 
   # https://android.googlesource.com/platform/bionic/+/master/libc/malloc_debug/README.md
   if debug_malloc_enabled:
@@ -1019,10 +962,6 @@ def set_sanitizer_options_if_needed(sanitizer_tool_name, sanitizer_options):
 
 def setup_host_and_device_forwarder_if_needed():
   """Sets up http(s) forwarding between device and host."""
-  # Android GCE devices connect directly to host ips, no need for forwarding.
-  if environment.get_value('ANDROID_GCE'):
-    return
-
   # Get list of ports to map.
   http_port_1 = environment.get_value('HTTP_PORT_1', 8000)
   http_port_2 = environment.get_value('HTTP_PORT_2', 8080)
@@ -1037,10 +976,6 @@ def setup_host_and_device_forwarder_if_needed():
 
 def setup_memory_monitor_script_if_needed():
   """Run check_process_mem.sh to monitor the memory usage"""
-  # No need to run this script if it's an Android GCE device.
-  if environment.get_value('ANDROID_GCE'):
-    return
-
   # The script should only start if this is a low end device.
   device_codename = environment.get_value('DEVICE_CODENAME', get_codename())
   if device_codename not in MEMORY_CONSTRAINED_DEVICES:
@@ -1107,81 +1042,6 @@ def unlock_screen_if_locked():
   time.sleep(1)
 
 
-def upgrade_gms_core_if_needed():
-  """Upgrades GmsCore to latest stable build if needed."""
-  # Local development script does not have access to build apiary credentials,
-  # so we cannot fetch latest gmscore artifact.
-  if environment.get_value('LOCAL_DEVELOPMENT'):
-    return
-
-  # FIXME: Add support for GMSCore update for N and higher. These builds are no
-  # longer stored on build apiary.
-  build_version = get_build_version()
-  if is_build_at_least(build_version, 'N'):
-    return
-
-  # Check if an update is needed based on last recorded GmsCore update time.
-  last_gmscore_update_time = persistent_cache.get_value(
-      LAST_GMSCORE_UPDATE_TIME_KEY,
-      constructor=datetime.datetime.utcfromtimestamp)
-  needs_gmscore_update = (
-      last_gmscore_update_time is None or dates.time_has_expired(
-          last_gmscore_update_time, seconds=GMSCORE_UPDATE_INTERVAL))
-  if not needs_gmscore_update:
-    return
-
-  # FIXME: Deprecate this and support properly for newer android releases.
-  branch = GMSCORE_BRANCH
-  target = get_target(GMSCORE_TARGET)  # Get full name with architecture.
-  if not target:
-    logs.log_error('Failed to get full target name for GmsCore upgrade.')
-    return
-
-  # Get full artifact name with codename, screen density, etc information.
-  artifact_name = get_artifact_name(GMSCORE_APK_NAME, branch,
-                                    GMSCORE_BRANCH_REGEX)
-
-  # Download the latest build artifact for this branch and target.
-  signed = 'signed' in artifact_name
-  build_info = fetch_artifact.get_latest_artifact_info(
-      branch, target, signed=signed)
-  if not build_info:
-    logs.log_error('Unable to fetch information on latest build artifact for '
-                   'branch %s and target %s.' % (branch, target))
-    return
-  build_id = build_info['bid']
-  target = build_info['target']
-
-  # Check if we already tried once installing the same version of GmsCore.
-  last_build_info = persistent_cache.get_value(LAST_GMSCORE_UPDATE_BUILD_KEY)
-  if last_build_info and last_build_info['bid'] == build_id:
-    logs.log('GmsCore version hasn\'t changed, nothing to upgrade.')
-    return
-
-  # Remove existing artifact first.
-  builds_directory = environment.get_value('BUILDS_DIR')
-  gmscore_apk_path = os.path.join(builds_directory, artifact_name)
-  if os.path.exists(gmscore_apk_path):
-    os.remove(gmscore_apk_path)
-
-  # Fetch the GmsCore apk now.
-  gmscore_apk_path = fetch_artifact.get(build_id, target, artifact_name,
-                                        builds_directory)
-  if not os.path.exists(gmscore_apk_path):
-    logs.log_error(
-        'Failed to download GmsCore artifact %s for '
-        'branch %s and target %s.' % (gmscore_apk_path, branch, target))
-    return
-
-  logs.log('Installing GmsCore build %s for branch %s, target %s.' %
-           (str(build_id), branch, target))
-  adb.run_as_root()
-  adb.install_package(gmscore_apk_path)
-
-  persistent_cache.set_value(LAST_GMSCORE_UPDATE_BUILD_KEY, build_info)
-  persistent_cache.set_value(LAST_GMSCORE_UPDATE_TIME_KEY, time.time())
-
-
 def flash_to_latest_build_if_needed():
   """Wipes user data, resetting the device to original factory state."""
   run_timeout = environment.get_value('RUN_TIMEOUT')
@@ -1231,7 +1091,7 @@ def flash_to_latest_build_if_needed():
 
   else:
     is_google_device = google_device()
-    if google_device() is None:
+    if is_google_device is None:
       logs.log_error('Unable to query device. Reimaging failed.')
       adb.bad_state_reached()
 
@@ -1330,8 +1190,6 @@ def flash_to_latest_build_if_needed():
 
   # Reset all of our persistent keys after wipe.
   persistent_cache.delete_value(BUILD_PROP_MD5_KEY)
-  persistent_cache.delete_value(LAST_GMSCORE_UPDATE_BUILD_KEY)
-  persistent_cache.delete_value(LAST_GMSCORE_UPDATE_TIME_KEY)
   persistent_cache.delete_value(LAST_TEST_ACCOUNT_CHECK_KEY)
   persistent_cache.set_value(LAST_FLASH_BUILD_KEY, build_info)
   persistent_cache.set_value(LAST_FLASH_TIME_KEY, time.time())
