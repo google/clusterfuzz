@@ -25,6 +25,7 @@ from system import new_process
 from system import shell
 
 from libFuzzer import constants
+import mutator_plugin
 
 MAX_OUTPUT_LEN = 1 * 1024 * 1024  # 1 MB
 
@@ -142,12 +143,17 @@ class LibFuzzerCommon(object):
     ])
 
     additional_args.extend(corpus_directories)
-    return self.run_and_wait(
-        additional_args=additional_args,
-        timeout=fuzz_timeout - self.SIGTERM_WAIT_TIME,
-        terminate_before_kill=True,
-        terminate_wait_time=self.SIGTERM_WAIT_TIME,
-        max_stdout_len=MAX_OUTPUT_LEN)
+    # Set LD_PRELOAD to the mutator plugin and make sure to unset it after.
+    mutator_plugin.set_mutator_plugin()
+    try:
+      return self.run_and_wait(
+          additional_args=additional_args,
+          timeout=fuzz_timeout - self.SIGTERM_WAIT_TIME,
+          terminate_before_kill=True,
+          terminate_wait_time=self.SIGTERM_WAIT_TIME,
+          max_stdout_len=MAX_OUTPUT_LEN)
+    finally:
+      mutator_plugin.unset_mutator_plugin()
 
   def merge(self,
             corpus_directories,

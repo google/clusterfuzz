@@ -21,7 +21,9 @@ import unittest
 import parameterized
 
 from bot.fuzzers import libfuzzer
+from bot.fuzzers import mutator_plugin
 from bot.fuzzers.libFuzzer import launcher
+from system import shell
 from tests.test_libs import helpers as test_helpers
 from tests.test_libs import test_utils
 
@@ -94,12 +96,16 @@ class BaseLauncherTest(unittest.TestCase):
     os.environ['FUZZ_TEST_TIMEOUT'] = '4800'
     os.environ['JOB_NAME'] = 'libfuzzer_asan'
     os.environ['INPUT_DIR'] = TEMP_DIRECTORY
+    os.environ['MUTATOR_PLUGINS_DIR'] = os.path.join(DATA_DIRECTORY,
+                                                     'mutator-plugins')
 
     test_helpers.patch(self, [
         'atexit.register',
         'bot.fuzzers.engine_common.do_corpus_subset',
         'bot.fuzzers.engine_common.get_merge_timeout',
         'bot.fuzzers.engine_common.random_choice',
+        'bot.fuzzers.mutator_plugin._download_mutator_plugin_archive',
+        'bot.fuzzers.mutator_plugin._get_mutator_plugins_from_bucket',
         'bot.fuzzers.libFuzzer.launcher.do_fork',
         'bot.fuzzers.libFuzzer.launcher.do_ml_rnn_generator',
         'bot.fuzzers.libFuzzer.launcher.do_radamsa_generator',
@@ -227,6 +233,32 @@ class TestLauncher(BaseLauncherTest):
             build_dir=DATA_DIRECTORY, temp_dir=TEMP_DIRECTORY))
     self.assertIn(expected, output)
     self.assert_has_stats(output, testcase_path)
+
+  @mock.patch('bot.fuzzers.libFuzzer.launcher.get_fuzz_timeout')
+  def test_fuzz_with_mutator_plugin(self, mock_get_timeout):
+    """Tests fuzzing with a mutator plugin."""
+    mock_get_timeout.return_value = get_fuzz_timeout(5.0)
+
+    fuzz_target_name = 'test_fuzzer'
+    # Call before setting up the plugin since this call will erase the directory
+    # the plugin is written to.
+    testcase_path = setup_testcase_and_corpus(
+        'empty', 'empty_corpus', fuzz=True)
+    PLUGIN_ARCHIVE_NAME = 'custom_mutator_plugin-libfuzzer_asan-test_fuzzer.zip'
+    PLUGIN_ARCHIVE_PATH = os.path.join(DATA_DIRECTORY, PLUGIN_ARCHIVE_NAME)
+
+    self.mock._get_mutator_plugins_from_bucket.return_value = [
+        PLUGIN_ARCHIVE_NAME]
+    self.mock._download_mutator_plugin_archive.return_value = (
+        PLUGIN_ARCHIVE_PATH)
+    mutator_plugin.get_mutator_plugin(fuzz_target_name)
+    custom_mutator_print_string = 'CUSTOM MUTATOR\n'
+    try:
+      output = run_launcher(testcase_path, fuzz_target_name, '-runs=10')
+
+    finally:
+      shell.remove_directory(os.environ['MUTATOR_PLUGINS_DIR'])
+    self.assertGreater(output.count(custom_mutator_print_string), 1)
 
   def test_minimize(self):
     """Tests minimize."""

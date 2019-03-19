@@ -16,6 +16,7 @@ import constants
 
 from bot.fuzzers import builtin
 from bot.fuzzers import options
+from bot.fuzzers import mutator_plugin
 
 
 class LibFuzzer(builtin.EngineFuzzer):
@@ -60,3 +61,6 @@ class LibFuzzer(builtin.EngineFuzzer):
             '%s%d' % (constants.RSS_LIMIT_FLAG, constants.DEFAULT_RSS_LIMIT_MB))
 
     return ' '.join(arguments)
+
+  def get_mutator_plugin(self, fuzzer_binary_name):
+    mutator_plugin.get_mutator_plugin(fuzzer_binary_name)

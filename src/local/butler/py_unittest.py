@@ -240,6 +240,8 @@ def execute(args):
         'TEST_QUARANTINE_BUCKET')
     os.environ['BACKUP_BUCKET'] = common.test_bucket('TEST_BACKUP_BUCKET')
     os.environ['COVERAGE_BUCKET'] = common.test_bucket('TEST_COVERAGE_BUCKET')
+    os.environ['MUTATOR_PLUGINS_BUCKET'] = common.test_bucket(
+        'TEST_MUTATOR_PLUGINS_BUCKET')
 
   # Kill leftover instances of emulators and dev appserver.
   common.kill_leftover_emulators()

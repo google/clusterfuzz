@@ -58,6 +58,11 @@ class EngineFuzzer(BuiltinFuzzer):
     """Generate arguments for the given fuzzer."""
     raise NotImplementedError
 
+  def get_mutator_plugin(self, fuzzer_binary_name):  # pylint: disable=unused-argument
+    """Get mutator plugins for given fuzzer."""
+    # Noop by default need to override to use.
+    pass
+
   def run(self, input_directory, output_directory, no_of_files):
     """Run the fuzzer to generate testcases."""
     build_directory = environment.get_value('BUILD_DIR')
@@ -85,6 +90,8 @@ class EngineFuzzer(BuiltinFuzzer):
     if environment.is_trusted_host():
       from bot.untrusted_runner import file_host
       corpus_directory = file_host.rebase_to_worker_root(corpus_directory)
+
+    self.get_mutator_plugin(fuzzer_binary_name)
 
     arguments = self.generate_arguments(fuzzer_path)
 
