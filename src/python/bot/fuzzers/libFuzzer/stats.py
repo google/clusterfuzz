@@ -147,6 +147,8 @@ def parse_fuzzing_strategies(log_lines, strategies):
     stats['strategy_corpus_mutations_radamsa'] = 1
   if strategy.CORPUS_MUTATION_ML_RNN_STRATEGY in strategies:
     stats['strategy_corpus_mutations_ml_rnn'] = 1
+  if strategy.MUTATOR_PLUGIN_STRATEGY in strategies:
+    stats['strategy_mutator_plugin'] = 1
   if strategy.RANDOM_MAX_LENGTH_STRATEGY in strategies:
     stats['strategy_random_max_len'] = 1
   if strategy.RECOMMENDED_DICTIONARY_STRATEGY in strategies:
@@ -189,6 +191,7 @@ def parse_performance_features(log_lines, strategies, arguments):
       'strategy_corpus_mutations_ml_rnn': 0,
       'strategy_corpus_subset': 0,
       'strategy_fork': 0,
+      'strategy_mutator_plugin': 0,
       'strategy_random_max_len': 0,
       'strategy_recommended_dict': 0,
       'strategy_value_profile': 0,

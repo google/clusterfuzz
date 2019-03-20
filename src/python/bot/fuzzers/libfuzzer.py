@@ -143,9 +143,6 @@ class LibFuzzerCommon(object):
     ])
 
     additional_args.extend(corpus_directories)
-    # Set LD_PRELOAD to the mutator plugin and make sure to unset it after.
-    # TODO(metzman): Make plugins a strategy instead of always using them.
-    mutator_plugin.set_mutator_plugin()
     try:
       return self.run_and_wait(
           additional_args=additional_args,
@@ -154,6 +151,7 @@ class LibFuzzerCommon(object):
           terminate_wait_time=self.SIGTERM_WAIT_TIME,
           max_stdout_len=MAX_OUTPUT_LEN)
     finally:
+      # Make sure to unset LD_PRELOAD if we set it to use a plugin.
       mutator_plugin.unset_mutator_plugin()
 
   def merge(self,
