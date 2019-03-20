@@ -244,14 +244,14 @@ class TestLauncher(BaseLauncherTest):
     # the plugin is written to.
     testcase_path = setup_testcase_and_corpus(
         'empty', 'empty_corpus', fuzz=True)
-    PLUGIN_ARCHIVE_NAME = 'custom_mutator_plugin-libfuzzer_asan-test_fuzzer.zip'
-    PLUGIN_ARCHIVE_PATH = os.path.join(DATA_DIRECTORY, PLUGIN_ARCHIVE_NAME)
+    plugin_archive_name = 'custom_mutator_plugin-libfuzzer_asan-test_fuzzer.zip'
+    plugin_archive_path = os.path.join(DATA_DIRECTORY, plugin_archive_name)
 
-    self.mock._get_mutator_plugins_from_bucket.return_value = [
-        PLUGIN_ARCHIVE_NAME
+    self.mock._get_mutator_plugins_from_bucket.return_value = [  # pylint: disable=protected-access
+        plugin_archive_name
     ]
-    self.mock._download_mutator_plugin_archive.return_value = (
-        PLUGIN_ARCHIVE_PATH)
+    self.mock._download_mutator_plugin_archive.return_value = (  # pylint: disable=protected-access
+        plugin_archive_path)
     mutator_plugin.get_mutator_plugin(fuzz_target_name)
     custom_mutator_print_string = 'CUSTOM MUTATOR\n'
     try:

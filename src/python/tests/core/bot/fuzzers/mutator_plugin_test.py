@@ -51,6 +51,7 @@ class SetMutatorPluginTest(fake_filesystem_unittest.TestCase):
     self.assertIsNone(os.getenv('LD_PRELOAD'))
 
 
+# pylint: disable=protected-access
 class GetDirectoryFunctionsTest(unittest.TestCase):
   """Tests functions for get plugin directories."""
 

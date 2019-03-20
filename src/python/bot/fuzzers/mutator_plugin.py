@@ -16,7 +16,6 @@
 import os
 
 from base import utils
-from bot.fuzzers import utils as fuzzer_utils
 from google_cloud_utils import gsutil
 from google_cloud_utils import storage
 from system import archive
@@ -116,7 +115,7 @@ class PluginGetter(object):
   def get_mutator_plugin(self):
     """Downloads, unpacks, and sets the MUTATOR_PLUGIN_PATH_ENV_VAR environment
     variable to a usable mutator plugin for this job and fuzz target if one is
-    available."""
+    available. Returns the path to the plugin shared object."""
     mutator_plugins = _get_mutator_plugins_from_bucket()
     usable_mutator_plugins = [
         plugin_archive for plugin_archive in mutator_plugins
@@ -129,7 +128,7 @@ class PluginGetter(object):
 
     plugin_archive_name = utils.random_element_from_list(usable_mutator_plugins)
     plugin_archive_path = _download_mutator_plugin_archive(plugin_archive_name)
-    unpacked_plugin_dir = _unpack_mutator_plugin(plugin_archive_path)
+    _unpack_mutator_plugin(plugin_archive_path)
 
 
 def set_mutator_plugin():
