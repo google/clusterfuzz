@@ -24,11 +24,13 @@ from system import environment
 from system import shell
 
 MUTATOR_PLUGINS_BUCKET_ENV_VAR = 'MUTATOR_PLUGINS_BUCKET'
-MUTATOR_PLUGINS_BUCKET_URL = 'gs://%s' % environment.get_value(
-    MUTATOR_PLUGINS_BUCKET_ENV_VAR)
 MUTATOR_SHARED_OBJECT_FILENAME = 'mutator-plugin.so'
 ARCHIVES_SUBDIR_NAME = 'archives'
 PLUGINS_SUBDIR_NAME = 'plugins'
+
+
+def _get_mutator_plugins_bucket_url():
+  return 'gs://%s' % environment.get_value(MUTATOR_PLUGINS_BUCKET_ENV_VAR)
 
 
 def _get_mutator_plugins_subdir(subdir):
@@ -51,7 +53,7 @@ def _get_mutator_plugins_unpacked_dir():
 def _get_mutator_plugins_from_bucket():
   """Returns list of the mutator plugin archives in the mutator plugin storage
   bucket."""
-  return storage.list_blobs(MUTATOR_PLUGINS_BUCKET_URL)
+  return storage.list_blobs(_get_mutator_plugins_bucket_url())
 
 
 def _download_mutator_plugin_archive(mutator_plugin_archive):
@@ -60,9 +62,10 @@ def _download_mutator_plugin_archive(mutator_plugin_archive):
   downloaded to."""
   file_path = os.path.join(_get_mutator_plugins_archives_dir(),
                            mutator_plugin_archive)
-  url = MUTATOR_PLUGINS_BUCKET_URL + '/' + mutator_plugin_archive
+  url = _get_mutator_plugins_bucket_url() + '/' + mutator_plugin_archive
   assert gsutil.GSUtilRunner().download_file(url, file_path)
   return file_path
+
 
 def _unpack_mutator_plugin(mutator_plugin_archive_path):
   """Unpacks |mutator_plugin_archive_path| in self.mutator_plugin_unpacked_dir
@@ -122,7 +125,6 @@ class PluginGetter(object):
 
     # Quit if no usable plugins are available.
     if not usable_mutator_plugins:
-      unset_mutator_plugin()
       return
 
     plugin_archive_name = utils.random_element_from_list(usable_mutator_plugins)
