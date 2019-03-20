@@ -61,7 +61,12 @@ class FuzzerTest(builtin_test.BaseEngineFuzzerTest):
   def test_run(self):
     """Test running libFuzzer fuzzer."""
     libfuzzer = fuzzer.LibFuzzer()
-    os.environ['MUTATOR_PLUGINS_DIR'] = '/mutator-plugins'
+
+    # Don't test mutator_plugins here.
+    test_helpers.patch(self, [
+        'bot.fuzzers.mutator_plugin._get_mutator_plugins_from_bucket',])
+    self.mock._get_mutator_plugins_from_bucket.return_value = []
+
     libfuzzer.run('/input', '/output', 1)
     with open('/output/flags-0') as f:
       self.assertEqual('%TESTCASE% target -timeout=25 -rss_limit_mb=2048',
