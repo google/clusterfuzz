@@ -17,6 +17,7 @@ import tempfile
 import unittest
 
 from system import archive
+from system import shell
 from tests.test_libs import helpers
 
 TESTDATA_PATH = os.path.join(os.path.dirname(__file__), 'archive_data')
@@ -30,9 +31,12 @@ class UnpackTest(unittest.TestCase):
     tgz_path = os.path.join(TESTDATA_PATH, 'cwd-prefix.tgz')
     output_directory = tempfile.mkdtemp(prefix='cwd-prefix')
     archive.unpack(tgz_path, output_directory, trusted=False)
+
     test_file_path = os.path.join(output_directory, 'test')
     self.assertTrue(os.path.exists(test_file_path))
     self.assertEqual(open(test_file_path).read(), 'abc\n')
+
+    shell.remove_directory(output_directory)
 
 
 class IteratorTest(unittest.TestCase):
