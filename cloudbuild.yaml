@@ -45,7 +45,6 @@ steps:
     - TEST_QUARANTINE_BUCKET=clusterfuzz-ci-quarantine
     - TEST_BACKUP_BUCKET=clusterfuzz-ci-backup
     - TEST_COVERAGE_BUCKET=clusterfuzz-ci-coverage
-    - TEST_MUTATOR_PLUGINS_BUCKET=clusterfuzz-ci-mutator-plugins
 timeout: 3600s
 options:
   machineType: N1_HIGHCPU_32
