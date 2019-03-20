@@ -127,7 +127,7 @@ def iterator(archive_path,
 
           except KeyError:  # Handle broken links gracefully.
             error_filepaths.append(info.name)
-            yield ArchiveFile(info.name, info.size, None)
+            yield ArchiveFile(filter_name(info.name), info.size, None)
 
         if error_filepaths:
           logs.log_warn(
