@@ -180,7 +180,7 @@ def do_fork():
 
 def do_mutator_plugin():
   """Return whether or not to use a mutator_plugin."""
-  # Mutator plugins rely on LD_PRELOAD, a POSIXism.
+  # Mutator plugins rely on LD_PRELOAD, which doesn't work on Windows.
   if environment.platform() == 'WINDOWS':
     return False
 

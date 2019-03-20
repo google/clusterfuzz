@@ -108,6 +108,7 @@ class BaseLauncherTest(unittest.TestCase):
         'bot.fuzzers.mutator_plugin._get_mutator_plugins_from_bucket',
         'bot.fuzzers.libFuzzer.launcher.do_fork',
         'bot.fuzzers.libFuzzer.launcher.do_ml_rnn_generator',
+        'bot.fuzzers.libFuzzer.launcher.do_mutator_plugin',
         'bot.fuzzers.libFuzzer.launcher.do_radamsa_generator',
         'bot.fuzzers.libFuzzer.launcher.do_random_max_length',
         'bot.fuzzers.libFuzzer.launcher.do_recommended_dictionary',
