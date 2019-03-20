@@ -60,7 +60,7 @@ class EngineFuzzer(BuiltinFuzzer):
 
   def get_mutator_plugin(self, fuzzer_binary_name):  # pylint: disable=unused-argument
     """Get mutator plugins for given fuzzer."""
-    # Noop by default need to override to use.
+    # Noop by default. Children must override to use mutator plugins.
     pass
 
   def run(self, input_directory, output_directory, no_of_files):

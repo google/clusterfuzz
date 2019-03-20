@@ -47,7 +47,7 @@ class SetMutatorPluginTest(fake_filesystem_unittest.TestCase):
   def test_set_mutator_plugin_without_usable(self):
     """Tests that LD_PRELOAD is not set by set_mutator_plugin when there isn't a
     usable mutator plugin available."""
-    mutator_plugin.set_mutator_plugin()
+    self.assertIsNone(mutator_plugin.set_mutator_plugin())
     self.assertIsNone(os.getenv('LD_PRELOAD'))
 
 

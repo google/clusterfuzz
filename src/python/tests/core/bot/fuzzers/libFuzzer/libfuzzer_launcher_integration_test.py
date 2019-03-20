@@ -23,7 +23,6 @@ import parameterized
 from bot.fuzzers import libfuzzer
 from bot.fuzzers import mutator_plugin
 from bot.fuzzers.libFuzzer import launcher
-from system import shell
 from tests.test_libs import helpers as test_helpers
 from tests.test_libs import test_utils
 
@@ -260,7 +259,10 @@ class TestLauncher(BaseLauncherTest):
       output = run_launcher(testcase_path, fuzz_target_name, '-runs=10')
 
     finally:
-      shell.remove_directory(os.environ['MUTATOR_PLUGINS_DIR'])
+      shutil.rmtree(os.environ['MUTATOR_PLUGINS_DIR'])
+    # custom_mutator_print_string gets printed before the custom mutator mutates
+    # a test case. Assert that the count is greater than 1 to ensure that the
+    # function didn't crash on its first execution (after printing).
     self.assertGreater(output.count(custom_mutator_print_string), 1)
 
   def test_minimize(self):

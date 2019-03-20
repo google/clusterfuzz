@@ -184,6 +184,8 @@ def do_mutator_plugin():
   if environment.platform() == 'WINDOWS':
     return False
 
+  # TODO(metzman): Find out if this works with OSS-Fuzz and ChromeOS, get it
+  # working if not.
   return engine_common.decide_with_probability(
       engine_common.get_strategy_probability(
           strategy.MUTATOR_PLUGIN_STRATEGY, default=MUTATOR_PLUGIN_PROBABILITY))

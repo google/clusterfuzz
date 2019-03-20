@@ -29,7 +29,7 @@ PLUGINS_SUBDIR_NAME = 'plugins'
 
 
 def _get_mutator_plugins_bucket_url():
-  """Returns the url of the mutator plugins' cloud storage bucket."""
+  """Returns the url of the mutator plugin's cloud storage bucket."""
   return 'gs://%s' % environment.get_value(MUTATOR_PLUGINS_BUCKET_ENV_VAR)
 
 
@@ -57,7 +57,7 @@ def _get_mutator_plugins_from_bucket():
 
 def _download_mutator_plugin_archive(mutator_plugin_archive):
   """Downloads the |mutator_plugin_archive| from the mutator plugin storage
-  bucket to self.mutator_plugin_archives_dir. Returns the path archive was
+  bucket to the plugin archives directory. Returns the path archive was
   downloaded to."""
   file_path = os.path.join(_get_mutator_plugins_archives_dir(),
                            mutator_plugin_archive)
@@ -67,8 +67,8 @@ def _download_mutator_plugin_archive(mutator_plugin_archive):
 
 
 def _unpack_mutator_plugin(mutator_plugin_archive_path):
-  """Unpacks |mutator_plugin_archive_path| in self.mutator_plugin_unpacked_dir
-  and returns the path it was unpacked into."""
+  """Unpacks |mutator_plugin_archive_path| in the unpacked plugins directory and
+  returns the path it was unpacked into."""
   mutator_plugin_name = os.path.basename(
       os.path.splitext(mutator_plugin_archive_path)[0])
   unpacked_plugin_dir = os.path.join(_get_mutator_plugins_unpacked_dir(),
@@ -78,7 +78,8 @@ def _unpack_mutator_plugin(mutator_plugin_archive_path):
 
 
 class PluginGetter(object):
-  """Class that finds a usable mutator plugin for |fuzzer_binary_name|."""
+  """Class that gets a usable mutator plugin for |fuzzer_binary_name| from
+  GCS."""
 
   def __init__(self, fuzzer_binary_name):
     self.fuzzer_binary_name = fuzzer_binary_name
@@ -96,7 +97,7 @@ class PluginGetter(object):
   def _extract_name_from_archive(plugin_archive_filename):
     """Parses |plugin_archive_filename| which should be named using the schema:
     '$NAME-$JOB-$FUZZ_TARGET.zip'. Returns tuple containing
-    ($NAME, $JOB-FUZZ_TARGET)."""
+    ($NAME, $JOB-$FUZZ_TARGET)."""
     # TODO(metzman): Get rid of this when we create an upload page for custom
     # mutator plugins.
     plugin_archive_name = os.path.splitext(plugin_archive_filename)[0]
@@ -113,9 +114,8 @@ class PluginGetter(object):
     return expected_name == plugin_job_and_fuzzer
 
   def get_mutator_plugin(self):
-    """Downloads, unpacks, and sets the MUTATOR_PLUGIN_PATH_ENV_VAR environment
-    variable to a usable mutator plugin for this job and fuzz target if one is
-    available. Returns the path to the plugin shared object."""
+    """Downloads, and unpacks a usable mutator plugin for this job and fuzz
+    target if one is available in GCS"""
     mutator_plugins = _get_mutator_plugins_from_bucket()
     usable_mutator_plugins = [
         plugin_archive for plugin_archive in mutator_plugins
@@ -133,7 +133,7 @@ class PluginGetter(object):
 
 def set_mutator_plugin():
   """Sets LD_PRELOAD to the path of a usable mutator plugin shared object.
-  Should come after a call to get_mutator_plugin."""
+  This should only be called after a call to get_mutator_plugin."""
   paths = shell.get_files_list(_get_mutator_plugins_unpacked_dir())
   # This function should not be called unless there is an unpacked plugin.
   for path in paths:
@@ -149,8 +149,7 @@ def unset_mutator_plugin():
 
 
 def get_mutator_plugin(fuzzer_binary_name):
-  """Downloads, unpacks, and saves the path of a mutator plugin if a usable one
-  for |fuzzer_binary_name| is in the bucket. This can later be used by
-  set_mutator_plugin for use during fuzzing."""
+  """Downloads and unpacks a mutator plugin if a usable one for
+  |fuzzer_binary_name| is in the bucket."""
   plugin_getter = PluginGetter(fuzzer_binary_name)
   plugin_getter.get_mutator_plugin()
