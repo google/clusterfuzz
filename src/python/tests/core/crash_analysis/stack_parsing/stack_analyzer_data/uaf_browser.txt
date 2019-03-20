@@ -1,0 +1,46 @@
+==1==ERROR: AddressSanitizer: heap-use-after-free on address 0x60f00003b280 at pc 0x7efd4a2a3e03 bp 0x7ffd1ed50680 sp 0x7ffd1ed50678
+previously allocated by thread T0 (chrome) here:
+    #0 0xe9e9e9e9e955 in base::Thread::StartWithOptions(base::Thread::Options const&) base/threading/thread.cc:119:15
+    #1 0xe9e9e9e9e9e5 in content::BrowserProcessSubThread::CreateIOThread() content/browser/browser_process_sub_thread.cc:92:19
+    #2 0xe9e9e9e9e9c0 in content::ContentMainRunnerImpl::RunServiceManager(content::MainFunctionParams&, bool) content/app/content_main_runner_impl.cc:962:31
+    #3 0xe9e9e9e9e95b in content::ContentMainRunnerImpl::Run(bool) content/app/content_main_runner_impl.cc:878:12
+    #4 0xe9e9e9e9e948 in service_manager::Main(service_manager::MainParams const&) services/service_manager/embedder/main.cc:416:29
+    #5 0xe9e9e9e9e9bc in content::ContentMain(content::ContentMainParams const&) content/app/content_main.cc:19:10
+    #6 0xe9e9e9e9e90e in ChromeMain chrome/app/chrome_main.cc:103:12
+    #7 0xe9e9e9e9e92f in __libc_start_main /build/glibc-Cl5G7W/glibc-2.23/csu/libc-start.c:291
+
+SUMMARY: AddressSanitizer: heap-use-after-free (/mnt/scratch0/clusterfuzz/bot/builds/chromium-browser-asan_linux-release_4392242b7f59878a2775b4607420a2b37e17ff13/symbolized/release/asan-symbolized-linux-release-365513/chrome+0xa091e02)
+Shadow bytes around the buggy address:
+  0x0c1e7ffff600: fd fa fa fa fa fa fa fa fa fa fa fa fa fa fa fa
+  0x0c1e7ffff610: fa fa fd fd fd fd fd fd fd fd fd fd fd fd fd fa
+  0x0c1e7ffff620: fa fa fa fa fa fa fa fa fa fa fa fa fa fa fa fa
+  0x0c1e7ffff630: fd fd fd fd fd fd fd fd fd fd fd fd fd fa fa fa
+  0x0c1e7ffff640: fa fa fa fa fa fa fa fa fa fa fa fa fa fa fd fd
+=>0x0c1e7ffff650:[fd]fd fd fd fd fd fd fd fd fd fd fd fa fa fa fa
+  0x0c1e7ffff660: fa fa fa fa fa fa fa fa fa fa fa fa fd fd fd fd
+  0x0c1e7ffff670: fd fd fd fd fd fd fd fd fd fa fa fa fa fa fa fa
+  0x0c1e7ffff680: fa fa fa fa fa fa fa fa fa fa 00 00 00 00 00 00
+  0x0c1e7ffff690: 00 00 00 00 00 00 00 fa fa fa fa fa fa fa fa fa
+  0x0c1e7ffff6a0: fa fa fa fa fa fa fa fa 00 00 00 00 00 00 00 00
+Shadow byte legend (one shadow byte represents 8 application bytes):
+  Addressable:           00
+  Partially addressable: 01 02 03 04 05 06 07
+  Heap left redzone:       fa
+  Heap right redzone:      fb
+  Freed heap region:       fd
+  Stack left redzone:      f1
+  Stack mid redzone:       f2
+  Stack right redzone:     f3
+  Stack partial redzone:   f4
+  Stack after return:      f5
+  Stack use after scope:   f8
+  Global redzone:          f9
+  Global init order:       f6
+  Poisoned by user:        f7
+  Container overflow:      fc
+  Array cookie:            ac
+  Intra object redzone:    bb
+  ASan internal:           fe
+  Left alloca redzone:     ca
+  Right alloca redzone:    cb
+==1==ABORTING

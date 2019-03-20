@@ -172,6 +172,10 @@ class SeverityAnalyzerSanitizerChrome(SeverityAnalyzerSanitizer):
       if 'content::ContentMain' in line:
         continue
 
+      if 'content::BrowserProcessSubThread' in line:
+        process_type = 'browser'
+        break
+
       match = main_function_regex.search(line)
       if not match:
         continue
