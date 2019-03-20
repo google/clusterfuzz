@@ -25,9 +25,9 @@ import time
 from base import persistent_cache
 from base import utils
 from datastore import data_types
-from google_cloud_utils import compute_engine
 from metrics import logs
 from system import environment
+from system import shell
 
 ADB_TIMEOUT = 1200  # Should be lower than |REBOOT_TIMEOUT|.
 AAPT_CMD_TIMEOUT = 60
@@ -49,7 +49,6 @@ DEVICE_TESTCASES_DIR = '/sdcard/fuzzer-testcases'
 DEVICE_TMP_DIR = '/data/local/tmp'
 FACTORY_RESET_WAIT = 60
 FLASH_INTERVAL = 1 * 24 * 60 * 60
-GCE_PREIMAGE_METADATA_KEY = 'cfg_sta_data_preimage_device'
 MONKEY_PROCESS_NAME = 'monkey'
 PACKAGE_OPTIMIZATION_INTERVAL = 30
 PACKAGES_THAT_CRASH_WITH_GESTURES = [
@@ -58,10 +57,6 @@ PACKAGES_THAT_CRASH_WITH_GESTURES = [
 REBOOT_TIMEOUT = 3600
 RECOVERY_CMD_TIMEOUT = 60
 REMOTE_CONNECT_RETRIES = 25
-REMOTE_CONNECT_SLEEP = 25
-REMOTE_CONNECT_TIMEOUT = 10
-REMOTE_REBOOT_TIMEOUT = 5
-REMOTE_RECREATE_TIMEOUT = 5 * 60
 RESTART_USB_WAIT = 20
 
 # Output patterns to parse "lsusb" output.
@@ -126,44 +121,6 @@ def reset_application_state():
 def clear_notifications():
   """Clear all pending notifications."""
   run_adb_shell_command(['service', 'call', 'notification', '1'])
-
-
-def connect_remote(num_retries=REMOTE_CONNECT_RETRIES, reconnect=False):
-  """Connect to the remote device. Returns whether if we succeeded."""
-  # Note: we use get_adb_command_line/execute_command explicitly as
-  # run_adb_command could call this function for recovery.
-  device_state = get_device_state()
-  if not reconnect and device_state == 'device':
-    # Already connected, nothing to do here. Note that this is not a very good
-    # check for the health of the connection.
-    return False
-
-  # First try to disconnect from the device.
-  device_serial = environment.get_value('ANDROID_SERIAL')
-  disconnect_cmd = get_adb_command_line('disconnect %s' % device_serial)
-  execute_command(
-      disconnect_cmd, timeout=REMOTE_CONNECT_TIMEOUT, log_error=True)
-
-  # Now try to connect, retrying if needed.
-  connect_cmd = get_adb_command_line('connect %s' % device_serial)
-  for i in xrange(num_retries + 1):
-    output = execute_command(
-        connect_cmd, timeout=REMOTE_CONNECT_TIMEOUT, log_error=False)
-    if output and 'connected to ' in output:
-      # We must check the device state again, as ADB connection establishment
-      # is just a simple TCP connection establishment with no extra checks.
-      if get_device_state() == 'device':
-        logs.log('Reconnected to remote device after %d tries.' % (i + 1))
-        return True
-      else:
-        # False connection, disconnect so ADB lets us connect again.
-        execute_command(
-            disconnect_cmd, timeout=REMOTE_CONNECT_TIMEOUT, log_error=True)
-
-    time.sleep(REMOTE_CONNECT_SLEEP)
-
-  logs.log_warn('Failed to reconnect to remote device.')
-  return False
 
 
 def copy_local_directory_to_remote(local_directory, remote_directory):
@@ -487,20 +444,10 @@ def get_property(property_name):
 
 def hard_reset():
   """Perform a hard reset of the device."""
-  if environment.get_value('ANDROID_GCE'):
-    if reset_virtual_device():
-      # We successfully recovered.
-      return
-
-    if recreate_virtual_device():
-      # We successfully recovered.
-      return
-
-    # Nothing more we can do if this fails too.
-    logs.log_warn('Unable to reset virtual device.')
-    bad_state_reached()
-
+  if is_gce():
+    recreate_gce_device()
   else:
+    # Physical device.
     # Try hard-reset via sysrq-trigger (requires root).
     hard_reset_sysrq_cmd = get_adb_command_line(
         'shell echo b \\> /proc/sysrq-trigger')
@@ -560,40 +507,25 @@ def reboot():
   run_adb_command('reboot')
 
 
-def recreate_virtual_device():
-  """Recreate virtual device from image."""
-  device_name = environment.get_value('BOT_NAME')
-  failure_wait_interval = environment.get_value('FAIL_WAIT')
-  project = environment.get_value('GCE_PROJECT')
-  retry_limit = environment.get_value('FAIL_RETRIES')
-  zone = environment.get_value('GCE_ZONE')
+def recreate_gce_device():
+  """Recreate gce device, restoring from backup images."""
+  logs.log('Reimaging gce device.')
+  cvd_dir = environment.get_value('CVD_DIR')
+  assert cvd_dir, 'CVD_DIR needs to be set in environment.'
 
-  # This is needed to populate the initial /data partition. We use a separate
-  # disk for /data since the one in the provided images is only 2GB.
-  preimage_metadata_value = environment.get_value('GCE_DATA_PREIMAGE_METADATA')
-  if preimage_metadata_value:
-    additional_metadata = {GCE_PREIMAGE_METADATA_KEY: preimage_metadata_value}
-  else:
-    additional_metadata = None
+  cvd_bin_dir = os.path.join(cvd_dir, 'bin')
+  launch_cvd_path = os.path.join(cvd_bin_dir, 'launch_cvd')
+  stop_cvd_path = os.path.join(cvd_bin_dir, 'stop_cvd')
+  execute_command(stop_cvd_path, timeout=RECOVERY_CMD_TIMEOUT)
 
-  for _ in xrange(retry_limit):
-    if compute_engine.recreate_instance_with_disks(
-        device_name,
-        project,
-        zone,
-        additional_metadata=additional_metadata,
-        wait_for_completion=True):
-      # Instance recreation succeeeded. Try reconnecting after some wait.
-      time.sleep(REMOTE_RECREATE_TIMEOUT)
+  image_dir = cvd_dir
+  backup_image_dir = os.path.join(cvd_dir, 'backup')
+  for image_filename in os.listdir(backup_image_dir):
+    image_src = os.path.join(backup_image_dir, image_filename)
+    image_dest = os.path.join(image_dir, image_filename)
+    shell.copy_file(image_src, image_dest)
 
-      if connect_remote(reconnect=True, num_retries=REMOTE_CONNECT_RETRIES * 2):
-        # We were able to successfully reconnect to device after recreation.
-        return True
-
-    time.sleep(utils.random_number(1, failure_wait_interval))
-
-  logs.log_error('Failed to reimage device.')
-  return False
+  execute_command(launch_cvd_path + ' -daemon')
 
 
 def remount():
@@ -611,14 +543,14 @@ def remove_directory(device_directory, recreate=False):
 
 
 def reset_device_connection():
-  """Reset the connection to the device (either through USB or a remote
-  connection). Returns whether or not the reset succeeded."""
-  if environment.get_value('ANDROID_GCE'):
-    # Try disconnecting and then reconnecting.
-    connect_remote(reconnect=True)
-  else:
-    # Try restarting usb.
-    reset_usb()
+  """Reset the connection to the physical device through USB. Returns whether
+  or not the reset succeeded."""
+  if is_gce():
+    # Nothing can be done here.
+    return False
+
+  # Try restarting usb.
+  reset_usb()
 
   # Check device status.
   state = get_device_state()
@@ -658,34 +590,6 @@ def reset_usb():
 
   # Wait for usb to recover.
   time.sleep(RESTART_USB_WAIT)
-
-
-def reset_virtual_device():
-  """Reset virtual device."""
-  device_name = environment.get_value('BOT_NAME')
-  project = environment.get_value('GCE_PROJECT')
-  zone = environment.get_value('GCE_ZONE')
-
-  # We don't want /data to be preimaged on every reboot and lose existing data,
-  # so remove the metadata.
-  compute_engine.remove_metadata(
-      device_name,
-      project,
-      zone,
-      GCE_PREIMAGE_METADATA_KEY,
-      wait_for_completion=True)
-
-  if not compute_engine.reset_instance(
-      device_name, project, zone, wait_for_completion=True):
-    logs.log_error('Failed to restart device.')
-    return False
-
-  if connect_remote(reconnect=True):
-    # We successfully recovered.
-    return True
-
-  logs.log_error('Failed to connect to device after restart.')
-  return False
 
 
 def revert_asan_device_setup_if_needed():

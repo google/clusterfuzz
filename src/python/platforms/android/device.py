@@ -17,7 +17,6 @@ import copy
 import datetime
 import logger
 import os
-import random
 import re
 import socket
 import time
@@ -136,7 +135,6 @@ LAST_BATTERY_CHECK_TIME_KEY = 'android_last_battery_check'
 LAST_FLASH_BUILD_KEY = 'android_last_flash'
 LAST_FLASH_TIME_KEY = 'android_last_flash_time'
 LAST_TEST_ACCOUNT_CHECK_KEY = 'android_last_test_account_check'
-SCHEDULED_GCE_REIMAGE_TIME_KEY = 'android_gce_reimage_time'
 
 
 def add_test_accounts_if_needed():
@@ -691,7 +689,7 @@ def google_device():
   if product_brand == 'google':
     return True
 
-  if product_brand == 'generic' or environment.get_value('ANDROID_GCE'):
+  if product_brand == 'generic':
     return True
 
   return False
@@ -1065,43 +1063,16 @@ def flash_to_latest_build_if_needed():
     return
 
   build_info = {}
-  is_remote_device = environment.get_value('ANDROID_GCE')
-  if is_remote_device:
-    # To prevent thousands of devices all trying to reimage at the same time,
-    # reimages are done at a random time in the future.
-    scheduled_reimage_time = persistent_cache.get_value(
-        SCHEDULED_GCE_REIMAGE_TIME_KEY,
-        constructor=datetime.datetime.utcfromtimestamp)
-
-    if scheduled_reimage_time is None:
-      # No reimage scheduled yet, so we need to do so.
-      delay = random.randint(0, 3600)
-      reimage_time = int(time.time()) + delay
-      logs.log('Scheduling a new reimage in %d seconds.' % delay)
-      persistent_cache.set_value(SCHEDULED_GCE_REIMAGE_TIME_KEY, reimage_time)
-      return
-
-    current_time = datetime.datetime.utcnow()
-    if current_time < scheduled_reimage_time:
-      time_left = scheduled_reimage_time - current_time
-      # Not yet time for the reimage.
-      logs.log('Scheduled reimage in %d seconds.' % time_left.seconds)
-      return
-
-    # Recreating the virtual device will reimage this to the latest image
-    # available (with retry logic).
-    logs.log('Reimaging device to latest image.')
-    if not adb.recreate_virtual_device():
-      logs.log_error('Unable to recreate virtual device. Reimaging failed.')
-      adb.bad_state_reached()
-
+  if adb.is_gce():
+    adb.recreate_gce_device()
   else:
+    # Physical device.
     is_google_device = google_device()
     if is_google_device is None:
       logs.log_error('Unable to query device. Reimaging failed.')
       adb.bad_state_reached()
 
-    if not is_google_device:
+    elif not is_google_device:
       # We can't reimage these, skip.
       logs.log('Non-Google device found, skipping reimage.')
       return
@@ -1124,6 +1095,8 @@ def flash_to_latest_build_if_needed():
           environment.set_value('BUILD_TARGET', target)
 
       if not branch or not target:
+        logs.log_warn(
+            'BUILD_BRANCH and BUILD_TARGET are not set, skipping reimage.')
         return
 
       # Download the latest build artifact for this branch and target.
@@ -1199,9 +1172,6 @@ def flash_to_latest_build_if_needed():
   persistent_cache.delete_value(LAST_TEST_ACCOUNT_CHECK_KEY)
   persistent_cache.set_value(LAST_FLASH_BUILD_KEY, build_info)
   persistent_cache.set_value(LAST_FLASH_TIME_KEY, time.time())
-
-  if is_remote_device:
-    persistent_cache.delete_value(SCHEDULED_GCE_REIMAGE_TIME_KEY)
 
 
 def configure_build_properties_if_needed():

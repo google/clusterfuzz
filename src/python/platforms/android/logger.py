@@ -16,12 +16,10 @@
 import adb
 import re
 
-LOG_RETRIES = 2
-
 
 def clear_log():
   """Clear log."""
-  retries = LOG_RETRIES
+  retries = 2
   while retries:
     # Try clearing the log.
     adb.run_adb_command('logcat -c')
@@ -37,6 +35,7 @@ def clear_log():
 def is_line_valid(line):
   """Returns true if we consider this line in logs."""
   contain_url = 'NotifyBeforeURLRequest' in line
+
   # Discard noisy debug/verbose output.
   # http://developer.android.com/tools/debugging/debugging-log.html.
   at_least_info_level = not (line.startswith('D/') or line.startswith('V/'))
