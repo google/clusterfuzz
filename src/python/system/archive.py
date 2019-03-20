@@ -68,6 +68,12 @@ def iterator(archive_path,
       return extract_func(info)
     return None
 
+  def filter_name(filename):
+    """Filters './' from start if exists."""
+    if filename.startswith('./'):
+      return filename[2:]
+    return filename
+
   if archive_type == ArchiveType.ZIP:
     try:
       with zipfile.ZipFile(archive_obj or archive_path) as zip_file:
@@ -75,7 +81,7 @@ def iterator(archive_path,
           if not file_match_callback(info.filename):
             continue
 
-          yield ArchiveFile(info.filename, info.file_size,
+          yield ArchiveFile(filter_name(info.filename), info.file_size,
                             maybe_extract(zip_file.open, info))
 
     except (zipfile.BadZipfile, zipfile.LargeZipFile):
@@ -92,7 +98,7 @@ def iterator(archive_path,
         if not file_match_callback(info.name):
           continue
 
-        yield ArchiveFile(info.name, info.size,
+        yield ArchiveFile(filter_name(info.name), info.size,
                           maybe_extract(tar_file.extractfile, info))
       tar_file.close()
     except tarfile.TarError:
@@ -116,7 +122,7 @@ def iterator(archive_path,
             continue
 
           try:
-            yield ArchiveFile(info.name, info.size,
+            yield ArchiveFile(filter_name(info.name), info.size,
                               maybe_extract(tar_file.extractfile, info))
 
           except KeyError:  # Handle broken links gracefully.
