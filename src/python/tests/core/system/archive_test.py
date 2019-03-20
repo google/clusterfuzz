@@ -17,24 +17,26 @@ import tempfile
 import unittest
 
 from system import archive
+from system import shell
 from tests.test_libs import helpers
-from tests.test_libs import test_utils
 
 TESTDATA_PATH = os.path.join(os.path.dirname(__file__), 'archive_data')
 
 
-@test_utils.adhoc
 class UnpackTest(unittest.TestCase):
   """Unpack tests."""
 
-  def test_unpack(self):
-    """Test unpack a chrome revision."""
-    zip_path = os.getenv('ZIP_PATH')
-    if not zip_path:
-      raise Exception('Please set ZIP_PATH.')
+  def test_unpack_file_with_cwd_prefix(self):
+    """Test unpack with trusted=False passes with file having './' prefix."""
+    tgz_path = os.path.join(TESTDATA_PATH, 'cwd-prefix.tgz')
+    output_directory = tempfile.mkdtemp(prefix='cwd-prefix')
+    archive.unpack(tgz_path, output_directory, trusted=False)
 
-    output_directory = tempfile.mkdtemp(prefix='archive-py')
-    archive.unpack(zip_path, output_directory, trusted=True)
+    test_file_path = os.path.join(output_directory, 'test')
+    self.assertTrue(os.path.exists(test_file_path))
+    self.assertEqual(open(test_file_path).read(), 'abc\n')
+
+    shell.remove_directory(output_directory)
 
 
 class IteratorTest(unittest.TestCase):
@@ -47,6 +49,17 @@ class IteratorTest(unittest.TestCase):
     actual_results = {
         archive_file.name: archive_file.handle.read()
         for archive_file in archive.iterator(tar_xz_path)
+        if archive_file.handle
+    }
+    self.assertEqual(actual_results, expected_results)
+
+  def test_cwd_prefix(self):
+    """Test that a .tgz file with cwd prefix is handled."""
+    tgz_path = os.path.join(TESTDATA_PATH, 'cwd-prefix.tgz')
+    expected_results = {'test': 'abc\n'}
+    actual_results = {
+        archive_file.name: archive_file.handle.read()
+        for archive_file in archive.iterator(tgz_path)
         if archive_file.handle
     }
     self.assertEqual(actual_results, expected_results)
