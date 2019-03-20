@@ -81,8 +81,9 @@ def iterator(archive_path,
           if not file_match_callback(info.filename):
             continue
 
-          yield ArchiveFile(filter_name(info.filename), info.file_size,
-                            maybe_extract(zip_file.open, info))
+          yield ArchiveFile(
+              filter_name(info.filename), info.file_size,
+              maybe_extract(zip_file.open, info))
 
     except (zipfile.BadZipfile, zipfile.LargeZipFile):
       logs.log_error('Bad zip file %s.' % archive_path)
@@ -98,8 +99,9 @@ def iterator(archive_path,
         if not file_match_callback(info.name):
           continue
 
-        yield ArchiveFile(filter_name(info.name), info.size,
-                          maybe_extract(tar_file.extractfile, info))
+        yield ArchiveFile(
+            filter_name(info.name), info.size,
+            maybe_extract(tar_file.extractfile, info))
       tar_file.close()
     except tarfile.TarError:
       logs.log_error('Bad tar file %s.' % archive_path)
@@ -122,8 +124,9 @@ def iterator(archive_path,
             continue
 
           try:
-            yield ArchiveFile(filter_name(info.name), info.size,
-                              maybe_extract(tar_file.extractfile, info))
+            yield ArchiveFile(
+                filter_name(info.name), info.size,
+                maybe_extract(tar_file.extractfile, info))
 
           except KeyError:  # Handle broken links gracefully.
             error_filepaths.append(info.name)

@@ -18,13 +18,13 @@ import unittest
 
 from system import archive
 from tests.test_libs import helpers
-from tests.test_libs import test_utils
 
 TESTDATA_PATH = os.path.join(os.path.dirname(__file__), 'archive_data')
 
 
 class UnpackTest(unittest.TestCase):
   """Unpack tests."""
+
   def test_unpack_file_with_cwd_prefix(self):
     """Test unpack with trusted=False passes with file having './' prefix."""
     tgz_path = os.path.join(TESTDATA_PATH, 'cwd-prefix.tgz')
