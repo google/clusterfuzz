@@ -248,7 +248,8 @@ class TestLauncher(BaseLauncherTest):
     PLUGIN_ARCHIVE_PATH = os.path.join(DATA_DIRECTORY, PLUGIN_ARCHIVE_NAME)
 
     self.mock._get_mutator_plugins_from_bucket.return_value = [
-        PLUGIN_ARCHIVE_NAME]
+        PLUGIN_ARCHIVE_NAME
+    ]
     self.mock._download_mutator_plugin_archive.return_value = (
         PLUGIN_ARCHIVE_PATH)
     mutator_plugin.get_mutator_plugin(fuzz_target_name)

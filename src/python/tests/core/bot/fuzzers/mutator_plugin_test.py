@@ -37,8 +37,7 @@ class SetMutatorPluginTest(fake_filesystem_unittest.TestCase):
     """Tests that LD_PRELOAD is set properly by set_mutator_plugin when there is
     a usable mutator plugin available."""
     usable_plugin_path = os.path.join(
-        self.plugins_root_dir,
-        'plugins',
+        self.plugins_root_dir, 'plugins',
         mutator_plugin.MUTATOR_SHARED_OBJECT_FILENAME)
 
     self.fs.CreateFile(usable_plugin_path)
@@ -54,6 +53,7 @@ class SetMutatorPluginTest(fake_filesystem_unittest.TestCase):
 
 class GetDirectoryFunctionsTest(unittest.TestCase):
   """Tests functions for get plugin directories."""
+
   def setUp(self):
     helpers.patch_environ(self)
     self.plugins_root_dir = '/plugins'
@@ -63,22 +63,24 @@ class GetDirectoryFunctionsTest(unittest.TestCase):
     """Tests that _get_mutator_plugins_subdir returns the path to the correct
     subdirectory."""
     subdir = 'x'
-    self.assertEqual(os.path.join(self.plugins_root_dir, subdir),
-                     mutator_plugin._get_mutator_plugins_subdir(subdir))
+    self.assertEqual(
+        os.path.join(self.plugins_root_dir, subdir),
+        mutator_plugin._get_mutator_plugins_subdir(subdir))
 
   def test_get_mutator_plugins_archives_dir(self):
     """Tests that _get_mutator_plugins_archives_dir returns the path to the
     mutator plugin archives directory."""
-    self.assertEqual(os.path.join(self.plugins_root_dir,
-                                  mutator_plugin.ARCHIVES_SUBDIR_NAME),
-                     mutator_plugin._get_mutator_plugins_archives_dir())
+    self.assertEqual(
+        os.path.join(self.plugins_root_dir,
+                     mutator_plugin.ARCHIVES_SUBDIR_NAME),
+        mutator_plugin._get_mutator_plugins_archives_dir())
 
   def test_get_mutator_plugins_unpacked_dir(self):
     """Tests that _get_mutator_plugins_unpacked_dir returns the path to the
     unpacked mutator plugin directory."""
-    self.assertEqual(os.path.join(self.plugins_root_dir,
-                                  mutator_plugin.PLUGINS_SUBDIR_NAME),
-                     mutator_plugin._get_mutator_plugins_unpacked_dir())
+    self.assertEqual(
+        os.path.join(self.plugins_root_dir, mutator_plugin.PLUGINS_SUBDIR_NAME),
+        mutator_plugin._get_mutator_plugins_unpacked_dir())
 
 
 # pylint: disable=protected-access
@@ -101,16 +103,15 @@ class PluginGetterTest(fake_filesystem_unittest.TestCase):
                                             self.plugin_archive_filename)
     self.plugins_dir = os.path.join(self.plugins_root_dir, 'plugins')
 
-
     helpers.patch(self, [
         'google_cloud_utils.gsutil.GSUtilRunner.download_file',
         'bot.fuzzers.mutator_plugin._get_mutator_plugins_from_bucket',
     ])
 
     def mocked_download_file(runner_self, gcs_url, file_path):  # pylint: disable=unused-argument
-      expected_url = (
-          mutator_plugin.MUTATOR_PLUGINS_BUCKET_URL + '/' +
-          self.plugin_archive_filename)
+      expected_url = '%s/%s' % (mutator_plugin._get_mutator_plugins_bucket_url(
+      ), self.plugin_archive_filename)
+
       self.assertEqual(expected_url, gcs_url)
       self.assertEqual(file_path, self.plugin_archive_path)
       return file_path

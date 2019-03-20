@@ -30,14 +30,14 @@ PLUGINS_SUBDIR_NAME = 'plugins'
 
 
 def _get_mutator_plugins_bucket_url():
+  """Returns the url of the mutator plugins' cloud storage bucket."""
   return 'gs://%s' % environment.get_value(MUTATOR_PLUGINS_BUCKET_ENV_VAR)
 
 
 def _get_mutator_plugins_subdir(subdir):
   """Returns the path of the subdirectory named |subdir| in
   MUTATOR_PLUGINS_DIR."""
-  return os.path.join(
-      environment.get_value('MUTATOR_PLUGINS_DIR'), subdir)
+  return os.path.join(environment.get_value('MUTATOR_PLUGINS_DIR'), subdir)
 
 
 def _get_mutator_plugins_archives_dir():
@@ -62,7 +62,7 @@ def _download_mutator_plugin_archive(mutator_plugin_archive):
   downloaded to."""
   file_path = os.path.join(_get_mutator_plugins_archives_dir(),
                            mutator_plugin_archive)
-  url = _get_mutator_plugins_bucket_url() + '/' + mutator_plugin_archive
+  url = '%s/%s' % (_get_mutator_plugins_bucket_url(), mutator_plugin_archive)
   assert gsutil.GSUtilRunner().download_file(url, file_path)
   return file_path
 
@@ -88,8 +88,8 @@ class PluginGetter(object):
 
   def create_directories(self):
     """Creates directories needed to use mutator plugins."""
-    shell.remove_directory(environment.get_value('MUTATOR_PLUGINS_DIR'),
-                           recreate=True)
+    shell.remove_directory(
+        environment.get_value('MUTATOR_PLUGINS_DIR'), recreate=True)
     os.mkdir(_get_mutator_plugins_archives_dir())
     os.mkdir(_get_mutator_plugins_unpacked_dir())
 
