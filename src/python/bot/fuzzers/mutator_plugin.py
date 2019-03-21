@@ -16,13 +16,11 @@
 import os
 
 from base import utils
-from google_cloud_utils import gsutil
 from google_cloud_utils import storage
 from system import archive
 from system import environment
 from system import shell
 
-MUTATOR_PLUGINS_BUCKET_ENV_VAR = 'MUTATOR_PLUGINS_BUCKET'
 MUTATOR_SHARED_OBJECT_FILENAME = 'mutator-plugin.so'
 ARCHIVES_SUBDIR_NAME = 'archives'
 PLUGINS_SUBDIR_NAME = 'plugins'
@@ -30,7 +28,7 @@ PLUGINS_SUBDIR_NAME = 'plugins'
 
 def _get_mutator_plugins_bucket_url():
   """Returns the url of the mutator plugin's cloud storage bucket."""
-  return 'gs://%s' % environment.get_value(MUTATOR_PLUGINS_BUCKET_ENV_VAR)
+  return 'gs://%s' % environment.get_value('MUTATOR_PLUGINS_BUCKET')
 
 
 def _get_mutator_plugins_subdir(subdir):
@@ -62,7 +60,7 @@ def _download_mutator_plugin_archive(mutator_plugin_archive):
   file_path = os.path.join(_get_mutator_plugins_archives_dir(),
                            mutator_plugin_archive)
   url = '%s/%s' % (_get_mutator_plugins_bucket_url(), mutator_plugin_archive)
-  assert gsutil.GSUtilRunner().download_file(url, file_path)
+  assert storage.copy_file_from(url, file_path)
   return file_path
 
 
@@ -75,6 +73,18 @@ def _unpack_mutator_plugin(mutator_plugin_archive_path):
                                      mutator_plugin_name)
   archive.unpack(mutator_plugin_archive_path, unpacked_plugin_dir)
   return unpacked_plugin_dir
+
+
+def _extract_name_from_archive(plugin_archive_filename):
+  """Parses |plugin_archive_filename| which should be named using the schema:
+  '$NAME-$JOB-$FUZZ_TARGET.zip'. Returns tuple containing
+  ($NAME, $JOB-$FUZZ_TARGET)."""
+  # TODO(metzman): Get rid of this when we create an upload page for custom
+  # mutator plugins.
+  plugin_archive_name = os.path.splitext(plugin_archive_filename)[0]
+  idx = plugin_archive_name.index('-')
+  plugin_name = plugin_archive_name[:idx]
+  return plugin_name, plugin_archive_name[idx + 1:]
 
 
 class PluginGetter(object):
@@ -94,22 +104,10 @@ class PluginGetter(object):
     os.mkdir(_get_mutator_plugins_archives_dir())
     os.mkdir(_get_mutator_plugins_unpacked_dir())
 
-  @staticmethod
-  def _extract_name_from_archive(plugin_archive_filename):
-    """Parses |plugin_archive_filename| which should be named using the schema:
-    '$NAME-$JOB-$FUZZ_TARGET.zip'. Returns tuple containing
-    ($NAME, $JOB-$FUZZ_TARGET)."""
-    # TODO(metzman): Get rid of this when we create an upload page for custom
-    # mutator plugins.
-    plugin_archive_name = os.path.splitext(plugin_archive_filename)[0]
-    idx = plugin_archive_name.index('-')
-    plugin_name = plugin_archive_name[:idx]
-    return plugin_name, plugin_archive_name[idx + 1:]
-
   def _is_plugin_usable(self, plugin_archive_filename):
     """Returns True if |plugin_archive_filename| is a usable plugin for this
     job, fuzz target combination."""
-    _, plugin_job_and_fuzzer = self._extract_name_from_archive(
+    _, plugin_job_and_fuzzer = _extract_name_from_archive(
         plugin_archive_filename)
     expected_name = '%s-%s' % (self.job_name, self.fuzzer_binary_name)
     return expected_name == plugin_job_and_fuzzer

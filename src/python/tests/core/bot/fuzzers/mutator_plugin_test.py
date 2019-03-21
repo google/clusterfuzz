@@ -105,11 +105,11 @@ class PluginGetterTest(fake_filesystem_unittest.TestCase):
     self.plugins_dir = os.path.join(self.plugins_root_dir, 'plugins')
 
     helpers.patch(self, [
-        'google_cloud_utils.gsutil.GSUtilRunner.download_file',
+        'google_cloud_utils.storage.copy_file_from',
         'bot.fuzzers.mutator_plugin._get_mutator_plugins_from_bucket',
     ])
 
-    def mocked_download_file(runner_self, gcs_url, file_path):  # pylint: disable=unused-argument
+    def mocked_copy_file_from(gcs_url, file_path):
       expected_url = '%s/%s' % (mutator_plugin._get_mutator_plugins_bucket_url(
       ), self.plugin_archive_filename)
 
@@ -117,7 +117,7 @@ class PluginGetterTest(fake_filesystem_unittest.TestCase):
       self.assertEqual(file_path, self.plugin_archive_path)
       return file_path
 
-    self.mock.download_file.side_effect = mocked_download_file
+    self.mock.copy_file_from.side_effect = mocked_copy_file_from
 
   def test_create_directories(self):
     """Tests that create_directories creates the right directories."""
@@ -129,17 +129,6 @@ class PluginGetterTest(fake_filesystem_unittest.TestCase):
         os.path.join(self.plugins_root_dir, 'archives')
     ]
     self.assertTrue(all(os.path.isdir(directory) for directory in directories))
-
-  def test_extract_name_from_archive(self):
-    """Tests that _extract_name_from_archive extracts the name from the
-    archive."""
-    name, job_and_fuzz_target = self.plugin_getter._extract_name_from_archive(
-        self.plugin_archive_filename)
-
-    self.assertEqual(self.name, name)
-    expected_job_and_fuzz_target = '%s-%s' % (os.environ['JOB_NAME'],
-                                              self.fuzzer_binary_name)
-    self.assertEqual(expected_job_and_fuzz_target, job_and_fuzz_target)
 
   def test_recognizes_usable(self):
     """Tests that _is_plugin_usable recognizes a usable plugin archive."""
@@ -160,3 +149,21 @@ class PluginGetterTest(fake_filesystem_unittest.TestCase):
         self.plugin_archive_path,
         mutator_plugin._download_mutator_plugin_archive(
             self.plugin_archive_filename))
+
+class ExtractNameFromArchiveTest(unittest.TestCase):
+  """Tests for _extract_name_from_archive."""
+
+  def test_extract_name_from_archive(self):
+    """Tests that _extract_name_from_archive extracts the name from the
+    archive."""
+    name = 'myplugin'
+    fuzzer_binary_name = 'test_fuzzer'
+    job_name = 'libfuzzer_asan_test'
+    plugin_archive_filename = '%s-%s-%s.zip' % (name, job_name,
+                                                fuzzer_binary_name)
+    extracted_name, job_and_fuzz_target = (
+        mutator_plugin._extract_name_from_archive(plugin_archive_filename))
+
+    self.assertEqual(name, extracted_name)
+    expected_job_and_fuzz_target = '%s-%s' % (job_name, fuzzer_binary_name)
+    self.assertEqual(expected_job_and_fuzz_target, job_and_fuzz_target)
