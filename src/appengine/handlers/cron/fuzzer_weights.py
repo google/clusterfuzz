@@ -198,7 +198,7 @@ WHERE
 """
 
 COVERAGE_UNCHANGED_SPECIFICATION = QuerySpecification(
-    adjusted_weight=0.65,
+    adjusted_weight=0.70,
     threshold=1.0,
     query_format=COVERAGE_UNCHANGED_FORMAT,
     formatter=_coverage_formatter,
