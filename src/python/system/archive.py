@@ -190,17 +190,6 @@ def is_archive(filename):
   return get_archive_type(filename) != ArchiveType.UNKNOWN
 
 
-def _normalize_filename(filename):
-  """Normalize file name from archive for directory traversal detection."""
-  if filename.startswith('./'):
-    filename = filename[2:]
-  if os.path.altsep:
-    filename = filename.replace(os.path.altsep, os.path.sep)
-  filename = filename.encode('ascii', 'ignore')
-  filename = filename.rstrip(os.path.sep)
-  return filename
-
-
 def unpack(archive_path,
            output_directory,
            trusted=False,
@@ -230,7 +219,7 @@ def unpack(archive_path,
   if not trusted:
     for filename in file_list:
       absolute_file_path = os.path.join(output_directory,
-                                        _normalize_filename(filename))
+                                        os.path.normpath(filename))
       real_file_path = os.path.realpath(absolute_file_path)
 
       if real_file_path == output_directory:
