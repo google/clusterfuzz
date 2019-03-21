@@ -56,7 +56,7 @@ class IteratorTest(unittest.TestCase):
   def test_cwd_prefix(self):
     """Test that a .tgz file with cwd prefix is handled."""
     tgz_path = os.path.join(TESTDATA_PATH, 'cwd-prefix.tgz')
-    expected_results = {'test': 'abc\n'}
+    expected_results = {'./test': 'abc\n'}
     actual_results = {
         archive_file.name: archive_file.handle.read()
         for archive_file in archive.iterator(tgz_path)
