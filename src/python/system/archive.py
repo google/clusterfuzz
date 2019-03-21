@@ -68,12 +68,6 @@ def iterator(archive_path,
       return extract_func(info)
     return None
 
-  def filter_name(filename):
-    """Filters './' from start if exists."""
-    if filename.startswith('./'):
-      return filename[2:]
-    return filename
-
   if archive_type == ArchiveType.ZIP:
     try:
       with zipfile.ZipFile(archive_obj or archive_path) as zip_file:
@@ -82,7 +76,7 @@ def iterator(archive_path,
             continue
 
           yield ArchiveFile(
-              filter_name(info.filename), info.file_size,
+              info.filename, info.file_size,
               maybe_extract(zip_file.open, info))
 
     except (zipfile.BadZipfile, zipfile.LargeZipFile):
@@ -100,7 +94,7 @@ def iterator(archive_path,
           continue
 
         yield ArchiveFile(
-            filter_name(info.name), info.size,
+            info.name, info.size,
             maybe_extract(tar_file.extractfile, info))
       tar_file.close()
     except tarfile.TarError:
@@ -125,12 +119,12 @@ def iterator(archive_path,
 
           try:
             yield ArchiveFile(
-                filter_name(info.name), info.size,
+                info.name, info.size,
                 maybe_extract(tar_file.extractfile, info))
 
           except KeyError:  # Handle broken links gracefully.
             error_filepaths.append(info.name)
-            yield ArchiveFile(filter_name(info.name), info.size, None)
+            yield ArchiveFile(info.name, info.size, None)
 
         if error_filepaths:
           logs.log_warn(
@@ -204,6 +198,13 @@ def unpack(archive_path,
            trusted=False,
            file_match_callback=None):
   """Extracts an archive into the target directory."""
+  def _filter_name(filename):
+    """Filters './' from start if exists. This is needed to avoid confusion
+    that the path is not intending path traversal."""
+    if filename.startswith('./'):
+      return filename[2:]
+    return filename
+
   if not os.path.exists(archive_path):
     logs.log_error('Archive %s not found.' % archive_path)
     return
@@ -227,8 +228,8 @@ def unpack(archive_path,
   # traversals.
   if not trusted:
     for filename in file_list:
-      absolute_file_path = os.path.join(output_directory, filename).encode(
-          'ascii', 'ignore')
+      absolute_file_path = os.path.join(output_directory, _filter_name(filename))
+      absolute_file_path = absolute_file_path.encode('ascii', 'ignore')
       if os.path.altsep:
         absolute_file_path = absolute_file_path.replace(os.path.altsep,
                                                         os.path.sep)
