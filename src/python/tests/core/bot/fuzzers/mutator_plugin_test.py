@@ -150,6 +150,7 @@ class PluginGetterTest(fake_filesystem_unittest.TestCase):
         mutator_plugin._download_mutator_plugin_archive(
             self.plugin_archive_filename))
 
+
 class ExtractNameFromArchiveTest(unittest.TestCase):
   """Tests for _extract_name_from_archive."""
 
