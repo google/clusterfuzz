@@ -101,9 +101,10 @@ clusterfuzz-linux-pre:
   distribute: False
 ```
 
-You can modify the number of bots by first uncommenting the cluster definition,
-and then changing the value in the `instance_count` attribute. You can also
-create your own [instance template](#google-compute-engine-instance-template)
+You can configure the bots by first uncommenting the cluster definition,
+and then changing the values in the `gce_zone` (e.g. `us-central1-a`) and
+`instance_count` attributes. You can also create your own
+[instance template](#google-compute-engine-instance-template)
 and then define a new cluster section here.
 
 **Note**:
