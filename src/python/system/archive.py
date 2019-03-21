@@ -320,7 +320,9 @@ def unpack(archive_path,
       tar_archive.extractall(path=output_directory)
     except:
       # In case of errors, we try to extract whatever we can without errors.
-      error_occurred = True
+      logs.log_error(
+          'Failed to extract everything from archive %s, trying one at a time.'
+          % archive_filename)
       for filename in file_list:
         try:
           tar_archive.extract(filename, output_directory)
@@ -336,10 +338,6 @@ def unpack(archive_path,
     tar_archive.close()
     if archive_type == ArchiveType.TAR_LZMA:
       lzma_file.close()
-
-    if error_occurred:
-      logs.log_error(
-          'Failed to extract everything from archive %s.' % archive_filename)
 
   else:
     logs.log_error(
