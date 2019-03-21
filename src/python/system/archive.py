@@ -196,11 +196,14 @@ def unpack(archive_path,
            file_match_callback=None):
   """Extracts an archive into the target directory."""
 
-  def _filter_name(filename):
-    """Filters './' from start if exists. This is needed to avoid confusion
-    that the path is not intending path traversal."""
+  def _normalize_filename(filename):
+    """Normalize file name from archive for directory traversal detection."""
     if filename.startswith('./'):
-      return filename[2:]
+      filename = filename[2:]
+    if os.path.altsep:
+      filename = filename.replace(os.path.altsep, os.path.sep)
+    filename = filename.encode('ascii', 'ignore')
+    filename = filename.rstrip(os.path.sep)
     return filename
 
   if not os.path.exists(archive_path):
@@ -227,12 +230,7 @@ def unpack(archive_path,
   if not trusted:
     for filename in file_list:
       absolute_file_path = os.path.join(output_directory,
-                                        _filter_name(filename))
-      absolute_file_path = absolute_file_path.encode('ascii', 'ignore')
-      if os.path.altsep:
-        absolute_file_path = absolute_file_path.replace(os.path.altsep,
-                                                        os.path.sep)
-      absolute_file_path = absolute_file_path.rstrip(os.path.sep)
+                                        _normalize_filename(filename))
       real_file_path = os.path.realpath(absolute_file_path)
 
       if real_file_path == output_directory:
