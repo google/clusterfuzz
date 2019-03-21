@@ -67,6 +67,11 @@ test-clusterfuzz:
     #   instance_template: clusterfuzz-windows-with-gpu
     #   distribute: False
 
+    # clusterfuzz-android-device:
+    #   gce_zone: gce-zone
+    #   instance_count: 1
+    #   instance_template: clusterfuzz-android-device
+    #   distribute: False
 
   instance_templates:
     - name: clusterfuzz-linux
@@ -276,3 +281,32 @@ test-clusterfuzz:
           automaticRestart: true
           onHostMaintenance: TERMINATE
           preemptible: false
+
+    - name: clusterfuzz-android-device
+      description: '{"version": 1}'
+      properties:
+        machineType: custom-3-6400
+        disks:
+          - boot: true
+            autoDelete: true
+            initializeParams:
+              sourceImage:  # Create image based on https://github.com/google/android-cuttlefish.
+              diskSizeGb: 100
+              diskType: pd-standard
+        metadata:
+          items:
+            - key: branch
+              value:   # whatever branch / android os version to use.
+            - key: startup-script
+              value: file://android-init.bash
+        serviceAccounts:
+          - email: test-clusterfuzz-service-account-email
+            scopes:
+              - https://www.googleapis.com/auth/cloud-platform
+              - https://www.googleapis.com/auth/prodxmon
+        networkInterfaces:
+          - network: global/networks/default
+            accessConfigs:
+              - type: ONE_TO_ONE_NAT
+                name: 'External NAT'
+        minCpuPlatform: 'Intel Haswell'
