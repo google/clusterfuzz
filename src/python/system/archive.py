@@ -75,9 +75,8 @@ def iterator(archive_path,
           if not file_match_callback(info.filename):
             continue
 
-          yield ArchiveFile(
-              info.filename, info.file_size,
-              maybe_extract(zip_file.open, info))
+          yield ArchiveFile(info.filename, info.file_size,
+                            maybe_extract(zip_file.open, info))
 
     except (zipfile.BadZipfile, zipfile.LargeZipFile):
       logs.log_error('Bad zip file %s.' % archive_path)
@@ -93,9 +92,8 @@ def iterator(archive_path,
         if not file_match_callback(info.name):
           continue
 
-        yield ArchiveFile(
-            info.name, info.size,
-            maybe_extract(tar_file.extractfile, info))
+        yield ArchiveFile(info.name, info.size,
+                          maybe_extract(tar_file.extractfile, info))
       tar_file.close()
     except tarfile.TarError:
       logs.log_error('Bad tar file %s.' % archive_path)
@@ -118,9 +116,8 @@ def iterator(archive_path,
             continue
 
           try:
-            yield ArchiveFile(
-                info.name, info.size,
-                maybe_extract(tar_file.extractfile, info))
+            yield ArchiveFile(info.name, info.size,
+                              maybe_extract(tar_file.extractfile, info))
 
           except KeyError:  # Handle broken links gracefully.
             error_filepaths.append(info.name)
@@ -198,6 +195,7 @@ def unpack(archive_path,
            trusted=False,
            file_match_callback=None):
   """Extracts an archive into the target directory."""
+
   def _filter_name(filename):
     """Filters './' from start if exists. This is needed to avoid confusion
     that the path is not intending path traversal."""
@@ -228,7 +226,8 @@ def unpack(archive_path,
   # traversals.
   if not trusted:
     for filename in file_list:
-      absolute_file_path = os.path.join(output_directory, _filter_name(filename))
+      absolute_file_path = os.path.join(output_directory,
+                                        _filter_name(filename))
       absolute_file_path = absolute_file_path.encode('ascii', 'ignore')
       if os.path.altsep:
         absolute_file_path = absolute_file_path.replace(os.path.altsep,
