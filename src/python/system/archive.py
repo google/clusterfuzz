@@ -321,7 +321,8 @@ def unpack(archive_path,
     except:
       # In case of errors, we try to extract whatever we can without errors.
       logs.log_error(
-          'Failed to extract everything from archive %s, trying one at a time.' % archive_filename)
+          'Failed to extract everything from archive %s, trying one at a time.'
+          % archive_filename)
       for filename in file_list:
         try:
           tar_archive.extract(filename, output_directory)
