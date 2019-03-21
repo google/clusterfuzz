@@ -81,7 +81,7 @@ GROUP BY
 # we'll find anything during fuzzing.
 STARTUP_CRASH_SPECIFICATION = QuerySpecification(
     adjusted_weight=0.10,
-    threshold=0.80,
+    threshold=0.90,
     query_format=GENERIC_QUERY_FORMAT.format(field_name='startup_crash_count'),
     formatter=_past_day_formatter,
     reason='frequent startup crashes')
@@ -91,7 +91,7 @@ STARTUP_CRASH_SPECIFICATION = QuerySpecification(
 # fuzzer is not making good use of its cycles while running or needs a fix.
 SLOW_UNIT_SPECIFICATION = QuerySpecification(
     adjusted_weight=0.50,
-    threshold=0.80,
+    threshold=0.90,
     query_format=GENERIC_QUERY_FORMAT.format(field_name='slow_unit_count'),
     formatter=_past_day_formatter,
     reason='frequent slow units')
@@ -100,17 +100,17 @@ SLOW_UNIT_SPECIFICATION = QuerySpecification(
 # included for the same reason.
 TIMEOUT_SPECIFICATION = QuerySpecification(
     adjusted_weight=0.50,
-    threshold=0.80,
+    threshold=0.95,
     query_format=GENERIC_QUERY_FORMAT.format(field_name='timeout_count'),
     formatter=_past_day_formatter,
     reason='frequent timeouts')
 
-# Fuzzers which are crashing frequently may not be making full use of their
-# allotted time for fuzzing, and may end up being more effective once the known
-# issues are fixed.
+# Fuzzers which are crashing on almost every run are not making full use of
+# their allotted time for fuzzing, and may end up being more effective once the
+# known issues are fixed.
 CRASH_SPECIFICATION = QuerySpecification(
     adjusted_weight=0.50,
-    threshold=0.90,
+    threshold=0.99,
     query_format=GENERIC_QUERY_FORMAT.format(field_name='crash_count'),
     formatter=_past_day_formatter,
     reason='frequent crashes')
@@ -120,7 +120,7 @@ CRASH_SPECIFICATION = QuerySpecification(
 # until the issues are fixed.
 OOM_SPECIFICATION = QuerySpecification(
     adjusted_weight=0.50,
-    threshold=0.90,
+    threshold=0.95,
     query_format=GENERIC_QUERY_FORMAT.format(field_name='oom_count'),
     formatter=_past_day_formatter,
     reason='frequent OOMs')
@@ -198,7 +198,7 @@ WHERE
 """
 
 COVERAGE_UNCHANGED_SPECIFICATION = QuerySpecification(
-    adjusted_weight=0.5,
+    adjusted_weight=0.65,
     threshold=1.0,
     query_format=COVERAGE_UNCHANGED_FORMAT,
     formatter=_coverage_formatter,
