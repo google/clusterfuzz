@@ -285,7 +285,7 @@ test-clusterfuzz:
     - name: clusterfuzz-android-device
       description: '{"version": 1}'
       properties:
-        machineType: custom-3-6400
+        machineType: n1-highcpu-4
         disks:
           - boot: true
             autoDelete: true
