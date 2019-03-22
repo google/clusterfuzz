@@ -39,7 +39,6 @@ CHROME_CACHE_DIRS = [
 ]
 CHROME_CRASH_DIR = 'cache/Crash\\ Reports'
 DEVICE = collections.namedtuple('Device', ['serial', 'path'])
-DEVICE_COVERAGE_DIR = '/data/local/tmp/c'
 DEVICE_CRASH_DUMPS_DIR = '/sdcard/crash-reports'
 DEVICE_DOWNLOAD_DIR = '/sdcard/Download'
 DEVICE_HANG_STRING = None

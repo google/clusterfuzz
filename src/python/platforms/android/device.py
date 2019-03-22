@@ -43,7 +43,6 @@ ADD_TEST_ACCOUNT_PKG_NAME = 'com.google.android.tests.utilities'
 ADD_TEST_ACCOUNT_TIMEOUT = 20
 ARCH32_ID = 'arm'
 ARCH64_ID = 'aarch64'
-ASAN_RT_LIB = 'libclang_rt.asan-{arch}-android.so'
 ASAN_SCRIPT_TIMEOUT = 15 * 60
 BUILD_FINGERPRINT_REGEX = re.compile(
     r'(?P<vendor>.+)\/(?P<target>.+)'
@@ -361,57 +360,6 @@ def configure_wifi_and_airplane_mode(wifi_enabled=False):
     logs.log_error('Failed to connect to wifi.', output=output)
 
 
-def get_api_level():
-  """Return device's API level."""
-  try:
-    return int(adb.get_property('ro.build.version.sdk'))
-  except ValueError:
-    logs.log_error('Failed to fetch API level.')
-    return -1
-
-
-def get_artifact_name(apk_name, branch, branch_regex):
-  """Fetch the apk to download depending on build type and screen density."""
-  # Initialize variables.
-  apk = ''
-  api_level = get_api_level()
-  build_type = get_build_type()
-  screen_density = get_screen_density()
-
-  # If unknown build type, return default.
-  if build_type not in ['eng', 'user', 'userdebug']:
-    logs.log_error('Unknown device build type %s.' % str(build_type))
-    return apk_name + '.apk'
-
-  # Format - [signed/signed-]<apk_name>[-<density>][-<version>].apk.
-  # Prepend signed for user and eng builds.
-  if build_type in ['eng', 'user']:
-    apk += 'signed/signed-'
-  apk += apk_name
-
-  # Add density.
-  if screen_density == 'xxxhdpi':
-    apk += '-xxhdpi'
-  elif screen_density in ('mdpi', 'hdpi', 'xhdpi', 'xxhdpi'):
-    apk += '-' + screen_density
-  else:
-    logs.log_error('Unknown screen density %s.' % str(screen_density))
-
-  # For LMP and above, append release codename only for manchego and above.
-  # FIXME: Add support for pano if needed in future.
-  if api_level >= 21:
-    match = re.search(branch_regex, branch)
-    if match and match.group(1) >= 'manchego':
-      if api_level >= 23:
-        apk += '-mnc'
-      else:
-        apk += '-lmp'
-
-  # Finish with apk extension.
-  apk += '.apk'
-  return apk
-
-
 def get_battery_information():
   """Return device's battery level."""
   output = adb.run_adb_shell_command(['dumpsys', 'battery'])
@@ -456,11 +404,6 @@ def get_build_parameters():
   target = TARGET_MAPPER.get(target, target)
   build_type = build_fingerprint_match.group('type')
   return {'build_id': build_id, 'target': target, 'type': build_type}
-
-
-def get_build_type():
-  """Return build type."""
-  return adb.get_property('ro.build.type')
 
 
 def get_build_version():
@@ -546,77 +489,9 @@ def get_product_brand():
   return adb.get_property('ro.product.brand')
 
 
-def get_screen_density():
-  """Return screen density."""
-  output = adb.get_property('ro.sf.lcd_density')
-  if not output or not output.isdigit():
-    return None
-
-  output = int(output)
-  if output == 120:
-    return 'ldpi'
-  elif output == 160:
-    return 'mdpi'
-  elif output == 240:
-    return 'hdpi'
-  elif output == 320:
-    return 'xhdpi'
-  elif output == 480:
-    return 'xxhdpi'
-  elif output == 560:
-    return 'xxhdpi'
-  elif output == 640:
-    return 'xxxhdpi'
-
-  logs.log_error('Could not determine the density of the device.')
-  return None
-
-
-def get_screen_dimensions():
-  """Return device's screen dimensions."""
-  window_policy = adb.run_adb_shell_command(['dumpsys', 'window', 'policy'])
-  window_policy = window_policy.split('\r\n')
-
-  for line in window_policy[1:]:
-    m = re.search(r'mContent=\((\d+),(\d+)\)-\((\d+),(\d+)\)', line)
-    if m:
-      return (int(m.group(1)), int(m.group(2)), int(m.group(3)), int(
-          m.group(4)))
-
-  # Fallback to default dimensions.
-  return (0, 0, 1920, 1200)
-
-
 def get_security_patch_level():
   """Return the security patch level reported by the device."""
   return adb.get_property('ro.build.version.security_patch')
-
-
-def get_target(target):
-  """Return full target name for a given CPU arch."""
-  if not target:
-    logs.log_error('Target is not set.')
-    return None
-
-  cpu_arch = get_cpu_arch()
-  arch_suffix = None
-  if cpu_arch == 'armeabi-v7a':
-    arch_suffix = ''
-  elif cpu_arch == 'arm64-v8a':
-    arch_suffix = '_arm64'
-  elif cpu_arch == 'armeabi':
-    arch_suffix = '_armv5'
-  elif cpu_arch == 'x86':
-    arch_suffix = '_x86'
-  elif cpu_arch == 'x86_64':
-    arch_suffix = '_x86_64'
-  elif cpu_arch == 'mips':
-    arch_suffix = '_mips'
-  else:
-    logs.log_error('Could not find suitable target for cpu arch %s.' % cpu_arch)
-    return None
-
-  return target + arch_suffix
 
 
 def get_type_binding(value):
@@ -663,7 +538,6 @@ def initialize_device():
   initialize_environment()
 
   # Other configuration tasks (only to done after reboot).
-  configure_coverage_directories()
   configure_wifi_and_airplane_mode()
   setup_host_and_device_forwarder_if_needed()
   adb.clear_notifications()
@@ -693,14 +567,6 @@ def google_device():
     return True
 
   return False
-
-
-def configure_coverage_directories():
-  """Configure coverage directories on device."""
-  adb.remove_directory(adb.DEVICE_COVERAGE_DIR, recreate=True)
-  default_device_coverage_subdirectory = (
-      os.path.join(adb.DEVICE_COVERAGE_DIR, '0'))
-  adb.create_directory_if_needed(default_device_coverage_subdirectory)
 
 
 def get_debug_props_and_values():
@@ -790,7 +656,6 @@ def initialize_environment():
   environment.set_value('PLATFORM_ID', get_platform_id())
   environment.set_value('PRODUCT_BRAND', get_product_brand())
   environment.set_value('SANITIZER_TOOL_NAME', get_sanitizer_tool_name())
-  environment.set_value('SCREEN_DIMENSIONS', str(get_screen_dimensions()))
 
 
 def update_system_web_view():
@@ -871,11 +736,8 @@ def push_testcases_to_device():
     logs.log('No testcases to copy to device, skipping.')
     return
 
-  logs.log('Started copying testcases to device.')
   adb.copy_local_directory_to_remote(local_testcases_directory,
                                      adb.DEVICE_TESTCASES_DIR)
-
-  logs.log('Completed copying testcases to device.')
 
 
 def reboot():
@@ -915,20 +777,7 @@ def setup_asan_if_needed():
 
   # Initialize variables.
   android_directory = environment.get_platform_resources_directory()
-  asan_rt_arch32_lib = ASAN_RT_LIB.format(arch=ARCH32_ID)
-  asan_rt_arch64_lib = ASAN_RT_LIB.format(arch=ARCH64_ID)
-  cpu_arch = get_cpu_arch()
   device_id = environment.get_value('ANDROID_SERIAL')
-  file_list = os.listdir(app_directory)
-
-  # Hack for missing arm64 lib in older builds.
-  if (cpu_arch.startswith('arm64') and asan_rt_arch32_lib in file_list and
-      asan_rt_arch64_lib not in file_list):
-    # Copy arm64 library from local copy.
-    source_asan_rt_arch64_lib = os.path.join(android_directory,
-                                             asan_rt_arch64_lib)
-    dest_asan_rt_arch64_lib = os.path.join(app_directory, asan_rt_arch64_lib)
-    shell.copy_file(source_asan_rt_arch64_lib, dest_asan_rt_arch64_lib)
 
   # Execute the script.
   logs.log('Executing ASan device setup script.')
