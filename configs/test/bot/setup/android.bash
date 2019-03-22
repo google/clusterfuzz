@@ -70,11 +70,17 @@ if [ ! -d "$INSTALL_DIRECTORY/$APPENGINE" ]; then
   rm $APPENGINE_FILE
 fi
 
-echo "Ensure device is connected."
-if ! $ADB_PATH/adb devices -l | grep -q "$ANDROID_SERIAL"; then
+echo "Installing ClusterFuzz package dependencies."
+pip install crcmod==1.7 psutil==5.4.7 pyOpenSSL==19.0.0
+
+echo "Ensuring device is connected."
+if ! $ADB_PATH/adb -s $ANDROID_SERIAL get-state | grep -q "device"; then
   echo "Device $ANDROID_SERIAL is not connected."
   exit 1
 fi
+
+echo "Activating credentials with the Google Cloud SDK."
+$GSUTIL_PATH/gcloud auth activate-service-account --key-file=$GOOGLE_APPLICATION_CREDENTIALS
 
 # Otherwise, gsutil will error out due to multiple types of configured
 # credentials. For more information about this, see
@@ -88,10 +94,11 @@ else
 fi
 
 echo "Downloading ClusterFuzz source code."
+rm -rf clusterfuzz
 $GSUTIL_PATH/gsutil cp gs://$DEPLOYMENT_BUCKET/linux.zip clusterfuzz-source.zip
-unzip -f -q clusterfuzz-source.zip
+unzip -q clusterfuzz-source.zip
 
 echo "Running ClusterFuzz."
-OS_OVERRIDE="ANDROID" PATH="$PATH" NFS_ROOT="$NFS_ROOT" GOOGLE_APPLICATION_CREDENTIALS="$GOOGLE_APPLICATION_CREDENTIALS" ROOT_DIR="$ROOT_DIR" PYTHONPATH="$PYTHONPATH" GSUTIL_PATH="$GSUTIL_PATH" python $ROOT_DIR/src/python/bot/startup/run.py &
+OS_OVERRIDE="ANDROID" ANDROID_SERIAL="$ANDROID_SERIAL" PATH="$PATH" NFS_ROOT="$NFS_ROOT" GOOGLE_APPLICATION_CREDENTIALS="$GOOGLE_APPLICATION_CREDENTIALS" ROOT_DIR="$ROOT_DIR" PYTHONPATH="$PYTHONPATH" GSUTIL_PATH="$GSUTIL_PATH" python $ROOT_DIR/src/python/bot/startup/run.py &
 
 echo "Success!"
