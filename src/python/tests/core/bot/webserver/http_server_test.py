@@ -68,7 +68,7 @@ class RequestHandlerTest(fake_filesystem_unittest.TestCase):
   def test_nonexistent_file(self):
     """Ensure that we respond with 404 for a nonexistent file."""
     handler = TestRequestHandler('/invalid.txt')
-    handler.do_get()
+    handler.do_GET()
 
     self.assertEqual(handler.response_code, 404)
     self.assertEqual(handler.wfile.contents, '')
@@ -76,7 +76,7 @@ class RequestHandlerTest(fake_filesystem_unittest.TestCase):
   def test_unreadable_file(self):
     """Ensure that we respond with 403 for a file we can't read."""
     handler = TestRequestHandler('/unreadable.txt')
-    handler.do_get()
+    handler.do_GET()
 
     self.assertEqual(handler.response_code, 403)
     self.assertEqual(handler.wfile.contents, '')
@@ -84,7 +84,7 @@ class RequestHandlerTest(fake_filesystem_unittest.TestCase):
   def test_valid_file(self):
     """Ensure that we respond with 200 and the file contents for a valid one."""
     handler = TestRequestHandler('/valid.txt')
-    handler.do_get()
+    handler.do_GET()
 
     self.assertEqual(handler.response_code, 200)
     self.assertEqual(handler.wfile.contents, 'valid file')
