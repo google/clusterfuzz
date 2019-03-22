@@ -135,13 +135,6 @@ class AdbTest(unittest.TestCase):
     adb.wait_for_device()
     self.assertEqual(adb.get_device_state(), 'device')
 
-  def test_remount(self):
-    """Tests remount."""
-    system_test_file_path = os.path.join('/system', 'a')
-    adb.write_data_to_file('data', system_test_file_path)
-    self.assertEqual(adb.read_data_from_file(system_test_file_path), 'data')
-    adb.run_adb_shell_command(['rm', system_test_file_path])
-
   def test_is_package_installed(self):
     """Tests is_package_installed."""
     self.assertFalse(adb.is_package_installed('non.existent.package'))

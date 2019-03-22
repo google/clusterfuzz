@@ -88,31 +88,6 @@ def _try_acquire_lock(key_name, expiration_time, holder):
   return lock_entity
 
 
-def _update_lock_statistics(key_name,
-                            acquires=0,
-                            bails=0,
-                            failed_acquires=0,
-                            lost=0,
-                            wait_time=0):
-  """Update lock statistics."""
-  shard_index = random.randint(1, NUM_STATISTICS_SHARDS)
-  shard_key_name = '%s-%d' % (key_name, shard_index)
-
-  try:
-    lock_entity = ndb.Key(data_types.LockStatShard, shard_key_name).get()
-    if not lock_entity:
-      lock_entity = data_types.LockStatShard(id=shard_key_name)
-    lock_entity.acquires += acquires
-    lock_entity.bails += bails
-    lock_entity.failed_acquires += failed_acquires
-    lock_entity.lost += lost
-    lock_entity.wait_time += wait_time
-    lock_entity.put()
-  except Exception:
-    logs.log_error('Failed to update lock statistics.')
-    return
-
-
 def acquire_lock(key_name,
                  max_hold_seconds=DEFAULT_MAX_HOLD_SECONDS,
                  retries=None,
@@ -144,11 +119,6 @@ def acquire_lock(key_name,
           retries=TRANSACTION_RETRIES)
 
       if lock_entity.holder == bot_name:
-        _update_lock_statistics(
-            key_name,
-            acquires=1,
-            failed_acquires=failed_acquires,
-            wait_time=int(total_wait))
         logs.log('Got the lock.')
         return lock_entity.expiration_time
     except datastore_errors.TransactionFailedError:
@@ -170,7 +140,6 @@ def acquire_lock(key_name,
     wait_exponent = min(wait_exponent + 1, MAX_WAIT_EXPONENT)
 
   logs.log('Timeout exceeded while trying to acquire lock, bailing.')
-  _update_lock_statistics(key_name, bails=1, failed_acquires=failed_acquires)
   return None
 
 

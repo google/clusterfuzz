@@ -1,4 +1,4 @@
-// Copyright 2018 Google LLC
+// Copyright 2019 Google LLC
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -262,16 +262,6 @@ type Lock struct {
 	Key            *datastore.Key `datastore:"__key__"`
 	ExpirationTime time.Time      `datastore:"expiration_time"`
 	Holder         string         `datastore:"holder"`
-}
-
-// LockStatShard is auto-generated from data_types.py.
-type LockStatShard struct {
-	Key            *datastore.Key `datastore:"__key__"`
-	Acquires       int            `datastore:"acquires"`
-	Bails          int            `datastore:"bails"`
-	FailedAcquires int            `datastore:"failed_acquires"`
-	Lost           int            `datastore:"lost"`
-	WaitTime       int            `datastore:"wait_time"`
 }
 
 // Notification is auto-generated from data_types.py.

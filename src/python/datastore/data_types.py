@@ -1030,25 +1030,6 @@ class Lock(Model):
   holder = ndb.StringProperty()
 
 
-class LockStatShard(Model):
-  """Lock statistics shard."""
-  # The number of successful acquires.
-  acquires = ndb.IntegerProperty(default=0)
-
-  # The number of lock acquire bails.
-  bails = ndb.IntegerProperty(default=0)
-
-  # The number of acquire failures.
-  failed_acquires = ndb.IntegerProperty(default=0)
-
-  # The number of times the lock was detected to be lost because the holder ran
-  # out of time.
-  lost = ndb.IntegerProperty(default=0)
-
-  # Total wait time over all successful acquires.
-  wait_time = ndb.IntegerProperty(default=0)
-
-
 class FuzzTarget(Model):
   """Fuzz target."""
   # The engine this target is a child of.
