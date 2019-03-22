@@ -90,7 +90,7 @@ class BotHTTPServer(BaseHTTPServer.HTTPServer):
 class RequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
   """Handler for get requests to test cases."""
 
-  def do_GET(self):
+  def do_GET(self):  # pylint: disable=invalid-name
     """Handle a GET request."""
     absolute_path = get_absolute_testcase_file(self.path)
     if not absolute_path:
