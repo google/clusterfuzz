@@ -141,7 +141,7 @@ class PluginGetter(object):
     if not plugin_archive_path:
       return None
 
-    _unpack_mutator_plugin(plugin_archive_path):
+    _unpack_mutator_plugin(plugin_archive_path)
     mutator_plugin_path = find_mutator_plugin()
     if mutator_plugin_path is None:
       logs.log_error('Could not find plugin in %s' % plugin_archive_path)
