@@ -24,8 +24,8 @@ from tests.test_libs import helpers
 from tests.test_libs import test_utils
 
 
-class SetMutatorPluginTest(fake_filesystem_unittest.TestCase):
-  """Tests set_mutator_plugin."""
+class FindMutatorPluginTest(fake_filesystem_unittest.TestCase):
+  """Tests find_mutator_plugin."""
 
   def setUp(self):
     helpers.patch_environ(self)
@@ -33,22 +33,20 @@ class SetMutatorPluginTest(fake_filesystem_unittest.TestCase):
     self.plugins_root_dir = '/plugins'
     os.environ['MUTATOR_PLUGINS_DIR'] = self.plugins_root_dir
 
-  def test_set_mutator_plugin_with_usable(self):
-    """Tests that LD_PRELOAD is set properly by set_mutator_plugin when there is
-    a usable mutator plugin available."""
+  def test_find_mutator_plugin_with_usable(self):
+    """Tests that the right path is returned by find_mutator_plugin when there
+    is a usable mutator plugin available."""
     usable_plugin_path = os.path.join(
         self.plugins_root_dir, 'plugins',
         mutator_plugin.MUTATOR_SHARED_OBJECT_FILENAME)
 
     self.fs.CreateFile(usable_plugin_path)
-    mutator_plugin.set_mutator_plugin()
-    self.assertEqual(usable_plugin_path, os.environ['LD_PRELOAD'])
+    self.assertEqual(usable_plugin_path, mutator_plugin.find_mutator_plugin())
 
   def test_set_mutator_plugin_without_usable(self):
-    """Tests that LD_PRELOAD is not set by set_mutator_plugin when there isn't a
+    """Tests that None is returned by find_mutator_plugin when there isn't a
     usable mutator plugin available."""
-    self.assertIsNone(mutator_plugin.set_mutator_plugin())
-    self.assertIsNone(os.getenv('LD_PRELOAD'))
+    self.assertIsNone(mutator_plugin.find_mutator_plugin())
 
 
 # pylint: disable=protected-access
