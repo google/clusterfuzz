@@ -41,6 +41,9 @@ APPENGINE_DIR="$INSTALL_DIRECTORY/$APPENGINE"
 ROOT_DIR="$INSTALL_DIRECTORY/clusterfuzz"
 PYTHONPATH="$PYTHONPATH:$APPENGINE_DIR:$ROOT_DIR/src"
 
+# Use nodesource nodejs packages.
+curl -sL https://deb.nodesource.com/setup_11.x | sudo -E bash -
+
 echo "Installing dependencies."
 apt-get update && apt-get install -y \
   autofs \
