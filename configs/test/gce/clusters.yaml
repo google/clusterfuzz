@@ -285,7 +285,7 @@ test-clusterfuzz:
     - name: clusterfuzz-android-device
       description: '{"version": 1}'
       properties:
-        machineType: n1-highcpu-4
+        machineType: n1-standard-2
         disks:
           - boot: true
             autoDelete: true
@@ -296,7 +296,7 @@ test-clusterfuzz:
         metadata:
           items:
             - key: branch
-              value:   # whatever branch / android os version to use.
+              value:   # Android OS branch to use (e.g. git_pi-gce-release).
             - key: startup-script
               value: file://android-init.bash
         serviceAccounts:
