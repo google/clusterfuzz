@@ -74,7 +74,7 @@ echo "Installing ClusterFuzz package dependencies."
 pip install crcmod==1.7 psutil==5.4.7 pyOpenSSL==19.0.0
 
 echo "Ensuring device is connected."
-if ! $ADB_PATH/adb -s $ANDROID_SERIAL get-state | grep -q "device"; then
+if [[ $("$ADB_PATH/adb" -s "$ANDROID_SERIAL" get-state) != "device" ]]; then
   echo "Device $ANDROID_SERIAL is not connected."
   exit 1
 fi
