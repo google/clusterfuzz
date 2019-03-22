@@ -265,7 +265,6 @@ class TestLauncher(BaseLauncherTest):
     # function didn't crash on its first execution (after printing).
     self.assertGreater(output.count(custom_mutator_print_string), 1)
 
-
   def test_minimize(self):
     """Tests minimize."""
     testcase_path = setup_testcase_and_corpus(
@@ -391,6 +390,7 @@ class TestLauncher(BaseLauncherTest):
         'empty', 'corpus_with_some_files', fuzz=True)
     os.environ['EXIT_FUZZER_CODE'] = exit_code
     run_launcher(testcase_path, 'exit_fuzzer', '-max_len=100')
+
 
 @test_utils.integration
 class TestLauncherMinijail(BaseLauncherTest):

@@ -103,9 +103,10 @@ class PluginGetter(object):
 
   def create_directories(self):
     """Creates directories needed to use mutator plugins."""
+
     def recreate_directory(directory_path):
-      shell.create_directory_if_needed(directory_path,
-                                       create_intermediates=True)
+      shell.create_directory_if_needed(
+          directory_path, create_intermediates=True)
       shell.remove_directory(directory_path, recreate=True)
 
     recreate_directory(environment.get_value('MUTATOR_PLUGINS_DIR'))
