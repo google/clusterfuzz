@@ -14,6 +14,7 @@
 """ADB shell related functions."""
 
 import collections
+import glob
 import os
 import re
 import signal
@@ -55,8 +56,8 @@ PACKAGES_THAT_CRASH_WITH_GESTURES = [
 ]
 REBOOT_TIMEOUT = 3600
 RECOVERY_CMD_TIMEOUT = 60
-REMOTE_CONNECT_RETRIES = 25
 RESTART_USB_WAIT = 20
+STOP_CVD_WAIT = 20
 
 # Output patterns to parse "lsusb" output.
 LSUSB_BUS_RE = re.compile(r'Bus\s+(\d+)\s+Device\s+(\d+):.*')
@@ -515,15 +516,24 @@ def recreate_gce_device():
   cvd_bin_dir = os.path.join(cvd_dir, 'bin')
   launch_cvd_path = os.path.join(cvd_bin_dir, 'launch_cvd')
   stop_cvd_path = os.path.join(cvd_bin_dir, 'stop_cvd')
-  execute_command(stop_cvd_path, timeout=RECOVERY_CMD_TIMEOUT)
 
+  # Stop android device.
+  execute_command(stop_cvd_path, timeout=RECOVERY_CMD_TIMEOUT)
+  time.sleep(STOP_CVD_WAIT)
+
+  # Delete all existing images.
   image_dir = cvd_dir
+  for image_file_path in glob.glob(os.path.join(image_dir, '*.img')):
+    shell.remove_file(image_file_path)
+
+  # Restore images from backup.
   backup_image_dir = os.path.join(cvd_dir, 'backup')
   for image_filename in os.listdir(backup_image_dir):
     image_src = os.path.join(backup_image_dir, image_filename)
     image_dest = os.path.join(image_dir, image_filename)
     shell.copy_file(image_src, image_dest)
 
+  # Launch android device.
   execute_command(launch_cvd_path + ' -daemon')
 
 
