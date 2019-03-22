@@ -11,6 +11,7 @@ gazelle(
     prefix = "clusterfuzz",
 )
 
+# TODO(ochang): Support Python 3 (https://github.com/google/clusterfuzz/issues/183).
 py_library(
     name = "clusterfuzz",
     srcs_version = "PY2ONLY",
