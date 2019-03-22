@@ -321,9 +321,13 @@ class LibFuzzerRunner(new_process.ProcessRunner, LibFuzzerCommon):
     if additional_args is None:
       additional_args = []
 
-    return LibFuzzerCommon.fuzz(self, corpus_directories, fuzz_timeout,
-                                artifact_prefix, additional_args,
-                                extra_env=extra_env)
+    return LibFuzzerCommon.fuzz(
+        self,
+        corpus_directories,
+        fuzz_timeout,
+        artifact_prefix,
+        additional_args,
+        extra_env=extra_env)
 
 
 class MinijailLibFuzzerRunner(engine_common.MinijailEngineFuzzerRunner,

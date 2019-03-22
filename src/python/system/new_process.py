@@ -276,9 +276,16 @@ class ProcessRunner(object):
       env.update(extra_env)
 
     return ChildProcess(
-        subprocess.Popen(command, env=env, stdin=stdin, stdout=stdout,
-            stderr=stderr, **popen_args), command,
-            max_stdout_len=max_stdout_len, stdout_file=stdout)
+        subprocess.Popen(
+            command,
+            env=env,
+            stdin=stdin,
+            stdout=stdout,
+            stderr=stderr,
+            **popen_args),
+        command,
+        max_stdout_len=max_stdout_len,
+        stdout_file=stdout)
 
   # Note: changes to this function may require changes to
   # untrusted_runner.proto.

@@ -845,7 +845,8 @@ def main(argv):
   fuzz_result = runner.fuzz(
       corpus_directories,
       fuzz_timeout=fuzz_timeout,
-      additional_args=arguments + [artifact_prefix], extra_env=extra_env)
+      additional_args=arguments + [artifact_prefix],
+      extra_env=extra_env)
 
   if (not use_minijail and
       fuzz_result.return_code == constants.LIBFUZZER_ERROR_EXITCODE):

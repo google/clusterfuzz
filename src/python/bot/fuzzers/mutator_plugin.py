@@ -29,6 +29,7 @@ PLUGINS_SUBDIR_NAME = 'plugins'
 def clear_plugins_directory():
   shell.remove(environment.get_value('MUTATOR_PLUGINS_DIR'))
 
+
 def _get_mutator_plugins_bucket_url():
   """Returns the url of the mutator plugin's cloud storage bucket."""
   return 'gs://%s' % environment.get_value('MUTATOR_PLUGINS_BUCKET')
