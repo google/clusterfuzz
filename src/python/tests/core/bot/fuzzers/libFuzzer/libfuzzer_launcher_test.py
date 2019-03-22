@@ -204,6 +204,7 @@ class LauncherTest(fake_fs_unittest.TestCase):
         'bot.fuzzers.libFuzzer.launcher.do_random_max_length',
         'bot.fuzzers.libFuzzer.launcher.do_recommended_dictionary',
         'bot.fuzzers.libFuzzer.launcher.do_value_profile',
+        'bot.fuzzers.libFuzzer.launcher.do_mutator_plugin',
         'os.getpid',
     ])
 
@@ -222,6 +223,7 @@ class LauncherTest(fake_fs_unittest.TestCase):
     self.mock.do_random_max_length.return_value = False
     self.mock.do_recommended_dictionary.return_value = False
     self.mock.do_value_profile.return_value = False
+    self.mock.do_mutator_plugin.return_value = False
 
   @mock.patch('google_cloud_utils.storage.exists', lambda x: None)
   @mock.patch('google_cloud_utils.storage.read_data', lambda x: None)
