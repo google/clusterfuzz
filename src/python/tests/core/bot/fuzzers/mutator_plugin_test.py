@@ -94,6 +94,7 @@ class PluginGetterTest(fake_filesystem_unittest.TestCase):
     self.name = 'myplugin'
     self.plugins_root_dir = '/plugins'
     os.environ['MUTATOR_PLUGINS_DIR'] = self.plugins_root_dir
+    self.fs.CreateDirectory(self.plugins_root_dir)
     self.plugin_getter = mutator_plugin.PluginGetter(self.fuzzer_binary_name)
     self.plugins_archives_dir = os.path.join(self.plugins_root_dir, 'archives')
     self.plugin_archive_filename = '%s-%s-%s.zip' % (
@@ -120,9 +121,9 @@ class PluginGetterTest(fake_filesystem_unittest.TestCase):
   def test_create_directories(self):
     """Tests that create_directories creates the right directories."""
     shutil.rmtree(self.plugins_root_dir)
+    self.fs.CreateDirectory(self.plugins_root_dir)
     self.plugin_getter.create_directories()
     directories = [
-        self.plugins_root_dir,
         os.path.join(self.plugins_root_dir, 'plugins'),
         os.path.join(self.plugins_root_dir, 'archives')
     ]

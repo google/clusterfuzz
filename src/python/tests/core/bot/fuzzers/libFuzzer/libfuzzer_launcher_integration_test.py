@@ -265,6 +265,7 @@ class TestLauncher(BaseLauncherTest):
     # function didn't crash on its first execution (after printing).
     self.assertGreater(output.count(custom_mutator_print_string), 1)
 
+
   def test_minimize(self):
     """Tests minimize."""
     testcase_path = setup_testcase_and_corpus(
@@ -380,7 +381,7 @@ class TestLauncher(BaseLauncherTest):
   @parameterized.parameterized.expand(['77', '27'])
   @mock.patch('metrics.logs.log_error')
   def test_exit_target_bug_not_logged(self, exit_code, mock_log_error):
-    """Test that we dont log when exit code indicates bug found in target."""
+    """Test that we don't log when exit code indicates bug found in target."""
 
     def mocked_log_error(*args, **kwargs):  # pylint: disable=unused-argument
       self.assertNotIn(launcher.ENGINE_ERROR_MESSAGE, args)
@@ -390,7 +391,6 @@ class TestLauncher(BaseLauncherTest):
         'empty', 'corpus_with_some_files', fuzz=True)
     os.environ['EXIT_FUZZER_CODE'] = exit_code
     run_launcher(testcase_path, 'exit_fuzzer', '-max_len=100')
-
 
 @test_utils.integration
 class TestLauncherMinijail(BaseLauncherTest):

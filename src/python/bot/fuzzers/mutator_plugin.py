@@ -17,6 +17,7 @@ import os
 
 from base import utils
 from google_cloud_utils import storage
+from metrics import logs
 from system import archive
 from system import environment
 from system import shell
@@ -24,10 +25,6 @@ from system import shell
 MUTATOR_SHARED_OBJECT_FILENAME = 'mutator-plugin.so'
 ARCHIVES_SUBDIR_NAME = 'archives'
 PLUGINS_SUBDIR_NAME = 'plugins'
-
-
-def clear_plugins_directory():
-  shell.remove(environment.get_value('MUTATOR_PLUGINS_DIR'))
 
 
 def _get_mutator_plugins_bucket_url():
@@ -64,7 +61,11 @@ def _download_mutator_plugin_archive(mutator_plugin_archive):
   file_path = os.path.join(_get_mutator_plugins_archives_dir(),
                            mutator_plugin_archive)
   url = '%s/%s' % (_get_mutator_plugins_bucket_url(), mutator_plugin_archive)
-  assert storage.copy_file_from(url, file_path)
+  if not storage.copy_file_from(url, file_path):
+    logs.log_error(
+        'Failed to copy plugin archive from %s to %s' % (url, file_path))
+    return None
+
   return file_path
 
 
@@ -102,11 +103,14 @@ class PluginGetter(object):
 
   def create_directories(self):
     """Creates directories needed to use mutator plugins."""
-    plugins_root_dir = environment.get_value('MUTATOR_PLUGINS_DIR')
-    assert plugins_root_dir
-    shell.remove_directory(plugins_root_dir, recreate=True)
-    os.mkdir(_get_mutator_plugins_archives_dir())
-    os.mkdir(_get_mutator_plugins_unpacked_dir())
+    def recreate_directory(directory_path):
+      shell.create_directory_if_needed(directory_path,
+                                       create_intermediates=True)
+      shell.remove_directory(directory_path, recreate=True)
+
+    recreate_directory(environment.get_value('MUTATOR_PLUGINS_DIR'))
+    recreate_directory(_get_mutator_plugins_archives_dir())
+    recreate_directory(_get_mutator_plugins_unpacked_dir())
 
   def _is_plugin_usable(self, plugin_archive_filename):
     """Returns True if |plugin_archive_filename| is a usable plugin for this
@@ -130,10 +134,19 @@ class PluginGetter(object):
       return None
 
     plugin_archive_name = utils.random_element_from_list(usable_mutator_plugins)
+
+    # Handle a failed download.
     plugin_archive_path = _download_mutator_plugin_archive(plugin_archive_name)
-    _unpack_mutator_plugin(plugin_archive_path)
+    if not plugin_archive_path:
+      return None
+
+    if not _unpack_mutator_plugin(plugin_archive_path):
+      return None
+
     mutator_plugin_path = find_mutator_plugin()
-    assert mutator_plugin_path is not None
+    if mutator_plugin_path is None:
+      logs.log_error('Could not find plugin in %s' % plugin_archive_path)
+
     return mutator_plugin_path
 
 

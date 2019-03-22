@@ -101,8 +101,7 @@ ENGINE_ERROR_MESSAGE = 'libFuzzer: engine encountered an error.'
 
 FORK_PROBABILITY = 0.1
 
-# TODO(metzman): Make this .5 after we have observed it works.
-MUTATOR_PLUGIN_PROBABILITY = 1
+MUTATOR_PLUGIN_PROBABILITY = .5
 
 
 class Generator(object):
@@ -180,12 +179,10 @@ def do_fork():
 
 def do_mutator_plugin():
   """Return whether or not to use a mutator_plugin."""
-  # Mutator plugins rely on LD_PRELOAD, which doesn't work on Windows.
+  # TODO(metzman): Support Windows.
   if environment.platform() == 'WINDOWS':
     return False
 
-  # TODO(metzman): Find out if this works with OSS-Fuzz and ChromeOS, get it
-  # working if not.
   return engine_common.decide_with_probability(
       engine_common.get_strategy_probability(
           strategy.MUTATOR_PLUGIN_STRATEGY, default=MUTATOR_PLUGIN_PROBABILITY))
@@ -835,6 +832,7 @@ def main(argv):
   extra_env = {}
   if do_mutator_plugin():
     mutator_plugin_path = mutator_plugin.get_mutator_plugin(target_name)
+    logs.log('Using mutator plugin: %s' % mutator_plugin_path)
     if mutator_plugin_path:
       # TODO(metzman): Change the strategy to log which plugin was used, and not
       # simply that a plugin was used.

@@ -270,7 +270,6 @@ class ProcessRunner(object):
     if stdout == subprocess.PIPE and max_stdout_len:
       stdout = tempfile.TemporaryFile()
 
-    assert 'env' not in popen_args or extra_env is None
     env = popen_args.pop('env', os.environ.copy())
     if extra_env is not None:
       env.update(extra_env)
