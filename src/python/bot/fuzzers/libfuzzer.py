@@ -105,7 +105,8 @@ class LibFuzzerCommon(object):
            corpus_directories,
            fuzz_timeout,
            artifact_prefix=None,
-           additional_args=None):
+           additional_args=None,
+           extra_env=None):
     """Running fuzzing command.
 
     Args:
@@ -117,6 +118,8 @@ class LibFuzzerCommon(object):
           timeouts, slow units)
       additional_args: A sequence of additional arguments to be passed to the
           executable.
+      extra_env: A dictionary containing environment variables and their values.
+        These will be set in the environment of the new process.
 
     Returns:
       A process.ProcessResult.
@@ -143,16 +146,13 @@ class LibFuzzerCommon(object):
     ])
 
     additional_args.extend(corpus_directories)
-    try:
-      return self.run_and_wait(
-          additional_args=additional_args,
-          timeout=fuzz_timeout - self.SIGTERM_WAIT_TIME,
-          terminate_before_kill=True,
-          terminate_wait_time=self.SIGTERM_WAIT_TIME,
-          max_stdout_len=MAX_OUTPUT_LEN)
-    finally:
-      # Make sure to unset LD_PRELOAD if we set it to use a plugin.
-      mutator_plugin.unset_mutator_plugin()
+    return self.run_and_wait(
+        additional_args=additional_args,
+        timeout=fuzz_timeout - self.SIGTERM_WAIT_TIME,
+        terminate_before_kill=True,
+        terminate_wait_time=self.SIGTERM_WAIT_TIME,
+        max_stdout_len=MAX_OUTPUT_LEN,
+        extra_env=extra_env)
 
   def merge(self,
             corpus_directories,
@@ -314,14 +314,16 @@ class LibFuzzerRunner(new_process.ProcessRunner, LibFuzzerCommon):
            corpus_directories,
            fuzz_timeout,
            artifact_prefix=None,
-           additional_args=None):
+           additional_args=None,
+           extra_env=None):
     """LibFuzzerCommon.fuzz override."""
     additional_args = copy.copy(additional_args)
     if additional_args is None:
       additional_args = []
 
     return LibFuzzerCommon.fuzz(self, corpus_directories, fuzz_timeout,
-                                artifact_prefix, additional_args)
+                                artifact_prefix, additional_args,
+                                extra_env=extra_env)
 
 
 class MinijailLibFuzzerRunner(engine_common.MinijailEngineFuzzerRunner,
@@ -388,7 +390,8 @@ class MinijailLibFuzzerRunner(engine_common.MinijailEngineFuzzerRunner,
            corpus_directories,
            fuzz_timeout,
            artifact_prefix=None,
-           additional_args=None):
+           additional_args=None,
+           extra_env=None):
     """LibFuzzerCommon.fuzz override."""
     corpus_directories = self._get_chroot_corpus_paths(corpus_directories)
     return LibFuzzerCommon.fuzz(self, corpus_directories, fuzz_timeout,

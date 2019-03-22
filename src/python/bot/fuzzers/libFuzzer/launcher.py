@@ -832,17 +832,20 @@ def main(argv):
     fuzzing_strategies.append(
         '%s_%d' % (strategy.FORK_STRATEGY, num_fuzz_processes))
 
+  extra_env = {}
   if do_mutator_plugin():
-    if mutator_plugin.set_mutator_plugin():
+    mutator_plugin_path = mutator_plugin.get_mutator_plugin(target_name)
+    if mutator_plugin_path:
       # TODO(metzman): Change the strategy to log which plugin was used, and not
       # simply that a plugin was used.
       fuzzing_strategies.append(strategy.MUTATOR_PLUGIN_STRATEGY)
+      extra_env['LD_PRELOAD'] = mutator_plugin_path
 
   # Execute the fuzzer binary with original arguments.
   fuzz_result = runner.fuzz(
       corpus_directories,
       fuzz_timeout=fuzz_timeout,
-      additional_args=arguments + [artifact_prefix])
+      additional_args=arguments + [artifact_prefix], extra_env=extra_env)
 
   if (not use_minijail and
       fuzz_result.return_code == constants.LIBFUZZER_ERROR_EXITCODE):

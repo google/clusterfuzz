@@ -21,7 +21,6 @@ import unittest
 import parameterized
 
 from bot.fuzzers import libfuzzer
-from bot.fuzzers import mutator_plugin
 from bot.fuzzers.libFuzzer import launcher
 from tests.test_libs import helpers as test_helpers
 from tests.test_libs import test_utils
@@ -122,6 +121,7 @@ class BaseLauncherTest(unittest.TestCase):
 
     self.mock.getpid.return_value = 1337
 
+    self.mock._get_mutator_plugins_from_bucket.return_value = []
     self.mock.do_corpus_subset.return_value = False
     self.mock.do_fork.return_value = False
     self.mock.do_mutator_plugin.return_value = True
@@ -248,12 +248,12 @@ class TestLauncher(BaseLauncherTest):
     plugin_archive_name = 'custom_mutator_plugin-libfuzzer_asan-test_fuzzer.zip'
     plugin_archive_path = os.path.join(DATA_DIRECTORY, plugin_archive_name)
 
+    self.mock.do_mutator_plugin.return_value = True
     self.mock._get_mutator_plugins_from_bucket.return_value = [  # pylint: disable=protected-access
         plugin_archive_name
     ]
     self.mock._download_mutator_plugin_archive.return_value = (  # pylint: disable=protected-access
         plugin_archive_path)
-    mutator_plugin.get_mutator_plugin(fuzz_target_name)
     custom_mutator_print_string = 'CUSTOM MUTATOR\n'
     try:
       output = run_launcher(testcase_path, fuzz_target_name, '-runs=10')

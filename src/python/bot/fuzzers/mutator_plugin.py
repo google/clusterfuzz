@@ -26,6 +26,9 @@ ARCHIVES_SUBDIR_NAME = 'archives'
 PLUGINS_SUBDIR_NAME = 'plugins'
 
 
+def clear_plugins_directory():
+  shell.remove(environment.get_value('MUTATOR_PLUGINS_DIR'))
+
 def _get_mutator_plugins_bucket_url():
   """Returns the url of the mutator plugin's cloud storage bucket."""
   return 'gs://%s' % environment.get_value('MUTATOR_PLUGINS_BUCKET')
@@ -128,27 +131,24 @@ class PluginGetter(object):
     plugin_archive_name = utils.random_element_from_list(usable_mutator_plugins)
     plugin_archive_path = _download_mutator_plugin_archive(plugin_archive_name)
     _unpack_mutator_plugin(plugin_archive_path)
+    mutator_plugin_path = find_mutator_plugin()
+    assert mutator_plugin_path is not None
+    return mutator_plugin_path
 
 
-def set_mutator_plugin():
+def find_mutator_plugin():
   """Sets LD_PRELOAD to the path of a usable mutator plugin shared object.
   This should only be called after a call to get_mutator_plugin."""
   paths = shell.get_files_list(_get_mutator_plugins_unpacked_dir())
   # This function should not be called unless there is an unpacked plugin.
   for path in paths:
     if os.path.basename(path) == MUTATOR_SHARED_OBJECT_FILENAME:
-      environment.set_value('LD_PRELOAD', path)
       return path
   return None
-
-
-def unset_mutator_plugin():
-  """Unsets LD_PRELOAD."""
-  environment.remove_key('LD_PRELOAD')
 
 
 def get_mutator_plugin(fuzzer_binary_name):
   """Downloads and unpacks a mutator plugin if a usable one for
   |fuzzer_binary_name| is in the bucket."""
   plugin_getter = PluginGetter(fuzzer_binary_name)
-  plugin_getter.get_mutator_plugin()
+  return plugin_getter.get_mutator_plugin()

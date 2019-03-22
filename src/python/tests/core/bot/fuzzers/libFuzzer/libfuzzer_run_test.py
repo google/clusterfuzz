@@ -62,10 +62,6 @@ class FuzzerTest(builtin_test.BaseEngineFuzzerTest):
     """Test running libFuzzer fuzzer."""
     libfuzzer = fuzzer.LibFuzzer()
 
-    # Don't test mutator_plugins here.
-    test_helpers.patch(self, ['bot.fuzzers.mutator_plugin.get_mutator_plugin'])
-    self.mock.get_mutator_plugin = lambda _: None
-
     libfuzzer.run('/input', '/output', 1)
     with open('/output/flags-0') as f:
       self.assertEqual('%TESTCASE% target -timeout=25 -rss_limit_mb=2048',
