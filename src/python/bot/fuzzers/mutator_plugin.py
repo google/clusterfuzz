@@ -127,7 +127,7 @@ class PluginGetter(object):
 
     # Quit if no usable plugins are available.
     if not usable_mutator_plugins:
-      return
+      return None
 
     plugin_archive_name = utils.random_element_from_list(usable_mutator_plugins)
     plugin_archive_path = _download_mutator_plugin_archive(plugin_archive_name)

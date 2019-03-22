@@ -121,7 +121,7 @@ class BaseLauncherTest(unittest.TestCase):
 
     self.mock.getpid.return_value = 1337
 
-    self.mock._get_mutator_plugins_from_bucket.return_value = []
+    self.mock._get_mutator_plugins_from_bucket.return_value = []  # pylint: disable=protected-access
     self.mock.do_corpus_subset.return_value = False
     self.mock.do_fork.return_value = False
     self.mock.do_mutator_plugin.return_value = True

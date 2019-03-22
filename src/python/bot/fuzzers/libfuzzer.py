@@ -25,7 +25,6 @@ from system import new_process
 from system import shell
 
 from libFuzzer import constants
-import mutator_plugin
 
 MAX_OUTPUT_LEN = 1 * 1024 * 1024  # 1 MB
 
