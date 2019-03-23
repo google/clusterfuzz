@@ -1483,15 +1483,19 @@ def execute_task(fuzzer_name, job_type):
   # FIXME: Change to environment.remove_key call when it supports removing
   # the environment variable on untrusted bot (as part of
   # bot.untrusted_runner import environment).
-  environment.set_value('FUZZ_CORPUS_DIR', None)
+  environment.remove_key('FUZZ_CORPUS_DIR')
 
   # Restore old values before attempting to test for reproducibility.
   test_timeout = set_test_timeout(old_test_timeout, timeout_multiplier)
 
   # For Android, bring back device to a good state before analyzing crashes.
-  # TODO(unassigned): Need to find a way to this efficiently before every
-  # testcase is analyzed.
   if platform == 'ANDROID' and crashes:
+    # Remove this variable so that application is fully shutdown before every
+    # re-run of testcase. This is critical for reproducibility.
+    environment.remove_key('CHILD_PROCESS_TERMINATION_PATTERN')
+
+    # TODO(unassigned): Need to find a way to this efficiently before every
+    # testcase is analyzed.
     android.device.initialize_device()
 
   # Transform tests.Crash into fuzz_task.Crash.
