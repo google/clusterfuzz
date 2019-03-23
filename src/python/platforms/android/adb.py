@@ -453,8 +453,7 @@ def hard_reset():
 
   # Try soft-reset now (does not require root).
   soft_reset_cmd = get_adb_command_line('reboot')
-  execute_command(
-      soft_reset_cmd, timeout=RECOVERY_CMD_TIMEOUT, log_error=True)
+  execute_command(soft_reset_cmd, timeout=RECOVERY_CMD_TIMEOUT, log_error=True)
 
 
 def is_gce():
