@@ -297,9 +297,6 @@ def run_process(cmdline,
       # There is no special termination behavior. Simply stop the application.
       android.adb.stop_application()
 
-    # Clear log for a next clean testcase execution.
-    android.logger.clear_log()
-
   else:
     # Get the return code in case the process has finished already.
     # If the process hasn't finished, return_code will be None which is what
