@@ -444,20 +444,16 @@ def get_property(property_name):
 
 def hard_reset():
   """Perform a hard reset of the device."""
-  if is_gce():
-    recreate_gce_device()
-  else:
-    # Physical device.
-    # Try hard-reset via sysrq-trigger (requires root).
+  # For physical device, try hard-reset via sysrq-trigger (requires root).
+  if not is_gce():
     hard_reset_sysrq_cmd = get_adb_command_line(
         'shell echo b \\> /proc/sysrq-trigger')
     execute_command(
         hard_reset_sysrq_cmd, timeout=RECOVERY_CMD_TIMEOUT, log_error=True)
 
-    # Try soft-reset now (does not require root).
-    soft_reset_cmd = get_adb_command_line('reboot')
-    execute_command(
-        soft_reset_cmd, timeout=RECOVERY_CMD_TIMEOUT, log_error=True)
+  # Try soft-reset now (does not require root).
+  soft_reset_cmd = get_adb_command_line('reboot')
+  execute_command(soft_reset_cmd, timeout=RECOVERY_CMD_TIMEOUT, log_error=True)
 
 
 def is_gce():
