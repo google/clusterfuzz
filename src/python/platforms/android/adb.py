@@ -295,8 +295,7 @@ def get_device_path():
 def get_devices():
   """Returns a list of device objects containing a serial and USB path."""
   usb_list_cmd = 'lsusb -v'
-  output = execute_command(
-      usb_list_cmd, timeout=RECOVERY_CMD_TIMEOUT)
+  output = execute_command(usb_list_cmd, timeout=RECOVERY_CMD_TIMEOUT)
   if output is None:
     logs.log_error('Failed to populate usb devices using lsusb, '
                    'host restart might be needed.')
@@ -321,8 +320,7 @@ def get_devices():
 def get_device_state():
   """Return the device status."""
   state_cmd = get_adb_command_line('get-state')
-  return execute_command(
-      state_cmd, timeout=RECOVERY_CMD_TIMEOUT)
+  return execute_command(state_cmd, timeout=RECOVERY_CMD_TIMEOUT)
 
 
 def get_fastboot_command_line(fastboot_cmd):
@@ -453,8 +451,7 @@ def hard_reset():
   # Try hard-reset via sysrq-trigger (requires root).
   hard_reset_sysrq_cmd = get_adb_command_line(
       'shell echo b \\> /proc/sysrq-trigger')
-  execute_command(
-      hard_reset_sysrq_cmd, timeout=RECOVERY_CMD_TIMEOUT)
+  execute_command(hard_reset_sysrq_cmd, timeout=RECOVERY_CMD_TIMEOUT)
 
   # Try soft-reset now (does not require root).
   soft_reset_cmd = get_adb_command_line('reboot')
