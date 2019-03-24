@@ -43,7 +43,7 @@ DEVICE = collections.namedtuple('Device', ['serial', 'path'])
 DEVICE_CRASH_DUMPS_DIR = '/sdcard/crash-reports'
 DEVICE_DOWNLOAD_DIR = '/sdcard/Download'
 DEVICE_HANG_STRING = None
-DEVICE_NOT_FOUND_STRING = 'error: device not found'
+DEVICE_NOT_FOUND_STRING = 'error: device \'{serial}\' not found'
 DEVICE_OFFLINE_STRING = 'error: device offline'
 DEVICE_TESTCASES_DIR = '/sdcard/fuzzer-testcases'
 DEVICE_TMP_DIR = '/data/local/tmp'
@@ -296,7 +296,7 @@ def get_devices():
   """Returns a list of device objects containing a serial and USB path."""
   usb_list_cmd = 'lsusb -v'
   output = execute_command(
-      usb_list_cmd, timeout=RECOVERY_CMD_TIMEOUT, log_error=True)
+      usb_list_cmd, timeout=RECOVERY_CMD_TIMEOUT)
   if output is None:
     logs.log_error('Failed to populate usb devices using lsusb, '
                    'host restart might be needed.')
@@ -322,7 +322,7 @@ def get_device_state():
   """Return the device status."""
   state_cmd = get_adb_command_line('get-state')
   return execute_command(
-      state_cmd, timeout=RECOVERY_CMD_TIMEOUT, log_error=True)
+      state_cmd, timeout=RECOVERY_CMD_TIMEOUT)
 
 
 def get_fastboot_command_line(fastboot_cmd):
@@ -444,16 +444,21 @@ def get_property(property_name):
 
 def hard_reset():
   """Perform a hard reset of the device."""
-  # For physical device, try hard-reset via sysrq-trigger (requires root).
-  if not is_gce():
-    hard_reset_sysrq_cmd = get_adb_command_line(
-        'shell echo b \\> /proc/sysrq-trigger')
-    execute_command(
-        hard_reset_sysrq_cmd, timeout=RECOVERY_CMD_TIMEOUT, log_error=True)
+  if is_gce():
+    # There is no recovery step at this point for a gce bot, so just exit
+    # and wait for reimage on next iteration.
+    bad_state_reached()
+
+  # For physical device.
+  # Try hard-reset via sysrq-trigger (requires root).
+  hard_reset_sysrq_cmd = get_adb_command_line(
+      'shell echo b \\> /proc/sysrq-trigger')
+  execute_command(
+      hard_reset_sysrq_cmd, timeout=RECOVERY_CMD_TIMEOUT)
 
   # Try soft-reset now (does not require root).
   soft_reset_cmd = get_adb_command_line('reboot')
-  execute_command(soft_reset_cmd, timeout=RECOVERY_CMD_TIMEOUT, log_error=True)
+  execute_command(soft_reset_cmd, timeout=RECOVERY_CMD_TIMEOUT)
 
 
 def is_gce():
@@ -503,19 +508,31 @@ def reboot():
   run_adb_command('reboot')
 
 
+def stop_gce_device():
+  """Stops the gce device."""
+  cvd_dir = environment.get_value('CVD_DIR')
+  cvd_bin_dir = os.path.join(cvd_dir, 'bin')
+  stop_cvd_path = os.path.join(cvd_bin_dir, 'stop_cvd')
+
+  execute_command(stop_cvd_path, timeout=RECOVERY_CMD_TIMEOUT)
+  time.sleep(STOP_CVD_WAIT)
+
+
+def start_gce_device():
+  """Start the gce device."""
+  cvd_dir = environment.get_value('CVD_DIR')
+  cvd_bin_dir = os.path.join(cvd_dir, 'bin')
+  launch_cvd_path = os.path.join(cvd_bin_dir, 'launch_cvd')
+
+  execute_command(launch_cvd_path + ' -daemon')
+
+
 def recreate_gce_device():
   """Recreate gce device, restoring from backup images."""
   logs.log('Reimaging gce device.')
   cvd_dir = environment.get_value('CVD_DIR')
-  assert cvd_dir, 'CVD_DIR needs to be set in environment.'
 
-  cvd_bin_dir = os.path.join(cvd_dir, 'bin')
-  launch_cvd_path = os.path.join(cvd_bin_dir, 'launch_cvd')
-  stop_cvd_path = os.path.join(cvd_bin_dir, 'stop_cvd')
-
-  # Stop android device.
-  execute_command(stop_cvd_path, timeout=RECOVERY_CMD_TIMEOUT)
-  time.sleep(STOP_CVD_WAIT)
+  stop_gce_device()
 
   # Delete all existing images.
   image_dir = cvd_dir
@@ -529,8 +546,7 @@ def recreate_gce_device():
     image_dest = os.path.join(image_dir, image_filename)
     shell.copy_file(image_src, image_dest)
 
-  # Launch android device.
-  execute_command(launch_cvd_path + ' -daemon')
+  start_gce_device()
 
 
 def remount():
@@ -551,17 +567,17 @@ def reset_device_connection():
   """Reset the connection to the physical device through USB. Returns whether
   or not the reset succeeded."""
   if is_gce():
-    # Nothing can be done here.
-    return False
-
-  # Try restarting usb.
-  reset_usb()
+    stop_gce_device()
+    start_gce_device()
+  else:
+    # Physical device. Try restarting usb.
+    reset_usb()
 
   # Check device status.
   state = get_device_state()
   if state != 'device':
     logs.log_warn('Device state is %s, unable to recover using usb reset/'
-                  'remote reconnect.' % str(state))
+                  'gce reconnect.' % str(state))
     return False
 
   return True
@@ -636,7 +652,7 @@ def run_adb_command(cmd,
   if log_output:
     logs.log('Running: adb %s' % cmd)
   if not timeout:
-    timeout = environment.get_value('ADB_TIMEOUT')
+    timeout = ADB_TIMEOUT
 
   output = execute_command(get_adb_command_line(cmd), timeout, log_error)
   if not recover:
@@ -644,8 +660,11 @@ def run_adb_command(cmd,
       logs.log('Output: (%s)' % output)
     return output
 
+  device_not_found_string_with_serial = DEVICE_NOT_FOUND_STRING.format(
+      serial=environment.get_value('ANDROID_SERIAL'))
   if (output in [
-      DEVICE_HANG_STRING, DEVICE_NOT_FOUND_STRING, DEVICE_OFFLINE_STRING
+      DEVICE_HANG_STRING, DEVICE_OFFLINE_STRING,
+      device_not_found_string_with_serial
   ]):
     if reset_device_connection():
       # Device has successfully recovered, re-run command to get output.
@@ -714,7 +733,7 @@ def run_fastboot_command(cmd, log_output=True, log_error=True, timeout=None):
   if log_output:
     logs.log('Running: fastboot %s' % cmd)
   if not timeout:
-    timeout = environment.get_value('ADB_TIMEOUT')
+    timeout = ADB_TIMEOUT
 
   output = execute_command(get_fastboot_command_line(cmd), timeout, log_error)
   return output
@@ -813,7 +832,7 @@ def update_key_in_sqlite_db(database_path, table_name, key_name, key_value):
 
 def wait_for_device():
   """Waits indefinitely for the device to come online."""
-  run_adb_command('wait-for-device')
+  run_adb_command('wait-for-device', timeout=RECOVERY_CMD_TIMEOUT)
 
 
 def wait_until_fully_booted():
