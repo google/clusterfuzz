@@ -54,11 +54,15 @@ HostWorkerAssignment = namedtuple('HostWorkerAssignment',
 
 
 def _process_instance_template(instance_template):
-  """Process instance template."""
-  # Load file metadata
+  """Process instance template, normalizing some of metadata key values."""
+  # Load metadata items for a particular instance template.
   items = instance_template['properties']['metadata']['items']
   for item in items:
-    if item['value'].startswith(FILE_SCHEME):
+    # If the item value is a relative file path specified using the file://
+    # scheme, then subsitute it with the actual file content. This is needed
+    # since compute engine instance manager cannot read files from our repo.
+    if (isinstance(item['value'], basestring) and
+        item['value'].startswith(FILE_SCHEME)):
       file_path = item['value'][len(FILE_SCHEME):]
       with open(
           os.path.join(environment.get_gce_config_directory(), file_path)) as f:
