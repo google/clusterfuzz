@@ -526,8 +526,7 @@ def start_gce_device():
                                            DEFAULT_DEVICE_MEMORY_MB)
   launch_cvd_command_line = (
       '{launch_cvd_path} -daemon -memory_mb {device_memory_mb}'.format(
-          launch_cvd_path=launch_cvd_path,
-          device_memory_mb=device_memory_mb))
+          launch_cvd_path=launch_cvd_path, device_memory_mb=device_memory_mb))
   execute_command(launch_cvd_command_line)
 
 
