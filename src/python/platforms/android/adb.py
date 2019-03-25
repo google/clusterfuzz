@@ -85,7 +85,8 @@ USBDEVFS_RESET = ord('U') << 8 | 20
 def bad_state_reached():
   """Wait when device is in a bad state and exit."""
   persistent_cache.clear_values()
-  logs.log_fatal_and_exit('Device in bad state.', wait_before_exit=BAD_STATE_WAIT)
+  logs.log_fatal_and_exit(
+      'Device in bad state.', wait_before_exit=BAD_STATE_WAIT)
 
 
 def change_se_linux_to_permissive_mode():
