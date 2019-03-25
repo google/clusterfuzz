@@ -42,11 +42,7 @@ class TestFormatters(unittest.TestCase):
 SELECT
   fuzzer,
   job,
-  IF(
-    AVG(field) < 0.05,
-    1.0,
-    1.0 - (AVG(field) - 0.05) * (1.0 - 0.25) /
-      (1.0 - 0.05)) AS new_weight
+  1.0 - (1.0 - 0.25) * AVG(field) AS new_weight
 FROM
   engine.TestcaseRun
 WHERE
@@ -57,7 +53,7 @@ GROUP BY
   job
 """
     specific_query_format = fuzzer_weights.GENERIC_QUERY_FORMAT.format(
-        field_name='field', min_weight=0.25, min_threshold=0.05)
+        field_name='field', min_weight=0.25)
     actual_query = fuzzer_weights._past_day_formatter(specific_query_format,
                                                       'engine')
     self.assertEqual(actual_query, expected_query)
