@@ -22,8 +22,6 @@ from tests.test_libs import helpers as test_helpers
 from tests.test_libs import test_utils
 
 _TEST_SPECIFICATION = fuzzer_weights.QuerySpecification(
-    adjusted_weight=0.15,
-    threshold=0.90,
     query_format='ignored',
     formatter=fuzzer_weights._past_day_formatter,
     reason='matches test specification')
@@ -44,7 +42,7 @@ class TestFormatters(unittest.TestCase):
 SELECT
   fuzzer,
   job,
-  AVG(field) AS ratio
+  1.0 - (1.0 - 0.25) * AVG(field) AS new_weight
 FROM
   engine.TestcaseRun
 WHERE
@@ -55,7 +53,7 @@ GROUP BY
   job
 """
     specific_query_format = fuzzer_weights.GENERIC_QUERY_FORMAT.format(
-        field_name='field')
+        field_name='field', min_weight=0.25)
     actual_query = fuzzer_weights._past_day_formatter(specific_query_format,
                                                       'engine')
     self.assertEqual(actual_query, expected_query)
@@ -66,7 +64,7 @@ GROUP BY
 SELECT
   fuzzer,
   job,
-  1 as ratio,
+  5.0 as new_weight,
   MIN(_PARTITIONTIME) as first_time
 FROM
   engine.TestcaseRun
@@ -86,7 +84,7 @@ HAVING
 SELECT
   recent.fuzzer AS fuzzer,
   recent.job AS job,
-  1 as ratio
+  0.70 as new_weight
 FROM (
   SELECT
     fuzzer,
@@ -144,8 +142,8 @@ class TestUpdateChildWeightsForParentFuzzer(unittest.TestCase):
         'handlers.cron.fuzzer_weights.update_weight_for_target',
     ])
 
-  def test_target_fuzzer_has_weight_restored(self):
-    """Ensure that a target with all issues fixed has its weight restored."""
+  def test_reported_fuzzer_has_weight_restored(self):
+    """Ensure that a target reported fixed has its weight restored."""
     data_types.FuzzTarget(
         engine='libFuzzer', binary='good_fuzzer', project='test-project').put()
     data_types.FuzzTargetJob(
@@ -159,15 +157,14 @@ class TestUpdateChildWeightsForParentFuzzer(unittest.TestCase):
         {
             'fuzzer': 'libFuzzer_good_fuzzer',
             'job': 'asan',
-            'ratio': 0.00,
+            'new_weight': 1.00,
         },
     ]
 
     fuzzer_weights.update_target_weights_for_engine(None, 'libFuzzer',
                                                     [_TEST_SPECIFICATION])
     self.mock.update_weight_for_target.assert_called_with(
-        'libFuzzer_good_fuzzer', 'asan',
-        fuzzer_weights.RESTORE_DEFAULT_SPECIFICATION)
+        'libFuzzer_good_fuzzer', 'asan', fuzzer_weights.RESTORE_DEFAULT_MATCH)
 
   def test_weight_increase(self):
     """Ensure that weight increases are possible."""
@@ -185,20 +182,20 @@ class TestUpdateChildWeightsForParentFuzzer(unittest.TestCase):
         {
             'fuzzer': 'libFuzzer_very_good_fuzzer',
             'job': 'asan',
-            'ratio': 1.00,
+            'new_weight': 2.00,
         },
     ]
 
     specification = fuzzer_weights.QuerySpecification(
-        adjusted_weight=2.0,
-        threshold=0.90,
         query_format='ignored',
         formatter=fuzzer_weights._past_day_formatter,
         reason='increase weight for test')
+    match = fuzzer_weights.SpecificationMatch(
+        new_weight=2.0, reason=specification.reason)
     fuzzer_weights.update_target_weights_for_engine(None, 'libFuzzer',
                                                     [specification])
     self.mock.update_weight_for_target.assert_called_with(
-        'libFuzzer_very_good_fuzzer', 'asan', specification)
+        'libFuzzer_very_good_fuzzer', 'asan', match)
 
   def test_target_ignored_if_not_ran(self):
     """Ensure that we don't reset a target weight if it did not run."""
@@ -232,14 +229,16 @@ class TestUpdateChildWeightsForParentFuzzer(unittest.TestCase):
         {
             'fuzzer': 'libFuzzer_problematic_fuzzer',
             'job': 'dummy_job',
-            'ratio': 0.99,
+            'new_weight': 0.25,
         },
     ]
 
     fuzzer_weights.update_target_weights_for_engine(None, 'libFuzzer',
                                                     [_TEST_SPECIFICATION])
+    expected_match = fuzzer_weights.SpecificationMatch(
+        new_weight=0.25, reason=_TEST_SPECIFICATION.reason)
     self.mock.update_weight_for_target.assert_called_with(
-        'libFuzzer_problematic_fuzzer', 'dummy_job', _TEST_SPECIFICATION)
+        'libFuzzer_problematic_fuzzer', 'dummy_job', expected_match)
 
   def test_new_fuzzer(self):
     """Tests to ensure that the new fuzzer query works properly."""
@@ -263,13 +262,14 @@ class TestUpdateChildWeightsForParentFuzzer(unittest.TestCase):
         {
             'fuzzer': 'libFuzzer_new_fuzzer',
             'job': 'dummy_job',
-            'ratio': 1,
+            'new_weight': 5.0,
             'first_time': '<irrelavent for test>',
         },
     ]
 
     fuzzer_weights.update_target_weights_for_engine(
         None, 'libFuzzer', [fuzzer_weights.NEW_FUZZER_SPECIFICATION])
+    expected_match = fuzzer_weights.SpecificationMatch(
+        new_weight=5.0, reason=fuzzer_weights.NEW_FUZZER_SPECIFICATION.reason)
     self.mock.update_weight_for_target.assert_called_with(
-        'libFuzzer_new_fuzzer', 'dummy_job',
-        fuzzer_weights.NEW_FUZZER_SPECIFICATION)
+        'libFuzzer_new_fuzzer', 'dummy_job', expected_match)

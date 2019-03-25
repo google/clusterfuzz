@@ -27,8 +27,10 @@ from metrics import fuzzer_stats
 from metrics import logs
 
 QuerySpecification = collections.namedtuple(
-    'QuerySpecification',
-    ['adjusted_weight', 'threshold', 'query_format', 'formatter', 'reason'])
+    'QuerySpecification', ['query_format', 'formatter', 'reason'])
+
+SpecificationMatch = collections.namedtuple('SpecificationMatch',
+                                            ['new_weight', 'reason'])
 
 
 # Formatters for query specifications.
@@ -65,7 +67,7 @@ GENERIC_QUERY_FORMAT = """
 SELECT
   fuzzer,
   job,
-  AVG({field_name}) AS ratio
+  1.0 - (1.0 - {min_weight}) * AVG({field_name}) AS new_weight
 FROM
   {{dataset}}.TestcaseRun
 WHERE
@@ -80,9 +82,8 @@ GROUP BY
 # is indicitave of a very serious problem that makes it highly unlikely that
 # we'll find anything during fuzzing.
 STARTUP_CRASH_SPECIFICATION = QuerySpecification(
-    adjusted_weight=0.10,
-    threshold=0.80,
-    query_format=GENERIC_QUERY_FORMAT.format(field_name='startup_crash_count'),
+    query_format=GENERIC_QUERY_FORMAT.format(
+        field_name='startup_crash_count', min_weight=0.10),
     formatter=_past_day_formatter,
     reason='frequent startup crashes')
 
@@ -90,40 +91,37 @@ STARTUP_CRASH_SPECIFICATION = QuerySpecification(
 # runs for so long that we detect it as a slow unit, it usually means that the
 # fuzzer is not making good use of its cycles while running or needs a fix.
 SLOW_UNIT_SPECIFICATION = QuerySpecification(
-    adjusted_weight=0.50,
-    threshold=0.80,
-    query_format=GENERIC_QUERY_FORMAT.format(field_name='slow_unit_count'),
+    query_format=GENERIC_QUERY_FORMAT.format(
+        field_name='slow_unit_count', min_weight=0.50),
     formatter=_past_day_formatter,
     reason='frequent slow units')
 
 # This should end up being very similar to the slow unit specification, and is
 # included for the same reason.
 TIMEOUT_SPECIFICATION = QuerySpecification(
-    adjusted_weight=0.50,
-    threshold=0.80,
-    query_format=GENERIC_QUERY_FORMAT.format(field_name='timeout_count'),
+    query_format=GENERIC_QUERY_FORMAT.format(
+        field_name='timeout_count', min_weight=0.50),
     formatter=_past_day_formatter,
     reason='frequent timeouts')
-
-# Fuzzers which are crashing frequently may not be making full use of their
-# allotted time for fuzzing, and may end up being more effective once the known
-# issues are fixed.
-CRASH_SPECIFICATION = QuerySpecification(
-    adjusted_weight=0.50,
-    threshold=0.90,
-    query_format=GENERIC_QUERY_FORMAT.format(field_name='crash_count'),
-    formatter=_past_day_formatter,
-    reason='frequent crashes')
 
 # Fuzzers with extremely frequent OOMs may contain leaks or other issues that
 # signal that they need some improvement. Run with a slightly reduced weight
 # until the issues are fixed.
 OOM_SPECIFICATION = QuerySpecification(
-    adjusted_weight=0.50,
-    threshold=0.90,
-    query_format=GENERIC_QUERY_FORMAT.format(field_name='oom_count'),
+    query_format=GENERIC_QUERY_FORMAT.format(
+        field_name='oom_count', min_weight=0.50),
     formatter=_past_day_formatter,
     reason='frequent OOMs')
+
+# Fuzzers which are crashing frequently may not be making full use of their
+# allotted time for fuzzing, and may end up being more effective once the known
+# issues are fixed. This rule is more lenient than some of the others as even
+# healthy fuzzers are expected to have some crashes.
+CRASH_SPECIFICATION = QuerySpecification(
+    query_format=GENERIC_QUERY_FORMAT.format(
+        field_name='crash_count', min_weight=0.70),
+    formatter=_past_day_formatter,
+    reason='frequent crashes')
 
 # New fuzzers/jobs should run much more frequently than others. In this case, we
 # test the fraction of days for which we have no stats for this fuzzer/job pair
@@ -132,7 +130,7 @@ NEW_FUZZER_FORMAT = """
 SELECT
   fuzzer,
   job,
-  1 as ratio,
+  5.0 as new_weight,
   MIN(_PARTITIONTIME) as first_time
 FROM
   {dataset}.TestcaseRun
@@ -144,8 +142,6 @@ HAVING
 """
 
 NEW_FUZZER_SPECIFICATION = QuerySpecification(
-    adjusted_weight=5.0,
-    threshold=1.0,
     query_format=NEW_FUZZER_FORMAT,
     formatter=_new_fuzzer_formatter,
     reason='new fuzzer')
@@ -155,7 +151,7 @@ COVERAGE_UNCHANGED_FORMAT = """
 SELECT
   recent.fuzzer AS fuzzer,
   recent.job AS job,
-  1 as ratio
+  0.70 as new_weight
 FROM (
   SELECT
     fuzzer,
@@ -198,8 +194,6 @@ WHERE
 """
 
 COVERAGE_UNCHANGED_SPECIFICATION = QuerySpecification(
-    adjusted_weight=0.5,
-    threshold=1.0,
     query_format=COVERAGE_UNCHANGED_FORMAT,
     formatter=_coverage_formatter,
     reason='coverage flat over past 2 weeks')
@@ -221,14 +215,8 @@ AFL_SPECIFICATIONS = [
     STARTUP_CRASH_SPECIFICATION,
 ]
 
-# Special specification used to modify previously altered weights to their
-# default values when they no longer match any other specifications.
-RESTORE_DEFAULT_SPECIFICATION = QuerySpecification(
-    adjusted_weight=1.0,
-    threshold=None,
-    query_format=None,
-    formatter=None,
-    reason='no longer matches any weight adjustment specifications')
+RESTORE_DEFAULT_MATCH = SpecificationMatch(
+    new_weight=1.0, reason='no longer matches any weight adjustment rules')
 
 
 def _query_helper(client, query):
@@ -236,22 +224,28 @@ def _query_helper(client, query):
   return client.query(query=query).rows
 
 
-def _update_match(matched_specifications, fuzzer, job, specification):
+def _update_match(matches, fuzzer, job, match):
   """Update the weight for a fuzzer/job."""
   key = (fuzzer, job)
-  old_match = matched_specifications.get(key, RESTORE_DEFAULT_SPECIFICATION)
+  old_match = matches.get(key, RESTORE_DEFAULT_MATCH)
 
-  new_weight = specification.adjusted_weight
-  old_weight = old_match.adjusted_weight
+  new_weight = match.new_weight
+  old_weight = old_match.new_weight
+
+  # Rules that increase weights are expected to take precedence over any that
+  # lower the weight. Issues with new fuzzers may be fixed intraday and other
+  # issues like crashes shouldn't be penalized for them.
+  if old_weight > 1.0:
+    return
 
   # Always update the weight if the previous value is the default. This is
   # required to deal with specifications that are meant to set the weight above
   # 1.0. Otherwise, prioritize only the most penalizing match for this pairing.
-  if old_match == RESTORE_DEFAULT_SPECIFICATION or new_weight < old_weight:
-    matched_specifications[key] = specification
+  if old_match == RESTORE_DEFAULT_MATCH or new_weight < old_weight:
+    matches[key] = match
 
 
-def update_weight_for_target(fuzz_target_name, job, specification):
+def update_weight_for_target(fuzz_target_name, job, match):
   """Set the weight for a particular target."""
   target_job = data_handler.get_fuzz_target_job(fuzz_target_name, job)
 
@@ -260,16 +254,16 @@ def update_weight_for_target(fuzz_target_name, job, specification):
                    (fuzz_target_name, job))
     return
 
-  weight = specification.adjusted_weight
+  weight = match.new_weight
   logs.log('Adjusted weight to %f for target %s and job %s (%s).' %
-           (weight, fuzz_target_name, job, specification.reason))
+           (weight, fuzz_target_name, job, match.reason))
 
   target_job.weight = weight
   target_job.put()
 
 
-def update_matches_for_specification(specification, client, engine,
-                                     matched_specifications, run_set):
+def update_matches_for_specification(specification, client, engine, matches,
+                                     run_set):
   """Run a query and adjust weights based on a given query specification."""
   query = specification.formatter(specification.query_format,
                                   fuzzer_stats.dataset_name(engine))
@@ -277,16 +271,18 @@ def update_matches_for_specification(specification, client, engine,
   for result in results:
     fuzzer = result['fuzzer']
     job = result['job']
-    ratio = result['ratio']
+    new_weight = result['new_weight']
 
     run_set.add((fuzzer, job))
-    if ratio >= specification.threshold:
-      _update_match(matched_specifications, fuzzer, job, specification)
+    if new_weight != 1.0:
+      match = SpecificationMatch(
+          new_weight=new_weight, reason=specification.reason)
+      _update_match(matches, fuzzer, job, match)
 
 
 def update_target_weights_for_engine(client, engine, specifications):
   """Update all fuzz target weights for the specified engine."""
-  matched_specifications = {}
+  matches = {}
   run_set = set()
 
   # All fuzzers with non-default weights must be tracked with a special
@@ -297,20 +293,19 @@ def update_target_weights_for_engine(client, engine, specifications):
           data_types.FuzzTargetJob.weight != 1.0)
 
   for target_job in target_jobs:
-    matched_specifications[(target_job.fuzz_target_name,
-                            target_job.job)] = RESTORE_DEFAULT_SPECIFICATION
+    matches[(target_job.fuzz_target_name,
+             target_job.job)] = RESTORE_DEFAULT_MATCH
 
-  for specification in specifications:
-    update_matches_for_specification(specification, client, engine,
-                                     matched_specifications, run_set)
+  for match in specifications:
+    update_matches_for_specification(match, client, engine, matches, run_set)
 
-  for (fuzzer, job), specification in matched_specifications.iteritems():
+  for (fuzzer, job), match in matches.iteritems():
     if (fuzzer, job) not in run_set:
       # This ensures that we don't reset weights for fuzzers with problems if
       # they didn't run in the time covered by our queries.
       continue
 
-    update_weight_for_target(fuzzer, job, specification)
+    update_weight_for_target(fuzzer, job, match)
 
   logs.log('Weight adjustments complete for engine %s.' % engine)
 
