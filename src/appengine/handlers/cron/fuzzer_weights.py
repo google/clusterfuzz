@@ -61,13 +61,16 @@ def _coverage_formatter(query_format, dataset):
       end_date=end_date)
 
 
-# Most of our queries should simply average a field name to get a ratio showing
-# how often some behavior occurs.
+# Most queries should rely on the average of a field and weight accordingly.
 GENERIC_QUERY_FORMAT = """
 SELECT
   fuzzer,
   job,
-  1.0 - (1.0 - {min_weight}) * AVG({field_name}) AS new_weight
+  IF(
+    AVG({field_name}) < {min_threshold},
+    1.0,
+    1.0 - (AVG({field_name}) - {min_threshold}) * (1.0 - {min_weight}) /
+      (1.0 - {min_threshold})) AS new_weight
 FROM
   {{dataset}}.TestcaseRun
 WHERE
@@ -83,7 +86,7 @@ GROUP BY
 # we'll find anything during fuzzing.
 STARTUP_CRASH_SPECIFICATION = QuerySpecification(
     query_format=GENERIC_QUERY_FORMAT.format(
-        field_name='startup_crash_count', min_weight=0.10),
+        field_name='startup_crash_count', min_weight=0.10, min_threshold=0.0),
     formatter=_past_day_formatter,
     reason='frequent startup crashes')
 
@@ -92,7 +95,7 @@ STARTUP_CRASH_SPECIFICATION = QuerySpecification(
 # fuzzer is not making good use of its cycles while running or needs a fix.
 SLOW_UNIT_SPECIFICATION = QuerySpecification(
     query_format=GENERIC_QUERY_FORMAT.format(
-        field_name='slow_unit_count', min_weight=0.50),
+        field_name='slow_unit_count', min_weight=0.50, min_threshold=0.10),
     formatter=_past_day_formatter,
     reason='frequent slow units')
 
@@ -100,27 +103,28 @@ SLOW_UNIT_SPECIFICATION = QuerySpecification(
 # included for the same reason.
 TIMEOUT_SPECIFICATION = QuerySpecification(
     query_format=GENERIC_QUERY_FORMAT.format(
-        field_name='timeout_count', min_weight=0.50),
+        field_name='timeout_count', min_weight=0.50, min_threshold=0.10),
     formatter=_past_day_formatter,
     reason='frequent timeouts')
-
-# Fuzzers which are crashing frequently may not be making full use of their
-# allotted time for fuzzing, and may end up being more effective once the known
-# issues are fixed.
-CRASH_SPECIFICATION = QuerySpecification(
-    query_format=GENERIC_QUERY_FORMAT.format(
-        field_name='crash_count', min_weight=0.70),
-    formatter=_past_day_formatter,
-    reason='frequent crashes')
 
 # Fuzzers with extremely frequent OOMs may contain leaks or other issues that
 # signal that they need some improvement. Run with a slightly reduced weight
 # until the issues are fixed.
 OOM_SPECIFICATION = QuerySpecification(
     query_format=GENERIC_QUERY_FORMAT.format(
-        field_name='oom_count', min_weight=0.50),
+        field_name='oom_count', min_weight=0.50, min_threshold=0.10),
     formatter=_past_day_formatter,
     reason='frequent OOMs')
+
+# Fuzzers which are crashing frequently may not be making full use of their
+# allotted time for fuzzing, and may end up being more effective once the known
+# issues are fixed. This is more lenient than other rules since even healthy
+# fuzzers are expected to crash on some runs.
+CRASH_SPECIFICATION = QuerySpecification(
+    query_format=GENERIC_QUERY_FORMAT.format(
+        field_name='crash_count', min_weight=0.70, min_threshold=0.20),
+    formatter=_past_day_formatter,
+    reason='frequent crashes')
 
 # New fuzzers/jobs should run much more frequently than others. In this case, we
 # test the fraction of days for which we have no stats for this fuzzer/job pair
