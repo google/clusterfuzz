@@ -18,6 +18,7 @@ import json
 import logging
 import os
 import sys
+import time
 import traceback
 
 from logging import config
@@ -354,6 +355,10 @@ def log_error(message, **extras):
 
 def log_fatal_and_exit(message, **extras):
   """Logs a fatal error and exits."""
+  wait_before_exit = extras.pop('wait_before_exit', None)
   emit(logging.CRITICAL, message, exc_info=sys.exc_info(), **extras)
   _increment_error_count()
+  if wait_before_exit:
+    log('Waiting for %d seconds before exit.' % wait_before_exit)
+    time.sleep(wait_before_exit)
   sys.exit(-1)

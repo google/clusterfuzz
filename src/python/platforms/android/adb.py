@@ -84,9 +84,8 @@ USBDEVFS_RESET = ord('U') << 8 | 20
 
 def bad_state_reached():
   """Wait when device is in a bad state and exit."""
-  time.sleep(BAD_STATE_WAIT)
   persistent_cache.clear_values()
-  logs.log_fatal_and_exit('Device in bad state.')
+  logs.log_fatal_and_exit('Device in bad state.', wait_before_exit=BAD_STATE_WAIT)
 
 
 def change_se_linux_to_permissive_mode():
@@ -221,6 +220,12 @@ def execute_command(cmd, timeout=None, log_error=True):
 
 def factory_reset():
   """Reset device to factory state."""
+  if is_gce():
+    # We cannot recover from this since there can be cases like userdata image
+    # corruption in /data/data. Till the bug is fixed, we just need to wait
+    # for reimage in next iteration.
+    bad_state_reached()
+
   # A device can be stuck in a boot loop due to a bad clang library update.
   # Reverting that can bring a device back to good state.
   revert_asan_device_setup_if_needed()
