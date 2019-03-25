@@ -39,6 +39,7 @@ CHROME_CACHE_DIRS = [
     'shared_prefs/*'
 ]
 CHROME_CRASH_DIR = 'cache/Crash\\ Reports'
+DEFAULT_DEVICE_MEMORY_MB = 2048
 DEVICE = collections.namedtuple('Device', ['serial', 'path'])
 DEVICE_CRASH_DUMPS_DIR = '/sdcard/crash-reports'
 DEVICE_DOWNLOAD_DIR = '/sdcard/Download'
@@ -521,7 +522,13 @@ def start_gce_device():
   cvd_bin_dir = os.path.join(cvd_dir, 'bin')
   launch_cvd_path = os.path.join(cvd_bin_dir, 'launch_cvd')
 
-  execute_command(launch_cvd_path + ' -daemon')
+  device_memory_mb = environment.get_value('DEVICE_MEMORY_MB',
+                                           DEFAULT_DEVICE_MEMORY_MB)
+  launch_cvd_command_line = (
+      '{launch_cvd_path} -daemon -memory_mb {device_memory_mb}'.format(
+          launch_cvd_path=launch_cvd_path,
+          device_memory_mb=device_memory_mb))
+  execute_command(launch_cvd_command_line)
 
 
 def recreate_gce_device():
@@ -663,6 +670,7 @@ def run_adb_command(cmd,
       DEVICE_HANG_STRING, DEVICE_OFFLINE_STRING,
       device_not_found_string_with_serial
   ]):
+    logs.log_warn('Unable to query device, resetting device connection.')
     if reset_device_connection():
       # Device has successfully recovered, re-run command to get output.
       # Continue execution and validate output next for |None| condition.
@@ -673,7 +681,7 @@ def run_adb_command(cmd,
   if output is DEVICE_HANG_STRING:
     # Handle the case where our command execution hung. This is usually when
     # device goes into a bad state and only way to recover is to restart it.
-    logs.log_warn('Adb is not responding, restarting device to recover.')
+    logs.log_warn('Unable to query device, restarting device to recover.')
     hard_reset()
 
     # Wait until we've booted and try the command again.

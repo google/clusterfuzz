@@ -28,13 +28,15 @@ echo "$USER ALL=NOPASSWD: ALL" >> /etc/sudoers
 
 # Setup helper variables.
 ANDROID_SERIAL=127.0.0.1:6520
-ANDROID_BRANCH=$(curl -H "Metadata-Flavor: Google" \
-  http://metadata.google.internal/computeMetadata/v1/instance/attributes/branch)
 APPENGINE=google_appengine
 APPENGINE_FILE=google_appengine_1.9.75.zip
 CVD_DIR=$HOME  # To avoid custom params in launch_cvd for various image type locations.
 DEPLOYMENT_BUCKET=$(curl -H "Metadata-Flavor: Google" \
   http://metadata.google.internal/computeMetadata/v1/project/attributes/deployment-bucket)
+DEVICE_BRANCH=$(curl -H "Metadata-Flavor: Google" \
+  http://metadata.google.internal/computeMetadata/v1/instance/attributes/device-branch)
+DEVICE_MEMORY_MB=$(curl -H "Metadata-Flavor: Google" \
+  http://metadata.google.internal/computeMetadata/v1/instance/attributes/device-memory-mb)
 GSUTIL_PATH="/usr/bin"
 INSTALL_DIRECTORY=$HOME
 APPENGINE_DIR="$INSTALL_DIRECTORY/$APPENGINE"
@@ -146,10 +148,10 @@ unzip -q clusterfuzz-source.zip
 echo "Setting up android."
 mkdir -p $CVD_DIR
 cd $CVD_DIR
-fetch_artifacts.py -branch $ANDROID_BRANCH
+fetch_artifacts.py -branch $DEVICE_BRANCH
 mkdir -p backup
 cp *.img backup/
-./bin/launch_cvd -daemon
+./bin/launch_cvd -daemon -memory_mb $DEVICE_MEMORY_MB
 
 echo "Bringing up device in adb."
 $ROOT_DIR/resources/platform/android/adb devices
@@ -163,6 +165,7 @@ OS_OVERRIDE="ANDROID" \
   CVD_DIR="$CVD_DIR" \
   GSUTIL_PATH="$GSUTIL_PATH" \
   NFS_ROOT="$NFS_ROOT" \
+  DEVICE_MEMORY_MB="$DEVICE_MEMORY_MB" \
   python $ROOT_DIR/src/python/bot/startup/run.py &
 
 echo "Success!"
