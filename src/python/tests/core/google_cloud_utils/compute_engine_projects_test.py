@@ -23,4 +23,5 @@ class LoadProjectTest(unittest.TestCase):
 
   def test_load_test_project(self):
     """Test load_project on test project test-clusterfuzz."""
-    self.assertIsNotNone(compute_engine_projects.load_project('test-clusterfuzz'))
+    self.assertIsNotNone(
+        compute_engine_projects.load_project('test-clusterfuzz'))
