@@ -58,7 +58,8 @@ def _process_instance_template(instance_template):
   # Load file metadata
   items = instance_template['properties']['metadata']['items']
   for item in items:
-    if item['value'].startswith(FILE_SCHEME):
+    if (isinstance(item['value'], basestring) and
+        item['value'].startswith(FILE_SCHEME)):
       file_path = item['value'][len(FILE_SCHEME):]
       with open(
           os.path.join(environment.get_gce_config_directory(), file_path)) as f:
