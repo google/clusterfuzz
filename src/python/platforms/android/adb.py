@@ -359,9 +359,9 @@ def get_file_checksum(file_path):
   return None
 
 
-def get_memory_usage_info():
-  """Return memory stats."""
-  return run_adb_shell_command(['ps'])
+def get_ps_output():
+  """Return ps output for all processes."""
+  return run_adb_shell_command(['ps', '-A'])
 
 
 def get_package_name(apk_path=None):
@@ -398,8 +398,7 @@ def get_package_name(apk_path=None):
 def get_process_and_child_pids(process_name):
   """Return process and child pids matching a process name."""
   pids = []
-  ps_output = get_memory_usage_info()
-  ps_output_lines = ps_output.splitlines()
+  ps_output_lines = get_ps_output().splitlines()
 
   while True:
     old_pids_length = len(pids)
@@ -908,8 +907,7 @@ def wait_until_package_optimization_complete():
   start_time = time.time()
 
   while time.time() - start_time < REBOOT_TIMEOUT:
-    memory_output = get_memory_usage_info()
-    package_optimization_finished = 'dex2oat' not in memory_output
+    package_optimization_finished = 'dex2oat' not in get_ps_output()
     if package_optimization_finished:
       return
 
