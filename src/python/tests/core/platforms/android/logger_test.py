@@ -17,7 +17,8 @@ import unittest
 
 from platforms.android import logger
 
-DATA_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'logger_data')
+DATA_PATH = os.path.join(
+    os.path.dirname(os.path.abspath(__file__)), 'logger_data')
 
 
 class IsLineValidTest(unittest.TestCase):
@@ -55,8 +56,10 @@ class FilterLogOutputTest(unittest.TestCase):
     return open(os.path.join(DATA_PATH, filename)).read()
 
   def test_sanitizer_and_check_stack(self):
-    unfiltered_log_output = self._get_log_content('check_failure_and_asan_log.txt')
-    expected_filtered_log_output = self._get_log_content('check_failure_and_asan_log_expected.txt')
+    unfiltered_log_output = self._get_log_content(
+        'check_failure_and_asan_log.txt')
+    expected_filtered_log_output = self._get_log_content(
+        'check_failure_and_asan_log_expected.txt')
     actual_filtered_log_output = logger.filter_log_output(unfiltered_log_output)
 
     self.assertEqual(actual_filtered_log_output, expected_filtered_log_output)

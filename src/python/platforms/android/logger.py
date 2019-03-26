@@ -55,7 +55,7 @@ def filter_log_output(output):
     if not is_line_valid(line):
       continue
 
-    m_line = re.match('^[VDIWEFS]/([^(]+)\((\d+)\)[:] (.*)', line)
+    m_line = re.match(r'^[VDIWEFS]/([^(]+)\((\d+)\)[:] (.*)', line)
     if not m_line:
       continue
 
