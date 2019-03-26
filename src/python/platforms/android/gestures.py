@@ -22,10 +22,10 @@ import adb
 MONKEY_THROTTLE_DELAY = 100
 
 # Maximum number of monkey events per testcase.
-NUM_MONKEY_EVENTS = 50
+NUM_MONKEY_EVENTS = 25
 
 
-def get_random_gestures(gesture_count):  # pylint: disable=unused-argument
+def get_random_gestures(_):
   """Return a random gesture seed from monkey framework natively supported by
   Android OS."""
   random_seed = random.getrandbits(32)
@@ -33,8 +33,7 @@ def get_random_gestures(gesture_count):  # pylint: disable=unused-argument
   return [gesture]
 
 
-# pylint: disable=unused-argument
-def run_gestures(gestures, start_time, timeout):
+def run_gestures(gestures, *_):
   """Run the provided interaction gestures."""
   package_name = os.getenv('PKG_NAME')
   if not package_name:
