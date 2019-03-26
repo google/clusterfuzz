@@ -1,7 +1,7 @@
 Change Log
 ==========
 
-## Next version
+## Next Version
 - Various bug fixes.
 
 ## Version 1.1.0
