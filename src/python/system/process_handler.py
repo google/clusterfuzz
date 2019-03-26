@@ -336,10 +336,10 @@ def run_process(cmdline,
 
   # If a crash is found, then we add the memory state as well.
   if return_code and plt == 'ANDROID':
-    process_info = android.adb.get_ps_output()
-    if memory_usage_info:
+    ps_output = android.adb.get_ps_output()
+    if ps_output:
       output += utils.get_line_seperator('Memory Statistics')
-      output += process_info
+      output += ps_output
 
   logs.log(
       'Process (%s) ended, exit code (%s), output (%s).' %

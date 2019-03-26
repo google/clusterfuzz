@@ -398,8 +398,7 @@ def get_package_name(apk_path=None):
 def get_process_and_child_pids(process_name):
   """Return process and child pids matching a process name."""
   pids = []
-  ps_output = get_ps_output()
-  ps_output_lines = ps_output.splitlines()
+  ps_output_lines = get_ps_output().splitlines()
 
   while True:
     old_pids_length = len(pids)
@@ -908,8 +907,7 @@ def wait_until_package_optimization_complete():
   start_time = time.time()
 
   while time.time() - start_time < REBOOT_TIMEOUT:
-    ps_output = get_ps_output()
-    package_optimization_finished = 'dex2oat' not in ps_output
+    package_optimization_finished = 'dex2oat' not in get_ps_output()
     if package_optimization_finished:
       return
 
