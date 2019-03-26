@@ -16,6 +16,8 @@
 import adb
 import re
 
+from metrics import logs
+
 
 def clear_log():
   """Clear log."""
@@ -57,6 +59,7 @@ def filter_log_output(output):
 
     m_line = re.match(r'^[VDIWEFS]/([^(]+)\((\d+)\)[:] (.*)', line)
     if not m_line:
+      logs.log_error('Failed to parse logcat line: %s' % line)
       continue
 
     process_name = m_line.group(1).strip()
