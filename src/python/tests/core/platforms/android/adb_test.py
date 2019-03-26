@@ -22,20 +22,15 @@ from platforms.android import adb
 from system import environment
 from system import shell
 from tests.test_libs import helpers as test_helpers
+from tests.test_libs import test_utils
 
 
-class AdbTest(unittest.TestCase):
-  """Adb tests."""
+@test_utils.android_device_required
+class TestFileOperations(unittest.TestCase):
+  """Tests for various functions that depend on file transfer."""
 
   def setUp(self):
     test_helpers.patch_environ(self)
-
-    if environment.platform() != 'LINUX':
-      self.skipTest('Adb tests are only applicable to run on a linux host.')
-
-    android_serial = environment.get_value('ANDROID_SERIAL')
-    if not android_serial:
-      self.skipTest('No ANDROID_SERIAL is set, skipping adb tests.')
 
     # Set Android specific environment variables like DEVICE_TMP_DIR, etc.
     environment.set_value('OS_OVERRIDE', 'ANDROID')
@@ -130,13 +125,29 @@ class AdbTest(unittest.TestCase):
     adb.write_data_to_file('data', test_file_path)
     self.assertEqual(adb.read_data_from_file(test_file_path), 'data')
 
-  def test_wait_for_device(self):
-    """Tests wait_for_device."""
+
+@test_utils.android_device_required
+class WaitForDeviceTest(unittest.TestCase):
+  """Tests for wait_for_device."""
+
+  def test_state_correct_after_wait(self):
+    """Ensures that the function works correctly when a device is connected."""
     adb.wait_for_device()
     self.assertEqual(adb.get_device_state(), 'device')
 
-  def test_is_package_installed(self):
-    """Tests is_package_installed."""
+
+@test_utils.android_device_required
+class IsPackageInstalledTest(unittest.TestCase):
+  """Tests for wait_for_device."""
+
+  def test_nonexistent_package_not_installed(self):
+    """Ensure that a non-existent package is not installed."""
     self.assertFalse(adb.is_package_installed('non.existent.package'))
+
+  def test_partial_package_name_not_installed(self):
+    """Tests that com.google is not recognized as an installed package."""
     self.assertFalse(adb.is_package_installed('com.google'))
+
+  def test_package_installed(self):
+    """Ensures that gms (which should always be available) is installed."""
     self.assertTrue(adb.is_package_installed('com.google.android.gms'))
