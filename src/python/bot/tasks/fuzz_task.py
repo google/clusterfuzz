@@ -1483,7 +1483,7 @@ def execute_task(fuzzer_name, job_type):
   # FIXME: Change to environment.remove_key call when it supports removing
   # the environment variable on untrusted bot (as part of
   # bot.untrusted_runner import environment).
-  environment.remove_key('FUZZ_CORPUS_DIR')
+  environment.set_value('FUZZ_CORPUS_DIR', None)
 
   # Restore old values before attempting to test for reproducibility.
   test_timeout = set_test_timeout(old_test_timeout, timeout_multiplier)
