@@ -115,6 +115,12 @@ def get_client():
       'build_apiary_service_account_email')
   build_apiary_service_account_private_key = db_config.get_value(
       'build_apiary_service_account_private_key')
+  if (not build_apiary_service_account_email or
+      not build_apiary_service_account_private_key):
+    logs.log(
+        'Android build apiary credentials are not set, skip artifact fetch.')
+    return None
+
   credentials = ServiceAccountCredentials.from_p12_keyfile_buffer(
       build_apiary_service_account_email,
       StringIO.StringIO(build_apiary_service_account_private_key),
@@ -131,6 +137,9 @@ def get_client():
 def get_latest_artifact_info(branch, target, signed=False):
   """Return latest artifact for a branch and target."""
   client = get_client()
+  if not client:
+    return None
+
   request = client.build().list(
       buildType='submitted',
       branch=branch,
@@ -142,7 +151,7 @@ def get_latest_artifact_info(branch, target, signed=False):
   if not builds:
     logs.log_error(
         'No artifact found for target %s and branch %s.' % (target, branch))
-    return {}
+    return None
 
   build = builds['builds'][0]
   bid = build['buildId']
@@ -153,6 +162,8 @@ def get_latest_artifact_info(branch, target, signed=False):
 def get(bid, target, regex, output_directory):
   """Return artifact for a given build id, target and file regex."""
   client = get_client()
+  if not client:
+    return None
 
   # Run the script to fetch the artifact.
   return run_script(

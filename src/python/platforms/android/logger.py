@@ -34,13 +34,13 @@ def clear_log():
 
 def is_line_valid(line):
   """Returns true if we consider this line in logs."""
-  contain_url = 'NotifyBeforeURLRequest' in line
+  is_chromium_resource_load = 'NotifyBeforeURLRequest' in line
 
   # Discard noisy debug/verbose output.
   # http://developer.android.com/tools/debugging/debugging-log.html.
   at_least_info_level = not (line.startswith('D/') or line.startswith('V/'))
 
-  return contain_url or at_least_info_level
+  return is_chromium_resource_load or at_least_info_level
 
 
 def filter_log_output(output):

@@ -30,18 +30,16 @@ class IsLineValidTest(unittest.TestCase):
     self.assertFalse(
         logger.is_line_valid('V/chromium( 8572): [VERBOSE1:] Not implemented.'))
 
-  def test_url(self):
+  def test_chromium_resource_load(self):
     """Tests verbose line."""
-    # pylint: disable=line-too-long
     self.assertTrue(
         logger.is_line_valid(
             'V/chromium( 8530): [VERBOSE1:network_delegate.cc(31)] '
             'NetworkDelegate::NotifyBeforeURLRequest: '
             'https://en.m.wikipedia.org'))
-    # pylint: enable=line-too-long
 
   def test_info(self):
     """Tests info line."""
     self.assertTrue(
         logger.is_line_valid(
-            'I/chromium( 8530): [INFO:CONSOLE(166)] Hello friend!'))
+            'I/chromium( 8530): [INFO:CONSOLE(166)] Hello world!'))
