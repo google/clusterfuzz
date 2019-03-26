@@ -1,0 +1,80 @@
+--------- VideoCapabilities (18918):
+Unsupported profile 4 for video/mp4v-es
+--------- cr_OfflineIndicator (18855):
+onConnectionTypeChanged 2
+Reported by system: [ Transports: WIFI Capabilities: NOT_METERED&INTERNET&NOT_RESTRICTED&TRUSTED&NOT_VPN&VALIDATED&NOT_ROAMING&FOREGROUND&NOT_CONGESTED&NOT_SUSPENDED Unwanted:  LinkUpBandwidth>=1048576Kbps LinkDnBandwidth>=1048576Kbps SignalStrength: -64]
+--------- v8 (18890):
+Error installing extension 'v8/LoadTimes'.
+--------- chromium (18890):
+[FATAL:local_window_proxy.cc(238)] Check failed: !context.IsEmpty().
+    #0 0x9d618b8d (/data/app/com.google.android.apps.chrome-MJ83fU9k_oc7HCqg31idOA==/lib/arm/libchrome.so+0x0abfbb8d)
+    #1 0xa256a799 (/data/app/com.google.android.apps.chrome-MJ83fU9k_oc7HCqg31idOA==/lib/arm/libchrome.so+0x0fb4d799)
+    #2 0x9d68b7df (/data/app/com.google.android.apps.chrome-MJ83fU9k_oc7HCqg31idOA==/lib/arm/libchrome.so+0x0ac6e7df)
+    #3 0x9d68029d (/data/app/com.google.android.apps.chrome-MJ83fU9k_oc7HCqg31idOA==/lib/arm/libchrome.so+0x0ac6329d)
+    #4 0x9ddc4989 (/data/app/com.google.android.apps.chrome-MJ83fU9k_oc7HCqg31idOA==/lib/arm/libchrome.so+0x0b3a7989)
+    #5 0xa28a0c8f (/data/app/com.google.android.apps.chrome-MJ83fU9k_oc7HCqg31idOA==/lib/arm/libchrome.so+0x0fe83c8f)
+    #6 0xa2898b3d (/data/app/com.google.android.apps.chrome-MJ83fU9k_oc7HCqg31idOA==/lib/arm/libchrome.so+0x0fe7bb3d)
+    #7 0x9d6bfb13 (/data/app/com.google.android.apps.chrome-MJ83fU9k_oc7HCqg31idOA==/lib/arm/libchrome.so+0x0aca2b13)
+    #8 0x9d83e46b (/data/app/com.google.android.apps.chrome-MJ83fU9k_oc7HCqg31idOA==/lib/arm/libchrome.so+0x0ae2146b)
+    #9 0x9ddb5129 (/data/app/com.google.android.apps.chrome-MJ83fU9k_oc7HCqg31idOA==/lib/arm/libchrome.so+0x0b398129)
+    #10 0x99d1c747 (/data/app/com.google.android.apps.chrome-MJ83fU9k_oc7HCqg31idOA==/lib/arm/libchrome.so+0x072ff747)
+--------- com.google.android.apps.chrome:sandboxed_process0 (18890):
+=================================================================
+==18890==ERROR: AddressSanitizer: ABRT on unknown address 0x000049ca (pc 0xe535ce36 bp 0xa5f12f30 sp 0xa5f12c08 T151)
+    #0 0xe535ce32  (/system/lib/libc.so+0x1ce32)
+    #1 0x9aabab92  (/data/app/com.google.android.apps.chrome-MJ83fU9k_oc7HCqg31idOA==/lib/arm/libchrome.so+0x809db92)
+    #2 0x9d619226  (/data/app/com.google.android.apps.chrome-MJ83fU9k_oc7HCqg31idOA==/lib/arm/libchrome.so+0xabfc226)
+    #3 0xa256a796  (/data/app/com.google.android.apps.chrome-MJ83fU9k_oc7HCqg31idOA==/lib/arm/libchrome.so+0xfb4d796)
+    #4 0x9d68b7dc  (/data/app/com.google.android.apps.chrome-MJ83fU9k_oc7HCqg31idOA==/lib/arm/libchrome.so+0xac6e7dc)
+    #5 0x9d68029a  (/data/app/com.google.android.apps.chrome-MJ83fU9k_oc7HCqg31idOA==/lib/arm/libchrome.so+0xac6329a)
+    #6 0x9ddc4986  (/data/app/com.google.android.apps.chrome-MJ83fU9k_oc7HCqg31idOA==/lib/arm/libchrome.so+0xb3a7986)
+    #7 0xa28a0c8c  (/data/app/com.google.android.apps.chrome-MJ83fU9k_oc7HCqg31idOA==/lib/arm/libchrome.so+0xfe83c8c)
+    #8 0xa2898b3a  (/data/app/com.google.android.apps.chrome-MJ83fU9k_oc7HCqg31idOA==/lib/arm/libchrome.so+0xfe7bb3a)
+    #9 0x9d6bfb10  (/data/app/com.google.android.apps.chrome-MJ83fU9k_oc7HCqg31idOA==/lib/arm/libchrome.so+0xaca2b10)
+    #10 0x9d83e468  (/data/app/com.google.android.apps.chrome-MJ83fU9k_oc7HCqg31idOA==/lib/arm/libchrome.so+0xae21468)
+    #11 0x9ddb5126  (/data/app/com.google.android.apps.chrome-MJ83fU9k_oc7HCqg31idOA==/lib/arm/libchrome.so+0xb398126)
+    #12 0x99d1c744  (/data/app/com.google.android.apps.chrome-MJ83fU9k_oc7HCqg31idOA==/lib/arm/libchrome.so+0x72ff744)
+AddressSanitizer can not provide additional info.
+SUMMARY: AddressSanitizer: ABRT (/system/lib/libc.so+0x1ce32)
+Thread T151 (CrRendererMain) created by T0 (dboxed_process0) here:
+    #0 0xe6264ea4  (/system/lib/libclang_rt.asan-arm-android.so+0x9cea4)
+    #1 0xbf9f0584  (/system/lib/libart.so+0x36a584)
+==18890==ABORTING
+--------- ActivityManager (11949):
+Process com.google.android.apps.chrome:sandboxed_process0 (pid 18890) has died: fore TOP
+--------- Zygote (11882):
+Process 18890 exited cleanly (1)
+--------- libprocessgroup (11949):
+kill(-18890, 9) failed: No such process
+Successfully killed process cgroup uid 99020 pid 18890 in 0ms
+--------- cr_ChildProcessConn (18855):
+onServiceDisconnected (crash or killed by oom): pid=18890
+--------- ActivityManager (11949):
+Scheduling restart of crashed service com.google.android.apps.chrome/org.chromium.content.app.SandboxedProcessService0 in 1000ms
+--------- cr_TabWebContentsObs (18855):
+renderProcessGone() for tab id: 131, oom protected: true, already needs reload: false
+renderProcessGone() for tab id: 132, oom protected: true, already needs reload: false
+--------- PeopleDeviceAccountsProvider (14688):
+Processing 0 accounts
+--------- CheckboxLoggingPolicy (14688):
+Updating logging mode to ZWIEBACK_ID with 0 account(s).
+--------- EventLogSendingHelper (12861):
+Sending log events.
+--------- SurfaceFlinger (11879):
+Attempting to destroy on removed layer: AppWindowToken{badb7d6 token=Token{d689ff1 ActivityRecord{4b9fb98 u0 com.google.android.apps.chrome/.Main t43}}}#0
+--------- PBSessionCacheImpl (12861):
+Deleted sessionId[1115047976872] from persistence.
+--------- SearchServiceCore (12861):
+Abort, client detached.
+--------- GsaVoiceInteractionSrv (12744):
+isHotwordRecognitionEnabled false false
+--------- oid.apps.chrom (18855):
+Accessing hidden field Ljava/nio/Buffer;->address:J (light greylist, reflection)
+--------- cr_CrashFileManager (18855):
+/data/user/0/com.google.android.apps.chrome/cache/Crash Reports does not exist or is not a directory
+--------- chatty (18855):
+uid=10151(com.google.android.apps.chrome) CrAsyncTask #4 identical 3 lines
+--------- cr_CrashFileManager (18855):
+/data/user/0/com.google.android.apps.chrome/cache/Crash Reports does not exist or is not a directory
+--------- cr_BindingManager (18855):
+Moderate binding enabled: maxSize=40

@@ -814,8 +814,7 @@ def setup_host_and_device_forwarder_if_needed():
   # Get list of ports to map.
   http_port_1 = environment.get_value('HTTP_PORT_1', 8000)
   http_port_2 = environment.get_value('HTTP_PORT_2', 8080)
-  https_port_1 = environment.get_value('HTTPS_PORT_1', 8443)
-  ports = [http_port_1, http_port_2, https_port_1]
+  ports = [http_port_1, http_port_2]
 
   # Reverse map socket connections from device to host machine.
   for port in ports:
