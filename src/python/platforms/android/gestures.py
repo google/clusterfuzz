@@ -40,8 +40,9 @@ def run_gestures(gestures, *_):
     # No package to send gestures to, bail out.
     return
 
-  assert len(gestures) == 1
-  assert gestures[0].startswith('monkey,')
+  if len(gestures) != 1 or not gestures[0].startswith('monkey'):
+    # Bad gesture string, bail out.
+    return
 
   monkey_seed = gestures[0].split(',')[-1]
   adb.run_adb_shell_command([

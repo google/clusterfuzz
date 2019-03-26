@@ -150,7 +150,7 @@ def get_latest_artifact_info(branch, target, signed=False):
   builds = execute_request_with_retries(request)
   if not builds:
     logs.log_error(
-        'No artifact found for target %s and branch %s.' % (target, branch))
+        'No artifact found for target %s, branch %s.' % (target, branch))
     return None
 
   build = builds['builds'][0]
@@ -174,13 +174,13 @@ def get(bid, target, regex, output_directory):
       output_directory=output_directory)
 
 
-def run_script(client, bid, target, regex=None, output_directory=None):
+def run_script(client, bid, target, regex, output_directory):
   """Download artifacts as specified."""
   artifacts = get_artifacts_for_build(
       client=client, bid=bid, target=target, attempt_id='latest')
   if not artifacts:
     logs.log_error(
-        'No artifact found for target %s with build id %s.' % (target, bid))
+        'No artifact found for target %s, build id %s.' % (target, bid))
     return False
 
   regex = re.compile(regex)
