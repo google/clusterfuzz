@@ -71,4 +71,4 @@ D/PackageManager(11949): [6cd671a0-5e57-4649-bdf9-99fd7326f454] Phase1; resolvin
 V/PackageManager(12570): [6cd671a0-5e57-4649-bdf9-99fd7326f454] Phase1 called; posting
 D/PackageManager(12570): [6cd671a0-5e57-4649-bdf9-99fd7326f454] Phase1 request; prefix: [-1836322816, -1038782464, -908992512, -652021760, -618844160, -597266432, 196653056, 305614848, 491679744, 1208311808, 1716736000, 1964032000]
 D/PackageManager(11949): [6cd671a0-5e57-4649-bdf9-99fd7326f454] Phase1; No results matched
-I/cr_BindingManager(18855): Moderate binding enabled: maxSize=40
+I/cr_BindingManager( 18855): Moderate binding enabled: maxSize=40
