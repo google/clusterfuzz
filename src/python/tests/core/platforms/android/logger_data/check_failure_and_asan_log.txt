@@ -1,3 +1,4 @@
+--------- beginning of system
 I/VideoCapabilities(18918): Unsupported profile 4 for video/mp4v-es
 I/cr_OfflineIndicator(18855): onConnectionTypeChanged 2
 I/cr_OfflineIndicator(18855): Reported by system: [ Transports: WIFI Capabilities: NOT_METERED&INTERNET&NOT_RESTRICTED&TRUSTED&NOT_VPN&VALIDATED&NOT_ROAMING&FOREGROUND&NOT_CONGESTED&NOT_SUSPENDED Unwanted:  LinkUpBandwidth>=1048576Kbps LinkDnBandwidth>=1048576Kbps SignalStrength: -64]

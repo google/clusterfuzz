@@ -16,6 +16,7 @@ import os
 import unittest
 
 from platforms.android import logger
+from tests.test_libs import helpers as test_helpers
 
 DATA_PATH = os.path.join(
     os.path.dirname(os.path.abspath(__file__)), 'logger_data')
@@ -23,6 +24,10 @@ DATA_PATH = os.path.join(
 
 class IsLineValidTest(unittest.TestCase):
   """Tests is_line_valid."""
+
+  def test_beginning_of(self):
+    """Tests beginning of line."""
+    self.assertFalse(logger.is_line_valid('--------- beginning of system'))
 
   def test_debug(self):
     """Tests debug line."""
@@ -52,6 +57,9 @@ class IsLineValidTest(unittest.TestCase):
 class FilterLogOutputTest(unittest.TestCase):
   """Tests filter_log_output."""
 
+  def setUp(self):
+    test_helpers.patch(self, ['metrics.logs.log_error'])
+
   def _get_log_content(self, filename):
     return open(os.path.join(DATA_PATH, filename)).read()
 
@@ -63,3 +71,4 @@ class FilterLogOutputTest(unittest.TestCase):
     actual_filtered_log_output = logger.filter_log_output(unfiltered_log_output)
 
     self.assertEqual(actual_filtered_log_output, expected_filtered_log_output)
+    self.assertEqual(0, self.mock.log_error.call_count)

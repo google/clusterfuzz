@@ -36,6 +36,9 @@ def clear_log():
 
 def is_line_valid(line):
   """Returns true if we consider this line in logs."""
+  if re.match(r'^[-]+ beginning of', line):
+    return False
+
   is_chromium_resource_load = 'NotifyBeforeURLRequest' in line
 
   # Discard noisy debug and verbose output.
@@ -53,7 +56,6 @@ def filter_log_output(output):
   filtered_output = ''
   last_process_tuple = (None, None)
   for line in output.splitlines():
-    line = line.strip()
     if not is_line_valid(line):
       continue
 
@@ -67,7 +69,7 @@ def filter_log_output(output):
 
     process_name = m_line.group(1).strip()
     process_id = int(m_line.group(2))
-    filtered_line = m_line.group(3)
+    filtered_line = m_line.group(3).rstrip()
 
     # Process Android crash stack frames and convert into sanitizer format.
     m_crash_state = re.match(r'\s*#([0-9]+)\s+pc\s+([xX0-9a-fA-F]+)\s+(.+)',
