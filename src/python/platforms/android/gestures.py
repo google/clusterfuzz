@@ -22,7 +22,7 @@ import adb
 MONKEY_THROTTLE_DELAY = 100
 
 # Maximum number of monkey events per testcase.
-NUM_MONKEY_EVENTS = 100
+NUM_MONKEY_EVENTS = 25
 
 
 def get_random_gestures(_):
