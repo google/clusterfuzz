@@ -12,9 +12,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """logger tests."""
+import os
 import unittest
 
 from platforms.android import logger
+
+DATA_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'logger_data')
 
 
 class IsLineValidTest(unittest.TestCase):
@@ -43,3 +46,17 @@ class IsLineValidTest(unittest.TestCase):
     self.assertTrue(
         logger.is_line_valid(
             'I/chromium( 8530): [INFO:CONSOLE(166)] Hello world!'))
+
+
+class FilterLogOutputTest(unittest.TestCase):
+  """Tests filter_log_output."""
+
+  def _get_log_content(self, filename):
+    return open(os.path.join(DATA_PATH, filename)).read()
+
+  def test_sanitizer_and_check_stack(self):
+    unfiltered_log_output = self._get_log_content('check_failure_and_asan_log.txt')
+    expected_filtered_log_output = self._get_log_content('check_failure_and_asan_log_expected.txt')
+    actual_filtered_log_output = logger.filter_log_output(unfiltered_log_output)
+
+    self.assertEqual(actual_filtered_log_output, expected_filtered_log_output)

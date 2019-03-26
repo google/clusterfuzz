@@ -36,7 +36,7 @@ def is_line_valid(line):
   """Returns true if we consider this line in logs."""
   is_chromium_resource_load = 'NotifyBeforeURLRequest' in line
 
-  # Discard noisy debug/verbose output.
+  # Discard noisy debug and verbose output.
   # http://developer.android.com/tools/debugging/debugging-log.html.
   at_least_info_level = not (line.startswith('D/') or line.startswith('V/'))
 
@@ -49,17 +49,19 @@ def filter_log_output(output):
     return ''
 
   filtered_output = ''
-  last_process_id = 0
+  last_process_tuple = (None, None)
   for line in output.splitlines():
     line = line.strip()
     if not is_line_valid(line):
       continue
 
-    m_line = re.match('[^D]/([^:]+)[:] (.*)', line)
+    m_line = re.match('^[VDIWEFS]/([^(]+)\((\d+)\)[:] (.*)', line)
     if not m_line:
       continue
 
-    filtered_line = m_line.group(2)
+    process_name = m_line.group(1).strip()
+    process_id = int(m_line.group(2))
+    filtered_line = m_line.group(3)
 
     # Process Android crash stack frames and convert into sanitizer format.
     m_crash_state = re.match(r'\s*#([0-9]+)\s+pc\s+([xX0-9a-fA-F]+)\s+(.+)',
@@ -99,13 +101,10 @@ def filter_log_output(output):
                                             frame_binary_and_address))
 
     # Add process number if changed.
-    m_process_num = re.match(r'(.*)[(]\s*(\d+)[)]', m_line.group(1))
-    if m_process_num:
-      process_id = int(m_process_num.group(2))
-      if process_id != last_process_id:
-        process_name = (m_process_num.group(1)).strip()
-        filtered_output += '--------- %s (%d):\n' % (process_name, process_id)
-        last_process_id = process_id
+    current_process_tuple = (process_name, process_id)
+    if current_process_tuple != last_process_tuple:
+      filtered_output += '--------- %s (%d):\n' % (process_name, process_id)
+      last_process_tuple = current_process_tuple
 
     filtered_output += filtered_line + '\n'
 

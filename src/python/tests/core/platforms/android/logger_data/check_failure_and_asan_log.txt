@@ -1,0 +1,74 @@
+I/VideoCapabilities(18918): Unsupported profile 4 for video/mp4v-es
+I/cr_OfflineIndicator(18855): onConnectionTypeChanged 2
+I/cr_OfflineIndicator(18855): Reported by system: [ Transports: WIFI Capabilities: NOT_METERED&INTERNET&NOT_RESTRICTED&TRUSTED&NOT_VPN&VALIDATED&NOT_ROAMING&FOREGROUND&NOT_CONGESTED&NOT_SUSPENDED Unwanted:  LinkUpBandwidth>=1048576Kbps LinkDnBandwidth>=1048576Kbps SignalStrength: -64]
+D/PackageManager(11949): [f9520ab4-1240-4e0a-99e4-1a70f6eca7f5] Phase1; resolving
+V/PackageManager(12570): [f9520ab4-1240-4e0a-99e4-1a70f6eca7f5] Phase1 called; posting
+D/PackageManager(12570): [f9520ab4-1240-4e0a-99e4-1a70f6eca7f5] Phase1 request; prefix: [-2112593920, -1735266304, -1576062976, -1556549632, -1552125952, -1542000640, -1522843648, -1107816448, -739143680, -733716480, -383483904, 305614848, 446582784, 524599296, 829136896, 1208311808, 1957072896, 2016751616]
+D/PackageManager(11949): [f9520ab4-1240-4e0a-99e4-1a70f6eca7f5] Phase1; No results matched
+D/PackageManager(11949): [e6107f2f-3b20-4d04-a1f7-3215b98d64e1] Phase1; resolving
+V/PackageManager(12570): [e6107f2f-3b20-4d04-a1f7-3215b98d64e1] Phase1 called; posting
+D/PackageManager(12570): [e6107f2f-3b20-4d04-a1f7-3215b98d64e1] Phase1 request; prefix: [-2032562176, -1966845952, -1918382080, -1229139968, -1166749696, -824401920, -183164928, 305614848, 775323648, 947982336, 1066934272, 1208311808, 1802182656]
+D/PackageManager(11949): [e6107f2f-3b20-4d04-a1f7-3215b98d64e1] Phase1; No results matched
+D/OpenGLRenderer(18918): Skia GL Pipeline
+E/v8      (18890): Error installing extension 'v8/LoadTimes'.
+F/chromium(18890): [FATAL:local_window_proxy.cc(238)] Check failed: !context.IsEmpty(). 
+F/chromium(18890): #00 0x9d618b8d /data/app/com.google.android.apps.chrome-MJ83fU9k_oc7HCqg31idOA==/lib/arm/libchrome.so+0x0abfbb8d
+F/chromium(18890): #01 0xa256a799 /data/app/com.google.android.apps.chrome-MJ83fU9k_oc7HCqg31idOA==/lib/arm/libchrome.so+0x0fb4d799
+F/chromium(18890): #02 0x9d68b7df /data/app/com.google.android.apps.chrome-MJ83fU9k_oc7HCqg31idOA==/lib/arm/libchrome.so+0x0ac6e7df
+F/chromium(18890): #03 0x9d68029d /data/app/com.google.android.apps.chrome-MJ83fU9k_oc7HCqg31idOA==/lib/arm/libchrome.so+0x0ac6329d
+F/chromium(18890): #04 0x9ddc4989 /data/app/com.google.android.apps.chrome-MJ83fU9k_oc7HCqg31idOA==/lib/arm/libchrome.so+0x0b3a7989
+F/chromium(18890): #05 0xa28a0c8f /data/app/com.google.android.apps.chrome-MJ83fU9k_oc7HCqg31idOA==/lib/arm/libchrome.so+0x0fe83c8f
+F/chromium(18890): #06 0xa2898b3d /data/app/com.google.android.apps.chrome-MJ83fU9k_oc7HCqg31idOA==/lib/arm/libchrome.so+0x0fe7bb3d
+F/chromium(18890): #07 0x9d6bfb13 /data/app/com.google.android.apps.chrome-MJ83fU9k_oc7HCqg31idOA==/lib/arm/libchrome.so+0x0aca2b13
+F/chromium(18890): #08 0x9d83e46b /data/app/com.google.android.apps.chrome-MJ83fU9k_oc7HCqg31idOA==/lib/arm/libchrome.so+0x0ae2146b
+F/chromium(18890): #09 0x9ddb5129 /data/app/com.google.android.apps.chrome-MJ83fU9k_oc7HCqg31idOA==/lib/arm/libchrome.so+0x0b398129
+F/chromium(18890): #10 0x99d1c747 /data/app/com.google.android.apps.chrome-MJ83fU9k_oc7HCqg31idOA==/lib/arm/libchrome.so+0x072ff747
+F/chromium(18890): 
+I/com.google.android.apps.chrome:sandboxed_process0(18890): =================================================================
+I/com.google.android.apps.chrome:sandboxed_process0(18890): ==18890==ERROR: AddressSanitizer: ABRT on unknown address 0x000049ca (pc 0xe535ce36 bp 0xa5f12f30 sp 0xa5f12c08 T151)
+I/com.google.android.apps.chrome:sandboxed_process0(18890):     #0 0xe535ce32  (/system/lib/libc.so+0x1ce32)
+I/com.google.android.apps.chrome:sandboxed_process0(18890):     #1 0x9aabab92  (/data/app/com.google.android.apps.chrome-MJ83fU9k_oc7HCqg31idOA==/lib/arm/libchrome.so+0x809db92)
+I/com.google.android.apps.chrome:sandboxed_process0(18890):     #2 0x9d619226  (/data/app/com.google.android.apps.chrome-MJ83fU9k_oc7HCqg31idOA==/lib/arm/libchrome.so+0xabfc226)
+I/com.google.android.apps.chrome:sandboxed_process0(18890):     #3 0xa256a796  (/data/app/com.google.android.apps.chrome-MJ83fU9k_oc7HCqg31idOA==/lib/arm/libchrome.so+0xfb4d796)
+I/com.google.android.apps.chrome:sandboxed_process0(18890):     #4 0x9d68b7dc  (/data/app/com.google.android.apps.chrome-MJ83fU9k_oc7HCqg31idOA==/lib/arm/libchrome.so+0xac6e7dc)
+I/com.google.android.apps.chrome:sandboxed_process0(18890):     #5 0x9d68029a  (/data/app/com.google.android.apps.chrome-MJ83fU9k_oc7HCqg31idOA==/lib/arm/libchrome.so+0xac6329a)
+I/com.google.android.apps.chrome:sandboxed_process0(18890):     #6 0x9ddc4986  (/data/app/com.google.android.apps.chrome-MJ83fU9k_oc7HCqg31idOA==/lib/arm/libchrome.so+0xb3a7986)
+I/com.google.android.apps.chrome:sandboxed_process0(18890):     #7 0xa28a0c8c  (/data/app/com.google.android.apps.chrome-MJ83fU9k_oc7HCqg31idOA==/lib/arm/libchrome.so+0xfe83c8c)
+I/com.google.android.apps.chrome:sandboxed_process0(18890):     #8 0xa2898b3a  (/data/app/com.google.android.apps.chrome-MJ83fU9k_oc7HCqg31idOA==/lib/arm/libchrome.so+0xfe7bb3a)
+I/com.google.android.apps.chrome:sandboxed_process0(18890):     #9 0x9d6bfb10  (/data/app/com.google.android.apps.chrome-MJ83fU9k_oc7HCqg31idOA==/lib/arm/libchrome.so+0xaca2b10)
+I/com.google.android.apps.chrome:sandboxed_process0(18890):     #10 0x9d83e468  (/data/app/com.google.android.apps.chrome-MJ83fU9k_oc7HCqg31idOA==/lib/arm/libchrome.so+0xae21468)
+I/com.google.android.apps.chrome:sandboxed_process0(18890):     #11 0x9ddb5126  (/data/app/com.google.android.apps.chrome-MJ83fU9k_oc7HCqg31idOA==/lib/arm/libchrome.so+0xb398126)
+I/com.google.android.apps.chrome:sandboxed_process0(18890):     #12 0x99d1c744  (/data/app/com.google.android.apps.chrome-MJ83fU9k_oc7HCqg31idOA==/lib/arm/libchrome.so+0x72ff744)
+I/com.google.android.apps.chrome:sandboxed_process0(18890): 
+I/com.google.android.apps.chrome:sandboxed_process0(18890): AddressSanitizer can not provide additional info.
+I/com.google.android.apps.chrome:sandboxed_process0(18890): SUMMARY: AddressSanitizer: ABRT (/system/lib/libc.so+0x1ce32) 
+I/com.google.android.apps.chrome:sandboxed_process0(18890): Thread T151 (CrRendererMain) created by T0 (dboxed_process0) here:
+I/com.google.android.apps.chrome:sandboxed_process0(18890):     #0 0xe6264ea4  (/system/lib/libclang_rt.asan-arm-android.so+0x9cea4)
+I/com.google.android.apps.chrome:sandboxed_process0(18890):     #1 0xbf9f0584  (/system/lib/libart.so+0x36a584)
+I/com.google.android.apps.chrome:sandboxed_process0(18890): 
+I/com.google.android.apps.chrome:sandboxed_process0(18890): ==18890==ABORTING
+I/ActivityManager(11949): Process com.google.android.apps.chrome:sandboxed_process0 (pid 18890) has died: fore TOP 
+I/Zygote  (11882): Process 18890 exited cleanly (1)
+W/libprocessgroup(11949): kill(-18890, 9) failed: No such process
+I/libprocessgroup(11949): Successfully killed process cgroup uid 99020 pid 18890 in 0ms
+W/cr_ChildProcessConn(18855): onServiceDisconnected (crash or killed by oom): pid=18890
+W/ActivityManager(11949): Scheduling restart of crashed service com.google.android.apps.chrome/org.chromium.content.app.SandboxedProcessService0 in 1000ms
+I/cr_TabWebContentsObs(18855): renderProcessGone() for tab id: 131, oom protected: true, already needs reload: false
+I/cr_TabWebContentsObs(18855): renderProcessGone() for tab id: 132, oom protected: true, already needs reload: false
+W/PeopleDeviceAccountsProvider(14688): Processing 0 accounts
+I/CheckboxLoggingPolicy(14688): Updating logging mode to ZWIEBACK_ID with 0 account(s).
+I/EventLogSendingHelper(12861): Sending log events.
+D/android.hardware.power@1.2-service.wahoo-libperfmgr(  749): LAUNCH OFF
+W/SurfaceFlinger(11879): Attempting to destroy on removed layer: AppWindowToken{badb7d6 token=Token{d689ff1 ActivityRecord{4b9fb98 u0 com.google.android.apps.chrome/.Main t43}}}#0
+I/PBSessionCacheImpl(12861): Deleted sessionId[1115047976872] from persistence.
+W/SearchServiceCore(12861): Abort, client detached.
+I/GsaVoiceInteractionSrv(12744): isHotwordRecognitionEnabled false false
+W/oid.apps.chrom(18855): Accessing hidden field Ljava/nio/Buffer;->address:J (light greylist, reflection)
+W/cr_CrashFileManager(18855): /data/user/0/com.google.android.apps.chrome/cache/Crash Reports does not exist or is not a directory
+I/chatty  (18855): uid=10151(com.google.android.apps.chrome) CrAsyncTask #4 identical 3 lines
+W/cr_CrashFileManager(18855): /data/user/0/com.google.android.apps.chrome/cache/Crash Reports does not exist or is not a directory
+D/PackageManager(11949): [6cd671a0-5e57-4649-bdf9-99fd7326f454] Phase1; resolving
+V/PackageManager(12570): [6cd671a0-5e57-4649-bdf9-99fd7326f454] Phase1 called; posting
+D/PackageManager(12570): [6cd671a0-5e57-4649-bdf9-99fd7326f454] Phase1 request; prefix: [-1836322816, -1038782464, -908992512, -652021760, -618844160, -597266432, 196653056, 305614848, 491679744, 1208311808, 1716736000, 1964032000]
+D/PackageManager(11949): [6cd671a0-5e57-4649-bdf9-99fd7326f454] Phase1; No results matched
+I/cr_BindingManager(18855): Moderate binding enabled: maxSize=40
