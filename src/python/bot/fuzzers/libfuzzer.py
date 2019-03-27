@@ -320,13 +320,8 @@ class LibFuzzerRunner(new_process.ProcessRunner, LibFuzzerCommon):
     if additional_args is None:
       additional_args = []
 
-    return LibFuzzerCommon.fuzz(
-        self,
-        corpus_directories,
-        fuzz_timeout,
-        artifact_prefix,
-        additional_args,
-        extra_env)
+    return LibFuzzerCommon.fuzz(self, corpus_directories, fuzz_timeout,
+                                artifact_prefix, additional_args, extra_env)
 
 
 class MinijailLibFuzzerRunner(engine_common.MinijailEngineFuzzerRunner,
@@ -397,13 +392,8 @@ class MinijailLibFuzzerRunner(engine_common.MinijailEngineFuzzerRunner,
            extra_env=None):
     """LibFuzzerCommon.fuzz override."""
     corpus_directories = self._get_chroot_corpus_paths(corpus_directories)
-    return LibFuzzerCommon.fuzz(
-        self,
-        corpus_directories,
-        fuzz_timeout,
-        artifact_prefix,
-        additional_args,
-        extra_env)
+    return LibFuzzerCommon.fuzz(self, corpus_directories, fuzz_timeout,
+                                artifact_prefix, additional_args, extra_env)
 
   def merge(self,
             corpus_directories,
