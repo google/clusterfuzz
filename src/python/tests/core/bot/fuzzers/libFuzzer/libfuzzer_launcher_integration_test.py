@@ -144,6 +144,34 @@ class BaseLauncherTest(unittest.TestCase):
 
     self.assertTrue(os.path.exists(testcase_path + '.stats2'))
 
+  def _test_fuzz_with_mutator_plugin(self):
+    """Tests fuzzing with a mutator plugin."""
+
+    fuzz_target_name = 'test_fuzzer'
+    # Call before setting up the plugin since this call will erase the directory
+    # the plugin is written to.
+    testcase_path = setup_testcase_and_corpus(
+        'empty', 'empty_corpus', fuzz=True)
+    plugin_archive_name = 'custom_mutator_plugin-libfuzzer_asan-test_fuzzer.zip'
+    plugin_archive_path = os.path.join(DATA_DIRECTORY, plugin_archive_name)
+
+    self.mock.do_mutator_plugin.return_value = True
+    self.mock._get_mutator_plugins_from_bucket.return_value = [  # pylint: disable=protected-access
+        plugin_archive_name
+    ]
+    self.mock._download_mutator_plugin_archive.return_value = (  # pylint: disable=protected-access
+        plugin_archive_path)
+    custom_mutator_print_string = 'CUSTOM MUTATOR\n'
+    try:
+      output = run_launcher(testcase_path, fuzz_target_name, '-runs=10')
+
+    finally:
+      shutil.rmtree(os.environ['MUTATOR_PLUGINS_DIR'])
+    # custom_mutator_print_string gets printed before the custom mutator mutates
+    # a test case. Assert that the count is greater than 1 to ensure that the
+    # function didn't crash on its first execution (after printing).
+    self.assertGreater(output.count(custom_mutator_print_string), 1)
+
 
 @test_utils.integration
 class TestLauncher(BaseLauncherTest):
@@ -234,36 +262,6 @@ class TestLauncher(BaseLauncherTest):
             build_dir=DATA_DIRECTORY, temp_dir=TEMP_DIRECTORY))
     self.assertIn(expected, output)
     self.assert_has_stats(output, testcase_path)
-
-  @mock.patch('bot.fuzzers.libFuzzer.launcher.get_fuzz_timeout')
-  def test_fuzz_with_mutator_plugin(self, mock_get_timeout):
-    """Tests fuzzing with a mutator plugin."""
-    mock_get_timeout.return_value = get_fuzz_timeout(5.0)
-
-    fuzz_target_name = 'test_fuzzer'
-    # Call before setting up the plugin since this call will erase the directory
-    # the plugin is written to.
-    testcase_path = setup_testcase_and_corpus(
-        'empty', 'empty_corpus', fuzz=True)
-    plugin_archive_name = 'custom_mutator_plugin-libfuzzer_asan-test_fuzzer.zip'
-    plugin_archive_path = os.path.join(DATA_DIRECTORY, plugin_archive_name)
-
-    self.mock.do_mutator_plugin.return_value = True
-    self.mock._get_mutator_plugins_from_bucket.return_value = [  # pylint: disable=protected-access
-        plugin_archive_name
-    ]
-    self.mock._download_mutator_plugin_archive.return_value = (  # pylint: disable=protected-access
-        plugin_archive_path)
-    custom_mutator_print_string = 'CUSTOM MUTATOR\n'
-    try:
-      output = run_launcher(testcase_path, fuzz_target_name, '-runs=10')
-
-    finally:
-      shutil.rmtree(os.environ['MUTATOR_PLUGINS_DIR'])
-    # custom_mutator_print_string gets printed before the custom mutator mutates
-    # a test case. Assert that the count is greater than 1 to ensure that the
-    # function didn't crash on its first execution (after printing).
-    self.assertGreater(output.count(custom_mutator_print_string), 1)
 
   def test_minimize(self):
     """Tests minimize."""
@@ -390,6 +388,13 @@ class TestLauncher(BaseLauncherTest):
         'empty', 'corpus_with_some_files', fuzz=True)
     os.environ['EXIT_FUZZER_CODE'] = exit_code
     run_launcher(testcase_path, 'exit_fuzzer', '-max_len=100')
+
+  @mock.patch('bot.fuzzers.libFuzzer.launcher.get_fuzz_timeout')
+  def test_fuzz_with_mutator_plugin(self, mock_get_timeout):
+    """Tests fuzzing with a mutator plugin. Wrapper around
+    _test_fuzz_with_mutator_plugin."""
+    mock_get_timeout.return_value = get_fuzz_timeout(5.0)
+    self._test_fuzz_with_mutator_plugin()
 
 
 @test_utils.integration
@@ -585,30 +590,7 @@ class TestLauncherMinijail(BaseLauncherTest):
 
   @mock.patch('bot.fuzzers.libFuzzer.launcher.get_fuzz_timeout')
   def test_fuzz_with_mutator_plugin(self, mock_get_timeout):
-    """Tests fuzzing with a mutator plugin."""
+    """Tests fuzzing with a mutator plugin. Wrapper around
+    _test_fuzz_with_mutator_plugin."""
     mock_get_timeout.return_value = get_fuzz_timeout(5.0)
-
-    fuzz_target_name = 'test_fuzzer'
-    # Call before setting up the plugin since this call will erase the directory
-    # the plugin is written to.
-    testcase_path = setup_testcase_and_corpus(
-        'empty', 'empty_corpus', fuzz=True)
-    plugin_archive_name = 'custom_mutator_plugin-libfuzzer_asan-test_fuzzer.zip'
-    plugin_archive_path = os.path.join(DATA_DIRECTORY, plugin_archive_name)
-
-    self.mock.do_mutator_plugin.return_value = True
-    self.mock._get_mutator_plugins_from_bucket.return_value = [  # pylint: disable=protected-access
-        plugin_archive_name
-    ]
-    self.mock._download_mutator_plugin_archive.return_value = (  # pylint: disable=protected-access
-        plugin_archive_path)
-    custom_mutator_print_string = 'CUSTOM MUTATOR\n'
-    try:
-      output = run_launcher(testcase_path, fuzz_target_name, '-runs=10')
-
-    finally:
-      shutil.rmtree(os.environ['MUTATOR_PLUGINS_DIR'])
-    # custom_mutator_print_string gets printed before the custom mutator mutates
-    # a test case. Assert that the count is greater than 1 to ensure that the
-    # function didn't crash on its first execution (after printing).
-    self.assertGreater(output.count(custom_mutator_print_string), 1)
+    self._test_fuzz_with_mutator_plugin()
