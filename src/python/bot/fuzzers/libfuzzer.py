@@ -118,7 +118,7 @@ class LibFuzzerCommon(object):
       additional_args: A sequence of additional arguments to be passed to the
           executable.
       extra_env: A dictionary containing environment variables and their values.
-        These will be set in the environment of the new process.
+          These will be added to the environment of the new process.
 
     Returns:
       A process.ProcessResult.

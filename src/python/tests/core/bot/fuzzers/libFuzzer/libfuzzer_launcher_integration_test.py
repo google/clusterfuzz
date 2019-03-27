@@ -124,7 +124,7 @@ class BaseLauncherTest(unittest.TestCase):
     self.mock._get_mutator_plugins_from_bucket.return_value = []  # pylint: disable=protected-access
     self.mock.do_corpus_subset.return_value = False
     self.mock.do_fork.return_value = False
-    self.mock.do_mutator_plugin.return_value = True
+    self.mock.do_mutator_plugin.return_value = False
     self.mock.do_ml_rnn_generator.return_value = False
     self.mock.do_radamsa_generator.return_value = False
     self.mock.do_random_max_length.return_value = False

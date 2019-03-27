@@ -56,7 +56,7 @@ def _get_mutator_plugins_from_bucket():
 
 def _download_mutator_plugin_archive(mutator_plugin_archive):
   """Downloads the |mutator_plugin_archive| from the mutator plugin storage
-  bucket to the plugin archives directory. Returns the path archive was
+  bucket to the plugin archives directory. Returns the path that the archive was
   downloaded to."""
   file_path = os.path.join(_get_mutator_plugins_archives_dir(),
                            mutator_plugin_archive)
@@ -122,7 +122,7 @@ class PluginGetter(object):
     return expected_name == plugin_job_and_fuzzer
 
   def get_mutator_plugin(self):
-    """Downloads, and unpacks a usable mutator plugin for this job and fuzz
+    """Downloads and unpacks a usable mutator plugin for this job and fuzz
     target if one is available in GCS"""
     mutator_plugins = _get_mutator_plugins_from_bucket()
     usable_mutator_plugins = [

@@ -314,7 +314,8 @@ class ProcessRunner(object):
       input_data: Optional. A string to be passed as input to the process.
       max_stdout_len: Optional. Maximum number of bytes to collect in stdout.
       extra_env: Optional. A dictionary containing environment variables and
-        their values. These will be set in the environment of the new process.
+           their values. These will be added to the environment of the new
+           process.
       stdout: Optional. Passed to subprocess.Popen, defaults to subprocess.PIPE
       stderr: Optional. Passed to subprocess.Popen, defaults to
           subprocess.STDOUT
