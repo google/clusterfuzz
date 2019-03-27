@@ -183,7 +183,6 @@ def execute_command(cmd, timeout=None, log_error=True):
       stdout=output_dest,
       stderr=subprocess.STDOUT,
       shell=True,
-      close_fds=True,
       preexec_fn=lambda: signal.signal(signal.SIGPIPE, signal.SIG_DFL))
 
   def run():
