@@ -35,6 +35,8 @@ DEPLOYMENT_BUCKET=$(curl -H "Metadata-Flavor: Google" \
   http://metadata.google.internal/computeMetadata/v1/project/attributes/deployment-bucket)
 DEVICE_BRANCH=$(curl -H "Metadata-Flavor: Google" \
   http://metadata.google.internal/computeMetadata/v1/instance/attributes/device-branch)
+DEVICE_TARGET=$(curl -H "Metadata-Flavor: Google" \
+  http://metadata.google.internal/computeMetadata/v1/instance/attributes/device-target)
 DEVICE_MEMORY_MB=$(curl -H "Metadata-Flavor: Google" \
   http://metadata.google.internal/computeMetadata/v1/instance/attributes/device-memory-mb)
 GSUTIL_PATH="/usr/bin"
@@ -148,7 +150,7 @@ unzip -q clusterfuzz-source.zip
 echo "Setting up android."
 mkdir -p $CVD_DIR
 cd $CVD_DIR
-fetch_artifacts.py -branch $DEVICE_BRANCH
+fetch_artifacts.py -branch $DEVICE_BRANCH -build_target $DEVICE_TARGET
 mkdir -p backup
 cp *.img backup/
 ./bin/launch_cvd -daemon -memory_mb $DEVICE_MEMORY_MB

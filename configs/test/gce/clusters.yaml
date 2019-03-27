@@ -297,6 +297,8 @@ test-clusterfuzz:
           items:
             - key: device-branch
               value:   # Android OS branch to use (e.g. git_pi-gce-release).
+            - key: device-target
+              value:   # Android OS target to use (e.g. cf_x86_phone-userdebug).
             - key: device-memory-mb
               value: 4096
             - key: startup-script
