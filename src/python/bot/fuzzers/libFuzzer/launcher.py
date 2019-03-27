@@ -38,6 +38,7 @@ from base import utils
 from bot.fuzzers import dictionary_manager
 from bot.fuzzers import engine_common
 from bot.fuzzers import libfuzzer
+from bot.fuzzers import mutator_plugin
 from bot.fuzzers import strategy
 from bot.fuzzers import utils as fuzzer_utils
 from bot.fuzzers.ml.rnn import generator as ml_rnn_generator
@@ -99,6 +100,8 @@ MERGED_DICT_SUFFIX = '.merged'
 ENGINE_ERROR_MESSAGE = 'libFuzzer: engine encountered an error.'
 
 FORK_PROBABILITY = 0.1
+
+MUTATOR_PLUGIN_PROBABILITY = 0.50
 
 
 class Generator(object):
@@ -172,6 +175,17 @@ def do_fork():
   return engine_common.decide_with_probability(
       engine_common.get_strategy_probability(
           strategy.FORK_STRATEGY, default=FORK_PROBABILITY))
+
+
+def do_mutator_plugin():
+  """Return whether or not to use a mutator_plugin."""
+  # TODO(metzman): Support Windows.
+  if environment.platform() == 'WINDOWS':
+    return False
+
+  return engine_common.decide_with_probability(
+      engine_common.get_strategy_probability(
+          strategy.MUTATOR_PLUGIN_STRATEGY, default=MUTATOR_PLUGIN_PROBABILITY))
 
 
 def add_recommended_dictionary(arguments, fuzzer_name, fuzzer_path):
@@ -815,11 +829,22 @@ def main(argv):
     fuzzing_strategies.append(
         '%s_%d' % (strategy.FORK_STRATEGY, num_fuzz_processes))
 
+  extra_env = {}
+  if do_mutator_plugin():
+    mutator_plugin_path = mutator_plugin.get_mutator_plugin(target_name)
+    logs.log('Using mutator plugin: %s' % mutator_plugin_path)
+    if mutator_plugin_path:
+      # TODO(metzman): Change the strategy to log which plugin was used, and not
+      # simply that a plugin was used.
+      fuzzing_strategies.append(strategy.MUTATOR_PLUGIN_STRATEGY)
+      extra_env['LD_PRELOAD'] = mutator_plugin_path
+
   # Execute the fuzzer binary with original arguments.
   fuzz_result = runner.fuzz(
       corpus_directories,
       fuzz_timeout=fuzz_timeout,
-      additional_args=arguments + [artifact_prefix])
+      additional_args=arguments + [artifact_prefix],
+      extra_env=extra_env)
 
   if (not use_minijail and
       fuzz_result.return_code == constants.LIBFUZZER_ERROR_EXITCODE):

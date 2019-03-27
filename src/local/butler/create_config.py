@@ -253,6 +253,8 @@ def execute(args):
       ('test-shared-corpus-bucket',
        project_bucket(args.project_id, 'shared-corpus')),
       ('test-fuzz-logs-bucket', project_bucket(args.project_id, 'fuzz-logs')),
+      ('test-mutator-plugins-bucket',
+       project_bucket(args.project_id, 'mutator-plugins')),
   )
 
   # Write new configs.

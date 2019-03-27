@@ -70,6 +70,9 @@ env:
   # the testcases against the target application.
   FUZZ_LOGS_BUCKET: test-fuzz-logs-bucket
 
+  # Default bucket to store mutator plugins.
+  MUTATOR_PLUGINS_BUCKET: test-mutator-plugins-bucket
+
   # Default issue tracker name unless overridden in a job definition. Current only supports monorail
   # issue tracker (disabled by default).
   # ISSUE_TRACKER: issue-tracker-name

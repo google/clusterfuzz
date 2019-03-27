@@ -94,14 +94,19 @@ class BaseLauncherTest(unittest.TestCase):
     os.environ['FUZZ_TEST_TIMEOUT'] = '4800'
     os.environ['JOB_NAME'] = 'libfuzzer_asan'
     os.environ['INPUT_DIR'] = TEMP_DIRECTORY
+    os.environ['MUTATOR_PLUGINS_DIR'] = os.path.join(DATA_DIRECTORY,
+                                                     'mutator-plugins')
 
     test_helpers.patch(self, [
         'atexit.register',
         'bot.fuzzers.engine_common.do_corpus_subset',
         'bot.fuzzers.engine_common.get_merge_timeout',
         'bot.fuzzers.engine_common.random_choice',
+        'bot.fuzzers.mutator_plugin._download_mutator_plugin_archive',
+        'bot.fuzzers.mutator_plugin._get_mutator_plugins_from_bucket',
         'bot.fuzzers.libFuzzer.launcher.do_fork',
         'bot.fuzzers.libFuzzer.launcher.do_ml_rnn_generator',
+        'bot.fuzzers.libFuzzer.launcher.do_mutator_plugin',
         'bot.fuzzers.libFuzzer.launcher.do_radamsa_generator',
         'bot.fuzzers.libFuzzer.launcher.do_random_max_length',
         'bot.fuzzers.libFuzzer.launcher.do_recommended_dictionary',
@@ -116,8 +121,10 @@ class BaseLauncherTest(unittest.TestCase):
 
     self.mock.getpid.return_value = 1337
 
+    self.mock._get_mutator_plugins_from_bucket.return_value = []  # pylint: disable=protected-access
     self.mock.do_corpus_subset.return_value = False
     self.mock.do_fork.return_value = False
+    self.mock.do_mutator_plugin.return_value = False
     self.mock.do_ml_rnn_generator.return_value = False
     self.mock.do_radamsa_generator.return_value = False
     self.mock.do_random_max_length.return_value = False
@@ -136,6 +143,34 @@ class BaseLauncherTest(unittest.TestCase):
     self.assertIn('stat::peak_rss_mb:', output)
 
     self.assertTrue(os.path.exists(testcase_path + '.stats2'))
+
+  def _test_fuzz_with_mutator_plugin(self):
+    """Tests fuzzing with a mutator plugin."""
+
+    fuzz_target_name = 'test_fuzzer'
+    # Call before setting up the plugin since this call will erase the directory
+    # the plugin is written to.
+    testcase_path = setup_testcase_and_corpus(
+        'empty', 'empty_corpus', fuzz=True)
+    plugin_archive_name = 'custom_mutator_plugin-libfuzzer_asan-test_fuzzer.zip'
+    plugin_archive_path = os.path.join(DATA_DIRECTORY, plugin_archive_name)
+
+    self.mock.do_mutator_plugin.return_value = True
+    self.mock._get_mutator_plugins_from_bucket.return_value = [  # pylint: disable=protected-access
+        plugin_archive_name
+    ]
+    self.mock._download_mutator_plugin_archive.return_value = (  # pylint: disable=protected-access
+        plugin_archive_path)
+    custom_mutator_print_string = 'CUSTOM MUTATOR\n'
+    try:
+      output = run_launcher(testcase_path, fuzz_target_name, '-runs=10')
+
+    finally:
+      shutil.rmtree(os.environ['MUTATOR_PLUGINS_DIR'])
+    # custom_mutator_print_string gets printed before the custom mutator mutates
+    # a test case. Assert that the count is greater than 1 to ensure that the
+    # function didn't crash on its first execution (after printing).
+    self.assertGreater(output.count(custom_mutator_print_string), 1)
 
 
 @test_utils.integration
@@ -343,7 +378,7 @@ class TestLauncher(BaseLauncherTest):
   @parameterized.parameterized.expand(['77', '27'])
   @mock.patch('metrics.logs.log_error')
   def test_exit_target_bug_not_logged(self, exit_code, mock_log_error):
-    """Test that we dont log when exit code indicates bug found in target."""
+    """Test that we don't log when exit code indicates bug found in target."""
 
     def mocked_log_error(*args, **kwargs):  # pylint: disable=unused-argument
       self.assertNotIn(launcher.ENGINE_ERROR_MESSAGE, args)
@@ -353,6 +388,13 @@ class TestLauncher(BaseLauncherTest):
         'empty', 'corpus_with_some_files', fuzz=True)
     os.environ['EXIT_FUZZER_CODE'] = exit_code
     run_launcher(testcase_path, 'exit_fuzzer', '-max_len=100')
+
+  @mock.patch('bot.fuzzers.libFuzzer.launcher.get_fuzz_timeout')
+  def test_fuzz_with_mutator_plugin(self, mock_get_timeout):
+    """Tests fuzzing with a mutator plugin. Wrapper around
+    _test_fuzz_with_mutator_plugin."""
+    mock_get_timeout.return_value = get_fuzz_timeout(5.0)
+    self._test_fuzz_with_mutator_plugin()
 
 
 @test_utils.integration
@@ -545,3 +587,10 @@ class TestLauncherMinijail(BaseLauncherTest):
     mock_log_error.side_effect = mocked_log_error
     os.environ['EXIT_FUZZER_CODE'] = '1'
     run_launcher(testcase_path, 'exit_fuzzer', '-max_len=100')
+
+  @mock.patch('bot.fuzzers.libFuzzer.launcher.get_fuzz_timeout')
+  def test_fuzz_with_mutator_plugin(self, mock_get_timeout):
+    """Tests fuzzing with a mutator plugin. Wrapper around
+    _test_fuzz_with_mutator_plugin."""
+    mock_get_timeout.return_value = get_fuzz_timeout(5.0)
+    self._test_fuzz_with_mutator_plugin()

@@ -13,6 +13,7 @@
 # limitations under the License.
 """Process handling utilities."""
 
+import os
 import subprocess
 import tempfile
 import threading
@@ -239,6 +240,7 @@ class ProcessRunner(object):
   def run(self,
           additional_args=None,
           max_stdout_len=None,
+          extra_env=None,
           stdin=subprocess.PIPE,
           stdout=subprocess.PIPE,
           stderr=subprocess.STDOUT,
@@ -251,6 +253,8 @@ class ProcessRunner(object):
       additional_args: A sequence of additional arguments to be passed to the
           executable.
       max_stdout_len: Optional. Maximum number of bytes to collect in stdout.
+      extra_env: Optional. A dictionary containing environment variables and
+        their values. These will be set in the environment of the new process.
       stdin: Optional. Passed to subprocess.Popen, defaults to subprocess.PIPE,
       stdout: Optional. Passed to subprocess.Popen, defaults to subprocess.PIPE
       stderr: Optional. Passed to subprocess.Popen, defaults to
@@ -260,14 +264,24 @@ class ProcessRunner(object):
     Returns:
       A subprocess.Popen object for the process.
     """
+    # TODO: Rename popen_args to popen_kwargs.
     command = self.get_command(additional_args)
 
     if stdout == subprocess.PIPE and max_stdout_len:
       stdout = tempfile.TemporaryFile()
 
+    env = popen_args.pop('env', os.environ.copy())
+    if extra_env is not None:
+      env.update(extra_env)
+
     return ChildProcess(
         subprocess.Popen(
-            command, stdin=stdin, stdout=stdout, stderr=stderr, **popen_args),
+            command,
+            env=env,
+            stdin=stdin,
+            stdout=stdout,
+            stderr=stderr,
+            **popen_args),
         command,
         max_stdout_len=max_stdout_len,
         stdout_file=stdout)
@@ -281,6 +295,7 @@ class ProcessRunner(object):
                    terminate_wait_time=None,
                    input_data=None,
                    max_stdout_len=None,
+                   extra_env=None,
                    stdout=subprocess.PIPE,
                    stderr=subprocess.STDOUT,
                    **popen_args):
@@ -298,6 +313,9 @@ class ProcessRunner(object):
           handler.
       input_data: Optional. A string to be passed as input to the process.
       max_stdout_len: Optional. Maximum number of bytes to collect in stdout.
+      extra_env: Optional. A dictionary containing environment variables and
+           their values. These will be added to the environment of the new
+           process.
       stdout: Optional. Passed to subprocess.Popen, defaults to subprocess.PIPE
       stderr: Optional. Passed to subprocess.Popen, defaults to
           subprocess.STDOUT
@@ -309,6 +327,7 @@ class ProcessRunner(object):
     process = self.run(
         additional_args,
         max_stdout_len=max_stdout_len,
+        extra_env=extra_env,
         stdin=subprocess.PIPE,
         stdout=stdout,
         stderr=stderr,

@@ -31,6 +31,7 @@ FORWARDED_ENVIRONMENT_VARIABLES = [
         r'^ASAN_OPTIONS$',
         r'^BACKUP_BUCKET$',
         r'^CORPUS_BUCKET$',
+        r'^MUTATOR_PLUGINS_BUCKET$',
         r'^FUZZ_CORPUS_DIR$',
         r'^FUZZER_DIR$',
         r'^FUZZER_NAME_REGEX$',
