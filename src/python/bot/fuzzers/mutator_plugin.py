@@ -104,6 +104,8 @@ class PluginGetter(object):
   def create_directories(self):
     """Creates directories needed to use mutator plugins."""
 
+    # TODO(320): Change mutator plugin downloads so that they don't need to be
+    # deleted and redownloaded on each run of launcher.py.
     def recreate_directory(directory_path):
       shell.create_directory_if_needed(
           directory_path, create_intermediates=True)
