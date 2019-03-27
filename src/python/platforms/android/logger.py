@@ -62,14 +62,14 @@ def filter_log_output(output):
     # To parse frames like:
     # E/v8      (18890): Error installing extension 'v8/LoadTimes'.
     # {log_level}/{process_name}({process_id}): {message}
-    m_line = re.match(r'^[VDIWEFS]/([^(]+)\(\s*(\d+)\)[:] (.*)', line)
+    m_line = re.match(r'^[VDIWEFS]/([^(]+)\(\s*(\d+)\)[:](.*)$', line)
     if not m_line:
       logs.log_error('Failed to parse logcat line: %s' % line)
       continue
 
     process_name = m_line.group(1).strip()
     process_id = int(m_line.group(2))
-    filtered_line = m_line.group(3).rstrip()
+    filtered_line = m_line.group(3).rstrip()[1:]
 
     # Process Android crash stack frames and convert into sanitizer format.
     m_crash_state = re.match(r'\s*#([0-9]+)\s+pc\s+([xX0-9a-fA-F]+)\s+(.+)',
