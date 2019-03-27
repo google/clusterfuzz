@@ -326,7 +326,7 @@ class LibFuzzerRunner(new_process.ProcessRunner, LibFuzzerCommon):
         fuzz_timeout,
         artifact_prefix,
         additional_args,
-        extra_env=extra_env)
+        extra_env)
 
 
 class MinijailLibFuzzerRunner(engine_common.MinijailEngineFuzzerRunner,
@@ -403,7 +403,7 @@ class MinijailLibFuzzerRunner(engine_common.MinijailEngineFuzzerRunner,
         fuzz_timeout,
         artifact_prefix,
         additional_args,
-        extra_env=extra_env)
+        extra_env)
 
   def merge(self,
             corpus_directories,

@@ -101,7 +101,7 @@ ENGINE_ERROR_MESSAGE = 'libFuzzer: engine encountered an error.'
 
 FORK_PROBABILITY = 0.1
 
-MUTATOR_PLUGIN_PROBABILITY = .5
+MUTATOR_PLUGIN_PROBABILITY = 0.50
 
 
 class Generator(object):
