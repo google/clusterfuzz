@@ -61,7 +61,6 @@ class FuzzerTest(builtin_test.BaseEngineFuzzerTest):
   def test_run(self):
     """Test running libFuzzer fuzzer."""
     libfuzzer = fuzzer.LibFuzzer()
-
     libfuzzer.run('/input', '/output', 1)
     with open('/output/flags-0') as f:
       self.assertEqual('%TESTCASE% target -timeout=25 -rss_limit_mb=2048',
