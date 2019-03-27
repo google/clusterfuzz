@@ -586,10 +586,6 @@ class TestLauncherMinijail(BaseLauncherTest):
   @mock.patch('bot.fuzzers.libFuzzer.launcher.get_fuzz_timeout')
   def test_fuzz_with_mutator_plugin(self, mock_get_timeout):
     """Tests fuzzing with a mutator plugin."""
-    self._test_fuzz_with_mutator_plugin()
-
-  @mock.patch('bot.fuzzers.libFuzzer.launcher.get_fuzz_timeout')
-  def _test_fuzz_with_mutator_plugin(self, mock_get_timeout):
     mock_get_timeout.return_value = get_fuzz_timeout(5.0)
 
     fuzz_target_name = 'test_fuzzer'
