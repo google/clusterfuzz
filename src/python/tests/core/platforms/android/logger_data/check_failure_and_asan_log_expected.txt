@@ -18,6 +18,7 @@ Error installing extension 'v8/LoadTimes'.
     #8 0x9d83e46b (/data/app/com.google.android.apps.chrome-MJ83fU9k_oc7HCqg31idOA==/lib/arm/libchrome.so+0x0ae2146b)
     #9 0x9ddb5129 (/data/app/com.google.android.apps.chrome-MJ83fU9k_oc7HCqg31idOA==/lib/arm/libchrome.so+0x0b398129)
     #10 0x99d1c747 (/data/app/com.google.android.apps.chrome-MJ83fU9k_oc7HCqg31idOA==/lib/arm/libchrome.so+0x072ff747)
+
 --------- com.google.android.apps.chrome:sandboxed_process0 (18890):
 =================================================================
 ==18890==ERROR: AddressSanitizer: ABRT on unknown address 0x000049ca (pc 0xe535ce36 bp 0xa5f12f30 sp 0xa5f12c08 T151)
@@ -34,11 +35,13 @@ Error installing extension 'v8/LoadTimes'.
     #10 0x9d83e468  (/data/app/com.google.android.apps.chrome-MJ83fU9k_oc7HCqg31idOA==/lib/arm/libchrome.so+0xae21468)
     #11 0x9ddb5126  (/data/app/com.google.android.apps.chrome-MJ83fU9k_oc7HCqg31idOA==/lib/arm/libchrome.so+0xb398126)
     #12 0x99d1c744  (/data/app/com.google.android.apps.chrome-MJ83fU9k_oc7HCqg31idOA==/lib/arm/libchrome.so+0x72ff744)
+
 AddressSanitizer can not provide additional info.
 SUMMARY: AddressSanitizer: ABRT (/system/lib/libc.so+0x1ce32)
 Thread T151 (CrRendererMain) created by T0 (dboxed_process0) here:
     #0 0xe6264ea4  (/system/lib/libclang_rt.asan-arm-android.so+0x9cea4)
     #1 0xbf9f0584  (/system/lib/libart.so+0x36a584)
+
 ==18890==ABORTING
 --------- ActivityManager (11949):
 Process com.google.android.apps.chrome:sandboxed_process0 (pid 18890) has died: fore TOP
