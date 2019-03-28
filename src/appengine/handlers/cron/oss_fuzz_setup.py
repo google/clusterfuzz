@@ -376,6 +376,11 @@ def _shared_corpus_bucket_name():
   return environment.get_value('SHARED_CORPUS_BUCKET')
 
 
+def _mutator_plugins_bucket_name():
+  """Mutator plugins bucket name."""
+  return environment.get_value('MUTATOR_PLUGINS_BUCKET')
+
+
 def add_service_account_to_bucket(client, bucket_name, service_account, role):
   """Add service account to the gcr.io images bucket."""
   iam_policy = storage.get_bucket_iam_policy(client, bucket_name)
@@ -746,11 +751,13 @@ class Handler(base_handler.Handler):
       except Exception as e:
         logs.log_error('Failed to add bucket IAMs for %s: %s' % (project, e))
 
-      # Grant the service account read access to deployment, images and
-      # shared corpus buckets.
+      # Grant the service account read access to deployment, shared corpus and
+      # mutator plugin buckets.
       add_service_account_to_bucket(client, _deployment_bucket_name(),
                                     service_account, OBJECT_VIEWER_IAM_ROLE)
       add_service_account_to_bucket(client, _shared_corpus_bucket_name(),
+                                    service_account, OBJECT_VIEWER_IAM_ROLE)
+      add_service_account_to_bucket(client, _mutator_plugins_bucket_name(),
                                     service_account, OBJECT_VIEWER_IAM_ROLE)
 
       for data_bundle in data_bundles:
