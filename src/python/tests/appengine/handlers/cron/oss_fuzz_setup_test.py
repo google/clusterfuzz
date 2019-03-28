@@ -933,11 +933,11 @@ class OssFuzzSetupTest(unittest.TestCase):
         mock.call(
             body={
                 'resourceId':
-                  'fake',
+                    'fake',
                 'kind':
-                  'storage#policy',
+                    'storage#policy',
                 'etag':
-                  'fake',
+                    'fake',
                 'bindings': [{
                     'role': 'roles/storage.objectViewer',
                     'members': ['serviceAccount:lib1@serviceaccount.com']
@@ -1045,11 +1045,11 @@ class OssFuzzSetupTest(unittest.TestCase):
         mock.call(
             body={
                 'resourceId':
-                  'fake',
+                    'fake',
                 'kind':
-                  'storage#policy',
+                    'storage#policy',
                 'etag':
-                  'fake',
+                    'fake',
                 'bindings': [{
                     'role': 'roles/storage.objectViewer',
                     'members': ['serviceAccount:lib2@serviceaccount.com']
@@ -1211,11 +1211,11 @@ class OssFuzzSetupTest(unittest.TestCase):
         mock.call(
             body={
                 'resourceId':
-                  'fake',
+                    'fake',
                 'kind':
-                  'storage#policy',
+                    'storage#policy',
                 'etag':
-                  'fake',
+                    'fake',
                 'bindings': [{
                     'role': 'roles/storage.objectViewer',
                     'members': ['serviceAccount:lib3@serviceaccount.com']
