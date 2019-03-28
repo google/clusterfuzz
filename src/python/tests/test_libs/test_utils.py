@@ -176,12 +176,12 @@ def slow(func):
 def android_device_required(func):
   """Skip Android-specific tests if we cannot run them."""
   reason = None
-  if not environment.get_value('INTEGRATION'):
+  if not environment.get_value('ANDROID_SERIAL'):
+    reason = 'Android device tests require that ANDROID_SERIAL is set.'
+  elif not environment.get_value('INTEGRATION'):
     reason = 'Integration tests are not enabled.'
   elif environment.platform() != 'LINUX':
     reason = 'Android device tests can only run on a Linux host.'
-  if not environment.get_value('ANDROID_SERIAL'):
-    reason = 'Android device tests require that ANDROID_SERIAL is set.'
 
   return unittest.skipIf(reason is not None, reason)(func)
 

@@ -138,7 +138,7 @@ class WaitForDeviceTest(unittest.TestCase):
 
 @test_utils.android_device_required
 class IsPackageInstalledTest(unittest.TestCase):
-  """Tests for wait_for_device."""
+  """Tests for is_package_installed."""
 
   def test_nonexistent_package_not_installed(self):
     """Ensure that a non-existent package is not installed."""
