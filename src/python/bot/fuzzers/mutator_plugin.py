@@ -31,9 +31,8 @@ def _get_mutator_plugins_bucket_url():
   """Returns the url of the mutator plugin's cloud storage bucket."""
   mutator_plugins_bucket = environment.get_value('MUTATOR_PLUGINS_BUCKET')
   if not mutator_plugins_bucket:
-    logs.log_warn(
-        'MUTATOR_PLUGINS_BUCKET is not set in project config, '
-        'skipping custom mutator strategy.')
+    logs.log_warn('MUTATOR_PLUGINS_BUCKET is not set in project config, '
+                  'skipping custom mutator strategy.')
     return None
 
   return 'gs://%s' % mutator_plugins_bucket
