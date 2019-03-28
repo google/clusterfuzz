@@ -506,11 +506,20 @@ def test_for_crash_with_retries(testcase,
 
     crash_result = CrashResult(return_code, crash_time, output)
     if not crash_result.is_crash():
+      logs.log(
+          'No crash occurred (round {round_number}).'.format(
+              round_number=round_number),
+          output=output)
       continue
 
     state = crash_result.get_symbolized_data()
-    logs.log('Crash occurred in %d seconds (round %d). State:\n%s' %
-             (crash_time, round_number, state.crash_state))
+    logs.log(
+        ('Crash occurred in {crash_time} seconds (round {round_number}). '
+         'State:\n{crash_state}').format(
+             crash_time=crash_time,
+             round_number=round_number,
+             crash_state=state.crash_state),
+        output=state.crash_stacktrace)
 
     if not compare_crash or not testcase.crash_state:
       logs.log('Crash stacktrace comparison skipped.')
@@ -578,25 +587,34 @@ def test_for_reproducibility(testcase_path, expected_state,
 
     crash_result = CrashResult(return_code, crash_time, output)
     if not crash_result.is_crash():
+      logs.log(
+          'No crash occurred (round {round_number}).'.format(
+              round_number=round_number),
+          output=output)
       continue
 
     state = crash_result.get_symbolized_data()
-    crash_state = state.crash_state
-    security_flag = crash_result.is_security_issue()
+    logs.log(
+        ('Crash occurred in {crash_time} seconds (round {round_number}). '
+         'State:\n{crash_state}').format(
+             crash_time=crash_time,
+             round_number=round_number,
+             crash_state=state.crash_state),
+        output=state.crash_stacktrace)
 
     # If we don't have an expected crash state, set it to the one from initial
     # crash.
     if not expected_state:
-      expected_state = crash_state
+      expected_state = state.crash_state
 
-    if security_flag != expected_security_flag:
+    if crash_result.is_security_issue() != expected_security_flag:
       logs.log('Detected a crash without the correct security flag.')
       continue
 
-    crash_comparer = CrashComparer(crash_state, expected_state)
+    crash_comparer = CrashComparer(state.crash_state, expected_state)
     if not crash_comparer.is_similar():
       logs.log('Detected a crash with an unrelated state: '
-               'Expected(%s), Found(%s).' % (expected_state, crash_state))
+               'Expected(%s), Found(%s).' % (expected_state, state.crash_state))
       continue
 
     crash_count += 1
