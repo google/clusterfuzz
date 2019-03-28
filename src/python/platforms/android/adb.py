@@ -895,7 +895,7 @@ def wait_until_fully_booted():
 
   factory_reset()
   logs.log_fatal_and_exit(
-      'Device failed to finish boot. Resetted to factory settings and exiting.')
+      'Device failed to finish boot. Reset to factory settings and exited.')
 
   # Not reached.
   return False
