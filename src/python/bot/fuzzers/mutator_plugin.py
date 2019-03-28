@@ -29,7 +29,14 @@ PLUGINS_SUBDIR_NAME = 'plugins'
 
 def _get_mutator_plugins_bucket_url():
   """Returns the url of the mutator plugin's cloud storage bucket."""
-  return 'gs://%s' % environment.get_value('MUTATOR_PLUGINS_BUCKET')
+  mutator_plugins_bucket = environment.get_value('MUTATOR_PLUGINS_BUCKET')
+  if not mutator_plugins_bucket:
+    logs.log_warn(
+        'MUTATOR_PLUGINS_BUCKET is not set in project config, '
+        'skipping custom mutator strategy.')
+    return None
+
+  return 'gs://%s' % mutator_plugins_bucket
 
 
 def _get_mutator_plugins_subdir(subdir):
@@ -51,7 +58,11 @@ def _get_mutator_plugins_unpacked_dir():
 def _get_mutator_plugins_from_bucket():
   """Returns list of the mutator plugin archives in the mutator plugin storage
   bucket."""
-  return storage.list_blobs(_get_mutator_plugins_bucket_url())
+  mutator_plugins_bucket_url = _get_mutator_plugins_bucket_url()
+  if not mutator_plugins_bucket_url:
+    return None
+
+  return storage.list_blobs(mutator_plugins_bucket_url)
 
 
 def _download_mutator_plugin_archive(mutator_plugin_archive):
@@ -127,6 +138,10 @@ class PluginGetter(object):
     """Downloads and unpacks a usable mutator plugin for this job and fuzz
     target if one is available in GCS"""
     mutator_plugins = _get_mutator_plugins_from_bucket()
+    if not mutator_plugins:
+      # No plugins found or plugin url is not set.
+      return None
+
     usable_mutator_plugins = [
         plugin_archive for plugin_archive in mutator_plugins
         if self._is_plugin_usable(plugin_archive)
