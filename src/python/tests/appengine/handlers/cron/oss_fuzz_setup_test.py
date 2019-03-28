@@ -943,6 +943,20 @@ class OssFuzzSetupTest(unittest.TestCase):
                     'members': ['serviceAccount:lib1@serviceaccount.com']
                 }]
             },
+            bucket='test-mutator-plugins-bucket'),
+        mock.call(
+            body={
+                'resourceId':
+                    'fake',
+                'kind':
+                    'storage#policy',
+                'etag':
+                    'fake',
+                'bindings': [{
+                    'role': 'roles/storage.objectViewer',
+                    'members': ['serviceAccount:lib1@serviceaccount.com']
+                }]
+            },
             bucket=u'global-corpus.clusterfuzz-external.appspot.com'),
         mock.call(
             body={
@@ -1028,6 +1042,20 @@ class OssFuzzSetupTest(unittest.TestCase):
                 }]
             },
             bucket='test-shared-corpus-bucket'),
+        mock.call(
+            body={
+                'resourceId':
+                    'fake',
+                'kind':
+                    'storage#policy',
+                'etag':
+                    'fake',
+                'bindings': [{
+                    'role': 'roles/storage.objectViewer',
+                    'members': ['serviceAccount:lib2@serviceaccount.com']
+                }]
+            },
+            bucket='test-mutator-plugins-bucket'),
         mock.call(
             body={
                 'resourceId':
@@ -1180,6 +1208,20 @@ class OssFuzzSetupTest(unittest.TestCase):
                 }]
             },
             bucket='test-shared-corpus-bucket'),
+        mock.call(
+            body={
+                'resourceId':
+                    'fake',
+                'kind':
+                    'storage#policy',
+                'etag':
+                    'fake',
+                'bindings': [{
+                    'role': 'roles/storage.objectViewer',
+                    'members': ['serviceAccount:lib3@serviceaccount.com']
+                }]
+            },
+            bucket='test-mutator-plugins-bucket'),
         mock.call(
             body={
                 'resourceId':
