@@ -832,10 +832,10 @@ def main(argv):
   extra_env = {}
   if do_mutator_plugin():
     mutator_plugin_path = mutator_plugin.get_mutator_plugin(target_name)
-    logs.log('Using mutator plugin: %s' % mutator_plugin_path)
     if mutator_plugin_path:
-      # TODO(metzman): Change the strategy to log which plugin was used, and not
-      # simply that a plugin was used.
+      logs.log('Using mutator plugin: %s' % mutator_plugin_path)
+      # TODO(metzman): Change the strategy to record which plugin was used, and
+      # not simply that a plugin was used.
       fuzzing_strategies.append(strategy.MUTATOR_PLUGIN_STRATEGY)
       extra_env['LD_PRELOAD'] = mutator_plugin_path
 
