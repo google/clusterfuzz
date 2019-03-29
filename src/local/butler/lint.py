@@ -35,6 +35,8 @@ _LICENSE_CHECK_EXTENSIONS = [
     '.html',
     '.js',
     '.go',
+    '.proto',
+    '.ps1',
     '.py',
     '.sh',
     '.yaml',
@@ -51,7 +53,7 @@ _YAML_EXCEPTIONS = ['bad.yaml']
 
 
 def license_validate(file_path):
-  """Run license validation for the given source path."""
+  """Run license header validation."""
   filename = os.path.basename(file_path)
   extension = os.path.splitext(file_path)[1]
   if (filename not in _LICENSE_CHECK_FILENAMES and
@@ -89,39 +91,35 @@ def py_import_order(file_path):
 
     return ['\n'.join(sorted_import_block)]
 
-  def _validate_imports(data):
-    """Test that a file's contents are ordered properly."""
-    imports = []
-    from_imports = []
-    corrected_import_blocks = []
-    for line in data.splitlines():
-      if line.startswith('import '):
-        imports.append(line)
-      else:
-        corrected_import_blocks += _validate_block(imports)
-        imports = []
+  data = open(file_path).read()
+  imports = []
+  from_imports = []
+  corrected_import_blocks = []
+  for line in data.splitlines():
+    if line.startswith('import '):
+      imports.append(line)
+    else:
+      corrected_import_blocks += _validate_block(imports)
+      imports = []
 
-      if line.startswith('from '):
-        from_imports.append(line)
-      else:
-        corrected_import_blocks += _validate_block(from_imports)
-        from_imports = []
+    if line.startswith('from '):
+      from_imports.append(line)
+    else:
+      corrected_import_blocks += _validate_block(from_imports)
+      from_imports = []
 
-    # Though rare, if a file ends with an import we must still validate them.
-    corrected_import_blocks += _validate_block(imports)
-    corrected_import_blocks += _validate_block(from_imports)
+  # Though rare, if a file ends with an import we must still validate them.
+  corrected_import_blocks += _validate_block(imports)
+  corrected_import_blocks += _validate_block(from_imports)
 
-    if not corrected_import_blocks:
-      return
+  if not corrected_import_blocks:
+    return
 
-    suggestions = '\n\n--------\n\n'.join(corrected_import_blocks)
-    print('File {filename} has non-alphabetized import blocks. '
-          'Suggested order:\n\n{suggestions}').format(
-              filename=file_path, suggestions=suggestions)
-    sys.exit(1)
-
-  with open(file_path) as handle:
-    _validate_imports(handle.read())
+  suggestions = '\n\n--------\n\n'.join(corrected_import_blocks)
+  print('File {filename} has non-alphabetized import blocks. '
+        'Suggested order:\n\n{suggestions}').format(
+            filename=file_path, suggestions=suggestions)
+  sys.exit(1)
 
 
 def py_test_init_check(file_path):
@@ -138,7 +136,7 @@ def py_test_init_check(file_path):
 
 
 def yaml_validate(file_path):
-  """Run yaml validation for the given source path."""
+  """Run yaml validation."""
   if os.path.basename(file_path) in _YAML_EXCEPTIONS:
     return
 
