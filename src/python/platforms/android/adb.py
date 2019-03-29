@@ -507,7 +507,7 @@ def read_data_from_file(file_path):
 
 def reboot():
   """Reboots device."""
-  run_adb_command('reboot', recover=False)
+  run_adb_command('reboot')
 
 
 def stop_gce_device():
@@ -952,4 +952,3 @@ def write_data_to_file(contents, file_path):
 
   if is_system_file:
     reboot()
-    wait_until_fully_booted()
