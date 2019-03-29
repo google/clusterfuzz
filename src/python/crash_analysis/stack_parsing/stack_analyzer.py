@@ -267,6 +267,7 @@ IGNORE_CONTAINS = [
     'asan_check_access',
     'asan_osx_dynamic.dylib',
     'assert',
+    'do_malloc',
     'ieee754-',
     'libpthread',
     'logger',
@@ -401,6 +402,8 @@ IGNORE_STARTSWITH = [
     'strcmp',
     'strcpy',
     'strlen',
+    'tcmalloc',
+    'tc_malloc',
 ]
 IGNORE_CONTAINS_IF_SYMBOLIZED = [
     'libc.so',
@@ -631,6 +634,10 @@ def ignore_stack_frame(stack_frame, symbolized):
   # Normalize path seperator in stack frame, this allows to ignore strings
   # properly cross-platform.
   normalized_stack_frame = stack_frame.replace('\\', '/')
+
+  # Ignore frames that exactly match the app name.
+  if environment.get_value('APP_NAME') == normalized_stack_frame:
+    return True
 
   # Check if the stack frame matches one of the strings
   # in the ignore list.
