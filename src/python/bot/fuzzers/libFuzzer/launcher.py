@@ -174,10 +174,9 @@ def do_fork():
 
   # TODO(crbug.com/920355): Reenable this when fork mode works with ChromeOS's
   # MSAN.
-  is_msan = (
-      environment.get_memory_tool_name(
-          environment.get_value('JOB_NAME')) == 'MSAN')
-  if is_msan and environment.is_chromeos_system_job():
+  memory_tool = environment.get_memory_tool_name(
+      environment.get_value('JOB_NAME'))
+  if memory_tool == 'MSAN' and environment.is_chromeos_system_job():
     return False
 
   return engine_common.decide_with_probability(
