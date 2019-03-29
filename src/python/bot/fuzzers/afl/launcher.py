@@ -1191,13 +1191,16 @@ class MinijailAflRunner(AflRunnerCommon,
     environment.set_value(constants.STDERR_FILENAME_ENV_VAR,
                           '/' + STDERR_FILENAME)
 
+
 class CorpusElement(object):
+
   def __init__(self, file_path):
     self.file_path = file_path
     self.size = os.path.getsize(self.file_path)
 
 
 class Corpus(object):
+
   def __init__(self):
     self.features_and_elements = {}
 
