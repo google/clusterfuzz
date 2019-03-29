@@ -681,10 +681,11 @@ def maybe_use_mutator_plugin(target_name, extra_env, fuzzing_strategies,
                              chroot):
   """Decide whether to use a mutator plugin. If yes and there is a usable plugin
   available for |target_name|, then add it to LD_PRELOAD in |extra_env|, add a
-  strategy to fuzzing_strategies, and add chroot bindings if |chroot| is not
+  strategy to |fuzzing_strategies|, and add chroot bindings if |chroot| is not
   None."""
   if not do_mutator_plugin():
     return
+
   mutator_plugin_path = mutator_plugin.get_mutator_plugin(target_name)
   if not mutator_plugin_path:
     return
@@ -692,8 +693,9 @@ def maybe_use_mutator_plugin(target_name, extra_env, fuzzing_strategies,
   logs.log('Using mutator plugin: %s' % mutator_plugin_path)
   # TODO(metzman): Change the strategy to record which plugin was used, and
   # not simply that a plugin was used.
-  fuzzing_strategies.append(strategy.MUTATOR_PLUGIN_STRATEGY)
   extra_env['LD_PRELOAD'] = mutator_plugin_path
+  fuzzing_strategies.append(strategy.MUTATOR_PLUGIN_STRATEGY)
+
   if chroot:
     mutator_plugin_dir = os.path.dirname(mutator_plugin_path)
     chroot.add_binding(
