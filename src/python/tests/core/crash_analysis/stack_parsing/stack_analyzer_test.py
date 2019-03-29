@@ -2330,20 +2330,3 @@ class StackAnalyzerTestcase(unittest.TestCase):
     self._validate_get_crash_data(data, expected_type, expected_address,
                                   expected_state, expected_stacktrace,
                                   expected_security_flag)
-
-  def test_ignore_app_name(self):
-    """Test that frames exactly matching APP_NAME are ignored."""
-    environment.set_value('APP_NAME', 'chrome')
-
-    data = self._read_test_data('ignore_app_name.txt')
-    expected_type = 'UNKNOWN READ'
-    expected_address = '0x34df662c8d34'
-    expected_state = ('Optimizer::Uses::insert\n'
-                      'Optimizer::analyzeUses\n'
-                      'Optimizer::run\n')
-
-    expected_stacktrace = data
-    expected_security_flag = True
-    self._validate_get_crash_data(data, expected_type, expected_address,
-                                  expected_state, expected_stacktrace,
-                                  expected_security_flag)
