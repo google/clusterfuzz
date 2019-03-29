@@ -677,7 +677,8 @@ def get_printable_command(command, fuzzer_path, use_minijail):
   return engine_common.get_command_quoted(command)
 
 
-def maybe_use_mutator_plugin(target_name, extra_env, fuzzing_strategies, chroot):
+def maybe_use_mutator_plugin(target_name, extra_env, fuzzing_strategies,
+                             chroot):
   """Decide whether to use a mutator plugin. If yes and there is a usable plugin
   available for |target_name|, then add it to LD_PRELOAD in |extra_env|, add a
   strategy to fuzzing_strategies, and add chroot bindings if |chroot| is not
@@ -857,7 +858,6 @@ def main(argv):
                              minijail_chroot)
   else:
     maybe_use_mutator_plugin(target_name, extra_env, fuzzing_strategies, None)
-
 
   # Execute the fuzzer binary with original arguments.
   fuzz_result = runner.fuzz(
