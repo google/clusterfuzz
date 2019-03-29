@@ -172,6 +172,12 @@ def do_fork():
   if environment.platform() == 'WINDOWS':
     return False
 
+  # TODO(crbug.com/920355): Reenable this when forkmode works with ChromeOS's
+  # MSAN.
+  if (environment.is_chromeos_system_job() and
+      get_memory_tool_name(environment.get_value('JOB_NAME')) == 'MSAN'):
+    return False
+
   return engine_common.decide_with_probability(
       engine_common.get_strategy_probability(
           strategy.FORK_STRATEGY, default=FORK_PROBABILITY))
