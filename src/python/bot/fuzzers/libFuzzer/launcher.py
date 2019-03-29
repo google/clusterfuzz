@@ -677,29 +677,26 @@ def get_printable_command(command, fuzzer_path, use_minijail):
   return engine_common.get_command_quoted(command)
 
 
-def maybe_use_mutator_plugin(target_name, extra_env, fuzzing_strategies,
-                             chroot):
+def use_mutator_plugin(target_name, extra_env, chroot):
   """Decide whether to use a mutator plugin. If yes and there is a usable plugin
-  available for |target_name|, then add it to LD_PRELOAD in |extra_env|, add a
-  strategy to |fuzzing_strategies|, and add chroot bindings if |chroot| is not
-  None."""
-  if not do_mutator_plugin():
-    return
+  available for |target_name|, then add it to LD_PRELOAD in |extra_env|, add
+  chroot bindings if |chroot| is not None, and return True."""
 
   mutator_plugin_path = mutator_plugin.get_mutator_plugin(target_name)
   if not mutator_plugin_path:
-    return
+    return False
 
   logs.log('Using mutator plugin: %s' % mutator_plugin_path)
   # TODO(metzman): Change the strategy to record which plugin was used, and
   # not simply that a plugin was used.
   extra_env['LD_PRELOAD'] = mutator_plugin_path
-  fuzzing_strategies.append(strategy.MUTATOR_PLUGIN_STRATEGY)
 
   if chroot:
     mutator_plugin_dir = os.path.dirname(mutator_plugin_path)
     chroot.add_binding(
         minijail.ChrootBinding(mutator_plugin_dir, mutator_plugin_dir, False))
+
+  return True
 
 
 def main(argv):
@@ -855,11 +852,9 @@ def main(argv):
         '%s_%d' % (strategy.FORK_STRATEGY, num_fuzz_processes))
 
   extra_env = {}
-  if use_minijail:
-    maybe_use_mutator_plugin(target_name, extra_env, fuzzing_strategies,
-                             minijail_chroot)
-  else:
-    maybe_use_mutator_plugin(target_name, extra_env, fuzzing_strategies, None)
+  if do_mutator_plugin():
+    if use_mutator_plugin(target_name, extra_env, minijail_chroot):
+      fuzzing_strategies.append(strategy.MUTATOR_PLUGIN_STRATEGY)
 
   # Execute the fuzzer binary with original arguments.
   fuzz_result = runner.fuzz(
