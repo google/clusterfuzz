@@ -952,3 +952,4 @@ def write_data_to_file(contents, file_path):
 
   if is_system_file:
     reboot()
+    wait_until_fully_booted()
