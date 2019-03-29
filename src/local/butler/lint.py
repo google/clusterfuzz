@@ -51,6 +51,26 @@ _PY_TEST_SUFFIX = '_test.py'
 _PY_INIT_FILENAME = '__init__.py'
 _YAML_EXCEPTIONS = ['bad.yaml']
 
+_error_occurred = False
+
+
+def _error(message=None):
+  """Print error and track state via a global."""
+  if message:
+    print message
+
+  global _error_occurred
+  _error_occurred = True
+
+
+def _execute_command_and_track_error(command):
+  """Executes command, tracks error state."""
+  returncode, output = common.execute(command, exit_on_error=False)
+  if returncode != 0:
+    _error()
+
+  return output
+
 
 def license_validate(file_path):
   """Run license header validation."""
@@ -73,8 +93,7 @@ def license_validate(file_path):
   if _LICENSE_CHECK_STRING in open(file_path).read():
     return
 
-  print 'Missing license header for %s.' % file_path
-  sys.exit(1)
+  _error('Failed: Missing license header for %s.' % file_path)
 
 
 def py_import_order(file_path):
@@ -116,10 +135,9 @@ def py_import_order(file_path):
     return
 
   suggestions = '\n\n--------\n\n'.join(corrected_import_blocks)
-  print('File {filename} has non-alphabetized import blocks. '
-        'Suggested order:\n\n{suggestions}').format(
-            filename=file_path, suggestions=suggestions)
-  sys.exit(1)
+  _error(('Failed: File {filename} has non-alphabetized import blocks. '
+          'Suggested order:\n\n{suggestions}').format(
+              filename=file_path, suggestions=suggestions))
 
 
 def py_test_init_check(file_path):
@@ -130,9 +148,8 @@ def py_test_init_check(file_path):
 
   test_directory = os.path.dirname(file_path)
   if _PY_INIT_FILENAME not in os.listdir(test_directory):
-    print 'Missing {filename} file in test directory {dir}.'.format(
-        filename=_PY_INIT_FILENAME, dir=test_directory)
-    sys.exit(1)
+    _error('Failed: Missing {filename} file in test directory {dir}.'.format(
+        filename=_PY_INIT_FILENAME, dir=test_directory))
 
 
 def yaml_validate(file_path):
@@ -144,8 +161,7 @@ def yaml_validate(file_path):
     with open(file_path) as handle:
       yaml.safe_load(handle.read())
   except Exception as e:
-    print 'Failed yaml validation for %s.\n\n%s' % (file_path, e)
-    sys.exit(1)
+    _error('Failed: Invalid yaml file %s.\n\n%s' % (file_path, e))
 
 
 def execute(_):
@@ -172,22 +188,25 @@ def execute(_):
   yaml_changed_file_paths = [f for f in file_paths if f.endswith('.yaml')]
 
   for file_path in py_changed_file_paths:
-    common.execute('pylint ' + file_path)
-    common.execute('yapf -d ' + file_path)
+    _execute_command_and_track_error('pylint ' + file_path)
+    _execute_command_and_track_error('yapf -d ' + file_path)
     py_import_order(file_path)
     py_test_init_check(file_path)
 
   golint_path = os.path.join('local', 'bin', 'golint')
   for file_path in go_changed_file_paths:
     if not os.path.basename(file_path) in _GOLINT_EXCEPTIONS:
-      common.execute(golint_path + ' ' + file_path)
+      _execute_command_and_track_error(golint_path + ' ' + file_path)
 
-    _, output = common.execute('gofmt -d ' + file_path)
+    output = _execute_command_and_track_error('gofmt -d ' + file_path)
     if output.strip():
-      sys.exit(1)
+      _error()
 
   for file_path in yaml_changed_file_paths:
     yaml_validate(file_path)
 
   for file_path in file_paths:
     license_validate(file_path)
+
+  if _error_occurred:
+    sys.exit(1)
