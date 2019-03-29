@@ -677,6 +677,28 @@ def get_printable_command(command, fuzzer_path, use_minijail):
   return engine_common.get_command_quoted(command)
 
 
+def maybe_use_mutator_plugin(target_name, extra_env, fuzzing_strategies, chroot):
+  """Decide whether to use a mutator plugin. If yes and there is a usable plugin
+  available for |target_name|, then add it to LD_PRELOAD in |extra_env|, add a
+  strategy to fuzzing_strategies, and add chroot bindings if |chroot| is not
+  None."""
+  if not do_mutator_plugin():
+    return
+  mutator_plugin_path = mutator_plugin.get_mutator_plugin(target_name)
+  if not mutator_plugin_path:
+    return
+
+  logs.log('Using mutator plugin: %s' % mutator_plugin_path)
+  # TODO(metzman): Change the strategy to record which plugin was used, and
+  # not simply that a plugin was used.
+  fuzzing_strategies.append(strategy.MUTATOR_PLUGIN_STRATEGY)
+  extra_env['LD_PRELOAD'] = mutator_plugin_path
+  if chroot:
+    mutator_plugin_dir = os.path.dirname(mutator_plugin_path)
+    chroot.add_binding(
+        minijail.ChrootBinding(mutator_plugin_dir, mutator_plugin_dir, False))
+
+
 def main(argv):
   """Run libFuzzer as specified by argv."""
   atexit.register(fuzzer_utils.cleanup)
@@ -830,14 +852,12 @@ def main(argv):
         '%s_%d' % (strategy.FORK_STRATEGY, num_fuzz_processes))
 
   extra_env = {}
-  if do_mutator_plugin():
-    mutator_plugin_path = mutator_plugin.get_mutator_plugin(target_name)
-    if mutator_plugin_path:
-      logs.log('Using mutator plugin: %s' % mutator_plugin_path)
-      # TODO(metzman): Change the strategy to record which plugin was used, and
-      # not simply that a plugin was used.
-      fuzzing_strategies.append(strategy.MUTATOR_PLUGIN_STRATEGY)
-      extra_env['LD_PRELOAD'] = mutator_plugin_path
+  if use_minijail:
+    maybe_use_mutator_plugin(target_name, extra_env, fuzzing_strategies,
+                             minijail_chroot)
+  else:
+    maybe_use_mutator_plugin(target_name, extra_env, fuzzing_strategies, None)
+
 
   # Execute the fuzzer binary with original arguments.
   fuzz_result = runner.fuzz(

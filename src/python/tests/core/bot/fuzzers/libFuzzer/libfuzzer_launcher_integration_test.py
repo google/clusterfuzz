@@ -94,7 +94,7 @@ class BaseLauncherTest(unittest.TestCase):
     os.environ['FUZZ_TEST_TIMEOUT'] = '4800'
     os.environ['JOB_NAME'] = 'libfuzzer_asan'
     os.environ['INPUT_DIR'] = TEMP_DIRECTORY
-    os.environ['MUTATOR_PLUGINS_DIR'] = os.path.join(DATA_DIRECTORY,
+    os.environ['MUTATOR_PLUGINS_DIR'] = os.path.join(TEMP_DIRECTORY,
                                                      'mutator-plugins')
 
     test_helpers.patch(self, [
