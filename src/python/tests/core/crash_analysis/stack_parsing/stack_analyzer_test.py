@@ -562,8 +562,6 @@ class StackAnalyzerTestcase(unittest.TestCase):
                                   expected_state, expected_stacktrace,
                                   expected_security_flag)
 
-    environment.remove_key('ASSERTS_HAVE_SECURITY_IMPLICATION')
-
   def test_stack_filtering(self):
     """Test ignore lists and stack frame filtering."""
     data = self._read_test_data('stack_filtering.txt')
@@ -815,7 +813,6 @@ class StackAnalyzerTestcase(unittest.TestCase):
     self._validate_get_crash_data(data, expected_type, expected_address,
                                   expected_state, expected_stacktrace,
                                   expected_security_flag)
-    environment.remove_key('ASSERTS_HAVE_SECURITY_IMPLICATION')
 
   def test_v8_abort_without_source(self):
     """Test the v8 abort error format without source file and line
@@ -832,7 +829,6 @@ class StackAnalyzerTestcase(unittest.TestCase):
     self._validate_get_crash_data(data, expected_type, expected_address,
                                   expected_state, expected_stacktrace,
                                   expected_security_flag)
-    environment.remove_key('ASSERTS_HAVE_SECURITY_IMPLICATION')
 
   def test_v8_oom(self):
     """Test a v8 out of memory condition."""
@@ -2169,7 +2165,6 @@ class StackAnalyzerTestcase(unittest.TestCase):
     self._validate_get_crash_data(data, expected_type, expected_address,
                                   expected_state, expected_stacktrace,
                                   expected_security_flag)
-    environment.remove_key('ASSERTS_HAVE_SECURITY_IMPLICATION')
 
   def test_glibc_assertion_with_glib(self):
     """Test assertion (glibc) with glib frames."""
@@ -2186,7 +2181,6 @@ class StackAnalyzerTestcase(unittest.TestCase):
     self._validate_get_crash_data(data, expected_type, expected_address,
                                   expected_state, expected_stacktrace,
                                   expected_security_flag)
-    environment.remove_key('ASSERTS_HAVE_SECURITY_IMPLICATION')
 
   def test_chromium_log_assert(self):
     """Tests assertion (chromium's LOG_ASSERT)."""
@@ -2203,7 +2197,6 @@ class StackAnalyzerTestcase(unittest.TestCase):
     self._validate_get_crash_data(data, expected_type, expected_address,
                                   expected_state, expected_stacktrace,
                                   expected_security_flag)
-    environment.remove_key('ASSERTS_HAVE_SECURITY_IMPLICATION')
 
   def test_asan_container_overflow(self):
     """Test an ASan container overflow."""

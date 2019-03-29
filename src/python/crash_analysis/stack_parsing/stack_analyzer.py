@@ -303,6 +303,7 @@ IGNORE_CONTAINS = [
     '/llvm-build/',
     '/minkernel/crts/',
     '/sanitizer_common/',
+    '/tcmalloc/',
     '/vc/include/',
     '/vctools/crt/',
     '/win_toolchain/',
