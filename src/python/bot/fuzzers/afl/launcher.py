@@ -1045,17 +1045,21 @@ class AflRunnerCommon(object):
         logs.log_warn('Timed out in merge while processing output.')
         break
 
-      corpus.associate_features_with_file(file_path)
+      corpus.associate_features_with_file(file_features, file_path)
 
     # Use destination file as hash of file contents to avoid overwriting
     # different files with the same name that were created from another
     # launcher instance.
     new_units_added = 0
-    for candidate in merge_candidates.itervalues():
-      src_path = candidate['path']
-      dest_filename = utils.file_hash(src_path)
+    minimal_corpus_elements = set(
+        element.file_path
+        for element in corpus.features_and_elements.itervalues())
+    for element in minimal_corpus_elements:
+      if os.path.dirname(element) == input_dir:
+        continue
+      dest_filename = utils.file_hash(element)
       dest_path = os.path.join(input_dir, dest_filename)
-      if shell.move(src_path, dest_path):
+      if shell.move(element, dest_path):
         new_units_added += 1
 
     return new_units_added
@@ -1202,11 +1206,11 @@ class Corpus(object):
     return set(element.file_path
                for element in self.features_and_elements.itervalues())
 
-  def _associate_feature_with_element(feature, element):
-    if feature not in self.features:
+  def _associate_feature_with_element(self, feature, element):
+    if feature not in self.features_and_elements:
       self.features_and_elements[feature] = element
     else:
-      incumbent_element = self.features[feature]
+      incumbent_element = self.features_and_elements[feature]
       if incumbent_element.size > element.size:
         self.features_and_elements[feature] = element
 
