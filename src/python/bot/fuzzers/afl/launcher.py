@@ -1193,23 +1193,25 @@ class MinijailAflRunner(AflRunnerCommon,
 
 
 class CorpusElement(object):
-
+  """An element (file) in a corpus."""
   def __init__(self, file_path):
     self.file_path = file_path
     self.size = os.path.getsize(self.file_path)
 
 
 class Corpus(object):
-
+  """A minimal set of input files (elements) for a fuzz target."""
   def __init__(self):
     self.features_and_elements = {}
 
   def get_elements(self):
-    """Returns the file paths of all elements in the corpus."""
+    """Returns the filepaths of all elements in the corpus."""
     return set(element.file_path
                for element in self.features_and_elements.itervalues())
 
   def _associate_feature_with_element(self, feature, element):
+    """Associate a feature with an element if the element is the smallest
+    associated with the feature."""
     if feature not in self.features_and_elements:
       self.features_and_elements[feature] = element
     else:
@@ -1218,6 +1220,8 @@ class Corpus(object):
         self.features_and_elements[feature] = element
 
   def associate_features_with_file(self, features, file_path):
+    """Associate features with a file if the file is the smallest associated
+    with the feature."""
     element = CorpusElement(file_path)
     for feature in features:
       self._associate_feature_with_element(feature, element)
