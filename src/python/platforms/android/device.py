@@ -792,6 +792,10 @@ def setup_asan_if_needed():
                              asan_runtime_library_argument, extra_asan_options)
   adb.execute_command(command, timeout=ASAN_SCRIPT_TIMEOUT)
 
+  # Wait until fully booted as otherwise shell restart followed by a quick
+  # reboot can trigger data corruption in /data/data.
+  adb.wait_until_fully_booted()
+
 
 def set_content_settings(table, key, value):
   """Set a device content setting."""
