@@ -371,7 +371,6 @@ type Testcase struct {
 	GroupBugInformation        int            `datastore:"group_bug_information"`
 	Gestures                   []string       `datastore:"gestures,noindex"`
 	Redzone                    int            `datastore:"redzone,noindex"`
-	Video                      string         `datastore:"video,noindex"`
 	Open                       bool           `datastore:"open"`
 	TimeoutMultiplier          float64        `datastore:"timeout_multiplier,noindex"`
 	AdditionalMetadata         string         `datastore:"additional_metadata,noindex"`

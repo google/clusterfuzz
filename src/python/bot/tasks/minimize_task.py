@@ -546,24 +546,17 @@ def execute_task(testcase_id, job_type):
   command = tests.get_command_line_for_application(
       testcase_file_path, app_args=app_arguments, needs_http=testcase.http_flag)
   last_crash_result = test_runner.last_failing_result
-  video_key = create_video(testcase, test_timeout, testcase_file_path,
-                           app_arguments)
 
   store_minimized_testcase(testcase, input_directory, file_list, data,
                            testcase_file_path)
   finalize_testcase(
-      testcase_id,
-      command,
-      last_crash_result,
-      flaky_stack=flaky_stack,
-      video_key=video_key)
+      testcase_id, command, last_crash_result, flaky_stack=flaky_stack)
 
 
 def finalize_testcase(testcase_id,
                       command,
                       last_crash_result,
-                      flaky_stack=False,
-                      video_key=None):
+                      flaky_stack=False):
   """Perform final updates on a test case and prepare it for other tasks."""
   # Symbolize crash output if we have it.
   testcase = data_handler.get_testcase_by_id(testcase_id)
@@ -572,8 +565,6 @@ def finalize_testcase(testcase_id,
 
   # Update remaining test case information.
   testcase.flaky_stack = flaky_stack
-  if video_key:
-    testcase.video = video_key
   if build_manager.is_custom_binary():
     testcase.set_impacts_as_na()
     testcase.regression = 'NA'
@@ -806,63 +797,6 @@ def check_deadline_exceeded_and_store_partial_minimized_testcase(
       tasks.add_task('minimize', testcase_id, job_type)
 
   return deadline_exceeded
-
-
-def create_video(testcase, test_timeout, testcase_file_path,
-                 reduced_arg_string):
-  """Create a video to record test case execution with interaction gestures."""
-  if not testcase.gestures:
-    return ''
-
-  # FIXME(mbarbella): Support additional platforms.
-  if environment.platform() != 'LINUX':
-    return ''
-
-  # The --disable-gl-drawing-for-tests is sometimes passed for performance
-  # reasons, but should not be used if we are going to render a video.
-  disable_gl_drawing_flag = '--disable-gl-drawing-for-tests'
-  if disable_gl_drawing_flag in reduced_arg_string:
-    reduced_arg_string = reduced_arg_string.replace(disable_gl_drawing_flag, '')
-
-  additional_timeout = 12
-  temp_directory = environment.get_value('BOT_TMPDIR')
-  video_file = os.path.join(temp_directory,
-                            'testcase_%s.avi' % testcase.key.id())
-  video_timeout = test_timeout + additional_timeout
-  ffmpeg_cmd = (
-      '/usr/bin/avconv -f x11grab -s 1280x1024 -r 60 -b 5000k -g 300 -i :1'
-      ' -y -t %d -vcodec mpeg4 -vb 20M -vf "setpts=15.0*PTS" %s' %
-      (video_timeout, video_file))
-
-  thread = process_handler.get_process()(
-      target=process_handler.run_process,
-      args=(ffmpeg_cmd, None, video_timeout))
-
-  try:
-    thread.start()
-    time.sleep(additional_timeout / 2)
-  except MemoryError:
-    logs.log_error('Error in creating video for the interaction gesture.')
-    return ''
-
-  command = tests.get_command_line_for_application(
-      testcase_file_path,
-      app_args=reduced_arg_string,
-      needs_http=testcase.http_flag)
-  process_handler.run_process(
-      command, timeout=test_timeout, gestures=testcase.gestures)
-  thread.join(video_timeout)
-
-  if not os.path.exists(video_file) or not os.path.getsize(video_file):
-    return ''
-
-  logs.log('Storing video file for interaction gesture.')
-  file_handle = open(video_file, 'rb')
-  video_key = blobs.write_blob(file_handle)
-  file_handle.close()
-  shell.remove_file(video_file)
-
-  return video_key
 
 
 def check_for_initial_crash(test_runner, crash_retries, testcase):

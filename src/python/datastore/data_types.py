@@ -436,9 +436,6 @@ class Testcase(Model):
   # ASAN redzone size in bytes.
   redzone = ndb.IntegerProperty(default=128, indexed=False)
 
-  # Blobstore key for the video (for interaction gestures).
-  video = ndb.StringProperty(indexed=False)
-
   # Whether testcase is open.
   open = ndb.BooleanProperty(default=True)
 
