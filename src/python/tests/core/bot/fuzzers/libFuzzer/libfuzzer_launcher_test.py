@@ -1326,8 +1326,7 @@ class LauncherTest(fake_fs_unittest.TestCase):
       ], [
           '/fake/build_dir/fake_fuzzer', '-rss_limit_mb=2048', '-timeout=25',
           '-merge=1', '/fake/inputs-disk/temp-1337/merge-corpus',
-          '/fake/main_corpus_dir',
-          '/fake/inputs-disk/temp-1337/new',
+          '/fake/main_corpus_dir', '/fake/inputs-disk/temp-1337/new',
           '/fake/inputs-disk/temp-1337/subset'
       ]])
 
