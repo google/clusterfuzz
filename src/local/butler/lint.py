@@ -13,6 +13,8 @@
 # limitations under the License.
 """Lint changed code in current branch."""
 
+from __future__ import print_function
+
 import os
 import sys
 import yaml
@@ -57,7 +59,7 @@ _error_occurred = False
 def _error(message=None):
   """Print error and track state via a global."""
   if message:
-    print message
+    print(message)
 
   global _error_occurred
   _error_occurred = True
@@ -81,17 +83,16 @@ def license_validate(file_path):
     return
 
   path_directories = file_path.split(os.sep)
-  for directory in _LICENSE_CHECK_IGNORE_DIRECTORIES:
-    if directory in path_directories:
-      return
+  if any(d in _LICENSE_CHECK_IGNORE_DIRECTORIES for d in path_directories):
+    return
 
   source_filename = os.path.basename(file_path)
-  for check_filename in _LICENSE_CHECK_IGNORE_FILENAMES:
-    if check_filename == source_filename:
-      return
-
-  if _LICENSE_CHECK_STRING in open(file_path).read():
+  if source_filename in _LICENSE_CHECK_IGNORE_FILENAMES:
     return
+
+  with open(file_path) as f:
+    if _LICENSE_CHECK_STRING in f.read():
+      return
 
   _error('Failed: Missing license header for %s.' % file_path)
 
@@ -110,11 +111,13 @@ def py_import_order(file_path):
 
     return ['\n'.join(sorted_import_block)]
 
-  data = open(file_path).read()
+  with open(file_path) as f:
+    file_content = f.read()
+
   imports = []
   from_imports = []
   corrected_import_blocks = []
-  for line in data.splitlines():
+  for line in file_content.splitlines():
     if line.startswith('import '):
       imports.append(line)
     else:
@@ -158,8 +161,8 @@ def yaml_validate(file_path):
     return
 
   try:
-    with open(file_path) as handle:
-      yaml.safe_load(handle.read())
+    with open(file_path) as f:
+      yaml.safe_load(f.read())
   except Exception as e:
     _error('Failed: Invalid yaml file %s.\n\n%s' % (file_path, e))
 
@@ -209,4 +212,7 @@ def execute(_):
     license_validate(file_path)
 
   if _error_occurred:
+    print('Linting failed, see errors above.')
     sys.exit(1)
+  else:
+    print('Linting passed.')
