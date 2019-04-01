@@ -1786,5 +1786,22 @@ class RecommendedDictionaryTest(fake_fs_unittest.TestCase):
         self.mock.download_recommended_dictionary_from_gcs.call_args[0])
 
 
+class IsSha1HashTest(unittest.TestCase):
+  """Tests for is_sha1_hash."""
+  REAL_HASH = 'dd122581c8cd44d0227f9c305581ffcb4b6f1b46'
+
+  def test_non_hashes(self):
+    """Tests that False is returned for non hashes."""
+    self.assertFalse(launcher.is_sha1_hash(''))
+    self.assertFalse(launcher.is_sha1_hash('z' * 40))
+    self.assertFalse(launcher.is_sha1_hash('a' * 50))
+    fake_hash = str('z' + self.REAL_HASH[1:])
+    self.assertFalse(launcher.is_sha1_hash(fake_hash))
+
+  def test_hash(self):
+    """Tests that False is returned for a real hash."""
+    self.assertTrue(launcher.is_sha1_hash(self.REAL_HASH))
+
+
 if __name__ == '__main__':
   unittest.main()

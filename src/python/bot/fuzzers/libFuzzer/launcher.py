@@ -728,7 +728,7 @@ def is_sha1_hash(string):
     return False
 
   valid_chars = set(['a', 'b', 'c', 'd', 'e', 'f'] +
-                    [str(num) for num in range(10)])
+                    [str(num) for num in xrange(10)])
 
   for char in string:
     if char not in valid_chars:
