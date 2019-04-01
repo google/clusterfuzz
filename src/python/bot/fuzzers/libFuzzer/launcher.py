@@ -986,12 +986,9 @@ def main(argv):
   new_units_added = parsed_stats.get('new_units_added', 0)
   merge_error = None
   if new_units_added:
-    # Merge the new units back into the corpus.
-    # For merge, main corpus directory should be passed first of all corpus
-    # directories.
-    if corpus_directory in corpus_directories:
-      corpus_directories.remove(corpus_directory)
-    corpus_directories = [corpus_directory] + corpus_directories
+    # Merge the new units with the initial corpus.
+    if corpus_directory not in corpus_directories:
+      corpus_directories.append(corpus_directory)
 
     # If this times out, it's possible that we will miss some units. However, if
     # we're taking >10 minutes to load/merge the corpus something is going very
