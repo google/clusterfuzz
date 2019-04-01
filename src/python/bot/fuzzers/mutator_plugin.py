@@ -115,13 +115,18 @@ class PluginGetter(object):
     """Creates directories needed to use mutator plugins."""
     # TODO(320): Change mutator plugin downloads so that they don't need to be
     # deleted and redownloaded on each run of launcher.py.
-    shell.create_directory(environment.get_value('MUTATOR_PLUGINS_DIR'),
-                           create_intermediates=True,
-                           recreate=True)
-    shell.create_directory(_get_mutator_plugins_archives_dir(),
-                           create_intermediates=True, recreate=True)
-    shell.create_directory(_get_mutator_plugins_unpacked_dir(),
-                           create_intermediates=True, recreate=True)
+    shell.create_directory(
+        environment.get_value('MUTATOR_PLUGINS_DIR'),
+        create_intermediates=True,
+        recreate=True)
+    shell.create_directory(
+        _get_mutator_plugins_archives_dir(),
+        create_intermediates=True,
+        recreate=True)
+    shell.create_directory(
+        _get_mutator_plugins_unpacked_dir(),
+        create_intermediates=True,
+        recreate=True)
 
   def _is_plugin_usable(self, plugin_archive_filename):
     """Returns True if |plugin_archive_filename| is a usable plugin for this

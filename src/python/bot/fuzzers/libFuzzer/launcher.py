@@ -718,8 +718,8 @@ def get_merge_directory():
 def create_merge_directory():
   """Create the merge directory and return its path."""
   merge_directory_path = get_merge_directory()
-  shell.create_directory(merge_directory_path, create_intermediates=True,
-                         recreate=True)
+  shell.create_directory(
+      merge_directory_path, create_intermediates=True, recreate=True)
   return merge_directory_path
 
 
@@ -728,8 +728,8 @@ def is_sha1_hash(string):
   if len(string) != 40:
     return False
 
-  valid_chars = set(
-      ['a', 'b', 'c', 'd', 'e', 'f'] + [str(num) for num in range(10)])
+  valid_chars = set(['a', 'b', 'c', 'd', 'e', 'f'] +
+                    [str(num) for num in range(10)])
 
   for char in string:
     if char not in valid_chars:

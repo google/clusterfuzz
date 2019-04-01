@@ -374,8 +374,7 @@ class FileSystemProvider(StorageProvider):
           'Bucket {bucket} does not exist.'.format(bucket=bucket))
 
     fs_path = self._fs_path(bucket, path, directory)
-    shell.create_directory(
-        os.path.dirname(fs_path), create_intermediates=True)
+    shell.create_directory(os.path.dirname(fs_path), create_intermediates=True)
 
     return fs_path
 
