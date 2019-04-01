@@ -1283,7 +1283,8 @@ class LauncherTest(fake_fs_unittest.TestCase):
           '/fake/corpus_oom'
       ], [
           '/fake/build_dir/fake_fuzzer', '-rss_limit_mb=2048', '-timeout=25',
-          '-merge=1', '/fake/corpus_oom', '/fake/inputs-disk/temp-1337/new'
+          '-merge=1', '/fake/inputs-disk/temp-1337/merge-corpus',
+          '/fake/corpus_oom', '/fake/inputs-disk/temp-1337/new'
       ]])
 
   @mock.patch('bot.fuzzers.libFuzzer.launcher.add_recommended_dictionary',
@@ -1387,7 +1388,8 @@ class LauncherTest(fake_fs_unittest.TestCase):
           '/fake/main_corpus_dir'
       ], [
           '/fake/build_dir/fake_fuzzer', '-rss_limit_mb=2048', '-timeout=25',
-          '-merge=1', '/fake/main_corpus_dir', '/fake/inputs-disk/temp-1337/new'
+          '-merge=1', '/fake/inputs-disk/temp-1337/merge-corpus',
+          '/fake/main_corpus_dir', '/fake/inputs-disk/temp-1337/new'
       ]])
 
   @mock.patch('bot.fuzzers.libFuzzer.launcher.add_recommended_dictionary',
@@ -1550,9 +1552,10 @@ class LauncherTest(fake_fs_unittest.TestCase):
           '-b', '/lib64,/lib64,0', '-b', '/usr/lib,/usr/lib,0', '-b',
           '/fake/build_dir,/fake/build_dir,0', '-b', '/fake/build_dir,/out,0',
           '-b', '/fake/inputs-disk/temp-1337/new,/new,1', '-b',
-          '/fake/main_corpus_dir,/main_corpus_dir,1',
+          '/fake/main_corpus_dir,/main_corpus_dir,1', '-b',
+          '/fake/inputs-disk/temp-1337/merge-corpus,/merge-corpus,1',
           '/fake/build_dir/fake_fuzzer', '-rss_limit_mb=2048', '-timeout=25',
-          '-merge=1', '/main_corpus_dir', '/new'
+          '-merge=1', '/merge-corpus', '/main_corpus_dir', '/new'
       ]])
 
     del os.environ['USE_MINIJAIL']
@@ -1595,6 +1598,7 @@ class LauncherTest(fake_fs_unittest.TestCase):
           '-rss_limit_mb=2048',
           '-timeout=25',
           '-merge=1',
+          '/fake/inputs-disk/temp-1337/merge-corpus',
           '/fake/corpus_mutations',
           '/fake/inputs-disk/temp-1337/new',
           '/fake/inputs-disk/temp-1337/mutations',
@@ -1640,6 +1644,7 @@ class LauncherTest(fake_fs_unittest.TestCase):
           '-rss_limit_mb=2048',
           '-timeout=25',
           '-merge=1',
+          '/fake/inputs-disk/temp-1337/merge-corpus',
           '/fake/corpus_mutations',
           '/fake/inputs-disk/temp-1337/new',
           '/fake/inputs-disk/temp-1337/mutations',
