@@ -1803,5 +1803,23 @@ class IsSha1HashTest(unittest.TestCase):
     self.assertTrue(launcher.is_sha1_hash(self.REAL_HASH))
 
 
+class MoveMergeableUnitsTest(fake_fs_unittest.TestCase):
+  """Tests for move_mergeable_units."""
+  CORPUS_DIRECTORY = '/corpus'
+  MERGE_DIRECTORY = '/corpus-merge'
+
+  def setUp(self):
+    test_utils.set_up_pyfakefs(self)
+
+  def move_mergeable_units(self):
+    """Helper function for move_mergeable_units."""
+    launcher.move_mergeable_units(self.MERGE_DIRECTORY, self.CORPUS_DIRECTORY)
+
+  def test_duplicate_not_moved(self):
+    """Tests that a duplicated file is not moved into the corpus directory."""
+    sha1_sum = 'dd122581c8cd44d0227f9c305581ffcb4b6f1b46'
+    self.fs.CreateFile(os.path.join(self.CORPUS_DIRECTORY, sha1_sum))
+    self.fs.CreateFile(os.path.join(self.MERGE_DIRECTORY, sha1_sum))
+
 if __name__ == '__main__':
   unittest.main()
