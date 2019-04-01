@@ -926,14 +926,15 @@ class CorpusTest(fake_filesystem_unittest.TestCase):
     self.assertEqual(file_path, corpus_element.file_path)
     self.assertEqual(size, corpus_element.size)
 
-  def test_elements(self):
-    """Tests that elements is the set of filepaths of elements in the corpus."""
+  def test_element_paths(self):
+    """Tests that element_paths is the set of filepaths of elements in the
+    corpus."""
     filenames = ['file_1', 'file_2']
     for filename in filenames:
       feature = self._get_unique_feature()
       self._create_file(filename)
       self.corpus.associate_features_with_file([feature], filename)
-    self.assertEqual(set(filenames), self.corpus.elements)
+    self.assertEqual(set(filenames), self.corpus.element_paths)
 
   def test_associate_new_features_with_file(self):
     """Tests that associate_features_with_file associates new features with a
@@ -960,7 +961,7 @@ class CorpusTest(fake_filesystem_unittest.TestCase):
     self.corpus.associate_features_with_file(features, smaller_filename)
     self.assertEqual(smaller_filename,
                      self.corpus.features_and_elements[features[0]].file_path)
-    self.assertEqual(set([smaller_filename]), self.corpus.elements)
+    self.assertEqual(set([smaller_filename]), self.corpus.element_paths)
 
   def _get_unique_feature(self):
     """Returns an arbitrary, unique, feature for use in testing."""

@@ -1051,12 +1051,12 @@ class AflRunnerCommon(object):
     # different files with the same name that were created from another
     # launcher instance.
     new_units_added = 0
-    for element in corpus.elements:
-      if os.path.dirname(element) == input_dir:
+    for src_path in corpus.element_paths:
+      if os.path.dirname(src_path) == input_dir:
         continue
-      dest_filename = utils.file_hash(element)
+      dest_filename = utils.file_hash(src_path)
       dest_path = os.path.join(input_dir, dest_filename)
-      if shell.move(element, dest_path):
+      if shell.move(src_path, dest_path):
         new_units_added += 1
 
     return new_units_added
@@ -1204,24 +1204,26 @@ class Corpus(object):
     self.features_and_elements = {}
 
   @property
-  def elements(self):
+  def element_paths(self):
     """Returns the filepaths of all elements in the corpus."""
     return set(element.file_path
                for element in self.features_and_elements.itervalues())
 
   def _associate_feature_with_element(self, feature, element):
-    """Associate a feature with an element if the element is the smallest
-    associated with the feature."""
+    """Associate a feature with an element if the element is the smallest for
+    the feature."""
     if feature not in self.features_and_elements:
       self.features_and_elements[feature] = element
-    else:
-      incumbent_element = self.features_and_elements[feature]
-      if incumbent_element.size > element.size:
-        self.features_and_elements[feature] = element
+      return
+
+    # Feature already has an associated element.
+    incumbent_element = self.features_and_elements[feature]
+    if incumbent_element.size > element.size:
+      self.features_and_elements[feature] = element
 
   def associate_features_with_file(self, features, file_path):
-    """Associate features with a file if the file is the smallest associated
-    with the feature."""
+    """Associate features with a file when the file is the smallest for the
+    features."""
     element = CorpusElement(file_path)
     for feature in features:
       self._associate_feature_with_element(feature, element)
