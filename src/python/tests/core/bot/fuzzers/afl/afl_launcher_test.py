@@ -910,12 +910,21 @@ class ListFullFilePathsTest(LauncherTestBase):
 
 
 class CorpusTest(fake_filesystem_unittest.TestCase):
-  """Tests for Corpus."""
+  """Tests for Corpus and CorpusElement classes."""
 
   def setUp(self):
     test_utils.set_up_pyfakefs(self)
     self.corpus = launcher.Corpus()
     self.guard = 0
+
+  def test_corpus_element(self):
+    """Tests CorpusElement class."""
+    file_path = '/path/to/file'
+    size = 20
+    self._create_file(file_path, size)
+    corpus_element = launcher.CorpusElement(file_path)
+    self.assertEqual(file_path, corpus_element.file_path)
+    self.assertEqual(size, corpus_element.size)
 
   def test_elements(self):
     """Tests that elements is the set of filepaths of elements in the corpus."""
