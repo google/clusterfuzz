@@ -42,6 +42,9 @@ FUZZ_INPUTS_DISK = '/fake/inputs-disk'
 GSUTIL_PATH = '/fake/gsutil_path'
 FAKE_ROOT_DIR = '/fake_root'
 
+# An arbirtrary SHA1 sum.
+ARBITRARY_SHA1_HASH = 'dd122581c8cd44d0227f9c305581ffcb4b6f1b46'
+
 
 def _read_test_data(name):
   """Read test data."""
@@ -1788,19 +1791,18 @@ class RecommendedDictionaryTest(fake_fs_unittest.TestCase):
 
 class IsSha1HashTest(unittest.TestCase):
   """Tests for is_sha1_hash."""
-  REAL_HASH = 'dd122581c8cd44d0227f9c305581ffcb4b6f1b46'
 
   def test_non_hashes(self):
     """Tests that False is returned for non hashes."""
     self.assertFalse(launcher.is_sha1_hash(''))
     self.assertFalse(launcher.is_sha1_hash('z' * 40))
     self.assertFalse(launcher.is_sha1_hash('a' * 50))
-    fake_hash = str('z' + self.REAL_HASH[1:])
+    fake_hash = str('z' + ARBITRARY_SHA1_HASH[1:])
     self.assertFalse(launcher.is_sha1_hash(fake_hash))
 
   def test_hash(self):
     """Tests that False is returned for a real hash."""
-    self.assertTrue(launcher.is_sha1_hash(self.REAL_HASH))
+    self.assertTrue(launcher.is_sha1_hash(ARBITRARY_SHA1_HASH))
 
 
 class MoveMergeableUnitsTest(fake_fs_unittest.TestCase):
@@ -1817,9 +1819,29 @@ class MoveMergeableUnitsTest(fake_fs_unittest.TestCase):
 
   def test_duplicate_not_moved(self):
     """Tests that a duplicated file is not moved into the corpus directory."""
-    sha1_sum = 'dd122581c8cd44d0227f9c305581ffcb4b6f1b46'
-    self.fs.CreateFile(os.path.join(self.CORPUS_DIRECTORY, sha1_sum))
-    self.fs.CreateFile(os.path.join(self.MERGE_DIRECTORY, sha1_sum))
+    self.fs.CreateFile(os.path.join(self.CORPUS_DIRECTORY, ARBITRARY_SHA1_HASH))
+    merge_corpus_file = os.path.join(self.MERGE_DIRECTORY, ARBITRARY_SHA1_HASH)
+    self.fs.CreateFile(merge_corpus_file)
+    self.move_mergeable_units()
+    # File will be deleted from merge directory if it isn't a duplicate.
+    self.assertTrue(os.path.exists(merge_corpus_file))
+
+  def test_new_file_moved(self):
+    """Tests that a new file is moved into the corpus directory."""
+    # Make a file that looks like a sha1 hash but is different from
+    # ARBITRARY_SHA1_HASH.
+    filename = ARBITRARY_SHA1_HASH.replace('d', 'a')
+    self.fs.CreateFile(os.path.join(self.CORPUS_DIRECTORY, filename))
+    # Create an arbitrary file with a hash name that is different from this
+    # filename.
+    merge_corpus_file = os.path.join(self.MERGE_DIRECTORY, ARBITRARY_SHA1_HASH)
+    self.fs.CreateFile(merge_corpus_file)
+    self.move_mergeable_units()
+    # File will be deleted from merge directory if it isn't a duplicate.
+    self.assertFalse(os.path.exists(merge_corpus_file))
+    self.assertTrue(
+        os.path.exists(os.path.join(self.CORPUS_DIRECTORY, filename)))
+
 
 if __name__ == '__main__':
   unittest.main()
