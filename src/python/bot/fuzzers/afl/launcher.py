@@ -1014,7 +1014,7 @@ class AflRunnerCommon(object):
     self.set_arg(showmap_args, constants.OUTPUT_FLAG, showmap_output_path)
 
     input_dir = self.afl_input.input_directory
-    corpus_features = set()
+    corpus = Corpus()
     input_inodes = set()
     input_filenames = set()
     for file_path in list_full_file_paths_recursive(input_dir):
@@ -1025,9 +1025,8 @@ class AflRunnerCommon(object):
 
       input_inodes.add(os.stat(file_path).st_ino)
       input_filenames.add(os.path.basename(file_path))
-      corpus_features |= file_features
+      corpus.associate_features_with_file(file_features, file_path)
 
-    merge_candidates = {}
     for file_path in list_full_file_paths(self.afl_output.queue):
       # Don't waste time merging copied files.
       inode = os.stat(file_path).st_ino
@@ -1046,29 +1045,16 @@ class AflRunnerCommon(object):
         logs.log_warn('Timed out in merge while processing output.')
         break
 
-      # Does the file have unique features?
-      if file_features - corpus_features:
-        corpus_features |= file_features
-        merge_candidates[file_features] = {
-            'path': file_path,
-            'size': os.path.getsize(file_path)
-        }
-
-      elif file_features in merge_candidates:
-        # Replace the equivalent merge candidate if it is larger than this file.
-        file_size = os.path.getsize(file_path)
-        if merge_candidates[file_features]['size'] > file_size:
-          merge_candidates[file_features] = {
-              'path': file_path,
-              'size': file_size
-          }
+      corpus.associate_features_with_file(file_features, file_path)
 
     # Use destination file as hash of file contents to avoid overwriting
     # different files with the same name that were created from another
     # launcher instance.
     new_units_added = 0
-    for candidate in merge_candidates.itervalues():
-      src_path = candidate['path']
+    for src_path in corpus.element_paths:
+      # Don't merge files into the initial corpus if they are already there.
+      if os.path.dirname(src_path) == input_dir:
+        continue
       dest_filename = utils.file_hash(src_path)
       dest_path = os.path.join(input_dir, dest_filename)
       if shell.move(src_path, dest_path):
@@ -1202,6 +1188,46 @@ class MinijailAflRunner(AflRunnerCommon,
     super(MinijailAflRunner, self).set_environment_variables()
     environment.set_value(constants.STDERR_FILENAME_ENV_VAR,
                           '/' + STDERR_FILENAME)
+
+
+class CorpusElement(object):
+  """An element (file) in a corpus."""
+
+  def __init__(self, path):
+    self.path = path
+    self.size = os.path.getsize(self.path)
+
+
+class Corpus(object):
+  """A minimal set of input files (elements) for a fuzz target."""
+
+  def __init__(self):
+    self.features_and_elements = {}
+
+  @property
+  def element_paths(self):
+    """Returns the filepaths of all elements in the corpus."""
+    return set(
+        element.path for element in self.features_and_elements.itervalues())
+
+  def _associate_feature_with_element(self, feature, element):
+    """Associate a feature with an element if the element is the smallest for
+    the feature."""
+    if feature not in self.features_and_elements:
+      self.features_and_elements[feature] = element
+      return
+
+    # Feature already has an associated element.
+    incumbent_element = self.features_and_elements[feature]
+    if incumbent_element.size > element.size:
+      self.features_and_elements[feature] = element
+
+  def associate_features_with_file(self, features, path):
+    """Associate features with a file when the file is the smallest for the
+    features."""
+    element = CorpusElement(path)
+    for feature in features:
+      self._associate_feature_with_element(feature, element)
 
 
 def load_testcase_if_exists(fuzzer_runner, testcase_file_path):
