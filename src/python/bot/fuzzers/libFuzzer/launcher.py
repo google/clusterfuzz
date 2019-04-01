@@ -31,9 +31,6 @@ import stat
 import sys
 import time
 
-import constants
-import stats
-
 from base import utils
 from bot.fuzzers import dictionary_manager
 from bot.fuzzers import engine_common
@@ -49,6 +46,8 @@ from system import environment
 from system import minijail
 from system import new_process
 from system import shell
+import constants
+import stats
 
 # Regex to find testcase path from a crash.
 CRASH_TESTCASE_REGEX = (r'.*Test unit written to\s*'

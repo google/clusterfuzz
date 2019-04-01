@@ -23,7 +23,6 @@ from system import minijail
 from system import new_process
 from system import shell
 import engine_common
-import utils as fuzzer_utils
 
 MAX_OUTPUT_LEN = 1 * 1024 * 1024  # 1 MB
 
