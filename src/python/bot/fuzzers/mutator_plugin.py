@@ -119,7 +119,7 @@ class PluginGetter(object):
                            create_intermediates=True,
                            recreate=True)
     shell.create_directory(_get_mutator_plugins_archives_dir(),
-                           create_intermediates=True, recreate=True))
+                           create_intermediates=True, recreate=True)
     shell.create_directory(_get_mutator_plugins_unpacked_dir(),
                            create_intermediates=True, recreate=True)
 

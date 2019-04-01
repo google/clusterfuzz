@@ -717,9 +717,10 @@ def get_merge_directory():
 
 def create_merge_directory():
   """Create the merge directory and return its path."""
-  merge_directory = get_merge_directory()
-  shell.create_directory(path, create_intermediates=True, recreate=True)
-  return path
+  merge_directory_path = get_merge_directory()
+  shell.create_directory(merge_directory_path, create_intermediates=True,
+                         recreate=True)
+  return merge_directory_path
 
 
 def is_sha1_hash(string):
@@ -737,7 +738,7 @@ def is_sha1_hash(string):
   return True
 
 
-def move_mergable_units(merge_directory, corpus_directory):
+def move_mergeable_units(merge_directory, corpus_directory):
   """Move new units in |merge_directory| into |corpus_directory|."""
   initial_units = set(
       os.path.basename(filename)
@@ -1009,7 +1010,8 @@ def main(argv):
 
     if use_minijail:
       target = '/' + MERGE_DIRECTORY_NAME
-      minijail_chroot.add_binding(merge_directory, target, True)
+      minijail_chroot.add_binding(
+          minijail.ChrootBinding(merge_directory, target, True))
 
     merge_result = runner.merge(
         corpus_directories,
