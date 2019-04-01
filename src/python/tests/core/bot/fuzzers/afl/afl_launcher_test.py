@@ -957,11 +957,28 @@ class CorpusTest(fake_filesystem_unittest.TestCase):
     self._create_file(larger_filename, 2)
     self.corpus.associate_features_with_file(features, larger_filename)
     smaller_filename = 'smaller'
-    self._create_file(smaller_filename)
+    self._create_file(smaller_filename, 1)
     self.corpus.associate_features_with_file(features, smaller_filename)
     self.assertEqual(smaller_filename,
                      self.corpus.features_and_elements[features[0]].file_path)
     self.assertEqual(set([smaller_filename]), self.corpus.element_paths)
+
+  def test_file_with_one_feature_remains(self):
+    """Test that a file remains in the corpus as long as it the smallest element
+    for at least one feature."""
+    feature_1 = self._get_unique_feature()
+    feature_2 = self._get_unique_feature()
+    larger_filename = 'larger'
+    self._create_file(larger_filename, 2)
+    self.corpus.associate_features_with_file([feature_1, feature_2],
+                                             larger_filename)
+    smaller_filename = 'smaller'
+    self._create_file(smaller_filename, 1)
+    self.corpus.associate_features_with_file([feature_2], smaller_filename)
+    self.assertEqual(smaller_filename,
+                     self.corpus.features_and_elements[feature_2].file_path)
+    self.assertEqual(larger_filename,
+                     self.corpus.features_and_elements[feature_1].file_path)
 
   def _get_unique_feature(self):
     """Returns an arbitrary, unique, feature for use in testing."""
