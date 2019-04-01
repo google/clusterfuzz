@@ -94,8 +94,6 @@ class BaseLauncherTest(unittest.TestCase):
     os.environ['FUZZ_TEST_TIMEOUT'] = '4800'
     os.environ['JOB_NAME'] = 'libfuzzer_asan'
     os.environ['INPUT_DIR'] = TEMP_DIRECTORY
-    os.environ['MUTATOR_PLUGINS_DIR'] = os.path.join(DATA_DIRECTORY,
-                                                     'mutator-plugins')
 
     test_helpers.patch(self, [
         'atexit.register',
@@ -144,9 +142,11 @@ class BaseLauncherTest(unittest.TestCase):
 
     self.assertTrue(os.path.exists(testcase_path + '.stats2'))
 
-  def _test_fuzz_with_mutator_plugin(self):
+  def _test_fuzz_with_mutator_plugin(self, temp_subdir):
     """Tests fuzzing with a mutator plugin."""
 
+    os.environ['MUTATOR_PLUGINS_DIR'] = os.path.join(
+        TEMP_DIRECTORY, temp_subdir, 'mutator-plugins')
     fuzz_target_name = 'test_fuzzer'
     # Call before setting up the plugin since this call will erase the directory
     # the plugin is written to.
@@ -394,7 +394,7 @@ class TestLauncher(BaseLauncherTest):
     """Tests fuzzing with a mutator plugin. Wrapper around
     _test_fuzz_with_mutator_plugin."""
     mock_get_timeout.return_value = get_fuzz_timeout(5.0)
-    self._test_fuzz_with_mutator_plugin()
+    self._test_fuzz_with_mutator_plugin('nominijail')
 
 
 @test_utils.integration
@@ -593,4 +593,4 @@ class TestLauncherMinijail(BaseLauncherTest):
     """Tests fuzzing with a mutator plugin. Wrapper around
     _test_fuzz_with_mutator_plugin."""
     mock_get_timeout.return_value = get_fuzz_timeout(5.0)
-    self._test_fuzz_with_mutator_plugin()
+    self._test_fuzz_with_mutator_plugin('minijail')
