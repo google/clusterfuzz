@@ -967,7 +967,7 @@ class CorpusTest(fake_filesystem_unittest.TestCase):
     guard = self.guard
     self.guard += 1
     default_hit_count = 1
-    return (self.guard, default_hit_count)
+    return (guard, default_hit_count)
 
   def _create_file(self, path, size=1):
     """Creates a file at |path| that is |size| bytes large."""
