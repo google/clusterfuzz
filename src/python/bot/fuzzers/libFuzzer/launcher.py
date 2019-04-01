@@ -103,6 +103,8 @@ FORK_PROBABILITY = 0.1
 
 MUTATOR_PLUGIN_PROBABILITY = 0.50
 
+MERGE_DIRECTORY_NAME = 'merge-corpus'
+
 
 class Generator(object):
   """Generators we can use."""
@@ -405,7 +407,8 @@ def get_corpus_directories(main_corpus_directory,
                            fuzzer_path,
                            fuzzing_strategies,
                            minijail_chroot=None):
-  """Return a list of corpus directories to be passed to the fuzzer binary."""
+  """Return a list of corpus directories to be passed to the fuzzer binary for
+  fuzzing."""
   corpus_directories = []
 
   # Set up scratch directory for writing new units.
@@ -706,6 +709,48 @@ def use_mutator_plugin(target_name, extra_env, chroot):
   return True
 
 
+def get_merge_directory():
+  """Returns the path of the directory we can use for merging."""
+  temp_dir = fuzzer_utils.get_temp_dir()
+  return os.path.join(temp_dir, MERGE_DIRECTORY_NAME)
+
+
+def create_merge_directory():
+  """Create the merge directory and return its path."""
+  merge_directory = get_merge_directory()
+  shell.create_directory(path, create_intermediates=True, recreate=True)
+  return path
+
+
+def is_sha1_hash(string):
+  """Returns True if |string| looks like a valid sha1 hash."""
+  if len(string) != 40:
+    return False
+
+  valid_chars = set(
+      ['a', 'b', 'c', 'd', 'e', 'f'] + [str(num) for num in range(10)])
+
+  for char in string:
+    if char not in valid_chars:
+      return False
+
+  return True
+
+
+def move_mergable_units(merge_directory, corpus_directory):
+  """Move new units in |merge_directory| into |corpus_directory|."""
+  initial_units = set(
+      os.path.basename(filename)
+      for filename in shell.get_files_list(corpus_directory))
+
+  for unit_path in shell.get_files_list(merge_directory):
+    unit_name = os.path.basename(unit_path)
+    if unit_name in initial_units and _is_sha1_hash(unit_name):
+      continue
+    dest_path = os.path.join(initial_corpus_dir, unit_name)
+    shell.move(unit_path, dest_path)
+
+
 def main(argv):
   """Run libFuzzer as specified by argv."""
   atexit.register(fuzzer_utils.cleanup)
@@ -959,11 +1004,20 @@ def main(argv):
       engine_common.recreate_directory(merge_tmp_dir)
 
     old_corpus_len = shell.get_directory_file_count(corpus_directory)
+    merge_directory = create_merge_directory()
+    corpus_directories.insert(0, merge_directory)
+
+    if use_minijail:
+      target = '/' + MERGE_DIRECTORY_NAME
+      minijail_chroot.add_binding(merge_directory, target, True)
+
     merge_result = runner.merge(
         corpus_directories,
         merge_timeout=engine_common.get_merge_timeout(DEFAULT_MERGE_TIMEOUT),
         tmp_dir=merge_tmp_dir,
         additional_args=arguments)
+
+    move_mergeable_units(merge_directory, corpus_directory)
     new_corpus_len = shell.get_directory_file_count(corpus_directory)
     new_units_added = 0
 
