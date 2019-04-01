@@ -456,7 +456,7 @@ class TestLauncher(BaseLauncherTest):
   def test_merge_reductions(self, mock_get_timeout):
     """Tests merging reductions. Wrapper around _test_merge_reductions."""
     mock_get_timeout.return_value = get_fuzz_timeout(1.0)
-    self._test_merge('nominijail-merge')
+    self._test_merge_reductions('nominijail-merge')
 
 
 @test_utils.integration
@@ -661,4 +661,4 @@ class TestLauncherMinijail(BaseLauncherTest):
   def test_merge_reductions(self, mock_get_timeout):
     """Tests merging. Wrapper around _test_merge_reductions."""
     mock_get_timeout.return_value = get_fuzz_timeout(1.0)
-    self._test_merge('minijail-merge')
+    self._test_merge_reductions('minijail-merge')
