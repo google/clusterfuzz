@@ -183,7 +183,7 @@ class BaseLauncherTest(unittest.TestCase):
     fuzz_target_name = 'analyze_dict_fuzzer'
     test_helpers.patch(self, [
         'bot.fuzzers.libFuzzer.launcher.create_merge_directory',
-        'bot.fuzzers.libFuzzer.launcher.get_merge_directory'
+        'bot.fuzzers.libFuzzer.launcher.get_merge_directory',
         'bot.fuzzers.libFuzzer.launcher.parse_log_stats',
     ])
 
@@ -191,7 +191,7 @@ class BaseLauncherTest(unittest.TestCase):
     log_stats['new_units_added'] = 1
     self.mock.parse_log_stats.side_effect = lambda logs: log_stats
 
-    self.mock.get_merge_directory.side_effect = os.path.join(
+    self.mock.get_merge_directory.side_effect = lambda: os.path.join(
         fuzzer_utils.get_temp_dir(), temp_subdir, launcher.MERGE_DIRECTORY_NAME)
 
     minimal_unit_contents = 'APPLE'
