@@ -973,6 +973,7 @@ class CorpusTest(fake_filesystem_unittest.TestCase):
     """Creates a file at |path| that is |size| bytes large."""
     self.fs.CreateFile(path, contents=size * 'A')
 
+
 def dont_use_strategies(obj):
   """Helper function to prevent using fuzzing strategies, unless asked for."""
   test_helpers.patch(obj, [

@@ -1191,6 +1191,7 @@ class MinijailAflRunner(AflRunnerCommon,
 
 class CorpusElement(object):
   """An element (file) in a corpus."""
+
   def __init__(self, file_path):
     self.file_path = file_path
     self.size = os.path.getsize(self.file_path)
@@ -1198,6 +1199,7 @@ class CorpusElement(object):
 
 class Corpus(object):
   """A minimal set of input files (elements) for a fuzz target."""
+
   def __init__(self):
     self.features_and_elements = {}
 
