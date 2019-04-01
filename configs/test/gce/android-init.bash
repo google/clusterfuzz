@@ -114,6 +114,8 @@ pip install crcmod==1.7 psutil==5.4.7 pyOpenSSL==19.0.0
 if [ -z "$NFS_CLUSTER_NAME" ]; then
   NFS_ROOT=
 else
+  NFS_ROOT=$NFS_DIR/$NFS_VOLUME_NAME
+
   echo "Setting up NFS."
   mkdir -p $NFS_DIR
   sed -i "s/browse_mode = no/browse_mode = yes/" /etc/autofs.conf
@@ -122,9 +124,10 @@ else
   echo "$NFS_VOLUME_NAME -intr,hard,rsize=65536,wsize=65536,mountproto=tcp,vers=3,noacl,noatime,nodiratime $NFS_CLUSTER_NAME:/$NFS_VOLUME_NAME" > /etc/auto.nfs
   service autofs start
 
-  ls $NFS_DIR/$NFS_VOLUME_NAME
-  chown $USER:$USER $NFS_DIR/$NFS_VOLUME_NAME
-  NFS_ROOT=$NFS_DIR/$NFS_VOLUME_NAME
+  set +e  # Ignore errors in this block since NFS server can be flaky.
+  ls $NFS_ROOT
+  chown $USER:$USER $NFS_ROOT
+  set -e
 fi
 
 echo "Changing user shell to clusterfuzz."
