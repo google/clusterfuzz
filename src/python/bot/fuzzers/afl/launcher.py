@@ -385,7 +385,7 @@ class AflFuzzInputDirectory(object):
     # it doesn't have to be fixed every time by AFL.
     # TODO(metzman): Copy testcases in subdirectories so AFL can use them, even
     # when there are no oversized files.
-    corpus_file_paths = list_full_file_paths_recursive(self.input_directory)
+    corpus_file_paths = shell.get_files_list(self.input_directory)
     usable_files_and_sizes = [
         (path, os.path.getsize(path))
         for path in corpus_file_paths
@@ -1017,7 +1017,7 @@ class AflRunnerCommon(object):
     corpus_features = set()
     input_inodes = set()
     input_filenames = set()
-    for file_path in list_full_file_paths_recursive(input_dir):
+    for file_path in shell.get_files_list(input_dir):
       file_features, timed_out = self.get_file_features(file_path, showmap_args)
       if timed_out:
         logs.log_warn('Timed out in merge while processing initial corpus.')
@@ -1258,16 +1258,6 @@ def remove_path(path):
   elif os.path.isdir(path):
     shutil.rmtree(path)
   # Else path doesn't exist. Do nothing.
-
-
-def list_full_file_paths_recursive(directory):
-  """List the absolute paths of files in |directory| and its subdirectories."""
-  paths = []
-
-  for root, _, filenames in os.walk(directory):
-    for filename in filenames:
-      paths.append(os.path.join(root, filename))
-  return paths
 
 
 def list_full_file_paths(directory):

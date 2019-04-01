@@ -863,8 +863,7 @@ class AlfConfigTest(LauncherTestBase):
 
 
 class ListFullFilePathsTest(LauncherTestBase):
-  """Tests for list_full_file_paths and list_full_file_paths_recursive
-  functions."""
+  """Tests for list_full_file_paths."""
   DUMMY_2_FILENAME = 'dummyfile2'
   DUMMY_3_FILENAME = 'dummyfile3'
 
@@ -888,25 +887,6 @@ class ListFullFilePathsTest(LauncherTestBase):
     self._assert_elements_equal(
         launcher.list_full_file_paths(self.INPUT_DIR),
         [self.dummy_file_path, self.dummy_3_file_path])
-
-  def test_list_full_file_paths_recursive(self):
-    """Test that list_full_file_paths_recursive works as intended."""
-
-    # Test it works with just files:
-    self._assert_elements_equal(
-        launcher.list_full_file_paths_recursive(self.INPUT_DIR),
-        [self.dummy_file_path, self.dummy_3_file_path])
-
-    # Test it works with a directory:
-    dummy_dir = os.path.join(self.INPUT_DIR, 'dummydir')
-    self.fs.CreateDirectory(dummy_dir)
-
-    dummy_2_path = os.path.join(dummy_dir, self.DUMMY_2_FILENAME)
-    self.fs.CreateFile(dummy_2_path)
-
-    self._assert_elements_equal(
-        launcher.list_full_file_paths_recursive(self.INPUT_DIR),
-        [self.dummy_file_path, dummy_2_path, self.dummy_3_file_path])
 
 
 def dont_use_strategies(obj):
