@@ -374,7 +374,7 @@ class FileSystemProvider(StorageProvider):
           'Bucket {bucket} does not exist.'.format(bucket=bucket))
 
     fs_path = self._fs_path(bucket, path, directory)
-    shell.create_directory_if_needed(
+    shell.create_directory(
         os.path.dirname(fs_path), create_intermediates=True)
 
     return fs_path
@@ -955,8 +955,7 @@ def store_file_in_cache(file_path,
   filename = os.path.basename(file_path)
 
   if not os.path.exists(cache_directory):
-    if not shell.create_directory_if_needed(
-        cache_directory, create_intermediates=True):
+    if not shell.create_directory(cache_directory, create_intermediates=True):
       logs.log_error('Failed to create cache directory %s.' % cache_directory)
       return
 

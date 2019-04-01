@@ -17,16 +17,16 @@ import copy
 import os
 import shutil
 
-import engine_common
-
+from libFuzzer import constants
 from system import environment
 from system import minijail
 from system import new_process
 from system import shell
-
-from libFuzzer import constants
+import engine_common
+import utils as fuzzer_utils
 
 MAX_OUTPUT_LEN = 1 * 1024 * 1024  # 1 MB
+MERGE_DIRECTORY_NAME = 'merged-corpus'
 
 
 class LibFuzzerException(Exception):
@@ -188,6 +188,8 @@ class LibFuzzerCommon(object):
     extra_env = {}
     if tmp_dir:
       extra_env['TMPDIR'] = tmp_dir
+
+    merge_dir = create_merge_dir()
 
     additional_args.extend(corpus_directories)
     return self.run_and_wait(
@@ -485,7 +487,7 @@ def get_runner(fuzzer_path, temp_dir=None):
         minijail.ChrootBinding(build_dir, '/out', False))
 
     minijail_bin = os.path.join(minijail_chroot.directory, 'bin')
-    shell.create_directory_if_needed(minijail_bin)
+    shell.create_directory(minijail_bin)
 
     # Set up /bin with llvm-symbolizer to allow symbolized stacktraces.
     # Don't copy if it already exists (e.g. ChromeOS chroot jail).
@@ -506,3 +508,10 @@ def get_runner(fuzzer_path, temp_dir=None):
     runner = LibFuzzerRunner(fuzzer_path)
 
   return runner
+
+
+def create_merge_directory():
+  temp_dir = fuzzer_utils.get_temp_dir()
+  path = os.path.join(temp_dir, MERGE_DIRECTORY_NAME)
+  shell.create_directory(directory_path, create_intermediates=True)
+  shell.remove_directory(directory_path, recreate=True)

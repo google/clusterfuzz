@@ -53,7 +53,7 @@ class TestFileOperations(unittest.TestCase):
   def test_directory_exists(self):
     """Tests directory_exists."""
     utils.write_data_to_file('a', os.path.join(self.local_temp_dir, 'a'))
-    shell.create_directory_if_needed(os.path.join(self.local_temp_dir, 'b'))
+    shell.create_directory(os.path.join(self.local_temp_dir, 'b'))
     utils.write_data_to_file('c', os.path.join(self.local_temp_dir, 'b', 'c'))
 
     adb.copy_local_directory_to_remote(self.local_temp_dir,
@@ -72,7 +72,7 @@ class TestFileOperations(unittest.TestCase):
   def test_file_exists(self):
     """Tests file_exists."""
     utils.write_data_to_file('a', os.path.join(self.local_temp_dir, 'a'))
-    shell.create_directory_if_needed(os.path.join(self.local_temp_dir, 'b'))
+    shell.create_directory(os.path.join(self.local_temp_dir, 'b'))
     utils.write_data_to_file('c', os.path.join(self.local_temp_dir, 'b', 'c'))
 
     adb.copy_local_directory_to_remote(self.local_temp_dir,
@@ -91,7 +91,7 @@ class TestFileOperations(unittest.TestCase):
   def test_copy_local_directory_to_remote(self):
     """Tests copy_local_directory_to_remote."""
     utils.write_data_to_file('a', os.path.join(self.local_temp_dir, 'a'))
-    shell.create_directory_if_needed(os.path.join(self.local_temp_dir, 'b'))
+    shell.create_directory(os.path.join(self.local_temp_dir, 'b'))
     utils.write_data_to_file('c', os.path.join(self.local_temp_dir, 'b', 'c'))
     adb.copy_local_directory_to_remote(self.local_temp_dir,
                                        self.device_temp_dir)

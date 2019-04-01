@@ -125,7 +125,7 @@ def get_temp_dir():
   temp_dirname = 'temp-' + str(os.getpid())
   temp_directory = os.path.join(
       environment.get_value('FUZZ_INPUTS_DISK'), temp_dirname)
-  shell.create_directory_if_needed(temp_directory)
+  shell.create_directory(temp_directory)
   return temp_directory
 
 

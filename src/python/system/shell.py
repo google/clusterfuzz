@@ -208,10 +208,15 @@ def close_open_file_handles_if_needed(path):
                     (handle_executable_path, file_handle_id, process_id))
 
 
-def create_directory_if_needed(directory, create_intermediates=False):
-  """Create a directory, ignore if it already exists."""
+def create_directory(directory, create_intermediates=False, recreate=False):
+  """Creates |directory|. Create intermediate directories if
+  |create_intermediates|. Ignore if it already exists and |recreate| is
+   False."""
   if os.path.exists(directory):
-    return True
+    if recreate:
+      remove_directory(directory)
+    else:
+      return True
 
   try:
     if create_intermediates:
