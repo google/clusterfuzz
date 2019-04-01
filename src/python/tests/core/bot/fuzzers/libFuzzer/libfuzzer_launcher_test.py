@@ -293,7 +293,8 @@ class LauncherTest(fake_fs_unittest.TestCase):
           '/fake/corpus_basic'
       ], [
           '/fake/build_dir/fake_fuzzer', '-rss_limit_mb=2048', '-timeout=25',
-          '-merge=1', '/fake/corpus_basic', '/fake/inputs-disk/temp-1337/new'
+          '-merge=1', '/fake/inputs-disk/temp-1337/merge-corpus',
+          '/fake/corpus_basic', '/fake/inputs-disk/temp-1337/new'
       ]])
 
       # Check new testcases added.
@@ -490,6 +491,7 @@ class LauncherTest(fake_fs_unittest.TestCase):
           '-only_ascii=1',
           '-rss_limit_mb=2048',
           '-merge=1',
+          '/fake/inputs-disk/temp-1337/merge-corpus',
           '/fake/corpus_basic',
           '/fake/inputs-disk/temp-1337/new',
       ]])
@@ -1323,7 +1325,8 @@ class LauncherTest(fake_fs_unittest.TestCase):
           '/fake/inputs-disk/temp-1337/subset'
       ], [
           '/fake/build_dir/fake_fuzzer', '-rss_limit_mb=2048', '-timeout=25',
-          '-merge=1', '/fake/main_corpus_dir',
+          '-merge=1', '/fake/inputs-disk/temp-1337/merge-corpus',
+          '/fake/main_corpus_dir',
           '/fake/inputs-disk/temp-1337/new',
           '/fake/inputs-disk/temp-1337/subset'
       ]])
@@ -1472,9 +1475,10 @@ class LauncherTest(fake_fs_unittest.TestCase):
           '/fake/build_dir,/fake/build_dir,0', '-b', '/fake/build_dir,/out,0',
           '-b', '/fake/main_corpus_dir,/main_corpus_dir,1', '-b',
           '/fake/inputs-disk/temp-1337/new,/new,1', '-b',
-          '/fake/inputs-disk/temp-1337/subset,/subset,1',
+          '/fake/inputs-disk/temp-1337/subset,/subset,1', '-b',
+          '/fake/inputs-disk/temp-1337/merge-corpus,/merge-corpus,1',
           '/fake/build_dir/fake_fuzzer', '-rss_limit_mb=2048', '-timeout=25',
-          '-merge=1', '/main_corpus_dir', '/new', '/subset'
+          '-merge=1', '/merge-corpus', '/main_corpus_dir', '/new', '/subset'
       ]])
 
     del os.environ['USE_MINIJAIL']
