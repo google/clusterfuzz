@@ -46,10 +46,9 @@ import constants
 import stats
 import strategies
 
-# Allow 10 minutes to merge the testcases back into the corpus.
-# TODO(metzman): Determine if we should set this equal to libFuzzer's merge
-# timeout.
-DEFAULT_MERGE_TIMEOUT = 10 * 60
+# Allow 30 minutes to merge the testcases back into the corpus. This matches
+# libFuzzer's merge timeout.
+DEFAULT_MERGE_TIMEOUT = 30 * 60
 
 # Prefix for the fuzzer's full name.
 AFL_PREFIX = 'afl_'
