@@ -1207,8 +1207,8 @@ class Corpus(object):
   @property
   def element_paths(self):
     """Returns the filepaths of all elements in the corpus."""
-    return set(element.path
-               for element in self.features_and_elements.itervalues())
+    return set(
+        element.path for element in self.features_and_elements.itervalues())
 
   def _associate_feature_with_element(self, feature, element):
     """Associate a feature with an element if the element is the smallest for

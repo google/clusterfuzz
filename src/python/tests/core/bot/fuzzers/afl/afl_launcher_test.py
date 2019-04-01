@@ -990,8 +990,8 @@ class CorpusTest(fake_filesystem_unittest.TestCase):
                      self.corpus.features_and_elements[feature_2].path)
     self.assertEqual(larger_filename,
                      self.corpus.features_and_elements[feature_1].path)
-    self.assertEqual(set([smaller_filename, larger_filename]),
-                     self.corpus.element_paths)
+    self.assertEqual(
+        set([smaller_filename, larger_filename]), self.corpus.element_paths)
 
 
 def dont_use_strategies(obj):
