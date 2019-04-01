@@ -746,9 +746,9 @@ def move_mergeable_units(merge_directory, corpus_directory):
 
   for unit_path in shell.get_files_list(merge_directory):
     unit_name = os.path.basename(unit_path)
-    if unit_name in initial_units and _is_sha1_hash(unit_name):
+    if unit_name in initial_units and is_sha1_hash(unit_name):
       continue
-    dest_path = os.path.join(initial_corpus_dir, unit_name)
+    dest_path = os.path.join(corpus_directory, unit_name)
     shell.move(unit_path, dest_path)
 
 
