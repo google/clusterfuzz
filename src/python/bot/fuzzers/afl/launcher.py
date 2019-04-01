@@ -1051,10 +1051,7 @@ class AflRunnerCommon(object):
     # different files with the same name that were created from another
     # launcher instance.
     new_units_added = 0
-    minimal_corpus_elements = set(
-        element.file_path
-        for element in corpus.features_and_elements.itervalues())
-    for element in minimal_corpus_elements:
+    for element in corpus.elements:
       if os.path.dirname(element) == input_dir:
         continue
       dest_filename = utils.file_hash(element)
@@ -1204,7 +1201,8 @@ class Corpus(object):
   def __init__(self):
     self.features_and_elements = {}
 
-  def get_elements(self):
+  @property
+  def elements(self):
     """Returns the filepaths of all elements in the corpus."""
     return set(element.file_path
                for element in self.features_and_elements.itervalues())

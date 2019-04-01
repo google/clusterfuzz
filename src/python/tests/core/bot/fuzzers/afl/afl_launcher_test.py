@@ -909,6 +909,61 @@ class ListFullFilePathsTest(LauncherTestBase):
         [self.dummy_file_path, dummy_2_path, self.dummy_3_file_path])
 
 
+class CorpusTest(fake_filesystem_unittest.TestCase):
+  """Tests for Corpus."""
+
+  def setUp(self):
+    test_utils.set_up_pyfakefs(self)
+    self.corpus = launcher.Corpus()
+    self.guard = 0
+
+  def test_elements(self):
+    """Tests that elements is the set of filepaths of elements in the corpus."""
+    filenames = ['file_1', 'file_2']
+    for filename in filenames:
+      feature = self._get_unique_feature()
+      self._create_file(filename)
+      self.corpus.associate_features_with_file([feature], filename)
+    self.assertEqual(set(filenames), self.corpus.elements)
+
+  def test_associate_new_features_with_file(self):
+    """Tests that associate_features_with_file associates new features with a
+    file."""
+    # Create an arbitrary number of features.
+    features = [self._get_unique_feature() for _ in xrange(3)]
+    filename = 'element'
+    self._create_file(filename)
+    self.corpus.associate_features_with_file(features, filename)
+    for feature in features:
+      self.assertEqual(filename,
+                       self.corpus.features_and_elements[feature].file_path)
+
+  def test_associate_feature_with_smaller_file(self):
+    """Tests that associate_features_with_file associates features with the
+    smallest file. Also verify that an element that isn't the smallest
+    associated with any feature isn't part of the corpus."""
+    features = [self._get_unique_feature()]
+    larger_filename = 'larger'
+    self._create_file(larger_filename, 2)
+    self.corpus.associate_features_with_file(features, larger_filename)
+    smaller_filename = 'smaller'
+    self._create_file(smaller_filename)
+    self.corpus.associate_features_with_file(features, smaller_filename)
+    self.assertEqual(smaller_filename,
+                     self.corpus.features_and_elements[features[0]].file_path)
+    self.assertEqual(set([smaller_filename]), self.corpus.elements)
+
+  def _get_unique_feature(self):
+    """Returns an arbitrary, unique, feature for use in testing."""
+    guard = self.guard
+    self.guard += 1
+    default_hit_count = 1
+    return (self.guard, default_hit_count)
+
+  def _create_file(self, path, size=1):
+    """Creates a file at |path| that is |size| bytes large."""
+    self.fs.CreateFile(path, contents=size * 'A')
+
 def dont_use_strategies(obj):
   """Helper function to prevent using fuzzing strategies, unless asked for."""
   test_helpers.patch(obj, [
