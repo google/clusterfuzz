@@ -917,13 +917,24 @@ class CorpusTest(fake_filesystem_unittest.TestCase):
     self.corpus = launcher.Corpus()
     self.guard = 0
 
+  def _get_unique_feature(self):
+    """Returns an arbitrary, unique, feature for use in testing."""
+    guard = self.guard
+    self.guard += 1
+    default_hit_count = 1
+    return (guard, default_hit_count)
+
+  def _create_file(self, path, size=1):
+    """Creates a file at |path| that is |size| bytes large."""
+    self.fs.CreateFile(path, contents=size * 'A')
+
   def test_corpus_element(self):
     """Tests CorpusElement class."""
-    file_path = '/path/to/file'
+    path = '/path/to/file'
     size = 20
-    self._create_file(file_path, size)
-    corpus_element = launcher.CorpusElement(file_path)
-    self.assertEqual(file_path, corpus_element.file_path)
+    self._create_file(path, size=size)
+    corpus_element = launcher.CorpusElement(path)
+    self.assertEqual(path, corpus_element.path)
     self.assertEqual(size, corpus_element.size)
 
   def test_element_paths(self):
@@ -946,7 +957,7 @@ class CorpusTest(fake_filesystem_unittest.TestCase):
     self.corpus.associate_features_with_file(features, filename)
     for feature in features:
       self.assertEqual(filename,
-                       self.corpus.features_and_elements[feature].file_path)
+                       self.corpus.features_and_elements[feature].path)
 
   def test_associate_feature_with_smaller_file(self):
     """Tests that associate_features_with_file associates features with the
@@ -954,13 +965,13 @@ class CorpusTest(fake_filesystem_unittest.TestCase):
     associated with any feature isn't part of the corpus."""
     features = [self._get_unique_feature()]
     larger_filename = 'larger'
-    self._create_file(larger_filename, 2)
+    self._create_file(larger_filename, size=2)
     self.corpus.associate_features_with_file(features, larger_filename)
     smaller_filename = 'smaller'
-    self._create_file(smaller_filename, 1)
+    self._create_file(smaller_filename, size=1)
     self.corpus.associate_features_with_file(features, smaller_filename)
     self.assertEqual(smaller_filename,
-                     self.corpus.features_and_elements[features[0]].file_path)
+                     self.corpus.features_and_elements[features[0]].path)
     self.assertEqual(set([smaller_filename]), self.corpus.element_paths)
 
   def test_file_with_one_feature_remains(self):
@@ -969,27 +980,18 @@ class CorpusTest(fake_filesystem_unittest.TestCase):
     feature_1 = self._get_unique_feature()
     feature_2 = self._get_unique_feature()
     larger_filename = 'larger'
-    self._create_file(larger_filename, 2)
+    self._create_file(larger_filename, size=2)
     self.corpus.associate_features_with_file([feature_1, feature_2],
                                              larger_filename)
     smaller_filename = 'smaller'
-    self._create_file(smaller_filename, 1)
+    self._create_file(smaller_filename, size=1)
     self.corpus.associate_features_with_file([feature_2], smaller_filename)
     self.assertEqual(smaller_filename,
-                     self.corpus.features_and_elements[feature_2].file_path)
+                     self.corpus.features_and_elements[feature_2].path)
     self.assertEqual(larger_filename,
-                     self.corpus.features_and_elements[feature_1].file_path)
-
-  def _get_unique_feature(self):
-    """Returns an arbitrary, unique, feature for use in testing."""
-    guard = self.guard
-    self.guard += 1
-    default_hit_count = 1
-    return (guard, default_hit_count)
-
-  def _create_file(self, path, size=1):
-    """Creates a file at |path| that is |size| bytes large."""
-    self.fs.CreateFile(path, contents=size * 'A')
+                     self.corpus.features_and_elements[feature_1].path)
+    self.assertEqual(set([smaller_filename, larger_filename]),
+                     self.corpus.element_paths)
 
 
 def dont_use_strategies(obj):

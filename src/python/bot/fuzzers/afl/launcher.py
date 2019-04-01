@@ -1052,6 +1052,7 @@ class AflRunnerCommon(object):
     # launcher instance.
     new_units_added = 0
     for src_path in corpus.element_paths:
+      # Don't merge files into the initial corpus if they are already there.
       if os.path.dirname(src_path) == input_dir:
         continue
       dest_filename = utils.file_hash(src_path)
@@ -1192,9 +1193,9 @@ class MinijailAflRunner(AflRunnerCommon,
 class CorpusElement(object):
   """An element (file) in a corpus."""
 
-  def __init__(self, file_path):
-    self.file_path = file_path
-    self.size = os.path.getsize(self.file_path)
+  def __init__(self, path):
+    self.path = path
+    self.size = os.path.getsize(self.path)
 
 
 class Corpus(object):
@@ -1206,7 +1207,7 @@ class Corpus(object):
   @property
   def element_paths(self):
     """Returns the filepaths of all elements in the corpus."""
-    return set(element.file_path
+    return set(element.path
                for element in self.features_and_elements.itervalues())
 
   def _associate_feature_with_element(self, feature, element):
@@ -1221,10 +1222,10 @@ class Corpus(object):
     if incumbent_element.size > element.size:
       self.features_and_elements[feature] = element
 
-  def associate_features_with_file(self, features, file_path):
+  def associate_features_with_file(self, features, path):
     """Associate features with a file when the file is the smallest for the
     features."""
-    element = CorpusElement(file_path)
+    element = CorpusElement(path)
     for feature in features:
       self._associate_feature_with_element(feature, element)
 
