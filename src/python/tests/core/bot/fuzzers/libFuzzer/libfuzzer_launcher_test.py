@@ -295,9 +295,13 @@ class LauncherTest(fake_fs_unittest.TestCase):
           '-print_final_stats=1', '/fake/inputs-disk/temp-1337/new',
           '/fake/corpus_basic'
       ], [
-          '/fake/build_dir/fake_fuzzer', '-rss_limit_mb=2048', '-timeout=25',
-          '-merge=1', '/fake/inputs-disk/temp-1337/merge-corpus',
-          '/fake/inputs-disk/temp-1337/new', '/fake/corpus_basic',
+          '/fake/build_dir/fake_fuzzer',
+          '-rss_limit_mb=2048',
+          '-timeout=25',
+          '-merge=1',
+          '/fake/inputs-disk/temp-1337/merge-corpus',
+          '/fake/inputs-disk/temp-1337/new',
+          '/fake/corpus_basic',
       ]])
 
       # Check new testcases added.
@@ -1289,7 +1293,7 @@ class LauncherTest(fake_fs_unittest.TestCase):
       ], [
           '/fake/build_dir/fake_fuzzer', '-rss_limit_mb=2048', '-timeout=25',
           '-merge=1', '/fake/inputs-disk/temp-1337/merge-corpus',
-           '/fake/inputs-disk/temp-1337/new', '/fake/corpus_oom'
+          '/fake/inputs-disk/temp-1337/new', '/fake/corpus_oom'
       ]])
 
   @mock.patch('bot.fuzzers.libFuzzer.launcher.add_recommended_dictionary',
@@ -1327,10 +1331,14 @@ class LauncherTest(fake_fs_unittest.TestCase):
           '-print_final_stats=1', '/fake/inputs-disk/temp-1337/new',
           '/fake/inputs-disk/temp-1337/subset'
       ], [
-          '/fake/build_dir/fake_fuzzer', '-rss_limit_mb=2048', '-timeout=25',
-          '-merge=1', '/fake/inputs-disk/temp-1337/merge-corpus',
+          '/fake/build_dir/fake_fuzzer',
+          '-rss_limit_mb=2048',
+          '-timeout=25',
+          '-merge=1',
+          '/fake/inputs-disk/temp-1337/merge-corpus',
           '/fake/inputs-disk/temp-1337/new',
-          '/fake/inputs-disk/temp-1337/subset', '/fake/main_corpus_dir',
+          '/fake/inputs-disk/temp-1337/subset',
+          '/fake/main_corpus_dir',
       ]])
 
   @mock.patch('metrics.logs.log_error')
@@ -1392,9 +1400,13 @@ class LauncherTest(fake_fs_unittest.TestCase):
           '-print_final_stats=1', '/fake/inputs-disk/temp-1337/new',
           '/fake/main_corpus_dir'
       ], [
-          '/fake/build_dir/fake_fuzzer', '-rss_limit_mb=2048', '-timeout=25',
-          '-merge=1', '/fake/inputs-disk/temp-1337/merge-corpus',
-          '/fake/inputs-disk/temp-1337/new', '/fake/main_corpus_dir',
+          '/fake/build_dir/fake_fuzzer',
+          '-rss_limit_mb=2048',
+          '-timeout=25',
+          '-merge=1',
+          '/fake/inputs-disk/temp-1337/merge-corpus',
+          '/fake/inputs-disk/temp-1337/new',
+          '/fake/main_corpus_dir',
       ]])
 
   @mock.patch('bot.fuzzers.libFuzzer.launcher.add_recommended_dictionary',
@@ -1469,18 +1481,53 @@ class LauncherTest(fake_fs_unittest.TestCase):
           '-print_final_stats=1', '/new', '/subset'
       ], [
           '/fake_root/resources/platform/{}/minijail0'.format(
-              environment.platform().lower()), '-f', '/tmpfile', '-U', '-m',
-          '0 1000 1', '-T', 'static', '-c', '0', '-n', '-v', '-p', '-l', '-I',
-          '-k', 'proc,/proc,proc,1', '-P', '/fake/inputs-disk/temp-1337/CHROOT',
-          '-b', '/fake/inputs-disk/temp-1337/TEMP,/tmp,1', '-b', '/lib,/lib,0',
-          '-b', '/lib64,/lib64,0', '-b', '/usr/lib,/usr/lib,0', '-b',
-          '/fake/build_dir,/fake/build_dir,0', '-b', '/fake/build_dir,/out,0',
-          '-b', '/fake/main_corpus_dir,/main_corpus_dir,1', '-b',
-          '/fake/inputs-disk/temp-1337/new,/new,1', '-b',
-          '/fake/inputs-disk/temp-1337/subset,/subset,1', '-b',
+              environment.platform().lower()),
+          '-f',
+          '/tmpfile',
+          '-U',
+          '-m',
+          '0 1000 1',
+          '-T',
+          'static',
+          '-c',
+          '0',
+          '-n',
+          '-v',
+          '-p',
+          '-l',
+          '-I',
+          '-k',
+          'proc,/proc,proc,1',
+          '-P',
+          '/fake/inputs-disk/temp-1337/CHROOT',
+          '-b',
+          '/fake/inputs-disk/temp-1337/TEMP,/tmp,1',
+          '-b',
+          '/lib,/lib,0',
+          '-b',
+          '/lib64,/lib64,0',
+          '-b',
+          '/usr/lib,/usr/lib,0',
+          '-b',
+          '/fake/build_dir,/fake/build_dir,0',
+          '-b',
+          '/fake/build_dir,/out,0',
+          '-b',
+          '/fake/main_corpus_dir,/main_corpus_dir,1',
+          '-b',
+          '/fake/inputs-disk/temp-1337/new,/new,1',
+          '-b',
+          '/fake/inputs-disk/temp-1337/subset,/subset,1',
+          '-b',
           '/fake/inputs-disk/temp-1337/merge-corpus,/merge-corpus,1',
-          '/fake/build_dir/fake_fuzzer', '-rss_limit_mb=2048', '-timeout=25',
-          '-merge=1', '/merge-corpus', '/new', '/subset', '/main_corpus_dir',
+          '/fake/build_dir/fake_fuzzer',
+          '-rss_limit_mb=2048',
+          '-timeout=25',
+          '-merge=1',
+          '/merge-corpus',
+          '/new',
+          '/subset',
+          '/main_corpus_dir',
       ]])
 
     del os.environ['USE_MINIJAIL']
@@ -1551,17 +1598,50 @@ class LauncherTest(fake_fs_unittest.TestCase):
           '-print_final_stats=1', '/new', '/main_corpus_dir'
       ], [
           '/fake_root/resources/platform/{}/minijail0'.format(
-              environment.platform().lower()), '-f', '/tmpfile', '-U', '-m',
-          '0 1000 1', '-T', 'static', '-c', '0', '-n', '-v', '-p', '-l', '-I',
-          '-k', 'proc,/proc,proc,1', '-P', '/fake/inputs-disk/temp-1337/CHROOT',
-          '-b', '/fake/inputs-disk/temp-1337/TEMP,/tmp,1', '-b', '/lib,/lib,0',
-          '-b', '/lib64,/lib64,0', '-b', '/usr/lib,/usr/lib,0', '-b',
-          '/fake/build_dir,/fake/build_dir,0', '-b', '/fake/build_dir,/out,0',
-          '-b', '/fake/inputs-disk/temp-1337/new,/new,1', '-b',
-          '/fake/main_corpus_dir,/main_corpus_dir,1', '-b',
+              environment.platform().lower()),
+          '-f',
+          '/tmpfile',
+          '-U',
+          '-m',
+          '0 1000 1',
+          '-T',
+          'static',
+          '-c',
+          '0',
+          '-n',
+          '-v',
+          '-p',
+          '-l',
+          '-I',
+          '-k',
+          'proc,/proc,proc,1',
+          '-P',
+          '/fake/inputs-disk/temp-1337/CHROOT',
+          '-b',
+          '/fake/inputs-disk/temp-1337/TEMP,/tmp,1',
+          '-b',
+          '/lib,/lib,0',
+          '-b',
+          '/lib64,/lib64,0',
+          '-b',
+          '/usr/lib,/usr/lib,0',
+          '-b',
+          '/fake/build_dir,/fake/build_dir,0',
+          '-b',
+          '/fake/build_dir,/out,0',
+          '-b',
+          '/fake/inputs-disk/temp-1337/new,/new,1',
+          '-b',
+          '/fake/main_corpus_dir,/main_corpus_dir,1',
+          '-b',
           '/fake/inputs-disk/temp-1337/merge-corpus,/merge-corpus,1',
-          '/fake/build_dir/fake_fuzzer', '-rss_limit_mb=2048', '-timeout=25',
-          '-merge=1', '/merge-corpus', '/new', '/main_corpus_dir',
+          '/fake/build_dir/fake_fuzzer',
+          '-rss_limit_mb=2048',
+          '-timeout=25',
+          '-merge=1',
+          '/merge-corpus',
+          '/new',
+          '/main_corpus_dir',
       ]])
 
     del os.environ['USE_MINIJAIL']

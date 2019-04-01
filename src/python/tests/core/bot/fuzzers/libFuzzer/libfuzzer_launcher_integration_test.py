@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """Integration tests for libfuzzer launcher.py."""
+import collections
 import mock
 import os
 import shutil
@@ -21,7 +22,9 @@ import unittest
 import parameterized
 
 from bot.fuzzers import libfuzzer
+from bot.fuzzers import utils as fuzzer_utils
 from bot.fuzzers.libFuzzer import launcher
+from system import shell
 from tests.test_libs import helpers as test_helpers
 from tests.test_libs import test_utils
 
@@ -171,6 +174,59 @@ class BaseLauncherTest(unittest.TestCase):
     # a test case. Assert that the count is greater than 1 to ensure that the
     # function didn't crash on its first execution (after printing).
     self.assertGreater(output.count(custom_mutator_print_string), 1)
+
+  def _test_merge_reductions(self, temp_subdir):
+    """Tests that reduced testcases are merged back into the original corpus
+    without deleting the larger version."""
+    testcase_path = setup_testcase_and_corpus(
+        'empty', 'empty_corpus', fuzz=True)
+    fuzz_target_name = 'analyze_dict_fuzzer'
+    test_helpers.patch(self, [
+        'bot.fuzzers.libFuzzer.launcher.create_merge_directory',
+        'bot.fuzzers.libFuzzer.launcher.get_merge_directory'
+        'bot.fuzzers.libFuzzer.launcher.parse_log_stats',
+    ])
+
+    log_stats = collections.defaultdict(int)
+    log_stats['new_units_added'] = 1
+    self.mock.parse_log_stats.side_effect = lambda logs: log_stats
+
+    self.mock.get_merge_directory.side_effect = os.path.join(
+        fuzzer_utils.get_temp_dir(), temp_subdir, launcher.MERGE_DIRECTORY_NAME)
+
+    minimal_unit_contents = 'APPLE'
+    minimal_unit_hash = '569bea285d70dda2218f89ef5454ea69fb5111ef'
+    nonminimal_unit_contents = 'APPLEO'
+    nonminimal_unit_hash = '540d9ba6239483d60cd7448a3202b96c90409186'
+
+    def mocked_create_merge_directory():
+      """A mocked version of create_merge_directory that adds some interesting
+      files to the merge corpus and initial corpus."""
+      merge_directory_path = launcher.get_merge_directory()
+      shell.create_directory(
+          merge_directory_path, create_intermediates=True, recreate=True)
+
+      # Write the minimal unit to the merge directory.
+      minimal_unit_path = os.path.join(merge_directory_path, minimal_unit_hash)
+      with open(minimal_unit_path, 'w+') as file_handle:
+        file_handle.write(minimal_unit_contents)
+
+      # Write the nonminimal unit to the corpus directory.
+      corpus_directory = os.getenv('FUZZ_CORPUS_DIR')
+      nonminimal_unit_path = os.path.join(corpus_directory,
+                                          nonminimal_unit_hash)
+      with open(nonminimal_unit_path, 'w+') as file_handle:
+        file_handle.write(nonminimal_unit_contents)
+
+      return merge_directory_path
+
+    self.mock.create_merge_directory.side_effect = mocked_create_merge_directory
+    run_launcher(testcase_path, fuzz_target_name, '-runs=10')
+    corpus_directory = os.getenv('FUZZ_CORPUS_DIR')
+    # Verify that both the newly found minimal testcase and the nonminimal
+    # testcase are in the corpus.
+    self.assertIn(minimal_unit_hash, os.listdir(corpus_directory))
+    self.assertIn(nonminimal_unit_hash, os.listdir(corpus_directory))
 
 
 @test_utils.integration
@@ -394,7 +450,13 @@ class TestLauncher(BaseLauncherTest):
     """Tests fuzzing with a mutator plugin. Wrapper around
     _test_fuzz_with_mutator_plugin."""
     mock_get_timeout.return_value = get_fuzz_timeout(5.0)
-    self._test_fuzz_with_mutator_plugin('nominijail')
+    self._test_fuzz_with_mutator_plugin('nominijail-plugin')
+
+  @mock.patch('bot.fuzzers.libFuzzer.launcher.get_fuzz_timeout')
+  def test_merge_reductions(self, mock_get_timeout):
+    """Tests merging reductions. Wrapper around _test_merge_reductions."""
+    mock_get_timeout.return_value = get_fuzz_timeout(1.0)
+    self._test_merge('nominijail-merge')
 
 
 @test_utils.integration
@@ -593,4 +655,10 @@ class TestLauncherMinijail(BaseLauncherTest):
     """Tests fuzzing with a mutator plugin. Wrapper around
     _test_fuzz_with_mutator_plugin."""
     mock_get_timeout.return_value = get_fuzz_timeout(5.0)
-    self._test_fuzz_with_mutator_plugin('minijail')
+    self._test_fuzz_with_mutator_plugin('minijail-plugin')
+
+  @mock.patch('bot.fuzzers.libFuzzer.launcher.get_fuzz_timeout')
+  def test_merge_reductions(self, mock_get_timeout):
+    """Tests merging. Wrapper around _test_merge_reductions."""
+    mock_get_timeout.return_value = get_fuzz_timeout(1.0)
+    self._test_merge('minijail-merge')
