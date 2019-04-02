@@ -138,8 +138,8 @@ def get_asan_options(redzone_size, malloc_context_size, quarantine_size_mb,
   if malloc_context_size:
     asan_options['malloc_context_size'] = malloc_context_size
 
-  # Set quarantine size if different than the 256 mb default.
-  if quarantine_size_mb != 256 and bot_platform != 'ANDROID':
+  # Set quarantine size.
+  if quarantine_size_mb:
     asan_options['quarantine_size_mb'] = quarantine_size_mb
 
   # Test for leaks if this is an LSan-enabled job type.
@@ -151,23 +151,13 @@ def get_asan_options(redzone_size, malloc_context_size, quarantine_size_mb,
     remove_key('LSAN_OPTIONS')
     asan_options['detect_leaks'] = 0
 
-  # FIXME: Support container overflow on all platforms.
-  if bot_platform == 'LINUX':
-    asan_options['detect_container_overflow'] = 1
-  else:
-    # Broken on multiple platforms. E.g. Android tracked in b/25228125.
+  # FIXME: Support container overflow on Android.
+  if bot_platform == 'ANDROID':
     asan_options['detect_container_overflow'] = 0
 
-  # Stack use-after-return.
-  # FIXME: Support Stack UAR on all platforms.
-  if (bot_platform in ['LINUX', 'MAC'] and
-      'detect_stack_use_after_return=' not in asan_options):
-    max_uar_stack_size_log = 16
-    asan_options['detect_stack_use_after_return'] = 1
-    asan_options['max_uar_stack_size_log'] = max_uar_stack_size_log
-  elif bot_platform == 'WINDOWS':
-    # FIXME: See crbug.com/915245. Disable this explicitly on Windows.
-    asan_options['detect_stack_use_after_return'] = 0
+  # Enable stack use-after-return.
+  asan_options['detect_stack_use_after_return'] = 1
+  asan_options['max_uar_stack_size_log'] = 16
 
   # Other less important default options for all cases.
   asan_options.update({
@@ -746,10 +736,6 @@ def reset_current_memory_tool_options(redzone_size=0,
   set_value('MEMORY_TOOL', tool_name)
 
   bot_platform = platform()
-
-  # Get default quarantine size from environment (if not provided already).
-  if quarantine_size_mb is None:
-    quarantine_size_mb = get_value('QUARANTINE_SIZE_MB', 256)
 
   # Default options for memory debuggin tool used.
   if tool_name == 'ASAN':
