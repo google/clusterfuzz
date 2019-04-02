@@ -155,7 +155,7 @@ def get_asan_options(redzone_size, malloc_context_size, quarantine_size_mb,
   if bot_platform == 'ANDROID':
     asan_options['detect_container_overflow'] = 0
 
-  # Enable stack use-after-return if not already specified.
+  # Enable stack use-after-return.
   asan_options['detect_stack_use_after_return'] = 1
   asan_options['max_uar_stack_size_log'] = 16
 
