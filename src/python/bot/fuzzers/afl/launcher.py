@@ -1446,12 +1446,13 @@ def main(argv):
   finally:
     print runner.fuzzer_stderr
 
-  # Whenever new units are added to corpus, record the stats to make them
-  # easily searchable in stackdriver.
+  # Record the stats to make them easily searchable in stackdriver.
   if new_units_added:
     logs.log(
         'New units added to corpus: %d.' % new_units_added,
         stats=stats_getter.stats)
+  else:
+    logs.log('No new units found.', stats=stats_getter.stats)
 
 
 if __name__ == '__main__':
