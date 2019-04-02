@@ -903,9 +903,6 @@ def check_for_bad_build(job_type, crash_revision):
   if not environment.get_value('BAD_BUILD_CHECK'):
     return False
 
-  # Do not detect leaks while checking for bad builds.
-  environment.reset_current_memory_tool_options(leaks=False)
-
   # Create a blank command line with no file to run and no http.
   command = get_command_line_for_application(file_to_run='', needs_http=False)
 
@@ -966,8 +963,5 @@ def check_for_bad_build(job_type, crash_revision):
       not crash_result.should_ignore()):
     data_handler.add_build_metadata(job_type, crash_revision, is_bad_build,
                                     build_run_console_output)
-
-  # Reset memory tool options.
-  environment.reset_current_memory_tool_options()
 
   return is_bad_build
