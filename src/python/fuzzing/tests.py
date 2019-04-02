@@ -25,7 +25,6 @@ from build_management import revisions
 from crash_analysis import crash_analyzer
 from crash_analysis.crash_comparer import CrashComparer
 from crash_analysis.crash_result import CrashResult
-from crash_analysis.stack_parsing import stack_symbolizer
 from datastore import data_handler
 from datastore import data_types
 from metrics import fuzzer_logs
@@ -917,31 +916,33 @@ def check_for_bad_build(job_type, crash_revision):
   if default_window_argument:
     command = command.replace(' %s' % default_window_argument, '')
 
-  # Warmup timeout.
-  fast_warmup_timeout = environment.get_value('FAST_WARMUP_TIMEOUT')
-
   # TSAN is slow, and boots slow on first startup. Increase the warmup
   # timeout for this case.
   if environment.tool_matches('TSAN', job_type):
     fast_warmup_timeout = environment.get_value('WARMUP_TIMEOUT')
+  else:
+    fast_warmup_timeout = environment.get_value('FAST_WARMUP_TIMEOUT')
 
   # Initialize helper variables.
   is_bad_build = False
   build_run_console_output = ''
-  output = ''
   app_directory = environment.get_value('APP_DIR')
 
-  # Check if the build is bad.
+  # Exit all running instances.
   process_handler.terminate_stale_application_instances()
-  exit_code, _, output = process_handler.run_process(
+
+  # Check if the build is bad.
+  return_code, crash_time, output = process_handler.run_process(
       command,
       timeout=fast_warmup_timeout,
       current_working_directory=app_directory)
-  output = utils.decode_to_unicode(output)
-  if crash_analyzer.is_crash(exit_code, output):
+  crash_result = CrashResult(return_code, crash_time, output)
+  if crash_result.is_crash() and not crash_result.should_ignore():
     is_bad_build = True
-    build_run_console_output = ('%s\n\n%s\n\n%s' % (
-        command, stack_symbolizer.symbolize_stacktrace(output), output))
+    build_run_console_output = utils.get_crash_stacktrace_output(
+        command,
+        crash_result.get_stacktrace(symbolized=True),
+        crash_result.get_stacktrace(symbolized=False))
     logs.log(
         'Bad build for %s detected at r%d.' % (job_type, crash_revision),
         output=build_run_console_output)
@@ -961,7 +962,8 @@ def check_for_bad_build(job_type, crash_revision):
 
   # If none of the other bots have added information about this build,
   # then add it now.
-  if build_state == data_types.BuildState.UNMARKED:
+  if (build_state == data_types.BuildState.UNMARKED and
+      not crash_result.should_ignore()):
     data_handler.add_build_metadata(job_type, crash_revision, is_bad_build,
                                     build_run_console_output)
 
