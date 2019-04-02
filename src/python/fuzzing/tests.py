@@ -962,7 +962,8 @@ def check_for_bad_build(job_type, crash_revision):
 
   # If none of the other bots have added information about this build,
   # then add it now.
-  if build_state == data_types.BuildState.UNMARKED:
+  if (build_state == data_types.BuildState.UNMARKED and
+      not crash_result.should_ignore()):
     data_handler.add_build_metadata(job_type, crash_revision, is_bad_build,
                                     build_run_console_output)
 
