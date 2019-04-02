@@ -371,7 +371,7 @@ class CrashInitTest(fake_filesystem_unittest.TestCase):
     self.assertEqual('type,state,%s' % security_flag, crash.key)
 
     self.assertEqual(should_be_ignored, crash.should_be_ignored)
-    self.mock.ignore_stacktrace.assert_called_once_with('state', 'trace')
+    self.mock.ignore_stacktrace.assert_called_once_with('orig_trace')
 
     self.assertFalse(hasattr(crash, 'fuzzed_key'))
     return crash

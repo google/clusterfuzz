@@ -430,7 +430,7 @@ class CorpusPruner(object):
       unit_path = self._quarantine_unit(unit_path, quarantine_corpus_path)
       num_bad_units += 1
 
-      if crash_analyzer.ignore_stacktrace(state.crash_state, state.crash_type):
+      if crash_analyzer.ignore_stacktrace(state.crash_stacktrace):
         continue
 
       # Local de-duplication.

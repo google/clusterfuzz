@@ -136,7 +136,7 @@ class Crash(object):
     self.key = '%s,%s,%s' % (self.crash_type, self.crash_state,
                              self.security_flag)
     self.should_be_ignored = crash_analyzer.ignore_stacktrace(
-        self.crash_state, self.crash_stacktrace)
+        state.crash_stacktrace)
 
     # self.crash_info gets populated in create_testcase; save what we need.
     self.crash_frames = state.frames

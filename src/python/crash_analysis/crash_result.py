@@ -80,8 +80,7 @@ class CrashResult(object):
   def should_ignore(self):
     """Return True if this crash should be ignored."""
     state = self.get_symbolized_data()
-    return crash_analyzer.ignore_stacktrace(state.crash_state,
-                                            state.crash_stacktrace)
+    return crash_analyzer.ignore_stacktrace(state.crash_stacktrace)
 
   def is_security_issue(self):
     """Return True if this crash is a security issue."""

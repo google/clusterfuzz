@@ -105,8 +105,7 @@ def execute_task(testcase_id, job_type):
         state = crash_result.get_symbolized_data()
         security_flag = crash_result.is_security_issue()
 
-        if (not crash_analyzer.ignore_stacktrace(state.crash_state,
-                                                 state.crash_stacktrace) and
+        if (not crash_analyzer.ignore_stacktrace(state.crash_stacktrace) and
             security_flag == testcase.security_flag and
             state.crash_type == testcase.crash_type and
             (state.crash_type != sym_crash_type or
@@ -221,8 +220,7 @@ def get_symbolized_stacktraces(testcase_file_path, testcase,
       if crash_result.is_crash():
         state = crash_result.get_symbolized_data()
 
-        if crash_analyzer.ignore_stacktrace(state.crash_state,
-                                            state.crash_stacktrace):
+        if crash_analyzer.ignore_stacktrace(state.crash_stacktrace):
           continue
 
         unsymbolized_crash_stacktrace = crash_result.get_stacktrace(
@@ -249,8 +247,7 @@ def get_symbolized_stacktraces(testcase_file_path, testcase,
       if crash_result.is_crash():
         state = crash_result.get_symbolized_data()
 
-        if crash_analyzer.ignore_stacktrace(state.crash_state,
-                                            state.crash_stacktrace):
+        if crash_analyzer.ignore_stacktrace(state.crash_stacktrace):
           continue
 
         if state.crash_state != expected_state:

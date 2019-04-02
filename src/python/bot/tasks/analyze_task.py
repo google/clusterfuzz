@@ -317,8 +317,7 @@ def execute_task(testcase_id, job_type):
                                        log_message)
 
   # See if we have to ignore this crash.
-  if crash_analyzer.ignore_stacktrace(state.crash_state,
-                                      state.crash_stacktrace):
+  if crash_analyzer.ignore_stacktrace(state.crash_stacktrace):
     close_invalid_testcase_and_update_status(testcase, metadata, 'Irrelavant')
     return
 
