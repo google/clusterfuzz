@@ -28,6 +28,7 @@ import re
 import shutil
 import signal
 import stat
+import string
 import sys
 import time
 
@@ -722,19 +723,12 @@ def create_merge_directory():
   return merge_directory_path
 
 
-def is_sha1_hash(string):
-  """Returns True if |string| looks like a valid sha1 hash."""
-  if len(string) != 40:
+def is_sha1_hash(possible_hash):
+  """Returns True if |possible_hash| looks like a valid sha1 hash."""
+  if len(possible_hash) != 40:
     return False
 
-  valid_chars = set(['a', 'b', 'c', 'd', 'e', 'f'] +
-                    [str(num) for num in xrange(10)])
-
-  for char in string:
-    if char not in valid_chars:
-      return False
-
-  return True
+  return all(char in string.hexdigits for char in possible_hash)
 
 
 def move_mergeable_units(merge_directory, corpus_directory):
