@@ -934,7 +934,13 @@ def check_for_bad_build(job_type, crash_revision):
       timeout=fast_warmup_timeout,
       current_working_directory=app_directory)
   crash_result = CrashResult(return_code, crash_time, output)
-  if crash_result.is_crash() and not crash_result.should_ignore():
+
+  # Use crash_analyzer function instead of crash_result.is_crash() since we need
+  # to account startup crashes with no crash state. E.g. failed to load shared
+  # library.
+  is_crash = crash_analyzer.is_crash(return_code, output)
+
+  if is_crash and not crash_result.should_ignore():
     is_bad_build = True
     build_run_console_output = utils.get_crash_stacktrace_output(
         command,
