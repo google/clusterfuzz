@@ -935,9 +935,9 @@ def check_for_bad_build(job_type, crash_revision):
       current_working_directory=app_directory)
   crash_result = CrashResult(return_code, crash_time, output)
 
-  # Use crash_analyzer function instead of crash_result.is_crash() since we need
-  # to account startup crashes with no crash state. E.g. failed to load shared
-  # library.
+  # Use crash_analyzer.is_crash() instead of crash_result.is_crash() since we
+  # need to account for startup crashes with no crash state. E.g. failed to load
+  # shared library.
   is_crash = crash_analyzer.is_crash(return_code, output)
 
   if is_crash and not crash_result.should_ignore():
