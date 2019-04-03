@@ -63,13 +63,13 @@ HTTP_URL_REGEX = re.compile(
     r'.*(localhost|\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})[^/]*[/]([^"#?]+)')
 
 BAD_STATE_HINTS = [
-  # X server issues.
-  'cannot open display',
-  'Maximum number of clients reached',
-  'Missing X server',
+    # X server issues.
+    'cannot open display',
+    'Maximum number of clients reached',
+    'Missing X server',
 
-  # Android logging issues.
-  'logging service has stopped',
+    # Android logging issues.
+    'logging service has stopped',
 ]
 
 
