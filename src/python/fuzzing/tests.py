@@ -436,7 +436,8 @@ def run_testcase_and_return_result_in_queue(crash_queue,
 
     # Analyze the crash.
     crash_output = _get_crash_output(output)
-    if crash_analyzer.is_crash(return_code, crash_output):
+    crash_result = CrashResult(return_code, crash_time, crash_output)
+    if crash_result.is_crash():
       # Initialize resource list with the testcase path.
       resource_list = [file_path]
       resource_list += get_resource_paths(crash_output)
@@ -463,9 +464,10 @@ def run_testcase_and_return_result_in_queue(crash_queue,
       if upload_output:
         upload_testcase(file_path)
 
-    crash_result = CrashResult(return_code, crash_time, output)
     if upload_output:
-      upload_testcase_output(crash_result, file_path)
+      # Include full output for uploaded logs (crash output, merge output, etc).
+      crash_result_full = CrashResult(return_code, crash_time, output)
+      upload_testcase_output(crash_result_full, file_path)
   except Exception:
     logs.log_error('Exception occurred while running '
                    'run_testcase_and_return_result_in_queue.')
