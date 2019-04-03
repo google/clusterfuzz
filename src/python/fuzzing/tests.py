@@ -22,7 +22,6 @@ import zlib
 
 from base import utils
 from build_management import revisions
-from crash_analysis import crash_analyzer
 from crash_analysis.crash_comparer import CrashComparer
 from crash_analysis.crash_result import CrashResult
 from datastore import data_handler
