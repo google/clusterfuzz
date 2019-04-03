@@ -937,7 +937,7 @@ def check_for_bad_build(job_type, crash_revision):
 
   # Need to account for startup crashes with no crash state. E.g. failed to load
   # shared library.
-  if (crash_result.is_crash(ignore_state=False) and
+  if (crash_result.is_crash(ignore_state=True) and
       not crash_result.should_ignore()):
     is_bad_build = True
     build_run_console_output = utils.get_crash_stacktrace_output(
