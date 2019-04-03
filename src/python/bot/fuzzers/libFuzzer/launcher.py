@@ -105,6 +105,8 @@ MUTATOR_PLUGIN_PROBABILITY = 0.50
 
 MERGE_DIRECTORY_NAME = 'merge-corpus'
 
+HEXDIGITS_SET = set(string.hexdigits)
+
 
 class Generator(object):
   """Generators we can use."""
@@ -728,7 +730,7 @@ def is_sha1_hash(possible_hash):
   if len(possible_hash) != 40:
     return False
 
-  return all(char in string.hexdigits for char in possible_hash)
+  return all(char in HEXDIGITS_SET for char in possible_hash)
 
 
 def move_mergeable_units(merge_directory, corpus_directory):
@@ -999,9 +1001,7 @@ def main(argv):
     corpus_directories.insert(0, merge_directory)
 
     if use_minijail:
-      target = '/' + MERGE_DIRECTORY_NAME
-      minijail_chroot.add_binding(
-          minijail.ChrootBinding(merge_directory, target, True))
+      bind_corpus_dirs(minijail_chroot, [merge_directory])
 
     merge_result = runner.merge(
         corpus_directories,
