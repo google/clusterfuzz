@@ -1286,23 +1286,14 @@ class LauncherTest(fake_fs_unittest.TestCase):
 
       # Tests that merge command is run here.
       self.assertEqual(mock_popen.commands, [[
-          '/fake/build_dir/fake_fuzzer',
-          '-max_len=80',
-          '-rss_limit_mb=2048',
-          '-timeout=25',
-          '-artifact_prefix=/fake/',
-          '-max_total_time=2650',
-          '-print_final_stats=1',
-          '/fake/inputs-disk/temp-1337/new',
+          '/fake/build_dir/fake_fuzzer', '-max_len=80', '-rss_limit_mb=2048',
+          '-timeout=25', '-artifact_prefix=/fake/', '-max_total_time=2650',
+          '-print_final_stats=1', '/fake/inputs-disk/temp-1337/new',
           '/fake/corpus_oom'
       ], [
-          '/fake/build_dir/fake_fuzzer',
-          '-rss_limit_mb=2048',
-          '-timeout=25',
-          '-merge=1',
-          '/fake/inputs-disk/temp-1337/merge-corpus',
-          '/fake/inputs-disk/temp-1337/new',
-          '/fake/corpus_oom'
+          '/fake/build_dir/fake_fuzzer', '-rss_limit_mb=2048', '-timeout=25',
+          '-merge=1', '/fake/inputs-disk/temp-1337/merge-corpus',
+          '/fake/inputs-disk/temp-1337/new', '/fake/corpus_oom'
       ]])
 
   @mock.patch('bot.fuzzers.libFuzzer.launcher.add_recommended_dictionary',
