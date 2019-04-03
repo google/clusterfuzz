@@ -17,14 +17,12 @@ import copy
 import os
 import shutil
 
-import engine_common
-
+from libFuzzer import constants
 from system import environment
 from system import minijail
 from system import new_process
 from system import shell
-
-from libFuzzer import constants
+import engine_common
 
 MAX_OUTPUT_LEN = 1 * 1024 * 1024  # 1 MB
 
@@ -185,17 +183,16 @@ class LibFuzzerCommon(object):
           '%s%s' % (constants.ARTIFACT_PREFIX_FLAG,
                     self._normalize_artifact_prefix(artifact_prefix)))
 
-    env = None
+    extra_env = {}
     if tmp_dir:
-      env = os.environ.copy()
-      env['TMPDIR'] = tmp_dir
+      extra_env['TMPDIR'] = tmp_dir
 
     additional_args.extend(corpus_directories)
     return self.run_and_wait(
         additional_args=additional_args,
         timeout=merge_timeout,
         max_stdout_len=MAX_OUTPUT_LEN,
-        env=env)
+        extra_env=extra_env)
 
   def run_single_testcase(self,
                           testcase_path,
@@ -486,7 +483,7 @@ def get_runner(fuzzer_path, temp_dir=None):
         minijail.ChrootBinding(build_dir, '/out', False))
 
     minijail_bin = os.path.join(minijail_chroot.directory, 'bin')
-    shell.create_directory_if_needed(minijail_bin)
+    shell.create_directory(minijail_bin)
 
     # Set up /bin with llvm-symbolizer to allow symbolized stacktraces.
     # Don't copy if it already exists (e.g. ChromeOS chroot jail).

@@ -397,7 +397,7 @@ def _set_random_fuzz_target_for_fuzzing_if_needed(fuzz_targets, target_weights):
 def _setup_build_directories(base_build_dir):
   """Set up build directories for a job."""
   # Create the root build directory for this job.
-  shell.create_directory_if_needed(base_build_dir, create_intermediates=True)
+  shell.create_directory(base_build_dir, create_intermediates=True)
 
   custom_binary_directory = os.path.join(base_build_dir, 'custom')
   revision_build_directory = os.path.join(base_build_dir, 'revisions')
@@ -409,7 +409,7 @@ def _setup_build_directories(base_build_dir):
       sym_debug_build_directory, sym_release_build_directory
   ]
   for build_directory in build_directories:
-    shell.create_directory_if_needed(build_directory)
+    shell.create_directory(build_directory)
 
 
 def set_environment_vars(search_directories, app_path='APP_PATH'):

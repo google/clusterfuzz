@@ -276,7 +276,7 @@ class GcsCorpus(object):
     Returns:
       A bool indicating whether or not the command succeeded.
     """
-    shell.create_directory_if_needed(directory, create_intermediates=True)
+    shell.create_directory(directory, create_intermediates=True)
 
     corpus_gcs_url = self.get_gcs_url()
     result = self._gsutil_runner.rsync(corpus_gcs_url, directory, timeout,

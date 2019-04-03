@@ -34,8 +34,7 @@ def initialize():
   if os.path.exists(cache_directory_path):
     clear_values()
   else:
-    shell.create_directory_if_needed(
-        cache_directory_path, create_intermediates=True)
+    shell.create_directory(cache_directory_path, create_intermediates=True)
 
 
 def clear_values():

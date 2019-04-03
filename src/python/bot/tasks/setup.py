@@ -322,7 +322,7 @@ def update_data_bundle(fuzzer, data_bundle):
     logs.log_error('Failed to setup data bundle %s.' % data_bundle.name)
     return False
 
-  if not shell.create_directory_if_needed(
+  if not shell.create_directory(
       data_bundle_directory, create_intermediates=True):
     logs.log_error(
         'Failed to create data bundle %s directory.' % data_bundle.name)

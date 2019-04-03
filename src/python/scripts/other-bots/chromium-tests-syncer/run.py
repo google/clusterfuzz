@@ -91,7 +91,7 @@ def unpack_crash_testcases(crash_testcases_directory):
     shell.move(input_directory, crash_testcase_directory)
 
     # Re-create input directory for unpacking testcase in next iteration.
-    shell.create_directory_if_needed(input_directory)
+    shell.create_directory(input_directory)
 
     STORED_TESTCASES_LIST.append(testcase_id)
 
@@ -214,12 +214,12 @@ def main():
   tests_directory = environment.get_value('TESTS_DIR')
   sync_interval = environment.get_value('SYNC_INTERVAL')  # in seconds.
 
-  shell.create_directory_if_needed(tests_directory)
+  shell.create_directory(tests_directory)
 
   # Sync old crash tests.
   logs.log('Syncing old crash tests.')
   crash_testcases_directory = os.path.join(tests_directory, 'CrashTests')
-  shell.create_directory_if_needed(crash_testcases_directory)
+  shell.create_directory(crash_testcases_directory)
   unpack_crash_testcases(crash_testcases_directory)
 
   # Sync web tests.

@@ -857,7 +857,7 @@ def setup_user_profile_directory_if_needed(user_profile_directory):
     # User profile directory already exists. Bail out.
     return
 
-  shell.create_directory_if_needed(user_profile_directory)
+  shell.create_directory(user_profile_directory)
 
   # Create a file in user profile directory based on format:
   # filename;base64 encoded zlib compressed file contents.
@@ -877,7 +877,7 @@ def setup_user_profile_directory_if_needed(user_profile_directory):
   if app_name.startswith('firefox'):
     # Create extensions directory.
     extensions_directory = os.path.join(user_profile_directory, 'extensions')
-    shell.create_directory_if_needed(extensions_directory)
+    shell.create_directory(extensions_directory)
 
     # Unpack the fuzzPriv extension.
     extension_archive = os.path.join(environment.get_resources_directory(),

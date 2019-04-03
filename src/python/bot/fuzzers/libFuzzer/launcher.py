@@ -28,11 +28,9 @@ import re
 import shutil
 import signal
 import stat
+import string
 import sys
 import time
-
-import constants
-import stats
 
 from base import utils
 from bot.fuzzers import dictionary_manager
@@ -49,6 +47,8 @@ from system import environment
 from system import minijail
 from system import new_process
 from system import shell
+import constants
+import stats
 
 # Regex to find testcase path from a crash.
 CRASH_TESTCASE_REGEX = (r'.*Test unit written to\s*'
@@ -102,6 +102,10 @@ ENGINE_ERROR_MESSAGE = 'libFuzzer: engine encountered an error.'
 FORK_PROBABILITY = 0.1
 
 MUTATOR_PLUGIN_PROBABILITY = 0.50
+
+MERGE_DIRECTORY_NAME = 'merge-corpus'
+
+HEXDIGITS_SET = set(string.hexdigits)
 
 
 class Generator(object):
@@ -405,7 +409,8 @@ def get_corpus_directories(main_corpus_directory,
                            fuzzer_path,
                            fuzzing_strategies,
                            minijail_chroot=None):
-  """Return a list of corpus directories to be passed to the fuzzer binary."""
+  """Return a list of corpus directories to be passed to the fuzzer binary for
+  fuzzing."""
   corpus_directories = []
 
   # Set up scratch directory for writing new units.
@@ -706,6 +711,42 @@ def use_mutator_plugin(target_name, extra_env, chroot):
   return True
 
 
+def get_merge_directory():
+  """Returns the path of the directory we can use for merging."""
+  temp_dir = fuzzer_utils.get_temp_dir()
+  return os.path.join(temp_dir, MERGE_DIRECTORY_NAME)
+
+
+def create_merge_directory():
+  """Create the merge directory and return its path."""
+  merge_directory_path = get_merge_directory()
+  shell.create_directory(
+      merge_directory_path, create_intermediates=True, recreate=True)
+  return merge_directory_path
+
+
+def is_sha1_hash(possible_hash):
+  """Returns True if |possible_hash| looks like a valid sha1 hash."""
+  if len(possible_hash) != 40:
+    return False
+
+  return all(char in HEXDIGITS_SET for char in possible_hash)
+
+
+def move_mergeable_units(merge_directory, corpus_directory):
+  """Move new units in |merge_directory| into |corpus_directory|."""
+  initial_units = set(
+      os.path.basename(filename)
+      for filename in shell.get_files_list(corpus_directory))
+
+  for unit_path in shell.get_files_list(merge_directory):
+    unit_name = os.path.basename(unit_path)
+    if unit_name in initial_units and is_sha1_hash(unit_name):
+      continue
+    dest_path = os.path.join(corpus_directory, unit_name)
+    shell.move(unit_path, dest_path)
+
+
 def main(argv):
   """Run libFuzzer as specified by argv."""
   atexit.register(fuzzer_utils.cleanup)
@@ -941,12 +982,9 @@ def main(argv):
   new_units_added = parsed_stats.get('new_units_added', 0)
   merge_error = None
   if new_units_added:
-    # Merge the new units back into the corpus.
-    # For merge, main corpus directory should be passed first of all corpus
-    # directories.
-    if corpus_directory in corpus_directories:
-      corpus_directories.remove(corpus_directory)
-    corpus_directories = [corpus_directory] + corpus_directories
+    # Merge the new units with the initial corpus.
+    if corpus_directory not in corpus_directories:
+      corpus_directories.append(corpus_directory)
 
     # If this times out, it's possible that we will miss some units. However, if
     # we're taking >10 minutes to load/merge the corpus something is going very
@@ -959,11 +997,19 @@ def main(argv):
       engine_common.recreate_directory(merge_tmp_dir)
 
     old_corpus_len = shell.get_directory_file_count(corpus_directory)
+    merge_directory = create_merge_directory()
+    corpus_directories.insert(0, merge_directory)
+
+    if use_minijail:
+      bind_corpus_dirs(minijail_chroot, [merge_directory])
+
     merge_result = runner.merge(
         corpus_directories,
         merge_timeout=engine_common.get_merge_timeout(DEFAULT_MERGE_TIMEOUT),
         tmp_dir=merge_tmp_dir,
         additional_args=arguments)
+
+    move_mergeable_units(merge_directory, corpus_directory)
     new_corpus_len = shell.get_directory_file_count(corpus_directory)
     new_units_added = 0
 
