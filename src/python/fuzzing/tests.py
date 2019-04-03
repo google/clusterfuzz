@@ -62,6 +62,16 @@ FILE_URL_REGEX = re.compile(r'file:///([^"#?]+)')
 HTTP_URL_REGEX = re.compile(
     r'.*(localhost|\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})[^/]*[/]([^"#?]+)')
 
+BAD_STATE_HINTS = [
+    # X server issues.
+    'cannot open display',
+    'Maximum number of clients reached',
+    'Missing X server',
+
+    # Android logging issues.
+    'logging service has stopped',
+]
+
 
 def create_testcase_list_file(output_directory):
   """Create a testcase list file for tests in a directory."""
@@ -955,12 +965,11 @@ def check_for_bad_build(job_type, crash_revision):
   # Any of the conditions below indicate that bot is in a bad state and it is
   # not caused by the build itself. In that case, just exit.
   build_state = data_handler.get_build_state(job_type, crash_revision)
-  if (is_bad_build and ('cannot open display' in output or
-                        'logging service has stopped' in output or
-                        'Maximum number of clients reached' in output)):
+  if is_bad_build and utils.sub_string_exists_in(BAD_STATE_HINTS, output):
     logs.log_fatal_and_exit(
         'Bad bot environment detected, exiting.',
-        output=build_run_console_output)
+        output=build_run_console_output,
+        snapshot=process_handler.get_runtime_snapshot())
 
   # If none of the other bots have added information about this build,
   # then add it now.
