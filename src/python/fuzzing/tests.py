@@ -968,7 +968,8 @@ def check_for_bad_build(job_type, crash_revision):
   if is_bad_build and utils.sub_string_exists_in(BAD_STATE_HINTS, output):
     logs.log_fatal_and_exit(
         'Bad bot environment detected, exiting.',
-        output=build_run_console_output)
+        output=build_run_console_output,
+        snapshot=process_handler.get_runtime_snapshot())
 
   # If none of the other bots have added information about this build,
   # then add it now.
