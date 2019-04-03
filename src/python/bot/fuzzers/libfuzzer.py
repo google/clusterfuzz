@@ -332,13 +332,16 @@ class FuchsiaQemuLibFuzzerRunner(new_process.ProcessRunner, LibFuzzerCommon):
         not environment.get_value('FUCHSIA_PORTNUM')):
       raise fuchsia.errors.FuchsiaConfigError(
           'FUCHSIA_PKEY_PATH and/or FUCHSIA_PORTNUM was not set')
+    # yapf: disable
     self.ssh_root = [
-        'ssh', '-i',
-        environment.get_value('FUCHSIA_PKEY_PATH'), '-o',
-        'StrictHostKeyChecking no', 'localhost', '-o',
-        'UserKnownHostsFile=/dev/null', '-p',
-        str(environment.get_value('FUCHSIA_PORTNUM'))
+        'ssh',
+        '-i', environment.get_value('FUCHSIA_PKEY_PATH'),
+        '-o', 'StrictHostKeyChecking no',
+        '-o', 'UserKnownHostsFile=/dev/null',
+        '-p', str(environment.get_value('FUCHSIA_PORTNUM')),
+        'localhost'
     ]
+    # yapf: enable
 
     super(FuchsiaQemuLibFuzzerRunner, self).__init__(
         executable_path=executable_path, default_args=default_args)

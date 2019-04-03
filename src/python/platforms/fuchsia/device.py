@@ -18,8 +18,9 @@
 
 import os
 
+from fuchsia import errors
 from google_cloud_utils import gsutil
-from platforms import fuchsia
+from metrics import logs
 from system import environment
 from system import new_process
 from system import shell
@@ -38,21 +39,23 @@ def qemu_setup():
 
   resources_path = os.path.join(os.getcwd(), fuchsia_bucket_name)
 
-  shell.create_directory_if_needed(resources_path)
+  shell.create_directory(resources_path)
 
   fuchsia_resources_url = environment.get_value('FUCHSIA_RESOURCES_URL')
   if fuchsia_resources_url is None:
-    raise fuchsia.errors.FuchsiaConfigError(
+    raise errors.FuchsiaConfigError(
         'Could not find path for remote'
         'Fuchsia resources bucket (FUCHSIA_RESOURCES_URL')
 
   gsutil_command_arguments = [
       '-m', 'cp', '-r', fuchsia_resources_url, resources_path
   ]
+  logs.log("Beginning Fuchsia SDK download.")
   result = gsutil.GSUtilRunner().run_gsutil(gsutil_command_arguments)
   if result.return_code or result.timed_out:
-    raise fuchsia.errors.FuchsiaSdkError('Failed to download Fuchsia'
-                                         'resources: ' + result.output)
+    raise errors.FuchsiaSdkError('Failed to download Fuchsia'
+                                 'resources: ' + result.output)
+  logs.log("Fuchsia SDK download complete.")
 
   # Save paths for necessary commands later.
   qemu_path = os.path.join(resources_path, 'qemu-for-fuchsia', 'bin',
@@ -76,8 +79,7 @@ def qemu_setup():
                                       [drive_path, 'extend', '--length', '1G'])
   result = process.run_and_wait()
   if result.return_code or result.timed_out:
-    raise fuchsia.errors.FuchsiaSdkError('Failed to extend FVM: ' +
-                                         result.output)
+    raise errors.FuchsiaSdkError('Failed to extend FVM: ' + result.output)
 
   # Need to bake keys into ZBI so we can SSH into it.  See:
   # fuchsia.googlesource.com/fuchsia/+/refs/heads/master/sdk/docs/ssh.md
@@ -91,8 +93,8 @@ def qemu_setup():
   ])
   result = process.run_and_wait()
   if result.return_code or result.timed_out:
-    raise fuchsia.errors.FuchsiaSdkError('Failed to add keys to Fuchsia ZBI: ' +
-                                         result.output)
+    raise errors.FuchsiaSdkError('Failed to add keys to Fuchsia ZBI: ' +
+                                 result.output)
   os.chmod(initrd_path, 0o644)
 
   # TODO(flowerhack): Add a mechanism for choosing portnum dynamically.
