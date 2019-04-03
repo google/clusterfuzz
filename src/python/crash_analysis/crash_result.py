@@ -71,11 +71,17 @@ class CrashResult(object):
 
     return state.crash_stacktrace
 
-  def is_crash(self):
+  def is_crash(self, ignore_state=False):
     """Return True if this result was a crash."""
     crashed = crash_analyzer.is_crash(self.return_code, self.output)
+    if not crashed:
+      return False
+
     state = self.get_state(symbolized=False)
-    return crashed and state.strip()
+    if not state.strip() and not ignore_state:
+      return False
+
+    return True
 
   def should_ignore(self):
     """Return True if this crash should be ignored."""
