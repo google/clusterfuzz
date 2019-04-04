@@ -17,8 +17,8 @@ import copy
 import functools
 import os
 import tempfile
-import time
 import threading
+import time
 
 import errors
 
