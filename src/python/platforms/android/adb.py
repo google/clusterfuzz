@@ -194,7 +194,7 @@ def execute_command(cmd, timeout=None, log_error=True):
       output_dest.close()
       if output:
         so.append(output)
-    except OSError, _:
+    except OSError as _:
       logs.log_warn('Failed to retrieve stdout from: %s' % cmd)
     if pipe.returncode:
       if log_error:

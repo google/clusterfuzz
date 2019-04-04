@@ -480,7 +480,7 @@ def _query(cls, *args, **kwargs):
   # Rebind ndb.Model.query to cls.
   # See https://docs.python.org/2/howto/descriptor.html for how __get__ works.
   model_query = _patched_original[ndb.Model]['query']
-  model_query = model_query.__func__.__get__(cls, model_query.im_class)
+  model_query = model_query.__func__.__get__(cls, model_query.__self__.__class__)
   result = model_query(*args, **kwargs)
   return Query(result, cls)
 

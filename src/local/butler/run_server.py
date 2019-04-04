@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """run_server.py run the Clusterfuzz server locally."""
+from __future__ import print_function
 from distutils import spawn
 import os
 import shutil
@@ -32,7 +33,7 @@ def bootstrap_db():
   def bootstrap():
     # Wait for the server to run.
     time.sleep(10)
-    print 'Bootstrapping datastore...'
+    print('Bootstrapping datastore...')
     common.execute(
         ('python butler.py run setup '
          '--non-dry-run --local --config-dir={config_dir}'
@@ -148,7 +149,7 @@ def execute(args):
   # Clean storage directory if needed.
   if args.bootstrap or args.clean:
     if os.path.exists(args.storage_path):
-      print 'Clearing local datastore by removing %s.' % args.storage_path
+      print('Clearing local datastore by removing %s.' % args.storage_path)
       shutil.rmtree(args.storage_path)
   if not os.path.exists(args.storage_path):
     os.makedirs(args.storage_path)
@@ -199,6 +200,6 @@ def execute(args):
             pubsub_emulator_host=constants.PUBSUB_EMULATOR_HOST,
             local_gcs_server_host=constants.LOCAL_GCS_SERVER_HOST))
   except KeyboardInterrupt:
-    print 'Server has been stopped. Exit.'
+    print('Server has been stopped. Exit.')
     pubsub_emulator.cleanup()
     local_gcs.terminate()

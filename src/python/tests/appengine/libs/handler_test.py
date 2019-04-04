@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """Tests for Handler."""
+from __future__ import print_function
 
 import json
 import mock
@@ -179,7 +180,7 @@ class CronTest(unittest.TestCase):
   def test_fail(self):
     """Test request from non-cron."""
     response = self.app.get('/', expect_errors=True)
-    print response.body
+    print(response.body)
     self.assertEqual(403, response.status_int)
 
 

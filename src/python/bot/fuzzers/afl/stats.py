@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """Statistics for the afl launcher script."""
+from __future__ import print_function
 
 import os
 import re
@@ -116,7 +117,7 @@ class StatsGetter(object):
     try:
       afl_stat_value = self.afl_stats[afl_stat_name]
     except KeyError:
-      print "{0} not in AFL's stats file.".format(afl_stat_name)
+      print("{0} not in AFL's stats file.".format(afl_stat_name))
       # If afl_stat_value is in AFL_STATS_MAPPING, then get the clusterfuzz name
       # of the stat to lookup the stat's default value.
       clusterfuzz_stat_name = self.AFL_STATS_MAPPING.get(

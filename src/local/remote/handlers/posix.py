@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """Handler for performing remote tasks on linux."""
+from __future__ import print_function
 import os
 import re
 import time
@@ -58,7 +59,7 @@ class Handler(object):
 
   def _run(self, command):
     """Run the command."""
-    print 'Running: ' + command
+    print('Running: ' + command)
     return api.run(command)
 
   def _should_kill(self, run_bot_line):  # pylint: disable=unused-argument
@@ -101,7 +102,7 @@ class Handler(object):
     if not new_pids:
       raise Exception('Failed to start run_bot.py after restarting.')
 
-    print 'run_bot.py has been restarted (PID=%s).' % ','.join(new_pids)
+    print('run_bot.py has been restarted (PID=%s).' % ','.join(new_pids))
 
   def tail(self, log_name, line_count):
     """Print the last x lines of ./bot/logs/`log_name`.log."""

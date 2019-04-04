@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """run_bot.py run a Clusterfuzz bot locally."""
+from __future__ import print_function
 from distutils import dir_util
 import os
 import signal
@@ -33,9 +34,9 @@ def _setup_bot_directory(args):
 
   src_root_dir = os.path.abspath('.')
   if os.path.exists(args.directory):
-    print 'Bot directory already exists. Re-using...'
+    print('Bot directory already exists. Re-using...')
   else:
-    print 'Creating new CF bot directory...'
+    print('Creating new CF bot directory...')
     os.makedirs(args.directory)
 
   clusterfuzz_dir = os.path.join(args.directory, 'clusterfuzz')
@@ -129,7 +130,7 @@ def execute(args):
       proc = common.execute_async('python src/python/bot/startup/run_bot.py')
 
     def _stop_handler(*_):
-      print 'Bot has been stopped. Exit.'
+      print('Bot has been stopped. Exit.')
       proc.kill()
 
     signal.signal(signal.SIGTERM, _stop_handler)

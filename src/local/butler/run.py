@@ -13,6 +13,7 @@
 # limitations under the License.
 """run.py runs a one-off script (e.g. migration) with appropriate envs (e.g.
   datastore)."""
+from __future__ import print_function
 
 import importlib
 import os
@@ -41,6 +42,6 @@ def execute(args):
   script.execute(args)
 
   if not args.local:
-    print
-    print 'Please remember to run the migration individually on all projects.'
-    print
+    print()
+    print('Please remember to run the migration individually on all projects.')
+    print()

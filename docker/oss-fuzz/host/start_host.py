@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """Start host."""
+from __future__ import print_function
 import os
 import shutil
 import socket
@@ -71,14 +72,14 @@ def start_bot_instance(instance_num):
         env=env,
         cwd=bot_root_directory)
     bot_proc.wait()
-    print >> sys.stderr, 'Instance %i exited.' % instance_num
+    print('Instance %i exited.' % instance_num, file=sys.stderr)
 
 
 def main():
   setup_environment()
 
   for i in xrange(NUM_WORKERS_PER_HOST):
-    print 'Starting bot %i.' % i
+    print('Starting bot %i.' % i)
     thread = threading.Thread(target=start_bot_instance, args=(i,))
     thread.start()
 

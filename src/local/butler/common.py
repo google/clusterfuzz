@@ -208,7 +208,7 @@ def _install_chromedriver():
       os.path.dirname(__file__), '..', '..', '..', 'ENV', binary_directory)
 
   chromedriver_archive.extract(chromedriver_binary, output_directory)
-  os.chmod(os.path.join(output_directory, chromedriver_binary), 0750)
+  os.chmod(os.path.join(output_directory, chromedriver_binary), 0o750)
 
 
 def _install_pip(requirements_path, target_path):

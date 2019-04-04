@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """js_unittest.py runs JS tests under src/appengine"""
+from __future__ import print_function
 
 import os
 import re
@@ -63,7 +64,7 @@ def execute(args):
      2. Read the test result from the HTML."""
 
   test_filepath = os.path.join('src', 'appengine', 'private', 'test.html')
-  print 'Running chromedriver on %s' % test_filepath
+  print('Running chromedriver on %s' % test_filepath)
 
   options = webdriver.ChromeOptions()
   options.add_argument('--allow-file-access-from-files')
@@ -98,15 +99,15 @@ def execute(args):
     error_report = _parse_error_report(driver)
 
     if error_report:
-      print error_report
+      print(error_report)
 
-    print
-    print _SUITE_SEPARATOR
-    print 'Test results:'
-    print '| Success: %d' % success_count
-    print '| Failure: %d' % failure_count
-    print _SUITE_SEPARATOR
-    print
+    print()
+    print(_SUITE_SEPARATOR)
+    print('Test results:')
+    print('| Success: %d' % success_count)
+    print('| Failure: %d' % failure_count)
+    print(_SUITE_SEPARATOR)
+    print()
 
     if args.persist:
       raw_input('--persist is used. Leave the browser open.'

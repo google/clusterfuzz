@@ -52,8 +52,7 @@ def from_fieldstorage(cls, fs):
         if transfer_encoding == 'quoted-printable':
           field_value = quopri.decodestring(field_value)
 
-        if field.type_options.has_key(
-            'charset') and field.type_options['charset'] != common_charset:
+        if 'charset' in field.type_options and field.type_options['charset'] != common_charset:
           # decode with a charset specified in each
           # multipart, and then encode it again with a
           # charset specified in top level FieldStorage

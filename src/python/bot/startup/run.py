@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """Start the bot and heartbeat scripts."""
+from __future__ import print_function
 
 # Before any other imports, we must fix the path. Some libraries might expect
 # to be able to import dependencies directly, but we must store these in
@@ -164,7 +165,7 @@ def main():
   if not root_directory:
     print('Please set ROOT_DIR environment variable to the root of the source '
           'checkout before running. Exiting.')
-    print 'For an example, check init.bash in the local directory.'
+    print('For an example, check init.bash in the local directory.')
     return
 
   environment.set_bot_environment()
