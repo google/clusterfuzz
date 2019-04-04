@@ -138,8 +138,8 @@ class UntrustedRunnerServicer(
     return file_impl.list_files(request, context)
 
   @wrap_servicer
-  def CopyFileTo(self, request, context):
-    return file_impl.copy_file_to_worker(request, context)
+  def CopyFileTo(self, request_iterator, context):
+    return file_impl.copy_file_to_worker(request_iterator, context)
 
   @wrap_servicer
   def CopyFileFrom(self, request, context):
