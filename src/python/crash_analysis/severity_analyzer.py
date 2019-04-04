@@ -168,11 +168,16 @@ class SeverityAnalyzerSanitizerChrome(SeverityAnalyzerSanitizer):
     # this should be rare from an uncompromised renderer), it shouldn't matter
     # too much.
     main_function_regex = re.compile(r'content::([A-Z][a-z]+)Main\(')
+
+    # As a fallback, search for content/browser file paths for determining the
+    # browser process.
+    content_browser_regex = re.compile(r'content[/\\]browser')
+
     for line in crash_output.splitlines():
       if 'content::ContentMain' in line:
         continue
 
-      if 'content::BrowserProcessSubThread' in line:
+      if content_browser_regex.search(line):
         process_type = 'browser'
         break
 

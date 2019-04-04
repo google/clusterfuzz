@@ -1,0 +1,56 @@
+==9152==ERROR: AddressSanitizer: heap-use-after-free on address 0x614000105688 at pc 0x5582ff46a32d bp 0x7f95382ce910 sp 0x7f95382ce908
+READ of size 4 at 0x614000105688 thread T14 (TaskSchedulerFo)
+SCARINESS: 45 (4-byte-read-heap-use-after-free)
+Thread T4 (TaskSchedulerFo) created by T0 (chrome) here:
+    #0 0x5582f45f0f6a in __interceptor_pthread_create /b/swarming/w/ir/k/src/third_party/llvm/compiler-rt/lib/asan/asan_interceptors.cc:209:3
+    #1 0x5582ff6ebecf in base::(anonymous namespace)::CreateThread(unsigned long, bool, base::PlatformThread::Delegate*, base::PlatformThreadHandle*, base::ThreadPriority) base/threading/platform_thread_posix.cc:120:13
+    #2 0x5582ff5c14b9 in base::internal::SchedulerWorker::Start(base::SchedulerWorkerObserver*) base/task/task_scheduler/scheduler_worker.cc:79:3
+    #3 0x5582ff5be171 in operator() base/task/task_scheduler/scheduler_worker_pool_impl.cc:187:15
+    #4 0x5582ff5be171 in ForEachWorker<(lambda at ../../base/task/task_scheduler/scheduler_worker_pool_impl.cc:186:37)> base/task/task_scheduler/scheduler_worker_pool_impl.cc:152
+    #5 0x5582ff5be171 in base::internal::SchedulerWorkerPoolImpl::ScopedWorkersExecutor::FlushImpl() base/task/task_scheduler/scheduler_worker_pool_impl.cc:186
+    #6 0x5582ff5b5c47 in base::internal::SchedulerWorkerPoolImpl::ScopedWorkersExecutor::~ScopedWorkersExecutor() base/task/task_scheduler/scheduler_worker_pool_impl.cc:105:30
+    #7 0x5582ff5b5a57 in base::internal::SchedulerWorkerPoolImpl::Start(base::SchedulerWorkerPoolParams const&, int, scoped_refptr<base::TaskRunner>, base::SchedulerWorkerObserver*, base::internal::SchedulerWorkerPoolImpl::WorkerEnvironment, base::Optional<base::TimeDelta>) base/task/task_scheduler/scheduler_worker_pool_impl.cc:435:1
+    #8 0x5582ff59ec04 in base::internal::TaskSchedulerImpl::Start(base::TaskScheduler::InitParams const&, base::SchedulerWorkerObserver*) base/task/task_scheduler/task_scheduler_impl.cc:142:21
+    #9 0x5582f7f9791b in content::StartBrowserTaskScheduler() content/browser/startup_helper.cc:95:39
+    #10 0x5582fe2d95d1 in content::ContentMainRunnerImpl::RunServiceManager(content::MainFunctionParams&, bool) content/app/content_main_runner_impl.cc:924:7
+    #11 0x5582fe2d8edb in content::ContentMainRunnerImpl::Run(bool) content/app/content_main_runner_impl.cc:878:12
+    #12 0x5582fe4401c6 in service_manager::Main(service_manager::MainParams const&) services/service_manager/embedder/main.cc:415:29
+    #13 0x5582fe2d2d3c in content::ContentMain(content::ContentMainParams const&) content/app/content_main.cc:19:10
+    #14 0x5582f4635c2e in ChromeMain chrome/app/chrome_main.cc:103:12
+    #15 0x7f954dbb92b0 in __libc_start_main (/lib/x86_64-linux-gnu/libc.so.6+0x202b0)
+
+SUMMARY: AddressSanitizer: heap-use-after-free base/memory/ref_counted.cc:43:3 in base::subtle::RefCountedBase::AddRefImpl() const
+Shadow bytes around the buggy address:
+  0x0c2880018a80: fa fa fa fa fa fa fa fa fa fa fa fa fa fa fa fa
+  0x0c2880018a90: fd fd fd fd fd fd fd fd fd fd fd fd fd fd fd fd
+  0x0c2880018aa0: fd fd fd fd fd fd fd fd fd fd fd fd fd fd fd fd
+  0x0c2880018ab0: fd fd fd fd fd fd fd fd fd fd fd fd fd fd fa fa
+  0x0c2880018ac0: fa fa fa fa fa fa fa fa fa fa fa fa fa fa fa fa
+=>0x0c2880018ad0: fd[fd]fd fd fd fd fd fd fd fd fd fd fd fd fd fd
+  0x0c2880018ae0: fd fd fd fd fd fd fd fd fd fd fd fd fd fd fd fd
+  0x0c2880018af0: fd fd fd fd fd fd fd fd fd fa fa fa fa fa fa fa
+  0x0c2880018b00: fa fa fa fa fa fa fa fa fa fa fa fa fa fa fa fa
+  0x0c2880018b10: fd fd fd fd fd fd fd fd fd fd fd fd fd fd fd fd
+  0x0c2880018b20: fd fd fd fd fd fd fd fd fd fd fd fd fd fd fd fd
+Shadow byte legend (one shadow byte represents 8 application bytes):
+  Addressable:           00
+  Partially addressable: 01 02 03 04 05 06 07 
+  Heap left redzone:       fa
+  Freed heap region:       fd
+  Stack left redzone:      f1
+  Stack mid redzone:       f2
+  Stack right redzone:     f3
+  Stack after return:      f5
+  Stack use after scope:   f8
+  Global redzone:          f9
+  Global init order:       f6
+  Poisoned by user:        f7
+  Container overflow:      fc
+  Array cookie:            ac
+  Intra object redzone:    bb
+  ASan internal:           fe
+  Left alloca redzone:     ca
+  Right alloca redzone:    cb
+  Shadow gap:              cc
+==9152==ABORTING
+
