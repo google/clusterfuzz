@@ -33,8 +33,10 @@ make sure that contents of the buckets will be exactly the same."""
 
 def _run_command(command):
   """Runs a command and prints it."""
-  print('Running command [{time}]:'.format(
-      time=datetime.datetime.now().strftime('%H:%M:%S')), ' '.join(command))
+  print(
+      'Running command [{time}]:'.format(
+          time=datetime.datetime.now().strftime('%H:%M:%S')),
+      ' '.join(command))
 
   for _ in xrange(RETRY_COUNT):
     try:

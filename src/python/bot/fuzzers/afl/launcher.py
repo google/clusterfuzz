@@ -1418,10 +1418,10 @@ def main(argv):
                                                    runner.afl_fuzz_path)
   # Print info for the fuzzer logs.
   print(('Command: {0}\n'
-        'Bot: {1}\n'
-        'Time ran: {2}\n').format(
-            engine_common.get_command_quoted(command), BOT_NAME,
-            fuzz_result.time_executed))
+         'Bot: {1}\n'
+         'Time ran: {2}\n').format(
+             engine_common.get_command_quoted(command), BOT_NAME,
+             fuzz_result.time_executed))
 
   print(fuzz_result.output)
   runner.strategies.print_strategies()

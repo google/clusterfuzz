@@ -221,9 +221,9 @@ def run_tests_parallel(args, test_directory):
     total_result.num_skipped += result.num_skipped
     total_result.total_run += result.total_run
 
-  print('Ran %d tests (%d skipped, %d errors, %d failures).' % (
-      total_result.total_run, total_result.num_skipped, total_result.num_errors,
-      total_result.num_failures))
+  print('Ran %d tests (%d skipped, %d errors, %d failures).' %
+        (total_result.total_run, total_result.num_skipped,
+         total_result.num_errors, total_result.num_failures))
 
   if total_result.num_errors or total_result.num_failures:
     sys.exit(1)

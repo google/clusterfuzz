@@ -34,7 +34,7 @@ class TestFormatters(unittest.TestCase):
     test_helpers.patch(self, [
         'base.utils.utcnow',
     ])
-    self.mock.utcnow.return_value = datetime.datetime(2018, 0o1, 0o1)
+    self.mock.utcnow.return_value = datetime.datetime(2018, 1, 1)
 
   def test_past_day_formatter(self):
     """Tests for _past_day_formatter."""

@@ -195,8 +195,10 @@ def main(args):
     try:
       saver.restore(session, existing_model)
     except:
-      print(('Failed to restore existing model since model '
-                            'parameters do not match.'), file=sys.stderr)
+      print(
+          ('Failed to restore existing model since model '
+           'parameters do not match.'),
+          file=sys.stderr)
       return constants.ExitCode.TENSORFLOW_ERROR
   else:
     print('No existing model provided. Start training with a new model.')
@@ -325,8 +327,9 @@ def validate_paths(args):
     True if all paths are valid, False otherwise.
   """
   if not os.path.exists(args.input_dir):
-    print('Input directory {} does not exist'.format(
-        args.input_dir), file=sys.stderr)
+    print(
+        'Input directory {} does not exist'.format(args.input_dir),
+        file=sys.stderr)
     return False
 
   if not os.path.exists(args.model_dir):
@@ -336,8 +339,9 @@ def validate_paths(args):
     os.mkdir(args.log_dir)
 
   if args.existing_model and not utils.validate_model_path(args.existing_model):
-    print('Existing model {} does not exist'.format(
-        args.existing_model), file=sys.stderr)
+    print(
+        'Existing model {} does not exist'.format(args.existing_model),
+        file=sys.stderr)
     return False
 
   return True

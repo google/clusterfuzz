@@ -118,13 +118,13 @@ def single_test_run(test_path):
   if ((has_marker(console_output, STACKTRACE_TOOL_MARKERS) and
        has_marker(console_output, STACKTRACE_END_MARKERS)) or
       has_marker(console_output, CHECK_FAILURE_MARKERS)):
-    print('Crashed, current test size %s.' % (
-        get_size_string(os.path.getsize(test_path))))
+    print('Crashed, current test size %s.' % (get_size_string(
+        os.path.getsize(test_path))))
     return False
 
   # No crash, test passed.
-  print('Not crashed, current test size %s.' % (
-      get_size_string(os.path.getsize(test_path))))
+  print('Not crashed, current test size %s.' % (get_size_string(
+      os.path.getsize(test_path))))
   return True
 
 

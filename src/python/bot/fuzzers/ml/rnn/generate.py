@@ -124,8 +124,10 @@ def main(args):
           output, new_state = session.run(
               ['output_onehot:0', 'next_state:0'], feed_dict=feed_dict)
         except ValueError:
-          print(('Failed to run TensorFlow operations since '
-                                'model parameters do not match.'), file=sys.stderr)
+          print(
+              ('Failed to run TensorFlow operations since '
+               'model parameters do not match.'),
+              file=sys.stderr)
           return constants.ExitCode.TENSORFLOW_ERROR
 
         for i in range(BATCH_SIZE):
@@ -171,8 +173,9 @@ def validate_paths(args):
     True if all paths are valid, False otherwise.
   """
   if not os.path.exists(args.input_dir):
-    print('Input directory {} does not exist'.format(
-        args.input_dir), file=sys.stderr)
+    print(
+        'Input directory {} does not exist'.format(args.input_dir),
+        file=sys.stderr)
     return False
 
   if not utils.validate_model_path(args.model_path):

@@ -545,8 +545,9 @@ def load_testcase_if_exists(fuzzer_runner,
   result = fuzzer_runner.run_single_testcase(
       testcase_file_path, additional_args=arguments)
 
-  print('Running command:', get_printable_command(
-      result.command, fuzzer_runner.executable_path, use_minijail))
+  print('Running command:',
+        get_printable_command(result.command, fuzzer_runner.executable_path,
+                              use_minijail))
   output_lines = result.output.splitlines()
 
   # Parse performance features to extract custom crash flags.
@@ -651,8 +652,9 @@ def minimize_testcase(runner, testcase_file_path, minimize_to, minimize_timeout,
       minimize_timeout,
       additional_args=arguments)
 
-  print('Running command:', get_printable_command(
-      result.command, runner.executable_path, use_minijail))
+  print('Running command:',
+        get_printable_command(result.command, runner.executable_path,
+                              use_minijail))
   print(result.output)
 
 
@@ -677,8 +679,9 @@ def cleanse_testcase(runner, testcase_file_path, cleanse_to, cleanse_timeout,
       cleanse_timeout,
       additional_args=arguments)
 
-  print('Running command:', get_printable_command(
-      result.command, runner.executable_path, use_minijail))
+  print('Running command:',
+        get_printable_command(result.command, runner.executable_path,
+                              use_minijail))
   print(result.output)
 
 
@@ -1066,8 +1069,9 @@ def main(argv):
   if merge_error:
     print(data_types.CRASH_STACKTRACE_END_MARKER)
     print(merge_error)
-    print('Command:', get_printable_command(merge_result.command, fuzzer_path,
-                                            use_minijail))
+    print('Command:',
+          get_printable_command(merge_result.command, fuzzer_path,
+                                use_minijail))
     print(merge_result.output)
 
   analyze_and_update_recommended_dictionary(runner, fuzzer_name, log_lines,
