@@ -12,10 +12,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """Tasks host."""
+from __future__ import absolute_import
 
 import datetime
 
-import host
+from . import host
 
 from base import utils
 from bot.tasks import corpus_pruning_task

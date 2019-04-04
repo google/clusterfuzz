@@ -12,8 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """System log manager related functions."""
+from __future__ import absolute_import
 
-import adb
+from . import adb
 import re
 
 from metrics import logs

@@ -12,17 +12,19 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """libFuzzer runners."""
+from __future__ import absolute_import
 
 import copy
 import os
 import shutil
 
-from libFuzzer import constants
+from . import engine_common
+from .libFuzzer import constants
+
 from system import environment
 from system import minijail
 from system import new_process
 from system import shell
-import engine_common
 
 MAX_OUTPUT_LEN = 1 * 1024 * 1024  # 1 MB
 

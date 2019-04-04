@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """Functions for managing Google Cloud Storage."""
+from __future__ import absolute_import
 
 import copy
 import datetime
@@ -24,7 +25,7 @@ import time
 from googleapiclient.discovery import build
 from googleapiclient.errors import HttpError
 
-import credentials
+from . import credentials
 
 from base import retry
 from base import utils

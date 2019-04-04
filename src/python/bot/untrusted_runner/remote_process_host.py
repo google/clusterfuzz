@@ -12,12 +12,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """Remote process host (client)."""
+from __future__ import absolute_import
 
 import os
 import subprocess
 
-import environment
-import host
+from . import environment
+from . import host
 
 from protos import untrusted_runner_pb2
 from system import new_process
@@ -82,6 +83,7 @@ class RemoteProcessRunner(new_process.ProcessRunner):
                    terminate_wait_time=None,
                    input_data=None,
                    max_stdout_len=None,
+                   extra_env=None,
                    stdout=subprocess.PIPE,
                    stderr=subprocess.STDOUT,
                    **popen_args):

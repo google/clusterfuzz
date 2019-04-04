@@ -12,10 +12,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """Performance stats constants and helpers for libFuzzer."""
+from __future__ import absolute_import
 
 import re
 
-import constants
+from . import constants
 
 from bot.fuzzers import dictionary_manager
 from bot.fuzzers import strategy

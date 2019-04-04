@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """Base classes for other minimizers."""
+from __future__ import absolute_import
 
 import copy
 import functools
@@ -20,7 +21,7 @@ import tempfile
 import threading
 import time
 
-import errors
+from . import errors
 
 DEFAULT_CLEANUP_INTERVAL = 20
 DEFAULT_THREAD_COUNT = 8
