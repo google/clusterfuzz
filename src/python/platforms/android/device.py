@@ -16,7 +16,6 @@ from __future__ import absolute_import
 
 import copy
 import datetime
-from . import logger
 import os
 import re
 import socket
@@ -26,6 +25,8 @@ try:
   from shlex import quote
 except ImportError:
   from pipes import quote
+
+from . import logger
 
 from base import dates
 from base import persistent_cache

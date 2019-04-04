@@ -14,8 +14,9 @@
 """System log manager related functions."""
 from __future__ import absolute_import
 
-from . import adb
 import re
+
+from . import adb
 
 from metrics import logs
 
