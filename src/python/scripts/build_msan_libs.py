@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """Build MSan instrumented libs on Google Container Builder."""
+from __future__ import print_function
 # Usage:
 # 1. build_msan_libs.py [--no-track-origins] build_packages
 # 2. Wait for builds to complete on
@@ -248,9 +249,10 @@ def main():
   if args.command == 'build_packages':
     for package in PACKAGES:
       build_body = get_build(build_steps(package, args.no_track_origins))
-      print start_build(cloudbuild, build_body)
+      print(start_build(cloudbuild, build_body))
   else:  # merge
-    print start_build(cloudbuild, get_build(merge_steps(args.no_track_origins)))
+    print(start_build(cloudbuild,
+                      get_build(merge_steps(args.no_track_origins))))
 
 
 if __name__ == '__main__':

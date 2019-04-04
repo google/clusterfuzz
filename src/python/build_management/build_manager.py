@@ -446,7 +446,7 @@ def set_environment_vars(search_directories, app_path='APP_PATH'):
 
           # We don't want to change the state of system binaries.
           if not environment.get_value('SYSTEM_BINARY_DIR'):
-            os.chmod(absolute_file_path, 0750)
+            os.chmod(absolute_file_path, 0o750)
 
           environment.set_value(app_path, absolute_file_path)
           environment.set_value('APP_DIR', app_directory)

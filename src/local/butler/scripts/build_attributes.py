@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """Build attributes of every testcase."""
+from __future__ import print_function
 
 import datetime
 import sys
@@ -75,8 +76,8 @@ def execute(args):
 
       diff = get_diff(before_testcase, after_testcase)
       if (count_diff % 10) == 0 and diff:
-        print 'Migrate (dry=%s) id:%s\n%s' % (not args.non_dry_run,
-                                              testcase.key.id(), diff)
+        print('Migrate (dry=%s) id:%s\n%s' % (not args.non_dry_run,
+                                              testcase.key.id(), diff))
 
       if diff:
         count_diff += 1
@@ -89,6 +90,6 @@ def execute(args):
           try:
             testcase.put()
           except Exception:
-            print 'Error: %s %s' % (testcase.key.id(), sys.exc_info())
+            print('Error: %s %s' % (testcase.key.id(), sys.exc_info()))
 
-  print 'Done (count_diff=%d)' % count_diff
+  print('Done (count_diff=%d)' % count_diff)

@@ -245,8 +245,8 @@ def update_source_code():
     try:
       extracted_path = zip_archive.extract(filepath, output_directory)
       external_attr = zip_archive.getinfo(filepath).external_attr
-      mode = (external_attr >> 16) & 0777
-      mode |= 0440
+      mode = (external_attr >> 16) & 0o777
+      mode |= 0o440
       os.chmod(extracted_path, mode)
     except:
       error_occurred = True

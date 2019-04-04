@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """Handler for managing a mac."""
+from __future__ import print_function
 
 import os
 
@@ -46,7 +47,7 @@ class Handler(posix.Handler):
     # we don't need.
     os.environ['SSH_AUTH_SOCK'] = ''
 
-    print
+    print()
     print('SSHing into a mac machine only works if you performs the below in'
           ' order:')
     print('(1) Your `~/.ssh/config` is up-to-date. You can get it from'
@@ -55,15 +56,15 @@ class Handler(posix.Handler):
           ' go/clusterfuzz-build-access)')
     print('(3) ControlMaster is enabled. Put the below'
           ' lines in your `~/.ssh/config`:')
-    print
-    print 'Match host *'
-    print '  ControlMaster auto'
-    print '  ControlPath ~/.ssh/ctrl-%C'
-    print '  ControlPersist 6h'
-    print
-    print '(4) You ran `prodaccess --chromegolo_ssh` recently.'
+    print()
+    print('Match host *')
+    print('  ControlMaster auto')
+    print('  ControlPath ~/.ssh/ctrl-%C')
+    print('  ControlPersist 6h')
+    print()
+    print('(4) You ran `prodaccess --chromegolo_ssh` recently.')
     print('(5) You sshed into *one* of the mac machines in the last'
           ' 6 hours.')
-    print
-    print 'Now you can enjoy sshing into any mac machine.'
-    print
+    print()
+    print('Now you can enjoy sshing into any mac machine.')
+    print()

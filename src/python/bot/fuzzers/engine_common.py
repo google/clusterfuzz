@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """Common functionality for engine fuzzers (ie: libFuzzer or AFL)."""
+from __future__ import print_function
 
 import contextlib
 import glob
@@ -216,7 +217,7 @@ def get_issue_labels(fuzz_target_path):
 def print_fuzzing_strategies(fuzzing_strategies):
   """Print the strategies used for logging purposes."""
   if fuzzing_strategies:
-    print 'cf::fuzzing_strategies: %s' % (','.join(fuzzing_strategies))
+    print('cf::fuzzing_strategies: %s' % (','.join(fuzzing_strategies)))
 
 
 def random_choice(sequence):
@@ -287,7 +288,7 @@ class MinijailEngineFuzzerRunner(minijail.MinijailProcessRunner):
 
 def signal_term_handler(sig, frame):  # pylint: disable=unused-argument
   try:
-    print 'SIGTERMed'
+    print('SIGTERMed')
   except IOError:  # Pipe may already be closed and we may not be able to print.
     pass
 

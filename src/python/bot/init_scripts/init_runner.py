@@ -38,7 +38,7 @@ def run():
   if not os.path.exists(script_path):
     return
 
-  os.chmod(script_path, 0750)
+  os.chmod(script_path, 0o750)
   if script_path.endswith('.ps1'):
     cmd = 'powershell.exe ' + script_path
   else:

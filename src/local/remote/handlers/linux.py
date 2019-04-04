@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """Handler for performing remote tasks on linux."""
+from __future__ import print_function
 from fabric import api
 
 from local.remote import utils
@@ -51,7 +52,7 @@ class Handler(posix.Handler):
 
   def _run(self, command):
     """Custom _run that ensures that command is run inside docker container."""
-    print 'Running: ' + command
+    print('Running: ' + command)
     return api.sudo('docker exec {user} bash -c "{command}"'.format(
         user=self.username, command=command.replace('"', '\\"')))
 

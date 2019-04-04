@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """py_unittest.py runs tests under src/appengine and butler/tests"""
+from __future__ import print_function
 import coverage
 
 # Coverage needs to be at the top of the page. See: go/why-top-cov
@@ -76,7 +77,7 @@ class TrackedTestRunner(unittest.TextTestRunner):
 
     self.stream.writeln('\nSlow tests:')
     for elapsed_time, test_name in sorted(result.slow_tests, reverse=True):
-      print '%6.2fs: %s' % (elapsed_time, test_name)
+      print('%6.2fs: %s' % (elapsed_time, test_name))
 
     return result
 
@@ -100,7 +101,7 @@ class MeasureCoverage(object):
 
     print('The tests cover %0.2f%% of the source code.' %
           COV.report(file=StringIO.StringIO()))
-    print 'The test coverage by lines can be seen at ./coverage/index.html'
+    print('The test coverage by lines can be seen at ./coverage/index.html')
 
 
 class TestResult(object):
@@ -213,16 +214,16 @@ def run_tests_parallel(args, test_directory):
 
   for result in results:
     if result.num_failures or result.num_errors:
-      print result.output
+      print(result.output)
 
     total_result.num_errors += result.num_errors
     total_result.num_failures += result.num_failures
     total_result.num_skipped += result.num_skipped
     total_result.total_run += result.total_run
 
-  print 'Ran %d tests (%d skipped, %d errors, %d failures).' % (
-      total_result.total_run, total_result.num_skipped, total_result.num_errors,
-      total_result.num_failures)
+  print('Ran %d tests (%d skipped, %d errors, %d failures).' %
+        (total_result.total_run, total_result.num_skipped,
+         total_result.num_errors, total_result.num_failures))
 
   if total_result.num_errors or total_result.num_failures:
     sys.exit(1)
@@ -265,7 +266,7 @@ def execute(args):
       from src.appengine import appengine_config
       (appengine_config)  # pylint: disable=pointless-statement
     except ImportError:
-      print 'Note: unable to import appengine_config.'
+      print('Note: unable to import appengine_config.')
   else:
     test_directory = CORE_TEST_DIRECTORY
 

@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """Initial datastore setup."""
+from __future__ import print_function
 
 from google.cloud import monitoring_v3
 
@@ -202,10 +203,10 @@ def setup_config(non_dry_run):
     config = data_types.Config()
 
     if non_dry_run:
-      print 'Creating config'
+      print('Creating config')
       config.put()
     else:
-      print 'Skip creating config (dry-run mode)'
+      print('Skip creating config (dry-run mode)')
 
 
 def setup_fuzzers(non_dry_run):
@@ -214,16 +215,16 @@ def setup_fuzzers(non_dry_run):
     fuzzer = data_types.Fuzzer.query(
         data_types.Fuzzer.name == fuzzer_defaults.name)
     if fuzzer.get():
-      print fuzzer_defaults.name, 'fuzzer already exists'
+      print(fuzzer_defaults.name, 'fuzzer already exists')
       continue
 
     fuzzer = fuzzer_defaults.create_fuzzer()
 
     if non_dry_run:
-      print 'Creating fuzzer', fuzzer_defaults.name
+      print('Creating fuzzer', fuzzer_defaults.name)
       fuzzer.put()
     else:
-      print 'Skip creating fuzzer', fuzzer_defaults.name, '(dry-run mode)'
+      print('Skip creating fuzzer', fuzzer_defaults.name, '(dry-run mode)')
 
 
 def setup_templates(non_dry_run):
@@ -232,14 +233,14 @@ def setup_templates(non_dry_run):
     existing = data_types.JobTemplate.query(
         data_types.JobTemplate.name == name).get()
     if existing:
-      print 'Template with name', name, 'already exists.'
+      print('Template with name', name, 'already exists.')
       continue
 
     if non_dry_run:
-      print 'Creating template', name
+      print('Creating template', name)
       data_types.JobTemplate(name=name, environment_string=template).put()
     else:
-      print 'Skip creating template', name, '(dry-run mode)'
+      print('Skip creating template', name, '(dry-run mode)')
 
 
 def setup_metrics(non_dry_run):
@@ -257,10 +258,10 @@ def setup_metrics(non_dry_run):
     metric.monitoring_v3_metric_descriptor(descriptor)
 
     if non_dry_run:
-      print 'Creating metric', descriptor
+      print('Creating metric', descriptor)
       client.create_metric_descriptor(project_path, descriptor)
     else:
-      print 'Skip creating metric', descriptor, '(dry-run mode)'
+      print('Skip creating metric', descriptor, '(dry-run mode)')
 
 
 def execute(args):
@@ -272,4 +273,4 @@ def execute(args):
   if not args.local:
     setup_metrics(args.non_dry_run)
 
-  print 'Done'
+  print('Done')

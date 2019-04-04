@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """package.py handles the package command"""
+from __future__ import print_function
 
 import os
 import re
@@ -74,11 +75,11 @@ def package(revision,
   """Prepare clusterfuzz-source.zip."""
   is_ci = os.getenv('TEST_BOT_ENVIRONMENT')
   if not is_ci and common.is_git_dirty():
-    print 'Your branch is dirty. Please fix before packaging.'
+    print('Your branch is dirty. Please fix before packaging.')
     sys.exit(1)
 
   if not _is_nodejs_up_to_date():
-    print 'You do not have nodejs, or your nodejs is not at least version 4.'
+    print('You do not have nodejs, or your nodejs is not at least version 4.')
     sys.exit(1)
 
   common.install_dependencies(platform_name=platform_name)
@@ -127,10 +128,10 @@ def package(revision,
   with zipfile.ZipFile(target_zip_path, 'a', zipfile.ZIP_DEFLATED) as f:
     _add_to_zip(f, target_manifest_path, constants.PACKAGE_TARGET_MANIFEST_PATH)
 
-  print 'Revision: %s' % revision
+  print('Revision: %s' % revision)
 
-  print
-  print '%s is ready.' % target_zip_path
+  print()
+  print('%s is ready.' % target_zip_path)
   return target_zip_path
 
 

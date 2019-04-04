@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """deploy.py handles the deploy command"""
+from __future__ import print_function
 
 from collections import namedtuple
 import datetime
@@ -168,10 +169,10 @@ def _deploy_appengine(project, yamls, stop_previous_version, version=None):
       break
 
     if retry_num == DEPLOY_RETRIES:
-      print 'Failed to deploy after %d retries.' % DEPLOY_RETRIES
+      print('Failed to deploy after %d retries.' % DEPLOY_RETRIES)
       sys.exit(return_code)
 
-    print 'gcloud deployment failed, retrying...'
+    print('gcloud deployment failed, retrying...')
     time.sleep(RETRY_WAIT_SECONDS)
 
 
@@ -256,13 +257,13 @@ def _staging_deployment_helper(deploy_go):
   config = local_config.Config(local_config.GAE_CONFIG_PATH)
   project = config.get('application_id')
 
-  print 'Deploying %s to staging.' % project
+  print('Deploying %s to staging.' % project)
   deployment_config = config.sub_config('deployment')
   yaml_paths = deployment_config.get_absolute_path('staging')
   yaml_paths = appengine.filter_yaml_paths(yaml_paths, deploy_go)
 
   _deploy_app_staging(project, yaml_paths)
-  print 'Staging deployment finished.'
+  print('Staging deployment finished.')
 
 
 def _prod_deployment_helper(config_dir,
@@ -277,7 +278,7 @@ def _prod_deployment_helper(config_dir,
   gae_deployment = gae_config.sub_config('deployment')
   project = gae_config.get('application_id')
 
-  print 'Deploying %s to prod.' % project
+  print('Deploying %s to prod.' % project)
   yaml_paths = gae_deployment.get_absolute_path('prod')
   yaml_paths = appengine.filter_yaml_paths(yaml_paths, deploy_go)
 
@@ -296,7 +297,7 @@ def _prod_deployment_helper(config_dir,
   if deploy_appengine:
     common.execute('python butler.py run setup --config-dir {config_dir} '
                    '--non-dry-run'.format(config_dir=config_dir))
-  print 'Production deployment finished.'
+  print('Production deployment finished.')
 
 
 def execute(args):
@@ -304,22 +305,22 @@ def execute(args):
   os.environ['ROOT_DIR'] = '.'
 
   if not os.path.exists(args.config_dir):
-    print 'Please provide a valid configuration directory.'
+    print('Please provide a valid configuration directory.')
     sys.exit(1)
 
   os.environ['CONFIG_DIR_OVERRIDE'] = args.config_dir
 
   if not common.has_file_in_path('gcloud'):
-    print 'Please install gcloud.'
+    print('Please install gcloud.')
     sys.exit(1)
 
   is_ci = os.getenv('TEST_BOT_ENVIRONMENT')
   if not is_ci and common.is_git_dirty():
-    print 'Your branch is dirty. Please fix before deploying.'
+    print('Your branch is dirty. Please fix before deploying.')
     sys.exit(1)
 
   if not common.has_file_in_path('gsutil'):
-    print 'gsutil not found in PATH.'
+    print('gsutil not found in PATH.')
     sys.exit(1)
 
   # Build templates before deployment.
@@ -328,13 +329,13 @@ def execute(args):
   if not is_ci and not args.staging:
     if is_diff_origin_master():
       if args.force:
-        print 'You are not on origin/master. --force is used. Continue.'
+        print('You are not on origin/master. --force is used. Continue.')
         for _ in range(3):
-          print '.'
+          print('.')
           time.sleep(1)
-        print
+        print()
       else:
-        print 'You are not on origin/master. Please fix or use --force.'
+        print('You are not on origin/master. Please fix or use --force.')
         sys.exit(1)
 
   if args.staging:
@@ -380,7 +381,7 @@ def execute(args):
                             deploy_appengine)
 
   with open(constants.PACKAGE_TARGET_MANIFEST_PATH) as f:
-    print 'Source updated to %s' % f.read()
+    print('Source updated to %s' % f.read())
 
   if platforms[-1] != common.get_platform():
     # Make sure the installed dependencies are for the current platform.

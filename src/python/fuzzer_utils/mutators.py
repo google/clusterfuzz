@@ -207,11 +207,11 @@ class SpecialIntReplacer(MutatorPrimitive):
     changed = 0
 
     # Unsigned representations of signed values
-    signed_minimum = 1L << (8 * self.num_bytes - 1)
+    signed_minimum = 1 << (8 * self.num_bytes - 1)
     signed_maximum = signed_minimum - 1
 
     # For calculation of values closed to signed minimum/maximum
-    max_diff = 1L << (4 * self.num_bytes)
+    max_diff = 1 << (4 * self.num_bytes)
 
     special_ints = [
         struct.pack(self.pack_fmt, 0),
@@ -226,7 +226,7 @@ class SpecialIntReplacer(MutatorPrimitive):
         struct.pack(self.pack_fmt,
                     signed_maximum - random.randint(1, max_diff)),
         # -1 or unsigned maximum
-        struct.pack(self.pack_fmt, (1L << (8 * self.num_bytes)) - 1)
+        struct.pack(self.pack_fmt, (1 << (8 * self.num_bytes)) - 1)
     ]
 
     ratio = self.mutate_ratio()

@@ -10,4 +10,4 @@ enum34==1.1.6
 idna==2.7
 ipaddress==1.0.22
 pycparser==2.19
-six==1.11.0
+six==1.12.0

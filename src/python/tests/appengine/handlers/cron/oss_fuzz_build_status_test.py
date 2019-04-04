@@ -73,7 +73,7 @@ class OssFuzzBuildStatusTest(unittest.TestCase):
         'handlers.cron.oss_fuzz_build_status.urlfetch.fetch',
     ])
 
-    self.mock.utcnow.return_value = datetime.datetime(2018, 02, 01)
+    self.mock.utcnow.return_value = datetime.datetime(2018, 2, 1)
     self.mock.is_cron.return_value = True
 
     self.itm = IssueTrackerManager('oss-fuzz')
@@ -227,21 +227,21 @@ class OssFuzzBuildStatusTest(unittest.TestCase):
     data_types.OssFuzzBuildFailure(
         id='proj2',
         project_name='proj2',
-        last_checked_timestamp=datetime.datetime(2018, 01, 31),
+        last_checked_timestamp=datetime.datetime(2018, 1, 31),
         consecutive_failures=1,
         build_type='fuzzing').put()
 
     data_types.OssFuzzBuildFailure(
         id='proj3',
         project_name='proj3',
-        last_checked_timestamp=datetime.datetime(2018, 01, 31),
+        last_checked_timestamp=datetime.datetime(2018, 1, 31),
         consecutive_failures=1,
         build_type='fuzzing').put()
 
     data_types.OssFuzzBuildFailure(
         id='proj4',
         project_name='proj4',
-        last_checked_timestamp=datetime.datetime(2018, 01, 31),
+        last_checked_timestamp=datetime.datetime(2018, 1, 31),
         issue_id='1337',
         consecutive_failures=2,
         build_type='fuzzing').put()
@@ -249,7 +249,7 @@ class OssFuzzBuildStatusTest(unittest.TestCase):
     data_types.OssFuzzBuildFailure(
         id='proj5-coverage',
         project_name='proj5',
-        last_checked_timestamp=datetime.datetime(2018, 01, 31),
+        last_checked_timestamp=datetime.datetime(2018, 1, 31),
         issue_id='31337',
         consecutive_failures=5,
         build_type='coverage').put()
@@ -257,7 +257,7 @@ class OssFuzzBuildStatusTest(unittest.TestCase):
     data_types.OssFuzzBuildFailure(
         id='proj6-coverage',
         project_name='proj6',
-        last_checked_timestamp=datetime.datetime(2018, 01, 31),
+        last_checked_timestamp=datetime.datetime(2018, 1, 31),
         issue_id=None,
         consecutive_failures=1,
         build_type='coverage').put()
@@ -374,7 +374,7 @@ class OssFuzzBuildStatusTest(unittest.TestCase):
     data_types.OssFuzzBuildFailure(
         id='proj0',
         project_name='proj0',
-        last_checked_timestamp=datetime.datetime(2018, 01, 31),
+        last_checked_timestamp=datetime.datetime(2018, 1, 31),
         issue_id='1',
         consecutive_failures=2,
         build_type='fuzzing').put()
@@ -465,7 +465,7 @@ class OssFuzzBuildStatusTest(unittest.TestCase):
     data_types.OssFuzzBuildFailure(
         id='disabled_proj',
         project_name='disabled_proj',
-        last_checked_timestamp=datetime.datetime(2018, 01, 31),
+        last_checked_timestamp=datetime.datetime(2018, 1, 31),
         consecutive_failures=1,
         build_type='fuzzing').put()
 
@@ -509,7 +509,7 @@ class OssFuzzBuildStatusTest(unittest.TestCase):
     data_types.OssFuzzBuildFailure(
         id='proj0',
         project_name='proj0',
-        last_checked_timestamp=datetime.datetime(2018, 01, 31),
+        last_checked_timestamp=datetime.datetime(2018, 1, 31),
         issue_id='1',
         consecutive_failures=4,
         build_type='fuzzing').put()
@@ -518,7 +518,7 @@ class OssFuzzBuildStatusTest(unittest.TestCase):
     data_types.OssFuzzBuildFailure(
         id='proj1',
         project_name='proj1',
-        last_checked_timestamp=datetime.datetime(2018, 01, 31),
+        last_checked_timestamp=datetime.datetime(2018, 1, 31),
         issue_id='2',
         consecutive_failures=3,
         build_type='fuzzing').put()

@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """Run clean indexes on both internal and external."""
+from __future__ import print_function
 
 import os
 import sys
@@ -32,7 +33,7 @@ def _cleanup_indexes(project, index_yaml_path):
 def execute(args):
   """Clean indexes."""
   if not os.path.exists(args.config_dir):
-    print 'Please provide a valid configuration directory.'
+    print('Please provide a valid configuration directory.')
     sys.exit(1)
   os.environ['CONFIG_DIR_OVERRIDE'] = args.config_dir
 
