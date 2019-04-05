@@ -29,4 +29,4 @@ if (not environment.is_running_on_app_engine() and
   import ndb_patcher
   ndb_patcher.patch_ndb()
 
-from google.appengine.ext.ndb import *  # pylint:disable=wildcard-import
+from google.appengine.ext.ndb import *  # pylint:disable=wildcard-import,unused-wildcard-import

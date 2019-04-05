@@ -514,6 +514,6 @@ class RefreshCacheHandler(base_handler.Handler):
 
     # Cache child fuzzer -> logs bucket mappings.
     for fuzz_target in fuzz_targets:
-      # pylint: disable=protected-access
+      # pylint: disable=protected-access,unexpected-keyword-arg
       fuzzer_logs_context._get_logs_bucket_from_fuzzer(
           fuzz_target.fully_qualified_name(), __memoize_force__=True)
