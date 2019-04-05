@@ -12,9 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """Simple minimizers for common tasks."""
-from __future__ import absolute_import
 
-from . import minimizer
+import minimizer
 
 
 class SinglePassMinimizer(minimizer.Minimizer):  # pylint:disable=abstract-method

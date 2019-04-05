@@ -12,12 +12,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """Gestures related functions."""
-from __future__ import absolute_import
 
 import os
 import random
 
-from . import adb
+import adb
 
 # Fixed delay in miliseconds between consecutive monkey events.
 MONKEY_THROTTLE_DELAY = 100

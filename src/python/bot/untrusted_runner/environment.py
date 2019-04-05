@@ -12,14 +12,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """Environment modification functions."""
-from __future__ import absolute_import
 
 import os
 import re
 
 try:
-  from . import file_host
-  from . import host
+  import file_host
+  import host
   from protos import untrusted_runner_pb2
 except ImportError:
   # TODO(ochang): Fix this.

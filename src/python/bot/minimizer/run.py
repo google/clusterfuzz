@@ -12,19 +12,18 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """Run minimizers with default configuration from the command line."""
-from __future__ import absolute_import
 from __future__ import print_function
 
 import argparse
 import os
 import sys
 
-from . import chunk_minimizer
-from . import delta_minimizer
-from . import html_minimizer
-from . import js_minimizer
-from . import minimizer
-from . import utils
+import chunk_minimizer
+import delta_minimizer
+import html_minimizer
+import js_minimizer
+import minimizer
+import utils
 
 
 def main():
