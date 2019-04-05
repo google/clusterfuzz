@@ -12,12 +12,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """Fast minimizer that attempts to remove tokens grouped in chunks."""
-from __future__ import absolute_import
 
 import functools
 
-from . import minimizer
-from . import utils
+import minimizer
+import utils
 
 
 class ChunkMinimizer(minimizer.Minimizer):

@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """Launcher script for afl-based fuzzers."""
-from __future__ import absolute_import
 from __future__ import print_function
 
 # pylint: disable=g-statement-before-imports
@@ -31,23 +30,22 @@ import signal
 import stat
 import sys
 
-from . import constants
-from . import stats
-from . import strategies
-from .fuzzer import write_dummy_file
-
 from base import utils
 from bot.fuzzers import dictionary_manager
 from bot.fuzzers import engine_common
 from bot.fuzzers import options
 from bot.fuzzers import utils as fuzzer_utils
 from datastore import data_types
+from fuzzer import write_dummy_file
 from metrics import logs
 from metrics import profiler
 from system import environment
 from system import minijail
 from system import new_process
 from system import shell
+import constants
+import stats
+import strategies
 
 # Allow 30 minutes to merge the testcases back into the corpus. This matches
 # libFuzzer's merge timeout.

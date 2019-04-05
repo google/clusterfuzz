@@ -12,11 +12,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """File operations implemenations."""
-from __future__ import absolute_import
 
 import os
 
-from . import file_utils
+import file_utils
 
 from bot.fuzzers import utils as fuzzers_utils
 from protos import untrusted_runner_pb2

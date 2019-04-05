@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """Trusted host."""
-from __future__ import absolute_import
 
 import sys
 import threading
@@ -32,7 +31,7 @@ from protos import untrusted_runner_pb2
 from protos import untrusted_runner_pb2_grpc
 from system import environment
 
-from . import config
+import config
 
 WAIT_TLS_CERT_SECONDS = 60
 RPC_FAIL_WAIT_TIME = 10

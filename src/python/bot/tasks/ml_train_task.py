@@ -25,8 +25,9 @@ from system import environment
 from system import new_process
 from system import shell
 
-# Directory containing ml package.
-ML_PKG_DIR = os.path.join(os.path.dirname(__file__), os.pardir, 'fuzzers')
+# Model script directory.
+ML_RNN_SCRIPT_DIR = os.path.join(
+    os.path.dirname(__file__), os.pardir, 'fuzzers', 'ml', 'rnn')
 
 # Suffix of temporary directories to place training results.
 LOG_DIR_SUFFIX = '_log'
@@ -130,6 +131,11 @@ def get_corpus(corpus_directory, fuzzer_name):
   return True
 
 
+def get_model_script_path():
+  """Get model training script path."""
+  return os.path.join(ML_RNN_SCRIPT_DIR, constants.TRAINING_SCRIPT_NAME)
+
+
 def get_corpus_directory(directory, fuzzer_name):
   """Get corpus directory to place training corpus."""
   return os.path.join(directory, fuzzer_name + CORPUS_DIR_SUFFIX)
@@ -229,10 +235,12 @@ def train_rnn(input_directory,
   Returns:
     Training result. An object of class `new_process.ProcessResult`.
   """
+  # Get the script path to run the model.
+  script_path = get_model_script_path()
+
   # Wrap command and arguments to run training script.
   args_list = [
-      '-m',
-      constants.TRAINING_SCRIPT_NAME,
+      script_path,
       constants.INPUT_DIR_ARGUMENT_PREFIX + input_directory,
       constants.MODEL_DIR_ARGUMENT_PREFIX + model_directory,
       constants.LOG_DIR_ARGUMENT_PREFIX + log_directory,
@@ -258,7 +266,7 @@ def train_rnn(input_directory,
 
   return rnn_trainer.run_and_wait(
       args_list,
-      cwd=ML_PKG_DIR,
+      cwd=ML_RNN_SCRIPT_DIR,
       env=script_environment,
       timeout=TRAINING_TIMEOUT)
 

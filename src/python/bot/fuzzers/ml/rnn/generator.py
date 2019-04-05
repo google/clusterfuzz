@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """Generate new inputs using ML RNN model."""
-from __future__ import absolute_import
 # pylint: disable=g-statement-before-imports
 try:
   # ClusterFuzz dependencies.
@@ -23,17 +22,16 @@ except ImportError:
 
 import os
 
-from . import constants
-
 from google_cloud_utils import storage
 from metrics import logs
 from system import environment
 from system import new_process
 from system import shell
 
-# Directory containing ml package.
-ML_PKG_DIR = os.path.abspath(
-    os.path.join(os.path.dirname(__file__), '..', '..'))
+import constants
+
+# Model script directory absolute path.
+ML_RNN_SCRIPT_DIR = os.path.abspath(os.path.dirname(__file__))
 
 # Maximum number of new units to generate.
 GENERATION_MAX_COUNT = 5000
@@ -139,10 +137,13 @@ def run(input_directory,
     Result of running generation process. Format is defined by
     ProcessRunner.run_and_wait().
   """
+  # Get generation script path.
+  script_path = os.path.join(ML_RNN_SCRIPT_DIR,
+                             constants.GENERATION_SCRIPT_NAME)
+
   # Wrap commmand arguments.
   args_list = [
-      '-m',
-      constants.GENERATION_SCRIPT_NAME,
+      script_path,
       constants.INPUT_DIR_ARGUMENT_PREFIX + input_directory,
       constants.OUTPUT_DIR_ARGUMENT_PREFIX + output_directory,
       constants.MODEL_PATH_ARGUMENT_PREFIX + model_path,
@@ -169,7 +170,7 @@ def run(input_directory,
   rnn_runner = new_process.ProcessRunner('python')
   return rnn_runner.run_and_wait(
       args_list,
-      cwd=ML_PKG_DIR,
+      cwd=ML_RNN_SCRIPT_DIR,
       env=script_environment,
       timeout=generation_timeout)
 

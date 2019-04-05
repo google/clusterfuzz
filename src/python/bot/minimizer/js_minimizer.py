@@ -12,12 +12,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """Minimizer used for additional reduction on javascript test cases."""
-from __future__ import absolute_import
 
-from . import delta_minimizer
-from . import js_tokenizer
-from . import minimizer
-from . import utils
+import delta_minimizer
+import minimizer
+import js_tokenizer
+import utils
 
 
 class JSMinimizer(minimizer.Minimizer):

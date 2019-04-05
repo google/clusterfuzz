@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """Grouper for grouping similar looking testcases."""
-from __future__ import absolute_import
 
 from base import errors
 from crash_analysis.crash_comparer import CrashComparer
@@ -21,7 +20,7 @@ from datastore import data_types
 from issue_management import issue_tracker_utils
 from metrics import logs
 
-from . import group_leader
+import group_leader
 
 FORWARDED_ATTRIBUTES = ('crash_state', 'crash_type', 'group_id',
                         'one_time_crasher_flag', 'project_name',

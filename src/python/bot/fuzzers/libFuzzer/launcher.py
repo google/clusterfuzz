@@ -12,9 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """libFuzzer launcher."""
-from __future__ import absolute_import
 from __future__ import print_function
-
 # pylint: disable=g-statement-before-imports
 try:
   # ClusterFuzz dependencies.
@@ -35,9 +33,6 @@ import string
 import sys
 import time
 
-from . import constants
-from . import stats
-
 from base import utils
 from bot.fuzzers import dictionary_manager
 from bot.fuzzers import engine_common
@@ -53,6 +48,8 @@ from system import environment
 from system import minijail
 from system import new_process
 from system import shell
+import constants
+import stats
 
 # Regex to find testcase path from a crash.
 CRASH_TESTCASE_REGEX = (r'.*Test unit written to\s*'

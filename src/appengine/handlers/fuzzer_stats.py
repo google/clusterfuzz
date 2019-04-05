@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """Fuzzer statistics handler."""
-from __future__ import absolute_import
 
 import cgi
 import datetime
@@ -22,7 +21,7 @@ import yaml
 
 from googleapiclient.errors import HttpError
 
-from . import base_handler
+import base_handler
 
 from base import external_users
 from base import memoize
@@ -515,6 +514,6 @@ class RefreshCacheHandler(base_handler.Handler):
 
     # Cache child fuzzer -> logs bucket mappings.
     for fuzz_target in fuzz_targets:
-      # pylint: disable=protected-access,unexpected-keyword-arg
+      # pylint: disable=protected-access
       fuzzer_logs_context._get_logs_bucket_from_fuzzer(
           fuzz_target.fully_qualified_name(), __memoize_force__=True)

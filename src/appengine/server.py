@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """server.py initialises the appengine server for ClusterFuzz."""
-from __future__ import absolute_import
+import urllib
 import webapp2
 from webapp2_extras import routes
 
@@ -79,6 +79,13 @@ class _TrailingSlashRemover(webapp2.RequestHandler):
     self.redirect(url)
 
 
+# TODO(aarya): Remove after all /v2 links are deprecated.
+class _V2Remover(webapp2.RequestHandler):
+
+  def get(self, url):
+    self.redirect('/%s?%s' % (url, urllib.urlencode(self.request.params)))
+
+
 def redirect_to(to_domain):
   """Create a redirect handler to a domain."""
 
@@ -139,7 +146,8 @@ _CRON_ROUTES = [
 
 _ROUTES = [
     ('/', home.Handler),
-    (r'(.*)/$', _TrailingSlashRemover),
+    ('(.*)/$', _TrailingSlashRemover),
+    ('/v2/(.*)', _V2Remover),
     (r'/(google.+\.html)$', domain_verifier.Handler),
     ('/bots', bots.Handler),
     ('/bots/dead', bots.DeadBotsHandler),
