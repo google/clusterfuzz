@@ -12,14 +12,15 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """Minimizer helper functions."""
+from __future__ import absolute_import
 from __future__ import print_function
 
 import os
 import shlex
 import subprocess
 
-import errors
-import html_tokenizer
+from . import errors
+from . import html_tokenizer
 
 # TODO(mbarbella): Improve configuration of the test function.
 attempts = 1

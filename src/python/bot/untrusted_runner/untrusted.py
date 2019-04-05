@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """Untrusted instance."""
+from __future__ import absolute_import
 
 import functools
 import grpc
@@ -22,12 +23,12 @@ import traceback
 
 from concurrent import futures
 
-import build_setup
-import config
-import file_impl
-import remote_process
-import symbolize
-import tasks_impl
+from . import build_setup
+from . import config
+from . import file_impl
+from . import remote_process
+from . import symbolize
+from . import tasks_impl
 
 from base import utils
 from google_cloud_utils import compute_metadata
@@ -137,8 +138,8 @@ class UntrustedRunnerServicer(
     return file_impl.list_files(request, context)
 
   @wrap_servicer
-  def CopyFileTo(self, request, context):
-    return file_impl.copy_file_to_worker(request, context)
+  def CopyFileTo(self, request_iterator, context):
+    return file_impl.copy_file_to_worker(request_iterator, context)
 
   @wrap_servicer
   def CopyFileFrom(self, request, context):

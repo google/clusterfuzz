@@ -53,10 +53,10 @@ DISPLAY_FREQ = 50
 DISPLAY_LEN = 138
 
 # Training script name.
-TRAINING_SCRIPT_NAME = 'train.py'
+TRAINING_SCRIPT_NAME = 'ml.rnn.train'
 
 # Generation script name.
-GENERATION_SCRIPT_NAME = 'generate.py'
+GENERATION_SCRIPT_NAME = 'ml.rnn.generate'
 
 # Model files suffix.
 MODEL_META_SUFFIX = '.meta'

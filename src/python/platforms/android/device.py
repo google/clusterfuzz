@@ -12,10 +12,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """Device information related functions."""
+from __future__ import absolute_import
 
 import copy
 import datetime
-import logger
 import os
 import re
 import socket
@@ -25,6 +25,8 @@ try:
   from shlex import quote
 except ImportError:
   from pipes import quote
+
+from . import logger
 
 from base import dates
 from base import persistent_cache

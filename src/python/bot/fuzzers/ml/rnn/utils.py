@@ -12,14 +12,16 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """Utility functions for ml rnn model."""
+from __future__ import absolute_import
 from __future__ import print_function
 
 import os
 import random
 import sys
 
-import constants
 import numpy as np
+
+from . import constants
 
 
 def validate_model_path(model_path):

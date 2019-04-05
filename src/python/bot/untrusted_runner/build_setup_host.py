@@ -12,8 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """Build setup host (client)."""
+from __future__ import absolute_import
 
-import host
+from . import host
 
 from build_management import build_manager
 from protos import untrusted_runner_pb2

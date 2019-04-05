@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """NDB importer."""
+from __future__ import absolute_import
 
 from system import environment
 if (not environment.is_running_on_app_engine() and
@@ -26,7 +27,7 @@ if (not environment.is_running_on_app_engine() and
   if 'INTERNAL' not in retry_codes:
     retry_codes.append('INTERNAL')
 
-  import ndb_patcher
+  from . import ndb_patcher
   ndb_patcher.patch_ndb()
 
-from google.appengine.ext.ndb import *  # pylint:disable=wildcard-import
+from google.appengine.ext.ndb import *  # pylint:disable=wildcard-import,unused-wildcard-import

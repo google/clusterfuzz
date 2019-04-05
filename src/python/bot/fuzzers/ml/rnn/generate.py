@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """Generate inputs using ml rnn model."""
+from __future__ import absolute_import
 from __future__ import print_function
 
 import argparse
@@ -20,10 +21,11 @@ import os
 import sys
 import time
 
-import constants
 import numpy as np
 import tensorflow as tf
-import utils
+
+from . import constants
+from . import utils
 
 # Reset batch_size for generation: generate multiple inputs in each run.
 BATCH_SIZE = 50

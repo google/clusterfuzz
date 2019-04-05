@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """Handler used for setting up oss-fuzz jobs."""
+from __future__ import absolute_import
 
 import base64
 import copy
@@ -22,7 +23,7 @@ import yaml
 
 from google.appengine.api import app_identity
 
-import service_accounts
+from . import service_accounts
 
 from base import tasks
 from base import untrusted

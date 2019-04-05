@@ -12,7 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """libFuzzer fuzzer."""
-import constants
+from __future__ import absolute_import
+
+from . import constants
 
 from bot.fuzzers import builtin
 from bot.fuzzers import options

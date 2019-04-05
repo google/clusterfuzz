@@ -12,12 +12,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """Blobs handling."""
+from __future__ import absolute_import
 
 import os
 import re
 import uuid
 
-import storage
+from . import storage
 
 from base import retry
 from datastore import data_types
