@@ -949,6 +949,12 @@ def store_file_in_cache(file_path,
     # No NFS, nothing to store in cache.
     return
 
+  # If NFS server is not available due to heavy load, skip storage operation
+  # altogether as we would fail to store file.
+  if not os.path.exists(nfs_root, '.'):  # Use '.' for mount iteration.
+    logs.log_warn('Cache %s not available.' % nfs_root)
+    return
+
   cache_file_path = get_cache_file_path(file_path)
   cache_directory = os.path.dirname(cache_file_path)
   filename = os.path.basename(file_path)
