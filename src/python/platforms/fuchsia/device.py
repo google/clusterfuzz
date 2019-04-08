@@ -13,6 +13,9 @@
 # limitations under the License.
 """Helper functions for running commands on Fuchsia devices."""
 
+# TODO(flowerhack): Re-enable this check once functions below are implemented.
+# pylint: disable=unused-argument
+
 import os
 
 from google_cloud_utils import gsutil
@@ -51,7 +54,6 @@ def qemu_setup():
   fuchsia_zbi = os.path.join(fuchsia_resources_dir, 'target', 'x64',
                              'fuchsia.zbi')
   initrd_path = os.path.join(fuchsia_resources_dir, 'fuchsia-ssh.zbi')
-  os.chmod(initrd_path, 0o644)
 
   # Perform some more initiailization steps.
   extend_fvm(fuchsia_resources_dir, drive_path)
@@ -100,7 +102,7 @@ def initialize_resources_dir():
     raise errors.FuchsiaConfigError('Could not find RESOURCES_DIR')
   fuchsia_resources_dir = os.path.join(resources_dir, 'fuchsia')
 
-  shell.create_directory(fuchsia_resources_dir)
+  shell.create_directory(fuchsia_resources_dir, recreate=True)
 
   fuchsia_resources_url = environment.get_value('FUCHSIA_RESOURCES_URL')
   if not fuchsia_resources_url:
@@ -147,3 +149,30 @@ def add_keys_to_zbi(fuchsia_resources_dir, initrd_path, fuchsia_zbi):
   if result.return_code or result.timed_out:
     raise errors.FuchsiaSdkError('Failed to add keys to Fuchsia ZBI: ' +
                                  result.output)
+  os.chmod(initrd_path, 0o644)
+
+
+def get_application_launch_command(arguments, testcase_path):
+  """Prepare a command to run on the host to launch on the device."""
+  # TODO(flowerhack): Implement this.
+  return ''
+
+
+def reset_state():
+  """Reset the device to a clean state."""
+  # TODO(flowerhack): Implement this.
+
+
+def run_command(command_line, timeout):
+  """Run the desired command on the device."""
+  # TODO(flowerhack): Implement this.
+
+
+def clear_testcase_directory():
+  """Delete test cases stored on the device."""
+  # TODO(flowerhack): Implement this.
+
+
+def copy_testcase_to_device(testcase_path):
+  """Copy a file to the device's test case directory."""
+  # TODO(flowerhack): Implement this.
