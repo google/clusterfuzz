@@ -13,9 +13,6 @@
 # limitations under the License.
 """Helper functions for running commands on Fuchsia devices."""
 
-# TODO(mbarbella): Re-enable this check once functions below are implemented.
-# pylint: disable=unused-argument
-
 import os
 
 from google_cloud_utils import gsutil
@@ -27,14 +24,14 @@ from system import shell
 
 
 def qemu_setup():
-  """ Sets up and runs a QEMU VM in the background.
+  """Sets up and runs a QEMU VM in the background.
   Does not block the calling process.
   Fuchsia fuzzers assume a QEMU VM is running; call this routine prior to
   beginning Fuchsia fuzzing tasks.
   This initialization routine assumes that the GCS bucket contains the
   standard Fuchsia SDK, as well as:
   * /qemu-for-fuchsia/*
-  * /.ssh/* """
+  * /.ssh/*"""
   # First download the Fuchsia resources locally.
   fuchsia_resources_dir = initialize_resources_dir()
 
@@ -64,8 +61,7 @@ def qemu_setup():
   portnum = '56339'
 
   # yapf: disable
-  qemu_command = [
-      qemu_path,
+  qemu_args = [
       '-m', '2048',
       '-nographic',
       '-kernel', kernel_path,
@@ -92,13 +88,13 @@ def qemu_setup():
   environment.set_value('FUCHSIA_PORTNUM', portnum)
 
   # Finally, launch QEMU.
-  qemu_process = new_process.ProcessRunner(qemu_command[0], qemu_command[1:])
+  qemu_process = new_process.ProcessRunner(qemu_path, qemu_args)
   # TODO(flowerhack): Implement teardown logic.
   qemu_process.run()
 
 
 def initialize_resources_dir():
-  """ Download Fuchsia QEMU resources from GCS bucket. """
+  """Download Fuchsia QEMU resources from GCS bucket."""
   resources_dir = environment.get_value('RESOURCES_DIR')
   if not resources_dir:
     raise errors.FuchsiaConfigError('Could not find RESOURCES_DIR')
@@ -125,7 +121,7 @@ def initialize_resources_dir():
 
 
 def extend_fvm(fuchsia_resources_dir, drive_path):
-  """ The FVM is minimally sized to begin with; extend it to make room for
+  """The FVM is minimally sized to begin with; extend it to make room for
   ephemeral packages etc."""
   fvm_tool_path = os.path.join(fuchsia_resources_dir, 'tools', 'fvm')
   os.chmod(fvm_tool_path, 0o500)
@@ -137,8 +133,8 @@ def extend_fvm(fuchsia_resources_dir, drive_path):
 
 
 def add_keys_to_zbi(fuchsia_resources_dir, initrd_path, fuchsia_zbi):
-  """ Adds keys to the ZBI so we can SSH into it.  See:
-  fuchsia.googlesource.com/fuchsia/+/refs/heads/master/sdk/docs/ssh.md """
+  """Adds keys to the ZBI so we can SSH into it. See:
+  fuchsia.googlesource.com/fuchsia/+/refs/heads/master/sdk/docs/ssh.md"""
   zbi_tool = os.path.join(fuchsia_resources_dir, 'tools', 'zbi')
   os.chmod(zbi_tool, 0o500)
   authorized_keys_path = os.path.join(fuchsia_resources_dir, '.ssh',
@@ -151,29 +147,3 @@ def add_keys_to_zbi(fuchsia_resources_dir, initrd_path, fuchsia_zbi):
   if result.return_code or result.timed_out:
     raise errors.FuchsiaSdkError('Failed to add keys to Fuchsia ZBI: ' +
                                  result.output)
-
-
-def get_application_launch_command(arguments, testcase_path):
-  """Prepare a command to run on the host to launch on the device."""
-  # TODO(mbarbella): Implement this.
-  return ''
-
-
-def reset_state():
-  """Reset the device to a clean state."""
-  # TODO(mbarbella): Implement this.
-
-
-def run_command(command_line, timeout):
-  """Run the desired command on the device."""
-  # TODO(mbarbella): Implement this.
-
-
-def clear_testcase_directory():
-  """Delete test cases stored on the device."""
-  # TODO(mbarbella): Implement this.
-
-
-def copy_testcase_to_device(testcase_path):
-  """Copy a file to the device's test case directory."""
-  # TODO(mbarbella): Implement this.

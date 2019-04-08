@@ -13,5 +13,5 @@
 # limitations under the License.
 """"Fuchsia initialization."""
 
-from . import device
-from . import errors
+import device
+import errors

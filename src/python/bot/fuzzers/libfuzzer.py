@@ -14,18 +14,17 @@
 """libFuzzer runners."""
 
 import copy
+import engine_common
 import os
 import shutil
 
-from . import engine_common
-from .libFuzzer import constants
 from base import retry
+from libFuzzer import constants
 from platforms import fuchsia
 from system import environment
 from system import minijail
 from system import new_process
 from system import shell
-import engine_common
 
 MAX_OUTPUT_LEN = 1 * 1024 * 1024  # 1 MB
 
@@ -336,8 +335,7 @@ class FuchsiaQemuLibFuzzerRunner(new_process.ProcessRunner, LibFuzzerCommon):
       raise fuchsia.errors.FuchsiaConfigError(
           'FUCHSIA_PKEY_PATH and/or FUCHSIA_PORTNUM was not set')
     # yapf: disable
-    self.ssh_root = [
-        'ssh',
+    self.ssh_args = [
         '-i', environment.get_value('FUCHSIA_PKEY_PATH'),
         '-o', 'StrictHostKeyChecking no',
         '-o', 'UserKnownHostsFile=/dev/null',
@@ -360,7 +358,6 @@ class FuchsiaQemuLibFuzzerRunner(new_process.ProcessRunner, LibFuzzerCommon):
            additional_args=None,
            extra_env=None):
     """LibFuzzerCommon.fuzz override."""
-
     self._test_qemu_ssh()
     LibFuzzerCommon.fuzz(self, corpus_directories, fuzz_timeout,
                          artifact_prefix, additional_args)
@@ -369,24 +366,22 @@ class FuchsiaQemuLibFuzzerRunner(new_process.ProcessRunner, LibFuzzerCommon):
                           testcase_path,
                           timeout=None,
                           additional_args=None):
-    #TODO(flowerhack): Fill out this command.
+    # TODO(flowerhack): Fill out this command.
     pass
 
   def ssh_command(self, *args):
-    return self.ssh_root + list(args)
+    return ['ssh'] + self.ssh_root + list(args)
 
   @retry.wrap(retries=SSH_RETRIES, delay=SSH_WAIT, function='_test_qemu_ssh')
   def _test_qemu_ssh(self):
-    """ Tests that a VM is up and can be successfully SSH'd into.
-    Raises an exception if no success after MAX_SSH_RETRIES. """
-    ssh_test_process = new_process.ProcessRunner('ssh',
-                                                 self.ssh_command('ls')[1:])
+    """Tests that a VM is up and can be successfully SSH'd into.
+    Raises an exception if no success after MAX_SSH_RETRIES."""
+    ssh_test_process = new_process.ProcessRunner('ssh', self.ssh_args + ['ls'])
     result = ssh_test_process.run_and_wait()
     if result.return_code or result.timed_out:
       raise fuchsia.errors.FuchsiaConnectionError(
           'Failed to establish initial SSH connection: ' +
           str(result.return_code))
-    return
 
 
 class MinijailLibFuzzerRunner(engine_common.MinijailEngineFuzzerRunner,

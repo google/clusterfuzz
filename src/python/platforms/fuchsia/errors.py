@@ -15,15 +15,15 @@
 
 
 class FuchsiaConfigError(Exception):
-  """ Exception for unrecoverable Fuchsia-related misconfigrations. """
+  """Exception for unrecoverable Fuchsia-related misconfigrations."""
   pass
 
 
 class FuchsiaSdkError(Exception):
-  """ Exception for errors downloading, building, or using the Fuchsia SDK,
+  """Exception for errors downloading, building, or using the Fuchsia SDK,
 	in such a way that execution cannot continue."""
   pass
 
 
 class FuchsiaConnectionError(Exception):
-  """ Exception for errors connecting to Fuchsia instances. """
+  """Exception for errors connecting to Fuchsia instances."""
