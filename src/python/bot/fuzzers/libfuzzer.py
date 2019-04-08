@@ -14,15 +14,17 @@
 """libFuzzer runners."""
 
 import copy
+import engine_common
 import os
 import shutil
 
+from base import retry
 from libFuzzer import constants
+from platforms import fuchsia
 from system import environment
 from system import minijail
 from system import new_process
 from system import shell
-import engine_common
 
 MAX_OUTPUT_LEN = 1 * 1024 * 1024  # 1 MB
 
@@ -321,6 +323,68 @@ class LibFuzzerRunner(new_process.ProcessRunner, LibFuzzerCommon):
                                 artifact_prefix, additional_args, extra_env)
 
 
+class FuchsiaQemuLibFuzzerRunner(new_process.ProcessRunner, LibFuzzerCommon):
+  """libFuzzer runner (when Fuchsia is the target platform)."""
+
+  SSH_RETRIES = 10
+  SSH_WAIT = 2
+
+  def __init__(self, executable_path, default_args=None):
+    fuchsia_pkey_path = environment.get_value('FUCHSIA_PKEY_PATH')
+    fuchsia_portnum = environment.get_value('FUCHSIA_PORTNUM')
+    if not fuchsia_pkey_path or not fuchsia_portnum:
+      raise fuchsia.errors.FuchsiaConfigError(
+          'FUCHSIA_PKEY_PATH and/or FUCHSIA_PORTNUM was not set')
+    # yapf: disable
+    self.ssh_args = [
+        '-i', fuchsia_pkey_path,
+        '-o', 'StrictHostKeyChecking no',
+        '-o', 'UserKnownHostsFile=/dev/null',
+        '-p', fuchsia_portnum,
+        'localhost'
+    ]
+    # yapf: enable
+    super(FuchsiaQemuLibFuzzerRunner, self).__init__(
+        executable_path=executable_path, default_args=default_args)
+
+  def get_command(self, additional_args=None):
+    # TODO(flowerhack): Update this to dynamically pick a result from "fuzz
+    # list" and then run that fuzzer.
+    return self.ssh_command('ls')
+
+  def fuzz(self,
+           corpus_directories,
+           fuzz_timeout,
+           artifact_prefix=None,
+           additional_args=None,
+           extra_env=None):
+    """LibFuzzerCommon.fuzz override."""
+    self._test_qemu_ssh()
+    LibFuzzerCommon.fuzz(self, corpus_directories, fuzz_timeout,
+                         artifact_prefix, additional_args)
+
+  def run_single_testcase(self,
+                          testcase_path,
+                          timeout=None,
+                          additional_args=None):
+    # TODO(flowerhack): Fill out this command.
+    pass
+
+  def ssh_command(self, *args):
+    return ['ssh'] + self.ssh_root + list(args)
+
+  @retry.wrap(retries=SSH_RETRIES, delay=SSH_WAIT, function='_test_qemu_ssh')
+  def _test_qemu_ssh(self):
+    """Tests that a VM is up and can be successfully SSH'd into.
+    Raises an exception if no success after MAX_SSH_RETRIES."""
+    ssh_test_process = new_process.ProcessRunner('ssh', self.ssh_args + ['ls'])
+    result = ssh_test_process.run_and_wait()
+    if result.return_code or result.timed_out:
+      raise fuchsia.errors.FuchsiaConnectionError(
+          'Failed to establish initial SSH connection: ' +
+          str(result.return_code))
+
+
 class MinijailLibFuzzerRunner(engine_common.MinijailEngineFuzzerRunner,
                               LibFuzzerCommon):
   """Minijail libFuzzer runner."""
@@ -500,6 +564,8 @@ def get_runner(fuzzer_path, temp_dir=None):
       shutil.copy(os.path.realpath('/bin/sh'), os.path.join(minijail_bin, 'sh'))
 
     runner = MinijailLibFuzzerRunner(fuzzer_path, minijail_chroot)
+  elif environment.platform() == 'FUCHSIA':
+    runner = FuchsiaQemuLibFuzzerRunner(fuzzer_path)
   else:
     runner = LibFuzzerRunner(fuzzer_path)
 

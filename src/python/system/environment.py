@@ -812,6 +812,7 @@ def set_bot_environment():
   os.environ['BUILD_URLS_DIR'] = os.path.join(bot_dir, 'build-urls')
   os.environ['LOG_DIR'] = os.path.join(bot_dir, 'logs')
   os.environ['CACHE_DIR'] = os.path.join(bot_dir, 'cache')
+  os.environ['RESOURCES_DIR'] = os.path.join(bot_dir, 'resources')
 
   inputs_dir = os.path.join(bot_dir, 'inputs')
   os.environ['INPUT_DIR'] = inputs_dir
