@@ -708,12 +708,13 @@ def _send_email_to_uploader(testcase_id, to_email, content):
   """Send email to uploader when all the testcase tasks are finished."""
   sendgrid_api_key = environment.get_value('SENDGRID_API_KEY')
   if not sendgrid_api_key:
-    logs.log_warn('Skipping sending email as SENDGRID_API_KEY is not set.')
+    logs.log_warn('Skipping email to uploader as SENDGRID_API_KEY is not set.')
     return
 
-  # Based on https://cloud.google.com/appengine/docs/standard/go/mail/.
-  from_email = 'noreply@{app_id}.appspotmail.com'.format(
-      app_id=utils.get_application_id())
+  from_email = environment.get_value('SENDGRID_SENDER')
+  if not from_email:
+    logs.log_warn('Skipping email to uploader as SENDGRID_SENDER is not set.')
+    return
 
   subject = 'Your testcase upload %d analysis is complete.' % testcase_id
   content_with_footer = (

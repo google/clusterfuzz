@@ -84,3 +84,4 @@ env:
 
   # SendGrid api key to use for sending emails (e.g. for testcase upload completion notification).
   # SENDGRID_API_KEY: sendgrid-api-key
+  # SENDGRID_SENDER: sender@domain.com
