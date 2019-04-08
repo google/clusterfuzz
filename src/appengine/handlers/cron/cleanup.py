@@ -17,8 +17,9 @@ import datetime
 import json
 import random
 
-from google.appengine.api import mail
 from googleapiclient.errors import HttpError
+from sendgrid import SendGridAPIClient
+from sendgrid.helpers.mail import Mail
 
 from base import dates
 from base import errors
@@ -36,6 +37,7 @@ from issue_management import issue_tracker_utils
 from libs import handler
 from metrics import crash_stats
 from metrics import logs
+from system import environment
 
 INTERNAL_INCORRECT_COMMENT = ('\n\nIf this is incorrect, please add %s label' %
                               data_types.ISSUE_MISTRIAGED_LABEL)
@@ -704,18 +706,35 @@ def notify_issue_if_testcase_is_invalid(testcase, issue):
 
 def _send_email_to_uploader(testcase_id, to_email, content):
   """Send email to uploader when all the testcase tasks are finished."""
+  sendgrid_api_key = environment.get_value('SENDGRID_API_KEY')
+  if not sendgrid_api_key:
+    logs.log_warn('Skipping sending email as SENDGRID_API_KEY is not set.')
+    return
+
   # Based on https://cloud.google.com/appengine/docs/standard/go/mail/.
-  sender = 'noreply@{app_id}.appspotmail.com'.format(
+  from_email = 'noreply@{app_id}.appspotmail.com'.format(
       app_id=utils.get_application_id())
 
   subject = 'Your testcase upload %d analysis is complete.' % testcase_id
-  body = (
+  content_with_footer = (
       '%s\n\n'
       'If you suspect that the result above is incorrect, '
       'try re-doing that job on the testcase report page.') % content.strip()
+  html_content = str(content_with_footer.replace('\n', '<br>'))
 
+  message = Mail(
+      from_email=from_email,
+      to_emails=to_email,
+      subject=subject,
+      html_content=html_content)
   try:
-    mail.send_mail(sender=sender, to=to_email, subject=subject, body=body)
+    sg = SendGridAPIClient(sendgrid_api_key)
+    response = sg.send(message)
+    logs.log(
+        'Sent email that testcase %d is fully processed.' % testcase_id,
+        status_code=response.status_code,
+        body=response.body,
+        headers=response.headers)
   except Exception:
     logs.log_error('Failed to send email that testcase %d is fully processed.' %
                    testcase_id)

@@ -81,3 +81,6 @@ env:
   # input to fuzzer as part of --input-dir argument (disabled by default).
   # WEB_TESTS_URL: 'gs://bucket/path-to-tests-archive.zip'
   # UPDATE_WEB_TESTS: true
+
+  # SendGrid api key to use for sending emails (e.g. for testcase upload completion notification).
+  # SENDGRID_API_KEY: sendgrid-api-key
