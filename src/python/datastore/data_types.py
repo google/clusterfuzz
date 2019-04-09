@@ -735,6 +735,10 @@ class Config(Model):
   wifi_ssid = ndb.StringProperty(default='')
   wifi_password = ndb.StringProperty(default='')
 
+  # SendGrid config.
+  sendgrid_api_key = ndb.StringProperty(default='')
+  sendgrid_sender = ndb.StringProperty(default='')
+
 
 class TestcaseUploadMetadata(Model):
   """Metadata associated with a user uploaded test case."""

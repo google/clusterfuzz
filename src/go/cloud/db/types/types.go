@@ -105,6 +105,8 @@ type Config struct {
 	PredatorResultTopic                 string         `datastore:"predator_result_topic"`
 	WifiSsid                            string         `datastore:"wifi_ssid"`
 	WifiPassword                        string         `datastore:"wifi_password"`
+	SendgridApiKey                      string         `datastore:"sendgrid_api_key"`
+	SendgridSender                      string         `datastore:"sendgrid_sender"`
 }
 
 // CoverageInformation is auto-generated from data_types.py.
