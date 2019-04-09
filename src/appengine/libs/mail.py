@@ -17,7 +17,6 @@ from sendgrid.helpers.mail import Mail
 
 from config import db_config
 from metrics import logs
-from system import environment
 
 
 def send(to_email, subject, html_content):
