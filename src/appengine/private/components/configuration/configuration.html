@@ -271,6 +271,28 @@
 
               <tr>
                 <td class="label">
+                  <div class="help" title="API key to use to authenticate to SendGrid. SendGrid is used to send emails on task completions.">
+                    SendGrid API key (Optional)
+                  </div>
+                </td>
+                <td>
+                  <paper-input name="sendgrid_api_key" value="[[config.sendgrid_api_key]]" no-label-float></paper-input>
+                </td>
+              </tr>
+
+              <tr>
+                <td class="label">
+                  <div class="help" title="Sender email that SendGrid should use. SendGrid is used to send emails on task completions.">
+                    SendGrid sender email (Optional)
+                  </div>
+                </td>
+                <td>
+                  <paper-input name="sendgrid_sender" value="[[config.sendgrid_sender]]" no-label-float></paper-input>
+                </td>
+              </tr>
+
+              <tr>
+                <td class="label">
                   <div class="help" title="Allows testcases to be viewed by any CCed email on bugs.">
                     Relax testcase view restrictions
                   </div>

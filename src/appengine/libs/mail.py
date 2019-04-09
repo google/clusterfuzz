@@ -15,20 +15,21 @@
 from sendgrid import SendGridAPIClient
 from sendgrid.helpers.mail import Mail
 
+from config import db_config
 from metrics import logs
 from system import environment
 
 
 def send(to_email, subject, html_content):
   """Send email."""
-  sendgrid_api_key = environment.get_value('SENDGRID_API_KEY')
+  sendgrid_api_key = db_config.get_value('sendgrid_api_key')
   if not sendgrid_api_key:
-    logs.log_warn('Skipping email as SENDGRID_API_KEY is not set.')
+    logs.log_warn('Skipping email as SendGrid API key is not set in config.')
     return
 
-  from_email = environment.get_value('SENDGRID_SENDER')
+  from_email = db_config.get_value('sendgrid_sender')
   if not from_email:
-    logs.log_warn('Skipping email as SENDGRID_SENDER is not set.')
+    logs.log_warn('Skipping email as SendGrid sender is not set in config.')
     return
 
   message = Mail(
