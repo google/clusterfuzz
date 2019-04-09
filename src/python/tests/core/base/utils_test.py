@@ -259,7 +259,6 @@ class GetCrashStacktraceOutputTest(unittest.TestCase):
 
     os.environ['TOOL_NAME'] = 'ASAN'
     os.environ['JOB_NAME'] = 'linux_asan_chrome'
-    os.environ['OS_OVERRIDE'] = 'LINUX'
 
     self.start_seperator = '+' + '-' * 40
     self.end_seperator = '-' * 40 + '+'
@@ -268,7 +267,7 @@ class GetCrashStacktraceOutputTest(unittest.TestCase):
     """Tests that environment settings are added."""
     os.environ['ASAN_OPTIONS'] = 'setting1=value1:setting2=value_2'
     self.assertEqual(
-        '[Environment] export ASAN_OPTIONS="setting1=value1:setting2=value_2"\n'
+        '[Environment] ASAN_OPTIONS="setting1=value1:setting2=value_2"\n'
         '[Command line] cmd_line\n\n' + self.start_seperator +
         'Release Build Stacktrace' + self.end_seperator + '\nsym_stack',
         utils.get_crash_stacktrace_output('cmd_line', 'sym_stack'))

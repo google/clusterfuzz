@@ -303,7 +303,7 @@ def get_environment_settings_as_string():
       sanitizer_options_file_path = (
           android.device.get_sanitizer_options_file_path('ASAN'))
       environment_string += (
-          '[Environment] ASAN options file "%s" with contents %s \n' %
+          '[Environment] ASAN options file "%s" with contents:\n%s\n' %
           (sanitizer_options_file_path, asan_options))
 
   else:
@@ -314,12 +314,8 @@ def get_environment_settings_as_string():
       if not environment_variable_value:
         continue
 
-      if platform() == 'WINDOWS':
-        environment_string += '[Environment] set "%s=%s"\n' % (
-            quote(environment_variable), quote(environment_variable_value))
-      else:
-        environment_string += '[Environment] export %s="%s"\n' % (
-            environment_variable, quote(environment_variable_value))
+      environment_string += '[Environment] %s="%s"\n' % (
+          environment_variable, quote(environment_variable_value))
 
   return environment_string
 
