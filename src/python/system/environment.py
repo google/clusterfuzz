@@ -21,6 +21,11 @@ import socket
 import sys
 import yaml
 
+try:
+  from shlex import quote
+except ImportError:
+  from pipes import quote
+
 # Tools supporting customization of options via ADDITIONAL_{TOOL_NAME}_OPTIONS.
 # FIXME: Support ADDITIONAL_UBSAN_OPTIONS and ADDITIONAL_LSAN_OPTIONS in an
 # ASAN instrumented build.
@@ -283,21 +288,21 @@ def get_environment_settings_as_string():
     # FIXME: Handle this import in a cleaner way.
     from platforms import android
 
-    environment_string += '[Environment] Build fingerprint = %s\n' % (
+    environment_string += '[Environment] Build fingerprint: %s\n' % (
         get_value('BUILD_FINGERPRINT'))
 
     environment_string += ('[Environment] Patch level: %s\n' %
                            android.device.get_security_patch_level())
 
     environment_string += (
-        '[Environment] Local properties file = %s with contents:\n%s\n' %
+        '[Environment] Local properties file "%s" with contents:\n%s\n' %
         (android.device.LOCAL_PROP_PATH,
          android.adb.read_data_from_file(android.device.LOCAL_PROP_PATH)))
 
     command_line = get_value('COMMAND_LINE_PATH')
     if command_line:
       environment_string += (
-          '[Environment] Command line file = %s with contents:\n%s\n' %
+          '[Environment] Command line file "%s" with contents:\n%s\n' %
           (command_line, android.adb.read_data_from_file(command_line)))
 
     asan_options = get_value('ASAN_OPTIONS')
@@ -308,7 +313,7 @@ def get_environment_settings_as_string():
       sanitizer_options_file_path = (
           android.device.get_sanitizer_options_file_path('ASAN'))
       environment_string += (
-          '[Environment] ASAN Options file = %s with contents %s \n' %
+          '[Environment] ASAN options file "%s" with contents %s \n' %
           (sanitizer_options_file_path, asan_options))
 
   else:
@@ -319,8 +324,12 @@ def get_environment_settings_as_string():
       if not environment_variable_value:
         continue
 
-      environment_string += '[Environment] %s = %s\n' % (
-          environment_variable, environment_variable_value)
+      if platform() == 'WINDOWS':
+        environment_string += '[Environment] set "%s=%s"\n' % (
+            quote(environment_variable), quote(environment_variable_value))
+      else:
+        environment_string += '[Environment] export %s="%s"\n' % (
+            environment_variable, quote(environment_variable_value))
 
   return environment_string
 
