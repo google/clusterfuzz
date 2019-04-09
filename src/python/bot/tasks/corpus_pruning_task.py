@@ -205,7 +205,7 @@ class Context(object):
     directory."""
     testcases_directory = environment.get_value('FUZZ_INPUTS_DISK')
     directory_path = os.path.join(testcases_directory, name)
-    shell.create_directory_if_needed(directory_path)
+    shell.create_directory(directory_path)
     self._created_directories.append(directory_path)
 
     return directory_path
@@ -267,7 +267,7 @@ class Context(object):
 
       corpus_backup_output_directory = os.path.join(self.shared_corpus_path,
                                                     project_qualified_name)
-      shell.create_directory_if_needed(corpus_backup_output_directory)
+      shell.create_directory(corpus_backup_output_directory)
       archive.unpack(corpus_backup_local_path, corpus_backup_output_directory)
       shell.remove_file(corpus_backup_local_path)
 
@@ -430,7 +430,7 @@ class CorpusPruner(object):
       unit_path = self._quarantine_unit(unit_path, quarantine_corpus_path)
       num_bad_units += 1
 
-      if crash_analyzer.ignore_stacktrace(state.crash_state, state.crash_type):
+      if crash_analyzer.ignore_stacktrace(state.crash_stacktrace):
         continue
 
       # Local de-duplication.

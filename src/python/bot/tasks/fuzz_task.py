@@ -50,6 +50,7 @@ from metrics import fuzzer_stats
 from metrics import logs
 from metrics import monitoring_metrics
 from platforms import android
+from platforms import fuchsia
 from system import environment
 from system import process_handler
 from system import shell
@@ -136,7 +137,7 @@ class Crash(object):
     self.key = '%s,%s,%s' % (self.crash_type, self.crash_state,
                              self.security_flag)
     self.should_be_ignored = crash_analyzer.ignore_stacktrace(
-        self.crash_state, self.crash_stacktrace)
+        state.crash_stacktrace)
 
     # self.crash_info gets populated in create_testcase; save what we need.
     self.crash_frames = state.frames
@@ -1326,6 +1327,8 @@ def execute_task(fuzzer_name, job_type):
 
   # Run the fuzzer to generate testcases. If error occurred while trying
   # to run the fuzzer, bail out.
+  if platform == 'FUCHSIA':
+    fuchsia.device.qemu_setup()
   (error_occurred, testcase_file_paths, generated_testcase_count,
    sync_corpus_directory,
    fuzzer_metadata) = run_fuzzer(fuzzer, fuzzer_directory, testcase_directory,

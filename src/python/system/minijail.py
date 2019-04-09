@@ -159,7 +159,7 @@ class MinijailChroot(object):
     if directory[0] == '/':
       directory = directory[1:]
 
-    shell.create_directory_if_needed(
+    shell.create_directory(
         os.path.join(self._chroot_dir, directory), create_intermediates=True)
 
   @property

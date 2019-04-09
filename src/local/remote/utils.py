@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """Methods that are used in multiple places."""
+from __future__ import print_function
 import os
 import re
 
@@ -29,7 +30,7 @@ def get_host_user_and_ssh_key_path(instance_name, project, zone):
       'gcloud compute ssh --project "%s" --zone "%s" %s --dry-run' %
       (project, zone, instance_name),
       capture=True)
-  print output
+  print(output)
 
   m = re.match('/usr/bin/ssh .*-i ([^ ]+)(?: -o [^ ]+)* ([^ ]+)@([^ ]+)',
                output)

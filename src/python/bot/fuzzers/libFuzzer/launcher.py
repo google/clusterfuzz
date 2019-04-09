@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """libFuzzer launcher."""
+from __future__ import print_function
 # pylint: disable=g-statement-before-imports
 try:
   # ClusterFuzz dependencies.
@@ -28,11 +29,9 @@ import re
 import shutil
 import signal
 import stat
+import string
 import sys
 import time
-
-import constants
-import stats
 
 from base import utils
 from bot.fuzzers import dictionary_manager
@@ -49,6 +48,8 @@ from system import environment
 from system import minijail
 from system import new_process
 from system import shell
+import constants
+import stats
 
 # Regex to find testcase path from a crash.
 CRASH_TESTCASE_REGEX = (r'.*Test unit written to\s*'
@@ -102,6 +103,10 @@ ENGINE_ERROR_MESSAGE = 'libFuzzer: engine encountered an error.'
 FORK_PROBABILITY = 0.1
 
 MUTATOR_PLUGIN_PROBABILITY = 0.50
+
+MERGE_DIRECTORY_NAME = 'merge-corpus'
+
+HEXDIGITS_SET = set(string.hexdigits)
 
 
 class Generator(object):
@@ -210,7 +215,7 @@ def add_recommended_dictionary(arguments, fuzzer_name, fuzzer_path):
     if not dict_manager.download_recommended_dictionary_from_gcs(
         recommended_dictionary_path):
       return False
-  except Exception, ex:
+  except Exception as ex:
     logs.log_error(
         'Exception downloading recommended dictionary:\n%s.' % str(ex))
     return False
@@ -405,7 +410,8 @@ def get_corpus_directories(main_corpus_directory,
                            fuzzer_path,
                            fuzzing_strategies,
                            minijail_chroot=None):
-  """Return a list of corpus directories to be passed to the fuzzer binary."""
+  """Return a list of corpus directories to be passed to the fuzzer binary for
+  fuzzing."""
   corpus_directories = []
 
   # Set up scratch directory for writing new units.
@@ -539,14 +545,15 @@ def load_testcase_if_exists(fuzzer_runner,
   result = fuzzer_runner.run_single_testcase(
       testcase_file_path, additional_args=arguments)
 
-  print 'Running command:', get_printable_command(
-      result.command, fuzzer_runner.executable_path, use_minijail)
+  print('Running command:',
+        get_printable_command(result.command, fuzzer_runner.executable_path,
+                              use_minijail))
   output_lines = result.output.splitlines()
 
   # Parse performance features to extract custom crash flags.
   parsed_stats = stats.parse_performance_features(output_lines, [], [])
   add_custom_crash_state_if_needed(fuzzer_name, output_lines, parsed_stats)
-  print '\n'.join(output_lines)
+  print('\n'.join(output_lines))
 
 
 def parse_log_stats(log_lines):
@@ -645,9 +652,10 @@ def minimize_testcase(runner, testcase_file_path, minimize_to, minimize_timeout,
       minimize_timeout,
       additional_args=arguments)
 
-  print 'Running command:', get_printable_command(
-      result.command, runner.executable_path, use_minijail)
-  print result.output
+  print('Running command:',
+        get_printable_command(result.command, runner.executable_path,
+                              use_minijail))
+  print(result.output)
 
 
 def cleanse_testcase(runner, testcase_file_path, cleanse_to, cleanse_timeout,
@@ -671,9 +679,10 @@ def cleanse_testcase(runner, testcase_file_path, cleanse_to, cleanse_timeout,
       cleanse_timeout,
       additional_args=arguments)
 
-  print 'Running command:', get_printable_command(
-      result.command, runner.executable_path, use_minijail)
-  print result.output
+  print('Running command:',
+        get_printable_command(result.command, runner.executable_path,
+                              use_minijail))
+  print(result.output)
 
 
 def get_printable_command(command, fuzzer_path, use_minijail):
@@ -704,6 +713,42 @@ def use_mutator_plugin(target_name, extra_env, chroot):
         minijail.ChrootBinding(mutator_plugin_dir, mutator_plugin_dir, False))
 
   return True
+
+
+def get_merge_directory():
+  """Returns the path of the directory we can use for merging."""
+  temp_dir = fuzzer_utils.get_temp_dir()
+  return os.path.join(temp_dir, MERGE_DIRECTORY_NAME)
+
+
+def create_merge_directory():
+  """Create the merge directory and return its path."""
+  merge_directory_path = get_merge_directory()
+  shell.create_directory(
+      merge_directory_path, create_intermediates=True, recreate=True)
+  return merge_directory_path
+
+
+def is_sha1_hash(possible_hash):
+  """Returns True if |possible_hash| looks like a valid sha1 hash."""
+  if len(possible_hash) != 40:
+    return False
+
+  return all(char in HEXDIGITS_SET for char in possible_hash)
+
+
+def move_mergeable_units(merge_directory, corpus_directory):
+  """Move new units in |merge_directory| into |corpus_directory|."""
+  initial_units = set(
+      os.path.basename(filename)
+      for filename in shell.get_files_list(corpus_directory))
+
+  for unit_path in shell.get_files_list(merge_directory):
+    unit_name = os.path.basename(unit_path)
+    if unit_name in initial_units and is_sha1_hash(unit_name):
+      continue
+    dest_path = os.path.join(corpus_directory, unit_name)
+    shell.move(unit_path, dest_path)
 
 
 def main(argv):
@@ -908,8 +953,8 @@ def main(argv):
   if use_minijail:
     # Remove minijail prefix.
     command = engine_common.strip_minijail_command(command, fuzzer_path)
-  print log_header_format % (engine_common.get_command_quoted(command),
-                             bot_name, fuzz_result.time_executed)
+  print(log_header_format % (engine_common.get_command_quoted(command),
+                             bot_name, fuzz_result.time_executed))
 
   # Parse stats information based on libFuzzer output.
   parsed_stats = parse_log_stats(log_lines)
@@ -941,12 +986,9 @@ def main(argv):
   new_units_added = parsed_stats.get('new_units_added', 0)
   merge_error = None
   if new_units_added:
-    # Merge the new units back into the corpus.
-    # For merge, main corpus directory should be passed first of all corpus
-    # directories.
-    if corpus_directory in corpus_directories:
-      corpus_directories.remove(corpus_directory)
-    corpus_directories = [corpus_directory] + corpus_directories
+    # Merge the new units with the initial corpus.
+    if corpus_directory not in corpus_directories:
+      corpus_directories.append(corpus_directory)
 
     # If this times out, it's possible that we will miss some units. However, if
     # we're taking >10 minutes to load/merge the corpus something is going very
@@ -959,11 +1001,19 @@ def main(argv):
       engine_common.recreate_directory(merge_tmp_dir)
 
     old_corpus_len = shell.get_directory_file_count(corpus_directory)
+    merge_directory = create_merge_directory()
+    corpus_directories.insert(0, merge_directory)
+
+    if use_minijail:
+      bind_corpus_dirs(minijail_chroot, [merge_directory])
+
     merge_result = runner.merge(
         corpus_directories,
         merge_timeout=engine_common.get_merge_timeout(DEFAULT_MERGE_TIMEOUT),
         tmp_dir=merge_tmp_dir,
         additional_args=arguments)
+
+    move_mergeable_units(merge_directory, corpus_directory)
     new_corpus_len = shell.get_directory_file_count(corpus_directory)
     new_units_added = 0
 
@@ -1010,18 +1060,19 @@ def main(argv):
   # Add custom crash state based on fuzzer name (if needed).
   add_custom_crash_state_if_needed(fuzzer_name, log_lines, parsed_stats)
   for line in log_lines:
-    print line
+    print(line)
 
   # Add fuzzing strategies used.
   engine_common.print_fuzzing_strategies(fuzzing_strategies)
 
   # Add merge error (if any).
   if merge_error:
-    print data_types.CRASH_STACKTRACE_END_MARKER
-    print merge_error
-    print 'Command:', get_printable_command(merge_result.command, fuzzer_path,
-                                            use_minijail)
-    print merge_result.output
+    print(data_types.CRASH_STACKTRACE_END_MARKER)
+    print(merge_error)
+    print('Command:',
+          get_printable_command(merge_result.command, fuzzer_path,
+                                use_minijail))
+    print(merge_result.output)
 
   analyze_and_update_recommended_dictionary(runner, fuzzer_name, log_lines,
                                             corpus_directory, arguments)
@@ -1030,11 +1081,12 @@ def main(argv):
   if use_minijail:
     minijail_chroot.close()
 
-  # Whenever new units are added to corpus, record the stats to make them
-  # easily searchable in stackdriver.
+  # Record the stats to make them easily searchable in stackdriver.
   if new_units_added:
     logs.log(
         'New units added to corpus: %d.' % new_units_added, stats=parsed_stats)
+  else:
+    logs.log('No new units found.', stats=parsed_stats)
 
 
 if __name__ == '__main__':

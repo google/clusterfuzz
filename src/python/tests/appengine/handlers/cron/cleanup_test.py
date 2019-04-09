@@ -1674,13 +1674,13 @@ class NotifyUploaderIfTestcaseIsProcessed(unittest.TestCase):
     helpers.patch(self, [
         'datastore.data_handler.update_issue_impact_labels',
         'datastore.data_handler.update_issue_severity_labels',
-        'google.appengine.api.mail.send_mail',
+        'libs.mail.send',
     ])
 
     self.issue = test_utils.create_generic_issue()
     self.testcase = test_utils.create_generic_testcase()
     self.testcase_id = self.testcase.key.id()
-    self.uploader_email = 'user@email.com'
+    self.uploader_email = 'uploader@email.com'
 
     data_types.Config(url='url', reproduction_help_url='repro_help_url').put()
 
@@ -1694,7 +1694,7 @@ class NotifyUploaderIfTestcaseIsProcessed(unittest.TestCase):
     cleanup.notify_uploader_when_testcase_is_processed(self.testcase,
                                                        self.issue)
 
-    self.assertEqual(0, self.mock.send_mail.call_count)
+    self.assertEqual(0, self.mock.send.call_count)
     self.assertIsNone(self._get_notification())
 
   def test_upload_metadata_with_no_uploader_email(self):
@@ -1704,7 +1704,7 @@ class NotifyUploaderIfTestcaseIsProcessed(unittest.TestCase):
     cleanup.notify_uploader_when_testcase_is_processed(self.testcase,
                                                        self.issue)
 
-    self.assertEqual(0, self.mock.send_mail.call_count)
+    self.assertEqual(0, self.mock.send.call_count)
     self.assertIsNone(self._get_notification())
 
   def test_upload_metadata_with_multiple_testcases(self):
@@ -1717,7 +1717,7 @@ class NotifyUploaderIfTestcaseIsProcessed(unittest.TestCase):
     cleanup.notify_uploader_when_testcase_is_processed(self.testcase,
                                                        self.issue)
 
-    self.assertEqual(0, self.mock.send_mail.call_count)
+    self.assertEqual(0, self.mock.send.call_count)
     self.assertIsNone(self._get_notification())
 
   def test_critical_tasks_not_completed(self):
@@ -1732,7 +1732,7 @@ class NotifyUploaderIfTestcaseIsProcessed(unittest.TestCase):
     cleanup.notify_uploader_when_testcase_is_processed(self.testcase,
                                                        self.issue)
 
-    self.assertEqual(0, self.mock.send_mail.call_count)
+    self.assertEqual(0, self.mock.send.call_count)
 
   def test_pending_testcase(self):
     """Ensure that notification is not sent with a pending testcase."""
@@ -1747,7 +1747,7 @@ class NotifyUploaderIfTestcaseIsProcessed(unittest.TestCase):
     cleanup.notify_uploader_when_testcase_is_processed(self.testcase,
                                                        self.issue)
 
-    self.assertEqual(0, self.mock.send_mail.call_count)
+    self.assertEqual(0, self.mock.send.call_count)
 
   def test_notification_sent_with_regular_testcase(self):
     """Ensure that notification is sent with a regular testcase."""
@@ -1764,24 +1764,23 @@ class NotifyUploaderIfTestcaseIsProcessed(unittest.TestCase):
     cleanup.notify_uploader_when_testcase_is_processed(self.testcase,
                                                        self.issue)
 
-    self.mock.send_mail.assert_called_once_with(
-        sender='noreply@test-clusterfuzz.appspotmail.com',
-        to='user@email.com',
-        subject='Your testcase upload 1 analysis is complete.',
-        body='Detailed report: https://test-clusterfuzz.appspot.com/'
-        'testcase?key=1\n\n'
-        'Fuzzer: fuzzer1\n'
-        'Job Type: test_content_shell_drt\n'
-        'Crash Type: fake type\n'
-        'Crash Address: 0xdeadbeef\n'
-        'Crash State:\n'
-        '  crashy_function()\n'
-        'Sanitizer: address (ASAN)\n\n'
+    self.mock.send.assert_called_once_with(
+        'uploader@email.com', 'Your testcase upload 1 analysis is complete.',
+        'Detailed report: https://test-clusterfuzz.appspot.com/'
+        'testcase?key=1<br><br>'
+        'Fuzzer: fuzzer1<br>'
+        'Job Type: test_content_shell_drt<br>'
+        'Crash Type: fake type<br>'
+        'Crash Address: 0xdeadbeef<br>'
+        'Crash State:<br>'
+        '  ...see report...<br>'
+        'Sanitizer: address (ASAN)<br><br>'
         'Regressed: https://test-clusterfuzz.appspot.com/revisions?'
-        'job=test_content_shell_drt&range=1:2\n\n'
+        'job=test_content_shell_drt&range=1:2<br><br>'
         'Reproducer Testcase: '
-        'https://test-clusterfuzz.appspot.com/download?testcase_id=1\n\n'
-        'See repro_help_url for instructions to reproduce this bug locally.\n\n'
+        'https://test-clusterfuzz.appspot.com/download?testcase_id=1<br><br>'
+        'See repro_help_url for instructions to reproduce this bug locally.'
+        '<br><br>'
         'If you suspect that the result above is incorrect, '
         'try re-doing that job on the testcase report page.')
     self.assertIsNotNone(self._get_notification())
@@ -1799,13 +1798,11 @@ class NotifyUploaderIfTestcaseIsProcessed(unittest.TestCase):
     cleanup.notify_uploader_when_testcase_is_processed(self.testcase,
                                                        self.issue)
 
-    self.mock.send_mail.assert_called_once_with(
-        sender='noreply@test-clusterfuzz.appspotmail.com',
-        to='user@email.com',
-        subject='Your testcase upload 1 analysis is complete.',
-        body='Testcase 1 failed to reproduce the crash. '
+    self.mock.send.assert_called_once_with(
+        'uploader@email.com', 'Your testcase upload 1 analysis is complete.',
+        'Testcase 1 failed to reproduce the crash. '
         'Please inspect the program output at '
-        'https://test-clusterfuzz.appspot.com/testcase?key=1.\n\n'
+        'https://test-clusterfuzz.appspot.com/testcase?key=1.<br><br>'
         'If you suspect that the result above is incorrect, '
         'try re-doing that job on the testcase report page.')
     self.assertIsNotNone(self._get_notification())

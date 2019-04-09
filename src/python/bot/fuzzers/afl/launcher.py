@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """Launcher script for afl-based fuzzers."""
+from __future__ import print_function
 
 # pylint: disable=g-statement-before-imports
 try:
@@ -46,10 +47,9 @@ import constants
 import stats
 import strategies
 
-# Allow 10 minutes to merge the testcases back into the corpus.
-# TODO(metzman): Determine if we should set this equal to libFuzzer's merge
-# timeout.
-DEFAULT_MERGE_TIMEOUT = 10 * 60
+# Allow 30 minutes to merge the testcases back into the corpus. This matches
+# libFuzzer's merge timeout.
+DEFAULT_MERGE_TIMEOUT = 30 * 60
 
 # Prefix for the fuzzer's full name.
 AFL_PREFIX = 'afl_'
@@ -587,7 +587,7 @@ class AflRunnerCommon(object):
 
     self.afl_setup()
     result = self.run_and_wait(additional_args=[testcase_path])
-    print 'Running command:', engine_common.get_command_quoted(result.command)
+    print('Running command:', engine_common.get_command_quoted(result.command))
     if result.return_code not in [0, 1]:
       logs.log_error(
           'AFL target exited with abnormal exit code: %s.' % result.return_code,
@@ -1237,7 +1237,7 @@ def load_testcase_if_exists(fuzzer_runner, testcase_file_path):
            | stat.S_IXGRP)
 
   fuzzer_runner.run_single_testcase(testcase_file_path)
-  print fuzzer_runner.fuzzer_stderr
+  print(fuzzer_runner.fuzzer_stderr)
   return True
 
 
@@ -1417,19 +1417,19 @@ def main(argv):
     command = engine_common.strip_minijail_command(command,
                                                    runner.afl_fuzz_path)
   # Print info for the fuzzer logs.
-  print('Command: {0}\n'
-        'Bot: {1}\n'
-        'Time ran: {2}\n').format(
-            engine_common.get_command_quoted(command), BOT_NAME,
-            fuzz_result.time_executed)
+  print(('Command: {0}\n'
+         'Bot: {1}\n'
+         'Time ran: {2}\n').format(
+             engine_common.get_command_quoted(command), BOT_NAME,
+             fuzz_result.time_executed))
 
-  print fuzz_result.output
+  print(fuzz_result.output)
   runner.strategies.print_strategies()
 
   if fuzz_result.return_code:
     # If AFL returned a non-zero return code quit now without getting stats,
     # since they would be meaningless.
-    print runner.fuzzer_stderr
+    print(runner.fuzzer_stderr)
     return
 
   stats_getter = stats.StatsGetter(runner.afl_output.stats_path,
@@ -1445,14 +1445,15 @@ def main(argv):
                                       AFL_PREFIX, fuzzer_name, command)
 
   finally:
-    print runner.fuzzer_stderr
+    print(runner.fuzzer_stderr)
 
-  # Whenever new units are added to corpus, record the stats to make them
-  # easily searchable in stackdriver.
+  # Record the stats to make them easily searchable in stackdriver.
   if new_units_added:
     logs.log(
         'New units added to corpus: %d.' % new_units_added,
         stats=stats_getter.stats)
+  else:
+    logs.log('No new units found.', stats=stats_getter.stats)
 
 
 if __name__ == '__main__':

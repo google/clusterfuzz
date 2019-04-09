@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """Handler for performing remote tasks on windows."""
+from __future__ import print_function
 import os
 import time
 
@@ -92,7 +93,7 @@ class Handler(object):
   def reboot(self):
     """Reboot the machine and verify if succeeded."""
     api.run('cmd /c shutdown /r /f /t 0')
-    print 'Sleeping 45 seconds to allow reboot to finish.'
+    print('Sleeping 45 seconds to allow reboot to finish.')
     time.sleep(45)
 
     try:

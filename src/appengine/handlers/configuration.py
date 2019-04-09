@@ -124,6 +124,8 @@ class Handler(base_handler.Handler):
     test_account_password = self.request.get('test_account_password')
     wifi_ssid = self.request.get('wifi_ssid')
     wifi_password = self.request.get('wifi_password')
+    sendgrid_api_key = self.request.get('sendgrid_api_key')
+    sendgrid_sender = self.request.get('sendgrid_sender')
 
     config.build_apiary_service_account_email = (
         build_apiary_service_account_email)
@@ -146,6 +148,8 @@ class Handler(base_handler.Handler):
     config.test_account_password = test_account_password
     config.wifi_ssid = wifi_ssid
     config.wifi_password = wifi_password
+    config.sendgrid_api_key = sendgrid_api_key
+    config.sendgrid_sender = sendgrid_sender
 
     helpers.log('Configuration', helpers.MODIFY_OPERATION)
 

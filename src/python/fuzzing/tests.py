@@ -22,17 +22,14 @@ import zlib
 
 from base import utils
 from build_management import revisions
-from crash_analysis import crash_analyzer
 from crash_analysis.crash_comparer import CrashComparer
 from crash_analysis.crash_result import CrashResult
-from crash_analysis.stack_parsing import stack_symbolizer
 from datastore import data_handler
 from datastore import data_types
 from metrics import fuzzer_logs
 from metrics import fuzzer_stats
 from metrics import logs
 from platforms import android
-from platforms import fuchsia
 from system import archive
 from system import environment
 from system import process_handler
@@ -63,6 +60,16 @@ NETWORK_DELETEGATE_URL_REGEX = re.compile(
 FILE_URL_REGEX = re.compile(r'file:///([^"#?]+)')
 HTTP_URL_REGEX = re.compile(
     r'.*(localhost|\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})[^/]*[/]([^"#?]+)')
+
+BAD_STATE_HINTS = [
+    # X server issues.
+    'cannot open display',
+    'Maximum number of clients reached',
+    'Missing X server',
+
+    # Android logging issues.
+    'logging service has stopped',
+]
 
 
 def create_testcase_list_file(output_directory):
@@ -437,7 +444,8 @@ def run_testcase_and_return_result_in_queue(crash_queue,
 
     # Analyze the crash.
     crash_output = _get_crash_output(output)
-    if crash_analyzer.is_crash(return_code, crash_output):
+    crash_result = CrashResult(return_code, crash_time, crash_output)
+    if crash_result.is_crash():
       # Initialize resource list with the testcase path.
       resource_list = [file_path]
       resource_list += get_resource_paths(crash_output)
@@ -464,9 +472,10 @@ def run_testcase_and_return_result_in_queue(crash_queue,
       if upload_output:
         upload_testcase(file_path)
 
-    crash_result = CrashResult(return_code, crash_time, output)
     if upload_output:
-      upload_testcase_output(crash_result, file_path)
+      # Include full output for uploaded logs (crash output, merge output, etc).
+      crash_result_full = CrashResult(return_code, crash_time, output)
+      upload_testcase_output(crash_result_full, file_path)
   except Exception:
     logs.log_error('Exception occurred while running '
                    'run_testcase_and_return_result_in_queue.')
@@ -744,7 +753,7 @@ def get_command_line_for_application(file_to_run='',
       # command - just use app_name.
       if os.path.basename(launcher) != app_name:
         command += launcher + ' '
-    elif plt in ['ANDROID', 'FUCHSIA']:
+    elif plt in ['ANDROID']:
       # Android-specific testcase path fixup for fuzzers that don't rely on
       # launcher scripts.
       local_testcases_directory = environment.get_value('FUZZ_INPUTS')
@@ -838,9 +847,8 @@ def get_command_line_for_application(file_to_run='',
     return android.adb.get_application_launch_command(
         all_app_args, testcase_path, testcase_file_url)
 
-  elif plt == 'FUCHSIA' and not launcher:
-    return fuchsia.device.get_application_launch_command(
-        all_app_args, testcase_path)
+  # TODO(flowerhack): If we'd like blackbox fuzzing support for Fuchsia, here's
+  # where to add in our app's launch command.
 
   # Decide which directory we will run the application from.
   # We are using |app_directory| since it helps to locate pdbs
@@ -857,7 +865,7 @@ def setup_user_profile_directory_if_needed(user_profile_directory):
     # User profile directory already exists. Bail out.
     return
 
-  shell.create_directory_if_needed(user_profile_directory)
+  shell.create_directory(user_profile_directory)
 
   # Create a file in user profile directory based on format:
   # filename;base64 encoded zlib compressed file contents.
@@ -877,7 +885,7 @@ def setup_user_profile_directory_if_needed(user_profile_directory):
   if app_name.startswith('firefox'):
     # Create extensions directory.
     extensions_directory = os.path.join(user_profile_directory, 'extensions')
-    shell.create_directory_if_needed(extensions_directory)
+    shell.create_directory(extensions_directory)
 
     # Unpack the fuzzPriv extension.
     extension_archive = os.path.join(environment.get_resources_directory(),
@@ -904,9 +912,6 @@ def check_for_bad_build(job_type, crash_revision):
   if not environment.get_value('BAD_BUILD_CHECK'):
     return False
 
-  # Do not detect leaks while checking for bad builds.
-  environment.reset_current_memory_tool_options(leaks=False)
-
   # Create a blank command line with no file to run and no http.
   command = get_command_line_for_application(file_to_run='', needs_http=False)
 
@@ -917,31 +922,37 @@ def check_for_bad_build(job_type, crash_revision):
   if default_window_argument:
     command = command.replace(' %s' % default_window_argument, '')
 
-  # Warmup timeout.
-  fast_warmup_timeout = environment.get_value('FAST_WARMUP_TIMEOUT')
-
   # TSAN is slow, and boots slow on first startup. Increase the warmup
   # timeout for this case.
   if environment.tool_matches('TSAN', job_type):
     fast_warmup_timeout = environment.get_value('WARMUP_TIMEOUT')
+  else:
+    fast_warmup_timeout = environment.get_value('FAST_WARMUP_TIMEOUT')
 
   # Initialize helper variables.
   is_bad_build = False
   build_run_console_output = ''
-  output = ''
   app_directory = environment.get_value('APP_DIR')
 
-  # Check if the build is bad.
+  # Exit all running instances.
   process_handler.terminate_stale_application_instances()
-  exit_code, _, output = process_handler.run_process(
+
+  # Check if the build is bad.
+  return_code, crash_time, output = process_handler.run_process(
       command,
       timeout=fast_warmup_timeout,
       current_working_directory=app_directory)
-  output = utils.decode_to_unicode(output)
-  if crash_analyzer.is_crash(exit_code, output):
+  crash_result = CrashResult(return_code, crash_time, output)
+
+  # Need to account for startup crashes with no crash state. E.g. failed to load
+  # shared library.
+  if (crash_result.is_crash(ignore_state=True) and
+      not crash_result.should_ignore()):
     is_bad_build = True
-    build_run_console_output = ('%s\n\n%s\n\n%s' % (
-        command, stack_symbolizer.symbolize_stacktrace(output), output))
+    build_run_console_output = utils.get_crash_stacktrace_output(
+        command,
+        crash_result.get_stacktrace(symbolized=True),
+        crash_result.get_stacktrace(symbolized=False))
     logs.log(
         'Bad build for %s detected at r%d.' % (job_type, crash_revision),
         output=build_run_console_output)
@@ -952,20 +963,17 @@ def check_for_bad_build(job_type, crash_revision):
   # Any of the conditions below indicate that bot is in a bad state and it is
   # not caused by the build itself. In that case, just exit.
   build_state = data_handler.get_build_state(job_type, crash_revision)
-  if (is_bad_build and ('cannot open display' in output or
-                        'logging service has stopped' in output or
-                        'Maximum number of clients reached' in output)):
+  if is_bad_build and utils.sub_string_exists_in(BAD_STATE_HINTS, output):
     logs.log_fatal_and_exit(
         'Bad bot environment detected, exiting.',
-        output=build_run_console_output)
+        output=build_run_console_output,
+        snapshot=process_handler.get_runtime_snapshot())
 
   # If none of the other bots have added information about this build,
   # then add it now.
-  if build_state == data_types.BuildState.UNMARKED:
+  if (build_state == data_types.BuildState.UNMARKED and
+      not crash_result.should_ignore()):
     data_handler.add_build_metadata(job_type, crash_revision, is_bad_build,
                                     build_run_console_output)
-
-  # Reset memory tool options.
-  environment.reset_current_memory_tool_options()
 
   return is_bad_build

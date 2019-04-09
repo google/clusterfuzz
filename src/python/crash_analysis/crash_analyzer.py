@@ -112,16 +112,13 @@ def has_marker(stacktrace, marker_list):
   return False
 
 
-def ignore_stacktrace(crash_state, crash_stacktrace):
+def ignore_stacktrace(crash_stacktrace):
   """Return whether the stacktrace needs to be ignored."""
   # Filter crash based on search include / exclude string pattern.
   search_includes = environment.get_value('SEARCH_INCLUDES')
   search_excludes = environment.get_value('SEARCH_EXCLUDES')
   if ((search_includes and not re.search(search_includes, crash_stacktrace)) or
       (search_excludes and re.search(search_excludes, crash_stacktrace))):
-    return True
-
-  if not crash_state:
     return True
 
   crash_exclusions = environment.get_value('CRASH_EXCLUSIONS')

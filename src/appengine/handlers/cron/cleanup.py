@@ -17,7 +17,6 @@ import datetime
 import json
 import random
 
-from google.appengine.api import mail
 from googleapiclient.errors import HttpError
 
 from base import dates
@@ -34,6 +33,7 @@ from fuzzing import leak_blacklist
 from handlers import base_handler
 from issue_management import issue_tracker_utils
 from libs import handler
+from libs import mail
 from metrics import crash_stats
 from metrics import logs
 
@@ -704,21 +704,14 @@ def notify_issue_if_testcase_is_invalid(testcase, issue):
 
 def _send_email_to_uploader(testcase_id, to_email, content):
   """Send email to uploader when all the testcase tasks are finished."""
-  # Based on https://cloud.google.com/appengine/docs/standard/go/mail/.
-  sender = 'noreply@{app_id}.appspotmail.com'.format(
-      app_id=utils.get_application_id())
-
   subject = 'Your testcase upload %d analysis is complete.' % testcase_id
-  body = (
+  content_with_footer = (
       '%s\n\n'
       'If you suspect that the result above is incorrect, '
       'try re-doing that job on the testcase report page.') % content.strip()
+  html_content = content_with_footer.replace('\n', '<br>')
 
-  try:
-    mail.send_mail(sender=sender, to=to_email, subject=subject, body=body)
-  except Exception:
-    logs.log_error('Failed to send email that testcase %d is fully processed.' %
-                   testcase_id)
+  mail.send(to_email, subject, html_content)
 
 
 def _update_issue_when_uploaded_testcase_is_processed(
@@ -772,7 +765,8 @@ def notify_uploader_when_testcase_is_processed(testcase, issue):
   if not data_handler.critical_tasks_completed(testcase):
     return
 
-  description = data_handler.get_issue_description(testcase)
+  description = data_handler.get_issue_description(
+      testcase, hide_crash_state=True)
   if issue:
     _update_issue_when_uploaded_testcase_is_processed(
         testcase, issue, description, upload_metadata)

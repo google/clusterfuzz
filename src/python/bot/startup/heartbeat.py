@@ -84,8 +84,6 @@ def beat(previous_state, log_filename):
   except Exception:
     current_state = None
 
-  logs.log('Old state %s, current state %s.' % (previous_state, current_state))
-
   # Only update the heartbeat if the log file was modified.
   if current_state and current_state != previous_state:
     # Try updating the heartbeat. If an error occurs, just

@@ -1,3 +1,4 @@
+from __future__ import print_function
 # Copyright 2019 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -278,7 +279,7 @@ class LLVMSymbolizer(Symbolizer):
     result = []
     try:
       symbolizer_input = '"%s" %s' % (binary, offset)
-      print >> self.pipe.stdin, symbolizer_input
+      print(symbolizer_input, file=self.pipe.stdin)
       while True:
         function_name = self.pipe.stdout.readline().rstrip()
         if not function_name:
@@ -323,7 +324,7 @@ class Addr2LineSymbolizer(Symbolizer):
 
     try:
       symbolizer_input = str(offset)
-      print >> self.pipe.stdin, symbolizer_input
+      print(symbolizer_input, file=self.pipe.stdin)
       function_name = self.pipe.stdout.readline().rstrip()
       file_name = self.pipe.stdout.readline().rstrip()
     except Exception:

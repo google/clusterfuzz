@@ -42,6 +42,9 @@ FUZZ_INPUTS_DISK = '/fake/inputs-disk'
 GSUTIL_PATH = '/fake/gsutil_path'
 FAKE_ROOT_DIR = '/fake_root'
 
+# An arbirtrary SHA1 sum.
+ARBITRARY_SHA1_HASH = 'dd122581c8cd44d0227f9c305581ffcb4b6f1b46'
+
 
 def _read_test_data(name):
   """Read test data."""
@@ -292,8 +295,13 @@ class LauncherTest(fake_fs_unittest.TestCase):
           '-print_final_stats=1', '/fake/inputs-disk/temp-1337/new',
           '/fake/corpus_basic'
       ], [
-          '/fake/build_dir/fake_fuzzer', '-rss_limit_mb=2048', '-timeout=25',
-          '-merge=1', '/fake/corpus_basic', '/fake/inputs-disk/temp-1337/new'
+          '/fake/build_dir/fake_fuzzer',
+          '-rss_limit_mb=2048',
+          '-timeout=25',
+          '-merge=1',
+          '/fake/inputs-disk/temp-1337/merge-corpus',
+          '/fake/inputs-disk/temp-1337/new',
+          '/fake/corpus_basic',
       ]])
 
       # Check new testcases added.
@@ -490,8 +498,9 @@ class LauncherTest(fake_fs_unittest.TestCase):
           '-only_ascii=1',
           '-rss_limit_mb=2048',
           '-merge=1',
-          '/fake/corpus_basic',
+          '/fake/inputs-disk/temp-1337/merge-corpus',
           '/fake/inputs-disk/temp-1337/new',
+          '/fake/corpus_basic',
       ]])
 
       # Check new testcases added.
@@ -1283,7 +1292,8 @@ class LauncherTest(fake_fs_unittest.TestCase):
           '/fake/corpus_oom'
       ], [
           '/fake/build_dir/fake_fuzzer', '-rss_limit_mb=2048', '-timeout=25',
-          '-merge=1', '/fake/corpus_oom', '/fake/inputs-disk/temp-1337/new'
+          '-merge=1', '/fake/inputs-disk/temp-1337/merge-corpus',
+          '/fake/inputs-disk/temp-1337/new', '/fake/corpus_oom'
       ]])
 
   @mock.patch('bot.fuzzers.libFuzzer.launcher.add_recommended_dictionary',
@@ -1321,10 +1331,14 @@ class LauncherTest(fake_fs_unittest.TestCase):
           '-print_final_stats=1', '/fake/inputs-disk/temp-1337/new',
           '/fake/inputs-disk/temp-1337/subset'
       ], [
-          '/fake/build_dir/fake_fuzzer', '-rss_limit_mb=2048', '-timeout=25',
-          '-merge=1', '/fake/main_corpus_dir',
+          '/fake/build_dir/fake_fuzzer',
+          '-rss_limit_mb=2048',
+          '-timeout=25',
+          '-merge=1',
+          '/fake/inputs-disk/temp-1337/merge-corpus',
           '/fake/inputs-disk/temp-1337/new',
-          '/fake/inputs-disk/temp-1337/subset'
+          '/fake/inputs-disk/temp-1337/subset',
+          '/fake/main_corpus_dir',
       ]])
 
   @mock.patch('metrics.logs.log_error')
@@ -1386,8 +1400,13 @@ class LauncherTest(fake_fs_unittest.TestCase):
           '-print_final_stats=1', '/fake/inputs-disk/temp-1337/new',
           '/fake/main_corpus_dir'
       ], [
-          '/fake/build_dir/fake_fuzzer', '-rss_limit_mb=2048', '-timeout=25',
-          '-merge=1', '/fake/main_corpus_dir', '/fake/inputs-disk/temp-1337/new'
+          '/fake/build_dir/fake_fuzzer',
+          '-rss_limit_mb=2048',
+          '-timeout=25',
+          '-merge=1',
+          '/fake/inputs-disk/temp-1337/merge-corpus',
+          '/fake/inputs-disk/temp-1337/new',
+          '/fake/main_corpus_dir',
       ]])
 
   @mock.patch('bot.fuzzers.libFuzzer.launcher.add_recommended_dictionary',
@@ -1462,17 +1481,53 @@ class LauncherTest(fake_fs_unittest.TestCase):
           '-print_final_stats=1', '/new', '/subset'
       ], [
           '/fake_root/resources/platform/{}/minijail0'.format(
-              environment.platform().lower()), '-f', '/tmpfile', '-U', '-m',
-          '0 1000 1', '-T', 'static', '-c', '0', '-n', '-v', '-p', '-l', '-I',
-          '-k', 'proc,/proc,proc,1', '-P', '/fake/inputs-disk/temp-1337/CHROOT',
-          '-b', '/fake/inputs-disk/temp-1337/TEMP,/tmp,1', '-b', '/lib,/lib,0',
-          '-b', '/lib64,/lib64,0', '-b', '/usr/lib,/usr/lib,0', '-b',
-          '/fake/build_dir,/fake/build_dir,0', '-b', '/fake/build_dir,/out,0',
-          '-b', '/fake/main_corpus_dir,/main_corpus_dir,1', '-b',
-          '/fake/inputs-disk/temp-1337/new,/new,1', '-b',
+              environment.platform().lower()),
+          '-f',
+          '/tmpfile',
+          '-U',
+          '-m',
+          '0 1000 1',
+          '-T',
+          'static',
+          '-c',
+          '0',
+          '-n',
+          '-v',
+          '-p',
+          '-l',
+          '-I',
+          '-k',
+          'proc,/proc,proc,1',
+          '-P',
+          '/fake/inputs-disk/temp-1337/CHROOT',
+          '-b',
+          '/fake/inputs-disk/temp-1337/TEMP,/tmp,1',
+          '-b',
+          '/lib,/lib,0',
+          '-b',
+          '/lib64,/lib64,0',
+          '-b',
+          '/usr/lib,/usr/lib,0',
+          '-b',
+          '/fake/build_dir,/fake/build_dir,0',
+          '-b',
+          '/fake/build_dir,/out,0',
+          '-b',
+          '/fake/main_corpus_dir,/main_corpus_dir,1',
+          '-b',
+          '/fake/inputs-disk/temp-1337/new,/new,1',
+          '-b',
           '/fake/inputs-disk/temp-1337/subset,/subset,1',
-          '/fake/build_dir/fake_fuzzer', '-rss_limit_mb=2048', '-timeout=25',
-          '-merge=1', '/main_corpus_dir', '/new', '/subset'
+          '-b',
+          '/fake/inputs-disk/temp-1337/merge-corpus,/merge-corpus,1',
+          '/fake/build_dir/fake_fuzzer',
+          '-rss_limit_mb=2048',
+          '-timeout=25',
+          '-merge=1',
+          '/merge-corpus',
+          '/new',
+          '/subset',
+          '/main_corpus_dir',
       ]])
 
     del os.environ['USE_MINIJAIL']
@@ -1543,16 +1598,50 @@ class LauncherTest(fake_fs_unittest.TestCase):
           '-print_final_stats=1', '/new', '/main_corpus_dir'
       ], [
           '/fake_root/resources/platform/{}/minijail0'.format(
-              environment.platform().lower()), '-f', '/tmpfile', '-U', '-m',
-          '0 1000 1', '-T', 'static', '-c', '0', '-n', '-v', '-p', '-l', '-I',
-          '-k', 'proc,/proc,proc,1', '-P', '/fake/inputs-disk/temp-1337/CHROOT',
-          '-b', '/fake/inputs-disk/temp-1337/TEMP,/tmp,1', '-b', '/lib,/lib,0',
-          '-b', '/lib64,/lib64,0', '-b', '/usr/lib,/usr/lib,0', '-b',
-          '/fake/build_dir,/fake/build_dir,0', '-b', '/fake/build_dir,/out,0',
-          '-b', '/fake/inputs-disk/temp-1337/new,/new,1', '-b',
+              environment.platform().lower()),
+          '-f',
+          '/tmpfile',
+          '-U',
+          '-m',
+          '0 1000 1',
+          '-T',
+          'static',
+          '-c',
+          '0',
+          '-n',
+          '-v',
+          '-p',
+          '-l',
+          '-I',
+          '-k',
+          'proc,/proc,proc,1',
+          '-P',
+          '/fake/inputs-disk/temp-1337/CHROOT',
+          '-b',
+          '/fake/inputs-disk/temp-1337/TEMP,/tmp,1',
+          '-b',
+          '/lib,/lib,0',
+          '-b',
+          '/lib64,/lib64,0',
+          '-b',
+          '/usr/lib,/usr/lib,0',
+          '-b',
+          '/fake/build_dir,/fake/build_dir,0',
+          '-b',
+          '/fake/build_dir,/out,0',
+          '-b',
+          '/fake/inputs-disk/temp-1337/new,/new,1',
+          '-b',
           '/fake/main_corpus_dir,/main_corpus_dir,1',
-          '/fake/build_dir/fake_fuzzer', '-rss_limit_mb=2048', '-timeout=25',
-          '-merge=1', '/main_corpus_dir', '/new'
+          '-b',
+          '/fake/inputs-disk/temp-1337/merge-corpus,/merge-corpus,1',
+          '/fake/build_dir/fake_fuzzer',
+          '-rss_limit_mb=2048',
+          '-timeout=25',
+          '-merge=1',
+          '/merge-corpus',
+          '/new',
+          '/main_corpus_dir',
       ]])
 
     del os.environ['USE_MINIJAIL']
@@ -1595,8 +1684,9 @@ class LauncherTest(fake_fs_unittest.TestCase):
           '-rss_limit_mb=2048',
           '-timeout=25',
           '-merge=1',
-          '/fake/corpus_mutations',
+          '/fake/inputs-disk/temp-1337/merge-corpus',
           '/fake/inputs-disk/temp-1337/new',
+          '/fake/corpus_mutations',
           '/fake/inputs-disk/temp-1337/mutations',
       ]])
 
@@ -1640,8 +1730,9 @@ class LauncherTest(fake_fs_unittest.TestCase):
           '-rss_limit_mb=2048',
           '-timeout=25',
           '-merge=1',
-          '/fake/corpus_mutations',
+          '/fake/inputs-disk/temp-1337/merge-corpus',
           '/fake/inputs-disk/temp-1337/new',
+          '/fake/corpus_mutations',
           '/fake/inputs-disk/temp-1337/mutations',
       ]])
 
@@ -1776,6 +1867,60 @@ class RecommendedDictionaryTest(fake_fs_unittest.TestCase):
     self.assertIn(
         '/fake/fuzzers/inputs-disk/temp-1337/recommended_dictionary.dict',
         self.mock.download_recommended_dictionary_from_gcs.call_args[0])
+
+
+class IsSha1HashTest(unittest.TestCase):
+  """Tests for is_sha1_hash."""
+
+  def test_non_hashes(self):
+    """Tests that False is returned for non hashes."""
+    self.assertFalse(launcher.is_sha1_hash(''))
+    self.assertFalse(launcher.is_sha1_hash('z' * 40))
+    self.assertFalse(launcher.is_sha1_hash('a' * 50))
+    fake_hash = str('z' + ARBITRARY_SHA1_HASH[1:])
+    self.assertFalse(launcher.is_sha1_hash(fake_hash))
+
+  def test_hash(self):
+    """Tests that False is returned for a real hash."""
+    self.assertTrue(launcher.is_sha1_hash(ARBITRARY_SHA1_HASH))
+
+
+class MoveMergeableUnitsTest(fake_fs_unittest.TestCase):
+  """Tests for move_mergeable_units."""
+  CORPUS_DIRECTORY = '/corpus'
+  MERGE_DIRECTORY = '/corpus-merge'
+
+  def setUp(self):
+    test_utils.set_up_pyfakefs(self)
+
+  def move_mergeable_units(self):
+    """Helper function for move_mergeable_units."""
+    launcher.move_mergeable_units(self.MERGE_DIRECTORY, self.CORPUS_DIRECTORY)
+
+  def test_duplicate_not_moved(self):
+    """Tests that a duplicated file is not moved into the corpus directory."""
+    self.fs.CreateFile(os.path.join(self.CORPUS_DIRECTORY, ARBITRARY_SHA1_HASH))
+    merge_corpus_file = os.path.join(self.MERGE_DIRECTORY, ARBITRARY_SHA1_HASH)
+    self.fs.CreateFile(merge_corpus_file)
+    self.move_mergeable_units()
+    # File will be deleted from merge directory if it isn't a duplicate.
+    self.assertTrue(os.path.exists(merge_corpus_file))
+
+  def test_new_file_moved(self):
+    """Tests that a new file is moved into the corpus directory."""
+    # Make a file that looks like a sha1 hash but is different from
+    # ARBITRARY_SHA1_HASH.
+    filename = ARBITRARY_SHA1_HASH.replace('d', 'a')
+    self.fs.CreateFile(os.path.join(self.CORPUS_DIRECTORY, filename))
+    # Create an arbitrary file with a hash name that is different from this
+    # filename.
+    merge_corpus_file = os.path.join(self.MERGE_DIRECTORY, ARBITRARY_SHA1_HASH)
+    self.fs.CreateFile(merge_corpus_file)
+    self.move_mergeable_units()
+    # File will be deleted from merge directory if it isn't a duplicate.
+    self.assertFalse(os.path.exists(merge_corpus_file))
+    self.assertTrue(
+        os.path.exists(os.path.join(self.CORPUS_DIRECTORY, filename)))
 
 
 if __name__ == '__main__':

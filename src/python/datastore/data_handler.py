@@ -272,7 +272,10 @@ def get_reproduction_help_url(testcase, config):
       testcase.job_type, 'HELP_URL', default=config.reproduction_help_url)
 
 
-def get_issue_description(testcase, reporter=None, show_reporter=False):
+def get_issue_description(testcase,
+                          reporter=None,
+                          show_reporter=False,
+                          hide_crash_state=False):
   """Returns testcase as string."""
   # Get issue tracker configuration parameters.
   config = db_config.get()
@@ -318,8 +321,13 @@ def get_issue_description(testcase, reporter=None, show_reporter=False):
 
   content_string += 'Crash Type: %s\n' % get_crash_type_string(testcase)
   content_string += 'Crash Address: %s\n' % testcase.crash_address
+
+  if hide_crash_state:
+    crash_state = '...see report...'
+  else:
+    crash_state = testcase.crash_state
   content_string += 'Crash State:\n%s\n' % (
-      utils.indent_string(testcase.crash_state + '\n', 2))
+      utils.indent_string(crash_state + '\n', 2))
 
   content_string += '%s\n\n' % environment.get_memory_tool_display_string(
       testcase.job_type)
