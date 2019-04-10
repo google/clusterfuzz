@@ -1465,8 +1465,6 @@ class StackAnalyzerTestcase(unittest.TestCase):
 
   def test_syzkaller_kasan(self):
     """Test skyzkaller kasan."""
-    os.environ['KASAN'] = 'True'
-
     data = self._read_test_data('kasan_syzkaller.txt')
     expected_type = 'Kernel failure\nUse-after-free READ 8'
     expected_state = ('sock_wake_async+0xb8/0x2b4\n'
@@ -1482,8 +1480,6 @@ class StackAnalyzerTestcase(unittest.TestCase):
 
   def test_kasan_gpf(self):
     """Test a KASan GPF."""
-    os.environ['KASAN'] = 'True'
-
     data = self._read_test_data('kasan_gpf.txt')
     expected_type = 'Kernel failure\nGeneral-protection-fault'
     expected_state = ('keyring_destroy+0xe2/0x186\n'
@@ -1499,8 +1495,6 @@ class StackAnalyzerTestcase(unittest.TestCase):
 
   def test_kasan_null(self):
     """Test a KASan NULL deref."""
-    os.environ['KASAN'] = 'True'
-
     data = self._read_test_data('kasan_null.txt')
     expected_type = 'Kernel failure\nUser-memory-access WRITE 4'
     expected_state = ('snd_seq_fifo_clear+0x20/0xec\n'
@@ -1516,8 +1510,6 @@ class StackAnalyzerTestcase(unittest.TestCase):
 
   def test_kasan_oob_read(self):
     """Test a KASan out-of-bounds read."""
-    os.environ['KASAN'] = 'True'
-
     data = self._read_test_data('kasan_oob_read.txt')
     expected_type = 'Kernel failure\nOut-of-bounds-access READ 1'
     expected_state = ('platform_match+0x100/0x1d8\n'
@@ -1533,8 +1525,6 @@ class StackAnalyzerTestcase(unittest.TestCase):
 
   def test_kasan_uaf(self):
     """Test a KASan use-after-free."""
-    os.environ['KASAN'] = 'True'
-
     data = self._read_test_data('kasan_uaf.txt')
     expected_type = 'Kernel failure\nUse-after-free READ 4'
     expected_state = ('ip6_append_data+ADDRESS/ADDRESS\n'

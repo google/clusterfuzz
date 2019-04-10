@@ -1035,6 +1035,8 @@ def get_crash_data(crash_data, symbolize_flag=True):
       environment.get_value('REPORT_OOMS_AND_HANGS') and
       (not redzone_size or redzone_size <= MAX_REDZONE_SIZE_FOR_OOMS_AND_HANGS))
 
+  is_kasan = 'KASAN' in crash_stacktrace_without_inlines
+
   for line in crash_stacktrace_without_inlines.splitlines():
     if should_ignore_line_for_crash_processing(line, state):
       continue
@@ -1334,10 +1336,10 @@ def get_crash_data(crash_data, symbolize_flag=True):
       state.crash_state = stack_frame + '\n'
       state.frame_count = 1
 
-    # Android Kernel Errors are only checked if KASan isn't supported for this
-    # job type. They can potentially overwrite the KASan report which contains
-    # more useful information.
-    if not environment.get_value('KASAN'):
+    # Android kernel errors are only checked if this is not a KASan build.
+    # Otherwise, we might overwrite the KASan report which contains more useful
+    # information.
+    if not is_kasan:
       update_state_on_match(
           ANDROID_KERNEL_ERROR_REGEX,
           line,
@@ -1634,7 +1636,7 @@ def get_crash_data(crash_data, symbolize_flag=True):
     if android_kernel_match:
       # Update address from the first stack frame unless we already have
       # more detailed information from KASan.
-      if state.frame_count == 1 and not environment.get_value('KASAN'):
+      if state.frame_count == 1 and not is_kasan:
         state.crash_address = '0x%s' % android_kernel_match.group(1)
       continue
 
