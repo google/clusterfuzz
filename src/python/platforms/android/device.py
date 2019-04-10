@@ -1025,13 +1025,6 @@ def configure_build_properties_if_needed():
     for policy_file in policy_files.splitlines():
       adb.run_adb_shell_command(['rm', policy_file.strip()])
 
-  # Remove Google Plus app from non-Google devices. Makes it easy to install
-  # older Gallery app on these devices. Otherwise, we run into duplicate
-  # permission errors.
-  if not google_device():
-    adb.run_adb_shell_command(['rm', '/system/app/PlusOne.apk'])
-    adb.run_adb_shell_command(['rm', '/system/app/PlusOne/PlusOne.apk'])
-
   # Push new build.prop and backup to device.
   logs.log('Pushing new build properties file on device.')
   adb.run_adb_command(
