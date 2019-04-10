@@ -596,8 +596,7 @@ def get_debug_props_and_values():
 
   # https://android.googlesource.com/platform/bionic/+/master/libc/malloc_debug/README.md
   if debug_malloc_enabled:
-    # FIXME: 'backtrace' and 'free_track' options are extremely expensive.
-    # Skip them for now until performance issues are resolved.
+    # FIXME: 'free_track' is very crashy. Skip for now.
     debug_malloc_string = 'fill guard'
     debug_props_and_values_list += [
         'libc.debug.malloc.options=%s' % debug_malloc_string
