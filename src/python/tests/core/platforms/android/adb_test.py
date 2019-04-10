@@ -26,8 +26,8 @@ from tests.test_libs import test_utils
 
 
 @test_utils.android_device_required
-class TestFileOperations(unittest.TestCase):
-  """Tests for various functions that depend on file transfer."""
+class BaseADBTest(unittest.TestCase):
+  """Set up state for ADB tests."""
 
   def setUp(self):
     test_helpers.patch_environ(self)
@@ -36,15 +36,22 @@ class TestFileOperations(unittest.TestCase):
     environment.set_value('OS_OVERRIDE', 'ANDROID')
     environment.set_bot_environment()
 
+    # Run adb as root.
+    adb.run_as_root()
+
+
+class FileOperationsTest(BaseADBTest):
+  """Tests for various functions that depend on file transfer."""
+
+  def setUp(self):
+    super(FileOperationsTest, self).setUp()
+
     # Clear and create temporary directory on device.
     self.device_temp_dir = adb.DEVICE_TMP_DIR
     adb.remove_directory(self.device_temp_dir, recreate=True)
 
     # Create local temp directory.
     self.local_temp_dir = tempfile.mkdtemp()
-
-    # Run adb as root.
-    adb.run_as_root()
 
   def tearDown(self):
     adb.remove_directory(self.device_temp_dir)
@@ -126,8 +133,7 @@ class TestFileOperations(unittest.TestCase):
     self.assertEqual(adb.read_data_from_file(test_file_path), 'data')
 
 
-@test_utils.android_device_required
-class WaitForDeviceTest(unittest.TestCase):
+class WaitForDeviceTest(BaseADBTest):
   """Tests for wait_for_device."""
 
   def test_state_correct_after_wait(self):
@@ -136,8 +142,7 @@ class WaitForDeviceTest(unittest.TestCase):
     self.assertEqual(adb.get_device_state(), 'device')
 
 
-@test_utils.android_device_required
-class IsPackageInstalledTest(unittest.TestCase):
+class IsPackageInstalledTest(BaseADBTest):
   """Tests for is_package_installed."""
 
   def test_nonexistent_package_not_installed(self):
