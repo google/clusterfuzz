@@ -25,7 +25,6 @@ import time
 
 from base import persistent_cache
 from base import utils
-from datastore import data_types
 from metrics import logs
 from system import environment
 from system import shell
@@ -53,7 +52,8 @@ FLASH_INTERVAL = 1 * 24 * 60 * 60
 MONKEY_PROCESS_NAME = 'monkey'
 PACKAGE_OPTIMIZATION_INTERVAL = 30
 PACKAGES_THAT_CRASH_WITH_GESTURES = [
-    'com.android.music', 'com.android.printspooler', 'com.android.settings'
+    'com.android.printspooler',
+    'com.android.settings',
 ]
 REBOOT_TIMEOUT = 3600
 RECOVERY_CMD_TIMEOUT = 60
@@ -378,7 +378,7 @@ def get_package_name(apk_path=None):
       return None
 
   # Make sure that apk has the correct extension.
-  if not apk_path.endswith(data_types.ANDROID_APP_EXTENSION):
+  if not apk_path.endswith('.apk'):
     return None
 
   # Try retrieving package name using aapt.
@@ -916,23 +916,19 @@ def wait_until_package_optimization_complete():
 
 def write_command_line_file(command_line, app_path):
   """Write command line file with command line argument for the application."""
+  command_line_path = environment.get_value('COMMAND_LINE_PATH')
+  if not command_line_path:
+    return
+
   # Algorithm for filtering current command line.
-  # 1. Add 'chrome ' to start.
-  # 2. Remove apk from path.
+  # 1. Remove |APP_PATH| from front.
+  # 2. Add 'chrome ' to start.
   # 3. Strip for whitespaces at start and end.
   command_line_without_app_path = command_line.replace('%s ' % app_path, '')
   command_line_file_contents = 'chrome %s' % (
       command_line_without_app_path.strip())
 
-  command_line_paths = [
-      environment.get_value('COMMAND_LINE_PATH'),
-      environment.get_value('COMMAND_LINE_PATH2')
-  ]
-  for command_line_path in command_line_paths:
-    if not command_line_path:
-      continue
-
-    write_data_to_file(command_line_file_contents, command_line_path)
+  write_data_to_file(command_line_file_contents, command_line_path)
 
 
 def write_data_to_file(contents, file_path):
