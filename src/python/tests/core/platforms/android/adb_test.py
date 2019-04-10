@@ -31,12 +31,8 @@ class BaseADBTest(unittest.TestCase):
 
   def setUp(self):
     test_helpers.patch_environ(self)
-
-    # Set Android specific environment variables like DEVICE_TMP_DIR, etc.
     environment.set_value('OS_OVERRIDE', 'ANDROID')
     environment.set_bot_environment()
-
-    # Run adb as root.
     adb.run_as_root()
 
 
@@ -48,7 +44,7 @@ class FileOperationsTest(BaseADBTest):
 
     # Clear and create temporary directory on device.
     self.device_temp_dir = adb.DEVICE_TMP_DIR
-    adb.remove_directory(self.device_temp_dir, recreate=True)
+    adb.create_directory_if_needed(self.device_temp_dir)
 
     # Create local temp directory.
     self.local_temp_dir = tempfile.mkdtemp()

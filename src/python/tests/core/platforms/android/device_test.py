@@ -28,12 +28,8 @@ class BaseDeviceTest(unittest.TestCase):
 
   def setUp(self):
     test_helpers.patch_environ(self)
-
-    # Set Android specific environment variables like DEVICE_TMP_DIR, etc.
     environment.set_value('OS_OVERRIDE', 'ANDROID')
     environment.set_bot_environment()
-
-    # Run adb as root.
     adb.run_as_root()
 
 
