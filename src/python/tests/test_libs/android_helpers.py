@@ -11,19 +11,22 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""Tests for device functions."""
+"""Test helpers for Android."""
 
-from platforms.android import device
-from tests.test_libs import android_helpers
+import unittest
+
+from platforms.android import adb
+from system import environment
+from tests.test_libs import helpers
+from tests.test_libs import test_utils
 
 
-class GetBatteryInformationTest(android_helpers.AndroidTest):
-  """Tests get_battery_information."""
+@test_utils.android_device_required
+class AndroidTest(unittest.TestCase):
+  """Set up state for ADB tests."""
 
-  def test(self):
-    battery_info = device.get_battery_information()
-    self.assertTrue(isinstance(battery_info, dict))
-    self.assertTrue('level' in battery_info)
-    self.assertTrue('temperature' in battery_info)
-    self.assertTrue(battery_info['level'] > 0)
-    self.assertTrue(battery_info['temperature'] > 0)
+  def setUp(self):
+    helpers.patch_environ(self)
+    environment.set_value('OS_OVERRIDE', 'ANDROID')
+    environment.set_bot_environment()
+    adb.run_as_root()

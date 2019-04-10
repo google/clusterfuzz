@@ -15,28 +15,14 @@
 
 import os
 import tempfile
-import unittest
 
 from base import utils
 from platforms.android import adb
-from system import environment
 from system import shell
-from tests.test_libs import helpers as test_helpers
-from tests.test_libs import test_utils
+from tests.test_libs import android_helpers
 
 
-@test_utils.android_device_required
-class BaseADBTest(unittest.TestCase):
-  """Set up state for ADB tests."""
-
-  def setUp(self):
-    test_helpers.patch_environ(self)
-    environment.set_value('OS_OVERRIDE', 'ANDROID')
-    environment.set_bot_environment()
-    adb.run_as_root()
-
-
-class FileOperationsTest(BaseADBTest):
+class FileOperationsTest(android_helpers.AndroidTest):
   """Tests for various functions that depend on file transfer."""
 
   def setUp(self):
@@ -129,7 +115,7 @@ class FileOperationsTest(BaseADBTest):
     self.assertEqual(adb.read_data_from_file(test_file_path), 'data')
 
 
-class WaitForDeviceTest(BaseADBTest):
+class WaitForDeviceTest(android_helpers.AndroidTest):
   """Tests for wait_for_device."""
 
   def test_state_correct_after_wait(self):
@@ -138,7 +124,7 @@ class WaitForDeviceTest(BaseADBTest):
     self.assertEqual(adb.get_device_state(), 'device')
 
 
-class IsPackageInstalledTest(BaseADBTest):
+class IsPackageInstalledTest(android_helpers.AndroidTest):
   """Tests for is_package_installed."""
 
   def test_nonexistent_package_not_installed(self):
