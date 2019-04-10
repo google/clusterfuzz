@@ -52,7 +52,8 @@ FLASH_INTERVAL = 1 * 24 * 60 * 60
 MONKEY_PROCESS_NAME = 'monkey'
 PACKAGE_OPTIMIZATION_INTERVAL = 30
 PACKAGES_THAT_CRASH_WITH_GESTURES = [
-    'com.android.printspooler', 'com.android.settings',
+    'com.android.printspooler',
+    'com.android.settings',
 ]
 REBOOT_TIMEOUT = 3600
 RECOVERY_CMD_TIMEOUT = 60
