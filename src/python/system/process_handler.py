@@ -259,7 +259,6 @@ def run_process(cmdline,
       logs.log('Device is low on memory, rebooting.', output=output)
       android.adb.hard_reset()
       android.adb.wait_for_device()
-      android.device.setup_memory_monitor_script_if_needed()
 
     elif android.adb.time_since_last_reboot() < time.time() - start_time:
       # Check if a reboot has happened, if yes, append log output before reboot
@@ -531,9 +530,6 @@ def terminate_stale_application_instances():
     # Make sure that device forwarder is running (might be lost in reboot or
     # process crash).
     android.device.setup_host_and_device_forwarder_if_needed()
-
-    # Setup memory monitor script to prevent out-of-memory scenarios.
-    android.device.setup_memory_monitor_script_if_needed()
 
     # Make sure that package optimization is complete (might be triggered due to
     # unexpected circumstances).
