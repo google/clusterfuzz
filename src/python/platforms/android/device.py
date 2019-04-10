@@ -40,9 +40,8 @@ from system import shell
 ADD_TEST_ACCOUNT_APK_NAME = 'user_account_setup.apk'
 ADD_TEST_ACCOUNT_CHECK_INTERVAL = 1 * 24 * 60 * 60
 ADD_TEST_ACCOUNT_PKG_NAME = 'com.google.android.tests.utilities'
+ADD_TEST_ACCOUNT_CALL_PATH = '%s/.AddAccount' % ADD_TEST_ACCOUNT_PKG_NAME
 ADD_TEST_ACCOUNT_TIMEOUT = 20
-ARCH32_ID = 'arm'
-ARCH64_ID = 'aarch64'
 ASAN_SCRIPT_TIMEOUT = 15 * 60
 BUILD_FINGERPRINT_REGEX = re.compile(
     r'(?P<vendor>.+)\/(?P<target>.+)'
@@ -96,11 +95,6 @@ LOW_MEMORY_REGEX = re.compile(
     r'Low on memory:|'
     r'lowmemorykiller: Killing|'
     r'to\s+free.*because\s+cache.*is\s+below\s+limit.*for\s+oom_', re.DOTALL)
-MEMORY_CONSTRAINED_DEVICES = [
-    '4560MMX_sprout',
-    '4560MMX_b_sprout',
-]
-MEMORY_MONITOR_SCRIPT = 'memory_monitor.sh'
 PS_REGEX = re.compile(
     r'\S+\s+([0-9]+)\s+[0-9]+\s+[0-9]+\s+[0-9]+\s+\S+\s+\S+\s+\S+\s+sh')
 SANITIZER_TOOL_TO_FILE_MAPPINGS = {
@@ -115,10 +109,6 @@ SYSTEM_WEBVIEW_DIRS = [
 ]
 SYSTEM_WEBVIEW_PACKAGE = 'com.google.android.webview'
 SYSTEM_WEBVIEW_VMSIZE_BYTES = 250 * 1000 * 1000
-TARGET_MAPPER = {
-    '4560MMX': 'sprout',
-    '4560MMX_b': 'sprout_b',
-}
 WIFI_UTIL_PACKAGE_NAME = 'com.android.tradefed.utils.wifi'
 WIFI_UTIL_CALL_PATH = '%s/.WifiUtil' % WIFI_UTIL_PACKAGE_NAME
 
@@ -166,8 +156,8 @@ def add_test_accounts_if_needed():
 
   logs.log('Trying to add test account.')
   output = adb.run_adb_shell_command(
-      'am instrument -e account %s -e password %s -w %s/.AddAccount' %
-      (test_account_email, test_account_password, ADD_TEST_ACCOUNT_PKG_NAME),
+      'am instrument -e account %s -e password %s -w %s' %
+      (test_account_email, test_account_password, ADD_TEST_ACCOUNT_CALL_PATH),
       timeout=ADD_TEST_ACCOUNT_TIMEOUT)
   if not output or test_account_email not in output:
     logs.log('Failed to add test account, probably due to wifi issues.')
@@ -401,20 +391,26 @@ def get_build_parameters():
 
   build_id = build_fingerprint_match.group('build_id')
   target = build_fingerprint_match.group('target')
-  target = TARGET_MAPPER.get(target, target)
   build_type = build_fingerprint_match.group('type')
   return {'build_id': build_id, 'target': target, 'type': build_type}
 
 
 def get_build_version():
   """Return the build version of the system as a character.
-  K = Kitkat, L = Lollipop, M = Marshmellow, A = Master.
+  K = Kitkat, L = Lollipop, M = Marshmellow, MASTER = Master.
   """
   build_version = adb.get_property('ro.build.id')
-  if not build_version or not re.match('^[A-Z]', build_version):
+  if not build_version:
     return None
 
-  return build_version[0]
+  if build_version == 'MASTER':
+    return build_version
+
+  match = re.match('^([A-Z])', build_version)
+  if not match:
+    return None
+
+  return match.group(1)
 
 
 def get_codename():
@@ -593,37 +589,19 @@ def get_debug_props_and_values():
       'debug.checkjni=%d' % int(check_jni_flag),
   ]
 
-  # Enable debug malloc if
-  # a. This is not a sanitizer build and
-  # b. We are not running a memory constrained device (like Android One).
-  #
-  # The following values are interesting for security testing.
-  # 5  - For filling allocated / freed memory with patterns defined by
-  #      CHK_SENTINEL_VALUE, and CHK_FILL_FREE macros.
-  # 10 - For adding pre-, post- allocation stubs in order to detect overruns.
-  # FIXME: We cannot use =10 since it enables memory leaks and causes device to
-  # die within minutes. See b/19145921.
-  device_codename = environment.get_value('DEVICE_CODENAME', get_codename())
+  is_build_supported = is_build_at_least(get_build_version(), 'N')
   debug_malloc_enabled = (
-      enable_debug_checks and not get_sanitizer_tool_name() and
-      device_codename not in MEMORY_CONSTRAINED_DEVICES)
+      enable_debug_checks and is_build_supported and
+      not get_sanitizer_tool_name())
 
   # https://android.googlesource.com/platform/bionic/+/master/libc/malloc_debug/README.md
   if debug_malloc_enabled:
-    build_version = get_build_version()
-    if is_build_at_least(build_version, 'N'):
-      # FIXME: See b/30068677. 'backtrace' and 'free_track' options are
-      # extremely expensive. Skip them for now until performance issues
-      # are resolved.
-      debug_malloc_string = 'fill guard'
-      debug_props_and_values_list += [
-          'libc.debug.malloc.options=%s' % debug_malloc_string
-      ]
-    else:
-      debug_malloc_level = 5
-      debug_props_and_values_list += [
-          'libc.debug.malloc=%d' % debug_malloc_level
-      ]
+    # FIXME: 'backtrace' and 'free_track' options are extremely expensive.
+    # Skip them for now until performance issues are resolved.
+    debug_malloc_string = 'fill guard'
+    debug_props_and_values_list += [
+        'libc.debug.malloc.options=%s' % debug_malloc_string
+    ]
 
   return debug_props_and_values_list
 
@@ -754,9 +732,6 @@ def reboot():
   # Wait for boot to complete.
   adb.wait_until_fully_booted()
 
-  # Start memory monitor script to prevent out-of-memory scenarios.
-  setup_memory_monitor_script_if_needed()
-
 
 def setup_asan_if_needed():
   """Sets the asan.options device property."""
@@ -824,46 +799,6 @@ def setup_host_and_device_forwarder_if_needed():
   for port in ports:
     port_string = 'tcp:%d' % port
     adb.run_adb_command(['reverse', port_string, port_string])
-
-
-def setup_memory_monitor_script_if_needed():
-  """Run check_process_mem.sh to monitor the memory usage"""
-  # The script should only start if this is a low end device.
-  device_codename = environment.get_value('DEVICE_CODENAME', get_codename())
-  if device_codename not in MEMORY_CONSTRAINED_DEVICES:
-    return
-
-  adb.run_as_root()
-
-  if get_pid_for_script(MEMORY_MONITOR_SCRIPT):
-    # The script is already running, no work to do.
-    return
-
-  android_directory = environment.get_platform_resources_directory()
-  script_host_path = os.path.join(android_directory, MEMORY_MONITOR_SCRIPT)
-  script_device_path = os.path.join(adb.DEVICE_TMP_DIR, MEMORY_MONITOR_SCRIPT)
-
-  # Push memory monitor script onto device and make it executable (if needed).
-  if not adb.file_exists(script_device_path):
-    adb.run_adb_command(['push', script_host_path, adb.DEVICE_TMP_DIR])
-    adb.run_adb_shell_command(['chmod', '0755', script_device_path])
-
-  # Run the memory monitor script.
-  adb.run_adb_shell_command(
-      'sh %s 2>/dev/null 1>/dev/null &' % script_device_path)
-
-  # Wait one second to allow the script to run.
-  time.sleep(1)
-
-  # Change the priority of the process so that it will not be easily killed
-  # by lowmemorykiller.
-  pid = get_pid_for_script(MEMORY_MONITOR_SCRIPT)
-  if not pid:
-    logs.log_error('Memory monitor script failed to run.')
-    return
-  adb.run_adb_shell_command('echo -1000 \\> /proc/%s/oom_score_adj' % pid)
-  adb.run_adb_shell_command('echo 0 \\> /proc/%s/oom_score' % pid)
-  adb.run_adb_shell_command('echo -17 \\> /proc/%s/oom_adj' % pid)
 
 
 def turn_off_display_if_needed():
@@ -1004,6 +939,12 @@ def flash_to_latest_build_if_needed():
               ['flash', partition, partition_image_file_path])
           if partition in ['bootloader', 'radio']:
             adb.run_fastboot_command(['reboot-bootloader'])
+
+        # Disable ramdump to avoid capturing ramdumps during kernel crashes.
+        # This causes device lockup of several minutes during boot and we intend
+        # to analyze them ourselves.
+        adb.run_fastboot_command(['oem', 'ramdump', 'disable'])
+
         adb.run_fastboot_command('reboot')
         time.sleep(FLASH_REBOOT_WAIT)
 
@@ -1111,12 +1052,12 @@ def is_build_at_least(current_version, other_version):
     return False
 
   # Special-cases for master builds.
-  if current_version == 'A':
+  if current_version == 'MASTER':
     # If the current build is master, we consider it at least as new as any
     # other.
     return True
 
-  if other_version == 'A':
+  if other_version == 'MASTER':
     # Since this build is not master, it is not at least as new as master.
     return False
 

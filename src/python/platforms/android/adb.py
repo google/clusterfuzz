@@ -25,7 +25,6 @@ import time
 
 from base import persistent_cache
 from base import utils
-from datastore import data_types
 from metrics import logs
 from system import environment
 from system import shell
@@ -378,7 +377,7 @@ def get_package_name(apk_path=None):
       return None
 
   # Make sure that apk has the correct extension.
-  if not apk_path.endswith(data_types.ANDROID_APP_EXTENSION):
+  if not apk_path.endswith('.apk'):
     return None
 
   # Try retrieving package name using aapt.

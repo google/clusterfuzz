@@ -25,9 +25,6 @@ from datastore import search_tokenizer
 from metrics import logs
 from system import environment
 
-# Android app extension.
-ANDROID_APP_EXTENSION = '.apk'
-
 # Prefix used when a large testcase is stored in the blobstore.
 BLOBSTORE_STACK_PREFIX = 'BLOB_KEY='
 

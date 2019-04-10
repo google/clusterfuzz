@@ -23,7 +23,7 @@ from tests.test_libs import test_utils
 
 @test_utils.android_device_required
 class AndroidTest(unittest.TestCase):
-  """Set up state for ADB tests."""
+  """Set up state for Android tests."""
 
   def setUp(self):
     helpers.patch_environ(self)
