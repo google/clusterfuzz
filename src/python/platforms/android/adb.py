@@ -585,7 +585,7 @@ def reset_usb():
   # Android serial may reference a usb device rather than a serial number.
   device_serial = environment.get_value('ANDROID_SERIAL')
   if device_serial.startswith('usb:'):
-    device_id = device_serial[4:]
+    device_id = device_serial[len('usb:'):]
     bus_number = int(
         open('/sys/bus/usb/devices/%s/busnum' % device_id).read().strip())
     device_number = int(
