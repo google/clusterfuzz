@@ -64,20 +64,6 @@ STOP_CVD_WAIT = 20
 LSUSB_BUS_RE = re.compile(r'Bus\s+(\d+)\s+Device\s+(\d+):.*')
 LSUSB_SERIAL_RE = re.compile(r'\s+iSerial\s+\d\s+(.*)')
 
-# MD5 paths and commands for file checksumming.
-MD5_PATH_TO_COMMAND = {
-    '/system/bin/md5sum':
-        lambda path: run_adb_shell_command(['md5sum', '-b', path]),
-    '/system/bin/md5':
-        lambda path: run_adb_shell_command(['md5', path]).split(' ')[0]
-}
-# We want to be able to impose an order in which to check command
-# existence: consider the situation where a new checksum command is
-# implemented, with better performance, but the old checksum commands
-# still exist for backwards compatibility. We probably want to use the
-# new one, so we check for it first.
-MD5_PATHS_TO_TRY_IN_ORDER = ['/system/bin/md5sum', '/system/bin/md5']
-
 # This is a constant value defined in usbdevice_fs.h in Linux system.
 USBDEVFS_RESET = ord('U') << 8 | 20
 
@@ -343,19 +329,18 @@ def get_fastboot_path():
 
 def get_file_checksum(file_path):
   """Return file's md5 checksum."""
-  # Get the correct md5 checksum command to run.
-  if not hasattr(get_file_checksum, 'md5_command'):
-    get_file_checksum.md5_command = None
-    for md5_path in MD5_PATHS_TO_TRY_IN_ORDER:
-      if file_exists(md5_path):
-        get_file_checksum.md5_command = MD5_PATH_TO_COMMAND[md5_path]
-        break
+  if not file_exists(file_path):
+    return None
 
-  # We should have a command to run: apply it, if the file exists.
-  if get_file_checksum.md5_command is not None and file_exists(file_path):
-    return get_file_checksum.md5_command(file_path)
+  return run_adb_shell_command(['md5sum', '-b', file_path])
 
-  return None
+
+def get_file_size(file_path):
+  """Return file's size."""
+  if not file_exists(file_path):
+    return None
+
+  return int(run_adb_shell_command(['stat', '-c%s', file_path]))
 
 
 def get_ps_output():
@@ -940,8 +925,8 @@ def write_data_to_file(contents, file_path):
     remount()
 
   # Write file with desired contents.
-  run_adb_shell_command("\"echo '%s' | su root dd of=%s\"" % (contents.replace(
-      '"', '\\"'), file_path))
+  run_adb_shell_command("\"echo -n '%s' | su root dd of=%s\"" %
+                        (contents.replace('"', '\\"'), file_path))
 
   # Make command line file is readable.
   run_adb_shell_command('chmod 0644 %s' % file_path, root=True)
