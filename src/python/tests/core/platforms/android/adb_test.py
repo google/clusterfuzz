@@ -21,6 +21,8 @@ from platforms.android import adb
 from system import environment
 from system import shell
 from tests.test_libs import android_helpers
+from tests.test_libs import helpers as test_helpers
+from tests.test_libs import test_utils
 
 
 class CopyLocalDirectoryToRemoteTest(android_helpers.AndroidTest):
@@ -246,3 +248,15 @@ class GetPackageNameTest(android_helpers.AndroidTest):
     """Test apk path passed as argument."""
     self.assertEqual(
         adb.get_package_name(self.test_apk_path), self.test_apk_pkg_name)
+
+
+@test_utils.slow
+class ResetUsbTest(android_helpers.AndroidTest):
+  """Tests for reset_usb."""
+
+  def setUp(self):
+    test_helpers.patch_environ(self)
+
+  def test_with_device(self):
+    """Tests reset_usb with a connected device if available."""
+    self.assertTrue(adb.reset_usb())

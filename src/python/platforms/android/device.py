@@ -415,14 +415,16 @@ def get_build_version():
 
 def get_codename():
   """Return the device codename."""
-  device_serial = environment.get_value('ANDROID_SERIAL')
+  serial = environment.get_value('ANDROID_SERIAL')
   devices_output = adb.run_adb_command(['devices', '-l'])
+
+  serial_pattern = r'(^|\s){serial}\s'.format(serial=re.escape(serial))
+  serial_regex = re.compile(serial_pattern)
 
   for line in devices_output.splitlines():
     values = line.strip().split()
-    serial = values[0]
 
-    if serial != device_serial:
+    if not serial_regex.search(line):
       continue
 
     for value in values:

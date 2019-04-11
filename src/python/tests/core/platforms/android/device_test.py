@@ -13,8 +13,19 @@
 # limitations under the License.
 """Tests for device functions."""
 
+import os
+import unittest
+
 from platforms.android import device
 from tests.test_libs import android_helpers
+from tests.test_libs import helpers as test_helpers
+
+DATA_PATH = os.path.join(
+    os.path.dirname(os.path.abspath(__file__)), 'device_data')
+
+
+def _read_data_file(filename):
+  return open(os.path.join(DATA_PATH, filename)).read()
 
 
 class GetBatteryInformationTest(android_helpers.AndroidTest):
@@ -27,3 +38,24 @@ class GetBatteryInformationTest(android_helpers.AndroidTest):
     self.assertTrue('temperature' in battery_info)
     self.assertTrue(battery_info['level'] > 0)
     self.assertTrue(battery_info['temperature'] > 0)
+
+
+class GetCodenameTest(unittest.TestCase):
+  """Tests for get_codename."""
+
+  def setUp(self):
+    test_helpers.patch(self, ['platforms.android.adb.run_adb_command'])
+    test_helpers.patch_environ(self)
+
+    output = _read_data_file('get_codename_output.txt')
+    self.mock.run_adb_command.return_value = output
+
+  def test_by_serial(self):
+    """Ensure that we report the correct codename for serial number."""
+    os.environ['ANDROID_SERIAL'] = '123456789012'
+    self.assertEquals(device.get_codename(), 'device1')
+
+  def test_by_usb(self):
+    """Ensure that we report the correct codename for a usb device."""
+    os.environ['ANDROID_SERIAL'] = 'usb:2-4.2'
+    self.assertEquals(device.get_codename(), 'device2')

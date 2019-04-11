@@ -270,45 +270,6 @@ def get_application_launch_command(app_args, testcase_path, testcase_file_url):
   return application_launch_command
 
 
-def get_device_path():
-  """Return device path."""
-  if is_gce():
-    return None
-
-  devices = get_devices()
-  device_serial = environment.get_value('ANDROID_SERIAL')
-  for device in devices:
-    if device_serial == device.serial:
-      return device.path
-
-  return None
-
-
-def get_devices():
-  """Returns a list of device objects containing a serial and USB path."""
-  usb_list_cmd = 'lsusb -v'
-  output = execute_command(usb_list_cmd, timeout=RECOVERY_CMD_TIMEOUT)
-  if output is None:
-    logs.log_error('Failed to populate usb devices using lsusb, '
-                   'host restart might be needed.')
-    bad_state_reached()
-
-  devices = []
-  path = None
-  for line in output.splitlines():
-    match = LSUSB_BUS_RE.match(line)
-    if match:
-      path = '/dev/bus/usb/%s/%s' % (match.group(1), match.group(2))
-      continue
-
-    match = LSUSB_SERIAL_RE.match(line)
-    if path and match and match.group(1):
-      serial = match.group(1)
-      devices.append(DEVICE(serial, path))
-
-  return devices
-
-
 def get_device_state():
   """Return the device status."""
   state_cmd = get_adb_command_line('get-state')
@@ -577,32 +538,81 @@ def reset_device_connection():
 
 def reset_usb():
   """Reset USB bus for a device serial."""
+
+  def _get_device_path():
+    """Return device path. Assumes a non-"usb:" ANDROID_SERIAL."""
+    if is_gce():
+      return None
+
+    devices = _get_devices()
+    for device in devices:
+      if device_serial == device.serial:
+        return device.path
+
+    return None
+
+  def _get_devices():
+    """Returns a list of device objects containing a serial and USB path."""
+    usb_list_cmd = 'lsusb -v'
+    output = execute_command(usb_list_cmd, timeout=RECOVERY_CMD_TIMEOUT)
+    if output is None:
+      logs.log_error('Failed to populate usb devices using lsusb, '
+                     'host restart might be needed.')
+      bad_state_reached()
+
+    devices = []
+    path = None
+    for line in output.splitlines():
+      match = LSUSB_BUS_RE.match(line)
+      if match:
+        path = '/dev/bus/usb/%s/%s' % (match.group(1), match.group(2))
+        continue
+
+      match = LSUSB_SERIAL_RE.match(line)
+      if path and match and match.group(1):
+        serial = match.group(1)
+        devices.append(DEVICE(serial, path))
+
+    return devices
+
   if is_gce():
     # Nothing to do here.
-    return
+    return True
 
   # App Engine does not let us import this.
   import fcntl
 
-  # We need to get latest device path since it could be changed in reboots or
-  # adb root restarts.
-  device_path = get_device_path()
-  if not device_path:
-    # Try pulling from cache (if available).
-    device_path = environment.get_value('DEVICE_PATH')
-  if not device_path:
-    logs.log_warn('No device path found, unable to reset usb.')
-    return
+  # Android serial may reference a usb device rather than a serial number.
+  device_serial = environment.get_value('ANDROID_SERIAL')
+  if device_serial.startswith('usb:'):
+    device_id = device_serial[4:]
+    bus_number = int(
+        open('/sys/bus/usb/devices/%s/busnum' % device_id).read().strip())
+    device_number = int(
+        open('/sys/bus/usb/devices/%s/devnum' % device_id).read().strip())
+    device_path = '/dev/bus/usb/%03d/%03d' % (bus_number, device_number)
+
+  else:
+    # We need to get latest device path since it could be changed in reboots or
+    # adb root restarts.
+    device_path = _get_device_path()
+    if not device_path:
+      # Try pulling from cache (if available).
+      device_path = environment.get_value('DEVICE_PATH')
+    if not device_path:
+      logs.log_warn('No device path found, unable to reset usb.')
+      return False
 
   try:
     with open(device_path, 'w') as f:
       fcntl.ioctl(f, USBDEVFS_RESET)
   except:
     logs.log_warn('Failed to reset usb.')
-    return
+    return False
 
   # Wait for usb to recover.
   time.sleep(RESTART_USB_WAIT)
+  return True
 
 
 def revert_asan_device_setup_if_needed():
