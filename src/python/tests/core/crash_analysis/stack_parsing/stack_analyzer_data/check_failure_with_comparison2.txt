@@ -1,0 +1,1 @@
+[1:1:0412/075451.163515:FATAL:compositing_layer_property_updater.cc(57)] Check failed: layout_snapped_paint_offset == snapped_paint_offset ("9,134.016" vs. "9,134")"LayoutHTMLCanvas CANVAS id='htmlvar00020'"

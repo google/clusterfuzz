@@ -1968,6 +1968,20 @@ class StackAnalyzerTestcase(unittest.TestCase):
                                   expected_state, expected_stacktrace,
                                   expected_security_flag)
 
+  def test_check_failure_with_comparison2(self):
+    """Test for special CHECK failure formats (CHECK_EQ, CHECK_LE, etc.)."""
+    data = self._read_test_data('check_failure_with_comparison2.txt')
+    expected_type = 'CHECK failure'
+    expected_address = ''
+    expected_state = ('layout_snapped_paint_offset == snapped_paint_offset '
+                      'in compositing_layer_propert\n')
+    expected_stacktrace = data
+    expected_security_flag = False
+
+    self._validate_get_crash_data(data, expected_type, expected_address,
+                                  expected_state, expected_stacktrace,
+                                  expected_security_flag)
+
   def test_check_failure_with_handle_sigill_disabled(self):
     """Test the CHECK failure crash with ASAN_OPTIONS=handle_sigill=0."""
     data = self._read_test_data('check_failure_with_handle_sigill=0.txt')
