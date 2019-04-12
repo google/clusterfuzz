@@ -714,7 +714,7 @@ def add_build_metadata(job_type,
   build = data_types.BuildMetadata()
   build.bad_build = is_bad_build
   build.bot_name = environment.get_value('BOT_NAME')
-  build.console_output = console_output
+  build.console_output = filter_stacktrace(console_output)
   build.job_type = job_type
   build.revision = crash_revision
   build.timestamp = datetime.datetime.utcnow()
