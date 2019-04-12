@@ -868,8 +868,8 @@ def fix_check_failure_string(failure_string):
   # CHECK_FAILURE_PATTERN, so we looked for "failed:" as preceding string.
   failure_string = re.sub(r'(?<=failed): .*vs\..*$', r'', failure_string)
 
-  # Cover example like len > 0 (-1 vs. 0).".
-  failure_string = re.sub(r' \(.*vs\..*\)\.?$', r'', failure_string)
+  # Cover example like len > 0 (-1 vs. 0)".
+  failure_string = re.sub(r' \(.*vs\..*\).*', r'', failure_string)
 
   # Strip unneeded chars at end.
   return failure_string.strip(' .\'"[]')
