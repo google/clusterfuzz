@@ -102,6 +102,12 @@ def backup_corpus(backup_bucket_name, corpus, directory):
   try:
     backup_archive_path = shutil.make_archive(backup_archive_path,
                                               BACKUP_ARCHIVE_FORMAT, directory)
+    logs.log(
+        'Created corpus backup file.',
+        backup_archive_path=backup_archive_path,
+        directory=directory,
+        size=os.path.getsize(backup_archive_path))
+
     dated_backup_url = gcs_url_for_backup_file(
         backup_bucket_name, corpus.engine, corpus.project_qualified_target_name,
         timestamp)
