@@ -254,9 +254,6 @@ class GetPackageNameTest(android_helpers.AndroidTest):
 class ResetUsbTest(android_helpers.AndroidTest):
   """Tests for reset_usb."""
 
-  def setUp(self):
-    test_helpers.patch_environ(self)
-
   def test_with_device(self):
     """Tests reset_usb with a connected device if available."""
     self.assertTrue(adb.reset_usb())
