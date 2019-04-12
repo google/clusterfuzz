@@ -32,12 +32,21 @@ class GetBatteryInformationTest(android_helpers.AndroidTest):
   """Tests get_battery_information."""
 
   def test(self):
+    """Ensure that get_battery_information returns data in the expected form."""
     battery_info = device.get_battery_information()
     self.assertTrue(isinstance(battery_info, dict))
     self.assertTrue('level' in battery_info)
     self.assertTrue('temperature' in battery_info)
     self.assertTrue(battery_info['level'] > 0)
     self.assertTrue(battery_info['temperature'] > 0)
+
+
+class InitializeEnvironmentTest(android_helpers.AndroidTest):
+  """Tests for """
+
+  def test(self):
+    """Ensure that initialize_environment throws no exceptions."""
+    device.initialize_environment()
 
 
 class GetCodenameTest(unittest.TestCase):
