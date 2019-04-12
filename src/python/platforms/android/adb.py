@@ -537,6 +537,7 @@ def reset_device_connection():
 
 def get_device_path():
   """Gets a device path to be cached and used by reset_usb."""
+
   def _get_usb_devices():
     """Returns a list of device objects containing a serial and USB path."""
     usb_list_cmd = 'lsusb -v'
@@ -571,7 +572,9 @@ def get_device_path():
     return None
 
   def _get_device_path_for_usb():
-    """Returns an ANDROID_SERIAL in the form "usb:<identifier>"."""
+    """Returns a device path.
+
+    Assumes ANDROID_SERIAL in the form "usb:<identifier>"."""
     # Android serial may reference a usb device rather than a serial number.
     device_id = device_serial[len('usb:'):]
     bus_number = int(
@@ -586,8 +589,8 @@ def get_device_path():
   device_serial = environment.get_value('ANDROID_SERIAL')
   if device_serial.startswith('usb:'):
     return _get_device_path_for_usb()
-  else:
-    return _get_device_path_for_serial()
+
+  return _get_device_path_for_serial()
 
 
 def reset_usb():

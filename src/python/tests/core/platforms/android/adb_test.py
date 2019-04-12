@@ -22,7 +22,6 @@ from system import environment
 from system import shell
 from tests.test_libs import android_helpers
 from tests.test_libs import helpers as test_helpers
-from tests.test_libs import test_utils
 
 
 class CopyLocalDirectoryToRemoteTest(android_helpers.AndroidTest):
