@@ -1973,9 +1973,8 @@ class StackAnalyzerTestcase(unittest.TestCase):
     data = self._read_test_data('check_failure_with_comparison2.txt')
     expected_type = 'CHECK failure'
     expected_address = ''
-    expected_state = (
-        'layout_snapped_paint_offset == snapped_paint_offset '
-        'in compositing_layer_propert\n')
+    expected_state = ('layout_snapped_paint_offset == snapped_paint_offset '
+                      'in compositing_layer_propert\n')
     expected_stacktrace = data
     expected_security_flag = False
 
