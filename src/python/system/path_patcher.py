@@ -48,9 +48,6 @@ def _is_windows():
 
 def _short_name_modifier(original_path):
   """Get the short path of `path` on windows."""
-  if not _is_windows():
-    return original_path
-
   # These paths don't work with prefix, skip.
   if original_path in ['.', '..']:
     return original_path
