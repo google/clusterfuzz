@@ -74,11 +74,10 @@ def _short_name_modifier(original_path):
   # http://stackoverflow.com/a/23598461/200291
   buffer_length = get_short_path(path, None, 0)
 
-  # The path doesn't exist. There's no corresponding short path.
-  # I'm not sure if we should handle this. It might cause a problem when we
-  # use os.makedirs(..).
+  # The path doesn't exist, e.g. when we are iterating on files in an archive.
+  # There's no corresponding short path, so just return the original path.
   if buffer_length == 0:
-    return path
+    return original_path
 
   output_buffer = ctypes.create_unicode_buffer(buffer_length)
   expected_length = buffer_length - 1
