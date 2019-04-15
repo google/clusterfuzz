@@ -162,8 +162,7 @@ class PatcherTest(object):
 
     self.mock.GetShortPathNameW.assert_has_calls(
         [mock.call(self.prepared_path, None, 0)])
-    self.underlying_mock.assert_has_calls(
-        [self.expected_call(self.prepared_path)])
+    self.underlying_mock.assert_has_calls([self.expected_call(self.path)])
 
   def test_fail(self):
     """Test failing."""
