@@ -12,8 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """Tasks RPC implementations."""
+from __future__ import absolute_import
 
-import protobuf_utils
+from . import protobuf_utils
 
 from bot.tasks import corpus_pruning_task
 from datastore import data_types

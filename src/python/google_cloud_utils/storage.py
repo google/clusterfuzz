@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """Functions for managing Google Cloud Storage."""
+from __future__ import absolute_import
 
 import copy
 import datetime
@@ -24,7 +25,7 @@ import time
 from googleapiclient.discovery import build
 from googleapiclient.errors import HttpError
 
-import credentials
+from . import credentials
 
 from base import retry
 from base import utils
@@ -951,7 +952,7 @@ def store_file_in_cache(file_path,
 
   # If NFS server is not available due to heavy load, skip storage operation
   # altogether as we would fail to store file.
-  if not os.path.exists(os.path.join(nfs_root, '.')):  # Use '.' for mount iteration.
+  if not os.path.exists(os.path.join(nfs_root, '.')):  # Use . to iterate mount.
     logs.log_warn('Cache %s not available.' % nfs_root)
     return
 
