@@ -12,16 +12,18 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """Issue tracker manager functions."""
+from __future__ import absolute_import
 
 import datetime
 
 from googleapiclient import discovery
 
+from . import credential_storage
+from .comment import Comment
+from .issue import ChangeList
+from .issue import Issue
+
 from base import retry
-from comment import Comment
-from issue import ChangeList
-from issue import Issue
-from issue_management import credential_storage
 
 # Default value for issue tracker connection failures.
 FAIL_RETRIES = 7

@@ -12,8 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """Remote corpus manager."""
+from __future__ import absolute_import
 
-import remote_process_host
+from . import remote_process_host
 
 from fuzzing import corpus_manager
 from google_cloud_utils import gsutil

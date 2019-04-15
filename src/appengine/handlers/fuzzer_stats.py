@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """Fuzzer statistics handler."""
+from __future__ import absolute_import
 
 import cgi
 import datetime
@@ -21,7 +22,7 @@ import yaml
 
 from googleapiclient.errors import HttpError
 
-import base_handler
+from . import base_handler
 
 from base import external_users
 from base import memoize
