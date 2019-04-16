@@ -22,13 +22,12 @@ except ImportError:
 
 import os
 
+from bot.fuzzers.ml.rnn import constants
 from google_cloud_utils import storage
 from metrics import logs
 from system import environment
 from system import new_process
 from system import shell
-
-import constants
 
 # Model script directory absolute path.
 ML_RNN_SCRIPT_DIR = os.path.abspath(os.path.dirname(__file__))

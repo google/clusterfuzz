@@ -14,12 +14,12 @@
 """Utility functions for ml rnn model."""
 from __future__ import print_function
 
+import numpy as np
 import os
 import random
 import sys
 
-import constants
-import numpy as np
+from bot.fuzzers.ml.rnn import constants
 
 
 def validate_model_path(model_path):

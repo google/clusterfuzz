@@ -16,14 +16,14 @@ from __future__ import print_function
 
 import argparse
 import math
+import numpy as np
 import os
 import sys
+import tensorflow as tf
 import time
 
-import constants
-import numpy as np
-import tensorflow as tf
-import utils
+from bot.fuzzers.ml.rnn import constants
+from bot.fuzzers.ml.rnn import utils
 
 # Reset batch_size for generation: generate multiple inputs in each run.
 BATCH_SIZE = 50

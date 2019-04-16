@@ -12,14 +12,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """libFuzzer runners."""
-
 import copy
-import engine_common
 import os
 import shutil
 
 from base import retry
-from libFuzzer import constants
+from bot.fuzzers import engine_common
+from bot.fuzzers.libFuzzer import constants
 from platforms import fuchsia
 from system import environment
 from system import minijail
