@@ -16,16 +16,17 @@ from __future__ import print_function
 
 import argparse
 import math
+import numpy as np
 import os
 import sys
+import tensorflow as tf
 import time
 
-import constants
-import numpy as np
-import tensorflow as tf
 from tensorflow.contrib import layers
 from tensorflow.contrib import rnn
-import utils
+
+from bot.fuzzers.ml.rnn import constants
+from bot.fuzzers.ml.rnn import utils
 
 # Training suggestions
 #

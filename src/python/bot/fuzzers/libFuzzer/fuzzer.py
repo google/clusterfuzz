@@ -12,10 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """libFuzzer fuzzer."""
-import constants
-
 from bot.fuzzers import builtin
 from bot.fuzzers import options
+from bot.fuzzers.libFuzzer import constants
 
 
 class LibFuzzer(builtin.EngineFuzzer):

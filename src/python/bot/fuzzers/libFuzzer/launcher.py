@@ -40,6 +40,8 @@ from bot.fuzzers import libfuzzer
 from bot.fuzzers import mutator_plugin
 from bot.fuzzers import strategy
 from bot.fuzzers import utils as fuzzer_utils
+from bot.fuzzers.libFuzzer import constants
+from bot.fuzzers.libFuzzer import stats
 from bot.fuzzers.ml.rnn import generator as ml_rnn_generator
 from datastore import data_types
 from metrics import logs
@@ -48,8 +50,6 @@ from system import environment
 from system import minijail
 from system import new_process
 from system import shell
-import constants
-import stats
 
 # Regex to find testcase path from a crash.
 CRASH_TESTCASE_REGEX = (r'.*Test unit written to\s*'

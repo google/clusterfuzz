@@ -17,10 +17,9 @@ from __future__ import print_function
 import os
 import re
 
-import strategies
-
 from bot.fuzzers import dictionary_manager
 from bot.fuzzers import engine_common
+from bot.fuzzers.afl import strategies
 from metrics import logs
 
 SANITIZER_START_REGEX = re.compile(r'.*ERROR: [A-z]+Sanitizer:.*')

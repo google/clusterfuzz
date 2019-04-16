@@ -35,17 +35,17 @@ from bot.fuzzers import dictionary_manager
 from bot.fuzzers import engine_common
 from bot.fuzzers import options
 from bot.fuzzers import utils as fuzzer_utils
+from bot.fuzzers.afl import constants
+from bot.fuzzers.afl import stats
+from bot.fuzzers.afl import strategies
+from bot.fuzzers.afl.fuzzer import write_dummy_file
 from datastore import data_types
-from fuzzer import write_dummy_file
 from metrics import logs
 from metrics import profiler
 from system import environment
 from system import minijail
 from system import new_process
 from system import shell
-import constants
-import stats
-import strategies
 
 # Allow 30 minutes to merge the testcases back into the corpus. This matches
 # libFuzzer's merge timeout.
