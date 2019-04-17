@@ -71,6 +71,8 @@ FLASH_IMAGE_FILES = [
     ('recovery', 'recovery.img'),
     ('vendor', 'vendor.img'),
     ('cache', 'cache.img'),
+    ('vbmeta', 'vbmeta.img'),
+    ('dtbo', 'dtbo.img'),
     ('userdata', 'userdata.img'),
 ]
 FLASH_RETRIES = 3
