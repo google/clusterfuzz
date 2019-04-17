@@ -944,10 +944,13 @@ def check_for_bad_build(job_type, crash_revision):
       current_working_directory=app_directory)
   crash_result = CrashResult(return_code, crash_time, output)
 
-  # Need to account for startup crashes with no crash state. E.g. failed to load
-  # shared library.
+  # 1. Need to account for startup crashes with no crash state. E.g. failed to
+  #    load shared library. So, ignore state for comparison.
+  # 2. Ignore leaks as they don't block a build from reporting regular crashes
+  #    and also don't impact regression range calculations.
   if (crash_result.is_crash(ignore_state=True) and
-      not crash_result.should_ignore()):
+      not crash_result.should_ignore() and
+      not crash_result.get_type() in ['Direct-leak', 'Indirect-leak']):
     is_bad_build = True
     build_run_console_output = utils.get_crash_stacktrace_output(
         command,

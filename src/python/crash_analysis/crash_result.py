@@ -71,6 +71,12 @@ class CrashResult(object):
 
     return state.crash_stacktrace
 
+  def get_type(self):
+    """Return the crash type."""
+    # It does not matter whether we use symbolized or unsymbolized data.
+    state = self.get_unsymbolized_data()
+    return state.crash_type
+
   def is_crash(self, ignore_state=False):
     """Return True if this result was a crash."""
     crashed = crash_analyzer.is_crash(self.return_code, self.output)
