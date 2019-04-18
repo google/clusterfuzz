@@ -17,14 +17,14 @@
   send them to the backup URL."""
 
 import datetime
-import json
 
-from google.appengine.api import app_identity
-from google.appengine.api import urlfetch
-from google.appengine.ext.db import metadata
+import googleapiclient
 
+from base import retry
 from base import utils
 from config import local_config
+from datastore import ndb
+from google_cloud_utils import credentials
 from handlers import base_handler
 from libs import handler
 from metrics import logs
@@ -32,6 +32,22 @@ from metrics import logs
 # CrashStatistic is excluded because the number of records is too high and
 # can be rebuilt from BigQuery dataset.
 EXCLUDED_MODELS = {'CrashStatistic', 'CrashStatisticJobHistory'}
+
+QUERY_RETRY_COUNT = 3
+QUERY_RETRY_DELAY = 3
+
+
+@retry.wrap(
+    retries=QUERY_RETRY_COUNT,
+    delay=QUERY_RETRY_DELAY,
+    function='appengine.handlers.cron.backup._datastore_client')
+def _datastore_client():
+  """Return an api client for datastore."""
+  return googleapiclient.discovery.build(
+      'datastore',
+      'v1',
+      cache_discovery=False,
+      credentials=credentials.get_default()[0])
 
 
 class Handler(base_handler.Handler):
@@ -47,44 +63,32 @@ class Handler(base_handler.Handler):
       return
 
     kinds = [
-        kind.kind_name
-        for kind in metadata.Kind.all()
-        if (not kind.kind_name.startswith('_') and
-            kind.kind_name not in EXCLUDED_MODELS)
+        kind for kind in ndb.Model._kind_map
+        if (not kind.startswith('_') and kind not in EXCLUDED_MODELS)
     ]
 
     app_id = utils.get_application_id()
     timestamp = datetime.datetime.utcnow().strftime('%Y-%m-%d-%H:%M:%S')
     output_url_prefix = 'gs://%s/%s' % (gs_bucket_name, timestamp)
-    token, _ = app_identity.get_access_token(
-        'https://www.googleapis.com/auth/datastore')
-    request = {
-        'project_id': app_id,
+    body = {
         'output_url_prefix': output_url_prefix,
         'entity_filter': {
             'kinds': kinds
         }
     }
-    headers = {
-        'Content-Type': 'application/json',
-        'Authorization': 'Bearer ' + token
-    }
 
     try:
-      result = urlfetch.fetch(
-          url='https://datastore.googleapis.com/v1/projects/%s:export' % app_id,
-          payload=json.dumps(request),
-          method=urlfetch.POST,
-          deadline=60,
-          headers=headers)
-      message = result.content
-      status_code = result.status_code
-    except urlfetch.Error:
-      message = 'Failed to initiate datastore export.'
-      status_code = 500
+      request = _datastore_client().projects().export(
+          projectId=app_id, body=body)
+      response = request.execute()
 
-    log_func = logs.log if status_code == 200 else logs.log_error
-    log_func(message)
+      message = 'Datastore export succeeded.'
+      status_code = 200
+      logs.log(message, response=response)
+    except googleapiclient.errors.HttpError as e:
+      message = 'Datastore export failed.'
+      status_code = e.resp.status
+      logs.log_error(message, error=e)
 
     self.response.headers['Content-Type'] = 'text/plain'
     self.response.out.write(message)
