@@ -16,13 +16,12 @@ import logging
 
 import googleapiclient
 
-from google.appengine.api import app_identity
-from googleapiclient.discovery import build
+from base import utils
 
 
 def _create_client(service_name, version='v1'):
   """Create a googleapiclient client."""
-  return build(service_name, version)
+  return googleapiclient.discovery.build(service_name, version)
 
 
 def _service_account_email(project_id, service_account_id):
@@ -73,7 +72,7 @@ def get_service_account(iam, project_id, service_account_id):
 def get_or_create_service_account(project):
   """Get or create service account for the project."""
   iam = _create_client('iam')
-  project_id = app_identity.get_application_id()
+  project_id = utils.get_application_id()
   service_account_id = _service_account_id(project)
 
   service_account = get_service_account(iam, project_id, service_account_id)
@@ -127,7 +126,7 @@ def _add_service_account_role(policy, role, service_account):
 
 def set_service_account_roles(service_account):
   """Set roles for service account."""
-  project_id = app_identity.get_application_id()
+  project_id = utils.get_application_id()
   resource_manager = _create_client('cloudresourcemanager')
 
   request = resource_manager.projects().getIamPolicy(
