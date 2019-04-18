@@ -88,7 +88,7 @@ class Handler(base_handler.Handler):
     except googleapiclient.errors.HttpError as e:
       message = 'Datastore export failed.'
       status_code = e.resp.status
-      logs.log_error(message, error=e)
+      logs.log_error(message, error=str(e))
 
     self.response.headers['Content-Type'] = 'text/plain'
     self.response.out.write(message)
