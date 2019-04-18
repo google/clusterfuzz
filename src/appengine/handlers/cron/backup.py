@@ -63,7 +63,7 @@ class Handler(base_handler.Handler):
       return
 
     kinds = [
-        kind for kind in ndb.Model._kind_map
+        kind for kind in ndb.Model._kind_map  # pylint: disable=protected-access
         if (not kind.startswith('_') and kind not in EXCLUDED_MODELS)
     ]
 
