@@ -213,8 +213,8 @@ def setup_fuzzers(non_dry_run):
   """Set up fuzzers."""
   for fuzzer_defaults in [AflDefaults(), LibFuzzerDefaults()]:
     fuzzer = data_types.Fuzzer.query(
-        data_types.Fuzzer.name == fuzzer_defaults.name)
-    if fuzzer.get():
+        data_types.Fuzzer.name == fuzzer_defaults.name).get()
+    if fuzzer:
       print(fuzzer_defaults.name, 'fuzzer already exists')
       if non_dry_run:
         print('Updating stats metrics.')
@@ -225,11 +225,9 @@ def setup_fuzzers(non_dry_run):
 
       continue
 
-    fuzzer = fuzzer_defaults.create_fuzzer()
-
     if non_dry_run:
       print('Creating fuzzer', fuzzer_defaults.name)
-      fuzzer.put()
+      fuzzer_defaults.create_fuzzer().put()
     else:
       print('Skip creating fuzzer', fuzzer_defaults.name, '(dry-run mode)')
 
