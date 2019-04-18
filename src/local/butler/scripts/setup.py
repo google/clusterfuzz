@@ -142,7 +142,7 @@ _CORPUS_SIZE as corpus_size,
 avg(t.average_exec_per_sec) as avg_exec_per_sec,
 avg(t.fuzzing_time_percent) as fuzzing_time_percent,
 sum(t.new_units_added) as new_tests_added,
-sum(t.merge_new_features) as new_cov_features,
+sum(t.new_cov_features) as new_cov_features,
 avg(t.crash_count*100) as regular_crash_percent,
 avg(t.oom_count*100) as oom_percent,
 avg(t.leak_count*100) as leak_percent,
@@ -216,6 +216,13 @@ def setup_fuzzers(non_dry_run):
         data_types.Fuzzer.name == fuzzer_defaults.name)
     if fuzzer.get():
       print(fuzzer_defaults.name, 'fuzzer already exists')
+      if non_dry_run:
+        print('Updating stats metrics.')
+        fuzzer.stats_columns = fuzzer_defaults.stats_columns
+        fuzzer.stats_column_descriptions = (
+            fuzzer_defaults.stats_column_descriptions)
+        fuzzer.put()
+
       continue
 
     fuzzer = fuzzer_defaults.create_fuzzer()
@@ -230,9 +237,9 @@ def setup_fuzzers(non_dry_run):
 def setup_templates(non_dry_run):
   """Set up templates."""
   for name, template in TEMPLATES.iteritems():
-    existing = data_types.JobTemplate.query(
+    job = data_types.JobTemplate.query(
         data_types.JobTemplate.name == name).get()
-    if existing:
+    if job:
       print('Template with name', name, 'already exists.')
       continue
 
