@@ -17,14 +17,11 @@
   send them to the backup URL."""
 
 import datetime
-
 import googleapiclient
 
-from base import retry
 from base import utils
 from config import local_config
 from datastore import ndb
-from google_cloud_utils import credentials
 from handlers import base_handler
 from libs import handler
 from metrics import logs
@@ -33,21 +30,10 @@ from metrics import logs
 # can be rebuilt from BigQuery dataset.
 EXCLUDED_MODELS = {'CrashStatistic', 'CrashStatisticJobHistory'}
 
-QUERY_RETRY_COUNT = 3
-QUERY_RETRY_DELAY = 3
 
-
-@retry.wrap(
-    retries=QUERY_RETRY_COUNT,
-    delay=QUERY_RETRY_DELAY,
-    function='appengine.handlers.cron.backup._datastore_client')
 def _datastore_client():
   """Return an api client for datastore."""
-  return googleapiclient.discovery.build(
-      'datastore',
-      'v1',
-      cache_discovery=False,
-      credentials=credentials.get_default()[0])
+  return googleapiclient.discovery.build('datastore', 'v1')
 
 
 class Handler(base_handler.Handler):
