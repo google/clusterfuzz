@@ -51,8 +51,6 @@ LIBFUZZER_LOG_SEED_CORPUS_INFO_REGEX = re.compile(
 LIBFUZZER_LOG_START_INITED_REGEX = re.compile(
     r'#\d+\s+INITED\s+cov:\s+(\d+)\s+ft:\s+(\d+).*')
 LIBFUZZER_MERGE_LOG_EDGE_COVERAGE_REGEX = re.compile(r'#\d+.*cov:\s+(\d+).*')
-LIBFUZZER_MERGE_LOG_STATS_REGEX = re.compile(
-    r'MERGE.*:\s(\d+)\s+new files with\s+(\d+)\s+new features added.*')
 LIBFUZZER_MODULES_LOADED_REGEX = re.compile(
     r'^INFO:\s+Loaded\s+\d+\s+(modules|PC tables)\s+\((\d+)\s+.*\).*')
 
@@ -178,8 +176,8 @@ def parse_performance_features(log_lines, strategies, arguments):
       'max_len': 0,
       'manual_dict_size': 0,
       'merge_edge_coverage': 0,
-      'merge_new_files': 0,
-      'merge_new_features': 0,
+      'new_edges': 0,
+      'new_features': 0,
       'oom_count': 0,
       'recommended_dict_size': 0,
       'slow_unit_count': 0,
@@ -291,6 +289,15 @@ def parse_performance_features(log_lines, strategies, arguments):
   if has_corpus and not stats['log_lines_from_engine']:
     stats['corpus_crash_count'] = 1
 
+  # new_cov_* is a reliable metric when corpus subset strategy is not used.
+  if not stats['strategy_corpus_subset']:
+    if 'initial_edge_coverage' in stats and 'edge_coverage' in stats:
+      stats['new_edges'] = (
+          stats['edge_coverage'] - stats['initial_edge_coverage'])
+    if 'initial_feature_coverage' in stats and 'feature_coverage' in stats:
+      stats['new_features'] = (
+          stats['feature_coverage'] - stats['initial_feature_coverage'])
+
   return stats
 
 
@@ -302,10 +309,5 @@ def parse_stats_from_merge_log(log_lines):
     if match:
       stats['merge_edge_coverage'] = int(match.group(1))
       continue
-
-    match = LIBFUZZER_MERGE_LOG_STATS_REGEX.match(line)
-    if match:
-      stats['merge_new_files'] = int(match.group(1))
-      stats['merge_new_features'] = int(match.group(2))
 
   return stats

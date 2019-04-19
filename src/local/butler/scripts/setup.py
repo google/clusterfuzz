@@ -122,7 +122,7 @@ corpus_size: "Size of the minimized corpus generated based on code coverage (num
 avg_exec_per_sec: "Average number of testcases executed per second"
 fuzzing_time_percent: "Percent of expected fuzzing time that is actually spent fuzzing."
 new_tests_added: "New testcases added to the corpus during fuzzing based on code coverage"
-new_cov_features: "New coverage features based on new tests added to corpus."
+new_features: "New coverage features based on new tests added to corpus."
 regular_crash_percent: "Percent of fuzzing runs that had regular crashes (other than ooms, leaks, timeouts, startup and bad instrumentation crashes)"
 oom_percent: "Percent of fuzzing runs that crashed on OOMs (should be 0)"
 leak_percent: "Percent of fuzzing runs that crashed on memory leaks (should be 0)"
@@ -142,7 +142,7 @@ _CORPUS_SIZE as corpus_size,
 avg(t.average_exec_per_sec) as avg_exec_per_sec,
 avg(t.fuzzing_time_percent) as fuzzing_time_percent,
 sum(t.new_units_added) as new_tests_added,
-sum(t.merge_new_features) as new_cov_features,
+sum(t.new_features) as new_features,
 avg(t.crash_count*100) as regular_crash_percent,
 avg(t.oom_count*100) as oom_percent,
 avg(t.leak_count*100) as leak_percent,
@@ -213,16 +213,21 @@ def setup_fuzzers(non_dry_run):
   """Set up fuzzers."""
   for fuzzer_defaults in [AflDefaults(), LibFuzzerDefaults()]:
     fuzzer = data_types.Fuzzer.query(
-        data_types.Fuzzer.name == fuzzer_defaults.name)
-    if fuzzer.get():
+        data_types.Fuzzer.name == fuzzer_defaults.name).get()
+    if fuzzer:
       print(fuzzer_defaults.name, 'fuzzer already exists')
-      continue
+      if non_dry_run:
+        print('Updating stats metrics.')
+        fuzzer.stats_columns = fuzzer_defaults.stats_columns
+        fuzzer.stats_column_descriptions = (
+            fuzzer_defaults.stats_column_descriptions)
+        fuzzer.put()
 
-    fuzzer = fuzzer_defaults.create_fuzzer()
+      continue
 
     if non_dry_run:
       print('Creating fuzzer', fuzzer_defaults.name)
-      fuzzer.put()
+      fuzzer_defaults.create_fuzzer().put()
     else:
       print('Skip creating fuzzer', fuzzer_defaults.name, '(dry-run mode)')
 
@@ -230,9 +235,9 @@ def setup_fuzzers(non_dry_run):
 def setup_templates(non_dry_run):
   """Set up templates."""
   for name, template in TEMPLATES.iteritems():
-    existing = data_types.JobTemplate.query(
+    job = data_types.JobTemplate.query(
         data_types.JobTemplate.name == name).get()
-    if existing:
+    if job:
       print('Template with name', name, 'already exists.')
       continue
 

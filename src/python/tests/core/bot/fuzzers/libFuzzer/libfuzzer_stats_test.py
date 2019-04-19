@@ -40,7 +40,5 @@ class PerformanceStatsTest(unittest.TestCase):
 
     expected_stats = {
         'merge_edge_coverage': 683,
-        'merge_new_files': 716,
-        'merge_new_features': 1639,
     }
     self.assertEqual(expected_stats, actual_stats)
