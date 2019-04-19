@@ -176,8 +176,8 @@ def parse_performance_features(log_lines, strategies, arguments):
       'max_len': 0,
       'manual_dict_size': 0,
       'merge_edge_coverage': 0,
-      'new_cov_edges': 0,
-      'new_cov_features': 0,
+      'new_edges': 0,
+      'new_features': 0,
       'oom_count': 0,
       'recommended_dict_size': 0,
       'slow_unit_count': 0,
@@ -292,10 +292,10 @@ def parse_performance_features(log_lines, strategies, arguments):
   # new_cov_* is a reliable metric when corpus subset strategy is not used.
   if not stats['strategy_corpus_subset']:
     if 'initial_edge_coverage' in stats and 'edge_coverage' in stats:
-      stats['new_cov_edges'] = (
+      stats['new_edges'] = (
           stats['edge_coverage'] - stats['initial_edge_coverage'])
     if 'initial_feature_coverage' in stats and 'feature_coverage' in stats:
-      stats['new_cov_features'] = (
+      stats['new_features'] = (
           stats['feature_coverage'] - stats['initial_feature_coverage'])
 
   return stats
