@@ -16,4 +16,3 @@ pytz==2018.5
 PyYAML==5.1
 requests==2.21.0
 sendgrid==6.0.4
-urllib3==1.23
