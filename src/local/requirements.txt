@@ -1,4 +1,4 @@
-ansible==2.7.7
+ansible==2.7.10
 crcmod==1.7
 Fabric==1.14.1
 google-compute-engine==2.8.13
