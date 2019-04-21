@@ -108,3 +108,9 @@ if IS_RUNNING_IN_PRODUCTION or IS_RUNNING_IN_DEV_APPSERVER:
   # Disable the in-context cache, as it can use up a lot of memory for longer
   # running tasks such as cron jobs.
   ndb.get_context().set_cache_policy(False)
+
+# Use the App Engine Requests adapter. This makes sure that Requests uses
+# URLFetch. This is a workaround till we migrate to Python 3 on App Engine Flex.
+if IS_RUNNING_IN_PRODUCTION:
+  import requests_toolbelt.adapters.appengine
+  requests_toolbelt.adapters.appengine.monkeypatch()
