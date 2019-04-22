@@ -17,6 +17,8 @@
 # pylint: disable=unused-argument
 
 import os
+import socket
+import subprocess
 
 from google_cloud_utils import gsutil
 from metrics import logs
@@ -28,7 +30,9 @@ from system import shell
 
 def qemu_setup():
   """Sets up and runs a QEMU VM in the background.
-  Does not block the calling process.
+  Returns a process.Popen object.
+  Does not block the calling process, and teardown must be handled by the
+  caller (use .kill()).
   Fuchsia fuzzers assume a QEMU VM is running; call this routine prior to
   beginning Fuchsia fuzzing tasks.
   This initialization routine assumes that the GCS bucket contains the
@@ -59,8 +63,12 @@ def qemu_setup():
   extend_fvm(fuchsia_resources_dir, drive_path)
   add_keys_to_zbi(fuchsia_resources_dir, initrd_path, fuchsia_zbi)
 
-  # TODO(flowerhack): Add a mechanism for choosing portnum dynamically.
-  portnum = '56339'
+  tcp = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+  tcp.bind(('localhost', 0))
+  _, port = tcp.getsockname()
+  tcp.close()
+  # Fuzzing jobs that SSH into the QEMU VM need access to this env var.
+  environment.set_value('FUCHSIA_PORTNUM', port)
 
   # yapf: disable
   qemu_args = [
@@ -74,25 +82,24 @@ def qemu_setup():
       '-monitor', 'none',
       '-append', '"kernel.serial=legacy TERM=dumb"',
       '-machine', 'q35',
-      '-enable-kvm',
       '-display', 'none',
-      '-cpu', 'host,migratable=no',
+      '-cpu', 'Haswell,+smap,-check,-fsgsbase',
       '-netdev',
       ('user,id=net0,net=192.168.3.0/24,dhcpstart=192.168.3.9,'
-       'host=192.168.3.2,hostfwd=tcp::') + portnum + '-:22',
+       'host=192.168.3.2,hostfwd=tcp::') + str(port) + '-:22',
       '-device', 'e1000,netdev=net0,mac=52:54:00:63:5e:7b',
       '-L', sharefiles_path
   ]
   # yapf: enable
 
-  # Fuzzing jobs that SSH into the QEMU VM need access to these env vars.
+  # Fuzzing jobs that SSH into the QEMU VM need access to this env var.
   environment.set_value('FUCHSIA_PKEY_PATH', pkey_path)
-  environment.set_value('FUCHSIA_PORTNUM', portnum)
 
   # Finally, launch QEMU.
+  print 'Running QEMU. Command: ' + qemu_path + ' ' + str(qemu_args)
   qemu_process = new_process.ProcessRunner(qemu_path, qemu_args)
-  # TODO(flowerhack): Implement teardown logic.
-  qemu_process.run()
+  qemu_popen = qemu_process.run(stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+  return qemu_popen
 
 
 def initialize_resources_dir():
