@@ -169,6 +169,7 @@ class LauncherTest(fake_fs_unittest.TestCase):
     self.oom_output = _read_test_data('oom.txt')
     self.expected_oom_output = _read_test_data('oom_expected.txt')
     self.timeout_output = _read_test_data('timeout.txt')
+    self.oom_in_seed_corpus_output = _read_test_data('oom_in_seed_corpus.txt')
 
     self.options_data = _read_test_data('fake_fuzzer.options')
     self.dictionary_data = _read_test_data('fake_fuzzer.dict')
@@ -377,10 +378,6 @@ class LauncherTest(fake_fs_unittest.TestCase):
                   80,
               'merge_edge_coverage':
                   1769,
-              'new_edges':
-                  0,
-              'new_features':
-                  0,
               'new_units_added':
                   11,
               'new_units_generated':
@@ -684,8 +681,6 @@ class LauncherTest(fake_fs_unittest.TestCase):
         'manual_dict_size': 0,
         'max_len': 741802,
         'merge_edge_coverage': 0,
-        'new_edges': 0,
-        'new_features': 0,
         'new_units_added': 55,
         'new_units_generated': 55,
         'number_of_executed_units': 258724,
@@ -883,8 +878,6 @@ class LauncherTest(fake_fs_unittest.TestCase):
         'manual_dict_size': 0,
         'max_len': 4096,
         'merge_edge_coverage': 0,
-        'new_edges': 0,
-        'new_features': 0,
         'new_units_added': 0,
         'new_units_generated': 0,
         'number_of_executed_units': 2,
@@ -959,6 +952,57 @@ class LauncherTest(fake_fs_unittest.TestCase):
 
     self.assertEqual(parsed_stats, expected_stats)
 
+  def test_parse_log_and_stats_oom_in_seed_corpus(self):
+    """Test stats parsing and additional performance features extraction
+    without applying of stat_overrides."""
+    log_lines = self.oom_in_seed_corpus_output.splitlines()
+    parsed_stats = launcher.parse_log_stats(log_lines)
+    parsed_stats.update(stats.parse_performance_features(log_lines, [], []))
+    expected_stats = {
+        'average_exec_per_sec': 74,
+        'bad_instrumentation': 0,
+        'corpus_crash_count': 0,
+        'corpus_rss_mb': 1150,
+        'corpus_size': 0,
+        'crash_count': 0,
+        'dict_used': 1,
+        'edge_coverage': 3912,
+        'edges_total': 10186501,
+        'feature_coverage': 31745,
+        'initial_edge_coverage': 3912,
+        'initial_feature_coverage': 31745,
+        'leak_count': 0,
+        'log_lines_from_engine': 1,
+        'log_lines_ignored': 124,
+        'log_lines_unwanted': 0,
+        'manual_dict_size': 0,
+        'max_len': 1048575,
+        'merge_edge_coverage': 0,
+        'new_edges': 0,
+        'new_features': 0,
+        'new_units_added': 0,
+        'new_units_generated': 0,
+        'number_of_executed_units': 19380,
+        'oom_count': 1,
+        'peak_rss_mb': 2053,
+        'recommended_dict_size': 0,
+        'slow_unit_count': 0,
+        'slow_units_count': 0,
+        'slowest_unit_time_sec': 0,
+        'startup_crash_count': 0,
+        'strategy_corpus_mutations_radamsa': 0,
+        'strategy_corpus_mutations_ml_rnn': 1,
+        'strategy_corpus_subset': 0,
+        'strategy_fork': 0,
+        'strategy_mutator_plugin': 0,
+        'strategy_random_max_len': 0,
+        'strategy_recommended_dict': 0,
+        'strategy_value_profile': 1,
+        'timeout_count': 0
+    }
+
+    self.assertEqual(parsed_stats, expected_stats)
+
   def test_parse_log_and_stats_from_corrupted_output(self):
     """Test stats parsing from a log with corrupted libFuzzer stats."""
     log_lines = self.corrupted_stats_output.splitlines()
@@ -972,9 +1016,9 @@ class LauncherTest(fake_fs_unittest.TestCase):
         'corpus_size': 0,
         'crash_count': 0,
         'dict_used': 0,
-        'edge_coverage': 7736,
+        'edge_coverage': 0,
         'edges_total': 685270,
-        'feature_coverage': 12666,
+        'feature_coverage': 0,
         'initial_edge_coverage': 0,
         'initial_feature_coverage': 0,
         'leak_count': 0,
@@ -984,8 +1028,8 @@ class LauncherTest(fake_fs_unittest.TestCase):
         'manual_dict_size': 0,
         'max_len': 1048576,
         'merge_edge_coverage': 0,
-        'new_edges': 7736,
-        'new_features': 12666,
+        'new_edges': 0,
+        'new_features': 0,
         'new_units_added': 0,
         'new_units_generated': 0,
         'number_of_executed_units': 1142,
@@ -1023,9 +1067,9 @@ class LauncherTest(fake_fs_unittest.TestCase):
         'corpus_size': 0,
         'crash_count': 0,
         'dict_used': 0,
-        'edge_coverage': 1321,
+        'edge_coverage': 0,
         'edges_total': 52747,
-        'feature_coverage': 6306,
+        'feature_coverage': 0,
         'initial_edge_coverage': 0,
         'initial_feature_coverage': 0,
         'leak_count': 0,
@@ -1035,8 +1079,8 @@ class LauncherTest(fake_fs_unittest.TestCase):
         'manual_dict_size': 0,
         'max_len': 978798,
         'merge_edge_coverage': 0,
-        'new_edges': 1321,
-        'new_features': 6306,
+        'new_edges': 0,
+        'new_features': 0,
         'new_units_added': 0,
         'new_units_generated': 0,
         'number_of_executed_units': 5769,
