@@ -318,8 +318,7 @@ class LauncherTest(fake_fs_unittest.TestCase):
       stats_data = fuzzer_stats.TestcaseRun.read_from_disk(
           '/fake/testcase_basic')
       self.assertDictEqual(
-          stats_data.data,
-          {
+          stats_data.data, {
               'actual_duration':
                   0,
               'average_exec_per_sec':
@@ -341,7 +340,6 @@ class LauncherTest(fake_fs_unittest.TestCase):
                   0,
               'corpus_size':
                   11,
-              # No corpus_rss_mb due to corpus subset strategy.
               'dict_used':
                   1,
               'edge_coverage':
@@ -534,8 +532,6 @@ class LauncherTest(fake_fs_unittest.TestCase):
                   0,
               'corpus_size':
                   11,
-              'corpus_rss_mb':
-                  56,
               'crash_count':
                   0,
               'dict_used':
@@ -667,7 +663,6 @@ class LauncherTest(fake_fs_unittest.TestCase):
         'corpus_crash_count': 0,
         'crash_count': 0,
         'corpus_size': 0,
-        # No corpus_rss_mb due to corpus subset strategy.
         'dict_used': 1,
         'edge_coverage': 1769,
         'edges_total': 398408,
@@ -715,7 +710,6 @@ class LauncherTest(fake_fs_unittest.TestCase):
         'average_exec_per_sec': 21,
         'bad_instrumentation': 0,
         'corpus_crash_count': 0,
-        'corpus_rss_mb': 56,
         'corpus_size': 0,
         'crash_count': 1,
         'dict_used': 1,
@@ -766,7 +760,6 @@ class LauncherTest(fake_fs_unittest.TestCase):
     expected_stats = {
         'bad_instrumentation': 0,
         'corpus_crash_count': 0,
-        'corpus_rss_mb': 0,
         'corpus_size': 0,
         'crash_count': 0,
         'dict_used': 0,
@@ -812,7 +805,6 @@ class LauncherTest(fake_fs_unittest.TestCase):
         'average_exec_per_sec': 0,
         'bad_instrumentation': 0,
         'corpus_crash_count': 1,
-        'corpus_rss_mb': 109,
         'corpus_size': 0,
         'crash_count': 1,
         'dict_used': 0,
@@ -911,7 +903,6 @@ class LauncherTest(fake_fs_unittest.TestCase):
         'average_exec_per_sec': 53,
         'bad_instrumentation': 0,
         'corpus_crash_count': 0,
-        'corpus_rss_mb': 58,
         'corpus_size': 0,
         'crash_count': 0,
         'dict_used': 1,
@@ -962,7 +953,6 @@ class LauncherTest(fake_fs_unittest.TestCase):
         'average_exec_per_sec': 74,
         'bad_instrumentation': 0,
         'corpus_crash_count': 0,
-        'corpus_rss_mb': 1150,
         'corpus_size': 0,
         'crash_count': 0,
         'dict_used': 1,
@@ -1012,7 +1002,6 @@ class LauncherTest(fake_fs_unittest.TestCase):
         'average_exec_per_sec': 40,
         'bad_instrumentation': 0,
         'corpus_crash_count': 1,
-        'corpus_rss_mb': 93,
         'corpus_size': 0,
         'crash_count': 0,
         'dict_used': 0,
@@ -1063,7 +1052,6 @@ class LauncherTest(fake_fs_unittest.TestCase):
         'average_exec_per_sec': 16,
         'bad_instrumentation': 0,
         'corpus_crash_count': 1,
-        'corpus_rss_mb': 103,
         'corpus_size': 0,
         'crash_count': 0,
         'dict_used': 0,
@@ -1231,8 +1219,6 @@ class LauncherTest(fake_fs_unittest.TestCase):
               ],
               'corpus_crash_count':
                   0,
-              'corpus_rss_mb':
-                  58,
               'corpus_size':
                   0,
               'crash_count':

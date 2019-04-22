@@ -195,11 +195,6 @@ def parse_performance_features(log_lines, strategies, arguments):
   # Process fuzzing strategies used.
   stats.update(parse_fuzzing_strategies(log_lines, strategies))
 
-  # Corpus rss is only applicable when using the full corpus and not
-  # in the corpus subset strategy run.
-  if not stats['strategy_corpus_subset']:
-    stats['corpus_rss_mb'] = 0
-
   (stats['log_lines_unwanted'], stats['log_lines_from_engine'],
    stats['log_lines_ignored']) = calculate_log_lines(log_lines)
 
@@ -250,8 +245,6 @@ def parse_performance_features(log_lines, strategies, arguments):
     match = LIBFUZZER_LOG_SEED_CORPUS_INFO_REGEX.match(line)
     if match:
       has_corpus = True
-      if not stats['strategy_corpus_subset']:
-        stats['corpus_rss_mb'] = int(match.group(2))
 
     match = LIBFUZZER_MODULES_LOADED_REGEX.match(line)
     if match:
