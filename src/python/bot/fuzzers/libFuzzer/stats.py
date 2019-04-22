@@ -218,6 +218,7 @@ def parse_performance_features(log_lines, strategies, arguments):
 
   # Different crashes and other flags extracted via regexp match.
   has_corpus = False
+  start = False
   for line in log_lines:
     if LIBFUZZER_BAD_INSTRUMENTATION_REGEX.match(line):
       stats['bad_instrumentation'] = 1
@@ -261,15 +262,19 @@ def parse_performance_features(log_lines, strategies, arguments):
 
     match = LIBFUZZER_LOG_START_INITED_REGEX.match(line)
     if match:
-      stats['initial_edge_coverage'] = int(match.group(1))
-      stats['initial_feature_coverage'] = int(match.group(2))
+      stats['initial_edge_coverage'] = stats['edge_coverage'] = int(
+          match.group(1))
+      stats['initial_feature_coverage'] = stats['feature_coverage'] = int(
+          match.group(2))
+      start = True
       continue
 
     # This regexp will match multiple lines and will be overwriting the stats.
     # This is done on purpose, as the last line in the log may have different
     # format, e.g. 'DONE' without a crash and 'NEW' or 'pulse' with a crash.
+    # Also, ignore values before INITED i.e. while seed corpus is being read.
     match = LIBFUZZER_LOG_COVERAGE_REGEX.match(line)
-    if match:
+    if match and start:
       stats['edge_coverage'] = int(match.group(1))
       stats['feature_coverage'] = int(match.group(2))
       continue
@@ -291,10 +296,10 @@ def parse_performance_features(log_lines, strategies, arguments):
 
   # new_cov_* is a reliable metric when corpus subset strategy is not used.
   if not stats['strategy_corpus_subset']:
-    if 'initial_edge_coverage' in stats and 'edge_coverage' in stats:
+    if stats['edge_coverage']:
       stats['new_edges'] = (
           stats['edge_coverage'] - stats['initial_edge_coverage'])
-    if 'initial_feature_coverage' in stats and 'feature_coverage' in stats:
+    if stats['feature_coverage']:
       stats['new_features'] = (
           stats['feature_coverage'] - stats['initial_feature_coverage'])
 
