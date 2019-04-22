@@ -378,10 +378,6 @@ class LauncherTest(fake_fs_unittest.TestCase):
                   80,
               'merge_edge_coverage':
                   1769,
-              'new_edges':
-                  0,
-              'new_features':
-                  0,
               'new_units_added':
                   11,
               'new_units_generated':
@@ -685,8 +681,6 @@ class LauncherTest(fake_fs_unittest.TestCase):
         'manual_dict_size': 0,
         'max_len': 741802,
         'merge_edge_coverage': 0,
-        'new_edges': 0,
-        'new_features': 0,
         'new_units_added': 55,
         'new_units_generated': 55,
         'number_of_executed_units': 258724,
@@ -884,8 +878,6 @@ class LauncherTest(fake_fs_unittest.TestCase):
         'manual_dict_size': 0,
         'max_len': 4096,
         'merge_edge_coverage': 0,
-        'new_edges': 0,
-        'new_features': 0,
         'new_units_added': 0,
         'new_units_generated': 0,
         'number_of_executed_units': 2,

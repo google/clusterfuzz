@@ -176,8 +176,6 @@ def parse_performance_features(log_lines, strategies, arguments):
       'max_len': 0,
       'manual_dict_size': 0,
       'merge_edge_coverage': 0,
-      'new_edges': 0,
-      'new_features': 0,
       'oom_count': 0,
       'recommended_dict_size': 0,
       'slow_unit_count': 0,
