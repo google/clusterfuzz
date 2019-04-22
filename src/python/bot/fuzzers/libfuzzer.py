@@ -336,10 +336,10 @@ class FuchsiaQemuLibFuzzerRunner(new_process.ProcessRunner, LibFuzzerCommon):
           'FUCHSIA_PKEY_PATH and/or FUCHSIA_PORTNUM was not set')
     # yapf: disable
     self.ssh_args = [
-        '-i', fuchsia_pkey_path,
+        '-i', str(fuchsia_pkey_path),
         '-o', 'StrictHostKeyChecking no',
         '-o', 'UserKnownHostsFile=/dev/null',
-        '-p', fuchsia_portnum,
+        '-p', str(fuchsia_portnum),
         'localhost'
     ]
     # yapf: enable
@@ -358,9 +358,7 @@ class FuchsiaQemuLibFuzzerRunner(new_process.ProcessRunner, LibFuzzerCommon):
            additional_args=None,
            extra_env=None):
     """LibFuzzerCommon.fuzz override."""
-    self._test_qemu_ssh()
-    LibFuzzerCommon.fuzz(self, corpus_directories, fuzz_timeout,
-                         artifact_prefix, additional_args)
+    return self._test_qemu_ssh()
 
   def run_single_testcase(self,
                           testcase_path,
@@ -376,12 +374,14 @@ class FuchsiaQemuLibFuzzerRunner(new_process.ProcessRunner, LibFuzzerCommon):
   def _test_qemu_ssh(self):
     """Tests that a VM is up and can be successfully SSH'd into.
     Raises an exception if no success after MAX_SSH_RETRIES."""
-    ssh_test_process = new_process.ProcessRunner('ssh', self.ssh_args + ['ls'])
+    ssh_test_process = new_process.ProcessRunner(
+        'ssh', self.ssh_args + ['echo running on fuchsia!'])
     result = ssh_test_process.run_and_wait()
     if result.return_code or result.timed_out:
       raise fuchsia.errors.FuchsiaConnectionError(
           'Failed to establish initial SSH connection: ' +
           str(result.return_code))
+    return result
 
 
 class MinijailLibFuzzerRunner(engine_common.MinijailEngineFuzzerRunner,

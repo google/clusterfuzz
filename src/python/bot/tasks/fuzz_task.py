@@ -1325,10 +1325,11 @@ def execute_task(fuzzer_name, job_type):
   if timeout_multiplier > 1:
     testcase_count /= timeout_multiplier
 
+  qemu_process = None
+  if platform == 'FUCHSIA':
+    qemu_process = fuchsia.device.qemu_setup()
   # Run the fuzzer to generate testcases. If error occurred while trying
   # to run the fuzzer, bail out.
-  if platform == 'FUCHSIA':
-    fuchsia.device.qemu_setup()
   (error_occurred, testcase_file_paths, generated_testcase_count,
    sync_corpus_directory,
    fuzzer_metadata) = run_fuzzer(fuzzer, fuzzer_directory, testcase_directory,
@@ -1477,6 +1478,9 @@ def execute_task(fuzzer_name, job_type):
       new_files = random.sample(new_files, MAX_NEW_CORPUS_FILES)
 
     gcs_corpus.upload_files(new_files)
+
+  if platform == 'FUCHSIA':
+    qemu_process.kill()
 
   logs.log('Finished processing test cases.')
 

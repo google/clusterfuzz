@@ -91,9 +91,7 @@ def qemu_setup():
 
   # Finally, launch QEMU.
   qemu_process = new_process.ProcessRunner(qemu_path, qemu_args)
-  # TODO(flowerhack): Implement teardown logic.
-  qemu_process.run()
-
+  return qemu_process.run()
 
 def initialize_resources_dir():
   """Download Fuchsia QEMU resources from GCS bucket."""
