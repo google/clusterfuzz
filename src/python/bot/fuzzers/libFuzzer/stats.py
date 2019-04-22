@@ -68,13 +68,13 @@ def calculate_log_lines(log_lines):
   ignored_lines_count = 0
 
   lines_after_last_libfuzzer_line_count = 0
-  start = False
+  libfuzzer_inited = False
   found_libfuzzer_crash = False
   for line in log_lines:
-    if not start:
+    if not libfuzzer_inited:
       # Skip to start of libFuzzer log output.
       if LIBFUZZER_LOG_START_INITED_REGEX.match(line):
-        start = True
+        libfuzzer_inited = True
       else:
         ignored_lines_count += 1
         continue
@@ -218,7 +218,7 @@ def parse_performance_features(log_lines, strategies, arguments):
 
   # Different crashes and other flags extracted via regexp match.
   has_corpus = False
-  start = False
+  libfuzzer_inited = False
   for line in log_lines:
     if LIBFUZZER_BAD_INSTRUMENTATION_REGEX.match(line):
       stats['bad_instrumentation'] = 1
@@ -266,7 +266,7 @@ def parse_performance_features(log_lines, strategies, arguments):
           match.group(1))
       stats['initial_feature_coverage'] = stats['feature_coverage'] = int(
           match.group(2))
-      start = True
+      libfuzzer_inited = True
       continue
 
     # This regexp will match multiple lines and will be overwriting the stats.
@@ -274,7 +274,7 @@ def parse_performance_features(log_lines, strategies, arguments):
     # format, e.g. 'DONE' without a crash and 'NEW' or 'pulse' with a crash.
     # Also, ignore values before INITED i.e. while seed corpus is being read.
     match = LIBFUZZER_LOG_COVERAGE_REGEX.match(line)
-    if match and start:
+    if match and libfuzzer_inited:
       stats['edge_coverage'] = int(match.group(1))
       stats['feature_coverage'] = int(match.group(2))
       continue
@@ -296,12 +296,13 @@ def parse_performance_features(log_lines, strategies, arguments):
 
   # new_cov_* is a reliable metric when corpus subset strategy is not used.
   if not stats['strategy_corpus_subset']:
-    if stats['edge_coverage']:
-      stats['new_edges'] = (
-          stats['edge_coverage'] - stats['initial_edge_coverage'])
-    if stats['feature_coverage']:
-      stats['new_features'] = (
-          stats['feature_coverage'] - stats['initial_feature_coverage'])
+    assert stats['edge_coverage'] >= stats['initial_edge_coverage']
+    stats['new_edges'] = (
+        stats['edge_coverage'] - stats['initial_edge_coverage'])
+
+    assert stats['feature_coverage'] >= stats['initial_feature_coverage']
+    stats['new_features'] = (
+        stats['feature_coverage'] - stats['initial_feature_coverage'])
 
   return stats
 
