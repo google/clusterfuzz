@@ -604,7 +604,12 @@ def reset_usb():
 
   # We need to get latest device path since it could be changed in reboots or
   # adb root restarts.
-  device_path = get_device_path()
+  try:
+    device_path = get_device_path()
+  except IOError:
+    # We may reach this state if the device is no longer available.
+    device_path = None
+
   if not device_path:
     # Try pulling from cache (if available).
     device_path = environment.get_value('DEVICE_PATH')
