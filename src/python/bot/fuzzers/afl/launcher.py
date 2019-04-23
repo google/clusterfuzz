@@ -23,6 +23,7 @@ except ImportError:
   pass
 
 import atexit
+import collections
 import os
 import re
 import shutil
@@ -66,12 +67,29 @@ USE_MINIJAIL = environment.get_value('USE_MINIJAIL')
 PERSISTENT_EXECUTIONS_OPTION = 'n'
 
 
+class AflOptionType(object):
+  ARG = 0
+  ENV_VAR = 1
+
+
+# Afl options have names and can either be commandline arguments or environment
+# variables.
+AflOption = collections.namedtuple('AflOption', ['name', 'type'])
+
+
 class AflConfig(object):
   """Helper class that determines the arguments that should be passed to
-  afl-fuzz, environment variables that should be set before running afl-fuzz and
-  the number of persistent executions that should be passed to the target
+  afl-fuzz, environment variables that should be set before running afl-fuzz,
+  and the number of persistent executions that should be passed to the target
   Determines these mainly by parsing the .options file for the target."""
-  LIBFUZZER_TO_AFL_OPTIONS = {'dict': constants.DICT_FLAG}
+
+  # Mapping of libfuzzer option names to AflOption objects.
+  LIBFUZZER_TO_AFL_OPTIONS = {
+      'dict':
+          AflOption(constants.DICT_FLAG, AflOptionType.ARG),
+      'close_fd_mask':
+          AflOption(constants.CLOSE_FD_MASK_ENV_VAR, AflOptionType.ENV_VAR),
+  }
 
   def __init__(self):
     """Sets the configs to sane defaults. Use from_target_path if you want to
@@ -99,22 +117,25 @@ class AflConfig(object):
     if not fuzzer_options:
       return
 
-    # Try to convert libFuzzer arguments to AFL.
-    libfuzzer_options = fuzzer_options.get_engine_arguments('libfuzzer')
+    self.additional_env_vars = fuzzer_options.get_env()
 
-    for name, value in libfuzzer_options.dict().iteritems():
-      if name not in self.LIBFUZZER_TO_AFL_OPTIONS:
+    # Try to convert libFuzzer arguments to AFL arguments or env vars.
+    libfuzzer_options = fuzzer_options.get_engine_arguments('libfuzzer')
+    for libfuzzer_name, value in libfuzzer_options.dict().iteritems():
+      if libfuzzer_name not in self.LIBFUZZER_TO_AFL_OPTIONS:
         continue
 
-      afl_name = self.LIBFUZZER_TO_AFL_OPTIONS[name]
-      self.additional_afl_arguments.append('%s%s' % (afl_name, value))
+      afl_option = self.LIBFUZZER_TO_AFL_OPTIONS[libfuzzer_name]
+      if afl_option.type == AflOptionType.ARG:
+        self.additional_afl_arguments.append('%s%s' % (afl_option.name, value))
+      else:
+        assert afl_option.type == AflOptionType.ENV_VAR
+        self.additional_env_vars[afl_option.name] = value
 
     # Get configs set specifically for AFL.
     afl_options = fuzzer_options.get_engine_arguments('AFL')
     self.num_persistent_executions = afl_options.get(
         PERSISTENT_EXECUTIONS_OPTION, constants.MAX_PERSISTENT_EXECUTIONS)
-
-    self.additional_env_vars = fuzzer_options.get_env()
 
   def use_default_dict(self, target_path):
     """Set the dictionary argument in |self.additional_afl_arguments| to
@@ -128,10 +149,8 @@ class AflConfig(object):
     if not os.path.exists(default_dict_path):
       return
 
-    self.additional_afl_arguments.append(constants.DICT_FLAG +
-                                         default_dict_path)
-
     self.dict_path = default_dict_path
+    self.additional_afl_arguments.append(constants.DICT_FLAG + self.dict_path)
 
 
 class AflFuzzOutputDirectory(object):
