@@ -861,6 +861,21 @@ class AlfConfigTest(LauncherTestBase):
     self.assertIn('-x/build_dir/my_dict.dict',
                   self._get_config().additional_afl_arguments)
 
+  def test_close_fd_mask(self):
+    """"Test that AflConfig instructs afl_driver to close fd mask if specified
+    by the libfuzzer section of a .options file."""
+
+    fd_mask_value = 3
+    self._create_options_file(
+      ('[libfuzzer]\n'
+       'close_fd_mask={fd_mask_value}\n'
+       'max_len=1337\n').format(fd_mask_value=fd_mask_value))
+
+    afl_additional_env_vars = self._get_config().additional_env_vars
+    self.assertIn('AFL_DRIVER_CLOSE_FD_MASK', afl_additional_env_vars)
+    self.assertEqual(
+      str(fd_mask_value), afl_additional_env_vars['AFL_DRIVER_CLOSE_FD_MASK'])
+
 
 class ListFullFilePathsTest(LauncherTestBase):
   """Tests for list_full_file_paths."""

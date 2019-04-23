@@ -73,7 +73,7 @@ class AflOptionType(object):
 
 # Afl options have names and can either be commandline arguments or environment
 # variables.
-AflOption = collections.namedtuple(['name', 'type'])
+AflOption = collections.namedtuple('AflOption', ['name', 'type'])
 
 
 class AflConfig(object):
