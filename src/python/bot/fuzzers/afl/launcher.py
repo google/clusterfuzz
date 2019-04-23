@@ -66,6 +66,7 @@ USE_MINIJAIL = environment.get_value('USE_MINIJAIL')
 # .options file option for the number of persistent executions.
 PERSISTENT_EXECUTIONS_OPTION = 'n'
 
+
 class AflOptionType(object):
   ARG = 0
   ENV_VAR = 1
@@ -84,9 +85,10 @@ class AflConfig(object):
 
   # Mapping of libfuzzer option names to AflOption objects.
   LIBFUZZER_TO_AFL_OPTIONS = {
-    'dict': AflOption(constants.DICT_FLAG, AflOptionType.ARG),
-    'close_fd_mask': AflOption(
-      constants.CLOSE_FD_MASK_ENV_VAR, AflOptionType.ENV_VAR),
+      'dict':
+          AflOption(constants.DICT_FLAG, AflOptionType.ARG),
+      'close_fd_mask':
+          AflOption(constants.CLOSE_FD_MASK_ENV_VAR, AflOptionType.ENV_VAR),
   }
 
   def __init__(self):
