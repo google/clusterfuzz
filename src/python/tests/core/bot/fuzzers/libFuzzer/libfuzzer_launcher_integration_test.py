@@ -672,6 +672,7 @@ class TestLauncherZFuchsia(BaseLauncherTest):
   """libFuzzer launcher tests (Fuchsia)."""
 
   def setUp(self):
+    test_helpers.patch_environ(self)
     # Set up a Fuzzer.
     data_types.Fuzzer(
         revision=1,
