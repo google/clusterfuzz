@@ -669,7 +669,7 @@ class TestLauncherMinijail(BaseLauncherTest):
 
 @test_utils.integration
 @test_utils.with_cloud_emulators('datastore')
-class TestLauncherZFuchsia(BaseLauncherTest):
+class TestLauncherFuchsia(BaseLauncherTest):
   """libFuzzer launcher tests (Fuchsia)."""
 
   def setUp(self):
@@ -756,20 +756,14 @@ class TestLauncherZFuchsia(BaseLauncherTest):
     portnum = '56339'
     environment.set_value('FUCHSIA_PKEY_PATH', pkey_path)
     environment.set_value('FUCHSIA_PORTNUM', portnum)
+    # Cannot simply call super(TestLauncherFuchsia).setUp, because the
+    # with_cloud_emulators decorator modifies what the parent class would be.
+    # Just explicitly call BaseLauncherTest's setUp.
+    BaseLauncherTest.setUp(self)
 
   def test_fuzzer_can_boot_and_run(self):
     """Tests running a single round of fuzzing on a Fuchsia target, using
     'echo' in place of a fuzzing command."""
-
-    # Cannot call setUp from our class's setUp method, because we're using the
-    # cloud emulation decorator, which assumes the base class is
-    # unittest.TestCase, and recurses infinitely if this is not true (as in our
-    # case, with BaseLauncherTest as the base)
-    # TODO(flowerhack): Does it make more sense to factor out all the setUp
-    # into its own method, which will have to be specifically called by every
-    # class in this file?
-    BaseLauncherTest.setUp(self)
-
     # TODO(flowerhack): Fuchsia's `fuzz` only calls 'echo running on fuchsia!'
     # right now by default, but we'll call it explicitly in here as we
     # diversity `fuzz`'s functionality
