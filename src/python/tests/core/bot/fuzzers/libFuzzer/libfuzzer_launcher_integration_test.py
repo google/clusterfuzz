@@ -756,10 +756,6 @@ class TestLauncherZFuchsia(BaseLauncherTest):
     environment.set_value('FUCHSIA_PKEY_PATH', pkey_path)
     environment.set_value('FUCHSIA_PORTNUM', portnum)
 
-  def tearDown(self):
-    environment.set_value('QUEUE_OVERRIDE', '')
-    environment.set_value('OS_OVERRIDE', '')
-
   def test_fuzzer_can_boot_and_run(self):
     """Tests running a single round of fuzzing on a Fuchsia target, using
     'echo' in place of a fuzzing command."""
