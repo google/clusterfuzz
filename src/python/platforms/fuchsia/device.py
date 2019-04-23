@@ -93,6 +93,7 @@ def qemu_setup():
   qemu_process = new_process.ProcessRunner(qemu_path, qemu_args)
   return qemu_process.run()
 
+
 def initialize_resources_dir():
   """Download Fuchsia QEMU resources from GCS bucket."""
   resources_dir = environment.get_value('RESOURCES_DIR')
