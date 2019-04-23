@@ -17,9 +17,8 @@ import functools
 import json
 import os
 import re
-import urllib
+import requests
 
-from google.appengine.api import urlfetch
 from google.appengine.api import users
 
 from base import utils
@@ -168,29 +167,27 @@ def get_access_token(verification_code):
   if not client_secret:
     raise helpers.UnauthorizedException('Client secret not configured.')
 
-  response = urlfetch.fetch(
-      url='https://www.googleapis.com/oauth2/v4/token',
-      method=urlfetch.POST,
+  response = requests.post(
+      'https://www.googleapis.com/oauth2/v4/token',
       headers={'Content-Type': 'application/x-www-form-urlencoded'},
-      payload=urllib.urlencode({
+      data={
           'code': verification_code,
           'client_id': client_id,
           'client_secret': client_secret,
           'redirect_uri': 'urn:ietf:wg:oauth:2.0:oob',
           'grant_type': 'authorization_code'
-      }),
-      validate_certificate=True)
+      })
 
   if response.status_code != 200:
     raise helpers.UnauthorizedException('Invalid verification code (%s): %s' %
-                                        (verification_code, response.content))
+                                        (verification_code, response.text))
 
   try:
-    data = json.loads(response.content)
+    data = json.loads(response.text)
     return data['access_token']
   except (KeyError, ValueError):
     raise helpers.EarlyExitException(
-        'Parsing the JSON response body failed: %s' % response.content, 500)
+        'Parsing the JSON response body failed: %s' % response.text, 500)
 
 
 def get_email_and_access_token(authorization):
@@ -210,18 +207,16 @@ def get_email_and_access_token(authorization):
 
   access_token = authorization.split(' ')[1]
 
-  response = urlfetch.fetch(
-      url=('https://www.googleapis.com/oauth2/v3/tokeninfo?access_token=%s' %
-           access_token),
-      validate_certificate=True)
-
+  response = requests.get(
+      'https://www.googleapis.com/oauth2/v3/tokeninfo',
+      params={'access_token': access_token})
   if response.status_code != 200:
     raise helpers.UnauthorizedException(
         'Failed to authorize. The Authorization header (%s) might be invalid.' %
         authorization)
 
   try:
-    data = json.loads(response.content)
+    data = json.loads(response.text)
 
     # Whitelist service accounts. They have different client IDs (or aud).
     # Therefore, we check against their email directly.
@@ -233,17 +228,16 @@ def get_email_and_access_token(authorization):
         'whitelisted_oauth_client_ids', default=[]):
       raise helpers.UnauthorizedException(
           "The access token doesn't belong to one of the allowed OAuth clients"
-          ': %s.' % response.content)
+          ': %s.' % response.text)
 
     if not data.get('email_verified'):
-      raise helpers.UnauthorizedException(
-          'The email (%s) is not verified: %s.' % (data.get('email'),
-                                                   response.content))
+      raise helpers.UnauthorizedException('The email (%s) is not verified: %s.'
+                                          % (data.get('email'), response.text))
 
     return data['email'], authorization
   except (KeyError, ValueError):
     raise helpers.EarlyExitException(
-        'Parsing the JSON response body failed: %s' % response.content, 500)
+        'Parsing the JSON response body failed: %s' % response.text, 500)
 
 
 def oauth(func):

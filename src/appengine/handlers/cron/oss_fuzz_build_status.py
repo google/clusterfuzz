@@ -17,8 +17,7 @@ import datetime
 import itertools
 import json
 import re
-
-from google.appengine.api import urlfetch
+import requests
 
 from base import utils
 from datastore import data_types
@@ -27,6 +26,7 @@ from handlers import base_handler
 from issue_management import issue_tracker_utils
 from issue_management.issue import Issue
 from libs import handler
+from libs import helpers
 from metrics import logs
 
 BUCKET_URL = 'https://oss-fuzz-build-logs.storage.googleapis.com'
@@ -240,7 +240,8 @@ class Handler(base_handler.Handler):
         if build_failure.issue_id is None:
           oss_fuzz_project = _get_oss_fuzz_project(project_name)
           if not oss_fuzz_project:
-            logs.log('Project %s is disabled, skipping bug filing.')
+            logs.log(
+                'Project %s is disabled, skipping bug filing.' % project_name)
             continue
 
           build_failure.issue_id = file_bug(itm, project_name,
@@ -268,8 +269,13 @@ class Handler(base_handler.Handler):
   def get(self):
     """Handles a get request."""
     for build_type, status_url in BUILD_STATUS_MAPPINGS:
-      response = urlfetch.fetch(status_url)
-      build_status = json.loads(response.content)
+      try:
+        response = requests.get(status_url)
+        response.raise_for_status()
+        build_status = json.loads(response.text)
+      except (requests.exceptions.RequestException, ValueError) as e:
+        raise helpers.EarlyExitException(str(e), response.status_code)
+
       self._check_last_get_build_time(build_status, build_type)
       self._close_fixed_builds(build_status, build_type)
       self._process_failures(build_status, build_type)
