@@ -17,11 +17,11 @@
   send them to the backup URL."""
 
 import datetime
+import googleapiclient
 
-from google.appengine.api import taskqueue
-from google.appengine.ext.db import metadata
-
+from base import utils
 from config import local_config
+from datastore import ndb
 from handlers import base_handler
 from libs import handler
 from metrics import logs
@@ -29,6 +29,11 @@ from metrics import logs
 # CrashStatistic is excluded because the number of records is too high and
 # can be rebuilt from BigQuery dataset.
 EXCLUDED_MODELS = {'CrashStatistic', 'CrashStatisticJobHistory'}
+
+
+def _datastore_client():
+  """Return an api client for datastore."""
+  return googleapiclient.discovery.build('datastore', 'v1')
 
 
 class Handler(base_handler.Handler):
@@ -44,25 +49,33 @@ class Handler(base_handler.Handler):
       return
 
     kinds = [
-        kind.kind_name
-        for kind in metadata.Kind.all()
-        if (not kind.kind_name.startswith('_') and
-            kind.kind_name not in EXCLUDED_MODELS)
+        kind for kind in ndb.Model._kind_map  # pylint: disable=protected-access
+        if (not kind.startswith('_') and kind not in EXCLUDED_MODELS)
     ]
+
+    app_id = utils.get_application_id()
     timestamp = datetime.datetime.utcnow().strftime('%Y-%m-%d-%H:%M:%S')
-    taskqueue.add(
-        url='/_ah/datastore_admin/backup.create',
-        method='GET',
-        target='ah-builtin-python-bundle',
-        retry_options=taskqueue.TaskRetryOptions(
-            task_retry_limit=3,
-            min_backoff_seconds=5 * 60),  # 5 minutes backoff.
-        params={
-            'filesystem': 'gs',
-            'gs_bucket_name': '%s/%s' % (gs_bucket_name, timestamp),
-            'kind': kinds
-        })
+    output_url_prefix = 'gs://%s/%s' % (gs_bucket_name, timestamp)
+    body = {
+        'output_url_prefix': output_url_prefix,
+        'entity_filter': {
+            'kinds': kinds
+        }
+    }
+
+    try:
+      request = _datastore_client().projects().export(
+          projectId=app_id, body=body)
+      response = request.execute()
+
+      message = 'Datastore export succeeded.'
+      status_code = 200
+      logs.log(message, response=response)
+    except googleapiclient.errors.HttpError as e:
+      message = 'Datastore export failed.'
+      status_code = e.resp.status
+      logs.log_error(message, error=str(e))
 
     self.response.headers['Content-Type'] = 'text/plain'
-    self.response.out.write('OK')
-    self.response.set_status(200)
+    self.response.out.write(message)
+    self.response.set_status(status_code)

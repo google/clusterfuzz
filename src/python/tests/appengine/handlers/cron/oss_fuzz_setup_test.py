@@ -21,8 +21,7 @@ import unittest
 import webapp2
 import webtest
 
-from google.appengine.api import app_identity
-
+from base import utils
 from config import db_config
 from datastore import data_types
 from datastore import ndb
@@ -190,14 +189,12 @@ class OssFuzzSetupTest(unittest.TestCase):
     self.mock.build.return_value = mock_storage
 
     pubsub_client = pubsub.PubSubClient()
-    unmanaged_topic_name = pubsub.topic_name(app_identity.get_application_id(),
-                                             'jobs-linux')
-    old_topic_name = pubsub.topic_name(app_identity.get_application_id(),
-                                       'jobs-shouldbedeleted')
-    old_subscription_name = pubsub.subscription_name(
-        app_identity.get_application_id(), 'jobs-shouldbedeleted')
-    other_topic_name = pubsub.topic_name(app_identity.get_application_id(),
-                                         'other')
+    app_id = utils.get_application_id()
+    unmanaged_topic_name = pubsub.topic_name(app_id, 'jobs-linux')
+    old_topic_name = pubsub.topic_name(app_id, 'jobs-shouldbedeleted')
+    old_subscription_name = pubsub.subscription_name(app_id,
+                                                     'jobs-shouldbedeleted')
+    other_topic_name = pubsub.topic_name(app_id, 'other')
 
     pubsub_client.create_topic(unmanaged_topic_name)
     pubsub_client.create_topic(old_topic_name)
@@ -1344,11 +1341,8 @@ class OssFuzzSetupTest(unittest.TestCase):
         'projects/clusterfuzz-external/topics/jobs-lib4-linux',
         'projects/clusterfuzz-external/topics/jobs-lib5-linux',
     ]
-    self.assertItemsEqual(
-        expected_topics,
-        list(
-            pubsub_client.list_topics('projects/' +
-                                      app_identity.get_application_id())))
+    self.assertItemsEqual(expected_topics,
+                          list(pubsub_client.list_topics('projects/' + app_id)))
 
     for i, topic in enumerate(expected_topics[2:]):
       self.assertItemsEqual([

@@ -14,12 +14,11 @@
 """Handler used for loading bigquery data."""
 
 import datetime
+import httplib2
 import random
 import time
 
-from google.appengine.api import app_identity
 from googleapiclient.errors import HttpError
-import httplib2
 
 from base import utils
 from datastore import data_types
@@ -65,7 +64,7 @@ class Handler(base_handler.Handler):
 
   def _create_dataset_if_needed(self, bigquery, dataset_id):
     """Create a new dataset if necessary."""
-    project_id = app_identity.get_application_id()
+    project_id = utils.get_application_id()
     dataset_body = {
         'datasetReference': {
             'datasetId': dataset_id,
@@ -79,7 +78,7 @@ class Handler(base_handler.Handler):
 
   def _create_table_if_needed(self, bigquery, dataset_id, table_id):
     """Create a new table if needed."""
-    project_id = app_identity.get_application_id()
+    project_id = utils.get_application_id()
     table_body = {
         'tableReference': {
             'datasetId': dataset_id,
@@ -100,7 +99,7 @@ class Handler(base_handler.Handler):
     if not schema:
       return
 
-    project_id = app_identity.get_application_id()
+    project_id = utils.get_application_id()
     table = bigquery.tables().get(
         datasetId=dataset_id, tableId=table_id, projectId=project_id).execute()
 
@@ -118,7 +117,7 @@ class Handler(base_handler.Handler):
 
   def _load_data(self, bigquery, fuzzer):
     """Load yesterday's stats into BigQuery."""
-    project_id = app_identity.get_application_id()
+    project_id = utils.get_application_id()
 
     yesterday = (self._utc_now().date() - datetime.timedelta(days=1))
     date_string = yesterday.strftime('%Y%m%d')

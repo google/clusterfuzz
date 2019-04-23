@@ -38,14 +38,12 @@ class LoadBigQueryStatsTest(unittest.TestCase):
     data_types.Job(name='job').put()
 
     test_helpers.patch(self, [
-        'google.appengine.api.app_identity.get_application_id',
         'google_cloud_utils.big_query.get_api_client',
         'handlers.base_handler.Handler.is_cron',
         'handlers.cron.load_bigquery_stats.Handler._utc_now',
     ])
 
     self.mock._utc_now.return_value = datetime.datetime(2016, 9, 8)  # pylint: disable=protected-access
-    self.mock.get_application_id.return_value = 'app_id'
     self.mock_bigquery = mock.MagicMock()
     self.mock.get_api_client.return_value = self.mock_bigquery
 
@@ -55,10 +53,10 @@ class LoadBigQueryStatsTest(unittest.TestCase):
 
     self.mock_bigquery.datasets().insert.assert_has_calls([
         mock.call(
-            projectId='app_id',
+            projectId='test-clusterfuzz',
             body={
                 'datasetReference': {
-                    'projectId': 'app_id',
+                    'projectId': 'test-clusterfuzz',
                     'datasetId': 'fuzzer_stats'
                 }
             }),
@@ -72,13 +70,13 @@ class LoadBigQueryStatsTest(unittest.TestCase):
                     'type': 'DAY'
                 },
                 'tableReference': {
-                    'projectId': 'app_id',
+                    'projectId': 'test-clusterfuzz',
                     'tableId': 'JobRun',
                     'datasetId': 'fuzzer_stats',
                 },
             },
             datasetId='fuzzer_stats',
-            projectId='app_id'),
+            projectId='test-clusterfuzz'),
         mock.call().execute(),
         mock.call(
             body={
@@ -86,13 +84,13 @@ class LoadBigQueryStatsTest(unittest.TestCase):
                     'type': 'DAY'
                 },
                 'tableReference': {
-                    'projectId': 'app_id',
+                    'projectId': 'test-clusterfuzz',
                     'tableId': 'TestcaseRun',
                     'datasetId': 'fuzzer_stats',
                 },
             },
             datasetId='fuzzer_stats',
-            projectId='app_id'),
+            projectId='test-clusterfuzz'),
         mock.call().execute(),
     ])
 
@@ -105,7 +103,7 @@ class LoadBigQueryStatsTest(unittest.TestCase):
                             'autodetect':
                                 False,
                             'destinationTable': {
-                                'projectId': 'app_id',
+                                'projectId': 'test-clusterfuzz',
                                 'tableId': 'JobRun$20160907',
                                 'datasetId': 'fuzzer_stats'
                             },
@@ -123,7 +121,7 @@ class LoadBigQueryStatsTest(unittest.TestCase):
                         }
                     }
                 },
-                projectId='app_id'),
+                projectId='test-clusterfuzz'),
             mock.call().execute(),
             mock.call(
                 body={
@@ -132,7 +130,7 @@ class LoadBigQueryStatsTest(unittest.TestCase):
                             'autodetect':
                                 True,
                             'destinationTable': {
-                                'projectId': 'app_id',
+                                'projectId': 'test-clusterfuzz',
                                 'tableId': 'TestcaseRun$20160907',
                                 'datasetId': 'fuzzer_stats'
                             },
@@ -150,7 +148,7 @@ class LoadBigQueryStatsTest(unittest.TestCase):
                         }
                     }
                 },
-                projectId='app_id'),
+                projectId='test-clusterfuzz'),
             mock.call().execute(),
         ],
         # Otherwise we need to mock two calls to mock.call().execute().__str__()

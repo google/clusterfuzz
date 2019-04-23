@@ -21,8 +21,6 @@ import re
 import urllib2
 import yaml
 
-from google.appengine.api import app_identity
-
 from . import service_accounts
 
 from base import tasks
@@ -368,8 +366,7 @@ def add_bucket_iams(info, client, bucket_name, service_account):
 
 def _deployment_bucket_name():
   """Deployment bucket name."""
-  return '{project}-deployment'.format(
-      project=app_identity.get_application_id())
+  return '{project}-deployment'.format(project=utils.get_application_id())
 
 
 def _shared_corpus_bucket_name():
@@ -648,7 +645,7 @@ def create_pubsub_topics(project):
   for platform in PUBSUB_PLATFORMS:
     name = untrusted.queue_name(project, platform)
     client = pubsub.PubSubClient()
-    application_id = app_identity.get_application_id()
+    application_id = utils.get_application_id()
 
     topic_name = pubsub.topic_name(application_id, name)
     if client.get_topic(topic_name) is None:
@@ -662,7 +659,7 @@ def create_pubsub_topics(project):
 def cleanup_pubsub_topics(project_names):
   """Delete old pubsub topics and subscriptions."""
   client = pubsub.PubSubClient()
-  application_id = app_identity.get_application_id()
+  application_id = utils.get_application_id()
 
   expected_topics = set()
   for platform in PUBSUB_PLATFORMS:
