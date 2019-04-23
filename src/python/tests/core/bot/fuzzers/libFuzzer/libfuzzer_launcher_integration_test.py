@@ -681,9 +681,9 @@ class TestLauncherZFuchsia(BaseLauncherTest):
         builtin=True,
         differential=False,
         file_size='builtin',
-        jobs=[u'libfuzzer_asan_test_fuzzer'],
+        jobs=['libfuzzer_asan_test_fuzzer'],
         name='libFuzzer',
-        source='builtin',  # change to "test@example.com" if it acts up
+        source='builtin',
         max_testcases=4).put()
 
     # Set up a FuzzerJob.
@@ -715,7 +715,7 @@ class TestLauncherZFuchsia(BaseLauncherTest):
             'OS_OVERRIDE=FUCHSIA'),
         name='libfuzzer_asan_test_fuzzer',
         platform='FUCHSIA',
-        templates=[u'libfuzzer', u'engine_asan']).put()
+        templates=['libfuzzer', 'engine_asan']).put()
 
     # Set up a JobTemplate
     data_types.JobTemplate(
