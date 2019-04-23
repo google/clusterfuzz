@@ -84,8 +84,9 @@ class AflConfig(object):
 
   # Mapping of libfuzzer option names to AflOption objects.
   LIBFUZZER_TO_AFL_OPTIONS = {
-    'dict': AflOption(constants.DICT_FLAG, False),
-    'close_fd_mask': AflOption(constants.CLOSE_FD_MASK_ENV_VAR, True),
+    'dict': AflOption(constants.DICT_FLAG, AflOptionType.ARG),
+    'close_fd_mask': AflOption(
+      constants.CLOSE_FD_MASK_ENV_VAR, AflOptionType.ENV_VAR),
   }
 
   def __init__(self):
