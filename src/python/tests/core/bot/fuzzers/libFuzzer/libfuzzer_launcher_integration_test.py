@@ -81,6 +81,7 @@ def setup_testcase_and_corpus(testcase, corpus, fuzz=False):
 def run_launcher(*args):
   """Run launcher.py."""
   string_io = StringIO.StringIO()
+
   with mock.patch('sys.stdout', string_io):
     launcher.main(['launcher.py'] + list(args))
 
