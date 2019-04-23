@@ -15,17 +15,15 @@
 import datetime
 import functools
 import json
-import os
 import re
 import requests
-
-from google.appengine.api import users
 
 from base import utils
 from config import db_config
 from config import local_config
 from datastore import data_types
 from libs import access
+from libs import auth
 from libs import csp
 from libs import helpers
 from system import environment
@@ -109,7 +107,7 @@ def check_admin_access(func):
   @functools.wraps(func)
   def wrapper(self):
     """Wrapper."""
-    if not users.is_current_user_admin():
+    if not auth.is_current_user_admin():
       raise helpers.AccessDeniedException('Admin access is required.')
 
     return func(self)
@@ -253,7 +251,7 @@ def oauth(func):
     if auth_header:
       email, returned_auth_header = get_email_and_access_token(auth_header)
 
-      os.environ['USER_EMAIL'] = email
+      setattr(self.request, '_oauth_email', email)
       self.response.headers[CLUSTERFUZZ_AUTHORIZATION_HEADER] = str(
           returned_auth_header)
       self.response.headers[CLUSTERFUZZ_AUTHORIZATION_IDENTITY] = str(email)
@@ -397,13 +395,13 @@ def require_csrf_token(func):
   def wrapper(self, *args, **kwargs):
     """Check to see if this handler has a valid CSRF token provided to it."""
     token_value = self.request.get('csrf_token')
-    user = users.get_current_user()
+    user = auth.get_current_user()
     if not user:
       raise helpers.AccessDeniedException('Not logged in.')
 
     query = data_types.CSRFToken.query(
         data_types.CSRFToken.value == token_value,
-        data_types.CSRFToken.user_email == user.email())
+        data_types.CSRFToken.user_email == user.email)
     token = query.get()
     if not token:
       raise helpers.AccessDeniedException('Invalid CSRF token.')

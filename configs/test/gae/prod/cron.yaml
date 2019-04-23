@@ -107,3 +107,8 @@ cron:
     url: /triage
     schedule: every 1 hours
     target: cron-service
+
+  - description: Sync admin users.
+    url: /sync-admins
+    schedule: every 1 hours
+    target: cron-service

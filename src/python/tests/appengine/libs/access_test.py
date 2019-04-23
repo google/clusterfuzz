@@ -16,12 +16,11 @@
 import mock
 import unittest
 
-from google.appengine.api import users
-
 from datastore import data_types
 from issue_management import issue
 from issue_management import issue_tracker_manager
 from libs import access
+from libs import auth
 from libs import helpers
 from tests.test_libs import helpers as test_helpers
 from tests.test_libs import test_utils
@@ -108,14 +107,14 @@ class GetAccessTest(unittest.TestCase):
 
   def setUp(self):
     test_helpers.patch(self, [
-        'google.appengine.api.users.get_current_user',
-        'google.appengine.api.users.is_current_user_admin',
+        'libs.auth.get_current_user',
+        'libs.auth.is_current_user_admin',
         'libs.access._is_privileged_user',
         'libs.access._is_domain_allowed',
         'base.external_users.is_fuzzer_allowed_for_user',
         'base.external_users.is_job_allowed_for_user',
     ])
-    self.user = users.User('test@test.com', _auth_domain='test')
+    self.user = auth.User('test@test.com')
 
   def test_get_access_access_redirect(self):
     """Ensure it redirects when user is None."""

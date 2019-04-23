@@ -17,8 +17,6 @@ import unittest
 import webapp2
 import webtest
 
-from google.appengine.ext import testbed
-
 from handlers import base_handler
 from libs import helpers
 from tests.test_libs import helpers as test_helpers
@@ -74,13 +72,11 @@ class HandlerTest(unittest.TestCase):
   def setUp(self):
     test_helpers.patch(self, [
         'config.db_config.get_value',
-        'google.appengine.api.users.create_login_url',
-        'google.appengine.api.users.create_logout_url',
+        'libs.form.generate_csrf_token',
         'libs.helpers.get_user_email',
     ])
     self.mock.get_value.return_value = 'contact_string'
-    self.mock.create_login_url.return_value = 'login_url'
-    self.mock.create_logout_url.return_value = 'logout_url'
+    self.mock.generate_csrf_token.return_value = 'csrf_token'
     self.mock.get_user_email.return_value = 'test@test.com'
 
   def test_render_json(self):
@@ -145,31 +141,3 @@ class HandlerTest(unittest.TestCase):
     self.assertEqual(response.status_int, 403)
     self.assertRegexpMatches(response.body, '.*Access Denied.*')
     self.assertRegexpMatches(response.body, '.*this_random_message.*')
-
-
-def _mock_create_login_url(dest_url):
-  """Return a fake login URL in the format for authenticated users."""
-  return 'https://site/ServiceLogin?continue=%s' % dest_url
-
-
-class MakeSwitchAccountUrlTest(unittest.TestCase):
-  """Test make_switch_account_url."""
-
-  def setUp(self):
-    test_helpers.patch(self, [
-        'google.appengine.api.users.create_login_url',
-        'libs.helpers.get_user_email',
-    ])
-    self.testbed = testbed.Testbed()
-    self.testbed.activate()
-    self.testbed.init_user_stub()
-
-  def tearDown(self):
-    self.testbed.deactivate()
-
-  def test_make(self):
-    """Test make_url."""
-    self.mock.create_login_url.side_effect = _mock_create_login_url
-    self.mock.get_user_email.return_value = 'test@test.com'
-    self.assertEqual('https://site/AccountChooser?continue=/testcase/12354',
-                     base_handler.make_switch_account_url('/testcase/12354'))

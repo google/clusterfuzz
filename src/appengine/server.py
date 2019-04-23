@@ -34,6 +34,7 @@ from handlers import help_redirector
 from handlers import home
 from handlers import issue_redirector
 from handlers import jobs
+from handlers import login
 from handlers import parse_stacktrace
 from handlers import report_csp_failure
 from handlers import revisions_info
@@ -54,6 +55,7 @@ from handlers.cron import oss_fuzz_setup
 from handlers.cron import predator_pull
 from handlers.cron import recurring_tasks
 from handlers.cron import schedule_corpus_pruning
+from handlers.cron import sync_admins
 from handlers.cron import triage
 from handlers.performance_report import (show as show_performance_report)
 from handlers.testcase_detail import (crash_stats as crash_stats_on_testcase)
@@ -133,6 +135,7 @@ _CRON_ROUTES = [
     ('/schedule-progression-tasks', recurring_tasks.ProgressionTasksScheduler),
     ('/schedule-upload-reports-tasks',
      recurring_tasks.UploadReportsTaskScheduler),
+    ('/sync-admins', sync_admins.Handler),
     ('/testcases/cache', testcase_list.CacheHandler),
     ('/triage', triage.Handler),
 ]
@@ -169,11 +172,14 @@ _ROUTES = [
     ('/issue/([0-9]+)/(.+)', issue_redirector.Handler),
     ('/jobs', jobs.Handler),
     ('/jobs/.*', jobs.Handler),
+    ('/login', login.Handler),
+    ('/logout', login.LogoutHandler),
     ('/update-job', jobs.UpdateJob),
     ('/update-job-template', jobs.UpdateJobTemplate),
     ('/parse_stacktrace', parse_stacktrace.Handler),
     ('/performance-report/(.+)/(.+)/(.+)', show_performance_report.Handler),
     ('/report-csp-failure', report_csp_failure.ReportCspFailureHandler),
+    ('/session-login', login.SessionLoginHandler),
     ('/testcase', show_testcase.DeprecatedHandler),
     ('/testcase-detail/([0-9]+)', show_testcase.Handler),
     ('/testcase-detail/crash-stats', crash_stats_on_testcase.Handler),

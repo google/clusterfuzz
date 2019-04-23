@@ -18,11 +18,10 @@ import logging
 import sys
 import traceback
 
-from google.appengine.api import users
-
 from base import errors
 from datastore import data_handler
 from issue_management import issue_tracker_utils
+from libs import auth
 
 VIEW_OPERATION = 'View'
 MODIFY_OPERATION = 'Modify'
@@ -152,7 +151,7 @@ def get_or_exit(fn,
 def get_user_email():
   """Returns currently logged-in user's email."""
   try:
-    return users.get_current_user().email()
+    return auth.get_current_user().email
   except Exception:
     return ''
 

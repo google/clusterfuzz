@@ -109,8 +109,11 @@ if IS_RUNNING_IN_PRODUCTION or IS_RUNNING_IN_DEV_APPSERVER:
   # running tasks such as cron jobs.
   ndb.get_context().set_cache_policy(False)
 
-# Use the App Engine Requests adapter. This makes sure that Requests uses
-# URLFetch. This is a workaround till we migrate to Python 3 on App Engine Flex.
-if IS_RUNNING_IN_PRODUCTION:
+  # Use the App Engine Requests adapter. This makes sure that Requests uses
+  # URLFetch. This is a workaround till we migrate to Python 3 on App Engine
+  # Flex.
   import requests_toolbelt.adapters.appengine
   requests_toolbelt.adapters.appengine.monkeypatch()
+
+  import firebase_admin
+  firebase_admin.initialize_app()

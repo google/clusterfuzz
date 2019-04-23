@@ -16,8 +16,7 @@
 
 import unittest
 
-from google.appengine.api import users
-
+from libs import auth
 from libs import helpers
 from tests.test_libs import helpers as test_helpers
 
@@ -119,12 +118,11 @@ class GetUserEmailTest(unittest.TestCase):
   """Test get_user_email."""
 
   def setUp(self):
-    test_helpers.patch(self, ['google.appengine.api.users.get_current_user'])
+    test_helpers.patch(self, ['libs.auth.get_current_user'])
 
   def test_get_user_email_success(self):
     """Ensure it gets the email when a user is valid."""
-    self.mock.get_current_user.return_value = (
-        users.User('TeSt@Test.com', _auth_domain='domain'))
+    self.mock.get_current_user.return_value = (auth.User('TeSt@Test.com'))
     self.assertEqual(helpers.get_user_email(), 'TeSt@Test.com')
 
   def test_get_user_email_failure(self):
