@@ -13,6 +13,27 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+function run_bot () {
+  serial=$1
+  bot_directory=$INSTALL_DIRECTORY/bots/$(echo $serial | sed s/:/-/)
+
+  # Recreate bot directory.
+  rm -rf $bot_directory
+  mkdir -p $bot_directory
+  cp -r $INSTALL_DIRECTORY/clusterfuzz $bot_directory/clusterfuzz
+  echo "Created bot directory $bot_directory."
+
+  # Wait for device and run clusterfuzz indefinitely for this bot.
+  while true; do
+    $ADB_PATH/adb -s "$serial" wait-for-device
+
+    echo "Running ClusterFuzz instance for bot $serial."
+    OS_OVERRIDE="ANDROID" ANDROID_SERIAL="$serial" PATH="$PATH" NFS_ROOT="$NFS_ROOT" GOOGLE_APPLICATION_CREDENTIALS="$GOOGLE_APPLICATION_CREDENTIALS" ROOT_DIR="$bot_directory/clusterfuzz" PYTHONPATH="$PYTHONPATH" GSUTIL_PATH="$GSUTIL_PATH" python $bot_directory/clusterfuzz/src/python/bot/startup/run.py || true
+
+    echo "ClusterFuzz instance for bot $serial quit unexpectedly. Waiting for device."
+  done
+}
+
 if [ -z "$CLOUD_PROJECT_ID" ]; then
   echo "\$CLOUD_PROJECT_ID is not set."
   exit 1
@@ -20,11 +41,6 @@ fi
 
 if [ -z "$GOOGLE_APPLICATION_CREDENTIALS" ]; then
   echo "\$GOOGLE_APPLICATION_CREDENTIALS is not set."
-  exit 1
-fi
-
-if [ -z "$ANDROID_SERIAL" ]; then
-  echo "\$ANDROID_SERIAL is not set."
   exit 1
 fi
 
@@ -39,7 +55,7 @@ DEPLOYMENT_BUCKET="deployment.$CLOUD_PROJECT_ID.appspot.com"
 GSUTIL_PATH="$INSTALL_DIRECTORY/$GOOGLE_CLOUD_SDK/bin"
 ROOT_DIR="$INSTALL_DIRECTORY/clusterfuzz"
 PYTHONPATH="$PYTHONPATH:$APPENGINE_DIR:$ROOT_DIR/src"
-ADB_PATH="$INSTALL_DIRECTORY/platform-tools"
+ADB_PATH="$ROOT_DIR/resources/platform/android"
 PATH="$PATH:$ADB_PATH"
 
 echo "Creating directory $INSTALL_DIRECTORY."
@@ -56,13 +72,6 @@ if [ ! -d "$INSTALL_DIRECTORY/$GOOGLE_CLOUD_SDK" ]; then
   rm $GOOGLE_CLOUD_SDK_ARCHIVE
 fi
 
-echo "Fetching Android platform tools for ADB."
-if [ ! -d "$ADB_PATH" ]; then
-  wget https://dl.google.com/android/repository/platform-tools-latest-linux.zip
-  unzip $INSTALL_DIRECTORY/platform-tools-latest-linux.zip
-  rm $INSTALL_DIRECTORY/platform-tools-latest-linux.zip
-fi
-
 echo "Fetching Google App Engine SDK."
 if [ ! -d "$INSTALL_DIRECTORY/$APPENGINE" ]; then
   curl -O "https://commondatastorage.googleapis.com/clusterfuzz-data/$APPENGINE_FILE"
@@ -71,13 +80,7 @@ if [ ! -d "$INSTALL_DIRECTORY/$APPENGINE" ]; then
 fi
 
 echo "Installing ClusterFuzz package dependencies."
-pip install crcmod==1.7 psutil==5.4.7 pyOpenSSL==19.0.0
-
-echo "Ensuring device is connected."
-if [[ $("$ADB_PATH/adb" -s "$ANDROID_SERIAL" get-state) != "device" ]]; then
-  echo "Device $ANDROID_SERIAL is not connected."
-  exit 1
-fi
+python -m pip install crcmod==1.7 psutil==5.4.7 pyOpenSSL==19.0.0
 
 echo "Activating credentials with the Google Cloud SDK."
 $GSUTIL_PATH/gcloud auth activate-service-account --key-file=$GOOGLE_APPLICATION_CREDENTIALS
@@ -98,7 +101,11 @@ rm -rf clusterfuzz
 $GSUTIL_PATH/gsutil cp gs://$DEPLOYMENT_BUCKET/linux.zip clusterfuzz-source.zip
 unzip -q clusterfuzz-source.zip
 
-echo "Running ClusterFuzz."
-OS_OVERRIDE="ANDROID" ANDROID_SERIAL="$ANDROID_SERIAL" PATH="$PATH" NFS_ROOT="$NFS_ROOT" GOOGLE_APPLICATION_CREDENTIALS="$GOOGLE_APPLICATION_CREDENTIALS" ROOT_DIR="$ROOT_DIR" PYTHONPATH="$PYTHONPATH" GSUTIL_PATH="$GSUTIL_PATH" python $ROOT_DIR/src/python/bot/startup/run.py &
-
-echo "Success!"
+if [ -z "$ANDROID_SERIAL" ]; then
+  echo "No \$ANDROID_SERIAL set. Will automatically detect devices and start ClusterFuzz for each."
+  for serial in `$ADB_PATH/adb devices | awk -F' ' '{ print $1 }' | egrep -v '^(|List)$'`; do
+    run_bot $serial &
+  done
+else
+  run_bot $ANDROID_SERIAL &
+fi
