@@ -28,7 +28,9 @@ from system import shell
 
 def qemu_setup():
   """Sets up and runs a QEMU VM in the background.
-  Does not block the calling process.
+  Returns a process.Popen object.
+  Does not block the calling process, and teardown must be handled by the
+  caller (use .kill()).
   Fuchsia fuzzers assume a QEMU VM is running; call this routine prior to
   beginning Fuchsia fuzzing tasks.
   This initialization routine assumes that the GCS bucket contains the
