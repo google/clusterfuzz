@@ -745,7 +745,8 @@ class TestLauncherFuchsia(BaseLauncherTest):
 
     environment.set_value('QUEUE_OVERRIDE', 'FUCHSIA')
     environment.set_value('OS_OVERRIDE', 'FUCHSIA')
-    environment.set_value('FUCHSIA_RESOURCES_URL', 'gs://fuchsia-on-clusterfuzz-v2/*')
+    environment.set_value('FUCHSIA_RESOURCES_URL',
+                          'gs://fuchsia-on-clusterfuzz-v2/*')
     # set_bot_environment gives us access to RESOURCES_DIR
     environment.set_bot_environment()
     resources_dir = environment.get_value('RESOURCES_DIR')
