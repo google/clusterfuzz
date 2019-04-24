@@ -13,6 +13,25 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+function run_bot () {
+  bot_directory=$INSTALL_DIRECTORY/bots/$(echo $1 | sed s/:/-/)
+  mkdir -p $bot_directory
+  cp -r $INSTALL_DIRECTORY/clusterfuzz $bot_directory/clusterfuzz
+  echo "Created bot directory $bot_directory."
+
+  while true; do
+    if ! $("$ADB_PATH/adb" -s "$1" wait-for-device); then
+      echo "Device $1 is not connected."
+      exit 1
+    fi
+
+    echo "Running ClusterFuzz instance for bot $1."
+    OS_OVERRIDE="ANDROID" ANDROID_SERIAL="$1" PATH="$PATH" NFS_ROOT="$NFS_ROOT" GOOGLE_APPLICATION_CREDENTIALS="$GOOGLE_APPLICATION_CREDENTIALS" ROOT_DIR="$bot_directory/clusterfuzz" PYTHONPATH="$PYTHONPATH" GSUTIL_PATH="$GSUTIL_PATH" python $bot_directory/clusterfuzz/src/python/bot/startup/run.py
+
+    echo "ClusterFuzz instance for bot $1 quit unexpectedly. Waiting for device."
+  done
+}
+
 if [ -z "$CLOUD_PROJECT_ID" ]; then
   echo "\$CLOUD_PROJECT_ID is not set."
   exit 1
@@ -24,8 +43,7 @@ if [ -z "$GOOGLE_APPLICATION_CREDENTIALS" ]; then
 fi
 
 if [ -z "$ANDROID_SERIAL" ]; then
-  echo "\$ANDROID_SERIAL is not set."
-  exit 1
+  echo "\$No ANDROID_SERIAL set. Will automatically detect devices and start ClusterFuzz for each."
 fi
 
 NFS_ROOT=  # Fill in NFS information if available.
@@ -71,13 +89,7 @@ if [ ! -d "$INSTALL_DIRECTORY/$APPENGINE" ]; then
 fi
 
 echo "Installing ClusterFuzz package dependencies."
-pip install crcmod==1.7 psutil==5.4.7 pyOpenSSL==19.0.0
-
-echo "Ensuring device is connected."
-if [[ $("$ADB_PATH/adb" -s "$ANDROID_SERIAL" get-state) != "device" ]]; then
-  echo "Device $ANDROID_SERIAL is not connected."
-  exit 1
-fi
+python -m pip install crcmod==1.7 psutil==5.4.7 pyOpenSSL==19.0.0
 
 echo "Activating credentials with the Google Cloud SDK."
 $GSUTIL_PATH/gcloud auth activate-service-account --key-file=$GOOGLE_APPLICATION_CREDENTIALS
@@ -98,7 +110,10 @@ rm -rf clusterfuzz
 $GSUTIL_PATH/gsutil cp gs://$DEPLOYMENT_BUCKET/linux.zip clusterfuzz-source.zip
 unzip -q clusterfuzz-source.zip
 
-echo "Running ClusterFuzz."
-OS_OVERRIDE="ANDROID" ANDROID_SERIAL="$ANDROID_SERIAL" PATH="$PATH" NFS_ROOT="$NFS_ROOT" GOOGLE_APPLICATION_CREDENTIALS="$GOOGLE_APPLICATION_CREDENTIALS" ROOT_DIR="$ROOT_DIR" PYTHONPATH="$PYTHONPATH" GSUTIL_PATH="$GSUTIL_PATH" python $ROOT_DIR/src/python/bot/startup/run.py &
-
-echo "Success!"
+if [ -z "$ANDROID_SERIAL" ]; then
+  for serial in `adb devices -l | awk -F' ' '{ print $3 }' | grep usb:`; do
+    run_bot $serial &
+  done
+else
+  run_bot $ANDROID_SERIAL
+fi
