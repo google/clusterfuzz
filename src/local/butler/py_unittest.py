@@ -202,7 +202,7 @@ def run_tests_parallel(args, test_directory):
   while True:
     try:
       # KeyboardInterrupt never gets raised unless we pass a timeout.
-      results = results.get(timeout=600)
+      results = results.get(timeout=1200)
       break
     except KeyboardInterrupt:
       pool.terminate()
