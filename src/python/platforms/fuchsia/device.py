@@ -16,6 +16,8 @@
 # TODO(flowerhack): Re-enable this check once functions below are implemented.
 # pylint: disable=unused-argument
 
+import subprocess
+import time
 import os
 
 from google_cloud_utils import gsutil
@@ -93,8 +95,12 @@ def qemu_setup():
 
   # Finally, launch QEMU.
   qemu_process = new_process.ProcessRunner(qemu_path, qemu_args)
-  #raise Exception("WE'RE ABOUT TO LAUNCH QEMU")
-  return qemu_process.run()
+  qemu_popen = qemu_process.run(stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+  time.sleep(2)
+  if qemu_popen._popen.returncode is not None:
+    raise Exception("Failed to run QEMU: " + str(qemu_popen.stdout) + ", " + str(qemu_popen.stderr))
+    qemu_popen.stdout
+  return qemu_popen
 
 
 def initialize_resources_dir():
