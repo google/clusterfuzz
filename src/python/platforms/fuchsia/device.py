@@ -104,6 +104,7 @@ def qemu_setup():
   if qemu_popen._popen.returncode is not None:
     raise Exception("Failed to run QEMU: " + str(qemu_popen.stdout) + ", " + str(qemu_popen.stderr))
     qemu_popen.stdout
+  raise Exception("QEMU is running: " + str(qemu_popen.stdout) + ", " + str(qemu_popen.stderr))
   return qemu_popen
 
 
