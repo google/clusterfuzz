@@ -93,6 +93,7 @@ def qemu_setup():
 
   # Finally, launch QEMU.
   qemu_process = new_process.ProcessRunner(qemu_path, qemu_args)
+  raise Exception("WE'RE ABOUT TO LAUNCH QEMU")
   return qemu_process.run()
 
 

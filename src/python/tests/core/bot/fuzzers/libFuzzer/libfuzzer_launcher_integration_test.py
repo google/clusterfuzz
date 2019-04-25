@@ -775,6 +775,7 @@ class TestLauncherFuchsia(BaseLauncherTest):
     print("SETUP TESTCASE")
     testcase_path = setup_testcase_and_corpus('aaaa', 'empty_corpus', fuzz=True)
     print("RUN RUNNER")
+    raise Exception("about to run a runner")
     output = run_launcher(testcase_path, 'test_fuzzer')
     self.assertIn('running on fuchsia!', output)
     raise Exception("FUCHSIA IS DONE")
