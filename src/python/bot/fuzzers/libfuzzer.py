@@ -325,7 +325,7 @@ class LibFuzzerRunner(new_process.ProcessRunner, LibFuzzerCommon):
 class FuchsiaQemuLibFuzzerRunner(new_process.ProcessRunner, LibFuzzerCommon):
   """libFuzzer runner (when Fuchsia is the target platform)."""
 
-  SSH_RETRIES = 10
+  SSH_RETRIES = 3
   SSH_WAIT = 2
 
   def __init__(self, executable_path, default_args=None):
@@ -359,7 +359,7 @@ class FuchsiaQemuLibFuzzerRunner(new_process.ProcessRunner, LibFuzzerCommon):
            extra_env=None):
     """LibFuzzerCommon.fuzz override."""
     result = self._test_qemu_ssh()
-    raise Exception("about to test qemu ssh")
+    raise Exception("tested qemu")
     return result
 
   def run_single_testcase(self,
