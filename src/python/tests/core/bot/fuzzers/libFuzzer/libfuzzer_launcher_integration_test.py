@@ -37,6 +37,9 @@ TEST_PATH = os.path.abspath(os.path.dirname(__file__))
 TEMP_DIRECTORY = os.path.join(TEST_PATH, 'temp')
 DATA_DIRECTORY = os.path.join(TEST_PATH, 'data')
 
+logger = logging.getLogger(__name__)
+
+
 
 def clear_temp_dir():
   """Clear temp directory."""
