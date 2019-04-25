@@ -1,6 +1,6 @@
 #!/bin/bash -ex
 
 echo 'Running unit tests...'
-python butler.py py_unittest -v -u -t appengine -m "$@"
+python butler.py py_unittest -t appengine -m "$@"
 python butler.py py_unittest -v -u -t core -m "$@"
 python butler.py go_unittest "$@"
