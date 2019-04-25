@@ -15,6 +15,7 @@
 import copy
 import os
 import shutil
+import logging
 
 from base import retry
 from bot.fuzzers import engine_common
@@ -26,6 +27,8 @@ from system import new_process
 from system import shell
 
 MAX_OUTPUT_LEN = 1 * 1024 * 1024  # 1 MB
+
+logger = logging.getLogger(__name__)
 
 
 class LibFuzzerException(Exception):
@@ -358,7 +361,9 @@ class FuchsiaQemuLibFuzzerRunner(new_process.ProcessRunner, LibFuzzerCommon):
            additional_args=None,
            extra_env=None):
     """LibFuzzerCommon.fuzz override."""
+    logger.warning("about to test qemu")
     result = self._test_qemu_ssh()
+    logger.warning("tested qemu")
     raise Exception("tested qemu")
     return result
 
@@ -378,6 +383,7 @@ class FuchsiaQemuLibFuzzerRunner(new_process.ProcessRunner, LibFuzzerCommon):
   def _test_qemu_ssh(self):
     """Tests that a VM is up and can be successfully SSH'd into.
     Raises an exception if no success after MAX_SSH_RETRIES."""
+    logger.warning("trying qemu...")
     ssh_test_process = new_process.ProcessRunner(
         'ssh', self.ssh_args + ['echo running on fuchsia!'])
     result = ssh_test_process.run_and_wait()

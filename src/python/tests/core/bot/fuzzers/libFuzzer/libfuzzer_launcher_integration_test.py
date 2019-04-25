@@ -21,6 +21,8 @@ import unittest
 
 import parameterized
 
+import logging
+
 from bot.fuzzers import libfuzzer
 from bot.fuzzers import utils as fuzzer_utils
 from bot.fuzzers.libFuzzer import launcher
@@ -93,7 +95,7 @@ class BaseLauncherTest(unittest.TestCase):
 
   def setUp(self):
     #raise Exception("how dare you test a launcher")
-    print("BASE LAUNCHER TEST")
+    logger.warning("BASE LAUNCHER TEST")
     test_helpers.patch_environ(self)
 
     os.environ['BUILD_DIR'] = DATA_DIRECTORY
@@ -675,7 +677,7 @@ class TestLauncherFuchsia(BaseLauncherTest):
   """libFuzzer launcher tests (Fuchsia)."""
 
   def setUp(self):
-    print("SETTING UP FUCHSIA")
+    logger.warning("SETTING UP FUCHSIA")
     test_helpers.patch_environ(self)
     # Set up a Fuzzer.
     data_types.Fuzzer(
@@ -770,14 +772,14 @@ class TestLauncherFuchsia(BaseLauncherTest):
     # TODO(flowerhack): Fuchsia's `fuzz` only calls 'echo running on fuchsia!'
     # right now by default, but we'll call it explicitly in here as we
     # diversity `fuzz`'s functionality
-    print("QEMU SETUP")
+    logger.warning("QEMU SETUP")
     qemu_process = fuchsia.device.qemu_setup()
-    print("SETUP TESTCASE")
+    logger.warning("SETUP TESTCASE")
     testcase_path = setup_testcase_and_corpus('aaaa', 'empty_corpus', fuzz=True)
-    print("RUN RUNNER")
+    logger.warning("RUN RUNNER")
     #raise Exception("about to run a runner")
     output = run_launcher(testcase_path, 'test_fuzzer')
     self.assertIn('running on fuchsia!', output)
     raise Exception("FUCHSIA IS DONE")
-    print("KILL QEMU")
+    logger.warning("KILL QEMU")
     qemu_process.kill()

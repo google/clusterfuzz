@@ -19,6 +19,7 @@
 import subprocess
 import time
 import os
+import logging
 
 from google_cloud_utils import gsutil
 from metrics import logs
@@ -26,6 +27,8 @@ from platforms.fuchsia import errors
 from system import environment
 from system import new_process
 from system import shell
+
+logger = logging.getLogger(__name__)
 
 
 def qemu_setup():
@@ -96,6 +99,7 @@ def qemu_setup():
   # Finally, launch QEMU.
   qemu_process = new_process.ProcessRunner(qemu_path, qemu_args)
   qemu_popen = qemu_process.run(stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+  logger.warning("Gonna try running qemu")
   time.sleep(2)
   if qemu_popen._popen.returncode is not None:
     raise Exception("Failed to run QEMU: " + str(qemu_popen.stdout) + ", " + str(qemu_popen.stderr))
