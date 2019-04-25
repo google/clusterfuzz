@@ -190,11 +190,11 @@ def execute(_):
   go_changed_file_paths = [f for f in file_paths if f.endswith('.go')]
   yaml_changed_file_paths = [f for f in file_paths if f.endswith('.yaml')]
 
-  for file_path in py_changed_file_paths:
-    _execute_command_and_track_error('pylint ' + file_path)
-    _execute_command_and_track_error('yapf -d ' + file_path)
-    py_import_order(file_path)
-    py_test_init_check(file_path)
+  #for file_path in py_changed_file_paths:
+  #  _execute_command_and_track_error('pylint ' + file_path)
+  #  _execute_command_and_track_error('yapf -d ' + file_path)
+  #  py_import_order(file_path)
+  #  py_test_init_check(file_path)
 
   golint_path = os.path.join('local', 'bin', 'golint')
   for file_path in go_changed_file_paths:
