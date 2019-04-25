@@ -370,6 +370,8 @@ class FuchsiaQemuLibFuzzerRunner(new_process.ProcessRunner, LibFuzzerCommon):
   def ssh_command(self, *args):
     return ['ssh'] + self.ssh_root + list(args)
 
+  raise Exception("about to test qemu ssh")
+
   @retry.wrap(retries=SSH_RETRIES, delay=SSH_WAIT, function='_test_qemu_ssh')
   def _test_qemu_ssh(self):
     """Tests that a VM is up and can be successfully SSH'd into.
