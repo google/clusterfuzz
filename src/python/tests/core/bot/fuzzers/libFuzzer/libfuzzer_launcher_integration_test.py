@@ -92,6 +92,7 @@ class BaseLauncherTest(unittest.TestCase):
   """Base libFuzzer launcher tests."""
 
   def setUp(self):
+    #raise Exception("how dare you test a launcher")
     print("BASE LAUNCHER TEST")
     test_helpers.patch_environ(self)
 
@@ -769,6 +770,7 @@ class TestLauncherFuchsia(BaseLauncherTest):
     # TODO(flowerhack): Fuchsia's `fuzz` only calls 'echo running on fuchsia!'
     # right now by default, but we'll call it explicitly in here as we
     # diversity `fuzz`'s functionality
+    raise Exception("QEMU SETUP")
     print("QEMU SETUP")
     qemu_process = fuchsia.device.qemu_setup()
     print("SETUP TESTCASE")
