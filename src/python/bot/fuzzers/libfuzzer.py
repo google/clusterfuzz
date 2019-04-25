@@ -358,8 +358,9 @@ class FuchsiaQemuLibFuzzerRunner(new_process.ProcessRunner, LibFuzzerCommon):
            additional_args=None,
            extra_env=None):
     """LibFuzzerCommon.fuzz override."""
+    result = self._test_qemu_ssh()
     raise Exception("about to test qemu ssh")
-    return self._test_qemu_ssh()
+    return result
 
   def run_single_testcase(self,
                           testcase_path,
