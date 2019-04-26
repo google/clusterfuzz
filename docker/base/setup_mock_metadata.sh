@@ -1,5 +1,4 @@
-#!/bin/bash
-#
+#!/bin/bash -ex
 # Copyright 2019 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -14,5 +13,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-source /data/setup_mock_metadata.sh
-python butler.py bootstrap
+# Set up mock metadata server.
+if [[ -n "$LOCAL_METADATA_SERVER" ]]; then
+  ip addr add 169.254.169.254/32 dev lo
+  socat TCP-LISTEN:80,fork,reuseaddr TCP:$LOCAL_METADATA_SERVER:$LOCAL_METADATA_PORT &
+  echo "127.0.0.1 metadata metadata.google.internal" >> /etc/hosts
+fi
+

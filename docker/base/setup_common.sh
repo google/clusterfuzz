@@ -13,12 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Set up mock metadata server.
-if [[ -n "$LOCAL_METADATA_SERVER" ]]; then
-  ip addr add 169.254.169.254/32 dev lo
-  socat TCP-LISTEN:80,fork,reuseaddr TCP:$LOCAL_METADATA_SERVER:$LOCAL_METADATA_PORT &
-  echo "127.0.0.1 metadata metadata.google.internal" >> /etc/hosts
-fi
+source /data/setup_mock_metadata.sh
 
 # Create user with matching UID as host
 export HOST_UID=${HOST_UID:-1337}
