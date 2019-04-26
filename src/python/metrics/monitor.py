@@ -134,7 +134,7 @@ class _MetricsStore(object):
 
   def iter_values(self):
     with self._lock:
-      for value in list(self._store.values()):
+      for value in six.itervalues(self._store):
         yield value
 
   def get(self, metric, labels):
