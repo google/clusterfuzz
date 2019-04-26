@@ -19,7 +19,6 @@
 import os
 import socket
 import subprocess
-import time
 
 from google_cloud_utils import gsutil
 from metrics import logs
@@ -65,8 +64,8 @@ def qemu_setup():
   add_keys_to_zbi(fuchsia_resources_dir, initrd_path, fuchsia_zbi)
 
   tcp = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-  tcp.bind(('localhost',0))
-  addr, port = tcp.getsockname()
+  tcp.bind(('localhost', 0))
+  _, port = tcp.getsockname()
   tcp.close()
   # Fuzzing jobs that SSH into the QEMU VM need access to this env var.
   environment.set_value('FUCHSIA_PORTNUM', port)
@@ -100,10 +99,6 @@ def qemu_setup():
   # Finally, launch QEMU.
   qemu_process = new_process.ProcessRunner(qemu_path, qemu_args)
   qemu_popen = qemu_process.run(stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-  time.sleep(2)
-  if qemu_popen._popen.returncode is not None:
-    raise Exception("Failed to run QEMU: " + str(qemu_popen.stdout) + ", " + str(qemu_popen.stderr))
-    qemu_popen.stdout
   return qemu_popen
 
 
