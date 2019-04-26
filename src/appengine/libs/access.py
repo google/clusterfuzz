@@ -13,8 +13,6 @@
 # limitations under the License.
 """access.py contains static methods around access permissions."""
 
-from google.appengine.api import users
-
 from base import errors
 from base import external_users
 from base import utils
@@ -22,6 +20,7 @@ from config import db_config
 from config import local_config
 from datastore import data_handler
 from issue_management import issue_tracker_utils
+from libs import auth
 from libs import helpers
 
 
@@ -79,14 +78,14 @@ def has_access(need_privileged_access=False, job_type=None, fuzzer_name=None):
 
 def get_access(need_privileged_access=False, job_type=None, fuzzer_name=None):
   """Return 'allowed', 'redirected', or 'failed'."""
-  if users.is_current_user_admin():
+  if auth.is_current_user_admin():
     return UserAccess.Allowed
 
-  user = users.get_current_user()
+  user = auth.get_current_user()
   if not user:
     return UserAccess.Redirected
 
-  email = user.email()
+  email = user.email
   if _is_privileged_user(email):
     return UserAccess.Allowed
 

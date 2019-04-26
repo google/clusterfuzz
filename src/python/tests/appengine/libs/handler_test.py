@@ -22,12 +22,10 @@ import webapp2
 import webtest
 import yaml
 
-from google.appengine.api import users
-from google.appengine.ext import testbed
-
 from config import local_config
 from datastore import data_types
 from handlers import base_handler
+from libs import auth
 from libs import handler
 from libs import helpers
 from tests.test_libs import helpers as test_helpers
@@ -139,8 +137,8 @@ class OAuthHandler(base_handler.Handler):
   @handler.oauth
   def post(self):
     email = ''
-    if users.get_current_user():
-      email = users.get_current_user().email()
+    if auth.get_current_user():
+      email = auth.get_current_user().email
     self.render_json({'data': email})
 
 
@@ -156,19 +154,16 @@ class CronTest(unittest.TestCase):
 
   def setUp(self):
     test_helpers.patch(self, [
-        'libs.helpers.get_user_email', 'config.db_config.get_value',
-        'google.appengine.api.users.is_current_user_admin'
+        'config.db_config.get_value',
+        'libs.form.generate_csrf_token',
+        'libs.auth.is_current_user_admin',
+        'libs.auth.get_current_user',
     ])
+    self.mock.generate_csrf_token.return_value = 'csrf_token'
     self.mock.is_current_user_admin.return_value = False
-    self.mock.get_user_email.return_value = 'test@test.com'
+    self.mock.get_current_user.return_value = auth.User('test@test.com')
 
-    self.testbed = testbed.Testbed()
-    self.testbed.activate()
-    self.testbed.init_user_stub()
     self.app = webtest.TestApp(webapp2.WSGIApplication([('/', CronHandler)]))
-
-  def tearDown(self):
-    self.testbed.deactivate()
 
   def test_succeed(self):
     """Test request from cron."""
@@ -336,7 +331,7 @@ class CheckAdminAccessTest(unittest.TestCase):
 
   def setUp(self):
     test_helpers.patch(self, [
-        'google.appengine.api.users.is_current_user_admin',
+        'libs.auth.is_current_user_admin',
     ])
 
   def test_allowed(self):
@@ -365,7 +360,7 @@ class CheckAdminAccessIfOssFuzzTest(unittest.TestCase):
   def setUp(self):
     test_helpers.patch(self, [
         'base.utils.is_oss_fuzz',
-        'google.appengine.api.users.is_current_user_admin',
+        'libs.auth.is_current_user_admin',
     ])
     test_helpers.patch_environ(self)
     self.mock.is_oss_fuzz.return_value = False
@@ -480,9 +475,9 @@ class TestGetEmailAndAccessToken(unittest.TestCase):
               'email_verified': True
           }))
 
-      email, auth = handler.get_email_and_access_token('Bearer AccessToken')
+      email, token = handler.get_email_and_access_token('Bearer AccessToken')
       self.assertEqual('test@test.com', email)
-      self.assertEqual('Bearer AccessToken', auth)
+      self.assertEqual('Bearer AccessToken', token)
       self._assert_requests_get_call()
 
   def test_allow_whitelised_accounts(self):
@@ -496,10 +491,10 @@ class TestGetEmailAndAccessToken(unittest.TestCase):
               'email': email
           }))
 
-      returned_email, auth = handler.get_email_and_access_token(
+      returned_email, token = handler.get_email_and_access_token(
           'Bearer AccessToken')
       self.assertEqual(email, returned_email)
-      self.assertEqual('Bearer AccessToken', auth)
+      self.assertEqual('Bearer AccessToken', token)
       self._assert_requests_get_call()
 
   def test_allowed_verification_code(self):
@@ -513,9 +508,9 @@ class TestGetEmailAndAccessToken(unittest.TestCase):
         }))
     self.mock.get_access_token.return_value = 'AccessToken'
 
-    email, auth = handler.get_email_and_access_token('VerificationCode Verify')
+    email, token = handler.get_email_and_access_token('VerificationCode Verify')
     self.assertEqual('test@test.com', email)
-    self.assertEqual('Bearer AccessToken', auth)
+    self.assertEqual('Bearer AccessToken', token)
     self.assertEqual(1, self.mock.get_access_token.call_count)
     self.mock.get_access_token.assert_has_calls(
         [mock.call(verification_code='Verify')])

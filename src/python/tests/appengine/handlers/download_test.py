@@ -44,8 +44,6 @@ class DownloadTest(unittest.TestCase):
     test_helpers.patch(self, [
         'base.utils.is_oss_fuzz',
         'google_cloud_utils.blobs.get_blob_info',
-        'google.appengine.api.users.create_login_url',
-        'google.appengine.api.users.create_logout_url',
         'issue_management.issue_tracker_utils.get_issue_tracker_manager',
         'libs.access.can_user_access_testcase',
         'libs.access.has_access',

@@ -1303,3 +1303,8 @@ class OssFuzzBuildFailure(Model):
 
   # Build type (fuzzing, coverage, etc).
   build_type = ndb.StringProperty()
+
+
+class Admin(Model):
+  """Records an admin user."""
+  email = ndb.StringProperty()

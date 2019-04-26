@@ -406,20 +406,21 @@ class GetTestcaseTest(unittest.TestCase):
   def setUp(self):
     test_helpers.patch_environ(self)
     test_helpers.patch(self, [
-        'metrics.crash_stats.get_last_crash_time',
-        'datastore.data_types.Job.get_environment',
+        'build_management.revisions.get_component_range_list',
+        'build_management.revisions.get_component_revisions_dict',
         'config.db_config.get',
         'config.db_config.get_value',
         'config.db_config.get_value_for_job',
-        'build_management.revisions.get_component_range_list',
-        'build_management.revisions.get_component_revisions_dict',
         'datastore.data_handler.get_stacktrace',
-        'issue_management.issue_tracker_utils.get_issue_url',
-        'libs.access.has_access',
-        'libs.helpers.get_user_email',
-        'libs.access.can_user_access_testcase',
+        'datastore.data_types.Job.get_environment',
         'handlers.testcase_detail.show.filter_stacktrace',
+        'issue_management.issue_tracker_utils.get_issue_url',
+        'libs.access.can_user_access_testcase',
+        'libs.access.has_access',
+        'libs.auth.is_current_user_admin',
         'libs.form.generate_csrf_token',
+        'libs.helpers.get_user_email',
+        'metrics.crash_stats.get_last_crash_time',
     ])
 
     self.mock.has_access.return_value = False
@@ -436,6 +437,8 @@ class GetTestcaseTest(unittest.TestCase):
             'rev': 'revision'
         }
     }
+
+    self.mock.is_current_user_admin.return_value = False
 
     self.make_token().put()
     os.environ['ISSUE_TRACKER'] = 'test-issue-tracker'

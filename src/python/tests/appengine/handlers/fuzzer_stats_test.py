@@ -275,8 +275,8 @@ class TestPermissions(unittest.TestCase):
 
   def setUp(self):
     test_helpers.patch(self, [
-        'google.appengine.api.users.is_current_user_admin',
-        'google.appengine.api.users.get_current_user',
+        'libs.auth.get_current_user',
+        'libs.auth.is_current_user_admin',
         'handlers.fuzzer_stats.build_results',
     ])
 
@@ -336,7 +336,7 @@ class TestPermissions(unittest.TestCase):
   def test_external_user_with_job(self):
     """Test external user access (job specified)."""
     self.mock.is_current_user_admin.return_value = False
-    self.mock.get_current_user().email.return_value = 'test@user.com'
+    self.mock.get_current_user().email = 'test@user.com'
 
     response = self.app.post_json(
         '/fuzzer-stats/load', {
@@ -372,7 +372,7 @@ class TestPermissions(unittest.TestCase):
   def test_external_user_without_job(self):
     """Test external user access (no job specified)."""
     self.mock.is_current_user_admin.return_value = False
-    self.mock.get_current_user().email.return_value = 'test@user.com'
+    self.mock.get_current_user().email = 'test@user.com'
 
     response = self.app.post_json(
         '/fuzzer-stats/load', {

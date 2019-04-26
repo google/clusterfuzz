@@ -31,7 +31,7 @@ class HandlerTest(unittest.TestCase):
     test_helpers.patch(self, [
         'base.tasks.add_task',
         'base.tasks.queue_for_job',
-        'google.appengine.api.users.get_current_user',
+        'libs.auth.get_current_user',
         'handlers.testcase_detail.show.get_testcase_detail',
         'libs.access.check_access_and_get_testcase',
     ])
@@ -42,7 +42,7 @@ class HandlerTest(unittest.TestCase):
     self.testcase.put()
     self.mock.check_access_and_get_testcase.return_value = self.testcase
     self.mock.get_testcase_detail.return_value = {'testcase': 'yes'}
-    self.mock.get_current_user().email.return_value = 'test@user.com'
+    self.mock.get_current_user().email = 'test@user.com'
 
   def test_succeed(self):
     """Update from trunk"""

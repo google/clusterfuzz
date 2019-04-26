@@ -238,6 +238,11 @@ def main():
   parser_create_config.add_argument(
       '--project-id', type=str, required=True, help='Your Cloud Project ID.')
   parser_create_config.add_argument(
+      '--firebase-api-key',
+      type=str,
+      required=True,
+      help='Firebase web API key (for authentication).')
+  parser_create_config.add_argument(
       '--oauth-client-secrets-path',
       type=str,
       required=True,

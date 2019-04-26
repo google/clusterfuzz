@@ -29,8 +29,8 @@ class HandlerTest(unittest.TestCase):
 
   def setUp(self):
     test_helpers.patch(self, [
-        'google.appengine.api.users.get_current_user',
-        'google.appengine.api.users.is_current_user_admin',
+        'libs.auth.get_current_user',
+        'libs.auth.is_current_user_admin',
         'handlers.testcase_detail.show.get_testcase_detail',
     ])
     self.app = webtest.TestApp(
@@ -40,7 +40,7 @@ class HandlerTest(unittest.TestCase):
     self.testcase.put()
     self.mock.get_testcase_detail.return_value = {'testcase': 'yes'}
     self.mock.is_current_user_admin.return_value = True
-    self.mock.get_current_user().email.return_value = 'test@user.com'
+    self.mock.get_current_user().email = 'test@user.com'
 
   def test_succeed(self):
     """Remove the duplicate status."""

@@ -248,7 +248,9 @@ def execute(args):
 
   blobs_bucket = project_bucket(args.project_id, 'blobs')
   deployment_bucket = project_bucket(args.project_id, 'deployment')
+
   bucket_replacements = (
+      ('firebase-api-key', args.firebase_api_key),
       ('test-blobs-bucket', blobs_bucket),
       ('test-deployment-bucket', deployment_bucket),
       ('test-bigquery-bucket', project_bucket(args.project_id, 'bigquery')),

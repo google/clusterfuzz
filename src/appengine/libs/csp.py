@@ -14,6 +14,8 @@
 """Helpers used to generate Content Security Policies for pages."""
 import collections
 
+from base import utils
+
 
 class CSPBuilder(object):
   """Helper to build a Content Security Policy string."""
@@ -80,9 +82,15 @@ def get_default_builder():
   # External scripts. Google analytics, charting libraries.
   builder.add('script-src', 'www.google-analytics.com')
   builder.add('script-src', 'www.gstatic.com')
+  builder.add('script-src', 'apis.google.com')
 
   # Google Analytics also uses img-src.
   builder.add('img-src', 'www.google-analytics.com')
+
+  # Firebase.
+  builder.add('img-src', 'www.gstatic.com')
+  builder.add('connect-src', 'www.googleapis.com')
+  builder.add('frame-src', utils.get_application_id() + '.firebaseapp.com')
 
   # External style. Used for fonts, charting libraries.
   builder.add('style-src', 'fonts.googleapis.com')

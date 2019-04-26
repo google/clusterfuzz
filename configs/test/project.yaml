@@ -42,6 +42,10 @@ monitoring:
   # Flag to indicate if Stackdriver monitoring is enabled or not (disabled by default).
   enabled: false
 
+firebase:
+  # API key for Firebase (public).
+  api_key: firebase-api-key
+
 env:
   # Application ID for the Google Cloud Project. In production, this will have a s~ prefix.
   APPLICATION_ID: test-clusterfuzz

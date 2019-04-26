@@ -22,6 +22,12 @@ import (
 	"cloud.google.com/go/datastore"
 )
 
+// Admin is auto-generated from data_types.py.
+type Admin struct {
+	Key   *datastore.Key `datastore:"__key__"`
+	Email string         `datastore:"email"`
+}
+
 // Blacklist is auto-generated from data_types.py.
 type Blacklist struct {
 	Key          *datastore.Key `datastore:"__key__"`

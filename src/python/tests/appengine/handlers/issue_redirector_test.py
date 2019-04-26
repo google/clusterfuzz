@@ -19,7 +19,6 @@ import webtest
 
 import server
 from datastore import data_types
-from google.appengine.ext import testbed
 from tests.test_libs import helpers as test_helpers
 
 
@@ -32,14 +31,7 @@ class HandlerTest(unittest.TestCase):
         'libs.helpers.get_testcase',
     ])
 
-    self.testbed = testbed.Testbed()
-    self.testbed.activate()
-    self.testbed.init_user_stub()
-
     self.app = webtest.TestApp(server.app)
-
-  def tearDown(self):
-    self.testbed.deactivate()
 
   def test_succeed(self):
     """Test redirection succeeds."""

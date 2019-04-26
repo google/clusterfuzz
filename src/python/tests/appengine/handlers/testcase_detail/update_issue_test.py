@@ -40,13 +40,13 @@ class HandlerTest(unittest.TestCase):
         'datastore.data_handler.get_stacktrace',
         'datastore.data_handler.update_group_bug',
         'issue_management.issue_tracker_utils.get_issue_tracker_manager',
-        'google.appengine.api.users.get_current_user',
+        'libs.auth.get_current_user',
         'handlers.testcase_detail.show.get_testcase_detail',
         'libs.access.get_access',
     ])
     self.mock.get_access.return_value = access.UserAccess.Allowed
     self.mock.get_testcase_detail.return_value = {'testcase': 'yes'}
-    self.mock.get_current_user().email.return_value = 'test@test.com'
+    self.mock.get_current_user().email = 'test@test.com'
 
     self.app = webtest.TestApp(
         webapp2.WSGIApplication([('/', update_issue.Handler)]))

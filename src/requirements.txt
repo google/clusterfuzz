@@ -1,4 +1,5 @@
 backports.lzma==0.0.13
+firebase-admin==2.16.0
 future==0.17.1
 google-api-python-client==1.7.4
 google-auth-oauthlib==0.2.0

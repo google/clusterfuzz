@@ -18,8 +18,6 @@ import datetime
 import jinja2
 import re
 
-from google.appengine.api import users
-
 from base import utils
 from build_management import revisions
 from build_management import source_mapper
@@ -32,6 +30,7 @@ from handlers import base_handler
 from issue_management import issue_tracker_utils
 from issue_management import label_utils
 from libs import access
+from libs import auth
 from libs import form
 from libs import handler
 from libs import helpers
@@ -551,7 +550,7 @@ def get_testcase_detail(testcase):
       'issue_url':
           issue_url,
       'is_admin':
-          users.is_current_user_admin(),
+          auth.is_current_user_admin(),
       'metadata':
           metadata,
       'minimized_testcase_size':
@@ -638,7 +637,7 @@ def get_testcase_detail(testcase):
 
 def is_admin_or_not_oss_fuzz():
   """Return True if the current user is an admin or if this is not OSS-Fuzz."""
-  return not utils.is_oss_fuzz() or users.is_current_user_admin()
+  return not utils.is_oss_fuzz() or auth.is_current_user_admin()
 
 
 class Handler(base_handler.Handler):

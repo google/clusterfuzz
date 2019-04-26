@@ -22,8 +22,8 @@ import os
 import re
 import sys
 import traceback
+import urllib
 
-from google.appengine.api import users
 import jinja2
 import webapp2
 
@@ -32,6 +32,8 @@ from config import db_config
 from config import local_config
 from datastore import ndb
 from google_cloud_utils import storage
+from libs import auth
+from libs import form
 from libs import helpers
 from system import environment
 
@@ -97,15 +99,17 @@ def add_menu(name, href):
   _MENU_ITEMS.append(_MenuItem(name, href))
 
 
-def make_switch_account_url(dest_url):
+def make_login_url(dest_url):
   """Make the switch account url."""
-  login_url = users.create_login_url(dest_url=dest_url)
+  return '/login?' + urllib.urlencode({'dest': dest_url})
 
-  # If a user is already logged into multiple accounts, the login URL alone will
-  # not work properly. Though this approach is fairly brittle, it is a common
-  # user complaint and seems worth attempting to account for.
-  # Context at https://crbug.com/740086 and https://crbug.com/monorail/3352
-  return login_url.replace('/ServiceLogin', '/AccountChooser', 1)
+
+def make_logout_url(dest_url):
+  """Make the switch account url."""
+  return '/logout?' + urllib.urlencode({
+      'csrf_token': form.generate_csrf_token(),
+      'dest': dest_url,
+  })
 
 
 class _MenuItem(object):
@@ -129,9 +133,9 @@ class Handler(webapp2.RequestHandler):
     template_values = {
         'message': message,
         'user_email': helpers.get_user_email(),
-        'login_url': users.create_login_url(dest_url=self.request.url),
-        'switch_account_url': make_switch_account_url(self.request.url),
-        'logout_url': users.create_logout_url(dest_url=self.request.url),
+        'login_url': make_login_url(dest_url=self.request.url),
+        'switch_account_url': make_login_url(self.request.url),
+        'logout_url': make_logout_url(dest_url=self.request.url),
         'contact_string': contact_string,
     }
     self.render('error-403.html', template_values, 403)
@@ -150,11 +154,11 @@ class Handler(webapp2.RequestHandler):
     # Only track analytics for non-admin users.
     values['ga_tracking_id'] = (
         local_config.GAEConfig().get('ga_tracking_id')
-        if not users.is_current_user_admin() else None)
+        if not auth.is_current_user_admin() else None)
 
     if values['is_logged_in']:
-      values['switch_account_url'] = make_switch_account_url(self.request.url)
-      values['logout_url'] = users.create_logout_url(dest_url=self.request.url)
+      values['switch_account_url'] = make_login_url(self.request.url)
+      values['logout_url'] = make_logout_url(dest_url=self.request.url)
 
     template = _JINJA_ENVIRONMENT.get_template(path)
 

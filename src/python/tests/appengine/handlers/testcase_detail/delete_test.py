@@ -29,11 +29,11 @@ class HandlerTest(unittest.TestCase):
 
   def setUp(self):
     test_helpers.patch(self, [
-        'google.appengine.api.users.get_current_user',
-        'google.appengine.api.users.is_current_user_admin',
+        'libs.auth.get_current_user',
+        'libs.auth.is_current_user_admin',
     ])
     self.mock.is_current_user_admin.return_value = True
-    self.mock.get_current_user().email.return_value = 'test@user.com'
+    self.mock.get_current_user().email = 'test@user.com'
     self.app = webtest.TestApp(webapp2.WSGIApplication([('/', delete.Handler)]))
 
   def test_assigned_issue(self):

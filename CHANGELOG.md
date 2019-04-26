@@ -3,6 +3,8 @@ Change Log
 
 ## Next Version
 - Various bug fixes.
+- Removing various dependencies on App Engine SDK.
+- Using Firebase auth for authentication.
 
 ## Version 1.1.0
 - Various bug fixes.

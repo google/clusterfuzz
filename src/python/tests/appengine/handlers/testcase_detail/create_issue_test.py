@@ -32,13 +32,13 @@ class HandlerTest(unittest.TestCase):
     test_helpers.patch(self, [
         'issue_management.issue_filer.file_issue',
         'issue_management.issue_tracker_utils.get_issue_tracker_manager',
-        'google.appengine.api.users.get_current_user',
+        'libs.auth.get_current_user',
         'handlers.testcase_detail.show.get_testcase_detail',
         'libs.access.has_access',
     ])
     self.mock.has_access.return_value = True
     self.mock.get_testcase_detail.return_value = {'testcase': 'yes'}
-    self.mock.get_current_user().email.return_value = 'test@user.com'
+    self.mock.get_current_user().email = 'test@user.com'
 
     self.app = webtest.TestApp(
         webapp2.WSGIApplication([('/', create_issue.Handler)]))
