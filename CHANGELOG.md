@@ -10,7 +10,7 @@ Change Log
 - Add metrics `new_features` and `new_edges` in libFuzzer fuzzing.
 - Support for multiple device per host in Android startup script.
 - Fix corpus minimization in libFuzzer and AFL to prioritize smaller units.
-- Python 2->3 migration using futurize.
+- Preparation for Python 2->3 migration using futurize.
 
 ## Version 1.1.0
 - Various bug fixes.
