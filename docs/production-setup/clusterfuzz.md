@@ -48,9 +48,9 @@ for authentication and should not incur any additional charges.
 
 2. In the [Firebase console], go to the **Auth** section and enable "Google" as a Sign-in provider.
 
-3. In the same section, go to the **Usage** tab and add the domains you plan on
-   using to the "Authorized domains" list. The default domain for App Engine
-   looks like `<project ID>.appspot.com`.
+3. In the same section, add the domains you plan on using to the "Authorized
+   domains" list. The default domain for App Engine looks like `<project
+   ID>.appspot.com`.
 
 ### Web API Key
 To obtain a web API key,
