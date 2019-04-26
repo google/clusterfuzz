@@ -176,6 +176,8 @@ class QueryWrapper(ndb.Query):
   """Query wrapper for easy mocking."""
 
   def __init__(self, wrapped, results, subqueries):
+    super(QueryWrapper, self).__init__()
+
     self.wrapped = wrapped
     self.results = results
     self.subqueries = subqueries

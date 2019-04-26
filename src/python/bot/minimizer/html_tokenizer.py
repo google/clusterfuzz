@@ -39,7 +39,7 @@ def tokenize(token_string, level=0):
   consecutive_start_tag_symbol = 0
   start = 0
 
-  for i in range(0, len(token_string)):
+  for i in range(0, len(token_string)):  # pylint: disable=too-many-nested-blocks
     found_token = False
 
     if token_string[i] == '\n' and not consecutive_start_tag_symbol:
@@ -149,7 +149,7 @@ def tokenize(token_string, level=0):
         else:
           temp_token_list.append(token_split_list[index])
 
-    token_list = [_f for _f in temp_token_list if _f]
+    token_list = [t for t in temp_token_list if t]
 
     temp_token_list = []
     for elem in token_list:
@@ -160,7 +160,7 @@ def tokenize(token_string, level=0):
         else:
           temp_token_list.append(token_split_list[index])
 
-    token_list = [_f for _f in temp_token_list if _f]
+    token_list = [t for t in temp_token_list if t]
 
   # Split tokens with more than one newline char.
   temp_token_list = []
@@ -195,7 +195,7 @@ def tokenize(token_string, level=0):
   if temporary_token:
     token_list.append(temporary_token)
 
-  return [_f for _f in token_list if _f]
+  return [t for t in token_list if t]
 
 
 def combine_tokens(tokens):

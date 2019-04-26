@@ -110,6 +110,7 @@ def execute(args):
     print()
 
     if args.persist:
+      # pylint: disable=eval-used
       eval(
           input('--persist is used. Leave the browser open.'
                 ' Press ENTER to close it:'))

@@ -15,6 +15,7 @@
 from __future__ import absolute_import
 
 from builtins import range
+
 from . import delta_minimizer
 from . import js_tokenizer
 from . import minimizer

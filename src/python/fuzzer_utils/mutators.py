@@ -280,10 +280,10 @@ class Truncator(MutatorPrimitive):
 class CombinedMutator(object):
   """Combination of mutator primitives."""
 
-  def __init__(self,
-               mutators=None,
-               num_mutations_choices=list(
-                   range(DEFAULT_MIN_MUTATIONS, DEFAULT_MAX_MUTATIONS + 1))):
+  def __init__(self, mutators=None, num_mutations_choices=None):
+    if num_mutations_choices is None:
+      num_mutations_choices = list(
+          range(DEFAULT_MIN_MUTATIONS, DEFAULT_MAX_MUTATIONS + 1))
     self.mutators = []
     if mutators is not None:
       for mutator in mutators:
