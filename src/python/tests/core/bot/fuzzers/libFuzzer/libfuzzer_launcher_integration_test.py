@@ -753,9 +753,6 @@ class TestLauncherFuchsia(BaseLauncherTest):
     if not resources_dir:
       raise Exception('Could not find RESOURCES_DIR')
     fuchsia_resources_dir = os.path.join(resources_dir, 'fuchsia')
-    pkey_path = os.path.join(fuchsia_resources_dir, '.ssh', 'pkey')
-    environment.set_value('FUCHSIA_PKEY_PATH', pkey_path)
-    environment.set_value('FUCHSIA_PORTNUM', '56339')
     # Cannot simply call super(TestLauncherFuchsia).setUp, because the
     # with_cloud_emulators decorator modifies what the parent class would be.
     # Just explicitly call BaseLauncherTest's setUp.
