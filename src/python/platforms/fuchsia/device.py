@@ -110,6 +110,7 @@ def qemu_setup():
   time.sleep(2)
   if qemu_popen._popen.returncode is not None:
     raise Exception("Failed to run QEMU: " + str(qemu_popen._popen.stdout.read()) + ", " + str(qemu_popen._popen.stderr.read()))
+  raise Exception("testing logging of stuff")
   
   #logger.warning("QEMU LOGS:")
   #for i in range(100):
