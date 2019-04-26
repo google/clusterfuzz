@@ -12,8 +12,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """Utility functions for ml rnn model."""
+from __future__ import division
 from __future__ import print_function
 
+from builtins import range
 import numpy as np
 import os
 import random
@@ -83,7 +85,7 @@ def encode_text(string_data):
   Returns:
     An encoded list of integers representing code points.
   """
-  return map(ord, string_data)
+  return list(map(ord, string_data))
 
 
 def decode_to_text(encoded_list):

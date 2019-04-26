@@ -14,6 +14,7 @@
 """Integration tests for AFL launcher.py."""
 from __future__ import print_function
 
+from builtins import range
 import getpass
 import mock
 import os
@@ -329,7 +330,7 @@ class TestLauncher(BaseLauncherTest):
         'empty', 'redundant_corpus', fuzz=True)
     corpus_path = os.environ['FUZZ_CORPUS_DIR']
 
-    for i in xrange(100):
+    for i in range(100):
       with open(os.path.join(corpus_path, '%04d' % i), 'w') as f:
         f.write('A' * 256)
     output = run_launcher(testcase_path, 'test_fuzzer')
@@ -439,7 +440,7 @@ class TestLauncherMinijail(BaseLauncherTest):
     testcase_path = setup_testcase_and_corpus(
         'empty', 'redundant_corpus', fuzz=True)
     corpus_path = os.environ['FUZZ_CORPUS_DIR']
-    for i in xrange(100):
+    for i in range(100):
       with open(os.path.join(corpus_path, '%04d' % i), 'w') as f:
         f.write('A' * 256)
 

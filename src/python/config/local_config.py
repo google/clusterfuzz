@@ -14,6 +14,7 @@
 """Get values / settings from local configuration."""
 
 import os
+import six
 import yaml
 
 from base import errors
@@ -200,7 +201,7 @@ class ProjectConfig(Config):
     if not env_variable_values:
       return
 
-    for variable, value in env_variable_values.iteritems():
+    for variable, value in six.iteritems(env_variable_values):
       if variable in os.environ:
         # Don't override existing values.
         continue

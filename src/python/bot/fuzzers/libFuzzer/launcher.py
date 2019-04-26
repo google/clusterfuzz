@@ -14,6 +14,7 @@
 """libFuzzer launcher."""
 from __future__ import print_function
 # pylint: disable=g-statement-before-imports
+from builtins import range
 try:
   # ClusterFuzz dependencies.
   from python.base import modules
@@ -898,7 +899,7 @@ def main(argv):
 
   if do_fork():
     max_fuzz_threads = environment.get_value('MAX_FUZZ_THREADS', 1)
-    num_fuzz_processes = max(1, multiprocessing.cpu_count() / max_fuzz_threads)
+    num_fuzz_processes = max(1, multiprocessing.cpu_count() // max_fuzz_threads)
     arguments.append('%s%d' % (constants.FORK_FLAG, num_fuzz_processes))
     fuzzing_strategies.append(
         '%s_%d' % (strategy.FORK_STRATEGY, num_fuzz_processes))

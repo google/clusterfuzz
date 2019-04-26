@@ -17,9 +17,11 @@ API."""
 # pylint: disable=protected-access
 # pylint: disable=unidiomatic-typecheck
 
+from builtins import range
 import collections
 import datetime
 import itertools
+import six
 import threading
 
 from google.api_core import exceptions
@@ -216,7 +218,7 @@ def _cloud_key_to_ndb_key(cloud_key):
 def _unindexed_properties(ndb_model):
   """Return list of unindexed properties for the ndb Model."""
   properties = []
-  for name, prop in ndb_model._properties.iteritems():
+  for name, prop in six.iteritems(ndb_model._properties):
     if not prop._indexed:
       properties.append(name)
 
@@ -229,7 +231,7 @@ def _cloud_entity_to_ndb_entity(model_class, cloud_entity, projection=None):
     return None
 
   props = {}
-  for key, value in cloud_entity.iteritems():
+  for key, value in six.iteritems(cloud_entity):
     ndb_property = getattr(model_class, key, None)
     if not isinstance(ndb_property, ndb.Property):
       # Deleted attribute from an old entity.
@@ -286,7 +288,7 @@ def _ndb_entity_to_cloud_entity(ndb_entity):
 
     ndb_entity.key = _cloud_key_to_ndb_key(generated_key)
 
-  for key, value in ndb_entity.to_dict().iteritems():
+  for key, value in six.iteritems(ndb_entity.to_dict()):
     ndb_property = getattr(ndb_entity.__class__, key)
     if type(ndb_property) in UNSUPPORTED_PROPERTY_TYPES:
       raise NdbPatcherException('Unsupported property type: ' +
@@ -422,7 +424,7 @@ def init():
 
 def _gen_chunks(values, size):
   """Generate chunks of iterable."""
-  for i in xrange(0, len(values), size):
+  for i in range(0, len(values), size):
     yield values[i:i + size]
 
 
@@ -514,7 +516,7 @@ def _transaction(callback, **kwargs):
       return callback()
 
   retries = kwargs.get('retries', 0)
-  for _ in xrange(1 + retries):
+  for _ in range(1 + retries):
     try:
       # Retry the entire transaction on any transient error.
       return _retry_wrap(do_transaction)()

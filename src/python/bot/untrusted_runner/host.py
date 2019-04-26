@@ -14,6 +14,7 @@
 """Trusted host."""
 from __future__ import absolute_import
 
+from builtins import range
 import sys
 import threading
 import time
@@ -126,7 +127,7 @@ def _wrap_call(func, num_retries=config.RPC_RETRY_ATTEMPTS):
 
   def wrapped(*args, **kwargs):
     """Wrapper for adding retry logic."""
-    for retry_attempt in xrange(num_retries + 1):
+    for retry_attempt in range(num_retries + 1):
       # Wait for channel to (re)connect if necessary.
       state = _check_channel_state(config.RECONNECT_TIMEOUT_SECONDS)
 

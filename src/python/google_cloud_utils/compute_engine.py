@@ -13,8 +13,10 @@
 # limitations under the License.
 """Compute Engine helpers."""
 
+from builtins import range
 import datetime
 import random
+import six
 import time
 
 from googleapiclient.discovery import build
@@ -56,7 +58,7 @@ def _do_operation_with_retries(operation, project, zone, wait_for_completion):
     # No need to wait, so we are done.
     return True
 
-  for _ in xrange(NUM_RETRIES + 1):
+  for _ in range(NUM_RETRIES + 1):
     try:
       # This could cause exceptions when the response is not ready.
       _wait_for_operation(response, project, zone)
@@ -86,7 +88,7 @@ def _execute_api_call_with_retries(api_func):
   """Execute the given API call, retrying if neccessary. Returns the response if
   successful, or None."""
   last_exception = None
-  for i in xrange(NUM_RETRIES + 1):
+  for i in range(NUM_RETRIES + 1):
     try:
       # Try to execute the operation.
       response = api_func.execute()
@@ -246,7 +248,7 @@ def recreate_instance_with_disks(instance_name,
 
   # Add any additional metadata required for instance booting.
   if additional_metadata:
-    for key, value in additional_metadata.iteritems():
+    for key, value in six.iteritems(additional_metadata):
       items = instance_info.setdefault('metadata', {}).setdefault('items', [])
       _add_metadata_key_value(items, key, value)
 

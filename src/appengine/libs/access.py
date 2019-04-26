@@ -13,6 +13,8 @@
 # limitations under the License.
 """access.py contains static methods around access permissions."""
 
+from builtins import range
+
 from base import errors
 from base import external_users
 from base import utils
@@ -63,7 +65,7 @@ def _is_domain_allowed(email):
 
 
 class UserAccess(object):
-  Allowed, Denied, Redirected = range(3)  # pylint: disable=invalid-name
+  Allowed, Denied, Redirected = list(range(3))  # pylint: disable=invalid-name
 
 
 def has_access(need_privileged_access=False, job_type=None, fuzzer_name=None):

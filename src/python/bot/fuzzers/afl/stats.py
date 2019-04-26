@@ -16,6 +16,7 @@ from __future__ import print_function
 
 import os
 import re
+import six
 
 from bot.fuzzers import dictionary_manager
 from bot.fuzzers import engine_common
@@ -192,12 +193,12 @@ class StatsGetter(object):
     # Read and parse stats from AFL's afl_stats. Then use them to set and
     # calculate our own stats.
     self.set_afl_stats()
-    for afl_stat, clusterfuzz_stat in self.AFL_STATS_MAPPING.iteritems():
+    for afl_stat, clusterfuzz_stat in six.iteritems(self.AFL_STATS_MAPPING):
       self.stats[clusterfuzz_stat] = self.get_afl_stat(afl_stat)
 
     try:
-      self.stats['average_exec_per_sec'] = int(
-          self.get_afl_stat('execs_done') / actual_duration)
+      self.stats['average_exec_per_sec'] = (
+          self.get_afl_stat('execs_done') // actual_duration)
 
     except ZeroDivisionError:  # Fail gracefully if actual_duration is 0.
       self.stats['average_exec_per_sec'] = 0

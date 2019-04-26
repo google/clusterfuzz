@@ -15,6 +15,7 @@
 
 from __future__ import print_function
 
+from builtins import range
 import json
 import os
 import shutil
@@ -132,7 +133,7 @@ def compute_engine_service_account(gcloud, project_id):
 
 def enable_services(gcloud):
   """Enable required services."""
-  for i in xrange(0, len(_REQUIRED_SERVICES), _ENABLE_SERVICE_BATCH_SIZE):
+  for i in range(0, len(_REQUIRED_SERVICES), _ENABLE_SERVICE_BATCH_SIZE):
     end = i + _ENABLE_SERVICE_BATCH_SIZE
     gcloud.run('services', 'enable', *_REQUIRED_SERVICES[i:i + end])
 

@@ -14,6 +14,8 @@
 """Minimizer based on the delta debugging algorithm."""
 from __future__ import absolute_import
 
+from builtins import range
+
 from . import minimizer
 from . import utils
 
@@ -28,8 +30,9 @@ class DeltaTestcase(minimizer.Testcase):
       return
 
     # Test passed. Break this up into sub-tests.
-    front = hypothesis[:len(hypothesis) / 2]
-    back = hypothesis[len(hypothesis) / 2:]
+    middle = len(hypothesis) // 2
+    front = hypothesis[:middle]
+    back = hypothesis[middle:]
 
     # Working back to front works better for some formats.
     self.prepare_test(back)
@@ -44,10 +47,10 @@ class DeltaMinimizer(minimizer.Minimizer):
     testcase = DeltaTestcase(data, self)
     tokens = testcase.tokens
 
-    step = max(1, len(tokens) / self.max_threads)
-    for start in xrange(0, len(tokens), step):
+    step = max(1, len(tokens) // self.max_threads)
+    for start in range(0, len(tokens), step):
       end = min(len(tokens), start + step)
-      hypothesis = range(start, end)
+      hypothesis = list(range(start, end))
       testcase.prepare_test(hypothesis)
 
     testcase.process()

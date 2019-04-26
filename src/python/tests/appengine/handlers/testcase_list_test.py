@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """testcase_list tests."""
+from builtins import range
 import datetime
 import mock
 import unittest
@@ -146,7 +147,7 @@ class JsonHandlerTest(unittest.TestCase):
         webapp2.WSGIApplication([('/', testcase_list.JsonHandler)]))
 
     self.testcases = []
-    for i in xrange(10):
+    for i in range(10):
       t = data_types.Testcase()
       t.crash_type = ''
       t.crash_state = ''

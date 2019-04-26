@@ -18,6 +18,7 @@ import datetime
 import os
 import requests
 import shutil
+import six
 import socket
 import subprocess
 import tempfile
@@ -351,7 +352,7 @@ def with_cloud_emulators(*emulator_names):
         super(Wrapped, cls).setUpClass()
 
       def setUp(self):
-        for emulator in _emulators.itervalues():
+        for emulator in six.itervalues(_emulators):
           emulator.reset()
 
         super(Wrapped, self).setUp()

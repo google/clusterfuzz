@@ -13,10 +13,12 @@
 # limitations under the License.
 """Environment functions."""
 
+from builtins import range
 import ast
 import functools
 import os
 import re
+import six
 import socket
 import sys
 import yaml
@@ -63,7 +65,7 @@ def _join_memory_tool_options(options):
   """Joins a dict holding memory tool options into a string that can be set in
   the environment."""
   return ':'.join(
-      '%s=%s' % (key, str(value)) for key, value in options.iteritems())
+      '%s=%s' % (key, str(value)) for key, value in six.iteritems(options))
 
 
 def _maybe_convert_to_int(value):
@@ -788,7 +790,7 @@ def set_default_vars():
     env_file_contents = file_handle.read()
 
   env_vars_and_values = yaml.safe_load(env_file_contents)
-  for variable, value in env_vars_and_values.iteritems():
+  for variable, value in six.iteritems(env_vars_and_values):
     # We cannot call set_value here.
     os.environ[variable] = str(value)
 
@@ -864,7 +866,7 @@ def set_tsan_max_history_size():
     return
 
   tsan_max_history_size = 7
-  for i in xrange(tsan_max_history_size):
+  for i in range(tsan_max_history_size):
     tsan_options = (
         tsan_options.replace('history_size=%d' % i,
                              'history_size=%d' % tsan_max_history_size))

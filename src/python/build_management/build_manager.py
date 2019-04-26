@@ -13,9 +13,11 @@
 # limitations under the License.
 """Build manager."""
 
+from builtins import range
 import datetime
 import os
 import re
+import six
 import subprocess
 import time
 
@@ -99,9 +101,9 @@ def _make_space(requested_size, current_build_dir=None):
 
   builds_directory = environment.get_value('BUILDS_DIR')
 
-  error_message = 'Need at least %d GB of free disk space.' % (
-      (min_free_disk_space + requested_size) / 1024**3)
-  for _ in xrange(MAX_EVICTED_BUILDS):
+  error_message = 'Need at least %d GB of free disk space.' % ((
+      (min_free_disk_space + requested_size) // 1024**3))
+  for _ in range(MAX_EVICTED_BUILDS):
     free_disk_space = shell.get_free_disk_space(builds_directory)
     if free_disk_space is None:
       # Can't determine free disk space, bail out.
@@ -941,7 +943,7 @@ def _sort_build_urls_by_revision(build_urls, bucket_path, reverse):
     sorted_revisions = sorted(
         filename_by_revision_dict,
         reverse=reverse,
-        key=lambda x: map(int, x.split('.')))
+        key=lambda x: list(map(int, x.split('.'))))
   except:
     logs.log_warn(
         'Revision pattern is not an integer, falling back to string sort.')
@@ -1291,7 +1293,7 @@ def remove_unused_builds():
     if not job_environment:
       continue
 
-    for key, value in job_environment.iteritems():
+    for key, value in six.iteritems(job_environment):
       if 'BUILD_BUCKET_PATH' in key:
         bucket_path = value
       elif key == 'CUSTOM_BINARY' and value != 'False':
@@ -1304,7 +1306,7 @@ def remove_unused_builds():
       if build_directory in build_in_use_map:
         build_in_use_map[build_directory] = True
 
-  for build_directory, in_use in build_in_use_map.iteritems():
+  for build_directory, in_use in six.iteritems(build_in_use_map):
     if in_use:
       continue
 

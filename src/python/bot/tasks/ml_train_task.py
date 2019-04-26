@@ -59,7 +59,7 @@ def get_last_saved_model(model_directory):
   # Get a list of all meta files.
   file_pattern = os.path.join(model_directory,
                               '*' + constants.MODEL_META_SUFFIX)
-  meta_file_list = filter(os.path.isfile, glob.glob(file_pattern))
+  meta_file_list = list(filter(os.path.isfile, glob.glob(file_pattern)))
   if not meta_file_list:
     return model_paths
 

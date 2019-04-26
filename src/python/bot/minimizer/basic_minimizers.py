@@ -14,6 +14,8 @@
 """Simple minimizers for common tasks."""
 from __future__ import absolute_import
 
+from builtins import range
+
 from . import minimizer
 
 
@@ -23,7 +25,7 @@ class SinglePassMinimizer(minimizer.Minimizer):  # pylint:disable=abstract-metho
   def _execute(self, data):
     """Attempt to remove each token starting from the last one."""
     testcase = minimizer.Testcase(data, self)
-    for i in reversed(xrange(len(testcase.tokens))):
+    for i in reversed(list(range(len(testcase.tokens)))):
       hypothesis = [i]
       testcase.prepare_test(hypothesis)
 

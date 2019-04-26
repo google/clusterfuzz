@@ -13,6 +13,7 @@
 # limitations under the License.
 """datastore_query tests."""
 # pylint: disable=protected-access
+from builtins import range
 import datetime
 import mock
 import unittest
@@ -33,7 +34,7 @@ class TestDatastoreModel(ndb.Model):
 def _create_data(self):
   """Create test data."""
   self.mocks = []
-  for i in xrange(30):
+  for i in range(30):
     m = TestDatastoreModel()
     if (i % 2) == 0:
       m.tokens = ['a']
@@ -174,7 +175,7 @@ class QueryTest(unittest.TestCase):
 class QueryWrapper(ndb.Query):
   """Query wrapper for easy mocking."""
 
-  def __init__(self, wrapped, results, subqueries):
+  def __init__(self, wrapped, results, subqueries):  # pylint: disable=super-init-not-called
     self.wrapped = wrapped
     self.results = results
     self.subqueries = subqueries

@@ -14,6 +14,7 @@
 """Test the launcher.py script for AFL-based fuzzers."""
 # pylint: disable=protected-access
 
+from builtins import range
 import mock
 import os
 import unittest
@@ -210,7 +211,7 @@ class AflFuzzInputDirectoryTest(LauncherTestBase):
     # Test that skip_deterministic is set to False when there are a small number
     # of files in the corpus.
     num_files = 3
-    for file_num in xrange(num_files):
+    for file_num in range(num_files):
       self._create_file('file' + str(file_num))
 
     afl_input = self._new_afl_input()
@@ -218,7 +219,7 @@ class AflFuzzInputDirectoryTest(LauncherTestBase):
 
     # Test that skip_deterministic is set to False when the "small number" of
     # files permitted for determnisitic steps is exceeded.
-    for file_num in xrange(num_files, afl_input.MIN_INPUTS_FOR_SKIP):
+    for file_num in range(num_files, afl_input.MIN_INPUTS_FOR_SKIP):
       self._create_file('file' + str(file_num))
 
     afl_input = self._new_afl_input()
@@ -261,7 +262,7 @@ class AflFuzzInputDirectoryTest(LauncherTestBase):
     number is larger than the number of files."""
     self.strategies.use_corpus_subset = True
     self.strategies.corpus_subset_size = 75
-    for file_num in xrange(self.strategies.corpus_subset_size - 10):
+    for file_num in range(self.strategies.corpus_subset_size - 10):
       self._create_file(str(file_num))
 
     afl_input = self._new_afl_input()
@@ -277,7 +278,7 @@ class AflFuzzInputDirectoryTest(LauncherTestBase):
     self.strategies.corpus_subset_size = 75
     # Now test create_new_if_needed obeys corpus_subset.
     self.strategies.use_corpus_subset = True
-    for file_num in xrange(self.strategies.corpus_subset_size):
+    for file_num in range(self.strategies.corpus_subset_size):
       self._create_file(str(file_num))
 
     afl_input = self._new_afl_input()
@@ -946,7 +947,7 @@ class CorpusTest(fake_filesystem_unittest.TestCase):
     """Tests that associate_features_with_file associates new features with a
     file."""
     # Create an arbitrary number of features.
-    features = [self._get_unique_feature() for _ in xrange(3)]
+    features = [self._get_unique_feature() for _ in range(3)]
     filename = 'element'
     self._create_file(filename)
     self.corpus.associate_features_with_file(features, filename)

@@ -126,7 +126,7 @@ def get_component_source_and_relative_path(path, revisions_dict):
   if normalized_path is None:
     return ComponentPath()
 
-  component_sources = sorted(revisions_dict.keys(), key=len, reverse=True)
+  component_sources = sorted(list(revisions_dict.keys()), key=len, reverse=True)
   default_component_source = None
   for component_source in component_sources:
     # Trailing slash is important so that we match the exact component source.

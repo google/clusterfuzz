@@ -15,6 +15,7 @@
   own file because we want to avoid importing too many modules; now it can be
   used in more places."""
 
+from builtins import range
 import functools
 import inspect
 import sys
@@ -83,7 +84,7 @@ def wrap(retries,
       """Regular function wrapper."""
       from metrics import monitoring_metrics
 
-      for num_try in xrange(1, tries + 1):
+      for num_try in range(1, tries + 1):
         try:
           result = func(*args, **kwargs)
           if retry_on_false and not result:
@@ -110,7 +111,7 @@ def wrap(retries,
       from metrics import monitoring_metrics
 
       already_yielded_element_count = 0
-      for num_try in xrange(1, tries + 1):
+      for num_try in range(1, tries + 1):
         try:
           for index, result in enumerate(func(*args, **kwargs)):
             if index >= already_yielded_element_count:

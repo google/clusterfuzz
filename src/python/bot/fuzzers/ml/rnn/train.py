@@ -14,6 +14,7 @@
 """Train ml rnn model."""
 from __future__ import print_function
 
+from builtins import range
 import argparse
 import math
 import numpy as np

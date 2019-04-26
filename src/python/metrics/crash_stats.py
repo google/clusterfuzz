@@ -164,7 +164,7 @@ def get(end, days, block, group_by, where_clause, group_having_clause, sort_by,
 
   items = []
   for row in result.rows:
-    avg_crash_time_in_ms = row['sum_crash_time_in_ms'] / row['total_count']
+    avg_crash_time_in_ms = row['sum_crash_time_in_ms'] // row['total_count']
 
     for group in row['groups']:
       for index in group['indices']:
@@ -188,7 +188,7 @@ def get(end, days, block, group_by, where_clause, group_having_clause, sort_by,
                 avg_crash_time_in_ms,
             'std':
                 math.sqrt(
-                    (row['sum_square_crash_time_in_ms'] / row['total_count']) -
+                    (row['sum_square_crash_time_in_ms'] // row['total_count']) -
                     (avg_crash_time_in_ms * avg_crash_time_in_ms))
         },
         'groups': row['groups'],

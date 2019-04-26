@@ -13,6 +13,7 @@
 # limitations under the License.
 """Crash minidump and symbols uploader."""
 
+from builtins import range
 import email
 import os
 import re
@@ -54,7 +55,7 @@ VERSION_KEY = 'version'
 def post_with_retries(upload_url, params, files):
   """Perform HTTP POST request to given upload url with provided params."""
   retry_limit = environment.get_value('FAIL_RETRIES')
-  for _ in xrange(retry_limit):
+  for _ in range(retry_limit):
     try:
       result = requests.post(upload_url, data=params, files=files)
       if result.status_code == requests.codes.ok:
@@ -340,7 +341,7 @@ def parse_mime_to_crash_report_info(local_minidump_mime_path):
       logs.log_error('Unexpected str mime_part from mime path %s: %s' %
                      (local_minidump_mime_path, mime_part))
       continue
-    part_descriptor = mime_part.values()
+    part_descriptor = list(mime_part.values())
     key_tokens = part_descriptor[0].split('; ')
     key_match = re.match(r'name="(.*)".*', key_tokens[1])
 
@@ -378,7 +379,7 @@ def parse_mime_to_crash_report_info(local_minidump_mime_path):
   # CrashReportInfo and return.
   if product is None or version is None:
     logs.log_error(
-        'mime_key_values dict keys:\n%s' % str(mime_key_values.keys()))
+        'mime_key_values dict keys:\n%s' % str(list(mime_key_values.keys())))
     return None
 
   return CrashReportInfo(
@@ -511,7 +512,7 @@ def get_crash_info_and_stacktrace(application_command_line, crash_stacktrace,
   # the check to safeguard against possibly constructing the crash_info in
   # other ways in the future that might potentially lose the minidump path.
   if not crash_info or not crash_info.minidump_info.path:
-    for _ in xrange(retry_limit):
+    for _ in range(retry_limit):
       _, _, output = (
           process_handler.run_process(
               application_command_line,

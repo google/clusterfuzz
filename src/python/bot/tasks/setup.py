@@ -13,6 +13,7 @@
 # limitations under the License.
 """Common helper functions for setup at the start of tasks."""
 
+from builtins import range
 import datetime
 import os
 import time
@@ -632,10 +633,10 @@ def archive_testcase_and_dependencies_in_gcs(resource_list, testcase_path):
     # Find the common root directory for all of the resources.
     # Assumption: resource_list[0] is the testcase path.
     base_directory_list = resource_list[0].split(os.path.sep)
-    for list_index in xrange(1, len(resource_list)):
+    for list_index in range(1, len(resource_list)):
       current_directory_list = resource_list[list_index].split(os.path.sep)
       length = min(len(base_directory_list), len(current_directory_list))
-      for directory_index in xrange(length):
+      for directory_index in range(length):
         if (current_directory_list[directory_index] !=
             base_directory_list[directory_index]):
           base_directory_list = base_directory_list[0:directory_index]

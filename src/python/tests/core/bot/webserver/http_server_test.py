@@ -14,6 +14,7 @@
 """Tests for the http_server module."""
 
 import os
+import six
 import unittest
 
 from pyfakefs import fake_filesystem_unittest
@@ -100,7 +101,7 @@ class GuessMimeTypeTest(unittest.TestCase):
         'file.css': 'text/css',
         'file.jpg': 'image/jpeg',
     }
-    for filename, expected_value in expected_types_map.iteritems():
+    for filename, expected_value in six.iteritems(expected_types_map):
       self.assertEqual(http_server.guess_mime_type(filename), expected_value)
 
   def test_invalid_type(self):

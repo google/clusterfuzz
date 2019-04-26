@@ -89,7 +89,7 @@ def _get_project_results_for_jobs(jobs):
             True
     })
 
-  projects = projects.values()
+  projects = list(projects.values())
   projects.sort(key=_sort_by_name)
   for project in projects:
     project['jobs'].sort(key=_sort_by_name)

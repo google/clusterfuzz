@@ -13,6 +13,7 @@
 # limitations under the License.
 """py_unittest.py runs tests under src/appengine and butler/tests"""
 from __future__ import print_function
+from builtins import range
 import coverage
 
 # Coverage needs to be at the top of the page. See: go/why-top-cov
@@ -192,8 +193,8 @@ def run_tests_parallel(args, test_directory):
   # partition tests
   test_args = []
 
-  tests_per_cpu = max(1, len(test_modules) / cpu_count)
-  for i in xrange(0, len(test_modules), tests_per_cpu):
+  tests_per_cpu = max(1, len(test_modules) // cpu_count)
+  for i in range(0, len(test_modules), tests_per_cpu):
     group = test_modules[i:i + tests_per_cpu]
     test_args.append((group, not args.unsuppress_output))
 

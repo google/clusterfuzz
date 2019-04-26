@@ -13,6 +13,7 @@
 # limitations under the License.
 """Gestures related functions."""
 
+from builtins import range
 import random
 import time
 

@@ -203,7 +203,7 @@ def get_result(this):
   helpers.log('CrashStats', helpers.VIEW_OPERATION)
 
   result = {
-      'totalPages': int(total_count / PAGE_SIZE) + 1,
+      'totalPages': (total_count // PAGE_SIZE) + 1,
       'page': page,
       'pageSize': PAGE_SIZE,
       'items': rows,

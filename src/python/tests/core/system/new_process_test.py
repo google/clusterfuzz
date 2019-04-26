@@ -14,6 +14,7 @@
 """Tests for process."""
 # pylint: disable=unused-argument
 
+from builtins import range
 import mock
 import Queue
 import time
@@ -65,7 +66,7 @@ def mock_popen_factory(execute_time,
 
     def communicate(self, input_data=None):
       """Mock subprocess.Popen.communicate."""
-      for i in xrange(2):
+      for i in range(2):
         timeout = execute_time if i == 0 else sigterm_handler_time
         try:
           received_signal = self.signal_queue.get(block=True, timeout=timeout)

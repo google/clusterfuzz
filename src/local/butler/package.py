@@ -137,7 +137,7 @@ def package(revision,
 
 def execute(args):
   if args.platform == 'all':
-    for platform_name in constants.PLATFORMS.iterkeys():
+    for platform_name in list(constants.PLATFORMS.keys()):
       package(
           revision=common.compute_staging_revision(),
           platform_name=platform_name)

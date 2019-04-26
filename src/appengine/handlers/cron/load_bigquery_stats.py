@@ -13,6 +13,7 @@
 # limitations under the License.
 """Handler used for loading bigquery data."""
 
+from builtins import range
 import datetime
 import httplib2
 import random
@@ -43,7 +44,7 @@ class Handler(base_handler.Handler):
 
   def _execute_insert_request(self, request):
     """Executes a table/dataset insert request, retrying on transport errors."""
-    for i in xrange(NUM_RETRIES + 1):
+    for i in range(NUM_RETRIES + 1):
       try:
         request.execute()
         return True

@@ -13,6 +13,7 @@
 # limitations under the License.
 """Fuzzing mutators."""
 
+from builtins import range
 import random
 import struct
 
@@ -83,8 +84,8 @@ class BitFlipper(MutatorPrimitive):
 
     while bits_flipped < int(ratio * len(buf)):
       n = random.randint(0, num_bits - 1)
-      for i in xrange(n, min(num_bits, n + self.contiguous_flips)):
-        buf[i / 8] ^= (1 << (i % 8))
+      for i in range(n, min(num_bits, n + self.contiguous_flips)):
+        buf[i // 8] ^= (1 << (i % 8))
         bits_flipped += 1
 
 
@@ -107,7 +108,7 @@ class BinaryValueAdder(MutatorPrimitive):
 
   def mutate(self, buf):
     """Mutator function."""
-    num_choices = len(buf) / self.num_bytes
+    num_choices = len(buf) // self.num_bytes
     changed = 0
     ratio = self.mutate_ratio()
 
@@ -133,7 +134,7 @@ class ByteRemover(MutatorPrimitive):
 
   def mutate(self, buf):
     """Mutator function."""
-    num_choices = len(buf) / self.num_bytes
+    num_choices = len(buf) // self.num_bytes
     changed = 0
     ratio = self.mutate_ratio()
 
@@ -203,7 +204,7 @@ class SpecialIntReplacer(MutatorPrimitive):
 
   def mutate(self, buf):
     """Mutator function."""
-    num_choices = len(buf) / self.num_bytes
+    num_choices = len(buf) // self.num_bytes
     changed = 0
 
     # Unsigned representations of signed values
@@ -251,7 +252,7 @@ class SignFlipper(MutatorPrimitive):
 
   def mutate(self, buf):
     """Mutator function."""
-    num_choices = len(buf) / self.num_bytes
+    num_choices = len(buf) // self.num_bytes
     changed = 0
 
     ratio = self.mutate_ratio()
@@ -279,10 +280,10 @@ class Truncator(MutatorPrimitive):
 class CombinedMutator(object):
   """Combination of mutator primitives."""
 
-  def __init__(self,
-               mutators=None,
-               num_mutations_choices=range(DEFAULT_MIN_MUTATIONS,
-                                           DEFAULT_MAX_MUTATIONS + 1)):
+  def __init__(self, mutators=None, num_mutations_choices=None):
+    if num_mutations_choices is None:
+      num_mutations_choices = list(
+          range(DEFAULT_MIN_MUTATIONS, DEFAULT_MAX_MUTATIONS + 1))
     self.mutators = []
     if mutators is not None:
       for mutator in mutators:
@@ -296,7 +297,7 @@ class CombinedMutator(object):
   def mutate(self, buf):
     """Mutator function."""
     num_mutations = random.sample(self.num_mutations_choices, 1)[0]
-    for _ in xrange(num_mutations):
+    for _ in range(num_mutations):
       mutator = self.choose_mutator()
       mutator.mutate(buf)
 

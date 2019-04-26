@@ -16,6 +16,7 @@
 import copy
 import mock
 import os
+import six
 import unittest
 
 from bot.fuzzers.afl import launcher
@@ -249,7 +250,7 @@ class StatsGetterTests(unittest.TestCase):
     same as the default ones."""
     default_stats = copy.copy(self.stats_getter.stats)
     actual_stats = self._set_stats()
-    for stat_key, stat_value in default_stats.iteritems():
+    for stat_key, stat_value in six.iteritems(default_stats):
       self.assertEqual(type(stat_value), type(actual_stats[stat_key]))
 
   def test_set_strategy_stats(self):

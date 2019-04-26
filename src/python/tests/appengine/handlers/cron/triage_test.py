@@ -13,6 +13,7 @@
 # limitations under the License.
 """Tests for triage task."""
 
+from builtins import range
 import unittest
 
 from handlers.cron import triage

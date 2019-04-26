@@ -215,7 +215,7 @@ class _KeyQuery(object):
           items[item.key.id()] = item
 
     items = sorted(
-        items.values(),
+        list(items.values()),
         reverse=self.order_desc,
         key=_get_key_fn(self.order_property))
 
@@ -287,7 +287,7 @@ class Query(base.Query):
         projection=projection,
         more_limit=more_limit)
 
-    total_pages = total_items / page_size
+    total_pages = total_items // page_size
     if (total_items % page_size) > 0:
       total_pages += 1
 

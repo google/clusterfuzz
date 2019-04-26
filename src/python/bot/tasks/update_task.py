@@ -13,6 +13,7 @@
 # limitations under the License.
 """Update task for updating source and tests."""
 
+from builtins import range
 import datetime
 import os
 import platform
@@ -301,7 +302,7 @@ def update_tests_if_needed():
       tasks.Task('update_tests', '', ''), expected_task_duration)
 
   # Download and unpack the tests archive.
-  for _ in xrange(retry_limit):
+  for _ in range(retry_limit):
     try:
       shell.remove_directory(data_directory, recreate=True)
       storage.copy_file_from(tests_url, temp_archive)

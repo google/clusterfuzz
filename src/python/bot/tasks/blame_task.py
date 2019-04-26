@@ -15,6 +15,7 @@
 
 import json
 import re
+import six
 
 from build_management import build_manager
 from build_management import revisions
@@ -35,7 +36,7 @@ UNINTERESTING_LINES_REGEX = re.compile(r'.*:(VERBOSE\d|INFO|WARNING):')
 def _compute_rolls(start_revisions_dict, end_revisions_dict):
   """Compute rolls between the start and end revision."""
   result = []
-  for path, entry in end_revisions_dict.iteritems():
+  for path, entry in six.iteritems(end_revisions_dict):
     url, end_sha = _extract_url_and_sha_from_deps_entry(entry)
     start_sha = None
     if path in start_revisions_dict:
@@ -77,7 +78,7 @@ def _extract_url_and_sha_from_deps_entry(entry):
 def _format_component_revisions_for_predator(component_revisions):
   """Convert a dict of dependency rolls to the format Predator expects."""
   result = []
-  for path, entry in component_revisions.iteritems():
+  for path, entry in six.iteritems(component_revisions):
     url, sha = _extract_url_and_sha_from_deps_entry(entry)
     result.append({
         'dep_path': path,

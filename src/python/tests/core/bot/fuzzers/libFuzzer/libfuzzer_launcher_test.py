@@ -14,6 +14,7 @@
 """Tests for libFuzzer launcher script."""
 # pylint: disable=unused-argument
 
+from builtins import range
 import copy
 import os
 import shutil
@@ -91,7 +92,7 @@ def create_mock_popen(output,
 
     def _write_fake_units(self):
       """Mock writing of new units."""
-      for i in xrange(number_of_testcases):
+      for i in range(number_of_testcases):
         with open(os.path.join(corpus_path, str(i)), 'w') as f:
           f.write(str(i))
 
@@ -1341,7 +1342,7 @@ class LauncherTest(fake_fs_unittest.TestCase):
     self.fs.CreateDirectory('/fake/main_corpus_dir/sub')
 
     # To use corpus subset, there should be enough files in the main corpus.
-    for i in xrange(1 + max(strategy.CORPUS_SUBSET_NUM_TESTCASES)):
+    for i in range(1 + max(strategy.CORPUS_SUBSET_NUM_TESTCASES)):
       self.fs.CreateFile('/fake/main_corpus_dir/sub/%d' % i)
 
     os.environ['FUZZ_CORPUS_DIR'] = '/fake/main_corpus_dir'
@@ -1460,7 +1461,7 @@ class LauncherTest(fake_fs_unittest.TestCase):
     self.fs.CreateDirectory('/fake/main_corpus_dir/sub')
 
     # To use corpus subset, there should be enough files in the main corpus.
-    for i in xrange(1 + max(strategy.CORPUS_SUBSET_NUM_TESTCASES)):
+    for i in range(1 + max(strategy.CORPUS_SUBSET_NUM_TESTCASES)):
       self.fs.CreateFile('/fake/main_corpus_dir/sub/%d' % i)
 
     with mock.patch('subprocess.Popen',

@@ -14,6 +14,7 @@
 """search_tokenizer tokenizes a string into tokens
   according to our keyword searching use cases."""
 
+from builtins import range
 import re
 
 
@@ -54,7 +55,7 @@ def tokenize_impact_version(version):
 
   tokens = set()
   splitted = version.split('.')
-  for index in xrange(len(splitted)):
+  for index in range(len(splitted)):
     tokens.add('.'.join(splitted[0:(index + 1)]))
 
   return [t for t in tokens if t.strip()]

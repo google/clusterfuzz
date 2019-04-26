@@ -18,6 +18,7 @@ import base64
 import copy
 import json
 import re
+import six
 import urllib2
 import yaml
 
@@ -243,7 +244,7 @@ def _process_sanitizers_field(sanitizers):
     if isinstance(sanitizer, basestring):
       processed_sanitizers[sanitizer] = {}
     elif isinstance(sanitizer, dict):
-      for key, value in sanitizer.iteritems():
+      for key, value in six.iteritems(sanitizer):
         processed_sanitizers[key] = value
     else:
       return None
@@ -266,7 +267,7 @@ def get_jobs_for_project(project, info):
     if engine not in JOB_MAP:
       continue
 
-    for sanitizer, options in sanitizers.iteritems():
+    for sanitizer, options in six.iteritems(sanitizers):
       experimental = (
           options.get('experimental', False) or info.get('experimental', False))
       if sanitizer in JOB_MAP[engine]:
@@ -507,7 +508,7 @@ def sync_cf_revision_mappings(project, info):
 
   config.revision_vars_url = '\n'.join(
       '%s;%s' % (key_value, vars_url)
-      for key_value, vars_url in revision_var_urls.iteritems())
+      for key_value, vars_url in six.iteritems(revision_var_urls))
   config.put()
 
 

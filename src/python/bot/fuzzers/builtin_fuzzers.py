@@ -13,6 +13,8 @@
 # limitations under the License.
 """Builtin fuzzers."""
 
+import six
+
 from bot.fuzzers.afl import fuzzer as afl
 from bot.fuzzers.libFuzzer import fuzzer as libFuzzer
 
@@ -24,7 +26,7 @@ BUILTIN_FUZZERS = {
 
 def all():  # pylint: disable=redefined-builtin
   """Yield pairs of (name, BuiltinFuzzer)."""
-  return BUILTIN_FUZZERS.iteritems()
+  return six.iteritems(BUILTIN_FUZZERS)
 
 
 def get(fuzzer_name):

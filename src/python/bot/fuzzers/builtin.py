@@ -13,6 +13,7 @@
 # limitations under the License.
 """Builtin fuzzer."""
 
+from builtins import range
 import os
 import random
 import sys
@@ -97,7 +98,7 @@ class EngineFuzzer(BuiltinFuzzer):
         os.mkdir(corpus_directory)
 
     # Create fuzz testcases.
-    for i in xrange(no_of_files):
+    for i in range(no_of_files):
       # Contents of testcase file don't matter at this point. Need to create
       # something non-null so that it is not ignored.
       testcase_file_path = os.path.join(output_directory,

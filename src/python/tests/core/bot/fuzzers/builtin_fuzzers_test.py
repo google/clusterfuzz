@@ -13,6 +13,7 @@
 # limitations under the License.
 """Tests builtin_fuzzers."""
 
+from builtins import range
 import functools
 import os
 import unittest
@@ -50,7 +51,7 @@ class BuiltinFuzzersTest(unittest.TestCase):
 def _mock_fuzzer_run(output, num_generated, corpus_directory, self,
                      input_directory, output_directory, no_of_files):
   """Mock fuzzer run."""
-  for i in xrange(num_generated):
+  for i in range(num_generated):
     with open(os.path.join(output_directory, 'fuzz-%d' % i), 'w') as f:
       f.write('testcase')
 
