@@ -20,6 +20,7 @@ import datetime
 from . import logger
 import os
 import re
+import six
 import socket
 import time
 
@@ -1007,7 +1008,7 @@ def configure_build_properties_if_needed():
     new_build_prop_file_content.write(line)
 
   new_build_prop_file_content.write(new_content_notification + '\n')
-  for flag, value in BUILD_PROPERTIES.items():
+  for flag, value in six.iteritems(BUILD_PROPERTIES):
     new_build_prop_file_content.write('%s=%s\n' % (flag, value))
   old_build_prop_file_content.close()
   new_build_prop_file_content.close()

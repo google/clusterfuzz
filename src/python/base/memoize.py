@@ -18,6 +18,7 @@ import collections
 import functools
 import json
 import threading
+import six
 
 try:
   from google.appengine.api import memcache
@@ -180,7 +181,7 @@ def _default_key(func, args, kwargs):
 
   kwargs = {
       key: value if not isinstance(value, str) else unicode(value)
-      for key, value in list(kwargs.items())
+      for key, value in six.iteritems(kwargs)
   }
 
   return 'memoize:%s' % [func.__name__, args, sorted(kwargs.items())]

@@ -16,6 +16,7 @@
 import filecmp
 import os
 import shutil
+import six
 import subprocess
 import tempfile
 
@@ -49,7 +50,8 @@ def _dirs_equal(dircmp):
   if dircmp.left_only or dircmp.right_only or dircmp.diff_files:
     return False
 
-  return all(_dirs_equal(sub_dircmp) for sub_dircmp in dircmp.subdirs.values())
+  return all(
+      _dirs_equal(sub_dircmp) for sub_dircmp in six.itervalues(dircmp.subdirs))
 
 
 class UntrustedRunnerIntegrationTest(

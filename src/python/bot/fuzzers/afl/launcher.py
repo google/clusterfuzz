@@ -122,7 +122,7 @@ class AflConfig(object):
 
     # Try to convert libFuzzer arguments to AFL arguments or env vars.
     libfuzzer_options = fuzzer_options.get_engine_arguments('libfuzzer')
-    for libfuzzer_name, value in libfuzzer_options.dict().items():
+    for libfuzzer_name, value in six.iteritems(libfuzzer_options.dict()):
       if libfuzzer_name not in self.LIBFUZZER_TO_AFL_OPTIONS:
         continue
 
@@ -543,7 +543,7 @@ class AflRunnerCommon(object):
 
     self.initial_max_total_time = 0
 
-    for env_var, value in config.additional_env_vars.items():
+    for env_var, value in six.iteritems(config.additional_env_vars):
       environment.set_value(env_var, value)
 
     self._showmap_output_path = None
@@ -1284,7 +1284,8 @@ def set_additional_sanitizer_options_for_afl_fuzz():
       },
   }
 
-  for options_env_var, option_values in required_sanitizer_options.items():
+  for options_env_var, option_values in six.iteritems(
+      required_sanitizer_options):
     # If os.environ[options_env_var] is an empty string, afl will refuse to run,
     # because we haven't set the right options. Thus only continue if it does
     # not exist.
