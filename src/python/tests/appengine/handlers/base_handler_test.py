@@ -127,11 +127,9 @@ class HandlerTest(unittest.TestCase):
     app = webtest.TestApp(
         webapp2.WSGIApplication([('/', AccessDeniedExceptionHandler)]))
     response = app.get('/', expect_errors=True)
-    self.assertEqual(response.status_int, 403)
-    self.assertRegexpMatches(response.body, '.*login.*')
-    self.assertRegexpMatches(response.body, '.*see this page.*')
-    self.assertRegexpMatches(response.body, '.*Access Denied.*')
-    self.assertNotRegexpMatches(response.body, '.*this_random_message.*')
+    self.assertEqual(response.status_int, 302)
+    self.assertEqual('http://localhost/login?dest=http%3A%2F%2Flocalhost%2F',
+                     response.headers['Location'])
 
   def test_forbidden_logged_in(self):
     """Ensure it renders forbidden response correctly (when logged in)."""

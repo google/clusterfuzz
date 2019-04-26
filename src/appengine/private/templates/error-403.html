@@ -32,19 +32,15 @@
 {% block page_title %}Access Denied{% endblock %}
 {% block toolbar_title %}Access Denied{% endblock %}
 {% block main_content %}
-  {% if user_email %}
-    <p>You (email={{user_email}}) are not authorized to access this page!</p>
-    {% if message %}
-      <p>{{message}}</p>
-    {% endif %}
-    <p>Please contact {{contact_string}}.</p>
-    <p>
-      <a href="{{switch_account_url}}">Switch account</a><br />
-      <a href="{{logout_url}}">Logout</a>
-    </p>
-  {% else %}
-    <p>Please <a href="{{login_url}}">log in</a> to see this page.</p>
+  <p>You (email={{user_email}}) are not authorized to access this page!</p>
+  {% if message %}
+    <p>{{message}}</p>
   {% endif %}
+  <p>Please contact {{contact_string}}.</p>
+  <p>
+    <a href="{{switch_account_url}}">Switch account</a><br />
+    <a href="{{logout_url}}">Logout</a>
+  </p>
   {% if is_oss_fuzz %}
     <p class="access-denied-remark">
       OSS-Fuzz is an effort to provide continuous fuzzing infrastructure for open-source software.

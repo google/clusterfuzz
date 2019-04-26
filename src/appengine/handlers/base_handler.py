@@ -129,12 +129,18 @@ class Handler(webapp2.RequestHandler):
 
   def render_forbidden(self, message):
     """Write HTML response for 403."""
+    login_url = make_login_url(dest_url=self.request.url)
+    user_email = helpers.get_user_email()
+    if not user_email:
+      self.redirect(login_url)
+      return
+
     contact_string = db_config.get_value('contact_string')
     template_values = {
         'message': message,
         'user_email': helpers.get_user_email(),
-        'login_url': make_login_url(dest_url=self.request.url),
-        'switch_account_url': make_login_url(self.request.url),
+        'login_url': login_url,
+        'switch_account_url': login_url,
         'logout_url': make_logout_url(dest_url=self.request.url),
         'contact_string': contact_string,
     }
