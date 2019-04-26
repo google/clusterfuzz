@@ -175,7 +175,7 @@ class QueryTest(unittest.TestCase):
 class QueryWrapper(ndb.Query):
   """Query wrapper for easy mocking."""
 
-  def __init__(self, wrapped, results, subqueries):  # pylint: super-init-not-called
+  def __init__(self, wrapped, results, subqueries):  # pylint: disable=super-init-not-called
     self.wrapped = wrapped
     self.results = results
     self.subqueries = subqueries
