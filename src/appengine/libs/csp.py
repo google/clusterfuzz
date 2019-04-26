@@ -84,7 +84,8 @@ def get_default_builder():
   builder.add('script-src', 'www.gstatic.com')
   builder.add('script-src', 'apis.google.com')
 
-  # Google Analytics also uses img-src.
+  # Google Analytics also uses connect-src and img-src.
+  builder.add('connect-src', 'www.google-analytics.com')
   builder.add('img-src', 'www.google-analytics.com')
 
   # Firebase.
