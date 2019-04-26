@@ -14,6 +14,7 @@
 """Minimizer used for additional reduction on javascript test cases."""
 from __future__ import absolute_import
 
+from builtins import range
 from . import delta_minimizer
 from . import js_tokenizer
 from . import minimizer
@@ -46,17 +47,19 @@ class JSMinimizer(minimizer.Minimizer):
         # Two hypotheses for tokens grouped by curly braces:
         # 1) Remove from start of line to curly brace and the closing brace.
         #    e.g.: if (statement_that_evaluates_to_true) { crash() } -> crash()
-        hypothesis = range(previous_line_start, previous_end + 1) + [index]
+        hypothesis = list(range(previous_line_start,
+                                previous_end + 1)) + [index]
         testcase.prepare_test(hypothesis)
 
         # 2) Remove previous tokens and from the closing brace to the next one.
         #    e.g.: try { crash() } catch(e) {} -> crash()
         future_index = len(testcase.tokens)
-        for future_index in xrange(index + 1, len(testcase.tokens)):
+        for future_index in range(index + 1, len(testcase.tokens)):
           if testcase.tokens[future_index] == '}':
             break
         if future_index != len(testcase.tokens):
-          lookahead_hypothesis = hypothesis + range(index + 1, future_index + 1)
+          lookahead_hypothesis = hypothesis + list(
+              range(index + 1, future_index + 1))
           testcase.prepare_test(lookahead_hypothesis)
 
       elif token == '(':
@@ -74,23 +77,25 @@ class JSMinimizer(minimizer.Minimizer):
         # 2) Remove everything between the parentheses.
         #    e.g. crash(junk, more_junk) -> crash()
         if index - previous_end > 1:
-          hypothesis = range(previous_end + 1, index)
+          hypothesis = list(range(previous_end + 1, index))
           testcase.prepare_test(hypothesis)
 
         # 3) Like 1, but to start of line instead of previous token.
         #    e.g.: leftover_junk = (function() {
         #          });
-        hypothesis = range(previous_line_start, previous_end + 1) + [index]
+        hypothesis = list(range(previous_line_start,
+                                previous_end + 1)) + [index]
         testcase.prepare_test(hypothesis)
 
         # 4) Like 3, but also from the closing brace to the next one.
         #    e.g.: (function(global) { })(this);
         future_index = len(testcase.tokens)
-        for future_index in xrange(index + 1, len(testcase.tokens)):
+        for future_index in range(index + 1, len(testcase.tokens)):
           if testcase.tokens[future_index] == ')':
             break
         if future_index != len(testcase.tokens):
-          lookahead_hypothesis = range(previous_line_start, future_index + 1)
+          lookahead_hypothesis = list(
+              range(previous_line_start, future_index + 1))
           testcase.prepare_test(lookahead_hypothesis)
 
       elif token == ',':

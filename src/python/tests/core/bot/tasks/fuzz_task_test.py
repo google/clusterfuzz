@@ -13,6 +13,7 @@
 # limitations under the License.
 """fuzz_task tests."""
 # pylint: disable=protected-access
+from builtins import range
 import datetime
 import mock
 import os
@@ -78,7 +79,7 @@ class TrackFuzzerRunResultTest(unittest.TestCase):
     self.assertEqual(3.1, testcase_count_ratio.sum)
     self.assertEqual(5, testcase_count_ratio.count)
 
-    expected_buckets = [0 for _ in xrange(22)]
+    expected_buckets = [0 for _ in range(22)]
     expected_buckets[1] = 1
     expected_buckets[3] = 1
     expected_buckets[11] = 2

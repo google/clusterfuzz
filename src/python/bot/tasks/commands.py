@@ -122,7 +122,7 @@ def update_environment_for_job(environment_string):
   environment_values = (
       environment.parse_environment_definition(environment_string))
 
-  for key, value in environment_values.iteritems():
+  for key, value in list(environment_values.items()):
     environment.set_value(key, value)
 
   # If we share the build with another job type, force us to be a custom binary

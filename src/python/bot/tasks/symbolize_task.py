@@ -14,6 +14,7 @@
 """Symbolize task.
    Add stack traces from non-optimized release and debug builds."""
 
+from builtins import range
 import os
 
 from base import tasks
@@ -206,7 +207,7 @@ def get_symbolized_stacktraces(testcase_file_path, testcase,
   # Symbolize using the debug build first so that the debug build stacktrace
   # comes after the more important release build stacktrace.
   if app_path_debug:
-    for _ in xrange(retry_limit):
+    for _ in range(retry_limit):
       process_handler.terminate_stale_application_instances()
       command = tests.get_command_line_for_application(
           testcase_file_path,
@@ -235,7 +236,7 @@ def get_symbolized_stacktraces(testcase_file_path, testcase,
 
   # Symbolize using the release build.
   if app_path:
-    for _ in xrange(retry_limit):
+    for _ in range(retry_limit):
       process_handler.terminate_stale_application_instances()
       command = tests.get_command_line_for_application(
           testcase_file_path, app_path=app_path, needs_http=testcase.http_flag)

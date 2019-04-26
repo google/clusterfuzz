@@ -110,8 +110,9 @@ def execute(args):
     print()
 
     if args.persist:
-      raw_input('--persist is used. Leave the browser open.'
-                ' Press ENTER to close it:')
+      eval(
+          input('--persist is used. Leave the browser open.'
+                ' Press ENTER to close it:'))
   finally:
     driver.quit()
 

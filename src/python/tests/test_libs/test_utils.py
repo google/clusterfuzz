@@ -351,7 +351,7 @@ def with_cloud_emulators(*emulator_names):
         super(Wrapped, cls).setUpClass()
 
       def setUp(self):
-        for emulator in _emulators.itervalues():
+        for emulator in list(_emulators.values()):
           emulator.reset()
 
         super(Wrapped, self).setUp()

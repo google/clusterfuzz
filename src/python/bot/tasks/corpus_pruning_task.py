@@ -629,7 +629,7 @@ def do_corpus_pruning(context, last_execution_failed, revision):
 
   result = CorpusPruningResult(
       coverage_info=coverage_info,
-      crashes=crashes.values(),
+      crashes=list(crashes.values()),
       fuzzer_binary_name=fuzzer_binary_name,
       revision=environment.get_value('APP_REVISION'))
 
@@ -738,7 +738,7 @@ def _get_cross_pollinate_fuzzers(engine, current_fuzzer_name):
     )
 
   return random.SystemRandom().sample(
-      cross_pollinate_fuzzers.values(),
+      list(cross_pollinate_fuzzers.values()),
       min(len(cross_pollinate_fuzzers), CROSS_POLLINATE_FUZZER_COUNT))
 
 

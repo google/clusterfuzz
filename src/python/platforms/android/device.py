@@ -14,6 +14,7 @@
 """Device information related functions."""
 from __future__ import absolute_import
 
+from builtins import range
 import copy
 import datetime
 from . import logger
@@ -503,7 +504,7 @@ def get_type_binding(value):
     return 'f'
   if isinstance(value, int):
     return 'i'
-  if isinstance(value, long):
+  if isinstance(value, int):
     return 'l'
   if isinstance(value, str):
     return 's'
@@ -929,7 +930,7 @@ def flash_to_latest_build_if_needed():
 
       logs.log('Reimaging started.')
       logs.log('Rebooting into bootloader mode.')
-      for _ in xrange(FLASH_RETRIES):
+      for _ in range(FLASH_RETRIES):
         adb.run_as_root()
         adb.run_adb_command(['reboot-bootloader'])
         time.sleep(FLASH_REBOOT_BOOTLOADER_WAIT)
@@ -1006,7 +1007,7 @@ def configure_build_properties_if_needed():
     new_build_prop_file_content.write(line)
 
   new_build_prop_file_content.write(new_content_notification + '\n')
-  for flag, value in BUILD_PROPERTIES.iteritems():
+  for flag, value in list(BUILD_PROPERTIES.items()):
     new_build_prop_file_content.write('%s=%s\n' % (flag, value))
   old_build_prop_file_content.close()
   new_build_prop_file_content.close()

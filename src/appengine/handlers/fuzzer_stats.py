@@ -188,7 +188,7 @@ def _parse_stats_column_descriptions(stats_column_descriptions):
 
   try:
     result = yaml.safe_load(stats_column_descriptions)
-    for key, value in result.iteritems():
+    for key, value in list(result.items()):
       result[key] = cgi.escape(value)
 
     return result

@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """Logging functions."""
+from __future__ import division
 
 import datetime
 import json
@@ -124,7 +125,7 @@ def truncate(msg, limit):
   if len(msg) <= limit:
     return msg
 
-  half = limit / 2
+  half = limit // 2
   return '\n'.join([
       msg[:half],
       '...%d characters truncated...' % (len(msg) - limit), msg[-half:]

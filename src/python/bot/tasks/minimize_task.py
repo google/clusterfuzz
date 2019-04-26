@@ -13,6 +13,7 @@
 # limitations under the License.
 """Minimize task for handling testcase minimization."""
 
+from builtins import range
 import binascii
 import functools
 import os
@@ -318,7 +319,7 @@ class TestRunner(object):
 
     run_queue = minimizer.TestQueue(
         instances, per_thread_cleanup_function=cleanup_function)
-    for _ in xrange(runs):
+    for _ in range(runs):
       run_queue.push(self.file_path, self.run, self.store_result_from_run)
 
     run_queue.process()
@@ -981,7 +982,7 @@ def do_ipc_dump_minimization(test_function, get_temp_file, file_path, deadline,
     except ValueError:
       return []
 
-    return range(last_index + 1)
+    return list(range(last_index + 1))
 
   def combine_tokens(tokens):
     """Use the ipc_message_util utility to create a file for these tokens."""
@@ -1229,7 +1230,7 @@ def do_libfuzzer_minimization(testcase, testcase_file_path):
 
   # We attempt minimization multiple times in case one round results in an
   # incorrect state, or runs into another issue such as a slow unit.
-  for round_number in xrange(1, rounds + 1):
+  for round_number in range(1, rounds + 1):
     logs.log('Minimizing round %d.' % round_number)
     output_file_path, crash_result = _run_libfuzzer_tool(
         'minimize',

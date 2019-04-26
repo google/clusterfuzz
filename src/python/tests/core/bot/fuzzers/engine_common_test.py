@@ -13,6 +13,7 @@
 # limitations under the License.
 """Tests fuzzers.engine_common."""
 
+from builtins import range
 import os
 import parameterized
 import unittest
@@ -113,7 +114,7 @@ class GetTimeoutTestBase(unittest.TestCase):
     """Set environment variable values based on the key, value pairs in
     |environment_variable_values|.
     """
-    for key, value in environment_variable_values.iteritems():
+    for key, value in list(environment_variable_values.items()):
       environment.set_value(key, value)
 
   def validation_helper(self, environment_variable_values):
@@ -396,7 +397,7 @@ class UnpackSeedCorpusIfNeededTest(fake_filesystem_unittest.TestCase):
   def _create_corpus_files(self, num_files):
     """Creates |num_files| files in the corpus directory."""
     filenames = []
-    for file_num in xrange(num_files):
+    for file_num in range(num_files):
       file_num = str(file_num)
       self.fs.CreateFile(os.path.join(self.CORPUS_DIRECTORY, file_num))
       filenames.append(file_num)

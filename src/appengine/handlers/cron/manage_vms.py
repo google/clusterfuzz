@@ -12,7 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """Cron to managed VMs."""
+from __future__ import division
 
+from builtins import range
 import copy
 import itertools
 import json
@@ -46,7 +48,7 @@ class ManageVmsException(Exception):
 
 def _get_project_ids():
   """Return the GCE project IDs."""
-  return local_config.Config(local_config.GCE_CLUSTERS_PATH).get().keys()
+  return list(local_config.Config(local_config.GCE_CLUSTERS_PATH).get().keys())
 
 
 def _instance_name_from_url(instance_url):
@@ -340,7 +342,7 @@ class OssFuzzClustersManager(ClustersManager):
 
     # indexes into |project| sorted by highest weight first.
     indexes_by_weight = sorted(
-        range(len(projects)),
+        list(range(len(projects))),
         key=lambda k: projects[k].cpu_weight,
         reverse=True)
 
@@ -349,7 +351,7 @@ class OssFuzzClustersManager(ClustersManager):
     while available_cpus:
       cpus_allocated = 0
 
-      for i in xrange(len(cpu_count)):
+      for i in range(len(cpu_count)):
         project_index = indexes_by_weight[i]
 
         if cpu_count[project_index] < PROJECT_MAX_CPUS:
@@ -393,7 +395,7 @@ class OssFuzzClustersManager(ClustersManager):
     new_assignments = []
 
     for host_name in host_names:
-      for i in xrange(0, workers_per_host):
+      for i in range(0, workers_per_host):
         assignment = self.get_or_create_host_worker_assignment(host_name, i)
         if (assignment.worker_name and
             assignment.worker_name in current_worker_names):
@@ -550,8 +552,8 @@ class OssFuzzClustersManager(ClustersManager):
     ]
 
     for project, project_info in itertools.chain(
-        zip(projects, project_infos),
-        zip(high_end_projects, high_end_project_infos)):
+        list(zip(projects, project_infos)),
+        list(zip(high_end_projects, high_end_project_infos))):
       self.cleanup_clusters(project, project_info)
 
     self.start_thread_pool()
@@ -586,7 +588,7 @@ class OssFuzzClustersManager(ClustersManager):
 
         return cpu_counts[index] - old_cpu_count
 
-      resize_order = sorted(range(len(cpu_counts)), key=_cpu_diff_key)
+      resize_order = sorted(list(range(len(cpu_counts))), key=_cpu_diff_key)
       for i in resize_order:
         project = current_projects[i]
         project_info = current_project_infos[i]

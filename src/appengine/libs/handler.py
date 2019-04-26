@@ -54,7 +54,7 @@ def extend_request(req, params):
   """Extends a request."""
 
   def _iterparams():
-    for k, v in params.iteritems():
+    for k, v in list(params.items()):
       yield k, v
 
   req.iterparams = _iterparams

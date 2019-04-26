@@ -73,7 +73,7 @@ def _config_to_project(name, config):
   """Read a project config."""
   clusters = []
 
-  for cluster_name, zone in config['clusters'].iteritems():
+  for cluster_name, zone in list(config['clusters'].items()):
     clusters.append(
         Cluster(
             name=cluster_name,
@@ -105,7 +105,7 @@ def _project_configs():
 
 def get_projects():
   projects = []
-  for name, project in _project_configs().iteritems():
+  for name, project in list(_project_configs().items()):
     projects.append(_config_to_project(name, project))
 
   return projects

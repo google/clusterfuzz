@@ -285,7 +285,7 @@ def get_top_crash_platforms(testcase, top_crashes_by_project_and_platform_map):
   top_crashes_by_platform_map = top_crashes_by_project_and_platform_map[
       testcase.project_name]
   top_crash_platforms = set()
-  for platform in top_crashes_by_platform_map.keys():
+  for platform in list(top_crashes_by_platform_map.keys()):
     top_crashes = top_crashes_by_platform_map[platform]
     if not top_crashes:
       continue

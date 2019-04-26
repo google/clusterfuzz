@@ -40,7 +40,7 @@ from tests.test_libs import untrusted_runner_helpers
 
 TEST_FILE_CONTENTS = ('A' * config.FILE_TRANSFER_CHUNK_SIZE +
                       'B' * config.FILE_TRANSFER_CHUNK_SIZE +
-                      'C' * (config.FILE_TRANSFER_CHUNK_SIZE / 2))
+                      'C' * (config.FILE_TRANSFER_CHUNK_SIZE // 2))
 
 TEST_BUNDLE_BUCKET = 'clusterfuzz-test-bundle'
 
@@ -50,7 +50,7 @@ def _dirs_equal(dircmp):
     return False
 
   return all(
-      _dirs_equal(sub_dircmp) for sub_dircmp in dircmp.subdirs.itervalues())
+      _dirs_equal(sub_dircmp) for sub_dircmp in list(dircmp.subdirs.values()))
 
 
 class UntrustedRunnerIntegrationTest(

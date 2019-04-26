@@ -234,7 +234,7 @@ def setup_fuzzers(non_dry_run):
 
 def setup_templates(non_dry_run):
   """Set up templates."""
-  for name, template in TEMPLATES.iteritems():
+  for name, template in list(TEMPLATES.items()):
     job = data_types.JobTemplate.query(
         data_types.JobTemplate.name == name).get()
     if job:

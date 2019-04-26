@@ -16,6 +16,7 @@
 # TODO(ochang): Remove V3 from names once all metrics are migrated to
 # stackdriver.
 
+from builtins import range
 import bisect
 import collections
 import functools
@@ -124,7 +125,7 @@ class _MetricsStore(object):
   def _get_key(self, metric_name, labels):
     """Get the key used for storing values."""
     if labels:
-      normalized_labels = tuple(sorted(labels.iteritems()))
+      normalized_labels = tuple(sorted(labels.items()))
     else:
       normalized_labels = None
 
@@ -132,7 +133,7 @@ class _MetricsStore(object):
 
   def iter_values(self):
     with self._lock:
-      for value in self._store.itervalues():
+      for value in list(self._store.values()):
         yield value
 
   def get(self, metric, labels):
@@ -245,7 +246,7 @@ class Metric(object):
     if not labels:
       return metric
 
-    for key, value in labels.iteritems():
+    for key, value in list(labels.items()):
       metric.labels[key] = str(value)
 
     # Default labels.
@@ -356,7 +357,7 @@ class FixedWidthBucketer(_Bucketer):
     # [-Inf, 0), [0, width), [width, 2*width], ... , [n*width, Inf)
     self._lower_bounds = [float('-Inf')]
     self._lower_bounds.extend(
-        [width * i for i in xrange(num_finite_buckets + 1)])
+        [width * i for i in range(num_finite_buckets + 1)])
 
 
 class GeometricBucketer(_Bucketer):
@@ -371,7 +372,7 @@ class GeometricBucketer(_Bucketer):
     # [scale*growth^i, scale*growth^(i+1)), ..., [scale*growth^n, Inf)
     self._lower_bounds = [float('-Inf')]
     self._lower_bounds.extend(
-        [scale * growth_factor**i for i in xrange(num_finite_buckets + 1)])
+        [scale * growth_factor**i for i in range(num_finite_buckets + 1)])
 
 
 class _Distribution(object):
@@ -379,7 +380,7 @@ class _Distribution(object):
 
   def __init__(self, bucketer):
     self.bucketer = bucketer
-    self.buckets = [0 for _ in xrange(bucketer.num_buckets)]
+    self.buckets = [0 for _ in range(bucketer.num_buckets)]
     self.sum = 0
     self.count = 0
 

@@ -167,7 +167,7 @@ def find_testcase(project_name,
 def get_crash_type_string(testcase):
   """Return a crash type string for a testcase."""
   crash_type = ' '.join(testcase.crash_type.splitlines())
-  if crash_type not in CRASH_TYPE_VALUE_REGEX_MAP.keys():
+  if crash_type not in list(CRASH_TYPE_VALUE_REGEX_MAP.keys()):
     return crash_type
 
   crash_stacktrace = get_stacktrace(testcase)
@@ -1164,7 +1164,7 @@ def create_user_uploaded_testcase(key,
         'fuzzer_binary_name', fuzzer_binary_name, update_testcase=False)
 
   if additional_metadata:
-    for metadata_key, metadata_value in additional_metadata.iteritems():
+    for metadata_key, metadata_value in list(additional_metadata.items()):
       testcase.set_metadata(metadata_key, metadata_value, update_testcase=False)
 
   testcase.timestamp = datetime.datetime.utcnow()

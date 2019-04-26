@@ -31,7 +31,7 @@ def to_dict(entity):
   entity_dict = entity.to_dict()
   entity_dict['id'] = entity.key.id()
 
-  for k, v in entity_dict.iteritems():
+  for k, v in list(entity_dict.items()):
     if isinstance(v, datetime.datetime):
       entity_dict[k] = utils.utc_datetime_to_timestamp(v)
 
@@ -41,14 +41,14 @@ def to_dict(entity):
 def get_diff(before, after):
   """Return differences in string between the two dicts, before and after."""
   diffs = []
-  for k, v in before.iteritems():
+  for k, v in list(before.items()):
     if k in after:
       if v != after[k]:
         diffs.append((k, (v, after[k])))
     else:
       diffs.append((k, (v, '<MISSING>')))
 
-  for k, v in after.iteritems():
+  for k, v in list(after.items()):
     if k not in before:
       diffs.append((k, ('<MISSING>', v)))
 

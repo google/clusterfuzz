@@ -53,7 +53,7 @@ def choose(testcase_map):
   def _key_func(testcase):
     return testcase.group_id
 
-  testcases = sorted([v for _, v in testcase_map.iteritems()], key=_key_func)
+  testcases = sorted([v for _, v in list(testcase_map.items())], key=_key_func)
   for group_id, items in itertools.groupby(testcases, _key_func):
     if group_id == 0:  # group_id=0 means there's no group.
       continue

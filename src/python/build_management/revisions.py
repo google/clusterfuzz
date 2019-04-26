@@ -13,6 +13,7 @@
 # limitations under the License.
 """Revisions related helper functions."""
 
+from builtins import range
 import base64
 import bisect
 import json
@@ -51,7 +52,7 @@ def _add_components_from_dict(deps_dict, vars_dict, revisions_dict):
     # If the dictionary is None, bail out early.
     return
 
-  for key, value in deps_dict.items():
+  for key, value in list(deps_dict.items()):
     url = rev = None
     if isinstance(value, basestring):
       url, _, rev = value.partition('@')
@@ -205,7 +206,7 @@ def _src_map_to_revisions_dict(src_map, default_project_name):
   """Convert src map contents to revisions dict."""
   revisions_dict = {}
 
-  for key in src_map.iterkeys():
+  for key in list(src_map.keys()):
     # Only add keys that have both url and rev attributes.
     if 'url' in src_map[key] and 'rev' in src_map[key]:
       revisions_dict[key] = {
@@ -280,7 +281,7 @@ def deps_to_revisions_dict(content):
   deps_os_dict = local_context.get('deps_os')
   if deps_os_dict:
     # |deps_os| variable is optional.
-    for deps_os in deps_os_dict.values():
+    for deps_os in list(deps_os_dict.values()):
       _add_components_from_dict(deps_os, vars_dict, revisions_dict)
 
   return revisions_dict
@@ -539,7 +540,7 @@ def find_build_url(bucket_path, build_url_list, revision):
     return None
 
   revision_pattern = revision_pattern_from_build_bucket_path(bucket_path)
-  for index in xrange(len(build_url_list)):
+  for index in range(len(build_url_list)):
     match = re.match(revision_pattern, build_url_list[index])
     if not match:
       continue
@@ -587,7 +588,7 @@ def get_first_revision_in_list(revision_list):
   if not min_revision:
     return first_revision
 
-  for index in xrange(len(revision_list)):
+  for index in range(len(revision_list)):
     if revision_list[index] >= min_revision:
       return revision_list[index]
 
@@ -612,7 +613,7 @@ def get_real_revision(revision, job_type, display=False):
   if not component_revisions_dict:
     return str(revision)
 
-  keys = component_revisions_dict.keys()
+  keys = list(component_revisions_dict.keys())
   key = ('/src' if '/src' in keys else get_components_list(
       component_revisions_dict, job_type)[0])
   helper = _get_display_revision if display else _get_revision
@@ -645,7 +646,7 @@ def needs_update(revision_file, revision):
   file_exists = False
   retry_limit = environment.get_value('FAIL_RETRIES')
 
-  for _ in xrange(retry_limit):
+  for _ in range(retry_limit):
     # NFS can sometimes return a wrong result on file existence, so redo
     # this check a couple of times to be sure.
     if not os.path.exists(revision_file):

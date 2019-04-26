@@ -74,7 +74,7 @@ def should_rebase_environment_value(environment_variable):
 def update_environment(env):
   """Update worker's environment."""
   processed_env = {}
-  for key, value in env.iteritems():
+  for key, value in list(env.items()):
     if should_rebase_environment_value(key):
       value = file_host.rebase_to_worker_root(value)
 
@@ -89,7 +89,7 @@ def set_environment_vars(env, source_env):
   if not source_env:
     return
 
-  for name, value in source_env.iteritems():
+  for name, value in list(source_env.items()):
     if is_forwarded_environment_variable(name):
       # Avoid creating circular dependencies from importing environment by
       # using os.getenv.

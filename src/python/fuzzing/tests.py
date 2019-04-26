@@ -13,6 +13,7 @@
 # limitations under the License.
 """Functions for testcase management."""
 
+from builtins import range
 import base64
 import collections
 import datetime
@@ -504,7 +505,7 @@ def test_for_crash_with_retries(testcase,
 
   logs.log('Testing for crash (command="%s").' % command)
 
-  for round_number in xrange(1, crash_retries + 1):
+  for round_number in range(1, crash_retries + 1):
     run_timeout = warmup_timeout if round_number == 1 else test_timeout
     return_code, crash_time, output = process_handler.run_process(
         command,
@@ -580,7 +581,7 @@ def test_for_reproducibility(testcase_path, expected_state,
   logs.log('Testing for crash (command="%s").' % command)
 
   round_number = 0
-  for round_number in xrange(1, crash_retries + 1):
+  for round_number in range(1, crash_retries + 1):
     # Bail out early if there is no hope of finding a reproducible crash.
     if (crash_retries - round_number + crash_count + 1 <
         reproducible_crash_target_count):

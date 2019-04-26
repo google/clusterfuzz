@@ -15,6 +15,7 @@
 from __future__ import absolute_import
 from __future__ import print_function
 
+from builtins import range
 import os
 import shlex
 import subprocess
@@ -98,7 +99,7 @@ def set_test_attempts(new_attempts):
 
 def test(test_path):
   """Wrapper function to verify that a test does not fail for multiple runs."""
-  for _ in xrange(attempts):
+  for _ in range(attempts):
     if not single_test_run(test_path):
       return False
   return True

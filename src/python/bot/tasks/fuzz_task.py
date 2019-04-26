@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """Fuzz task for handling fuzzing."""
+from __future__ import division
 
 import collections
 import datetime
@@ -697,8 +698,8 @@ def truncate_fuzzer_output(output, limit):
 
   separator = '\n...truncated...\n'
   reduced_limit = limit - len(separator)
-  left = reduced_limit / 2 + reduced_limit % 2
-  right = reduced_limit / 2
+  left = reduced_limit // 2 + reduced_limit % 2
+  right = reduced_limit // 2
 
   assert reduced_limit > 0
 
@@ -981,7 +982,7 @@ def get_testcase_timeout_multiplier(timeout_multiplier, crash, test_timeout,
   """Get testcase timeout multiplier."""
   testcase_timeout_multiplier = timeout_multiplier
   if timeout_multiplier > 1 and (crash.crash_time + thread_wait_timeout) < (
-      test_timeout / timeout_multiplier):
+      (test_timeout / timeout_multiplier)):
     testcase_timeout_multiplier = 1.0
 
   return testcase_timeout_multiplier
@@ -1020,7 +1021,7 @@ def create_testcase(group, context):
   testcase = data_handler.get_testcase_by_id(testcase_id)
 
   if context.fuzzer_metadata:
-    for key, value in context.fuzzer_metadata.iteritems():
+    for key, value in list(context.fuzzer_metadata.items()):
       testcase.set_metadata(key, value, update_testcase=False)
 
     testcase.put()

@@ -337,7 +337,7 @@ def find_fixed_range(testcase_id, job_type):
       return
 
     # Test the middle revision of our range.
-    middle_index = (min_index + max_index) / 2
+    middle_index = (min_index + max_index) // 2
     middle_revision = revision_list[middle_index]
 
     testcase = data_handler.get_testcase_by_id(testcase_id)

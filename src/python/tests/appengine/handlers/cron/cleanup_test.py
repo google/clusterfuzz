@@ -14,6 +14,7 @@
 """Tests for cleanup task."""
 # pylint: disable=protected-access
 
+from builtins import range
 import datetime
 import unittest
 
@@ -1396,7 +1397,7 @@ class UpdateIssueCCsFromOwnersFileTest(unittest.TestCase):
 
   def test_only_add_five_random_ccs(self):
     """Test that up to 5 random ccs are added. """
-    issue_owners = ['dev%s@example.com' % idx for idx in xrange(100)]
+    issue_owners = ['dev%s@example.com' % idx for idx in range(100)]
     self.testcase.set_metadata('issue_owners', ','.join(issue_owners))
 
     helpers.patch(self, ['random.sample'])

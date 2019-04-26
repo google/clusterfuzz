@@ -29,6 +29,7 @@ from __future__ import print_function
 # Disable all pylint warnings/errors as this is based on external code.
 # pylint: disable-all
 
+from past.builtins import cmp
 import os
 import re
 import subprocess
@@ -260,7 +261,7 @@ class LLVMSymbolizer(Symbolizer):
     # FIXME: Since we are not using process_handler.run_process here, we can run
     # into issues with unicode environment variable and values. Add this
     # explicit hack to convert these into strings.
-    env_copy = {str(key): str(value) for key, value in env_copy.iteritems()}
+    env_copy = {str(key): str(value) for key, value in list(env_copy.items())}
 
     # Run the symbolizer.
     pipe = subprocess.Popen(

@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """Handler for the crash stats page."""
-
 import json
 
 from datastore import data_handler
@@ -203,7 +202,7 @@ def get_result(this):
   helpers.log('CrashStats', helpers.VIEW_OPERATION)
 
   result = {
-      'totalPages': int(total_count / PAGE_SIZE) + 1,
+      'totalPages': (total_count // PAGE_SIZE) + 1,
       'page': page,
       'pageSize': PAGE_SIZE,
       'items': rows,

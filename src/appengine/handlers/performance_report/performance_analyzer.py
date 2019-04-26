@@ -12,7 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """Classes for dealing with Performance Analysis."""
+from __future__ import division
 
+from builtins import range
 import collections
 import datetime
 import json
@@ -101,17 +103,18 @@ class PerformanceAnalyzer(object):
     num_analyzers = len(self.analyzers)
     performance_scores = [0] * num_analyzers
     affected_runs_percent = [0] * num_analyzers
-    examples = [set() for _ in xrange(num_analyzers)]
+    examples = [set() for _ in range(num_analyzers)]
 
     if not stats:
       return performance_scores, affected_runs_percent, examples
 
     for row in stats:
       current_scores = self.analyze_single_stats_row(row)
-      performance_scores = map(operator.add, performance_scores, current_scores)
+      performance_scores = list(
+          map(operator.add, performance_scores, current_scores))
       current_runs = [int(score > 0.0) for score in current_scores]
-      affected_runs_percent = map(operator.add, affected_runs_percent,
-                                  current_runs)
+      affected_runs_percent = list(
+          map(operator.add, affected_runs_percent, current_runs))
 
       # Add upto max |EXAMPLES_LIMIT| examples for each issue type.
       for i in range(num_analyzers):
@@ -121,11 +124,11 @@ class PerformanceAnalyzer(object):
 
     # Data normalization. Divide the scores by the number of logs analyzed.
     runs_count = len(stats)
-    performance_scores = [score / runs_count for score in performance_scores]
+    performance_scores = [(score / runs_count) for score in performance_scores]
 
     # Data normalization. Convert affected runs into percents of all logs.
     affected_runs_percent = [
-        (count * 100.0 / runs_count) for count in affected_runs_percent
+        ((count * 100.0) / runs_count) for count in affected_runs_percent
     ]
 
     return performance_scores, affected_runs_percent, examples

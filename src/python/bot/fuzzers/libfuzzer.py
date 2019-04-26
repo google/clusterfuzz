@@ -243,7 +243,7 @@ class LibFuzzerCommon(object):
     # individual runs of the target and not for the entire minimization.
     # Internally, libFuzzer does 2 runs of the target every iteration. This is
     # the minimum for any results to be written at all.
-    max_total_time_value = (timeout - self.LIBFUZZER_CLEAN_EXIT_TIME) / 2
+    max_total_time_value = (timeout - self.LIBFUZZER_CLEAN_EXIT_TIME) // 2
     max_total_time_argument = '%s%d' % (constants.MAX_TOTAL_TIME_FLAG,
                                         max_total_time_value)
 

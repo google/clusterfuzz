@@ -24,7 +24,7 @@ BUILTIN_FUZZERS = {
 
 def all():  # pylint: disable=redefined-builtin
   """Yield pairs of (name, BuiltinFuzzer)."""
-  return BUILTIN_FUZZERS.iteritems()
+  return iter(list(BUILTIN_FUZZERS.items()))
 
 
 def get(fuzzer_name):

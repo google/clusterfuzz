@@ -15,6 +15,7 @@
 minor modifications, especially without any google3 specific library
 dependencies)."""
 
+from builtins import range
 import apiclient
 import io
 import os
@@ -36,7 +37,7 @@ MAX_RETRIES = 20
 def execute_request_with_retries(request):
   """Executes request and retries on failure."""
   result = None
-  for _ in xrange(MAX_RETRIES):
+  for _ in range(MAX_RETRIES):
     try:
       result = request.execute()
       break
@@ -84,7 +85,7 @@ def download_artifact(client, bid, target, attempt_id, name, output_directory):
       status, done = downloader.next_chunk()
       if status:
         size_completed = int(status.resumable_progress)
-        percent_completed = size_completed * 100.0 / size
+        percent_completed = (size_completed * 100.0) / size
         logs.log('%.1f%% complete.' % percent_completed)
 
   return output_path

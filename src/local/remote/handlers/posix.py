@@ -13,6 +13,7 @@
 # limitations under the License.
 """Handler for performing remote tasks on linux."""
 from __future__ import print_function
+from builtins import range
 import os
 import re
 import time
@@ -92,7 +93,7 @@ class Handler(object):
     self._run('kill %s' % ' '.join(pids))
     time.sleep(3)
 
-    for _ in xrange(30):
+    for _ in range(30):
       new_pids = self._get_run_bot_pids()
       if new_pids:
         break

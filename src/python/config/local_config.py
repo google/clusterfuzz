@@ -200,7 +200,7 @@ class ProjectConfig(Config):
     if not env_variable_values:
       return
 
-    for variable, value in env_variable_values.iteritems():
+    for variable, value in list(env_variable_values.items()):
       if variable in os.environ:
         # Don't override existing values.
         continue

@@ -65,7 +65,7 @@ def main():
     os.mkdir('templates')
 
   template_names = os.listdir(os.path.join('private', 'templates'))
-  pool = multiprocessing.Pool(max(multiprocessing.cpu_count() / 2, 1))
+  pool = multiprocessing.Pool(max(multiprocessing.cpu_count() // 2, 1))
   result = pool.map(build_file, template_names)
 
   if not all(result):

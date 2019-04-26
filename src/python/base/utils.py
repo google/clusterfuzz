@@ -13,6 +13,7 @@
 # limitations under the License.
 """Common utility functions."""
 
+from builtins import range
 import ast
 import datetime
 import functools
@@ -139,7 +140,7 @@ def fields_match(string_1,
     return False
 
   min_fields_length = min(len(string_1_fields), len(string_2_fields))
-  for i in xrange(min_fields_length):
+  for i in range(min_fields_length):
     if string_1_fields[i] != string_2_fields[i]:
       return False
 
@@ -167,8 +168,8 @@ def filter_file_list(file_list):
       continue
 
     # Do a os specific case normalization before comparison.
-    if (os.path.normcase(file_path) in map(os.path.normcase,
-                                           filtered_file_list)):
+    if (os.path.normcase(file_path) in list(
+        map(os.path.normcase, filtered_file_list))):
       continue
 
     filtered_file_list.append(file_path)
@@ -430,7 +431,7 @@ def is_binary_file(file_path, bytes_to_read=1024):
   if file_extension in TEXT_EXTENSIONS:
     return False
 
-  text_characters = map(chr, range(32, 128)) + ['\r', '\n', '\t']
+  text_characters = list(map(chr, list(range(32, 128)))) + ['\r', '\n', '\t']
   try:
     file_handle = open(file_path, 'rb')
     data = file_handle.read(bytes_to_read)
@@ -449,7 +450,7 @@ def is_recursive_call():
   try:
     stack_frames = inspect.stack()
     caller_name = stack_frames[1][3]
-    for stack_frame_index in xrange(2, len(stack_frames)):
+    for stack_frame_index in range(2, len(stack_frames)):
       if caller_name == stack_frames[stack_frame_index][3]:
         return True
   except:
@@ -512,7 +513,7 @@ def python_gc():
   # gc_collect isn't perfectly synchronous, because it may
   # break reference cycles that then take time to fully
   # finalize. Call it thrice and hope for the best.
-  for _ in xrange(3):
+  for _ in range(3):
     gc.collect()
 
 
@@ -551,7 +552,7 @@ def read_data_from_file(file_path, eval_data=True, default=None):
   failure_wait_interval = environment.get_value('FAIL_WAIT')
   file_content = None
   retry_limit = environment.get_value('FAIL_RETRIES')
-  for _ in xrange(retry_limit):
+  for _ in range(retry_limit):
     try:
       file_handle = open(file_path, 'rb')
       file_content = file_handle.read()
@@ -771,7 +772,7 @@ def write_data_to_file(content, file_path, append=False):
   file_mode = 'ab' if append else 'wb'
   retry_limit = environment.get_value('FAIL_RETRIES')
 
-  for _ in xrange(retry_limit):
+  for _ in range(retry_limit):
     try:
       file_handle = open(file_path, file_mode)
       file_handle.write(content_string)
@@ -825,7 +826,7 @@ def read_from_handle_truncated(file_handle, max_len):
     return file_handle.read()
 
   # Read first and last |half_max_len| bytes.
-  half_max_len = max_len / 2
+  half_max_len = max_len // 2
   start = file_handle.read(half_max_len)
   file_handle.seek(file_size - half_max_len, os.SEEK_SET)
   end = file_handle.read(half_max_len)

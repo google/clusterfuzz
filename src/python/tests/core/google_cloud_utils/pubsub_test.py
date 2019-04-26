@@ -13,6 +13,7 @@
 # limitations under the License.
 """Pubsub tests."""
 
+from builtins import range
 import time
 import unittest
 
@@ -126,7 +127,7 @@ class PubSubTest(unittest.TestCase):
   def test_list_topics(self):
     """Test listing topics."""
     expected = []
-    for i in xrange(5):
+    for i in range(5):
       topic = pubsub.topic_name(PROJECT_NAME, 'topic-{}'.format(i))
       expected.append(topic)
       self.client.create_topic(topic)
@@ -146,7 +147,7 @@ class PubSubTest(unittest.TestCase):
   def test_list_topic_subscriptions(self):
     """Test listing topic subscriptions."""
     expected = []
-    for i in xrange(5):
+    for i in range(5):
       subscription = pubsub.subscription_name(PROJECT_NAME, 'sub-{}'.format(i))
       expected.append(subscription)
       self.client.create_subscription(subscription, self.topic)

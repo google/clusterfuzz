@@ -14,6 +14,7 @@
 """Copy corpus from one bucket to another, keeping project name in mind."""
 from __future__ import print_function
 
+from builtins import range
 import argparse
 import datetime
 import random
@@ -38,7 +39,7 @@ def _run_command(command):
           time=datetime.datetime.now().strftime('%H:%M:%S')),
       ' '.join(command))
 
-  for _ in xrange(RETRY_COUNT):
+  for _ in range(RETRY_COUNT):
     try:
       return subprocess.check_output(command, stderr=subprocess.STDOUT)
     except subprocess.CalledProcessError as e:

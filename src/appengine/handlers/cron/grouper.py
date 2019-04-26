@@ -72,7 +72,7 @@ def combine_testcases_into_group(testcase_1, testcase_2, testcase_map):
   # together and reuse one of their group ids.
   group_id_to_reuse = testcase_1.group_id
   group_id_to_move = testcase_2.group_id
-  for testcase in testcase_map.itervalues():
+  for testcase in list(testcase_map.values()):
     if testcase.group_id == group_id_to_move:
       testcase.group_id = group_id_to_reuse
 
@@ -166,7 +166,7 @@ def group_testcases():
     updated_group_id_count = 0
     updated_group_bug_information = 0
     if updated_group_id:
-      for other_testcase in testcase_map.itervalues():
+      for other_testcase in list(testcase_map.values()):
         if other_testcase.group_id != updated_group_id:
           continue
         updated_group_id_count += 1
@@ -219,8 +219,8 @@ def group_testcases():
 
 def group_testcases_with_same_issues(testcase_map):
   """Group testcases that are associated with same underlying issue."""
-  for testcase_1_id, testcase_1 in testcase_map.iteritems():
-    for testcase_2_id, testcase_2 in testcase_map.iteritems():
+  for testcase_1_id, testcase_1 in list(testcase_map.items()):
+    for testcase_2_id, testcase_2 in list(testcase_map.items()):
       # Rule: Don't group the same testcase and use different combinations for
       # comparisons.
       if testcase_1_id <= testcase_2_id:
@@ -247,8 +247,8 @@ def group_testcases_with_same_issues(testcase_map):
 
 def group_testcases_with_similar_states(testcase_map):
   """Group testcases with similar looking crash states."""
-  for testcase_1_id, testcase_1 in testcase_map.iteritems():
-    for testcase_2_id, testcase_2 in testcase_map.iteritems():
+  for testcase_1_id, testcase_1 in list(testcase_map.items()):
+    for testcase_2_id, testcase_2 in list(testcase_map.items()):
       # Rule: Don't group the same testcase and use different combinations for
       # comparisons.
       if testcase_1_id <= testcase_2_id:

@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """manage_vms tests."""
+from builtins import range
 import copy
 import functools
 import mock
@@ -155,26 +156,26 @@ INSTANCES = {
     }],
     'oss-fuzz-linux-zone3-worker-proj1': [{
         'instance': 'https://blah/oss-fuzz-linux-zone3-worker-proj1-%04d' % i
-    } for i in xrange(1, 2)],
+    } for i in range(1, 2)],
     'oss-fuzz-linux-zone3-worker-proj2': [{
         'instance': 'https://blah/oss-fuzz-linux-zone3-worker-proj2-%04d' % i
-    } for i in xrange(1, 5)],
+    } for i in range(1, 5)],
     'oss-fuzz-linux-zone3-worker-proj3': [{
         'instance': 'https://blah/oss-fuzz-linux-zone3-worker-proj3-%04d' % i
-    } for i in xrange(1, 10)],
+    } for i in range(1, 10)],
     'oss-fuzz-linux-zone3-worker-proj4': [{
         'instance': 'https://blah/oss-fuzz-linux-zone3-worker-proj4-%04d' % i
-    } for i in xrange(1, 2)],
+    } for i in range(1, 2)],
     'oss-fuzz-linux-zone3-worker-proj5': [{
         'instance': 'https://blah/oss-fuzz-linux-zone3-worker-proj5-%04d' % i
-    } for i in xrange(1, 2)],
+    } for i in range(1, 2)],
     'oss-fuzz-linux-zone3-host-high-end': [{
         'instance': 'https://blah/oss-fuzz-linux-zone3-host-high-end-1'
     }],
     'oss-fuzz-linux-zone3-worker-high-end-proj6': [{
         'instance': ('https://blah/'
                      'oss-fuzz-linux-zone3-worker-high-end-proj6-%04d' % i)
-    } for i in xrange(1, 3)],
+    } for i in range(1, 3)],
 }
 
 
@@ -506,7 +507,7 @@ class CronTest(unittest.TestCase):
         service_account='proj6@serviceaccount.com',
         high_end=True).put()
 
-    for j in xrange(1, 7):
+    for j in range(1, 7):
       project_name = 'proj%d' % j
       data_types.WorkerTlsCert(
           id=project_name,
@@ -775,7 +776,7 @@ class CronTest(unittest.TestCase):
         'oss-fuzz-linux-zone2-pre-proj5').resize.assert_not_called()
 
     # proj6: high end project.
-    for j in xrange(1, 6):
+    for j in range(1, 6):
       mock_bot_manager.instance_group(
           'oss-fuzz-linux-zone3-worker-high-end-proj' +
           str(j)).create.assert_not_called()

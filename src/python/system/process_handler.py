@@ -168,7 +168,7 @@ def run_process(cmdline,
     gesture_start_time = int(gestures[-1].split(':')[1])
     gestures.pop()
   else:
-    gesture_start_time = timeout / 2
+    gesture_start_time = timeout // 2
 
   logs.log('Process (%s) started.' % str(cmdline), level=logging.DEBUG)
 

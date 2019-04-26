@@ -13,6 +13,7 @@
 # limitations under the License.
 """Tests for Google Cloud Profiler integration."""
 
+from builtins import range
 import time
 import unittest
 
@@ -55,7 +56,7 @@ class ProfilerTest(unittest.TestCase):
 
     # A dummy code to spend a few moments on.
     counter = 12345
-    for _ in xrange(5):
+    for _ in range(5):
       time.sleep(0.01)
       counter *= counter
 

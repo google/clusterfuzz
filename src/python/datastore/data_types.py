@@ -92,7 +92,7 @@ PLATFORMS = [
 PUBSUB_REQUEST_LIMIT = 900000
 
 # We store at most 3 stacktraces per Testcase entity (original, second, latest).
-STACKTRACE_LENGTH_LIMIT = ENTITY_SIZE_LIMIT / 3
+STACKTRACE_LENGTH_LIMIT = ENTITY_SIZE_LIMIT // 3
 
 # Maximum number of testcase entities to query in one batch.
 TESTCASE_ENTITY_QUERY_LIMIT = 256
@@ -850,7 +850,7 @@ class Job(Model):
     variables in its template. Avoid using this if possible."""
     environment_string = ''
     job_environment = self.get_environment()
-    for key, value in job_environment.iteritems():
+    for key, value in list(job_environment.items()):
       environment_string += '%s = %s\n' % (key, value)
 
     return environment_string

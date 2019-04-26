@@ -343,7 +343,7 @@ class _PubSubLeaserThread(threading.Thread):
 
         # Schedule renewals earlier than the extension to avoid race conditions
         # and performing the next extension too late.
-        wait_seconds = min(time_left, self.EXTENSION_TIME_SECONDS / 2)
+        wait_seconds = min(time_left, self.EXTENSION_TIME_SECONDS // 2)
 
         # Wait until the next scheduled renewal, or if the task is complete.
         if self._done_event.wait(wait_seconds):

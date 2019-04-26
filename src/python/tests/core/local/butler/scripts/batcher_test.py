@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """batcher tests."""
+from builtins import range
 import datetime
 import unittest
 
@@ -26,7 +27,7 @@ class BatcherTest(unittest.TestCase):
 
   def setUp(self):
     self.testcase_ids = []
-    for i in xrange(100):
+    for i in range(100):
       testcase = data_types.Testcase()
       testcase.timestamp = datetime.datetime.fromtimestamp(i)
       testcase.put()

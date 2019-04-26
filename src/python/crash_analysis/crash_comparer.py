@@ -12,6 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """Functions for helping in crash comparison."""
+from __future__ import division
+from builtins import range
 
 
 def _levenshtein_distance(string_1, string_2):
@@ -24,17 +26,17 @@ def _levenshtein_distance(string_1, string_2):
   elif not string_2:
     return len(string_1)
 
-  v0 = range(len(string_2) + 1)
+  v0 = list(range(len(string_2) + 1))
   v1 = [None] * (len(string_2) + 1)
 
-  for i in xrange(len(string_1)):
+  for i in range(len(string_1)):
     v1[0] = i + 1
 
-    for j in xrange(len(string_2)):
+    for j in range(len(string_2)):
       cost = 0 if string_1[i] == string_2[j] else 1
       v1[j + 1] = min(v1[j] + 1, v0[j + 1] + 1, v0[j] + cost)
 
-    for j in xrange(len(v0)):
+    for j in range(len(v0)):
       v0[j] = v1[j]
 
   return v1[len(string_2)]
@@ -81,7 +83,7 @@ class CrashComparer(object):
 
     lines_compared = 0
     similarity_ratio_sum = 0.0
-    for i in xrange(len(crash_state_lines_1)):
+    for i in range(len(crash_state_lines_1)):
       if i >= len(crash_state_lines_2):
         break
 

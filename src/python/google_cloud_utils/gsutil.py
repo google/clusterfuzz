@@ -148,7 +148,7 @@ class GSUtilRunner(object):
 
     command = []
     if metadata:
-      for key, value in metadata.iteritems():
+      for key, value in list(metadata.items()):
         command.extend(['-h', key + ':' + value])
 
     command.append('cp')

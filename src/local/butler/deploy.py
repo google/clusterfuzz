@@ -14,6 +14,7 @@
 """deploy.py handles the deploy command"""
 from __future__ import print_function
 
+from builtins import range
 from collections import namedtuple
 import datetime
 import json
@@ -158,7 +159,7 @@ def _deploy_appengine(project, yamls, stop_previous_version, version=None):
 
   version_arg = '--version=' + version if version else ''
 
-  for retry_num in xrange(DEPLOY_RETRIES + 1):
+  for retry_num in range(DEPLOY_RETRIES + 1):
     return_code, _ = common.execute(
         'gcloud app deploy %s --quiet '
         '--project=%s %s %s' % (stop_previous_version_arg, project, version_arg,
@@ -343,7 +344,7 @@ def execute(args):
     platforms = ['linux']  # No other platforms required.
   elif args.prod:
     revision = common.compute_prod_revision()
-    platforms = constants.PLATFORMS.keys()
+    platforms = list(constants.PLATFORMS.keys())
   else:
     print('Please specify either --prod or --staging. For production '
           'deployments, you probably want to use deploy.sh from your '

@@ -13,6 +13,7 @@
 # limitations under the License.
 """Tests for ndb_patcher."""
 
+from builtins import range
 import datetime
 import unittest
 
@@ -282,7 +283,7 @@ class NdbPatcherTest(unittest.TestCase):
           [e.prop_2 for e in (self.model_2, self.model_0, self.model_1)],
           [e.prop_2 for e in entities])
 
-      for i in xrange(len(self.test_entities_model)):
+      for i in range(len(self.test_entities_model)):
         with self.assertRaises(ndb.UnprojectedPropertyError):
           _ = entities[i].prop_0
 
@@ -340,11 +341,11 @@ class NdbPatcherTest(unittest.TestCase):
   def test_large_multi(self):
     """Test large multi operations."""
     # Test large puts.
-    entities = [TestModel() for _ in xrange(2000)]
+    entities = [TestModel() for _ in range(2000)]
     keys = ndb.put_multi(entities)
 
     results = ndb.get_multi(keys)
-    for i in xrange(2000):
+    for i in range(2000):
       self.assertIsNotNone(results[i])
 
     ndb.delete_multi(keys)

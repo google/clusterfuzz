@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """memoize tests."""
+from builtins import range
 import unittest
 from pyfakefs import fake_filesystem_unittest
 
@@ -153,12 +154,12 @@ class FifoInMemoryTest(unittest.TestCase):
 
   def test_hit_limit(self):
     """Test hitting the limit."""
-    for i in xrange(6):
+    for i in range(6):
       self.cache.put(i, 'a')
 
     self.assertIsNone(self.cache.get(0))
 
-    for i in xrange(1, 6):
+    for i in range(1, 6):
       self.assertEqual('a', self.cache.get(i))
 
 
@@ -187,12 +188,12 @@ class FifoOnDiskTest(fake_filesystem_unittest.TestCase):
 
   def test_hit_limit(self):
     """Test hitting the limit."""
-    for i in xrange(6):
+    for i in range(6):
       self.cache.put(i, 'a')
 
     self.assertIsNone(self.cache.get(0))
 
-    for i in xrange(1, 6):
+    for i in range(1, 6):
       self.assertEqual('a', self.cache.get(i))
 
 

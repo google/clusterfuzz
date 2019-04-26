@@ -14,6 +14,7 @@
 """Fast minimizer that attempts to remove tokens grouped in chunks."""
 from __future__ import absolute_import
 
+from builtins import range
 import functools
 
 from . import minimizer
@@ -34,7 +35,7 @@ class ChunkMinimizer(minimizer.Minimizer):
 
     for lines_to_remove in self.chunk_sizes:
       remaining_tokens = testcase.get_required_token_indices()
-      for end_index in xrange(len(remaining_tokens), 0, -lines_to_remove):
+      for end_index in range(len(remaining_tokens), 0, -lines_to_remove):
         start_index = max(0, end_index - lines_to_remove)
         hypothesis = remaining_tokens[start_index:end_index]
         testcase.prepare_test(hypothesis)

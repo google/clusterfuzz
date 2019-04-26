@@ -128,9 +128,9 @@ class DsModel(object):
     PropertyOrderVisitor(ds_model, sort_order).visit(data_types_ast)
 
     if self.ndb:
-      self.properties = ds_model._properties.items()
+      self.properties = list(ds_model._properties.items())
     else:
-      self.properties = ds_model.properties().items()
+      self.properties = list(ds_model.properties().items())
 
     self.properties = [
         (name, DsType(value, self.ndb)) for name, value in self.properties
@@ -191,7 +191,7 @@ def py_to_go_type(py_type):
   if py_type == int:
     return 'int'
 
-  if py_type == long:
+  if py_type == int:
     return 'int64'
 
   if py_type == float:

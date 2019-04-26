@@ -13,6 +13,7 @@
 # limitations under the License.
 """Cleaned up test case tokenizer from ClusterFuzz. To be fully rewritten."""
 
+from builtins import range
 import re
 
 
@@ -148,7 +149,7 @@ def tokenize(token_string, level=0):
         else:
           temp_token_list.append(token_split_list[index])
 
-    token_list = filter(None, temp_token_list)
+    token_list = [_f for _f in temp_token_list if _f]
 
     temp_token_list = []
     for elem in token_list:
@@ -159,7 +160,7 @@ def tokenize(token_string, level=0):
         else:
           temp_token_list.append(token_split_list[index])
 
-    token_list = filter(None, temp_token_list)
+    token_list = [_f for _f in temp_token_list if _f]
 
   # Split tokens with more than one newline char.
   temp_token_list = []
@@ -194,7 +195,7 @@ def tokenize(token_string, level=0):
   if temporary_token:
     token_list.append(temporary_token)
 
-  return filter(None, token_list)
+  return [_f for _f in token_list if _f]
 
 
 def combine_tokens(tokens):

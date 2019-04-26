@@ -13,6 +13,7 @@
 # limitations under the License.
 """Memoize caches the result of methods."""
 
+from builtins import range
 import collections
 import functools
 import json
@@ -127,7 +128,7 @@ class MemcacheLarge(Memcache):
     # Make JSON representation as compact as possible (don't use spaces).
     string_value = json.dumps(value, separators=(',', ':'))
     keys_and_values = {key: len(string_value)}
-    for chunk_start in xrange(0, len(string_value), self.CHUNK_LEN):
+    for chunk_start in range(0, len(string_value), self.CHUNK_LEN):
       full_key = '%s-%s-%s' % (self.MAGIC_STR, key, chunk_start)
       keys_and_values[full_key] = string_value[chunk_start:chunk_start +
                                                self.CHUNK_LEN]
@@ -144,10 +145,10 @@ class MemcacheLarge(Memcache):
     value_len = int(value_len)
     keys = [
         '%s-%s-%s' % (self.MAGIC_STR, key, chunk_start)
-        for chunk_start in xrange(0, value_len, self.CHUNK_LEN)
+        for chunk_start in range(0, value_len, self.CHUNK_LEN)
     ]
 
-    keys_and_values = memcache.get_multi(keys).items()
+    keys_and_values = list(memcache.get_multi(keys).items())
 
     def get_chunk_start(key_and_value):
       full_key = key_and_value[0]
@@ -179,7 +180,7 @@ def _default_key(func, args, kwargs):
 
   kwargs = {
       key: value if not isinstance(value, str) else unicode(value)
-      for key, value in kwargs.iteritems()
+      for key, value in list(kwargs.items())
   }
 
   return 'memoize:%s' % [func.__name__, args, sorted(kwargs.items())]

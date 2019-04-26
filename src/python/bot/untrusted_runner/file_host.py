@@ -14,6 +14,7 @@
 """File operations host (client)."""
 from __future__ import absolute_import
 
+from builtins import range
 import os
 import shutil
 
@@ -37,7 +38,7 @@ def is_directory_parent(path, directory):
     return False
 
   return all(path_components[i] == directory_components[i]
-             for i in xrange(len(directory_components)))
+             for i in range(len(directory_components)))
 
 
 def rebase_to_worker_root(host_path):

@@ -27,7 +27,7 @@ from libs import helpers
 def get_queues():
   """Return list of task queues."""
   queues = []
-  for name, display_name in tasks.TASK_QUEUE_DISPLAY_NAMES.iteritems():
+  for name, display_name in list(tasks.TASK_QUEUE_DISPLAY_NAMES.items()):
     queue = {
         'name': name,
         'display_name': display_name,

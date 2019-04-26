@@ -14,6 +14,7 @@
 """Regression task.
    Find commit ranges where regressions were introduced."""
 
+from builtins import range
 import random
 import time
 
@@ -122,7 +123,7 @@ def found_regression_near_extreme_revisions(testcase, testcase_file_path,
   """Test to see if we regressed near either the min or max revision."""
   # Test a few of the most recent revisions.
   last_known_crashing_revision = revision_list[max_index]
-  for offset in xrange(1, EXTREME_REVISIONS_TO_TEST + 1):
+  for offset in range(1, EXTREME_REVISIONS_TO_TEST + 1):
     current_index = max_index - offset
     if current_index < min_index:
       break
@@ -147,7 +148,7 @@ def found_regression_near_extreme_revisions(testcase, testcase_file_path,
   # condition for our binary search. If we do crash in that revision, it
   # implies that we regressed between the first commit and our first revision,
   # which we represent as 0:|min_revision|.
-  for _ in xrange(EXTREME_REVISIONS_TO_TEST):
+  for _ in range(EXTREME_REVISIONS_TO_TEST):
     min_revision = revision_list[min_index]
 
     try:
@@ -301,7 +302,7 @@ def find_regression_range(testcase_id, job_type):
       save_regression_range(testcase_id, min_revision, max_revision)
       return
 
-    middle_index = (min_index + max_index) / 2
+    middle_index = (min_index + max_index) // 2
     middle_revision = revision_list[middle_index]
     try:
       is_crash = _testcase_reproduces_in_revision(

@@ -13,6 +13,7 @@
 # limitations under the License.
 """Handler for showing the testcase detail page."""
 
+from builtins import range
 import cgi
 import datetime
 import jinja2
@@ -163,7 +164,8 @@ def filter_stacktrace(crash_stacktrace, crash_type, stack_clean_regex_lines,
     return ''
 
   # Get stacktrace clean regex for filtering strings and even full lines.
-  stack_clean_regex_list = filter(bool, stack_clean_regex_lines.splitlines())
+  stack_clean_regex_list = list(
+      filter(bool, stack_clean_regex_lines.splitlines()))
   stack_clean_regex = (
       re.compile('(%s)' % '|'.join(stack_clean_regex_list))
       if stack_clean_regex_list else None)

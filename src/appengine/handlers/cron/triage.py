@@ -164,7 +164,7 @@ def is_similar_bug_open_or_recently_closed(testcase, issue_tracker_manager):
     group_query = data_types.Testcase.query(
         data_types.Testcase.group_id == testcase.group_id)
     similar_testcases_from_group = ndb_utils.get_all_from_query(
-        group_query, batch_size=data_types.TESTCASE_ENTITY_QUERY_LIMIT / 2)
+        group_query, batch_size=data_types.TESTCASE_ENTITY_QUERY_LIMIT // 2)
 
   # Get testcases with the same crash params. These might not be in the a group
   # if they were just fixed.
@@ -177,7 +177,7 @@ def is_similar_bug_open_or_recently_closed(testcase, issue_tracker_manager):
 
   similar_testcases_from_query = ndb_utils.get_all_from_query(
       same_crash_params_query,
-      batch_size=data_types.TESTCASE_ENTITY_QUERY_LIMIT / 2)
+      batch_size=data_types.TESTCASE_ENTITY_QUERY_LIMIT // 2)
 
   for similar_testcase in itertools.chain(similar_testcases_from_group,
                                           similar_testcases_from_query):

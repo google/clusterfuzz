@@ -13,6 +13,7 @@
 # limitations under the License.
 """Stack analyzer module."""
 
+from builtins import range
 import os
 import re
 import subprocess
@@ -948,13 +949,13 @@ def update_crash_state_for_stack_overflow_if_needed(state):
     return
 
   num_frames = len(state.raw_frames)
-  for frame_index in xrange(num_frames):
-    for cycle_length in xrange(1, MAX_CYCLE_LENGTH + 1):
+  for frame_index in range(num_frames):
+    for cycle_length in range(1, MAX_CYCLE_LENGTH + 1):
       # Create frame potential cycles of a given length starting from
       # |frame_index|.
       frame_potential_cycles = []
       end_reached = False
-      for i in xrange(0, REPEATED_CYCLE_COUNT):
+      for i in range(0, REPEATED_CYCLE_COUNT):
         start_index = frame_index + i * cycle_length
         end_index = frame_index + (i + 1) * cycle_length
         if end_index >= num_frames:

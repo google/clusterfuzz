@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """crash_stats tests."""
+from builtins import range
 import unittest
 
 from datastore import data_types
@@ -42,7 +43,7 @@ class GetLastSuccessfulHourTest(unittest.TestCase):
 
 def bq_convert_hour_to_index(hour, time_span, remainder):
   """Convert hour to index according to the SQL."""
-  return int((hour - remainder) / time_span)
+  return (hour - remainder) // time_span
 
 
 class IndexConversionTest(unittest.TestCase):
@@ -59,7 +60,7 @@ class IndexConversionTest(unittest.TestCase):
         crash_stats.convert_index_to_hour(end_index, time_span, remainder))
 
     indices = []
-    for h in xrange(end_hour - 24 * 5 + 1, end_hour + 1):
+    for h in range(end_hour - 24 * 5 + 1, end_hour + 1):
       indices.append(bq_convert_hour_to_index(h, time_span, remainder))
 
     hour_blocks = []

@@ -14,6 +14,7 @@
 """Basic tokenizer for javascript tests."""
 from __future__ import print_function
 
+from builtins import range
 import sys
 
 
@@ -97,7 +98,7 @@ def comment_tokenizer(data):
   size = len(data)
   in_singleline_comment = False
   in_multiline_comment = False
-  for index in xrange(size):
+  for index in range(size):
     if index == size - 1:
       # Reached end of string, append whatever we have left.
       tokens.append(data[start_index:index + 1])
@@ -145,7 +146,7 @@ def main():
   level = len(tokenizers) - 1
   if len(sys.argv) > 2:
     level = int(sys.argv[2])
-    assert level in xrange(0, len(tokenizers))
+    assert level in range(0, len(tokenizers))
 
   print(tokenizers[level](open(sys.argv[1]).read()))
 

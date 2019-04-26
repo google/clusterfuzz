@@ -13,6 +13,7 @@
 # limitations under the License.
 """Start host."""
 from __future__ import print_function
+from builtins import range
 import os
 import shutil
 import socket
@@ -78,7 +79,7 @@ def start_bot_instance(instance_num):
 def main():
   setup_environment()
 
-  for i in xrange(NUM_WORKERS_PER_HOST):
+  for i in range(NUM_WORKERS_PER_HOST):
     print('Starting bot %i.' % i)
     thread = threading.Thread(target=start_bot_instance, args=(i,))
     thread.start()

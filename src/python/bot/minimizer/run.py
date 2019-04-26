@@ -46,7 +46,7 @@ def main():
   parser.add_argument(
       '-m',
       '--minimizer',
-      choices=minimizers.keys(),
+      choices=list(minimizers.keys()),
       default='line',
       help='minimization strategy')
   parser.add_argument(

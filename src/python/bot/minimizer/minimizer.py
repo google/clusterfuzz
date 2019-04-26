@@ -14,6 +14,7 @@
 """Base classes for other minimizers."""
 from __future__ import absolute_import
 
+from builtins import range
 import copy
 import functools
 import os
@@ -40,7 +41,7 @@ class DummyLock(object):
   def __exit__(self, exec_type, value, traceback):
     pass
 
-  def __nonzero__(self):
+  def __bool__(self):
     return False
 
 
@@ -120,7 +121,7 @@ class TestQueue(object):
     """Process all tests in the queue and block until completion."""
     while self.queue:
       threads = [
-          threading.Thread(target=self._work) for _ in xrange(self.thread_count)
+          threading.Thread(target=self._work) for _ in range(self.thread_count)
       ]
       for thread in threads:
         thread.start()
@@ -219,7 +220,7 @@ class Testcase(object):
   # Functions used when preparing tests.
   def _range_complement(self, current_range):
     """Return required tokens in the complement of the specified range."""
-    result = xrange(len(self.tokens))
+    result = list(range(len(self.tokens)))
     to_remove = set(current_range)
     return [i for i in result if i not in to_remove and self.required_tokens[i]]
 
@@ -376,8 +377,9 @@ class Testcase(object):
       # We really cannot remove this token. No additional work to be done.
       return
 
-    front = hypotheses[:len(hypotheses) / 2]
-    back = hypotheses[len(hypotheses) / 2:]
+    middle = len(hypotheses) // 2
+    front = hypotheses[:middle]
+    back = hypotheses[middle:]
 
     # If we could remove either one of two hypotheses, favor removing the first.
     front_merged_successfully = self._attempt_merge(front)

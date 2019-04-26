@@ -58,7 +58,7 @@ def update_mappings_for_fuzzer(fuzzer, mappings=None):
     new_mappings.append(mapping)
 
   ndb.put_multi(new_mappings)
-  ndb.delete_multi([m.key for m in old_mappings.values()])
+  ndb.delete_multi([m.key for m in list(old_mappings.values())])
 
 
 def update_platform_for_job(job_name, new_platform):
