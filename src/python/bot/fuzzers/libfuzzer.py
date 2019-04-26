@@ -342,6 +342,7 @@ class FuchsiaQemuLibFuzzerRunner(new_process.ProcessRunner, LibFuzzerCommon):
           'FUCHSIA_PKEY_PATH and/or FUCHSIA_PORTNUM was not set')
     # yapf: disable
     self.ssh_args = [
+        '-vvv',
         '-i', fuchsia_pkey_path,
         '-o', 'StrictHostKeyChecking no',
         '-o', 'UserKnownHostsFile=/dev/null',
