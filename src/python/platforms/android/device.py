@@ -505,8 +505,6 @@ def get_type_binding(value):
     return 'f'
   if isinstance(value, int):
     return 'i'
-  if isinstance(value, long):
-    return 'l'
   if isinstance(value, str):
     return 's'
   raise ValueError('Unsupported type %s' % type(value))
