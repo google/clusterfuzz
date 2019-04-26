@@ -87,7 +87,6 @@ def qemu_setup():
       '-monitor', 'none',
       '-append', '"kernel.serial=legacy TERM=dumb"',
       '-machine', 'q35',
-      '-enable-kvm',
       '-display', 'none',
       '-cpu', 'host,migratable=no',
       '-netdev',
