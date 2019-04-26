@@ -20,6 +20,7 @@ import subprocess
 import time
 import os
 import logging
+import socket
 
 from google_cloud_utils import gsutil
 from metrics import logs
@@ -67,7 +68,12 @@ def qemu_setup():
   add_keys_to_zbi(fuchsia_resources_dir, initrd_path, fuchsia_zbi)
 
   # TODO(flowerhack): Add a mechanism for choosing portnum dynamically.
-  portnum = '56339'
+  tcp = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+  tcp.bind(('localhost',0))
+  addr, port = tcp.getsockname()
+  tcp.close()
+  # Fuzzing jobs that SSH into the QEMU VM need access to this env var.
+  environment.set_value('FUCHSIA_PORTNUM', port)
 
   # yapf: disable
   qemu_args = [
@@ -86,7 +92,7 @@ def qemu_setup():
       '-cpu', 'host,migratable=no',
       '-netdev',
       ('user,id=net0,net=192.168.3.0/24,dhcpstart=192.168.3.9,'
-       'host=192.168.3.2,hostfwd=tcp::') + portnum + '-:22',
+       'host=192.168.3.2,hostfwd=tcp::') + str(port) + '-:22',
       '-device', 'e1000,netdev=net0,mac=52:54:00:63:5e:7b',
       '-L', sharefiles_path
   ]
@@ -95,9 +101,8 @@ def qemu_setup():
   print(str(qemu_args))
   # yapf: enable
 
-  # Fuzzing jobs that SSH into the QEMU VM need access to these env vars.
+  # Fuzzing jobs that SSH into the QEMU VM need access to this env var.
   environment.set_value('FUCHSIA_PKEY_PATH', pkey_path)
-  environment.set_value('FUCHSIA_PORTNUM', portnum)
 
   # Finally, launch QEMU.
   qemu_process = new_process.ProcessRunner(qemu_path, qemu_args)

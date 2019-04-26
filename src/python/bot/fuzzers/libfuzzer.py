@@ -364,14 +364,12 @@ class FuchsiaQemuLibFuzzerRunner(new_process.ProcessRunner, LibFuzzerCommon):
            additional_args=None,
            extra_env=None):
     """LibFuzzerCommon.fuzz override."""
-    qemu_process = fuchsia.device.qemu_setup()
     print("about to test qemu!")
     logger.warning("about to test qemu")
     time.sleep(2)
     result = self._test_qemu_ssh()
     logger.warning("tested qemu")
     #raise Exception("tested qemu")
-    qemu_process.kill()
     return result
 
   def run_single_testcase(self,

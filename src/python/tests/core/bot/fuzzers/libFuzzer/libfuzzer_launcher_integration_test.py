@@ -17,6 +17,7 @@ import mock
 import os
 import shutil
 import StringIO
+import socket
 import unittest
 
 import parameterized
@@ -763,7 +764,6 @@ class TestLauncherFuchsia(BaseLauncherTest):
     fuchsia_resources_dir = os.path.join(resources_dir, 'fuchsia')
     pkey_path = os.path.join(fuchsia_resources_dir, '.ssh', 'pkey')
     environment.set_value('FUCHSIA_PKEY_PATH', pkey_path)
-    environment.set_value('FUCHSIA_PORTNUM', '56339')
     # Cannot simply call super(TestLauncherFuchsia).setUp, because the
     # with_cloud_emulators decorator modifies what the parent class would be.
     # Just explicitly call BaseLauncherTest's setUp.
@@ -776,7 +776,7 @@ class TestLauncherFuchsia(BaseLauncherTest):
     # right now by default, but we'll call it explicitly in here as we
     # diversity `fuzz`'s functionality
     logger.warning("QEMU SETUP")
-    #qemu_process = fuchsia.device.qemu_setup()
+    qemu_process = fuchsia.device.qemu_setup()
     logger.warning("SETUP TESTCASE")
     testcase_path = setup_testcase_and_corpus('aaaa', 'empty_corpus', fuzz=True)
     logger.warning("RUN RUNNER")
@@ -785,4 +785,4 @@ class TestLauncherFuchsia(BaseLauncherTest):
     self.assertIn('running on fuchsia!', output)
     #raise Exception("FUCHSIA IS DONE")
     logger.warning("KILL QEMU")
-    #qemu_process.kill()
+    qemu_process.kill()
