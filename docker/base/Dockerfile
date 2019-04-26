@@ -94,6 +94,10 @@ RUN groupadd nopwsudo && \
 # Make sure GSUtil uses the GCE service account.
 RUN echo '[GoogleCompute]\nservice_account = default' > /etc/boto.cfg
 
+# Set up SSH server (needed for Fuchsia QEMU tests).
+RUN apt-get install -y openssh-server
+RUN /etc/init.d/ssh start
+
 VOLUME $INSTALL_DIRECTORY
 WORKDIR $INSTALL_DIRECTORY
 
