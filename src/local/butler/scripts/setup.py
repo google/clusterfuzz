@@ -14,6 +14,8 @@
 """Initial datastore setup."""
 from __future__ import print_function
 
+import six
+
 from google.cloud import monitoring_v3
 
 from base import utils
@@ -234,7 +236,7 @@ def setup_fuzzers(non_dry_run):
 
 def setup_templates(non_dry_run):
   """Set up templates."""
-  for name, template in list(TEMPLATES.items()):
+  for name, template in six.iteritems(TEMPLATES):
     job = data_types.JobTemplate.query(
         data_types.JobTemplate.name == name).get()
     if job:

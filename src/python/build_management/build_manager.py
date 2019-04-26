@@ -17,6 +17,7 @@ from builtins import range
 import datetime
 import os
 import re
+import six
 import subprocess
 import time
 
@@ -1292,7 +1293,7 @@ def remove_unused_builds():
     if not job_environment:
       continue
 
-    for key, value in list(job_environment.items()):
+    for key, value in six.iteritems(job_environment):
       if 'BUILD_BUCKET_PATH' in key:
         bucket_path = value
       elif key == 'CUSTOM_BINARY' and value != 'False':
@@ -1305,7 +1306,7 @@ def remove_unused_builds():
       if build_directory in build_in_use_map:
         build_in_use_map[build_directory] = True
 
-  for build_directory, in_use in list(build_in_use_map.items()):
+  for build_directory, in_use in six.iteritems(build_in_use_map):
     if in_use:
       continue
 

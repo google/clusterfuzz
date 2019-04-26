@@ -15,6 +15,7 @@
 
 import multiprocessing
 import os
+import six
 
 from google_cloud_utils import storage
 from metrics import logs
@@ -148,7 +149,7 @@ class GSUtilRunner(object):
 
     command = []
     if metadata:
-      for key, value in list(metadata.items()):
+      for key, value in six.iteritems(metadata):
         command.extend(['-h', key + ':' + value])
 
     command.append('cp')

@@ -20,6 +20,7 @@ import itertools
 import os
 import random
 import re
+import six
 import sys
 import time
 
@@ -1021,7 +1022,7 @@ def create_testcase(group, context):
   testcase = data_handler.get_testcase_by_id(testcase_id)
 
   if context.fuzzer_metadata:
-    for key, value in list(context.fuzzer_metadata.items()):
+    for key, value in six.iteritems(context.fuzzer_metadata):
       testcase.set_metadata(key, value, update_testcase=False)
 
     testcase.put()

@@ -114,7 +114,7 @@ class GetTimeoutTestBase(unittest.TestCase):
     """Set environment variable values based on the key, value pairs in
     |environment_variable_values|.
     """
-    for key, value in list(environment_variable_values.items()):
+    for key, value in environment_variable_values.items():
       environment.set_value(key, value)
 
   def validation_helper(self, environment_variable_values):

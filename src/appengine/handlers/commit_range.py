@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """Handler for the regression page."""
+
 import json
 
 from google_cloud_utils import big_query

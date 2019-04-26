@@ -16,6 +16,7 @@
 from builtins import range
 import datetime
 import random
+import six
 import time
 
 from googleapiclient.discovery import build
@@ -247,7 +248,7 @@ def recreate_instance_with_disks(instance_name,
 
   # Add any additional metadata required for instance booting.
   if additional_metadata:
-    for key, value in list(additional_metadata.items()):
+    for key, value in six.iteritems(additional_metadata):
       items = instance_info.setdefault('metadata', {}).setdefault('items', [])
       _add_metadata_key_value(items, key, value)
 

@@ -16,6 +16,7 @@ from __future__ import absolute_import
 
 import os
 import re
+import six
 
 try:
   from . import file_host
@@ -74,7 +75,7 @@ def should_rebase_environment_value(environment_variable):
 def update_environment(env):
   """Update worker's environment."""
   processed_env = {}
-  for key, value in list(env.items()):
+  for key, value in six.iteritems(env):
     if should_rebase_environment_value(key):
       value = file_host.rebase_to_worker_root(value)
 
@@ -89,7 +90,7 @@ def set_environment_vars(env, source_env):
   if not source_env:
     return
 
-  for name, value in list(source_env.items()):
+  for name, value in six.iteritems(source_env):
     if is_forwarded_environment_variable(name):
       # Avoid creating circular dependencies from importing environment by
       # using os.getenv.

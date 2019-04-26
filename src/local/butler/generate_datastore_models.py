@@ -19,6 +19,7 @@ import ast
 import inspect
 import os
 import re
+import six
 import subprocess
 
 from src.python.datastore import data_types
@@ -128,9 +129,9 @@ class DsModel(object):
     PropertyOrderVisitor(ds_model, sort_order).visit(data_types_ast)
 
     if self.ndb:
-      self.properties = list(ds_model._properties.items())
+      self.properties = six.iteritems(ds_model._properties)
     else:
-      self.properties = list(ds_model.properties().items())
+      self.properties = six.iteritems(ds_model.properties())
 
     self.properties = [
         (name, DsType(value, self.ndb)) for name, value in self.properties
@@ -191,7 +192,7 @@ def py_to_go_type(py_type):
   if py_type == int:
     return 'int'
 
-  if py_type == int:
+  if py_type == long:
     return 'int64'
 
   if py_type == float:

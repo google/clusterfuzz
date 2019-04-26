@@ -13,6 +13,8 @@
 # limitations under the License.
 """Manage job types."""
 
+import six
+
 from base import tasks
 from datastore import data_handler
 from datastore import data_types
@@ -27,7 +29,7 @@ from libs import helpers
 def get_queues():
   """Return list of task queues."""
   queues = []
-  for name, display_name in list(tasks.TASK_QUEUE_DISPLAY_NAMES.items()):
+  for name, display_name in six.iteritems(tasks.TASK_QUEUE_DISPLAY_NAMES):
     queue = {
         'name': name,
         'display_name': display_name,

@@ -32,6 +32,7 @@ from __future__ import print_function
 from past.builtins import cmp
 import os
 import re
+import six
 import subprocess
 import sys
 
@@ -261,7 +262,7 @@ class LLVMSymbolizer(Symbolizer):
     # FIXME: Since we are not using process_handler.run_process here, we can run
     # into issues with unicode environment variable and values. Add this
     # explicit hack to convert these into strings.
-    env_copy = {str(key): str(value) for key, value in list(env_copy.items())}
+    env_copy = {str(key): str(value) for key, value in six.iteritems(env_copy)}
 
     # Run the symbolizer.
     pipe = subprocess.Popen(

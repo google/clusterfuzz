@@ -28,6 +28,7 @@ import os
 import re
 import shutil
 import signal
+import six
 import stat
 import sys
 
@@ -121,7 +122,7 @@ class AflConfig(object):
 
     # Try to convert libFuzzer arguments to AFL arguments or env vars.
     libfuzzer_options = fuzzer_options.get_engine_arguments('libfuzzer')
-    for libfuzzer_name, value in list(libfuzzer_options.dict().items()):
+    for libfuzzer_name, value in libfuzzer_options.dict().items():
       if libfuzzer_name not in self.LIBFUZZER_TO_AFL_OPTIONS:
         continue
 
@@ -542,7 +543,7 @@ class AflRunnerCommon(object):
 
     self.initial_max_total_time = 0
 
-    for env_var, value in list(config.additional_env_vars.items()):
+    for env_var, value in config.additional_env_vars.items():
       environment.set_value(env_var, value)
 
     self._showmap_output_path = None
@@ -1227,7 +1228,7 @@ class Corpus(object):
   def element_paths(self):
     """Returns the filepaths of all elements in the corpus."""
     return set(
-        element.path for element in list(self.features_and_elements.values()))
+        element.path for element in six.itervalues(self.features_and_elements))
 
   def _associate_feature_with_element(self, feature, element):
     """Associate a feature with an element if the element is the smallest for
@@ -1283,8 +1284,7 @@ def set_additional_sanitizer_options_for_afl_fuzz():
       },
   }
 
-  for options_env_var, option_values in list(
-      required_sanitizer_options.items()):
+  for options_env_var, option_values in required_sanitizer_options.items():
     # If os.environ[options_env_var] is an empty string, afl will refuse to run,
     # because we haven't set the right options. Thus only continue if it does
     # not exist.

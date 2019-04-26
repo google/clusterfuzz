@@ -19,6 +19,7 @@ import bisect
 import json
 import os
 import re
+import six
 import time
 import urllib
 import urllib2
@@ -52,7 +53,7 @@ def _add_components_from_dict(deps_dict, vars_dict, revisions_dict):
     # If the dictionary is None, bail out early.
     return
 
-  for key, value in list(deps_dict.items()):
+  for key, value in six.iteritems(deps_dict):
     url = rev = None
     if isinstance(value, basestring):
       url, _, rev = value.partition('@')
@@ -206,7 +207,7 @@ def _src_map_to_revisions_dict(src_map, default_project_name):
   """Convert src map contents to revisions dict."""
   revisions_dict = {}
 
-  for key in list(src_map.keys()):
+  for key in src_map:
     # Only add keys that have both url and rev attributes.
     if 'url' in src_map[key] and 'rev' in src_map[key]:
       revisions_dict[key] = {

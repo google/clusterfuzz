@@ -15,6 +15,7 @@
 
 import inspect
 import paramiko
+import six
 
 from fabric import api
 
@@ -47,7 +48,7 @@ def _args_to_dict(args, method):
   arg_names = inspect.getargspec(method).args[1:]
   args_dict = {
       k: v
-      for k, v in list(vars(args).items())
+      for k, v in six.iteritems(vars(args))
       if k in arg_names and v is not None
   }
   return args_dict

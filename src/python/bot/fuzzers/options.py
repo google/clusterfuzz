@@ -17,6 +17,7 @@ import ConfigParser
 import os
 import random
 import re
+import six
 
 from bot.fuzzers import utils as fuzzer_utils
 from bot.fuzzers.afl import constants as afl_constants
@@ -68,7 +69,7 @@ class FuzzerArguments(object):
 
   def list(self):
     """Return arguments as a list."""
-    return ['-%s=%s' % (key, value) for key, value in list(self.flags.items())]
+    return ['-%s=%s' % (key, value) for key, value in six.iteritems(self.flags)]
 
 
 class FuzzerOptions(object):
@@ -109,7 +110,7 @@ class FuzzerOptions(object):
     Variables are assumed to contain no lower case letters.
     """
     env = {}
-    for var_name, var_value in list(self._get_option_section('env').items()):
+    for var_name, var_value in six.iteritems(self._get_option_section('env')):
 
       var_name = var_name.upper()
       if var_name in ENV_VAR_WHITELIST:
@@ -121,7 +122,7 @@ class FuzzerOptions(object):
     """Return a list of fuzzer options."""
     arguments = {}
     for option_name, option_value in (iter(
-        list(self._get_option_section(engine).items()))):
+        six.iteritems(self._get_option_section(engine)))):
       # Check option value for usage of random() function.
       match = self.OPTIONS_RANDOM_REGEX.match(option_value)
       if match:

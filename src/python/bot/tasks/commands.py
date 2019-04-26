@@ -14,6 +14,7 @@
 """Run command based on the current task."""
 
 import functools
+import six
 import sys
 import time
 
@@ -122,7 +123,7 @@ def update_environment_for_job(environment_string):
   environment_values = (
       environment.parse_environment_definition(environment_string))
 
-  for key, value in list(environment_values.items()):
+  for key, value in six.iteritems(environment_values):
     environment.set_value(key, value)
 
   # If we share the build with another job type, force us to be a custom binary

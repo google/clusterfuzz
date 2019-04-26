@@ -17,6 +17,7 @@ from __future__ import absolute_import
 import cgi
 import datetime
 import re
+import six
 import urllib
 import yaml
 
@@ -188,7 +189,7 @@ def _parse_stats_column_descriptions(stats_column_descriptions):
 
   try:
     result = yaml.safe_load(stats_column_descriptions)
-    for key, value in list(result.items()):
+    for key, value in six.iteritems(result):
       result[key] = cgi.escape(value)
 
     return result

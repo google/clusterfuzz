@@ -14,6 +14,7 @@
 """Fetch a build artifact (ported from google3 with
 minor modifications, especially without any google3 specific library
 dependencies)."""
+from __future__ import division
 
 from builtins import range
 import apiclient

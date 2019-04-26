@@ -504,7 +504,7 @@ def get_type_binding(value):
     return 'f'
   if isinstance(value, int):
     return 'i'
-  if isinstance(value, int):
+  if isinstance(value, long):
     return 'l'
   if isinstance(value, str):
     return 's'
@@ -1007,7 +1007,7 @@ def configure_build_properties_if_needed():
     new_build_prop_file_content.write(line)
 
   new_build_prop_file_content.write(new_content_notification + '\n')
-  for flag, value in list(BUILD_PROPERTIES.items()):
+  for flag, value in BUILD_PROPERTIES.items():
     new_build_prop_file_content.write('%s=%s\n' % (flag, value))
   old_build_prop_file_content.close()
   new_build_prop_file_content.close()

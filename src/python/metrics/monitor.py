@@ -22,6 +22,7 @@ import collections
 import functools
 import itertools
 import re
+import six
 import threading
 import time
 
@@ -125,7 +126,7 @@ class _MetricsStore(object):
   def _get_key(self, metric_name, labels):
     """Get the key used for storing values."""
     if labels:
-      normalized_labels = tuple(sorted(labels.items()))
+      normalized_labels = tuple(sorted(six.iteritems(labels)))
     else:
       normalized_labels = None
 
@@ -246,7 +247,7 @@ class Metric(object):
     if not labels:
       return metric
 
-    for key, value in list(labels.items()):
+    for key, value in six.iteritems(labels):
       metric.labels[key] = str(value)
 
     # Default labels.

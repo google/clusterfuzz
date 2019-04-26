@@ -100,7 +100,7 @@ class GuessMimeTypeTest(unittest.TestCase):
         'file.css': 'text/css',
         'file.jpg': 'image/jpeg',
     }
-    for filename, expected_value in list(expected_types_map.items()):
+    for filename, expected_value in expected_types_map.items():
       self.assertEqual(http_server.guess_mime_type(filename), expected_value)
 
   def test_invalid_type(self):

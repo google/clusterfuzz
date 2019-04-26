@@ -16,6 +16,7 @@
 import datetime
 import os
 import re
+import six
 import time
 
 from base import dates
@@ -1164,7 +1165,7 @@ def create_user_uploaded_testcase(key,
         'fuzzer_binary_name', fuzzer_binary_name, update_testcase=False)
 
   if additional_metadata:
-    for metadata_key, metadata_value in list(additional_metadata.items()):
+    for metadata_key, metadata_value in six.iteritems(additional_metadata):
       testcase.set_metadata(metadata_key, metadata_value, update_testcase=False)
 
   testcase.timestamp = datetime.datetime.utcnow()

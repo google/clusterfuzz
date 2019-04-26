@@ -17,6 +17,7 @@
 # to generate Go structs for the models defined here.
 
 import re
+import six
 
 from base import json_utils
 from base import utils
@@ -850,7 +851,7 @@ class Job(Model):
     variables in its template. Avoid using this if possible."""
     environment_string = ''
     job_environment = self.get_environment()
-    for key, value in list(job_environment.items()):
+    for key, value in six.iteritems(job_environment):
       environment_string += '%s = %s\n' % (key, value)
 
     return environment_string

@@ -149,7 +149,7 @@ def tokenize(token_string, level=0):
         else:
           temp_token_list.append(token_split_list[index])
 
-    token_list = [t for t in temp_token_list if t]
+    token_list = [t for t in temp_token_list if t is not None]
 
     temp_token_list = []
     for elem in token_list:
@@ -160,7 +160,7 @@ def tokenize(token_string, level=0):
         else:
           temp_token_list.append(token_split_list[index])
 
-    token_list = [t for t in temp_token_list if t]
+    token_list = [t for t in temp_token_list if t is not None]
 
   # Split tokens with more than one newline char.
   temp_token_list = []
@@ -195,7 +195,7 @@ def tokenize(token_string, level=0):
   if temporary_token:
     token_list.append(temporary_token)
 
-  return [t for t in token_list if t]
+  return [t for t in token_list if t is not None]
 
 
 def combine_tokens(tokens):

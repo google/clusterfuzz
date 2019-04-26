@@ -14,6 +14,7 @@
 """Load project data."""
 
 import os
+import six
 
 from collections import namedtuple
 
@@ -73,7 +74,7 @@ def _config_to_project(name, config):
   """Read a project config."""
   clusters = []
 
-  for cluster_name, zone in list(config['clusters'].items()):
+  for cluster_name, zone in six.iteritems(config['clusters']):
     clusters.append(
         Cluster(
             name=cluster_name,
@@ -105,7 +106,7 @@ def _project_configs():
 
 def get_projects():
   projects = []
-  for name, project in list(_project_configs().items()):
+  for name, project in six.iteritems(_project_configs()):
     projects.append(_config_to_project(name, project))
 
   return projects
