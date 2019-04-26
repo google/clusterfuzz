@@ -3,17 +3,23 @@ Change Log
 
 ## Next Version
 - Various bug fixes.
-- Removing various dependencies on App Engine SDK.
-- Using Firebase auth for authentication.
+- Use Firebase auth for authentication.
+- Use Sendgrid for emails.
+- Remove various dependencies on App Engine SDK.
+- Add support for `close_fd_mask` in AFL fuzzing.
+- Add metrics `new_features` and `new_edges` in libFuzzer fuzzing.
+- Support for multiple device per host in Android startup script.
+- Fix corpus minimization in libFuzzer and AFL to prioritize smaller units.
+- Python 2->3 migration using futurize.
 
 ## Version 1.1.0
 - Various bug fixes.
-- Support for
+- Add support for
   [android-cuttlefish](https://github.com/google/android-cuttlefish).
-- Added production startup scripts for Android.
-- Support for libFuzzer fork mode.
-- Support for [Stackdriver Profiler](https://cloud.google.com/profiler/)
-- Added an initial permissive CSP, to be improved in later releases.
+- Add production startup scripts for Android.
+- Add support for libFuzzer fork mode.
+- Add support for [Stackdriver Profiler](https://cloud.google.com/profiler/).
+- Add an initial permissive CSP, to be improved in later releases.
 - Fuzzer weights now scale based on the severity of discovered issues instead of
   imposing a fixed penalty beyond a threshold.
 
