@@ -72,23 +72,23 @@ def qemu_setup():
 
   # yapf: disable
   qemu_args = [
-      '-m', '2048',
-      '-nographic',
-      '-kernel', kernel_path,
-      '-initrd', initrd_path,
-      '-smp', '4',
-      '-drive', 'file=' + drive_path + ',format=raw,if=none,id=blobstore',
-      '-device', 'virtio-blk-pci,drive=blobstore',
-      '-monitor', 'none',
-      '-append', '"kernel.serial=legacy TERM=dumb"',
-      '-machine', 'q35',
-      '-enable-kvm',
-      '-display', 'none',
-      '-cpu', 'host,migratable=no',
-      '-netdev',
-      ('user,id=net0,hostfwd=tcp::') + str(port) + '-:22',
-      '-device', 'e1000,netdev=net0,mac=52:54:00:63:5e:7b',
-      '-L', sharefiles_path
+    '-m', '2048',
+    '-nographic',
+    '-kernel', kernel_path,
+    '-initrd', initrd_path,
+    '-smp', '4',
+    '-drive', 'file=' + drive_path + ',format=raw,if=none,id=blobstore',
+    '-device', 'virtio-blk-pci,drive=blobstore',
+    '-monitor', 'none',
+    '-append', '"kernel.serial=legacy TERM=dumb"',
+    '-machine', 'q35',
+    '-display', 'none',
+    '-cpu', 'Haswell,+smap,-check,-fsgsbase',
+    '-netdev',
+    ('user,id=net0,net=192.168.3.0/24,dhcpstart=192.168.3.9,'
+     'host=192.168.3.2,hostfwd=tcp::') + str(port) + '-:22',
+    '-device', 'e1000,netdev=net0,mac=52:54:00:63:5e:7b',
+    '-L', sharefiles_path
   ]
   # yapf: enable
 
@@ -96,6 +96,7 @@ def qemu_setup():
   environment.set_value('FUCHSIA_PKEY_PATH', pkey_path)
 
   # Finally, launch QEMU.
+  print("Running QEMU. Command: " + qemu_path + " " + str(qemu_args))
   qemu_process = new_process.ProcessRunner(qemu_path, qemu_args)
   qemu_popen = qemu_process.run(stdout=subprocess.PIPE, stderr=subprocess.PIPE)
   return qemu_popen
