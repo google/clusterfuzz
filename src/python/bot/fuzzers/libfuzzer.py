@@ -15,6 +15,7 @@
 import copy
 import os
 import shutil
+import time
 import logging
 
 from base import retry
@@ -25,6 +26,8 @@ from system import environment
 from system import minijail
 from system import new_process
 from system import shell
+
+from platforms import fuchsia
 
 MAX_OUTPUT_LEN = 1 * 1024 * 1024  # 1 MB
 
@@ -361,10 +364,14 @@ class FuchsiaQemuLibFuzzerRunner(new_process.ProcessRunner, LibFuzzerCommon):
            additional_args=None,
            extra_env=None):
     """LibFuzzerCommon.fuzz override."""
+    qemu_process = fuchsia.device.qemu_setup()
+    print("about to test qemu!")
     logger.warning("about to test qemu")
+    time.sleep(2)
     result = self._test_qemu_ssh()
     logger.warning("tested qemu")
-    raise Exception("tested qemu")
+    #raise Exception("tested qemu")
+    qemu_process.kill()
     return result
 
   def run_single_testcase(self,
@@ -390,7 +397,7 @@ class FuchsiaQemuLibFuzzerRunner(new_process.ProcessRunner, LibFuzzerCommon):
     if result.return_code or result.timed_out:
       raise fuchsia.errors.FuchsiaConnectionError(
           'Failed to establish initial SSH connection: ' +
-          str(result.return_code))
+          str(result.return_code) + " , " + str(result.command) + " , " + str(result.output))
     return result
 
 

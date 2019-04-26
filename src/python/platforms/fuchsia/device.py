@@ -90,6 +90,9 @@ def qemu_setup():
       '-device', 'e1000,netdev=net0,mac=52:54:00:63:5e:7b',
       '-L', sharefiles_path
   ]
+  print("get some args")
+  print(qemu_path)
+  print(str(qemu_args))
   # yapf: enable
 
   # Fuzzing jobs that SSH into the QEMU VM need access to these env vars.
@@ -102,8 +105,12 @@ def qemu_setup():
   logger.warning("Gonna try running qemu")
   time.sleep(2)
   if qemu_popen._popen.returncode is not None:
-    raise Exception("Failed to run QEMU: " + str(qemu_popen._popen.stdout) + ", " + str(qemu_popen._popen.stderr))
-  raise Exception("QEMU is running: " + str(qemu_popen._popen._popen.stdout) + ", " + str(qemu_popen._popen.stderr))
+    raise Exception("Failed to run QEMU: " + str(qemu_popen._popen.stdout.read()) + ", " + str(qemu_popen._popen.stderr.read()))
+  
+  #logger.warning("QEMU LOGS:")
+  #for i in range(100):
+  #  output = qemu_popen._popen.stderr.readline()
+  #  logger.warning(output.strip())
   return qemu_popen
 
 
