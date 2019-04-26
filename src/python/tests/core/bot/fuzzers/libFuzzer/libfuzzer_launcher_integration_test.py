@@ -749,10 +749,6 @@ class TestLauncherFuchsia(BaseLauncherTest):
                           'gs://fuchsia-on-clusterfuzz-v2/*')
     # set_bot_environment gives us access to RESOURCES_DIR
     environment.set_bot_environment()
-    resources_dir = environment.get_value('RESOURCES_DIR')
-    if not resources_dir:
-      raise Exception('Could not find RESOURCES_DIR')
-    fuchsia_resources_dir = os.path.join(resources_dir, 'fuchsia')
     # Cannot simply call super(TestLauncherFuchsia).setUp, because the
     # with_cloud_emulators decorator modifies what the parent class would be.
     # Just explicitly call BaseLauncherTest's setUp.
