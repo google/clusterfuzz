@@ -21,6 +21,7 @@ from datastore import ndb
 from datastore import ndb_utils
 from handlers import base_handler
 from libs import handler
+from metrics import logs
 
 
 def admins_from_iam_policy(iam_policy):
@@ -57,6 +58,7 @@ def update_admins(new_admins):
   existing_admin_emails = set()
   for admin in existing_admins:
     if admin.email not in new_admins:
+      logs.log('Removing admin ' + admin.email)
       to_remove.append(admin.key)
 
     existing_admin_emails.add(admin.email)
@@ -67,6 +69,7 @@ def update_admins(new_admins):
   for admin in new_admins:
     if admin not in existing_admin_emails:
       to_add.append(data_types.Admin(id=admin, email=admin))
+      logs.log('Adding admin ' + admin)
 
   ndb.put_multi(to_add)
 

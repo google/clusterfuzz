@@ -241,7 +241,7 @@ def main():
       '--firebase-api-key',
       type=str,
       required=True,
-      help='Firebase web API key.')
+      help='Firebase web API key (for authentication).')
   parser_create_config.add_argument(
       '--oauth-client-secrets-path',
       type=str,
