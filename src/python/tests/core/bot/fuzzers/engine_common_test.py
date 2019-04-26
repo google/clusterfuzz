@@ -16,6 +16,7 @@
 from builtins import range
 import os
 import parameterized
+import six
 import unittest
 
 from pyfakefs import fake_filesystem_unittest

@@ -121,8 +121,8 @@ class FuzzerOptions(object):
   def get_engine_arguments(self, engine):
     """Return a list of fuzzer options."""
     arguments = {}
-    for option_name, option_value in (iter(
-        six.iteritems(self._get_option_section(engine)))):
+    for option_name, option_value in six.iteritems(
+        self._get_option_section(engine)):
       # Check option value for usage of random() function.
       match = self.OPTIONS_RANDOM_REGEX.match(option_value)
       if match:

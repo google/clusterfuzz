@@ -17,8 +17,8 @@ from builtins import range
 import collections
 import functools
 import json
-import threading
 import six
+import threading
 
 try:
   from google.appengine.api import memcache
