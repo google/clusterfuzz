@@ -160,7 +160,8 @@ def project_bucket(project_id, bucket_name):
 
 
 def create_new_config(gcloud, project_id, new_config_dir,
-                      domain_verification_tag, bucket_replacements, gce_zone):
+                      domain_verification_tag, bucket_replacements, gce_zone,
+                      firebase_api_key):
   """Create a new config directory."""
   if os.path.exists(new_config_dir):
     print('Overwriting existing directory.')
@@ -173,6 +174,7 @@ def create_new_config(gcloud, project_id, new_config_dir,
       ('test-project', project_id),
       ('domain-verification-tag', domain_verification_tag),
       ('gce-zone', gce_zone),
+      ('firebase-api-key', firebase_api_key),
   ]
   replacements.extend(bucket_replacements)
 
@@ -251,7 +253,6 @@ def execute(args):
   deployment_bucket = project_bucket(args.project_id, 'deployment')
 
   bucket_replacements = (
-      ('firebase-api-key', args.firebase_api_key),
       ('test-blobs-bucket', blobs_bucket),
       ('test-deployment-bucket', deployment_bucket),
       ('test-bigquery-bucket', project_bucket(args.project_id, 'bigquery')),
@@ -270,7 +271,8 @@ def execute(args):
 
   # Write new configs.
   create_new_config(gcloud, args.project_id, args.new_config_dir,
-                    domain_verification_tag, bucket_replacements, args.gce_zone)
+                    domain_verification_tag, bucket_replacements, args.gce_zone,
+                    args.firebase_api_key)
   prev_dir = os.getcwd()
   os.chdir(args.new_config_dir)
 
