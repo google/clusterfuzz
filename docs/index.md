@@ -22,11 +22,13 @@ ClusterFuzz provides many features to seamlessly integrate fuzzing into
 a software project's development process:
 - Highly scalable. Google's internal instance runs on over 25,000 machines.
 - Accurate deduplication of crashes.
-- Fully automatic bug filing and closing for issue trackers ([Monorail] only for now).
+- Fully automatic bug filing and closing for issue trackers
+  ([Monorail] only for now).
 - Testcase minimization.
-- Regression finding through [bisection](https://en.wikipedia.org/wiki/Bisection_(software_engineering)).
+- Regression finding through [bisection].
 - Statistics for analyzing fuzzer performance, and crash rates.
 - Easy to use web interface for management and viewing crashes.
+- [Firebase authentication].
 - Support for [coverage guided fuzzing] (e.g. libFuzzer and AFL) and
   [blackbox fuzzing].
 
@@ -42,5 +44,7 @@ in Chrome and [~11,000] bugs in over [160] open source projects integrated with
 [160]: https://github.com/google/oss-fuzz/tree/master/projects
 [OSS-Fuzz]: https://github.com/google/oss-fuzz
 [Monorail]: https://opensource.google.com/projects/monorail
+[bisection]: https://en.wikipedia.org/wiki/Bisection_(software_engineering)
+[Firebase authentication]: https://firebase.google.com/docs/auth
 [blackbox fuzzing]: {{ site.baseurl }}/setting-up-fuzzing/blackbox-fuzzing/
 [coverage guided fuzzing]: {{ site.baseurl }}/setting-up-fuzzing/libfuzzer-and-afl/
