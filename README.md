@@ -8,7 +8,7 @@ ClusterFuzz is a scalable fuzzing infrastructure which finds security and
 stability issues in software.
 
 It is used by Google for fuzzing the Chrome Browser, and serves as the fuzzing
-backend for [OSS-Fuzz](https://github.com/google/oss-fuzz).
+backend for [OSS-Fuzz].
 
 ClusterFuzz provides many features which help seamlessly integrate fuzzing into
 a software project's development process:
