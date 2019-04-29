@@ -229,8 +229,7 @@ def set_cors(config_dir, buckets):
 def add_service_account_role(gcloud, project_id, service_account, role):
   """Add an IAM role to a service account."""
   gcloud.run('projects', 'add-iam-policy-binding', project_id, '--member',
-             'serviceAccount:' + service_account, '--role',
-             role)
+             'serviceAccount:' + service_account, '--role', role)
 
 
 def execute(args):
