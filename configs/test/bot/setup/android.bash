@@ -15,6 +15,7 @@
 
 function run_bot () {
   serial=$1
+  device_index=$2
   bot_directory=$INSTALL_DIRECTORY/bots/$(echo $serial | sed s/:/-/)
 
   # Recreate bot directory.
@@ -28,7 +29,7 @@ function run_bot () {
     $ADB_PATH/adb -s "$serial" wait-for-device
 
     echo "Running ClusterFuzz instance for bot $serial."
-    OS_OVERRIDE="ANDROID" ANDROID_SERIAL="$serial" PATH="$PATH" NFS_ROOT="$NFS_ROOT" GOOGLE_APPLICATION_CREDENTIALS="$GOOGLE_APPLICATION_CREDENTIALS" ROOT_DIR="$bot_directory/clusterfuzz" PYTHONPATH="$PYTHONPATH" GSUTIL_PATH="$GSUTIL_PATH" python $bot_directory/clusterfuzz/src/python/bot/startup/run.py || true
+    OS_OVERRIDE="ANDROID" ANDROID_SERIAL="$serial" PATH="$PATH" NFS_ROOT="$NFS_ROOT" GOOGLE_APPLICATION_CREDENTIALS="$GOOGLE_APPLICATION_CREDENTIALS" ROOT_DIR="$bot_directory/clusterfuzz" PYTHONPATH="$PYTHONPATH" GSUTIL_PATH="$GSUTIL_PATH" BOT_NAME="android-$(hostname)-$serial" HTTP_PORT_1="$((device_index+8000))" HTTP_PORT_2="$((device_index+8080))" python $bot_directory/clusterfuzz/src/python/bot/startup/run.py || true
 
     echo "ClusterFuzz instance for bot $serial quit unexpectedly. Waiting for device."
   done
@@ -103,8 +104,10 @@ unzip -q clusterfuzz-source.zip
 
 if [ -z "$ANDROID_SERIAL" ]; then
   echo "No \$ANDROID_SERIAL set. Will automatically detect devices and start ClusterFuzz for each."
+  device_index=0
   for serial in `$ADB_PATH/adb devices | awk -F' ' '{ print $1 }' | egrep -v '^(|List)$'`; do
-    run_bot $serial &
+    run_bot $serial $device_index &
+    device_index=$((device_index+1))
   done
 else
   run_bot $ANDROID_SERIAL &
