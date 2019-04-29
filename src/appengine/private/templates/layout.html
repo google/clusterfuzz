@@ -66,7 +66,7 @@
               <paper-item>{{item.name}}</paper-item>
             </a>
           {% endfor %}
-          {% if is_logged_in %}
+          {% if is_logged_in and not is_development %}
             <a href="{{switch_account_url}}">
               <paper-item>Switch Account</paper-item>
             </a>

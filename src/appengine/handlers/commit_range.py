@@ -174,8 +174,8 @@ def get_result(this):
 class Handler(base_handler.Handler):
   """Handler that lists testcases whose regression range contains a revision."""
 
-  @handler.get(handler.HTML)
   @handler.unsupported_on_local_server
+  @handler.get(handler.HTML)
   def get(self):
     """Get and render the commit range in HTML."""
     result, params = get_result(self)
