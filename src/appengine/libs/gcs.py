@@ -20,8 +20,9 @@ import json
 import time
 import urllib
 
-from google.appengine.api import app_identity
+import googleapiclient
 
+from base import utils
 from google_cloud_utils import blobs
 from google_cloud_utils import storage
 from system import environment
@@ -33,6 +34,26 @@ MAX_UPLOAD_SIZE = 15 * 1024 * 1024 * 1024  # 15 GB.
 GcsUpload = collections.namedtuple(
     'GcsUpload',
     ['url', 'bucket', 'key', 'google_access_id', 'policy', 'signature'])
+
+
+def service_account_email():
+  """Get the App Engine service account name."""
+  return utils.get_application_id() + '@appspot.gserviceaccount.com'
+
+
+def sign_data(data):
+  """Sign data with the default App Engine service account."""
+  iam = googleapiclient.discovery.build('iamcredentials', 'v1')
+  service_account = 'projects/-/serviceAccounts/' + service_account_email()
+
+  response = iam.projects().serviceAccounts().signBlob(
+      name=service_account,
+      body={
+          'delegates': [],
+          'payload': base64.b64encode(data),
+      }).execute()
+
+  return base64.b64decode(response['signedBlob'])
 
 
 class SignedGcsHandler(object):
@@ -72,8 +93,8 @@ def get_signed_url(bucket_name,
     service_account_name = 'service_account'
   else:
     url = STORAGE_URL % bucket_name
-    signed_blob = app_identity.sign_blob(str(blob))[1]
-    service_account_name = app_identity.get_service_account_name()
+    signed_blob = sign_data(str(blob))
+    service_account_name = service_account_email()
 
   params = {
       'GoogleAccessId': service_account_name,
@@ -113,8 +134,8 @@ def prepare_upload(bucket_name, path, expiry=DEFAULT_URL_VALID_SECONDS):
     service_account_name = 'service_account'
   else:
     url = STORAGE_URL % bucket_name
-    signature = base64.b64encode(app_identity.sign_blob(policy)[1])
-    service_account_name = app_identity.get_service_account_name()
+    signature = base64.b64encode(sign_data(policy))
+    service_account_name = service_account_email()
 
   return GcsUpload(url, bucket_name, path, service_account_name, policy,
                    signature)
