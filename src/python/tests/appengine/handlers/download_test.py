@@ -103,23 +103,23 @@ class DownloadTest(unittest.TestCase):
     """Test download (not logged in)."""
     self.mock.get_user_email.return_value = ''
     self._test_download(
-        self.minimized_key, expect_status=403, expect_blob=False)
-    self._test_download(self.fuzzed_key, expect_status=403, expect_blob=False)
-    self._test_download(self.unused_key, expect_status=403, expect_blob=False)
+        self.minimized_key, expect_status=302, expect_blob=False)
+    self._test_download(self.fuzzed_key, expect_status=302, expect_blob=False)
+    self._test_download(self.unused_key, expect_status=302, expect_blob=False)
 
     self._test_download(
         testcase_id=self.testcase.key.id(),
-        expect_status=403,
+        expect_status=302,
         expect_blob=False)
     self._test_download(
         self.minimized_key,
         testcase_id=self.testcase.key.id(),
-        expect_status=403,
+        expect_status=302,
         expect_blob=False)
     self._test_download(
         self.fuzzed_key,
         testcase_id=self.testcase.key.id(),
-        expect_status=403,
+        expect_status=302,
         expect_blob=False)
 
   def test_download_user(self):
@@ -192,20 +192,20 @@ class DownloadTest(unittest.TestCase):
     mock_issue.has_label.side_effect = mock_has_label
 
     self._test_download(
-        self.minimized_key, expect_status=403, expect_blob=False)
+        self.minimized_key, expect_status=302, expect_blob=False)
     self._test_download(
         testcase_id=self.testcase.key.id(),
-        expect_status=403,
+        expect_status=302,
         expect_blob=False)
     self._test_download(
         self.minimized_key,
         testcase_id=self.testcase.key.id(),
-        expect_status=403,
+        expect_status=302,
         expect_blob=False)
     self._test_download(
         self.fuzzed_key,
         testcase_id=self.testcase.key.id(),
-        expect_status=403,
+        expect_status=302,
         expect_blob=False)
 
   def test_public_download_oss_fuzz(self):
@@ -220,7 +220,7 @@ class DownloadTest(unittest.TestCase):
     mock_issue.has_label.side_effect = mock_has_label
 
     self._test_download(
-        self.minimized_key, expect_status=403, expect_blob=False)
+        self.minimized_key, expect_status=302, expect_blob=False)
     self._test_download(
         testcase_id=self.testcase.key.id(),
         expect_filename='clusterfuzz-testcase-minimized-1.ext')
@@ -232,23 +232,23 @@ class DownloadTest(unittest.TestCase):
     self._test_download(
         self.fuzzed_key,
         testcase_id=self.testcase.key.id(),
-        expect_status=403,
+        expect_status=302,
         expect_blob=False)
 
     mock_issue.has_label.side_effect = lambda _: True
     self._test_download(
         testcase_id=self.testcase.key.id(),
-        expect_status=403,
+        expect_status=302,
         expect_blob=False)
     self._test_download(
         self.minimized_key,
         testcase_id=self.testcase.key.id(),
-        expect_status=403,
+        expect_status=302,
         expect_blob=False)
     self._test_download(
         self.fuzzed_key,
         testcase_id=self.testcase.key.id(),
-        expect_status=403,
+        expect_status=302,
         expect_blob=False)
 
     # Privileged users should still be able to access everything.
