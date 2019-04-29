@@ -21,6 +21,7 @@ import webapp2
 from datastore import data_types
 from datastore import ndb
 from metrics import logs
+from system import environment
 
 User = collections.namedtuple('User', ['email'])
 
@@ -31,6 +32,9 @@ class AuthError(Exception):
 
 def is_current_user_admin():
   """Returns whether or not the current logged in user is an admin."""
+  if environment.is_local_development():
+    return True
+
   user = get_current_user()
   if not user:
     return False
@@ -41,6 +45,9 @@ def is_current_user_admin():
 
 def get_current_user():
   """Get the current logged in user, or None."""
+  if environment.is_local_development():
+    return User('user@localhost')
+
   oauth_email = getattr(get_current_request(), '_oauth_email', None)
   if oauth_email:
     return User(oauth_email)
