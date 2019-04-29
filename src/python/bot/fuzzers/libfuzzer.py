@@ -12,6 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """libFuzzer runners."""
+from __future__ import print_function
+
 import copy
 import os
 import shutil
@@ -375,7 +377,7 @@ class FuchsiaQemuLibFuzzerRunner(new_process.ProcessRunner, LibFuzzerCommon):
   def _test_qemu_ssh(self):
     """Tests that a VM is up and can be successfully SSH'd into.
     Raises an exception if no success after MAX_SSH_RETRIES."""
-    print 'Attempting SSH. Command: ssh ' + str(self.ssh_args)
+    print('Attempting SSH. Command: ssh ' + str(self.ssh_args))
     ssh_test_process = new_process.ProcessRunner(
         'ssh', self.ssh_args + ['echo running on fuchsia!'])
     result = ssh_test_process.run_and_wait()

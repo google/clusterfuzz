@@ -1,3 +1,4 @@
+
 # Copyright 2019 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -15,6 +16,7 @@
 
 # TODO(flowerhack): Re-enable this check once functions below are implemented.
 # pylint: disable=unused-argument
+from __future__ import print_function
 
 import os
 import socket
@@ -63,6 +65,7 @@ def qemu_setup():
   extend_fvm(fuchsia_resources_dir, drive_path)
   add_keys_to_zbi(fuchsia_resources_dir, initrd_path, fuchsia_zbi)
 
+  # Get a free port for the VM, so we can SSH in later.
   tcp = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
   tcp.bind(('localhost', 0))
   _, port = tcp.getsockname()
@@ -83,6 +86,9 @@ def qemu_setup():
       '-append', '"kernel.serial=legacy TERM=dumb"',
       '-machine', 'q35',
       '-display', 'none',
+      # Can't use host CPU since we don't necessarily have KVM on the machine.
+      # Emulate a Haswell CPU with a few feature toggles. This mirrors the most
+      # common configuration for Fuchsia VMs when using in-tree tools.
       '-cpu', 'Haswell,+smap,-check,-fsgsbase',
       '-netdev',
       ('user,id=net0,net=192.168.3.0/24,dhcpstart=192.168.3.9,'
@@ -96,7 +102,7 @@ def qemu_setup():
   environment.set_value('FUCHSIA_PKEY_PATH', pkey_path)
 
   # Finally, launch QEMU.
-  print 'Running QEMU. Command: ' + qemu_path + ' ' + str(qemu_args)
+  print('Running QEMU. Command: ' + qemu_path + ' ' + str(qemu_args))
   qemu_process = new_process.ProcessRunner(qemu_path, qemu_args)
   qemu_popen = qemu_process.run(stdout=subprocess.PIPE, stderr=subprocess.PIPE)
   return qemu_popen

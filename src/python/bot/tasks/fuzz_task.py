@@ -1327,7 +1327,6 @@ def execute_task(fuzzer_name, job_type):
   if timeout_multiplier > 1:
     testcase_count /= timeout_multiplier
 
-  qemu_process = None
   if platform == 'FUCHSIA':
     qemu_process = fuchsia.device.qemu_setup()
   # Run the fuzzer to generate testcases. If error occurred while trying
