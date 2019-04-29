@@ -36,15 +36,15 @@ GcsUpload = collections.namedtuple(
     ['url', 'bucket', 'key', 'google_access_id', 'policy', 'signature'])
 
 
-def service_account_email():
-  """Get the App Engine service account name."""
-  return utils.get_application_id() + '@appspot.gserviceaccount.com'
+class GcsError(Exception):
+  """Base class for exceptions in this module."""
 
 
 def sign_data(data):
   """Sign data with the default App Engine service account."""
   iam = googleapiclient.discovery.build('iamcredentials', 'v1')
-  service_account = 'projects/-/serviceAccounts/' + service_account_email()
+  service_account = 'projects/-/serviceAccounts/' + utils.service_account_email(
+  )
 
   response = iam.projects().serviceAccounts().signBlob(
       name=service_account,
@@ -53,7 +53,10 @@ def sign_data(data):
           'payload': base64.b64encode(data),
       }).execute()
 
-  return base64.b64decode(response['signedBlob'])
+  try:
+    return base64.b64decode(response['signedBlob'])
+  except Exception as e:
+    raise GcsError('Invalid response: ' + str(e))
 
 
 class SignedGcsHandler(object):
@@ -94,7 +97,7 @@ def get_signed_url(bucket_name,
   else:
     url = STORAGE_URL % bucket_name
     signed_blob = sign_data(str(blob))
-    service_account_name = service_account_email()
+    service_account_name = utils.service_account_email()
 
   params = {
       'GoogleAccessId': service_account_name,
@@ -135,7 +138,7 @@ def prepare_upload(bucket_name, path, expiry=DEFAULT_URL_VALID_SECONDS):
   else:
     url = STORAGE_URL % bucket_name
     signature = base64.b64encode(sign_data(policy))
-    service_account_name = service_account_email()
+    service_account_name = utils.service_account_email()
 
   return GcsUpload(url, bucket_name, path, service_account_name, policy,
                    signature)

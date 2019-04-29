@@ -280,8 +280,10 @@ def execute(args):
       gcloud, args.new_config_dir, appengine_region=args.appengine_region)
   verifier.verify(appspot_domain)
 
-  # App Engine service account requires ownership to create GCS buckets and
-  # datastore export permission for periodic backups.
+  # App Engine service account requires:
+  # - Domain ownership to create domain namespaced GCS buckets
+  # - Datastore export permission for periodic backups.
+  # - Service account signing permission for GCS uploads.
   service_account = app_engine_service_account(args.project_id)
   verifier.add_owner(appspot_domain, service_account)
   add_service_account_role(gcloud, args.project_id, service_account,
