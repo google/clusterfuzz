@@ -43,20 +43,22 @@ If you're new to Google Cloud you may be eligible for [trial credit].
 
 ## Enable Firebase
 1. Follow [these instructions](https://cloud.google.com/appengine/docs/standard/python3/building-app/adding-firebase)
-to add Firebase to the Google Cloud project you just created. This will be used
-for authentication and should not incur any additional charges.
+   to add Firebase to the Google Cloud project you just created. This will be
+   used for authentication and should not incur any additional charges.
 
-2. In the [Firebase console], go to the **Auth** section and enable "Google" as a Sign-in provider.
+2. In the [Firebase console], go to the **Auth** section and enable "Google" as
+   a Sign-in provider.
 
 3. In the same section, add the domains you plan on using to the "Authorized
-   domains" list. The default domain for App Engine looks like `<project
-   ID>.appspot.com`.
+   domains" list. The default domain for App Engine looks like
+   `<your project id>.appspot.com`.
 
 ### Web API Key
 To obtain a web API key,
 1. Go to the [Firebase console] and select your project.
-2. From the project overview page, click **Add Firebase to your web app** to display the customized code snippet.
-3. Copy the `apiKey` value, and export it like so
+2. From the project overview page, click **Add Firebase to your web app** to
+   display the customized code snippet.
+3. Copy the `apiKey` value, and export it like so:
 
 ```bash
 export FIREBASE_API_KEY=<your api key>
