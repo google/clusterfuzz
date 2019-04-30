@@ -15,6 +15,7 @@
 
 import re
 
+from config import local_config
 from system import environment
 
 ASSERT_CRASH_ADDRESSES = [
@@ -114,31 +115,22 @@ def has_marker(stacktrace, marker_list):
 
 def ignore_stacktrace(crash_stacktrace):
   """Return whether the stacktrace needs to be ignored."""
-  # Filter crash based on search include / exclude string pattern.
-  search_includes = environment.get_value('SEARCH_INCLUDES')
+  # Filter crash based on search exclude pattern specified in job definition.
   search_excludes = environment.get_value('SEARCH_EXCLUDES')
-  if ((search_includes and not re.search(search_includes, crash_stacktrace)) or
-      (search_excludes and re.search(search_excludes, crash_stacktrace))):
+  if search_excludes and re.search(search_excludes, crash_stacktrace):
     return True
 
-  crash_exclusions = environment.get_value('CRASH_EXCLUSIONS')
-  if not crash_exclusions:
+  # Match stacktrace against custom defined blacklist regexes in project config.
+  stack_blacklist_regexes = (
+      local_config.ProjectConfig().get('stacktrace.stack_blacklist_regexes'))
+  if not stack_blacklist_regexes:
     return False
 
-  for crash_exclusion in crash_exclusions.splitlines():
-    crash_exclusion_stripped = crash_exclusion.strip()
-    if not crash_exclusion_stripped:
-      continue
-
-    for line in crash_stacktrace.splitlines():
-      line_stripped = line.strip()
-      if not line_stripped:
-        continue
-
-      match = re.match('.*%s.*' % crash_exclusion_stripped, line_stripped)
-      if match:
-        return True
-
+  stack_blacklist_regex = re.compile(
+      r'(%s)' % '|'.join(stack_blacklist_regexes))
+  for line in crash_stacktrace.splitlines():
+    if stack_blacklist_regex.match(line):
+      return True
   return False
 
 

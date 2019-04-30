@@ -35,7 +35,6 @@ from bot.tasks import symbolize_task
 from bot.tasks import unpack_task
 from bot.tasks import upload_reports_task
 from bot.webserver import http_server
-from config import db_config
 from datastore import data_handler
 from datastore import data_types
 from issue_management import issue_tracker_utils
@@ -114,11 +113,6 @@ def is_supported_cpu_arch_for_job():
 
 def update_environment_for_job(environment_string):
   """Process the environment variable string included with a job."""
-  # Stacktraces to ignore for found crashes.
-  # This is set in admin configuration.
-  environment.set_value('CRASH_EXCLUSIONS',
-                        db_config.get_value('stack_blacklist'))
-
   # Now parse the job's environment definition.
   environment_values = (
       environment.parse_environment_definition(environment_string))

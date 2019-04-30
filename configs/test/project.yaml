@@ -50,6 +50,9 @@ stacktrace:
   # Stack frames to ignore when determining the crash signature.
   stack_frame_ignore_regexes:
 
+  # Stacks to ignore from being considered as a crash altogether.
+  stack_blacklist_regexes:
+
 env:
   # Application ID for the Google Cloud Project. In production, this will have a s~ prefix.
   APPLICATION_ID: test-clusterfuzz
