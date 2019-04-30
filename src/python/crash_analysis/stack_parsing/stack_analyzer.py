@@ -627,8 +627,7 @@ def filter_stack_frame(stack_frame):
   return stack_frame
 
 
-def ignore_stack_frame(stack_frame, symbolized, stack_frame_ignore_regex,
-                       stack_frame_ignore_regex_if_symbolized):
+def ignore_stack_frame(stack_frame, state):
   """Return true if stack frame should not used in determining the
   crash state."""
   # No data, should ignore.
@@ -644,11 +643,11 @@ def ignore_stack_frame(stack_frame, symbolized, stack_frame_ignore_regex,
   normalized_stack_frame = stack_frame.replace('\\', '/')
 
   # Check if the stack frame matches one of the ignore list regexes.
-  if stack_frame_ignore_regex.match(normalized_stack_frame):
+  if state.stack_frame_ignore_regex.match(normalized_stack_frame):
     return True
 
-  if (symbolized and
-      stack_frame_ignore_regex_if_symbolized.match(normalized_stack_frame)):
+  if state.symbolized and state.stack_frame_ignore_regex_if_symbolized.match(
+      normalized_stack_frame):
     return True
 
   return False
@@ -812,9 +811,7 @@ def add_frame_on_match(compiled_regex,
 
   # If we are ignoring a frame, we still have a match. Don't add it to the
   # state, but notify the caller that we found something.
-  if can_ignore and ignore_stack_frame(
-      frame, state.symbolized, state.stack_frame_ignore_regex,
-      state.stack_frame_ignore_regex_if_symbolized):
+  if can_ignore and ignore_stack_frame(frame, state):
     return match
 
   # Filter the frame and add to a list.
