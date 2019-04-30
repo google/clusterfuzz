@@ -24,6 +24,9 @@ import parameterized
 from bot.fuzzers import libfuzzer
 from bot.fuzzers import utils as fuzzer_utils
 from bot.fuzzers.libFuzzer import launcher
+from datastore import data_types
+from platforms import fuchsia
+from system import environment
 from system import shell
 from tests.test_libs import helpers as test_helpers
 from tests.test_libs import test_utils
@@ -662,3 +665,103 @@ class TestLauncherMinijail(BaseLauncherTest):
     """Tests merging. Wrapper around _test_merge_reductions."""
     mock_get_timeout.return_value = get_fuzz_timeout(1.0)
     self._test_merge_reductions('minijail-merge')
+
+
+@test_utils.integration
+@test_utils.with_cloud_emulators('datastore')
+class TestLauncherFuchsia(BaseLauncherTest):
+  """libFuzzer launcher tests (Fuchsia)."""
+
+  def setUp(self):
+    test_helpers.patch_environ(self)
+    # Set up a Fuzzer.
+    data_types.Fuzzer(
+        revision=1,
+        additional_environment_string=
+        'FUCHSIA_RESOURCES_URL = gs://fuchsia-on-clusterfuzz-v2/*',
+        builtin=True,
+        differential=False,
+        file_size='builtin',
+        jobs=['libfuzzer_asan_test_fuzzer'],
+        name='libFuzzer',
+        source='builtin',
+        max_testcases=4).put()
+
+    # Set up a FuzzerJob.
+    data_types.FuzzerJob(
+        fuzzer='libFuzzer',
+        job='libfuzzer_asan_test_fuzzer',
+        platform='FUCHSIA',
+        weight=1.0).put()
+
+    # Set up a FuzzTarget
+    data_types.FuzzTarget(
+        binary='libfuzzer_asan_test_fuzzer',
+        engine='libFuzzer',
+        project='test-project').put()
+
+    # Set up a FuzzTargetJob
+    data_types.FuzzTargetJob(
+        engine='libFuzzer',
+        fuzz_target_name='libFuzzer_libfuzzer_asan_test_fuzzer',
+        job='libfuzzer_asan_test_fuzzer',
+        weight=1.0).put()
+
+    # Set up a Job
+    data_types.Job(
+        environment_string=(
+            'CUSTOM_BINARY = True\n'
+            'FUCHSIA_RESOURCES_URL = gs://fuchsia-on-clusterfuzz-v2/*\n'
+            'QUEUE_OVERRIDE=FUCHSIA\n'
+            'OS_OVERRIDE=FUCHSIA'),
+        name='libfuzzer_asan_test_fuzzer',
+        platform='FUCHSIA',
+        templates=['libfuzzer', 'engine_asan']).put()
+
+    # Set up a JobTemplate
+    data_types.JobTemplate(
+        name='libfuzzer',
+        environment_string=('APP_NAME = launcher.py\n'
+                            'MAX_FUZZ_THREADS = 1\n'
+                            'MAX_TESTCASES = 4\n'
+                            'FUZZ_TEST_TIMEOUT = 4800\n'
+                            'TEST_TIMEOUT = 30\n'
+                            'WARMUP_TIMEOUT = 30\n'
+                            'BAD_BUILD_CHECK = False\n'
+                            'THREAD_ALIVE_CHECK_INTERVAL = 1\n'
+                            'REPORT_OOMS_AND_HANGS = True\n'
+                            'CORPUS_FUZZER_NAME_OVERRIDE = libFuzzer\n'
+                            'ENABLE_GESTURES = False\n'
+                            'THREAD_DELAY = 30.0')).put()
+
+    # Set up another JobTemplate
+    data_types.JobTemplate(
+        name='engine_asan',
+        environment_string=(
+            'LSAN = True\n'
+            'ADDITIONAL_ASAN_OPTIONS = quarantine_size_mb=64:strict_memcmp=1'
+            ':symbolize=0:fast_unwind_on_fatal=0'
+            ':allocator_release_to_os_interval_ms=500\n')).put()
+
+    environment.set_value('QUEUE_OVERRIDE', 'FUCHSIA')
+    environment.set_value('OS_OVERRIDE', 'FUCHSIA')
+    environment.set_value('FUCHSIA_RESOURCES_URL',
+                          'gs://fuchsia-on-clusterfuzz-v2/*')
+    # set_bot_environment gives us access to RESOURCES_DIR
+    environment.set_bot_environment()
+    # Cannot simply call super(TestLauncherFuchsia).setUp, because the
+    # with_cloud_emulators decorator modifies what the parent class would be.
+    # Just explicitly call BaseLauncherTest's setUp.
+    BaseLauncherTest.setUp(self)
+
+  def test_fuzzer_can_boot_and_run(self):
+    """Tests running a single round of fuzzing on a Fuchsia target, using
+    'echo' in place of a fuzzing command."""
+    # TODO(flowerhack): Fuchsia's `fuzz` only calls 'echo running on fuchsia!'
+    # right now by default, but we'll call it explicitly in here as we
+    # diversity `fuzz`'s functionality
+    qemu_process = fuchsia.device.qemu_setup()
+    testcase_path = setup_testcase_and_corpus('aaaa', 'empty_corpus', fuzz=True)
+    output = run_launcher(testcase_path, 'test_fuzzer')
+    self.assertIn('running on fuchsia!', output)
+    qemu_process.kill()

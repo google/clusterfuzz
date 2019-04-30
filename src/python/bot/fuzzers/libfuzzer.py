@@ -12,6 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """libFuzzer runners."""
+from __future__ import print_function
+
 import copy
 import os
 import shutil
@@ -325,7 +327,7 @@ class LibFuzzerRunner(new_process.ProcessRunner, LibFuzzerCommon):
 class FuchsiaQemuLibFuzzerRunner(new_process.ProcessRunner, LibFuzzerCommon):
   """libFuzzer runner (when Fuchsia is the target platform)."""
 
-  SSH_RETRIES = 10
+  SSH_RETRIES = 3
   SSH_WAIT = 2
 
   def __init__(self, executable_path, default_args=None):
@@ -336,10 +338,11 @@ class FuchsiaQemuLibFuzzerRunner(new_process.ProcessRunner, LibFuzzerCommon):
           'FUCHSIA_PKEY_PATH and/or FUCHSIA_PORTNUM was not set')
     # yapf: disable
     self.ssh_args = [
+        '-vvv',
         '-i', fuchsia_pkey_path,
         '-o', 'StrictHostKeyChecking no',
         '-o', 'UserKnownHostsFile=/dev/null',
-        '-p', fuchsia_portnum,
+        '-p', str(fuchsia_portnum),
         'localhost'
     ]
     # yapf: enable
@@ -358,9 +361,7 @@ class FuchsiaQemuLibFuzzerRunner(new_process.ProcessRunner, LibFuzzerCommon):
            additional_args=None,
            extra_env=None):
     """LibFuzzerCommon.fuzz override."""
-    self._test_qemu_ssh()
-    LibFuzzerCommon.fuzz(self, corpus_directories, fuzz_timeout,
-                         artifact_prefix, additional_args)
+    return self._test_qemu_ssh()
 
   def run_single_testcase(self,
                           testcase_path,
@@ -376,12 +377,16 @@ class FuchsiaQemuLibFuzzerRunner(new_process.ProcessRunner, LibFuzzerCommon):
   def _test_qemu_ssh(self):
     """Tests that a VM is up and can be successfully SSH'd into.
     Raises an exception if no success after MAX_SSH_RETRIES."""
-    ssh_test_process = new_process.ProcessRunner('ssh', self.ssh_args + ['ls'])
+    print('Attempting SSH. Command: ssh ' + str(self.ssh_args))
+    ssh_test_process = new_process.ProcessRunner(
+        'ssh', self.ssh_args + ['echo running on fuchsia!'])
     result = ssh_test_process.run_and_wait()
     if result.return_code or result.timed_out:
       raise fuchsia.errors.FuchsiaConnectionError(
           'Failed to establish initial SSH connection: ' +
-          str(result.return_code))
+          str(result.return_code) + " , " + str(result.command) + " , " +
+          str(result.output))
+    return result
 
 
 class MinijailLibFuzzerRunner(engine_common.MinijailEngineFuzzerRunner,
