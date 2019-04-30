@@ -511,9 +511,15 @@ class StackAnalyzerState(object):
     self.fatal_error_occurred = False
 
     # Additional stack frame ignore regexes.
-    self.custom_stack_frame_ignore_regexes = (
+    custom_stack_frame_ignore_regexes = (
         local_config.ProjectConfig().get(
             'stacktrace.stack_frame_ignore_regexes', []))
+    self.stack_frame_ignore_regex = re.compile(
+        r'(%s)' % '|'.join(STACK_FRAME_IGNORE_REGEXES +
+                           custom_stack_frame_ignore_regexes))
+
+    self.stack_frame_ignore_regex_if_symbolized = re.compile(
+        r'(%s)' % '|'.join(STACK_FRAME_IGNORE_REGEXES_IF_SYMBOLIZED))
 
 
 def filter_addresses_and_numbers(string):
@@ -621,8 +627,8 @@ def filter_stack_frame(stack_frame):
   return stack_frame
 
 
-def ignore_stack_frame(stack_frame, symbolized,
-                       custom_stack_frame_ignore_regexes):
+def ignore_stack_frame(stack_frame, symbolized, stack_frame_ignore_regex,
+                       stack_frame_ignore_regex_if_symbolized):
   """Return true if stack frame should not used in determining the
   crash state."""
   # No data, should ignore.
@@ -638,14 +644,12 @@ def ignore_stack_frame(stack_frame, symbolized,
   normalized_stack_frame = stack_frame.replace('\\', '/')
 
   # Check if the stack frame matches one of the ignore list regexes.
-  for i in STACK_FRAME_IGNORE_REGEXES + custom_stack_frame_ignore_regexes:
-    if re.match(i, normalized_stack_frame):
-      return True
+  if stack_frame_ignore_regex.match(normalized_stack_frame):
+    return True
 
-  if symbolized:
-    for ignore_string in STACK_FRAME_IGNORE_REGEXES_IF_SYMBOLIZED:
-      if re.match(ignore_string, normalized_stack_frame):
-        return True
+  if (symbolized and
+      stack_frame_ignore_regex_if_symbolized.match(normalized_stack_frame)):
+    return True
 
   return False
 
@@ -808,8 +812,9 @@ def add_frame_on_match(compiled_regex,
 
   # If we are ignoring a frame, we still have a match. Don't add it to the
   # state, but notify the caller that we found something.
-  if can_ignore and ignore_stack_frame(frame, state.symbolized,
-                                       state.custom_stack_frame_ignore_regexes):
+  if can_ignore and ignore_stack_frame(
+      frame, state.symbolized, state.stack_frame_ignore_regex,
+      state.stack_frame_ignore_regex_if_symbolized):
     return match
 
   # Filter the frame and add to a list.
