@@ -29,6 +29,7 @@ SESSION_EXPIRY_DAYS = 14
 class Handler(base_handler.Handler):
   """Login page."""
 
+  @handler.unsupported_on_local_server
   @handler.get(handler.HTML)
   def get(self):
     """Handle a get request."""
@@ -67,6 +68,7 @@ class SessionLoginHandler(base_handler.Handler):
 class LogoutHandler(base_handler.Handler):
   """Log out handler."""
 
+  @handler.unsupported_on_local_server
   @handler.require_csrf_token
   @handler.get(handler.HTML)
   def get(self):

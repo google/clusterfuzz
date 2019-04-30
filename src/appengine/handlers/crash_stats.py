@@ -226,8 +226,8 @@ def get_all_platforms():
 class Handler(base_handler.Handler):
   """Handler that gets the crash stats when user first lands on the page."""
 
-  @handler.get(handler.HTML)
   @handler.unsupported_on_local_server
+  @handler.get(handler.HTML)
   def get(self):
     """Get and render the crash stats in HTML."""
     result, params = get_result(self)

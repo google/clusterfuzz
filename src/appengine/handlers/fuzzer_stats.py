@@ -384,8 +384,8 @@ def _get_date(date_value, days_ago):
 class Handler(base_handler.Handler):
   """Group by day handler."""
 
-  @handler.get(handler.HTML)
   @handler.unsupported_on_local_server
+  @handler.get(handler.HTML)
   def get(self):
     """Handle a GET request."""
     # Create a list of externally contributed fuzzers.
