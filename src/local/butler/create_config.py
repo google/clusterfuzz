@@ -226,12 +226,10 @@ def set_cors(config_dir, buckets):
     gsutil.run('cors', 'set', cors_file_path, 'gs://' + bucket)
 
 
-def add_datastore_export_iam(gcloud, project_id, service_account):
-  """Add datastore export permission to App Engine service account for periodic
-  backups."""
+def add_service_account_role(gcloud, project_id, service_account, role):
+  """Add an IAM role to a service account."""
   gcloud.run('projects', 'add-iam-policy-binding', project_id, '--member',
-             'serviceAccount:' + service_account, '--role',
-             'roles/datastore.importExportAdmin')
+             'serviceAccount:' + service_account, '--role', role)
 
 
 def execute(args):
@@ -282,11 +280,16 @@ def execute(args):
       gcloud, args.new_config_dir, appengine_region=args.appengine_region)
   verifier.verify(appspot_domain)
 
-  # App Engine service account requires ownership to create GCS buckets and
-  # datastore export permission for periodic backups.
+  # App Engine service account requires:
+  # - Domain ownership to create domain namespaced GCS buckets
+  # - Datastore export permission for periodic backups.
+  # - Service account signing permission for GCS uploads.
   service_account = app_engine_service_account(args.project_id)
   verifier.add_owner(appspot_domain, service_account)
-  add_datastore_export_iam(gcloud, args.project_id, service_account)
+  add_service_account_role(gcloud, args.project_id, service_account,
+                           'roles/datastore.importExportAdmin')
+  add_service_account_role(gcloud, args.project_id, service_account,
+                           'roles/iam.serviceAccountTokenCreator')
 
   # Create buckets now that domain is verified.
   create_buckets(args.project_id, [bucket for _, bucket in bucket_replacements])

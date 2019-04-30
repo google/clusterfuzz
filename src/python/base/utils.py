@@ -226,6 +226,12 @@ def get_application_id():
   return app_id
 
 
+def service_account_email():
+  """Get the service account name."""
+  # TODO(ochang): Detect GCE and return the GCE service account instead.
+  return get_application_id() + '@appspot.gserviceaccount.com'
+
+
 def get_bot_testcases_file_path(input_directory):
   """Returns path to bot-specific fuzzed testcases."""
   # Using |FUZZ_INPUTS| prevents putting high load on nfs servers for cases
