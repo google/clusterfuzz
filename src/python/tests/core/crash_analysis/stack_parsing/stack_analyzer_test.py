@@ -2329,3 +2329,24 @@ class StackAnalyzerTestcase(unittest.TestCase):
     self._validate_get_crash_data(data, expected_type, expected_address,
                                   expected_state, expected_stacktrace,
                                   expected_security_flag)
+
+  def test_ignore_regex(self):
+    """Test ignore regex work as expected."""
+    helpers.patch(self, [
+        'config.local_config.ProjectConfig.get',
+    ])
+    self.mock.get.return_value = ['Envoy\:\:Upstream\:\:ClusterManagerImpl']
+
+    data = self._read_test_data('assert_with_panic_keyword.txt')
+    expected_type = 'ASSERT'
+    expected_address = ''
+    expected_state = (
+        'not reached\n'
+        'Envoy::Upstream::ValidationClusterManager::ValidationClusterManager\n'
+        'Envoy::Upstream::ValidationClusterManagerFactory::clusterManagerFromProto\n')
+
+    expected_stacktrace = data
+    expected_security_flag = True
+    self._validate_get_crash_data(data, expected_type, expected_address,
+                                  expected_state, expected_stacktrace,
+                                  expected_security_flag)

@@ -19,6 +19,7 @@ import re
 import subprocess
 
 from base import utils
+from config import local_config
 from crash_analysis import crash_analyzer
 from crash_analysis.stack_parsing import stack_parser
 from system import environment
@@ -244,171 +245,167 @@ ANDROID_KERNEL_STATUS_TO_STRING = {
 }
 
 # Ignore lists.
-IGNORE_CONTAINS = [
-    # Functions names.
-    'ASAN_OnSIGSEGV',
-    'BaseThreadInitThunk',
-    'DebugBreak',
-    'DefaultDcheckHandler',
-    'ForceCrashOnSigAbort',
-    'PartitionAlloc',
-    'RtlReportCriticalFailure',
-    'RtlFreeHeap',
-    'RtlInitializeExceptionChain',
-    'RtlUserThreadStart',
-    'RtlpHeapHandleError',
-    'RtlpLogHeapFailure',
-    'SkDebugf',
-    'StackDumpSignalHandler',
-    '__android_log_assert',
-    '__tmainCRTStartup',
-    '_asan_rtl_',
-    'allocator_shim',
-    'asan_Heap',
-    'asan_check_access',
-    'asan_osx_dynamic.dylib',
-    'assert',
-    'ieee754-',
-    'libpthread',
-    'logger',
-    'memcpy-ssse3-back.S',
+STACK_FRAME_IGNORE_REGEXES = [
+    # Function names (exact match).
+    r'^abort$',
+    r'^exit$',
+    r'^pthread\_kill$',
+    r'^raise$',
+    r'^tgkill$',
 
-    # Functions names with namespaces.
-    'MemoryProtection::CMemoryProtector',
-    'agent::asan::',
-    'base::FuzzedDataProvider',
-    'base::android::CheckException',
-    'base::allocator',
-    'base::debug::BreakDebugger',
-    'base::debug::CollectStackTrace',
-    'base::debug::StackTrace::StackTrace',
-    'logging::ErrnoLogMessage',
-    'logging::LogMessage',
-    'stdext::exception::what',
-    'v8::base::OS::Abort',
+    # Function names (startswith).
+    r'^\<null\>',
+    r'^Abort\(',
+    r'^CFCrash',
+    r'^IsSandboxedProcess',
+    r'^LLVMFuzzerTestOneInput',
+    r'^New',
+    r'^RaiseException',
+    r'^SbSystemBreakIntoDebugger',
+    r'^SignalAction',
+    r'^SignalHandler',
+    r'^V8\_Fatal',
+    r'^WTF\:\:',
+    r'^WTFCrash',
+    r'^X11Error',
+    r'^\_L\_unlock\_',
+    r'^\_\_asan\:\:',
+    r'^\_\_asan\_',
+    r'^\_\_assert\_',
+    r'^\_\_cxa\_atexit',
+    r'^\_\_cxa\_rethrow',
+    r'^\_\_cxa\_throw',
+    r'^\_\_dump\_stack',
+    r'^\_\_interceptor\_',
+    r'^\_\_libc\_',
+    r'^\_\_lsan\:\:',
+    r'^\_\_lsan\_',
+    r'^\_\_msan\:\:',
+    r'^\_\_msan\_',
+    r'^\_\_pthread\_kill',
+    r'^\_\_sanitizer\:\:',
+    r'^\_\_sanitizer\_',
+    r'^\_\_tsan\:\:',
+    r'^\_\_tsan\_',
+    r'^\_\_ubsan\:\:',
+    r'^\_\_ubsan\_',
+    r'^\_asan\_',
+    r'^\_lsan\_',
+    r'^\_msan\_',
+    r'^\_objc\_terminate',
+    r'^\_sanitizer\_',
+    r'^\_start',
+    r'^\_tsan\_',
+    r'^\_ubsan\_',
+    r'^abort',
+    r'^android\.app\.ActivityManagerProxy\.',
+    r'^android\.os\.Parcel\.',
+    r'^asan\_',
+    r'^calloc',
+    r'^check\_memory\_region',
+    r'^common\_exit',
+    r'^delete',
+    r'^demangling\_terminate\_handler',
+    r'^dump\_backtrace',
+    r'^dump\_stack',
+    r'^exit\_or\_terminate\_process',
+    r'^fpehandler\(',
+    r'^free',
+    r'^fuzzer\:\:',
+    r'^g\_log',
+    r'^generic\_cpp\_',
+    r'^gsignal',
+    r'^kasan\_',
+    r'^main',
+    r'^malloc',
+    r'^memcmp',
+    r'^memcpy',
+    r'^memmove',
+    r'^memset',
+    r'^mozalloc\_',
+    r'^new',
+    r'^object\_err',
+    r'^operator',
+    r'^print\_trailer',
+    r'^realloc',
+    r'^scanf',
+    r'^show\_stack',
+    r'^std\:\:\_\_terminate',
+    r'^strcmp',
+    r'^strcpy',
+    r'^strlen',
 
-    # Others.
-    '+Unknown',
-    '<unknown module>',
-    'Inline Function @',
+    # Functions names (contains).
+    r'.*ASAN\_OnSIGSEGV',
+    r'.*BaseThreadInitThunk',
+    r'.*DebugBreak',
+    r'.*DefaultDcheckHandler',
+    r'.*ForceCrashOnSigAbort',
+    r'.*MemoryProtection\:\:CMemoryProtector',
+    r'.*PartitionAlloc',
+    r'.*RtlFreeHeap',
+    r'.*RtlInitializeExceptionChain',
+    r'.*RtlReportCriticalFailure',
+    r'.*RtlUserThreadStart',
+    r'.*RtlpHeapHandleError',
+    r'.*RtlpLogHeapFailure',
+    r'.*SkDebugf',
+    r'.*StackDumpSignalHandler',
+    r'.*\_\_android\_log\_assert',
+    r'.*\_\_tmainCRTStartup',
+    r'.*\_asan\_rtl\_',
+    r'.*agent\:\:asan\:\:',
+    r'.*allocator\_shim',
+    r'.*asan\_Heap',
+    r'.*asan\_check\_access',
+    r'.*asan\_osx\_dynamic\.dylib',
+    r'.*assert',
+    r'.*base\:\:FuzzedDataProvider',
+    r'.*base\:\:allocator',
+    r'.*base\:\:android\:\:CheckException',
+    r'.*base\:\:debug\:\:BreakDebugger',
+    r'.*base\:\:debug\:\:CollectStackTrace',
+    r'.*base\:\:debug\:\:StackTrace\:\:StackTrace',
+    r'.*ieee754\-',
+    r'.*libpthread',
+    r'.*logger',
+    r'.*logging\:\:ErrnoLogMessage',
+    r'.*logging\:\:LogMessage',
+    r'.*memcpy\-ssse3\-back\.S',
+    r'.*stdext\:\:exception\:\:what',
+    r'.*v8\:\:base\:\:OS\:\:Abort',
 
     # File paths.
-    ' base/callback',
-    '/AOSP-toolchain/',
-    '/bindings/ToV8.h',
-    '/gcc/',
-    '/glibc-',
-    '/jemalloc/',
-    '/libc++',
-    '/libc/',
-    '/llvm-build/',
-    '/minkernel/crts/',
-    '/sanitizer_common/',
-    '/tcmalloc/',
-    '/vc/include/',
-    '/vctools/crt/',
-    '/win_toolchain/',
-    'libc++/',
-]
-IGNORE_EQUALS = [
-    '<unknown>',
-    '[vdso]',
-    'abort',
-    'exit',
-    'pthread_kill',
-    'raise',
-    'tgkill',
-]
-IGNORE_STARTSWITH = [
-    # Sanitizer functions.
-    '__asan::',
-    '__lsan::',
-    '__msan::',
-    '__tsan::',
-    '__ubsan::',
-    '__sanitizer::',
-    '__asan_',
-    '__lsan_',
-    '__msan_',
-    '__tsan_',
-    '__ubsan_',
-    '__sanitizer_',
-    '_asan_',
-    '_lsan_',
-    '_msan_',
-    '_tsan_',
-    '_ubsan_',
-    '_sanitizer_',
+    r'.*\ base\/callback',
+    r'.*\/AOSP\-toolchain\/',
+    r'.*\/bindings\/ToV8\.h',
+    r'.*\/gcc\/',
+    r'.*\/glibc\-',
+    r'.*\/jemalloc\/',
+    r'.*\/libc\+\+',
+    r'.*\/libc\/',
+    r'.*\/llvm\-build\/',
+    r'.*\/minkernel\/crts\/',
+    r'.*\/sanitizer\_common\/',
+    r'.*\/tcmalloc\/',
+    r'.*\/vc\/include\/',
+    r'.*\/vctools\/crt\/',
+    r'.*\/win\_toolchain\/',
+    r'.*libc\+\+\/',
 
-    # Others.
-    '<null>',
-    'Abort(',
-    'CFCrash',
-    'IsSandboxedProcess',
-    'LLVMFuzzerTestOneInput',
-    'New',
-    'RaiseException',
-    'SbSystemBreakIntoDebugger',
-    'SignalAction',
-    'SignalHandler',
-    'V8_Fatal',
-    'WTF::',
-    'WTFCrash',
-    'X11Error',
-    '__assert_',
-    '__cxa_atexit',
-    '__cxa_rethrow',
-    '__cxa_throw',
-    '__dump_stack',
-    '__interceptor_',
-    '__libc_',
-    '__pthread_kill',
-    '_L_unlock_',
-    '_objc_terminate',
-    '_start',
-    'abort',
-    'android.app.ActivityManagerProxy.',
-    'android.os.Parcel.',
-    'asan_',
-    'calloc',
-    'check_memory_region',
-    'common_exit',
-    'delete',
-    'demangling_terminate_handler',
-    'dump_backtrace',
-    'dump_stack',
-    'exit_or_terminate_process',
-    'fpehandler(',
-    'free',
-    'fuzzer::',
-    'generic_cpp_',
-    'g_log',
-    'gsignal',
-    'kasan_',
-    'main',
-    'malloc',
-    'memcmp',
-    'memcpy',
-    'memmove',
-    'memset',
-    'mozalloc_',
-    'new',
-    'object_err',
-    'operator',
-    'print_trailer',
-    'realloc',
-    'scanf',
-    'show_stack',
-    'std::__terminate',
-    'strcmp',
-    'strcpy',
-    'strlen',
+    # Others (uncategorized).
+    r'.*\+Unknown',
+    r'.*\<unknown\ module\>',
+    r'.*Inline\ Function\ \@',
+    r'^\<unknown\>$',
+    r'^\[vdso\]$',
 ]
-IGNORE_CONTAINS_IF_SYMBOLIZED = [
-    'libc.so',
-    'libc++.so',
-    'libc++_shared.so',
-    'libstdc++.so',
+
+STACK_FRAME_IGNORE_REGEXES_IF_SYMBOLIZED = [
+    r'.*libc\.so',
+    r'.*libc\+\+\.so',
+    r'.*libc\+\+\_shared\.so',
+    r'.*libstdc\+\+\.so',
 ]
 
 IGNORE_CRASH_TYPES_FOR_ABRT_BREAKPOINT_AND_ILLS = [
@@ -512,6 +509,10 @@ class StackAnalyzerState(object):
 
     # Additional tracking for fatal errors.
     self.fatal_error_occurred = False
+
+    # Additional stack frame ignore regexes.
+    self.custom_stack_frame_ignore_regexes = (
+        local_config.ProjectConfig().get('stacktrace.stack_frame_STACK_FRAME_IGNORE_REGEXES', [])
 
 
 def filter_addresses_and_numbers(string):
@@ -619,7 +620,7 @@ def filter_stack_frame(stack_frame):
   return stack_frame
 
 
-def ignore_stack_frame(stack_frame, symbolized):
+def ignore_stack_frame(stack_frame, symbolized, custom_stack_frame_ignore_regexes):
   """Return true if stack frame should not used in determining the
   crash state."""
   # No data, should ignore.
@@ -634,27 +635,14 @@ def ignore_stack_frame(stack_frame, symbolized):
   # properly cross-platform.
   normalized_stack_frame = stack_frame.replace('\\', '/')
 
-  # Check if the stack frame matches one of the strings
-  # in the ignore list.
-  for ignore_string in IGNORE_EQUALS:
-    if ignore_string == normalized_stack_frame:
-      return True
-
-  # Check if the stack frame begins with one of the startswith
-  # strings in the ignore list.
-  for ignore_string in IGNORE_STARTSWITH:
-    if normalized_stack_frame.startswith(ignore_string):
-      return True
-
-  # Check if the stack frame contains one of the strings
-  # in the ignore list.
-  for ignore_string in IGNORE_CONTAINS:
-    if ignore_string in normalized_stack_frame:
+  # Check if the stack frame matches one of the ignore list regexes.
+  for i in STACK_FRAME_IGNORE_REGEXES + custom_stack_frame_ignore_regexes:
+    if re.match(i, normalized_stack_frame):
       return True
 
   if symbolized:
-    for ignore_string in IGNORE_CONTAINS_IF_SYMBOLIZED:
-      if ignore_string in normalized_stack_frame:
+    for ignore_string in STACK_FRAME_IGNORE_REGEXES_IF_SYMBOLIZED:
+      if re.match(ignore_string, normalized_stack_frame):
         return True
 
   return False
@@ -818,7 +806,7 @@ def add_frame_on_match(compiled_regex,
 
   # If we are ignoring a frame, we still have a match. Don't add it to the
   # state, but notify the caller that we found something.
-  if can_ignore and ignore_stack_frame(frame, state.symbolized):
+  if can_ignore and ignore_stack_frame(frame, state.symbolized, state.custom_stack_frame_ignore_regexes):
     return match
 
   # Filter the frame and add to a list.
