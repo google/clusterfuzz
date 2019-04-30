@@ -294,17 +294,11 @@ class FilterStacktraceTest(unittest.TestCase):
 
     self.mock.highlight_common_stack_frames.side_effect = highlight
 
-  def test_clean(self):
-    """Ensure it cleans trace with stack_clean_regex."""
-    stack = 'aaaa\nbbbb\ncccc\naaaa\nbbbb\ncccc'
-    expected = 'aaaa\ncccc\naaaa\ncccc'
-    self.assertEqual(show.filter_stacktrace(stack, 'type', 'bb', {}), expected)
-
   def test_xss(self):
     """Ensure that we escape untrusted stacktrace."""
     stack = 'aaaa\n<script>alert("XSS")</script>\ncccc'
     expected = 'aaaa\n&lt;script&gt;alert(&quot;XSS&quot;)&lt;/script&gt;\ncccc'
-    self.assertEqual(show.filter_stacktrace(stack, 'type', '', {}), expected)
+    self.assertEqual(show.filter_stacktrace(stack, 'type', {}), expected)
 
   def test_asan_chromium(self):
     """Ensure it linkifies asan trace for chromium."""
@@ -328,7 +322,7 @@ class FilterStacktraceTest(unittest.TestCase):
                 '</a>\n'
                 'random')
     self.assertEqual(
-        show.filter_stacktrace(stack, 'type', '', revisions_dict), expected)
+        show.filter_stacktrace(stack, 'type', revisions_dict), expected)
 
   def test_asan_oss_fuzz(self):
     """Ensure it linkifies asan trace for oss-fuzz."""
@@ -354,7 +348,7 @@ class FilterStacktraceTest(unittest.TestCase):
                 '</a>\n'
                 'random')
     self.assertEqual(
-        show.filter_stacktrace(stack, 'type', '', revisions_dict), expected)
+        show.filter_stacktrace(stack, 'type', revisions_dict), expected)
 
   def test_asan_v8(self):
     """Ensure it linkifies v8 win trace for chromium."""
@@ -374,7 +368,7 @@ class FilterStacktraceTest(unittest.TestCase):
                 'random')
 
     self.assertEqual(
-        show.filter_stacktrace(stack, 'type', '', revisions_dict), expected)
+        show.filter_stacktrace(stack, 'type', revisions_dict), expected)
 
   def test_no_linkify(self):
     """Ensure that we don't linkify a non-stack frame line."""
@@ -396,7 +390,7 @@ class FilterStacktraceTest(unittest.TestCase):
     expected = stack
 
     self.assertEqual(
-        show.filter_stacktrace(stack, 'type', '', revisions_dict), expected)
+        show.filter_stacktrace(stack, 'type', revisions_dict), expected)
 
 
 @test_utils.with_cloud_emulators('datastore')

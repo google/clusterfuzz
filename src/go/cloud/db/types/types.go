@@ -94,7 +94,6 @@ type Config struct {
 	TestAccountEmail                    string         `datastore:"test_account_email"`
 	TestAccountPassword                 string         `datastore:"test_account_password"`
 	PrivilegedUsers                     string         `datastore:"privileged_users,noindex"`
-	StackCleanRegex                     string         `datastore:"stack_clean_regex,noindex"`
 	ContactString                       string         `datastore:"contact_string"`
 	RevisionVarsURL                     string         `datastore:"revision_vars_url,noindex"`
 	ComponentRepositoryMappings         string         `datastore:"component_repository_mappings,noindex"`

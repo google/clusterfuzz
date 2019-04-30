@@ -157,27 +157,13 @@ def highlight_common_stack_frames(crash_stacktrace):
   return '\n'.join(highlighted_crash_stacktrace_lines)
 
 
-def filter_stacktrace(crash_stacktrace, crash_type, stack_clean_regex_lines,
-                      revisions_dict):
+def filter_stacktrace(crash_stacktrace, crash_type, revisions_dict):
   """Clean up and format a stack trace for display."""
   if not crash_stacktrace:
     return ''
 
-  # Get stacktrace clean regex for filtering strings and even full lines.
-  stack_clean_regex_list = list(
-      filter(bool, stack_clean_regex_lines.splitlines()))
-  stack_clean_regex = (
-      re.compile('(%s)' % '|'.join(stack_clean_regex_list))
-      if stack_clean_regex_list else None)
-
   filtered_crash_lines = []
   for line in crash_stacktrace.splitlines():
-    # Null out matched string from stacktrace clean regex.
-    if stack_clean_regex:
-      line = stack_clean_regex.sub('', line)
-      if not line:
-        continue
-
     # Html escape line content to prevent XSS.
     line = cgi.escape(line, quote=True)
 
@@ -397,7 +383,6 @@ def get_testcase_detail(testcase):
   metadata = testcase.get_metadata()
   original_testcase_size = _get_blob_size_string(testcase.fuzzed_keys)
   minimized_testcase_size = _get_blob_size_string(testcase.minimized_keys)
-  stack_clean_regex_lines = config.stack_clean_regex
   has_issue_tracker = bool(data_handler.get_issue_tracker_name())
 
   if not testcase.regression:
@@ -434,7 +419,6 @@ def get_testcase_detail(testcase):
       crash_revision, testcase.job_type)
   crash_stacktrace = data_handler.get_stacktrace(testcase)
   crash_stacktrace = filter_stacktrace(crash_stacktrace, testcase.crash_type,
-                                       stack_clean_regex_lines,
                                        crash_revisions_dict)
   crash_stacktrace = convert_to_lines(crash_stacktrace, crash_state_lines,
                                       crash_type)
@@ -448,7 +432,7 @@ def get_testcase_detail(testcase):
   second_crash_stacktrace = data_handler.get_stacktrace(
       testcase, stack_attribute='second_crash_stacktrace')
   second_crash_stacktrace = filter_stacktrace(
-      second_crash_stacktrace, testcase.crash_type, stack_clean_regex_lines,
+      second_crash_stacktrace, testcase.crash_type,
       second_crash_stacktrace_revisions_dict)
   second_crash_stacktrace = convert_to_lines(second_crash_stacktrace,
                                              crash_state_lines, crash_type)
@@ -462,7 +446,7 @@ def get_testcase_detail(testcase):
       testcase, stack_attribute='last_tested_crash_stacktrace')
   last_tested_crash_stacktrace = filter_stacktrace(
       last_tested_crash_stacktrace, testcase.crash_type,
-      stack_clean_regex_lines, last_tested_crash_revisions_dict)
+      last_tested_crash_revisions_dict)
   last_tested_crash_stacktrace = convert_to_lines(last_tested_crash_stacktrace,
                                                   crash_state_lines, crash_type)
   last_tested_crash_stacktrace_preview_lines = _preview_stacktrace(
