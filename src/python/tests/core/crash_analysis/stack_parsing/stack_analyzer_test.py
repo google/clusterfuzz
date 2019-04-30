@@ -2332,10 +2332,15 @@ class StackAnalyzerTestcase(unittest.TestCase):
 
   def test_ignore_regex(self):
     """Test ignore regex work as expected."""
-    helpers.patch(self, [
-        'config.local_config.ProjectConfig.get',
-    ])
-    self.mock.get.return_value = ['Envoy\:\:Upstream\:\:ClusterManagerImpl']
+
+    def _mock_config_get(_, param, default):
+      """Handle test configuration options."""
+      if param == 'stacktrace.stack_frame_ignore_regexes':
+        return [r'Envoy\:\:Upstream\:\:ClusterManagerImpl']
+      return default
+
+    helpers.patch(self, ['config.local_config.ProjectConfig.get'])
+    self.mock.get.side_effect = _mock_config_get
 
     data = self._read_test_data('assert_with_panic_keyword.txt')
     expected_type = 'ASSERT'
@@ -2343,7 +2348,8 @@ class StackAnalyzerTestcase(unittest.TestCase):
     expected_state = (
         'not reached\n'
         'Envoy::Upstream::ValidationClusterManager::ValidationClusterManager\n'
-        'Envoy::Upstream::ValidationClusterManagerFactory::clusterManagerFromProto\n')
+        'Envoy::Upstream::ValidationClusterManagerFactory::'
+        'clusterManagerFromProto\n')
 
     expected_stacktrace = data
     expected_security_flag = True

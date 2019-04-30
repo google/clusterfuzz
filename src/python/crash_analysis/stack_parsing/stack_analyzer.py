@@ -512,7 +512,8 @@ class StackAnalyzerState(object):
 
     # Additional stack frame ignore regexes.
     self.custom_stack_frame_ignore_regexes = (
-        local_config.ProjectConfig().get('stacktrace.stack_frame_STACK_FRAME_IGNORE_REGEXES', [])
+        local_config.ProjectConfig().get(
+            'stacktrace.stack_frame_ignore_regexes', []))
 
 
 def filter_addresses_and_numbers(string):
@@ -620,7 +621,8 @@ def filter_stack_frame(stack_frame):
   return stack_frame
 
 
-def ignore_stack_frame(stack_frame, symbolized, custom_stack_frame_ignore_regexes):
+def ignore_stack_frame(stack_frame, symbolized,
+                       custom_stack_frame_ignore_regexes):
   """Return true if stack frame should not used in determining the
   crash state."""
   # No data, should ignore.
@@ -806,7 +808,8 @@ def add_frame_on_match(compiled_regex,
 
   # If we are ignoring a frame, we still have a match. Don't add it to the
   # state, but notify the caller that we found something.
-  if can_ignore and ignore_stack_frame(frame, state.symbolized, state.custom_stack_frame_ignore_regexes):
+  if can_ignore and ignore_stack_frame(frame, state.symbolized,
+                                       state.custom_stack_frame_ignore_regexes):
     return match
 
   # Filter the frame and add to a list.
