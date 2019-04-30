@@ -118,7 +118,6 @@ class Handler(base_handler.Handler):
         'relax_testcase_restrictions')
     reproduction_help_url = self.request.get('reproduction_help_url')
     revision_vars_url = self.request.get('revision_vars_url')
-    stack_blacklist = self.request.get('stack_blacklist')
     stack_clean_regex = self.request.get('stack_clean_regex')
     test_account_email = self.request.get('test_account_email')
     test_account_password = self.request.get('test_account_password')
@@ -142,7 +141,6 @@ class Handler(base_handler.Handler):
     config.relax_testcase_restrictions = bool(relax_testcase_restrictions)
     config.reproduction_help_url = reproduction_help_url
     config.revision_vars_url = revision_vars_url
-    config.stack_blacklist = stack_blacklist
     config.stack_clean_regex = stack_clean_regex
     config.test_account_email = test_account_email
     config.test_account_password = test_account_password

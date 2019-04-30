@@ -685,9 +685,6 @@ class Config(Model):
   # Privileged users.
   privileged_users = ndb.TextProperty(default='')
 
-  # Stack blacklist/exclusions.
-  stack_blacklist = ndb.TextProperty(default='')
-
   # Stacktrace clean regexes.
   stack_clean_regex = ndb.TextProperty(default='')
 
