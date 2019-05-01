@@ -15,7 +15,6 @@ pyfakefs==3.4.3
 pylint==1.9.3
 python-mimeparse==1.5.2
 PyYAML==5.1
-selenium==2.53.6
 six==1.12.0
 testtools==2.2.0
 traceback2==1.4.0

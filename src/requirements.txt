@@ -17,4 +17,5 @@ pytz==2018.5
 PyYAML==5.1
 requests==2.21.0
 requests-toolbelt==0.9.1
+selenium==3.141.0
 sendgrid==6.0.4
