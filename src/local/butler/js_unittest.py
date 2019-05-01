@@ -68,7 +68,7 @@ def execute(args):
 
   options = webdriver.ChromeOptions()
   options.add_argument('--allow-file-access-from-files')
-  options.add_argument("--headless")
+  options.add_argument('--headless')
   driver = webdriver.Chrome(chrome_options=options)
 
   try:
