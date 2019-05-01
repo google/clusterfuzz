@@ -173,11 +173,6 @@ def do_value_profile():
 
 def do_fork():
   """Return whether or not to do fork mode."""
-  # TODO(metzman): Find a workaround for Windows command line limit before
-  # re-enabling this.
-  if environment.platform() == 'WINDOWS':
-    return False
-
   # TODO(crbug.com/920355): Reenable this when fork mode works with ChromeOS's
   # MSAN.
   job_name = environment.get_value('JOB_NAME')
