@@ -204,11 +204,15 @@ def _install_chromedriver():
   if get_platform() == 'windows':
     binary_directory = 'Scripts'
     chromedriver_binary += '.exe'
-  output_directory = os.path.join(
-      os.path.dirname(__file__), '..', '..', '..', 'ENV', binary_directory)
+  output_directory = os.path.realpath(
+      os.path.join(
+          os.path.dirname(__file__), '..', '..', '..', 'ENV', binary_directory))
 
   chromedriver_archive.extract(chromedriver_binary, output_directory)
   os.chmod(os.path.join(output_directory, chromedriver_binary), 0o750)
+  print('Installed {chromedriver_binary} in {output_directory}'.format(
+      chromedriver_binary=chromedriver_binary,
+      output_directory=output_directory))
 
 
 def _install_pip(requirements_path, target_path):
