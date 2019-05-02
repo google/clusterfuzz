@@ -47,6 +47,7 @@ COMPONENT_NAMES_BLACKLIST = [
 ]
 DISK_CACHE_SIZE = 1000
 SOURCE_MAP_EXTENSION = '.srcmap.json'
+FIND_BRANCHED_FROM = re.compile(r'Cr-Branched-From:.*\master@{#(\d+)\}')
 
 
 def _add_components_from_dict(deps_dict, vars_dict, revisions_dict):
@@ -700,3 +701,24 @@ def write_revision_to_revision_file(revision_file, revision):
 def revision_pattern_from_build_bucket_path(bucket_path):
   """Get the revision pattern from a build bucket path."""
   return '.*' + os.path.basename(bucket_path)
+
+
+@memoize.wrap(memoize.FifoOnDisk(DISK_CACHE_SIZE))
+@memoize.wrap(memoize.Memcache(60 * 60 * 24 * 30))  # 30 day TTL
+def revision_to_branched_from(uri, rev):
+  """Interrogates git code review server to find the branch-from
+  revision of a component."""
+  full_uri = "%s/+/%s?format=JSON" % (uri, rev)
+  url_content = _get_url_content(full_uri)
+  # Hatefully, gerrit returns nonsense in the first line.
+  url_content = '\n'.join(url_content.splitlines()[1:])
+  result = _to_json_dict(url_content)
+  if not result:
+    return None
+  msg = result.get('message', None)
+  if not msg:
+    return None
+  m = FIND_BRANCHED_FROM.search(msg)
+  if not m:
+    return None
+  return m.group(1)

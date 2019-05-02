@@ -38,7 +38,9 @@ REVISION_VARS_URL = (
     'android_asan_chrome;https://commondatastorage.googleapis.com/'
     'chrome-test-builds/android/revisions/%s\n'
     'linux_asan_libass;'
-    'https://commondatastorage.googleapis.com/blah-%s.srcmap.json')
+    'https://commondatastorage.googleapis.com/blah-%s.srcmap.json\n'
+    'v8;https://test-repository/src.git/+/%s?format=JSON'
+)
 
 
 @test_utils.with_cloud_emulators('datastore')
@@ -361,6 +363,29 @@ class RevisionsTestcase(unittest.TestCase):
     self.assertEqual(revisions.find_max_revision_index(revisions_list, 3001), 3)
     self.assertIsNone(revisions.find_max_revision_index(revisions_list, 4001))
 
+  @mock.patch('build_management.revisions._get_url_content')
+  def test_revision_to_branched_from(self, mock_get_url_content):
+    """Test revision_to_branched_from()"""
+    mock_get_url_content.side_effect = self.mock_get_url_content
+    val = revisions.revision_to_branched_from('https://test-repository/src.git',
+                                              'abcd')
+    self.assertEqual('36884', val)
+
+  @mock.patch('build_management.revisions._get_url_content')
+  def test_revision_to_branched_from_no_branched_from(self, mock_get_url_content):
+    """Test revision_to_branched_from()"""
+    mock_get_url_content.side_effect = self.mock_get_url_content
+    val = revisions.revision_to_branched_from('https://test-repository/src.git',
+                                              'f00d')
+    self.assertEqual(None, val)
+
+  @mock.patch('build_management.revisions._get_url_content')
+  def test_revision_to_branched_from_no_message(self, mock_get_url_content):
+    """Test revision_to_branched_from()"""
+    mock_get_url_content.side_effect = self.mock_get_url_content
+    val = revisions.revision_to_branched_from('https://test-repository/src.git',
+                                              'd00d')
+    self.assertEqual(None, val)
 
 @test_utils.with_cloud_emulators('datastore')
 class GetComponentsListTest(unittest.TestCase):
