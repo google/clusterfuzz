@@ -5,6 +5,7 @@ load("@bazel_gazelle//:def.bzl", "gazelle")
 licenses(["notice"])  # Apache 2.0
 
 # gazelle:exclude third_party
+# gazelle:exclude appengine/third_party
 
 gazelle(
     name = "gazelle",
