@@ -163,7 +163,7 @@ class Handler(base_handler.Handler):
       # running, but having a BigQuery jobId in the log would make our life
       # simpler if we ever have to manually check the status of the query.
       # See https://cloud.google.com/bigquery/docs/reference/rest/v2/jobs/query.
-      logs.log("Response from BigQuery.", response=response)
+      logs.log('Response from BigQuery: %s' % response)
 
   @handler.check_cron()
   def get(self):
