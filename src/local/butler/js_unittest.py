@@ -70,7 +70,12 @@ def execute(args):
   chrome_options = webdriver.ChromeOptions()
   chrome_options.add_argument('--allow-file-access-from-files')
   chrome_options.add_argument('--headless')
-  chrome_options.add_argument('--disable-dev-shm-usage')
+
+  is_ci = os.getenv('TEST_BOT_ENVIRONMENT')
+  if is_ci:
+    chrome_options.add_argument('--disable-dev-shm-usage')
+    chrome_options.add_argument('--no-sandbox')
+
   driver = webdriver.Chrome(
       executable_path=common.get_chromedriver_path(),
       chrome_options=chrome_options)
