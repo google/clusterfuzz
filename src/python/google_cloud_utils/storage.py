@@ -140,6 +140,7 @@ class GcsProvider(StorageProvider):
 
   def _chunk_size(self):
     if environment.is_running_on_app_engine():
+      # To match App Engine URLFetch's request size limit.
       return 10 * 1024 * 1024  # 10 MiB.
 
     return None
