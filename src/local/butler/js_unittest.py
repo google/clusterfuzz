@@ -70,6 +70,7 @@ def execute(args):
   chrome_options = webdriver.ChromeOptions()
   chrome_options.add_argument('--allow-file-access-from-files')
   chrome_options.add_argument('--headless')
+  chrome_options.add_argument('--disable-dev-shm-usage')
   driver = webdriver.Chrome(
       executable_path=common.get_chromedriver_path(),
       chrome_options=chrome_options)
