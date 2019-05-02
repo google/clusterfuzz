@@ -765,13 +765,15 @@ def notify_uploader_when_testcase_is_processed(testcase, issue):
   if not data_handler.critical_tasks_completed(testcase):
     return
 
-  description = data_handler.get_issue_description(
-      testcase, hide_crash_state=True)
+  issue_description = data_handler.get_issue_description(testcase)
   if issue:
     _update_issue_when_uploaded_testcase_is_processed(
-        testcase, issue, description, upload_metadata)
+        testcase, issue, issue_description, upload_metadata)
 
-  _send_email_to_uploader(testcase_id, to_email, description)
+  issue_description_without_crash_state = data_handler.get_issue_description(
+      testcase, hide_crash_state=True)
+  _send_email_to_uploader(testcase_id, to_email,
+                          issue_description_without_crash_state)
   data_handler.create_notification_entry(testcase_id, to_email)
 
 
