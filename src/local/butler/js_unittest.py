@@ -21,6 +21,8 @@ import time
 
 from selenium import webdriver
 
+from local.butler import common
+
 _SUITE_SEPARATOR = '=' * 80
 _TEST_SEPARATOR = '-' * 80
 
@@ -62,14 +64,15 @@ def execute(args):
 
      1. Execute the HTML with chromedriver.
      2. Read the test result from the HTML."""
-
   test_filepath = os.path.join('src', 'appengine', 'private', 'test.html')
   print('Running chromedriver on %s' % test_filepath)
 
-  options = webdriver.ChromeOptions()
-  options.add_argument('--allow-file-access-from-files')
-  options.add_argument('--headless')
-  driver = webdriver.Chrome(chrome_options=options)
+  chrome_options = webdriver.ChromeOptions()
+  chrome_options.add_argument('--allow-file-access-from-files')
+  chrome_options.add_argument('--headless')
+  driver = webdriver.Chrome(
+      executable_path=common.get_chromedriver_path(),
+      chrome_options=chrome_options)
 
   try:
     driver.get('file://%s' % os.path.abspath(test_filepath))

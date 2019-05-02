@@ -179,6 +179,19 @@ def is_git_dirty():
   return output
 
 
+def get_chromedriver_path():
+  """Return path to chromedriver binary."""
+  if get_platform() == 'windows':
+    chromedriver_binary = 'chromedriver.exe'
+    binary_directory = 'Scripts'
+  else:
+    chromedriver_binary = 'chromedriver'
+    binary_directory = 'bin'
+
+  return os.path.join(os.environ['ROOT_DIR'], 'ENV', binary_directory,
+                      chromedriver_binary)
+
+
 def _install_chromedriver():
   """Install the latest chromedriver binary in the virtualenv."""
   # Download a file containing the version number of the latest release.
@@ -199,20 +212,13 @@ def _install_chromedriver():
   archive_io = StringIO.StringIO(archive_request.read())
   chromedriver_archive = zipfile.ZipFile(archive_io)
 
-  binary_directory = 'bin'
-  chromedriver_binary = 'chromedriver'
-  if get_platform() == 'windows':
-    binary_directory = 'Scripts'
-    chromedriver_binary += '.exe'
-  output_directory = os.path.realpath(
-      os.path.join(
-          os.path.dirname(__file__), '..', '..', '..', 'ENV', binary_directory))
+  chromedriver_path = get_chromedriver_path()
+  output_directory = os.path.dirname(chromedriver_path)
+  chromedriver_binary = os.path.basename(chromedriver_path)
 
   chromedriver_archive.extract(chromedriver_binary, output_directory)
-  os.chmod(os.path.join(output_directory, chromedriver_binary), 0o750)
-  print('Installed {chromedriver_binary} in {output_directory}'.format(
-      chromedriver_binary=chromedriver_binary,
-      output_directory=output_directory))
+  os.chmod(chromedriver_path, 0o750)
+  print('Installed chromedriver at: %s' % chromedriver_path)
 
 
 def _install_pip(requirements_path, target_path):
