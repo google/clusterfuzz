@@ -14,6 +14,8 @@
 
 syntax = "proto2";
 
+option go_package = "clusterfuzz/protos/untrusted_runner";
+
 message GetStatusRequest {
 }
 
