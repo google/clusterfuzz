@@ -13,6 +13,7 @@
 # limitations under the License.
 """Build manager."""
 
+from builtins import object
 from builtins import range
 import datetime
 import os

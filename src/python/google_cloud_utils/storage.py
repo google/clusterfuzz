@@ -14,6 +14,7 @@
 """Functions for managing Google Cloud Storage."""
 from __future__ import absolute_import
 
+from builtins import object
 import copy
 import datetime
 import json

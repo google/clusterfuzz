@@ -13,6 +13,7 @@
 # limitations under the License.
 """Handler that uploads a testcase"""
 
+from builtins import object
 import ast
 import cgi
 import datetime

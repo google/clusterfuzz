@@ -13,6 +13,7 @@
 # limitations under the License.
 """Builtin fuzzer."""
 
+from builtins import object
 from builtins import range
 import os
 import random

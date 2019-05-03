@@ -13,6 +13,7 @@
 # limitations under the License.
 """Process handling utilities."""
 
+from builtins import object
 import os
 import subprocess
 import tempfile

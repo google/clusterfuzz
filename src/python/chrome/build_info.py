@@ -13,6 +13,7 @@
 # limitations under the License.
 """Utilities for fetching build info from OmahaProxy."""
 
+from builtins import object
 import re
 
 from base import utils

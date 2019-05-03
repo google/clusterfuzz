@@ -14,6 +14,7 @@
 """Tests for libFuzzer launcher script."""
 # pylint: disable=unused-argument
 
+from builtins import object
 from builtins import range
 import copy
 import os

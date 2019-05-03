@@ -14,6 +14,7 @@
 """Statistics for the afl launcher script."""
 from __future__ import print_function
 
+from builtins import object
 import os
 import re
 import six

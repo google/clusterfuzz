@@ -14,6 +14,7 @@
 """Issue tracker manager functions."""
 from __future__ import absolute_import
 
+from builtins import object
 import datetime
 
 from googleapiclient import discovery

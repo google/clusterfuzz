@@ -13,6 +13,7 @@
 # limitations under the License.
 """issue_filer tests."""
 
+from builtins import object
 import datetime
 import parameterized
 import unittest

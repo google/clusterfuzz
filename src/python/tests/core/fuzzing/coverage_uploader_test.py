@@ -13,6 +13,7 @@
 # limitations under the License.
 """Tests for the coverage_uploader module."""
 
+from builtins import object
 import datetime
 import os
 

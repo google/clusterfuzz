@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """path_patcher tests."""
+from builtins import object
 import __builtin__
 import ctypes
 import mock

@@ -13,6 +13,7 @@
 # limitations under the License.
 """py_unittest.py runs tests under src/appengine and butler/tests"""
 from __future__ import print_function
+from builtins import object
 from builtins import range
 import coverage
 

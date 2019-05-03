@@ -13,6 +13,7 @@
 # limitations under the License.
 """Pub/Sub helpers."""
 
+from builtins import object
 import base64
 import collections
 import httplib2

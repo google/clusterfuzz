@@ -15,6 +15,7 @@
   because it requires oauth2client 4.0.0. But our appengine requires
   oauth2client 1.4.2. Therefore, we implement our own BigQuery client."""
 
+from builtins import object
 import collections
 import datetime
 import time

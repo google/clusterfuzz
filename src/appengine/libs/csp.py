@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """Helpers used to generate Content Security Policies for pages."""
+from builtins import object
 import collections
 
 from libs import auth

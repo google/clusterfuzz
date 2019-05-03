@@ -13,6 +13,7 @@
 # limitations under the License.
 """Issue tracker comments."""
 
+from builtins import object
 import re
 
 

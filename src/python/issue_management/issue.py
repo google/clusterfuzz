@@ -13,6 +13,7 @@
 # limitations under the License.
 """Helper classes for managing issues."""
 
+from builtins import object
 import re
 
 

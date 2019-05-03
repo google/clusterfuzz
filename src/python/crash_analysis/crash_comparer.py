@@ -13,6 +13,7 @@
 # limitations under the License.
 """Functions for helping in crash comparison."""
 from __future__ import division
+from builtins import object
 from builtins import range
 
 

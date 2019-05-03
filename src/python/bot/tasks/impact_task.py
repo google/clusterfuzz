@@ -14,6 +14,8 @@
 """Impact task.
    Determine whether or not a test case affects production branches."""
 
+from builtins import object
+
 from base import tasks
 from base import utils
 from bot.tasks import setup

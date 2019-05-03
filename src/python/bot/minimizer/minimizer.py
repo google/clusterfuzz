@@ -14,6 +14,7 @@
 """Base classes for other minimizers."""
 from __future__ import absolute_import
 
+from builtins import object
 from builtins import range
 import copy
 import functools

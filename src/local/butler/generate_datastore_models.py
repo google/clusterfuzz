@@ -15,6 +15,7 @@
 # pylint: disable=protected-access
 """Script to convert python Datastore types to Go and protobufs."""
 
+from builtins import object
 import ast
 import inspect
 import os

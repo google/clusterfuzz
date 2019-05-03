@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """utils tests."""
+from builtins import object
 import datetime
 import mock
 import os

@@ -13,6 +13,7 @@
 # limitations under the License.
 """Functions for process management."""
 
+from builtins import object
 import copy
 import datetime
 import logging

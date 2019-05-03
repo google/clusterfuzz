@@ -13,6 +13,7 @@
 # limitations under the License.
 """Corpus pruning task."""
 
+from builtins import object
 import collections
 import datetime
 import os

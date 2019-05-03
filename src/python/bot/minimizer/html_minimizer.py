@@ -15,6 +15,7 @@
    an HTML test case."""
 from __future__ import absolute_import
 
+from builtins import object
 import functools
 
 from . import chunk_minimizer

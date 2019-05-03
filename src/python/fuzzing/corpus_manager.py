@@ -13,6 +13,7 @@
 # limitations under the License.
 """Functions for corpus synchronization with GCS."""
 
+from builtins import object
 import os
 import re
 import shutil
