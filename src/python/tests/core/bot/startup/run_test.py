@@ -49,6 +49,7 @@ class RunLoopTest(unittest.TestCase):
 
   def setUp(self):
     helpers.patch(self, [
+        'atexit.register',
         'bot.startup.run.start_bot',
         'bot.startup.run.start_heartbeat',
         'bot.startup.run.stop_heartbeat',
@@ -66,7 +67,8 @@ class RunLoopTest(unittest.TestCase):
 
     self.assertEqual(3, self.mock.update_source_code_if_needed.call_count)
     self.assertEqual(3, self.mock.start_heartbeat.call_count)
-    self.assertEqual(1, self.mock.stop_heartbeat.call_count)
+    self.assertEqual(1, self.mock.register.call_count)
+    self.assertEqual(0, self.mock.stop_heartbeat.call_count)  # Handled at exit.
     self.assertEqual(3, self.mock.start_bot.call_count)
     self.assertEqual(3, self.mock.bot_run_timed_out.call_count)
     self.assertEqual(2, self.mock.sleep.call_count)
