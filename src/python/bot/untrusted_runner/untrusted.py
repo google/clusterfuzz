@@ -205,8 +205,8 @@ def _get_tls_cert_and_key():
 
     return cert_contents, key_contents
 
-  return (compute_metadata.get('instance/attributes/tls-cert'),
-          compute_metadata.get('instance/attributes/tls-key'))
+  return (str(compute_metadata.get('instance/attributes/tls-cert')),
+          str(compute_metadata.get('instance/attributes/tls-key')))
 
 
 def start_server():
