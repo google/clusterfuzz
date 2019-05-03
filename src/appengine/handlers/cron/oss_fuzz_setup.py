@@ -173,9 +173,12 @@ def get_github_url(url):
     raise OssFuzzSetupException('No github credentials.')
 
   client_id, client_secret = github_credentials.strip().split(';')
-  url += '?client_id=%s&client_secret=%s' % (client_id, client_secret)
 
-  response = requests.get(url)
+  response = requests.get(
+      url, params={
+          'client_id': client_id,
+          'client_secret': client_secret
+      })
   if response.status_code != 200:
     logs.log_error(
         'Failed to get github url: %s' % url, status_code=response.status_code)
