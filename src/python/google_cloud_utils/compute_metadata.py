@@ -12,10 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """GCE metadata."""
-from future import standard_library
-standard_library.install_aliases()
+
+import requests
 import socket
-import urllib.request
 
 from base import retry
 from system import environment
@@ -37,8 +36,10 @@ def get(path):
   headers = {'Metadata-Flavor': 'Google'}
   operations_timeout = environment.get_value('URL_BLOCKING_OPERATIONS_TIMEOUT')
 
-  request = urllib.request.Request(attribute_url, headers=headers)
-  return urllib.request.urlopen(request, timeout=operations_timeout).read()
+  response = requests.get(
+      attribute_url, headers=headers, timeout=operations_timeout)
+  response.raise_for_status()
+  return response.text
 
 
 def is_gce():

@@ -21,9 +21,10 @@ import bisect
 import json
 import os
 import re
+import requests
 import six
 import time
-import urllib.request, urllib.parse
+import urllib.parse
 import urlparse
 
 from base import memoize
@@ -456,12 +457,11 @@ def get_build_to_revision_mappings(platform=None):
   operations_timeout = environment.get_value('URL_BLOCKING_OPERATIONS_TIMEOUT')
   result = {}
 
-  try:
-    url_handle = urllib.request.urlopen(
-        build_info_url, timeout=operations_timeout)
-    build_info = url_handle.read()
-  except:
+  response = requests.get(build_info_url, timeout=operations_timeout)
+  if response.status_code != 200:
+    logs.log_error('Failed to get build mappings from url: %s' % build_info_url)
     return None
+  build_info = response.text
 
   for line in build_info.splitlines():
     m = re.match(build_info_pattern, line)

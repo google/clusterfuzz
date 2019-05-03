@@ -24,9 +24,10 @@ import hashlib
 import inspect
 import os
 import random
+import requests
 import sys
 import time
-import urllib.request, urllib.error
+import urllib.request
 import urlparse
 import weakref
 
@@ -109,18 +110,14 @@ def decode_to_unicode(obj, encoding='utf-8'):
     function='base.utils.fetch_url')
 def fetch_url(url):
   """Fetch url content."""
-  request = urllib.request.Request(url)
   operations_timeout = environment.get_value('URL_BLOCKING_OPERATIONS_TIMEOUT')
 
-  try:
-    return urllib.request.urlopen(request, timeout=operations_timeout).read()
-  except urllib.error.HTTPError as error:
-    if error.code == 404:
-      # Url does not exist, no need to retry. Bail out and return None to caller
-      # to gracefully detect this.
-      return None
+  response = requests.get(url, timeout=operations_timeout)
+  if response.status_code == 404:
+    return None
 
-    raise
+  response.raise_for_status()
+  return response.text
 
 
 def fields_match(string_1,
