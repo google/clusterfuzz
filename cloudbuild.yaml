@@ -28,11 +28,11 @@ steps:
     mv tmp/.git .git
     rm -rf tmp
 - name: 'gcr.io/clusterfuzz-images/ci'
+  args: ['setup']
+- name: 'gcr.io/clusterfuzz-images/ci'
   args: ['python', 'butler.py', 'lint']
   env:
     - 'GOOGLE_CLOUDBUILD=1'
-- name: 'gcr.io/clusterfuzz-images/ci'
-  args: ['setup']
 - name: 'gcr.io/clusterfuzz-images/ci'
   args:
     - 'bash'
