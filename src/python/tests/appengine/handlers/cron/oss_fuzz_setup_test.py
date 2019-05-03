@@ -1370,7 +1370,7 @@ def mock_get_url(url):
 class MockRequestsGet(object):
   """Mock requests.get."""
 
-  def __init__(self, url):
+  def __init__(self, url, params):  # pylint: disable=unused-argument
     if url in URL_RESULTS:
       self.text = URL_RESULTS[url]
       self.status_code = 200

@@ -1,5 +1,5 @@
 {
-  'https://api.github.com/repos/google/oss-fuzz/git/trees/master?client_id=client_id&client_secret=client_secret': """
+  'https://api.github.com/repos/google/oss-fuzz/git/trees/master': """
 {
   "sha": "b66e9d362c61844c3053be4c33d9b341942781f0",
   "url": "https://api.github.com/repos/google/oss-fuzz/git/trees/b66e9d362c61844c3053be4c33d9b341942781f0",
@@ -61,7 +61,7 @@
   "truncated": false
 }
 """,
-  'https://api.github.com/repos/google/oss-fuzz/git/trees/dd3c2d0adf6151868fc8ecdfb28c005d09952885?client_id=client_id&client_secret=client_secret': """
+  'https://api.github.com/repos/google/oss-fuzz/git/trees/dd3c2d0adf6151868fc8ecdfb28c005d09952885': """
 {
   "sha": "dd3c2d0adf6151868fc8ecdfb28c005d09952885",
   "url": "https://api.github.com/repos/google/oss-fuzz/git/trees/dd3c2d0adf6151868fc8ecdfb28c005d09952885",
@@ -107,7 +107,7 @@
   "truncated": false
 }
 """,
-  'https://api.github.com/repos/google/oss-fuzz/git/trees/a0db6a2c8fa5c18693527e812c4d1d7994c2c8a1?client_id=client_id&client_secret=client_secret': """
+  'https://api.github.com/repos/google/oss-fuzz/git/trees/a0db6a2c8fa5c18693527e812c4d1d7994c2c8a1': """
 {
   "sha": "826eb46900edf113afb31c1ae4f1d04073c7bafe",
   "url": "https://api.github.com/repos/google/oss-fuzz/git/trees/826eb46900edf113afb31c1ae4f1d04073c7bafe",
@@ -140,7 +140,7 @@
   "truncated": false
 }
 """,
-	'https://api.github.com/repos/google/oss-fuzz/git/blobs/e57f1846ff0fdbb0fe08e98ca38b6235008b41be?client_id=client_id&client_secret=client_secret': """
+	'https://api.github.com/repos/google/oss-fuzz/git/blobs/e57f1846ff0fdbb0fe08e98ca38b6235008b41be': """
 {
   "sha": "e57f1846ff0fdbb0fe08e98ca38b6235008b41be",
   "size": 58,
@@ -149,7 +149,7 @@
   "encoding": "base64"
 }
 """,
-  'https://api.github.com/repos/google/oss-fuzz/git/trees/f9599b2b6ee51af4fc8c4d522703d120cd689557?client_id=client_id&client_secret=client_secret': """
+  'https://api.github.com/repos/google/oss-fuzz/git/trees/f9599b2b6ee51af4fc8c4d522703d120cd689557': """
 {
   "sha": "16a5dfd0dc530cc029f781c5806d0427fda37d3b",
   "url": "https://api.github.com/repos/google/oss-fuzz/git/trees/16a5dfd0dc530cc029f781c5806d0427fda37d3b",
@@ -198,7 +198,7 @@
   "truncated": false
 }
 """,
-	'https://api.github.com/repos/google/oss-fuzz/git/blobs/30580bab5896f92de90e904cda76ecdb41c6397a?client_id=client_id&client_secret=client_secret': """
+	'https://api.github.com/repos/google/oss-fuzz/git/blobs/30580bab5896f92de90e904cda76ecdb41c6397a': """
 {
   "sha": "30580bab5896f92de90e904cda76ecdb41c6397a",
   "size": 34,
@@ -207,7 +207,7 @@
   "encoding": "base64"
 }
 """,
-  'https://api.github.com/repos/google/oss-fuzz/git/trees/ab599b2b6ee51df48c8c4d522703d120cd68984d?client_id=client_id&client_secret=client_secret': """
+  'https://api.github.com/repos/google/oss-fuzz/git/trees/ab599b2b6ee51df48c8c4d522703d120cd68984d': """
 {
   "sha": "eb6d39cb6ca1d7c16cc587e223205a6b6eefe631",
   "url": "https://api.github.com/repos/google/oss-fuzz/git/trees/eb6d39cb6ca1d7c16cc587e223205a6b6eefe631",
@@ -232,7 +232,7 @@
   "truncated": false
 }
 """,
-  'https://api.github.com/repos/google/oss-fuzz/git/blobs/46400ddfc8f2db662f70d6f09190dadc31244a58?client_id=client_id&client_secret=client_secret': """
+  'https://api.github.com/repos/google/oss-fuzz/git/blobs/46400ddfc8f2db662f70d6f09190dadc31244a58': """
 {
   "sha": "46400ddfc8f2db662f70d6f09190dadc31244a58",
   "size": 38,
