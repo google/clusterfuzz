@@ -14,12 +14,10 @@
 """Handler that uploads a testcase"""
 
 import ast
+import cgi
 import datetime
 import json
 import StringIO
-
-from google.appengine.ext import blobstore
-from google.appengine.ext.webapp import blobstore_handlers
 
 from base import external_users
 from base import tasks
@@ -42,6 +40,7 @@ MAX_RETRIES = 50
 RUN_FILE_PATTERNS = ['run', 'fuzz-', 'index.', 'crash.']
 PAGE_SIZE = 20
 MORE_LIMIT = 100 - PAGE_SIZE
+UPLOAD_URL = '/upload-testcase/upload-oauth'
 
 
 def attach_testcases(rows):
@@ -234,14 +233,12 @@ class PrepareUploadHandler(base_handler.Handler):
 class UploadUrlHandlerOAuth(base_handler.Handler):
   """Handler that creates an upload URL (OAuth)."""
 
-  UPLOAD_URL = '/upload-testcase/upload-oauth'
-
   @handler.oauth
   @handler.check_user_access(need_privileged_access=False)
   def post(self):
     """Serves the url."""
     self.render_json({
-        'uploadUrl': blobstore.create_upload_url(self.UPLOAD_URL)
+        'uploadUrl': self.request.host_url + UPLOAD_URL,
     })
 
 
@@ -527,18 +524,32 @@ class UploadHandler(UploadHandlerCommon, base_handler.GcsUploadHandler):
     self.do_post()
 
 
-class UploadHandlerOAuth(base_handler.Handler, UploadHandlerCommon,
-                         blobstore_handlers.BlobstoreUploadHandler):
+class NamedStringIO(StringIO.StringIO):
+  """Named StringIO."""
+
+  def __init__(self, name, value):
+    self.name = name
+    StringIO.StringIO.__init__(self, value)
+
+
+class UploadHandlerOAuth(base_handler.Handler, UploadHandlerCommon):
   """Handler that uploads the testcase file (OAuth)."""
 
   # pylint: disable=unused-argument
   def before_render_json(self, values, status):
     """Add upload info when the request fails."""
-    # TODO(ochang): Migrate to GCS upload.
-    values['uploadUrl'] = blobstore.create_upload_url('/upload-testcase/upload')
+    values['uploadUrl'] = self.request.host_url + UPLOAD_URL
 
   def get_upload(self):
-    return (self.get_uploads() or [None])[0]
+    """Get the upload."""
+    uploaded_file = self.request.POST.get('file')
+    if not isinstance(uploaded_file, cgi.FieldStorage):
+      raise helpers.EarlyExitException('File upload not found.', 400)
+
+    string_io = NamedStringIO(uploaded_file.filename,
+                              uploaded_file.file.getvalue())
+    key = blobs.write_blob(string_io)
+    return blobs.get_blob_info(key)
 
   @handler.oauth
   @handler.post(handler.FORM, handler.JSON)

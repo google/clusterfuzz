@@ -138,6 +138,13 @@ class StorageProvider(object):
 class GcsProvider(StorageProvider):
   """GCS storage provider."""
 
+  def _chunk_size(self):
+    if environment.is_running_on_app_engine():
+      # To match App Engine URLFetch's request size limit.
+      return 10 * 1024 * 1024  # 10 MiB.
+
+    return None
+
   def create_bucket(self, name, object_lifecycle, cors):
     """Create a new bucket."""
     project_id = utils.get_application_id()
@@ -194,7 +201,7 @@ class GcsProvider(StorageProvider):
 
     try:
       bucket = client.bucket(bucket_name)
-      blob = bucket.blob(path)
+      blob = bucket.blob(path, chunk_size=self._chunk_size())
       blob.download_to_filename(local_path)
     except google.cloud.exceptions.GoogleCloudError:
       logs.log_error('Failed to copy cloud storage file %s to local file %s.' %
@@ -210,7 +217,7 @@ class GcsProvider(StorageProvider):
 
     try:
       bucket = client.bucket(bucket_name)
-      blob = bucket.blob(path)
+      blob = bucket.blob(path, chunk_size=self._chunk_size())
       if metadata:
         blob.metadata = metadata
 
@@ -251,7 +258,7 @@ class GcsProvider(StorageProvider):
     client = _storage_client()
     try:
       bucket = client.bucket(bucket_name)
-      blob = bucket.blob(path)
+      blob = bucket.blob(path, chunk_size=self._chunk_size())
       return blob.download_as_string()
     except google.cloud.exceptions.GoogleCloudError:
       logs.log_error('Failed to read cloud storage file %s.' % remote_path)
@@ -264,7 +271,7 @@ class GcsProvider(StorageProvider):
 
     try:
       bucket = client.bucket(bucket_name)
-      blob = bucket.blob(path)
+      blob = bucket.blob(path, chunk_size=self._chunk_size())
       if metadata:
         blob.metadata = metadata
       blob.upload_from_string(data)
