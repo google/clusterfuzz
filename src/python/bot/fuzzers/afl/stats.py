@@ -197,7 +197,7 @@ class StatsGetter(object):
       self.stats[clusterfuzz_stat] = self.get_afl_stat(afl_stat)
 
     try:
-      self.stats['average_exec_per_sec'] = (
+      self.stats['average_exec_per_sec'] = int(
           self.get_afl_stat('execs_done') // actual_duration)
 
     except ZeroDivisionError:  # Fail gracefully if actual_duration is 0.
