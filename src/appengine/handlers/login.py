@@ -15,7 +15,6 @@
 
 import datetime
 
-from base import utils
 from config import local_config
 from handlers import base_handler
 from libs import auth
@@ -36,7 +35,7 @@ class Handler(base_handler.Handler):
     self.render(
         'login.html', {
             'apiKey': local_config.ProjectConfig().get('firebase.api_key'),
-            'projectId': utils.get_application_id(),
+            'authDomain': auth.auth_domain(),
             'dest': self.request.get('dest'),
         })
 

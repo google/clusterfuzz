@@ -18,6 +18,8 @@ import collections
 from firebase_admin import auth
 import webapp2
 
+from base import utils
+from config import local_config
 from datastore import data_types
 from datastore import ndb
 from metrics import logs
@@ -28,6 +30,15 @@ User = collections.namedtuple('User', ['email'])
 
 class AuthError(Exception):
   """Auth error."""
+
+
+def auth_domain():
+  """Get the auth domain."""
+  domain = local_config.ProjectConfig().get('firebase.auth_domain')
+  if domain:
+    return domain
+
+  return utils.get_application_id() + '.firebaseapp.com'
 
 
 def is_current_user_admin():
