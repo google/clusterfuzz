@@ -20,6 +20,7 @@ from __future__ import print_function
 from python.base import modules
 modules.fix_module_search_paths()
 
+import atexit
 import os
 import time
 
@@ -143,6 +144,8 @@ def update_source_code_if_needed():
 
 def run_loop(bot_command, heartbeat_command):
   """Run infinite loop with bot's command."""
+  atexit.register(stop_heartbeat)
+
   while True:
     update_source_code_if_needed()
     start_heartbeat(heartbeat_command)
@@ -156,8 +159,6 @@ def run_loop(bot_command, heartbeat_command):
       logs.log_error('Failed to check for bot run timeout.')
 
     sleep(LOOP_SLEEP_INTERVAL)
-
-  stop_heartbeat()
 
 
 def main():
