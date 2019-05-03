@@ -14,7 +14,7 @@
 """Helpers used to generate Content Security Policies for pages."""
 import collections
 
-from base import utils
+from libs import auth
 
 
 class CSPBuilder(object):
@@ -91,7 +91,7 @@ def get_default_builder():
   # Firebase.
   builder.add('img-src', 'www.gstatic.com')
   builder.add('connect-src', 'www.googleapis.com')
-  builder.add('frame-src', utils.get_application_id() + '.firebaseapp.com')
+  builder.add('frame-src', auth.auth_domain())
 
   # External style. Used for fonts, charting libraries.
   builder.add('style-src', 'fonts.googleapis.com')

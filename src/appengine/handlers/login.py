@@ -15,7 +15,6 @@
 
 import datetime
 
-from base import utils
 from config import local_config
 from handlers import base_handler
 from libs import auth
@@ -24,15 +23,6 @@ from libs import helpers
 from metrics import logs
 
 SESSION_EXPIRY_DAYS = 14
-
-
-def auth_domain():
-  """Get the auth domain."""
-  auth_domain = local_config.ProjectConfig().get('firebase.auth_domain')
-  if auth_domain:
-    return auth_domain
-
-  return utils.get_application_id() + '.firebaseapp.com'
 
 
 class Handler(base_handler.Handler):
@@ -45,7 +35,7 @@ class Handler(base_handler.Handler):
     self.render(
         'login.html', {
             'apiKey': local_config.ProjectConfig().get('firebase.api_key'),
-            'authDomain': auth_domain(),
+            'authDomain': auth.auth_domain(),
             'dest': self.request.get('dest'),
         })
 
