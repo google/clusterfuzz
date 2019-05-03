@@ -13,6 +13,8 @@
 # limitations under the License.
 """AFL-specific strategies."""
 
+from builtins import object
+
 
 class FastCal(object):
   """Contains the different values FuzzingStrategies.fast_cal can store."""

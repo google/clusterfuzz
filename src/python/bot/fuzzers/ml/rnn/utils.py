@@ -15,6 +15,7 @@
 from __future__ import division
 from __future__ import print_function
 
+from builtins import object
 from builtins import range
 import numpy as np
 import os

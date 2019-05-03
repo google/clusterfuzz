@@ -13,6 +13,7 @@
 # limitations under the License.
 """Fuzzer options."""
 
+from builtins import object
 import ConfigParser
 import os
 import random

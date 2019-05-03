@@ -13,6 +13,7 @@
 # limitations under the License.
 """Load project data."""
 
+from builtins import object
 import os
 import six
 

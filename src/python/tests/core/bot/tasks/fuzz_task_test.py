@@ -13,6 +13,7 @@
 # limitations under the License.
 """fuzz_task tests."""
 # pylint: disable=protected-access
+from builtins import object
 from builtins import range
 import datetime
 import mock

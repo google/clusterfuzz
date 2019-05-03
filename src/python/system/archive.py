@@ -13,6 +13,7 @@
 # limitations under the License.
 """Functions for handling archives."""
 
+from builtins import object
 import os
 import tarfile
 import zipfile

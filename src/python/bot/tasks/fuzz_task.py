@@ -14,6 +14,7 @@
 """Fuzz task for handling fuzzing."""
 from __future__ import division
 
+from builtins import object
 import collections
 import datetime
 import itertools

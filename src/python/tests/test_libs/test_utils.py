@@ -13,6 +13,7 @@
 # limitations under the License.
 """Generic helper functions useful in tests."""
 
+from builtins import object
 import atexit
 import datetime
 import os

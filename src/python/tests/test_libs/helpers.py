@@ -13,8 +13,9 @@
 # limitations under the License.
 """helpers.py contains convenient methods for writing tests."""
 
-import os
+from builtins import object
 import mock
+import os
 import time
 import types
 

@@ -13,6 +13,7 @@
 # limitations under the License.
 """Handler for showing the testcase detail page."""
 
+from builtins import object
 from builtins import range
 import cgi
 import datetime

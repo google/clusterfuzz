@@ -13,6 +13,7 @@
 # limitations under the License.
 """Library to manage bots using GCE instance templates and groups."""
 
+from builtins import object
 import google_auth_httplib2
 import googleapiclient
 import httplib2

@@ -13,6 +13,7 @@
 # limitations under the License.
 """Stack analyzer module."""
 
+from builtins import object
 from builtins import range
 import os
 import re

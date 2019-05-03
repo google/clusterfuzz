@@ -14,6 +14,7 @@
 """libFuzzer launcher."""
 from __future__ import print_function
 # pylint: disable=g-statement-before-imports
+from builtins import object
 from builtins import range
 try:
   # ClusterFuzz dependencies.

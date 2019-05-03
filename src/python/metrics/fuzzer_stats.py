@@ -13,6 +13,7 @@
 # limitations under the License.
 """Classes for dealing with FuzzerStats."""
 
+from builtins import object
 import datetime
 import functools
 import itertools

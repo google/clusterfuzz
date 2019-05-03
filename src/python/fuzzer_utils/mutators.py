@@ -13,6 +13,7 @@
 # limitations under the License.
 """Fuzzing mutators."""
 
+from builtins import object
 from builtins import range
 import random
 import struct

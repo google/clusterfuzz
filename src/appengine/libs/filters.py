@@ -16,6 +16,7 @@
   inside."""
 # pylint: disable=invalid-name
 
+from builtins import object
 import re
 import sys
 

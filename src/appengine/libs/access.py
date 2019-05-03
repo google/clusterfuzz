@@ -13,6 +13,7 @@
 # limitations under the License.
 """access.py contains static methods around access permissions."""
 
+from builtins import object
 from builtins import range
 
 from base import errors

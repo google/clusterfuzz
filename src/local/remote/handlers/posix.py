@@ -13,6 +13,7 @@
 # limitations under the License.
 """Handler for performing remote tasks on linux."""
 from __future__ import print_function
+from builtins import object
 from builtins import range
 import os
 import re

@@ -14,6 +14,7 @@
 """Tests for process."""
 # pylint: disable=unused-argument
 
+from builtins import object
 from builtins import range
 import mock
 import Queue

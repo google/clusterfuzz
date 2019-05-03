@@ -13,6 +13,7 @@
 # limitations under the License.
 """Crash minidump and symbols uploader."""
 
+from builtins import object
 from builtins import range
 import email
 import os
