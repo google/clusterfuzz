@@ -13,7 +13,9 @@
 # limitations under the License.
 """Handler that serves the testcase file."""
 
-import urllib2
+from future import standard_library
+standard_library.install_aliases()
+import urllib.parse
 
 from google_cloud_utils import blobs
 from handlers import base_handler
@@ -40,7 +42,7 @@ def get_testcase_blob_info(testcase):
     raise helpers.EarlyExitException(
         "The testcase (%d) doesn't have fuzzed keys." % testcase.key.id(), 400)
 
-  blob_key = str(urllib2.unquote(blob_key))
+  blob_key = str(urllib.parse.unquote(blob_key))
 
   blob_info = blobs.get_blob_info(blob_key)
   return blob_info, using_minimized_keys

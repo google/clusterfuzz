@@ -16,6 +16,8 @@
 
 from __future__ import print_function
 
+from future import standard_library
+standard_library.install_aliases()
 import datetime
 import os
 import platform
@@ -24,7 +26,7 @@ import StringIO
 import subprocess
 import sys
 import tempfile
-import urllib2
+import urllib.request
 import zipfile
 
 from local.butler import constants
@@ -195,8 +197,8 @@ def get_chromedriver_path():
 def _install_chromedriver():
   """Install the latest chromedriver binary in the virtualenv."""
   # Download a file containing the version number of the latest release.
-  version_request = urllib2.urlopen(constants.CHROMEDRIVER_VERSION_URL)
-  version = version_request.read().strip()
+  version_request = urllib.request.urlopen(constants.CHROMEDRIVER_VERSION_URL)
+  version = version_request.read().decode()
 
   plt = get_platform()
   if plt == 'linux':
@@ -206,7 +208,7 @@ def _install_chromedriver():
   elif plt == 'windows':
     archive_name = 'chromedriver_win32.zip'
 
-  archive_request = urllib2.urlopen(
+  archive_request = urllib.request.urlopen(
       constants.CHROMEDRIVER_DOWNLOAD_PATTERN.format(
           version=version, archive_name=archive_name))
   archive_io = StringIO.StringIO(archive_request.read())

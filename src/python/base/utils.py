@@ -13,6 +13,8 @@
 # limitations under the License.
 """Common utility functions."""
 
+from future import standard_library
+standard_library.install_aliases()
 from builtins import range
 import ast
 import datetime
@@ -22,10 +24,10 @@ import hashlib
 import inspect
 import os
 import random
+import requests
 import sys
 import time
-import urllib
-import urllib2
+import urllib.request
 import urlparse
 import weakref
 
@@ -108,18 +110,14 @@ def decode_to_unicode(obj, encoding='utf-8'):
     function='base.utils.fetch_url')
 def fetch_url(url):
   """Fetch url content."""
-  request = urllib2.Request(url)
   operations_timeout = environment.get_value('URL_BLOCKING_OPERATIONS_TIMEOUT')
 
-  try:
-    return urllib2.urlopen(request, timeout=operations_timeout).read()
-  except urllib2.HTTPError as error:
-    if error.code == 404:
-      # Url does not exist, no need to retry. Bail out and return None to caller
-      # to gracefully detect this.
-      return None
+  response = requests.get(url, timeout=operations_timeout)
+  if response.status_code == 404:
+    return None
 
-    raise
+  response.raise_for_status()
+  return response.text
 
 
 def fields_match(string_1,
@@ -153,7 +151,7 @@ def file_path_to_file_url(path):
     return ''
 
   path = path.lstrip(WINDOWS_PREFIX_PATH)
-  return urlparse.urljoin('file:', urllib.pathname2url(path))
+  return urlparse.urljoin('file:', urllib.request.pathname2url(path))
 
 
 def filter_file_list(file_list):

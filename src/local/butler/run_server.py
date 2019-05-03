@@ -13,12 +13,14 @@
 # limitations under the License.
 """run_server.py run the Clusterfuzz server locally."""
 from __future__ import print_function
+from future import standard_library
+standard_library.install_aliases()
 from distutils import spawn
 import os
 import shutil
 import threading
 import time
-import urllib2
+import urllib.request
 
 from local.butler import appengine
 from local.butler import common
@@ -106,9 +108,9 @@ def start_cron_threads():
       try:
         url = 'http://{host}/{target}'.format(
             host=constants.CRON_SERVICE_HOST, target=target)
-        request = urllib2.Request(url)
+        request = urllib.request.Request(url)
         request.add_header('X-Appengine-Cron', 'true')
-        response = urllib2.urlopen(request, timeout=request_timeout)
+        response = urllib.request.urlopen(request, timeout=request_timeout)
         response.read(60)  # wait for request to finish.
       except Exception:
         continue

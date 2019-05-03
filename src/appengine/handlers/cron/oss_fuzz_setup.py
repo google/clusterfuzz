@@ -18,8 +18,8 @@ import base64
 import copy
 import json
 import re
+import requests
 import six
-import urllib2
 import yaml
 
 from . import service_accounts
@@ -173,14 +173,18 @@ def get_github_url(url):
     raise OssFuzzSetupException('No github credentials.')
 
   client_id, client_secret = github_credentials.strip().split(';')
-  url += '?client_id=%s&client_secret=%s' % (client_id, client_secret)
 
-  try:
-    return json.loads(urllib2.urlopen(url).read())
-  except urllib2.HTTPError as e:
+  response = requests.get(
+      url, params={
+          'client_id': client_id,
+          'client_secret': client_secret
+      })
+  if response.status_code != 200:
     logs.log_error(
-        'Failed to get url with code %d and response %s.' % (e.code, e.read()))
-    raise
+        'Failed to get github url: %s' % url, status_code=response.status_code)
+    response.raise_for_status()
+
+  return json.loads(response.text)
 
 
 def find_github_item_url(github_json, name):

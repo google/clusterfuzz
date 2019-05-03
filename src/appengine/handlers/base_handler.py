@@ -13,6 +13,8 @@
 # limitations under the License.
 """The superclass of all handlers."""
 
+from future import standard_library
+standard_library.install_aliases()
 import base64
 import cgi
 import datetime
@@ -22,7 +24,7 @@ import os
 import re
 import sys
 import traceback
-import urllib
+import urllib.parse
 
 import jinja2
 import webapp2
@@ -101,12 +103,12 @@ def add_menu(name, href):
 
 def make_login_url(dest_url):
   """Make the switch account url."""
-  return '/login?' + urllib.urlencode({'dest': dest_url})
+  return '/login?' + urllib.parse.urlencode({'dest': dest_url})
 
 
 def make_logout_url(dest_url):
   """Make the switch account url."""
-  return '/logout?' + urllib.urlencode({
+  return '/logout?' + urllib.parse.urlencode({
       'csrf_token': form.generate_csrf_token(),
       'dest': dest_url,
   })

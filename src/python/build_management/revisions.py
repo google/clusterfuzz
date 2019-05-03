@@ -13,16 +13,18 @@
 # limitations under the License.
 """Revisions related helper functions."""
 
+from future import standard_library
+standard_library.install_aliases()
 from builtins import range
 import base64
 import bisect
 import json
 import os
 import re
+import requests
 import six
 import time
-import urllib
-import urllib2
+import urllib.parse
 import urlparse
 
 from base import memoize
@@ -231,7 +233,7 @@ def _git_commit_position_to_git_hash_for_chromium(revision, repository):
       'repo': repository,
       'fields': 'git_sha',
   }
-  query_string = urllib.urlencode(request_variables)
+  query_string = urllib.parse.urlencode(request_variables)
   query_url = '%s?%s' % (CRREV_NUMBERING_URL, query_string)
   url_content = _get_url_content(query_url)
   if url_content is None:
@@ -455,11 +457,11 @@ def get_build_to_revision_mappings(platform=None):
   operations_timeout = environment.get_value('URL_BLOCKING_OPERATIONS_TIMEOUT')
   result = {}
 
-  try:
-    url_handle = urllib2.urlopen(build_info_url, timeout=operations_timeout)
-    build_info = url_handle.read()
-  except:
+  response = requests.get(build_info_url, timeout=operations_timeout)
+  if response.status_code != 200:
+    logs.log_error('Failed to get build mappings from url: %s' % build_info_url)
     return None
+  build_info = response.text
 
   for line in build_info.splitlines():
     m = re.match(build_info_pattern, line)

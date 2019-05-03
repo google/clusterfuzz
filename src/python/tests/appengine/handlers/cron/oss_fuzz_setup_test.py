@@ -1367,16 +1367,16 @@ def mock_get_url(url):
   return URL_RESULTS[url]
 
 
-class MockUrlopen(object):
-  """Mock urlopen."""
+class MockRequestsGet(object):
+  """Mock requests.get."""
 
-  def __init__(self, url):
-    self.contents = None
+  def __init__(self, url, params):  # pylint: disable=unused-argument
     if url in URL_RESULTS:
-      self.contents = URL_RESULTS[url]
-
-  def read(self):
-    return self.contents
+      self.text = URL_RESULTS[url]
+      self.status_code = 200
+    else:
+      self.text = None
+      self.status_code = 500
 
 
 @test_utils.with_cloud_emulators('datastore')
@@ -1386,10 +1386,11 @@ class GetLibrariesTest(unittest.TestCase):
   def setUp(self):
     data_types.Config(github_credentials='client_id;client_secret').put()
 
-  @mock.patch('urllib2.urlopen')
-  def test_get_projects(self, mock_urlopen):
+    helpers.patch(self, ['requests.get'])
+    self.mock.get.side_effect = MockRequestsGet
+
+  def test_get_projects(self):
     """Tests get_projects()."""
-    mock_urlopen.side_effect = MockUrlopen
     libraries = oss_fuzz_setup.get_projects()
     self.assertListEqual(
         sorted(libraries), [('boringssl', {

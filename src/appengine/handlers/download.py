@@ -13,8 +13,10 @@
 # limitations under the License.
 """Download files from GCS."""
 
+from future import standard_library
+standard_library.install_aliases()
 import os
-import urllib2
+import urllib.parse
 
 from base import errors
 from base import utils
@@ -106,7 +108,7 @@ class Handler(base_handler.Handler, gcs.SignedGcsHandler):
     if testcase:
       fuzzer_binary_name = testcase.get_metadata('fuzzer_binary_name')
 
-    resource = str(urllib2.unquote(resource))
+    resource = str(urllib.parse.unquote(resource))
     blob_info = blobs.get_blob_info(resource)
     if not blob_info:
       raise helpers.EarlyExitException('File does not exist.', 400)

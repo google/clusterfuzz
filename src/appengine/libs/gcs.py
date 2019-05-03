@@ -13,12 +13,14 @@
 # limitations under the License.
 """App Engine GCS helpers."""
 
+from future import standard_library
+standard_library.install_aliases()
 import base64
 import collections
 import datetime
 import json
 import time
-import urllib
+import urllib.parse
 
 import googleapiclient
 
@@ -71,7 +73,7 @@ class SignedGcsHandler(object):
           'response-content-disposition': content_disposition,
       }
 
-      url += '&' + urllib.urlencode(content_disposition_params)
+      url += '&' + urllib.parse.urlencode(content_disposition_params)
 
     self.redirect(url)
 
@@ -105,7 +107,7 @@ def get_signed_url(bucket_name,
       'Signature': base64.b64encode(signed_blob),
   }
 
-  return str(url + '/' + path + '?' + urllib.urlencode(params))
+  return str(url + '/' + path + '?' + urllib.parse.urlencode(params))
 
 
 def prepare_upload(bucket_name, path, expiry=DEFAULT_URL_VALID_SECONDS):

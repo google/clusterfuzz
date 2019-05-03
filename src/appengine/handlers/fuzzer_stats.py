@@ -14,11 +14,13 @@
 """Fuzzer statistics handler."""
 from __future__ import absolute_import
 
+from future import standard_library
+standard_library.install_aliases()
 import cgi
 import datetime
 import re
 import six
-import urllib
+import urllib.parse
 import yaml
 
 from googleapiclient.errors import HttpError
@@ -282,7 +284,7 @@ def _build_rows(result, columns, rows, group_by):
 
 def _get_cloud_storage_link(bucket_path):
   """Return a clickable link to a cloud storage file given the bucket path."""
-  return '/gcs-redirect?' + urllib.urlencode({'path': bucket_path})
+  return '/gcs-redirect?' + urllib.parse.urlencode({'path': bucket_path})
 
 
 def _get_filter_from_job(job):
