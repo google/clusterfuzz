@@ -13,8 +13,10 @@
 # limitations under the License.
 """Tests for download."""
 
+from future import standard_library
+standard_library.install_aliases()
 import unittest
-import urllib
+import urllib.parse
 
 import webapp2
 import webtest
@@ -88,7 +90,7 @@ class DownloadTest(unittest.TestCase):
     if expect_filename:
       expected_url += (
           '&response-content-disposition='
-          'attachment%3B+filename%3D' + urllib.quote(expect_filename))
+          'attachment%3B+filename%3D' + urllib.parse.quote(expect_filename))
 
     if expect_blob:
       self.assertEqual(expected_url, resp.location)

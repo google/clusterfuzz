@@ -1386,10 +1386,11 @@ class GetLibrariesTest(unittest.TestCase):
   def setUp(self):
     data_types.Config(github_credentials='client_id;client_secret').put()
 
-  @mock.patch('urllib2.urlopen')
-  def test_get_projects(self, mock_urlopen):
+    helpers.patch(self, ['urllib.request.urlopen'])
+    self.mock.urlopen.side_effect = MockUrlopen
+
+  def test_get_projects(self):
     """Tests get_projects()."""
-    mock_urlopen.side_effect = MockUrlopen
     libraries = oss_fuzz_setup.get_projects()
     self.assertListEqual(
         sorted(libraries), [('boringssl', {

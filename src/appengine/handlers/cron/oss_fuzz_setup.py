@@ -14,12 +14,14 @@
 """Handler used for setting up oss-fuzz jobs."""
 from __future__ import absolute_import
 
+from future import standard_library
+standard_library.install_aliases()
 import base64
 import copy
 import json
 import re
 import six
-import urllib2
+import urllib.request, urllib.error
 import yaml
 
 from . import service_accounts
@@ -176,8 +178,8 @@ def get_github_url(url):
   url += '?client_id=%s&client_secret=%s' % (client_id, client_secret)
 
   try:
-    return json.loads(urllib2.urlopen(url).read())
-  except urllib2.HTTPError as e:
+    return json.loads(urllib.request.urlopen(url).read())
+  except urllib.error.HTTPError as e:
     logs.log_error(
         'Failed to get url with code %d and response %s.' % (e.code, e.read()))
     raise

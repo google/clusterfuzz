@@ -13,11 +13,13 @@
 # limitations under the License.
 """Fuzzer performance report handler."""
 
+from future import standard_library
+standard_library.install_aliases()
 import datetime
 import json
 import logging
 import os
-import urllib
+import urllib.request, urllib.parse, urllib.error
 
 from datastore import data_handler
 from google_cloud_utils import big_query
@@ -69,7 +71,7 @@ def _get_link_html(directory_path, relative_path):
 
   link_path = '%s/%s' % (directory_path, relative_path)
   link_name = filename
-  link_url = '/gcs-redirect?%s' % urllib.urlencode({'path': link_path})
+  link_url = '/gcs-redirect?%s' % urllib.parse.urlencode({'path': link_path})
   # TODO(mmoroz): build links and other markup things in polymer.
   return '<a href="{link_url}">{link_name}</a>'.format(
       link_url=link_url, link_name=link_name)
