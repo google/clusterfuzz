@@ -26,7 +26,7 @@ import StringIO
 import subprocess
 import sys
 import tempfile
-import urllib.request, urllib.error, urllib.parse
+import urllib.request
 import zipfile
 
 from local.butler import constants
