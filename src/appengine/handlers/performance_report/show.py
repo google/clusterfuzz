@@ -19,7 +19,7 @@ import datetime
 import json
 import logging
 import os
-import urllib.request, urllib.parse, urllib.error
+import urllib.parse
 
 from datastore import data_handler
 from google_cloud_utils import big_query
