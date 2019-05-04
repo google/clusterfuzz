@@ -16,14 +16,13 @@
 
 from builtins import object
 from builtins import range
-import copy
-import os
-import shutil
 from StringIO import StringIO
-import unittest
-
+import copy
 import mock
+import os
 import pyfakefs.fake_filesystem_unittest as fake_fs_unittest
+import shutil
+import unittest
 
 from bot.fuzzers import engine_common
 from bot.fuzzers import libfuzzer

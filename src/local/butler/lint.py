@@ -115,24 +115,16 @@ def py_import_order(file_path):
     file_content = f.read()
 
   imports = []
-  from_imports = []
   corrected_import_blocks = []
   for line in file_content.splitlines():
-    if line.startswith('import '):
+    if line.startswith('import ') or line.startswith('from '):
       imports.append(line)
     else:
       corrected_import_blocks += _validate_block(imports)
       imports = []
 
-    if line.startswith('from '):
-      from_imports.append(line)
-    else:
-      corrected_import_blocks += _validate_block(from_imports)
-      from_imports = []
-
   # Though rare, if a file ends with an import we must still validate them.
   corrected_import_blocks += _validate_block(imports)
-  corrected_import_blocks += _validate_block(from_imports)
 
   if not corrected_import_blocks:
     return
