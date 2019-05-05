@@ -297,7 +297,7 @@ def find_fixed_range(testcase_id, job_type):
         testcase,
         max_revision,
         is_crash=True,
-        message='still crashes on r%s' % max_revision)
+        message='still crashes on latest revision r%s' % max_revision)
 
     # Since we've verified that the test case is still crashing, clear out any
     # metadata indicating potential flake from previous runs.
