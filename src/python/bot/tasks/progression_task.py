@@ -84,7 +84,10 @@ def _clear_progression_pending(testcase):
   testcase.delete_metadata('progression_pending', update_testcase=False)
 
 
-def _update_completion_metadata(testcase, revision, is_crash=False):
+def _update_completion_metadata(testcase,
+                                revision,
+                                is_crash=False,
+                                message=None):
   """Update metadata the progression task completes."""
   _clear_progression_pending(testcase)
   testcase.set_metadata('last_tested_revision', revision, update_testcase=False)
@@ -93,7 +96,8 @@ def _update_completion_metadata(testcase, revision, is_crash=False):
         'last_tested_crash_revision', revision, update_testcase=False)
     testcase.set_metadata(
         'last_tested_crash_time', utils.utcnow(), update_testcase=False)
-  data_handler.update_testcase_comment(testcase, data_types.TaskState.FINISHED)
+  data_handler.update_testcase_comment(testcase, data_types.TaskState.FINISHED,
+                                       message)
 
 
 def _log_output(revision, crash_result):
@@ -142,7 +146,11 @@ def _check_fixed_for_custom_binary(testcase, job_type, testcase_file_path):
         command, symbolized_crash_stacktrace, unsymbolized_crash_stacktrace)
     testcase.last_tested_crash_stacktrace = data_handler.filter_stacktrace(
         stacktrace)
-    _update_completion_metadata(testcase, revision, is_crash=True)
+    _update_completion_metadata(
+        testcase,
+        revision,
+        is_crash=True,
+        message='still crashes on latest custom build')
     return
 
   # Retry once on another bot to confirm our results and in case this bot is in
@@ -155,7 +163,8 @@ def _check_fixed_for_custom_binary(testcase, job_type, testcase_file_path):
   # The bug is fixed.
   testcase.fixed = 'Yes'
   testcase.open = False
-  _update_completion_metadata(testcase, revision)
+  _update_completion_metadata(
+      testcase, revision, message='fixed on latest custom build')
   _add_issue_comment_with_fixed_range(testcase)
 
 
@@ -197,7 +206,9 @@ def _save_fixed_range(testcase_id, min_revision, max_revision):
   testcase = data_handler.get_testcase_by_id(testcase_id)
   testcase.fixed = '%d:%d' % (min_revision, max_revision)
   testcase.open = False
-  _update_completion_metadata(testcase, max_revision)
+
+  _update_completion_metadata(
+      testcase, max_revision, message='fixed in range r%s' % testcase.fixed)
   _add_issue_comment_with_fixed_range(testcase)
   _write_to_bigquery(testcase, min_revision, max_revision)
 
@@ -282,7 +293,11 @@ def find_fixed_range(testcase_id, job_type):
         command, symbolized_crash_stacktrace, unsymbolized_crash_stacktrace)
     testcase.last_tested_crash_stacktrace = data_handler.filter_stacktrace(
         stacktrace)
-    _update_completion_metadata(testcase, max_revision, is_crash=True)
+    _update_completion_metadata(
+        testcase,
+        max_revision,
+        is_crash=True,
+        message='still crashes on latest revision r%s' % max_revision)
 
     # Since we've verified that the test case is still crashing, clear out any
     # metadata indicating potential flake from previous runs.

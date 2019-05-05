@@ -69,7 +69,9 @@ def save_regression_range(testcase_id, regression_range_start,
   """Saves the regression range and creates blame and impact task if needed."""
   testcase = data_handler.get_testcase_by_id(testcase_id)
   testcase.regression = '%d:%d' % (regression_range_start, regression_range_end)
-  data_handler.update_testcase_comment(testcase, data_types.TaskState.FINISHED)
+  data_handler.update_testcase_comment(
+      testcase, data_types.TaskState.FINISHED,
+      'regressed in range %s' % testcase.regression)
 
   write_to_big_query(testcase, regression_range_start, regression_range_end)
 

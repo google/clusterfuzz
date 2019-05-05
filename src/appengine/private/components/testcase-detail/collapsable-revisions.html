@@ -115,7 +115,7 @@
           </if-else>
         </td>
         <td>
-          <span class="help" title="Revision range that this crash was introduced in.">Regression Revision Range</span>
+          <span class="help" title="Revision range that this crash was introduced in. If the range is of the form '0:X', it means that we cannot process revisions before X since revision X is the first good archived build.">Regression Revision Range</span>
         </td>
       </tr>
       <template is="dom-if" if="[[shouldPreview]]">
