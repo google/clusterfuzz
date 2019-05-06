@@ -19,7 +19,6 @@ import sys
 from google.appengine.ext import ndb
 from google.appengine.ext import vendor
 
-
 # True if the app is running inside the dev appserver, false otherwise.  This
 # is not the opposite of IS_RUNNING_IN_PRODUCTION; it is possible (in tests,
 # for example) for both IS_RUNNING_IN_DEV_APPSERVER and IS_RUNNING_IN_PRODUCTION
