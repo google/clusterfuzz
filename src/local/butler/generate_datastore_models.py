@@ -190,10 +190,7 @@ def py_to_go_type(py_type):
   if py_type in [str, unicode, basestring]:
     return 'string'
 
-  if py_type == int:
-    return 'int'
-
-  if py_type == long:
+  if py_type in six.integer_types:
     return 'int64'
 
   if py_type == float:
