@@ -18,52 +18,6 @@ import sys
 
 from google.appengine.ext import ndb
 from google.appengine.ext import vendor
-from webob import multidict
-
-
-def from_fieldstorage(cls, fs):
-  """Create a dict from a cgi.FieldStorage instance.
-
-  See this for more details:
-  http://code.google.com/p/googleappengine/issues/detail?id=2749
-  """
-  import base64
-  import quopri
-
-  obj = cls()
-  if fs.list:
-    # fs.list can be None when there's nothing to parse
-    for field in fs.list:
-      if field.filename:
-        obj.add(field.name, field)
-      else:
-
-        # first, set a common charset to utf-8.
-        common_charset = 'utf-8'
-
-        # second, check Content-Transfer-Encoding and decode
-        # the value appropriately
-        field_value = field.value
-        transfer_encoding = field.headers.get('Content-Transfer-Encoding', None)
-
-        if transfer_encoding == 'base64':
-          field_value = base64.b64decode(field_value)
-
-        if transfer_encoding == 'quoted-printable':
-          field_value = quopri.decodestring(field_value)
-
-        if ('charset' in field.type_options and
-            field.type_options['charset'] != common_charset):
-          # decode with a charset specified in each
-          # multipart, and then encode it again with a
-          # charset specified in top level FieldStorage
-          field_value = field_value.decode(
-              field.type_options['charset']).encode(common_charset)
-
-        obj.add(field.name, field_value)
-
-  return obj
-
 
 # True if the app is running inside the dev appserver, false otherwise.  This
 # is not the opposite of IS_RUNNING_IN_PRODUCTION; it is possible (in tests,
@@ -79,8 +33,6 @@ IS_RUNNING_IN_DEV_APPSERVER = (
 IS_RUNNING_IN_PRODUCTION = (
     os.getenv('SERVER_SOFTWARE') and
     os.getenv('SERVER_SOFTWARE').startswith('Google App Engine/'))
-
-multidict.MultiDict.from_fieldstorage = classmethod(from_fieldstorage)
 
 # Add necessary directories to path.
 if IS_RUNNING_IN_PRODUCTION or IS_RUNNING_IN_DEV_APPSERVER:
