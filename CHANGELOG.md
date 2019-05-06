@@ -4,6 +4,9 @@ Change Log
 ## Next Version
 - Various bug fixes.
 
+## Version 1.2.1
+- Various bug fixes.
+
 ## Version 1.2.0
 - Various bug fixes.
 - Use Firebase auth for authentication.
