@@ -14,8 +14,8 @@
 """Helper functions related to fuzz target entities."""
 
 from datastore import data_types
-from datastore import ndb_utils
 from datastore import ndb
+from datastore import ndb_utils
 
 
 def get_fuzz_targets_for_target_jobs(target_jobs):

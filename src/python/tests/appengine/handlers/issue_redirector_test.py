@@ -17,9 +17,9 @@ import mock
 import unittest
 import webtest
 
-import server
 from datastore import data_types
 from tests.test_libs import helpers as test_helpers
+import server
 
 
 class HandlerTest(unittest.TestCase):

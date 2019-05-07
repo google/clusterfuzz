@@ -12,12 +12,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """Device information related functions."""
-from __future__ import absolute_import
 
+from __future__ import absolute_import
 from builtins import range
 import copy
 import datetime
-from . import logger
 import os
 import re
 import six
@@ -29,6 +28,7 @@ try:
 except ImportError:
   from pipes import quote
 
+from . import logger
 from base import dates
 from base import persistent_cache
 from config import db_config

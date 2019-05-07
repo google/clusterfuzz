@@ -13,12 +13,11 @@
 # limitations under the License.
 """Tests for data_handler."""
 
+from pyfakefs import fake_filesystem_unittest
 import json
+import mock
 import os
 import unittest
-
-import mock
-from pyfakefs import fake_filesystem_unittest
 
 from datastore import data_handler
 from datastore import data_types

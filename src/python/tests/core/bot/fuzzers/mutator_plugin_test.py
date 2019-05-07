@@ -13,11 +13,10 @@
 # limitations under the License.
 """Tests fuzzers.mutator_plugin."""
 
-import os
-import unittest
-import shutil
-
 from pyfakefs import fake_filesystem_unittest
+import os
+import shutil
+import unittest
 
 from bot.fuzzers import mutator_plugin
 from tests.test_libs import helpers
