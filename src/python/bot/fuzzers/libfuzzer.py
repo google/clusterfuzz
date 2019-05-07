@@ -22,6 +22,9 @@ import shutil
 from base import retry
 from bot.fuzzers import engine_common
 from bot.fuzzers.libFuzzer import constants
+from fuchsia_util.lib.device import Device
+from fuchsia_util.lib.fuzzer import Fuzzer
+from fuchsia_util.lib.host import Host
 from platforms import fuchsia
 from system import environment
 from system import minijail
@@ -334,19 +337,20 @@ class FuchsiaQemuLibFuzzerRunner(new_process.ProcessRunner, LibFuzzerCommon):
   def __init__(self, executable_path, default_args=None):
     fuchsia_pkey_path = environment.get_value('FUCHSIA_PKEY_PATH')
     fuchsia_portnum = environment.get_value('FUCHSIA_PORTNUM')
-    if not fuchsia_pkey_path or not fuchsia_portnum:
+    fuchsia_resources_dir = environment.get_value('FUCHSIA_RESOURCES_DIR')
+    if (not fuchsia_pkey_path or not fuchsia_portnum or
+        not fuchsia_resources_dir):
       raise fuchsia.errors.FuchsiaConfigError(
-          'FUCHSIA_PKEY_PATH and/or FUCHSIA_PORTNUM was not set')
-    # yapf: disable
-    self.ssh_args = [
-        '-vvv',
-        '-i', fuchsia_pkey_path,
-        '-o', 'StrictHostKeyChecking no',
-        '-o', 'UserKnownHostsFile=/dev/null',
-        '-p', str(fuchsia_portnum),
-        'localhost'
-    ]
-    # yapf: enable
+          ('FUCHSIA_PKEY_PATH, FUCHSIA_PORTNUM, or FUCHSIA_RESOURCES_DIR was '
+           'not set'))
+    self.host = Host.from_dir(
+        os.path.join(fuchsia_resources_dir, 'build', 'out', 'default'))
+    self.device = Device(self.host, 'localhost', fuchsia_portnum)
+    pkg, tgt = environment.get_value('FUZZ_TARGET').split('/')
+    self.fuzzer = Fuzzer(self.device, pkg, tgt)
+    self.device.set_ssh_option('StrictHostKeyChecking no')
+    self.device.set_ssh_option('UserKnownHostsFile=/dev/null')
+    self.device.set_ssh_identity(fuchsia_pkey_path)
     super(FuchsiaQemuLibFuzzerRunner, self).__init__(
         executable_path=executable_path, default_args=default_args)
 
@@ -362,7 +366,15 @@ class FuchsiaQemuLibFuzzerRunner(new_process.ProcessRunner, LibFuzzerCommon):
            additional_args=None,
            extra_env=None):
     """LibFuzzerCommon.fuzz override."""
-    return self._test_qemu_ssh()
+    self._test_qemu_ssh()
+    # Doing a timeout, to work around process-exit issue?
+    self.fuzzer.run([])
+    fuzzer_process_result = new_process.ProcessResult()
+    fuzzer_process_result.return_code = 0
+    fuzzer_process_result.output = ''
+    fuzzer_process_result.time_executed = 0
+    fuzzer_process_result.command = self.fuzzer.last_fuzz_cmd
+    return fuzzer_process_result
 
   def run_single_testcase(self,
                           testcase_path,
@@ -378,9 +390,10 @@ class FuchsiaQemuLibFuzzerRunner(new_process.ProcessRunner, LibFuzzerCommon):
   def _test_qemu_ssh(self):
     """Tests that a VM is up and can be successfully SSH'd into.
     Raises an exception if no success after MAX_SSH_RETRIES."""
-    print('Attempting SSH. Command: ssh ' + str(self.ssh_args))
     ssh_test_process = new_process.ProcessRunner(
-        'ssh', self.ssh_args + ['echo running on fuchsia!'])
+        'ssh',
+        self.device.get_ssh_cmd(
+            ['ssh', 'localhost', 'echo running on fuchsia!'])[1:])
     result = ssh_test_process.run_and_wait()
     if result.return_code or result.timed_out:
       raise fuchsia.errors.FuchsiaConnectionError(

@@ -21,6 +21,9 @@ import os
 import socket
 import subprocess
 
+from fuchsia_util.lib.device import Device
+from fuchsia_util.lib.fuzzer import Fuzzer
+from fuchsia_util.lib.host import Host
 from google_cloud_utils import gsutil
 from metrics import logs
 from platforms.fuchsia import errors
@@ -36,19 +39,32 @@ def qemu_setup():
   caller (use .kill()).
   Fuchsia fuzzers assume a QEMU VM is running; call this routine prior to
   beginning Fuchsia fuzzing tasks.
-  This initialization routine assumes that the GCS bucket contains the
-  standard Fuchsia SDK, as well as:
+  This initialization routine assumes the following layout for
+  fuchsia_resources_dir:
+
   * /qemu-for-fuchsia/*
-  * /.ssh/*"""
+  * /.ssh/*
+  * target/x64/fvm.blk
+  * target/x64/fuchsia.zbi
+  * target/x64/multiboot.bin
+
+  * build/out/default/fuzzers.json
+  * build/out/default/ids.txt
+  * build/out/default.zircon/tools/*
+  * build/zircon/prebuilt/downloads/symbolize
+  * build/buildtools/linux-x64/clang/bin/llvm-symbolizer"""
+
   # First download the Fuchsia resources locally.
-  fuchsia_resources_dir = initialize_resources_dir()
+  fuchsia_resources_dir = environment.get_value('FUCHSIA_RESOURCES_DIR')
+  if not fuchsia_resources_dir:
+    raise errors.FuchsiaConfigError('Could not find FUCHSIA_RESOURCES_DIR')
 
   # Then, save paths for necessary commands later.
   qemu_path = os.path.join(fuchsia_resources_dir, 'qemu-for-fuchsia', 'bin',
                            'qemu-system-x86_64')
   os.chmod(qemu_path, 0o550)
   kernel_path = os.path.join(fuchsia_resources_dir, 'target', 'x64',
-                             'qemu-kernel.bin')
+                             'multiboot.bin')
   os.chmod(kernel_path, 0o644)
   pkey_path = os.path.join(fuchsia_resources_dir, '.ssh', 'pkey')
   os.chmod(pkey_path, 0o400)
@@ -71,6 +87,7 @@ def qemu_setup():
   tcp.close()
   # Fuzzing jobs that SSH into the QEMU VM need access to this env var.
   environment.set_value('FUCHSIA_PORTNUM', port)
+  environment.set_value('FUCHSIA_RESOURCES_DIR', fuchsia_resources_dir)
 
   # yapf: disable
   qemu_args = [
@@ -97,6 +114,12 @@ def qemu_setup():
   ]
   # yapf: enable
 
+  # Get the list of fuzzers for ClusterFuzz to choose from.
+  host = Host.from_dir(
+      os.path.join(fuchsia_resources_dir, 'build', 'out', 'default'))
+  Device(host, 'localhost', str(port))
+  Fuzzer.filter(host.fuzzers, '')
+
   # Fuzzing jobs that SSH into the QEMU VM need access to this env var.
   environment.set_value('FUCHSIA_PKEY_PATH', pkey_path)
 
@@ -116,6 +139,7 @@ def initialize_resources_dir():
 
   shell.create_directory(fuchsia_resources_dir, recreate=True)
 
+  # Bucket for QEMU resources.
   fuchsia_resources_url = environment.get_value('FUCHSIA_RESOURCES_URL')
   if not fuchsia_resources_url:
     raise errors.FuchsiaConfigError(
@@ -128,19 +152,37 @@ def initialize_resources_dir():
   logs.log("Beginning Fuchsia SDK download.")
   result = gsutil.GSUtilRunner().run_gsutil(gsutil_command_arguments)
   if result.return_code or result.timed_out:
-    raise errors.FuchsiaSdkError('Failed to download Fuchsia'
+    raise errors.FuchsiaSdkError('Failed to download Fuchsia '
                                  'resources: ' + result.output)
   logs.log("Fuchsia SDK download complete.")
+
+  # Bucket for build resources. Necessary for fuzzer seleciton.
+  logs.log("Fetching Fuchsia build.")
+  fuchsia_build_url = environment.get_value('FUCHSIA_BUILD_URL')
+  if not fuchsia_build_url:
+    raise errors.FuchsiaConfigError('Could not find path for remote'
+                                    'Fuchsia build bucket (FUCHSIA BUILD URL')
+
+  gsutil_command_arguments = [
+      '-m', 'cp', '-r', fuchsia_build_url, fuchsia_resources_dir
+  ]
+  logs.log("Beginning Fuchsia build download.")
+  result = gsutil.GSUtilRunner().run_gsutil(gsutil_command_arguments)
+  if result.return_code or result.timed_out:
+    raise errors.FuchsiaSdkError('Failed to download Fuchsia '
+                                 'resources: ' + result.output)
+
   return fuchsia_resources_dir
 
 
 def extend_fvm(fuchsia_resources_dir, drive_path):
   """The FVM is minimally sized to begin with; extend it to make room for
   ephemeral packages etc."""
-  fvm_tool_path = os.path.join(fuchsia_resources_dir, 'tools', 'fvm')
+  fvm_tool_path = os.path.join(fuchsia_resources_dir, 'build', 'out',
+                               'default.zircon', 'tools', 'fvm')
   os.chmod(fvm_tool_path, 0o500)
   process = new_process.ProcessRunner(fvm_tool_path,
-                                      [drive_path, 'extend', '--length', '1G'])
+                                      [drive_path, 'extend', '--length', '2G'])
   result = process.run_and_wait()
   if result.return_code or result.timed_out:
     raise errors.FuchsiaSdkError('Failed to extend FVM: ' + result.output)
@@ -149,7 +191,8 @@ def extend_fvm(fuchsia_resources_dir, drive_path):
 def add_keys_to_zbi(fuchsia_resources_dir, initrd_path, fuchsia_zbi):
   """Adds keys to the ZBI so we can SSH into it. See:
   fuchsia.googlesource.com/fuchsia/+/refs/heads/master/sdk/docs/ssh.md"""
-  zbi_tool = os.path.join(fuchsia_resources_dir, 'tools', 'zbi')
+  zbi_tool = os.path.join(fuchsia_resources_dir, 'build', 'out',
+                          'default.zircon', 'tools', 'zbi')
   os.chmod(zbi_tool, 0o500)
   authorized_keys_path = os.path.join(fuchsia_resources_dir, '.ssh',
                                       'authorized_keys')
