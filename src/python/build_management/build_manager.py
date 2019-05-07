@@ -17,6 +17,7 @@ from builtins import object
 from builtins import range
 import datetime
 import os
+import random
 import re
 import six
 import subprocess
@@ -31,11 +32,14 @@ from base import utils
 from build_management import revisions
 from datastore import data_types
 from datastore import ndb_utils
+from fuchsia_util.lib.fuzzer import Fuzzer
+from fuchsia_util.lib.host import Host
 from fuzzing import fuzzer_selection
 from google_cloud_utils import blobs
 from google_cloud_utils import storage
 from metrics import logs
 from platforms import android
+from platforms import fuchsia
 from system import archive
 from system import environment
 from system import shell
@@ -691,9 +695,7 @@ class RegularBuild(Build):
     """Sets up build with a particular revision."""
     self._pre_setup()
     environment.set_value('BUILD_URL', self.build_url)
-
     logs.log('Retrieving build r%d.' % self.revision)
-
     build_update = not self.exists()
     if build_update:
       if not _unpack_build(self.base_build_dir, self.build_dir, self.build_url,
@@ -711,6 +713,58 @@ class RegularBuild(Build):
 
     self._setup_application_path(build_update=build_update)
     self._post_setup_success(update_revision=build_update)
+
+    return True
+
+
+class FuchsiaBuild(Build):
+  """Represents a Fuchsia build."""
+
+  def __init__(self, base_build_dir, revision, target_weights=None):
+    super(FuchsiaBuild, self).__init__(base_build_dir, revision)
+    self.base_build_dir = ''
+    self.build_url = ''
+    self.build_dir_name = ''
+    self._build_dir = ''
+    self.target_weights = target_weights
+    self.revision = 0
+
+  @property
+  def build_dir(self):
+    return self._build_dir
+
+  def setup(self):
+    logs.log('Retrieving build %d.' % self.revision)
+
+    # Bucket for QEMU resources.
+    # TODO(flowerhack) pull directly from CIPD for these.
+    fuchsia_resources_dir = fuchsia.device.initialize_resources_dir()
+    environment.set_value('FUCHSIA_RESOURCES_DIR', fuchsia_resources_dir)
+
+    logs.log('Retrieved build r%d.' % self.revision)
+    logs.log('Extracting fuzz targets.' + fuchsia_resources_dir)
+    logs.log("Extracting fuzz targets." + fuchsia_resources_dir)
+    environment.set_value('FUCHSIA_DIR',
+                          os.path.join(fuchsia_resources_dir, 'build'))
+
+    symbolize_path = os.path.join(fuchsia_resources_dir, 'build', 'zircon',
+                                  'prebuilt', 'downloads', 'symbolize')
+    os.chmod(symbolize_path, 0o777)
+    llvm_symbolizer_path = os.path.join(fuchsia_resources_dir, 'build',
+                                        'buildtools', 'linux-x64', 'clang',
+                                        'bin', 'llvm-symbolizer')
+    os.chmod(llvm_symbolizer_path, 0o777)
+
+    host = Host.from_dir(
+        os.path.join(fuchsia_resources_dir, 'build', 'out', 'default'))
+    fuzz_targets = Fuzzer.filter(host.fuzzers, '')
+    # TODO(flowerhack): Get list of fuzz targets and pass to the actual
+    # randomizer, instead of using random.choice().
+    fuzz_target = random.choice(fuzz_targets)
+
+    environment.set_value('FUZZ_TARGET', str(fuzz_target))
+    logs.log(
+        str('Extracted fuzz target ' + fuzz_target[0] + '/' + fuzz_target[1]))
     return True
 
 
@@ -1118,7 +1172,18 @@ def setup_regular_build(revision):
       target_weights=target_weights)
   if build.setup():
     return build
+  return None
 
+
+def setup_fuchsia_build():
+  """Sets up Fuchsia build."""
+  base_build_dir = ''
+  revision = 0
+  target_weights = {}
+
+  build = FuchsiaBuild(base_build_dir, revision, target_weights)
+  if build.setup():
+    return build
   return None
 
 
@@ -1247,6 +1312,9 @@ def setup_system_binary():
 
 def setup_build(revision=0):
   """Set up a custom or regular build based on revision."""
+  if environment.platform() == 'FUCHSIA':
+    return setup_fuchsia_build()
+
   # For custom binaries we always use the latest version. Revision is ignored.
   custom_binary = environment.get_value('CUSTOM_BINARY')
   if custom_binary:
