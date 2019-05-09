@@ -240,10 +240,6 @@ def get_adb_command_line(adb_cmd):
 
 def get_adb_path():
   """Return path to ADB binary."""
-  adb_path = environment.get_value('ADB_PATH')
-  if adb_path:
-    return adb_path
-
   return os.path.join(environment.get_platform_resources_directory(), 'adb')
 
 
@@ -768,8 +764,7 @@ def setup_adb():
   adb_binary_path = get_adb_path()
 
   # Make sure that ADB_PATH is set.
-  if not environment.get_value('ADB_PATH'):
-    environment.set_value('ADB_PATH', adb_binary_path)
+  environment.set_value('ADB_PATH', adb_binary_path)
 
 
 def stop_application():
