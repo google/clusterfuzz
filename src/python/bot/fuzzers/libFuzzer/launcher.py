@@ -441,7 +441,7 @@ def get_corpus_directories(main_corpus_directory,
   if minijail_chroot:
     bind_corpus_dirs(minijail_chroot, corpus_directories)
 
-  return corpus_directories
+  return corpus_directories, new_testcases_directory
 
 
 def generate_new_testcase_mutations_using_radamsa(
@@ -859,7 +859,7 @@ def main(argv):
   fuzz_timeout = get_fuzz_timeout(is_mutations_run)
 
   # Get list of corpus directories.
-  corpus_directories = get_corpus_directories(
+  corpus_directories, new_testcases_directory = get_corpus_directories(
       corpus_directory, fuzzer_path, fuzzing_strategies, minijail_chroot)
 
   # Bind corpus directories in minijail.
@@ -980,7 +980,9 @@ def main(argv):
 
   # Make a decision on whether merge step is needed at all. If there are no
   # new units added by libFuzzer run, then no need to do merge at all.
-  new_units_added = parsed_stats.get('new_units_added', 0)
+  new_units_added = (
+      shell.get_directory_file_count(new_testcases_directory) or
+      parsed_stats.get('new_units_added'))  # redundant, but needed for tests.
   merge_error = None
   if new_units_added:
     # Merge the new units with the initial corpus.
