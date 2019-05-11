@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """Integration tests for libfuzzer launcher.py."""
-import collections
+
 import mock
 import os
 import shutil
@@ -35,6 +35,8 @@ TEST_PATH = os.path.abspath(os.path.dirname(__file__))
 TEMP_DIRECTORY = os.path.join(TEST_PATH, 'temp')
 DATA_DIRECTORY = os.path.join(TEST_PATH, 'data')
 
+_get_directory_file_count_orig = shell.get_directory_file_count
+
 
 def clear_temp_dir():
   """Clear temp directory."""
@@ -56,6 +58,14 @@ def mock_random_choice(seq):
   # but it does not work well, as random_choice returns a 'mock.mock.MagicMock'
   # object that behaves differently from the actual type of |seq[0]|.
   return seq[0]
+
+
+def mock_get_directory_file_count(dir_path):
+  """Mocked version, always return 1 for new testcases directory."""
+  if dir_path == os.path.join(fuzzer_utils.get_temp_dir(), 'new'):
+    return 1
+
+  return _get_directory_file_count_orig(dir_path)
 
 
 def setup_testcase_and_corpus(testcase, corpus, fuzz=False):
@@ -187,12 +197,11 @@ class BaseLauncherTest(unittest.TestCase):
     test_helpers.patch(self, [
         'bot.fuzzers.libFuzzer.launcher.create_merge_directory',
         'bot.fuzzers.libFuzzer.launcher.get_merge_directory',
-        'bot.fuzzers.libFuzzer.launcher.parse_log_stats',
+        'system.shell.get_directory_file_count',
     ])
 
-    log_stats = collections.defaultdict(int)
-    log_stats['new_units_added'] = 1
-    self.mock.parse_log_stats.side_effect = lambda logs: log_stats
+    self.mock.get_directory_file_count.side_effect = (
+        mock_get_directory_file_count)
 
     self.mock.get_merge_directory.side_effect = lambda: os.path.join(
         fuzzer_utils.get_temp_dir(), temp_subdir, launcher.MERGE_DIRECTORY_NAME)
