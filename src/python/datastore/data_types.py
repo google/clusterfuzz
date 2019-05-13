@@ -1063,7 +1063,8 @@ def fuzz_target_project_qualified_name(project, binary):
     # Don't prefix with project name if it's the default project.
     return binary
 
-  project_prefix = project + '_'
+  seperator = '/' if project.startswith('/') else '_'
+  project_prefix = project + seperator
   if binary.startswith(project_prefix):
     return binary
 
