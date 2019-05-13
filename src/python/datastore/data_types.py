@@ -1063,10 +1063,7 @@ def fuzz_target_project_qualified_name(project, binary):
     # Don't prefix with project name if it's the default project.
     return binary
 
-  # E.g. for project names that are in the form of paths like:
-  # //third_party/llvm, the result will be //third_party/llvm:fuzz_target
-  separator = ':' if project.startswith('/') else '_'
-  project_prefix = project + separator
+  project_prefix = project + '_'
   if binary.startswith(project_prefix):
     return binary
 
