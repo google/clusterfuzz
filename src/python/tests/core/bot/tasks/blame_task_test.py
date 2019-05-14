@@ -14,17 +14,14 @@
 """Tests for blame task."""
 # pylint: disable=protected-access
 
-import ast
 import json
-import os
 import unittest
 
 from bot.tasks import blame_task
 from datastore import data_handler
 from system import environment
-from tests.test_libs import helpers
-from tests.test_libs import test_utils
 from tests.core.bot.tasks.component_related_test import ComponentRelatedTest
+from tests.test_libs import test_utils
 
 
 class ExtractUrlAndShaFromDepsEntryTest(unittest.TestCase):

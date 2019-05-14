@@ -14,8 +14,8 @@
 """Tests fuzzers.mutator_plugin."""
 
 import os
-import unittest
 import shutil
+import unittest
 
 from pyfakefs import fake_filesystem_unittest
 

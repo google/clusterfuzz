@@ -18,9 +18,9 @@ import unittest
 from bot.tasks import impact_task
 from build_management import build_manager
 from datastore import data_types
+from tests.core.bot.tasks.component_related_test import ComponentRelatedTest
 from tests.test_libs import helpers
 from tests.test_libs import test_utils
-from tests.core.bot.tasks.component_related_test import ComponentRelatedTest
 
 
 @test_utils.with_cloud_emulators('datastore')
@@ -178,7 +178,7 @@ class GetImpactsFromUrlTest(ComponentRelatedTest):
   """Test get_impacts_from_url."""
 
   def setUp(self):
-    super(GetImpactsFromUrlTest,self).setUp()
+    super(GetImpactsFromUrlTest, self).setUp()
     helpers.patch(self, [
         'bot.tasks.impact_task.get_start_and_end_revision',
         'bot.tasks.impact_task.get_impact',
@@ -241,7 +241,6 @@ class GetImpactsFromUrlTest(ComponentRelatedTest):
   def test_bail_out_no_component_branched_from(self):
     """Test bailing out when there's no Cr-Branched-From."""
     self.mock.get_component_name.return_value = 'src/fish'
-    impacts = impact_task.get_impacts_from_url('123:456', 'job', 'windows')
     self.assertTrue(
         impact_task.get_impacts_from_url('123:456', 'job',
                                          'windows').is_empty())
@@ -263,10 +262,9 @@ class GetImpactsFromUrlTest(ComponentRelatedTest):
         [mock.call('123:456', 'job')])
     self.mock.get_build_to_revision_mappings.assert_has_calls(
         [mock.call('windows')])
-    self.mock.get_impact.assert_has_calls([
-        mock.call('398287', 1, 100),
-        mock.call('399171', 1, 100)
-    ])
+    self.mock.get_impact.assert_has_calls(
+        [mock.call('398287', 1, 100),
+         mock.call('399171', 1, 100)])
 
   def test_get_impacts_known_component(self):
     """Test getting impacts for a known component."""
@@ -282,10 +280,9 @@ class GetImpactsFromUrlTest(ComponentRelatedTest):
         [mock.call('123:456', 'job')])
     self.mock.get_build_to_revision_mappings.assert_has_calls(
         [mock.call('windows')])
-    self.mock.get_impact.assert_has_calls([
-        mock.call('666666', 1, 100),
-        mock.call('777777', 1, 100)
-    ])
+    self.mock.get_impact.assert_has_calls(
+        [mock.call('666666', 1, 100),
+         mock.call('777777', 1, 100)])
 
 
 class GetImpactTest(unittest.TestCase):

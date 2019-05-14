@@ -15,17 +15,14 @@
 # pylint: disable=protected-access
 
 import ast
-import json
 import os
 import unittest
 
-from bot.tasks import blame_task
-from datastore import data_handler
-from system import environment
 from tests.test_libs import helpers
 from tests.test_libs import test_utils
 
-DATA_DIRECTORY = os.path.join(os.path.dirname(__file__), 'component_related_test_data')
+DATA_DIRECTORY = os.path.join(
+    os.path.dirname(__file__), 'component_related_test_data')
 
 
 @test_utils.with_cloud_emulators('datastore')
@@ -51,4 +48,3 @@ class ComponentRelatedTest(unittest.TestCase):
         DATA_DIRECTORY, 'component_revisions_%s.txt' % revision)
     with open(component_revisions_file_path) as file_handle:
       return ast.literal_eval(file_handle.read())
-
