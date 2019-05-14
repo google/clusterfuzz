@@ -97,3 +97,27 @@ class TestcaseTest(unittest.TestCase):
     self.assertTrue(testcase.is_impact_set_flag)
     self.assertTrue(testcase.impact_stable_version_likely)
     self.assertTrue(testcase.impact_beta_version_likely)
+
+
+class FuzzTargetFullyQualifiedNameTest(unittest.TestCase):
+  """Test fuzz_target_fully_qualified_name."""
+
+  def test_project_with_regular_chars(self):
+    self.assertEqual(
+        'libFuzzer_myproject_json_fuzzer',
+        data_types.fuzz_target_fully_qualified_name('libFuzzer', 'myproject',
+                                                    'json_fuzzer'))
+    self.assertEqual(
+        'afl_test_project_hash_fuzzer',
+        data_types.fuzz_target_fully_qualified_name('afl', 'test_project',
+                                                    'hash_fuzzer'))
+
+  def test_project_with_special_chars(self):
+    self.assertEqual(
+        'libFuzzer_third_party-llvm_clang_fuzzer',
+        data_types.fuzz_target_fully_qualified_name(
+            'libFuzzer', '//third_party/llvm', 'clang_fuzzer'))
+    self.assertEqual(
+        'afl_third_party-aspell-aspell_5_aspell_fuzzer',
+        data_types.fuzz_target_fully_qualified_name(
+            'afl', 'third_party:aspell:aspell_5', 'aspell_fuzzer'))
