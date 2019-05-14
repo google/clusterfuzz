@@ -705,10 +705,10 @@ def revision_pattern_from_build_bucket_path(bucket_path):
 
 @memoize.wrap(memoize.FifoOnDisk(DISK_CACHE_SIZE))
 @memoize.wrap(memoize.Memcache(60 * 60 * 24 * 30))  # 30 day TTL
-def revision_to_branched_from(uri, rev):
+def revision_to_branched_from(uri, revision):
   """Interrogates git code review server to find the branch-from
   revision of a component."""
-  full_uri = "%s/+/%s?format=JSON" % (uri, rev)
+  full_uri = "%s/+/%s?format=JSON" % (uri, revision)
   url_content = _get_url_content(full_uri)
   # Hatefully, gerrit returns nonsense in the first line.
   url_content = '\n'.join(url_content.splitlines()[1:])

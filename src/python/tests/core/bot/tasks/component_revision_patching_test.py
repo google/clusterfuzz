@@ -11,8 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""Tests for blame task."""
-# pylint: disable=protected-access
+"""Test base class for tasks which involve looking into component revisions."""
 
 import ast
 import os
@@ -26,8 +25,9 @@ DATA_DIRECTORY = os.path.join(
 
 
 @test_utils.with_cloud_emulators('datastore')
-class ComponentRelatedTest(unittest.TestCase):
-  """Test prepare_predator_message."""
+class ComponentRevisionPatchingTest(unittest.TestCase):
+  """Base class for tests involving revisions of components;
+  patches the function which retrieves those revisions."""
 
   def setUp(self):
     helpers.patch_environ(self)

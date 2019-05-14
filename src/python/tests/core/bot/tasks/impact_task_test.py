@@ -18,7 +18,8 @@ import unittest
 from bot.tasks import impact_task
 from build_management import build_manager
 from datastore import data_types
-from tests.core.bot.tasks.component_related_test import ComponentRelatedTest
+from tests.core.bot.tasks.component_revision_patching_test \
+    import ComponentRevisionPatchingTest
 from tests.test_libs import helpers
 from tests.test_libs import test_utils
 
@@ -174,7 +175,7 @@ class ExecuteTaskTest(unittest.TestCase):
         [mock.call(mock.ANY, 'path')])
 
 
-class GetImpactsFromUrlTest(ComponentRelatedTest):
+class GetImpactsFromUrlTest(ComponentRevisionPatchingTest):
   """Test get_impacts_from_url."""
 
   def setUp(self):

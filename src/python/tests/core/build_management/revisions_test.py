@@ -364,7 +364,7 @@ class RevisionsTestcase(unittest.TestCase):
 
   @mock.patch('build_management.revisions._get_url_content')
   def test_revision_to_branched_from(self, mock_get_url_content):
-    """Test revision_to_branched_from()"""
+    """Test revision_to_branched_from() with normal branch."""
     mock_get_url_content.side_effect = self.mock_get_url_content
     val = revisions.revision_to_branched_from('https://test-repository/src.git',
                                               'abcd')
@@ -373,7 +373,7 @@ class RevisionsTestcase(unittest.TestCase):
   @mock.patch('build_management.revisions._get_url_content')
   def test_revision_to_branched_from_no_branched_from(self,
                                                       mock_get_url_content):
-    """Test revision_to_branched_from()"""
+    """Test revision_to_branched_from() where commit has no branch-from"""
     mock_get_url_content.side_effect = self.mock_get_url_content
     val = revisions.revision_to_branched_from('https://test-repository/src.git',
                                               'f00d')
@@ -381,7 +381,7 @@ class RevisionsTestcase(unittest.TestCase):
 
   @mock.patch('build_management.revisions._get_url_content')
   def test_revision_to_branched_from_no_message(self, mock_get_url_content):
-    """Test revision_to_branched_from()"""
+    """Test revision_to_branched_from() with no commit message at all"""
     mock_get_url_content.side_effect = self.mock_get_url_content
     val = revisions.revision_to_branched_from('https://test-repository/src.git',
                                               'd00d')

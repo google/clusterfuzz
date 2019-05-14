@@ -20,7 +20,8 @@ import unittest
 from bot.tasks import blame_task
 from datastore import data_handler
 from system import environment
-from tests.core.bot.tasks.component_related_test import ComponentRelatedTest
+from tests.core.bot.tasks.component_revision_patching_test \
+    import ComponentRevisionPatchingTest
 from tests.test_libs import test_utils
 
 
@@ -163,7 +164,7 @@ class FormatComponentRevisionsForPredator(unittest.TestCase):
     self.assertEqual(actual_result, expected_result)
 
 
-class PreparePredatorRequestBodyTest(ComponentRelatedTest):
+class PreparePredatorRequestBodyTest(ComponentRevisionPatchingTest):
   """Test prepare_predator_message."""
 
   def test_custom_binary(self):
