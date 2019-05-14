@@ -79,8 +79,8 @@ MIN_ELAPSED_TIME_SINCE_REPORT = 3
 # Valid name check for fuzzer, job, etc.
 NAME_CHECK_REGEX = re.compile(r'^[a-zA-Z0-9_-]+$')
 
-# Project name regex to normalize special chars.
-PROJECT_NAME_NORMALIZE_REGEX = re.compile('[^a-zA-Z0-9_-]')
+# Regex to match special chars in project name.
+PROJECT_NAME_SPECIAL_CHARS_REGEX = re.compile('[^a-zA-Z0-9_-]')
 
 # List of supported platforms.
 PLATFORMS = [
@@ -1064,7 +1064,7 @@ def fuzz_target_project_qualified_name(project, binary):
     """Return normalized project name with special chars like slash, colon, etc
     normalized to hyphen(-). This is important as otherwise these chars break
     local and cloud storage paths."""
-    return PROJECT_NAME_NORMALIZE_REGEX.sub('-', project).strip('-')
+    return PROJECT_NAME_SPECIAL_CHARS_REGEX.sub('-', project).strip('-')
 
   if not project:
     return binary
