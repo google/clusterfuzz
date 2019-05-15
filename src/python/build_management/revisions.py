@@ -47,7 +47,7 @@ COMPONENT_NAMES_BLACKLIST = [
 ]
 DISK_CACHE_SIZE = 1000
 SOURCE_MAP_EXTENSION = '.srcmap.json'
-FIND_BRANCHED_FROM = re.compile(r'Cr-Branched-From:.*\master@{#(\d+)\}')
+FIND_BRANCHED_FROM = re.compile(r'Cr-Branched-From:.*master@\{#(\d+)\}')
 
 
 def _add_components_from_dict(deps_dict, vars_dict, revisions_dict):
@@ -710,15 +710,20 @@ def revision_to_branched_from(uri, revision):
   revision of a component."""
   full_uri = "%s/+/%s?format=JSON" % (uri, revision)
   url_content = _get_url_content(full_uri)
-  # Hatefully, gerrit returns nonsense in the first line.
+  # gerrit intentionally returns nonsense in the first line.
+  # See 'cross site script inclusion here:
+  # https://gerrit-review.googlesource.com/Documentation/rest-api.html
   url_content = '\n'.join(url_content.splitlines()[1:])
   result = _to_json_dict(url_content)
   if not result:
+    logs.log_error("Unable to retrieve and parse JSON for %s" % full_uri)
     return None
   msg = result.get('message', None)
   if not msg:
+    logs.log_error("%s JSON had no 'message'" % full_uri)
     return None
   m = FIND_BRANCHED_FROM.search(msg)
   if not m:
+    logs.log_error("%s JSON message lacked Cr-Branched-From" % full_uri)
     return None
   return m.group(1)
