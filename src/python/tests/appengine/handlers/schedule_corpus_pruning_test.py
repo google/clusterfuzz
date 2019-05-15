@@ -114,4 +114,6 @@ class ScheduleCorpusPruningTest(unittest.TestCase):
                       ('libFuzzer_test_fuzzer_b',
                        'custom_binary_job_with_pruning', 'jobs-linux')]
 
-    self.assertEqual(tasks_expected, tasks)
+    for i, actual_value in enumerate(tasks):
+      # Cannot assert all values at once as `tasks` is a generator, not a list.
+      self.assertEqual(tasks_expected[i], actual_value)

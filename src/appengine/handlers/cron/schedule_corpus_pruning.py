@@ -42,8 +42,7 @@ def _get_latest_job_revision(job):
 
 
 def get_tasks_to_schedule():
-  """Return a list of (task_target, job_name, queue_name) tuples."""
-  tasks_to_schedule = []
+  """Return (task_target, job_name, queue_name) arguments to schedule a task."""
   for job in data_types.Job.query():
     if not utils.string_is_true(job.get_environment().get('CORPUS_PRUNE')):
       continue
@@ -62,9 +61,8 @@ def get_tasks_to_schedule():
       if latest_revision:
         task_target += '@%s' % latest_revision
 
-      tasks_to_schedule.append((task_target, job.name, queue_name))
+      yield (task_target, job.name, queue_name)
 
-  return tasks_to_schedule
 
 
 class Handler(base_handler.Handler):
