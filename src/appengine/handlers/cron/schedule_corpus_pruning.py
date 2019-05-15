@@ -66,6 +66,7 @@ def get_tasks_to_schedule():
 
   return tasks_to_schedule
 
+
 class Handler(base_handler.Handler):
   """Schedule corpus pruning tasks.."""
 

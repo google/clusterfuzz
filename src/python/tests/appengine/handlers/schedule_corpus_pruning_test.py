@@ -25,7 +25,7 @@ from tests.test_libs import test_utils
 @test_utils.with_cloud_emulators('datastore')
 class ScheduleCorpusPruningTest(unittest.TestCase):
   """Tests for schedule_corpus_pruning."""
-  
+
   def setUp(self):
     helpers.patch_environ(self)
 
@@ -105,19 +105,13 @@ class ScheduleCorpusPruningTest(unittest.TestCase):
   def test_schedule_corpus_pruning(self):
     """Test schedule_corpus_pruning.Handler.."""
     tasks = schedule_corpus_pruning.get_tasks_to_schedule()
-    tasks_expected = [
-    ('libFuzzer_test_fuzzer_1@31337',
-     'continuous_fuzzing_job_with_pruning',
-     'jobs-linux'),
-    ('libFuzzer_test_fuzzer_2@31337',
-     'continuous_fuzzing_job_with_pruning',
-     'jobs-linux'),
-    ('libFuzzer_test_fuzzer_a',
-     'custom_binary_job_with_pruning',
-     'jobs-linux'),
-    ('libFuzzer_test_fuzzer_b',
-     'custom_binary_job_with_pruning',
-     'jobs-linux')
-    ]
+    tasks_expected = [('libFuzzer_test_fuzzer_1@31337',
+                       'continuous_fuzzing_job_with_pruning', 'jobs-linux'),
+                      ('libFuzzer_test_fuzzer_2@31337',
+                       'continuous_fuzzing_job_with_pruning', 'jobs-linux'),
+                      ('libFuzzer_test_fuzzer_a',
+                       'custom_binary_job_with_pruning', 'jobs-linux'),
+                      ('libFuzzer_test_fuzzer_b',
+                       'custom_binary_job_with_pruning', 'jobs-linux')]
 
     self.assertEqual(tasks_expected, tasks)
