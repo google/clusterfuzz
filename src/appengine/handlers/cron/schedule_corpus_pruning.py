@@ -54,7 +54,7 @@ class Handler(base_handler.Handler):
       if utils.string_is_true(job.get_environment().get('CUSTOM_BINARY')):
         # Custom binary jobs do not have revisions.
         latest_revision = None
-      else
+      else:
         latest_revision = _get_latest_job_revision(job)
         if not latest_revision:
           continue
