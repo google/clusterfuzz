@@ -64,7 +64,6 @@ def get_tasks_to_schedule():
       yield (task_target, job.name, queue_name)
 
 
-
 class Handler(base_handler.Handler):
   """Schedule corpus pruning tasks.."""
 
