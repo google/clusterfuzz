@@ -74,4 +74,4 @@ class Handler(base_handler.Handler):
   def get(self):
     """Schedule the corpus pruning tasks."""
     for task_target, job_name, queue_name in get_tasks_to_schedule():
-      tasks.add_task('corpus_pruning', task_target, job.name, queue=queue_name)
+      tasks.add_task('corpus_pruning', task_target, job_name, queue=queue_name)
