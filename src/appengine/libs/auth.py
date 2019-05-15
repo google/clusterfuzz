@@ -70,7 +70,7 @@ def get_current_user():
   try:
     decoded_claims = decode_claims(get_session_cookie())
   except AuthError:
-    logs.log_error('Invalid session cookie.')
+    logs.log_warn('Invalid session cookie.')
     return None
 
   if not decoded_claims.get('email_verified'):
