@@ -15,7 +15,6 @@
 
 import unittest
 
-from build_management import build_manager
 from datastore import data_types
 from handlers.cron import schedule_corpus_pruning
 from tests.test_libs import helpers
