@@ -17,7 +17,7 @@ import unittest
 
 from build_management import build_manager
 from datastore import data_types
-from handlers import schedule_corpus_prunings
+from handlers.cron import schedule_corpus_pruning
 from tests.test_libs import helpers
 from tests.test_libs import test_utils
 
@@ -30,9 +30,9 @@ class ScheduleCorpusPruningTest(unittest.TestCase):
     helpers.patch_environ(self)
 
     helpers.patch(self, [
-        'build_manager.get_revisions_list',
+        'build_management.build_manager.get_revisions_list',
     ])
-    self.mock.build_manager.get_revisions_list = '31337'
+    self.mock.get_revisions_list.return_value = [1337, 31337]
 
     # Two fuzz targets with two jobs enabled, one with and one without pruning.
     data_types.FuzzTarget(
@@ -50,6 +50,7 @@ class ScheduleCorpusPruningTest(unittest.TestCase):
         job='continuous_fuzzing_job_with_pruning').put()
     data_types.Job(
         name='continuous_fuzzing_job_with_pruning',
+        platform='LINUX',
         environment_string=('CORPUS_PRUNE = True\n'
                             'RELEASE_BUILD_BUCKET_PATH=DOES_NOT_MATTER')).put()
 
@@ -63,6 +64,7 @@ class ScheduleCorpusPruningTest(unittest.TestCase):
         job='continuous_fuzzing_job_without_pruning').put()
     data_types.Job(
         name='continuous_fuzzing_job_without_pruning',
+        platform='LINUX',
         environment_string=('CORPUS_PRUNE = False\n'
                             'RELEASE_BUILD_BUCKET_PATH=DOES_NOT_MATTER')).put()
 
@@ -82,7 +84,9 @@ class ScheduleCorpusPruningTest(unittest.TestCase):
         job='custom_binary_job_with_pruning').put()
     data_types.Job(
         name='custom_binary_job_with_pruning',
-        environment_string=('CORPUS_PRUNE = True\nCUSTOM_BINARY = True')).put()
+        platform='LINUX',
+        environment_string=('CORPUS_PRUNE = True\n'
+                            'CUSTOM_BINARY = True')).put()
 
     data_types.FuzzTargetJob(
         fuzz_target_name='libFuzzer_test_fuzzer_a',
@@ -94,10 +98,26 @@ class ScheduleCorpusPruningTest(unittest.TestCase):
         job='custom_binary_job_without_pruning').put()
     data_types.Job(
         name='custom_binary_job_without_pruning',
-        environment_string=('CORPUS_PRUNE = False\nCUSTOM_BINARY = True')).put()    
-    
+        platform='LINUX',
+        environment_string=('CORPUS_PRUNE = False\n'
+                            'CUSTOM_BINARY = True')).put()
 
   def test_schedule_corpus_pruning(self):
     """Test schedule_corpus_pruning.Handler.."""
     tasks = schedule_corpus_pruning.get_tasks_to_schedule()
-    self.assertEqual(['asd', 'xx', '123'], tasks)
+    tasks_expected = [
+    ('libFuzzer_test_fuzzer_1@31337',
+     'continuous_fuzzing_job_with_pruning',
+     'jobs-linux'),
+    ('libFuzzer_test_fuzzer_2@31337',
+     'continuous_fuzzing_job_with_pruning',
+     'jobs-linux'),
+    ('libFuzzer_test_fuzzer_a',
+     'custom_binary_job_with_pruning',
+     'jobs-linux'),
+    ('libFuzzer_test_fuzzer_b',
+     'custom_binary_job_with_pruning',
+     'jobs-linux')
+    ]
+
+    self.assertEqual(tasks_expected, tasks)

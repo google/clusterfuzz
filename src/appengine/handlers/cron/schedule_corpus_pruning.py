@@ -43,8 +43,8 @@ def _get_latest_job_revision(job):
 
 def get_tasks_to_schedule():
   """Return a list of (task_target, job_name, queue_name) tuples."""
-  tasks = []
- for job in data_types.Job.query():
+  tasks_to_schedule = []
+  for job in data_types.Job.query():
     if not utils.string_is_true(job.get_environment().get('CORPUS_PRUNE')):
       continue
 
@@ -62,7 +62,9 @@ def get_tasks_to_schedule():
       if latest_revision:
         task_target += '@%s' % latest_revision
 
-      tasks.append((task_target, job.name, queue_name))
+      tasks_to_schedule.append((task_target, job.name, queue_name))
+
+  return tasks_to_schedule
 
 class Handler(base_handler.Handler):
   """Schedule corpus pruning tasks.."""
