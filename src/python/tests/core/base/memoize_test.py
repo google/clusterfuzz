@@ -12,10 +12,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """memoize tests."""
+
 from builtins import object
 from builtins import range
-import unittest
 from pyfakefs import fake_filesystem_unittest
+import unittest
 
 from google.appengine.api import memcache
 from google.appengine.ext import testbed

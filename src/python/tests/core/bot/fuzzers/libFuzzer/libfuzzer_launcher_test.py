@@ -16,14 +16,13 @@
 
 from builtins import object
 from builtins import range
-import copy
-import os
-import shutil
 from StringIO import StringIO
-import unittest
-
+import copy
 import mock
+import os
 import pyfakefs.fake_filesystem_unittest as fake_fs_unittest
+import shutil
+import unittest
 
 from bot.fuzzers import engine_common
 from bot.fuzzers import libfuzzer
@@ -101,7 +100,7 @@ def create_mock_popen(output,
 
     def communicate(self, input_data=None):
       """Mock subprocess.Popen.communicate."""
-      if self.command[0].endswith('_fuzzer'):
+      if '/fake/build_dir/fake_fuzzer' in self.command:
         if '-merge=1' in self.command:
           # Mock merge.
           self._do_merge()
@@ -1191,8 +1190,11 @@ class LauncherTest(fake_fs_unittest.TestCase):
     self.fs.CreateDirectory('/fake/corpus_oom')
     os.environ['FUZZ_CORPUS_DIR'] = '/fake/corpus_oom'
 
-    with mock.patch('subprocess.Popen',
-                    create_mock_popen(self.oom_output)) as mock_popen:
+    new_units_added = 11
+    with mock.patch(
+        'subprocess.Popen',
+        create_mock_popen(self.oom_output, '/fake/inputs-disk/temp-1337/new',
+                          None, new_units_added)) as mock_popen:
       launcher.main([
           'launcher.py',
           '/fake/testcase_oom',
@@ -1348,8 +1350,12 @@ class LauncherTest(fake_fs_unittest.TestCase):
 
     os.environ['FUZZ_CORPUS_DIR'] = '/fake/main_corpus_dir'
 
-    with mock.patch('subprocess.Popen',
-                    create_mock_popen(self.no_crash_output)) as mock_popen:
+    new_units_added = 11
+    with mock.patch(
+        'subprocess.Popen',
+        create_mock_popen(
+            self.no_crash_output, '/fake/inputs-disk/temp-1337/new',
+            '/fake/main_corpus_dir', new_units_added)) as mock_popen:
       launcher.main([
           'launcher.py',
           '/fake/testcase_subset',
@@ -1417,8 +1423,12 @@ class LauncherTest(fake_fs_unittest.TestCase):
     os.environ['FUZZ_CORPUS_DIR'] = '/fake/main_corpus_dir'
     # Main corpus directory is empty, we should fall back to regular fuzzing.
 
-    with mock.patch('subprocess.Popen',
-                    create_mock_popen(self.no_crash_output)) as mock_popen:
+    new_units_added = 11
+    with mock.patch(
+        'subprocess.Popen',
+        create_mock_popen(
+            self.no_crash_output, '/fake/inputs-disk/temp-1337/new',
+            '/fake/main_corpus_dir', new_units_added)) as mock_popen:
       launcher.main([
           'launcher.py',
           '/fake/testcase_subset',
@@ -1465,8 +1475,12 @@ class LauncherTest(fake_fs_unittest.TestCase):
     for i in range(1 + max(strategy.CORPUS_SUBSET_NUM_TESTCASES)):
       self.fs.CreateFile('/fake/main_corpus_dir/sub/%d' % i)
 
-    with mock.patch('subprocess.Popen',
-                    create_mock_popen(self.no_crash_output)) as mock_popen:
+    new_units_added = 11
+    with mock.patch(
+        'subprocess.Popen',
+        create_mock_popen(
+            self.no_crash_output, '/fake/inputs-disk/temp-1337/new',
+            '/fake/main_corpus_dir', new_units_added)) as mock_popen:
       launcher.main([
           'launcher.py',
           '/fake/testcase_subset',
@@ -1583,8 +1597,12 @@ class LauncherTest(fake_fs_unittest.TestCase):
     self.fs.CreateDirectory('/fake/main_corpus_dir')
     os.environ['FUZZ_CORPUS_DIR'] = '/fake/main_corpus_dir'
 
-    with mock.patch('subprocess.Popen',
-                    create_mock_popen(self.no_crash_output)) as mock_popen:
+    new_units_added = 11
+    with mock.patch(
+        'subprocess.Popen',
+        create_mock_popen(
+            self.no_crash_output, '/fake/inputs-disk/temp-1337/new',
+            '/fake/main_corpus_dir', new_units_added)) as mock_popen:
       launcher.main([
           'launcher.py',
           '/fake/testcase_subset',
@@ -1691,8 +1709,12 @@ class LauncherTest(fake_fs_unittest.TestCase):
     self.fs.CreateDirectory('/fake/corpus_mutations')
     os.environ['FUZZ_CORPUS_DIR'] = '/fake/corpus_mutations'
 
-    with mock.patch('subprocess.Popen',
-                    create_mock_popen(self.no_crash_output)) as mock_popen:
+    new_units_added = 11
+    with mock.patch(
+        'subprocess.Popen',
+        create_mock_popen(
+            self.no_crash_output, '/fake/inputs-disk/temp-1337/new',
+            '/fake/corpus_mutations', new_units_added)) as mock_popen:
       launcher.main([
           'launcher.py',
           '/fake/testcase_mutations',
@@ -1734,8 +1756,12 @@ class LauncherTest(fake_fs_unittest.TestCase):
     self.fs.CreateDirectory('/fake/corpus_mutations')
     os.environ['FUZZ_CORPUS_DIR'] = '/fake/corpus_mutations'
 
-    with mock.patch('subprocess.Popen',
-                    create_mock_popen(self.no_crash_output)) as mock_popen:
+    new_units_added = 11
+    with mock.patch(
+        'subprocess.Popen',
+        create_mock_popen(
+            self.no_crash_output, '/fake/inputs-disk/temp-1337/new',
+            '/fake/corpus_mutations', new_units_added)) as mock_popen:
       launcher.main([
           'launcher.py',
           '/fake/testcase_mutations',

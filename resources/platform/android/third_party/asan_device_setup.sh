@@ -148,12 +148,7 @@ while [[ $# > 0 ]]; do
   shift
 done
 
-if [[ x$ADB_PATH != x ]]; then
-    ADB="$ADB_PATH"
-else
-    ADB="$HERE/adb"
-fi
-
+ADB=${ADB:-adb}
 if [[ x$device != x ]]; then
     ADB="$ADB -s $device"
 fi
