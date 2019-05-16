@@ -41,24 +41,34 @@ def _get_latest_job_revision(job):
   return revisions[-1]
 
 
+def get_tasks_to_schedule():
+  """Return (task_target, job_name, queue_name) arguments to schedule a task."""
+  for job in data_types.Job.query():
+    if not utils.string_is_true(job.get_environment().get('CORPUS_PRUNE')):
+      continue
+
+    if utils.string_is_true(job.get_environment().get('CUSTOM_BINARY')):
+      # Custom binary jobs do not have revisions.
+      latest_revision = None
+    else:
+      latest_revision = _get_latest_job_revision(job)
+      if not latest_revision:
+        continue
+
+    queue_name = tasks.queue_for_job(job.name)
+    for target_job in fuzz_target_utils.get_fuzz_target_jobs(job=job.name):
+      task_target = target_job.fuzz_target_name
+      if latest_revision:
+        task_target += '@%s' % latest_revision
+
+      yield (task_target, job.name, queue_name)
+
+
 class Handler(base_handler.Handler):
   """Schedule corpus pruning tasks.."""
 
   @handler.check_cron()
   def get(self):
     """Schedule the corpus pruning tasks."""
-    for job in data_types.Job.query():
-      if not utils.string_is_true(job.get_environment().get('CORPUS_PRUNE')):
-        continue
-
-      latest_revision = _get_latest_job_revision(job)
-      if not latest_revision:
-        continue
-
-      queue = tasks.queue_for_job(job.name)
-      for target_job in fuzz_target_utils.get_fuzz_target_jobs(job=job.name):
-        tasks.add_task(
-            'corpus_pruning',
-            '%s@%s' % (target_job.fuzz_target_name, latest_revision),
-            job.name,
-            queue=queue)
+    for task_target, job_name, queue_name in get_tasks_to_schedule():
+      tasks.add_task('corpus_pruning', task_target, job_name, queue=queue_name)
