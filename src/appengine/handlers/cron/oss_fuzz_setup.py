@@ -99,7 +99,7 @@ class JobInfo(object):
     self.prefix = prefix
     self.engine = engine
     self.memory_tool = memory_tool
-    self.architecture = memory_tool
+    self.architecture = architecture
     self.cf_job_templates = cf_job_templates
     self.experimental = experimental
     self.minimize_job_override = minimize_job_override
@@ -123,8 +123,9 @@ AFL_ASAN_JOB = JobInfo(
     minimize_job_override=LIBFUZZER_ASAN_JOB)
 NO_ENGINE_ASAN_JOB = JobInfo('asan_', 'none', 'address', [])
 
-LIBFUZZER_ASAN_I386_JOB = JobInfo('libfuzzer_asan_', 'libfuzzer', 'address',
-                                  ['asan', 'libfuzzer'], architecture='i386')
+LIBFUZZER_ASAN_I386_JOB = JobInfo('libfuzzer_asan_i386_', 'libfuzzer',
+                                  'address', ['asan', 'libfuzzer'],
+                                  architecture='i386')
 
 JOB_MAP = {
     'libfuzzer': {
@@ -149,6 +150,7 @@ JOB_MAP = {
     }
 }
 
+DEFAULT_ARCHITECTURES = ['x86_64']
 DEFAULT_SANITIZERS = ['address', 'undefined']
 DEFAULT_ENGINES = ['libfuzzer', 'afl']
 
@@ -177,8 +179,8 @@ def _to_experimental_job(job_info):
 
 
 def get_build_bucket_path(project_name, engine, memory_tool, architecture):
-  """Returns the build bucket path for the |project|, |engine|, memory tool, and
-  |architecture|."""
+  """Returns the build bucket path for the |project|, |engine|, |memory_tool|,
+  and |architecture|."""
   return BUILD_BUCKET_PATH_TEMPLATE.format(
       bucket=_get_build_bucket(engine, architecture),
       project=project_name,
