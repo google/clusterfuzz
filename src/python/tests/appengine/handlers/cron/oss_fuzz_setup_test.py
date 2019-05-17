@@ -263,7 +263,7 @@ class OssFuzzSetupTest(unittest.TestCase):
         data_types.Job.name == 'libfuzzer_asan_lib1').get()
     self.assertIsNotNone(job)
     self.assertEqual(job.platform, 'LIB1_LINUX')
-    self.assertItemsEqual(job.templates, ['asan', 'libfuzzer'])
+    self.assertItemsEqual(job.templates, ['asan', 'libfuzzer', 'prune'])
     self.assertEqual(
         job.environment_string, 'RELEASE_BUILD_BUCKET_PATH = '
         'gs://clusterfuzz-builds/lib1/lib1-address-([0-9]+).zip\n'
@@ -282,7 +282,7 @@ class OssFuzzSetupTest(unittest.TestCase):
         data_types.Job.name == 'libfuzzer_asan_lib2').get()
     self.assertIsNotNone(job)
     self.assertEqual(job.platform, 'LIB2_LINUX')
-    self.assertItemsEqual(job.templates, ['asan', 'libfuzzer'])
+    self.assertItemsEqual(job.templates, ['asan', 'libfuzzer', 'prune'])
     self.assertEqual(
         job.environment_string, 'RELEASE_BUILD_BUCKET_PATH = '
         'gs://clusterfuzz-builds/lib2/lib2-address-([0-9]+).zip\n'
@@ -301,7 +301,7 @@ class OssFuzzSetupTest(unittest.TestCase):
         data_types.Job.name == 'libfuzzer_asan_lib3').get()
     self.assertIsNotNone(job)
     self.assertEqual(job.platform, 'LIB3_LINUX')
-    self.assertItemsEqual(job.templates, ['asan', 'libfuzzer'])
+    self.assertItemsEqual(job.templates, ['asan', 'libfuzzer', 'prune'])
     self.assertEqual(
         job.environment_string, 'RELEASE_BUILD_BUCKET_PATH = '
         'gs://clusterfuzz-builds/lib3/lib3-address-([0-9]+).zip\n'
