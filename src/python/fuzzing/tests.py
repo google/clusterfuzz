@@ -535,10 +535,6 @@ def test_for_crash_with_retries(testcase,
       logs.log('Crash stacktrace comparison skipped.')
       return crash_result
 
-    if flaky_stacktrace:
-      logs.log('Crash stacktrace is marked flaky, skipping comparison.')
-      return crash_result
-
     if crash_result.should_ignore():
       logs.log('Crash stacktrace matched ignore signatures, ignored.')
       continue
@@ -546,6 +542,10 @@ def test_for_crash_with_retries(testcase,
     if crash_result.is_security_issue() != testcase.security_flag:
       logs.log('Crash security flag does not match, ignored.')
       continue
+
+    if flaky_stacktrace:
+      logs.log('Crash stacktrace is marked flaky, skipping comparison.')
+      return crash_result
 
     crash_comparer = CrashComparer(state.crash_state, testcase.crash_state)
     if crash_comparer.is_similar():
