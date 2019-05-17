@@ -136,14 +136,16 @@ def can_user_access_testcase(testcase):
       issues_to_check.append(original_issue)
 
   config = db_config.get()
+  relaxed_restrictions = (
+      config.relax_testcase_restrictions or _is_domain_allowed(user_email))
   for issue in issues_to_check:
-    if config.relax_testcase_restrictions or _is_domain_allowed(user_email):
+    if relaxed_restrictions:
       if (any(utils.emails_equal(user_email, cc) for cc in issue.cc) or
           utils.emails_equal(user_email, issue.owner) or
           utils.emails_equal(user_email, issue.reporter)):
         return True
 
-    if utils.emails_equal(user_email, issue.owner):
+    elif utils.emails_equal(user_email, issue.owner):
       return True
 
   return False
