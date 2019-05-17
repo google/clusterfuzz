@@ -93,11 +93,13 @@ class JobInfo(object):
                engine,
                memory_tool,
                cf_job_templates,
+               architecture='x86_64',
                experimental=False,
                minimize_job_override=None):
     self.prefix = prefix
     self.engine = engine
     self.memory_tool = memory_tool
+    self.architecture = memory_tool
     self.cf_job_templates = cf_job_templates
     self.experimental = experimental
     self.minimize_job_override = minimize_job_override
@@ -121,17 +123,29 @@ AFL_ASAN_JOB = JobInfo(
     minimize_job_override=LIBFUZZER_ASAN_JOB)
 NO_ENGINE_ASAN_JOB = JobInfo('asan_', 'none', 'address', [])
 
+LIBFUZZER_ASAN_I386_JOB = JobInfo('libfuzzer_asan_', 'libfuzzer', 'address',
+                                  ['asan', 'libfuzzer'], architecture='i386')
+
 JOB_MAP = {
     'libfuzzer': {
-        'address': LIBFUZZER_ASAN_JOB,
-        'memory': LIBFUZZER_MSAN_JOB,
-        'undefined': LIBFUZZER_UBSAN_JOB,
+        'x86_64': {
+            'address': LIBFUZZER_ASAN_JOB,
+            'memory': LIBFUZZER_MSAN_JOB,
+            'undefined': LIBFUZZER_UBSAN_JOB,
+        },
+        'i386': {
+            'address': LIBFUZZER_ASAN_I386_JOB,
+        },
     },
     'afl': {
-        'address': AFL_ASAN_JOB,
+        'x86_64' : {
+            'address': AFL_ASAN_JOB,
+        }
     },
     'none': {
-        'address': NO_ENGINE_ASAN_JOB,
+        'x86_64': {
+            'address': NO_ENGINE_ASAN_JOB,
+        }
     }
 }
 
@@ -139,18 +153,21 @@ DEFAULT_SANITIZERS = ['address', 'undefined']
 DEFAULT_ENGINES = ['libfuzzer', 'afl']
 
 
-def _get_build_bucket_for_engine(engine):
-  """Return the bucket for the given engine."""
+def _get_build_bucket(engine, architecture):
+  """Return the bucket for the given |engine| and |architecture|."""
   if engine == 'libfuzzer':
-    return LIBFUZZER_BUILD_BUCKET
+    bucket = LIBFUZZER_BUILD_BUCKET
+  elif engine == 'afl':
+    bucket =  AFL_BUILD_BUCKET
+  elif engine == 'none':
+    bucket = NO_ENGINE_BUILD_BUCKET
+  else:
+    raise OssFuzzSetupException('Invalid fuzzing engine.')
 
-  if engine == 'afl':
-    return AFL_BUILD_BUCKET
+  if architecture != 'x86_64':
+    bucket += '-' + architecture
 
-  if engine == 'none':
-    return NO_ENGINE_BUILD_BUCKET
-
-  raise OssFuzzSetupException('Invalid fuzzing engine.')
+  return bucket
 
 
 def _to_experimental_job(job_info):
@@ -159,10 +176,11 @@ def _to_experimental_job(job_info):
   return job_info
 
 
-def get_build_bucket_path(project_name, engine, memory_tool):
-  """Returns the build bucket path for the project and memory tool."""
+def get_build_bucket_path(project_name, engine, memory_tool, architecture):
+  """Returns the build bucket path for the |project|, |engine|, memory tool, and
+  |architecture|."""
   return BUILD_BUCKET_PATH_TEMPLATE.format(
-      bucket=_get_build_bucket_for_engine(engine),
+      bucket=_get_build_bucket(engine, architecture),
       project=project_name,
       sanitizer=memory_tool)
 
@@ -266,21 +284,27 @@ def get_jobs_for_project(project, info):
     return []
 
   engines = info.get('fuzzing_engines', DEFAULT_ENGINES)
+  architectures = info.get('architectures', DEFAULT_ARCHITECTURES)
 
   jobs = []
   for engine in engines:
     if engine not in JOB_MAP:
       continue
 
-    for sanitizer, options in six.iteritems(sanitizers):
-      experimental = (
-          options.get('experimental', False) or info.get('experimental', False))
-      if sanitizer in JOB_MAP[engine]:
-        job = JOB_MAP[engine][sanitizer]
-        if experimental:
-          job = _to_experimental_job(job)
+    for architecture in architectures:
+      if architecture not in JOB_MAP[engine]:
+        continue
 
-        jobs.append(job)
+      for sanitizer, options in six.iteritems(sanitizers):
+        experimental = (
+            options.get('experimental', False) or
+            info.get('experimental', False))
+        if sanitizer in JOB_MAP[engine][architecture]:
+          job = JOB_MAP[engine][architecture][sanitizer]
+          if experimental:
+            job = _to_experimental_job(job)
+
+          jobs.append(job)
 
   return jobs
 
@@ -452,12 +476,13 @@ def sync_cf_job(project, info, corpus_bucket, quarantine_bucket, logs_bucket,
 
     revision_vars_url = REVISION_URL.format(
         project=project,
-        bucket=_get_build_bucket_for_engine(template.engine),
+        bucket=_get_build_bucket(template.engine, template.architecture),
         sanitizer=template.memory_tool)
 
     job.environment_string = JOB_TEMPLATE.format(
         build_bucket_path=get_build_bucket_path(project, template.engine,
-                                                template.memory_tool),
+                                                template.memory_tool,
+                                                template.architecture),
         logs_bucket=logs_bucket,
         corpus_bucket=corpus_bucket,
         quarantine_bucket=quarantine_bucket,
@@ -508,7 +533,7 @@ def sync_cf_revision_mappings(project, info):
     job_name = template.job_name(project)
     revision_var_urls[job_name] = REVISION_URL.format(
         project=project,
-        bucket=_get_build_bucket_for_engine(template.engine),
+        bucket=_get_build_bucket(template.engine, template.architecture),
         sanitizer=template.memory_tool)
 
   config.revision_vars_url = '\n'.join(
