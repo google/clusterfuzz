@@ -279,9 +279,6 @@ class OssFuzzSetupTest(unittest.TestCase):
         'MANAGED = True\n')
 
     job = data_types.Job.query(
-        data_types.Job.name == 'libfuzzer_asan_i386_lib1').get()
-
-    job = data_types.Job.query(
         data_types.Job.name == 'libfuzzer_asan_lib2').get()
     self.assertIsNotNone(job)
     self.assertEqual(job.platform, 'LIB2_LINUX')
