@@ -123,17 +123,33 @@ def can_user_access_testcase(testcase):
     return False
 
   itm = issue_tracker_utils.get_issue_tracker_manager(testcase)
-  issue = itm.get_issue(int(issue_id))
-  if not issue:
+  issue_id = int(issue_id)
+  associated_issue = itm.get_issue(issue_id)
+  if not associated_issue:
     return False
 
-  config = db_config.get()
-  if config.relax_testcase_restrictions or _is_domain_allowed(user_email):
-    return (any(utils.emails_equal(user_email, cc) for cc in issue.cc) or
-            utils.emails_equal(user_email, issue.owner) or
-            utils.emails_equal(user_email, issue.reporter))
+  # Look at both associated issue and original issue (if the associated one
+  # is a duplicate of the original issue).
+  issues_to_check = [associated_issue]
+  if associated_issue.merged_into:
+    original_issue = itm.get_original_issue(issue_id)
+    if original_issue:
+      issues_to_check.append(original_issue)
 
-  return utils.emails_equal(user_email, issue.owner)
+  config = db_config.get()
+  relaxed_restrictions = (
+      config.relax_testcase_restrictions or _is_domain_allowed(user_email))
+  for issue in issues_to_check:
+    if relaxed_restrictions:
+      if (any(utils.emails_equal(user_email, cc) for cc in issue.cc) or
+          utils.emails_equal(user_email, issue.owner) or
+          utils.emails_equal(user_email, issue.reporter)):
+        return True
+
+    elif utils.emails_equal(user_email, issue.owner):
+      return True
+
+  return False
 
 
 def check_access_and_get_testcase(testcase_id):
