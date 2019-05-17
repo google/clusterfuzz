@@ -123,9 +123,11 @@ AFL_ASAN_JOB = JobInfo(
     minimize_job_override=LIBFUZZER_ASAN_JOB)
 NO_ENGINE_ASAN_JOB = JobInfo('asan_', 'none', 'address', [])
 
-LIBFUZZER_ASAN_I386_JOB = JobInfo('libfuzzer_asan_i386_', 'libfuzzer',
-                                  'address', ['asan', 'libfuzzer'],
-                                  architecture='i386')
+LIBFUZZER_ASAN_I386_JOB = JobInfo(
+    'libfuzzer_asan_i386_',
+    'libfuzzer',
+    'address', ['asan', 'libfuzzer'],
+    architecture='i386')
 
 JOB_MAP = {
     'libfuzzer': {
@@ -139,7 +141,7 @@ JOB_MAP = {
         },
     },
     'afl': {
-        'x86_64' : {
+        'x86_64': {
             'address': AFL_ASAN_JOB,
         }
     },
@@ -160,7 +162,7 @@ def _get_build_bucket(engine, architecture):
   if engine == 'libfuzzer':
     bucket = LIBFUZZER_BUILD_BUCKET
   elif engine == 'afl':
-    bucket =  AFL_BUILD_BUCKET
+    bucket = AFL_BUILD_BUCKET
   elif engine == 'none':
     bucket = NO_ENGINE_BUILD_BUCKET
   else:
