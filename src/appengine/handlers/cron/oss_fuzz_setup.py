@@ -111,7 +111,7 @@ class JobInfo(object):
 # The order of templates is important here. Later templates override settings in
 # the earlier ones. An engine template may override vars set for a sanitizer.
 LIBFUZZER_ASAN_JOB = JobInfo('libfuzzer_asan_', 'libfuzzer', 'address',
-                             ['asan', 'libfuzzer'])
+                             ['asan', 'libfuzzer', 'prune'])
 LIBFUZZER_MSAN_JOB = JobInfo('libfuzzer_msan_', 'libfuzzer', 'memory',
                              ['msan', 'libfuzzer'])
 LIBFUZZER_UBSAN_JOB = JobInfo('libfuzzer_ubsan_', 'libfuzzer', 'undefined',
