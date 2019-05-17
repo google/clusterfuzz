@@ -122,15 +122,16 @@ def can_user_access_testcase(testcase):
   if not issue_id:
     return False
 
-  issue_id = int(issue_id)
   itm = issue_tracker_utils.get_issue_tracker_manager(testcase)
-  issue = itm.get_issue(issue_id)
-  if not issue:
+  issue_id = int(issue_id)
+  associated_issue = itm.get_issue(issue_id)
+  if not associated_issue:
     return False
 
-  # Look at both associated issue and original issue (in case of dupes).
-  issues_to_check = [issue]
-  if issue.merged_into:
+  # Look at both associated issue and original issue (if the associated one
+  # is a duplicate of the original issue).
+  issues_to_check = [associated_issue]
+  if associated_issue.merged_into:
     original_issue = itm.get_original_issue(issue_id)
     if original_issue:
       issues_to_check.append(original_issue)
