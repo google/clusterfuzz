@@ -228,11 +228,16 @@ class CanUserAccessTestcaseTest(unittest.TestCase):
     itm = issue_tracker_manager.IssueTrackerManager('test')
     self.mock.get_issue_tracker_manager.return_value = itm
     self.get_issue = itm.get_issue
+    self.get_original_issue = itm.get_original_issue
 
     self.email = 'test@test.com'
     self.mock.get_user_email.return_value = self.email
 
     self.bug = issue.Issue()
+    self.bug.id = 1234
+    self.original_bug = issue.Issue()
+    self.original_bug.id = 5678
+
     self.testcase = data_types.Testcase()
     self.mock.get.return_value = (
         data_types.Config(relax_testcase_restrictions=True))
@@ -326,6 +331,17 @@ class CanUserAccessTestcaseTest(unittest.TestCase):
     self.testcase.security_flag = True
 
     self.assertTrue(access.can_user_access_testcase(self.testcase))
+
+  def test_allowed_because_of_owner_in_original_issue(self):
+    """Ensure it is allowed because the user is the owner of original issue."""
+    self.get_original_issue.return_value = self.original_bug
+    self.bug.merged_into = 5678
+    self.original_bug.owner = self.email
+    self._test_bug_access()
+
+    self.mock.get.return_value = (
+        data_types.Config(relax_testcase_restrictions=False))
+    self._test_bug_access()
 
   def test_deny_no_access(self):
     """Ensure it is false when user has bug access but the relaxation is not
