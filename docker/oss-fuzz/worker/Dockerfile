@@ -13,4 +13,5 @@
 # limitations under the License.
 FROM gcr.io/clusterfuzz-images/oss-fuzz/base
 
+RUN apt-get install -y libc6-i386 lib32gcc1
 ENV UNTRUSTED_WORKER True
