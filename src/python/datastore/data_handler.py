@@ -495,9 +495,7 @@ def is_first_retry_for_task(testcase, reset_after_retry=False):
 @memoize.wrap(memoize.Memcache(MEMCACHE_TTL_IN_SECONDS))
 def get_issue_tracker_name(job_type=None):
   """Return issue tracker name for a job type."""
-  default_issue_tracker_name = environment.get_value('ISSUE_TRACKER')
-  return get_value_from_job_definition(job_type, 'ISSUE_TRACKER',
-                                       default_issue_tracker_name)
+  return get_value_from_job_definition_or_environment(job_type, 'ISSUE_TRACKER')
 
 
 @memoize.wrap(memoize.Memcache(MEMCACHE_TTL_IN_SECONDS))
