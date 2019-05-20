@@ -536,8 +536,8 @@ class FuzzerRunLogsContext(BuiltinFieldContext):
   @memoize.wrap(memoize.FifoInMemory(256))
   def _get_logs_bucket_from_job(self, job_type):
     """Get logs bucket from job."""
-    return data_handler.get_value_from_job_definition(job_type,
-                                                      'FUZZ_LOGS_BUCKET')
+    return data_handler.get_value_from_job_definition_or_environment(
+        job_type, 'FUZZ_LOGS_BUCKET')
 
   @memoize.wrap(memoize.Memcache(MEMCACHE_TTL, key_fn=_logs_bucket_key_fn))
   def _get_logs_bucket_from_fuzzer(self, fuzzer_name):

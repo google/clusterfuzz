@@ -110,8 +110,9 @@ def _get_performance_features(fuzzer_name, job_type, datetime_start,
 
 def _get_performance_report(fuzzer_name, job_type, performance_report_data):
   """Return performance report."""
-  bucket_name = data_handler.get_value_from_job_definition(
+  bucket_name = data_handler.get_value_from_job_definition_or_environment(
       job_type, 'FUZZ_LOGS_BUCKET')
+
   # Load performance data as JSON.
   performance_report = json.loads(performance_report_data)
 

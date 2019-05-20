@@ -496,10 +496,6 @@ def is_first_retry_for_task(testcase, reset_after_retry=False):
 def get_issue_tracker_name(job_type=None):
   """Return issue tracker name for a job type."""
   default_issue_tracker_name = environment.get_value('ISSUE_TRACKER')
-
-  if not job_type:
-    return default_issue_tracker_name
-
   return get_value_from_job_definition(job_type, 'ISSUE_TRACKER',
                                        default_issue_tracker_name)
 
@@ -507,11 +503,9 @@ def get_issue_tracker_name(job_type=None):
 @memoize.wrap(memoize.Memcache(MEMCACHE_TTL_IN_SECONDS))
 def get_project_name(job_type):
   """Return project name for a job type."""
-  project_name = get_value_from_job_definition(job_type, 'PROJECT_NAME')
-  if project_name:
-    return project_name
-
-  return utils.default_project_name()
+  default_project_name = utils.default_project_name()
+  return get_value_from_job_definition(job_type, 'PROJECT_NAME',
+                                       default_project_name)
 
 
 def _get_security_severity(crash, job_type, gestures):
@@ -970,11 +964,23 @@ def get_value_from_environment_string(environment_string,
 
 def get_value_from_job_definition(job_type, variable_pattern, default=None):
   """Get a specific environment variable's value from a job definition."""
+  if not job_type:
+    return default
+
   job = data_types.Job.query(data_types.Job.name == job_type).get()
   if not job:
     return default
 
   return job.get_environment().get(variable_pattern, default)
+
+
+def get_value_from_job_definition_or_environment(job_type, variable_pattern):
+  """Gets a specific environment variable's value from a job definition. If
+  not found, it returns the value from current environment."""
+  return get_value_from_job_definition(
+      job_type,
+      variable_pattern,
+      default=environment.get_value(variable_pattern))
 
 
 def get_additional_values_for_variable(variable_name, job_type, fuzzer_name):
