@@ -60,8 +60,13 @@
         <template is="dom-if" if="[[info.security_severity]]">
           <div class="recommendation">Recommended severity: [[info.security_severity]]</div>
         </template>
-        <paper-dropdown-menu label="Security Severity">
-          <paper-listbox class="dropdown-content" selected-item="{{selectedSeverity}}" fallback-selection="[[computeDefaultSeverity(info.security_severity)]]" attr-for-selected="value">
+        <paper-dropdown-menu label="Security Severity" no-animations="true" noink>
+          <paper-listbox
+              slot="dropdown-content"
+              class="dropdown-content"
+              selected-item="{{selectedSeverity}}"
+              fallback-selection="[[computeDefaultSeverity(info.security_severity)]]"
+              attr-for-selected="value">
             <template is="dom-repeat" items="[[info.security_severities]]">
               <paper-item value='[[item.value]]'>[[item.name]]</paper-item>
             </template>
