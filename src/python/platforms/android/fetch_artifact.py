@@ -17,11 +17,12 @@ dependencies)."""
 from __future__ import division
 
 from builtins import range
+from future import standard_library
+standard_library.install_aliases()
 import apiclient
 import io
 import os
 import re
-import StringIO
 
 from oauth2client.service_account import ServiceAccountCredentials
 
@@ -125,7 +126,7 @@ def get_client():
 
   credentials = ServiceAccountCredentials.from_p12_keyfile_buffer(
       build_apiary_service_account_email,
-      StringIO.StringIO(build_apiary_service_account_private_key),
+      io.StringIO(build_apiary_service_account_private_key),
       scopes='https://www.googleapis.com/auth/androidbuild.internal')
   client = apiclient.discovery.build(
       'androidbuildinternal',

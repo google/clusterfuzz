@@ -13,6 +13,8 @@
 # limitations under the License.
 """py_unittest.py runs tests under src/appengine and butler/tests"""
 from __future__ import print_function
+from future import standard_library
+standard_library.install_aliases()
 from builtins import object
 from builtins import range
 import coverage
@@ -21,13 +23,13 @@ import coverage
 COV = coverage.Coverage(config_file='.coveragerc')
 COV.start()
 
+import io
 import itertools
 import logging
 import multiprocessing
 import os
 import platform
 import signal
-import StringIO
 import sys
 import time
 import unittest
@@ -102,7 +104,7 @@ class MeasureCoverage(object):
     COV.html_report(directory='coverage')
 
     print('The tests cover %0.2f%% of the source code.' %
-          COV.report(file=StringIO.StringIO()))
+          COV.report(file=io.BytesIO()))
     print('The test coverage by lines can be seen at ./coverage/index.html')
 
 
@@ -131,7 +133,7 @@ def run_one_test_parallel(args):
   test_modules, suppress_output = args
   suite = unittest.loader.TestLoader().loadTestsFromNames(test_modules)
 
-  stream = StringIO.StringIO()
+  stream = io.BytesIO()
 
   # Verbosity=0 since we cannot see real-time test execution order when tests
   # are executed in parallel.

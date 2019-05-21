@@ -16,6 +16,7 @@
 """Script to convert python Datastore types to Go and protobufs."""
 
 from builtins import object
+from past.builtins import basestring
 import ast
 import inspect
 import os
@@ -187,7 +188,7 @@ def capitalize_acronyms(name):
 
 def py_to_go_type(py_type):
   """Return the Go equivalent for a python type."""
-  if py_type in [str, unicode, basestring]:
+  if isinstance(py_type, basestring):
     return 'string'
 
   if py_type in six.integer_types:

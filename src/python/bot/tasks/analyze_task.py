@@ -13,6 +13,8 @@
 # limitations under the License.
 """Analyze task for handling user uploads."""
 
+from future import standard_library
+standard_library.install_aliases()
 import datetime
 import os
 
