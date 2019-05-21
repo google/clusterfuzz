@@ -123,8 +123,9 @@ def initialize_resources_dir():
         'Could not find path for remote'
         'Fuchsia resources bucket (FUCHSIA_RESOURCES_URL')
 
-    import sys
-    print('resources_dir', fuchsia_resources_dir, file=sys.stderr)
+  import sys
+  print('resources_dir', fuchsia_resources_dir, file=sys.stderr)
+
   gsutil_command_arguments = [
       '-m', 'cp', '-r', fuchsia_resources_url, fuchsia_resources_dir
   ]
