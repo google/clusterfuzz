@@ -160,7 +160,7 @@ class FuchsiaBuildTest(fake_filesystem_unittest.TestCase):
   """Tests for Fuchsia build setup."""
 
   def setUp(self):
-    pass
+    test_helpers.patch_environ(self)
 
   def _assert_env_vars(self):
     self.assertTrue(os.environ['FUZZ_TARGET'])
@@ -169,10 +169,11 @@ class FuchsiaBuildTest(fake_filesystem_unittest.TestCase):
     """Tests setting up a build."""
     environment.set_bot_environment()
     environment.set_value('FUCHSIA_RESOURCES_URL', 'gs://fuchsia-resources-05-20-2019/*')
-    environment.set_value('FUCHSIA_BUILD_URL',' gs://fuchsia-build-info-05-20-2019/*')
+    environment.set_value('FUCHSIA_BUILD_URL', 'gs://fuchsia-build-info-05-20-2019/*')
     build = build_manager.setup_fuchsia_build()
     self.assertIsInstance(build, build_manager.FuchsiaBuild)
     self._assert_env_vars()
+    environment.reset_environment()
 
 
 class RegularBuildTest(fake_filesystem_unittest.TestCase):
