@@ -17,6 +17,7 @@ import mock
 import os
 import shutil
 import StringIO
+import tempfile
 import unittest
 
 import parameterized
@@ -683,6 +684,10 @@ class TestLauncherFuchsia(BaseLauncherTest):
   """libFuzzer launcher tests (Fuchsia)."""
 
   def setUp(self):
+    # Cannot simply call super(TestLauncherFuchsia).setUp, because the
+    # with_cloud_emulators decorator modifies what the parent class would be.
+    # Just explicitly call BaseLauncherTest's setUp.
+    BaseLauncherTest.setUp(self)
     test_helpers.patch_environ(self)
     # Set up a Fuzzer.
     data_types.Fuzzer(
@@ -761,12 +766,12 @@ class TestLauncherFuchsia(BaseLauncherTest):
                           'gs://fuchsia-resources-05-20-2019/*')
     environment.set_value('FUCHSIA_BUILD_URL',
                           'gs://fuchsia-build-info-05-20-2019/*')
-    # set_bot_environment gives us access to RESOURCES_DIR
-    environment.set_bot_environment()
-    # Cannot simply call super(TestLauncherFuchsia).setUp, because the
-    # with_cloud_emulators decorator modifies what the parent class would be.
-    # Just explicitly call BaseLauncherTest's setUp.
-    BaseLauncherTest.setUp(self)
+    self.tmp_resources_dir = tempfile.mkdtemp()
+    environment.set_value('RESOURCES_DIR', self.tmp_resources_dir)
+
+  def tearDown(self):
+    shutil.rmtree(self.tmp_resources_dir, ignore_errors=True)
+    
 
   def test_fuzzer_can_boot_and_run(self):
     """Tests running a single round of fuzzing on a Fuchsia target, using
