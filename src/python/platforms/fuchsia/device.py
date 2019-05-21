@@ -137,10 +137,8 @@ def initialize_resources_dir():
     raise errors.FuchsiaConfigError('Could not find RESOURCES_DIR')
   fuchsia_resources_dir = os.path.join(resources_dir, 'fuchsia')
 
-  shell.create_directory(fuchsia_resources_dir, recreate=True)
-  if not os.path.isdir(fuchsia_resources_dir):
-    raise errors.FuchsiaConfigError(
-        'Could not create local directory for Fuchsia resources')
+  if not shell.create_directory(fuchsia_resources_dir, recreate=True):
+    raise errors.FuchsiaConfigError('Failed to create Fuchsia resources dir')
 
   # Bucket for QEMU resources.
   fuchsia_resources_url = environment.get_value('FUCHSIA_RESOURCES_URL')
