@@ -156,7 +156,8 @@ def initialize_resources_dir():
   result = gsutil.GSUtilRunner().run_gsutil(gsutil_command_arguments)
   if result.return_code or result.timed_out:
     raise errors.FuchsiaSdkError('Failed to download Fuchsia '
-                                 'resources: ' + result.output)
+                                 'resources: ' + result.output + "(command:" +
+                                 str(gsutil_command_arguments) + ")")
   logs.log("Fuchsia SDK download complete.")
 
   # Bucket for build resources. Necessary for fuzzer seleciton.
