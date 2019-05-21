@@ -16,11 +16,11 @@
 from future import standard_library
 standard_library.install_aliases()
 from builtins import object
+import configparser
 import os
 import random
 import re
 import six
-from six.moves import configparser
 
 from bot.fuzzers import utils as fuzzer_utils
 from bot.fuzzers.afl import constants as afl_constants
