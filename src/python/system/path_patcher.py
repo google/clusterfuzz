@@ -19,9 +19,8 @@ standard_library.install_aliases()
 import builtins
 import functools
 import os
-import sys
-
 import six
+import sys
 
 WINDOWS_PREFIX_PATH = '\\\\?\\'
 _ORIGINAL_MAP = {}
@@ -39,6 +38,7 @@ def _patch_single(obj, attr, fn):
   setattr(getattr(obj, attr), '__path_patcher__', True)
 
   if obj == builtins and six.PY2:
+    # Necessary for Python 2 with python-future
     __builtins__[attr] = fn
 
 
@@ -46,6 +46,7 @@ def _unpatch_single(obj, attr):
   """Unpatch the attr of the obj."""
   setattr(obj, attr, _ORIGINAL_MAP[(obj, attr)])
   if obj == builtins and six.PY2:
+    # Necessary for Python 2 with python-future
     __builtins__[attr] = _ORIGINAL_MAP[(obj, attr)]
 
   del _ORIGINAL_MAP[(obj, attr)]
