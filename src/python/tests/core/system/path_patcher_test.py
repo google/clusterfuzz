@@ -12,10 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """path_patcher tests."""
-from future import standard_library
-standard_library.install_aliases()
 from builtins import object
-import builtins
+import __builtin__
 import ctypes
 import mock
 import os
@@ -58,8 +56,8 @@ class MetadataTest(unittest.TestCase):
     self.assertEqual('exists', os.path.exists.__name__)
     self.assertEqual('isfile', os.path.isfile.__name__)
     self.assertEqual('isdir', os.path.isdir.__name__)
-    self.assertEqual('open', builtins.open.__name__)
-    self.assertEqual('file', builtins.file.__name__)
+    self.assertEqual('open', open.__name__)
+    self.assertEqual('file', file.__name__)
 
     self.assertTrue(os.listdir.__path_patcher__)
     self.assertTrue(os.makedirs.__path_patcher__)
@@ -75,6 +73,10 @@ class MetadataTest(unittest.TestCase):
     """Test the returned value of open(..)."""
     with tempfile.NamedTemporaryFile(delete=True) as tmp:
       with open(tmp.name, 'wb') as file_handle:
+        self.assertEqual(type(file_handle).__name__, 'file')
+        self.assertListEqual(
+            dir(file_handle.__class__), dir(self.original_file(tmp.name, 'wb')))
+
         # The filename is the new name.
         self.assertEqual('%s_mod' % tmp.name, file_handle.name)
 
@@ -242,23 +244,23 @@ class FileTest(PatcherTest, unittest.TestCase):
   def setUp(self):
     self.underlying_mock = mock.MagicMock()
 
-    class MockFile(builtins.file):
+    class MockFile(file):
 
       # pylint: disable=no-self-argument,super-init-not-called
       def __init__(_, name, *args, **kwargs):
         self.underlying_mock(name, *args, **kwargs)
 
     # We extends `file`. Therefore, we cannot use mock.patch(..).
-    self.original_file = builtins.file
-    builtins.file = MockFile
+    self.original_file = file
+    __builtin__.file = MockFile
     super(FileTest, self).setUp()
 
   def tearDown(self):
     super(FileTest, self).tearDown()
-    builtins.file = self.original_file
+    __builtin__.file = self.original_file
 
   def call(self, path):
-    builtins.file(path, 'wb')
+    file(path, 'wb')
 
   def expected_call(self, path):
     return mock.call(path, 'wb')
@@ -268,13 +270,13 @@ class OpenTest(PatcherTest, unittest.TestCase):
   """Open test."""
 
   def setUp(self):
-    helpers.patch(self, ['builtins.open'])
+    helpers.patch(self, ['__builtin__.open'])
     super(OpenTest, self).setUp()
 
     self.underlying_mock = self.mock.open
 
   def call(self, path):
-    builtins.open(path, 'wb')
+    open(path, 'wb')
 
   def expected_call(self, path):
     return mock.call(path, 'wb')

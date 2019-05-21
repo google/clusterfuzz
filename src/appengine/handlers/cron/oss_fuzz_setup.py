@@ -15,7 +15,6 @@
 from __future__ import absolute_import
 
 from builtins import object
-from past.builtins import basestring
 import base64
 import copy
 import json

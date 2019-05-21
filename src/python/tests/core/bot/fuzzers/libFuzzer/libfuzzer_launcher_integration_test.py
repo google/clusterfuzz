@@ -13,12 +13,10 @@
 # limitations under the License.
 """Integration tests for libfuzzer launcher.py."""
 
-from future import standard_library
-standard_library.install_aliases()
 import mock
 import os
 import shutil
-import tempfile
+import StringIO
 import unittest
 
 import parameterized
@@ -92,11 +90,12 @@ def setup_testcase_and_corpus(testcase, corpus, fuzz=False):
 
 def run_launcher(*args):
   """Run launcher.py."""
-  mock_stdout = test_utils.MockStdout()
-  with mock.patch('sys.stdout', mock_stdout):
+  string_io = StringIO.StringIO()
+
+  with mock.patch('sys.stdout', string_io):
     launcher.main(['launcher.py'] + list(args))
 
-  return mock_stdout.getvalue()
+  return string_io.getvalue()
 
 
 class BaseLauncherTest(unittest.TestCase):
@@ -683,11 +682,7 @@ class TestLauncherFuchsia(BaseLauncherTest):
   """libFuzzer launcher tests (Fuchsia)."""
 
   def setUp(self):
-    # Cannot simply call super(TestLauncherFuchsia).setUp, because the
-    # with_cloud_emulators decorator modifies what the parent class would be.
-    # Just explicitly call BaseLauncherTest's setUp.
-    BaseLauncherTest.setUp(self)
-
+    test_helpers.patch_environ(self)
     # Set up a Fuzzer.
     data_types.Fuzzer(
         revision=1,
@@ -761,12 +756,12 @@ class TestLauncherFuchsia(BaseLauncherTest):
     environment.set_value('OS_OVERRIDE', 'FUCHSIA')
     environment.set_value('FUCHSIA_RESOURCES_URL',
                           'gs://fuchsia-on-clusterfuzz-v2/*')
-
-    self.tmp_resources_dir = tempfile.mkdtemp()
-    environment.set_value('RESOURCES_DIR', self.tmp_resources_dir)
-
-  def tearDown(self):
-    shutil.rmtree(self.tmp_resources_dir, ignore_errors=True)
+    # set_bot_environment gives us access to RESOURCES_DIR
+    environment.set_bot_environment()
+    # Cannot simply call super(TestLauncherFuchsia).setUp, because the
+    # with_cloud_emulators decorator modifies what the parent class would be.
+    # Just explicitly call BaseLauncherTest's setUp.
+    BaseLauncherTest.setUp(self)
 
   def test_fuzzer_can_boot_and_run(self):
     """Tests running a single round of fuzzing on a Fuchsia target, using
