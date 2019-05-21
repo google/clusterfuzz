@@ -771,7 +771,6 @@ class TestLauncherFuchsia(BaseLauncherTest):
 
   def tearDown(self):
     shutil.rmtree(self.tmp_resources_dir, ignore_errors=True)
-    
 
   def test_fuzzer_can_boot_and_run(self):
     """Tests running a single round of fuzzing on a Fuchsia target, using
