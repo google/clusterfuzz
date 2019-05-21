@@ -114,6 +114,7 @@ def initialize_resources_dir():
     raise errors.FuchsiaConfigError('Could not find RESOURCES_DIR')
   fuchsia_resources_dir = os.path.join(resources_dir, 'fuchsia')
 
+  import sys
   if not shell.create_directory(fuchsia_resources_dir, recreate=True):
     print('failed to create dir', file=sys.stderr)
 
@@ -123,7 +124,6 @@ def initialize_resources_dir():
         'Could not find path for remote'
         'Fuchsia resources bucket (FUCHSIA_RESOURCES_URL')
 
-  import sys
   print('resources_dir', fuchsia_resources_dir, file=sys.stderr)
 
   gsutil_command_arguments = [
