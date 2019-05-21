@@ -14,13 +14,14 @@
 """Integration tests for AFL launcher.py."""
 from __future__ import print_function
 
+from future import standard_library
+standard_library.install_aliases()
 from builtins import range
 import getpass
 import mock
 import os
 import re
 import shutil
-import StringIO
 import subprocess
 import unittest
 
@@ -31,6 +32,7 @@ from system import environment
 from system import new_process
 from tests.core.bot.fuzzers.afl.afl_launcher_test import dont_use_strategies
 from tests.test_libs import helpers as test_helpers
+from tests.test_libs import test_utils
 
 TEST_PATH = os.path.abspath(os.path.dirname(__file__))
 TEMP_DIRECTORY = os.path.join(TEST_PATH, 'temp')
@@ -107,12 +109,12 @@ def setup_testcase_and_corpus(testcase, corpus, fuzz=False):
 
 def run_launcher(*args):
   """Run launcher.py."""
-  string_io = StringIO.StringIO()
+  mock_stdout = test_utils.MockStdout()
 
-  with mock.patch('sys.stdout', string_io):
+  with mock.patch('sys.stdout', mock_stdout):
     launcher.main(['launcher.py'] + list(args))
 
-  return string_io.getvalue()
+  return mock_stdout.getvalue()
 
 
 def mocked_is_testcase(path):

@@ -19,11 +19,12 @@ from __future__ import print_function
 from builtins import object
 from future import standard_library
 standard_library.install_aliases()
+from past.builtins import basestring
 import datetime
+import io
 import os
 import platform
 import shutil
-import StringIO
 import subprocess
 import sys
 import tempfile
@@ -212,7 +213,7 @@ def _install_chromedriver():
   archive_request = urllib.request.urlopen(
       constants.CHROMEDRIVER_DOWNLOAD_PATTERN.format(
           version=version, archive_name=archive_name))
-  archive_io = StringIO.StringIO(archive_request.read())
+  archive_io = io.BytesIO(archive_request.read())
   chromedriver_archive = zipfile.ZipFile(archive_io)
 
   chromedriver_path = get_chromedriver_path()

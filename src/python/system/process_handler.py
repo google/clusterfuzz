@@ -13,12 +13,15 @@
 # limitations under the License.
 """Functions for process management."""
 
+from future import standard_library
+standard_library.install_aliases()
 from builtins import object
+from past.builtins import basestring
 import copy
 import datetime
 import logging
 import os
-import Queue
+import queue
 import subprocess
 import sys
 import threading
@@ -353,14 +356,14 @@ def cleanup_stale_processes():
   cleanup_defunct_processes()
 
 
-def close_queue(queue):
+def close_queue(queue_to_close):
   """Close the queue."""
   if environment.is_trusted_host():
     # We don't use multiprocessing.Queue on trusted hosts.
     return
 
   try:
-    queue.close()
+    queue_to_close.close()
   except:
     logs.log_error('Unable to close queue.')
 
@@ -405,17 +408,17 @@ def get_queue():
   if environment.is_trusted_host():
     # We don't use multiprocessing.Process on trusted hosts. No need to use
     # multiprocessing.Queue.
-    return Queue.Queue()
+    return queue.Queue()
 
   try:
-    queue = multiprocessing.Queue()
+    result_queue = multiprocessing.Queue()
   except:
     # FIXME: Invalid cross-device link error. Happens sometimes with
     # chroot jobs even though /dev/shm and /run/shm are mounted.
     logs.log_error('Unable to get multiprocessing queue.')
     return None
 
-  return queue
+  return result_queue
 
 
 def terminate_hung_threads(threads):

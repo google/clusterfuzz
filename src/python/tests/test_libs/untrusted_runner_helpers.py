@@ -13,6 +13,8 @@
 # limitations under the License.
 """Test helpers for untrusted_runner."""
 
+from future import standard_library
+standard_library.install_aliases()
 import os
 import shutil
 import subprocess
