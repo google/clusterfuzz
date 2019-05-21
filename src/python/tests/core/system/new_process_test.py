@@ -14,12 +14,10 @@
 """Tests for process."""
 # pylint: disable=unused-argument
 
-from future import standard_library
-standard_library.install_aliases()
 from builtins import object
 from builtins import range
 import mock
-import queue
+import Queue
 import time
 import unittest
 
@@ -50,7 +48,7 @@ def mock_popen_factory(execute_time,
     def __init__(self, *args, **kwargs):
       """Inits the MockPopen."""
       self.start_time = time.time()
-      self.signal_queue = queue.Queue()
+      self.signal_queue = Queue.Queue()
 
     def poll(self):
       """Mock subprocess.Popen.poll."""
@@ -73,7 +71,7 @@ def mock_popen_factory(execute_time,
         timeout = execute_time if i == 0 else sigterm_handler_time
         try:
           received_signal = self.signal_queue.get(block=True, timeout=timeout)
-        except queue.Empty:
+        except Queue.Empty:
           continue
 
         self.received_signals.append((received_signal,

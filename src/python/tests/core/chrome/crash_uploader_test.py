@@ -13,13 +13,11 @@
 # limitations under the License.
 """Tests for crash uploader functions."""
 
-from future import standard_library
-standard_library.install_aliases()
 import mock
 import os
 import socket
 import unittest
-import urllib.parse
+import urlparse
 
 from chrome import crash_uploader
 from crash_analysis.stack_parsing import stack_analyzer
@@ -254,7 +252,7 @@ class CrashUploadTest(CrashBaseTest):
     """Get server error."""
     upload_url = crash_uploader.CRASH_REPORT_UPLOAD_URL[environment.get_value(
         'UPLOAD_MODE')]
-    ping_url = urllib.parse.urlsplit(upload_url).netloc
+    ping_url = urlparse.urlsplit(upload_url).netloc
     try:
       # Use a port that has been used for crash/ uploads before.
       sock = socket.create_connection((ping_url, 443), timeout=1)

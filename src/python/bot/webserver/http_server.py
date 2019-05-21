@@ -13,9 +13,7 @@
 # limitations under the License.
 """Runs http(s) server in the background."""
 
-from future import standard_library
-standard_library.install_aliases()
-import http.server
+import BaseHTTPServer
 import mimetypes
 import os
 import socket
@@ -70,11 +68,11 @@ def guess_mime_type(filename):
   return mimetypes.guess_type(filename)[0]
 
 
-class BotHTTPServer(http.server.HTTPServer):
+class BotHTTPServer(BaseHTTPServer.HTTPServer):
   """Host the bot's test case directories over HTTP."""
 
   def __init__(self, server_address, handler_class):
-    http.server.HTTPServer.__init__(self, server_address, handler_class)
+    BaseHTTPServer.HTTPServer.__init__(self, server_address, handler_class)
 
   def _handle_request_noblock(self):
     """Process a single http request."""
@@ -89,7 +87,7 @@ class BotHTTPServer(http.server.HTTPServer):
         self.close_request(request)
 
 
-class RequestHandler(http.server.BaseHTTPRequestHandler):
+class RequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
   """Handler for get requests to test cases."""
 
   def do_GET(self):  # pylint: disable=invalid-name

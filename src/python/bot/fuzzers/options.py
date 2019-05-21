@@ -13,10 +13,8 @@
 # limitations under the License.
 """Fuzzer options."""
 
-from future import standard_library
-standard_library.install_aliases()
 from builtins import object
-import configparser
+import ConfigParser
 import os
 import random
 import re
@@ -90,12 +88,11 @@ class FuzzerOptions(object):
     else:
       self._cwd = os.path.dirname(options_file_path)
 
-    self._config = configparser.ConfigParser()
-    with open(options_file_path, 'r') as f:
-      try:
-        self._config.read_file(f)
-      except configparser.Error:
-        raise FuzzerOptionsException('Failed to parse fuzzer options file.')
+    self._config = ConfigParser.ConfigParser()
+    try:
+      self._config.read(options_file_path)
+    except ConfigParser.Error:
+      raise FuzzerOptionsException('Failed to parse fuzzer options file.')
 
   def _get_dict_path(self, relative_dict_path):
     """Return a full path to the dictionary."""

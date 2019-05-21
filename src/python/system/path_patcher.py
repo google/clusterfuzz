@@ -14,12 +14,9 @@
 """Patch the path-related methods to make them compatible with windows. Please
   see crbug.com/656653"""
 
-from future import standard_library
-standard_library.install_aliases()
-import builtins
+import __builtin__
 import functools
 import os
-import six
 import sys
 
 WINDOWS_PREFIX_PATH = '\\\\?\\'
@@ -37,18 +34,10 @@ def _patch_single(obj, attr, fn):
   setattr(obj, attr, fn)
   setattr(getattr(obj, attr), '__path_patcher__', True)
 
-  if obj == builtins and six.PY2:
-    # Necessary for Python 2 with python-future
-    __builtins__[attr] = fn
-
 
 def _unpatch_single(obj, attr):
   """Unpatch the attr of the obj."""
   setattr(obj, attr, _ORIGINAL_MAP[(obj, attr)])
-  if obj == builtins and six.PY2:
-    # Necessary for Python 2 with python-future
-    __builtins__[attr] = _ORIGINAL_MAP[(obj, attr)]
-
   del _ORIGINAL_MAP[(obj, attr)]
 
 
@@ -122,15 +111,15 @@ def _wrap(fn, *modifiers):
 def _wrap_file():
   """Wrap the `file` class' constructor with _short_name_modifier."""
 
-  class WrappedFile(builtins.file):
+  class WrappedFile(file):
 
     def __init__(self, name, *args, **kwargs):
       self.original_name = name
       short_name = _short_name_modifier(name)
       super(WrappedFile, self).__init__(short_name, *args, **kwargs)
 
-  WrappedFile.__name__ = builtins.file.__name__
-  WrappedFile.__module__ = builtins.file.__module__
+  WrappedFile.__name__ = file.__name__
+  WrappedFile.__module__ = file.__module__
   return WrappedFile
 
 
@@ -149,8 +138,9 @@ def patch():
   _patch_single(os.path, 'exists', _wrap(os.path.exists, _short_name_modifier))
   _patch_single(os.path, 'isfile', _wrap(os.path.isfile, _short_name_modifier))
   _patch_single(os.path, 'isdir', _wrap(os.path.isdir, _short_name_modifier))
-  _patch_single(builtins, 'open', _wrap(builtins.open, _short_name_modifier))
-  _patch_single(builtins, 'file', _wrap_file())
+  _patch_single(__builtin__, 'open', _wrap(open, _short_name_modifier))
+
+  _patch_single(__builtin__, 'file', _wrap_file())
 
 
 def unpatch():

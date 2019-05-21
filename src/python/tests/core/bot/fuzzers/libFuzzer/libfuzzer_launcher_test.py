@@ -14,10 +14,9 @@
 """Tests for libFuzzer launcher script."""
 # pylint: disable=unused-argument
 
-from future import standard_library
-standard_library.install_aliases()
 from builtins import object
 from builtins import range
+from StringIO import StringIO
 import copy
 import mock
 import os
@@ -234,7 +233,7 @@ class LauncherTest(fake_fs_unittest.TestCase):
   @mock.patch('google_cloud_utils.storage.exists', lambda x: None)
   @mock.patch('google_cloud_utils.storage.read_data', lambda x: None)
   @mock.patch('google_cloud_utils.storage.write_data', lambda x, y: None)
-  @mock.patch('sys.stdout', new_callable=test_utils.MockStdout)
+  @mock.patch('sys.stdout', new_callable=StringIO)
   def test_analyze_recommended_dictionary(self, mock_stdout):
     """Test analysis of recommended dictionary."""
     self.fs.CreateDirectory('/fake/inputs-disk/temp-1337')
@@ -262,7 +261,7 @@ class LauncherTest(fake_fs_unittest.TestCase):
       ])
       self.assertEqual(result, expected_dictionary)
 
-  @mock.patch('sys.stdout', new_callable=test_utils.MockStdout)
+  @mock.patch('sys.stdout', new_callable=StringIO)
   @mock.patch('bot.fuzzers.libFuzzer.launcher.add_recommended_dictionary',
               lambda x, y, z: False)
   def test_basic_fuzz(self, mock_stdout):
@@ -442,7 +441,7 @@ class LauncherTest(fake_fs_unittest.TestCase):
 
   @mock.patch('bot.fuzzers.libFuzzer.launcher.add_recommended_dictionary',
               lambda x, y, z: True)
-  @mock.patch('sys.stdout', new_callable=test_utils.MockStdout)
+  @mock.patch('sys.stdout', new_callable=StringIO)
   def test_basic_fuzz_with_custom_options(self, mock_stdout):
     """Test a basic fuzzing run with custom options provided."""
     self.mock.do_recommended_dictionary.return_value = True
@@ -1094,7 +1093,7 @@ class LauncherTest(fake_fs_unittest.TestCase):
 
     self.assertEqual(parsed_stats, expected_stats)
 
-  @mock.patch('sys.stdout', new_callable=test_utils.MockStdout)
+  @mock.patch('sys.stdout', new_callable=StringIO)
   def test_single_input(self, mock_stdout):
     """Tests a run for a single input."""
     self.fs.CreateFile('/fake/testcase', contents='fake')
@@ -1117,7 +1116,7 @@ class LauncherTest(fake_fs_unittest.TestCase):
       # Output should be printed.
       self.assertIn('OUTPUT', mock_stdout.getvalue())
 
-  @mock.patch('sys.stdout', new_callable=test_utils.MockStdout)
+  @mock.patch('sys.stdout', new_callable=StringIO)
   def test_single_input_with_custom_options(self, mock_stdout):
     """Tests a run for a single input with custom options."""
     self.fs.CreateFile('/fake/testcase', contents='fake')
@@ -1139,12 +1138,11 @@ class LauncherTest(fake_fs_unittest.TestCase):
       ]])
 
       # Output should be printed.
-      mock_stdout.flush()
       self.assertIn('OUTPUT', mock_stdout.getvalue())
 
   @mock.patch('bot.fuzzers.libFuzzer.launcher.add_recommended_dictionary',
               lambda x, y, z: False)
-  @mock.patch('sys.stdout', new_callable=test_utils.MockStdout)
+  @mock.patch('sys.stdout', new_callable=StringIO)
   def test_fuzz_crash(self, mock_stdout):
     """Tests a fuzzing run with a crash found."""
     self.fs.CreateFile('/fake/testcase_crash')
@@ -1182,7 +1180,7 @@ class LauncherTest(fake_fs_unittest.TestCase):
           '/fake/corpus_crash'
       ]])
 
-  @mock.patch('sys.stdout', new_callable=test_utils.MockStdout)
+  @mock.patch('sys.stdout', new_callable=StringIO)
   def test_oom_crash(self, mock_stdout):
     """Tests a fuzzing run with a OOM."""
     self.fs.CreateFile('/fake/testcase_oom')
@@ -1334,7 +1332,7 @@ class LauncherTest(fake_fs_unittest.TestCase):
 
   @mock.patch('bot.fuzzers.libFuzzer.launcher.add_recommended_dictionary',
               lambda x, y, z: False)
-  @mock.patch('sys.stdout', new_callable=test_utils.MockStdout)
+  @mock.patch('sys.stdout', new_callable=StringIO)
   def test_fuzz_from_subset(self, _):
     """Tests fuzzing with corpus subset."""
     self.mock.do_corpus_subset.return_value = True
@@ -1415,7 +1413,7 @@ class LauncherTest(fake_fs_unittest.TestCase):
 
   @mock.patch('bot.fuzzers.libFuzzer.launcher.add_recommended_dictionary',
               lambda x, y, z: False)
-  @mock.patch('sys.stdout', new_callable=test_utils.MockStdout)
+  @mock.patch('sys.stdout', new_callable=StringIO)
   def test_fuzz_from_subset_without_enough_corpus(self, _):
     """Tests fuzzing with corpus subset without enough files in the corpus."""
     self.mock.do_corpus_subset.return_value = True
@@ -1455,7 +1453,7 @@ class LauncherTest(fake_fs_unittest.TestCase):
 
   @mock.patch('bot.fuzzers.libFuzzer.launcher.add_recommended_dictionary',
               lambda x, y, z: False)
-  @mock.patch('sys.stdout', new_callable=test_utils.MockStdout)
+  @mock.patch('sys.stdout', new_callable=StringIO)
   @mock.patch('system.minijail.tempfile.NamedTemporaryFile')
   def test_fuzz_from_subset_minijail(self, mock_tempfile, _):
     """Tests fuzzing with corpus subset."""
@@ -1582,7 +1580,7 @@ class LauncherTest(fake_fs_unittest.TestCase):
 
   @mock.patch('bot.fuzzers.libFuzzer.launcher.add_recommended_dictionary',
               lambda x, y, z: False)
-  @mock.patch('sys.stdout', new_callable=test_utils.MockStdout)
+  @mock.patch('sys.stdout', new_callable=StringIO)
   @mock.patch('system.minijail.tempfile.NamedTemporaryFile')
   def test_fuzz_from_subset_without_enough_corpus_minijail(
       self, mock_tempfile, _):
@@ -1702,7 +1700,7 @@ class LauncherTest(fake_fs_unittest.TestCase):
               lambda x, y, z: False)
   @mock.patch('bot.fuzzers.libFuzzer.launcher.'
               'generate_new_testcase_mutations_using_radamsa')
-  @mock.patch('sys.stdout', new_callable=test_utils.MockStdout)
+  @mock.patch('sys.stdout', new_callable=StringIO)
   def test_fuzz_with_mutations_using_radamsa(self, *_):
     """Tests fuzzing with mutations using radamsa."""
     self.mock.do_radamsa_generator.return_value = True
@@ -1748,7 +1746,7 @@ class LauncherTest(fake_fs_unittest.TestCase):
 
   @mock.patch('bot.fuzzers.libFuzzer.launcher.add_recommended_dictionary',
               lambda x, y, z: False)
-  @mock.patch('sys.stdout', new_callable=test_utils.MockStdout)
+  @mock.patch('sys.stdout', new_callable=StringIO)
   @mock.patch('bot.fuzzers.ml.rnn.generator.execute')
   def test_fuzz_with_mutations_using_ml_rnn(self, mock_execute, *_):
     """Tests fuzzing with mutations using ml rnn."""

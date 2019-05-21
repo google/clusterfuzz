@@ -17,8 +17,6 @@ from __future__ import print_function
 # We want to use utf-8 encoding everywhere throughout the application
 # instead of the default 'ascii' encoding. This must happen before any
 # other imports.
-from future import standard_library
-standard_library.install_aliases()
 from builtins import object
 import sys
 reload(sys)
