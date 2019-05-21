@@ -167,7 +167,8 @@ class FuchsiaBuildTest(fake_filesystem_unittest.TestCase):
 
   def test_setup(self):
     """Tests setting up a build."""
-    environment.set_bot_environment()
+    self.tmp_resources_dir = tempfile.mkdtemp()
+    environment.set_value('RESOURCES_DIR', self.tmp_resources_dir)
     environment.set_value('FUCHSIA_RESOURCES_URL',
                           'gs://fuchsia-resources-05-20-2019/*')
     environment.set_value('FUCHSIA_BUILD_URL',
