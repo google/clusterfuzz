@@ -449,8 +449,8 @@ def execute_task(testcase_id, job_type):
       testcase = data_handler.get_testcase_by_id(testcase_id)
       testcase.minimized_keys = 'NA'
       error_message = (
-          'Unable to reproduce crash reliably, skipping '
-          'minimization (crashed %d/%d)' % (len(crash_times), crash_retries))
+          'Crash occurs, but not too consistently. Skipping minimization '
+          '(crashed %d/%d)' % (len(crash_times), crash_retries))
       data_handler.update_testcase_comment(testcase, data_types.TaskState.ERROR,
                                            error_message)
       create_additional_tasks(testcase)
