@@ -32,14 +32,14 @@ from base import utils
 from build_management import revisions
 from datastore import data_types
 from datastore import ndb_utils
-from fuchsia_util.lib.fuzzer import Fuzzer
-from fuchsia_util.lib.host import Host
 from fuzzing import fuzzer_selection
 from google_cloud_utils import blobs
 from google_cloud_utils import storage
 from metrics import logs
 from platforms import android
 from platforms import fuchsia
+from platforms.fuchsia.util.lib.fuzzer import Fuzzer
+from platforms.fuchsia.util.lib.host import Host
 from system import archive
 from system import environment
 from system import shell

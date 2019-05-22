@@ -21,12 +21,12 @@ import os
 import socket
 import subprocess
 
-from fuchsia_util.lib.device import Device
-from fuchsia_util.lib.fuzzer import Fuzzer
-from fuchsia_util.lib.host import Host
 from google_cloud_utils import gsutil
 from metrics import logs
 from platforms.fuchsia import errors
+from platforms.fuchsia.util.device import Device
+from platforms.fuchsia.util.fuzzers import Fuzzer
+from platforms.fuchsia.util.host import Host
 from system import environment
 from system import new_process
 from system import shell

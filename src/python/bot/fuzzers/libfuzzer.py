@@ -22,10 +22,10 @@ import shutil
 from base import retry
 from bot.fuzzers import engine_common
 from bot.fuzzers.libFuzzer import constants
-from fuchsia_util.lib.device import Device
-from fuchsia_util.lib.fuzzer import Fuzzer
-from fuchsia_util.lib.host import Host
 from platforms import fuchsia
+from platforms.fuchsia.util.device import Device
+from platforms.fuchsia.util.fuzzer import Fuzzer
+from platforms.fuchsia.util.host import Host
 from system import environment
 from system import minijail
 from system import new_process
