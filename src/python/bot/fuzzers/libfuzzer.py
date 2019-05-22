@@ -369,6 +369,8 @@ class FuchsiaQemuLibFuzzerRunner(new_process.ProcessRunner, LibFuzzerCommon):
     """LibFuzzerCommon.fuzz override."""
     self._test_qemu_ssh()
     self.fuzzer.run([])
+    # TODO(flowerhack): Modify fuzzer.run() to return a ProcessResult, rather
+    # than artisinally handcrafting one here.
     fuzzer_process_result = new_process.ProcessResult()
     fuzzer_process_result.return_code = 0
     fuzzer_process_result.output = ''

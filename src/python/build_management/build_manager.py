@@ -737,7 +737,6 @@ class FuchsiaBuild(Build):
     logs.log('Retrieving build %d.' % self.revision)
 
     # Bucket for QEMU resources.
-    # TODO(flowerhack) pull directly from CIPD for these.
     fuchsia_resources_dir = fuchsia.device.initialize_resources_dir()
     environment.set_value('FUCHSIA_RESOURCES_DIR', fuchsia_resources_dir)
 

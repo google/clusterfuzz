@@ -156,7 +156,7 @@ def initialize_resources_dir():
                                  'resources: ' + result.output)
   logs.log("Fuchsia SDK download complete.")
 
-  # Bucket for build resources. Necessary for fuzzer seleciton.
+  # Bucket for build resources. Necessary for fuzzer selection.
   logs.log("Fetching Fuchsia build.")
   fuchsia_build_url = environment.get_value('FUCHSIA_BUILD_URL')
   if not fuchsia_build_url:
