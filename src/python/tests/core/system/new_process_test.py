@@ -88,7 +88,7 @@ class PosixProcessTest(unittest.TestCase):
   """Posix Process tests."""
 
   # Allowed error for time calculations.
-  TIME_ERROR = 0.1
+  TIME_ERROR = 0.3
 
   def setUp(self):
     helpers.patch(
@@ -204,7 +204,7 @@ class WindowsProcessTest(unittest.TestCase):
   """Windows Process tests."""
 
   # Allowed error for time calculations.
-  TIME_ERROR = 0.1
+  TIME_ERROR = 0.3
 
   def setUp(self):
     helpers.patch(
