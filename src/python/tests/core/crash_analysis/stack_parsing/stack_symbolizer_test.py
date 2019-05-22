@@ -48,21 +48,3 @@ class ChromeDsymHintsTests(unittest.TestCase):
             '/build/Content Shell.app/Contents'
             '/Versions/C/Helpers'
             '/Content Shell Helper.app/Contents/MacOS/Content Shell Helper'))
-
-  def test_invalid_paths(self):
-    """Tests that assert is raised for invalid paths."""
-    with self.assertRaises(AssertionError):
-      stack_symbolizer.chrome_dsym_hints(
-          '/build/Content Shell.framework/Contents'
-          '/Frameworks/Content Shell Framework.framework/Versions/C/Helpers'
-          '/Content Shell Helper.app/Contents/MacOS/Content Shell Helper')
-    with self.assertRaises(AssertionError):
-      stack_symbolizer.chrome_dsym_hints(
-          '/build/Content Shell.framework/Contents'
-          '/Frameworks/Content Shell Framework.app/Versions/C/Helpers'
-          '/Content Shell Helper.app/Contents/MacOS/Content Shell Helper')
-    with self.assertRaises(AssertionError):
-      stack_symbolizer.chrome_dsym_hints(
-          '/build/Content Shell.app/Contents'
-          '/Frameworks/Content Shell Framework.app/Versions/C/Helpers'
-          '/Content Shell Helper.app/Contents/MacOS/Content Shell Helper')

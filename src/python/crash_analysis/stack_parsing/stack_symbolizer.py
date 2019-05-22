@@ -100,10 +100,7 @@ def chrome_dsym_hints(binary):
      (e.g. Outer.app/Contents/Versions/1.2.3.4/Inner.app), and the debug info
      is in Inner.app.dSYM in the product dir.
   The first case is handled by llvm-symbolizer, so we only need to construct
-  .dSYM paths for .app bundles and frameworks.
-  We're assuming that there're no more than three nested bundles in the binary
-  path. Only one of these bundles may be a framework and framework can only
-  contain one app bundle."""
+  .dSYM paths for .app bundles and frameworks."""
   path_parts = binary.split(os.path.sep)
   app_positions = []
   framework_positions = []
@@ -117,22 +114,6 @@ def chrome_dsym_hints(binary):
   if len(bundle_positions) == 0:
     # Case 1: this is a standalone executable or dylib.
     return []
-
-  assert len(bundle_positions) <= 3, (
-      'The path contains more than three nested bundles: %s' % binary)
-  assert len(framework_positions) <= 1, (
-      'The path has more than one framework bundle: %s' % binary)
-  if len(bundle_positions) == 2 and len(app_positions) == 1:
-    assert (len(framework_positions) == 1 and
-            app_positions[0] < framework_positions[0]), (
-                'The path does not follow bundle pattern (app->framework): %s' %
-                binary)
-  if len(bundle_positions) == 3:
-    assert (
-        len(app_positions) == 2 and len(framework_positions) == 1 and
-        app_positions[0] < framework_positions[0] < app_positions[1]), (
-            'The path does not follow bundle pattern (app->framework->app): %s'
-            % binary)
 
   # Cases 2 and 3. The outermost bundle (which is the only bundle in the case 2)
   # is located in the product dir.
