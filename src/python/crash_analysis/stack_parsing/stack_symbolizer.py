@@ -120,7 +120,7 @@ def chrome_dsym_hints(binary):
 
   assert len(bundle_positions) <= 3, (
       'The path contains more than three nested bundles: %s' % binary)
-  assert (len(framework_positions) in [0, 1]), (
+  assert len(framework_positions) <= 1, (
       'The path has more than one framework bundle: %s' % binary)
   if len(bundle_positions) == 2 and len(app_positions) == 1:
     assert (len(framework_positions) == 1 and
