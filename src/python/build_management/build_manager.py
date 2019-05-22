@@ -38,8 +38,8 @@ from google_cloud_utils import storage
 from metrics import logs
 from platforms import android
 from platforms import fuchsia
-from platforms.fuchsia.util.lib.fuzzer import Fuzzer
-from platforms.fuchsia.util.lib.host import Host
+from platforms.fuchsia.util.fuzzer import Fuzzer
+from platforms.fuchsia.util.host import Host
 from system import archive
 from system import environment
 from system import shell

@@ -346,8 +346,9 @@ class FuchsiaQemuLibFuzzerRunner(new_process.ProcessRunner, LibFuzzerCommon):
     self.host = Host.from_dir(
         os.path.join(fuchsia_resources_dir, 'build', 'out', 'default'))
     self.device = Device(self.host, 'localhost', fuchsia_portnum)
-    pkg, tgt = environment.get_value('FUZZ_TARGET').split('/')
-    self.fuzzer = Fuzzer(self.device, pkg, tgt)
+    # Fuchsia fuzzer names have the format {package_name}/{binary_name}.
+    package, target = environment.get_value('FUZZ_TARGET').split('/')
+    self.fuzzer = Fuzzer(self.device, package, target)
     self.device.set_ssh_option('StrictHostKeyChecking no')
     self.device.set_ssh_option('UserKnownHostsFile=/dev/null')
     self.device.set_ssh_identity(fuchsia_pkey_path)
@@ -367,7 +368,6 @@ class FuchsiaQemuLibFuzzerRunner(new_process.ProcessRunner, LibFuzzerCommon):
            extra_env=None):
     """LibFuzzerCommon.fuzz override."""
     self._test_qemu_ssh()
-    # Doing a timeout, to work around process-exit issue?
     self.fuzzer.run([])
     fuzzer_process_result = new_process.ProcessResult()
     fuzzer_process_result.return_code = 0
