@@ -43,7 +43,7 @@ def get_queues():
 
 
 class Handler(base_handler.Handler):
-  """Return list of jobs and templates."""
+  """View job handler."""
 
   @handler.check_user_access(need_privileged_access=True)
   @handler.get(handler.HTML)
@@ -76,7 +76,7 @@ class Handler(base_handler.Handler):
 
 
 class UpdateJob(base_handler.GcsUploadHandler):
-  """Job update handler."""
+  """Update job handler."""
 
   @handler.check_user_access(need_privileged_access=True)
   @handler.require_csrf_token
@@ -157,7 +157,7 @@ class UpdateJob(base_handler.GcsUploadHandler):
 
 
 class UpdateJobTemplate(base_handler.Handler):
-  """Update job template."""
+  """Update job template handler."""
 
   @handler.check_user_access(need_privileged_access=True)
   @handler.require_csrf_token
