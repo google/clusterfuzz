@@ -23,6 +23,8 @@
 <link rel="import" href="../../bower_components/paper-item/paper-item.html">
 <link rel="import" href="../../bower_components/paper-listbox/paper-listbox.html">
 
+<link rel="import" href="delete-job-dialog.html">
+
 <dom-module id="jobs-page">
   <link rel="import" href="../../stylesheets/main.css" type="css">
   <link rel="import" href="../technology/technology.css" type="css">
@@ -54,6 +56,9 @@
         --paper-input-container-input-color: var(--primary-text-color);
       }
     </style>
+
+    <delete-job-dialog id="deleteJobDialog" field-values="[[fieldValues]]" job="[[toDelete]]">
+    </delete-job-dialog>
 
     <h2>Templates</h2>
 
@@ -195,6 +200,7 @@
                   <br/>
 
                   <paper-button raised on-tap="submitForm" data-index$="[[index]]">Save</paper-button>
+                  <paper-button class="info" job="[[item]]" raised on-tap="deleteJobTapped">Delete</paper-button>
                 </div>
 
                 <div class="right">
@@ -264,6 +270,11 @@
         return (el) => (
             el['name'].toLowerCase().indexOf(searchKey) != -1 ||
             el['environment_string'].toLowerCase().indexOf(searchKey) != -1);
+      }
+
+      deleteJobTapped(e) {
+        this.$.deleteJobDialog.opened = true;
+        this.toDelete = e.target.job;
       }
     }
 
