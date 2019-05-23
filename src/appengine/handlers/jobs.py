@@ -227,3 +227,6 @@ class DeleteJobHandler(base_handler.Handler):
 
     # Delete job.
     job.key.delete()
+
+    helpers.log('Deleted job %s' % job.name, helpers.MODIFY_OPERATION)
+    self.redirect('/jobs')
