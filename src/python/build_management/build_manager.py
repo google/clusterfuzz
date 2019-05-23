@@ -719,6 +719,14 @@ class RegularBuild(Build):
 
 class FuchsiaBuild(Build):
   """Represents a Fuchsia build."""
+  # TODO(flowerhack): Inherit from RegularBuild.
+  # If we properly subclass RegularBuild, checking revision numbers for
+  # different builds (and other nice things) should automagically "just work."
+  # This'll mean (1) downloading in the standard _build_dir instead of our
+  # artisinal FUCHSIA_RESOURCES_DIR, and (2) create new build buckets with
+  # the name format `gs://bucket/path/fuchsia-resources-([0-9]+).zip, and
+  # (3) do some refactoring on the RegularBuild logic so we can keep using our
+  # target selection logic.
 
   SYMBOLIZE_REL_PATH = os.path.join('build', 'zircon', 'prebuilt', 'downloads',
                                     'symbolize')
