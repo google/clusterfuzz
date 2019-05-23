@@ -29,7 +29,6 @@ from libs import gcs
 from libs import handler
 from libs import helpers
 from metrics import fuzzer_logs
-from metrics import logs
 from system import archive
 
 ARCHIVE_READ_SIZE_LIMIT = 16 * 1024 * 1024
@@ -199,7 +198,7 @@ class BaseEditHandler(base_handler.GcsUploadHandler):
 
     fuzzer_selection.update_mappings_for_fuzzer(fuzzer)
 
-    logs.log('Uploaded fuzzer %s.' % fuzzer.name)
+    helpers.log('Uploaded fuzzer %s.' % fuzzer.name, helpers.MODIFY_OPERATION)
     self.redirect('/fuzzers')
 
 
@@ -270,7 +269,7 @@ class DeleteHandler(base_handler.Handler):
     fuzzer_selection.update_mappings_for_fuzzer(fuzzer, mappings=[])
     fuzzer.key.delete()
 
-    logs.log('Deleted fuzzer %s.' % fuzzer.name)
+    helpers.log('Deleted fuzzer %s' % fuzzer.name, helpers.MODIFY_OPERATION)
     self.redirect('/fuzzers')
 
 

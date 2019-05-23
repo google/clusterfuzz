@@ -172,7 +172,7 @@ _ROUTES = [
     ('/gcs-redirect', gcs_redirector.Handler),
     ('/issue/([0-9]+)/(.+)', issue_redirector.Handler),
     ('/jobs', jobs.Handler),
-    ('/jobs/.*', jobs.Handler),
+    ('/jobs/delete-job', jobs.DeleteJobHandler),
     ('/login', login.Handler),
     ('/logout', login.LogoutHandler),
     ('/update-job', jobs.UpdateJob),
