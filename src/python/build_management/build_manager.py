@@ -742,7 +742,6 @@ class FuchsiaBuild(Build):
 
     logs.log('Retrieved build r%d.' % self.revision)
     logs.log('Extracting fuzz targets.' + fuchsia_resources_dir)
-    logs.log("Extracting fuzz targets." + fuchsia_resources_dir)
     environment.set_value('FUCHSIA_DIR',
                           os.path.join(fuchsia_resources_dir, 'build'))
 
@@ -760,10 +759,10 @@ class FuchsiaBuild(Build):
     # TODO(flowerhack): Get list of fuzz targets and pass to the actual
     # randomizer, instead of using random.choice().
     fuzz_target = random.choice(fuzz_targets)
+    fuzz_target = str(fuzz_target[0] + '/' + fuzz_target[1])
 
-    environment.set_value('FUZZ_TARGET', str(fuzz_target))
-    logs.log(
-        str('Extracted fuzz target ' + fuzz_target[0] + '/' + fuzz_target[1]))
+    environment.set_value('FUZZ_TARGET', fuzz_target)
+    logs.log('Extracted fuzz target ' + fuzz_target)
     return True
 
 
@@ -1176,6 +1175,7 @@ def setup_regular_build(revision):
 
 def setup_fuchsia_build():
   """Sets up Fuchsia build."""
+  #TODO(flowerhack): Use real values here.
   base_build_dir = ''
   revision = 0
   target_weights = {}

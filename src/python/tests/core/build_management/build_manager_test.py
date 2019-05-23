@@ -161,13 +161,20 @@ class FuchsiaBuildTest(fake_filesystem_unittest.TestCase):
 
   def setUp(self):
     test_helpers.patch_environ(self)
+    self.tmp_resources_dir = tempfile.mkdtemp()
+
+  def tearDown(self):
+    try:
+      shutil.rmtree(self.tmp_resources_dir)
+    except OSError as exc:
+      if exc.errno != errno.ENOENT:
+        raise
 
   def _assert_env_vars(self):
     self.assertTrue(os.environ['FUZZ_TARGET'])
 
   def test_setup(self):
     """Tests setting up a build."""
-    self.tmp_resources_dir = tempfile.mkdtemp()
     environment.set_value('RESOURCES_DIR', self.tmp_resources_dir)
     environment.set_value('FUCHSIA_RESOURCES_URL',
                           'gs://fuchsia-resources-05-20-2019/*')
