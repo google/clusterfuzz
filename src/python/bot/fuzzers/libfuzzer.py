@@ -331,6 +331,8 @@ class LibFuzzerRunner(new_process.ProcessRunner, LibFuzzerCommon):
 class FuchsiaQemuLibFuzzerRunner(new_process.ProcessRunner, LibFuzzerCommon):
   """libFuzzer runner (when Fuchsia is the target platform)."""
 
+  FUCHSIA_BUILD_REL_PATH = os.path.join('build', 'out', 'default')
+
   SSH_RETRIES = 3
   SSH_WAIT = 2
 
@@ -344,7 +346,7 @@ class FuchsiaQemuLibFuzzerRunner(new_process.ProcessRunner, LibFuzzerCommon):
           ('FUCHSIA_PKEY_PATH, FUCHSIA_PORTNUM, or FUCHSIA_RESOURCES_DIR was '
            'not set'))
     self.host = Host.from_dir(
-        os.path.join(fuchsia_resources_dir, 'build', 'out', 'default'))
+        os.path.join(fuchsia_resources_dir, self.FUCHSIA_BUILD_REL_PATH))
     self.device = Device(self.host, 'localhost', fuchsia_portnum)
     # Fuchsia fuzzer names have the format {package_name}/{binary_name}.
     package, target = environment.get_value('FUZZ_TARGET').split('/')

@@ -15,6 +15,7 @@
 # pylint: disable=protected-access
 
 from builtins import object
+import errno
 import functools
 import mock
 import os
@@ -166,8 +167,8 @@ class FuchsiaBuildTest(fake_filesystem_unittest.TestCase):
   def tearDown(self):
     try:
       shutil.rmtree(self.tmp_resources_dir)
-    except OSError as exc:
-      if exc.errno != errno.ENOENT:
+    except OSError as exception:
+      if exception.errno != errno.ENOENT:  # file doesn't exist
         raise
 
   def _assert_env_vars(self):

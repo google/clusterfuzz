@@ -720,6 +720,13 @@ class RegularBuild(Build):
 class FuchsiaBuild(Build):
   """Represents a Fuchsia build."""
 
+  SYMBOLIZE_REL_PATH = os.path.join('build', 'zircon', 'prebuilt', 'downloads',
+                                    'symbolize')
+  LLVM_SYMBOLIZER_REL_PATH = os.path.join('build', 'buildtools', 'linux-x64',
+                                          'clang', 'bin', 'llvm-symbolizer')
+  FUCHSIA_BUILD_REL_PATH = os.path.join('build', 'out', 'default')
+  FUCHSIA_DIR_REL_PATH = 'build'
+
   def __init__(self, base_build_dir, revision, target_weights=None):
     super(FuchsiaBuild, self).__init__(base_build_dir, revision)
     self.base_build_dir = ''
@@ -742,19 +749,19 @@ class FuchsiaBuild(Build):
 
     logs.log('Retrieved build r%d.' % self.revision)
     logs.log('Extracting fuzz targets.' + fuchsia_resources_dir)
-    environment.set_value('FUCHSIA_DIR',
-                          os.path.join(fuchsia_resources_dir, 'build'))
+    environment.set_value(
+        'FUCHSIA_DIR',
+        os.path.join(fuchsia_resources_dir, self.FUCHSIA_DIR_REL_PATH))
 
-    symbolize_path = os.path.join(fuchsia_resources_dir, 'build', 'zircon',
-                                  'prebuilt', 'downloads', 'symbolize')
+    symbolize_path = os.path.join(fuchsia_resources_dir,
+                                  self.SYMBOLIZE_REL_PATH)
     os.chmod(symbolize_path, 0o777)
-    llvm_symbolizer_path = os.path.join(fuchsia_resources_dir, 'build',
-                                        'buildtools', 'linux-x64', 'clang',
-                                        'bin', 'llvm-symbolizer')
+    llvm_symbolizer_path = os.path.join(fuchsia_resources_dir,
+                                        self.LLVM_SYMBOLIZER_REL_PATH)
     os.chmod(llvm_symbolizer_path, 0o777)
 
     host = Host.from_dir(
-        os.path.join(fuchsia_resources_dir, 'build', 'out', 'default'))
+        os.path.join(fuchsia_resources_dir, self.FUCHSIA_BUILD_REL_PATH))
     fuzz_targets = Fuzzer.filter(host.fuzzers, '')
     # TODO(flowerhack): Get list of fuzz targets and pass to the actual
     # randomizer, instead of using random.choice().
