@@ -652,7 +652,8 @@ def upload_testcase_output(crash_result, testcase_path):
       'Not available.')
 
   revisions_header = (
-      'Component revisions (r{app_revision}):\n{component_revisions}\n'.format(
+      'Component revisions (build r{app_revision}):\n{component_revisions}\n'.
+      format(
           app_revision=app_revision, component_revisions=component_revisions))
   return_code_header = 'Return code: %s\n\n' % crash_result.return_code
   symbolized_output = crash_result.get_stacktrace()

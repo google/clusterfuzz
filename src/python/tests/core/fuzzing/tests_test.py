@@ -110,7 +110,7 @@ class UploadTestcaseOutputTest(fake_filesystem_unittest.TestCase):
 
     # Date and time below is derived from 1472846341 timestamp value.
     self.mock.write_data.assert_called_once_with(
-        'Component revisions (r123):\n'
+        'Component revisions (build r123):\n'
         'Component: REVISION\nComponent2: REVISION2\n\n'
         'Return code: 1\n\nfake output',
         'gs://fake-gcs-logs/fuzzer/job/2016-09-02/19:59:01:017923.log')
@@ -128,7 +128,7 @@ class UploadTestcaseOutputTest(fake_filesystem_unittest.TestCase):
     crash_result = CrashResult(return_code=None, crash_time=None, output=None)
     tests.upload_testcase_output(crash_result, self.testcase_path)
     self.mock.write_data.assert_called_once_with(
-        'Component revisions (r123):\n'
+        'Component revisions (build r123):\n'
         'Component: REVISION\nComponent2: REVISION2\n\n'
         'Return code: None\n\nNo output!',
         'gs://fake-gcs-logs/fuzzer/job/2017-05-15/16:10:28:374119.log')
@@ -152,7 +152,7 @@ class UploadTestcaseOutputTest(fake_filesystem_unittest.TestCase):
 
     # Date and time below is derived from 1472846341 timestamp value.
     self.mock.write_data.assert_called_once_with(
-        'Component revisions (r123):\n'
+        'Component revisions (build r123):\n'
         'Not available.\n'
         'Return code: 1\n\nfake output',
         'gs://fake-gcs-logs/fuzzer/job/2016-09-02/19:59:01:017923.log')
