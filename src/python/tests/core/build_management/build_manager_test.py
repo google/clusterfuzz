@@ -165,11 +165,7 @@ class FuchsiaBuildTest(fake_filesystem_unittest.TestCase):
     self.tmp_resources_dir = tempfile.mkdtemp()
 
   def tearDown(self):
-    try:
-      shutil.rmtree(self.tmp_resources_dir)
-    except OSError as exception:
-      if exception.errno != errno.ENOENT:  # file doesn't exist
-        raise
+    shutil.rmtree(self.tmp_resources_dir)
 
   def _assert_env_vars(self):
     self.assertTrue(os.environ['FUZZ_TARGET'])

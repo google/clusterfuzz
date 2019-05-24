@@ -349,6 +349,7 @@ class FuchsiaQemuLibFuzzerRunner(new_process.ProcessRunner, LibFuzzerCommon):
         os.path.join(fuchsia_resources_dir, self.FUCHSIA_BUILD_REL_PATH))
     self.device = Device(self.host, 'localhost', fuchsia_portnum)
     # Fuchsia fuzzer names have the format {package_name}/{binary_name}.
+    # TODO(ochang): Properly handle fuzzers with '/' in the binary name.
     package, target = environment.get_value('FUZZ_TARGET').split('/')
     self.fuzzer = Fuzzer(self.device, package, target)
     self.device.set_ssh_option('StrictHostKeyChecking no')
