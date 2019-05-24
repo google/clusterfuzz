@@ -21,7 +21,6 @@ import os
 import socket
 import subprocess
 
-from google_cloud_utils import gsutil
 from metrics import logs
 from platforms.fuchsia import errors
 from platforms.fuchsia.util.device import Device
@@ -132,6 +131,10 @@ def qemu_setup():
 
 def initialize_resources_dir():
   """Download Fuchsia QEMU resources from GCS bucket."""
+  # This module depends on multiprocessing, which is not available in
+  # appengine, and since appengine *imports* this file (but does not run this
+  # function!), we import it here.
+  from google_cloud_utils import gsutil
   resources_dir = environment.get_value('RESOURCES_DIR')
   if not resources_dir:
     raise errors.FuchsiaConfigError('Could not find RESOURCES_DIR')
