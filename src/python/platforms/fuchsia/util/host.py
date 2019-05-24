@@ -29,9 +29,6 @@ class Host(object):
       build_dir: The build output directory, if present.
   """
 
-  # Convenience file descriptor for silencing subprocess output
-  DEVNULL = open(os.devnull, 'w')
-
   class ConfigError(RuntimeError):
     """Indicates the host is not configured for building Fuchsia."""
     pass
@@ -140,12 +137,11 @@ class Host(object):
       raise Host.ConfigError('Unable to find Zircon host tool: ' + cmd[0])
     if logfile:
       return subprocess.Popen(cmd, stdout=logfile, stderr=subprocess.STDOUT)
-    return subprocess.check_output(cmd, stderr=Host.DEVNULL).strip()
+    return subprocess.check_output(cmd).strip()
 
   def killall(self, process):
     """ Invokes killall on the process name."""
-    subprocess.call(
-        ['killall', process], stdout=Host.DEVNULL, stderr=Host.DEVNULL)
+    subprocess.call(['killall', process])
 
   def symbolize(self, log_in, log_out):
     """Symbolizes backtraces in a log file using the current build."""
@@ -172,23 +168,14 @@ class Host(object):
           'osascript', '-e',
           'display notification "' + body + '" with title "' + title + '"'
       ])
-    elif subprocess.call(
-        ['which', 'notify-send'], stdout=Host.DEVNULL,
-        stderr=Host.DEVNULL) == 0:
-      subprocess.call(
-          ['notify-send', title, body],
-          stdout=Host.DEVNULL,
-          stderr=Host.DEVNULL)
+    elif subprocess.call(['which', 'notify-send']) == 0:
+      subprocess.call(['notify-send', title, body])
     else:
-      subprocess.call(
-          ['wall', title + '; ' + body],
-          stdout=Host.DEVNULL,
-          stderr=Host.DEVNULL)
+      subprocess.call(['wall', title + '; ' + body])
 
   def snapshot(self):
     integration = Host.join('integration')
     if not os.path.isdir(integration):
       raise Host.ConfigError('Missing integration repo.')
     return subprocess.check_output(
-        ['git', 'rev-parse', 'HEAD'], stderr=Host.DEVNULL,
-        cwd=integration).strip()
+        ['git', 'rev-parse', 'HEAD'], cwd=integration).strip()
