@@ -15,7 +15,6 @@
 # pylint: disable=protected-access
 
 from builtins import object
-import errno
 import functools
 import mock
 import os
