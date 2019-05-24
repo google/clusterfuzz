@@ -30,11 +30,9 @@ class CreateTestcaseListFileTest(fake_filesystem_unittest.TestCase):
   """Tests for create_testcase_list_file."""
 
   def setUp(self):
+    test_helpers.patch_environ(self)
     test_utils.set_up_pyfakefs(self)
     environment.set_value('FAIL_RETRIES', 1)
-
-  def tearDown(self):
-    environment.remove_key('FAIL_RETRIES')
 
   def test_create(self):
     """Tests creation of testcase list file."""
@@ -62,14 +60,15 @@ class UploadTestcaseOutputTest(fake_filesystem_unittest.TestCase):
   """Tests for logs uploading."""
 
   def setUp(self):
+    test_helpers.patch_environ(self)
     test_utils.set_up_pyfakefs(self)
     self.testcase_path = '/test/fuzzer/testcase'
     self.fs.CreateFile(self.testcase_path, contents='')
 
-    test_helpers.patch_environ(self)
     environment.set_value('FUZZ_LOGS_BUCKET', 'fake-gcs-logs')
     environment.set_value('FUZZER_NAME', 'fuzzer')
     environment.set_value('JOB_NAME', 'job')
+    environment.set_value('APP_REVISION', '123')
 
     # To be used for generation of date and time when uploading a log.
     fake_utcnow = datetime.datetime(2017, 5, 15, 16, 10, 28, 374119)
@@ -111,7 +110,8 @@ class UploadTestcaseOutputTest(fake_filesystem_unittest.TestCase):
 
     # Date and time below is derived from 1472846341 timestamp value.
     self.mock.write_data.assert_called_once_with(
-        'Revisions:\nComponent: REVISION\nComponent2: REVISION2\n\n'
+        'Component revisions (r123):\n'
+        'Component: REVISION\nComponent2: REVISION2\n\n'
         'Return code: 1\n\nfake output',
         'gs://fake-gcs-logs/fuzzer/job/2016-09-02/19:59:01:017923.log')
 
@@ -128,9 +128,34 @@ class UploadTestcaseOutputTest(fake_filesystem_unittest.TestCase):
     crash_result = CrashResult(return_code=None, crash_time=None, output=None)
     tests.upload_testcase_output(crash_result, self.testcase_path)
     self.mock.write_data.assert_called_once_with(
-        'Revisions:\nComponent: REVISION\nComponent2: REVISION2\n\n'
+        'Component revisions (r123):\n'
+        'Component: REVISION\nComponent2: REVISION2\n\n'
         'Return code: None\n\nNo output!',
         'gs://fake-gcs-logs/fuzzer/job/2017-05-15/16:10:28:374119.log')
+
+  def test_upload_without_component_revisions(self):
+    """Log should contain message on empty component revisions."""
+    self.mock.get_component_range_list.return_value = []
+
+    mock_gsutil = mock.MagicMock()
+    self.mock.write_data.return_value = mock_gsutil
+
+    self.fs.CreateFile(
+        self.testcase_path + '.stats2',
+        contents='{"stat": 1000, "timestamp": 1472846341.017923, "kind": '
+        '"TestcaseRun", "job": "job", "fuzzer": "fuzzer", '
+        '"build_revision": 123}\n')
+
+    crash_result = CrashResult(
+        return_code=1, crash_time=5, output='fake output')
+    tests.upload_testcase_output(crash_result, self.testcase_path)
+
+    # Date and time below is derived from 1472846341 timestamp value.
+    self.mock.write_data.assert_called_once_with(
+        'Component revisions (r123):\n'
+        'Not available.\n'
+        'Return code: 1\n\nfake output',
+        'gs://fake-gcs-logs/fuzzer/job/2016-09-02/19:59:01:017923.log')
 
 
 class ConvertDependencyUrlToLocalPathTest(unittest.TestCase):
