@@ -37,9 +37,6 @@ from google_cloud_utils import blobs
 from google_cloud_utils import storage
 from metrics import logs
 from platforms import android
-from platforms import fuchsia
-from platforms.fuchsia.util.fuzzer import Fuzzer
-from platforms.fuchsia.util.host import Host
 from system import archive
 from system import environment
 from system import shell
@@ -749,6 +746,13 @@ class FuchsiaBuild(Build):
     return self._build_dir
 
   def setup(self):
+    # Appengine imports build_manager for some reason, though it doesn't execute
+    # any code in this class. However, this class relies on imports that contain
+    # things like subprocess and pipes and multiprocessing, which causes
+    # appengine to panic, so we import it here instead of at the toplevel.
+    from platforms import fuchsia
+    from platforms.fuchsia.util.fuzzer import Fuzzer
+    from platforms.fuchsia.util.host import Host
     logs.log('Retrieving build %d.' % self.revision)
 
     # Bucket for QEMU resources.
