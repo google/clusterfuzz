@@ -13,10 +13,12 @@
 # limitations under the License.
 """Integration tests for libfuzzer launcher.py."""
 
+from future import standard_library
+standard_library.install_aliases()
+
 import mock
 import os
 import shutil
-import StringIO
 import tempfile
 import unittest
 
@@ -92,12 +94,11 @@ def setup_testcase_and_corpus(testcase, corpus, fuzz=False):
 
 def run_launcher(*args):
   """Run launcher.py."""
-  string_io = StringIO.StringIO()
-
-  with mock.patch('sys.stdout', string_io):
+  mock_stdout = test_utils.MockStdout()
+  with mock.patch('sys.stdout', mock_stdout):
     launcher.main(['launcher.py'] + list(args))
 
-  return string_io.getvalue()
+  return mock_stdout.getvalue()
 
 
 class BaseLauncherTest(unittest.TestCase):
@@ -688,7 +689,7 @@ class TestLauncherFuchsia(BaseLauncherTest):
     # with_cloud_emulators decorator modifies what the parent class would be.
     # Just explicitly call BaseLauncherTest's setUp.
     BaseLauncherTest.setUp(self)
-    test_helpers.patch_environ(self)
+
     # Set up a Fuzzer.
     data_types.Fuzzer(
         revision=1,

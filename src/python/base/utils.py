@@ -13,9 +13,10 @@
 # limitations under the License.
 """Common utility functions."""
 
+from builtins import range
 from future import standard_library
 standard_library.install_aliases()
-from builtins import range
+from past.builtins import basestring
 import ast
 import datetime
 import functools
@@ -27,8 +28,8 @@ import random
 import requests
 import sys
 import time
+import urllib.parse
 import urllib.request
-import urlparse
 import weakref
 
 from base import errors
@@ -151,7 +152,7 @@ def file_path_to_file_url(path):
     return ''
 
   path = path.lstrip(WINDOWS_PREFIX_PATH)
-  return urlparse.urljoin('file:', urllib.request.pathname2url(path))
+  return urllib.parse.urljoin(u'file:', urllib.request.pathname2url(path))
 
 
 def filter_file_list(file_list):

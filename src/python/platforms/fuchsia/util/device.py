@@ -12,12 +12,16 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """Utilites for managing Fuchsia devices."""
+from __future__ import absolute_import
 
+from builtins import str
+from builtins import range
+from builtins import object
 import os
 import re
 import subprocess
 
-from host import Host
+from .host import Host
 
 
 class Device(object):
@@ -84,7 +88,7 @@ class Device(object):
   def get_ssh_cmd(self, cmd):
     """Returns the SSH executable and options."""
     result = cmd[:1]
-    for opt, args in self._ssh_opts.iteritems():
+    for opt, args in self._ssh_opts.items():
       if not args:
         result.append('-' + opt)
       else:

@@ -13,9 +13,12 @@
 # limitations under the License.
 """Generic helper functions useful in tests."""
 
+from future import standard_library
+standard_library.install_aliases()
 from builtins import object
 import atexit
 import datetime
+import io
 import os
 import requests
 import shutil
@@ -384,3 +387,14 @@ def supported_platforms(*platforms):
                                func)
 
   return decorator
+
+
+class MockStdout(io.BufferedWriter):
+  """Mock stdout."""
+
+  def __init__(self):
+    super(MockStdout, self).__init__(io.BytesIO())
+
+  def getvalue(self):
+    self.flush()
+    return self.raw.getvalue()

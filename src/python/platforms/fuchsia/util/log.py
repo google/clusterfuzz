@@ -13,6 +13,7 @@
 # limitations under the License.
 """Fuchsia utilities for handling logging."""
 
+from builtins import object
 import os
 import re
 import subprocess
