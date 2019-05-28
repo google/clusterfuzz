@@ -647,8 +647,14 @@ def upload_testcase_output(crash_result, testcase_path):
   app_revision = environment.get_value('APP_REVISION')
   job_name = environment.get_value('JOB_NAME')
   components = revisions.get_component_list(app_revision, job_name)
-  revisions_header = ('Revisions:\n%s\n' % revisions.format_revision_list(
-      components, use_html=False))
+  component_revisions = (
+      revisions.format_revision_list(components, use_html=False) or
+      'Not available.\n')
+
+  revisions_header = (
+      'Component revisions (build r{app_revision}):\n{component_revisions}\n'.
+      format(
+          app_revision=app_revision, component_revisions=component_revisions))
   return_code_header = 'Return code: %s\n\n' % crash_result.return_code
   symbolized_output = crash_result.get_stacktrace()
 
