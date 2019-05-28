@@ -13,8 +13,8 @@
 # limitations under the License.
 """Utilities for handling Fuchsia hosts."""
 
-from builtins import str
 from builtins import object
+from builtins import str
 import json
 import os
 import subprocess

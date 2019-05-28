@@ -14,8 +14,8 @@
 """Fuchsia utilities for handling fuzzers."""
 from __future__ import absolute_import
 
-from builtins import str
 from builtins import object
+from builtins import str
 import datetime
 import errno
 import os
