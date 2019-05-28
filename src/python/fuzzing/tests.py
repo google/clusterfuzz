@@ -649,7 +649,7 @@ def upload_testcase_output(crash_result, testcase_path):
   components = revisions.get_component_list(app_revision, job_name)
   component_revisions = (
       revisions.format_revision_list(components, use_html=False) or
-      'Not available.')
+      'Not available.\n')
 
   revisions_header = (
       'Component revisions (build r{app_revision}):\n{component_revisions}\n'.

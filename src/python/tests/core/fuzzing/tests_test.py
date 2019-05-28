@@ -153,7 +153,7 @@ class UploadTestcaseOutputTest(fake_filesystem_unittest.TestCase):
     # Date and time below is derived from 1472846341 timestamp value.
     self.mock.write_data.assert_called_once_with(
         'Component revisions (build r123):\n'
-        'Not available.\n'
+        'Not available.\n\n'
         'Return code: 1\n\nfake output',
         'gs://fake-gcs-logs/fuzzer/job/2016-09-02/19:59:01:017923.log')
 
