@@ -561,16 +561,19 @@ def get_data_bundle_directory(fuzzer_name):
     # have their own data bundle.
     return environment.get_value('FUZZ_DATA')
 
+  local_data_bundles_directory = environment.get_value('DATA_BUNDLES_DIR')
+  local_data_bundle_directory = os.path.join(local_data_bundles_directory,
+                                             data_bundle.name)
+
   if data_bundle.is_local:
     # Data bundle is on local disk, return path.
-    data_bundles_directory = environment.get_value('DATA_BUNDLES_DIR')
-    return os.path.join(data_bundles_directory, data_bundle.name)
+    return local_data_bundle_directory
 
   # This data bundle is on NFS, calculate path.
-  # Make sure that nfs directory is set.
+  # Make sure that NFS_ROOT pointing to nfs server is set. If not, use local.
   if not environment.get_value('NFS_ROOT'):
-    logs.log_error('NFS root is not set.')
-    return None
+    logs.log_warn('NFS_ROOT is not set, using local corpora directory.')
+    return local_data_bundle_directory
 
   return _get_nfs_data_bundle_path(data_bundle.name)
 
