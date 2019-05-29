@@ -13,12 +13,14 @@
 # limitations under the License.
 """Handler that uploads a testcase"""
 
+from future import standard_library
+standard_library.install_aliases()
 from builtins import object
 import ast
 import cgi
 import datetime
+import io
 import json
-import StringIO
 
 from base import external_users
 from base import tasks
@@ -105,19 +107,19 @@ def get_result(this):
   return result, params
 
 
-def _read_to_stringio(gcs_path):
-  """Return a StringIO representing a GCS object."""
+def _read_to_bytesio(gcs_path):
+  """Return a bytesio representing a GCS object."""
   data = storage.read_data(gcs_path)
   if not data:
     raise helpers.EarlyExitException('Failed to read uploaded archive.', 500)
 
-  return StringIO.StringIO(data)
+  return io.BytesIO(data)
 
 
 def guess_input_file(uploaded_file, filename):
   """Guess the main test case file from an archive."""
   for file_pattern in RUN_FILE_PATTERNS:
-    blob_reader = _read_to_stringio(uploaded_file.gcs_path)
+    blob_reader = _read_to_bytesio(uploaded_file.gcs_path)
     file_path_input = archive.get_first_file_matching(file_pattern, blob_reader,
                                                       filename)
     if file_path_input:
@@ -525,12 +527,12 @@ class UploadHandler(UploadHandlerCommon, base_handler.GcsUploadHandler):
     self.do_post()
 
 
-class NamedStringIO(StringIO.StringIO):
-  """Named StringIO."""
+class NamedBytesIO(io.BytesIO):
+  """Named bytesio."""
 
   def __init__(self, name, value):
     self.name = name
-    StringIO.StringIO.__init__(self, value)
+    io.BytesIO.__init__(self, value)
 
 
 class UploadHandlerOAuth(base_handler.Handler, UploadHandlerCommon):
@@ -547,8 +549,8 @@ class UploadHandlerOAuth(base_handler.Handler, UploadHandlerCommon):
     if not isinstance(uploaded_file, cgi.FieldStorage):
       raise helpers.EarlyExitException('File upload not found.', 400)
 
-    string_io = NamedStringIO(uploaded_file.filename,
-                              uploaded_file.file.getvalue())
+    string_io = NamedBytesIO(uploaded_file.filename,
+                             uploaded_file.file.getvalue())
     key = blobs.write_blob(string_io)
     return blobs.get_blob_info(key)
 

@@ -12,14 +12,17 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """Fuchsia utilities for handling fuzzers."""
+from __future__ import absolute_import
 
+from builtins import object
+from builtins import str
 import datetime
 import errno
 import os
 import subprocess
 import time
 
-from log import Log
+from .log import Log
 
 
 class Fuzzer(object):
@@ -125,7 +128,7 @@ class Fuzzer(object):
     artifacts = []
     try:
       lines = self.device.ls(self.data_path())
-      for this_file, _ in lines.iteritems():
+      for this_file, _ in lines.items():
         for prefix in Fuzzer.ARTIFACT_PREFIXES:
           if this_file.startswith(prefix):
             artifacts.append(this_file)

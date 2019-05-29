@@ -16,6 +16,7 @@
 from future import standard_library
 standard_library.install_aliases()
 from builtins import range
+from past.builtins import basestring
 import base64
 import bisect
 import json
@@ -25,7 +26,6 @@ import requests
 import six
 import time
 import urllib.parse
-import urlparse
 
 from base import memoize
 from base import utils
@@ -202,7 +202,7 @@ def _is_clank(url):
 
 def _is_deps(url):
   """Return bool on whether this is a DEPS url or not."""
-  return urlparse.urlparse(url).path.endswith('/DEPS')
+  return urllib.parse.urlparse(url).path.endswith('/DEPS')
 
 
 def _src_map_to_revisions_dict(src_map, default_project_name):
