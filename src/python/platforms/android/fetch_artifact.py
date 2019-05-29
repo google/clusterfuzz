@@ -126,7 +126,7 @@ def get_client():
 
   credentials = ServiceAccountCredentials.from_p12_keyfile_buffer(
       build_apiary_service_account_email,
-      io.StringIO(build_apiary_service_account_private_key),
+      io.BytesIO(build_apiary_service_account_private_key),
       scopes='https://www.googleapis.com/auth/androidbuild.internal')
   client = apiclient.discovery.build(
       'androidbuildinternal',
