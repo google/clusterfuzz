@@ -225,6 +225,35 @@ def _find_free_port():
   return port
 
 
+def wait_for_emulator_ready(proc, emulator, indicator,
+                            timeout=EMULATOR_TIMEOUT):
+  """Wait for emulator to be ready."""
+
+  def _read_thread(proc, ready_event):
+    """Thread to continuously read from the process stdout."""
+    ready = False
+    while True:
+      line = proc.stdout.readline()
+      if not line:
+        break
+
+      if not ready and indicator in line:
+        ready = True
+        ready_event.set()
+
+  # Wait for process to become ready.
+  ready_event = threading.Event()
+  thread = threading.Thread(target=_read_thread, args=(proc, ready_event))
+  thread.daemon = True
+  thread.start()
+
+  if not ready_event.wait(timeout):
+    raise RuntimeError(
+        '{} emulator did not get ready in time.'.format(emulator))
+
+  return thread
+
+
 def start_cloud_emulator(emulator, args=None, data_dir=None):
   """Start a cloud emulator."""
   ready_indicators = {
@@ -263,27 +292,7 @@ def start_cloud_emulator(emulator, args=None, data_dir=None):
   proc = subprocess.Popen(
       command, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
 
-  def _read_thread(proc, ready_event):
-    """Thread to continuously read from the process stdout."""
-    ready = False
-    while True:
-      line = proc.stdout.readline()
-      if not line:
-        break
-
-      if not ready and ready_indicators[emulator] in line:
-        ready = True
-        ready_event.set()
-
-  # Wait for process to become ready.
-  ready_event = threading.Event()
-  thread = threading.Thread(target=_read_thread, args=(proc, ready_event))
-  thread.daemon = True
-  thread.start()
-
-  if not ready_event.wait(EMULATOR_TIMEOUT):
-    raise RuntimeError(
-        '{} emulator did not get ready in time.'.format(emulator))
+  thread = wait_for_emulator_ready(proc, emulator, ready_indicators[emulator])
 
   # Set env vars.
   env_vars = subprocess.check_output([

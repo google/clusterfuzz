@@ -258,6 +258,9 @@ def main():
       default='us-central',
       help='Region for App Engine.json.')
 
+  subparsers.add_parser(
+      'integration_tests', help='Run end-to-end integration tests.')
+
   args = parser.parse_args()
 
   _setup()
