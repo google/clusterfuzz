@@ -690,8 +690,8 @@ def needs_update(revision_file, revision):
 def write_revision_to_revision_file(revision_file, revision):
   """Writes a revision to the revision file."""
   try:
-    with open(revision_file, 'w') as file_handle:
-      file_handle.write(str(revision))
+    with open(revision_file, 'wb') as file_handle:
+      file_handle.write(bytes(revision))
   except:
     logs.log_error(
         "Could not save revision to revision file '%s'" % revision_file)
