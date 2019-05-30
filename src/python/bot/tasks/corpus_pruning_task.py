@@ -218,10 +218,11 @@ class Context(object):
       raise CorpusPruningException('Failed to sync corpus to disk.')
 
     if not self.quarantine_corpus.rsync_to_disk(self.quarantine_corpus_path):
-      raise CorpusPruningException('Failed to sync quarantine corpus to disk.')
+      logs.log_error('Failed to sync quarantine corpus to disk.')
 
     if not self.shared_corpus.rsync_to_disk(self.shared_corpus_path):
-      raise CorpusPruningException('Failed to sync shared corpus to disk.')
+      logs.log_error('Failed to sync shared corpus to disk.')
+
     self._cross_pollinate_other_fuzzer_corpuses()
 
   def sync_to_gcs(self):
