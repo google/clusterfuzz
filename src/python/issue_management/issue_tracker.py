@@ -43,7 +43,7 @@ class Issue(object):
 
   @property
   def merged_into(self):
-    """The issue reporter."""
+    """The issue that this is merged into."""
     raise NotImplementedError
 
   @merged_into.setter

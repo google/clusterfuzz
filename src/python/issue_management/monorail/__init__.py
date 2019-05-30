@@ -53,7 +53,7 @@ class Issue(issue_tracker.Issue):
 
   @property
   def merged_into(self):
-    """The issue reporter."""
+    """The issue that this is merged into."""
     return self._monorail_issue.merged_into
 
   @merged_into.setter
@@ -128,4 +128,4 @@ class IssueTracker(issue_tracker.IssueTracker):
     if not monorail_issue:
       return None
 
-    return Issue(self._itm.get_issue(issue_id))
+    return Issue(monorail_issue)
