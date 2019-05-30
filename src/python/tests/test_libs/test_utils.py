@@ -225,7 +225,10 @@ def _find_free_port():
   return port
 
 
-def wait_for_emulator_ready(proc, emulator, indicator, timeout=EMULATOR_TIMEOUT,
+def wait_for_emulator_ready(proc,
+                            emulator,
+                            indicator,
+                            timeout=EMULATOR_TIMEOUT,
                             output_lines=None):
   """Wait for emulator to be ready."""
 
