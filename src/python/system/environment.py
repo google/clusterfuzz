@@ -709,9 +709,8 @@ def set_environment_parameters_from_file(file_path):
   if not os.path.exists(file_path):
     return
 
-  f = open(file_path, 'r')
-  file_data = f.read()
-  f.close()
+  with open(file_path, 'r') as f:
+    file_data = f.read()
 
   for line in file_data.splitlines():
     if line.startswith('#') or not line.strip():
