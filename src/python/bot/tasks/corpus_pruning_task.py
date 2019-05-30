@@ -218,12 +218,13 @@ class Context(object):
       raise CorpusPruningException('Failed to sync corpus to disk.')
 
     if not self.quarantine_corpus.rsync_to_disk(self.quarantine_corpus_path):
-      logs.log_error('Failed to sync quarantine corpus to disk.',
-                     fuzz_target=self.fuzz_target)
+      logs.log_error(
+          'Failed to sync quarantine corpus to disk.',
+          fuzz_target=self.fuzz_target)
 
     if not self.shared_corpus.rsync_to_disk(self.shared_corpus_path):
-      logs.log_error('Failed to sync shared corpus to disk.',
-                     fuzz_target=self.fuzz_target)
+      logs.log_error(
+          'Failed to sync shared corpus to disk.', fuzz_target=self.fuzz_target)
 
     self._cross_pollinate_other_fuzzer_corpuses()
 
