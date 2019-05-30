@@ -781,8 +781,14 @@ class FuchsiaBuild(Build):
     fuzz_target = random.choice(fuzz_targets)
     fuzz_target = str(fuzz_target[0] + '/' + fuzz_target[1])
 
-    environment.set_value('FUZZ_TARGET', fuzz_target)
-    logs.log('Extracted fuzz target ' + fuzz_target)
+    if environment.get_value('FUZZ_TARGET'):
+      logs.log('OVERRIDING RANDOM SELECTION: Extracted fuzz_target ' +
+               environment.get_value('FUZZ_TARGET'))
+    else:
+      environment.set_value('FUZZ_TARGET', fuzz_target)
+      logs.log('Extracted fuzz target ' + fuzz_target)
+
+    self._setup_application_path()
     return True
 
 

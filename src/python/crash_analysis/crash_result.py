@@ -20,6 +20,7 @@ from builtins import object
 from base import utils
 from crash_analysis import crash_analyzer
 from crash_analysis.stack_parsing import stack_analyzer
+from system import environment
 
 
 class CrashResult(object):
@@ -39,6 +40,12 @@ class CrashResult(object):
 
   def get_symbolized_data(self):
     """Compute symbolized crash data if necessary or return cached result."""
+    # TODO(flowerhack): Change here to support richer crash reports for Fuchsia.
+    # (Right now we just grab the output.)
+    if environment.platform() == 'FUCHSIA':
+      state = stack_analyzer.StackAnalyzerState()
+      state.crash_state = self.output
+      return state
     if self._symbolized_crash_data:
       return self._symbolized_crash_data
 
@@ -48,6 +55,10 @@ class CrashResult(object):
 
   def get_unsymbolized_data(self):
     """Compute unsymbolized crash data if necessary or return cached result."""
+    # TODO(flowerhack): Change here to support richer crash reports for Fuchsia.
+    # (Right now we just grab the output.)
+    if environment.platform() == 'FUCHSIA':
+      return self.output
     if self._unsymbolized_crash_data:
       return self._unsymbolized_crash_data
 
@@ -57,6 +68,10 @@ class CrashResult(object):
 
   def get_state(self, symbolized=True):
     """Return the crash state."""
+    if environment.platform() == 'FUCHSIA':
+      # TODO(flowerhack): Change here to support richer crash reports for
+      # Fuchsia. (Right now we just grab the output.)
+      return self.output
     if symbolized:
       state = self.get_symbolized_data()
     else:
@@ -66,6 +81,8 @@ class CrashResult(object):
 
   def get_stacktrace(self, symbolized=True):
     """Return the crash stacktrace."""
+    if environment.platform() == 'FUCHSIA':
+      return self.output
     if symbolized:
       state = self.get_symbolized_data()
     else:
@@ -86,9 +103,12 @@ class CrashResult(object):
       return False
 
     state = self.get_state(symbolized=False)
+    # TODO(flowerhack): Change here to support richer crash reports for Fuchsia.
+    # (Right now we just grab the output.)
+    if environment.platform() == 'FUCHSIA':
+      ignore_state = True
     if not state.strip() and not ignore_state:
       return False
-
     return True
 
   def should_ignore(self):
@@ -98,6 +118,10 @@ class CrashResult(object):
 
   def is_security_issue(self):
     """Return True if this crash is a security issue."""
+    # TODO(flowerhack): Change here to support richer crash reports for Fuchsia.
+    # (Right now we just grab the output.)
+    if environment.platform() == 'FUCHSIA':
+      return False
     state = self.get_unsymbolized_data()
     return crash_analyzer.is_security_issue(
         state.crash_stacktrace, state.crash_type, state.crash_address)

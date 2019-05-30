@@ -1285,6 +1285,10 @@ def execute_task(fuzzer_name, job_type):
   # If yes, bail out.
   logs.log('Checking for bad build.')
   crash_revision = environment.get_value('APP_REVISION')
+  # TODO(flowerhack): Remove this exceptional case once Fuchsia understands
+  # revision tracking.
+  if not crash_revision:
+    crash_revision = 0
   is_bad_build = testcase_manager.check_for_bad_build(job_type, crash_revision)
   _track_build_run_result(job_type, crash_revision, is_bad_build)
   if is_bad_build:
@@ -1336,10 +1340,21 @@ def execute_task(fuzzer_name, job_type):
     qemu_process = fuchsia.device.qemu_setup()
   # Run the fuzzer to generate testcases. If error occurred while trying
   # to run the fuzzer, bail out.
-  (error_occurred, testcase_file_paths, generated_testcase_count,
-   sync_corpus_directory,
-   fuzzer_metadata) = run_fuzzer(fuzzer, fuzzer_directory, testcase_directory,
-                                 data_directory, testcase_count)
+  if platform != 'FUCHSIA':
+    (error_occurred, testcase_file_paths, generated_testcase_count,
+     sync_corpus_directory, fuzzer_metadata) = run_fuzzer(
+         fuzzer, fuzzer_directory, testcase_directory, data_directory,
+         testcase_count)
+  if platform == 'FUCHSIA':
+    error_occurred = False
+    testcase_file_paths = [
+        fuzzer_name, fuzzer_name, fuzzer_name, fuzzer_name, fuzzer_name
+    ]
+    generated_testcase_count = 5
+    sync_corpus_directory = False
+    fuzzer_metadata = {}
+    fuzzer_metadata['fuzzer_binary_name'] = fuzzer_name
+
   if error_occurred:
     return
 
@@ -1414,8 +1429,11 @@ def execute_task(fuzzer_name, job_type):
       break
 
     while thread_index < max_threads and test_number < len(testcase_file_paths):
-      testcase_file_path = testcase_file_paths[test_number]
-      gestures = testcases_metadata[testcase_file_path]['gestures']
+      if platform == 'FUCHSIA':
+        gestures = ''
+      else:
+        testcase_file_path = testcase_file_paths[test_number]
+        gestures = testcases_metadata[testcase_file_path]['gestures']
 
       env_copy = environment.copy()
       thread = process_handler.get_process()(
@@ -1537,6 +1555,7 @@ def execute_task(fuzzer_name, job_type):
 
   upload_testcase_run_stats(fuzzer_name, fully_qualified_fuzzer_name, job_type,
                             crash_revision, testcase_file_paths)
+
   upload_job_run_stats(fully_qualified_fuzzer_name, job_type, crash_revision,
                        time.time(), new_crash_count, known_crash_count,
                        generated_testcase_count, processed_groups)
