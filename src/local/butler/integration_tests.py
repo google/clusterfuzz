@@ -28,16 +28,22 @@ RUN_SERVER_TIMEOUT = 30
 def execute(_):
   """Run integration tests."""
   try:
+    lines = []
     server = common.execute_async(
         'python -u butler.py run_server --skip-install-deps')
     test_utils.wait_for_emulator_ready(
         server,
         'run_server',
         'Starting module "default" running at:',
-        timeout=RUN_SERVER_TIMEOUT)
+        timeout=RUN_SERVER_TIMEOUT,
+        output_lines=lines)
 
     request = urllib.request.urlopen('http://' + constants.DEV_APPSERVER_HOST)
     request.read()  # Raises exception on error
+  except Exception:
+    print('Logs:')
+    print(''.join(lines))
+    raise
   finally:
     server.terminate()
 
