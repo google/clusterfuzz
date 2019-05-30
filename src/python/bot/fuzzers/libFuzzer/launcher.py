@@ -747,7 +747,8 @@ def main(argv):
     return
 
   # If we don't have a corpus, then that means this is not a fuzzing run.
-  if not corpus_directory:
+  # TODO(flowerhack): Implement this to properly load past testcases.
+  if not corpus_directory and environment.platform() != 'FUCHSIA':
     load_testcase_if_exists(runner, testcase_file_path, fuzzer_name,
                             use_minijail, arguments)
     return
@@ -787,9 +788,13 @@ def main(argv):
   new_testcases_directory = create_corpus_directory('new')
 
   # Get list of corpus directories.
-  corpus_directories = get_corpus_directories(
-      corpus_directory, new_testcases_directory, fuzzer_path,
-      fuzzing_strategies, strategy_pool, minijail_chroot)
+  # TODO(flowerhack): Implement this to handle corpus sync'ing.
+  if environment.platform() == 'FUCHSIA':
+    corpus_directories = []
+  else:
+    corpus_directories = get_corpus_directories(
+        corpus_directory, new_testcases_directory, fuzzer_path,
+        fuzzing_strategies, minijail_chroot)
 
   # Bind corpus directories in minijail.
   if use_minijail:
@@ -834,6 +839,8 @@ def main(argv):
   if (strategy_pool.do_strategy(strategy.MUTATOR_PLUGIN_STRATEGY) and
       use_mutator_plugin(target_name, extra_env, minijail_chroot)):
     fuzzing_strategies.append(strategy.MUTATOR_PLUGIN_STRATEGY.name)
+
+  logs.log("We hit the fuzzer!")
 
   # Execute the fuzzer binary with original arguments.
   fuzz_result = runner.fuzz(
@@ -963,8 +970,10 @@ def main(argv):
 
   # Get corpus size after merge. This removes the duplicate units that were
   # created during this fuzzing session.
-  stat_overrides['corpus_size'] = shell.get_directory_file_count(
-      corpus_directory)
+  # TODO(flowerhack): Remove this workaround once we can handle corpus sync.
+  if environment.platform() != 'FUCHSIA':
+    stat_overrides['corpus_size'] = shell.get_directory_file_count(
+        corpus_directory)
 
   # Delete all corpus directories except for the main one. These were temporary
   # directories to store new testcase mutations and have already been merged to

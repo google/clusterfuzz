@@ -123,7 +123,7 @@ def qemu_setup():
   environment.set_value('FUCHSIA_PKEY_PATH', pkey_path)
 
   # Finally, launch QEMU.
-  print('Running QEMU. Command: ' + qemu_path + ' ' + str(qemu_args))
+  logs.log('Running QEMU. Command: ' + qemu_path + ' ' + str(qemu_args))
   qemu_process = new_process.ProcessRunner(qemu_path, qemu_args)
   qemu_popen = qemu_process.run(stdout=subprocess.PIPE, stderr=subprocess.PIPE)
   return qemu_popen

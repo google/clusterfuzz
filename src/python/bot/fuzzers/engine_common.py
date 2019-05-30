@@ -119,6 +119,9 @@ def find_fuzzer_path(build_directory, fuzzer_name):
           filename == fuzzer_filename):
         return os.path.join(root, filename)
 
+  if environment.platform() == 'FUCHSIA':
+    return fuzzer_name
+
   logs.log_warn('Fuzzer: %s not found in build_directory: %s.' %
                 (fuzzer_name, build_directory))
   return None

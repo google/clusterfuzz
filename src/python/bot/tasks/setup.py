@@ -36,7 +36,6 @@ from google_cloud_utils import storage
 from metrics import fuzzer_logs
 from metrics import logs
 from platforms import android
-from platforms import fuchsia
 from system import archive
 from system import environment
 from system import shell
@@ -156,9 +155,6 @@ def setup_testcase(testcase):
   # one on the device.
   if environment.platform() == 'ANDROID':
     _copy_testcase_to_device_and_setup_environment(testcase, testcase_file_path)
-
-  if environment.platform() == 'FUCHSIA':
-    fuchsia.device.copy_testcase_to_device(testcase_file_path)
 
   # Push testcases to worker.
   if environment.is_trusted_host():
@@ -603,7 +599,9 @@ def is_directory_on_nfs(data_bundle_directory):
 
 def archive_testcase_and_dependencies_in_gcs(resource_list, testcase_path):
   """Archive testcase and its dependencies, and store in blobstore."""
-  if not os.path.exists(testcase_path):
+  # TODO(flowerhack): Once we teach CF to properly find Fuchsia testcases,
+  # update this flow.
+  if not os.path.exists(testcase_path) and environment.platform() != 'FUCHSIA':
     logs.log_error('Unable to find testcase %s.' % testcase_path)
     return None, None, None, None
 
@@ -617,23 +615,27 @@ def archive_testcase_and_dependencies_in_gcs(resource_list, testcase_path):
 
   # Add resource dependencies based on testcase path. These include
   # stuff like extensions directory, dependency files, etc.
-  resource_list.extend(
-      testcase_manager.get_resource_dependencies(testcase_path))
+  # TODO(flowerhack): *Will* Fuchsia ever need any resource dependencies?
+  if environment.platform() != 'FUCHSIA':
+    resource_list.extend(
+        testcase_manager.get_resource_dependencies(testcase_path))
 
   # Filter out duplicates, directories, and files that do not exist.
   resource_list = utils.filter_file_list(resource_list)
 
   logs.log('Testcase and related files :\n%s' % str(resource_list))
 
-  if len(resource_list) <= 1:
+  if len(resource_list) <= 1 and environment.platform() != 'FUCHSIA':
     # If this does not have any resources, just save the testcase.
+    # TODO(flowerhack): Update this when we teach CF how to download testcases.
     try:
       file_handle = open(testcase_path, 'rb')
     except IOError:
       logs.log_error('Unable to open testcase %s.' % testcase_path)
       return None, None, None, None
-  else:
+  elif environment.platform() != 'FUCHSIA':
     # If there are resources, create an archive.
+    # TODO(flowerhack): *Will* Fuchsia ever need resource dependencies?
 
     # Find the common root directory for all of the resources.
     # Assumption: resource_list[0] is the testcase path.
@@ -678,8 +680,13 @@ def archive_testcase_and_dependencies_in_gcs(resource_list, testcase_path):
     archived = True
     absolute_filename = testcase_path[base_len:]
 
-  fuzzed_key = blobs.write_blob(file_handle)
-  file_handle.close()
+  if environment.platform() != 'FUCHSIA':
+    # TODO(flowerhack): When CF learns to find Fuchsia testcase_paths, update
+    # this accordingly.
+    fuzzed_key = blobs.write_blob(file_handle)
+    file_handle.close()
+  else:
+    fuzzed_key = testcase_path
 
   # Don't need the archive after writing testcase to blobstore.
   if zip_path:

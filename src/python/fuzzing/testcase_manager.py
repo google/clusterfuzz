@@ -35,6 +35,7 @@ from system import archive
 from system import environment
 from system import process_handler
 from system import shell
+import tempfile
 
 # Testcase filename prefixes and suffixes.
 CRASH_PREFIX = 'crash-'
@@ -377,6 +378,10 @@ def convert_dependency_url_to_local_path(url):
 
 def _get_testcase_time(testcase_path):
   """Returns the timestamp of a testcase."""
+  # TODO(flowerhack): When we teach CF to find Fuchsia testcase paths,
+  # change this.
+  if environment.platform() == 'FUCHSIA':
+    return datetime.datetime.utcnow()
   stats = fuzzer_stats.TestcaseRun.read_from_disk(testcase_path)
   if stats:
     return datetime.datetime.utcfromtimestamp(float(stats.timestamp))
@@ -390,8 +395,15 @@ def upload_testcase(testcase_path):
   if not fuzz_logs_bucket:
     return
 
-  with open(testcase_path, 'rb') as file_handle:
-    testcase_contents = file_handle.read()
+  # TODO(flowerhack): When we teach CF to find Fuchsia testcase paths,
+  # remove this tempfile *and* the try/except.
+  if environment.platform() == 'FUCHSIA':
+    testcase_path = tempfile.TemporaryFile()
+  try:
+    with open(testcase_path, 'rb') as file_handle:
+      testcase_contents = file_handle.read()
+  except:
+    testcase_contents = "testcase contents"
 
   # This matches the time of the log file.
   time = _get_testcase_time(testcase_path)
@@ -437,6 +449,10 @@ def run_testcase_and_return_result_in_queue(crash_queue,
     # Run testcase and check whether a crash occurred or not.
     return_code, crash_time, output = run_testcase(thread_index, file_path,
                                                    gestures, env_copy)
+    # TODO(flowerhack): Update this once Fuchsia knows how to properly extract
+    # crash time?
+    if crash_time is None:
+      crash_time = 0
 
     # Pull testcase directory to host to get any stats files.
     if environment.is_trusted_host():
@@ -472,6 +488,8 @@ def run_testcase_and_return_result_in_queue(crash_queue,
       # correlate it with (not upload_output).
       if upload_output:
         upload_testcase(file_path)
+    else:
+      logs.log("Apparently is_crash was false?")
 
     if upload_output:
       # Include full output for uploaded logs (crash output, merge output, etc).
@@ -855,7 +873,9 @@ def get_command_line_for_application(file_to_run='',
                                           testcase_file_url)
 
   # TODO(flowerhack): If we'd like blackbox fuzzing support for Fuchsia, here's
-  # where to add in our app's launch command.
+  # where to add in our app's launch command, instead of this placeholder.
+  if plt == 'FUCHSIA':
+    command += ' dummy_fuzzer_name'
 
   # Decide which directory we will run the application from.
   # We are using |app_directory| since it helps to locate pdbs
