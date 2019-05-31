@@ -611,8 +611,17 @@ def terminate_processes_matching_names(match_strings, kill=False):
       terminate_process(process_info['pid'], kill)
 
 
-def terminate_processes_matching_cmd_line(match_strings, kill=False):
+def terminate_processes_matching_cmd_line(match_strings,
+                                          kill=False,
+                                          exclude_strings=None):
   """Terminates processes matching particular command line (case sensitive)."""
+  if exclude_strings is None:
+    # By default, do not terminate processes containing butler.py. This is
+    # important so that the reproduce tool does not terminate itself, as the
+    # rest of its command line may contain strings we usually terminate such
+    # as paths to build directories.
+    exclude_strings = ['butler.py']
+
   if isinstance(match_strings, basestring):
     match_strings = [match_strings]
 
@@ -627,4 +636,5 @@ def terminate_processes_matching_cmd_line(match_strings, kill=False):
       continue
 
     if any(x in process_path for x in match_strings):
-      terminate_process(process_info['pid'], kill)
+      if not any([x in process_path for x in exclude_strings]):
+        terminate_process(process_info['pid'], kill)

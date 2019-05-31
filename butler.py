@@ -258,6 +258,13 @@ def main():
       default='us-central',
       help='Region for App Engine.json.')
 
+  parser_reproduce = subparsers.add_parser(
+      'reproduce', help='Reproduce a crash or error from a test case.')
+  parser_reproduce.add_argument(
+      '--testcase', type=int, required=True, help='Testcase ID.')
+  parser_reproduce.add_argument(
+      '--build-dir', type=str, required=True, help='Build directory.')
+
   args = parser.parse_args()
 
   _setup()
