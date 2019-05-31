@@ -11,21 +11,25 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""Android init scripts."""
+"""Wifi related functions."""
 
-from bot.init_scripts import init_runner
-from platforms import android
+from . import adb
 
 
-def run():
-  """Run Android initialization."""
-  init_runner.run()
+def disable():
+  """Disable wifi."""
+  adb.run_shell_command(['svc', 'wifi', 'disable'])
 
-  # Check if we need to reflash device to latest build.
-  android.device.flash_to_latest_build_if_needed()
 
-  # Make sure that device is in a good condition before we move forward.
-  android.adb.wait_until_fully_booted()
+def enable():
+  """Enable wifi."""
+  adb.run_shell_command(['svc', 'wifi', 'enable'])
 
-  # Wait until battery charges to a minimum level and temperature threshold.
-  android.battery.wait_until_good_state()
+
+def disable_airplane_mode():
+  """Disable airplane mode."""
+  adb.run_shell_command(['settings', 'put', 'global', 'airplane_mode_on', '0'])
+  adb.run_shell_command([
+      'am', 'broadcast', '-a', 'android.intent.action.AIRPLANE_MODE', '--ez',
+      'state', 'false'
+  ])

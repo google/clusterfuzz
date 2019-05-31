@@ -31,6 +31,7 @@ from datastore import data_types
 from google_cloud_utils import blobs
 from metrics import logs
 from platforms.android import adb
+from platforms.android import constants
 from protos import process_state_pb2
 from system import environment
 from system import process_handler
@@ -426,14 +427,14 @@ def get_crash_info(output):
       # so we want to search both the original directory and the one to which
       # the minidumps should later be copied.
       device_directories_to_search = [
-          adb.DEVICE_CRASH_DUMPS_DIR,
+          constants.CRASH_DUMPS_DIR,
           os.path.dirname(line.strip())
       ]
       device_minidump_search_paths = []
       device_minidump_mime_path = None
 
       for device_directory in device_directories_to_search:
-        device_minidump_mime_potential_paths = adb.run_adb_shell_command(
+        device_minidump_mime_potential_paths = adb.run_shell_command(
             ['ls', '"%s"' % device_directory], root=True).splitlines()
         device_minidump_search_paths += device_minidump_mime_potential_paths
 
@@ -464,7 +465,7 @@ def get_crash_info(output):
       minidump_mime_filename = '%s.mime' % minidump_mime_filename_base
       local_minidump_mime_path = os.path.join(crash_stacks_directory,
                                               minidump_mime_filename)
-      adb.run_adb_command([
+      adb.run_command([
           'pull',
           '"%s"' % device_minidump_mime_path, local_minidump_mime_path
       ])

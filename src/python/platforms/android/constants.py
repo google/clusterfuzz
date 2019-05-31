@@ -11,21 +11,8 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""Android init scripts."""
+"""Common constants."""
 
-from bot.init_scripts import init_runner
-from platforms import android
+CRASH_DUMPS_DIR = '/sdcard/crash-reports'
 
-
-def run():
-  """Run Android initialization."""
-  init_runner.run()
-
-  # Check if we need to reflash device to latest build.
-  android.device.flash_to_latest_build_if_needed()
-
-  # Make sure that device is in a good condition before we move forward.
-  android.adb.wait_until_fully_booted()
-
-  # Wait until battery charges to a minimum level and temperature threshold.
-  android.battery.wait_until_good_state()
+DEVICE_TESTCASES_DIR = '/sdcard/fuzzer-testcases'

@@ -18,7 +18,6 @@ import tempfile
 
 from base import utils
 from platforms.android import adb
-from system import environment
 from system import shell
 from tests.test_libs import android_helpers
 from tests.test_libs import helpers as test_helpers
@@ -204,49 +203,6 @@ class WaitForDeviceTest(android_helpers.AndroidTest):
     """Ensure that the function works correctly when a device is connected."""
     adb.wait_for_device()
     self.assertEqual(adb.get_device_state(), 'device')
-
-
-class IsPackageInstalledTest(android_helpers.AndroidTest):
-  """Tests is_package_installed."""
-
-  def test_nonexistent_package_not_installed(self):
-    """Ensure that a non-existent package is not installed."""
-    self.assertFalse(adb.is_package_installed('non.existent.package'))
-
-  def test_partial_package_name_not_installed(self):
-    """Test that com.google is not recognized as an installed package."""
-    self.assertFalse(adb.is_package_installed('com.google'))
-
-  def test_package_installed(self):
-    """Ensure that gms (which should always be available) is installed."""
-    self.assertTrue(adb.is_package_installed('com.google.android.gms'))
-
-
-class GetPackageNameTest(android_helpers.AndroidTest):
-  """Tests get_package_name."""
-
-  def setUp(self):
-    super(GetPackageNameTest, self).setUp()
-
-    root_dir = environment.get_value('ROOT_DIR')
-    self.test_apk_path = os.path.join(root_dir, 'resources', 'platform',
-                                      'android', 'wifi_util.apk')
-    self.test_apk_pkg_name = 'com.android.tradefed.utils.wifi'
-
-  def test_pkg_name_in_env(self):
-    """Test package name already set in |PKG_NAME| env."""
-    environment.set_value('PKG_NAME', 'a.b.c')
-    self.assertEqual(adb.get_package_name(), 'a.b.c')
-
-  def test_apk_path_in_app_path_env(self):
-    """Test apk path set in |APP_PATH| env variable."""
-    environment.set_value('APP_PATH', self.test_apk_path)
-    self.assertEqual(adb.get_package_name(), self.test_apk_pkg_name)
-
-  def test_apk_path_in_arg(self):
-    """Test apk path passed as argument."""
-    self.assertEqual(
-        adb.get_package_name(self.test_apk_path), self.test_apk_pkg_name)
 
 
 class ResetUsbTest(android_helpers.AndroidTest):
