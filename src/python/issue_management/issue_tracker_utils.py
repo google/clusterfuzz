@@ -15,7 +15,7 @@
 
 from datastore import data_types
 from datastore import ndb_utils
-from issue_management.issue_tracker_manager import IssueTrackerManager
+from issue_management.monorail.issue_tracker_manager import IssueTrackerManager
 
 ISSUE_TRACKER_MANAGERS = {}
 ISSUE_TRACKER_URL = 'https://bugs.chromium.org/p/{project}/issues/detail?id='

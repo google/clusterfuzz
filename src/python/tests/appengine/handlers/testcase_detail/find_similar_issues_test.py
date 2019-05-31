@@ -19,7 +19,7 @@ import webtest
 
 from datastore import data_types
 from handlers.testcase_detail import find_similar_issues
-from issue_management import issue
+from issue_management.monorail import issue
 from tests.test_libs import helpers as test_helpers
 from tests.test_libs import test_utils
 

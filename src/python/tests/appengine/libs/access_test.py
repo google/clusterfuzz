@@ -17,8 +17,8 @@ import mock
 import unittest
 
 from datastore import data_types
-from issue_management import issue
-from issue_management import issue_tracker_manager
+from issue_management.monorail import issue
+from issue_management.monorail import issue_tracker_manager
 from libs import access
 from libs import auth
 from libs import helpers
@@ -223,7 +223,7 @@ class CanUserAccessTestcaseTest(unittest.TestCase):
         'libs.helpers.get_user_email',
         'config.db_config.get',
         'issue_management.issue_tracker_utils.get_issue_tracker_manager',
-        'issue_management.issue_tracker_manager.IssueTrackerManager',
+        'issue_management.monorail.issue_tracker_manager.IssueTrackerManager',
     ])
     itm = issue_tracker_manager.IssueTrackerManager('test')
     self.mock.get_issue_tracker_manager.return_value = itm

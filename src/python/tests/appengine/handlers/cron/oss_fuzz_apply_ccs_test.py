@@ -22,7 +22,7 @@ import webtest
 from datastore import data_types
 from handlers.cron import oss_fuzz_apply_ccs
 from issue_management import issue_filer
-from issue_management.issue import Issue
+from issue_management.monorail.issue import Issue
 from tests.test_libs import helpers as test_helpers
 from tests.test_libs import test_utils
 
