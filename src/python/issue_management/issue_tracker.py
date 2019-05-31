@@ -94,7 +94,7 @@ class Issue(object):
 
   @property
   def actions(self):
-    """Get the issue comments."""
+    """Get the issue actions."""
     raise NotImplementedError
 
   def save(self, notify=True):

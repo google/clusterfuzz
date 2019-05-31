@@ -104,7 +104,7 @@ class Issue(issue_tracker.Issue):
 
   @property
   def actions(self):
-    """Get the issue comments."""
+    """Get the issue actions."""
     return (Action(comment) for comment in self._monorail_issue.get_comments())
 
   def save(self, notify=True):
