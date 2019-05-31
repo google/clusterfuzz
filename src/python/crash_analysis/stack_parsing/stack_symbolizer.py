@@ -41,8 +41,8 @@ from base import utils
 from google_cloud_utils import storage
 from metrics import logs
 from platforms.android import adb
-from platforms.android import device
 from platforms.android import fetch_artifact
+from platforms.android import settings
 from system import archive
 from system import environment
 from system import shell
@@ -577,7 +577,7 @@ def filter_binary_path(binary_path):
     # Try pulling in the binary directly from the device into the
     # system library cache directory.
     local_binary_path = os.path.join(symbols_directory, binary_filename)
-    adb.run_adb_command('pull %s %s' % (binary_path, local_binary_path))
+    adb.run_command('pull %s %s' % (binary_path, local_binary_path))
     if os.path.exists(local_binary_path):
       return local_binary_path
 
@@ -655,11 +655,11 @@ def download_system_symbols_if_needed(symbols_directory):
     return
 
   # We have archived symbols for google builds only.
-  if not device.google_device():
+  if not settings.is_google_device():
     return
 
   # Get the build fingerprint parameters.
-  build_params = device.get_build_parameters()
+  build_params = settings.get_build_parameters()
   if not build_params:
     logs.log_error('Unable to determine build parameters.')
     return

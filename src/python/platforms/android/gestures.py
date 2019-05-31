@@ -46,7 +46,7 @@ def run_gestures(gestures, *_):
     return
 
   monkey_seed = gestures[0].split(',')[-1]
-  adb.run_adb_shell_command([
+  adb.run_shell_command([
       'monkey', '-p', package_name, '-s', monkey_seed, '--throttle',
       str(MONKEY_THROTTLE_DELAY), '--ignore-security-exceptions',
       str(NUM_MONKEY_EVENTS)

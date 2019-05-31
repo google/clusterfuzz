@@ -28,14 +28,18 @@ try:
 except ImportError:
   from pipes import quote
 
+from . import adb
+from . import app
+from . import constants
+from . import fetch_artifact
 from . import logger
+from . import settings
+from . import wifi
 from base import dates
 from base import persistent_cache
 from config import db_config
 from datastore import locks
 from metrics import logs
-from platforms.android import adb
-from platforms.android import fetch_artifact
 from system import archive
 from system import environment
 from system import shell
@@ -46,10 +50,6 @@ ADD_TEST_ACCOUNT_PKG_NAME = 'com.google.android.tests.utilities'
 ADD_TEST_ACCOUNT_CALL_PATH = '%s/.AddAccount' % ADD_TEST_ACCOUNT_PKG_NAME
 ADD_TEST_ACCOUNT_TIMEOUT = 20
 ASAN_SCRIPT_TIMEOUT = 15 * 60
-BUILD_FINGERPRINT_REGEX = re.compile(
-    r'(?P<vendor>.+)\/(?P<target>.+)'
-    r'\/(?P<flavor>.+)\/(?P<name_name>.+)'
-    r'\/(?P<build_id>.+):(?P<type>.+)\/(?P<keys>.+)')
 BUILD_PROP_PATH = '/system/build.prop'
 BUILD_PROP_BACKUP_PATH = BUILD_PROP_PATH + '.bak'
 BUILD_PROPERTIES = {
@@ -106,7 +106,6 @@ SANITIZER_TOOL_TO_FILE_MAPPINGS = {
     'ASAN': 'asan.options',
 }
 SCREEN_LOCK_SEARCH_STRING = 'mShowingLockscreen=true'
-SCREEN_ON_SEARCH_STRING = 'Display Power: state=ON'
 SYSTEM_WEBVIEW_APK_NAME = 'SystemWebViewGoogle.apk'
 SYSTEM_WEBVIEW_DIRS = [
     '/system/app/webview',
@@ -117,15 +116,7 @@ SYSTEM_WEBVIEW_VMSIZE_BYTES = 250 * 1000 * 1000
 WIFI_UTIL_PACKAGE_NAME = 'com.android.tradefed.utils.wifi'
 WIFI_UTIL_CALL_PATH = '%s/.WifiUtil' % WIFI_UTIL_PACKAGE_NAME
 
-BATTERY_CHARGE_INTERVAL = 30 * 60  # 0.5 hour.
-BATTERY_CHECK_INTERVAL = 15 * 60  # 15 minutes.
-EXPECTED_BATTERY_LEVEL = 80  # A percentage.
-EXPECTED_BATTERY_TEMPERATURE = 35.0  # Degrees Celsius.
-LOW_BATTERY_LEVEL_THRESHOLD = 40  # A percentage.
-MAX_BATTERY_TEMPERATURE_THRESHOLD = 37.0  # Don't change this or battery swells.
-
 BUILD_PROP_MD5_KEY = 'android_build_prop_md5'
-LAST_BATTERY_CHECK_TIME_KEY = 'android_last_battery_check'
 LAST_FLASH_BUILD_KEY = 'android_last_flash'
 LAST_FLASH_TIME_KEY = 'android_last_flash_time'
 LAST_TEST_ACCOUNT_CHECK_KEY = 'android_last_test_account_check'
@@ -152,15 +143,15 @@ def add_test_accounts_if_needed():
   adb.run_as_root()
   configure_wifi_and_airplane_mode(wifi_enabled=True)
 
-  if not adb.is_package_installed(ADD_TEST_ACCOUNT_PKG_NAME):
+  if not app.is_installed(ADD_TEST_ACCOUNT_PKG_NAME):
     logs.log('Installing helper apk for adding test account.')
     android_directory = environment.get_platform_resources_directory()
     add_test_account_apk_path = os.path.join(android_directory,
                                              ADD_TEST_ACCOUNT_APK_NAME)
-    adb.install_package(add_test_account_apk_path)
+    app.install(add_test_account_apk_path)
 
   logs.log('Trying to add test account.')
-  output = adb.run_adb_shell_command(
+  output = adb.run_shell_command(
       'am instrument -e account %s -e password %s -w %s' %
       (test_account_email, test_account_password, ADD_TEST_ACCOUNT_CALL_PATH),
       timeout=ADD_TEST_ACCOUNT_TIMEOUT)
@@ -178,7 +169,7 @@ def clear_testcase_directory():
   adb.remove_directory(adb.DEVICE_DOWNLOAD_DIR, recreate=True)
 
   # Cleanup testcase directory.
-  adb.remove_directory(adb.DEVICE_TESTCASES_DIR, recreate=True)
+  adb.remove_directory(constants.DEVICE_TESTCASES_DIR, recreate=True)
 
 
 def configure_device_settings():
@@ -212,7 +203,7 @@ def configure_device_settings():
   # The following line filled with magic numbers will set media volume to 0
   # 3 is the 3rd function in the IAudioServiceList and the following
   # i32's specify 32 bit integer arguments to the function
-  adb.run_adb_shell_command('service call audio 3 i32 3 i32 0 i32 1')
+  adb.run_shell_command('service call audio 3 i32 3 i32 0 i32 1')
 
   # FIXME: We shouldn't need repeat invocation of this. We need to do this
   # in case previous invocations of any of the below commands failed.
@@ -225,7 +216,7 @@ def configure_device_settings():
   adb.update_key_in_sqlite_db(LOCKSCREEN_DB, LOCKSCREEN_TABLE_NAME,
                               'lockscreen.password_type_alternate', 0)
 
-  adb.disable_packages_that_crash_with_gestures()
+  app.disable_packages_that_crash_with_gestures()
 
   # Create a list of property name and names to be used in local.prop file.
   local_properties_settings_list = copy.deepcopy(LOCAL_PROP_SETTINGS)
@@ -239,78 +230,14 @@ def configure_device_settings():
   adb.write_data_to_file(local_properties_file_contents, LOCAL_PROP_PATH)
 
 
-def wait_for_battery_charge_if_needed():
-  """Check device battery and make sure it is charged beyond minimum level and
-  temperature thresholds."""
-  # Battery levels are not applicable on GCE.
-  if adb.is_gce():
-    return
-
-  # Make sure device is online.
-  adb.wait_for_device()
-
-  # Skip battery check if done recently.
-  last_battery_check_time = persistent_cache.get_value(
-      LAST_BATTERY_CHECK_TIME_KEY,
-      constructor=datetime.datetime.utcfromtimestamp)
-  if last_battery_check_time and not dates.time_has_expired(
-      last_battery_check_time, seconds=BATTERY_CHECK_INTERVAL):
-    return
-
-  # Initialize variables.
-  battery_level_threshold = environment.get_value('LOW_BATTERY_LEVEL_THRESHOLD',
-                                                  LOW_BATTERY_LEVEL_THRESHOLD)
-  battery_temperature_threshold = environment.get_value(
-      'MAX_BATTERY_TEMPERATURE_THRESHOLD', MAX_BATTERY_TEMPERATURE_THRESHOLD)
-  device_restarted = False
-
-  while 1:
-    battery_information = get_battery_information()
-    if battery_information is None:
-      logs.log_error('Failed to get battery information, skipping check.')
-      return
-
-    battery_level = battery_information['level']
-    battery_temperature = battery_information['temperature']
-    logs.log('Battery information: level (%d%%), temperature (%.1f celsius).' %
-             (battery_level, battery_temperature))
-    if (battery_level >= battery_level_threshold and
-        battery_temperature <= battery_temperature_threshold):
-      persistent_cache.set_value(LAST_BATTERY_CHECK_TIME_KEY, time.time())
-      return
-
-    logs.log('Battery in bad battery state, putting device in sleep mode.')
-
-    if not device_restarted:
-      reboot()
-      adb.disable_wifi()
-      device_restarted = True
-
-    # Change thresholds to expected levels (only if they were below minimum
-    # thresholds).
-    if battery_level < battery_level_threshold:
-      battery_level_threshold = EXPECTED_BATTERY_LEVEL
-    if battery_temperature > battery_temperature_threshold:
-      battery_temperature_threshold = EXPECTED_BATTERY_TEMPERATURE
-
-    # Stopping shell should help with shutting off a lot of services that would
-    # otherwise use up the battery. However, we need to turn it back on to get
-    # battery status information. Also, turn off display explicitly (needed for
-    # Nexus 9s).
-    turn_off_display_if_needed()
-    adb.stop_shell()
-    time.sleep(BATTERY_CHARGE_INTERVAL)
-    adb.start_shell()
-
-
 def configure_wifi_and_airplane_mode(wifi_enabled=False):
   """Configure airplane mode and wifi on device."""
   # Airplane mode should be disabled in all cases. This can get inadvertently
   # turned on via gestures.
-  adb.disable_airplane_mode()
+  wifi.disable_airplane_mode()
 
   # Need to disable wifi before changing configuration.
-  adb.disable_wifi()
+  wifi.disable()
 
   # Check if wifi needs to be enabled. If not, then no need to modify the
   # supplicant file.
@@ -330,15 +257,15 @@ def configure_wifi_and_airplane_mode(wifi_enabled=False):
     wifi_ssid = config.wifi_ssid
     wifi_password = config.wifi_password or ''
 
-  adb.enable_wifi()
+  wifi.enable()
 
   # Wait 2 seconds to allow the wifi to be enabled.
   time.sleep(2)
 
   wifi_util_apk_path = os.path.join(
       environment.get_platform_resources_directory(), 'wifi_util.apk')
-  if not adb.is_package_installed(WIFI_UTIL_PACKAGE_NAME):
-    adb.install_package(wifi_util_apk_path)
+  if not app.is_installed(WIFI_UTIL_PACKAGE_NAME):
+    app.install(wifi_util_apk_path)
 
   connect_wifi_command = (
       'am instrument -e method connectToNetwork -e ssid {ssid} ')
@@ -346,106 +273,13 @@ def configure_wifi_and_airplane_mode(wifi_enabled=False):
     connect_wifi_command += '-e psk {password} '
   connect_wifi_command += '-w {call_path}'
 
-  output = adb.run_adb_shell_command(
+  output = adb.run_shell_command(
       connect_wifi_command.format(
           ssid=quote(wifi_ssid),
           password=quote(wifi_password),
           call_path=WIFI_UTIL_CALL_PATH))
   if 'result=true' not in output:
     logs.log_error('Failed to connect to wifi.', output=output)
-
-
-def get_battery_information():
-  """Return device's battery level."""
-  output = adb.run_adb_shell_command(['dumpsys', 'battery'])
-
-  # Get battery level.
-  m_battery_level = re.match(r'.*level: (\d+).*', output, re.DOTALL)
-  if not m_battery_level:
-    logs.log_error('Error occurred while getting battery status.')
-    return None
-
-  # Get battery temperature.
-  m_battery_temperature = re.match(r'.*temperature: (\d+).*', output, re.DOTALL)
-  if not m_battery_temperature:
-    logs.log_error('Error occurred while getting battery temperature.')
-    return None
-
-  level = int(m_battery_level.group(1))
-  temperature = float(m_battery_temperature.group(1)) / 10.0
-  return {'level': level, 'temperature': temperature}
-
-
-def get_build_fingerprint():
-  """Return build's fingerprint."""
-  return adb.get_property('ro.build.fingerprint')
-
-
-def get_build_flavor():
-  """Return the build flavor."""
-  return adb.get_property('ro.build.flavor')
-
-
-def get_build_parameters():
-  """Return build_id, target and type from the device's fingerprint"""
-  build_fingerprint = environment.get_value('BUILD_FINGERPRINT',
-                                            get_build_fingerprint())
-  build_fingerprint_match = BUILD_FINGERPRINT_REGEX.match(build_fingerprint)
-  if not build_fingerprint_match:
-    return None
-
-  build_id = build_fingerprint_match.group('build_id')
-  target = build_fingerprint_match.group('target')
-  build_type = build_fingerprint_match.group('type')
-  return {'build_id': build_id, 'target': target, 'type': build_type}
-
-
-def get_build_version():
-  """Return the build version of the system as a character.
-  K = Kitkat, L = Lollipop, M = Marshmellow, MASTER = Master.
-  """
-  build_version = adb.get_property('ro.build.id')
-  if not build_version:
-    return None
-
-  if build_version == 'MASTER':
-    return build_version
-
-  match = re.match('^([A-Z])', build_version)
-  if not match:
-    return None
-
-  return match.group(1)
-
-
-def get_codename():
-  """Return the device codename."""
-  serial = environment.get_value('ANDROID_SERIAL')
-  devices_output = adb.run_adb_command(['devices', '-l'])
-
-  serial_pattern = r'(^|\s){serial}\s'.format(serial=re.escape(serial))
-  serial_regex = re.compile(serial_pattern)
-
-  for line in devices_output.splitlines():
-    values = line.strip().split()
-
-    if not serial_regex.search(line):
-      continue
-
-    for value in values:
-      if not value.startswith('device:'):
-        continue
-      device_codename = value.split(':')[-1]
-      if device_codename:
-        return device_codename
-
-  # Unable to get code name.
-  return ''
-
-
-def get_cpu_arch():
-  """Return cpu architecture."""
-  return adb.get_property('ro.product.cpu.abi')
 
 
 def get_kernel_log_content():
@@ -457,44 +291,16 @@ def get_kernel_log_content():
   return kernel_log_content
 
 
-def get_platform_id():
-  """Return a string as |android:{codename}_{sanitizer}:{build_version}|."""
-  platform_id = 'android'
-
-  # Add codename and sanitizer tool information.
-  platform_id += ':%s' % get_codename()
-  sanitizer_tool_name = get_sanitizer_tool_name()
-  if sanitizer_tool_name:
-    platform_id += '_%s' % sanitizer_tool_name
-
-  # Add build version.
-  build_version = get_build_version()
-  if build_version:
-    platform_id += ':%s' % build_version
-
-  return platform_id
-
-
 def get_pid_for_script(script_name):
   """Get the pid of a running shell script."""
-  output = adb.run_adb_shell_command("ps | grep ' sh'")
+  output = adb.run_shell_command("ps | grep ' sh'")
   pids = PS_REGEX.findall(output)
   for pid in pids:
-    cmdline = adb.run_adb_shell_command('cat /proc/%s/cmdline' % pid)
+    cmdline = adb.run_shell_command('cat /proc/%s/cmdline' % pid)
     if script_name in cmdline:
       return pid
 
   return None
-
-
-def get_product_brand():
-  """Return product's brand."""
-  return adb.get_property('ro.product.brand')
-
-
-def get_security_patch_level():
-  """Return the security patch level reported by the device."""
-  return adb.get_property('ro.build.version.security_patch')
 
 
 def get_type_binding(value):
@@ -542,32 +348,11 @@ def initialize_device():
   configure_wifi_and_airplane_mode()
   setup_host_and_device_forwarder_if_needed()
   adb.clear_notifications()
-  adb.change_se_linux_to_permissive_mode()
-  adb.wait_until_package_optimization_complete()
+  settings.change_se_linux_to_permissive_mode()
+  app.wait_until_optimization_complete()
   unlock_screen_if_locked()
 
   # FIXME: Should we should revert back to regular user permission ?
-
-
-def google_device():
-  """Return true if this is a google branded device."""
-  # If a build branch is already set, then this is a Google device. No need to
-  # query device which can fail if the device is failing on recovery mode.
-  build_branch = environment.get_value('BUILD_BRANCH')
-  if build_branch:
-    return True
-
-  product_brand = environment.get_value('PRODUCT_BRAND', get_product_brand())
-  if product_brand is None:
-    return None
-
-  if product_brand == 'google':
-    return True
-
-  if product_brand == 'generic':
-    return True
-
-  return False
 
 
 def get_debug_props_and_values():
@@ -594,10 +379,10 @@ def get_debug_props_and_values():
       'debug.checkjni=%d' % int(check_jni_flag),
   ]
 
-  is_build_supported = is_build_at_least(get_build_version(), 'N')
+  is_build_supported = is_build_at_least(settings.get_build_version(), 'N')
   debug_malloc_enabled = (
       enable_debug_checks and is_build_supported and
-      not get_sanitizer_tool_name())
+      not settings.get_sanitizer_tool_name())
 
   # https://android.googlesource.com/platform/bionic/+/master/libc/malloc_debug/README.md
   if debug_malloc_enabled:
@@ -610,20 +395,12 @@ def get_debug_props_and_values():
   return debug_props_and_values_list
 
 
-def get_sanitizer_tool_name():
-  """Return sanitizer tool name e.g. ASAN if found on device."""
-  if 'asan' in get_build_flavor():
-    return 'asan'
-
-  return ''
-
-
 def get_sanitizer_options_file_path(sanitizer_tool_name):
   """Return path for the sanitizer options file."""
   # If this a full sanitizer system build, then update the options file in
   # /system, else just put it in device temp directory.
-  sanitizer_directory = ('/system'
-                         if get_sanitizer_tool_name() else adb.DEVICE_TMP_DIR)
+  sanitizer_directory = ('/system' if settings.get_sanitizer_tool_name() else
+                         adb.DEVICE_TMP_DIR)
 
   sanitizer_filename = SANITIZER_TOOL_TO_FILE_MAPPINGS[sanitizer_tool_name]
   return os.path.join(sanitizer_directory, sanitizer_filename)
@@ -631,13 +408,14 @@ def get_sanitizer_options_file_path(sanitizer_tool_name):
 
 def initialize_environment():
   """Set common environment variables for easy access."""
-  environment.set_value('BUILD_FINGERPRINT', get_build_fingerprint())
-  environment.set_value('BUILD_VERSION', get_build_version())
-  environment.set_value('DEVICE_CODENAME', get_codename())
+  environment.set_value('BUILD_FINGERPRINT', settings.get_build_fingerprint())
+  environment.set_value('BUILD_VERSION', settings.get_build_version())
+  environment.set_value('DEVICE_CODENAME', settings.get_device_codename())
   environment.set_value('DEVICE_PATH', adb.get_device_path())
-  environment.set_value('PLATFORM_ID', get_platform_id())
-  environment.set_value('PRODUCT_BRAND', get_product_brand())
-  environment.set_value('SANITIZER_TOOL_NAME', get_sanitizer_tool_name())
+  environment.set_value('PLATFORM_ID', settings.get_platform_id())
+  environment.set_value('PRODUCT_BRAND', settings.get_product_brand())
+  environment.set_value('SANITIZER_TOOL_NAME',
+                        settings.get_sanitizer_tool_name())
 
 
 def update_system_web_view():
@@ -653,13 +431,13 @@ def update_system_web_view():
   if any([adb.directory_exists(d) for d in SYSTEM_WEBVIEW_DIRS]):
     adb.remount()
     adb.stop_shell()
-    adb.run_adb_shell_command(['rm', '-rf', ' '.join(SYSTEM_WEBVIEW_DIRS)])
+    adb.run_shell_command(['rm', '-rf', ' '.join(SYSTEM_WEBVIEW_DIRS)])
     reboot()
 
-  adb.uninstall_package(SYSTEM_WEBVIEW_PACKAGE)
-  adb.install_package(system_webview_apk)
+  app.uninstall(SYSTEM_WEBVIEW_PACKAGE)
+  app.install(system_webview_apk)
 
-  if not adb.is_package_installed(SYSTEM_WEBVIEW_PACKAGE):
+  if not app.is_installed(SYSTEM_WEBVIEW_PACKAGE):
     logs.log_error(
         'Package %s was not installed successfully.' % SYSTEM_WEBVIEW_PACKAGE)
 
@@ -676,7 +454,7 @@ def install_application_if_needed(apk_path, force_update):
 
   # If we don't have a package name, we can't uninstall the app. This is needed
   # for installation workflow.
-  package_name = adb.get_package_name()
+  package_name = app.get_package_name()
   if not package_name:
     return
 
@@ -687,15 +465,15 @@ def install_application_if_needed(apk_path, force_update):
 
   # Install application if it is not found in the device's
   # package list or force_update flag has been set.
-  if force_update or not adb.is_package_installed(package_name):
+  if force_update or not app.is_installed(package_name):
     # Update system webview when fuzzing webview shell apk.
     if package_name == 'org.chromium.webview_shell':
       update_system_web_view()
 
-    adb.uninstall_package(package_name)
-    adb.install_package(apk_path)
+    app.uninstall(package_name)
+    app.install(apk_path)
 
-    if not adb.is_package_installed(package_name):
+    if not app.is_installed(package_name):
       logs.log_error(
           'Package %s was not installed successfully.' % package_name)
       return
@@ -703,7 +481,7 @@ def install_application_if_needed(apk_path, force_update):
     logs.log('Package %s is successfully installed using apk %s.' %
              (package_name, apk_path))
 
-  adb.reset_application_state()
+  app.reset()
 
 
 def push_testcases_to_device():
@@ -719,7 +497,7 @@ def push_testcases_to_device():
     return
 
   adb.copy_local_directory_to_remote(local_testcases_directory,
-                                     adb.DEVICE_TESTCASES_DIR)
+                                     constants.DEVICE_TESTCASES_DIR)
 
 
 def reboot():
@@ -745,7 +523,7 @@ def setup_asan_if_needed():
     # missing in a bad build, so we want to catch that.
     return
 
-  if get_sanitizer_tool_name():
+  if settings.get_sanitizer_tool_name():
     # If this is a sanitizer build, no need to setup ASAN (incompatible).
     return
 
@@ -782,7 +560,7 @@ def set_content_settings(table, key, value):
       'content insert --uri content://%s --bind name:s:%s --bind value:%s:%s' %
       (table, key, get_type_binding(value), str(value)))
 
-  adb.run_adb_shell_command(content_setting_command)
+  adb.run_shell_command(content_setting_command)
 
 
 def set_sanitizer_options_if_needed(sanitizer_tool_name, sanitizer_options):
@@ -802,32 +580,22 @@ def setup_host_and_device_forwarder_if_needed():
   # Reverse map socket connections from device to host machine.
   for port in ports:
     port_string = 'tcp:%d' % port
-    adb.run_adb_command(['reverse', port_string, port_string])
-
-
-def turn_off_display_if_needed():
-  """Turn off the device screen if needed."""
-  power_dump_output = adb.run_adb_shell_command(['dumpsys', 'power'])
-  if SCREEN_ON_SEARCH_STRING not in power_dump_output:
-    # Screen display is already off, no work to do.
-    return
-
-  adb.run_adb_shell_command(['input', 'keyevent', 'KEYCODE_POWER'])
+    adb.run_command(['reverse', port_string, port_string])
 
 
 def unlock_screen_if_locked():
   """Unlocks the screen if it is locked."""
-  window_dump_output = adb.run_adb_shell_command(['dumpsys', 'window'])
+  window_dump_output = adb.run_shell_command(['dumpsys', 'window'])
   if SCREEN_LOCK_SEARCH_STRING not in window_dump_output:
     # Screen is not locked, no work to do.
     return
 
   # Quick power on and off makes this more reliable.
-  adb.run_adb_shell_command(['input', 'keyevent', 'KEYCODE_POWER'])
-  adb.run_adb_shell_command(['input', 'keyevent', 'KEYCODE_POWER'])
+  adb.run_shell_command(['input', 'keyevent', 'KEYCODE_POWER'])
+  adb.run_shell_command(['input', 'keyevent', 'KEYCODE_POWER'])
 
   # This key does the unlock.
-  adb.run_adb_shell_command(['input', 'keyevent', 'KEYCODE_MENU'])
+  adb.run_shell_command(['input', 'keyevent', 'KEYCODE_MENU'])
 
   # Artifical delay to let the unlock to complete.
   time.sleep(1)
@@ -858,7 +626,7 @@ def flash_to_latest_build_if_needed():
     adb.recreate_gce_device()
   else:
     # Physical device.
-    is_google_device = google_device()
+    is_google_device = settings.is_google_device()
     if is_google_device is None:
       logs.log_error('Unable to query device. Reimaging failed.')
       adb.bad_state_reached()
@@ -877,7 +645,7 @@ def flash_to_latest_build_if_needed():
       target = environment.get_value('BUILD_TARGET')
       if not target:
         # We default to userdebug configuration.
-        build_params = get_build_parameters()
+        build_params = settings.get_build_parameters()
         if build_params:
           target = build_params.get('target') + '-userdebug'
 
@@ -931,7 +699,7 @@ def flash_to_latest_build_if_needed():
       logs.log('Rebooting into bootloader mode.')
       for _ in range(FLASH_RETRIES):
         adb.run_as_root()
-        adb.run_adb_command(['reboot-bootloader'])
+        adb.run_command(['reboot-bootloader'])
         time.sleep(FLASH_REBOOT_BOOTLOADER_WAIT)
         adb.run_fastboot_command(['oem', 'off-mode-charge', '0'])
         adb.run_fastboot_command(['-w', 'reboot-bootloader'])
@@ -987,7 +755,7 @@ def configure_build_properties_if_needed():
   # Pull to tmp file.
   bot_tmp_directory = environment.get_value('BOT_TMPDIR')
   old_build_prop_path = os.path.join(bot_tmp_directory, 'old.prop')
-  adb.run_adb_command(['pull', BUILD_PROP_PATH, old_build_prop_path])
+  adb.run_command(['pull', BUILD_PROP_PATH, old_build_prop_path])
   if not os.path.exists(old_build_prop_path):
     logs.log_error('Unable to fetch %s from device.' % BUILD_PROP_PATH)
     return
@@ -1013,10 +781,10 @@ def configure_build_properties_if_needed():
 
   # Keep verified boot disabled for M and higher releases. This makes it easy
   # to modify system's app_process to load asan libraries.
-  build_version = get_build_version()
+  build_version = settings.get_build_version()
   if is_build_at_least(build_version, 'M'):
     adb.run_as_root()
-    adb.run_adb_command('disable-verity')
+    adb.run_command('disable-verity')
     reboot()
 
   # Make /system writable.
@@ -1025,17 +793,16 @@ def configure_build_properties_if_needed():
 
   # Remove seccomp policies (on N and higher) as ASan requires extra syscalls.
   if is_build_at_least(build_version, 'N'):
-    policy_files = adb.run_adb_shell_command(
+    policy_files = adb.run_shell_command(
         ['find', '/system/etc/seccomp_policy/', '-type', 'f'])
     for policy_file in policy_files.splitlines():
-      adb.run_adb_shell_command(['rm', policy_file.strip()])
+      adb.run_shell_command(['rm', policy_file.strip()])
 
   # Push new build.prop and backup to device.
   logs.log('Pushing new build properties file on device.')
-  adb.run_adb_command(
-      ['push', '-p', old_build_prop_path, BUILD_PROP_BACKUP_PATH])
-  adb.run_adb_command(['push', '-p', new_build_prop_path, BUILD_PROP_PATH])
-  adb.run_adb_shell_command(['chmod', '644', BUILD_PROP_PATH])
+  adb.run_command(['push', '-p', old_build_prop_path, BUILD_PROP_BACKUP_PATH])
+  adb.run_command(['push', '-p', new_build_prop_path, BUILD_PROP_PATH])
+  adb.run_shell_command(['chmod', '644', BUILD_PROP_PATH])
 
   # Set persistent cache key containing and md5sum.
   current_md5 = adb.get_file_checksum(BUILD_PROP_PATH)

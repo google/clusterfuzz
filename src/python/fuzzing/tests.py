@@ -353,7 +353,7 @@ def convert_dependency_url_to_local_path(url):
 
       # Convert remote to local path for android.
       if platform == 'ANDROID':
-        remote_testcases_directory = android.adb.DEVICE_TESTCASES_DIR
+        remote_testcases_directory = android.constants.DEVICE_TESTCASES_DIR
         local_testcases_directory = environment.get_value('FUZZ_INPUTS')
         local_path = local_path.replace(remote_testcases_directory,
                                         local_testcases_directory)
@@ -703,7 +703,7 @@ def get_command_line_for_application(file_to_run='',
   apps_argument = environment.get_value('APPS_ARG')
   crash_stacks_directory = environment.get_value('CRASH_STACKTRACES_DIR')
   debugger = environment.get_value('DEBUGGER_PATH')
-  device_testcases_directory = android.adb.DEVICE_TESTCASES_DIR
+  device_testcases_directory = android.constants.DEVICE_TESTCASES_DIR
   fuzzer_directory = environment.get_value('FUZZER_DIR')
   extension_argument = environment.get_value('EXTENSION_ARG')
   input_directory = environment.get_value('INPUT_DIR')
@@ -851,8 +851,8 @@ def get_command_line_for_application(file_to_run='',
     if write_command_line_file:
       android.adb.write_command_line_file(command, app_path)
 
-    return android.adb.get_application_launch_command(
-        all_app_args, testcase_path, testcase_file_url)
+    return android.app.get_launch_command(all_app_args, testcase_path,
+                                          testcase_file_url)
 
   # TODO(flowerhack): If we'd like blackbox fuzzing support for Fuchsia, here's
   # where to add in our app's launch command.

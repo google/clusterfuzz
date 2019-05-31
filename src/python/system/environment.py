@@ -208,7 +208,7 @@ def get_cpu_arch():
   if platform() == 'ANDROID':
     # FIXME: Handle this import in a cleaner way.
     from platforms import android
-    return android.device.get_cpu_arch()
+    return android.settings.get_cpu_arch()
 
   # FIXME: Add support for desktop architectures as needed.
   return None
@@ -284,7 +284,7 @@ def get_environment_settings_as_string():
         get_value('BUILD_FINGERPRINT'))
 
     environment_string += ('[Environment] Patch level: %s\n' %
-                           android.device.get_security_patch_level())
+                           android.settings.get_security_patch_level())
 
     environment_string += (
         '[Environment] Local properties file "%s" with contents:\n%s\n' %
@@ -443,7 +443,7 @@ def get_platform_id():
     # FIXME: Handle this import in a cleaner way.
     from platforms import android
 
-    platform_id = get_value('PLATFORM_ID', android.device.get_platform_id())
+    platform_id = get_value('PLATFORM_ID', android.settings.get_platform_id())
     return platform_id.lower()
 
   return bot_platform.lower()

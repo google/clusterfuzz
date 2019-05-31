@@ -168,10 +168,9 @@ class CrashReportsTest(CrashBaseTest):
     # Check object fields are what we expect.
     self._validate_report_fields(EXPECTED_REPORT_INFO, report_info)
 
-  @mock.patch('platforms.android.adb.run_adb_shell_command')
-  @mock.patch('platforms.android.adb.run_adb_command')
-  def test_get_crash_info(self, mock_run_adb_shell_command,
-                          mock_run_adb_command):
+  @mock.patch('platforms.android.adb.run_shell_command')
+  @mock.patch('platforms.android.adb.run_command')
+  def test_get_crash_info(self, mock_run_shell_command, mock_run_command):
     """Tests if parsing sample output (crash-stacks stacktrace) produces
        expected CrashReportInfo object (on Android; on other platforms,
        should fail)."""
@@ -181,8 +180,8 @@ class CrashReportsTest(CrashBaseTest):
     sample_mime_device_path = os.path.join(
         '/data/data/com.google.android.apps.chrome/cache/Crash Reports',
         '%s.dmp1' % SAMPLE_MIME_FILENAME)
-    mock_run_adb_shell_command.return_value = sample_mime_device_path
-    mock_run_adb_command.return_value = sample_mime_device_path
+    mock_run_shell_command.return_value = sample_mime_device_path
+    mock_run_command.return_value = sample_mime_device_path
     report_info = crash_uploader.get_crash_info(SAMPLE_OUTPUT)
 
     # Check processed (extracted) dmp contents are what we expect.

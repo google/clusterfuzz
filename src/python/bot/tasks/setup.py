@@ -66,7 +66,7 @@ def _copy_testcase_to_device_and_setup_environment(testcase,
   job_type_has_privileged_access = environment.get_value('PRIVILEGED_ACCESS')
   if job_type_has_privileged_access:
     # Install testcase if it is an app.
-    package_name = android.adb.get_package_name(testcase_file_path)
+    package_name = android.app.get_package_name(testcase_file_path)
     if package_name:
       # Set the package name for later use.
       environment.set_value('PKG_NAME', package_name)
@@ -87,9 +87,9 @@ def _copy_testcase_to_device_and_setup_environment(testcase,
         testcase_file_path.startswith(local_testcases_directory)):
       relative_testcase_file_path = (
           testcase_file_path[len(local_testcases_directory) + 1:])
-      device_testcase_file_path = os.path.join(android.adb.DEVICE_TESTCASES_DIR,
-                                               relative_testcase_file_path)
-      android.adb.run_adb_shell_command(
+      device_testcase_file_path = os.path.join(
+          android.constants.DEVICE_TESTCASES_DIR, relative_testcase_file_path)
+      android.adb.run_shell_command(
           ['chmod', '0755', device_testcase_file_path])
 
 

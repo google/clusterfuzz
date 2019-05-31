@@ -11,15 +11,21 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""Tests for device functions."""
+"""Tests for battery functions."""
 
-from platforms.android import device
+from platforms.android import battery
 from tests.test_libs import android_helpers
 
 
-class InitializeEnvironmentTest(android_helpers.AndroidTest):
-  """Tests for """
+class GetBatteryLevelAndTemperatureTest(android_helpers.AndroidTest):
+  """Tests get_battery_level_and_temperature."""
 
   def test(self):
-    """Ensure that initialize_environment throws no exceptions."""
-    device.initialize_environment()
+    """Ensure that get_battery_level_and_temperature returns data in the
+    expected form."""
+    battery_info = battery.get_battery_level_and_temperature()
+    self.assertTrue(isinstance(battery_info, dict))
+    self.assertTrue('level' in battery_info)
+    self.assertTrue('temperature' in battery_info)
+    self.assertTrue(battery_info['level'] > 0)
+    self.assertTrue(battery_info['temperature'] > 0)

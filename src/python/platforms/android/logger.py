@@ -26,7 +26,7 @@ def clear_log():
   retries = 2
   while retries:
     # Try clearing the log.
-    adb.run_adb_command('logcat -c')
+    adb.run_command('logcat -c')
 
     # Check if the log is cleared. If yes, we can return. Otherwise, we retry
     # by continuing the loop.
@@ -123,7 +123,7 @@ def filter_log_output(output):
 
 def log_output(additional_flags=''):
   """Return log data without noise and some normalization."""
-  output = adb.run_adb_command('logcat -d -v brief %s *:V' % additional_flags)
+  output = adb.run_command('logcat -d -v brief %s *:V' % additional_flags)
   return filter_log_output(output)
 
 
