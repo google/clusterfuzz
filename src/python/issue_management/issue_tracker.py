@@ -92,14 +92,65 @@ class Issue(object):
     """The issue component list."""
     raise NotImplementedError
 
-  # TODO(ochang): Add a Comment class?
   @property
-  def comments(self):
+  def actions(self):
     """Get the issue comments."""
     raise NotImplementedError
 
   def save(self, notify=True):
     """Save the issue."""
+    raise NotImplementedError
+
+
+class ChangeList(object):
+  """Records a change in a list."""
+
+  def __init__(self):
+    self.added = []
+    self.removed = []
+
+
+class Action(object):
+  """Represents an action on an issue (e.g. a comment)."""
+
+  @property
+  def author(self):
+    """The author of the action."""
+    raise NotImplementedError
+
+  @property
+  def comment(self):
+    """Represents a comment."""
+    raise NotImplementedError
+
+  @property
+  def title(self):
+    """The new issue title."""
+    raise NotImplementedError
+
+  @property
+  def status(self):
+    """The new issue status."""
+    raise NotImplementedError
+
+  @property
+  def assignee(self):
+    """The new issue assignee."""
+    raise NotImplementedError
+
+  @property
+  def ccs(self):
+    """The issue CC change list."""
+    raise NotImplementedError
+
+  @property
+  def labels(self):
+    """The issue labels change list."""
+    raise NotImplementedError
+
+  @property
+  def components(self):
+    """The issue component change list."""
     raise NotImplementedError
 
 

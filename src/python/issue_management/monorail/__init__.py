@@ -103,13 +103,60 @@ class Issue(issue_tracker.Issue):
     return self._monorail_issue.components
 
   @property
-  def comments(self):
+  def actions(self):
     """Get the issue comments."""
-    return self._monorail_issue.get_comments()
+    return (Action(comment) for comment in self._monorail_issue.get_comments())
 
   def save(self, notify=True):
     """Save the issue."""
     self._monorail_issue.save(send_email=notify)
+
+
+class Action(issue_tracker.Action):
+  """Monorail Action."""
+
+  def __init__(self, monorail_comment):
+    self._monorail_comment = monorail_comment
+
+  @property
+  def author(self):
+    """The author of the action."""
+    return self._monorail_comment.author
+
+  @property
+  def comment(self):
+    """Represents a comment."""
+    return self._monorail_comment.comment
+
+  @property
+  def title(self):
+    """The new issue title."""
+    return self._monorail_comment.summary
+
+  @property
+  def status(self):
+    """The new issue status."""
+    return self._monorail_comment.status
+
+  @property
+  def assignee(self):
+    """The new issue assignee."""
+    return self._monorail_comment.owner
+
+  @property
+  def ccs(self):
+    """The issue CC change list."""
+    return _to_change_list(self._monorail_comment.cc)
+
+  @property
+  def labels(self):
+    """The issue labels change list."""
+    return _to_change_list(self._monorail_comment.labels)
+
+  @property
+  def components(self):
+    """The issue component change list."""
+    return _to_change_list(self._monorail_comment.components)
 
 
 class IssueTracker(issue_tracker.IssueTracker):
@@ -129,3 +176,18 @@ class IssueTracker(issue_tracker.IssueTracker):
       return None
 
     return Issue(monorail_issue)
+
+
+def _to_change_list(monorail_list):
+  """Convert a list of changed items to a issue_tracker.ChangeList."""
+  change_list = issue_tracker.ChangeList()
+  if not monorail_list:
+    return change_list
+
+  for item in monorail_list:
+    if item.startswith('-'):
+      change_list.removed.append(item[1:])
+    else:
+      change_list.added.append(item)
+
+  return change_list

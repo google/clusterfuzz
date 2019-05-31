@@ -17,6 +17,7 @@ from builtins import object
 import unittest
 
 from issue_management import monorail
+from issue_management.comment import Comment as MonorailComment
 from issue_management.issue import Issue as MonorailIssue
 
 
@@ -52,6 +53,25 @@ class IssueFilerTests(unittest.TestCase):
     mock_issue.add_component('C>D')
     mock_issue.add_cc('cc@cc.com')
 
+    mock_comment0 = MonorailComment()
+    mock_comment0.author = 'author'
+    mock_comment0.cc = ['-removed@cc.com', 'cc@cc.com']
+    mock_comment0.labels = ['-label0', 'label1']
+    mock_comment0.components = ['-E>F', 'A>B']
+    mock_comment0.comment = 'comment'
+    mock_comment0.summary = 'summary'
+    mock_comment0.status = 'status'
+    mock_comment0.owner = 'owner'
+
+    mock_comment1 = MonorailComment()
+    mock_comment1.author = 'author'
+    mock_comment1.comment = 'comment'
+
+    mock_issue.comments = [
+        mock_comment0,
+        mock_comment1,
+    ]
+
     mock_issues = {
         1337: mock_issue,
     }
@@ -70,6 +90,7 @@ class IssueFilerTests(unittest.TestCase):
     self.assertEqual('owner', issue.assignee)
     self.assertEqual('reporter', issue.reporter)
     self.assertEqual('New', issue.status)
+    self.assertIsNone(issue.merged_into)
 
     self.assertItemsEqual([
         'label1',
@@ -118,3 +139,31 @@ class IssueFilerTests(unittest.TestCase):
     self.assertItemsEqual([
         'cc@cc.com',
     ], monorail_issue.cc)
+
+  def test_actions(self):
+    """Test actions."""
+    issue = self.issue_tracker.get_issue(1337)
+    actions = list(issue.actions)
+    self.assertEqual(2, len(actions))
+
+    self.assertEqual('summary', actions[0].title)
+    self.assertEqual('comment', actions[0].comment)
+    self.assertEqual('owner', actions[0].assignee)
+    self.assertEqual('status', actions[0].status)
+    self.assertItemsEqual(['cc@cc.com'], actions[0].ccs.added)
+    self.assertItemsEqual(['removed@cc.com'], actions[0].ccs.removed)
+    self.assertItemsEqual(['label1'], actions[0].labels.added)
+    self.assertItemsEqual(['label0'], actions[0].labels.removed)
+    self.assertItemsEqual(['A>B'], actions[0].components.added)
+    self.assertItemsEqual(['E>F'], actions[0].components.removed)
+
+    self.assertIsNone(actions[1].title)
+    self.assertEqual('comment', actions[1].comment)
+    self.assertIsNone(actions[1].assignee)
+    self.assertIsNone(actions[1].status)
+    self.assertItemsEqual([], actions[1].ccs.added)
+    self.assertItemsEqual([], actions[1].ccs.removed)
+    self.assertItemsEqual([], actions[1].labels.added)
+    self.assertItemsEqual([], actions[1].labels.removed)
+    self.assertItemsEqual([], actions[1].components.added)
+    self.assertItemsEqual([], actions[1].components.removed)
