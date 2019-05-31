@@ -23,11 +23,6 @@ import six
 import socket
 import time
 
-try:
-  from shlex import quote
-except ImportError:
-  from pipes import quote
-
 from . import adb
 from . import app
 from . import constants
@@ -106,15 +101,6 @@ SANITIZER_TOOL_TO_FILE_MAPPINGS = {
     'ASAN': 'asan.options',
 }
 SCREEN_LOCK_SEARCH_STRING = 'mShowingLockscreen=true'
-SYSTEM_WEBVIEW_APK_NAME = 'SystemWebViewGoogle.apk'
-SYSTEM_WEBVIEW_DIRS = [
-    '/system/app/webview',
-    '/system/app/WebViewGoogle',
-]
-SYSTEM_WEBVIEW_PACKAGE = 'com.google.android.webview'
-SYSTEM_WEBVIEW_VMSIZE_BYTES = 250 * 1000 * 1000
-WIFI_UTIL_PACKAGE_NAME = 'com.android.tradefed.utils.wifi'
-WIFI_UTIL_CALL_PATH = '%s/.WifiUtil' % WIFI_UTIL_PACKAGE_NAME
 
 BUILD_PROP_MD5_KEY = 'android_build_prop_md5'
 LAST_FLASH_BUILD_KEY = 'android_last_flash'
@@ -141,7 +127,7 @@ def add_test_accounts_if_needed():
     return
 
   adb.run_as_root()
-  configure_wifi_and_airplane_mode(wifi_enabled=True)
+  wifi.configure(force_enable=True)
 
   if not app.is_installed(ADD_TEST_ACCOUNT_PKG_NAME):
     logs.log('Installing helper apk for adding test account.')
@@ -230,58 +216,6 @@ def configure_device_settings():
   adb.write_data_to_file(local_properties_file_contents, LOCAL_PROP_PATH)
 
 
-def configure_wifi_and_airplane_mode(wifi_enabled=False):
-  """Configure airplane mode and wifi on device."""
-  # Airplane mode should be disabled in all cases. This can get inadvertently
-  # turned on via gestures.
-  wifi.disable_airplane_mode()
-
-  # Need to disable wifi before changing configuration.
-  wifi.disable()
-
-  # Check if wifi needs to be enabled. If not, then no need to modify the
-  # supplicant file.
-  wifi_enabled = wifi_enabled or environment.get_value('WIFI', True)
-  if not wifi_enabled:
-    # No more work to do, we already disabled it at start.
-    return
-
-  if adb.is_gce():
-    wifi_ssid = 'VirtWifi'
-    wifi_password = ''
-  else:
-    config = db_config.get()
-    if not config.wifi_ssid:
-      logs.log('No wifi ssid is set, skipping wifi config.')
-      return
-    wifi_ssid = config.wifi_ssid
-    wifi_password = config.wifi_password or ''
-
-  wifi.enable()
-
-  # Wait 2 seconds to allow the wifi to be enabled.
-  time.sleep(2)
-
-  wifi_util_apk_path = os.path.join(
-      environment.get_platform_resources_directory(), 'wifi_util.apk')
-  if not app.is_installed(WIFI_UTIL_PACKAGE_NAME):
-    app.install(wifi_util_apk_path)
-
-  connect_wifi_command = (
-      'am instrument -e method connectToNetwork -e ssid {ssid} ')
-  if wifi_password:
-    connect_wifi_command += '-e psk {password} '
-  connect_wifi_command += '-w {call_path}'
-
-  output = adb.run_shell_command(
-      connect_wifi_command.format(
-          ssid=quote(wifi_ssid),
-          password=quote(wifi_password),
-          call_path=WIFI_UTIL_CALL_PATH))
-  if 'result=true' not in output:
-    logs.log_error('Failed to connect to wifi.', output=output)
-
-
 def get_kernel_log_content():
   """Return content of kernel logs."""
   kernel_log_content = ''
@@ -345,7 +279,7 @@ def initialize_device():
   initialize_environment()
 
   # Other configuration tasks (only to done after reboot).
-  configure_wifi_and_airplane_mode()
+  wifi.configure()
   setup_host_and_device_forwarder_if_needed()
   adb.clear_notifications()
   settings.change_se_linux_to_permissive_mode()
@@ -418,30 +352,6 @@ def initialize_environment():
                         settings.get_sanitizer_tool_name())
 
 
-def update_system_web_view():
-  """Updates the system webview on the device."""
-  app_directory = environment.get_value('APP_DIR')
-  system_webview_apk = os.path.join(app_directory, SYSTEM_WEBVIEW_APK_NAME)
-  if not os.path.exists(system_webview_apk):
-    logs.log_error('System Webview apk not found.')
-    return
-  adb.set_property('persist.sys.webview.vmsize', SYSTEM_WEBVIEW_VMSIZE_BYTES)
-
-  adb.run_as_root()
-  if any([adb.directory_exists(d) for d in SYSTEM_WEBVIEW_DIRS]):
-    adb.remount()
-    adb.stop_shell()
-    adb.run_shell_command(['rm', '-rf', ' '.join(SYSTEM_WEBVIEW_DIRS)])
-    reboot()
-
-  app.uninstall(SYSTEM_WEBVIEW_PACKAGE)
-  app.install(system_webview_apk)
-
-  if not app.is_installed(SYSTEM_WEBVIEW_PACKAGE):
-    logs.log_error(
-        'Package %s was not installed successfully.' % SYSTEM_WEBVIEW_PACKAGE)
-
-
 def install_application_if_needed(apk_path, force_update):
   """Install application package if it does not exist on device
   or if force_update is set."""
@@ -466,10 +376,6 @@ def install_application_if_needed(apk_path, force_update):
   # Install application if it is not found in the device's
   # package list or force_update flag has been set.
   if force_update or not app.is_installed(package_name):
-    # Update system webview when fuzzing webview shell apk.
-    if package_name == 'org.chromium.webview_shell':
-      update_system_web_view()
-
     app.uninstall(package_name)
     app.install(apk_path)
 

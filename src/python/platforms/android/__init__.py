@@ -15,6 +15,12 @@
 from __future__ import absolute_import
 
 from . import adb
+from . import app
+from . import battery
+from . import constants
 from . import device
+from . import fetch_artifact
 from . import gestures
 from . import logger
+from . import settings
+from . import wifi

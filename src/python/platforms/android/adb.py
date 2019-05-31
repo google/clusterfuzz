@@ -619,12 +619,6 @@ def run_fastboot_command(cmd, log_output=True, log_error=True, timeout=None):
   return output
 
 
-def set_property(property_name, property_value):
-  """Set property's to a certain value."""
-  property_value_quoted_string = '"%s"' % str(property_value)
-  run_shell_command(['setprop', property_name, property_value_quoted_string])
-
-
 def setup_adb():
   """Sets up ADB binary for use."""
   adb_binary_path = get_adb_path()
