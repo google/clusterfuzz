@@ -72,6 +72,10 @@ def clear_build_urls_directory():
   """Clears the build url directory."""
   remove_directory(environment.get_value('BUILD_URLS_DIR'), recreate=True)
 
+  if environment.is_trusted_host():
+    from bot.untrusted_runner import file_host
+    file_host.clear_build_urls_directory()
+
 
 def clear_crash_stacktraces_directory():
   """Clears the crash stacktraces directory."""
