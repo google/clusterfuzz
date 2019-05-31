@@ -623,5 +623,5 @@ def terminate_processes_matching_cmd_line(match_strings, kill=False):
     except (psutil.AccessDenied, psutil.NoSuchProcess, OSError):
       continue
 
-    if any(x in process_path for x in match_strings):
+    if any(process_path.startswith(x) for x in match_strings):
       terminate_process(process_info['pid'], kill)
