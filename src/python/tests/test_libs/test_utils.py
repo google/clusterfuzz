@@ -33,8 +33,8 @@ from config import local_config
 from datastore import data_types
 from datastore import ndb
 from google_cloud_utils import pubsub
-from issue_management.comment import Comment
-from issue_management.issue import Issue
+from issue_management.monorail.comment import Comment
+from issue_management.monorail.issue import Issue
 from system import environment
 from system import process_handler
 

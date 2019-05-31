@@ -17,8 +17,8 @@ from builtins import object
 import unittest
 
 from issue_management import monorail
-from issue_management.comment import Comment as MonorailComment
-from issue_management.issue import Issue as MonorailIssue
+from issue_management.monorail.comment import Comment as MonorailComment
+from issue_management.monorail.issue import Issue as MonorailIssue
 
 
 class IssueTrackerManager(object):

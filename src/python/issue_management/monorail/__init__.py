@@ -17,9 +17,8 @@ from future import standard_library
 standard_library.install_aliases()
 from builtins import object
 
-# TODO(ochang): Move all monorail specific files into this directory.
 from issue_management import issue_tracker
-from issue_management.issue import Issue as MonorailIssue
+from issue_management.monorail.issue import Issue as MonorailIssue
 
 
 class Issue(issue_tracker.Issue):
