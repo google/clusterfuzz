@@ -42,10 +42,6 @@ RUN apt-get update && \
     # Google Cloud SDK.
     sudo pip install pyOpenSSL==19.0.0
 
-# Needed for older versions of Chrome.
-RUN ln -s /usr/lib/x86_64-linux-gnu/libudev.so /usr/lib/x86_64-linux-gnu/libudev.so.0
-RUN curl -o /usr/lib/x86_64-linux-gnu/libgcrypt.so.11 https://clusterfuzz-data.storage.googleapis.com/libgcrypt.so.11
-
 # Prepare NFS mount.
 ENV NFS_CLUSTER_NAME=10.0.0.2 \
     NFS_DIR=/mnt/nfs \
