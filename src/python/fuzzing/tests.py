@@ -353,7 +353,7 @@ def convert_dependency_url_to_local_path(url):
 
       # Convert remote to local path for android.
       if platform == 'ANDROID':
-        remote_testcases_directory = android.adb.DEVICE_TESTCASES_DIR
+        remote_testcases_directory = android.constants.DEVICE_TESTCASES_DIR
         local_testcases_directory = environment.get_value('FUZZ_INPUTS')
         local_path = local_path.replace(remote_testcases_directory,
                                         local_testcases_directory)
@@ -390,7 +390,7 @@ def upload_testcase(testcase_path):
   if not fuzz_logs_bucket:
     return
 
-  with open(testcase_path) as file_handle:
+  with open(testcase_path, 'rb') as file_handle:
     testcase_contents = file_handle.read()
 
   # This matches the time of the log file.
@@ -535,10 +535,6 @@ def test_for_crash_with_retries(testcase,
       logs.log('Crash stacktrace comparison skipped.')
       return crash_result
 
-    if flaky_stacktrace:
-      logs.log('Crash stacktrace is marked flaky, skipping comparison.')
-      return crash_result
-
     if crash_result.should_ignore():
       logs.log('Crash stacktrace matched ignore signatures, ignored.')
       continue
@@ -546,6 +542,10 @@ def test_for_crash_with_retries(testcase,
     if crash_result.is_security_issue() != testcase.security_flag:
       logs.log('Crash security flag does not match, ignored.')
       continue
+
+    if flaky_stacktrace:
+      logs.log('Crash stacktrace is marked flaky, skipping comparison.')
+      return crash_result
 
     crash_comparer = CrashComparer(state.crash_state, testcase.crash_state)
     if crash_comparer.is_similar():
@@ -647,8 +647,14 @@ def upload_testcase_output(crash_result, testcase_path):
   app_revision = environment.get_value('APP_REVISION')
   job_name = environment.get_value('JOB_NAME')
   components = revisions.get_component_list(app_revision, job_name)
-  revisions_header = ('Revisions:\n%s\n' % revisions.format_revision_list(
-      components, use_html=False))
+  component_revisions = (
+      revisions.format_revision_list(components, use_html=False) or
+      'Not available.\n')
+
+  revisions_header = (
+      'Component revisions (build r{app_revision}):\n{component_revisions}\n'.
+      format(
+          app_revision=app_revision, component_revisions=component_revisions))
   return_code_header = 'Return code: %s\n\n' % crash_result.return_code
   symbolized_output = crash_result.get_stacktrace()
 
@@ -697,7 +703,7 @@ def get_command_line_for_application(file_to_run='',
   apps_argument = environment.get_value('APPS_ARG')
   crash_stacks_directory = environment.get_value('CRASH_STACKTRACES_DIR')
   debugger = environment.get_value('DEBUGGER_PATH')
-  device_testcases_directory = android.adb.DEVICE_TESTCASES_DIR
+  device_testcases_directory = android.constants.DEVICE_TESTCASES_DIR
   fuzzer_directory = environment.get_value('FUZZER_DIR')
   extension_argument = environment.get_value('EXTENSION_ARG')
   input_directory = environment.get_value('INPUT_DIR')
@@ -845,8 +851,8 @@ def get_command_line_for_application(file_to_run='',
     if write_command_line_file:
       android.adb.write_command_line_file(command, app_path)
 
-    return android.adb.get_application_launch_command(
-        all_app_args, testcase_path, testcase_file_url)
+    return android.app.get_launch_command(all_app_args, testcase_path,
+                                          testcase_file_url)
 
   # TODO(flowerhack): If we'd like blackbox fuzzing support for Fuchsia, here's
   # where to add in our app's launch command.

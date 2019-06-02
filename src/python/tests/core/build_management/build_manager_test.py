@@ -30,6 +30,7 @@ from base import errors
 from base import utils
 from build_management import build_manager
 from datastore import data_types
+from system import environment
 from system import shell
 from tests.test_libs import helpers as test_helpers
 from tests.test_libs import test_utils
@@ -153,6 +154,32 @@ class TrunkBuildTest(unittest.TestCase):
 
     build_manager.setup_trunk_build()
     self.assertEqual(0, self.mock.setup_regular_build.call_count)
+
+
+class FuchsiaBuildTest(fake_filesystem_unittest.TestCase):
+  """Tests for Fuchsia build setup."""
+
+  def setUp(self):
+    test_helpers.patch_environ(self)
+    self.tmp_resources_dir = tempfile.mkdtemp()
+
+  def tearDown(self):
+    shutil.rmtree(self.tmp_resources_dir)
+
+  def _assert_env_vars(self):
+    self.assertTrue(os.environ['FUZZ_TARGET'])
+
+  def test_setup(self):
+    """Tests setting up a build."""
+    environment.set_value('RESOURCES_DIR', self.tmp_resources_dir)
+    environment.set_value('FUCHSIA_RESOURCES_URL',
+                          'gs://fuchsia-resources-05-20-2019/*')
+    environment.set_value('FUCHSIA_BUILD_URL',
+                          'gs://fuchsia-build-info-05-20-2019/*')
+    build = build_manager.setup_fuchsia_build()
+    self.assertIsInstance(build, build_manager.FuchsiaBuild)
+    self._assert_env_vars()
+    environment.reset_environment()
 
 
 class RegularBuildTest(fake_filesystem_unittest.TestCase):

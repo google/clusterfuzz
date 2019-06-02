@@ -59,7 +59,7 @@ CRASH_TESTCASE_REGEX = (r'.*Test unit written to\s*'
 
 # Probability of using `-max_len` option. Not applicable if already declared in
 # .options file.
-RANDOM_MAX_LENGTH_PROBABILITY = 0.10
+RANDOM_MAX_LENGTH_PROBABILITY = 0.15
 
 # Maximum length of a random chosen length for `-max_len`.
 MAX_VALUE_FOR_MAX_LENGTH = 10000
@@ -68,7 +68,7 @@ MAX_VALUE_FOR_MAX_LENGTH = 10000
 CORPUS_MUTATION_ML_RNN_PROBABILITY = 0.50
 
 # Probability of doing radamsa mutations on the corpus in this run.
-CORPUS_MUTATION_RADAMSA_PROBABILITY = 0.05
+CORPUS_MUTATION_RADAMSA_PROBABILITY = 0.15
 
 # Number of radamsa mutations.
 RADAMSA_MUTATIONS = 2000

@@ -13,12 +13,15 @@
 # limitations under the License.
 """Functions for process management."""
 
+from future import standard_library
+standard_library.install_aliases()
 from builtins import object
+from past.builtins import basestring
 import copy
 import datetime
 import logging
 import os
-import Queue
+import queue
 import subprocess
 import sys
 import threading
@@ -178,7 +181,7 @@ def run_process(cmdline,
     android.logger.clear_log()
 
     # Run the app.
-    adb_output = android.adb.run_adb_command(cmdline, timeout=timeout)
+    adb_output = android.adb.run_command(cmdline, timeout=timeout)
   else:
     cmd, args = shell.get_command_and_arguments(cmdline)
 
@@ -272,7 +275,7 @@ def run_process(cmdline,
       # Make sure to reset SE Linux Permissive Mode. This can be done cheaply
       # in ~0.15 sec and is needed especially between runs for kernel crashes.
       android.adb.run_as_root()
-      android.adb.change_se_linux_to_permissive_mode()
+      android.settings.change_se_linux_to_permissive_mode()
       return_code = 1
 
     # Add output from adb to the front.
@@ -292,7 +295,7 @@ def run_process(cmdline,
           child_process_termination_pattern)
     else:
       # There is no special termination behavior. Simply stop the application.
-      android.adb.stop_application()
+      android.app.stop()
 
   else:
     # Get the return code in case the process has finished already.
@@ -353,14 +356,14 @@ def cleanup_stale_processes():
   cleanup_defunct_processes()
 
 
-def close_queue(queue):
+def close_queue(queue_to_close):
   """Close the queue."""
   if environment.is_trusted_host():
     # We don't use multiprocessing.Queue on trusted hosts.
     return
 
   try:
-    queue.close()
+    queue_to_close.close()
   except:
     logs.log_error('Unable to close queue.')
 
@@ -405,17 +408,17 @@ def get_queue():
   if environment.is_trusted_host():
     # We don't use multiprocessing.Process on trusted hosts. No need to use
     # multiprocessing.Queue.
-    return Queue.Queue()
+    return queue.Queue()
 
   try:
-    queue = multiprocessing.Queue()
+    result_queue = multiprocessing.Queue()
   except:
     # FIXME: Invalid cross-device link error. Happens sometimes with
     # chroot jobs even though /dev/shm and /run/shm are mounted.
     logs.log_error('Unable to get multiprocessing queue.')
     return None
 
-  return queue
+  return result_queue
 
 
 def terminate_hung_threads(threads):
@@ -526,7 +529,7 @@ def terminate_stale_application_instances():
     android.adb.run_as_root()
 
     # Make sure to reset SE Linux Permissive Mode (might be lost in reboot).
-    android.adb.change_se_linux_to_permissive_mode()
+    android.settings.change_se_linux_to_permissive_mode()
 
     # Make sure that device forwarder is running (might be lost in reboot or
     # process crash).
@@ -534,11 +537,11 @@ def terminate_stale_application_instances():
 
     # Make sure that package optimization is complete (might be triggered due to
     # unexpected circumstances).
-    android.adb.wait_until_package_optimization_complete()
+    android.app.wait_until_optimization_complete()
 
     # Reset application state, which kills its pending instances and re-grants
     # the storage permissions.
-    android.adb.reset_application_state()
+    android.app.reset()
 
   elif platform == 'FUCHSIA':
     fuchsia.device.reset_state()

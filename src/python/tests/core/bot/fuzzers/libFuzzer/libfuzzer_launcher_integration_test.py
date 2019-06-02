@@ -13,10 +13,13 @@
 # limitations under the License.
 """Integration tests for libfuzzer launcher.py."""
 
+from future import standard_library
+standard_library.install_aliases()
+
 import mock
 import os
 import shutil
-import StringIO
+import tempfile
 import unittest
 
 import parameterized
@@ -24,6 +27,7 @@ import parameterized
 from bot.fuzzers import libfuzzer
 from bot.fuzzers import utils as fuzzer_utils
 from bot.fuzzers.libFuzzer import launcher
+from build_management import build_manager
 from datastore import data_types
 from platforms import fuchsia
 from system import environment
@@ -90,12 +94,11 @@ def setup_testcase_and_corpus(testcase, corpus, fuzz=False):
 
 def run_launcher(*args):
   """Run launcher.py."""
-  string_io = StringIO.StringIO()
-
-  with mock.patch('sys.stdout', string_io):
+  mock_stdout = test_utils.MockStdout()
+  with mock.patch('sys.stdout', mock_stdout):
     launcher.main(['launcher.py'] + list(args))
 
-  return string_io.getvalue()
+  return mock_stdout.getvalue()
 
 
 class BaseLauncherTest(unittest.TestCase):
@@ -682,12 +685,17 @@ class TestLauncherFuchsia(BaseLauncherTest):
   """libFuzzer launcher tests (Fuchsia)."""
 
   def setUp(self):
-    test_helpers.patch_environ(self)
+    # Cannot simply call super(TestLauncherFuchsia).setUp, because the
+    # with_cloud_emulators decorator modifies what the parent class would be.
+    # Just explicitly call BaseLauncherTest's setUp.
+    BaseLauncherTest.setUp(self)
+
     # Set up a Fuzzer.
     data_types.Fuzzer(
         revision=1,
         additional_environment_string=
-        'FUCHSIA_RESOURCES_URL = gs://fuchsia-on-clusterfuzz-v2/*',
+        'FUCHSIA_RESOURCES_URL = gs://fuchsia-resources-05-20-2019/*\n'
+        'FUCHSIA_BUILD_URL = gs://fuchsia-build-info-05-20-2019/*\n',
         builtin=True,
         differential=False,
         file_size='builtin',
@@ -720,7 +728,8 @@ class TestLauncherFuchsia(BaseLauncherTest):
     data_types.Job(
         environment_string=(
             'CUSTOM_BINARY = True\n'
-            'FUCHSIA_RESOURCES_URL = gs://fuchsia-on-clusterfuzz-v2/*\n'
+            'FUCHSIA_RESOURCES_URL = gs://fuchsia-resources-05-20-2019/*\n'
+            'FUCHSIA_BUILD_URL = gs://fuchsia-build-info-05-20-2019/*\n'
             'QUEUE_OVERRIDE=FUCHSIA\n'
             'OS_OVERRIDE=FUCHSIA'),
         name='libfuzzer_asan_test_fuzzer',
@@ -755,13 +764,14 @@ class TestLauncherFuchsia(BaseLauncherTest):
     environment.set_value('QUEUE_OVERRIDE', 'FUCHSIA')
     environment.set_value('OS_OVERRIDE', 'FUCHSIA')
     environment.set_value('FUCHSIA_RESOURCES_URL',
-                          'gs://fuchsia-on-clusterfuzz-v2/*')
-    # set_bot_environment gives us access to RESOURCES_DIR
-    environment.set_bot_environment()
-    # Cannot simply call super(TestLauncherFuchsia).setUp, because the
-    # with_cloud_emulators decorator modifies what the parent class would be.
-    # Just explicitly call BaseLauncherTest's setUp.
-    BaseLauncherTest.setUp(self)
+                          'gs://fuchsia-resources-05-20-2019/*')
+    environment.set_value('FUCHSIA_BUILD_URL',
+                          'gs://fuchsia-build-info-05-20-2019/*')
+    self.tmp_resources_dir = tempfile.mkdtemp()
+    environment.set_value('RESOURCES_DIR', self.tmp_resources_dir)
+
+  def tearDown(self):
+    shutil.rmtree(self.tmp_resources_dir, ignore_errors=True)
 
   def test_fuzzer_can_boot_and_run(self):
     """Tests running a single round of fuzzing on a Fuchsia target, using
@@ -769,8 +779,12 @@ class TestLauncherFuchsia(BaseLauncherTest):
     # TODO(flowerhack): Fuchsia's `fuzz` only calls 'echo running on fuchsia!'
     # right now by default, but we'll call it explicitly in here as we
     # diversity `fuzz`'s functionality
+    build_manager.setup_fuchsia_build()
+    environment.set_value('FUZZ_TARGET', 'example_fuzzers/toy_fuzzer')
     qemu_process = fuchsia.device.qemu_setup()
     testcase_path = setup_testcase_and_corpus('aaaa', 'empty_corpus', fuzz=True)
     output = run_launcher(testcase_path, 'test_fuzzer')
-    self.assertIn('running on fuchsia!', output)
+    self.assertIn(
+        'localhost run \'fuchsia-pkg://fuchsia.com/example_fuzzers#meta/'
+        'toy_fuzzer.cmx\'', output)
     qemu_process.kill()

@@ -13,6 +13,8 @@
 # limitations under the License.
 """ADB shell related functions."""
 
+from future import standard_library
+standard_library.install_aliases()
 import collections
 import glob
 import os
@@ -30,31 +32,18 @@ from system import environment
 from system import shell
 
 ADB_TIMEOUT = 1200  # Should be lower than |REBOOT_TIMEOUT|.
-AAPT_CMD_TIMEOUT = 60
 BAD_STATE_WAIT = 900
 BOOT_WAIT_INTERVAL = 30
-CHROME_CACHE_DIRS = [
-    'app_chrome/*', 'app_tabs/*', 'app_textures/*', 'cache/*', 'files/*',
-    'shared_prefs/*'
-]
-CHROME_CRASH_DIR = 'cache/Crash\\ Reports'
 DEFAULT_DEVICE_MEMORY_MB = 2048
 DEVICE = collections.namedtuple('Device', ['serial', 'path'])
-DEVICE_CRASH_DUMPS_DIR = '/sdcard/crash-reports'
 DEVICE_DOWNLOAD_DIR = '/sdcard/Download'
 DEVICE_HANG_STRING = None
 DEVICE_NOT_FOUND_STRING = 'error: device \'{serial}\' not found'
 DEVICE_OFFLINE_STRING = 'error: device offline'
-DEVICE_TESTCASES_DIR = '/sdcard/fuzzer-testcases'
 DEVICE_TMP_DIR = '/data/local/tmp'
 FACTORY_RESET_WAIT = 60
 FLASH_INTERVAL = 1 * 24 * 60 * 60
 MONKEY_PROCESS_NAME = 'monkey'
-PACKAGE_OPTIMIZATION_INTERVAL = 30
-PACKAGES_THAT_CRASH_WITH_GESTURES = [
-    'com.android.printspooler',
-    'com.android.settings',
-]
 REBOOT_TIMEOUT = 3600
 RECOVERY_CMD_TIMEOUT = 60
 STOP_CVD_WAIT = 20
@@ -74,88 +63,33 @@ def bad_state_reached():
       'Device in bad state.', wait_before_exit=BAD_STATE_WAIT)
 
 
-def change_se_linux_to_permissive_mode():
-  """Switch SELinux to permissive mode for working around local file access and
-  other issues."""
-  run_adb_shell_command(['setenforce', '0'])
-
-
-def reset_application_state():
-  """Resets application to original clean state and kills pending instances."""
-  package_name = get_package_name()
-  if not package_name:
-    return
-
-  # Make sure package is actually installed.
-  if not is_package_installed(package_name):
-    return
-
-  # Before clearing package state, save the minidumps.
-  save_crash_minidumps(package_name)
-
-  # Clean package state.
-  run_adb_shell_command(['pm', 'clear', package_name])
-
-  # Re-grant storage permissions.
-  run_adb_shell_command(
-      ['pm', 'grant', package_name, 'android.permission.READ_EXTERNAL_STORAGE'])
-  run_adb_shell_command([
-      'pm', 'grant', package_name, 'android.permission.WRITE_EXTERNAL_STORAGE'
-  ])
-
-
 def clear_notifications():
   """Clear all pending notifications."""
-  run_adb_shell_command(['service', 'call', 'notification', '1'])
+  run_shell_command(['service', 'call', 'notification', '1'])
 
 
 def copy_local_directory_to_remote(local_directory, remote_directory):
   """Copies local directory contents to remote directory."""
   create_directory_if_needed(remote_directory)
-  run_adb_command(['push', '%s/*' % local_directory, remote_directory])
+  run_command(['push', '%s/*' % local_directory, remote_directory])
 
 
 def copy_remote_directory_to_local(remote_directory, local_directory):
   """Copies local directory contents to remote directory."""
-  run_adb_command(['pull', '%s/.' % remote_directory, local_directory])
+  run_command(['pull', '%s/.' % remote_directory, local_directory])
 
 
 def create_directory_if_needed(device_directory):
   """Creates a directory on the device if it doesn't already exist."""
-  run_adb_shell_command(['mkdir', '-p', device_directory])
+  run_shell_command(['mkdir', '-p', device_directory])
 
 
 def directory_exists(directory_path):
   """Return whether a directory exists or not."""
   expected = '0'
-  result = run_adb_shell_command(
+  result = run_shell_command(
       '\'test -d "%s"; echo $?\'' % directory_path, log_error=False)
   return result == expected
-
-
-def disable_airplane_mode():
-  """Disable airplane mode."""
-  run_adb_shell_command(['settings', 'put', 'global', 'airplane_mode_on', '0'])
-  run_adb_shell_command([
-      'am', 'broadcast', '-a', 'android.intent.action.AIRPLANE_MODE', '--ez',
-      'state', 'false'
-  ])
-
-
-def disable_packages_that_crash_with_gestures():
-  """Disable packages that crash on gestures."""
-  for package in PACKAGES_THAT_CRASH_WITH_GESTURES:
-    run_adb_shell_command(['pm', 'disable-user', package], log_error=False)
-
-
-def disable_wifi():
-  """Disable wifi."""
-  run_adb_shell_command(['svc', 'wifi', 'disable'])
-
-
-def enable_wifi():
-  """Enable wifi."""
-  run_adb_shell_command(['svc', 'wifi', 'enable'])
 
 
 def execute_command(cmd, timeout=None, log_error=True):
@@ -216,7 +150,7 @@ def factory_reset():
   revert_asan_device_setup_if_needed()
 
   run_as_root()
-  run_adb_shell_command(
+  run_shell_command(
       ['am', 'broadcast', '-a', 'android.intent.action.MASTER_CLEAR'])
 
   # Wait until the reset is complete.
@@ -226,7 +160,7 @@ def factory_reset():
 def file_exists(file_path):
   """Return whether a file exists or not."""
   expected = '0'
-  result = run_adb_shell_command(
+  result = run_shell_command(
       '\'test -f "%s"; echo $?\'' % file_path, log_error=False)
   return result == expected
 
@@ -245,28 +179,6 @@ def get_adb_path():
     return adb_path
 
   return os.path.join(environment.get_platform_resources_directory(), 'adb')
-
-
-def get_application_launch_command(app_args, testcase_path, testcase_file_url):
-  """Launches application with an optional testcase path."""
-  application_launch_command = environment.get_value('APP_LAUNCH_COMMAND')
-  if not application_launch_command:
-    return ''
-
-  package_name = get_package_name() or ''
-
-  application_launch_command = application_launch_command.replace(
-      '%APP_ARGS%', app_args)
-  application_launch_command = application_launch_command.replace(
-      '%DEVICE_TESTCASES_DIR%', DEVICE_TESTCASES_DIR)
-  application_launch_command = application_launch_command.replace(
-      '%PKG_NAME%', package_name)
-  application_launch_command = application_launch_command.replace(
-      '%TESTCASE%', testcase_path)
-  application_launch_command = application_launch_command.replace(
-      '%TESTCASE_FILE_URL%', testcase_file_url)
-
-  return application_launch_command
 
 
 def get_device_state():
@@ -292,7 +204,7 @@ def get_file_checksum(file_path):
   if not file_exists(file_path):
     return None
 
-  return run_adb_shell_command(['md5sum', '-b', file_path])
+  return run_shell_command(['md5sum', '-b', file_path])
 
 
 def get_file_size(file_path):
@@ -300,43 +212,12 @@ def get_file_size(file_path):
   if not file_exists(file_path):
     return None
 
-  return int(run_adb_shell_command(['stat', '-c%s', file_path]))
+  return int(run_shell_command(['stat', '-c%s', file_path]))
 
 
 def get_ps_output():
   """Return ps output for all processes."""
-  return run_adb_shell_command(['ps', '-A'])
-
-
-def get_package_name(apk_path=None):
-  """Return package name."""
-  # See if our environment is already set with this info.
-  package_name = environment.get_value('PKG_NAME')
-  if package_name:
-    return package_name
-
-  # See if we have the apk available to derive this info.
-  if not apk_path:
-    # Try getting apk path from APP_PATH.
-    apk_path = environment.get_value('APP_PATH')
-    if not apk_path:
-      return None
-
-  # Make sure that apk has the correct extension.
-  if not apk_path.endswith('.apk'):
-    return None
-
-  # Try retrieving package name using aapt.
-  aapt_binary_path = os.path.join(
-      environment.get_platform_resources_directory(), 'aapt')
-  aapt_command = '%s dump badging %s' % (aapt_binary_path, apk_path)
-  output = execute_command(aapt_command, timeout=AAPT_CMD_TIMEOUT)
-  match = re.match('.*package: name=\'([^\']+)\'', output, re.DOTALL)
-  if not match:
-    return None
-
-  package_name = match.group(1)
-  return package_name
+  return run_shell_command(['ps', '-A'])
 
 
 def get_process_and_child_pids(process_name):
@@ -387,7 +268,7 @@ def get_process_and_child_pids(process_name):
 
 def get_property(property_name):
   """Return property's value."""
-  return run_adb_shell_command(['getprop', property_name])
+  return run_shell_command(['getprop', property_name])
 
 
 def hard_reset():
@@ -414,24 +295,6 @@ def is_gce():
   return android_serial.startswith('127.0.0.1:')
 
 
-def is_package_installed(package_name):
-  """Checks if the package appears in the list of packages."""
-  output = run_adb_shell_command(['pm', 'list', 'packages'])
-  package_names = [line.split(':')[-1] for line in output.splitlines()]
-
-  return package_name in package_names
-
-
-def install_package(package_apk_path):
-  """Checks if the package appears in the list of packages."""
-  return run_adb_command(['install', '-r', package_apk_path])
-
-
-def uninstall_package(package_name):
-  """Uninstall a package."""
-  return run_adb_command(['uninstall', package_name])
-
-
 def kill_processes_and_children_matching_name(process_name):
   """Kills process along with children matching names."""
   process_and_child_pids = get_process_and_child_pids(process_name)
@@ -439,7 +302,7 @@ def kill_processes_and_children_matching_name(process_name):
     return
 
   kill_command = ['kill', '-9'] + process_and_child_pids
-  run_adb_shell_command(kill_command)
+  run_shell_command(kill_command)
 
 
 def read_data_from_file(file_path):
@@ -447,12 +310,12 @@ def read_data_from_file(file_path):
   if not file_exists(file_path):
     return None
 
-  return run_adb_shell_command(['cat', '"%s"' % file_path])
+  return run_shell_command(['cat', '"%s"' % file_path])
 
 
 def reboot():
   """Reboots device."""
-  run_adb_command('reboot')
+  run_command('reboot')
 
 
 def stop_gce_device():
@@ -504,13 +367,13 @@ def recreate_gce_device():
 def remount():
   """Remount /system as read/write."""
   run_as_root()
-  run_adb_command('remount')
+  run_command('remount')
   wait_for_device()
 
 
 def remove_directory(device_directory, recreate=False):
   """Deletes everything inside of a device directory."""
-  run_adb_shell_command('rm -rf %s' % device_directory, root=True)
+  run_shell_command('rm -rf %s' % device_directory, root=True)
   if recreate:
     create_directory_if_needed(device_directory)
 
@@ -653,15 +516,15 @@ def run_as_root():
     return
 
   wait_for_device()
-  run_adb_command('root')
+  run_command('root')
   wait_for_device()
 
 
-def run_adb_command(cmd,
-                    log_output=False,
-                    log_error=True,
-                    timeout=None,
-                    recover=True):
+def run_command(cmd,
+                log_output=False,
+                log_error=True,
+                timeout=None,
+                recover=True):
   """Run a command in adb shell."""
   if isinstance(cmd, list):
     cmd = ' '.join([str(i) for i in cmd])
@@ -705,12 +568,12 @@ def run_adb_command(cmd,
   return output
 
 
-def run_adb_shell_command(cmd,
-                          log_output=False,
-                          log_error=True,
-                          root=False,
-                          timeout=None,
-                          recover=True):
+def run_shell_command(cmd,
+                      log_output=False,
+                      log_error=True,
+                      root=False,
+                      timeout=None,
+                      recover=True):
   """Run adb shell command (with root if needed)."""
 
   def _escape_specials(command):
@@ -731,7 +594,7 @@ def run_adb_shell_command(cmd,
   else:
     full_cmd = 'shell {}'.format(cmd)
 
-  return run_adb_command(
+  return run_command(
       full_cmd,
       log_output=log_output,
       log_error=log_error,
@@ -756,13 +619,6 @@ def run_fastboot_command(cmd, log_output=True, log_error=True, timeout=None):
   return output
 
 
-def set_property(property_name, property_value):
-  """Set property's to a certain value."""
-  property_value_quoted_string = '"%s"' % str(property_value)
-  run_adb_shell_command(
-      ['setprop', property_name, property_value_quoted_string])
-
-
 def setup_adb():
   """Sets up ADB binary for use."""
   adb_binary_path = get_adb_path()
@@ -772,52 +628,12 @@ def setup_adb():
     environment.set_value('ADB', adb_binary_path)
 
 
-def stop_application():
-  """Stop application and cleanup application state."""
-  package_name = get_package_name()
-  if not package_name:
-    return
-
-  # Device can get silently restarted in case of OOM. So, we would need to
-  # restart our shell as root in order to kill the application.
-  run_as_root()
-
-  kill_processes_and_children_matching_name(package_name)
-
-  # Chrome specific cleanup.
-  if package_name.endswith('.chrome'):
-    cache_dirs_absolute_paths = [
-        '/data/data/%s/%s' % (package_name, i) for i in CHROME_CACHE_DIRS
-    ]
-    save_crash_minidumps(package_name)
-    run_adb_shell_command(
-        ['rm', '-rf', ' '.join(cache_dirs_absolute_paths)], root=True)
-
-
-def save_crash_minidumps(package_name):
-  """Copy crash minidumps to retain."""
-  # FIXME: remove once we can redirect minidump at generation phase.
-  if package_name != 'com.google.android.apps.chrome':
-    return
-
-  crash_dir_absolute_path = '/data/data/%s/%s' % (package_name,
-                                                  CHROME_CRASH_DIR)
-
-  # Ignore errors when running this command. Adding directory list check is
-  # another adb call and since this is called frequently, we need to avoid that
-  # extra call.
-  run_adb_shell_command(
-      ['cp', '%s/*' % crash_dir_absolute_path, DEVICE_CRASH_DUMPS_DIR],
-      log_error=False,
-      root=True)
-
-
 def start_shell():
   """Stops shell."""
   # Make sure we are running as root.
   run_as_root()
 
-  run_adb_shell_command('start')
+  run_shell_command('start')
   wait_until_fully_booted()
 
 
@@ -825,12 +641,12 @@ def stop_shell():
   """Stops shell."""
   # Make sure we are running as root.
   run_as_root()
-  run_adb_shell_command('stop')
+  run_shell_command('stop')
 
 
 def time_since_last_reboot():
   """Return time in seconds since last reboot."""
-  uptime_string = run_adb_shell_command(['cat', '/proc/uptime']).split(' ')[0]
+  uptime_string = run_shell_command(['cat', '/proc/uptime']).split(' ')[0]
   try:
     return float(uptime_string)
   except ValueError:
@@ -844,12 +660,12 @@ def update_key_in_sqlite_db(database_path, table_name, key_name, key_value):
   sure to use with trusted input key and value pairs only."""
   sql_command_string = ('"UPDATE %s SET value=\'%s\' WHERE name=\'%s\'"') % (
       table_name, str(key_value), key_name)
-  run_adb_shell_command(['sqlite3', database_path, sql_command_string])
+  run_shell_command(['sqlite3', database_path, sql_command_string])
 
 
 def wait_for_device():
   """Waits indefinitely for the device to come online."""
-  run_adb_command('wait-for-device', timeout=RECOVERY_CMD_TIMEOUT)
+  run_command('wait-for-device', timeout=RECOVERY_CMD_TIMEOUT)
 
 
 def wait_until_fully_booted():
@@ -857,18 +673,17 @@ def wait_until_fully_booted():
 
   def boot_completed():
     expected = '1'
-    result = run_adb_shell_command(
-        'getprop sys.boot_completed', log_error=False)
+    result = run_shell_command('getprop sys.boot_completed', log_error=False)
     return result == expected
 
   def drive_ready():
     expected = '0'
-    result = run_adb_shell_command('\'test -d "/"; echo $?\'', log_error=False)
+    result = run_shell_command('\'test -d "/"; echo $?\'', log_error=False)
     return result == expected
 
   def package_manager_ready():
     expected = 'package:/system/framework/framework-res.apk'
-    result = run_adb_shell_command('pm path android', log_error=False)
+    result = run_shell_command('pm path android', log_error=False)
     if not result:
       return False
 
@@ -910,19 +725,6 @@ def wait_until_fully_booted():
   return False
 
 
-def wait_until_package_optimization_complete():
-  """Waits for package optimization to finish."""
-  start_time = time.time()
-
-  while time.time() - start_time < REBOOT_TIMEOUT:
-    package_optimization_finished = 'dex2oat' not in get_ps_output()
-    if package_optimization_finished:
-      return
-
-    logs.log('Waiting for package optimization to finish.')
-    time.sleep(PACKAGE_OPTIMIZATION_INTERVAL)
-
-
 def write_command_line_file(command_line, app_path):
   """Write command line file with command line argument for the application."""
   command_line_path = environment.get_value('COMMAND_LINE_PATH')
@@ -949,11 +751,11 @@ def write_data_to_file(contents, file_path):
     remount()
 
   # Write file with desired contents.
-  run_adb_shell_command("\"echo -n '%s' | su root dd of=%s\"" %
-                        (contents.replace('"', '\\"'), file_path))
+  run_shell_command("\"echo -n '%s' | su root dd of=%s\"" % (contents.replace(
+      '"', '\\"'), file_path))
 
   # Make command line file is readable.
-  run_adb_shell_command('chmod 0644 %s' % file_path, root=True)
+  run_shell_command('chmod 0644 %s' % file_path, root=True)
 
   if is_system_file:
     reboot()

@@ -1,0 +1,67 @@
+<!--
+  Copyright 2019 Google LLC
+
+  Licensed under the Apache License, Version 2.0 (the "License");
+  you may not use this file except in compliance with the License.
+  You may obtain a copy of the License at
+
+       http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+-->
+<link rel="import" href="../../bower_components/polymer/polymer.html">
+<link rel="import" href="../../components/common/ajax-dialog/ajax-dialog.html">
+
+<dom-module id="delete-job-dialog">
+  <link rel="import" href="../technology/technology.css" type="css">
+  <template>
+    <style>
+      /* local DOM styles go here */
+      :host {
+        display: block;
+      }
+    </style>
+    <ajax-dialog
+        id="dialog"
+        url="/jobs/delete-job"
+        title="Delete job"
+        submit-button="Confirm"
+        params="[[computeParams(job.*, fieldValues.csrf_token)]]"
+        opened="{{opened}}"
+        on-response="handleResponse"
+        response="{{response}}">
+      <div>Are you sure you want to delete job [[job.name]]? This will also close any open testcases associated with this job.</div>
+    </ajax-dialog>
+  </template>
+  <script>
+    Polymer({
+      is: 'delete-job-dialog',
+      properties: {
+        fieldValues: Object,
+        fuzzer: Object,
+        opened: {
+          type: Boolean,
+          notify: true
+        }
+      },
+      computeParams() {
+        if (!this.job)
+          return {};
+
+        return {
+          'key': this.job.id,
+          'csrf_token': this.fieldValues.csrf_token,
+        };
+      },
+      handleResponse() {
+        this.$.dialog.close();
+        window.location.reload();
+      }
+    });
+  </script>
+</dom-module>
+

@@ -21,7 +21,7 @@ import unittest
 
 from datastore import data_handler
 from datastore import data_types
-from issue_management import issue
+from issue_management.monorail import issue
 from system import environment
 from tests.test_libs import helpers
 from tests.test_libs import test_utils

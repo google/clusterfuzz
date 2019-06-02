@@ -66,7 +66,7 @@ def _copy_testcase_to_device_and_setup_environment(testcase,
   job_type_has_privileged_access = environment.get_value('PRIVILEGED_ACCESS')
   if job_type_has_privileged_access:
     # Install testcase if it is an app.
-    package_name = android.adb.get_package_name(testcase_file_path)
+    package_name = android.app.get_package_name(testcase_file_path)
     if package_name:
       # Set the package name for later use.
       environment.set_value('PKG_NAME', package_name)
@@ -87,9 +87,9 @@ def _copy_testcase_to_device_and_setup_environment(testcase,
         testcase_file_path.startswith(local_testcases_directory)):
       relative_testcase_file_path = (
           testcase_file_path[len(local_testcases_directory) + 1:])
-      device_testcase_file_path = os.path.join(android.adb.DEVICE_TESTCASES_DIR,
-                                               relative_testcase_file_path)
-      android.adb.run_adb_shell_command(
+      device_testcase_file_path = os.path.join(
+          android.constants.DEVICE_TESTCASES_DIR, relative_testcase_file_path)
+      android.adb.run_shell_command(
           ['chmod', '0755', device_testcase_file_path])
 
 
@@ -561,16 +561,19 @@ def get_data_bundle_directory(fuzzer_name):
     # have their own data bundle.
     return environment.get_value('FUZZ_DATA')
 
+  local_data_bundles_directory = environment.get_value('DATA_BUNDLES_DIR')
+  local_data_bundle_directory = os.path.join(local_data_bundles_directory,
+                                             data_bundle.name)
+
   if data_bundle.is_local:
     # Data bundle is on local disk, return path.
-    data_bundles_directory = environment.get_value('DATA_BUNDLES_DIR')
-    return os.path.join(data_bundles_directory, data_bundle.name)
+    return local_data_bundle_directory
 
   # This data bundle is on NFS, calculate path.
-  # Make sure that nfs directory is set.
+  # Make sure that NFS_ROOT pointing to nfs server is set. If not, use local.
   if not environment.get_value('NFS_ROOT'):
-    logs.log_error('NFS root is not set.')
-    return None
+    logs.log_warn('NFS_ROOT is not set, using local corpora directory.')
+    return local_data_bundle_directory
 
   return _get_nfs_data_bundle_path(data_bundle.name)
 

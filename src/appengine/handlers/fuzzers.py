@@ -13,8 +13,10 @@
 # limitations under the License.
 """Manage fuzzers types."""
 
+from future import standard_library
+standard_library.install_aliases()
 import datetime
-import StringIO
+import io
 
 from base import utils
 from datastore import data_handler
@@ -29,7 +31,6 @@ from libs import gcs
 from libs import handler
 from libs import helpers
 from metrics import fuzzer_logs
-from metrics import logs
 from system import archive
 
 ARCHIVE_READ_SIZE_LIMIT = 16 * 1024 * 1024
@@ -74,13 +75,13 @@ class Handler(base_handler.Handler):
 class BaseEditHandler(base_handler.GcsUploadHandler):
   """Base edit handler."""
 
-  def _read_to_stringio(self, gcs_path):
-    """Return a StringIO representing a GCS object."""
+  def _read_to_bytesio(self, gcs_path):
+    """Return a bytesio representing a GCS object."""
     data = storage.read_data(gcs_path)
     if not data:
       raise helpers.EarlyExitException('Failed to read uploaded archive.', 500)
 
-    return StringIO.StringIO(data)
+    return io.BytesIO(data)
 
   def _get_executable_path(self, upload_info):
     """Get executable path."""
@@ -94,7 +95,7 @@ class BaseEditHandler(base_handler.GcsUploadHandler):
     if not executable_path:
       executable_path = 'run'  # Check for default.
 
-    reader = self._read_to_stringio(upload_info.gcs_path)
+    reader = self._read_to_bytesio(upload_info.gcs_path)
     return archive.get_first_file_matching(executable_path, reader,
                                            upload_info.filename)
 
@@ -110,7 +111,7 @@ class BaseEditHandler(base_handler.GcsUploadHandler):
     if upload_info.size > ARCHIVE_READ_SIZE_LIMIT:
       return launcher_script
 
-    reader = self._read_to_stringio(upload_info.gcs_path)
+    reader = self._read_to_bytesio(upload_info.gcs_path)
     launcher_script = archive.get_first_file_matching(launcher_script, reader,
                                                       upload_info.filename)
     if not launcher_script:
@@ -199,7 +200,7 @@ class BaseEditHandler(base_handler.GcsUploadHandler):
 
     fuzzer_selection.update_mappings_for_fuzzer(fuzzer)
 
-    logs.log('Uploaded fuzzer %s.' % fuzzer.name)
+    helpers.log('Uploaded fuzzer %s.' % fuzzer.name, helpers.MODIFY_OPERATION)
     self.redirect('/fuzzers')
 
 
@@ -270,7 +271,7 @@ class DeleteHandler(base_handler.Handler):
     fuzzer_selection.update_mappings_for_fuzzer(fuzzer, mappings=[])
     fuzzer.key.delete()
 
-    logs.log('Deleted fuzzer %s.' % fuzzer.name)
+    helpers.log('Deleted fuzzer %s' % fuzzer.name, helpers.MODIFY_OPERATION)
     self.redirect('/fuzzers')
 
 

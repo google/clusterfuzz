@@ -19,8 +19,8 @@ import webtest
 
 from datastore import data_types
 from handlers.testcase_detail import update_issue
-from issue_management import issue
-from issue_management import issue_tracker_manager
+from issue_management.monorail import issue
+from issue_management.monorail import issue_tracker_manager
 from libs import access
 from libs import form
 from tests.test_libs import helpers as test_helpers

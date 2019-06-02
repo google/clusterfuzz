@@ -17,7 +17,6 @@ from __future__ import print_function
 # We want to use utf-8 encoding everywhere throughout the application
 # instead of the default 'ascii' encoding. This must happen before any
 # other imports.
-from builtins import object
 import sys
 reload(sys)
 sys.setdefaultencoding('utf-8')
@@ -33,6 +32,9 @@ path_patcher.patch()
 from python.base import modules
 modules.fix_module_search_paths()
 
+from future import standard_library
+standard_library.install_aliases()
+from builtins import object
 import os
 import time
 import traceback

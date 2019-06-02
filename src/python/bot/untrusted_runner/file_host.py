@@ -192,6 +192,13 @@ def clear_testcase_directories():
       recreate=True)
 
 
+def clear_build_urls_directory():
+  """Clear the build urls directory on the worker."""
+  remove_directory(
+      rebase_to_worker_root(environment.get_value('BUILD_URLS_DIR')),
+      recreate=True)
+
+
 def push_testcases_to_worker():
   """Push all testcases to the worker."""
   local_testcases_directory = environment.get_value('FUZZ_INPUTS')

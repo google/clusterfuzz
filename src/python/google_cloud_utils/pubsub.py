@@ -154,6 +154,8 @@ class PubSubClient(object):
     request = self._api_client().projects().subscriptions().pull(
         subscription=subscription, body=request_body)
     response = self._execute_with_retry(request)
+    if response is None:
+      raise RuntimeError('Invalid subscription: ' + subscription)
 
     received_messages = response.get('receivedMessages')
     if not received_messages:

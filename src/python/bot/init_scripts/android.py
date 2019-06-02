@@ -27,6 +27,5 @@ def run():
   # Make sure that device is in a good condition before we move forward.
   android.adb.wait_until_fully_booted()
 
-  # See if we need to need to wait for battery charge to complete before
-  # starting fuzzing.
-  android.device.wait_for_battery_charge_if_needed()
+  # Wait until battery charges to a minimum level and temperature threshold.
+  android.battery.wait_until_good_state()

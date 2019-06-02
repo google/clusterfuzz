@@ -16,6 +16,7 @@
 from future import standard_library
 standard_library.install_aliases()
 from builtins import range
+from past.builtins import basestring
 import base64
 import bisect
 import json
@@ -25,7 +26,6 @@ import requests
 import six
 import time
 import urllib.parse
-import urlparse
 
 from base import memoize
 from base import utils
@@ -203,7 +203,7 @@ def _is_clank(url):
 
 def _is_deps(url):
   """Return bool on whether this is a DEPS url or not."""
-  return urlparse.urlparse(url).path.endswith('/DEPS')
+  return urllib.parse.urlparse(url).path.endswith('/DEPS')
 
 
 def _src_map_to_revisions_dict(src_map, default_project_name):
@@ -691,8 +691,8 @@ def needs_update(revision_file, revision):
 def write_revision_to_revision_file(revision_file, revision):
   """Writes a revision to the revision file."""
   try:
-    with open(revision_file, 'w') as file_handle:
-      file_handle.write(str(revision))
+    with open(revision_file, 'wb') as file_handle:
+      file_handle.write(bytes(revision))
   except:
     logs.log_error(
         "Could not save revision to revision file '%s'" % revision_file)

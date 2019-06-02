@@ -235,6 +235,7 @@ class OssFuzzSetupTest(unittest.TestCase):
             'fuzzing_engines': ['libfuzzer',],
             'view_restrictions':
                 'none',
+            'architectures': ['i386', 'x86_64'],
         }),
         ('lib4', {
             'homepage': 'http://example4.com',
@@ -262,7 +263,7 @@ class OssFuzzSetupTest(unittest.TestCase):
         data_types.Job.name == 'libfuzzer_asan_lib1').get()
     self.assertIsNotNone(job)
     self.assertEqual(job.platform, 'LIB1_LINUX')
-    self.assertItemsEqual(job.templates, ['asan', 'libfuzzer'])
+    self.assertItemsEqual(job.templates, ['asan', 'libfuzzer', 'prune'])
     self.assertEqual(
         job.environment_string, 'RELEASE_BUILD_BUCKET_PATH = '
         'gs://clusterfuzz-builds/lib1/lib1-address-([0-9]+).zip\n'
@@ -281,7 +282,7 @@ class OssFuzzSetupTest(unittest.TestCase):
         data_types.Job.name == 'libfuzzer_asan_lib2').get()
     self.assertIsNotNone(job)
     self.assertEqual(job.platform, 'LIB2_LINUX')
-    self.assertItemsEqual(job.templates, ['asan', 'libfuzzer'])
+    self.assertItemsEqual(job.templates, ['asan', 'libfuzzer', 'prune'])
     self.assertEqual(
         job.environment_string, 'RELEASE_BUILD_BUCKET_PATH = '
         'gs://clusterfuzz-builds/lib2/lib2-address-([0-9]+).zip\n'
@@ -300,7 +301,7 @@ class OssFuzzSetupTest(unittest.TestCase):
         data_types.Job.name == 'libfuzzer_asan_lib3').get()
     self.assertIsNotNone(job)
     self.assertEqual(job.platform, 'LIB3_LINUX')
-    self.assertItemsEqual(job.templates, ['asan', 'libfuzzer'])
+    self.assertItemsEqual(job.templates, ['asan', 'libfuzzer', 'prune'])
     self.assertEqual(
         job.environment_string, 'RELEASE_BUILD_BUCKET_PATH = '
         'gs://clusterfuzz-builds/lib3/lib3-address-([0-9]+).zip\n'
@@ -313,6 +314,26 @@ class OssFuzzSetupTest(unittest.TestCase):
         'SUMMARY_PREFIX = lib3\n'
         'REVISION_VARS_URL = https://commondatastorage.googleapis.com/'
         'clusterfuzz-builds/lib3/lib3-address-%s.srcmap.json\n'
+        'MANAGED = True\n'
+        'ISSUE_VIEW_RESTRICTIONS = none\n')
+
+    job = data_types.Job.query(
+        data_types.Job.name == 'libfuzzer_asan_i386_lib3').get()
+    self.assertIsNotNone(job)
+    self.assertEqual(job.platform, 'LIB3_LINUX')
+    self.assertItemsEqual(job.templates, ['asan', 'libfuzzer'])
+    self.assertEqual(
+        job.environment_string, 'RELEASE_BUILD_BUCKET_PATH = '
+        'gs://clusterfuzz-builds-i386/lib3/lib3-address-([0-9]+).zip\n'
+        'FUZZ_LOGS_BUCKET = lib3-logs.clusterfuzz-external.appspot.com\n'
+        'CORPUS_BUCKET = lib3-corpus.clusterfuzz-external.appspot.com\n'
+        'QUARANTINE_BUCKET = lib3-quarantine.clusterfuzz-external.appspot.com\n'
+        'BACKUP_BUCKET = lib3-backup.clusterfuzz-external.appspot.com\n'
+        'AUTOMATIC_LABELS = Proj-lib3,Engine-libfuzzer\n'
+        'PROJECT_NAME = lib3\n'
+        'SUMMARY_PREFIX = lib3\n'
+        'REVISION_VARS_URL = https://commondatastorage.googleapis.com/'
+        'clusterfuzz-builds-i386/lib3/lib3-address-%s.srcmap.json\n'
         'MANAGED = True\n'
         'ISSUE_VIEW_RESTRICTIONS = none\n')
 
@@ -408,6 +429,8 @@ class OssFuzzSetupTest(unittest.TestCase):
         'clusterfuzz-builds/lib3/lib3-address-%s.srcmap.json',
         u'libfuzzer_asan_lib1;https://commondatastorage.googleapis.com/'
         'clusterfuzz-builds/lib1/lib1-address-%s.srcmap.json',
+        u'libfuzzer_asan_i386_lib3;https://commondatastorage.googleapis.com/'
+        'clusterfuzz-builds-i386/lib3/lib3-address-%s.srcmap.json',
         u'libfuzzer_ubsan_lib1;https://commondatastorage.googleapis.com/'
         'clusterfuzz-builds/lib1/lib1-undefined-%s.srcmap.json',
         u'libfuzzer_ubsan_lib2;https://commondatastorage.googleapis.com/'
@@ -430,6 +453,7 @@ class OssFuzzSetupTest(unittest.TestCase):
     self.assertItemsEqual(libfuzzer.jobs, [
         'libfuzzer_asan_lib1',
         'libfuzzer_asan_lib3',
+        'libfuzzer_asan_i386_lib3',
         'libfuzzer_asan_lib5',
         'libfuzzer_msan_lib3',
         'libfuzzer_ubsan_lib1',
@@ -1242,6 +1266,7 @@ class OssFuzzSetupTest(unittest.TestCase):
         ('LIB1_LINUX', 'afl', 'afl_asan_lib1'),
         ('LIB1_LINUX', 'libFuzzer', 'libfuzzer_asan_lib1'),
         ('LIB3_LINUX', 'libFuzzer', 'libfuzzer_asan_lib3'),
+        ('LIB3_LINUX', 'libFuzzer', 'libfuzzer_asan_i386_lib3'),
         ('LIB3_LINUX', 'libFuzzer', 'libfuzzer_msan_lib3'),
         ('LIB1_LINUX', 'libFuzzer', 'libfuzzer_ubsan_lib1'),
         ('LIB3_LINUX', 'libFuzzer', 'libfuzzer_ubsan_lib3'),
@@ -1331,6 +1356,12 @@ class OssFuzzSetupTest(unittest.TestCase):
         'auto_cc': 1,
         'entity_name': u'asan_lib4',
         'email': u'user@example.com'
+    }, {
+        'entity_kind': 1,
+        'is_prefix': False,
+        'email': u'user@example.com',
+        'entity_name': u'libfuzzer_asan_i386_lib3',
+        'auto_cc': 1
     }])
 
     expected_topics = [
