@@ -14,14 +14,12 @@
 """Impact task.
    Determine whether or not a test case affects production branches."""
 
-from builtins import object
-import six
-
 from base import tasks
 from base import utils
 from bot.tasks import setup
 from build_management import build_manager
 from build_management import revisions
+from builtins import object
 from datastore import data_handler
 from datastore import data_types
 from fuzzing import tests
@@ -97,6 +95,22 @@ def get_start_and_end_revision(regression_range, job_type):
   return start_revision, end_revision
 
 
+def get_component_information_by_name(chromium_revision,
+                                      component_display_name):
+  """Returns a dictionary with information about a component at a revision."""
+  lower_name = component_display_name.lower()
+  component_revisions = revisions.get_component_revisions_dict(
+      chromium_revision, 'default')
+  all_details = []
+  for value in component_revisions.values():
+    if value and 'name' in value and value['name'].lower() == lower_name:
+      all_details.append(value)
+  # If we found several components with the same name, return nothing useful.
+  if len(all_details) == 1:
+    return all_details[0]
+  return None
+
+
 def get_component_impacts_from_url(component_name,
                                    regression_range,
                                    job_type,
@@ -116,23 +130,17 @@ def get_component_impacts_from_url(component_name,
     if not mapping:
       return Impacts()
     chromium_revision = mapping['revision']
-    component_revisions = revisions.get_component_revisions_dict(
-        chromium_revision, 'default')
-    if not component_revisions:
+    component_revision = get_component_information_by_name(
+        chromium_revision, component_name)
+    if not component_revision:
       return Impacts()
-    result = False
-    for key, value in six.iteritems(component_revisions):
-      if value and 'name' in value and value['name'].lower() == component_name:
-        branched_from = revisions.revision_to_branched_from(
-            value['url'], value['rev'])
-        if not branched_from:
-          return Impacts()
-        impact = get_impact({'revision': branched_from, 'version':mapping['version']}, start_revision, end_revision)
-        found_impacts[build] = impact
-        result = True
-        break
-  if not result:
-    return Impacts()
+    branched_from = revisions.revision_to_branched_from(
+        component_revision['url'], component_revision['rev'])
+    if not branched_from:
+      return Impacts()
+    impact = get_impact({'revision': branched_from, 'version': mapping['version']},
+                        start_revision, end_revision)
+    found_impacts[build] = impact
   return Impacts(found_impacts['stable'], found_impacts['beta'])
 
 
