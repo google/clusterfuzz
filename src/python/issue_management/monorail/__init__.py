@@ -164,6 +164,10 @@ class IssueTracker(issue_tracker.IssueTracker):
   def __init__(self, itm):
     self._itm = itm
 
+  @property
+  def project(self):
+    return self._itm.project_name
+
   def new_issue(self):
     monorail_issue = MonorailIssue()
     monorail_issue.itm = self._itm

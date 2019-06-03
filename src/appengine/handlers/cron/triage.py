@@ -27,9 +27,9 @@ from datastore import data_handler
 from datastore import data_types
 from datastore import ndb_utils
 from handlers import base_handler
-from issue_management import issue_filer
 from issue_management import issue_tracker_utils
 from libs import handler
+from libs import issue_filer
 from metrics import crash_stats
 from metrics import logs
 
@@ -273,19 +273,18 @@ class Handler(base_handler.Handler):
 
       # If this project does not have an associated issue tracker, we cannot
       # file this crash anywhere.
-      issue_tracker_manager = issue_tracker_utils.get_issue_tracker_manager(
+      issue_tracker = issue_tracker_utils.get_issue_tracker_for_testcase(
           testcase, use_cache=True)
-      if not issue_tracker_manager:
+      if not issue_tracker:
         continue
 
       # If there are similar issues to this test case already filed or recently
       # closed, skip filing a duplicate bug.
-      if is_similar_bug_open_or_recently_closed(testcase,
-                                                issue_tracker_manager):
+      if is_similar_bug_open_or_recently_closed(testcase, issue_tracker):
         continue
 
       # File the bug first and then create filed bug metadata.
-      issue_filer.file_issue(testcase, issue_tracker_manager)
+      issue_filer.file_issue(testcase, issue_tracker)
       create_filed_bug_metadata(testcase)
       logs.log('Filed new issue %s for testcase %d.' %
                (testcase.bug_information, testcase_id))

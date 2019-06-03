@@ -34,7 +34,7 @@ class HandlerTest(unittest.TestCase):
   def setUp(self):
     test_helpers.patch(self, [
         'issue_management.label_utils.get_memory_tool_labels',
-        'issue_management.issue_filer.add_view_restrictions_if_needed',
+        'libs.issue_filer.add_view_restrictions_if_needed',
         'datastore.data_handler.get_issue_description',
         'datastore.data_handler.get_issue_summary',
         'datastore.data_handler.get_stacktrace',

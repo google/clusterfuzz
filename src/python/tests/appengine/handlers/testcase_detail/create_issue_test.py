@@ -30,7 +30,7 @@ class HandlerTest(unittest.TestCase):
 
   def setUp(self):
     test_helpers.patch(self, [
-        'issue_management.issue_filer.file_issue',
+        'libs.issue_filer.file_issue',
         'issue_management.issue_tracker_utils.get_issue_tracker_manager',
         'libs.auth.get_current_user',
         'handlers.testcase_detail.show.get_testcase_detail',

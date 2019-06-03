@@ -85,6 +85,16 @@ def get_testcase(testcase_id):
   return testcase
 
 
+def get_issue_tracker(testcase):
+  """Get an IssueTracker or raise EarlyExitException."""
+  itm = issue_tracker_utils.get_issue_tracker_for_testcase(testcase)
+  if not itm:
+    raise EarlyExitException(
+        "The testcase doesn't have a corresponding issue tracker", 404)
+  return itm
+
+
+# TODO(ochang): Deprecated. Remove this.
 def get_issue_tracker_manager(testcase):
   """Get an IssueTrackerManager or raise EarlyExitException."""
   itm = issue_tracker_utils.get_issue_tracker_manager(testcase)
