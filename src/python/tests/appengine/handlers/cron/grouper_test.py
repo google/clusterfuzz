@@ -68,6 +68,31 @@ class GrouperTest(unittest.TestCase):
     self.assertEqual(testcases[0].group_id, 0)
     self.assertTrue(testcases[0].is_leader)
 
+  def test_unminimized(self):
+    """Test that unminimized testcase is not processed for grouping."""
+    self.testcases[0].security_flag = True
+    self.testcases[0].crash_state = 'abc\ndef'
+    self.testcases[0].crash_type = 'Heap-buffer-overflow\nREAD {*}'
+    self.testcases[0].minimized_keys = None
+    self.testcases[1].security_flag = True
+    self.testcases[1].crash_state = 'abc\ndef'
+    self.testcases[1].crash_type = 'Heap-buffer-overflow\nREAD 3'
+
+    for t in self.testcases:
+      t.put()
+
+    grouper.group_testcases()
+
+    testcases = []
+    for testcase_id in data_handler.get_open_testcase_id_iterator():
+      testcases.append(data_handler.get_testcase_by_id(testcase_id))
+
+    self.assertEqual(len(testcases), 2)
+    self.assertEqual(testcases[0].group_id, 0)
+    self.assertFalse(testcases[0].is_leader)
+    self.assertEqual(testcases[1].group_id, 0)
+    self.assertTrue(testcases[1].is_leader)
+
   def test_different_crash_same_security(self):
     """Test that crashes with different crash states and same security flags
       don't get grouped together."""
