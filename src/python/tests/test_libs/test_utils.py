@@ -59,6 +59,7 @@ def create_generic_testcase(created_days_ago=28):
   testcase.crash_type = 'fake type'
   testcase.comments = 'Fuzzer: test'
   testcase.fuzzed_keys = 'abcd'
+  testcase.minimized_keys = 'efgh'
   testcase.fuzzer_name = 'fuzzer1'
   testcase.open = True
   testcase.one_time_crasher_flag = False

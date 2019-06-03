@@ -107,6 +107,11 @@ def group_testcases():
       testcase.key.delete()
       continue
 
+    # Wait for minimization to finish as this might change crash params such
+    # as type and may mark it as duplicate / closed.
+    if not testcase.minimized_keys:
+      continue
+
     # Store needed testcase attributes into |testcase_map|.
     testcase_map[testcase_id] = TestcaseAttributes()
     testcase_attributes = testcase_map[testcase_id]
