@@ -18,6 +18,7 @@ import tempfile
 
 from base import utils
 from platforms.android import adb
+from platforms.android import constants
 from system import shell
 from tests.test_libs import android_helpers
 from tests.test_libs import helpers as test_helpers
@@ -30,7 +31,7 @@ class CopyLocalDirectoryToRemoteTest(android_helpers.AndroidTest):
     super(CopyLocalDirectoryToRemoteTest, self).setUp()
 
     # Clear and create temporary directory on device.
-    self.device_temp_dir = adb.DEVICE_TMP_DIR
+    self.device_temp_dir = constants.DEVICE_TMP_DIR
     adb.remove_directory(self.device_temp_dir, recreate=True)
 
     # Create local temp directory.
@@ -74,7 +75,7 @@ class CopyRemoteDirectoryToLocalTest(android_helpers.AndroidTest):
     super(CopyRemoteDirectoryToLocalTest, self).setUp()
 
     # Clear and create temporary directory on device.
-    self.device_temp_dir = adb.DEVICE_TMP_DIR
+    self.device_temp_dir = constants.DEVICE_TMP_DIR
     adb.remove_directory(self.device_temp_dir, recreate=True)
 
     # Create local temp directory.
@@ -113,7 +114,7 @@ class ReadDataFromFileTest(android_helpers.AndroidTest):
     super(ReadDataFromFileTest, self).setUp()
 
     # Clear and create temporary directory on device.
-    self.device_temp_dir = adb.DEVICE_TMP_DIR
+    self.device_temp_dir = constants.DEVICE_TMP_DIR
     adb.remove_directory(self.device_temp_dir, recreate=True)
 
   def tearDown(self):
@@ -138,7 +139,7 @@ class WriteDataToFileTest(android_helpers.AndroidTest):
     super(WriteDataToFileTest, self).setUp()
 
     # Clear and create temporary directory on device.
-    self.device_temp_dir = adb.DEVICE_TMP_DIR
+    self.device_temp_dir = constants.DEVICE_TMP_DIR
     adb.remove_directory(self.device_temp_dir, recreate=True)
 
   def tearDown(self):

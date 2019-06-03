@@ -22,7 +22,7 @@ def run():
   init_runner.run()
 
   # Check if we need to reflash device to latest build.
-  android.device.flash_to_latest_build_if_needed()
+  android.flash.flash_to_latest_build_if_needed()
 
   # Make sure that device is in a good condition before we move forward.
   android.adb.wait_until_fully_booted()

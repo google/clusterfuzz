@@ -151,3 +151,34 @@ def is_google_device():
     return None
 
   return product_brand == 'google' or product_brand == 'generic'
+
+
+def set_content_setting(table, key, value):
+  """Set a device content setting. The input is not sanitized, so make sure to
+  use   with trusted input key and value pair only."""
+
+  def _get_type_binding(value):
+    """Return binding type for content setting."""
+    if isinstance(value, bool):
+      return 'b'
+    if isinstance(value, float):
+      return 'f'
+    if isinstance(value, int):
+      return 'i'
+    if isinstance(value, str):
+      return 's'
+    raise ValueError('Unsupported type %s' % type(value))
+
+  content_setting_command = (
+      'content insert --uri content://%s --bind name:s:%s --bind value:%s:%s' %
+      (table, key, _get_type_binding(value), str(value)))
+
+  adb.run_shell_command(content_setting_command)
+
+
+def set_database_setting(database_path, table, key, value):
+  """Update a key in a database. The input is not sanitized, so make sure to use
+  with trusted input key and value pair only."""
+  sql_command_string = ('"UPDATE %s SET value=\'%s\' WHERE name=\'%s\'"') % (
+      table, str(value), key)
+  adb.run_shell_command(['sqlite3', database_path, sql_command_string])
