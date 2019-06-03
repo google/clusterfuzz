@@ -13,15 +13,17 @@
 # limitations under the License.
 """issue_filer tests."""
 
+# pylint: disable=protected-access
+
 from builtins import object
 import datetime
 import parameterized
 import unittest
 
 from datastore import data_types
-from libs import issue_filer
 from issue_management import label_utils
 from issue_management import monorail
+from libs import issue_filer
 
 from tests.test_libs import helpers
 from tests.test_libs import test_utils
@@ -136,34 +138,57 @@ class IssueFilerTests(unittest.TestCase):
     """Tests issue filing for oss-fuzz."""
     issue_tracker = monorail.IssueTracker(IssueTrackerManager('oss-fuzz'))
     issue_filer.file_issue(self.testcase1, issue_tracker)
-    self.assertTrue(issue_tracker._itm.last_issue.has_label_matching('restrict-view-commit'))
-    self.assertFalse(issue_tracker._itm.last_issue.has_label_matching('reported-2016-01-01'))
-    self.assertNotIn(issue_filer.DEADLINE_NOTE, issue_tracker._itm.last_issue.body)
+    self.assertTrue(
+        issue_tracker._itm.last_issue.has_label_matching(
+            'restrict-view-commit'))
+    self.assertFalse(
+        issue_tracker._itm.last_issue.has_label_matching('reported-2016-01-01'))
+    self.assertNotIn(issue_filer.DEADLINE_NOTE,
+                     issue_tracker._itm.last_issue.body)
 
     issue_filer.file_issue(self.testcase1_security, issue_tracker)
-    self.assertTrue(issue_tracker._itm.last_issue.has_label_matching('restrict-view-commit'))
-    self.assertFalse(issue_tracker._itm.last_issue.has_label_matching('reported-2016-01-01'))
-    self.assertNotIn(issue_filer.DEADLINE_NOTE, issue_tracker._itm.last_issue.body)
+    self.assertTrue(
+        issue_tracker._itm.last_issue.has_label_matching(
+            'restrict-view-commit'))
+    self.assertFalse(
+        issue_tracker._itm.last_issue.has_label_matching('reported-2016-01-01'))
+    self.assertNotIn(issue_filer.DEADLINE_NOTE,
+                     issue_tracker._itm.last_issue.body)
 
     issue_filer.file_issue(self.testcase2, issue_tracker)
-    self.assertFalse(issue_tracker._itm.last_issue.has_label_matching('restrict-view-commit'))
-    self.assertTrue(issue_tracker._itm.last_issue.has_label_matching('reported-2016-01-01'))
-    self.assertNotIn(issue_filer.DEADLINE_NOTE, issue_tracker._itm.last_issue.body)
+    self.assertFalse(
+        issue_tracker._itm.last_issue.has_label_matching(
+            'restrict-view-commit'))
+    self.assertTrue(
+        issue_tracker._itm.last_issue.has_label_matching('reported-2016-01-01'))
+    self.assertNotIn(issue_filer.DEADLINE_NOTE,
+                     issue_tracker._itm.last_issue.body)
 
     issue_filer.file_issue(self.testcase2_security, issue_tracker)
-    self.assertTrue(issue_tracker._itm.last_issue.has_label_matching('restrict-view-commit'))
-    self.assertTrue(issue_tracker._itm.last_issue.has_label_matching('reported-2016-01-01'))
+    self.assertTrue(
+        issue_tracker._itm.last_issue.has_label_matching(
+            'restrict-view-commit'))
+    self.assertTrue(
+        issue_tracker._itm.last_issue.has_label_matching('reported-2016-01-01'))
     self.assertIn(issue_filer.DEADLINE_NOTE, issue_tracker._itm.last_issue.body)
 
     issue_filer.file_issue(self.testcase3, issue_tracker)
-    self.assertFalse(issue_tracker._itm.last_issue.has_label_matching('restrict-view-commit'))
-    self.assertFalse(issue_tracker._itm.last_issue.has_label_matching('reported-2016-01-01'))
-    self.assertNotIn(issue_filer.DEADLINE_NOTE, issue_tracker._itm.last_issue.body)
+    self.assertFalse(
+        issue_tracker._itm.last_issue.has_label_matching(
+            'restrict-view-commit'))
+    self.assertFalse(
+        issue_tracker._itm.last_issue.has_label_matching('reported-2016-01-01'))
+    self.assertNotIn(issue_filer.DEADLINE_NOTE,
+                     issue_tracker._itm.last_issue.body)
 
     issue_filer.file_issue(self.testcase3_security, issue_tracker)
-    self.assertFalse(issue_tracker._itm.last_issue.has_label_matching('restrict-view-commit'))
-    self.assertTrue(issue_tracker._itm.last_issue.has_label_matching('reported-2016-01-01'))
-    self.assertNotIn(issue_filer.DEADLINE_NOTE, issue_tracker._itm.last_issue.body)
+    self.assertFalse(
+        issue_tracker._itm.last_issue.has_label_matching(
+            'restrict-view-commit'))
+    self.assertTrue(
+        issue_tracker._itm.last_issue.has_label_matching('reported-2016-01-01'))
+    self.assertNotIn(issue_filer.DEADLINE_NOTE,
+                     issue_tracker._itm.last_issue.body)
 
   def test_testcase_metadata_labels(self):
     """Tests issue filing with additional labels."""
@@ -196,7 +221,8 @@ class IssueFilerTests(unittest.TestCase):
     self.testcase1.security_severity = None
     self.testcase1.put()
     issue_filer.file_issue(self.testcase1, issue_tracker)
-    self.assertFalse(issue_tracker._itm.last_issue.has_label_by_prefix('Security_Severity-'))
+    self.assertFalse(
+        issue_tracker._itm.last_issue.has_label_by_prefix('Security_Severity-'))
 
   @parameterized.parameterized.expand(['chromium', 'oss-fuzz', 'any_project'])
   def test_security_severity_security_bug_default_severity(self, project_name):
@@ -208,9 +234,13 @@ class IssueFilerTests(unittest.TestCase):
     self.testcase1.security_severity = None
     self.testcase1.put()
     issue_filer.file_issue(self.testcase1, issue_tracker)
-    self.assertIn('Security_Severity-High', issue_tracker._itm.last_issue.labels)
+    self.assertIn('Security_Severity-High',
+                  issue_tracker._itm.last_issue.labels)
     self.assertEqual(
-        1, len(issue_tracker._itm.last_issue.get_labels_by_prefix('Security_Severity-')))
+        1,
+        len(
+            issue_tracker._itm.last_issue.get_labels_by_prefix(
+                'Security_Severity-')))
 
   @parameterized.parameterized.expand(['chromium', 'oss-fuzz', 'any_project'])
   def test_security_severity_security_bug_severity_override(self, project_name):
@@ -225,10 +255,15 @@ class IssueFilerTests(unittest.TestCase):
         self.testcase1,
         issue_tracker,
         security_severity=data_types.SecuritySeverity.MEDIUM)
-    self.assertNotIn('Security_Severity-High', issue_tracker._itm.last_issue.labels)
-    self.assertIn('Security_Severity-Medium', issue_tracker._itm.last_issue.labels)
+    self.assertNotIn('Security_Severity-High',
+                     issue_tracker._itm.last_issue.labels)
+    self.assertIn('Security_Severity-Medium',
+                  issue_tracker._itm.last_issue.labels)
     self.assertEqual(
-        1, len(issue_tracker._itm.last_issue.get_labels_by_prefix('Security_Severity-')))
+        1,
+        len(
+            issue_tracker._itm.last_issue.get_labels_by_prefix(
+                'Security_Severity-')))
 
   @parameterized.parameterized.expand(['chromium', 'oss-fuzz', 'any_project'])
   def test_security_severity_security_bug_with_severity_set(self, project_name):
@@ -251,7 +286,10 @@ class IssueFilerTests(unittest.TestCase):
       self.assertIn(security_severity_string_map[security_severity],
                     issue_tracker._itm.last_issue.labels)
       self.assertEqual(
-          1, len(issue_tracker._itm.last_issue.get_labels_by_prefix('Security_Severity-')))
+          1,
+          len(
+              issue_tracker._itm.last_issue.get_labels_by_prefix(
+                  'Security_Severity-')))
 
   @parameterized.parameterized.expand(['chromium', 'oss-fuzz', 'any_project'])
   def test_memory_tool_used(self, project_name):

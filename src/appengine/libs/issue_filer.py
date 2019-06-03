@@ -18,7 +18,6 @@ from base import utils
 from datastore import data_handler
 from datastore import data_types
 from issue_management import label_utils
-from issue_management.issue_tracker import Issue
 from system import environment
 
 NON_CRASH_TYPES = [
