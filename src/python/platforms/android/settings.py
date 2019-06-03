@@ -155,7 +155,7 @@ def is_google_device():
 
 def set_content_setting(table, key, value):
   """Set a device content setting. The input is not sanitized, so make sure to
-  use   with trusted input key and value pair only."""
+  use with trusted input key and value pair only."""
 
   def _get_type_binding(value):
     """Return binding type for content setting."""

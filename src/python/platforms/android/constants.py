@@ -17,6 +17,8 @@ import re
 
 CRASH_DUMPS_DIR = '/sdcard/crash-reports'
 
+DEVICE_DOWNLOAD_DIR = '/sdcard/Download'
+
 DEVICE_TMP_DIR = '/data/local/tmp'
 
 DEVICE_TESTCASES_DIR = '/sdcard/fuzzer-testcases'

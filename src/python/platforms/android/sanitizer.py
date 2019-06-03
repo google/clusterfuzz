@@ -38,6 +38,12 @@ def get_options_file_path(sanitizer_tool_name):
   return os.path.join(sanitizer_directory, sanitizer_filename)
 
 
+def set_options(sanitizer_tool_name, sanitizer_options):
+  """Set sanitizer options on the disk file."""
+  sanitizer_options_file_path = get_options_file_path(sanitizer_tool_name)
+  adb.write_data_to_file(sanitizer_options, sanitizer_options_file_path)
+
+
 def setup_asan_if_needed():
   """Set up asan on device."""
   if not environment.get_value('ASAN_DEVICE_SETUP'):
@@ -75,9 +81,3 @@ def setup_asan_if_needed():
   # Wait until fully booted as otherwise shell restart followed by a quick
   # reboot can trigger data corruption in /data/data.
   adb.wait_until_fully_booted()
-
-
-def set_options(sanitizer_tool_name, sanitizer_options):
-  """Set sanitizer options on the disk file."""
-  sanitizer_options_file_path = get_options_file_path(sanitizer_tool_name)
-  adb.write_data_to_file(sanitizer_options, sanitizer_options_file_path)

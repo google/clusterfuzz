@@ -36,7 +36,6 @@ BAD_STATE_WAIT = 900
 BOOT_WAIT_INTERVAL = 30
 DEFAULT_DEVICE_MEMORY_MB = 2048
 DEVICE = collections.namedtuple('Device', ['serial', 'path'])
-DEVICE_DOWNLOAD_DIR = '/sdcard/Download'
 DEVICE_HANG_STRING = None
 DEVICE_NOT_FOUND_STRING = 'error: device \'{serial}\' not found'
 DEVICE_OFFLINE_STRING = 'error: device offline'
@@ -324,16 +323,6 @@ def reboot():
   run_command('reboot')
 
 
-def stop_gce_device():
-  """Stops the gce device."""
-  cvd_dir = environment.get_value('CVD_DIR')
-  cvd_bin_dir = os.path.join(cvd_dir, 'bin')
-  stop_cvd_path = os.path.join(cvd_bin_dir, 'stop_cvd')
-
-  execute_command(stop_cvd_path, timeout=RECOVERY_CMD_TIMEOUT)
-  time.sleep(STOP_CVD_WAIT)
-
-
 def start_gce_device():
   """Start the gce device."""
   cvd_dir = environment.get_value('CVD_DIR')
@@ -346,6 +335,16 @@ def start_gce_device():
       '{launch_cvd_path} -daemon -memory_mb {device_memory_mb}'.format(
           launch_cvd_path=launch_cvd_path, device_memory_mb=device_memory_mb))
   execute_command(launch_cvd_command_line)
+
+
+def stop_gce_device():
+  """Stops the gce device."""
+  cvd_dir = environment.get_value('CVD_DIR')
+  cvd_bin_dir = os.path.join(cvd_dir, 'bin')
+  stop_cvd_path = os.path.join(cvd_bin_dir, 'stop_cvd')
+
+  execute_command(stop_cvd_path, timeout=RECOVERY_CMD_TIMEOUT)
+  time.sleep(STOP_CVD_WAIT)
 
 
 def recreate_gce_device():

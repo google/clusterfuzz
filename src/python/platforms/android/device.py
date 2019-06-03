@@ -112,7 +112,7 @@ def add_test_accounts_if_needed():
 def clear_testcase_directory():
   """Clears testcase directory."""
   # Cleanup downloads folder on /sdcard.
-  adb.remove_directory(adb.DEVICE_DOWNLOAD_DIR, recreate=True)
+  adb.remove_directory(constants.DEVICE_DOWNLOAD_DIR, recreate=True)
 
   # Cleanup testcase directory.
   adb.remove_directory(constants.DEVICE_TESTCASES_DIR, recreate=True)
@@ -377,6 +377,25 @@ def install_application_if_needed(apk_path, force_update):
   app.reset()
 
 
+def is_build_at_least(current_version, other_version):
+  """Returns whether or not |current_version| is at least as new as
+  |other_version|."""
+  if current_version is None:
+    return False
+
+  # Special-cases for master builds.
+  if current_version == 'MASTER':
+    # If the current build is master, we consider it at least as new as any
+    # other.
+    return True
+
+  if other_version == 'MASTER':
+    # Since this build is not master, it is not at least as new as master.
+    return False
+
+  return current_version >= other_version
+
+
 def push_testcases_to_device():
   """Pushes testcases from local fuzz directory onto device."""
   # Attempt to ensure that the local state is the same as the state on the
@@ -419,22 +438,3 @@ def setup_host_and_device_forwarder_if_needed():
   for port in ports:
     port_string = 'tcp:%d' % port
     adb.run_command(['reverse', port_string, port_string])
-
-
-def is_build_at_least(current_version, other_version):
-  """Returns whether or not |current_version| is at least as new as
-  |other_version|."""
-  if current_version is None:
-    return False
-
-  # Special-cases for master builds.
-  if current_version == 'MASTER':
-    # If the current build is master, we consider it at least as new as any
-    # other.
-    return True
-
-  if other_version == 'MASTER':
-    # Since this build is not master, it is not at least as new as master.
-    return False
-
-  return current_version >= other_version
