@@ -30,11 +30,11 @@ class HandlerTest(unittest.TestCase):
 
   def setUp(self):
     test_helpers.patch(self, [
-        'libs.issue_filer.file_issue',
-        'issue_management.issue_tracker_utils.get_issue_tracker_manager',
-        'libs.auth.get_current_user',
         'handlers.testcase_detail.show.get_testcase_detail',
+        'issue_management.issue_tracker_utils.get_issue_tracker_for_testcase',
+        'libs.auth.get_current_user',
         'libs.access.has_access',
+        'libs.issue_filer.file_issue',
     ])
     self.mock.has_access.return_value = True
     self.mock.get_testcase_detail.return_value = {'testcase': 'yes'}
@@ -48,8 +48,8 @@ class HandlerTest(unittest.TestCase):
 
   def test_create_successfully(self):
     """Create issue successfully."""
-    itm = mock.Mock()
-    self.mock.get_issue_tracker_manager.return_value = itm
+    issue_tracker = mock.Mock()
+    self.mock.get_issue_tracker_for_testcase.return_value = issue_tracker
     self.mock.file_issue.return_value = 100
 
     resp = self.app.post_json(
@@ -61,14 +61,15 @@ class HandlerTest(unittest.TestCase):
         })
 
     self.assertEqual('yes', resp.json['testcase'])
-    self.mock.get_issue_tracker_manager.assert_has_calls([mock.call(mock.ANY)])
+    self.mock.get_issue_tracker_for_testcase.assert_has_calls(
+        [mock.call(mock.ANY)])
     self.assertEqual(
         self.testcase.key.id(),
-        self.mock.get_issue_tracker_manager.call_args[0][0].key.id())
+        self.mock.get_issue_tracker_for_testcase.call_args[0][0].key.id())
     self.mock.file_issue.assert_has_calls([
         mock.call(
             mock.ANY,
-            itm,
+            issue_tracker,
             security_severity=3,
             user_email='test@user.com',
             additional_ccs=['test@user.com'])
@@ -76,9 +77,9 @@ class HandlerTest(unittest.TestCase):
     self.assertEqual(self.testcase.key.id(),
                      self.mock.file_issue.call_args[0][0].key.id())
 
-  def test_no_itm(self):
-    """No IssueTrackerManager."""
-    self.mock.get_issue_tracker_manager.return_value = None
+  def test_no_issue_tracker(self):
+    """No IssueTracker."""
+    self.mock.get_issue_tracker_for_testcase.return_value = None
 
     resp = self.app.post_json(
         '/', {
@@ -92,8 +93,8 @@ class HandlerTest(unittest.TestCase):
 
   def test_invalid_testcase(self):
     """Invalid testcase."""
-    itm = mock.Mock()
-    self.mock.get_issue_tracker_manager.return_value = itm
+    issue_tracker = mock.Mock()
+    self.mock.get_issue_tracker_for_testcase.return_value = issue_tracker
 
     resp = self.app.post_json(
         '/', {
@@ -107,8 +108,8 @@ class HandlerTest(unittest.TestCase):
 
   def test_invalid_severity(self):
     """Invalid severity."""
-    itm = mock.Mock()
-    self.mock.get_issue_tracker_manager.return_value = itm
+    issue_tracker = mock.Mock()
+    self.mock.get_issue_tracker_for_testcase.return_value = issue_tracker
     self.mock.file_issue.return_value = 100
 
     resp = self.app.post_json(
@@ -123,8 +124,8 @@ class HandlerTest(unittest.TestCase):
 
   def test_creating_fails(self):
     """Fail to create issue."""
-    itm = mock.Mock()
-    self.mock.get_issue_tracker_manager.return_value = itm
+    issue_tracker = mock.Mock()
+    self.mock.get_issue_tracker_for_testcase.return_value = issue_tracker
     self.mock.file_issue.return_value = None
 
     resp = self.app.post_json(
@@ -137,14 +138,15 @@ class HandlerTest(unittest.TestCase):
         expect_errors=True)
 
     self.assertEqual(resp.status_int, 500)
-    self.mock.get_issue_tracker_manager.assert_has_calls([mock.call(mock.ANY)])
+    self.mock.get_issue_tracker_for_testcase.assert_has_calls(
+        [mock.call(mock.ANY)])
     self.assertEqual(
         self.testcase.key.id(),
-        self.mock.get_issue_tracker_manager.call_args[0][0].key.id())
+        self.mock.get_issue_tracker_for_testcase.call_args[0][0].key.id())
     self.mock.file_issue.assert_has_calls([
         mock.call(
             mock.ANY,
-            itm,
+            issue_tracker,
             security_severity=3,
             user_email='test@user.com',
             additional_ccs=['test@user.com'])
