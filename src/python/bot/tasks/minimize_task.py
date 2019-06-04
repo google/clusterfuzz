@@ -40,7 +40,7 @@ from crash_analysis.crash_comparer import CrashComparer
 from crash_analysis.crash_result import CrashResult
 from datastore import data_handler
 from datastore import data_types
-from fuzzing import tests
+from fuzzing import testcase_manager
 from google_cloud_utils import blobs
 from metrics import logs
 from platforms import android
@@ -265,7 +265,7 @@ class TestRunner(object):
     profile_index = self._get_profile_index()
 
     if use_fresh_profile and environment.get_value('USER_PROFILE_ARG'):
-      shell.remove_directory(tests.get_user_profile_directory(profile_index))
+      shell.remove_directory(testcase_manager.get_user_profile_directory(profile_index))
 
     # For Android, we need to sync our local testcases directory with the one on
     # the device.
@@ -280,7 +280,7 @@ class TestRunner(object):
     arguments_changed = arguments != self._previous_arguments
     self._previous_arguments = arguments
 
-    command = tests.get_command_line_for_application(
+    command = testcase_manager.get_command_line_for_application(
         file_to_run=file_path,
         app_args=arguments,
         needs_http=needs_http,
@@ -418,7 +418,7 @@ def execute_task(testcase_id, job_type):
 
   # If the warmup crash occurred but we couldn't reproduce this in with
   # multiple processes running in parallel, try to minimize single threaded.
-  if (len(crash_times) < tests.REPRODUCIBILITY_FACTOR * crash_retries and
+  if (len(crash_times) < testcase_manager.REPRODUCIBILITY_FACTOR * crash_retries and
       warmup_crash_occurred and max_threads > 1):
     logs.log('Attempting to continue single-threaded.')
 
@@ -434,7 +434,7 @@ def execute_task(testcase_id, job_type):
     testcase.flaky_stack = flaky_stack
     testcase.put()
 
-  if len(crash_times) < tests.REPRODUCIBILITY_FACTOR * crash_retries:
+  if len(crash_times) < testcase_manager.REPRODUCIBILITY_FACTOR * crash_retries:
     if not crash_times:
       # We didn't crash at all, so try again. This might be a legitimately
       # unreproducible test case, so it will get marked as such after being
@@ -545,7 +545,7 @@ def execute_task(testcase_id, job_type):
         testcase_file_path):
       return
 
-  command = tests.get_command_line_for_application(
+  command = testcase_manager.get_command_line_for_application(
       testcase_file_path, app_args=app_arguments, needs_http=testcase.http_flag)
   last_crash_result = test_runner.last_failing_result
 
@@ -954,7 +954,7 @@ def can_minimize_file(file_path):
     return True
 
   # Attempt to minimize IPC dumps.
-  if file_path.endswith(tests.IPCDUMP_EXTENSION):
+  if file_path.endswith(testcase_manager.IPCDUMP_EXTENSION):
     return supports_ipc_minimization(file_path)
 
   # Other binary file formats are not supported.
@@ -1069,7 +1069,7 @@ def _run_libfuzzer_testcase(testcase, testcase_file_path):
 
   test_timeout = environment.get_value('TEST_TIMEOUT',
                                        process_handler.DEFAULT_TEST_TIMEOUT)
-  repro_command = tests.get_command_line_for_application(
+  repro_command = testcase_manager.get_command_line_for_application(
       file_to_run=testcase_file_path, needs_http=testcase.http_flag)
   return_code, crash_time, output = process_handler.run_process(
       repro_command, timeout=test_timeout)
@@ -1119,7 +1119,7 @@ def _run_libfuzzer_tool(tool_name,
                     tool_name=tool_name,
                     output_file_path=rebased_output_file_path,
                     timeout=timeout)
-  command = tests.get_command_line_for_application(
+  command = testcase_manager.get_command_line_for_application(
       file_to_run=testcase_file_path,
       app_args=arguments,
       needs_http=testcase.http_flag)
@@ -1245,7 +1245,7 @@ def do_libfuzzer_minimization(testcase, testcase_file_path):
       current_testcase_path = output_file_path
 
   if not last_crash_result:
-    repro_command = tests.get_command_line_for_application(
+    repro_command = testcase_manager.get_command_line_for_application(
         file_to_run=testcase_file_path, needs_http=testcase.http_flag)
     _skip_minimization(
         testcase,
@@ -1264,7 +1264,7 @@ def do_libfuzzer_minimization(testcase, testcase_file_path):
       current_testcase_path = cleansed_testcase_path
 
   # Finalize the test case if we were able to reproduce it.
-  repro_command = tests.get_command_line_for_application(
+  repro_command = testcase_manager.get_command_line_for_application(
       file_to_run=current_testcase_path, needs_http=testcase.http_flag)
   finalize_testcase(testcase.key.id(), repro_command, last_crash_result)
 
@@ -1324,7 +1324,7 @@ def minimize_file(file_path,
                   delete_temp_files=True):
   """Attempt to minimize a single file."""
   # Specialized minimization strategy for IPC dumps.
-  if file_path.endswith(tests.IPCDUMP_EXTENSION):
+  if file_path.endswith(testcase_manager.IPCDUMP_EXTENSION):
     return do_ipc_dump_minimization(test_function, get_temp_file, file_path,
                                     deadline, threads, delete_temp_files,
                                     cleanup_interval)

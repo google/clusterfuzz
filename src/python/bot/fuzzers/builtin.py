@@ -23,7 +23,7 @@ from base import utils
 from bot.fuzzers import engine_common
 from bot.fuzzers import utils as fuzzers_utils
 from datastore import data_types
-from fuzzing import tests
+from fuzzing import testcase_manager
 from system import environment
 
 
@@ -103,13 +103,13 @@ class EngineFuzzer(BuiltinFuzzer):
       # Contents of testcase file don't matter at this point. Need to create
       # something non-null so that it is not ignored.
       testcase_file_path = os.path.join(output_directory,
-                                        '%s%d' % (tests.FUZZ_PREFIX, i))
+                                        '%s%d' % (testcase_manager.FUZZ_PREFIX, i))
       utils.write_data_to_file(' ', testcase_file_path)
 
       # Write the flags file containing command line for running launcher
       # script.
       flags_file_path = os.path.join(output_directory,
-                                     '%s%d' % (tests.FLAGS_PREFIX, i))
+                                     '%s%d' % (testcase_manager.FLAGS_PREFIX, i))
       flags = ['%TESTCASE%', fuzzer_binary_name]
       if arguments:
         flags.append(arguments)

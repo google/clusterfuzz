@@ -18,7 +18,7 @@ from bot.tasks import setup
 from build_management import build_manager
 from datastore import data_handler
 from datastore import data_types
-from fuzzing import tests
+from fuzzing import testcase_manager
 from system import environment
 
 
@@ -54,9 +54,9 @@ def execute_task(testcase_id, job_type):
   if environment.tool_matches('TSAN', job_type):
     environment.set_tsan_max_history_size()
 
-  command = tests.get_command_line_for_application(
+  command = testcase_manager.get_command_line_for_application(
       testcase_file_path, app_path=app_path, needs_http=testcase.http_flag)
-  result = tests.test_for_crash_with_retries(
+  result = testcase_manager.test_for_crash_with_retries(
       testcase,
       testcase_file_path,
       test_timeout,
@@ -70,7 +70,7 @@ def execute_task(testcase_id, job_type):
   if result.is_crash():
     state = result.get_symbolized_data()
     security_flag = result.is_security_issue()
-    one_time_crasher_flag = not tests.test_for_reproducibility(
+    one_time_crasher_flag = not testcase_manager.test_for_reproducibility(
         testcase_file_path, state.crash_state, security_flag, test_timeout,
         testcase.http_flag, testcase.gestures)
 

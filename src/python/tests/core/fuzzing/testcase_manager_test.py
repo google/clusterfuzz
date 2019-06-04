@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""Tests tests."""
+"""Tests testcase_manager."""
 import datetime
 import mock
 import os
@@ -20,7 +20,7 @@ import unittest
 from pyfakefs import fake_filesystem_unittest
 
 from crash_analysis.crash_result import CrashResult
-from fuzzing import tests
+from fuzzing import testcase_manager
 from system import environment
 from tests.test_libs import helpers as test_helpers
 from tests.test_libs import test_utils
@@ -42,7 +42,7 @@ class CreateTestcaseListFileTest(fake_filesystem_unittest.TestCase):
     self.fs.CreateFile('/test/aa/aa/files.info', contents='')
     self.fs.CreateFile('/test/aa/bb/files.chrome.info', contents='')
 
-    tests.create_testcase_list_file('/test/aa')
+    testcase_manager.create_testcase_list_file('/test/aa')
 
     testcase_list_file_path = '/test/aa/files.info'
     self.assertTrue(os.path.exists(testcase_list_file_path))
@@ -106,7 +106,7 @@ class UploadTestcaseOutputTest(fake_filesystem_unittest.TestCase):
 
     crash_result = CrashResult(
         return_code=1, crash_time=5, output='fake output')
-    tests.upload_testcase_output(crash_result, self.testcase_path)
+    testcase_manager.upload_testcase_output(crash_result, self.testcase_path)
 
     # Date and time below is derived from 1472846341 timestamp value.
     self.mock.write_data.assert_called_once_with(
@@ -126,7 +126,7 @@ class UploadTestcaseOutputTest(fake_filesystem_unittest.TestCase):
         '"fuzzer": "fuzzer", "build_revision": 123}\n')
 
     crash_result = CrashResult(return_code=None, crash_time=None, output=None)
-    tests.upload_testcase_output(crash_result, self.testcase_path)
+    testcase_manager.upload_testcase_output(crash_result, self.testcase_path)
     self.mock.write_data.assert_called_once_with(
         'Component revisions (build r123):\n'
         'Component: REVISION\nComponent2: REVISION2\n\n'
@@ -148,7 +148,7 @@ class UploadTestcaseOutputTest(fake_filesystem_unittest.TestCase):
 
     crash_result = CrashResult(
         return_code=1, crash_time=5, output='fake output')
-    tests.upload_testcase_output(crash_result, self.testcase_path)
+    testcase_manager.upload_testcase_output(crash_result, self.testcase_path)
 
     # Date and time below is derived from 1472846341 timestamp value.
     self.mock.write_data.assert_called_once_with(
@@ -177,7 +177,7 @@ class ConvertDependencyUrlToLocalPathTest(unittest.TestCase):
     self.mock.platform.return_value = 'ANDROID'
     self.assertEqual(
         '/mnt/scratch0/test.html',
-        tests.convert_dependency_url_to_local_path(
+        testcase_manager.convert_dependency_url_to_local_path(
             'file:///sdcard/fuzzer-testcases/test.html'))
     self.mock.normalize_path.assert_called_once_with('/mnt/scratch0/test.html')
 
@@ -186,7 +186,7 @@ class ConvertDependencyUrlToLocalPathTest(unittest.TestCase):
     self.mock.platform.return_value = 'LINUX'
     self.assertEqual(
         '/mnt/scratch0/test.html',
-        tests.convert_dependency_url_to_local_path(
+        testcase_manager.convert_dependency_url_to_local_path(
             'file:///mnt/scratch0/test.html'))
     self.mock.normalize_path.assert_called_once_with('/mnt/scratch0/test.html')
 
@@ -195,7 +195,7 @@ class ConvertDependencyUrlToLocalPathTest(unittest.TestCase):
     self.mock.platform.return_value = 'WINDOWS'
     self.assertEqual(
         'C:/test/test.html',
-        tests.convert_dependency_url_to_local_path('file:///C:/test/test.html'))
+        testcase_manager.convert_dependency_url_to_local_path('file:///C:/test/test.html'))
     self.mock.normalize_path.assert_called_once_with('C:/test/test.html')
 
   def test_url_match_any_ip_and_port(self):
@@ -203,7 +203,7 @@ class ConvertDependencyUrlToLocalPathTest(unittest.TestCase):
     self.mock.get_absolute_testcase_file.return_value = '/path'
     self.assertEqual(
         '/path',
-        tests.convert_dependency_url_to_local_path(
+        testcase_manager.convert_dependency_url_to_local_path(
             'http://10.240.1.237:8002/test/test.html'))
     self.mock.get_absolute_testcase_file.assert_called_once_with(
         '/test/test.html')
@@ -214,7 +214,7 @@ class ConvertDependencyUrlToLocalPathTest(unittest.TestCase):
     self.mock.get_absolute_testcase_file.return_value = '/path'
     self.assertEqual(
         '/path',
-        tests.convert_dependency_url_to_local_path(
+        testcase_manager.convert_dependency_url_to_local_path(
             'http://localhost/test/test.html'))
     self.mock.get_absolute_testcase_file.assert_called_once_with(
         '/test/test.html')
@@ -225,7 +225,7 @@ class ConvertDependencyUrlToLocalPathTest(unittest.TestCase):
     self.mock.get_absolute_testcase_file.return_value = '/path'
     self.assertEqual(
         '/path',
-        tests.convert_dependency_url_to_local_path(
+        testcase_manager.convert_dependency_url_to_local_path(
             'http://127.0.0.1/test/test.html'))
     self.mock.get_absolute_testcase_file.assert_called_once_with(
         '/test/test.html')
@@ -236,7 +236,7 @@ class ConvertDependencyUrlToLocalPathTest(unittest.TestCase):
     self.mock.get_absolute_testcase_file.return_value = '/path'
     self.assertEqual(
         '/path',
-        tests.convert_dependency_url_to_local_path(
+        testcase_manager.convert_dependency_url_to_local_path(
             'http://127.0.0.1:8000/test/test.html'))
     self.mock.get_absolute_testcase_file.assert_called_once_with(
         '/test/test.html')
@@ -245,9 +245,9 @@ class ConvertDependencyUrlToLocalPathTest(unittest.TestCase):
   def test_not_match(self):
     """Tests not matching."""
     self.assertIsNone(
-        tests.convert_dependency_url_to_local_path(
+        testcase_manager.convert_dependency_url_to_local_path(
             'http://www.google.com/test.'))
-    self.assertIsNone(tests.convert_dependency_url_to_local_path('random'))
+    self.assertIsNone(testcase_manager.convert_dependency_url_to_local_path('random'))
     self.assertEqual(0, self.mock.normalize_path.call_count)
 
 
@@ -256,7 +256,7 @@ class GetResourcePathsTest(unittest.TestCase):
 
   def setUp(self):
     test_helpers.patch(self, [
-        'fuzzing.tests.convert_dependency_url_to_local_path',
+        'fuzzing.testcase_manager.convert_dependency_url_to_local_path',
     ])
     self.mock.convert_dependency_url_to_local_path.side_effect = lambda x: x
 
@@ -283,7 +283,7 @@ class GetResourcePathsTest(unittest.TestCase):
         'NetworkDelegate::NotifyBeforeURLRequest: https://en.m.wikipedia.org  '
         'extension id:           (none)\n')
 
-    result = tests.get_resource_paths(output)
+    result = testcase_manager.get_resource_paths(output)
     self.assertEqual(4, len(result))
     self.assertEqual(
         set([
@@ -311,12 +311,12 @@ class GetCrashOutputTest(unittest.TestCase):
   """Tests _get_crash_output."""
 
   def test_none(self):
-    self.assertEqual(None, tests._get_crash_output(None))  # pylint: disable=protected-access
+    self.assertEqual(None, testcase_manager._get_crash_output(None))  # pylint: disable=protected-access
 
   def test_no_end_marker(self):
-    self.assertEqual('abc\ndef', tests._get_crash_output('abc\ndef'))  # pylint: disable=protected-access
+    self.assertEqual('abc\ndef', testcase_manager._get_crash_output('abc\ndef'))  # pylint: disable=protected-access
 
   def test_end_marker(self):
     self.assertEqual(
         'abc\ndef\n',
-        tests._get_crash_output('abc\ndef\nCRASH OUTPUT ENDS HERE\nghi'))  # pylint: disable=protected-access
+        testcase_manager._get_crash_output('abc\ndef\nCRASH OUTPUT ENDS HERE\nghi'))  # pylint: disable=protected-access

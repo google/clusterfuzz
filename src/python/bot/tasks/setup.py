@@ -30,7 +30,7 @@ from datastore import data_types
 from datastore import locks
 from datastore import ndb_utils
 from fuzzing import leak_blacklist
-from fuzzing import tests
+from fuzzing import testcase_manager
 from google_cloud_utils import blobs
 from google_cloud_utils import storage
 from metrics import fuzzer_logs
@@ -373,7 +373,7 @@ def update_data_bundle(fuzzer, data_bundle):
       return False
 
   # Update the testcase list file.
-  tests.create_testcase_list_file(data_bundle_directory)
+  testcase_manager.create_testcase_list_file(data_bundle_directory)
 
   #  Write last synced time in the sync file.
   sync_file_path = _get_data_bundle_sync_file_path(data_bundle_directory)
@@ -481,7 +481,7 @@ def update_fuzzer_and_data_bundles(fuzzer_name):
 
 def _is_search_index_data_bundle(data_bundle_name):
   """Return true on if this is a search index data bundle, false otherwise."""
-  return data_bundle_name.startswith(tests.SEARCH_INDEX_BUNDLE_PREFIX)
+  return data_bundle_name.startswith(testcase_manager.SEARCH_INDEX_BUNDLE_PREFIX)
 
 
 def _is_data_bundle_up_to_date(data_bundle, data_bundle_directory):
@@ -529,8 +529,8 @@ def _get_nfs_data_bundle_path(data_bundle_name):
   # Special naming and path for search index based bundles.
   if _is_search_index_data_bundle(data_bundle_name):
     return os.path.join(
-        nfs_root, tests.SEARCH_INDEX_TESTCASES_DIRNAME,
-        data_bundle_name[len(tests.SEARCH_INDEX_BUNDLE_PREFIX):])
+        nfs_root, testcase_manager.SEARCH_INDEX_TESTCASES_DIRNAME,
+        data_bundle_name[len(testcase_manager.SEARCH_INDEX_BUNDLE_PREFIX):])
 
   return os.path.join(nfs_root, data_bundle_name)
 
@@ -616,7 +616,7 @@ def archive_testcase_and_dependencies_in_gcs(resource_list, testcase_path):
 
   # Add resource dependencies based on testcase path. These include
   # stuff like extensions directory, dependency files, etc.
-  resource_list.extend(tests.get_resource_dependencies(testcase_path))
+  resource_list.extend(testcase_manager.get_resource_dependencies(testcase_path))
 
   # Filter out duplicates, directories, and files that do not exist.
   resource_list = utils.filter_file_list(resource_list)

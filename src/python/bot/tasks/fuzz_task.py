@@ -46,7 +46,7 @@ from fuzzing import corpus_manager
 from fuzzing import coverage_uploader
 from fuzzing import gesture_handler
 from fuzzing import leak_blacklist
-from fuzzing import tests
+from fuzzing import testcase_manager
 from google_cloud_utils import big_query
 from google_cloud_utils import blobs
 from google_cloud_utils import storage
@@ -127,7 +127,7 @@ class Crash(object):
 
     self.filename = os.path.basename(self.file_path)
     self.http_flag = '-http-' in self.filename
-    self.application_command_line = tests.get_command_line_for_application(
+    self.application_command_line = testcase_manager.get_command_line_for_application(
         self.file_path, needs_http=self.http_flag)
     self.unsymbolized_crash_stacktrace = orig_unsymbolized_crash_stacktrace
     state = stack_analyzer.get_crash_data(self.unsymbolized_crash_stacktrace)
@@ -206,7 +206,7 @@ def find_main_crash(crashes, test_timeout):
     # security flag and crash state generated from re-running testcase in
     # test_for_reproducibility. Minimize task will later update the new crash
     # type and crash state paramaters.
-    if tests.test_for_reproducibility(crash.file_path, None,
+    if testcase_manager.test_for_reproducibility(crash.file_path, None,
                                       crash.security_flag, test_timeout,
                                       crash.http_flag, crash.gestures):
       return crash, False
@@ -501,7 +501,7 @@ def get_testcases(testcase_count, testcase_directory, data_directory):
   # Get the list of testcase files.
   testcase_directories = get_testcase_directories(testcase_directory,
                                                   data_directory)
-  testcase_file_paths = tests.get_testcases_from_directories(
+  testcase_file_paths = testcase_manager.get_testcases_from_directories(
       testcase_directories)
 
   # If the fuzzer created a bot-specific files list, add those now.
@@ -722,7 +722,7 @@ def run_fuzzer(fuzzer, fuzzer_directory, testcase_directory, data_directory,
   # Clear existing testcases (only if past task failed).
   testcase_directories = get_testcase_directories(testcase_directory,
                                                   data_directory)
-  tests.remove_testcases_from_directories(testcase_directories)
+  testcase_manager.remove_testcases_from_directories(testcase_directories)
 
   # Set an environment variable for fuzzer name.
   environment.set_value('FUZZER_NAME', fuzzer_name)
@@ -976,7 +976,7 @@ def get_minidump_keys(crash_info):
 def get_full_args(absolute_path):
   """Get full arguments for running testcase."""
   # If there are per-testcase additional flags, we need to store them.
-  additional_args = tests.get_additional_command_line_flags(absolute_path) or ''
+  additional_args = testcase_manager.get_additional_command_line_flags(absolute_path) or ''
   app_args = environment.get_value('APP_ARGS') or ''
   return (app_args + ' ' + additional_args).strip()
 
@@ -1283,7 +1283,7 @@ def execute_task(fuzzer_name, job_type):
   # If yes, bail out.
   logs.log('Checking for bad build.')
   crash_revision = environment.get_value('APP_REVISION')
-  is_bad_build = tests.check_for_bad_build(job_type, crash_revision)
+  is_bad_build = testcase_manager.check_for_bad_build(job_type, crash_revision)
   _track_build_run_result(job_type, crash_revision, is_bad_build)
   if is_bad_build:
     return
@@ -1398,7 +1398,7 @@ def execute_task(fuzzer_name, job_type):
   logs.log('Redzone is %d bytes.' % redzone)
   logs.log('Timeout multiplier is %s.' % str(timeout_multiplier))
   logs.log(
-      'App launch command is %s.' % tests.get_command_line_for_application())
+      'App launch command is %s.' % testcase_manager.get_command_line_for_application())
 
   # Start processing the testcases.
   while test_number < len(testcase_file_paths):
@@ -1417,7 +1417,7 @@ def execute_task(fuzzer_name, job_type):
 
       env_copy = environment.copy()
       thread = process_handler.get_process()(
-          target=tests.run_testcase_and_return_result_in_queue,
+          target=testcase_manager.run_testcase_and_return_result_in_queue,
           args=(temp_queue, thread_index, testcase_file_path, gestures,
                 env_copy, True))
 
