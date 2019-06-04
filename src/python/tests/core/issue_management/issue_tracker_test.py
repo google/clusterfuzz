@@ -84,3 +84,10 @@ class LabelStoreTest(unittest.TestCase):
     store = LabelStore(['p-0', 'P-1', 'Q-2'])
     store.remove_by_prefix('p-')
     self.assertItemsEqual(['Q-2'], store)
+
+  def test_in(self):
+    """Test in operator."""
+    store = LabelStore(['laBel1', 'label2', 'Label3'])
+    self.assertTrue('label1' in store)
+    self.assertTrue('laBel2' in store)
+    self.assertTrue('labeL3' in store)
