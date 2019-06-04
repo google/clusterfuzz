@@ -217,7 +217,7 @@ class IssueTracker(issue_tracker.IssueTracker):
 
   def get_original_issue(self, issue_id):
     """Retrieve the original issue object traversing the list of duplicates."""
-    return self._itm.get_original_issue(int(issue_id))
+    return Issue(self._itm.get_original_issue(int(issue_id)))
 
 
 def _to_change_list(monorail_list):

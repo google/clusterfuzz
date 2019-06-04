@@ -13,18 +13,19 @@
 # limitations under the License.
 """Tests for monorail issue management."""
 
-from builtins import object
 import unittest
 
 from issue_management import monorail
+from issue_management.monorail import issue_tracker_manager
 from issue_management.monorail.comment import Comment as MonorailComment
 from issue_management.monorail.issue import Issue as MonorailIssue
 
 
-class IssueTrackerManager(object):
+class IssueTrackerManager(issue_tracker_manager.IssueTrackerManager):
   """Mock issue tracker manager."""
 
   def __init__(self, project_name, mock_issues):
+    # pylint: disable=super-init-not-called
     self.project_name = project_name
     self.last_issue = None
     self.mock_issues = mock_issues
@@ -37,7 +38,7 @@ class IssueTrackerManager(object):
     issue.itm = self
     return issue
 
-  def save(self, issue, *args, **kwargs):  # pylint: disable=unused-argument
+  def save(self, issue, *args, **kwargs):  # pylint: disable=unused-argument,arguments-differ
     self.last_issue = issue
 
 
@@ -77,8 +78,14 @@ class IssueFilerTests(unittest.TestCase):
         mock_comment1,
     ]
 
+    mock_issue_merged = MonorailIssue()
+    mock_issue_merged.id = 1338
+    mock_issue_merged.merged_into = 1337
+    mock_issue_merged.merged_into_project = 'name'
+
     mock_issues = {
         1337: mock_issue,
+        1338: mock_issue_merged,
     }
 
     self.itm = IssueTrackerManager('name', mock_issues)
@@ -123,7 +130,7 @@ class IssueFilerTests(unittest.TestCase):
     issue.components.add('A>B')
     issue.components.add('C>D')
     issue.ccs.add('cc@cc.com')
-    issue.save()
+    issue.save(new_comment='comment')
 
     monorail_issue = self.itm.last_issue
 
@@ -132,6 +139,7 @@ class IssueFilerTests(unittest.TestCase):
     self.assertEqual('owner', monorail_issue.owner)
     self.assertEqual('reporter', monorail_issue.reporter)
     self.assertEqual('New', monorail_issue.status)
+    self.assertEqual('comment', monorail_issue.comment)
 
     self.assertItemsEqual([
         'label1',
@@ -176,12 +184,12 @@ class IssueFilerTests(unittest.TestCase):
   def test_modify_labels(self):
     """Test modifying labels."""
     issue = self.issue_tracker.get_issue(1337)
-    issue.labels.add('label3')
+    issue.labels.add('Label3')
     issue.labels.remove('laBel1')
-    self.assertItemsEqual(['label2', 'label3'], issue.labels)
+    self.assertItemsEqual(['label2', 'Label3'], issue.labels)
     issue.save()
 
-    self.assertItemsEqual(['label2', 'label3', '-laBel1'],
+    self.assertItemsEqual(['label2', 'Label3', '-laBel1'],
                           self.itm.last_issue.labels)
 
   def test_modify_components(self):
@@ -192,5 +200,9 @@ class IssueFilerTests(unittest.TestCase):
     self.assertItemsEqual(['C>D', 'Y>Z'], issue.components)
     issue.save()
 
-    self.assertItemsEqual(['-A>B', 'C>D', 'Y>Z'],
+    self.assertItemsEqual(['-a>B', 'C>D', 'Y>Z'],
                           self.itm.last_issue.components)
+
+  def test_get_original_issue(self):
+    issue = self.issue_tracker.get_original_issue(1338)
+    self.assertEqual(1337, issue.id)

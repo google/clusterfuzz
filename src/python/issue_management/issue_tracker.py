@@ -235,4 +235,5 @@ class IssueTracker(object):
 
   def get_original_issue(self, issue_id):
     """Retrieve the original issue object traversing the list of duplicates."""
+    # TODO(ochang): Use implementation from monorail for all issue trackers.
     raise NotImplementedError
