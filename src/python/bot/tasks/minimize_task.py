@@ -265,7 +265,8 @@ class TestRunner(object):
     profile_index = self._get_profile_index()
 
     if use_fresh_profile and environment.get_value('USER_PROFILE_ARG'):
-      shell.remove_directory(testcase_manager.get_user_profile_directory(profile_index))
+      shell.remove_directory(
+          testcase_manager.get_user_profile_directory(profile_index))
 
     # For Android, we need to sync our local testcases directory with the one on
     # the device.
@@ -418,8 +419,8 @@ def execute_task(testcase_id, job_type):
 
   # If the warmup crash occurred but we couldn't reproduce this in with
   # multiple processes running in parallel, try to minimize single threaded.
-  if (len(crash_times) < testcase_manager.REPRODUCIBILITY_FACTOR * crash_retries and
-      warmup_crash_occurred and max_threads > 1):
+  if (len(crash_times) < testcase_manager.REPRODUCIBILITY_FACTOR * crash_retries
+      and warmup_crash_occurred and max_threads > 1):
     logs.log('Attempting to continue single-threaded.')
 
     max_threads = 1

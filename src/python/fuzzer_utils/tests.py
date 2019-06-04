@@ -62,8 +62,8 @@ def get_random_testcases(input_directory, max_testcases):
 
 def get_testcases(input_directory):
   """Returns list of testcase files."""
-  testcase_list_file_path = os.path.join(input_directory,
-                                         testcase_manager.TESTCASE_LIST_FILENAME)
+  testcase_list_file_path = os.path.join(
+      input_directory, testcase_manager.TESTCASE_LIST_FILENAME)
   if not os.path.exists(testcase_list_file_path):
     return []
 

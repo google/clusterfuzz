@@ -312,7 +312,7 @@ class CrashInitTest(fake_filesystem_unittest.TestCase):
     """Test failing to reading stacktrace file."""
     crash = fuzz_task.Crash(
         testcase_manager.Crash('dir/path-http-name', 123, 11, ['res'], 'ges',
-                    '/no_stack_file'))
+                               '/no_stack_file'))
 
     self.assertEqual('dir/path-http-name', crash.file_path)
     self.assertEqual(123, crash.crash_time)
@@ -337,7 +337,7 @@ class CrashInitTest(fake_filesystem_unittest.TestCase):
 
     crash = fuzz_task.Crash(
         testcase_manager.Crash('dir/path-http-name', 123, 11, ['res'], 'ges',
-                    '/stack_file_path'))
+                               '/stack_file_path'))
 
     self.assertEqual('dir/path-http-name', crash.file_path)
     self.assertEqual(123, crash.crash_time)
@@ -693,7 +693,7 @@ class ProcessCrashesTest(fake_filesystem_unittest.TestCase):
 
     crash = fuzz_task.Crash(
         testcase_manager.Crash('dir/path-http-name', 123, 11, ['res'], ['ges'],
-                    '/stack_file_path'))
+                               '/stack_file_path'))
     return crash
 
   def test_existing_unreproducible_testcase(self):

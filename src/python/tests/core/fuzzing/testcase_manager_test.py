@@ -195,7 +195,8 @@ class ConvertDependencyUrlToLocalPathTest(unittest.TestCase):
     self.mock.platform.return_value = 'WINDOWS'
     self.assertEqual(
         'C:/test/test.html',
-        testcase_manager.convert_dependency_url_to_local_path('file:///C:/test/test.html'))
+        testcase_manager.convert_dependency_url_to_local_path(
+            'file:///C:/test/test.html'))
     self.mock.normalize_path.assert_called_once_with('C:/test/test.html')
 
   def test_url_match_any_ip_and_port(self):
@@ -247,7 +248,8 @@ class ConvertDependencyUrlToLocalPathTest(unittest.TestCase):
     self.assertIsNone(
         testcase_manager.convert_dependency_url_to_local_path(
             'http://www.google.com/test.'))
-    self.assertIsNone(testcase_manager.convert_dependency_url_to_local_path('random'))
+    self.assertIsNone(
+        testcase_manager.convert_dependency_url_to_local_path('random'))
     self.assertEqual(0, self.mock.normalize_path.call_count)
 
 
@@ -319,4 +321,5 @@ class GetCrashOutputTest(unittest.TestCase):
   def test_end_marker(self):
     self.assertEqual(
         'abc\ndef\n',
-        testcase_manager._get_crash_output('abc\ndef\nCRASH OUTPUT ENDS HERE\nghi'))  # pylint: disable=protected-access
+        testcase_manager._get_crash_output(  # pylint: disable=protected-access
+            'abc\ndef\nCRASH OUTPUT ENDS HERE\nghi'))

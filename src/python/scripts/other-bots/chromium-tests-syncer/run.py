@@ -113,7 +113,8 @@ def unpack_crash_testcases(crash_testcases_directory):
         continue
 
       file_path = os.path.join(root, filename)
-      stripped_file_name = os.path.basename(file_path)[len(testcase_manager.FUZZ_PREFIX):]
+      stripped_file_name = os.path.basename(file_path)[len(
+          testcase_manager.FUZZ_PREFIX):]
       stripped_file_path = os.path.join(
           os.path.dirname(file_path), stripped_file_name)
       try:

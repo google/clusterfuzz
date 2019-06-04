@@ -127,8 +127,9 @@ class Crash(object):
 
     self.filename = os.path.basename(self.file_path)
     self.http_flag = '-http-' in self.filename
-    self.application_command_line = testcase_manager.get_command_line_for_application(
-        self.file_path, needs_http=self.http_flag)
+    self.application_command_line = (
+        testcase_manager.get_command_line_for_application(
+            self.file_path, needs_http=self.http_flag))
     self.unsymbolized_crash_stacktrace = orig_unsymbolized_crash_stacktrace
     state = stack_analyzer.get_crash_data(self.unsymbolized_crash_stacktrace)
     self.crash_type = state.crash_type
@@ -206,9 +207,9 @@ def find_main_crash(crashes, test_timeout):
     # security flag and crash state generated from re-running testcase in
     # test_for_reproducibility. Minimize task will later update the new crash
     # type and crash state paramaters.
-    if testcase_manager.test_for_reproducibility(crash.file_path, None,
-                                      crash.security_flag, test_timeout,
-                                      crash.http_flag, crash.gestures):
+    if testcase_manager.test_for_reproducibility(
+        crash.file_path, None, crash.security_flag, test_timeout,
+        crash.http_flag, crash.gestures):
       return crash, False
 
   # All crashes are non-reproducible. Therefore, we get the first valid one.
@@ -976,7 +977,8 @@ def get_minidump_keys(crash_info):
 def get_full_args(absolute_path):
   """Get full arguments for running testcase."""
   # If there are per-testcase additional flags, we need to store them.
-  additional_args = testcase_manager.get_additional_command_line_flags(absolute_path) or ''
+  additional_args = testcase_manager.get_additional_command_line_flags(
+      absolute_path) or ''
   app_args = environment.get_value('APP_ARGS') or ''
   return (app_args + ' ' + additional_args).strip()
 
@@ -1397,8 +1399,8 @@ def execute_task(fuzzer_name, job_type):
   logs.log('Starting to process testcases.')
   logs.log('Redzone is %d bytes.' % redzone)
   logs.log('Timeout multiplier is %s.' % str(timeout_multiplier))
-  logs.log(
-      'App launch command is %s.' % testcase_manager.get_command_line_for_application())
+  logs.log('App launch command is %s.' %
+           testcase_manager.get_command_line_for_application())
 
   # Start processing the testcases.
   while test_number < len(testcase_file_paths):

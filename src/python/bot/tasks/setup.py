@@ -481,7 +481,8 @@ def update_fuzzer_and_data_bundles(fuzzer_name):
 
 def _is_search_index_data_bundle(data_bundle_name):
   """Return true on if this is a search index data bundle, false otherwise."""
-  return data_bundle_name.startswith(testcase_manager.SEARCH_INDEX_BUNDLE_PREFIX)
+  return data_bundle_name.startswith(
+      testcase_manager.SEARCH_INDEX_BUNDLE_PREFIX)
 
 
 def _is_data_bundle_up_to_date(data_bundle, data_bundle_directory):
@@ -616,7 +617,8 @@ def archive_testcase_and_dependencies_in_gcs(resource_list, testcase_path):
 
   # Add resource dependencies based on testcase path. These include
   # stuff like extensions directory, dependency files, etc.
-  resource_list.extend(testcase_manager.get_resource_dependencies(testcase_path))
+  resource_list.extend(
+      testcase_manager.get_resource_dependencies(testcase_path))
 
   # Filter out duplicates, directories, and files that do not exist.
   resource_list = utils.filter_file_list(resource_list)
