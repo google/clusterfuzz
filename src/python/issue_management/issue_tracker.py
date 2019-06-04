@@ -48,8 +48,9 @@ class LabelStore(object):
     key = label.lower()
     if key in self._removed:
       del self._removed[key]
+    else:
+      self._added[key] = label
 
-    self._added[key] = label
     self._backing[key] = label
 
   def remove(self, label):
@@ -60,8 +61,9 @@ class LabelStore(object):
 
     if key in self._added:
       del self._added[key]
+    else:
+      self._removed[key] = label
 
-    self._removed[key] = label
     del self._backing[key]
 
   def reset(self):
@@ -112,7 +114,7 @@ class Issue(object):
     raise NotImplementedError
 
   @property
-  def open(self):
+  def is_open(self):
     """Whether the issue is open."""
     raise NotImplementedError
 

@@ -69,7 +69,7 @@ class Issue(issue_tracker.Issue):
     self._monorail_issue.merged_into = new_merged_into
 
   @property
-  def open(self):
+  def is_open(self):
     """Whether the issue is open."""
     return self._monorail_issue.open
 

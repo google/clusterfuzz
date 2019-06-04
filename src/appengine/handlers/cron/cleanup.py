@@ -386,7 +386,7 @@ def mark_issue_as_closed_if_testcase_is_fixed(testcase, issue):
 
   # If the issue is closed in a status other than Fixed, like Duplicate, WontFix
   # or Archived, we shouldn't change it. Bail out.
-  if not issue.open and issue.status != 'Fixed':
+  if not issue.is_open and issue.status != 'Fixed':
     return
 
   # Check testcase status, so as to skip unreproducible uploads.
@@ -457,7 +457,7 @@ def mark_unreproducible_testcase_as_fixed_if_issue_is_closed(testcase, issue):
     return
 
   # Make sure that there is an associated bug and it is in closed state.
-  if not issue or issue.open:
+  if not issue or issue.is_open:
     return
 
   testcase.fixed = 'NA'
@@ -493,7 +493,7 @@ def mark_unreproducible_testcase_and_issue_as_closed_after_deadline(
     return
 
   # Make sure that there is an associated bug and it is in open state.
-  if not issue or not issue.open:
+  if not issue or not issue.is_open:
     return
 
   # Check if there are any reproducible open testcases are associated with
@@ -562,7 +562,7 @@ def mark_testcase_as_triaged_if_needed(testcase, issue):
   if issue:
     # Get latest issue object to ensure our update went through.
     issue = get_issue_for_testcase(testcase)
-    if issue.open:
+    if issue.is_open:
       return
 
   testcase.triaged = True
@@ -580,7 +580,7 @@ def mark_testcase_as_closed_if_issue_is_closed(testcase, issue):
     return
 
   # If the issue is still open, no work needs to be done. Bail out.
-  if issue.open:
+  if issue.is_open:
     return
 
   # Make sure we passed our deadline based on issue closed timestamp.
@@ -631,7 +631,7 @@ def notify_closed_issue_if_testcase_is_open(testcase, issue):
     return
 
   # If the issue is still open, no work needs to be done. Bail out.
-  if issue.open:
+  if issue.is_open:
     return
 
   # If we have already passed our deadline based on issue closed timestamp,
@@ -679,7 +679,7 @@ def notify_issue_if_testcase_is_invalid(testcase, issue):
     return
 
   # If the issue is closed, there's no work to do.
-  if not issue.open:
+  if not issue.is_open:
     return
 
   # Currently, this only happens if a test case relies on a fuzzer that has
@@ -893,7 +893,7 @@ def update_component_labels(testcase, issue):
 def update_issue_ccs_from_owners_file(testcase, issue):
   """Add cc to an issue based on owners list from owners file. This is
   currently applicable to fuzz targets only."""
-  if not issue or not issue.open:
+  if not issue or not issue.is_open:
     return
 
   # If we've assigned the ccs before, it likely means we were incorrect.
@@ -951,7 +951,7 @@ def update_issue_owner_and_ccs_from_predator_results(testcase,
                                                      issue,
                                                      only_allow_ccs=False):
   """Assign the issue to an appropriate owner if possible."""
-  if not issue or not issue.open:
+  if not issue or not issue.is_open:
     return
 
   # If the issue already has an owner, we don't need to update the bug.

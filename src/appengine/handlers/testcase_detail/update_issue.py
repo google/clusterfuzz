@@ -36,7 +36,7 @@ class Handler(base_handler.Handler):
                                 'Failed to get the issue (id=%s).' % issue_id,
                                 Exception)
 
-    if not issue.open:
+    if not issue.is_open:
       raise helpers.EarlyExitException(
           ('The issue (%d) is already closed and further updates are not'
            ' allowed. Please file a new issue instead!') % issue_id, 400)

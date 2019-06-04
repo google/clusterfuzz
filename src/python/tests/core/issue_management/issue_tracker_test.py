@@ -69,6 +69,25 @@ class LabelStoreTest(unittest.TestCase):
     self.assertItemsEqual([], store.added)
     self.assertItemsEqual(['Label1', 'Label2'], store.removed)
 
+  def test_add_and_remove(self):
+    """Test both adding and removing."""
+    store = LabelStore(['laBel1', 'label2', 'Label3'])
+    store.remove('Label1')
+    self.assertItemsEqual(['label2', 'Label3'], store)
+    self.assertItemsEqual([], store.added)
+    self.assertItemsEqual(['Label1'], store.removed)
+
+    store.add('label1')
+    self.assertItemsEqual(['label1', 'label2', 'Label3'], store)
+    self.assertItemsEqual([], store.added)
+    self.assertItemsEqual([], store.removed)
+
+    store.remove('Label1')
+    store.add('label4')
+    self.assertItemsEqual(['label2', 'Label3', 'label4'], store)
+    self.assertItemsEqual(['label4'], store.added)
+    self.assertItemsEqual(['Label1'], store.removed)
+
   def test_reset(self):
     """Test reset."""
     store = LabelStore(['laBel1', 'label2', 'Label3'])
