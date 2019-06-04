@@ -91,3 +91,4 @@ class LabelStoreTest(unittest.TestCase):
     self.assertTrue('label1' in store)
     self.assertTrue('laBel2' in store)
     self.assertTrue('labeL3' in store)
+    self.assertFalse('label' in store)
