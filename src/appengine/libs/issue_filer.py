@@ -58,7 +58,7 @@ def add_memory_tool_label_if_needed(issue, testcase):
   stacktrace = data_handler.get_stacktrace(testcase)
   memory_tool_labels = label_utils.get_memory_tool_labels(stacktrace)
   for label in memory_tool_labels:
-    issue.labels.append(label)
+    issue.labels.add(label)
 
 
 def add_security_severity_label_if_needed(issue, testcase,
@@ -77,7 +77,7 @@ def add_security_severity_label_if_needed(issue, testcase,
     security_severity = data_types.SecuritySeverity.HIGH
 
   security_severity_label = label_utils.severity_to_label(security_severity)
-  issue.labels.append(security_severity_label)
+  issue.labels.add(security_severity_label)
 
 
 def add_view_restrictions_if_needed(issue, testcase):
@@ -91,7 +91,7 @@ def add_view_restrictions_if_needed(issue, testcase):
 
   job_type_lowercase = testcase.job_type.lower()
   if 'android' in job_type_lowercase or 'flash' in job_type_lowercase:
-    issue.labels.append(RESTRICT_TO_GOOGLERS_LABEL)
+    issue.labels.add(RESTRICT_TO_GOOGLERS_LABEL)
 
 
 def reported_label():
@@ -112,16 +112,16 @@ def file_issue(testcase,
 
   # Labels applied by default across all issue trackers.
   issue.status = 'New'
-  issue.labels.append('ClusterFuzz')
+  issue.labels.add('ClusterFuzz')
 
   # Add label on memory tool used.
   add_memory_tool_label_if_needed(issue, testcase)
 
   # Add reproducibility flag label.
   if testcase.one_time_crasher_flag:
-    issue.labels.append('Unreproducible')
+    issue.labels.add('Unreproducible')
   else:
-    issue.labels.append('Reproducible')
+    issue.labels.add('Reproducible')
 
   # Add security severity flag label.
   add_security_severity_label_if_needed(issue, testcase, security_severity)
@@ -143,62 +143,62 @@ def file_issue(testcase,
     if environment.is_chromeos_job(testcase.job_type):
       # ChromeOS fuzzers run on Linux platform, so use correct OS-Chrome for
       # tracking.
-      issue.labels.append('OS-Chrome')
+      issue.labels.add('OS-Chrome')
     elif testcase.platform_id:
       os_label = 'OS-%s' % ((testcase.platform_id.split(':')[0]).capitalize())
-      issue.labels.append(os_label)
+      issue.labels.add(os_label)
 
     # Add view restrictions for internal job types.
     add_view_restrictions_if_needed(issue, testcase)
 
     if testcase.security_flag:
       # Apply labels specific to security bugs.
-      issue.labels.append('Restrict-View-SecurityTeam')
-      issue.labels.append('Type-Bug-Security')
+      issue.labels.add('Restrict-View-SecurityTeam')
+      issue.labels.add('Type-Bug-Security')
 
       # Add reward labels if this is from an external fuzzer contribution.
       fuzzer = data_types.Fuzzer.query(
           data_types.Fuzzer.name == testcase.fuzzer_name).get()
       if fuzzer and fuzzer.external_contribution:
-        issue.labels.append('reward-topanel')
-        issue.labels.append('External-Fuzzer-Contribution')
+        issue.labels.add('reward-topanel')
+        issue.labels.add('External-Fuzzer-Contribution')
 
       data_handler.update_issue_impact_labels(testcase, issue)
     else:
       # Apply labels for functional (non-security) bugs.
       if utils.sub_string_exists_in(NON_CRASH_TYPES, testcase.crash_type):
         # Non-crashing test cases shouldn't be assigned Pri-1.
-        issue.labels.append('Pri-2')
-        issue.labels.append('Type-Bug')
+        issue.labels.add('Pri-2')
+        issue.labels.add('Type-Bug')
       else:
         # Default functional bug labels.
-        issue.labels.append('Pri-1')
-        issue.labels.append('Stability-Crash')
-        issue.labels.append('Type-Bug')
+        issue.labels.add('Pri-1')
+        issue.labels.add('Stability-Crash')
+        issue.labels.add('Type-Bug')
 
   # OSS-Fuzz specific labels.
   elif issue_tracker.project == 'oss-fuzz':
     if testcase.security_flag:
       # Security bug labels.
-      issue.labels.append('Type-Bug-Security')
+      issue.labels.add('Type-Bug-Security')
     else:
       # Functional bug labels.
-      issue.labels.append('Type-Bug')
+      issue.labels.add('Type-Bug')
 
     if should_restrict_issue:
-      issue.labels.append('Restrict-View-Commit')
+      issue.labels.add('Restrict-View-Commit')
 
   # Add additional labels from the job definition and fuzzer.
   additional_labels = data_handler.get_additional_values_for_variable(
       'AUTOMATIC_LABELS', testcase.job_type, testcase.fuzzer_name)
   for label in additional_labels:
-    issue.labels.append(label)
+    issue.labels.add(label)
 
   # Add additional components from the job definition and fuzzer.
   automatic_components = data_handler.get_additional_values_for_variable(
       'AUTOMATIC_COMPONENTS', testcase.job_type, testcase.fuzzer_name)
   for component in automatic_components:
-    issue.components.append(component)
+    issue.components.add(component)
 
   # Add additional ccs from the job definition and fuzzer.
   ccs = data_handler.get_additional_values_for_variable(
@@ -224,7 +224,7 @@ def file_issue(testcase,
 
   if issue_tracker.project == 'oss-fuzz' and ccs:
     # Add a reported label for deadline tracking.
-    issue.labels.append(reported_label())
+    issue.labels.add(reported_label())
 
     if should_restrict_issue:
       issue.body += '\n\n' + DEADLINE_NOTE
@@ -233,7 +233,7 @@ def file_issue(testcase,
     issue.body += '\n\n' + QUESTIONS_NOTE
 
   for cc in ccs:
-    issue.ccs.append(cc)
+    issue.ccs.add(cc)
 
   # Add additional labels from testcase metadata.
   metadata_labels = utils.parse_delimited(
@@ -242,7 +242,7 @@ def file_issue(testcase,
       strip=True,
       remove_empty=True)
   for label in metadata_labels:
-    issue.labels.append(label)
+    issue.labels.add(label)
 
   issue.reporter = user_email
   issue.save()

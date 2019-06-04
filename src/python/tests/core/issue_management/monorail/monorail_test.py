@@ -30,7 +30,12 @@ class IssueTrackerManager(object):
     self.mock_issues = mock_issues
 
   def get_issue(self, issue_id):
-    return self.mock_issues.get(issue_id)
+    issue = self.mock_issues.get(issue_id)
+    if not issue:
+      return None
+
+    issue.itm = self
+    return issue
 
   def save(self, issue, *args, **kwargs):  # pylint: disable=unused-argument
     self.last_issue = issue
@@ -113,11 +118,11 @@ class IssueFilerTests(unittest.TestCase):
     issue.assignee = 'owner'
     issue.reporter = 'reporter'
     issue.status = 'New'
-    issue.labels.append('label1')
-    issue.labels.append('label2')
-    issue.components.append('A>B')
-    issue.components.append('C>D')
-    issue.ccs.append('cc@cc.com')
+    issue.labels.add('label1')
+    issue.labels.add('label2')
+    issue.components.add('A>B')
+    issue.components.add('C>D')
+    issue.ccs.add('cc@cc.com')
     issue.save()
 
     monorail_issue = self.itm.last_issue
@@ -167,3 +172,25 @@ class IssueFilerTests(unittest.TestCase):
     self.assertItemsEqual([], actions[1].labels.removed)
     self.assertItemsEqual([], actions[1].components.added)
     self.assertItemsEqual([], actions[1].components.removed)
+
+  def test_modify_labels(self):
+    """Test modifying labels."""
+    issue = self.issue_tracker.get_issue(1337)
+    issue.labels.add('label3')
+    issue.labels.remove('laBel1')
+    self.assertItemsEqual(['label2', 'label3'], issue.labels)
+    issue.save()
+
+    self.assertItemsEqual(['label2', 'label3', '-laBel1'],
+                          self.itm.last_issue.labels)
+
+  def test_modify_components(self):
+    """Test modifying labels."""
+    issue = self.issue_tracker.get_issue(1337)
+    issue.components.add('Y>Z')
+    issue.components.remove('a>B')
+    self.assertItemsEqual(['C>D', 'Y>Z'], issue.components)
+    issue.save()
+
+    self.assertItemsEqual(['-A>B', 'C>D', 'Y>Z'],
+                          self.itm.last_issue.components)
