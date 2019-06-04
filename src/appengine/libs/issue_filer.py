@@ -176,17 +176,6 @@ def file_issue(testcase,
         issue.labels.append('Stability-Crash')
         issue.labels.append('Type-Bug')
 
-  # AOSP-specific labels.
-  elif issue_tracker.project == 'android':
-    if testcase.security_flag:
-      # Security bug labels.
-      issue.add_cc('security@android.com')
-      issue.labels.append('Type-Security')
-      issue.labels.append('Restrict-View-Commit')
-    else:
-      # Functional bug labels.
-      issue.labels.append('Type-Defect')
-
   # OSS-Fuzz specific labels.
   elif issue_tracker.project == 'oss-fuzz':
     if testcase.security_flag:

@@ -25,7 +25,7 @@ class Handler(base_handler.Handler):
   @staticmethod
   def create_issue(testcase, severity, cc_me):
     """Create an issue."""
-    issue_tracker = helpers.get_issue_tracker(testcase)
+    issue_tracker = helpers.get_issue_tracker_for_testcase(testcase)
     user_email = helpers.get_user_email()
 
     if severity is not None:

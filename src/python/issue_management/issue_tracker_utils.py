@@ -37,12 +37,13 @@ def clear_issue_tracker_managers():
   ISSUE_TRACKER_MANAGERS = {}
 
 
-def get_issue_tracker(tracker_type, name, use_cache=False):
+def get_issue_tracker(tracker_type, project_name, use_cache=False):
   """Get the issue tracker with the given type and name."""
   # TODO(ochang): Actually use `tracker_type`.
   assert tracker_type == 'monorail'
 
-  itm = _get_issue_tracker_manager_for_project(name, use_cache=use_cache)
+  itm = _get_issue_tracker_manager_for_project(
+      project_name, use_cache=use_cache)
   if itm is None:
     return None
 
@@ -61,17 +62,17 @@ def get_issue_tracker_for_testcase(testcase, use_cache=False):
 
 # TODO(ochang): Move this to monorail/. See comment on
 # get_issue_tracker_manager.
-def _get_issue_tracker_manager_for_project(project, use_cache=False):
+def _get_issue_tracker_manager_for_project(project_name, use_cache=False):
   """Return monorail issue tracker manager for the given project."""
   # If there is no issue tracker set, bail out.
-  if not project or project == 'disabled':
+  if not project_name or project_name == 'disabled':
     return None
 
-  if use_cache and project in ISSUE_TRACKER_MANAGERS:
-    return ISSUE_TRACKER_MANAGERS[project]
+  if use_cache and project_name in ISSUE_TRACKER_MANAGERS:
+    return ISSUE_TRACKER_MANAGERS[project_name]
 
-  issue_tracker_manager = IssueTrackerManager(project_name=project)
-  ISSUE_TRACKER_MANAGERS[project] = issue_tracker_manager
+  issue_tracker_manager = IssueTrackerManager(project_name=project_name)
+  ISSUE_TRACKER_MANAGERS[project_name] = issue_tracker_manager
   return issue_tracker_manager
 
 

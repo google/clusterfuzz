@@ -85,7 +85,7 @@ def get_testcase(testcase_id):
   return testcase
 
 
-def get_issue_tracker(testcase):
+def get_issue_tracker_for_testcase(testcase):
   """Get an IssueTracker or raise EarlyExitException."""
   issue_tracker = issue_tracker_utils.get_issue_tracker_for_testcase(testcase)
   if not issue_tracker:
