@@ -718,8 +718,6 @@ def _send_email_to_uploader(testcase_id, to_email, content):
 def _update_issue_when_uploaded_testcase_is_processed(
     testcase, issue, description, upload_metadata):
   """Add issue comment when uploaded testcase is processed."""
-  issue_comment = description
-
   # Update the summary in the following cases:
   # 1. Upload metadata indicates that we need to do so.
   # 2. We have a valid crash state.
@@ -735,7 +733,7 @@ def _update_issue_when_uploaded_testcase_is_processed(
   if testcase.project_name == 'chromium':
     data_handler.update_issue_impact_labels(testcase, issue)
 
-  issue.save(new_comment=issue_comment)
+  issue.save(new_comment=description)
 
 
 def notify_uploader_when_testcase_is_processed(testcase, issue):

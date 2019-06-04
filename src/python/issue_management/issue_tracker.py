@@ -26,11 +26,14 @@ class LabelStore(object):
     self._removed = {}
 
     for item in seq:
-      self.add(item)
+      self._backing[item.lower()] = item
 
   def __iter__(self):
     for value in itervalues(self._backing):
       yield value
+
+  def __contains__(self, item):
+    return item.lower() in self._backing
 
   @property
   def added(self):
