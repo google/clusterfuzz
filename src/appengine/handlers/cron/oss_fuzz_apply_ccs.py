@@ -20,9 +20,9 @@ from base import memoize
 from datastore import data_types
 from datastore import ndb_utils
 from handlers import base_handler
-from issue_management import issue_filer
 from issue_management import issue_tracker_utils
 from libs import handler
+from libs import issue_filer
 
 
 def get_open_testcases_with_bugs():

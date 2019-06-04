@@ -15,6 +15,7 @@
 
 from datastore import data_types
 from datastore import ndb_utils
+from issue_management import monorail
 from issue_management.monorail.issue_tracker_manager import IssueTrackerManager
 
 ISSUE_TRACKER_MANAGERS = {}
@@ -36,27 +37,52 @@ def clear_issue_tracker_managers():
   ISSUE_TRACKER_MANAGERS = {}
 
 
-def get_issue_tracker_manager(testcase=None, use_cache=False):
-  """Return issue tracker instance for a testcase."""
-  issue_tracker_project_name = _get_issue_tracker_project_name(testcase)
+def get_issue_tracker(tracker_type, project_name, use_cache=False):
+  """Get the issue tracker with the given type and name."""
+  # TODO(ochang): Actually use `tracker_type`.
+  assert tracker_type == 'monorail'
 
-  # If there is no issue tracker set, bail out.
+  itm = _get_issue_tracker_manager_for_project(
+      project_name, use_cache=use_cache)
+  if itm is None:
+    return None
+
+  return monorail.IssueTracker(itm)
+
+
+def get_issue_tracker_for_testcase(testcase, use_cache=False):
+  """Get the issue tracker with the given type and name."""
+  issue_tracker_project_name = _get_issue_tracker_project_name(testcase)
   if not issue_tracker_project_name:
     return None
 
-  # If the testcase or its associated job enforces no use of an issue tracker,
-  # bail out.
-  if issue_tracker_project_name == 'disabled':
+  return get_issue_tracker(
+      'monorail', issue_tracker_project_name, use_cache=use_cache)
+
+
+# TODO(ochang): Move this to monorail/. See comment on
+# get_issue_tracker_manager.
+def _get_issue_tracker_manager_for_project(project_name, use_cache=False):
+  """Return monorail issue tracker manager for the given project."""
+  # If there is no issue tracker set, bail out.
+  if not project_name or project_name == 'disabled':
     return None
 
-  # Return issue tracker instance from cache if available.
-  if use_cache and issue_tracker_project_name in ISSUE_TRACKER_MANAGERS:
-    return ISSUE_TRACKER_MANAGERS[issue_tracker_project_name]
+  if use_cache and project_name in ISSUE_TRACKER_MANAGERS:
+    return ISSUE_TRACKER_MANAGERS[project_name]
 
-  issue_tracker_manager = IssueTrackerManager(
-      project_name=issue_tracker_project_name)
-  ISSUE_TRACKER_MANAGERS[issue_tracker_project_name] = issue_tracker_manager
+  issue_tracker_manager = IssueTrackerManager(project_name=project_name)
+  ISSUE_TRACKER_MANAGERS[project_name] = issue_tracker_manager
   return issue_tracker_manager
+
+
+# TODO(ochang): Replace all existing uses with get_issue_tracker_for_testcase,
+# and move to monorail/.
+def get_issue_tracker_manager(testcase=None, use_cache=False):
+  """Return issue tracker instance for a testcase."""
+  issue_tracker_project_name = _get_issue_tracker_project_name(testcase)
+  return _get_issue_tracker_manager_for_project(
+      issue_tracker_project_name, use_cache=use_cache)
 
 
 def get_issue_url(testcase=None):
@@ -92,6 +118,7 @@ def get_similar_issues_url(testcase, can):
   return url
 
 
+# TODO(ochang): Make this more general.
 def get_similar_issues(testcase,
                        can=IssueTrackerManager.CAN_ALL,
                        issue_tracker_manager=None):

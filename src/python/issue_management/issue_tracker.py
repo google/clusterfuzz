@@ -157,6 +157,11 @@ class Action(object):
 class IssueTracker(object):
   """Issue tracker interface."""
 
+  @property
+  def project(self):
+    """Get the project name of this issue tracker."""
+    raise NotImplementedError
+
   def new_issue(self):
     """Create an unsaved new issue."""
     raise NotImplementedError
