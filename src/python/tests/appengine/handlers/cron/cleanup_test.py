@@ -377,8 +377,9 @@ class CleanupTest(unittest.TestCase):
     testcase.bug_information = str(self.issue.id)
     testcase.put()
     self.issue._monorail_issue.open = False
-    self.issue.closed = test_utils.CURRENT_TIME - datetime.timedelta(
-        days=data_types.CLOSE_TESTCASE_WITH_CLOSED_BUG_DEADLINE + 1)
+    self.issue._monorail_issue.closed = (
+        test_utils.CURRENT_TIME - datetime.timedelta(
+            days=data_types.CLOSE_TESTCASE_WITH_CLOSED_BUG_DEADLINE + 1))
     self.issue._monorail_issue.comments += [
         test_utils.create_generic_issue_comment(
             labels=[data_types.ISSUE_IGNORE_LABEL])
@@ -394,8 +395,9 @@ class CleanupTest(unittest.TestCase):
     testcase.bug_information = str(self.issue.id)
     testcase.put()
     self.issue._monorail_issue.open = False
-    self.issue.closed = test_utils.CURRENT_TIME - datetime.timedelta(
-        days=data_types.CLOSE_TESTCASE_WITH_CLOSED_BUG_DEADLINE)
+    self.issue._monorail_issue.closed = (
+        test_utils.CURRENT_TIME - datetime.timedelta(
+            days=data_types.CLOSE_TESTCASE_WITH_CLOSED_BUG_DEADLINE))
     cleanup.mark_testcase_as_closed_if_issue_is_closed(
         testcase=testcase, issue=self.issue)
     self.assertTrue(testcase.open)
@@ -407,8 +409,9 @@ class CleanupTest(unittest.TestCase):
     testcase.bug_information = str(self.issue.id)
     testcase.put()
     self.issue._monorail_issue.open = False
-    self.issue.closed = test_utils.CURRENT_TIME - datetime.timedelta(
-        days=data_types.CLOSE_TESTCASE_WITH_CLOSED_BUG_DEADLINE + 1)
+    self.issue._monorail_issue.closed = (
+        test_utils.CURRENT_TIME - datetime.timedelta(
+            days=data_types.CLOSE_TESTCASE_WITH_CLOSED_BUG_DEADLINE + 1))
     cleanup.mark_testcase_as_closed_if_issue_is_closed(
         testcase=testcase, issue=self.issue)
     self.assertFalse(testcase.open)
@@ -695,8 +698,9 @@ class CleanupTest(unittest.TestCase):
     testcase.status = 'Unreproducible'
     testcase.put()
     self.issue._monorail_issue.open = False
-    self.issue.closed = test_utils.CURRENT_TIME - datetime.timedelta(
-        days=data_types.NOTIFY_CLOSED_BUG_WITH_OPEN_TESTCASE_DEADLINE + 1)
+    self.issue._monorail_issue.closed = (
+        test_utils.CURRENT_TIME - datetime.timedelta(
+            days=data_types.NOTIFY_CLOSED_BUG_WITH_OPEN_TESTCASE_DEADLINE + 1))
     cleanup.notify_closed_issue_if_testcase_is_open(
         testcase=testcase, issue=self.issue)
     self.assertNotIn(data_types.ISSUE_NEEDS_FEEDBACK_LABEL, self.issue.labels)
@@ -736,8 +740,9 @@ class CleanupTest(unittest.TestCase):
     testcase.bug_information = str(self.issue.id)
     testcase.put()
     self.issue._monorail_issue.open = False
-    self.issue.closed = test_utils.CURRENT_TIME - datetime.timedelta(
-        days=data_types.NOTIFY_CLOSED_BUG_WITH_OPEN_TESTCASE_DEADLINE)
+    self.issue._monorail_issue.closed = (
+        test_utils.CURRENT_TIME - datetime.timedelta(
+            days=data_types.NOTIFY_CLOSED_BUG_WITH_OPEN_TESTCASE_DEADLINE))
     cleanup.notify_closed_issue_if_testcase_is_open(
         testcase=testcase, issue=self.issue)
     self.assertNotIn(data_types.ISSUE_NEEDS_FEEDBACK_LABEL, self.issue.labels)
@@ -749,8 +754,9 @@ class CleanupTest(unittest.TestCase):
     testcase.bug_information = str(self.issue.id)
     testcase.put()
     self.issue._monorail_issue.open = False
-    self.issue.closed = test_utils.CURRENT_TIME - datetime.timedelta(
-        days=data_types.NOTIFY_CLOSED_BUG_WITH_OPEN_TESTCASE_DEADLINE + 1)
+    self.issue._monorail_issue.closed = (
+        test_utils.CURRENT_TIME - datetime.timedelta(
+            days=data_types.NOTIFY_CLOSED_BUG_WITH_OPEN_TESTCASE_DEADLINE + 1))
     self.issue._monorail_issue.comments += [
         test_utils.create_generic_issue_comment(
             labels=[data_types.ISSUE_IGNORE_LABEL])
@@ -766,8 +772,9 @@ class CleanupTest(unittest.TestCase):
     testcase.bug_information = str(self.issue.id)
     testcase.put()
     self.issue._monorail_issue.open = False
-    self.issue.closed = test_utils.CURRENT_TIME - datetime.timedelta(
-        days=data_types.NOTIFY_CLOSED_BUG_WITH_OPEN_TESTCASE_DEADLINE + 1)
+    self.issue._monorail_issue.closed = (
+        test_utils.CURRENT_TIME - datetime.timedelta(
+            days=data_types.NOTIFY_CLOSED_BUG_WITH_OPEN_TESTCASE_DEADLINE + 1))
     self.issue._monorail_issue.comments += [
         test_utils.create_generic_issue_comment(
             labels=[data_types.ISSUE_NEEDS_FEEDBACK_LABEL])
@@ -783,8 +790,9 @@ class CleanupTest(unittest.TestCase):
     testcase.bug_information = str(self.issue.id)
     testcase.put()
     self.issue._monorail_issue.open = False
-    self.issue.closed = test_utils.CURRENT_TIME - datetime.timedelta(
-        days=data_types.NOTIFY_CLOSED_BUG_WITH_OPEN_TESTCASE_DEADLINE + 1)
+    self.issue._monorail_issue.closed = (
+        test_utils.CURRENT_TIME - datetime.timedelta(
+            days=data_types.NOTIFY_CLOSED_BUG_WITH_OPEN_TESTCASE_DEADLINE + 1))
     cleanup.notify_closed_issue_if_testcase_is_open(
         testcase=testcase, issue=self.issue)
     self.assertIn(data_types.ISSUE_NEEDS_FEEDBACK_LABEL, self.issue.labels)

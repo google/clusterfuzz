@@ -114,6 +114,11 @@ class Issue(object):
     raise NotImplementedError
 
   @property
+  def closed_time(self):
+    """When the issue was closed."""
+    raise NotImplementedError
+
+  @property
   def is_open(self):
     """Whether the issue is open."""
     raise NotImplementedError

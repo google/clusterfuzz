@@ -13,6 +13,7 @@
 # limitations under the License.
 """Tests for monorail issue management."""
 
+import datetime
 import unittest
 
 from issue_management import monorail
@@ -82,6 +83,7 @@ class IssueFilerTests(unittest.TestCase):
     mock_issue_merged.id = 1338
     mock_issue_merged.merged_into = 1337
     mock_issue_merged.merged_into_project = 'name'
+    mock_issue_merged.closed = datetime.datetime(2019, 1, 1)
 
     mock_issues = {
         1337: mock_issue,
@@ -115,6 +117,10 @@ class IssueFilerTests(unittest.TestCase):
     self.assertItemsEqual([
         'cc@cc.com',
     ], issue.ccs)
+
+    issue = self.issue_tracker.get_issue(1338)
+    self.assertEqual(1338, issue.id)
+    self.assertEqual(datetime.datetime(2019, 1, 1), issue.closed_time)
 
   def test_new_issue(self):
     """Test new_issue."""

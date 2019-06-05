@@ -74,6 +74,10 @@ class Issue(issue_tracker.Issue):
     return self._monorail_issue.open
 
   @property
+  def closed_time(self):
+    return self._monorail_issue.closed
+
+  @property
   def status(self):
     """The issue status."""
     return self._monorail_issue.status

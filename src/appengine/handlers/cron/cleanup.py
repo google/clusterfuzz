@@ -584,8 +584,9 @@ def mark_testcase_as_closed_if_issue_is_closed(testcase, issue):
     return
 
   # Make sure we passed our deadline based on issue closed timestamp.
-  if (issue.closed and not dates.time_has_expired(
-      issue.closed, days=data_types.CLOSE_TESTCASE_WITH_CLOSED_BUG_DEADLINE)):
+  if (issue.closed_time and not dates.time_has_expired(
+      issue.closed_time,
+      days=data_types.CLOSE_TESTCASE_WITH_CLOSED_BUG_DEADLINE)):
     return
 
   # If the issue has an ignore label, don't close the testcase and bail out.
@@ -636,8 +637,8 @@ def notify_closed_issue_if_testcase_is_open(testcase, issue):
 
   # If we have already passed our deadline based on issue closed timestamp,
   # no need to notify. We will close the testcase instead.
-  if (issue.closed and not dates.time_has_expired(
-      issue.closed,
+  if (issue.closed_time and not dates.time_has_expired(
+      issue.closed_time,
       days=data_types.NOTIFY_CLOSED_BUG_WITH_OPEN_TESTCASE_DEADLINE)):
     return
 
