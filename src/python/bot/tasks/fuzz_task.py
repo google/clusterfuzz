@@ -106,7 +106,7 @@ class Crash(object):
     """Initialize
 
     Args:
-      crash: An instance of fuzzing.tests.Crash.
+      crash: An instance of fuzzing.testcase_manager.Crash.
     """
     self.file_path = crash.file_path
     self.crash_time = crash.crash_time
