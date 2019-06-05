@@ -19,6 +19,7 @@ import webtest
 
 from datastore import data_types
 from handlers.testcase_detail import update_issue
+from issue_management import monorail
 from issue_management.monorail import issue
 from issue_management.monorail import issue_tracker_manager
 from libs import access
@@ -39,7 +40,7 @@ class HandlerTest(unittest.TestCase):
         'datastore.data_handler.get_issue_summary',
         'datastore.data_handler.get_stacktrace',
         'datastore.data_handler.update_group_bug',
-        'issue_management.issue_tracker_utils.get_issue_tracker_manager',
+        'libs.helpers.get_issue_tracker_for_testcase',
         'libs.auth.get_current_user',
         'handlers.testcase_detail.show.get_testcase_detail',
         'libs.access.get_access',
@@ -74,7 +75,8 @@ class HandlerTest(unittest.TestCase):
     """Issue is not found."""
     itm = mock.Mock(spec_set=issue_tracker_manager.IssueTrackerManager)
 
-    self.mock.get_issue_tracker_manager.return_value = itm
+    self.mock.get_issue_tracker_for_testcase.return_value = (
+        monorail.IssueTracker(itm))
     itm.get_issue.return_value = None
 
     resp = self.app.post_json(
@@ -96,7 +98,8 @@ class HandlerTest(unittest.TestCase):
     bug = issue.Issue()
     bug.open = False
 
-    self.mock.get_issue_tracker_manager.return_value = itm
+    self.mock.get_issue_tracker_for_testcase.return_value = (
+        monorail.IssueTracker(itm))
     itm.get_issue.return_value = bug
 
     resp = self.app.post_json(
@@ -119,7 +122,8 @@ class HandlerTest(unittest.TestCase):
     itm = mock.Mock(project_name='chromium')
     itm.get_issue.return_value = bug
 
-    self.mock.get_issue_tracker_manager.return_value = itm
+    self.mock.get_issue_tracker_for_testcase.return_value = (
+        monorail.IssueTracker(itm))
     self.mock.get_issue_description.return_value = 'description'
     self.mock.get_issue_summary.return_value = 'summary'
     self.mock.get_stacktrace.return_value = 'stacktrace'

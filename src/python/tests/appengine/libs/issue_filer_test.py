@@ -194,7 +194,7 @@ class IssueFilerTests(unittest.TestCase):
     """Tests issue filing with additional labels."""
     issue_tracker = monorail.IssueTracker(IssueTrackerManager('chromium'))
     issue_filer.file_issue(self.testcase5, issue_tracker)
-    self.assertListEqual([
+    self.assertItemsEqual([
         'ClusterFuzz',
         'Reproducible',
         'Pri-1',
@@ -208,7 +208,7 @@ class IssueFilerTests(unittest.TestCase):
     """Tests issue filing with invalid metadata."""
     issue_tracker = monorail.IssueTracker(IssueTrackerManager('chromium'))
     issue_filer.file_issue(self.testcase6, issue_tracker)
-    self.assertListEqual(
+    self.assertItemsEqual(
         ['ClusterFuzz', 'Reproducible', 'Pri-1', 'Stability-Crash', 'Type-Bug'],
         issue_tracker._itm.last_issue.labels)
 

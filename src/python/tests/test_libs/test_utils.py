@@ -33,6 +33,7 @@ from config import local_config
 from datastore import data_types
 from datastore import ndb
 from google_cloud_utils import pubsub
+from issue_management import monorail
 from issue_management.monorail.comment import Comment
 from issue_management.monorail.issue import Issue
 from system import environment
@@ -76,11 +77,11 @@ def create_generic_testcase(created_days_ago=28):
 def create_generic_issue(created_days_ago=28):
   """Returns a simple issue object for use in tests."""
   issue = Issue()
-  issue.cc = ['cc@chromium.org']
+  issue.cc = []
   issue.comment = ''
   issue.comments = []
-  issue.components = ['Test>Component']
-  issue.labels = ['TestLabel', 'Pri-1', 'OS-Windows']
+  issue.components = []
+  issue.labels = []
   issue.open = True
   issue.owner = 'owner@chromium.org'
   issue.status = 'Assigned'
@@ -90,7 +91,7 @@ def create_generic_issue(created_days_ago=28):
   # Test issue was created 1 week before the current (mocked) time.
   issue.created = CURRENT_TIME - datetime.timedelta(days=created_days_ago)
 
-  return issue
+  return monorail.Issue(issue)
 
 
 def create_generic_issue_comment(comment_body='Comment.',

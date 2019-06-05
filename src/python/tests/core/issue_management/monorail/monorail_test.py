@@ -13,26 +13,32 @@
 # limitations under the License.
 """Tests for monorail issue management."""
 
-from builtins import object
 import unittest
 
 from issue_management import monorail
+from issue_management.monorail import issue_tracker_manager
 from issue_management.monorail.comment import Comment as MonorailComment
 from issue_management.monorail.issue import Issue as MonorailIssue
 
 
-class IssueTrackerManager(object):
+class IssueTrackerManager(issue_tracker_manager.IssueTrackerManager):
   """Mock issue tracker manager."""
 
   def __init__(self, project_name, mock_issues):
+    # pylint: disable=super-init-not-called
     self.project_name = project_name
     self.last_issue = None
     self.mock_issues = mock_issues
 
   def get_issue(self, issue_id):
-    return self.mock_issues.get(issue_id)
+    issue = self.mock_issues.get(issue_id)
+    if not issue:
+      return None
 
-  def save(self, issue, *args, **kwargs):  # pylint: disable=unused-argument
+    issue.itm = self
+    return issue
+
+  def save(self, issue, *args, **kwargs):  # pylint: disable=unused-argument,arguments-differ
     self.last_issue = issue
 
 
@@ -72,8 +78,14 @@ class IssueFilerTests(unittest.TestCase):
         mock_comment1,
     ]
 
+    mock_issue_merged = MonorailIssue()
+    mock_issue_merged.id = 1338
+    mock_issue_merged.merged_into = 1337
+    mock_issue_merged.merged_into_project = 'name'
+
     mock_issues = {
         1337: mock_issue,
+        1338: mock_issue_merged,
     }
 
     self.itm = IssueTrackerManager('name', mock_issues)
@@ -113,12 +125,12 @@ class IssueFilerTests(unittest.TestCase):
     issue.assignee = 'owner'
     issue.reporter = 'reporter'
     issue.status = 'New'
-    issue.labels.append('label1')
-    issue.labels.append('label2')
-    issue.components.append('A>B')
-    issue.components.append('C>D')
-    issue.ccs.append('cc@cc.com')
-    issue.save()
+    issue.labels.add('label1')
+    issue.labels.add('label2')
+    issue.components.add('A>B')
+    issue.components.add('C>D')
+    issue.ccs.add('cc@cc.com')
+    issue.save(new_comment='comment')
 
     monorail_issue = self.itm.last_issue
 
@@ -127,6 +139,7 @@ class IssueFilerTests(unittest.TestCase):
     self.assertEqual('owner', monorail_issue.owner)
     self.assertEqual('reporter', monorail_issue.reporter)
     self.assertEqual('New', monorail_issue.status)
+    self.assertEqual('comment', monorail_issue.comment)
 
     self.assertItemsEqual([
         'label1',
@@ -167,3 +180,29 @@ class IssueFilerTests(unittest.TestCase):
     self.assertItemsEqual([], actions[1].labels.removed)
     self.assertItemsEqual([], actions[1].components.added)
     self.assertItemsEqual([], actions[1].components.removed)
+
+  def test_modify_labels(self):
+    """Test modifying labels."""
+    issue = self.issue_tracker.get_issue(1337)
+    issue.labels.add('Label3')
+    issue.labels.remove('laBel1')
+    self.assertItemsEqual(['label2', 'Label3'], issue.labels)
+    issue.save()
+
+    self.assertItemsEqual(['label2', 'Label3', '-laBel1'],
+                          self.itm.last_issue.labels)
+
+  def test_modify_components(self):
+    """Test modifying labels."""
+    issue = self.issue_tracker.get_issue(1337)
+    issue.components.add('Y>Z')
+    issue.components.remove('a>B')
+    self.assertItemsEqual(['C>D', 'Y>Z'], issue.components)
+    issue.save()
+
+    self.assertItemsEqual(['-a>B', 'C>D', 'Y>Z'],
+                          self.itm.last_issue.components)
+
+  def test_get_original_issue(self):
+    issue = self.issue_tracker.get_original_issue(1338)
+    self.assertEqual(1337, issue.id)
