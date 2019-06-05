@@ -88,11 +88,11 @@ def setup_asan_if_needed():
                                       asan_device_setup_script_args)
   result = process.run_and_wait()
   if result.return_code:
-    logs.log_fatal_and_exit(
-        'Failed to setup ASan on device.', output=result.output)
+    logs.log_error('Failed to setup ASan on device.', output=result.output)
+    return
 
   logs.log(
-      'ASan device setup script finished, waiting for boot.',
+      'ASan device setup script successfully finished, waiting for boot.',
       output=result.output)
 
   # Wait until fully booted as otherwise shell restart followed by a quick

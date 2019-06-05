@@ -83,7 +83,7 @@ class SetupASanIfNeededTest(android_helpers.AndroidTest):
   def setUp(self):
     super(SetupASanIfNeededTest, self).setUp()
 
-    test_helpers.patch(self, ['metrics.logs.log_warn'])
+    test_helpers.patch(self, ['metrics.logs.log_error'])
 
     if settings.get_sanitizer_tool_name():
       self.skipTest('This test is not applicable on a system sanitizer build.')
@@ -96,4 +96,5 @@ class SetupASanIfNeededTest(android_helpers.AndroidTest):
     adb.revert_asan_device_setup_if_needed()
     environment.reset_current_memory_tool_options()
     sanitizer.setup_asan_if_needed()
+    self.assertEqual(0, self.mock.log_error.call_count)
     self.assertTrue(adb.file_exists('/system/bin/asanwrapper'))
