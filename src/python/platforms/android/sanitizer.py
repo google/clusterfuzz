@@ -78,7 +78,7 @@ def setup_asan_if_needed():
   logs.log('Executing ASan device setup script.')
   asan_device_setup_script_path = os.path.join(android_directory, 'third_party',
                                                'asan_device_setup.sh')
-  extra_options_arg = 'include_if_exists=' + get_options_file_path('ASAN')
+  extra_options_arg = 'include_if_exists=' + get_options_file_path('asan')
   asan_device_setup_script_args = [
       '--lib', app_directory, '--device', device_id, '--extra-options',
       extra_options_arg
