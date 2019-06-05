@@ -19,6 +19,7 @@ import mock
 import os
 import unittest
 
+from config import local_config
 from datastore import data_handler
 from datastore import data_types
 from issue_management.monorail import issue
@@ -67,9 +68,11 @@ class DataHandlerTest(unittest.TestCase):
 
   def setUp(self):
     helpers.patch_environ(self)
+    project_config_get = local_config.ProjectConfig.get
     helpers.patch(self, [
         'base.utils.default_project_name',
         'config.db_config.get',
+        ('project_config_get', 'config.local_config.ProjectConfig.get'),
     ])
 
     self.job = data_types.Job(
@@ -151,6 +154,7 @@ class DataHandlerTest(unittest.TestCase):
     environment.set_value('FUZZ_DATA', '/tmp/inputs/fuzzer-common-data-bundles')
     environment.set_value('FUZZERS_DIR', '/tmp/inputs/fuzzers')
     self.mock.default_project_name.return_value = 'project'
+    self.mock.project_config_get.side_effect = project_config_get
 
   def test_find_testcase(self):
     """Ensure that find_testcase behaves as expected."""
@@ -341,6 +345,18 @@ class DataHandlerTest(unittest.TestCase):
     self.assertEqual(
         summary, 'project: Bad-cast to blink::LayoutBlock from '
         'blink::LayoutTableSection')
+
+  def test_get_data_bundle_name_default(self):
+    """Test getting the default data bundle bucket name."""
+    self.assertEqual('test-corpus.test-clusterfuzz.appspot.com',
+                     data_handler.get_data_bundle_bucket_name('test'))
+
+  def test_get_data_bundle_name_custom_suffix(self):
+    """Test getting the data bundle bucket name with custom suffix."""
+    self.mock.project_config_get.side_effect = None
+    self.mock.project_config_get.return_value = 'custom.suffix.com'
+    self.assertEqual('test-corpus.custom.suffix.com',
+                     data_handler.get_data_bundle_bucket_name('test'))
 
 
 @test_utils.with_cloud_emulators('datastore')
