@@ -383,6 +383,11 @@ def remove_directory(device_directory, recreate=False):
     create_directory_if_needed(device_directory)
 
 
+def remove_file(file_path):
+  """Removes file."""
+  run_shell_command('rm -f %s' % file_path, root=True)
+
+
 def reset_device_connection():
   """Reset the connection to the physical device through USB. Returns whether
   or not the reset succeeded."""
