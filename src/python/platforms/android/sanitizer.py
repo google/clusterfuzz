@@ -20,7 +20,12 @@ from . import constants
 from . import settings
 from metrics import logs
 from system import environment
-from system import new_process
+
+try:
+  from system import new_process
+except ImportError:
+  # On App Engine.
+  new_process = None
 
 ASAN_SCRIPT_TIMEOUT = 15 * 60
 SANITIZER_TOOL_TO_FILE_MAPPINGS = {
