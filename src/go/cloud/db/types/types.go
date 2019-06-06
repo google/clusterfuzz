@@ -102,6 +102,7 @@ type Config struct {
 	BugReportURL                        string         `datastore:"bug_report_url"`
 	PlatformGroupMappings               string         `datastore:"platform_group_mappings,noindex"`
 	RelaxTestcaseRestrictions           bool           `datastore:"relax_testcase_restrictions"`
+	RelaxSecurityBugRestrictions        bool           `datastore:"relax_security_bug_restrictions"`
 	CoverageReportsBucket               string         `datastore:"coverage_reports_bucket"`
 	GithubCredentials                   string         `datastore:"github_credentials"`
 	ClusterfuzzToolsClientSecret        string         `datastore:"clusterfuzz_tools_client_secret"`
