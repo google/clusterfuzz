@@ -1055,10 +1055,11 @@ def update_issue_impact_labels(testcase, issue):
     return
 
   if existing_impact != data_types.SecurityImpact.MISSING:
-    issue.remove_label('Security_Impact-' +
-                       label_utils.impact_to_string(existing_impact))
+    issue.labels.remove('Security_Impact-' +
+                        label_utils.impact_to_string(existing_impact))
 
-  issue.add_label('Security_Impact-' + label_utils.impact_to_string(new_impact))
+  issue.labels.add('Security_Impact-' +
+                   label_utils.impact_to_string(new_impact))
 
 
 def update_issue_severity_labels(testcase, issue):
