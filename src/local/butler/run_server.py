@@ -200,7 +200,12 @@ def execute(args):
             datastore_emulator_port=constants.DATASTORE_EMULATOR_PORT,
             log_level=args.log_level,
             pubsub_emulator_host=constants.PUBSUB_EMULATOR_HOST,
-            local_gcs_server_host=constants.LOCAL_GCS_SERVER_HOST))
+            local_gcs_server_host=constants.LOCAL_GCS_SERVER_HOST),
+        extra_environments={
+            # PYTHONPATH on CI includes an outdated App Engine SDK, which has
+            # bugs in dev_appserver.py.
+            'PYTHONPATH': '',
+        })
   except KeyboardInterrupt:
     print('Server has been stopped. Exit.')
     pubsub_emulator.cleanup()
