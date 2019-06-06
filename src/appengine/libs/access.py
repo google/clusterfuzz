@@ -107,10 +107,14 @@ def get_access(need_privileged_access=False, job_type=None, fuzzer_name=None):
 
 def can_user_access_testcase(testcase):
   """Checks if the current user can access the testcase."""
+  config = db_config.get()
+  need_privileged_access = (
+      testcase.security_flag and not config.relax_security_bug_restrictions)
+
   if has_access(
       fuzzer_name=testcase.fuzzer_name,
       job_type=testcase.job_type,
-      need_privileged_access=testcase.security_flag):
+      need_privileged_access=need_privileged_access):
     return True
 
   user_email = helpers.get_user_email()
@@ -136,7 +140,6 @@ def can_user_access_testcase(testcase):
     if original_issue:
       issues_to_check.append(original_issue)
 
-  config = db_config.get()
   relaxed_restrictions = (
       config.relax_testcase_restrictions or _is_domain_allowed(user_email))
   for issue in issues_to_check:
