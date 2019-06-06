@@ -54,7 +54,7 @@ def execute(_):
     request = urllib.request.urlopen('http://' + constants.DEV_APPSERVER_HOST)
     request.read()  # Raises exception on error
   except Exception:
-    print('Logs:')
+    print('Error occurred:')
     print(''.join(lines))
     raise
   finally:
