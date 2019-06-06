@@ -14,7 +14,7 @@
 """Reproduce tool tests."""
 # pylint: disable=protected-access
 
-import unittest
+from pyfakefs import fake_filesystem_unittest
 
 from local.butler import reproduce
 from tests.test_libs import helpers
@@ -35,7 +35,7 @@ def _fake_get_testcase(_):
 
 
 @test_utils.integration
-class ReproduceTest(unittest.TestCase):
+class ReproduceTest(fake_filesystem_unittest.TestCase):
   """Tests for the full reproduce tool."""
 
   def setUp(self):

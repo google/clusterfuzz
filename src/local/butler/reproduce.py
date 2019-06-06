@@ -14,12 +14,16 @@
 """reproduce.py reproduces test cases locally."""
 
 from __future__ import print_function
+from builtins import object
 
 import os
-import six
+import shutil
+import tempfile
 
+from src.python.bot.tasks import commands
 from src.python.fuzzing import tests
 from src.python.system import environment
+from src.python.system import shell
 
 
 class _SimplifiedTestcase(object):
@@ -57,25 +61,24 @@ def _download_testcase(_):
 
 def _prepare_environment(testcase, build_directory):
   """Prepare environment variables based on the test case and build path."""
-  environment.set_default_vars()
+  # Create a temporary directory to use as ROOT_DIR with a copy of the default
+  # bot and configuration directories nested under it.
+  old_root_dir = environment.get_value('ROOT_DIR')
+  root_dir = tempfile.mkdtemp()
+  shutil.copytree(
+      os.path.join(old_root_dir, 'bot'), os.path.join(root_dir, 'bot'))
+  shutil.copytree(
+      os.path.join(old_root_dir, 'configs'), os.path.join(root_dir, 'configs'))
+  environment.set_value('ROOT_DIR', root_dir)
+  environment.set_value('CONFIG_DIR_OVERRIDE',
+                        os.path.join(root_dir, 'configs', 'test'))
 
-  # Environment variables used by the tool.
+  environment.set_bot_environment()
+  commands.update_environment_for_job(testcase.job_definition)
+
+  # Overrides that should not be set to the default values.
   environment.set_value('APP_DIR', build_directory)
   environment.set_value('BUILDS_DIR', build_directory)
-  environment.set_value('INPUT_DIR', '/tmp/fixme')
-
-  # Directories not needed by the reproduce tool but which require values.
-  environment.set_value('BOT_TMPDIR', '/tmp/unused')
-  environment.set_value('CRASH_STACKTRACES_DIR', '/tmp/unused')
-  environment.set_value('FUZZER_DIR', '/tmp/unused')
-  environment.set_value('USER_PROFILE_ROOT_DIR', '/tmp/unused')
-
-  environment_values = (
-      environment.parse_environment_definition(testcase.job_definition))
-  for key, value in six.iteritems(environment_values):
-    environment.set_value(key, value)
-
-  # Fix app path once name is known.
   app_path = os.path.join(build_directory, environment.get_value('APP_NAME'))
   environment.set_value('APP_PATH', app_path)
 
@@ -88,6 +91,10 @@ def _reproduce_crash(testcase_id, build_dir):
 
   timeout = environment.get_value('TEST_TIMEOUT')
   result = tests.test_for_crash_with_retries(testcase, testcase_path, timeout)
+
+  # Clean up the temporary root directory created in prepare environment.
+  shell.remove_directory(environment.get_value('ROOT_DIR'))
+
   return result
 
 

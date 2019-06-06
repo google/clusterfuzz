@@ -263,7 +263,10 @@ def main():
   parser_reproduce.add_argument(
       '--testcase', type=int, required=True, help='Testcase ID.')
   parser_reproduce.add_argument(
-      '--build-dir', type=str, required=True, help='Build directory.')
+      '--build-dir',
+      type=str,
+      required=True,
+      help='Build directory containing the target app and dependencies.')
 
   args = parser.parse_args()
 
