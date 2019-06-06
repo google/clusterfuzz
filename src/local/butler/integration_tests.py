@@ -15,6 +15,7 @@
 from __future__ import print_function
 from future import standard_library
 standard_library.install_aliases()
+import time
 import urllib.error
 import urllib.request
 
@@ -22,7 +23,7 @@ from local.butler import common
 from local.butler import constants
 from python.tests.test_libs import test_utils
 
-RUN_SERVER_TIMEOUT = 30
+RUN_SERVER_TIMEOUT = 120
 
 
 def execute(_):
@@ -34,9 +35,21 @@ def execute(_):
     test_utils.wait_for_emulator_ready(
         server,
         'run_server',
-        'Starting module "default" running at:',
+        'Starting admin server',
         timeout=RUN_SERVER_TIMEOUT,
         output_lines=lines)
+
+    # Sleep a small amount of time to ensure the server is definitely ready.
+    time.sleep(1)
+
+    # Call setup ourselves instead of passing --bootstrap since we have no idea
+    # when that finishes.
+    # TODO(ochang): Make bootstrap a separate butler command and just call that.
+    common.execute(
+        ('python butler.py run setup '
+         '--non-dry-run --local --config-dir={config_dir}'
+        ).format(config_dir=constants.TEST_CONFIG_DIR),
+        exit_on_error=False)
 
     request = urllib.request.urlopen('http://' + constants.DEV_APPSERVER_HOST)
     request.read()  # Raises exception on error
