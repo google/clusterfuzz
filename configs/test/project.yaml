@@ -55,7 +55,7 @@ stacktrace:
   stack_blacklist_regexes:
 
 # Suffix to append to automatically created buckets.
-# bucket_domain_suffix: .bucket.suffix
+# bucket_domain_suffix: bucket.suffix
 
 env:
   # Application ID for the Google Cloud Project. In production, this will have a s~ prefix.
