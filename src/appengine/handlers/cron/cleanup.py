@@ -725,7 +725,7 @@ def _update_issue_when_uploaded_testcase_is_processed(
   # 3. Crash state != 'NULL' which is unhelpful for title.
   if (upload_metadata.bug_summary_update_flag and testcase.crash_state and
       testcase.crash_state != 'NULL'):
-    issue.summary = data_handler.get_issue_summary(testcase)
+    issue.title = data_handler.get_issue_summary(testcase)
 
   # Add severity labels for all project types.
   data_handler.update_issue_severity_labels(testcase, issue)
