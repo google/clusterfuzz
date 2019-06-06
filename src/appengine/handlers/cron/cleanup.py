@@ -32,6 +32,7 @@ from datastore import ndb_utils
 from fuzzing import leak_blacklist
 from handlers import base_handler
 from issue_management import issue_tracker_utils
+from issue_management import label_utils
 from libs import handler
 from libs import mail
 from metrics import crash_stats
@@ -716,6 +717,29 @@ def _send_email_to_uploader(testcase_id, to_email, content):
   mail.send(to_email, subject, html_content)
 
 
+def _update_issue_severity_labels(testcase, issue):
+  """Update severity labels on issue."""
+  if not data_types.SecuritySeverity.is_valid(testcase.security_severity):
+    return ''
+
+  issue_severity = label_utils.get_severity_from_labels(
+      [label.lower() for label in issue.labels])
+  recommended_severity = label_utils.severity_to_label(
+      testcase.security_severity)
+
+  if issue_severity == data_types.SecuritySeverity.MISSING:
+    issue.labels.add(recommended_severity)
+    return ('\n\nA recommended severity was added to this bug. '
+            'Please change the severity if it is inaccurate.')
+  elif issue_severity != testcase.security_severity:
+    return (
+        '\n\nThe recommended severity (%s) is different from what was assigned '
+        'to the bug. Please double check the accuracy of the assigned '
+        'severity.' % recommended_severity)
+
+  return ''
+
+
 def _update_issue_when_uploaded_testcase_is_processed(
     testcase, issue, description, upload_metadata):
   """Add issue comment when uploaded testcase is processed."""
@@ -727,14 +751,13 @@ def _update_issue_when_uploaded_testcase_is_processed(
       testcase.crash_state != 'NULL'):
     issue.title = data_handler.get_issue_summary(testcase)
 
-  # Add severity labels for all project types.
-  data_handler.update_issue_severity_labels(testcase, issue)
-
   # Impact labels like impacting head/beta/stable only apply for Chromium.
   if testcase.project_name == 'chromium':
     data_handler.update_issue_impact_labels(testcase, issue)
 
-  issue.save(new_comment=description)
+  # Add severity labels for all project types.
+  comment = description + _update_issue_severity_labels(testcase, issue)
+  issue.save(new_comment=comment)
 
 
 def notify_uploader_when_testcase_is_processed(testcase, issue):
