@@ -377,10 +377,15 @@ def remount():
 
 
 def remove_directory(device_directory, recreate=False):
-  """Deletes everything inside of a device directory."""
+  """Delete everything inside of a device directory and recreate if needed."""
   run_shell_command('rm -rf %s' % device_directory, root=True)
   if recreate:
     create_directory_if_needed(device_directory)
+
+
+def remove_file(file_path):
+  """Remove file."""
+  run_shell_command('rm -f %s' % file_path, root=True)
 
 
 def reset_device_connection():
