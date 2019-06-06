@@ -1695,7 +1695,7 @@ class NotifyUploaderIfTestcaseIsProcessed(unittest.TestCase):
   def setUp(self):
     helpers.patch(self, [
         'datastore.data_handler.update_issue_impact_labels',
-        'datastore.data_handler.update_issue_severity_labels',
+        'handlers.cron.cleanup._update_issue_severity_labels',
         'libs.mail.send',
     ])
 
