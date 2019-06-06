@@ -20,11 +20,7 @@ import tempfile
 import threading
 import time
 
-try:
-  import psutil
-except ImportError:
-  # On App Engine.
-  psutil = None
+import psutil
 
 from base import utils
 from metrics import logs
