@@ -549,9 +549,8 @@ class UploadHandlerOAuth(base_handler.Handler, UploadHandlerCommon):
     if not isinstance(uploaded_file, cgi.FieldStorage):
       raise helpers.EarlyExitException('File upload not found.', 400)
 
-    string_io = NamedBytesIO(uploaded_file.filename,
-                             uploaded_file.file.getvalue())
-    key = blobs.write_blob(string_io)
+    bytes_io = NamedBytesIO(uploaded_file.filename, uploaded_file.file.read())
+    key = blobs.write_blob(bytes_io)
     return blobs.get_blob_info(key)
 
   @handler.oauth
