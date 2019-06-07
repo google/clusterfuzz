@@ -18,38 +18,38 @@ import os
 import unittest
 
 from datastore import data_types
-from handlers.cron import bandit_probabilities
+from handlers.cron import fuzz_strategy_selection
 from tests.test_libs import helpers as test_helpers
 from tests.test_libs import test_utils
 
 DATA_DIRECTORY = os.path.join(
-    os.path.dirname(__file__), 'bandit_probabilities_data')
+    os.path.dirname(__file__), 'fuzz_strategy_selection_data')
 
 
 @test_utils.with_cloud_emulators('datastore')
-class TestUpdateBanditProbabilities(unittest.TestCase):
+class TestFuzzStrategySelection(unittest.TestCase):
   """Test with patch for query. Tests whether the program properly
   stores calculated banidt weights in datastore"""
 
   def setUp(self):
-    """set up method for bandit probability tests"""
+    """Set up method for bandit probability tests."""
     test_helpers.patch_environ(self)
     test_helpers.patch(
-        self, ['handlers.cron.bandit_probabilities.query_libfuzzer_stats'])
-    self.mock.query_libfuzzer_stats.return_value = json.load(
-        open(os.path.join(DATA_DIRECTORY, 'bandit_query.json')))
+        self, ['handlers.cron.fuzz_strategy_selection._query_multi_armed_bandit_probs'])
+    self.mock._query_multi_armed_bandit_probs.return_value = json.load(
+        open(os.path.join(DATA_DIRECTORY, 'multi_armed_bandit_query.json')))
 
   def test_bandit_probs(self):
-    """unit tests for bandit weight updates"""
-    bandit_probabilities.upload_bandit_weights(None)
-    row1 = data_types.BanditProbabilities.query(
-        data_types.BanditProbabilities.strategy_name == 'ml rnn,fork,').get()
-    self.assertEqual(row1.strategy_bandit_probability, 0.008620604590128514)
-    row2 = data_types.BanditProbabilities.query(
-        data_types.BanditProbabilities.strategy_name ==
+    """Unit tests for bandit weight updates"""
+    fuzz_strategy_selection._upload_fuzz_strategy_weights(None)
+    row1 = data_types.FuzzStrategyProbability.query(
+        data_types.FuzzStrategyProbability.strategy_name == 'ml rnn,fork,').get()
+    self.assertEqual(row1.strategy_probability, 0.008620604590128514)
+    row2 = data_types.FuzzStrategyProbability.query(
+        data_types.FuzzStrategyProbability.strategy_name ==
         'ml rnn,fork,subset,').get()
-    self.assertEqual(row2.strategy_bandit_probability, 0.008052209440792676)
-    row3 = data_types.BanditProbabilities.query(
-        data_types.BanditProbabilities.strategy_name ==
+    self.assertEqual(row2.strategy_probability, 0.008052209440792676)
+    row3 = data_types.FuzzStrategyProbability.query(
+        data_types.FuzzStrategyProbability.strategy_name ==
         'max len,ml rnn,dict,').get()
-    self.assertEqual(row3.strategy_bandit_probability, 0.01854100900807415)
+    self.assertEqual(row3.strategy_probability, 0.01854100900807415)
