@@ -21,8 +21,9 @@ import webtest
 
 from datastore import data_types
 from handlers.cron import oss_fuzz_apply_ccs
-from issue_management import issue_filer
+from issue_management import monorail
 from issue_management.monorail.issue import Issue
+from libs import issue_filer
 from tests.test_libs import helpers as test_helpers
 from tests.test_libs import test_utils
 
@@ -83,12 +84,13 @@ class OssFuzzApplyCcsTest(unittest.TestCase):
 
     test_helpers.patch(self, [
         'base.utils.utcnow',
-        'issue_management.issue_tracker_utils.get_issue_tracker_manager',
         'handlers.base_handler.Handler.is_cron',
+        'issue_management.issue_tracker_utils.get_issue_tracker_for_testcase',
     ])
 
     self.itm = IssueTrackerManager('oss-fuzz')
-    self.mock.get_issue_tracker_manager.return_value = self.itm
+    self.mock.get_issue_tracker_for_testcase.return_value = (
+        monorail.IssueTracker(self.itm))
     self.mock.utcnow.return_value = datetime.datetime(2016, 1, 1)
 
     data_types.Testcase(

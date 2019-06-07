@@ -714,6 +714,10 @@ class Config(Model):
   # testcase details.
   relax_testcase_restrictions = ndb.BooleanProperty(default=False)
 
+  # More relaxed restrictions: allow domain users to access both security and
+  # functional bugs.
+  relax_security_bug_restrictions = ndb.BooleanProperty(default=False)
+
   # Coverage reports bucket.
   coverage_reports_bucket = ndb.StringProperty(default='')
 

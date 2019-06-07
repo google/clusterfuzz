@@ -29,4 +29,5 @@ class AndroidTest(unittest.TestCase):
     helpers.patch_environ(self)
     environment.set_value('OS_OVERRIDE', 'ANDROID')
     environment.set_bot_environment()
+    adb.setup_adb()
     adb.run_as_root()

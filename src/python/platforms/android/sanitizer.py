@@ -21,9 +21,15 @@ from . import settings
 from metrics import logs
 from system import environment
 
+try:
+  from system import new_process
+except ImportError:
+  # On App Engine.
+  new_process = None
+
 ASAN_SCRIPT_TIMEOUT = 15 * 60
 SANITIZER_TOOL_TO_FILE_MAPPINGS = {
-    'ASAN': 'asan.options',
+    'asan': 'asan.options',
 }
 
 
@@ -34,13 +40,21 @@ def get_options_file_path(sanitizer_tool_name):
   sanitizer_directory = ('/system' if settings.get_sanitizer_tool_name() else
                          constants.DEVICE_TMP_DIR)
 
-  sanitizer_filename = SANITIZER_TOOL_TO_FILE_MAPPINGS[sanitizer_tool_name]
+  sanitizer_filename = SANITIZER_TOOL_TO_FILE_MAPPINGS.get(
+      sanitizer_tool_name.lower())
+  if sanitizer_filename is None:
+    logs.log_error('Unsupported sanitizer: ' + sanitizer_tool_name)
+    return None
+
   return os.path.join(sanitizer_directory, sanitizer_filename)
 
 
 def set_options(sanitizer_tool_name, sanitizer_options):
   """Set sanitizer options on the disk file."""
   sanitizer_options_file_path = get_options_file_path(sanitizer_tool_name)
+  if not sanitizer_options_file_path:
+    return
+
   adb.write_data_to_file(sanitizer_options, sanitizer_options_file_path)
 
 
@@ -69,14 +83,22 @@ def setup_asan_if_needed():
   logs.log('Executing ASan device setup script.')
   asan_device_setup_script_path = os.path.join(android_directory, 'third_party',
                                                'asan_device_setup.sh')
-  asan_runtime_library_argument = '--lib %s' % app_directory
-  device_argument = '--device %s' % device_id
-  asan_options_file_path = get_options_file_path('ASAN')
-  extra_asan_options = (
-      '--extra-options include_if_exists=%s' % asan_options_file_path)
-  command = '%s %s %s %s' % (asan_device_setup_script_path, device_argument,
-                             asan_runtime_library_argument, extra_asan_options)
-  adb.execute_command(command, timeout=ASAN_SCRIPT_TIMEOUT)
+  extra_options_arg = 'include_if_exists=' + get_options_file_path('asan')
+  asan_device_setup_script_args = [
+      '--lib', app_directory, '--device', device_id, '--extra-options',
+      extra_options_arg
+  ]
+
+  process = new_process.ProcessRunner(asan_device_setup_script_path,
+                                      asan_device_setup_script_args)
+  result = process.run_and_wait()
+  if result.return_code:
+    logs.log_error('Failed to setup ASan on device.', output=result.output)
+    return
+
+  logs.log(
+      'ASan device setup script successfully finished, waiting for boot.',
+      output=result.output)
 
   # Wait until fully booted as otherwise shell restart followed by a quick
   # reboot can trigger data corruption in /data/data.
