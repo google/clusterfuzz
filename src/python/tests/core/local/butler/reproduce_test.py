@@ -35,6 +35,7 @@ def _fake_get_testcase(_):
 
 
 @test_utils.integration
+@test_utils.with_cloud_emulators('datastore')
 class ReproduceTest(fake_filesystem_unittest.TestCase):
   """Tests for the full reproduce tool."""
 

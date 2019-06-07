@@ -143,11 +143,11 @@ class Config(object):
 
     # Check that config directory is valid.
     if not self._config_dir or not os.path.exists(self._config_dir):
-      raise errors.BadConfigError
+      raise errors.BadConfigError(self._config_dir)
 
     # Config roots should exist.
     if not _validate_root(self._config_dir, self._root):
-      raise errors.BadConfigError
+      raise errors.BadConfigError(self._config_dir)
 
   def sub_config(self, path):
     """Return a new config with a new sub-root."""

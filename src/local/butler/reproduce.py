@@ -69,6 +69,9 @@ def _prepare_environment(testcase, build_directory):
       os.path.join(old_root_dir, 'bot'), os.path.join(root_dir, 'bot'))
   shutil.copytree(
       os.path.join(old_root_dir, 'configs'), os.path.join(root_dir, 'configs'))
+  shutil.copytree(
+      os.path.join(old_root_dir, 'resources'),
+      os.path.join(root_dir, 'resources'))
   environment.set_value('ROOT_DIR', root_dir)
   environment.set_value('CONFIG_DIR_OVERRIDE',
                         os.path.join(root_dir, 'configs', 'test'))
