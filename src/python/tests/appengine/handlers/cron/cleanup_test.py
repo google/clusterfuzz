@@ -1437,8 +1437,6 @@ class UpdateIssueLabelsForFlakyTestcaseTest(unittest.TestCase):
   """Tests for update_issue_labels_for_flaky_testcase."""
 
   def setUp(self):
-    helpers.patch_environ(self)
-
     self.issue = test_utils.create_generic_issue()
     self.testcase = test_utils.create_generic_testcase()
 
