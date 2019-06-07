@@ -192,8 +192,14 @@ class GetImpactsFromUrlTest(ComponentRevisionPatchingTest):
         self.mock_revision_to_branched_from)
     self.mock.get_start_and_end_revision.return_value = (1, 100)
     self.mock.get_build_to_revision_mappings.return_value = {
-        'stable': {'revision': '398287', 'version': '74.0.1345.34'},
-        'beta': {'revision': '399171', 'version': '75.0.1353.43' }
+        'stable': {
+            'revision': '398287',
+            'version': '74.0.1345.34'
+        },
+        'beta': {
+            'revision': '399171',
+            'version': '75.0.1353.43'
+        }
     }
     self.mock.get_impact.side_effect = [
         impact_task.Impact('s', False),
@@ -265,8 +271,14 @@ class GetImpactsFromUrlTest(ComponentRevisionPatchingTest):
   def test_bail_if_two_identically_named_components(self):
     """Tests we bail if a comp is given twice in the component deps."""
     self.mock.get_build_to_revision_mappings.return_value = {
-        'stable': {'revision': '398287', 'version': '74.0.1345.34'},
-        'beta': {'revision': '400000', 'version': '76.0.1353.43' }
+        'stable': {
+            'revision': '398287',
+            'version': '74.0.1345.34'
+        },
+        'beta': {
+            'revision': '400000',
+            'version': '76.0.1353.43'
+        }
     }
     self.mock.get_component_name.return_value = 'skia'
     self.assertTrue(
@@ -290,9 +302,16 @@ class GetImpactsFromUrlTest(ComponentRevisionPatchingTest):
         [mock.call('123:456', 'job')])
     self.mock.get_build_to_revision_mappings.assert_has_calls(
         [mock.call('windows')])
-    self.mock.get_impact.assert_has_calls(
-        [mock.call({'version': '74.0.1345.34', 'revision': '398287'}, 1, 100),
-         mock.call({'version': '75.0.1353.43', 'revision': '399171'}, 1, 100)])
+    self.mock.get_impact.assert_has_calls([
+        mock.call({
+            'version': '74.0.1345.34',
+            'revision': '398287'
+        }, 1, 100),
+        mock.call({
+            'version': '75.0.1353.43',
+            'revision': '399171'
+        }, 1, 100)
+    ])
 
   def test_get_impacts_known_component(self):
     """Test getting impacts for a known component."""
@@ -308,9 +327,16 @@ class GetImpactsFromUrlTest(ComponentRevisionPatchingTest):
         [mock.call('123:456', 'job')])
     self.mock.get_build_to_revision_mappings.assert_has_calls(
         [mock.call('windows')])
-    self.mock.get_impact.assert_has_calls(
-        [mock.call({'version': '74.0.1345.34', 'revision': '666666'}, 1, 100),
-         mock.call({'version': '75.0.1353.43', 'revision': '777777'}, 1, 100)])
+    self.mock.get_impact.assert_has_calls([
+        mock.call({
+            'version': '74.0.1345.34',
+            'revision': '666666'
+        }, 1, 100),
+        mock.call({
+            'version': '75.0.1353.43',
+            'revision': '777777'
+        }, 1, 100)
+    ])
 
 
 class GetImpactTest(unittest.TestCase):

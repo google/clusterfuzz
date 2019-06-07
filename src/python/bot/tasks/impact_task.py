@@ -138,8 +138,10 @@ def get_component_impacts_from_url(component_name,
         component_revision['url'], component_revision['rev'])
     if not branched_from:
       return Impacts()
-    impact = get_impact({'revision': branched_from, 'version': mapping['version']},
-                        start_revision, end_revision)
+    impact = get_impact({
+        'revision': branched_from,
+        'version': mapping['version']
+    }, start_revision, end_revision)
     found_impacts[build] = impact
   return Impacts(found_impacts['stable'], found_impacts['beta'])
 
