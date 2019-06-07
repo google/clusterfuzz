@@ -454,3 +454,22 @@ class FileHashTest(fake_filesystem_unittest.TestCase):
       file_handle.write('A' * 60000)
     self.assertEqual('8360c01cef8aa7001d1dd8964b9921d4c187da29',
                      utils.file_hash(self.test_file))
+
+
+class ServiceAccountEmailTest(unittest.TestCase):
+  """Tests service_account_email"""
+
+  def setUp(self):
+    helpers.patch_environ(self)
+
+  def test_plain_project_id(self):
+    """Test with a plain project ID."""
+    os.environ['APPLICATION_ID'] = 'project-id'
+    self.assertEqual('project-id@appspot.gserviceaccount.com',
+                     utils.service_account_email())
+
+  def test_with_domain(self):
+    """Test with a project ID with a domain."""
+    os.environ['APPLICATION_ID'] = 'domain.com:project-id'
+    self.assertEqual('project-id.domain.com@appspot.gserviceaccount.com',
+                     utils.service_account_email())

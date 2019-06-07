@@ -228,7 +228,12 @@ def get_application_id():
 def service_account_email():
   """Get the service account name."""
   # TODO(ochang): Detect GCE and return the GCE service account instead.
-  return get_application_id() + '@appspot.gserviceaccount.com'
+  email_id = get_application_id()
+  if ':' in email_id:
+    domain, application_id = email_id.split(':')
+    email_id = application_id + '.' + domain
+
+  return email_id + '@appspot.gserviceaccount.com'
 
 
 def get_bot_testcases_file_path(input_directory):
