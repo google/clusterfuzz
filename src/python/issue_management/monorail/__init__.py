@@ -146,7 +146,9 @@ class Issue(issue_tracker.Issue):
       self._monorail_issue.remove_label(removed)
     self._labels.reset()
 
-    self._monorail_issue.comment = new_comment
+    if new_comment:
+      self._monorail_issue.comment = new_comment
+
     self._monorail_issue.save(send_email=notify)
 
 

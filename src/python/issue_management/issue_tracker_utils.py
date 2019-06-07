@@ -37,10 +37,13 @@ def clear_issue_tracker_managers():
   ISSUE_TRACKER_MANAGERS = {}
 
 
-def get_issue_tracker(tracker_type, project_name, use_cache=False):
+def get_issue_tracker(tracker_type, project_name=None, use_cache=False):
   """Get the issue tracker with the given type and name."""
   # TODO(ochang): Actually use `tracker_type`.
   assert tracker_type == 'monorail'
+  if not project_name:
+    from datastore import data_handler
+    project_name = data_handler.get_issue_tracker_name()
 
   itm = _get_issue_tracker_manager_for_project(
       project_name, use_cache=use_cache)

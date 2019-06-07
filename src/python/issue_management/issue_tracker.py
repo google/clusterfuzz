@@ -71,6 +71,16 @@ class LabelStore(object):
     self._added.clear()
     self._removed.clear()
 
+  def get_by_prefix(self, prefix):
+    """Get labels with the given prefix."""
+    for item in self:
+      if item.lower().startswith(prefix.lower()):
+        yield item
+
+  def has_with_prefix(self, prefix):
+    """Return whether if there is an item with the given prefix."""
+    return bool(next(self.get_by_prefix(prefix), None))
+
   def remove_by_prefix(self, prefix):
     """Remove labels with a given prefix."""
     for item in list(self):
