@@ -46,7 +46,7 @@ class ReproduceTest(unittest.TestCase):
         'system.process_handler.terminate_stale_application_instances',
     ])
     helpers.patch_environ(self)
-    
+
     self.mock._download_testcase.return_value = '/tmp/testcase'
     self.mock._get_testcase.side_effect = _fake_get_testcase
     self.mock.run_process.return_value = (0, 0, '/tmp/testcase')
