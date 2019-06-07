@@ -1114,7 +1114,6 @@ class BanditProbabilities(Model):
   strategy_bandit_probability = ndb.FloatProperty()
 
 
-
 def fuzz_target_job_key(fuzz_target_name, job):
   """Return the key for FuzzTargetJob."""
   return '{}/{}'.format(fuzz_target_name, job)
