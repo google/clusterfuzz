@@ -49,40 +49,40 @@ class Handler(base_handler.Handler):
       return external_users.cc_users_for_job(job_type, security_flag)
 
     for testcase in get_open_testcases_with_bugs():
-      issue_tracker_manager = issue_tracker_utils.get_issue_tracker_manager(
-          testcase=testcase, use_cache=True)
-      if not issue_tracker_manager:
+      issue_tracker = issue_tracker_utils.get_issue_tracker_for_testcase(
+          testcase, use_cache=True)
+      if not issue_tracker:
         logging.error('Failed to get issue tracker manager for %s',
                       testcase.key.id())
         continue
 
       try:
-        issue_id = int(testcase.bug_information)
-        issue = issue_tracker_manager.get_original_issue(issue_id)
+        issue = issue_tracker.get_original_issue(testcase.bug_information)
       except:
         logging.error('Error occurred when fetching issue %s.',
                       testcase.bug_information)
         continue
 
-      if not issue or not issue.open:
+      if not issue or not issue.is_open:
         continue
 
       ccs = cc_users_for_job(testcase.job_type, testcase.security_flag)
-      new_ccs = [cc for cc in ccs if not issue.has_cc(cc)]
+      new_ccs = [cc for cc in ccs if cc not in issue.ccs]
       if not new_ccs:
         # Nothing to do.
         continue
 
       for cc in new_ccs:
         logging.info('CCing %s on %s', cc, issue.id)
-        issue.add_cc(cc)
+        issue.ccs.add(cc)
 
-      if not issue.has_label_containing('reported-'):
+      comment = None
+      if not issue.labels.has_with_prefix('reported-'):
         # Add reported label and deadline comment if necessary.
-        issue.add_label(issue_filer.reported_label())
+        issue.labels.add(issue_filer.reported_label())
 
-        if issue.has_label_matching('Restrict-View-Commit'):
+        if 'Restrict-View-Commit' in issue.labels:
           logging.info('Adding deadline comment on %s', issue.id)
-          issue.comment = issue_filer.DEADLINE_NOTE
+          comment = issue_filer.DEADLINE_NOTE
 
-      issue.save(send_email=True)
+      issue.save(new_comment=comment, notify=True)
