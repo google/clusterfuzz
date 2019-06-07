@@ -64,20 +64,21 @@ def _prepare_environment(testcase, build_directory):
   # Create a temporary directory to use as ROOT_DIR with a copy of the default
   # bot and configuration directories nested under it.
   old_root_dir = environment.get_value('ROOT_DIR')
-  root_dir = tempfile.mkdtemp()
+  temp_root_dir = tempfile.mkdtemp()
 
   shutil.copytree(
-      os.path.join(old_root_dir, 'bot'), os.path.join(root_dir, 'bot'))
+      os.path.join(old_root_dir, 'bot'), os.path.join(temp_root_dir, 'bot'))
   shutil.copytree(
-      os.path.join(old_root_dir, 'configs'), os.path.join(root_dir, 'configs'))
+      os.path.join(old_root_dir, 'configs'),
+      os.path.join(temp_root_dir, 'configs'))
   shutil.copytree(
       os.path.join(old_root_dir, 'resources'),
-      os.path.join(root_dir, 'resources'))
-  environment.set_value('ROOT_DIR', root_dir)
+      os.path.join(temp_root_dir, 'resources'))
+  environment.set_value('TEMP_ROOT_DIR', temp_root_dir)
   environment.set_value('CONFIG_DIR_OVERRIDE',
-                        os.path.join(root_dir, 'configs', 'test'))
+                        os.path.join(temp_root_dir, 'configs', 'test'))
 
-  environment.set_bot_environment()
+  environment.set_bot_environment(root_dir=temp_root_dir)
   commands.update_environment_for_job(testcase.job_definition)
 
   # Overrides that should not be set to the default values.
@@ -97,7 +98,7 @@ def _reproduce_crash(testcase_id, build_dir):
   result = tests.test_for_crash_with_retries(testcase, testcase_path, timeout)
 
   # Clean up the temporary root directory created in prepare environment.
-  shell.remove_directory(environment.get_value('ROOT_DIR'))
+  shell.remove_directory(environment.get_value('TEMP_ROOT_DIR'))
 
   return result
 
