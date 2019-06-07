@@ -47,6 +47,15 @@ def _patch_appengine_modules_for_bots():
     pass
 
 
+def _config_modules_directory(root_directory):
+  """Get the config modules directory."""
+  config_dir = os.getenv('CONFIG_DIR_OVERRIDE')
+  if not config_dir:
+    config_dir = os.path.join(root_directory, 'src', 'appengine', 'config')
+
+  return os.path.join(config_dir, 'modules')
+
+
 def fix_module_search_paths():
   """Add directories that we must be able to import from to path."""
   root_directory = os.environ['ROOT_DIR']
@@ -61,6 +70,13 @@ def fix_module_search_paths():
 
   third_party_libraries_directory = os.path.join(source_directory,
                                                  'third_party')
+  config_modules_directory = _config_modules_directory(root_directory)
+
+  if (os.path.exists(config_modules_directory) and
+      config_modules_directory not in sys.path):
+    sys.path.insert(0, config_modules_directory)
+    python_path.insert(0, config_modules_directory)
+
   if third_party_libraries_directory not in sys.path:
     sys.path.insert(0, third_party_libraries_directory)
     python_path.insert(0, third_party_libraries_directory)
