@@ -303,7 +303,7 @@ def get_environment_settings_as_string():
       # asan_device_setup.sh and we send this options file path as an include
       # to extra-options parameter.
       sanitizer_options_file_path = (
-          android.device.get_sanitizer_options_file_path('ASAN'))
+          android.sanitizer.get_options_file_path('ASAN'))
       environment_string += (
           '[Environment] ASAN options file "%s" with contents:\n%s\n' %
           (sanitizer_options_file_path, asan_options))
@@ -709,9 +709,8 @@ def set_environment_parameters_from_file(file_path):
   if not os.path.exists(file_path):
     return
 
-  f = open(file_path, 'r')
-  file_data = f.read()
-  f.close()
+  with open(file_path, 'r') as f:
+    file_data = f.read()
 
   for line in file_data.splitlines():
     if line.startswith('#') or not line.strip():
@@ -779,8 +778,7 @@ def reset_current_memory_tool_options(redzone_size=0,
 
   # For Android, we need to set shell property |asan.options|.
   if bot_platform == 'ANDROID':
-    android.device.set_sanitizer_options_if_needed(tool_name,
-                                                   joined_tool_options)
+    android.sanitizer.set_options(tool_name, joined_tool_options)
 
 
 def set_default_vars():

@@ -33,6 +33,7 @@ from config import local_config
 from datastore import data_types
 from datastore import ndb
 from google_cloud_utils import pubsub
+from issue_management import monorail
 from issue_management.monorail.comment import Comment
 from issue_management.monorail.issue import Issue
 from system import environment
@@ -59,6 +60,7 @@ def create_generic_testcase(created_days_ago=28):
   testcase.crash_type = 'fake type'
   testcase.comments = 'Fuzzer: test'
   testcase.fuzzed_keys = 'abcd'
+  testcase.minimized_keys = 'efgh'
   testcase.fuzzer_name = 'fuzzer1'
   testcase.open = True
   testcase.one_time_crasher_flag = False
@@ -75,11 +77,11 @@ def create_generic_testcase(created_days_ago=28):
 def create_generic_issue(created_days_ago=28):
   """Returns a simple issue object for use in tests."""
   issue = Issue()
-  issue.cc = ['cc@chromium.org']
+  issue.cc = []
   issue.comment = ''
   issue.comments = []
-  issue.components = ['Test>Component']
-  issue.labels = ['TestLabel', 'Pri-1', 'OS-Windows']
+  issue.components = []
+  issue.labels = []
   issue.open = True
   issue.owner = 'owner@chromium.org'
   issue.status = 'Assigned'
@@ -89,7 +91,7 @@ def create_generic_issue(created_days_ago=28):
   # Test issue was created 1 week before the current (mocked) time.
   issue.created = CURRENT_TIME - datetime.timedelta(days=created_days_ago)
 
-  return issue
+  return monorail.Issue(issue)
 
 
 def create_generic_issue_comment(comment_body='Comment.',
@@ -223,6 +225,41 @@ def _find_free_port():
   return port
 
 
+def wait_for_emulator_ready(proc,
+                            emulator,
+                            indicator,
+                            timeout=EMULATOR_TIMEOUT,
+                            output_lines=None):
+  """Wait for emulator to be ready."""
+
+  def _read_thread(proc, ready_event):
+    """Thread to continuously read from the process stdout."""
+    ready = False
+    while True:
+      line = proc.stdout.readline()
+      if not line:
+        break
+
+      if output_lines is not None:
+        output_lines.append(line)
+
+      if not ready and indicator in line:
+        ready = True
+        ready_event.set()
+
+  # Wait for process to become ready.
+  ready_event = threading.Event()
+  thread = threading.Thread(target=_read_thread, args=(proc, ready_event))
+  thread.daemon = True
+  thread.start()
+
+  if not ready_event.wait(timeout):
+    raise RuntimeError(
+        '{} emulator did not get ready in time.'.format(emulator))
+
+  return thread
+
+
 def start_cloud_emulator(emulator, args=None, data_dir=None):
   """Start a cloud emulator."""
   ready_indicators = {
@@ -261,27 +298,7 @@ def start_cloud_emulator(emulator, args=None, data_dir=None):
   proc = subprocess.Popen(
       command, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
 
-  def _read_thread(proc, ready_event):
-    """Thread to continuously read from the process stdout."""
-    ready = False
-    while True:
-      line = proc.stdout.readline()
-      if not line:
-        break
-
-      if not ready and ready_indicators[emulator] in line:
-        ready = True
-        ready_event.set()
-
-  # Wait for process to become ready.
-  ready_event = threading.Event()
-  thread = threading.Thread(target=_read_thread, args=(proc, ready_event))
-  thread.daemon = True
-  thread.start()
-
-  if not ready_event.wait(EMULATOR_TIMEOUT):
-    raise RuntimeError(
-        '{} emulator did not get ready in time.'.format(emulator))
+  thread = wait_for_emulator_ready(proc, emulator, ready_indicators[emulator])
 
   # Set env vars.
   env_vars = subprocess.check_output([

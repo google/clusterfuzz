@@ -56,11 +56,11 @@ RUN mkdir $NFS_DIR && \
 
 # Get pre-built msan libraries (with and without origin tracking).
 RUN mkdir /msan-chained-origins && \
-    curl -o /msan-chained-origins/libs.zip https://clusterfuzz-chromium-msan-libs.storage.googleapis.com/16.04/chained-origins/latest-201802272245.zip && \
+    curl -o /msan-chained-origins/libs.zip https://clusterfuzz-chromium-msan-libs.storage.googleapis.com/16.04/chained-origins/latest-201906041048.zip && \
     unzip /msan-chained-origins/libs.zip -d /msan-chained-origins && \
     rm /msan-chained-origins/libs.zip && \
     mkdir /msan-no-origins && \
-    curl -o /msan-no-origins/libs.zip https://clusterfuzz-chromium-msan-libs.storage.googleapis.com/16.04/no-origins/latest-201802272245.zip && \
+    curl -o /msan-no-origins/libs.zip https://clusterfuzz-chromium-msan-libs.storage.googleapis.com/16.04/no-origins/latest-201906041048.zip && \
     unzip /msan-no-origins/libs.zip -d /msan-no-origins && \
     rm /msan-no-origins/libs.zip
 

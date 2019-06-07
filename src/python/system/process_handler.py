@@ -257,7 +257,7 @@ def run_process(cmdline,
     time.sleep(ANDROID_CRASH_LOGCAT_WAIT_TIME)
     output = android.logger.log_output()
 
-    if android.device.LOW_MEMORY_REGEX.search(output):
+    if android.constants.LOW_MEMORY_REGEX.search(output):
       # If the device is low on memory, we should force reboot and bail out to
       # prevent device from getting in a frozen state.
       logs.log('Device is low on memory, rebooting.', output=output)
@@ -268,7 +268,7 @@ def run_process(cmdline,
       # Check if a reboot has happened, if yes, append log output before reboot
       # and kernel logs content to output.
       log_before_last_reboot = android.logger.log_output_before_last_reboot()
-      kernel_log = android.device.get_kernel_log_content()
+      kernel_log = android.adb.get_kernel_log_content()
       output = '%s%s%s%s%s' % (
           log_before_last_reboot, utils.get_line_seperator('Device rebooted'),
           output, utils.get_line_seperator('Kernel Log'), kernel_log)

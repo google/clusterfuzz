@@ -36,13 +36,14 @@ BAD_STATE_WAIT = 900
 BOOT_WAIT_INTERVAL = 30
 DEFAULT_DEVICE_MEMORY_MB = 2048
 DEVICE = collections.namedtuple('Device', ['serial', 'path'])
-DEVICE_DOWNLOAD_DIR = '/sdcard/Download'
 DEVICE_HANG_STRING = None
 DEVICE_NOT_FOUND_STRING = 'error: device \'{serial}\' not found'
 DEVICE_OFFLINE_STRING = 'error: device offline'
-DEVICE_TMP_DIR = '/data/local/tmp'
 FACTORY_RESET_WAIT = 60
-FLASH_INTERVAL = 1 * 24 * 60 * 60
+KERNEL_LOG_FILES = [
+    '/proc/last_kmsg',
+    '/sys/fs/pstore/console-ramoops',
+]
 MONKEY_PROCESS_NAME = 'monkey'
 REBOOT_TIMEOUT = 3600
 RECOVERY_CMD_TIMEOUT = 60
@@ -61,11 +62,6 @@ def bad_state_reached():
   persistent_cache.clear_values()
   logs.log_fatal_and_exit(
       'Device in bad state.', wait_before_exit=BAD_STATE_WAIT)
-
-
-def clear_notifications():
-  """Clear all pending notifications."""
-  run_shell_command(['service', 'call', 'notification', '1'])
 
 
 def copy_local_directory_to_remote(local_directory, remote_directory):
@@ -215,6 +211,15 @@ def get_file_size(file_path):
   return int(run_shell_command(['stat', '-c%s', file_path]))
 
 
+def get_kernel_log_content():
+  """Return content of kernel logs."""
+  kernel_log_content = ''
+  for kernel_log_file in KERNEL_LOG_FILES:
+    kernel_log_content += read_data_from_file(kernel_log_file) or ''
+
+  return kernel_log_content
+
+
 def get_ps_output():
   """Return ps output for all processes."""
   return run_shell_command(['ps', '-A'])
@@ -318,16 +323,6 @@ def reboot():
   run_command('reboot')
 
 
-def stop_gce_device():
-  """Stops the gce device."""
-  cvd_dir = environment.get_value('CVD_DIR')
-  cvd_bin_dir = os.path.join(cvd_dir, 'bin')
-  stop_cvd_path = os.path.join(cvd_bin_dir, 'stop_cvd')
-
-  execute_command(stop_cvd_path, timeout=RECOVERY_CMD_TIMEOUT)
-  time.sleep(STOP_CVD_WAIT)
-
-
 def start_gce_device():
   """Start the gce device."""
   cvd_dir = environment.get_value('CVD_DIR')
@@ -340,6 +335,16 @@ def start_gce_device():
       '{launch_cvd_path} -daemon -memory_mb {device_memory_mb}'.format(
           launch_cvd_path=launch_cvd_path, device_memory_mb=device_memory_mb))
   execute_command(launch_cvd_command_line)
+
+
+def stop_gce_device():
+  """Stops the gce device."""
+  cvd_dir = environment.get_value('CVD_DIR')
+  cvd_bin_dir = os.path.join(cvd_dir, 'bin')
+  stop_cvd_path = os.path.join(cvd_bin_dir, 'stop_cvd')
+
+  execute_command(stop_cvd_path, timeout=RECOVERY_CMD_TIMEOUT)
+  time.sleep(STOP_CVD_WAIT)
 
 
 def recreate_gce_device():
@@ -372,10 +377,15 @@ def remount():
 
 
 def remove_directory(device_directory, recreate=False):
-  """Deletes everything inside of a device directory."""
+  """Delete everything inside of a device directory and recreate if needed."""
   run_shell_command('rm -rf %s' % device_directory, root=True)
   if recreate:
     create_directory_if_needed(device_directory)
+
+
+def remove_file(file_path):
+  """Remove file."""
+  run_shell_command('rm -f %s' % file_path, root=True)
 
 
 def reset_device_connection():
@@ -653,14 +663,6 @@ def time_since_last_reboot():
     # Sometimes, adb can just hang or return null output. In these cases, just
     # return infinity uptime value.
     return float('inf')
-
-
-def update_key_in_sqlite_db(database_path, table_name, key_name, key_value):
-  """Updates a key's value in sqlite db. The input is not sanitized, so make
-  sure to use with trusted input key and value pairs only."""
-  sql_command_string = ('"UPDATE %s SET value=\'%s\' WHERE name=\'%s\'"') % (
-      table_name, str(key_value), key_name)
-  run_shell_command(['sqlite3', database_path, sql_command_string])
 
 
 def wait_for_device():

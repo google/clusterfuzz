@@ -24,7 +24,6 @@ from datastore import data_types
 from datastore import ndb
 from handlers import base_handler
 from issue_management import issue_tracker_utils
-from issue_management.monorail.issue import Issue
 from libs import handler
 from libs import helpers
 from metrics import logs
@@ -134,51 +133,47 @@ def get_build_time(build):
       stripped_timestamp.group(0), TIMESTAMP_FORMAT)
 
 
-def file_bug(itm, project_name, build_id, ccs, build_type):
+def file_bug(issue_tracker, project_name, build_id, ccs, build_type):
   """File a new bug for a build failure."""
   logs.log('Filing bug for new build failure (project=%s, build_type=%s, '
            'build_id=%s).' % (project_name, build_type, build_id))
 
-  issue = Issue()
-  issue.itm = itm
-  issue.summary = '%s: Build failure' % project_name
+  issue = issue_tracker.new_issue()
+  issue.title = '%s: Build failure' % project_name
   issue.body = _get_issue_body(project_name, build_id, build_type)
   issue.status = 'New'
-  issue.add_label('Type-Build-Failure')
-  issue.add_label('Proj-' + project_name)
+  issue.labels.add('Type-Build-Failure')
+  issue.labels.add('Proj-' + project_name)
 
   for cc in ccs:
-    issue.add_cc(cc)
+    issue.ccs.add(cc)
 
   issue.save()
   return str(issue.id)
 
 
-def close_bug(itm, issue_id, project_name):
+def close_bug(issue_tracker, issue_id, project_name):
   """Close a build failure bug."""
   logs.log('Closing build failure bug (project=%s, issue_id=%s).' %
            (project_name, issue_id))
 
-  issue_id = int(issue_id)
-  issue = itm.get_original_issue(issue_id)
-
-  issue.comment = 'The latest build has succeeded, closing this issue.'
+  issue = issue_tracker.get_original_issue(issue_id)
   issue.status = 'Verified'
-  issue.open = False
-  issue.save(send_email=True)
+  issue.save(
+      new_comment='The latest build has succeeded, closing this issue.',
+      notify=True)
 
 
-def send_reminder(itm, issue_id, build_id):
+def send_reminder(issue_tracker, issue_id, build_id):
   """Send a reminder about the build still failing."""
-  issue_id = int(issue_id)
-  issue = itm.get_original_issue(issue_id)
+  issue = issue_tracker.get_original_issue(issue_id)
 
   comment = ('Friendly reminder that the the build is still failing.\n'
              'Please try to fix this failure to ensure that fuzzing '
              'remains productive.\n'
              'Latest build log: {log_link}\n')
-  issue.comment = comment.format(log_link=_get_build_link(build_id))
-  issue.save(send_email=True)
+  comment = comment.format(log_link=_get_build_link(build_id))
+  issue.save(new_comment=comment, notify=True)
 
 
 class Handler(base_handler.Handler):
@@ -186,8 +181,8 @@ class Handler(base_handler.Handler):
 
   def _close_fixed_builds(self, build_status, build_type):
     """Close bugs for fixed builds."""
-    itm = issue_tracker_utils.get_issue_tracker_manager()
-    if not itm:
+    issue_tracker = issue_tracker_utils.get_issue_tracker('monorail')
+    if not issue_tracker:
       raise OssFuzzBuildStatusException('Failed to get issue tracker.')
 
     for build in build_status['successes']:
@@ -204,14 +199,14 @@ class Handler(base_handler.Handler):
         continue
 
       if build_failure.issue_id is not None:
-        close_bug(itm, build_failure.issue_id, project_name)
+        close_bug(issue_tracker, build_failure.issue_id, project_name)
 
       close_build_failure(build_failure)
 
   def _process_failures(self, build_status, build_type):
     """Process failures."""
-    itm = issue_tracker_utils.get_issue_tracker_manager()
-    if not itm:
+    issue_tracker = issue_tracker_utils.get_issue_tracker('monorail')
+    if not issue_tracker:
       raise OssFuzzBuildStatusException('Failed to get issue tracker.')
 
     for build in build_status['failures']:
@@ -244,12 +239,13 @@ class Handler(base_handler.Handler):
                 'Project %s is disabled, skipping bug filing.' % project_name)
             continue
 
-          build_failure.issue_id = file_bug(itm, project_name,
+          build_failure.issue_id = file_bug(issue_tracker, project_name,
                                             build['build_id'],
                                             oss_fuzz_project.ccs, build_type)
         elif (build_failure.consecutive_failures -
               MIN_CONSECUTIVE_BUILD_FAILURES) % REMINDER_INTERVAL == 0:
-          send_reminder(itm, build_failure.issue_id, build['build_id'])
+          send_reminder(issue_tracker, build_failure.issue_id,
+                        build['build_id'])
 
       build_failure.put()
 

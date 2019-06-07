@@ -24,6 +24,7 @@ import webtest
 
 from datastore import data_types
 from handlers.cron import oss_fuzz_build_status
+from issue_management import monorail
 from issue_management.monorail.issue import Issue
 from tests.test_libs import helpers as test_helpers
 from tests.test_libs import test_utils
@@ -72,7 +73,7 @@ class OssFuzzBuildStatusTest(unittest.TestCase):
     test_helpers.patch(self, [
         'metrics.logs.log_error',
         'base.utils.utcnow',
-        'issue_management.issue_tracker_utils.get_issue_tracker_manager',
+        'issue_management.issue_tracker_utils.get_issue_tracker',
         'handlers.base_handler.Handler.is_cron',
         'requests.get',
     ])
@@ -81,7 +82,7 @@ class OssFuzzBuildStatusTest(unittest.TestCase):
     self.mock.is_cron.return_value = True
 
     self.itm = IssueTrackerManager('oss-fuzz')
-    self.mock.get_issue_tracker_manager.return_value = self.itm
+    self.mock.get_issue_tracker.return_value = monorail.IssueTracker(self.itm)
 
     self.maxDiff = None  # pylint: disable=invalid-name
 
@@ -396,7 +397,6 @@ class OssFuzzBuildStatusTest(unittest.TestCase):
     self.assertEqual(0, data_types.OssFuzzBuildFailure.query().count())
 
     issue = self.itm.issues[1]
-    self.assertFalse(issue.open)
     self.assertEqual('Verified', issue.status)
     self.assertEqual('The latest build has succeeded, closing this issue.',
                      issue.comment)
