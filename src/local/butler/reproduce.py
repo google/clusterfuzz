@@ -65,6 +65,7 @@ def _prepare_environment(testcase, build_directory):
   # bot and configuration directories nested under it.
   old_root_dir = environment.get_value('ROOT_DIR')
   root_dir = tempfile.mkdtemp()
+  environment.set_value('ROOT_DIR', root_dir)
   shutil.copytree(
       os.path.join(old_root_dir, 'bot'), os.path.join(root_dir, 'bot'))
   shutil.copytree(
