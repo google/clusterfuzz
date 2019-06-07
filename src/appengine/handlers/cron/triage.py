@@ -156,7 +156,7 @@ def is_crash_important(testcase):
           data_types.FILE_UNREPRODUCIBLE_TESTCASE_MIN_CRASH_THRESHOLD)
 
 
-def is_similar_bug_open_or_recently_closed(testcase, issue_tracker_manager):
+def is_similar_bug_open_or_recently_closed(testcase, issue_tracker):
   """Get list of similar open issues and ones that were recently closed."""
   # Get similar testcases from the same group.
   similar_testcases_from_group = []
@@ -190,7 +190,7 @@ def is_similar_bug_open_or_recently_closed(testcase, issue_tracker_manager):
       continue
 
     # Get the issue object given its ID.
-    issue = issue_tracker_manager.get_issue(similar_testcase.bug_information)
+    issue = issue_tracker.get_issue(similar_testcase.bug_information)
     if not issue:
       continue
 
@@ -201,18 +201,18 @@ def is_similar_bug_open_or_recently_closed(testcase, issue_tracker_manager):
       return True
 
     # If the issue is still open, no need to file a duplicate bug.
-    if issue.open:
+    if issue.is_open:
       return True
 
     # If the issue indicates that this crash needs to be ignored, no need to
     # file another one.
-    if issue.has_label(data_types.ISSUE_IGNORE_LABEL):
+    if data_types.ISSUE_IGNORE_LABEL in issue.labels:
       return True
 
     # If the issue is recently closed, wait certain time period to make sure
     # our fixed verification has completed.
-    if (issue.closed and not dates.time_has_expired(
-        issue.closed,
+    if (issue.closed_time and not dates.time_has_expired(
+        issue.closed_time,
         compare_to=datetime.datetime.utcnow(),
         hours=data_types.MIN_ELAPSED_TIME_SINCE_FIXED)):
       return True

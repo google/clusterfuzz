@@ -271,12 +271,23 @@
 
               <tr>
                 <td class="label">
-                  <div class="help" title="Allows testcases to be viewed by any CCed email on bugs.">
-                    Relax testcase view restrictions
+                  <div class="help" title="Allows testcases to be viewed by any CCed email on bugs. By default, only domain users and issue owners can access the testcase, and CCed users on issues cannot.">
+                    Relax testcase view restrictions for issue ccs
                   </div>
                 </td>
                 <td>
                   <paper-checkbox name="relax_testcase_restrictions" checked="[[config.relax_testcase_restrictions]]"></paper-checkbox>
+                </td>
+              </tr>
+
+              <tr>
+                <td class="label">
+                  <div class="help" title="Allows domain users to view security bugs. By default, domain users can only access functional bugs, and security bugs are restricted to privileged and admin users.">
+                    Relax security bug restrictions for domain users
+                  </div>
+                </td>
+                <td>
+                  <paper-checkbox name="relax_security_bug_restrictions" checked="[[config.relax_security_bug_restrictions]]"></paper-checkbox>
                 </td>
               </tr>
 

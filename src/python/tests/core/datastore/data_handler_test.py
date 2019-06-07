@@ -19,8 +19,10 @@ import mock
 import os
 import unittest
 
+from config import local_config
 from datastore import data_handler
 from datastore import data_types
+from issue_management import issue_tracker
 from issue_management.monorail import issue
 from system import environment
 from tests.test_libs import helpers
@@ -67,9 +69,11 @@ class DataHandlerTest(unittest.TestCase):
 
   def setUp(self):
     helpers.patch_environ(self)
+    project_config_get = local_config.ProjectConfig.get
     helpers.patch(self, [
         'base.utils.default_project_name',
         'config.db_config.get',
+        ('project_config_get', 'config.local_config.ProjectConfig.get'),
     ])
 
     self.job = data_types.Job(
@@ -151,6 +155,7 @@ class DataHandlerTest(unittest.TestCase):
     environment.set_value('FUZZ_DATA', '/tmp/inputs/fuzzer-common-data-bundles')
     environment.set_value('FUZZERS_DIR', '/tmp/inputs/fuzzers')
     self.mock.default_project_name.return_value = 'project'
+    self.mock.project_config_get.side_effect = project_config_get
 
   def test_find_testcase(self):
     """Ensure that find_testcase behaves as expected."""
@@ -342,6 +347,18 @@ class DataHandlerTest(unittest.TestCase):
         summary, 'project: Bad-cast to blink::LayoutBlock from '
         'blink::LayoutTableSection')
 
+  def test_get_data_bundle_name_default(self):
+    """Test getting the default data bundle bucket name."""
+    self.assertEqual('test-corpus.test-clusterfuzz.appspot.com',
+                     data_handler.get_data_bundle_bucket_name('test'))
+
+  def test_get_data_bundle_name_custom_suffix(self):
+    """Test getting the data bundle bucket name with custom suffix."""
+    self.mock.project_config_get.side_effect = None
+    self.mock.project_config_get.return_value = 'custom.suffix.com'
+    self.assertEqual('test-corpus.custom.suffix.com',
+                     data_handler.get_data_bundle_bucket_name('test'))
+
 
 @test_utils.with_cloud_emulators('datastore')
 class AddBuildMetadataTest(unittest.TestCase):
@@ -456,7 +473,7 @@ class UpdateImpactTest(unittest.TestCase):
 
   def _make_mock_issue(self):
     mock_issue = mock.Mock(autospec=issue.Issue)
-    mock_issue.labels = []
+    mock_issue.labels = issue_tracker.LabelStore()
 
     return mock_issue
 
@@ -471,8 +488,8 @@ class UpdateImpactTest(unittest.TestCase):
     mock_issue = self._make_mock_issue()
 
     data_handler.update_issue_impact_labels(self.testcase, mock_issue)
-    mock_issue.add_label.assert_called_with('Security_Impact-Stable')
-    mock_issue.remove_label.assert_not_called()
+    self.assertItemsEqual(['Security_Impact-Stable'], mock_issue.labels.added)
+    self.assertItemsEqual([], mock_issue.labels.removed)
 
   def test_update_impact_stable(self):
     """Tests updating impact to Stable."""
@@ -482,8 +499,8 @@ class UpdateImpactTest(unittest.TestCase):
     mock_issue = self._make_mock_issue()
 
     data_handler.update_issue_impact_labels(self.testcase, mock_issue)
-    mock_issue.add_label.assert_called_with('Security_Impact-Stable')
-    mock_issue.remove_label.assert_not_called()
+    self.assertItemsEqual(['Security_Impact-Stable'], mock_issue.labels.added)
+    self.assertItemsEqual([], mock_issue.labels.removed)
 
   def test_update_impact_beta(self):
     """Tests updating impact to Beta."""
@@ -493,8 +510,8 @@ class UpdateImpactTest(unittest.TestCase):
     mock_issue = self._make_mock_issue()
 
     data_handler.update_issue_impact_labels(self.testcase, mock_issue)
-    mock_issue.add_label.assert_called_with('Security_Impact-Beta')
-    mock_issue.remove_label.assert_not_called()
+    self.assertItemsEqual(['Security_Impact-Beta'], mock_issue.labels.added)
+    self.assertItemsEqual([], mock_issue.labels.removed)
 
   def test_update_impact_head(self):
     """Tests updating impact to Head."""
@@ -503,38 +520,40 @@ class UpdateImpactTest(unittest.TestCase):
     mock_issue = self._make_mock_issue()
 
     data_handler.update_issue_impact_labels(self.testcase, mock_issue)
-    mock_issue.add_label.assert_called_with('Security_Impact-Head')
-    mock_issue.remove_label.assert_not_called()
+    self.assertItemsEqual(['Security_Impact-Head'], mock_issue.labels.added)
+    self.assertItemsEqual([], mock_issue.labels.removed)
 
   def test_no_impact(self):
     """Tests no impact."""
     mock_issue = self._make_mock_issue()
 
     data_handler.update_issue_impact_labels(self.testcase, mock_issue)
-    mock_issue.add_label.assert_not_called()
-    mock_issue.remove_label.assert_not_called()
+    self.assertItemsEqual([], mock_issue.labels.added)
+    self.assertItemsEqual([], mock_issue.labels.removed)
 
   def test_replace_impact(self):
     """Tests replacing impact."""
     self.testcase.is_impact_set_flag = True
 
     mock_issue = self._make_mock_issue()
-    mock_issue.labels = ['Security_Impact-Beta']
+    mock_issue.labels.add('Security_Impact-Beta')
+    mock_issue.labels.reset()
 
     data_handler.update_issue_impact_labels(self.testcase, mock_issue)
-    mock_issue.add_label.assert_called_with('Security_Impact-Head')
-    mock_issue.remove_label.assert_called_with('Security_Impact-Beta')
+    self.assertItemsEqual(['Security_Impact-Head'], mock_issue.labels.added)
+    self.assertItemsEqual(['Security_Impact-Beta'], mock_issue.labels.removed)
 
   def test_replace_same_impact(self):
     """Tests replacing same impact."""
     self.testcase.is_impact_set_flag = True
 
     mock_issue = self._make_mock_issue()
-    mock_issue.labels = ['Security_Impact-Head']
+    mock_issue.labels.add('Security_Impact-Head')
+    mock_issue.labels.reset()
 
     data_handler.update_issue_impact_labels(self.testcase, mock_issue)
-    mock_issue.add_label.assert_not_called()
-    mock_issue.remove_label.assert_not_called()
+    self.assertItemsEqual([], mock_issue.labels.added)
+    self.assertItemsEqual([], mock_issue.labels.removed)
 
   def test_component_dont_add_label(self):
     """Test that we don't set labels for component builds."""
@@ -550,5 +569,5 @@ class UpdateImpactTest(unittest.TestCase):
     self.testcase.is_impact_set_flag = True
     mock_issue = self._make_mock_issue()
     data_handler.update_issue_impact_labels(self.testcase, mock_issue)
-    mock_issue.add_label.assert_not_called()
-    mock_issue.remove_label.assert_not_called()
+    self.assertItemsEqual([], mock_issue.labels.added)
+    self.assertItemsEqual([], mock_issue.labels.removed)

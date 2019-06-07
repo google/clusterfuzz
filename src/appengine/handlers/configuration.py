@@ -114,6 +114,8 @@ class Handler(base_handler.Handler):
     github_credentials = self.request.get('github_credentials')
     platform_group_mappings = self.request.get('platform_group_mappings')
     privileged_users = self.request.get('privileged_users')
+    relax_security_bug_restrictions = self.request.get(
+        'relax_security_bug_restrictions')
     relax_testcase_restrictions = self.request.get(
         'relax_testcase_restrictions')
     reproduction_help_url = self.request.get('reproduction_help_url')
@@ -137,6 +139,8 @@ class Handler(base_handler.Handler):
     config.github_credentials = github_credentials
     config.platform_group_mappings = platform_group_mappings
     config.privileged_users = privileged_users
+    config.relax_security_bug_restrictions = bool(
+        relax_security_bug_restrictions)
     config.relax_testcase_restrictions = bool(relax_testcase_restrictions)
     config.reproduction_help_url = reproduction_help_url
     config.revision_vars_url = revision_vars_url

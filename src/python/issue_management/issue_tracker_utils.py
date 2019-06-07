@@ -160,3 +160,13 @@ def get_similar_issues(testcase,
       issue_ids.append(issue_id)
 
   return issue_objects
+
+
+def was_label_added(issue, label):
+  """Check if a label was ever added to an issue."""
+  for action in issue.actions:
+    for added in action.labels.added:
+      if label.lower() == added.lower():
+        return True
+
+  return False

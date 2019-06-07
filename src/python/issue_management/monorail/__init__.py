@@ -18,6 +18,7 @@ standard_library.install_aliases()
 from builtins import object
 
 from issue_management import issue_tracker
+from issue_management.monorail.issue import ChangeList as ChangeList
 from issue_management.monorail.issue import Issue as MonorailIssue
 
 
@@ -26,6 +27,14 @@ class Issue(issue_tracker.Issue):
 
   def __init__(self, monorail_issue):
     self._monorail_issue = monorail_issue
+
+    # These mirror the underlying MonorailIssue data structures, to make it more
+    # opaque to the client about how issue updates are done. For instance, when
+    # a `label` is removed, what actually happens is `-label` is added. This
+    # should not be visible to the client.
+    self._ccs = issue_tracker.LabelStore(self._monorail_issue.cc)
+    self._components = issue_tracker.LabelStore(self._monorail_issue.components)
+    self._labels = issue_tracker.LabelStore(self._monorail_issue.labels)
 
   @property
   def id(self):
@@ -60,6 +69,15 @@ class Issue(issue_tracker.Issue):
     self._monorail_issue.merged_into = new_merged_into
 
   @property
+  def is_open(self):
+    """Whether the issue is open."""
+    return self._monorail_issue.open
+
+  @property
+  def closed_time(self):
+    return self._monorail_issue.closed
+
+  @property
   def status(self):
     """The issue status."""
     return self._monorail_issue.status
@@ -89,25 +107,46 @@ class Issue(issue_tracker.Issue):
   @property
   def ccs(self):
     """The issue CC list."""
-    return self._monorail_issue.cc
+    return self._ccs
 
   @property
   def labels(self):
     """The issue labels list."""
-    return self._monorail_issue.labels
+    return self._labels
 
   @property
   def components(self):
     """The issue component list."""
-    return self._monorail_issue.components
+    return self._components
 
   @property
   def actions(self):
     """Get the issue actions."""
     return (Action(comment) for comment in self._monorail_issue.get_comments())
 
-  def save(self, notify=True):
+  def save(self, new_comment=None, notify=True):
     """Save the issue."""
+
+    # Apply actual label changes to the underlying MonorailIssue.
+    for added in self._components.added:
+      self._monorail_issue.add_component(added)
+    for removed in self._components.removed:
+      self._monorail_issue.remove_component(removed)
+    self._components.reset()
+
+    for added in self._ccs.added:
+      self._monorail_issue.add_cc(added)
+    for removed in self._ccs.removed:
+      self._monorail_issue.remove_cc(removed)
+    self._ccs.reset()
+
+    for added in self._labels.added:
+      self._monorail_issue.add_label(added)
+    for removed in self._labels.removed:
+      self._monorail_issue.remove_label(removed)
+    self._labels.reset()
+
+    self._monorail_issue.comment = new_comment
     self._monorail_issue.save(send_email=notify)
 
 
@@ -174,11 +213,15 @@ class IssueTracker(issue_tracker.IssueTracker):
     return Issue(monorail_issue)
 
   def get_issue(self, issue_id):
-    monorail_issue = self._itm.get_issue(issue_id)
+    monorail_issue = self._itm.get_issue(int(issue_id))
     if not monorail_issue:
       return None
 
     return Issue(monorail_issue)
+
+  def get_original_issue(self, issue_id):
+    """Retrieve the original issue object traversing the list of duplicates."""
+    return Issue(self._itm.get_original_issue(int(issue_id)))
 
 
 def _to_change_list(monorail_list):

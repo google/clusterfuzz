@@ -771,7 +771,10 @@ def create_data_bundle_bucket_and_iams(data_bundle_name, emails):
 
 def get_data_bundle_bucket_name(data_bundle_name):
   """Return data bundle bucket name on GCS."""
-  domain = '%s.appspot.com' % utils.get_application_id()
+  domain = local_config.ProjectConfig().get('bucket_domain_suffix')
+  if not domain:
+    domain = '%s.appspot.com' % utils.get_application_id()
+
   return '%s-corpus.%s' % (data_bundle_name, domain)
 
 
@@ -1052,31 +1055,11 @@ def update_issue_impact_labels(testcase, issue):
     return
 
   if existing_impact != data_types.SecurityImpact.MISSING:
-    issue.remove_label('Security_Impact-' +
-                       label_utils.impact_to_string(existing_impact))
+    issue.labels.remove('Security_Impact-' +
+                        label_utils.impact_to_string(existing_impact))
 
-  issue.add_label('Security_Impact-' + label_utils.impact_to_string(new_impact))
-
-
-def update_issue_severity_labels(testcase, issue):
-  """Update severity labels on issue."""
-  if not data_types.SecuritySeverity.is_valid(testcase.security_severity):
-    return
-
-  issue_severity = label_utils.get_severity_from_labels(
-      [label.lower() for label in issue.labels])
-  recommended_severity = label_utils.severity_to_label(
-      testcase.security_severity)
-
-  if issue_severity == data_types.SecuritySeverity.MISSING:
-    issue.add_label(recommended_severity)
-    issue.comment += ('\n\nA recommended severity was added to this bug. '
-                      'Please change the severity if it is inaccurate.')
-  elif issue_severity != testcase.security_severity:
-    issue.comment += (
-        '\n\nThe recommended severity (%s) is different from what was assigned '
-        'to the bug. Please double check the accuracy of the assigned '
-        'severity.' % recommended_severity)
+  issue.labels.add('Security_Impact-' +
+                   label_utils.impact_to_string(new_impact))
 
 
 def get_issue_for_testcase(testcase):

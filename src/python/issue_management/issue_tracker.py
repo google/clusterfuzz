@@ -13,6 +13,69 @@
 """Issue tracker interface."""
 
 from builtins import object
+from future.utils import itervalues
+
+
+class LabelStore(object):
+  """Label storage which tracks changes. Case insensitive, but preserves
+  case."""
+
+  def __init__(self, seq=()):
+    self._backing = {}
+    self._added = {}
+    self._removed = {}
+
+    for item in seq:
+      self._backing[item.lower()] = item
+
+  def __iter__(self):
+    for value in itervalues(self._backing):
+      yield value
+
+  def __contains__(self, item):
+    return item.lower() in self._backing
+
+  @property
+  def added(self):
+    return itervalues(self._added)
+
+  @property
+  def removed(self):
+    return itervalues(self._removed)
+
+  def add(self, label):
+    """Add a new label."""
+    key = label.lower()
+    if key in self._removed:
+      del self._removed[key]
+    else:
+      self._added[key] = label
+
+    self._backing[key] = label
+
+  def remove(self, label):
+    """Remove a label."""
+    key = label.lower()
+    if key not in self._backing:
+      return
+
+    if key in self._added:
+      del self._added[key]
+    else:
+      self._removed[key] = label
+
+    del self._backing[key]
+
+  def reset(self):
+    """Reset tracking."""
+    self._added.clear()
+    self._removed.clear()
+
+  def remove_by_prefix(self, prefix):
+    """Remove labels with a given prefix."""
+    for item in list(self):
+      if item.lower().startswith(prefix.lower()):
+        self.remove(item)
 
 
 class Issue(object):
@@ -48,6 +111,16 @@ class Issue(object):
 
   @merged_into.setter
   def merged_into(self, new_merged_into):
+    raise NotImplementedError
+
+  @property
+  def closed_time(self):
+    """When the issue was closed."""
+    raise NotImplementedError
+
+  @property
+  def is_open(self):
+    """Whether the issue is open."""
     raise NotImplementedError
 
   @property
@@ -97,7 +170,7 @@ class Issue(object):
     """Get the issue actions."""
     raise NotImplementedError
 
-  def save(self, notify=True):
+  def save(self, new_comment=None, notify=True):
     """Save the issue."""
     raise NotImplementedError
 
@@ -167,4 +240,10 @@ class IssueTracker(object):
     raise NotImplementedError
 
   def get_issue(self, issue_id):
+    """Get the issue with the given ID."""
+    raise NotImplementedError
+
+  def get_original_issue(self, issue_id):
+    """Retrieve the original issue object traversing the list of duplicates."""
+    # TODO(ochang): Use implementation from monorail for all issue trackers.
     raise NotImplementedError
