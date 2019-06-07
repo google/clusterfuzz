@@ -106,7 +106,7 @@ def cleanup_testcases_and_issues():
       # Already deleted.
       continue
 
-    issue = get_issue_for_testcase(testcase)
+    issue = issue_tracker_utils.get_issue_for_testcase(testcase)
 
     # Issue updates.
     update_os_labels(testcase, issue)
@@ -115,6 +115,7 @@ def cleanup_testcases_and_issues():
     update_component_labels(testcase, issue)
     update_issue_ccs_from_owners_file(testcase, issue)
     update_issue_owner_and_ccs_from_predator_results(testcase, issue)
+    update_issue_labels_for_flaky_testcase(testcase, issue)
 
     # Testcase marking rules.
     mark_duplicate_testcase_as_closed_with_no_issue(testcase)
@@ -334,27 +335,6 @@ def delete_unreproducible_testcase_with_no_issue(testcase):
       'Deleted unreproducible testcase %d with no issue.' % testcase.key.id())
 
 
-def get_issue_for_testcase(testcase):
-  """Return issue object associated with testcase."""
-  if not testcase.bug_information:
-    return None
-
-  issue_tracker = issue_tracker_utils.get_issue_tracker_for_testcase(
-      testcase, use_cache=True)
-  if not issue_tracker:
-    return None
-
-  try:
-    issue_id = testcase.bug_information
-    issue = issue_tracker.get_original_issue(issue_id)
-  except:
-    logs.log_error(
-        'Error occurred when fetching issue %s.' % testcase.bug_information)
-    return None
-
-  return issue
-
-
 def mark_duplicate_testcase_as_closed_with_no_issue(testcase):
   """Closes a duplicate testcase if it has no associated issue and has been open
   for a certain time interval."""
@@ -562,7 +542,7 @@ def mark_testcase_as_triaged_if_needed(testcase, issue):
   # Check if there is an associated bug in open state. If yes, bail out.
   if issue:
     # Get latest issue object to ensure our update went through.
-    issue = get_issue_for_testcase(testcase)
+    issue = issue_tracker_utils.get_issue_for_testcase(testcase)
     if issue.is_open:
       return
 
@@ -971,6 +951,27 @@ def update_issue_ccs_from_owners_file(testcase, issue):
   issue.save(new_comment=issue_comment, notify=True)
 
 
+def update_issue_labels_for_flaky_testcase(testcase, issue):
+  """Update issue reproducibility label when testcase becomes flaky or
+  unreproducible."""
+  if not issue or not issue.is_open:
+    return
+
+  # If the testcase is reproducible, then no change is needed. Bail out.
+  if not testcase.one_time_crasher_flag:
+    return
+
+  # Make sure that this issue is not already marked Unreproducible.
+  if 'Unreproducible' in issue.labels:
+    return
+
+  issue.labels.remove('Reproducible')
+  issue.labels.add('Unreproducible')
+  comment = ('ClusterFuzz testcase %d appears to be flaky, '
+             'updating reproducibility label.' % testcase.key.id())
+  issue.save(new_comment=comment)
+
+
 def update_issue_owner_and_ccs_from_predator_results(testcase,
                                                      issue,
                                                      only_allow_ccs=False):
@@ -1087,7 +1088,7 @@ def update_issue_owner_and_ccs_from_predator_results(testcase,
 
     # Retry without setting the owner. They may not be a chromium project
     # member, in which case we can try falling back to cc.
-    issue = get_issue_for_testcase(testcase)
+    issue = issue_tracker_utils.get_issue_for_testcase(testcase)
     update_issue_owner_and_ccs_from_predator_results(
         testcase, issue, only_allow_ccs=True)
 
