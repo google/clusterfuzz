@@ -1,0 +1,770 @@
+[
+  {
+    "edges_bandit": "0.008620604590128514",
+    "crash_bandit": "0.005401759948967822",
+    "features_bandit": "0.008441041929069608",
+    "units_bandit": "1.6054186548719165E-4",
+    "strategy": "ml rnn,fork,",
+    "strategy_count": "140998"
+  },
+  {
+    "edges_bandit": "0.008052209440792676",
+    "crash_bandit": "0.00508461421137507",
+    "features_bandit": "0.0070940014790407515",
+    "units_bandit": "2.179360714030193E-4",
+    "strategy": "ml rnn,fork,subset,",
+    "strategy_count": "139527"
+  },
+  {
+    "edges_bandit": "0.009429790121288056",
+    "crash_bandit": "0.013629967668773052",
+    "features_bandit": "0.009797139022790304",
+    "units_bandit": "1.1780805657304095E-4",
+    "strategy": "fork,",
+    "strategy_count": "395519"
+  },
+  {
+    "edges_bandit": "0.008052209440792676",
+    "crash_bandit": "0.013390101904654419",
+    "features_bandit": "0.0070940014790407515",
+    "units_bandit": "1.4214762241549956E-4",
+    "strategy": "fork,subset,",
+    "strategy_count": "388228"
+  },
+  {
+    "edges_bandit": "0.008624975748227967",
+    "crash_bandit": "0.005349536881076589",
+    "features_bandit": "0.008477900853154217",
+    "units_bandit": "3.582432187312242E-4",
+    "strategy": "ml rnn,value profile,fork,",
+    "strategy_count": "69153"
+  },
+  {
+    "edges_bandit": "0.008052209440792676",
+    "crash_bandit": "0.00504012424038313",
+    "features_bandit": "0.0070940014790407515",
+    "units_bandit": "7.768414040007017E-4",
+    "strategy": "ml rnn,value profile,fork,subset,",
+    "strategy_count": "68643"
+  },
+  {
+    "edges_bandit": "0.00929184611818345",
+    "crash_bandit": "0.013634518667581929",
+    "features_bandit": "0.010289283169198391",
+    "units_bandit": "1.6190411797764294E-4",
+    "strategy": "value profile,fork,",
+    "strategy_count": "194704"
+  },
+  {
+    "edges_bandit": "0.008052209440792676",
+    "crash_bandit": "0.012662920242520382",
+    "features_bandit": "0.0070940014790407515",
+    "units_bandit": "3.2750727508925237E-4",
+    "strategy": "value profile,fork,subset,",
+    "strategy_count": "190868"
+  },
+  {
+    "edges_bandit": "0.014585242846490536",
+    "crash_bandit": "0.007787557571126296",
+    "features_bandit": "0.021362063288022558",
+    "units_bandit": "0.0012566551496565185",
+    "strategy": "ml rnn,value profile,",
+    "strategy_count": "69012"
+  },
+  {
+    "edges_bandit": "0.013556654404665473",
+    "crash_bandit": "0.027435385356236835",
+    "features_bandit": "0.0165284714486696",
+    "units_bandit": "0.006049548183516761",
+    "strategy": "radamsa,value profile,",
+    "strategy_count": "6997"
+  },
+  {
+    "edges_bandit": "0.008052209440792676",
+    "crash_bandit": "0.005431121591836573",
+    "features_bandit": "0.0070940014790407515",
+    "units_bandit": "0.007574568518735129",
+    "strategy": "ml rnn,value profile,subset,",
+    "strategy_count": "68115"
+  },
+  {
+    "edges_bandit": "0.008052209440792676",
+    "crash_bandit": "0.02117630278229914",
+    "features_bandit": "0.0070940014790407515",
+    "units_bandit": "0.01880298284672804",
+    "strategy": "radamsa,value profile,subset,",
+    "strategy_count": "6868"
+  },
+  {
+    "edges_bandit": "0.014508611004065815",
+    "crash_bandit": "0.018518747179593655",
+    "features_bandit": "0.01820223795687363",
+    "units_bandit": "5.385390124118856E-4",
+    "strategy": "value profile,",
+    "strategy_count": "210531"
+  },
+  {
+    "edges_bandit": "0.008052209440792676",
+    "crash_bandit": "0.01587882817063011",
+    "features_bandit": "0.0070940014790407515",
+    "units_bandit": "0.0038452498360452407",
+    "strategy": "value profile,subset,",
+    "strategy_count": "205045"
+  },
+  {
+    "edges_bandit": "0.01640727194738801",
+    "crash_bandit": "0.007445189997893752",
+    "features_bandit": "0.017873366208580446",
+    "units_bandit": "2.8244694679556746E-4",
+    "strategy": "ml rnn,",
+    "strategy_count": "140827"
+  },
+  {
+    "edges_bandit": "0.008052209440792676",
+    "crash_bandit": "0.005523428674451486",
+    "features_bandit": "0.0070940014790407515",
+    "units_bandit": "3.9336921304520075E-4",
+    "strategy": "ml rnn,subset,",
+    "strategy_count": "139091"
+  },
+  {
+    "edges_bandit": "0.015483488780082051",
+    "crash_bandit": "0.027677104763544264",
+    "features_bandit": "0.015430044447367819",
+    "units_bandit": "6.125678473287526E-4",
+    "strategy": "radamsa,",
+    "strategy_count": "14347"
+  },
+  {
+    "edges_bandit": "0.008052209440792676",
+    "crash_bandit": "0.016031046329392784",
+    "features_bandit": "0.0070940014790407515",
+    "units_bandit": "2.8153119649114785E-4",
+    "strategy": "subset,",
+    "strategy_count": "417298"
+  },
+  {
+    "edges_bandit": "0.014965427075059413",
+    "crash_bandit": "0.01817395983686062",
+    "features_bandit": "0.014075356915036792",
+    "units_bandit": "2.7757187898215264E-4",
+    "strategy": "",
+    "strategy_count": "427282"
+  },
+  {
+    "edges_bandit": "0.009547896123289363",
+    "crash_bandit": "0.017269638936925544",
+    "features_bandit": "0.01086610293653148",
+    "units_bandit": "2.363313557630921E-4",
+    "strategy": "max len,value profile,fork,",
+    "strategy_count": "20334"
+  },
+  {
+    "edges_bandit": "0.010435529058200513",
+    "crash_bandit": "0.01743755154966905",
+    "features_bandit": "0.010793005669662055",
+    "units_bandit": "1.3751526215193753E-4",
+    "strategy": "max len,fork,",
+    "strategy_count": "41510"
+  },
+  {
+    "edges_bandit": "0.008052209440792676",
+    "crash_bandit": "0.02376389386670939",
+    "features_bandit": "0.0070940014790407515",
+    "units_bandit": "0.00629008356761185",
+    "strategy": "radamsa,max len,value profile,fork,subset,",
+    "strategy_count": "686"
+  },
+  {
+    "edges_bandit": "0.02001889102867897",
+    "crash_bandit": "0.02283811075631026",
+    "features_bandit": "0.01677827487798926",
+    "units_bandit": "0.0010462160427941027",
+    "strategy": "max len,",
+    "strategy_count": "45579"
+  },
+  {
+    "edges_bandit": "0.020412758048987862",
+    "crash_bandit": "0.024251237055801084",
+    "features_bandit": "0.02751154499516806",
+    "units_bandit": "0.00461815772714747",
+    "strategy": "max len,value profile,",
+    "strategy_count": "22248"
+  },
+  {
+    "edges_bandit": "0.008052209440792676",
+    "crash_bandit": "0.014857874943465207",
+    "features_bandit": "0.0070940014790407515",
+    "units_bandit": "0.004104033787833331",
+    "strategy": "radamsa,value profile,fork,subset,",
+    "strategy_count": "6069"
+  },
+  {
+    "edges_bandit": "0.008052209440792676",
+    "crash_bandit": "0.022002845582801765",
+    "features_bandit": "0.0070940014790407515",
+    "units_bandit": "4.710013244679254E-4",
+    "strategy": "max len,subset,",
+    "strategy_count": "44660"
+  },
+  {
+    "edges_bandit": "0.008052209440792676",
+    "crash_bandit": "0.004161555997701479",
+    "features_bandit": "0.0070940014790407515",
+    "units_bandit": "1.3901626936721562E-4",
+    "strategy": "max len,fork,subset,dict,",
+    "strategy_count": "3535"
+  },
+  {
+    "edges_bandit": "0.008052209440792676",
+    "crash_bandit": "0.01696126066829083",
+    "features_bandit": "0.0070940014790407515",
+    "units_bandit": "1.568536349315991E-4",
+    "strategy": "max len,fork,subset,",
+    "strategy_count": "40224"
+  },
+  {
+    "edges_bandit": "0.009216020392132733",
+    "crash_bandit": "0.013888617864154284",
+    "features_bandit": "0.009918916146735325",
+    "units_bandit": "2.88458934506899E-4",
+    "strategy": "radamsa,fork,",
+    "strategy_count": "12857"
+  },
+  {
+    "edges_bandit": "0.00819020565407105",
+    "crash_bandit": "0.004426452851224809",
+    "features_bandit": "0.007721384389262269",
+    "units_bandit": "1.862292293006576E-4",
+    "strategy": "max len,value profile,fork,dict,",
+    "strategy_count": "1757"
+  },
+  {
+    "edges_bandit": "0.008052209440792676",
+    "crash_bandit": "0.0040382162854886525",
+    "features_bandit": "0.0070940014790407515",
+    "units_bandit": "3.25353494718825E-4",
+    "strategy": "value profile,fork,subset,dict,",
+    "strategy_count": "16369"
+  },
+  {
+    "edges_bandit": "0.015107715767907532",
+    "crash_bandit": "0.004778581855683559",
+    "features_bandit": "0.01716449585405124",
+    "units_bandit": "6.420475339995312E-4",
+    "strategy": "value profile,dict,",
+    "strategy_count": "17497"
+  },
+  {
+    "edges_bandit": "0.0081426190530324",
+    "crash_bandit": "0.0035908195829694994",
+    "features_bandit": "0.007630184214171477",
+    "units_bandit": "1.690648547912233E-4",
+    "strategy": "ml rnn,fork,dict,",
+    "strategy_count": "12050"
+  },
+  {
+    "edges_bandit": "0.008052209440792676",
+    "crash_bandit": "0.003555482113054185",
+    "features_bandit": "0.0070940014790407515",
+    "units_bandit": "2.3821982375034237E-4",
+    "strategy": "ml rnn,fork,subset,dict,",
+    "strategy_count": "12277"
+  },
+  {
+    "edges_bandit": "0.008402149940549157",
+    "crash_bandit": "0.005856393717491658",
+    "features_bandit": "0.007965450124984187",
+    "units_bandit": "1.7745265493260528E-4",
+    "strategy": "max len,ml rnn,fork,",
+    "strategy_count": "13487"
+  },
+  {
+    "edges_bandit": "0.008052209440792676",
+    "crash_bandit": "0.00554236643415006",
+    "features_bandit": "0.0070940014790407515",
+    "units_bandit": "2.2824172821497146E-4",
+    "strategy": "max len,ml rnn,fork,subset,",
+    "strategy_count": "13260"
+  },
+  {
+    "edges_bandit": "0.008052209440792676",
+    "crash_bandit": "0.004213295248843849",
+    "features_bandit": "0.0070940014790407515",
+    "units_bandit": "0.014109667032020172",
+    "strategy": "ml rnn,value profile,subset,dict,",
+    "strategy_count": "6110"
+  },
+  {
+    "edges_bandit": "0.008052209440792676",
+    "crash_bandit": "0.00597133405877887",
+    "features_bandit": "0.0070940014790407515",
+    "units_bandit": "0.053976557022606314",
+    "strategy": "radamsa,value profile,subset,dict,",
+    "strategy_count": "571"
+  },
+  {
+    "edges_bandit": "0.01653380250955639",
+    "crash_bandit": "0.0044261327896543586",
+    "features_bandit": "0.014744263919955265",
+    "units_bandit": "3.150485032719868E-4",
+    "strategy": "ml rnn,dict,",
+    "strategy_count": "12339"
+  },
+  {
+    "edges_bandit": "0.008255725272774515",
+    "crash_bandit": "0.00394133925740631",
+    "features_bandit": "0.007692418476365236",
+    "units_bandit": "1.1662888909460247E-4",
+    "strategy": "fork,dict,",
+    "strategy_count": "33591"
+  },
+  {
+    "edges_bandit": "0.008052209440792676",
+    "crash_bandit": "0.004123988870178084",
+    "features_bandit": "0.0070940014790407515",
+    "units_bandit": "1.3631813481164673E-4",
+    "strategy": "fork,subset,dict,",
+    "strategy_count": "33432"
+  },
+  {
+    "edges_bandit": "0.008052209440792676",
+    "crash_bandit": "0.018531101966452915",
+    "features_bandit": "0.0070940014790407515",
+    "units_bandit": "5.109509390620285E-4",
+    "strategy": "max len,value profile,fork,subset,",
+    "strategy_count": "19982"
+  },
+  {
+    "edges_bandit": "0.014463832099360942",
+    "crash_bandit": "0.005399509265698998",
+    "features_bandit": "0.020166951536481337",
+    "units_bandit": "0.005969091540337803",
+    "strategy": "max len,value profile,dict,",
+    "strategy_count": "1989"
+  },
+  {
+    "edges_bandit": "0.008052209440792676",
+    "crash_bandit": "0.004614023677643605",
+    "features_bandit": "0.0070940014790407515",
+    "units_bandit": "3.070287523188221E-4",
+    "strategy": "subset,dict,",
+    "strategy_count": "35661"
+  },
+  {
+    "edges_bandit": "0.008052209440792676",
+    "crash_bandit": "0.0034915230156634027",
+    "features_bandit": "0.0070940014790407515",
+    "units_bandit": "0.0010141333435053001",
+    "strategy": "ml rnn,value profile,fork,subset,dict,",
+    "strategy_count": "6021"
+  },
+  {
+    "edges_bandit": "0.008347951260257567",
+    "crash_bandit": "0.004047295350125779",
+    "features_bandit": "0.00784208012091418",
+    "units_bandit": "1.644280004993567E-4",
+    "strategy": "value profile,fork,dict,",
+    "strategy_count": "16698"
+  },
+  {
+    "edges_bandit": "0.008052209440792676",
+    "crash_bandit": "0.024928083941126188",
+    "features_bandit": "0.0070940014790407515",
+    "units_bandit": "7.153516557080513E-4",
+    "strategy": "radamsa,subset,",
+    "strategy_count": "14198"
+  },
+  {
+    "edges_bandit": "0.013550122348987106",
+    "crash_bandit": "0.034486976112406593",
+    "features_bandit": "0.013637039494516702",
+    "units_bandit": "0.0015057473482254916",
+    "strategy": "radamsa,max len,",
+    "strategy_count": "1683"
+  },
+  {
+    "edges_bandit": "0.008052209440792676",
+    "crash_bandit": "0.004179514846707518",
+    "features_bandit": "0.0070940014790407515",
+    "units_bandit": "4.575964267315729E-4",
+    "strategy": "ml rnn,subset,dict,",
+    "strategy_count": "12229"
+  },
+  {
+    "edges_bandit": "0.008052209440792676",
+    "crash_bandit": "0.00468058144446318",
+    "features_bandit": "0.0070940014790407515",
+    "units_bandit": "9.783020057023317E-4",
+    "strategy": "max len,ml rnn,value profile,fork,subset,",
+    "strategy_count": "6521"
+  },
+  {
+    "edges_bandit": "0.01579367136658421",
+    "crash_bandit": "0.004839457086712155",
+    "features_bandit": "0.021262586376070976",
+    "units_bandit": "0.0022175100028571045",
+    "strategy": "ml rnn,value profile,dict,",
+    "strategy_count": "6051"
+  },
+  {
+    "edges_bandit": "0.008052209440792676",
+    "crash_bandit": "0.015878008910583857",
+    "features_bandit": "0.0070940014790407515",
+    "units_bandit": "4.522152625083381E-4",
+    "strategy": "radamsa,fork,subset,",
+    "strategy_count": "12845"
+  },
+  {
+    "edges_bandit": "0.008052209440792676",
+    "crash_bandit": "0.003313608359318372",
+    "features_bandit": "0.0070940014790407515",
+    "units_bandit": "0.0012238212570624268",
+    "strategy": "max len,ml rnn,value profile,fork,subset,dict,",
+    "strategy_count": "553"
+  },
+  {
+    "edges_bandit": "0.008052209440792676",
+    "crash_bandit": "0.03011525688044801",
+    "features_bandit": "0.0070940014790407515",
+    "units_bandit": "4.964762225676649E-4",
+    "strategy": "radamsa,max len,fork,subset,",
+    "strategy_count": "1527"
+  },
+  {
+    "edges_bandit": "0.015390582712608398",
+    "crash_bandit": "0.005055945134507017",
+    "features_bandit": "0.012745947658379548",
+    "units_bandit": "3.08388349604462E-4",
+    "strategy": "dict,",
+    "strategy_count": "35911"
+  },
+  {
+    "edges_bandit": "0.008052209440792676",
+    "crash_bandit": "0.007111311641720234",
+    "features_bandit": "0.0070940014790407515",
+    "units_bandit": "0.026010646636699653",
+    "strategy": "radamsa,max len,value profile,fork,subset,dict,",
+    "strategy_count": "78"
+  },
+  {
+    "edges_bandit": "0.008052209440792676",
+    "crash_bandit": "0.004966663920266025",
+    "features_bandit": "0.0070940014790407515",
+    "units_bandit": "0.03935029665691083",
+    "strategy": "max len,ml rnn,value profile,subset,",
+    "strategy_count": "6568"
+  },
+  {
+    "edges_bandit": "0.009436145577685972",
+    "crash_bandit": "0.021269748599529643",
+    "features_bandit": "0.011116436329221734",
+    "units_bandit": "0.002830599283551995",
+    "strategy": "radamsa,max len,value profile,fork,",
+    "strategy_count": "732"
+  },
+  {
+    "edges_bandit": "0.008328651111485416",
+    "crash_bandit": "0.005514712808355043",
+    "features_bandit": "0.007882616857306807",
+    "units_bandit": "4.8775858709195293E-4",
+    "strategy": "max len,ml rnn,value profile,fork,",
+    "strategy_count": "6531"
+  },
+  {
+    "edges_bandit": "0.03628073616642101",
+    "crash_bandit": "0.00658042063759503",
+    "features_bandit": "0.028640367611684744",
+    "units_bandit": "6.585820026003455E-4",
+    "strategy": "max len,ml rnn,",
+    "strategy_count": "13270"
+  },
+  {
+    "edges_bandit": "0.02976095160625258",
+    "crash_bandit": "0.006689541545483617",
+    "features_bandit": "0.041276675837254764",
+    "units_bandit": "0.008893280656639331",
+    "strategy": "max len,ml rnn,value profile,",
+    "strategy_count": "6598"
+  },
+  {
+    "edges_bandit": "0.008052209440792676",
+    "crash_bandit": "0.004323400503744247",
+    "features_bandit": "0.0070940014790407515",
+    "units_bandit": "0.006207050744159947",
+    "strategy": "value profile,subset,dict,",
+    "strategy_count": "17366"
+  },
+  {
+    "edges_bandit": "0.008052209440792676",
+    "crash_bandit": "0.020269584767403308",
+    "features_bandit": "0.0070940014790407515",
+    "units_bandit": "0.025741163690257557",
+    "strategy": "max len,value profile,subset,",
+    "strategy_count": "21782"
+  },
+  {
+    "edges_bandit": "0.008161641450469794",
+    "crash_bandit": "0.0036041539310359373",
+    "features_bandit": "0.0075419624415048485",
+    "units_bandit": "4.2031077028551985E-4",
+    "strategy": "ml rnn,value profile,fork,dict,",
+    "strategy_count": "5817"
+  },
+  {
+    "edges_bandit": "0.00943435132933598",
+    "crash_bandit": "0.013081720648036326",
+    "features_bandit": "0.01098016160527584",
+    "units_bandit": "0.001875243251335081",
+    "strategy": "radamsa,value profile,fork,",
+    "strategy_count": "6415"
+  },
+  {
+    "edges_bandit": "0.010398587127326744",
+    "crash_bandit": "0.02259934376220935",
+    "features_bandit": "0.013296011049722715",
+    "units_bandit": "3.794022895425376E-4",
+    "strategy": "radamsa,max len,fork,",
+    "strategy_count": "1440"
+  },
+  {
+    "edges_bandit": "0.008052209440792676",
+    "crash_bandit": "0.005127004744436989",
+    "features_bandit": "0.0070940014790407515",
+    "units_bandit": "5.933081618887568E-4",
+    "strategy": "max len,ml rnn,subset,",
+    "strategy_count": "13192"
+  },
+  {
+    "edges_bandit": "0.014842200036743192",
+    "crash_bandit": "0.004784838373215298",
+    "features_bandit": "0.012998191897075276",
+    "units_bandit": "6.45244774685027E-4",
+    "strategy": "max len,dict,",
+    "strategy_count": "3729"
+  },
+  {
+    "edges_bandit": "0.008052209440792676",
+    "crash_bandit": "0.0049222503785512845",
+    "features_bandit": "0.0070940014790407515",
+    "units_bandit": "3.8327714685554537E-4",
+    "strategy": "max len,value profile,fork,subset,dict,",
+    "strategy_count": "1698"
+  },
+  {
+    "edges_bandit": "0.00824763585658896",
+    "crash_bandit": "0.0035639382028939807",
+    "features_bandit": "0.008069999467147837",
+    "units_bandit": "1.696190809221669E-4",
+    "strategy": "max len,ml rnn,fork,dict,",
+    "strategy_count": "1292"
+  },
+  {
+    "edges_bandit": "0.008398270394457093",
+    "crash_bandit": "0.00433450858317153",
+    "features_bandit": "0.007681166175632504",
+    "units_bandit": "3.014500034874398E-4",
+    "strategy": "radamsa,fork,dict,",
+    "strategy_count": "1077"
+  },
+  {
+    "edges_bandit": "0.008052209440792676",
+    "crash_bandit": "0.037657550254880136",
+    "features_bandit": "0.0070940014790407515",
+    "units_bandit": "9.954650157824568E-4",
+    "strategy": "radamsa,max len,subset,",
+    "strategy_count": "1763"
+  },
+  {
+    "edges_bandit": "0.01409139381418093",
+    "crash_bandit": "0.006444676733854661",
+    "features_bandit": "0.012107584533967599",
+    "units_bandit": "7.665384939982566E-4",
+    "strategy": "radamsa,dict,",
+    "strategy_count": "1107"
+  },
+  {
+    "edges_bandit": "0.008052209440792676",
+    "crash_bandit": "0.0047466592075499185",
+    "features_bandit": "0.0070940014790407515",
+    "units_bandit": "4.4979709010026453E-4",
+    "strategy": "max len,subset,dict,",
+    "strategy_count": "3715"
+  },
+  {
+    "edges_bandit": "0.01854100900807415",
+    "crash_bandit": "0.004210231869021628",
+    "features_bandit": "0.017982887005885493",
+    "units_bandit": "5.719582564713206E-4",
+    "strategy": "max len,ml rnn,dict,",
+    "strategy_count": "1190"
+  },
+  {
+    "edges_bandit": "0.008052209440792676",
+    "crash_bandit": "0.003474927953134168",
+    "features_bandit": "0.0070940014790407515",
+    "units_bandit": "2.2211354452447124E-4",
+    "strategy": "max len,ml rnn,fork,subset,dict,",
+    "strategy_count": "1197"
+  },
+  {
+    "edges_bandit": "0.008052209440792676",
+    "crash_bandit": "0.0044629682977111226",
+    "features_bandit": "0.0070940014790407515",
+    "units_bandit": "4.764436194830211E-4",
+    "strategy": "radamsa,fork,subset,dict,",
+    "strategy_count": "1052"
+  },
+  {
+    "edges_bandit": "0.008052209440792676",
+    "crash_bandit": "0.0037181833743658017",
+    "features_bandit": "0.0070940014790407515",
+    "units_bandit": "7.646307575441385E-4",
+    "strategy": "max len,ml rnn,subset,dict,",
+    "strategy_count": "1180"
+  },
+  {
+    "edges_bandit": "0.008052209440792676",
+    "crash_bandit": "0.00403799054335824",
+    "features_bandit": "0.0070940014790407515",
+    "units_bandit": "0.005436633312940215",
+    "strategy": "radamsa,value profile,fork,subset,dict,",
+    "strategy_count": "516"
+  },
+  {
+    "edges_bandit": "0.013821461223864072",
+    "crash_bandit": "0.025545174497262024",
+    "features_bandit": "0.019822329276221393",
+    "units_bandit": "0.021095315618721237",
+    "strategy": "radamsa,max len,value profile,",
+    "strategy_count": "790"
+  },
+  {
+    "edges_bandit": "0.008052209440792676",
+    "crash_bandit": "0.006260794730999512",
+    "features_bandit": "0.0070940014790407515",
+    "units_bandit": "0.0010199958318872183",
+    "strategy": "radamsa,subset,dict,",
+    "strategy_count": "1190"
+  },
+  {
+    "edges_bandit": "0.00849903474296925",
+    "crash_bandit": "0.005613501420665306",
+    "features_bandit": "0.00783748598142591",
+    "units_bandit": "3.383636016965176E-4",
+    "strategy": "radamsa,max len,fork,dict,",
+    "strategy_count": "129"
+  },
+  {
+    "edges_bandit": "0.008052209440792676",
+    "crash_bandit": "0.005964705513865155",
+    "features_bandit": "0.0070940014790407515",
+    "units_bandit": "0.05533960206755523",
+    "strategy": "max len,value profile,subset,dict,",
+    "strategy_count": "1906"
+  },
+  {
+    "edges_bandit": "0.008154821470307529",
+    "crash_bandit": "0.003897944087854739",
+    "features_bandit": "0.007798767881925192",
+    "units_bandit": "5.518856313588659E-4",
+    "strategy": "max len,ml rnn,value profile,fork,dict,",
+    "strategy_count": "617"
+  },
+  {
+    "edges_bandit": "0.008052209440792676",
+    "crash_bandit": "0.037272970370125405",
+    "features_bandit": "0.0070940014790407515",
+    "units_bandit": "0.07247820423630556",
+    "strategy": "radamsa,max len,value profile,subset,",
+    "strategy_count": "813"
+  },
+  {
+    "edges_bandit": "0.008052209440792676",
+    "crash_bandit": "0.008337022789131041",
+    "features_bandit": "0.0070940014790407515",
+    "units_bandit": "0.35462180133406335",
+    "strategy": "radamsa,max len,value profile,subset,dict,",
+    "strategy_count": "67"
+  },
+  {
+    "edges_bandit": "0.013016956034523462",
+    "crash_bandit": "0.012437956537479087",
+    "features_bandit": "0.01096568361303102",
+    "units_bandit": "6.841000181475263E-4",
+    "strategy": "radamsa,max len,dict,",
+    "strategy_count": "136"
+  },
+  {
+    "edges_bandit": "0.008265785424005448",
+    "crash_bandit": "0.004308734486070187",
+    "features_bandit": "0.007877276128058405",
+    "units_bandit": "1.2987964168708244E-4",
+    "strategy": "max len,fork,dict,",
+    "strategy_count": "3555"
+  },
+  {
+    "edges_bandit": "0.008052209440792676",
+    "crash_bandit": "0.0043251693949370945",
+    "features_bandit": "0.0070940014790407515",
+    "units_bandit": "0.15378376756062126",
+    "strategy": "max len,ml rnn,value profile,subset,dict,",
+    "strategy_count": "561"
+  },
+  {
+    "edges_bandit": "0.01566768979915898",
+    "crash_bandit": "0.003622645491276679",
+    "features_bandit": "0.023244576834285553",
+    "units_bandit": "0.01227583669324148",
+    "strategy": "max len,ml rnn,value profile,dict,",
+    "strategy_count": "578"
+  },
+  {
+    "edges_bandit": "0.013604928842999043",
+    "crash_bandit": "0.007921532996436298",
+    "features_bandit": "0.01597886981170776",
+    "units_bandit": "0.013743139106133742",
+    "strategy": "radamsa,value profile,dict,",
+    "strategy_count": "579"
+  },
+  {
+    "edges_bandit": "0.008052209440792676",
+    "crash_bandit": "0.0064797247203380245",
+    "features_bandit": "0.0070940014790407515",
+    "units_bandit": "0.001246712728702974",
+    "strategy": "radamsa,max len,subset,dict,",
+    "strategy_count": "151"
+  },
+  {
+    "edges_bandit": "0.01255621109162393",
+    "crash_bandit": "0.005066681732959919",
+    "features_bandit": "0.013351821520578445",
+    "units_bandit": "0.033979780772320035",
+    "strategy": "radamsa,max len,value profile,dict,",
+    "strategy_count": "90"
+  },
+  {
+    "edges_bandit": "0.008321301311196279",
+    "crash_bandit": "0.004490028556699446",
+    "features_bandit": "0.00857056694657357",
+    "units_bandit": "0.0023505907505993622",
+    "strategy": "radamsa,value profile,fork,dict,",
+    "strategy_count": "594"
+  },
+  {
+    "edges_bandit": "0.008380798149723735",
+    "crash_bandit": "0.005996423861158478",
+    "features_bandit": "0.009548938170554666",
+    "units_bandit": "0.0045876709331146605",
+    "strategy": "radamsa,max len,value profile,fork,dict,",
+    "strategy_count": "71"
+  },
+  {
+    "edges_bandit": "0.008052209440792676",
+    "crash_bandit": "0.004232565233409818",
+    "features_bandit": "0.0070940014790407515",
+    "units_bandit": "5.350414698931886E-4",
+    "strategy": "radamsa,max len,fork,subset,dict,",
+    "strategy_count": "126"
+  }
+]
