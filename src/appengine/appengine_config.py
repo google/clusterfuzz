@@ -35,12 +35,18 @@ IS_RUNNING_IN_PRODUCTION = (
     os.getenv('SERVER_SOFTWARE').startswith('Google App Engine/'))
 
 # Add necessary directories to path.
+config_modules_path = os.path.join('config', 'modules')
+
 if IS_RUNNING_IN_PRODUCTION or IS_RUNNING_IN_DEV_APPSERVER:
   vendor.add('third_party')
   vendor.add('python')
+  if os.path.exists(config_modules_path):
+    vendor.add(config_modules_path)
 else:
   sys.path.insert(0, 'third_party')
   sys.path.insert(0, 'python')
+  if os.path.exists(config_modules_path):
+    sys.path.insert(0, config_modules_path)
 
 # Adding the protobuf module to the google module. Otherwise, we couldn't
 # import google.protobuf because google.appengine already took the name.
