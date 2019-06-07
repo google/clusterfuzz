@@ -17,6 +17,7 @@ from datastore import data_types
 from datastore import ndb_utils
 from issue_management import monorail
 from issue_management.monorail.issue_tracker_manager import IssueTrackerManager
+from metrics import logs
 
 ISSUE_TRACKER_MANAGERS = {}
 ISSUE_TRACKER_URL = 'https://bugs.chromium.org/p/{project}/issues/detail?id='
@@ -61,6 +62,26 @@ def get_issue_tracker_for_testcase(testcase, use_cache=False):
 
   return get_issue_tracker(
       'monorail', issue_tracker_project_name, use_cache=use_cache)
+
+
+def get_issue_for_testcase(testcase):
+  """Return issue object associated with testcase."""
+  if not testcase.bug_information:
+    return None
+
+  issue_tracker = get_issue_tracker_for_testcase(testcase, use_cache=True)
+  if not issue_tracker:
+    return None
+
+  try:
+    issue_id = testcase.bug_information
+    issue = issue_tracker.get_original_issue(issue_id)
+  except:
+    logs.log_error(
+        'Error occurred when fetching issue %s.' % testcase.bug_information)
+    return None
+
+  return issue
 
 
 # TODO(ochang): Move this to monorail/. See comment on

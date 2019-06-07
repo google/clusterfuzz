@@ -1062,23 +1062,6 @@ def update_issue_impact_labels(testcase, issue):
                    label_utils.impact_to_string(new_impact))
 
 
-def get_issue_for_testcase(testcase):
-  """Return issue associated with the testcase (if any)."""
-  if not testcase.bug_information:
-    return None
-
-  issue_id = int(testcase.bug_information)
-  itm = issue_tracker_utils.get_issue_tracker_manager(testcase)
-
-  try:
-    issue = itm.get_issue(issue_id)
-  except Exception:
-    logs.log_error('Unable to query issue %d.' % issue_id)
-    return None
-
-  return issue
-
-
 # ------------------------------------------------------------------------------
 # TestcaseUploadMetadata database related functions
 # ------------------------------------------------------------------------------
@@ -1181,15 +1164,13 @@ def create_user_uploaded_testcase(key,
   # Create the job to analyze the testcase.
   tasks.add_task('analyze', testcase_id, job_type, queue)
 
-  if testcase.bug_information:
-    issue = get_issue_for_testcase(testcase)
-    if issue:
-      report_url = TESTCASE_REPORT_URL.format(
-          domain=get_domain(), testcase_id=testcase_id)
-      issue.dirty = True
-      issue.comment = ('ClusterFuzz is analyzing your testcase. '
-                       'Developers can follow the progress at %s.' % report_url)
-      issue.save()
+  issue = issue_tracker_utils.get_issue_for_testcase(testcase)
+  if issue:
+    report_url = TESTCASE_REPORT_URL.format(
+        domain=get_domain(), testcase_id=testcase_id)
+    comment = ('ClusterFuzz is analyzing your testcase. '
+               'Developers can follow the progress at %s.' % report_url)
+    issue.save(new_comment=comment)
 
   return testcase.key.id()
 
