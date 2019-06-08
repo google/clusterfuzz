@@ -23,7 +23,7 @@ from build_management import build_manager
 from build_management import revisions
 from datastore import data_handler
 from datastore import data_types
-from fuzzing import tests
+from fuzzing import testcase_manager
 from system import environment
 
 
@@ -177,9 +177,9 @@ def get_impact_on_build(build_type, current_version, testcase,
   if version == current_version:
     return Impact(current_version, likely=False)
 
-  command = tests.get_command_line_for_application(
+  command = testcase_manager.get_command_line_for_application(
       testcase_file_path, app_path=app_path, needs_http=testcase.http_flag)
-  result = tests.test_for_crash_with_retries(
+  result = testcase_manager.test_for_crash_with_retries(
       testcase,
       testcase_file_path,
       environment.get_value('TEST_TIMEOUT'),
