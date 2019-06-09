@@ -22,6 +22,7 @@ CORPUS_SUBSET_NUM_TESTCASES = [10, 20, 50, 75, 75, 100, 100, 100, 125, 125, 150]
 CORPUS_MUTATION_RADAMSA_STRATEGY = 'corpus_mutations_radamsa'
 CORPUS_MUTATION_ML_RNN_STRATEGY = 'corpus_mutations_ml_rnn'
 CORPUS_SUBSET_STRATEGY = 'corpus_subset'
+DATAFLOW_TRACING_STRATEGY = 'dataflow_tracing'
 FORK_STRATEGY = 'fork'
 MUTATOR_PLUGIN_STRATEGY = 'mutator_plugin'
 RANDOM_MAX_LENGTH_STRATEGY = 'random_max_len'

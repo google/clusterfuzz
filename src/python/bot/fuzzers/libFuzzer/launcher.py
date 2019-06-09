@@ -70,6 +70,9 @@ CORPUS_MUTATION_ML_RNN_PROBABILITY = 0.50
 # Probability of doing radamsa mutations on the corpus in this run.
 CORPUS_MUTATION_RADAMSA_PROBABILITY = 0.15
 
+# Probability of doing DFT-based fuzzing (depends on DFSan build presence).
+DATAFLOW_TRACING_PROBABILITY = 0.25
+
 # Number of radamsa mutations.
 RADAMSA_MUTATIONS = 2000
 
@@ -195,6 +198,16 @@ def do_mutator_plugin():
   return engine_common.decide_with_probability(
       engine_common.get_strategy_probability(
           strategy.MUTATOR_PLUGIN_STRATEGY, default=MUTATOR_PLUGIN_PROBABILITY))
+
+
+def do_dataflow_tracing():
+  """Return whether or now to use dataflow tracing."""
+  if environment.platform() == 'WINDOWS':
+    return False
+
+  do_dft = engine_common.decide_with_probability(
+      engine_common.get_strategy_probability(
+          strategy.DATAFLOW_TRACING_STRATEGY, default=DATAFLOW_TRACING_PROBABILITY))
 
 
 def add_recommended_dictionary(arguments, fuzzer_name, fuzzer_path):
@@ -895,7 +908,12 @@ def main(argv):
     arguments.append(constants.VALUE_PROFILE_ARGUMENT)
     fuzzing_strategies.append(strategy.VALUE_PROFILE_STRATEGY)
 
-  if do_fork():
+  use_dataflow_tracing = False
+  if do_dataflow_tracing():
+    # ...
+    use_dataflow_tracing = True
+
+  if do_fork() or use_dataflow_tracing:
     max_fuzz_threads = environment.get_value('MAX_FUZZ_THREADS', 1)
     num_fuzz_processes = max(1, multiprocessing.cpu_count() // max_fuzz_threads)
     arguments.append('%s%d' % (constants.FORK_FLAG, num_fuzz_processes))
