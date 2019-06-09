@@ -672,7 +672,7 @@ def _process_corpus_crashes(context, result):
     else:
       unit_path = crash.unit_path
 
-    with open(unit_path) as f:
+    with open(unit_path, 'rb') as f:
       key = blobs.write_blob(f)
 
     # Set the absolute_path property of the Testcase to a file in FUZZ_INPUTS
