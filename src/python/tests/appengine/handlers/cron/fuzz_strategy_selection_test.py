@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """Tests for bandit_probabilities cron job."""
+# pylint: disable=protected-access
 
 import json
 import os
@@ -29,27 +30,45 @@ DATA_DIRECTORY = os.path.join(
 @test_utils.with_cloud_emulators('datastore')
 class TestFuzzStrategySelection(unittest.TestCase):
   """Test with patch for query. Tests whether the program properly
-  stores calculated banidt weights in datastore"""
+  stores calculated banidt weights in datastore."""
 
   def setUp(self):
     """Set up method for bandit probability tests."""
     test_helpers.patch_environ(self)
-    test_helpers.patch(
-        self, ['handlers.cron.fuzz_strategy_selection._query_multi_armed_bandit_probs'])
+    test_helpers.patch(self, [
+        'handlers.cron.fuzz_strategy_selection._query_multi_armed_bandit_probs'
+    ])
     self.mock._query_multi_armed_bandit_probs.return_value = json.load(
         open(os.path.join(DATA_DIRECTORY, 'multi_armed_bandit_query.json')))
 
-  def test_bandit_probs(self):
-    """Unit tests for bandit weight updates"""
+  def test_strategy_probs(self):
+    """Unit tests for strategy weight updates."""
     fuzz_strategy_selection._upload_fuzz_strategy_weights(None)
     row1 = data_types.FuzzStrategyProbability.query(
-        data_types.FuzzStrategyProbability.strategy_name == 'ml rnn,fork,').get()
-    self.assertEqual(row1.strategy_probability, 0.008620604590128514)
+        data_types.FuzzStrategyProbability.strategy_name ==
+        'ml rnn,fork,').get()
+    self.assertEqual(row1.strategy_probability, 0.008499377133881613)
     row2 = data_types.FuzzStrategyProbability.query(
         data_types.FuzzStrategyProbability.strategy_name ==
         'ml rnn,fork,subset,').get()
-    self.assertEqual(row2.strategy_probability, 0.008052209440792676)
+    self.assertEqual(row2.strategy_probability, 0.008034989621423334)
     row3 = data_types.FuzzStrategyProbability.query(
         data_types.FuzzStrategyProbability.strategy_name ==
         'max len,ml rnn,dict,').get()
-    self.assertEqual(row3.strategy_probability, 0.01854100900807415)
+    self.assertEqual(row3.strategy_probability, 0.03471989092623837)
+
+  def test_strategy_counts(self):
+    """Unit tests for strategy count updates."""
+    fuzz_strategy_selection._upload_fuzz_strategy_weights(None)
+    row1 = data_types.FuzzStrategyProbability.query(
+        data_types.FuzzStrategyProbability.strategy_name ==
+        'ml rnn,fork,').get()
+    self.assertEqual(row1.strategy_count, 128988)
+    row2 = data_types.FuzzStrategyProbability.query(
+        data_types.FuzzStrategyProbability.strategy_name ==
+        'ml rnn,fork,subset,').get()
+    self.assertEqual(row2.strategy_count, 127312)
+    row3 = data_types.FuzzStrategyProbability.query(
+        data_types.FuzzStrategyProbability.strategy_name ==
+        'max len,ml rnn,dict,').get()
+    self.assertEqual(row3.strategy_count, 1193)

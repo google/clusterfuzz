@@ -56,6 +56,11 @@ cron:
     schedule: every day 03:00
     target: cron-service
 
+  - description: Adjust strategy selection weights based on strategy stats.
+    url: /fuzz-strategy-selection
+    schedule: every day 05:00
+    target: cron-service
+
   - description: Load BigQuery stats.
     url: /load-bigquery-stats
     schedule: every day 01:00
