@@ -202,10 +202,11 @@ def do_mutator_plugin():
 
 def do_dataflow_tracing():
   """Return whether or now to use dataflow tracing."""
-  if environment.platform() == 'WINDOWS':
+  build_bucket_path = environment.get_value('DATAFLOW_BUILD_BUCKET_PATH')
+  if not build_bucket_path:
     return False
 
-  do_dft = engine_common.decide_with_probability(
+  return engine_common.decide_with_probability(
       engine_common.get_strategy_probability(
           strategy.DATAFLOW_TRACING_STRATEGY, default=DATAFLOW_TRACING_PROBABILITY))
 
@@ -911,8 +912,15 @@ def main(argv):
   use_dataflow_tracing = False
   if do_dataflow_tracing():
     # ...
+    # check that the build is available
+    # download / unpack / whatever
+    #
+    dataflow_binary_path = ''
+    arguments.append('%s%s' % (constants.COLLECT_DATA_FLOW_FLAG, dataflow_binary_path))
+    fuzzing_strategies.append(strategy.DATAFLOW_TRACING_STRATEGY)
     use_dataflow_tracing = True
 
+  # DataFlow Tracing requires fork mode, always use it with DFT strategy.
   if do_fork() or use_dataflow_tracing:
     max_fuzz_threads = environment.get_value('MAX_FUZZ_THREADS', 1)
     num_fuzz_processes = max(1, multiprocessing.cpu_count() // max_fuzz_threads)

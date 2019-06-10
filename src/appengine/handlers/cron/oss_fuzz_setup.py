@@ -43,6 +43,7 @@ from metrics import logs
 from system import environment
 
 AFL_BUILD_BUCKET = 'clusterfuzz-builds-afl'
+DATAFLOW_BUILD_BUCKET = 'clusterfuzz-builds-dataflow'
 LIBFUZZER_BUILD_BUCKET = 'clusterfuzz-builds'
 NO_ENGINE_BUILD_BUCKET = 'clusterfuzz-builds-no-engine'
 BUCKET_PROJECT_URL = 'clusterfuzz-external.appspot.com'
@@ -160,10 +161,12 @@ DEFAULT_ENGINES = ['libfuzzer', 'afl']
 
 def _get_build_bucket(engine, architecture):
   """Return the bucket for the given |engine| and |architecture|."""
-  if engine == 'libfuzzer':
+  if engine in 'libfuzzer':
     bucket = LIBFUZZER_BUILD_BUCKET
   elif engine == 'afl':
     bucket = AFL_BUILD_BUCKET
+  elif engine in 'dataflow':
+    bucket = DATAFLOW_BUILD_BUCKET
   elif engine == 'none':
     bucket = NO_ENGINE_BUILD_BUCKET
   else:
@@ -520,6 +523,12 @@ def sync_cf_job(project, info, corpus_bucket, quarantine_bucket, logs_bucket,
     selective_unpack = info.get('selective_unpack')
     if selective_unpack:
       job.environment_string += 'UNPACK_ALL_FUZZ_TARGETS_AND_FILES = False\n'
+
+    if 'dataflow' in info.get('fuzzing_engines'):
+      dataflow_build_bucket_path = get_build_bucket_path(project, 'dataflow',
+                                                'dataflow',
+                                                template.architecture),
+      job.environment_string += 'DATAFLOW_BUILD_BUCKET_PATH = %s\n' % dataflow_build_bucket_path
 
     job.put()
 
