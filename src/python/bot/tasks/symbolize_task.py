@@ -26,7 +26,7 @@ from crash_analysis import crash_analyzer
 from crash_analysis.crash_result import CrashResult
 from datastore import data_handler
 from datastore import data_types
-from fuzzing import tests
+from fuzzing import testcase_manager
 from metrics import logs
 from system import environment
 from system import process_handler
@@ -95,7 +95,7 @@ def execute_task(testcase_id, job_type):
       environment.reset_current_memory_tool_options(testcase.redzone)
 
       process_handler.terminate_stale_application_instances()
-      command = tests.get_command_line_for_application(
+      command = testcase_manager.get_command_line_for_application(
           testcase_file_path, needs_http=testcase.http_flag)
       return_code, crash_time, output = (
           process_handler.run_process(
@@ -209,7 +209,7 @@ def get_symbolized_stacktraces(testcase_file_path, testcase,
   if app_path_debug:
     for _ in range(retry_limit):
       process_handler.terminate_stale_application_instances()
-      command = tests.get_command_line_for_application(
+      command = testcase_manager.get_command_line_for_application(
           testcase_file_path,
           app_path=app_path_debug,
           needs_http=testcase.http_flag)
@@ -238,7 +238,7 @@ def get_symbolized_stacktraces(testcase_file_path, testcase,
   if app_path:
     for _ in range(retry_limit):
       process_handler.terminate_stale_application_instances()
-      command = tests.get_command_line_for_application(
+      command = testcase_manager.get_command_line_for_application(
           testcase_file_path, app_path=app_path, needs_http=testcase.http_flag)
       return_code, crash_time, output = (
           process_handler.run_process(

@@ -1,0 +1,48 @@
+)]}'
+{
+  "commit": "3a590058de9b3640f73741b1e95f815f5c089988",
+  "tree": "1655bb9156bf48ca195281615e9ef42fdbcb0b56",
+  "parents": [
+    "4ff921bc27b6159acbb1a572e76aa66deec408fe"
+  ],
+  "author": {
+    "name": "v8-autoroll@chromium.org",
+    "email": "v8-autoroll@chromium.org",
+    "time": "Fri Jun 10 11:40:37 2016"
+  },
+  "committer": {
+    "name": "v8-autoroll@chromium.org",
+    "email": "v8-autoroll@chromium.org",
+    "time": "Fri Jun 10 11:46:05 2016"
+  },
+  "message": "Version 5.3.204\n\nPerformance and stability improvements on all platforms.\n\nCr-Commit-Position: refs/heads/5.3.204@{#1}\nCr-Branched-From: 4ff921bc27b6159acbb1a572e76aa66deec408fe-refs/heads/master@{#36884}\n",
+  "tree_diff": [
+    {
+      "type": "modify",
+      "old_id": "0a202dafebb0b1e6436d9e28a2cdaa753dd1f8aa",
+      "old_mode": 33188,
+      "old_path": "ChangeLog",
+      "new_id": "7f10d76c44328f0b72bf0563a7683834ba62cc12",
+      "new_mode": 33188,
+      "new_path": "ChangeLog"
+    },
+    {
+      "type": "modify",
+      "old_id": "b8df56f746c7bdeb416ba8c2cc087f80330cd330",
+      "old_mode": 33188,
+      "old_path": "WATCHLISTS",
+      "new_id": "bd07d318dadd557bd24d65835ffc2c31a4315892",
+      "new_mode": 33188,
+      "new_path": "WATCHLISTS"
+    },
+    {
+      "type": "modify",
+      "old_id": "01a7447b13dda509932418a843f38efc78e75312",
+      "old_mode": 33188,
+      "old_path": "include/v8-version.h",
+      "new_id": "0861333e8c92641a22bcfea5c5c15cddb323ced2",
+      "new_mode": 33188,
+      "new_path": "include/v8-version.h"
+    }
+  ]
+}

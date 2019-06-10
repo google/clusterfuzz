@@ -1433,6 +1433,48 @@ class UpdateIssueCCsFromOwnersFileTest(unittest.TestCase):
 
 
 @test_utils.with_cloud_emulators('datastore')
+class UpdateIssueLabelsForFlakyTestcaseTest(unittest.TestCase):
+  """Tests for update_issue_labels_for_flaky_testcase."""
+
+  def setUp(self):
+    self.issue = test_utils.create_generic_issue()
+    self.testcase = test_utils.create_generic_testcase()
+
+  def test_mark_unreproducible_if_reproducible_change(self):
+    """Test that we change label on issue if the testcase is now flaky."""
+    self.issue.labels.add('Reproducible')
+    self.testcase.one_time_crasher_flag = True
+    cleanup.update_issue_labels_for_flaky_testcase(self.testcase, self.issue)
+
+    self.assertNotIn('Reproducible', self.issue.labels)
+    self.assertIn('Unreproducible', self.issue.labels)
+    self.assertEqual(
+        'ClusterFuzz testcase 1 appears to be flaky, '
+        'updating reproducibility label.', self.issue._monorail_issue.comment)
+
+  def test_skip_if_unreproducible(self):
+    """Test that we don't change labels if the testcase is unreproducible and
+    issue is already marked unreproducible."""
+    self.issue.labels.add('Unreproducible')
+    self.testcase.one_time_crasher_flag = True
+    cleanup.update_issue_labels_for_flaky_testcase(self.testcase, self.issue)
+
+    self.assertNotIn('Reproducible', self.issue.labels)
+    self.assertIn('Unreproducible', self.issue.labels)
+    self.assertEqual('', self.issue._monorail_issue.comment)
+
+  def test_skip_if_reproducible(self):
+    """Test that we don't change labels if the testcase is reproducible."""
+    self.issue.labels.add('Reproducible')
+    self.testcase.one_time_crasher_flag = False
+    cleanup.update_issue_labels_for_flaky_testcase(self.testcase, self.issue)
+
+    self.assertIn('Reproducible', self.issue.labels)
+    self.assertNotIn('Unreproducible', self.issue.labels)
+    self.assertEqual('', self.issue._monorail_issue.comment)
+
+
+@test_utils.with_cloud_emulators('datastore')
 class UpdateIssueOwnerAndCCsFromPredatorResultsTest(unittest.TestCase):
   """Tests for update_issue_owner_and_ccs_from_predator_results."""
 
