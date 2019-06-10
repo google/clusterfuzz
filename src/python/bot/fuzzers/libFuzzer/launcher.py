@@ -202,11 +202,6 @@ def do_mutator_plugin():
 
 def do_dataflow_tracing():
   """Return whether or now to use dataflow tracing."""
-  # Depends on the presense of DFSan instrumented build.
-  build_bucket_path = environment.get_value('DATAFLOW_BUILD_BUCKET_PATH')
-  if not build_bucket_path:
-    return False
-
   return engine_common.decide_with_probability(
       engine_common.get_strategy_probability(
           strategy.DATAFLOW_TRACING_STRATEGY,
@@ -912,12 +907,12 @@ def main(argv):
     fuzzing_strategies.append(strategy.VALUE_PROFILE_STRATEGY)
 
   use_dataflow_tracing = False
-  if do_dataflow_tracing():
-    # ...
-    # check that the build is available
-    # download / unpack / whatever
-    #
-    dataflow_binary_path = ''
+
+  # Depends on the presense of DFSan instrumented build.
+  dataflow_build_path = environment.get_value('DATAFLOW_BUILD_DIR_???')
+  if dataflow_build_path and do_dataflow_tracing():
+    dataflow_binary_path = os.path.join(dataflow_build_path,
+                                        os.path.basename(fuzzer_path))
     arguments.append(
         '%s%s' % (constants.COLLECT_DATA_FLOW_FLAG, dataflow_binary_path))
     fuzzing_strategies.append(strategy.DATAFLOW_TRACING_STRATEGY)
