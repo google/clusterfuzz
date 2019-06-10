@@ -21,7 +21,7 @@ import shutil
 import tempfile
 
 from src.python.bot.tasks import commands
-from src.python.fuzzing import tests
+from src.python.fuzzing import testcase_manager
 from src.python.system import environment
 from src.python.system import shell
 
@@ -98,7 +98,8 @@ def _reproduce_crash(testcase_id, build_dir):
   _prepare_environment(testcase, build_dir)
 
   timeout = environment.get_value('TEST_TIMEOUT')
-  result = tests.test_for_crash_with_retries(testcase, testcase_path, timeout)
+  result = testcase_manager.test_for_crash_with_retries(testcase, testcase_path,
+                                                        timeout)
 
   # Clean up the temporary root directory created in prepare environment.
   shell.remove_directory(environment.get_value('TEMP_ROOT_DIR'))
