@@ -14,13 +14,12 @@
 """Impact task.
    Determine whether or not a test case affects production branches."""
 
-from builtins import object
-
 from base import tasks
 from base import utils
 from bot.tasks import setup
 from build_management import build_manager
 from build_management import revisions
+from builtins import object
 from datastore import data_handler
 from datastore import data_types
 from fuzzing import testcase_manager
@@ -96,11 +95,63 @@ def get_start_and_end_revision(regression_range, job_type):
   return start_revision, end_revision
 
 
+def get_component_information_by_name(chromium_revision,
+                                      component_display_name):
+  """Returns a dictionary with information about a component at a revision."""
+  lower_name = component_display_name.lower()
+  component_revisions = revisions.get_component_revisions_dict(
+      chromium_revision, 'default')
+  all_details = []
+  for value in component_revisions.values():
+    if value and 'name' in value and value['name'].lower() == lower_name:
+      all_details.append(value)
+  # If we found several components with the same name, return nothing useful.
+  if len(all_details) == 1:
+    return all_details[0]
+  return None
+
+
+def get_component_impacts_from_url(component_name,
+                                   regression_range,
+                                   job_type,
+                                   platform=None):
+  """Gets component impact string using the build information url."""
+  start_revision, end_revision = get_start_and_end_revision(
+      regression_range, job_type)
+  if not end_revision:
+    return Impacts()
+
+  found_impacts = dict()
+  for build in ['stable', 'beta']:
+    build_revision_mappings = revisions.get_build_to_revision_mappings(platform)
+    if not build_revision_mappings:
+      return Impacts()
+    mapping = build_revision_mappings.get(build)
+    if not mapping:
+      return Impacts()
+    chromium_revision = mapping['revision']
+    component_revision = get_component_information_by_name(
+        chromium_revision, component_name)
+    if not component_revision:
+      return Impacts()
+    branched_from = revisions.revision_to_branched_from(
+        component_revision['url'], component_revision['rev'])
+    if not branched_from:
+      return Impacts()
+    impact = get_impact({
+        'revision': branched_from,
+        'version': mapping['version']
+    }, start_revision, end_revision)
+    found_impacts[build] = impact
+  return Impacts(found_impacts['stable'], found_impacts['beta'])
+
+
 def get_impacts_from_url(regression_range, job_type, platform=None):
   """Gets impact string using the build information url."""
-  # FIXME: We can't handle component builds atm.
-  if data_handler.get_component_name(job_type):
-    return Impacts()
+  component_name = data_handler.get_component_name(job_type)
+  if component_name:
+    return get_component_impacts_from_url(component_name, regression_range,
+                                          job_type, platform)
 
   start_revision, end_revision = get_start_and_end_revision(
       regression_range, job_type)
