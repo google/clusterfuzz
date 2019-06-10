@@ -59,6 +59,13 @@ def _download_testcase(_):
   return '/tmp/blah'
 
 
+def _copy_root_subdirectory(old_root_dir, temp_root_dir, directory_name):
+  """Copy a single directory to the temporary root directory."""
+  shutil.copytree(
+      os.path.join(old_root_dir, directory_name),
+      os.path.join(temp_root_dir, directory_name))
+
+
 def _prepare_environment(testcase, build_directory):
   """Prepare environment variables based on the test case and build path."""
   # Create a temporary directory to use as ROOT_DIR with a copy of the default
@@ -66,14 +73,10 @@ def _prepare_environment(testcase, build_directory):
   old_root_dir = environment.get_value('ROOT_DIR')
   temp_root_dir = tempfile.mkdtemp()
 
-  shutil.copytree(
-      os.path.join(old_root_dir, 'bot'), os.path.join(temp_root_dir, 'bot'))
-  shutil.copytree(
-      os.path.join(old_root_dir, 'configs'),
-      os.path.join(temp_root_dir, 'configs'))
-  shutil.copytree(
-      os.path.join(old_root_dir, 'resources'),
-      os.path.join(temp_root_dir, 'resources'))
+  _copy_root_subdirectory(old_root_dir, temp_root_dir, 'bot')
+  _copy_root_subdirectory(old_root_dir, temp_root_dir, 'configs')
+  _copy_root_subdirectory(old_root_dir, temp_root_dir, 'resources')
+
   environment.set_value('TEMP_ROOT_DIR', temp_root_dir)
   environment.set_value('CONFIG_DIR_OVERRIDE',
                         os.path.join(temp_root_dir, 'configs', 'test'))
