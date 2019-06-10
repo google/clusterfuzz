@@ -56,19 +56,3 @@ class TestFuzzStrategySelection(unittest.TestCase):
         data_types.FuzzStrategyProbability.strategy_name ==
         'max len,ml rnn,dict,').get()
     self.assertEqual(row3.strategy_probability, 0.03471989092623837)
-
-  def test_strategy_counts(self):
-    """Unit tests for strategy count updates."""
-    fuzz_strategy_selection._upload_fuzz_strategy_weights(None)
-    row1 = data_types.FuzzStrategyProbability.query(
-        data_types.FuzzStrategyProbability.strategy_name ==
-        'ml rnn,fork,').get()
-    self.assertEqual(row1.strategy_count, 128988)
-    row2 = data_types.FuzzStrategyProbability.query(
-        data_types.FuzzStrategyProbability.strategy_name ==
-        'ml rnn,fork,subset,').get()
-    self.assertEqual(row2.strategy_count, 127312)
-    row3 = data_types.FuzzStrategyProbability.query(
-        data_types.FuzzStrategyProbability.strategy_name ==
-        'max len,ml rnn,dict,').get()
-    self.assertEqual(row3.strategy_count, 1193)

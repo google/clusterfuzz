@@ -1114,7 +1114,6 @@ class FuzzStrategyProbability(Model):
 
   Calculated using a softmax multi-armed bandit probability model."""
   strategy_name = ndb.StringProperty()
-  strategy_count = ndb.IntegerProperty()
   strategy_probability = ndb.FloatProperty()
 
 
