@@ -35,7 +35,6 @@ def _fake_get_testcase(_):
 
 
 @test_utils.with_cloud_emulators('datastore')
-@test_utils.adhoc
 class ReproduceTest(unittest.TestCase):
   """Tests for the full reproduce tool."""
 
@@ -43,6 +42,7 @@ class ReproduceTest(unittest.TestCase):
     helpers.patch(self, [
         'local.butler.reproduce._download_testcase',
         'local.butler.reproduce._get_testcase',
+        'system.environment.set_bot_environment',
         'system.process_handler.run_process',
         'system.process_handler.terminate_stale_application_instances',
     ])
