@@ -202,6 +202,7 @@ def do_mutator_plugin():
 
 def do_dataflow_tracing():
   """Return whether or now to use dataflow tracing."""
+  # Depends on the presense of DFSan instrumented build.
   build_bucket_path = environment.get_value('DATAFLOW_BUILD_BUCKET_PATH')
   if not build_bucket_path:
     return False

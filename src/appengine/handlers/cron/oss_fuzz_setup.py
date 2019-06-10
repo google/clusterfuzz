@@ -161,11 +161,11 @@ DEFAULT_ENGINES = ['libfuzzer', 'afl']
 
 def _get_build_bucket(engine, architecture):
   """Return the bucket for the given |engine| and |architecture|."""
-  if engine in 'libfuzzer':
+  if engine == 'libfuzzer':
     bucket = LIBFUZZER_BUILD_BUCKET
   elif engine == 'afl':
     bucket = AFL_BUILD_BUCKET
-  elif engine in 'dataflow':
+  elif engine == 'dataflow':
     bucket = DATAFLOW_BUILD_BUCKET
   elif engine == 'none':
     bucket = NO_ENGINE_BUILD_BUCKET
@@ -527,7 +527,8 @@ def sync_cf_job(project, info, corpus_bucket, quarantine_bucket, logs_bucket,
     if 'dataflow' in info.get('fuzzing_engines'):
       dataflow_build_bucket_path = get_build_bucket_path(
           project, 'dataflow', 'dataflow', template.architecture),
-      job.environment_string += 'DATAFLOW_BUILD_BUCKET_PATH = %s\n' % dataflow_build_bucket_path
+      job.environment_string += (
+          'DATAFLOW_BUILD_BUCKET_PATH = %s\n' % dataflow_build_bucket_path)
 
     job.put()
 
