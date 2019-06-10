@@ -1265,10 +1265,12 @@ def _verify_system_config():
   if _check_core_pattern_file():
     return
 
-  return_code = subprocess.call([
-      'timeout', '2s', 'sudo', 'bash', '-c',
-      "'echo core > {path}'".format(path=constants.CORE_PATTERN_FILE_PATH)
-  ], shell=True)
+  return_code = subprocess.call(
+      [
+          'timeout', '2s', 'sudo', 'bash', '-c',
+          "'echo core > {path}'".format(path=constants.CORE_PATTERN_FILE_PATH)
+      ],
+      shell=True)
   if return_code or not _check_core_pattern_file():
     logs.log_fatal_and_exit(
         'Failed to set {path}. AFL needs {path} to be set to core.'.format(
