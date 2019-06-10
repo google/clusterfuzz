@@ -35,6 +35,7 @@ def _fake_get_testcase(_):
 
 
 @test_utils.with_cloud_emulators('datastore')
+@test_utils.adhoc
 class ReproduceTest(unittest.TestCase):
   """Tests for the full reproduce tool."""
 
