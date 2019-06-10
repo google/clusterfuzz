@@ -31,6 +31,7 @@ import shutil
 import signal
 import six
 import stat
+import subprocess
 import sys
 
 from base import utils
@@ -1251,6 +1252,29 @@ class Corpus(object):
       self._associate_feature_with_element(feature, element)
 
 
+def _verify_system_config():
+  """Verifies system settings required for AFL."""
+
+  def _check_core_pattern_file():
+    """Verifies that core pattern file content is set to 'core'."""
+    if not os.path.exists(constants.CORE_PATTERN_FILE_PATH):
+      return False
+
+    return open(constants.CORE_PATTERN_FILE_PATH).read().strip() == 'core'
+
+  if _check_core_pattern_file():
+    return
+
+  return_code = subprocess.call([
+      'timeout', '2s', 'sudo', 'bash', '-c',
+      "'echo core > {path}'".format(path=constants.CORE_PATTERN_FILE_PATH)
+  ])
+  if return_code or not _check_core_pattern_file():
+    logs.log_fatal_and_exit(
+        'Failed to set {path}. AFL needs {path} to be set to core.'.format(
+            path=constants.CORE_PATTERN_FILE_PATH))
+
+
 def load_testcase_if_exists(fuzzer_runner, testcase_file_path):
   """Loads a crash testcase if it exists."""
   # To ensure that we can run the fuzzer.
@@ -1363,6 +1387,8 @@ def main(argv):
           'engine': 'afl',
           'job_name': environment.get_value('JOB_NAME')
       })
+
+  _verify_system_config()
 
   profiler.start_if_needed('afl_launcher')
 
