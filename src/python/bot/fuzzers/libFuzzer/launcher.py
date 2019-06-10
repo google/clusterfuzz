@@ -208,7 +208,8 @@ def do_dataflow_tracing():
 
   return engine_common.decide_with_probability(
       engine_common.get_strategy_probability(
-          strategy.DATAFLOW_TRACING_STRATEGY, default=DATAFLOW_TRACING_PROBABILITY))
+          strategy.DATAFLOW_TRACING_STRATEGY,
+          default=DATAFLOW_TRACING_PROBABILITY))
 
 
 def add_recommended_dictionary(arguments, fuzzer_name, fuzzer_path):
@@ -916,7 +917,8 @@ def main(argv):
     # download / unpack / whatever
     #
     dataflow_binary_path = ''
-    arguments.append('%s%s' % (constants.COLLECT_DATA_FLOW_FLAG, dataflow_binary_path))
+    arguments.append(
+        '%s%s' % (constants.COLLECT_DATA_FLOW_FLAG, dataflow_binary_path))
     fuzzing_strategies.append(strategy.DATAFLOW_TRACING_STRATEGY)
     use_dataflow_tracing = True
 

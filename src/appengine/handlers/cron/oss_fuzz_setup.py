@@ -525,9 +525,8 @@ def sync_cf_job(project, info, corpus_bucket, quarantine_bucket, logs_bucket,
       job.environment_string += 'UNPACK_ALL_FUZZ_TARGETS_AND_FILES = False\n'
 
     if 'dataflow' in info.get('fuzzing_engines'):
-      dataflow_build_bucket_path = get_build_bucket_path(project, 'dataflow',
-                                                'dataflow',
-                                                template.architecture),
+      dataflow_build_bucket_path = get_build_bucket_path(
+          project, 'dataflow', 'dataflow', template.architecture),
       job.environment_string += 'DATAFLOW_BUILD_BUCKET_PATH = %s\n' % dataflow_build_bucket_path
 
     job.put()
