@@ -23,6 +23,7 @@ edges."""
 
 from datastore import data_types
 from datastore import ndb
+from datastore import ndb_utils
 from google_cloud_utils import big_query
 from handlers import base_handler
 from libs import handler
@@ -34,7 +35,7 @@ from libs import handler
 # new_edges metric for each strategy.
 # See https://www.cs.mcgill.ca/~vkules/bandits.pdf for formula.
 
-MULTI_ARMED_BANDIT_PROB = """
+BANDIT_PROBABILITY_QUERY = """
 SELECT
   /* Calculate bandit weights from calculated exponential values. */
   strategy,
@@ -96,9 +97,9 @@ ORDER BY
 def _query_multi_armed_bandit_probs(client):
   """Get query results.
 
-  Queries above MULTI_ARMED_BANDIT_PROB query and yields results
+  Queries above BANDIT_PROBABILITY_QUERY and yields results
   from bigquery. This query is sorted by strategies implemented."""
-  return client.query(query=MULTI_ARMED_BANDIT_PROB)
+  return client.query(query=BANDIT_PROBABILITY_QUERY)
 
 
 def _upload_fuzz_strategy_weights(client):
@@ -114,8 +115,10 @@ def _upload_fuzz_strategy_weights(client):
     curr_strategy.strategy_name = str(row['strategy'])
     curr_strategy.probability = float(row['bandit_weight'])
     strategy_data.append(curr_strategy)
-  ndb.delete_multi(
-      data_types.FuzzStrategyProbability.query().fetch(keys_only=True))
+  ndb.delete_multi([
+      entity.key for entity in ndb_utils.get_all_from_model(
+          data_types.FuzzStrategyProbability)
+  ])
   ndb.put_multi(strategy_data)
 
 
@@ -123,7 +126,7 @@ class Handler(base_handler.Handler):
   """Cron job handler for fuzz strategy selection.
 
   Handler to periodically update fuzz strategy bandit probabilities
-   based on a performance metric (currently based on new_edges)."""
+  based on a performance metric (currently based on new_edges)."""
 
   @handler.check_cron()
   def get(self):
