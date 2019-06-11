@@ -17,6 +17,7 @@
 import unittest
 
 from local.butler import reproduce
+from system import environment
 from tests.test_libs import helpers
 from tests.test_libs import test_utils
 
@@ -34,7 +35,11 @@ def _fake_get_testcase(_):
   return reproduce._SimplifiedTestcase(testcase_json)
 
 
-@test_utils.integration
+# TODO(mbarbella): This test seems to be causing a side-effect that's leading
+# to issues running it in parallel with other tests. The root cause is still
+# unknown, but it's not ideal to have to separate these tests out.
+@unittest.skipIf(not environment.get_value('REPRODUCE_TOOL_TESTS'),
+                 'Skipping reproduce tool tests.')
 @test_utils.with_cloud_emulators('datastore')
 class ReproduceTest(unittest.TestCase):
   """Tests for the full reproduce tool."""
@@ -43,14 +48,21 @@ class ReproduceTest(unittest.TestCase):
     helpers.patch(self, [
         'local.butler.reproduce._download_testcase',
         'local.butler.reproduce._get_testcase',
+        'system.environment.set_bot_environment',
+        'system.process_handler.run_process',
         'system.process_handler.terminate_stale_application_instances',
     ])
     helpers.patch_environ(self)
 
     self.mock._download_testcase.return_value = '/tmp/testcase'
     self.mock._get_testcase.side_effect = _fake_get_testcase
+    self.mock.run_process.return_value = (0, 0, '/tmp/testcase')
 
   def test_reproduce_with_echo(self):
     """See if the reproduce tool can run a job configured to execute "echo"."""
-    result = reproduce._reproduce_crash(0, '/bin')
-    self.assertEquals(result.output, '/tmp/testcase')
+    reproduce._reproduce_crash(0, '/path/to/binary')
+    self.mock.run_process.assert_called_with(
+        '/path/to/binary/echo -n /tmp/testcase',
+        current_working_directory='/path/to/binary',
+        gestures=[],
+        timeout=10)
