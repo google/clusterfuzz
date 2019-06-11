@@ -178,6 +178,7 @@ class CleanupTest(unittest.TestCase):
     cleanup.mark_issue_as_closed_if_testcase_is_fixed(
         testcase=testcase, issue=self.issue)
     self.assertNotEqual(self.issue.status, 'Verified')
+    self.assertEqual('', self.issue._monorail_issue.comment)
 
   def test_mark_issue_as_closed_if_testcase_is_fixed_2(self):
     """Ensure that we don't close issue if associated testcase is open and
@@ -190,6 +191,7 @@ class CleanupTest(unittest.TestCase):
     cleanup.mark_issue_as_closed_if_testcase_is_fixed(
         testcase=testcase, issue=self.issue)
     self.assertNotEqual(self.issue.status, 'Verified')
+    self.assertEqual('', self.issue._monorail_issue.comment)
 
   def test_mark_issue_as_closed_if_testcase_is_fixed_3(self):
     """Ensure that we close issue if associated testcase is unreproducible, but
@@ -203,6 +205,8 @@ class CleanupTest(unittest.TestCase):
     cleanup.mark_issue_as_closed_if_testcase_is_fixed(
         testcase=testcase, issue=self.issue)
     self.assertEqual(self.issue.status, 'Verified')
+    self.assertIn('ClusterFuzz testcase 1 is verified as fixed.',
+                  self.issue._monorail_issue.comment)
 
   def test_mark_issue_as_closed_if_testcase_is_fixed_4(self):
     """Ensure that we close issue if associated testcase is closed and
@@ -222,6 +226,11 @@ class CleanupTest(unittest.TestCase):
     cleanup.mark_issue_as_closed_if_testcase_is_fixed(
         testcase=testcase, issue=self.issue)
     self.assertEqual(self.issue.status, 'Verified')
+    self.assertIn(
+        'ClusterFuzz testcase 1 is verified as fixed in '
+        'https://test-clusterfuzz.appspot.com/revisions'
+        '?job=test_content_shell_drt&range=1:2',
+        self.issue._monorail_issue.comment)
 
   def test_mark_issue_as_closed_if_testcase_is_fixed_5(self):
     """Ensure that we don't close issue if associated testcase is closed and
@@ -241,6 +250,7 @@ class CleanupTest(unittest.TestCase):
     cleanup.mark_issue_as_closed_if_testcase_is_fixed(
         testcase=testcase, issue=self.issue)
     self.assertNotEqual(self.issue.status, 'Verified')
+    self.assertEqual('', self.issue._monorail_issue.comment)
 
   def test_mark_issue_as_closed_if_testcase_is_fixed_6(self):
     """Ensure that we close issue if all associated testcases are closed and
@@ -260,6 +270,11 @@ class CleanupTest(unittest.TestCase):
     cleanup.mark_issue_as_closed_if_testcase_is_fixed(
         testcase=testcase, issue=self.issue)
     self.assertEqual(self.issue.status, 'Verified')
+    self.assertIn(
+        'ClusterFuzz testcase 1 is verified as fixed in '
+        'https://test-clusterfuzz.appspot.com/revisions'
+        '?job=test_content_shell_drt&range=1:2',
+        self.issue._monorail_issue.comment)
 
   def test_mark_issue_as_closed_if_testcase_is_fixed_7(self):
     """Ensure that we close issue if issue is marked fixed and all associated
@@ -282,6 +297,11 @@ class CleanupTest(unittest.TestCase):
     cleanup.mark_issue_as_closed_if_testcase_is_fixed(
         testcase=testcase, issue=self.issue)
     self.assertEqual(self.issue.status, 'Verified')
+    self.assertIn(
+        'ClusterFuzz testcase 1 is verified as fixed in '
+        'https://test-clusterfuzz.appspot.com/revisions'
+        '?job=test_content_shell_drt&range=1:2',
+        self.issue._monorail_issue.comment)
 
   def test_mark_issue_as_closed_if_testcase_is_fixed_8(self):
     """Ensure that we don't close issue when we already did the issue
@@ -301,6 +321,7 @@ class CleanupTest(unittest.TestCase):
     cleanup.mark_issue_as_closed_if_testcase_is_fixed(
         testcase=testcase, issue=self.issue)
     self.assertNotEqual(self.issue.status, 'Verified')
+    self.assertEqual('', self.issue._monorail_issue.comment)
 
   def test_mark_issue_as_closed_if_testcase_is_fixed_9(self):
     """Ensure that we don't close issue if a developer has labeled the last
@@ -320,6 +341,7 @@ class CleanupTest(unittest.TestCase):
     cleanup.mark_issue_as_closed_if_testcase_is_fixed(
         testcase=testcase, issue=self.issue)
     self.assertNotEqual(self.issue.status, 'Verified')
+    self.assertEqual('', self.issue._monorail_issue.comment)
 
   def test_mark_issue_as_closed_if_testcase_is_fixed_10(self):
     """Ensure that we don't close issue when this is unreproducible upload."""
@@ -333,6 +355,7 @@ class CleanupTest(unittest.TestCase):
     cleanup.mark_issue_as_closed_if_testcase_is_fixed(
         testcase=testcase, issue=self.issue)
     self.assertNotEqual(self.issue.status, 'Verified')
+    self.assertEqual('', self.issue._monorail_issue.comment)
 
   def test_mark_testcase_as_closed_if_issue_is_closed_1(self):
     """Test that we don't do anything if testcase is already closed."""

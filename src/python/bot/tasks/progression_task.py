@@ -27,13 +27,8 @@ from datastore import data_handler
 from datastore import data_types
 from fuzzing import testcase_manager
 from google_cloud_utils import big_query
-from issue_management import issue_tracker_utils
 from metrics import logs
 from system import environment
-
-FIXED_REPORT_HEADER = 'ClusterFuzz has detected this issue as '
-FIXED_REPORT_FOOTER = ('If you suspect that the result above is incorrect, '
-                       'try re-doing that job on the test case report page.')
 
 
 def _write_to_bigquery(testcase, progression_range_start,
@@ -45,35 +40,6 @@ def _write_to_bigquery(testcase, progression_range_start,
       range_name='fixed',
       start=progression_range_start,
       end=progression_range_end)
-
-
-def _add_issue_comment(testcase, comment):
-  """Helper function to add a comment to the bug associated with a test case."""
-  if not testcase.bug_information:
-    return
-
-  # Populate the full message.
-  report = data_handler.get_issue_description(testcase).rstrip('\n')
-  full_comment = '%s\n\n%s\n\n%s' % (comment, report, FIXED_REPORT_FOOTER)
-
-  # Update the issue.
-  issue_tracker_manager = (
-      issue_tracker_utils.get_issue_tracker_manager(testcase))
-  issue = issue_tracker_manager.get_issue(int(testcase.bug_information))
-  issue.comment = full_comment
-  issue_tracker_manager.save(issue, send_email=True)
-
-
-def _add_issue_comment_with_fixed_range(testcase):
-  """Add the standard comment to the bug for a test case."""
-  # Compose a build message based on build type.
-  if build_manager.is_custom_binary():
-    build_message = 'in the latest custom build'
-  else:
-    build_message = 'in range %s' % testcase.fixed
-
-  comment = '%sfixed %s.' % (FIXED_REPORT_HEADER, build_message)
-  _add_issue_comment(testcase, comment)
 
 
 def _clear_progression_pending(testcase):
@@ -165,7 +131,6 @@ def _check_fixed_for_custom_binary(testcase, job_type, testcase_file_path):
   testcase.open = False
   _update_completion_metadata(
       testcase, revision, message='fixed on latest custom build')
-  _add_issue_comment_with_fixed_range(testcase)
 
 
 def _testcase_reproduces_in_revision(testcase, testcase_file_path, job_type,
@@ -209,7 +174,6 @@ def _save_fixed_range(testcase_id, min_revision, max_revision):
 
   _update_completion_metadata(
       testcase, max_revision, message='fixed in range r%s' % testcase.fixed)
-  _add_issue_comment_with_fixed_range(testcase)
   _write_to_bigquery(testcase, min_revision, max_revision)
 
 
