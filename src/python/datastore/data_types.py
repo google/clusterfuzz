@@ -1110,11 +1110,10 @@ class FuzzTargetJob(Model):
 
 class FuzzStrategyProbability(Model):
   """Mapping between fuzz strategies and probabilities with which they
-  should be selected
+  should be selected."""
 
-  Calculated using a softmax multi-armed bandit probability model."""
   strategy_name = ndb.StringProperty()
-  strategy_probability = ndb.FloatProperty()
+  probability = ndb.FloatProperty()
 
 
 def fuzz_target_job_key(fuzz_target_name, job):
