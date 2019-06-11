@@ -408,8 +408,14 @@ def mark_issue_as_closed_if_testcase_is_fixed(testcase, issue):
     return
 
   issue.labels.add(data_types.ISSUE_VERIFIED_LABEL)
-  comment = ('ClusterFuzz testcase %d is verified as fixed, '
-             'so closing issue as verified.' % testcase.key.id())
+  comment = 'ClusterFuzz testcase %d is verified as fixed' % testcase.key.id()
+
+  fixed_range_url = data_handler.get_fixed_range_url(testcase)
+  if fixed_range_url:
+    comment += ' in ' + fixed_range_url
+  else:
+    comment += '.'
+
   if utils.is_oss_fuzz():
     comment += OSS_FUZZ_INCORRECT_COMMENT
   else:

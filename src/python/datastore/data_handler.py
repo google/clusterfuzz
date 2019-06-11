@@ -273,6 +273,22 @@ def get_reproduction_help_url(testcase, config):
       testcase.job_type, 'HELP_URL', default=config.reproduction_help_url)
 
 
+def get_fixed_range_url(testcase):
+  """Return url to testcase fixed range."""
+  # Testcase is not fixed yet.
+  if not testcase.fixed:
+    return None
+
+  # Testcase is unreproducible or coming from a custom binary.
+  if testcase.fixed == 'NA' or testcase.fixed == 'Yes':
+    return None
+
+  return TESTCASE_REVISION_RANGE_URL.format(
+      domain=get_domain(),
+      job_type=testcase.job_type,
+      revision_range=testcase.fixed)
+
+
 def get_issue_description(testcase,
                           reporter=None,
                           show_reporter=False,
