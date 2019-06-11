@@ -13,13 +13,13 @@
 # limitations under the License.
 """Fuzzing strategy selection cron job.
 
-	Runs multi-armed bandit experiments for fuzzing strategy selection.
-	In particular, this is a Boltzman Exploration (softmax) implementaion
-  of multi-armed bandit experiments. Queries from bigquery to update
-  multi-armed bandit probability values based on the new edges for various
-  combined strategies. In the upload_bandit_weights function, we can change
-  metric to be for edges, crash, features, or units. Currently based on new
-  edges."""
+Runs multi-armed bandit experiments for fuzzing strategy selection.
+In particular, this is a Boltzman Exploration (softmax) implementaion
+of multi-armed bandit experiments. Queries from bigquery to update
+multi-armed bandit probability values based on the new edges for various
+combined strategies. In the upload_bandit_weights function, we can change
+metric to be for edges, crash, features, or units. Currently based on new
+edges."""
 
 from datastore import data_types
 from datastore import ndb
@@ -58,7 +58,7 @@ FROM
       (SELECT
         fuzzer,
         CONCAT(s_radamsa, s_max_len, s_ml_rnn, s_vp, s_corpus, s_fork, s_subset, s_recommended_dict) AS strategy,
-        fuzztarget_stddev,
+        fuzzer_stddev,
         AVG(new_edges) OVER() AS overall_avg_new_edges,
         STDDEV(new_edges) OVER() AS overall_stddev_new_edges,
         new_edges
@@ -73,7 +73,7 @@ FROM
           IF(strategy_fork > 0, "fork,", "") AS s_fork,
           IF(strategy_corpus_subset > 0, "subset,", "") AS s_subset,
           IF(strategy_recommended_dict > 0, "dict,", "") AS s_recommended_dict,
-          STDDEV(new_edges) OVER(PARTITION by fuzzer) AS fuzztarget_stddev,
+          STDDEV(new_edges) OVER(PARTITION by fuzzer) AS fuzzer_stddev,
           new_edges
         FROM 
           libFuzzer_stats.TestcaseRun
@@ -85,7 +85,7 @@ FROM
             ((strategy_weighted_mutations = 0) OR (strategy_weighted_mutations IS NULL)))
       WHERE
         /* Filter for unstable targets. */
-        fuzztarget_stddev < 150)
+        fuzzer_stddev < 150)
     GROUP BY
       strategy))
 ORDER BY
@@ -96,7 +96,7 @@ ORDER BY
 def _query_multi_armed_bandit_probs(client):
   """Get query results.
 
-  Queries above query (MULTI_ARMED_BANDIT_PROB) and yields results
+  Queries above MULTI_ARMED_BANDIT_PROB query and yields results
   from bigquery. This query is sorted by strategies implemented."""
   return client.query(query=MULTI_ARMED_BANDIT_PROB)
 
@@ -112,7 +112,7 @@ def _upload_fuzz_strategy_weights(client):
   for row in data:
     curr_strategy = data_types.FuzzStrategyProbability()
     curr_strategy.strategy_name = str(row['strategy'])
-    curr_strategy.strategy_probability = float(row['bandit_weight'])
+    curr_strategy.probability = float(row['bandit_weight'])
     strategy_data.append(curr_strategy)
   ndb.delete_multi(
       data_types.FuzzStrategyProbability.query().fetch(keys_only=True))
