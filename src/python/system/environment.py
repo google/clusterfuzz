@@ -793,10 +793,9 @@ def set_default_vars():
     os.environ[variable] = str(value)
 
 
-def set_bot_environment(root_dir=None):
+def set_bot_environment():
   """Set environment for the bots."""
-  if not root_dir:
-    root_dir = get_value('ROOT_DIR')
+  root_dir = get_value('ROOT_DIR')
 
   if not root_dir:
     # Error, bail out.
