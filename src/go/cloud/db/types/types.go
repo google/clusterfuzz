@@ -169,10 +169,9 @@ type FiledBug struct {
 
 // FuzzStrategyProbability is auto-generated from data_types.py.
 type FuzzStrategyProbability struct {
-	Key                 *datastore.Key `datastore:"__key__"`
-	StrategyName        string         `datastore:"strategy_name"`
-	StrategyCount       int            `datastore:"strategy_count"`
-	StrategyProbability float64        `datastore:"strategy_probability"`
+	Key          *datastore.Key `datastore:"__key__"`
+	StrategyName string         `datastore:"strategy_name"`
+	Probability  float64        `datastore:"probability"`
 }
 
 // FuzzTarget is auto-generated from data_types.py.

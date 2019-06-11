@@ -58,7 +58,7 @@ FROM
     FROM
       (SELECT
         fuzzer,
-        CONCAT(s_radamsa, s_max_len, s_ml_rnn, s_vp, s_corpus, s_fork, s_subset, s_recommended_dict) AS strategy,
+        CONCAT(s_radamsa, s_max_len, s_ml_rnn, s_vp, s_fork, s_subset, s_recommended_dict) AS strategy,
         fuzzer_stddev,
         AVG(new_edges) OVER() AS overall_avg_new_edges,
         STDDEV(new_edges) OVER() AS overall_stddev_new_edges,
@@ -70,7 +70,6 @@ FROM
           IF(strategy_random_max_len > 0, "max len,", "") AS s_max_len,
           IF(strategy_corpus_mutations_ml_rnn > 0,"ml rnn,", "") AS s_ml_rnn, 
           IF(strategy_value_profile > 0, "value profile,", "") AS s_vp, 
-          IF(strategy_corpus_mutations > 0, "corpus,", "") AS s_corpus,
           IF(strategy_fork > 0, "fork,", "") AS s_fork,
           IF(strategy_corpus_subset > 0, "subset,", "") AS s_subset,
           IF(strategy_recommended_dict > 0, "dict,", "") AS s_recommended_dict,
@@ -80,6 +79,7 @@ FROM
           libFuzzer_stats.TestcaseRun
         WHERE
            ((strategy_mutator_plugin = 0) OR (strategy_mutator_plugin IS NULL)) AND
+           /* Query results from the past 30 days. Change as needed. */
             DATE_DIFF(cast(current_timestamp() AS DATE), cast(_PARTITIONTIME AS DATE), DAY) < 31 AND
             ((strategy_corpus_mutations = 0) OR (strategy_corpus_mutations IS NULL)) AND
             ((strategy_handle_unstable = 0) OR (strategy_handle_unstable IS NULL)) AND
@@ -102,11 +102,12 @@ def _query_multi_armed_bandit_probs(client):
   return client.query(query=BANDIT_PROBABILITY_QUERY)
 
 
-def _upload_fuzz_strategy_weights(client):
+def _query_and_upload_strategy_weights(client):
   """Uploads queried data into datastore.
 
-  Upload query results to datastore to use as new probabilities.
-  Probabilities are based on new_edges feature."""
+  Calls query functions and uploads query results
+  to datastore to use as new probabilities. Probabilities
+  are based on new_edges feature."""
   strategy_data = []
   data = _query_multi_armed_bandit_probs(client)
 
@@ -115,6 +116,7 @@ def _upload_fuzz_strategy_weights(client):
     curr_strategy.strategy_name = str(row['strategy'])
     curr_strategy.probability = float(row['bandit_weight'])
     strategy_data.append(curr_strategy)
+
   ndb.delete_multi([
       entity.key for entity in ndb_utils.get_all_from_model(
           data_types.FuzzStrategyProbability)
@@ -132,4 +134,4 @@ class Handler(base_handler.Handler):
   def get(self):
     """Process all fuzz targets and update FuzzStrategy weights."""
     client = big_query.Client()
-    _upload_fuzz_strategy_weights(client)
+    _query_and_upload_strategy_weights(client)
