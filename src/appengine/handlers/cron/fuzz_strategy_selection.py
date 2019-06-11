@@ -114,6 +114,8 @@ def _upload_fuzz_strategy_weights(client):
     curr_strategy.strategy_name = str(row['strategy'])
     curr_strategy.strategy_probability = float(row['bandit_weight'])
     strategy_data.append(curr_strategy)
+  ndb.delete_multi(
+      data_types.FuzzStrategyProbability.query().fetch(keys_only=True))
   ndb.put_multi(strategy_data)
 
 

@@ -56,3 +56,12 @@ class TestFuzzStrategySelection(unittest.TestCase):
         data_types.FuzzStrategyProbability.strategy_name ==
         'max len,ml rnn,dict,').get()
     self.assertEqual(row3.strategy_probability, 0.03471989092623837)
+
+  def test_delete_from_table(self):
+    """Unit test to check whether entries are properly deleted
+    before being updated."""
+    fuzz_strategy_selection._upload_fuzz_strategy_weights(None)
+    count1 = data_types.FuzzStrategyProbability.query().count()
+    fuzz_strategy_selection._upload_fuzz_strategy_weights(None)
+    count2 = data_types.FuzzStrategyProbability.query().count()
+    self.assertEqual(count1, count2)
