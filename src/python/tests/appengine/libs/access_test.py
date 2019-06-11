@@ -17,6 +17,7 @@ import mock
 import unittest
 
 from datastore import data_types
+from issue_management import monorail
 from issue_management.monorail import issue
 from issue_management.monorail import issue_tracker_manager
 from libs import access
@@ -222,11 +223,12 @@ class CanUserAccessTestcaseTest(unittest.TestCase):
         'libs.access._is_domain_allowed',
         'libs.auth.get_current_user',
         'config.db_config.get',
-        'issue_management.issue_tracker_utils.get_issue_tracker_manager',
+        'issue_management.issue_tracker_utils.get_issue_tracker_for_testcase',
         'issue_management.monorail.issue_tracker_manager.IssueTrackerManager',
     ])
     itm = issue_tracker_manager.IssueTrackerManager('test')
-    self.mock.get_issue_tracker_manager.return_value = itm
+    self.mock.get_issue_tracker_for_testcase.return_value = (
+        monorail.IssueTracker(itm))
     self.get_issue = itm.get_issue
     self.get_original_issue = itm.get_original_issue
 
