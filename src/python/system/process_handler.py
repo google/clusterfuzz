@@ -260,8 +260,13 @@ def run_process(cmdline,
     if android.constants.LOW_MEMORY_REGEX.search(output):
       # If the device is low on memory, we should force reboot and bail out to
       # prevent device from getting in a frozen state.
-      logs.log('Device is low on memory, rebooting.', output=output)
+      logs.log_warn('Device is low on memory, rebooting.', output=output)
       android.adb.hard_reset()
+      android.adb.wait_for_device()
+
+    elif android.constants.GPU_PROCESS_UNUSABLE_REGEX.search(output):
+      logs.log_warn('GPU process is unusable, rebooting.', output=output)
+      android.adb.reboot()
       android.adb.wait_for_device()
 
     elif android.adb.time_since_last_reboot() < time.time() - start_time:
