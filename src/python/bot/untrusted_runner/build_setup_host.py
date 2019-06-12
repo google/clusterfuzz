@@ -110,4 +110,6 @@ class RemoteAuxiliaryBuild(build_manager.AuxiliaryBuild):
         build_url=self.build_url,
         build_dir_name=self.build_dir_name)
 
-    return _handle_response(self, host.stub().SetupAuxiliaryBuild(request))
+    # An auxiliary build does not modify the environment.
+    response = host.stub().SetupAuxiliaryBuild(request)
+    return response.result

@@ -907,10 +907,10 @@ def main(argv):
     fuzzing_strategies.append(strategy.VALUE_PROFILE_STRATEGY)
 
   # Depends on the presense of DFSan instrumented build.
-  dataflow_build_path = environment.get_value('DATAFLOW_BUILD_DIR_???')
-  use_dataflow_tracing = dataflow_build_path and do_dataflow_tracing()
+  dataflow_build_dir = environment.get_value('DATAFLOW_BUILD_DIR')
+  use_dataflow_tracing = dataflow_build_dir and do_dataflow_tracing()
   if use_dataflow_tracing:
-    dataflow_binary_path = os.path.join(dataflow_build_path,
+    dataflow_binary_path = os.path.join(dataflow_build_dir,
                                         os.path.basename(fuzzer_path))
     arguments.append(
         '%s%s' % (constants.COLLECT_DATA_FLOW_FLAG, dataflow_binary_path))
