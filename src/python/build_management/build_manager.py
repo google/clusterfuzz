@@ -1020,7 +1020,7 @@ class AuxiliaryBuild(Build):
           self.base_build_dir,
           self.build_dir,
           self.build_url,
-          is_auxiliary_build=true):
+          is_auxiliary_build=True):
         return False
 
       logs.log('Retrieved build r%d.' % self.revision)
