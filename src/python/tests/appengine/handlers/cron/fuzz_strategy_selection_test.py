@@ -45,7 +45,7 @@ class TestFuzzStrategySelection(unittest.TestCase):
   def test_strategy_probs(self):
     """Ensure that the expected probabilities are being set for
     various methods."""
-    fuzz_strategy_selection._query_and_upload_strategy_probs(None)
+    fuzz_strategy_selection._query_and_upload_strategy_probs()
     row1 = data_types.FuzzStrategyProbability.query(
         data_types.FuzzStrategyProbability.strategy_name ==
         'ml rnn,fork,').get()
@@ -62,8 +62,8 @@ class TestFuzzStrategySelection(unittest.TestCase):
   def test_delete_from_table(self):
     """Ensures that ndb datastore table is properly being
     cleared before being updated."""
-    fuzz_strategy_selection._query_and_upload_strategy_probs(None)
+    fuzz_strategy_selection._query_and_upload_strategy_probs()
     count1 = data_types.FuzzStrategyProbability.query().count()
-    fuzz_strategy_selection._query_and_upload_strategy_probs(None)
+    fuzz_strategy_selection._query_and_upload_strategy_probs()
     count2 = data_types.FuzzStrategyProbability.query().count()
     self.assertEqual(count1, count2)

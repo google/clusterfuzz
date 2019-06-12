@@ -94,11 +94,12 @@ ORDER BY
 """
 
 
-def _query_multi_armed_bandit_probs(client):
+def _query_multi_armed_bandit_probs():
   """Get query results.
 
   Queries above BANDIT_PROBABILITY_QUERY and yields results
   from bigquery. This query is sorted by strategies implemented."""
+  client = big_query.Client()
   return client.query(query=BANDIT_PROBABILITY_QUERY).rows
 
 
@@ -120,14 +121,14 @@ def _store_probs_in_bigquery(data):
   client.insert(bigquery_data)
 
 
-def _query_and_upload_strategy_probs(client):
+def _query_and_upload_strategy_probs():
   """Uploads queried data into datastore.
 
   Calls query functions and uploads query results
   to datastore to use as new probabilities. Probabilities
   are based on new_edges feature."""
   strategy_data = []
-  data = _query_multi_armed_bandit_probs(client)
+  data = _query_multi_armed_bandit_probs()
 
   for row in data:
     curr_strategy = data_types.FuzzStrategyProbability()
@@ -152,5 +153,4 @@ class Handler(base_handler.Handler):
   @handler.check_cron()
   def get(self):
     """Process all fuzz targets and update FuzzStrategy weights."""
-    client = big_query.Client()
-    _query_and_upload_strategy_probs(client)
+    _query_and_upload_strategy_probs()
