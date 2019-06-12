@@ -402,6 +402,8 @@ class LauncherTest(fake_fs_unittest.TestCase):
                   0,
               'startup_crash_count':
                   0,
+              'strategy_dataflow_tracing':
+                  0,
               'strategy_corpus_mutations_radamsa':
                   1,
               'strategy_corpus_mutations_ml_rnn':
@@ -598,6 +600,8 @@ class LauncherTest(fake_fs_unittest.TestCase):
                   0,
               'slowest_unit_time_sec':
                   0,
+              'strategy_dataflow_tracing':
+                  0,
               'startup_crash_count':
                   0,
               'strategy_corpus_mutations_radamsa':
@@ -694,6 +698,7 @@ class LauncherTest(fake_fs_unittest.TestCase):
         'slow_units_count': 0,
         'slowest_unit_time_sec': 0,
         'startup_crash_count': 0,
+        'strategy_dataflow_tracing': 0,
         'strategy_corpus_mutations_radamsa': 1,
         'strategy_corpus_mutations_ml_rnn': 0,
         'strategy_corpus_subset': 50,
@@ -745,6 +750,7 @@ class LauncherTest(fake_fs_unittest.TestCase):
         'slow_units_count': 0,
         'slowest_unit_time_sec': 0,
         'startup_crash_count': 0,
+        'strategy_dataflow_tracing': 0,
         'strategy_corpus_mutations_radamsa': 0,
         'strategy_corpus_mutations_ml_rnn': 0,
         'strategy_corpus_subset': 0,
@@ -790,6 +796,7 @@ class LauncherTest(fake_fs_unittest.TestCase):
         'slow_unit_count': 0,
         'slow_units_count': 0,
         'startup_crash_count': 1,
+        'strategy_dataflow_tracing': 0,
         'strategy_corpus_mutations_radamsa': 0,
         'strategy_corpus_mutations_ml_rnn': 0,
         'strategy_corpus_subset': 0,
@@ -840,6 +847,7 @@ class LauncherTest(fake_fs_unittest.TestCase):
         'slow_units_count': 0,
         'slowest_unit_time_sec': 0,
         'startup_crash_count': 0,
+        'strategy_dataflow_tracing': 0,
         'strategy_corpus_mutations_radamsa': 0,
         'strategy_corpus_mutations_ml_rnn': 0,
         'strategy_corpus_subset': 0,
@@ -890,6 +898,7 @@ class LauncherTest(fake_fs_unittest.TestCase):
         'slow_units_count': 0,
         'slowest_unit_time_sec': 0,
         'startup_crash_count': 0,
+        'strategy_dataflow_tracing': 0,
         'strategy_corpus_mutations_radamsa': 0,
         'strategy_corpus_mutations_ml_rnn': 0,
         'strategy_corpus_subset': 1,
@@ -940,6 +949,7 @@ class LauncherTest(fake_fs_unittest.TestCase):
         'slow_units_count': 0,
         'slowest_unit_time_sec': 0,
         'startup_crash_count': 0,
+        'strategy_dataflow_tracing': 0,
         'strategy_corpus_mutations_radamsa': 0,
         'strategy_corpus_mutations_ml_rnn': 0,
         'strategy_corpus_subset': 0,
@@ -990,6 +1000,7 @@ class LauncherTest(fake_fs_unittest.TestCase):
         'slow_units_count': 0,
         'slowest_unit_time_sec': 0,
         'startup_crash_count': 0,
+        'strategy_dataflow_tracing': 0,
         'strategy_corpus_mutations_radamsa': 0,
         'strategy_corpus_mutations_ml_rnn': 1,
         'strategy_corpus_subset': 0,
@@ -1039,6 +1050,7 @@ class LauncherTest(fake_fs_unittest.TestCase):
         'slow_units_count': 0,
         'slowest_unit_time_sec': 0,
         'startup_crash_count': 0,
+        'strategy_dataflow_tracing': 0,
         'strategy_corpus_mutations_radamsa': 0,
         'strategy_corpus_mutations_ml_rnn': 0,
         'strategy_corpus_subset': 0,
@@ -1089,6 +1101,7 @@ class LauncherTest(fake_fs_unittest.TestCase):
         'slow_units_count': 4,
         'slowest_unit_time_sec': 19,
         'startup_crash_count': 0,
+        'strategy_dataflow_tracing': 0,
         'strategy_corpus_mutations_radamsa': 1,
         'strategy_corpus_mutations_ml_rnn': 0,
         'strategy_corpus_subset': 0,
@@ -1296,6 +1309,8 @@ class LauncherTest(fake_fs_unittest.TestCase):
               'slowest_unit_time_sec':
                   0,
               'startup_crash_count':
+                  0,
+              'strategy_dataflow_tracing':
                   0,
               'strategy_corpus_mutations_radamsa':
                   0,
