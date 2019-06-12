@@ -98,3 +98,16 @@ class RemoteProductionBuild(build_manager.ProductionBuild):
         build_type=self.build_type)
 
     return _handle_response(self, host.stub().SetupProductionBuild(request))
+
+
+class RemoteAuxiliaryBuild(build_manager.AuxiliaryBuild):
+  """Remote auxiliary build."""
+
+  def setup(self):
+    request = untrusted_runner_pb2.SetupAuxiliaryBuildRequest(
+        base_build_dir=self.base_build_dir,
+        revision=self.revision,
+        build_url=self.build_url,
+        build_dir_name=self.build_dir_name)
+
+    return _handle_response(self, host.stub().SetupAuxiliaryBuild(request))

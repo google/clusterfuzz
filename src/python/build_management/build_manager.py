@@ -181,7 +181,11 @@ def _handle_unrecoverable_error_on_windows():
   utils.restart_machine()
 
 
-def _unpack_build(base_build_dir, build_dir, build_url, target_weights=None):
+def _unpack_build(base_build_dir,
+                  build_dir,
+                  build_url,
+                  target_weights=None,
+                  is_auxiliary_build=False):
   """Unpacks a build from a build url into the build directory."""
   # Track time taken to unpack builds so that it doesn't silently regress.
   start_time = time.time()
@@ -219,7 +223,7 @@ def _unpack_build(base_build_dir, build_dir, build_url, target_weights=None):
     return False
 
   unpack_everything = environment.get_value('UNPACK_ALL_FUZZ_TARGETS_AND_FILES')
-  if not unpack_everything:
+  if not unpack_everything and not is_auxiliary_build:
     # For fuzzing, pick a random fuzz target so that we only un-archive that
     # particular fuzz target and its dependencies and save disk space.
     # If we are going to unpack everythng in archive based on
@@ -234,7 +238,12 @@ def _unpack_build(base_build_dir, build_dir, build_url, target_weights=None):
   # Actual list of files to unpack can be smaller if we are only unarchiving
   # a particular fuzz target.
   file_match_callback = _get_file_match_callback()
-  assert not (unpack_everything and file_match_callback is not None)
+  assert (
+      # `file_match_callback` must be None when we unpack everything, or
+      # must be not None when we do not unpack everything.
+      not (unpack_everything and file_match_callback is not None) or
+      # Auxiliary builds must have 'FUZZ_TARGET' and `file_match_callback`.
+      is_auxiliary_build and file_match_callback is not None)
 
   if not _make_space_for_build(build_local_archive, base_build_dir,
                                file_match_callback):
@@ -256,9 +265,10 @@ def _unpack_build(base_build_dir, build_dir, build_url, target_weights=None):
     logs.log_error('Unable to unpack build archive %s.' % build_local_archive)
     return False
 
-  if unpack_everything:
+  if unpack_everything and not is_auxiliary_build:
     # Set a random fuzz target now that the build has been unpacked, if we
-    # didn't set one earlier.
+    # didn't set one earlier. For an auxiliary build, fuzz target is already
+    # specified during main build unpacking.
     _set_random_fuzz_target_for_fuzzing_if_needed(
         _get_fuzz_targets_from_dir(build_dir), target_weights)
 
@@ -984,6 +994,43 @@ class SystemBuild(Build):
     raise BuildManagerException('Cannot delete system build.')
 
 
+class AuxiliaryBuild(Build):
+  """An additional build that accompanies some other fuzzinng build."""
+
+  def __init__(self,
+               base_build_dir,
+               revision,
+               build_url,
+               build_dir_name='revisions'):
+    super(AuxiliaryBuild, self).__init__(base_build_dir, revision)
+    self.build_url = build_url
+    self.build_dir_name = build_dir_name
+    self._build_dir = os.path.join(self.base_build_dir, build_dir_name)
+
+  @property
+  def build_dir(self):
+    return self._build_dir
+
+  def setup(self):
+    """Sets up build with a particular revision."""
+    logs.log('Retrieving build r%d.' % self.revision)
+    build_update = not self.exists()
+    if build_update:
+      if not _unpack_build(
+          self.base_build_dir,
+          self.build_dir,
+          self.build_url,
+          is_auxiliary_build=true):
+        return False
+
+      logs.log('Retrieved build r%d.' % self.revision)
+    else:
+      logs.log('Build already exists.')
+
+    self._post_setup_success(update_revision=build_update)
+    return True
+
+
 def _sort_build_urls_by_revision(build_urls, bucket_path, reverse):
   """Return a sorted list of build url by revision."""
   base_url = os.path.dirname(bucket_path)
@@ -1159,13 +1206,52 @@ def setup_trunk_build():
   return build
 
 
-def setup_auxiliary_builds(revision=0):
+def setup_auxiliary_build():
   """Sets up auxiliary builds when necessary (e.g. DFSan build)."""
   dataflow_build_bucket_path = environment.get_value(
       'DATAFLOW_BUILD_BUCKET_PATH')
-  # Download the latest revision, as we cannot guarantee exact matching and do
-  # not need DFSan builds for any tasks other than fuzzing.
-  # Unpack, save the directory path somewhere to be later used in the launcher.
+
+  if not dataflow_build_bucket_path:
+    return None
+
+  dataflow_build_urls = get_build_urls_list(dataflow_build_bucket_path)
+  if not dataflow_build_urls:
+    logs.log_error('Error getting list of dataflow build urls from %s.' %
+                   dataflow_build_bucket_path)
+    return None
+
+  revision_pattern = revisions.revision_pattern_from_build_bucket_path(
+      dataflow_build_bucket_path)
+
+  # Use the latest revision, as we cannot guarantee exact matching and do not
+  # need DFSan builds for any tasks other than fuzzing.
+  revision = None
+  dataflow_build_url = None
+  for dataflow_build_url in dataflow_build_urls:
+    match = re.match(revision_pattern, dataflow_build_url)
+    if not match:
+      continue
+
+    revision = revisions.convert_revision_to_integer(match.group(1))
+    break
+
+  if revision is None:
+    logs.log_error('Unable to find a matching revision.')
+    return None
+
+  dataflow_build_dir = _base_build_dir(dataflow_build_bucket_path)
+  shell.create_directory(dataflow_build_dir)
+
+  build_class = AuxiliaryBuild
+  if environment.is_trusted_host():
+    from bot.untrusted_runner import build_setup_host
+    build_class = build_setup_host.RemoteAuxiliaryBuild
+
+  build = build_class(dataflow_build_dir, revision, dataflow_build_url)
+
+  if build.setup():
+    return build
+  return None
 
 
 def setup_regular_build(revision):
