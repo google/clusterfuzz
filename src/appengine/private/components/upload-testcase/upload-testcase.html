@@ -292,7 +292,7 @@
                   </td>
                   <td class="right">
                     <template is="dom-if" if="[[item.testcase.issueNumber]]">
-                      <a class="label issue" href="/issue/[[item.testcaseId]]/[[item.testcase.issueNumber]]" title="Click to view the associated issue [[item.testcase.issueNumber]] in the issue tracker.">Issue [[item.testcase.issueNumber]]</a>
+                      <a class="label issue" href="/issue/[[item.testcaseId]]" title="Click to view the associated issue [[item.testcase.issueNumber]] in the issue tracker.">Issue [[item.testcase.issueNumber]]</a>
                     </template>
                     <template is="dom-repeat" items="[[getStatus(item)]]" as="status">
                       <span class$="label [[status.className]]" title$="[[status.tooltip]]">[[status.label]]</span>

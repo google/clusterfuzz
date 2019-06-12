@@ -16,10 +16,18 @@
 from future import standard_library
 standard_library.install_aliases()
 from builtins import object
+import urllib.parse
 
 from issue_management import issue_tracker
 from issue_management.monorail.issue import ChangeList as ChangeList
 from issue_management.monorail.issue import Issue as MonorailIssue
+from issue_management.monorail.issue_tracker_manager import IssueTrackerManager
+
+# TODO(ochang): Clean up how we cache issue_tracker_managers.
+ISSUE_TRACKER_MANAGERS = {}
+ISSUE_TRACKER_URL = 'https://bugs.chromium.org/p/{project}/issues/detail?id='
+ISSUE_TRACKER_SEARCH_URL = (
+    'https://bugs.chromium.org/p/{project}/issues/list?')
 
 
 class Issue(issue_tracker.Issue):
@@ -225,6 +233,42 @@ class IssueTracker(issue_tracker.IssueTracker):
     """Retrieve the original issue object traversing the list of duplicates."""
     return Issue(self._itm.get_original_issue(int(issue_id)))
 
+  def find_issues(self, keywords=None, only_open=False):
+    """Find issues."""
+    if not keywords:
+      return None
+
+    search_text = _get_search_text(keywords)
+    if only_open:
+      can = IssueTrackerManager.CAN_OPEN
+    else:
+      can = IssueTrackerManager.CAN_ALL
+
+    issues = self._itm.get_issues(search_text, can=can)
+    return [Issue(issue) for issue in issues]
+
+  def find_issues_url(self, keywords=None, only_open=None):
+    """Find issues (web URL)."""
+    if not keywords:
+      return None
+
+    search_text = _get_search_text(keywords)
+    if only_open:
+      can = IssueTrackerManager.CAN_OPEN
+    else:
+      can = IssueTrackerManager.CAN_ALL
+
+    can_id = IssueTrackerManager.CAN_VALUE_TO_ID_MAP.get(can, '')
+    return ISSUE_TRACKER_SEARCH_URL.format(
+        project=self.project) + urllib.parse.urlencode({
+            'can_id': can_id,
+            'q': search_text,
+        })
+
+  def issue_url(self, issue_id):
+    """Return the issue URL with the given ID."""
+    return ISSUE_TRACKER_URL.format(project=self.project) + str(issue_id)
+
 
 def _to_change_list(monorail_list):
   """Convert a list of changed items to a issue_tracker.ChangeList."""
@@ -239,3 +283,36 @@ def _to_change_list(monorail_list):
       change_list.added.append(item)
 
   return change_list
+
+
+def _get_issue_tracker_manager_for_project(project_name, use_cache=False):
+  """Return monorail issue tracker manager for the given project."""
+  # If there is no issue tracker set, bail out.
+  if not project_name or project_name == 'disabled':
+    return None
+
+  if use_cache and project_name in ISSUE_TRACKER_MANAGERS:
+    return ISSUE_TRACKER_MANAGERS[project_name]
+
+  issue_tracker_manager = IssueTrackerManager(project_name=project_name)
+  ISSUE_TRACKER_MANAGERS[project_name] = issue_tracker_manager
+  return issue_tracker_manager
+
+
+def _get_search_text(keywords):
+  """Get search text."""
+  search_text = ' '.join(['"{}"'.format(keyword) for keyword in keywords])
+  search_text = search_text.replace(':', ' ')
+  search_text = search_text.replace('=', ' ')
+
+  return search_text
+
+
+def get_issue_tracker(project_name, use_cache=False):
+  """Get the issue tracker for the project name."""
+  itm = _get_issue_tracker_manager_for_project(
+      project_name, use_cache=use_cache)
+  if itm is None:
+    return None
+
+  return IssueTracker(itm)

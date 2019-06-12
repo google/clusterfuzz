@@ -19,6 +19,7 @@ import webtest
 
 from datastore import data_types
 from handlers.testcase_detail import find_similar_issues
+from issue_management import monorail
 from issue_management.monorail import issue
 from tests.test_libs import helpers as test_helpers
 from tests.test_libs import test_utils
@@ -30,9 +31,9 @@ class HandlerTest(unittest.TestCase):
 
   def setUp(self):
     test_helpers.patch(self, [
-        'issue_management.issue_tracker_utils.get_issue_tracker_manager',
+        'issue_management.issue_tracker_utils.get_issue_tracker_for_testcase',
+        'issue_management.issue_tracker_utils.get_search_keywords',
         'issue_management.issue_tracker_utils.get_similar_issues',
-        'issue_management.issue_tracker_utils.get_similar_issues_query',
         'issue_management.issue_tracker_utils.get_similar_issues_url',
         'issue_management.issue_tracker_utils.get_issue_url',
         'libs.access.check_access_and_get_testcase',
@@ -48,43 +49,45 @@ class HandlerTest(unittest.TestCase):
 
   def test_itm_not_found(self):
     """Ensure it errors when issue_tracker_manager doesn't exist."""
-    self.mock.get_issue_tracker_manager.return_value = None
+    self.mock.get_issue_tracker_for_testcase.return_value = None
 
     response = self.app.get(
         '/?testcaseId=%d&filterType=open' % self.testcase.key.id(),
         expect_errors=True)
     self.assertEqual(response.status_int, 404)
-    self.mock.get_issue_tracker_manager.assert_has_calls([mock.call(mock.ANY)])
+    self.mock.get_issue_tracker_for_testcase.assert_has_calls(
+        [mock.call(mock.ANY)])
     self.assertEqual(
         self.testcase.key.id(),
-        self.mock.get_issue_tracker_manager.call_args[0][0].key.id())
+        self.mock.get_issue_tracker_for_testcase.call_args[0][0].key.id())
 
   def test_find(self):
     """Ensure it returns correct JSON when everything is ok."""
-    itm = mock.Mock()
-    issue_item = issue.Issue()
-    issue_item.id = 100
-    self.mock.get_issue_tracker_manager.return_value = itm
+    issue_tracker = mock.Mock()
+    monorail_issue = issue.Issue()
+    monorail_issue.id = 100
+    issue_item = monorail.Issue(monorail_issue)
+    self.mock.get_issue_tracker_for_testcase.return_value = issue_tracker
+    self.mock.get_search_keywords.return_value = ['query']
     self.mock.get_similar_issues_url.return_value = 'similarurl'
-    self.mock.get_similar_issues_query.return_value = 'query'
     self.mock.get_similar_issues.return_value = [issue_item]
-    self.mock.get_issue_url.return_value = 'issueurl'
+    issue_tracker.issue_url.return_value = 'issueurl'
 
     response = self.app.get(
         '/?testcaseId=%d&filterType=open' % self.testcase.key.id())
     self.assertEqual(response.status_int, 200)
     self.assertEqual(response.json['queryString'], 'query')
     self.assertEqual(response.json['queryUrl'], 'similarurl')
-    self.assertEqual(response.json['issueUrlPrefix'], 'issueurl')
     self.assertEqual(len(response.json['items']), 1)
 
-    self.assertEqual(response.json['items'][0]['id'], issue_item.id)
+    self.assertEqual(response.json['items'][0]['issue']['id'], issue_item.id)
 
-    self.mock.get_issue_tracker_manager.assert_has_calls([mock.call(mock.ANY)])
+    self.mock.get_issue_tracker_for_testcase.assert_has_calls(
+        [mock.call(mock.ANY)])
     self.assertEqual(
         self.testcase.key.id(),
-        self.mock.get_issue_tracker_manager.call_args[0][0].key.id())
+        self.mock.get_issue_tracker_for_testcase.call_args[0][0].key.id())
     self.mock.get_similar_issues.assert_has_calls(
-        [mock.call(mock.ANY, 'open', itm)])
+        [mock.call(issue_tracker, mock.ANY, only_open=True)])
     self.assertEqual(self.testcase.key.id(),
-                     self.mock.get_similar_issues.call_args[0][0].key.id())
+                     self.mock.get_similar_issues.call_args[0][1].key.id())
