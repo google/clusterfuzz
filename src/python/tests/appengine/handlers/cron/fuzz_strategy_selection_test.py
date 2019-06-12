@@ -29,8 +29,8 @@ DATA_DIRECTORY = os.path.join(
 
 @test_utils.with_cloud_emulators('datastore')
 class TestFuzzStrategySelection(unittest.TestCase):
-  """Tests whether the program properly
-  stores calculated banidt weights in datastore."""
+  """Tests whether the program properly stores
+  calculated multi-armed bandit probabilities in datastore."""
 
   def setUp(self):
     """Set up method strategy distribution calculation tests."""
@@ -42,9 +42,9 @@ class TestFuzzStrategySelection(unittest.TestCase):
         open(os.path.join(DATA_DIRECTORY, 'multi_armed_bandit_query.json')))
 
   def test_strategy_probs(self):
-    """Ensure that the expected weights are being set for
+    """Ensure that the expected probabilities are being set for
     various methods."""
-    fuzz_strategy_selection._query_and_upload_strategy_weights(None)
+    fuzz_strategy_selection._query_and_upload_strategy_probs(None)
     row1 = data_types.FuzzStrategyProbability.query(
         data_types.FuzzStrategyProbability.strategy_name ==
         'ml rnn,fork,').get()
@@ -61,8 +61,8 @@ class TestFuzzStrategySelection(unittest.TestCase):
   def test_delete_from_table(self):
     """Ensures that ndb datastore table is properly being
     cleared before being updated."""
-    fuzz_strategy_selection._query_and_upload_strategy_weights(None)
+    fuzz_strategy_selection._query_and_upload_strategy_probs(None)
     count1 = data_types.FuzzStrategyProbability.query().count()
-    fuzz_strategy_selection._query_and_upload_strategy_weights(None)
+    fuzz_strategy_selection._query_and_upload_strategy_probs(None)
     count2 = data_types.FuzzStrategyProbability.query().count()
     self.assertEqual(count1, count2)
