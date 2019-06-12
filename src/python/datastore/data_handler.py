@@ -656,7 +656,7 @@ def update_testcase_comment(testcase, task_state, message=None):
 
   # Truncate if too long.
   if len(testcase.comments) > data_types.TESTCASE_COMMENTS_LENGTH_LIMIT:
-    logs.log_warn('Testcase comments truncated.')
+    logs.log_error('Testcase comments truncated.')
     testcase.comments = testcase.comments[
         -data_types.TESTCASE_COMMENTS_LENGTH_LIMIT:]
 
