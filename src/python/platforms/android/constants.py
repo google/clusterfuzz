@@ -30,8 +30,6 @@ LOW_MEMORY_REGEX = re.compile(
     r'lowmemorykiller: Killing|'
     r'to\s+free.*because\s+cache.*is\s+below\s+limit.*for\s+oom_', re.DOTALL)
 
-GPU_PROCESS_UNUSABLE_REGEX = re.compile(r'GPU process isn\'t usable', re.DOTALL)
-
 # Various persistent cached values.
 BUILD_PROP_MD5_KEY = 'android_build_prop_md5'
 LAST_TEST_ACCOUNT_CHECK_KEY = 'android_last_test_account_check'
