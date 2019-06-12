@@ -1277,9 +1277,12 @@ def execute_task(fuzzer_name, job_type):
   if build:
     # Some fuzzing jobs may use auxiliary builds, such as DFSan instrumented
     # builds accompanying libFuzzer builds to enable DFT-based fuzzing.
-    auxiliary_build = build_manager.setup_auxiliary_build()
-    if auxiliary_build:
-      environment.set_value('DATAFLOW_BUILD_DIR', auxiliary_build.build_dir)
+    dataflow_build_bucket_path = environment.get_value(
+        'DATAFLOW_BUILD_BUCKET_PATH')
+    dataflow_build = build_manager.setup_auxiliary_build(
+        dataflow_build_bucket_path)
+    if dataflow_build:
+      environment.set_value('DATAFLOW_BUILD_DIR', dataflow_build.build_dir)
 
   # Check if we have an application path. If not, our build failed
   # to setup correctly.
