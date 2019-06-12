@@ -4,6 +4,15 @@ Change Log
 ## Next Version
 - Various bug fixes.
 
+## Version 1.3.0
+- Various bug fixes.
+- Fixed security severity listbox not working.
+- More Python 2->3 conversions using futurize.
+- Delete button on jobs page.
+- New interface for issue management, as part of refactor to support more issue
+  trackers.
+- Android code refactoring.
+
 ## Version 1.2.1
 - Various bug fixes.
 
