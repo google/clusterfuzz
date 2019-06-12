@@ -18,6 +18,8 @@ import unittest
 from bot.tasks import impact_task
 from build_management import build_manager
 from datastore import data_types
+from tests.core.bot.tasks.component_revision_patching_test \
+    import ComponentRevisionPatchingTest
 from tests.test_libs import helpers
 from tests.test_libs import test_utils
 
@@ -34,7 +36,7 @@ class ExecuteTaskTest(unittest.TestCase):
         'bot.tasks.setup.setup_testcase',
         'build_management.build_manager.is_custom_binary',
         'build_management.build_manager.has_production_builds',
-        'fuzzing.tests.get_command_line_for_application',
+        'fuzzing.testcase_manager.get_command_line_for_application',
         'base.tasks.add_task',
     ])
     impacts = impact_task.Impacts(
@@ -173,29 +175,47 @@ class ExecuteTaskTest(unittest.TestCase):
         [mock.call(mock.ANY, 'path')])
 
 
-class GetImpactsFromUrlTest(unittest.TestCase):
+class GetImpactsFromUrlTest(ComponentRevisionPatchingTest):
   """Test get_impacts_from_url."""
 
   def setUp(self):
+    super(GetImpactsFromUrlTest, self).setUp()
     helpers.patch(self, [
         'bot.tasks.impact_task.get_start_and_end_revision',
         'bot.tasks.impact_task.get_impact',
         'build_management.revisions.get_build_to_revision_mappings',
+        'build_management.revisions.revision_to_branched_from',
         'datastore.data_handler.get_component_name',
     ])
     self.mock.get_component_name.return_value = None
+    self.mock.revision_to_branched_from.side_effect = (
+        self.mock_revision_to_branched_from)
     self.mock.get_start_and_end_revision.return_value = (1, 100)
     self.mock.get_build_to_revision_mappings.return_value = {
-        'stable': 'stable-version',
-        'beta': 'beta-version'
+        'stable': {
+            'revision': '398287',
+            'version': '74.0.1345.34'
+        },
+        'beta': {
+            'revision': '399171',
+            'version': '75.0.1353.43'
+        }
     }
     self.mock.get_impact.side_effect = [
         impact_task.Impact('s', False),
         impact_task.Impact('b', True)
     ]
 
-  def test_bail_out_component(self):
-    """Test bailing out when having a component."""
+  @staticmethod
+  def mock_revision_to_branched_from(uri, rev):
+    if uri == 'fish':
+      return None
+    if rev == 'cba1fdd4d72e7c5b874f9eeb07901792f26c871a':
+      return '666666'
+    return '777777'
+
+  def test_bail_out_unknown_component(self):
+    """Test bailing out when having an unknown component."""
     self.mock.get_component_name.return_value = 'com'
     self.assertTrue(
         impact_task.get_impacts_from_url('123:456', 'job').is_empty())
@@ -225,6 +245,50 @@ class GetImpactsFromUrlTest(unittest.TestCase):
         [mock.call('windows')])
     self.mock.get_impact.assert_has_calls([])
 
+  def test_bail_out_no_build_to_revision_mapping(self):
+    """Test bailing out when get_build_to_revision_mapping is empty"""
+    self.mock.get_build_to_revision_mappings.return_value = None
+    self.assertTrue(
+        impact_task.get_impacts_from_url('123:456', 'job',
+                                         'windows').is_empty())
+    self.mock.get_start_and_end_revision.assert_has_calls(
+        [mock.call('123:456', 'job')])
+    self.mock.get_build_to_revision_mappings.assert_has_calls(
+        [mock.call('windows')])
+    self.mock.get_impact.assert_has_calls([])
+
+  def test_bail_out_no_component_branched_from(self):
+    """Test bailing out when there's no Cr-Branched-From."""
+    self.mock.get_component_name.return_value = 'fish'
+    self.assertTrue(
+        impact_task.get_impacts_from_url('123:456', 'job',
+                                         'windows').is_empty())
+    self.mock.get_start_and_end_revision.assert_has_calls(
+        [mock.call('123:456', 'job')])
+    self.mock.get_build_to_revision_mappings.assert_has_calls(
+        [mock.call('windows')])
+
+  def test_bail_if_two_identically_named_components(self):
+    """Tests we bail if a comp is given twice in the component deps."""
+    self.mock.get_build_to_revision_mappings.return_value = {
+        'stable': {
+            'revision': '398287',
+            'version': '74.0.1345.34'
+        },
+        'beta': {
+            'revision': '400000',
+            'version': '76.0.1353.43'
+        }
+    }
+    self.mock.get_component_name.return_value = 'skia'
+    self.assertTrue(
+        impact_task.get_impacts_from_url('123:456', 'job',
+                                         'windows').is_empty())
+    self.mock.get_start_and_end_revision.assert_has_calls(
+        [mock.call('123:456', 'job')])
+    self.mock.get_build_to_revision_mappings.assert_has_calls(
+        [mock.call('windows')])
+
   def test_get_impacts(self):
     """Test getting impacts."""
     impacts = impact_task.get_impacts_from_url('123:456', 'job', 'windows')
@@ -239,8 +303,39 @@ class GetImpactsFromUrlTest(unittest.TestCase):
     self.mock.get_build_to_revision_mappings.assert_has_calls(
         [mock.call('windows')])
     self.mock.get_impact.assert_has_calls([
-        mock.call('stable-version', 1, 100),
-        mock.call('beta-version', 1, 100)
+        mock.call({
+            'version': '74.0.1345.34',
+            'revision': '398287'
+        }, 1, 100),
+        mock.call({
+            'version': '75.0.1353.43',
+            'revision': '399171'
+        }, 1, 100)
+    ])
+
+  def test_get_impacts_known_component(self):
+    """Test getting impacts for a known component."""
+    self.mock.get_component_name.return_value = 'v8'
+    impacts = impact_task.get_impacts_from_url('123:456', 'job', 'windows')
+
+    self.assertEqual('s', impacts.stable.version)
+    self.assertFalse(impacts.stable.likely)
+    self.assertEqual('b', impacts.beta.version)
+    self.assertTrue(impacts.beta.likely)
+
+    self.mock.get_start_and_end_revision.assert_has_calls(
+        [mock.call('123:456', 'job')])
+    self.mock.get_build_to_revision_mappings.assert_has_calls(
+        [mock.call('windows')])
+    self.mock.get_impact.assert_has_calls([
+        mock.call({
+            'version': '74.0.1345.34',
+            'revision': '666666'
+        }, 1, 100),
+        mock.call({
+            'version': '75.0.1353.43',
+            'revision': '777777'
+        }, 1, 100)
     ])
 
 
@@ -288,7 +383,7 @@ class GetImpactsOnProdBuilds(unittest.TestCase):
     helpers.patch(self, [
         'bot.tasks.impact_task.get_impact_on_build',
         'bot.tasks.impact_task.get_impacts_from_url',
-        'fuzzing.tests.get_command_line_for_application',
+        'fuzzing.testcase_manager.get_command_line_for_application',
     ])
     self.impacts = impact_task.Impacts(
         stable=impact_task.Impact('s', False),
@@ -358,8 +453,8 @@ class GetImpactOnBuild(unittest.TestCase):
     helpers.patch(self, [
         'build_management.build_manager.setup_production_build',
         'system.environment.get_value',
-        'fuzzing.tests.get_command_line_for_application',
-        'fuzzing.tests.test_for_crash_with_retries',
+        'fuzzing.testcase_manager.get_command_line_for_application',
+        'fuzzing.testcase_manager.test_for_crash_with_retries',
     ])
     self.env = {
         'APP_PATH': 'app',
@@ -425,7 +520,7 @@ class GetStartAndEndRevisionTest(unittest.TestCase):
     helpers.patch(self, [
         'build_management.revisions.get_start_and_end_revision',
         'build_management.revisions.get_component_range_list',
-        'fuzzing.tests.get_command_line_for_application',
+        'fuzzing.testcase_manager.get_command_line_for_application',
     ])
 
   def test_normal(self):

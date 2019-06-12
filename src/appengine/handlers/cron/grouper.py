@@ -129,14 +129,14 @@ def group_testcases():
         testcase_attributes.issue_id = (
             cached_issue_map[project_name][issue_id])
       else:
-        issue_tracker_manager = issue_tracker_utils.get_issue_tracker_manager(
-            testcase=testcase, use_cache=True)
-        if not issue_tracker_manager:
+        issue_tracker = issue_tracker_utils.get_issue_tracker_for_testcase(
+            testcase, use_cache=True)
+        if not issue_tracker:
           continue
 
         # Determine the original issue id traversing the list of duplicates.
         try:
-          issue = issue_tracker_manager.get_original_issue(issue_id)
+          issue = issue_tracker.get_original_issue(issue_id)
           original_issue_id = issue.id
         except:
           # If we are unable to access the issue, then we can't determine

@@ -99,6 +99,12 @@ PUBSUB_REQUEST_LIMIT = 900000
 # We store at most 3 stacktraces per Testcase entity (original, second, latest).
 STACKTRACE_LENGTH_LIMIT = ENTITY_SIZE_LIMIT // 3
 
+# Maximum size allowed for testcase comments.
+# 1MiB (maximum Datastore entity size) - ENTITY_SIZE_LIMIT (our limited entity
+# size with breathing room), divided by 2 to leave room for other things in the
+# entity. This is around 74KB.
+TESTCASE_COMMENTS_LENGTH_LIMIT = (1024 * 1024 - ENTITY_SIZE_LIMIT) // 2
+
 # Maximum number of testcase entities to query in one batch.
 TESTCASE_ENTITY_QUERY_LIMIT = 256
 

@@ -23,7 +23,7 @@ from tests.test_libs import test_utils
 
 @test_utils.with_cloud_emulators('datastore')
 class BatcherTest(unittest.TestCase):
-  """Test mark_fixed_na."""
+  """Test batcher."""
 
   def setUp(self):
     self.testcase_ids = []

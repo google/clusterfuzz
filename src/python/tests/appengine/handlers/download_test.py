@@ -24,6 +24,7 @@ import webtest
 from datastore import data_types
 from google_cloud_utils import storage
 from handlers import download
+from issue_management import issue_tracker
 from tests.test_libs import helpers as test_helpers
 from tests.test_libs import test_utils
 
@@ -46,7 +47,7 @@ class DownloadTest(unittest.TestCase):
     test_helpers.patch(self, [
         'base.utils.is_oss_fuzz',
         'google_cloud_utils.blobs.get_blob_info',
-        'issue_management.issue_tracker_utils.get_issue_tracker_manager',
+        'issue_management.issue_tracker_utils.get_issue_tracker_for_testcase',
         'libs.access.can_user_access_testcase',
         'libs.access.has_access',
         'libs.helpers.get_user_email',
@@ -185,13 +186,9 @@ class DownloadTest(unittest.TestCase):
   def test_public_download_chromium(self):
     """Test public downloading chromium testcases (should fail)."""
     self.mock.get_user_email.return_value = ''
-
-    def mock_has_label(label):
-      return label.lower() != 'restrict-view-commit'
-
     self.mock.is_oss_fuzz.return_value = False
-    mock_issue = self.mock.get_issue_tracker_manager().get_issue()
-    mock_issue.has_label.side_effect = mock_has_label
+    mock_issue = self.mock.get_issue_tracker_for_testcase(None).get_issue()
+    mock_issue.labels = issue_tracker.LabelStore([])
 
     self._test_download(
         self.minimized_key, expect_status=302, expect_blob=False)
@@ -214,12 +211,9 @@ class DownloadTest(unittest.TestCase):
     """Test public downloading OSS-Fuzz testcases."""
     self.mock.get_user_email.return_value = ''
 
-    def mock_has_label(label):
-      return label.lower() != 'restrict-view-commit'
-
     self.mock.is_oss_fuzz.return_value = True
-    mock_issue = self.mock.get_issue_tracker_manager().get_issue()
-    mock_issue.has_label.side_effect = mock_has_label
+    mock_issue = self.mock.get_issue_tracker_for_testcase(None).get_issue()
+    mock_issue.labels = issue_tracker.LabelStore([])
 
     self._test_download(
         self.minimized_key, expect_status=302, expect_blob=False)
@@ -237,7 +231,7 @@ class DownloadTest(unittest.TestCase):
         expect_status=302,
         expect_blob=False)
 
-    mock_issue.has_label.side_effect = lambda _: True
+    mock_issue.labels = issue_tracker.LabelStore(['restrict-view-commit'])
     self._test_download(
         testcase_id=self.testcase.key.id(),
         expect_status=302,

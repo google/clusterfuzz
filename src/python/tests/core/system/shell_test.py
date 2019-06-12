@@ -207,7 +207,7 @@ class WhichTest(fake_filesystem_unittest.TestCase):
       self.skipTest('Which test is only supported on posix platforms.')
 
   def test(self):
-    self.assertEqual('/bin/ls', shell.which('ls'))
+    self.assertTrue(shell.which('ls') in ['/bin/ls', '/usr/bin/ls'])
 
 
 class ClearSystemTempDirectoryTest(fake_filesystem_unittest.TestCase):

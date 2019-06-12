@@ -29,7 +29,7 @@ from crash_analysis import severity_analyzer
 from datastore import data_handler
 from datastore import data_types
 from fuzzing import leak_blacklist
-from fuzzing import tests
+from fuzzing import testcase_manager
 from metrics import logs
 from system import environment
 from system import process_handler
@@ -69,7 +69,7 @@ def store_testcase_dependencies_from_bundled_testcase_archive(
   crash_queue = process_handler.get_queue()
   thread_index = 0
   thread = process_handler.get_process()(
-      target=tests.run_testcase_and_return_result_in_queue,
+      target=testcase_manager.run_testcase_and_return_result_in_queue,
       args=(crash_queue, thread_index, testcase_file_path, testcase.gestures,
             env_copy))
   thread.start()
@@ -211,7 +211,7 @@ def execute_task(testcase_id, job_type):
   test_timeout = environment.get_value('TEST_TIMEOUT')
 
   # Get the crash output.
-  result = tests.test_for_crash_with_retries(
+  result = testcase_manager.test_for_crash_with_retries(
       testcase,
       testcase_file_path,
       test_timeout,
@@ -223,7 +223,7 @@ def execute_task(testcase_id, job_type):
   # are not applicable.
   if (not result.is_crash() and not http_flag and
       not environment.is_engine_fuzzer_job()):
-    result_with_http = tests.test_for_crash_with_retries(
+    result_with_http = testcase_manager.test_for_crash_with_retries(
         testcase,
         testcase_file_path,
         test_timeout,
@@ -241,7 +241,7 @@ def execute_task(testcase_id, job_type):
 
   # Set application command line with the correct http flag.
   application_command_line = (
-      tests.get_command_line_for_application(
+      testcase_manager.get_command_line_for_application(
           testcase_file_path, needs_http=http_flag))
 
   # Get the crash data.
@@ -324,7 +324,7 @@ def execute_task(testcase_id, job_type):
     return
 
   # Test for reproducibility.
-  one_time_crasher_flag = not tests.test_for_reproducibility(
+  one_time_crasher_flag = not testcase_manager.test_for_reproducibility(
       testcase_file_path, state.crash_state, security_flag, test_timeout,
       http_flag, gestures)
   testcase.one_time_crasher_flag = one_time_crasher_flag

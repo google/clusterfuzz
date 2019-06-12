@@ -57,13 +57,8 @@ def mark_unreproducible_if_flaky(testcase, potentially_flaky):
   data_handler.update_testcase_comment(testcase, data_types.TaskState.ERROR,
                                        'Testcase appears to be flaky')
 
-  issue = data_handler.get_issue_for_testcase(testcase)
-  if issue and issue.has_label('Reproducible'):
-    issue.remove_label('Reproducible')
-    issue.add_label('Unreproducible')
-    issue.comment = ('ClusterFuzz testcase %d appears to be flaky, '
-                     'updating reproducibility label.' % testcase.key.id())
-    issue.save()
+  # Issue update to flip reproducibility label is done in App Engine cleanup
+  # cron. This avoids calling the issue tracker apis from GCE.
 
   # For unreproducible testcases, it is still beneficial to get second stack
   # information from stack task and component information from blame task.
