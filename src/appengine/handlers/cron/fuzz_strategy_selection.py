@@ -94,7 +94,7 @@ ORDER BY
 """
 
 
-def _query_multi_armed_bandit_probs():
+def _query_multi_armed_bandit_probabilities():
   """Get query results.
 
   Queries above BANDIT_PROBABILITY_QUERY and yields results
@@ -103,7 +103,7 @@ def _query_multi_armed_bandit_probs():
   return client.query(query=BANDIT_PROBABILITY_QUERY).rows
 
 
-def _store_probs_in_bigquery(data):
+def _store_probabilities_in_bigquery(data):
   """Update a bigquery table containing the daily updated
   probability distribution over strategies."""
   bigquery_data = []
@@ -121,14 +121,14 @@ def _store_probs_in_bigquery(data):
   client.insert(bigquery_data)
 
 
-def _query_and_upload_strategy_probs():
+def _query_and_upload_strategy_probabilities():
   """Uploads queried data into datastore.
 
   Calls query functions and uploads query results
   to datastore to use as new probabilities. Probabilities
   are based on new_edges feature."""
   strategy_data = []
-  data = _query_multi_armed_bandit_probs()
+  data = _query_multi_armed_bandit_probabilities()
 
   for row in data:
     curr_strategy = data_types.FuzzStrategyProbability()
@@ -141,7 +141,7 @@ def _query_and_upload_strategy_probs():
           data_types.FuzzStrategyProbability)
   ])
   ndb.put_multi(strategy_data)
-  _store_probs_in_bigquery(data)
+  _store_probabilities_in_bigquery(data)
 
 
 class Handler(base_handler.Handler):
@@ -153,4 +153,4 @@ class Handler(base_handler.Handler):
   @handler.check_cron()
   def get(self):
     """Process all fuzz targets and update FuzzStrategy weights."""
-    _query_and_upload_strategy_probs()
+    _query_and_upload_strategy_probabilities()
