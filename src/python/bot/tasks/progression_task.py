@@ -25,15 +25,10 @@ from build_management import revisions
 from chrome import crash_uploader
 from datastore import data_handler
 from datastore import data_types
-from fuzzing import tests
+from fuzzing import testcase_manager
 from google_cloud_utils import big_query
-from issue_management import issue_tracker_utils
 from metrics import logs
 from system import environment
-
-FIXED_REPORT_HEADER = 'ClusterFuzz has detected this issue as '
-FIXED_REPORT_FOOTER = ('If you suspect that the result above is incorrect, '
-                       'try re-doing that job on the test case report page.')
 
 
 def _write_to_bigquery(testcase, progression_range_start,
@@ -45,35 +40,6 @@ def _write_to_bigquery(testcase, progression_range_start,
       range_name='fixed',
       start=progression_range_start,
       end=progression_range_end)
-
-
-def _add_issue_comment(testcase, comment):
-  """Helper function to add a comment to the bug associated with a test case."""
-  if not testcase.bug_information:
-    return
-
-  # Populate the full message.
-  report = data_handler.get_issue_description(testcase).rstrip('\n')
-  full_comment = '%s\n\n%s\n\n%s' % (comment, report, FIXED_REPORT_FOOTER)
-
-  # Update the issue.
-  issue_tracker_manager = (
-      issue_tracker_utils.get_issue_tracker_manager(testcase))
-  issue = issue_tracker_manager.get_issue(int(testcase.bug_information))
-  issue.comment = full_comment
-  issue_tracker_manager.save(issue, send_email=True)
-
-
-def _add_issue_comment_with_fixed_range(testcase):
-  """Add the standard comment to the bug for a test case."""
-  # Compose a build message based on build type.
-  if build_manager.is_custom_binary():
-    build_message = 'in the latest custom build'
-  else:
-    build_message = 'in range %s' % testcase.fixed
-
-  comment = '%sfixed %s.' % (FIXED_REPORT_HEADER, build_message)
-  _add_issue_comment(testcase, comment)
 
 
 def _clear_progression_pending(testcase):
@@ -131,14 +97,14 @@ def _check_fixed_for_custom_binary(testcase, job_type, testcase_file_path):
 
   testcase = data_handler.get_testcase_by_id(testcase.key.id())
   test_timeout = environment.get_value('TEST_TIMEOUT', 10)
-  result = tests.test_for_crash_with_retries(
+  result = testcase_manager.test_for_crash_with_retries(
       testcase, testcase_file_path, test_timeout, http_flag=testcase.http_flag)
   _log_output(revision, result)
 
   # If this still crashes on the most recent build, it's not fixed. The task
   # will be rescheduled by a cron job and re-attempted eventually.
   if result.is_crash():
-    command = tests.get_command_line_for_application(
+    command = testcase_manager.get_command_line_for_application(
         testcase_file_path, app_path=app_path, needs_http=testcase.http_flag)
     symbolized_crash_stacktrace = result.get_stacktrace(symbolized=True)
     unsymbolized_crash_stacktrace = result.get_stacktrace(symbolized=False)
@@ -165,7 +131,6 @@ def _check_fixed_for_custom_binary(testcase, job_type, testcase_file_path):
   testcase.open = False
   _update_completion_metadata(
       testcase, revision, message='fixed on latest custom build')
-  _add_issue_comment_with_fixed_range(testcase)
 
 
 def _testcase_reproduces_in_revision(testcase, testcase_file_path, job_type,
@@ -176,7 +141,7 @@ def _testcase_reproduces_in_revision(testcase, testcase_file_path, job_type,
   if not app_path:
     raise errors.BuildSetupError(revision, job_type)
 
-  if tests.check_for_bad_build(job_type, revision):
+  if testcase_manager.check_for_bad_build(job_type, revision):
     log_message = 'Bad build at r%d. Skipping' % revision
     testcase = data_handler.get_testcase_by_id(testcase.key.id())
     data_handler.update_testcase_comment(testcase, data_types.TaskState.WIP,
@@ -184,7 +149,7 @@ def _testcase_reproduces_in_revision(testcase, testcase_file_path, job_type,
     raise errors.BadBuildError(revision, job_type)
 
   test_timeout = environment.get_value('TEST_TIMEOUT', 10)
-  result = tests.test_for_crash_with_retries(
+  result = testcase_manager.test_for_crash_with_retries(
       testcase, testcase_file_path, test_timeout, http_flag=testcase.http_flag)
   _log_output(revision, result)
   return result
@@ -209,7 +174,6 @@ def _save_fixed_range(testcase_id, min_revision, max_revision):
 
   _update_completion_metadata(
       testcase, max_revision, message='fixed in range r%s' % testcase.fixed)
-  _add_issue_comment_with_fixed_range(testcase)
   _write_to_bigquery(testcase, min_revision, max_revision)
 
 
@@ -285,7 +249,7 @@ def find_fixed_range(testcase_id, job_type):
     logs.log('Found crash with same signature on latest revision r%d.' %
              max_revision)
     app_path = environment.get_value('APP_PATH')
-    command = tests.get_command_line_for_application(
+    command = testcase_manager.get_command_line_for_application(
         testcase_file_path, app_path=app_path, needs_http=testcase.http_flag)
     symbolized_crash_stacktrace = result.get_stacktrace(symbolized=True)
     unsymbolized_crash_stacktrace = result.get_stacktrace(symbolized=False)

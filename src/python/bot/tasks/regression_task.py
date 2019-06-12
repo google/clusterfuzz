@@ -26,7 +26,7 @@ from build_management import build_manager
 from build_management import revisions
 from datastore import data_handler
 from datastore import data_types
-from fuzzing import tests
+from fuzzing import testcase_manager
 from google_cloud_utils import big_query
 from metrics import logs
 from system import environment
@@ -106,7 +106,7 @@ def _testcase_reproduces_in_revision(testcase,
   if not app_path:
     raise errors.BuildSetupError(revision, job_type)
 
-  if tests.check_for_bad_build(job_type, revision):
+  if testcase_manager.check_for_bad_build(job_type, revision):
     log_message = 'Bad build at r%d. Skipping' % revision
     testcase = data_handler.get_testcase_by_id(testcase.key.id())
     data_handler.update_testcase_comment(testcase, data_types.TaskState.WIP,
@@ -114,7 +114,7 @@ def _testcase_reproduces_in_revision(testcase,
     raise errors.BadBuildError(revision, job_type)
 
   test_timeout = environment.get_value('TEST_TIMEOUT', 10)
-  result = tests.test_for_crash_with_retries(
+  result = testcase_manager.test_for_crash_with_retries(
       testcase, testcase_file_path, test_timeout, http_flag=testcase.http_flag)
   return result.is_crash()
 

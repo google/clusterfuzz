@@ -178,6 +178,7 @@ class CleanupTest(unittest.TestCase):
     cleanup.mark_issue_as_closed_if_testcase_is_fixed(
         testcase=testcase, issue=self.issue)
     self.assertNotEqual(self.issue.status, 'Verified')
+    self.assertEqual('', self.issue._monorail_issue.comment)
 
   def test_mark_issue_as_closed_if_testcase_is_fixed_2(self):
     """Ensure that we don't close issue if associated testcase is open and
@@ -190,6 +191,7 @@ class CleanupTest(unittest.TestCase):
     cleanup.mark_issue_as_closed_if_testcase_is_fixed(
         testcase=testcase, issue=self.issue)
     self.assertNotEqual(self.issue.status, 'Verified')
+    self.assertEqual('', self.issue._monorail_issue.comment)
 
   def test_mark_issue_as_closed_if_testcase_is_fixed_3(self):
     """Ensure that we close issue if associated testcase is unreproducible, but
@@ -203,6 +205,8 @@ class CleanupTest(unittest.TestCase):
     cleanup.mark_issue_as_closed_if_testcase_is_fixed(
         testcase=testcase, issue=self.issue)
     self.assertEqual(self.issue.status, 'Verified')
+    self.assertIn('ClusterFuzz testcase 1 is verified as fixed.',
+                  self.issue._monorail_issue.comment)
 
   def test_mark_issue_as_closed_if_testcase_is_fixed_4(self):
     """Ensure that we close issue if associated testcase is closed and
@@ -222,6 +226,11 @@ class CleanupTest(unittest.TestCase):
     cleanup.mark_issue_as_closed_if_testcase_is_fixed(
         testcase=testcase, issue=self.issue)
     self.assertEqual(self.issue.status, 'Verified')
+    self.assertIn(
+        'ClusterFuzz testcase 1 is verified as fixed in '
+        'https://test-clusterfuzz.appspot.com/revisions'
+        '?job=test_content_shell_drt&range=1:2',
+        self.issue._monorail_issue.comment)
 
   def test_mark_issue_as_closed_if_testcase_is_fixed_5(self):
     """Ensure that we don't close issue if associated testcase is closed and
@@ -241,6 +250,7 @@ class CleanupTest(unittest.TestCase):
     cleanup.mark_issue_as_closed_if_testcase_is_fixed(
         testcase=testcase, issue=self.issue)
     self.assertNotEqual(self.issue.status, 'Verified')
+    self.assertEqual('', self.issue._monorail_issue.comment)
 
   def test_mark_issue_as_closed_if_testcase_is_fixed_6(self):
     """Ensure that we close issue if all associated testcases are closed and
@@ -260,6 +270,11 @@ class CleanupTest(unittest.TestCase):
     cleanup.mark_issue_as_closed_if_testcase_is_fixed(
         testcase=testcase, issue=self.issue)
     self.assertEqual(self.issue.status, 'Verified')
+    self.assertIn(
+        'ClusterFuzz testcase 1 is verified as fixed in '
+        'https://test-clusterfuzz.appspot.com/revisions'
+        '?job=test_content_shell_drt&range=1:2',
+        self.issue._monorail_issue.comment)
 
   def test_mark_issue_as_closed_if_testcase_is_fixed_7(self):
     """Ensure that we close issue if issue is marked fixed and all associated
@@ -282,6 +297,11 @@ class CleanupTest(unittest.TestCase):
     cleanup.mark_issue_as_closed_if_testcase_is_fixed(
         testcase=testcase, issue=self.issue)
     self.assertEqual(self.issue.status, 'Verified')
+    self.assertIn(
+        'ClusterFuzz testcase 1 is verified as fixed in '
+        'https://test-clusterfuzz.appspot.com/revisions'
+        '?job=test_content_shell_drt&range=1:2',
+        self.issue._monorail_issue.comment)
 
   def test_mark_issue_as_closed_if_testcase_is_fixed_8(self):
     """Ensure that we don't close issue when we already did the issue
@@ -301,6 +321,7 @@ class CleanupTest(unittest.TestCase):
     cleanup.mark_issue_as_closed_if_testcase_is_fixed(
         testcase=testcase, issue=self.issue)
     self.assertNotEqual(self.issue.status, 'Verified')
+    self.assertEqual('', self.issue._monorail_issue.comment)
 
   def test_mark_issue_as_closed_if_testcase_is_fixed_9(self):
     """Ensure that we don't close issue if a developer has labeled the last
@@ -320,6 +341,7 @@ class CleanupTest(unittest.TestCase):
     cleanup.mark_issue_as_closed_if_testcase_is_fixed(
         testcase=testcase, issue=self.issue)
     self.assertNotEqual(self.issue.status, 'Verified')
+    self.assertEqual('', self.issue._monorail_issue.comment)
 
   def test_mark_issue_as_closed_if_testcase_is_fixed_10(self):
     """Ensure that we don't close issue when this is unreproducible upload."""
@@ -333,6 +355,7 @@ class CleanupTest(unittest.TestCase):
     cleanup.mark_issue_as_closed_if_testcase_is_fixed(
         testcase=testcase, issue=self.issue)
     self.assertNotEqual(self.issue.status, 'Verified')
+    self.assertEqual('', self.issue._monorail_issue.comment)
 
   def test_mark_testcase_as_closed_if_issue_is_closed_1(self):
     """Test that we don't do anything if testcase is already closed."""
@@ -1430,6 +1453,48 @@ class UpdateIssueCCsFromOwnersFileTest(unittest.TestCase):
 
     self.assertItemsEqual(issue_owners[-5:], self.issue.ccs)
     self.assertIn('ClusterFuzz-Auto-CC', self.issue.labels)
+
+
+@test_utils.with_cloud_emulators('datastore')
+class UpdateIssueLabelsForFlakyTestcaseTest(unittest.TestCase):
+  """Tests for update_issue_labels_for_flaky_testcase."""
+
+  def setUp(self):
+    self.issue = test_utils.create_generic_issue()
+    self.testcase = test_utils.create_generic_testcase()
+
+  def test_mark_unreproducible_if_reproducible_change(self):
+    """Test that we change label on issue if the testcase is now flaky."""
+    self.issue.labels.add('Reproducible')
+    self.testcase.one_time_crasher_flag = True
+    cleanup.update_issue_labels_for_flaky_testcase(self.testcase, self.issue)
+
+    self.assertNotIn('Reproducible', self.issue.labels)
+    self.assertIn('Unreproducible', self.issue.labels)
+    self.assertEqual(
+        'ClusterFuzz testcase 1 appears to be flaky, '
+        'updating reproducibility label.', self.issue._monorail_issue.comment)
+
+  def test_skip_if_unreproducible(self):
+    """Test that we don't change labels if the testcase is unreproducible and
+    issue is already marked unreproducible."""
+    self.issue.labels.add('Unreproducible')
+    self.testcase.one_time_crasher_flag = True
+    cleanup.update_issue_labels_for_flaky_testcase(self.testcase, self.issue)
+
+    self.assertNotIn('Reproducible', self.issue.labels)
+    self.assertIn('Unreproducible', self.issue.labels)
+    self.assertEqual('', self.issue._monorail_issue.comment)
+
+  def test_skip_if_reproducible(self):
+    """Test that we don't change labels if the testcase is reproducible."""
+    self.issue.labels.add('Reproducible')
+    self.testcase.one_time_crasher_flag = False
+    cleanup.update_issue_labels_for_flaky_testcase(self.testcase, self.issue)
+
+    self.assertIn('Reproducible', self.issue.labels)
+    self.assertNotIn('Unreproducible', self.issue.labels)
+    self.assertEqual('', self.issue._monorail_issue.comment)
 
 
 @test_utils.with_cloud_emulators('datastore')

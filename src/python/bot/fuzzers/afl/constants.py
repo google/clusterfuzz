@@ -59,3 +59,5 @@ RESUME_INPUT = '-'
 # Don't let afl set a memory limit. Otherwise we will not be able to use
 # sanitizers.
 MAX_MEMORY_LIMIT = 'none'
+
+CORE_PATTERN_FILE_PATH = '/proc/sys/kernel/core_pattern'

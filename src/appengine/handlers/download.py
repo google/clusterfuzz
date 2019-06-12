@@ -67,14 +67,14 @@ class Handler(base_handler.Handler, gcs.SignedGcsHandler):
     if not testcase.bug_information:
       return False
 
-    itm = issue_tracker_utils.get_issue_tracker_manager(testcase)
-    issue = itm.get_issue(int(testcase.bug_information))
+    issue_tracker = issue_tracker_utils.get_issue_tracker_for_testcase(testcase)
+    issue = issue_tracker.get_issue(testcase.bug_information)
     if not issue:
       return False
 
     # If the issue is explicitly marked as view restricted to committers only
     # (OSS-Fuzz only), then don't allow public download.
-    if issue.has_label('restrict-view-commit'):
+    if 'restrict-view-commit' in issue.labels:
       return False
 
     self._send_blob(

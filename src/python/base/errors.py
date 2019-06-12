@@ -110,8 +110,9 @@ class BadBuildError(Error):
 class BadConfigError(Error):
   """Error thrown when configuration is bad."""
 
-  def __init__(self):
-    super(BadConfigError, self).__init__('Bad configuration.')
+  def __init__(self, config_dir):
+    super(BadConfigError, self).__init__(
+        'Bad configuration at: {config_dir}'.format(config_dir=config_dir))
 
 
 class ConfigParseError(Error):

@@ -14,18 +14,15 @@
 """Tests for blame task."""
 # pylint: disable=protected-access
 
-import ast
 import json
-import os
 import unittest
 
 from bot.tasks import blame_task
 from datastore import data_handler
 from system import environment
-from tests.test_libs import helpers
+from tests.core.bot.tasks.component_revision_patching_test \
+    import ComponentRevisionPatchingTest
 from tests.test_libs import test_utils
-
-DATA_DIRECTORY = os.path.join(os.path.dirname(__file__), 'blame_task_data')
 
 
 class ExtractUrlAndShaFromDepsEntryTest(unittest.TestCase):
@@ -167,29 +164,8 @@ class FormatComponentRevisionsForPredator(unittest.TestCase):
     self.assertEqual(actual_result, expected_result)
 
 
-@test_utils.with_cloud_emulators('datastore')
-class PreparePredatorRequestBodyTest(unittest.TestCase):
+class PreparePredatorRequestBodyTest(ComponentRevisionPatchingTest):
   """Test prepare_predator_message."""
-
-  def setUp(self):
-    helpers.patch_environ(self)
-
-    helpers.patch(self, [
-        'build_management.revisions.get_component_revisions_dict',
-    ])
-
-    self.mock.get_component_revisions_dict.side_effect = (
-        self.mock_get_component_revisions_dict)
-
-  @staticmethod
-  def mock_get_component_revisions_dict(revision, _):
-    if revision == 0:
-      return {}
-
-    component_revisions_file_path = os.path.join(
-        DATA_DIRECTORY, 'component_revisions_%s.txt' % revision)
-    with open(component_revisions_file_path) as file_handle:
-      return ast.literal_eval(file_handle.read())
 
   def test_custom_binary(self):
     """Test custom binary."""

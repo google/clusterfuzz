@@ -273,6 +273,22 @@ def get_reproduction_help_url(testcase, config):
       testcase.job_type, 'HELP_URL', default=config.reproduction_help_url)
 
 
+def get_fixed_range_url(testcase):
+  """Return url to testcase fixed range."""
+  # Testcase is not fixed yet.
+  if not testcase.fixed:
+    return None
+
+  # Testcase is unreproducible or coming from a custom binary.
+  if testcase.fixed == 'NA' or testcase.fixed == 'Yes':
+    return None
+
+  return TESTCASE_REVISION_RANGE_URL.format(
+      domain=get_domain(),
+      job_type=testcase.job_type,
+      revision_range=testcase.fixed)
+
+
 def get_issue_description(testcase,
                           reporter=None,
                           show_reporter=False,
@@ -637,6 +653,13 @@ def update_testcase_comment(testcase, task_state, message=None):
   if message:
     testcase.comments += ': %s' % message
   testcase.comments += '.\n'
+
+  # Truncate if too long.
+  if len(testcase.comments) > data_types.TESTCASE_COMMENTS_LENGTH_LIMIT:
+    logs.log_error('Testcase comments truncated.')
+    testcase.comments = testcase.comments[
+        -data_types.TESTCASE_COMMENTS_LENGTH_LIMIT:]
+
   testcase.put()
 
   # Log the message in stackdriver after the testcase.put() call as otherwise
@@ -1062,23 +1085,6 @@ def update_issue_impact_labels(testcase, issue):
                    label_utils.impact_to_string(new_impact))
 
 
-def get_issue_for_testcase(testcase):
-  """Return issue associated with the testcase (if any)."""
-  if not testcase.bug_information:
-    return None
-
-  issue_id = int(testcase.bug_information)
-  itm = issue_tracker_utils.get_issue_tracker_manager(testcase)
-
-  try:
-    issue = itm.get_issue(issue_id)
-  except Exception:
-    logs.log_error('Unable to query issue %d.' % issue_id)
-    return None
-
-  return issue
-
-
 # ------------------------------------------------------------------------------
 # TestcaseUploadMetadata database related functions
 # ------------------------------------------------------------------------------
@@ -1181,15 +1187,13 @@ def create_user_uploaded_testcase(key,
   # Create the job to analyze the testcase.
   tasks.add_task('analyze', testcase_id, job_type, queue)
 
-  if testcase.bug_information:
-    issue = get_issue_for_testcase(testcase)
-    if issue:
-      report_url = TESTCASE_REPORT_URL.format(
-          domain=get_domain(), testcase_id=testcase_id)
-      issue.dirty = True
-      issue.comment = ('ClusterFuzz is analyzing your testcase. '
-                       'Developers can follow the progress at %s.' % report_url)
-      issue.save()
+  issue = issue_tracker_utils.get_issue_for_testcase(testcase)
+  if issue:
+    report_url = TESTCASE_REPORT_URL.format(
+        domain=get_domain(), testcase_id=testcase_id)
+    comment = ('ClusterFuzz is analyzing your testcase. '
+               'Developers can follow the progress at %s.' % report_url)
+    issue.save(new_comment=comment)
 
   return testcase.key.id()
 
