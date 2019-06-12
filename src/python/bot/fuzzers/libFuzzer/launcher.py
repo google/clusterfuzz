@@ -201,7 +201,7 @@ def do_mutator_plugin():
 
 
 def do_dataflow_tracing():
-  """Return whether or now to use dataflow tracing."""
+  """Return whether or not to use dataflow tracing."""
   return engine_common.decide_with_probability(
       engine_common.get_strategy_probability(
           strategy.DATAFLOW_TRACING_STRATEGY,
@@ -906,20 +906,18 @@ def main(argv):
     arguments.append(constants.VALUE_PROFILE_ARGUMENT)
     fuzzing_strategies.append(strategy.VALUE_PROFILE_STRATEGY)
 
-  use_dataflow_tracing = False
-
   # Depends on the presense of DFSan instrumented build.
   dataflow_build_path = environment.get_value('DATAFLOW_BUILD_DIR_???')
-  if dataflow_build_path and do_dataflow_tracing():
+  use_dataflow_tracing = dataflow_build_path and do_dataflow_tracing()
+  if use_dataflow_tracing:
     dataflow_binary_path = os.path.join(dataflow_build_path,
                                         os.path.basename(fuzzer_path))
     arguments.append(
         '%s%s' % (constants.COLLECT_DATA_FLOW_FLAG, dataflow_binary_path))
     fuzzing_strategies.append(strategy.DATAFLOW_TRACING_STRATEGY)
-    use_dataflow_tracing = True
 
   # DataFlow Tracing requires fork mode, always use it with DFT strategy.
-  if do_fork() or use_dataflow_tracing:
+  if use_dataflow_tracing or do_fork():
     max_fuzz_threads = environment.get_value('MAX_FUZZ_THREADS', 1)
     num_fuzz_processes = max(1, multiprocessing.cpu_count() // max_fuzz_threads)
     arguments.append('%s%d' % (constants.FORK_FLAG, num_fuzz_processes))

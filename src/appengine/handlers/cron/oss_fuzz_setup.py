@@ -525,8 +525,13 @@ def sync_cf_job(project, info, corpus_bucket, quarantine_bucket, logs_bucket,
       job.environment_string += 'UNPACK_ALL_FUZZ_TARGETS_AND_FILES = False\n'
 
     if 'dataflow' in info.get('fuzzing_engines'):
+      # Dataflow binaries are built with dataflow sanitizer, but can be used as
+      # an auxiliary build with other fuzzing builds (e.g. with ASan or UBSan).
       dataflow_build_bucket_path = get_build_bucket_path(
-          project, 'dataflow', 'dataflow', template.architecture),
+          project,
+          engine='dataflow',
+          memory_tool='dataflow',
+          template.architecture),
       job.environment_string += (
           'DATAFLOW_BUILD_BUCKET_PATH = %s\n' % dataflow_build_bucket_path)
 

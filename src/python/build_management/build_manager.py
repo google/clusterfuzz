@@ -1155,17 +1155,15 @@ def setup_trunk_build():
     return None
 
   build = setup_regular_build(revision)
-  if build:
-    setup_auxiliary_builds(revision)
 
   return build
 
 
-def setup_auxiliary_builds(revision):
+def setup_auxiliary_builds(revision=0):
   """Sets up auxiliary builds when necessary (e.g. DFSan build)."""
   dataflow_build_bucket_path = environment.get_value(
       'DATAFLOW_BUILD_BUCKET_PATH')
-  # Download the latest revision, as we cannot guarantee excat matching and do
+  # Download the latest revision, as we cannot guarantee exact matching and do
   # not need DFSan builds for any tasks other than fuzzing.
   # Unpack, save the directory path somewhere to be later used in the launcher.
 
