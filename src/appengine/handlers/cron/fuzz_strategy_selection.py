@@ -99,7 +99,7 @@ def _query_multi_armed_bandit_probs(client):
 
   Queries above BANDIT_PROBABILITY_QUERY and yields results
   from bigquery. This query is sorted by strategies implemented."""
-  return client.query(query=BANDIT_PROBABILITY_QUERY)
+  return client.query(query=BANDIT_PROBABILITY_QUERY).rows
 
 
 def _query_and_upload_strategy_weights(client):
