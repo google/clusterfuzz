@@ -254,15 +254,13 @@ class MonorailTests(unittest.TestCase):
         keywords=['one', 'two'], only_open=False)
     self.assertEqual(
         'https://bugs.chromium.org/p/name/issues/list'
-        '?can_id=1&q=%22one%22+%22two%22',
-        url)
+        '?can_id=1&q=%22one%22+%22two%22', url)
 
     url = self.issue_tracker.find_issues_url(
         keywords=['one', 'two'], only_open=True)
     self.assertEqual(
         'https://bugs.chromium.org/p/name/issues/list'
-        '?can_id=2&q=%22one%22+%22two%22',
-        url)
+        '?can_id=2&q=%22one%22+%22two%22', url)
 
   def test_issue_url(self):
     """Test issue_url."""
