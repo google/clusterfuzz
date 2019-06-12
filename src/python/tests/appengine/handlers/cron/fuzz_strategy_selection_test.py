@@ -36,7 +36,8 @@ class TestFuzzStrategySelection(unittest.TestCase):
     """Set up method strategy distribution calculation tests."""
     test_helpers.patch_environ(self)
     test_helpers.patch(self, [
-        'handlers.cron.fuzz_strategy_selection._query_multi_armed_bandit_probs'
+        'handlers.cron.fuzz_strategy_selection._query_multi_armed_bandit_probs',
+        'handlers.cron.fuzz_strategy_selection._store_probs_in_bigquery'
     ])
     self.mock._query_multi_armed_bandit_probs.return_value = json.load(
         open(os.path.join(DATA_DIRECTORY, 'multi_armed_bandit_query.json')))
@@ -48,15 +49,15 @@ class TestFuzzStrategySelection(unittest.TestCase):
     row1 = data_types.FuzzStrategyProbability.query(
         data_types.FuzzStrategyProbability.strategy_name ==
         'ml rnn,fork,').get()
-    self.assertEqual(row1.probability, 0.008499377133881613)
+    self.assertEqual(row1.probability, 0.00843939359881144)
     row2 = data_types.FuzzStrategyProbability.query(
         data_types.FuzzStrategyProbability.strategy_name ==
         'ml rnn,fork,subset,').get()
-    self.assertEqual(row2.probability, 0.008034989621423334)
+    self.assertEqual(row2.probability, 0.007949692658367058)
     row3 = data_types.FuzzStrategyProbability.query(
         data_types.FuzzStrategyProbability.strategy_name ==
         'max len,ml rnn,dict,').get()
-    self.assertEqual(row3.probability, 0.03471989092623837)
+    self.assertEqual(row3.probability, 0.03372520353666355)
 
   def test_delete_from_table(self):
     """Ensures that ndb datastore table is properly being

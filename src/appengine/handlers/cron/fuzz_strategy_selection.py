@@ -40,13 +40,13 @@ SELECT
   /* Calculate bandit weights from calculated exponential values. */
   strategy,
   strategy_exp / exp_sum AS bandit_weight,
-  strategy_count
+  run_count
 FROM
   (SELECT
     EXP(strategy_avg_edges / temperature) AS strategy_exp,
     SUM(EXP(strategy_avg_edges / temperature)) OVER() AS exp_sum,
     strategy,
-    strategy_count
+    run_count
   FROM
     (SELECT
       /* Standardize the new edges data and take averages per strategy. */
@@ -54,7 +54,7 @@ FROM
       strategy,
       /* Change temperature parameter here. */
       .5 as temperature,
-      COUNT(*) AS strategy_count
+      COUNT(*) AS run_count
     FROM
       (SELECT
         fuzzer,
@@ -101,9 +101,23 @@ def _query_multi_armed_bandit_probs(client):
   from bigquery. This query is sorted by strategies implemented."""
   return client.query(query=BANDIT_PROBABILITY_QUERY).rows
 
-def _store_strategy_probs_in_bigquery(data):
+
+def _store_probs_in_bigquery(data):
   """Update a bigquery table containing the daily updated
-  distribution """
+  probability distribution over strategies."""
+  bigquery_data = []
+
+  for row in data:
+    bigquery_row = {
+        'strategy_name': row['strategy'],
+        'probability': row['bandit_weight'],
+        'run_count': row['run_count']
+    }
+    bigquery_data.append(big_query.Insert(row=bigquery_row, insert_id=None))
+
+  client = big_query.Client(
+      dataset_id='main', table_id='fuzz_strategy_probability')
+  client.insert(bigquery_data)
 
 
 def _query_and_upload_strategy_probs(client):
@@ -114,7 +128,6 @@ def _query_and_upload_strategy_probs(client):
   are based on new_edges feature."""
   strategy_data = []
   data = _query_multi_armed_bandit_probs(client)
-
 
   for row in data:
     curr_strategy = data_types.FuzzStrategyProbability()
@@ -127,6 +140,7 @@ def _query_and_upload_strategy_probs(client):
           data_types.FuzzStrategyProbability)
   ])
   ndb.put_multi(strategy_data)
+  _store_probs_in_bigquery(data)
 
 
 class Handler(base_handler.Handler):
