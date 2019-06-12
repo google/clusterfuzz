@@ -653,6 +653,13 @@ def update_testcase_comment(testcase, task_state, message=None):
   if message:
     testcase.comments += ': %s' % message
   testcase.comments += '.\n'
+
+  # Truncate if too long.
+  if len(testcase.comments) > data_types.TESTCASE_COMMENTS_LENGTH_LIMIT:
+    logs.log_error('Testcase comments truncated.')
+    testcase.comments = testcase.comments[
+        -data_types.TESTCASE_COMMENTS_LENGTH_LIMIT:]
+
   testcase.put()
 
   # Log the message in stackdriver after the testcase.put() call as otherwise

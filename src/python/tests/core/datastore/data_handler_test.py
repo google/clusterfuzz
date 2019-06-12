@@ -13,11 +13,13 @@
 # limitations under the License.
 """Tests for data_handler."""
 
-from pyfakefs import fake_filesystem_unittest
+import datetime
 import json
 import mock
 import os
 import unittest
+
+from pyfakefs import fake_filesystem_unittest
 
 from config import local_config
 from datastore import data_handler
@@ -571,3 +573,60 @@ class UpdateImpactTest(unittest.TestCase):
     data_handler.update_issue_impact_labels(self.testcase, mock_issue)
     self.assertItemsEqual([], mock_issue.labels.added)
     self.assertItemsEqual([], mock_issue.labels.removed)
+
+
+class UpdateTestcaseCommentTest(unittest.TestCase):
+  """Update testcase comment tests."""
+
+  def setUp(self):
+    helpers.patch_environ(self)
+    helpers.patch(self, [
+        'base.utils.current_date_time',
+    ])
+
+    os.environ['BOT_NAME'] = 'bot'
+    os.environ['TASK_NAME'] = 'progression'
+    self.testcase = mock.Mock()
+    self.testcase.comments = ''
+    self.mock.current_date_time.return_value = datetime.datetime(2019, 1, 1)
+
+  def test_update_comment_empty(self):
+    """Basic test on a testcase with empty comments."""
+    data_handler.update_testcase_comment(
+        self.testcase, data_types.TaskState.STARTED, 'message')
+    self.assertEqual(
+        '[2019-01-01 00:00:00] bot: Progression task started: message.\n',
+        self.testcase.comments)
+
+  def test_update_comment_clear(self):
+    """Basic test on a testcase with existing comments, and clearing old
+    progression messages."""
+    self.testcase.comments = (
+        '[2018-01-01 00:00:00] bot: Foo.\n'
+        '[2018-01-01 00:00:00] bot: Progression task started: message.\n'
+        '[2018-01-01 00:00:00] bot: Bar.\n'
+        '[2018-01-01 00:00:00] bot: Progression task finished.\n'
+        '[2018-01-01 00:00:00] bot: Blah.\n')
+    data_handler.update_testcase_comment(
+        self.testcase, data_types.TaskState.STARTED, 'message')
+    self.assertEqual(
+        ('[2018-01-01 00:00:00] bot: Foo.\n'
+         '[2018-01-01 00:00:00] bot: Bar.\n'
+         '[2018-01-01 00:00:00] bot: Blah.\n'
+         '[2019-01-01 00:00:00] bot: Progression task started: message.\n'),
+        self.testcase.comments)
+
+  def test_update_comment_truncate(self):
+    """Test truncating long comments."""
+    self.testcase.comments = '\n' * data_types.TESTCASE_COMMENTS_LENGTH_LIMIT
+    data_handler.update_testcase_comment(
+        self.testcase, data_types.TaskState.STARTED, 'message')
+
+    self.assertEqual(data_types.TESTCASE_COMMENTS_LENGTH_LIMIT,
+                     len(self.testcase.comments))
+    expected_new = (
+        '[2019-01-01 00:00:00] bot: Progression task started: message.\n')
+    expected = (
+        '\n' * (data_types.TESTCASE_COMMENTS_LENGTH_LIMIT - len(expected_new)) +
+        expected_new)
+    self.assertEqual(expected, self.testcase.comments)
