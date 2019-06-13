@@ -172,7 +172,7 @@ _ROUTES = [
     ('/fuzzer-stats', fuzzer_stats.Handler),
     ('/fuzzer-stats/.*', fuzzer_stats.Handler),
     ('/gcs-redirect', gcs_redirector.Handler),
-    ('/issue/([0-9]+)/(.+)', issue_redirector.Handler),
+    ('/issue/([0-9]+)', issue_redirector.Handler),
     ('/jobs', jobs.Handler),
     ('/jobs/delete-job', jobs.DeleteJobHandler),
     ('/login', login.Handler),

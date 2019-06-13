@@ -117,7 +117,7 @@
           opened="{{removeIssueDialogOpened}}"
           title="Unassign issue">
         Please confirm that you want to unassign
-        <a href="[[info.issue_url]][[info.testcase.bug_information]]">the issue [[info.testcase.bug_information]]</a>
+        <a href="[[info.issue_url]]">the issue [[info.testcase.bug_information]]</a>
         from this testcase.
       </confirm-dialog>
     </template>
@@ -304,12 +304,12 @@
                 <td class="value">
                   <if-else condition="[[info.testcase.bug_information]]">
                     <span slot="t">
-                      <a href="[[info.issue_url]][[info.testcase.bug_information]]">[[info.testcase.bug_information]]</a>
+                      <a href="[[info.issue_url]]">[[info.testcase.bug_information]]</a>
                       <paper-icon-button icon="highlight-off" toggles hidden$="[[!info.is_admin]]" active="{{removeIssueDialogOpened}}" title="Unassign the issue from this testcase"></paper-icon-button>
                     </span>
                     <span slot="f">
                       <if-else condition="[[info.testcase.group_bug_information]]">
-                        <a slot="t" href="[[info.issue_url]][[info.testcase.group_bug_information]]">[[info.testcase.group_bug_information]]</a> (from its group)
+                        <a slot="t" href="[[info.issue_url]]">[[info.testcase.group_bug_information]]</a> (from its group)
                         <span slot="f">None</span>
                       </if-else>
                     </span>

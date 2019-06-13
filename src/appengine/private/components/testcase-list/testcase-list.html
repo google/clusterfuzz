@@ -382,7 +382,7 @@
                   </td>
                   <td class="labels">
                     <template is="dom-if" if="[[item.issueId]]">
-                      <a class="issue label" href="/issue/[[item.id]]/[[item.issueId]]" title="Click to view the associated issue [[item.issueId]] in the issue tracker.">Issue [[item.issueId]]</a>
+                      <a class="issue label" href="/issue/[[item.id]]" title="Click to view the associated issue [[item.issueId]] in the issue tracker.">Issue [[item.issueId]]</a>
                     </template>
                     <template is="dom-if" if="[[item.showImpacts]]">
                       <if-else condition="[[item.isImpactSet]]">

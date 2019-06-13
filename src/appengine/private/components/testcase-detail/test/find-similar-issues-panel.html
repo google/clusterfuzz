@@ -37,16 +37,26 @@
       const emptyResponse = JSON.stringify({
         queryString: "Test test",
         queryUrl: "http://somethingsomething",
-        issueUrlPrefix: "http://something",
         items: []
       });
       const response = JSON.stringify({
         queryString: "Test test",
         queryUrl: "http://somethingsomething",
-        issueUrlPrefix: "http://something",
         items: [
-          {id: 1234, summary: "Test query"},
-          {id: 9999, summary: "Test query 2"}
+          {
+            issue: {
+              id: 1234,
+              summary: "Test query"
+            },
+            url: 'http://something/1234',
+          },
+          {
+            issue: {
+              id: 9999,
+              summary: "Test query 2"
+            },
+            url: 'http://something/9999',
+          },
         ]
       });
 

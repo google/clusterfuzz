@@ -257,3 +257,15 @@ class IssueTracker(object):
     """Retrieve the original issue object traversing the list of duplicates."""
     # TODO(ochang): Use implementation from monorail for all issue trackers.
     raise NotImplementedError
+
+  def find_issues(self, keywords=None, only_open=None):
+    """Find issues."""
+    raise NotImplementedError
+
+  def find_issues_url(self, keywords=None, only_open=None):
+    """Find issues (web URL)."""
+    raise NotImplementedError
+
+  def issue_url(self, issue_id):
+    """Return the issue URL with the given ID."""
+    raise NotImplementedError

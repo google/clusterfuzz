@@ -140,8 +140,8 @@
                 <ul>
                   <template is="dom-repeat" items="[[response.items]]">
                     <li>
-                      <a href="[[response.issueUrlPrefix]][[item.id]]">[[item.id]]</a>
-                      [[item.summary]]
+                      <a href="[[item.url]]">[[item.issue.id]]</a>
+                      [[item.issue.title]]
                     </li>
                   </template>
                 </ul>

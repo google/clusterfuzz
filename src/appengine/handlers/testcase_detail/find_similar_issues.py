@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """Handler for finding similar issues."""
-from base import utils
 from handlers import base_handler
 from issue_management import issue_tracker_utils
 from libs import handler
@@ -23,29 +22,27 @@ class Handler(base_handler.Handler):
   """Handler that finds similar issues."""
 
   @staticmethod
-  def get_issues(testcase, filter_type):
+  def get_issues(issue_tracker, testcase, only_open):
     """Get similar issues. It is used by self.process() and
     handler.testcase_detail.FindSimilarIssuesHandler.get()"""
-    itm = helpers.get_issue_tracker_manager(testcase)
-
     issues = issue_tracker_utils.get_similar_issues(
-        testcase, can=filter_type, issue_tracker_manager=itm)
+        issue_tracker, testcase, only_open=only_open)
 
     items = []
     for entry in issues:
       items.append({
-          'owner': entry.owner,
+          'owner': entry.assignee,
           'reporter': entry.reporter,
-          'security': entry.has_label_containing('security'),
           'status': entry.status,
-          'summary': entry.summary,
-          'updated': utils.time_difference_string(entry.updated),
+          'title': entry.title,
           'id': entry.id
       })
 
     items = sorted(items, key=lambda k: k['id'])
-    issue_url = issue_tracker_utils.get_issue_url(testcase)
-    return items, issue_url
+    return [{
+        'issue': item,
+        'url': issue_tracker.issue_url(item),
+    } for item in items]
 
   @handler.get(handler.JSON)
   @handler.check_admin_access_if_oss_fuzz
@@ -53,17 +50,18 @@ class Handler(base_handler.Handler):
   def get(self, testcase):
     """Find similar issues."""
     filter_type = self.request.get('filterType')
+    only_open = filter_type == 'open'
 
-    items, issue_url = self.get_issues(testcase, filter_type)
+    issue_tracker = helpers.get_issue_tracker_for_testcase(testcase)
+    items = self.get_issues(issue_tracker, testcase, only_open)
 
     response = {
         'queryString':
-            issue_tracker_utils.get_similar_issues_query(testcase),
+            ' '.join(issue_tracker_utils.get_search_keywords(testcase)),
         'queryUrl':
-            issue_tracker_utils.get_similar_issues_url(testcase, filter_type),
+            issue_tracker_utils.get_similar_issues_url(issue_tracker, testcase,
+                                                       only_open),
         'items':
             items,
-        'issueUrlPrefix':
-            issue_url
     }
     self.render_json(response)

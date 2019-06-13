@@ -14,12 +14,14 @@
 """Tests for monorail issue management."""
 
 import datetime
+import mock
 import unittest
 
 from issue_management import monorail
 from issue_management.monorail import issue_tracker_manager
 from issue_management.monorail.comment import Comment as MonorailComment
 from issue_management.monorail.issue import Issue as MonorailIssue
+from tests.test_libs import helpers
 
 
 class IssueTrackerManager(issue_tracker_manager.IssueTrackerManager):
@@ -43,10 +45,15 @@ class IssueTrackerManager(issue_tracker_manager.IssueTrackerManager):
     self.last_issue = issue
 
 
-class IssueFilerTests(unittest.TestCase):
-  """Tests for the issue filer."""
+class MonorailTests(unittest.TestCase):
+  """Tests for the monorail issue tracker."""
 
   def setUp(self):
+    helpers.patch(self, [
+        'issue_management.monorail.issue_tracker_manager.'
+        'IssueTrackerManager.get_issues',
+    ])
+
     mock_issue = MonorailIssue()
     mock_issue.id = 1337
     mock_issue.summary = 'summary'
@@ -82,7 +89,7 @@ class IssueFilerTests(unittest.TestCase):
     mock_issue_merged = MonorailIssue()
     mock_issue_merged.id = 1338
     mock_issue_merged.merged_into = 1337
-    mock_issue_merged.merged_into_project = 'name'
+    mock_issue_merged.merged_into_project = 'project'
     mock_issue_merged.closed = datetime.datetime(2019, 1, 1)
 
     mock_issues = {
@@ -90,7 +97,7 @@ class IssueFilerTests(unittest.TestCase):
         1338: mock_issue_merged,
     }
 
-    self.itm = IssueTrackerManager('name', mock_issues)
+    self.itm = IssueTrackerManager('project', mock_issues)
     self.issue_tracker = monorail.IssueTracker(self.itm)
 
   def test_get_issue(self):
@@ -210,5 +217,53 @@ class IssueFilerTests(unittest.TestCase):
                           self.itm.last_issue.components)
 
   def test_get_original_issue(self):
+    """Test get_original_issue."""
     issue = self.issue_tracker.get_original_issue(1338)
     self.assertEqual(1337, issue.id)
+
+  def test_find_issues(self):
+    """Test find_issues."""
+    issue0 = MonorailIssue()
+    issue0.id = 1
+
+    issue1 = MonorailIssue()
+    issue1.id = 2
+    self.mock.get_issues.return_value = [
+        issue0,
+        issue1,
+    ]
+    issues = self.issue_tracker.find_issues(
+        keywords=['one', 'two'], only_open=True)
+    self.assertItemsEqual([1, 2], [issue.id for issue in issues])
+
+    self.mock.get_issues.assert_has_calls([
+        mock.call(mock.ANY, '"one" "two"', can='open'),
+    ])
+
+    issues = self.issue_tracker.find_issues(
+        keywords=['one', 'two'], only_open=False)
+    self.assertItemsEqual([1, 2], [issue.id for issue in issues])
+
+    self.mock.get_issues.assert_has_calls([
+        mock.call(mock.ANY, '"one" "two"', can='all'),
+    ])
+
+  def test_find_issues_url(self):
+    """Test find_issues_url."""
+    url = self.issue_tracker.find_issues_url(
+        keywords=['one', 'two'], only_open=False)
+    self.assertEqual(
+        'https://bugs.chromium.org/p/project/issues/list'
+        '?can_id=1&q=%22one%22+%22two%22', url)
+
+    url = self.issue_tracker.find_issues_url(
+        keywords=['one', 'two'], only_open=True)
+    self.assertEqual(
+        'https://bugs.chromium.org/p/project/issues/list'
+        '?can_id=2&q=%22one%22+%22two%22', url)
+
+  def test_issue_url(self):
+    """Test issue_url."""
+    issue_url = self.issue_tracker.issue_url(1337)
+    self.assertEqual(
+        'https://bugs.chromium.org/p/project/issues/detail?id=1337', issue_url)
