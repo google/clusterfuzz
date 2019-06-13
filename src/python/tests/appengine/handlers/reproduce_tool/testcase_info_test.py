@@ -12,13 +12,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """Tests for the reproduce tool testcase_info handler."""
-# pylint: disable=protected-accesss
+# pylint: disable=protected-access
 
 import unittest
 
 from datastore import data_types
 from handlers.reproduce_tool import testcase_info
 from tests.test_libs import test_utils
+
 
 @test_utils.with_cloud_emulators('datastore')
 class PrepareTestcaseDictTest(unittest.TestCase):
