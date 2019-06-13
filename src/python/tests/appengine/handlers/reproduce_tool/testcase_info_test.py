@@ -47,4 +47,8 @@ class PrepareTestcaseDictTest(unittest.TestCase):
   def test_job_included(self):
     """Ensure that the job definition has been included."""
     result = testcase_info._prepare_testcase_dict(self.testcase)
-    self.assertEquals(result['job_definition'], {'X': '1', 'Y': '2'})
+    job_definition = result['job_definition']
+
+    # Order is not necessarily preserved.
+    self.assertIn('X = 1\n', job_definition)
+    self.assertIn('Y = 2\n', job_definition)

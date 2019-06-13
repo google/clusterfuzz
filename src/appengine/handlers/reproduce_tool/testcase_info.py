@@ -28,7 +28,7 @@ def _prepare_testcase_dict(testcase):
   # The job definition is also required for test case reproduction, so we add
   # it as an additional field.
   job = data_types.Job.query(data_types.Job.name == testcase.job_type).get()
-  testcase_dict['job_definition'] = job.get_environment()
+  testcase_dict['job_definition'] = job.get_environment_string()
 
   return testcase_dict
 
