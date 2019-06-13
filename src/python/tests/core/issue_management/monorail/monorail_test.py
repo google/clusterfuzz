@@ -89,7 +89,7 @@ class MonorailTests(unittest.TestCase):
     mock_issue_merged = MonorailIssue()
     mock_issue_merged.id = 1338
     mock_issue_merged.merged_into = 1337
-    mock_issue_merged.merged_into_project = 'name'
+    mock_issue_merged.merged_into_project = 'project'
     mock_issue_merged.closed = datetime.datetime(2019, 1, 1)
 
     mock_issues = {
@@ -97,7 +97,7 @@ class MonorailTests(unittest.TestCase):
         1338: mock_issue_merged,
     }
 
-    self.itm = IssueTrackerManager('name', mock_issues)
+    self.itm = IssueTrackerManager('project', mock_issues)
     self.issue_tracker = monorail.IssueTracker(self.itm)
 
   def test_get_issue(self):
@@ -253,17 +253,17 @@ class MonorailTests(unittest.TestCase):
     url = self.issue_tracker.find_issues_url(
         keywords=['one', 'two'], only_open=False)
     self.assertEqual(
-        'https://bugs.chromium.org/p/name/issues/list'
+        'https://bugs.chromium.org/p/project/issues/list'
         '?can_id=1&q=%22one%22+%22two%22', url)
 
     url = self.issue_tracker.find_issues_url(
         keywords=['one', 'two'], only_open=True)
     self.assertEqual(
-        'https://bugs.chromium.org/p/name/issues/list'
+        'https://bugs.chromium.org/p/project/issues/list'
         '?can_id=2&q=%22one%22+%22two%22', url)
 
   def test_issue_url(self):
     """Test issue_url."""
     issue_url = self.issue_tracker.issue_url(1337)
-    self.assertEqual('https://bugs.chromium.org/p/name/issues/detail?id=1337',
-                     issue_url)
+    self.assertEqual(
+        'https://bugs.chromium.org/p/project/issues/detail?id=1337', issue_url)

@@ -121,6 +121,9 @@ def get_similar_issues_url(issue_tracker, testcase, only_open=True):
 def get_issue_url(testcase):
   """Return issue url for a testcase."""
   issue_tracker = get_issue_tracker_for_testcase(testcase)
+  if not issue_tracker or not testcase.bug_information:
+    return None
+
   return issue_tracker.issue_url(testcase.bug_information)
 
 

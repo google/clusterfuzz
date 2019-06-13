@@ -25,9 +25,9 @@ from issue_management.monorail.issue_tracker_manager import IssueTrackerManager
 
 # TODO(ochang): Clean up how we cache issue_tracker_managers.
 ISSUE_TRACKER_MANAGERS = {}
-ISSUE_TRACKER_URL = 'https://bugs.chromium.org/p/{project}/issues/detail?id='
+ISSUE_TRACKER_URL = 'https://bugs.chromium.org/p/{project}/issues/detail?id={id}'
 ISSUE_TRACKER_SEARCH_URL = (
-    'https://bugs.chromium.org/p/{project}/issues/list?')
+    'https://bugs.chromium.org/p/{project}/issues/list?{params}')
 
 
 class Issue(issue_tracker.Issue):
@@ -247,7 +247,7 @@ class IssueTracker(issue_tracker.IssueTracker):
     issues = self._itm.get_issues(search_text, can=can)
     return [Issue(issue) for issue in issues]
 
-  def find_issues_url(self, keywords=None, only_open=None):
+  def find_issues_url(self, keywords=None, only_open=False):
     """Find issues (web URL)."""
     if not keywords:
       return None
@@ -260,14 +260,15 @@ class IssueTracker(issue_tracker.IssueTracker):
 
     can_id = IssueTrackerManager.CAN_VALUE_TO_ID_MAP.get(can, '')
     return ISSUE_TRACKER_SEARCH_URL.format(
-        project=self.project) + urllib.parse.urlencode({
+        project=self.project,
+        params=urllib.parse.urlencode({
             'can_id': can_id,
             'q': search_text,
-        })
+        }))
 
   def issue_url(self, issue_id):
     """Return the issue URL with the given ID."""
-    return ISSUE_TRACKER_URL.format(project=self.project) + str(issue_id)
+    return ISSUE_TRACKER_URL.format(project=self.project, id=issue_id)
 
 
 def _to_change_list(monorail_list):
