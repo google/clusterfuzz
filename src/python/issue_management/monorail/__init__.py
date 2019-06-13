@@ -25,7 +25,8 @@ from issue_management.monorail.issue_tracker_manager import IssueTrackerManager
 
 # TODO(ochang): Clean up how we cache issue_tracker_managers.
 ISSUE_TRACKER_MANAGERS = {}
-ISSUE_TRACKER_URL = 'https://bugs.chromium.org/p/{project}/issues/detail?id={id}'
+ISSUE_TRACKER_URL = (
+    'https://bugs.chromium.org/p/{project}/issues/detail?id={id}')
 ISSUE_TRACKER_SEARCH_URL = (
     'https://bugs.chromium.org/p/{project}/issues/list?{params}')
 
