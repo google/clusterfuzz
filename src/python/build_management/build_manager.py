@@ -88,7 +88,7 @@ class BuildManagerException(Exception):
   """Build manager exceptions."""
 
 
-def _base_build_dir(bucket_path):
+def get_base_build_dir(bucket_path):
   """Get the base directory for a build."""
   job_name = environment.get_value('JOB_NAME')
   return _get_build_directory(bucket_path, job_name)
@@ -1153,7 +1153,7 @@ def setup_trunk_build():
   sym_debug_build_bucket_path = environment.get_value(
       'SYM_DEBUG_BUILD_BUCKET_PATH')
 
-  base_build_dir = _base_build_dir(release_build_bucket_path)
+  base_build_dir = get_base_build_dir(release_build_bucket_path)
   _setup_build_directories(base_build_dir)
 
   release_build_urls = get_build_urls_list(release_build_bucket_path)
@@ -1223,7 +1223,7 @@ def setup_regular_build(revision):
     # Try setting up trunk build.
     return setup_trunk_build()
 
-  base_build_dir = _base_build_dir(release_build_bucket_path)
+  base_build_dir = get_base_build_dir(release_build_bucket_path)
 
   build_class = RegularBuild
   if environment.is_trusted_host():
@@ -1276,7 +1276,7 @@ def setup_symbolized_builds(revision):
   sym_debug_build_url = revisions.find_build_url(sym_debug_build_bucket_path,
                                                  sym_debug_build_urls, revision)
 
-  base_build_dir = _base_build_dir(sym_release_build_bucket_path)
+  base_build_dir = get_base_build_dir(sym_release_build_bucket_path)
 
   build_class = SymbolizedBuild
   if environment.is_trusted_host():
@@ -1311,7 +1311,7 @@ def setup_custom_binary():
         'Job does not have a custom binary, even though CUSTOM_BINARY is set.')
     return False
 
-  base_build_dir = _base_build_dir('')
+  base_build_dir = get_base_build_dir('')
   build = CustomBuild(base_build_dir, job.custom_binary_key,
                       job.custom_binary_filename, job.custom_binary_revision)
 
@@ -1352,7 +1352,7 @@ def setup_production_build(build_type):
     return None
 
   version = v_match.group(1)
-  base_build_dir = _base_build_dir(build_bucket_path)
+  base_build_dir = get_base_build_dir(build_bucket_path)
 
   build_class = ProductionBuild
   if environment.is_trusted_host():
@@ -1374,52 +1374,6 @@ def setup_system_binary():
   if build.setup():
     return build
 
-  return None
-
-
-def setup_auxiliary_build(build_bucket_path):
-  """Sets up auxiliary builds when necessary (e.g. DFSan build)."""
-  if not build_bucket_path:
-    return None
-
-  build_urls = get_build_urls_list(build_bucket_path)
-  if not build_urls:
-    logs.log_error('Error getting list of auxiliary build urls from %s.' %
-                   build_bucket_path)
-    return None
-
-  revision_pattern = revisions.revision_pattern_from_build_bucket_path(
-      build_bucket_path)
-
-  # Always use the latest revision, as we do not have exact matching between
-  # fuzzing and auxiliary builds as of now. Auxiliary builds are not used
-  # outside of the fuzz task.
-  revision = None
-  build_url = None
-  for build_url in build_urls:
-    match = re.match(revision_pattern, build_url)
-    if not match:
-      continue
-
-    revision = revisions.convert_revision_to_integer(match.group(1))
-    break
-
-  if revision is None:
-    logs.log_error('Unable to find a matching revision.')
-    return None
-
-  build_dir = _base_build_dir(build_bucket_path)
-  shell.create_directory(build_dir)
-
-  build_class = AuxiliaryBuild
-  if environment.is_trusted_host():
-    from bot.untrusted_runner import build_setup_host
-    build_class = build_setup_host.RemoteAuxiliaryBuild
-
-  build = build_class(build_dir, revision, build_url)
-
-  if build.setup():
-    return build
   return None
 
 

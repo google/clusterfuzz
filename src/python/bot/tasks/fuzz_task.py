@@ -36,6 +36,7 @@ from bot.tasks import setup
 from bot.tasks import task_creation
 from bot.tasks import trials
 from build_management import build_manager
+from build_management import revisions
 from chrome import crash_uploader
 from crash_analysis import crash_analyzer
 from crash_analysis.stack_parsing import stack_analyzer
@@ -1240,6 +1241,52 @@ def process_crashes(crashes, context):
 
   logs.log('Finished processing crashes.')
   return new_crash_count, known_crash_count, processed_groups
+
+
+def setup_auxiliary_build(build_bucket_path):
+  """Sets up auxiliary builds when necessary (e.g. DFSan build)."""
+  if not build_bucket_path:
+    return None
+
+  build_urls = build_manager.get_build_urls_list(build_bucket_path)
+  if not build_urls:
+    logs.log_error('Error getting list of auxiliary build urls from %s.' %
+                   build_bucket_path)
+    return None
+
+  revision_pattern = revisions.revision_pattern_from_build_bucket_path(
+      build_bucket_path)
+
+  # Always use the latest revision, as we do not have exact matching between
+  # fuzzing and auxiliary builds as of now. Auxiliary builds are not used
+  # outside of the fuzz task.
+  revision = None
+  build_url = None
+  for build_url in build_urls:
+    match = re.match(revision_pattern, build_url)
+    if not match:
+      continue
+
+    revision = revisions.convert_revision_to_integer(match.group(1))
+    break
+
+  if revision is None:
+    logs.log_error('Unable to find a matching revision.')
+    return None
+
+  build_dir = build_manager.get_base_build_dir(build_bucket_path)
+  shell.create_directory(build_dir)
+
+  build_class = build_manager.AuxiliaryBuild
+  if environment.is_trusted_host():
+    from bot.untrusted_runner import build_setup_host
+    build_class = build_setup_host.RemoteAuxiliaryBuild
+
+  build = build_class(build_dir, revision, build_url)
+
+  if build.setup():
+    return build
+  return None
 
 
 def execute_task(fuzzer_name, job_type):
