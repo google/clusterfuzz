@@ -24,7 +24,7 @@ from tests.test_libs import test_utils
 
 def _fake_get_testcase(_):
   """Fake test case output intended to run "echo -n"."""
-  testcase_json = {
+  testcase_map = {
       'crash_state': '',
       'security_flag': False,
       'gestures': [],
@@ -32,7 +32,7 @@ def _fake_get_testcase(_):
       'job_definition': 'APP_NAME = echo\nAPP_ARGS = -n\n',
   }
 
-  return reproduce.SerializedTestcase(testcase_json)
+  return reproduce.SerializedTestcase(testcase_map)
 
 
 # TODO(mbarbella): This test seems to be causing a side-effect that's leading

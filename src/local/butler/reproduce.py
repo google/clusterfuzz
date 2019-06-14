@@ -54,11 +54,11 @@ TESTCASE_URL = 'https://clusterfuzz.com/reproduce-tool/testcase-info'
 class SerializedTestcase(object):
   """Minimal representation of a test case."""
 
-  def __init__(self, testcase_json):
-    self._testcase_json = testcase_json
+  def __init__(self, testcase_map):
+    self._testcase_map = testcase_map
 
   def __getattr__(self, item):
-    return self._testcase_json[item]
+    return self._testcase_map[item]
 
 
 class SuppressOutput(object):
@@ -122,8 +122,8 @@ def _get_testcase(testcase_id):
   if response.status != 200:
     raise Exception('Failed to get test case information.')
 
-  testcase_json = json.loads(content)
-  return SerializedTestcase(testcase_json)
+  testcase_map = json.loads(content)
+  return SerializedTestcase(testcase_map)
 
 
 def _download_testcase(_):
