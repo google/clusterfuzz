@@ -83,7 +83,7 @@ def _get_authorization(force_reauthorization):
   # Try to read from cache unless we need to reauthorize.
   if not force_reauthorization:
     cached_authorization = utils.read_data_from_file(
-      AUTHORIZATION_CACHE_FILE, eval_data=False)
+        AUTHORIZATION_CACHE_FILE, eval_data=False)
     if cached_authorization:
       return cached_authorization
 
