@@ -1336,24 +1336,12 @@ def execute_task(fuzzer_name, job_type):
   if timeout_multiplier > 1:
     testcase_count /= timeout_multiplier
 
-  if platform == 'FUCHSIA':
-    qemu_process = fuchsia.device.qemu_setup()
   # Run the fuzzer to generate testcases. If error occurred while trying
   # to run the fuzzer, bail out.
-  if platform != 'FUCHSIA':
-    (error_occurred, testcase_file_paths, generated_testcase_count,
-     sync_corpus_directory, fuzzer_metadata) = run_fuzzer(
-         fuzzer, fuzzer_directory, testcase_directory, data_directory,
-         testcase_count)
-  if platform == 'FUCHSIA':
-    error_occurred = False
-    testcase_file_paths = [
-        fuzzer_name, fuzzer_name, fuzzer_name, fuzzer_name, fuzzer_name
-    ]
-    generated_testcase_count = 5
-    sync_corpus_directory = False
-    fuzzer_metadata = {}
-    fuzzer_metadata['fuzzer_binary_name'] = fuzzer_name
+  (error_occurred, testcase_file_paths, generated_testcase_count,
+   sync_corpus_directory, fuzzer_metadata) = run_fuzzer(
+       fuzzer, fuzzer_directory, testcase_directory, data_directory,
+       testcase_count)
 
   if error_occurred:
     return
@@ -1429,11 +1417,8 @@ def execute_task(fuzzer_name, job_type):
       break
 
     while thread_index < max_threads and test_number < len(testcase_file_paths):
-      if platform == 'FUCHSIA':
-        gestures = ''
-      else:
-        testcase_file_path = testcase_file_paths[test_number]
-        gestures = testcases_metadata[testcase_file_path]['gestures']
+      testcase_file_path = testcase_file_paths[test_number]
+      gestures = testcases_metadata[testcase_file_path]['gestures']
 
       env_copy = environment.copy()
       thread = process_handler.get_process()(
@@ -1502,9 +1487,6 @@ def execute_task(fuzzer_name, job_type):
       new_files = random.sample(new_files, MAX_NEW_CORPUS_FILES)
 
     gcs_corpus.upload_files(new_files)
-
-  if platform == 'FUCHSIA':
-    qemu_process.kill()
 
   logs.log('Finished processing test cases.')
 

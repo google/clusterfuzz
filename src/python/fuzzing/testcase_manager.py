@@ -395,10 +395,6 @@ def upload_testcase(testcase_path):
   if not fuzz_logs_bucket:
     return
 
-  # TODO(flowerhack): When we teach CF to find Fuchsia testcase paths,
-  # remove this tempfile *and* the try/except.
-  if environment.platform() == 'FUCHSIA':
-    testcase_path = tempfile.TemporaryFile()
   try:
     with open(testcase_path, 'rb') as file_handle:
       testcase_contents = file_handle.read()
