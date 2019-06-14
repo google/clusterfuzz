@@ -32,7 +32,7 @@ def _fake_get_testcase(_):
       'job_definition': 'APP_NAME = echo\nAPP_ARGS = -n\n',
   }
 
-  return reproduce._SimplifiedTestcase(testcase_json)
+  return reproduce.SerializedTestcase(testcase_json)
 
 
 # TODO(mbarbella): This test seems to be causing a side-effect that's leading
