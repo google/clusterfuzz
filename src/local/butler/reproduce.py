@@ -30,7 +30,6 @@ from src.python.fuzzing import testcase_manager
 from src.python.system import environment
 from src.python.system import shell
 
-# TODO(mbarbella): This should work cross platform.
 AUTHORIZATION_CACHE_FILE = os.path.join(
     os.path.expanduser('~'), '.config', 'clusterfuzz', 'authorization-cache')
 
@@ -39,8 +38,8 @@ OAUTH_URL = 'https://accounts.google.com/o/oauth2/v2/auth?%s' % (
     urllib.urlencode({
         'scope':
             'email profile',
-        'client_id': ('981641712411-sj50drhontt4m3gjc3hordjmp'
-                      'c7bn50f.apps.googleusercontent.com'),
+        'client_id': ('602540103821-lccrsee9e5hbe3lpdsghin0'
+                      '8ket97hhl.apps.googleusercontent.com'),
         'response_type':
             'code',
         'redirect_uri':
@@ -79,24 +78,25 @@ class SuppressOutput(object):
     return True
 
 
-def _get_authorization():
+def _get_authorization(force_reauthorization):
   """Get the value for an oauth authorization header."""
-  # Try to read from cache.
-  authorization = utils.read_data_from_file(
+  # Try to read from cache unless we need to reauthorize.
+  if not force_reauthorization:
+    cached_authorization = utils.read_data_from_file(
       AUTHORIZATION_CACHE_FILE, eval_data=False)
-  if authorization:
-    return authorization
+    if cached_authorization:
+      return cached_authorization
 
-  # Prompt the user for a code if we don't have one.
+  # Prompt the user for a code if we don't have one or need a new one.
   with SuppressOutput():
     webbrowser.open(OAUTH_URL, new=1, autoraise=True)
   verification_code = raw_input('Enter verification code: ')
   return 'VerificationCode {code}'.format(code=verification_code)
 
 
-def _post(url, body):
+def _post(url, body, force_reauthorization=False):
   """Make a POST request to the specified URL."""
-  authorization = _get_authorization()
+  authorization = _get_authorization(force_reauthorization)
   headers = {
       'User-Agent': 'clusterfuzz-reproduce',
       'Authorization': authorization
@@ -106,10 +106,16 @@ def _post(url, body):
   response, content = http.request(
       url, method='POST', headers=headers, body=json.dumps(body))
 
-  shell.create_directory(
-      os.path.dirname(AUTHORIZATION_CACHE_FILE), create_intermediates=True)
-  utils.write_data_to_file(response['x-clusterfuzz-authorization'],
-                           AUTHORIZATION_CACHE_FILE)
+  # If the server returns 401 we may need to reauthenticate. Try the request
+  # a second time if this happens.
+  if response.status == 401 and not force_reauthorization:
+    return _post(url, body, force_reauthorization=True)
+
+  if 'x-clusterfuzz-authorization' in response:
+    shell.create_directory(
+        os.path.dirname(AUTHORIZATION_CACHE_FILE), create_intermediates=True)
+    utils.write_data_to_file(response['x-clusterfuzz-authorization'],
+                             AUTHORIZATION_CACHE_FILE)
 
   return response, content
 
