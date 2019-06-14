@@ -35,7 +35,6 @@ from system import archive
 from system import environment
 from system import process_handler
 from system import shell
-import tempfile
 
 # Testcase filename prefixes and suffixes.
 CRASH_PREFIX = 'crash-'
@@ -484,8 +483,6 @@ def run_testcase_and_return_result_in_queue(crash_queue,
       # correlate it with (not upload_output).
       if upload_output:
         upload_testcase(file_path)
-    else:
-      logs.log("Apparently is_crash was false?")
 
     if upload_output:
       # Include full output for uploaded logs (crash output, merge output, etc).

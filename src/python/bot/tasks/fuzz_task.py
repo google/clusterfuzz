@@ -1537,7 +1537,6 @@ def execute_task(fuzzer_name, job_type):
 
   upload_testcase_run_stats(fuzzer_name, fully_qualified_fuzzer_name, job_type,
                             crash_revision, testcase_file_paths)
-
   upload_job_run_stats(fully_qualified_fuzzer_name, job_type, crash_revision,
                        time.time(), new_crash_count, known_crash_count,
                        generated_testcase_count, processed_groups)

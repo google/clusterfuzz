@@ -60,10 +60,10 @@ class EngineFuzzer(BuiltinFuzzer):
     """Generate arguments for the given fuzzer."""
     raise NotImplementedError
 
-  def run(self, input_directory, output_directory, no_of_files):
-    """Run the fuzzer to generate testcases."""
+  def _get_fuzzer_binary_name_and_path(self):
     if environment.platform() == 'FUCHSIA':
       fuzzer_binary_name = fuzzer_path = environment.get_value('FUZZ_TARGET')
+      return fuzzer_binary_name, fuzzer_path
     else:
       build_directory = environment.get_value('BUILD_DIR')
 
@@ -82,6 +82,12 @@ class EngineFuzzer(BuiltinFuzzer):
       else:
         fuzzer_path = random.SystemRandom().choice(fuzzers)
         fuzzer_binary_name = os.path.basename(fuzzer_path)
+      return fuzzer_binary_name, fuzzer_path
+
+  def run(self, input_directory, output_directory, no_of_files):
+    """Run the fuzzer to generate testcases."""
+    
+    fuzzer_binary_name, fuzzer_path = self._get_fuzzer_binary_name_and_path()    
 
     project_qualified_name = data_types.fuzz_target_project_qualified_name(
         utils.current_project(), fuzzer_binary_name)

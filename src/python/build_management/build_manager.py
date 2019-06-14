@@ -781,6 +781,8 @@ class FuchsiaBuild(Build):
     fuzz_target = random.choice(fuzz_targets)
     fuzz_target = str(fuzz_target[0] + '/' + fuzz_target[1])
 
+    # This allows you to override the standard fuzzer selection process, in
+    # order to e.g. deliberately test a specific fuzzer during development.
     if environment.get_value('FUZZ_TARGET'):
       logs.log('OVERRIDING RANDOM SELECTION: Extracted fuzz_target ' +
                environment.get_value('FUZZ_TARGET'))
@@ -790,7 +792,7 @@ class FuchsiaBuild(Build):
 
     self._setup_application_path()
 
-    # TODO(flowerhack): Figure out how to clean this process cleanly.
+    # TODO(flowerhack): Figure out how to shutdown this process cleanly.
     from platforms import fuchsia
     fuchsia.device.qemu_setup()
     return True
