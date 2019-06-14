@@ -1,0 +1,71 @@
+# Copyright 2019 Google LLC
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+test-project:
+  type: monorail
+  policies:
+    status:
+      # Status mappings.
+      assigned: Assigned
+      duplicate: Duplicate
+      wontfix: WontFix
+      fixed: Fixed
+      verified: Verified
+      new: New
+    existing:
+      # Rules to apply when updating existing issues.
+      labels:
+        - Stability-%SANITIZER%
+    all:
+      # Rules to apply to all issues.
+      status: new
+      labels:
+        - ClusterFuzz
+        - OS-%PLATFORM%
+        - Reported-%YYYY-MM-DD%
+        - Stability-%SANITIZER%
+      issue_body_footer: |-
+        This is an issue body footer.
+    security:
+      # Rules to apply to security issues only (in addition to "all").
+      labels:
+        - Type-Bug-Security
+        - Security_Severity-%SEVERITY%
+    non_security:
+      # Rules to apply to non-security issues only (in addition to "all").
+      labels:
+        - Type-Bug
+      crash_labels:
+        # Non security bugs are further divided into crash (e.g. a null deref)
+        # vs non crash bugs (e.g. timeouts).
+        - Stability-Crash
+        - Pri-1
+      non_crash_labels:
+        - Pri-2
+    labels:
+      # General label mappings.
+      verified: ClusterFuzz-Verified
+      ignore: ClusterFuzz-Ignore
+      needs_feedback: Needs-Feedback
+      invalid_fuzzer: ClusterFuzz-Invalid-Fuzzer
+      fuzz_blocker: Fuzz-Blocker
+      reproducible: Reproducible
+      unreproducible: Unreproducible
+      restrict_view: Restrict-View-Commit
+      reported_prefix: Reported-
+      security_severity_prefix: Security_Severity-
+    deadline_policy_message: |-
+      This bug is subject to a 90 day disclosure deadline. If 90 days elapse
+      without an upstream patch, then the bug report will automatically
+      become visible to the public.

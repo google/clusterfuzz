@@ -20,6 +20,7 @@ from base import memoize
 from datastore import data_types
 from datastore import ndb_utils
 from handlers import base_handler
+from issue_management import issue_tracker_policy
 from issue_management import issue_tracker_utils
 from libs import handler
 from libs import issue_filer
@@ -76,13 +77,16 @@ class Handler(base_handler.Handler):
         logging.info('CCing %s on %s', cc, issue.id)
         issue.ccs.add(cc)
 
-      comment = None
-      if not issue.labels.has_with_prefix('reported-'):
-        # Add reported label and deadline comment if necessary.
-        issue.labels.add(issue_filer.reported_label())
+      policy = issue_tracker_policy.get(issue_tracker.project)
 
-        if 'Restrict-View-Commit' in issue.labels:
+      comment = None
+      if not issue.labels.has_with_prefix(policy.label('reported_prefix')):
+        # Add reported label and deadline comment if necessary.
+        issue.labels.add(
+            policy.label('reported_prefix') + issue_filer.current_date())
+
+        if policy.label('restrict_view') in issue.labels:
           logging.info('Adding deadline comment on %s', issue.id)
-          comment = issue_filer.DEADLINE_NOTE
+          comment = policy.deadline_policy_message
 
       issue.save(new_comment=comment, notify=True)

@@ -13,6 +13,7 @@
 # limitations under the License.
 """Utilities for managing issue tracker instance."""
 
+from config import local_config
 from datastore import data_types
 from datastore import ndb_utils
 from issue_management import monorail
@@ -26,15 +27,21 @@ def _get_issue_tracker_project_name(testcase=None):
   return data_handler.get_issue_tracker_name(job_type)
 
 
-def get_issue_tracker(tracker_type, project_name=None, use_cache=False):
+def get_issue_tracker(project_name=None, use_cache=False):
   """Get the issue tracker with the given type and name."""
-  # TODO(ochang): Actually use `tracker_type`.
-  assert tracker_type == 'monorail'
+  issue_tracker_config = local_config.IssueTrackerConfig()
   if not project_name:
     from datastore import data_handler
     project_name = data_handler.get_issue_tracker_name()
 
-  return monorail.get_issue_tracker(project_name, use_cache=use_cache)
+  issue_project_config = issue_tracker_config.get(project_name)
+  if not issue_project_config:
+    raise ValueError('Issue tracker for {} does not exist'.format(project_name))
+
+  if issue_project_config['type'] == 'monorail':
+    return monorail.get_issue_tracker(project_name, use_cache=use_cache)
+
+  raise ValueError('Invalid issue tracker type ' + issue_project_config['type'])
 
 
 def get_issue_tracker_for_testcase(testcase, use_cache=False):
@@ -43,8 +50,7 @@ def get_issue_tracker_for_testcase(testcase, use_cache=False):
   if not issue_tracker_project_name:
     return None
 
-  return get_issue_tracker(
-      'monorail', issue_tracker_project_name, use_cache=use_cache)
+  return get_issue_tracker(issue_tracker_project_name, use_cache=use_cache)
 
 
 def get_issue_for_testcase(testcase):

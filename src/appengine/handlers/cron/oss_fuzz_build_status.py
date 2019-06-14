@@ -181,7 +181,7 @@ class Handler(base_handler.Handler):
 
   def _close_fixed_builds(self, build_status, build_type):
     """Close bugs for fixed builds."""
-    issue_tracker = issue_tracker_utils.get_issue_tracker('monorail')
+    issue_tracker = issue_tracker_utils.get_issue_tracker()
     if not issue_tracker:
       raise OssFuzzBuildStatusException('Failed to get issue tracker.')
 
@@ -205,7 +205,7 @@ class Handler(base_handler.Handler):
 
   def _process_failures(self, build_status, build_type):
     """Process failures."""
-    issue_tracker = issue_tracker_utils.get_issue_tracker('monorail')
+    issue_tracker = issue_tracker_utils.get_issue_tracker()
     if not issue_tracker:
       raise OssFuzzBuildStatusException('Failed to get issue tracker.')
 

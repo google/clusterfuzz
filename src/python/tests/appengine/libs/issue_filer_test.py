@@ -21,12 +21,124 @@ import parameterized
 import unittest
 
 from datastore import data_types
+from issue_management import issue_tracker_policy
 from issue_management import label_utils
 from issue_management import monorail
 from libs import issue_filer
 
 from tests.test_libs import helpers
 from tests.test_libs import test_utils
+
+CHROMIUM_POLICY = issue_tracker_policy.IssueTrackerPolicy({
+    'all': {
+        'labels': ['ClusterFuzz', 'OS-%PLATFORM%', 'Stability-%SANITIZER%'],
+        'status': 'new'
+    },
+    'existing': {
+        'labels': ['Stability-%SANITIZER%']
+    },
+    'labels': {
+        'fuzz_blocker': 'Fuzz-Blocker',
+        'ignore': 'ClusterFuzz-Ignore',
+        'invalid_fuzzer': 'ClusterFuzz-Invalid-Fuzzer',
+        'needs_feedback': 'Needs-Feedback',
+        'reported_prefix': 'Reported-',
+        'reproducible': 'Reproducible',
+        'restrict_view': 'Restrict-View-SecurityTeam',
+        'security_severity_prefix': 'Security_Severity-',
+        'unreproducible': 'Unreproducible',
+        'verified': 'ClusterFuzz-Verified'
+    },
+    'non_security': {
+        'crash_labels': ['Stability-Crash', 'Pri-1'],
+        'labels': ['Type-Bug'],
+        'non_crash_labels': ['Pri-2']
+    },
+    'security': {
+        'labels': ['Type-Bug-Security', 'Security_Severity-%SEVERITY%']
+    },
+    'status': {
+        'assigned': 'Assigned',
+        'duplicate': 'Duplicate',
+        'fixed': 'Fixed',
+        'new': 'Untriaged',
+        'verified': 'Verified',
+        'wontfix': 'WontFix'
+    }
+})
+
+OSS_FUZZ_POLICY = issue_tracker_policy.IssueTrackerPolicy({
+    'all': {
+        'issue_body_footer':
+            'When you fix this bug, please\n'
+            '  * mention the fix revision(s).\n'
+            '  * state whether the bug was a short-lived regression or an '
+            'old bug in any stable releases.\n'
+            '  * add any other useful information.\n'
+            'This information can help downstream consumers.\n\n'
+            'If you need to contact the OSS-Fuzz team with a question, '
+            'concern, or any other feedback, please file an issue at '
+            'https://github.com/google/oss-fuzz/issues.',
+        'labels': [
+            'ClusterFuzz', 'OS-%PLATFORM%', 'Reported-%YYYY-MM-DD%',
+            'Stability-%SANITIZER%'
+        ],
+        'status':
+            'new'
+    },
+    'deadline_policy_message':
+        'This bug is subject to a 90 day disclosure deadline. If 90 days '
+        'elapse\n'
+        'without an upstream patch, then the bug report will automatically\n'
+        'become visible to the public.',
+    'existing': {
+        'labels': ['Stability-%SANITIZER%']
+    },
+    'labels': {
+        'fuzz_blocker': 'Fuzz-Blocker',
+        'ignore': 'ClusterFuzz-Ignore',
+        'invalid_fuzzer': 'ClusterFuzz-Invalid-Fuzzer',
+        'needs_feedback': 'Needs-Feedback',
+        'reported_prefix': 'Reported-',
+        'reproducible': 'Reproducible',
+        'restrict_view': 'Restrict-View-Commit',
+        'security_severity_prefix': 'Security_Severity-',
+        'unreproducible': 'Unreproducible',
+        'verified': 'ClusterFuzz-Verified'
+    },
+    'non_security': {
+        'labels': ['Type-Bug']
+    },
+    'security': {
+        'labels': ['Type-Bug-Security', 'Security_Severity-%SEVERITY%']
+    },
+    'status': {
+        'assigned': 'Assigned',
+        'duplicate': 'Duplicate',
+        'fixed': 'Fixed',
+        'new': 'New',
+        'verified': 'Verified',
+        'wontfix': 'WontFix'
+    }
+})
+
+DEADLINE_NOTE = (
+    'This bug is subject to a 90 day disclosure deadline. If 90 days elapse\n'
+    'without an upstream patch, then the bug report will automatically\n'
+    'become visible to the public.')
+
+FIX_NOTE = (
+    'When you fix this bug, please\n'
+    '  * mention the fix revision(s).\n'
+    '  * state whether the bug was a short-lived regression or an old bug'
+    ' in any stable releases.\n'
+    '  * add any other useful information.\n'
+    'This information can help downstream consumers.')
+
+QUESTIONS_NOTE = (
+    'If you need to contact the OSS-Fuzz team with a question, concern, or any '
+    'other feedback, please file an issue at '
+    'https://github.com/google/oss-fuzz/issues.')
 
 
 class IssueTrackerManager(object):
@@ -123,6 +235,7 @@ class IssueFilerTests(unittest.TestCase):
     helpers.patch(self, [
         'base.utils.utcnow',
         'datastore.data_handler.get_issue_description',
+        'issue_management.issue_tracker_policy.get',
     ])
 
     self.mock.get_issue_description.return_value = 'Issue'
@@ -130,12 +243,14 @@ class IssueFilerTests(unittest.TestCase):
 
   def test_filed_issues_chromium(self):
     """Tests issue filing for chromium."""
+    self.mock.get.return_value = CHROMIUM_POLICY
     issue_tracker = monorail.IssueTracker(IssueTrackerManager('chromium'))
     issue_filer.file_issue(self.testcase4, issue_tracker)
     self.assertIn('OS-Chrome', issue_tracker._itm.last_issue.labels)
 
   def test_filed_issues_oss_fuzz(self):
     """Tests issue filing for oss-fuzz."""
+    self.mock.get.return_value = OSS_FUZZ_POLICY
     issue_tracker = monorail.IssueTracker(IssueTrackerManager('oss-fuzz'))
     issue_filer.file_issue(self.testcase1, issue_tracker)
     self.assertTrue(
@@ -143,8 +258,7 @@ class IssueFilerTests(unittest.TestCase):
             'restrict-view-commit'))
     self.assertFalse(
         issue_tracker._itm.last_issue.has_label_matching('reported-2016-01-01'))
-    self.assertNotIn(issue_filer.DEADLINE_NOTE,
-                     issue_tracker._itm.last_issue.body)
+    self.assertNotIn(DEADLINE_NOTE, issue_tracker._itm.last_issue.body)
 
     issue_filer.file_issue(self.testcase1_security, issue_tracker)
     self.assertTrue(
@@ -152,8 +266,7 @@ class IssueFilerTests(unittest.TestCase):
             'restrict-view-commit'))
     self.assertFalse(
         issue_tracker._itm.last_issue.has_label_matching('reported-2016-01-01'))
-    self.assertNotIn(issue_filer.DEADLINE_NOTE,
-                     issue_tracker._itm.last_issue.body)
+    self.assertNotIn(DEADLINE_NOTE, issue_tracker._itm.last_issue.body)
 
     issue_filer.file_issue(self.testcase2, issue_tracker)
     self.assertFalse(
@@ -161,8 +274,7 @@ class IssueFilerTests(unittest.TestCase):
             'restrict-view-commit'))
     self.assertTrue(
         issue_tracker._itm.last_issue.has_label_matching('reported-2016-01-01'))
-    self.assertNotIn(issue_filer.DEADLINE_NOTE,
-                     issue_tracker._itm.last_issue.body)
+    self.assertNotIn(DEADLINE_NOTE, issue_tracker._itm.last_issue.body)
 
     issue_filer.file_issue(self.testcase2_security, issue_tracker)
     self.assertTrue(
@@ -170,7 +282,7 @@ class IssueFilerTests(unittest.TestCase):
             'restrict-view-commit'))
     self.assertTrue(
         issue_tracker._itm.last_issue.has_label_matching('reported-2016-01-01'))
-    self.assertIn(issue_filer.DEADLINE_NOTE, issue_tracker._itm.last_issue.body)
+    self.assertIn(DEADLINE_NOTE, issue_tracker._itm.last_issue.body)
 
     issue_filer.file_issue(self.testcase3, issue_tracker)
     self.assertFalse(
@@ -178,8 +290,7 @@ class IssueFilerTests(unittest.TestCase):
             'restrict-view-commit'))
     self.assertFalse(
         issue_tracker._itm.last_issue.has_label_matching('reported-2016-01-01'))
-    self.assertNotIn(issue_filer.DEADLINE_NOTE,
-                     issue_tracker._itm.last_issue.body)
+    self.assertNotIn(DEADLINE_NOTE, issue_tracker._itm.last_issue.body)
 
     issue_filer.file_issue(self.testcase3_security, issue_tracker)
     self.assertFalse(
@@ -187,11 +298,11 @@ class IssueFilerTests(unittest.TestCase):
             'restrict-view-commit'))
     self.assertTrue(
         issue_tracker._itm.last_issue.has_label_matching('reported-2016-01-01'))
-    self.assertNotIn(issue_filer.DEADLINE_NOTE,
-                     issue_tracker._itm.last_issue.body)
+    self.assertNotIn(DEADLINE_NOTE, issue_tracker._itm.last_issue.body)
 
   def test_testcase_metadata_labels(self):
     """Tests issue filing with additional labels."""
+    self.mock.get.return_value = CHROMIUM_POLICY
     issue_tracker = monorail.IssueTracker(IssueTrackerManager('chromium'))
     issue_filer.file_issue(self.testcase5, issue_tracker)
     self.assertItemsEqual([
@@ -206,15 +317,20 @@ class IssueFilerTests(unittest.TestCase):
 
   def test_testcase_metadata_invalid(self):
     """Tests issue filing with invalid metadata."""
+    self.mock.get.return_value = CHROMIUM_POLICY
     issue_tracker = monorail.IssueTracker(IssueTrackerManager('chromium'))
     issue_filer.file_issue(self.testcase6, issue_tracker)
     self.assertItemsEqual(
         ['ClusterFuzz', 'Reproducible', 'Pri-1', 'Stability-Crash', 'Type-Bug'],
         issue_tracker._itm.last_issue.labels)
 
-  @parameterized.parameterized.expand(['chromium', 'oss-fuzz', 'any_project'])
-  def test_security_severity_functional_bug(self, project_name):
+  @parameterized.parameterized.expand([
+      ('chromium', CHROMIUM_POLICY),
+      ('oss-fuzz', OSS_FUZZ_POLICY),
+  ])
+  def test_security_severity_functional_bug(self, project_name, policy):
     """Test security severity label is not set for a functional bug."""
+    self.mock.get.return_value = policy
     issue_tracker = monorail.IssueTracker(IssueTrackerManager(project_name))
 
     self.testcase1.security_flag = False
@@ -224,10 +340,15 @@ class IssueFilerTests(unittest.TestCase):
     self.assertFalse(
         issue_tracker._itm.last_issue.has_label_by_prefix('Security_Severity-'))
 
-  @parameterized.parameterized.expand(['chromium', 'oss-fuzz', 'any_project'])
-  def test_security_severity_security_bug_default_severity(self, project_name):
+  @parameterized.parameterized.expand([
+      ('chromium', CHROMIUM_POLICY),
+      ('oss-fuzz', OSS_FUZZ_POLICY),
+  ])
+  def test_security_severity_security_bug_default_severity(
+      self, project_name, policy):
     """Test security severity label is set when testcase is a security bug and
     no severity can be determined."""
+    self.mock.get.return_value = policy
     issue_tracker = monorail.IssueTracker(IssueTrackerManager(project_name))
 
     self.testcase1.security_flag = True
@@ -242,10 +363,15 @@ class IssueFilerTests(unittest.TestCase):
             issue_tracker._itm.last_issue.get_labels_by_prefix(
                 'Security_Severity-')))
 
-  @parameterized.parameterized.expand(['chromium', 'oss-fuzz', 'any_project'])
-  def test_security_severity_security_bug_severity_override(self, project_name):
+  @parameterized.parameterized.expand([
+      ('chromium', CHROMIUM_POLICY),
+      ('oss-fuzz', OSS_FUZZ_POLICY),
+  ])
+  def test_security_severity_security_bug_severity_override(
+      self, project_name, policy):
     """Test security severity label is set correct when testcase has its own
     severity but there is an override provided."""
+    self.mock.get.return_value = policy
     issue_tracker = monorail.IssueTracker(IssueTrackerManager(project_name))
 
     self.testcase1.security_flag = True
@@ -265,10 +391,15 @@ class IssueFilerTests(unittest.TestCase):
             issue_tracker._itm.last_issue.get_labels_by_prefix(
                 'Security_Severity-')))
 
-  @parameterized.parameterized.expand(['chromium', 'oss-fuzz', 'any_project'])
-  def test_security_severity_security_bug_with_severity_set(self, project_name):
+  @parameterized.parameterized.expand([
+      ('chromium', CHROMIUM_POLICY),
+      ('oss-fuzz', OSS_FUZZ_POLICY),
+  ])
+  def test_security_severity_security_bug_with_severity_set(
+      self, project_name, policy):
     """Test security severity label is set when testcase is a security bug and
     has a security severity."""
+    self.mock.get.return_value = policy
     security_severity_string_map = {
         data_types.SecuritySeverity.HIGH: 'Security_Severity-High',
         data_types.SecuritySeverity.MEDIUM: 'Security_Severity-Medium',
@@ -291,13 +422,18 @@ class IssueFilerTests(unittest.TestCase):
               issue_tracker._itm.last_issue.get_labels_by_prefix(
                   'Security_Severity-')))
 
-  @parameterized.parameterized.expand(['chromium', 'oss-fuzz', 'any_project'])
-  def test_memory_tool_used(self, project_name):
+  @parameterized.parameterized.expand([
+      ('chromium', CHROMIUM_POLICY),
+      ('oss-fuzz', OSS_FUZZ_POLICY),
+  ])
+  def test_memory_tool_used(self, project_name, policy):
     """Test memory tool label is correctly set."""
+    self.mock.get.return_value = policy
     for entry in label_utils.MEMORY_TOOLS_LABELS:
       issue_tracker = monorail.IssueTracker(IssueTrackerManager(project_name))
 
       self.testcase1.crash_stacktrace = '\n\n%s\n' % entry['token']
       self.testcase1.put()
       issue_filer.file_issue(self.testcase1, issue_tracker)
-      self.assertIn(entry['label'], issue_tracker._itm.last_issue.labels)
+      self.assertIn('Stability-' + entry['label'],
+                    issue_tracker._itm.last_issue.labels)
