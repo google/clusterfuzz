@@ -81,6 +81,8 @@ class CrashResult(object):
 
   def get_stacktrace(self, symbolized=True):
     """Return the crash stacktrace."""
+    # TODO(flowerhack): Change here to support richer crash reports for
+    # Fuchsia. (Right now we only grab the raw output.)
     if environment.platform() == 'FUCHSIA':
       return self.output
     if symbolized:

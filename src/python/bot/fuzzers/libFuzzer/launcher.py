@@ -840,8 +840,6 @@ def main(argv):
       use_mutator_plugin(target_name, extra_env, minijail_chroot)):
     fuzzing_strategies.append(strategy.MUTATOR_PLUGIN_STRATEGY.name)
 
-  logs.log("We hit the fuzzer!")
-
   # Execute the fuzzer binary with original arguments.
   fuzz_result = runner.fuzz(
       corpus_directories,
