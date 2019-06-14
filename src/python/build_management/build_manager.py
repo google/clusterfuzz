@@ -793,7 +793,6 @@ class FuchsiaBuild(Build):
     self._setup_application_path()
 
     # TODO(flowerhack): Figure out how to shutdown this process cleanly.
-    from platforms import fuchsia
     fuchsia.device.qemu_setup()
     return True
 

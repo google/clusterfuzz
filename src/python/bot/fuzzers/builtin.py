@@ -61,6 +61,7 @@ class EngineFuzzer(BuiltinFuzzer):
     raise NotImplementedError
 
   def _get_fuzzer_binary_name_and_path(self):
+    """Returns the fuzzer binary name and its path."""
     if environment.platform() == 'FUCHSIA':
       fuzzer_binary_name = fuzzer_path = environment.get_value('FUZZ_TARGET')
       return fuzzer_binary_name, fuzzer_path
@@ -68,7 +69,8 @@ class EngineFuzzer(BuiltinFuzzer):
       build_directory = environment.get_value('BUILD_DIR')
 
       if not build_directory:
-        raise BuiltinFuzzerException('BUILD_DIR environment variable is not set.')
+        raise BuiltinFuzzerException(
+            'BUILD_DIR environment variable is not set.')
 
       fuzzers = fuzzers_utils.get_fuzz_targets(build_directory)
 
@@ -86,8 +88,8 @@ class EngineFuzzer(BuiltinFuzzer):
 
   def run(self, input_directory, output_directory, no_of_files):
     """Run the fuzzer to generate testcases."""
-    
-    fuzzer_binary_name, fuzzer_path = self._get_fuzzer_binary_name_and_path()    
+
+    fuzzer_binary_name, fuzzer_path = self._get_fuzzer_binary_name_and_path()
 
     project_qualified_name = data_types.fuzz_target_project_qualified_name(
         utils.current_project(), fuzzer_binary_name)

@@ -55,7 +55,6 @@ from metrics import fuzzer_stats
 from metrics import logs
 from metrics import monitoring_metrics
 from platforms import android
-from platforms import fuchsia
 from system import environment
 from system import process_handler
 from system import shell
@@ -1339,9 +1338,9 @@ def execute_task(fuzzer_name, job_type):
   # Run the fuzzer to generate testcases. If error occurred while trying
   # to run the fuzzer, bail out.
   (error_occurred, testcase_file_paths, generated_testcase_count,
-   sync_corpus_directory, fuzzer_metadata) = run_fuzzer(
-       fuzzer, fuzzer_directory, testcase_directory, data_directory,
-       testcase_count)
+   sync_corpus_directory,
+   fuzzer_metadata) = run_fuzzer(fuzzer, fuzzer_directory, testcase_directory,
+                                 data_directory, testcase_count)
 
   if error_occurred:
     return
