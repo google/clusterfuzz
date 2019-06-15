@@ -394,11 +394,7 @@ def upload_testcase(testcase_path):
   if not fuzz_logs_bucket:
     return
 
-  try:
-    with open(testcase_path, 'rb') as file_handle:
-      testcase_contents = file_handle.read()
-  except:
-    testcase_contents = "testcase contents"
+  testcase_contents = file_handle.read()
 
   # This matches the time of the log file.
   time = _get_testcase_time(testcase_path)
