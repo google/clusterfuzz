@@ -75,16 +75,36 @@ class IssueTrackerPolicy(object):
     policy = NewIssuePolicy()
 
     if 'all' in self._data:
-      apply_new_issue_properties(policy, self._data['all'], is_crash)
+      self._apply_new_issue_properties(policy, self._data['all'], is_crash)
 
     if is_security:
       if 'security' in self._data:
-        apply_new_issue_properties(policy, self._data['security'], is_crash)
+        self._apply_new_issue_properties(policy, self._data['security'],
+                                         is_crash)
     else:
       if 'security' in self._data:
-        apply_new_issue_properties(policy, self._data['non_security'], is_crash)
+        self._apply_new_issue_properties(policy, self._data['non_security'],
+                                         is_crash)
 
     return policy
+
+  def _apply_new_issue_properties(self, policy, issue_type, is_crash):
+    """Apply issue policies."""
+    if 'status' in issue_type:
+      policy.status = self._data['status'][issue_type['status']]
+
+    if 'ccs' in issue_type:
+      policy.labels.extend(issue_type['ccs'])
+
+    if 'labels' in issue_type:
+      policy.labels.extend(issue_type['labels'])
+
+    if is_crash:
+      if 'crash_labels' in issue_type:
+        policy.labels.extend(issue_type['crash_labels'])
+    else:
+      if 'non_crash_labels' in issue_type:
+        policy.labels.extend(issue_type['non_crash_labels'])
 
   def get_existing_issue_properties(self):
     """Get the properties to apply to a new issue."""
@@ -94,24 +114,6 @@ class IssueTrackerPolicy(object):
       apply_new_issue_properties(policy, self._data['existing'], False)
 
     return policy
-
-
-def apply_new_issue_properties(policy, data, is_crash):
-  """Apply issue policies."""
-  policy.status = data.get('status')
-
-  if 'ccs' in data:
-    policy.labels.extend(data['ccs'])
-
-  if 'labels' in data:
-    policy.labels.extend(data['labels'])
-
-  if is_crash:
-    if 'crash_labels' in data:
-      policy.labels.extend(data['crash_labels'])
-  else:
-    if 'non_crash_labels' in data:
-      policy.labels.extend(data['non_crash_labels'])
 
 
 def get(project_name):

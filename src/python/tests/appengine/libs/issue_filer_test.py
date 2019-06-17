@@ -216,7 +216,7 @@ class IssueFilerTests(unittest.TestCase):
 
     self.testcase6 = data_types.Testcase(
         job_type='job', additional_metadata='invalid', **testcase_args)
-    self.testcase5.put()
+    self.testcase6.put()
 
     data_types.ExternalUserPermission(
         email='user@example.com',
@@ -247,12 +247,28 @@ class IssueFilerTests(unittest.TestCase):
     issue_tracker = monorail.IssueTracker(IssueTrackerManager('chromium'))
     issue_filer.file_issue(self.testcase4, issue_tracker)
     self.assertIn('OS-Chrome', issue_tracker._itm.last_issue.labels)
+    self.assertEqual('Untriaged', issue_tracker._itm.last_issue.status)
+    self.assertNotIn('Restrict-View-SecurityTeam',
+                     issue_tracker._itm.last_issue.labels)
+
+  def test_filed_issues_chromium_security(self):
+    """Tests issue filing for chromium."""
+    self.testcase4.security_flag = True
+    self.testcase4.put()
+    self.mock.get.return_value = CHROMIUM_POLICY
+    issue_tracker = monorail.IssueTracker(IssueTrackerManager('chromium'))
+    issue_filer.file_issue(self.testcase4, issue_tracker)
+    self.assertIn('OS-Chrome', issue_tracker._itm.last_issue.labels)
+    self.assertEqual('Untriaged', issue_tracker._itm.last_issue.status)
+    self.assertIn('Restrict-View-SecurityTeam',
+                  issue_tracker._itm.last_issue.labels)
 
   def test_filed_issues_oss_fuzz(self):
     """Tests issue filing for oss-fuzz."""
     self.mock.get.return_value = OSS_FUZZ_POLICY
     issue_tracker = monorail.IssueTracker(IssueTrackerManager('oss-fuzz'))
     issue_filer.file_issue(self.testcase1, issue_tracker)
+    self.assertEqual('New', issue_tracker._itm.last_issue.status)
     self.assertTrue(
         issue_tracker._itm.last_issue.has_label_matching(
             'restrict-view-commit'))
@@ -437,3 +453,18 @@ class IssueFilerTests(unittest.TestCase):
       issue_filer.file_issue(self.testcase1, issue_tracker)
       self.assertIn('Stability-' + entry['label'],
                     issue_tracker._itm.last_issue.labels)
+
+  def test_reproducible_flag(self):
+    """Test (un)reproducible flag is correctly set."""
+    self.mock.get.return_value = CHROMIUM_POLICY
+    issue_tracker = monorail.IssueTracker(IssueTrackerManager('chromium'))
+
+    self.testcase1.one_time_crasher_flag = True
+    self.testcase1.put()
+    issue_filer.file_issue(self.testcase1, issue_tracker)
+    self.assertIn('Unreproducible', issue_tracker._itm.last_issue.labels)
+
+    self.testcase1.one_time_crasher_flag = False
+    self.testcase1.put()
+    issue_filer.file_issue(self.testcase1, issue_tracker)
+    self.assertIn('Reproducible', issue_tracker._itm.last_issue.labels)

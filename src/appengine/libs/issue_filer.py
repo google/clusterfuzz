@@ -149,7 +149,6 @@ def file_issue(testcase,
   properties = policy.get_new_issue_properties(
       is_security=testcase.security_flag, is_crash=is_crash)
 
-  # Labels applied by default across all issue trackers.
   issue.status = properties.status
 
   # Add additional ccs from the job definition and fuzzer.
