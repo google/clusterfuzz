@@ -36,8 +36,9 @@ class FakeGSUtilRunner(object):
   """Fake gsutil runner for testing."""
   rsync_calls = []
 
-  def rsync(self, source, destination):
-    FakeGSUtilRunner.rsync_calls.append((source, destination))
+  def rsync(self, source, destination, exclusion_pattern=None):
+    FakeGSUtilRunner.rsync_calls.append((source, destination,
+                                         exclusion_pattern))
 
 
 class UploadTestsToCloudStorageTest(fake_filesystem_unittest.TestCase):
@@ -68,26 +69,35 @@ class UploadTestsToCloudStorageTest(fake_filesystem_unittest.TestCase):
     os.environ['BOT_NAME'] = 'test-bot'
     os.environ['BOT_TMPDIR'] = '/tmp'
     os.environ['FAIL_RETRIES'] = '1'
-    os.environ['TRADITIONAL_FUZZER_COVERAGE'] = 'True'
 
   def test_tests_created_in_correct_bucket(self):
     """Ensure that we invoke gsutil correctly to store tests."""
-    files = ['/a/b/file1.txt', '/a/file2.txt', '/b/c/file3.txt']
-    coverage_uploader.upload_testcases_if_needed('test_fuzzer', files, '/a/')
+    files = [
+        '/testcases/a/file1.txt', '/testcases/file2.txt',
+        '/something/b/file3.txt', '/data/f/g/file4.txt'
+    ]
+    coverage_uploader.upload_testcases_if_needed('test_fuzzer', files,
+                                                 '/testcases', '/data')
 
     self.mock.write_data.assert_called_with(
-        'b/file1.txt\nfile2.txt',
+        'a/file1.txt\nfile2.txt\nf/g/file4.txt',
         'gs://test-coverage-testcases/2018-11-01/test_fuzzer/'
         '5b680a295e1f3a81160a0bd71ca2abbcb8d19521/file_list.txt')
-
     self.assertEquals(
         FakeGSUtilRunner.rsync_calls,
-        [('/a/', 'gs://test-coverage-testcases/2018-11-01/test_fuzzer/'
-          '5b680a295e1f3a81160a0bd71ca2abbcb8d19521')])
+        [('/testcases', 'gs://test-coverage-testcases/'
+          '2018-11-01/test_fuzzer/5b680a295e1f3a81160a0bd71ca2abbcb8d19521',
+          None),
+         ('/data', 'gs://test-coverage-testcases/'
+          '2018-11-01/test_fuzzer/5b680a295e1f3a81160a0bd71ca2abbcb8d19521',
+          '"(^|.*/)(?!fuzz-)[^/]+$"'),
+         ('/data', 'gs://test-coverage-testcases/'
+          '2018-11-01/test_fuzzer/5b680a295e1f3a81160a0bd71ca2abbcb8d19521',
+          '"(?!.*resource)"')])
 
-  def test_data_directory_ignored(self):
-    """Ensure that we do nothing if the output directory is empty."""
-    files = ['/data/b/file1.txt', '/data/file2.txt', '/data/c/file3.txt']
-    coverage_uploader.upload_testcases_if_needed('test_fuzzer', files,
-                                                 '/testcases/')
+  def test_empty_testcases_list(self):
+    """Ensure that we do nothing ."""
+    coverage_uploader.upload_testcases_if_needed('test_fuzzer', [],
+                                                 '/testcases', '/data')
+    self.assertEqual(self.mock.write_data.call_count, 0)
     self.assertEquals(FakeGSUtilRunner.rsync_calls, [])

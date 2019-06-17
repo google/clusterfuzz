@@ -18,18 +18,18 @@ import os
 from base import utils
 from bot.fuzzers import builtin_fuzzers
 from config import local_config
+from fuzzing import testcase_manager
 from google_cloud_utils import gsutil
 from google_cloud_utils import storage
 from metrics import logs
 from system import environment
-from system import shell
 
 LIST_FILE_BASENAME = 'file_list.txt'
-MAX_TESTCASE_DIRECTORY_SIZE = 1 * 1000 * 1000 * 1000  # 1 GB
-TESTCASES_PER_DAY = 1000
+TESTCASES_PER_DAY = 5000
 
 
-def upload_testcases_if_needed(fuzzer_name, testcase_list, testcase_directory):
+def upload_testcases_if_needed(fuzzer_name, testcase_list, testcase_directory,
+                               data_directory):
   """Upload test cases from the list to a cloud storage bucket."""
   # Since builtin fuzzers have a coverage minimized corpus, no need to upload
   # test case samples for them.
@@ -41,20 +41,17 @@ def upload_testcases_if_needed(fuzzer_name, testcase_list, testcase_directory):
   if not bucket_name:
     return
 
-  # Only consider test cases in the output directory. We might upload too much
-  # if we search the data directory as well, or have missing resources.
-  # TODO(mbarbella): Support resources in data bundles.
-  testcase_list = [
-      os.path.relpath(testcase, testcase_directory)
-      for testcase in testcase_list
-      if testcase.startswith(testcase_directory)
-  ]
-  if not testcase_list:
-    return
-
-  # Bail out if this batch of test cases is too large.
-  directory_size = shell.get_directory_size(testcase_directory)
-  if directory_size >= MAX_TESTCASE_DIRECTORY_SIZE:
+  files_list = []
+  has_testcases_in_testcase_directory = False
+  has_testcases_in_data_directory = False
+  for testcase_path in testcase_list:
+    if testcase_path.startswith(testcase_directory):
+      files_list.append(os.path.relpath(testcase_path, testcase_directory))
+      has_testcases_in_testcase_directory = True
+    elif testcase_path.startswith(data_directory):
+      files_list.append(os.path.relpath(testcase_path, data_directory))
+      has_testcases_in_data_directory = True
+  if not files_list:
     return
 
   formatted_date = str(utils.utcnow().date())
@@ -86,9 +83,24 @@ def upload_testcases_if_needed(fuzzer_name, testcase_list, testcase_directory):
   gcs_base_url += utils.string_hash(identifier)
 
   list_gcs_url = gcs_base_url + '/' + LIST_FILE_BASENAME
-  if not storage.write_data('\n'.join(testcase_list), list_gcs_url):
+  if not storage.write_data('\n'.join(files_list), list_gcs_url):
     return
 
-  runner.rsync(testcase_directory, gcs_base_url)
-  logs.log('Synced {count} test cases to {gcs_url}'.format(
-      count=len(testcase_list), gcs_url=gcs_base_url))
+  if has_testcases_in_testcase_directory:
+    # Sync everything in |testcase_directory| since it is fuzzer-generated.
+    runner.rsync(testcase_directory, gcs_base_url)
+
+  if has_testcases_in_data_directory:
+    # Sync all fuzzer generated testcase in data bundle directory.
+    runner.rsync(
+        data_directory,
+        gcs_base_url,
+        exclusion_pattern=('"(^|.*/)(?!{fuzz_prefix})[^/]+$"'.format(
+            fuzz_prefix=testcase_manager.FUZZ_PREFIX)))
+
+    # Sync all possible resource dependencies as a best effort.
+    runner.rsync(
+        data_directory, gcs_base_url, exclusion_pattern='"(?!.*resource)"')
+
+  logs.log('Synced {count} test cases to {gcs_url}.'.format(
+      count=len(files_list), gcs_url=gcs_base_url))
