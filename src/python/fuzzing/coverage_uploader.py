@@ -99,14 +99,14 @@ def upload_testcases_if_needed(fuzzer_name, testcase_list, testcase_directory,
     runner.rsync(
         data_directory,
         gcs_base_url,
-        exclusion_pattern=('"(?!.*{fuzz_prefix})"'.format(
+        exclusion_pattern=('(?!.*{fuzz_prefix})'.format(
             fuzz_prefix=testcase_manager.FUZZ_PREFIX)))
 
     # Sync all possible resource dependencies as a best effort. It matches
     # |resources-| prefix that a fuzzer can use to indicate resources. Also, it
     # matches resources directory that Chromium web_tests use for dependencies.
     runner.rsync(
-        data_directory, gcs_base_url, exclusion_pattern='"(?!.*resource)"')
+        data_directory, gcs_base_url, exclusion_pattern='(?!.*resource)')
 
   logs.log('Synced {count} test cases to {gcs_url}.'.format(
       count=len(files_list), gcs_url=gcs_base_url))
