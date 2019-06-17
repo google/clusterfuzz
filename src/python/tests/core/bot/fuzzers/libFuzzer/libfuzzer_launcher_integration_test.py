@@ -121,6 +121,7 @@ class BaseLauncherTest(unittest.TestCase):
         'bot.fuzzers.engine_common.random_choice',
         'bot.fuzzers.mutator_plugin._download_mutator_plugin_archive',
         'bot.fuzzers.mutator_plugin._get_mutator_plugins_from_bucket',
+        'bot.fuzzers.libFuzzer.launcher.do_dataflow_tracing',
         'bot.fuzzers.libFuzzer.launcher.do_fork',
         'bot.fuzzers.libFuzzer.launcher.do_ml_rnn_generator',
         'bot.fuzzers.libFuzzer.launcher.do_mutator_plugin',
@@ -140,6 +141,7 @@ class BaseLauncherTest(unittest.TestCase):
 
     self.mock._get_mutator_plugins_from_bucket.return_value = []  # pylint: disable=protected-access
     self.mock.do_corpus_subset.return_value = False
+    self.mock.do_dataflow_tracing.return_value = False
     self.mock.do_fork.return_value = False
     self.mock.do_mutator_plugin.return_value = False
     self.mock.do_ml_rnn_generator.return_value = False

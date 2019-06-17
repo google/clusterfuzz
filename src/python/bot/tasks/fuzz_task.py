@@ -1243,8 +1243,9 @@ def process_crashes(crashes, context):
   return new_crash_count, known_crash_count, processed_groups
 
 
-def setup_auxiliary_build(build_bucket_path):
+def setup_auxiliary_build():
   """Sets up auxiliary builds when necessary (e.g. DFSan build)."""
+  build_bucket_path = environment.get_value('DATAFLOW_BUILD_BUCKET_PATH')
   if not build_bucket_path:
     return None
 
@@ -1275,7 +1276,7 @@ def setup_auxiliary_build(build_bucket_path):
     return None
 
   build_dir = build_manager.get_base_build_dir(build_bucket_path)
-  shell.create_directory(build_dir)
+  shell.create_directory(build_dir, create_intermediates=True)
 
   build_class = build_manager.AuxiliaryBuild
   if environment.is_trusted_host():
@@ -1285,7 +1286,9 @@ def setup_auxiliary_build(build_bucket_path):
   build = build_class(build_dir, revision, build_url)
 
   if build.setup():
+    environment.set_value('DATAFLOW_BUILD_DIR', build.build_dir)
     return build
+
   return None
 
 
@@ -1324,12 +1327,7 @@ def execute_task(fuzzer_name, job_type):
   if build:
     # Some fuzzing jobs may use auxiliary builds, such as DFSan instrumented
     # builds accompanying libFuzzer builds to enable DFT-based fuzzing.
-    dataflow_build_bucket_path = environment.get_value(
-        'DATAFLOW_BUILD_BUCKET_PATH')
-    dataflow_build = build_manager.setup_auxiliary_build(
-        dataflow_build_bucket_path)
-    if dataflow_build:
-      environment.set_value('DATAFLOW_BUILD_DIR', dataflow_build.build_dir)
+    setup_auxiliary_build()
 
   # Check if we have an application path. If not, our build failed
   # to setup correctly.

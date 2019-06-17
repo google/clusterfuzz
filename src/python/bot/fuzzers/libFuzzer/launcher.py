@@ -530,6 +530,9 @@ def remove_fuzzing_arguments(arguments):
   # Remove `-fork' argument since it overrides '-merge' argument.
   fuzzer_utils.extract_argument(arguments, constants.FORK_FLAG)
 
+  # Remove `-collect_data_flow` argument since it's needed for fuzzing only.
+  fuzzer_utils.extract_argument(arguments, constants.COLLECT_DATA_FLOW_FLAG)
+
 
 def load_testcase_if_exists(fuzzer_runner,
                             testcase_file_path,

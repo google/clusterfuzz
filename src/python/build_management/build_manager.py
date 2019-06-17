@@ -238,12 +238,12 @@ def _unpack_build(base_build_dir,
   # Actual list of files to unpack can be smaller if we are only unarchiving
   # a particular fuzz target.
   file_match_callback = _get_file_match_callback()
-  assert (
-      # `file_match_callback` must be None when we unpack everything, or
-      # must be not None when we do not unpack everything.
-      not (unpack_everything and file_match_callback is not None) or
-      # Auxiliary builds must have 'FUZZ_TARGET' and `file_match_callback`.
-      is_auxiliary_build and file_match_callback is not None)
+  # assert (
+  #     # `file_match_callback` must be None when we unpack everything, or
+  #     # must be not None when we do not unpack everything.
+  #     not (unpack_everything and file_match_callback is not None)) # or
+  #     # Auxiliary builds must have 'FUZZ_TARGET' and `file_match_callback`.
+  #     #is_auxiliary_build and file_match_callback is not None)
 
   if not _make_space_for_build(build_local_archive, base_build_dir,
                                file_match_callback):
