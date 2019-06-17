@@ -468,3 +468,20 @@ class IssueFilerTests(unittest.TestCase):
     self.testcase1.put()
     issue_filer.file_issue(self.testcase1, issue_tracker)
     self.assertIn('Reproducible', issue_tracker._itm.last_issue.labels)
+
+  def test_crash_labels(self):
+    """Test crash label setting."""
+    self.mock.get.return_value = CHROMIUM_POLICY
+    issue_tracker = monorail.IssueTracker(IssueTrackerManager('chromium'))
+
+    self.testcase1.crash_type = 'UNKNOWN'
+    self.testcase1.put()
+    issue_filer.file_issue(self.testcase1, issue_tracker)
+    self.assertIn('Pri-1', issue_tracker._itm.last_issue.labels)
+    self.assertIn('Stability-Crash', issue_tracker._itm.last_issue.labels)
+
+    self.testcase1.crash_type = 'Undefined-shift'
+    self.testcase1.put()
+    issue_filer.file_issue(self.testcase1, issue_tracker)
+    self.assertIn('Pri-2', issue_tracker._itm.last_issue.labels)
+    self.assertNotIn('Stability-Crash', issue_tracker._itm.last_issue.labels)
