@@ -25,7 +25,7 @@ from metrics import logs
 from system import environment
 
 LIST_FILE_BASENAME = 'file_list.txt'
-TESTCASES_PER_DAY = 5000
+TESTCASES_PER_DAY = 1000
 
 
 def upload_testcases_if_needed(fuzzer_name, testcase_list, testcase_directory,
@@ -78,6 +78,10 @@ def upload_testcases_if_needed(fuzzer_name, testcase_list, testcase_directory,
     if total_testcases >= TESTCASES_PER_DAY:
       return
 
+  # Cap the number of files.
+  testcases_limit = min(len(files_list), TESTCASES_PER_DAY - total_testcases)
+  files_list = files_list[:testcases_limit]
+
   # Upload each batch of tests to its own unique sub-bucket.
   identifier = environment.get_value('BOT_NAME') + str(utils.utcnow())
   gcs_base_url += utils.string_hash(identifier)
@@ -95,7 +99,7 @@ def upload_testcases_if_needed(fuzzer_name, testcase_list, testcase_directory,
     runner.rsync(
         data_directory,
         gcs_base_url,
-        exclusion_pattern=('"(^|.*/)(?!{fuzz_prefix})[^/]+$"'.format(
+        exclusion_pattern=('"(?!.*{fuzz_prefix})"'.format(
             fuzz_prefix=testcase_manager.FUZZ_PREFIX)))
 
     # Sync all possible resource dependencies as a best effort.

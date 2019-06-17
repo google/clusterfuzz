@@ -62,7 +62,7 @@ class UploadTestsToCloudStorageTest(fake_filesystem_unittest.TestCase):
     self.mock.write_data.return_value = True
     self.mock.utcnow.side_effect = lambda: datetime.datetime(2018, 11, 1, 0, 0)
 
-    FakeGSUtilRunner.calls = []
+    FakeGSUtilRunner.rsync_calls = []
     self.mock.GSUtilRunner.side_effect = FakeGSUtilRunner
     self.mock.get.side_effect = _mock_config_get
 
@@ -90,14 +90,31 @@ class UploadTestsToCloudStorageTest(fake_filesystem_unittest.TestCase):
           None),
          ('/data', 'gs://test-coverage-testcases/'
           '2018-11-01/test_fuzzer/5b680a295e1f3a81160a0bd71ca2abbcb8d19521',
-          '"(^|.*/)(?!fuzz-)[^/]+$"'),
+          '"(?!.*fuzz-)"'),
          ('/data', 'gs://test-coverage-testcases/'
           '2018-11-01/test_fuzzer/5b680a295e1f3a81160a0bd71ca2abbcb8d19521',
           '"(?!.*resource)"')])
 
   def test_empty_testcases_list(self):
-    """Ensure that we do nothing ."""
+    """Ensure that we do nothing when we have no testcases."""
     coverage_uploader.upload_testcases_if_needed('test_fuzzer', [],
                                                  '/testcases', '/data')
     self.assertEqual(self.mock.write_data.call_count, 0)
     self.assertEquals(FakeGSUtilRunner.rsync_calls, [])
+
+  def test_large_testcase_list(self):
+    """Ensure that we cap number of uploaded testcases."""
+    files = ['/testcases/file%s' % i for i in range(20000)]
+    coverage_uploader.upload_testcases_if_needed('test_fuzzer', files,
+                                                 '/testcases', '/data')
+
+    filtered_files_list = '\n'.join(['file%s' % i for i in range(1000)])
+    self.mock.write_data.assert_called_with(
+        filtered_files_list,
+        'gs://test-coverage-testcases/2018-11-01/test_fuzzer/'
+        '5b680a295e1f3a81160a0bd71ca2abbcb8d19521/file_list.txt')
+    self.assertEquals(
+        FakeGSUtilRunner.rsync_calls,
+        [('/testcases', 'gs://test-coverage-testcases/'
+          '2018-11-01/test_fuzzer/5b680a295e1f3a81160a0bd71ca2abbcb8d19521',
+          None)])
