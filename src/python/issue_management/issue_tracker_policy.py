@@ -111,7 +111,7 @@ class IssueTrackerPolicy(object):
     policy = NewIssuePolicy()
 
     if 'existing' in self._data:
-      apply_new_issue_properties(policy, self._data['existing'], False)
+      self._apply_new_issue_properties(policy, self._data['existing'], False)
 
     return policy
 
