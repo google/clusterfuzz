@@ -90,10 +90,10 @@ class UploadTestsToCloudStorageTest(fake_filesystem_unittest.TestCase):
           None),
          ('/data', 'gs://test-coverage-testcases/'
           '2018-11-01/test_fuzzer/5b680a295e1f3a81160a0bd71ca2abbcb8d19521',
-          '"(?!.*fuzz-)"'),
+          '(?!.*fuzz-)'),
          ('/data', 'gs://test-coverage-testcases/'
           '2018-11-01/test_fuzzer/5b680a295e1f3a81160a0bd71ca2abbcb8d19521',
-          '"(?!.*resource)"')])
+          '(?!.*resource)')])
 
   def test_empty_testcases_list(self):
     """Ensure that we do nothing when we have no testcases."""
