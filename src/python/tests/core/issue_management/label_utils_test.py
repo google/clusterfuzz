@@ -32,7 +32,7 @@ class LabelUtilsTest(unittest.TestCase):
 
   def test_memory_tools_labels_asan(self):
     """Run memory tools detection with test data."""
-    expected_labels = ['Stability-Memory-AddressSanitizer']
+    expected_labels = ['Memory-AddressSanitizer']
     data = self._read_test_data('memory_tools_asan.txt')
     actual_labels = label_utils.get_memory_tool_labels(data)
 
@@ -40,7 +40,7 @@ class LabelUtilsTest(unittest.TestCase):
 
   def test_memory_tools_labels_asan_afl(self):
     """Run memory tools detection with test data."""
-    expected_labels = ['Stability-Memory-AddressSanitizer', 'Stability-AFL']
+    expected_labels = ['Memory-AddressSanitizer', 'AFL']
     data = self._read_test_data('memory_tools_asan_afl.txt')
     actual_labels = label_utils.get_memory_tool_labels(data)
 
@@ -48,9 +48,7 @@ class LabelUtilsTest(unittest.TestCase):
 
   def test_memory_tools_labels_asan_libfuzzer(self):
     """Run memory tools detection with test data."""
-    expected_labels = [
-        'Stability-Memory-AddressSanitizer', 'Stability-LibFuzzer'
-    ]
+    expected_labels = ['Memory-AddressSanitizer', 'LibFuzzer']
     data = self._read_test_data('memory_tools_asan_libfuzzer.txt')
     actual_labels = label_utils.get_memory_tool_labels(data)
 
@@ -58,9 +56,7 @@ class LabelUtilsTest(unittest.TestCase):
 
   def test_memory_tools_labels_asan_lsan(self):
     """Run memory tools detection with test data."""
-    expected_labels = [
-        'Stability-Memory-AddressSanitizer', 'Stability-Memory-LeakSanitizer'
-    ]
+    expected_labels = ['Memory-AddressSanitizer', 'Memory-LeakSanitizer']
     data = self._read_test_data('memory_tools_asan_lsan.txt')
     actual_labels = label_utils.get_memory_tool_labels(data)
 
@@ -68,7 +64,7 @@ class LabelUtilsTest(unittest.TestCase):
 
   def test_memory_tools_labels_msan(self):
     """Run memory tools detection with test data."""
-    expected_labels = ['Stability-Memory-MemorySanitizer']
+    expected_labels = ['Memory-MemorySanitizer']
     data = self._read_test_data('memory_tools_msan.txt')
     actual_labels = label_utils.get_memory_tool_labels(data)
 
@@ -76,9 +72,7 @@ class LabelUtilsTest(unittest.TestCase):
 
   def test_memory_tools_labels_msan_libfuzzer(self):
     """Run memory tools detection with test data."""
-    expected_labels = [
-        'Stability-Memory-MemorySanitizer', 'Stability-LibFuzzer'
-    ]
+    expected_labels = ['Memory-MemorySanitizer', 'LibFuzzer']
     data = self._read_test_data('memory_tools_msan_libfuzzer.txt')
     actual_labels = label_utils.get_memory_tool_labels(data)
 
@@ -86,7 +80,7 @@ class LabelUtilsTest(unittest.TestCase):
 
   def test_memory_tools_labels_tsan(self):
     """Run memory tools detection with test data."""
-    expected_labels = ['Stability-ThreadSanitizer']
+    expected_labels = ['ThreadSanitizer']
     data = self._read_test_data('memory_tools_tsan.txt')
     actual_labels = label_utils.get_memory_tool_labels(data)
 
@@ -94,7 +88,7 @@ class LabelUtilsTest(unittest.TestCase):
 
   def test_memory_tools_ubsan(self):
     """Run memory tools detection with test data."""
-    expected_labels = ['Stability-UndefinedBehaviorSanitizer']
+    expected_labels = ['UndefinedBehaviorSanitizer']
     data = self._read_test_data('memory_tools_ubsan.txt')
     actual_labels = label_utils.get_memory_tool_labels(data)
 
