@@ -40,12 +40,6 @@ class CrashResult(object):
 
   def get_symbolized_data(self):
     """Compute symbolized crash data if necessary or return cached result."""
-    # TODO(flowerhack): Change here to support richer crash reports for Fuchsia.
-    # (Right now we just grab the output.)
-    if environment.platform() == 'FUCHSIA':
-      state = stack_analyzer.StackAnalyzerState()
-      state.crash_state = self.output
-      return state
     if self._symbolized_crash_data:
       return self._symbolized_crash_data
 
