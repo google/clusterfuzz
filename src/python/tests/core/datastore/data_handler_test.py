@@ -24,8 +24,6 @@ from pyfakefs import fake_filesystem_unittest
 from config import local_config
 from datastore import data_handler
 from datastore import data_types
-from issue_management import issue_tracker
-from issue_management.monorail import issue
 from system import environment
 from tests.test_libs import helpers
 from tests.test_libs import test_utils
@@ -467,112 +465,6 @@ class GetSecuritySeverityTest(unittest.TestCase):
     self.assertEqual('Low', result)
     self.mock.get_security_severity.assert_called_with('type', 'trace', 'job',
                                                        False)
-
-
-@test_utils.with_cloud_emulators('datastore')
-class UpdateImpactTest(unittest.TestCase):
-  """Update impact tests."""
-
-  def _make_mock_issue(self):
-    mock_issue = mock.Mock(autospec=issue.Issue)
-    mock_issue.labels = issue_tracker.LabelStore()
-
-    return mock_issue
-
-  def setUp(self):
-    helpers.patch_environ(self)
-    self.testcase = data_types.Testcase()
-    self.testcase.one_time_crasher_flag = False
-
-  def test_update_impact_stable_from_regression(self):
-    """Tests updating impact to Stable from the regression range."""
-    self.testcase.regression = '0:1000'
-    mock_issue = self._make_mock_issue()
-
-    data_handler.update_issue_impact_labels(self.testcase, mock_issue)
-    self.assertItemsEqual(['Security_Impact-Stable'], mock_issue.labels.added)
-    self.assertItemsEqual([], mock_issue.labels.removed)
-
-  def test_update_impact_stable(self):
-    """Tests updating impact to Stable."""
-    self.testcase.is_impact_set_flag = True
-    self.testcase.impact_stable_version = 'Stable'
-
-    mock_issue = self._make_mock_issue()
-
-    data_handler.update_issue_impact_labels(self.testcase, mock_issue)
-    self.assertItemsEqual(['Security_Impact-Stable'], mock_issue.labels.added)
-    self.assertItemsEqual([], mock_issue.labels.removed)
-
-  def test_update_impact_beta(self):
-    """Tests updating impact to Beta."""
-    self.testcase.is_impact_set_flag = True
-    self.testcase.impact_beta_version = 'Beta'
-
-    mock_issue = self._make_mock_issue()
-
-    data_handler.update_issue_impact_labels(self.testcase, mock_issue)
-    self.assertItemsEqual(['Security_Impact-Beta'], mock_issue.labels.added)
-    self.assertItemsEqual([], mock_issue.labels.removed)
-
-  def test_update_impact_head(self):
-    """Tests updating impact to Head."""
-    self.testcase.is_impact_set_flag = True
-
-    mock_issue = self._make_mock_issue()
-
-    data_handler.update_issue_impact_labels(self.testcase, mock_issue)
-    self.assertItemsEqual(['Security_Impact-Head'], mock_issue.labels.added)
-    self.assertItemsEqual([], mock_issue.labels.removed)
-
-  def test_no_impact(self):
-    """Tests no impact."""
-    mock_issue = self._make_mock_issue()
-
-    data_handler.update_issue_impact_labels(self.testcase, mock_issue)
-    self.assertItemsEqual([], mock_issue.labels.added)
-    self.assertItemsEqual([], mock_issue.labels.removed)
-
-  def test_replace_impact(self):
-    """Tests replacing impact."""
-    self.testcase.is_impact_set_flag = True
-
-    mock_issue = self._make_mock_issue()
-    mock_issue.labels.add('Security_Impact-Beta')
-    mock_issue.labels.reset()
-
-    data_handler.update_issue_impact_labels(self.testcase, mock_issue)
-    self.assertItemsEqual(['Security_Impact-Head'], mock_issue.labels.added)
-    self.assertItemsEqual(['Security_Impact-Beta'], mock_issue.labels.removed)
-
-  def test_replace_same_impact(self):
-    """Tests replacing same impact."""
-    self.testcase.is_impact_set_flag = True
-
-    mock_issue = self._make_mock_issue()
-    mock_issue.labels.add('Security_Impact-Head')
-    mock_issue.labels.reset()
-
-    data_handler.update_issue_impact_labels(self.testcase, mock_issue)
-    self.assertItemsEqual([], mock_issue.labels.added)
-    self.assertItemsEqual([], mock_issue.labels.removed)
-
-  def test_component_dont_add_label(self):
-    """Test that we don't set labels for component builds."""
-    self.testcase.job_type = 'job'
-    self.testcase.put()
-
-    data_types.Job(
-        name='job',
-        environment_string=(
-            'RELEASE_BUILD_BUCKET_PATH = '
-            'https://example.com/blah-v8-component-([0-9]+).zip\n')).put()
-
-    self.testcase.is_impact_set_flag = True
-    mock_issue = self._make_mock_issue()
-    data_handler.update_issue_impact_labels(self.testcase, mock_issue)
-    self.assertItemsEqual([], mock_issue.labels.added)
-    self.assertItemsEqual([], mock_issue.labels.removed)
 
 
 class UpdateTestcaseCommentTest(unittest.TestCase):

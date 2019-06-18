@@ -15,7 +15,7 @@
 
 import unittest
 
-from issue_management.issue_tracker import LabelStore
+from libs.issue_management.issue_tracker import LabelStore
 
 
 class LabelStoreTest(unittest.TestCase):

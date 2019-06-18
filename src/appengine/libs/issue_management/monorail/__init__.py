@@ -18,10 +18,11 @@ standard_library.install_aliases()
 from builtins import object
 import urllib.parse
 
-from issue_management import issue_tracker
-from issue_management.monorail.issue import ChangeList as ChangeList
-from issue_management.monorail.issue import Issue as MonorailIssue
-from issue_management.monorail.issue_tracker_manager import IssueTrackerManager
+from libs.issue_management import issue_tracker
+from libs.issue_management.monorail.issue import ChangeList as ChangeList
+from libs.issue_management.monorail.issue import Issue as MonorailIssue
+from libs.issue_management.monorail.issue_tracker_manager import (
+    IssueTrackerManager)
 
 # TODO(ochang): Clean up how we cache issue_tracker_managers.
 ISSUE_TRACKER_MANAGERS = {}
@@ -44,6 +45,11 @@ class Issue(issue_tracker.Issue):
     self._ccs = issue_tracker.LabelStore(self._monorail_issue.cc)
     self._components = issue_tracker.LabelStore(self._monorail_issue.components)
     self._labels = issue_tracker.LabelStore(self._monorail_issue.labels)
+
+  @property
+  def issue_tracker(self):
+    """The IssueTracker for this issue."""
+    return IssueTracker(self._monorail_issue.itm)
 
   @property
   def id(self):

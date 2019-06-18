@@ -409,7 +409,7 @@ class GetTestcaseTest(unittest.TestCase):
         'datastore.data_handler.get_stacktrace',
         'datastore.data_types.Job.get_environment',
         'handlers.testcase_detail.show.filter_stacktrace',
-        'issue_management.issue_tracker_utils.get_issue_url',
+        'libs.issue_management.issue_tracker_utils.get_issue_url',
         'libs.access.can_user_access_testcase',
         'libs.access.has_access',
         'libs.auth.is_current_user_admin',

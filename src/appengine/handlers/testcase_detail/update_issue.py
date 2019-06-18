@@ -16,10 +16,10 @@
 from datastore import data_handler
 from handlers import base_handler
 from handlers.testcase_detail import show
-from issue_management import issue_tracker_policy
 from libs import handler
 from libs import helpers
-from libs import issue_filer
+from libs.issue_management import issue_filer
+from libs.issue_management import issue_tracker_policy
 
 
 class Handler(base_handler.Handler):
@@ -54,8 +54,7 @@ class Handler(base_handler.Handler):
     policy = issue_tracker_policy.get(issue_tracker.project)
     properties = policy.get_existing_issue_properties()
     for label in properties.labels:
-      for result in issue_filer.apply_substitutions(
-          label, testcase, security_severity=None):
+      for result in issue_filer.apply_substitutions(label, testcase):
         issue.labels.add(result)
 
     issue.save(new_comment=issue_comment)

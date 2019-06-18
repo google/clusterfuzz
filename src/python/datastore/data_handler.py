@@ -34,8 +34,6 @@ from datastore import ndb
 from datastore import ndb_utils
 from google_cloud_utils import blobs
 from google_cloud_utils import storage
-from issue_management import issue_tracker_utils
-from issue_management import label_utils
 from metrics import logs
 from system import environment
 from system import shell
@@ -352,7 +350,7 @@ def get_issue_description(testcase,
   if data_types.SecuritySeverity.is_valid(testcase.security_severity):
     content_string += (
         'Recommended Security Severity: %s\n\n' %
-        label_utils.severity_to_string(testcase.security_severity))
+        severity_analyzer.severity_to_string(testcase.security_severity))
 
   if (testcase.regression and testcase.regression != 'NA' and
       not testcase.regression.startswith('0:') and
@@ -1045,46 +1043,6 @@ def create_notification_entry(testcase_id, user_email):
   notification.put()
 
 
-def update_issue_impact_labels(testcase, issue):
-  """Update impact labels on issue."""
-  if testcase.one_time_crasher_flag:
-    return
-
-  if get_component_name(testcase.job_type):
-    # Component builds are not supported.
-    return
-
-  existing_impact = label_utils.get_impact_from_labels(
-      [label.lower() for label in issue.labels])
-
-  if testcase.regression.startswith('0:'):
-    # If the regression range starts from the start of time,
-    # then we assume that the bug impacts stable.
-    new_impact = data_types.SecurityImpact.STABLE
-  elif testcase.is_impact_set_flag:
-    # Add impact label based on testcase's impact value.
-    if testcase.impact_stable_version:
-      new_impact = data_types.SecurityImpact.STABLE
-    elif testcase.impact_beta_version:
-      new_impact = data_types.SecurityImpact.BETA
-    else:
-      new_impact = data_types.SecurityImpact.HEAD
-  else:
-    # No impact information.
-    return
-
-  if existing_impact == new_impact:
-    # Correct impact already set.
-    return
-
-  if existing_impact != data_types.SecurityImpact.MISSING:
-    issue.labels.remove('Security_Impact-' +
-                        label_utils.impact_to_string(existing_impact))
-
-  issue.labels.add('Security_Impact-' +
-                   label_utils.impact_to_string(new_impact))
-
-
 # ------------------------------------------------------------------------------
 # TestcaseUploadMetadata database related functions
 # ------------------------------------------------------------------------------
@@ -1186,14 +1144,6 @@ def create_user_uploaded_testcase(key,
 
   # Create the job to analyze the testcase.
   tasks.add_task('analyze', testcase_id, job_type, queue)
-
-  issue = issue_tracker_utils.get_issue_for_testcase(testcase)
-  if issue:
-    report_url = TESTCASE_REPORT_URL.format(
-        domain=get_domain(), testcase_id=testcase_id)
-    comment = ('ClusterFuzz is analyzing your testcase. '
-               'Developers can follow the progress at %s.' % report_url)
-    issue.save(new_comment=comment)
 
   return testcase.key.id()
 

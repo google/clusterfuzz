@@ -16,7 +16,7 @@
 from config import local_config
 from datastore import data_types
 from datastore import ndb_utils
-from issue_management import monorail
+from libs.issue_management import monorail
 from metrics import logs
 
 
@@ -135,6 +135,9 @@ def get_issue_url(testcase):
 
 def was_label_added(issue, label):
   """Check if a label was ever added to an issue."""
+  if not label:
+    return False
+
   for action in issue.actions:
     for added in action.labels.added:
       if label.lower() == added.lower():

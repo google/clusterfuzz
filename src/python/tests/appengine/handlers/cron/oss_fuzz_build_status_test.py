@@ -24,8 +24,8 @@ import webtest
 
 from datastore import data_types
 from handlers.cron import oss_fuzz_build_status
-from issue_management import monorail
-from issue_management.monorail.issue import Issue
+from libs.issue_management import monorail
+from libs.issue_management.monorail.issue import Issue
 from tests.test_libs import helpers as test_helpers
 from tests.test_libs import test_utils
 
@@ -73,7 +73,7 @@ class OssFuzzBuildStatusTest(unittest.TestCase):
     test_helpers.patch(self, [
         'metrics.logs.log_error',
         'base.utils.utcnow',
-        'issue_management.issue_tracker_utils.get_issue_tracker',
+        'libs.issue_management.issue_tracker_utils.get_issue_tracker',
         'handlers.base_handler.Handler.is_cron',
         'requests.get',
     ])

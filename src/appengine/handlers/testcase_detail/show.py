@@ -24,18 +24,18 @@ from base import utils
 from build_management import revisions
 from build_management import source_mapper
 from config import db_config
+from crash_analysis import severity_analyzer
 from datastore import data_handler
 from datastore import data_types
 from fuzzing import leak_blacklist
 from google_cloud_utils import blobs
 from handlers import base_handler
-from issue_management import issue_tracker_utils
-from issue_management import label_utils
 from libs import access
 from libs import auth
 from libs import form
 from libs import handler
 from libs import helpers
+from libs.issue_management import issue_tracker_utils
 from metrics import crash_stats
 from system import environment
 
@@ -476,7 +476,7 @@ def get_testcase_detail(testcase):
         pending_stack_task)))
 
   if data_types.SecuritySeverity.is_valid(testcase.security_severity):
-    security_severity = label_utils.severity_to_string(
+    security_severity = severity_analyzer.severity_to_string(
         testcase.security_severity)
   else:
     security_severity = None

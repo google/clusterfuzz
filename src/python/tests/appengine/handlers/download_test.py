@@ -24,7 +24,7 @@ import webtest
 from datastore import data_types
 from google_cloud_utils import storage
 from handlers import download
-from issue_management import issue_tracker
+from libs.issue_management import issue_tracker
 from tests.test_libs import helpers as test_helpers
 from tests.test_libs import test_utils
 
@@ -47,7 +47,8 @@ class DownloadTest(unittest.TestCase):
     test_helpers.patch(self, [
         'base.utils.is_oss_fuzz',
         'google_cloud_utils.blobs.get_blob_info',
-        'issue_management.issue_tracker_utils.get_issue_tracker_for_testcase',
+        'libs.issue_management.issue_tracker_utils.'
+        'get_issue_tracker_for_testcase',
         'libs.access.can_user_access_testcase',
         'libs.access.has_access',
         'libs.helpers.get_user_email',

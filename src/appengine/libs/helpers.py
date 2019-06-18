@@ -20,8 +20,8 @@ import traceback
 
 from base import errors
 from datastore import data_handler
-from issue_management import issue_tracker_utils
 from libs import auth
+from libs.issue_management import issue_tracker_utils
 
 VIEW_OPERATION = 'View'
 MODIFY_OPERATION = 'Modify'

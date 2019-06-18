@@ -116,23 +116,15 @@ NOTIFY_CLOSED_BUG_WITH_OPEN_TESTCASE_DEADLINE = 7
 UNREPRODUCIBLE_TESTCASE_NO_BUG_DEADLINE = 7
 UNREPRODUCIBLE_TESTCASE_WITH_BUG_DEADLINE = 14
 
-# Issue state tracking labels.
-ISSUE_IGNORE_LABEL = 'ClusterFuzz-Ignore'
-ISSUE_INVALID_FUZZER_LABEL = 'ClusterFuzz-Invalid-Fuzzer'
-ISSUE_MISTRIAGED_LABEL = 'ClusterFuzz-Wrong'
-ISSUE_NEEDS_FEEDBACK_LABEL = 'Needs-Feedback'
-ISSUE_VERIFIED_LABEL = 'ClusterFuzz-Verified'
-
-ISSUE_FUZZ_BLOCKER_LABEL = 'Fuzz-Blocker'
+# Chromium specific ssue state tracking labels.
 ISSUE_RELEASEBLOCK_BETA_LABEL = 'ReleaseBlock-Beta'
-
-ISSUE_CLUSTERFUZZ_AUTO_CC_LABEL = 'ClusterFuzz-Auto-CC'
-
 ISSUE_PREDATOR_AUTO_CC_LABEL = 'Test-Predator-Auto-CC'
 ISSUE_PREDATOR_AUTO_COMPONENTS_LABEL = 'Test-Predator-Auto-Components'
 ISSUE_PREDATOR_AUTO_OWNER_LABEL = 'Test-Predator-Auto-Owner'
 ISSUE_PREDATOR_WRONG_COMPONENTS_LABEL = 'Test-Predator-Wrong-Components'
 ISSUE_PREDATOR_WRONG_CL_LABEL = 'Test-Predator-Wrong-CLs'
+
+MISSING_VALUE_STRING = '---'
 
 # FIXME: Move these "enums" into seperate file(s).
 

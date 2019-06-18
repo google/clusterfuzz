@@ -16,7 +16,7 @@ from handlers import base_handler
 from handlers.testcase_detail import show
 from libs import handler
 from libs import helpers
-from libs import issue_filer
+from libs.issue_management import issue_filer
 
 
 class Handler(base_handler.Handler):
