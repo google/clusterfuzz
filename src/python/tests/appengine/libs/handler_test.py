@@ -512,8 +512,7 @@ class TestGetEmailAndAccessToken(unittest.TestCase):
     self.assertEqual('test@test.com', email)
     self.assertEqual('Bearer AccessToken', token)
     self.assertEqual(1, self.mock.get_access_token.call_count)
-    self.mock.get_access_token.assert_has_calls(
-        [mock.call('Verify', False)])
+    self.mock.get_access_token.assert_has_calls([mock.call('Verify', False)])
     self._assert_requests_get_call()
 
   def test_invalid_authorization_header(self):
