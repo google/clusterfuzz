@@ -25,10 +25,9 @@ import unittest
 import parameterized
 
 from bot.fuzzers import libfuzzer
-from bot.fuzzers import utils as fuzzer_utils
 from bot.fuzzers import strategy
+from bot.fuzzers import utils as fuzzer_utils
 from bot.fuzzers.libFuzzer import launcher
-from bot.fuzzers.libFuzzer import strategy_selection
 from build_management import build_manager
 from datastore import data_types
 from platforms import fuchsia
@@ -101,6 +100,7 @@ def run_launcher(*args):
     launcher.main(['launcher.py'] + list(args))
 
   return mock_stdout.getvalue()
+
 
 def set_strategy_pool(corpus_subset=False,
                       fork=False,
@@ -185,7 +185,8 @@ class BaseLauncherTest(unittest.TestCase):
     plugin_archive_name = 'custom_mutator_plugin-libfuzzer_asan-test_fuzzer.zip'
     plugin_archive_path = os.path.join(DATA_DIRECTORY, plugin_archive_name)
 
-    self.mock.generate_strategy_pool.return_value = set_strategy_pool(mutator_plugin=True)
+    self.mock.generate_strategy_pool.return_value = set_strategy_pool(
+        mutator_plugin=True)
     self.mock._get_mutator_plugins_from_bucket.return_value = [  # pylint: disable=protected-access
         plugin_archive_name
     ]
@@ -286,7 +287,8 @@ class TestLauncher(BaseLauncherTest):
   @mock.patch('bot.fuzzers.libFuzzer.launcher.get_fuzz_timeout')
   def test_fuzz_no_crash(self, mock_get_timeout):
     """Tests fuzzing (no crash)."""
-    self.mock.generate_strategy_pool.return_value = set_strategy_pool(value_profile=True)
+    self.mock.generate_strategy_pool.return_value = set_strategy_pool(
+        value_profile=True)
 
     mock_get_timeout.return_value = get_fuzz_timeout(5.0)
     testcase_path = setup_testcase_and_corpus('empty', 'corpus', fuzz=True)
@@ -330,7 +332,8 @@ class TestLauncher(BaseLauncherTest):
   @mock.patch('bot.fuzzers.libFuzzer.launcher.get_fuzz_timeout')
   def test_fuzz_from_subset(self, mock_get_timeout):
     """Tests fuzzing from corpus subset."""
-    self.mock.generate_strategy_pool.return_value = set_strategy_pool(corpus_subset=True)
+    self.mock.generate_strategy_pool.return_value = set_strategy_pool(
+        corpus_subset=True)
     mock_get_timeout.return_value = get_fuzz_timeout(5.0)
 
     testcase_path = setup_testcase_and_corpus(
@@ -419,7 +422,8 @@ class TestLauncher(BaseLauncherTest):
   @mock.patch('bot.fuzzers.libFuzzer.launcher.get_fuzz_timeout')
   def test_max_length_strategy_with_override(self, mock_get_timeout):
     """Tests max length strategy with override."""
-    self.mock.generate_strategy_pool.return_value = set_strategy_pool(max_len=True)
+    self.mock.generate_strategy_pool.return_value = set_strategy_pool(
+        max_len=True)
     mock_get_timeout.return_value = get_fuzz_timeout(5.0)
     testcase_path = setup_testcase_and_corpus('empty', 'corpus', fuzz=True)
     output = run_launcher(testcase_path, 'always_crash_fuzzer', '-max_len=100')
@@ -435,7 +439,8 @@ class TestLauncher(BaseLauncherTest):
   @mock.patch('bot.fuzzers.libFuzzer.launcher.get_fuzz_timeout')
   def test_max_length_strategy_without_override(self, mock_get_timeout):
     """Tests max length strategy without override."""
-    self.mock.generate_strategy_pool.return_value = set_strategy_pool(max_len=True)
+    self.mock.generate_strategy_pool.return_value = set_strategy_pool(
+        max_len=True)
     mock_get_timeout.return_value = get_fuzz_timeout(5.0)
     testcase_path = setup_testcase_and_corpus('empty', 'corpus', fuzz=True)
     output = run_launcher(testcase_path, 'always_crash_fuzzer')
@@ -556,8 +561,8 @@ class TestLauncherMinijail(BaseLauncherTest):
   @mock.patch('bot.fuzzers.libFuzzer.launcher.get_fuzz_timeout')
   def test_fuzz_from_subset(self, mock_get_timeout):
     """Tests fuzzing from corpus subset."""
-    self.mock.generate_strategy_pool.return_value = set_strategy_pool(corpus_subset=True,
-        value_profile=True)
+    self.mock.generate_strategy_pool.return_value = set_strategy_pool(
+        corpus_subset=True, value_profile=True)
 
     mock_get_timeout.return_value = get_fuzz_timeout(5.0)
     testcase_path = setup_testcase_and_corpus(

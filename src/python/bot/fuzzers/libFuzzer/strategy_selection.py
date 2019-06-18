@@ -17,9 +17,8 @@ Decides the set strategies to be considered by the launcher. Note
 that because of compatability issues, the exact set of strategies
 generated here may be modified in the launcher before being launched."""
 
-from bot.fuzzers import strategy
 from bot.fuzzers import engine_common
-from system import environment
+from bot.fuzzers import strategy
 
 # Probability of using `-max_len` option. Not applicable if already declared in
 # .options file.
@@ -57,16 +56,28 @@ def do_random_max_length():
 
 
 def use_generator():
-  radamsa_p = engine_common.get_strategy_probability(strategy.CORPUS_MUTATION_RADAMSA_STRATEGY, default=CORPUS_MUTATION_RADAMSA_PROBABILITY)
-  ml_rnn_p = engine_common.get_strategy_probability(strategy.CORPUS_MUTATION_ML_RNN_STRATEGY, default=CORPUS_MUTATION_ML_RNN_PROBABILITY)
+  """Return whether to use a generator or not."""
+  radamsa_p = engine_common.get_strategy_probability(
+      strategy.CORPUS_MUTATION_RADAMSA_STRATEGY,
+      default=CORPUS_MUTATION_RADAMSA_PROBABILITY)
+  ml_rnn_p = engine_common.get_strategy_probability(
+      strategy.CORPUS_MUTATION_ML_RNN_STRATEGY,
+      default=CORPUS_MUTATION_ML_RNN_PROBABILITY)
   return engine_common.decide_with_probability(radamsa_p + ml_rnn_p)
 
 
 def do_radamsa_or_ml_rnn_generator():
-  """Return whether to use radamsa or ml rnn generator. True for radamsa, false for ml rnn."""
-  radamsa_p = engine_common.get_strategy_probability(strategy.CORPUS_MUTATION_RADAMSA_STRATEGY, default=CORPUS_MUTATION_RADAMSA_PROBABILITY)
-  ml_rnn_p = engine_common.get_strategy_probability(strategy.CORPUS_MUTATION_ML_RNN_STRATEGY, default=CORPUS_MUTATION_ML_RNN_PROBABILITY)
-  return engine_common.decide_with_probability(radamsa_p / (radamsa_p + ml_rnn_p))
+  """Return whether to use radamsa or ml rnn generator.
+
+  True for radamsa, false for ml rnn."""
+  radamsa_p = engine_common.get_strategy_probability(
+      strategy.CORPUS_MUTATION_RADAMSA_STRATEGY,
+      default=CORPUS_MUTATION_RADAMSA_PROBABILITY)
+  ml_rnn_p = engine_common.get_strategy_probability(
+      strategy.CORPUS_MUTATION_ML_RNN_STRATEGY,
+      default=CORPUS_MUTATION_ML_RNN_PROBABILITY)
+  return engine_common.decide_with_probability(
+      radamsa_p / (radamsa_p + ml_rnn_p))
 
 
 def do_recommended_dictionary():
@@ -105,16 +116,22 @@ def generate_strategy_pool():
 
   # Decide whether or not to include radamsa, ml rnn, or no generator
   if use_generator():
-  	strategy_pool[strategy.CORPUS_MUTATION_RADAMSA_STRATEGY] = do_radamsa_or_ml_rnn_generator()
-  	strategy_pool[strategy.CORPUS_MUTATION_ML_RNN_STRATEGY] = not strategy_pool[strategy.CORPUS_MUTATION_RADAMSA_STRATEGY]
+    strategy_pool[
+        strategy.
+        CORPUS_MUTATION_RADAMSA_STRATEGY] = do_radamsa_or_ml_rnn_generator()
+    strategy_pool[
+        strategy.CORPUS_MUTATION_ML_RNN_STRATEGY] = not \
+            strategy_pool[strategy.CORPUS_MUTATION_RADAMSA_STRATEGY]
   else:
-  	strategy_pool[strategy.CORPUS_MUTATION_RADAMSA_STRATEGY] = False
-  	strategy_pool[strategy.CORPUS_MUTATION_ML_RNN_STRATEGY] = False
-  
+    strategy_pool[strategy.CORPUS_MUTATION_RADAMSA_STRATEGY] = False
+    strategy_pool[strategy.CORPUS_MUTATION_ML_RNN_STRATEGY] = False
+
   # Decide whether or not to include remaining strategies
-  strategy_pool[strategy.CORPUS_SUBSET_STRATEGY] = engine_common.do_corpus_subset()
+  strategy_pool[
+      strategy.CORPUS_SUBSET_STRATEGY] = engine_common.do_corpus_subset()
   strategy_pool[strategy.RANDOM_MAX_LENGTH_STRATEGY] = do_random_max_length()
-  strategy_pool[strategy.RECOMMENDED_DICTIONARY_STRATEGY] = do_recommended_dictionary()
+  strategy_pool[
+      strategy.RECOMMENDED_DICTIONARY_STRATEGY] = do_recommended_dictionary()
   strategy_pool[strategy.VALUE_PROFILE_STRATEGY] = do_value_profile()
   strategy_pool[strategy.FORK_STRATEGY] = do_fork()
   strategy_pool[strategy.MUTATOR_PLUGIN_STRATEGY] = do_mutator_plugin()
