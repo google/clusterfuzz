@@ -105,8 +105,8 @@ type Config struct {
 	RelaxSecurityBugRestrictions        bool           `datastore:"relax_security_bug_restrictions"`
 	CoverageReportsBucket               string         `datastore:"coverage_reports_bucket"`
 	GithubCredentials                   string         `datastore:"github_credentials"`
+	ReproduceToolClientID               string         `datastore:"reproduce_tool_client_id"`
 	ReproduceToolClientSecret           string         `datastore:"reproduce_tool_client_secret"`
-	ClusterfuzzToolsClientSecret        string         `datastore:"clusterfuzz_tools_client_secret"`
 	PredatorCrashTopic                  string         `datastore:"predator_crash_topic"`
 	PredatorResultTopic                 string         `datastore:"predator_result_topic"`
 	WifiSsid                            string         `datastore:"wifi_ssid"`
