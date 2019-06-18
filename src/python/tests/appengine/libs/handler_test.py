@@ -33,7 +33,9 @@ from tests.test_libs import helpers as test_helpers
 
 def mocked_db_config_get_value(key):
   """Return mocked values from db_config's get_value function."""
-  if key == 'clusterfuzz_tools_client_secret':
+  if key == 'reproduce_tool_client_id':
+    return 'ClientId'
+  if key == 'reproduce_tool_client_secret':
     return 'Secret'
   return None
 
@@ -449,8 +451,6 @@ class TestGetEmailAndAccessToken(unittest.TestCase):
     self.mock._load_yaml_file.side_effect = mocked_load_yaml_file  # pylint: disable=protected-access
 
     config = local_config.AuthConfig()
-    self.test_clusterfuzz_tools_oauth_client_id = config.get(
-        'clusterfuzz_tools_oauth_client_id')
     self.test_whitelisted_oauth_client_ids = config.get(
         'whitelisted_oauth_client_ids')
     self.test_whitelisted_oauth_emails = config.get('whitelisted_oauth_emails')
@@ -502,7 +502,7 @@ class TestGetEmailAndAccessToken(unittest.TestCase):
     self.mock.get.return_value = mock.Mock(
         status_code=200,
         text=json.dumps({
-            'aud': self.test_clusterfuzz_tools_oauth_client_id,
+            'aud': 'ClientId',
             'email': 'test@test.com',
             'email_verified': True
         }))
@@ -572,7 +572,7 @@ class TestGetEmailAndAccessToken(unittest.TestCase):
     self.mock.get.return_value = mock.Mock(
         status_code=200,
         text=json.dumps({
-            'aud': self.test_clusterfuzz_tools_oauth_client_id,
+            'aud': 'ClientId',
             'email': 'test@test.com',
             'email_verified': False
         }))
@@ -598,10 +598,6 @@ class TestGetAccessToken(unittest.TestCase):
     self.mock.get_value.side_effect = mocked_db_config_get_value
     self.mock._load_yaml_file.side_effect = mocked_load_yaml_file  # pylint: disable=protected-access
 
-    config = local_config.AuthConfig()
-    self.test_clusterfuzz_tools_oauth_client_id = config.get(
-        'clusterfuzz_tools_oauth_client_id')
-
   def _assert_requests_post_call(self):
     self.assertEqual(1, self.mock.post.call_count)
     self.mock.post.assert_has_calls([
@@ -610,7 +606,7 @@ class TestGetAccessToken(unittest.TestCase):
             headers={'Content-Type': 'application/x-www-form-urlencoded'},
             data={
                 'code': 'verify',
-                'client_id': self.test_clusterfuzz_tools_oauth_client_id,
+                'client_id': 'ClientId',
                 'client_secret': 'Secret',
                 'redirect_uri': 'urn:ietf:wg:oauth:2.0:oob',
                 'grant_type': 'authorization_code'

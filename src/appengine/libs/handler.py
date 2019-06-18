@@ -229,7 +229,7 @@ def get_email_and_access_token(authorization):
         'whitelisted_oauth_client_ids', default=[])
     reproduce_tool_client_id = db_config.get_value('reproduce_tool_client_id')
     if reproduce_tool_client_id:
-      whitelisted_client_ids += reproduce_tool_client_id
+      whitelisted_client_ids += [reproduce_tool_client_id]
     if data.get('aud') not in whitelisted_client_ids:
       raise helpers.UnauthorizedException(
           "The access token doesn't belong to one of the allowed OAuth clients"
