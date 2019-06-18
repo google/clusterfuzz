@@ -862,12 +862,12 @@ def main(argv):
 
   # Get list of corpus directories.
   # TODO(flowerhack): Implement this to handle corpus sync'ing.
-  if environment.platform() != 'FUCHSIA':
+  if environment.platform() == 'FUCHSIA':
+    corpus_directories = []
+  else:
     corpus_directories = get_corpus_directories(
         corpus_directory, new_testcases_directory, fuzzer_path,
         fuzzing_strategies, minijail_chroot)
-  else:
-    corpus_directories = []
 
   # Bind corpus directories in minijail.
   if use_minijail:
