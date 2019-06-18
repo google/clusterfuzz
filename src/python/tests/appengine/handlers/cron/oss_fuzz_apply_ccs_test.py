@@ -21,11 +21,36 @@ import webtest
 
 from datastore import data_types
 from handlers.cron import oss_fuzz_apply_ccs
+from issue_management import issue_tracker_policy
 from issue_management import monorail
 from issue_management.monorail.issue import Issue
-from libs import issue_filer
 from tests.test_libs import helpers as test_helpers
 from tests.test_libs import test_utils
+
+OSS_FUZZ_POLICY = issue_tracker_policy.IssueTrackerPolicy({
+    'deadline_policy_message':
+        'This bug is subject to a 90 day disclosure deadline. '
+        'If 90 days elapse\n'
+        'without an upstream patch, then the bug report will automatically\n'
+        'become visible to the public.',
+    'labels': {
+        'reported_prefix': 'Reported-',
+        'restrict_view': 'Restrict-View-Commit',
+    },
+    'status': {
+        'assigned': 'Assigned',
+        'duplicate': 'Duplicate',
+        'fixed': 'Fixed',
+        'new': 'New',
+        'verified': 'Verified',
+        'wontfix': 'WontFix'
+    }
+})
+
+DEADLINE_NOTE = (
+    'This bug is subject to a 90 day disclosure deadline. If 90 days elapse\n'
+    'without an upstream patch, then the bug report will automatically\n'
+    'become visible to the public.')
 
 
 class IssueTrackerManager(object):
@@ -85,6 +110,7 @@ class OssFuzzApplyCcsTest(unittest.TestCase):
     test_helpers.patch(self, [
         'base.utils.utcnow',
         'handlers.base_handler.Handler.is_cron',
+        'issue_management.issue_tracker_policy.get',
         'issue_management.issue_tracker_utils.get_issue_tracker_for_testcase',
     ])
 
@@ -92,6 +118,7 @@ class OssFuzzApplyCcsTest(unittest.TestCase):
     self.mock.get_issue_tracker_for_testcase.return_value = (
         monorail.IssueTracker(self.itm))
     self.mock.utcnow.return_value = datetime.datetime(2016, 1, 1)
+    self.mock.get.return_value = OSS_FUZZ_POLICY
 
     data_types.Testcase(
         open=True, status='Processed', bug_information='1337',
@@ -121,7 +148,7 @@ class OssFuzzApplyCcsTest(unittest.TestCase):
     ])
 
     self.assertTrue(issue_1337.has_label_matching('reported-2016-01-01'))
-    self.assertEqual(issue_1337.comment, issue_filer.DEADLINE_NOTE)
+    self.assertEqual(issue_1337.comment, DEADLINE_NOTE)
 
     self.assertNotIn(1338, self.itm.modified_issues)
 

@@ -291,7 +291,7 @@ def execute_task(testcase_id, _):
     testcase = data_handler.get_testcase_by_id(testcase_id)
     data_handler.update_testcase_comment(
         testcase, data_types.TaskState.ERROR,
-        'Failed to generate request for Predator.')
+        'Failed to generate request for Predator')
     return
 
   # Clear existing results and mark blame result as pending.

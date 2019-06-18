@@ -162,7 +162,7 @@ def execute_task(testcase_id, job_type):
     data_handler.update_testcase_comment(
         testcase, data_types.TaskState.ERROR,
         'Unable to reproduce crash, skipping '
-        'stacktrace update.')
+        'stacktrace update')
   else:
     # Switch build url to use the less-optimized symbolized build with better
     # stacktrace.

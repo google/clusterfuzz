@@ -103,7 +103,12 @@ class GSUtilRunner(object):
 
     return self.gsutil_runner.run_and_wait(arguments, timeout=timeout)
 
-  def rsync(self, source, destination, timeout=FILES_SYNC_TIMEOUT, delete=True):
+  def rsync(self,
+            source,
+            destination,
+            timeout=FILES_SYNC_TIMEOUT,
+            delete=True,
+            exclusion_pattern=None):
     """Download corpus files from a GCS url.
 
     Args:
@@ -119,6 +124,8 @@ class GSUtilRunner(object):
     sync_corpus_command = ['rsync', '-r']
     if delete:
       sync_corpus_command.append('-d')
+    if exclusion_pattern:
+      sync_corpus_command.extend(['-x', exclusion_pattern])
 
     sync_corpus_command.extend([
         _filter_path(source, write=True),

@@ -651,7 +651,7 @@ def update_testcase_comment(testcase, task_state, message=None):
   testcase.comments += '[%s] %s: %s %s' % (timestamp, bot_name, task_string,
                                            task_state)
   if message:
-    testcase.comments += ': %s' % message
+    testcase.comments += ': %s' % message.rstrip('.')
   testcase.comments += '.\n'
 
   # Truncate if too long.

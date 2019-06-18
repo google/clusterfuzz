@@ -129,13 +129,13 @@ def setup_testcase(testcase):
       logs.log_error('Closed testcase %d with invalid fuzzer %s.' %
                      (testcase_id, fuzzer_name))
 
-      error_message = 'Fuzzer %s no longer exists.' % fuzzer_name
+      error_message = 'Fuzzer %s no longer exists' % fuzzer_name
       data_handler.update_testcase_comment(testcase, data_types.TaskState.ERROR,
                                            error_message)
       return None, None, None
 
     if not update_successful:
-      error_message = 'Unable to setup fuzzer %s.' % fuzzer_name
+      error_message = 'Unable to setup fuzzer %s' % fuzzer_name
       data_handler.update_testcase_comment(testcase, data_types.TaskState.ERROR,
                                            error_message)
       tasks.add_task(
@@ -145,7 +145,7 @@ def setup_testcase(testcase):
   # Extract the testcase and any of its resources to the input directory.
   file_list, input_directory, testcase_file_path = unpack_testcase(testcase)
   if not file_list:
-    error_message = 'Unable to setup testcase %s.' % testcase_file_path
+    error_message = 'Unable to setup testcase %s' % testcase_file_path
     data_handler.update_testcase_comment(testcase, data_types.TaskState.ERROR,
                                          error_message)
     tasks.add_task(
