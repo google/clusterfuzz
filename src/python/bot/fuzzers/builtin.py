@@ -70,8 +70,7 @@ class EngineFuzzer(BuiltinFuzzer):
     build_directory = environment.get_value('BUILD_DIR')
 
     if not build_directory:
-      raise BuiltinFuzzerException(
-          'BUILD_DIR environment variable is not set.')
+      raise BuiltinFuzzerException('BUILD_DIR environment variable is not set.')
 
     fuzzers = fuzzers_utils.get_fuzz_targets(build_directory)
 
