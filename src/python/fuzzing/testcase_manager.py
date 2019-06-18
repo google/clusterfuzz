@@ -377,10 +377,6 @@ def convert_dependency_url_to_local_path(url):
 
 def _get_testcase_time(testcase_path):
   """Returns the timestamp of a testcase."""
-  # TODO(flowerhack): When we teach CF to find Fuchsia testcase paths,
-  # change this.
-  if environment.platform() == 'FUCHSIA':
-    return datetime.datetime.utcnow()
   stats = fuzzer_stats.TestcaseRun.read_from_disk(testcase_path)
   if stats:
     return datetime.datetime.utcfromtimestamp(float(stats.timestamp))
@@ -441,10 +437,6 @@ def run_testcase_and_return_result_in_queue(crash_queue,
     # Run testcase and check whether a crash occurred or not.
     return_code, crash_time, output = run_testcase(thread_index, file_path,
                                                    gestures, env_copy)
-    # TODO(flowerhack): Update this once Fuchsia knows how to properly extract
-    # crash time?
-    if crash_time is None:
-      crash_time = 0
 
     # Pull testcase directory to host to get any stats files.
     if environment.is_trusted_host():
