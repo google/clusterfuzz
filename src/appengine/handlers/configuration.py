@@ -118,6 +118,9 @@ class Handler(base_handler.Handler):
         'relax_security_bug_restrictions')
     relax_testcase_restrictions = self.request.get(
         'relax_testcase_restrictions')
+    reproduce_tool_client_id = self.request.get('reproduce_tool_client_id')
+    reproduce_tool_client_secret = self.request.get(
+        'reproduce_tool_client_secret')
     reproduction_help_url = self.request.get('reproduction_help_url')
     revision_vars_url = self.request.get('revision_vars_url')
     test_account_email = self.request.get('test_account_email')
@@ -142,6 +145,8 @@ class Handler(base_handler.Handler):
     config.relax_security_bug_restrictions = bool(
         relax_security_bug_restrictions)
     config.relax_testcase_restrictions = bool(relax_testcase_restrictions)
+    config.reproduce_tool_client_id = reproduce_tool_client_id
+    config.reproduce_tool_client_secret = reproduce_tool_client_secret
     config.reproduction_help_url = reproduction_help_url
     config.revision_vars_url = revision_vars_url
     config.test_account_email = test_account_email
