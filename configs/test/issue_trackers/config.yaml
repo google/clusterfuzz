@@ -12,11 +12,18 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# Sample policy. These policies are applied when filing new bugs, updating
+# existing bugs, and bug cleanup in the cleanup cron.
+# Labels support substitutions (at most one):
+#   - %YYYY-MM-DD%: The date timestamp when the issue is filed.
+#   - %SANITIZER%: The sanitizers associated with the testcase.
+#   - %SEVERITY%: The security severity of the testcase.
+#   - %PLATFORM%: The platform the testcase was found on.
 test-project:
   type: monorail
   policies:
     status:
-      # Status mappings.
+      # REQUIRED: Status mappings.
       assigned: Assigned
       duplicate: Duplicate
       wontfix: WontFix
@@ -46,9 +53,9 @@ test-project:
       # Rules to apply to non-security issues only (in addition to "all").
       labels:
         - Type-Bug
+      # Non security bugs are further divided into crash (e.g. a null deref)
+      # vs non crash bugs (e.g. timeouts).
       crash_labels:
-        # Non security bugs are further divided into crash (e.g. a null deref)
-        # vs non crash bugs (e.g. timeouts).
         - Stability-Crash
         - Pri-1
       non_crash_labels:

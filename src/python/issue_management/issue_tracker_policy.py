@@ -82,7 +82,7 @@ class IssueTrackerPolicy(object):
         self._apply_new_issue_properties(policy, self._data['security'],
                                          is_crash)
     else:
-      if 'security' in self._data:
+      if 'non_security' in self._data:
         self._apply_new_issue_properties(policy, self._data['non_security'],
                                          is_crash)
 

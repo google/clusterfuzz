@@ -35,7 +35,7 @@ NON_CRASH_TYPES = [
 
 
 def platform_substitution(label, testcase, _):
-  """Platform ubstitution."""
+  """Platform substitution."""
   platform = None
   if environment.is_chromeos_job(testcase.job_type):
     # ChromeOS fuzzers run on Linux platform, so use correct OS-Chrome for
@@ -56,12 +56,12 @@ def current_date():
 
 
 def date_substitution(label, *_):
-  """Date ubstitution."""
+  """Date substitution."""
   return [label.replace('%YYYY-MM-DD%', current_date())]
 
 
 def sanitizer_substitution(label, testcase, _):
-  """Sanitizer ubstitution."""
+  """Sanitizer substitution."""
   stacktrace = data_handler.get_stacktrace(testcase)
   memory_tool_labels = label_utils.get_memory_tool_labels(stacktrace)
 
@@ -72,11 +72,10 @@ def sanitizer_substitution(label, testcase, _):
 
 
 def severity_substitution(label, testcase, security_severity):
-  """Severity ubstitution."""
+  """Severity substitution."""
   # Use severity from testcase if one is not available.
-  security_severity = (
-      testcase.security_severity
-      if security_severity is None else security_severity)
+  if security_severity is None:
+    security_severity =  testcase.security_severity
 
   # Set to default high severity if we can't determine it automatically.
   if not data_types.SecuritySeverity.is_valid(security_severity):
@@ -99,6 +98,7 @@ def apply_substitutions(label, testcase, security_severity):
     if marker in label:
       return handler(label, testcase, security_severity)
 
+  # No match found. Return unmodified label.
   return [label]
 
 
@@ -185,16 +185,20 @@ def file_issue(testcase,
   if should_restrict_issue:
     issue.labels.add(policy.label('restrict_view'))
 
+  has_accountable_people = bool(ccs)
+
   for label in properties.labels:
     for result in apply_substitutions(label, testcase, security_severity):
-      if result.startswith(policy.label('reported_prefix')) and not ccs:
+      if (result.startswith(policy.label('reported_prefix')) and
+          not has_accountable_people):
         # Do not add reported label when there are no CCs.
         continue
 
       issue.labels.add(result)
 
   issue.body += properties.issue_body_footer
-  if should_restrict_issue and ccs and policy.deadline_policy_message:
+  if (should_restrict_issue and has_accountable_people and
+      policy.deadline_policy_message):
     issue.body += '\n\n' + policy.deadline_policy_message
 
   for cc in ccs:
