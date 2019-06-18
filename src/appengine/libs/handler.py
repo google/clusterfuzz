@@ -250,6 +250,7 @@ def oauth(func):
 
     header and getting user email.
   """
+
   @functools.wraps(func)
   def wrapper(self):
     """Wrapper."""
