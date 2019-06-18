@@ -17,6 +17,7 @@ from base import external_users
 from base import utils
 from datastore import data_handler
 from datastore import data_types
+from issue_management import issue_tracker_policy
 from issue_management import label_utils
 from system import environment
 
@@ -32,71 +33,73 @@ NON_CRASH_TYPES = [
     'Unsigned-integer-overflow',
 ]
 
-RESTRICT_TO_GOOGLERS_LABEL = 'Restrict-View-Google'
 
-DEADLINE_NOTE = (
-    'This bug is subject to a 90 day disclosure deadline. If 90 days elapse\n'
-    'without an upstream patch, then the bug report will automatically\n'
-    'become visible to the public.')
+def platform_substitution(label, testcase, _):
+  """Platform substitution."""
+  platform = None
+  if environment.is_chromeos_job(testcase.job_type):
+    # ChromeOS fuzzers run on Linux platform, so use correct OS-Chrome for
+    # tracking.
+    platform = 'Chrome'
+  elif testcase.platform_id:
+    platform = testcase.platform_id.split(':')[0].capitalize()
 
-FIX_NOTE = (
-    'When you fix this bug, please\n'
-    '  * mention the fix revision(s).\n'
-    '  * state whether the bug was a short-lived regression or an old bug'
-    ' in any stable releases.\n'
-    '  * add any other useful information.\n'
-    'This information can help downstream consumers.')
+  if not platform:
+    return []
 
-QUESTIONS_NOTE = (
-    'If you need to contact the OSS-Fuzz team with a question, concern, or any '
-    'other feedback, please file an issue at '
-    'https://github.com/google/oss-fuzz/issues.')
+  return [label.replace('%PLATFORM%', platform)]
 
 
-def add_memory_tool_label_if_needed(issue, testcase):
-  """Find memory tool used and add corresponding labels to the issue."""
+def current_date():
+  """Date format."""
+  return utils.utcnow().date().isoformat()
+
+
+def date_substitution(label, *_):
+  """Date substitution."""
+  return [label.replace('%YYYY-MM-DD%', current_date())]
+
+
+def sanitizer_substitution(label, testcase, _):
+  """Sanitizer substitution."""
   stacktrace = data_handler.get_stacktrace(testcase)
   memory_tool_labels = label_utils.get_memory_tool_labels(stacktrace)
-  for label in memory_tool_labels:
-    issue.labels.add(label)
+
+  return [
+      label.replace('%SANITIZER%', memory_tool)
+      for memory_tool in memory_tool_labels
+  ]
 
 
-def add_security_severity_label_if_needed(issue, testcase,
-                                          security_severity_override):
-  """Add security severity label to issue."""
-  if not testcase.security_flag:
-    return
-
+def severity_substitution(label, testcase, security_severity):
+  """Severity substitution."""
   # Use severity from testcase if one is not available.
-  security_severity = (
-      testcase.security_severity
-      if security_severity_override is None else security_severity_override)
+  if security_severity is None:
+    security_severity = testcase.security_severity
 
   # Set to default high severity if we can't determine it automatically.
   if not data_types.SecuritySeverity.is_valid(security_severity):
     security_severity = data_types.SecuritySeverity.HIGH
 
-  security_severity_label = label_utils.severity_to_label(security_severity)
-  issue.labels.add(security_severity_label)
+  security_severity_string = label_utils.severity_to_string(security_severity)
+  return [label.replace('%SEVERITY%', security_severity_string)]
 
 
-def add_view_restrictions_if_needed(issue, testcase):
-  """Add additional view restrictions for android and flash bugs."""
-  if testcase.project_name != 'chromium':
-    return
+def apply_substitutions(label, testcase, security_severity):
+  """Apply label substituions."""
+  label_substitutions = (
+      ('%PLATFORM%', platform_substitution),
+      ('%YYYY-MM-DD%', date_substitution),
+      ('%SANITIZER%', sanitizer_substitution),
+      ('%SEVERITY%', severity_substitution),
+  )
 
-  # If the label is already there, no work to do.
-  if RESTRICT_TO_GOOGLERS_LABEL in issue.labels:
-    return
+  for marker, handler in label_substitutions:
+    if marker in label:
+      return handler(label, testcase, security_severity)
 
-  job_type_lowercase = testcase.job_type.lower()
-  if 'android' in job_type_lowercase or 'flash' in job_type_lowercase:
-    issue.labels.add(RESTRICT_TO_GOOGLERS_LABEL)
-
-
-def reported_label():
-  """Return a Reported-YYYY-MM-DD label."""
-  return 'Reported-' + utils.utcnow().date().isoformat()
+  # No match found. Return unmodified label.
+  return [label]
 
 
 def file_issue(testcase,
@@ -110,83 +113,24 @@ def file_issue(testcase,
   issue.body = data_handler.get_issue_description(
       testcase, reporter=user_email, show_reporter=True)
 
-  # Labels applied by default across all issue trackers.
-  issue.status = 'New'
-  issue.labels.add('ClusterFuzz')
-
-  # Add label on memory tool used.
-  add_memory_tool_label_if_needed(issue, testcase)
+  policy = issue_tracker_policy.get(issue_tracker.project)
 
   # Add reproducibility flag label.
   if testcase.one_time_crasher_flag:
-    issue.labels.add('Unreproducible')
+    issue.labels.add(policy.label('unreproducible'))
   else:
-    issue.labels.add('Reproducible')
-
-  # Add security severity flag label.
-  add_security_severity_label_if_needed(issue, testcase, security_severity)
-
-  # Get view restriction rules for the job.
-  issue_restrictions = data_handler.get_value_from_job_definition(
-      testcase.job_type, 'ISSUE_VIEW_RESTRICTIONS', 'security')
-  should_restrict_issue = (
-      issue_restrictions == 'all' or
-      (issue_restrictions == 'security' and testcase.security_flag))
+    issue.labels.add(policy.label('reproducible'))
 
   # Chromium-specific labels.
-  if issue_tracker.project == 'chromium':
-    # A different status system is used on the chromium tracker. Since we
-    # have already reproduced the crash, we skip the Unconfirmed status.
-    issue.status = 'Untriaged'
+  if issue_tracker.project and issue_tracker.project == 'chromium':
+    # Add reward labels if this is from an external fuzzer contribution.
+    fuzzer = data_types.Fuzzer.query(
+        data_types.Fuzzer.name == testcase.fuzzer_name).get()
+    if fuzzer and fuzzer.external_contribution:
+      issue.labels.add('reward-topanel')
+      issue.labels.add('External-Fuzzer-Contribution')
 
-    # Add OS label.
-    if environment.is_chromeos_job(testcase.job_type):
-      # ChromeOS fuzzers run on Linux platform, so use correct OS-Chrome for
-      # tracking.
-      issue.labels.add('OS-Chrome')
-    elif testcase.platform_id:
-      os_label = 'OS-%s' % ((testcase.platform_id.split(':')[0]).capitalize())
-      issue.labels.add(os_label)
-
-    # Add view restrictions for internal job types.
-    add_view_restrictions_if_needed(issue, testcase)
-
-    if testcase.security_flag:
-      # Apply labels specific to security bugs.
-      issue.labels.add('Restrict-View-SecurityTeam')
-      issue.labels.add('Type-Bug-Security')
-
-      # Add reward labels if this is from an external fuzzer contribution.
-      fuzzer = data_types.Fuzzer.query(
-          data_types.Fuzzer.name == testcase.fuzzer_name).get()
-      if fuzzer and fuzzer.external_contribution:
-        issue.labels.add('reward-topanel')
-        issue.labels.add('External-Fuzzer-Contribution')
-
-      data_handler.update_issue_impact_labels(testcase, issue)
-    else:
-      # Apply labels for functional (non-security) bugs.
-      if utils.sub_string_exists_in(NON_CRASH_TYPES, testcase.crash_type):
-        # Non-crashing test cases shouldn't be assigned Pri-1.
-        issue.labels.add('Pri-2')
-        issue.labels.add('Type-Bug')
-      else:
-        # Default functional bug labels.
-        issue.labels.add('Pri-1')
-        issue.labels.add('Stability-Crash')
-        issue.labels.add('Type-Bug')
-
-  # OSS-Fuzz specific labels.
-  elif issue_tracker.project == 'oss-fuzz':
-    if testcase.security_flag:
-      # Security bug labels.
-      issue.labels.add('Type-Bug-Security')
-    else:
-      # Functional bug labels.
-      issue.labels.add('Type-Bug')
-
-    if should_restrict_issue:
-      issue.labels.add('Restrict-View-Commit')
+    data_handler.update_issue_impact_labels(testcase, issue)
 
   # Add additional labels from the job definition and fuzzer.
   additional_labels = data_handler.get_additional_values_for_variable(
@@ -199,6 +143,13 @@ def file_issue(testcase,
       'AUTOMATIC_COMPONENTS', testcase.job_type, testcase.fuzzer_name)
   for component in automatic_components:
     issue.components.add(component)
+
+  is_crash = not utils.sub_string_exists_in(NON_CRASH_TYPES,
+                                            testcase.crash_type)
+  properties = policy.get_new_issue_properties(
+      is_security=testcase.security_flag, is_crash=is_crash)
+
+  issue.status = properties.status
 
   # Add additional ccs from the job definition and fuzzer.
   ccs = data_handler.get_additional_values_for_variable(
@@ -222,15 +173,33 @@ def file_issue(testcase,
   if testcase.uploader_email and testcase.uploader_email not in ccs:
     ccs.append(testcase.uploader_email)
 
-  if issue_tracker.project == 'oss-fuzz' and ccs:
-    # Add a reported label for deadline tracking.
-    issue.labels.add(reported_label())
+  ccs.extend(properties.ccs)
 
-    if should_restrict_issue:
-      issue.body += '\n\n' + DEADLINE_NOTE
+  # Get view restriction rules for the job.
+  issue_restrictions = data_handler.get_value_from_job_definition(
+      testcase.job_type, 'ISSUE_VIEW_RESTRICTIONS', 'security')
+  should_restrict_issue = (
+      issue_restrictions == 'all' or
+      (issue_restrictions == 'security' and testcase.security_flag))
 
-    issue.body += '\n\n' + FIX_NOTE
-    issue.body += '\n\n' + QUESTIONS_NOTE
+  if should_restrict_issue:
+    issue.labels.add(policy.label('restrict_view'))
+
+  has_accountable_people = bool(ccs)
+
+  for label in properties.labels:
+    for result in apply_substitutions(label, testcase, security_severity):
+      if (result.startswith(policy.label('reported_prefix')) and
+          not has_accountable_people):
+        # Do not add reported label when there are no CCs.
+        continue
+
+      issue.labels.add(result)
+
+  issue.body += properties.issue_body_footer
+  if (should_restrict_issue and has_accountable_people and
+      policy.deadline_policy_message):
+    issue.body += '\n\n' + policy.deadline_policy_message
 
   for cc in ccs:
     issue.ccs.add(cc)
@@ -252,5 +221,4 @@ def file_issue(testcase,
   testcase.put()
 
   data_handler.update_group_bug(testcase.group_id)
-
   return issue.id

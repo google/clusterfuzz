@@ -16,6 +16,7 @@
 from datastore import data_handler
 from handlers import base_handler
 from handlers.testcase_detail import show
+from issue_management import issue_tracker_policy
 from libs import handler
 from libs import helpers
 from libs import issue_filer
@@ -50,13 +51,12 @@ class Handler(base_handler.Handler):
     if needs_summary_update and testcase.crash_state != 'NULL':
       issue.title = issue_summary
 
-    # Add label on memory tool used.
-    issue_filer.add_memory_tool_label_if_needed(issue, testcase)
-
-    # Add view restrictions for internal job types.
-    issue_filer.add_view_restrictions_if_needed(issue, testcase)
-
-    # Don't enforce security severity label on an existing issue.
+    policy = issue_tracker_policy.get(issue_tracker.project)
+    properties = policy.get_existing_issue_properties()
+    for label in properties.labels:
+      for result in issue_filer.apply_substitutions(
+          label, testcase, security_severity=None):
+        issue.labels.add(result)
 
     issue.save(new_comment=issue_comment)
 
