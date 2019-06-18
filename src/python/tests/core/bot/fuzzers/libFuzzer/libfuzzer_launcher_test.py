@@ -1804,6 +1804,177 @@ class LauncherTest(fake_fs_unittest.TestCase):
           '/fake/inputs-disk/temp-1337/mutations',
       ]])
 
+  @mock.patch('bot.fuzzers.libFuzzer.launcher.add_recommended_dictionary',
+              lambda x, y, z: False)
+  @mock.patch('multiprocessing.cpu_count', return_value=2)
+  @mock.patch('sys.stdout', new_callable=test_utils.MockStdout)
+  def test_fuzz_with_fork_mode(self, mock_stdout, *_):
+    """Tests fuzzing with fork mode."""
+    self.mock.do_fork.return_value = True
+
+    self.fs.CreateDirectory('/fake/corpus_dir')
+    self.fs.CreateFile('/fake/testcase_basic')
+
+    os.environ['FUZZ_CORPUS_DIR'] = '/fake/corpus_dir'
+
+    new_units_added = 11
+    with mock.patch(
+        'subprocess.Popen',
+        create_mock_popen(self.no_crash_output,
+                          '/fake/inputs-disk/temp-1337/new', '/fake/corpus_dir',
+                          new_units_added)) as mock_popen:
+      launcher.main([
+          'launcher.py',
+          '/fake/testcase_basic',
+          'fake_fuzzer',
+          '-max_len=80',
+      ])
+
+      self.assertEqual(mock_popen.commands, [[
+          '/fake/build_dir/fake_fuzzer', '-max_len=80', '-rss_limit_mb=2048',
+          '-timeout=25', '-fork=2', '-artifact_prefix=/fake/',
+          '-max_total_time=2650', '-print_final_stats=1',
+          '/fake/inputs-disk/temp-1337/new', '/fake/corpus_dir'
+      ], [
+          '/fake/build_dir/fake_fuzzer',
+          '-rss_limit_mb=2048',
+          '-timeout=25',
+          '-merge=1',
+          '/fake/inputs-disk/temp-1337/merge-corpus',
+          '/fake/inputs-disk/temp-1337/new',
+          '/fake/corpus_dir',
+      ]])
+
+      # Check new testcases added.
+      self.assertEqual(
+          sorted(os.listdir('/fake/corpus_dir')),
+          sorted(mock_popen.testcases_written))
+
+      for corpus_file in os.listdir('/fake/corpus_dir'):
+        with open(os.path.join('/fake/corpus_dir', corpus_file)) as f:
+          self.assertEqual(f.read(), corpus_file)
+
+      # Check stats.
+      stats_data = fuzzer_stats.TestcaseRun.read_from_disk(
+          '/fake/testcase_basic')
+      self.assertDictEqual(
+          stats_data.data, {
+              u'actual_duration':
+                  0,
+              u'average_exec_per_sec':
+                  97,
+              u'bad_instrumentation':
+                  0,
+              'build_revision':
+                  1337,
+              u'command': [
+                  u'/fake/build_dir/fake_fuzzer', u'-max_len=80',
+                  u'-rss_limit_mb=2048', u'-timeout=25', u'-fork=2',
+                  u'-artifact_prefix=/fake/', u'-max_total_time=2650',
+                  u'-print_final_stats=1', u'/fake/inputs-disk/temp-1337/new',
+                  u'/fake/corpus_dir'
+              ],
+              u'corpus_crash_count':
+                  0,
+              u'crash_count':
+                  0,
+              u'corpus_size':
+                  11,
+              u'dict_used':
+                  1,
+              u'edge_coverage':
+                  1769,
+              u'edges_total':
+                  398408,
+              u'feature_coverage':
+                  4958,
+              u'initial_edge_coverage':
+                  1769,
+              u'initial_feature_coverage':
+                  4958,
+              u'expected_duration':
+                  2650,
+              'fuzzer':
+                  u'libfuzzer_fake_fuzzer',
+              u'fuzzing_time_percent':
+                  0.0,
+              'job':
+                  u'job_name',
+              'kind':
+                  u'TestcaseRun',
+              u'leak_count':
+                  0,
+              u'log_lines_from_engine':
+                  65,
+              u'log_lines_ignored':
+                  8,
+              u'log_lines_unwanted':
+                  0,
+              u'manual_dict_size':
+                  0,
+              u'max_len':
+                  80,
+              u'merge_edge_coverage':
+                  1769,
+              u'new_edges':
+                  0,
+              u'new_features':
+                  0,
+              u'new_units_added':
+                  11,
+              u'new_units_generated':
+                  55,
+              u'number_of_executed_units':
+                  258724,
+              u'oom_count':
+                  0,
+              u'peak_rss_mb':
+                  103,
+              u'recommended_dict_size':
+                  0,
+              u'slow_unit_count':
+                  0,
+              u'slow_units_count':
+                  0,
+              u'slowest_unit_time_sec':
+                  0,
+              u'startup_crash_count':
+                  0,
+              u'strategy_corpus_mutations_radamsa':
+                  0,
+              u'strategy_corpus_mutations_ml_rnn':
+                  0,
+              u'strategy_corpus_subset':
+                  0,
+              u'strategy_fork':
+                  2,
+              u'strategy_mutator_plugin':
+                  0,
+              u'strategy_random_max_len':
+                  0,
+              u'strategy_recommended_dict':
+                  0,
+              u'strategy_value_profile':
+                  0,
+              u'timeout_count':
+                  0,
+              u'timeout_limit':
+                  25,
+              'timestamp':
+                  1337.0
+          })
+
+      # Output printed.
+      self.assertIn(self.no_crash_output, mock_stdout.getvalue())
+      expected_command = (
+          'Command: /fake/build_dir/fake_fuzzer '
+          '-max_len=80 -rss_limit_mb=2048 -timeout=25 -fork=2 '
+          '-artifact_prefix=/fake/ -max_total_time=2650 -print_final_stats=1 '
+          '/fake/inputs-disk/temp-1337/new /fake/corpus_dir')
+      self.assertIn(expected_command, mock_stdout.getvalue())
+      self.assertIn('Bot: test-bot', mock_stdout.getvalue())
+      self.assertIn('Time ran:', mock_stdout.getvalue())
+
 
 class RecommendedDictionaryTest(fake_fs_unittest.TestCase):
   """Tests for dictionary processing."""
