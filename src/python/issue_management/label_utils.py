@@ -20,31 +20,31 @@ from datastore import data_types
 MEMORY_TOOLS_LABELS = [
     {
         'token': 'AddressSanitizer',
-        'label': 'Stability-Memory-AddressSanitizer'
+        'label': 'Memory-AddressSanitizer'
     },
     {
         'token': 'LeakSanitizer',
-        'label': 'Stability-Memory-LeakSanitizer'
+        'label': 'Memory-LeakSanitizer'
     },
     {
         'token': 'MemorySanitizer',
-        'label': 'Stability-Memory-MemorySanitizer'
+        'label': 'Memory-MemorySanitizer'
     },
     {
         'token': 'ThreadSanitizer',
-        'label': 'Stability-ThreadSanitizer'
+        'label': 'ThreadSanitizer'
     },
     {
         'token': 'UndefinedBehaviorSanitizer',
-        'label': 'Stability-UndefinedBehaviorSanitizer'
+        'label': 'UndefinedBehaviorSanitizer'
     },
     {
         'token': 'afl',
-        'label': 'Stability-AFL'
+        'label': 'AFL'
     },
     {
         'token': 'libfuzzer',
-        'label': 'Stability-LibFuzzer'
+        'label': 'LibFuzzer'
     },
 ]
 MISSING_VALUE_STRING = '---'

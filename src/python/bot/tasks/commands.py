@@ -37,7 +37,6 @@ from bot.tasks import upload_reports_task
 from bot.webserver import http_server
 from datastore import data_handler
 from datastore import data_types
-from issue_management import issue_tracker_utils
 from metrics import logs
 from system import environment
 from system import process_handler
@@ -82,9 +81,6 @@ def cleanup_task_state():
 
   # Reset memory tool environment variables.
   environment.reset_current_memory_tool_options()
-
-  # Clear issue tracker manager instances.
-  issue_tracker_utils.clear_issue_tracker_managers()
 
   # Clear exceptions.
   sys.exc_clear()

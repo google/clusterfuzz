@@ -154,6 +154,41 @@ class GSUtilRunnerTest(fake_filesystem_unittest.TestCase):
         timeout=1337)
     self.assertTrue(os.path.exists('/local/target_bucket/objects'))
 
+  def test_rsync_remote_gcs_5(self):
+    """Test rsync."""
+    self.gsutil_runner_obj.rsync(
+        'gs://source_bucket/source_path',
+        'gs://target_bucket/target_path',
+        timeout=1337,
+        delete=False,
+        exclusion_pattern='"*.txt$"')
+    self.mock.run_and_wait.assert_called_with(
+        self.gsutil_runner_obj.gsutil_runner, [
+            '-q', 'rsync', '-r', '-x', '"*.txt$"',
+            'gs://source_bucket/source_path', 'gs://target_bucket/target_path'
+        ],
+        timeout=1337)
+
+  def test_rsync_local_gcs_5(self):
+    """Test rsync."""
+    os.environ['LOCAL_GCS_BUCKETS_PATH'] = '/local'
+    self.fs.CreateDirectory('/local/source_bucket')
+    self.fs.CreateDirectory('/local/target_bucket')
+    self.gsutil_runner_obj.rsync(
+        'gs://source_bucket/source_path',
+        'gs://target_bucket/target_path',
+        timeout=1337,
+        delete=False,
+        exclusion_pattern='"*.txt$"')
+    self.mock.run_and_wait.assert_called_with(
+        self.gsutil_runner_obj.gsutil_runner, [
+            '-q', 'rsync', '-r', '-x', '"*.txt$"',
+            '/local/source_bucket/objects/source_path',
+            '/local/target_bucket/objects/target_path'
+        ],
+        timeout=1337)
+    self.assertTrue(os.path.exists('/local/target_bucket/objects'))
+
   def test_download_file_remote_gcs_1(self):
     """Test download_file."""
     self.gsutil_runner_obj.download_file('gs://source_bucket/source_path',

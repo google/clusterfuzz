@@ -36,10 +36,11 @@ class HandlerTest(unittest.TestCase):
   def test_succeed(self):
     """Test redirection succeeds."""
     testcase = data_types.Testcase()
+    testcase.bug_information = '456789'
     self.mock.get_testcase.return_value = testcase
-    self.mock.get_issue_url.return_value = 'http://google.com/'
+    self.mock.get_issue_url.return_value = 'http://google.com/456789'
 
-    response = self.app.get('/issue/12345/456789')
+    response = self.app.get('/issue/12345')
 
     self.assertEqual(302, response.status_int)
     self.assertEqual('http://google.com/456789', response.headers['Location'])
@@ -52,5 +53,5 @@ class HandlerTest(unittest.TestCase):
     self.mock.get_testcase.return_value = data_types.Testcase()
     self.mock.get_issue_url.return_value = ''
 
-    response = self.app.get('/issue/12345/456789', expect_errors=True)
+    response = self.app.get('/issue/12345', expect_errors=True)
     self.assertEqual(404, response.status_int)

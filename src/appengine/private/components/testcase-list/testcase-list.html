@@ -382,7 +382,7 @@
                   </td>
                   <td class="labels">
                     <template is="dom-if" if="[[item.issueId]]">
-                      <a class="issue label" href="/issue/[[item.id]]/[[item.issueId]]" title="Click to view the associated issue [[item.issueId]] in the issue tracker.">Issue [[item.issueId]]</a>
+                      <a class="issue label" href="/issue/[[item.id]]" title="Click to view the associated issue [[item.issueId]] in the issue tracker.">Issue [[item.issueId]]</a>
                     </template>
                     <template is="dom-if" if="[[item.showImpacts]]">
                       <if-else condition="[[item.isImpactSet]]">
@@ -476,9 +476,7 @@
       }
 
       searchButtonTapped(ev) {
-        this.params.page = '';
-        this.set('result.page', 1);
-        this.search();
+        this.resetPageAndSearch();
       }
 
       paramsModified(ev) {
@@ -502,6 +500,12 @@
 
         this.$.paginatedList.updateQuery();
         this.$.ajax.generateRequest();
+      }
+
+      resetPageAndSearch() {
+        this.params.page = '';
+        this.set('result.page', 1);
+        this.search();
       }
 
       handleRequest() {
@@ -581,30 +585,30 @@
 
       filterProject(ev) {
         this.set('params.project', ev.target.dataset.project);
-        this.search();
+        this.resetPageAndSearch();
       }
 
       filterPlatform(ev) {
         this.set(
             'params.q',
             `${(this.params.q || '')} platform:${ev.target.dataset.platform}`.trim());
-        this.search();
+        this.resetPageAndSearch();
       }
 
       filterReproducible(ev) {
         this.set('params.reproducible', ev.target.dataset.reproducible);
-        this.search();
+        this.resetPageAndSearch();
       }
 
       filterSecurity(ev) {
         this.set('params.security', ev.target.dataset.security);
-        this.search();
+        this.resetPageAndSearch();
       }
 
       filterImpact(ev) {
         this.set('params.impact', ev.target.dataset.impact);
         this.set('params.q', this.clearStableBetaFilter(this.params.q));
-        this.search();
+        this.resetPageAndSearch();
       }
 
       clearStableBetaFilter(q) {
@@ -628,7 +632,7 @@
         }
 
         this.set('params.q', q);
-        this.search();
+        this.resetPageAndSearch();
       }
     }
 

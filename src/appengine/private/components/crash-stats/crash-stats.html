@@ -325,7 +325,7 @@
                         <span slot="f" class="label" title="The crash was discovered before the selected time period.">New</span>
                       </if-else>
                       <template is="dom-repeat" items="[[getIssue(item)]]" as="issue">
-                        <a class="label issue" href="/issue/[[item.testcase.id]]/[[issue.number]]" title="[[issue.title]]">Issue [[issue.number]]</a>
+                        <a class="label issue" href="/issue/[[item.testcase.id]]" title="[[issue.title]]">Issue [[issue.number]]</a>
                       </template>
                     </span>
                     <span class="seen">

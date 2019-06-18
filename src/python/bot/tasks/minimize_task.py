@@ -1203,7 +1203,7 @@ def do_libfuzzer_minimization(testcase, testcase_file_path):
     # Be more lenient with marking testcases as unreproducible when this is a
     # job override.
     if is_overriden_job:
-      _skip_minimization(testcase, 'Unreproducible on overridden job.')
+      _skip_minimization(testcase, 'Unreproducible on overridden job')
     else:
       task_creation.mark_unreproducible_if_flaky(testcase, True)
 
@@ -1250,7 +1250,7 @@ def do_libfuzzer_minimization(testcase, testcase_file_path):
         file_to_run=testcase_file_path, needs_http=testcase.http_flag)
     _skip_minimization(
         testcase,
-        'LibFuzzer minimization failed.',
+        'LibFuzzer minimization failed',
         crash_result=initial_crash_result,
         command=repro_command)
     return

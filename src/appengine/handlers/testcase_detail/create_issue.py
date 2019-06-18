@@ -33,7 +33,7 @@ class Handler(base_handler.Handler):
           severity, int, 'Invalid value for security severity (%s).' % severity)
 
     additional_ccs = []
-    if cc_me == 'true':
+    if cc_me:
       additional_ccs.append(user_email)
 
     issue_id = issue_filer.file_issue(

@@ -43,9 +43,6 @@ FIND_SIMILAR_ISSUES_OPTIONS = [{
     'type': 'open',
     'label': 'Open'
 }, {
-    'type': 'new',
-    'label': 'New'
-}, {
     'type': 'all',
     'label': 'All'
 }]

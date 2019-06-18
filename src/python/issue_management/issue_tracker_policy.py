@@ -1,0 +1,131 @@
+# Copyright 2019 Google LLC
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+"""Issue tracker policy."""
+
+from builtins import object
+from collections import namedtuple
+
+from config import local_config
+
+Status = namedtuple('Status',
+                    ['assigned', 'duplicate', 'wontfix', 'fixed', 'verified'])
+
+EXPECTED_STATUSES = [
+    'assigned',
+    'duplicate',
+    'wontfix',
+    'fixed',
+    'verified',
+    'new',
+]
+
+
+class ConfigurationError(Exception):
+  """Base configuration error class."""
+
+
+class NewIssuePolicy(object):
+  """New issue policy."""
+
+  def __init__(self):
+    self.status = ''
+    self.ccs = []
+    self.labels = []
+    self.issue_body_footer = ''
+
+
+class IssueTrackerPolicy(object):
+  """Represents an issue tracker policy."""
+
+  def __init__(self, data):
+    self._data = data
+    if 'status' not in self._data:
+      raise ConfigurationError('Status not set in policies.')
+
+    for status in EXPECTED_STATUSES:
+      if status not in self._data['status']:
+        raise ConfigurationError(
+            'Expected status {} is not set.'.format(status))
+
+  def status(self, status_type):
+    """Get the actual status string for the given type."""
+    return self._data['status'][status_type]
+
+  def label(self, label_type):
+    """Get the actual label string for the given type."""
+    return self._data['labels'].get(label_type)
+
+  @property
+  def deadline_policy_message(self):
+    """Get the deadline policy message, if if exists."""
+    return self._data.get('deadline_policy_message')
+
+  def get_new_issue_properties(self, is_security, is_crash):
+    """Get the properties to apply to a new issue."""
+    policy = NewIssuePolicy()
+
+    if 'all' in self._data:
+      self._apply_new_issue_properties(policy, self._data['all'], is_crash)
+
+    if is_security:
+      if 'security' in self._data:
+        self._apply_new_issue_properties(policy, self._data['security'],
+                                         is_crash)
+    else:
+      if 'non_security' in self._data:
+        self._apply_new_issue_properties(policy, self._data['non_security'],
+                                         is_crash)
+
+    return policy
+
+  def _apply_new_issue_properties(self, policy, issue_type, is_crash):
+    """Apply issue policies."""
+    if 'status' in issue_type:
+      policy.status = self._data['status'][issue_type['status']]
+
+    if 'ccs' in issue_type:
+      policy.labels.extend(issue_type['ccs'])
+
+    if 'labels' in issue_type:
+      policy.labels.extend(issue_type['labels'])
+
+    if is_crash:
+      if 'crash_labels' in issue_type:
+        policy.labels.extend(issue_type['crash_labels'])
+    else:
+      if 'non_crash_labels' in issue_type:
+        policy.labels.extend(issue_type['non_crash_labels'])
+
+  def get_existing_issue_properties(self):
+    """Get the properties to apply to a new issue."""
+    policy = NewIssuePolicy()
+
+    if 'existing' in self._data:
+      self._apply_new_issue_properties(policy, self._data['existing'], False)
+
+    return policy
+
+
+def get(project_name):
+  """Get policy."""
+  issue_tracker_config = local_config.IssueTrackerConfig()
+  project_config = issue_tracker_config.get(project_name)
+  if not project_config:
+    raise ConfigurationError(
+        'Issue tracker for {} does not exist'.format(project_name))
+
+  if not 'policies' in project_config:
+    raise ConfigurationError(
+        'Policies for {} do not exist'.format(project_name))
+
+  return IssueTrackerPolicy(project_config['policies'])

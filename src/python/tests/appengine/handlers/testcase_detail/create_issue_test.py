@@ -56,7 +56,7 @@ class HandlerTest(unittest.TestCase):
         '/', {
             'testcaseId': self.testcase.key.id(),
             'severity': 3,
-            'ccMe': 'true',
+            'ccMe': True,
             'csrf_token': form.generate_csrf_token(),
         })
 
@@ -85,7 +85,7 @@ class HandlerTest(unittest.TestCase):
         '/', {
             'testcaseId': self.testcase.key.id(),
             'severity': 3,
-            'ccMe': 'true',
+            'ccMe': True,
             'csrf_token': form.generate_csrf_token(),
         },
         expect_errors=True)
@@ -100,7 +100,7 @@ class HandlerTest(unittest.TestCase):
         '/', {
             'testcaseId': self.testcase.key.id() + 1,
             'severity': 3,
-            'ccMe': 'true',
+            'ccMe': True,
             'csrf_token': form.generate_csrf_token(),
         },
         expect_errors=True)
@@ -116,7 +116,7 @@ class HandlerTest(unittest.TestCase):
         '/', {
             'testcaseId': self.testcase.key.id(),
             'severity': 'a',
-            'ccMe': 'true',
+            'ccMe': True,
             'csrf_token': form.generate_csrf_token(),
         },
         expect_errors=True)
@@ -132,7 +132,7 @@ class HandlerTest(unittest.TestCase):
         '/', {
             'testcaseId': self.testcase.key.id(),
             'severity': 3,
-            'ccMe': 'true',
+            'ccMe': True,
             'csrf_token': form.generate_csrf_token(),
         },
         expect_errors=True)
