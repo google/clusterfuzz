@@ -26,7 +26,9 @@ import parameterized
 
 from bot.fuzzers import libfuzzer
 from bot.fuzzers import utils as fuzzer_utils
+from bot.fuzzers import strategy
 from bot.fuzzers.libFuzzer import launcher
+from bot.fuzzers.libFuzzer import strategy_selection
 from build_management import build_manager
 from datastore import data_types
 from platforms import fuchsia
@@ -100,6 +102,28 @@ def run_launcher(*args):
 
   return mock_stdout.getvalue()
 
+def set_strategy_pool(corpus_subset=False,
+                      fork=False,
+                      ml_rnn=False,
+                      radamsa=False,
+                      max_len=False,
+                      recommended_dict=False,
+                      value_profile=False,
+                      mutator_plugin=False):
+  """Helper method to create instances of strategy pools
+  for patching use."""
+  strategy_pool = {
+      strategy.CORPUS_SUBSET_STRATEGY: corpus_subset,
+      strategy.FORK_STRATEGY: fork,
+      strategy.CORPUS_MUTATION_ML_RNN_STRATEGY: ml_rnn,
+      strategy.CORPUS_MUTATION_RADAMSA_STRATEGY: radamsa,
+      strategy.RANDOM_MAX_LENGTH_STRATEGY: max_len,
+      strategy.RECOMMENDED_DICTIONARY_STRATEGY: recommended_dict,
+      strategy.VALUE_PROFILE_STRATEGY: value_profile,
+      strategy.MUTATOR_PLUGIN_STRATEGY: mutator_plugin
+  }
+  return strategy_pool
+
 
 class BaseLauncherTest(unittest.TestCase):
   """Base libFuzzer launcher tests."""
@@ -121,13 +145,7 @@ class BaseLauncherTest(unittest.TestCase):
         'bot.fuzzers.engine_common.random_choice',
         'bot.fuzzers.mutator_plugin._download_mutator_plugin_archive',
         'bot.fuzzers.mutator_plugin._get_mutator_plugins_from_bucket',
-        'bot.fuzzers.libFuzzer.launcher.do_fork',
-        'bot.fuzzers.libFuzzer.launcher.do_ml_rnn_generator',
-        'bot.fuzzers.libFuzzer.launcher.do_mutator_plugin',
-        'bot.fuzzers.libFuzzer.launcher.do_radamsa_generator',
-        'bot.fuzzers.libFuzzer.launcher.do_random_max_length',
-        'bot.fuzzers.libFuzzer.launcher.do_recommended_dictionary',
-        'bot.fuzzers.libFuzzer.launcher.do_value_profile',
+        'bot.fuzzers.libFuzzer.strategy_selection.generate_strategy_pool',
         'bot.fuzzers.libFuzzer.launcher.get_dictionary_analysis_timeout',
         'os.getpid',
     ])
@@ -139,14 +157,7 @@ class BaseLauncherTest(unittest.TestCase):
     self.mock.getpid.return_value = 1337
 
     self.mock._get_mutator_plugins_from_bucket.return_value = []  # pylint: disable=protected-access
-    self.mock.do_corpus_subset.return_value = False
-    self.mock.do_fork.return_value = False
-    self.mock.do_mutator_plugin.return_value = False
-    self.mock.do_ml_rnn_generator.return_value = False
-    self.mock.do_radamsa_generator.return_value = False
-    self.mock.do_random_max_length.return_value = False
-    self.mock.do_recommended_dictionary.return_value = False
-    self.mock.do_value_profile.return_value = False
+    self.mock.generate_strategy_pool.return_value = set_strategy_pool()
     self.mock.get_dictionary_analysis_timeout.return_value = 5
     self.mock.get_merge_timeout.return_value = 10
     self.mock.random_choice.side_effect = mock_random_choice
@@ -174,7 +185,7 @@ class BaseLauncherTest(unittest.TestCase):
     plugin_archive_name = 'custom_mutator_plugin-libfuzzer_asan-test_fuzzer.zip'
     plugin_archive_path = os.path.join(DATA_DIRECTORY, plugin_archive_name)
 
-    self.mock.do_mutator_plugin.return_value = True
+    self.mock.generate_strategy_pool.return_value = set_strategy_pool(mutator_plugin=True)
     self.mock._get_mutator_plugins_from_bucket.return_value = [  # pylint: disable=protected-access
         plugin_archive_name
     ]
@@ -275,7 +286,7 @@ class TestLauncher(BaseLauncherTest):
   @mock.patch('bot.fuzzers.libFuzzer.launcher.get_fuzz_timeout')
   def test_fuzz_no_crash(self, mock_get_timeout):
     """Tests fuzzing (no crash)."""
-    self.mock.do_value_profile.return_value = True
+    self.mock.generate_strategy_pool.return_value = set_strategy_pool(value_profile=True)
 
     mock_get_timeout.return_value = get_fuzz_timeout(5.0)
     testcase_path = setup_testcase_and_corpus('empty', 'corpus', fuzz=True)
@@ -319,7 +330,7 @@ class TestLauncher(BaseLauncherTest):
   @mock.patch('bot.fuzzers.libFuzzer.launcher.get_fuzz_timeout')
   def test_fuzz_from_subset(self, mock_get_timeout):
     """Tests fuzzing from corpus subset."""
-    self.mock.do_corpus_subset.return_value = True
+    self.mock.generate_strategy_pool.return_value = set_strategy_pool(corpus_subset=True)
     mock_get_timeout.return_value = get_fuzz_timeout(5.0)
 
     testcase_path = setup_testcase_and_corpus(
@@ -408,7 +419,7 @@ class TestLauncher(BaseLauncherTest):
   @mock.patch('bot.fuzzers.libFuzzer.launcher.get_fuzz_timeout')
   def test_max_length_strategy_with_override(self, mock_get_timeout):
     """Tests max length strategy with override."""
-    self.mock.do_random_max_length.return_value = True
+    self.mock.generate_strategy_pool.return_value = set_strategy_pool(max_len=True)
     mock_get_timeout.return_value = get_fuzz_timeout(5.0)
     testcase_path = setup_testcase_and_corpus('empty', 'corpus', fuzz=True)
     output = run_launcher(testcase_path, 'always_crash_fuzzer', '-max_len=100')
@@ -424,7 +435,7 @@ class TestLauncher(BaseLauncherTest):
   @mock.patch('bot.fuzzers.libFuzzer.launcher.get_fuzz_timeout')
   def test_max_length_strategy_without_override(self, mock_get_timeout):
     """Tests max length strategy without override."""
-    self.mock.do_random_max_length.return_value = True
+    self.mock.generate_strategy_pool.return_value = set_strategy_pool(max_len=True)
     mock_get_timeout.return_value = get_fuzz_timeout(5.0)
     testcase_path = setup_testcase_and_corpus('empty', 'corpus', fuzz=True)
     output = run_launcher(testcase_path, 'always_crash_fuzzer')
@@ -545,8 +556,8 @@ class TestLauncherMinijail(BaseLauncherTest):
   @mock.patch('bot.fuzzers.libFuzzer.launcher.get_fuzz_timeout')
   def test_fuzz_from_subset(self, mock_get_timeout):
     """Tests fuzzing from corpus subset."""
-    self.mock.do_corpus_subset.return_value = True
-    self.mock.do_value_profile.return_value = True
+    self.mock.generate_strategy_pool.return_value = set_strategy_pool(corpus_subset=True,
+        value_profile=True)
 
     mock_get_timeout.return_value = get_fuzz_timeout(5.0)
     testcase_path = setup_testcase_and_corpus(
