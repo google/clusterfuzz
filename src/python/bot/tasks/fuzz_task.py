@@ -1284,10 +1284,6 @@ def execute_task(fuzzer_name, job_type):
   # If yes, bail out.
   logs.log('Checking for bad build.')
   crash_revision = environment.get_value('APP_REVISION')
-  # TODO(flowerhack): Remove this exceptional case once Fuchsia understands
-  # revision tracking.
-  if not crash_revision:
-    crash_revision = 0
   is_bad_build = testcase_manager.check_for_bad_build(job_type, crash_revision)
   _track_build_run_result(job_type, crash_revision, is_bad_build)
   if is_bad_build:

@@ -62,29 +62,30 @@ class EngineFuzzer(BuiltinFuzzer):
 
   def _get_fuzzer_binary_name_and_path(self):
     """Returns the fuzzer binary name and its path."""
+    # Fuchsia doesn't use file paths to call fuzzers, just the name of the
+    # fuzzer, so we set both from FUZZ_TARGET here.
     if environment.platform() == 'FUCHSIA':
       fuzzer_binary_name = fuzzer_path = environment.get_value('FUZZ_TARGET')
       return fuzzer_binary_name, fuzzer_path
+    build_directory = environment.get_value('BUILD_DIR')
+
+    if not build_directory:
+      raise BuiltinFuzzerException(
+          'BUILD_DIR environment variable is not set.')
+
+    fuzzers = fuzzers_utils.get_fuzz_targets(build_directory)
+
+    if not fuzzers:
+      raise BuiltinFuzzerException(
+          'No fuzzer binaries found in |BUILD_DIR| directory.')
+
+    fuzzer_binary_name = environment.get_value('FUZZ_TARGET')
+    if fuzzer_binary_name:
+      fuzzer_path = _get_fuzzer_path(fuzzers, fuzzer_binary_name)
     else:
-      build_directory = environment.get_value('BUILD_DIR')
-
-      if not build_directory:
-        raise BuiltinFuzzerException(
-            'BUILD_DIR environment variable is not set.')
-
-      fuzzers = fuzzers_utils.get_fuzz_targets(build_directory)
-
-      if not fuzzers:
-        raise BuiltinFuzzerException(
-            'No fuzzer binaries found in |BUILD_DIR| directory.')
-
-      fuzzer_binary_name = environment.get_value('FUZZ_TARGET')
-      if fuzzer_binary_name:
-        fuzzer_path = _get_fuzzer_path(fuzzers, fuzzer_binary_name)
-      else:
-        fuzzer_path = random.SystemRandom().choice(fuzzers)
-        fuzzer_binary_name = os.path.basename(fuzzer_path)
-      return fuzzer_binary_name, fuzzer_path
+      fuzzer_path = random.SystemRandom().choice(fuzzers)
+      fuzzer_binary_name = os.path.basename(fuzzer_path)
+    return fuzzer_binary_name, fuzzer_path
 
   def run(self, input_directory, output_directory, no_of_files):
     """Run the fuzzer to generate testcases."""

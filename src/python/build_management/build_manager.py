@@ -765,6 +765,8 @@ class FuchsiaBuild(Build):
     environment.set_value(
         'FUCHSIA_DIR',
         os.path.join(fuchsia_resources_dir, self.FUCHSIA_DIR_REL_PATH))
+    # TODO(flowerhack): Update here once Fuchsia understand revision tracking.
+    environment.set_value('APP_REVISION', '0')
 
     symbolize_path = os.path.join(fuchsia_resources_dir,
                                   self.SYMBOLIZE_REL_PATH)
