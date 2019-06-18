@@ -54,8 +54,8 @@ class Handler(base_handler.Handler):
     policy = issue_tracker_policy.get(issue_tracker.project)
     properties = policy.get_existing_issue_properties()
     for label in properties.labels:
-      for result in issue_filer.apply_substitutions(label, testcase,
-                                                    security_severity=None):
+      for result in issue_filer.apply_substitutions(
+          label, testcase, security_severity=None):
         issue.labels.add(result)
 
     issue.save(new_comment=issue_comment)

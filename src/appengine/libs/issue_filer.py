@@ -75,7 +75,7 @@ def severity_substitution(label, testcase, security_severity):
   """Severity substitution."""
   # Use severity from testcase if one is not available.
   if security_severity is None:
-    security_severity =  testcase.security_severity
+    security_severity = testcase.security_severity
 
   # Set to default high severity if we can't determine it automatically.
   if not data_types.SecuritySeverity.is_valid(security_severity):
