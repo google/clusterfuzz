@@ -424,6 +424,7 @@ def redo_testcase(testcase, tasks, user_email):
   if minimize:
     task_list.append('minimize')
     testcase.minimized_keys = ''
+    testcase.set_metadata('redo_minimize', True, update_testcase=False)
     metadata_keys_to_clear += [
         'current_minimization_phase_attempts', 'minimization_phase'
     ]
