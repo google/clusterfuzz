@@ -730,11 +730,11 @@ class Config(Model):
   # For GitHub API.
   github_credentials = ndb.StringProperty(default='')
 
+  # OAuth2 client id for the reproduce tool.
+  reproduce_tool_client_id = ndb.StringProperty(default='')
+
   # OAuth2 client secret for the reproduce tool.
   reproduce_tool_client_secret = ndb.StringProperty(default='')
-
-  # OAuth2 client secret for ClusterFuzz tools (deprecated).
-  clusterfuzz_tools_client_secret = ndb.StringProperty(default='')
 
   # Pub/Sub topics for the Predator service.
   predator_crash_topic = ndb.StringProperty(default='')

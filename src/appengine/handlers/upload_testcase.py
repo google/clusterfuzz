@@ -236,7 +236,7 @@ class PrepareUploadHandler(base_handler.Handler):
 class UploadUrlHandlerOAuth(base_handler.Handler):
   """Handler that creates an upload URL (OAuth)."""
 
-  @handler.oauth()
+  @handler.oauth
   @handler.check_user_access(need_privileged_access=False)
   def post(self):
     """Serves the url."""
@@ -553,7 +553,7 @@ class UploadHandlerOAuth(base_handler.Handler, UploadHandlerCommon):
     key = blobs.write_blob(bytes_io)
     return blobs.get_blob_info(key)
 
-  @handler.oauth()
+  @handler.oauth
   @handler.post(handler.FORM, handler.JSON)
   def post(self, *args):
     self.do_post()

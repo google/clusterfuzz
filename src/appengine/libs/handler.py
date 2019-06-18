@@ -153,29 +153,16 @@ def unsupported_on_local_server(func):
   return wrapper
 
 
-# TODO(mbarbella): Remove the |use_reproduce_tool_client| argument and related
-# plumbing once clusterfuzz-tools is removed. We need to support both while the
-# new tool is in development.
-def get_access_token(verification_code, use_reproduce_tool_client=False):
+def get_access_token(verification_code):
   """Get the access token from verification code.
 
     See: https://developers.google.com/identity/protocols/OAuth2InstalledApp
   """
-  if use_reproduce_tool_client:
-    client_id_config_key = 'reproduce_tool_client_id'
-  else:
-    client_id_config_key = 'clusterfuzz_tools_oauth_client_id'
-
-  client_id = _auth_config().get(client_id_config_key)
+  client_id = db_config.get('reproduce_tool_client_id')
   if not client_id:
     raise helpers.UnauthorizedException('Client id not configured.')
 
-  if use_reproduce_tool_client:
-    client_secret_config_key = 'reproduce_tool_client_secret'
-  else:
-    client_secret_config_key = 'clusterfuzz_tools_client_secret'
-
-  client_secret = db_config.get_value(client_secret_config_key)
+  client_secret = db_config.get_value('reproduce_tool_client_secret')
   if not client_secret:
     raise helpers.UnauthorizedException('Client secret not configured.')
 
@@ -202,15 +189,14 @@ def get_access_token(verification_code, use_reproduce_tool_client=False):
         'Parsing the JSON response body failed: %s' % response.text, 500)
 
 
-def get_email_and_access_token(authorization, use_reproduce_tool_client=False):
+def get_email_and_access_token(authorization):
   """Get user email from the request.
 
     See: https://developers.google.com/identity/protocols/OAuth2InstalledApp
   """
   if authorization.startswith(VERIFICATION_CODE_PREFIX):
     verification_code = authorization.split(' ')[1]
-    access_token = get_access_token(verification_code,
-                                    use_reproduce_tool_client)
+    access_token = get_access_token(verification_code)
     authorization = BEARER_PREFIX + access_token
 
   if not authorization.startswith(BEARER_PREFIX):
@@ -253,33 +239,26 @@ def get_email_and_access_token(authorization, use_reproduce_tool_client=False):
         'Parsing the JSON response body failed: %s' % response.text, 500)
 
 
-def oauth(use_reproduce_tool_client=False):
+def oauth(func):
   """Wrap a handler with OAuth authentication by reading the Authorization
 
     header and getting user email.
   """
+  @functools.wraps(func)
+  def wrapper(self):
+    """Wrapper."""
+    auth_header = self.request.headers.get('Authorization')
+    if auth_header:
+      email, returned_auth_header = get_email_and_access_token(auth_header)
 
-  def decorator(func):
-    """Decorator."""
+      setattr(self.request, '_oauth_email', email)
+      self.response.headers[CLUSTERFUZZ_AUTHORIZATION_HEADER] = str(
+          returned_auth_header)
+      self.response.headers[CLUSTERFUZZ_AUTHORIZATION_IDENTITY] = str(email)
 
-    @functools.wraps(func)
-    def wrapper(self):
-      """Wrapper."""
-      auth_header = self.request.headers.get('Authorization')
-      if auth_header:
-        email, returned_auth_header = get_email_and_access_token(
-            auth_header, use_reproduce_tool_client)
+    return func(self)
 
-        setattr(self.request, '_oauth_email', email)
-        self.response.headers[CLUSTERFUZZ_AUTHORIZATION_HEADER] = str(
-            returned_auth_header)
-        self.response.headers[CLUSTERFUZZ_AUTHORIZATION_IDENTITY] = str(email)
-
-      return func(self)
-
-    return wrapper
-
-  return decorator
+  return wrapper
 
 
 def check_user_access(need_privileged_access):

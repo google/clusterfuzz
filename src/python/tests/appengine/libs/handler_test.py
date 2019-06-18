@@ -134,7 +134,7 @@ class CheckAdminAccessIfOssFuzzHandler(base_handler.Handler):
 class OAuthHandler(base_handler.Handler):
 
   @handler.post(handler.JSON, handler.JSON)
-  @handler.oauth()
+  @handler.oauth
   def post(self):
     email = ''
     if auth.get_current_user():
@@ -422,7 +422,7 @@ class AllowOAuthTest(unittest.TestCase):
                      resp.headers[handler.CLUSTERFUZZ_AUTHORIZATION_IDENTITY])
     self.assertEqual(1, self.mock.get_email_and_access_token.call_count)
     self.mock.get_email_and_access_token.assert_has_calls(
-        [mock.call('Bearer AccessToken', False)])
+        [mock.call('Bearer AccessToken')])
 
   def test_no_header(self):
     self.mock.get_email_and_access_token.return_value = ('email', 'auth')
@@ -512,7 +512,7 @@ class TestGetEmailAndAccessToken(unittest.TestCase):
     self.assertEqual('test@test.com', email)
     self.assertEqual('Bearer AccessToken', token)
     self.assertEqual(1, self.mock.get_access_token.call_count)
-    self.mock.get_access_token.assert_has_calls([mock.call('Verify', False)])
+    self.mock.get_access_token.assert_has_calls([mock.call('Verify')])
     self._assert_requests_get_call()
 
   def test_invalid_authorization_header(self):

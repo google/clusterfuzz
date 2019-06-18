@@ -66,7 +66,7 @@ def get(self):
 class Handler(base_handler.Handler, gcs.SignedGcsHandler):
   """Handler that gets the testcase file."""
 
-  @handler.oauth()
+  @handler.oauth
   def get(self):
     """Serve the testcase file."""
     get(self)

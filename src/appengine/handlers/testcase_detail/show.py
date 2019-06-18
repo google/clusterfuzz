@@ -650,7 +650,7 @@ class RefreshHandler(base_handler.Handler):
   """Handler that shows a testcase in detail through JSON."""
 
   @handler.post(handler.JSON, handler.JSON)
-  @handler.oauth()
+  @handler.oauth
   def post(self):
     """Serve the testcase detail HTML page."""
     testcase_id = self.request.get('testcaseId')
