@@ -61,6 +61,9 @@ CRASH_TESTCASE_REGEX = (r'.*Test unit written to\s*'
 # Maximum length of a random chosen length for `-max_len`.
 MAX_VALUE_FOR_MAX_LENGTH = 10000
 
+# Probability of doing DFT-based fuzzing (depends on DFSan build presence).
+DATAFLOW_TRACING_PROBABILITY = 0.25
+
 # Number of radamsa mutations.
 RADAMSA_MUTATIONS = 2000
 
@@ -116,6 +119,14 @@ def _select_generator(strategy_pool, fuzzer_path):
     return Generator.RADAMSA
 
   return Generator.NONE
+
+
+def do_dataflow_tracing():
+  """Return whether or not to use dataflow tracing."""
+  return engine_common.decide_with_probability(
+      engine_common.get_strategy_probability(
+          strategy.DATAFLOW_TRACING_STRATEGY,
+          default=DATAFLOW_TRACING_PROBABILITY))
 
 
 def add_recommended_dictionary(arguments, fuzzer_name, fuzzer_path):
@@ -440,6 +451,9 @@ def remove_fuzzing_arguments(arguments):
 
   # Remove `-fork' argument since it overrides '-merge' argument.
   fuzzer_utils.extract_argument(arguments, constants.FORK_FLAG)
+
+  # Remove `-collect_data_flow` argument since it's needed for fuzzing only.
+  fuzzer_utils.extract_argument(arguments, constants.COLLECT_DATA_FLOW_FLAG)
 
 
 def load_testcase_if_exists(fuzzer_runner,
@@ -833,6 +847,18 @@ def main(argv):
     fuzzing_strategies.append(strategy.VALUE_PROFILE_STRATEGY.name)
 
   if strategy_pool.do_strategy(strategy.FORK_STRATEGY):
+  # Depends on the presense of DFSan instrumented build.
+  dataflow_build_dir = environment.get_value('DATAFLOW_BUILD_DIR')
+  use_dataflow_tracing = dataflow_build_dir and do_dataflow_tracing()
+  if use_dataflow_tracing:
+    dataflow_binary_path = os.path.join(dataflow_build_dir,
+                                        os.path.basename(fuzzer_path))
+    arguments.append(
+        '%s%s' % (constants.COLLECT_DATA_FLOW_FLAG, dataflow_binary_path))
+    fuzzing_strategies.append(strategy.DATAFLOW_TRACING_STRATEGY)
+
+  # DataFlow Tracing requires fork mode, always use it with DFT strategy.
+  if use_dataflow_tracing or do_fork():
     max_fuzz_threads = environment.get_value('MAX_FUZZ_THREADS', 1)
     num_fuzz_processes = max(1, multiprocessing.cpu_count() // max_fuzz_threads)
     arguments.append('%s%d' % (constants.FORK_FLAG, num_fuzz_processes))

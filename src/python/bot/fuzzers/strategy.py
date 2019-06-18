@@ -26,6 +26,7 @@ CORPUS_MUTATION_RADAMSA_STRATEGY = Strategy(
     name='corpus_mutations_radamsa', probability=0.15)
 CORPUS_MUTATION_ML_RNN_STRATEGY = Strategy(
     name='corpus_mutations_ml_rnn', probability=0.50)
+DATAFLOW_TRACING_STRATEGY = 'dataflow_tracing'
 CORPUS_SUBSET_STRATEGY = Strategy(name='corpus_subset', probability=0.50)
 FORK_STRATEGY = Strategy(name='fork', probability=0.50)
 MUTATOR_PLUGIN_STRATEGY = Strategy(name='mutator_plugin', probability=0.50)

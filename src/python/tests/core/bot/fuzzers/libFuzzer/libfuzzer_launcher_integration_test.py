@@ -148,6 +148,7 @@ class BaseLauncherTest(unittest.TestCase):
 
     self.mock._get_mutator_plugins_from_bucket.return_value = []  # pylint: disable=protected-access
     self.mock.generate_weighted_strategy_pool.return_value = set_strategy_pool()
+    self.mock.do_dataflow_tracing.return_value = False
     self.mock.get_dictionary_analysis_timeout.return_value = 5
     self.mock.get_merge_timeout.return_value = 10
     self.mock.random_choice.side_effect = mock_random_choice
