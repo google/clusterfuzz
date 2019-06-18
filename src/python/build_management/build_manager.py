@@ -88,7 +88,7 @@ class BuildManagerException(Exception):
   """Build manager exceptions."""
 
 
-def _base_build_dir(bucket_path):
+def get_base_build_dir(bucket_path):
   """Get the base directory for a build."""
   job_name = environment.get_value('JOB_NAME')
   return _get_build_directory(bucket_path, job_name)
@@ -181,7 +181,11 @@ def _handle_unrecoverable_error_on_windows():
   utils.restart_machine()
 
 
-def _unpack_build(base_build_dir, build_dir, build_url, target_weights=None):
+def _unpack_build(base_build_dir,
+                  build_dir,
+                  build_url,
+                  target_weights=None,
+                  is_auxiliary_build=False):
   """Unpacks a build from a build url into the build directory."""
   # Track time taken to unpack builds so that it doesn't silently regress.
   start_time = time.time()
@@ -219,7 +223,7 @@ def _unpack_build(base_build_dir, build_dir, build_url, target_weights=None):
     return False
 
   unpack_everything = environment.get_value('UNPACK_ALL_FUZZ_TARGETS_AND_FILES')
-  if not unpack_everything:
+  if not unpack_everything and not is_auxiliary_build:
     # For fuzzing, pick a random fuzz target so that we only un-archive that
     # particular fuzz target and its dependencies and save disk space.
     # If we are going to unpack everythng in archive based on
@@ -256,9 +260,10 @@ def _unpack_build(base_build_dir, build_dir, build_url, target_weights=None):
     logs.log_error('Unable to unpack build archive %s.' % build_local_archive)
     return False
 
-  if unpack_everything:
+  if unpack_everything and not is_auxiliary_build:
     # Set a random fuzz target now that the build has been unpacked, if we
-    # didn't set one earlier.
+    # didn't set one earlier. For an auxiliary build, fuzz target is already
+    # specified during main build unpacking.
     _set_random_fuzz_target_for_fuzzing_if_needed(
         _get_fuzz_targets_from_dir(build_dir), target_weights)
 
@@ -497,15 +502,19 @@ class Build(BaseBuild):
     root_directory = environment.get_value('ROOT_DIR')
     os.chdir(root_directory)
 
+  def _delete_partial_build_file(self):
+    """Deletes partial build file (if present). This is needed to make sure we
+    clean up build directory if the previous build was partial."""
+    partial_build_file_path = os.path.join(self.build_dir, PARTIAL_BUILD_FILE)
+    if os.path.exists(partial_build_file_path):
+      self.delete()
+
   def _pre_setup(self):
     """Common pre-setup."""
     self._reset_cwd()
     shell.clear_temp_directory()
 
-    # Clean up build directory if last one was partial.
-    partial_build_file_path = os.path.join(self.build_dir, PARTIAL_BUILD_FILE)
-    if os.path.exists(partial_build_file_path):
-      self.delete()
+    self._delete_partial_build_file()
 
     if self.base_build_dir:
       _setup_build_directories(self.base_build_dir)
@@ -997,6 +1006,44 @@ class SystemBuild(Build):
     raise BuildManagerException('Cannot delete system build.')
 
 
+class AuxiliaryBuild(Build):
+  """An additional build that accompanies some other fuzzinng build."""
+
+  def __init__(self,
+               base_build_dir,
+               revision,
+               build_url,
+               build_dir_name='revisions'):
+    super(AuxiliaryBuild, self).__init__(base_build_dir, revision)
+    self.build_url = build_url
+    self.build_dir_name = build_dir_name
+    self._build_dir = os.path.join(self.base_build_dir, build_dir_name)
+
+  @property
+  def build_dir(self):
+    return self._build_dir
+
+  def setup(self):
+    """Sets up build with a particular revision."""
+    logs.log('Retrieving build r%d.' % self.revision)
+    self._delete_partial_build_file()
+    build_update = not self.exists()
+    if build_update:
+      if not _unpack_build(
+          self.base_build_dir,
+          self.build_dir,
+          self.build_url,
+          is_auxiliary_build=True):
+        return False
+
+      logs.log('Retrieved build r%d.' % self.revision)
+    else:
+      logs.log('Build already exists.')
+
+    self._post_setup_success(update_revision=build_update)
+    return True
+
+
 def _sort_build_urls_by_revision(build_urls, bucket_path, reverse):
   """Return a sorted list of build url by revision."""
   base_url = os.path.dirname(bucket_path)
@@ -1119,7 +1166,7 @@ def setup_trunk_build():
   sym_debug_build_bucket_path = environment.get_value(
       'SYM_DEBUG_BUILD_BUCKET_PATH')
 
-  base_build_dir = _base_build_dir(release_build_bucket_path)
+  base_build_dir = get_base_build_dir(release_build_bucket_path)
   _setup_build_directories(base_build_dir)
 
   release_build_urls = get_build_urls_list(release_build_bucket_path)
@@ -1167,7 +1214,8 @@ def setup_trunk_build():
     logs.log_error('Unable to find a matching revision.')
     return None
 
-  return setup_regular_build(revision)
+  build = setup_regular_build(revision)
+  return build
 
 
 def setup_regular_build(revision):
@@ -1188,7 +1236,7 @@ def setup_regular_build(revision):
     # Try setting up trunk build.
     return setup_trunk_build()
 
-  base_build_dir = _base_build_dir(release_build_bucket_path)
+  base_build_dir = get_base_build_dir(release_build_bucket_path)
 
   build_class = RegularBuild
   if environment.is_trusted_host():
@@ -1241,7 +1289,7 @@ def setup_symbolized_builds(revision):
   sym_debug_build_url = revisions.find_build_url(sym_debug_build_bucket_path,
                                                  sym_debug_build_urls, revision)
 
-  base_build_dir = _base_build_dir(sym_release_build_bucket_path)
+  base_build_dir = get_base_build_dir(sym_release_build_bucket_path)
 
   build_class = SymbolizedBuild
   if environment.is_trusted_host():
@@ -1276,7 +1324,7 @@ def setup_custom_binary():
         'Job does not have a custom binary, even though CUSTOM_BINARY is set.')
     return False
 
-  base_build_dir = _base_build_dir('')
+  base_build_dir = get_base_build_dir('')
   build = CustomBuild(base_build_dir, job.custom_binary_key,
                       job.custom_binary_filename, job.custom_binary_revision)
 
@@ -1317,7 +1365,7 @@ def setup_production_build(build_type):
     return None
 
   version = v_match.group(1)
-  base_build_dir = _base_build_dir(build_bucket_path)
+  base_build_dir = get_base_build_dir(build_bucket_path)
 
   build_class = ProductionBuild
   if environment.is_trusted_host():

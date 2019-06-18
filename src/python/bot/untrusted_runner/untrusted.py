@@ -119,6 +119,10 @@ class UntrustedRunnerServicer(
     return build_setup.setup_production_build(request)
 
   @wrap_servicer
+  def SetupAuxiliaryBuild(self, request, _):
+    return build_setup.setup_auxiliary_build(request)
+
+  @wrap_servicer
   def RunAndWait(self, request, context):
     return remote_process.run_and_wait(request, context)
 

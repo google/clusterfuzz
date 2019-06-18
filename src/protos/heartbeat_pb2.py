@@ -32,8 +32,8 @@ DESCRIPTOR = _descriptor.FileDescriptor(
   name='heartbeat.proto',
   package='',
   syntax='proto2',
-  serialized_options=None,
-  serialized_pb=_b('\n\x0fheartbeat.proto\"\x12\n\x10HeartbeatRequest\"\x13\n\x11HeartbeatResponse2:\n\tHeartbeat\x12-\n\x04\x42\x65\x61t\x12\x11.HeartbeatRequest\x1a\x12.HeartbeatResponse')
+  serialized_options=_b('Z#clusterfuzz/protos/untrusted_runner'),
+  serialized_pb=_b('\n\x0fheartbeat.proto\"\x12\n\x10HeartbeatRequest\"\x13\n\x11HeartbeatResponse2:\n\tHeartbeat\x12-\n\x04\x42\x65\x61t\x12\x11.HeartbeatRequest\x1a\x12.HeartbeatResponseB%Z#clusterfuzz/protos/untrusted_runner')
 )
 
 
@@ -105,6 +105,7 @@ HeartbeatResponse = _reflection.GeneratedProtocolMessageType('HeartbeatResponse'
 _sym_db.RegisterMessage(HeartbeatResponse)
 
 
+DESCRIPTOR._options = None
 
 _HEARTBEAT = _descriptor.ServiceDescriptor(
   name='Heartbeat',

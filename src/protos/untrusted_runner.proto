@@ -67,6 +67,13 @@ message SetupProductionBuildRequest {
   optional string build_type = 4;
 }
 
+message SetupAuxiliaryBuildRequest {
+  optional string base_build_dir = 1;
+  optional int64 revision = 2;
+  optional string build_url = 3;
+  optional string build_dir_name = 4;
+}
+
 // Maps to process_handler.runProcess
 message RunProcessRequest {
   optional string cmdline = 1;
@@ -277,6 +284,9 @@ service UntrustedRunner {
 
   // Set up production build.
   rpc SetupProductionBuild(SetupProductionBuildRequest) returns (SetupBuildResponse);
+
+  // Set up auxiliary build.
+  rpc SetupAuxiliaryBuild(SetupAuxiliaryBuildRequest) returns (SetupBuildResponse);
 
   // Run command using process_handler.runProcess
   rpc RunProcess(RunProcessRequest) returns (RunProcessResponse);
