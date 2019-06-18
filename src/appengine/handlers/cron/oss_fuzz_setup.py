@@ -43,6 +43,7 @@ from metrics import logs
 from system import environment
 
 AFL_BUILD_BUCKET = 'clusterfuzz-builds-afl'
+DATAFLOW_BUILD_BUCKET = 'clusterfuzz-builds-dataflow'
 LIBFUZZER_BUILD_BUCKET = 'clusterfuzz-builds'
 NO_ENGINE_BUILD_BUCKET = 'clusterfuzz-builds-no-engine'
 BUCKET_PROJECT_URL = 'clusterfuzz-external.appspot.com'
@@ -164,6 +165,8 @@ def _get_build_bucket(engine, architecture):
     bucket = LIBFUZZER_BUILD_BUCKET
   elif engine == 'afl':
     bucket = AFL_BUILD_BUCKET
+  elif engine == 'dataflow':
+    bucket = DATAFLOW_BUILD_BUCKET
   elif engine == 'none':
     bucket = NO_ENGINE_BUILD_BUCKET
   else:
@@ -520,6 +523,18 @@ def sync_cf_job(project, info, corpus_bucket, quarantine_bucket, logs_bucket,
     selective_unpack = info.get('selective_unpack')
     if selective_unpack:
       job.environment_string += 'UNPACK_ALL_FUZZ_TARGETS_AND_FILES = False\n'
+
+    if (template.engine == 'libfuzzer' and
+        'dataflow' in info.get('fuzzing_engines', DEFAULT_ENGINES)):
+      # Dataflow binaries are built with dataflow sanitizer, but can be used as
+      # an auxiliary build with libFuzzer builds (e.g. with ASan or UBSan).
+      dataflow_build_bucket_path = get_build_bucket_path(
+          project_name=project,
+          engine='dataflow',
+          memory_tool='dataflow',
+          architecture=template.architecture)
+      job.environment_string += (
+          'DATAFLOW_BUILD_BUCKET_PATH = %s\n' % dataflow_build_bucket_path)
 
     job.put()
 
