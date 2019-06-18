@@ -300,7 +300,7 @@ def execute_task(testcase_id, job_type):
       data_handler.update_testcase_comment(
           testcase, data_types.TaskState.FINISHED,
           'Cannot run without regression range, will re-run once regression '
-          'task finishes.')
+          'task finishes')
       return
 
     impacts = get_impacts_from_url(testcase.regression, testcase.job_type)
