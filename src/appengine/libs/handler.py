@@ -156,7 +156,7 @@ def unsupported_on_local_server(func):
 # TODO(mbarbella): Remove the |use_reproduce_tool_client| argument and related
 # plumbing once clusterfuzz-tools is removed. We need to support both while the
 # new tool is in development.
-def get_access_token(verification_code, use_reproduce_tool_client):
+def get_access_token(verification_code, use_reproduce_tool_client=False):
   """Get the access token from verification code.
 
     See: https://developers.google.com/identity/protocols/OAuth2InstalledApp
@@ -202,7 +202,7 @@ def get_access_token(verification_code, use_reproduce_tool_client):
         'Parsing the JSON response body failed: %s' % response.text, 500)
 
 
-def get_email_and_access_token(authorization, use_reproduce_tool_client):
+def get_email_and_access_token(authorization, use_reproduce_tool_client=False):
   """Get user email from the request.
 
     See: https://developers.google.com/identity/protocols/OAuth2InstalledApp

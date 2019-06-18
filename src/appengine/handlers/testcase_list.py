@@ -217,7 +217,7 @@ class JsonHandler(base_handler.Handler):
   """Handler that gets the testcase list when user clicks on next page."""
 
   @handler.post(handler.JSON, handler.JSON)
-  @handler.oauth
+  @handler.oauth()
   def post(self):
     """Get and render the testcase list in JSON."""
     result, _ = get_result(self)

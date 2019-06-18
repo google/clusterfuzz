@@ -186,7 +186,7 @@ class JsonHandler(base_handler.Handler):
   """JSON handler used for dynamic updates of commit ranges."""
 
   # See: https://bugs.chromium.org/p/chromium/issues/detail?id=760669
-  @handler.oauth
+  @handler.oauth()
   @handler.allowed_cors
   @handler.post(handler.JSON, handler.JSON)
   def post(self):
