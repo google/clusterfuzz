@@ -237,11 +237,9 @@ def file_issue(testcase,
 
   # Add reproducibility flag label.
   if testcase.one_time_crasher_flag:
-    if policy.label('unreproducible'):
-      issue.labels.add(policy.label('unreproducible'))
+    issue.labels.add(policy.label('unreproducible'))
   else:
-    if policy.label('reproducible'):
-      issue.labels.add(policy.label('reproducible'))
+    issue.labels.add(policy.label('reproducible'))
 
   # Chromium-specific labels.
   if issue_tracker.project and issue_tracker.project == 'chromium':
@@ -308,17 +306,16 @@ def file_issue(testcase,
 
   # Check for labels with special logic.
   additional_labels = []
-  if should_restrict_issue and policy.label('restrict_view'):
+  if should_restrict_issue:
     additional_labels.append(policy.label('restrict_view'))
 
-  if has_accountable_people and policy.label('reported'):
+  if has_accountable_people:
     additional_labels.append(policy.label('reported'))
 
-  if testcase.security_flag and policy.label('security_severity'):
+  if testcase.security_flag:
     additional_labels.append(policy.label('security_severity'))
 
-  if policy.label('os'):
-    additional_labels.append(policy.label('os'))
+  additional_labels.append(policy.label('os'))
 
   # Apply label substitutions.
   for label in itertools.chain(properties.labels, additional_labels):
