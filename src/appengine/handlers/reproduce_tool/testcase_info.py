@@ -37,7 +37,7 @@ class Handler(base_handler.Handler):
   """Handler that returns a serialized testcase as JSON."""
 
   @handler.post(handler.JSON, handler.JSON)
-  @handler.oauth
+  @handler.oauth(use_reproduce_tool_client=True)
   def post(self):
     """Serve the testcase detail HTML page."""
     testcase_id = self.request.get('testcaseId')
