@@ -238,12 +238,7 @@ def _unpack_build(base_build_dir,
   # Actual list of files to unpack can be smaller if we are only unarchiving
   # a particular fuzz target.
   file_match_callback = _get_file_match_callback()
-  # assert (
-  #     # `file_match_callback` must be None when we unpack everything, or
-  #     # must be not None when we do not unpack everything.
-  #     not (unpack_everything and file_match_callback is not None)) # or
-  #     # Auxiliary builds must have 'FUZZ_TARGET' and `file_match_callback`.
-  #     #is_auxiliary_build and file_match_callback is not None)
+  assert not (unpack_everything and file_match_callback is not None)
 
   if not _make_space_for_build(build_local_archive, base_build_dir,
                                file_match_callback):
@@ -507,15 +502,19 @@ class Build(BaseBuild):
     root_directory = environment.get_value('ROOT_DIR')
     os.chdir(root_directory)
 
+  def _delete_partial_build_file(self):
+    """Deletes partial build file (if present). This is needed to make sure we
+    clean up build directory if the previous build was partial."""
+    partial_build_file_path = os.path.join(self.build_dir, PARTIAL_BUILD_FILE)
+    if os.path.exists(partial_build_file_path):
+      self.delete()
+
   def _pre_setup(self):
     """Common pre-setup."""
     self._reset_cwd()
     shell.clear_temp_directory()
 
-    # Clean up build directory if last one was partial.
-    partial_build_file_path = os.path.join(self.build_dir, PARTIAL_BUILD_FILE)
-    if os.path.exists(partial_build_file_path):
-      self.delete()
+    self._delete_partial_build_file()
 
     if self.base_build_dir:
       _setup_build_directories(self.base_build_dir)
@@ -1014,6 +1013,7 @@ class AuxiliaryBuild(Build):
   def setup(self):
     """Sets up build with a particular revision."""
     logs.log('Retrieving build r%d.' % self.revision)
+    self._delete_partial_build_file()
     build_update = not self.exists()
     if build_update:
       if not _unpack_build(

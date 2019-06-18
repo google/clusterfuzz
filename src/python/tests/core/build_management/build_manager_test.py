@@ -1144,7 +1144,12 @@ class AuxiliaryLibFuzzerBuildTest(fake_filesystem_unittest.TestCase):
 
     # Fuzz target should not be chosen by setup_auxiliary_build.
     self.assertEqual('', os.environ['FUZZ_TARGET'])
-    self.assertEqual(1, self.mock.unpack.call_count)  # should be 2?
+
+    # If it was a partial build, the unpack should be called again.
+    if unpack_all == 'True':
+      self.assertEqual(1, self.mock.unpack.call_count)
+    else:
+      self.assertEqual(2, self.mock.unpack.call_count)
 
     self.assertIsNone(build_manager._get_file_match_callback())
 
@@ -1152,27 +1157,9 @@ class AuxiliaryLibFuzzerBuildTest(fake_filesystem_unittest.TestCase):
         '/builds/path_2992e823e35fd34a63e0f8733cdafd6875036a1d/'
         'revisions/file-dataflow-10.zip',
         '/builds/path_2992e823e35fd34a63e0f8733cdafd6875036a1d/revisions',
-        file_match_callback=file_match_callback_checker,
+        # Always None as FUZZ_TARGET is not specified.
+        file_match_callback=None,
         trusted=True)
-
-    self.assertEqual('', os.environ['FUZZ_TARGET'])
-
-    # file_match_callback_checker = FileMatchCallbackChecker()
-    # os.environ['FUZZ_TARGET'] = 'target3'
-    # build = fuzz_task.setup_auxiliary_build()
-    # self.assertIsInstance(build, build_manager.AuxiliaryBuild)
-
-    # # If it was a partial build, the unpack should be called again.
-    # #if unpack_all != 'True':
-    # self.assertEqual(1, self.mock.unpack.call_count)
-    # self.mock.unpack.assert_called_with(
-    #     '/builds/path_2992e823e35fd34a63e0f8733cdafd6875036a1d/'
-    #     'revisions/file-dataflow-10.zip',
-    #     '/builds/path_2992e823e35fd34a63e0f8733cdafd6875036a1d/revisions',
-    #     file_match_callback=file_match_callback_checker,
-    #     trusted=True)
-
-    # self.assertEqual('target3', os.environ['FUZZ_TARGET'])
 
   def test_delete(self):
     """Test deleting this build."""
