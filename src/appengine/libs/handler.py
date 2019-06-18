@@ -158,7 +158,7 @@ def get_access_token(verification_code):
 
     See: https://developers.google.com/identity/protocols/OAuth2InstalledApp
   """
-  client_id = db_config.get('reproduce_tool_client_id')
+  client_id = db_config.get_value('reproduce_tool_client_id')
   if not client_id:
     raise helpers.UnauthorizedException('Client id not configured.')
 
@@ -223,8 +223,14 @@ def get_email_and_access_token(authorization):
         'whitelisted_oauth_emails', default=[]):
       return data['email'], authorization
 
-    if data.get('aud') not in _auth_config().get(
-        'whitelisted_oauth_client_ids', default=[]):
+    # Validate that this is an explicitly whitelisted client ID, or the client
+    # ID for the reproduce tool.
+    whitelisted_client_ids = _auth_config().get(
+        'whitelisted_oauth_client_ids', default=[])
+    reproduce_tool_client_id = db_config.get_value('reproduce_tool_client_id')
+    if reproduce_tool_client_id:
+      whitelisted_client_ids += reproduce_tool_client_id
+    if data.get('aud') not in whitelisted_client_ids:
       raise helpers.UnauthorizedException(
           "The access token doesn't belong to one of the allowed OAuth clients"
           ': %s.' % response.text)
