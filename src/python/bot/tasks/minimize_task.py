@@ -447,7 +447,7 @@ def execute_task(testcase_id, job_type):
     testcase.flaky_stack = flaky_stack
     testcase.put()
 
-  is_redo = testcase.get_metadata('progression_pending')
+  is_redo = testcase.get_metadata('redo_minimize')
   if not is_redo and len(crash_times) < reproducible_crash_count:
     # We reproduced this crash at least once. It's too flaky to minimize, but
     # maybe we'll have more luck in the other jobs.
