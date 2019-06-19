@@ -45,11 +45,14 @@ class DownloadTest(unittest.TestCase):
     self.testcase.put()
 
     test_helpers.patch(self, [
-        'base.utils.is_oss_fuzz', 'get_issue_tracker_for_testcase',
+        'base.utils.is_oss_fuzz',
         'google_cloud_utils.blobs.get_blob_info',
-        'libs.access.can_user_access_testcase', 'libs.access.has_access',
-        'libs.gcs.get_signed_url', 'libs.helpers.get_user_email',
+        'libs.access.can_user_access_testcase',
+        'libs.access.has_access',
+        'libs.gcs.get_signed_url',
+        'libs.helpers.get_user_email',
         'libs.issue_management.issue_tracker_utils.'
+        'get_issue_tracker_for_testcase',
     ])
     self.mock.is_oss_fuzz.return_value = False
     self.mock.can_user_access_testcase.return_value = False
