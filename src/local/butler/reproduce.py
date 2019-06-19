@@ -33,20 +33,18 @@ from src.python.system import shell
 AUTHORIZATION_CACHE_FILE = os.path.join(
     os.path.expanduser('~'), '.config', 'clusterfuzz', 'authorization-cache')
 
-# TODO(mbarbella): Don't use the old clusterfuzz-tools client id.
+# TODO(mbarbella): Client ID and domain should be configurable.
 OAUTH_URL = 'https://accounts.google.com/o/oauth2/v2/auth?%s' % (
     urllib.urlencode({
         'scope':
             'email profile',
-        'client_id': ('602540103821-lccrsee9e5hbe3lpdsghin0'
-                      '8ket97hhl.apps.googleusercontent.com'),
+        'client_id': ('981641712411-sj50drhontt4m3gjc3hordj'
+                      'mpc7bn50f.apps.googleusercontent.com'),
         'response_type':
             'code',
         'redirect_uri':
             'urn:ietf:wg:oauth:2.0:oob'
     }))
-
-# TODO(mbarbella): This value should come from the configuration.
 TESTCASE_URL = 'https://clusterfuzz.com/reproduce-tool/testcase-info'
 
 
