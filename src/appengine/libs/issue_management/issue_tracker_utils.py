@@ -48,7 +48,7 @@ def get_issue_tracker(project_name=None, use_cache=False):
 def get_issue_tracker_for_testcase(testcase, use_cache=False):
   """Get the issue tracker with the given type and name."""
   issue_tracker_project_name = _get_issue_tracker_project_name(testcase)
-  if not issue_tracker_project_name:
+  if not issue_tracker_project_name or issue_tracker_project_name == 'disabled':
     return None
 
   return get_issue_tracker(issue_tracker_project_name, use_cache=use_cache)
@@ -57,7 +57,7 @@ def get_issue_tracker_for_testcase(testcase, use_cache=False):
 def get_issue_tracker_policy_for_testcase(testcase):
   """Get the issue tracker with the given type and name."""
   issue_tracker_project_name = _get_issue_tracker_project_name(testcase)
-  if not issue_tracker_project_name:
+  if not issue_tracker_project_name or issue_tracker_project_name == 'disabled':
     return None
 
   return issue_tracker_policy.get(issue_tracker_project_name)
