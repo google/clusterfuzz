@@ -507,6 +507,7 @@ class UploadHandlerCommon(object):
         bug_summary_update_flag,
         additional_metadata=testcase_metadata)
 
+    testcase = data_handler.get_testcase_by_id(testcase_id)
     issue = issue_tracker_utils.get_issue_for_testcase(testcase)
     if issue:
       report_url = data_handler.TESTCASE_REPORT_URL.format(
