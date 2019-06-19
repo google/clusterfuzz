@@ -29,7 +29,6 @@ from bot.fuzzers import utils as fuzzer_utils
 from bot.fuzzers.libFuzzer import launcher
 from build_management import build_manager
 from datastore import data_types
-from platforms import fuchsia
 from system import environment
 from system import shell
 from tests.test_libs import helpers as test_helpers
