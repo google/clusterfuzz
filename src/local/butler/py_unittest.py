@@ -135,17 +135,20 @@ def run_one_test_parallel(args):
     test_modules, suppress_output = args
     suite = unittest.loader.TestLoader().loadTestsFromNames(test_modules)
 
-    stream = io.BytesIO()
+    # We use BufferedWriter as a hack to accept both unicode and str write
+    # arguments.
+    stream = io.BufferedWriter(io.BytesIO())
 
     # Verbosity=0 since we cannot see real-time test execution order when tests
     # are executed in parallel.
     result = unittest.TextTestRunner(
         stream=stream, verbosity=0, buffer=suppress_output).run(suite)
 
-    return TestResult(stream.getvalue(),
+    stream.flush()
+    return TestResult(stream.raw.getvalue(),
                       len(result.errors), len(result.failures),
                       len(result.skipped), result.testsRun)
-  except:
+  except BaseException:
     # Print exception traceback here, as it will be lost otherwise.
     traceback.print_exc()
     raise
