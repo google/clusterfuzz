@@ -36,8 +36,8 @@ class TestStrategySelectionGeneratorPatched(unittest.TestCase):
     strategy_pool = strategy_selection.generate_strategy_pool()
 
     # Ml rnn and radamsa strategies are mutually exclusive. Because of how we
-    # patch, ml rnn will evaluate to false, however this depends on the 
-    # implementation. 
+    # patch, ml rnn will evaluate to false, however this depends on the
+    # implementation.
     self.assertTrue(strategy_pool[strategy.CORPUS_MUTATION_RADAMSA_STRATEGY])
     self.assertFalse(strategy_pool[strategy.CORPUS_MUTATION_ML_RNN_STRATEGY])
     self.assertTrue(strategy_pool[strategy.CORPUS_SUBSET_STRATEGY])
