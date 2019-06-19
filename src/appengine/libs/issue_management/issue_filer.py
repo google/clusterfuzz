@@ -189,8 +189,8 @@ def update_issue_impact_labels(testcase, issue):
 def apply_substitutions(label, testcase, security_severity=None):
   """Apply label substitutions."""
   if label is None:
-    # If the label is not configured, then skip subsitutions.
-    return [None]
+    # If the label is not configured, then nothing to subsitute.
+    return []
 
   label_substitutions = (
       ('%PLATFORM%', platform_substitution),
