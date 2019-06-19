@@ -834,10 +834,10 @@ def main(argv):
 
   extra_env = {}
   # TODO(metzman): Support Windows.
-  if strategy_pool[strategy.MUTATOR_PLUGIN_STRATEGY]:
-    if environment.platform() != 'WINDOWS':
-      if use_mutator_plugin(target_name, extra_env, minijail_chroot):
-        fuzzing_strategies.append(strategy.MUTATOR_PLUGIN_STRATEGY)
+  if strategy_pool[strategy.MUTATOR_PLUGIN_STRATEGY] and \
+      environment.platform() != 'WINDOWS' and \
+      use_mutator_plugin(target_name, extra_env, minijail_chroot):
+    fuzzing_strategies.append(strategy.MUTATOR_PLUGIN_STRATEGY)
 
   # Execute the fuzzer binary with original arguments.
   fuzz_result = runner.fuzz(

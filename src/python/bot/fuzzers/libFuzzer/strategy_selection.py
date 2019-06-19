@@ -47,66 +47,36 @@ FORK_PROBABILITY = 0.50
 MUTATOR_PLUGIN_PROBABILITY = 0.50
 
 
-def do_random_max_length():
-  """Return whether or not to do value profile."""
-  return engine_common.decide_with_probability(
-      engine_common.get_strategy_probability(
-          strategy.RANDOM_MAX_LENGTH_STRATEGY,
-          default=RANDOM_MAX_LENGTH_PROBABILITY))
+def choose_generator():
+  """Return whether to use radamsa, ml rnn, or no generator."""
 
-
-def use_generator():
-  """Return whether to use a generator or not."""
   radamsa_p = engine_common.get_strategy_probability(
       strategy.CORPUS_MUTATION_RADAMSA_STRATEGY,
       default=CORPUS_MUTATION_RADAMSA_PROBABILITY)
+
   ml_rnn_p = engine_common.get_strategy_probability(
       strategy.CORPUS_MUTATION_ML_RNN_STRATEGY,
       default=CORPUS_MUTATION_ML_RNN_PROBABILITY)
-  return engine_common.decide_with_probability(radamsa_p + ml_rnn_p)
+
+  generator = {}
+
+  if engine_common.decide_with_probability(radamsa_p + ml_rnn_p):
+    generator[strategy.CORPUS_MUTATION_RADAMSA_STRATEGY] = (
+        engine_common.decide_with_probability(
+            radamsa_p / (radamsa_p + ml_rnn_p)))
+    generator[strategy.CORPUS_MUTATION_ML_RNN_STRATEGY] = (
+        not generator[strategy.CORPUS_MUTATION_RADAMSA_STRATEGY])
+  else:
+    generator[strategy.CORPUS_MUTATION_RADAMSA_STRATEGY] = False
+    generator[strategy.CORPUS_MUTATION_ML_RNN_STRATEGY] = False
+  return generator
 
 
-def do_radamsa_or_ml_rnn_generator():
-  """Return whether to use radamsa or ml rnn generator.
-
-  True for radamsa, false for ml rnn."""
-  radamsa_p = engine_common.get_strategy_probability(
-      strategy.CORPUS_MUTATION_RADAMSA_STRATEGY,
-      default=CORPUS_MUTATION_RADAMSA_PROBABILITY)
-  ml_rnn_p = engine_common.get_strategy_probability(
-      strategy.CORPUS_MUTATION_ML_RNN_STRATEGY,
-      default=CORPUS_MUTATION_ML_RNN_PROBABILITY)
-  return engine_common.decide_with_probability(
-      radamsa_p / (radamsa_p + ml_rnn_p))
-
-
-def do_recommended_dictionary():
-  """Return whether or not to use the recommended dictionary."""
+def do_strategy(strategy_name, default_probability):
+  """Return whether or not to use a given strategy."""
   return engine_common.decide_with_probability(
       engine_common.get_strategy_probability(
-          strategy.RECOMMENDED_DICTIONARY_STRATEGY,
-          default=RECOMMENDED_DICTIONARY_PROBABILITY))
-
-
-def do_value_profile():
-  """Return whether or not to do value profile."""
-  return engine_common.decide_with_probability(
-      engine_common.get_strategy_probability(
-          strategy.VALUE_PROFILE_STRATEGY, default=VALUE_PROFILE_PROBABILITY))
-
-
-def do_fork():
-  """Return whether or not to do fork mode."""
-  return engine_common.decide_with_probability(
-      engine_common.get_strategy_probability(
-          strategy.FORK_STRATEGY, default=FORK_PROBABILITY))
-
-
-def do_mutator_plugin():
-  """Return whether or not to use a mutator_plugin."""
-  return engine_common.decide_with_probability(
-      engine_common.get_strategy_probability(
-          strategy.MUTATOR_PLUGIN_STRATEGY, default=MUTATOR_PLUGIN_PROBABILITY))
+          strategy_name, default=default_probability))
 
 
 def generate_strategy_pool():
@@ -115,25 +85,21 @@ def generate_strategy_pool():
   strategy_pool = {}
 
   # Decide whether or not to include radamsa, ml rnn, or no generator
-  if use_generator():
-    strategy_pool[
-        strategy.
-        CORPUS_MUTATION_RADAMSA_STRATEGY] = do_radamsa_or_ml_rnn_generator()
-    strategy_pool[
-        strategy.CORPUS_MUTATION_ML_RNN_STRATEGY] = not \
-            strategy_pool[strategy.CORPUS_MUTATION_RADAMSA_STRATEGY]
-  else:
-    strategy_pool[strategy.CORPUS_MUTATION_RADAMSA_STRATEGY] = False
-    strategy_pool[strategy.CORPUS_MUTATION_ML_RNN_STRATEGY] = False
+  strategy_pool.update(choose_generator())
 
   # Decide whether or not to include remaining strategies
   strategy_pool[
       strategy.CORPUS_SUBSET_STRATEGY] = engine_common.do_corpus_subset()
-  strategy_pool[strategy.RANDOM_MAX_LENGTH_STRATEGY] = do_random_max_length()
-  strategy_pool[
-      strategy.RECOMMENDED_DICTIONARY_STRATEGY] = do_recommended_dictionary()
-  strategy_pool[strategy.VALUE_PROFILE_STRATEGY] = do_value_profile()
-  strategy_pool[strategy.FORK_STRATEGY] = do_fork()
-  strategy_pool[strategy.MUTATOR_PLUGIN_STRATEGY] = do_mutator_plugin()
+  strategy_pool[strategy.RANDOM_MAX_LENGTH_STRATEGY] = do_strategy(
+      strategy.RANDOM_MAX_LENGTH_STRATEGY, RANDOM_MAX_LENGTH_PROBABILITY)
+  strategy_pool[strategy.RECOMMENDED_DICTIONARY_STRATEGY] = do_strategy(
+      strategy.RECOMMENDED_DICTIONARY_STRATEGY,
+      RECOMMENDED_DICTIONARY_PROBABILITY)
+  strategy_pool[strategy.VALUE_PROFILE_STRATEGY] = do_strategy(
+      strategy.VALUE_PROFILE_STRATEGY, VALUE_PROFILE_PROBABILITY)
+  strategy_pool[strategy.FORK_STRATEGY] = do_strategy(strategy.FORK_STRATEGY,
+                                                      FORK_PROBABILITY)
+  strategy_pool[strategy.MUTATOR_PLUGIN_STRATEGY] = do_strategy(
+      strategy.MUTATOR_PLUGIN_STRATEGY, MUTATOR_PLUGIN_PROBABILITY)
 
   return strategy_pool
