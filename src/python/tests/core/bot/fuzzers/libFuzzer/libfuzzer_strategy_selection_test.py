@@ -17,10 +17,13 @@ import unittest
 
 from bot.fuzzers import strategy
 from bot.fuzzers.libFuzzer import strategy_selection
+from datastore import data_types
+from datastore import ndb
 from tests.test_libs import helpers as test_helpers
+from tests.test_libs import test_utils
 
 
-class TestStrategySelectionGeneratorPatched(unittest.TestCase):
+class TestRandomStrategySelectionGeneratorPatched(unittest.TestCase):
   """Tests whether program properly generates strategy
   sets for use by the launcher."""
 
@@ -33,7 +36,7 @@ class TestStrategySelectionGeneratorPatched(unittest.TestCase):
 
   def test_random_pool_generator(self):
     """Deterministically tests the random strategy pool generator."""
-    strategy_pool = strategy_selection.generate_strategy_pool()
+    strategy_pool = strategy_selection.generate_random_strategy_pool()
 
     # Ml rnn and radamsa strategies are mutually exclusive. Because of how we
     # patch, ml rnn will evaluate to false, however this depends on the
@@ -58,4 +61,69 @@ class TestStrategySelectionPatchless(unittest.TestCase):
   def test_strategy_pool_generator(self):
     """Ensures that a call to generate_strategy_pool does not yield an
     exception. Deterministic behaviors are tested in the previous test."""
-    strategy_selection.generate_strategy_pool()
+    strategy_selection.generate_random_strategy_pool()
+
+
+@test_utils.with_cloud_emulators('datastore')
+class TestMultiArmedBanditStrategySelection(unittest.TestCase):
+  """Tests whether a multi armed bandit strategy pool is properly
+  generated according to the specified distribution."""
+
+  def setUp(self):
+    """Put data in the local ndb table the tests to query from."""
+    data = []
+
+    strategy1 = data_types.FuzzStrategyProbability()
+    strategy1.strategy_name = 'fork,subset,dict,'
+    strategy1.probability = 0.33
+    data.append(strategy1)
+
+    strategy2 = data_types.FuzzStrategyProbability()
+    strategy2.strategy_name = 'max len,ml rnn,value profile,dict,'
+    strategy2.probability = .34
+    data.append(strategy2)
+
+    strategy3 = data_types.FuzzStrategyProbability()
+    strategy3.strategy_name = 'radamsa,max len,subset,'
+    strategy3.probability = .33
+    data.append(strategy3)
+    ndb.put_multi(data)
+
+  def test_multi_armed_bandit_strategy_pool(self):
+    """Ensures a call to the multi armed bandit strategy
+    selection function doesn't yield an exception."""
+    strategy_pool = strategy_selection.generate_strategy_pool()
+
+
+@test_utils.with_cloud_emulators('datastore')
+class TestDeterminiMultiArmedBanditStrategySelection(unittest.TestCase):
+  """Tests whether multi armed bandit strategy pool is properly generated
+  according to the specified distribution.
+
+  Deterministic tests.Only one strategy is put in the ndb table upon setup,
+  so we know what the drawn strategy pool should be."""
+
+  def setUp(self):
+    """Put data in the local ndb table the tests to query from."""
+    data = []
+
+    strategy2 = data_types.FuzzStrategyProbability()
+    strategy2.strategy_name = 'max len,ml rnn,value profile,dict,'
+    strategy2.probability = 1
+    data.append(strategy2)
+    ndb.put_multi(data)
+
+  def test_strategy_pool_deterministic(self):
+    """Tests whether a proper strategy pool is returned
+    by the multi armed bandit selection implementation.
+
+    Based on deterministic strategy selection."""
+    strategy_pool = strategy_selection.generate_strategy_pool()
+    self.assertTrue(strategy_pool[strategy.CORPUS_MUTATION_ML_RNN_STRATEGY])
+    self.assertTrue(strategy_pool[strategy.RANDOM_MAX_LENGTH_STRATEGY])
+    self.assertTrue(strategy_pool[strategy.VALUE_PROFILE_STRATEGY])
+    self.assertTrue(strategy_pool[strategy.RECOMMENDED_DICTIONARY_STRATEGY])
+    self.assertFalse(strategy_pool[strategy.CORPUS_MUTATION_RADAMSA_STRATEGY])
+    self.assertFalse(strategy_pool[strategy.CORPUS_SUBSET_STRATEGY])
+    self.assertFalse(strategy_pool[strategy.FORK_STRATEGY])
+    self.assertFalse(strategy_pool[strategy.MUTATOR_PLUGIN_STRATEGY])

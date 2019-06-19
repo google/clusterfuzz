@@ -17,8 +17,11 @@ Decides the set strategies to be considered by the launcher. Note
 that because of compatability issues, the exact set of strategies
 generated here may be modified in the launcher before being launched."""
 
+from base import utils
 from bot.fuzzers import engine_common
 from bot.fuzzers import strategy
+from datastore import data_types
+from datastore import ndb_utils
 
 
 class StrategyPool(object):
@@ -66,6 +69,7 @@ def do_strategy(strategy_tuple):
                                              strategy_tuple.probability))
 
 
+<<<<<<< HEAD
 def generate_strategy_pool():
   """Return a strategy pool representing a random selection of strategies for
   launcher to consider."""
@@ -90,3 +94,60 @@ def generate_strategy_pool():
     pool.add_strategy(strategy.MUTATOR_PLUGIN_STRATEGY)
 
   return pool
+=======
+def generate_random_strategy_pool():
+  """Return dictionary representing a random selection of strategies
+  for launcher to consider."""
+  strategy_pool = {}
+
+  # Decide whether or not to include radamsa, ml rnn, or no generator
+  strategy_pool.update(choose_generator())
+
+  # Decide whether or not to include remaining strategies
+  strategy_pool[
+      strategy.CORPUS_SUBSET_STRATEGY] = engine_common.do_corpus_subset()
+  strategy_pool[strategy.RANDOM_MAX_LENGTH_STRATEGY] = do_strategy(
+      strategy.RANDOM_MAX_LENGTH_STRATEGY, RANDOM_MAX_LENGTH_PROBABILITY)
+  strategy_pool[strategy.RECOMMENDED_DICTIONARY_STRATEGY] = do_strategy(
+      strategy.RECOMMENDED_DICTIONARY_STRATEGY,
+      RECOMMENDED_DICTIONARY_PROBABILITY)
+  strategy_pool[strategy.VALUE_PROFILE_STRATEGY] = do_strategy(
+      strategy.VALUE_PROFILE_STRATEGY, VALUE_PROFILE_PROBABILITY)
+  strategy_pool[strategy.FORK_STRATEGY] = do_strategy(strategy.FORK_STRATEGY,
+                                                      FORK_PROBABILITY)
+  strategy_pool[strategy.MUTATOR_PLUGIN_STRATEGY] = do_strategy(
+      strategy.MUTATOR_PLUGIN_STRATEGY, MUTATOR_PLUGIN_PROBABILITY)
+
+  return strategy_pool
+
+
+def generate_strategy_pool():
+  """Generate a strategy pool based on probability
+  distribution from multi armed bandit experimentation."""
+  query = data_types.FuzzStrategyProbability.query()
+  distribution = list(ndb_utils.get_all_from_query(query))
+
+  # If we are not able to query properly,
+  # draw randomly according to probability parameters.
+  if not distribution:
+    return generate_random_strategy_pool()
+
+  strategy_selection = utils.random_weighted_choice(distribution, 'probability')
+  strategy_name = strategy_selection.strategy_name
+
+  strategies = strategy_name.split(',')
+  strategy_pool = {}
+  strategy_pool[strategy.CORPUS_MUTATION_RADAMSA_STRATEGY] = (
+      'radamsa' in strategies)
+  strategy_pool[strategy.CORPUS_MUTATION_ML_RNN_STRATEGY] = (
+      'ml rnn' in strategies)
+  strategy_pool[strategy.CORPUS_SUBSET_STRATEGY] = ('subset' in strategies)
+  strategy_pool[strategy.RANDOM_MAX_LENGTH_STRATEGY] = ('max len' in strategies)
+  strategy_pool[strategy.RECOMMENDED_DICTIONARY_STRATEGY] = (
+      'dict' in strategies)
+  strategy_pool[strategy.VALUE_PROFILE_STRATEGY] = (
+      'value profile' in strategies)
+  strategy_pool[strategy.FORK_STRATEGY] = ('fork' in strategies)
+  strategy_pool[strategy.MUTATOR_PLUGIN_STRATEGY] = False
+  return strategy_pool
+>>>>>>> Implemented multi armed bandit based strategy selection based on calculated ndb tables.
