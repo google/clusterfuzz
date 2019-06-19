@@ -31,9 +31,9 @@ class HandlerTest(unittest.TestCase):
 
   def setUp(self):
     test_helpers.patch(self, [
-        'get_issue_tracker_for_testcase',
         'libs.access.check_access_and_get_testcase',
         'libs.issue_management.issue_tracker_utils.'
+        'get_issue_tracker_for_testcase',
         'libs.issue_management.issue_tracker_utils.get_issue_url',
         'libs.issue_management.issue_tracker_utils.get_search_keywords',
         'libs.issue_management.issue_tracker_utils.get_similar_issues',
