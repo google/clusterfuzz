@@ -35,9 +35,9 @@ class TestStrategySelectionGeneratorPatched(unittest.TestCase):
     """Deterministically tests the random strategy pool generator."""
     strategy_pool = strategy_selection.generate_strategy_pool()
     # Because engine_common.decide_with_probability is patched to be true,
-    # we expect all strategies other than ml rnn to be true. Ml rnn is expected to
-    # return false as the calls to decide_with_probability within the choose_generator
-    # function will set ml rnn to false.
+    # we expect all strategies other than ml rnn to be true. Ml rnn is expected
+    # to return false as the calls to decide_with_probability within the
+    # choose_generator function will set ml rnn to false in the pool.
     self.assertTrue(strategy_pool[strategy.CORPUS_MUTATION_RADAMSA_STRATEGY])
     self.assertFalse(strategy_pool[strategy.CORPUS_MUTATION_ML_RNN_STRATEGY])
     self.assertTrue(strategy_pool[strategy.CORPUS_SUBSET_STRATEGY])
