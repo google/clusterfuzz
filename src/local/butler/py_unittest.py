@@ -145,9 +145,9 @@ def run_one_test_parallel(args):
         stream=stream, verbosity=0, buffer=suppress_output).run(suite)
 
     stream.flush()
-    return TestResult(stream.raw.getvalue(),
-                      len(result.errors), len(result.failures),
-                      len(result.skipped), result.testsRun)
+    return TestResult(stream.raw.getvalue(), len(result.errors),
+                      len(result.failures), len(result.skipped),
+                      result.testsRun)
   except BaseException:
     # Print exception traceback here, as it will be lost otherwise.
     traceback.print_exc()
