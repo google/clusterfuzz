@@ -1073,7 +1073,7 @@ class UpdateTopCrashLabelsTest(unittest.TestCase):
     cleanup.update_fuzz_blocker_label(self.policy, self.testcase, self.issue,
                                       top_crashes_by_project_and_platform_map)
     self.assertNotIn(ISSUE_FUZZ_BLOCKER_LABEL, self.issue.labels)
-    self.assertNotIn(data_types.ISSUE_RELEASEBLOCK_BETA_LABEL,
+    self.assertNotIn(data_types.CHROMIUM_ISSUE_RELEASEBLOCK_BETA_LABEL,
                      self.issue.labels)
     self.assertNotIn('M-63', self.issue.labels)
     self.assertEqual('', self.issue._monorail_issue.comment)
@@ -1093,7 +1093,7 @@ class UpdateTopCrashLabelsTest(unittest.TestCase):
     cleanup.update_fuzz_blocker_label(self.policy, self.testcase, self.issue,
                                       top_crashes_by_project_and_platform_map)
     self.assertNotIn(ISSUE_FUZZ_BLOCKER_LABEL, self.issue.labels)
-    self.assertNotIn(data_types.ISSUE_RELEASEBLOCK_BETA_LABEL,
+    self.assertNotIn(data_types.CHROMIUM_ISSUE_RELEASEBLOCK_BETA_LABEL,
                      self.issue.labels)
     self.assertNotIn('M-63', self.issue.labels)
     self.assertEqual('', self.issue._monorail_issue.comment)
@@ -1116,7 +1116,7 @@ class UpdateTopCrashLabelsTest(unittest.TestCase):
     cleanup.update_fuzz_blocker_label(self.policy, self.testcase, self.issue,
                                       top_crashes_by_project_and_platform_map)
     self.assertNotIn(ISSUE_FUZZ_BLOCKER_LABEL, self.issue.labels)
-    self.assertNotIn(data_types.ISSUE_RELEASEBLOCK_BETA_LABEL,
+    self.assertNotIn(data_types.CHROMIUM_ISSUE_RELEASEBLOCK_BETA_LABEL,
                      self.issue.labels)
     self.assertNotIn('M-63', self.issue.labels)
     self.assertEqual('', self.issue._monorail_issue.comment)
@@ -1137,7 +1137,8 @@ class UpdateTopCrashLabelsTest(unittest.TestCase):
     cleanup.update_fuzz_blocker_label(self.policy, self.testcase, self.issue,
                                       top_crashes_by_project_and_platform_map)
     self.assertIn(ISSUE_FUZZ_BLOCKER_LABEL, self.issue.labels)
-    self.assertIn(data_types.ISSUE_RELEASEBLOCK_BETA_LABEL, self.issue.labels)
+    self.assertIn(data_types.CHROMIUM_ISSUE_RELEASEBLOCK_BETA_LABEL,
+                  self.issue.labels)
     self.assertIn('M-63', self.issue.labels)
     self.assertNotIn('M-62', self.issue.labels)
     self.assertEqual(
@@ -1167,7 +1168,7 @@ class UpdateTopCrashLabelsTest(unittest.TestCase):
     cleanup.update_fuzz_blocker_label(self.policy, self.testcase, self.issue,
                                       top_crashes_by_project_and_platform_map)
     self.assertIn(ISSUE_FUZZ_BLOCKER_LABEL, self.issue.labels)
-    self.assertNotIn(data_types.ISSUE_RELEASEBLOCK_BETA_LABEL,
+    self.assertNotIn(data_types.CHROMIUM_ISSUE_RELEASEBLOCK_BETA_LABEL,
                      self.issue.labels)
     self.assertNotIn('M-63', self.issue.labels)
     self.assertEqual(
@@ -1205,7 +1206,8 @@ class UpdateTopCrashLabelsTest(unittest.TestCase):
     cleanup.update_fuzz_blocker_label(self.policy, self.testcase, self.issue,
                                       top_crashes_by_project_and_platform_map)
     self.assertIn(ISSUE_FUZZ_BLOCKER_LABEL, self.issue.labels)
-    self.assertIn(data_types.ISSUE_RELEASEBLOCK_BETA_LABEL, self.issue.labels)
+    self.assertIn(data_types.CHROMIUM_ISSUE_RELEASEBLOCK_BETA_LABEL,
+                  self.issue.labels)
     self.assertIn('M-63', self.issue.labels)
     self.assertEqual(
         'This crash occurs very frequently on linux, mac and windows platforms '
@@ -1236,7 +1238,7 @@ class UpdateTopCrashLabelsTest(unittest.TestCase):
     cleanup.update_fuzz_blocker_label(self.policy, self.testcase, self.issue,
                                       top_crashes_by_project_and_platform_map)
     self.assertNotIn(ISSUE_FUZZ_BLOCKER_LABEL, self.issue.labels)
-    self.assertNotIn(data_types.ISSUE_RELEASEBLOCK_BETA_LABEL,
+    self.assertNotIn(data_types.CHROMIUM_ISSUE_RELEASEBLOCK_BETA_LABEL,
                      self.issue.labels)
     self.assertNotIn('M-63', self.issue.labels)
     self.assertEqual('', self.issue._monorail_issue.comment)
@@ -2058,7 +2060,7 @@ class UpdateSeverityLabelsTest(unittest.TestCase):
   def test_add_same_severity(self):
     """Test correct severity already set."""
     self.testcase.security_severity = data_types.SecuritySeverity.HIGH
-    self.issue.labels.add('Security_Severity-High')
+    self.issue.labels.add('Security_severity-High')
     result = cleanup._update_issue_severity_labels(self.policy, self.testcase,
                                                    self.issue)
     self.assertIn('Security_Severity-High', self.issue.labels)

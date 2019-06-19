@@ -71,10 +71,10 @@ class OssFuzzBuildStatusTest(unittest.TestCase):
                                   oss_fuzz_build_status.Handler)]))
 
     test_helpers.patch(self, [
-        'metrics.logs.log_error',
         'base.utils.utcnow',
-        'libs.issue_management.issue_tracker_utils.get_issue_tracker',
         'handlers.base_handler.Handler.is_cron',
+        'libs.issue_management.issue_tracker_utils.get_issue_tracker',
+        'metrics.logs.log_error',
         'requests.get',
     ])
 

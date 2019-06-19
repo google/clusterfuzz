@@ -731,10 +731,10 @@ def _send_email_to_uploader(testcase_id, to_email, content):
   mail.send(to_email, subject, html_content)
 
 
-def _get_severity_from_labels(security_severity_label, labels_lowercase):
+def _get_severity_from_labels(security_severity_label, labels):
   """Get the severity from the label list."""
   pattern = issue_filer.get_label_pattern(security_severity_label)
-  for label in labels_lowercase:
+  for label in labels:
     match = pattern.match(label)
     if match:
       return severity_analyzer.string_to_severity(match.group(1))
@@ -751,8 +751,8 @@ def _update_issue_severity_labels(policy, testcase, issue):
   if not data_types.SecuritySeverity.is_valid(testcase.security_severity):
     return ''
 
-  issue_severity = _get_severity_from_labels(
-      security_severity_label, [label.lower() for label in issue.labels])
+  issue_severity = _get_severity_from_labels(security_severity_label,
+                                             issue.labels)
 
   recommended_severity = issue_filer.apply_substitutions(
       security_severity_label, testcase)
@@ -896,9 +896,9 @@ def update_fuzz_blocker_label(policy, testcase, issue,
   elif utils.is_chromium():
     update_message += '\n\nMarking this bug as a blocker for next Beta release.'
     update_message = _append_generic_incorrect_comment(
-        update_message, policy,
-        ' and remove the %s label.' % data_types.ISSUE_RELEASEBLOCK_BETA_LABEL)
-    issue.labels.add(data_types.ISSUE_RELEASEBLOCK_BETA_LABEL)
+        update_message, policy, ' and remove the %s label.' %
+        data_types.CHROMIUM_ISSUE_RELEASEBLOCK_BETA_LABEL)
+    issue.labels.add(data_types.CHROMIUM_ISSUE_RELEASEBLOCK_BETA_LABEL)
 
     # Update with the next beta for trunk, and remove existing milestone label.
     beta_milestone_label = (
@@ -939,18 +939,18 @@ def update_component_labels(testcase, issue):
   # labels are removed manually. This may cause issues in the event that we
   # rerun a test case, but it seems like a reasonable tradeoff to avoid spam.
   if issue_tracker_utils.was_label_added(
-      issue, data_types.ISSUE_PREDATOR_AUTO_COMPONENTS_LABEL):
+      issue, data_types.CHROMIUM_ISSUE_PREDATOR_AUTO_COMPONENTS_LABEL):
     return
 
   for filtered_component in filtered_components:
     issue.components.add(filtered_component)
 
-  issue.labels.add(data_types.ISSUE_PREDATOR_AUTO_COMPONENTS_LABEL)
+  issue.labels.add(data_types.CHROMIUM_ISSUE_PREDATOR_AUTO_COMPONENTS_LABEL)
   issue_comment = (
       'Automatically applying components based on crash stacktrace and '
       'information from OWNERS files.\n\n'
       'If this is incorrect, please apply the %s label.' %
-      data_types.ISSUE_PREDATOR_WRONG_COMPONENTS_LABEL)
+      data_types.CHROMIUM_ISSUE_PREDATOR_WRONG_COMPONENTS_LABEL)
   issue.save(new_comment=issue_comment, notify=True)
 
 
@@ -1055,9 +1055,9 @@ def update_issue_owner_and_ccs_from_predator_results(policy,
   # If we've assigned an owner or cc once before, it likely means we were
   # incorrect. Don't try again for this particular issue.
   if (issue_tracker_utils.was_label_added(
-      issue, data_types.ISSUE_PREDATOR_AUTO_OWNER_LABEL) or
+      issue, data_types.CHROMIUM_ISSUE_PREDATOR_AUTO_OWNER_LABEL) or
       issue_tracker_utils.was_label_added(
-          issue, data_types.ISSUE_PREDATOR_AUTO_CC_LABEL)):
+          issue, data_types.CHROMIUM_ISSUE_PREDATOR_AUTO_CC_LABEL)):
     return
 
   # If there are more than 3 suspected CLs, we can't be confident in the
@@ -1089,7 +1089,7 @@ def update_issue_owner_and_ccs_from_predator_results(policy,
         return
 
     # We have high confidence for the single-CL case, so we assign the owner.
-    issue.labels.add(data_types.ISSUE_PREDATOR_AUTO_OWNER_LABEL)
+    issue.labels.add(data_types.CHROMIUM_ISSUE_PREDATOR_AUTO_OWNER_LABEL)
     issue.assignee = suspected_cl['author']
     issue.status = policy.status('assigned')
     issue_comment = (
@@ -1099,7 +1099,7 @@ def update_issue_owner_and_ccs_from_predator_results(policy,
         'label. If you aren\'t the correct owner for this issue, please '
         'unassign yourself as soon as possible so it can be re-triaged.' %
         (suspected_cl['url'], suspected_cl['description'],
-         data_types.ISSUE_PREDATOR_WRONG_CL_LABEL))
+         data_types.CHROMIUM_ISSUE_PREDATOR_WRONG_CL_LABEL))
 
   else:
     if testcase.get_metadata('has_issue_ccs_from_predator_results'):
@@ -1141,10 +1141,10 @@ def update_issue_owner_and_ccs_from_predator_results(policy,
       testcase.set_metadata('has_issue_ccs_from_owners_file', True)
       return
 
-    issue.labels.add(data_types.ISSUE_PREDATOR_AUTO_CC_LABEL)
+    issue.labels.add(data_types.CHROMIUM_ISSUE_PREDATOR_AUTO_CC_LABEL)
     issue_comment += (
         'If this is incorrect, please let us know why and apply the %s label.' %
-        data_types.ISSUE_PREDATOR_WRONG_CL_LABEL)
+        data_types.CHROMIUM_ISSUE_PREDATOR_WRONG_CL_LABEL)
 
   try:
     issue.save(new_comment=issue_comment, notify=True)
