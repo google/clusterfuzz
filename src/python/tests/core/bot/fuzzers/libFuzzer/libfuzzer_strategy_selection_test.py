@@ -84,7 +84,7 @@ class TestMultiArmedBanditStrategySelectionPatch(unittest.TestCase):
   def test_multi_armed_bandit_strategy_pool(self):
     """Ensures a call to the multi armed bandit strategy
     selection function doesn't yield an exception."""
-    strategy_pool = strategy_selection.generate_strategy_pool()
+    strategy_selection.generate_strategy_pool()
 
 
 @test_utils.with_cloud_emulators('datastore')
