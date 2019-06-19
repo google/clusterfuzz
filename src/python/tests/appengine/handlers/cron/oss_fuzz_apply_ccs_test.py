@@ -21,9 +21,9 @@ import webtest
 
 from datastore import data_types
 from handlers.cron import oss_fuzz_apply_ccs
-from issue_management import issue_tracker_policy
-from issue_management import monorail
-from issue_management.monorail.issue import Issue
+from libs.issue_management import issue_tracker_policy
+from libs.issue_management import monorail
+from libs.issue_management.monorail.issue import Issue
 from tests.test_libs import helpers as test_helpers
 from tests.test_libs import test_utils
 
@@ -34,7 +34,7 @@ OSS_FUZZ_POLICY = issue_tracker_policy.IssueTrackerPolicy({
         'without an upstream patch, then the bug report will automatically\n'
         'become visible to the public.',
     'labels': {
-        'reported_prefix': 'Reported-',
+        'reported': 'Reported-%YYYY-MM-DD%',
         'restrict_view': 'Restrict-View-Commit',
     },
     'status': {
@@ -110,8 +110,9 @@ class OssFuzzApplyCcsTest(unittest.TestCase):
     test_helpers.patch(self, [
         'base.utils.utcnow',
         'handlers.base_handler.Handler.is_cron',
-        'issue_management.issue_tracker_policy.get',
-        'issue_management.issue_tracker_utils.get_issue_tracker_for_testcase',
+        'libs.issue_management.issue_tracker_policy.get',
+        'libs.issue_management.issue_tracker_utils.'
+        'get_issue_tracker_for_testcase',
     ])
 
     self.itm = IssueTrackerManager('oss-fuzz')

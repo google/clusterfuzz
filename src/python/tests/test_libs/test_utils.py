@@ -33,9 +33,6 @@ from config import local_config
 from datastore import data_types
 from datastore import ndb
 from google_cloud_utils import pubsub
-from issue_management import monorail
-from issue_management.monorail.comment import Comment
-from issue_management.monorail.issue import Issue
 from system import environment
 from system import process_handler
 
@@ -72,66 +69,6 @@ def create_generic_testcase(created_days_ago=28):
   testcase.put()
 
   return testcase
-
-
-def create_generic_issue(created_days_ago=28):
-  """Returns a simple issue object for use in tests."""
-  issue = Issue()
-  issue.cc = []
-  issue.comment = ''
-  issue.comments = []
-  issue.components = []
-  issue.labels = []
-  issue.open = True
-  issue.owner = 'owner@chromium.org'
-  issue.status = 'Assigned'
-  issue.id = 1
-  issue.itm = create_issue_tracker_manager()
-
-  # Test issue was created 1 week before the current (mocked) time.
-  issue.created = CURRENT_TIME - datetime.timedelta(days=created_days_ago)
-
-  return monorail.Issue(issue)
-
-
-def create_generic_issue_comment(comment_body='Comment.',
-                                 author='user@chromium.org',
-                                 days_ago=21,
-                                 labels=None):
-  """Return a simple comment used for testing."""
-  comment = Comment()
-  comment.comment = comment_body
-  comment.author = author
-  comment.created = CURRENT_TIME - datetime.timedelta(days=days_ago)
-  comment.labels = labels
-
-  if comment.labels is None:
-    comment.labels = []
-
-  return comment
-
-
-def create_issue_tracker_manager():
-  """Create a fake issue tracker manager."""
-
-  class FakeIssueTrackerManager(object):
-    """Fake issue tracker manager."""
-
-    def get_issue(self, issue_id):
-      """Create a simple issue with the given id."""
-      issue = create_generic_issue()
-      issue.id = issue_id
-      return issue
-
-    def get_comments(self, issue):  # pylint: disable=unused-argument
-      """Return an empty comment list."""
-      return []
-
-    def save(self, issue, send_email=None):
-      """Fake wrapper on save function, does nothing."""
-      pass
-
-  return FakeIssueTrackerManager()
 
 
 def entities_equal(entity_1, entity_2, check_key=True):

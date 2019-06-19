@@ -23,10 +23,10 @@ from base import utils
 from datastore import data_handler
 from google_cloud_utils import blobs
 from handlers import base_handler
-from issue_management import issue_tracker_utils
 from libs import access
 from libs import gcs
 from libs import helpers
+from libs.issue_management import issue_tracker_utils
 
 
 class Handler(base_handler.Handler, gcs.SignedGcsHandler):

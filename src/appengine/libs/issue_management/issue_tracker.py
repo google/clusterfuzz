@@ -45,6 +45,9 @@ class LabelStore(object):
 
   def add(self, label):
     """Add a new label."""
+    if not label:
+      return
+
     key = label.lower()
     if key in self._removed:
       del self._removed[key]
@@ -87,9 +90,24 @@ class LabelStore(object):
       if item.lower().startswith(prefix.lower()):
         self.remove(item)
 
+  def get_by_pattern(self, re_pattern):
+    """Get labels with the given pattern."""
+    for item in self:
+      if re_pattern.match(item):
+        yield item
+
+  def has_with_pattern(self, re_pattern):
+    """Return whether if there is an item with the given pattern."""
+    return bool(next(self.get_by_pattern(re_pattern), None))
+
 
 class Issue(object):
   """Represents an issue."""
+
+  @property
+  def issue_tracker(self):
+    """The issue tracker for this issue."""
+    raise NotImplementedError
 
   @property
   def id(self):

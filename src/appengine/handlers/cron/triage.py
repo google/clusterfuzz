@@ -27,9 +27,10 @@ from datastore import data_handler
 from datastore import data_types
 from datastore import ndb_utils
 from handlers import base_handler
-from issue_management import issue_tracker_utils
 from libs import handler
-from libs import issue_filer
+from libs.issue_management import issue_filer
+from libs.issue_management import issue_tracker_policy
+from libs.issue_management import issue_tracker_utils
 from metrics import crash_stats
 from metrics import logs
 
@@ -206,7 +207,8 @@ def is_similar_bug_open_or_recently_closed(testcase, issue_tracker):
 
     # If the issue indicates that this crash needs to be ignored, no need to
     # file another one.
-    if data_types.ISSUE_IGNORE_LABEL in issue.labels:
+    policy = issue_tracker_policy.get(issue_tracker.project)
+    if policy.label('ignore') in issue.labels:
       return True
 
     # If the issue is recently closed, wait certain time period to make sure
