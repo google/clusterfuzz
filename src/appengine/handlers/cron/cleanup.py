@@ -35,7 +35,6 @@ from handlers import base_handler
 from libs import handler
 from libs import mail
 from libs.issue_management import issue_filer
-from libs.issue_management import issue_tracker_policy
 from libs.issue_management import issue_tracker_utils
 from metrics import crash_stats
 from metrics import logs
@@ -117,7 +116,7 @@ def cleanup_testcases_and_issues():
       continue
 
     issue = issue_tracker_utils.get_issue_for_testcase(testcase)
-    policy = issue_tracker_policy.get(issue.issue_tracker.project)
+    policy = issue_tracker_utils.get_issue_tracker_policy_for_testcase(testcase)
 
     # Issue updates.
     update_os_labels(policy, testcase, issue)
