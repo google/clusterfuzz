@@ -57,7 +57,7 @@ class TestStrategySelectionPatchless(unittest.TestCase):
 
 
 @test_utils.with_cloud_emulators('datastore')
-class TestMultiArmedBanditStrategySelection(unittest.TestCase):
+class TestMultiArmedBanditStrategySelectionPatch(unittest.TestCase):
   """Tests whether a multi armed bandit strategy pool is properly
   generated according to the specified distribution."""
 
@@ -88,7 +88,7 @@ class TestMultiArmedBanditStrategySelection(unittest.TestCase):
 
 
 @test_utils.with_cloud_emulators('datastore')
-class TestDeterminiMultiArmedBanditStrategySelection(unittest.TestCase):
+class TestMultiArmedBanditStrategySelection(unittest.TestCase):
   """Tests whether multi armed bandit strategy pool is properly generated
   according to the specified distribution.
 
