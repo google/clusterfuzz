@@ -765,9 +765,11 @@ def main(argv):
     if os.path.exists(default_dict_path):
       arguments.append(constants.DICT_FLAG + default_dict_path)
 
-  # Generate strategy pool. Fuzzing strategies is the maintained list
-  # of strategies actually implemented as not all generated strategies
-  # may be possible to implement in a given scenario.
+  # Strategy pool is the list of strategies that we attempt to
+  # enable, whereas fuzzing strategies is the list of strategies
+  # that are enabled. (e.g. if mutator is selected in the pool,
+  # but not available for a given target, it would not be added
+  # to fuzzing strategies.)
   strategy_pool = strategy_selection.generate_strategy_pool()
   fuzzing_strategies = []
 
@@ -834,9 +836,9 @@ def main(argv):
 
   extra_env = {}
   # TODO(metzman): Support Windows.
-  if strategy_pool[strategy.MUTATOR_PLUGIN_STRATEGY] and \
-      environment.platform() != 'WINDOWS' and \
-      use_mutator_plugin(target_name, extra_env, minijail_chroot):
+  if (strategy_pool[strategy.MUTATOR_PLUGIN_STRATEGY] and
+      environment.platform() != 'WINDOWS' and
+      use_mutator_plugin(target_name, extra_env, minijail_chroot)):
     fuzzing_strategies.append(strategy.MUTATOR_PLUGIN_STRATEGY)
 
   # Execute the fuzzer binary with original arguments.
