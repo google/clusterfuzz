@@ -37,6 +37,7 @@ CHROMIUM_POLICY = issue_tracker_policy.IssueTrackerPolicy({
         'verified': 'Verified',
         'wontfix': 'WontFix'
     },
+    'labels': {},
     'existing': {
         'labels': ['Stability-%SANITIZER%']
     },
