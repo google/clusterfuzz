@@ -16,6 +16,7 @@
 from config import local_config
 from datastore import data_types
 from datastore import ndb_utils
+from libs.issue_management import issue_tracker_policy
 from libs.issue_management import monorail
 from metrics import logs
 
@@ -51,6 +52,15 @@ def get_issue_tracker_for_testcase(testcase, use_cache=False):
     return None
 
   return get_issue_tracker(issue_tracker_project_name, use_cache=use_cache)
+
+
+def get_issue_tracker_policy_for_testcase(testcase, use_cache=False):
+  """Get the issue tracker with the given type and name."""
+  issue_tracker_project_name = _get_issue_tracker_project_name(testcase)
+  if not issue_tracker_project_name:
+    return None
+
+  return issue_tracker_policy.get(issue_tracker_project_name)
 
 
 def get_issue_for_testcase(testcase):
