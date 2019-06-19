@@ -36,6 +36,7 @@ from libs import form
 from libs import gcs
 from libs import handler
 from libs import helpers
+from libs.issue_management import issue_tracker_utils
 from libs.query import datastore_query
 from system import archive
 
@@ -505,6 +506,15 @@ class UploadHandlerCommon(object):
         retries,
         bug_summary_update_flag,
         additional_metadata=testcase_metadata)
+
+    testcase = data_handler.get_testcase_by_id(testcase_id)
+    issue = issue_tracker_utils.get_issue_for_testcase(testcase)
+    if issue:
+      report_url = data_handler.TESTCASE_REPORT_URL.format(
+          domain=data_handler.get_domain(), testcase_id=testcase_id)
+      comment = ('ClusterFuzz is analyzing your testcase. '
+                 'Developers can follow the progress at %s.' % report_url)
+      issue.save(new_comment=comment)
 
     helpers.log('Uploaded testcase %s' % testcase_id, helpers.VIEW_OPERATION)
     self.render_json({'id': '%s' % testcase_id})

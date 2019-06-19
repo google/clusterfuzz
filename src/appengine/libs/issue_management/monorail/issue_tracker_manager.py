@@ -135,7 +135,8 @@ class IssueTrackerManager(object):
   @retry.wrap(
       retries=FAIL_RETRIES,
       delay=FAIL_WAIT,
-      function='issue_management.issue_tracker_manager._execute_with_retry')
+      function='libs.issue_management.issue_tracker_manager._execute_with_retry'
+  )
   def _execute_with_retry(self, query):
     """Execute a query (with retries)."""
     return query.execute()
@@ -143,7 +144,7 @@ class IssueTrackerManager(object):
   @retry.wrap(
       retries=FAIL_RETRIES,
       delay=FAIL_WAIT,
-      function='issue_management.issue_tracker_manager._create_client')
+      function='libs.issue_management.issue_tracker_manager._create_client')
   def _create_client(self):
     """Return a client object for querying the issue tracker.
 

@@ -18,6 +18,7 @@
 from builtins import object
 import re
 
+from datastore.data_types import MISSING_VALUE_STRING
 from datastore.data_types import SecuritySeverity
 from system import environment
 
@@ -190,3 +191,31 @@ class SeverityAnalyzerSanitizerChrome(SeverityAnalyzerSanitizer):
       break
 
     return process_type
+
+
+def severity_to_string(severity):
+  """Convert a severity value to a human-readable string."""
+  severity_map = {
+      SecuritySeverity.CRITICAL: 'Critical',
+      SecuritySeverity.HIGH: 'High',
+      SecuritySeverity.MEDIUM: 'Medium',
+      SecuritySeverity.LOW: 'Low',
+      SecuritySeverity.MISSING: MISSING_VALUE_STRING,
+  }
+
+  return severity_map[severity]
+
+
+def string_to_severity(severity):
+  """Convert a string value to a severity value."""
+  severity_map = {
+      'critical': SecuritySeverity.CRITICAL,
+      'high': SecuritySeverity.HIGH,
+      'medium': SecuritySeverity.MEDIUM,
+      'low': SecuritySeverity.LOW,
+  }
+
+  if severity.lower() in severity_map:
+    return severity_map[severity.lower()]
+
+  return SecuritySeverity.MISSING

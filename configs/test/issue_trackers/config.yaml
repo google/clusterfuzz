@@ -39,8 +39,6 @@ test-project:
       status: new
       labels:
         - ClusterFuzz
-        - OS-%PLATFORM%
-        - Reported-%YYYY-MM-DD%
         - Stability-%SANITIZER%
       issue_body_footer: |-
         This is an issue body footer.
@@ -48,7 +46,6 @@ test-project:
       # Rules to apply to security issues only (in addition to "all").
       labels:
         - Type-Bug-Security
-        - Security_Severity-%SEVERITY%
     non_security:
       # Rules to apply to non-security issues only (in addition to "all").
       labels:
@@ -60,18 +57,37 @@ test-project:
         - Pri-1
       non_crash_labels:
         - Pri-2
+    # General label mappings. These are all optional: if no mapping exists
+    # for a particular label, then that label's functionality is omitted.
     labels:
-      # General label mappings.
+      # Label to add when an issue is verified as fixed. This is *necessary* for
+      # automatic issue closure.
       verified: ClusterFuzz-Verified
+      # Manually added label to look for to ignore an issue.
       ignore: ClusterFuzz-Ignore
+      # Manually added label to indicate ClusterFuzz got something wrong.
+      wrong: ClusterFuzz-Wrong
+      # Label to add when an issue needs attention.
       needs_feedback: Needs-Feedback
+      # Label to add when we detect an invalid fuzzer.
       invalid_fuzzer: ClusterFuzz-Invalid-Fuzzer
+      # Label to add to issues that block a fuzzer's progress.
       fuzz_blocker: Fuzz-Blocker
+      # Label to add to issues that are consistently reproducible.
       reproducible: Reproducible
+      # Label to add to issues that are not consistently reproducible.
       unreproducible: Unreproducible
+      # Label to add for view restrictions.
       restrict_view: Restrict-View-Commit
-      reported_prefix: Reported-
-      security_severity_prefix: Security_Severity-
+      # Label to add on all issues which have CCs, indicating the date it was
+      # reported.
+      reported: Reported-%YYYY-MM-DD%
+      # Label added to all security issues, containing a %SEVERITY%.
+      security_severity: Security_Severity-%SEVERITY%
+      # Label added to all issues, representing the platform.
+      os: OS-%PLATFORM%
+      # Label to apply when adding CCs from owners files.
+      auto_cc_from_owners: ClusterFuzz-Auto-CC
     deadline_policy_message: |-
       This bug is subject to a 90 day disclosure deadline. If 90 days elapse
       without an upstream patch, then the bug report will automatically

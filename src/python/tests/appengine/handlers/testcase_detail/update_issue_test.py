@@ -19,12 +19,12 @@ import webtest
 
 from datastore import data_types
 from handlers.testcase_detail import update_issue
-from issue_management import issue_tracker_policy
-from issue_management import monorail
-from issue_management.monorail import issue
-from issue_management.monorail import issue_tracker_manager
 from libs import access
 from libs import form
+from libs.issue_management import issue_tracker_policy
+from libs.issue_management import monorail
+from libs.issue_management.monorail import issue
+from libs.issue_management.monorail import issue_tracker_manager
 from tests.test_libs import helpers as test_helpers
 from tests.test_libs import test_utils
 
@@ -37,6 +37,7 @@ CHROMIUM_POLICY = issue_tracker_policy.IssueTrackerPolicy({
         'verified': 'Verified',
         'wontfix': 'WontFix'
     },
+    'labels': {},
     'existing': {
         'labels': ['Stability-%SANITIZER%']
     },
@@ -49,7 +50,6 @@ class HandlerTest(unittest.TestCase):
 
   def setUp(self):
     test_helpers.patch(self, [
-        'issue_management.label_utils.get_memory_tool_labels',
         'datastore.data_handler.get_issue_description',
         'datastore.data_handler.get_issue_summary',
         'datastore.data_handler.get_stacktrace',
@@ -58,7 +58,8 @@ class HandlerTest(unittest.TestCase):
         'libs.auth.get_current_user',
         'handlers.testcase_detail.show.get_testcase_detail',
         'libs.access.get_access',
-        'issue_management.issue_tracker_policy.get',
+        'libs.issue_management.issue_tracker_policy.get',
+        'libs.issue_management.issue_filer.get_memory_tool_labels',
     ])
     self.mock.get_access.return_value = access.UserAccess.Allowed
     self.mock.get_testcase_detail.return_value = {'testcase': 'yes'}

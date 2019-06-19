@@ -19,8 +19,8 @@ import webtest
 
 from datastore import data_types
 from handlers.testcase_detail import find_similar_issues
-from issue_management import monorail
-from issue_management.monorail import issue
+from libs.issue_management import monorail
+from libs.issue_management.monorail import issue
 from tests.test_libs import helpers as test_helpers
 from tests.test_libs import test_utils
 
@@ -31,12 +31,13 @@ class HandlerTest(unittest.TestCase):
 
   def setUp(self):
     test_helpers.patch(self, [
-        'issue_management.issue_tracker_utils.get_issue_tracker_for_testcase',
-        'issue_management.issue_tracker_utils.get_search_keywords',
-        'issue_management.issue_tracker_utils.get_similar_issues',
-        'issue_management.issue_tracker_utils.get_similar_issues_url',
-        'issue_management.issue_tracker_utils.get_issue_url',
         'libs.access.check_access_and_get_testcase',
+        'libs.issue_management.issue_tracker_utils.'
+        'get_issue_tracker_for_testcase',
+        'libs.issue_management.issue_tracker_utils.get_issue_url',
+        'libs.issue_management.issue_tracker_utils.get_search_keywords',
+        'libs.issue_management.issue_tracker_utils.get_similar_issues',
+        'libs.issue_management.issue_tracker_utils.get_similar_issues_url',
     ])
     self.app = webtest.TestApp(
         webapp2.WSGIApplication([('/', find_similar_issues.Handler)]))

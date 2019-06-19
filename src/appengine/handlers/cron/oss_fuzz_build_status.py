@@ -23,9 +23,9 @@ from base import utils
 from datastore import data_types
 from datastore import ndb
 from handlers import base_handler
-from issue_management import issue_tracker_utils
 from libs import handler
 from libs import helpers
+from libs.issue_management import issue_tracker_utils
 from metrics import logs
 
 BUCKET_URL = 'https://oss-fuzz-build-logs.storage.googleapis.com'

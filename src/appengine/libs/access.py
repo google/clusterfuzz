@@ -22,9 +22,9 @@ from base import utils
 from config import db_config
 from config import local_config
 from datastore import data_handler
-from issue_management import issue_tracker_utils
 from libs import auth
 from libs import helpers
+from libs.issue_management import issue_tracker_utils
 
 
 def _is_privileged_user(email):

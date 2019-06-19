@@ -16,7 +16,8 @@
 from config import local_config
 from datastore import data_types
 from datastore import ndb_utils
-from issue_management import monorail
+from libs.issue_management import issue_tracker_policy
+from libs.issue_management import monorail
 from metrics import logs
 
 
@@ -47,10 +48,19 @@ def get_issue_tracker(project_name=None, use_cache=False):
 def get_issue_tracker_for_testcase(testcase, use_cache=False):
   """Get the issue tracker with the given type and name."""
   issue_tracker_project_name = _get_issue_tracker_project_name(testcase)
-  if not issue_tracker_project_name:
+  if not issue_tracker_project_name or issue_tracker_project_name == 'disabled':
     return None
 
   return get_issue_tracker(issue_tracker_project_name, use_cache=use_cache)
+
+
+def get_issue_tracker_policy_for_testcase(testcase):
+  """Get the issue tracker with the given type and name."""
+  issue_tracker_project_name = _get_issue_tracker_project_name(testcase)
+  if not issue_tracker_project_name or issue_tracker_project_name == 'disabled':
+    return None
+
+  return issue_tracker_policy.get(issue_tracker_project_name)
 
 
 def get_issue_for_testcase(testcase):
@@ -135,6 +145,9 @@ def get_issue_url(testcase):
 
 def was_label_added(issue, label):
   """Check if a label was ever added to an issue."""
+  if not label:
+    return False
+
   for action in issue.actions:
     for added in action.labels.added:
       if label.lower() == added.lower():
