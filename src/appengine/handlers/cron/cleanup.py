@@ -35,7 +35,6 @@ from handlers import base_handler
 from libs import handler
 from libs import mail
 from libs.issue_management import issue_filer
-from libs.issue_management import issue_tracker_policy
 from libs.issue_management import issue_tracker_utils
 from metrics import crash_stats
 from metrics import logs

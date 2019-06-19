@@ -54,7 +54,7 @@ def get_issue_tracker_for_testcase(testcase, use_cache=False):
   return get_issue_tracker(issue_tracker_project_name, use_cache=use_cache)
 
 
-def get_issue_tracker_policy_for_testcase(testcase, use_cache=False):
+def get_issue_tracker_policy_for_testcase(testcase):
   """Get the issue tracker with the given type and name."""
   issue_tracker_project_name = _get_issue_tracker_project_name(testcase)
   if not issue_tracker_project_name:
