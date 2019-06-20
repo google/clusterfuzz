@@ -1796,7 +1796,7 @@ class NotifyUploaderIfTestcaseIsProcessed(unittest.TestCase):
 
   def setUp(self):
     helpers.patch(self, [
-        'handlers.cron.cleanup._update_issue_severity_labels',
+        'handlers.cron.cleanup._update_issue_security_severity_and_get_comment',
         'libs.issue_management.issue_filer.update_issue_impact_labels',
         'libs.mail.send',
     ])
@@ -2052,8 +2052,8 @@ class UpdateSeverityLabelsTest(unittest.TestCase):
   def test_add_missing_severity(self):
     """Test updating missing severity."""
     self.testcase.security_severity = data_types.SecuritySeverity.HIGH
-    result = cleanup._update_issue_severity_labels(self.policy, self.testcase,
-                                                   self.issue)
+    result = cleanup._update_issue_security_severity_and_get_comment(
+        self.policy, self.testcase, self.issue)
     self.assertIn('Security_Severity-High', self.issue.labels)
     self.assertIn('A recommended severity was added to this bug.', result)
 
@@ -2061,8 +2061,8 @@ class UpdateSeverityLabelsTest(unittest.TestCase):
     """Test correct severity already set."""
     self.testcase.security_severity = data_types.SecuritySeverity.HIGH
     self.issue.labels.add('Security_severity-High')
-    result = cleanup._update_issue_severity_labels(self.policy, self.testcase,
-                                                   self.issue)
+    result = cleanup._update_issue_security_severity_and_get_comment(
+        self.policy, self.testcase, self.issue)
     self.assertIn('Security_Severity-High', self.issue.labels)
     self.assertEqual('', result)
 
@@ -2070,8 +2070,8 @@ class UpdateSeverityLabelsTest(unittest.TestCase):
     """Test incorrect severity set."""
     self.testcase.security_severity = data_types.SecuritySeverity.HIGH
     self.issue.labels.add('Security_Severity-Medium')
-    result = cleanup._update_issue_severity_labels(self.policy, self.testcase,
-                                                   self.issue)
+    result = cleanup._update_issue_security_severity_and_get_comment(
+        self.policy, self.testcase, self.issue)
     self.assertNotIn('Security_Severity-High', self.issue.labels)
     self.assertIn('Security_Severity-Medium', self.issue.labels)
     self.assertIn('different from what was assigned', result)
