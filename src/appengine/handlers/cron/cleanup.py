@@ -744,8 +744,8 @@ def _get_severity_from_labels(security_severity_label, labels):
   return data_types.SecuritySeverity.MISSING
 
 
-def _update_issue_severity_labels(policy, testcase, issue):
-  """Update severity labels on issue."""
+def _get_security_severity_issue_comment(policy, testcase, issue):
+  """Get security severity text for issue."""
   security_severity_label = policy.label('security_severity')
   if not security_severity_label:
     return ''
@@ -778,12 +778,7 @@ def _update_issue_severity_labels(policy, testcase, issue):
 def _update_issue_when_uploaded_testcase_is_processed(
     policy, testcase, issue, description, upload_metadata):
   """Add issue comment when uploaded testcase is processed."""
-  # Update the summary in the following cases:
-  # 1. Upload metadata indicates that we need to do so.
-  # 2. We have a valid crash state.
-  # 3. Crash state != 'NULL' which is unhelpful for title.
-  if (upload_metadata.bug_summary_update_flag and testcase.crash_state and
-      testcase.crash_state != 'NULL'):
+  if upload_metadata.bug_summary_update_flag and testcase.is_crash():
     issue.title = data_handler.get_issue_summary(testcase)
 
   # Impact labels like impacting head/beta/stable only apply for Chromium.
@@ -791,7 +786,8 @@ def _update_issue_when_uploaded_testcase_is_processed(
     issue_filer.update_issue_impact_labels(testcase, issue)
 
   # Add severity labels for all project types.
-  comment = description + _update_issue_severity_labels(policy, testcase, issue)
+  comment = description + _get_security_severity_issue_comment(
+      policy, testcase, issue)
   issue.save(new_comment=comment)
 
 

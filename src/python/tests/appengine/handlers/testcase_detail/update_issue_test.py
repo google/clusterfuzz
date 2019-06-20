@@ -51,7 +51,7 @@ class HandlerTest(unittest.TestCase):
   def setUp(self):
     test_helpers.patch(self, [
         'datastore.data_handler.get_issue_description',
-        'datastore.data_handler.get_issue_summary',
+        'datastore.data_handler.get_issue_title',
         'datastore.data_handler.get_stacktrace',
         'datastore.data_handler.update_group_bug',
         'libs.helpers.get_issue_tracker_for_testcase',
@@ -142,7 +142,7 @@ class HandlerTest(unittest.TestCase):
     self.mock.get_issue_tracker_for_testcase.return_value = (
         monorail.IssueTracker(itm))
     self.mock.get_issue_description.return_value = 'description'
-    self.mock.get_issue_summary.return_value = 'summary'
+    self.mock.get_issue_title.return_value = 'summary'
     self.mock.get_stacktrace.return_value = 'stacktrace'
     self.mock.get_memory_tool_labels.return_value = ['tool']
 

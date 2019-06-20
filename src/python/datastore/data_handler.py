@@ -204,10 +204,7 @@ def filter_stacktrace(stacktrace):
 
 
 def get_issue_summary(testcase):
-  """Gets an issue description string for a testcase.
-
-  It is used in bug description.
-  """
+  """Gets an issue description string for a testcase."""
   # Get summary prefix. Note that values for fuzzers take priority over those
   # from job definitions.
   fuzzer_summary_prefix = get_value_from_fuzzer_environment_string(
@@ -223,21 +220,7 @@ def get_issue_summary(testcase):
 
     summary_prefix += ': '
 
-  # No crash state.
-  if testcase.crash_state == 'NULL':
-    return summary_prefix + 'NULL'
-
-  # Special case for bad-cast style testcases.
-  if testcase.crash_type.startswith('Bad-cast'):
-    issue_summary = summary_prefix
-    crash_state_lines = testcase.crash_state.splitlines()
-    if crash_state_lines:
-      # Add the to/from line if available.
-      issue_summary += crash_state_lines[0]
-    if len(crash_state_lines) > 1:
-      # Add the crash function if available.
-      issue_summary += ' in ' + crash_state_lines[1]
-    return issue_summary
+  issue_summary = summary_prefix
 
   # For ASSERTs and CHECK failures, we should just use the crash type and the
   # first line of the crash state as titles. Note that ASSERT_NOT_REACHED should
@@ -246,23 +229,36 @@ def get_issue_summary(testcase):
       'ASSERT', 'CHECK failure', 'Security CHECK failure',
       'Security DCHECK failure'
   ]:
-    return (summary_prefix + testcase.crash_type + ': ' +
-            testcase.crash_state.splitlines()[0])
+    issue_summary += (
+        testcase.crash_type + ': ' + testcase.crash_state.splitlines()[0])
+    return issue_summary
+
+  # Special case for bad-cast style testcases.
+  if testcase.crash_type == 'Bad-cast':
+    filtered_crash_state_lines = testcase.crash_state.splitlines()
+
+    # Add the to/from line (this should always exist).
+    issue_summary += filtered_crash_state_lines[0]
+
+    # Add the crash function if available.
+    if len(filtered_crash_state_lines) > 1:
+      issue_summary += ' in ' + filtered_crash_state_lines[1]
+
+    return issue_summary
 
   # Add first lines from crash type and crash_state.
-  issue_summary = ''
   if testcase.crash_type:
-    filtered_crash_type = testcase.crash_type.splitlines()[0]
     filtered_crash_type = re.sub(r'UNKNOWN( READ| WRITE)?', 'Crash',
-                                 filtered_crash_type)
+                                 testcase.crash_type.splitlines()[0])
     issue_summary += filtered_crash_type
-  if testcase.crash_state:
+
+  if testcase.crash_state == 'NULL':
+    # Special case for empty stacktrace.
+    issue_summary += ' with empty stacktrace'
+  else:
     issue_summary += ' in ' + testcase.crash_state.splitlines()[0]
 
-  if not issue_summary:
-    issue_summary = '<no crash state available>'
-
-  return summary_prefix + issue_summary
+  return issue_summary
 
 
 def get_reproduction_help_url(testcase, config):

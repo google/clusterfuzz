@@ -535,6 +535,9 @@ class Testcase(Model):
   def is_status_unreproducible(self):
     return self.status and self.status.startswith('Unreproducible')
 
+  def is_crash(self):
+    return bool(self.crash_state)
+
   def populate_indices(self):
     """Populate keywords for fast test case list searching."""
     self.keywords = list(

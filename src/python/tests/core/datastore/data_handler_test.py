@@ -329,7 +329,7 @@ class DataHandlerTest(unittest.TestCase):
   def test_get_issue_summary_null(self):
     """Test get_issue_summary for null crash state."""
     summary = data_handler.get_issue_summary(self.testcase_null)
-    self.assertEqual(summary, 'project: NULL')
+    self.assertEqual(summary, 'project: Crash with empty stacktrace')
 
   def test_get_issue_summary_bad_cast(self):
     """Test get_issue_summary for bad cast."""
