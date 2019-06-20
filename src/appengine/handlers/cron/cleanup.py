@@ -744,8 +744,11 @@ def _get_severity_from_labels(security_severity_label, labels):
   return data_types.SecuritySeverity.MISSING
 
 
-def _get_security_severity_issue_comment(policy, testcase, issue):
-  """Get security severity text for issue."""
+def _update_issue_security_severity_and_get_comment(policy, testcase, issue):
+  """Apply a new security severity label if none exists on issue already
+  and return a comment on this addition. If a label already exists and does
+  not match security severity label on issue, then just return a comment on
+  what the recommended severity is."""
   security_severity_label = policy.label('security_severity')
   if not security_severity_label:
     return ''
@@ -786,7 +789,7 @@ def _update_issue_when_uploaded_testcase_is_processed(
     issue_filer.update_issue_impact_labels(testcase, issue)
 
   # Add severity labels for all project types.
-  comment = description + _get_security_severity_issue_comment(
+  comment = description + _update_issue_security_severity_and_get_comment(
       policy, testcase, issue)
   issue.save(new_comment=comment)
 
