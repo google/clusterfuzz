@@ -213,14 +213,14 @@ def get_issue_summary(testcase):
                                                      'SUMMARY_PREFIX')
   summary_prefix = fuzzer_summary_prefix or job_summary_prefix or ''
 
-  if summary_prefix:
-    binary_name = testcase.get_metadata('fuzzer_binary_name')
-    if binary_name and get_project_name(testcase.job_type) == summary_prefix:
-      summary_prefix += '/' + binary_name
-
-    summary_prefix += ': '
-
   issue_summary = summary_prefix
+  binary_name = testcase.get_metadata('fuzzer_binary_name')
+  if binary_name:
+    if summary_prefix:
+      issue_summary += '/'
+    issue_summary += binary_name
+  if issue_summary:
+    issue_summary += ': '
 
   # For ASSERTs and CHECK failures, we should just use the crash type and the
   # first line of the crash state as titles. Note that ASSERT_NOT_REACHED should

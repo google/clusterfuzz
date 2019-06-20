@@ -307,19 +307,29 @@ class DataHandlerTest(unittest.TestCase):
         'https://test-clusterfuzz.appspot.com/download?testcase_id=1\n\n'
         'See help_url for instructions to reproduce this bug locally.')
 
-  def test_get_issue_summary_no_project(self):
-    """Test get_issue_description on jobs with no project."""
+  def test_get_issue_summary_with_no_prefix(self):
+    """Test get_issue_description on jobs with no prefix."""
+    self.job.environment_string = 'HELP_URL = help_url\n'
+    self.job.put()
+    summary = data_handler.get_issue_summary(self.testcase_assert)
+    self.assertEqual(summary, 'binary_name: ASSERT: foo != bar')
+
+    summary = data_handler.get_issue_summary(self.testcase)
+    self.assertEqual(summary, 'binary_name: Crash-type in A')
+
+  def test_get_issue_summary_with_non_project_prefix(self):
+    """Test get_issue_description on jobs with prefix not equal to project."""
     self.job.environment_string = ('SUMMARY_PREFIX = prefix\n'
                                    'HELP_URL = help_url\n')
     self.job.put()
     summary = data_handler.get_issue_summary(self.testcase_assert)
-    self.assertEqual(summary, 'prefix: ASSERT: foo != bar')
+    self.assertEqual(summary, 'prefix/binary_name: ASSERT: foo != bar')
 
     summary = data_handler.get_issue_summary(self.testcase)
-    self.assertEqual(summary, 'prefix: Crash-type in A')
+    self.assertEqual(summary, 'prefix/binary_name: Crash-type in A')
 
-  def test_get_issue_summary(self):
-    """Test get_issue_description."""
+  def test_get_issue_summary_with_project_prefix(self):
+    """Test get_issue_description with project name as prefix."""
     summary = data_handler.get_issue_summary(self.testcase_assert)
     self.assertEqual(summary, 'project/binary_name: ASSERT: foo != bar')
 
