@@ -70,7 +70,8 @@ class HandlerTest(unittest.TestCase):
         webapp2.WSGIApplication([('/', update_issue.Handler)]))
 
     self.testcase = data_types.Testcase()
-    self.testcase.bug_information = 'unset'
+    self.testcase.bug_information = ''
+    self.testcase.crash_state = 'fake_crash_state'
     self.testcase.put()
 
   def test_issue_id_not_a_number(self):
