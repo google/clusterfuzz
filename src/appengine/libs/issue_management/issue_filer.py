@@ -170,8 +170,12 @@ def update_issue_impact_labels(testcase, issue):
       new_impact = data_types.SecurityImpact.STABLE
     elif testcase.impact_beta_version:
       new_impact = data_types.SecurityImpact.BETA
-    else:
+    elif testcase.is_crash():
       new_impact = data_types.SecurityImpact.HEAD
+    else:
+      # Testcase is unreproducible and does not impact stable and beta branches.
+      # In this case, there is no impact information.
+      return
   else:
     # No impact information.
     return

@@ -580,6 +580,7 @@ class UpdateImpactTest(unittest.TestCase):
     helpers.patch_environ(self)
     self.testcase = data_types.Testcase()
     self.testcase.one_time_crasher_flag = False
+    self.testcase.crash_state = 'fake_crash'
 
   def test_update_impact_stable_from_regression(self):
     """Tests updating impact to Stable from the regression range."""
@@ -622,8 +623,20 @@ class UpdateImpactTest(unittest.TestCase):
     self.assertItemsEqual(['Security_Impact-Head'], mock_issue.labels.added)
     self.assertItemsEqual([], mock_issue.labels.removed)
 
-  def test_no_impact(self):
-    """Tests no impact."""
+  def test_no_impact_for_unreproducible_testcase(self):
+    """Tests no impact for unreproducible testcase on trunk and which also
+    does not crash on stable and beta."""
+    self.testcase.is_impact_set_flag = True
+    self.testcase.crash_state = ''
+
+    mock_issue = self._make_mock_issue()
+
+    issue_filer.update_issue_impact_labels(self.testcase, mock_issue)
+    self.assertItemsEqual([], mock_issue.labels.added)
+    self.assertItemsEqual([], mock_issue.labels.removed)
+
+  def test_no_impact_if_not_set(self):
+    """Tests no impact if the impact flag is not set."""
     mock_issue = self._make_mock_issue()
 
     issue_filer.update_issue_impact_labels(self.testcase, mock_issue)
