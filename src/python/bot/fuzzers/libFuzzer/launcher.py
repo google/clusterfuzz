@@ -106,9 +106,9 @@ def _select_generator(strategy_pool):
   # works.
   if IS_WIN:
     return Generator.NONE
-  elif strategy_pool[strategy.CORPUS_MUTATION_ML_RNN_STRATEGY]:
+  elif strategy_pool[strategy.CORPUS_MUTATION_ML_RNN_STRATEGY.name]:
     return Generator.ML_RNN
-  elif strategy_pool[strategy.CORPUS_MUTATION_RADAMSA_STRATEGY]:
+  elif strategy_pool[strategy.CORPUS_MUTATION_RADAMSA_STRATEGY.name]:
     return Generator.RADAMSA
 
   return Generator.NONE
@@ -305,7 +305,7 @@ def generate_new_testcase_mutations(corpus_directory, fuzzer_name, generator,
 
     # If new mutations are successfully generated, add radamsa stragegy.
     if shell.get_directory_file_count(new_testcase_mutations_directory):
-      fuzzing_strategies.append(strategy.CORPUS_MUTATION_RADAMSA_STRATEGY)
+      fuzzing_strategies.append(strategy.CORPUS_MUTATION_RADAMSA_STRATEGY.name)
 
   # Generate new testcase mutations using ML RNN model.
   elif generator == Generator.ML_RNN:
@@ -315,7 +315,7 @@ def generate_new_testcase_mutations(corpus_directory, fuzzer_name, generator,
 
     # If new mutations are successfully generated, add ml rnn stragegy.
     if shell.get_directory_file_count(new_testcase_mutations_directory):
-      fuzzing_strategies.append(strategy.CORPUS_MUTATION_ML_RNN_STRATEGY)
+      fuzzing_strategies.append(strategy.CORPUS_MUTATION_ML_RNN_STRATEGY.name)
 
   return new_testcase_mutations_directory
 
@@ -339,14 +339,14 @@ def get_corpus_directories(main_corpus_directory,
   subset_size = engine_common.random_choice(
       engine_common.CORPUS_SUBSET_NUM_TESTCASES)
 
-  if (strategy_pool[strategy.CORPUS_SUBSET_STRATEGY] and
+  if (strategy_pool[strategy.CORPUS_SUBSET_STRATEGY.name] and
       shell.get_directory_file_count(main_corpus_directory) > subset_size):
     # Copy |subset_size| testcases into 'subset' directory.
     corpus_subset_directory = create_corpus_directory('subset')
     copy_from_corpus(corpus_subset_directory, main_corpus_directory,
                      subset_size)
     corpus_directories.append(corpus_subset_directory)
-    fuzzing_strategies.append(strategy.CORPUS_SUBSET_STRATEGY + '_' +
+    fuzzing_strategies.append(strategy.CORPUS_SUBSET_STRATEGY.name + '_' +
                               str(subset_size))
     if minijail_chroot:
       bind_corpus_dirs(minijail_chroot, [main_corpus_directory])
@@ -765,11 +765,10 @@ def main(argv):
     if os.path.exists(default_dict_path):
       arguments.append(constants.DICT_FLAG + default_dict_path)
 
-  # Strategy pool is the list of strategies that we attempt to
-  # enable, whereas fuzzing strategies is the list of strategies
-  # that are enabled. (e.g. if mutator is selected in the pool,
-  # but not available for a given target, it would not be added
-  # to fuzzing strategies.)
+  # Strategy pool is the list of strategies that we attempt to enable, whereas
+  # fuzzing strategies is the list of strategies that are enabled. (e.g. if
+  # mutator is selected in the pool, but not available for a given target, it
+  # would not be added to fuzzing strategies.)
   strategy_pool = strategy_selection.generate_strategy_pool()
   fuzzing_strategies = []
 
@@ -804,42 +803,35 @@ def main(argv):
     if use_minijail:
       bind_corpus_dirs(minijail_chroot, [new_testcase_mutations_directory])
 
-  if strategy_pool[strategy.RANDOM_MAX_LENGTH_STRATEGY]:
+  if strategy_pool[strategy.RANDOM_MAX_LENGTH_STRATEGY.name]:
     max_len_argument = fuzzer_utils.extract_argument(
         arguments, constants.MAX_LEN_FLAG, remove=False)
     if not max_len_argument:
       max_length = random.SystemRandom().randint(1, MAX_VALUE_FOR_MAX_LENGTH)
       arguments.append('%s%d' % (constants.MAX_LEN_FLAG, max_length))
-      fuzzing_strategies.append(strategy.RANDOM_MAX_LENGTH_STRATEGY)
+      fuzzing_strategies.append(strategy.RANDOM_MAX_LENGTH_STRATEGY.name)
 
-  if strategy_pool[strategy.RECOMMENDED_DICTIONARY_STRATEGY]:
+  if strategy_pool[strategy.RECOMMENDED_DICTIONARY_STRATEGY.name]:
     if add_recommended_dictionary(arguments, fuzzer_name, fuzzer_path):
-      fuzzing_strategies.append(strategy.RECOMMENDED_DICTIONARY_STRATEGY)
+      fuzzing_strategies.append(strategy.RECOMMENDED_DICTIONARY_STRATEGY.name)
 
-  if strategy_pool[strategy.VALUE_PROFILE_STRATEGY]:
+  if strategy_pool[strategy.VALUE_PROFILE_STRATEGY.name]:
     arguments.append(constants.VALUE_PROFILE_ARGUMENT)
-    fuzzing_strategies.append(strategy.VALUE_PROFILE_STRATEGY)
+    fuzzing_strategies.append(strategy.VALUE_PROFILE_STRATEGY.name)
 
-  # TODO(crbug.com/920355): Reenable this when fork mode works with ChromeOS's
-  # MSAN.
-  if strategy_pool[strategy.FORK_STRATEGY]:
-    job_name = environment.get_value('JOB_NAME')
-    memory_tool = environment.get_memory_tool_name(job_name)
-
-    if memory_tool != 'MSAN' or (not environment.is_chromeos_system_job()):
-      max_fuzz_threads = environment.get_value('MAX_FUZZ_THREADS', 1)
-      num_fuzz_processes = max(1,
-                               multiprocessing.cpu_count() // max_fuzz_threads)
-      arguments.append('%s%d' % (constants.FORK_FLAG, num_fuzz_processes))
-      fuzzing_strategies.append(
-          '%s_%d' % (strategy.FORK_STRATEGY, num_fuzz_processes))
+  if strategy_pool[strategy.FORK_STRATEGY.name]:
+    max_fuzz_threads = environment.get_value('MAX_FUZZ_THREADS', 1)
+    num_fuzz_processes = max(1, multiprocessing.cpu_count() // max_fuzz_threads)
+    arguments.append('%s%d' % (constants.FORK_FLAG, num_fuzz_processes))
+    fuzzing_strategies.append(
+        '%s_%d' % (strategy.FORK_STRATEGY.name, num_fuzz_processes))
 
   extra_env = {}
   # TODO(metzman): Support Windows.
-  if (strategy_pool[strategy.MUTATOR_PLUGIN_STRATEGY] and
+  if (strategy_pool[strategy.MUTATOR_PLUGIN_STRATEGY.name] and
       environment.platform() != 'WINDOWS' and
       use_mutator_plugin(target_name, extra_env, minijail_chroot)):
-    fuzzing_strategies.append(strategy.MUTATOR_PLUGIN_STRATEGY)
+    fuzzing_strategies.append(strategy.MUTATOR_PLUGIN_STRATEGY.name)
 
   # Execute the fuzzer binary with original arguments.
   fuzz_result = runner.fuzz(

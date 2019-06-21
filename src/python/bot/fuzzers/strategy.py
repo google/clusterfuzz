@@ -16,14 +16,20 @@
 # Number of testcases to use for the corpus subset strategy.
 # See https://crbug.com/682311 for more information.
 # Size 100 has a slightly higher chance as it seems to be the best one so far.
+from collections import namedtuple
+
+Strategy = namedtuple('Strategy', 'name probability')
 CORPUS_SUBSET_NUM_TESTCASES = [10, 20, 50, 75, 75, 100, 100, 100, 125, 125, 150]
 
 # Supported fuzzing strategies.
-CORPUS_MUTATION_RADAMSA_STRATEGY = 'corpus_mutations_radamsa'
-CORPUS_MUTATION_ML_RNN_STRATEGY = 'corpus_mutations_ml_rnn'
-CORPUS_SUBSET_STRATEGY = 'corpus_subset'
-FORK_STRATEGY = 'fork'
-MUTATOR_PLUGIN_STRATEGY = 'mutator_plugin'
-RANDOM_MAX_LENGTH_STRATEGY = 'random_max_len'
-RECOMMENDED_DICTIONARY_STRATEGY = 'recommended_dict'
-VALUE_PROFILE_STRATEGY = 'value_profile'
+CORPUS_MUTATION_RADAMSA_STRATEGY = Strategy(
+    name='corpus_mutations_radamsa', probability=0.15)
+CORPUS_MUTATION_ML_RNN_STRATEGY = Strategy(
+    name='corpus_mutations_ml_rnn', probability=0.50)
+CORPUS_SUBSET_STRATEGY = Strategy(name='corpus_subset', probability=0.50)
+FORK_STRATEGY = Strategy(name='fork', probability=0.50)
+MUTATOR_PLUGIN_STRATEGY = Strategy(name='mutator_plugin', probability=0.50)
+RANDOM_MAX_LENGTH_STRATEGY = Strategy(name='random_max_len', probability=0.15)
+RECOMMENDED_DICTIONARY_STRATEGY = Strategy(
+    name='recommended_dict', probability=0.10)
+VALUE_PROFILE_STRATEGY = Strategy(name='value_profile', probability=0.33)

@@ -145,14 +145,14 @@ def set_strategy_pool(corpus_subset=False,
   """Helper method to create instances of strategy pools
   for patching use."""
   strategy_pool = {
-      strategy.CORPUS_SUBSET_STRATEGY: corpus_subset,
-      strategy.FORK_STRATEGY: fork,
-      strategy.CORPUS_MUTATION_ML_RNN_STRATEGY: ml_rnn,
-      strategy.CORPUS_MUTATION_RADAMSA_STRATEGY: radamsa,
-      strategy.RANDOM_MAX_LENGTH_STRATEGY: max_len,
-      strategy.RECOMMENDED_DICTIONARY_STRATEGY: recommended_dict,
-      strategy.VALUE_PROFILE_STRATEGY: value_profile,
-      strategy.MUTATOR_PLUGIN_STRATEGY: mutator_plugin
+      strategy.CORPUS_SUBSET_STRATEGY.name: corpus_subset,
+      strategy.FORK_STRATEGY.name: fork,
+      strategy.CORPUS_MUTATION_ML_RNN_STRATEGY.name: ml_rnn,
+      strategy.CORPUS_MUTATION_RADAMSA_STRATEGY.name: radamsa,
+      strategy.RANDOM_MAX_LENGTH_STRATEGY.name: max_len,
+      strategy.RECOMMENDED_DICTIONARY_STRATEGY.name: recommended_dict,
+      strategy.VALUE_PROFILE_STRATEGY.name: value_profile,
+      strategy.MUTATOR_PLUGIN_STRATEGY.name: mutator_plugin
   }
   return strategy_pool
 

@@ -20,56 +20,30 @@ generated here may be modified in the launcher before being launched."""
 from bot.fuzzers import engine_common
 from bot.fuzzers import strategy
 
-# Probability of using `-max_len` option. Not applicable if already declared in
-# .options file.
-RANDOM_MAX_LENGTH_PROBABILITY = 0.15
-
-# Probability of doing ML RNN mutations on the corpus in this run.
-CORPUS_MUTATION_ML_RNN_PROBABILITY = 0.50
-
-# Probability of doing radamsa mutations on the corpus in this run.
-CORPUS_MUTATION_RADAMSA_PROBABILITY = 0.15
-
-# Number of radamsa mutations.
-RADAMSA_MUTATIONS = 2000
-
-# Maximum number of seconds to run radamsa for.
-RADAMSA_TIMEOUT = 3
-
-# Probability of recommended dictionary usage.
-RECOMMENDED_DICTIONARY_PROBABILITY = 0.10
-
-# Probability of using `-use_value_profile=1` option.
-VALUE_PROFILE_PROBABILITY = 0.33
-
-FORK_PROBABILITY = 0.50
-
-MUTATOR_PLUGIN_PROBABILITY = 0.50
-
 
 def choose_generator():
   """Return whether to use radamsa, ml rnn, or no generator."""
 
-  radamsa_p = engine_common.get_strategy_probability(
-      strategy.CORPUS_MUTATION_RADAMSA_STRATEGY,
-      default=CORPUS_MUTATION_RADAMSA_PROBABILITY)
+  radamsa_prob = engine_common.get_strategy_probability(
+      strategy.CORPUS_MUTATION_RADAMSA_STRATEGY.name,
+      default=strategy.CORPUS_MUTATION_RADAMSA_STRATEGY.probability)
 
-  ml_rnn_p = engine_common.get_strategy_probability(
-      strategy.CORPUS_MUTATION_ML_RNN_STRATEGY,
-      default=CORPUS_MUTATION_ML_RNN_PROBABILITY)
+  ml_rnn_prob = engine_common.get_strategy_probability(
+      strategy.CORPUS_MUTATION_ML_RNN_STRATEGY.name,
+      default=strategy.CORPUS_MUTATION_ML_RNN_STRATEGY.probability)
 
-  generator = {}
+  generators = {}
 
-  if engine_common.decide_with_probability(radamsa_p + ml_rnn_p):
-    generator[strategy.CORPUS_MUTATION_RADAMSA_STRATEGY] = (
+  if engine_common.decide_with_probability(radamsa_prob + ml_rnn_prob):
+    generators[strategy.CORPUS_MUTATION_RADAMSA_STRATEGY.name] = (
         engine_common.decide_with_probability(
-            radamsa_p / (radamsa_p + ml_rnn_p)))
-    generator[strategy.CORPUS_MUTATION_ML_RNN_STRATEGY] = (
-        not generator[strategy.CORPUS_MUTATION_RADAMSA_STRATEGY])
+            radamsa_prob / (radamsa_prob + ml_rnn_prob)))
+    generators[strategy.CORPUS_MUTATION_ML_RNN_STRATEGY.name] = (
+        not generators[strategy.CORPUS_MUTATION_RADAMSA_STRATEGY.name])
   else:
-    generator[strategy.CORPUS_MUTATION_RADAMSA_STRATEGY] = False
-    generator[strategy.CORPUS_MUTATION_ML_RNN_STRATEGY] = False
-  return generator
+    generators[strategy.CORPUS_MUTATION_RADAMSA_STRATEGY.name] = False
+    generators[strategy.CORPUS_MUTATION_ML_RNN_STRATEGY.name] = False
+  return generators
 
 
 def do_strategy(strategy_name, default_probability):
@@ -89,17 +63,20 @@ def generate_strategy_pool():
 
   # Decide whether or not to include remaining strategies
   strategy_pool[
-      strategy.CORPUS_SUBSET_STRATEGY] = engine_common.do_corpus_subset()
-  strategy_pool[strategy.RANDOM_MAX_LENGTH_STRATEGY] = do_strategy(
-      strategy.RANDOM_MAX_LENGTH_STRATEGY, RANDOM_MAX_LENGTH_PROBABILITY)
-  strategy_pool[strategy.RECOMMENDED_DICTIONARY_STRATEGY] = do_strategy(
-      strategy.RECOMMENDED_DICTIONARY_STRATEGY,
-      RECOMMENDED_DICTIONARY_PROBABILITY)
-  strategy_pool[strategy.VALUE_PROFILE_STRATEGY] = do_strategy(
-      strategy.VALUE_PROFILE_STRATEGY, VALUE_PROFILE_PROBABILITY)
-  strategy_pool[strategy.FORK_STRATEGY] = do_strategy(strategy.FORK_STRATEGY,
-                                                      FORK_PROBABILITY)
-  strategy_pool[strategy.MUTATOR_PLUGIN_STRATEGY] = do_strategy(
-      strategy.MUTATOR_PLUGIN_STRATEGY, MUTATOR_PLUGIN_PROBABILITY)
+      strategy.CORPUS_SUBSET_STRATEGY.name] = engine_common.do_corpus_subset()
+  strategy_pool[strategy.RANDOM_MAX_LENGTH_STRATEGY.name] = do_strategy(
+      strategy.RANDOM_MAX_LENGTH_STRATEGY.name,
+      strategy.RANDOM_MAX_LENGTH_STRATEGY.probability)
+  strategy_pool[strategy.RECOMMENDED_DICTIONARY_STRATEGY.name] = do_strategy(
+      strategy.RECOMMENDED_DICTIONARY_STRATEGY.name,
+      strategy.RECOMMENDED_DICTIONARY_STRATEGY.probability)
+  strategy_pool[strategy.VALUE_PROFILE_STRATEGY.name] = do_strategy(
+      strategy.VALUE_PROFILE_STRATEGY.name,
+      strategy.VALUE_PROFILE_STRATEGY.probability)
+  strategy_pool[strategy.FORK_STRATEGY.name] = do_strategy(
+      strategy.FORK_STRATEGY.name, strategy.FORK_STRATEGY.probability)
+  strategy_pool[strategy.MUTATOR_PLUGIN_STRATEGY.name] = do_strategy(
+      strategy.MUTATOR_PLUGIN_STRATEGY.name,
+      strategy.MUTATOR_PLUGIN_STRATEGY.probability)
 
   return strategy_pool

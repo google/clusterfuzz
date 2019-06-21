@@ -38,14 +38,17 @@ class TestStrategySelectionGeneratorPatched(unittest.TestCase):
     # Ml rnn and radamsa strategies are mutually exclusive. Because of how we
     # patch, ml rnn will evaluate to false, however this depends on the
     # implementation.
-    self.assertTrue(strategy_pool[strategy.CORPUS_MUTATION_RADAMSA_STRATEGY])
-    self.assertFalse(strategy_pool[strategy.CORPUS_MUTATION_ML_RNN_STRATEGY])
-    self.assertTrue(strategy_pool[strategy.CORPUS_SUBSET_STRATEGY])
-    self.assertTrue(strategy_pool[strategy.RANDOM_MAX_LENGTH_STRATEGY])
-    self.assertTrue(strategy_pool[strategy.RECOMMENDED_DICTIONARY_STRATEGY])
-    self.assertTrue(strategy_pool[strategy.VALUE_PROFILE_STRATEGY])
-    self.assertTrue(strategy_pool[strategy.FORK_STRATEGY])
-    self.assertTrue(strategy_pool[strategy.MUTATOR_PLUGIN_STRATEGY])
+    self.assertTrue(
+        strategy_pool[strategy.CORPUS_MUTATION_RADAMSA_STRATEGY.name])
+    self.assertFalse(
+        strategy_pool[strategy.CORPUS_MUTATION_ML_RNN_STRATEGY.name])
+    self.assertTrue(strategy_pool[strategy.CORPUS_SUBSET_STRATEGY.name])
+    self.assertTrue(strategy_pool[strategy.RANDOM_MAX_LENGTH_STRATEGY.name])
+    self.assertTrue(
+        strategy_pool[strategy.RECOMMENDED_DICTIONARY_STRATEGY.name])
+    self.assertTrue(strategy_pool[strategy.VALUE_PROFILE_STRATEGY.name])
+    self.assertTrue(strategy_pool[strategy.FORK_STRATEGY.name])
+    self.assertTrue(strategy_pool[strategy.MUTATOR_PLUGIN_STRATEGY.name])
 
 
 class TestStrategySelectionPatchless(unittest.TestCase):
@@ -53,5 +56,5 @@ class TestStrategySelectionPatchless(unittest.TestCase):
 
   def test_strategy_pool_generator(self):
     """Ensures that a call to generate_strategy_pool does not yield an
-    exception."""
+    exception. Deterministic behaviors are tested in the previous test."""
     strategy_selection.generate_strategy_pool()
