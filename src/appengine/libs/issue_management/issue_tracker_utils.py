@@ -22,6 +22,17 @@ from libs.issue_management import monorail
 from metrics import logs
 
 _ISSUE_TRACKER_CACHE_CAPACITY = 8
+_ISSUE_TRACKER_CONSTRUCTORS = {
+    'monorail': monorail.get_issue_tracker,
+}
+
+
+def register_issue_tracker(tracker_type, constructor):
+  """Register an issue tracker implementation."""
+  if tracker_type in _ISSUE_TRACKER_CONSTRUCTORS:
+    raise ValueError(
+        'Tracker type {type} is already registered.'.format(type=tracker_type))
+  _ISSUE_TRACKER_CONSTRUCTORS[tracker_type] = constructor
 
 
 def _get_issue_tracker_project_name(testcase=None):
@@ -43,10 +54,12 @@ def get_issue_tracker(project_name=None):
   if not issue_project_config:
     raise ValueError('Issue tracker for {} does not exist'.format(project_name))
 
-  if issue_project_config['type'] == 'monorail':
-    return monorail.get_issue_tracker(project_name)
+  constructor = _ISSUE_TRACKER_CONSTRUCTORS.get(issue_project_config['type'])
+  if not constructor:
+    raise ValueError('Invalid issue tracker type: ' +
+                     issue_project_config['type'])
 
-  raise ValueError('Invalid issue tracker type ' + issue_project_config['type'])
+  return constructor(project_name)
 
 
 def get_issue_tracker_for_testcase(testcase):
