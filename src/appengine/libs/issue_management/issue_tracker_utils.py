@@ -29,6 +29,9 @@ _ISSUE_TRACKER_CONSTRUCTORS = {
 
 def register_issue_tracker(tracker_type, constructor):
   """Register an issue tracker implementation."""
+  if tracker_type in _ISSUE_TRACKER_CONSTRUCTORS:
+    raise ValueError(
+        'Tracker type {type} is already registered.'.format(type=tracker_type))
   _ISSUE_TRACKER_CONSTRUCTORS[tracker_type] = constructor
 
 
@@ -53,7 +56,7 @@ def get_issue_tracker(project_name=None):
 
   constructor = _ISSUE_TRACKER_CONSTRUCTORS.get(issue_project_config['type'])
   if not constructor:
-    raise ValueError('Invalid issue tracker type ' +
+    raise ValueError('Invalid issue tracker type: ' +
                      issue_project_config['type'])
 
   return constructor(project_name)
