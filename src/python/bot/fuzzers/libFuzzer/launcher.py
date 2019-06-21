@@ -106,9 +106,9 @@ def _select_generator(strategy_pool):
   # works.
   if IS_WIN:
     return Generator.NONE
-  elif strategy_pool[strategy.CORPUS_MUTATION_ML_RNN_STRATEGY.name]:
+  elif strategy_pool.do_strategy(strategy.CORPUS_MUTATION_ML_RNN_STRATEGY):
     return Generator.ML_RNN
-  elif strategy_pool[strategy.CORPUS_MUTATION_RADAMSA_STRATEGY.name]:
+  elif strategy_pool.do_strategy(strategy.CORPUS_MUTATION_RADAMSA_STRATEGY):
     return Generator.RADAMSA
 
   return Generator.NONE
@@ -339,7 +339,7 @@ def get_corpus_directories(main_corpus_directory,
   subset_size = engine_common.random_choice(
       engine_common.CORPUS_SUBSET_NUM_TESTCASES)
 
-  if (strategy_pool[strategy.CORPUS_SUBSET_STRATEGY.name] and
+  if (strategy_pool.do_strategy(strategy.CORPUS_SUBSET_STRATEGY) and
       shell.get_directory_file_count(main_corpus_directory) > subset_size):
     # Copy |subset_size| testcases into 'subset' directory.
     corpus_subset_directory = create_corpus_directory('subset')
@@ -611,6 +611,10 @@ def use_mutator_plugin(target_name, extra_env, chroot):
   available for |target_name|, then add it to LD_PRELOAD in |extra_env|, add
   chroot bindings if |chroot| is not None, and return True."""
 
+  # TODO(metzman): Support Windows.
+  if environment.platform() == 'WINDOWS':
+    return False
+
   mutator_plugin_path = mutator_plugin.get_mutator_plugin(target_name)
   if not mutator_plugin_path:
     return False
@@ -803,7 +807,7 @@ def main(argv):
     if use_minijail:
       bind_corpus_dirs(minijail_chroot, [new_testcase_mutations_directory])
 
-  if strategy_pool[strategy.RANDOM_MAX_LENGTH_STRATEGY.name]:
+  if strategy_pool.do_strategy(strategy.RANDOM_MAX_LENGTH_STRATEGY):
     max_len_argument = fuzzer_utils.extract_argument(
         arguments, constants.MAX_LEN_FLAG, remove=False)
     if not max_len_argument:
@@ -811,15 +815,15 @@ def main(argv):
       arguments.append('%s%d' % (constants.MAX_LEN_FLAG, max_length))
       fuzzing_strategies.append(strategy.RANDOM_MAX_LENGTH_STRATEGY.name)
 
-  if strategy_pool[strategy.RECOMMENDED_DICTIONARY_STRATEGY.name]:
-    if add_recommended_dictionary(arguments, fuzzer_name, fuzzer_path):
-      fuzzing_strategies.append(strategy.RECOMMENDED_DICTIONARY_STRATEGY.name)
+  if (strategy_pool.do_strategy(strategy.RECOMMENDED_DICTIONARY_STRATEGY) and
+      add_recommended_dictionary(arguments, fuzzer_name, fuzzer_path)):
+    fuzzing_strategies.append(strategy.RECOMMENDED_DICTIONARY_STRATEGY.name)
 
-  if strategy_pool[strategy.VALUE_PROFILE_STRATEGY.name]:
+  if strategy_pool.do_strategy(strategy.VALUE_PROFILE_STRATEGY):
     arguments.append(constants.VALUE_PROFILE_ARGUMENT)
     fuzzing_strategies.append(strategy.VALUE_PROFILE_STRATEGY.name)
 
-  if strategy_pool[strategy.FORK_STRATEGY.name]:
+  if strategy_pool.do_strategy(strategy.FORK_STRATEGY):
     max_fuzz_threads = environment.get_value('MAX_FUZZ_THREADS', 1)
     num_fuzz_processes = max(1, multiprocessing.cpu_count() // max_fuzz_threads)
     arguments.append('%s%d' % (constants.FORK_FLAG, num_fuzz_processes))
@@ -827,9 +831,7 @@ def main(argv):
         '%s_%d' % (strategy.FORK_STRATEGY.name, num_fuzz_processes))
 
   extra_env = {}
-  # TODO(metzman): Support Windows.
-  if (strategy_pool[strategy.MUTATOR_PLUGIN_STRATEGY.name] and
-      environment.platform() != 'WINDOWS' and
+  if (strategy_pool.do_strategy(strategy.MUTATOR_PLUGIN_STRATEGY) and
       use_mutator_plugin(target_name, extra_env, minijail_chroot)):
     fuzzing_strategies.append(strategy.MUTATOR_PLUGIN_STRATEGY.name)
 

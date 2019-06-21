@@ -21,8 +21,27 @@ from bot.fuzzers import engine_common
 from bot.fuzzers import strategy
 
 
-def choose_generator():
-  """Return whether to use radamsa, ml rnn, or no generator."""
+class StrategyPool(object):
+  """Object used to keep track of which strategies the launcher should attempt
+  to enable."""
+
+  def __init__(self):
+    """Empty set representing empty strategy pool."""
+    self.strategy_names = set()
+
+  def add_strategy(self, strategy_tuple):
+    """Add a strategy into our existing strategy pool."""
+    self.strategy_names.add(strategy_tuple.name)
+
+  def do_strategy(self, strategy_tuple):
+    """Boolean value representing whether or not a strategy is in our strategy
+    pool."""
+    return strategy_tuple.name in self.strategy_names
+
+
+def choose_generator(strategy_pool):
+  """Chooses whether to use radamsa, ml rnn, or no generator and updates the
+  strategy pool."""
 
   radamsa_prob = engine_common.get_strategy_probability(
       strategy.CORPUS_MUTATION_RADAMSA_STRATEGY.name,
@@ -32,51 +51,42 @@ def choose_generator():
       strategy.CORPUS_MUTATION_ML_RNN_STRATEGY.name,
       default=strategy.CORPUS_MUTATION_ML_RNN_STRATEGY.probability)
 
-  generators = {}
-
   if engine_common.decide_with_probability(radamsa_prob + ml_rnn_prob):
-    generators[strategy.CORPUS_MUTATION_RADAMSA_STRATEGY.name] = (
-        engine_common.decide_with_probability(
-            radamsa_prob / (radamsa_prob + ml_rnn_prob)))
-    generators[strategy.CORPUS_MUTATION_ML_RNN_STRATEGY.name] = (
-        not generators[strategy.CORPUS_MUTATION_RADAMSA_STRATEGY.name])
-  else:
-    generators[strategy.CORPUS_MUTATION_RADAMSA_STRATEGY.name] = False
-    generators[strategy.CORPUS_MUTATION_ML_RNN_STRATEGY.name] = False
-  return generators
+    if engine_common.decide_with_probability(
+        radamsa_prob / (radamsa_prob + ml_rnn_prob)):
+      strategy_pool.add_strategy(strategy.CORPUS_MUTATION_RADAMSA_STRATEGY)
+    else:
+      strategy_pool.add_strategy(strategy.CORPUS_MUTATION_ML_RNN_STRATEGY)
 
 
-def do_strategy(strategy_name, default_probability):
+def do_strategy(strategy_tuple):
   """Return whether or not to use a given strategy."""
   return engine_common.decide_with_probability(
-      engine_common.get_strategy_probability(
-          strategy_name, default=default_probability))
+      engine_common.get_strategy_probability(strategy_tuple.name,
+                                             strategy_tuple.probability))
 
 
 def generate_strategy_pool():
-  """Return dictionary representing a random selection of strategies
-  for launcher to consider."""
-  strategy_pool = {}
+  """Return a strategy pool representing a random selection of strategies for
+  launcher to consider."""
+  pool = StrategyPool()
 
-  # Decide whether or not to include radamsa, ml rnn, or no generator
-  strategy_pool.update(choose_generator())
+  # Decide whether to include radamsa, ml rnn, or no generator (mutually
+  # exclusive).
+  choose_generator(pool)
 
-  # Decide whether or not to include remaining strategies
-  strategy_pool[
-      strategy.CORPUS_SUBSET_STRATEGY.name] = engine_common.do_corpus_subset()
-  strategy_pool[strategy.RANDOM_MAX_LENGTH_STRATEGY.name] = do_strategy(
-      strategy.RANDOM_MAX_LENGTH_STRATEGY.name,
-      strategy.RANDOM_MAX_LENGTH_STRATEGY.probability)
-  strategy_pool[strategy.RECOMMENDED_DICTIONARY_STRATEGY.name] = do_strategy(
-      strategy.RECOMMENDED_DICTIONARY_STRATEGY.name,
-      strategy.RECOMMENDED_DICTIONARY_STRATEGY.probability)
-  strategy_pool[strategy.VALUE_PROFILE_STRATEGY.name] = do_strategy(
-      strategy.VALUE_PROFILE_STRATEGY.name,
-      strategy.VALUE_PROFILE_STRATEGY.probability)
-  strategy_pool[strategy.FORK_STRATEGY.name] = do_strategy(
-      strategy.FORK_STRATEGY.name, strategy.FORK_STRATEGY.probability)
-  strategy_pool[strategy.MUTATOR_PLUGIN_STRATEGY.name] = do_strategy(
-      strategy.MUTATOR_PLUGIN_STRATEGY.name,
-      strategy.MUTATOR_PLUGIN_STRATEGY.probability)
+  # Decide whether or not to include remaining strategies.
+  if engine_common.do_corpus_subset():
+    pool.add_strategy(strategy.CORPUS_SUBSET_STRATEGY)
+  if do_strategy(strategy.RANDOM_MAX_LENGTH_STRATEGY):
+    pool.add_strategy(strategy.RANDOM_MAX_LENGTH_STRATEGY)
+  if do_strategy(strategy.RECOMMENDED_DICTIONARY_STRATEGY):
+    pool.add_strategy(strategy.RECOMMENDED_DICTIONARY_STRATEGY)
+  if do_strategy(strategy.VALUE_PROFILE_STRATEGY):
+    pool.add_strategy(strategy.VALUE_PROFILE_STRATEGY)
+  if do_strategy(strategy.FORK_STRATEGY):
+    pool.add_strategy(strategy.FORK_STRATEGY)
+  if do_strategy(strategy.MUTATOR_PLUGIN_STRATEGY):
+    pool.add_strategy(strategy.MUTATOR_PLUGIN_STRATEGY)
 
-  return strategy_pool
+  return pool

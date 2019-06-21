@@ -28,6 +28,7 @@ from bot.fuzzers import libfuzzer
 from bot.fuzzers import strategy
 from bot.fuzzers import utils as fuzzer_utils
 from bot.fuzzers.libFuzzer import launcher
+from bot.fuzzers.libFuzzer import strategy_selection
 from build_management import build_manager
 from datastore import data_types
 from platforms import fuchsia
@@ -102,26 +103,15 @@ def run_launcher(*args):
   return mock_stdout.getvalue()
 
 
-def set_strategy_pool(corpus_subset=False,
-                      fork=False,
-                      ml_rnn=False,
-                      radamsa=False,
-                      max_len=False,
-                      recommended_dict=False,
-                      value_profile=False,
-                      mutator_plugin=False):
+def set_strategy_pool(strategies=None):
   """Helper method to create instances of strategy pools
   for patching use."""
-  strategy_pool = {
-      strategy.CORPUS_SUBSET_STRATEGY.name: corpus_subset,
-      strategy.FORK_STRATEGY.name: fork,
-      strategy.CORPUS_MUTATION_ML_RNN_STRATEGY.name: ml_rnn,
-      strategy.CORPUS_MUTATION_RADAMSA_STRATEGY.name: radamsa,
-      strategy.RANDOM_MAX_LENGTH_STRATEGY.name: max_len,
-      strategy.RECOMMENDED_DICTIONARY_STRATEGY.name: recommended_dict,
-      strategy.VALUE_PROFILE_STRATEGY.name: value_profile,
-      strategy.MUTATOR_PLUGIN_STRATEGY.name: mutator_plugin
-  }
+  strategy_pool = strategy_selection.StrategyPool()
+
+  if strategies is not None:
+    for strategy_tuple in strategies:
+      strategy_pool.add_strategy(strategy_tuple)
+
   return strategy_pool
 
 
@@ -186,7 +176,7 @@ class BaseLauncherTest(unittest.TestCase):
     plugin_archive_path = os.path.join(DATA_DIRECTORY, plugin_archive_name)
 
     self.mock.generate_strategy_pool.return_value = set_strategy_pool(
-        mutator_plugin=True)
+        [strategy.MUTATOR_PLUGIN_STRATEGY])
     self.mock._get_mutator_plugins_from_bucket.return_value = [  # pylint: disable=protected-access
         plugin_archive_name
     ]
@@ -288,7 +278,7 @@ class TestLauncher(BaseLauncherTest):
   def test_fuzz_no_crash(self, mock_get_timeout):
     """Tests fuzzing (no crash)."""
     self.mock.generate_strategy_pool.return_value = set_strategy_pool(
-        value_profile=True)
+        [strategy.VALUE_PROFILE_STRATEGY])
 
     mock_get_timeout.return_value = get_fuzz_timeout(5.0)
     testcase_path = setup_testcase_and_corpus('empty', 'corpus', fuzz=True)
@@ -333,7 +323,7 @@ class TestLauncher(BaseLauncherTest):
   def test_fuzz_from_subset(self, mock_get_timeout):
     """Tests fuzzing from corpus subset."""
     self.mock.generate_strategy_pool.return_value = set_strategy_pool(
-        corpus_subset=True)
+        [strategy.CORPUS_SUBSET_STRATEGY])
     mock_get_timeout.return_value = get_fuzz_timeout(5.0)
 
     testcase_path = setup_testcase_and_corpus(
@@ -423,7 +413,7 @@ class TestLauncher(BaseLauncherTest):
   def test_max_length_strategy_with_override(self, mock_get_timeout):
     """Tests max length strategy with override."""
     self.mock.generate_strategy_pool.return_value = set_strategy_pool(
-        max_len=True)
+        [strategy.RANDOM_MAX_LENGTH_STRATEGY])
     mock_get_timeout.return_value = get_fuzz_timeout(5.0)
     testcase_path = setup_testcase_and_corpus('empty', 'corpus', fuzz=True)
     output = run_launcher(testcase_path, 'always_crash_fuzzer', '-max_len=100')
@@ -440,7 +430,7 @@ class TestLauncher(BaseLauncherTest):
   def test_max_length_strategy_without_override(self, mock_get_timeout):
     """Tests max length strategy without override."""
     self.mock.generate_strategy_pool.return_value = set_strategy_pool(
-        max_len=True)
+        [strategy.RANDOM_MAX_LENGTH_STRATEGY])
     mock_get_timeout.return_value = get_fuzz_timeout(5.0)
     testcase_path = setup_testcase_and_corpus('empty', 'corpus', fuzz=True)
     output = run_launcher(testcase_path, 'always_crash_fuzzer')
@@ -562,7 +552,7 @@ class TestLauncherMinijail(BaseLauncherTest):
   def test_fuzz_from_subset(self, mock_get_timeout):
     """Tests fuzzing from corpus subset."""
     self.mock.generate_strategy_pool.return_value = set_strategy_pool(
-        corpus_subset=True, value_profile=True)
+        [strategy.CORPUS_SUBSET_STRATEGY, strategy.VALUE_PROFILE_STRATEGY])
 
     mock_get_timeout.return_value = get_fuzz_timeout(5.0)
     testcase_path = setup_testcase_and_corpus(
