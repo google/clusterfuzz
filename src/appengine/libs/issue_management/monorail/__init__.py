@@ -24,8 +24,6 @@ from libs.issue_management.monorail.issue import Issue as MonorailIssue
 from libs.issue_management.monorail.issue_tracker_manager import (
     IssueTrackerManager)
 
-# TODO(ochang): Clean up how we cache issue_tracker_managers.
-ISSUE_TRACKER_MANAGERS = {}
 ISSUE_TRACKER_URL = (
     'https://bugs.chromium.org/p/{project}/issues/detail?id={id}')
 ISSUE_TRACKER_SEARCH_URL = (
@@ -293,18 +291,13 @@ def _to_change_list(monorail_list):
   return change_list
 
 
-def _get_issue_tracker_manager_for_project(project_name, use_cache=False):
+def _get_issue_tracker_manager_for_project(project_name):
   """Return monorail issue tracker manager for the given project."""
   # If there is no issue tracker set, bail out.
   if not project_name or project_name == 'disabled':
     return None
 
-  if use_cache and project_name in ISSUE_TRACKER_MANAGERS:
-    return ISSUE_TRACKER_MANAGERS[project_name]
-
-  issue_tracker_manager = IssueTrackerManager(project_name=project_name)
-  ISSUE_TRACKER_MANAGERS[project_name] = issue_tracker_manager
-  return issue_tracker_manager
+  return IssueTrackerManager(project_name=project_name)
 
 
 def _get_search_text(keywords):
@@ -316,10 +309,9 @@ def _get_search_text(keywords):
   return search_text
 
 
-def get_issue_tracker(project_name, use_cache=False):
+def get_issue_tracker(project_name):
   """Get the issue tracker for the project name."""
-  itm = _get_issue_tracker_manager_for_project(
-      project_name, use_cache=use_cache)
+  itm = _get_issue_tracker_manager_for_project(project_name)
   if itm is None:
     return None
 

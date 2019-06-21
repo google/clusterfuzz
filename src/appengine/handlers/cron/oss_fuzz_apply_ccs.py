@@ -51,7 +51,7 @@ class Handler(base_handler.Handler):
 
     for testcase in get_open_testcases_with_bugs():
       issue_tracker = issue_tracker_utils.get_issue_tracker_for_testcase(
-          testcase, use_cache=True)
+          testcase)
       if not issue_tracker:
         logging.error('Failed to get issue tracker manager for %s',
                       testcase.key.id())
