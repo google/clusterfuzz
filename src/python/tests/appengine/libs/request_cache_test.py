@@ -72,10 +72,12 @@ class CacheTest(unittest.TestCase):
     c = CacheClass()
     self.assertEqual(2, c.foo(1))
     self.assertEqual(2, c.foo(1))
+    self.assertEqual(3, c.foo(2))
 
     self.assertListEqual([
         (1,),
         (1,),
+        (2,),
     ], c.called)
 
   def test_name_clash(self):
