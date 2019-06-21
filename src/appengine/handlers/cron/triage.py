@@ -276,7 +276,7 @@ class Handler(base_handler.Handler):
       # If this project does not have an associated issue tracker, we cannot
       # file this crash anywhere.
       issue_tracker = issue_tracker_utils.get_issue_tracker_for_testcase(
-          testcase, use_cache=True)
+          testcase)
       if not issue_tracker:
         continue
 

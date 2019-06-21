@@ -39,11 +39,22 @@ class FifoInMemory(object):
 
   def __init__(self, capacity):
     self.capacity = capacity
-    self.cache = collections.OrderedDict()
     self.lock = threading.Lock()
+    self._cache = None
+
+  @property
+  def cache(self):
+    """Get the cache backing. None may be returned."""
+    if self._cache is None:
+      self._cache = collections.OrderedDict()
+
+    return self._cache
 
   def put(self, key, value):
     """Put (key, value) into cache."""
+    if self.cache is None:
+      return
+
     # Lock to avoid race condition in popitem.
     self.lock.acquire()
 
@@ -56,6 +67,9 @@ class FifoInMemory(object):
 
   def get(self, key):
     """Get the value from cache."""
+    if self.cache is None:
+      return None
+
     return self.cache.get(key)
 
   def get_key(self, func, args, kwargs):

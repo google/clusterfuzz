@@ -130,7 +130,7 @@ def group_testcases():
             cached_issue_map[project_name][issue_id])
       else:
         issue_tracker = issue_tracker_utils.get_issue_tracker_for_testcase(
-            testcase, use_cache=True)
+            testcase)
         if not issue_tracker:
           continue
 
