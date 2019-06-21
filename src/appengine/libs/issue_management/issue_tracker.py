@@ -74,6 +74,11 @@ class LabelStore(object):
     self._added.clear()
     self._removed.clear()
 
+  def clear(self):
+    """Clear the store, and reset tracking."""
+    self.reset()
+    self._backing.clear()
+
   def get_by_prefix(self, prefix):
     """Get labels with the given prefix."""
     for item in self:

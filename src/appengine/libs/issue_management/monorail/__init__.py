@@ -309,7 +309,7 @@ def _get_search_text(keywords):
   return search_text
 
 
-def get_issue_tracker(project_name):
+def get_issue_tracker(project_name, config):  # pylint: disable=unused-argument
   """Get the issue tracker for the project name."""
   itm = _get_issue_tracker_manager_for_project(project_name)
   if itm is None:

@@ -59,7 +59,7 @@ def get_issue_tracker(project_name=None):
     raise ValueError('Invalid issue tracker type: ' +
                      issue_project_config['type'])
 
-  return constructor(project_name)
+  return constructor(project_name, issue_project_config)
 
 
 def get_issue_tracker_for_testcase(testcase):
