@@ -135,15 +135,16 @@ def impact_to_string(impact):
   return impact_map[impact]
 
 
-def get_impact_from_labels(labels_lowercase):
+def _get_impact_from_labels(labels):
   """Get the impact from the label list."""
-  if 'security_impact-stable' in labels_lowercase:
+  labels = [label.lower() for label in labels]
+  if 'security_impact-stable' in labels:
     return data_types.SecurityImpact.STABLE
-  elif 'security_impact-beta' in labels_lowercase:
+  elif 'security_impact-beta' in labels:
     return data_types.SecurityImpact.BETA
-  elif 'security_impact-head' in labels_lowercase:
+  elif 'security_impact-head' in labels:
     return data_types.SecurityImpact.HEAD
-  elif 'security_impact-none' in labels_lowercase:
+  elif 'security_impact-none' in labels:
     return data_types.SecurityImpact.NONE
   return data_types.SecurityImpact.MISSING
 
@@ -157,8 +158,7 @@ def update_issue_impact_labels(testcase, issue):
     # Component builds are not supported.
     return
 
-  existing_impact = get_impact_from_labels(
-      [label.lower() for label in issue.labels])
+  existing_impact = _get_impact_from_labels(issue.labels)
 
   if testcase.regression.startswith('0:'):
     # If the regression range starts from the start of time,
