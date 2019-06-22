@@ -154,10 +154,6 @@ def update_issue_impact_labels(testcase, issue):
   if testcase.one_time_crasher_flag:
     return
 
-  if data_handler.get_component_name(testcase.job_type):
-    # Component builds are not supported.
-    return
-
   existing_impact = _get_impact_from_labels(issue.labels)
 
   if testcase.regression.startswith('0:'):
