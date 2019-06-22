@@ -667,9 +667,11 @@ class UpdateImpactTest(unittest.TestCase):
     self.assertItemsEqual([], mock_issue.labels.added)
     self.assertItemsEqual([], mock_issue.labels.removed)
 
-  def test_component_dont_add_label(self):
-    """Test that we don't set labels for component builds."""
+  def test_component_add_label(self):
+    """Test that we set labels for component builds."""
     self.testcase.job_type = 'job'
+    self.testcase.impact_stable_version = 'Stable'
+    self.testcase.impact_beta_version = 'Beta'
     self.testcase.put()
 
     data_types.Job(
@@ -681,5 +683,5 @@ class UpdateImpactTest(unittest.TestCase):
     self.testcase.is_impact_set_flag = True
     mock_issue = self._make_mock_issue()
     issue_filer.update_issue_impact_labels(self.testcase, mock_issue)
-    self.assertItemsEqual([], mock_issue.labels.added)
+    self.assertItemsEqual(['Security_Impact-Stable'], mock_issue.labels.added)
     self.assertItemsEqual([], mock_issue.labels.removed)
