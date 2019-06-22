@@ -43,7 +43,7 @@ instrumented with a [sanitizer]. See the individual links for each sanitizer
   Uploading can be done via [gsutil tool](https://cloud.google.com/storage/docs/gsutil)
   or by using [signed URLs](https://cloud.google.com/storage/docs/access-control/signed-urls).
 * The archive name should be of `any-name-([0-9]+).zip` format, where `([0-9]+)`
-  stands for a revision number such as SVN commit position, a timestamp, or
+  stands for a revision number such as SVN commit position, a timestamp (e.g. `YYYYMMDDHHMM`), or
   another build number which **increases** with every build. Other than `zip`,
   we support
   [tar extensions](https://en.wikipedia.org/wiki/Tar_(computing)#Suffixes_for_compressed_files)
