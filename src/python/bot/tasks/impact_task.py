@@ -23,6 +23,7 @@ from builtins import object
 from datastore import data_handler
 from datastore import data_types
 from fuzzing import testcase_manager
+from metrics import logs
 from system import environment
 
 
@@ -118,6 +119,8 @@ def get_component_impacts_from_url(component_name,
   """Gets component impact string using the build information url."""
   start_revision, end_revision = get_start_and_end_revision(
       regression_range, job_type)
+  logs.log('Component impact calculation: start %s, end %s' %
+           (str(start_revision), str(end_revision)))
   if not end_revision:
     return Impacts()
 
@@ -130,14 +133,20 @@ def get_component_impacts_from_url(component_name,
     if not mapping:
       return Impacts()
     chromium_revision = mapping['revision']
+    logs.log('Component impact calculation: chromium revision %s' %
+             (chromium_revision))
     component_revision = get_component_information_by_name(
         chromium_revision, component_name)
     if not component_revision:
       return Impacts()
+    logs.log('Component impact calculation: component revision %s @ %s' %
+             (component_revision['url'], component_revision['rev']))
     branched_from = revisions.revision_to_branched_from(
         component_revision['url'], component_revision['rev'])
     if not branched_from:
       return Impacts()
+    logs.log('Component impact calculation: branched_from %s' %
+             (str(branched_from)))
     impact = get_impact({
         'revision': branched_from,
         'version': mapping['version']
@@ -150,9 +159,12 @@ def get_impacts_from_url(regression_range, job_type, platform=None):
   """Gets impact string using the build information url."""
   component_name = data_handler.get_component_name(job_type)
   if component_name:
+    logs.log('Impact: component is %s, regression range %s, job type %s' %
+             (component_name, regression_range, job_type))
     return get_component_impacts_from_url(component_name, regression_range,
                                           job_type, platform)
 
+  logs.log('No component name for impact task of job type %s' % (str(job_type)))
   start_revision, end_revision = get_start_and_end_revision(
       regression_range, job_type)
   if not end_revision:
@@ -258,6 +270,8 @@ def set_testcase_with_impacts(testcase, impacts):
 
 def execute_task(testcase_id, job_type):
   """Attempt to find if the testcase affects release branches on Chromium."""
+  logs.log('Starting impact task for %s, %s' %
+           (str(testcase_id), str(job_type)))
   # This shouldn't ever get scheduled, but check just in case.
   if not utils.is_chromium():
     return
@@ -296,6 +310,8 @@ def execute_task(testcase_id, job_type):
   # If we don't have a stable or beta build url pattern, we try to use build
   # information url to make a guess.
   if not build_manager.has_production_builds():
+    logs.log('No production builds for %s, will use regression range' %
+             (str(testcase_id)))
     if not testcase.regression:
       data_handler.update_testcase_comment(
           testcase, data_types.TaskState.FINISHED,
@@ -310,6 +326,8 @@ def execute_task(testcase_id, job_type):
                                          data_types.TaskState.FINISHED)
     return
 
+  logs.log('Using production builds to work out impact for %s' %
+           (str(testcase_id)))
   # Setup testcase and its dependencies.
   file_list, _, testcase_file_path = setup.setup_testcase(testcase)
   if not file_list:
