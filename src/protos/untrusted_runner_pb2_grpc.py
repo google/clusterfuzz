@@ -48,11 +48,6 @@ class UntrustedRunnerStub(object):
         request_serializer=untrusted__runner__pb2.SetupProductionBuildRequest.SerializeToString,
         response_deserializer=untrusted__runner__pb2.SetupBuildResponse.FromString,
         )
-    self.SetupAuxiliaryBuild = channel.unary_unary(
-        '/UntrustedRunner/SetupAuxiliaryBuild',
-        request_serializer=untrusted__runner__pb2.SetupAuxiliaryBuildRequest.SerializeToString,
-        response_deserializer=untrusted__runner__pb2.SetupBuildResponse.FromString,
-        )
     self.RunProcess = channel.unary_unary(
         '/UntrustedRunner/RunProcess',
         request_serializer=untrusted__runner__pb2.RunProcessRequest.SerializeToString,
@@ -157,13 +152,6 @@ class UntrustedRunnerServicer(object):
 
   def SetupProductionBuild(self, request, context):
     """Set up production build.
-    """
-    context.set_code(grpc.StatusCode.UNIMPLEMENTED)
-    context.set_details('Method not implemented!')
-    raise NotImplementedError('Method not implemented!')
-
-  def SetupAuxiliaryBuild(self, request, context):
-    """Set up auxiliary build.
     """
     context.set_code(grpc.StatusCode.UNIMPLEMENTED)
     context.set_details('Method not implemented!')
@@ -295,11 +283,6 @@ def add_UntrustedRunnerServicer_to_server(servicer, server):
       'SetupProductionBuild': grpc.unary_unary_rpc_method_handler(
           servicer.SetupProductionBuild,
           request_deserializer=untrusted__runner__pb2.SetupProductionBuildRequest.FromString,
-          response_serializer=untrusted__runner__pb2.SetupBuildResponse.SerializeToString,
-      ),
-      'SetupAuxiliaryBuild': grpc.unary_unary_rpc_method_handler(
-          servicer.SetupAuxiliaryBuild,
-          request_deserializer=untrusted__runner__pb2.SetupAuxiliaryBuildRequest.FromString,
           response_serializer=untrusted__runner__pb2.SetupBuildResponse.SerializeToString,
       ),
       'RunProcess': grpc.unary_unary_rpc_method_handler(

@@ -1242,20 +1242,22 @@ def process_crashes(crashes, context):
   return new_crash_count, known_crash_count, processed_groups
 
 
-def setup_auxiliary_build():
+def setup_auxiliary_build(build_prefix):
   """Sets up auxiliary builds when necessary (e.g. DFSan build)."""
-  build_bucket_path = environment.get_value('DATAFLOW_BUILD_BUCKET_PATH')
-  if not build_bucket_path:
+  bucket_path = environment.get_value('%s_BUILD_BUCKET_PATH' % build_prefix)
+  if not bucket_path:
+    logs.log('Skipping auxiliary build setup, "%s_BUILD_BUCKET_PATH" is not '
+             'specified.' % build_prefix)
     return None
 
-  build_urls = build_manager.get_build_urls_list(build_bucket_path)
+  build_urls = build_manager.get_build_urls_list(bucket_path)
   if not build_urls:
-    logs.log_error('Error getting list of auxiliary build urls from %s.' %
-                   build_bucket_path)
+    logs.log_error(
+        'Error getting list of auxiliary build urls from %s.' % bucket_path)
     return None
 
   revision_pattern = revisions.revision_pattern_from_build_bucket_path(
-      build_bucket_path)
+      bucket_path)
 
   # Always use the latest revision, as we do not have exact matching between
   # fuzzing and auxiliary builds as of now. Auxiliary builds are not used
@@ -1274,21 +1276,8 @@ def setup_auxiliary_build():
     logs.log_error('Unable to find a matching revision.')
     return None
 
-  build_dir = build_manager.get_base_build_dir(build_bucket_path)
-  shell.create_directory(build_dir, create_intermediates=True)
-
-  build_class = build_manager.AuxiliaryBuild
-  if environment.is_trusted_host():
-    from bot.untrusted_runner import build_setup_host
-    build_class = build_setup_host.RemoteAuxiliaryBuild
-
-  build = build_class(build_dir, revision, build_url)
-
-  if build.setup():
-    environment.set_value('DATAFLOW_BUILD_DIR', build.build_dir)
-    return build
-
-  return None
+  return build_manager.setup_regular_build(
+      revision, bucket_path, build_prefix, is_auxiliary_build=True)
 
 
 def execute_task(fuzzer_name, job_type):
@@ -1320,13 +1309,10 @@ def execute_task(fuzzer_name, job_type):
   # Set up a custom or regular build based on revision. By default, fuzzing
   # is done on trunk build (using revision=None). Otherwise, a job definition
   # can provide a revision to use via |APP_REVISION|.
-  build = build_manager.setup_build(
-      revision=environment.get_value('APP_REVISION'))
-
-  if build:
+  if build_manager.setup_build(environment.get_value('APP_REVISION')):
     # Some fuzzing jobs may use auxiliary builds, such as DFSan instrumented
     # builds accompanying libFuzzer builds to enable DFT-based fuzzing.
-    setup_auxiliary_build()
+    setup_auxiliary_build('DATAFLOW')
 
   # Check if we have an application path. If not, our build failed
   # to setup correctly.

@@ -33,7 +33,7 @@ DESCRIPTOR = _descriptor.FileDescriptor(
   package='',
   syntax='proto2',
   serialized_options=_b('Z#clusterfuzz/protos/untrusted_runner'),
-  serialized_pb=_b('\n\x16untrusted_runner.proto\"\x12\n\x10GetStatusRequest\"K\n\x11GetStatusResponse\x12\x10\n\x08revision\x18\x01 \x01(\t\x12\x12\n\nstart_time\x18\x02 \x01(\x04\x12\x10\n\x08\x62ot_name\x18\x03 \x01(\t\"o\n\rProcessResult\x12\x0f\n\x07\x63ommand\x18\x01 \x03(\t\x12\x13\n\x0breturn_code\x18\x02 \x01(\x05\x12\x0e\n\x06output\x18\x03 \x01(\x0c\x12\x15\n\rtime_executed\x18\x04 \x01(\x01\x12\x11\n\ttimed_out\x18\x05 \x01(\x08\"\x9a\x01\n\x12SetupBuildResponse\x12\x0e\n\x06result\x18\x01 \x01(\x08\x12\x10\n\x08\x61pp_path\x18\x02 \x01(\t\x12\x16\n\x0e\x61pp_path_debug\x18\x03 \x01(\t\x12\x0f\n\x07\x61pp_dir\x18\x04 \x01(\t\x12\x11\n\tbuild_dir\x18\x05 \x01(\t\x12\x11\n\tbuild_url\x18\x06 \x01(\t\x12\x13\n\x0b\x66uzz_target\x18\x07 \x01(\t\"\xeb\x01\n\x18SetupRegularBuildRequest\x12\x16\n\x0e\x62\x61se_build_dir\x18\x01 \x01(\t\x12\x10\n\x08revision\x18\x02 \x01(\x03\x12\x11\n\tbuild_url\x18\x03 \x01(\t\x12\x16\n\x0e\x62uild_dir_name\x18\x04 \x01(\t\x12\x44\n\x0etarget_weights\x18\x05 \x03(\x0b\x32,.SetupRegularBuildRequest.TargetWeightsEntry\x1a\x34\n\x12TargetWeightsEntry\x12\x0b\n\x03key\x18\x01 \x01(\t\x12\r\n\x05value\x18\x02 \x01(\x01:\x02\x38\x01\"{\n\x1bSetupSymbolizedBuildRequest\x12\x16\n\x0e\x62\x61se_build_dir\x18\x01 \x01(\t\x12\x10\n\x08revision\x18\x02 \x01(\x03\x12\x19\n\x11release_build_url\x18\x03 \x01(\t\x12\x17\n\x0f\x64\x65\x62ug_build_url\x18\x04 \x01(\t\"m\n\x1bSetupProductionBuildRequest\x12\x16\n\x0e\x62\x61se_build_dir\x18\x01 \x01(\t\x12\x0f\n\x07version\x18\x02 \x01(\t\x12\x11\n\tbuild_url\x18\x03 \x01(\t\x12\x12\n\nbuild_type\x18\x04 \x01(\t\"q\n\x1aSetupAuxiliaryBuildRequest\x12\x16\n\x0e\x62\x61se_build_dir\x18\x01 \x01(\t\x12\x10\n\x08revision\x18\x02 \x01(\x03\x12\x11\n\tbuild_url\x18\x03 \x01(\t\x12\x16\n\x0e\x62uild_dir_name\x18\x04 \x01(\t\"\x90\x02\n\x11RunProcessRequest\x12\x0f\n\x07\x63mdline\x18\x01 \x01(\t\x12!\n\x19\x63urrent_working_directory\x18\x02 \x01(\t\x12\x0f\n\x07timeout\x18\x03 \x01(\x01\x12\x12\n\nneed_shell\x18\x04 \x01(\x08\x12\x10\n\x08gestures\x18\x05 \x03(\t\x12\x31\n\x08\x65nv_copy\x18\x06 \x03(\x0b\x32\x1f.RunProcessRequest.EnvCopyEntry\x12\x14\n\x0ctestcase_run\x18\x07 \x01(\x08\x12\x17\n\x0fignore_children\x18\x08 \x01(\x08\x1a.\n\x0c\x45nvCopyEntry\x12\x0b\n\x03key\x18\x01 \x01(\t\x12\r\n\x05value\x18\x02 \x01(\t:\x02\x38\x01\"Q\n\x12RunProcessResponse\x12\x13\n\x0breturn_code\x18\x01 \x01(\x05\x12\x16\n\x0e\x65xecution_time\x18\x02 \x01(\x01\x12\x0e\n\x06output\x18\x03 \x01(\x0c\"\xb5\x01\n\tPopenArgs\x12\x0f\n\x07\x62ufsize\x18\x01 \x01(\x05\x12\x12\n\nexecutable\x18\x02 \x01(\t\x12\r\n\x05shell\x18\x03 \x01(\x08\x12\x0b\n\x03\x63wd\x18\x04 \x01(\t\x12 \n\x03\x65nv\x18\x05 \x03(\x0b\x32\x13.PopenArgs.EnvEntry\x12\x19\n\nenv_is_set\x18\x06 \x01(\x08:\x05\x66\x61lse\x1a*\n\x08\x45nvEntry\x12\x0b\n\x03key\x18\x01 \x01(\t\x12\r\n\x05value\x18\x02 \x01(\t:\x02\x38\x01\"\xf4\x01\n\x11RunAndWaitRequest\x12\x17\n\x0f\x65xecutable_path\x18\x01 \x01(\t\x12\x14\n\x0c\x64\x65\x66\x61ult_args\x18\x02 \x03(\t\x12\x17\n\x0f\x61\x64\x64itional_args\x18\x03 \x03(\t\x12\x0f\n\x07timeout\x18\x04 \x01(\x01\x12\x1d\n\x15terminate_before_kill\x18\x05 \x01(\x08\x12\x1b\n\x13terminate_wait_time\x18\x06 \x01(\x01\x12\x12\n\ninput_data\x18\x07 \x01(\x0c\x12\x1e\n\npopen_args\x18\x08 \x01(\x0b\x32\n.PopenArgs\x12\x16\n\x0emax_stdout_len\x18\t \x01(\r\"4\n\x12RunAndWaitResponse\x12\x1e\n\x06result\x18\x01 \x01(\x0b\x32\x0e.ProcessResult\"(\n\x14\x46indBuildFileRequest\x12\x10\n\x08\x66ilename\x18\x01 \x01(\t\"9\n\x15\x46indBuildFileResponse\x12\r\n\x05\x66ound\x18\x01 \x01(\x08\x12\x11\n\tfile_path\x18\x02 \x01(\t\"D\n\x16\x43reateDirectoryRequest\x12\x0c\n\x04path\x18\x01 \x01(\t\x12\x1c\n\x14\x63reate_intermediates\x18\x02 \x01(\x08\")\n\x17\x43reateDirectoryResponse\x12\x0e\n\x06result\x18\x01 \x01(\x08\"8\n\x16RemoveDirectoryRequest\x12\x0c\n\x04path\x18\x01 \x01(\t\x12\x10\n\x08recreate\x18\x02 \x01(\x08\")\n\x17RemoveDirectoryResponse\x12\x0e\n\x06result\x18\x01 \x01(\x08\"\x19\n\tFileChunk\x12\x0c\n\x04\x64\x61ta\x18\x01 \x01(\x0c\"$\n\x12\x43opyFileToResponse\x12\x0e\n\x06result\x18\x01 \x01(\x08\"#\n\x13\x43opyFileFromRequest\x12\x0c\n\x04path\x18\x01 \x01(\t\"w\n\x18UpdateEnvironmentRequest\x12/\n\x03\x65nv\x18\x01 \x03(\x0b\x32\".UpdateEnvironmentRequest.EnvEntry\x1a*\n\x08\x45nvEntry\x12\x0b\n\x03key\x18\x01 \x01(\t\x12\r\n\x05value\x18\x02 \x01(\t:\x02\x38\x01\"\x1b\n\x19UpdateEnvironmentResponse\"\x15\n\x13UpdateSourceRequest\"\x16\n\x14UpdateSourceResponse\"a\n\x1aSymbolizeStacktraceRequest\x12%\n\x1dunsymbolized_crash_stacktrace\x18\x01 \x01(\x0c\x12\x1c\n\x14\x65nable_inline_frames\x18\x02 \x01(\x08\"<\n\x1bSymbolizeStacktraceResponse\x12\x1d\n\x15symbolized_stacktrace\x18\x01 \x01(\t\"3\n\x10ListFilesRequest\x12\x0c\n\x04path\x18\x01 \x01(\t\x12\x11\n\trecursive\x18\x02 \x01(\x08\"\'\n\x11ListFilesResponse\x12\x12\n\nfile_paths\x18\x01 \x03(\t\"%\n\x15GetFuzzTargetsRequest\x12\x0c\n\x04path\x18\x01 \x01(\t\"3\n\x16GetFuzzTargetsResponse\x12\x19\n\x11\x66uzz_target_paths\x18\x01 \x03(\t\"\x91\x01\n\x0b\x43orpusCrash\x12\x13\n\x0b\x63rash_state\x18\x01 \x01(\t\x12\x12\n\ncrash_type\x18\x02 \x01(\t\x12\x15\n\rcrash_address\x18\x03 \x01(\t\x12\x18\n\x10\x63rash_stacktrace\x18\x04 \x01(\x0c\x12\x11\n\tunit_path\x18\x05 \x01(\t\x12\x15\n\rsecurity_flag\x18\x06 \x01(\x08\"\xd8\x01\n\x0c\x43overageInfo\x12\x19\n\x11\x63orpus_size_units\x18\x05 \x01(\x03\x12\x19\n\x11\x63orpus_size_bytes\x18\x06 \x01(\x03\x12\x17\n\x0f\x63orpus_location\x18\x07 \x01(\t\x12\x1e\n\x16\x63orpus_backup_location\x18\x08 \x01(\t\x12\x1d\n\x15quarantine_size_units\x18\t \x01(\x03\x12\x1d\n\x15quarantine_size_bytes\x18\n \x01(\x03\x12\x1b\n\x13quarantine_location\x18\x0b \x01(\t\"p\n\x14\x43rossPollinateFuzzer\x12 \n\x0b\x66uzz_target\x18\x01 \x01(\x0b\x32\x0b.FuzzTarget\x12\x1a\n\x12\x62\x61\x63kup_bucket_name\x18\x02 \x01(\t\x12\x1a\n\x12\x63orpus_engine_name\x18\x03 \x01(\t\"\x9f\x01\n\x12PruneCorpusRequest\x12 \n\x0b\x66uzz_target\x18\x01 \x01(\x0b\x32\x0b.FuzzTarget\x12\x36\n\x17\x63ross_pollinate_fuzzers\x18\x02 \x03(\x0b\x32\x15.CrossPollinateFuzzer\x12\x1d\n\x15last_execution_failed\x18\x04 \x01(\x08\x12\x10\n\x08revision\x18\x05 \x01(\x03\"\x88\x01\n\x13PruneCorpusResponse\x12$\n\rcoverage_info\x18\x01 \x01(\x0b\x32\r.CoverageInfo\x12\x1d\n\x07\x63rashes\x18\x02 \x03(\x0b\x32\x0c.CorpusCrash\x12\x1a\n\x12\x66uzzer_binary_name\x18\x03 \x01(\t\x12\x10\n\x08revision\x18\x04 \x01(\x03\"\x1b\n\x0bStatRequest\x12\x0c\n\x04path\x18\x01 \x01(\t\"v\n\x0cStatResponse\x12\x0e\n\x06result\x18\x01 \x01(\x08\x12\x0f\n\x07st_mode\x18\x02 \x01(\r\x12\x0f\n\x07st_size\x18\x03 \x01(\x04\x12\x10\n\x08st_atime\x18\x05 \x01(\x01\x12\x10\n\x08st_mtime\x18\x06 \x01(\x01\x12\x10\n\x08st_ctime\x18\x07 \x01(\x01\"+\n)TerminateStaleApplicationInstancesRequest\",\n*TerminateStaleApplicationInstancesResponse\"\x19\n\x17ResetEnvironmentRequest\"\x1a\n\x18ResetEnvironmentResponse\"=\n\nFuzzTarget\x12\x0e\n\x06\x65ngine\x18\x01 \x01(\t\x12\x0f\n\x07project\x18\x02 \x01(\t\x12\x0e\n\x06\x62inary\x18\x03 \x01(\t2\xc1\n\n\x0fUntrustedRunner\x12\x32\n\tGetStatus\x12\x11.GetStatusRequest\x1a\x12.GetStatusResponse\x12\x43\n\x11SetupRegularBuild\x12\x19.SetupRegularBuildRequest\x1a\x13.SetupBuildResponse\x12I\n\x14SetupSymbolizedBuild\x12\x1c.SetupSymbolizedBuildRequest\x1a\x13.SetupBuildResponse\x12I\n\x14SetupProductionBuild\x12\x1c.SetupProductionBuildRequest\x1a\x13.SetupBuildResponse\x12G\n\x13SetupAuxiliaryBuild\x12\x1b.SetupAuxiliaryBuildRequest\x1a\x13.SetupBuildResponse\x12\x35\n\nRunProcess\x12\x12.RunProcessRequest\x1a\x13.RunProcessResponse\x12\x35\n\nRunAndWait\x12\x12.RunAndWaitRequest\x1a\x13.RunAndWaitResponse\x12\x44\n\x0f\x43reateDirectory\x12\x17.CreateDirectoryRequest\x1a\x18.CreateDirectoryResponse\x12\x44\n\x0fRemoveDirectory\x12\x17.RemoveDirectoryRequest\x1a\x18.RemoveDirectoryResponse\x12\x32\n\tListFiles\x12\x11.ListFilesRequest\x1a\x12.ListFilesResponse\x12/\n\nCopyFileTo\x12\n.FileChunk\x1a\x13.CopyFileToResponse(\x01\x12\x32\n\x0c\x43opyFileFrom\x12\x14.CopyFileFromRequest\x1a\n.FileChunk0\x01\x12#\n\x04Stat\x12\x0c.StatRequest\x1a\r.StatResponse\x12J\n\x11UpdateEnvironment\x12\x19.UpdateEnvironmentRequest\x1a\x1a.UpdateEnvironmentResponse\x12G\n\x10ResetEnvironment\x12\x18.ResetEnvironmentRequest\x1a\x19.ResetEnvironmentResponse\x12;\n\x0cUpdateSource\x12\x14.UpdateSourceRequest\x1a\x15.UpdateSourceResponse\x12P\n\x13SymbolizeStacktrace\x12\x1b.SymbolizeStacktraceRequest\x1a\x1c.SymbolizeStacktraceResponse\x12}\n\"TerminateStaleApplicationInstances\x12*.TerminateStaleApplicationInstancesRequest\x1a+.TerminateStaleApplicationInstancesResponse\x12\x41\n\x0eGetFuzzTargets\x12\x16.GetFuzzTargetsRequest\x1a\x17.GetFuzzTargetsResponse\x12\x38\n\x0bPruneCorpus\x12\x13.PruneCorpusRequest\x1a\x14.PruneCorpusResponseB%Z#clusterfuzz/protos/untrusted_runner')
+  serialized_pb=_b('\n\x16untrusted_runner.proto\"\x12\n\x10GetStatusRequest\"K\n\x11GetStatusResponse\x12\x10\n\x08revision\x18\x01 \x01(\t\x12\x12\n\nstart_time\x18\x02 \x01(\x04\x12\x10\n\x08\x62ot_name\x18\x03 \x01(\t\"o\n\rProcessResult\x12\x0f\n\x07\x63ommand\x18\x01 \x03(\t\x12\x13\n\x0breturn_code\x18\x02 \x01(\x05\x12\x0e\n\x06output\x18\x03 \x01(\x0c\x12\x15\n\rtime_executed\x18\x04 \x01(\x01\x12\x11\n\ttimed_out\x18\x05 \x01(\x08\"\x9a\x01\n\x12SetupBuildResponse\x12\x0e\n\x06result\x18\x01 \x01(\x08\x12\x10\n\x08\x61pp_path\x18\x02 \x01(\t\x12\x16\n\x0e\x61pp_path_debug\x18\x03 \x01(\t\x12\x0f\n\x07\x61pp_dir\x18\x04 \x01(\t\x12\x11\n\tbuild_dir\x18\x05 \x01(\t\x12\x11\n\tbuild_url\x18\x06 \x01(\t\x12\x13\n\x0b\x66uzz_target\x18\x07 \x01(\t\"\x9d\x02\n\x18SetupRegularBuildRequest\x12\x16\n\x0e\x62\x61se_build_dir\x18\x01 \x01(\t\x12\x10\n\x08revision\x18\x02 \x01(\x03\x12\x11\n\tbuild_url\x18\x03 \x01(\t\x12\x16\n\x0e\x62uild_dir_name\x18\x04 \x01(\t\x12\x44\n\x0etarget_weights\x18\x05 \x03(\x0b\x32,.SetupRegularBuildRequest.TargetWeightsEntry\x12\x14\n\x0c\x62uild_prefix\x18\x06 \x01(\t\x12\x1a\n\x12is_auxiliary_build\x18\x07 \x01(\x08\x1a\x34\n\x12TargetWeightsEntry\x12\x0b\n\x03key\x18\x01 \x01(\t\x12\r\n\x05value\x18\x02 \x01(\x01:\x02\x38\x01\"{\n\x1bSetupSymbolizedBuildRequest\x12\x16\n\x0e\x62\x61se_build_dir\x18\x01 \x01(\t\x12\x10\n\x08revision\x18\x02 \x01(\x03\x12\x19\n\x11release_build_url\x18\x03 \x01(\t\x12\x17\n\x0f\x64\x65\x62ug_build_url\x18\x04 \x01(\t\"m\n\x1bSetupProductionBuildRequest\x12\x16\n\x0e\x62\x61se_build_dir\x18\x01 \x01(\t\x12\x0f\n\x07version\x18\x02 \x01(\t\x12\x11\n\tbuild_url\x18\x03 \x01(\t\x12\x12\n\nbuild_type\x18\x04 \x01(\t\"\x90\x02\n\x11RunProcessRequest\x12\x0f\n\x07\x63mdline\x18\x01 \x01(\t\x12!\n\x19\x63urrent_working_directory\x18\x02 \x01(\t\x12\x0f\n\x07timeout\x18\x03 \x01(\x01\x12\x12\n\nneed_shell\x18\x04 \x01(\x08\x12\x10\n\x08gestures\x18\x05 \x03(\t\x12\x31\n\x08\x65nv_copy\x18\x06 \x03(\x0b\x32\x1f.RunProcessRequest.EnvCopyEntry\x12\x14\n\x0ctestcase_run\x18\x07 \x01(\x08\x12\x17\n\x0fignore_children\x18\x08 \x01(\x08\x1a.\n\x0c\x45nvCopyEntry\x12\x0b\n\x03key\x18\x01 \x01(\t\x12\r\n\x05value\x18\x02 \x01(\t:\x02\x38\x01\"Q\n\x12RunProcessResponse\x12\x13\n\x0breturn_code\x18\x01 \x01(\x05\x12\x16\n\x0e\x65xecution_time\x18\x02 \x01(\x01\x12\x0e\n\x06output\x18\x03 \x01(\x0c\"\xb5\x01\n\tPopenArgs\x12\x0f\n\x07\x62ufsize\x18\x01 \x01(\x05\x12\x12\n\nexecutable\x18\x02 \x01(\t\x12\r\n\x05shell\x18\x03 \x01(\x08\x12\x0b\n\x03\x63wd\x18\x04 \x01(\t\x12 \n\x03\x65nv\x18\x05 \x03(\x0b\x32\x13.PopenArgs.EnvEntry\x12\x19\n\nenv_is_set\x18\x06 \x01(\x08:\x05\x66\x61lse\x1a*\n\x08\x45nvEntry\x12\x0b\n\x03key\x18\x01 \x01(\t\x12\r\n\x05value\x18\x02 \x01(\t:\x02\x38\x01\"\xf4\x01\n\x11RunAndWaitRequest\x12\x17\n\x0f\x65xecutable_path\x18\x01 \x01(\t\x12\x14\n\x0c\x64\x65\x66\x61ult_args\x18\x02 \x03(\t\x12\x17\n\x0f\x61\x64\x64itional_args\x18\x03 \x03(\t\x12\x0f\n\x07timeout\x18\x04 \x01(\x01\x12\x1d\n\x15terminate_before_kill\x18\x05 \x01(\x08\x12\x1b\n\x13terminate_wait_time\x18\x06 \x01(\x01\x12\x12\n\ninput_data\x18\x07 \x01(\x0c\x12\x1e\n\npopen_args\x18\x08 \x01(\x0b\x32\n.PopenArgs\x12\x16\n\x0emax_stdout_len\x18\t \x01(\r\"4\n\x12RunAndWaitResponse\x12\x1e\n\x06result\x18\x01 \x01(\x0b\x32\x0e.ProcessResult\"(\n\x14\x46indBuildFileRequest\x12\x10\n\x08\x66ilename\x18\x01 \x01(\t\"9\n\x15\x46indBuildFileResponse\x12\r\n\x05\x66ound\x18\x01 \x01(\x08\x12\x11\n\tfile_path\x18\x02 \x01(\t\"D\n\x16\x43reateDirectoryRequest\x12\x0c\n\x04path\x18\x01 \x01(\t\x12\x1c\n\x14\x63reate_intermediates\x18\x02 \x01(\x08\")\n\x17\x43reateDirectoryResponse\x12\x0e\n\x06result\x18\x01 \x01(\x08\"8\n\x16RemoveDirectoryRequest\x12\x0c\n\x04path\x18\x01 \x01(\t\x12\x10\n\x08recreate\x18\x02 \x01(\x08\")\n\x17RemoveDirectoryResponse\x12\x0e\n\x06result\x18\x01 \x01(\x08\"\x19\n\tFileChunk\x12\x0c\n\x04\x64\x61ta\x18\x01 \x01(\x0c\"$\n\x12\x43opyFileToResponse\x12\x0e\n\x06result\x18\x01 \x01(\x08\"#\n\x13\x43opyFileFromRequest\x12\x0c\n\x04path\x18\x01 \x01(\t\"w\n\x18UpdateEnvironmentRequest\x12/\n\x03\x65nv\x18\x01 \x03(\x0b\x32\".UpdateEnvironmentRequest.EnvEntry\x1a*\n\x08\x45nvEntry\x12\x0b\n\x03key\x18\x01 \x01(\t\x12\r\n\x05value\x18\x02 \x01(\t:\x02\x38\x01\"\x1b\n\x19UpdateEnvironmentResponse\"\x15\n\x13UpdateSourceRequest\"\x16\n\x14UpdateSourceResponse\"a\n\x1aSymbolizeStacktraceRequest\x12%\n\x1dunsymbolized_crash_stacktrace\x18\x01 \x01(\x0c\x12\x1c\n\x14\x65nable_inline_frames\x18\x02 \x01(\x08\"<\n\x1bSymbolizeStacktraceResponse\x12\x1d\n\x15symbolized_stacktrace\x18\x01 \x01(\t\"3\n\x10ListFilesRequest\x12\x0c\n\x04path\x18\x01 \x01(\t\x12\x11\n\trecursive\x18\x02 \x01(\x08\"\'\n\x11ListFilesResponse\x12\x12\n\nfile_paths\x18\x01 \x03(\t\"%\n\x15GetFuzzTargetsRequest\x12\x0c\n\x04path\x18\x01 \x01(\t\"3\n\x16GetFuzzTargetsResponse\x12\x19\n\x11\x66uzz_target_paths\x18\x01 \x03(\t\"\x91\x01\n\x0b\x43orpusCrash\x12\x13\n\x0b\x63rash_state\x18\x01 \x01(\t\x12\x12\n\ncrash_type\x18\x02 \x01(\t\x12\x15\n\rcrash_address\x18\x03 \x01(\t\x12\x18\n\x10\x63rash_stacktrace\x18\x04 \x01(\x0c\x12\x11\n\tunit_path\x18\x05 \x01(\t\x12\x15\n\rsecurity_flag\x18\x06 \x01(\x08\"\xd8\x01\n\x0c\x43overageInfo\x12\x19\n\x11\x63orpus_size_units\x18\x05 \x01(\x03\x12\x19\n\x11\x63orpus_size_bytes\x18\x06 \x01(\x03\x12\x17\n\x0f\x63orpus_location\x18\x07 \x01(\t\x12\x1e\n\x16\x63orpus_backup_location\x18\x08 \x01(\t\x12\x1d\n\x15quarantine_size_units\x18\t \x01(\x03\x12\x1d\n\x15quarantine_size_bytes\x18\n \x01(\x03\x12\x1b\n\x13quarantine_location\x18\x0b \x01(\t\"p\n\x14\x43rossPollinateFuzzer\x12 \n\x0b\x66uzz_target\x18\x01 \x01(\x0b\x32\x0b.FuzzTarget\x12\x1a\n\x12\x62\x61\x63kup_bucket_name\x18\x02 \x01(\t\x12\x1a\n\x12\x63orpus_engine_name\x18\x03 \x01(\t\"\x9f\x01\n\x12PruneCorpusRequest\x12 \n\x0b\x66uzz_target\x18\x01 \x01(\x0b\x32\x0b.FuzzTarget\x12\x36\n\x17\x63ross_pollinate_fuzzers\x18\x02 \x03(\x0b\x32\x15.CrossPollinateFuzzer\x12\x1d\n\x15last_execution_failed\x18\x04 \x01(\x08\x12\x10\n\x08revision\x18\x05 \x01(\x03\"\x88\x01\n\x13PruneCorpusResponse\x12$\n\rcoverage_info\x18\x01 \x01(\x0b\x32\r.CoverageInfo\x12\x1d\n\x07\x63rashes\x18\x02 \x03(\x0b\x32\x0c.CorpusCrash\x12\x1a\n\x12\x66uzzer_binary_name\x18\x03 \x01(\t\x12\x10\n\x08revision\x18\x04 \x01(\x03\"\x1b\n\x0bStatRequest\x12\x0c\n\x04path\x18\x01 \x01(\t\"v\n\x0cStatResponse\x12\x0e\n\x06result\x18\x01 \x01(\x08\x12\x0f\n\x07st_mode\x18\x02 \x01(\r\x12\x0f\n\x07st_size\x18\x03 \x01(\x04\x12\x10\n\x08st_atime\x18\x05 \x01(\x01\x12\x10\n\x08st_mtime\x18\x06 \x01(\x01\x12\x10\n\x08st_ctime\x18\x07 \x01(\x01\"+\n)TerminateStaleApplicationInstancesRequest\",\n*TerminateStaleApplicationInstancesResponse\"\x19\n\x17ResetEnvironmentRequest\"\x1a\n\x18ResetEnvironmentResponse\"=\n\nFuzzTarget\x12\x0e\n\x06\x65ngine\x18\x01 \x01(\t\x12\x0f\n\x07project\x18\x02 \x01(\t\x12\x0e\n\x06\x62inary\x18\x03 \x01(\t2\xf8\t\n\x0fUntrustedRunner\x12\x32\n\tGetStatus\x12\x11.GetStatusRequest\x1a\x12.GetStatusResponse\x12\x43\n\x11SetupRegularBuild\x12\x19.SetupRegularBuildRequest\x1a\x13.SetupBuildResponse\x12I\n\x14SetupSymbolizedBuild\x12\x1c.SetupSymbolizedBuildRequest\x1a\x13.SetupBuildResponse\x12I\n\x14SetupProductionBuild\x12\x1c.SetupProductionBuildRequest\x1a\x13.SetupBuildResponse\x12\x35\n\nRunProcess\x12\x12.RunProcessRequest\x1a\x13.RunProcessResponse\x12\x35\n\nRunAndWait\x12\x12.RunAndWaitRequest\x1a\x13.RunAndWaitResponse\x12\x44\n\x0f\x43reateDirectory\x12\x17.CreateDirectoryRequest\x1a\x18.CreateDirectoryResponse\x12\x44\n\x0fRemoveDirectory\x12\x17.RemoveDirectoryRequest\x1a\x18.RemoveDirectoryResponse\x12\x32\n\tListFiles\x12\x11.ListFilesRequest\x1a\x12.ListFilesResponse\x12/\n\nCopyFileTo\x12\n.FileChunk\x1a\x13.CopyFileToResponse(\x01\x12\x32\n\x0c\x43opyFileFrom\x12\x14.CopyFileFromRequest\x1a\n.FileChunk0\x01\x12#\n\x04Stat\x12\x0c.StatRequest\x1a\r.StatResponse\x12J\n\x11UpdateEnvironment\x12\x19.UpdateEnvironmentRequest\x1a\x1a.UpdateEnvironmentResponse\x12G\n\x10ResetEnvironment\x12\x18.ResetEnvironmentRequest\x1a\x19.ResetEnvironmentResponse\x12;\n\x0cUpdateSource\x12\x14.UpdateSourceRequest\x1a\x15.UpdateSourceResponse\x12P\n\x13SymbolizeStacktrace\x12\x1b.SymbolizeStacktraceRequest\x1a\x1c.SymbolizeStacktraceResponse\x12}\n\"TerminateStaleApplicationInstances\x12*.TerminateStaleApplicationInstancesRequest\x1a+.TerminateStaleApplicationInstancesResponse\x12\x41\n\x0eGetFuzzTargets\x12\x16.GetFuzzTargetsRequest\x1a\x17.GetFuzzTargetsResponse\x12\x38\n\x0bPruneCorpus\x12\x13.PruneCorpusRequest\x1a\x14.PruneCorpusResponseB%Z#clusterfuzz/protos/untrusted_runner')
 )
 
 
@@ -273,8 +273,8 @@ _SETUPREGULARBUILDREQUEST_TARGETWEIGHTSENTRY = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=577,
-  serialized_end=629,
+  serialized_start=627,
+  serialized_end=679,
 )
 
 _SETUPREGULARBUILDREQUEST = _descriptor.Descriptor(
@@ -319,6 +319,20 @@ _SETUPREGULARBUILDREQUEST = _descriptor.Descriptor(
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       serialized_options=None, file=DESCRIPTOR),
+    _descriptor.FieldDescriptor(
+      name='build_prefix', full_name='SetupRegularBuildRequest.build_prefix', index=5,
+      number=6, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=_b("").decode('utf-8'),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR),
+    _descriptor.FieldDescriptor(
+      name='is_auxiliary_build', full_name='SetupRegularBuildRequest.is_auxiliary_build', index=6,
+      number=7, type=8, cpp_type=7, label=1,
+      has_default_value=False, default_value=False,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR),
   ],
   extensions=[
   ],
@@ -332,7 +346,7 @@ _SETUPREGULARBUILDREQUEST = _descriptor.Descriptor(
   oneofs=[
   ],
   serialized_start=394,
-  serialized_end=629,
+  serialized_end=679,
 )
 
 
@@ -383,8 +397,8 @@ _SETUPSYMBOLIZEDBUILDREQUEST = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=631,
-  serialized_end=754,
+  serialized_start=681,
+  serialized_end=804,
 )
 
 
@@ -435,60 +449,8 @@ _SETUPPRODUCTIONBUILDREQUEST = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=756,
-  serialized_end=865,
-)
-
-
-_SETUPAUXILIARYBUILDREQUEST = _descriptor.Descriptor(
-  name='SetupAuxiliaryBuildRequest',
-  full_name='SetupAuxiliaryBuildRequest',
-  filename=None,
-  file=DESCRIPTOR,
-  containing_type=None,
-  fields=[
-    _descriptor.FieldDescriptor(
-      name='base_build_dir', full_name='SetupAuxiliaryBuildRequest.base_build_dir', index=0,
-      number=1, type=9, cpp_type=9, label=1,
-      has_default_value=False, default_value=_b("").decode('utf-8'),
-      message_type=None, enum_type=None, containing_type=None,
-      is_extension=False, extension_scope=None,
-      serialized_options=None, file=DESCRIPTOR),
-    _descriptor.FieldDescriptor(
-      name='revision', full_name='SetupAuxiliaryBuildRequest.revision', index=1,
-      number=2, type=3, cpp_type=2, label=1,
-      has_default_value=False, default_value=0,
-      message_type=None, enum_type=None, containing_type=None,
-      is_extension=False, extension_scope=None,
-      serialized_options=None, file=DESCRIPTOR),
-    _descriptor.FieldDescriptor(
-      name='build_url', full_name='SetupAuxiliaryBuildRequest.build_url', index=2,
-      number=3, type=9, cpp_type=9, label=1,
-      has_default_value=False, default_value=_b("").decode('utf-8'),
-      message_type=None, enum_type=None, containing_type=None,
-      is_extension=False, extension_scope=None,
-      serialized_options=None, file=DESCRIPTOR),
-    _descriptor.FieldDescriptor(
-      name='build_dir_name', full_name='SetupAuxiliaryBuildRequest.build_dir_name', index=3,
-      number=4, type=9, cpp_type=9, label=1,
-      has_default_value=False, default_value=_b("").decode('utf-8'),
-      message_type=None, enum_type=None, containing_type=None,
-      is_extension=False, extension_scope=None,
-      serialized_options=None, file=DESCRIPTOR),
-  ],
-  extensions=[
-  ],
-  nested_types=[],
-  enum_types=[
-  ],
-  serialized_options=None,
-  is_extendable=False,
-  syntax='proto2',
-  extension_ranges=[],
-  oneofs=[
-  ],
-  serialized_start=867,
-  serialized_end=980,
+  serialized_start=806,
+  serialized_end=915,
 )
 
 
@@ -525,8 +487,8 @@ _RUNPROCESSREQUEST_ENVCOPYENTRY = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=1209,
-  serialized_end=1255,
+  serialized_start=1144,
+  serialized_end=1190,
 )
 
 _RUNPROCESSREQUEST = _descriptor.Descriptor(
@@ -604,8 +566,8 @@ _RUNPROCESSREQUEST = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=983,
-  serialized_end=1255,
+  serialized_start=918,
+  serialized_end=1190,
 )
 
 
@@ -649,8 +611,8 @@ _RUNPROCESSRESPONSE = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=1257,
-  serialized_end=1338,
+  serialized_start=1192,
+  serialized_end=1273,
 )
 
 
@@ -687,8 +649,8 @@ _POPENARGS_ENVENTRY = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=1480,
-  serialized_end=1522,
+  serialized_start=1415,
+  serialized_end=1457,
 )
 
 _POPENARGS = _descriptor.Descriptor(
@@ -752,8 +714,8 @@ _POPENARGS = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=1341,
-  serialized_end=1522,
+  serialized_start=1276,
+  serialized_end=1457,
 )
 
 
@@ -839,8 +801,8 @@ _RUNANDWAITREQUEST = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=1525,
-  serialized_end=1769,
+  serialized_start=1460,
+  serialized_end=1704,
 )
 
 
@@ -870,8 +832,8 @@ _RUNANDWAITRESPONSE = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=1771,
-  serialized_end=1823,
+  serialized_start=1706,
+  serialized_end=1758,
 )
 
 
@@ -901,8 +863,8 @@ _FINDBUILDFILEREQUEST = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=1825,
-  serialized_end=1865,
+  serialized_start=1760,
+  serialized_end=1800,
 )
 
 
@@ -939,8 +901,8 @@ _FINDBUILDFILERESPONSE = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=1867,
-  serialized_end=1924,
+  serialized_start=1802,
+  serialized_end=1859,
 )
 
 
@@ -977,8 +939,8 @@ _CREATEDIRECTORYREQUEST = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=1926,
-  serialized_end=1994,
+  serialized_start=1861,
+  serialized_end=1929,
 )
 
 
@@ -1008,8 +970,8 @@ _CREATEDIRECTORYRESPONSE = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=1996,
-  serialized_end=2037,
+  serialized_start=1931,
+  serialized_end=1972,
 )
 
 
@@ -1046,8 +1008,8 @@ _REMOVEDIRECTORYREQUEST = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=2039,
-  serialized_end=2095,
+  serialized_start=1974,
+  serialized_end=2030,
 )
 
 
@@ -1077,8 +1039,8 @@ _REMOVEDIRECTORYRESPONSE = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=2097,
-  serialized_end=2138,
+  serialized_start=2032,
+  serialized_end=2073,
 )
 
 
@@ -1108,8 +1070,8 @@ _FILECHUNK = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=2140,
-  serialized_end=2165,
+  serialized_start=2075,
+  serialized_end=2100,
 )
 
 
@@ -1139,8 +1101,8 @@ _COPYFILETORESPONSE = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=2167,
-  serialized_end=2203,
+  serialized_start=2102,
+  serialized_end=2138,
 )
 
 
@@ -1170,8 +1132,8 @@ _COPYFILEFROMREQUEST = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=2205,
-  serialized_end=2240,
+  serialized_start=2140,
+  serialized_end=2175,
 )
 
 
@@ -1208,8 +1170,8 @@ _UPDATEENVIRONMENTREQUEST_ENVENTRY = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=1480,
-  serialized_end=1522,
+  serialized_start=1415,
+  serialized_end=1457,
 )
 
 _UPDATEENVIRONMENTREQUEST = _descriptor.Descriptor(
@@ -1238,8 +1200,8 @@ _UPDATEENVIRONMENTREQUEST = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=2242,
-  serialized_end=2361,
+  serialized_start=2177,
+  serialized_end=2296,
 )
 
 
@@ -1262,8 +1224,8 @@ _UPDATEENVIRONMENTRESPONSE = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=2363,
-  serialized_end=2390,
+  serialized_start=2298,
+  serialized_end=2325,
 )
 
 
@@ -1286,8 +1248,8 @@ _UPDATESOURCEREQUEST = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=2392,
-  serialized_end=2413,
+  serialized_start=2327,
+  serialized_end=2348,
 )
 
 
@@ -1310,8 +1272,8 @@ _UPDATESOURCERESPONSE = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=2415,
-  serialized_end=2437,
+  serialized_start=2350,
+  serialized_end=2372,
 )
 
 
@@ -1348,8 +1310,8 @@ _SYMBOLIZESTACKTRACEREQUEST = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=2439,
-  serialized_end=2536,
+  serialized_start=2374,
+  serialized_end=2471,
 )
 
 
@@ -1379,8 +1341,8 @@ _SYMBOLIZESTACKTRACERESPONSE = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=2538,
-  serialized_end=2598,
+  serialized_start=2473,
+  serialized_end=2533,
 )
 
 
@@ -1417,8 +1379,8 @@ _LISTFILESREQUEST = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=2600,
-  serialized_end=2651,
+  serialized_start=2535,
+  serialized_end=2586,
 )
 
 
@@ -1448,8 +1410,8 @@ _LISTFILESRESPONSE = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=2653,
-  serialized_end=2692,
+  serialized_start=2588,
+  serialized_end=2627,
 )
 
 
@@ -1479,8 +1441,8 @@ _GETFUZZTARGETSREQUEST = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=2694,
-  serialized_end=2731,
+  serialized_start=2629,
+  serialized_end=2666,
 )
 
 
@@ -1510,8 +1472,8 @@ _GETFUZZTARGETSRESPONSE = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=2733,
-  serialized_end=2784,
+  serialized_start=2668,
+  serialized_end=2719,
 )
 
 
@@ -1576,8 +1538,8 @@ _CORPUSCRASH = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=2787,
-  serialized_end=2932,
+  serialized_start=2722,
+  serialized_end=2867,
 )
 
 
@@ -1649,8 +1611,8 @@ _COVERAGEINFO = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=2935,
-  serialized_end=3151,
+  serialized_start=2870,
+  serialized_end=3086,
 )
 
 
@@ -1694,8 +1656,8 @@ _CROSSPOLLINATEFUZZER = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=3153,
-  serialized_end=3265,
+  serialized_start=3088,
+  serialized_end=3200,
 )
 
 
@@ -1746,8 +1708,8 @@ _PRUNECORPUSREQUEST = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=3268,
-  serialized_end=3427,
+  serialized_start=3203,
+  serialized_end=3362,
 )
 
 
@@ -1798,8 +1760,8 @@ _PRUNECORPUSRESPONSE = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=3430,
-  serialized_end=3566,
+  serialized_start=3365,
+  serialized_end=3501,
 )
 
 
@@ -1829,8 +1791,8 @@ _STATREQUEST = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=3568,
-  serialized_end=3595,
+  serialized_start=3503,
+  serialized_end=3530,
 )
 
 
@@ -1895,8 +1857,8 @@ _STATRESPONSE = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=3597,
-  serialized_end=3715,
+  serialized_start=3532,
+  serialized_end=3650,
 )
 
 
@@ -1919,8 +1881,8 @@ _TERMINATESTALEAPPLICATIONINSTANCESREQUEST = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=3717,
-  serialized_end=3760,
+  serialized_start=3652,
+  serialized_end=3695,
 )
 
 
@@ -1943,8 +1905,8 @@ _TERMINATESTALEAPPLICATIONINSTANCESRESPONSE = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=3762,
-  serialized_end=3806,
+  serialized_start=3697,
+  serialized_end=3741,
 )
 
 
@@ -1967,8 +1929,8 @@ _RESETENVIRONMENTREQUEST = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=3808,
-  serialized_end=3833,
+  serialized_start=3743,
+  serialized_end=3768,
 )
 
 
@@ -1991,8 +1953,8 @@ _RESETENVIRONMENTRESPONSE = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=3835,
-  serialized_end=3861,
+  serialized_start=3770,
+  serialized_end=3796,
 )
 
 
@@ -2036,8 +1998,8 @@ _FUZZTARGET = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=3863,
-  serialized_end=3924,
+  serialized_start=3798,
+  serialized_end=3859,
 )
 
 _SETUPREGULARBUILDREQUEST_TARGETWEIGHTSENTRY.containing_type = _SETUPREGULARBUILDREQUEST
@@ -2062,7 +2024,6 @@ DESCRIPTOR.message_types_by_name['SetupBuildResponse'] = _SETUPBUILDRESPONSE
 DESCRIPTOR.message_types_by_name['SetupRegularBuildRequest'] = _SETUPREGULARBUILDREQUEST
 DESCRIPTOR.message_types_by_name['SetupSymbolizedBuildRequest'] = _SETUPSYMBOLIZEDBUILDREQUEST
 DESCRIPTOR.message_types_by_name['SetupProductionBuildRequest'] = _SETUPPRODUCTIONBUILDREQUEST
-DESCRIPTOR.message_types_by_name['SetupAuxiliaryBuildRequest'] = _SETUPAUXILIARYBUILDREQUEST
 DESCRIPTOR.message_types_by_name['RunProcessRequest'] = _RUNPROCESSREQUEST
 DESCRIPTOR.message_types_by_name['RunProcessResponse'] = _RUNPROCESSRESPONSE
 DESCRIPTOR.message_types_by_name['PopenArgs'] = _POPENARGS
@@ -2157,13 +2118,6 @@ SetupProductionBuildRequest = _reflection.GeneratedProtocolMessageType('SetupPro
   # @@protoc_insertion_point(class_scope:SetupProductionBuildRequest)
   ))
 _sym_db.RegisterMessage(SetupProductionBuildRequest)
-
-SetupAuxiliaryBuildRequest = _reflection.GeneratedProtocolMessageType('SetupAuxiliaryBuildRequest', (_message.Message,), dict(
-  DESCRIPTOR = _SETUPAUXILIARYBUILDREQUEST,
-  __module__ = 'untrusted_runner_pb2'
-  # @@protoc_insertion_point(class_scope:SetupAuxiliaryBuildRequest)
-  ))
-_sym_db.RegisterMessage(SetupAuxiliaryBuildRequest)
 
 RunProcessRequest = _reflection.GeneratedProtocolMessageType('RunProcessRequest', (_message.Message,), dict(
 
@@ -2454,8 +2408,8 @@ _UNTRUSTEDRUNNER = _descriptor.ServiceDescriptor(
   file=DESCRIPTOR,
   index=0,
   serialized_options=None,
-  serialized_start=3927,
-  serialized_end=5272,
+  serialized_start=3862,
+  serialized_end=5134,
   methods=[
   _descriptor.MethodDescriptor(
     name='GetStatus',
@@ -2494,18 +2448,9 @@ _UNTRUSTEDRUNNER = _descriptor.ServiceDescriptor(
     serialized_options=None,
   ),
   _descriptor.MethodDescriptor(
-    name='SetupAuxiliaryBuild',
-    full_name='UntrustedRunner.SetupAuxiliaryBuild',
-    index=4,
-    containing_service=None,
-    input_type=_SETUPAUXILIARYBUILDREQUEST,
-    output_type=_SETUPBUILDRESPONSE,
-    serialized_options=None,
-  ),
-  _descriptor.MethodDescriptor(
     name='RunProcess',
     full_name='UntrustedRunner.RunProcess',
-    index=5,
+    index=4,
     containing_service=None,
     input_type=_RUNPROCESSREQUEST,
     output_type=_RUNPROCESSRESPONSE,
@@ -2514,7 +2459,7 @@ _UNTRUSTEDRUNNER = _descriptor.ServiceDescriptor(
   _descriptor.MethodDescriptor(
     name='RunAndWait',
     full_name='UntrustedRunner.RunAndWait',
-    index=6,
+    index=5,
     containing_service=None,
     input_type=_RUNANDWAITREQUEST,
     output_type=_RUNANDWAITRESPONSE,
@@ -2523,7 +2468,7 @@ _UNTRUSTEDRUNNER = _descriptor.ServiceDescriptor(
   _descriptor.MethodDescriptor(
     name='CreateDirectory',
     full_name='UntrustedRunner.CreateDirectory',
-    index=7,
+    index=6,
     containing_service=None,
     input_type=_CREATEDIRECTORYREQUEST,
     output_type=_CREATEDIRECTORYRESPONSE,
@@ -2532,7 +2477,7 @@ _UNTRUSTEDRUNNER = _descriptor.ServiceDescriptor(
   _descriptor.MethodDescriptor(
     name='RemoveDirectory',
     full_name='UntrustedRunner.RemoveDirectory',
-    index=8,
+    index=7,
     containing_service=None,
     input_type=_REMOVEDIRECTORYREQUEST,
     output_type=_REMOVEDIRECTORYRESPONSE,
@@ -2541,7 +2486,7 @@ _UNTRUSTEDRUNNER = _descriptor.ServiceDescriptor(
   _descriptor.MethodDescriptor(
     name='ListFiles',
     full_name='UntrustedRunner.ListFiles',
-    index=9,
+    index=8,
     containing_service=None,
     input_type=_LISTFILESREQUEST,
     output_type=_LISTFILESRESPONSE,
@@ -2550,7 +2495,7 @@ _UNTRUSTEDRUNNER = _descriptor.ServiceDescriptor(
   _descriptor.MethodDescriptor(
     name='CopyFileTo',
     full_name='UntrustedRunner.CopyFileTo',
-    index=10,
+    index=9,
     containing_service=None,
     input_type=_FILECHUNK,
     output_type=_COPYFILETORESPONSE,
@@ -2559,7 +2504,7 @@ _UNTRUSTEDRUNNER = _descriptor.ServiceDescriptor(
   _descriptor.MethodDescriptor(
     name='CopyFileFrom',
     full_name='UntrustedRunner.CopyFileFrom',
-    index=11,
+    index=10,
     containing_service=None,
     input_type=_COPYFILEFROMREQUEST,
     output_type=_FILECHUNK,
@@ -2568,7 +2513,7 @@ _UNTRUSTEDRUNNER = _descriptor.ServiceDescriptor(
   _descriptor.MethodDescriptor(
     name='Stat',
     full_name='UntrustedRunner.Stat',
-    index=12,
+    index=11,
     containing_service=None,
     input_type=_STATREQUEST,
     output_type=_STATRESPONSE,
@@ -2577,7 +2522,7 @@ _UNTRUSTEDRUNNER = _descriptor.ServiceDescriptor(
   _descriptor.MethodDescriptor(
     name='UpdateEnvironment',
     full_name='UntrustedRunner.UpdateEnvironment',
-    index=13,
+    index=12,
     containing_service=None,
     input_type=_UPDATEENVIRONMENTREQUEST,
     output_type=_UPDATEENVIRONMENTRESPONSE,
@@ -2586,7 +2531,7 @@ _UNTRUSTEDRUNNER = _descriptor.ServiceDescriptor(
   _descriptor.MethodDescriptor(
     name='ResetEnvironment',
     full_name='UntrustedRunner.ResetEnvironment',
-    index=14,
+    index=13,
     containing_service=None,
     input_type=_RESETENVIRONMENTREQUEST,
     output_type=_RESETENVIRONMENTRESPONSE,
@@ -2595,7 +2540,7 @@ _UNTRUSTEDRUNNER = _descriptor.ServiceDescriptor(
   _descriptor.MethodDescriptor(
     name='UpdateSource',
     full_name='UntrustedRunner.UpdateSource',
-    index=15,
+    index=14,
     containing_service=None,
     input_type=_UPDATESOURCEREQUEST,
     output_type=_UPDATESOURCERESPONSE,
@@ -2604,7 +2549,7 @@ _UNTRUSTEDRUNNER = _descriptor.ServiceDescriptor(
   _descriptor.MethodDescriptor(
     name='SymbolizeStacktrace',
     full_name='UntrustedRunner.SymbolizeStacktrace',
-    index=16,
+    index=15,
     containing_service=None,
     input_type=_SYMBOLIZESTACKTRACEREQUEST,
     output_type=_SYMBOLIZESTACKTRACERESPONSE,
@@ -2613,7 +2558,7 @@ _UNTRUSTEDRUNNER = _descriptor.ServiceDescriptor(
   _descriptor.MethodDescriptor(
     name='TerminateStaleApplicationInstances',
     full_name='UntrustedRunner.TerminateStaleApplicationInstances',
-    index=17,
+    index=16,
     containing_service=None,
     input_type=_TERMINATESTALEAPPLICATIONINSTANCESREQUEST,
     output_type=_TERMINATESTALEAPPLICATIONINSTANCESRESPONSE,
@@ -2622,7 +2567,7 @@ _UNTRUSTEDRUNNER = _descriptor.ServiceDescriptor(
   _descriptor.MethodDescriptor(
     name='GetFuzzTargets',
     full_name='UntrustedRunner.GetFuzzTargets',
-    index=18,
+    index=17,
     containing_service=None,
     input_type=_GETFUZZTARGETSREQUEST,
     output_type=_GETFUZZTARGETSRESPONSE,
@@ -2631,7 +2576,7 @@ _UNTRUSTEDRUNNER = _descriptor.ServiceDescriptor(
   _descriptor.MethodDescriptor(
     name='PruneCorpus',
     full_name='UntrustedRunner.PruneCorpus',
-    index=19,
+    index=18,
     containing_service=None,
     input_type=_PRUNECORPUSREQUEST,
     output_type=_PRUNECORPUSRESPONSE,

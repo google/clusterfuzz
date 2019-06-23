@@ -91,7 +91,6 @@ class UntrustedRunnerStub(untrusted_runner_pb2_grpc.UntrustedRunnerStub):
     self.SetupRegularBuild = _wrap_call(self.SetupRegularBuild)
     self.SetupSymbolizedBuild = _wrap_call(self.SetupSymbolizedBuild)
     self.SetupProductionBuild = _wrap_call(self.SetupProductionBuild)
-    self.SetupAuxiliaryBuild = _wrap_call(self.SetupAuxiliaryBuild)
     self.RunProcess = _wrap_call(self.RunProcess)
     self.RunAndWait = _wrap_call(self.RunAndWait)
     self.CreateDirectory = _wrap_call(self.CreateDirectory)

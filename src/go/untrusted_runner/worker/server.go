@@ -63,11 +63,6 @@ func (s *UntrustedRunnerServer) SetupProductionBuild(context.Context, *pb.SetupP
 	return nil, nil
 }
 
-// SetupAuxiliaryBuild sets up a production build.
-func (s *UntrustedRunnerServer) SetupAuxiliaryBuild(context.Context, *pb.SetupAuxiliaryBuildRequest) (*pb.SetupBuildResponse, error) {
-	return nil, nil
-}
-
 // RunProcess runs a process using an interface similar to process_handler.runProcess (python).
 func (s *UntrustedRunnerServer) RunProcess(context.Context, *pb.RunProcessRequest) (*pb.RunProcessResponse, error) {
 	return nil, nil

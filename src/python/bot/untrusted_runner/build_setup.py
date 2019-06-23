@@ -34,10 +34,10 @@ def _build_response(result):
 
 def setup_regular_build(request):
   """Set up a regular build."""
-  build = build_manager.RegularBuild(request.base_build_dir, request.revision,
-                                     request.build_url, request.build_dir_name,
-                                     request.target_weights)
-  return _build_response(build.setup())
+  build = build_manager.RegularBuild(
+      request.base_build_dir, request.revision, request.build_url,
+      request.build_dir_name, request.target_weights, request.build_prefix)
+  return _build_response(build.setup(request.is_auxiliary_build))
 
 
 def setup_symbolized_build(request):
@@ -53,14 +53,3 @@ def setup_production_build(request):
   build = build_manager.ProductionBuild(request.base_build_dir, request.version,
                                         request.build_url, request.build_type)
   return _build_response(build.setup())
-
-
-def setup_auxiliary_build(request):
-  """Set up an auxiliary build."""
-  build = build_manager.AuxiliaryBuild(request.base_build_dir, request.revision,
-                                       request.build_url,
-                                       request.build_dir_name)
-  build.setup()
-
-  # An auxiliary build does not set up the environment variables.
-  return untrusted_runner_pb2.SetupBuildResponse(result=build is not None)

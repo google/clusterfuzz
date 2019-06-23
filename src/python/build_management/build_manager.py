@@ -181,11 +181,7 @@ def _handle_unrecoverable_error_on_windows():
   utils.restart_machine()
 
 
-def _unpack_build(base_build_dir,
-                  build_dir,
-                  build_url,
-                  target_weights=None,
-                  is_auxiliary_build=False):
+def _unpack_build(base_build_dir, build_dir, build_url, target_weights=None):
   """Unpacks a build from a build url into the build directory."""
   # Track time taken to unpack builds so that it doesn't silently regress.
   start_time = time.time()
@@ -223,7 +219,7 @@ def _unpack_build(base_build_dir,
     return False
 
   unpack_everything = environment.get_value('UNPACK_ALL_FUZZ_TARGETS_AND_FILES')
-  if not unpack_everything and not is_auxiliary_build:
+  if not unpack_everything:
     # For fuzzing, pick a random fuzz target so that we only un-archive that
     # particular fuzz target and its dependencies and save disk space.
     # If we are going to unpack everythng in archive based on
@@ -260,7 +256,7 @@ def _unpack_build(base_build_dir,
     logs.log_error('Unable to unpack build archive %s.' % build_local_archive)
     return False
 
-  if unpack_everything and not is_auxiliary_build:
+  if unpack_everything:
     # Set a random fuzz target now that the build has been unpacked, if we
     # didn't set one earlier. For an auxiliary build, fuzz target is already
     # specified during main build unpacking.
@@ -384,6 +380,11 @@ def _get_fuzz_targets_from_dir(build_dir):
 
 def _set_random_fuzz_target_for_fuzzing_if_needed(fuzz_targets, target_weights):
   """Sets a random fuzz target for fuzzing."""
+  fuzz_target = environment.get_value('FUZZ_TARGET')
+  if fuzz_target:
+    logs.log('Use previously picked fuzz target %s for fuzzing.' % fuzz_target)
+    return
+
   if not environment.is_engine_fuzzer_job():
     return
 
@@ -492,9 +493,10 @@ class BaseBuild(object):
 class Build(BaseBuild):
   """Repesents a build type at a particular revision."""
 
-  def __init__(self, base_build_dir, revision):
+  def __init__(self, base_build_dir, revision, build_prefix='APP'):
     super(Build, self).__init__(base_build_dir)
     self.revision = revision
+    self.build_prefix = build_prefix
 
   def _reset_cwd(self):
     """Reset current working directory. Needed to clean up build
@@ -519,9 +521,9 @@ class Build(BaseBuild):
     if self.base_build_dir:
       _setup_build_directories(self.base_build_dir)
 
-    environment.set_value('APP_REVISION', self.revision)
-    environment.set_value('APP_PATH', '')
-    environment.set_value('APP_PATH_DEBUG', '')
+    environment.set_value('%s_REVISION' % self.build_prefix, self.revision)
+    environment.set_value('%s_PATH' % self.build_prefix, '')
+    environment.set_value('%s_PATH_DEBUG' % self.build_prefix, '')
 
   def _patch_rpath(self, binary_path, instrumented_library_paths):
     """Patch rpaths of a binary to point to instrumented libraries"""
@@ -686,13 +688,25 @@ class RegularBuild(Build):
                base_build_dir,
                revision,
                build_url,
-               build_dir_name='revisions',
-               target_weights=None):
+               build_dir_name=None,
+               target_weights=None,
+               build_prefix=None,
+               is_auxiliary_build=False):
     super(RegularBuild, self).__init__(base_build_dir, revision)
     self.build_url = build_url
-    self.build_dir_name = build_dir_name
-    self._build_dir = os.path.join(self.base_build_dir, build_dir_name)
+
+    if build_prefix:
+      # Otherwise, use the default prefix specified in the base class.
+      self.build_prefix = build_prefix
+      self.build_dir_name = build_prefix.lower()
+    elif build_dir_name:
+      self.build_dir_name = build_dir_name
+    else:
+      self.build_dir_name = 'revisions'
+
+    self._build_dir = os.path.join(self.base_build_dir, self.build_dir_name)
     self.target_weights = target_weights
+    self.is_auxiliary_build = is_auxiliary_build
 
   @property
   def build_dir(self):
@@ -701,7 +715,11 @@ class RegularBuild(Build):
   def setup(self):
     """Sets up build with a particular revision."""
     self._pre_setup()
-    environment.set_value('BUILD_URL', self.build_url)
+    if self.is_auxiliary_build:
+      environment.set_value('%s_BUILD_URL' % self.build_prefix, self.build_url)
+    else:
+      environment.set_value('BUILD_URL', self.build_url)
+
     logs.log('Retrieving build r%d.' % self.revision)
     build_update = not self.exists()
     if build_update:
@@ -718,7 +736,11 @@ class RegularBuild(Build):
       # setting application path environment variables.
       logs.log('Build already exists.')
 
-    self._setup_application_path(build_update=build_update)
+    if self.is_auxiliary_build:
+      environment.set_value('%s_BUILD_DIR' % self.build_prefix, self.build_dir)
+    else:
+      self._setup_application_path(build_update=build_update)
+
     self._post_setup_success(update_revision=build_update)
 
     return True
@@ -1006,44 +1028,6 @@ class SystemBuild(Build):
     raise BuildManagerException('Cannot delete system build.')
 
 
-class AuxiliaryBuild(Build):
-  """An additional build that accompanies some other fuzzinng build."""
-
-  def __init__(self,
-               base_build_dir,
-               revision,
-               build_url,
-               build_dir_name='revisions'):
-    super(AuxiliaryBuild, self).__init__(base_build_dir, revision)
-    self.build_url = build_url
-    self.build_dir_name = build_dir_name
-    self._build_dir = os.path.join(self.base_build_dir, build_dir_name)
-
-  @property
-  def build_dir(self):
-    return self._build_dir
-
-  def setup(self):
-    """Sets up build with a particular revision."""
-    logs.log('Retrieving build r%d.' % self.revision)
-    self._delete_partial_build_file()
-    build_update = not self.exists()
-    if build_update:
-      if not _unpack_build(
-          self.base_build_dir,
-          self.build_dir,
-          self.build_url,
-          is_auxiliary_build=True):
-        return False
-
-      logs.log('Retrieved build r%d.' % self.revision)
-    else:
-      logs.log('Build already exists.')
-
-    self._post_setup_success(update_revision=build_update)
-    return True
-
-
 def _sort_build_urls_by_revision(build_urls, bucket_path, reverse):
   """Return a sorted list of build url by revision."""
   base_url = os.path.dirname(bucket_path)
@@ -1214,29 +1198,37 @@ def setup_trunk_build():
     logs.log_error('Unable to find a matching revision.')
     return None
 
-  build = setup_regular_build(revision)
+  build = setup_regular_build(revision, release_build_bucket_path)
   return build
 
 
-def setup_regular_build(revision):
+def setup_regular_build(revision,
+                        bucket_path=None,
+                        build_prefix=None,
+                        is_auxiliary_build=False):
   """Sets up build with a particular revision."""
-  release_build_bucket_path = environment.get_value('RELEASE_BUILD_BUCKET_PATH')
-  release_build_urls = get_build_urls_list(release_build_bucket_path)
+  if not bucket_path:
+    # Bucket path can be customized, otherwise get it from the default env var.
+    bucket_path = environment.get_value('RELEASE_BUILD_BUCKET_PATH')
+
+  build_urls = get_build_urls_list(bucket_path)
   job_type = environment.get_value('JOB_NAME')
-  if not release_build_urls:
-    logs.log_error('Error getting release build urls for job %s.' % job_type)
+  if not build_urls:
+    logs.log_error('Error getting build urls for job %s.' % job_type)
     return None
 
-  release_build_url = revisions.find_build_url(release_build_bucket_path,
-                                               release_build_urls, revision)
-  if not release_build_url:
+  build_url = revisions.find_build_url(bucket_path, build_urls, revision)
+  if not build_url:
     logs.log_error(
         'Error getting build url for job %s (r%d).' % (job_type, revision))
+
+    if is_auxiliary_build:
+      return None
 
     # Try setting up trunk build.
     return setup_trunk_build()
 
-  base_build_dir = get_base_build_dir(release_build_bucket_path)
+  base_build_dir = get_base_build_dir(bucket_path)
 
   build_class = RegularBuild
   if environment.is_trusted_host():
@@ -1247,8 +1239,10 @@ def setup_regular_build(revision):
   build = build_class(
       base_build_dir,
       revision,
-      release_build_url,
-      target_weights=target_weights)
+      build_url,
+      target_weights=target_weights,
+      build_prefix=build_prefix,
+      is_auxiliary_build=is_auxiliary_build)
   if build.setup():
     return build
   return None

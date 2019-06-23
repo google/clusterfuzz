@@ -40,11 +40,12 @@ FAKE_APP_NAME = 'app'
 
 
 # pylint: disable=unused-argument
-def _mock_unpack_build(_,
-                       build_dir,
-                       unused,
-                       target_weights=None,
-                       is_auxiliary_build=False):
+def _mock_unpack_build(
+    _,
+    build_dir,
+    unused,
+    target_weights=None,
+):
   """Mock _unpack_build."""
   if not shell.remove_directory(build_dir, recreate=True):
     return False
@@ -112,7 +113,8 @@ class TrunkBuildTest(unittest.TestCase):
     )
 
     build_manager.setup_trunk_build()
-    self.mock.setup_regular_build.assert_called_with(10)
+    self.mock.setup_regular_build.assert_called_with(
+        10, 'gs://path/file-release-([0-9]+).zip')
 
   def test_setup_mismatch(self):
     """Test setup finding the first matching revision."""
@@ -135,7 +137,8 @@ class TrunkBuildTest(unittest.TestCase):
     )
 
     build_manager.setup_trunk_build()
-    self.mock.setup_regular_build.assert_called_with(2)
+    self.mock.setup_regular_build.assert_called_with(
+        2, 'gs://path/file-release-([0-9]+).zip')
 
   def test_setup_fail(self):
     """Test setup failing to find any matching revisions."""
@@ -936,7 +939,7 @@ class SystemBuildTest(fake_filesystem_unittest.TestCase):
       build.delete()
 
 
-class AuxiliaryBuildTest(fake_filesystem_unittest.TestCase):
+class AuxiliaryRegularBuildTest(fake_filesystem_unittest.TestCase):
   """Tests for auxiliary build setup."""
 
   def setUp(self):
@@ -970,7 +973,7 @@ class AuxiliaryBuildTest(fake_filesystem_unittest.TestCase):
 
     self.assertEqual(
         os.environ['DATAFLOW_BUILD_DIR'],
-        '/builds/path_2992e823e35fd34a63e0f8733cdafd6875036a1d/revisions')
+        '/builds/path_2992e823e35fd34a63e0f8733cdafd6875036a1d/dataflow')
 
   def test_setup(self):
     """Tests setting up a build."""
@@ -984,21 +987,20 @@ class AuxiliaryBuildTest(fake_filesystem_unittest.TestCase):
     ]
 
     self.mock.time.return_value = 1000.0
-    build = fuzz_task.setup_auxiliary_build()
-    self.assertIsInstance(build, build_manager.AuxiliaryBuild)
+    build = fuzz_task.setup_auxiliary_build('DATAFLOW')
+    self.assertIsInstance(build, build_manager.RegularBuild)
     self.assertEqual(_get_timestamp(build.base_build_dir), 1000.0)
 
     self.mock._unpack_build.assert_called_once_with(
         '/builds/path_2992e823e35fd34a63e0f8733cdafd6875036a1d',
-        '/builds/path_2992e823e35fd34a63e0f8733cdafd6875036a1d/revisions',
-        'gs://path/file-dataflow-10.zip',
-        is_auxiliary_build=True)
+        '/builds/path_2992e823e35fd34a63e0f8733cdafd6875036a1d/dataflow',
+        'gs://path/file-dataflow-10.zip', {})
 
     self._assert_env_vars()
 
     self.mock.time.return_value = 1005.0
-    self.assertIsInstance(fuzz_task.setup_auxiliary_build(),
-                          build_manager.AuxiliaryBuild)
+    self.assertIsInstance(
+        fuzz_task.setup_auxiliary_build('DATAFLOW'), build_manager.RegularBuild)
     self.assertEqual(_get_timestamp(build.base_build_dir), 1005.0)
 
     # Already set up.
@@ -1014,19 +1016,19 @@ class AuxiliaryBuildTest(fake_filesystem_unittest.TestCase):
         'gs://path/file-dataflow-2.zip',
     ]
 
-    build = fuzz_task.setup_auxiliary_build()
+    build = fuzz_task.setup_auxiliary_build('DATAFLOW')
     self.assertTrue(
         os.path.isdir(
             '/builds/path_2992e823e35fd34a63e0f8733cdafd6875036a1d/revisions'))
     build.delete()
     self.assertFalse(
         os.path.isdir(
-            '/builds/path_2992e823e35fd34a63e0f8733cdafd6875036a1d/revisions'))
+            '/builds/path_2992e823e35fd34a63e0f8733cdafd6875036a1d/dataflow'))
     self.assertTrue(
         os.path.isdir('/builds/path_2992e823e35fd34a63e0f8733cdafd6875036a1d'))
 
 
-class AuxiliaryLibFuzzerBuildTest(fake_filesystem_unittest.TestCase):
+class AuxiliaryRegularLibFuzzerBuildTest(fake_filesystem_unittest.TestCase):
   """Tests for auxiliary libFuzzer build setup."""
 
   def setUp(self):
@@ -1087,7 +1089,7 @@ class AuxiliaryLibFuzzerBuildTest(fake_filesystem_unittest.TestCase):
     self.assertIsNone(os.environ.get('BUILD_URL'))
     self.assertEqual(
         os.environ['DATAFLOW_BUILD_DIR'],
-        '/builds/path_2992e823e35fd34a63e0f8733cdafd6875036a1d/revisions')
+        '/builds/path_2992e823e35fd34a63e0f8733cdafd6875036a1d/dataflow')
 
   @parameterized.parameterized.expand(['True', 'False'])
   def test_setup_fuzz(self, unpack_all):
@@ -1120,8 +1122,8 @@ class AuxiliaryLibFuzzerBuildTest(fake_filesystem_unittest.TestCase):
     else:
       self.assertIsNotNone(build_manager._get_file_match_callback())
 
-    build = fuzz_task.setup_auxiliary_build()
-    self.assertIsInstance(build, build_manager.AuxiliaryBuild)
+    build = fuzz_task.setup_auxiliary_build('DATAFLOW')
+    self.assertIsInstance(build, build_manager.RegularBuild)
     self.assertEqual(_get_timestamp(build.base_build_dir), 1000.0)
     self.assertEqual('target1', os.environ['FUZZ_TARGET'])
     self._assert_env_vars()
@@ -1130,20 +1132,19 @@ class AuxiliaryLibFuzzerBuildTest(fake_filesystem_unittest.TestCase):
     file_match_callback_checker = FileMatchCallbackChecker()
     self.mock.unpack.assert_called_with(
         '/builds/path_2992e823e35fd34a63e0f8733cdafd6875036a1d/'
-        'revisions/file-dataflow-10.zip',
-        '/builds/path_2992e823e35fd34a63e0f8733cdafd6875036a1d/revisions',
+        'dataflow/file-dataflow-10.zip',
+        '/builds/path_2992e823e35fd34a63e0f8733cdafd6875036a1d/dataflow',
         file_match_callback=file_match_callback_checker,
         trusted=True)
 
-    # Assume that fuzz target is not specified.
-    os.environ['FUZZ_TARGET'] = ''
+    os.environ['FUZZ_TARGET'] = 'target3'
     self.mock.time.return_value = 1005.0
-    self.assertIsInstance(fuzz_task.setup_auxiliary_build(),
-                          build_manager.AuxiliaryBuild)
+    self.assertIsInstance(
+        fuzz_task.setup_auxiliary_build('DATAFLOW'), build_manager.RegularBuild)
     self.assertEqual(_get_timestamp(build.base_build_dir), 1005.0)
 
     # Fuzz target should not be chosen by setup_auxiliary_build.
-    self.assertEqual('', os.environ['FUZZ_TARGET'])
+    self.assertEqual('target3', os.environ['FUZZ_TARGET'])
 
     # If it was a partial build, the unpack should be called again.
     if unpack_all == 'True':
@@ -1151,14 +1152,11 @@ class AuxiliaryLibFuzzerBuildTest(fake_filesystem_unittest.TestCase):
     else:
       self.assertEqual(2, self.mock.unpack.call_count)
 
-    self.assertIsNone(build_manager._get_file_match_callback())
-
     self.mock.unpack.assert_called_with(
         '/builds/path_2992e823e35fd34a63e0f8733cdafd6875036a1d/'
-        'revisions/file-dataflow-10.zip',
-        '/builds/path_2992e823e35fd34a63e0f8733cdafd6875036a1d/revisions',
-        # Always None as FUZZ_TARGET is not specified.
-        file_match_callback=None,
+        'dataflow/file-dataflow-10.zip',
+        '/builds/path_2992e823e35fd34a63e0f8733cdafd6875036a1d/dataflow',
+        file_match_callback=file_match_callback_checker,
         trusted=True)
 
   def test_delete(self):
@@ -1170,14 +1168,14 @@ class AuxiliaryLibFuzzerBuildTest(fake_filesystem_unittest.TestCase):
         'gs://path/file-dataflow-2.zip',
     ]
 
-    build = fuzz_task.setup_auxiliary_build()
+    build = fuzz_task.setup_auxiliary_build('DATAFLOW')
     self.assertTrue(
         os.path.isdir(
-            '/builds/path_2992e823e35fd34a63e0f8733cdafd6875036a1d/revisions'))
+            '/builds/path_2992e823e35fd34a63e0f8733cdafd6875036a1d/dataflow'))
     build.delete()
     self.assertFalse(
         os.path.isdir(
-            '/builds/path_2992e823e35fd34a63e0f8733cdafd6875036a1d/revisions'))
+            '/builds/path_2992e823e35fd34a63e0f8733cdafd6875036a1d/dataflow'))
     self.assertTrue(
         os.path.isdir('/builds/path_2992e823e35fd34a63e0f8733cdafd6875036a1d'))
 
@@ -1430,7 +1428,7 @@ class RpathsTest(unittest.TestCase):
 
   # pylint: disable=unused-argument
   def mock_unpack_build(self, test_build_dir, base_build_dir, build_dir, url,
-                        target_weights):
+                        target_weights, is_auxiliary_build):
     test_data_dir = os.path.join(
         os.path.dirname(os.path.abspath(__file__)), 'build_manager_data',
         test_build_dir)
