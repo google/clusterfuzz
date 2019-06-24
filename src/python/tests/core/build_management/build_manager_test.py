@@ -1428,7 +1428,7 @@ class RpathsTest(unittest.TestCase):
 
   # pylint: disable=unused-argument
   def mock_unpack_build(self, test_build_dir, base_build_dir, build_dir, url,
-                        target_weights, is_auxiliary_build):
+                        target_weights):
     test_data_dir = os.path.join(
         os.path.dirname(os.path.abspath(__file__)), 'build_manager_data',
         test_build_dir)
