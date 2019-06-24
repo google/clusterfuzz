@@ -794,7 +794,7 @@ def main(argv):
   else:
     corpus_directories = get_corpus_directories(
         corpus_directory, new_testcases_directory, fuzzer_path,
-        fuzzing_strategies, minijail_chroot)
+        fuzzing_strategies, strategy_pool, minijail_chroot)
 
   # Bind corpus directories in minijail.
   if use_minijail:
