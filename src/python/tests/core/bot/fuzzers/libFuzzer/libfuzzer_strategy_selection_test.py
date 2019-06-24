@@ -17,6 +17,7 @@ import unittest
 
 from bot.fuzzers import strategy
 from bot.fuzzers.libFuzzer import strategy_selection
+<<<<<<< HEAD
 from datastore import data_types
 from datastore import ndb
 from tests.test_libs import helpers as test_helpers
