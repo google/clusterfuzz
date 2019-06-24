@@ -1815,7 +1815,8 @@ class LauncherTest(fake_fs_unittest.TestCase):
   @mock.patch('sys.stdout', new_callable=test_utils.MockStdout)
   def test_fuzz_with_fork_mode(self, mock_stdout, *_):
     """Tests fuzzing with fork mode."""
-    self.mock.do_fork.return_value = True
+    self.mock.generate_strategy_pool.return_value = set_strategy_pool(
+        [strategy.FORK_STRATEGY])
 
     self.fs.CreateDirectory('/fake/corpus_dir')
     self.fs.CreateFile('/fake/testcase_basic')
