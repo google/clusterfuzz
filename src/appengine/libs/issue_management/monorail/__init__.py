@@ -145,19 +145,19 @@ class Issue(issue_tracker.Issue):
       self._monorail_issue.add_component(added)
     for removed in self._components.removed:
       self._monorail_issue.remove_component(removed)
-    self._components.reset()
+    self._components.reset_tracking()
 
     for added in self._ccs.added:
       self._monorail_issue.add_cc(added)
     for removed in self._ccs.removed:
       self._monorail_issue.remove_cc(removed)
-    self._ccs.reset()
+    self._ccs.reset_tracking()
 
     for added in self._labels.added:
       self._monorail_issue.add_label(added)
     for removed in self._labels.removed:
       self._monorail_issue.remove_label(removed)
-    self._labels.reset()
+    self._labels.reset_tracking()
 
     if new_comment:
       self._monorail_issue.comment = new_comment
