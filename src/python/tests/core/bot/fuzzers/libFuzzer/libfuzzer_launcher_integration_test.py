@@ -31,7 +31,6 @@ from bot.fuzzers.libFuzzer import launcher
 from bot.fuzzers.libFuzzer import strategy_selection
 from build_management import build_manager
 from datastore import data_types
-from platforms import fuchsia
 from system import environment
 from system import shell
 from tests.test_libs import helpers as test_helpers
@@ -787,10 +786,8 @@ class TestLauncherFuchsia(BaseLauncherTest):
     # diversity `fuzz`'s functionality
     build_manager.setup_fuchsia_build()
     environment.set_value('FUZZ_TARGET', 'example_fuzzers/toy_fuzzer')
-    qemu_process = fuchsia.device.qemu_setup()
     testcase_path = setup_testcase_and_corpus('aaaa', 'empty_corpus', fuzz=True)
     output = run_launcher(testcase_path, 'test_fuzzer')
     self.assertIn(
         'localhost run \'fuchsia-pkg://fuchsia.com/example_fuzzers#meta/'
         'toy_fuzzer.cmx\'', output)
-    qemu_process.kill()
