@@ -44,6 +44,7 @@ from bot.fuzzers import strategy
 from bot.fuzzers import utils as fuzzer_utils
 from bot.fuzzers.libFuzzer import constants
 from bot.fuzzers.libFuzzer import stats
+from bot.fuzzers.libFuzzer import strategy_selection
 from bot.fuzzers.ml.rnn import generator as ml_rnn_generator
 from datastore import data_types
 from metrics import logs
@@ -57,30 +58,14 @@ from system import shell
 CRASH_TESTCASE_REGEX = (r'.*Test unit written to\s*'
                         r'(.*(crash|oom|timeout|leak)-.*)')
 
-# Probability of using `-max_len` option. Not applicable if already declared in
-# .options file.
-RANDOM_MAX_LENGTH_PROBABILITY = 0.15
-
 # Maximum length of a random chosen length for `-max_len`.
 MAX_VALUE_FOR_MAX_LENGTH = 10000
-
-# Probability of doing ML RNN mutations on the corpus in this run.
-CORPUS_MUTATION_ML_RNN_PROBABILITY = 0.50
-
-# Probability of doing radamsa mutations on the corpus in this run.
-CORPUS_MUTATION_RADAMSA_PROBABILITY = 0.15
 
 # Number of radamsa mutations.
 RADAMSA_MUTATIONS = 2000
 
 # Maximum number of seconds to run radamsa for.
 RADAMSA_TIMEOUT = 3
-
-# Probability of recommended dictionary usage.
-RECOMMENDED_DICTIONARY_PROBABILITY = 0.10
-
-# Probability of using `-use_value_profile=1` option.
-VALUE_PROFILE_PROBABILITY = 0.33
 
 # Testcase minimization arguments being used by ClusterFuzz.
 MINIMIZE_TO_ARGUMENT = '--cf-minimize-to='
@@ -102,10 +87,6 @@ MERGED_DICT_SUFFIX = '.merged'
 
 ENGINE_ERROR_MESSAGE = 'libFuzzer: engine encountered an error.'
 
-FORK_PROBABILITY = 0.50
-
-MUTATOR_PLUGIN_PROBABILITY = 0.50
-
 MERGE_DIRECTORY_NAME = 'merge-corpus'
 
 HEXDIGITS_SET = set(string.hexdigits)
@@ -118,83 +99,19 @@ class Generator(object):
   ML_RNN = 2
 
 
-def _select_generator():
+def _select_generator(strategy_pool):
   """Pick a generator to generate new testcases before fuzzing or return
   Generator.NONE if no generator selected."""
   # We can't use radamsa binary on Windows. Disable ML for now until we know it
   # works.
   if IS_WIN:
     return Generator.NONE
-  elif do_ml_rnn_generator():
+  elif strategy_pool.do_strategy(strategy.CORPUS_MUTATION_ML_RNN_STRATEGY):
     return Generator.ML_RNN
-  elif do_radamsa_generator():
+  elif strategy_pool.do_strategy(strategy.CORPUS_MUTATION_RADAMSA_STRATEGY):
     return Generator.RADAMSA
 
   return Generator.NONE
-
-
-def do_random_max_length():
-  """Return whether or not to do value profile."""
-  return engine_common.decide_with_probability(
-      engine_common.get_strategy_probability(
-          strategy.RANDOM_MAX_LENGTH_STRATEGY,
-          default=RANDOM_MAX_LENGTH_PROBABILITY))
-
-
-def do_radamsa_generator():
-  """Return whether or not to do radamsa mutations."""
-  return engine_common.decide_with_probability(
-      engine_common.get_strategy_probability(
-          strategy.CORPUS_MUTATION_RADAMSA_STRATEGY,
-          default=CORPUS_MUTATION_RADAMSA_PROBABILITY))
-
-
-def do_ml_rnn_generator():
-  """Return whether or not to do additional mutations."""
-  return engine_common.decide_with_probability(
-      engine_common.get_strategy_probability(
-          strategy.CORPUS_MUTATION_ML_RNN_STRATEGY,
-          default=CORPUS_MUTATION_ML_RNN_PROBABILITY))
-
-
-def do_recommended_dictionary():
-  """Retrn whether or not to use the recommended dictionary."""
-  return engine_common.decide_with_probability(
-      engine_common.get_strategy_probability(
-          strategy.RECOMMENDED_DICTIONARY_STRATEGY,
-          default=RECOMMENDED_DICTIONARY_PROBABILITY))
-
-
-def do_value_profile():
-  """Return whether or not to do value profile."""
-  return engine_common.decide_with_probability(
-      engine_common.get_strategy_probability(
-          strategy.VALUE_PROFILE_STRATEGY, default=VALUE_PROFILE_PROBABILITY))
-
-
-def do_fork():
-  """Return whether or not to do fork mode."""
-  # TODO(crbug.com/920355): Reenable this when fork mode works with ChromeOS's
-  # MSAN.
-  job_name = environment.get_value('JOB_NAME')
-  memory_tool = environment.get_memory_tool_name(job_name)
-  if memory_tool == 'MSAN' and environment.is_chromeos_system_job():
-    return False
-
-  return engine_common.decide_with_probability(
-      engine_common.get_strategy_probability(
-          strategy.FORK_STRATEGY, default=FORK_PROBABILITY))
-
-
-def do_mutator_plugin():
-  """Return whether or not to use a mutator_plugin."""
-  # TODO(metzman): Support Windows.
-  if environment.platform() == 'WINDOWS':
-    return False
-
-  return engine_common.decide_with_probability(
-      engine_common.get_strategy_probability(
-          strategy.MUTATOR_PLUGIN_STRATEGY, default=MUTATOR_PLUGIN_PROBABILITY))
 
 
 def add_recommended_dictionary(arguments, fuzzer_name, fuzzer_path):
@@ -388,7 +305,7 @@ def generate_new_testcase_mutations(corpus_directory, fuzzer_name, generator,
 
     # If new mutations are successfully generated, add radamsa stragegy.
     if shell.get_directory_file_count(new_testcase_mutations_directory):
-      fuzzing_strategies.append(strategy.CORPUS_MUTATION_RADAMSA_STRATEGY)
+      fuzzing_strategies.append(strategy.CORPUS_MUTATION_RADAMSA_STRATEGY.name)
 
   # Generate new testcase mutations using ML RNN model.
   elif generator == Generator.ML_RNN:
@@ -398,7 +315,7 @@ def generate_new_testcase_mutations(corpus_directory, fuzzer_name, generator,
 
     # If new mutations are successfully generated, add ml rnn stragegy.
     if shell.get_directory_file_count(new_testcase_mutations_directory):
-      fuzzing_strategies.append(strategy.CORPUS_MUTATION_ML_RNN_STRATEGY)
+      fuzzing_strategies.append(strategy.CORPUS_MUTATION_ML_RNN_STRATEGY.name)
 
   return new_testcase_mutations_directory
 
@@ -407,6 +324,7 @@ def get_corpus_directories(main_corpus_directory,
                            new_testcases_directory,
                            fuzzer_path,
                            fuzzing_strategies,
+                           strategy_pool,
                            minijail_chroot=None):
   """Return a list of corpus directories to be passed to the fuzzer binary for
   fuzzing."""
@@ -421,14 +339,14 @@ def get_corpus_directories(main_corpus_directory,
   subset_size = engine_common.random_choice(
       engine_common.CORPUS_SUBSET_NUM_TESTCASES)
 
-  if (engine_common.do_corpus_subset() and
+  if (strategy_pool.do_strategy(strategy.CORPUS_SUBSET_STRATEGY) and
       shell.get_directory_file_count(main_corpus_directory) > subset_size):
     # Copy |subset_size| testcases into 'subset' directory.
     corpus_subset_directory = create_corpus_directory('subset')
     copy_from_corpus(corpus_subset_directory, main_corpus_directory,
                      subset_size)
     corpus_directories.append(corpus_subset_directory)
-    fuzzing_strategies.append(strategy.CORPUS_SUBSET_STRATEGY + '_' +
+    fuzzing_strategies.append(strategy.CORPUS_SUBSET_STRATEGY.name + '_' +
                               str(subset_size))
     if minijail_chroot:
       bind_corpus_dirs(minijail_chroot, [main_corpus_directory])
@@ -693,6 +611,10 @@ def use_mutator_plugin(target_name, extra_env, chroot):
   available for |target_name|, then add it to LD_PRELOAD in |extra_env|, add
   chroot bindings if |chroot| is not None, and return True."""
 
+  # TODO(metzman): Support Windows.
+  if environment.platform() == 'WINDOWS':
+    return False
+
   mutator_plugin_path = mutator_plugin.get_mutator_plugin(target_name)
   if not mutator_plugin_path:
     return False
@@ -847,10 +769,15 @@ def main(argv):
     if os.path.exists(default_dict_path):
       arguments.append(constants.DICT_FLAG + default_dict_path)
 
+  # Strategy pool is the list of strategies that we attempt to enable, whereas
+  # fuzzing strategies is the list of strategies that are enabled. (e.g. if
+  # mutator is selected in the pool, but not available for a given target, it
+  # would not be added to fuzzing strategies.)
+  strategy_pool = strategy_selection.generate_strategy_pool()
   fuzzing_strategies = []
 
   # Select a generator to use for existing testcase mutations.
-  generator = _select_generator()
+  generator = _select_generator(strategy_pool)
   is_mutations_run = generator != Generator.NONE
 
   # Timeout for fuzzer run.
@@ -862,7 +789,7 @@ def main(argv):
   # Get list of corpus directories.
   corpus_directories = get_corpus_directories(
       corpus_directory, new_testcases_directory, fuzzer_path,
-      fuzzing_strategies, minijail_chroot)
+      fuzzing_strategies, strategy_pool, minijail_chroot)
 
   # Bind corpus directories in minijail.
   if use_minijail:
@@ -880,32 +807,33 @@ def main(argv):
     if use_minijail:
       bind_corpus_dirs(minijail_chroot, [new_testcase_mutations_directory])
 
-  max_len_argument = fuzzer_utils.extract_argument(
-      arguments, constants.MAX_LEN_FLAG, remove=False)
-  if not max_len_argument and do_random_max_length():
-    max_length = random.SystemRandom().randint(1, MAX_VALUE_FOR_MAX_LENGTH)
-    arguments.append('%s%d' % (constants.MAX_LEN_FLAG, max_length))
-    fuzzing_strategies.append(strategy.RANDOM_MAX_LENGTH_STRATEGY)
+  if strategy_pool.do_strategy(strategy.RANDOM_MAX_LENGTH_STRATEGY):
+    max_len_argument = fuzzer_utils.extract_argument(
+        arguments, constants.MAX_LEN_FLAG, remove=False)
+    if not max_len_argument:
+      max_length = random.SystemRandom().randint(1, MAX_VALUE_FOR_MAX_LENGTH)
+      arguments.append('%s%d' % (constants.MAX_LEN_FLAG, max_length))
+      fuzzing_strategies.append(strategy.RANDOM_MAX_LENGTH_STRATEGY.name)
 
-  if do_recommended_dictionary():
-    if add_recommended_dictionary(arguments, fuzzer_name, fuzzer_path):
-      fuzzing_strategies.append(strategy.RECOMMENDED_DICTIONARY_STRATEGY)
+  if (strategy_pool.do_strategy(strategy.RECOMMENDED_DICTIONARY_STRATEGY) and
+      add_recommended_dictionary(arguments, fuzzer_name, fuzzer_path)):
+    fuzzing_strategies.append(strategy.RECOMMENDED_DICTIONARY_STRATEGY.name)
 
-  if do_value_profile():
+  if strategy_pool.do_strategy(strategy.VALUE_PROFILE_STRATEGY):
     arguments.append(constants.VALUE_PROFILE_ARGUMENT)
-    fuzzing_strategies.append(strategy.VALUE_PROFILE_STRATEGY)
+    fuzzing_strategies.append(strategy.VALUE_PROFILE_STRATEGY.name)
 
-  if do_fork():
+  if strategy_pool.do_strategy(strategy.FORK_STRATEGY):
     max_fuzz_threads = environment.get_value('MAX_FUZZ_THREADS', 1)
     num_fuzz_processes = max(1, multiprocessing.cpu_count() // max_fuzz_threads)
     arguments.append('%s%d' % (constants.FORK_FLAG, num_fuzz_processes))
     fuzzing_strategies.append(
-        '%s_%d' % (strategy.FORK_STRATEGY, num_fuzz_processes))
+        '%s_%d' % (strategy.FORK_STRATEGY.name, num_fuzz_processes))
 
   extra_env = {}
-  if do_mutator_plugin():
-    if use_mutator_plugin(target_name, extra_env, minijail_chroot):
-      fuzzing_strategies.append(strategy.MUTATOR_PLUGIN_STRATEGY)
+  if (strategy_pool.do_strategy(strategy.MUTATOR_PLUGIN_STRATEGY) and
+      use_mutator_plugin(target_name, extra_env, minijail_chroot)):
+    fuzzing_strategies.append(strategy.MUTATOR_PLUGIN_STRATEGY.name)
 
   # Execute the fuzzer binary with original arguments.
   fuzz_result = runner.fuzz(

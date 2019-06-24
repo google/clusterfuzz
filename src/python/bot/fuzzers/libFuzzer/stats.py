@@ -135,21 +135,21 @@ def parse_fuzzing_strategies(log_lines, strategies):
       logs.log_error('Failed to parse strategy "%s":\n%s\n' % (line, str(e)))
 
   for line in strategies:
-    parse_line_for_strategy_prefix(line, strategy.CORPUS_SUBSET_STRATEGY)
-    parse_line_for_strategy_prefix(line, strategy.FORK_STRATEGY)
+    parse_line_for_strategy_prefix(line, strategy.CORPUS_SUBSET_STRATEGY.name)
+    parse_line_for_strategy_prefix(line, strategy.FORK_STRATEGY.name)
 
   # Other strategies are either ON or OFF, without arbitrary values.
-  if strategy.CORPUS_MUTATION_RADAMSA_STRATEGY in strategies:
+  if strategy.CORPUS_MUTATION_RADAMSA_STRATEGY.name in strategies:
     stats['strategy_corpus_mutations_radamsa'] = 1
-  if strategy.CORPUS_MUTATION_ML_RNN_STRATEGY in strategies:
+  if strategy.CORPUS_MUTATION_ML_RNN_STRATEGY.name in strategies:
     stats['strategy_corpus_mutations_ml_rnn'] = 1
-  if strategy.MUTATOR_PLUGIN_STRATEGY in strategies:
+  if strategy.MUTATOR_PLUGIN_STRATEGY.name in strategies:
     stats['strategy_mutator_plugin'] = 1
-  if strategy.RANDOM_MAX_LENGTH_STRATEGY in strategies:
+  if strategy.RANDOM_MAX_LENGTH_STRATEGY.name in strategies:
     stats['strategy_random_max_len'] = 1
-  if strategy.RECOMMENDED_DICTIONARY_STRATEGY in strategies:
+  if strategy.RECOMMENDED_DICTIONARY_STRATEGY.name in strategies:
     stats['strategy_recommended_dict'] = 1
-  if strategy.VALUE_PROFILE_STRATEGY in strategies:
+  if strategy.VALUE_PROFILE_STRATEGY.name in strategies:
     stats['strategy_value_profile'] = 1
 
   return stats
