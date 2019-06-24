@@ -17,16 +17,11 @@ Decides the set strategies to be considered by the launcher. Note
 that because of compatability issues, the exact set of strategies
 generated here may be modified in the launcher before being launched."""
 
-<<<<<<< HEAD
 from base import utils
 from bot.fuzzers import engine_common
 from bot.fuzzers import strategy
 from datastore import data_types
 from datastore import ndb_utils
-=======
-from bot.fuzzers import engine_common
-from bot.fuzzers import strategy
->>>>>>> c2541f3f3ca8323f2b991b95aeb9f06044df0c51
 
 
 class StrategyPool(object):
@@ -74,11 +69,7 @@ def do_strategy(strategy_tuple):
                                              strategy_tuple.probability))
 
 
-<<<<<<< HEAD
 def generate_random_strategy_pool():
-=======
-def generate_strategy_pool():
->>>>>>> c2541f3f3ca8323f2b991b95aeb9f06044df0c51
   """Return a strategy pool representing a random selection of strategies for
   launcher to consider."""
   pool = StrategyPool()
@@ -100,7 +91,6 @@ def generate_strategy_pool():
     pool.add_strategy(strategy.FORK_STRATEGY)
   if do_strategy(strategy.MUTATOR_PLUGIN_STRATEGY):
     pool.add_strategy(strategy.MUTATOR_PLUGIN_STRATEGY)
-<<<<<<< HEAD
   return pool
 
 
@@ -135,7 +125,4 @@ def generate_strategy_pool():
     pool.add_strategy(strategy.VALUE_PROFILE_STRATEGY)
   if 'fork' in strategies:
     pool.add_strategy(strategy.FORK_STRATEGY)
-=======
-
->>>>>>> c2541f3f3ca8323f2b991b95aeb9f06044df0c51
   return pool
