@@ -95,7 +95,7 @@ class LabelStoreTest(unittest.TestCase):
     store.add('label5')
     store.remove('label1')
 
-    store.reset()
+    store.reset_tracking()
     self.assertItemsEqual([], store.added)
     self.assertItemsEqual([], store.removed)
 
