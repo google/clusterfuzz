@@ -40,9 +40,6 @@ from system import shell
 # Size 100 has a slightly higher chance as it seems to be the best one so far.
 CORPUS_SUBSET_NUM_TESTCASES = [10, 20, 50, 75, 75, 100, 100, 100, 125, 125, 150]
 
-# Probability of fuzzing from a subset of the corpus.
-CORPUS_SUBSET_PROBABILITY = 0.50
-
 # Suffix used for seed corpus archive generated with build. Does not include
 # file extension.
 SEED_CORPUS_ARCHIVE_SUFFIX = '_seed_corpus'
@@ -82,7 +79,8 @@ def do_corpus_subset():
   """Return whether or not to do corpus subset."""
   return decide_with_probability(
       get_strategy_probability(
-          strategy.CORPUS_SUBSET_STRATEGY, default=CORPUS_SUBSET_PROBABILITY))
+          strategy.CORPUS_SUBSET_STRATEGY.name,
+          default=strategy.CORPUS_SUBSET_STRATEGY.probability))
 
 
 def decide_with_probability(probability):
