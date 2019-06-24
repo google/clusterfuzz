@@ -37,14 +37,22 @@ class TestRandomStrategySelectionGeneratorPatched(unittest.TestCase):
   def test_random_pool_generator(self):
     """Deterministically tests the random strategy pool generator."""
     strategy_pool = strategy_selection.generate_random_strategy_pool()
-    self.assertTrue(strategy_pool[strategy.CORPUS_MUTATION_RADAMSA_STRATEGY])
-    self.assertFalse(strategy_pool[strategy.CORPUS_MUTATION_ML_RNN_STRATEGY])
-    self.assertTrue(strategy_pool[strategy.CORPUS_SUBSET_STRATEGY])
-    self.assertTrue(strategy_pool[strategy.RANDOM_MAX_LENGTH_STRATEGY])
-    self.assertTrue(strategy_pool[strategy.RECOMMENDED_DICTIONARY_STRATEGY])
-    self.assertTrue(strategy_pool[strategy.VALUE_PROFILE_STRATEGY])
-    self.assertTrue(strategy_pool[strategy.FORK_STRATEGY])
-    self.assertTrue(strategy_pool[strategy.MUTATOR_PLUGIN_STRATEGY])
+
+    # Ml rnn and radamsa strategies are mutually exclusive. Because of how we
+    # patch, ml rnn will evaluate to false, however this depends on the
+    # implementation.
+    self.assertTrue(
+        strategy_pool.do_strategy(strategy.CORPUS_MUTATION_RADAMSA_STRATEGY))
+    self.assertFalse(
+        strategy_pool.do_strategy(strategy.CORPUS_MUTATION_ML_RNN_STRATEGY))
+    self.assertTrue(strategy_pool.do_strategy(strategy.CORPUS_SUBSET_STRATEGY))
+    self.assertTrue(
+        strategy_pool.do_strategy(strategy.RANDOM_MAX_LENGTH_STRATEGY))
+    self.assertTrue(
+        strategy_pool.do_strategy(strategy.RECOMMENDED_DICTIONARY_STRATEGY))
+    self.assertTrue(strategy_pool.do_strategy(strategy.VALUE_PROFILE_STRATEGY))
+    self.assertTrue(strategy_pool.do_strategy(strategy.FORK_STRATEGY))
+    self.assertTrue(strategy_pool.do_strategy(strategy.MUTATOR_PLUGIN_STRATEGY))
 
 
 class TestStrategySelectionPatchless(unittest.TestCase):
@@ -111,11 +119,16 @@ class TestMultiArmedBanditStrategySelection(unittest.TestCase):
 
     Based on deterministic strategy selection."""
     strategy_pool = strategy_selection.generate_strategy_pool()
-    self.assertTrue(strategy_pool[strategy.CORPUS_MUTATION_ML_RNN_STRATEGY])
-    self.assertTrue(strategy_pool[strategy.RANDOM_MAX_LENGTH_STRATEGY])
-    self.assertTrue(strategy_pool[strategy.VALUE_PROFILE_STRATEGY])
-    self.assertTrue(strategy_pool[strategy.RECOMMENDED_DICTIONARY_STRATEGY])
-    self.assertFalse(strategy_pool[strategy.CORPUS_MUTATION_RADAMSA_STRATEGY])
-    self.assertFalse(strategy_pool[strategy.CORPUS_SUBSET_STRATEGY])
-    self.assertFalse(strategy_pool[strategy.FORK_STRATEGY])
-    self.assertFalse(strategy_pool[strategy.MUTATOR_PLUGIN_STRATEGY])
+    self.assertTrue(
+        strategy_pool.do_strategy(strategy.CORPUS_MUTATION_ML_RNN_STRATEGY))
+    self.assertTrue(
+        strategy_pool.do_strategy(strategy.RANDOM_MAX_LENGTH_STRATEGY))
+    self.assertTrue(strategy_pool.do_strategy(strategy.VALUE_PROFILE_STRATEGY))
+    self.assertTrue(
+        strategy_pool.do_strategy(strategy.RECOMMENDED_DICTIONARY_STRATEGY))
+    self.assertFalse(
+        strategy_pool.do_strategy(strategy.CORPUS_MUTATION_RADAMSA_STRATEGY))
+    self.assertFalse(strategy_pool.do_strategy(strategy.CORPUS_SUBSET_STRATEGY))
+    self.assertFalse(strategy_pool.do_strategy(strategy.FORK_STRATEGY))
+    self.assertFalse(
+        strategy_pool.do_strategy(strategy.MUTATOR_PLUGIN_STRATEGY))
