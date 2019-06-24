@@ -21,7 +21,7 @@ from base import errors
 from crash_analysis.crash_comparer import CrashComparer
 from datastore import data_handler
 from datastore import data_types
-from issue_management import issue_tracker_utils
+from libs.issue_management import issue_tracker_utils
 from metrics import logs
 
 from . import group_leader
@@ -130,7 +130,7 @@ def group_testcases():
             cached_issue_map[project_name][issue_id])
       else:
         issue_tracker = issue_tracker_utils.get_issue_tracker_for_testcase(
-            testcase, use_cache=True)
+            testcase)
         if not issue_tracker:
           continue
 

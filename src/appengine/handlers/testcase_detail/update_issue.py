@@ -16,10 +16,10 @@
 from datastore import data_handler
 from handlers import base_handler
 from handlers.testcase_detail import show
-from issue_management import issue_tracker_policy
 from libs import handler
 from libs import helpers
-from libs import issue_filer
+from libs.issue_management import issue_filer
+from libs.issue_management import issue_tracker_policy
 
 
 class Handler(base_handler.Handler):
@@ -42,20 +42,20 @@ class Handler(base_handler.Handler):
           ('The issue (%d) is already closed and further updates are not'
            ' allowed. Please file a new issue instead!') % issue_id, 400)
 
-    # Create issue parameters.
+    if not testcase.is_crash():
+      raise helpers.EarlyExitException(
+          'This is not a crash testcase, so issue update is not applicable.',
+          400)
+
     issue_comment = data_handler.get_issue_description(testcase,
                                                        helpers.get_user_email())
-    issue_summary = data_handler.get_issue_summary(testcase)
-
-    # NULL states leads to unhelpful summaries, so do not update in that case.
-    if needs_summary_update and testcase.crash_state != 'NULL':
-      issue.title = issue_summary
+    if needs_summary_update:
+      issue.title = data_handler.get_issue_summary(testcase)
 
     policy = issue_tracker_policy.get(issue_tracker.project)
     properties = policy.get_existing_issue_properties()
     for label in properties.labels:
-      for result in issue_filer.apply_substitutions(
-          label, testcase, security_severity=None):
+      for result in issue_filer.apply_substitutions(label, testcase):
         issue.labels.add(result)
 
     issue.save(new_comment=issue_comment)

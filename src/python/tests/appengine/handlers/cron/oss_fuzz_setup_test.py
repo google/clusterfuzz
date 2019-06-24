@@ -250,6 +250,12 @@ class OssFuzzSetupTest(unittest.TestCase):
             'experimental': True,
             'selective_unpack': True,
         }),
+        ('lib6', {
+            'homepage': 'http://example6.com',
+            'sanitizers': ['address', 'dataflow', 'memory', 'undefined'],
+            'fuzzing_engines': ['libfuzzer', 'afl', 'dataflow'],
+            'auto_ccs': 'User@example.com',
+        }),
     ]
 
     mock_storage.buckets().get.side_effect = mock_bucket_get
@@ -420,6 +426,25 @@ class OssFuzzSetupTest(unittest.TestCase):
         'EXPERIMENTAL = True\n'
         'UNPACK_ALL_FUZZ_TARGETS_AND_FILES = False\n')
 
+    job = data_types.Job.query(
+        data_types.Job.name == 'libfuzzer_asan_lib6').get()
+    self.assertEqual(job.platform, 'LIB6_LINUX')
+    self.assertEqual(
+        job.environment_string, 'RELEASE_BUILD_BUCKET_PATH = '
+        'gs://clusterfuzz-builds/lib6/lib6-address-([0-9]+).zip\n'
+        'FUZZ_LOGS_BUCKET = lib6-logs.clusterfuzz-external.appspot.com\n'
+        'CORPUS_BUCKET = lib6-corpus.clusterfuzz-external.appspot.com\n'
+        'QUARANTINE_BUCKET = lib6-quarantine.clusterfuzz-external.appspot.com\n'
+        'BACKUP_BUCKET = lib6-backup.clusterfuzz-external.appspot.com\n'
+        'AUTOMATIC_LABELS = Proj-lib6,Engine-libfuzzer\n'
+        'PROJECT_NAME = lib6\n'
+        'SUMMARY_PREFIX = lib6\n'
+        'REVISION_VARS_URL = https://commondatastorage.googleapis.com/'
+        'clusterfuzz-builds/lib6/lib6-address-%s.srcmap.json\n'
+        'MANAGED = True\n'
+        'DATAFLOW_BUILD_BUCKET_PATH = '
+        'gs://clusterfuzz-builds-dataflow/lib6/lib6-dataflow-([0-9]+).zip\n')
+
     config = db_config.get()
     self.maxDiff = None  # pylint: disable=invalid-name
     self.assertItemsEqual(config.revision_vars_url.splitlines(), [
@@ -446,6 +471,14 @@ class OssFuzzSetupTest(unittest.TestCase):
         'clusterfuzz-builds-no-engine/lib4/lib4-address-%s.srcmap.json',
         u'libfuzzer_asan_lib5;https://commondatastorage.googleapis.com/'
         'clusterfuzz-builds/lib5/lib5-address-%s.srcmap.json',
+        u'libfuzzer_asan_lib6;https://commondatastorage.googleapis.com/'
+        'clusterfuzz-builds/lib6/lib6-address-%s.srcmap.json',
+        u'libfuzzer_ubsan_lib6;https://commondatastorage.googleapis.com/'
+        'clusterfuzz-builds/lib6/lib6-undefined-%s.srcmap.json',
+        u'libfuzzer_msan_lib6;https://commondatastorage.googleapis.com/'
+        'clusterfuzz-builds/lib6/lib6-memory-%s.srcmap.json',
+        u'afl_asan_lib6;https://commondatastorage.googleapis.com/'
+        'clusterfuzz-builds-afl/lib6/lib6-address-%s.srcmap.json',
     ])
 
     libfuzzer = data_types.Fuzzer.query(
@@ -458,11 +491,15 @@ class OssFuzzSetupTest(unittest.TestCase):
         'libfuzzer_msan_lib3',
         'libfuzzer_ubsan_lib1',
         'libfuzzer_ubsan_lib3',
+        'libfuzzer_asan_lib6',
+        'libfuzzer_msan_lib6',
+        'libfuzzer_ubsan_lib6',
     ])
 
     afl = data_types.Fuzzer.query(data_types.Fuzzer.name == 'afl').get()
     self.assertItemsEqual(afl.jobs, [
         'afl_asan_lib1',
+        'afl_asan_lib6',
     ])
 
     # Test that old unused jobs are deleted.
@@ -1271,6 +1308,10 @@ class OssFuzzSetupTest(unittest.TestCase):
         ('LIB1_LINUX', 'libFuzzer', 'libfuzzer_ubsan_lib1'),
         ('LIB3_LINUX', 'libFuzzer', 'libfuzzer_ubsan_lib3'),
         ('LIB5_LINUX', 'libFuzzer', 'libfuzzer_asan_lib5'),
+        ('LIB6_LINUX', 'libFuzzer', 'libfuzzer_asan_lib6'),
+        ('LIB6_LINUX', 'libFuzzer', 'libfuzzer_msan_lib6'),
+        ('LIB6_LINUX', 'libFuzzer', 'libfuzzer_ubsan_lib6'),
+        ('LIB6_LINUX', 'afl', 'afl_asan_lib6'),
     ])
 
     all_permissions = [
@@ -1362,6 +1403,30 @@ class OssFuzzSetupTest(unittest.TestCase):
         'email': u'user@example.com',
         'entity_name': u'libfuzzer_asan_i386_lib3',
         'auto_cc': 1
+    }, {
+        'entity_kind': 1,
+        'is_prefix': False,
+        'email': u'user@example.com',
+        'entity_name': u'libfuzzer_msan_lib6',
+        'auto_cc': 1
+    }, {
+        'entity_kind': 1,
+        'is_prefix': False,
+        'email': u'user@example.com',
+        'entity_name': u'libfuzzer_ubsan_lib6',
+        'auto_cc': 1
+    }, {
+        'entity_kind': 1,
+        'is_prefix': False,
+        'email': u'user@example.com',
+        'entity_name': u'libfuzzer_asan_lib6',
+        'auto_cc': 1
+    }, {
+        'entity_kind': 1,
+        'is_prefix': False,
+        'email': u'user@example.com',
+        'entity_name': u'afl_asan_lib6',
+        'auto_cc': 1
     }])
 
     expected_topics = [
@@ -1372,6 +1437,7 @@ class OssFuzzSetupTest(unittest.TestCase):
         'projects/clusterfuzz-external/topics/jobs-lib3-linux',
         'projects/clusterfuzz-external/topics/jobs-lib4-linux',
         'projects/clusterfuzz-external/topics/jobs-lib5-linux',
+        'projects/clusterfuzz-external/topics/jobs-lib6-linux',
     ]
     self.assertItemsEqual(expected_topics,
                           list(pubsub_client.list_topics('projects/' + app_id)))

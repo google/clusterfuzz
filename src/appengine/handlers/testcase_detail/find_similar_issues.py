@@ -13,9 +13,9 @@
 # limitations under the License.
 """Handler for finding similar issues."""
 from handlers import base_handler
-from issue_management import issue_tracker_utils
 from libs import handler
 from libs import helpers
+from libs.issue_management import issue_tracker_utils
 
 
 class Handler(base_handler.Handler):

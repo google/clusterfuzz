@@ -17,74 +17,105 @@
 
 from builtins import object
 import datetime
+import mock
+import os
 import parameterized
 import unittest
 
 from datastore import data_types
-from issue_management import issue_tracker_policy
-from issue_management import label_utils
-from issue_management import monorail
-from libs import issue_filer
+from libs.issue_management import issue_filer
+from libs.issue_management import issue_tracker_policy
+from libs.issue_management import monorail
+from libs.issue_management.issue_tracker import LabelStore
+from libs.issue_management.monorail.issue import Issue as MonorailIssue
 
 from tests.test_libs import helpers
 from tests.test_libs import test_utils
 
 CHROMIUM_POLICY = issue_tracker_policy.IssueTrackerPolicy({
-    'all': {
-        'labels': ['ClusterFuzz', 'OS-%PLATFORM%', 'Stability-%SANITIZER%'],
-        'status': 'new'
-    },
-    'existing': {
-        'labels': ['Stability-%SANITIZER%']
-    },
-    'labels': {
-        'fuzz_blocker': 'Fuzz-Blocker',
-        'ignore': 'ClusterFuzz-Ignore',
-        'invalid_fuzzer': 'ClusterFuzz-Invalid-Fuzzer',
-        'needs_feedback': 'Needs-Feedback',
-        'reported_prefix': 'Reported-',
-        'reproducible': 'Reproducible',
-        'restrict_view': 'Restrict-View-SecurityTeam',
-        'security_severity_prefix': 'Security_Severity-',
-        'unreproducible': 'Unreproducible',
-        'verified': 'ClusterFuzz-Verified'
-    },
-    'non_security': {
-        'crash_labels': ['Stability-Crash', 'Pri-1'],
-        'labels': ['Type-Bug'],
-        'non_crash_labels': ['Pri-2']
-    },
-    'security': {
-        'labels': ['Type-Bug-Security', 'Security_Severity-%SEVERITY%']
-    },
     'status': {
         'assigned': 'Assigned',
         'duplicate': 'Duplicate',
-        'fixed': 'Fixed',
-        'new': 'Untriaged',
         'verified': 'Verified',
-        'wontfix': 'WontFix'
+        'new': 'Untriaged',
+        'wontfix': 'WontFix',
+        'fixed': 'Fixed'
+    },
+    'all': {
+        'status': 'new',
+        'labels': ['ClusterFuzz', 'Stability-%SANITIZER%']
+    },
+    'non_security': {
+        'labels': ['Type-Bug'],
+        'crash_labels': ['Stability-Crash', 'Pri-1'],
+        'non_crash_labels': ['Pri-2']
+    },
+    'labels': {
+        'ignore': 'ClusterFuzz-Ignore',
+        'verified': 'ClusterFuzz-Verified',
+        'security_severity': 'Security_Severity-%SEVERITY%',
+        'needs_feedback': 'Needs-Feedback',
+        'invalid_fuzzer': 'ClusterFuzz-Invalid-Fuzzer',
+        'reported': None,
+        'wrong': 'ClusterFuzz-Wrong',
+        'fuzz_blocker': 'Fuzz-Blocker',
+        'reproducible': 'Reproducible',
+        'auto_cc_from_owners': 'ClusterFuzz-Auto-CC',
+        'os': 'OS-%PLATFORM%',
+        'unreproducible': 'Unreproducible',
+        'restrict_view': 'Restrict-View-SecurityTeam'
+    },
+    'security': {
+        'labels': ['Type-Bug-Security']
+    },
+    'existing': {
+        'labels': ['Stability-%SANITIZER%']
     }
 })
 
 OSS_FUZZ_POLICY = issue_tracker_policy.IssueTrackerPolicy({
+    'status': {
+        'assigned': 'Assigned',
+        'duplicate': 'Duplicate',
+        'verified': 'Verified',
+        'new': 'New',
+        'wontfix': 'WontFix',
+        'fixed': 'Fixed'
+    },
     'all': {
+        'status': 'new',
+        'labels': ['ClusterFuzz', 'Stability-%SANITIZER%'],
         'issue_body_footer':
             'When you fix this bug, please\n'
             '  * mention the fix revision(s).\n'
-            '  * state whether the bug was a short-lived regression or an '
-            'old bug in any stable releases.\n'
+            '  * state whether the bug was a short-lived regression or an old '
+            'bug in any stable releases.\n'
             '  * add any other useful information.\n'
             'This information can help downstream consumers.\n\n'
             'If you need to contact the OSS-Fuzz team with a question, '
             'concern, or any other feedback, please file an issue at '
-            'https://github.com/google/oss-fuzz/issues.',
-        'labels': [
-            'ClusterFuzz', 'OS-%PLATFORM%', 'Reported-%YYYY-MM-DD%',
-            'Stability-%SANITIZER%'
-        ],
-        'status':
-            'new'
+            'https://github.com/google/oss-fuzz/issues.'
+    },
+    'non_security': {
+        'labels': ['Type-Bug']
+    },
+    'labels': {
+        'ignore': 'ClusterFuzz-Ignore',
+        'verified': 'ClusterFuzz-Verified',
+        'security_severity': 'Security_Severity-%SEVERITY%',
+        'needs_feedback': 'Needs-Feedback',
+        'invalid_fuzzer': 'ClusterFuzz-Invalid-Fuzzer',
+        'reported': 'Reported-%YYYY-MM-DD%',
+        'wrong': 'ClusterFuzz-Wrong',
+        'fuzz_blocker': 'Fuzz-Blocker',
+        'reproducible': 'Reproducible',
+        'auto_cc_from_owners': 'ClusterFuzz-Auto-CC',
+        'os': 'OS-%PLATFORM%',
+        'unreproducible': 'Unreproducible',
+        'restrict_view': 'Restrict-View-Commit'
+    },
+    'security': {
+        'labels': ['Type-Bug-Security']
     },
     'deadline_policy_message':
         'This bug is subject to a 90 day disclosure deadline. If 90 days '
@@ -93,32 +124,6 @@ OSS_FUZZ_POLICY = issue_tracker_policy.IssueTrackerPolicy({
         'become visible to the public.',
     'existing': {
         'labels': ['Stability-%SANITIZER%']
-    },
-    'labels': {
-        'fuzz_blocker': 'Fuzz-Blocker',
-        'ignore': 'ClusterFuzz-Ignore',
-        'invalid_fuzzer': 'ClusterFuzz-Invalid-Fuzzer',
-        'needs_feedback': 'Needs-Feedback',
-        'reported_prefix': 'Reported-',
-        'reproducible': 'Reproducible',
-        'restrict_view': 'Restrict-View-Commit',
-        'security_severity_prefix': 'Security_Severity-',
-        'unreproducible': 'Unreproducible',
-        'verified': 'ClusterFuzz-Verified'
-    },
-    'non_security': {
-        'labels': ['Type-Bug']
-    },
-    'security': {
-        'labels': ['Type-Bug-Security', 'Security_Severity-%SEVERITY%']
-    },
-    'status': {
-        'assigned': 'Assigned',
-        'duplicate': 'Duplicate',
-        'fixed': 'Fixed',
-        'new': 'New',
-        'verified': 'Verified',
-        'wontfix': 'WontFix'
     }
 })
 
@@ -235,7 +240,7 @@ class IssueFilerTests(unittest.TestCase):
     helpers.patch(self, [
         'base.utils.utcnow',
         'datastore.data_handler.get_issue_description',
-        'issue_management.issue_tracker_policy.get',
+        'libs.issue_management.issue_tracker_policy.get',
     ])
 
     self.mock.get_issue_description.return_value = 'Issue'
@@ -445,7 +450,7 @@ class IssueFilerTests(unittest.TestCase):
   def test_memory_tool_used(self, project_name, policy):
     """Test memory tool label is correctly set."""
     self.mock.get.return_value = policy
-    for entry in label_utils.MEMORY_TOOLS_LABELS:
+    for entry in issue_filer.MEMORY_TOOLS_LABELS:
       issue_tracker = monorail.IssueTracker(IssueTrackerManager(project_name))
 
       self.testcase1.crash_stacktrace = '\n\n%s\n' % entry['token']
@@ -485,3 +490,198 @@ class IssueFilerTests(unittest.TestCase):
     issue_filer.file_issue(self.testcase1, issue_tracker)
     self.assertIn('Pri-2', issue_tracker._itm.last_issue.labels)
     self.assertNotIn('Stability-Crash', issue_tracker._itm.last_issue.labels)
+
+
+class MemoryToolLabelsTest(unittest.TestCase):
+  """Memory tool labels tests."""
+  DATA_DIRECTORY = os.path.join(os.path.dirname(__file__), 'issue_filer_data')
+
+  def _read_test_data(self, name):
+    """Helper function to read test data."""
+    with open(os.path.join(self.DATA_DIRECTORY, name)) as handle:
+      return handle.read()
+
+  def test_memory_tools_labels_asan(self):
+    """Run memory tools detection with test data."""
+    expected_labels = ['Memory-AddressSanitizer']
+    data = self._read_test_data('memory_tools_asan.txt')
+    actual_labels = issue_filer.get_memory_tool_labels(data)
+
+    self.assertEqual(actual_labels, expected_labels)
+
+  def test_memory_tools_labels_asan_afl(self):
+    """Run memory tools detection with test data."""
+    expected_labels = ['Memory-AddressSanitizer', 'AFL']
+    data = self._read_test_data('memory_tools_asan_afl.txt')
+    actual_labels = issue_filer.get_memory_tool_labels(data)
+
+    self.assertEqual(actual_labels, expected_labels)
+
+  def test_memory_tools_labels_asan_libfuzzer(self):
+    """Run memory tools detection with test data."""
+    expected_labels = ['Memory-AddressSanitizer', 'LibFuzzer']
+    data = self._read_test_data('memory_tools_asan_libfuzzer.txt')
+    actual_labels = issue_filer.get_memory_tool_labels(data)
+
+    self.assertEqual(actual_labels, expected_labels)
+
+  def test_memory_tools_labels_asan_lsan(self):
+    """Run memory tools detection with test data."""
+    expected_labels = ['Memory-AddressSanitizer', 'Memory-LeakSanitizer']
+    data = self._read_test_data('memory_tools_asan_lsan.txt')
+    actual_labels = issue_filer.get_memory_tool_labels(data)
+
+    self.assertEqual(actual_labels, expected_labels)
+
+  def test_memory_tools_labels_msan(self):
+    """Run memory tools detection with test data."""
+    expected_labels = ['Memory-MemorySanitizer']
+    data = self._read_test_data('memory_tools_msan.txt')
+    actual_labels = issue_filer.get_memory_tool_labels(data)
+
+    self.assertEqual(actual_labels, expected_labels)
+
+  def test_memory_tools_labels_msan_libfuzzer(self):
+    """Run memory tools detection with test data."""
+    expected_labels = ['Memory-MemorySanitizer', 'LibFuzzer']
+    data = self._read_test_data('memory_tools_msan_libfuzzer.txt')
+    actual_labels = issue_filer.get_memory_tool_labels(data)
+
+    self.assertEqual(actual_labels, expected_labels)
+
+  def test_memory_tools_labels_tsan(self):
+    """Run memory tools detection with test data."""
+    expected_labels = ['ThreadSanitizer']
+    data = self._read_test_data('memory_tools_tsan.txt')
+    actual_labels = issue_filer.get_memory_tool_labels(data)
+
+    self.assertEqual(actual_labels, expected_labels)
+
+  def test_memory_tools_ubsan(self):
+    """Run memory tools detection with test data."""
+    expected_labels = ['UndefinedBehaviorSanitizer']
+    data = self._read_test_data('memory_tools_ubsan.txt')
+    actual_labels = issue_filer.get_memory_tool_labels(data)
+
+    self.assertEqual(actual_labels, expected_labels)
+
+
+@test_utils.with_cloud_emulators('datastore')
+class UpdateImpactTest(unittest.TestCase):
+  """Update impact tests."""
+
+  def _make_mock_issue(self):
+    mock_issue = mock.Mock(autospec=MonorailIssue)
+    mock_issue.labels = LabelStore()
+
+    return mock_issue
+
+  def setUp(self):
+    helpers.patch_environ(self)
+    self.testcase = data_types.Testcase()
+    self.testcase.one_time_crasher_flag = False
+    self.testcase.crash_state = 'fake_crash'
+
+  def test_update_impact_stable_from_regression(self):
+    """Tests updating impact to Stable from the regression range."""
+    self.testcase.regression = '0:1000'
+    mock_issue = self._make_mock_issue()
+
+    issue_filer.update_issue_impact_labels(self.testcase, mock_issue)
+    self.assertItemsEqual(['Security_Impact-Stable'], mock_issue.labels.added)
+    self.assertItemsEqual([], mock_issue.labels.removed)
+
+  def test_update_impact_stable(self):
+    """Tests updating impact to Stable."""
+    self.testcase.is_impact_set_flag = True
+    self.testcase.impact_stable_version = 'Stable'
+
+    mock_issue = self._make_mock_issue()
+
+    issue_filer.update_issue_impact_labels(self.testcase, mock_issue)
+    self.assertItemsEqual(['Security_Impact-Stable'], mock_issue.labels.added)
+    self.assertItemsEqual([], mock_issue.labels.removed)
+
+  def test_update_impact_beta(self):
+    """Tests updating impact to Beta."""
+    self.testcase.is_impact_set_flag = True
+    self.testcase.impact_beta_version = 'Beta'
+
+    mock_issue = self._make_mock_issue()
+
+    issue_filer.update_issue_impact_labels(self.testcase, mock_issue)
+    self.assertItemsEqual(['Security_Impact-Beta'], mock_issue.labels.added)
+    self.assertItemsEqual([], mock_issue.labels.removed)
+
+  def test_update_impact_head(self):
+    """Tests updating impact to Head."""
+    self.testcase.is_impact_set_flag = True
+
+    mock_issue = self._make_mock_issue()
+
+    issue_filer.update_issue_impact_labels(self.testcase, mock_issue)
+    self.assertItemsEqual(['Security_Impact-Head'], mock_issue.labels.added)
+    self.assertItemsEqual([], mock_issue.labels.removed)
+
+  def test_no_impact_for_unreproducible_testcase(self):
+    """Tests no impact for unreproducible testcase on trunk and which also
+    does not crash on stable and beta."""
+    self.testcase.is_impact_set_flag = True
+    self.testcase.crash_state = ''
+
+    mock_issue = self._make_mock_issue()
+
+    issue_filer.update_issue_impact_labels(self.testcase, mock_issue)
+    self.assertItemsEqual([], mock_issue.labels.added)
+    self.assertItemsEqual([], mock_issue.labels.removed)
+
+  def test_no_impact_if_not_set(self):
+    """Tests no impact if the impact flag is not set."""
+    mock_issue = self._make_mock_issue()
+
+    issue_filer.update_issue_impact_labels(self.testcase, mock_issue)
+    self.assertItemsEqual([], mock_issue.labels.added)
+    self.assertItemsEqual([], mock_issue.labels.removed)
+
+  def test_replace_impact(self):
+    """Tests replacing impact."""
+    self.testcase.is_impact_set_flag = True
+
+    mock_issue = self._make_mock_issue()
+    mock_issue.labels.add('Security_Impact-Beta')
+    mock_issue.labels.reset_tracking()
+
+    issue_filer.update_issue_impact_labels(self.testcase, mock_issue)
+    self.assertItemsEqual(['Security_Impact-Head'], mock_issue.labels.added)
+    self.assertItemsEqual(['Security_Impact-Beta'], mock_issue.labels.removed)
+
+  def test_replace_same_impact(self):
+    """Tests replacing same impact."""
+    self.testcase.is_impact_set_flag = True
+
+    mock_issue = self._make_mock_issue()
+    mock_issue.labels.add('Security_Impact-Head')
+    mock_issue.labels.reset_tracking()
+
+    issue_filer.update_issue_impact_labels(self.testcase, mock_issue)
+    self.assertItemsEqual([], mock_issue.labels.added)
+    self.assertItemsEqual([], mock_issue.labels.removed)
+
+  def test_component_add_label(self):
+    """Test that we set labels for component builds."""
+    self.testcase.job_type = 'job'
+    self.testcase.impact_stable_version = 'Stable'
+    self.testcase.impact_beta_version = 'Beta'
+    self.testcase.put()
+
+    data_types.Job(
+        name='job',
+        environment_string=(
+            'RELEASE_BUILD_BUCKET_PATH = '
+            'https://example.com/blah-v8-component-([0-9]+).zip\n')).put()
+
+    self.testcase.is_impact_set_flag = True
+    mock_issue = self._make_mock_issue()
+    issue_filer.update_issue_impact_labels(self.testcase, mock_issue)
+    self.assertItemsEqual(['Security_Impact-Stable'], mock_issue.labels.added)
+    self.assertItemsEqual([], mock_issue.labels.removed)

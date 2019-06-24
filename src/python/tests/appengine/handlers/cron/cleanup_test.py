@@ -20,8 +20,17 @@ import unittest
 
 from datastore import data_types
 from handlers.cron import cleanup
+from libs.issue_management import issue_tracker_policy
+from tests.test_libs import appengine_test_utils
 from tests.test_libs import helpers
 from tests.test_libs import test_utils
+
+ISSUE_IGNORE_LABEL = 'ClusterFuzz-Ignore'
+ISSUE_INVALID_FUZZER_LABEL = 'ClusterFuzz-Invalid-Fuzzer'
+ISSUE_MISTRIAGED_LABEL = 'ClusterFuzz-Wrong'
+ISSUE_NEEDS_FEEDBACK_LABEL = 'Needs-Feedback'
+ISSUE_VERIFIED_LABEL = 'ClusterFuzz-Verified'
+ISSUE_FUZZ_BLOCKER_LABEL = 'Fuzz-Blocker'
 
 
 @test_utils.with_cloud_emulators('datastore')
@@ -68,7 +77,8 @@ class CleanupTest(unittest.TestCase):
         'handlers.cron.cleanup.get_crash_occurrence_platforms',
     ])
     self.mock.utcnow.return_value = test_utils.CURRENT_TIME
-    self.issue = test_utils.create_generic_issue()
+    self.issue = appengine_test_utils.create_generic_issue()
+    self.policy = issue_tracker_policy.get('test-project')
 
   def test_mark_duplicate_testcase_as_closed_with_no_issue_1(self):
     """Ensure that a regular bug older than 7 days does not get closed."""
@@ -176,7 +186,7 @@ class CleanupTest(unittest.TestCase):
     testcase.one_time_crasher_flag = False
     testcase.put()
     cleanup.mark_issue_as_closed_if_testcase_is_fixed(
-        testcase=testcase, issue=self.issue)
+        policy=self.policy, testcase=testcase, issue=self.issue)
     self.assertNotEqual(self.issue.status, 'Verified')
     self.assertEqual('', self.issue._monorail_issue.comment)
 
@@ -189,7 +199,7 @@ class CleanupTest(unittest.TestCase):
     testcase.one_time_crasher_flag = True
     testcase.put()
     cleanup.mark_issue_as_closed_if_testcase_is_fixed(
-        testcase=testcase, issue=self.issue)
+        policy=self.policy, testcase=testcase, issue=self.issue)
     self.assertNotEqual(self.issue.status, 'Verified')
     self.assertEqual('', self.issue._monorail_issue.comment)
 
@@ -203,7 +213,7 @@ class CleanupTest(unittest.TestCase):
     testcase.fixed = 'Yes'
     testcase.put()
     cleanup.mark_issue_as_closed_if_testcase_is_fixed(
-        testcase=testcase, issue=self.issue)
+        policy=self.policy, testcase=testcase, issue=self.issue)
     self.assertEqual(self.issue.status, 'Verified')
     self.assertIn('ClusterFuzz testcase 1 is verified as fixed.',
                   self.issue._monorail_issue.comment)
@@ -224,7 +234,7 @@ class CleanupTest(unittest.TestCase):
     similar_testcase.put()
 
     cleanup.mark_issue_as_closed_if_testcase_is_fixed(
-        testcase=testcase, issue=self.issue)
+        policy=self.policy, testcase=testcase, issue=self.issue)
     self.assertEqual(self.issue.status, 'Verified')
     self.assertIn(
         'ClusterFuzz testcase 1 is verified as fixed in '
@@ -248,7 +258,7 @@ class CleanupTest(unittest.TestCase):
     similar_testcase.put()
 
     cleanup.mark_issue_as_closed_if_testcase_is_fixed(
-        testcase=testcase, issue=self.issue)
+        policy=self.policy, testcase=testcase, issue=self.issue)
     self.assertNotEqual(self.issue.status, 'Verified')
     self.assertEqual('', self.issue._monorail_issue.comment)
 
@@ -268,7 +278,7 @@ class CleanupTest(unittest.TestCase):
     similar_testcase.put()
 
     cleanup.mark_issue_as_closed_if_testcase_is_fixed(
-        testcase=testcase, issue=self.issue)
+        policy=self.policy, testcase=testcase, issue=self.issue)
     self.assertEqual(self.issue.status, 'Verified')
     self.assertIn(
         'ClusterFuzz testcase 1 is verified as fixed in '
@@ -295,7 +305,7 @@ class CleanupTest(unittest.TestCase):
     self.issue.status = 'Fixed'
 
     cleanup.mark_issue_as_closed_if_testcase_is_fixed(
-        testcase=testcase, issue=self.issue)
+        policy=self.policy, testcase=testcase, issue=self.issue)
     self.assertEqual(self.issue.status, 'Verified')
     self.assertIn(
         'ClusterFuzz testcase 1 is verified as fixed in '
@@ -315,11 +325,11 @@ class CleanupTest(unittest.TestCase):
 
     self.issue.status = 'Assigned'
     self.issue._monorail_issue.comments += [
-        test_utils.create_generic_issue_comment(
-            labels=[data_types.ISSUE_VERIFIED_LABEL])
+        appengine_test_utils.create_generic_issue_comment(
+            labels=[ISSUE_VERIFIED_LABEL])
     ]
     cleanup.mark_issue_as_closed_if_testcase_is_fixed(
-        testcase=testcase, issue=self.issue)
+        policy=self.policy, testcase=testcase, issue=self.issue)
     self.assertNotEqual(self.issue.status, 'Verified')
     self.assertEqual('', self.issue._monorail_issue.comment)
 
@@ -335,11 +345,11 @@ class CleanupTest(unittest.TestCase):
 
     self.issue.status = 'Assigned'
     self.issue._monorail_issue.comments += [
-        test_utils.create_generic_issue_comment(
-            labels=[data_types.ISSUE_MISTRIAGED_LABEL])
+        appengine_test_utils.create_generic_issue_comment(
+            labels=[ISSUE_MISTRIAGED_LABEL])
     ]
     cleanup.mark_issue_as_closed_if_testcase_is_fixed(
-        testcase=testcase, issue=self.issue)
+        policy=self.policy, testcase=testcase, issue=self.issue)
     self.assertNotEqual(self.issue.status, 'Verified')
     self.assertEqual('', self.issue._monorail_issue.comment)
 
@@ -353,7 +363,7 @@ class CleanupTest(unittest.TestCase):
     testcase.one_time_crasher_flag = False
     testcase.put()
     cleanup.mark_issue_as_closed_if_testcase_is_fixed(
-        testcase=testcase, issue=self.issue)
+        policy=self.policy, testcase=testcase, issue=self.issue)
     self.assertNotEqual(self.issue.status, 'Verified')
     self.assertEqual('', self.issue._monorail_issue.comment)
 
@@ -363,7 +373,7 @@ class CleanupTest(unittest.TestCase):
     testcase.open = False
     testcase.put()
     cleanup.mark_testcase_as_closed_if_issue_is_closed(
-        testcase=testcase, issue=self.issue)
+        policy=self.policy, testcase=testcase, issue=self.issue)
     self.assertFalse(testcase.open)
 
   def test_mark_testcase_as_closed_if_issue_is_closed_2(self):
@@ -373,7 +383,7 @@ class CleanupTest(unittest.TestCase):
     testcase.bug_information = str(self.issue.id)
     testcase.put()
     cleanup.mark_testcase_as_closed_if_issue_is_closed(
-        testcase=testcase, issue=None)
+        policy=self.policy, testcase=testcase, issue=None)
     self.assertTrue(testcase.open)
 
   def test_mark_testcase_as_closed_if_issue_is_closed_3(self):
@@ -381,7 +391,7 @@ class CleanupTest(unittest.TestCase):
     bug_information is not set."""
     testcase = test_utils.create_generic_testcase()
     cleanup.mark_testcase_as_closed_if_issue_is_closed(
-        testcase=testcase, issue=self.issue)
+        policy=self.policy, testcase=testcase, issue=self.issue)
     self.assertTrue(testcase.open)
 
   def test_mark_testcase_as_closed_if_issue_is_closed_4(self):
@@ -391,7 +401,7 @@ class CleanupTest(unittest.TestCase):
     testcase.put()
     self.issue._monorail_issue.open = True
     cleanup.mark_testcase_as_closed_if_issue_is_closed(
-        testcase=testcase, issue=self.issue)
+        policy=self.policy, testcase=testcase, issue=self.issue)
     self.assertTrue(testcase.open)
 
   def test_mark_testcase_as_closed_if_issue_is_closed_5(self):
@@ -404,11 +414,11 @@ class CleanupTest(unittest.TestCase):
         test_utils.CURRENT_TIME - datetime.timedelta(
             days=data_types.CLOSE_TESTCASE_WITH_CLOSED_BUG_DEADLINE + 1))
     self.issue._monorail_issue.comments += [
-        test_utils.create_generic_issue_comment(
-            labels=[data_types.ISSUE_IGNORE_LABEL])
+        appengine_test_utils.create_generic_issue_comment(
+            labels=[ISSUE_IGNORE_LABEL])
     ]
     cleanup.mark_testcase_as_closed_if_issue_is_closed(
-        testcase=testcase, issue=self.issue)
+        policy=self.policy, testcase=testcase, issue=self.issue)
     self.assertTrue(testcase.open)
 
   def test_mark_testcase_as_closed_if_issue_is_closed_6(self):
@@ -422,7 +432,7 @@ class CleanupTest(unittest.TestCase):
         test_utils.CURRENT_TIME - datetime.timedelta(
             days=data_types.CLOSE_TESTCASE_WITH_CLOSED_BUG_DEADLINE))
     cleanup.mark_testcase_as_closed_if_issue_is_closed(
-        testcase=testcase, issue=self.issue)
+        policy=self.policy, testcase=testcase, issue=self.issue)
     self.assertTrue(testcase.open)
 
   def test_mark_testcase_as_closed_if_issue_is_closed_7(self):
@@ -436,7 +446,7 @@ class CleanupTest(unittest.TestCase):
         test_utils.CURRENT_TIME - datetime.timedelta(
             days=data_types.CLOSE_TESTCASE_WITH_CLOSED_BUG_DEADLINE + 1))
     cleanup.mark_testcase_as_closed_if_issue_is_closed(
-        testcase=testcase, issue=self.issue)
+        policy=self.policy, testcase=testcase, issue=self.issue)
     self.assertFalse(testcase.open)
 
   def test_mark_testcase_as_closed_if_job_is_invalid_1(self):
@@ -524,7 +534,7 @@ class CleanupTest(unittest.TestCase):
     testcase.one_time_crasher_flag = False
     testcase.put()
     cleanup.mark_unreproducible_testcase_and_issue_as_closed_after_deadline(
-        testcase=testcase, issue=None)
+        policy=self.policy, testcase=testcase, issue=None)
     self.assertTrue(testcase.open)
 
   def test_mark_unreproducible_testcase_and_issue_as_closed_after_deadline_2(
@@ -536,7 +546,7 @@ class CleanupTest(unittest.TestCase):
     testcase.one_time_crasher_flag = True
     testcase.put()
     cleanup.mark_unreproducible_testcase_and_issue_as_closed_after_deadline(
-        testcase=testcase, issue=None)
+        policy=self.policy, testcase=testcase, issue=None)
     self.assertTrue(testcase.open)
 
   def test_mark_unreproducible_testcase_and_issue_as_closed_after_deadline_3(
@@ -549,21 +559,21 @@ class CleanupTest(unittest.TestCase):
     testcase.one_time_crasher_flag = True
     testcase.put()
     cleanup.mark_unreproducible_testcase_and_issue_as_closed_after_deadline(
-        testcase=testcase, issue=self.issue)
+        policy=self.policy, testcase=testcase, issue=self.issue)
     self.assertTrue(testcase.open)
 
   def test_mark_unreproducible_testcase_and_issue_as_closed_after_deadline_4(
       self):
     """Ensure that an unreproducible testcase with an open issue and with crash
     still seen in crash stats is not closed."""
-    self.issue = test_utils.create_generic_issue()
+    self.issue = appengine_test_utils.create_generic_issue()
     self.mock.get_crash_occurrence_platforms.return_value = ['Linux']
     testcase = test_utils.create_generic_testcase()
     testcase.bug_information = str(self.issue.id)
     testcase.one_time_crasher_flag = True
     testcase.put()
     cleanup.mark_unreproducible_testcase_and_issue_as_closed_after_deadline(
-        testcase=testcase, issue=self.issue)
+        policy=self.policy, testcase=testcase, issue=self.issue)
     self.assertTrue(testcase.open)
 
   def test_mark_unreproducible_testcase_and_issue_as_closed_after_deadline_5(
@@ -571,7 +581,7 @@ class CleanupTest(unittest.TestCase):
     """Ensure that an unreproducible testcase with an open issue, with crash not
     seen in crash stats, but with other open reproducible testcase is not
     closed."""
-    self.issue = test_utils.create_generic_issue()
+    self.issue = appengine_test_utils.create_generic_issue()
     self.mock.get_crash_occurrence_platforms.return_value = []
     testcase = test_utils.create_generic_testcase()
     testcase.bug_information = str(self.issue.id)
@@ -582,25 +592,25 @@ class CleanupTest(unittest.TestCase):
     similar_testcase.one_time_crasher_flag = False
     similar_testcase.put()
     cleanup.mark_unreproducible_testcase_and_issue_as_closed_after_deadline(
-        testcase=testcase, issue=self.issue)
+        policy=self.policy, testcase=testcase, issue=self.issue)
     self.assertTrue(testcase.open)
 
   def test_mark_unreproducible_testcase_and_issue_as_closed_after_deadline_6(
       self):
     """Ensure that an unreproducible testcase with an open issue, with crash not
     seen in crash stats, but with mistriaged issue label is not closed."""
-    self.issue = test_utils.create_generic_issue()
+    self.issue = appengine_test_utils.create_generic_issue()
     self.mock.get_crash_occurrence_platforms.return_value = []
     self.issue._monorail_issue.comments += [
-        test_utils.create_generic_issue_comment(
-            labels=[data_types.ISSUE_MISTRIAGED_LABEL])
+        appengine_test_utils.create_generic_issue_comment(
+            labels=[ISSUE_MISTRIAGED_LABEL])
     ]
     testcase = test_utils.create_generic_testcase()
     testcase.bug_information = str(self.issue.id)
     testcase.one_time_crasher_flag = True
     testcase.put()
     cleanup.mark_unreproducible_testcase_and_issue_as_closed_after_deadline(
-        testcase=testcase, issue=self.issue)
+        policy=self.policy, testcase=testcase, issue=self.issue)
     self.assertTrue(testcase.open)
 
   def test_mark_unreproducible_testcase_and_issue_as_closed_after_deadline_7(
@@ -608,7 +618,7 @@ class CleanupTest(unittest.TestCase):
     """Ensure that an unreproducible testcase with an open issue, with crash not
     seen in crash stats, and status as Unreproducible does not lead to closing
     of issue."""
-    self.issue = test_utils.create_generic_issue()
+    self.issue = appengine_test_utils.create_generic_issue()
     self.mock.get_crash_occurrence_platforms.return_value = []
     testcase = test_utils.create_generic_testcase()
     testcase.bug_information = str(self.issue.id)
@@ -616,7 +626,7 @@ class CleanupTest(unittest.TestCase):
     testcase.status = 'Unreproducible'
     testcase.put()
     cleanup.mark_unreproducible_testcase_and_issue_as_closed_after_deadline(
-        testcase=testcase, issue=self.issue)
+        policy=self.policy, testcase=testcase, issue=self.issue)
     self.assertTrue(testcase.open)
     self.assertEqual('Assigned', self.issue.status)
 
@@ -624,7 +634,7 @@ class CleanupTest(unittest.TestCase):
       self):
     """Ensure that an unreproducible testcase with an open issue, created within
     the deadline and crash seen in crash stats is not not closed."""
-    self.issue = test_utils.create_generic_issue()
+    self.issue = appengine_test_utils.create_generic_issue()
     self.mock.get_crash_occurrence_platforms.return_value = ['Linux']
     testcase = test_utils.create_generic_testcase(
         created_days_ago=data_types.UNREPRODUCIBLE_TESTCASE_WITH_BUG_DEADLINE -
@@ -633,7 +643,7 @@ class CleanupTest(unittest.TestCase):
     testcase.one_time_crasher_flag = True
     testcase.put()
     cleanup.mark_unreproducible_testcase_and_issue_as_closed_after_deadline(
-        testcase=testcase, issue=self.issue)
+        policy=self.policy, testcase=testcase, issue=self.issue)
     self.assertTrue(testcase.open)
     self.assertEqual('Assigned', self.issue.status)
 
@@ -641,14 +651,14 @@ class CleanupTest(unittest.TestCase):
       self):
     """Ensure that an unreproducible testcase with an open issue, with crash not
     seen in crash stats, is closed."""
-    self.issue = test_utils.create_generic_issue()
+    self.issue = appengine_test_utils.create_generic_issue()
     self.mock.get_crash_occurrence_platforms.return_value = []
     testcase = test_utils.create_generic_testcase()
     testcase.bug_information = str(self.issue.id)
     testcase.one_time_crasher_flag = True
     testcase.put()
     cleanup.mark_unreproducible_testcase_and_issue_as_closed_after_deadline(
-        testcase=testcase, issue=self.issue)
+        policy=self.policy, testcase=testcase, issue=self.issue)
     self.assertFalse(testcase.open)
     self.assertEqual('WontFix', self.issue.status)
 
@@ -656,7 +666,7 @@ class CleanupTest(unittest.TestCase):
       self):
     """Ensure that an unreproducible testcase with an open issue, with crash not
     seen in crash stats, but with an uploader email is not closed."""
-    self.issue = test_utils.create_generic_issue()
+    self.issue = appengine_test_utils.create_generic_issue()
     self.mock.get_crash_occurrence_platforms.return_value = []
     testcase = test_utils.create_generic_testcase()
     testcase.bug_information = str(self.issue.id)
@@ -664,7 +674,7 @@ class CleanupTest(unittest.TestCase):
     testcase.uploader_email = 'abc@example.com'
     testcase.put()
     cleanup.mark_unreproducible_testcase_and_issue_as_closed_after_deadline(
-        testcase=testcase, issue=self.issue)
+        policy=self.policy, testcase=testcase, issue=self.issue)
     self.assertTrue(testcase.open)
     self.assertEqual('Assigned', self.issue.status)
 
@@ -673,7 +683,7 @@ class CleanupTest(unittest.TestCase):
     """Ensure that an unreproducible testcase with an open issue, with crash not
     seen in crash stats, but reproduced yesterday as as part of progression task
     is not closed."""
-    self.issue = test_utils.create_generic_issue()
+    self.issue = appengine_test_utils.create_generic_issue()
     self.mock.get_crash_occurrence_platforms.return_value = []
     testcase = test_utils.create_generic_testcase()
     testcase.bug_information = str(self.issue.id)
@@ -681,7 +691,7 @@ class CleanupTest(unittest.TestCase):
     testcase.put()
     testcase.set_metadata('last_tested_crash_time', test_utils.CURRENT_TIME)
     cleanup.mark_unreproducible_testcase_and_issue_as_closed_after_deadline(
-        testcase=testcase, issue=self.issue)
+        policy=self.policy, testcase=testcase, issue=self.issue)
     self.assertTrue(testcase.open)
     self.assertEqual('Assigned', self.issue.status)
 
@@ -689,7 +699,7 @@ class CleanupTest(unittest.TestCase):
       self):
     """Ensure that an unreproducible testcase with an open issue, with crash not
     seen in crash stats and progression task is closed."""
-    self.issue = test_utils.create_generic_issue()
+    self.issue = appengine_test_utils.create_generic_issue()
     self.mock.get_crash_occurrence_platforms.return_value = []
     testcase = test_utils.create_generic_testcase()
     testcase.bug_information = str(self.issue.id)
@@ -700,7 +710,7 @@ class CleanupTest(unittest.TestCase):
         test_utils.CURRENT_TIME - datetime.timedelta(
             days=data_types.UNREPRODUCIBLE_TESTCASE_WITH_BUG_DEADLINE + 1))
     cleanup.mark_unreproducible_testcase_and_issue_as_closed_after_deadline(
-        testcase=testcase, issue=self.issue)
+        policy=self.policy, testcase=testcase, issue=self.issue)
     self.assertFalse(testcase.open)
     self.assertEqual('WontFix', self.issue.status)
 
@@ -710,8 +720,8 @@ class CleanupTest(unittest.TestCase):
     testcase.open = False
     testcase.put()
     cleanup.notify_closed_issue_if_testcase_is_open(
-        testcase=testcase, issue=self.issue)
-    self.assertNotIn(data_types.ISSUE_NEEDS_FEEDBACK_LABEL, self.issue.labels)
+        policy=self.policy, testcase=testcase, issue=self.issue)
+    self.assertNotIn(ISSUE_NEEDS_FEEDBACK_LABEL, self.issue.labels)
 
   def test_notify_closed_issue_if_testcase_is_open_2(self):
     """Test that we don't do anything if testcase has status unreproducible
@@ -725,8 +735,8 @@ class CleanupTest(unittest.TestCase):
         test_utils.CURRENT_TIME - datetime.timedelta(
             days=data_types.NOTIFY_CLOSED_BUG_WITH_OPEN_TESTCASE_DEADLINE + 1))
     cleanup.notify_closed_issue_if_testcase_is_open(
-        testcase=testcase, issue=self.issue)
-    self.assertNotIn(data_types.ISSUE_NEEDS_FEEDBACK_LABEL, self.issue.labels)
+        policy=self.policy, testcase=testcase, issue=self.issue)
+    self.assertNotIn(ISSUE_NEEDS_FEEDBACK_LABEL, self.issue.labels)
 
   def test_notify_closed_issue_if_testcase_is_open_3(self):
     """Test that we don't do anything if we are unable to get issue object from
@@ -735,16 +745,16 @@ class CleanupTest(unittest.TestCase):
     testcase.bug_information = str(self.issue.id)
     testcase.put()
     cleanup.notify_closed_issue_if_testcase_is_open(
-        testcase=testcase, issue=None)
-    self.assertNotIn(data_types.ISSUE_NEEDS_FEEDBACK_LABEL, self.issue.labels)
+        policy=self.policy, testcase=testcase, issue=None)
+    self.assertNotIn(ISSUE_NEEDS_FEEDBACK_LABEL, self.issue.labels)
 
   def test_notify_closed_issue_if_testcase_is_open_4(self):
     """Test that we don't do anything if there is no associated issue i.e.
     bug_information is not set."""
     testcase = test_utils.create_generic_testcase()
     cleanup.notify_closed_issue_if_testcase_is_open(
-        testcase=testcase, issue=self.issue)
-    self.assertNotIn(data_types.ISSUE_NEEDS_FEEDBACK_LABEL, self.issue.labels)
+        policy=self.policy, testcase=testcase, issue=self.issue)
+    self.assertNotIn(ISSUE_NEEDS_FEEDBACK_LABEL, self.issue.labels)
 
   def test_notify_closed_issue_if_testcase_is_open_5(self):
     """Test that we don't do anything if issue is still open."""
@@ -753,8 +763,8 @@ class CleanupTest(unittest.TestCase):
     testcase.put()
     self.issue._monorail_issue.open = True
     cleanup.notify_closed_issue_if_testcase_is_open(
-        testcase=testcase, issue=self.issue)
-    self.assertNotIn(data_types.ISSUE_NEEDS_FEEDBACK_LABEL, self.issue.labels)
+        policy=self.policy, testcase=testcase, issue=self.issue)
+    self.assertNotIn(ISSUE_NEEDS_FEEDBACK_LABEL, self.issue.labels)
 
   def test_notify_closed_issue_if_testcase_is_open_6(self):
     """Test that we don't do anything if we have not exceeded the notification
@@ -767,8 +777,8 @@ class CleanupTest(unittest.TestCase):
         test_utils.CURRENT_TIME - datetime.timedelta(
             days=data_types.NOTIFY_CLOSED_BUG_WITH_OPEN_TESTCASE_DEADLINE))
     cleanup.notify_closed_issue_if_testcase_is_open(
-        testcase=testcase, issue=self.issue)
-    self.assertNotIn(data_types.ISSUE_NEEDS_FEEDBACK_LABEL, self.issue.labels)
+        policy=self.policy, testcase=testcase, issue=self.issue)
+    self.assertNotIn(ISSUE_NEEDS_FEEDBACK_LABEL, self.issue.labels)
 
   def test_notify_closed_issue_if_testcase_is_open_7(self):
     """Test that we don't do anything if there is an ignore label already on
@@ -781,12 +791,12 @@ class CleanupTest(unittest.TestCase):
         test_utils.CURRENT_TIME - datetime.timedelta(
             days=data_types.NOTIFY_CLOSED_BUG_WITH_OPEN_TESTCASE_DEADLINE + 1))
     self.issue._monorail_issue.comments += [
-        test_utils.create_generic_issue_comment(
-            labels=[data_types.ISSUE_IGNORE_LABEL])
+        appengine_test_utils.create_generic_issue_comment(
+            labels=[ISSUE_IGNORE_LABEL])
     ]
     cleanup.notify_closed_issue_if_testcase_is_open(
-        testcase=testcase, issue=self.issue)
-    self.assertNotIn(data_types.ISSUE_NEEDS_FEEDBACK_LABEL, self.issue.labels)
+        policy=self.policy, testcase=testcase, issue=self.issue)
+    self.assertNotIn(ISSUE_NEEDS_FEEDBACK_LABEL, self.issue.labels)
 
   def test_notify_closed_issue_if_testcase_is_open_8(self):
     """Test that we don't do anything if there is an needs feedback label
@@ -799,12 +809,12 @@ class CleanupTest(unittest.TestCase):
         test_utils.CURRENT_TIME - datetime.timedelta(
             days=data_types.NOTIFY_CLOSED_BUG_WITH_OPEN_TESTCASE_DEADLINE + 1))
     self.issue._monorail_issue.comments += [
-        test_utils.create_generic_issue_comment(
-            labels=[data_types.ISSUE_NEEDS_FEEDBACK_LABEL])
+        appengine_test_utils.create_generic_issue_comment(
+            labels=[ISSUE_NEEDS_FEEDBACK_LABEL])
     ]
     cleanup.notify_closed_issue_if_testcase_is_open(
-        testcase=testcase, issue=self.issue)
-    self.assertNotIn(data_types.ISSUE_NEEDS_FEEDBACK_LABEL, self.issue.labels)
+        policy=self.policy, testcase=testcase, issue=self.issue)
+    self.assertNotIn(ISSUE_NEEDS_FEEDBACK_LABEL, self.issue.labels)
 
   def test_notify_closed_issue_if_testcase_is_open_9(self):
     """Test that we add notification if we are past the notification deadline
@@ -817,8 +827,8 @@ class CleanupTest(unittest.TestCase):
         test_utils.CURRENT_TIME - datetime.timedelta(
             days=data_types.NOTIFY_CLOSED_BUG_WITH_OPEN_TESTCASE_DEADLINE + 1))
     cleanup.notify_closed_issue_if_testcase_is_open(
-        testcase=testcase, issue=self.issue)
-    self.assertIn(data_types.ISSUE_NEEDS_FEEDBACK_LABEL, self.issue.labels)
+        policy=self.policy, testcase=testcase, issue=self.issue)
+    self.assertIn(ISSUE_NEEDS_FEEDBACK_LABEL, self.issue.labels)
 
 
 @test_utils.with_cloud_emulators('datastore')
@@ -829,6 +839,7 @@ class UpdateOsLabelsTest(unittest.TestCase):
     helpers.patch(self, [
         'metrics.crash_stats.get',
     ])
+    self.policy = issue_tracker_policy.get('test-project')
 
   def test_no_issue(self):
     """Test no issue."""
@@ -838,7 +849,7 @@ class UpdateOsLabelsTest(unittest.TestCase):
         security_flag=True,
         project_name='project')
     testcase.put()
-    cleanup.update_os_labels(testcase, None)
+    cleanup.update_os_labels(self.policy, testcase, None)
 
   def test_labels_added(self):
     """Test os label added from crash stats."""
@@ -867,9 +878,9 @@ class UpdateOsLabelsTest(unittest.TestCase):
     }]
     self.mock.get.return_value = (1, rows)
 
-    issue = test_utils.create_generic_issue()
+    issue = appengine_test_utils.create_generic_issue()
     issue._monorail_issue.labels = []
-    cleanup.update_os_labels(testcase, issue)
+    cleanup.update_os_labels(self.policy, testcase, issue)
     self.assertEqual({'OS-Windows', 'OS-Linux', 'OS-Mac', 'OS-Android'},
                      set(issue.labels))
     self.mock.get.assert_called_once_with(
@@ -911,14 +922,14 @@ class UpdateOsLabelsTest(unittest.TestCase):
     }]
     self.mock.get.return_value = (1, rows)
 
-    issue = test_utils.create_generic_issue()
+    issue = appengine_test_utils.create_generic_issue()
     issue._monorail_issue.labels = []
-    comment = test_utils.create_generic_issue_comment(
+    comment = appengine_test_utils.create_generic_issue_comment(
         labels=['OS-Mac', 'OS-Android'])
     issue._monorail_issue.comments.append(comment)
     issue.labels.add('OS-Windows')
 
-    cleanup.update_os_labels(testcase, issue)
+    cleanup.update_os_labels(self.policy, testcase, issue)
     self.assertEqual({'OS-Windows', 'OS-Linux'}, set(issue.labels))
 
 
@@ -1044,22 +1055,25 @@ class UpdateTopCrashLabelsTest(unittest.TestCase):
 
     helpers.patch(self, [
         'base.utils.is_oss_fuzz',
+        'base.utils.is_chromium',
         'chrome.build_info.get_release_milestone',
     ])
     self.mock.get_release_milestone.return_value = 63
 
-    self.issue = test_utils.create_generic_issue()
+    self.issue = appengine_test_utils.create_generic_issue()
     self.testcase = test_utils.create_generic_testcase()
+    self.mock.is_chromium.return_value = True
     self.mock.is_oss_fuzz.return_value = False
+    self.policy = issue_tracker_policy.get('test-project')
 
   def test_no_top_crashes(self):
     """Test no label is added if there are no top crashes."""
     top_crashes_by_project_and_platform_map = {u'project': {'LINUX': []}}
 
-    cleanup.update_fuzz_blocker_label(self.testcase, self.issue,
+    cleanup.update_fuzz_blocker_label(self.policy, self.testcase, self.issue,
                                       top_crashes_by_project_and_platform_map)
-    self.assertNotIn(data_types.ISSUE_FUZZ_BLOCKER_LABEL, self.issue.labels)
-    self.assertNotIn(data_types.ISSUE_RELEASEBLOCK_BETA_LABEL,
+    self.assertNotIn(ISSUE_FUZZ_BLOCKER_LABEL, self.issue.labels)
+    self.assertNotIn(data_types.CHROMIUM_ISSUE_RELEASEBLOCK_BETA_LABEL,
                      self.issue.labels)
     self.assertNotIn('M-63', self.issue.labels)
     self.assertEqual('', self.issue._monorail_issue.comment)
@@ -1076,10 +1090,10 @@ class UpdateTopCrashLabelsTest(unittest.TestCase):
             }]
         }
     }
-    cleanup.update_fuzz_blocker_label(self.testcase, self.issue,
+    cleanup.update_fuzz_blocker_label(self.policy, self.testcase, self.issue,
                                       top_crashes_by_project_and_platform_map)
-    self.assertNotIn(data_types.ISSUE_FUZZ_BLOCKER_LABEL, self.issue.labels)
-    self.assertNotIn(data_types.ISSUE_RELEASEBLOCK_BETA_LABEL,
+    self.assertNotIn(ISSUE_FUZZ_BLOCKER_LABEL, self.issue.labels)
+    self.assertNotIn(data_types.CHROMIUM_ISSUE_RELEASEBLOCK_BETA_LABEL,
                      self.issue.labels)
     self.assertNotIn('M-63', self.issue.labels)
     self.assertEqual('', self.issue._monorail_issue.comment)
@@ -1099,10 +1113,10 @@ class UpdateTopCrashLabelsTest(unittest.TestCase):
             }]
         }
     }
-    cleanup.update_fuzz_blocker_label(self.testcase, self.issue,
+    cleanup.update_fuzz_blocker_label(self.policy, self.testcase, self.issue,
                                       top_crashes_by_project_and_platform_map)
-    self.assertNotIn(data_types.ISSUE_FUZZ_BLOCKER_LABEL, self.issue.labels)
-    self.assertNotIn(data_types.ISSUE_RELEASEBLOCK_BETA_LABEL,
+    self.assertNotIn(ISSUE_FUZZ_BLOCKER_LABEL, self.issue.labels)
+    self.assertNotIn(data_types.CHROMIUM_ISSUE_RELEASEBLOCK_BETA_LABEL,
                      self.issue.labels)
     self.assertNotIn('M-63', self.issue.labels)
     self.assertEqual('', self.issue._monorail_issue.comment)
@@ -1120,10 +1134,11 @@ class UpdateTopCrashLabelsTest(unittest.TestCase):
         }
     }
     self.issue.labels.add('M-62')
-    cleanup.update_fuzz_blocker_label(self.testcase, self.issue,
+    cleanup.update_fuzz_blocker_label(self.policy, self.testcase, self.issue,
                                       top_crashes_by_project_and_platform_map)
-    self.assertIn(data_types.ISSUE_FUZZ_BLOCKER_LABEL, self.issue.labels)
-    self.assertIn(data_types.ISSUE_RELEASEBLOCK_BETA_LABEL, self.issue.labels)
+    self.assertIn(ISSUE_FUZZ_BLOCKER_LABEL, self.issue.labels)
+    self.assertIn(data_types.CHROMIUM_ISSUE_RELEASEBLOCK_BETA_LABEL,
+                  self.issue.labels)
     self.assertIn('M-63', self.issue.labels)
     self.assertNotIn('M-62', self.issue.labels)
     self.assertEqual(
@@ -1150,10 +1165,10 @@ class UpdateTopCrashLabelsTest(unittest.TestCase):
             }]
         }
     }
-    cleanup.update_fuzz_blocker_label(self.testcase, self.issue,
+    cleanup.update_fuzz_blocker_label(self.policy, self.testcase, self.issue,
                                       top_crashes_by_project_and_platform_map)
-    self.assertIn(data_types.ISSUE_FUZZ_BLOCKER_LABEL, self.issue.labels)
-    self.assertNotIn(data_types.ISSUE_RELEASEBLOCK_BETA_LABEL,
+    self.assertIn(ISSUE_FUZZ_BLOCKER_LABEL, self.issue.labels)
+    self.assertNotIn(data_types.CHROMIUM_ISSUE_RELEASEBLOCK_BETA_LABEL,
                      self.issue.labels)
     self.assertNotIn('M-63', self.issue.labels)
     self.assertEqual(
@@ -1188,10 +1203,11 @@ class UpdateTopCrashLabelsTest(unittest.TestCase):
             }]
         }
     }
-    cleanup.update_fuzz_blocker_label(self.testcase, self.issue,
+    cleanup.update_fuzz_blocker_label(self.policy, self.testcase, self.issue,
                                       top_crashes_by_project_and_platform_map)
-    self.assertIn(data_types.ISSUE_FUZZ_BLOCKER_LABEL, self.issue.labels)
-    self.assertIn(data_types.ISSUE_RELEASEBLOCK_BETA_LABEL, self.issue.labels)
+    self.assertIn(ISSUE_FUZZ_BLOCKER_LABEL, self.issue.labels)
+    self.assertIn(data_types.CHROMIUM_ISSUE_RELEASEBLOCK_BETA_LABEL,
+                  self.issue.labels)
     self.assertIn('M-63', self.issue.labels)
     self.assertEqual(
         'This crash occurs very frequently on linux, mac and windows platforms '
@@ -1216,13 +1232,13 @@ class UpdateTopCrashLabelsTest(unittest.TestCase):
     }
 
     self.issue._monorail_issue.comments += [
-        test_utils.create_generic_issue_comment(
-            labels=[data_types.ISSUE_FUZZ_BLOCKER_LABEL])
+        appengine_test_utils.create_generic_issue_comment(
+            labels=[ISSUE_FUZZ_BLOCKER_LABEL])
     ]
-    cleanup.update_fuzz_blocker_label(self.testcase, self.issue,
+    cleanup.update_fuzz_blocker_label(self.policy, self.testcase, self.issue,
                                       top_crashes_by_project_and_platform_map)
-    self.assertNotIn(data_types.ISSUE_FUZZ_BLOCKER_LABEL, self.issue.labels)
-    self.assertNotIn(data_types.ISSUE_RELEASEBLOCK_BETA_LABEL,
+    self.assertNotIn(ISSUE_FUZZ_BLOCKER_LABEL, self.issue.labels)
+    self.assertNotIn(data_types.CHROMIUM_ISSUE_RELEASEBLOCK_BETA_LABEL,
                      self.issue.labels)
     self.assertNotIn('M-63', self.issue.labels)
     self.assertEqual('', self.issue._monorail_issue.comment)
@@ -1233,7 +1249,7 @@ class UpdateComponentsTest(unittest.TestCase):
   """Tests for update_component_labels."""
 
   def setUp(self):
-    self.issue = test_utils.create_generic_issue()
+    self.issue = appengine_test_utils.create_generic_issue()
     self.testcase = test_utils.create_generic_testcase()
 
   def test_components_added(self):
@@ -1255,7 +1271,7 @@ class UpdateComponentsTest(unittest.TestCase):
             'suspected_components': ['A', 'B>C']
         }})
 
-    comment = test_utils.create_generic_issue_comment(
+    comment = appengine_test_utils.create_generic_issue_comment(
         labels=['Test-Predator-Auto-Components'])
     self.issue._monorail_issue.comments.append(comment)
 
@@ -1344,7 +1360,7 @@ class UpdateIssueCCsFromOwnersFileTest(unittest.TestCase):
     ])
     helpers.patch_environ(self)
 
-    self.issue = test_utils.create_generic_issue()
+    self.issue = appengine_test_utils.create_generic_issue()
     self.testcase = test_utils.create_generic_testcase()
 
     # We'll generally want to assume we have an unassigned issue.
@@ -1355,30 +1371,34 @@ class UpdateIssueCCsFromOwnersFileTest(unittest.TestCase):
     self.testcase.set_metadata('issue_owners',
                                'dev1@example1.com,dev2@example2.com')
     self.mock.is_oss_fuzz.return_value = False
+    self.policy = issue_tracker_policy.get('test-project')
 
   def test_skipped_issue_closed(self):
     """Test that we don't add ccs to closed issues."""
     self.issue.status = 'Fixed'
     self.issue._monorail_issue.open = False
-    cleanup.update_issue_ccs_from_owners_file(self.testcase, self.issue)
+    cleanup.update_issue_ccs_from_owners_file(self.policy, self.testcase,
+                                              self.issue)
     self.assertEqual('', self.issue._monorail_issue.comment)
     self.assertItemsEqual([], self.issue.ccs)
     self.assertNotIn('ClusterFuzz-Auto-CC', self.issue.labels)
 
   def test_skipped_issue_updated_once(self):
     """Test that we don't add ccs if we added ccs once already."""
-    comment = test_utils.create_generic_issue_comment(
+    comment = appengine_test_utils.create_generic_issue_comment(
         labels=['ClusterFuzz-Auto-CC'])
     self.assertEqual('', self.issue._monorail_issue.comment)
     self.issue._monorail_issue.comments.append(comment)
-    cleanup.update_issue_ccs_from_owners_file(self.testcase, self.issue)
+    cleanup.update_issue_ccs_from_owners_file(self.policy, self.testcase,
+                                              self.issue)
     self.assertItemsEqual([], self.issue.ccs)
 
   def test_skipped_no_testcase_metadata(self):
     """Test that we don't add ccs if there are no issue_owners key in testcase
     metadata."""
     self.testcase.delete_metadata('issue_owners')
-    cleanup.update_issue_ccs_from_owners_file(self.testcase, self.issue)
+    cleanup.update_issue_ccs_from_owners_file(self.policy, self.testcase,
+                                              self.issue)
     self.assertEqual('', self.issue._monorail_issue.comment)
     self.assertItemsEqual([], self.issue.ccs)
     self.assertNotIn('ClusterFuzz-Auto-CC', self.issue.labels)
@@ -1387,7 +1407,8 @@ class UpdateIssueCCsFromOwnersFileTest(unittest.TestCase):
     """Test that we don't add ccs if owners list is empty in testcase
     metadata."""
     self.testcase.set_metadata('issue_owners', '')
-    cleanup.update_issue_ccs_from_owners_file(self.testcase, self.issue)
+    cleanup.update_issue_ccs_from_owners_file(self.policy, self.testcase,
+                                              self.issue)
     self.assertEqual('', self.issue._monorail_issue.comment)
     self.assertItemsEqual([], self.issue.ccs)
     self.assertNotIn('ClusterFuzz-Auto-CC', self.issue.labels)
@@ -1396,7 +1417,8 @@ class UpdateIssueCCsFromOwnersFileTest(unittest.TestCase):
     """Test that we don't add ccs if ccs are added already and metadata has
     has_issue_ccs_from_owners_file attribute."""
     self.testcase.set_metadata('has_issue_ccs_from_owners_file', True)
-    cleanup.update_issue_ccs_from_owners_file(self.testcase, self.issue)
+    cleanup.update_issue_ccs_from_owners_file(self.policy, self.testcase,
+                                              self.issue)
     self.assertEqual('', self.issue._monorail_issue.comment)
     self.assertItemsEqual([], self.issue.ccs)
     self.assertNotIn('ClusterFuzz-Auto-CC', self.issue.labels)
@@ -1405,7 +1427,8 @@ class UpdateIssueCCsFromOwnersFileTest(unittest.TestCase):
     """Test that we don't add ccs if ccs are added already."""
     self.issue.ccs.add('dev1@example1.com')
     self.issue.ccs.add('dev2@example2.com')
-    cleanup.update_issue_ccs_from_owners_file(self.testcase, self.issue)
+    cleanup.update_issue_ccs_from_owners_file(self.policy, self.testcase,
+                                              self.issue)
     self.assertEqual(
         True, self.testcase.get_metadata('has_issue_ccs_from_owners_file'))
     self.assertEqual('', self.issue._monorail_issue.comment)
@@ -1416,7 +1439,8 @@ class UpdateIssueCCsFromOwnersFileTest(unittest.TestCase):
   def test_add_ccs_with_some_initial_ones(self):
     """Test that we only add new ccs if some are added already."""
     self.issue._monorail_issue.cc = ['dev1@example1.com']
-    cleanup.update_issue_ccs_from_owners_file(self.testcase, self.issue)
+    cleanup.update_issue_ccs_from_owners_file(self.policy, self.testcase,
+                                              self.issue)
     self.assertEqual(
         'Automatically adding ccs based on OWNERS file / target commit history.'
         '\n\nIf this is incorrect, please add ClusterFuzz-Wrong label.',
@@ -1428,7 +1452,8 @@ class UpdateIssueCCsFromOwnersFileTest(unittest.TestCase):
   def test_add_ccs_without_any_initial_ones(self):
     """Test adding of ccs with none already existing on the issue."""
     self.mock.is_oss_fuzz.return_value = True
-    cleanup.update_issue_ccs_from_owners_file(self.testcase, self.issue)
+    cleanup.update_issue_ccs_from_owners_file(self.policy, self.testcase,
+                                              self.issue)
     self.assertEqual(
         'Automatically adding ccs based on OWNERS file / target commit history.'
         '\n\nIf this is incorrect, '
@@ -1445,7 +1470,8 @@ class UpdateIssueCCsFromOwnersFileTest(unittest.TestCase):
 
     helpers.patch(self, ['random.sample'])
     self.mock.sample.side_effect = lambda l, size: l[-size:]
-    cleanup.update_issue_ccs_from_owners_file(self.testcase, self.issue)
+    cleanup.update_issue_ccs_from_owners_file(self.policy, self.testcase,
+                                              self.issue)
     self.assertEqual(
         'Automatically adding ccs based on OWNERS file / target commit history.'
         '\n\nIf this is incorrect, please add ClusterFuzz-Wrong label.',
@@ -1460,14 +1486,16 @@ class UpdateIssueLabelsForFlakyTestcaseTest(unittest.TestCase):
   """Tests for update_issue_labels_for_flaky_testcase."""
 
   def setUp(self):
-    self.issue = test_utils.create_generic_issue()
+    self.issue = appengine_test_utils.create_generic_issue()
     self.testcase = test_utils.create_generic_testcase()
+    self.policy = issue_tracker_policy.get('test-project')
 
   def test_mark_unreproducible_if_reproducible_change(self):
     """Test that we change label on issue if the testcase is now flaky."""
     self.issue.labels.add('Reproducible')
     self.testcase.one_time_crasher_flag = True
-    cleanup.update_issue_labels_for_flaky_testcase(self.testcase, self.issue)
+    cleanup.update_issue_labels_for_flaky_testcase(self.policy, self.testcase,
+                                                   self.issue)
 
     self.assertNotIn('Reproducible', self.issue.labels)
     self.assertIn('Unreproducible', self.issue.labels)
@@ -1480,7 +1508,8 @@ class UpdateIssueLabelsForFlakyTestcaseTest(unittest.TestCase):
     issue is already marked unreproducible."""
     self.issue.labels.add('Unreproducible')
     self.testcase.one_time_crasher_flag = True
-    cleanup.update_issue_labels_for_flaky_testcase(self.testcase, self.issue)
+    cleanup.update_issue_labels_for_flaky_testcase(self.policy, self.testcase,
+                                                   self.issue)
 
     self.assertNotIn('Reproducible', self.issue.labels)
     self.assertIn('Unreproducible', self.issue.labels)
@@ -1490,7 +1519,8 @@ class UpdateIssueLabelsForFlakyTestcaseTest(unittest.TestCase):
     """Test that we don't change labels if the testcase is reproducible."""
     self.issue.labels.add('Reproducible')
     self.testcase.one_time_crasher_flag = False
-    cleanup.update_issue_labels_for_flaky_testcase(self.testcase, self.issue)
+    cleanup.update_issue_labels_for_flaky_testcase(self.policy, self.testcase,
+                                                   self.issue)
 
     self.assertIn('Reproducible', self.issue.labels)
     self.assertNotIn('Unreproducible', self.issue.labels)
@@ -1502,12 +1532,13 @@ class UpdateIssueOwnerAndCCsFromPredatorResultsTest(unittest.TestCase):
   """Tests for update_issue_owner_and_ccs_from_predator_results."""
 
   def setUp(self):
-    self.issue = test_utils.create_generic_issue()
+    self.issue = appengine_test_utils.create_generic_issue()
     self.testcase = test_utils.create_generic_testcase()
 
     # We'll generally want to assume we have an unassigned issue.
     self.issue.assignee = ''
     self.issue.status = 'Untriaged'
+    self.policy = issue_tracker_policy.get('test-project')
 
     # Set the metadata to a generic result that would lead to an update,
     # assuming no other conditions are violated.
@@ -1525,7 +1556,7 @@ class UpdateIssueOwnerAndCCsFromPredatorResultsTest(unittest.TestCase):
   def test_owner_assigned(self):
     """Ensure that we set the owner when appropriate."""
     cleanup.update_issue_owner_and_ccs_from_predator_results(
-        self.testcase, self.issue)
+        self.policy, self.testcase, self.issue)
     self.assertEqual(self.issue.assignee, 'a@example.com')
     self.assertEqual(self.issue.status, 'Assigned')
     self.assertIn('Test-Predator-Auto-Owner', self.issue.labels)
@@ -1533,7 +1564,7 @@ class UpdateIssueOwnerAndCCsFromPredatorResultsTest(unittest.TestCase):
   def test_single_owner_cced_if_specified(self):
     """Ensure that we cc single authors if assignment is disabled."""
     cleanup.update_issue_owner_and_ccs_from_predator_results(
-        self.testcase, self.issue, only_allow_ccs=True)
+        self.policy, self.testcase, self.issue, only_allow_ccs=True)
     self.assertEqual(self.issue.assignee, '')
     self.assertEqual(self.issue.status, 'Untriaged')
     self.assertIn('a@example.com', self.issue.ccs)
@@ -1545,7 +1576,7 @@ class UpdateIssueOwnerAndCCsFromPredatorResultsTest(unittest.TestCase):
     self.issue._monorail_issue.open = False
 
     cleanup.update_issue_owner_and_ccs_from_predator_results(
-        self.testcase, self.issue)
+        self.policy, self.testcase, self.issue)
     self.assertEqual(self.issue.assignee, '')
     self.assertEqual(self.issue.status, 'Fixed')
     self.assertNotIn('Test-Predator-Auto-Owner', self.issue.labels)
@@ -1556,31 +1587,31 @@ class UpdateIssueOwnerAndCCsFromPredatorResultsTest(unittest.TestCase):
     self.issue.assignee = 'b@example.com'
 
     cleanup.update_issue_owner_and_ccs_from_predator_results(
-        self.testcase, self.issue)
+        self.policy, self.testcase, self.issue)
     self.assertEqual(self.issue.assignee, 'b@example.com')
     self.assertEqual(self.issue.status, 'Assigned')
     self.assertNotIn('Test-Predator-Auto-Owner', self.issue.labels)
 
   def test_skipped_if_already_updated(self):
     """Ensure that we don't try to update the same issue twice."""
-    comment = test_utils.create_generic_issue_comment(
+    comment = appengine_test_utils.create_generic_issue_comment(
         labels=['Test-Predator-Auto-Owner'])
     self.issue._monorail_issue.comments.append(comment)
 
     cleanup.update_issue_owner_and_ccs_from_predator_results(
-        self.testcase, self.issue)
+        self.policy, self.testcase, self.issue)
     self.assertEqual(self.issue.assignee, '')
     self.assertEqual(self.issue.status, 'Untriaged')
     self.assertNotIn('Test-Predator-Auto-Owner', self.issue.labels)
 
   def test_skipped_if_previously_assigned(self):
     """Ensure that we don't assign to someone who was already the owner."""
-    comment = test_utils.create_generic_issue_comment()
+    comment = appengine_test_utils.create_generic_issue_comment()
     comment.owner = 'a@example.com'
     self.issue._monorail_issue.comments.append(comment)
 
     cleanup.update_issue_owner_and_ccs_from_predator_results(
-        self.testcase, self.issue)
+        self.policy, self.testcase, self.issue)
     self.assertEqual(self.issue.assignee, '')
     self.assertEqual(self.issue.status, 'Untriaged')
     self.assertNotIn('Test-Predator-Auto-Owner', self.issue.labels)
@@ -1593,7 +1624,7 @@ class UpdateIssueOwnerAndCCsFromPredatorResultsTest(unittest.TestCase):
                                }})
 
     cleanup.update_issue_owner_and_ccs_from_predator_results(
-        self.testcase, self.issue)
+        self.policy, self.testcase, self.issue)
     self.assertEqual(self.issue.assignee, '')
     self.assertEqual(self.issue.status, 'Untriaged')
     self.assertNotIn('Test-Predator-Auto-Owner', self.issue.labels)
@@ -1619,7 +1650,7 @@ class UpdateIssueOwnerAndCCsFromPredatorResultsTest(unittest.TestCase):
         })
 
     cleanup.update_issue_owner_and_ccs_from_predator_results(
-        self.testcase, self.issue)
+        self.policy, self.testcase, self.issue)
     self.assertEqual(self.issue.assignee, '')
     self.assertEqual(self.issue.status, 'Untriaged')
     self.assertNotIn('Test-Predator-Auto-Owner', self.issue.labels)
@@ -1650,14 +1681,14 @@ class UpdateIssueOwnerAndCCsFromPredatorResultsTest(unittest.TestCase):
         })
 
     cleanup.update_issue_owner_and_ccs_from_predator_results(
-        self.testcase, self.issue, only_allow_ccs=True)
+        self.policy, self.testcase, self.issue, only_allow_ccs=True)
     self.assertNotIn('a@example.com', self.issue.ccs)
     self.assertNotIn('b@example.com', self.issue.ccs)
     self.assertNotIn('Test-Predator-Auto-CC', self.issue.labels)
 
   def test_skipped_if_previously_cced_and_metadata_not_set(self):
     """Ensure that we don't re-cc authors who were cced in the past."""
-    comment = test_utils.create_generic_issue_comment()
+    comment = appengine_test_utils.create_generic_issue_comment()
     comment.cc = ['-a@example.com']
     self.issue._monorail_issue.comments.append(comment)
 
@@ -1680,7 +1711,7 @@ class UpdateIssueOwnerAndCCsFromPredatorResultsTest(unittest.TestCase):
         })
 
     cleanup.update_issue_owner_and_ccs_from_predator_results(
-        self.testcase, self.issue)
+        self.policy, self.testcase, self.issue)
     self.assertNotIn('a@example.com', self.issue.ccs)
     self.assertIn('b@example.com', self.issue.ccs)
     self.assertIn('Test-Predator-Auto-CC', self.issue.labels)
@@ -1695,7 +1726,7 @@ class UpdateIssueOwnerAndCCsFromPredatorResultsTest(unittest.TestCase):
                                }})
 
     cleanup.update_issue_owner_and_ccs_from_predator_results(
-        self.testcase, self.issue)
+        self.policy, self.testcase, self.issue)
     self.assertEqual(self.issue.assignee, '')
     self.assertEqual(self.issue.status, 'Untriaged')
     self.assertNotIn('Test-Predator-Auto-Owner', self.issue.labels)
@@ -1706,49 +1737,55 @@ class NotifyIssueIfTestcaseIsInvalidTest(unittest.TestCase):
   """Tests for notify_issue_if_testcase_is_invalid."""
 
   def setUp(self):
-    self.issue = test_utils.create_generic_issue()
+    self.issue = appengine_test_utils.create_generic_issue()
     self.testcase = test_utils.create_generic_testcase()
 
     # Assume a test case associated with an assigned issue.
     self.issue.status = 'Assigned'
     self.testcase.bug_information = '123456'
+    self.policy = issue_tracker_policy.get('test-project')
 
   def test_skipped_if_no_issue(self):
     """Ensure that we handle the case where there is no issue."""
     self.testcase.bug_information = None
 
     # Simply ensure that we don't throw an exception in this case.
-    cleanup.notify_issue_if_testcase_is_invalid(self.testcase, None)
+    cleanup.notify_issue_if_testcase_is_invalid(self.policy, self.testcase,
+                                                None)
 
   def test_skipped_if_closed_issue(self):
     """Ensure that we ignore issues that are already closed."""
     self.issue.status = 'Fixed'
     self.issue._monorail_issue.open = False
-    cleanup.notify_issue_if_testcase_is_invalid(self.testcase, self.issue)
+    cleanup.notify_issue_if_testcase_is_invalid(self.policy, self.testcase,
+                                                self.issue)
     self.assertEqual(self.issue._monorail_issue.comment, '')
 
   def test_skipped_if_unmarked_issue(self):
     """Ensure that we ignore issues that have valid fuzzers."""
-    cleanup.notify_issue_if_testcase_is_invalid(self.testcase, self.issue)
+    cleanup.notify_issue_if_testcase_is_invalid(self.policy, self.testcase,
+                                                self.issue)
     self.assertEqual(self.issue._monorail_issue.comment, '')
 
   def test_notified_if_fuzzer_was_deleted(self):
     """Ensure that we comment on issues that have invalid fuzzers."""
     self.testcase.set_metadata('fuzzer_was_deleted', True)
-    cleanup.notify_issue_if_testcase_is_invalid(self.testcase, self.issue)
+    cleanup.notify_issue_if_testcase_is_invalid(self.policy, self.testcase,
+                                                self.issue)
     self.assertIn('is associated with an obsolete fuzzer',
                   self.issue._monorail_issue.comment)
-    self.assertIn(data_types.ISSUE_INVALID_FUZZER_LABEL, self.issue.labels)
+    self.assertIn(ISSUE_INVALID_FUZZER_LABEL, self.issue.labels)
 
   def test_not_notified_if_fuzzer_was_deleted_and_notified(self):
     """Ensure that we don't comment again on issues that have invalid fuzzers
     and we have commented once."""
     self.testcase.set_metadata('fuzzer_was_deleted', True)
     self.issue._monorail_issue.comments += [
-        test_utils.create_generic_issue_comment(
-            labels=[data_types.ISSUE_INVALID_FUZZER_LABEL])
+        appengine_test_utils.create_generic_issue_comment(
+            labels=[ISSUE_INVALID_FUZZER_LABEL])
     ]
-    cleanup.notify_issue_if_testcase_is_invalid(self.testcase, self.issue)
+    cleanup.notify_issue_if_testcase_is_invalid(self.policy, self.testcase,
+                                                self.issue)
     self.assertNotIn('is associated with an obsolete fuzzer',
                      self.issue._monorail_issue.comment)
 
@@ -1759,15 +1796,16 @@ class NotifyUploaderIfTestcaseIsProcessed(unittest.TestCase):
 
   def setUp(self):
     helpers.patch(self, [
-        'datastore.data_handler.update_issue_impact_labels',
-        'handlers.cron.cleanup._update_issue_severity_labels',
+        'handlers.cron.cleanup._update_issue_security_severity_and_get_comment',
+        'libs.issue_management.issue_filer.update_issue_impact_labels',
         'libs.mail.send',
     ])
 
-    self.issue = test_utils.create_generic_issue()
+    self.issue = appengine_test_utils.create_generic_issue()
     self.testcase = test_utils.create_generic_testcase()
     self.testcase_id = self.testcase.key.id()
     self.uploader_email = 'uploader@email.com'
+    self.policy = issue_tracker_policy.get('test-project')
 
     data_types.Config(url='url', reproduction_help_url='repro_help_url').put()
 
@@ -1778,8 +1816,8 @@ class NotifyUploaderIfTestcaseIsProcessed(unittest.TestCase):
 
   def test_no_upload_metadata(self):
     """Ensure that we don't send notification if there is no upload metadata."""
-    cleanup.notify_uploader_when_testcase_is_processed(self.testcase,
-                                                       self.issue)
+    cleanup.notify_uploader_when_testcase_is_processed(
+        self.policy, self.testcase, self.issue)
 
     self.assertEqual(0, self.mock.send.call_count)
     self.assertIsNone(self._get_notification())
@@ -1788,8 +1826,8 @@ class NotifyUploaderIfTestcaseIsProcessed(unittest.TestCase):
     """Ensure that we don't send notification if there is no uploader email."""
     data_types.TestcaseUploadMetadata(
         testcase_id=self.testcase_id, uploader_email=None, bundled=False).put()
-    cleanup.notify_uploader_when_testcase_is_processed(self.testcase,
-                                                       self.issue)
+    cleanup.notify_uploader_when_testcase_is_processed(
+        self.policy, self.testcase, self.issue)
 
     self.assertEqual(0, self.mock.send.call_count)
     self.assertIsNone(self._get_notification())
@@ -1801,8 +1839,8 @@ class NotifyUploaderIfTestcaseIsProcessed(unittest.TestCase):
         testcase_id=self.testcase_id,
         uploader_email=self.uploader_email,
         bundled=False).put()
-    cleanup.notify_uploader_when_testcase_is_processed(self.testcase,
-                                                       self.issue)
+    cleanup.notify_uploader_when_testcase_is_processed(
+        self.policy, self.testcase, self.issue)
 
     self.assertEqual(0, self.mock.send.call_count)
     self.assertIsNone(self._get_notification())
@@ -1816,8 +1854,8 @@ class NotifyUploaderIfTestcaseIsProcessed(unittest.TestCase):
     self.testcase.minimized_keys = None
     self.testcase.regression = None
     self.testcase.put()
-    cleanup.notify_uploader_when_testcase_is_processed(self.testcase,
-                                                       self.issue)
+    cleanup.notify_uploader_when_testcase_is_processed(
+        self.policy, self.testcase, self.issue)
 
     self.assertEqual(0, self.mock.send.call_count)
 
@@ -1831,8 +1869,8 @@ class NotifyUploaderIfTestcaseIsProcessed(unittest.TestCase):
     self.testcase.one_time_crasher_flag = False
     self.testcase.put()
 
-    cleanup.notify_uploader_when_testcase_is_processed(self.testcase,
-                                                       self.issue)
+    cleanup.notify_uploader_when_testcase_is_processed(
+        self.policy, self.testcase, self.issue)
 
     self.assertEqual(0, self.mock.send.call_count)
 
@@ -1848,8 +1886,8 @@ class NotifyUploaderIfTestcaseIsProcessed(unittest.TestCase):
     self.testcase.is_impact_set_flag = True
     self.testcase.put()
 
-    cleanup.notify_uploader_when_testcase_is_processed(self.testcase,
-                                                       self.issue)
+    cleanup.notify_uploader_when_testcase_is_processed(
+        self.policy, self.testcase, self.issue)
 
     self.mock.send.assert_called_once_with(
         'uploader@email.com', 'Your testcase upload 1 analysis is complete.',
@@ -1882,8 +1920,8 @@ class NotifyUploaderIfTestcaseIsProcessed(unittest.TestCase):
     self.testcase.one_time_crasher_flag = False
     self.testcase.put()
 
-    cleanup.notify_uploader_when_testcase_is_processed(self.testcase,
-                                                       self.issue)
+    cleanup.notify_uploader_when_testcase_is_processed(
+        self.policy, self.testcase, self.issue)
 
     self.mock.send.assert_called_once_with(
         'uploader@email.com', 'Your testcase upload 1 analysis is complete.',
@@ -2001,3 +2039,39 @@ class CleanupUnusedHeartbeatsTest(unittest.TestCase):
             'bot_name': None
         },
     ], [e.to_dict() for e in data_types.Heartbeat.query()])
+
+
+class UpdateSeverityLabelsTest(unittest.TestCase):
+  """Tests for updating severity labels."""
+
+  def setUp(self):
+    self.testcase = data_types.Testcase()
+    self.issue = appengine_test_utils.create_generic_issue()
+    self.policy = issue_tracker_policy.get('test-project')
+
+  def test_add_missing_severity(self):
+    """Test updating missing severity."""
+    self.testcase.security_severity = data_types.SecuritySeverity.HIGH
+    result = cleanup._update_issue_security_severity_and_get_comment(
+        self.policy, self.testcase, self.issue)
+    self.assertIn('Security_Severity-High', self.issue.labels)
+    self.assertIn('A recommended severity was added to this bug.', result)
+
+  def test_add_same_severity(self):
+    """Test correct severity already set."""
+    self.testcase.security_severity = data_types.SecuritySeverity.HIGH
+    self.issue.labels.add('Security_severity-High')
+    result = cleanup._update_issue_security_severity_and_get_comment(
+        self.policy, self.testcase, self.issue)
+    self.assertIn('Security_Severity-High', self.issue.labels)
+    self.assertEqual('', result)
+
+  def test_add_different_severity(self):
+    """Test incorrect severity set."""
+    self.testcase.security_severity = data_types.SecuritySeverity.HIGH
+    self.issue.labels.add('Security_Severity-Medium')
+    result = cleanup._update_issue_security_severity_and_get_comment(
+        self.policy, self.testcase, self.issue)
+    self.assertNotIn('Security_Severity-High', self.issue.labels)
+    self.assertIn('Security_Severity-Medium', self.issue.labels)
+    self.assertIn('different from what was assigned', result)

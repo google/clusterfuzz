@@ -31,10 +31,11 @@ class HandlerTest(unittest.TestCase):
   def setUp(self):
     test_helpers.patch(self, [
         'handlers.testcase_detail.show.get_testcase_detail',
-        'issue_management.issue_tracker_utils.get_issue_tracker_for_testcase',
-        'libs.auth.get_current_user',
         'libs.access.has_access',
-        'libs.issue_filer.file_issue',
+        'libs.auth.get_current_user',
+        'libs.issue_management.issue_filer.file_issue',
+        'libs.issue_management.issue_tracker_utils.'
+        'get_issue_tracker_for_testcase',
     ])
     self.mock.has_access.return_value = True
     self.mock.get_testcase_detail.return_value = {'testcase': 'yes'}

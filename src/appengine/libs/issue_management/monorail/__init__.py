@@ -18,13 +18,12 @@ standard_library.install_aliases()
 from builtins import object
 import urllib.parse
 
-from issue_management import issue_tracker
-from issue_management.monorail.issue import ChangeList as ChangeList
-from issue_management.monorail.issue import Issue as MonorailIssue
-from issue_management.monorail.issue_tracker_manager import IssueTrackerManager
+from libs.issue_management import issue_tracker
+from libs.issue_management.monorail.issue import ChangeList as ChangeList
+from libs.issue_management.monorail.issue import Issue as MonorailIssue
+from libs.issue_management.monorail.issue_tracker_manager import (
+    IssueTrackerManager)
 
-# TODO(ochang): Clean up how we cache issue_tracker_managers.
-ISSUE_TRACKER_MANAGERS = {}
 ISSUE_TRACKER_URL = (
     'https://bugs.chromium.org/p/{project}/issues/detail?id={id}')
 ISSUE_TRACKER_SEARCH_URL = (
@@ -44,6 +43,11 @@ class Issue(issue_tracker.Issue):
     self._ccs = issue_tracker.LabelStore(self._monorail_issue.cc)
     self._components = issue_tracker.LabelStore(self._monorail_issue.components)
     self._labels = issue_tracker.LabelStore(self._monorail_issue.labels)
+
+  @property
+  def issue_tracker(self):
+    """The IssueTracker for this issue."""
+    return IssueTracker(self._monorail_issue.itm)
 
   @property
   def id(self):
@@ -141,19 +145,19 @@ class Issue(issue_tracker.Issue):
       self._monorail_issue.add_component(added)
     for removed in self._components.removed:
       self._monorail_issue.remove_component(removed)
-    self._components.reset()
+    self._components.reset_tracking()
 
     for added in self._ccs.added:
       self._monorail_issue.add_cc(added)
     for removed in self._ccs.removed:
       self._monorail_issue.remove_cc(removed)
-    self._ccs.reset()
+    self._ccs.reset_tracking()
 
     for added in self._labels.added:
       self._monorail_issue.add_label(added)
     for removed in self._labels.removed:
       self._monorail_issue.remove_label(removed)
-    self._labels.reset()
+    self._labels.reset_tracking()
 
     if new_comment:
       self._monorail_issue.comment = new_comment
@@ -287,18 +291,13 @@ def _to_change_list(monorail_list):
   return change_list
 
 
-def _get_issue_tracker_manager_for_project(project_name, use_cache=False):
+def _get_issue_tracker_manager_for_project(project_name):
   """Return monorail issue tracker manager for the given project."""
   # If there is no issue tracker set, bail out.
   if not project_name or project_name == 'disabled':
     return None
 
-  if use_cache and project_name in ISSUE_TRACKER_MANAGERS:
-    return ISSUE_TRACKER_MANAGERS[project_name]
-
-  issue_tracker_manager = IssueTrackerManager(project_name=project_name)
-  ISSUE_TRACKER_MANAGERS[project_name] = issue_tracker_manager
-  return issue_tracker_manager
+  return IssueTrackerManager(project_name=project_name)
 
 
 def _get_search_text(keywords):
@@ -310,10 +309,9 @@ def _get_search_text(keywords):
   return search_text
 
 
-def get_issue_tracker(project_name, use_cache=False):
+def get_issue_tracker(project_name, config):  # pylint: disable=unused-argument
   """Get the issue tracker for the project name."""
-  itm = _get_issue_tracker_manager_for_project(
-      project_name, use_cache=use_cache)
+  itm = _get_issue_tracker_manager_for_project(project_name)
   if itm is None:
     return None
 

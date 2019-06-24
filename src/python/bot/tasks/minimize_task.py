@@ -419,8 +419,10 @@ def execute_task(testcase_id, job_type):
 
   # If the warmup crash occurred but we couldn't reproduce this in with
   # multiple processes running in parallel, try to minimize single threaded.
-  if (len(crash_times) < testcase_manager.REPRODUCIBILITY_FACTOR * crash_retries
-      and warmup_crash_occurred and max_threads > 1):
+  reproducible_crash_count = (
+      testcase_manager.REPRODUCIBILITY_FACTOR * crash_retries)
+  if (len(crash_times) < reproducible_crash_count and warmup_crash_occurred and
+      max_threads > 1):
     logs.log('Attempting to continue single-threaded.')
 
     max_threads = 1
@@ -431,30 +433,32 @@ def execute_task(testcase_id, job_type):
     saved_unsymbolized_crash_state, flaky_stack, crash_times = (
         check_for_initial_crash(test_runner, crash_retries, testcase))
 
+  if not crash_times:
+    # We didn't crash at all. This might be a legitimately unreproducible
+    # test case, so it will get marked as such after being retried on other
+    # bots.
+    testcase = data_handler.get_testcase_by_id(testcase_id)
+    data_handler.update_testcase_comment(testcase, data_types.TaskState.ERROR,
+                                         'Unable to reproduce crash')
+    task_creation.mark_unreproducible_if_flaky(testcase, True)
+    return
+
   if flaky_stack:
     testcase.flaky_stack = flaky_stack
     testcase.put()
 
-  if len(crash_times) < testcase_manager.REPRODUCIBILITY_FACTOR * crash_retries:
-    if not crash_times:
-      # We didn't crash at all, so try again. This might be a legitimately
-      # unreproducible test case, so it will get marked as such after being
-      # retried on other bots.
-      testcase = data_handler.get_testcase_by_id(testcase_id)
-      data_handler.update_testcase_comment(testcase, data_types.TaskState.ERROR,
-                                           'Unable to reproduce crash')
-      task_creation.mark_unreproducible_if_flaky(testcase, True)
-    else:
-      # We reproduced this crash at least once. It's too flaky to minimize, but
-      # maybe we'll have more luck in the other jobs.
-      testcase = data_handler.get_testcase_by_id(testcase_id)
-      testcase.minimized_keys = 'NA'
-      error_message = (
-          'Crash occurs, but not too consistently. Skipping minimization '
-          '(crashed %d/%d)' % (len(crash_times), crash_retries))
-      data_handler.update_testcase_comment(testcase, data_types.TaskState.ERROR,
-                                           error_message)
-      create_additional_tasks(testcase)
+  is_redo = testcase.get_metadata('redo_minimize')
+  if not is_redo and len(crash_times) < reproducible_crash_count:
+    # We reproduced this crash at least once. It's too flaky to minimize, but
+    # maybe we'll have more luck in the other jobs.
+    testcase = data_handler.get_testcase_by_id(testcase_id)
+    testcase.minimized_keys = 'NA'
+    error_message = (
+        'Crash occurs, but not too consistently. Skipping minimization '
+        '(crashed %d/%d)' % (len(crash_times), crash_retries))
+    data_handler.update_testcase_comment(testcase, data_types.TaskState.ERROR,
+                                         error_message)
+    create_additional_tasks(testcase)
     return
 
   # If we've made it this far, the test case appears to be reproducible. Clear
@@ -565,6 +569,8 @@ def finalize_testcase(testcase_id,
   testcase = data_handler.get_testcase_by_id(testcase_id)
   if last_crash_result:
     _update_crash_result(testcase, last_crash_result, command)
+
+  testcase.delete_metadata('redo_minimize', update_testcase=False)
 
   # Update remaining test case information.
   testcase.flaky_stack = flaky_stack

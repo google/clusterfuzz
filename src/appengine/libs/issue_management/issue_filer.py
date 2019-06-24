@@ -13,12 +13,15 @@
 # limitations under the License.
 """Helper functions to file issues."""
 
+import itertools
+import re
+
 from base import external_users
 from base import utils
+from crash_analysis import severity_analyzer
 from datastore import data_handler
 from datastore import data_types
-from issue_management import issue_tracker_policy
-from issue_management import label_utils
+from libs.issue_management import issue_tracker_policy
 from system import environment
 
 NON_CRASH_TYPES = [
@@ -32,6 +35,39 @@ NON_CRASH_TYPES = [
     'Undefined-shift',
     'Unsigned-integer-overflow',
 ]
+
+MEMORY_TOOLS_LABELS = [
+    {
+        'token': 'AddressSanitizer',
+        'label': 'Memory-AddressSanitizer'
+    },
+    {
+        'token': 'LeakSanitizer',
+        'label': 'Memory-LeakSanitizer'
+    },
+    {
+        'token': 'MemorySanitizer',
+        'label': 'Memory-MemorySanitizer'
+    },
+    {
+        'token': 'ThreadSanitizer',
+        'label': 'ThreadSanitizer'
+    },
+    {
+        'token': 'UndefinedBehaviorSanitizer',
+        'label': 'UndefinedBehaviorSanitizer'
+    },
+    {
+        'token': 'afl',
+        'label': 'AFL'
+    },
+    {
+        'token': 'libfuzzer',
+        'label': 'LibFuzzer'
+    },
+]
+
+STACKFRAME_LINE_REGEX = re.compile(r'\s*#\d+\s+0x[0-9A-Fa-f]+\s*')
 
 
 def platform_substitution(label, testcase, _):
@@ -63,7 +99,7 @@ def date_substitution(label, *_):
 def sanitizer_substitution(label, testcase, _):
   """Sanitizer substitution."""
   stacktrace = data_handler.get_stacktrace(testcase)
-  memory_tool_labels = label_utils.get_memory_tool_labels(stacktrace)
+  memory_tool_labels = get_memory_tool_labels(stacktrace)
 
   return [
       label.replace('%SANITIZER%', memory_tool)
@@ -81,12 +117,81 @@ def severity_substitution(label, testcase, security_severity):
   if not data_types.SecuritySeverity.is_valid(security_severity):
     security_severity = data_types.SecuritySeverity.HIGH
 
-  security_severity_string = label_utils.severity_to_string(security_severity)
+  security_severity_string = severity_analyzer.severity_to_string(
+      security_severity)
   return [label.replace('%SEVERITY%', security_severity_string)]
 
 
-def apply_substitutions(label, testcase, security_severity):
-  """Apply label substituions."""
+def impact_to_string(impact):
+  """Convert an impact value to a human-readable string."""
+  impact_map = {
+      data_types.SecurityImpact.STABLE: 'Stable',
+      data_types.SecurityImpact.BETA: 'Beta',
+      data_types.SecurityImpact.HEAD: 'Head',
+      data_types.SecurityImpact.NONE: 'None',
+      data_types.SecurityImpact.MISSING: data_types.MISSING_VALUE_STRING,
+  }
+
+  return impact_map[impact]
+
+
+def _get_impact_from_labels(labels):
+  """Get the impact from the label list."""
+  labels = [label.lower() for label in labels]
+  if 'security_impact-stable' in labels:
+    return data_types.SecurityImpact.STABLE
+  elif 'security_impact-beta' in labels:
+    return data_types.SecurityImpact.BETA
+  elif 'security_impact-head' in labels:
+    return data_types.SecurityImpact.HEAD
+  elif 'security_impact-none' in labels:
+    return data_types.SecurityImpact.NONE
+  return data_types.SecurityImpact.MISSING
+
+
+def update_issue_impact_labels(testcase, issue):
+  """Update impact labels on issue."""
+  if testcase.one_time_crasher_flag:
+    return
+
+  existing_impact = _get_impact_from_labels(issue.labels)
+
+  if testcase.regression.startswith('0:'):
+    # If the regression range starts from the start of time,
+    # then we assume that the bug impacts stable.
+    new_impact = data_types.SecurityImpact.STABLE
+  elif testcase.is_impact_set_flag:
+    # Add impact label based on testcase's impact value.
+    if testcase.impact_stable_version:
+      new_impact = data_types.SecurityImpact.STABLE
+    elif testcase.impact_beta_version:
+      new_impact = data_types.SecurityImpact.BETA
+    elif testcase.is_crash():
+      new_impact = data_types.SecurityImpact.HEAD
+    else:
+      # Testcase is unreproducible and does not impact stable and beta branches.
+      # In this case, there is no impact information.
+      return
+  else:
+    # No impact information.
+    return
+
+  if existing_impact == new_impact:
+    # Correct impact already set.
+    return
+
+  if existing_impact != data_types.SecurityImpact.MISSING:
+    issue.labels.remove('Security_Impact-' + impact_to_string(existing_impact))
+
+  issue.labels.add('Security_Impact-' + impact_to_string(new_impact))
+
+
+def apply_substitutions(label, testcase, security_severity=None):
+  """Apply label substitutions."""
+  if label is None:
+    # If the label is not configured, then nothing to subsitute.
+    return []
+
   label_substitutions = (
       ('%PLATFORM%', platform_substitution),
       ('%YYYY-MM-DD%', date_substitution),
@@ -100,6 +205,25 @@ def apply_substitutions(label, testcase, security_severity):
 
   # No match found. Return unmodified label.
   return [label]
+
+
+def get_label_pattern(label):
+  """Get the label pattern regex."""
+  return re.compile('^' + re.sub(r'%.*?%', r'(.*)', label) + '$', re.IGNORECASE)
+
+
+def get_memory_tool_labels(stacktrace):
+  """Distinguish memory tools used and return corresponding labels."""
+  # Remove stack frames and paths to source code files. This helps to avoid
+  # confusion when function names or source paths contain a memory tool token.
+  data = ''
+  for line in stacktrace.split('\n'):
+    if STACKFRAME_LINE_REGEX.match(line):
+      continue
+    data += line + '\n'
+
+  labels = [t['label'] for t in MEMORY_TOOLS_LABELS if t['token'] in data]
+  return labels
 
 
 def file_issue(testcase,
@@ -130,7 +254,7 @@ def file_issue(testcase,
       issue.labels.add('reward-topanel')
       issue.labels.add('External-Fuzzer-Contribution')
 
-    data_handler.update_issue_impact_labels(testcase, issue)
+    update_issue_impact_labels(testcase, issue)
 
   # Add additional labels from the job definition and fuzzer.
   additional_labels = data_handler.get_additional_values_for_variable(
@@ -182,18 +306,24 @@ def file_issue(testcase,
       issue_restrictions == 'all' or
       (issue_restrictions == 'security' and testcase.security_flag))
 
-  if should_restrict_issue:
-    issue.labels.add(policy.label('restrict_view'))
-
   has_accountable_people = bool(ccs)
 
-  for label in properties.labels:
-    for result in apply_substitutions(label, testcase, security_severity):
-      if (result.startswith(policy.label('reported_prefix')) and
-          not has_accountable_people):
-        # Do not add reported label when there are no CCs.
-        continue
+  # Check for labels with special logic.
+  additional_labels = []
+  if should_restrict_issue:
+    additional_labels.append(policy.label('restrict_view'))
 
+  if has_accountable_people:
+    additional_labels.append(policy.label('reported'))
+
+  if testcase.security_flag:
+    additional_labels.append(policy.label('security_severity'))
+
+  additional_labels.append(policy.label('os'))
+
+  # Apply label substitutions.
+  for label in itertools.chain(properties.labels, additional_labels):
+    for result in apply_substitutions(label, testcase, security_severity):
       issue.labels.add(result)
 
   issue.body += properties.issue_body_footer

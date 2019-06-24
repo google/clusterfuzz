@@ -34,8 +34,6 @@ from datastore import ndb
 from datastore import ndb_utils
 from google_cloud_utils import blobs
 from google_cloud_utils import storage
-from issue_management import issue_tracker_utils
-from issue_management import label_utils
 from metrics import logs
 from system import environment
 from system import shell
@@ -206,10 +204,7 @@ def filter_stacktrace(stacktrace):
 
 
 def get_issue_summary(testcase):
-  """Gets an issue description string for a testcase.
-
-  It is used in bug description.
-  """
+  """Gets an issue description string for a testcase."""
   # Get summary prefix. Note that values for fuzzers take priority over those
   # from job definitions.
   fuzzer_summary_prefix = get_value_from_fuzzer_environment_string(
@@ -218,28 +213,14 @@ def get_issue_summary(testcase):
                                                      'SUMMARY_PREFIX')
   summary_prefix = fuzzer_summary_prefix or job_summary_prefix or ''
 
-  if summary_prefix:
-    binary_name = testcase.get_metadata('fuzzer_binary_name')
-    if binary_name and get_project_name(testcase.job_type) == summary_prefix:
-      summary_prefix += '/' + binary_name
-
-    summary_prefix += ': '
-
-  # No crash state.
-  if testcase.crash_state == 'NULL':
-    return summary_prefix + 'NULL'
-
-  # Special case for bad-cast style testcases.
-  if testcase.crash_type.startswith('Bad-cast'):
-    issue_summary = summary_prefix
-    crash_state_lines = testcase.crash_state.splitlines()
-    if crash_state_lines:
-      # Add the to/from line if available.
-      issue_summary += crash_state_lines[0]
-    if len(crash_state_lines) > 1:
-      # Add the crash function if available.
-      issue_summary += ' in ' + crash_state_lines[1]
-    return issue_summary
+  issue_summary = summary_prefix
+  binary_name = testcase.get_metadata('fuzzer_binary_name')
+  if binary_name:
+    if summary_prefix:
+      issue_summary += '/'
+    issue_summary += binary_name
+  if issue_summary:
+    issue_summary += ': '
 
   # For ASSERTs and CHECK failures, we should just use the crash type and the
   # first line of the crash state as titles. Note that ASSERT_NOT_REACHED should
@@ -248,23 +229,36 @@ def get_issue_summary(testcase):
       'ASSERT', 'CHECK failure', 'Security CHECK failure',
       'Security DCHECK failure'
   ]:
-    return (summary_prefix + testcase.crash_type + ': ' +
-            testcase.crash_state.splitlines()[0])
+    issue_summary += (
+        testcase.crash_type + ': ' + testcase.crash_state.splitlines()[0])
+    return issue_summary
+
+  # Special case for bad-cast style testcases.
+  if testcase.crash_type == 'Bad-cast':
+    filtered_crash_state_lines = testcase.crash_state.splitlines()
+
+    # Add the to/from line (this should always exist).
+    issue_summary += filtered_crash_state_lines[0]
+
+    # Add the crash function if available.
+    if len(filtered_crash_state_lines) > 1:
+      issue_summary += ' in ' + filtered_crash_state_lines[1]
+
+    return issue_summary
 
   # Add first lines from crash type and crash_state.
-  issue_summary = ''
   if testcase.crash_type:
-    filtered_crash_type = testcase.crash_type.splitlines()[0]
     filtered_crash_type = re.sub(r'UNKNOWN( READ| WRITE)?', 'Crash',
-                                 filtered_crash_type)
+                                 testcase.crash_type.splitlines()[0])
     issue_summary += filtered_crash_type
-  if testcase.crash_state:
+
+  if testcase.crash_state == 'NULL':
+    # Special case for empty stacktrace.
+    issue_summary += ' with empty stacktrace'
+  else:
     issue_summary += ' in ' + testcase.crash_state.splitlines()[0]
 
-  if not issue_summary:
-    issue_summary = '<no crash state available>'
-
-  return summary_prefix + issue_summary
+  return issue_summary
 
 
 def get_reproduction_help_url(testcase, config):
@@ -352,7 +346,7 @@ def get_issue_description(testcase,
   if data_types.SecuritySeverity.is_valid(testcase.security_severity):
     content_string += (
         'Recommended Security Severity: %s\n\n' %
-        label_utils.severity_to_string(testcase.security_severity))
+        severity_analyzer.severity_to_string(testcase.security_severity))
 
   if (testcase.regression and testcase.regression != 'NA' and
       not testcase.regression.startswith('0:') and
@@ -1045,46 +1039,6 @@ def create_notification_entry(testcase_id, user_email):
   notification.put()
 
 
-def update_issue_impact_labels(testcase, issue):
-  """Update impact labels on issue."""
-  if testcase.one_time_crasher_flag:
-    return
-
-  if get_component_name(testcase.job_type):
-    # Component builds are not supported.
-    return
-
-  existing_impact = label_utils.get_impact_from_labels(
-      [label.lower() for label in issue.labels])
-
-  if testcase.regression.startswith('0:'):
-    # If the regression range starts from the start of time,
-    # then we assume that the bug impacts stable.
-    new_impact = data_types.SecurityImpact.STABLE
-  elif testcase.is_impact_set_flag:
-    # Add impact label based on testcase's impact value.
-    if testcase.impact_stable_version:
-      new_impact = data_types.SecurityImpact.STABLE
-    elif testcase.impact_beta_version:
-      new_impact = data_types.SecurityImpact.BETA
-    else:
-      new_impact = data_types.SecurityImpact.HEAD
-  else:
-    # No impact information.
-    return
-
-  if existing_impact == new_impact:
-    # Correct impact already set.
-    return
-
-  if existing_impact != data_types.SecurityImpact.MISSING:
-    issue.labels.remove('Security_Impact-' +
-                        label_utils.impact_to_string(existing_impact))
-
-  issue.labels.add('Security_Impact-' +
-                   label_utils.impact_to_string(new_impact))
-
-
 # ------------------------------------------------------------------------------
 # TestcaseUploadMetadata database related functions
 # ------------------------------------------------------------------------------
@@ -1186,14 +1140,6 @@ def create_user_uploaded_testcase(key,
 
   # Create the job to analyze the testcase.
   tasks.add_task('analyze', testcase_id, job_type, queue)
-
-  issue = issue_tracker_utils.get_issue_for_testcase(testcase)
-  if issue:
-    report_url = TESTCASE_REPORT_URL.format(
-        domain=get_domain(), testcase_id=testcase_id)
-    comment = ('ClusterFuzz is analyzing your testcase. '
-               'Developers can follow the progress at %s.' % report_url)
-    issue.save(new_comment=comment)
 
   return testcase.key.id()
 

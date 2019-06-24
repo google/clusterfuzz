@@ -48,6 +48,13 @@ else:
   if os.path.exists(config_modules_path):
     sys.path.insert(0, config_modules_path)
 
+try:
+  # Run any module initialization code.
+  import module_init
+  module_init.appengine()
+except ImportError:
+  pass
+
 # Adding the protobuf module to the google module. Otherwise, we couldn't
 # import google.protobuf because google.appengine already took the name.
 import google

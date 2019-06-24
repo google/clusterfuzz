@@ -52,6 +52,9 @@ class IssueTrackerPolicy(object):
     if 'status' not in self._data:
       raise ConfigurationError('Status not set in policies.')
 
+    if 'labels' not in self._data:
+      raise ConfigurationError('Labels not set in policies.')
+
     for status in EXPECTED_STATUSES:
       if status not in self._data['status']:
         raise ConfigurationError(
@@ -129,3 +132,18 @@ def get(project_name):
         'Policies for {} do not exist'.format(project_name))
 
   return IssueTrackerPolicy(project_config['policies'])
+
+
+def get_empty():
+  """Get an empty policy."""
+  return IssueTrackerPolicy({
+      'status': {
+          'assigned': 'unused',
+          'duplicate': 'unused',
+          'wontfix': 'unused',
+          'fixed': 'unused',
+          'verified': 'unused',
+          'new': 'unused',
+      },
+      'labels': {},
+  })

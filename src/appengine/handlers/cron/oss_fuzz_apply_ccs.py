@@ -20,10 +20,10 @@ from base import memoize
 from datastore import data_types
 from datastore import ndb_utils
 from handlers import base_handler
-from issue_management import issue_tracker_policy
-from issue_management import issue_tracker_utils
 from libs import handler
-from libs import issue_filer
+from libs.issue_management import issue_filer
+from libs.issue_management import issue_tracker_policy
+from libs.issue_management import issue_tracker_utils
 
 
 def get_open_testcases_with_bugs():
@@ -51,11 +51,18 @@ class Handler(base_handler.Handler):
 
     for testcase in get_open_testcases_with_bugs():
       issue_tracker = issue_tracker_utils.get_issue_tracker_for_testcase(
-          testcase, use_cache=True)
+          testcase)
       if not issue_tracker:
         logging.error('Failed to get issue tracker manager for %s',
                       testcase.key.id())
         continue
+
+      policy = issue_tracker_policy.get(issue_tracker.project)
+      reported_label = policy.label('reported')
+      if not reported_label:
+        return
+
+      reported_pattern = issue_filer.get_label_pattern(reported_label)
 
       try:
         issue = issue_tracker.get_original_issue(testcase.bug_information)
@@ -77,13 +84,12 @@ class Handler(base_handler.Handler):
         logging.info('CCing %s on %s', cc, issue.id)
         issue.ccs.add(cc)
 
-      policy = issue_tracker_policy.get(issue_tracker.project)
-
       comment = None
-      if not issue.labels.has_with_prefix(policy.label('reported_prefix')):
+
+      if not issue.labels.has_with_pattern(reported_pattern):
         # Add reported label and deadline comment if necessary.
-        issue.labels.add(
-            policy.label('reported_prefix') + issue_filer.current_date())
+        for result in issue_filer.apply_substitutions(reported_label, testcase):
+          issue.labels.add(result)
 
         if policy.label('restrict_view') in issue.labels:
           logging.info('Adding deadline comment on %s', issue.id)
