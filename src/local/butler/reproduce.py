@@ -45,7 +45,8 @@ OAUTH_URL = 'https://accounts.google.com/o/oauth2/v2/auth?%s' % (
         'redirect_uri':
             'urn:ietf:wg:oauth:2.0:oob'
     }))
-TESTCASE_URL = 'https://clusterfuzz.com/reproduce-tool/testcase-info'
+TESTCASE_DOWNLOAD_URL = 'https://clusterfuzz.com/testcase-detail/download-testcase?id={testcase_id}'
+TESTCASE_INFO_URL = 'https://clusterfuzz.com/reproduce-tool/testcase-info'
 
 
 class SerializedTestcase(object):
@@ -92,7 +93,7 @@ def _get_authorization(force_reauthorization):
   return 'VerificationCode {code}'.format(code=verification_code)
 
 
-def _post(url, body, force_reauthorization=False):
+def _http_request(url, body=None, method='POST', force_reauthorization=False):
   """Make a POST request to the specified URL."""
   authorization = _get_authorization(force_reauthorization)
   headers = {
@@ -101,13 +102,14 @@ def _post(url, body, force_reauthorization=False):
   }
 
   http = httplib2.Http()
+  body = json.dumps(body) if body else ''
   response, content = http.request(
-      url, method='POST', headers=headers, body=json.dumps(body))
+      url, method=method, headers=headers, body=body)
 
   # If the server returns 401 we may need to reauthenticate. Try the request
   # a second time if this happens.
   if response.status == 401 and not force_reauthorization:
-    return _post(url, body, force_reauthorization=True)
+    return _http_request(url, body, method=method, force_reauthorization=True)
 
   if 'x-clusterfuzz-authorization' in response:
     shell.create_directory(
@@ -120,7 +122,8 @@ def _post(url, body, force_reauthorization=False):
 
 def _get_testcase(testcase_id):
   """Retrieve the json representation of the test case with the given id."""
-  response, content = _post(TESTCASE_URL, body={'testcaseId': testcase_id})
+  response, content = _http_request(
+      TESTCASE_INFO_URL, body={'testcaseId': testcase_id})
 
   # TODO(mbarbella): Handle this gracefully.
   if response.status != 200:
@@ -130,9 +133,14 @@ def _get_testcase(testcase_id):
   return SerializedTestcase(testcase_map)
 
 
-def _download_testcase(_):
+def _download_testcase(testcase_id):
   """Download the test case and return its path."""
-  # TODO(mbarbella): Implement this.
+  response, content = _http_request(
+      TESTCASE_DOWNLOAD_URL.format(testcase_id=testcase_id), method='GET')
+  bot_absolute_filename = response['x-goog-meta-filename']
+  print(bot_absolute_filename)
+  import sys
+  sys.exit(1)
   return '/tmp/blah'
 
 
