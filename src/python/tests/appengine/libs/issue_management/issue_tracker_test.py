@@ -13,8 +13,10 @@
 # limitations under the License.
 """Tests for the issue_tracker module."""
 
+import mock
 import unittest
 
+from libs.issue_management.issue_tracker import IssueTracker
 from libs.issue_management.issue_tracker import LabelStore
 
 
@@ -112,3 +114,40 @@ class LabelStoreTest(unittest.TestCase):
     self.assertTrue('laBel2' in store)
     self.assertTrue('labeL3' in store)
     self.assertFalse('label' in store)
+
+
+class TestIssueTracker(IssueTracker):
+  """Test issue tracker."""
+
+  def __init__(self):
+    self.issues = {}
+
+  def get_issue(self, issue_id):
+    return self.issues.get(str(issue_id))
+
+
+class GetOriginalIssueTest(unittest.TestCase):
+  """Tests for get_original_issue."""
+
+  def setUp(self):
+    self.issue_tracker = TestIssueTracker()
+    self.issue_tracker.issues = {
+        '1': mock.Mock(id=1, merged_into=2),
+        '2': mock.Mock(id=2, merged_into=3),
+        '3': mock.Mock(id=3, merged_into=None),
+        '4': mock.Mock(id=4, merged_into=4),
+        '5': mock.Mock(id=5, merged_into=6),
+        '6': mock.Mock(id=6, merged_into=5),
+    }
+
+  def test_basic(self):
+    """Basic tests."""
+    self.assertEqual(3, self.issue_tracker.get_original_issue(1).id)
+    self.assertEqual(3, self.issue_tracker.get_original_issue(2).id)
+    self.assertEqual(3, self.issue_tracker.get_original_issue(3).id)
+
+  def test_circular_merge(self):
+    """Test circular merge."""
+    self.assertEqual(4, self.issue_tracker.get_original_issue(4).id)
+    self.assertEqual(6, self.issue_tracker.get_original_issue(5).id)
+    self.assertEqual(5, self.issue_tracker.get_original_issue(6).id)
