@@ -2176,8 +2176,8 @@ class SelectGeneratorTest(unittest.TestCase):
   def setUp(self):
     self.pool = strategy_selection.generate_strategy_pool()
     test_helpers.patch(self, [
-        'bot.fuzzers.engine_common.is_lpm_fuzzer',
-        'bot.fuzzers.libFuzzer.StrategyPool.do_strategy'
+        'bot.fuzzers.engine_common.is_lpm_fuzz_target',
+        'bot.fuzzers.libFuzzer.strategy_selection.StrategyPool.do_strategy'
     ])
     self.mock.do_strategy.return_value = True
     self.mock.is_lpm_fuzz_target.return_value = True
