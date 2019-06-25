@@ -80,7 +80,7 @@ MIN_ELAPSED_TIME_SINCE_REPORT = 3
 NAME_CHECK_REGEX = re.compile(r'^[a-zA-Z0-9_-]+$')
 
 # Regex to match special chars in project name.
-PROJECT_NAME_SPECIAL_CHARS_REGEX = re.compile('[^a-zA-Z0-9_-]')
+FUZZ_TARGET_SPECIAL_CHARS_REGEX = re.compile('[^a-zA-Z0-9_-]')
 
 # List of supported platforms.
 PLATFORMS = [
@@ -1070,12 +1070,13 @@ def fuzz_target_fully_qualified_name(engine, project, binary):
 def fuzz_target_project_qualified_name(project, binary):
   """Get a fuzz target's project qualified name."""
 
-  def _normalized_project():
+  def _normalized(name):
     """Return normalized project name with special chars like slash, colon, etc
     normalized to hyphen(-). This is important as otherwise these chars break
     local and cloud storage paths."""
-    return PROJECT_NAME_SPECIAL_CHARS_REGEX.sub('-', project).strip('-')
+    return FUZZ_TARGET_SPECIAL_CHARS_REGEX.sub('-', name).strip('-')
 
+  binary = _normalized(binary)
   if not project:
     return binary
 
@@ -1083,7 +1084,7 @@ def fuzz_target_project_qualified_name(project, binary):
     # Don't prefix with project name if it's the default project.
     return binary
 
-  normalized_project_prefix = _normalized_project() + '_'
+  normalized_project_prefix = _normalized(project) + '_'
   if binary.startswith(normalized_project_prefix):
     return binary
 

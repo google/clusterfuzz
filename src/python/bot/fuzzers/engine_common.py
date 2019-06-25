@@ -103,6 +103,10 @@ def dump_big_query_data(stats, testcase_file_path, fuzzer_name_prefix,
 
 def find_fuzzer_path(build_directory, fuzzer_name):
   """Find the fuzzer path with the given name."""
+  if environment.platform() == 'FUCHSIA':
+    # Fuchsia targets are not on disk.
+    return fuzzer_name
+
   # TODO(ochang): This is necessary for legacy testcases, which include the
   # project prefix in arguments. Remove this in the near future.
   project_name = environment.get_value('PROJECT_NAME')

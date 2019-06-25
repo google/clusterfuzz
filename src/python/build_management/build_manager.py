@@ -765,6 +765,8 @@ class FuchsiaBuild(Build):
     environment.set_value(
         'FUCHSIA_DIR',
         os.path.join(fuchsia_resources_dir, self.FUCHSIA_DIR_REL_PATH))
+    # TODO(flowerhack): Update here once Fuchsia understand revision tracking.
+    environment.set_value('APP_REVISION', '0')
 
     symbolize_path = os.path.join(fuchsia_resources_dir,
                                   self.SYMBOLIZE_REL_PATH)
@@ -781,8 +783,19 @@ class FuchsiaBuild(Build):
     fuzz_target = random.choice(fuzz_targets)
     fuzz_target = str(fuzz_target[0] + '/' + fuzz_target[1])
 
-    environment.set_value('FUZZ_TARGET', fuzz_target)
-    logs.log('Extracted fuzz target ' + fuzz_target)
+    # This allows you to override the standard fuzzer selection process, in
+    # order to e.g. deliberately test a specific fuzzer during development.
+    if environment.get_value('FUZZ_TARGET'):
+      logs.log('OVERRIDING RANDOM SELECTION: Extracted fuzz_target ' +
+               environment.get_value('FUZZ_TARGET'))
+    else:
+      environment.set_value('FUZZ_TARGET', fuzz_target)
+      logs.log('Extracted fuzz target ' + fuzz_target)
+
+    self._setup_application_path()
+
+    # TODO(flowerhack): Figure out how to shutdown this process cleanly.
+    fuchsia.device.qemu_setup()
     return True
 
 
