@@ -2170,7 +2170,6 @@ class MoveMergeableUnitsTest(fake_fs_unittest.TestCase):
 
 class SelectGeneratorTest(unittest.TestCase):
   """Tests for _select_generator."""
-
   FUZZER_PATH = '/fake/fuzzer_path'
 
   def setUp(self):
