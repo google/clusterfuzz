@@ -254,12 +254,11 @@ def get_issue_summary(testcase):
   else:
     issue_summary += 'Unknown error'
 
-  crash_state_lines = testcase.crash_state.splitlines()
-  if testcase.crash_state == 'NULL' or not crash_state_lines:
+  if testcase.crash_state == 'NULL' or not testcase.crash_state:
     # Special case for empty stacktrace.
     issue_summary += ' with empty stacktrace'
   else:
-    issue_summary += ' in ' + crash_state_lines[0]
+    issue_summary += ' in ' + testcase.crash_state.splitlines()[0]
 
   return issue_summary
 
