@@ -142,10 +142,6 @@ class Issue(object):
     """The issue that this is merged into."""
     raise NotImplementedError
 
-  @merged_into.setter
-  def merged_into(self, new_merged_into):
-    raise NotImplementedError
-
   @property
   def closed_time(self):
     """When the issue was closed."""
@@ -278,8 +274,24 @@ class IssueTracker(object):
 
   def get_original_issue(self, issue_id):
     """Retrieve the original issue object traversing the list of duplicates."""
-    # TODO(ochang): Use implementation from monorail for all issue trackers.
-    raise NotImplementedError
+    # Caller might pass |issue_id| as int, so change it to str so that
+    # circular chain checks in loop actually work.
+    original_issue_id = str(issue_id)
+    seen_issue_ids = []
+    while True:
+      original_issue = self.get_issue(original_issue_id)
+      seen_issue_ids.append(original_issue_id)
+
+      if not original_issue.merged_into:
+        # If this is an original issue, no more work to do. Bail out.
+        break
+
+      original_issue_id = str(original_issue.merged_into)
+      if original_issue_id in seen_issue_ids:
+        # Don't traverse a circular chain, break if we realise that.
+        break
+
+    return original_issue
 
   def find_issues(self, keywords=None, only_open=None):
     """Find issues."""

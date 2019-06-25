@@ -48,9 +48,11 @@ class IssueTrackerManager(object):
     self.issues = {}
     self.next_id = 1
 
-  def get_original_issue(self, issue_id):
+  def get_issue(self, issue_id):
     """Get original issue."""
-    return self.issues[issue_id]
+    issue = self.issues[issue_id]
+    issue.itm = self
+    return issue
 
   def save(self, issue, *args, **kwargs):  # pylint: disable=unused-argument
     """Save an issue."""

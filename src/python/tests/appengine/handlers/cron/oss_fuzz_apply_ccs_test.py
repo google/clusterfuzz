@@ -61,27 +61,30 @@ class IssueTrackerManager(object):
     self.last_issue = None
     self.modified_issues = {}
 
-  def get_original_issue(self, issue_id):
-    """Get original issue."""
-    issue = Issue()
-    issue.open = True
-    issue.itm = self
-    issue.id = issue_id
-
-    if issue_id == 1337:
-      issue.add_cc('user@example.com')
-      issue.add_label('Restrict-View-Commit')
-    elif issue_id == 1338:
-      issue.add_cc('user@example.com')
-      issue.add_cc('user2@example.com')
-    elif issue_id == 1340:
-      issue.add_label('reported-2015-01-01')
-
-    return issue
-
   def save(self, issue, *args, **kwargs):  # pylint: disable=unused-argument
     """Save a issue."""
     self.modified_issues[issue.id] = issue
+
+
+def get_original_issue(self, issue_id):
+  """Get original issue."""
+  issue_id = int(issue_id)
+
+  issue = Issue()
+  issue.open = True
+  issue.itm = self._itm  # pylint: disable=protected-access
+  issue.id = issue_id
+
+  if issue_id == 1337:
+    issue.add_cc('user@example.com')
+    issue.add_label('Restrict-View-Commit')
+  elif issue_id == 1338:
+    issue.add_cc('user@example.com')
+    issue.add_cc('user2@example.com')
+  elif issue_id == 1340:
+    issue.add_label('reported-2015-01-01')
+
+  return monorail.Issue(issue)
 
 
 @test_utils.with_cloud_emulators('datastore')
@@ -110,6 +113,7 @@ class OssFuzzApplyCcsTest(unittest.TestCase):
     test_helpers.patch(self, [
         'base.utils.utcnow',
         'handlers.base_handler.Handler.is_cron',
+        'libs.issue_management.issue_tracker.IssueTracker.get_original_issue',
         'libs.issue_management.issue_tracker_policy.get',
         'libs.issue_management.issue_tracker_utils.'
         'get_issue_tracker_for_testcase',
@@ -120,6 +124,7 @@ class OssFuzzApplyCcsTest(unittest.TestCase):
         monorail.IssueTracker(self.itm))
     self.mock.utcnow.return_value = datetime.datetime(2016, 1, 1)
     self.mock.get.return_value = OSS_FUZZ_POLICY
+    self.mock.get_original_issue.side_effect = get_original_issue
 
     data_types.Testcase(
         open=True, status='Processed', bug_information='1337',
