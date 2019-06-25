@@ -13,6 +13,7 @@
 # limitations under the License.
 """Tests for strategy selection file."""
 
+import os
 import unittest
 
 from bot.fuzzers import strategy
@@ -70,7 +71,11 @@ class TestMultiArmedBanditStrategySelectionPatch(unittest.TestCase):
   generated according to the specified distribution."""
 
   def setUp(self):
-    """Put data in the local ndb table the tests to query from."""
+    """Put data in the local ndb table the tests to query from and set
+    bandit selection environment variable."""
+    test_helpers.patch_environ(self)
+    os.environ['USE_BANDIT_STRATEGY_SELECTION'] = 'True'
+
     data = []
 
     strategy1 = data_types.FuzzStrategyProbability()
@@ -107,6 +112,9 @@ class TestMultiArmedBanditStrategySelection(unittest.TestCase):
 
   def setUp(self):
     """Put data in the local ndb table the tests to query from."""
+    test_helpers.patch_environ(self)
+    os.environ['USE_BANDIT_STRATEGY_SELECTION'] = 'True'
+
     data = []
 
     strategy2 = data_types.FuzzStrategyProbability()

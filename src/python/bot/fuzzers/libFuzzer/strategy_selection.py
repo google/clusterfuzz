@@ -22,6 +22,7 @@ from bot.fuzzers import engine_common
 from bot.fuzzers import strategy
 from datastore import data_types
 from datastore import ndb_utils
+from system import environment
 
 
 class StrategyPool(object):
@@ -102,7 +103,8 @@ def generate_strategy_pool():
 
   # If we are not able to query properly, draw randomly according to
   # probability parameters.
-  if not distribution:
+  if (not distribution or
+      not environment.get_value('USE_BANDIT_STRATEGY_SELECTION')):
     return generate_random_strategy_pool()
 
   strategy_selection = utils.random_weighted_choice(distribution, 'probability')
