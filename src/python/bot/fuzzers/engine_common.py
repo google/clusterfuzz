@@ -152,7 +152,11 @@ def get_merge_timeout(default_merge_timeout):
   """Get the maximum amount of time that should be spent merging a corpus."""
   return get_overridable_timeout(default_merge_timeout,
                                  'MERGE_TIMEOUT_OVERRIDE')
-
+def is_lpm_fuzz_target(fuzzer_path):
+  """Returns True if |fuzzer_path| is a libprotobuf-mutator based fuzz
+  target."""
+  with open(fuzzer_path) as fuzzer_handle:
+    return utils.search_string_in_file('TestOneProtoInput', fuzzer_handle)
 
 def get_issue_owners(fuzz_target_path):
   """Return list of owner emails given a fuzz target path.

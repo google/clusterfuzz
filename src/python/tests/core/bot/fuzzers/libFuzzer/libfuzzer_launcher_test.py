@@ -2168,5 +2168,20 @@ class MoveMergeableUnitsTest(fake_fs_unittest.TestCase):
         os.path.exists(os.path.join(self.CORPUS_DIRECTORY, filename)))
 
 
+class SelectGeneratorTest(unittest.TestCase):
+  FUZZER_PATH = '/fake/fuzzer_path'
+
+  def setUp(self):
+    self.pool = strategy_selection.generate_strategy_pool()
+    test_helpers.patch(self, ['bot.fuzzers.engine_common.is_lpm_fuzzer',
+                              'bot.fuzzers.libFuzzer.StrategyPool.do_strategy'])
+    self.mock.do_strategy.return_value = True
+    self.mock.is_lpm_fuzz_target.return_value = True
+
+  def test_lpm_fuzz_target(self):
+    self.assertEqual(launcher.Generator.NONE,
+                     launcher._select_generator(self.pool, self.FUZZER_PATH))
+
+
 if __name__ == '__main__':
   unittest.main()
