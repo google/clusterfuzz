@@ -2169,6 +2169,8 @@ class MoveMergeableUnitsTest(fake_fs_unittest.TestCase):
 
 
 class SelectGeneratorTest(unittest.TestCase):
+  """Tests for _select_generator."""
+
   FUZZER_PATH = '/fake/fuzzer_path'
 
   def setUp(self):
@@ -2182,7 +2184,7 @@ class SelectGeneratorTest(unittest.TestCase):
 
   def test_lpm_fuzz_target(self):
     self.assertEqual(launcher.Generator.NONE,
-                     launcher._select_generator(self.pool, self.FUZZER_PATH))
+                     launcher._select_generator(self.pool, self.FUZZER_PATH))  # pylint: disable=protected-access
 
 
 if __name__ == '__main__':
