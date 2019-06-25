@@ -156,6 +156,14 @@ def get_merge_timeout(default_merge_timeout):
                                  'MERGE_TIMEOUT_OVERRIDE')
 
 
+def is_lpm_fuzz_target(fuzzer_path):
+  """Returns True if |fuzzer_path| is a libprotobuf-mutator based fuzz
+  target."""
+  # TODO(metzman): Use this function to disable running LPM targets with AFL.
+  with open(fuzzer_path) as file_handle:
+    return utils.search_string_in_file('TestOneProtoInput', file_handle)
+
+
 def get_issue_owners(fuzz_target_path):
   """Return list of owner emails given a fuzz target path.
 
