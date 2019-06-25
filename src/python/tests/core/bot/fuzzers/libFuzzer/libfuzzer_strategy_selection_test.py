@@ -74,17 +74,19 @@ class TestMultiArmedBanditStrategySelectionPatch(unittest.TestCase):
     data = []
 
     strategy1 = data_types.FuzzStrategyProbability()
-    strategy1.strategy_name = 'fork,subset,dict,'
+    strategy1.strategy_name = 'fork,corpus_subset,recommended_dict,'
     strategy1.probability = 0.33
     data.append(strategy1)
 
     strategy2 = data_types.FuzzStrategyProbability()
-    strategy2.strategy_name = 'max len,ml rnn,value profile,dict,'
+    strategy2.strategy_name = ('random_max_len,corpus_mutations_ml_rnn,'
+                               'value_profile,recommended_dict,')
     strategy2.probability = .34
     data.append(strategy2)
 
     strategy3 = data_types.FuzzStrategyProbability()
-    strategy3.strategy_name = 'radamsa,max len,subset,'
+    strategy3.strategy_name = ('corpus_mutations_radamsa,'
+                               'random_max_len,corpus_subset,')
     strategy3.probability = .33
     data.append(strategy3)
     ndb.put_multi(data)
@@ -108,7 +110,8 @@ class TestMultiArmedBanditStrategySelection(unittest.TestCase):
     data = []
 
     strategy2 = data_types.FuzzStrategyProbability()
-    strategy2.strategy_name = 'max len,ml rnn,value profile,dict,'
+    strategy2.strategy_name = ('random_max_len,corpus_mutations_ml_rnn,'
+                               'value_profile,recommended_dict,')
     strategy2.probability = 1
     data.append(strategy2)
     ndb.put_multi(data)

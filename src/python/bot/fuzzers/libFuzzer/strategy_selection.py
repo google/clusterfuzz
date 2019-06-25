@@ -100,29 +100,19 @@ def generate_strategy_pool():
   query = data_types.FuzzStrategyProbability.query()
   distribution = list(ndb_utils.get_all_from_query(query))
 
-  # If we are not able to query properly,
-  # draw randomly according to probability parameters.
+  # If we are not able to query properly, draw randomly according to
+  # probability parameters.
   if not distribution:
     return generate_random_strategy_pool()
 
   strategy_selection = utils.random_weighted_choice(distribution, 'probability')
   strategy_name = strategy_selection.strategy_name
 
-  strategies = strategy_name.split(',')
+  chosen_strategies = strategy_name.split(',')
   pool = StrategyPool()
 
-  if 'radamsa' in strategies:
-    pool.add_strategy(strategy.CORPUS_MUTATION_RADAMSA_STRATEGY)
-  if 'ml rnn' in strategies:
-    pool.add_strategy(strategy.CORPUS_MUTATION_ML_RNN_STRATEGY)
-  if 'subset' in strategies:
-    pool.add_strategy(strategy.CORPUS_SUBSET_STRATEGY)
-  if 'max len' in strategies:
-    pool.add_strategy(strategy.RANDOM_MAX_LENGTH_STRATEGY)
-  if 'dict' in strategies:
-    pool.add_strategy(strategy.RECOMMENDED_DICTIONARY_STRATEGY)
-  if 'value profile' in strategies:
-    pool.add_strategy(strategy.VALUE_PROFILE_STRATEGY)
-  if 'fork' in strategies:
-    pool.add_strategy(strategy.FORK_STRATEGY)
+  for strategy_tuple in strategy.strategy_list:
+    if strategy_tuple.name in chosen_strategies:
+      pool.add_strategy(strategy_tuple)
+
   return pool
