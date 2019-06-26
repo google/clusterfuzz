@@ -70,7 +70,7 @@ def do_strategy(strategy_tuple):
                                              strategy_tuple.probability))
 
 
-def generate_random_strategy_pool():
+def generate_default_strategy_pool():
   """Return a strategy pool representing a random selection of strategies for
   launcher to consider."""
   pool = StrategyPool()
@@ -95,7 +95,7 @@ def generate_random_strategy_pool():
   return pool
 
 
-def generate_strategy_pool():
+def generate_weighted_strategy_pool():
   """Generate a strategy pool based on probability
   distribution from multi armed bandit experimentation."""
   query = data_types.FuzzStrategyProbability.query()
@@ -105,7 +105,7 @@ def generate_strategy_pool():
   # probability parameters.
   if (not distribution or
       not environment.get_value('USE_BANDIT_STRATEGY_SELECTION')):
-    return generate_random_strategy_pool()
+    return generate_default_strategy_pool()
 
   strategy_selection = utils.random_weighted_choice(distribution, 'probability')
   strategy_name = strategy_selection.strategy_name
@@ -116,5 +116,8 @@ def generate_strategy_pool():
   for strategy_tuple in strategy.strategy_list:
     if strategy_tuple.name in chosen_strategies:
       pool.add_strategy(strategy_tuple)
+
+  if do_strategy(strategy.MUTATOR_PLUGIN_STRATEGY):
+    pool.add_strategy(strategy.MUTATOR_PLUGIN_STRATEGY)
 
   return pool

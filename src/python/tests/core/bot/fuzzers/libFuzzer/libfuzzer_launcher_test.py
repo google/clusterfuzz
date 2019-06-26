@@ -215,7 +215,8 @@ class LauncherTest(fake_fs_unittest.TestCase):
     test_helpers.patch(self, [
         'atexit.register',
         'base.utils.default_project_name',
-        'bot.fuzzers.libFuzzer.strategy_selection.generate_strategy_pool',
+        'bot.fuzzers.libFuzzer.strategy_selection.'
+        'generate_weighted_strategy_pool',
         'os.getpid',
     ])
 
@@ -227,7 +228,7 @@ class LauncherTest(fake_fs_unittest.TestCase):
     self.mock.default_project_name.return_value = 'default-proj'
     self.mock.getpid.return_value = 1337
 
-    self.mock.generate_strategy_pool.return_value = set_strategy_pool()
+    self.mock.generate_weighted_strategy_pool.return_value = set_strategy_pool()
 
   @mock.patch('google_cloud_utils.storage.exists', lambda x: None)
   @mock.patch('google_cloud_utils.storage.read_data', lambda x: None)
@@ -447,7 +448,7 @@ class LauncherTest(fake_fs_unittest.TestCase):
   @mock.patch('sys.stdout', new_callable=test_utils.MockStdout)
   def test_basic_fuzz_with_custom_options(self, mock_stdout):
     """Test a basic fuzzing run with custom options provided."""
-    self.mock.generate_strategy_pool.return_value = set_strategy_pool(
+    self.mock.generate_weighted_strategy_pool.return_value = set_strategy_pool(
         [strategy.RECOMMENDED_DICTIONARY_STRATEGY])
 
     self.fs.CreateDirectory('/fake/corpus_basic')
@@ -1344,7 +1345,7 @@ class LauncherTest(fake_fs_unittest.TestCase):
   @mock.patch('sys.stdout', new_callable=test_utils.MockStdout)
   def test_fuzz_from_subset(self, _):
     """Tests fuzzing with corpus subset."""
-    self.mock.generate_strategy_pool.return_value = set_strategy_pool(
+    self.mock.generate_weighted_strategy_pool.return_value = set_strategy_pool(
         [strategy.CORPUS_SUBSET_STRATEGY])
 
     self.fs.CreateFile('/fake/testcase_subset')
@@ -1426,7 +1427,7 @@ class LauncherTest(fake_fs_unittest.TestCase):
   @mock.patch('sys.stdout', new_callable=test_utils.MockStdout)
   def test_fuzz_from_subset_without_enough_corpus(self, _):
     """Tests fuzzing with corpus subset without enough files in the corpus."""
-    self.mock.generate_strategy_pool.return_value = set_strategy_pool(
+    self.mock.generate_weighted_strategy_pool.return_value = set_strategy_pool(
         [strategy.CORPUS_SUBSET_STRATEGY])
 
     self.fs.CreateFile('/fake/testcase_subset')
@@ -1468,7 +1469,7 @@ class LauncherTest(fake_fs_unittest.TestCase):
   @mock.patch('system.minijail.tempfile.NamedTemporaryFile')
   def test_fuzz_from_subset_minijail(self, mock_tempfile, _):
     """Tests fuzzing with corpus subset."""
-    self.mock.generate_strategy_pool.return_value = set_strategy_pool(
+    self.mock.generate_weighted_strategy_pool.return_value = set_strategy_pool(
         [strategy.CORPUS_SUBSET_STRATEGY])
     os.environ['USE_MINIJAIL'] = 'True'
 
@@ -1597,7 +1598,7 @@ class LauncherTest(fake_fs_unittest.TestCase):
   def test_fuzz_from_subset_without_enough_corpus_minijail(
       self, mock_tempfile, _):
     """Tests fuzzing with corpus subset without enough files in the corpus."""
-    self.mock.generate_strategy_pool.return_value = set_strategy_pool(
+    self.mock.generate_weighted_strategy_pool.return_value = set_strategy_pool(
         [strategy.CORPUS_SUBSET_STRATEGY])
     os.environ['USE_MINIJAIL'] = 'True'
 
@@ -1716,7 +1717,7 @@ class LauncherTest(fake_fs_unittest.TestCase):
   @mock.patch('sys.stdout', new_callable=test_utils.MockStdout)
   def test_fuzz_with_mutations_using_radamsa(self, *_):
     """Tests fuzzing with mutations using radamsa."""
-    self.mock.generate_strategy_pool.return_value = set_strategy_pool(
+    self.mock.generate_weighted_strategy_pool.return_value = set_strategy_pool(
         [strategy.CORPUS_MUTATION_RADAMSA_STRATEGY])
 
     self.fs.CreateFile('/fake/testcase_mutations')
@@ -1764,7 +1765,7 @@ class LauncherTest(fake_fs_unittest.TestCase):
   @mock.patch('bot.fuzzers.ml.rnn.generator.execute')
   def test_fuzz_with_mutations_using_ml_rnn(self, mock_execute, *_):
     """Tests fuzzing with mutations using ml rnn."""
-    self.mock.generate_strategy_pool.return_value = set_strategy_pool(
+    self.mock.generate_weighted_strategy_pool.return_value = set_strategy_pool(
         [strategy.CORPUS_MUTATION_ML_RNN_STRATEGY])
 
     self.fs.CreateFile('/fake/testcase_mutations')
@@ -1815,7 +1816,7 @@ class LauncherTest(fake_fs_unittest.TestCase):
   @mock.patch('sys.stdout', new_callable=test_utils.MockStdout)
   def test_fuzz_with_fork_mode(self, mock_stdout, *_):
     """Tests fuzzing with fork mode."""
-    self.mock.generate_strategy_pool.return_value = set_strategy_pool(
+    self.mock.generate_weighted_strategy_pool.return_value = set_strategy_pool(
         [strategy.FORK_STRATEGY])
 
     self.fs.CreateDirectory('/fake/corpus_dir')

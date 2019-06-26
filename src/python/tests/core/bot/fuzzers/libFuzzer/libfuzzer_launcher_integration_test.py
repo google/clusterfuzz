@@ -135,7 +135,8 @@ class BaseLauncherTest(unittest.TestCase):
         'bot.fuzzers.engine_common.random_choice',
         'bot.fuzzers.mutator_plugin._download_mutator_plugin_archive',
         'bot.fuzzers.mutator_plugin._get_mutator_plugins_from_bucket',
-        'bot.fuzzers.libFuzzer.strategy_selection.generate_strategy_pool',
+        'bot.fuzzers.libFuzzer.strategy_selection.'
+        'generate_weighted_strategy_pool',
         'bot.fuzzers.libFuzzer.launcher.get_dictionary_analysis_timeout',
         'os.getpid',
     ])
@@ -147,7 +148,7 @@ class BaseLauncherTest(unittest.TestCase):
     self.mock.getpid.return_value = 1337
 
     self.mock._get_mutator_plugins_from_bucket.return_value = []  # pylint: disable=protected-access
-    self.mock.generate_strategy_pool.return_value = set_strategy_pool()
+    self.mock.generate_weighted_strategy_pool.return_value = set_strategy_pool()
     self.mock.get_dictionary_analysis_timeout.return_value = 5
     self.mock.get_merge_timeout.return_value = 10
     self.mock.random_choice.side_effect = mock_random_choice
@@ -175,7 +176,7 @@ class BaseLauncherTest(unittest.TestCase):
     plugin_archive_name = 'custom_mutator_plugin-libfuzzer_asan-test_fuzzer.zip'
     plugin_archive_path = os.path.join(DATA_DIRECTORY, plugin_archive_name)
 
-    self.mock.generate_strategy_pool.return_value = set_strategy_pool(
+    self.mock.generate_weighted_strategy_pool.return_value = set_strategy_pool(
         [strategy.MUTATOR_PLUGIN_STRATEGY])
     self.mock._get_mutator_plugins_from_bucket.return_value = [  # pylint: disable=protected-access
         plugin_archive_name
@@ -277,7 +278,7 @@ class TestLauncher(BaseLauncherTest):
   @mock.patch('bot.fuzzers.libFuzzer.launcher.get_fuzz_timeout')
   def test_fuzz_no_crash(self, mock_get_timeout):
     """Tests fuzzing (no crash)."""
-    self.mock.generate_strategy_pool.return_value = set_strategy_pool(
+    self.mock.generate_weighted_strategy_pool.return_value = set_strategy_pool(
         [strategy.VALUE_PROFILE_STRATEGY])
 
     mock_get_timeout.return_value = get_fuzz_timeout(5.0)
@@ -322,7 +323,7 @@ class TestLauncher(BaseLauncherTest):
   @mock.patch('bot.fuzzers.libFuzzer.launcher.get_fuzz_timeout')
   def test_fuzz_from_subset(self, mock_get_timeout):
     """Tests fuzzing from corpus subset."""
-    self.mock.generate_strategy_pool.return_value = set_strategy_pool(
+    self.mock.generate_weighted_strategy_pool.return_value = set_strategy_pool(
         [strategy.CORPUS_SUBSET_STRATEGY])
     mock_get_timeout.return_value = get_fuzz_timeout(5.0)
 
@@ -412,7 +413,7 @@ class TestLauncher(BaseLauncherTest):
   @mock.patch('bot.fuzzers.libFuzzer.launcher.get_fuzz_timeout')
   def test_max_length_strategy_with_override(self, mock_get_timeout):
     """Tests max length strategy with override."""
-    self.mock.generate_strategy_pool.return_value = set_strategy_pool(
+    self.mock.generate_weighted_strategy_pool.return_value = set_strategy_pool(
         [strategy.RANDOM_MAX_LENGTH_STRATEGY])
     mock_get_timeout.return_value = get_fuzz_timeout(5.0)
     testcase_path = setup_testcase_and_corpus('empty', 'corpus', fuzz=True)
@@ -429,7 +430,7 @@ class TestLauncher(BaseLauncherTest):
   @mock.patch('bot.fuzzers.libFuzzer.launcher.get_fuzz_timeout')
   def test_max_length_strategy_without_override(self, mock_get_timeout):
     """Tests max length strategy without override."""
-    self.mock.generate_strategy_pool.return_value = set_strategy_pool(
+    self.mock.generate_weighted_strategy_pool.return_value = set_strategy_pool(
         [strategy.RANDOM_MAX_LENGTH_STRATEGY])
     mock_get_timeout.return_value = get_fuzz_timeout(5.0)
     testcase_path = setup_testcase_and_corpus('empty', 'corpus', fuzz=True)
@@ -551,7 +552,7 @@ class TestLauncherMinijail(BaseLauncherTest):
   @mock.patch('bot.fuzzers.libFuzzer.launcher.get_fuzz_timeout')
   def test_fuzz_from_subset(self, mock_get_timeout):
     """Tests fuzzing from corpus subset."""
-    self.mock.generate_strategy_pool.return_value = set_strategy_pool(
+    self.mock.generate_weighted_strategy_pool.return_value = set_strategy_pool(
         [strategy.CORPUS_SUBSET_STRATEGY, strategy.VALUE_PROFILE_STRATEGY])
 
     mock_get_timeout.return_value = get_fuzz_timeout(5.0)
