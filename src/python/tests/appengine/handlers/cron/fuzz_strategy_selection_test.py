@@ -50,16 +50,16 @@ class TestFuzzStrategySelection(unittest.TestCase):
     fuzz_strategy_selection._query_and_upload_strategy_probabilities()
     row1 = data_types.FuzzStrategyProbability.query(
         data_types.FuzzStrategyProbability.strategy_name ==
-        'ml rnn,fork,').get()
-    self.assertEqual(row1.probability, 0.00843939359881144)
+        'corpus_mutations_ml_rnn,fork,').get()
+    self.assertEqual(row1.probability, 0.008598047115941681)
     row2 = data_types.FuzzStrategyProbability.query(
         data_types.FuzzStrategyProbability.strategy_name ==
-        'ml rnn,fork,subset,').get()
-    self.assertEqual(row2.probability, 0.007949692658367058)
+        'corpus_mutations_ml_rnn,fork,corpus_subset,').get()
+    self.assertEqual(row2.probability, 0.008077518169652463)
     row3 = data_types.FuzzStrategyProbability.query(
         data_types.FuzzStrategyProbability.strategy_name ==
-        'max len,ml rnn,dict,').get()
-    self.assertEqual(row3.probability, 0.03372520353666355)
+        'random_max_len,corpus_mutations_ml_rnn,recommended_dict,').get()
+    self.assertEqual(row3.probability, 0.03168990475186747)
 
   def test_delete_from_table(self):
     """Ensures that ndb datastore table is properly being
