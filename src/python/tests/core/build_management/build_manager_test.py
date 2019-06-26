@@ -964,16 +964,20 @@ class AuxiliaryRegularBuildTest(fake_filesystem_unittest.TestCase):
     self.mock.get_fuzz_target_weights.side_effect = lambda: {}
 
   def _assert_env_vars(self):
-    """An auxiliary build show not overwrite the common env variables."""
-    self.assertIsNone(os.environ.get('BUILD_DIR'))
-    self.assertIsNone(os.environ.get('BUILD_URL'))
+    """An auxiliary build show not overwrite the common env variables, but
+    should set up some variables with a prefix in their names."""
     self.assertIsNone(os.environ.get('APP_PATH'))
     self.assertIsNone(os.environ.get('APP_REVISION'))
+    self.assertIsNone(os.environ.get('BUILD_DIR'))
+    self.assertIsNone(os.environ.get('BUILD_URL'))
     self.assertIsNone(os.environ.get('GN_ARGS_PATH'))
 
+    self.assertEqual(os.environ['DATAFLOW_APP_PATH'], '')
     self.assertEqual(
         os.environ['DATAFLOW_BUILD_DIR'],
         '/builds/path_2992e823e35fd34a63e0f8733cdafd6875036a1d/dataflow')
+    self.assertEqual(os.environ['DATAFLOW_BUILD_URL'],
+                     'gs://path/file-dataflow-10.zip')
 
   def test_setup(self):
     """Tests setting up a build."""
@@ -1090,9 +1094,13 @@ class AuxiliaryRegularLibFuzzerBuildTest(fake_filesystem_unittest.TestCase):
     # Assert the expected values of environment variables.
     self.assertIsNone(os.environ.get('APP_REVISION'))
     self.assertIsNone(os.environ.get('BUILD_URL'))
+
+    self.assertEqual(os.environ['DATAFLOW_APP_REVISION'], '10')
     self.assertEqual(
         os.environ['DATAFLOW_BUILD_DIR'],
         '/builds/path_2992e823e35fd34a63e0f8733cdafd6875036a1d/dataflow')
+    self.assertEqual(os.environ['DATAFLOW_BUILD_URL'],
+                     'gs://path/file-dataflow-10.zip')
 
   @parameterized.parameterized.expand(['True', 'False'])
   def test_setup_fuzz(self, unpack_all):

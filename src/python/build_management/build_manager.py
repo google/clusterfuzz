@@ -95,7 +95,7 @@ class BuildManagerException(Exception):
   """Build manager exceptions."""
 
 
-def get_base_build_dir(bucket_path):
+def _base_build_dir(bucket_path):
   """Get the base directory for a build."""
   job_name = environment.get_value('JOB_NAME')
   return _get_build_directory(bucket_path, job_name)
@@ -1177,7 +1177,7 @@ def setup_trunk_build(bucket_paths_env_vars=DEFAULT_BUILD_BUCKET_PATH_ENV_VARS,
 
   main_build_urls = build_urls[0]
   other_build_urls = build_urls[1:]
-  base_build_dir = get_base_build_dir(main_build_urls['bucket_path'])
+  base_build_dir = _base_build_dir(main_build_urls['bucket_path'])
   _setup_build_directories(base_build_dir)
 
   revision_pattern = revisions.revision_pattern_from_build_bucket_path(
@@ -1190,8 +1190,8 @@ def setup_trunk_build(bucket_paths_env_vars=DEFAULT_BUILD_BUCKET_PATH_ENV_VARS,
 
     revision = revisions.convert_revision_to_integer(match.group(1))
     if (not other_build_urls or all(
-        revisions.find_build_url(l['bucket_path'], l['urls_list'], revision)
-        for l in other_build_urls)):
+        revisions.find_build_url(url['bucket_path'], url['urls_list'], revision)
+        for url in other_build_urls)):
       found_revision = True
       break
 
@@ -1226,12 +1226,13 @@ def setup_regular_build(revision, bucket_path=None, build_prefix=''):
         'Error getting build url for job %s (r%d).' % (job_type, revision))
 
     if build_prefix:
+      # Bail out if trying to set up an auxiliary build.
       return None
 
     # Try setting up trunk build.
     return setup_trunk_build()
 
-  base_build_dir = get_base_build_dir(bucket_path)
+  base_build_dir = _base_build_dir(bucket_path)
 
   build_class = RegularBuild
   if environment.is_trusted_host():
@@ -1285,7 +1286,7 @@ def setup_symbolized_builds(revision):
   sym_debug_build_url = revisions.find_build_url(sym_debug_build_bucket_path,
                                                  sym_debug_build_urls, revision)
 
-  base_build_dir = get_base_build_dir(sym_release_build_bucket_path)
+  base_build_dir = _base_build_dir(sym_release_build_bucket_path)
 
   build_class = SymbolizedBuild
   if environment.is_trusted_host():
@@ -1320,7 +1321,7 @@ def setup_custom_binary():
         'Job does not have a custom binary, even though CUSTOM_BINARY is set.')
     return False
 
-  base_build_dir = get_base_build_dir('')
+  base_build_dir = _base_build_dir('')
   build = CustomBuild(base_build_dir, job.custom_binary_key,
                       job.custom_binary_filename, job.custom_binary_revision)
 
@@ -1361,7 +1362,7 @@ def setup_production_build(build_type):
     return None
 
   version = v_match.group(1)
-  base_build_dir = get_base_build_dir(build_bucket_path)
+  base_build_dir = _base_build_dir(build_bucket_path)
 
   build_class = ProductionBuild
   if environment.is_trusted_host():
