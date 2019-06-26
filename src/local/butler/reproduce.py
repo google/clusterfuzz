@@ -17,16 +17,19 @@ from __future__ import print_function
 from builtins import object
 
 import httplib2
-import json
 import os
 import shutil
 import tempfile
 import urllib
 import webbrowser
 
+from src.python.base import json_utils
 from src.python.base import utils
 from src.python.bot.tasks import commands
+from src.python.bot.tasks import setup
+from src.python.datastore import data_types
 from src.python.fuzzing import testcase_manager
+from src.python.system import archive
 from src.python.system import environment
 from src.python.system import shell
 
@@ -57,6 +60,17 @@ class SerializedTestcase(object):
 
   def __getattr__(self, item):
     return self._testcase_map[item]
+
+  def get_metadata(self, key=None, default=None):
+    """Emulate Testcase's get_metadata function."""
+    metadata = json_utils.loads(self.additional_metadata)
+    if not key:
+      return metadata
+
+    try:
+      return self.metadata[key]
+    except KeyError:
+      return default
 
 
 class SuppressOutput(object):
@@ -102,7 +116,7 @@ def _http_request(url, body=None, method='POST', force_reauthorization=False):
   }
 
   http = httplib2.Http()
-  body = json.dumps(body) if body else ''
+  body = json_utils.dumps(body) if body else ''
   response, content = http.request(
       url, method=method, headers=headers, body=body)
 
@@ -129,19 +143,47 @@ def _get_testcase(testcase_id):
   if response.status != 200:
     raise Exception('Failed to get test case information.')
 
-  testcase_map = json.loads(content)
+  testcase_map = json_utils.loads(content)
   return SerializedTestcase(testcase_map)
 
 
-def _download_testcase(testcase_id):
+def _download_testcase(testcase_id, testcase):
   """Download the test case and return its path."""
   response, content = _http_request(
       TESTCASE_DOWNLOAD_URL.format(testcase_id=testcase_id), method='GET')
   bot_absolute_filename = response['x-goog-meta-filename']
-  print(bot_absolute_filename)
-  import sys
-  sys.exit(1)
-  return '/tmp/blah'
+
+  # Create a temporary directory where we can store the test case.
+  testcase_directory = os.path.join(environment.get_value('ROOT_DIR'), 'current-testcase')
+  shell.create_directory(testcase_directory)
+  testcase_path = os.path.join(testcase_directory, os.path.basename(bot_absolute_filename))
+
+  utils.write_data_to_file(content, testcase_path)
+
+  # Unpack the test case if it's archived.
+  # TODO(mbarbella): Rewrite setup.unpack_testcase and share this code.
+  if testcase.minimized_keys and testcase.minimized_keys != 'NA':
+    mask = data_types.ArchiveStatus.MINIMIZED
+  else:
+    mask = data_types.ArchiveStatus.FUZZED
+
+  if testcase.archive_state & mask:
+    archive.unpack(testcase_path, testcase_directory)
+    file_list = archive.get_file_list(testcase_path)
+
+    testcase_path = None
+    for file_name in file_list:
+      if testcase.absolute_path.endswith(file_name):
+        testcase_path = os.path.join(testcase_directory, file_name)
+
+    if not testcase_path:
+      raise Exception(
+          'Test case file was not found in archive.\n'
+          'Original filename: {absolute_path}.\n'
+          'Archive contents: {file_list}'.format(
+              absolute_path=testcase.absolute_path, file_list=file_list))
+
+  return testcase_path
 
 
 def _copy_root_subdirectory(root_dir, temp_root_dir, subdirectory):
@@ -175,6 +217,7 @@ def _prepare_initial_environment(build_directory):
 
 def _update_environment_for_job(testcase, build_directory):
   commands.update_environment_for_job(testcase.job_definition)
+  environment.set_value('JOB_NAME', testcase.job_type)
 
   # Update APP_PATH now that we know the application name.
   app_path = os.path.join(build_directory, environment.get_value('APP_NAME'))
@@ -185,8 +228,9 @@ def _reproduce_crash(testcase_id, build_directory):
   """Reproduce a crash."""
   _prepare_initial_environment(build_directory)
   testcase = _get_testcase(testcase_id)
-  testcase_path = _download_testcase(testcase_id)
+  testcase_path = _download_testcase(testcase_id, testcase)
   _update_environment_for_job(testcase, build_directory)
+  setup.prepare_environment_for_testcase(testcase)
 
   timeout = environment.get_value('TEST_TIMEOUT')
   result = testcase_manager.test_for_crash_with_retries(testcase, testcase_path,
