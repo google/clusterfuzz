@@ -117,6 +117,8 @@ def generate_weighted_strategy_pool():
     if strategy_tuple.name in chosen_strategies:
       pool.add_strategy(strategy_tuple)
 
+  # We consider mutator plugin separately as it is only supported by a small
+  # number of fuzz targets and should be used heavily when available.
   if do_strategy(strategy.MUTATOR_PLUGIN_STRATEGY):
     pool.add_strategy(strategy.MUTATOR_PLUGIN_STRATEGY)
 
