@@ -223,24 +223,27 @@ class CanUserAccessTestcaseTest(unittest.TestCase):
         'libs.access._is_domain_allowed',
         'libs.auth.get_current_user',
         'config.db_config.get',
+        'libs.issue_management.issue_tracker.IssueTracker.get_original_issue',
         'libs.issue_management.issue_tracker_utils.'
         'get_issue_tracker_for_testcase',
         'libs.issue_management.monorail.issue_tracker_manager.'
         'IssueTrackerManager',
     ])
-    itm = issue_tracker_manager.IssueTrackerManager('test')
+    self.itm = issue_tracker_manager.IssueTrackerManager('test')
+    self.itm.project_name = 'test-project'
     self.mock.get_issue_tracker_for_testcase.return_value = (
-        monorail.IssueTracker(itm))
-    self.get_issue = itm.get_issue
-    self.get_original_issue = itm.get_original_issue
+        monorail.IssueTracker(self.itm))
+    self.get_issue = self.itm.get_issue
 
     self.email = 'test@test.com'
     self.mock.get_current_user.return_value = auth.User(self.email)
 
     self.bug = issue.Issue()
     self.bug.id = 1234
+    self.bug.itm = self.itm
     self.original_bug = issue.Issue()
     self.original_bug.id = 5678
+    self.original_bug.itm = self.itm
 
     self.testcase = data_types.Testcase()
 
@@ -335,9 +338,11 @@ class CanUserAccessTestcaseTest(unittest.TestCase):
 
   def test_allowed_because_of_owner_in_original_issue(self):
     """Ensure it is allowed because the user is the owner of original issue."""
-    self.get_original_issue.return_value = self.original_bug
     self.bug.merged_into = 5678
+    self.bug.merged_into_project = 'test-project'
     self.original_bug.owner = self.email
+    self.mock.get_original_issue.return_value = monorail.Issue(
+        self.original_bug)
     self._test_bug_access()
 
     self.mock.get.return_value = (
@@ -382,7 +387,9 @@ class CanUserAccessTestcaseTest(unittest.TestCase):
   def test_deny_no_access_and_no_bug_access(self):
     """Ensure it is false when user has no access and no bug access."""
     self.mock._is_domain_allowed.return_value = False
-    self.get_issue.return_value = issue.Issue()
+    test_issue = issue.Issue()
+    test_issue.itm = self.itm
+    self.get_issue.return_value = test_issue
 
     self.testcase.bug_information = '1234'
     self.assertFalse(access.can_user_access_testcase(self.testcase))

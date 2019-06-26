@@ -75,11 +75,11 @@ class Issue(issue_tracker.Issue):
   @property
   def merged_into(self):
     """The issue that this is merged into."""
-    return self._monorail_issue.merged_into
+    if self._monorail_issue.merged_into_project != self.issue_tracker.project:
+      # Don't consider duplicates in a different issue project.
+      return None
 
-  @merged_into.setter
-  def merged_into(self, new_merged_into):
-    self._monorail_issue.merged_into = new_merged_into
+    return self._monorail_issue.merged_into
 
   @property
   def is_open(self):
@@ -233,10 +233,6 @@ class IssueTracker(issue_tracker.IssueTracker):
       return None
 
     return Issue(monorail_issue)
-
-  def get_original_issue(self, issue_id):
-    """Retrieve the original issue object traversing the list of duplicates."""
-    return Issue(self._itm.get_original_issue(int(issue_id)))
 
   def find_issues(self, keywords=None, only_open=False):
     """Find issues."""

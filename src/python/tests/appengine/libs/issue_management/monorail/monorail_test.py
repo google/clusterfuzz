@@ -92,9 +92,15 @@ class MonorailTests(unittest.TestCase):
     mock_issue_merged.merged_into_project = 'project'
     mock_issue_merged.closed = datetime.datetime(2019, 1, 1)
 
+    mock_issue_merged_another_project = MonorailIssue()
+    mock_issue_merged_another_project.id = 1339
+    mock_issue_merged_another_project.merged_into = 1
+    mock_issue_merged_another_project.merged_into_project = 'different-project'
+
     mock_issues = {
         1337: mock_issue,
         1338: mock_issue_merged,
+        1339: mock_issue_merged_another_project,
     }
 
     self.itm = IssueTrackerManager('project', mock_issues)
@@ -267,3 +273,8 @@ class MonorailTests(unittest.TestCase):
     issue_url = self.issue_tracker.issue_url(1337)
     self.assertEqual(
         'https://bugs.chromium.org/p/project/issues/detail?id=1337', issue_url)
+
+  def test_merged_into_different_project(self):
+    """Test merged_into for a different issue tracker project."""
+    issue = self.issue_tracker.get_issue(1339)
+    self.assertIsNone(issue.merged_into)

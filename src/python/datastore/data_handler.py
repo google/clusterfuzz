@@ -251,8 +251,10 @@ def get_issue_summary(testcase):
     filtered_crash_type = re.sub(r'UNKNOWN( READ| WRITE)?', 'Crash',
                                  testcase.crash_type.splitlines()[0])
     issue_summary += filtered_crash_type
+  else:
+    issue_summary += 'Unknown error'
 
-  if testcase.crash_state == 'NULL':
+  if testcase.crash_state == 'NULL' or not testcase.crash_state:
     # Special case for empty stacktrace.
     issue_summary += ' with empty stacktrace'
   else:

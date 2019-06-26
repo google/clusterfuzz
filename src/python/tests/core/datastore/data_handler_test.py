@@ -111,6 +111,13 @@ class DataHandlerTest(unittest.TestCase):
         crash_address='0x1337',
         crash_state='NULL')
 
+    self.testcase_empty = data_types.Testcase(
+        job_type='linux_asan_chrome',
+        fuzzer_name='libfuzzer_binary_name',
+        crash_type='',
+        crash_address='',
+        crash_state='')
+
     self.testcase_bad_cast = data_types.Testcase(
         job_type='linux_asan_chrome',
         fuzzer_name='libfuzzer_binary_name',
@@ -145,9 +152,10 @@ class DataHandlerTest(unittest.TestCase):
 
     entities_to_put = [
         self.testcase, self.testcase_assert, self.testcase_null,
-        self.testcase_bad_cast, self.testcase_bad_cast_without_crash_function,
-        self.job, self.job2, self.local_data_bundle, self.cloud_data_bundle,
-        self.fuzzer1, self.fuzzer2, self.fuzzer3
+        self.testcase_empty, self.testcase_bad_cast,
+        self.testcase_bad_cast_without_crash_function, self.job, self.job2,
+        self.local_data_bundle, self.cloud_data_bundle, self.fuzzer1,
+        self.fuzzer2, self.fuzzer3
     ]
     for entity in entities_to_put:
       entity.put()
@@ -340,6 +348,11 @@ class DataHandlerTest(unittest.TestCase):
     """Test get_issue_summary for null crash state."""
     summary = data_handler.get_issue_summary(self.testcase_null)
     self.assertEqual(summary, 'project: Crash with empty stacktrace')
+
+  def test_get_issue_summary_empty(self):
+    """Test get_issue_summary for empty crash state and empty crash type."""
+    summary = data_handler.get_issue_summary(self.testcase_empty)
+    self.assertEqual(summary, 'project: Unknown error with empty stacktrace')
 
   def test_get_issue_summary_bad_cast(self):
     """Test get_issue_summary for bad cast."""
