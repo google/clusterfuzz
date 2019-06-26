@@ -92,6 +92,33 @@ def _copy_testcase_to_device_and_setup_environment(testcase,
           ['chmod', '0755', device_testcase_file_path])
 
 
+def prepare_environment_for_testcase(testcase):
+  """Set various environment variables based on the test case."""
+  # Setup memory debugging tool environment.
+  environment.reset_current_memory_tool_options(redzone_size=testcase.redzone)
+
+  # Setup environment variable for windows size and location properties.
+  # Explicitly use empty string to indicate use of default window properties.
+  if hasattr(testcase, 'window_argument'):
+    environment.set_value('WINDOW_ARG', testcase.window_argument)
+
+  # Adjust timeout based on the stored multiplier (if available).
+  if hasattr(testcase, 'timeout_multiplier') and testcase.timeout_multiplier:
+    test_timeout = environment.get_value('TEST_TIMEOUT')
+    environment.set_value('TEST_TIMEOUT',
+                          int(test_timeout * testcase.timeout_multiplier))
+
+  # Override APP_ARGS with minimized arguments (if available).
+  if (hasattr(testcase, 'minimized_arguments') and
+      testcase.minimized_arguments):
+    environment.set_value('APP_ARGS', testcase.minimized_arguments)
+
+  # Add FUZZ_TARGET to environment if this is a fuzz target testcase.
+  fuzz_target = testcase.get_metadata('fuzzer_binary_name')
+  if fuzz_target:
+    environment.set_value('FUZZ_TARGET', fuzz_target)
+
+
 def setup_testcase(testcase):
   """Sets up the testcase and needed dependencies like fuzzer,
   data bundle, etc."""
@@ -103,9 +130,6 @@ def setup_testcase(testcase):
 
   # Clear testcase directories.
   shell.clear_testcase_directories()
-
-  # Setup memory debugging tool environment.
-  environment.reset_current_memory_tool_options(redzone_size=testcase.redzone)
 
   # Adjust the test timeout value if this is coming from an user uploaded
   # testcase.
@@ -167,26 +191,7 @@ def setup_testcase(testcase):
     # Get local blacklist without this testcase's entry.
     leak_blacklist.copy_global_to_local_blacklist(excluded_testcase=testcase)
 
-  # Setup environment variable for windows size and location properties.
-  # Explicitly use empty string to indicate use of default window properties.
-  if hasattr(testcase, 'window_argument'):
-    environment.set_value('WINDOW_ARG', testcase.window_argument)
-
-  # Adjust timeout based on the stored multiplier (if available).
-  if hasattr(testcase, 'timeout_multiplier') and testcase.timeout_multiplier:
-    test_timeout = environment.get_value('TEST_TIMEOUT')
-    environment.set_value('TEST_TIMEOUT',
-                          int(test_timeout * testcase.timeout_multiplier))
-
-  # Override APP_ARGS with minimized arguments (if available).
-  if (hasattr(testcase, 'minimized_arguments') and
-      testcase.minimized_arguments):
-    environment.set_value('APP_ARGS', testcase.minimized_arguments)
-
-  # Add FUZZ_TARGET to environment if this is a fuzz target testcase.
-  fuzz_target = testcase.get_metadata('fuzzer_binary_name')
-  if fuzz_target:
-    environment.set_value('FUZZ_TARGET', fuzz_target)
+  prepare_environment_for_testcase(testcase)
 
   return file_list, input_directory, testcase_file_path
 

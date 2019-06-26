@@ -29,6 +29,9 @@ def _fake_get_testcase(_):
       'security_flag': False,
       'gestures': [],
       'flaky_stack': False,
+      'job_type': 'test_job',
+      'redzone': 32,
+      'additional_metadata': '{}',
       'job_definition': 'APP_NAME = echo\nAPP_ARGS = -n\n',
   }
 
