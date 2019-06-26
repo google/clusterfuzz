@@ -66,13 +66,13 @@ FROM
       FROM
         (SELECT
           fuzzer,
-          IF(strategy_corpus_mutations_radamsa > 0, "radamsa,", "") AS s_radamsa,
-          IF(strategy_random_max_len > 0, "max len,", "") AS s_max_len,
-          IF(strategy_corpus_mutations_ml_rnn > 0,"ml rnn,", "") AS s_ml_rnn, 
-          IF(strategy_value_profile > 0, "value profile,", "") AS s_vp, 
+          IF(strategy_corpus_mutations_radamsa > 0, "corpus_mutations_radamsa,", "") AS s_radamsa,
+          IF(strategy_random_max_len > 0, "random_max_len,", "") AS s_max_len,
+          IF(strategy_corpus_mutations_ml_rnn > 0,"corpus_mutations_ml_rnn,", "") AS s_ml_rnn, 
+          IF(strategy_value_profile > 0, "value_profile,", "") AS s_vp, 
           IF(strategy_fork > 0, "fork,", "") AS s_fork,
-          IF(strategy_corpus_subset > 0, "subset,", "") AS s_subset,
-          IF(strategy_recommended_dict > 0, "dict,", "") AS s_recommended_dict,
+          IF(strategy_corpus_subset > 0, "corpus_subset,", "") AS s_subset,
+          IF(strategy_recommended_dict > 0, "recommended_dict,", "") AS s_recommended_dict,
           STDDEV(new_edges) OVER(PARTITION by fuzzer) AS fuzzer_stddev,
           new_edges
         FROM 

@@ -17,8 +17,12 @@ Decides the set strategies to be considered by the launcher. Note
 that because of compatability issues, the exact set of strategies
 generated here may be modified in the launcher before being launched."""
 
+from base import utils
 from bot.fuzzers import engine_common
 from bot.fuzzers import strategy
+from datastore import data_types
+from datastore import ndb_utils
+from system import environment
 
 
 class StrategyPool(object):
@@ -66,7 +70,7 @@ def do_strategy(strategy_tuple):
                                              strategy_tuple.probability))
 
 
-def generate_strategy_pool():
+def generate_default_strategy_pool():
   """Return a strategy pool representing a random selection of strategies for
   launcher to consider."""
   pool = StrategyPool()
@@ -86,6 +90,35 @@ def generate_strategy_pool():
     pool.add_strategy(strategy.VALUE_PROFILE_STRATEGY)
   if do_strategy(strategy.FORK_STRATEGY):
     pool.add_strategy(strategy.FORK_STRATEGY)
+  if do_strategy(strategy.MUTATOR_PLUGIN_STRATEGY):
+    pool.add_strategy(strategy.MUTATOR_PLUGIN_STRATEGY)
+  return pool
+
+
+def generate_weighted_strategy_pool():
+  """Generate a strategy pool based on probability
+  distribution from multi armed bandit experimentation."""
+  query = data_types.FuzzStrategyProbability.query()
+  distribution = list(ndb_utils.get_all_from_query(query))
+
+  # If we are not able to query properly, draw randomly according to
+  # probability parameters.
+  if (not distribution or
+      not environment.get_value('USE_BANDIT_STRATEGY_SELECTION')):
+    return generate_default_strategy_pool()
+
+  strategy_selection = utils.random_weighted_choice(distribution, 'probability')
+  strategy_name = strategy_selection.strategy_name
+
+  chosen_strategies = strategy_name.split(',')
+  pool = StrategyPool()
+
+  for strategy_tuple in strategy.strategy_list:
+    if strategy_tuple.name in chosen_strategies:
+      pool.add_strategy(strategy_tuple)
+
+  # We consider mutator plugin separately as it is only supported by a small
+  # number of fuzz targets and should be used heavily when available.
   if do_strategy(strategy.MUTATOR_PLUGIN_STRATEGY):
     pool.add_strategy(strategy.MUTATOR_PLUGIN_STRATEGY)
 
