@@ -31,7 +31,6 @@ from base import utils
 from crash_analysis import crash_analyzer
 from metrics import logs
 from platforms import android
-from platforms import fuchsia
 from platforms import linux
 from platforms import windows
 from system import environment
@@ -542,9 +541,6 @@ def terminate_stale_application_instances():
     # Reset application state, which kills its pending instances and re-grants
     # the storage permissions.
     android.app.reset()
-
-  elif platform == 'FUCHSIA':
-    fuchsia.device.reset_state()
 
   elif platform == 'WINDOWS':
     processes_to_kill += [

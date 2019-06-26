@@ -103,6 +103,10 @@ def dump_big_query_data(stats, testcase_file_path, fuzzer_name_prefix,
 
 def find_fuzzer_path(build_directory, fuzzer_name):
   """Find the fuzzer path with the given name."""
+  if environment.platform() == 'FUCHSIA':
+    # Fuchsia targets are not on disk.
+    return fuzzer_name
+
   # TODO(ochang): This is necessary for legacy testcases, which include the
   # project prefix in arguments. Remove this in the near future.
   project_name = environment.get_value('PROJECT_NAME')
@@ -150,6 +154,14 @@ def get_merge_timeout(default_merge_timeout):
   """Get the maximum amount of time that should be spent merging a corpus."""
   return get_overridable_timeout(default_merge_timeout,
                                  'MERGE_TIMEOUT_OVERRIDE')
+
+
+def is_lpm_fuzz_target(fuzzer_path):
+  """Returns True if |fuzzer_path| is a libprotobuf-mutator based fuzz
+  target."""
+  # TODO(metzman): Use this function to disable running LPM targets with AFL.
+  with open(fuzzer_path) as file_handle:
+    return utils.search_string_in_file('TestOneProtoInput', file_handle)
 
 
 def get_issue_owners(fuzz_target_path):
