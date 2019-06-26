@@ -147,5 +147,4 @@ class TestMultiArmedBanditStrategySelection(unittest.TestCase):
         strategy_pool.do_strategy(strategy.CORPUS_MUTATION_RADAMSA_STRATEGY))
     self.assertFalse(strategy_pool.do_strategy(strategy.CORPUS_SUBSET_STRATEGY))
     self.assertFalse(strategy_pool.do_strategy(strategy.FORK_STRATEGY))
-    self.assertTrue(
-        strategy_pool.do_strategy(strategy.MUTATOR_PLUGIN_STRATEGY))
+    self.assertTrue(strategy_pool.do_strategy(strategy.MUTATOR_PLUGIN_STRATEGY))
