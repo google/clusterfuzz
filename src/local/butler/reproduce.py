@@ -52,6 +52,9 @@ TESTCASE_DOWNLOAD_URL = ('https://clusterfuzz.com/testcase-detail/'
                          'download-testcase?id={testcase_id}')
 TESTCASE_INFO_URL = 'https://clusterfuzz.com/reproduce-tool/testcase-info'
 
+_GET_METHOD = 'GET'
+_POST_METHOD = 'POST'
+
 
 class SerializedTestcase(object):
   """Minimal representation of a test case."""
@@ -108,7 +111,10 @@ def _get_authorization(force_reauthorization):
   return 'VerificationCode {code}'.format(code=verification_code)
 
 
-def _http_request(url, body=None, method='POST', force_reauthorization=False):
+def _http_request(url,
+                  body=None,
+                  method=_POST_METHOD,
+                  force_reauthorization=False):
   """Make a POST request to the specified URL."""
   authorization = _get_authorization(force_reauthorization)
   headers = {
@@ -151,7 +157,7 @@ def _get_testcase(testcase_id):
 def _download_testcase(testcase_id, testcase):
   """Download the test case and return its path."""
   response, content = _http_request(
-      TESTCASE_DOWNLOAD_URL.format(testcase_id=testcase_id), method='GET')
+      TESTCASE_DOWNLOAD_URL.format(testcase_id=testcase_id), method=_GET_METHOD)
   bot_absolute_filename = response['x-goog-meta-filename']
 
   # Create a temporary directory where we can store the test case.
@@ -178,6 +184,7 @@ def _download_testcase(testcase_id, testcase):
     for file_name in file_list:
       if testcase.absolute_path.endswith(file_name):
         testcase_path = os.path.join(testcase_directory, file_name)
+        break
 
     if not testcase_path:
       raise Exception('Test case file was not found in archive.\n'
