@@ -1,0 +1,4 @@
+FROM gcr.io/clusterfuzz-images/base
+
+ENV OS_OVERRIDE FUCHSIA
+ENV QUEUE_OVERRIDE FUCHSIA
