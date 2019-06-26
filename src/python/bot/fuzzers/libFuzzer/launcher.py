@@ -81,8 +81,6 @@ LIBFUZZER_PREFIX = 'libfuzzer_'
 # Allow 30 minutes to merge the testcases back into the corpus.
 DEFAULT_MERGE_TIMEOUT = 30 * 60
 
-IS_WIN = environment.platform() == 'WINDOWS'
-
 MERGED_DICT_SUFFIX = '.merged'
 
 ENGINE_ERROR_MESSAGE = 'libFuzzer: engine encountered an error.'
@@ -102,10 +100,15 @@ class Generator(object):
 def _select_generator(strategy_pool, fuzzer_path):
   """Pick a generator to generate new testcases before fuzzing or return
   Generator.NONE if no generator selected."""
+  if environment.platform() == 'FUCHSIA':
+    # Unsupported.
+    return Generator.NONE
+
   # We can't use radamsa binary on Windows. Disable ML for now until we know it
   # works on Win.
   # These generators don't produce testcases that LPM fuzzers can use.
-  if IS_WIN or engine_common.is_lpm_fuzz_target(fuzzer_path):
+  if (environment.platform() == 'WINDOWS' or
+      engine_common.is_lpm_fuzz_target(fuzzer_path)):
     return Generator.NONE
   elif strategy_pool.do_strategy(strategy.CORPUS_MUTATION_ML_RNN_STRATEGY):
     return Generator.ML_RNN
