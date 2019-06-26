@@ -41,6 +41,13 @@ from system import archive
 from system import environment
 from system import shell
 
+# The default environment variables for specifying build bucket paths.
+DEFAULT_BUILD_BUCKET_PATH_ENV_VARS = (
+    'RELEASE_BUILD_BUCKET_PATH',
+    'SYM_RELEASE_BUILD_BUCKET_PATH',
+    'SYM_DEBUG_BUILD_BUCKET_PATH',
+)
+
 # File name for storing current build revision.
 REVISION_FILE_NAME = 'REVISION'
 
@@ -493,7 +500,7 @@ class BaseBuild(object):
 class Build(BaseBuild):
   """Repesents a build type at a particular revision."""
 
-  def __init__(self, base_build_dir, revision, build_prefix='APP'):
+  def __init__(self, base_build_dir, revision, build_prefix=''):
     super(Build, self).__init__(base_build_dir)
     self.revision = revision
     self.build_prefix = build_prefix
@@ -521,9 +528,15 @@ class Build(BaseBuild):
     if self.base_build_dir:
       _setup_build_directories(self.base_build_dir)
 
-    environment.set_value('%s_REVISION' % self.build_prefix, self.revision)
-    environment.set_value('%s_PATH' % self.build_prefix, '')
-    environment.set_value('%s_PATH_DEBUG' % self.build_prefix, '')
+    if self.build_prefix:
+      environment.set_value('%s_APP_REVISION' % self.build_prefix,
+                            self.revision)
+      environment.set_value('%s_APP_PATH' % self.build_prefix, '')
+      environment.set_value('%s_APP_PATH_DEBUG' % self.build_prefix, '')
+    else:
+      environment.set_value('APP_REVISION', self.revision)
+      environment.set_value('APP_PATH', '')
+      environment.set_value('APP_PATH_DEBUG', '')
 
   def _patch_rpath(self, binary_path, instrumented_library_paths):
     """Patch rpaths of a binary to point to instrumented libraries"""
@@ -688,25 +701,19 @@ class RegularBuild(Build):
                base_build_dir,
                revision,
                build_url,
-               build_dir_name=None,
                target_weights=None,
-               build_prefix=None,
-               is_auxiliary_build=False):
+               build_prefix=''):
     super(RegularBuild, self).__init__(base_build_dir, revision)
     self.build_url = build_url
+    self.build_prefix = build_prefix
 
     if build_prefix:
-      # Otherwise, use the default prefix specified in the base class.
-      self.build_prefix = build_prefix
       self.build_dir_name = build_prefix.lower()
-    elif build_dir_name:
-      self.build_dir_name = build_dir_name
     else:
       self.build_dir_name = 'revisions'
 
     self._build_dir = os.path.join(self.base_build_dir, self.build_dir_name)
     self.target_weights = target_weights
-    self.is_auxiliary_build = is_auxiliary_build
 
   @property
   def build_dir(self):
@@ -715,7 +722,7 @@ class RegularBuild(Build):
   def setup(self):
     """Sets up build with a particular revision."""
     self._pre_setup()
-    if self.is_auxiliary_build:
+    if self.build_prefix:
       environment.set_value('%s_BUILD_URL' % self.build_prefix, self.build_url)
     else:
       environment.set_value('BUILD_URL', self.build_url)
@@ -736,7 +743,9 @@ class RegularBuild(Build):
       # setting application path environment variables.
       logs.log('Build already exists.')
 
-    if self.is_auxiliary_build:
+    if self.build_prefix:
+      # A build prefix typically means an auxiliary build. We should not call
+      # _setup_application_path and overwrite multiple env vars in such case.
       environment.set_value('%s_BUILD_DIR' % self.build_prefix, self.build_dir)
     else:
       self._setup_application_path(build_update=build_update)
@@ -1142,55 +1151,47 @@ def get_revisions_list(bucket_path, testcase=None):
   return revision_list
 
 
-def setup_trunk_build():
+def setup_trunk_build(bucket_paths_env_vars=DEFAULT_BUILD_BUCKET_PATH_ENV_VARS,
+                      build_prefix=None):
   """Sets up latest trunk build."""
-  release_build_bucket_path = environment.get_value('RELEASE_BUILD_BUCKET_PATH')
-  sym_release_build_bucket_path = environment.get_value(
-      'SYM_RELEASE_BUILD_BUCKET_PATH')
-  sym_debug_build_bucket_path = environment.get_value(
-      'SYM_DEBUG_BUILD_BUCKET_PATH')
-
-  base_build_dir = get_base_build_dir(release_build_bucket_path)
-  _setup_build_directories(base_build_dir)
-
-  release_build_urls = get_build_urls_list(release_build_bucket_path)
-  if not release_build_urls:
-    logs.log_error('Error getting list of release build urls from %s.' %
-                   release_build_bucket_path)
+  if not bucket_paths_env_vars:
     return None
 
-  other_build_url_lists = []
-  if sym_release_build_bucket_path:
-    sym_release_build_urls = get_build_urls_list(sym_release_build_bucket_path)
-    if not sym_release_build_urls:
-      logs.log_error(
-          'Error getting list of symbolized release build urls from %s.' %
-          sym_release_build_bucket_path)
+  build_urls = []
+  for env_var in bucket_paths_env_vars:
+    bucket_path = environment.get_value(env_var)
+    if not bucket_path:
+      logs.log_warn('Build bucket path is not specified as %s.' % env_var)
+      continue
+
+    urls_list = get_build_urls_list(bucket_path)
+    if not urls_list:
+      logs.log_error('Error getting list of build urls from %s.' % bucket_path)
       return None
-    other_build_url_lists.append((sym_release_build_bucket_path,
-                                  sym_release_build_urls))
-  if sym_debug_build_bucket_path:
-    sym_debug_builds_urls = get_build_urls_list(sym_debug_build_bucket_path)
-    if not sym_debug_builds_urls:
-      logs.log_error(
-          'Error getting list of symbolized debug build urls from %s.' %
-          sym_debug_build_bucket_path)
-      return None
-    other_build_url_lists.append((sym_debug_build_bucket_path,
-                                  sym_debug_builds_urls))
+
+    build_urls.append({'bucket_path': bucket_path, 'urls_list': urls_list})
+
+  if not build_urls:
+    logs.log_error('No builds are found to set up.')
+    return None
+
+  main_build_urls = build_urls[0]
+  other_build_urls = build_urls[1:]
+  base_build_dir = get_base_build_dir(main_build_urls['bucket_path'])
+  _setup_build_directories(base_build_dir)
 
   revision_pattern = revisions.revision_pattern_from_build_bucket_path(
-      release_build_bucket_path)
+      main_build_urls['bucket_path'])
   found_revision = False
-  for release_build_url in release_build_urls:
-    match = re.match(revision_pattern, release_build_url)
+  for build_url in main_build_urls['urls_list']:
+    match = re.match(revision_pattern, build_url)
     if not match:
       continue
 
     revision = revisions.convert_revision_to_integer(match.group(1))
-    if (not other_build_url_lists or all(
-        revisions.find_build_url(l[0], l[1], revision)
-        for l in other_build_url_lists)):
+    if (not other_build_urls or all(
+        revisions.find_build_url(l['bucket_path'], l['urls_list'], revision)
+        for l in other_build_urls)):
       found_revision = True
       break
 
@@ -1198,14 +1199,16 @@ def setup_trunk_build():
     logs.log_error('Unable to find a matching revision.')
     return None
 
-  build = setup_regular_build(revision, release_build_bucket_path)
+  build = setup_regular_build(revision, main_build_urls['bucket_path'],
+                              build_prefix)
+  if not build:
+    logs.log_error('Failed to set up a build.')
+    return None
+
   return build
 
 
-def setup_regular_build(revision,
-                        bucket_path=None,
-                        build_prefix=None,
-                        is_auxiliary_build=False):
+def setup_regular_build(revision, bucket_path=None, build_prefix=''):
   """Sets up build with a particular revision."""
   if not bucket_path:
     # Bucket path can be customized, otherwise get it from the default env var.
@@ -1222,7 +1225,7 @@ def setup_regular_build(revision,
     logs.log_error(
         'Error getting build url for job %s (r%d).' % (job_type, revision))
 
-    if is_auxiliary_build:
+    if build_prefix:
       return None
 
     # Try setting up trunk build.
@@ -1241,8 +1244,7 @@ def setup_regular_build(revision,
       revision,
       build_url,
       target_weights=target_weights,
-      build_prefix=build_prefix,
-      is_auxiliary_build=is_auxiliary_build)
+      build_prefix=build_prefix)
   if build.setup():
     return build
   return None

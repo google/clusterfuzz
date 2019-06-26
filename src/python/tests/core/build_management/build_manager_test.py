@@ -114,7 +114,7 @@ class TrunkBuildTest(unittest.TestCase):
 
     build_manager.setup_trunk_build()
     self.mock.setup_regular_build.assert_called_with(
-        10, 'gs://path/file-release-([0-9]+).zip')
+        10, 'gs://path/file-release-([0-9]+).zip', None)
 
   def test_setup_mismatch(self):
     """Test setup finding the first matching revision."""
@@ -138,7 +138,7 @@ class TrunkBuildTest(unittest.TestCase):
 
     build_manager.setup_trunk_build()
     self.mock.setup_regular_build.assert_called_with(
-        2, 'gs://path/file-release-([0-9]+).zip')
+        2, 'gs://path/file-release-([0-9]+).zip', None)
 
   def test_setup_fail(self):
     """Test setup failing to find any matching revisions."""
@@ -987,7 +987,8 @@ class AuxiliaryRegularBuildTest(fake_filesystem_unittest.TestCase):
     ]
 
     self.mock.time.return_value = 1000.0
-    build = fuzz_task.setup_auxiliary_build('DATAFLOW')
+    build = build_manager.setup_trunk_build(['DATAFLOW_BUILD_BUCKET_PATH'],
+                                            'DATAFLOW')
     self.assertIsInstance(build, build_manager.RegularBuild)
     self.assertEqual(_get_timestamp(build.base_build_dir), 1000.0)
 
@@ -1000,7 +1001,8 @@ class AuxiliaryRegularBuildTest(fake_filesystem_unittest.TestCase):
 
     self.mock.time.return_value = 1005.0
     self.assertIsInstance(
-        fuzz_task.setup_auxiliary_build('DATAFLOW'), build_manager.RegularBuild)
+        build_manager.setup_trunk_build(['DATAFLOW_BUILD_BUCKET_PATH'],
+                                        'DATAFLOW'), build_manager.RegularBuild)
     self.assertEqual(_get_timestamp(build.base_build_dir), 1005.0)
 
     # Already set up.
@@ -1016,7 +1018,8 @@ class AuxiliaryRegularBuildTest(fake_filesystem_unittest.TestCase):
         'gs://path/file-dataflow-2.zip',
     ]
 
-    build = fuzz_task.setup_auxiliary_build('DATAFLOW')
+    build = fuzz_task.build_manager.setup_trunk_build(
+        ['DATAFLOW_BUILD_BUCKET_PATH'], 'DATAFLOW')
     self.assertTrue(
         os.path.isdir(
             '/builds/path_2992e823e35fd34a63e0f8733cdafd6875036a1d/revisions'))
@@ -1122,7 +1125,8 @@ class AuxiliaryRegularLibFuzzerBuildTest(fake_filesystem_unittest.TestCase):
     else:
       self.assertIsNotNone(build_manager._get_file_match_callback())
 
-    build = fuzz_task.setup_auxiliary_build('DATAFLOW')
+    build = build_manager.setup_trunk_build(['DATAFLOW_BUILD_BUCKET_PATH'],
+                                            'DATAFLOW')
     self.assertIsInstance(build, build_manager.RegularBuild)
     self.assertEqual(_get_timestamp(build.base_build_dir), 1000.0)
     self.assertEqual('target1', os.environ['FUZZ_TARGET'])
@@ -1140,10 +1144,11 @@ class AuxiliaryRegularLibFuzzerBuildTest(fake_filesystem_unittest.TestCase):
     os.environ['FUZZ_TARGET'] = 'target3'
     self.mock.time.return_value = 1005.0
     self.assertIsInstance(
-        fuzz_task.setup_auxiliary_build('DATAFLOW'), build_manager.RegularBuild)
+        build_manager.setup_trunk_build(['DATAFLOW_BUILD_BUCKET_PATH'],
+                                        'DATAFLOW'), build_manager.RegularBuild)
     self.assertEqual(_get_timestamp(build.base_build_dir), 1005.0)
 
-    # Fuzz target should not be chosen by setup_auxiliary_build.
+    # An auxiliary build set up should not choose and overwrite the fuzz target.
     self.assertEqual('target3', os.environ['FUZZ_TARGET'])
 
     # If it was a partial build, the unpack should be called again.
@@ -1168,7 +1173,8 @@ class AuxiliaryRegularLibFuzzerBuildTest(fake_filesystem_unittest.TestCase):
         'gs://path/file-dataflow-2.zip',
     ]
 
-    build = fuzz_task.setup_auxiliary_build('DATAFLOW')
+    build = build_manager.setup_trunk_build(['DATAFLOW_BUILD_BUCKET_PATH'],
+                                            'DATAFLOW')
     self.assertTrue(
         os.path.isdir(
             '/builds/path_2992e823e35fd34a63e0f8733cdafd6875036a1d/dataflow'))
