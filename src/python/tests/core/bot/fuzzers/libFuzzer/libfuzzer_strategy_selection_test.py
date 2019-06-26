@@ -25,8 +25,8 @@ from tests.test_libs import test_utils
 
 
 class TestRandomStrategySelectionGeneratorPatched(unittest.TestCase):
-  """Tests whether program properly generates strategy
-  sets for use by the launcher."""
+  """Tests whether program properly generates strategy sets for use by the
+  launcher."""
 
   def setUp(self):
     """Set up method for strategy pool generator tests with patch."""
@@ -98,8 +98,8 @@ class TestMultiArmedBanditStrategySelectionPatch(unittest.TestCase):
     ndb.put_multi(data)
 
   def test_multi_armed_bandit_strategy_pool(self):
-    """Ensures a call to the multi armed bandit strategy
-    selection function doesn't yield an exception."""
+    """Ensures a call to the multi armed bandit strategy selection function
+    doesn't yield an exception."""
     strategy_selection.generate_weighted_strategy_pool()
 
 
