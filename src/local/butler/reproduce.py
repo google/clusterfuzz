@@ -48,7 +48,8 @@ OAUTH_URL = 'https://accounts.google.com/o/oauth2/v2/auth?%s' % (
         'redirect_uri':
             'urn:ietf:wg:oauth:2.0:oob'
     }))
-TESTCASE_DOWNLOAD_URL = 'https://clusterfuzz.com/testcase-detail/download-testcase?id={testcase_id}'
+TESTCASE_DOWNLOAD_URL = ('https://clusterfuzz.com/testcase-detail/'
+                         'download-testcase?id={testcase_id}')
 TESTCASE_INFO_URL = 'https://clusterfuzz.com/reproduce-tool/testcase-info'
 
 
@@ -154,9 +155,11 @@ def _download_testcase(testcase_id, testcase):
   bot_absolute_filename = response['x-goog-meta-filename']
 
   # Create a temporary directory where we can store the test case.
-  testcase_directory = os.path.join(environment.get_value('ROOT_DIR'), 'current-testcase')
+  testcase_directory = os.path.join(
+      environment.get_value('ROOT_DIR'), 'current-testcase')
   shell.create_directory(testcase_directory)
-  testcase_path = os.path.join(testcase_directory, os.path.basename(bot_absolute_filename))
+  testcase_path = os.path.join(testcase_directory,
+                               os.path.basename(bot_absolute_filename))
 
   utils.write_data_to_file(content, testcase_path)
 
@@ -177,11 +180,11 @@ def _download_testcase(testcase_id, testcase):
         testcase_path = os.path.join(testcase_directory, file_name)
 
     if not testcase_path:
-      raise Exception(
-          'Test case file was not found in archive.\n'
-          'Original filename: {absolute_path}.\n'
-          'Archive contents: {file_list}'.format(
-              absolute_path=testcase.absolute_path, file_list=file_list))
+      raise Exception('Test case file was not found in archive.\n'
+                      'Original filename: {absolute_path}.\n'
+                      'Archive contents: {file_list}'.format(
+                          absolute_path=testcase.absolute_path,
+                          file_list=file_list))
 
   return testcase_path
 
