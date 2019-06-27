@@ -1270,7 +1270,8 @@ def execute_task(fuzzer_name, job_type):
   # Set up a custom or regular build based on revision. By default, fuzzing
   # is done on trunk build (using revision=None). Otherwise, a job definition
   # can provide a revision to use via |APP_REVISION|.
-  if build_manager.setup_build(environment.get_value('APP_REVISION')):
+  if (build_manager.setup_build(environment.get_value('APP_REVISION')) and
+      environment.get_value('DATAFLOW_BUILD_BUCKET_PATH')):
     # Some fuzzing jobs may use auxiliary builds, such as DFSan instrumented
     # builds accompanying libFuzzer builds to enable DFT-based fuzzing.
     build_manager.setup_trunk_build(['DATAFLOW_BUILD_BUCKET_PATH'], 'DATAFLOW')
