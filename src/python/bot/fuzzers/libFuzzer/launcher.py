@@ -121,14 +121,6 @@ def _select_generator(strategy_pool, fuzzer_path):
   return Generator.NONE
 
 
-def do_dataflow_tracing():
-  """Return whether or not to use dataflow tracing."""
-  return engine_common.decide_with_probability(
-      engine_common.get_strategy_probability(
-          strategy.DATAFLOW_TRACING_STRATEGY,
-          default=DATAFLOW_TRACING_PROBABILITY))
-
-
 def add_recommended_dictionary(arguments, fuzzer_name, fuzzer_path):
   """Add recommended dictionary from GCS to existing .dict file or create
   a new one and update the arguments as needed.
@@ -440,20 +432,14 @@ def get_radamsa_path():
 
 def remove_fuzzing_arguments(arguments):
   """Remove arguments used during fuzzing."""
-  # Remove un-needed dictionary argument.
-  fuzzer_utils.extract_argument(arguments, constants.DICT_FLAG)
-
-  # 'max_len' option may shrink the testcase if its size greater than 'max_len'.
-  fuzzer_utils.extract_argument(arguments, constants.MAX_LEN_FLAG)
-
-  # Remove custom '-runs' argument.
-  fuzzer_utils.extract_argument(arguments, constants.RUNS_FLAG)
-
-  # Remove `-fork' argument since it overrides '-merge' argument.
-  fuzzer_utils.extract_argument(arguments, constants.FORK_FLAG)
-
-  # Remove `-collect_data_flow` argument since it's needed for fuzzing only.
-  fuzzer_utils.extract_argument(arguments, constants.COLLECT_DATA_FLOW_FLAG)
+  for argument in [
+      constants.DICT_FLAG,  # User for fuzzing only.
+      constants.MAX_LEN_FLAG,  # This may shrink the testcases.
+      constants.RUNS_FLAG,  # Make sure we don't have any '-runs' argument.
+      constants.FORK_FLAG,  # It overrides `-merge` argument.
+      constants.COLLECT_DATA_FLOW_FLAG,  # Used for fuzzing only.
+  ]:
+    fuzzer_utils.extract_argument(arguments, argument)
 
 
 def load_testcase_if_exists(fuzzer_runner,
@@ -846,19 +832,20 @@ def main(argv):
     arguments.append(constants.VALUE_PROFILE_ARGUMENT)
     fuzzing_strategies.append(strategy.VALUE_PROFILE_STRATEGY.name)
 
-  if strategy_pool.do_strategy(strategy.FORK_STRATEGY):
   # Depends on the presense of DFSan instrumented build.
   dataflow_build_dir = environment.get_value('DATAFLOW_BUILD_DIR')
-  use_dataflow_tracing = dataflow_build_dir and do_dataflow_tracing()
+  use_dataflow_tracing = (
+      dataflow_build_dir and
+      strategy_pool.do_strategy(strategy.DATAFLOW_TRACING_STRATEGY))
   if use_dataflow_tracing:
     dataflow_binary_path = os.path.join(dataflow_build_dir,
                                         os.path.basename(fuzzer_path))
     arguments.append(
         '%s%s' % (constants.COLLECT_DATA_FLOW_FLAG, dataflow_binary_path))
-    fuzzing_strategies.append(strategy.DATAFLOW_TRACING_STRATEGY)
+    fuzzing_strategies.append(strategy.DATAFLOW_TRACING_STRATEGY.name)
 
   # DataFlow Tracing requires fork mode, always use it with DFT strategy.
-  if use_dataflow_tracing or do_fork():
+  if use_dataflow_tracing or strategy_pool.do_strategy(strategy.FORK_STRATEGY):
     max_fuzz_threads = environment.get_value('MAX_FUZZ_THREADS', 1)
     num_fuzz_processes = max(1, multiprocessing.cpu_count() // max_fuzz_threads)
     arguments.append('%s%d' % (constants.FORK_FLAG, num_fuzz_processes))

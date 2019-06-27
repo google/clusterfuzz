@@ -228,8 +228,8 @@ class LauncherTest(fake_fs_unittest.TestCase):
     self.mock.default_project_name.return_value = 'default-proj'
     self.mock.getpid.return_value = 1337
 
-    self.mock.generate_weighted_strategy_pool.return_value = set_strategy_pool()
-    self.mock.do_dataflow_tracing.return_value = False
+    self.mock.generate_weighted_strategy_pool.return_value = set_strategy_pool(
+        [strategy.DATAFLOW_TRACING_STRATEGY])
 
   @mock.patch('google_cloud_utils.storage.exists', lambda x: None)
   @mock.patch('google_cloud_utils.storage.read_data', lambda x: None)
@@ -1822,23 +1822,25 @@ class LauncherTest(fake_fs_unittest.TestCase):
           '/fake/inputs-disk/temp-1337/mutations',
       ]])
 
+  def _dataflow_tracing_test_setup(self):
+    """Common setup for the tests checking dataflow tracing strategy support."""
+    self.mock.generate_weighted_strategy_pool.return_value = set_strategy_pool(
+        [strategy.DATAFLOW_TRACING_STRATEGY])
+
+    self.fs.CreateDirectory('/fake/corpus_dir')
+    self.fs.CreateFile('/fake/testcase_basic')
+    self.fs.CreateFile('/fake/dfsan_build/fake_fuzzer')
+
+    os.environ['FUZZ_CORPUS_DIR'] = '/fake/corpus_dir'
+    os.environ['DATAFLOW_BUILD_DIR'] = '/fake/dfsan_build'
+
   @mock.patch('bot.fuzzers.libFuzzer.launcher.add_recommended_dictionary',
               lambda x, y, z: False)
   @mock.patch('multiprocessing.cpu_count', return_value=1)
   @mock.patch('sys.stdout', new_callable=test_utils.MockStdout)
   def test_fuzz_with_dataflow_tracing(self, mock_stdout, *_):
     """Tests fuzzing with dataflow tracing."""
-    #//self.mock.cpu_count.return_value = 1
-    self.mock.do_dataflow_tracing.return_value = True
-
-    self.fs.CreateDirectory('/fake/corpus_dir')
-    self.fs.CreateFile('/fake/testcase_basic')
-    self.fs.CreateDirectory('/fake/dfsan_build')
-    self.fs.CreateFile('/fake/dfsan_build/fake_fuzzer')
-
-    os.environ['FUZZ_CORPUS_DIR'] = '/fake/corpus_dir'
-    os.environ['DATAFLOW_BUILD_DIR'] = '/fake/dfsan_build'
-
+    self._dataflow_tracing_test_setup()
     new_units_added = 11
     with mock.patch(
         'subprocess.Popen',
@@ -1970,7 +1972,7 @@ class LauncherTest(fake_fs_unittest.TestCase):
               u'startup_crash_count':
                   0,
               u'strategy_dataflow_tracing':
-                  0,
+                  1,
               u'strategy_corpus_mutations_radamsa':
                   0,
               u'strategy_corpus_mutations_ml_rnn':
@@ -2014,26 +2016,19 @@ class LauncherTest(fake_fs_unittest.TestCase):
   @mock.patch('system.minijail.tempfile.NamedTemporaryFile')
   def test_fuzz_with_dataflow_tracing_minijail(self, mock_tempfile, *_):
     """Tests fuzzing with dataflow tracing inside minijail."""
-    self.mock.do_dataflow_tracing.return_value = True
+    self._dataflow_tracing_test_setup()
+
     os.environ['USE_MINIJAIL'] = 'True'
 
     mock_tempfile.return_value.__enter__.return_value.name = '/tmppath'
     mock_tempfile.return_value.name = '/tmpfile'
 
-    self.fs.CreateDirectory('/fake/corpus_dir')
-    self.fs.CreateFile('/fake/testcase_basic')
-    self.fs.CreateDirectory('/fake/dfsan_build')
-    self.fs.CreateFile('/fake/dfsan_build/fake_fuzzer')
-
-    os.environ['FUZZ_CORPUS_DIR'] = '/fake/corpus_dir'
-    os.environ['DATAFLOW_BUILD_DIR'] = '/fake/dfsan_build'
-
     new_units_added = 11
     with mock.patch(
         'subprocess.Popen',
-        create_mock_popen(
-            self.no_crash_output, '/fake/inputs-disk/temp-1337/new',
-            '/fake/main_corpus_dir', new_units_added)) as mock_popen:
+        create_mock_popen(self.no_crash_output,
+                          '/fake/inputs-disk/temp-1337/new', '/fake/corpus_dir',
+                          new_units_added)) as mock_popen:
       launcher.main([
           'launcher.py',
           '/fake/testcase_basic',
@@ -2306,6 +2301,8 @@ class LauncherTest(fake_fs_unittest.TestCase):
               u'strategy_corpus_mutations_ml_rnn':
                   0,
               u'strategy_corpus_subset':
+                  0,
+              u'strategy_dataflow_tracing':
                   0,
               u'strategy_fork':
                   2,
