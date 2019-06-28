@@ -1242,23 +1242,6 @@ def process_crashes(crashes, context):
   return new_crash_count, known_crash_count, processed_groups
 
 
-# TODO: remove environment variable once refactor is complete
-# Set multi-armed bandit strategy selection distribution as an environment
-# variable so we can access it in launcher.
-def set_strategy_distribution_in_env():
-  """Read FuzzStrategyProbability ndb table and set data to environment
-  variable."""
-  if environment.get_value('USE_BANDIT_STRATEGY_SELECTION'):
-    query = data_types.FuzzStrategyProbability.query()
-    distribution = []
-    for strategy_entry in list(ndb_utils.get_all_from_query(query)):
-      distribution.append({
-          "strategy_name": strategy_entry.strategy_name,
-          "probability": strategy_entry.probability
-      })
-    environment.set_value('STRATEGY_SELECTION_DISTRIBUTION', distribution)
-
-
 def get_strategy_distribution_from_ndb():
   """Queries and returns the distribution stored in the ndb table."""
   query = data_types.FuzzStrategyProbability.query()
@@ -1410,7 +1393,12 @@ def execute_task(fuzzer_name, job_type):
   thread_delay = environment.get_value('THREAD_DELAY')
   thread_error_occurred = False
 
-  set_strategy_distribution_in_env()
+  # TODO: Remove environment variable once fuzzing engine refactor is complete.
+  # Set multi-armed bandit strategy selection distribution as an environment
+  # variable so we can access it in launcher.
+  if environment.get_value('USE_BANDIT_STRATEGY_SELECTION'):
+    distribution = get_strategy_distribution_from_ndb()
+    environment.set_value('STRATEGY_SELECTION_DISTRIBUTION', distribution)
 
   # Reset memory tool options.
   environment.reset_current_memory_tool_options(redzone_size=redzone)

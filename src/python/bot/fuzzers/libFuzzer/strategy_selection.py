@@ -21,6 +21,7 @@ from base import utils
 from bot.fuzzers import engine_common
 from bot.fuzzers import strategy
 from collections import namedtuple
+from metrics import logs
 from system import environment
 
 StrategyCombination = namedtuple('StrategyCombination',
@@ -94,6 +95,8 @@ def generate_default_strategy_pool():
     pool.add_strategy(strategy.FORK_STRATEGY)
   if do_strategy(strategy.MUTATOR_PLUGIN_STRATEGY):
     pool.add_strategy(strategy.MUTATOR_PLUGIN_STRATEGY)
+  logs.log("Strategy pool was generated according to default parameters. "
+           "Chosen strategies: " + ", ".join(pool.strategy_names))
   return pool
 
 
@@ -131,4 +134,6 @@ def generate_weighted_strategy_pool():
   if do_strategy(strategy.MUTATOR_PLUGIN_STRATEGY):
     pool.add_strategy(strategy.MUTATOR_PLUGIN_STRATEGY)
 
+  logs.log("Strategy pool was generated according to weighted distribution. "
+           "Chosen strategies: " + ", ".join(pool.strategy_names))
   return pool
