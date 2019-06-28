@@ -838,8 +838,8 @@ def main(argv):
       dataflow_build_dir and
       strategy_pool.do_strategy(strategy.DATAFLOW_TRACING_STRATEGY))
   if use_dataflow_tracing:
-    dataflow_binary_path = os.path.join(dataflow_build_dir,
-                                        os.path.basename(fuzzer_path))
+    dataflow_binary_path = os.path.join(
+        dataflow_build_dir, os.path.relpath(fuzzer_path, build_directory))
     arguments.append(
         '%s%s' % (constants.COLLECT_DATA_FLOW_FLAG, dataflow_binary_path))
     fuzzing_strategies.append(strategy.DATAFLOW_TRACING_STRATEGY.name)
