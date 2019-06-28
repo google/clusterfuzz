@@ -778,7 +778,7 @@ def main(argv):
   # fuzzing strategies is the list of strategies that are enabled. (e.g. if
   # mutator is selected in the pool, but not available for a given target, it
   # would not be added to fuzzing strategies.)
-  strategy_pool = strategy_selection.generate_weighted_strategy_pool()
+  strategy_pool = strategy_selection.generate_default_strategy_pool()
   fuzzing_strategies = []
 
   # Select a generator to use for existing testcase mutations.

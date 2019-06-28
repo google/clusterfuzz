@@ -84,9 +84,12 @@ def generate_default_strategy_pool():
     pool.add_strategy(strategy.CORPUS_SUBSET_STRATEGY)
 
   for value in [
+      strategy.DATAFLOW_TRACING_STRATEGY,
+      strategy.FORK_STRATEGY,
+      strategy.MUTATOR_PLUGIN_STRATEGY,
+      strategy.RECOMMENDED_DICTIONARY_STRATEGY,
       strategy.RANDOM_MAX_LENGTH_STRATEGY,
-      strategy.RECOMMENDED_DICTIONARY_STRATEGY, strategy.VALUE_PROFILE_STRATEGY,
-      strategy.FORK_STRATEGY, strategy.MUTATOR_PLUGIN_STRATEGY
+      strategy.VALUE_PROFILE_STRATEGY,
   ]:
     if do_strategy(value):
       pool.add_strategy(value)
