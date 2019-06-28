@@ -124,7 +124,9 @@ def main():
   parser_py_unittest.add_argument(
       '-v', '--verbose', action='store_true', help='Print logs from tests.')
   parser_py_unittest.add_argument(
-      '-t', '--target', required=True, choices=['appengine', 'core'])
+      '-t', '--target', required=True, choices=['appengine', 'core', 'modules'])
+  parser_py_unittest.add_argument(
+      '-c', '--config-dir', help='Config dir to use for module tests.')
 
   parser_go_unittest = subparsers.add_parser(
       'go_unittest', help='Run Go unit tests.')

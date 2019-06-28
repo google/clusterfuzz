@@ -154,12 +154,10 @@ def run_one_test_parallel(args):
     raise
 
 
-def run_tests_single_core(args, test_directory, enable_coverage):
+def run_tests_single_core(args, test_directory, top_level_dir, enable_coverage):
   """Run tests (single CPU)."""
   suites = unittest.loader.TestLoader().discover(
-      test_directory,
-      pattern=args.pattern,
-      top_level_dir=os.path.join('src', 'python'))
+      test_directory, pattern=args.pattern, top_level_dir=top_level_dir)
 
   with MeasureCoverage(enable_coverage):
     # Verbosity=2 since we want to see real-time test execution with test name
@@ -171,12 +169,10 @@ def run_tests_single_core(args, test_directory, enable_coverage):
     sys.exit(1)
 
 
-def run_tests_parallel(args, test_directory):
+def run_tests_parallel(args, test_directory, top_level_dir):
   """Run tests (multiple CPUs)."""
   suites = unittest.loader.TestLoader().discover(
-      test_directory,
-      pattern=args.pattern,
-      top_level_dir=os.path.join('src', 'python'))
+      test_directory, pattern=args.pattern, top_level_dir=top_level_dir)
 
   test_classes = []  # pylint: disable=protected-access
   for suite in suites:
@@ -262,6 +258,7 @@ def execute(args):
   # Don't use absolute paths to make it easier to compare results in tests.
   os.environ['CONFIG_DIR_OVERRIDE'] = os.path.join('.', 'configs', 'test')
 
+  top_level_dir = os.path.join('src', 'python')
   if args.target == 'appengine':
     # Build template files.
     appengine.build_templates()
@@ -281,8 +278,20 @@ def execute(args):
       (appengine_config)  # pylint: disable=pointless-statement
     except ImportError:
       print('Note: unable to import appengine_config.')
-  else:
+  elif args.target == 'core':
     test_directory = CORE_TEST_DIRECTORY
+  else:
+    # Config module tests.
+    os.environ['CONFIG_DIR_OVERRIDE'] = args.config_dir
+    test_directory = os.path.join(args.config_dir, 'modules')
+    top_level_dir = None
+
+    # Modules may use libs from our App Engine directory.
+    sys.path.insert(0, os.path.abspath(os.path.join('src', 'appengine')))
+
+    # Fix paths again to get config modules added to the import path.
+    from python.base import modules
+    modules.fix_module_search_paths()
 
   # Set expected environment variables.
   local_config.ProjectConfig().set_environment()
@@ -302,6 +311,6 @@ def execute(args):
 
   if args.parallel:
     # TODO(tanin): Support coverage.
-    run_tests_parallel(args, test_directory)
+    run_tests_parallel(args, test_directory, top_level_dir)
   else:
-    run_tests_single_core(args, test_directory, enable_coverage)
+    run_tests_single_core(args, test_directory, top_level_dir, enable_coverage)
