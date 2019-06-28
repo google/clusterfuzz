@@ -100,13 +100,15 @@ def generate_default_strategy_pool():
 def generate_weighted_strategy_pool():
   """Generate a strategy pool based on probability
   distribution from multi armed bandit experimentation."""
+  if not environment.get_value('USE_BANDIT_STRATEGY_SELECTION'):
+    return generate_default_strategy_pool()
+
   query = data_types.FuzzStrategyProbability.query()
   distribution = list(ndb_utils.get_all_from_query(query))
 
   # If we are not able to query properly, draw randomly according to
   # probability parameters.
-  if (not distribution or
-      not environment.get_value('USE_BANDIT_STRATEGY_SELECTION')):
+  if not distribution:
     return generate_default_strategy_pool()
 
   strategy_selection = utils.random_weighted_choice(distribution, 'probability')
