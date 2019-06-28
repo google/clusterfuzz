@@ -307,6 +307,7 @@ def _get_search_text(keywords):
 
 def get_issue_tracker(project_name, config):  # pylint: disable=unused-argument
   """Get the issue tracker for the project name."""
+  # TODO(ochang): Make this lazy.
   itm = _get_issue_tracker_manager_for_project(project_name)
   if itm is None:
     return None
