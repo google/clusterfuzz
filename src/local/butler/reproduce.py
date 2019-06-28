@@ -148,7 +148,7 @@ def _get_testcase(testcase_id):
 
   # TODO(mbarbella): Handle this gracefully.
   if response.status != 200:
-    raise Exception('Failed to get test case information.')
+    raise Exception('Failed to get test case information')
 
   testcase_map = json_utils.loads(content)
   return SerializedTestcase(testcase_map)
@@ -225,7 +225,8 @@ def _prepare_initial_environment(build_directory):
   environment.set_value('BUILDS_DIR', build_directory)
 
 
-def _update_environment_for_job(testcase, build_directory):
+def _update_environment_for_testcase(testcase, build_directory):
+  """Update environment variables that depend on the test case."""
   commands.update_environment_for_job(testcase.job_definition)
   environment.set_value('JOB_NAME', testcase.job_type)
 
@@ -233,14 +234,18 @@ def _update_environment_for_job(testcase, build_directory):
   app_path = os.path.join(build_directory, environment.get_value('APP_NAME'))
   environment.set_value('APP_PATH', app_path)
 
+  fuzzer_directory = setup.get_fuzzer_directory(testcase.fuzzer_name)
+  environment.set_value('FUZZER_DIR', fuzzer_directory)
+
+  setup.prepare_environment_for_testcase(testcase)
+
 
 def _reproduce_crash(testcase_id, build_directory):
   """Reproduce a crash."""
   _prepare_initial_environment(build_directory)
   testcase = _get_testcase(testcase_id)
   testcase_path = _download_testcase(testcase_id, testcase)
-  _update_environment_for_job(testcase, build_directory)
-  setup.prepare_environment_for_testcase(testcase)
+  _update_environment_for_testcase(testcase, build_directory)
 
   timeout = environment.get_value('TEST_TIMEOUT')
   result = testcase_manager.test_for_crash_with_retries(testcase, testcase_path,
