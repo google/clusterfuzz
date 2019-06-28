@@ -20,9 +20,12 @@ generated here may be modified in the launcher before being launched."""
 from base import utils
 from bot.fuzzers import engine_common
 from bot.fuzzers import strategy
-from datastore import data_types
-from datastore import ndb_utils
+from collections import namedtuple
+from metrics import logs
 from system import environment
+
+StrategyCombination = namedtuple('StrategyCombination',
+                                 'strategy_name probability')
 
 
 class StrategyPool(object):
@@ -93,25 +96,31 @@ def generate_default_strategy_pool():
   ]:
     if do_strategy(value):
       pool.add_strategy(value)
-
+  logs.log("Strategy pool was generated according to default parameters. "
+           "Chosen strategies: " + ", ".join(pool.strategy_names))
   return pool
 
 
 def generate_weighted_strategy_pool():
   """Generate a strategy pool based on probability
   distribution from multi armed bandit experimentation."""
-  if not environment.get_value('USE_BANDIT_STRATEGY_SELECTION'):
-    return generate_default_strategy_pool()
-
-  query = data_types.FuzzStrategyProbability.query()
-  distribution = list(ndb_utils.get_all_from_query(query))
+  distribution = environment.get_value('STRATEGY_SELECTION_DISTRIBUTION')
 
   # If we are not able to query properly, draw randomly according to
   # probability parameters.
   if not distribution:
     return generate_default_strategy_pool()
 
-  strategy_selection = utils.random_weighted_choice(distribution, 'probability')
+  # Change the distribution to a list of named tuples rather than a list of
+  # dictionaries so that we can use the randome_weighted_choice function.
+  distribution_tuples = [
+      StrategyCombination(
+          strategy_name=elem['strategy_name'], probability=elem['probability'])
+      for elem in distribution
+  ]
+
+  strategy_selection = utils.random_weighted_choice(distribution_tuples,
+                                                    'probability')
   strategy_name = strategy_selection.strategy_name
 
   chosen_strategies = strategy_name.split(',')
@@ -129,4 +138,6 @@ def generate_weighted_strategy_pool():
     if do_strategy(value):
       pool.add_strategy(value)
 
+  logs.log("Strategy pool was generated according to weighted distribution. "
+           "Chosen strategies: " + ", ".join(pool.strategy_names))
   return pool

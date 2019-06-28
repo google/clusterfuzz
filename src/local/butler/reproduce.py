@@ -16,6 +16,9 @@
 from __future__ import print_function
 from builtins import object
 
+from python.base import modules
+modules.fix_module_search_paths()
+
 import httplib2
 import os
 import shutil
@@ -23,15 +26,16 @@ import tempfile
 import urllib
 import webbrowser
 
-from src.python.base import json_utils
-from src.python.base import utils
-from src.python.bot.tasks import commands
-from src.python.bot.tasks import setup
-from src.python.datastore import data_types
-from src.python.fuzzing import testcase_manager
-from src.python.system import archive
-from src.python.system import environment
-from src.python.system import shell
+from base import json_utils
+from base import utils
+from build_management import build_manager
+from bot.tasks import commands
+from bot.tasks import setup
+from datastore import data_types
+from fuzzing import testcase_manager
+from system import archive
+from system import environment
+from system import shell
 
 AUTHORIZATION_CACHE_FILE = os.path.join(
     os.path.expanduser('~'), '.config', 'clusterfuzz', 'authorization-cache')
@@ -148,7 +152,7 @@ def _get_testcase(testcase_id):
 
   # TODO(mbarbella): Handle this gracefully.
   if response.status != 200:
-    raise Exception('Failed to get test case information')
+    raise Exception('Failed to get test case information.')
 
   testcase_map = json_utils.loads(content)
   return SerializedTestcase(testcase_map)
@@ -214,15 +218,23 @@ def _prepare_initial_environment(build_directory):
   _copy_root_subdirectory(root_dir, temp_root_dir, 'bot')
   _copy_root_subdirectory(root_dir, temp_root_dir, 'configs')
   _copy_root_subdirectory(root_dir, temp_root_dir, 'resources')
+  _copy_root_subdirectory(root_dir, temp_root_dir, 'src')
 
   environment.set_value('CONFIG_DIR_OVERRIDE',
                         os.path.join(temp_root_dir, 'configs', 'test'))
+  environment.set_value(
+      'PYTHONPATH',
+      modules.get_pythonpath_separator().join([
+          os.path.join(temp_root_dir, 'src'),
+          environment.get_value('APPENGINE_DIRECTORY')
+      ]))
 
   environment.set_bot_environment()
 
   # Overrides that should not be set to the default values.
-  environment.set_value('APP_DIR', build_directory)
   environment.set_value('BUILDS_DIR', build_directory)
+  environment.set_value('BUILD_DIR', build_directory)
+  environment.set_value('APP_DIR', build_directory)
 
 
 def _update_environment_for_testcase(testcase, build_directory):
@@ -238,6 +250,9 @@ def _update_environment_for_testcase(testcase, build_directory):
   environment.set_value('FUZZER_DIR', fuzzer_directory)
 
   setup.prepare_environment_for_testcase(testcase)
+
+  build_manager.set_environment_vars(
+      [environment.get_value('FUZZER_DIR'), build_directory])
 
 
 def _reproduce_crash(testcase_id, build_directory):
@@ -262,4 +277,4 @@ def execute(args):
   result = _reproduce_crash(args.testcase, args.build_dir)
 
   # TODO(mbarbella): Report success/failure based on result.
-  print(result.output)
+  print(result.get_stacktrace())

@@ -47,6 +47,14 @@ def _patch_appengine_modules_for_bots():
     pass
 
 
+def get_pythonpath_separator():
+  """Return the character used as a directory delimiter in PYTHONPATH."""
+  if sys.platform.startswith('win'):
+    return ';'
+
+  return ':'
+
+
 def _config_modules_directory(root_directory):
   """Get the config modules directory."""
   config_dir = os.getenv('CONFIG_DIR_OVERRIDE')
@@ -61,11 +69,7 @@ def fix_module_search_paths():
   root_directory = os.environ['ROOT_DIR']
   source_directory = os.path.join(root_directory, 'src')
 
-  if sys.platform.startswith('win'):
-    pythonpath_sep = ';'
-  else:
-    pythonpath_sep = ':'
-
+  pythonpath_sep = get_pythonpath_separator()
   python_path = os.getenv('PYTHONPATH', '').split(pythonpath_sep)
 
   third_party_libraries_directory = os.path.join(source_directory,
@@ -90,15 +94,13 @@ def fix_module_search_paths():
     sys.path.insert(0, source_directory)
     python_path.insert(0, source_directory)
 
-  # Since paths have now been fixed, import the custom logs module.
-  from metrics import logs
-
   # Work around google package issues with App Engine SDK.
+  errors = []
   try:
     import dev_appserver
     dev_appserver.fix_google_path()
   except (ImportError, RuntimeError) as error:
-    logs.log_error('Fixing google import failed: %s' % error)
+    errors.append('Fixing google import failed: %s' % error)
 
   # Make protobuf compatible with appengine.
   # FIXME(unassigned): remove try-except once we confirm it works.
@@ -108,7 +110,7 @@ def fix_module_search_paths():
     google.__path__.append(protobuf_directory)
 
   except (ImportError, RuntimeError) as error:
-    logs.log_error('Fixing protobuf-appengine compatibility failed: %s' % error)
+    errors.append('Fixing protobuf-appengine compatibility failed: %s' % error)
 
   os.environ['PYTHONPATH'] = pythonpath_sep.join(python_path)
 
@@ -117,3 +119,8 @@ def fix_module_search_paths():
 
   disable_known_module_warnings()
   _patch_appengine_modules_for_bots()
+
+  # Since paths have now been fixed, import the custom logs module.
+  from metrics import logs
+  for error in errors:
+    logs.log_error(error)
