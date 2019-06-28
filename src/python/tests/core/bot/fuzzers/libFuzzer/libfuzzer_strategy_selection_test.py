@@ -13,13 +13,14 @@
 # limitations under the License.
 """Tests for strategy selection file."""
 
-import os
 import unittest
 
 from bot.fuzzers import strategy
 from bot.fuzzers.libFuzzer import strategy_selection
+from bot.tasks import fuzz_task
 from datastore import data_types
 from datastore import ndb
+from system import environment
 from tests.test_libs import helpers as test_helpers
 from tests.test_libs import test_utils
 
@@ -75,7 +76,6 @@ class TestMultiArmedBanditStrategySelectionPatch(unittest.TestCase):
     """Put data in the local ndb table the tests to query from and set
     bandit selection environment variable."""
     test_helpers.patch_environ(self)
-    os.environ['USE_BANDIT_STRATEGY_SELECTION'] = 'True'
 
     data = []
 
@@ -96,6 +96,11 @@ class TestMultiArmedBanditStrategySelectionPatch(unittest.TestCase):
     strategy3.probability = .33
     data.append(strategy3)
     ndb.put_multi(data)
+
+    distribution = fuzz_task.get_strategy_distribution_from_ndb()
+
+    environment.set_value('USE_BANDIT_STRATEGY_SELECTION', True)
+    environment.set_value('STRATEGY_SELECTION_DISTRIBUTION', distribution)
 
   def test_multi_armed_bandit_strategy_pool(self):
     """Ensures a call to the multi armed bandit strategy selection function
@@ -118,8 +123,6 @@ class TestMultiArmedBanditStrategySelection(unittest.TestCase):
                        ['bot.fuzzers.engine_common.decide_with_probability'])
     self.mock.decide_with_probability.return_value = True
 
-    os.environ['USE_BANDIT_STRATEGY_SELECTION'] = 'True'
-
     data = []
 
     strategy1 = data_types.FuzzStrategyProbability()
@@ -128,6 +131,11 @@ class TestMultiArmedBanditStrategySelection(unittest.TestCase):
     strategy1.probability = 1
     data.append(strategy1)
     ndb.put_multi(data)
+
+    distribution = fuzz_task.get_strategy_distribution_from_ndb()
+
+    environment.set_value('USE_BANDIT_STRATEGY_SELECTION', True)
+    environment.set_value('STRATEGY_SELECTION_DISTRIBUTION', distribution)
 
   def test_strategy_pool_deterministic(self):
     """Tests whether a proper strategy pool is returned by the multi armed

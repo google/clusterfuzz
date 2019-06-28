@@ -42,6 +42,7 @@ from crash_analysis.stack_parsing import stack_analyzer
 from datastore import data_handler
 from datastore import data_types
 from datastore import ndb
+from datastore import ndb_utils
 from fuzzing import corpus_manager
 from fuzzing import coverage_uploader
 from fuzzing import gesture_handler
@@ -1241,6 +1242,18 @@ def process_crashes(crashes, context):
   return new_crash_count, known_crash_count, processed_groups
 
 
+def get_strategy_distribution_from_ndb():
+  """Queries and returns the distribution stored in the ndb table."""
+  query = data_types.FuzzStrategyProbability.query()
+  distribution = []
+  for strategy_entry in list(ndb_utils.get_all_from_query(query)):
+    distribution.append({
+        "strategy_name": strategy_entry.strategy_name,
+        "probability": strategy_entry.probability
+    })
+  return distribution
+
+
 def execute_task(fuzzer_name, job_type):
   """Runs the given fuzzer for one round."""
   failure_wait_interval = environment.get_value('FAIL_WAIT')
@@ -1383,6 +1396,13 @@ def execute_task(fuzzer_name, job_type):
       'TESTCASES_BEFORE_STALE_PROCESS_CLEANUP', 1)
   thread_delay = environment.get_value('THREAD_DELAY')
   thread_error_occurred = False
+
+  # TODO: Remove environment variable once fuzzing engine refactor is complete.
+  # Set multi-armed bandit strategy selection distribution as an environment
+  # variable so we can access it in launcher.
+  if environment.get_value('USE_BANDIT_STRATEGY_SELECTION'):
+    distribution = get_strategy_distribution_from_ndb()
+    environment.set_value('STRATEGY_SELECTION_DISTRIBUTION', distribution)
 
   # Reset memory tool options.
   environment.reset_current_memory_tool_options(redzone_size=redzone)

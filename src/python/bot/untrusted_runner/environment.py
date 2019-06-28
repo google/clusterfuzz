@@ -45,6 +45,7 @@ FORWARDED_ENVIRONMENT_VARIABLES = [
         r'^MSAN_OPTIONS$',
         r'^QUARANTINE_BUCKET$',
         r'^SHARED_CORPUS_BUCKET$',
+        r'^STRATEGY_SELECTION_DISTRIBUTION$',
         r'^TASK_NAME$',
         r'^TASK_PAYLOAD$',
         r'^TEST_TIMEOUT$',
