@@ -1241,17 +1241,21 @@ def process_crashes(crashes, context):
   logs.log('Finished processing crashes.')
   return new_crash_count, known_crash_count, processed_groups
 
-
-def get_fuzz_strategy_distribution():
-  """Read FuzzStrategyProbability ndb table and return data as a list."""
-  query = data_types.FuzzStrategyProbability.query()
-  distribution = []
-  for strategy_entry in list(ndb_utils.get_all_from_query(query)):
-    distribution.append({
-        "strategy_name": strategy_entry.strategy_name,
-        "probability": strategy_entry.probability
-    })
-  return distribution
+# TODO: remove environment variable once refactor is complete
+# Set multi-armed bandit strategy selection distribution as an environment
+# variable so we can access it in launcher.
+def set_strategy_distribution_in_env():
+  """Read FuzzStrategyProbability ndb table and set data to environment
+  variable."""
+  if environment.get_value('USE_BANDIT_STRATEGY_SELECTION'):
+    query = data_types.FuzzStrategyProbability.query()
+    distribution = []
+    for strategy_entry in list(ndb_utils.get_all_from_query(query)):
+      distribution.append({
+          "strategy_name": strategy_entry.strategy_name,
+          "probability": strategy_entry.probability
+      })
+    environment.set_value('STRATEGY_SELECTION_DISTRIBUTION', distribution)
 
 
 def execute_task(fuzzer_name, job_type):
@@ -1393,12 +1397,7 @@ def execute_task(fuzzer_name, job_type):
   thread_delay = environment.get_value('THREAD_DELAY')
   thread_error_occurred = False
 
-  # TODO: remove environment variable once refactor is complete
-  # Set multi-armed bandit strategy selection distribution as an environment
-  # variable so we can access it in launcher.
-  if environment.get_value('USE_BANDIT_STRATEGY_SELECTION'):
-    distribution = get_fuzz_strategy_distribution()
-    environment.set_value('STRATEGY_SELECTION_DISTRIBUTION', distribution)
+  set_strategy_distribution_in_env()
 
   # Reset memory tool options.
   environment.reset_current_memory_tool_options(redzone_size=redzone)

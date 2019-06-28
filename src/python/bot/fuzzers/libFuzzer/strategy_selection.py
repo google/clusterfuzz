@@ -106,7 +106,6 @@ def generate_weighted_strategy_pool():
   # If we are not able to query properly, draw randomly according to
   # probability parameters.
   if not distribution:
-    logs.log('Cannot use weighted strategy pool. Generating default strategy pool.')
     return generate_default_strategy_pool()
 
   # Change the distribution to a list of named tuples rather than a list of
@@ -131,8 +130,6 @@ def generate_weighted_strategy_pool():
   # We consider mutator plugin separately as it is only supported by a small
   # number of fuzz targets and should be used heavily when available.
   if do_strategy(strategy.MUTATOR_PLUGIN_STRATEGY):
-    logs.log()
     pool.add_strategy(strategy.MUTATOR_PLUGIN_STRATEGY)
   
-  logs.log('Weighted strategy pool was generated.')
   return pool
