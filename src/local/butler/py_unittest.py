@@ -281,6 +281,7 @@ def execute(args):
   elif args.target == 'core':
     test_directory = CORE_TEST_DIRECTORY
   else:
+    # Config module tests.
     os.environ['CONFIG_DIR_OVERRIDE'] = args.config_dir
     test_directory = os.path.join(args.config_dir, 'modules')
     top_level_dir = None
