@@ -110,6 +110,11 @@ def calculate_log_lines(log_lines):
   return other_lines_count, libfuzzer_lines_count, ignored_lines_count
 
 
+def strategy_column_name(strategy_name):
+  """Convert the strategy name into stats column name."""
+  return 'strategy_%s' % strategy_name
+
+
 def parse_fuzzing_strategies(log_lines, strategies):
   """Extract stats for fuzzing strategies used."""
   if not strategies:
@@ -130,27 +135,19 @@ def parse_fuzzing_strategies(log_lines, strategies):
 
     try:
       strategy_value = int(line[len(strategy_prefix):])
-      stats['strategy_' + strategy_name] = strategy_value
+      stats[strategy_column_name(strategy_name)] = strategy_value
     except (IndexError, ValueError) as e:
       logs.log_error('Failed to parse strategy "%s":\n%s\n' % (line, str(e)))
 
-  for line in strategies:
-    parse_line_for_strategy_prefix(line, strategy.CORPUS_SUBSET_STRATEGY.name)
-    parse_line_for_strategy_prefix(line, strategy.FORK_STRATEGY.name)
+  # These strategies are used with different values specified in the prefix.
+  for strategy_type in strategy.strategies_with_prefix_value:
+    for line in strategies:
+      parse_line_for_strategy_prefix(line, strategy_type.name)
 
   # Other strategies are either ON or OFF, without arbitrary values.
-  if strategy.CORPUS_MUTATION_RADAMSA_STRATEGY.name in strategies:
-    stats['strategy_corpus_mutations_radamsa'] = 1
-  if strategy.CORPUS_MUTATION_ML_RNN_STRATEGY.name in strategies:
-    stats['strategy_corpus_mutations_ml_rnn'] = 1
-  if strategy.MUTATOR_PLUGIN_STRATEGY.name in strategies:
-    stats['strategy_mutator_plugin'] = 1
-  if strategy.RANDOM_MAX_LENGTH_STRATEGY.name in strategies:
-    stats['strategy_random_max_len'] = 1
-  if strategy.RECOMMENDED_DICTIONARY_STRATEGY.name in strategies:
-    stats['strategy_recommended_dict'] = 1
-  if strategy.VALUE_PROFILE_STRATEGY.name in strategies:
-    stats['strategy_value_profile'] = 1
+  for strategy_type in strategy.strategies_with_boolean_value:
+    if strategy_type.name in strategies:
+      stats[strategy_column_name(strategy_type.name)] = 1
 
   return stats
 
@@ -183,16 +180,12 @@ def parse_performance_features(log_lines, strategies, arguments):
       'slow_unit_count': 0,
       'slow_units_count': 0,
       'startup_crash_count': 1,
-      'strategy_corpus_mutations_radamsa': 0,
-      'strategy_corpus_mutations_ml_rnn': 0,
-      'strategy_corpus_subset': 0,
-      'strategy_fork': 0,
-      'strategy_mutator_plugin': 0,
-      'strategy_random_max_len': 0,
-      'strategy_recommended_dict': 0,
-      'strategy_value_profile': 0,
       'timeout_count': 0,
   }
+
+  # Initialize all strategy stats as disabled by default.
+  for strategy_type in strategy.strategy_list:
+    stats[strategy_column_name(strategy_type.name)] = 0
 
   # Process fuzzing strategies used.
   stats.update(parse_fuzzing_strategies(log_lines, strategies))

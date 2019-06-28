@@ -82,16 +82,15 @@ def generate_default_strategy_pool():
   # Decide whether or not to include remaining strategies.
   if engine_common.do_corpus_subset():
     pool.add_strategy(strategy.CORPUS_SUBSET_STRATEGY)
-  if do_strategy(strategy.RANDOM_MAX_LENGTH_STRATEGY):
-    pool.add_strategy(strategy.RANDOM_MAX_LENGTH_STRATEGY)
-  if do_strategy(strategy.RECOMMENDED_DICTIONARY_STRATEGY):
-    pool.add_strategy(strategy.RECOMMENDED_DICTIONARY_STRATEGY)
-  if do_strategy(strategy.VALUE_PROFILE_STRATEGY):
-    pool.add_strategy(strategy.VALUE_PROFILE_STRATEGY)
-  if do_strategy(strategy.FORK_STRATEGY):
-    pool.add_strategy(strategy.FORK_STRATEGY)
-  if do_strategy(strategy.MUTATOR_PLUGIN_STRATEGY):
-    pool.add_strategy(strategy.MUTATOR_PLUGIN_STRATEGY)
+
+  for value in [
+      strategy.RANDOM_MAX_LENGTH_STRATEGY,
+      strategy.RECOMMENDED_DICTIONARY_STRATEGY, strategy.VALUE_PROFILE_STRATEGY,
+      strategy.FORK_STRATEGY, strategy.MUTATOR_PLUGIN_STRATEGY
+  ]:
+    if do_strategy(value):
+      pool.add_strategy(value)
+
   return pool
 
 
@@ -117,9 +116,12 @@ def generate_weighted_strategy_pool():
     if strategy_tuple.name in chosen_strategies:
       pool.add_strategy(strategy_tuple)
 
-  # We consider mutator plugin separately as it is only supported by a small
-  # number of fuzz targets and should be used heavily when available.
-  if do_strategy(strategy.MUTATOR_PLUGIN_STRATEGY):
-    pool.add_strategy(strategy.MUTATOR_PLUGIN_STRATEGY)
+  # We consider certain strategies separately as those are only supported by a
+  # small number of fuzz targets and should be used heavily when available.
+  for value in [
+      strategy.DATAFLOW_TRACING_STRATEGY, strategy.MUTATOR_PLUGIN_STRATEGY
+  ]:
+    if do_strategy(value):
+      pool.add_strategy(value)
 
   return pool
