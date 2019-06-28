@@ -32,6 +32,7 @@ def _fake_get_testcase(_):
       'job_type': 'test_job',
       'redzone': 32,
       'additional_metadata': '{}',
+      'fuzzer_name': 'fuzzer',
       'job_definition': 'APP_NAME = echo\nAPP_ARGS = -n\n',
   }
 
@@ -51,7 +52,6 @@ class ReproduceTest(unittest.TestCase):
     helpers.patch(self, [
         'local.butler.reproduce._download_testcase',
         'local.butler.reproduce._get_testcase',
-        'system.environment.set_bot_environment',
         'system.process_handler.run_process',
         'system.process_handler.terminate_stale_application_instances',
     ])
