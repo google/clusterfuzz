@@ -21,7 +21,6 @@ from base import utils
 from bot.fuzzers import engine_common
 from bot.fuzzers import strategy
 from collections import namedtuple
-from metrics import logs
 from system import environment
 
 StrategyCombination = namedtuple('StrategyCombination',
@@ -131,5 +130,5 @@ def generate_weighted_strategy_pool():
   # number of fuzz targets and should be used heavily when available.
   if do_strategy(strategy.MUTATOR_PLUGIN_STRATEGY):
     pool.add_strategy(strategy.MUTATOR_PLUGIN_STRATEGY)
-  
+
   return pool

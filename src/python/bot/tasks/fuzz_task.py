@@ -1241,6 +1241,7 @@ def process_crashes(crashes, context):
   logs.log('Finished processing crashes.')
   return new_crash_count, known_crash_count, processed_groups
 
+
 # TODO: remove environment variable once refactor is complete
 # Set multi-armed bandit strategy selection distribution as an environment
 # variable so we can access it in launcher.
