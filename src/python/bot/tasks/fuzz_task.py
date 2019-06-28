@@ -1259,6 +1259,18 @@ def set_strategy_distribution_in_env():
     environment.set_value('STRATEGY_SELECTION_DISTRIBUTION', distribution)
 
 
+def get_strategy_distribution_from_ndb():
+  """Queries and returns the distribution stored in the ndb table."""
+  query = data_types.FuzzStrategyProbability.query()
+  distribution = []
+  for strategy_entry in list(ndb_utils.get_all_from_query(query)):
+    distribution.append({
+        "strategy_name": strategy_entry.strategy_name,
+        "probability": strategy_entry.probability
+    })
+  return distribution
+
+
 def execute_task(fuzzer_name, job_type):
   """Runs the given fuzzer for one round."""
   failure_wait_interval = environment.get_value('FAIL_WAIT')

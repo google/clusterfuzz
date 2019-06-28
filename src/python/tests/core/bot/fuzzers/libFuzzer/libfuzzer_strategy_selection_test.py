@@ -17,9 +17,9 @@ import unittest
 
 from bot.fuzzers import strategy
 from bot.fuzzers.libFuzzer import strategy_selection
+from bot.tasks import fuzz_task
 from datastore import data_types
 from datastore import ndb
-from datastore import ndb_utils
 from system import environment
 from tests.test_libs import helpers as test_helpers
 from tests.test_libs import test_utils
@@ -97,13 +97,8 @@ class TestMultiArmedBanditStrategySelectionPatch(unittest.TestCase):
     data.append(strategy3)
     ndb.put_multi(data)
 
-    query = data_types.FuzzStrategyProbability.query()
-    distribution = []
-    for strategy_entry in list(ndb_utils.get_all_from_query(query)):
-      distribution.append({
-          "strategy_name": strategy_entry.strategy_name,
-          "probability": strategy_entry.probability
-      })
+    distribution = fuzz_task.get_strategy_distribution_from_ndb()
+
     environment.set_value('USE_BANDIT_STRATEGY_SELECTION', True)
     environment.set_value('STRATEGY_SELECTION_DISTRIBUTION', distribution)
 
@@ -137,13 +132,8 @@ class TestMultiArmedBanditStrategySelection(unittest.TestCase):
     data.append(strategy1)
     ndb.put_multi(data)
 
-    query = data_types.FuzzStrategyProbability.query()
-    distribution = []
-    for strategy_entry in list(ndb_utils.get_all_from_query(query)):
-      distribution.append({
-          "strategy_name": strategy_entry.strategy_name,
-          "probability": strategy_entry.probability
-      })
+    distribution = fuzz_task.get_strategy_distribution_from_ndb()
+
     environment.set_value('USE_BANDIT_STRATEGY_SELECTION', True)
     environment.set_value('STRATEGY_SELECTION_DISTRIBUTION', distribution)
 
