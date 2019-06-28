@@ -28,9 +28,9 @@ import webbrowser
 
 from base import json_utils
 from base import utils
-from build_management import build_manager
 from bot.tasks import commands
 from bot.tasks import setup
+from build_management import build_manager
 from datastore import data_types
 from fuzzing import testcase_manager
 from system import archive
@@ -222,6 +222,7 @@ def _prepare_initial_environment(build_directory):
 
   environment.set_value('CONFIG_DIR_OVERRIDE',
                         os.path.join(temp_root_dir, 'configs', 'test'))
+  # TODO(mbarbella): Don't force the user to set this explicitly.
   environment.set_value(
       'PYTHONPATH',
       modules.get_pythonpath_separator().join([
@@ -232,9 +233,9 @@ def _prepare_initial_environment(build_directory):
   environment.set_bot_environment()
 
   # Overrides that should not be set to the default values.
-  environment.set_value('BUILDS_DIR', build_directory)
-  environment.set_value('BUILD_DIR', build_directory)
   environment.set_value('APP_DIR', build_directory)
+  environment.set_value('BUILD_DIR', build_directory)
+  environment.set_value('BUILDS_DIR', build_directory)
 
 
 def _update_environment_for_testcase(testcase, build_directory):
