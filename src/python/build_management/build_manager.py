@@ -663,38 +663,24 @@ class Build(BaseBuild):
       os.system('rm %s' % symbolic_link_target)
       os.system('ln -s %s %s' % (app_directory, symbolic_link_target))
 
+    if environment.platform() != 'ANDROID':
+      return
+
     # Android specific initialization.
-    if environment.platform() == 'ANDROID':
-      # Prepare device for app install.
-      android.device.initialize_device()
+    # Prepare device for app install.
+    android.device.initialize_device()
 
-      # On Android, we may need to write a command line file. We do this in
-      # advance so that we do not have to write this to the device multiple
-      # times.
-      # TODO(mbarbella): Build code should not depend on fuzzing.
-      from fuzzing import testcase_manager
-      testcase_manager.get_command_line_for_application(
-          write_command_line_file=True)
+    # On Android, we may need to write a command line file. We do this in
+    # advance so that we do not have to write this to the device multiple
+    # times.
+    # TODO(mbarbella): Build code should not depend on fuzzing.
+    from fuzzing import testcase_manager
+    testcase_manager.get_command_line_for_application(
+        write_command_line_file=True)
 
-      # Install the app if it does not exist.
-      android.device.install_application_if_needed(absolute_file_path,
-                                                   build_update)
-      return
-
-    if not build_update:
-      return
-
-    # The following hacks are only applicable in Chromium.
-    if utils.is_chromium():
-      return
-
-    # Chromium specific workaround for missing ICU data file in root directory.
-    # Copy it from relative folders. See crbug.com/741603.
-    root_icu_data_file_path = os.path.join(app_directory, ICU_DATA_FILENAME)
-    find_icu_data_file_path = utils.find_binary_path(app_directory,
-                                                     ICU_DATA_FILENAME)
-    if find_icu_data_file_path and not os.path.exists(root_icu_data_file_path):
-      shell.copy_file(find_icu_data_file_path, root_icu_data_file_path)
+    # Install the app if it does not exist.
+    android.device.install_application_if_needed(absolute_file_path,
+                                                 build_update)
 
 
 class RegularBuild(Build):
@@ -1145,8 +1131,7 @@ def get_revisions_list(bucket_path, testcase=None):
   return revision_list
 
 
-def setup_trunk_build(bucket_paths_env_vars=DEFAULT_BUILD_BUCKET_PATH_ENV_VARS,
-                      build_prefix=None):
+def setup_trunk_build(bucket_paths_env_vars, build_prefix=None):
   """Sets up latest trunk build."""
   if not bucket_paths_env_vars:
     return None
@@ -1219,12 +1204,7 @@ def setup_regular_build(revision, bucket_path=None, build_prefix=''):
     logs.log_error(
         'Error getting build url for job %s (r%d).' % (job_type, revision))
 
-    if build_prefix:
-      # Bail out if trying to set up an auxiliary build.
-      return None
-
-    # Try setting up trunk build.
-    return setup_trunk_build()
+    return None
 
   base_build_dir = _base_build_dir(bucket_path)
 
@@ -1398,7 +1378,7 @@ def setup_build(revision=0):
 
   # If no revision is provided, we default to a trunk build.
   if not revision:
-    return setup_trunk_build()
+    return setup_trunk_build(DEFAULT_BUILD_BUCKET_PATH_ENV_VARS)
 
   # Setup regular build with revision.
   return setup_regular_build(revision)

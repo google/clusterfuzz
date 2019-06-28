@@ -112,7 +112,8 @@ class TrunkBuildTest(unittest.TestCase):
         ],
     )
 
-    build_manager.setup_trunk_build()
+    build_manager.setup_trunk_build(
+        build_manager.DEFAULT_BUILD_BUCKET_PATH_ENV_VARS)
     self.mock.setup_regular_build.assert_called_with(
         10, 'gs://path/file-release-([0-9]+).zip', None)
 
@@ -136,7 +137,8 @@ class TrunkBuildTest(unittest.TestCase):
         ],
     )
 
-    build_manager.setup_trunk_build()
+    build_manager.setup_trunk_build(
+        build_manager.DEFAULT_BUILD_BUCKET_PATH_ENV_VARS)
     self.mock.setup_regular_build.assert_called_with(
         2, 'gs://path/file-release-([0-9]+).zip', None)
 
@@ -160,7 +162,8 @@ class TrunkBuildTest(unittest.TestCase):
         ],
     )
 
-    build_manager.setup_trunk_build()
+    build_manager.setup_trunk_build(
+        build_manager.DEFAULT_BUILD_BUCKET_PATH_ENV_VARS)
     self.assertEqual(0, self.mock.setup_regular_build.call_count)
 
 
@@ -274,10 +277,8 @@ class RegularBuildTest(fake_filesystem_unittest.TestCase):
     self._assert_env_vars()
     self.assertEqual(os.environ['APP_REVISION'], '2')
 
-    # Non-existent revisions results in trunk build.
-    trunk_build = build_manager.setup_regular_build(3)
-    self.assertIsInstance(trunk_build, build_manager.RegularBuild)
-    self.assertEqual(trunk_build.revision, 10)
+    # Non-existent revisions do not result in any builds being set up.
+    self.assertIsNone(build_manager.setup_regular_build(3))
 
   def test_delete(self):
     """Test deleting this build."""
