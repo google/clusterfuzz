@@ -222,7 +222,7 @@ def _prepare_initial_environment(build_directory):
 
   environment.set_value('CONFIG_DIR_OVERRIDE',
                         os.path.join(temp_root_dir, 'configs', 'test'))
-  # TODO(mbarbella): Don't force the user to set this explicitly.
+  # TODO(mbarbella): Don't force the user to set APPENGINE_DIRECTORY explicitly.
   environment.set_value(
       'PYTHONPATH',
       modules.get_pythonpath_separator().join([
