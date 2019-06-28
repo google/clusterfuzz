@@ -23,6 +23,7 @@ import six
 import subprocess
 import time
 
+from collections import namedtuple
 from distutils import spawn
 
 from base import dates
@@ -40,6 +41,13 @@ from platforms import android
 from system import archive
 from system import environment
 from system import shell
+
+# The default environment variables for specifying build bucket paths.
+DEFAULT_BUILD_BUCKET_PATH_ENV_VARS = (
+    'RELEASE_BUILD_BUCKET_PATH',
+    'SYM_RELEASE_BUILD_BUCKET_PATH',
+    'SYM_DEBUG_BUILD_BUCKET_PATH',
+)
 
 # File name for storing current build revision.
 REVISION_FILE_NAME = 'REVISION'
@@ -82,6 +90,8 @@ FUZZ_TARGET_WHITELISTED_BINARIES = [
 UNPACK_TIME_LIMIT = 60 * 20
 
 PATCHELF_SIZE_LIMIT = 1.5 * 1024 * 1024 * 1024  # 1.5 GiB
+
+BuildUrls = namedtuple('BuildUrls', ['bucket_path', 'urls_list'])
 
 
 class BuildManagerException(Exception):
@@ -258,7 +268,8 @@ def _unpack_build(base_build_dir, build_dir, build_url, target_weights=None):
 
   if unpack_everything:
     # Set a random fuzz target now that the build has been unpacked, if we
-    # didn't set one earlier.
+    # didn't set one earlier. For an auxiliary build, fuzz target is already
+    # specified during main build unpacking.
     _set_random_fuzz_target_for_fuzzing_if_needed(
         _get_fuzz_targets_from_dir(build_dir), target_weights)
 
@@ -379,6 +390,11 @@ def _get_fuzz_targets_from_dir(build_dir):
 
 def _set_random_fuzz_target_for_fuzzing_if_needed(fuzz_targets, target_weights):
   """Sets a random fuzz target for fuzzing."""
+  fuzz_target = environment.get_value('FUZZ_TARGET')
+  if fuzz_target:
+    logs.log('Use previously picked fuzz target %s for fuzzing.' % fuzz_target)
+    return
+
   if not environment.is_engine_fuzzer_job():
     return
 
@@ -416,10 +432,11 @@ def _setup_build_directories(base_build_dir):
     shell.create_directory(build_directory)
 
 
-def set_environment_vars(search_directories, app_path='APP_PATH'):
+def set_environment_vars(search_directories, app_path='APP_PATH',
+                         env_prefix=''):
   """Set build-related environment variables (APP_PATH, APP_DIR etc) by walking
   through the build directory."""
-  app_name = environment.get_value('APP_NAME')
+  app_name = environment.get_value(env_prefix + 'APP_NAME')
   llvm_symbolizer_filename = environment.get_executable_filename(
       'llvm-symbolizer')
   llvm_symbolizer_path = None
@@ -452,18 +469,19 @@ def set_environment_vars(search_directories, app_path='APP_PATH'):
           if not environment.get_value('SYSTEM_BINARY_DIR'):
             os.chmod(absolute_file_path, 0o750)
 
-          environment.set_value(app_path, absolute_file_path)
-          environment.set_value('APP_DIR', app_directory)
+          environment.set_value(env_prefix + app_path, absolute_file_path)
+          environment.set_value(env_prefix + 'APP_DIR', app_directory)
 
         if not gn_args_path and filename == gn_args_filename:
           gn_args_path = os.path.join(root, gn_args_filename)
-          environment.set_value('GN_ARGS_PATH', gn_args_path)
+          environment.set_value(env_prefix + 'GN_ARGS_PATH', gn_args_path)
 
         if (not llvm_symbolizer_path and
             filename == llvm_symbolizer_filename and
             not environment.get_value('USE_DEFAULT_LLVM_SYMBOLIZER')):
           llvm_symbolizer_path = os.path.join(root, llvm_symbolizer_filename)
-          environment.set_value('LLVM_SYMBOLIZER_PATH', llvm_symbolizer_path)
+          environment.set_value(env_prefix + 'LLVM_SYMBOLIZER_PATH',
+                                llvm_symbolizer_path)
 
 
 class BaseBuild(object):
@@ -487,9 +505,11 @@ class BaseBuild(object):
 class Build(BaseBuild):
   """Repesents a build type at a particular revision."""
 
-  def __init__(self, base_build_dir, revision):
+  def __init__(self, base_build_dir, revision, build_prefix=''):
     super(Build, self).__init__(base_build_dir)
     self.revision = revision
+    self.build_prefix = build_prefix
+    self.env_prefix = build_prefix + '_' if build_prefix else ''
 
   def _reset_cwd(self):
     """Reset current working directory. Needed to clean up build
@@ -497,22 +517,26 @@ class Build(BaseBuild):
     root_directory = environment.get_value('ROOT_DIR')
     os.chdir(root_directory)
 
+  def _delete_partial_build_file(self):
+    """Deletes partial build file (if present). This is needed to make sure we
+    clean up build directory if the previous build was partial."""
+    partial_build_file_path = os.path.join(self.build_dir, PARTIAL_BUILD_FILE)
+    if os.path.exists(partial_build_file_path):
+      self.delete()
+
   def _pre_setup(self):
     """Common pre-setup."""
     self._reset_cwd()
     shell.clear_temp_directory()
 
-    # Clean up build directory if last one was partial.
-    partial_build_file_path = os.path.join(self.build_dir, PARTIAL_BUILD_FILE)
-    if os.path.exists(partial_build_file_path):
-      self.delete()
+    self._delete_partial_build_file()
 
     if self.base_build_dir:
       _setup_build_directories(self.base_build_dir)
 
-    environment.set_value('APP_REVISION', self.revision)
-    environment.set_value('APP_PATH', '')
-    environment.set_value('APP_PATH_DEBUG', '')
+    environment.set_value(self.env_prefix + 'APP_REVISION', self.revision)
+    environment.set_value(self.env_prefix + 'APP_PATH', '')
+    environment.set_value(self.env_prefix + 'APP_PATH_DEBUG', '')
 
   def _patch_rpath(self, binary_path, instrumented_library_paths):
     """Patch rpaths of a binary to point to instrumented libraries"""
@@ -608,11 +632,12 @@ class Build(BaseBuild):
 
     # Make sure to initialize so that we don't carry stale values
     # in case of errors. app_path can be APP_PATH or APP_PATH_DEBUG.
+    app_path = self.env_prefix + app_path
     environment.set_value(app_path, '')
-    environment.set_value('APP_DIR', '')
-    environment.set_value('BUILD_DIR', build_dir)
-    environment.set_value('GN_ARGS_PATH', '')
-    environment.set_value('LLVM_SYMBOLIZER_PATH',
+    environment.set_value(self.env_prefix + 'APP_DIR', '')
+    environment.set_value(self.env_prefix + 'BUILD_DIR', build_dir)
+    environment.set_value(self.env_prefix + 'GN_ARGS_PATH', '')
+    environment.set_value(self.env_prefix + 'LLVM_SYMBOLIZER_PATH',
                           environment.get_default_tool_path('llvm-symbolizer'))
 
     # Initialize variables.
@@ -621,16 +646,18 @@ class Build(BaseBuild):
     if fuzzer_directory:
       search_directories.append(fuzzer_directory)
 
-    set_environment_vars(search_directories, app_path=app_path)
+    set_environment_vars(
+        search_directories, app_path=app_path, env_prefix=self.env_prefix)
 
     absolute_file_path = environment.get_value(app_path)
-    app_directory = environment.get_value('APP_DIR')
+    app_directory = environment.get_value(self.env_prefix + 'APP_DIR')
 
     if not absolute_file_path:
       return
 
     # Set the symlink if needed.
-    symbolic_link_target = environment.get_value('SYMBOLIC_LINK')
+    symbolic_link_target = environment.get_value(self.env_prefix +
+                                                 'SYMBOLIC_LINK')
     if symbolic_link_target:
       os.system('mkdir --parents %s' % os.path.dirname(symbolic_link_target))
       os.system('rm %s' % symbolic_link_target)
@@ -677,12 +704,17 @@ class RegularBuild(Build):
                base_build_dir,
                revision,
                build_url,
-               build_dir_name='revisions',
-               target_weights=None):
-    super(RegularBuild, self).__init__(base_build_dir, revision)
+               target_weights=None,
+               build_prefix=''):
+    super(RegularBuild, self).__init__(base_build_dir, revision, build_prefix)
     self.build_url = build_url
-    self.build_dir_name = build_dir_name
-    self._build_dir = os.path.join(self.base_build_dir, build_dir_name)
+
+    if build_prefix:
+      self.build_dir_name = build_prefix.lower()
+    else:
+      self.build_dir_name = 'revisions'
+
+    self._build_dir = os.path.join(self.base_build_dir, self.build_dir_name)
     self.target_weights = target_weights
 
   @property
@@ -692,7 +724,8 @@ class RegularBuild(Build):
   def setup(self):
     """Sets up build with a particular revision."""
     self._pre_setup()
-    environment.set_value('BUILD_URL', self.build_url)
+    environment.set_value(self.env_prefix + 'BUILD_URL', self.build_url)
+
     logs.log('Retrieving build r%d.' % self.revision)
     build_update = not self.exists()
     if build_update:
@@ -898,6 +931,7 @@ class ProductionBuild(Build):
       logs.log('Build already exists.')
 
     self._setup_application_path(build_update=build_update)
+
     # 'VERSION' file already written.
     self._post_setup_success(update_revision=False)
     return True
@@ -1111,55 +1145,47 @@ def get_revisions_list(bucket_path, testcase=None):
   return revision_list
 
 
-def setup_trunk_build():
+def setup_trunk_build(bucket_paths_env_vars=DEFAULT_BUILD_BUCKET_PATH_ENV_VARS,
+                      build_prefix=None):
   """Sets up latest trunk build."""
-  release_build_bucket_path = environment.get_value('RELEASE_BUILD_BUCKET_PATH')
-  sym_release_build_bucket_path = environment.get_value(
-      'SYM_RELEASE_BUILD_BUCKET_PATH')
-  sym_debug_build_bucket_path = environment.get_value(
-      'SYM_DEBUG_BUILD_BUCKET_PATH')
-
-  base_build_dir = _base_build_dir(release_build_bucket_path)
-  _setup_build_directories(base_build_dir)
-
-  release_build_urls = get_build_urls_list(release_build_bucket_path)
-  if not release_build_urls:
-    logs.log_error('Error getting list of release build urls from %s.' %
-                   release_build_bucket_path)
+  if not bucket_paths_env_vars:
     return None
 
-  other_build_url_lists = []
-  if sym_release_build_bucket_path:
-    sym_release_build_urls = get_build_urls_list(sym_release_build_bucket_path)
-    if not sym_release_build_urls:
-      logs.log_error(
-          'Error getting list of symbolized release build urls from %s.' %
-          sym_release_build_bucket_path)
+  build_urls = []
+  for env_var in bucket_paths_env_vars:
+    bucket_path = environment.get_value(env_var)
+    if not bucket_path:
+      logs.log_warn('Build bucket path is not specified as %s.' % env_var)
+      continue
+
+    urls_list = get_build_urls_list(bucket_path)
+    if not urls_list:
+      logs.log_error('Error getting list of build urls from %s.' % bucket_path)
       return None
-    other_build_url_lists.append((sym_release_build_bucket_path,
-                                  sym_release_build_urls))
-  if sym_debug_build_bucket_path:
-    sym_debug_builds_urls = get_build_urls_list(sym_debug_build_bucket_path)
-    if not sym_debug_builds_urls:
-      logs.log_error(
-          'Error getting list of symbolized debug build urls from %s.' %
-          sym_debug_build_bucket_path)
-      return None
-    other_build_url_lists.append((sym_debug_build_bucket_path,
-                                  sym_debug_builds_urls))
+
+    build_urls.append(BuildUrls(bucket_path=bucket_path, urls_list=urls_list))
+
+  if not build_urls:
+    logs.log_error('No builds are found to set up.')
+    return None
+
+  main_build_urls = build_urls[0]
+  other_build_urls = build_urls[1:]
+  base_build_dir = _base_build_dir(main_build_urls.bucket_path)
+  _setup_build_directories(base_build_dir)
 
   revision_pattern = revisions.revision_pattern_from_build_bucket_path(
-      release_build_bucket_path)
+      main_build_urls.bucket_path)
   found_revision = False
-  for release_build_url in release_build_urls:
-    match = re.match(revision_pattern, release_build_url)
+  for build_url in main_build_urls.urls_list:
+    match = re.match(revision_pattern, build_url)
     if not match:
       continue
 
     revision = revisions.convert_revision_to_integer(match.group(1))
-    if (not other_build_url_lists or all(
-        revisions.find_build_url(l[0], l[1], revision)
-        for l in other_build_url_lists)):
+    if (not other_build_urls or all(
+        revisions.find_build_url(url.bucket_path, url.urls_list, revision)
+        for url in other_build_urls)):
       found_revision = True
       break
 
@@ -1167,28 +1193,40 @@ def setup_trunk_build():
     logs.log_error('Unable to find a matching revision.')
     return None
 
-  return setup_regular_build(revision)
-
-
-def setup_regular_build(revision):
-  """Sets up build with a particular revision."""
-  release_build_bucket_path = environment.get_value('RELEASE_BUILD_BUCKET_PATH')
-  release_build_urls = get_build_urls_list(release_build_bucket_path)
-  job_type = environment.get_value('JOB_NAME')
-  if not release_build_urls:
-    logs.log_error('Error getting release build urls for job %s.' % job_type)
+  build = setup_regular_build(revision, main_build_urls.bucket_path,
+                              build_prefix)
+  if not build:
+    logs.log_error('Failed to set up a build.')
     return None
 
-  release_build_url = revisions.find_build_url(release_build_bucket_path,
-                                               release_build_urls, revision)
-  if not release_build_url:
+  return build
+
+
+def setup_regular_build(revision, bucket_path=None, build_prefix=''):
+  """Sets up build with a particular revision."""
+  if not bucket_path:
+    # Bucket path can be customized, otherwise get it from the default env var.
+    bucket_path = environment.get_value('RELEASE_BUILD_BUCKET_PATH')
+
+  build_urls = get_build_urls_list(bucket_path)
+  job_type = environment.get_value('JOB_NAME')
+  if not build_urls:
+    logs.log_error('Error getting build urls for job %s.' % job_type)
+    return None
+
+  build_url = revisions.find_build_url(bucket_path, build_urls, revision)
+  if not build_url:
     logs.log_error(
         'Error getting build url for job %s (r%d).' % (job_type, revision))
+
+    if build_prefix:
+      # Bail out if trying to set up an auxiliary build.
+      return None
 
     # Try setting up trunk build.
     return setup_trunk_build()
 
-  base_build_dir = _base_build_dir(release_build_bucket_path)
+  base_build_dir = _base_build_dir(bucket_path)
 
   build_class = RegularBuild
   if environment.is_trusted_host():
@@ -1199,8 +1237,9 @@ def setup_regular_build(revision):
   build = build_class(
       base_build_dir,
       revision,
-      release_build_url,
-      target_weights=target_weights)
+      build_url,
+      target_weights=target_weights,
+      build_prefix=build_prefix)
   if build.setup():
     return build
   return None

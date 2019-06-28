@@ -550,6 +550,7 @@ def get_runner(fuzzer_path, temp_dir=None):
   """Get a libfuzzer runner."""
   use_minijail = environment.get_value('USE_MINIJAIL')
   build_dir = environment.get_value('BUILD_DIR')
+  dataflow_build_dir = environment.get_value('DATAFLOW_BUILD_DIR')
   if use_minijail:
     # Set up chroot and runner.
     if environment.is_chromeos_system_job():
@@ -563,6 +564,10 @@ def get_runner(fuzzer_path, temp_dir=None):
     # structure of CF but this shouldn't be a big deal.
     minijail_chroot.add_binding(
         minijail.ChrootBinding(build_dir, build_dir, False))
+
+    if dataflow_build_dir:
+      minijail_chroot.add_binding(
+          minijail.ChrootBinding(dataflow_build_dir, dataflow_build_dir, False))
 
     # Also bind the build dir to /out to make it easier to hardcode references
     # to data files.

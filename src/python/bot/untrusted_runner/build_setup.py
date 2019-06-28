@@ -33,15 +33,15 @@ def _build_response(result):
 
 
 def setup_regular_build(request):
-  """Setup a regular build."""
+  """Set up a regular build."""
   build = build_manager.RegularBuild(request.base_build_dir, request.revision,
-                                     request.build_url, request.build_dir_name,
-                                     request.target_weights)
+                                     request.build_url, request.target_weights,
+                                     request.build_prefix)
   return _build_response(build.setup())
 
 
 def setup_symbolized_build(request):
-  """Setup a symbolized build."""
+  """Set up a symbolized build."""
   build = build_manager.SymbolizedBuild(
       request.base_build_dir, request.revision, request.release_build_url,
       request.debug_build_url)
@@ -49,7 +49,7 @@ def setup_symbolized_build(request):
 
 
 def setup_production_build(request):
-  """Setup a production build."""
+  """Set up a production build."""
   build = build_manager.ProductionBuild(request.base_build_dir, request.version,
                                         request.build_url, request.build_type)
   return _build_response(build.setup())

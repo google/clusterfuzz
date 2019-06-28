@@ -21,11 +21,11 @@ from protos import untrusted_runner_pb2
 from tests.test_libs import helpers as test_helpers
 
 
-def _failed_setup(_):
+def _failed_setup(*_):
   return False
 
 
-def _mock_regular_build_setup(_):
+def _mock_regular_build_setup(*_):
   os.environ['APP_PATH'] = '/release/bin/app'
   os.environ['APP_PATH_DEBUG'] = ''
   os.environ['APP_DIR'] = '/release/bin'
