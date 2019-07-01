@@ -59,9 +59,14 @@ def get_current_user():
   if environment.is_local_development():
     return User('user@localhost')
 
-  oauth_email = getattr(get_current_request(), '_oauth_email', None)
+  current_request = get_current_request()
+  oauth_email = getattr(current_request, '_oauth_email', None)
   if oauth_email:
     return User(oauth_email)
+
+  cached_email = getattr(current_request, '_cached_email', None)
+  if cached_email:
+    return User(cached_email)
 
   session_cookie = get_session_cookie()
   if not session_cookie:
@@ -80,6 +85,9 @@ def get_current_user():
   if not email:
     return None
 
+  # We cache the email for this request if we've validated the user to make
+  # subsequent get_current_user() calls fast.
+  setattr(current_request, '_cached_email', email)
   return User(email)
 
 
