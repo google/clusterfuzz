@@ -13,19 +13,12 @@
 # limitations under the License.
 """run_bot.py run a Clusterfuzz bot locally."""
 from __future__ import print_function
-from distutils import dir_util
 import os
 import signal
 
 from local.butler import appengine
 from local.butler import common
 from local.butler import constants
-
-
-def _update_dir(src_dir, dst_dir):
-  """Recursively copy from src_dir to dst_dir, replacing files but only if
-  they're newer or don't exist."""
-  dir_util.copy_tree(src_dir, dst_dir, update=True)
 
 
 def _setup_bot_directory(args):
@@ -45,25 +38,25 @@ def _setup_bot_directory(args):
     os.makedirs(clusterfuzz_dir)
     os.mkdir(bot_src_dir)
 
-  _update_dir(
+  common.update_dir(
       os.path.join(src_root_dir, 'src', 'appengine'),
       os.path.join(bot_src_dir, 'appengine'))
-  _update_dir(
+  common.update_dir(
       os.path.join(src_root_dir, 'src', 'go'), os.path.join(bot_src_dir, 'go'))
-  _update_dir(
+  common.update_dir(
       os.path.join(src_root_dir, 'src', 'protos'),
       os.path.join(bot_src_dir, 'protos'))
-  _update_dir(
+  common.update_dir(
       os.path.join(src_root_dir, 'src', 'python'),
       os.path.join(bot_src_dir, 'python'))
-  _update_dir(
+  common.update_dir(
       os.path.join(src_root_dir, 'src', 'third_party'),
       os.path.join(bot_src_dir, 'third_party'))
 
-  _update_dir(
+  common.update_dir(
       os.path.join(src_root_dir, 'resources'),
       os.path.join(clusterfuzz_dir, 'resources'))
-  _update_dir(
+  common.update_dir(
       os.path.join(src_root_dir, 'bot'), os.path.join(clusterfuzz_dir, 'bot'))
 
 

@@ -16,22 +16,27 @@
 from __future__ import print_function
 from builtins import object
 
+from python.base import modules
+modules.fix_module_search_paths()
+
 import httplib2
 import os
-import shutil
 import tempfile
 import urllib
 import webbrowser
 
-from src.python.base import json_utils
-from src.python.base import utils
-from src.python.bot.tasks import commands
-from src.python.bot.tasks import setup
-from src.python.datastore import data_types
-from src.python.fuzzing import testcase_manager
-from src.python.system import archive
-from src.python.system import environment
-from src.python.system import shell
+from base import json_utils
+from base import utils
+from bot.tasks import commands
+from bot.tasks import setup
+from build_management import build_manager
+from datastore import data_types
+from fuzzing import testcase_manager
+from local.butler import appengine
+from local.butler import common
+from system import archive
+from system import environment
+from system import shell
 
 AUTHORIZATION_CACHE_FILE = os.path.join(
     os.path.expanduser('~'), '.config', 'clusterfuzz', 'authorization-cache')
@@ -148,7 +153,7 @@ def _get_testcase(testcase_id):
 
   # TODO(mbarbella): Handle this gracefully.
   if response.status != 200:
-    raise Exception('Failed to get test case information.')
+    raise Exception('Failed to get test case information. %d' % response.status)
 
   testcase_map = json_utils.loads(content)
   return SerializedTestcase(testcase_map)
@@ -196,13 +201,6 @@ def _download_testcase(testcase_id, testcase):
   return testcase_path
 
 
-def _copy_root_subdirectory(root_dir, temp_root_dir, subdirectory):
-  """Copy a single directory to the temporary root directory."""
-  shutil.copytree(
-      os.path.join(root_dir, subdirectory),
-      os.path.join(temp_root_dir, subdirectory))
-
-
 def _prepare_initial_environment(build_directory):
   """Prepare common environment variables that don't depend on the job."""
   # Create a temporary directory to use as ROOT_DIR with a copy of the default
@@ -211,21 +209,34 @@ def _prepare_initial_environment(build_directory):
   temp_root_dir = tempfile.mkdtemp()
   environment.set_value('ROOT_DIR', temp_root_dir)
 
-  _copy_root_subdirectory(root_dir, temp_root_dir, 'bot')
-  _copy_root_subdirectory(root_dir, temp_root_dir, 'configs')
-  _copy_root_subdirectory(root_dir, temp_root_dir, 'resources')
+  common.update_dir(
+      os.path.join(root_dir, 'bot'), os.path.join(temp_root_dir, 'bot'))
+  common.update_dir(
+      os.path.join(root_dir, 'configs'), os.path.join(temp_root_dir, 'configs'))
+  common.update_dir(
+      os.path.join(root_dir, 'resources'),
+      os.path.join(temp_root_dir, 'resources'))
+  common.update_dir(
+      os.path.join(root_dir, 'src'), os.path.join(temp_root_dir, 'src'))
 
   environment.set_value('CONFIG_DIR_OVERRIDE',
                         os.path.join(temp_root_dir, 'configs', 'test'))
+  environment.set_value(
+      'PYTHONPATH',
+      os.pathsep.join(
+          [os.path.join(temp_root_dir, 'src'),
+           appengine.find_sdk_path()]))
 
   environment.set_bot_environment()
 
   # Overrides that should not be set to the default values.
   environment.set_value('APP_DIR', build_directory)
+  environment.set_value('BUILD_DIR', build_directory)
   environment.set_value('BUILDS_DIR', build_directory)
 
 
-def _update_environment_for_job(testcase, build_directory):
+def _update_environment_for_testcase(testcase, build_directory):
+  """Update environment variables that depend on the test case."""
   commands.update_environment_for_job(testcase.job_definition)
   environment.set_value('JOB_NAME', testcase.job_type)
 
@@ -233,14 +244,21 @@ def _update_environment_for_job(testcase, build_directory):
   app_path = os.path.join(build_directory, environment.get_value('APP_NAME'))
   environment.set_value('APP_PATH', app_path)
 
+  fuzzer_directory = setup.get_fuzzer_directory(testcase.fuzzer_name)
+  environment.set_value('FUZZER_DIR', fuzzer_directory)
+
+  setup.prepare_environment_for_testcase(testcase)
+
+  build_manager.set_environment_vars(
+      [environment.get_value('FUZZER_DIR'), build_directory])
+
 
 def _reproduce_crash(testcase_id, build_directory):
   """Reproduce a crash."""
   _prepare_initial_environment(build_directory)
   testcase = _get_testcase(testcase_id)
   testcase_path = _download_testcase(testcase_id, testcase)
-  _update_environment_for_job(testcase, build_directory)
-  setup.prepare_environment_for_testcase(testcase)
+  _update_environment_for_testcase(testcase, build_directory)
 
   timeout = environment.get_value('TEST_TIMEOUT')
   result = testcase_manager.test_for_crash_with_retries(testcase, testcase_path,
@@ -257,4 +275,4 @@ def execute(args):
   result = _reproduce_crash(args.testcase, args.build_dir)
 
   # TODO(mbarbella): Report success/failure based on result.
-  print(result.output)
+  print(result.get_stacktrace())

@@ -61,12 +61,7 @@ def fix_module_search_paths():
   root_directory = os.environ['ROOT_DIR']
   source_directory = os.path.join(root_directory, 'src')
 
-  if sys.platform.startswith('win'):
-    pythonpath_sep = ';'
-  else:
-    pythonpath_sep = ':'
-
-  python_path = os.getenv('PYTHONPATH', '').split(pythonpath_sep)
+  python_path = os.getenv('PYTHONPATH', '').split(os.pathsep)
 
   third_party_libraries_directory = os.path.join(source_directory,
                                                  'third_party')
@@ -90,15 +85,16 @@ def fix_module_search_paths():
     sys.path.insert(0, source_directory)
     python_path.insert(0, source_directory)
 
-  # Since paths have now been fixed, import the custom logs module.
-  from metrics import logs
+  # Error logging must be deferred until the end of the function since these
+  # fixes are needed to import the logs module.
+  errors = []
 
   # Work around google package issues with App Engine SDK.
   try:
     import dev_appserver
     dev_appserver.fix_google_path()
   except (ImportError, RuntimeError) as error:
-    logs.log_error('Fixing google import failed: %s' % error)
+    errors.append('Fixing google import failed: %s' % error)
 
   # Make protobuf compatible with appengine.
   # FIXME(unassigned): remove try-except once we confirm it works.
@@ -108,12 +104,17 @@ def fix_module_search_paths():
     google.__path__.append(protobuf_directory)
 
   except (ImportError, RuntimeError) as error:
-    logs.log_error('Fixing protobuf-appengine compatibility failed: %s' % error)
+    errors.append('Fixing protobuf-appengine compatibility failed: %s' % error)
 
-  os.environ['PYTHONPATH'] = pythonpath_sep.join(python_path)
+  os.environ['PYTHONPATH'] = os.pathsep.join(python_path)
 
   # Add site directory to make from imports work in google namespace.
   site.addsitedir(third_party_libraries_directory)
 
   disable_known_module_warnings()
   _patch_appengine_modules_for_bots()
+
+  # Since paths have now been fixed, import the custom logs module.
+  from metrics import logs
+  for error in errors:
+    logs.log_error(error)
