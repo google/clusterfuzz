@@ -59,6 +59,10 @@ def get_current_user():
   if environment.is_local_development():
     return User('user@localhost')
 
+  loas_user = environment.get_value('LOAS_PEER_USERNAME')
+  if loas_user:
+    return User(loas_user + '@google.com')
+
   current_request = get_current_request()
   oauth_email = getattr(current_request, '_oauth_email', None)
   if oauth_email:
