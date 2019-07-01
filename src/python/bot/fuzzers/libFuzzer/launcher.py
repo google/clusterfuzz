@@ -845,7 +845,8 @@ def main(argv):
           '%s%s' % (constants.COLLECT_DATA_FLOW_FLAG, dataflow_binary_path))
       fuzzing_strategies.append(strategy.DATAFLOW_TRACING_STRATEGY.name)
     else:
-      logs.log_warn('Fuzz target is not found in dataflow build.')
+      logs.log_error(
+          'Fuzz target is not found in dataflow build, skiping strategy.')
 
   # DataFlow Tracing requires fork mode, always use it with DFT strategy.
   if use_dataflow_tracing or strategy_pool.do_strategy(strategy.FORK_STRATEGY):
