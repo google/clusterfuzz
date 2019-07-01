@@ -15,11 +15,11 @@
    commands."""
 
 from __future__ import print_function
-
 from builtins import object
 from future import standard_library
 standard_library.install_aliases()
 from past.builtins import basestring
+
 import datetime
 import io
 import os
@@ -30,6 +30,8 @@ import sys
 import tempfile
 import urllib.request
 import zipfile
+
+from distutils import dir_util
 
 from local.butler import constants
 
@@ -362,3 +364,9 @@ def get_platform():
     return 'windows'
   else:
     raise Exception('Unknown platform: %s.' % platform.system())
+
+
+def update_dir(src_dir, dst_dir):
+  """Recursively copy from src_dir to dst_dir, replacing files but only if
+  they're newer or don't exist."""
+  dir_util.copy_tree(src_dir, dst_dir, update=True)

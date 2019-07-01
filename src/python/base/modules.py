@@ -47,14 +47,6 @@ def _patch_appengine_modules_for_bots():
     pass
 
 
-def get_pythonpath_separator():
-  """Return the character used as a directory delimiter in PYTHONPATH."""
-  if sys.platform.startswith('win'):
-    return ';'
-
-  return ':'
-
-
 def _config_modules_directory(root_directory):
   """Get the config modules directory."""
   config_dir = os.getenv('CONFIG_DIR_OVERRIDE')
@@ -69,8 +61,7 @@ def fix_module_search_paths():
   root_directory = os.environ['ROOT_DIR']
   source_directory = os.path.join(root_directory, 'src')
 
-  pythonpath_sep = get_pythonpath_separator()
-  python_path = os.getenv('PYTHONPATH', '').split(pythonpath_sep)
+  python_path = os.getenv('PYTHONPATH', '').split(os.pathsep)
 
   third_party_libraries_directory = os.path.join(source_directory,
                                                  'third_party')
@@ -94,8 +85,11 @@ def fix_module_search_paths():
     sys.path.insert(0, source_directory)
     python_path.insert(0, source_directory)
 
-  # Work around google package issues with App Engine SDK.
+  # Error logging must be deferred until the end of the function since these
+  # fixes are needed to import the logs module.
   errors = []
+
+  # Work around google package issues with App Engine SDK.
   try:
     import dev_appserver
     dev_appserver.fix_google_path()
@@ -112,7 +106,7 @@ def fix_module_search_paths():
   except (ImportError, RuntimeError) as error:
     errors.append('Fixing protobuf-appengine compatibility failed: %s' % error)
 
-  os.environ['PYTHONPATH'] = pythonpath_sep.join(python_path)
+  os.environ['PYTHONPATH'] = os.pathsep.join(python_path)
 
   # Add site directory to make from imports work in google namespace.
   site.addsitedir(third_party_libraries_directory)

@@ -21,7 +21,6 @@ modules.fix_module_search_paths()
 
 import httplib2
 import os
-import shutil
 import tempfile
 import urllib
 import webbrowser
@@ -33,6 +32,8 @@ from bot.tasks import setup
 from build_management import build_manager
 from datastore import data_types
 from fuzzing import testcase_manager
+from local.butler import appengine
+from local.butler import common
 from system import archive
 from system import environment
 from system import shell
@@ -152,7 +153,7 @@ def _get_testcase(testcase_id):
 
   # TODO(mbarbella): Handle this gracefully.
   if response.status != 200:
-    raise Exception('Failed to get test case information.')
+    raise Exception('Failed to get test case information. %d' % response.status)
 
   testcase_map = json_utils.loads(content)
   return SerializedTestcase(testcase_map)
@@ -200,13 +201,6 @@ def _download_testcase(testcase_id, testcase):
   return testcase_path
 
 
-def _copy_root_subdirectory(root_dir, temp_root_dir, subdirectory):
-  """Copy a single directory to the temporary root directory."""
-  shutil.copytree(
-      os.path.join(root_dir, subdirectory),
-      os.path.join(temp_root_dir, subdirectory))
-
-
 def _prepare_initial_environment(build_directory):
   """Prepare common environment variables that don't depend on the job."""
   # Create a temporary directory to use as ROOT_DIR with a copy of the default
@@ -215,20 +209,23 @@ def _prepare_initial_environment(build_directory):
   temp_root_dir = tempfile.mkdtemp()
   environment.set_value('ROOT_DIR', temp_root_dir)
 
-  _copy_root_subdirectory(root_dir, temp_root_dir, 'bot')
-  _copy_root_subdirectory(root_dir, temp_root_dir, 'configs')
-  _copy_root_subdirectory(root_dir, temp_root_dir, 'resources')
-  _copy_root_subdirectory(root_dir, temp_root_dir, 'src')
+  common.update_dir(
+      os.path.join(root_dir, 'bot'), os.path.join(temp_root_dir, 'bot'))
+  common.update_dir(
+      os.path.join(root_dir, 'configs'), os.path.join(temp_root_dir, 'configs'))
+  common.update_dir(
+      os.path.join(root_dir, 'resources'),
+      os.path.join(temp_root_dir, 'resources'))
+  common.update_dir(
+      os.path.join(root_dir, 'src'), os.path.join(temp_root_dir, 'src'))
 
   environment.set_value('CONFIG_DIR_OVERRIDE',
                         os.path.join(temp_root_dir, 'configs', 'test'))
-  # TODO(mbarbella): Don't force the user to set APPENGINE_DIRECTORY explicitly.
   environment.set_value(
       'PYTHONPATH',
-      modules.get_pythonpath_separator().join([
-          os.path.join(temp_root_dir, 'src'),
-          environment.get_value('APPENGINE_DIRECTORY')
-      ]))
+      os.pathsep.join(
+          [os.path.join(temp_root_dir, 'src'),
+           appengine.find_sdk_path()]))
 
   environment.set_bot_environment()
 
