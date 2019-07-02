@@ -286,8 +286,9 @@ def execute(args):
     return
 
   if result.is_crash():
-    print('Test case reproduced successfully:\n')
+    status_message = 'Test case reproduced successfully.'
   else:
-    print('Unable to reproduce desired crash. Output:\n')
+    status_message = 'Unable to reproduce desired crash.'
 
-  print(result.get_stacktrace())
+  print('{status_message} Output:\n\n{output}'.format(
+      status_message=status_message, output=result.get_stacktrace()))
