@@ -61,6 +61,11 @@ _GET_METHOD = 'GET'
 _POST_METHOD = 'POST'
 
 
+class ReproduceToolException(Exception):
+  """Base class for reproduce tool exceptions."""
+  pass
+
+
 class SerializedTestcase(object):
   """Minimal representation of a test case."""
 
@@ -128,9 +133,9 @@ def _http_request(url,
   }
 
   http = httplib2.Http()
-  body = json_utils.dumps(body) if body else ''
+  request_body = json_utils.dumps(body) if body else ''
   response, content = http.request(
-      url, method=method, headers=headers, body=body)
+      url, method=method, headers=headers, body=request_body)
 
   # If the server returns 401 we may need to reauthenticate. Try the request
   # a second time if this happens.
@@ -151,9 +156,8 @@ def _get_testcase(testcase_id):
   response, content = _http_request(
       TESTCASE_INFO_URL, body={'testcaseId': testcase_id})
 
-  # TODO(mbarbella): Handle this gracefully.
   if response.status != 200:
-    raise Exception('Failed to get test case information. %d' % response.status)
+    raise ReproduceToolException('Unable to fetch test case information.')
 
   testcase_map = json_utils.loads(content)
   return SerializedTestcase(testcase_map)
@@ -163,9 +167,12 @@ def _download_testcase(testcase_id, testcase):
   """Download the test case and return its path."""
   response, content = _http_request(
       TESTCASE_DOWNLOAD_URL.format(testcase_id=testcase_id), method=_GET_METHOD)
-  bot_absolute_filename = response['x-goog-meta-filename']
+
+  if response.status != 200:
+    raise ReproduceToolException('Unable to download test case.')
 
   # Create a temporary directory where we can store the test case.
+  bot_absolute_filename = response['x-goog-meta-filename']
   testcase_directory = os.path.join(
       environment.get_value('ROOT_DIR'), 'current-testcase')
   shell.create_directory(testcase_directory)
@@ -192,11 +199,11 @@ def _download_testcase(testcase_id, testcase):
         break
 
     if not testcase_path:
-      raise Exception('Test case file was not found in archive.\n'
-                      'Original filename: {absolute_path}.\n'
-                      'Archive contents: {file_list}'.format(
-                          absolute_path=testcase.absolute_path,
-                          file_list=file_list))
+      raise ReproduceToolException('Test case file was not found in archive.\n'
+                                   'Original filename: {absolute_path}.\n'
+                                   'Archive contents: {file_list}'.format(
+                                       absolute_path=testcase.absolute_path,
+                                       file_list=file_list))
 
   return testcase_path
 
@@ -272,7 +279,16 @@ def _reproduce_crash(testcase_id, build_directory):
 
 def execute(args):
   """Attempt to reproduce a crash then report on the result."""
-  result = _reproduce_crash(args.testcase, args.build_dir)
+  try:
+    result = _reproduce_crash(args.testcase, args.build_dir)
+  except ReproduceToolException as exception:
+    print(exception)
+    return
 
-  # TODO(mbarbella): Report success/failure based on result.
-  print(result.get_stacktrace())
+  if result.is_crash():
+    status_message = 'Test case reproduced successfully.'
+  else:
+    status_message = 'Unable to reproduce desired crash.'
+
+  print('{status_message} Output:\n\n{output}'.format(
+      status_message=status_message, output=result.get_stacktrace()))
