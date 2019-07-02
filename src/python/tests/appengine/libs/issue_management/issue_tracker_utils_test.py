@@ -16,25 +16,49 @@
 import unittest
 
 from datastore import data_types
+from libs.issue_management import issue_tracker
 from libs.issue_management import issue_tracker_utils
+from tests.test_libs import helpers as test_helpers
 
 
-class IssueTrackerUtilsTest(unittest.TestCase):
-  """Issue tracker utils tests."""
+class IssueTrackerUtilsUrlTest(unittest.TestCase):
+  """Issue tracker utils tests for URL handling methods."""
 
-  def test_get_issue_id(self):
+  def setUp(self):
+    test_helpers.patch(self, [
+        'libs.issue_management.issue_tracker_utils.'
+        'get_issue_tracker_for_testcase',
+        'libs.issue_management.issue_tracker.IssueTracker.issue_url',
+    ])
+
+  def test_get_issue_url(self):
     """Basic test for a case when testcase is associated with a bug."""
     testcase = data_types.Testcase()
     testcase.bug_information = '1337'
-    self.assertEqual('1337', issue_tracker_utils.get_issue_id(testcase))
 
-  def test_get_issue_id_group_bug(self):
+    test_issue_tracker = issue_tracker.IssueTracker()
+    self.mock.get_issue_tracker_for_testcase.return_value = test_issue_tracker
+
+    issue_tracker_utils.get_issue_url(testcase)
+    self.mock.issue_url.assert_called_with(test_issue_tracker, '1337')
+
+  def test_get_issue_url_group_bug(self):
     """Test for a case when testcase is associated with a group bug."""
     testcase = data_types.Testcase()
     testcase.group_bug_information = 31337
-    self.assertEqual('31337', issue_tracker_utils.get_issue_id(testcase))
 
-  def test_get_issue_id_no_bug(self):
+    test_issue_tracker = issue_tracker.IssueTracker()
+    self.mock.get_issue_tracker_for_testcase.return_value = test_issue_tracker
+
+    issue_tracker_utils.get_issue_url(testcase)
+    self.mock.issue_url.assert_called_with(test_issue_tracker, '31337')
+
+  def test_get_issue_url_no_bug(self):
     """Test for a case when testcase has no bugs associated with it."""
     testcase = data_types.Testcase()
-    self.assertIsNone(issue_tracker_utils.get_issue_id(testcase))
+
+    test_issue_tracker = issue_tracker.IssueTracker()
+    self.mock.get_issue_tracker_for_testcase.return_value = test_issue_tracker
+
+    issue_tracker_utils.get_issue_url(testcase)
+    self.assertEqual(0, self.mock.issue_url.call_count)
