@@ -154,10 +154,17 @@ def get_similar_issues_url(issue_tracker, testcase, only_open=True):
 def get_issue_url(testcase):
   """Return issue url for a testcase."""
   issue_tracker = get_issue_tracker_for_testcase(testcase)
-  if not issue_tracker or not testcase.bug_information:
+  if not issue_tracker:
     return None
 
-  return issue_tracker.issue_url(testcase.bug_information)
+  issue_id = (
+      testcase.bug_information
+      if testcase.bug_information else testcase.group_bug_information)
+  if not issue_id:
+    return None
+
+  # Use str(issue_id) as |group_bug_information| is an integer.
+  return issue_tracker.issue_url(str(issue_id))
 
 
 def was_label_added(issue, label):
