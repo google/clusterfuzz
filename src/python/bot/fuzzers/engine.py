@@ -21,14 +21,18 @@ class FuzzOptions(object):
   options."""
 
   def __init__(self, corpus_dir, arguments, strategies):
-    pass
+    self.corpus_dir = corpus_dir
+    self.arguments = arguments
+    self.strategies = strategies
 
 
 class Crash(object):
   """Represents a crash found by the fuzzing engine."""
 
   def __init__(self, input_path, stacktrace, reproduce_args):
-    pass
+    self.input_path = input_path
+    self.stacktrace = stacktrace
+    self.reproduce_args = reproduce_args
 
 
 class Result(object):
@@ -36,7 +40,8 @@ class Result(object):
   stats generated."""
 
   def __init__(self, crashes, stats):
-    pass
+    self.crashes = crashes
+    self.stats = stats
 
 
 class Engine(object):
