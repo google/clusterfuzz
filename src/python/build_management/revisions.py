@@ -130,7 +130,7 @@ def _get_display_revision(component_revision_dict):
   if 'commit_pos' in component_revision_dict:
     return component_revision_dict['commit_pos']
 
-  return component_revision_dict['rev']
+  return component_revision_dict['rev'] or '<empty>'
 
 
 def _get_link_text(start_component_revision_dict, end_component_revision_dict):
