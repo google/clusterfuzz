@@ -80,17 +80,28 @@ def get_issue_tracker_policy_for_testcase(testcase):
   return issue_tracker_policy.get(issue_tracker_project_name)
 
 
+def get_issue_id(testcase):
+  """Return id of the issue associated with the testcase."""
+  issue_id = testcase.bug_information
+  if issue_id:
+    return issue_id
+      
+  issue_id = testcase.group_bug_information
+  if issue_id:
+    # Use str(issue_id) as |group_bug_information| might be an integer.
+    return str(issue_id)
+
+  return None
+
+
 def get_issue_for_testcase(testcase):
   """Return issue object associated with testcase."""
-  if not testcase.bug_information:
-    return None
-
   issue_tracker = get_issue_tracker_for_testcase(testcase)
   if not issue_tracker:
     return None
 
   try:
-    issue_id = testcase.bug_information
+    issue_id = get_issue_id(testcase)
     issue = issue_tracker.get_original_issue(issue_id)
   except:
     logs.log_error(
@@ -157,14 +168,11 @@ def get_issue_url(testcase):
   if not issue_tracker:
     return None
 
-  issue_id = (
-      testcase.bug_information
-      if testcase.bug_information else testcase.group_bug_information)
+  issue_id = get_issue_id(testcase)
   if not issue_id:
     return None
 
-  # Use str(issue_id) as |group_bug_information| might be an integer.
-  return issue_tracker.issue_url(str(issue_id))
+  return issue_tracker.issue_url(issue_id)
 
 
 def was_label_added(issue, label):
