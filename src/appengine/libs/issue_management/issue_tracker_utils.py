@@ -83,6 +83,8 @@ def get_issue_tracker_policy_for_testcase(testcase):
 def get_issue_for_testcase(testcase):
   """Return issue object associated with testcase."""
   if not testcase.bug_information:
+    # Do not check |testcase.group_bug_information| as we look for an issue
+    # associated with the testcase directly, not through a group of testcases.
     return None
 
   issue_tracker = get_issue_tracker_for_testcase(testcase)
