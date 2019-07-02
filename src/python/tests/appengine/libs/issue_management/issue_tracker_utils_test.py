@@ -13,7 +13,6 @@
 # limitations under the License.
 """Tests for the issue_tracker_utils module."""
 
-import mock
 import unittest
 
 from datastore import data_types
@@ -21,15 +20,16 @@ from libs.issue_management import issue_tracker
 from libs.issue_management import issue_tracker_utils
 from tests.test_libs import helpers as test_helpers
 
+
 class IssueTrackerUtilsUrlTest(unittest.TestCase):
   """Issue tracker utils tests for URL handling methods."""
 
   def setUp(self):
     test_helpers.patch(self, [
-        'libs.issue_management.issue_tracker_utils.get_issue_tracker_for_testcase',
+        'libs.issue_management.issue_tracker_utils.'
+        'get_issue_tracker_for_testcase',
         'libs.issue_management.issue_tracker.IssueTracker.issue_url',
     ])
-    
 
   def test_get_issue_url(self):
     """Basic test for a case when testcase is associated with a bug."""
@@ -39,7 +39,7 @@ class IssueTrackerUtilsUrlTest(unittest.TestCase):
     test_issue_tracker = issue_tracker.IssueTracker()
     self.mock.get_issue_tracker_for_testcase.return_value = test_issue_tracker
 
-    url = issue_tracker_utils.get_issue_url(testcase)
+    issue_tracker_utils.get_issue_url(testcase)
     self.mock.issue_url.assert_called_with(test_issue_tracker, '1337')
 
   def test_get_issue_url_group_bug(self):
@@ -50,7 +50,7 @@ class IssueTrackerUtilsUrlTest(unittest.TestCase):
     test_issue_tracker = issue_tracker.IssueTracker()
     self.mock.get_issue_tracker_for_testcase.return_value = test_issue_tracker
 
-    url = issue_tracker_utils.get_issue_url(testcase)
+    issue_tracker_utils.get_issue_url(testcase)
     self.mock.issue_url.assert_called_with(test_issue_tracker, '31337')
 
   def test_get_issue_url_no_bug(self):
@@ -60,5 +60,5 @@ class IssueTrackerUtilsUrlTest(unittest.TestCase):
     test_issue_tracker = issue_tracker.IssueTracker()
     self.mock.get_issue_tracker_for_testcase.return_value = test_issue_tracker
 
-    url = issue_tracker_utils.get_issue_url(testcase)
+    issue_tracker_utils.get_issue_url(testcase)
     self.assertEqual(0, self.mock.issue_url.call_count)
