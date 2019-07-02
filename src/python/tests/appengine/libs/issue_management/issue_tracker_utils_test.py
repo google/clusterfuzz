@@ -18,12 +18,9 @@ import unittest
 
 from datastore import data_types
 from libs.issue_management import issue_tracker
-from libs.issue_management import issue_tracker_policy
 from libs.issue_management import issue_tracker_utils
 from tests.test_libs import helpers as test_helpers
-from tests.test_libs import test_utils
 
-@test_utils.with_cloud_emulators('datastore')
 class IssueTrackerUtilsUrlTest(unittest.TestCase):
   """Issue tracker utils tests for URL handling methods."""
 

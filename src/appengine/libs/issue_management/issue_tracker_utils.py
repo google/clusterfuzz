@@ -163,7 +163,7 @@ def get_issue_url(testcase):
   if not issue_id:
     return None
 
-  # Use str(issue_id) as |group_bug_information| is an integer.
+  # Use str(issue_id) as |group_bug_information| might be an integer.
   return issue_tracker.issue_url(str(issue_id))
 
 
