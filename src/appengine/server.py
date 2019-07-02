@@ -53,8 +53,8 @@ from handlers.cron import manage_vms
 from handlers.cron import ml_train
 from handlers.cron import oss_fuzz_apply_ccs
 from handlers.cron import oss_fuzz_build_status
-from handlers.cron import oss_fuzz_setup
 from handlers.cron import predator_pull
+from handlers.cron import project_setup
 from handlers.cron import recurring_tasks
 from handlers.cron import schedule_corpus_pruning
 from handlers.cron import sync_admins
@@ -131,7 +131,7 @@ _CRON_ROUTES = [
     ('/manage-vms', manage_vms.Handler),
     ('/oss-fuzz-apply-ccs', oss_fuzz_apply_ccs.Handler),
     ('/oss-fuzz-build-status', oss_fuzz_build_status.Handler),
-    ('/oss-fuzz-setup', oss_fuzz_setup.Handler),
+    ('/project-setup', project_setup.Handler),
     ('/predator-pull', predator_pull.Handler),
     ('/schedule-corpus-pruning', schedule_corpus_pruning.Handler),
     ('/schedule-impact-tasks', recurring_tasks.ImpactTasksScheduler),

@@ -788,12 +788,17 @@ def create_data_bundle_bucket_and_iams(data_bundle_name, emails):
   return bool(storage.set_bucket_iam_policy(client, bucket_name, iam_policy))
 
 
-def get_data_bundle_bucket_name(data_bundle_name):
-  """Return data bundle bucket name on GCS."""
+def bucket_domain_suffix():
   domain = local_config.ProjectConfig().get('bucket_domain_suffix')
   if not domain:
     domain = '%s.appspot.com' % utils.get_application_id()
 
+  return domain
+
+
+def get_data_bundle_bucket_name(data_bundle_name):
+  """Return data bundle bucket name on GCS."""
+  domain = bucket_domain_suffix()
   return '%s-corpus.%s' % (data_bundle_name, domain)
 
 
