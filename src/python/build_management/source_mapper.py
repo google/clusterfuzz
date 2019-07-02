@@ -106,6 +106,13 @@ class GoogleSourceVCS(VCSViewer):
   VCS_REVISION_PATH_LINE_SUB = r'\1/+/{revision}/{path}#{line}'
 
 
+class GoogleVCS(VCSViewer):
+  VCS_URL_REGEX = re.compile(r'^//(.*)$')
+  VCS_REVISION_SUB = r'https://cs.corp.google.com/\1?rcl={revision}'
+  VCS_REVISION_PATH_LINE_SUB = (
+      r'https://cs.corp.google.com/\1/{path}?rcl={revision}&l={line}')
+
+
 class MercurialVCS(VCSViewer):
   VCS_URL_REGEX = re.compile(r'(https?://hg\.(.*))')
   VCS_REVISION_SUB = r'\1/rev/{revision}'
@@ -114,7 +121,14 @@ class MercurialVCS(VCSViewer):
   VCS_REVISION_PATH_LINE_SUB = r'\1/file/{revision}/{path}#l{line}'
 
 
-VCS_LIST = [FreeDesktopVCS, MercurialVCS, GitHubVCS, GitLabVCS, GoogleSourceVCS]
+VCS_LIST = [
+    FreeDesktopVCS,
+    GitHubVCS,
+    GitLabVCS,
+    GoogleSourceVCS,
+    GoogleVCS,
+    MercurialVCS,
+]
 
 
 def get_component_source_and_relative_path(path, revisions_dict):
