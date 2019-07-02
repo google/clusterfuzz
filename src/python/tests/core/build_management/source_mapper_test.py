@@ -17,7 +17,7 @@ import unittest
 from build_management import source_mapper
 
 
-class GetComponentSourceAndRelativePath(unittest.TestCase):
+class GetComponentSourceAndRelativePathTest(unittest.TestCase):
   """Tests for get_component_source_and_relative_path."""
 
   def test_get_component_source_and_relative_path_chromium(self):
@@ -144,3 +144,17 @@ class NormalizeSourcePathTest(unittest.TestCase):
         source_mapper.normalize_source_path(
             '../../third_party/WebKit/Source/platform/heap/Member.h'),
         'third_party/WebKit/Source/platform/heap/Member.h')
+
+
+class VCSViewerTest(unittest.TestCase):
+  """Tests for VCSViewer."""
+
+  def test_google_vcs(self):
+    vcs = source_mapper.GoogleVCS('//dir1/dir2')
+    self.assertEqual('https://cs.corp.google.com/dir1/dir2?rcl=1337',
+                     vcs.get_source_url_for_revision(1337))
+    self.assertEqual(
+        'https://cs.corp.google.com'
+        '/dir1/dir2/dir3/dir4/file1.txt?rcl=1337&l=10',
+        vcs.get_source_url_for_revision_path_and_line(
+            1337, 'dir3/dir4/file1.txt', 10))
