@@ -108,7 +108,7 @@ class GoogleSourceVCS(VCSViewer):
 
 class GoogleVCS(VCSViewer):
   VCS_URL_REGEX = re.compile(r'^//(.*)$')
-  VCS_REVISION_SUB = r'https://cs.corp.google.com/\1?rcl={revision}'
+  VCS_REVISION_SUB = r'https://cs.corp.google.com/\1/?rcl={revision}'
   VCS_REVISION_PATH_LINE_SUB = (
       r'https://cs.corp.google.com/\1/{path}?rcl={revision}&l={line}')
 
