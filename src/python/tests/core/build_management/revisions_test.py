@@ -49,7 +49,7 @@ class RevisionsTestcase(unittest.TestCase):
   def setUp(self):
     helpers.patch_environ(self)
     helpers.patch(self, [
-        'base.utils.default_project_name', 'base.memoize.FifoOnDisk.get',
+        'base.utils.current_project', 'base.memoize.FifoOnDisk.get',
         'base.memoize.FifoOnDisk.put'
     ])
 
@@ -167,7 +167,7 @@ class RevisionsTestcase(unittest.TestCase):
     """Test that get_component_range_list works properly for the Chromium
     repo."""
     mock_get_config.return_value = self.MockConfigChromium()
-    self.mock.default_project_name.return_value = 'chromium'
+    self.mock.current_project.return_value = 'chromium'
     mock_get_url_content.side_effect = self.mock_get_url_content
     mock_get_git_hash.side_effect = self.mock_get_git_hash_for_git_commit_pos
 
@@ -186,7 +186,7 @@ class RevisionsTestcase(unittest.TestCase):
       self, mock_get_git_hash, mock_get_url_content, mock_get_config):
     """Test that get_component_range_list works properly for the Clank repo."""
     mock_get_config.return_value = self.MockConfigChromium()
-    self.mock.default_project_name.return_value = 'chromium'
+    self.mock.current_project.return_value = 'chromium'
     mock_get_url_content.side_effect = self.mock_get_url_content
     mock_get_git_hash.side_effect = self.mock_get_git_hash_for_git_commit_pos
 
@@ -203,7 +203,7 @@ class RevisionsTestcase(unittest.TestCase):
                                            mock_get_config):
     """Test git hash for git commit position."""
     mock_get_config.return_value = self.MockConfigChromium()
-    self.mock.default_project_name.return_value = 'chromium'
+    self.mock.current_project.return_value = 'chromium'
     expected_hash = '95a3bc965ed80186215cea788caa5faae0898839'
     mock_get_url_content.return_value = ('{\n'
                                          '  "git_sha": "%s"\n'
@@ -231,7 +231,7 @@ class RevisionsTestcase(unittest.TestCase):
                                       mock_get_url_content, mock_get_config):
     """Test that get_real_revision works properly for chromium revisions."""
     mock_get_config.return_value = self.MockConfigChromium()
-    self.mock.default_project_name.return_value = 'chromium'
+    self.mock.current_project.return_value = 'chromium'
     mock_get_url_content.side_effect = self.mock_get_url_content
     mock_get_git_hash.side_effect = self.mock_get_git_hash_for_git_commit_pos
 
@@ -244,7 +244,7 @@ class RevisionsTestcase(unittest.TestCase):
                                       mock_get_config):
     """Test that get_real_revision works properly for non-chromium revisions."""
     mock_get_config.return_value = self.MockConfigOSSFuzz()
-    self.mock.default_project_name.return_value = 'oss-fuzz'
+    self.mock.current_project.return_value = 'oss-fuzz'
     mock_get_url_content.side_effect = self.mock_get_url_content
 
     self.assertEqual('35dc4dd0e14e3afb4a2c7e319a3f4110e20c7cf2',
@@ -260,7 +260,7 @@ class RevisionsTestcase(unittest.TestCase):
         'https://commondatastorage.googleapis.com/blah-%s.srcmap.json')
 
     mock_get_config.return_value = self.MockConfigOSSFuzz()
-    self.mock.default_project_name.return_value = 'oss-fuzz'
+    self.mock.current_project.return_value = 'oss-fuzz'
     mock_get_url_content.side_effect = self.mock_get_url_content
 
     self.assertDictEqual(
@@ -283,7 +283,7 @@ class RevisionsTestcase(unittest.TestCase):
                                                mock_get_config):
     """Test get_component_range_list for srcmap jobs."""
     mock_get_config.return_value = self.MockConfigOSSFuzz()
-    self.mock.default_project_name.return_value = 'oss-fuzz'
+    self.mock.current_project.return_value = 'oss-fuzz'
     mock_get_url_content.side_effect = self.mock_get_url_content
 
     result = revisions.get_component_range_list(1337, 9001, SRCMAP_JOB_TYPE)
@@ -297,7 +297,7 @@ class RevisionsTestcase(unittest.TestCase):
                                                     mock_get_config):
     """Test get_component_range_list for srcmap jobs (text only)."""
     mock_get_config.return_value = self.MockConfigOSSFuzz()
-    self.mock.default_project_name.return_value = 'oss-fuzz'
+    self.mock.current_project.return_value = 'oss-fuzz'
     mock_get_url_content.side_effect = self.mock_get_url_content
 
     result = revisions.get_component_range_list(1337, 9001, SRCMAP_JOB_TYPE)
@@ -312,7 +312,7 @@ class RevisionsTestcase(unittest.TestCase):
     """Test get_component_range_list for 2 builds that have different revision
     numbers, but same revision hash after mapping."""
     mock_get_config.return_value = self.MockConfigOSSFuzz()
-    self.mock.default_project_name.return_value = 'oss-fuzz'
+    self.mock.current_project.return_value = 'oss-fuzz'
     mock_get_url_content.side_effect = self.mock_get_url_content
 
     result = revisions.get_component_range_list(1337, 1338, SRCMAP_JOB_TYPE)
@@ -326,7 +326,7 @@ class RevisionsTestcase(unittest.TestCase):
                                                    mock_get_config):
     """Test get_component_range_list with a '0' start_revision."""
     mock_get_config.return_value = self.MockConfigOSSFuzz()
-    self.mock.default_project_name.return_value = 'oss-fuzz'
+    self.mock.current_project.return_value = 'oss-fuzz'
     mock_get_url_content.side_effect = self.mock_get_url_content
 
     result = revisions.get_component_range_list(0, 1338, SRCMAP_JOB_TYPE)
