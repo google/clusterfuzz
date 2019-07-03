@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""Grey box fuzzing engine interface.."""
+"""Fuzzing engine interface."""
 
 from builtins import object
 
@@ -48,25 +48,27 @@ class Engine(object):
   """Base interface for a grey box fuzzing engine."""
 
   def prepare(self, corpus_dir, target_path, build_dir):
-    """Prepare for a fuzzing session, by generating options."""
+    """Prepare for a fuzzing session, by generating options. Returns a
+    FuzzOptions object."""
     raise NotImplementedError
 
   def fuzz(self, target_path, options, max_time):
-    """Run a fuzz session."""
+    """Run a fuzz session. Returns a Result."""
     raise NotImplementedError
 
   def reproduce(self, target_path, input_path, arguments, max_time):
-    """Reproduce a crash given an input."""
+    """Reproduce a crash given an input. Returns a Result."""
     raise NotImplementedError
 
   def minimize_corpus(self, target_path, dirs, max_time):
-    """Optional (but recommended): run corpus minimization."""
+    """Optional (but recommended): run corpus minimization. Returns a Result."""
     raise NotImplementedError
 
   def minimize_testcase(self, target_path, input_path, output_path, max_time):
-    """Optional: minimize a testcase."""
+    """Optional: minimize a testcase. Returns a bool."""
     raise NotImplementedError
 
   def cleanse(self, target_path, input_path, output_path, max_time):
-    """Optional: scrub a testcase of potentially sensitive bytes."""
+    """Optional: scrub a testcase of potentially sensitive bytes. Returns a
+    bool."""
     raise NotImplementedError
