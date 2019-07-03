@@ -110,7 +110,7 @@ class StringTest(unittest.TestCase):
   def test_get(self):
     """Test get stripped string."""
     self.filter.add(self.query, {'param': ' aAa '})
-    self.query.assert_has_calls([mock.call.filter('field', 'aaa')])
+    self.query.assert_has_calls([mock.call.filter('field', 'aAa')])
 
 
 class KeywordTest(unittest.TestCase):
