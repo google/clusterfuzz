@@ -996,7 +996,8 @@ def get_crash_data(crash_data, symbolize_flag=True):
   inline frames, but we do exclude them for purposes of crash state generation
   (helps in testcase deduplication)."""
   # Decide whether to symbolize or not symbolize the input stacktrace.
-  if symbolize_flag:
+  # Note that Fuchsia logs are always symbolized.
+  if symbolize_flag and environment.platform() != 'FUCHSIA':
     # Defer imports since stack_symbolizer pulls in a lot of things.
     from crash_analysis.stack_parsing import stack_symbolizer
     crash_stacktrace_with_inlines = stack_symbolizer.symbolize_stacktrace(
@@ -1009,11 +1010,12 @@ def get_crash_data(crash_data, symbolize_flag=True):
     # stacktrace.
     crash_stacktrace_with_inlines = crash_data
     crash_stacktrace_without_inlines = crash_data
+  
+  # TODO(flowerhack): Fuchsia-specific stacktrace code goes here.
 
   # Compose the StackAnalyzerState object.
   state = StackAnalyzerState(symbolized=symbolize_flag)
   state.crash_stacktrace += crash_stacktrace_with_inlines
-
   # We always want to detect v8 runtime errors in analyze task, and
   # we don't expect DETECT_V8_RUNTIME_ERRORS to be specified in jobs
   # since we opt fuzzers into it.

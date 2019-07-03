@@ -18,10 +18,13 @@ from builtins import object
 import copy
 import os
 import shutil
+import stat
+import tempfile
 
 from base import retry
 from bot.fuzzers import engine_common
 from bot.fuzzers.libFuzzer import constants
+from crash_analysis import crash_analyzer
 from platforms import fuchsia
 from platforms.fuchsia.util.device import Device
 from platforms.fuchsia.util.fuzzer import Fuzzer
@@ -345,16 +348,18 @@ class FuchsiaQemuLibFuzzerRunner(new_process.ProcessRunner, LibFuzzerCommon):
       raise fuchsia.errors.FuchsiaConfigError(
           ('FUCHSIA_PKEY_PATH, FUCHSIA_PORTNUM, or FUCHSIA_RESOURCES_DIR was '
            'not set'))
-    self.host = Host.from_dir(
-        os.path.join(fuchsia_resources_dir, self.FUCHSIA_BUILD_REL_PATH))
+    fuchsia_resources_dir_plus_build = os.path.join(fuchsia_resources_dir, self.FUCHSIA_BUILD_REL_PATH)
+    self.host = Host.from_dir(fuchsia_resources_dir_plus_build)
     self.device = Device(self.host, 'localhost', fuchsia_portnum)
-    # Fuchsia fuzzer names have the format {package_name}/{binary_name}.
-    # TODO(ochang): Properly handle fuzzers with '/' in the binary name.
-    package, target = environment.get_value('FUZZ_TARGET').split('/')
-    self.fuzzer = Fuzzer(self.device, package, target)
     self.device.set_ssh_option('StrictHostKeyChecking no')
     self.device.set_ssh_option('UserKnownHostsFile=/dev/null')
     self.device.set_ssh_identity(fuchsia_pkey_path)
+    # Fuchsia fuzzer names have the format {package_name}/{binary_name}.
+    # TODO(ochang): Properly handle fuzzers with '/' in the binary name.
+    package, target = environment.get_value('FUZZ_TARGET').split('/')
+    test_data_dir = os.path.join(fuchsia_resources_dir_plus_build, "test_data", "fuzzing", package, target)
+    self.fuzzer = Fuzzer(self.device, package, target, output=test_data_dir, foreground=True)
+
     super(FuchsiaQemuLibFuzzerRunner, self).__init__(
         executable_path=executable_path, default_args=default_args)
 
@@ -362,6 +367,36 @@ class FuchsiaQemuLibFuzzerRunner(new_process.ProcessRunner, LibFuzzerCommon):
     # TODO(flowerhack): Update this to dynamically pick a result from "fuzz
     # list" and then run that fuzzer.
     return self.ssh_command('ls')
+
+  def fetch_and_process_logs_and_crash(self):
+    # Get the crash from the device.
+    self.device.fetch(self.fuzzer.data_path('crash*'), self.fuzzer.results_output())
+
+    for log in os.listdir(self.fuzzer.results_output()):
+      if log.startswith('fuzz-0.log'):
+        self.device.dlog(self.fuzzer.results_output(log))
+
+    # Clusterfuzz assumes that the Libfuzzer output points to an absolute path,
+    # where it can find the crash file.
+    # This doesn't work in our case due to how Fuchsia is run.
+    # So, we make a new file, change the appropriate line with a regex to point
+    # to the true location. Apologies for the hackery.
+    import re
+    crash_testcase_file_path = None
+    for file in os.listdir(self.fuzzer.results_output()):
+      if os.path.isfile(os.path.join(self.fuzzer.results_output(), file)) and 'crash-' in file:
+        crash_testcase_file_path = os.path.join(self.fuzzer.results_output(),file)
+    new_file_handle, new_file_handle_path = tempfile.mkstemp()
+    with open(new_file_handle_path, 'w') as new_file:
+      with open(self.fuzzer.results_output('fuzz-0.log')) as old_file:
+        for line in old_file:
+          new_text, num_replacements = re.subn(r"(.*)(Test unit written to )(data/.*)", r"\1\2" + crash_testcase_file_path, line)
+          if num_replacements > 0:
+            new_file.write(new_text)
+          else:
+            new_file.write(line)
+    os.remove(self.fuzzer.results_output('fuzz-0.log'))
+    os.rename(new_file_handle_path, self.fuzzer.results_output('fuzz-0.log'))
 
   def fuzz(self,
            corpus_directories,
@@ -371,14 +406,26 @@ class FuchsiaQemuLibFuzzerRunner(new_process.ProcessRunner, LibFuzzerCommon):
            extra_env=None):
     """LibFuzzerCommon.fuzz override."""
     self._test_qemu_ssh()
-    self.fuzzer.run([])
-    # TODO(flowerhack): Modify fuzzer.run() to return a ProcessResult, rather
-    # than artisinally handcrafting one here.
+    self.fuzzer.start([])
+    self.fetch_and_process_logs_and_crash()
+
+    # Checking for is_crash here, instead of a more conventional location,
+    # since we're having to manually construct a ProcessResult.
+    with open(self.fuzzer.results_output('fuzz-0.log')) as file:
+      symbolized_output = file.read()
+    is_crash = crash_analyzer.is_memory_tool_crash(symbolized_output)
+
+    # TODO(flowerhack): Would be nice if we could figure out a way to make
+    # the "fuzzer start" code return its own ProcessResult. For now, we simply
+    # craft one by hand here.
     fuzzer_process_result = new_process.ProcessResult()
-    fuzzer_process_result.return_code = 0
-    fuzzer_process_result.output = ''
+    if is_crash:
+      fuzzer_process_result.return_code = 1
+    else:
+      fuzzer_process_result.return_code = 0
+    fuzzer_process_result.output = symbolized_output
     fuzzer_process_result.time_executed = 0
-    fuzzer_process_result.command = self.fuzzer.last_fuzz_cmd
+    fuzzer_process_result.command = environment.get_value('FUZZ_TARGET')
     return fuzzer_process_result
 
   def run_single_testcase(self,
