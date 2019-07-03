@@ -206,7 +206,7 @@ def _is_deps(url):
   return urllib.parse.urlparse(url).path.endswith('/DEPS')
 
 
-def _src_map_to_revisions_dict(src_map, default_project_name):
+def _src_map_to_revisions_dict(src_map, project_name):
   """Convert src map contents to revisions dict."""
   revisions_dict = {}
 
@@ -214,7 +214,7 @@ def _src_map_to_revisions_dict(src_map, default_project_name):
     # Only add keys that have both url and rev attributes.
     if 'url' in src_map[key] and 'rev' in src_map[key]:
       revisions_dict[key] = {
-          'name': _get_component_display_name(key, default_project_name),
+          'name': _get_component_display_name(key, project_name),
           'rev': src_map[key]['rev'],
           'url': src_map[key]['url']
       }
@@ -230,7 +230,7 @@ def _git_commit_position_to_git_hash_for_chromium(revision, repository):
       'number': revision,
       'numbering_identifier': 'refs/heads/master',
       'numbering_type': 'COMMIT_POSITION',
-      'project': utils.default_project_name(),
+      'project': 'chromium',
       'repo': repository,
       'fields': 'git_sha',
   }
@@ -322,9 +322,9 @@ def get_component_revisions_dict(revision, job_type):
     # Return empty dict for zero start revision.
     return {}
 
-  component = data_handler.get_component_name(job_type)
   config = db_config.get()
-  default_project_name = utils.default_project_name()
+  component = data_handler.get_component_name(job_type)
+  project_name = data_handler.get_project_name(job_type)
 
   revision_info_url_format = db_config.get_value_for_job(
       config.revision_vars_url, job_type)
@@ -346,7 +346,7 @@ def get_component_revisions_dict(revision, job_type):
     # is shared with an external service (e.g. Predator) we may need to clean
     # this up beforehand.
     revisions_dict['/src'] = {
-        'name': _get_component_display_name(component, default_project_name),
+        'name': _get_component_display_name(component, project_name),
         'url': _git_url_for_chromium_repository(repository),
         'rev': revision_hash,
         'commit_pos': revision
@@ -384,8 +384,7 @@ def get_component_revisions_dict(revision, job_type):
 
   # Parse as per source map format.
   if revision_info_url.endswith(SOURCE_MAP_EXTENSION):
-    revisions_dict = _src_map_to_revisions_dict(revisions_dict,
-                                                default_project_name)
+    revisions_dict = _src_map_to_revisions_dict(revisions_dict, project_name)
 
   return revisions_dict
 
