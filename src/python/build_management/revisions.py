@@ -230,7 +230,7 @@ def _git_commit_position_to_git_hash_for_chromium(revision, repository):
       'number': revision,
       'numbering_identifier': 'refs/heads/master',
       'numbering_type': 'COMMIT_POSITION',
-      'project': utils.current_project(),
+      'project': 'chromium',
       'repo': repository,
       'fields': 'git_sha',
   }
@@ -322,9 +322,9 @@ def get_component_revisions_dict(revision, job_type):
     # Return empty dict for zero start revision.
     return {}
 
-  component = data_handler.get_component_name(job_type)
   config = db_config.get()
-  project_name = utils.current_project()
+  component = data_handler.get_component_name(job_type)
+  project_name = data_handler.get_project_name(job_type)
 
   revision_info_url_format = db_config.get_value_for_job(
       config.revision_vars_url, job_type)
