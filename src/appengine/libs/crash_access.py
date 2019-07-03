@@ -102,7 +102,7 @@ def add_scope(query, params, security_field, job_type_field, fuzzer_name_field):
 
   if scope.fuzzer_names:
     fuzzer_query = query.new_subquery()
-    fuzzer_query.filter_in(fuzzer_name_field, [name.lower() for name in scope.fuzzer_names])
+    fuzzer_query.filter_in(fuzzer_name_field, scope.fuzzer_names)
     subqueries.append(fuzzer_query)
 
   if not subqueries:  # The user CANNOT access anything.
