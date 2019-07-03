@@ -83,6 +83,8 @@ def get_issue_tracker_policy_for_testcase(testcase):
 def get_issue_for_testcase(testcase):
   """Return issue object associated with testcase."""
   if not testcase.bug_information:
+    # Do not check |testcase.group_bug_information| as we look for an issue
+    # associated with the testcase directly, not through a group of testcases.
     return None
 
   issue_tracker = get_issue_tracker_for_testcase(testcase)
@@ -152,12 +154,20 @@ def get_similar_issues_url(issue_tracker, testcase, only_open=True):
 
 
 def get_issue_url(testcase):
-  """Return issue url for a testcase."""
+  """Return issue url for a testcase. This is used when rendering a testcase,
+  details page, therefore it accounts for |group_bug_information| as well."""
   issue_tracker = get_issue_tracker_for_testcase(testcase)
-  if not issue_tracker or not testcase.bug_information:
+  if not issue_tracker:
     return None
 
-  return issue_tracker.issue_url(testcase.bug_information)
+  issue_id = (
+      testcase.bug_information
+      if testcase.bug_information else testcase.group_bug_information)
+  if not issue_id:
+    return None
+
+  # Use str(issue_id) as |group_bug_information| might be an integer.
+  return issue_tracker.issue_url(str(issue_id))
 
 
 def was_label_added(issue, label):
