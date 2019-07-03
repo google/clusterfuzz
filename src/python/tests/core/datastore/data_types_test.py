@@ -49,7 +49,7 @@ class TestcaseTest(unittest.TestCase):
     self.assertSetEqual(set(['333', '999']), set(testcase.bug_indices))
     self.assertTrue(testcase.has_bug_flag)
     self.assertSetEqual(
-        set(['fuzzer', 'overfuzzer']), set(testcase.fuzzer_name_indices))
+        set(['fuzzer', 'Overfuzzer']), set(testcase.fuzzer_name_indices))
     self.assertSetEqual(
         set(['s', 's.1']), set(testcase.impact_stable_version_indices))
     self.assertSetEqual(
