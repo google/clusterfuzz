@@ -112,7 +112,7 @@ def can_user_access_testcase(testcase):
       testcase.security_flag and not config.relax_security_bug_restrictions)
 
   if has_access(
-      fuzzer_name=testcase.fuzzer_name,
+      fuzzer_name=testcase.actual_fuzzer_name(),
       job_type=testcase.job_type,
       need_privileged_access=need_privileged_access):
     return True

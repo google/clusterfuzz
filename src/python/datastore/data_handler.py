@@ -295,7 +295,7 @@ def get_issue_description(testcase,
   domain = get_domain()
   testcase_id = testcase.key.id()
 
-  fuzzer_name = testcase.overridden_fuzzer_name or testcase.fuzzer_name
+  fuzzer_name = testcase.actual_fuzzer_name()
   download_url = TESTCASE_DOWNLOAD_URL.format(
       domain=domain, testcase_id=testcase_id)
   report_url = TESTCASE_REPORT_URL.format(

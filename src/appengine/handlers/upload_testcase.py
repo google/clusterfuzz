@@ -62,7 +62,7 @@ def attach_testcases(rows):
           'isSecurity': testcase.security_flag,
           'issueNumber': testcase.bug_information,
           'job': testcase.job_type,
-          'fuzzerName': testcase.overridden_fuzzer_name or testcase.fuzzer_name
+          'fuzzerName': testcase.actual_fuzzer_name()
       }
     row['testcase'] = testcase
 
