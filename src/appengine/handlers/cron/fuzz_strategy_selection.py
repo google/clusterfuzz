@@ -78,12 +78,10 @@ FROM
         FROM 
           libFuzzer_stats.TestcaseRun
         WHERE
-           ((strategy_mutator_plugin = 0) OR (strategy_mutator_plugin IS NULL)) AND
-           /* Query results from the past 30 days. Change as needed. */
-            DATE_DIFF(cast(current_timestamp() AS DATE), cast(_PARTITIONTIME AS DATE), DAY) < 31 AND
-            ((strategy_corpus_mutations = 0) OR (strategy_corpus_mutations IS NULL)) AND
-            ((strategy_handle_unstable = 0) OR (strategy_handle_unstable IS NULL)) AND
-            ((strategy_weighted_mutations = 0) OR (strategy_weighted_mutations IS NULL)))
+          ((strategy_mutator_plugin = 0) OR (strategy_mutator_plugin IS NULL)) AND
+          /* Query results from the past 30 days. Change as needed. */
+          DATE_DIFF(cast(current_timestamp() AS DATE), cast(_PARTITIONTIME AS DATE), DAY) < 31
+        )
       WHERE
         /* Filter for unstable targets. */
         fuzzer_stddev < 150)
