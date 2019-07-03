@@ -59,7 +59,7 @@ class AddFiltersTest(unittest.TestCase):
 
   def test_both_fields(self):
     """Test filter field and keyword field."""
-    self.params['q'] = ('hello group:456 issue:123 platform:Windows'
+    self.params['q'] = ('hello group:456 issue:123 platform:windows'
                         ' stable:s.1 beta:b.2 fuzzer:2 job:3')
     self.params['fuzzer'] = 'fuzz'
     self.params['issue'] = 'yes'
