@@ -637,6 +637,10 @@ class Testcase(Model):
     if update_testcase:
       self.put()
 
+  def actual_fuzzer_name(self):
+    """Actual fuzzer name, uses one from overridden attribute if available."""
+    return self.overridden_fuzzer_name or self.fuzzer_name
+
 
 class TestcaseGroup(Model):
   """Group for a set of testcases."""
