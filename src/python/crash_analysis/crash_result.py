@@ -20,6 +20,7 @@ from builtins import object
 from base import utils
 from crash_analysis import crash_analyzer
 from crash_analysis.stack_parsing import stack_analyzer
+from system import environment
 
 
 class CrashResult(object):
@@ -86,6 +87,8 @@ class CrashResult(object):
       return False
 
     state = self.get_state(symbolized=False)
+    if environment.platform() == 'FUCHSIA':
+      return True
     if not state.strip() and not ignore_state:
       return False
     return True
