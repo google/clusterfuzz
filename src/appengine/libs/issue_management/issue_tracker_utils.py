@@ -154,7 +154,8 @@ def get_similar_issues_url(issue_tracker, testcase, only_open=True):
 
 
 def get_issue_url(testcase):
-  """Return issue url for a testcase."""
+  """Return issue url for a testcase. This is used when rendering a testcase,
+  details page, therefore it accounts for |group_bug_information| as well."""
   issue_tracker = get_issue_tracker_for_testcase(testcase)
   if not issue_tracker:
     return None
