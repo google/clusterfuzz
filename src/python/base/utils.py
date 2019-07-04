@@ -730,7 +730,7 @@ def timeout(duration):
       try:
         async_result = THREAD_POOL.apply_async(func, args=args, kwds=kwargs)
         return async_result.get(timeout=duration)
-      except Exception:
+      except multiprocessing.TimeoutError:
         # Sleep for some minutes in order to wait for flushing metrics.
         time.sleep(120)
 
