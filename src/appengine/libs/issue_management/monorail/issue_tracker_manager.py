@@ -302,35 +302,6 @@ class IssueTrackerManager(object):
         projectId=self.project_name, issueId=issue_id))
     return convert_entry_to_issue(entry, self)
 
-  def get_original_issue(self, issue_id):
-    """Retrieve the original issue object traversing the list of duplicates."""
-    # Caller might pass |issue_id| as string, so change it to integer so that
-    # circular chain checks in loop actually work.
-    issue_id = int(issue_id)
-
-    original_issue_id = issue_id
-    seen_issue_ids = []
-    while True:
-      original_issue = self.get_issue(original_issue_id)
-      seen_issue_ids.append(original_issue_id)
-
-      if not original_issue.merged_into:
-        # If this is an original issue, no more work to do. Bail out.
-        break
-
-      if original_issue.merged_into_project != self.project_name:
-        # If this duplicate issue is merged with issue from another project,
-        # dont traverse it as we might not have permissions to access or update
-        # it.
-        break
-
-      original_issue_id = original_issue.merged_into
-      if original_issue_id in seen_issue_ids:
-        # Don't traverse a circular chain, break if we realise that.
-        break
-
-    return original_issue
-
   def refresh(self, issue):
     """Refresh an issue object with latest updates."""
     if issue and not issue.new:
