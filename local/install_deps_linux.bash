@@ -46,8 +46,10 @@ fi
 # Prerequisite for add-apt-repository.
 sudo apt-get install -y apt-transport-https software-properties-common
 
-# Add needed apt-get repos. Not needed on Goobuntu (rodete).
-if [ "$distro_codename" != "rodete" ]; then
+if [ "$distro_codename" == "rodete" ]; then
+  prodaccess
+  sudo glinux-add-repo docker-ce-"$(lsb_release -cs)"
+else
   curl -fsSL https://download.docker.com/linux/${distro_id,,}/gpg | \
      sudo apt-key add -
   sudo add-apt-repository -y \
@@ -64,7 +66,6 @@ if [ "$distro_codename" != "rodete" ]; then
       sudo tee -a /etc/apt/sources.list.d/google-cloud-sdk.list
   curl https://packages.cloud.google.com/apt/doc/apt-key.gpg | \
       sudo apt-key add -
-
 fi
 
 # Set java_package so we know which to install.
