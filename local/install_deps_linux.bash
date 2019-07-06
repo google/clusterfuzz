@@ -48,20 +48,20 @@ sudo apt-get install -y apt-transport-https software-properties-common
 
 if [ "$distro_codename" == "rodete" ]; then
   prodaccess
-  sudo glinux-add-repo docker-ce-"$(lsb_release -cs)"
+  sudo glinux-add-repo docker-ce-"$distro_codename"
 else
   curl -fsSL https://download.docker.com/linux/${distro_id,,}/gpg | \
      sudo apt-key add -
   sudo add-apt-repository -y \
      "deb [arch=amd64] https://download.docker.com/linux/${distro_id,,} \
-     $(lsb_release -cs) \
+     $distro_codename \
      stable"
 
   echo "deb [arch=amd64] http://storage.googleapis.com/bazel-apt stable jdk1.8" \
       | sudo tee /etc/apt/sources.list.d/bazel.list
   curl https://bazel.build/bazel-release.pub.gpg | sudo apt-key add -
 
-  export CLOUD_SDK_REPO="cloud-sdk-$(lsb_release -c -s)"
+  export CLOUD_SDK_REPO="cloud-sdk-$distro_codename"
   echo "deb http://packages.cloud.google.com/apt $CLOUD_SDK_REPO main" | \
       sudo tee -a /etc/apt/sources.list.d/google-cloud-sdk.list
   curl https://packages.cloud.google.com/apt/doc/apt-key.gpg | \
