@@ -251,6 +251,10 @@ class Handler(base_handler.Handler):
       if testcase.job_type in excluded_jobs:
         continue
 
+      # Skip if we are running progression task at this time.
+      if testcase.get_metadata('progression_pending'):
+        continue
+
       # If the testcase has a bug filed already, no triage is needed.
       if is_bug_filed(testcase):
         continue
