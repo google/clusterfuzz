@@ -141,10 +141,6 @@ class Handler(base_handler.Handler):
   @handler.get(handler.HTML)
   def get(self):
     """GET handler."""
-    if not utils.is_oss_fuzz():
-      self.redirect('/testcases')
-      return
-
     self.render('oss-fuzz-home.html', get_results())
 
 

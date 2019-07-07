@@ -77,6 +77,9 @@ from handlers.testcase_detail import remove_issue
 from handlers.testcase_detail import update_from_trunk
 from handlers.testcase_detail import update_issue
 
+_is_chromium = utils.is_chromium()
+_is_oss_fuzz = utils.is_oss_fuzz()
+
 
 class _TrailingSlashRemover(webapp2.RequestHandler):
 
@@ -103,10 +106,10 @@ base_handler.add_menu('Fuzzer Statistics', '/fuzzer-stats')
 base_handler.add_menu('Crash Statistics', '/crash-stats')
 base_handler.add_menu('Upload Testcase', '/upload-testcase')
 
-if utils.is_chromium():
+if _is_chromium:
   base_handler.add_menu('Crashes by range', '/commit-range')
 
-if not utils.is_oss_fuzz():
+if not _is_oss_fuzz:
   base_handler.add_menu('Fuzzers', '/fuzzers')
   base_handler.add_menu('Corpora', '/corpora')
   base_handler.add_menu('Bots', '/bots')
@@ -145,7 +148,7 @@ _CRON_ROUTES = [
 ]
 
 _ROUTES = [
-    ('/', home.Handler),
+    ('/', home.Handler if _is_oss_fuzz else testcase_list.Handler),
     (r'(.*)/$', _TrailingSlashRemover),
     (r'/(google.+\.html)$', domain_verifier.Handler),
     ('/bots', bots.Handler),
