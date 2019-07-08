@@ -10,8 +10,11 @@ Specifically, the model will be trained on minimized corpus, and then generate
 similar inputs which, as we hope, can trigger new coverage, find new path, and
 ultimately find unforeseen bugs for targets.
 
-The detailed description of how the model is built can be found in design doc:
-[go/ml-fuzzing].
+This model was inspired by and implemented based on [tensorflow-rnn-shakespeare]
+project.
+
+*If you work at Google, you can read more about this model in [go/ml-fuzzing]
+design doc.*
 
 ## Usage
 
@@ -80,6 +83,7 @@ the model specified above, otherwise generation cannot work.
   --hidden-layer-size=<reset hidden layer size for LSTM model> \
 ```
 
-[go/ml-fuzzing]: https://goto.google.com/ml-fuzzing
 [RNN-generated Shakespeare play]: https://github.com/martin-gorner/tensorflow-rnn-shakespeare
 [TensorFlow]: https://www.tensorflow.org/install
+[go/ml-fuzzing]: https://goto.google.com/ml-fuzzing
+[tensorflow-rnn-shakespeare]: https://github.com/martin-gorner/tensorflow-rnn-shakespeare
