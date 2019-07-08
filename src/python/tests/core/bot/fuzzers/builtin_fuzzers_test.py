@@ -107,7 +107,7 @@ class BuiltinFuzzersSetupTest(fake_filesystem_unittest.TestCase):
 
     self.assertTrue(setup.update_fuzzer_and_data_bundles('libFuzzer'))
 
-    (error_occurred, testcase_file_paths, generated_testcase_count,
+    (error_occurred, testcase_file_paths,
      sync_corpus_directory, fuzzer_metadata) = fuzz_task.run_fuzzer(
          self.fuzzer, self.fuzzer_directory, '/output', '/input', 4)
     self.assertEqual(1, len(self.mock.run.call_args_list))
@@ -121,7 +121,6 @@ class BuiltinFuzzersSetupTest(fake_filesystem_unittest.TestCase):
         '/output/fuzz-3',
     ], testcase_file_paths)
 
-    self.assertEqual(4, generated_testcase_count)
     self.assertEqual('corpus_dir', sync_corpus_directory)
     self.assertDictEqual({
         'fuzzer_binary_name': 'fuzzer_binary_name'
