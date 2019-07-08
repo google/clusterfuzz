@@ -21,6 +21,7 @@ import uuid
 
 from . import storage
 
+from base import memoize
 from base import retry
 from datastore import data_types
 from datastore import ndb
@@ -92,8 +93,16 @@ def get_gcs_path(blob_key):
   return blob_info.gs_object_name
 
 
+@memoize.wrap(memoize.Memcache(60 * 60 * 24 * 30))  # 30 day TTL
+@retry.wrap(
+    retries=FAIL_NUM_RETRIES,
+    delay=FAIL_WAIT,
+    function='google_cloud_utils.blobs.get_blob_size')
 def get_blob_size(blob_key):
   """Returns blob size for a given blob key."""
+  if not blob_key or blob_key == 'NA':
+    return None
+
   blob_info = get_blob_info(blob_key)
   if not blob_info:
     return None

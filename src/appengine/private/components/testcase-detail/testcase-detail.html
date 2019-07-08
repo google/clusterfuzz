@@ -471,7 +471,9 @@
                           <a href="/viewer?testcase_id=[[info.testcase.id]]&key=[[info.testcase.minimized_keys]]"><iron-icon icon="icons:visibility"></iron-icon></a>
                         </template>
                         <a href="/download/[[info.testcase.minimized_keys]]?testcase_id={{info.testcase.id}}"><iron-icon icon="icons:cloud-download"></iron-icon></a>
-                        <small>([[info.minimized_testcase_size]])</small>
+                        <template is="dom-if" if="[[info.minimized_testcase_size]]">
+                          <small>([[info.minimized_testcase_size]])</small>
+                        </template>
                       </span>
                       <span slot="f">Pending</span>
                     </if-else>

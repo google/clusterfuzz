@@ -76,12 +76,18 @@ class BlobsTest(unittest.TestCase):
                      blobs.get_gcs_path('legacyblobkey'))
 
   def test_get_blob_size_gcs(self):
-    """Test get_gcs_path for GCS files."""
+    """Test get_blob_size for GCS blob."""
     self.assertEqual(456, blobs.get_blob_size(TEST_UUID))
 
   def test_get_blob_size_legacy(self):
-    """Test get_gcs_path for legacy files."""
+    """Test get_blob_size for legacy blob."""
     self.assertEqual(123, blobs.get_blob_size('legacyblobkey'))
+
+  def test_get_blob_size_invalid(self):
+    """Test get_blob_size for invalid blob."""
+    self.assertEqual(None, blobs.get_blob_size(None))
+    self.assertEqual(None, blobs.get_blob_size('NA'))
+    self.assertEqual(None, blobs.get_blob_size(''))
 
   def test_get_blob_info_gcs(self):
     """Test get_gcs_path for GCS files."""
