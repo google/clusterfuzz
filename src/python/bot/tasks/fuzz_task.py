@@ -1561,7 +1561,7 @@ class FuzzingSession(object):
     # Get the fuzzer directory.
     fuzzer_directory = setup.get_fuzzer_directory(self.fuzzer_name)
 
-    # Get the testcase directories |testcase_directory| and |data_directory|.
+    # Get the data bundle directory.
     # Data bundle directories can also have testcases which are kept in-place
     # because of dependencies.
     self.data_directory = setup.get_data_bundle_directory(self.fuzzer_name)
