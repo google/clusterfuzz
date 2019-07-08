@@ -53,6 +53,24 @@ class BuiltinFuzzer(object):
         os.path.dirname(sys.modules[self.__module__].__file__))
 
 
+def get_corpus_directory(input_directory, project_qualified_name):
+  """Get the corpus directory given a project qualified fuzz target name."""
+  corpus_directory = os.path.join(input_directory, project_qualified_name)
+  if environment.is_trusted_host():
+    from bot.untrusted_runner import file_host
+    corpus_directory = file_host.rebase_to_worker_root(corpus_directory)
+
+  # Create corpus directory if it does not exist already.
+  if environment.is_trusted_host():
+    from bot.untrusted_runner import file_host
+    file_host.create_directory(corpus_directory, create_intermediates=True)
+  else:
+    if not os.path.exists(corpus_directory):
+      os.mkdir(corpus_directory)
+
+  return corpus_directory
+
+
 class EngineFuzzer(BuiltinFuzzer):
   """Builtin fuzzer for fuzzing engines such as libFuzzer."""
 
@@ -94,20 +112,9 @@ class EngineFuzzer(BuiltinFuzzer):
     project_qualified_name = data_types.fuzz_target_project_qualified_name(
         utils.current_project(), fuzzer_binary_name)
 
-    corpus_directory = os.path.join(input_directory, project_qualified_name)
-    if environment.is_trusted_host():
-      from bot.untrusted_runner import file_host
-      corpus_directory = file_host.rebase_to_worker_root(corpus_directory)
-
     arguments = self.generate_arguments(fuzzer_path)
-
-    # Create corpus directory if it does not exist already.
-    if environment.is_trusted_host():
-      from bot.untrusted_runner import file_host
-      file_host.create_directory(corpus_directory, create_intermediates=True)
-    else:
-      if not os.path.exists(corpus_directory):
-        os.mkdir(corpus_directory)
+    corpus_directory = get_corpus_directory(input_directory,
+                                            project_qualified_name)
 
     # Create fuzz testcases.
     for i in range(no_of_files):

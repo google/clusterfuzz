@@ -15,6 +15,8 @@
 
 from builtins import object
 
+_ENGINES = {}
+
 
 class FuzzOptions(object):
   """Represents options passed to the engine. Can be overridden to provide more
@@ -47,6 +49,10 @@ class Result(object):
 class Engine(object):
   """Base interface for a grey box fuzzing engine."""
 
+  @property
+  def name(self):
+    return self.__class__.__name__
+
   def prepare(self, corpus_dir, target_path, build_dir):
     """Prepare for a fuzzing session, by generating options. Returns a
     FuzzOptions object."""
@@ -72,3 +78,20 @@ class Engine(object):
     """Optional: scrub a testcase of potentially sensitive bytes. Returns a
     bool."""
     raise NotImplementedError
+
+
+def register_engine(name, impl):
+  """Register a fuzzing engine."""
+  if impl in _ENGINES:
+    raise ValueError('Engine {name} is already registered'.format(name=name))
+
+  _ENGINES[name] = impl
+
+
+def get(name):
+  """Get an implemntation of a fuzzing engine, or None if one does not exist."""
+  engine_class = _ENGINES.get(name)
+  if engine_class:
+    return engine_class()
+
+  return None

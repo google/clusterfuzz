@@ -30,7 +30,9 @@ import time
 from base import dates
 from base import retry
 from base import utils
+from bot.fuzzers import builtin
 from bot.fuzzers import builtin_fuzzers
+from bot.fuzzers import engine
 from bot.fuzzers import engine_common
 from bot.fuzzers.libFuzzer import stats as libfuzzer_stats
 from bot.tasks import setup
@@ -69,6 +71,7 @@ FUZZER_FAILURE_THRESHOLD = 0.33
 MAX_GESTURES = 30
 MAX_NEW_CORPUS_FILES = 500
 MULTI_ARMED_BANDIT_TRAFFIC_SPLIT = .2
+THREAD_WAIT_TIMEOUT = 1
 
 
 class FuzzTaskException(Exception):
@@ -362,15 +365,15 @@ def _track_testcase_run_result(fuzzer, job_type, new_crash_count,
 class GcsCorpus(object):
   """Sync state for a corpus."""
 
-  def __init__(self, engine, project_qualified_target_name, corpus_directory,
-               data_directory):
+  def __init__(self, engine_name, project_qualified_target_name,
+               corpus_directory, data_directory):
     if environment.is_trusted_host():
       from bot.untrusted_runner import corpus_manager as remote_corpus_manager
       self.gcs_corpus = remote_corpus_manager.RemoteFuzzTargetCorpus(
-          engine, project_qualified_target_name)
+          engine_name, project_qualified_target_name)
     else:
       self.gcs_corpus = corpus_manager.FuzzTargetCorpus(
-          engine, project_qualified_target_name, log_results=False)
+          engine_name, project_qualified_target_name, log_results=False)
 
     self._corpus_directory = corpus_directory
     self._data_directory = data_directory
@@ -611,7 +614,6 @@ def pick_timeout_multiplier():
     timeout_multiplier = utils.random_element_from_list(
         custom_timeout_multipliers)
 
-  environment.set_value('TIMEOUT_MULTIPLIER', timeout_multiplier)
   return timeout_multiplier
 
 
@@ -661,7 +663,7 @@ def pick_window_argument():
     retries=FUZZ_TARGET_UPDATE_FAIL_RETRIES,
     delay=FUZZ_TARGET_UPDATE_FAIL_DELAY,
     function='tasks.fuzz_task.record_fuzz_target')
-def record_fuzz_target(engine, binary_name, job_type):
+def record_fuzz_target(engine_name, binary_name, job_type):
   """Record existence of fuzz target."""
   if not binary_name:
     logs.log_error('Expected binary_name.')
@@ -669,12 +671,12 @@ def record_fuzz_target(engine, binary_name, job_type):
 
   project = data_handler.get_project_name(job_type)
   key_name = data_types.fuzz_target_fully_qualified_name(
-      engine, project, binary_name)
+      engine_name, project, binary_name)
 
   fuzz_target = ndb.Key(data_types.FuzzTarget, key_name).get()
   if not fuzz_target:
     fuzz_target = data_types.FuzzTarget(
-        engine=engine, project=project, binary=binary_name)
+        engine=engine_name, project=project, binary=binary_name)
     fuzz_target.put()
 
   job_mapping_key = data_types.fuzz_target_job_key(key_name, job_type)
@@ -685,14 +687,14 @@ def record_fuzz_target(engine, binary_name, job_type):
     job_mapping = data_types.FuzzTargetJob(
         fuzz_target_name=key_name,
         job=job_type,
-        engine=engine,
+        engine=engine_name,
         last_run=utils.utcnow())
   job_mapping.put()
 
   logs.log(
       'Recorded use of fuzz target %s.' % key_name,
       project=project,
-      engine=engine,
+      engine=engine_name,
       binary_name=binary_name,
       job_type=job_type)
   return fuzz_target
@@ -728,6 +730,8 @@ def run_fuzzer(fuzzer, fuzzer_directory, testcase_directory, data_directory,
   testcase_manager.remove_testcases_from_directories(testcase_directories)
 
   # Set an environment variable for fuzzer name.
+  # TODO(ochang): Investigate removing this. Only users appear to be chromebot
+  # fuzzer and fuzzer_logs, both of which should be able to removed.
   environment.set_value('FUZZER_NAME', fuzzer_name)
 
   # Set minimum redzone size, do not detect leaks and zero out the
@@ -855,8 +859,8 @@ def run_fuzzer(fuzzer, fuzzer_directory, testcase_directory, data_directory,
   _track_fuzzer_run_result(fuzzer_name, generated_testcase_count,
                            testcase_count, fuzzer_return_code)
 
-  return (error_occurred, testcase_file_paths, generated_testcase_count,
-          sync_corpus_directory, fuzzer_metadata)
+  return (error_occurred, testcase_file_paths, sync_corpus_directory,
+          fuzzer_metadata)
 
 
 def convert_groups_to_crashes(groups):
@@ -1256,321 +1260,397 @@ def get_strategy_distribution_from_ndb():
   return distribution
 
 
-def execute_task(fuzzer_name, job_type):
-  """Runs the given fuzzer for one round."""
-  failure_wait_interval = environment.get_value('FAIL_WAIT')
+class FuzzingSession(object):
+  """Class for orchestrating fuzzing sessions."""
 
-  # Update LSAN local blacklist with global blacklist.
-  is_lsan_enabled = environment.get_value('LSAN')
-  if is_lsan_enabled:
-    leak_blacklist.copy_global_to_local_blacklist()
+  def __init__(self, fuzzer_name, job_type, testcase_directory, test_timeout):
+    self.fuzzer_name = fuzzer_name
+    self.job_type = job_type
 
-  # For some binaries, we specify trials, which are sets of flags that we only
-  # apply some of the time. Adjust APP_ARGS for them if needed.
-  trials.setup_additional_args_for_app()
+    # Set up randomly selected fuzzing parameters.
+    self.redzone = pick_redzone()
+    self.timeout_multiplier = pick_timeout_multiplier()
+    self.window_argument = pick_window_argument()
+    self.test_timeout = set_test_timeout(test_timeout, self.timeout_multiplier)
 
-  # Ensure that that the fuzzer still exists.
-  logs.log('Setting up fuzzer and data bundles.')
-  fuzzer = data_types.Fuzzer.query(data_types.Fuzzer.name == fuzzer_name).get()
-  if not fuzzer or not setup.update_fuzzer_and_data_bundles(fuzzer_name):
-    _track_fuzzer_run_result(fuzzer_name, 0, 0,
-                             FuzzErrorCode.FUZZER_SETUP_FAILED)
-    logs.log_error('Unable to setup fuzzer %s.' % fuzzer_name)
+    self.testcase_directory = testcase_directory
+    self.data_directory = None  # Set up during run().
 
-    # Artifical sleep to slow down continuous failed fuzzer runs if the bot is
-    # using command override for task execution.
-    time.sleep(failure_wait_interval)
-    return
+    # Fuzzing engine specific state.
+    self.fuzz_target = None
+    self.gcs_corpus = None
 
-  # Set up a custom or regular build based on revision. By default, fuzzing
-  # is done on trunk build (using revision=None). Otherwise, a job definition
-  # can provide a revision to use via |APP_REVISION|.
-  if (build_manager.setup_build(environment.get_value('APP_REVISION')) and
-      environment.get_value('DATAFLOW_BUILD_BUCKET_PATH')):
-    # Some fuzzing jobs may use auxiliary builds, such as DFSan instrumented
-    # builds accompanying libFuzzer builds to enable DFT-based fuzzing.
-    build_manager.setup_trunk_build(['DATAFLOW_BUILD_BUCKET_PATH'], 'DATAFLOW')
+  @property
+  def fully_qualified_fuzzer_name(self):
+    """Get the fully qualified fuzzer name."""
+    if self.fuzz_target:
+      return self.fuzz_target.fully_qualified_name()
 
-  # Check if we have an application path. If not, our build failed
-  # to setup correctly.
-  app_path = environment.get_value('APP_PATH')
-  if not app_path:
-    _track_fuzzer_run_result(fuzzer_name, 0, 0,
-                             FuzzErrorCode.BUILD_SETUP_FAILED)
-    return
+    return self.fuzzer_name
 
-  # Check if we have a bad build, i.e. one that crashes on startup.
-  # If yes, bail out.
-  logs.log('Checking for bad build.')
-  crash_revision = environment.get_value('APP_REVISION')
-  is_bad_build = testcase_manager.check_for_bad_build(job_type, crash_revision)
-  _track_build_run_result(job_type, crash_revision, is_bad_build)
-  if is_bad_build:
-    return
+  def sync_corpus(self, sync_corpus_directory):
+    """Sync corpus from GCS."""
+    self.gcs_corpus = GcsCorpus(self.fuzzer_name,
+                                self.fuzz_target.project_qualified_name(),
+                                sync_corpus_directory, self.data_directory)
+    if not self.gcs_corpus.sync_from_gcs():
+      raise FuzzTaskException(
+          'Failed to sync corpus for fuzzer %s (job %s).' %
+          (self.fuzz_target.project_qualified_name(), self.job_type))
 
-  # Helper variables.
-  bot_name = environment.get_value('BOT_NAME')
-  data_bundle_name = fuzzer.data_bundle_name
-  platform = environment.platform()
-  platform_id = environment.get_platform_id()
+  def sync_new_corpus_files(self):
+    """Sync new files from corpus to GCS."""
+    if not self.gcs_corpus:
+      return
 
-  # Get the fuzzer directory.
-  fuzzer_directory = setup.get_fuzzer_directory(fuzzer_name)
-
-  # Get the testcase directories |testcase_directory| and |data_directory|.
-  # Data bundle directories can also have testcases which are kept in-place
-  # because of dependencies.
-  testcase_directory = environment.get_value('FUZZ_INPUTS')
-  data_directory = setup.get_data_bundle_directory(fuzzer_name)
-  if not data_directory:
-    _track_fuzzer_run_result(fuzzer_name, 0, 0,
-                             FuzzErrorCode.DATA_BUNDLE_SETUP_FAILED)
-    logs.log_error('Unable to setup data bundle %s.' % data_bundle_name)
-    return
-
-  # Pick up a timeout multiplier.
-  timeout_multiplier = pick_timeout_multiplier()
-
-  # Set the thread timeout values.
-  fuzz_test_timeout = environment.get_value('FUZZ_TEST_TIMEOUT')
-  old_test_timeout = environment.get_value('TEST_TIMEOUT')
-  if fuzz_test_timeout:
-    base_test_timeout = fuzz_test_timeout
-  else:
-    base_test_timeout = old_test_timeout
-
-  test_timeout = set_test_timeout(base_test_timeout, timeout_multiplier)
-  thread_timeout = test_timeout
-
-  # Determine number of testcases to process.
-  testcase_count = environment.get_value('MAX_TESTCASES')
-
-  # For timeout multipler greater than 1, we need to decrease testcase count to
-  # prevent exceeding task lease time.
-  if timeout_multiplier > 1:
-    testcase_count /= timeout_multiplier
-
-  # Run the fuzzer to generate testcases. If error occurred while trying
-  # to run the fuzzer, bail out.
-  (error_occurred, testcase_file_paths, generated_testcase_count,
-   sync_corpus_directory,
-   fuzzer_metadata) = run_fuzzer(fuzzer, fuzzer_directory, testcase_directory,
-                                 data_directory, testcase_count)
-
-  if error_occurred:
-    return
-
-  fuzzer_binary_name = fuzzer_metadata.get('fuzzer_binary_name')
-  fuzz_target = None
-  if fuzzer_binary_name:
-    fuzz_target = record_fuzz_target(fuzzer_name, fuzzer_binary_name, job_type)
-    fully_qualified_fuzzer_name = fuzz_target.fully_qualified_name()
-    environment.set_value('FUZZER_NAME', fully_qualified_fuzzer_name)
-  else:
-    fully_qualified_fuzzer_name = fuzzer_name
-
-  # Synchronize corpus files with GCS
-  if sync_corpus_directory:
-    gcs_corpus = GcsCorpus(fuzzer_name, fuzz_target.project_qualified_name(),
-                           sync_corpus_directory, data_directory)
-
-    if not gcs_corpus.sync_from_gcs():
-      raise FuzzTaskException('Failed to sync corpus for fuzzer %s (job %s).' %
-                              (fuzz_target.project_qualified_name(), job_type))
-
-    environment.set_value('FUZZ_CORPUS_DIR', sync_corpus_directory)
-
-  # Initialize a list of crashes.
-  crashes = []
-
-  # Pick up a random redzone.
-  redzone = pick_redzone()
-
-  # Pick up a random window size and position.
-  window_argument = pick_window_argument()
-
-  # Helper variables.
-  max_threads = utils.maximum_parallel_processes_allowed()
-  needs_stale_process_cleanup = False
-  project_name = data_handler.get_project_name(job_type)
-  test_number = 0
-  testcases_before_stale_process_cleanup = environment.get_value(
-      'TESTCASES_BEFORE_STALE_PROCESS_CLEANUP', 1)
-  thread_delay = environment.get_value('THREAD_DELAY')
-  thread_error_occurred = False
-
-  # TODO: Remove environment variable once fuzzing engine refactor is complete.
-  # Set multi-armed bandit strategy selection distribution as an environment
-  # variable so we can access it in launcher.
-  if (environment.get_value('USE_BANDIT_STRATEGY_SELECTION') and
-      engine_common.decide_with_probability(MULTI_ARMED_BANDIT_TRAFFIC_SPLIT)):
-    distribution = get_strategy_distribution_from_ndb()
-    environment.set_value('STRATEGY_SELECTION_METHOD', 'multi_armed_bandit')
-    environment.set_value('STRATEGY_SELECTION_DISTRIBUTION', distribution)
-
-  # Reset memory tool options.
-  environment.reset_current_memory_tool_options(redzone_size=redzone)
-
-  thread_wait_timeout = 1
-
-  # Create a dict to store metadata specific to each testcase.
-  testcases_metadata = {}
-  for testcase_file_path in testcase_file_paths:
-    testcases_metadata[testcase_file_path] = {}
-
-    # Pick up a gesture to run on the testcase.
-    testcases_metadata[testcase_file_path]['gestures'] = pick_gestures(
-        test_timeout)
-
-  logs.log('Starting to process testcases.')
-  logs.log('Redzone is %d bytes.' % redzone)
-  logs.log('Timeout multiplier is %s.' % str(timeout_multiplier))
-  logs.log('App launch command is %s.' %
-           testcase_manager.get_command_line_for_application())
-
-  # Start processing the testcases.
-  while test_number < len(testcase_file_paths):
-    thread_index = 0
-    threads = []
-
-    temp_queue = process_handler.get_queue()
-    if not temp_queue:
-      process_handler.terminate_stale_application_instances()
-      logs.log_error('Unable to create temporary crash queue.')
-      break
-
-    while thread_index < max_threads and test_number < len(testcase_file_paths):
-      testcase_file_path = testcase_file_paths[test_number]
-      gestures = testcases_metadata[testcase_file_path]['gestures']
-
-      env_copy = environment.copy()
-      thread = process_handler.get_process()(
-          target=testcase_manager.run_testcase_and_return_result_in_queue,
-          args=(temp_queue, thread_index, testcase_file_path, gestures,
-                env_copy, True))
-
-      try:
-        thread.start()
-      except:
-        process_handler.terminate_stale_application_instances()
-        thread_error_occurred = True
-        logs.log_error('Unable to start new thread.')
-        break
-
-      threads.append(thread)
-      thread_index += 1
-      test_number += 1
-
-      if test_number % testcases_before_stale_process_cleanup == 0:
-        needs_stale_process_cleanup = True
-
-      time.sleep(thread_delay)
-
-    with _TrackFuzzTime(fully_qualified_fuzzer_name, job_type) as tracker:
-      tracker.timeout = utils.wait_until_timeout(threads, thread_timeout)
-
-    # Allow for some time to finish processing before terminating the processes.
-    process_handler.terminate_hung_threads(threads)
-
-    # It is not necessary to clean up stale instances on every batch, but
-    # should be done at regular intervals to ensure we are in a good state.
-    if needs_stale_process_cleanup:
-      process_handler.terminate_stale_application_instances()
-      needs_stale_process_cleanup = False
-
-    while not temp_queue.empty():
-      crashes.append(temp_queue.get())
-
-    process_handler.close_queue(temp_queue)
-
-    logs.log('Upto %d' % test_number)
-
-    if thread_error_occurred:
-      break
-
-  # Pull testcase directory to host. The testcase file contents could have been
-  # changed (by e.g. libFuzzer) and stats files could have been written.
-  if environment.is_trusted_host():
-    from bot.untrusted_runner import file_host
-    file_host.pull_testcases_from_worker()
-
-  # Synchronize corpus files with GCS after fuzzing
-  if sync_corpus_directory:
-    new_files = gcs_corpus.get_new_files()
+    new_files = self.gcs_corpus.get_new_files()
     new_files_count = len(new_files)
     logs.log('%d new corpus files generated by fuzzer %s (job %s).' %
-             (new_files_count, fuzz_target.project_qualified_name(), job_type))
+             (new_files_count, self.fuzz_target.project_qualified_name(),
+              self.job_type))
 
     if new_files_count > MAX_NEW_CORPUS_FILES:
       # Throttle corpus uploads so they don't explode in size.
       logs.log(('Only uploading %d out of %d new corpus files '
                 'generated by fuzzer %s (job %s).') %
                (MAX_NEW_CORPUS_FILES, new_files_count,
-                fuzz_target.project_qualified_name(), job_type))
+                self.fuzz_target.project_qualified_name(), self.job_type))
       new_files = random.sample(new_files, MAX_NEW_CORPUS_FILES)
 
-    gcs_corpus.upload_files(new_files)
+    self.gcs_corpus.upload_files(new_files)
 
-  logs.log('Finished processing test cases.')
+  def do_engine_fuzzing(self, engine_impl):
+    """Run fuzzing engine."""
+    fuzz_target_name = environment.get_value('FUZZ_TARGET')
+    self.fuzz_target = record_fuzz_target(engine_impl.name, fuzz_target_name,
+                                          self.job_type)
+    # Synchronize corpus files with GCS
+    sync_corpus_directory = builtin.get_corpus_directory(
+        self.testcase_directory, self.fuzz_target.project_qualified_name())
+    self.sync_corpus(sync_corpus_directory)
+    # TODO(ochang): Actual fuzzing.
+    self.sync_new_corpus_files()
 
-  # Currently, the decision to do fuzzing or running the testcase is based on
-  # the value of |FUZZ_CORPUS_DIR|. Reset it to None, so that later runs of
-  # testForReproducibility run the testcase.
-  # FIXME: Change to environment.remove_key call when it supports removing
-  # the environment variable on untrusted bot (as part of
-  # bot.untrusted_runner import environment).
-  environment.set_value('FUZZ_CORPUS_DIR', None)
+    # TODO(ochang): Return actual crashes.
+    return []
 
-  # Restore old values before attempting to test for reproducibility.
-  test_timeout = set_test_timeout(old_test_timeout, timeout_multiplier)
+  def do_blackbox_fuzzing(self, fuzzer, fuzzer_directory, job_type):
+    """Run blackbox fuzzing."""
+    # Set the thread timeout values.
+    # TODO(ochang): Remove this hack once engine fuzzing refactor is compelte.
+    fuzz_test_timeout = environment.get_value('FUZZ_TEST_TIMEOUT')
+    if fuzz_test_timeout:
+      test_timeout = set_test_timeout(fuzz_test_timeout,
+                                      self.timeout_multiplier)
+    else:
+      test_timeout = self.test_timeout
 
-  # For Android, bring back device to a good state before analyzing crashes.
-  if platform == 'ANDROID' and crashes:
-    # Remove this variable so that application is fully shutdown before every
-    # re-run of testcase. This is critical for reproducibility.
-    environment.remove_key('CHILD_PROCESS_TERMINATION_PATTERN')
+    thread_timeout = test_timeout
 
-    # TODO(unassigned): Need to find a way to this efficiently before every
-    # testcase is analyzed.
-    android.device.initialize_device()
+    # Determine number of testcases to process.
+    testcase_count = environment.get_value('MAX_TESTCASES')
 
-  # Transform tests.Crash into fuzz_task.Crash.
-  # And filter the crashes (e.g. removing errorneous crashes).
-  crashes = [Crash(crash) for crash in crashes]
+    # For timeout multipler greater than 1, we need to decrease testcase count
+    # to prevent exceeding task lease time.
+    if self.timeout_multiplier > 1:
+      testcase_count /= self.timeout_multiplier
 
-  # Process and save crashes to datastore.
-  new_crash_count, known_crash_count, processed_groups = process_crashes(
-      crashes=crashes,
-      context=Context(
-          project_name=project_name,
-          bot_name=bot_name,
-          job_type=job_type,
-          fuzz_target=fuzz_target,
-          redzone=redzone,
-          platform_id=platform_id,
-          crash_revision=crash_revision,
-          fuzzer_name=fuzzer_name,
-          window_argument=window_argument,
-          fuzzer_metadata=fuzzer_metadata,
-          testcases_metadata=testcases_metadata,
-          timeout_multiplier=timeout_multiplier,
-          test_timeout=test_timeout,
-          thread_wait_timeout=thread_wait_timeout,
-          data_directory=data_directory))
+    # Run the fuzzer to generate testcases. If error occurred while trying
+    # to run the fuzzer, bail out.
+    (error_occurred, testcase_file_paths,
+     sync_corpus_directory, fuzzer_metadata) = run_fuzzer(
+         fuzzer, fuzzer_directory, self.testcase_directory, self.data_directory,
+         testcase_count)
 
-  upload_testcase_run_stats(fuzzer_name, fully_qualified_fuzzer_name, job_type,
-                            crash_revision, testcase_file_paths)
-  upload_job_run_stats(fully_qualified_fuzzer_name, job_type, crash_revision,
-                       time.time(), new_crash_count, known_crash_count,
-                       generated_testcase_count, processed_groups)
+    if error_occurred:
+      return None, None, None
 
-  # Delete the fuzzed testcases. This is explicitly needed since
-  # some testcases might reside on NFS and would otherwise be
-  # left forever.
-  for testcase_file_path in testcase_file_paths:
-    shell.remove_file(testcase_file_path)
+    fuzzer_binary_name = fuzzer_metadata.get('fuzzer_binary_name')
+    if fuzzer_binary_name:
+      self.fuzz_target = record_fuzz_target(fuzzer.name, fuzzer_binary_name,
+                                            job_type)
 
-  # Explicit cleanup for large vars.
-  del testcase_file_paths
-  del testcases_metadata
-  utils.python_gc()
+    environment.set_value('FUZZER_NAME', self.fully_qualified_fuzzer_name)
+
+    # Synchronize corpus files with GCS
+    self.sync_corpus(sync_corpus_directory)
+    environment.set_value('FUZZ_CORPUS_DIR', sync_corpus_directory)
+
+    # Initialize a list of crashes.
+    crashes = []
+
+    # Helper variables.
+    max_threads = utils.maximum_parallel_processes_allowed()
+    needs_stale_process_cleanup = False
+    test_number = 0
+    testcases_before_stale_process_cleanup = environment.get_value(
+        'TESTCASES_BEFORE_STALE_PROCESS_CLEANUP', 1)
+    thread_delay = environment.get_value('THREAD_DELAY')
+    thread_error_occurred = False
+
+    # TODO: Remove environment variable once fuzzing engine refactor is
+    # complete. Set multi-armed bandit strategy selection distribution as an
+    # environment variable so we can access it in launcher.
+    if (environment.get_value('USE_BANDIT_STRATEGY_SELECTION') and
+        engine_common.decide_with_probability(MULTI_ARMED_BANDIT_TRAFFIC_SPLIT)
+       ):
+      distribution = get_strategy_distribution_from_ndb()
+      environment.set_value('STRATEGY_SELECTION_METHOD', 'multi_armed_bandit')
+      environment.set_value('STRATEGY_SELECTION_DISTRIBUTION', distribution)
+
+    # Reset memory tool options.
+    environment.reset_current_memory_tool_options(redzone_size=self.redzone)
+
+    # Create a dict to store metadata specific to each testcase.
+    testcases_metadata = {}
+    for testcase_file_path in testcase_file_paths:
+      testcases_metadata[testcase_file_path] = {}
+
+      # Pick up a gesture to run on the testcase.
+      testcases_metadata[testcase_file_path]['gestures'] = pick_gestures(
+          test_timeout)
+
+    logs.log('Starting to process testcases.')
+    logs.log('Redzone is %d bytes.' % self.redzone)
+    logs.log('Timeout multiplier is %s.' % str(self.timeout_multiplier))
+    logs.log('App launch command is %s.' %
+             testcase_manager.get_command_line_for_application())
+
+    # Start processing the testcases.
+    while test_number < len(testcase_file_paths):
+      thread_index = 0
+      threads = []
+
+      temp_queue = process_handler.get_queue()
+      if not temp_queue:
+        process_handler.terminate_stale_application_instances()
+        logs.log_error('Unable to create temporary crash queue.')
+        break
+
+      while thread_index < max_threads and test_number < len(
+          testcase_file_paths):
+        testcase_file_path = testcase_file_paths[test_number]
+        gestures = testcases_metadata[testcase_file_path]['gestures']
+
+        env_copy = environment.copy()
+        thread = process_handler.get_process()(
+            target=testcase_manager.run_testcase_and_return_result_in_queue,
+            args=(temp_queue, thread_index, testcase_file_path, gestures,
+                  env_copy, True))
+
+        try:
+          thread.start()
+        except:
+          process_handler.terminate_stale_application_instances()
+          thread_error_occurred = True
+          logs.log_error('Unable to start new thread.')
+          break
+
+        threads.append(thread)
+        thread_index += 1
+        test_number += 1
+
+        if test_number % testcases_before_stale_process_cleanup == 0:
+          needs_stale_process_cleanup = True
+
+        time.sleep(thread_delay)
+
+      with _TrackFuzzTime(self.fully_qualified_fuzzer_name,
+                          job_type) as tracker:
+        tracker.timeout = utils.wait_until_timeout(threads, thread_timeout)
+
+      # Allow for some time to finish processing before terminating the
+      # processes.
+      process_handler.terminate_hung_threads(threads)
+
+      # It is not necessary to clean up stale instances on every batch, but
+      # should be done at regular intervals to ensure we are in a good state.
+      if needs_stale_process_cleanup:
+        process_handler.terminate_stale_application_instances()
+        needs_stale_process_cleanup = False
+
+      while not temp_queue.empty():
+        crashes.append(temp_queue.get())
+
+      process_handler.close_queue(temp_queue)
+
+      logs.log('Upto %d' % test_number)
+
+      if thread_error_occurred:
+        break
+
+    # Pull testcase directory to host. The testcase file contents could have
+    # been changed (by e.g. libFuzzer) and stats files could have been written.
+    if environment.is_trusted_host():
+      from bot.untrusted_runner import file_host
+      file_host.pull_testcases_from_worker()
+
+    # Synchronize corpus files with GCS after fuzzing
+    self.sync_new_corpus_files()
+
+    # Currently, the decision to do fuzzing or running the testcase is based on
+    # the value of |FUZZ_CORPUS_DIR|. Reset it to None, so that later runs of
+    # testForReproducibility run the testcase.
+    # FIXME: Change to environment.remove_key call when it supports removing
+    # the environment variable on untrusted bot (as part of
+    # bot.untrusted_runner import environment).
+    environment.set_value('FUZZ_CORPUS_DIR', None)
+
+    # Restore old values before attempting to test for reproducibility.
+    set_test_timeout(self.test_timeout, 1.0)
+    return crashes, {}, []
+
+  def run(self):
+    """Run the fuzzing session."""
+    failure_wait_interval = environment.get_value('FAIL_WAIT')
+
+    # Update LSAN local blacklist with global blacklist.
+    is_lsan_enabled = environment.get_value('LSAN')
+    if is_lsan_enabled:
+      leak_blacklist.copy_global_to_local_blacklist()
+
+    # For some binaries, we specify trials, which are sets of flags that we only
+    # apply some of the time. Adjust APP_ARGS for them if needed.
+    trials.setup_additional_args_for_app()
+
+    # Ensure that that the fuzzer still exists.
+    logs.log('Setting up fuzzer and data bundles.')
+    fuzzer = data_types.Fuzzer.query(
+        data_types.Fuzzer.name == self.fuzzer_name).get()
+    if not fuzzer or not setup.update_fuzzer_and_data_bundles(self.fuzzer_name):
+      _track_fuzzer_run_result(self.fuzzer_name, 0, 0,
+                               FuzzErrorCode.FUZZER_SETUP_FAILED)
+      logs.log_error('Unable to setup fuzzer %s.' % self.fuzzer_name)
+
+      # Artifical sleep to slow down continuous failed fuzzer runs if the bot is
+      # using command override for task execution.
+      time.sleep(failure_wait_interval)
+      return
+
+    # Set up a custom or regular build based on revision. By default, fuzzing
+    # is done on trunk build (using revision=None). Otherwise, a job definition
+    # can provide a revision to use via |APP_REVISION|.
+    if (build_manager.setup_build(environment.get_value('APP_REVISION')) and
+        environment.get_value('DATAFLOW_BUILD_BUCKET_PATH')):
+      # Some fuzzing jobs may use auxiliary builds, such as DFSan instrumented
+      # builds accompanying libFuzzer builds to enable DFT-based fuzzing.
+      build_manager.setup_trunk_build(['DATAFLOW_BUILD_BUCKET_PATH'],
+                                      'DATAFLOW')
+
+    # Check if we have an application path. If not, our build failed
+    # to setup correctly.
+    app_path = environment.get_value('APP_PATH')
+    if not app_path:
+      _track_fuzzer_run_result(self.fuzzer_name, 0, 0,
+                               FuzzErrorCode.BUILD_SETUP_FAILED)
+      return
+
+    # Check if we have a bad build, i.e. one that crashes on startup.
+    # If yes, bail out.
+    logs.log('Checking for bad build.')
+    crash_revision = environment.get_value('APP_REVISION')
+    is_bad_build = testcase_manager.check_for_bad_build(self.job_type,
+                                                        crash_revision)
+    _track_build_run_result(self.job_type, crash_revision, is_bad_build)
+    if is_bad_build:
+      return
+
+    # Helper variables.
+    data_bundle_name = fuzzer.data_bundle_name
+
+    # Get the fuzzer directory.
+    fuzzer_directory = setup.get_fuzzer_directory(self.fuzzer_name)
+
+    # Get the testcase directories |testcase_directory| and |data_directory|.
+    # Data bundle directories can also have testcases which are kept in-place
+    # because of dependencies.
+    self.data_directory = setup.get_data_bundle_directory(self.fuzzer_name)
+    if not self.data_directory:
+      _track_fuzzer_run_result(self.fuzzer_name, 0, 0,
+                               FuzzErrorCode.DATA_BUNDLE_SETUP_FAILED)
+      logs.log_error('Unable to setup data bundle %s.' % data_bundle_name)
+      return
+
+    engine_impl = engine.get(fuzzer.name)
+    if engine_impl:
+      crashes = self.do_engine_fuzzing(engine_impl)
+      testcase_file_paths = []
+      testcases_metadata = {}
+      fuzzer_metadata = {}
+    else:
+      fuzzer_metadata, testcase_file_paths, crashes = self.do_blackbox_fuzzing(
+          fuzzer, fuzzer_directory, self.job_type)
+
+    if crashes is None:
+      # Error occurred.
+      return
+
+    logs.log('Finished processing test cases.')
+
+    platform = environment.platform()
+    platform_id = environment.get_platform_id()
+
+    # For Android, bring back device to a good state before analyzing crashes.
+    if platform == 'ANDROID' and crashes:
+      # Remove this variable so that application is fully shutdown before every
+      # re-run of testcase. This is critical for reproducibility.
+      environment.remove_key('CHILD_PROCESS_TERMINATION_PATTERN')
+
+      # TODO(unassigned): Need to find a way to this efficiently before every
+      # testcase is analyzed.
+      android.device.initialize_device()
+
+    # Transform tests.Crash into fuzz_task.Crash.
+    # And filter the crashes (e.g. removing errorneous crashes).
+    crashes = [Crash(crash) for crash in crashes]
+
+    project_name = data_handler.get_project_name(self.job_type)
+
+    # Process and save crashes to datastore.
+    bot_name = environment.get_value('BOT_NAME')
+    new_crash_count, known_crash_count, processed_groups = process_crashes(
+        crashes=crashes,
+        context=Context(
+            project_name=project_name,
+            bot_name=bot_name,
+            job_type=self.job_type,
+            fuzz_target=self.fuzz_target,
+            redzone=self.redzone,
+            platform_id=platform_id,
+            crash_revision=crash_revision,
+            fuzzer_name=self.fuzzer_name,
+            window_argument=self.window_argument,
+            fuzzer_metadata=fuzzer_metadata,
+            testcases_metadata=testcases_metadata,
+            timeout_multiplier=self.timeout_multiplier,
+            test_timeout=self.test_timeout,
+            thread_wait_timeout=THREAD_WAIT_TIMEOUT,
+            data_directory=self.data_directory))
+
+    upload_testcase_run_stats(self.fuzzer_name,
+                              self.fully_qualified_fuzzer_name, self.job_type,
+                              crash_revision, testcase_file_paths)
+    upload_job_run_stats(self.fully_qualified_fuzzer_name, self.job_type,
+                         crash_revision, time.time(),
+                         new_crash_count, known_crash_count,
+                         len(testcase_file_paths), processed_groups)
+
+    # Delete the fuzzed testcases. This is explicitly needed since
+    # some testcases might reside on NFS and would otherwise be
+    # left forever.
+    for testcase_file_path in testcase_file_paths:
+      shell.remove_file(testcase_file_path)
+
+    # Explicit cleanup for large vars.
+    del testcase_file_paths
+    del testcases_metadata
+    utils.python_gc()
+
+
+def execute_task(fuzzer_name, job_type):
+  """Runs the given fuzzer for one round."""
+  testcase_directory = environment.get_value('FUZZ_INPUTS')
+  test_timeout = environment.get_value('TEST_TIMEOUT')
+  session = FuzzingSession(fuzzer_name, job_type, testcase_directory,
+                           test_timeout)
+  session.run()
