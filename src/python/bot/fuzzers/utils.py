@@ -36,7 +36,7 @@ def is_lpm_fuzz_target(fuzzer_path):
 
 
 def is_lpm_fuzz_target_handle(fuzzer_handle):
-  """Returns True if |fuzzer_path| is a libprotobuf-mutator based fuzz
+  """Returns True if |fuzzer_handle| is a libprotobuf-mutator based fuzz
   target."""
   return utils.search_string_in_file('TestOneProtoInput', fuzzer_handle)
 
