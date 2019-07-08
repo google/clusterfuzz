@@ -111,7 +111,7 @@ def _select_generator(strategy_pool, fuzzer_path):
   # works on Win.
   # These generators don't produce testcases that LPM fuzzers can use.
   if (environment.platform() == 'WINDOWS' or
-      engine_common.is_lpm_fuzz_target(fuzzer_path)):
+      fuzzer_utils.is_lpm_fuzz_target(fuzzer_path)):
     return Generator.NONE
   elif strategy_pool.do_strategy(strategy.CORPUS_MUTATION_ML_RNN_STRATEGY):
     return Generator.ML_RNN

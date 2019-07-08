@@ -28,6 +28,19 @@ FUZZ_TARGET_SEARCH_STRING = 'LLVMFuzzerTestOneInput'
 VALID_TARGET_NAME = re.compile(r'^[a-zA-Z0-9_-]+$')
 
 
+def is_lpm_fuzz_target(fuzzer_path):
+  """Creates a file handle from |fuzzer_path| passes it to
+  is_lpm_fuzz_target_handle and returns the result."""
+  with open(fuzzer_path) as file_handle:
+    return is_lpm_fuzz_target_handle(file_handle)
+
+
+def is_lpm_fuzz_target_handle(fuzzer_handle):
+  """Returns True if |fuzzer_path| is a libprotobuf-mutator based fuzz
+  target."""
+  return utils.search_string_in_file('TestOneProtoInput', fuzzer_handle)
+
+
 def is_fuzz_target_local(file_path, file_handle=None):
   """Returns whether |file_path| is a fuzz target binary (local path)."""
   filename, file_extension = os.path.splitext(os.path.basename(file_path))
@@ -43,6 +56,38 @@ def is_fuzz_target_local(file_path, file_handle=None):
     # Ignore non-existant files for cases when we don't have a file handle.
     return False
 
+  if os.path.exists(file_path) and not stat.S_ISREG(os.stat(file_path).st_mode):
+    # Don't read special files (eg: /dev/urandom).
+    logs.log_warn('Tried to read from non-regular file: %s.' % file_path)
+    return False
+
+  class LocalFileHandle(object):
+    """A context manager that opens a file handle on entry if needed and closes
+    or rewinds the handle on exit."""
+
+    def __init__(self):
+      self.handle = None
+      self.position = None
+
+    def __enter__(self):
+      """Set self.handle to |file_handle| if it is not None, otherwise set it to
+      a new handle to |file_path|."""
+      self.handle = file_handle or open(file_path, 'rb')
+      self.position = self.handle.tell()
+      return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+      """Closes self.handle if we own it, otherwise rewinds it so it can be read
+      from again."""
+      if file_handle:
+        self.handle.seek(self.position)
+      else:
+        self.handle.close()
+
+  with LocalFileHandle() as local_file_handle:
+    if environment.is_afl_job():
+      return not is_lpm_fuzz_target_handle(local_file_handle.handle)
+
   if filename.endswith('_fuzzer'):
     return True
 
@@ -52,25 +97,11 @@ def is_fuzz_target_local(file_path, file_handle=None):
   if fuzz_target_name_regex:
     return bool(re.match(fuzz_target_name_regex, filename))
 
-  if os.path.exists(file_path) and not stat.S_ISREG(os.stat(file_path).st_mode):
-    # Don't read special files (eg: /dev/urandom).
-    logs.log_warn('Tried to read from non-regular file: %s.' % file_path)
-    return False
-
-  # Use already provided file handle or open the file.
-  local_file_handle = file_handle or open(file_path, 'rb')
-
-  # TODO(metzman): Bound this call so we don't read forever if something went
-  # wrong.
-  result = utils.search_string_in_file(FUZZ_TARGET_SEARCH_STRING,
-                                       local_file_handle)
-
-  if not file_handle:
-    # If this local file handle is owned by our function, close it now.
-    # Otherwise, it is caller's responsibility.
-    local_file_handle.close()
-
-  return result
+  with LocalFileHandle() as local_file_handle:
+    # TODO(metzman): Bound this call so we don't read forever if something went
+    # wrong.
+    return utils.search_string_in_file(FUZZ_TARGET_SEARCH_STRING,
+                                       local_file_handle.handle)
 
 
 def get_fuzz_targets_local(path):

@@ -26,6 +26,14 @@ class IsFuzzTargetLocalTest(fake_filesystem_unittest.TestCase):
   def setUp(self):
     test_helpers.patch_environ(self)
     test_utils.set_up_pyfakefs(self)
+    self.lpm_fuzzer_1 = '/lpm_fuzzer'
+
+    self.lpm_fuzzer_non_fuzzer_suffix = '/lpm_fuzzer_2'
+    for fuzzer in [self.lpm_fuzzer_1, self.lpm_fuzzer_non_fuzzer_suffix]:
+      self.fs.CreateFile(
+          fuzzer, contents='TestOneProtoInput\nLLVMFuzzerTestOneInput')
+    test_helpers.patch(self, ['system.environment.is_afl_job'])
+    self.mock.is_afl_job.return_value = False
 
   def test_not_a_fuzzer_invalid_name(self):
     self.fs.CreateFile('/abc$_fuzzer', contents='anything')
@@ -77,3 +85,22 @@ class IsFuzzTargetLocalTest(fake_filesystem_unittest.TestCase):
     environment.set_value('FUZZER_NAME_REGEX', '.*_custom$')
     self.fs.CreateFile('/a_fuzzer', contents='anything\nLLVMFuzzerTestOneInput')
     self.assertTrue(utils.is_fuzz_target_local('/a_fuzzer'))
+
+  def test_afl_lpm_fuzzer(self):
+    self.mock.is_afl_job.return_value = True
+    self.assertFalse(utils.is_fuzz_target_local(self.lpm_fuzzer_1))
+
+  def test_nonafl_lpm_fuzzer(self):
+    self.assertTrue(utils.is_fuzz_target_local(self.lpm_fuzzer_1))
+
+  def test_multiple_file_handle_reads(self):
+    with open(self.lpm_fuzzer_non_fuzzer_suffix) as file_handle:
+      self.assertTrue(
+          utils.is_fuzz_target_local(self.lpm_fuzzer_non_fuzzer_suffix,
+                                     file_handle))
+      # Test that file can still be read from.
+      self.assertEqual(0, file_handle.tell())
+
+  def test_multiple_file_path_reads(self):
+    self.assertTrue(
+        utils.is_fuzz_target_local(self.lpm_fuzzer_non_fuzzer_suffix))
