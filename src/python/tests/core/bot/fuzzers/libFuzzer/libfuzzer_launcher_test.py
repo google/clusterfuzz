@@ -625,7 +625,7 @@ class LauncherTest(fake_fs_unittest.TestCase):
               'strategy_recommended_dict':
                   1,
               'strategy_selection_method':
-                 'DEFAULT',
+                  'DEFAULT',
               'strategy_value_profile':
                   0,
               'timeout_count':
@@ -1125,7 +1125,7 @@ class LauncherTest(fake_fs_unittest.TestCase):
         'strategy_mutator_plugin': 0,
         'strategy_random_max_len': 0,
         'strategy_recommended_dict': 0,
-        'strategy_selection_method':'DEFAULT',
+        'strategy_selection_method': 'DEFAULT',
         'strategy_value_profile': 0,
         'timeout_count': 1
     }
@@ -2006,7 +2006,7 @@ class LauncherTest(fake_fs_unittest.TestCase):
               u'strategy_recommended_dict':
                   0,
               u'strategy_selection_method':
-                 'DEFAULT',
+                  'DEFAULT',
               u'strategy_value_profile':
                   0,
               u'timeout_count':
@@ -2333,7 +2333,7 @@ class LauncherTest(fake_fs_unittest.TestCase):
               u'strategy_recommended_dict':
                   0,
               u'strategy_selection_method':
-                 'DEFAULT',
+                  'DEFAULT',
               u'strategy_value_profile':
                   0,
               u'timeout_count':
