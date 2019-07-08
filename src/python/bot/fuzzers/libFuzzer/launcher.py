@@ -785,6 +785,26 @@ def main(argv):
   generator = _select_generator(strategy_pool, fuzzer_path)
   is_mutations_run = generator != Generator.NONE
 
+  # Depends on the presense of DFSan instrumented build.
+  dataflow_build_dir = environment.get_value('DATAFLOW_BUILD_DIR')
+  if (dataflow_build_dir and
+      strategy_pool.do_strategy(strategy.DATAFLOW_TRACING_STRATEGY)):
+    dataflow_binary_path = os.path.join(
+        dataflow_build_dir, os.path.relpath(fuzzer_path, build_directory))
+    if os.path.exists(dataflow_binary_path):
+      arguments.append(
+          '%s%s' % (constants.COLLECT_DATA_FLOW_FLAG, dataflow_binary_path))
+      fuzzing_strategies.append(strategy.DATAFLOW_TRACING_STRATEGY.name)
+
+      # DFT strategy requires fork mode to be used.
+      strategy_pool.add_strategy(strategy.FORK_STRATEGY)
+
+      # DFT strategy is not expected to perform well with a corpus subset.
+      strategy_pool.remove_strategy(strategy.CORPUS_SUBSET_STRATEGY)
+    else:
+      logs.log_error(
+          'Fuzz target is not found in dataflow build, skiping strategy.')
+
   # Timeout for fuzzer run.
   fuzz_timeout = get_fuzz_timeout(is_mutations_run)
 
@@ -832,24 +852,7 @@ def main(argv):
     arguments.append(constants.VALUE_PROFILE_ARGUMENT)
     fuzzing_strategies.append(strategy.VALUE_PROFILE_STRATEGY.name)
 
-  # Depends on the presense of DFSan instrumented build.
-  dataflow_build_dir = environment.get_value('DATAFLOW_BUILD_DIR')
-  use_dataflow_tracing = (
-      dataflow_build_dir and
-      strategy_pool.do_strategy(strategy.DATAFLOW_TRACING_STRATEGY))
-  if use_dataflow_tracing:
-    dataflow_binary_path = os.path.join(
-        dataflow_build_dir, os.path.relpath(fuzzer_path, build_directory))
-    if os.path.exists(dataflow_binary_path):
-      arguments.append(
-          '%s%s' % (constants.COLLECT_DATA_FLOW_FLAG, dataflow_binary_path))
-      fuzzing_strategies.append(strategy.DATAFLOW_TRACING_STRATEGY.name)
-    else:
-      logs.log_error(
-          'Fuzz target is not found in dataflow build, skiping strategy.')
-
-  # DataFlow Tracing requires fork mode, always use it with DFT strategy.
-  if use_dataflow_tracing or strategy_pool.do_strategy(strategy.FORK_STRATEGY):
+  if strategy_pool.do_strategy(strategy.FORK_STRATEGY):
     max_fuzz_threads = environment.get_value('MAX_FUZZ_THREADS', 1)
     num_fuzz_processes = max(1, multiprocessing.cpu_count() // max_fuzz_threads)
     arguments.append('%s%d' % (constants.FORK_FLAG, num_fuzz_processes))
