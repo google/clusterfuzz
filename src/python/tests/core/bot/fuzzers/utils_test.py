@@ -31,7 +31,7 @@ class IsFuzzTargetLocalTest(fake_filesystem_unittest.TestCase):
     self.lpm_fuzzer_non_fuzzer_suffix = '/lpm_fuzzer_2'
     for fuzzer in [self.lpm_fuzzer_1, self.lpm_fuzzer_non_fuzzer_suffix]:
       self.fs.CreateFile(
-          fuzzer, contents='TestOneProtoInput\nLLVMFuzzerTestOneInput')
+          fuzzer, contents='LLVMFuzzerTestOneInput\nTestOneProtoInput')
     test_helpers.patch(self, ['system.environment.is_afl_job'])
     self.mock.is_afl_job.return_value = False
 
