@@ -332,7 +332,8 @@ def get_corpus_directories(main_corpus_directory,
                            fuzzer_path,
                            fuzzing_strategies,
                            strategy_pool,
-                           minijail_chroot=None):
+                           minijail_chroot=None,
+                           allow_corpus_subset=True):
   """Return a list of corpus directories to be passed to the fuzzer binary for
   fuzzing."""
   corpus_directories = []
@@ -346,7 +347,8 @@ def get_corpus_directories(main_corpus_directory,
   subset_size = engine_common.random_choice(
       engine_common.CORPUS_SUBSET_NUM_TESTCASES)
 
-  if (strategy_pool.do_strategy(strategy.CORPUS_SUBSET_STRATEGY) and
+  if (allow_corpus_subset and
+      strategy_pool.do_strategy(strategy.CORPUS_SUBSET_STRATEGY) and
       shell.get_directory_file_count(main_corpus_directory) > subset_size):
     # Copy |subset_size| testcases into 'subset' directory.
     corpus_subset_directory = create_corpus_directory('subset')
@@ -787,23 +789,20 @@ def main(argv):
 
   # Depends on the presense of DFSan instrumented build.
   dataflow_build_dir = environment.get_value('DATAFLOW_BUILD_DIR')
-  if (dataflow_build_dir and
-      strategy_pool.do_strategy(strategy.DATAFLOW_TRACING_STRATEGY)):
+  use_dataflow_tracing = (
+      dataflow_build_dir and
+      strategy_pool.do_strategy(strategy.DATAFLOW_TRACING_STRATEGY))
+  if use_dataflow_tracing:
     dataflow_binary_path = os.path.join(
         dataflow_build_dir, os.path.relpath(fuzzer_path, build_directory))
     if os.path.exists(dataflow_binary_path):
       arguments.append(
           '%s%s' % (constants.COLLECT_DATA_FLOW_FLAG, dataflow_binary_path))
       fuzzing_strategies.append(strategy.DATAFLOW_TRACING_STRATEGY.name)
-
-      # DFT strategy requires fork mode to be used.
-      strategy_pool.add_strategy(strategy.FORK_STRATEGY)
-
-      # DFT strategy is not expected to perform well with a corpus subset.
-      strategy_pool.remove_strategy(strategy.CORPUS_SUBSET_STRATEGY)
     else:
       logs.log_error(
           'Fuzz target is not found in dataflow build, skiping strategy.')
+      use_dataflow_tracing = False
 
   # Timeout for fuzzer run.
   fuzz_timeout = get_fuzz_timeout(is_mutations_run)
@@ -817,8 +816,13 @@ def main(argv):
     corpus_directories = []
   else:
     corpus_directories = get_corpus_directories(
-        corpus_directory, new_testcases_directory, fuzzer_path,
-        fuzzing_strategies, strategy_pool, minijail_chroot)
+        corpus_directory,
+        new_testcases_directory,
+        fuzzer_path,
+        fuzzing_strategies,
+        strategy_pool,
+        minijail_chroot=minijail_chroot,
+        allow_corpus_subset=not use_dataflow_tracing)
 
   # Bind corpus directories in minijail.
   if use_minijail:
@@ -852,7 +856,8 @@ def main(argv):
     arguments.append(constants.VALUE_PROFILE_ARGUMENT)
     fuzzing_strategies.append(strategy.VALUE_PROFILE_STRATEGY.name)
 
-  if strategy_pool.do_strategy(strategy.FORK_STRATEGY):
+  # DataFlow Tracing requires fork mode, always use it with DFT strategy.
+  if use_dataflow_tracing or strategy_pool.do_strategy(strategy.FORK_STRATEGY):
     max_fuzz_threads = environment.get_value('MAX_FUZZ_THREADS', 1)
     num_fuzz_processes = max(1, multiprocessing.cpu_count() // max_fuzz_threads)
     arguments.append('%s%d' % (constants.FORK_FLAG, num_fuzz_processes))

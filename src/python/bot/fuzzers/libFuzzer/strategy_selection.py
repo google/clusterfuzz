@@ -40,11 +40,6 @@ class StrategyPool(object):
     """Add a strategy into our existing strategy pool."""
     self.strategy_names.add(strategy_tuple.name)
 
-  def remove_strategy(self, strategy_tuple):
-    """Remove a strategy from our existing strategy pool."""
-    if strategy_tuple.name in self.strategy_names:
-      self.strategy_names.remove(strategy_tuple.name)
-
   def do_strategy(self, strategy_tuple):
     """Boolean value representing whether or not a strategy is in our strategy
     pool."""
