@@ -31,6 +31,7 @@ from base import dates
 from base import retry
 from base import utils
 from bot.fuzzers import builtin_fuzzers
+from bot.fuzzers import engine_common
 from bot.fuzzers.libFuzzer import stats as libfuzzer_stats
 from bot.tasks import setup
 from bot.tasks import task_creation
@@ -1400,9 +1401,12 @@ def execute_task(fuzzer_name, job_type):
   # TODO: Remove environment variable once fuzzing engine refactor is complete.
   # Set multi-armed bandit strategy selection distribution as an environment
   # variable so we can access it in launcher.
+  environment.set_value('STRATEGY_SELECTION_METHOD', 'DEFAULT')
   if environment.get_value('USE_BANDIT_STRATEGY_SELECTION'):
-    distribution = get_strategy_distribution_from_ndb()
-    environment.set_value('STRATEGY_SELECTION_DISTRIBUTION', distribution)
+    if engine_common.decide_with_probability(.2):
+      distribution = get_strategy_distribution_from_ndb()
+      environment.set_value('STRATEGY_SELECTION_METHOD', 'MULTI_ARMED_BANDIT')
+      environment.set_value('STRATEGY_SELECTION_DISTRIBUTION', distribution)
 
   # Reset memory tool options.
   environment.reset_current_memory_tool_options(redzone_size=redzone)

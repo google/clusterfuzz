@@ -20,6 +20,7 @@ from bot.fuzzers import utils as fuzzer_utils
 from bot.fuzzers.libFuzzer import constants
 from crash_analysis.stack_parsing import stack_analyzer
 from metrics import logs
+from system import environment
 
 # Regular expressions to detect different types of crashes.
 LEAK_TESTCASE_REGEX = re.compile(r'.*ERROR: LeakSanitizer.*')
@@ -182,6 +183,10 @@ def parse_performance_features(log_lines, strategies, arguments):
       'startup_crash_count': 1,
       'timeout_count': 0,
   }
+
+  # Extract strategy selection method.
+  stats['strategy_selection_method'] = environment.get_value(
+      'STRATEGY_SELECTION_METHOD')
 
   # Initialize all strategy stats as disabled by default.
   for strategy_type in strategy.strategy_list:
