@@ -67,20 +67,20 @@ def is_fuzz_target_local(file_path, file_handle=None):
 
     def __init__(self):
       self.handle = None
-      self.position = None
+      self.initial_position = None
 
     def __enter__(self):
-      """Set self.handle to |file_handle| if it is not None, otherwise set it to
-      a new handle to |file_path|."""
+      """Sets self.handle to |file_handle| if it is not None, otherwise set it
+      to a new handle to |file_path|."""
       self.handle = file_handle or open(file_path, 'rb')
-      self.position = self.handle.tell()
+      self.initial_position = self.handle.tell()
       return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
       """Closes self.handle if we own it, otherwise rewinds it so it can be read
       from again."""
       if file_handle:
-        self.handle.seek(self.position)
+        self.handle.seek(self.initial_position)
       else:
         self.handle.close()
 
