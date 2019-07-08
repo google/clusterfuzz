@@ -61,17 +61,18 @@ def is_fuzz_target_local(file_path, file_handle=None):
     logs.log_warn('Tried to read from non-regular file: %s.' % file_path)
     return False
 
+
   class LocalFileHandle(object):
     """A context manager that opens a file handle on entry if needed and closes
     or rewinds the handle on exit."""
 
     def __init__(self):
+      """Sets self.handle to |unowned_file_handle| if it is not None, otherwise
+      set it to a new handle for |file_path|."""
       self.handle = None
       self.initial_position = None
 
     def __enter__(self):
-      """Sets self.handle to |file_handle| if it is not None, otherwise set it
-      to a new handle to |file_path|."""
       self.handle = file_handle or open(file_path, 'rb')
       self.initial_position = self.handle.tell()
       return self
@@ -84,24 +85,27 @@ def is_fuzz_target_local(file_path, file_handle=None):
       else:
         self.handle.close()
 
-  with LocalFileHandle() as local_file_handle:
-    if environment.is_afl_job():
+  def is_not_afl_lpm_fuzzer():
+    if not environment.is_afl_job():
+      return True
+    with LocalFileHandle() as local_file_handle:
       return not is_lpm_fuzz_target_handle(local_file_handle.handle)
 
   if filename.endswith('_fuzzer'):
-    return True
+    return is_not_afl_lpm_fuzzer()
 
   # TODO(aarya): Remove this optimization if it does not show up significant
   # savings in profiling results.
   fuzz_target_name_regex = environment.get_value('FUZZER_NAME_REGEX')
   if fuzz_target_name_regex:
-    return bool(re.match(fuzz_target_name_regex, filename))
+    return (bool(re.match(fuzz_target_name_regex, filename)) and
+            is_not_afl_lpm_fuzzer())
 
   with LocalFileHandle() as local_file_handle:
     # TODO(metzman): Bound this call so we don't read forever if something went
     # wrong.
-    return utils.search_string_in_file(FUZZ_TARGET_SEARCH_STRING,
-                                       local_file_handle.handle)
+    return (utils.search_string_in_file(FUZZ_TARGET_SEARCH_STRING,
+                                        local_file_handle.handle) and is_not_afl_lpm_fuzzer())
 
 
 def get_fuzz_targets_local(path):
