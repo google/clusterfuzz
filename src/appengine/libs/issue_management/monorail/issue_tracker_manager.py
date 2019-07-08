@@ -129,8 +129,16 @@ class IssueTrackerManager(object):
 
   def __init__(self, project_name):
     """"Construct an issue tracker manager instance based on parameters."""
-    self.client = self._create_client()
+    self._client = None
     self.project_name = project_name
+
+  @property
+  def client(self):
+    """HTTP Client."""
+    if self._client is None:
+      self._client = self._create_client()
+
+    return self._client
 
   @retry.wrap(
       retries=FAIL_RETRIES,
