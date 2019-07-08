@@ -13,9 +13,11 @@
 # limitations under the License.
 """Handler that gets the testcase list page."""
 
+from base import errors
 from base import utils
 from datastore import data_handler
 from datastore import data_types
+from google_cloud_utils import blobs
 from handlers import base_handler
 from libs import crash_access
 from libs import filters
@@ -199,14 +201,27 @@ class CacheHandler(base_handler.Handler):
   def get(self):
     """Handle a GET request."""
     # pylint: disable=unexpected-keyword-arg
+
+    # Memoize all project and job names.
     _ = data_handler.get_all_project_names(__memoize_force__=True)
     _ = data_handler.get_all_job_type_names(__memoize_force__=True)
 
-    # Memorize both variants of get_all_fuzzer_names_including_children.
+    # Memoize both variants of get_all_fuzzer_names_including_children.
     _ = data_handler.get_all_fuzzer_names_including_children(
         include_parents=True, __memoize_force__=True)
     _ = data_handler.get_all_fuzzer_names_including_children(
         __memoize_force__=True)
+
+    # Memoize expensive testcase attribute calls.
+    for testcase_id in data_handler.get_open_testcase_id_iterator():
+      try:
+        testcase = data_handler.get_testcase_by_id(testcase_id)
+      except errors.InvalidTestcaseError:
+        # Already deleted.
+        continue
+
+      blobs.get_blob_size(testcase.fuzzed_keys)
+      blobs.get_blob_size(testcase.minimized_keys)
 
     self.response.headers['Content-Type'] = 'text/plain'
     self.response.out.write('OK')

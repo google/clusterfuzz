@@ -354,15 +354,9 @@ def _get_revision_range_html(job_type, start_revision, end_revision=None):
 
 def _get_blob_size_string(blob_key):
   """Return blob size string."""
-  if not blob_key or blob_key == 'NA':
-    return ''
-
-  try:
-    blob_size = blobs.get_blob_size(blob_key)
-    if blob_size is None:
-      return ''
-  except:
-    return ''
+  blob_size = blobs.get_blob_size(blob_key)
+  if blob_size is None:
+    return None
 
   return utils.get_size_string(blob_size)
 
