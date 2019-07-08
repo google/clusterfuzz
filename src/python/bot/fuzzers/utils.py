@@ -61,7 +61,6 @@ def is_fuzz_target_local(file_path, file_handle=None):
     logs.log_warn('Tried to read from non-regular file: %s.' % file_path)
     return False
 
-
   class LocalFileHandle(object):
     """A context manager that opens a file handle on entry if needed and closes
     or rewinds the handle on exit."""
@@ -105,7 +104,8 @@ def is_fuzz_target_local(file_path, file_handle=None):
     # TODO(metzman): Bound this call so we don't read forever if something went
     # wrong.
     return (utils.search_string_in_file(FUZZ_TARGET_SEARCH_STRING,
-                                        local_file_handle.handle) and is_not_afl_lpm_fuzzer())
+                                        local_file_handle.handle) and
+            is_not_afl_lpm_fuzzer())
 
 
 def get_fuzz_targets_local(path):
