@@ -186,7 +186,7 @@ def parse_performance_features(log_lines, strategies, arguments):
 
   # Extract strategy selection method.
   stats['strategy_selection_method'] = environment.get_value(
-      'STRATEGY_SELECTION_METHOD')
+      'STRATEGY_SELECTION_METHOD', default_value='default')
 
   # Initialize all strategy stats as disabled by default.
   for strategy_type in strategy.strategy_list:
