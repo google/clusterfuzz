@@ -116,8 +116,6 @@ class LoadBigQueryStatsTest(unittest.TestCase):
                             ],
                             'sourceFormat':
                                 'NEWLINE_DELIMITED_JSON',
-                            'ignoreUnknownValues':
-                                True,
                         }
                     }
                 },
@@ -143,8 +141,6 @@ class LoadBigQueryStatsTest(unittest.TestCase):
                             ],
                             'sourceFormat':
                                 'NEWLINE_DELIMITED_JSON',
-                            'ignoreUnknownValues':
-                                True,
                         }
                     }
                 },

@@ -150,7 +150,6 @@ class Handler(base_handler.Handler):
                   'sourceFormat': 'NEWLINE_DELIMITED_JSON',
                   'sourceUris': ['gs:/' + gcs_path + '*.json'],
                   'writeDisposition': 'WRITE_TRUNCATE',
-                  'ignoreUnknownValues': True,
               },
           },
       }
