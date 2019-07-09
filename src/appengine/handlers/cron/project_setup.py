@@ -45,24 +45,16 @@ from system import environment
 AFL_BUILD_BUCKET = 'clusterfuzz-builds-afl'
 DATAFLOW_BUILD_BUCKET = 'clusterfuzz-builds-dataflow'
 LIBFUZZER_BUILD_BUCKET = 'clusterfuzz-builds'
+LIBFUZZER_BUILD_BUCKET_I386 = 'clusterfuzz-builds-i386'
 NO_ENGINE_BUILD_BUCKET = 'clusterfuzz-builds-no-engine'
-BUCKET_PROJECT_URL = 'clusterfuzz-external.appspot.com'
-BUILD_URL_TEMPLATE = ('https://commondatastorage.googleapis.com/{bucket}/'
-                      '{project}/{project}-{sanitizer}-([0-9]+).zip')
 BUILD_BUCKET_PATH_TEMPLATE = (
     'gs://{bucket}/{project}/{project}-{sanitizer}-([0-9]+).zip')
-IMAGE_BUCKET_NAME = 'artifacts.clusterfuzz-images.appspot.com'
 
 BACKUPS_LIFECYCLE = storage.generate_life_cycle_config('Delete', age=100)
 LOGS_LIFECYCLE = storage.generate_life_cycle_config('Delete', age=14)
 QUARANTINE_LIFECYCLE = storage.generate_life_cycle_config('Delete', age=90)
 
 JOB_TEMPLATE = ('RELEASE_BUILD_BUCKET_PATH = {build_bucket_path}\n'
-                'FUZZ_LOGS_BUCKET = {logs_bucket}\n'
-                'CORPUS_BUCKET = {corpus_bucket}\n'
-                'QUARANTINE_BUCKET = {quarantine_bucket}\n'
-                'BACKUP_BUCKET = {backup_bucket}\n'
-                'AUTOMATIC_LABELS = Proj-{project},Engine-{engine}\n'
                 'PROJECT_NAME = {project}\n'
                 'SUMMARY_PREFIX = {project}\n'
                 'REVISION_VARS_URL = {revision_vars_url}\n'
@@ -83,7 +75,7 @@ ALLOWED_VIEW_RESTRICTIONS = ['none', 'security', 'all']
 PUBSUB_PLATFORMS = ['linux']
 
 
-class OssFuzzSetupException(Exception):
+class ProjectSetupError(Exception):
   """Exception."""
 
 
@@ -159,45 +151,17 @@ DEFAULT_SANITIZERS = ['address', 'undefined']
 DEFAULT_ENGINES = ['libfuzzer', 'afl']
 
 
-def _get_build_bucket(engine, architecture):
-  """Return the bucket for the given |engine| and |architecture|."""
-  if engine == 'libfuzzer':
-    bucket = LIBFUZZER_BUILD_BUCKET
-  elif engine == 'afl':
-    bucket = AFL_BUILD_BUCKET
-  elif engine == 'dataflow':
-    bucket = DATAFLOW_BUILD_BUCKET
-  elif engine == 'none':
-    bucket = NO_ENGINE_BUILD_BUCKET
-  else:
-    raise OssFuzzSetupException('Invalid fuzzing engine.')
-
-  if architecture != 'x86_64':
-    bucket += '-' + architecture
-
-  return bucket
-
-
 def _to_experimental_job(job_info):
   job_info = copy.copy(job_info)
   job_info.experimental = True
   return job_info
 
 
-def get_build_bucket_path(project_name, engine, memory_tool, architecture):
-  """Returns the build bucket path for the |project|, |engine|, |memory_tool|,
-  and |architecture|."""
-  return BUILD_BUCKET_PATH_TEMPLATE.format(
-      bucket=_get_build_bucket(engine, architecture),
-      project=project_name,
-      sanitizer=memory_tool)
-
-
 def get_github_url(url):
   """Return contents of URL."""
   github_credentials = db_config.get_value('github_credentials')
   if not github_credentials:
-    raise OssFuzzSetupException('No github credentials.')
+    raise ProjectSetupError('No github credentials.')
 
   client_id, client_secret = github_credentials.strip().split(';')
 
@@ -402,21 +366,6 @@ def add_bucket_iams(info, client, bucket_name, service_account):
   _set_bucket_service_account(service_account, client, bucket_name, iam_policy)
 
 
-def _deployment_bucket_name():
-  """Deployment bucket name."""
-  return '{project}-deployment'.format(project=utils.get_application_id())
-
-
-def _shared_corpus_bucket_name():
-  """Shared corpus bucket name."""
-  return environment.get_value('SHARED_CORPUS_BUCKET')
-
-
-def _mutator_plugins_bucket_name():
-  """Mutator plugins bucket name."""
-  return environment.get_value('MUTATOR_PLUGINS_BUCKET')
-
-
 def add_service_account_to_bucket(client, bucket_name, service_account, role):
   """Add service account to the gcr.io images bucket."""
   iam_policy = storage.get_bucket_iam_policy(client, bucket_name)
@@ -432,134 +381,6 @@ def add_service_account_to_bucket(client, bucket_name, service_account, role):
 
   binding['members'].append(member)
   storage.set_bucket_iam_policy(client, bucket_name, iam_policy)
-
-
-def get_backup_bucket_name(project_name):
-  """Return the backup_bucket_name."""
-  return project_name + '-backup.' + BUCKET_PROJECT_URL
-
-
-def get_corpus_bucket_name(project_name):
-  """Return the corpus_bucket_name."""
-  return project_name + '-corpus.' + BUCKET_PROJECT_URL
-
-
-def get_quarantine_bucket_name(project_name):
-  """Return the quarantine_bucket_name."""
-  return project_name + '-quarantine.' + BUCKET_PROJECT_URL
-
-
-def get_logs_bucket_name(project_name):
-  """Return the logs bucket name."""
-  return project_name + '-logs.' + BUCKET_PROJECT_URL
-
-
-def sync_cf_job(project, info, corpus_bucket, quarantine_bucket, logs_bucket,
-                backup_bucket, libfuzzer, afl):
-  """Sync the config with ClusterFuzz."""
-  # Create/update ClusterFuzz jobs.
-  for template in get_jobs_for_project(project, info):
-    if template.engine == 'libfuzzer':
-      fuzzer_entity = libfuzzer
-    elif template.engine == 'afl':
-      fuzzer_entity = afl
-    elif template.engine == 'none':
-      # Engine-less jobs are not automatically managed.
-      continue
-    else:
-      raise OssFuzzSetupException('Invalid fuzzing engine.')
-
-    job_name = template.job_name(project)
-    job = data_types.Job.query(data_types.Job.name == job_name).get()
-    if not job:
-      job = data_types.Job()
-
-    if job_name not in fuzzer_entity.jobs and not info.get('disabled', False):
-      # Enable new job.
-      fuzzer_entity.jobs.append(job_name)
-
-    job.name = job_name
-    job.platform = untrusted.platform_name(project, 'linux')
-    job.templates = template.cf_job_templates
-
-    revision_vars_url = REVISION_URL.format(
-        project=project,
-        bucket=_get_build_bucket(template.engine, template.architecture),
-        sanitizer=template.memory_tool)
-
-    job.environment_string = JOB_TEMPLATE.format(
-        build_bucket_path=get_build_bucket_path(project, template.engine,
-                                                template.memory_tool,
-                                                template.architecture),
-        logs_bucket=logs_bucket,
-        corpus_bucket=corpus_bucket,
-        quarantine_bucket=quarantine_bucket,
-        backup_bucket=backup_bucket,
-        engine=template.engine,
-        project=project,
-        revision_vars_url=revision_vars_url)
-
-    help_url = info.get('help_url')
-    if help_url:
-      job.environment_string += 'HELP_URL = %s\n' % help_url
-
-    if template.experimental:
-      job.environment_string += 'EXPERIMENTAL = True\n'
-
-    if template.minimize_job_override:
-      minimize_job_override = template.minimize_job_override.job_name(project)
-      job.environment_string += (
-          'MINIMIZE_JOB_OVERRIDE = %s\n' % minimize_job_override)
-
-    view_restrictions = info.get('view_restrictions')
-    if view_restrictions:
-      if view_restrictions in ALLOWED_VIEW_RESTRICTIONS:
-        job.environment_string += (
-            'ISSUE_VIEW_RESTRICTIONS = %s\n' % view_restrictions)
-      else:
-        logs.log_error('Invalid view restriction setting %s for project %s.' %
-                       (view_restrictions, project))
-
-    selective_unpack = info.get('selective_unpack')
-    if selective_unpack:
-      job.environment_string += 'UNPACK_ALL_FUZZ_TARGETS_AND_FILES = False\n'
-
-    if (template.engine == 'libfuzzer' and template.architecture == 'x86_64' and
-        'dataflow' in info.get('fuzzing_engines', DEFAULT_ENGINES)):
-      # Dataflow binaries are built with dataflow sanitizer, but can be used as
-      # an auxiliary build with libFuzzer builds (e.g. with ASan or UBSan).
-      dataflow_build_bucket_path = get_build_bucket_path(
-          project_name=project,
-          engine='dataflow',
-          memory_tool='dataflow',
-          architecture=template.architecture)
-      job.environment_string += (
-          'DATAFLOW_BUILD_BUCKET_PATH = %s\n' % dataflow_build_bucket_path)
-
-    job.put()
-
-
-def sync_cf_revision_mappings(project, info):
-  """Sync ClusterFuzz revision mappings."""
-  config = db_config.get()
-
-  # Parse existing values.
-  revision_var_urls = {}
-  for line in config.revision_vars_url.splitlines():
-    job, vars_url = line.split(';')
-    revision_var_urls[job] = vars_url
-
-  for template in get_jobs_for_project(project, info):
-    job_name = template.job_name(project)
-    revision_var_urls[job_name] = REVISION_URL.format(
-        project=project,
-        bucket=_get_build_bucket(template.engine, template.architecture),
-        sanitizer=template.memory_tool)
-
-  config.revision_vars_url = '\n'.join(
-      '%s;%s' % (key_value, vars_url)
-      for key_value, vars_url in six.iteritems(revision_var_urls))
-  config.put()
 
 
 def sync_user_permissions(project, info):
@@ -599,13 +420,6 @@ def sync_user_permissions(project, info):
           auto_cc=data_types.AutoCCType.ALL).put()
 
 
-def refresh_fuzzer_job_mappings(fuzzer_entities):
-  """Ensure that jobs can be created for this fuzzer."""
-  # Update mappings for this fuzzer so jobs can be created.
-  for fuzzer_entity in fuzzer_entities:
-    fuzzer_selection.update_mappings_for_fuzzer(fuzzer_entity)
-
-
 def ccs_from_info(info):
   """Get list of CC's from project info."""
   ccs = []
@@ -614,7 +428,7 @@ def ccs_from_info(info):
     if isinstance(primary_contact, basestring):
       ccs.append(primary_contact)
     else:
-      raise OssFuzzSetupException('Bad primary_contact %s.' % primary_contact)
+      raise ProjectSetupError('Bad primary_contact %s.' % primary_contact)
 
   if 'auto_ccs' in info:
     auto_ccs = info.get('auto_ccs')
@@ -623,7 +437,7 @@ def ccs_from_info(info):
     elif isinstance(auto_ccs, basestring):
       ccs.append(auto_ccs)
     else:
-      raise OssFuzzSetupException('Bad auto_ccs %s.' % auto_ccs)
+      raise ProjectSetupError('Bad auto_ccs %s.' % auto_ccs)
 
   return [utils.normalize_email(cc) for cc in ccs]
 
@@ -740,8 +554,318 @@ def cleanup_pubsub_topics(project_names):
     client.delete_topic(topic)
 
 
+class ProjectSetup(object):
+  """Project setup."""
+
+  def __init__(self,
+               build_bucket_path_template,
+               revision_url_template,
+               segregate_projects=False,
+               engine_build_buckets=None,
+               fuzzer_entities=None,
+               add_info_labels=False):
+    self._build_bucket_path_template = build_bucket_path_template
+    self._revision_url_template = revision_url_template
+    self._segregate_projects = segregate_projects
+    self._engine_build_buckets = engine_build_buckets
+    self._fuzzer_entities = fuzzer_entities
+    self._add_info_labels = add_info_labels
+
+  def _sync_revision_mappings(self, project, info):
+    """Sync ClusterFuzz revision mappings."""
+    config = db_config.get()
+
+    # Parse existing values.
+    revision_var_urls = {}
+    for line in config.revision_vars_url.splitlines():
+      job, vars_url = line.split(';')
+      revision_var_urls[job] = vars_url
+
+    for template in get_jobs_for_project(project, info):
+      job_name = template.job_name(project)
+      revision_var_urls[job_name] = self._revision_url_template.format(
+          project=project,
+          bucket=self._get_build_bucket(template.engine, template.architecture),
+          sanitizer=template.memory_tool)
+
+    config.revision_vars_url = '\n'.join(
+        '%s;%s' % (key_value, vars_url)
+        for key_value, vars_url in six.iteritems(revision_var_urls))
+    config.put()
+
+  def _get_build_bucket(self, engine, architecture):
+    """Return the bucket for the given |engine| and |architecture|."""
+    if architecture != 'x86_64':
+      engine += '-' + architecture
+
+    bucket = self._engine_build_buckets.get(engine)
+    if not bucket:
+      raise ProjectSetupError('Invalid fuzzing engine ' + engine)
+
+    return bucket
+
+  def _deployment_bucket_name(self):
+    """Deployment bucket name."""
+    return '{project}-deployment'.format(project=utils.get_application_id())
+
+  def _shared_corpus_bucket_name(self):
+    """Shared corpus bucket name."""
+    return environment.get_value('SHARED_CORPUS_BUCKET')
+
+  def _mutator_plugins_bucket_name(self):
+    """Mutator plugins bucket name."""
+    return environment.get_value('MUTATOR_PLUGINS_BUCKET')
+
+  def _backup_bucket_name(self, project_name):
+    """Return the backup_bucket_name."""
+    return project_name + '-backup.' + data_handler.bucket_domain_suffix()
+
+  def _corpus_bucket_name(self, project_name):
+    """Return the corpus_bucket_name."""
+    return project_name + '-corpus.' + data_handler.bucket_domain_suffix()
+
+  def _quarantine_bucket_name(self, project_name):
+    """Return the quarantine_bucket_name."""
+    return project_name + '-quarantine.' + data_handler.bucket_domain_suffix()
+
+  def _logs_bucket_name(self, project_name):
+    """Return the logs bucket name."""
+    return project_name + '-logs.' + data_handler.bucket_domain_suffix()
+
+  def _create_service_accounts_and_buckets(self, project, info):
+    """Create per-project service account and buckets."""
+    service_account = service_accounts.get_or_create_service_account(project)
+    service_accounts.set_service_account_roles(service_account)
+
+    # Create GCS buckets.
+    backup_bucket_name = self._backup_bucket_name(project)
+    corpus_bucket_name = self._corpus_bucket_name(project)
+    logs_bucket_name = self._logs_bucket_name(project)
+    quarantine_bucket_name = self._quarantine_bucket_name(project)
+
+    storage.create_bucket_if_needed(backup_bucket_name, BACKUPS_LIFECYCLE)
+    storage.create_bucket_if_needed(corpus_bucket_name)
+    storage.create_bucket_if_needed(quarantine_bucket_name,
+                                    QUARANTINE_LIFECYCLE)
+    storage.create_bucket_if_needed(logs_bucket_name, LOGS_LIFECYCLE)
+
+    client = storage.create_discovery_storage_client()
+    try:
+      add_bucket_iams(info, client, backup_bucket_name, service_account)
+      add_bucket_iams(info, client, corpus_bucket_name, service_account)
+      add_bucket_iams(info, client, logs_bucket_name, service_account)
+      add_bucket_iams(info, client, quarantine_bucket_name, service_account)
+    except Exception as e:
+      logs.log_error('Failed to add bucket IAMs for %s: %s' % (project, e))
+
+    # Grant the service account read access to deployment, shared corpus and
+    # mutator plugin buckets.
+    add_service_account_to_bucket(client, self._deployment_bucket_name(),
+                                  service_account, OBJECT_VIEWER_IAM_ROLE)
+    add_service_account_to_bucket(client, self._shared_corpus_bucket_name(),
+                                  service_account, OBJECT_VIEWER_IAM_ROLE)
+    add_service_account_to_bucket(client, self._mutator_plugins_bucket_name(),
+                                  service_account, OBJECT_VIEWER_IAM_ROLE)
+
+    data_bundles = set([
+        fuzzer_entity.data_bundle_name
+        for fuzzer_entity in self._fuzzer_entities.values()
+    ])
+    for data_bundle in data_bundles:
+      # Workers also need to be able to set up these global bundles.
+      data_bundle_bucket_name = data_handler.get_data_bundle_bucket_name(
+          data_bundle)
+      add_service_account_to_bucket(client, data_bundle_bucket_name,
+                                    service_account, OBJECT_VIEWER_IAM_ROLE)
+
+    return (service_account, backup_bucket_name, corpus_bucket_name,
+            logs_bucket_name, quarantine_bucket_name)
+
+  def _get_build_bucket_path(self, project_name, engine, memory_tool,
+                             architecture):
+    """Returns the build bucket path for the |project|, |engine|, |memory_tool|,
+    and |architecture|."""
+    return self._build_bucket_path_template.format(
+        bucket=self._get_build_bucket(engine, architecture),
+        project=project_name,
+        sanitizer=memory_tool)
+
+  def _sync_job(self, project, info, corpus_bucket_name, quarantine_bucket_name,
+                logs_bucket_name, backup_bucket_name):
+    """Sync the config with ClusterFuzz."""
+    # Create/update ClusterFuzz jobs.
+    for template in get_jobs_for_project(project, info):
+      if template.engine == 'none':
+        # Engine-less jobs are not automatically managed.
+        continue
+
+      fuzzer_entity = self._fuzzer_entities.get(template.engine)
+      if not fuzzer_entity:
+        raise ProjectSetupError('Invalid fuzzing engine ' + template.engine)
+
+      job_name = template.job_name(project)
+      job = data_types.Job.query(data_types.Job.name == job_name).get()
+      if not job:
+        job = data_types.Job()
+
+      if job_name not in fuzzer_entity.jobs and not info.get('disabled', False):
+        # Enable new job.
+        fuzzer_entity.jobs.append(job_name)
+
+      job.name = job_name
+      if self._segregate_projects:
+        job.platform = untrusted.platform_name(project, 'linux')
+      else:
+        # TODO(ochang): Support other platforms?
+        job.platform = 'LINUX'
+
+      job.templates = template.cf_job_templates
+
+      revision_vars_url = self._revision_url_template.format(
+          project=project,
+          bucket=self._get_build_bucket(template.engine, template.architecture),
+          sanitizer=template.memory_tool)
+
+      job.environment_string = JOB_TEMPLATE.format(
+          build_bucket_path=self._get_build_bucket_path(
+              project, template.engine, template.memory_tool,
+              template.architecture),
+          engine=template.engine,
+          project=project,
+          revision_vars_url=revision_vars_url)
+
+      if logs_bucket_name:
+        job.environment_string += 'FUZZ_LOGS_BUCKET = {logs_bucket}\n'.format(
+            logs_bucket=logs_bucket_name)
+
+      if corpus_bucket_name:
+        job.environment_string += 'CORPUS_BUCKET = {corpus_bucket}\n'.format(
+            corpus_bucket=corpus_bucket_name)
+
+      if quarantine_bucket_name:
+        job.environment_string += (
+            'QUARANTINE_BUCKET = {quarantine_bucket}\n'.format(
+                quarantine_bucket=quarantine_bucket_name))
+
+      if backup_bucket_name:
+        job.environment_string += 'BACKUP_BUCKET = {backup_bucket}\n'.format(
+            backup_bucket=backup_bucket_name)
+
+      if self._add_info_labels:
+        job.environment_string += (
+            'AUTOMATIC_LABELS = Proj-{project},Engine-{engine}\n'.format(
+                project=project,
+                engine=template.engine,
+            ))
+
+      help_url = info.get('help_url')
+      if help_url:
+        job.environment_string += 'HELP_URL = %s\n' % help_url
+
+      if template.experimental:
+        job.environment_string += 'EXPERIMENTAL = True\n'
+
+      if template.minimize_job_override:
+        minimize_job_override = template.minimize_job_override.job_name(project)
+        job.environment_string += (
+            'MINIMIZE_JOB_OVERRIDE = %s\n' % minimize_job_override)
+
+      view_restrictions = info.get('view_restrictions')
+      if view_restrictions:
+        if view_restrictions in ALLOWED_VIEW_RESTRICTIONS:
+          job.environment_string += (
+              'ISSUE_VIEW_RESTRICTIONS = %s\n' % view_restrictions)
+        else:
+          logs.log_error('Invalid view restriction setting %s for project %s.' %
+                         (view_restrictions, project))
+
+      selective_unpack = info.get('selective_unpack')
+      if selective_unpack:
+        job.environment_string += 'UNPACK_ALL_FUZZ_TARGETS_AND_FILES = False\n'
+
+      if (template.engine == 'libfuzzer' and
+          template.architecture == 'x86_64' and
+          'dataflow' in info.get('fuzzing_engines', DEFAULT_ENGINES)):
+        # Dataflow binaries are built with dataflow sanitizer, but can be used
+        # as an auxiliary build with libFuzzer builds (e.g. with ASan or UBSan).
+        dataflow_build_bucket_path = self._get_build_bucket_path(
+            project_name=project,
+            engine='dataflow',
+            memory_tool='dataflow',
+            architecture=template.architecture)
+        job.environment_string += (
+            'DATAFLOW_BUILD_BUCKET_PATH = %s\n' % dataflow_build_bucket_path)
+
+      job.put()
+
+  def _update_fuzzer_entities(self):
+    """Update fuzzer entities."""
+    for fuzzer_entity in self._fuzzer_entities.values():
+      fuzzer_entity.put()
+      fuzzer_selection.update_mappings_for_fuzzer(fuzzer_entity)
+
+  def set_up(self, projects):
+    """Do project setup."""
+    # Clear old job associations.
+    fuzzer_entity_values = self._fuzzer_entities.values()
+    for fuzzer_entity in fuzzer_entity_values:
+      fuzzer_entity.jobs = []
+
+    for project, info in projects:
+      logs.log('Syncing configs for %s.' % project)
+
+      if not VALID_PROJECT_NAME_REGEX.match(project):
+        logs.log_error('Invalid project name: ' + project)
+        continue
+
+      backup_bucket_name = None
+      corpus_bucket_name = None
+      logs_bucket_name = None
+      quarantine_bucket_name = None
+
+      if self._segregate_projects:
+        # Create per project service account and GCS buckets.
+        (service_account, backup_bucket_name, corpus_bucket_name,
+         logs_bucket_name, quarantine_bucket_name) = (
+             self._create_service_accounts_and_buckets(project, info))
+
+      # Create CF jobs for project.
+      self._sync_job(project, info, corpus_bucket_name, quarantine_bucket_name,
+                     logs_bucket_name, backup_bucket_name)
+
+      # Create revision mappings for CF.
+      self._sync_revision_mappings(project, info)
+
+      if self._segregate_projects:
+        sync_user_permissions(project, info)
+
+        # Create Pub/Sub topics for tasks.
+        create_pubsub_topics(project)
+
+        # Set up projects settings (such as CPU distribution settings).
+        if not info.get('disabled', False):
+          create_project_settings(project, info, service_account)
+
+    self._update_fuzzer_entities()
+
+    # Delete old jobs.
+    project_names = [project[0] for project in projects]
+    cleanup_old_jobs(project_names)
+
+    if self._segregate_projects:
+      # Delete old pubsub topics.
+      cleanup_pubsub_topics(project_names)
+
+    # Delete old/disabled project settings.
+    enabled_projects = [
+        project for project, info in projects
+        if not info.get('disabled', False)
+    ]
+    cleanup_old_projects_settings(enabled_projects)
+
+
 class Handler(base_handler.Handler):
-  """Setup ClusterFuzz jobs for oss-fuzz."""
+  """Setup ClusterFuzz jobs for projects."""
 
   @handler.check_cron()
   def get(self):
@@ -757,98 +881,23 @@ class Handler(base_handler.Handler):
       logs.log_error('Failed to get AFL Fuzzer entity.')
       return
 
-    # Create storage client.
-    client = storage.create_discovery_storage_client()
-
-    # Clear old job associations.
-    libfuzzer.jobs = []
-    afl.jobs = []
-
-    data_bundles = set([
-        libfuzzer.data_bundle_name,
-        afl.data_bundle_name,
-    ])
+    # TODO(ochang): Move hardcodes to config.
+    config = ProjectSetup(
+        BUILD_BUCKET_PATH_TEMPLATE,
+        REVISION_URL,
+        segregate_projects=True,
+        engine_build_buckets={
+            'libfuzzer': LIBFUZZER_BUILD_BUCKET,
+            'libfuzzer-i386': LIBFUZZER_BUILD_BUCKET_I386,
+            'afl': AFL_BUILD_BUCKET,
+            'none': NO_ENGINE_BUILD_BUCKET,
+            'dataflow': DATAFLOW_BUILD_BUCKET,
+        },
+        fuzzer_entities={
+            'libfuzzer': libfuzzer,
+            'afl': afl,
+        },
+        add_info_labels=True)
 
     projects = get_projects()
-    for project, info in projects:
-      logs.log('Syncing configs for %s.' % project)
-
-      if not VALID_PROJECT_NAME_REGEX.match(project):
-        logs.log_error('Invalid project name: ' + project)
-        continue
-
-      service_account = service_accounts.get_or_create_service_account(project)
-      service_accounts.set_service_account_roles(service_account)
-
-      # Create GCS buckets.
-      backup_bucket_name = get_backup_bucket_name(project)
-      corpus_bucket_name = get_corpus_bucket_name(project)
-      logs_bucket_name = get_logs_bucket_name(project)
-      quarantine_bucket_name = get_quarantine_bucket_name(project)
-
-      storage.create_bucket_if_needed(backup_bucket_name, BACKUPS_LIFECYCLE)
-      storage.create_bucket_if_needed(corpus_bucket_name)
-      storage.create_bucket_if_needed(quarantine_bucket_name,
-                                      QUARANTINE_LIFECYCLE)
-      storage.create_bucket_if_needed(logs_bucket_name, LOGS_LIFECYCLE)
-
-      try:
-        add_bucket_iams(info, client, backup_bucket_name, service_account)
-        add_bucket_iams(info, client, corpus_bucket_name, service_account)
-        add_bucket_iams(info, client, logs_bucket_name, service_account)
-        add_bucket_iams(info, client, quarantine_bucket_name, service_account)
-      except Exception as e:
-        logs.log_error('Failed to add bucket IAMs for %s: %s' % (project, e))
-
-      # Grant the service account read access to deployment, shared corpus and
-      # mutator plugin buckets.
-      add_service_account_to_bucket(client, _deployment_bucket_name(),
-                                    service_account, OBJECT_VIEWER_IAM_ROLE)
-      add_service_account_to_bucket(client, _shared_corpus_bucket_name(),
-                                    service_account, OBJECT_VIEWER_IAM_ROLE)
-      add_service_account_to_bucket(client, _mutator_plugins_bucket_name(),
-                                    service_account, OBJECT_VIEWER_IAM_ROLE)
-
-      for data_bundle in data_bundles:
-        # Workers also need to be able to set up these global bundles.
-        data_bundle_bucket_name = data_handler.get_data_bundle_bucket_name(
-            data_bundle)
-        add_service_account_to_bucket(client, data_bundle_bucket_name,
-                                      service_account, OBJECT_VIEWER_IAM_ROLE)
-
-      # Create CF jobs for project.
-      sync_cf_job(project, info, corpus_bucket_name, quarantine_bucket_name,
-                  logs_bucket_name, backup_bucket_name, libfuzzer, afl)
-
-      # Create revision mappings for CF.
-      sync_cf_revision_mappings(project, info)
-
-      sync_user_permissions(project, info)
-
-      # Create Pub/Sub topics for tasks.
-      create_pubsub_topics(project)
-
-      # Set up projects settings (such as CPU distribution settings).
-      if not info.get('disabled', False):
-        create_project_settings(project, info, service_account)
-
-    # Update CF Fuzzer entities for new jobs added.
-    libfuzzer.put()
-    afl.put()
-
-    # Update job task queues.
-    refresh_fuzzer_job_mappings([libfuzzer, afl])
-
-    # Delete old jobs.
-    project_names = [project[0] for project in projects]
-    cleanup_old_jobs(project_names)
-
-    # Delete old pubsub topics.
-    cleanup_pubsub_topics(project_names)
-
-    # Delete old/disabled project settings.
-    enabled_projects = [
-        project for project, info in projects
-        if not info.get('disabled', False)
-    ]
-    cleanup_old_projects_settings(enabled_projects)
+    config.set_up(projects)

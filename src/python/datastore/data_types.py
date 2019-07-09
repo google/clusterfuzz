@@ -1235,6 +1235,7 @@ class Trial(Model):
   app_args = ndb.StringProperty(indexed=False)
 
 
+# TODO(ochang): Make this generic.
 class OssFuzzProject(Model):
   """Represents a project that has been set up for OSS-Fuzz."""
   # Name of the project.
