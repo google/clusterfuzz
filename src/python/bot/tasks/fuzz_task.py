@@ -1499,7 +1499,7 @@ class FuzzingSession(object):
 
     # Restore old values before attempting to test for reproducibility.
     set_test_timeout(self.test_timeout, 1.0)
-    return crashes, {}, []
+    return fuzzer_metadata, testcase_file_paths, testcases_metadata, crashes
 
   def run(self):
     """Run the fuzzing session."""
@@ -1575,8 +1575,8 @@ class FuzzingSession(object):
       fuzzer_metadata = {}
     else:
       fuzzer_directory = setup.get_fuzzer_directory(self.fuzzer_name)
-      fuzzer_metadata, testcase_file_paths, crashes = self.do_blackbox_fuzzing(
-          fuzzer, fuzzer_directory, self.job_type)
+      fuzzer_metadata, testcase_file_paths, testcases_metadata, crashes = (
+          self.do_blackbox_fuzzing(fuzzer, fuzzer_directory, self.job_type))
 
     if crashes is None:
       # Error occurred.
