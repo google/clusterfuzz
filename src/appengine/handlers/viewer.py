@@ -54,11 +54,11 @@ class Handler(base_handler.Handler):
     # https://github.com/googleapis/google-cloud-python/issues/6572
     if blob_size:
       try:
-        content = blobs.read_key(key)
+        content = unicode(blobs.read_key(key), errors='replace')
       except Exception:
         raise helpers.EarlyExitException('Failed to read content.', 400)
     else:
-      content = ''
+      content = u''
 
     line_count = len(content.splitlines())
     size = len(content)
