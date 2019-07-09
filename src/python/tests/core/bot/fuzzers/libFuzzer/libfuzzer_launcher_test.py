@@ -232,7 +232,7 @@ class LauncherTest(fake_fs_unittest.TestCase):
     self.mock.generate_weighted_strategy_pool.return_value = set_strategy_pool(
         [strategy.DATAFLOW_TRACING_STRATEGY])
     self.mock.decide_with_probability.return_value = False
-    environment.set_value('STRATEGY_SELECTION_METHOD', 'DEFAULT')
+    environment.set_value('STRATEGY_SELECTION_METHOD', 'default')
 
   @mock.patch('google_cloud_utils.storage.exists', lambda x: None)
   @mock.patch('google_cloud_utils.storage.read_data', lambda x: None)
@@ -422,7 +422,7 @@ class LauncherTest(fake_fs_unittest.TestCase):
               'strategy_recommended_dict':
                   0,
               'strategy_selection_method':
-                  'DEFAULT',
+                  'default',
               'strategy_value_profile':
                   0,
               'timeout_count':
@@ -625,7 +625,7 @@ class LauncherTest(fake_fs_unittest.TestCase):
               'strategy_recommended_dict':
                   1,
               'strategy_selection_method':
-                  'DEFAULT',
+                  'default',
               'strategy_value_profile':
                   0,
               'timeout_count':
@@ -714,7 +714,7 @@ class LauncherTest(fake_fs_unittest.TestCase):
         'strategy_mutator_plugin': 1,
         'strategy_random_max_len': 1,
         'strategy_recommended_dict': 0,
-        'strategy_selection_method': 'DEFAULT',
+        'strategy_selection_method': 'default',
         'strategy_value_profile': 0,
         'timeout_count': 0
     }
@@ -767,7 +767,7 @@ class LauncherTest(fake_fs_unittest.TestCase):
         'strategy_mutator_plugin': 0,
         'strategy_random_max_len': 0,
         'strategy_recommended_dict': 0,
-        'strategy_selection_method': 'DEFAULT',
+        'strategy_selection_method': 'default',
         'strategy_value_profile': 0,
         'timeout_count': 0
     }
@@ -814,7 +814,7 @@ class LauncherTest(fake_fs_unittest.TestCase):
         'strategy_mutator_plugin': 0,
         'strategy_random_max_len': 0,
         'strategy_recommended_dict': 0,
-        'strategy_selection_method': 'DEFAULT',
+        'strategy_selection_method': 'default',
         'strategy_value_profile': 0,
         'timeout_count': 0
     }
@@ -866,7 +866,7 @@ class LauncherTest(fake_fs_unittest.TestCase):
         'strategy_mutator_plugin': 0,
         'strategy_random_max_len': 0,
         'strategy_recommended_dict': 0,
-        'strategy_selection_method': 'DEFAULT',
+        'strategy_selection_method': 'default',
         'strategy_value_profile': 0,
         'timeout_count': 0
     }
@@ -918,7 +918,7 @@ class LauncherTest(fake_fs_unittest.TestCase):
         'strategy_mutator_plugin': 0,
         'strategy_random_max_len': 0,
         'strategy_recommended_dict': 0,
-        'strategy_selection_method': 'DEFAULT',
+        'strategy_selection_method': 'default',
         'strategy_value_profile': 0,
         'timeout_count': 0
     }
@@ -970,7 +970,7 @@ class LauncherTest(fake_fs_unittest.TestCase):
         'strategy_mutator_plugin': 0,
         'strategy_random_max_len': 0,
         'strategy_recommended_dict': 0,
-        'strategy_selection_method': 'DEFAULT',
+        'strategy_selection_method': 'default',
         'strategy_value_profile': 0,
         'timeout_count': 0
     }
@@ -1022,7 +1022,7 @@ class LauncherTest(fake_fs_unittest.TestCase):
         'strategy_mutator_plugin': 0,
         'strategy_random_max_len': 0,
         'strategy_recommended_dict': 0,
-        'strategy_selection_method': 'DEFAULT',
+        'strategy_selection_method': 'default',
         'strategy_value_profile': 1,
         'timeout_count': 0
     }
@@ -1073,7 +1073,7 @@ class LauncherTest(fake_fs_unittest.TestCase):
         'strategy_mutator_plugin': 0,
         'strategy_random_max_len': 0,
         'strategy_recommended_dict': 0,
-        'strategy_selection_method': 'DEFAULT',
+        'strategy_selection_method': 'default',
         'strategy_value_profile': 0,
         'timeout_count': 0
     }
@@ -1125,7 +1125,7 @@ class LauncherTest(fake_fs_unittest.TestCase):
         'strategy_mutator_plugin': 0,
         'strategy_random_max_len': 0,
         'strategy_recommended_dict': 0,
-        'strategy_selection_method': 'DEFAULT',
+        'strategy_selection_method': 'default',
         'strategy_value_profile': 0,
         'timeout_count': 1
     }
@@ -1344,7 +1344,7 @@ class LauncherTest(fake_fs_unittest.TestCase):
               'strategy_recommended_dict':
                   0,
               'strategy_selection_method':
-                  'DEFAULT',
+                  'default',
               'strategy_value_profile':
                   0,
               'timeout_count':
@@ -2006,7 +2006,7 @@ class LauncherTest(fake_fs_unittest.TestCase):
               u'strategy_recommended_dict':
                   0,
               u'strategy_selection_method':
-                  'DEFAULT',
+                  'default',
               u'strategy_value_profile':
                   0,
               u'timeout_count':
@@ -2333,7 +2333,7 @@ class LauncherTest(fake_fs_unittest.TestCase):
               u'strategy_recommended_dict':
                   0,
               u'strategy_selection_method':
-                  'DEFAULT',
+                  'default',
               u'strategy_value_profile':
                   0,
               u'timeout_count':
