@@ -60,6 +60,7 @@ from handlers.cron import schedule_corpus_pruning
 from handlers.cron import sync_admins
 from handlers.cron import triage
 from handlers.performance_report import (show as show_performance_report)
+from handlers.reproduce_tool import configure
 from handlers.reproduce_tool import testcase_info
 from handlers.testcase_detail import (crash_stats as crash_stats_on_testcase)
 from handlers.testcase_detail import (show as show_testcase)
@@ -186,6 +187,7 @@ _ROUTES = [
     ('/parse_stacktrace', parse_stacktrace.Handler),
     ('/performance-report/(.+)/(.+)/(.+)', show_performance_report.Handler),
     ('/report-csp-failure', report_csp_failure.ReportCspFailureHandler),
+    ('/reproduce-tool/configure', configure.Handler),
     ('/reproduce-tool/testcase-info', testcase_info.Handler),
     ('/session-login', login.SessionLoginHandler),
     ('/testcase', show_testcase.DeprecatedHandler),

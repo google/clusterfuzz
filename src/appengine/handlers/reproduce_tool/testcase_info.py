@@ -39,7 +39,7 @@ class Handler(base_handler.Handler):
   @handler.post(handler.JSON, handler.JSON)
   @handler.oauth
   def post(self):
-    """Serve the testcase detail HTML page."""
+    """Serve the testcase JSON."""
     testcase_id = self.request.get('testcaseId')
     testcase = access.check_access_and_get_testcase(testcase_id)
 
