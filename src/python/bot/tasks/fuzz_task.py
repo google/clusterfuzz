@@ -1373,8 +1373,9 @@ class FuzzingSession(object):
     environment.set_value('FUZZER_NAME', self.fully_qualified_fuzzer_name)
 
     # Synchronize corpus files with GCS
-    self.sync_corpus(sync_corpus_directory)
-    environment.set_value('FUZZ_CORPUS_DIR', sync_corpus_directory)
+    if sync_corpus_directory:
+      self.sync_corpus(sync_corpus_directory)
+      environment.set_value('FUZZ_CORPUS_DIR', sync_corpus_directory)
 
     # Initialize a list of crashes.
     crashes = []
