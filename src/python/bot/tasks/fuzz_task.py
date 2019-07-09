@@ -1555,29 +1555,25 @@ class FuzzingSession(object):
     if is_bad_build:
       return
 
-    # Helper variables.
-    data_bundle_name = fuzzer.data_bundle_name
-
-    # Get the fuzzer directory.
-    fuzzer_directory = setup.get_fuzzer_directory(self.fuzzer_name)
-
-    # Get the data bundle directory.
     # Data bundle directories can also have testcases which are kept in-place
     # because of dependencies.
     self.data_directory = setup.get_data_bundle_directory(self.fuzzer_name)
     if not self.data_directory:
       _track_fuzzer_run_result(self.fuzzer_name, 0, 0,
                                FuzzErrorCode.DATA_BUNDLE_SETUP_FAILED)
-      logs.log_error('Unable to setup data bundle %s.' % data_bundle_name)
+      logs.log_error(
+          'Unable to setup data bundle %s.' % fuzzer.data_bundle_name)
       return
 
     engine_impl = engine.get(fuzzer.name)
     if engine_impl:
       crashes = self.do_engine_fuzzing(engine_impl)
+      # TODO(ochang): fill these.
       testcase_file_paths = []
       testcases_metadata = {}
       fuzzer_metadata = {}
     else:
+      fuzzer_directory = setup.get_fuzzer_directory(self.fuzzer_name)
       fuzzer_metadata, testcase_file_paths, crashes = self.do_blackbox_fuzzing(
           fuzzer, fuzzer_directory, self.job_type)
 
