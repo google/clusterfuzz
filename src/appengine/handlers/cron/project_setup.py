@@ -563,13 +563,13 @@ class ProjectSetup(object):
                segregate_projects=False,
                engine_build_buckets=None,
                fuzzer_entities=None,
-               add_additional_labels=False):
+               add_info_labels=False):
     self._build_bucket_path_template = build_bucket_path_template
     self._revision_url_template = revision_url_template
     self._segregate_projects = segregate_projects
     self._engine_build_buckets = engine_build_buckets
     self._fuzzer_entities = fuzzer_entities
-    self._add_additional_labels = add_additional_labels
+    self._add_info_labels = add_info_labels
 
   def _sync_revision_mappings(self, project, info):
     """Sync ClusterFuzz revision mappings."""
@@ -600,7 +600,7 @@ class ProjectSetup(object):
 
     bucket = self._engine_build_buckets.get(engine)
     if not bucket:
-      raise ProjectSetupError('Invalid fuzzing engine.')
+      raise ProjectSetupError('Invalid fuzzing engine ' + engine)
 
     return bucket
 
@@ -701,7 +701,7 @@ class ProjectSetup(object):
 
       fuzzer_entity = self._fuzzer_entities.get(template.engine)
       if not fuzzer_entity:
-        raise ProjectSetupError('Invalid fuzzing engine.')
+        raise ProjectSetupError('Invalid fuzzing engine ' + template.engine)
 
       job_name = template.job_name(project)
       job = data_types.Job.query(data_types.Job.name == job_name).get()
@@ -751,7 +751,7 @@ class ProjectSetup(object):
         job.environment_string += 'BACKUP_BUCKET = {backup_bucket}\n'.format(
             backup_bucket=backup_bucket_name)
 
-      if self._add_additional_labels:
+      if self._add_info_labels:
         job.environment_string += (
             'AUTOMATIC_LABELS = Proj-{project},Engine-{engine}\n'.format(
                 project=project,
@@ -865,7 +865,7 @@ class ProjectSetup(object):
 
 
 class Handler(base_handler.Handler):
-  """Setup ClusterFuzz jobs for oss-fuzz."""
+  """Setup ClusterFuzz jobs for projects."""
 
   @handler.check_cron()
   def get(self):
@@ -897,7 +897,7 @@ class Handler(base_handler.Handler):
             'libfuzzer': libfuzzer,
             'afl': afl,
         },
-        add_additional_labels=True)
+        add_info_labels=True)
 
     projects = get_projects()
     config.set_up(projects)
