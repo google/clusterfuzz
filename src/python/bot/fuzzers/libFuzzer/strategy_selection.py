@@ -104,14 +104,10 @@ def generate_default_strategy_pool():
 def generate_weighted_strategy_pool():
   """Generate a strategy pool based on probability
   distribution from multi armed bandit experimentation."""
-
-  # If weighted strategy selection is enabled, there will be a distribution
-  # stored in the environment.
   distribution = environment.get_value('STRATEGY_SELECTION_DISTRIBUTION')
 
-  # Otherwise if weighted strategy selection is not enabled (strategy selection
-  # distribution is none) or if we cannot query properly, generate strategy
-  # pool according to default parameters.
+  # If we are not able to query properly, draw randomly according to
+  # probability parameters.
   if not distribution:
     return generate_default_strategy_pool()
 
