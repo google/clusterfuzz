@@ -25,6 +25,7 @@ from bot.fuzzers import utils as fuzzers_utils
 from datastore import data_types
 from fuzzing import testcase_manager
 from system import environment
+from system import shell
 
 
 class BuiltinFuzzerResult(object):
@@ -65,9 +66,7 @@ def get_corpus_directory(input_directory, project_qualified_name):
     from bot.untrusted_runner import file_host
     file_host.create_directory(corpus_directory, create_intermediates=True)
   else:
-    if not os.path.exists(corpus_directory):
-      os.mkdir(corpus_directory)
-
+    shell.create_directory(corpus_directory)
   return corpus_directory
 
 

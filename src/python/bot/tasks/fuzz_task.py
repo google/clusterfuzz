@@ -731,7 +731,7 @@ def run_fuzzer(fuzzer, fuzzer_directory, testcase_directory, data_directory,
 
   # Set an environment variable for fuzzer name.
   # TODO(ochang): Investigate removing this. Only users appear to be chromebot
-  # fuzzer and fuzzer_logs, both of which should be able to removed.
+  # fuzzer and fuzzer_logs, both of which can be removed.
   environment.set_value('FUZZER_NAME', fuzzer_name)
 
   # Set minimum redzone size, do not detect leaks and zero out the
@@ -1335,7 +1335,7 @@ class FuzzingSession(object):
     return []
 
   def do_blackbox_fuzzing(self, fuzzer, fuzzer_directory, job_type):
-    """Run blackbox fuzzing."""
+    """Run blackbox fuzzing. Currently also used for engine fuzzing."""
     # Set the thread timeout values.
     # TODO(ochang): Remove this hack once engine fuzzing refactor is compelte.
     fuzz_test_timeout = environment.get_value('FUZZ_TEST_TIMEOUT')
@@ -1568,6 +1568,8 @@ class FuzzingSession(object):
 
     engine_impl = engine.get(fuzzer.name)
     if engine_impl:
+      # Note: This branch is not taken right now, and is part of ongoing
+      # refactoring efforts (https://github.com/google/clusterfuzz/issues/483).
       crashes = self.do_engine_fuzzing(engine_impl)
       # TODO(ochang): fill these.
       testcase_file_paths = []
@@ -1579,7 +1581,8 @@ class FuzzingSession(object):
           self.do_blackbox_fuzzing(fuzzer, fuzzer_directory, self.job_type))
 
     if crashes is None:
-      # Error occurred.
+      # Error occurred in run_fuzzer.
+      # TODO(ochang): Pipe this error a little better.
       return
 
     logs.log('Finished processing test cases.')

@@ -51,7 +51,8 @@ class Engine(object):
 
   @property
   def name(self):
-    return self.__class__.__name__
+    """Get the name of the engine."""
+    raise NotImplementedError
 
   def prepare(self, corpus_dir, target_path, build_dir):
     """Prepare for a fuzzing session, by generating options. Returns a
@@ -80,12 +81,13 @@ class Engine(object):
     raise NotImplementedError
 
 
-def register_engine(name, impl):
+def register_engine(impl):
   """Register a fuzzing engine."""
-  if impl in _ENGINES:
-    raise ValueError('Engine {name} is already registered'.format(name=name))
+  if impl.name in _ENGINES:
+    raise ValueError(
+        'Engine {name} is already registered'.format(name=impl.name))
 
-  _ENGINES[name] = impl
+  _ENGINES[impl.name] = impl
 
 
 def get(name):
