@@ -1363,7 +1363,7 @@ class FuzzingSession(object):
          testcase_count)
 
     if error_occurred:
-      return None, None, None
+      return None, None, None, None
 
     fuzzer_binary_name = fuzzer_metadata.get('fuzzer_binary_name')
     if fuzzer_binary_name:
