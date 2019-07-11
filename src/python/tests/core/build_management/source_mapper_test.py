@@ -153,6 +153,7 @@ class VCSViewerTest(unittest.TestCase):
     vcs = source_mapper.GoogleVCS('//dir1/dir2')
     self.assertEqual('https://cs.corp.google.com/dir1/dir2/?rcl=1337',
                      vcs.get_source_url_for_revision(1337))
+    self.assertEqual(None, vcs.get_source_url_for_revision_diff(1337, 1338))
     self.assertEqual(
         'https://cs.corp.google.com'
         '/dir1/dir2/dir3/dir4/file1.txt?rcl=1337&l=10',
