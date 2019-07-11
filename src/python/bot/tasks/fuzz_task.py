@@ -69,6 +69,7 @@ FUZZER_METADATA_REGEX = re.compile(r'metadata::(\w+):\s*(.*)')
 FUZZER_FAILURE_THRESHOLD = 0.33
 MAX_GESTURES = 30
 MAX_NEW_CORPUS_FILES = 500
+MULTI_ARMED_BANDIT_TRAFFIC_SPLIT = .2
 THREAD_WAIT_TIMEOUT = 1
 
 
@@ -1390,8 +1391,11 @@ class FuzzingSession(object):
     # TODO: Remove environment variable once fuzzing engine refactor is
     # complete. Set multi-armed bandit strategy selection distribution as an
     # environment variable so we can access it in launcher.
-    if environment.get_value('USE_BANDIT_STRATEGY_SELECTION'):
+    if (environment.get_value('USE_BANDIT_STRATEGY_SELECTION') and
+        engine_common.decide_with_probability(MULTI_ARMED_BANDIT_TRAFFIC_SPLIT)
+       ):
       distribution = get_strategy_distribution_from_ndb()
+      environment.set_value('STRATEGY_SELECTION_METHOD', 'multi_armed_bandit')
       environment.set_value('STRATEGY_SELECTION_DISTRIBUTION', distribution)
 
     # Reset memory tool options.
