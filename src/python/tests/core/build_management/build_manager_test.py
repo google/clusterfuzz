@@ -112,8 +112,7 @@ class TrunkBuildTest(unittest.TestCase):
         ],
     )
 
-    build_manager.setup_trunk_build(
-        build_manager.DEFAULT_BUILD_BUCKET_PATH_ENV_VARS)
+    build_manager.setup_trunk_build()
     self.mock.setup_regular_build.assert_called_with(
         10, 'gs://path/file-release-([0-9]+).zip', None)
 
@@ -137,8 +136,7 @@ class TrunkBuildTest(unittest.TestCase):
         ],
     )
 
-    build_manager.setup_trunk_build(
-        build_manager.DEFAULT_BUILD_BUCKET_PATH_ENV_VARS)
+    build_manager.setup_trunk_build()
     self.mock.setup_regular_build.assert_called_with(
         2, 'gs://path/file-release-([0-9]+).zip', None)
 
@@ -162,8 +160,7 @@ class TrunkBuildTest(unittest.TestCase):
         ],
     )
 
-    build_manager.setup_trunk_build(
-        build_manager.DEFAULT_BUILD_BUCKET_PATH_ENV_VARS)
+    build_manager.setup_trunk_build()
     self.assertEqual(0, self.mock.setup_regular_build.call_count)
 
 

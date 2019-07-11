@@ -1131,7 +1131,8 @@ def get_revisions_list(bucket_path, testcase=None):
   return revision_list
 
 
-def setup_trunk_build(bucket_paths_env_vars, build_prefix=None):
+def setup_trunk_build(bucket_paths_env_vars=DEFAULT_BUILD_BUCKET_PATH_ENV_VARS,
+                      build_prefix=None):
   """Sets up latest trunk build."""
   if not bucket_paths_env_vars:
     return None
@@ -1378,7 +1379,7 @@ def setup_build(revision=0):
 
   # If no revision is provided, we default to a trunk build.
   if not revision:
-    return setup_trunk_build(DEFAULT_BUILD_BUCKET_PATH_ENV_VARS)
+    return setup_trunk_build()
 
   # Setup regular build with revision.
   return setup_regular_build(revision)
