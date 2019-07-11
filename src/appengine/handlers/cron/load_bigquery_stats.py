@@ -149,7 +149,7 @@ class Handler(base_handler.Handler):
                   'schemaUpdateOptions': ['ALLOW_FIELD_ADDITION',],
                   'sourceFormat': 'NEWLINE_DELIMITED_JSON',
                   'sourceUris': ['gs:/' + gcs_path + '*.json'],
-                  'writeDisposition': 'WRITE_TRUNCATE',
+                  'writeDisposition': 'WRITE_APPEND',
               },
           },
       }
