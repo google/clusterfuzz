@@ -109,7 +109,7 @@ class LoadBigQueryStatsTest(unittest.TestCase):
                             },
                             'schemaUpdateOptions': ['ALLOW_FIELD_ADDITION'],
                             'writeDisposition':
-                                'WRITE_TRUNCATE',
+                                'WRITE_APPEND',
                             'sourceUris': [
                                 'gs://test-bigquery-bucket/fuzzer/JobRun/date/'
                                 '20160907/*.json'
