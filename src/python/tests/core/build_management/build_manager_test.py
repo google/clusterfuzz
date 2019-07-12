@@ -1019,7 +1019,6 @@ class AuxiliaryRegularBuildTest(fake_filesystem_unittest.TestCase):
 
   def test_delete(self):
     """Test deleting this build."""
-    os.environ['FUZZ_TARGET'] = 'fuzz_target'
     os.environ['DATAFLOW_BUILD_BUCKET_PATH'] = (
         'gs://path/file-dataflow-([0-9]+).zip')
 
@@ -1182,6 +1181,7 @@ class AuxiliaryRegularLibFuzzerBuildTest(fake_filesystem_unittest.TestCase):
 
   def test_delete(self):
     """Test deleting this build."""
+    os.environ['FUZZ_TARGET'] = 'fuzz_target'
     os.environ['DATAFLOW_BUILD_BUCKET_PATH'] = (
         'gs://path/file-dataflow-([0-9]+).zip')
 
