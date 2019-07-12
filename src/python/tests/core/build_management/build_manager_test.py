@@ -112,7 +112,7 @@ class TrunkBuildTest(unittest.TestCase):
         ],
     )
 
-    build_manager.setup_trunk_build()
+    build_manager.setup_build()
     self.mock.setup_regular_build.assert_called_with(
         10, 'gs://path/file-release-([0-9]+).zip', None)
 
@@ -136,7 +136,7 @@ class TrunkBuildTest(unittest.TestCase):
         ],
     )
 
-    build_manager.setup_trunk_build()
+    build_manager.setup_build()
     self.mock.setup_regular_build.assert_called_with(
         2, 'gs://path/file-release-([0-9]+).zip', None)
 
@@ -160,7 +160,7 @@ class TrunkBuildTest(unittest.TestCase):
         ],
     )
 
-    build_manager.setup_trunk_build()
+    build_manager.setup_build()
     self.assertEqual(0, self.mock.setup_regular_build.call_count)
 
 
@@ -989,8 +989,8 @@ class AuxiliaryRegularBuildTest(fake_filesystem_unittest.TestCase):
     ]
 
     self.mock.time.return_value = 1000.0
-    build = build_manager.setup_trunk_build(['DATAFLOW_BUILD_BUCKET_PATH'],
-                                            'DATAFLOW')
+    build = build_manager.setup_trunk_build(
+        [os.environ['DATAFLOW_BUILD_BUCKET_PATH']], 'DATAFLOW')
     self.assertIsInstance(build, build_manager.RegularBuild)
     self.assertEqual(_get_timestamp(build.base_build_dir), 1000.0)
 
@@ -1003,8 +1003,9 @@ class AuxiliaryRegularBuildTest(fake_filesystem_unittest.TestCase):
 
     self.mock.time.return_value = 1005.0
     self.assertIsInstance(
-        build_manager.setup_trunk_build(['DATAFLOW_BUILD_BUCKET_PATH'],
-                                        'DATAFLOW'), build_manager.RegularBuild)
+        build_manager.setup_trunk_build(
+            [os.environ['DATAFLOW_BUILD_BUCKET_PATH']], 'DATAFLOW'),
+        build_manager.RegularBuild)
     self.assertEqual(_get_timestamp(build.base_build_dir), 1005.0)
 
     # Already set up.
@@ -1021,7 +1022,7 @@ class AuxiliaryRegularBuildTest(fake_filesystem_unittest.TestCase):
     ]
 
     build = fuzz_task.build_manager.setup_trunk_build(
-        ['DATAFLOW_BUILD_BUCKET_PATH'], 'DATAFLOW')
+        [os.environ['DATAFLOW_BUILD_BUCKET_PATH']], 'DATAFLOW')
     self.assertTrue(
         os.path.isdir(
             '/builds/path_2992e823e35fd34a63e0f8733cdafd6875036a1d/revisions'))
@@ -1131,8 +1132,8 @@ class AuxiliaryRegularLibFuzzerBuildTest(fake_filesystem_unittest.TestCase):
     else:
       self.assertIsNotNone(build_manager._get_file_match_callback())
 
-    build = build_manager.setup_trunk_build(['DATAFLOW_BUILD_BUCKET_PATH'],
-                                            'DATAFLOW')
+    build = build_manager.setup_trunk_build(
+        [os.environ['DATAFLOW_BUILD_BUCKET_PATH']], 'DATAFLOW')
     self.assertIsInstance(build, build_manager.RegularBuild)
     self.assertEqual(_get_timestamp(build.base_build_dir), 1000.0)
     self.assertEqual('target1', os.environ['FUZZ_TARGET'])
@@ -1150,8 +1151,9 @@ class AuxiliaryRegularLibFuzzerBuildTest(fake_filesystem_unittest.TestCase):
     os.environ['FUZZ_TARGET'] = 'target3'
     self.mock.time.return_value = 1005.0
     self.assertIsInstance(
-        build_manager.setup_trunk_build(['DATAFLOW_BUILD_BUCKET_PATH'],
-                                        'DATAFLOW'), build_manager.RegularBuild)
+        build_manager.setup_trunk_build(
+            [os.environ['DATAFLOW_BUILD_BUCKET_PATH']], 'DATAFLOW'),
+        build_manager.RegularBuild)
     self.assertEqual(_get_timestamp(build.base_build_dir), 1005.0)
 
     # An auxiliary build set up should not choose and overwrite the fuzz target.
@@ -1179,8 +1181,8 @@ class AuxiliaryRegularLibFuzzerBuildTest(fake_filesystem_unittest.TestCase):
         'gs://path/file-dataflow-2.zip',
     ]
 
-    build = build_manager.setup_trunk_build(['DATAFLOW_BUILD_BUCKET_PATH'],
-                                            'DATAFLOW')
+    build = build_manager.setup_trunk_build(
+        [os.environ['DATAFLOW_BUILD_BUCKET_PATH']], 'DATAFLOW')
     self.assertTrue(
         os.path.isdir(
             '/builds/path_2992e823e35fd34a63e0f8733cdafd6875036a1d/dataflow'))
@@ -1705,3 +1707,128 @@ class SortBuildUrlsByRevisionTest(unittest.TestCase):
     actual_result = build_manager._sort_build_urls_by_revision(
         build_urls, bucket_path, reverse=False)
     self.assertEqual(expected_result, actual_result)
+
+
+class SplitFuzzTargetsBuildTest(fake_filesystem_unittest.TestCase):
+  """Tests for split fuzz target build setup."""
+
+  def setUp(self):
+    test_utils.set_up_pyfakefs(self)
+
+    test_helpers.patch(self, [
+        'build_management.build_manager.get_build_urls_list',
+        'build_management.build_manager._make_space',
+        'build_management.build_manager._make_space_for_build',
+        'fuzzing.fuzzer_selection.get_fuzz_target_weights',
+        'system.shell.clear_temp_directory',
+        'google_cloud_utils.storage.copy_file_from',
+        'google_cloud_utils.storage.get_download_file_size',
+        'google_cloud_utils.storage.read_data',
+        'system.archive.unpack',
+        'time.time',
+    ])
+
+    test_helpers.patch_environ(self)
+
+    os.environ['BUILDS_DIR'] = '/builds'
+    os.environ['FAIL_RETRIES'] = '1'
+    os.environ['APP_NAME'] = FAKE_APP_NAME
+    os.environ['JOB_NAME'] = 'libfuzzer_job'
+    os.environ['UNPACK_ALL_FUZZ_TARGETS_AND_FILES'] = 'True'
+
+    self.mock.read_data.return_value = ('target1\n' 'target2\n' 'target3\n')
+
+    self.mock.get_fuzz_target_weights.return_value = {
+        'target1': 0.0,
+        'target2': 1.0,
+        'target3': 0.0,
+    }
+    self.mock.get_download_file_size.return_value = 1
+    self.mock.copy_file_from.return_value = True
+
+    self.mock._make_space.return_value = True
+    self.mock._make_space_for_build.return_value = True
+    self.mock.unpack.return_value = True
+
+    os.environ['FUZZ_TARGET_BUILD_BUCKET_PATH'] = (
+        'gs://bucket/subdir/%TARGET%/([0-9]+).zip')
+
+    self.mock.get_build_urls_list.return_value = [
+        'gs://bucket/subdir/target2/10.zip',
+        'gs://bucket/subdir/target2/2.zip',
+        'gs://bucket/subdir/target2/1.zip',
+    ]
+
+  def _assert_env_vars(self, target, revision):
+    # Assert the expected values of environment variables.
+    self.assertEqual(
+        'gs://bucket/subdir/{target}/{revision}.zip'.format(
+            target=target, revision=revision), os.environ.get('BUILD_URL'))
+    self.assertEqual(str(revision), os.environ['APP_REVISION'])
+    self.assertEqual(
+        '/builds/bucket_subdir_{target}_'
+        '77651789446b3c3a04b9f492ff141f003d437347/revisions'.format(
+            target=target),
+        os.environ['BUILD_DIR'])
+
+  def test_setup_fuzz(self):
+    """Tests setting up a build during fuzzing."""
+    os.environ['TASK_NAME'] = 'fuzz'
+    self.mock.time.return_value = 1000.0
+
+    build = build_manager.setup_build()
+    self.assertIsInstance(build, build_manager.RegularBuild)
+    self.assertEqual(_get_timestamp(build.base_build_dir), 1000.0)
+    self.assertEqual('target2', os.environ['FUZZ_TARGET'])
+    self._assert_env_vars('target2', 10)
+
+    self.assertEqual(1, self.mock.unpack.call_count)
+    self.mock.unpack.assert_called_with(
+        '/builds/bucket_subdir_target2_77651789446b3c3a04b9f492ff141f003d437347'
+        '/revisions/10.zip',
+        '/builds/bucket_subdir_target2_77651789446b3c3a04b9f492ff141f003d437347'
+        '/revisions',
+        file_match_callback=None,
+        trusted=True)
+
+  def test_setup_nonfuzz(self):
+    """Tests setting up a build during a non-fuzz task."""
+    os.environ['FUZZ_TARGET'] = 'target1'
+    self.mock.time.return_value = 1000.0
+
+    self.mock.get_build_urls_list.return_value = [
+        'gs://bucket/subdir/target1/8.zip',
+    ]
+
+    build = build_manager.setup_build(8)
+    self.assertIsInstance(build, build_manager.RegularBuild)
+    self.assertEqual(_get_timestamp(build.base_build_dir), 1000.0)
+    self.assertEqual('target1', os.environ['FUZZ_TARGET'])
+    self._assert_env_vars('target1', 8)
+
+    self.assertEqual(1, self.mock.unpack.call_count)
+    self.mock.unpack.assert_called_with(
+        '/builds/bucket_subdir_target1_77651789446b3c3a04b9f492ff141f003d437347'
+        '/revisions/8.zip',
+        '/builds/bucket_subdir_target1_77651789446b3c3a04b9f492ff141f003d437347'
+        '/revisions',
+        file_match_callback=None,
+        trusted=True)
+
+  def test_delete(self):
+    """Test deleting this build."""
+    os.environ['FUZZ_TARGET'] = 'target2'
+    build = build_manager.setup_build(10)
+
+    self.assertTrue(
+        os.path.isdir('/builds/bucket_subdir_target2_'
+                      '77651789446b3c3a04b9f492ff141f003d437347'
+                      '/revisions'))
+    build.delete()
+    self.assertFalse(
+        os.path.isdir('/builds/bucket_subdir_target2_'
+                      '77651789446b3c3a04b9f492ff141f003d437347'
+                      '/revisions'))
+    self.assertTrue(
+        os.path.isdir('/builds/bucket_subdir_target2_'
+                      '77651789446b3c3a04b9f492ff141f003d437347'))

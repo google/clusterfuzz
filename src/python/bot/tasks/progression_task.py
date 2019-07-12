@@ -138,7 +138,7 @@ def _check_fixed_for_custom_binary(testcase, job_type, testcase_file_path):
 def _testcase_reproduces_in_revision(testcase, testcase_file_path, job_type,
                                      revision):
   """Test to see if a test case reproduces in the specified revision."""
-  build_manager.setup_regular_build(revision)
+  build_manager.setup_build(revision)
   app_path = environment.get_value('APP_PATH')
   if not app_path:
     raise errors.BuildSetupError(revision, job_type)

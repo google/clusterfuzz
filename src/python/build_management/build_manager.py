@@ -91,6 +91,8 @@ UNPACK_TIME_LIMIT = 60 * 20
 
 PATCHELF_SIZE_LIMIT = 1.5 * 1024 * 1024 * 1024  # 1.5 GiB
 
+TARGETS_LIST_FILENAME = 'targets.list'
+
 BuildUrls = namedtuple('BuildUrls', ['bucket_path', 'urls_list'])
 
 
@@ -393,25 +395,27 @@ def _set_random_fuzz_target_for_fuzzing_if_needed(fuzz_targets, target_weights):
   fuzz_target = environment.get_value('FUZZ_TARGET')
   if fuzz_target:
     logs.log('Use previously picked fuzz target %s for fuzzing.' % fuzz_target)
-    return
+    return fuzz_target
 
   if not environment.is_engine_fuzzer_job():
-    return
+    return None
 
   # TODO(ochang): Untie this dependency on knowledge of the current task.
   task_name = environment.get_value('TASK_NAME')
   if task_name != 'fuzz':
-    return
+    return None
 
   fuzz_targets = list(fuzz_targets)
   if not fuzz_targets:
     logs.log_error('No fuzz targets found. Unable to pick random one.')
-    return
+    return None
 
   fuzz_target = fuzzer_selection.select_fuzz_target(fuzz_targets,
                                                     target_weights)
   environment.set_value('FUZZ_TARGET', fuzz_target)
   logs.log('Picked fuzz target %s for fuzzing.' % fuzz_target)
+
+  return fuzz_target
 
 
 def _setup_build_directories(base_build_dir):
@@ -1131,19 +1135,40 @@ def get_revisions_list(bucket_path, testcase=None):
   return revision_list
 
 
-def setup_trunk_build(bucket_paths_env_vars=DEFAULT_BUILD_BUCKET_PATH_ENV_VARS,
-                      build_prefix=None):
-  """Sets up latest trunk build."""
-  if not bucket_paths_env_vars:
+def _get_targets_list(bucket_path):
+  """Get the target list for a given bucket path."""
+  targets_list_path = os.path.join(
+      os.path.dirname(os.path.dirname(bucket_path)), TARGETS_LIST_FILENAME)
+  data = storage.read_data(targets_list_path)
+  if not data:
     return None
 
-  build_urls = []
-  for env_var in bucket_paths_env_vars:
-    bucket_path = environment.get_value(env_var)
-    if not bucket_path:
-      logs.log_warn('Build bucket path is not specified as %s.' % env_var)
-      continue
+  return data.splitlines()
 
+
+def _setup_split_targets_build(bucket_path, revision=None):
+  """Set up targets build."""
+  targets_list = _get_targets_list(bucket_path)
+  if not targets_list:
+    raise BuildManagerException('No targets found')
+
+  target_weights = fuzzer_selection.get_fuzz_target_weights()
+  fuzz_target = _set_random_fuzz_target_for_fuzzing_if_needed(
+      targets_list, target_weights)
+  if not fuzz_target:
+    raise BuildManagerException('Failed to choose a fuzz target.')
+
+  fuzz_target_bucket_path = bucket_path.replace('%TARGET%', fuzz_target)
+  if not revision:
+    revision = _get_latest_revision([fuzz_target_bucket_path])
+
+  return setup_regular_build(revision, bucket_path=fuzz_target_bucket_path)
+
+
+def _get_latest_revision(bucket_paths):
+  """Get the latest revision."""
+  build_urls = []
+  for bucket_path in bucket_paths:
     urls_list = get_build_urls_list(bucket_path)
     if not urls_list:
       logs.log_error('Error getting list of build urls from %s.' % bucket_path)
@@ -1151,18 +1176,11 @@ def setup_trunk_build(bucket_paths_env_vars=DEFAULT_BUILD_BUCKET_PATH_ENV_VARS,
 
     build_urls.append(BuildUrls(bucket_path=bucket_path, urls_list=urls_list))
 
-  if not build_urls:
-    logs.log_error('No builds are found to set up.')
-    return None
-
   main_build_urls = build_urls[0]
   other_build_urls = build_urls[1:]
-  base_build_dir = _base_build_dir(main_build_urls.bucket_path)
-  _setup_build_directories(base_build_dir)
 
   revision_pattern = revisions.revision_pattern_from_build_bucket_path(
       main_build_urls.bucket_path)
-  found_revision = False
   for build_url in main_build_urls.urls_list:
     match = re.match(revision_pattern, build_url)
     if not match:
@@ -1172,15 +1190,20 @@ def setup_trunk_build(bucket_paths_env_vars=DEFAULT_BUILD_BUCKET_PATH_ENV_VARS,
     if (not other_build_urls or all(
         revisions.find_build_url(url.bucket_path, url.urls_list, revision)
         for url in other_build_urls)):
-      found_revision = True
-      break
+      return revision
 
-  if not found_revision:
+  return None
+
+
+def setup_trunk_build(bucket_paths, build_prefix=None):
+  """Sets up latest trunk build."""
+  latest_revision = _get_latest_revision(bucket_paths)
+  if latest_revision is None:
     logs.log_error('Unable to find a matching revision.')
     return None
 
-  build = setup_regular_build(revision, main_build_urls.bucket_path,
-                              build_prefix)
+  build = setup_regular_build(
+      latest_revision, bucket_path=bucket_paths[0], build_prefix=build_prefix)
   if not build:
     logs.log_error('Failed to set up a build.')
     return None
@@ -1377,12 +1400,25 @@ def setup_build(revision=0):
   if system_binary:
     return setup_system_binary()
 
-  # If no revision is provided, we default to a trunk build.
-  if not revision:
-    return setup_trunk_build()
+  fuzz_target_build_bucket_path = environment.get_value(
+      'FUZZ_TARGET_BUILD_BUCKET_PATH')
+  if fuzz_target_build_bucket_path:
+    # Split fuzz target build.
+    return _setup_split_targets_build(
+        fuzz_target_build_bucket_path, revision=revision)
 
-  # Setup regular build with revision.
-  return setup_regular_build(revision)
+  if revision:
+    # Setup regular build with revision.
+    return setup_regular_build(revision)
+
+  # If no revision is provided, we default to a trunk build.
+  bucket_paths = []
+  for env_var in DEFAULT_BUILD_BUCKET_PATH_ENV_VARS:
+    bucket_path = environment.get_value(env_var)
+    if env_var:
+      bucket_paths.append(bucket_path)
+
+  return setup_trunk_build(bucket_paths)
 
 
 def remove_unused_builds():

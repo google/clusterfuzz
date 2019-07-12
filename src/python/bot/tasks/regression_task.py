@@ -101,7 +101,7 @@ def _testcase_reproduces_in_revision(testcase,
     data_handler.update_testcase_comment(testcase, data_types.TaskState.WIP,
                                          log_message)
 
-  build_manager.setup_regular_build(revision)
+  build_manager.setup_build(revision)
   app_path = environment.get_value('APP_PATH')
   if not app_path:
     raise errors.BuildSetupError(revision, job_type)
