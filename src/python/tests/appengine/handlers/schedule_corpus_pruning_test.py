@@ -28,11 +28,6 @@ class ScheduleCorpusPruningTest(unittest.TestCase):
   def setUp(self):
     helpers.patch_environ(self)
 
-    helpers.patch(self, [
-        'build_management.build_manager.get_revisions_list',
-    ])
-    self.mock.get_revisions_list.return_value = [1337, 31337]
-
     # Two fuzz targets with two jobs enabled, one with and one without pruning.
     data_types.FuzzTarget(
         engine='libFuzzer', binary='test_fuzzer_1', project='project_1').put()
@@ -104,9 +99,9 @@ class ScheduleCorpusPruningTest(unittest.TestCase):
   def test_schedule_corpus_pruning(self):
     """Test schedule_corpus_pruning.Handler.."""
     tasks = schedule_corpus_pruning.get_tasks_to_schedule()
-    tasks_expected = [('libFuzzer_test_fuzzer_1@31337',
+    tasks_expected = [('libFuzzer_test_fuzzer_1',
                        'continuous_fuzzing_job_with_pruning', 'jobs-linux'),
-                      ('libFuzzer_test_fuzzer_2@31337',
+                      ('libFuzzer_test_fuzzer_2',
                        'continuous_fuzzing_job_with_pruning', 'jobs-linux'),
                       ('libFuzzer_test_fuzzer_a',
                        'custom_binary_job_with_pruning', 'jobs-linux'),
