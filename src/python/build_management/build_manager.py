@@ -400,11 +400,6 @@ def _set_random_fuzz_target_for_fuzzing_if_needed(fuzz_targets, target_weights):
   if not environment.is_engine_fuzzer_job():
     return None
 
-  # TODO(ochang): Untie this dependency on knowledge of the current task.
-  task_name = environment.get_value('TASK_NAME')
-  if task_name != 'fuzz':
-    return None
-
   fuzz_targets = list(fuzz_targets)
   if not fuzz_targets:
     logs.log_error('No fuzz targets found. Unable to pick random one.')
