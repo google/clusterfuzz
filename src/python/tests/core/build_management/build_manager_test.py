@@ -114,7 +114,10 @@ class TrunkBuildTest(unittest.TestCase):
 
     build_manager.setup_build()
     self.mock.setup_regular_build.assert_called_with(
-        10, 'gs://path/file-release-([0-9]+).zip', None)
+        10,
+        'gs://path/file-release-([0-9]+).zip',
+        build_prefix=None,
+        target_weights=None)
 
   def test_setup_mismatch(self):
     """Test setup finding the first matching revision."""
@@ -138,7 +141,10 @@ class TrunkBuildTest(unittest.TestCase):
 
     build_manager.setup_build()
     self.mock.setup_regular_build.assert_called_with(
-        2, 'gs://path/file-release-([0-9]+).zip', None)
+        2,
+        'gs://path/file-release-([0-9]+).zip',
+        build_prefix=None,
+        target_weights=None)
 
   def test_setup_fail(self):
     """Test setup failing to find any matching revisions."""
@@ -212,7 +218,6 @@ class RegularBuildTest(fake_filesystem_unittest.TestCase):
     os.environ['JOB_NAME'] = 'job'
 
     self.mock._unpack_build.side_effect = _mock_unpack_build
-    self.mock.get_fuzz_target_weights.side_effect = lambda: {}
 
   def _assert_env_vars(self):
     """Assert env vars exist."""
@@ -259,7 +264,7 @@ class RegularBuildTest(fake_filesystem_unittest.TestCase):
     self.mock._unpack_build.assert_called_once_with(
         '/builds/path_be4c9ca0267afcd38b7c1a3eebb5998d0908f025',
         '/builds/path_be4c9ca0267afcd38b7c1a3eebb5998d0908f025/revisions',
-        'gs://path/file-release-2.zip', {})
+        'gs://path/file-release-2.zip', None)
 
     self._assert_env_vars()
     self.assertEqual(os.environ['APP_REVISION'], '2')
@@ -310,7 +315,6 @@ class RegularLibFuzzerBuildTest(fake_filesystem_unittest.TestCase):
         'build_management.build_manager._get_fuzz_targets_from_archive',
         'build_management.build_manager._make_space',
         'build_management.build_manager._make_space_for_build',
-        'fuzzing.fuzzer_selection.get_fuzz_target_weights',
         'system.shell.clear_temp_directory',
         'google_cloud_utils.storage.copy_file_from',
         'google_cloud_utils.storage.get_download_file_size',
@@ -325,7 +329,7 @@ class RegularLibFuzzerBuildTest(fake_filesystem_unittest.TestCase):
     os.environ['APP_NAME'] = FAKE_APP_NAME
     os.environ['JOB_NAME'] = 'libfuzzer_job'
 
-    self.mock.get_fuzz_target_weights.return_value = {
+    self.target_weights = {
         'target1': 0.0,
         'target2': 1.0,
         'target3': 0.0,
@@ -366,7 +370,8 @@ class RegularLibFuzzerBuildTest(fake_filesystem_unittest.TestCase):
     os.environ['TASK_NAME'] = 'fuzz'
 
     self.mock.time.return_value = 1000.0
-    build = build_manager.setup_regular_build(2)
+    build = build_manager.setup_regular_build(
+        2, target_weights=self.target_weights)
     self.assertIsInstance(build, build_manager.RegularBuild)
     self.assertEqual(_get_timestamp(build.base_build_dir), 1000.0)
 
@@ -380,7 +385,8 @@ class RegularLibFuzzerBuildTest(fake_filesystem_unittest.TestCase):
     os.environ['FUZZ_TARGET'] = ''
     self.mock.time.return_value = 1005.0
     self.assertIsInstance(
-        build_manager.setup_regular_build(2), build_manager.RegularBuild)
+        build_manager.setup_regular_build(
+            2, target_weights=self.target_weights), build_manager.RegularBuild)
     self.assertEqual(_get_timestamp(build.base_build_dir), 1005.0)
 
     # If it was a partial build, the unpack should be called again.
@@ -946,7 +952,6 @@ class AuxiliaryRegularBuildTest(fake_filesystem_unittest.TestCase):
     test_helpers.patch(self, [
         'build_management.build_manager.get_build_urls_list',
         'build_management.build_manager._unpack_build',
-        'fuzzing.fuzzer_selection.get_fuzz_target_weights',
         'system.shell.clear_temp_directory',
         'time.time',
     ])
@@ -959,7 +964,6 @@ class AuxiliaryRegularBuildTest(fake_filesystem_unittest.TestCase):
     os.environ['JOB_NAME'] = 'job'
 
     self.mock._unpack_build.side_effect = _mock_unpack_build
-    self.mock.get_fuzz_target_weights.side_effect = lambda: {}
 
   def _assert_env_vars(self):
     """An auxiliary build show not overwrite the common env variables, but
@@ -990,22 +994,22 @@ class AuxiliaryRegularBuildTest(fake_filesystem_unittest.TestCase):
 
     self.mock.time.return_value = 1000.0
     build = build_manager.setup_trunk_build(
-        [os.environ['DATAFLOW_BUILD_BUCKET_PATH']], 'DATAFLOW')
+        [os.environ['DATAFLOW_BUILD_BUCKET_PATH']], build_prefix='DATAFLOW')
     self.assertIsInstance(build, build_manager.RegularBuild)
     self.assertEqual(_get_timestamp(build.base_build_dir), 1000.0)
 
     self.mock._unpack_build.assert_called_once_with(
         '/builds/path_2992e823e35fd34a63e0f8733cdafd6875036a1d',
         '/builds/path_2992e823e35fd34a63e0f8733cdafd6875036a1d/dataflow',
-        'gs://path/file-dataflow-10.zip', {})
+        'gs://path/file-dataflow-10.zip', None)
 
     self._assert_env_vars()
 
     self.mock.time.return_value = 1005.0
     self.assertIsInstance(
         build_manager.setup_trunk_build(
-            [os.environ['DATAFLOW_BUILD_BUCKET_PATH']], 'DATAFLOW'),
-        build_manager.RegularBuild)
+            [os.environ['DATAFLOW_BUILD_BUCKET_PATH']],
+            build_prefix='DATAFLOW'), build_manager.RegularBuild)
     self.assertEqual(_get_timestamp(build.base_build_dir), 1005.0)
 
     # Already set up.
@@ -1046,7 +1050,6 @@ class AuxiliaryRegularLibFuzzerBuildTest(fake_filesystem_unittest.TestCase):
         'build_management.build_manager._get_fuzz_targets_from_archive',
         'build_management.build_manager._make_space',
         'build_management.build_manager._make_space_for_build',
-        'fuzzing.fuzzer_selection.get_fuzz_target_weights',
         'system.shell.clear_temp_directory',
         'google_cloud_utils.storage.copy_file_from',
         'google_cloud_utils.storage.get_download_file_size',
@@ -1061,7 +1064,7 @@ class AuxiliaryRegularLibFuzzerBuildTest(fake_filesystem_unittest.TestCase):
     os.environ['APP_NAME'] = FAKE_APP_NAME
     os.environ['JOB_NAME'] = 'libfuzzer_job'
 
-    self.mock.get_fuzz_target_weights.return_value = {
+    self.target_weights = {
         'target1': 0.0,
         'target2': 1.0,
         'target3': 0.0,
@@ -1133,7 +1136,9 @@ class AuxiliaryRegularLibFuzzerBuildTest(fake_filesystem_unittest.TestCase):
       self.assertIsNotNone(build_manager._get_file_match_callback())
 
     build = build_manager.setup_trunk_build(
-        [os.environ['DATAFLOW_BUILD_BUCKET_PATH']], 'DATAFLOW')
+        [os.environ['DATAFLOW_BUILD_BUCKET_PATH']],
+        build_prefix='DATAFLOW',
+        target_weights=self.target_weights)
     self.assertIsInstance(build, build_manager.RegularBuild)
     self.assertEqual(_get_timestamp(build.base_build_dir), 1000.0)
     self.assertEqual('target1', os.environ['FUZZ_TARGET'])
@@ -1152,8 +1157,9 @@ class AuxiliaryRegularLibFuzzerBuildTest(fake_filesystem_unittest.TestCase):
     self.mock.time.return_value = 1005.0
     self.assertIsInstance(
         build_manager.setup_trunk_build(
-            [os.environ['DATAFLOW_BUILD_BUCKET_PATH']], 'DATAFLOW'),
-        build_manager.RegularBuild)
+            [os.environ['DATAFLOW_BUILD_BUCKET_PATH']],
+            build_prefix='DATAFLOW',
+            target_weights=self.target_weights), build_manager.RegularBuild)
     self.assertEqual(_get_timestamp(build.base_build_dir), 1005.0)
 
     # An auxiliary build set up should not choose and overwrite the fuzz target.
@@ -1719,7 +1725,6 @@ class SplitFuzzTargetsBuildTest(fake_filesystem_unittest.TestCase):
         'build_management.build_manager.get_build_urls_list',
         'build_management.build_manager._make_space',
         'build_management.build_manager._make_space_for_build',
-        'fuzzing.fuzzer_selection.get_fuzz_target_weights',
         'system.shell.clear_temp_directory',
         'google_cloud_utils.storage.copy_file_from',
         'google_cloud_utils.storage.get_download_file_size',
@@ -1736,9 +1741,9 @@ class SplitFuzzTargetsBuildTest(fake_filesystem_unittest.TestCase):
     os.environ['JOB_NAME'] = 'libfuzzer_job'
     os.environ['UNPACK_ALL_FUZZ_TARGETS_AND_FILES'] = 'True'
 
-    self.mock.read_data.return_value = ('target1\n' 'target2\n' 'target3\n')
+    self.mock.read_data.return_value = ('target1\ntarget2\ntarget3\n')
 
-    self.mock.get_fuzz_target_weights.return_value = {
+    self.target_weights = {
         'target1': 0.0,
         'target2': 1.0,
         'target3': 0.0,
@@ -1776,7 +1781,7 @@ class SplitFuzzTargetsBuildTest(fake_filesystem_unittest.TestCase):
     os.environ['TASK_NAME'] = 'fuzz'
     self.mock.time.return_value = 1000.0
 
-    build = build_manager.setup_build()
+    build = build_manager.setup_build(target_weights=self.target_weights)
     self.assertIsInstance(build, build_manager.RegularBuild)
     self.assertEqual(_get_timestamp(build.base_build_dir), 1000.0)
     self.assertEqual('target2', os.environ['FUZZ_TARGET'])

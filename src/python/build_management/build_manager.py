@@ -1146,13 +1146,12 @@ def _get_targets_list(bucket_path):
   return data.splitlines()
 
 
-def _setup_split_targets_build(bucket_path, revision=None):
+def _setup_split_targets_build(bucket_path, target_weights, revision=None):
   """Set up targets build."""
   targets_list = _get_targets_list(bucket_path)
   if not targets_list:
     raise BuildManagerException('No targets found')
 
-  target_weights = fuzzer_selection.get_fuzz_target_weights()
   fuzz_target = _set_random_fuzz_target_for_fuzzing_if_needed(
       targets_list, target_weights)
   if not fuzz_target:
@@ -1195,7 +1194,7 @@ def _get_latest_revision(bucket_paths):
   return None
 
 
-def setup_trunk_build(bucket_paths, build_prefix=None):
+def setup_trunk_build(bucket_paths, build_prefix=None, target_weights=None):
   """Sets up latest trunk build."""
   latest_revision = _get_latest_revision(bucket_paths)
   if latest_revision is None:
@@ -1203,7 +1202,10 @@ def setup_trunk_build(bucket_paths, build_prefix=None):
     return None
 
   build = setup_regular_build(
-      latest_revision, bucket_path=bucket_paths[0], build_prefix=build_prefix)
+      latest_revision,
+      bucket_path=bucket_paths[0],
+      build_prefix=build_prefix,
+      target_weights=target_weights)
   if not build:
     logs.log_error('Failed to set up a build.')
     return None
@@ -1211,7 +1213,10 @@ def setup_trunk_build(bucket_paths, build_prefix=None):
   return build
 
 
-def setup_regular_build(revision, bucket_path=None, build_prefix=''):
+def setup_regular_build(revision,
+                        bucket_path=None,
+                        build_prefix='',
+                        target_weights=None):
   """Sets up build with a particular revision."""
   if not bucket_path:
     # Bucket path can be customized, otherwise get it from the default env var.
@@ -1237,7 +1242,6 @@ def setup_regular_build(revision, bucket_path=None, build_prefix=''):
     from bot.untrusted_runner import build_setup_host
     build_class = build_setup_host.RemoteRegularBuild
 
-  target_weights = fuzzer_selection.get_fuzz_target_weights()
   build = build_class(
       base_build_dir,
       revision,
@@ -1385,7 +1389,7 @@ def setup_system_binary():
   return None
 
 
-def setup_build(revision=0):
+def setup_build(revision=0, target_weights=None):
   """Set up a custom or regular build based on revision."""
   if environment.platform() == 'FUCHSIA':
     return setup_fuchsia_build()
@@ -1405,11 +1409,11 @@ def setup_build(revision=0):
   if fuzz_target_build_bucket_path:
     # Split fuzz target build.
     return _setup_split_targets_build(
-        fuzz_target_build_bucket_path, revision=revision)
+        fuzz_target_build_bucket_path, target_weights, revision=revision)
 
   if revision:
     # Setup regular build with revision.
-    return setup_regular_build(revision)
+    return setup_regular_build(revision, target_weights=target_weights)
 
   # If no revision is provided, we default to a trunk build.
   bucket_paths = []
@@ -1418,7 +1422,7 @@ def setup_build(revision=0):
     if env_var:
       bucket_paths.append(bucket_path)
 
-  return setup_trunk_build(bucket_paths)
+  return setup_trunk_build(bucket_paths, target_weights=target_weights)
 
 
 def remove_unused_builds():
