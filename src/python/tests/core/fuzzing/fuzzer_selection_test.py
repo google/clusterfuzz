@@ -287,15 +287,6 @@ class GetFuzzTargetWeightsTest(unittest.TestCase):
         weight=3.0,
     ).put()
 
-  def test_bailout_for_bad_task(self):
-    """Ensure that we bail out and return None if called for non-fuzz tasks."""
-    os.environ['TASK_NAME'] = 'minimize'
-    os.environ['JOB_NAME'] = 'some_job'
-
-    result = fuzzer_selection.get_fuzz_target_weights()
-
-    self.assertIsNone(result)
-
   def test_empty_if_no_children(self):
     """Ensure that we function properly if a fuzzer has no children."""
     os.environ['TASK_NAME'] = 'fuzz'
