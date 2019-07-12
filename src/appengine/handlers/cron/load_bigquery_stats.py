@@ -27,6 +27,7 @@ from google_cloud_utils import big_query
 from handlers import base_handler
 from libs import handler
 from metrics import fuzzer_stats
+from metrics import fuzzer_stats_schema
 from metrics import logs
 
 STATS_KINDS = [fuzzer_stats.JobRun, fuzzer_stats.TestcaseRun]
@@ -134,19 +135,22 @@ class Handler(base_handler.Handler):
       if not self._create_table_if_needed(bigquery, dataset_id, table_id):
         continue
 
-      self._update_schema_if_needed(bigquery, dataset_id, table_id, kind.SCHEMA)
+      if kind == fuzzer_stats.TestcaseRun:
+        schema = fuzzer_stats_schema.get(fuzzer)
+      else:
+        schema = kind.SCHEMA
+
+      self._update_schema_if_needed(bigquery, dataset_id, table_id, schema)
 
       gcs_path = fuzzer_stats.get_gcs_stats_path(kind_name, fuzzer, timestamp)
       job_body = {
           'configuration': {
               'load': {
-                  'autodetect': kind.SCHEMA is None,
                   'destinationTable': {
                       'projectId': project_id,
                       'tableId': table_id + '$' + date_string,
                       'datasetId': dataset_id,
                   },
-                  'schemaUpdateOptions': ['ALLOW_FIELD_ADDITION',],
                   'sourceFormat': 'NEWLINE_DELIMITED_JSON',
                   'sourceUris': ['gs:/' + gcs_path + '*.json'],
                   'writeDisposition': 'WRITE_TRUNCATE',

@@ -57,10 +57,16 @@ class VCSViewer(object):
 
   def get_source_url_for_revision(self, revision):
     """Return source revision url given a url and revision."""
+    if not self.VCS_REVISION_SUB:
+      return None
+
     return self.get_mapped_url(self.VCS_REVISION_SUB, revision=revision)
 
   def get_source_url_for_revision_diff(self, start_revision, end_revision):
     """Return source revision diff url given a url and revision."""
+    if not self.VCS_REVISION_DIFF_SUB:
+      return None
+
     return self.get_mapped_url(
         self.VCS_REVISION_DIFF_SUB,
         start_revision=start_revision,
@@ -69,6 +75,9 @@ class VCSViewer(object):
 
   def get_source_url_for_revision_path_and_line(self, revision, path, line):
     """Return source revision url given a url, revision, path and line."""
+    if not self.VCS_REVISION_PATH_LINE_SUB:
+      return None
+
     return self.get_mapped_url(
         self.VCS_REVISION_PATH_LINE_SUB,
         revision=revision,

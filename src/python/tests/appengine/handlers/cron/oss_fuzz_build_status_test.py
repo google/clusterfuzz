@@ -326,7 +326,7 @@ class OssFuzzBuildStatusTest(unittest.TestCase):
     issue = self.itm.issues[1]
     self.assertItemsEqual(['a@user.com'], issue.cc)
     self.assertEqual('New', issue.status)
-    self.assertEqual('proj2: Build failure', issue.summary)
+    self.assertEqual('proj2: Fuzzing build failure', issue.summary)
     self.assertEqual(
         'The last 2 builds for proj2 have been failing.\n'
         '<b>Build log:</b> '
@@ -347,7 +347,7 @@ class OssFuzzBuildStatusTest(unittest.TestCase):
     issue = self.itm.issues[2]
     self.assertItemsEqual(['b@user.com'], issue.cc)
     self.assertEqual('New', issue.status)
-    self.assertEqual('proj6: Build failure', issue.summary)
+    self.assertEqual('proj6: Coverage build failure', issue.summary)
     self.assertEqual(
         'The last 2 builds for proj6 have been failing.\n'
         '<b>Build log:</b> '

@@ -274,10 +274,8 @@ class RegularBuildTest(fake_filesystem_unittest.TestCase):
     self._assert_env_vars()
     self.assertEqual(os.environ['APP_REVISION'], '2')
 
-    # Non-existent revisions results in trunk build.
-    trunk_build = build_manager.setup_regular_build(3)
-    self.assertIsInstance(trunk_build, build_manager.RegularBuild)
-    self.assertEqual(trunk_build.revision, 10)
+    # Non-existent revisions do not result in any builds being set up.
+    self.assertIsNone(build_manager.setup_regular_build(3))
 
   def test_delete(self):
     """Test deleting this build."""

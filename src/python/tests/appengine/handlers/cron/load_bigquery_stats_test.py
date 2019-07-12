@@ -100,14 +100,11 @@ class LoadBigQueryStatsTest(unittest.TestCase):
                 body={
                     'configuration': {
                         'load': {
-                            'autodetect':
-                                False,
                             'destinationTable': {
                                 'projectId': 'test-clusterfuzz',
                                 'tableId': 'JobRun$20160907',
                                 'datasetId': 'fuzzer_stats'
                             },
-                            'schemaUpdateOptions': ['ALLOW_FIELD_ADDITION'],
                             'writeDisposition':
                                 'WRITE_TRUNCATE',
                             'sourceUris': [
@@ -125,14 +122,11 @@ class LoadBigQueryStatsTest(unittest.TestCase):
                 body={
                     'configuration': {
                         'load': {
-                            'autodetect':
-                                True,
                             'destinationTable': {
                                 'projectId': 'test-clusterfuzz',
                                 'tableId': 'TestcaseRun$20160907',
                                 'datasetId': 'fuzzer_stats'
                             },
-                            'schemaUpdateOptions': ['ALLOW_FIELD_ADDITION'],
                             'writeDisposition':
                                 'WRITE_TRUNCATE',
                             'sourceUris': [

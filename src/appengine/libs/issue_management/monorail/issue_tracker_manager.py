@@ -181,20 +181,17 @@ class IssueTrackerManager(object):
   def _create(self, issue, send_email=True):
     """Create an issue and optionally send update notification over email."""
     cc = [{'name': user} for user in issue.cc]
-    if not issue.owner:
-      issue.owner = ''
     body = {
         'cc': cc,
         'components': issue.components,
         'description': issue.body,
         'labels': issue.labels,
-        'owner': {
-            'name': issue.owner
-        },
         'projectId': self.project_name,
         'status': issue.status,
         'summary': issue.summary,
     }
+    if issue.owner:
+      body['owner'] = {'name': issue.owner}
 
     tmp = self._execute_with_retry(self.client.issues().insert(
         projectId=self.project_name, sendEmail=send_email, body=body))
