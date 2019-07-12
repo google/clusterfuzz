@@ -161,10 +161,6 @@ _AFL_SCHEMA = [{
     'mode': 'NULLABLE',
     'name': 'leak_count',
     'type': 'INTEGER'
-}, {
-    'mode': 'NULLABLE',
-    'name': 'seconds_executed',
-    'type': 'INTEGER'
 }]
 
 _LIBFUZZER_SCHEMA = [{

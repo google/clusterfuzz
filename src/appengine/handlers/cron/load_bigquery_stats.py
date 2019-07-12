@@ -96,27 +96,6 @@ class Handler(base_handler.Handler):
         projectId=project_id, datasetId=dataset_id, body=table_body)
     return self._execute_insert_request(table_insert)
 
-  def _update_schema_if_needed(self, bigquery, dataset_id, table_id, schema):
-    """Update the table's schema if needed."""
-    if not schema:
-      return
-
-    project_id = utils.get_application_id()
-    table = bigquery.tables().get(
-        datasetId=dataset_id, tableId=table_id, projectId=project_id).execute()
-
-    if 'schema' in table and table['schema'] == schema:
-      return
-
-    body = {
-        'schema': schema,
-    }
-
-    logs.log('Updating schema for %s:%s' % (dataset_id, table_id))
-    bigquery.tables().patch(
-        datasetId=dataset_id, tableId=table_id, projectId=project_id,
-        body=body).execute()
-
   def _load_data(self, bigquery, fuzzer):
     """Load yesterday's stats into BigQuery."""
     project_id = utils.get_application_id()
@@ -140,21 +119,24 @@ class Handler(base_handler.Handler):
       else:
         schema = kind.SCHEMA
 
-      self._update_schema_if_needed(bigquery, dataset_id, table_id, schema)
-
       gcs_path = fuzzer_stats.get_gcs_stats_path(kind_name, fuzzer, timestamp)
+      load = {
+          'destinationTable': {
+              'projectId': project_id,
+              'tableId': table_id + '$' + date_string,
+              'datasetId': dataset_id,
+          },
+          'schemaUpdateOptions': ['ALLOW_FIELD_ADDITION',],
+          'sourceFormat': 'NEWLINE_DELIMITED_JSON',
+          'sourceUris': ['gs:/' + gcs_path + '*.json'],
+          'writeDisposition': 'WRITE_TRUNCATE',
+      }
+      if schema is not None:
+        load['schema'] = schema
+
       job_body = {
           'configuration': {
-              'load': {
-                  'destinationTable': {
-                      'projectId': project_id,
-                      'tableId': table_id + '$' + date_string,
-                      'datasetId': dataset_id,
-                  },
-                  'sourceFormat': 'NEWLINE_DELIMITED_JSON',
-                  'sourceUris': ['gs:/' + gcs_path + '*.json'],
-                  'writeDisposition': 'WRITE_TRUNCATE',
-              },
+              'load': load,
           },
       }
 
