@@ -1737,9 +1737,12 @@ class SplitFuzzTargetsBuildTest(fake_filesystem_unittest.TestCase):
 
     os.environ['BUILDS_DIR'] = '/builds'
     os.environ['FAIL_RETRIES'] = '1'
-    os.environ['APP_NAME'] = FAKE_APP_NAME
+    os.environ['APP_NAME'] = 'launcher.py'
     os.environ['JOB_NAME'] = 'libfuzzer_job'
     os.environ['UNPACK_ALL_FUZZ_TARGETS_AND_FILES'] = 'True'
+    os.environ['FUZZER_DIR'] = os.path.join(
+        os.environ['ROOT_DIR'], 'src', 'python', 'bot', 'fuzzers', 'libFuzzer')
+    self.fs.add_real_directory(os.environ['FUZZER_DIR'])
 
     self.mock.read_data.return_value = ('target1\ntarget2\ntarget3\n')
 
@@ -1765,7 +1768,7 @@ class SplitFuzzTargetsBuildTest(fake_filesystem_unittest.TestCase):
     ]
 
   def _assert_env_vars(self, target, revision):
-    # Assert the expected values of environment variables.
+    """Assert the expected values of environment variables."""
     self.assertEqual(
         'gs://bucket/subdir/{target}/{revision}.zip'.format(
             target=target, revision=revision), os.environ.get('BUILD_URL'))
@@ -1775,6 +1778,9 @@ class SplitFuzzTargetsBuildTest(fake_filesystem_unittest.TestCase):
         '77651789446b3c3a04b9f492ff141f003d437347/revisions'.format(
             target=target),
         os.environ['BUILD_DIR'])
+    self.assertEqual(
+        os.path.join(os.environ['FUZZER_DIR'], 'launcher.py'),
+        os.environ['APP_PATH'])
 
   def test_setup_fuzz(self):
     """Tests setting up a build during fuzzing."""
@@ -1802,6 +1808,7 @@ class SplitFuzzTargetsBuildTest(fake_filesystem_unittest.TestCase):
     self.mock.time.return_value = 1000.0
 
     self.mock.get_build_urls_list.return_value = [
+        'gs://bucket/subdir/target1/10.zip',
         'gs://bucket/subdir/target1/8.zip',
     ]
 
@@ -1837,3 +1844,37 @@ class SplitFuzzTargetsBuildTest(fake_filesystem_unittest.TestCase):
     self.assertTrue(
         os.path.isdir('/builds/bucket_subdir_target2_'
                       '77651789446b3c3a04b9f492ff141f003d437347'))
+
+
+class GetPrimaryBucketPathTest(unittest.TestCase):
+  """Tests for get_primary_bucket_path."""
+
+  def setUp(self):
+    test_helpers.patch_environ(self)
+
+  def test_release_bucket_path(self):
+    """Test primary bucket being a RELEASE_BUILD_BUCKET_PATH."""
+    os.environ['RELEASE_BUILD_BUCKET_PATH'] = 'gs://release_build'
+    self.assertEqual('gs://release_build',
+                     build_manager.get_primary_bucket_path())
+
+  def test_fuzz_target_bucket_path(self):
+    """Test primary bucket being a FUZZ_TARGET_BUILD_BUCKET_PATH."""
+    os.environ[
+        'FUZZ_TARGET_BUILD_BUCKET_PATH'] = 'gs://fuzz_target/%TARGET%/path'
+    os.environ['FUZZ_TARGET'] = 'test_target'
+    self.assertEqual('gs://fuzz_target/test_target/path',
+                     build_manager.get_primary_bucket_path())
+
+  def test_fuzz_target_bucket_path_no_fuzz_target(self):
+    """Test primary bucket being a FUZZ_TARGET_BUILD_BUCKET_PATH with no fuzz
+    target defined."""
+    os.environ[
+        'FUZZ_TARGET_BUILD_BUCKET_PATH'] = 'gs://fuzz_target/%TARGET%/path'
+    with self.assertRaises(build_manager.BuildManagerException):
+      build_manager.get_primary_bucket_path()
+
+  def test_no_path_defined(self):
+    """Test no bucket paths defined."""
+    with self.assertRaises(build_manager.BuildManagerException):
+      build_manager.get_primary_bucket_path()

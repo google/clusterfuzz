@@ -1098,6 +1098,24 @@ def get_build_urls_list(bucket_path, reverse=True):
   return _sort_build_urls_by_revision(build_urls, bucket_path, reverse)
 
 
+def get_primary_bucket_path():
+  """Get the main bucket path for the current job."""
+  release_build_bucket_path = environment.get_value('RELEASE_BUILD_BUCKET_PATH')
+  if release_build_bucket_path:
+    return release_build_bucket_path
+
+  fuzz_target_build_bucket_path = environment.get_value(
+      'FUZZ_TARGET_BUILD_BUCKET_PATH')
+  if fuzz_target_build_bucket_path:
+    fuzz_target = environment.get_value('FUZZ_TARGET')
+    if not fuzz_target:
+      raise BuildManagerException('FUZZ_TARGET is not defined.')
+
+    return fuzz_target_build_bucket_path.replace('%TARGET%', fuzz_target)
+
+  raise BuildManagerException('No primary bucket path defined.')
+
+
 def get_revisions_list(bucket_path, testcase=None):
   """Returns a sorted ascending list of revisions from a bucket path, excluding
   bad build revisions and testcase crash revision (if any)."""
@@ -1227,7 +1245,6 @@ def setup_regular_build(revision,
   if not build_urls:
     logs.log_error('Error getting build urls for job %s.' % job_type)
     return None
-
   build_url = revisions.find_build_url(bucket_path, build_urls, revision)
   if not build_url:
     logs.log_error(
@@ -1419,7 +1436,7 @@ def setup_build(revision=0, target_weights=None):
   bucket_paths = []
   for env_var in DEFAULT_BUILD_BUCKET_PATH_ENV_VARS:
     bucket_path = environment.get_value(env_var)
-    if env_var:
+    if bucket_path:
       bucket_paths.append(bucket_path)
 
   return setup_trunk_build(bucket_paths, target_weights=target_weights)

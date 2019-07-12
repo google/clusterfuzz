@@ -236,9 +236,9 @@ def find_regression_range(testcase_id, job_type):
     tasks.add_task('regression', testcase_id, job_type)
     return
 
-  release_build_bucket_path = environment.get_value('RELEASE_BUILD_BUCKET_PATH')
+  build_bucket_path = build_manager.get_primary_bucket_path()
   revision_list = build_manager.get_revisions_list(
-      release_build_bucket_path, testcase=testcase)
+      build_bucket_path, testcase=testcase)
   if not revision_list:
     testcase = data_handler.get_testcase_by_id(testcase_id)
     data_handler.update_testcase_comment(testcase, data_types.TaskState.ERROR,

@@ -15,30 +15,10 @@
 
 from base import tasks
 from base import utils
-from build_management import build_manager
 from datastore import data_types
 from datastore import fuzz_target_utils
 from handlers import base_handler
 from libs import handler
-from metrics import logs
-
-
-def _get_latest_job_revision(job):
-  """Return the latest release revision for a job."""
-  job_environment = job.get_environment()
-  release_build_bucket_path = job_environment.get('RELEASE_BUILD_BUCKET_PATH')
-  if not release_build_bucket_path:
-    logs.log_error('Failed to get release build url pattern for %s.' % job.name)
-    return None
-
-  revisions = build_manager.get_revisions_list(release_build_bucket_path)
-
-  if not revisions:
-    logs.log_error('Failed to get revisions list for %s.' % job.name)
-    return None
-
-  logs.log('Latest revision for %s is %d.' % (job.name, revisions[-1]))
-  return revisions[-1]
 
 
 def get_tasks_to_schedule():
@@ -47,20 +27,9 @@ def get_tasks_to_schedule():
     if not utils.string_is_true(job.get_environment().get('CORPUS_PRUNE')):
       continue
 
-    if utils.string_is_true(job.get_environment().get('CUSTOM_BINARY')):
-      # Custom binary jobs do not have revisions.
-      latest_revision = None
-    else:
-      latest_revision = _get_latest_job_revision(job)
-      if not latest_revision:
-        continue
-
     queue_name = tasks.queue_for_job(job.name)
     for target_job in fuzz_target_utils.get_fuzz_target_jobs(job=job.name):
       task_target = target_job.fuzz_target_name
-      if latest_revision:
-        task_target += '@%s' % latest_revision
-
       yield (task_target, job.name, queue_name)
 
 

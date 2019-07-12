@@ -783,6 +783,7 @@ def _save_coverage_information(context, result):
 
 def execute_task(fuzzer_name_and_revision, job_type):
   """Execute corpus pruning task."""
+  # TODO(ochang): Remove this once remaining jobs in queue are all processed.
   if '@' in fuzzer_name_and_revision:
     full_fuzzer_name, revision = fuzzer_name_and_revision.split('@')
     revision = revisions.convert_revision_to_integer(revision)
