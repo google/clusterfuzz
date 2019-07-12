@@ -150,7 +150,7 @@ class Handler(base_handler.Handler):
       # See https://cloud.google.com/bigquery/docs/reference/rest/v2/jobs/query.
       logs.log('Response from BigQuery: %s' % response)
 
-  #@handler.check_cron()
+  @handler.check_cron()
   def get(self):
     """Load bigquery stats from GCS."""
     if not big_query.get_bucket():
