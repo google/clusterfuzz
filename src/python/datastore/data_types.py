@@ -1128,7 +1128,9 @@ class FuzzStrategyProbability(Model):
   should be selected."""
 
   strategy_name = ndb.StringProperty()
-  probability = ndb.FloatProperty()
+  probability_medium_temperature = ndb.FloatProperty()
+  probability_high_temperature = ndb.FloatProperty()
+  probability_low_temperature = ndb.FloatProperty()
 
 
 def fuzz_target_job_key(fuzz_target_name, job):
