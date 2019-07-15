@@ -221,6 +221,13 @@ class BuildState(object):
   BAD = 2
 
 
+class TestcaseVariantStatus(object):
+  PENDING = 0
+  REPRODUCIBLE = 1
+  FLAKY = 2
+  UNREPRODUCIBLE = 3
+
+
 class Model(ndb.Model):
   """Cache-less NDB model."""
   _use_cache = False
@@ -343,9 +350,6 @@ class Testcase(Model):
 
   # Complete stacktrace.
   crash_stacktrace = ndb.TextProperty(indexed=False)
-
-  # Used when you want to get stack from another job type.
-  second_crash_stacktrace = ndb.TextProperty(indexed=False)
 
   # Last tested crash stacktrace using the latest revision.
   last_tested_crash_stacktrace = ndb.TextProperty(indexed=False)
@@ -1340,3 +1344,22 @@ class OssFuzzBuildFailure(Model):
 class Admin(Model):
   """Records an admin user."""
   email = ndb.StringProperty()
+
+
+class TestcaseVariant(Model):
+  """Represent a testcase variant on another job (another platform / sanitizer
+  / config)."""
+  # Testcase ID of the testcase for which the variant is being evaluated.
+  testcase_id = ndb.IntegerProperty()
+
+  # Status of the testcase variant (pending, reproducible, unreproducible, etc).
+  status = ndb.IntegerProperty(default=0)
+
+  # Job type for the testcase variant.
+  job_type = ndb.StringProperty()
+
+  # Revision that the testcase variant was tried against.
+  revision = ndb.IntegerProperty()
+
+  # Crash stacktrace.
+  crash_stacktrace = ndb.TextProperty(indexed=False)

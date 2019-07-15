@@ -561,3 +561,8 @@ indexes:
   properties:
   - name: platform
   - name: tag
+
+- kind: TestcaseVariant
+  properties:
+    - name: testcase_id
+    - name: job_type

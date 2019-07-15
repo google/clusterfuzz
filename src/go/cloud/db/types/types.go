@@ -355,7 +355,6 @@ type Testcase struct {
 	CrashAddress               string         `datastore:"crash_address,noindex"`
 	CrashState                 string         `datastore:"crash_state"`
 	CrashStacktrace            string         `datastore:"crash_stacktrace,noindex"`
-	SecondCrashStacktrace      string         `datastore:"second_crash_stacktrace,noindex"`
 	LastTestedCrashStacktrace  string         `datastore:"last_tested_crash_stacktrace,noindex"`
 	FuzzedKeys                 string         `datastore:"fuzzed_keys,noindex"`
 	MinimizedKeys              string         `datastore:"minimized_keys,noindex"`
@@ -438,6 +437,16 @@ type TestcaseUploadMetadata struct {
 	SecurityFlag         bool           `datastore:"security_flag"`
 	Retries              int            `datastore:"retries"`
 	BugSummaryUpdateFlag bool           `datastore:"bug_summary_update_flag"`
+}
+
+// TestcaseVariant is auto-generated from data_types.py.
+type TestcaseVariant struct {
+	Key             *datastore.Key `datastore:"__key__"`
+	TestcaseID      int            `datastore:"testcase_id"`
+	Status          int            `datastore:"status"`
+	JobType         string         `datastore:"job_type"`
+	Revision        int            `datastore:"revision"`
+	CrashStacktrace string         `datastore:"crash_stacktrace,noindex"`
 }
 
 // Trial is auto-generated from data_types.py.

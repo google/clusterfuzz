@@ -30,10 +30,10 @@ from bot.tasks import minimize_task
 from bot.tasks import ml_train_task
 from bot.tasks import progression_task
 from bot.tasks import regression_task
-from bot.tasks import stack_task
 from bot.tasks import symbolize_task
 from bot.tasks import unpack_task
 from bot.tasks import upload_reports_task
+from bot.tasks import variant_task
 from bot.webserver import http_server
 from datastore import data_handler
 from datastore import data_types
@@ -52,10 +52,10 @@ COMMAND_MAP = {
     'ml_train': ml_train_task,
     'progression': progression_task,
     'regression': regression_task,
-    'stack': stack_task,
     'symbolize': symbolize_task,
     'unpack': unpack_task,
     'upload_reports': upload_reports_task,
+    'variant': variant_task,
 }
 
 
