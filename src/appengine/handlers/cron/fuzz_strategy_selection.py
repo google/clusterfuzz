@@ -121,9 +121,9 @@ def _store_probabilities_in_bigquery(data):
         'probability_medium_temperature':
             row['bandit_weight_medium_temperature'],
         'probability_low_temperature':
-            row['bandit_weight_low_temperature'],
+            row['bandit_weight_medium_temperature'],
         'probability_high_temperature':
-            row['bandit_weight_high_temperature'],
+            row['bandit_weight_medium_temperature'],
         'run_count':
             row['run_count']
     }
