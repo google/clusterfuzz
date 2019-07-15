@@ -144,6 +144,7 @@ class TestMultiArmedBanditStrategySelection(unittest.TestCase):
 
     environment.set_value('USE_BANDIT_STRATEGY_SELECTION', True)
     environment.set_value('STRATEGY_SELECTION_DISTRIBUTION', distribution)
+    environment.set_value('STRATEGY_SELECTION_METHOD', 'multi_armed_bandit_medium')
 
   def test_strategy_pool_deterministic(self):
     """Tests whether a proper strategy pool is returned by the multi armed
