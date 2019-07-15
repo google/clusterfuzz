@@ -39,12 +39,18 @@ BANDIT_PROBABILITY_QUERY = """
 SELECT
   /* Calculate bandit weights from calculated exponential values. */
   strategy,
-  strategy_exp / exp_sum AS bandit_weight,
+  strategy_exp_medium_temperature / exp_sum_medium_temperature AS bandit_weight_medium_temperature,
+  strategy_exp_high_temperature / exp_sum_high_temperature AS bandit_weight_high_temperature,
+  strategy_exp_low_temperature / exp_sum_low_temperature AS bandit_weight_low_temperature,
   run_count
 FROM
   (SELECT
-    EXP(strategy_avg_edges / temperature) AS strategy_exp,
-    SUM(EXP(strategy_avg_edges / temperature)) OVER() AS exp_sum,
+    EXP(strategy_avg_edges / medium_temperature) AS strategy_exp_medium_temperature,
+    SUM(EXP(strategy_avg_edges / medium_temperature)) OVER() AS exp_sum_medium_temperature,
+    EXP(strategy_avg_edges / high_temperature) AS strategy_exp_high_temperature,
+    SUM(EXP(strategy_avg_edges / high_temperature)) OVER() AS exp_sum_high_temperature,
+    EXP(strategy_avg_edges / low_temperature) AS strategy_exp_low_temperature,
+    SUM(EXP(strategy_avg_edges / low_temperature)) OVER() AS exp_sum_low_temperature,
     strategy,
     run_count
   FROM
@@ -53,7 +59,9 @@ FROM
       AVG((new_edges - overall_avg_new_edges) / overall_stddev_new_edges) AS strategy_avg_edges,
       strategy,
       /* Change temperature parameter here. */
-      .5 as temperature,
+      .5 as medium_temperature,
+      .75 as high_temperature,
+      .25 as low_temperature,
       COUNT(*) AS run_count
     FROM
       (SELECT
@@ -80,7 +88,7 @@ FROM
         WHERE
           ((strategy_mutator_plugin = 0) OR (strategy_mutator_plugin IS NULL)) AND
           /* Query results from the past 30 days. Change as needed. */
-          DATE_DIFF(cast(current_timestamp() AS DATE), cast(_PARTITIONTIME AS DATE), DAY) < 31
+          DATE_DIFF(cast(current_timestamp() AS DATE), cast(_PARTITIONTIME AS DATE), DAY) < 6
         )
       WHERE
         /* Filter for unstable targets. */
@@ -88,7 +96,7 @@ FROM
     GROUP BY
       strategy))
 ORDER BY
-  bandit_weight DESC
+  bandit_weight_medium_temperature DESC
 """
 
 
@@ -108,9 +116,16 @@ def _store_probabilities_in_bigquery(data):
 
   for row in data:
     bigquery_row = {
-        'strategy_name': row['strategy'],
-        'probability': row['bandit_weight'],
-        'run_count': row['run_count']
+        'strategy_name':
+            row['strategy'],
+        'probability_medium_temperature':
+            row['bandit_weight_medium_temperature'],
+        'probability_low_temperature':
+            row['bandit_weight_low_temperature'],
+        'probability_high_temperature':
+            row['bandit_weight_high_temperature'],
+        'run_count':
+            row['run_count']
     }
     bigquery_data.append(big_query.Insert(row=bigquery_row, insert_id=None))
 
@@ -131,7 +146,12 @@ def _query_and_upload_strategy_probabilities():
   for row in data:
     curr_strategy = data_types.FuzzStrategyProbability()
     curr_strategy.strategy_name = str(row['strategy'])
-    curr_strategy.probability = float(row['bandit_weight'])
+    curr_strategy.probability_medium_temperature = float(
+        row['bandit_weight_medium_temperature'])
+    curr_strategy.probability_high_temperature = float(
+        row['bandit_weight_high_temperature'])
+    curr_strategy.probability_low_temperature = float(
+        row['bandit_weight_low_temperature'])
     strategy_data.append(curr_strategy)
 
   ndb.delete_multi([
