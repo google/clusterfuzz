@@ -25,7 +25,7 @@ def update(testcase):
   testcase.put()
 
   tasks.add_task(
-      'stack',
+      'variant',
       testcase.key.id(),
       testcase.job_type,
       queue=tasks.queue_for_testcase(testcase))

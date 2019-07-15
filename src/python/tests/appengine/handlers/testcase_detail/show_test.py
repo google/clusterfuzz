@@ -540,9 +540,6 @@ class GetTestcaseTest(unittest.TestCase):
     }, result['crash_stacktrace'])
     self.assertDictContainsSubset({
         'lines': [show.Line(1, 'crash_stacktrace', False)]
-    }, result['second_crash_stacktrace'])
-    self.assertDictContainsSubset({
-        'lines': [show.Line(1, 'crash_stacktrace', False)]
     }, result['last_tested_crash_stacktrace'])
 
   def test_unreproducible_get(self):
@@ -615,9 +612,6 @@ class GetTestcaseTest(unittest.TestCase):
     self.assertDictContainsSubset({
         'lines': [show.Line(1, 'crash_stacktrace', False)]
     }, result['crash_stacktrace'])
-    self.assertDictContainsSubset({
-        'lines': [show.Line(1, 'crash_stacktrace', False)]
-    }, result['second_crash_stacktrace'])
     self.assertDictContainsSubset({
         'lines': [show.Line(1, 'crash_stacktrace', False)]
     }, result['last_tested_crash_stacktrace'])
