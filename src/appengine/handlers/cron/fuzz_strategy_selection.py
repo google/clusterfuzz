@@ -149,9 +149,9 @@ def _query_and_upload_strategy_probabilities():
     curr_strategy.probability_medium_temperature = float(
         row['bandit_weight_medium_temperature'])
     curr_strategy.probability_high_temperature = float(
-        row['bandit_weight_high_temperature'])
+        row['bandit_weight_medium_temperature'])
     curr_strategy.probability_low_temperature = float(
-        row['bandit_weight_low_temperature'])
+        row['bandit_weight_medium_temperature'])
     strategy_data.append(curr_strategy)
 
   ndb.delete_multi([
