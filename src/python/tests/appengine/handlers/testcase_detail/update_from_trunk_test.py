@@ -61,7 +61,7 @@ class HandlerTest(unittest.TestCase):
     self.assertEqual(200, resp.status_int)
     self.assertEqual('yes', resp.json['testcase'])
     self.mock.add_task.assert_called_once_with(
-        'stack', self.testcase.key.id(), 'job', queue='jobs-suffix')
+        'variant', self.testcase.key.id(), 'job', queue='jobs-suffix')
 
     testcase = self.testcase.key.get()
     self.assertEqual('Pending', testcase.last_tested_crash_stacktrace)

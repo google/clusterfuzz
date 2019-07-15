@@ -588,13 +588,13 @@ def finalize_testcase(testcase_id,
 
 def create_additional_tasks(testcase):
   """Create post-minimization tasks for this reproducible testcase such as
-  impact, regression, progression, stack and symbolize."""
+  impact, regression, progression, variant and symbolize."""
   # No need to create progression task. It is automatically created by the cron
   # handler.
   task_creation.create_impact_task_if_needed(testcase)
   task_creation.create_regression_task_if_needed(testcase)
-  task_creation.create_stack_task_if_needed(testcase)
   task_creation.create_symbolize_task_if_needed(testcase)
+  task_creation.create_variant_tasks_if_needed(testcase)
 
 
 def should_attempt_phase(testcase, phase):

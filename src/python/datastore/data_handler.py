@@ -364,11 +364,6 @@ def get_issue_description(testcase,
 
   content_string += 'Reproducer Testcase: %s\n\n' % download_url
 
-  second_crash_stacktrace = get_stacktrace(
-      testcase, stack_attribute='second_crash_stacktrace')
-  if testcase.one_time_crasher_flag and second_crash_stacktrace:
-    content_string += (second_crash_stacktrace.split('\n'))[0] + '\n\n'
-
   if testcase.gestures:
     content_string += 'Additional requirements: Requires Gestures\n\n'
   if testcase.http_flag:

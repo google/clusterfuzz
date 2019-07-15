@@ -416,21 +416,6 @@ def get_testcase_detail(testcase):
                                       crash_type)
   crash_stacktrace_preview_lines = _preview_stacktrace(crash_stacktrace)
 
-  second_crash_stacktrace_revision = metadata.get(
-      'second_crash_stacktrace_revision')
-  second_crash_stacktrace_revisions_dict = (
-      revisions.get_component_revisions_dict(second_crash_stacktrace_revision,
-                                             testcase.job_type))
-  second_crash_stacktrace = data_handler.get_stacktrace(
-      testcase, stack_attribute='second_crash_stacktrace')
-  second_crash_stacktrace = filter_stacktrace(
-      second_crash_stacktrace, testcase.crash_type,
-      second_crash_stacktrace_revisions_dict)
-  second_crash_stacktrace = convert_to_lines(second_crash_stacktrace,
-                                             crash_state_lines, crash_type)
-  second_crash_stacktrace_preview_lines = _preview_stacktrace(
-      second_crash_stacktrace)
-
   last_tested_crash_revision = metadata.get('last_tested_crash_revision')
   last_tested_crash_revisions_dict = revisions.get_component_revisions_dict(
       last_tested_crash_revision, testcase.job_type)
@@ -549,17 +534,6 @@ def get_testcase_detail(testcase):
           'revision':
               revisions.get_real_revision(
                   crash_revision, testcase.job_type, display=True)
-      },
-      'second_crash_stacktrace': {
-          'lines':
-              second_crash_stacktrace,
-          'preview_lines':
-              second_crash_stacktrace_preview_lines,
-          'revision':
-              revisions.get_real_revision(
-                  second_crash_stacktrace_revision,
-                  testcase.job_type,
-                  display=True)
       },
       'last_tested_crash_stacktrace': {
           'lines':

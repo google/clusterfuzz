@@ -105,6 +105,7 @@ class LoadBigQueryStatsTest(unittest.TestCase):
                                 'tableId': 'JobRun$20160907',
                                 'datasetId': 'fuzzer_stats'
                             },
+                            'schemaUpdateOptions': ['ALLOW_FIELD_ADDITION',],
                             'writeDisposition':
                                 'WRITE_TRUNCATE',
                             'sourceUris': [
@@ -113,6 +114,69 @@ class LoadBigQueryStatsTest(unittest.TestCase):
                             ],
                             'sourceFormat':
                                 'NEWLINE_DELIMITED_JSON',
+                            'schema': {
+                                'fields': [{
+                                    'type': 'INTEGER',
+                                    'name': 'testcases_executed',
+                                    'mode': 'NULLABLE'
+                                }, {
+                                    'type': 'INTEGER',
+                                    'name': 'build_revision',
+                                    'mode': 'NULLABLE'
+                                }, {
+                                    'type': 'INTEGER',
+                                    'name': 'new_crashes',
+                                    'mode': 'NULLABLE'
+                                }, {
+                                    'type': 'STRING',
+                                    'name': 'job',
+                                    'mode': 'NULLABLE'
+                                }, {
+                                    'type': 'FLOAT',
+                                    'name': 'timestamp',
+                                    'mode': 'NULLABLE'
+                                }, {
+                                    'fields': [{
+                                        'type': 'STRING',
+                                        'name': 'crash_type',
+                                        'mode': 'NULLABLE'
+                                    }, {
+                                        'type': 'BOOLEAN',
+                                        'name': 'is_new',
+                                        'mode': 'NULLABLE'
+                                    }, {
+                                        'type': 'STRING',
+                                        'name': 'crash_state',
+                                        'mode': 'NULLABLE'
+                                    }, {
+                                        'type': 'BOOLEAN',
+                                        'name': 'security_flag',
+                                        'mode': 'NULLABLE'
+                                    }, {
+                                        'type': 'INTEGER',
+                                        'name': 'count',
+                                        'mode': 'NULLABLE'
+                                    }],
+                                    'type':
+                                        'RECORD',
+                                    'name':
+                                        'crashes',
+                                    'mode':
+                                        'REPEATED'
+                                }, {
+                                    'type': 'INTEGER',
+                                    'name': 'known_crashes',
+                                    'mode': 'NULLABLE'
+                                }, {
+                                    'type': 'STRING',
+                                    'name': 'fuzzer',
+                                    'mode': 'NULLABLE'
+                                }, {
+                                    'type': 'STRING',
+                                    'name': 'kind',
+                                    'mode': 'NULLABLE'
+                                }]
+                            },
                         }
                     }
                 },
@@ -127,6 +191,7 @@ class LoadBigQueryStatsTest(unittest.TestCase):
                                 'tableId': 'TestcaseRun$20160907',
                                 'datasetId': 'fuzzer_stats'
                             },
+                            'schemaUpdateOptions': ['ALLOW_FIELD_ADDITION',],
                             'writeDisposition':
                                 'WRITE_TRUNCATE',
                             'sourceUris': [

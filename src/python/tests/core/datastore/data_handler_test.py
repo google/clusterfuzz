@@ -249,7 +249,6 @@ class DataHandlerTest(unittest.TestCase):
         'Command: /fuzzer -rss_limit_mb=2048 -timeout=25 -max_len=10 /testcase')
     self.testcase.job_type = 'windows_asan_chrome'
     self.testcase.one_time_crasher_flag = True
-    self.testcase.second_crash_stacktrace = 'No crash using abc job type.'
     self.testcase.put()
 
     description = data_handler.get_issue_description(self.testcase)
@@ -265,7 +264,6 @@ class DataHandlerTest(unittest.TestCase):
         'Sanitizer: address (ASAN)\n\n'
         'Reproducer Testcase: '
         'https://test-clusterfuzz.appspot.com/download?testcase_id=1\n\n'
-        'No crash using abc job type.\n\n'
         'See help_url for instructions to reproduce this bug locally.\n\n'
         '%s' % data_handler.FILE_UNREPRODUCIBLE_TESTCASE_TEXT)
 

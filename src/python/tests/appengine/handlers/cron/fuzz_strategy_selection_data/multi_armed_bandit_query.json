@@ -1,482 +1,674 @@
 [
   {
-    "strategy": "random_max_len,corpus_mutations_ml_rnn,value_profile,recommended_dict,",
-    "bandit_weight": "0.033850786951462285",
-    "run_count": "587"
-  },
-  {
     "strategy": "random_max_len,corpus_mutations_ml_rnn,recommended_dict,",
-    "bandit_weight": "0.03168990475186747",
-    "run_count": "1264"
-  },
-  {
-    "strategy": "random_max_len,corpus_mutations_ml_rnn,",
-    "bandit_weight": "0.030072238108676097",
-    "run_count": "14284"
+    "bandit_weight_medium_temperature": "0.0241049918676138",
+    "bandit_weight_high_temperature": "0.018425058537190255",
+    "bandit_weight_low_temperature": "0.04982793398153658",
+    "run_count": "883"
   },
   {
     "strategy": "random_max_len,corpus_mutations_ml_rnn,value_profile,",
-    "bandit_weight": "0.02632731536000997",
-    "run_count": "6962"
+    "bandit_weight_medium_temperature": "0.023452208579849032",
+    "bandit_weight_high_temperature": "0.018090894826567765",
+    "bandit_weight_low_temperature": "0.04716571233647842",
+    "run_count": "2092"
   },
   {
-    "strategy": "random_max_len,value_profile,",
-    "bandit_weight": "0.016531120389500133",
-    "run_count": "28875"
+    "strategy": "random_max_len,corpus_mutations_ml_rnn,",
+    "bandit_weight_medium_temperature": "0.02113089000075566",
+    "bandit_weight_high_temperature": "0.016876513958438328",
+    "bandit_weight_low_temperature": "0.038290803547376434",
+    "run_count": "3283"
   },
   {
-    "strategy": "corpus_mutations_radamsa,random_max_len,",
-    "bandit_weight": "0.016421673681779686",
-    "run_count": "3875"
-  },
-  {
-    "strategy": "random_max_len,",
-    "bandit_weight": "0.01624010759024269",
-    "run_count": "58718"
-  },
-  {
-    "strategy": "corpus_mutations_ml_rnn,recommended_dict,",
-    "bandit_weight": "0.015459693483223728",
-    "run_count": "9993"
-  },
-  {
-    "strategy": "random_max_len,recommended_dict,",
-    "bandit_weight": "0.015332053005500376",
-    "run_count": "5015"
-  },
-  {
-    "strategy": "corpus_mutations_radamsa,random_max_len,value_profile,",
-    "bandit_weight": "0.014962499907161508",
-    "run_count": "1883"
-  },
-  {
-    "strategy": "random_max_len,value_profile,recommended_dict,",
-    "bandit_weight": "0.014819289771264796",
-    "run_count": "2562"
-  },
-  {
-    "strategy": "corpus_mutations_radamsa,random_max_len,recommended_dict,",
-    "bandit_weight": "0.014461112645285943",
-    "run_count": "319"
-  },
-  {
-    "strategy": "corpus_mutations_ml_rnn,value_profile,",
-    "bandit_weight": "0.014205849948751839",
-    "run_count": "53766"
+    "strategy": "random_max_len,corpus_mutations_ml_rnn,value_profile,recommended_dict,",
+    "bandit_weight_medium_temperature": "0.01876982671219101",
+    "bandit_weight_high_temperature": "0.015594725171708778",
+    "bandit_weight_low_temperature": "0.030211996660077515",
+    "run_count": "760"
   },
   {
     "strategy": "corpus_mutations_ml_rnn,",
-    "bandit_weight": "0.014060236208125952",
-    "run_count": "109123"
+    "bandit_weight_medium_temperature": "0.017417896858758143",
+    "bandit_weight_high_temperature": "0.014836610419799641",
+    "bandit_weight_low_temperature": "0.02601658747925306",
+    "run_count": "16489"
+  },
+  {
+    "strategy": "random_max_len,",
+    "bandit_weight_medium_temperature": "0.017359831158912722",
+    "bandit_weight_high_temperature": "0.014803618394610666",
+    "bandit_weight_low_temperature": "0.025843414641669175",
+    "run_count": "11484"
+  },
+  {
+    "strategy": "random_max_len,value_profile,",
+    "bandit_weight_medium_temperature": "0.017103490907035588",
+    "bandit_weight_high_temperature": "0.014657527719307662",
+    "bandit_weight_low_temperature": "0.02508582706004113",
+    "run_count": "7718"
+  },
+  {
+    "strategy": "random_max_len,value_profile,recommended_dict,",
+    "bandit_weight_medium_temperature": "0.016699547118464827",
+    "bandit_weight_high_temperature": "0.014425825653014354",
+    "bandit_weight_low_temperature": "0.02391488455769136",
+    "run_count": "2607"
+  },
+  {
+    "strategy": "corpus_mutations_ml_rnn,value_profile,",
+    "bandit_weight_medium_temperature": "0.015964207433148053",
+    "bandit_weight_high_temperature": "0.013999175505357904",
+    "bandit_weight_low_temperature": "0.02185514167838657",
+    "run_count": "8436"
+  },
+  {
+    "strategy": "random_max_len,recommended_dict,",
+    "bandit_weight_medium_temperature": "0.015957359653572176",
+    "bandit_weight_high_temperature": "0.01399517196083826",
+    "bandit_weight_low_temperature": "0.021836396357568184",
+    "run_count": "3020"
   },
   {
     "strategy": "corpus_mutations_ml_rnn,value_profile,recommended_dict,",
-    "bandit_weight": "0.013835428503607432",
-    "run_count": "4864"
+    "bandit_weight_medium_temperature": "0.01564836196358919",
+    "bandit_weight_high_temperature": "0.013813915834729061",
+    "bandit_weight_low_temperature": "0.020998905943075952",
+    "run_count": "1342"
   },
   {
     "strategy": "value_profile,recommended_dict,",
-    "bandit_weight": "0.013136702330209492",
-    "run_count": "17043"
+    "bandit_weight_medium_temperature": "0.015206692627406489",
+    "bandit_weight_high_temperature": "0.013552749001039801",
+    "bandit_weight_low_temperature": "0.01983026130874373",
+    "run_count": "4466"
   },
   {
     "strategy": "recommended_dict,",
-    "bandit_weight": "0.012928939247456927",
-    "run_count": "34948"
-  },
-  {
-    "strategy": "corpus_mutations_radamsa,value_profile,recommended_dict,",
-    "bandit_weight": "0.012769615839771313",
-    "run_count": "1060"
+    "bandit_weight_medium_temperature": "0.015064134585002088",
+    "bandit_weight_high_temperature": "0.013467914216124267",
+    "bandit_weight_low_temperature": "0.019460198948927174",
+    "run_count": "6506"
   },
   {
     "strategy": "value_profile,",
-    "bandit_weight": "0.012643436468308426",
-    "run_count": "199992"
+    "bandit_weight_medium_temperature": "0.014810283080096213",
+    "bandit_weight_high_temperature": "0.013316184071415783",
+    "bandit_weight_low_temperature": "0.01880986250403023",
+    "run_count": "27794"
   },
   {
-    "strategy": "",
-    "bandit_weight": "0.012504125076865531",
-    "run_count": "406934"
+    "strategy": "corpus_mutations_radamsa,random_max_len,recommended_dict,",
+    "bandit_weight_medium_temperature": "0.014726398383759635",
+    "bandit_weight_high_temperature": "0.013265855022980277",
+    "bandit_weight_low_temperature": "0.01859738970561464",
+    "run_count": "881"
   },
   {
     "strategy": "corpus_mutations_radamsa,random_max_len,value_profile,recommended_dict,",
-    "bandit_weight": "0.012493573093599006",
-    "run_count": "160"
+    "bandit_weight_medium_temperature": "0.014446172813175293",
+    "bandit_weight_high_temperature": "0.01309702793974615",
+    "bandit_weight_low_temperature": "0.01789635200804001",
+    "run_count": "707"
+  },
+  {
+    "strategy": "corpus_mutations_ml_rnn,recommended_dict,",
+    "bandit_weight_medium_temperature": "0.014180026870810923",
+    "bandit_weight_high_temperature": "0.012935669747011068",
+    "bandit_weight_low_temperature": "0.017243007195045557",
+    "run_count": "2033"
+  },
+  {
+    "strategy": "corpus_mutations_radamsa,random_max_len,",
+    "bandit_weight_medium_temperature": "0.014164199987754748",
+    "bandit_weight_high_temperature": "0.01292604261734551",
+    "bandit_weight_low_temperature": "0.01720453748521995",
+    "run_count": "2213"
+  },
+  {
+    "strategy": "",
+    "bandit_weight_medium_temperature": "0.014118949517093048",
+    "bandit_weight_high_temperature": "0.012898497991150702",
+    "bandit_weight_low_temperature": "0.017094786160300638",
+    "run_count": "52961"
+  },
+  {
+    "strategy": "corpus_mutations_radamsa,random_max_len,value_profile,",
+    "bandit_weight_medium_temperature": "0.013188798400387291",
+    "bandit_weight_high_temperature": "0.012325589605932614",
+    "bandit_weight_low_temperature": "0.01491658342678592",
+    "run_count": "1528"
   },
   {
     "strategy": "corpus_mutations_radamsa,recommended_dict,",
-    "bandit_weight": "0.011488800435499226",
-    "run_count": "2097"
-  },
-  {
-    "strategy": "corpus_mutations_radamsa,value_profile,",
-    "bandit_weight": "0.011461339543618105",
-    "run_count": "12459"
+    "bandit_weight_medium_temperature": "0.013063998174591125",
+    "bandit_weight_high_temperature": "0.01224771177208036",
+    "bandit_weight_low_temperature": "0.01463561996437327",
+    "run_count": "1449"
   },
   {
     "strategy": "corpus_mutations_radamsa,",
-    "bandit_weight": "0.01101885784553913",
-    "run_count": "25737"
+    "bandit_weight_medium_temperature": "0.012580455472671554",
+    "bandit_weight_high_temperature": "0.011943596606622803",
+    "bandit_weight_low_temperature": "0.013572243153093798",
+    "run_count": "8233"
+  },
+  {
+    "strategy": "corpus_mutations_radamsa,value_profile,",
+    "bandit_weight_medium_temperature": "0.012476957090888321",
+    "bandit_weight_high_temperature": "0.011878000460673745",
+    "bandit_weight_low_temperature": "0.013349846275819454",
+    "run_count": "4712"
+  },
+  {
+    "strategy": "corpus_mutations_radamsa,value_profile,recommended_dict,",
+    "bandit_weight_medium_temperature": "0.012229115886702141",
+    "bandit_weight_high_temperature": "0.01172017933708678",
+    "bandit_weight_low_temperature": "0.012824753392548247",
+    "run_count": "1068"
   },
   {
     "strategy": "random_max_len,fork,",
-    "bandit_weight": "0.009715827287828301",
-    "run_count": "49245"
+    "bandit_weight_medium_temperature": "0.010433766043158946",
+    "bandit_weight_high_temperature": "0.010543017959038586",
+    "bandit_weight_low_temperature": "0.009335575387368797",
+    "run_count": "9345"
   },
   {
     "strategy": "random_max_len,value_profile,fork,",
-    "bandit_weight": "0.00958990512957823",
-    "run_count": "24120"
-  },
-  {
-    "strategy": "value_profile,fork,",
-    "bandit_weight": "0.00957142364193173",
-    "run_count": "170139"
-  },
-  {
-    "strategy": "fork,",
-    "bandit_weight": "0.00952599055839738",
-    "run_count": "346196"
-  },
-  {
-    "strategy": "corpus_mutations_radamsa,random_max_len,fork,",
-    "bandit_weight": "0.00944736390813767",
-    "run_count": "3063"
+    "bandit_weight_medium_temperature": "0.010274949385096993",
+    "bandit_weight_high_temperature": "0.010435758274662567",
+    "bandit_weight_low_temperature": "0.009053537069996048",
+    "run_count": "5499"
   },
   {
     "strategy": "corpus_mutations_radamsa,random_max_len,value_profile,fork,",
-    "bandit_weight": "0.009370100166600835",
-    "run_count": "1577"
+    "bandit_weight_medium_temperature": "0.009878884752725825",
+    "bandit_weight_high_temperature": "0.01016582968549887",
+    "bandit_weight_low_temperature": "0.008369022582072424",
+    "run_count": "1192"
   },
   {
-    "strategy": "corpus_mutations_radamsa,fork,",
-    "bandit_weight": "0.009284182841841168",
-    "run_count": "21036"
+    "strategy": "fork,",
+    "bandit_weight_medium_temperature": "0.009532765496995716",
+    "bandit_weight_high_temperature": "0.009926972600989441",
+    "bandit_weight_low_temperature": "0.007792857253258842",
+    "run_count": "51189"
+  },
+  {
+    "strategy": "corpus_mutations_radamsa,random_max_len,fork,",
+    "bandit_weight_medium_temperature": "0.009519520100254506",
+    "bandit_weight_high_temperature": "0.009917775049054842",
+    "bandit_weight_low_temperature": "0.007771216570620871",
+    "run_count": "1790"
   },
   {
     "strategy": "corpus_mutations_radamsa,value_profile,fork,",
-    "bandit_weight": "0.009212251973969748",
-    "run_count": "10723"
+    "bandit_weight_medium_temperature": "0.00949561866036021",
+    "bandit_weight_high_temperature": "0.00990116718023956",
+    "bandit_weight_low_temperature": "0.007732241898917115",
+    "run_count": "4345"
+  },
+  {
+    "strategy": "value_profile,fork,",
+    "bandit_weight_medium_temperature": "0.009405588889789632",
+    "bandit_weight_high_temperature": "0.00983848463166825",
+    "bandit_weight_low_temperature": "0.007586315254427133",
+    "run_count": "26149"
+  },
+  {
+    "strategy": "corpus_mutations_radamsa,fork,",
+    "bandit_weight_medium_temperature": "0.009344004237540999",
+    "bandit_weight_high_temperature": "0.009795491556091978",
+    "bandit_weight_low_temperature": "0.007487295181232728",
+    "run_count": "8046"
   },
   {
     "strategy": "corpus_mutations_radamsa,random_max_len,fork,recommended_dict,",
-    "bandit_weight": "0.008976839509092614",
-    "run_count": "262"
-  },
-  {
-    "strategy": "random_max_len,corpus_mutations_ml_rnn,fork,",
-    "bandit_weight": "0.008945232954755147",
-    "run_count": "14185"
-  },
-  {
-    "strategy": "corpus_mutations_radamsa,random_max_len,value_profile,fork,recommended_dict,",
-    "bandit_weight": "0.008742504289773407",
-    "run_count": "138"
-  },
-  {
-    "strategy": "fork,recommended_dict,",
-    "bandit_weight": "0.008735857913895624",
-    "run_count": "30203"
-  },
-  {
-    "strategy": "random_max_len,corpus_mutations_ml_rnn,value_profile,fork,recommended_dict,",
-    "bandit_weight": "0.008713146308336328",
-    "run_count": "675"
+    "bandit_weight_medium_temperature": "0.00914090503669517",
+    "bandit_weight_high_temperature": "0.009653030569788702",
+    "bandit_weight_low_temperature": "0.007165348138895853",
+    "run_count": "530"
   },
   {
     "strategy": "random_max_len,fork,recommended_dict,",
-    "bandit_weight": "0.008708186872471334",
-    "run_count": "4215"
+    "bandit_weight_medium_temperature": "0.009065231363179991",
+    "bandit_weight_high_temperature": "0.00959968122807592",
+    "bandit_weight_low_temperature": "0.007047201461980114",
+    "run_count": "1860"
   },
   {
-    "strategy": "corpus_mutations_radamsa,fork,recommended_dict,",
-    "bandit_weight": "0.008623138051217685",
-    "run_count": "1815"
-  },
-  {
-    "strategy": "value_profile,fork,recommended_dict,",
-    "bandit_weight": "0.0086171146347404",
-    "run_count": "15023"
+    "strategy": "random_max_len,corpus_mutations_ml_rnn,fork,",
+    "bandit_weight_medium_temperature": "0.008964223501695807",
+    "bandit_weight_high_temperature": "0.009528239556007324",
+    "bandit_weight_low_temperature": "0.006891031798716291",
+    "run_count": "2574"
   },
   {
     "strategy": "corpus_mutations_ml_rnn,fork,",
-    "bandit_weight": "0.008598047115941681",
-    "run_count": "109927"
-  },
-  {
-    "strategy": "corpus_mutations_radamsa,value_profile,fork,recommended_dict,",
-    "bandit_weight": "0.008574632874488525",
-    "run_count": "914"
-  },
-  {
-    "strategy": "random_max_len,corpus_mutations_ml_rnn,fork,recommended_dict,",
-    "bandit_weight": "0.00855181750446437",
-    "run_count": "1325"
-  },
-  {
-    "strategy": "random_max_len,value_profile,fork,recommended_dict,",
-    "bandit_weight": "0.008510626435212304",
-    "run_count": "2193"
+    "bandit_weight_medium_temperature": "0.008804204757789548",
+    "bandit_weight_high_temperature": "0.009414508234686947",
+    "bandit_weight_low_temperature": "0.006647206496077975",
+    "run_count": "15990"
   },
   {
     "strategy": "corpus_mutations_ml_rnn,value_profile,fork,",
-    "bandit_weight": "0.008401421677066983",
-    "run_count": "54169"
+    "bandit_weight_medium_temperature": "0.008722197081336897",
+    "bandit_weight_high_temperature": "0.009355955491559258",
+    "bandit_weight_low_temperature": "0.0065239510341448285",
+    "run_count": "7930"
   },
   {
-    "strategy": "random_max_len,corpus_mutations_ml_rnn,value_profile,fork,",
-    "bandit_weight": "0.008395747151472725",
-    "run_count": "6901"
-  },
-  {
-    "strategy": "corpus_mutations_ml_rnn,value_profile,fork,recommended_dict,",
-    "bandit_weight": "0.008387179348291356",
-    "run_count": "4682"
+    "strategy": "random_max_len,value_profile,fork,recommended_dict,",
+    "bandit_weight_medium_temperature": "0.008699892477996105",
+    "bandit_weight_high_temperature": "0.009339998509161883",
+    "bandit_weight_low_temperature": "0.006490627301002751",
+    "run_count": "1535"
   },
   {
     "strategy": "corpus_mutations_ml_rnn,fork,recommended_dict,",
-    "bandit_weight": "0.008365889519849238",
-    "run_count": "9586"
+    "bandit_weight_medium_temperature": "0.008696984131960132",
+    "bandit_weight_high_temperature": "0.009337916838888082",
+    "bandit_weight_low_temperature": "0.006486288434753292",
+    "run_count": "1752"
   },
   {
-    "strategy": "corpus_mutations_ml_rnn,fork,corpus_subset,",
-    "bandit_weight": "0.008077518169652463",
-    "run_count": "108312"
+    "strategy": "corpus_mutations_radamsa,value_profile,fork,recommended_dict,",
+    "bandit_weight_medium_temperature": "0.0086843404133274",
+    "bandit_weight_high_temperature": "0.00932886430471282",
+    "bandit_weight_low_temperature": "0.006467442547296618",
+    "run_count": "856"
   },
   {
-    "strategy": "corpus_mutations_radamsa,corpus_subset,",
-    "bandit_weight": "0.008077518169652463",
-    "run_count": "25223"
+    "strategy": "random_max_len,corpus_mutations_ml_rnn,value_profile,fork,",
+    "bandit_weight_medium_temperature": "0.008627383921891656",
+    "bandit_weight_high_temperature": "0.009288030508495766",
+    "bandit_weight_low_temperature": "0.006382886931197067",
+    "run_count": "1409"
+  },
+  {
+    "strategy": "value_profile,fork,recommended_dict,",
+    "bandit_weight_medium_temperature": "0.008610357290840939",
+    "bandit_weight_high_temperature": "0.009275806182372106",
+    "bandit_weight_low_temperature": "0.006357717813963752",
+    "run_count": "3626"
+  },
+  {
+    "strategy": "fork,recommended_dict,",
+    "bandit_weight_medium_temperature": "0.008594530491361003",
+    "bandit_weight_high_temperature": "0.009264436051362812",
+    "bandit_weight_low_temperature": "0.006334366902020464",
+    "run_count": "5637"
+  },
+  {
+    "strategy": "corpus_mutations_radamsa,fork,recommended_dict,",
+    "bandit_weight_medium_temperature": "0.008546754862026495",
+    "bandit_weight_high_temperature": "0.009230071145291695",
+    "bandit_weight_low_temperature": "0.0062641391603222305",
+    "run_count": "1170"
+  },
+  {
+    "strategy": "corpus_mutations_ml_rnn,value_profile,fork,recommended_dict,",
+    "bandit_weight_medium_temperature": "0.008461161120956321",
+    "bandit_weight_high_temperature": "0.009168343163328938",
+    "bandit_weight_low_temperature": "0.0061392996627279385",
+    "run_count": "1077"
+  },
+  {
+    "strategy": "random_max_len,corpus_mutations_ml_rnn,value_profile,fork,recommended_dict,",
+    "bandit_weight_medium_temperature": "0.008441711525330848",
+    "bandit_weight_high_temperature": "0.009154287649218608",
+    "bandit_weight_low_temperature": "0.006111107395880579",
+    "run_count": "380"
+  },
+  {
+    "strategy": "random_max_len,corpus_mutations_ml_rnn,fork,recommended_dict,",
+    "bandit_weight_medium_temperature": "0.008412955968933739",
+    "bandit_weight_high_temperature": "0.0091334872615727",
+    "bandit_weight_low_temperature": "0.006069544972092204",
+    "run_count": "473"
+  },
+  {
+    "strategy": "corpus_mutations_radamsa,random_max_len,value_profile,fork,recommended_dict,",
+    "bandit_weight_medium_temperature": "0.00835586050745825",
+    "bandit_weight_high_temperature": "0.009092116760646392",
+    "bandit_weight_low_temperature": "0.005987441239588113",
+    "run_count": "424"
   },
   {
     "strategy": "corpus_subset,",
-    "bandit_weight": "0.008077518169652463",
-    "run_count": "399175"
+    "bandit_weight_medium_temperature": "0.008321279434105579",
+    "bandit_weight_high_temperature": "0.009067014025766948",
+    "bandit_weight_low_temperature": "0.005937985244578106",
+    "run_count": "50330"
   },
   {
-    "strategy": "value_profile,corpus_subset,",
-    "bandit_weight": "0.008077518169652463",
-    "run_count": "195786"
-  },
-  {
-    "strategy": "corpus_mutations_ml_rnn,corpus_subset,",
-    "bandit_weight": "0.008077518169652463",
-    "run_count": "108062"
-  },
-  {
-    "strategy": "corpus_mutations_ml_rnn,value_profile,corpus_subset,",
-    "bandit_weight": "0.008077518169652463",
-    "run_count": "52634"
-  },
-  {
-    "strategy": "corpus_mutations_radamsa,fork,corpus_subset,",
-    "bandit_weight": "0.008077518169652463",
-    "run_count": "20935"
-  },
-  {
-    "strategy": "corpus_mutations_radamsa,value_profile,fork,corpus_subset,",
-    "bandit_weight": "0.008077518169652463",
-    "run_count": "10455"
-  },
-  {
-    "strategy": "corpus_mutations_ml_rnn,fork,corpus_subset,recommended_dict,",
-    "bandit_weight": "0.008077518169652463",
-    "run_count": "9787"
-  },
-  {
-    "strategy": "value_profile,fork,corpus_subset,",
-    "bandit_weight": "0.008077518169652463",
-    "run_count": "167257"
-  },
-  {
-    "strategy": "fork,corpus_subset,",
-    "bandit_weight": "0.008077518169652463",
-    "run_count": "339590"
-  },
-  {
-    "strategy": "fork,corpus_subset,recommended_dict,",
-    "bandit_weight": "0.008077518169652463",
-    "run_count": "29871"
-  },
-  {
-    "strategy": "value_profile,fork,corpus_subset,recommended_dict,",
-    "bandit_weight": "0.008077518169652463",
-    "run_count": "14728"
-  },
-  {
-    "strategy": "corpus_subset,recommended_dict,",
-    "bandit_weight": "0.008077518169652463",
-    "run_count": "34619"
-  },
-  {
-    "strategy": "corpus_mutations_ml_rnn,value_profile,corpus_subset,recommended_dict,",
-    "bandit_weight": "0.008077518169652463",
-    "run_count": "4848"
-  },
-  {
-    "strategy": "corpus_mutations_ml_rnn,corpus_subset,recommended_dict,",
-    "bandit_weight": "0.008077518169652463",
-    "run_count": "9740"
-  },
-  {
-    "strategy": "value_profile,corpus_subset,recommended_dict,",
-    "bandit_weight": "0.008077518169652463",
-    "run_count": "16864"
+    "strategy": "corpus_mutations_ml_rnn,fork,corpus_subset,",
+    "bandit_weight_medium_temperature": "0.008321279434105579",
+    "bandit_weight_high_temperature": "0.009067014025766948",
+    "bandit_weight_low_temperature": "0.005937985244578106",
+    "run_count": "15727"
   },
   {
     "strategy": "corpus_mutations_ml_rnn,value_profile,fork,corpus_subset,",
-    "bandit_weight": "0.008077518169652463",
-    "run_count": "53073"
+    "bandit_weight_medium_temperature": "0.008321279434105579",
+    "bandit_weight_high_temperature": "0.009067014025766948",
+    "bandit_weight_low_temperature": "0.005937985244578106",
+    "run_count": "7912"
   },
   {
     "strategy": "corpus_mutations_radamsa,value_profile,corpus_subset,",
-    "bandit_weight": "0.008077518169652463",
-    "run_count": "12378"
+    "bandit_weight_medium_temperature": "0.008321279434105579",
+    "bandit_weight_high_temperature": "0.009067014025766948",
+    "bandit_weight_low_temperature": "0.005937985244578106",
+    "run_count": "4326"
   },
   {
-    "strategy": "corpus_mutations_ml_rnn,value_profile,fork,corpus_subset,recommended_dict,",
-    "bandit_weight": "0.008077518169652463",
-    "run_count": "4825"
+    "strategy": "corpus_mutations_ml_rnn,corpus_subset,",
+    "bandit_weight_medium_temperature": "0.008321279434105579",
+    "bandit_weight_high_temperature": "0.009067014025766948",
+    "bandit_weight_low_temperature": "0.005937985244578106",
+    "run_count": "15711"
+  },
+  {
+    "strategy": "corpus_mutations_radamsa,value_profile,fork,corpus_subset,",
+    "bandit_weight_medium_temperature": "0.008321279434105579",
+    "bandit_weight_high_temperature": "0.009067014025766948",
+    "bandit_weight_low_temperature": "0.005937985244578106",
+    "run_count": "4198"
+  },
+  {
+    "strategy": "corpus_mutations_radamsa,corpus_subset,",
+    "bandit_weight_medium_temperature": "0.008321279434105579",
+    "bandit_weight_high_temperature": "0.009067014025766948",
+    "bandit_weight_low_temperature": "0.005937985244578106",
+    "run_count": "7872"
+  },
+  {
+    "strategy": "corpus_mutations_radamsa,fork,corpus_subset,",
+    "bandit_weight_medium_temperature": "0.008321279434105579",
+    "bandit_weight_high_temperature": "0.009067014025766948",
+    "bandit_weight_low_temperature": "0.005937985244578106",
+    "run_count": "8007"
+  },
+  {
+    "strategy": "fork,corpus_subset,",
+    "bandit_weight_medium_temperature": "0.008321279434105579",
+    "bandit_weight_high_temperature": "0.009067014025766948",
+    "bandit_weight_low_temperature": "0.005937985244578106",
+    "run_count": "50361"
+  },
+  {
+    "strategy": "value_profile,fork,corpus_subset,",
+    "bandit_weight_medium_temperature": "0.008321279434105579",
+    "bandit_weight_high_temperature": "0.009067014025766948",
+    "bandit_weight_low_temperature": "0.005937985244578106",
+    "run_count": "26136"
+  },
+  {
+    "strategy": "value_profile,corpus_subset,",
+    "bandit_weight_medium_temperature": "0.008321279434105579",
+    "bandit_weight_high_temperature": "0.009067014025766948",
+    "bandit_weight_low_temperature": "0.005937985244578106",
+    "run_count": "26055"
+  },
+  {
+    "strategy": "corpus_mutations_ml_rnn,value_profile,corpus_subset,",
+    "bandit_weight_medium_temperature": "0.008321279434105579",
+    "bandit_weight_high_temperature": "0.009067014025766948",
+    "bandit_weight_low_temperature": "0.005937985244578106",
+    "run_count": "7986"
+  },
+  {
+    "strategy": "corpus_mutations_ml_rnn,corpus_subset,recommended_dict,",
+    "bandit_weight_medium_temperature": "0.008321279434105579",
+    "bandit_weight_high_temperature": "0.009067014025766948",
+    "bandit_weight_low_temperature": "0.005937985244578106",
+    "run_count": "1668"
   },
   {
     "strategy": "corpus_mutations_radamsa,fork,corpus_subset,recommended_dict,",
-    "bandit_weight": "0.008077518169652463",
-    "run_count": "1827"
+    "bandit_weight_medium_temperature": "0.008321279434105579",
+    "bandit_weight_high_temperature": "0.009067014025766948",
+    "bandit_weight_low_temperature": "0.005937985244578106",
+    "run_count": "1132"
   },
   {
-    "strategy": "corpus_mutations_radamsa,value_profile,fork,corpus_subset,recommended_dict,",
-    "bandit_weight": "0.008077518169652463",
-    "run_count": "891"
+    "strategy": "value_profile,corpus_subset,recommended_dict,",
+    "bandit_weight_medium_temperature": "0.008321279434105579",
+    "bandit_weight_high_temperature": "0.009067014025766948",
+    "bandit_weight_low_temperature": "0.005937985244578106",
+    "run_count": "3465"
   },
   {
     "strategy": "corpus_mutations_radamsa,corpus_subset,recommended_dict,",
-    "bandit_weight": "0.008077518169652463",
-    "run_count": "2139"
+    "bandit_weight_medium_temperature": "0.008321279434105579",
+    "bandit_weight_high_temperature": "0.009067014025766948",
+    "bandit_weight_low_temperature": "0.005937985244578106",
+    "run_count": "1152"
+  },
+  {
+    "strategy": "corpus_mutations_ml_rnn,fork,corpus_subset,recommended_dict,",
+    "bandit_weight_medium_temperature": "0.008321279434105579",
+    "bandit_weight_high_temperature": "0.009067014025766948",
+    "bandit_weight_low_temperature": "0.005937985244578106",
+    "run_count": "1746"
+  },
+  {
+    "strategy": "fork,corpus_subset,recommended_dict,",
+    "bandit_weight_medium_temperature": "0.008321279434105579",
+    "bandit_weight_high_temperature": "0.009067014025766948",
+    "bandit_weight_low_temperature": "0.005937985244578106",
+    "run_count": "5574"
+  },
+  {
+    "strategy": "value_profile,fork,corpus_subset,recommended_dict,",
+    "bandit_weight_medium_temperature": "0.008321279434105579",
+    "bandit_weight_high_temperature": "0.009067014025766948",
+    "bandit_weight_low_temperature": "0.005937985244578106",
+    "run_count": "3432"
+  },
+  {
+    "strategy": "corpus_subset,recommended_dict,",
+    "bandit_weight_medium_temperature": "0.008321279434105579",
+    "bandit_weight_high_temperature": "0.009067014025766948",
+    "bandit_weight_low_temperature": "0.005937985244578106",
+    "run_count": "5516"
   },
   {
     "strategy": "corpus_mutations_radamsa,value_profile,corpus_subset,recommended_dict,",
-    "bandit_weight": "0.008077518169652463",
-    "run_count": "1144"
+    "bandit_weight_medium_temperature": "0.008321279434105579",
+    "bandit_weight_high_temperature": "0.009067014025766948",
+    "bandit_weight_low_temperature": "0.005937985244578106",
+    "run_count": "844"
   },
   {
-    "strategy": "random_max_len,corpus_subset,",
-    "bandit_weight": "0.008077518169652463",
-    "run_count": "58060"
-  },
-  {
-    "strategy": "random_max_len,corpus_mutations_ml_rnn,value_profile,fork,corpus_subset,",
-    "bandit_weight": "0.008077518169652463",
-    "run_count": "6881"
-  },
-  {
-    "strategy": "random_max_len,value_profile,corpus_subset,",
-    "bandit_weight": "0.008077518169652463",
-    "run_count": "28358"
-  },
-  {
-    "strategy": "random_max_len,fork,corpus_subset,",
-    "bandit_weight": "0.008077518169652463",
-    "run_count": "47705"
-  },
-  {
-    "strategy": "random_max_len,corpus_mutations_ml_rnn,fork,corpus_subset,",
-    "bandit_weight": "0.008077518169652463",
-    "run_count": "13994"
+    "strategy": "corpus_mutations_ml_rnn,value_profile,corpus_subset,recommended_dict,",
+    "bandit_weight_medium_temperature": "0.008321279434105579",
+    "bandit_weight_high_temperature": "0.009067014025766948",
+    "bandit_weight_low_temperature": "0.005937985244578106",
+    "run_count": "987"
   },
   {
     "strategy": "random_max_len,value_profile,fork,corpus_subset,",
-    "bandit_weight": "0.008077518169652463",
-    "run_count": "23660"
+    "bandit_weight_medium_temperature": "0.008321279434105579",
+    "bandit_weight_high_temperature": "0.009067014025766948",
+    "bandit_weight_low_temperature": "0.005937985244578106",
+    "run_count": "5238"
   },
   {
-    "strategy": "random_max_len,value_profile,fork,corpus_subset,recommended_dict,",
-    "bandit_weight": "0.008077518169652463",
-    "run_count": "2086"
+    "strategy": "random_max_len,fork,corpus_subset,",
+    "bandit_weight_medium_temperature": "0.008321279434105579",
+    "bandit_weight_high_temperature": "0.009067014025766948",
+    "bandit_weight_low_temperature": "0.005937985244578106",
+    "run_count": "9061"
   },
   {
-    "strategy": "random_max_len,corpus_mutations_ml_rnn,value_profile,corpus_subset,",
-    "bandit_weight": "0.008077518169652463",
-    "run_count": "6813"
+    "strategy": "random_max_len,corpus_subset,",
+    "bandit_weight_medium_temperature": "0.008321279434105579",
+    "bandit_weight_high_temperature": "0.009067014025766948",
+    "bandit_weight_low_temperature": "0.005937985244578106",
+    "run_count": "9073"
   },
   {
-    "strategy": "random_max_len,corpus_mutations_ml_rnn,corpus_subset,",
-    "bandit_weight": "0.008077518169652463",
-    "run_count": "13942"
+    "strategy": "random_max_len,value_profile,corpus_subset,",
+    "bandit_weight_medium_temperature": "0.008321279434105579",
+    "bandit_weight_high_temperature": "0.009067014025766948",
+    "bandit_weight_low_temperature": "0.005937985244578106",
+    "run_count": "5388"
+  },
+  {
+    "strategy": "random_max_len,corpus_mutations_ml_rnn,fork,corpus_subset,",
+    "bandit_weight_medium_temperature": "0.008321279434105579",
+    "bandit_weight_high_temperature": "0.009067014025766948",
+    "bandit_weight_low_temperature": "0.005937985244578106",
+    "run_count": "2403"
   },
   {
     "strategy": "corpus_mutations_radamsa,random_max_len,value_profile,fork,corpus_subset,",
-    "bandit_weight": "0.008077518169652463",
-    "run_count": "1452"
-  },
-  {
-    "strategy": "random_max_len,fork,corpus_subset,recommended_dict,",
-    "bandit_weight": "0.008077518169652463",
-    "run_count": "4262"
-  },
-  {
-    "strategy": "random_max_len,corpus_subset,recommended_dict,",
-    "bandit_weight": "0.008077518169652463",
-    "run_count": "4946"
-  },
-  {
-    "strategy": "corpus_mutations_radamsa,random_max_len,fork,corpus_subset,recommended_dict,",
-    "bandit_weight": "0.008077518169652463",
-    "run_count": "266"
+    "bandit_weight_medium_temperature": "0.008321279434105579",
+    "bandit_weight_high_temperature": "0.009067014025766948",
+    "bandit_weight_low_temperature": "0.005937985244578106",
+    "run_count": "1109"
   },
   {
     "strategy": "corpus_mutations_radamsa,random_max_len,fork,corpus_subset,",
-    "bandit_weight": "0.008077518169652463",
-    "run_count": "3178"
-  },
-  {
-    "strategy": "random_max_len,corpus_mutations_ml_rnn,corpus_subset,recommended_dict,",
-    "bandit_weight": "0.008077518169652463",
-    "run_count": "1241"
+    "bandit_weight_medium_temperature": "0.008321279434105579",
+    "bandit_weight_high_temperature": "0.009067014025766948",
+    "bandit_weight_low_temperature": "0.005937985244578106",
+    "run_count": "1730"
   },
   {
     "strategy": "corpus_mutations_radamsa,random_max_len,corpus_subset,",
-    "bandit_weight": "0.008077518169652463",
-    "run_count": "3855"
+    "bandit_weight_medium_temperature": "0.008321279434105579",
+    "bandit_weight_high_temperature": "0.009067014025766948",
+    "bandit_weight_low_temperature": "0.005937985244578106",
+    "run_count": "1736"
+  },
+  {
+    "strategy": "random_max_len,corpus_mutations_ml_rnn,corpus_subset,",
+    "bandit_weight_medium_temperature": "0.008321279434105579",
+    "bandit_weight_high_temperature": "0.009067014025766948",
+    "bandit_weight_low_temperature": "0.005937985244578106",
+    "run_count": "2418"
+  },
+  {
+    "strategy": "random_max_len,corpus_mutations_ml_rnn,value_profile,fork,corpus_subset,",
+    "bandit_weight_medium_temperature": "0.008321279434105579",
+    "bandit_weight_high_temperature": "0.009067014025766948",
+    "bandit_weight_low_temperature": "0.005937985244578106",
+    "run_count": "1353"
+  },
+  {
+    "strategy": "random_max_len,corpus_mutations_ml_rnn,value_profile,corpus_subset,",
+    "bandit_weight_medium_temperature": "0.008321279434105579",
+    "bandit_weight_high_temperature": "0.009067014025766948",
+    "bandit_weight_low_temperature": "0.005937985244578106",
+    "run_count": "1332"
   },
   {
     "strategy": "corpus_mutations_radamsa,random_max_len,value_profile,corpus_subset,",
-    "bandit_weight": "0.008077518169652463",
-    "run_count": "1927"
-  },
-  {
-    "strategy": "random_max_len,value_profile,corpus_subset,recommended_dict,",
-    "bandit_weight": "0.008077518169652463",
-    "run_count": "2499"
-  },
-  {
-    "strategy": "random_max_len,corpus_mutations_ml_rnn,value_profile,fork,corpus_subset,recommended_dict,",
-    "bandit_weight": "0.008077518169652463",
-    "run_count": "644"
-  },
-  {
-    "strategy": "random_max_len,corpus_mutations_ml_rnn,value_profile,corpus_subset,recommended_dict,",
-    "bandit_weight": "0.008077518169652463",
-    "run_count": "616"
-  },
-  {
-    "strategy": "random_max_len,corpus_mutations_ml_rnn,fork,corpus_subset,recommended_dict,",
-    "bandit_weight": "0.008077518169652463",
-    "run_count": "1291"
-  },
-  {
-    "strategy": "corpus_mutations_radamsa,random_max_len,value_profile,corpus_subset,recommended_dict,",
-    "bandit_weight": "0.008077518169652463",
-    "run_count": "166"
-  },
-  {
-    "strategy": "corpus_mutations_radamsa,random_max_len,corpus_subset,recommended_dict,",
-    "bandit_weight": "0.008077518169652463",
-    "run_count": "314"
+    "bandit_weight_medium_temperature": "0.008321279434105579",
+    "bandit_weight_high_temperature": "0.009067014025766948",
+    "bandit_weight_low_temperature": "0.005937985244578106",
+    "run_count": "1127"
   },
   {
     "strategy": "corpus_mutations_radamsa,random_max_len,value_profile,fork,corpus_subset,recommended_dict,",
-    "bandit_weight": "0.008077518169652463",
-    "run_count": "151"
+    "bandit_weight_medium_temperature": "0.008321279434105579",
+    "bandit_weight_high_temperature": "0.009067014025766948",
+    "bandit_weight_low_temperature": "0.005937985244578106",
+    "run_count": "468"
+  },
+  {
+    "strategy": "random_max_len,corpus_mutations_ml_rnn,fork,corpus_subset,recommended_dict,",
+    "bandit_weight_medium_temperature": "0.008321279434105579",
+    "bandit_weight_high_temperature": "0.009067014025766948",
+    "bandit_weight_low_temperature": "0.005937985244578106",
+    "run_count": "433"
+  },
+  {
+    "strategy": "random_max_len,value_profile,fork,corpus_subset,recommended_dict,",
+    "bandit_weight_medium_temperature": "0.008321279434105579",
+    "bandit_weight_high_temperature": "0.009067014025766948",
+    "bandit_weight_low_temperature": "0.005937985244578106",
+    "run_count": "1404"
+  },
+  {
+    "strategy": "random_max_len,fork,corpus_subset,recommended_dict,",
+    "bandit_weight_medium_temperature": "0.008321279434105579",
+    "bandit_weight_high_temperature": "0.009067014025766948",
+    "bandit_weight_low_temperature": "0.005937985244578106",
+    "run_count": "1749"
+  },
+  {
+    "strategy": "random_max_len,corpus_subset,recommended_dict,",
+    "bandit_weight_medium_temperature": "0.008321279434105579",
+    "bandit_weight_high_temperature": "0.009067014025766948",
+    "bandit_weight_low_temperature": "0.005937985244578106",
+    "run_count": "1752"
+  },
+  {
+    "strategy": "random_max_len,value_profile,corpus_subset,recommended_dict,",
+    "bandit_weight_medium_temperature": "0.008321279434105579",
+    "bandit_weight_high_temperature": "0.009067014025766948",
+    "bandit_weight_low_temperature": "0.005937985244578106",
+    "run_count": "1424"
+  },
+  {
+    "strategy": "random_max_len,corpus_mutations_ml_rnn,corpus_subset,recommended_dict,",
+    "bandit_weight_medium_temperature": "0.008321279434105579",
+    "bandit_weight_high_temperature": "0.009067014025766948",
+    "bandit_weight_low_temperature": "0.005937985244578106",
+    "run_count": "451"
+  },
+  {
+    "strategy": "corpus_mutations_radamsa,value_profile,fork,corpus_subset,recommended_dict,",
+    "bandit_weight_medium_temperature": "0.008321279434105579",
+    "bandit_weight_high_temperature": "0.009067014025766948",
+    "bandit_weight_low_temperature": "0.005937985244578106",
+    "run_count": "817"
+  },
+  {
+    "strategy": "corpus_mutations_radamsa,random_max_len,corpus_subset,recommended_dict,",
+    "bandit_weight_medium_temperature": "0.008321279434105579",
+    "bandit_weight_high_temperature": "0.009067014025766948",
+    "bandit_weight_low_temperature": "0.005937985244578106",
+    "run_count": "486"
+  },
+  {
+    "strategy": "corpus_mutations_ml_rnn,value_profile,fork,corpus_subset,recommended_dict,",
+    "bandit_weight_medium_temperature": "0.008321279434105579",
+    "bandit_weight_high_temperature": "0.009067014025766948",
+    "bandit_weight_low_temperature": "0.005937985244578106",
+    "run_count": "1049"
+  },
+  {
+    "strategy": "corpus_mutations_radamsa,random_max_len,value_profile,corpus_subset,recommended_dict,",
+    "bandit_weight_medium_temperature": "0.008321279434105579",
+    "bandit_weight_high_temperature": "0.009067014025766948",
+    "bandit_weight_low_temperature": "0.005937985244578106",
+    "run_count": "466"
+  },
+  {
+    "strategy": "corpus_mutations_radamsa,random_max_len,fork,corpus_subset,recommended_dict,",
+    "bandit_weight_medium_temperature": "0.008321279434105579",
+    "bandit_weight_high_temperature": "0.009067014025766948",
+    "bandit_weight_low_temperature": "0.005937985244578106",
+    "run_count": "507"
+  },
+  {
+    "strategy": "random_max_len,corpus_mutations_ml_rnn,value_profile,corpus_subset,recommended_dict,",
+    "bandit_weight_medium_temperature": "0.008321279434105579",
+    "bandit_weight_high_temperature": "0.009067014025766948",
+    "bandit_weight_low_temperature": "0.005937985244578106",
+    "run_count": "335"
+  },
+  {
+    "strategy": "random_max_len,corpus_mutations_ml_rnn,value_profile,fork,corpus_subset,recommended_dict,",
+    "bandit_weight_medium_temperature": "0.008321279434105579",
+    "bandit_weight_high_temperature": "0.009067014025766948",
+    "bandit_weight_low_temperature": "0.005937985244578106",
+    "run_count": "347"
   }
 ]
