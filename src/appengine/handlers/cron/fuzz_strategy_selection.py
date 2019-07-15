@@ -35,6 +35,8 @@ from libs import handler
 # new_edges metric for each strategy.
 # See https://www.cs.mcgill.ca/~vkules/bandits.pdf for formula.
 
+# TODO(mukundv): Change query to group by strategy selection method once tables
+# are initially populated.
 BANDIT_PROBABILITY_QUERY = """
 SELECT
   /* Calculate bandit weights from calculated exponential values. */
@@ -58,7 +60,7 @@ FROM
       /* Standardize the new edges data and take averages per strategy. */
       AVG((new_edges - overall_avg_new_edges) / overall_stddev_new_edges) AS strategy_avg_edges,
       strategy,
-      /* Change temperature parameter here. */
+      /* Change temperature parameters here. */
       .5 as medium_temperature,
       .75 as high_temperature,
       .25 as low_temperature,
@@ -87,7 +89,7 @@ FROM
           libFuzzer_stats.TestcaseRun
         WHERE
           ((strategy_mutator_plugin = 0) OR (strategy_mutator_plugin IS NULL)) AND
-          /* Query results from the past 30 days. Change as needed. */
+          /* Query results from the past 5 days. Change as needed. */
           DATE_DIFF(cast(current_timestamp() AS DATE), cast(_PARTITIONTIME AS DATE), DAY) < 6
         )
       WHERE
@@ -114,6 +116,8 @@ def _store_probabilities_in_bigquery(data):
   probability distribution over strategies."""
   bigquery_data = []
 
+  # TODO(mukundv): Change to store correct distributions once tables are
+  # initially populated.
   for row in data:
     bigquery_row = {
         'strategy_name':
@@ -143,6 +147,8 @@ def _query_and_upload_strategy_probabilities():
   strategy_data = []
   data = _query_multi_armed_bandit_probabilities()
 
+  # TODO(mukundv): Change to store correct distributions once tables are
+  # initially populated.
   for row in data:
     curr_strategy = data_types.FuzzStrategyProbability()
     curr_strategy.strategy_name = str(row['strategy'])

@@ -1396,8 +1396,9 @@ class FuzzingSession(object):
         engine_common.decide_with_probability(MULTI_ARMED_BANDIT_TRAFFIC_SPLIT)
        ):
       distribution = get_strategy_distribution_from_ndb()
-      environment.set_value('STRATEGY_SELECTION_METHOD', 'multi_armed_bandit')
-      environment.set_value('STRATEGY_SELECTION_DISTRIBUTION', distribution)
+      if distribution:
+        environment.set_value('STRATEGY_SELECTION_METHOD', 'multi_armed_bandit')
+        environment.set_value('STRATEGY_SELECTION_DISTRIBUTION', distribution)
 
     # Reset memory tool options.
     environment.reset_current_memory_tool_options(redzone_size=self.redzone)
