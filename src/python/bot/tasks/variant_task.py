@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""Stack task for generating additional stacktrace(s)."""
+"""Variant task for analyzing testcase variants with a different job."""
 
 from base import utils
 from bot.tasks import setup
@@ -22,11 +22,20 @@ from fuzzing import testcase_manager
 from system import environment
 
 
-def execute_task(testcase_id, job_type):
-  """Run a test case with a second job type to generate a second stack trace."""
-  # Locate the testcase associated with the id.
-  testcase = data_handler.get_testcase_by_id(testcase_id)
+def _get_testcase_variant_entity(testcase_id, job_type):
+  """Get a testcase variant entity, and create if needed."""
+  variant = data_types.TestcaseVariant.query(
+      data_types.TestcaseVariant.testcase_id == testcase_id,
+      data_types.TestcaseVariant.job_type == job_type).get()
+  if not variant:
+    variant = data_types.TestcaseVariant(
+        testcase_id=testcase_id, job_type=job_type)
+  return variant
 
+
+def execute_task(testcase_id, job_type):
+  """Run a test case with a different job type to see if they reproduce."""
+  testcase = data_handler.get_testcase_by_id(testcase_id)
   data_handler.update_testcase_comment(testcase, data_types.TaskState.STARTED)
 
   # Setup testcase and its dependencies.
@@ -34,8 +43,9 @@ def execute_task(testcase_id, job_type):
   if not file_list:
     return
 
-  # Initialize timeout values.
+  # Initialize helper variables.
   test_timeout = environment.get_value('TEST_TIMEOUT', 10)
+  revision = environment.get_value('APP_REVISION')
 
   # Set up a custom or regular build. We explicitly omit the crash revision
   # since we want to test against the latest build here.
@@ -50,10 +60,7 @@ def execute_task(testcase_id, job_type):
                                          'Build setup failed')
     return
 
-  # TSAN tool settings (if the tool is used).
-  if environment.tool_matches('TSAN', job_type):
-    environment.set_tsan_max_history_size()
-
+  # Reproduce the crash.
   command = testcase_manager.get_command_line_for_application(
       testcase_file_path, app_path=app_path, needs_http=testcase.http_flag)
   result = testcase_manager.test_for_crash_with_retries(
@@ -63,10 +70,6 @@ def execute_task(testcase_id, job_type):
       http_flag=testcase.http_flag,
       compare_crash=False)
 
-  # Get revision information.
-  revision = environment.get_value('APP_REVISION')
-
-  # If a crash occurs, then we add the second stacktrace information.
   if result.is_crash():
     state = result.get_symbolized_data()
     security_flag = result.is_security_issue()
@@ -74,37 +77,32 @@ def execute_task(testcase_id, job_type):
         testcase_file_path, state.crash_state, security_flag, test_timeout,
         testcase.http_flag, testcase.gestures)
 
-    # Attach a header to indicate information on reproducibility flag.
     if one_time_crasher_flag:
-      crash_stacktrace_header = 'Unreliable'
+      status = data_types.TestcaseVariantStatus.FLAKY
     else:
-      crash_stacktrace_header = 'Fully reproducible'
-    crash_stacktrace_header += (' crash found using %s job.\n\n' % job_type)
+      status = data_types.TestcaseVariantStatus.REPRODUCIBLE
 
     unsymbolized_crash_stacktrace = result.get_stacktrace(symbolized=False)
-    stacktrace = utils.get_crash_stacktrace_output(
+    crash_stacktrace_output = utils.get_crash_stacktrace_output(
         command, state.crash_stacktrace, unsymbolized_crash_stacktrace)
-
-    crash_stacktrace = data_handler.filter_stacktrace(
-        '%s%s' % (crash_stacktrace_header, stacktrace))
+    crash_stacktrace = data_handler.filter_stacktrace(crash_stacktrace_output)
   else:
-    crash_stacktrace = 'No crash found using %s job.' % job_type
+    status = data_types.TestcaseVariantStatus.UNREPRODUCIBLE
+    crash_stacktrace = None
 
-  # Decide which stacktrace to update this stacktrace with.
   testcase = data_handler.get_testcase_by_id(testcase_id)
-  if testcase.last_tested_crash_stacktrace == 'Pending':
+  if testcase.job_type == job_type:
     # This case happens when someone clicks 'Update last tested stacktrace using
     # trunk build' button.
     testcase.last_tested_crash_stacktrace = crash_stacktrace
     testcase.set_metadata(
         'last_tested_crash_revision', revision, update_testcase=False)
   else:
-    # Default case when someone defines |SECOND_STACK_JOB_TYPE| in the job
-    # type. This helps to test the unreproducible crash with a different memory
-    # debugging tool to get a second stacktrace (e.g. running TSAN on a flaky
-    # crash found in ASAN build).
-    testcase.second_crash_stacktrace = crash_stacktrace
-    testcase.set_metadata(
-        'second_crash_stacktrace_revision', revision, update_testcase=False)
+    # Regular case of variant analysis.
+    variant = _get_testcase_variant_entity(testcase_id, job_type)
+    variant.status = status
+    variant.revision = revision
+    variant.crash_stacktrace = crash_stacktrace
+    variant.put()
 
   data_handler.update_testcase_comment(testcase, data_types.TaskState.FINISHED)

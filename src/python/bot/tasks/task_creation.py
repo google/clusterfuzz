@@ -18,6 +18,7 @@ from base import utils
 from build_management import build_manager
 from datastore import data_handler
 from datastore import data_types
+from datastore import ndb_utils
 from system import environment
 
 
@@ -60,10 +61,10 @@ def mark_unreproducible_if_flaky(testcase, potentially_flaky):
   # Issue update to flip reproducibility label is done in App Engine cleanup
   # cron. This avoids calling the issue tracker apis from GCE.
 
-  # For unreproducible testcases, it is still beneficial to get second stack
-  # information from stack task and component information from blame task.
+  # For unreproducible testcases, it is still beneficial to get variant stacks
+  # from other jobs and component information from blame task.
   create_blame_task_if_needed(testcase)
-  create_stack_task_if_needed(testcase)
+  create_variant_tasks_if_needed(testcase)
 
 
 def create_blame_task_if_needed(testcase):
@@ -142,13 +143,23 @@ def create_regression_task_if_needed(testcase):
   tasks.add_task('regression', testcase.key.id(), testcase.job_type)
 
 
-def create_stack_task_if_needed(testcase):
-  """Creates a stack task if needed."""
-  second_stack_job_type = environment.get_value('SECOND_STACK_JOB_TYPE')
-  if not second_stack_job_type:
-    return
+def create_variant_tasks_if_needed(testcase):
+  """Creates a variant task if needed."""
+  testcase_id = testcase.key.id()
+  jobs = ndb_utils.get_all_from_model(data_types.Job)
+  for job in jobs:
+    job_type = job.name
+    project_name = data_handler.get_project_name(job_type)
 
-  tasks.add_task('stack', testcase.key.id(), second_stack_job_type)
+    if testcase.project_name != project_name:
+      # Don't look for variants in other projects. Skip.
+      continue
+
+    if testcase.job_type == job_type:
+      # The variant needs to be in a different job type than us. Skip.
+      continue
+
+    tasks.add_task('variant', testcase_id, job_type)
 
 
 def create_symbolize_task_if_needed(testcase):
@@ -176,7 +187,7 @@ def create_tasks(testcase):
     # For unreproducible testcases, it is still beneficial to get second stack
     # information from stack task and component information from blame task.
     create_blame_task_if_needed(testcase)
-    create_stack_task_if_needed(testcase)
+    create_variant_tasks_if_needed(testcase)
     return
 
   # For a fully reproducible crash.
