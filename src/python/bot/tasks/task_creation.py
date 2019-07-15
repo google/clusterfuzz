@@ -61,10 +61,9 @@ def mark_unreproducible_if_flaky(testcase, potentially_flaky):
   # Issue update to flip reproducibility label is done in App Engine cleanup
   # cron. This avoids calling the issue tracker apis from GCE.
 
-  # For unreproducible testcases, it is still beneficial to get variant stacks
-  # from other jobs and component information from blame task.
+  # For unreproducible testcases, it is still beneficial to get component
+  # information from blame task.
   create_blame_task_if_needed(testcase)
-  create_variant_tasks_if_needed(testcase)
 
 
 def create_blame_task_if_needed(testcase):
@@ -151,12 +150,12 @@ def create_variant_tasks_if_needed(testcase):
     job_type = job.name
     project_name = data_handler.get_project_name(job_type)
 
+    # Don't look for variants in other projects.
     if testcase.project_name != project_name:
-      # Don't look for variants in other projects. Skip.
       continue
 
+    # The variant needs to be tested in a different job type than us.
     if testcase.job_type == job_type:
-      # The variant needs to be in a different job type than us. Skip.
       continue
 
     tasks.add_task('variant', testcase_id, job_type)
@@ -184,10 +183,9 @@ def create_tasks(testcase):
 
   # For a non reproducible crash.
   if testcase.one_time_crasher_flag:
-    # For unreproducible testcases, it is still beneficial to get second stack
-    # information from stack task and component information from blame task.
+    # For unreproducible testcases, it is still beneficial to get component
+    # information from blame task.
     create_blame_task_if_needed(testcase)
-    create_variant_tasks_if_needed(testcase)
     return
 
   # For a fully reproducible crash.
