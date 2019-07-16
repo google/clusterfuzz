@@ -147,18 +147,28 @@ def create_variant_tasks_if_needed(testcase):
   testcase_id = testcase.key.id()
   jobs = ndb_utils.get_all_from_model(data_types.Job)
   for job in jobs:
-    job_type = job.name
-    project_name = data_handler.get_project_name(job_type)
-    queue = tasks.queue_for_platform(job.platform)
-
-    # Don't look for variants in other projects.
-    if testcase.project_name != project_name:
-      continue
-
     # The variant needs to be tested in a different job type than us.
+    job_type = job.name
     if testcase.job_type == job_type:
       continue
 
+    # Don't try to reproduce engine fuzzer testcase with blackbox fuzzer
+    # testcases and vice versa.
+    if (environment.is_engine_fuzzer_job(testcase.job_type) !=
+        environment.is_engine_fuzzer_job(job_type)):
+      continue
+
+    # Skip experimental jobs.
+    job_environment = job.get_environment()
+    if utils.string_is_true(job_environment.get('EXPERIMENTAL')):
+      continue
+
+    # Don't look for variants in other projects.
+    project_name = data_handler.get_project_name(job_type)
+    if testcase.project_name != project_name:
+      continue
+
+    queue = tasks.queue_for_platform(job.platform)
     tasks.add_task('variant', testcase_id, job_type, queue)
 
 
