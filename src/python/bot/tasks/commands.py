@@ -249,7 +249,13 @@ def process_command(task):
       # So, we don't create any new tasks in that case since it needs
       # manual intervention to fix the override anyway.
       if not task.is_command_override:
-        tasks.add_task(task_name, task_argument, job_name, new_queue)
+        try:
+          tasks.add_task(task_name, task_argument, job_name, new_queue)
+        except Exception:
+          # This can happen on trying to publish on a non-existent topic, e.g.
+          # a topic for a high-end bot on another platform. In this case, just
+          # give up.
+          logs.log_error('Failed to fix platform and re-add task.')
 
       # Add a wait interval to avoid overflowing task creation.
       failure_wait_interval = environment.get_value('FAIL_WAIT')
