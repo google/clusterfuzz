@@ -121,7 +121,7 @@ def generate_weighted_strategy_pool():
   if selection_method == 'multi_armed_bandit_high':
     probability_key = 'probability_high_temperature'
   elif selection_method == 'multi_armed_bandit_low':
-    probability_key = 'probability_medium_temperature'
+    probability_key = 'probability_low_temperature'
 
   # Change the distribution to a list of named tuples rather than a list of
   # dictionaries so that we can use the random_weighted_choice function.

@@ -1263,12 +1263,12 @@ def get_strategy_distribution_from_ndb():
     distribution.append({
         "strategy_name":
             strategy_entry.strategy_name,
-        "probability_medium_temperature":
-            strategy_entry.probability_medium_temperature,
         "probability_high_temperature":
             strategy_entry.probability_high_temperature,
         "probability_low_temperature":
-            strategy_entry.probability_low_temperature
+            strategy_entry.probability_low_temperature,
+        "probability_medium_temperature":
+            strategy_entry.probability_medium_temperature
     })
   return distribution
 

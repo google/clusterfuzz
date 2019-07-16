@@ -37,17 +37,11 @@ from libs import handler
 
 # TODO(mukundv): Change query once we decide on a temperature parameter and
 # final implementation.
-BANDIT_PROBABILITY_QUERY = """
-SELECT
-  c.strategy,
-  bandit_weight_medium_temperature,
-  bandit_weight_high_temperature,
-  bandit_weight_low_temperature,
-  c.run_count AS run_count
-FROM (
-  SELECT
-    /* Calculate bandit weights from calculated exponential values. */ strategy,
-    strategy_exp / exp_sum AS bandit_weight_low_temperature,
+BANDIT_PROBABILITY_SUBQUERY = """
+(SELECT
+    /* Calculate bandit weights from calculated exponential values. */
+    strategy,
+    strategy_exp / exp_sum AS bandit_weight_{temperature_type}_temperature,
     run_count,
     strategy_selection_method
   FROM (
@@ -59,12 +53,13 @@ FROM (
       strategy_selection_method
     FROM (
       SELECT
-        /* Standardize the new edges data and take averages per strategy. */ AVG((new_edges - overall_avg_new_edges) / overall_stddev_new_edges) AS strategy_avg_edges,
+        /* Standardize the new edges data and take averages per strategy. */
+        AVG((new_edges - overall_avg_new_edges) / overall_stddev_new_edges) AS strategy_avg_edges,
         strategy,
-        /* Change LOW temperature parameter here. */ 
-        .25 AS temperature,
+        /* Change temperature parameter here. */
+        {temperature_value} AS temperature,
         COUNT(*) AS run_count,
-        "multi_armed_bandit_medium" AS strategy_selection_method
+        "multi_armed_bandit_{temperature_type}" AS strategy_selection_method
       FROM (
         SELECT
           fuzzer,
@@ -113,178 +108,26 @@ FROM (
           WHERE
             ((strategy_mutator_plugin = 0)
               OR (strategy_mutator_plugin IS NULL))
-            AND /* Query results from the past 5 days. Change as needed. */ DATE_DIFF(CAST(CURRENT_TIMESTAMP() AS DATE), CAST(_PARTITIONTIME AS DATE), DAY) < 6 )
+            AND 
+            /* Query results from the past 5 days. Change as needed. */
+            DATE_DIFF(CAST(CURRENT_TIMESTAMP() AS DATE), CAST(_PARTITIONTIME AS DATE), DAY) < 6 )
         WHERE
-          /* Filter for unstable targets. */ fuzzer_stddev < 150)
+          /* Filter for unstable targets. */
+          fuzzer_stddev < 150)
       WHERE
-        strategy_selection_method = "multi_armed_bandit_low"
+        strategy_selection_method = "multi_armed_bandit_{temperature_type}"
       GROUP BY
-        strategy))
-  ORDER BY
-    bandit_weight_low_temperature DESC) c
-JOIN (
-  SELECT
-    a.strategy,
-    bandit_weight_medium_temperature,
-    bandit_weight_high_temperature
-  FROM (
-    SELECT
-      /* Calculate bandit weights from calculated exponential values. */ strategy,
-      strategy_exp / exp_sum AS bandit_weight_medium_temperature,
-      run_count,
-      strategy_selection_method
-    FROM (
-      SELECT
-        EXP(strategy_avg_edges / temperature) AS strategy_exp,
-        SUM(EXP(strategy_avg_edges / temperature)) OVER() AS exp_sum,
-        strategy,
-        run_count,
-        strategy_selection_method
-      FROM (
-        SELECT
-          /* Standardize the new edges data and take averages per strategy. */ AVG((new_edges - overall_avg_new_edges) / overall_stddev_new_edges) AS strategy_avg_edges,
-          strategy,
-          /* Change MEDIUM temperature parameter here. */ .5 AS temperature,
-          COUNT(*) AS run_count,
-          "multi_armed_bandit_medium" AS strategy_selection_method
-        FROM (
-          SELECT
-            fuzzer,
-            CONCAT(s_radamsa, s_max_len, s_ml_rnn, s_vp, s_fork, s_subset, s_recommended_dict) AS strategy,
-            fuzzer_stddev,
-            AVG(new_edges) OVER() AS overall_avg_new_edges,
-            STDDEV(new_edges) OVER() AS overall_stddev_new_edges,
-            new_edges,
-            strategy_selection_method
-          FROM (
-            SELECT
-              fuzzer,
-            IF
-              (strategy_corpus_mutations_radamsa > 0,
-                "corpus_mutations_radamsa,",
-                "") AS s_radamsa,
-            IF
-              (strategy_random_max_len > 0,
-                "random_max_len,",
-                "") AS s_max_len,
-            IF
-              (strategy_corpus_mutations_ml_rnn > 0,
-                "corpus_mutations_ml_rnn,",
-                "") AS s_ml_rnn,
-            IF
-              (strategy_value_profile > 0,
-                "value_profile,",
-                "") AS s_vp,
-            IF
-              (strategy_fork > 0,
-                "fork,",
-                "") AS s_fork,
-            IF
-              (strategy_corpus_subset > 0,
-                "corpus_subset,",
-                "") AS s_subset,
-            IF
-              (strategy_recommended_dict > 0,
-                "recommended_dict,",
-                "") AS s_recommended_dict,
-              STDDEV(new_edges) OVER(PARTITION BY fuzzer) AS fuzzer_stddev,
-              new_edges,
-              strategy_selection_method
-            FROM
-              libFuzzer_stats.TestcaseRun
-            WHERE
-              ((strategy_mutator_plugin = 0)
-                OR (strategy_mutator_plugin IS NULL))
-              AND /* Query results from the past 5 days. Change as needed. */ DATE_DIFF(CAST(CURRENT_TIMESTAMP() AS DATE), CAST(_PARTITIONTIME AS DATE), DAY) < 6 )
-          WHERE
-            /* Filter for unstable targets. */ fuzzer_stddev < 150)
-        WHERE
-          strategy_selection_method = "multi_armed_bandit_medium"
-        GROUP BY
-          strategy))
-    ORDER BY
-      bandit_weight_medium_temperature DESC) a
-  JOIN (
-    SELECT
-      /* Calculate bandit weights from calculated exponential values. */ strategy,
-      strategy_exp / exp_sum AS bandit_weight_high_temperature,
-      run_count,
-      strategy_selection_method
-    FROM (
-      SELECT
-        EXP(strategy_avg_edges / temperature) AS strategy_exp,
-        SUM(EXP(strategy_avg_edges / temperature)) OVER() AS exp_sum,
-        strategy,
-        run_count,
-        strategy_selection_method
-      FROM (
-        SELECT
-          /* Standardize the new edges data and take averages per strategy. */ AVG((new_edges - overall_avg_new_edges) / overall_stddev_new_edges) AS strategy_avg_edges,
-          strategy,
-          /* Change HIGH temperature parameter here. */ .75 AS temperature,
-          COUNT(*) AS run_count,
-          "multi_armed_bandit_high" AS strategy_selection_method
-        FROM (
-          SELECT
-            fuzzer,
-            CONCAT(s_radamsa, s_max_len, s_ml_rnn, s_vp, s_fork, s_subset, s_recommended_dict) AS strategy,
-            fuzzer_stddev,
-            AVG(new_edges) OVER() AS overall_avg_new_edges,
-            STDDEV(new_edges) OVER() AS overall_stddev_new_edges,
-            new_edges,
-            strategy_selection_method
-          FROM (
-            SELECT
-              fuzzer,
-            IF
-              (strategy_corpus_mutations_radamsa > 0,
-                "corpus_mutations_radamsa,",
-                "") AS s_radamsa,
-            IF
-              (strategy_random_max_len > 0,
-                "random_max_len,",
-                "") AS s_max_len,
-            IF
-              (strategy_corpus_mutations_ml_rnn > 0,
-                "corpus_mutations_ml_rnn,",
-                "") AS s_ml_rnn,
-            IF
-              (strategy_value_profile > 0,
-                "value_profile,",
-                "") AS s_vp,
-            IF
-              (strategy_fork > 0,
-                "fork,",
-                "") AS s_fork,
-            IF
-              (strategy_corpus_subset > 0,
-                "corpus_subset,",
-                "") AS s_subset,
-            IF
-              (strategy_recommended_dict > 0,
-                "recommended_dict,",
-                "") AS s_recommended_dict,
-              STDDEV(new_edges) OVER(PARTITION BY fuzzer) AS fuzzer_stddev,
-              new_edges,
-              strategy_selection_method
-            FROM
-              libFuzzer_stats.TestcaseRun
-            WHERE
-              ((strategy_mutator_plugin = 0)
-                OR (strategy_mutator_plugin IS NULL))
-              AND /* Query results from the past 5 days. Change as needed. */ DATE_DIFF(CAST(CURRENT_TIMESTAMP() AS DATE), CAST(_PARTITIONTIME AS DATE), DAY) < 6 )
-          WHERE
-            /* Filter for unstable targets. */ fuzzer_stddev < 150)
-        WHERE
-          strategy_selection_method = "multi_armed_bandit_high"
-        GROUP BY
-          strategy))
-    ORDER BY
-      bandit_weight_high_temperature DESC) b
-  ON
-    a.strategy = b.strategy) d
-ON
-  c.strategy = d.strategy
+        strategy)))
+"""
+BANDIT_PROBABILITY_QUERY = """
+SELECT
+  bandit_weight_high_temperature,
+  bandit_weight_low_temperature,
+  bandit_weight_medium_temperature,
+  a.run_count + b.run_count + c.run_count as run_count 
+FROM {high_temperature_query} a
+JOIN {low_temperature} b ON a.strategy = b.strategy
+JOIN {medium_temperature_query} c ON a.strategy = c.strategy
 """
 
 
@@ -308,12 +151,12 @@ def _store_probabilities_in_bigquery(data):
     bigquery_row = {
         'strategy_name':
             row['strategy'],
-        'probability_medium_temperature':
-            row['bandit_weight_medium_temperature'],
         'probability_high_temperature':
             row['bandit_weight_high_temperature'],
         'probability_low_temperature':
             row['bandit_weight_low_temperature'],
+        'probability_medium_temperature':
+            row['bandit_weight_medium_temperature'],
         'run_count':
             row['run_count']
     }
@@ -338,12 +181,12 @@ def _query_and_upload_strategy_probabilities():
   for row in data:
     curr_strategy = data_types.FuzzStrategyProbability()
     curr_strategy.strategy_name = str(row['strategy'])
-    curr_strategy.probability_medium_temperature = float(
-        row['bandit_weight_medium_temperature'])
     curr_strategy.probability_high_temperature = float(
         row['bandit_weight_high_temperature'])
     curr_strategy.probability_low_temperature = float(
         row['bandit_weight_low_temperature'])
+    curr_strategy.probability_medium_temperature = float(
+        row['bandit_weight_medium_temperature'])
     strategy_data.append(curr_strategy)
 
   ndb.delete_multi([
