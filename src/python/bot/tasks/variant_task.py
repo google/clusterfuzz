@@ -35,21 +35,12 @@ def _get_testcase_variant_entity(testcase_id, job_type):
   return variant
 
 
-def _get_fuzzer_override(job_name):
-  """Return a fuzzer override for engine jobs."""
-  for fuzzer_name in builtin_fuzzers.BUILTIN_FUZZERS:
-    if fuzzer_name.lower() in job_name.lower():
-      return fuzzer_name
-
-  return None
-
-
 def execute_task(testcase_id, job_type):
   """Run a test case with a different job type to see if they reproduce."""
   testcase = data_handler.get_testcase_by_id(testcase_id)
 
   # Setup testcase and its dependencies.
-  fuzzer_override = _get_fuzzer_override(job_type)
+  fuzzer_override = builtin_fuzzers.get_fuzzer_for_job(job_type)
   file_list, _, testcase_file_path = setup.setup_testcase(
       testcase, fuzzer_override=fuzzer_override)
   if not file_list:
