@@ -141,7 +141,7 @@ class PubSubClient(object):
 
     response = self._execute_with_retry(request)
     if response is None:
-      return None
+      raise RuntimeError('Invalid topic: ' + topic)
 
     return sorted(response.get('messageIds'))
 

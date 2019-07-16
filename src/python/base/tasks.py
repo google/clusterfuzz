@@ -368,16 +368,9 @@ def add_task(command, argument, job_type, queue=None, wait_time=None):
   eta = utils.utcnow() + datetime.timedelta(seconds=wait_time)
   task = Task(command, argument, job_type, eta=eta)
   pubsub_client = pubsub.PubSubClient()
-  result = pubsub_client.publish(
+  pubsub_client.publish(
       pubsub.topic_name(utils.get_application_id(), queue),
       [task.to_pubsub_message()])
-  if result is None:
-    logs.log_error(
-        'Failed to add task.',
-        command=command,
-        argument=argument,
-        job_type=job_type,
-        queue=queue)
 
 
 def get_task_completion_deadline():

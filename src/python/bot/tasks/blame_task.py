@@ -301,12 +301,6 @@ def execute_task(testcase_id, _):
   # Post request to pub sub.
   client = pubsub.PubSubClient()
   message_ids = client.publish(topic, [message])
-  if message_ids is None:
-    data_handler.update_testcase_comment(
-        testcase, data_types.TaskState.ERROR,
-        'Failed to publish testcase %s for Predator' % testcase_id)
-    return
-
   logs.log('Successfully published testcase %s to Predator. Message IDs: %s.' %
            (testcase_id, message_ids))
   data_handler.update_testcase_comment(testcase, data_types.TaskState.FINISHED)
