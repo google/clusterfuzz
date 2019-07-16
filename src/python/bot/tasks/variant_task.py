@@ -37,7 +37,6 @@ def _get_testcase_variant_entity(testcase_id, job_type):
 def execute_task(testcase_id, job_type):
   """Run a test case with a different job type to see if they reproduce."""
   testcase = data_handler.get_testcase_by_id(testcase_id)
-  data_handler.update_testcase_comment(testcase, data_types.TaskState.STARTED)
 
   # Setup testcase and its dependencies.
   file_list, _, testcase_file_path = setup.setup_testcase(testcase)
@@ -106,4 +105,3 @@ def execute_task(testcase_id, job_type):
     variant.crash_stacktrace = crash_stacktrace
     variant.put()
 
-  data_handler.update_testcase_comment(testcase, data_types.TaskState.FINISHED)
