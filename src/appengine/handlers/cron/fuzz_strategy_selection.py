@@ -35,8 +35,8 @@ from libs import handler
 # new_edges metric for each strategy.
 # See https://www.cs.mcgill.ca/~vkules/bandits.pdf for formula.
 
-# TODO(mukundv): Change query to group by strategy selection method once tables
-# are initially populated.
+# TODO(mukundv): Change query once we decide on a temperature parameter and
+# final implementation.
 BANDIT_PROBABILITY_QUERY = """
 SELECT
   c.strategy,
@@ -61,7 +61,8 @@ FROM (
       SELECT
         /* Standardize the new edges data and take averages per strategy. */ AVG((new_edges - overall_avg_new_edges) / overall_stddev_new_edges) AS strategy_avg_edges,
         strategy,
-        /* Change temperature parameter here. */ .25 AS temperature,
+        /* Change LOW temperature parameter here. */ 
+        .25 AS temperature,
         COUNT(*) AS run_count,
         "multi_armed_bandit_medium" AS strategy_selection_method
       FROM (
@@ -112,11 +113,11 @@ FROM (
           WHERE
             ((strategy_mutator_plugin = 0)
               OR (strategy_mutator_plugin IS NULL))
-            AND /* Query results from the past 30 days. Change as needed. */ DATE_DIFF(CAST(CURRENT_TIMESTAMP() AS DATE), CAST(_PARTITIONTIME AS DATE), DAY) < 6 )
+            AND /* Query results from the past 5 days. Change as needed. */ DATE_DIFF(CAST(CURRENT_TIMESTAMP() AS DATE), CAST(_PARTITIONTIME AS DATE), DAY) < 6 )
         WHERE
           /* Filter for unstable targets. */ fuzzer_stddev < 150)
       WHERE
-        strategy_selection_method = "multi_armed_bandit_medium"
+        strategy_selection_method = "multi_armed_bandit_low"
       GROUP BY
         strategy))
   ORDER BY
@@ -143,7 +144,7 @@ JOIN (
         SELECT
           /* Standardize the new edges data and take averages per strategy. */ AVG((new_edges - overall_avg_new_edges) / overall_stddev_new_edges) AS strategy_avg_edges,
           strategy,
-          /* Change temperature parameter here. */ .5 AS temperature,
+          /* Change MEDIUM temperature parameter here. */ .5 AS temperature,
           COUNT(*) AS run_count,
           "multi_armed_bandit_medium" AS strategy_selection_method
         FROM (
@@ -194,7 +195,7 @@ JOIN (
             WHERE
               ((strategy_mutator_plugin = 0)
                 OR (strategy_mutator_plugin IS NULL))
-              AND /* Query results from the past 30 days. Change as needed. */ DATE_DIFF(CAST(CURRENT_TIMESTAMP() AS DATE), CAST(_PARTITIONTIME AS DATE), DAY) < 6 )
+              AND /* Query results from the past 5 days. Change as needed. */ DATE_DIFF(CAST(CURRENT_TIMESTAMP() AS DATE), CAST(_PARTITIONTIME AS DATE), DAY) < 6 )
           WHERE
             /* Filter for unstable targets. */ fuzzer_stddev < 150)
         WHERE
@@ -220,7 +221,7 @@ JOIN (
         SELECT
           /* Standardize the new edges data and take averages per strategy. */ AVG((new_edges - overall_avg_new_edges) / overall_stddev_new_edges) AS strategy_avg_edges,
           strategy,
-          /* Change temperature parameter here. */ .75 AS temperature,
+          /* Change HIGH temperature parameter here. */ .75 AS temperature,
           COUNT(*) AS run_count,
           "multi_armed_bandit_high" AS strategy_selection_method
         FROM (
@@ -271,7 +272,7 @@ JOIN (
             WHERE
               ((strategy_mutator_plugin = 0)
                 OR (strategy_mutator_plugin IS NULL))
-              AND /* Query results from the past 30 days. Change as needed. */ DATE_DIFF(CAST(CURRENT_TIMESTAMP() AS DATE), CAST(_PARTITIONTIME AS DATE), DAY) < 6 )
+              AND /* Query results from the past 5 days. Change as needed. */ DATE_DIFF(CAST(CURRENT_TIMESTAMP() AS DATE), CAST(_PARTITIONTIME AS DATE), DAY) < 6 )
           WHERE
             /* Filter for unstable targets. */ fuzzer_stddev < 150)
         WHERE
@@ -301,8 +302,8 @@ def _store_probabilities_in_bigquery(data):
   probability distribution over strategies."""
   bigquery_data = []
 
-  # TODO(mukundv): Change to store correct distributions once tables are
-  # initially populated.
+  # TODO(mukundv): Update once we choose a temperature parameter for final
+  # implementation.
   for row in data:
     bigquery_row = {
         'strategy_name':
@@ -332,8 +333,8 @@ def _query_and_upload_strategy_probabilities():
   strategy_data = []
   data = _query_multi_armed_bandit_probabilities()
 
-  # TODO(mukundv): Change to store correct distributions once tables are
-  # initially populated.
+  # TODO(mukundv): Update once we choose a temperature parameter for final
+  # implementation.
   for row in data:
     curr_strategy = data_types.FuzzStrategyProbability()
     curr_strategy.strategy_name = str(row['strategy'])
