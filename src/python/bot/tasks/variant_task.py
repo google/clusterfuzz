@@ -14,6 +14,7 @@
 """Variant task for analyzing testcase variants with a different job."""
 
 from base import utils
+from bot.fuzzers import builtin_fuzzers
 from bot.tasks import setup
 from build_management import build_manager
 from datastore import data_handler
@@ -39,7 +40,9 @@ def execute_task(testcase_id, job_type):
   testcase = data_handler.get_testcase_by_id(testcase_id)
 
   # Setup testcase and its dependencies.
-  file_list, _, testcase_file_path = setup.setup_testcase(testcase)
+  fuzzer_override = builtin_fuzzers.get_fuzzer_for_job(job_type)
+  file_list, _, testcase_file_path = setup.setup_testcase(
+      testcase, fuzzer_override=fuzzer_override)
   if not file_list:
     return
 
