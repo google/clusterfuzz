@@ -116,11 +116,11 @@ def generate_weighted_strategy_pool():
   if not distribution or selection_method == 'default':
     return generate_default_strategy_pool()
 
-  temperature = "probability_medium_temperature"
+  temperature = 'probability_medium_temperature'
   if selection_method == 'multi_armed_bandit_high':
-    temperature = "probability_high_temperature"
+    temperature = 'probability_high_temperature'
   elif selection_method == 'multi_armed_bandit_low':
-    temperature = "probability_medium_temperature"
+    temperature = 'probability_medium_temperature'
 
   # Change the distribution to a list of named tuples rather than a list of
   # dictionaries so that we can use the randome_weighted_choice function.
