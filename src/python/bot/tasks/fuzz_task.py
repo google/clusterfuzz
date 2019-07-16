@@ -33,7 +33,6 @@ from base import utils
 from bot.fuzzers import builtin
 from bot.fuzzers import builtin_fuzzers
 from bot.fuzzers import engine
-from bot.fuzzers import engine_common
 from bot.fuzzers.libFuzzer import stats as libfuzzer_stats
 from bot.tasks import setup
 from bot.tasks import task_creation
@@ -73,7 +72,12 @@ FUZZER_METADATA_REGEX = re.compile(r'metadata::(\w+):\s*(.*)')
 FUZZER_FAILURE_THRESHOLD = 0.33
 MAX_GESTURES = 30
 MAX_NEW_CORPUS_FILES = 500
-SELECTION_METHOD_DISTRIBUTION = [SelectionMethod('default', .55), SelectionMethod('multi_armed_bandit_medium', .15), SelectionMethod('multi_armed_bandit_high', .15), SelectionMethod('multi_armed_bandit_low', .15)]
+SELECTION_METHOD_DISTRIBUTION = [
+    SelectionMethod('default', .55),
+    SelectionMethod('multi_armed_bandit_medium', .15),
+    SelectionMethod('multi_armed_bandit_high', .15),
+    SelectionMethod('multi_armed_bandit_low', .15)
+]
 THREAD_WAIT_TIMEOUT = 1
 
 
@@ -1257,10 +1261,14 @@ def get_strategy_distribution_from_ndb():
   distribution = []
   for strategy_entry in list(ndb_utils.get_all_from_query(query)):
     distribution.append({
-        "strategy_name": strategy_entry.strategy_name,
-        "probability_medium_temperature": strategy_entry.probability_medium_temperature,
-        "probability_high_temperature": strategy_entry.probability_high_temperature,
-        "probability_low_temperature": strategy_entry.probability_low_temperature
+        "strategy_name":
+            strategy_entry.strategy_name,
+        "probability_medium_temperature":
+            strategy_entry.probability_medium_temperature,
+        "probability_high_temperature":
+            strategy_entry.probability_high_temperature,
+        "probability_low_temperature":
+            strategy_entry.probability_low_temperature
     })
   return distribution
 
@@ -1397,9 +1405,11 @@ class FuzzingSession(object):
     # TODO: Remove environment variable once fuzzing engine refactor is
     # complete. Set multi-armed bandit strategy selection distribution as an
     # environment variable so we can access it in launcher.
-    if (environment.get_value('USE_BANDIT_STRATEGY_SELECTION')):
-      selection_method = utils.random_weighted_choice(SELECTION_METHOD_DISTRIBUTION, 'probability')
-      environment.set_value('STRATEGY_SELECTION_METHOD', selection_method.method_name)
+    if environment.get_value('USE_BANDIT_STRATEGY_SELECTION'):
+      selection_method = utils.random_weighted_choice(
+          SELECTION_METHOD_DISTRIBUTION, 'probability')
+      environment.set_value('STRATEGY_SELECTION_METHOD',
+                            selection_method.method_name)
       distribution = get_strategy_distribution_from_ndb()
       if distribution:
         environment.set_value('STRATEGY_SELECTION_DISTRIBUTION', distribution)

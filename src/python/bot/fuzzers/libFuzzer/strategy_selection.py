@@ -108,7 +108,8 @@ def generate_weighted_strategy_pool():
   # If weighted strategy selection is enabled, there will be a distribution
   # stored in the environment.
   distribution = environment.get_value('STRATEGY_SELECTION_DISTRIBUTION')
-  selection_method = environment.get_value('STRATEGY_SELECTION_METHOD', default_value = 'default')
+  selection_method = environment.get_value(
+      'STRATEGY_SELECTION_METHOD', default_value='default')
 
   # Otherwise if weighted strategy selection is not enabled (strategy selection
   # method is default) or if we cannot query properly, generate strategy
