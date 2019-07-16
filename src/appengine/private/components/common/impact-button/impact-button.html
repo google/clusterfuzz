@@ -33,10 +33,10 @@
       }
     </style>
     <a href$="/testcases?impact=[[lower(release)]]" on-tap="handleTap">[[release]]</a>
-    <template is="dom-repeat" items="[[getComponents(version)]]"
-      ><template is="dom-if" if="[[item.prefixWithDot]]">.</template
-      ><a href$="/testcases?q=[[lower(release)]]%3A[[item.filter]]" data-filter-version$="[[item.filter]]" on-tap="handleTap">[[item.label]]</a
-    ></template>
+    <template is="dom-repeat" items="[[getComponents(version)]]">
+      <template is="dom-if" if="[[item.prefixWithDot]]">.</template>
+      <a href$="/testcases?q=[[lower(release)]]%3A[[item.filter]]" data-filter-version$="[[item.filter]]" on-tap="handleTap">[[item.label]]</a>
+    </template>
     <template is="dom-if" if="[[likely]]">
       (likely)
     </template>
