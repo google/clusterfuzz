@@ -140,6 +140,9 @@ class PubSubClient(object):
         topic=topic, body=request_body)
 
     response = self._execute_with_retry(request)
+    if response is None:
+      return None
+
     return sorted(response.get('messageIds'))
 
   def pull_from_subscription(self,
