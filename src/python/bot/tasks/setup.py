@@ -119,10 +119,10 @@ def prepare_environment_for_testcase(testcase):
     environment.set_value('FUZZ_TARGET', fuzz_target)
 
 
-def setup_testcase(testcase):
+def setup_testcase(testcase, fuzzer_override=None):
   """Sets up the testcase and needed dependencies like fuzzer,
   data bundle, etc."""
-  fuzzer_name = testcase.fuzzer_name
+  fuzzer_name = fuzzer_override or testcase.fuzzer_name
   job_type = testcase.job_type
   task_name = environment.get_value('TASK_NAME')
   testcase_fail_wait = environment.get_value('FAIL_WAIT')
@@ -134,11 +134,6 @@ def setup_testcase(testcase):
   # Adjust the test timeout value if this is coming from an user uploaded
   # testcase.
   _set_timeout_value_from_user_upload(testcase_id)
-
-  if task_name == 'minimize':
-    # Allow minimizing with a different fuzzer set up.
-    minimize_fuzzer_override = environment.get_value('MINIMIZE_FUZZER_OVERRIDE')
-    fuzzer_name = minimize_fuzzer_override or fuzzer_name
 
   # Update the fuzzer if necessary in order to get the updated data bundle.
   if fuzzer_name:

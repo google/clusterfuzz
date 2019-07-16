@@ -350,9 +350,11 @@ def execute_task(testcase_id, job_type):
   # Update comments to reflect bot information.
   data_handler.update_testcase_comment(testcase, data_types.TaskState.STARTED)
 
-  # Setup testcase and its dependencies.
+  # Setup testcase and its dependencies. Also, allow setting up a different
+  # fuzzer.
+  minimize_fuzzer_override = environment.get_value('MINIMIZE_FUZZER_OVERRIDE')
   file_list, input_directory, testcase_file_path = setup.setup_testcase(
-      testcase)
+      testcase, fuzzer_override=minimize_fuzzer_override)
   if not file_list:
     return
 

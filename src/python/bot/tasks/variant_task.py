@@ -14,6 +14,7 @@
 """Variant task for analyzing testcase variants with a different job."""
 
 from base import utils
+from bot.fuzzers import builtin_fuzzers
 from bot.tasks import setup
 from build_management import build_manager
 from datastore import data_handler
@@ -34,12 +35,23 @@ def _get_testcase_variant_entity(testcase_id, job_type):
   return variant
 
 
+def _get_fuzzer_override(job_name):
+  """Return a fuzzer override for engine jobs."""
+  for fuzzer_name in builtin_fuzzers.BUILTIN_FUZZERS:
+    if fuzzer_name.lower() in job_name.lower():
+      return fuzzer_name
+
+  return None
+
+
 def execute_task(testcase_id, job_type):
   """Run a test case with a different job type to see if they reproduce."""
   testcase = data_handler.get_testcase_by_id(testcase_id)
 
   # Setup testcase and its dependencies.
-  file_list, _, testcase_file_path = setup.setup_testcase(testcase)
+  fuzzer_override = _get_fuzzer_override(job_type)
+  file_list, _, testcase_file_path = setup.setup_testcase(
+      testcase, fuzzer_override=fuzzer_override)
   if not file_list:
     return
 
