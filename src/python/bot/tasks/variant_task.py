@@ -56,8 +56,9 @@ def execute_task(testcase_id, job_type):
   app_path = environment.get_value('APP_PATH')
   if not app_path:
     testcase = data_handler.get_testcase_by_id(testcase_id)
-    data_handler.update_testcase_comment(testcase, data_types.TaskState.ERROR,
-                                         'Build setup failed')
+    data_handler.update_testcase_comment(
+        testcase, data_types.TaskState.ERROR,
+        'Build setup failed with job: ' + job_type)
     return
 
   # Reproduce the crash.
@@ -104,4 +105,3 @@ def execute_task(testcase_id, job_type):
     variant.revision = revision
     variant.crash_stacktrace = crash_stacktrace
     variant.put()
-

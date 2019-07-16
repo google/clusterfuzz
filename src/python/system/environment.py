@@ -564,32 +564,42 @@ def get_value(environment_variable, default_value=None):
   return _eval_value(value_string)
 
 
-def is_afl_job():
+def _job_substring_match(search_string, job_name):
+  """Return a bool on whether a string exists in a provided job name or
+  use from environment if available (case insensitive)."""
+  job_name = job_name or get_value('JOB_NAME')
+  if not job_name:
+    return False
+
+  return search_string in job_name.lower()
+
+
+def is_afl_job(job_name=None):
   """Return true if the current job uses AFL."""
   # Prefix matching is not sufficient.
-  return 'afl' in get_value('JOB_NAME', '').lower()
+  return _job_substring_match('afl', job_name)
 
 
 def is_chromeos_job(job_name=None):
   """Return True if the current job is for ChromeOS."""
-  return 'chromeos' in (job_name or get_value('JOB_NAME', '')).lower()
+  return _job_substring_match('chromeos', job_name)
 
 
-def is_chromeos_system_job():
+def is_chromeos_system_job(job_name=None):
   """Return True if the current job is for ChromeOS system (i.e. not libFuzzer
   or entire Chrome browser for Chrome on ChromeOS)."""
-  return is_chromeos_job() and get_value('CHROMEOS_SYSTEM')
+  return is_chromeos_job(job_name) and get_value('CHROMEOS_SYSTEM')
 
 
-def is_libfuzzer_job():
+def is_libfuzzer_job(job_name=None):
   """Return true if the current job uses libFuzzer."""
   # Prefix matching is not sufficient.
-  return 'libfuzzer' in get_value('JOB_NAME', '').lower()
+  return _job_substring_match('libfuzzer', job_name)
 
 
-def is_engine_fuzzer_job():
+def is_engine_fuzzer_job(job_name=None):
   """Return if true is this is an engine fuzzer."""
-  return is_afl_job() or is_libfuzzer_job()
+  return is_afl_job(job_name) or is_libfuzzer_job(job_name)
 
 
 def is_posix():
