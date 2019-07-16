@@ -113,9 +113,11 @@ class TestMultiArmedBanditStrategySelectionPatch(unittest.TestCase):
     doesn't yield an exception through any of the experimental paths."""
     environment.set_value('STRATEGY_SELECTION_METHOD', 'default')
     strategy_selection.generate_weighted_strategy_pool()
-    environment.set_value('STRATEGY_SELECTION_METHOD', 'multi_armed_bandit_medium')
+    environment.set_value('STRATEGY_SELECTION_METHOD',
+                          'multi_armed_bandit_medium')
     strategy_selection.generate_weighted_strategy_pool()
-    environment.set_value('STRATEGY_SELECTION_METHOD', 'multi_armed_bandit_high')
+    environment.set_value('STRATEGY_SELECTION_METHOD',
+                          'multi_armed_bandit_high')
     strategy_selection.generate_weighted_strategy_pool()
     environment.set_value('STRATEGY_SELECTION_METHOD', 'multi_armed_bandit_low')
     strategy_selection.generate_weighted_strategy_pool()
@@ -158,7 +160,8 @@ class TestMultiArmedBanditStrategySelection(unittest.TestCase):
 
     Based on deterministic strategy selection. Mutator plugin is patched to
     be included in our strategy pool."""
-    environment.set_value('STRATEGY_SELECTION_METHOD', 'multi_armed_bandit_medium')
+    environment.set_value('STRATEGY_SELECTION_METHOD',
+                          'multi_armed_bandit_medium')
     strategy_pool = strategy_selection.generate_weighted_strategy_pool()
     self.assertTrue(
         strategy_pool.do_strategy(strategy.CORPUS_MUTATION_ML_RNN_STRATEGY))
@@ -179,7 +182,8 @@ class TestMultiArmedBanditStrategySelection(unittest.TestCase):
 
     Based on deterministic strategy selection. Mutator plugin is patched to
     be included in our strategy pool."""
-    environment.set_value('STRATEGY_SELECTION_METHOD', 'multi_armed_bandit_high')
+    environment.set_value('STRATEGY_SELECTION_METHOD',
+                          'multi_armed_bandit_high')
     strategy_pool = strategy_selection.generate_weighted_strategy_pool()
     self.assertTrue(
         strategy_pool.do_strategy(strategy.CORPUS_MUTATION_ML_RNN_STRATEGY))
