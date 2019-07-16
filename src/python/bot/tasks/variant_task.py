@@ -24,6 +24,7 @@ from system import environment
 
 def _get_testcase_variant_entity(testcase_id, job_type):
   """Get a testcase variant entity, and create if needed."""
+  testcase_id = int(testcase_id)
   variant = data_types.TestcaseVariant.query(
       data_types.TestcaseVariant.testcase_id == testcase_id,
       data_types.TestcaseVariant.job_type == job_type).get()
