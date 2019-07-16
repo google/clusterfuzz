@@ -149,6 +149,7 @@ def create_variant_tasks_if_needed(testcase):
   for job in jobs:
     job_type = job.name
     project_name = data_handler.get_project_name(job_type)
+    queue = tasks.queue_for_platform(job.platform)
 
     # Don't look for variants in other projects.
     if testcase.project_name != project_name:
@@ -158,7 +159,7 @@ def create_variant_tasks_if_needed(testcase):
     if testcase.job_type == job_type:
       continue
 
-    tasks.add_task('variant', testcase_id, job_type)
+    tasks.add_task('variant', testcase_id, job_type, queue)
 
 
 def create_symbolize_task_if_needed(testcase):
