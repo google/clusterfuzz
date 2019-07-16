@@ -28,6 +28,10 @@ from google_cloud_utils import big_query
 from handlers import base_handler
 from libs import handler
 
+HIGH_TEMPERATURE_PARAMETER = .75
+MEDIUM_TEMPERATURE_PARAMETER = .5
+LOW_TEMPERATURE_PARAMETER = .25
+
 # BigQuery query for calculating multi-armed bandit probabilities for
 # various strategies using a Boltzman Exploration (softmax) model.
 
@@ -137,7 +141,16 @@ def _query_multi_armed_bandit_probabilities():
   Queries above BANDIT_PROBABILITY_QUERY and yields results
   from bigquery. This query is sorted by strategies implemented."""
   client = big_query.Client()
-  return client.query(query=BANDIT_PROBABILITY_QUERY).rows
+  formatted_query = BANDIT_PROBABILITY_QUERY.format(
+      high_temperature_query=BANDIT_PROBABILITY_SUBQUERY.format(
+          temperature_type='high',
+          temperature_value=HIGH_TEMPERATURE_PARAMETER),
+      low_temperature_query=BANDIT_PROBABILITY_SUBQUERY.format(
+          temperature_type='low', temperature_value=LOW_TEMPERATURE_PARAMETER),
+      medium_temperature_query=BANDIT_PROBABILITY_SUBQUERY.format(
+          temperature_type='medium',
+          temperature_value=MEDIUM_TEMPERATURE_PARAMETER))
+  return client.query(query=formatted_query).rows
 
 
 def _store_probabilities_in_bigquery(data):
