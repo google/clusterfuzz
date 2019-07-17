@@ -55,6 +55,8 @@ def get_arguments(fuzzer_path):
       arguments.append(
           '%s%d' % (constants.RSS_LIMIT_FLAG, constants.DEFAULT_RSS_LIMIT_MB))
 
+  return arguments
+
 
 class LibFuzzer(builtin.EngineFuzzer):
   """Builtin libFuzzer fuzzer."""
