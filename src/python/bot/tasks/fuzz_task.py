@@ -1207,7 +1207,7 @@ class FuzzingSession(object):
       fuzzer_output = builtin_result.output
       sync_corpus_directory = builtin_result.corpus_directory
 
-      # Return code is always 0 as builtin fuzzers log errors directly. 
+      # Return code is always 0 as builtin fuzzers log errors directly.
       fuzzer_return_code = 0
     else:
       # Make sure we have a file to execute for the fuzzer.
