@@ -16,11 +16,15 @@ $ ./run_metadata.bash \
 You can skip specifying the deployment-bucket if you plan to use local checkout.
 
 # Running bot locally
+
 To run a bot image locally, run:
 
 ```bash
 $ ./run_docker.bash gcr.io/clusterfuzz-images/base
 ```
+
+**NOTE:** You must run this command as a non-root user. Make sure that to add your user to the
+docker group using `sudo adduser $USER docker`.
 
 By default this uses the latest deployed source, but you can also use your local
 checkout by doing:
