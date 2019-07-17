@@ -703,7 +703,7 @@ def write_revision_to_revision_file(revision_file, revision):
 
 def revision_pattern_from_build_bucket_path(bucket_path):
   """Get the revision pattern from a build bucket path."""
-  return '.*' + os.path.basename(bucket_path)
+  return '.*?' + os.path.basename(bucket_path)
 
 
 @memoize.wrap(memoize.FifoOnDisk(DISK_CACHE_SIZE))

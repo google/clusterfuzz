@@ -48,6 +48,7 @@ from datastore import ndb
 from datastore import ndb_utils
 from fuzzing import corpus_manager
 from fuzzing import coverage_uploader
+from fuzzing import fuzzer_selection
 from fuzzing import gesture_handler
 from fuzzing import leak_blacklist
 from fuzzing import testcase_manager
@@ -1532,12 +1533,15 @@ class FuzzingSession(object):
     # Set up a custom or regular build based on revision. By default, fuzzing
     # is done on trunk build (using revision=None). Otherwise, a job definition
     # can provide a revision to use via |APP_REVISION|.
-    if (build_manager.setup_build(environment.get_value('APP_REVISION')) and
-        environment.get_value('DATAFLOW_BUILD_BUCKET_PATH')):
+    dataflow_bucket_path = environment.get_value('DATAFLOW_BUILD_BUCKET_PATH')
+    target_weights = fuzzer_selection.get_fuzz_target_weights()
+    if (build_manager.setup_build(
+        environment.get_value('APP_REVISION'), target_weights=target_weights)
+        and dataflow_bucket_path):
       # Some fuzzing jobs may use auxiliary builds, such as DFSan instrumented
       # builds accompanying libFuzzer builds to enable DFT-based fuzzing.
-      build_manager.setup_trunk_build(['DATAFLOW_BUILD_BUCKET_PATH'],
-                                      'DATAFLOW')
+      build_manager.setup_trunk_build(
+          [dataflow_bucket_path], build_prefix='DATAFLOW')
 
     # Check if we have an application path. If not, our build failed
     # to setup correctly.

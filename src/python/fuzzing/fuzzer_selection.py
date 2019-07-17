@@ -104,12 +104,6 @@ def select_fuzz_target(targets, target_weights):
 
 def get_fuzz_target_weights():
   """Get a list of fuzz target weights based on the current fuzzer."""
-  # No work to do if this isn't fuzz task. Weights are only required if a
-  # fuzzer has not yet been selected.
-  task_name = environment.get_value('TASK_NAME')
-  if task_name != 'fuzz':
-    return None
-
   job_type = environment.get_value('JOB_NAME')
 
   target_jobs = list(fuzz_target_utils.get_fuzz_target_jobs(job=job_type))
