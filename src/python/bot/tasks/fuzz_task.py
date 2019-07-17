@@ -114,15 +114,24 @@ class Crash(object):
           'Unable to read stacktrace from file %s.' % crash.stack_file_path)
       return None
 
-    return Crash(crash.file_path, crash.crash_time, crash.return_code,
-                 crash.resource_list, crash.gestures,
-                 orig_unsymbolized_crash_stacktrace)
+    return Crash(
+        file_path=crash.file_path,
+        crash_time=crash.crash_time,
+        return_code=crash.return_code,
+        resource_list=crash.resource_list,
+        gestures=crash.gestures,
+        unsymbolized_crash_stacktrace=orig_unsymbolized_crash_stacktrace)
 
   @classmethod
   def from_engine_crash(cls, crash):
     """Create a Crash from a engine.Crash."""
-    return Crash(crash.input_path, crash.crash_time, 1, [], [],
-                 crash.stacktrace)
+    return Crash(
+        file_path=crash.input_path,
+        crash_time=crash.crash_time,
+        return_code=1,
+        resource_list=[],
+        gestures=[],
+        unsymbolized_crash_stacktrace=crash.stacktrace)
 
   def __init__(self, file_path, crash_time, return_code, resource_list,
                gestures, unsymbolized_crash_stacktrace):
