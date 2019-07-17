@@ -13,6 +13,8 @@ $ ./run_metadata.bash \
   -deployment-bucket=<value of deployment.bucket attribute in your config-dir/project.yaml>
 ```
 
+You can skip specifying the deployment-bucket if you plan to use local checkout.
+
 # Running bot locally
 To run a bot image locally, run:
 
