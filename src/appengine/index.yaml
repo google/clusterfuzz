@@ -566,3 +566,10 @@ indexes:
   properties:
     - name: testcase_id
     - name: job_type
+
+- kind: TestcaseVariant
+  properties:
+    - name: testcase_id
+    - name: status
+    - name: job_type
+      direction: asc

@@ -108,19 +108,27 @@ def generate_weighted_strategy_pool():
   # If weighted strategy selection is enabled, there will be a distribution
   # stored in the environment.
   distribution = environment.get_value('STRATEGY_SELECTION_DISTRIBUTION')
+  selection_method = environment.get_value(
+      'STRATEGY_SELECTION_METHOD', default_value='default')
 
   # Otherwise if weighted strategy selection is not enabled (strategy selection
-  # distribution is none) or if we cannot query properly, generate strategy
+  # method is default) or if we cannot query properly, generate strategy
   # pool according to default parameters.
-  if not distribution:
+  if not distribution or selection_method == 'default':
     return generate_default_strategy_pool()
 
+  probability_key = 'probability_medium_temperature'
+  if selection_method == 'multi_armed_bandit_high':
+    probability_key = 'probability_high_temperature'
+  elif selection_method == 'multi_armed_bandit_low':
+    probability_key = 'probability_low_temperature'
+
   # Change the distribution to a list of named tuples rather than a list of
-  # dictionaries so that we can use the randome_weighted_choice function.
+  # dictionaries so that we can use the random_weighted_choice function.
   distribution_tuples = [
       StrategyCombination(
-          strategy_name=elem['strategy_name'], probability=elem['probability'])
-      for elem in distribution
+          strategy_name=elem['strategy_name'],
+          probability=elem[probability_key]) for elem in distribution
   ]
 
   strategy_selection = utils.random_weighted_choice(distribution_tuples,

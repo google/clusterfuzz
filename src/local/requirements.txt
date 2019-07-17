@@ -6,5 +6,6 @@ google-compute-engine==2.8.13
 grpcio-tools==1.15.0
 nodeenv==1.0.0
 paramiko==2.4.2
+protobuf==3.6.1
 psutil==5.4.7
 tensorflow==1.8.0

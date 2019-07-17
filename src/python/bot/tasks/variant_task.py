@@ -14,6 +14,7 @@
 """Variant task for analyzing testcase variants with a different job."""
 
 from base import utils
+from bot.fuzzers import builtin_fuzzers
 from bot.tasks import setup
 from build_management import build_manager
 from datastore import data_handler
@@ -24,6 +25,7 @@ from system import environment
 
 def _get_testcase_variant_entity(testcase_id, job_type):
   """Get a testcase variant entity, and create if needed."""
+  testcase_id = int(testcase_id)
   variant = data_types.TestcaseVariant.query(
       data_types.TestcaseVariant.testcase_id == testcase_id,
       data_types.TestcaseVariant.job_type == job_type).get()
@@ -36,10 +38,11 @@ def _get_testcase_variant_entity(testcase_id, job_type):
 def execute_task(testcase_id, job_type):
   """Run a test case with a different job type to see if they reproduce."""
   testcase = data_handler.get_testcase_by_id(testcase_id)
-  data_handler.update_testcase_comment(testcase, data_types.TaskState.STARTED)
 
   # Setup testcase and its dependencies.
-  file_list, _, testcase_file_path = setup.setup_testcase(testcase)
+  fuzzer_override = builtin_fuzzers.get_fuzzer_for_job(job_type)
+  file_list, _, testcase_file_path = setup.setup_testcase(
+      testcase, fuzzer_override=fuzzer_override)
   if not file_list:
     return
 
@@ -56,8 +59,9 @@ def execute_task(testcase_id, job_type):
   app_path = environment.get_value('APP_PATH')
   if not app_path:
     testcase = data_handler.get_testcase_by_id(testcase_id)
-    data_handler.update_testcase_comment(testcase, data_types.TaskState.ERROR,
-                                         'Build setup failed')
+    data_handler.update_testcase_comment(
+        testcase, data_types.TaskState.ERROR,
+        'Build setup failed with job: ' + job_type)
     return
 
   # Reproduce the crash.
@@ -104,5 +108,3 @@ def execute_task(testcase_id, job_type):
     variant.revision = revision
     variant.crash_stacktrace = crash_stacktrace
     variant.put()
-
-  data_handler.update_testcase_comment(testcase, data_types.TaskState.FINISHED)

@@ -310,19 +310,10 @@ class CrashInitTest(fake_filesystem_unittest.TestCase):
 
   def test_error(self):
     """Test failing to reading stacktrace file."""
-    crash = fuzz_task.Crash(
+    crash = fuzz_task.Crash.from_testcase_manager_crash(
         testcase_manager.Crash('dir/path-http-name', 123, 11, ['res'], 'ges',
                                '/no_stack_file'))
-
-    self.assertEqual('dir/path-http-name', crash.file_path)
-    self.assertEqual(123, crash.crash_time)
-    self.assertEqual(11, crash.return_code)
-    self.assertListEqual(['res'], crash.resource_list)
-    self.assertEqual('ges', crash.gestures)
-    self.assertEqual('/no_stack_file', crash.stack_file_path)
-    self.assertIsInstance(crash.error, IOError)
-    self.assertIn('Unable to read the stack file:', crash.get_error())
-    self.assertFalse(crash.is_valid())
+    self.assertIsNone(crash)
 
   def _test_crash(self, should_be_ignored, security_flag):
     """Test crash."""
@@ -335,7 +326,7 @@ class CrashInitTest(fake_filesystem_unittest.TestCase):
     self.mock.is_security_issue.return_value = security_flag
     self.mock.ignore_stacktrace.return_value = should_be_ignored
 
-    crash = fuzz_task.Crash(
+    crash = fuzz_task.Crash.from_testcase_manager_crash(
         testcase_manager.Crash('dir/path-http-name', 123, 11, ['res'], 'ges',
                                '/stack_file_path'))
 
@@ -344,8 +335,6 @@ class CrashInitTest(fake_filesystem_unittest.TestCase):
     self.assertEqual(11, crash.return_code)
     self.assertListEqual(['res'], crash.resource_list)
     self.assertEqual('ges', crash.gestures)
-    self.assertEqual('/stack_file_path', crash.stack_file_path)
-    self.assertIsNone(crash.error)
 
     self.assertEqual('path-http-name', crash.filename)
     self.assertTrue(crash.http_flag)
@@ -691,7 +680,7 @@ class ProcessCrashesTest(fake_filesystem_unittest.TestCase):
     with open('/stack_file_path', 'w') as f:
       f.write('unsym')
 
-    crash = fuzz_task.Crash(
+    crash = fuzz_task.Crash.from_testcase_manager_crash(
         testcase_manager.Crash('dir/path-http-name', 123, 11, ['res'], ['ges'],
                                '/stack_file_path'))
     return crash
@@ -751,8 +740,6 @@ class ProcessCrashesTest(fake_filesystem_unittest.TestCase):
     self.mock.get_project_name.return_value = project_name
 
     self.mock.insert.return_value = {'insertErrors': [{'index': 0}]}
-    invalid_crash = self._make_crash('e1', state='error1')
-    invalid_crash.error = 'error'
 
     # TODO(metzman): Add a seperate test for strategies.
     r2_stacktrace = ('r2\ncf::fuzzing_strategies: value_profile\n')
@@ -765,7 +752,7 @@ class ProcessCrashesTest(fake_filesystem_unittest.TestCase):
         self._make_crash('u1', state='unreproducible1'),
         self._make_crash('u2', state='unreproducible2'),
         self._make_crash('u3', state='unreproducible2'),
-        self._make_crash('u4', state='unreproducible3'), invalid_crash
+        self._make_crash('u4', state='unreproducible3')
     ]
 
     self.mock.test_for_reproducibility.side_effect = [
@@ -819,11 +806,11 @@ class ProcessCrashesTest(fake_filesystem_unittest.TestCase):
             '{"fuzzing_strategies": ["value_profile"]}', None, None, None, None
         ]), set(t.additional_metadata for t in testcases))
 
-    # There's one invalid_crash. And r2 is a reproducible crash, so r3 doesn't
+    # r2 is a reproducible crash, so r3 doesn't
     # invoke archive_testcase_in_blobstore. Therefore, the
-    # archive_testcase_in_blobstore is called `len(crashes) - 2`.
+    # archive_testcase_in_blobstore is called `len(crashes) - 1`.
     self.assertEqual(
-        len(crashes) - 2,
+        len(crashes) - 1,
         self.mock.archive_testcase_and_dependencies_in_gcs.call_count)
 
     # Check only the desired testcases were saved.

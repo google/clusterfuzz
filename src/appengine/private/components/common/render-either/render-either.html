@@ -16,10 +16,10 @@
 <link rel="import" href="../../../bower_components/polymer/polymer.html">
 
 <dom-module id="render-either">
-  <template
-    ><template is="dom-if" if="[[main]]">[[trim(main)]]</template
-    ><template is="dom-if" if="[[!main]]">[[trim(else)]]</template
-  ></template>
+  <template>
+    <template is="dom-if" if="[[main]]">[[trim(main)]]</template>
+    <template is="dom-if" if="[[!main]]">[[trim(else)]]</template>
+  </template>
   <script>
     Polymer({
       is: 'render-either',
