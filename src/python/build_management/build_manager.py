@@ -1149,7 +1149,9 @@ def get_revisions_list(bucket_path, testcase=None):
 
 
 def _get_targets_list(bucket_path):
-  """Get the target list for a given bucket path."""
+  """Get the target list for a given fuzz target bucket path. This is done by
+  reading the targets.list file, which contains a list of the currently active
+  fuzz targets."""
   targets_list_path = os.path.join(
       os.path.dirname(os.path.dirname(bucket_path)), TARGETS_LIST_FILENAME)
   data = storage.read_data(targets_list_path)
@@ -1163,7 +1165,7 @@ def _setup_split_targets_build(bucket_path, target_weights, revision=None):
   """Set up targets build."""
   targets_list = _get_targets_list(bucket_path)
   if not targets_list:
-    raise BuildManagerException('No targets found')
+    raise BuildManagerException('No targets found in targets.list.')
 
   fuzz_target = _set_random_fuzz_target_for_fuzzing_if_needed(
       targets_list, target_weights)
