@@ -4,7 +4,7 @@ This directory contains scripts for running ClusterFuzz docker images locally.
 
 Make sure you have installed the dependencies using:
 ```bash
-$ ./local/install_deps.bash
+$ ../local/install_deps.bash
 ```
 
 ## Running a local metadata server
@@ -25,7 +25,6 @@ You can skip specifying the deployment-bucket if you plan to use local checkout.
 To run a bot image locally, run:
 
 ```bash
-$ source ENV/bin/activate
 $ ./run_docker.bash gcr.io/clusterfuzz-images/base
 ```
 
