@@ -32,13 +32,13 @@ from base import utils
 from bot.fuzzers import builtin
 from bot.fuzzers import builtin_fuzzers
 from bot.fuzzers import engine
-from bot.fuzzers import engine_common
 from bot.fuzzers.libFuzzer import stats as libfuzzer_stats
 from bot.tasks import setup
 from bot.tasks import task_creation
 from bot.tasks import trials
 from build_management import build_manager
 from chrome import crash_uploader
+from collections import namedtuple
 from crash_analysis import crash_analyzer
 from crash_analysis.stack_parsing import stack_analyzer
 from datastore import data_handler
@@ -63,6 +63,8 @@ from system import environment
 from system import process_handler
 from system import shell
 
+SelectionMethod = namedtuple('SelectionMethod', 'method_name probability')
+
 FUZZ_TARGET_UPDATE_FAIL_RETRIES = 5
 FUZZ_TARGET_UPDATE_FAIL_DELAY = 2
 DEFAULT_CHOOSE_PROBABILITY = 9  # 10%
@@ -70,7 +72,12 @@ FUZZER_METADATA_REGEX = re.compile(r'metadata::(\w+):\s*(.*)')
 FUZZER_FAILURE_THRESHOLD = 0.33
 MAX_GESTURES = 30
 MAX_NEW_CORPUS_FILES = 500
-MULTI_ARMED_BANDIT_TRAFFIC_SPLIT = .2
+SELECTION_METHOD_DISTRIBUTION = [
+    SelectionMethod('default', .55),
+    SelectionMethod('multi_armed_bandit_medium', .15),
+    SelectionMethod('multi_armed_bandit_high', .15),
+    SelectionMethod('multi_armed_bandit_low', .15)
+]
 THREAD_WAIT_TIMEOUT = 1
 
 
@@ -1118,8 +1125,14 @@ def get_strategy_distribution_from_ndb():
   distribution = []
   for strategy_entry in list(ndb_utils.get_all_from_query(query)):
     distribution.append({
-        "strategy_name": strategy_entry.strategy_name,
-        "probability": strategy_entry.probability_medium_temperature
+        "strategy_name":
+            strategy_entry.strategy_name,
+        "probability_high_temperature":
+            strategy_entry.probability_high_temperature,
+        "probability_low_temperature":
+            strategy_entry.probability_low_temperature,
+        "probability_medium_temperature":
+            strategy_entry.probability_medium_temperature
     })
   return distribution
 
@@ -1413,12 +1426,13 @@ class FuzzingSession(object):
     # TODO: Remove environment variable once fuzzing engine refactor is
     # complete. Set multi-armed bandit strategy selection distribution as an
     # environment variable so we can access it in launcher.
-    if (environment.get_value('USE_BANDIT_STRATEGY_SELECTION') and
-        engine_common.decide_with_probability(MULTI_ARMED_BANDIT_TRAFFIC_SPLIT)
-       ):
+    if environment.get_value('USE_BANDIT_STRATEGY_SELECTION'):
+      selection_method = utils.random_weighted_choice(
+          SELECTION_METHOD_DISTRIBUTION, 'probability')
+      environment.set_value('STRATEGY_SELECTION_METHOD',
+                            selection_method.method_name)
       distribution = get_strategy_distribution_from_ndb()
       if distribution:
-        environment.set_value('STRATEGY_SELECTION_METHOD', 'multi_armed_bandit')
         environment.set_value('STRATEGY_SELECTION_DISTRIBUTION', distribution)
 
     # Reset memory tool options.

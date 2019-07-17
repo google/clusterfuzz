@@ -110,7 +110,16 @@ class TestMultiArmedBanditStrategySelectionPatch(unittest.TestCase):
 
   def test_multi_armed_bandit_strategy_pool(self):
     """Ensures a call to the multi armed bandit strategy selection function
-    doesn't yield an exception."""
+    doesn't yield an exception through any of the experimental paths."""
+    environment.set_value('STRATEGY_SELECTION_METHOD', 'default')
+    strategy_selection.generate_weighted_strategy_pool()
+    environment.set_value('STRATEGY_SELECTION_METHOD',
+                          'multi_armed_bandit_medium')
+    strategy_selection.generate_weighted_strategy_pool()
+    environment.set_value('STRATEGY_SELECTION_METHOD',
+                          'multi_armed_bandit_high')
+    strategy_selection.generate_weighted_strategy_pool()
+    environment.set_value('STRATEGY_SELECTION_METHOD', 'multi_armed_bandit_low')
     strategy_selection.generate_weighted_strategy_pool()
 
 
@@ -145,12 +154,57 @@ class TestMultiArmedBanditStrategySelection(unittest.TestCase):
     environment.set_value('USE_BANDIT_STRATEGY_SELECTION', True)
     environment.set_value('STRATEGY_SELECTION_DISTRIBUTION', distribution)
 
-  def test_strategy_pool_deterministic(self):
+  def test_strategy_pool_medium_temperature(self):
     """Tests whether a proper strategy pool is returned by the multi armed
-    bandit selection implementation.
+    bandit selection implementation with medium temperature.
 
     Based on deterministic strategy selection. Mutator plugin is patched to
     be included in our strategy pool."""
+    environment.set_value('STRATEGY_SELECTION_METHOD',
+                          'multi_armed_bandit_medium')
+    strategy_pool = strategy_selection.generate_weighted_strategy_pool()
+    self.assertTrue(
+        strategy_pool.do_strategy(strategy.CORPUS_MUTATION_ML_RNN_STRATEGY))
+    self.assertTrue(
+        strategy_pool.do_strategy(strategy.RANDOM_MAX_LENGTH_STRATEGY))
+    self.assertTrue(strategy_pool.do_strategy(strategy.VALUE_PROFILE_STRATEGY))
+    self.assertTrue(
+        strategy_pool.do_strategy(strategy.RECOMMENDED_DICTIONARY_STRATEGY))
+    self.assertFalse(
+        strategy_pool.do_strategy(strategy.CORPUS_MUTATION_RADAMSA_STRATEGY))
+    self.assertFalse(strategy_pool.do_strategy(strategy.CORPUS_SUBSET_STRATEGY))
+    self.assertFalse(strategy_pool.do_strategy(strategy.FORK_STRATEGY))
+    self.assertTrue(strategy_pool.do_strategy(strategy.MUTATOR_PLUGIN_STRATEGY))
+
+  def test_strategy_pool_high_temperature(self):
+    """Tests whether a proper strategy pool is returned by the multi armed
+    bandit selection implementation with high temperature.
+
+    Based on deterministic strategy selection. Mutator plugin is patched to
+    be included in our strategy pool."""
+    environment.set_value('STRATEGY_SELECTION_METHOD',
+                          'multi_armed_bandit_high')
+    strategy_pool = strategy_selection.generate_weighted_strategy_pool()
+    self.assertTrue(
+        strategy_pool.do_strategy(strategy.CORPUS_MUTATION_ML_RNN_STRATEGY))
+    self.assertTrue(
+        strategy_pool.do_strategy(strategy.RANDOM_MAX_LENGTH_STRATEGY))
+    self.assertTrue(strategy_pool.do_strategy(strategy.VALUE_PROFILE_STRATEGY))
+    self.assertTrue(
+        strategy_pool.do_strategy(strategy.RECOMMENDED_DICTIONARY_STRATEGY))
+    self.assertFalse(
+        strategy_pool.do_strategy(strategy.CORPUS_MUTATION_RADAMSA_STRATEGY))
+    self.assertFalse(strategy_pool.do_strategy(strategy.CORPUS_SUBSET_STRATEGY))
+    self.assertFalse(strategy_pool.do_strategy(strategy.FORK_STRATEGY))
+    self.assertTrue(strategy_pool.do_strategy(strategy.MUTATOR_PLUGIN_STRATEGY))
+
+  def test_strategy_pool_low_temperature(self):
+    """Tests whether a proper strategy pool is returned by the multi armed
+    bandit selection implementation with low temperature.
+
+    Based on deterministic strategy selection. Mutator plugin is patched to
+    be included in our strategy pool."""
+    environment.set_value('STRATEGY_SELECTION_METHOD', 'multi_armed_bandit_low')
     strategy_pool = strategy_selection.generate_weighted_strategy_pool()
     self.assertTrue(
         strategy_pool.do_strategy(strategy.CORPUS_MUTATION_ML_RNN_STRATEGY))
