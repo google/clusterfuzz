@@ -2,6 +2,11 @@ This directory contains scripts for running ClusterFuzz docker images locally.
 
 # Prerequisites
 
+Make sure you have installed the dependencies using:
+```bash
+$ ./local/install_deps.bash
+```
+
 ## Running a local metadata server
 To emulate a local GCE metadata server using your own account's credentials
 (through `gcloud auth application-default login`), run:
@@ -15,11 +20,12 @@ $ ./run_metadata.bash \
 
 You can skip specifying the deployment-bucket if you plan to use local checkout.
 
-# Running bot locally
+# Running a bot locally
 
 To run a bot image locally, run:
 
 ```bash
+$ source ENV/bin/activate
 $ ./run_docker.bash gcr.io/clusterfuzz-images/base
 ```
 
