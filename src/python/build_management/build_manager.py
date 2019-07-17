@@ -1108,7 +1108,9 @@ def get_primary_bucket_path():
 
     return fuzz_target_build_bucket_path.replace('%TARGET%', fuzz_target)
 
-  raise BuildManagerException('No primary bucket path defined.')
+  raise BuildManagerException(
+      'RELEASE_BUILD_BUCKET_PATH or FUZZ_TARGET_BUILD_BUCKET_PATH '
+      'needs to be defined.')
 
 
 def get_revisions_list(bucket_path, testcase=None):
