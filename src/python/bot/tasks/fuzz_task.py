@@ -97,7 +97,7 @@ Redzone = collections.namedtuple('Redzone', ['size', 'weight'])
 def get_unsymbolized_crash_stacktrace(stack_file_path):
   """Read unsymbolized crash stacktrace."""
   with open(stack_file_path, 'rb') as f:
-    return (utils.decode_to_unicode(f.read()), None)
+    return utils.decode_to_unicode(f.read())
 
 
 class Crash(object):
@@ -1207,6 +1207,7 @@ class FuzzingSession(object):
       fuzzer_output = builtin_result.output
       sync_corpus_directory = builtin_result.corpus_directory
 
+      # Return code is always 0 as builtin fuzzers log errors directly. 
       fuzzer_return_code = 0
     else:
       # Make sure we have a file to execute for the fuzzer.
