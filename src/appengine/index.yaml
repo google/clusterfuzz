@@ -571,3 +571,6 @@ indexes:
   properties:
     - name: testcase_id
     - name: status
+    - name: job_type
+    direction: asc
+
