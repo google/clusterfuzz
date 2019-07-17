@@ -99,17 +99,20 @@ class BuiltinFuzzersSetupTest(fake_filesystem_unittest.TestCase):
     self.assertTrue(setup.update_fuzzer_and_data_bundles('libFuzzer'))
     self.assertEqual(self.fuzzer_directory, environment.get_value('FUZZER_DIR'))
 
-  def test_run_fuzzer(self):
-    """Test run_fuzzer (success)."""
+  def test_generate_blackbox_fuzzers(self):
+    """Test generate_blackbox_fuzzers (success)."""
     output = ('metadata::fuzzer_binary_name: fuzzer_binary_name\n')
     self.mock.run.side_effect = functools.partial(_mock_fuzzer_run, output, 4,
                                                   'corpus_dir')
 
     self.assertTrue(setup.update_fuzzer_and_data_bundles('libFuzzer'))
 
-    (error_occurred, testcase_file_paths,
-     sync_corpus_directory, fuzzer_metadata) = fuzz_task.run_fuzzer(
-         self.fuzzer, self.fuzzer_directory, '/output', '/input', 4)
+    session = fuzz_task.FuzzingSession('libFuzzer', 'job', '/output', 1)
+    session.data_directory = '/input'
+
+    (error_occurred, testcase_file_paths, sync_corpus_directory,
+     fuzzer_metadata) = session.generate_blackbox_testcases(
+         self.fuzzer, self.fuzzer_directory, 4)
     self.assertEqual(1, len(self.mock.run.call_args_list))
     self.assertEqual(('/input', '/output', 4), self.mock.run.call_args[0][1:])
 
@@ -126,11 +129,13 @@ class BuiltinFuzzersSetupTest(fake_filesystem_unittest.TestCase):
         'fuzzer_binary_name': 'fuzzer_binary_name'
     }, fuzzer_metadata)
 
-  def test_run_fuzzer_fail(self):
-    """Test run_fuzzer (failure)."""
+  def test_generate_blackbox_fuzzers_fail(self):
+    """Test generate_blackbox_fuzzers (failure)."""
     self.mock.run.side_effect = builtin.BuiltinFuzzerException()
     self.assertTrue(setup.update_fuzzer_and_data_bundles('libFuzzer'))
 
+    session = fuzz_task.FuzzingSession('libFuzzer', 'job', '/output', 1)
+    session.data_directory = '/input'
+
     with self.assertRaises(builtin.BuiltinFuzzerException):
-      fuzz_task.run_fuzzer(self.fuzzer, self.fuzzer_directory, '/output',
-                           '/input', 4)
+      session.generate_blackbox_testcases(self.fuzzer, self.fuzzer_directory, 4)

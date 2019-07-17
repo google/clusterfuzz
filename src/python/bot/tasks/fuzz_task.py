@@ -24,7 +24,6 @@ import os
 import random
 import re
 import six
-import sys
 import time
 
 from base import dates
@@ -97,46 +96,61 @@ Redzone = collections.namedtuple('Redzone', ['size', 'weight'])
 
 
 def get_unsymbolized_crash_stacktrace(stack_file_path):
-  try:
-    with open(stack_file_path, 'rb') as f:
-      return (utils.decode_to_unicode(f.read()), None)
-  except:
-    logs.log_error('Unable to read stacktrace from file %s.' % stack_file_path)
-    return (None, sys.exc_info()[1])
+  """Read unsymbolized crash stacktrace."""
+  with open(stack_file_path, 'rb') as f:
+    return utils.decode_to_unicode(f.read())
 
 
 class Crash(object):
   """Represents a crash (before creating a testcase)."""
 
-  def __init__(self, crash):
-    """Initialize
+  @classmethod
+  def from_testcase_manager_crash(cls, crash):
+    """Create a Crash from a testcase_manager.Crash."""
+    try:
+      orig_unsymbolized_crash_stacktrace = (
+          get_unsymbolized_crash_stacktrace(crash.stack_file_path))
+    except Exception:
+      logs.log_error(
+          'Unable to read stacktrace from file %s.' % crash.stack_file_path)
+      return None
 
-    Args:
-      crash: An instance of fuzzing.testcase_manager.Crash.
-    """
-    self.file_path = crash.file_path
-    self.crash_time = crash.crash_time
-    self.return_code = crash.return_code
-    self.resource_list = crash.resource_list
-    self.gestures = crash.gestures
-    self.stack_file_path = crash.stack_file_path
+    return Crash(
+        file_path=crash.file_path,
+        crash_time=crash.crash_time,
+        return_code=crash.return_code,
+        resource_list=crash.resource_list,
+        gestures=crash.gestures,
+        unsymbolized_crash_stacktrace=orig_unsymbolized_crash_stacktrace)
 
-    self.error = None
+  @classmethod
+  def from_engine_crash(cls, crash):
+    """Create a Crash from a engine.Crash."""
+    return Crash(
+        file_path=crash.input_path,
+        crash_time=crash.crash_time,
+        return_code=1,
+        resource_list=[],
+        gestures=[],
+        unsymbolized_crash_stacktrace=crash.stacktrace)
+
+  def __init__(self, file_path, crash_time, return_code, resource_list,
+               gestures, unsymbolized_crash_stacktrace):
+    self.file_path = file_path
+    self.crash_time = crash_time
+    self.return_code = return_code
+    self.resource_list = resource_list
+    self.gestures = gestures
+
     self.security_flag = False
     self.should_be_ignored = False
-
-    orig_unsymbolized_crash_stacktrace, self.error = (
-        get_unsymbolized_crash_stacktrace(self.stack_file_path))
-
-    if self.error:
-      return
 
     self.filename = os.path.basename(self.file_path)
     self.http_flag = '-http-' in self.filename
     self.application_command_line = (
         testcase_manager.get_command_line_for_application(
             self.file_path, needs_http=self.http_flag))
-    self.unsymbolized_crash_stacktrace = orig_unsymbolized_crash_stacktrace
+    self.unsymbolized_crash_stacktrace = unsymbolized_crash_stacktrace
     state = stack_analyzer.get_crash_data(self.unsymbolized_crash_stacktrace)
     self.crash_type = state.crash_type
     self.crash_address = state.crash_address
@@ -178,9 +192,6 @@ class Crash(object):
 
   def get_error(self):
     """Return the reason why the crash is invalid."""
-    if self.error:
-      return 'Unable to read the stack file: %s' % self.error
-
     filter_functional_bugs = environment.get_value('FILTER_FUNCTIONAL_BUGS')
     if filter_functional_bugs and not self.security_flag:
       return 'Functional crash is ignored: %s' % self.crash_state
@@ -716,154 +727,6 @@ def truncate_fuzzer_output(output, limit):
   return ''.join([output[:left], separator, output[-right:]])
 
 
-def run_fuzzer(fuzzer, fuzzer_directory, testcase_directory, data_directory,
-               testcase_count):
-  """Run the fuzzer and generate testcases."""
-  # Helper variables.
-  error_occurred = False
-  fuzzer_revision = fuzzer.revision
-  fuzzer_name = fuzzer.name
-  sync_corpus_directory = None
-
-  # Clear existing testcases (only if past task failed).
-  testcase_directories = get_testcase_directories(testcase_directory,
-                                                  data_directory)
-  testcase_manager.remove_testcases_from_directories(testcase_directories)
-
-  # Set an environment variable for fuzzer name.
-  # TODO(ochang): Investigate removing this. Only users appear to be chromebot
-  # fuzzer and fuzzer_logs, both of which can be removed.
-  environment.set_value('FUZZER_NAME', fuzzer_name)
-
-  # Set minimum redzone size, do not detect leaks and zero out the
-  # quarantine size before running the fuzzer.
-  environment.reset_current_memory_tool_options(
-      redzone_size=16, leaks=False, quarantine_size_mb=0)
-
-  if fuzzer.builtin:
-    fuzzer_command = 'builtin'
-    builtin_fuzzer = builtin_fuzzers.get(fuzzer.name)
-
-    builtin_result = builtin_fuzzer.run(data_directory, testcase_directory,
-                                        testcase_count)
-
-    fuzzer_output = builtin_result.output
-    sync_corpus_directory = builtin_result.corpus_directory
-
-    fuzzer_return_code = 0
-  else:
-    # Make sure we have a file to execute for the fuzzer.
-    if not fuzzer.executable_path:
-      logs.log_error(
-          'Fuzzer %s does not have an executable path.' % fuzzer_name)
-      error_occurred = True
-      return error_occurred, None, None, None, None
-
-    # Get the fuzzer executable and chdir to its base directory. This helps to
-    # prevent referencing every file using __file__.
-    fuzzer_executable = os.path.join(fuzzer_directory, fuzzer.executable_path)
-    fuzzer_executable_directory = os.path.dirname(fuzzer_executable)
-
-    # Make sure the fuzzer executable exists on disk.
-    if not os.path.exists(fuzzer_executable):
-      logs.log_error(
-          'File %s does not exist. Cannot generate testcases for fuzzer %s.' %
-          (fuzzer_executable, fuzzer_name))
-      error_occurred = True
-      return error_occurred, None, None, None, None
-
-    # Build the fuzzer command execution string.
-    command = shell.get_execute_command(fuzzer_executable)
-
-    # NodeJS and shell script expect space seperator for arguments.
-    if command.startswith('node ') or command.startswith('sh '):
-      argument_seperator = ' '
-    else:
-      argument_seperator = '='
-
-    command_format = ('%s --input_dir%s%s --output_dir%s%s --no_of_files%s%d')
-    fuzzer_command = str(
-        command_format % (command, argument_seperator, data_directory,
-                          argument_seperator, testcase_directory,
-                          argument_seperator, testcase_count))
-    fuzzer_timeout = environment.get_value('FUZZER_TIMEOUT')
-
-    # Run the fuzzer.
-    logs.log('Running fuzzer - %s.' % fuzzer_command)
-    fuzzer_return_code, fuzzer_duration, fuzzer_output = (
-        process_handler.run_process(
-            fuzzer_command,
-            current_working_directory=fuzzer_executable_directory,
-            timeout=fuzzer_timeout,
-            testcase_run=False,
-            ignore_children=False))
-
-    # Use the custom return code for timeouts if needed.
-    if fuzzer_return_code is None:
-      fuzzer_return_code = FuzzErrorCode.FUZZER_TIMEOUT
-
-    # Use the custom return code for execution failures if needed.
-    if fuzzer_duration is None:
-      fuzzer_return_code = FuzzErrorCode.FUZZER_EXECUTION_FAILED
-
-  # Force GC to save some memory before processing fuzzer output.
-  utils.python_gc()
-
-  # For Android, we need to sync our local testcases directory with the one on
-  # the device.
-  if environment.platform() == 'ANDROID':
-    android.device.push_testcases_to_device()
-
-  if environment.is_trusted_host():
-    from bot.untrusted_runner import file_host
-    file_host.push_testcases_to_worker()
-
-  fuzzer_metadata = get_fuzzer_metadata_from_output(fuzzer_output)
-
-  # Filter fuzzer output, set to default value if empty.
-  if fuzzer_output:
-    fuzzer_output = utils.decode_to_unicode(fuzzer_output)
-  else:
-    fuzzer_output = u'No output!'
-
-  # Get the list of generated testcases.
-  testcase_file_paths, generated_testcase_count, generated_testcase_string = (
-      get_testcases(testcase_count, testcase_directory, data_directory))
-
-  # Check for process return code to identify abnormal termination.
-  if fuzzer_return_code:
-    if float(
-        generated_testcase_count) / testcase_count < FUZZER_FAILURE_THRESHOLD:
-      logs.log_error(
-          'Fuzzer %s returned %d. Testcase generation failed.' %
-          (fuzzer_name, fuzzer_return_code),
-          output=fuzzer_output)
-    else:
-      logs.log_warn(
-          'Fuzzer %s returned %d. Less than expected testcases generated.' %
-          (fuzzer_name, fuzzer_return_code),
-          output=fuzzer_output)
-
-  # Store fuzzer run results.
-  store_fuzzer_run_results(testcase_file_paths, fuzzer, fuzzer_command,
-                           fuzzer_output, fuzzer_return_code, fuzzer_revision,
-                           generated_testcase_count, testcase_count,
-                           generated_testcase_string)
-
-  # Upload blackbox fuzzer test cases to GCS on a small number of runs.
-  coverage_uploader.upload_testcases_if_needed(
-      fuzzer.name, testcase_file_paths, testcase_directory, data_directory)
-
-  # Make sure that there are testcases generated. If not, set the error flag.
-  error_occurred = not testcase_file_paths
-
-  _track_fuzzer_run_result(fuzzer_name, generated_testcase_count,
-                           testcase_count, fuzzer_return_code)
-
-  return (error_occurred, testcase_file_paths, sync_corpus_directory,
-          fuzzer_metadata)
-
-
 def convert_groups_to_crashes(groups):
   """Convert groups to crashes (in an array of dicts) for JobRun."""
   crashes = []
@@ -1320,6 +1183,156 @@ class FuzzingSession(object):
 
     self.gcs_corpus.upload_files(new_files)
 
+  def generate_blackbox_testcases(self, fuzzer, fuzzer_directory,
+                                  testcase_count):
+    """Run the blackbox fuzzer and generate testcases."""
+    # Helper variables.
+    error_occurred = False
+    fuzzer_revision = fuzzer.revision
+    fuzzer_name = fuzzer.name
+    sync_corpus_directory = None
+
+    # Clear existing testcases (only if past task failed).
+    testcase_directories = get_testcase_directories(self.testcase_directory,
+                                                    self.data_directory)
+    testcase_manager.remove_testcases_from_directories(testcase_directories)
+
+    # Set an environment variable for fuzzer name.
+    # TODO(ochang): Investigate removing this. Only users appear to be chromebot
+    # fuzzer and fuzzer_logs, both of which can be removed.
+    environment.set_value('FUZZER_NAME', fuzzer_name)
+
+    # Set minimum redzone size, do not detect leaks and zero out the
+    # quarantine size before running the fuzzer.
+    environment.reset_current_memory_tool_options(
+        redzone_size=16, leaks=False, quarantine_size_mb=0)
+
+    if fuzzer.builtin:
+      fuzzer_command = 'builtin'
+      builtin_fuzzer = builtin_fuzzers.get(fuzzer.name)
+
+      builtin_result = builtin_fuzzer.run(
+          self.data_directory, self.testcase_directory, testcase_count)
+
+      fuzzer_output = builtin_result.output
+      sync_corpus_directory = builtin_result.corpus_directory
+
+      # Return code is always 0 as builtin fuzzers log errors directly.
+      fuzzer_return_code = 0
+    else:
+      # Make sure we have a file to execute for the fuzzer.
+      if not fuzzer.executable_path:
+        logs.log_error(
+            'Fuzzer %s does not have an executable path.' % fuzzer_name)
+        error_occurred = True
+        return error_occurred, None, None, None, None
+
+      # Get the fuzzer executable and chdir to its base directory. This helps to
+      # prevent referencing every file using __file__.
+      fuzzer_executable = os.path.join(fuzzer_directory, fuzzer.executable_path)
+      fuzzer_executable_directory = os.path.dirname(fuzzer_executable)
+
+      # Make sure the fuzzer executable exists on disk.
+      if not os.path.exists(fuzzer_executable):
+        logs.log_error(
+            'File %s does not exist. Cannot generate testcases for fuzzer %s.' %
+            (fuzzer_executable, fuzzer_name))
+        error_occurred = True
+        return error_occurred, None, None, None, None
+
+      # Build the fuzzer command execution string.
+      command = shell.get_execute_command(fuzzer_executable)
+
+      # NodeJS and shell script expect space seperator for arguments.
+      if command.startswith('node ') or command.startswith('sh '):
+        argument_seperator = ' '
+      else:
+        argument_seperator = '='
+
+      command_format = ('%s --input_dir%s%s --output_dir%s%s --no_of_files%s%d')
+      fuzzer_command = str(
+          command_format % (command, argument_seperator, self.data_directory,
+                            argument_seperator, self.testcase_directory,
+                            argument_seperator, testcase_count))
+      fuzzer_timeout = environment.get_value('FUZZER_TIMEOUT')
+
+      # Run the fuzzer.
+      logs.log('Running fuzzer - %s.' % fuzzer_command)
+      fuzzer_return_code, fuzzer_duration, fuzzer_output = (
+          process_handler.run_process(
+              fuzzer_command,
+              current_working_directory=fuzzer_executable_directory,
+              timeout=fuzzer_timeout,
+              testcase_run=False,
+              ignore_children=False))
+
+      # Use the custom return code for timeouts if needed.
+      if fuzzer_return_code is None:
+        fuzzer_return_code = FuzzErrorCode.FUZZER_TIMEOUT
+
+      # Use the custom return code for execution failures if needed.
+      if fuzzer_duration is None:
+        fuzzer_return_code = FuzzErrorCode.FUZZER_EXECUTION_FAILED
+
+    # Force GC to save some memory before processing fuzzer output.
+    utils.python_gc()
+
+    # For Android, we need to sync our local testcases directory with the one on
+    # the device.
+    if environment.platform() == 'ANDROID':
+      android.device.push_testcases_to_device()
+
+    if environment.is_trusted_host():
+      from bot.untrusted_runner import file_host
+      file_host.push_testcases_to_worker()
+
+    fuzzer_metadata = get_fuzzer_metadata_from_output(fuzzer_output)
+
+    # Filter fuzzer output, set to default value if empty.
+    if fuzzer_output:
+      fuzzer_output = utils.decode_to_unicode(fuzzer_output)
+    else:
+      fuzzer_output = u'No output!'
+
+    # Get the list of generated testcases.
+    testcase_file_paths, generated_testcase_count, generated_testcase_string = (
+        get_testcases(testcase_count, self.testcase_directory,
+                      self.data_directory))
+
+    # Check for process return code to identify abnormal termination.
+    if fuzzer_return_code:
+      if float(
+          generated_testcase_count) / testcase_count < FUZZER_FAILURE_THRESHOLD:
+        logs.log_error(
+            'Fuzzer %s returned %d. Testcase generation failed.' %
+            (fuzzer_name, fuzzer_return_code),
+            output=fuzzer_output)
+      else:
+        logs.log_warn(
+            'Fuzzer %s returned %d. Less than expected testcases generated.' %
+            (fuzzer_name, fuzzer_return_code),
+            output=fuzzer_output)
+
+    # Store fuzzer run results.
+    store_fuzzer_run_results(testcase_file_paths, fuzzer, fuzzer_command,
+                             fuzzer_output, fuzzer_return_code, fuzzer_revision,
+                             generated_testcase_count, testcase_count,
+                             generated_testcase_string)
+
+    # Upload blackbox fuzzer test cases to GCS on a small number of runs.
+    coverage_uploader.upload_testcases_if_needed(
+        fuzzer.name, testcase_file_paths, self.testcase_directory,
+        self.data_directory)
+
+    # Make sure that there are testcases generated. If not, set the error flag.
+    error_occurred = not testcase_file_paths
+
+    _track_fuzzer_run_result(fuzzer_name, generated_testcase_count,
+                             testcase_count, fuzzer_return_code)
+
+    return (error_occurred, testcase_file_paths, sync_corpus_directory,
+            fuzzer_metadata)
+
   def do_engine_fuzzing(self, engine_impl):
     """Run fuzzing engine."""
     fuzz_target_name = environment.get_value('FUZZ_TARGET')
@@ -1329,11 +1342,19 @@ class FuzzingSession(object):
     sync_corpus_directory = builtin.get_corpus_directory(
         self.testcase_directory, self.fuzz_target.project_qualified_name())
     self.sync_corpus(sync_corpus_directory)
-    # TODO(ochang): Actual fuzzing.
+
+    build_dir = environment.get_value('BUILD_DIR')
+    target_path = engine_common.find_fuzzer_path(build_dir, fuzz_target_name)
+    options = engine_impl.prepare(sync_corpus_directory, sync_corpus_directory,
+                                  target_path, build_dir)
+
+    fuzz_test_timeout = environment.get_value('FUZZ_TEST_TIMEOUT')
+    result = engine_impl.fuzz(target_path, options, fuzz_test_timeout)
+
     self.sync_new_corpus_files()
 
-    # TODO(ochang): Return actual crashes.
-    return []
+    # TODO(ochang): Return stats.
+    return result.crashes
 
   def do_blackbox_fuzzing(self, fuzzer, fuzzer_directory, job_type):
     """Run blackbox fuzzing. Currently also used for engine fuzzing."""
@@ -1358,10 +1379,9 @@ class FuzzingSession(object):
 
     # Run the fuzzer to generate testcases. If error occurred while trying
     # to run the fuzzer, bail out.
-    (error_occurred, testcase_file_paths,
-     sync_corpus_directory, fuzzer_metadata) = run_fuzzer(
-         fuzzer, fuzzer_directory, self.testcase_directory, self.data_directory,
-         testcase_count)
+    (error_occurred, testcase_file_paths, sync_corpus_directory,
+     fuzzer_metadata) = self.generate_blackbox_testcases(
+         fuzzer, fuzzer_directory, testcase_count)
 
     if error_occurred:
       return None, None, None, None
@@ -1580,13 +1600,15 @@ class FuzzingSession(object):
       testcase_file_paths = []
       testcases_metadata = {}
       fuzzer_metadata = {}
+      crash_constructor = Crash.from_engine_crash
     else:
       fuzzer_directory = setup.get_fuzzer_directory(self.fuzzer_name)
       fuzzer_metadata, testcase_file_paths, testcases_metadata, crashes = (
           self.do_blackbox_fuzzing(fuzzer, fuzzer_directory, self.job_type))
+      crash_constructor = Crash.from_testcase_manager_crash
 
     if crashes is None:
-      # Error occurred in run_fuzzer.
+      # Error occurred in generate_blackbox_testcases.
       # TODO(ochang): Pipe this error a little better.
       return
 
@@ -1605,9 +1627,9 @@ class FuzzingSession(object):
       # testcase is analyzed.
       android.device.initialize_device()
 
-    # Transform tests.Crash into fuzz_task.Crash.
+    # Transform crashes into fuzz_task.Crash.
     # And filter the crashes (e.g. removing errorneous crashes).
-    crashes = [Crash(crash) for crash in crashes]
+    crashes = filter(None, [crash_constructor(crash) for crash in crashes])
 
     project_name = data_handler.get_project_name(self.job_type)
 

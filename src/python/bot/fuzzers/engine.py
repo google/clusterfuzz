@@ -31,10 +31,11 @@ class FuzzOptions(object):
 class Crash(object):
   """Represents a crash found by the fuzzing engine."""
 
-  def __init__(self, input_path, stacktrace, reproduce_args):
+  def __init__(self, input_path, stacktrace, reproduce_args, crash_time):
     self.input_path = input_path
     self.stacktrace = stacktrace
     self.reproduce_args = reproduce_args
+    self.crash_time = crash_time
 
 
 class Result(object):
