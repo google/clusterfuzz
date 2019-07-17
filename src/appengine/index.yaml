@@ -572,5 +572,4 @@ indexes:
     - name: testcase_id
     - name: status
     - name: job_type
-    direction: asc
-
+      direction: asc
