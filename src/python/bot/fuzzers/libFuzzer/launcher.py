@@ -24,6 +24,7 @@ except ImportError:
   pass
 
 import atexit
+import collections
 import multiprocessing
 import os
 import random
@@ -91,6 +92,15 @@ ENGINE_ERROR_MESSAGE = 'libFuzzer: engine encountered an error.'
 MERGE_DIRECTORY_NAME = 'merge-corpus'
 
 HEXDIGITS_SET = set(string.hexdigits)
+
+Strategies = collections.namedtuple('Strategies', [
+    'fuzzing_strategies',
+    'arguments',
+    'additional_corpus_dirs',
+    'extra_env',
+    'use_dataflow_tracing',
+    'is_mutations_run',
+])
 
 
 class Generator(object):
@@ -674,6 +684,91 @@ def move_mergeable_units(merge_directory, corpus_directory):
     shell.move(unit_path, dest_path)
 
 
+def pick_strategies(strategy_pool,
+                    fuzzer_path,
+                    corpus_directory,
+                    existing_arguments,
+                    minijail_chroot=None):
+  """Pick strategies."""
+  # Strategy pool is the list of strategies that we attempt to enable, whereas
+  # fuzzing strategies is the list of strategies that are enabled. (e.g. if
+  # mutator is selected in the pool, but not available for a given target, it
+  # would not be added to fuzzing strategies.)
+  build_directory = environment.get_value('BUILD_DIR')
+  target_name = os.path.basename(fuzzer_path)
+  project_qualified_fuzzer_name = data_types.fuzz_target_project_qualified_name(
+      utils.current_project(), target_name)
+
+  fuzzing_strategies = []
+  arguments = []
+  additional_corpus_dirs = []
+
+  # Select a generator to use for existing testcase mutations.
+  generator = _select_generator(strategy_pool, fuzzer_path)
+  is_mutations_run = generator != Generator.NONE
+
+  # Depends on the presense of DFSan instrumented build.
+  dataflow_build_dir = environment.get_value('DATAFLOW_BUILD_DIR')
+  use_dataflow_tracing = (
+      dataflow_build_dir and
+      strategy_pool.do_strategy(strategy.DATAFLOW_TRACING_STRATEGY))
+  if use_dataflow_tracing:
+    dataflow_binary_path = os.path.join(
+        dataflow_build_dir, os.path.relpath(fuzzer_path, build_directory))
+    if os.path.exists(dataflow_binary_path):
+      arguments.append(
+          '%s%s' % (constants.COLLECT_DATA_FLOW_FLAG, dataflow_binary_path))
+      fuzzing_strategies.append(strategy.DATAFLOW_TRACING_STRATEGY.name)
+    else:
+      logs.log_error(
+          'Fuzz target is not found in dataflow build, skiping strategy.')
+      use_dataflow_tracing = False
+
+  use_minijail = environment.get_value('USE_MINIJAIL')
+
+  # Generate new testcase mutations using radamsa, etc.
+  if is_mutations_run:
+    new_testcase_mutations_directory = generate_new_testcase_mutations(
+        corpus_directory, project_qualified_fuzzer_name, generator,
+        fuzzing_strategies)
+    additional_corpus_dirs.append(new_testcase_mutations_directory)
+    if use_minijail:
+      bind_corpus_dirs(minijail_chroot, [new_testcase_mutations_directory])
+
+  if strategy_pool.do_strategy(strategy.RANDOM_MAX_LENGTH_STRATEGY):
+    max_len_argument = fuzzer_utils.extract_argument(
+        existing_arguments, constants.MAX_LEN_FLAG, remove=False)
+    if not max_len_argument:
+      max_length = random.SystemRandom().randint(1, MAX_VALUE_FOR_MAX_LENGTH)
+      arguments.append('%s%d' % (constants.MAX_LEN_FLAG, max_length))
+      fuzzing_strategies.append(strategy.RANDOM_MAX_LENGTH_STRATEGY.name)
+
+  if (strategy_pool.do_strategy(strategy.RECOMMENDED_DICTIONARY_STRATEGY) and
+      add_recommended_dictionary(arguments, project_qualified_fuzzer_name,
+                                 fuzzer_path)):
+    fuzzing_strategies.append(strategy.RECOMMENDED_DICTIONARY_STRATEGY.name)
+
+  if strategy_pool.do_strategy(strategy.VALUE_PROFILE_STRATEGY):
+    arguments.append(constants.VALUE_PROFILE_ARGUMENT)
+    fuzzing_strategies.append(strategy.VALUE_PROFILE_STRATEGY.name)
+
+  # DataFlow Tracing requires fork mode, always use it with DFT strategy.
+  if use_dataflow_tracing or strategy_pool.do_strategy(strategy.FORK_STRATEGY):
+    max_fuzz_threads = environment.get_value('MAX_FUZZ_THREADS', 1)
+    num_fuzz_processes = max(1, multiprocessing.cpu_count() // max_fuzz_threads)
+    arguments.append('%s%d' % (constants.FORK_FLAG, num_fuzz_processes))
+    fuzzing_strategies.append(
+        '%s_%d' % (strategy.FORK_STRATEGY.name, num_fuzz_processes))
+
+  extra_env = {}
+  if (strategy_pool.do_strategy(strategy.MUTATOR_PLUGIN_STRATEGY) and
+      use_mutator_plugin(target_name, extra_env, minijail_chroot)):
+    fuzzing_strategies.append(strategy.MUTATOR_PLUGIN_STRATEGY.name)
+
+  return Strategies(fuzzing_strategies, arguments, additional_corpus_dirs,
+                    extra_env, use_dataflow_tracing, is_mutations_run)
+
+
 def main(argv):
   """Run libFuzzer as specified by argv."""
   atexit.register(fuzzer_utils.cleanup)
@@ -776,39 +871,20 @@ def main(argv):
     if os.path.exists(default_dict_path):
       arguments.append(constants.DICT_FLAG + default_dict_path)
 
-  # Strategy pool is the list of strategies that we attempt to enable, whereas
-  # fuzzing strategies is the list of strategies that are enabled. (e.g. if
-  # mutator is selected in the pool, but not available for a given target, it
-  # would not be added to fuzzing strategies.)
-  strategy_pool = strategy_selection.generate_weighted_strategy_pool()
-  fuzzing_strategies = []
-
-  # Select a generator to use for existing testcase mutations.
-  generator = _select_generator(strategy_pool, fuzzer_path)
-  is_mutations_run = generator != Generator.NONE
-
-  # Depends on the presense of DFSan instrumented build.
-  dataflow_build_dir = environment.get_value('DATAFLOW_BUILD_DIR')
-  use_dataflow_tracing = (
-      dataflow_build_dir and
-      strategy_pool.do_strategy(strategy.DATAFLOW_TRACING_STRATEGY))
-  if use_dataflow_tracing:
-    dataflow_binary_path = os.path.join(
-        dataflow_build_dir, os.path.relpath(fuzzer_path, build_directory))
-    if os.path.exists(dataflow_binary_path):
-      arguments.append(
-          '%s%s' % (constants.COLLECT_DATA_FLOW_FLAG, dataflow_binary_path))
-      fuzzing_strategies.append(strategy.DATAFLOW_TRACING_STRATEGY.name)
-    else:
-      logs.log_error(
-          'Fuzz target is not found in dataflow build, skiping strategy.')
-      use_dataflow_tracing = False
-
-  # Timeout for fuzzer run.
-  fuzz_timeout = get_fuzz_timeout(is_mutations_run)
-
   # Set up scratch directory for writing new units.
   new_testcases_directory = create_corpus_directory('new')
+
+  strategy_pool = strategy_selection.generate_weighted_strategy_pool()
+  strategies = pick_strategies(
+      strategy_pool,
+      fuzzer_path,
+      corpus_directory,
+      arguments,
+      minijail_chroot=minijail_chroot)
+  arguments.extend(strategies.arguments)
+
+  # Timeout for fuzzer run.
+  fuzz_timeout = get_fuzz_timeout(strategies.is_mutations_run)
 
   # Get list of corpus directories.
   # TODO(flowerhack): Implement this to handle corpus sync'ing.
@@ -819,10 +895,12 @@ def main(argv):
         corpus_directory,
         new_testcases_directory,
         fuzzer_path,
-        fuzzing_strategies,
+        strategies.fuzzing_strategies,
         strategy_pool,
         minijail_chroot=minijail_chroot,
-        allow_corpus_subset=not use_dataflow_tracing)
+        allow_corpus_subset=not strategies.use_dataflow_tracing)
+
+  corpus_directories.extend(strategies.additional_corpus_dirs)
 
   # Bind corpus directories in minijail.
   if use_minijail:
@@ -831,50 +909,12 @@ def main(argv):
     artifact_prefix = '%s%s/' % (constants.ARTIFACT_PREFIX_FLAG,
                                  os.path.abspath(
                                      os.path.dirname(testcase_file_path)))
-
-  # Generate new testcase mutations using radamsa, etc.
-  if is_mutations_run:
-    new_testcase_mutations_directory = generate_new_testcase_mutations(
-        corpus_directory, fuzzer_name, generator, fuzzing_strategies)
-    corpus_directories.append(new_testcase_mutations_directory)
-    if use_minijail:
-      bind_corpus_dirs(minijail_chroot, [new_testcase_mutations_directory])
-
-  if strategy_pool.do_strategy(strategy.RANDOM_MAX_LENGTH_STRATEGY):
-    max_len_argument = fuzzer_utils.extract_argument(
-        arguments, constants.MAX_LEN_FLAG, remove=False)
-    if not max_len_argument:
-      max_length = random.SystemRandom().randint(1, MAX_VALUE_FOR_MAX_LENGTH)
-      arguments.append('%s%d' % (constants.MAX_LEN_FLAG, max_length))
-      fuzzing_strategies.append(strategy.RANDOM_MAX_LENGTH_STRATEGY.name)
-
-  if (strategy_pool.do_strategy(strategy.RECOMMENDED_DICTIONARY_STRATEGY) and
-      add_recommended_dictionary(arguments, fuzzer_name, fuzzer_path)):
-    fuzzing_strategies.append(strategy.RECOMMENDED_DICTIONARY_STRATEGY.name)
-
-  if strategy_pool.do_strategy(strategy.VALUE_PROFILE_STRATEGY):
-    arguments.append(constants.VALUE_PROFILE_ARGUMENT)
-    fuzzing_strategies.append(strategy.VALUE_PROFILE_STRATEGY.name)
-
-  # DataFlow Tracing requires fork mode, always use it with DFT strategy.
-  if use_dataflow_tracing or strategy_pool.do_strategy(strategy.FORK_STRATEGY):
-    max_fuzz_threads = environment.get_value('MAX_FUZZ_THREADS', 1)
-    num_fuzz_processes = max(1, multiprocessing.cpu_count() // max_fuzz_threads)
-    arguments.append('%s%d' % (constants.FORK_FLAG, num_fuzz_processes))
-    fuzzing_strategies.append(
-        '%s_%d' % (strategy.FORK_STRATEGY.name, num_fuzz_processes))
-
-  extra_env = {}
-  if (strategy_pool.do_strategy(strategy.MUTATOR_PLUGIN_STRATEGY) and
-      use_mutator_plugin(target_name, extra_env, minijail_chroot)):
-    fuzzing_strategies.append(strategy.MUTATOR_PLUGIN_STRATEGY.name)
-
   # Execute the fuzzer binary with original arguments.
   fuzz_result = runner.fuzz(
       corpus_directories,
       fuzz_timeout=fuzz_timeout,
       additional_args=arguments + [artifact_prefix],
-      extra_env=extra_env)
+      extra_env=strategies.extra_env)
 
   if (not use_minijail and
       fuzz_result.return_code == constants.LIBFUZZER_ERROR_EXITCODE):
@@ -922,7 +962,7 @@ def main(argv):
 
   # Extend parsed stats by additional performance features.
   parsed_stats.update(
-      stats.parse_performance_features(log_lines, fuzzing_strategies,
+      stats.parse_performance_features(log_lines, strategies.fuzzing_strategies,
                                        arguments))
 
   # Set some initial stat overrides.
@@ -1026,7 +1066,7 @@ def main(argv):
     print(line)
 
   # Add fuzzing strategies used.
-  engine_common.print_fuzzing_strategies(fuzzing_strategies)
+  engine_common.print_fuzzing_strategies(strategies.fuzzing_strategies)
 
   # Add merge error (if any).
   if merge_error:
