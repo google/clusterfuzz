@@ -17,6 +17,7 @@ from future import standard_library
 standard_library.install_aliases()
 from builtins import range
 from past.builtins import basestring
+import ast
 import base64
 import bisect
 import os
@@ -25,7 +26,6 @@ import requests
 import six
 import time
 import urllib.parse
-import yaml
 
 from base import memoize
 from base import utils
@@ -240,19 +240,18 @@ def _git_commit_position_to_git_hash_for_chromium(revision, repository):
   if url_content is None:
     return None
 
-  result_dict = _to_yaml_dict(url_content)
+  result_dict = _to_dict(url_content)
   if result_dict is None:
     return None
 
   return result_dict['git_sha']
 
 
-def _to_yaml_dict(contents):
-  """Parse |contents| as YAML dict, returning None on failure or if it's not a
+def _to_dict(contents):
+  """Parse |contents| as a dict, returning None on failure or if it's not a
   dict."""
   try:
-    # Assume YAML, returning None on deserialization failure.
-    result = yaml.safe_load(contents)
+    result = ast.literal_eval(contents)
     if isinstance(result, dict):
       return result
 
@@ -376,7 +375,7 @@ def get_component_revisions_dict(revision, job_type):
     return _clank_revision_file_to_revisions_dict(url_content)
 
   # Default case: parse content as yaml.
-  revisions_dict = _to_yaml_dict(url_content)
+  revisions_dict = _to_dict(url_content)
   if not revisions_dict:
     logs.log_error(
         'Failed to parse component revisions from %s.' % revision_info_url)
@@ -643,7 +642,7 @@ def get_src_map(revision):
         'Failed to get component revisions from %s.' % revision_info_url)
     return None
 
-  return _to_yaml_dict(url_content)
+  return _to_dict(url_content)
 
 
 def needs_update(revision_file, revision):
@@ -717,9 +716,9 @@ def revision_to_branched_from(uri, revision):
   # See 'cross site script inclusion here:
   # https://gerrit-review.googlesource.com/Documentation/rest-api.html
   url_content = '\n'.join(url_content.splitlines()[1:])
-  result = _to_yaml_dict(url_content)
+  result = _to_dict(url_content)
   if not result:
-    logs.log_error("Unable to retrieve and parse YAML for %s" % full_uri)
+    logs.log_error("Unable to retrieve and parse url: %s" % full_uri)
     return None
   msg = result.get('message', None)
   if not msg:
