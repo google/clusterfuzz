@@ -1361,5 +1361,14 @@ class TestcaseVariant(Model):
   # Revision that the testcase variant was tried against.
   revision = ndb.IntegerProperty()
 
-  # Crash stacktrace.
-  crash_stacktrace = ndb.TextProperty(indexed=False)
+  # Crash type.
+  crash_type = ndb.StringProperty()
+
+  # Crash state.
+  crash_state = ndb.StringProperty()
+
+  # Bool to indicate if it is a security bug?
+  security_flag = ndb.BooleanProperty()
+
+  # Bool to indicate if crash is similar to original testcase.
+  is_similar = ndb.BooleanProperty()
