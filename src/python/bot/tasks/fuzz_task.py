@@ -1346,7 +1346,7 @@ class FuzzingSession(object):
     return (error_occurred, testcase_file_paths, sync_corpus_directory,
             fuzzer_metadata)
 
-  def _run_engine(self, engine_impl, sync_corpus_directory):
+  def _run_engine_fuzzer(self, engine_impl, sync_corpus_directory):
     """Run engine for fuzzing."""
     # TODO(ochang): Add RPC for untrusted runner.
     build_dir = environment.get_value('BUILD_DIR')
@@ -1367,7 +1367,7 @@ class FuzzingSession(object):
         self.testcase_directory, self.fuzz_target.project_qualified_name())
     self.sync_corpus(sync_corpus_directory)
 
-    result = self._run_engine(engine_impl, sync_corpus_directory)
+    result = self._run_engine_fuzzer(engine_impl, sync_corpus_directory)
     self.sync_new_corpus_files()
 
     # TODO(ochang): Return stats.

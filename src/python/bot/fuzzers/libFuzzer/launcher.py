@@ -93,7 +93,7 @@ MERGE_DIRECTORY_NAME = 'merge-corpus'
 
 HEXDIGITS_SET = set(string.hexdigits)
 
-Strategies = collections.namedtuple('Strategies', [
+StrategyInfo = collections.namedtuple('StrategiesInfo', [
     'fuzzing_strategies',
     'arguments',
     'additional_corpus_dirs',
@@ -690,10 +690,6 @@ def pick_strategies(strategy_pool,
                     existing_arguments,
                     minijail_chroot=None):
   """Pick strategies."""
-  # Strategy pool is the list of strategies that we attempt to enable, whereas
-  # fuzzing strategies is the list of strategies that are enabled. (e.g. if
-  # mutator is selected in the pool, but not available for a given target, it
-  # would not be added to fuzzing strategies.)
   build_directory = environment.get_value('BUILD_DIR')
   target_name = os.path.basename(fuzzer_path)
   project_qualified_fuzzer_name = data_types.fuzz_target_project_qualified_name(
@@ -724,15 +720,13 @@ def pick_strategies(strategy_pool,
           'Fuzz target is not found in dataflow build, skiping strategy.')
       use_dataflow_tracing = False
 
-  use_minijail = environment.get_value('USE_MINIJAIL')
-
   # Generate new testcase mutations using radamsa, etc.
   if is_mutations_run:
     new_testcase_mutations_directory = generate_new_testcase_mutations(
         corpus_directory, project_qualified_fuzzer_name, generator,
         fuzzing_strategies)
     additional_corpus_dirs.append(new_testcase_mutations_directory)
-    if use_minijail:
+    if environment.get_value('USE_MINIJAIL'):
       bind_corpus_dirs(minijail_chroot, [new_testcase_mutations_directory])
 
   if strategy_pool.do_strategy(strategy.RANDOM_MAX_LENGTH_STRATEGY):
@@ -765,8 +759,8 @@ def pick_strategies(strategy_pool,
       use_mutator_plugin(target_name, extra_env, minijail_chroot)):
     fuzzing_strategies.append(strategy.MUTATOR_PLUGIN_STRATEGY.name)
 
-  return Strategies(fuzzing_strategies, arguments, additional_corpus_dirs,
-                    extra_env, use_dataflow_tracing, is_mutations_run)
+  return StrategyInfo(fuzzing_strategies, arguments, additional_corpus_dirs,
+                      extra_env, use_dataflow_tracing, is_mutations_run)
 
 
 def main(argv):
@@ -874,17 +868,21 @@ def main(argv):
   # Set up scratch directory for writing new units.
   new_testcases_directory = create_corpus_directory('new')
 
+  # Strategy pool is the list of strategies that we attempt to enable, whereas
+  # fuzzing strategies is the list of strategies that are enabled. (e.g. if
+  # mutator is selected in the pool, but not available for a given target, it
+  # would not be added to fuzzing strategies.)
   strategy_pool = strategy_selection.generate_weighted_strategy_pool()
-  strategies = pick_strategies(
+  strategy_info = pick_strategies(
       strategy_pool,
       fuzzer_path,
       corpus_directory,
       arguments,
       minijail_chroot=minijail_chroot)
-  arguments.extend(strategies.arguments)
+  arguments.extend(strategy_info.arguments)
 
   # Timeout for fuzzer run.
-  fuzz_timeout = get_fuzz_timeout(strategies.is_mutations_run)
+  fuzz_timeout = get_fuzz_timeout(strategy_info.is_mutations_run)
 
   # Get list of corpus directories.
   # TODO(flowerhack): Implement this to handle corpus sync'ing.
@@ -895,12 +893,12 @@ def main(argv):
         corpus_directory,
         new_testcases_directory,
         fuzzer_path,
-        strategies.fuzzing_strategies,
+        strategy_info.fuzzing_strategies,
         strategy_pool,
         minijail_chroot=minijail_chroot,
-        allow_corpus_subset=not strategies.use_dataflow_tracing)
+        allow_corpus_subset=not strategy_info.use_dataflow_tracing)
 
-  corpus_directories.extend(strategies.additional_corpus_dirs)
+  corpus_directories.extend(strategy_info.additional_corpus_dirs)
 
   # Bind corpus directories in minijail.
   if use_minijail:
@@ -914,7 +912,7 @@ def main(argv):
       corpus_directories,
       fuzz_timeout=fuzz_timeout,
       additional_args=arguments + [artifact_prefix],
-      extra_env=strategies.extra_env)
+      extra_env=strategy_info.extra_env)
 
   if (not use_minijail and
       fuzz_result.return_code == constants.LIBFUZZER_ERROR_EXITCODE):
@@ -962,8 +960,8 @@ def main(argv):
 
   # Extend parsed stats by additional performance features.
   parsed_stats.update(
-      stats.parse_performance_features(log_lines, strategies.fuzzing_strategies,
-                                       arguments))
+      stats.parse_performance_features(
+          log_lines, strategy_info.fuzzing_strategies, arguments))
 
   # Set some initial stat overrides.
   timeout_limit = fuzzer_utils.extract_argument(
@@ -1066,7 +1064,7 @@ def main(argv):
     print(line)
 
   # Add fuzzing strategies used.
-  engine_common.print_fuzzing_strategies(strategies.fuzzing_strategies)
+  engine_common.print_fuzzing_strategies(strategy_info.fuzzing_strategies)
 
   # Add merge error (if any).
   if merge_error:
