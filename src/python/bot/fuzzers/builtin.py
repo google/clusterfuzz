@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """Builtin fuzzer."""
+# NOTE: This module is deprecated and will be replaced with bot.fuzzers.engine.
 
 from builtins import object
 from builtins import range

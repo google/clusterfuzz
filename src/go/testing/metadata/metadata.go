@@ -74,19 +74,21 @@ const (
 	serviceAccountsPath       = "/computeMetadata/v1/instance/service-accounts"
 	defaultServiceAccPath     = serviceAccountsPath + "/default"
 
-	projIDPath     = "/computeMetadata/v1/project/project-id"
-	projNumPath    = "/computeMetadata/v1/project/numeric-project-id"
-	zonePath       = "/computeMetadata/v1/instance/zone"
-	hostnamePath   = "/computeMetadata/v1/instance/hostname"
-	instanceIDPath = "/computeMetadata/v1/instance/id"
+	projIDPath           = "/computeMetadata/v1/project/project-id"
+	projNumPath          = "/computeMetadata/v1/project/numeric-project-id"
+	deploymentBucketPath = "/computeMetadata/v1/project/attributes/deployment-bucket"
+	zonePath             = "/computeMetadata/v1/instance/zone"
+	hostnamePath         = "/computeMetadata/v1/instance/hostname"
+	instanceIDPath       = "/computeMetadata/v1/instance/id"
 )
 
 var (
 	// Configurable environment options.
-	projID   string
-	projNum  int
-	zone     string
-	hostname string
+	projID           string
+	projNum          int
+	deploymentBucket string
+	zone             string
+	hostname         string
 
 	// IP:Port to listen on.
 	ip   string
@@ -251,6 +253,12 @@ func hostnameHandler(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintf(w, "%s", hostname)
 }
 
+// deploymentBucketHandler handles deployment bucket name requests.
+func deploymentBucketHandler(w http.ResponseWriter, r *http.Request) {
+	handleCommon(w, r)
+	fmt.Fprintf(w, "%s", deploymentBucket)
+}
+
 // unhandledHandler logs unhandled requests.
 func unhandledHandler(w http.ResponseWriter, r *http.Request) {
 	handleCommon(w, r)
@@ -319,6 +327,7 @@ func main() {
 	flag.IntVar(&projNum, "project-num", 246243303817, "Project numeric ID")
 	flag.StringVar(&zone, "zone", "us-central1-f", "GCE zone")
 	flag.StringVar(&hostname, "hostname", "test-bot", "Instance name")
+	flag.StringVar(&deploymentBucket, "deployment-bucket", "clusterfuzz-deployment", "Deployment bucket name")
 
 	flag.Parse()
 
@@ -349,6 +358,7 @@ func main() {
 
 	http.HandleFunc(projIDPath, projIDHandler)
 	http.HandleFunc(projNumPath, projNumHandler)
+	http.HandleFunc(deploymentBucketPath, deploymentBucketHandler)
 	http.HandleFunc(zonePath, zoneHandler)
 	http.HandleFunc(hostnamePath, hostnameHandler)
 	// Use the hostname for instance ID.

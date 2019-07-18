@@ -82,6 +82,7 @@ class HandlerTest(unittest.TestCase):
     self.assertEqual(len(response.json['items']), 1)
 
     self.assertEqual(response.json['items'][0]['issue']['id'], issue_item.id)
+    issue_tracker.issue_url.assert_called_with(issue_item.id)
 
     self.mock.get_issue_tracker_for_testcase.assert_has_calls(
         [mock.call(mock.ANY)])

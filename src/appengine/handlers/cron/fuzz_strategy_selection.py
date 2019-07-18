@@ -125,12 +125,13 @@ BANDIT_PROBABILITY_SUBQUERY = """
 """
 BANDIT_PROBABILITY_QUERY = """
 SELECT
+  a.strategy AS strategy,
   bandit_weight_high_temperature,
   bandit_weight_low_temperature,
   bandit_weight_medium_temperature,
   a.run_count + b.run_count + c.run_count as run_count 
 FROM {high_temperature_query} a
-JOIN {low_temperature} b ON a.strategy = b.strategy
+JOIN {low_temperature_query} b ON a.strategy = b.strategy
 JOIN {medium_temperature_query} c ON a.strategy = c.strategy
 """
 
