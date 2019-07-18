@@ -246,7 +246,7 @@ def file_issue(testcase,
     issue.labels.add(policy.label('reproducible'))
 
   # Chromium-specific labels.
-  if issue_tracker.project and issue_tracker.project == 'chromium':
+  if issue_tracker.project == 'chromium' and testcase.security_flag:
     # Add reward labels if this is from an external fuzzer contribution.
     fuzzer = data_types.Fuzzer.query(
         data_types.Fuzzer.name == testcase.fuzzer_name).get()
