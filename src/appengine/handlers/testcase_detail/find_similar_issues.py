@@ -41,7 +41,7 @@ class Handler(base_handler.Handler):
     items = sorted(items, key=lambda k: k['id'])
     return [{
         'issue': item,
-        'url': issue_tracker.issue_url(item),
+        'url': issue_tracker.issue_url(item['id']),
     } for item in items]
 
   @handler.get(handler.JSON)
