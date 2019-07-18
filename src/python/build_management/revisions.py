@@ -333,27 +333,27 @@ def get_component_revisions_dict(revision, job_type):
 
   revisions_dict = {}
 
-  repository = data_handler.get_repository_for_component(component)
+  if utils.is_chromium():
+    repository = data_handler.get_repository_for_component(component)
+    if repository and not _is_clank(revision_info_url_format):
+      revision_hash = _git_commit_position_to_git_hash_for_chromium(
+          revision, repository)
+      if revision_hash is None:
+        return None
 
-  if repository and not _is_clank(revision_info_url_format):
-    revision_hash = _git_commit_position_to_git_hash_for_chromium(
-        revision, repository)
-    if revision_hash is None:
-      return None
+      # FIXME: While we check for this explicitly appended component in all
+      # applicable cases that we know of within this codebase, if the dict
+      # is shared with an external service (e.g. Predator) we may need to clean
+      # this up beforehand.
+      revisions_dict['/src'] = {
+          'name': _get_component_display_name(component, project_name),
+          'url': _git_url_for_chromium_repository(repository),
+          'rev': revision_hash,
+          'commit_pos': revision
+      }
 
-    # FIXME: While we check for this explicitly appended component in all
-    # applicable cases that we know of within this codebase, if the dict
-    # is shared with an external service (e.g. Predator) we may need to clean
-    # this up beforehand.
-    revisions_dict['/src'] = {
-        'name': _get_component_display_name(component, project_name),
-        'url': _git_url_for_chromium_repository(repository),
-        'rev': revision_hash,
-        'commit_pos': revision
-    }
-
-    # Use revision hash for info url later.
-    revision = revision_hash
+      # Use revision hash for info url later.
+      revision = revision_hash
 
   revision_info_url = revision_info_url_format % revision
   url_content = _get_url_content(revision_info_url)
