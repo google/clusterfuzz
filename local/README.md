@@ -28,7 +28,7 @@ To run a bot image locally, run:
 $ ./run_docker.bash gcr.io/clusterfuzz-images/base
 ```
 
-**NOTE:** You must run this command as a non-root user. Make sure that to add your user to the
+**NOTE**: You must run this command as a non-root user. Make sure that to add your user to the
 docker group using `sudo adduser $USER docker`.
 
 By default this uses the latest deployed source, but you can also use your local
