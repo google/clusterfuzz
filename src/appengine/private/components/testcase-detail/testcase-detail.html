@@ -451,6 +451,16 @@
                   </td>
                 </tr>
               </template>
+              <template is="dom-if" if="[[info.metadata.triage_message]]">
+                <tr>
+                  <td class="label">
+                    <span class="help" title="A message related to bug triage and filing.">Triage:</span>
+                  </td>
+                  <td class="value">
+                    [[info.metadata.triage_message]]
+                  </td>
+                </tr>
+              </template>
             </table>
             <div class="artifacts">
               <template is="dom-if" if="[[nonEmpty(info.testcase.gestures)]]">
