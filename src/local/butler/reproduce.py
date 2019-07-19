@@ -198,7 +198,8 @@ def _get_testcase_id_from_url(testcase_url):
       path_parts[1] != 'testcase-detail' or not testcase_id):
     raise errors.ReproduceToolUnrecoverableError(
         'Invalid testcase URL {url}. Expected format: '
-        'https://clusterfuzz-deployment/testcase-detail/1234567890')
+        'https://clusterfuzz-deployment/testcase-detail/1234567890'.format(
+            url=testcase_url))
 
   return testcase_id
 

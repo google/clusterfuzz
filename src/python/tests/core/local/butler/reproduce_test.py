@@ -22,7 +22,7 @@ from tests.test_libs import helpers
 from tests.test_libs import test_utils
 
 
-def _fake_get_testcase(_):
+def _fake_get_testcase(*_):
   """Fake test case output intended to run "echo -n"."""
   testcase_map = {
       'crash_state': '',
@@ -52,6 +52,7 @@ class ReproduceTest(unittest.TestCase):
     helpers.patch(self, [
         'local.butler.reproduce._download_testcase',
         'local.butler.reproduce._get_testcase',
+        'local.butler.reproduce_tool.config.ReproduceToolConfiguration',
         'system.process_handler.run_process',
         'system.process_handler.terminate_stale_application_instances',
     ])
@@ -63,7 +64,8 @@ class ReproduceTest(unittest.TestCase):
 
   def test_reproduce_with_echo(self):
     """See if the reproduce tool can run a job configured to execute "echo"."""
-    reproduce._reproduce_crash(0, '/path/to/binary')
+    reproduce._reproduce_crash('https://localhost/testcase-detail/1',
+                               '/path/to/binary')
     self.mock.run_process.assert_called_with(
         '/path/to/binary/echo -n /tmp/testcase',
         current_working_directory='/path/to/binary',
