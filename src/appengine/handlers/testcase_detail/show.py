@@ -606,7 +606,7 @@ class DeprecatedHandler(base_handler.Handler):
   """Deprecated handler to show old style testcase link with key."""
 
   def get(self):
-    """Serve the testcase details HTML page."""
+    """Serve the redirect to the current test case detail page."""
     testcase_id = self.request.get('key')
     if not testcase_id:
       raise helpers.EarlyExitException('No testcase key provided.', 400)
@@ -620,6 +620,6 @@ class RefreshHandler(base_handler.Handler):
   @handler.post(handler.JSON, handler.JSON)
   @handler.oauth
   def post(self):
-    """Serve the testcase detail HTML page."""
+    """Serve the testcase detail JSON."""
     testcase_id = self.request.get('testcaseId')
     self.render_json(get_testcase_detail_by_id(testcase_id))

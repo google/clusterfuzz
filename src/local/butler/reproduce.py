@@ -15,15 +15,16 @@
 
 from __future__ import print_function
 from builtins import object
+from future import standard_library
+standard_library.install_aliases()
 
 from python.base import modules
 modules.fix_module_search_paths()
 
-import httplib2
 import os
 import tempfile
-import urllib
-import webbrowser
+
+from urllib import parse
 
 from base import json_utils
 from base import utils
@@ -34,36 +35,12 @@ from datastore import data_types
 from fuzzing import testcase_manager
 from local.butler import appengine
 from local.butler import common
+from local.butler.reproduce_tool import config
+from local.butler.reproduce_tool import errors
+from local.butler.reproduce_tool import http_utils
 from system import archive
 from system import environment
 from system import shell
-
-AUTHORIZATION_CACHE_FILE = os.path.join(
-    os.path.expanduser('~'), '.config', 'clusterfuzz', 'authorization-cache')
-
-# TODO(mbarbella): Client ID and domain should be configurable.
-OAUTH_URL = 'https://accounts.google.com/o/oauth2/v2/auth?%s' % (
-    urllib.urlencode({
-        'scope':
-            'email profile',
-        'client_id': ('981641712411-sj50drhontt4m3gjc3hordj'
-                      'mpc7bn50f.apps.googleusercontent.com'),
-        'response_type':
-            'code',
-        'redirect_uri':
-            'urn:ietf:wg:oauth:2.0:oob'
-    }))
-TESTCASE_DOWNLOAD_URL = ('https://clusterfuzz.com/testcase-detail/'
-                         'download-testcase?id={testcase_id}')
-TESTCASE_INFO_URL = 'https://clusterfuzz.com/reproduce-tool/testcase-info'
-
-_GET_METHOD = 'GET'
-_POST_METHOD = 'POST'
-
-
-class ReproduceToolException(Exception):
-  """Base class for reproduce tool exceptions."""
-  pass
 
 
 class SerializedTestcase(object):
@@ -87,89 +64,33 @@ class SerializedTestcase(object):
       return default
 
 
-class SuppressOutput(object):
-  """Suppress stdout and stderr.
-
-  We need this to suppress webbrowser's stdout and stderr."""
-
-  def __enter__(self):
-    self.stdout = os.dup(1)
-    self.stderr = os.dup(2)
-    os.close(1)
-    os.close(2)
-    os.open(os.devnull, os.O_RDWR)
-
-  def __exit__(self, *_):
-    os.dup2(self.stdout, 1)
-    os.dup2(self.stderr, 2)
-    return True
-
-
-def _get_authorization(force_reauthorization):
-  """Get the value for an oauth authorization header."""
-  # Try to read from cache unless we need to reauthorize.
-  if not force_reauthorization:
-    cached_authorization = utils.read_data_from_file(
-        AUTHORIZATION_CACHE_FILE, eval_data=False)
-    if cached_authorization:
-      return cached_authorization
-
-  # Prompt the user for a code if we don't have one or need a new one.
-  with SuppressOutput():
-    webbrowser.open(OAUTH_URL, new=1, autoraise=True)
-  verification_code = raw_input('Enter verification code: ')
-  return 'VerificationCode {code}'.format(code=verification_code)
-
-
-def _http_request(url,
-                  body=None,
-                  method=_POST_METHOD,
-                  force_reauthorization=False):
-  """Make a POST request to the specified URL."""
-  authorization = _get_authorization(force_reauthorization)
-  headers = {
-      'User-Agent': 'clusterfuzz-reproduce',
-      'Authorization': authorization
-  }
-
-  http = httplib2.Http()
-  request_body = json_utils.dumps(body) if body else ''
-  response, content = http.request(
-      url, method=method, headers=headers, body=request_body)
-
-  # If the server returns 401 we may need to reauthenticate. Try the request
-  # a second time if this happens.
-  if response.status == 401 and not force_reauthorization:
-    return _http_request(url, body, method=method, force_reauthorization=True)
-
-  if 'x-clusterfuzz-authorization' in response:
-    shell.create_directory(
-        os.path.dirname(AUTHORIZATION_CACHE_FILE), create_intermediates=True)
-    utils.write_data_to_file(response['x-clusterfuzz-authorization'],
-                             AUTHORIZATION_CACHE_FILE)
-
-  return response, content
-
-
-def _get_testcase(testcase_id):
+def _get_testcase(testcase_id, configuration):
   """Retrieve the json representation of the test case with the given id."""
-  response, content = _http_request(
-      TESTCASE_INFO_URL, body={'testcaseId': testcase_id})
+  response, content = http_utils.request(
+      configuration.get('testcase_info_url'),
+      body={'testcaseId': testcase_id},
+      configuration=configuration)
 
   if response.status != 200:
-    raise ReproduceToolException('Unable to fetch test case information.')
+    raise errors.ReproduceToolUnrecoverableError(
+        'Unable to fetch test case information.')
 
   testcase_map = json_utils.loads(content)
   return SerializedTestcase(testcase_map)
 
 
-def _download_testcase(testcase_id, testcase):
+def _download_testcase(testcase_id, testcase, configuration):
   """Download the test case and return its path."""
-  response, content = _http_request(
-      TESTCASE_DOWNLOAD_URL.format(testcase_id=testcase_id), method=_GET_METHOD)
+  testcase_download_url = '{url}?id={id}'.format(
+      url=configuration.get('testcase_download_url'), id=testcase_id)
+  response, content = http_utils.request(
+      testcase_download_url,
+      method=http_utils.GET_METHOD,
+      configuration=configuration)
 
   if response.status != 200:
-    raise ReproduceToolException('Unable to download test case.')
+    raise errors.ReproduceToolUnrecoverableError(
+        'Unable to download test case.')
 
   # Create a temporary directory where we can store the test case.
   bot_absolute_filename = response['x-goog-meta-filename']
@@ -199,11 +120,11 @@ def _download_testcase(testcase_id, testcase):
         break
 
     if not testcase_path:
-      raise ReproduceToolException('Test case file was not found in archive.\n'
-                                   'Original filename: {absolute_path}.\n'
-                                   'Archive contents: {file_list}'.format(
-                                       absolute_path=testcase.absolute_path,
-                                       file_list=file_list))
+      raise errors.ReproduceToolUnrecoverableError(
+          'Test case file was not found in archive.\n'
+          'Original filename: {absolute_path}.\n'
+          'Archive contents: {file_list}'.format(
+              absolute_path=testcase.absolute_path, file_list=file_list))
 
   return testcase_path
 
@@ -260,11 +181,39 @@ def _update_environment_for_testcase(testcase, build_directory):
       [environment.get_value('FUZZER_DIR'), build_directory])
 
 
-def _reproduce_crash(testcase_id, build_directory):
+def _get_testcase_id_from_url(testcase_url):
+  """Convert a testcase URL to a testcase ID."""
+  url_parts = parse.urlparse(testcase_url)
+  # Testcase urls have paths like "/testcase-detail/1234567890", where the
+  # number is the testcase ID.
+  path_parts = url_parts.path.split('/')
+
+  try:
+    testcase_id = int(path_parts[-1])
+  except (ValueError, IndexError):
+    testcase_id = 0
+
+  # Validate that the URL is correct.
+  if (len(path_parts) != 3 or path_parts[0] or
+      path_parts[1] != 'testcase-detail' or not testcase_id):
+    raise errors.ReproduceToolUnrecoverableError(
+        'Invalid testcase URL {url}. Expected format: '
+        'https://clusterfuzz-deployment/testcase-detail/1234567890'.format(
+            url=testcase_url))
+
+  return testcase_id
+
+
+def _reproduce_crash(testcase_url, build_directory):
   """Reproduce a crash."""
   _prepare_initial_environment(build_directory)
-  testcase = _get_testcase(testcase_id)
-  testcase_path = _download_testcase(testcase_id, testcase)
+
+  # Validate the test case URL and fetch the tool's configuration.
+  testcase_id = _get_testcase_id_from_url(testcase_url)
+  configuration = config.ReproduceToolConfiguration(testcase_url)
+
+  testcase = _get_testcase(testcase_id, configuration)
+  testcase_path = _download_testcase(testcase_id, testcase, configuration)
   _update_environment_for_testcase(testcase, build_directory)
 
   timeout = environment.get_value('TEST_TIMEOUT')
@@ -281,7 +230,7 @@ def execute(args):
   """Attempt to reproduce a crash then report on the result."""
   try:
     result = _reproduce_crash(args.testcase, args.build_dir)
-  except ReproduceToolException as exception:
+  except errors.ReproduceToolUnrecoverableError as exception:
     print(exception)
     return
 
