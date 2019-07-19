@@ -37,6 +37,15 @@ from metrics import logs
 UNREPRODUCIBLE_CRASH_IGNORE_CRASH_TYPES = [
     'Hang', 'Out-of-memory', 'Stack-overflow', 'Timeout'
 ]
+TRIAGE_MESSAGE_KEY = 'triage_message'
+
+
+def _add_triage_message(testcase, message):
+  """Add a triage message."""
+  if testcase.get_metadata(TRIAGE_MESSAGE_KEY) == message:
+    # Message already exists, skip update.
+    return
+  testcase.set_metadata(TRIAGE_MESSAGE_KEY, message)
 
 
 def create_filed_bug_metadata(testcase):
@@ -209,6 +218,11 @@ def is_similar_bug_open_or_recently_closed(testcase, issue_tracker):
     # file another one.
     policy = issue_tracker_policy.get(issue_tracker.project)
     if policy.label('ignore') in issue.labels:
+      _add_triage_message(
+          testcase,
+          ('Skipping bug filing since similar testcase ({testcase_id} and '
+           'associated issue ({issue_id}) are blacklisted.').format(
+               testcase_id=similar_testcase.key.id(), issue_id=issue.id))
       return True
 
     # If the issue is recently closed, wait certain time period to make sure
@@ -217,6 +231,11 @@ def is_similar_bug_open_or_recently_closed(testcase, issue_tracker):
         issue.closed_time,
         compare_to=datetime.datetime.utcnow(),
         hours=data_types.MIN_ELAPSED_TIME_SINCE_FIXED)):
+      _add_triage_message(
+          testcase,
+          ('Delaying filing a bug since similar testcase '
+           '({testcase_id} and associated issue ({issue_id}) were just fixed.'
+          ).format(testcase_id=similar_testcase.key.id(), issue_id=issue.id))
       return True
 
   return False
@@ -288,6 +307,9 @@ class Handler(base_handler.Handler):
       # closed, skip filing a duplicate bug.
       if is_similar_bug_open_or_recently_closed(testcase, issue_tracker):
         continue
+
+      # Clean up old triage messages that would be not applicable now.
+      testcase.delete_metadata(TRIAGE_MESSAGE_KEY, update_testcase=False)
 
       # File the bug first and then create filed bug metadata.
       issue_filer.file_issue(testcase, issue_tracker)
