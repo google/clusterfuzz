@@ -48,8 +48,8 @@ class Handler(base_handler.Handler):
         'oauth_url':
             'https://accounts.google.com/o/oauth2/v2/auth?{}'.format(
                 urllib.parse.urlencode({
-                    'scope': 'email profile',
                     'client_id': client_id,
+                    'scope': 'email profile',
                     'response_type': 'code',
                     'redirect_uri': 'urn:ietf:wg:oauth:2.0:oob'
                 })),
