@@ -13,6 +13,9 @@
 # limitations under the License.
 """Allow users to configure the reproduce tool to point to this site."""
 
+from future import standard_library
+standard_library.install_aliases()
+
 import urllib
 
 from config import db_config
@@ -30,7 +33,7 @@ class Handler(base_handler.Handler):
     """Download the reproduce tool configuration json."""
     client_id = db_config.get_value('reproduce_tool_client_id')
     if not client_id:
-      self.render_json({'error': 'Reproduce tool not configured.'}, 500)
+      self.render_json({'error': 'Reproduce tool is not configured.'}, 500)
       return
 
     domain = data_handler.get_domain()
@@ -44,7 +47,7 @@ class Handler(base_handler.Handler):
                 domain=domain, handler='testcase-detail/download-testcase'),
         'oauth_url':
             'https://accounts.google.com/o/oauth2/v2/auth?{}'.format(
-                urllib.urlencode({
+                urllib.parse.urlencode({
                     'scope': 'email profile',
                     'client_id': client_id,
                     'response_type': 'code',

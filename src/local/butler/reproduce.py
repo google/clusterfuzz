@@ -15,12 +15,16 @@
 
 from __future__ import print_function
 from builtins import object
+from future import standard_library
+standard_library.install_aliases()
 
 from python.base import modules
 modules.fix_module_search_paths()
 
 import os
 import tempfile
+
+from urllib import parse
 
 from base import json_utils
 from base import utils
@@ -60,10 +64,10 @@ class SerializedTestcase(object):
       return default
 
 
-def _get_testcase(testcase_id):
+def _get_testcase(testcase_id, configuration):
   """Retrieve the json representation of the test case with the given id."""
   response, content = http_utils.request(
-      config.get('testcase_info_url'), body={'testcaseId': testcase_id})
+      configuration.get('testcase_info_url'), body={'testcaseId': testcase_id}, configuration=configuration)
 
   if response.status != 200:
     raise errors.ReproduceToolUnrecoverableError(
@@ -73,12 +77,12 @@ def _get_testcase(testcase_id):
   return SerializedTestcase(testcase_map)
 
 
-def _download_testcase(testcase_id, testcase):
+def _download_testcase(testcase_id, testcase, configuration):
   """Download the test case and return its path."""
   testcase_download_url = '{url}?id={id}'.format(
-      url=config.get('testcase_download_url'), id=testcase_id)
+      url=configuration.get('testcase_download_url'), id=testcase_id)
   response, content = http_utils.request(
-      testcase_download_url, method=http_utils.GET_METHOD)
+      testcase_download_url, method=http_utils.GET_METHOD, configuration=configuration)
 
   if response.status != 200:
     raise errors.ReproduceToolUnrecoverableError(
@@ -173,11 +177,40 @@ def _update_environment_for_testcase(testcase, build_directory):
       [environment.get_value('FUZZER_DIR'), build_directory])
 
 
-def _reproduce_crash(testcase_id, build_directory):
+def _get_testcase_id_from_url(testcase_url):
+  """Convert a testcase URL to a testcase ID."""
+  url_parts = parse.urlparse(testcase_url)
+  # Testcase urls have paths like "/testcase-detail/1234567890", where the
+  # number is the testcase ID.
+  path_parts = url_parts.path.split('/')
+
+  try:
+    testcase_id = int(path_parts[-1])
+  except (ValueError, IndexError):
+    testcase_id = 0
+
+  # Validate that the URL is correct.
+  if (len(path_parts) != 3 or
+      path_parts[0] or
+      path_parts[1] != 'testcase-detail' or
+      not testcase_id):
+    raise errors.ReproduceToolUnrecoverableError(
+        'Invalid testcase URL {url}. Expected format: '
+        'https://clusterfuzz-deployment/testcase-detail/1234567890')
+
+  return testcase_id
+
+
+def _reproduce_crash(testcase_url, build_directory):
   """Reproduce a crash."""
   _prepare_initial_environment(build_directory)
-  testcase = _get_testcase(testcase_id)
-  testcase_path = _download_testcase(testcase_id, testcase)
+
+  # Validate the test case URL and fetch the tool's configuration.
+  testcase_id = _get_testcase_id_from_url(testcase_url)
+  configuration = config.ReproduceToolConfiguration(testcase_url)
+
+  testcase = _get_testcase(testcase_id, configuration)
+  testcase_path = _download_testcase(testcase_id, testcase, configuration)
   _update_environment_for_testcase(testcase, build_directory)
 
   timeout = environment.get_value('TEST_TIMEOUT')

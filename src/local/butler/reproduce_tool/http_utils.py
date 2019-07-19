@@ -24,6 +24,10 @@ from system import shell
 GET_METHOD = 'GET'
 POST_METHOD = 'POST'
 
+CONFIG_DIRECTORY = os.path.join(
+    os.path.expanduser('~'), '.config', 'clusterfuzz')
+AUTHORIZATION_CACHE_FILE = os.path.join(CONFIG_DIRECTORY, 'authorization-cache')
+
 
 class SuppressOutput(object):
   """Suppress stdout and stderr.
@@ -43,21 +47,18 @@ class SuppressOutput(object):
     return True
 
 
-def _get_authorization(force_reauthorization):
+def _get_authorization(force_reauthorization, configuration):
   """Get the value for an oauth authorization header."""
-  # Avoid a circular import.
-  from local.butler.reproduce_tool import config
-
   # Try to read from cache unless we need to reauthorize.
   if not force_reauthorization:
     cached_authorization = utils.read_data_from_file(
-        config.AUTHORIZATION_CACHE_FILE, eval_data=False)
+        AUTHORIZATION_CACHE_FILE, eval_data=False)
     if cached_authorization:
       return cached_authorization
 
   # Prompt the user for a code if we don't have one or need a new one.
   with SuppressOutput():
-    webbrowser.open(config.get('oauth_url'), new=1, autoraise=True)
+    webbrowser.open(configuration.get('oauth_url'), new=1, autoraise=True)
   verification_code = raw_input('Enter verification code: ')
   return 'VerificationCode {code}'.format(code=verification_code)
 
@@ -66,11 +67,10 @@ def request(url,
             body=None,
             method=POST_METHOD,
             force_reauthorization=False,
-            authenticate=True):
-  """Make a POST request to the specified URL."""
-
-  if authenticate:
-    authorization = _get_authorization(force_reauthorization)
+            configuration=None):
+  """Make an HTTP request to the specified URL."""
+  if configuration:
+    authorization = _get_authorization(force_reauthorization, configuration)
     headers = {
         'User-Agent': 'clusterfuzz-reproduce',
         'Authorization': authorization
@@ -86,16 +86,13 @@ def request(url,
   # If the server returns 401 we may need to reauthenticate. Try the request
   # a second time if this happens.
   if response.status == 401 and not force_reauthorization:
-    return request(url, body, method=method, force_reauthorization=True)
+    return request(url, body, method=method, force_reauthorization=True, configuration=configuration)
 
   if 'x-clusterfuzz-authorization' in response:
-    # Avoid a circular import.
-    from local.butler.reproduce_tool import config
-
     shell.create_directory(
-        os.path.dirname(config.AUTHORIZATION_CACHE_FILE),
+        os.path.dirname(AUTHORIZATION_CACHE_FILE),
         create_intermediates=True)
     utils.write_data_to_file(response['x-clusterfuzz-authorization'],
-                             config.AUTHORIZATION_CACHE_FILE)
+                             AUTHORIZATION_CACHE_FILE)
 
   return response, content

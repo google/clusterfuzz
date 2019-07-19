@@ -266,20 +266,11 @@ def main():
   parser_reproduce = subparsers.add_parser(
       'reproduce', help='Reproduce a crash or error from a test case.')
   parser_reproduce.add_argument(
-      '--testcase', type=int, required=True, help='Testcase ID.')
+      '--testcase', required=True, help='Testcase URL.')
   parser_reproduce.add_argument(
       '--build-dir',
-      type=str,
       required=True,
       help='Build directory containing the target app and dependencies.')
-
-  parser_configure_reproduce = subparsers.add_parser(
-      'configure_reproduce', help='Configure the reproduce tool.')
-  parser_configure_reproduce.add_argument(
-      'url',
-      type=str,
-      help='URL of the ClusterFuzz deployment to connect to '
-      '(e.g. "clusterfuzz.com").')
 
   args = parser.parse_args()
 

@@ -13,52 +13,31 @@
 # limitations under the License.
 """Configuration helpers for the reproduce tool."""
 
-import os
+from future import standard_library
+standard_library.install_aliases()
+
+from urllib import parse
 
 from base import json_utils
-from base import memoize
-from base import utils
 from local.butler.reproduce_tool import errors
 from local.butler.reproduce_tool import http_utils
-from system import shell
 
-CONFIG_DIRECTORY = os.path.join(
-    os.path.expanduser('~'), '.config', 'clusterfuzz')
-AUTHORIZATION_CACHE_FILE = os.path.join(CONFIG_DIRECTORY, 'authorization-cache')
-CONFIG_URL_FILE = os.path.join(CONFIG_DIRECTORY, 'config-url')
+REPRODUCE_TOOL_CONFIG_HANDLER = '/reproduce-tool/get-config'
 
 
-def set_configuration_url(config_url):
-  """Configure the tool to connect to the specified domain."""
-  response, content = http_utils.request(
-      config_url, body={}, authenticate=False)
-  if response.status != 200 or not json_utils.loads(content):
-    return False
+class ReproduceToolConfiguration(object):
+  """Dynamically loaded configuration for the reproduce tool."""
 
-  shell.create_directory(CONFIG_DIRECTORY, create_intermediates=True)
-  utils.write_data_to_file(config_url, CONFIG_URL_FILE)
-  return True
+  def __init__(self, testcase_url):
+    testcase_url_parts = parse.urlparse(testcase_url)
+    config_url = testcase_url_parts._replace(path=REPRODUCE_TOOL_CONFIG_HANDLER).geturl()
+    response, content = http_utils.request(config_url, body={})
+    if response.status != 200:
+      assert False, (response, content)
+      raise errors.ReproduceToolUnrecoverableError('Failed to access server.')
 
+    self._config = json_utils.loads(content)
 
-@memoize.wrap(memoize.FifoInMemory(1))
-def _get_config():
-  """Get the current configuration from the server.
-
-  This is not stored to a file to avoid issues with server-side changes."""
-  config_url = utils.read_data_from_file(CONFIG_URL_FILE, eval_data=False)
-  if not config_url:
-    raise errors.ReproduceToolUnrecoverableError(
-        'The reproduce tool has not been configured.\n\n'
-        'Please run "butler.py configure_reproduce <url>".')
-
-  response, content = http_utils.request(
-      config_url, body={}, authenticate=False)
-  if response.status != 200:
-    raise errors.ReproduceToolUnrecoverableError('Unable to access the server.')
-
-  return json_utils.loads(content)
-
-
-def get(key):
-  """Get a config entry."""
-  return _get_config()[key]
+  def get(self, key):
+    """Get a config entry."""
+    return self._config[key]
