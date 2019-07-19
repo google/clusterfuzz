@@ -322,17 +322,16 @@ def get_component_revisions_dict(revision, job_type):
     return {}
 
   config = db_config.get()
-  component = data_handler.get_component_name(job_type)
-  project_name = data_handler.get_project_name(job_type)
-
   revision_info_url_format = db_config.get_value_for_job(
       config.revision_vars_url, job_type)
   if not revision_info_url_format:
     return None
 
+  project_name = data_handler.get_project_name(job_type)
   revisions_dict = {}
 
   if utils.is_chromium():
+    component = data_handler.get_component_name(job_type)
     repository = data_handler.get_repository_for_component(component)
     if repository and not _is_clank(revision_info_url_format):
       revision_hash = _git_commit_position_to_git_hash_for_chromium(
