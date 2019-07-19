@@ -32,9 +32,11 @@ def _execute(cmd):
   """Execute command and return output as an iterator."""
   proc = subprocess.Popen(
       cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
-  for line in iter(proc.stdout.readline, b''):
-    yield line
-  proc.kill()
+  try:
+    for line in iter(proc.stdout.readline, b''):
+      yield line
+  finally:
+    proc.kill()
 
 
 def get_launch_service_path():
