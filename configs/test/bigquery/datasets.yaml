@@ -221,6 +221,8 @@ resources:
         fields:
           - name: strategy_name
             type: STRING
+          - name: probability
+            type: FLOAT
           - name: probability_high_temperature
             type: FLOAT
           - name: probability_low_temperature
