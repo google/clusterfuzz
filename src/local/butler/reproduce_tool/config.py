@@ -30,7 +30,8 @@ class ReproduceToolConfiguration(object):
 
   def __init__(self, testcase_url):
     testcase_url_parts = parse.urlparse(testcase_url)
-    config_url = testcase_url_parts._replace(path=REPRODUCE_TOOL_CONFIG_HANDLER).geturl()
+    config_url = testcase_url_parts._replace(
+        path=REPRODUCE_TOOL_CONFIG_HANDLER).geturl()
     response, content = http_utils.request(config_url, body={})
     if response.status != 200:
       assert False, (response, content)

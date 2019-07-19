@@ -67,7 +67,9 @@ class SerializedTestcase(object):
 def _get_testcase(testcase_id, configuration):
   """Retrieve the json representation of the test case with the given id."""
   response, content = http_utils.request(
-      configuration.get('testcase_info_url'), body={'testcaseId': testcase_id}, configuration=configuration)
+      configuration.get('testcase_info_url'),
+      body={'testcaseId': testcase_id},
+      configuration=configuration)
 
   if response.status != 200:
     raise errors.ReproduceToolUnrecoverableError(
@@ -82,7 +84,9 @@ def _download_testcase(testcase_id, testcase, configuration):
   testcase_download_url = '{url}?id={id}'.format(
       url=configuration.get('testcase_download_url'), id=testcase_id)
   response, content = http_utils.request(
-      testcase_download_url, method=http_utils.GET_METHOD, configuration=configuration)
+      testcase_download_url,
+      method=http_utils.GET_METHOD,
+      configuration=configuration)
 
   if response.status != 200:
     raise errors.ReproduceToolUnrecoverableError(
@@ -190,10 +194,8 @@ def _get_testcase_id_from_url(testcase_url):
     testcase_id = 0
 
   # Validate that the URL is correct.
-  if (len(path_parts) != 3 or
-      path_parts[0] or
-      path_parts[1] != 'testcase-detail' or
-      not testcase_id):
+  if (len(path_parts) != 3 or path_parts[0] or
+      path_parts[1] != 'testcase-detail' or not testcase_id):
     raise errors.ReproduceToolUnrecoverableError(
         'Invalid testcase URL {url}. Expected format: '
         'https://clusterfuzz-deployment/testcase-detail/1234567890')

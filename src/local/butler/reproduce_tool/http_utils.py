@@ -86,12 +86,16 @@ def request(url,
   # If the server returns 401 we may need to reauthenticate. Try the request
   # a second time if this happens.
   if response.status == 401 and not force_reauthorization:
-    return request(url, body, method=method, force_reauthorization=True, configuration=configuration)
+    return request(
+        url,
+        body,
+        method=method,
+        force_reauthorization=True,
+        configuration=configuration)
 
   if 'x-clusterfuzz-authorization' in response:
     shell.create_directory(
-        os.path.dirname(AUTHORIZATION_CACHE_FILE),
-        create_intermediates=True)
+        os.path.dirname(AUTHORIZATION_CACHE_FILE), create_intermediates=True)
     utils.write_data_to_file(response['x-clusterfuzz-authorization'],
                              AUTHORIZATION_CACHE_FILE)
 
