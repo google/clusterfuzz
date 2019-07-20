@@ -220,8 +220,8 @@ def is_similar_bug_open_or_recently_closed(testcase, issue_tracker):
     if policy.label('ignore') in issue.labels:
       _add_triage_message(
           testcase,
-          ('Skipping bug filing since similar testcase ({testcase_id}) and '
-           'associated issue ({issue_id}) are blacklisted.').format(
+          ('Skipping bug filing since similar testcase ({testcase_id}) in '
+           'issue ({issue_id}) is blacklisted.').format(
                testcase_id=similar_testcase.key.id(), issue_id=issue.id))
       return True
 
@@ -234,7 +234,7 @@ def is_similar_bug_open_or_recently_closed(testcase, issue_tracker):
       _add_triage_message(
           testcase,
           ('Delaying filing a bug since similar testcase '
-           '({testcase_id}) and associated issue ({issue_id}) were just fixed.'
+           '({testcase_id}) in issue ({issue_id}) was just fixed.'
           ).format(testcase_id=similar_testcase.key.id(), issue_id=issue.id))
       return True
 
