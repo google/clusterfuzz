@@ -1,0 +1,205 @@
+<!--
+  Copyright 2019 Google LLC
+
+  Licensed under the Apache License, Version 2.0 (the "License");
+  you may not use this file except in compliance with the License.
+  You may obtain a copy of the License at
+
+       http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+-->
+<link rel="import" href="../../bower_components/polymer/polymer.html">
+<link rel="import" href="../../bower_components/iron-ajax/iron-ajax.html">
+<link rel="import" href="../../bower_components/paper-spinner/paper-spinner.html">
+
+<dom-module id="testcase-variants">
+  <link rel="import" href="../../stylesheets/main.css" type="css">
+  <link rel="import" href="../technology/technology.css" type="css">
+  <script src="../../javascripts/error.js" type="text/javascript"></script>
+  <template>
+    <style>
+      :host {
+        display: block;
+      }
+
+      :host .section .title > div {
+        display: inline-block;
+      }
+
+      :host table.variant {
+        width: 100%;
+      }
+
+      :host table.variant tr.title td {
+        text-align: left;
+        font-size: 14px;
+        padding: 4px 6px;
+        background-color: #373b50;
+        color: #fff;
+        border-left: 1px dotted #ccc;
+        border-top: 1px dotted #ccc;
+      }
+
+      :host table.variant tr.title td {
+        text-transform: uppercase;
+      }
+
+      :host table.variant tr.title td:first-child {
+        border-left: 0px;
+      }
+
+      :host table.variant tr.body td {
+        padding: 4px 6px;
+        font-size: 14px;
+        vertical-align: top;
+        border-left: 1px dotted #777;
+        border-bottom: 1px dotted #777;
+      }
+
+      :host table.variant tr.body td:first-child {
+        border-left: 0px;
+      }
+
+      :host paper-spinner {
+        margin-right: 10px;
+        vertical-align: middle;
+      }
+
+      :host .error {
+        color: #ca4545;
+      }
+
+      :host .error .title {
+        display: block;
+        font-weight: bold;
+      }
+
+      :host .error .trace-dump {
+        display: block;
+        overflow: auto;
+        font-family: 'Source Code Pro', monospace;
+        white-space: pre;
+        margin-top: 10px;
+        font-size: 12px;
+      }
+
+      :host .title {
+        position: relative;
+      }
+    </style>
+    <iron-ajax
+        id="ajax"
+        url="/testcase-detail/testcase-variants"
+        method="GET"
+        content-type="application/json"
+        params="[[computeParams(info)]]"
+        loading="{{loading}}"
+        on-request="handleRequest"
+        last-request="{{request}}"
+        last-error="{{originalError}}"
+        last-response="{{response}}"
+        debounce-duration="300"></iron-ajax>
+    <div class="section">
+      <div class="title">
+        <div title="Get crash analysis for this testcase on other jobs (sanitizers, platforms, etc).">
+          Testcase analysis on other jobs
+        </div>
+      </div>
+      <template is="dom-if" if="[[loading]]">
+        <div class="body padding">
+          <paper-spinner active="[[loading]]"></paper-spinner>
+          Loading results...
+        </div>
+      </template>
+      <template is="dom-if" if="[[shouldShowError(error, loading)]]">
+        <div class="body error">
+          <span class="title">[[error.message]]</span>
+          <span class="trace-dump">[[error.traceDump]]</span>
+        </div>
+      </template>
+      <template is="dom-if" if="[[shouldShowresponse(response, loading)]]">
+        <table cellpadding="0" cellspacing="0" class="variant">
+            <template is="dom-if" if="[[nonEmpty(response.items)]]">
+                <tr class="title">
+                  <td>Job name</td>
+                  <td>Status</td>
+                  <td>Revision</td>
+                  <td>Crash type</td>
+                  <td>Crash State</td>
+                  <td>Security</td>
+                  <td>Similar</td>
+                </tr>
+                <template is="dom-repeat" items="[[response.items]]">
+                  <tr class="body">
+                    <td>[[item.job]]</td>
+                    <td>[[item.status]]</td>
+                    <td>[[item.revision]]</td>
+                    <td>[[item.crashType]]</td>
+                    <td>
+                      <template is="dom-repeat" items="[[item.crashStateLines]]" as="state">
+                        <div>[[state]]</div>
+                      </template>
+                    </td>
+                    <td>[[item.securityFlag]]</td>
+                    <td>[[item.isSimilar]]</td>
+                  </tr>
+                </template>
+            </template>
+        </table>
+        <template is="dom-if" if="[[!nonEmpty(response.items)]]">
+          <div class="body padding">
+            No variants found.
+          </div>
+        </template>
+      </template>
+    </div>
+  </template>
+  <script>
+    Polymer({
+      is: 'testcase-variants',
+      properties: {
+        info: Object,
+        response: Object,
+        originalError: Object,
+        error: Object,
+        request: Object,
+        loading: Boolean
+      },
+      observers: ['computeError(originalError)', 'infoChanged(info)'],
+      infoChanged(info) {
+        setTimeout(() => { this.$.ajax.generateRequest(); }, 1);
+      },
+      shouldShowError(error, loading) {
+        return error && !loading;
+      },
+      computeError(originalError) {
+        this.error = parseError(originalError);
+      },
+      shouldShowresponse(response, loading) {
+        return response && !loading;
+      },
+      nonEmpty(items) {
+        return items && items.length > 0;
+      },
+      computeParams(info) {
+        return {
+          testcaseId: info.testcase.id,
+        };
+      },
+      handleRequest() {
+        var reqs = this.$.ajax.activeRequests;
+        for (var i=0;i<reqs.length;i++) {
+          if (reqs[i] != this.request) {
+            reqs[i].abort();
+          }
+        }
+      }
+    });
+  </script>
+</dom-module>
+

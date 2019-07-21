@@ -75,6 +75,7 @@ from handlers.testcase_detail import redo
 from handlers.testcase_detail import remove_duplicate
 from handlers.testcase_detail import remove_group
 from handlers.testcase_detail import remove_issue
+from handlers.testcase_detail import testcase_variants
 from handlers.testcase_detail import update_from_trunk
 from handlers.testcase_detail import update_issue
 
@@ -205,6 +206,7 @@ _ROUTES = [
     ('/testcase-detail/remove-duplicate', remove_duplicate.Handler),
     ('/testcase-detail/remove-issue', remove_issue.Handler),
     ('/testcase-detail/remove-group', remove_group.Handler),
+    ('/testcase-detail/testcase-variants', testcase_variants.Handler),
     ('/testcase-detail/update-from-trunk', update_from_trunk.Handler),
     ('/testcase-detail/update-issue', update_issue.Handler),
     ('/testcases', testcase_list.Handler),
