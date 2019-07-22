@@ -227,6 +227,9 @@ def _reproduce_crash(testcase_url, build_directory):
   # Get the return code and symbolized stacktrace before cleaning up.
   return_value = (result.is_crash(), result.get_stacktrace())
 
+  # Clean up the temporary root directory created in prepare environment.
+  shell.remove_directory(environment.get_value('ROOT_DIR'))
+
   return return_value
 
 
@@ -245,6 +248,3 @@ def execute(args):
 
   print('{status_message} Output:\n\n{output}'.format(
       status_message=status_message, output=stacktrace))
-
-  # Clean up the temporary root directory created in prepare environment.
-  shell.remove_directory(environment.get_value('ROOT_DIR'))
