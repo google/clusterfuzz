@@ -26,6 +26,7 @@ class Handler(base_handler.Handler):
   """Manage data bundles."""
 
   @handler.unsupported_on_local_server
+  @handler.check_admin_access_if_oss_fuzz
   @handler.check_user_access(need_privileged_access=False)
   @handler.get(handler.HTML)
   def get(self):

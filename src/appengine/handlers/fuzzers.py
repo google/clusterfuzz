@@ -39,6 +39,7 @@ ARCHIVE_READ_SIZE_LIMIT = 16 * 1024 * 1024
 class Handler(base_handler.Handler):
   """Manages fuzzers."""
 
+  @handler.check_admin_access_if_oss_fuzz
   @handler.check_user_access(need_privileged_access=False)
   @handler.get(handler.HTML)
   def get(self):
