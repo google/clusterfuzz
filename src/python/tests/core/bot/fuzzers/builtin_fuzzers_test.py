@@ -107,7 +107,8 @@ class BuiltinFuzzersSetupTest(fake_filesystem_unittest.TestCase):
 
     self.assertTrue(setup.update_fuzzer_and_data_bundles('libFuzzer'))
 
-    session = fuzz_task.FuzzingSession('libFuzzer', 'job', '/output', 1)
+    session = fuzz_task.FuzzingSession('libFuzzer', 'job', 1)
+    session.testcase_directory = '/output'
     session.data_directory = '/input'
 
     (error_occurred, testcase_file_paths, sync_corpus_directory,
@@ -134,7 +135,8 @@ class BuiltinFuzzersSetupTest(fake_filesystem_unittest.TestCase):
     self.mock.run.side_effect = builtin.BuiltinFuzzerException()
     self.assertTrue(setup.update_fuzzer_and_data_bundles('libFuzzer'))
 
-    session = fuzz_task.FuzzingSession('libFuzzer', 'job', '/output', 1)
+    session = fuzz_task.FuzzingSession('libFuzzer', 'job', 1)
+    session.testcase_directory = '/output'
     session.data_directory = '/input'
 
     with self.assertRaises(builtin.BuiltinFuzzerException):
