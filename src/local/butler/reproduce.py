@@ -180,6 +180,12 @@ def _update_environment_for_testcase(testcase, build_directory):
   build_manager.set_environment_vars(
       [environment.get_value('FUZZER_DIR'), build_directory])
 
+  # Avoid killing the "chrome" application for the user running the tool, as it
+  # will commonly be open on the side. We expect the tool to properly terminate
+  # instances it launches regardless.
+  if environment.get_value('APP_NAME') == 'chrome':
+    environment.set_value('KILL_PROCESS_MATCHING_APP_NAME', 'False')
+
 
 def _get_testcase_id_from_url(testcase_url):
   """Convert a testcase URL to a testcase ID."""
@@ -220,24 +226,27 @@ def _reproduce_crash(testcase_url, build_directory):
   result = testcase_manager.test_for_crash_with_retries(testcase, testcase_path,
                                                         timeout)
 
+  # Get the return code and symbolized stacktrace before cleaning up.
+  return_value = (result.is_crash(), result.get_stacktrace())
+
   # Clean up the temporary root directory created in prepare environment.
   shell.remove_directory(environment.get_value('ROOT_DIR'))
 
-  return result
+  return return_value
 
 
 def execute(args):
   """Attempt to reproduce a crash then report on the result."""
   try:
-    result = _reproduce_crash(args.testcase, args.build_dir)
+    is_crash, stacktrace = _reproduce_crash(args.testcase, args.build_dir)
   except errors.ReproduceToolUnrecoverableError as exception:
     print(exception)
     return
 
-  if result.is_crash():
+  if is_crash:
     status_message = 'Test case reproduced successfully.'
   else:
     status_message = 'Unable to reproduce desired crash.'
 
   print('{status_message} Output:\n\n{output}'.format(
-      status_message=status_message, output=result.get_stacktrace()))
+      status_message=status_message, output=stacktrace))
