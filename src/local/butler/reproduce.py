@@ -162,6 +162,10 @@ def _prepare_initial_environment(build_directory):
   environment.set_value('BUILD_DIR', build_directory)
   environment.set_value('BUILDS_DIR', build_directory)
 
+  # Avoid kililng the application we're testing as developers may have it
+  # running on the side.
+  environment.set_value('KILL_PROCESSES_MATCHING_APP_NAME', 'False')
+
 
 def _update_environment_for_testcase(testcase, build_directory):
   """Update environment variables that depend on the test case."""
@@ -220,10 +224,14 @@ def _reproduce_crash(testcase_url, build_directory):
   result = testcase_manager.test_for_crash_with_retries(testcase, testcase_path,
                                                         timeout)
 
-  # Clean up the temporary root directory created in prepare environment.
-  shell.remove_directory(environment.get_value('ROOT_DIR'))
-
   return result
+
+
+def _cleanup():
+  """Clean up after running the tool."""
+  temp_directory = environment.get_value('ROOT_DIR')
+  assert 'tmp' in temp_directory
+  shell.remove_directory(temp_directory)
 
 
 def execute(args):
@@ -241,3 +249,4 @@ def execute(args):
 
   print('{status_message} Output:\n\n{output}'.format(
       status_message=status_message, output=result.get_stacktrace()))
+  _cleanup()

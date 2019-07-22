@@ -500,14 +500,17 @@ def terminate_stale_application_instances():
 
   additional_process_to_kill = environment.get_value(
       'ADDITIONAL_PROCESSES_TO_KILL')
-  app_name = environment.get_value('APP_NAME')
   builds_directory = environment.get_value('BUILDS_DIR')
   llvm_symbolizer_filename = environment.get_executable_filename(
       'llvm-symbolizer')
   platform = environment.platform()
   start_time = time.time()
 
-  processes_to_kill = [app_name]
+  processes_to_kill = []
+  if environment.get_value('KILL_PROCESSES_MATCHING_APP_NAME', True):
+    app_name = environment.get_value('APP_NAME')
+    processes_to_kill += [app_name]
+
   if additional_process_to_kill:
     processes_to_kill += additional_process_to_kill.split(' ')
   processes_to_kill = [x for x in processes_to_kill if x]
