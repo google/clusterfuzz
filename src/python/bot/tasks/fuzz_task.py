@@ -123,13 +123,20 @@ class Crash(object):
           'Unable to read stacktrace from file %s.' % crash.stack_file_path)
       return None
 
+    # If there are per-testcase additional flags, we need to store them.
+    additional_args = testcase_manager.get_additional_command_line_flags(
+        crash.file_path) or ''
+    app_args = environment.get_value('APP_ARGS') or ''
+    arguments = (app_args + ' ' + additional_args).strip()
+
     return Crash(
         file_path=crash.file_path,
         crash_time=crash.crash_time,
         return_code=crash.return_code,
         resource_list=crash.resource_list,
         gestures=crash.gestures,
-        unsymbolized_crash_stacktrace=orig_unsymbolized_crash_stacktrace)
+        unsymbolized_crash_stacktrace=orig_unsymbolized_crash_stacktrace,
+        arguments=arguments)
 
   @classmethod
   def from_engine_crash(cls, crash):
@@ -140,15 +147,17 @@ class Crash(object):
         return_code=1,
         resource_list=[],
         gestures=[],
-        unsymbolized_crash_stacktrace=crash.stacktrace)
+        unsymbolized_crash_stacktrace=crash.stacktrace,
+        arguments=crash.reproduce_args)
 
   def __init__(self, file_path, crash_time, return_code, resource_list,
-               gestures, unsymbolized_crash_stacktrace):
+               gestures, unsymbolized_crash_stacktrace, arguments):
     self.file_path = file_path
     self.crash_time = crash_time
     self.return_code = return_code
     self.resource_list = resource_list
     self.gestures = gestures
+    self.arguments = arguments
 
     self.security_flag = False
     self.should_be_ignored = False
@@ -852,15 +861,6 @@ def get_minidump_keys(crash_info):
   return ''
 
 
-def get_full_args(absolute_path):
-  """Get full arguments for running testcase."""
-  # If there are per-testcase additional flags, we need to store them.
-  additional_args = testcase_manager.get_additional_command_line_flags(
-      absolute_path) or ''
-  app_args = environment.get_value('APP_ARGS') or ''
-  return (app_args + ' ' + additional_args).strip()
-
-
 def get_testcase_timeout_multiplier(timeout_multiplier, crash, test_timeout,
                                     thread_wait_timeout):
   """Get testcase timeout multiplier."""
@@ -901,7 +901,7 @@ def create_testcase(group, context):
       timeout_multiplier=get_testcase_timeout_multiplier(
           context.timeout_multiplier, crash, context.test_timeout,
           context.thread_wait_timeout),
-      minimized_arguments=get_full_args(crash.absolute_path))
+      minimized_arguments=crash.arguments)
   testcase = data_handler.get_testcase_by_id(testcase_id)
 
   if context.fuzzer_metadata:

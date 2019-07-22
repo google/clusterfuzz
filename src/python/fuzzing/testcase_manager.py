@@ -507,6 +507,7 @@ def test_for_crash_with_retries(testcase,
 
   for round_number in range(1, crash_retries + 1):
     run_timeout = warmup_timeout if round_number == 1 else test_timeout
+    # TODO(ochang): Set up engine for greybox testcases.
     return_code, crash_time, output = process_handler.run_process(
         command,
         timeout=run_timeout,
