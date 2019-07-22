@@ -1141,7 +1141,7 @@ def get_strategy_distribution_from_ndb():
 class FuzzingSession(object):
   """Class for orchestrating fuzzing sessions."""
 
-  def __init__(self, fuzzer_name, job_type, testcase_directory, test_timeout):
+  def __init__(self, fuzzer_name, job_type, test_timeout):
     self.fuzzer_name = fuzzer_name
     self.job_type = job_type
 
@@ -1151,8 +1151,9 @@ class FuzzingSession(object):
     self.window_argument = pick_window_argument()
     self.test_timeout = set_test_timeout(test_timeout, self.timeout_multiplier)
 
-    self.testcase_directory = testcase_directory
-    self.data_directory = None  # Set up during run().
+    # Set up during run().
+    self.testcase_directory = None
+    self.data_directory = None
 
     # Fuzzing engine specific state.
     self.fuzz_target = None
@@ -1569,6 +1570,8 @@ class FuzzingSession(object):
       time.sleep(failure_wait_interval)
       return
 
+    self.testcase_directory = environment.get_value('FUZZ_INPUTS')
+
     # Set up a custom or regular build based on revision. By default, fuzzing
     # is done on trunk build (using revision=None). Otherwise, a job definition
     # can provide a revision to use via |APP_REVISION|.
@@ -1695,8 +1698,6 @@ class FuzzingSession(object):
 
 def execute_task(fuzzer_name, job_type):
   """Runs the given fuzzer for one round."""
-  testcase_directory = environment.get_value('FUZZ_INPUTS')
   test_timeout = environment.get_value('TEST_TIMEOUT')
-  session = FuzzingSession(fuzzer_name, job_type, testcase_directory,
-                           test_timeout)
+  session = FuzzingSession(fuzzer_name, job_type, test_timeout)
   session.run()
