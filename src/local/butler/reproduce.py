@@ -224,7 +224,8 @@ def _reproduce_crash(testcase_url, build_directory):
   result = testcase_manager.test_for_crash_with_retries(testcase, testcase_path,
                                                         timeout)
 
-  # Get the return code and symbolized stacktrace before cleaning up.
+  # TODO(mbarbella): Defer cleanup until after the result is used. This is
+  # currently handled this way to keep the tests self-contained.
   return_value = (result.is_crash(), result.get_stacktrace())
 
   # Clean up the temporary root directory created in prepare environment.
