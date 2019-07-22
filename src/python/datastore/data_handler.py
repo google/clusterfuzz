@@ -1246,6 +1246,23 @@ def get_entity_by_type_and_id(entity_type, entity_id):
 
 
 # ------------------------------------------------------------------------------
+# TestcaseVariant related functions
+# ------------------------------------------------------------------------------
+
+
+def get_testcase_variant(testcase_id, job_type):
+  """Get a testcase variant entity, and create if needed."""
+  testcase_id = int(testcase_id)
+  variant = data_types.TestcaseVariant.query(
+      data_types.TestcaseVariant.testcase_id == testcase_id,
+      data_types.TestcaseVariant.job_type == job_type).get()
+  if not variant:
+    variant = data_types.TestcaseVariant(
+        testcase_id=testcase_id, job_type=job_type)
+  return variant
+
+
+# ------------------------------------------------------------------------------
 # Fuzz target related functions
 # ------------------------------------------------------------------------------
 

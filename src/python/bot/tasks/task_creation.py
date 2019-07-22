@@ -171,6 +171,10 @@ def create_variant_tasks_if_needed(testcase):
     queue = tasks.queue_for_platform(job.platform)
     tasks.add_task('variant', testcase_id, job_type, queue)
 
+    variant = data_handler.get_testcase_variant(testcase_id, job_type)
+    variant.status = data_types.TestcaseVariantStatus.PENDING
+    variant.put()
+
 
 def create_symbolize_task_if_needed(testcase):
   """Creates a symbolize task if needed."""

@@ -42,6 +42,8 @@ TRIAGE_MESSAGE_KEY = 'triage_message'
 
 def _add_triage_message(testcase, message):
   """Add a triage message."""
+  # Re-fetch testcase to get latest entity and avoid race condition in updates.
+  testcase = data_handler.get_testcase_by_id(testcase.key.id())
   if testcase.get_metadata(TRIAGE_MESSAGE_KEY) == message:
     # Message already exists, skip update.
     return
@@ -234,8 +236,8 @@ def is_similar_bug_open_or_recently_closed(testcase, issue_tracker):
       _add_triage_message(
           testcase,
           ('Delaying filing a bug since similar testcase '
-           '({testcase_id}) in issue ({issue_id}) was just fixed.'
-          ).format(testcase_id=similar_testcase.key.id(), issue_id=issue.id))
+           '({testcase_id}) in issue ({issue_id}) was just fixed.').format(
+               testcase_id=similar_testcase.key.id(), issue_id=issue.id))
       return True
 
   return False

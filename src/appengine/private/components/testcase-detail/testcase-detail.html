@@ -28,6 +28,7 @@
 <link rel="import" href="find-similar-issues-panel.html">
 <link rel="import" href="redo-dialog.html">
 <link rel="import" href="refresh-button.html">
+<link rel="import" href="testcase-variants.html">
 <link rel="import" href="suspected-cls.html">
 <link rel="import" href="update-issue-dialog.html">
 
@@ -595,6 +596,8 @@
               max-hour="[[info.stats.max_hour]]"
               testcase-id="[[info.testcase.id]]"></crash-stats>
         </template>
+
+        <testcase-variants testcase-id="[[info.testcase.id]]"></testcase-variants>
 
         <template is="dom-if" if="[[info.metadata.gn_args]]">
           <div class="section">

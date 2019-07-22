@@ -24,18 +24,6 @@ from fuzzing import testcase_manager
 from system import environment
 
 
-def _get_testcase_variant_entity(testcase_id, job_type):
-  """Get a testcase variant entity, and create if needed."""
-  testcase_id = int(testcase_id)
-  variant = data_types.TestcaseVariant.query(
-      data_types.TestcaseVariant.testcase_id == testcase_id,
-      data_types.TestcaseVariant.job_type == job_type).get()
-  if not variant:
-    variant = data_types.TestcaseVariant(
-        testcase_id=testcase_id, job_type=job_type)
-  return variant
-
-
 def execute_task(testcase_id, job_type):
   """Run a test case with a different job type to see if they reproduce."""
   testcase = data_handler.get_testcase_by_id(testcase_id)
@@ -114,7 +102,7 @@ def execute_task(testcase_id, job_type):
         'last_tested_crash_revision', revision, update_testcase=False)
   else:
     # Regular case of variant analysis.
-    variant = _get_testcase_variant_entity(testcase_id, job_type)
+    variant = data_handler.get_testcase_variant(testcase_id, job_type)
     variant.status = status
     variant.revision = revision
     variant.crash_type = crash_type
