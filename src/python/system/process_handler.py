@@ -507,7 +507,7 @@ def terminate_stale_application_instances():
   start_time = time.time()
 
   processes_to_kill = []
-  if environment.get_value('KILL_PROCESS_MATCHING_APP_NAME', True):
+  if environment.get_value('KILL_PROCESSES_MATCHING_APP_NAME', True):
     app_name = environment.get_value('APP_NAME')
     processes_to_kill += [app_name]
 

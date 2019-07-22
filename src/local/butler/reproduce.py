@@ -162,6 +162,10 @@ def _prepare_initial_environment(build_directory):
   environment.set_value('BUILD_DIR', build_directory)
   environment.set_value('BUILDS_DIR', build_directory)
 
+  # Avoid kililng the application we're testing as developers may have it
+  # running on the side.
+  environment.set_value('KILL_PROCESSES_MATCHING_APP_NAME', 'False')
+
 
 def _update_environment_for_testcase(testcase, build_directory):
   """Update environment variables that depend on the test case."""
@@ -179,12 +183,6 @@ def _update_environment_for_testcase(testcase, build_directory):
 
   build_manager.set_environment_vars(
       [environment.get_value('FUZZER_DIR'), build_directory])
-
-  # Avoid killing the "chrome" application for the user running the tool, as it
-  # will commonly be open on the side. We expect the tool to properly terminate
-  # instances it launches regardless.
-  if environment.get_value('APP_NAME') == 'chrome':
-    environment.set_value('KILL_PROCESS_MATCHING_APP_NAME', 'False')
 
 
 def _get_testcase_id_from_url(testcase_url):
@@ -229,9 +227,6 @@ def _reproduce_crash(testcase_url, build_directory):
   # Get the return code and symbolized stacktrace before cleaning up.
   return_value = (result.is_crash(), result.get_stacktrace())
 
-  # Clean up the temporary root directory created in prepare environment.
-  shell.remove_directory(environment.get_value('ROOT_DIR'))
-
   return return_value
 
 
@@ -250,3 +245,6 @@ def execute(args):
 
   print('{status_message} Output:\n\n{output}'.format(
       status_message=status_message, output=stacktrace))
+
+  # Clean up the temporary root directory created in prepare environment.
+  shell.remove_directory(environment.get_value('ROOT_DIR'))
