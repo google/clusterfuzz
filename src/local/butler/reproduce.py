@@ -224,28 +224,29 @@ def _reproduce_crash(testcase_url, build_directory):
   result = testcase_manager.test_for_crash_with_retries(testcase, testcase_path,
                                                         timeout)
 
-  # TODO(mbarbella): Defer cleanup until after the result is used. This is
-  # currently handled this way to keep the tests self-contained.
-  return_value = (result.is_crash(), result.get_stacktrace())
+  return result
 
-  # Clean up the temporary root directory created in prepare environment.
-  shell.remove_directory(environment.get_value('ROOT_DIR'))
 
-  return return_value
+def _cleanup():
+  """Clean up after running the tool."""
+  temp_directory = environment.get_value('ROOT_DIR')
+  assert 'tmp' in temp_directory
+  shell.remove_directory(temp_directory)
 
 
 def execute(args):
   """Attempt to reproduce a crash then report on the result."""
   try:
-    is_crash, stacktrace = _reproduce_crash(args.testcase, args.build_dir)
+    result = _reproduce_crash(args.testcase, args.build_dir)
   except errors.ReproduceToolUnrecoverableError as exception:
     print(exception)
     return
 
-  if is_crash:
+  if result.is_crash():
     status_message = 'Test case reproduced successfully.'
   else:
     status_message = 'Unable to reproduce desired crash.'
 
   print('{status_message} Output:\n\n{output}'.format(
-      status_message=status_message, output=stacktrace))
+      status_message=status_message, output=result.get_stacktrace()))
+  _cleanup()

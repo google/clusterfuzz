@@ -66,6 +66,7 @@ class ReproduceTest(unittest.TestCase):
     """See if the reproduce tool can run a job configured to execute "echo"."""
     reproduce._reproduce_crash('https://localhost/testcase-detail/1',
                                '/path/to/binary')
+    reproduce._cleanup()
     self.mock.run_process.assert_called_with(
         '/path/to/binary/echo -n /tmp/testcase',
         current_working_directory='/path/to/binary',
