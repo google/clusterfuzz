@@ -102,7 +102,7 @@ def execute_task(testcase_id, job_type):
         'last_tested_crash_revision', revision, update_testcase=False)
   else:
     # Regular case of variant analysis.
-    variant = data_handler.get_testcase_variant_entity(testcase_id, job_type)
+    variant = data_handler.get_testcase_variant(testcase_id, job_type)
     variant.status = status
     variant.revision = revision
     variant.crash_type = crash_type

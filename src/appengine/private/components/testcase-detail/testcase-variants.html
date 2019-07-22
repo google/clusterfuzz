@@ -97,7 +97,7 @@
         url="/testcase-detail/testcase-variants"
         method="GET"
         content-type="application/json"
-        params="[[computeParams(info)]]"
+        params="[[computeParams(testcaseId)]]"
         loading="{{loading}}"
         on-request="handleRequest"
         last-request="{{request}}"
@@ -163,15 +163,15 @@
     Polymer({
       is: 'testcase-variants',
       properties: {
-        info: Object,
+        testcaseId: Number,
         response: Object,
         originalError: Object,
         error: Object,
         request: Object,
         loading: Boolean
       },
-      observers: ['computeError(originalError)', 'infoChanged(info)'],
-      infoChanged(info) {
+      observers: ['computeError(originalError)', 'testcaseIdChanged(testcaseId)'],
+      testcaseIdChanged(testcaseId) {
         setTimeout(() => { this.$.ajax.generateRequest(); }, 1);
       },
       shouldShowError(error, loading) {
@@ -186,9 +186,9 @@
       nonEmpty(items) {
         return items && items.length > 0;
       },
-      computeParams(info) {
+      computeParams(testcaseId) {
         return {
-          testcaseId: info.testcase.id,
+          testcaseId: testcaseId,
         };
       },
       handleRequest() {

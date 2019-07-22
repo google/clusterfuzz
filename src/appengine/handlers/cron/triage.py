@@ -42,6 +42,7 @@ TRIAGE_MESSAGE_KEY = 'triage_message'
 
 def _add_triage_message(testcase, message):
   """Add a triage message."""
+  # Re-fetch testcase to get latest entity and avoid race condition in updates.
   testcase = data_handler.get_testcase_by_id(testcase.key.id())
   if testcase.get_metadata(TRIAGE_MESSAGE_KEY) == message:
     # Message already exists, skip update.

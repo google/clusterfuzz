@@ -20,8 +20,7 @@ from libs import handler
 class Handler(base_handler.Handler):
   """Handler that return testcase variants."""
 
-  @staticmethod
-  def get_variants(testcase):
+  def get_variants(self, testcase):
     """Get testcase variants"""
 
     def _display_status(status):
