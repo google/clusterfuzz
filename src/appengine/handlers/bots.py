@@ -90,6 +90,7 @@ def _get_host_workers_heartbeats():
 class Handler(base_handler.Handler):
   """Handler that gets the bot list."""
 
+  @handler.check_admin_access_if_oss_fuzz
   @handler.check_user_access(need_privileged_access=False)
   @handler.get(handler.HTML)
   def get(self):
