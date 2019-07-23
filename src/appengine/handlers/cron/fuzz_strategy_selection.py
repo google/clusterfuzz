@@ -183,7 +183,7 @@ def _store_probabilities_in_bigquery(data):
     client.insert(bigquery_data)
   else:
     logs.log("No fuzz strategy distribution data was found to upload to "
-        "BigQuery.")
+             "BigQuery.")
 
 
 def _query_and_upload_strategy_probabilities():
