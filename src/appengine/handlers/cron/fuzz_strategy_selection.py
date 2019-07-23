@@ -175,10 +175,10 @@ def _store_probabilities_in_bigquery(data):
             row['run_count']
     }
     bigquery_data.append(big_query.Insert(row=bigquery_row, insert_id=None))
-
-  client = big_query.Client(
-      dataset_id='main', table_id='fuzz_strategy_experiments')
-  client.insert(bigquery_data)
+  if bigquery_data:
+    client = big_query.Client(
+        dataset_id='main', table_id='fuzz_strategy_experiments')
+    client.insert(bigquery_data)
 
 
 def _query_and_upload_strategy_probabilities():
