@@ -182,8 +182,8 @@ def _store_probabilities_in_bigquery(data):
         dataset_id='main', table_id='fuzz_strategy_experiments')
     client.insert(bigquery_data)
   else:
-  	logs.log("No fuzz strategy distribution data was found to upload to "
-  		"BigQuery.")
+    logs.log("No fuzz strategy distribution data was found to upload to "
+        "BigQuery.")
 
 
 def _query_and_upload_strategy_probabilities():
