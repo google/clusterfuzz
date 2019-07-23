@@ -27,6 +27,7 @@ from datastore import ndb_utils
 from google_cloud_utils import big_query
 from handlers import base_handler
 from libs import handler
+from metrics import logs
 
 HIGH_TEMPERATURE_PARAMETER = .75
 MEDIUM_TEMPERATURE_PARAMETER = .5
@@ -175,10 +176,14 @@ def _store_probabilities_in_bigquery(data):
             row['run_count']
     }
     bigquery_data.append(big_query.Insert(row=bigquery_row, insert_id=None))
+
   if bigquery_data:
     client = big_query.Client(
         dataset_id='main', table_id='fuzz_strategy_experiments')
     client.insert(bigquery_data)
+  else:
+  	logs.log("No fuzz strategy distribution data was found to upload to "
+  		"BigQuery.")
 
 
 def _query_and_upload_strategy_probabilities():
