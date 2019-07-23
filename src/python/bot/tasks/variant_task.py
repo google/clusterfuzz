@@ -35,6 +35,10 @@ def execute_task(testcase_id, job_type):
   if not file_list:
     return
 
+  # Initialize helper variables.
+  test_timeout = environment.get_value('TEST_TIMEOUT', 10)
+  revision = environment.get_value('APP_REVISION')
+
   # Set up a custom or regular build. We explicitly omit the crash revision
   # since we want to test against the latest build here.
   build_manager.setup_build()
@@ -52,8 +56,6 @@ def execute_task(testcase_id, job_type):
   # Reproduce the crash.
   command = testcase_manager.get_command_line_for_application(
       testcase_file_path, app_path=app_path, needs_http=testcase.http_flag)
-  test_timeout = environment.get_value('TEST_TIMEOUT', 10)
-  revision = environment.get_value('APP_REVISION')
   result = testcase_manager.test_for_crash_with_retries(
       testcase,
       testcase_file_path,

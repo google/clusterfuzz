@@ -62,9 +62,8 @@ def mark_unreproducible_if_flaky(testcase, potentially_flaky):
   # cron. This avoids calling the issue tracker apis from GCE.
 
   # For unreproducible testcases, it is still beneficial to get component
-  # information from blame task and if it is reproducible in other jobs.
+  # information from blame task.
   create_blame_task_if_needed(testcase)
-  create_variant_tasks_if_needed(testcase)
 
 
 def create_blame_task_if_needed(testcase):
@@ -200,9 +199,8 @@ def create_tasks(testcase):
   # For a non reproducible crash.
   if testcase.one_time_crasher_flag:
     # For unreproducible testcases, it is still beneficial to get component
-    # information from blame task and if it is reproducible in other jobs.
+    # information from blame task.
     create_blame_task_if_needed(testcase)
-    create_variant_tasks_if_needed(testcase)
     return
 
   # For a fully reproducible crash.
