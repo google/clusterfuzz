@@ -4,6 +4,26 @@ Change Log
 ## Next Version
 - Various bug fixes.
 
+## Version 1.4.0
+- Various bug fixes.
+- Implemented issue tracker policy and finishing the refactoring for supporting
+  different issue trackers.
+- Disabled external mutators (Radamsa and ML RNN) for fuzz targets built with
+  libprotobuf-mutator library.
+- Added support for auxiliary fuzzing builds (e.g. DFSan instrumented builds for
+  libFuzzer).
+- Refactored `build_manager` and `fuzz_task`.
+- Optimized performance of the most frequently used pages (Testcases and
+  Testcase Details).
+- Added explicit schema for the BigQuery import calls (used to load the fuzzer
+  stats data into BigQuery).
+- Added experimental implementation of the Multi-Armed Bandit algorithm for
+  fuzzing strategy selection.
+- Implemented `variant` task that runs testcases on different jobs in order to
+  provide more information about the bugs.
+- Implemented the new version of the reproduce tool, which currently works on
+  Linux.
+
 ## Version 1.3.0
 - Various bug fixes.
 - Fixed security severity listbox not working.
