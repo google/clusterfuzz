@@ -14,14 +14,21 @@
 """libFuzzer engine interface."""
 
 from bot.fuzzers import engine
+from bot.fuzzers.libFuzzer import fuzzer
+from bot.fuzzers.libFuzzer import launcher
+from bot.fuzzers.libFuzzer import strategy_selection
 
 
 class LibFuzzerOptions(engine.FuzzOptions):
   """LibFuzzer engine options."""
 
-  def __init__(self, corpus_dir, arguments, strategies):
-    super(LibFuzzerOptions, self).__init__(self, corpus_dir, arguments,
-                                           strategies)
+  def __init__(self, corpus_dir, arguments, strategies, additional_corpus_dirs,
+               extra_env, use_dataflow_tracing, is_mutations_run):
+    super(LibFuzzerOptions, self).__init__(corpus_dir, arguments, strategies)
+    self.additional_corpus_dirs = additional_corpus_dirs
+    self.extra_env = extra_env
+    self.use_dataflow_tracing = use_dataflow_tracing
+    self.is_mutations_run = is_mutations_run
 
 
 class LibFuzzerEngine(engine.Engine):
@@ -31,10 +38,20 @@ class LibFuzzerEngine(engine.Engine):
   def name(self):
     return 'libFuzzer'
 
-  def prepare(self, corpus_dir, target_path, build_dir):
+  def prepare(self, corpus_dir, target_path, _):
     """Prepare for a fuzzing session, by generating options. Returns a
     FuzzOptions object."""
-    raise NotImplementedError
+    arguments = fuzzer.get_arguments(target_path)
+    strategy_pool = strategy_selection.generate_weighted_strategy_pool()
+    strategy_info = launcher.pick_strategies(strategy_pool, target_path,
+                                             corpus_dir, arguments)
+
+    arguments.extend(strategy_info.arguments)
+
+    return LibFuzzerOptions(
+        corpus_dir, arguments, strategy_info.fuzzing_strategies,
+        strategy_info.additional_corpus_dirs, strategy_info.extra_env,
+        strategy_info.use_dataflow_tracing, strategy_info.is_mutations_run)
 
   def fuzz(self, target_path, options, max_time):
     """Run a fuzz session. Returns a Result."""
