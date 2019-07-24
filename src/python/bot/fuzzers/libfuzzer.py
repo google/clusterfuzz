@@ -551,6 +551,10 @@ def get_runner(fuzzer_path, temp_dir=None):
   use_minijail = environment.get_value('USE_MINIJAIL')
   build_dir = environment.get_value('BUILD_DIR')
   dataflow_build_dir = environment.get_value('DATAFLOW_BUILD_DIR')
+
+  # To ensure that we can run the fuzz target.
+  os.chmod(fuzzer_path, stat.S_IRWXU | stat.S_IRGRP | stat.S_IXGRP)
+
   if use_minijail:
     # Set up chroot and runner.
     if environment.is_chromeos_system_job():
