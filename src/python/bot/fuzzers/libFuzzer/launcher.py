@@ -31,7 +31,6 @@ import random
 import re
 import shutil
 import signal
-import stat
 import string
 import sys
 import time
