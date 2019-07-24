@@ -25,7 +25,6 @@ import tempfile
 from base import retry
 from bot.fuzzers import engine_common
 from bot.fuzzers.libFuzzer import constants
-from crash_analysis import crash_analyzer
 from platforms import fuchsia
 from platforms.fuchsia.util.device import Device
 from platforms.fuchsia.util.fuzzer import Fuzzer
