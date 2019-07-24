@@ -160,10 +160,12 @@ def initialize_resources_dir():
                                  'resources: ' + result.output)
 
   # Chmod the symbolizers so they can be used easily.
-  symbolizer_path = os.path.join(fuchsia_resources_dir, 'build', 'zircon', 'prebuilt', 'downloads', 'symbolize', 'linux-x64', 'symbolize')
-  llvm_symbolizer_path = os.path.join(fuchsia_resources_dir, 'build', 'buildtools', 'linux-x64', 'clang', 'bin', 'llvm-symbolizer')
-  with open("/usr/local/google/home/flowerhack/welcome2.txt", "a") as file:
-    file.write("i chmodded " + str(llvm_symbolizer_path) + "\n")
+  symbolizer_path = os.path.join(fuchsia_resources_dir, 'build', 'zircon',
+                                 'prebuilt', 'downloads', 'symbolize',
+                                 'linux-x64', 'symbolize')
+  llvm_symbolizer_path = os.path.join(fuchsia_resources_dir, 'build',
+                                      'buildtools', 'linux-x64', 'clang', 'bin',
+                                      'llvm-symbolizer')
   os.chmod(symbolizer_path, 0o111)
   os.chmod(llvm_symbolizer_path, 0o111)
 

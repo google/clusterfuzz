@@ -1010,7 +1010,7 @@ def get_crash_data(crash_data, symbolize_flag=True):
     # stacktrace.
     crash_stacktrace_with_inlines = crash_data
     crash_stacktrace_without_inlines = crash_data
-  
+
   # TODO(flowerhack): Fuchsia-specific stacktrace code goes here.
 
   # Compose the StackAnalyzerState object.

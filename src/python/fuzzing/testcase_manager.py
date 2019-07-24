@@ -294,7 +294,7 @@ def run_testcase(thread_index, file_path, gestures, env_copy):
     command = get_command_line_for_application(
         file_path, user_profile_index=thread_index, needs_http=needs_http)
 
-    # Run testcase. 
+    # Run testcase.
     return process_handler.run_process(
         command,
         timeout=test_timeout,

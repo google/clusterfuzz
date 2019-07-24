@@ -17,6 +17,7 @@ from __future__ import print_function
 from builtins import object
 import copy
 import os
+import re
 import shutil
 import stat
 import tempfile
@@ -348,7 +349,8 @@ class FuchsiaQemuLibFuzzerRunner(new_process.ProcessRunner, LibFuzzerCommon):
       raise fuchsia.errors.FuchsiaConfigError(
           ('FUCHSIA_PKEY_PATH, FUCHSIA_PORTNUM, or FUCHSIA_RESOURCES_DIR was '
            'not set'))
-    fuchsia_resources_dir_plus_build = os.path.join(fuchsia_resources_dir, self.FUCHSIA_BUILD_REL_PATH)
+    fuchsia_resources_dir_plus_build = os.path.join(fuchsia_resources_dir,
+                                                    self.FUCHSIA_BUILD_REL_PATH)
     self.host = Host.from_dir(fuchsia_resources_dir_plus_build)
     self.device = Device(self.host, 'localhost', fuchsia_portnum)
     self.device.set_ssh_option('StrictHostKeyChecking no')
@@ -357,8 +359,10 @@ class FuchsiaQemuLibFuzzerRunner(new_process.ProcessRunner, LibFuzzerCommon):
     # Fuchsia fuzzer names have the format {package_name}/{binary_name}.
     # TODO(ochang): Properly handle fuzzers with '/' in the binary name.
     package, target = environment.get_value('FUZZ_TARGET').split('/')
-    test_data_dir = os.path.join(fuchsia_resources_dir_plus_build, "test_data", "fuzzing", package, target)
-    self.fuzzer = Fuzzer(self.device, package, target, output=test_data_dir, foreground=True)
+    test_data_dir = os.path.join(fuchsia_resources_dir_plus_build, "test_data",
+                                 "fuzzing", package, target)
+    self.fuzzer = Fuzzer(
+        self.device, package, target, output=test_data_dir, foreground=True)
 
     super(FuchsiaQemuLibFuzzerRunner, self).__init__(
         executable_path=executable_path, default_args=default_args)
@@ -369,8 +373,10 @@ class FuchsiaQemuLibFuzzerRunner(new_process.ProcessRunner, LibFuzzerCommon):
     return self.ssh_command('ls')
 
   def fetch_and_process_logs_and_crash(self):
+    """Fetch symbolized logs and crashes."""
     # Get the crash from the device.
-    self.device.fetch(self.fuzzer.data_path('crash*'), self.fuzzer.results_output())
+    self.device.fetch(
+        self.fuzzer.data_path('crash*'), self.fuzzer.results_output())
 
     for log in os.listdir(self.fuzzer.results_output()):
       if log.startswith('fuzz-0.log'):
@@ -381,16 +387,19 @@ class FuchsiaQemuLibFuzzerRunner(new_process.ProcessRunner, LibFuzzerCommon):
     # This doesn't work in our case due to how Fuchsia is run.
     # So, we make a new file, change the appropriate line with a regex to point
     # to the true location. Apologies for the hackery.
-    import re
     crash_testcase_file_path = None
-    for file in os.listdir(self.fuzzer.results_output()):
-      if os.path.isfile(os.path.join(self.fuzzer.results_output(), file)) and 'crash-' in file:
-        crash_testcase_file_path = os.path.join(self.fuzzer.results_output(),file)
-    new_file_handle, new_file_handle_path = tempfile.mkstemp()
+    for outfile in os.listdir(self.fuzzer.results_output()):
+      if os.path.isfile(os.path.join(self.fuzzer.results_output(),
+                                     outfile)) and 'crash-' in outfile:
+        crash_testcase_file_path = os.path.join(self.fuzzer.results_output(),
+                                                outfile)
+    _, new_file_handle_path = tempfile.mkstemp()
     with open(new_file_handle_path, 'w') as new_file:
       with open(self.fuzzer.results_output('fuzz-0.log')) as old_file:
         for line in old_file:
-          new_text, num_replacements = re.subn(r"(.*)(Test unit written to )(data/.*)", r"\1\2" + crash_testcase_file_path, line)
+          new_text, num_replacements = re.subn(
+              r"(.*)(Test unit written to )(data/.*)",
+              r"\1\2" + crash_testcase_file_path, line)
           if num_replacements > 0:
             new_file.write(new_text)
           else:
@@ -411,8 +420,8 @@ class FuchsiaQemuLibFuzzerRunner(new_process.ProcessRunner, LibFuzzerCommon):
 
     # Checking for is_crash here, instead of a more conventional location,
     # since we're having to manually construct a ProcessResult.
-    with open(self.fuzzer.results_output('fuzz-0.log')) as file:
-      symbolized_output = file.read()
+    with open(self.fuzzer.results_output('fuzz-0.log')) as logfile:
+      symbolized_output = logfile.read()
     is_crash = crash_analyzer.is_memory_tool_crash(symbolized_output)
 
     # TODO(flowerhack): Would be nice if we could figure out a way to make
