@@ -164,6 +164,25 @@ class FileSystemProviderTests(fake_filesystem_unittest.TestCase):
         'metadata': {}
     }], result)
 
+    result = list(
+        self.provider.list_blobs('gs://test-bucket/', recursive=False))
+    self.assertItemsEqual([{
+        'bucket': 'test-bucket',
+        'name': 'a',
+        'updated': mtime,
+        'size': 11,
+        'metadata': {}
+    }, {
+        'bucket': 'test-bucket',
+        'name': 'f',
+        'updated': mtime,
+        'size': 44,
+        'metadata': {}
+    }, {
+        'bucket': 'test-bucket',
+        'name': 'b',
+    }], result)
+
   def test_copy_file_from(self):
     """Test copy_file_from."""
     self.fs.CreateFile('/local/test-bucket/objects/a', contents='a')

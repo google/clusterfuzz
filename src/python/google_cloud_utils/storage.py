@@ -104,7 +104,7 @@ class StorageProvider(object):
     """Get a bucket."""
     raise NotImplementedError
 
-  def list_blobs(self, remote_path):
+  def list_blobs(self, remote_path, recursive=True):
     """List the blobs under the remote path."""
     raise NotImplementedError
 
@@ -177,7 +177,7 @@ class GcsProvider(StorageProvider):
 
       raise
 
-  def list_blobs(self, remote_path):
+  def list_blobs(self, remote_path, recursive=True):
     """List the blobs under the remote path."""
     bucket_name, path = get_bucket_name_and_path(remote_path)
 
@@ -188,13 +188,25 @@ class GcsProvider(StorageProvider):
     bucket = client.bucket(bucket_name)
     properties = {}
 
-    for blob in bucket.list_blobs(prefix=path):
+    if recursive:
+      delimiter = None
+    else:
+      delimiter = '/'
+
+    iterator = bucket.list_blobs(prefix=path, delimiter=delimiter)
+    for blob in iterator:
       properties['bucket'] = bucket_name
       properties['name'] = blob.name
       properties['updated'] = blob.updated
       properties['size'] = blob.size
 
       yield properties
+
+    if not recursive:
+      for prefix in iterator.prefixes:
+        properties['bucket'] = bucket_name
+        properties['name'] = prefix
+        yield properties
 
   def copy_file_from(self, remote_path, local_path):
     """Copy file from a remote path to a local path."""
@@ -325,18 +337,22 @@ class FileSystemProvider(StorageProvider):
     bucket, path = get_bucket_name_and_path(remote_path)
     fs_path = self.convert_path(remote_path)
 
-    return {
-        'bucket':
-            bucket,
-        'name':
-            path,
-        'updated':
-            datetime.datetime.utcfromtimestamp(os.stat(fs_path).st_mtime),
-        'size':
-            os.path.getsize(fs_path),
-        'metadata':
-            self._get_metadata(bucket, path),
+    data = {
+        'bucket': bucket,
+        'name': path,
     }
+
+    if not os.path.isdir(fs_path):
+      data.update({
+          'updated':
+              datetime.datetime.utcfromtimestamp(os.stat(fs_path).st_mtime),
+          'size':
+              os.path.getsize(fs_path),
+          'metadata':
+              self._get_metadata(bucket, path),
+      })
+
+    return data
 
   def _get_metadata(self, bucket, path):
     """Get the metadata for a given object."""
@@ -407,18 +423,32 @@ class FileSystemProvider(StorageProvider):
         'name': name,
     }
 
-  def list_blobs(self, remote_path):
+  def _list_files_recursive(self, fs_path):
+    """List files recursively."""
+    for root, _, filenames in os.walk(fs_path):
+      for filename in filenames:
+        yield os.path.join(root, filename)
+
+  def _list_files_nonrecursive(self, fs_path):
+    """List files non-recursively."""
+    for filename in os.listdir(fs_path):
+      yield os.path.join(fs_path, filename)
+
+  def list_blobs(self, remote_path, recursive=True):
     """List the blobs under the remote path."""
     bucket, _ = get_bucket_name_and_path(remote_path)
     fs_path = self.convert_path(remote_path)
 
-    for root, _, filenames in os.walk(fs_path):
-      for filename in filenames:
-        fs_path = os.path.join(root, filename)
-        path = os.path.relpath(fs_path, self._fs_objects_dir(bucket))
+    if recursive:
+      file_paths = self._list_files_recursive(fs_path)
+    else:
+      file_paths = self._list_files_nonrecursive(fs_path)
 
-        yield self._get_object_properties(
-            get_cloud_storage_file_path(bucket, path))
+    for fs_path in file_paths:
+      path = os.path.relpath(fs_path, self._fs_objects_dir(bucket))
+
+      yield self._get_object_properties(
+          get_cloud_storage_file_path(bucket, path))
 
   def copy_file_from(self, remote_path, local_path):
     """Copy file from a remote path to a local path."""
@@ -816,9 +846,9 @@ def write_data(data, cloud_storage_file_path, metadata=None):
     retries=DEFAULT_FAIL_RETRIES,
     delay=DEFAULT_FAIL_WAIT,
     function='google_cloud_utils.storage.list_blobs')
-def list_blobs(cloud_storage_path):
+def list_blobs(cloud_storage_path, recursive=True):
   """Return list of blobs under the given cloud storage path."""
-  for blob in _provider().list_blobs(cloud_storage_path):
+  for blob in _provider().list_blobs(cloud_storage_path, recursive=recursive):
     yield blob['name']
 
 
