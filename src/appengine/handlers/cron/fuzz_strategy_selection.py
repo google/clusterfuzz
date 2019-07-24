@@ -29,9 +29,9 @@ from handlers import base_handler
 from libs import handler
 from metrics import logs
 
-HIGH_TEMPERATURE_PARAMETER = .75
-MEDIUM_TEMPERATURE_PARAMETER = .5
-LOW_TEMPERATURE_PARAMETER = .25
+HIGH_TEMPERATURE_PARAMETER = .5
+MEDIUM_TEMPERATURE_PARAMETER = .25
+LOW_TEMPERATURE_PARAMETER = .15
 
 # BigQuery query for calculating multi-armed bandit probabilities for
 # various strategies using a Boltzman Exploration (softmax) model.
@@ -118,7 +118,7 @@ BANDIT_PROBABILITY_SUBQUERY = """
             DATE_DIFF(CAST(CURRENT_TIMESTAMP() AS DATE), CAST(_PARTITIONTIME AS DATE), DAY) < 6 )
         WHERE
           /* Filter for unstable targets. */
-          fuzzer_stddev < 150)
+          fuzzer_stddev < 50)
       WHERE
         strategy_selection_method = "multi_armed_bandit_{temperature_type}"
       GROUP BY
