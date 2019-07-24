@@ -46,25 +46,22 @@ BANDIT_PROBABILITY_SUBQUERY = """
 (SELECT
     /* Calculate bandit weights from calculated exponential values. */
     strategy,
-    strategy_exp / exp_sum AS bandit_weight_{temperature_type}_temperature,
-    run_count,
-    strategy_selection_method
+    strategy_exp / exp_sum AS bandit_weight,
+    run_count
   FROM (
     SELECT
       EXP(strategy_avg_edges / temperature) AS strategy_exp,
       SUM(EXP(strategy_avg_edges / temperature)) OVER() AS exp_sum,
       strategy,
-      run_count,
-      strategy_selection_method
+      run_count
     FROM (
       SELECT
         /* Standardize the new edges data and take averages per strategy. */
         AVG((new_edges - overall_avg_new_edges) / overall_stddev_new_edges) AS strategy_avg_edges,
         strategy,
         /* Change temperature parameter here. */
-        {temperature_value} AS temperature,
-        COUNT(*) AS run_count,
-        "multi_armed_bandit_{temperature_type}" AS strategy_selection_method
+        .25 AS temperature,
+        COUNT(*) AS run_count
       FROM (
         SELECT
           fuzzer,
@@ -118,11 +115,9 @@ BANDIT_PROBABILITY_SUBQUERY = """
             DATE_DIFF(CAST(CURRENT_TIMESTAMP() AS DATE), CAST(_PARTITIONTIME AS DATE), DAY) < 6 )
         WHERE
           /* Filter for unstable targets. */
-          fuzzer_stddev < 150)
-      WHERE
-        strategy_selection_method = "multi_armed_bandit_{temperature_type}"
+          fuzzer_stddev < 50)
       GROUP BY
-        strategy)))
+        strategy)) ORDER BY bandit_weight DESC)
 """
 BANDIT_PROBABILITY_QUERY = """
 SELECT
@@ -143,16 +138,7 @@ def _query_multi_armed_bandit_probabilities():
   Queries above BANDIT_PROBABILITY_QUERY and yields results
   from bigquery. This query is sorted by strategies implemented."""
   client = big_query.Client()
-  formatted_query = BANDIT_PROBABILITY_QUERY.format(
-      high_temperature_query=BANDIT_PROBABILITY_SUBQUERY.format(
-          temperature_type='high',
-          temperature_value=HIGH_TEMPERATURE_PARAMETER),
-      low_temperature_query=BANDIT_PROBABILITY_SUBQUERY.format(
-          temperature_type='low', temperature_value=LOW_TEMPERATURE_PARAMETER),
-      medium_temperature_query=BANDIT_PROBABILITY_SUBQUERY.format(
-          temperature_type='medium',
-          temperature_value=MEDIUM_TEMPERATURE_PARAMETER))
-  return client.query(query=formatted_query).rows
+  return client.query(query=BANDIT_PROBABILITY_SUBQUERY).rows
 
 
 def _store_probabilities_in_bigquery(data):
@@ -164,16 +150,11 @@ def _store_probabilities_in_bigquery(data):
   # implementation.
   for row in data:
     bigquery_row = {
-        'strategy_name':
-            row['strategy'],
-        'probability_high_temperature':
-            row['bandit_weight_high_temperature'],
-        'probability_low_temperature':
-            row['bandit_weight_low_temperature'],
-        'probability_medium_temperature':
-            row['bandit_weight_medium_temperature'],
-        'run_count':
-            row['run_count']
+        'strategy_name': row['strategy'],
+        'probability_high_temperature': row['bandit_weight'],
+        'probability_low_temperature': row['bandit_weight'],
+        'probability_medium_temperature': row['bandit_weight'],
+        'run_count': row['run_count']
     }
     bigquery_data.append(big_query.Insert(row=bigquery_row, insert_id=None))
 
@@ -200,12 +181,9 @@ def _query_and_upload_strategy_probabilities():
   for row in data:
     curr_strategy = data_types.FuzzStrategyProbability()
     curr_strategy.strategy_name = str(row['strategy'])
-    curr_strategy.probability_high_temperature = float(
-        row['bandit_weight_high_temperature'])
-    curr_strategy.probability_low_temperature = float(
-        row['bandit_weight_low_temperature'])
-    curr_strategy.probability_medium_temperature = float(
-        row['bandit_weight_medium_temperature'])
+    curr_strategy.probability_high_temperature = float(row['bandit_weight'])
+    curr_strategy.probability_low_temperature = float(row['bandit_weight'])
+    curr_strategy.probability_medium_temperature = float(row['bandit_weight'])
     strategy_data.append(curr_strategy)
 
   ndb.delete_multi([
