@@ -31,6 +31,7 @@ from base import utils
 from bot.tasks import fuzz_task
 from build_management import build_manager
 from datastore import data_types
+from system import environment
 from system import shell
 from tests.test_libs import helpers as test_helpers
 from tests.test_libs import test_utils
