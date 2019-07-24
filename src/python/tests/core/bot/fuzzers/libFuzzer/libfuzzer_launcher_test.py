@@ -241,16 +241,17 @@ class LauncherTest(fake_fs_unittest.TestCase):
   def test_analyze_recommended_dictionary(self, mock_stdout):
     """Test analysis of recommended dictionary."""
     self.fs.CreateDirectory('/fake/inputs-disk/temp-1337')
+    self.fs.CreateFile('/fuzzer_path')
     log_lines = self.analyze_dict_log.splitlines()
 
     with mock.patch('subprocess.Popen',
                     create_mock_popen(self.analyze_dict_output)) as mock_popen:
-      runner = libfuzzer.get_runner('fuzzer_path')
+      runner = libfuzzer.get_runner('/fuzzer_path')
       result = launcher.analyze_and_update_recommended_dictionary(
           runner, 'fuzzer_name', log_lines, 'corpus_dir', ['arg1', 'arg2'])
 
       self.assertEqual(mock_popen.commands, [[
-          'fuzzer_path',
+          '/fuzzer_path',
           'arg1',
           'arg2',
           '-analyze_dict=1',
