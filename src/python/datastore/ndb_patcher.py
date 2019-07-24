@@ -17,8 +17,6 @@ API."""
 # pylint: disable=protected-access
 # pylint: disable=unidiomatic-typecheck
 
-from past.builtins import basestring
-from builtins import object
 from builtins import range
 import collections
 import datetime
@@ -102,7 +100,7 @@ class _IteratorAdapter(object):
   def __iter__(self):
     return self
 
-  def __next__(self):
+  def next(self):
     """Get the next result."""
     if (self._composite and self._limit is not None and
         len(self._seen) >= self._limit):
