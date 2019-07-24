@@ -203,6 +203,7 @@ class GcsProvider(StorageProvider):
       yield properties
 
     if not recursive:
+      # When doing delimeter listings, the "directories" will be in `prefixes`.
       for prefix in iterator.prefixes:
         properties['bucket'] = bucket_name
         properties['name'] = prefix
@@ -343,6 +344,7 @@ class FileSystemProvider(StorageProvider):
     }
 
     if not os.path.isdir(fs_path):
+      # These attributes only apply to objects, not directories.
       data.update({
           'updated':
               datetime.datetime.utcfromtimestamp(os.stat(fs_path).st_mtime),
