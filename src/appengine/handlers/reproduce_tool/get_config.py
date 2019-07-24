@@ -16,7 +16,7 @@
 from future import standard_library
 standard_library.install_aliases()
 
-import urllib
+from urllib import parse
 
 from config import db_config
 from datastore import data_handler
@@ -47,7 +47,7 @@ class Handler(base_handler.Handler):
                 domain=domain, handler='testcase-detail/download-testcase'),
         'oauth_url':
             'https://accounts.google.com/o/oauth2/v2/auth?{}'.format(
-                urllib.parse.urlencode({
+                parse.urlencode({
                     'client_id': client_id,
                     'scope': 'email profile',
                     'response_type': 'code',
