@@ -38,6 +38,7 @@ from local.butler import common
 from local.butler.reproduce_tool import config
 from local.butler.reproduce_tool import errors
 from local.butler.reproduce_tool import http_utils
+from platforms.android import device
 from system import archive
 from system import environment
 from system import shell
@@ -208,6 +209,28 @@ def _get_testcase_id_from_url(testcase_url):
   return testcase_id
 
 
+def _prepare_environment_for_android(testcase_path):
+  """Additional environment overrides needed to run on an Android device."""
+  environment.set_value('OS_OVERRIDE', 'ANDROID')
+
+  # Bail out if we don't have an Android device connected.
+  if not environment.get_value('ANDROID_SERIAL'):
+    # TODO(mbarbella): Handle the one-device case gracefully.
+    raise errors.ReproduceToolUnrecoverableError('Please set ANDROID_SERIAL.')
+
+  # TODO(mbarbella): Should we run device.initialize_device?
+
+  # Push the test case and build APK to the device.
+  apk_path = environment.get_value('APP_PATH')
+  device.install_application_if_needed(apk_path, True)
+
+  testcase_manager.get_command_line_for_application(
+      write_command_line_file=True)
+
+  environment.set_value('FUZZ_INPUTS', os.path.dirname(testcase_path))
+  device.push_testcases_to_device()
+
+
 def _reproduce_crash(testcase_url, build_directory):
   """Reproduce a crash."""
   _prepare_initial_environment(build_directory)
@@ -219,6 +242,16 @@ def _reproduce_crash(testcase_url, build_directory):
   testcase = _get_testcase(testcase_id, configuration)
   testcase_path = _download_testcase(testcase_id, testcase, configuration)
   _update_environment_for_testcase(testcase, build_directory)
+
+  # Validate that we're running on the right platform for this test case.
+  platform = environment.platform().lower()
+  if testcase.platform == 'android' and platform == 'linux':
+    _prepare_environment_for_android(testcase_path)
+  elif testcase.platform != platform:
+    raise errors.ReproduceToolUnrecoverableError(
+        'The specified test case was discovered on {testcase_platform}. '
+        'Unable to attempt to reproduce it on {current_platform}.'.format(
+            testcase_platform=testcase.platform, current_platform=platform))
 
   timeout = environment.get_value('TEST_TIMEOUT')
   result = testcase_manager.test_for_crash_with_retries(testcase, testcase_path,

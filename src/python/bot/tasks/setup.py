@@ -63,33 +63,35 @@ def _copy_testcase_to_device_and_setup_environment(testcase,
 
   # The following steps need privileged job access.
   job_type_has_privileged_access = environment.get_value('PRIVILEGED_ACCESS')
-  if job_type_has_privileged_access:
-    # Install testcase if it is an app.
-    package_name = android.app.get_package_name(testcase_file_path)
-    if package_name:
-      # Set the package name for later use.
-      environment.set_value('PKG_NAME', package_name)
+  if not job_type_has_privileged_access:
+    return
 
-      # Install the application apk.
-      android.device.install_application_if_needed(
-          testcase_file_path, force_update=True)
+  # Install testcase if it is an app.
+  package_name = android.app.get_package_name(testcase_file_path)
+  if package_name:
+    # Set the package name for later use.
+    environment.set_value('PKG_NAME', package_name)
 
-    # Set app launch command if available from upload.
-    app_launch_command = testcase.get_metadata('app_launch_command')
-    if app_launch_command:
-      environment.set_value('APP_LAUNCH_COMMAND', app_launch_command)
+    # Install the application apk.
+    android.device.install_application_if_needed(
+        testcase_file_path, force_update=True)
 
-    # Set executable bit on the testcase (to allow binary executable testcases
-    # to work in app launch command, e.g. shell %TESTCASE%).
-    local_testcases_directory = environment.get_value('FUZZ_INPUTS')
-    if (testcase_file_path and
-        testcase_file_path.startswith(local_testcases_directory)):
-      relative_testcase_file_path = (
-          testcase_file_path[len(local_testcases_directory) + 1:])
-      device_testcase_file_path = os.path.join(
-          android.constants.DEVICE_TESTCASES_DIR, relative_testcase_file_path)
-      android.adb.run_shell_command(
-          ['chmod', '0755', device_testcase_file_path])
+  # Set app launch command if available from upload.
+  app_launch_command = testcase.get_metadata('app_launch_command')
+  if app_launch_command:
+    environment.set_value('APP_LAUNCH_COMMAND', app_launch_command)
+
+  # Set executable bit on the testcase (to allow binary executable testcases
+  # to work in app launch command, e.g. shell %TESTCASE%).
+  local_testcases_directory = environment.get_value('FUZZ_INPUTS')
+  if (testcase_file_path and
+      testcase_file_path.startswith(local_testcases_directory)):
+    relative_testcase_file_path = (
+        testcase_file_path[len(local_testcases_directory) + 1:])
+    device_testcase_file_path = os.path.join(
+        android.constants.DEVICE_TESTCASES_DIR, relative_testcase_file_path)
+    android.adb.run_shell_command(
+        ['chmod', '0755', device_testcase_file_path])
 
 
 def prepare_environment_for_testcase(testcase):
