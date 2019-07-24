@@ -34,6 +34,7 @@ def _fake_get_testcase(*_):
       'additional_metadata': '{}',
       'fuzzer_name': 'fuzzer',
       'job_definition': 'APP_NAME = echo\nAPP_ARGS = -n\n',
+      'platform': environment.platform().lower(),
   }
 
   return reproduce.SerializedTestcase(testcase_map)
