@@ -357,7 +357,6 @@ class FuchsiaQemuLibFuzzerRunner(new_process.ProcessRunner, LibFuzzerCommon):
     self.device.set_ssh_option('UserKnownHostsFile=/dev/null')
     self.device.set_ssh_identity(fuchsia_pkey_path)
     # Fuchsia fuzzer names have the format {package_name}/{binary_name}.
-    # TODO(ochang): Properly handle fuzzers with '/' in the binary name.
     package, target = environment.get_value('FUZZ_TARGET').split('/')
     test_data_dir = os.path.join(fuchsia_resources_dir_plus_build, "test_data",
                                  "fuzzing", package, target)
@@ -418,11 +417,8 @@ class FuchsiaQemuLibFuzzerRunner(new_process.ProcessRunner, LibFuzzerCommon):
     self.fuzzer.start([])
     self.fetch_and_process_logs_and_crash()
 
-    # Checking for is_crash here, instead of a more conventional location,
-    # since we're having to manually construct a ProcessResult.
     with open(self.fuzzer.results_output('fuzz-0.log')) as logfile:
       symbolized_output = logfile.read()
-    is_crash = crash_analyzer.is_memory_tool_crash(symbolized_output)
 
     # TODO(flowerhack): Would be nice if we could figure out a way to make
     # the "fuzzer start" code return its own ProcessResult. For now, we simply
