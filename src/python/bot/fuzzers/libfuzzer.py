@@ -428,10 +428,7 @@ class FuchsiaQemuLibFuzzerRunner(new_process.ProcessRunner, LibFuzzerCommon):
     # the "fuzzer start" code return its own ProcessResult. For now, we simply
     # craft one by hand here.
     fuzzer_process_result = new_process.ProcessResult()
-    if is_crash:
-      fuzzer_process_result.return_code = 1
-    else:
-      fuzzer_process_result.return_code = 0
+    fuzzer_process_result.return_code = 0
     fuzzer_process_result.output = symbolized_output
     fuzzer_process_result.time_executed = 0
     fuzzer_process_result.command = environment.get_value('FUZZ_TARGET')
