@@ -19,7 +19,6 @@ import copy
 import os
 import re
 import shutil
-import stat
 import tempfile
 
 from base import retry
@@ -399,7 +398,7 @@ class FuchsiaQemuLibFuzzerRunner(new_process.ProcessRunner, LibFuzzerCommon):
                 self.fuzzer.results_output(),
                 line_match.group(3).replace('data/', ''))
             line = re.sub(crash_location_regex,
-                            r'\1\2' + crash_testcase_file_path, line)
+                          r'\1\2' + crash_testcase_file_path, line)
           new_file.write(line)
     os.remove(self.fuzzer.logfile)
     os.rename(new_file_handle_path, self.fuzzer.logfile)
