@@ -425,7 +425,7 @@ class FuchsiaQemuLibFuzzerRunner(new_process.ProcessRunner, LibFuzzerCommon):
     fuzzer_process_result.return_code = 0
     fuzzer_process_result.output = symbolized_output
     fuzzer_process_result.time_executed = 0
-    fuzzer_process_result.command = environment.get_value('FUZZ_TARGET')
+    fuzzer_process_result.command = self.fuzzer.last_fuzz_cmd
     return fuzzer_process_result
 
   def run_single_testcase(self,

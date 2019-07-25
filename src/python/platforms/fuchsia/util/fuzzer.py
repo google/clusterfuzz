@@ -100,6 +100,7 @@ class Fuzzer(object):
     self.host = device.host
     self.pkg = pkg
     self.tgt = tgt
+    self.last_fuzz_cmd = None
     if output:
       self._output = output
     else:
@@ -163,6 +164,8 @@ class Fuzzer(object):
 
   def run(self, fuzzer_args, logfile=None):
     fuzz_cmd = ['run', self.url(), '-artifact_prefix=data/'] + fuzzer_args
+    self.last_fuzz_cmd = self.device.get_ssh_cmd(['ssh', 'localhost'] +
+                                                 fuzz_cmd)
     print '+ ' + ' '.join(fuzz_cmd)
     self.device.ssh(fuzz_cmd, quiet=True, logfile=logfile)
 
