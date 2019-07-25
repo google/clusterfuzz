@@ -18,8 +18,8 @@ import json
 import os
 import unittest
 
-from bot.fuzzers import strategy
 from datastore import data_types
+from fuzzing import strategy
 from handlers.cron import fuzz_strategy_selection
 from tests.test_libs import helpers as test_helpers
 from tests.test_libs import test_utils

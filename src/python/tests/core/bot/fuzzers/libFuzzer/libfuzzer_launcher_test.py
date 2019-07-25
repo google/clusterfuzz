@@ -27,11 +27,11 @@ import unittest
 
 from bot.fuzzers import engine_common
 from bot.fuzzers import libfuzzer
-from bot.fuzzers import strategy
 from bot.fuzzers.libFuzzer import constants
 from bot.fuzzers.libFuzzer import launcher
 from bot.fuzzers.libFuzzer import stats
 from bot.fuzzers.libFuzzer import strategy_selection
+from fuzzing import strategy
 from metrics import fuzzer_stats
 from system import environment
 from tests.test_libs import helpers as test_helpers

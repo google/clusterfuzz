@@ -25,12 +25,12 @@ import unittest
 import parameterized
 
 from bot.fuzzers import libfuzzer
-from bot.fuzzers import strategy
 from bot.fuzzers import utils as fuzzer_utils
 from bot.fuzzers.libFuzzer import launcher
 from bot.fuzzers.libFuzzer import strategy_selection
 from build_management import build_manager
 from datastore import data_types
+from fuzzing import strategy
 from system import environment
 from system import shell
 from tests.test_libs import helpers as test_helpers
