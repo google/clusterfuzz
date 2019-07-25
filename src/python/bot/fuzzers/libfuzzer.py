@@ -339,6 +339,8 @@ class FuchsiaQemuLibFuzzerRunner(new_process.ProcessRunner, LibFuzzerCommon):
   SSH_RETRIES = 3
   SSH_WAIT = 2
 
+  FUZZER_TEST_DATA_REL_PATH = os.path.join('test_data', 'fuzzing')
+
   def __init__(self, executable_path, default_args=None):
     fuchsia_pkey_path = environment.get_value('FUCHSIA_PKEY_PATH')
     fuchsia_portnum = environment.get_value('FUCHSIA_PORTNUM')
@@ -357,8 +359,9 @@ class FuchsiaQemuLibFuzzerRunner(new_process.ProcessRunner, LibFuzzerCommon):
     self.device.set_ssh_identity(fuchsia_pkey_path)
     # Fuchsia fuzzer names have the format {package_name}/{binary_name}.
     package, target = environment.get_value('FUZZ_TARGET').split('/')
-    test_data_dir = os.path.join(fuchsia_resources_dir_plus_build, "test_data",
-                                 "fuzzing", package, target)
+    test_data_dir = os.path.join(fuchsia_resources_dir_plus_build,
+                                 self.FUZZER_TEST_DATA_REL_PATH, package,
+                                 target)
     self.fuzzer = Fuzzer(
         self.device, package, target, output=test_data_dir, foreground=True)
 
@@ -395,13 +398,9 @@ class FuchsiaQemuLibFuzzerRunner(new_process.ProcessRunner, LibFuzzerCommon):
     with open(new_file_handle_path, 'w') as new_file:
       with open(self.fuzzer.results_output('fuzz-0.log')) as old_file:
         for line in old_file:
-          new_text, num_replacements = re.subn(
-              r"(.*)(Test unit written to )(data/.*)",
-              r"\1\2" + crash_testcase_file_path, line)
-          if num_replacements > 0:
-            new_file.write(new_text)
-          else:
-            new_file.write(line)
+          new_text = re.sub(r"(.*)(Test unit written to )(data/.*)",
+                            r"\1\2" + crash_testcase_file_path, line)
+          new_file.write(new_text)
     os.remove(self.fuzzer.results_output('fuzz-0.log'))
     os.rename(new_file_handle_path, self.fuzzer.results_output('fuzz-0.log'))
 
