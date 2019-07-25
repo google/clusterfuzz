@@ -101,6 +101,7 @@ class Fuzzer(object):
     self.pkg = pkg
     self.tgt = tgt
     self.last_fuzz_cmd = None
+    self.logfile = None
     if output:
       self._output = output
     else:
@@ -193,6 +194,7 @@ class Fuzzer(object):
       if e.errno != errno.EEXIST:
         raise
     self._results_output = results
+    self.logfile = self.results_output('fuzz-0.log')
 
     if [x for x in fuzzer_args if x.startswith('-jobs=')]:
       if self._foreground:
@@ -204,7 +206,7 @@ class Fuzzer(object):
       fuzzer_args.append('data/corpus/')
 
     if self._foreground:
-      self.run(fuzzer_args, logfile=self.results_output('fuzz-0.log'))
+      self.run(fuzzer_args, logfile=self.logfile)
     else:
       self.device.ssh(['rm', self.data_path('fuzz-0.log')])
       self.run(fuzzer_args)

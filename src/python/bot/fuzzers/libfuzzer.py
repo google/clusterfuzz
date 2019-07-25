@@ -379,9 +379,9 @@ class FuchsiaQemuLibFuzzerRunner(new_process.ProcessRunner, LibFuzzerCommon):
     self.device.fetch(
         self.fuzzer.data_path('crash*'), self.fuzzer.results_output())
 
-    for log in os.listdir(self.fuzzer.results_output()):
-      if log.startswith('fuzz-0.log'):
-        self.device.dlog(self.fuzzer.results_output(log))
+    for logname in os.listdir(self.fuzzer.results_output()):
+      if logname in self.fuzzer.logfile:
+        self.device.dlog(self.fuzzer.logfile)
 
     # Clusterfuzz assumes that the Libfuzzer output points to an absolute path,
     # where it can find the crash file.
@@ -396,13 +396,13 @@ class FuchsiaQemuLibFuzzerRunner(new_process.ProcessRunner, LibFuzzerCommon):
                                                 outfile)
     _, new_file_handle_path = tempfile.mkstemp()
     with open(new_file_handle_path, 'w') as new_file:
-      with open(self.fuzzer.results_output('fuzz-0.log')) as old_file:
+      with open(self.fuzzer.logfile) as old_file:
         for line in old_file:
           new_text = re.sub(r"(.*)(Test unit written to )(data/.*)",
                             r"\1\2" + crash_testcase_file_path, line)
           new_file.write(new_text)
-    os.remove(self.fuzzer.results_output('fuzz-0.log'))
-    os.rename(new_file_handle_path, self.fuzzer.results_output('fuzz-0.log'))
+    os.remove(self.fuzzer.logfile)
+    os.rename(new_file_handle_path, self.fuzzer.logfile)
 
   def fuzz(self,
            corpus_directories,
@@ -415,7 +415,7 @@ class FuchsiaQemuLibFuzzerRunner(new_process.ProcessRunner, LibFuzzerCommon):
     self.fuzzer.start([])
     self.fetch_and_process_logs_and_crash()
 
-    with open(self.fuzzer.results_output('fuzz-0.log')) as logfile:
+    with open(self.fuzzer.logfile) as logfile:
       symbolized_output = logfile.read()
 
     # TODO(flowerhack): Would be nice if we could figure out a way to make
