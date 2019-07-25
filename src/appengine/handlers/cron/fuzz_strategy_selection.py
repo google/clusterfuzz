@@ -48,6 +48,19 @@ ENGINE_LIST = [('libFuzzer', strategy.libfuzzer_query_strategy_list),
 
 # TODO(mukundv): Change query once we decide on a temperature parameter and
 # final implementation.
+
+BANDIT_PROBABILITY_QUERY = """
+SELECT
+  a.strategy AS strategy,
+  bandit_weight_high_temperature,
+  bandit_weight_low_temperature,
+  bandit_weight_medium_temperature,
+  a.run_count + b.run_count + c.run_count as run_count 
+FROM {high_temperature_query} a
+JOIN {low_temperature_query} b ON a.strategy = b.strategy
+JOIN {medium_temperature_query} c ON a.strategy = c.strategy
+"""
+
 BANDIT_PROBABILITY_SUBQUERY = """
 (SELECT
     /* Calculate bandit weights from calculated exponential values. */
@@ -103,21 +116,9 @@ BANDIT_PROBABILITY_SUBQUERY = """
 
 STRATEGY_SUBQUERY = """
 IF
-  (strategy_{strategy_name}} > 0,
+  (strategy_{strategy_name} > 0,
     "{strategy_name},",
     "") AS strategy_{strategy_name},
-"""
-
-BANDIT_PROBABILITY_QUERY = """
-SELECT
-  a.strategy AS strategy,
-  bandit_weight_high_temperature,
-  bandit_weight_low_temperature,
-  bandit_weight_medium_temperature,
-  a.run_count + b.run_count + c.run_count as run_count 
-FROM {high_temperature_query} a
-JOIN {low_temperature_query} b ON a.strategy = b.strategy
-JOIN {medium_temperature_query} c ON a.strategy = c.strategy
 """
 
 
