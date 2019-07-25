@@ -11,8 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""Common utility functions for the reproduce tool."""
-from builtins import input
+"""HTTP utility functions for the reproduce tool."""
 from builtins import object
 
 import httplib2
@@ -21,6 +20,7 @@ import webbrowser
 
 from base import json_utils
 from base import utils
+from local.butler.reproduce_tool import prompts
 from system import shell
 
 GET_METHOD = 'GET'
@@ -62,7 +62,7 @@ def _get_authorization(force_reauthorization, configuration):
   with SuppressOutput():
     webbrowser.open(configuration.get('oauth_url'), new=1, autoraise=True)
 
-  verification_code = input('Enter verification code: ')
+  verification_code = prompts.get_string('Enter verification code')
   return 'VerificationCode {code}'.format(code=verification_code)
 
 

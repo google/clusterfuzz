@@ -507,7 +507,9 @@ def terminate_stale_application_instances():
   start_time = time.time()
 
   processes_to_kill = []
-  if environment.get_value('KILL_PROCESSES_MATCHING_APP_NAME', True):
+  # Avoid killing the test binary when running the reproduce tool. It is
+  # commonly in-use on the side on developer workstations.
+  if not environment.get_value('REPRODUCE_TOOL'):
     app_name = environment.get_value('APP_NAME')
     processes_to_kill += [app_name]
 
