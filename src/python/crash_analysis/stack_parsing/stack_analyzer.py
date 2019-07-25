@@ -997,7 +997,7 @@ def get_crash_data(crash_data, symbolize_flag=True):
   (helps in testcase deduplication)."""
   # Decide whether to symbolize or not symbolize the input stacktrace.
   # Note that Fuchsia logs are always symbolized.
-  if symbolize_flag and environment.platform() != 'FUCHSIA':
+  if symbolize_flag:
     # Defer imports since stack_symbolizer pulls in a lot of things.
     from crash_analysis.stack_parsing import stack_symbolizer
     crash_stacktrace_with_inlines = stack_symbolizer.symbolize_stacktrace(
