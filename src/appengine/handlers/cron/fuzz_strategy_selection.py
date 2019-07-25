@@ -49,7 +49,7 @@ ENGINE_LIST = [('libFuzzer', strategy.libfuzzer_query_strategy_list),
 # TODO(mukundv): Change query once we decide on a temperature parameter and
 # final implementation.
 
-BANDIT_PROBABILITY_QUERY = """
+BANDIT_PROBABILITY_QUERY_FORMAT = """
 SELECT
   a.strategy AS strategy,
   bandit_weight_high_temperature,
@@ -61,7 +61,7 @@ JOIN {low_temperature_query} b ON a.strategy = b.strategy
 JOIN {medium_temperature_query} c ON a.strategy = c.strategy
 """
 
-BANDIT_PROBABILITY_SUBQUERY = """
+BANDIT_PROBABILITY_SUBQUERY_FORMAT = """
 (SELECT
     /* Calculate bandit weights from calculated exponential values. */
     strategy,
@@ -114,7 +114,7 @@ BANDIT_PROBABILITY_SUBQUERY = """
         strategy)))
 """
 
-STRATEGY_SUBQUERY = """
+STRATEGY_SUBQUERY_FORMAT = """
 IF
   (strategy_{strategy_name} > 0,
     "{strategy_name},",
@@ -131,12 +131,12 @@ def _query_multi_armed_bandit_probabilities(engine_name, strategy_list):
       strategy_entry.name for strategy_entry in strategy_list
   ]
   strategies_subquery = '\n'.join([
-      STRATEGY_SUBQUERY.format(strategy_name=strategy_name)
+      STRATEGY_SUBQUERY_FORMAT.format(strategy_name=strategy_name)
       for strategy_name in strategy_names_list
   ])
   client = big_query.Client()
-  formatted_query = BANDIT_PROBABILITY_QUERY.format(
-      high_temperature_query=BANDIT_PROBABILITY_SUBQUERY.format(
+  formatted_query = BANDIT_PROBABILITY_QUERY_FORMAT.format(
+      high_temperature_query=BANDIT_PROBABILITY_SUBQUERY_FORMAT.format(
           temperature_type='high',
           temperature_value=HIGH_TEMPERATURE_PARAMETER,
           strategies=','.join([
@@ -145,7 +145,7 @@ def _query_multi_armed_bandit_probabilities(engine_name, strategy_list):
           ]),
           strategies_subquery=strategies_subquery,
           engine=engine_name),
-      low_temperature_query=BANDIT_PROBABILITY_SUBQUERY.format(
+      low_temperature_query=BANDIT_PROBABILITY_SUBQUERY_FORMAT.format(
           temperature_type='low',
           temperature_value=LOW_TEMPERATURE_PARAMETER,
           strategies=','.join([
@@ -154,7 +154,7 @@ def _query_multi_armed_bandit_probabilities(engine_name, strategy_list):
           ]),
           strategies_subquery=strategies_subquery,
           engine=engine_name),
-      medium_temperature_query=BANDIT_PROBABILITY_SUBQUERY.format(
+      medium_temperature_query=BANDIT_PROBABILITY_SUBQUERY_FORMAT.format(
           temperature_type='medium',
           temperature_value=MEDIUM_TEMPERATURE_PARAMETER,
           strategies=','.join([
