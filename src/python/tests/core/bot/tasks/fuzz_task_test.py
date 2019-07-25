@@ -257,24 +257,6 @@ class GetFixedOrMinimizedKeyTest(unittest.TestCase):
     self.assertEqual('', fuzz_task.get_fixed_or_minimized_key(False))
 
 
-class GetFullArgsTest(unittest.TestCase):
-  """Test get_full_args."""
-
-  def setUp(self):
-    helpers.patch(self, [
-        'fuzzing.testcase_manager.get_additional_command_line_flags',
-        'system.environment.get_value'
-    ])
-
-  def test_args(self):
-    """Test when app args exist."""
-    self.mock.get_value.return_value = 'app'
-    self.mock.get_additional_command_line_flags.return_value = 'minimized'
-    self.assertEqual('app minimized', fuzz_task.get_full_args('path'))
-    self.mock.get_value.assert_called_once_with('APP_ARGS')
-    self.mock.get_additional_command_line_flags.assert_called_once_with('path')
-
-
 class CrashInitTest(fake_filesystem_unittest.TestCase):
   """Test Crash.__init__."""
 
@@ -283,6 +265,7 @@ class CrashInitTest(fake_filesystem_unittest.TestCase):
         'chrome.crash_uploader.FileMetadataInfo',
         'bot.tasks.setup.archive_testcase_and_dependencies_in_gcs',
         'crash_analysis.stack_parsing.stack_analyzer.get_crash_data',
+        'fuzzing.testcase_manager.get_additional_command_line_flags',
         'fuzzing.testcase_manager.get_command_line_for_application',
         'base.utils.get_crash_stacktrace_output',
         'crash_analysis.crash_analyzer.ignore_stacktrace',
@@ -435,6 +418,16 @@ class CrashInitTest(fake_filesystem_unittest.TestCase):
     self.assertFalse(crash.archived)
     self.assertIsNone(crash.absolute_path)
     self.assertIsNone(crash.archive_filename)
+
+  def test_args_from_testcase_manager(self):
+    """Test args from testcase_manager.Crash."""
+    testcase_manager_crash = testcase_manager.Crash('path', 0, 0, [], [],
+                                                    '/stack_file_path')
+    self.mock.get_additional_command_line_flags.return_value = 'minimized'
+    environment.set_value('APP_ARGS', 'app')
+
+    crash = fuzz_task.Crash.from_testcase_manager_crash(testcase_manager_crash)
+    self.assertEqual('app minimized', crash.arguments)
 
 
 class CrashGroupTest(unittest.TestCase):

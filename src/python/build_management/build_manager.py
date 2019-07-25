@@ -1154,13 +1154,18 @@ def _get_targets_list(bucket_path):
   """Get the target list for a given fuzz target bucket path. This is done by
   reading the targets.list file, which contains a list of the currently active
   fuzz targets."""
-  targets_list_path = os.path.join(
-      os.path.dirname(os.path.dirname(bucket_path)), TARGETS_LIST_FILENAME)
+  bucket_dir_path = os.path.dirname(os.path.dirname(bucket_path))
+  targets_list_path = os.path.join(bucket_dir_path, TARGETS_LIST_FILENAME)
   data = storage.read_data(targets_list_path)
   if not data:
     return None
 
-  return data.splitlines()
+  # Filter out targets which are not yet built.
+  targets = data.splitlines()
+  listed_targets = set(
+      os.path.basename(path.rstrip('/'))
+      for path in storage.list_blobs(bucket_dir_path, recursive=False))
+  return [t for t in targets if t in listed_targets]
 
 
 def _setup_split_targets_build(bucket_path, target_weights, revision=None):

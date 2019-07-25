@@ -31,7 +31,6 @@ import random
 import re
 import shutil
 import signal
-import stat
 import string
 import sys
 import time
@@ -460,12 +459,7 @@ def load_testcase_if_exists(fuzzer_runner,
                             use_minijail=False,
                             additional_args=None):
   """Loads a crash testcase if it exists."""
-  # To ensure that we can run the fuzzer.
-  os.chmod(fuzzer_runner.executable_path, stat.S_IRWXU | stat.S_IRGRP
-           | stat.S_IXGRP)
-
   arguments = additional_args[:]
-
   remove_fuzzing_arguments(arguments)
 
   # Add retries for reliability.

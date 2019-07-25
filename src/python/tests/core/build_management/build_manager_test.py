@@ -1730,6 +1730,7 @@ class SplitFuzzTargetsBuildTest(fake_filesystem_unittest.TestCase):
         'system.shell.clear_temp_directory',
         'google_cloud_utils.storage.copy_file_from',
         'google_cloud_utils.storage.get_download_file_size',
+        'google_cloud_utils.storage.list_blobs',
         'google_cloud_utils.storage.read_data',
         'system.archive.unpack',
         'time.time',
@@ -1746,6 +1747,12 @@ class SplitFuzzTargetsBuildTest(fake_filesystem_unittest.TestCase):
         os.environ['ROOT_DIR'], 'src', 'python', 'bot', 'fuzzers', 'libFuzzer')
     self.fs.add_real_directory(os.environ['FUZZER_DIR'])
 
+    self.mock.list_blobs.return_value = (
+        '/subdir/target1/',
+        '/subdir/target2/',
+        '/subdir/target3/',
+        '/subdir/targets.list',
+    )
     self.mock.read_data.return_value = ('target1\ntarget2\ntarget3\n')
 
     self.target_weights = {
@@ -1846,6 +1853,18 @@ class SplitFuzzTargetsBuildTest(fake_filesystem_unittest.TestCase):
     self.assertTrue(
         os.path.isdir('/builds/bucket_subdir_target2_'
                       '77651789446b3c3a04b9f492ff141f003d437347'))
+
+  def test_target_not_built(self):
+    """Test a target that's listed in target.list, but not yet built."""
+    self.mock.list_blobs.return_value = (
+        '/subdir/target1/',
+        '/subdir/target3/',
+        '/subdir/targets.list',
+    )
+
+    targets_list = build_manager._get_targets_list(
+        os.environ['FUZZ_TARGET_BUILD_BUCKET_PATH'])
+    self.assertItemsEqual(['target1', 'target3'], targets_list)
 
 
 class GetPrimaryBucketPathTest(unittest.TestCase):

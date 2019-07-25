@@ -12,6 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """Common utility functions for the reproduce tool."""
+from builtins import input
+from builtins import object
 
 import httplib2
 import os
@@ -59,7 +61,8 @@ def _get_authorization(force_reauthorization, configuration):
   # Prompt the user for a code if we don't have one or need a new one.
   with SuppressOutput():
     webbrowser.open(configuration.get('oauth_url'), new=1, autoraise=True)
-  verification_code = raw_input('Enter verification code: ')
+
+  verification_code = input('Enter verification code: ')
   return 'VerificationCode {code}'.format(code=verification_code)
 
 
