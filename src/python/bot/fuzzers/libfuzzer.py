@@ -380,7 +380,7 @@ class FuchsiaQemuLibFuzzerRunner(new_process.ProcessRunner, LibFuzzerCommon):
         self.fuzzer.data_path('crash*'), self.fuzzer.results_output())
 
     for logname in os.listdir(self.fuzzer.results_output()):
-      if logname in self.fuzzer.logfile:
+      if logname == os.path.basename(self.fuzzer.logfile):
         self.device.dlog(self.fuzzer.logfile)
 
     # Clusterfuzz assumes that the Libfuzzer output points to an absolute path,
@@ -388,8 +388,7 @@ class FuchsiaQemuLibFuzzerRunner(new_process.ProcessRunner, LibFuzzerCommon):
     # This doesn't work in our case due to how Fuchsia is run.
     # So, we make a new file, change the appropriate line with a regex to point
     # to the true location. Apologies for the hackery.
-    crash_testcase_file_path = ''
-    crash_location_regex = r"(.*)(Test unit written to )(data/.*)"
+    crash_location_regex = r'(.*)(Test unit written to )(data/.*)'
     _, new_file_handle_path = tempfile.mkstemp()
     with open(new_file_handle_path, 'w') as new_file:
       with open(self.fuzzer.logfile) as old_file:
@@ -399,9 +398,9 @@ class FuchsiaQemuLibFuzzerRunner(new_process.ProcessRunner, LibFuzzerCommon):
             crash_testcase_file_path = os.path.join(
                 self.fuzzer.results_output(),
                 line_match.group(3).replace('data/', ''))
-          new_text = re.sub(crash_location_regex,
-                            r"\1\2" + crash_testcase_file_path, line)
-          new_file.write(new_text)
+            line = re.sub(crash_location_regex,
+                            r'\1\2' + crash_testcase_file_path, line)
+          new_file.write(line)
     os.remove(self.fuzzer.logfile)
     os.rename(new_file_handle_path, self.fuzzer.logfile)
 
