@@ -126,25 +126,40 @@ def _query_multi_armed_bandit_probabilities(engine_name, strategy_list):
 
   Queries above BANDIT_PROBABILITY_QUERY and yields results
   from bigquery. This query is sorted by strategies implemented."""
+  strategy_names_list = [
+      strategy_entry.name for strategy_entry in strategy_list
+  ]
   strategies_subquery = '\n'.join([
-      STRATEGY_SUBQUERY.format(strategy_name=strategy_entry.name)
-      for strategy_entry in strategy_list
+      STRATEGY_SUBQUERY.format(strategy_name=strategy_name)
+      for strategy_name in strategy_names_list
   ])
   client = big_query.Client()
   formatted_query = BANDIT_PROBABILITY_QUERY.format(
       high_temperature_query=BANDIT_PROBABILITY_SUBQUERY.format(
           temperature_type='high',
           temperature_value=HIGH_TEMPERATURE_PARAMETER,
+          strategies=','.join([
+              'strategy_' + strategy_name
+              for strategy_name in strategy_names_list
+          ]),
           strategies_subquery=strategies_subquery,
           engine=engine_name),
       low_temperature_query=BANDIT_PROBABILITY_SUBQUERY.format(
           temperature_type='low',
           temperature_value=LOW_TEMPERATURE_PARAMETER,
+          strategies=','.join([
+              'strategy_' + strategy_name
+              for strategy_name in strategy_names_list
+          ]),
           strategies_subquery=strategies_subquery,
           engine=engine_name),
       medium_temperature_query=BANDIT_PROBABILITY_SUBQUERY.format(
           temperature_type='medium',
           temperature_value=MEDIUM_TEMPERATURE_PARAMETER,
+          strategies=','.join([
+              'strategy_' + strategy_name
+              for strategy_name in strategy_names_list
+          ]),
           strategies_subquery=strategies_subquery,
           engine=engine_name))
   return client.query(query=formatted_query).rows
