@@ -18,7 +18,6 @@ from builtins import object
 import copy
 import os
 import shutil
-import stat
 
 from base import retry
 from bot.fuzzers import engine_common
