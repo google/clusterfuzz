@@ -16,7 +16,7 @@
 from future import standard_library
 standard_library.install_aliases()
 
-import urllib
+import urllib.parse
 
 from config import db_config
 from datastore import data_handler

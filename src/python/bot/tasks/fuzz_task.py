@@ -1651,7 +1651,11 @@ class FuzzingSession(object):
 
     # Transform crashes into fuzz_task.Crash.
     # And filter the crashes (e.g. removing errorneous crashes).
-    crashes = filter(None, [crash_constructor(crash) for crash in crashes])
+    crashes = [
+        crash
+        for crash in [crash_constructor(raw_crash) for raw_crash in crashes]
+        if crash
+    ]
 
     project_name = data_handler.get_project_name(self.job_type)
 

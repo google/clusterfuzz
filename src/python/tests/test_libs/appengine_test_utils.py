@@ -13,6 +13,7 @@
 # limitations under the License.
 """Generic helper functions useful in tests (App Engine only)."""
 
+from builtins import object
 import datetime
 
 from libs.issue_management import monorail
