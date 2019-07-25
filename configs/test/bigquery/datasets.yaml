@@ -229,3 +229,5 @@ resources:
             type: FLOAT
           - name: run_count
             type: INTEGER
+          - name: engine
+            type: STRING

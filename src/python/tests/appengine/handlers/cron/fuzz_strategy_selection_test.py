@@ -18,6 +18,7 @@ import json
 import os
 import unittest
 
+from bot.fuzzers import strategy
 from datastore import data_types
 from handlers.cron import fuzz_strategy_selection
 from tests.test_libs import helpers as test_helpers
@@ -47,7 +48,8 @@ class TestFuzzStrategySelection(unittest.TestCase):
   def test_strategy_probabilities(self):
     """Ensure that the expected probabilities are being set for
     various methods."""
-    fuzz_strategy_selection._query_and_upload_strategy_probabilities()
+    fuzz_strategy_selection._query_and_upload_strategy_probabilities(
+        'libFuzzer', strategy.libfuzzer_query_strategy_list)
     row1 = data_types.FuzzStrategyProbability.query(
         data_types.FuzzStrategyProbability.strategy_name ==
         'corpus_mutations_ml_rnn,fork,').get()
@@ -70,8 +72,10 @@ class TestFuzzStrategySelection(unittest.TestCase):
   def test_delete_from_table(self):
     """Ensures that ndb datastore table is properly being
     cleared before being updated."""
-    fuzz_strategy_selection._query_and_upload_strategy_probabilities()
+    fuzz_strategy_selection._query_and_upload_strategy_probabilities(
+        'libFuzzer', strategy.libfuzzer_query_strategy_list)
     count1 = data_types.FuzzStrategyProbability.query().count()
-    fuzz_strategy_selection._query_and_upload_strategy_probabilities()
+    fuzz_strategy_selection._query_and_upload_strategy_probabilities(
+        'libFuzzer', strategy.libfuzzer_query_strategy_list)
     count2 = data_types.FuzzStrategyProbability.query().count()
     self.assertEqual(count1, count2)
