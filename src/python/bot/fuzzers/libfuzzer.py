@@ -18,7 +18,6 @@ from builtins import object
 import copy
 import os
 import shutil
-import stat
 
 from base import retry
 from bot.fuzzers import engine_common
@@ -556,7 +555,7 @@ def get_runner(fuzzer_path, temp_dir=None):
   is_fuchsia = environment.platform() == 'FUCHSIA'
   if not is_fuchsia:
     # To ensure that we can run the fuzz target.
-    os.chmod(fuzzer_path, stat.S_IRWXU | stat.S_IRGRP | stat.S_IXGRP)
+    os.chmod(fuzzer_path, 0755)
 
   if use_minijail:
     # Set up chroot and runner.
