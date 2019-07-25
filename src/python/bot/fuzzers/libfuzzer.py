@@ -388,17 +388,18 @@ class FuchsiaQemuLibFuzzerRunner(new_process.ProcessRunner, LibFuzzerCommon):
     # This doesn't work in our case due to how Fuchsia is run.
     # So, we make a new file, change the appropriate line with a regex to point
     # to the true location. Apologies for the hackery.
-    crash_testcase_file_path = None
-    for outfile in os.listdir(self.fuzzer.results_output()):
-      if os.path.isfile(os.path.join(self.fuzzer.results_output(),
-                                     outfile)) and 'crash-' in outfile:
-        crash_testcase_file_path = os.path.join(self.fuzzer.results_output(),
-                                                outfile)
+    crash_testcase_file_path = ''
+    crash_location_regex = r"(.*)(Test unit written to )(data/.*)"
     _, new_file_handle_path = tempfile.mkstemp()
     with open(new_file_handle_path, 'w') as new_file:
       with open(self.fuzzer.logfile) as old_file:
         for line in old_file:
-          new_text = re.sub(r"(.*)(Test unit written to )(data/.*)",
+          line_match = re.match(crash_location_regex, line)
+          if line_match:
+            crash_testcase_file_path = os.path.join(
+                self.fuzzer.results_output(),
+                line_match.group(3).replace('data/', ''))
+          new_text = re.sub(crash_location_regex,
                             r"\1\2" + crash_testcase_file_path, line)
           new_file.write(new_text)
     os.remove(self.fuzzer.logfile)
