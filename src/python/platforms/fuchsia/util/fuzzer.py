@@ -22,8 +22,6 @@ import os
 import subprocess
 import time
 
-from .log import Log
-
 
 class Fuzzer(object):
   """Represents a Fuchsia fuzz target.
@@ -36,8 +34,8 @@ class Fuzzer(object):
     Attributes:
       device: A Device where this fuzzer can be run
       host: The build host that built the fuzzer
-      pkg: The GN fuzz_package name
-      tgt: The GN fuzz_target name
+      pkg: The GN fuzzers_package name
+      tgt: The GN fuzzers name
   """
 
   # Matches the prefixes in libFuzzer passed to |Fuzzer::DumpCurrentUnit| or
@@ -73,6 +71,8 @@ class Fuzzer(object):
     if not name or name == '':
       return fuzzers
     names = name.split('/')
+    if len(names) == 2 and (names[0], names[1]) in fuzzers:
+      return [(names[0], names[1])]
     if len(names) == 1:
       return list(
           set(Fuzzer.filter(fuzzers, '/' + name))
@@ -101,10 +101,13 @@ class Fuzzer(object):
     self.pkg = pkg
     self.tgt = tgt
     self.last_fuzz_cmd = None
+    self.logfile = None
     if output:
       self._output = output
     else:
       self._output = self.host.join('test_data', 'fuzzing', self.pkg, self.tgt)
+    self._results_output = self.host.join('test_data', 'fuzzing', self.pkg,
+                                          self.tgt)
     self._foreground = foreground
 
   def __str__(self):
@@ -128,10 +131,10 @@ class Fuzzer(object):
     artifacts = []
     try:
       lines = self.device.ls(self.data_path())
-      for this_file, _ in lines.items():
+      for artifact, _ in lines.iteritems():
         for prefix in Fuzzer.ARTIFACT_PREFIXES:
-          if this_file.startswith(prefix):
-            artifacts.append(this_file)
+          if artifact.startswith(prefix):
+            artifacts.append(artifact)
       return artifacts
     except subprocess.CalledProcessError:
       return []
@@ -152,14 +155,20 @@ class Fuzzer(object):
       return os.path.join(self._output, 'latest', relpath)
     return os.path.join(self._output, 'latest')
 
+  def results_output(self, relpath=None):
+    if relpath:
+      return os.path.join(self._results_output, relpath)
+    return self._results_output
+
   def url(self):
     return 'fuchsia-pkg://fuchsia.com/%s#meta/%s.cmx' % (self.pkg, self.tgt)
 
   def run(self, fuzzer_args, logfile=None):
-    fuzz_cmd = ['run', self.url(), '-artifact_prefix=data'] + fuzzer_args
+    fuzz_cmd = ['run', self.url(), '-artifact_prefix=data/'] + fuzzer_args
     self.last_fuzz_cmd = self.device.get_ssh_cmd(['ssh', 'localhost'] +
                                                  fuzz_cmd)
-    self.device.ssh(fuzz_cmd, quiet=False, logfile=logfile)
+    print '+ ' + ' '.join(fuzz_cmd)
+    self.device.ssh(fuzz_cmd, quiet=True, logfile=logfile)
 
   def start(self, fuzzer_args):
     """Runs the fuzzer.
@@ -170,7 +179,7 @@ class Fuzzer(object):
 
       The command will be like:
       run fuchsia-pkg://fuchsia.com/<pkg>#meta/<tgt>.cmx \
-        -artifact_prefix=data -jobs=1 data/corpus
+        -artifact_prefix=data/ -jobs=1 data/corpus/
 
       See also: https://llvm.org/docs/LibFuzzer.html#running
 
@@ -180,16 +189,12 @@ class Fuzzer(object):
     self.require_stopped()
     results = os.path.join(self._output, datetime.datetime.utcnow().isoformat())
     try:
-      os.unlink(self.results())
-    except OSError as e:
-      if e.errno != errno.ENOENT:
-        raise
-    try:
       os.makedirs(results)
     except OSError as e:
       if e.errno != errno.EEXIST:
         raise
-    os.symlink(results, self.results())
+    self._results_output = results
+    self.logfile = self.results_output('fuzz-0.log')
 
     if [x for x in fuzzer_args if x.startswith('-jobs=')]:
       if self._foreground:
@@ -198,15 +203,26 @@ class Fuzzer(object):
         fuzzer_args.append('-jobs=1')
     self.device.ssh(['mkdir', '-p', self.data_path('corpus')])
     if [x for x in fuzzer_args if not x.startswith('-')]:
-      fuzzer_args.append('data/corpus')
+      fuzzer_args.append('data/corpus/')
 
-    with Log(self):
-      if self._foreground:
-        self.run(fuzzer_args, logfile=self.results('fuzz-0.log'))
-      else:
-        self.run(fuzzer_args)
-      while self.is_running():
-        time.sleep(2)
+    if self._foreground:
+      self.run(fuzzer_args, logfile=self.logfile)
+    else:
+      self.device.ssh(['rm', self.data_path('fuzz-0.log')])
+      self.run(fuzzer_args)
+
+  def monitor(self):
+    """Waits for a fuzzer to complete and symbolizes its logs."""
+    while self.is_running():
+      time.sleep(2)
+    if not self._foreground:
+      self.device.fetch(self.data_path('fuzz-*.log'), self.results_output())
+    artifacts = []
+    for log in os.listdir(self.results_output()):
+      if log.startswith('fuzz-') and log.endswith('.log'):
+        artifacts += self.device.dlog(self.results_output(log))
+    for artifact in artifacts:
+      self.device.fetch(self.data_path(artifact), self.results_output())
 
   def stop(self):
     """Stops any processes with a matching component manifest on the device."""
@@ -228,7 +244,7 @@ class Fuzzer(object):
     artifacts = self.list_artifacts()
     if artifacts:
       self.run(fuzzer_args + ['data/' + a for a in artifacts])
-    return artifacts
+    return len(artifacts)
 
   def merge(self, fuzzer_args):
     """Attempts to minimizes the fuzzer's corpus.
@@ -237,7 +253,7 @@ class Fuzzer(object):
       run fuchsia-pkg://fuchsia.com/<pkg>#meta/<tgt>.cmx \
         -artifact_prefix=data -jobs=1 \
         -merge=1 -merge_control_file=data/.mergefile \
-        data/corpus data/corpus.prev'
+        data/corpus/ data/corpus.prev/'
 
       See also: https://llvm.org/docs/LibFuzzer.html#corpus
 
@@ -255,8 +271,8 @@ class Fuzzer(object):
     # Save mergefile in case we are interrupted
     fuzzer_args = ['-merge=1', '-merge_control_file=data/.mergefile'
                   ] + fuzzer_args
-    fuzzer_args.append('data/corpus')
-    fuzzer_args.append('data/corpus.prev')
+    fuzzer_args.append('data/corpus/')
+    fuzzer_args.append('data/corpus.prev/')
     self.run(fuzzer_args)
     # Cleanup
     self.device.ssh(['rm', self.data_path('.mergefile')])

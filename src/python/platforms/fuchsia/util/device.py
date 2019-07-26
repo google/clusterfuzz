@@ -11,17 +11,13 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""Utilites for managing Fuchsia devices."""
-from __future__ import absolute_import
+"""Utilities for managing Fuchsia devices."""
 
-from builtins import object
-from builtins import range
-from builtins import str
+from host import Host
+import glob
 import os
 import re
 import subprocess
-
-from .host import Host
 
 
 class Device(object):
@@ -39,12 +35,16 @@ class Device(object):
   def from_args(cls, host, args):
     """Constructs a Device from command line arguments."""
     netaddr_cmd = ['netaddr', '--fuchsia', '--nowait']
+    default_device = '{}.device'.format(host.build_dir)
     if args.device:
       netaddr_cmd.append(args.device)
+    elif os.path.exists(default_device):
+      with open(default_device) as f:
+        netaddr_cmd.append(f.read().strip())
     try:
       netaddr = host.zircon_tool(netaddr_cmd)
     except subprocess.CalledProcessError:
-      raise RuntimeError('Unable to find device')
+      raise RuntimeError('Unable to find device; try `fx set-device`.')
     device = cls(host, netaddr)
     if not host.build_dir:
       raise Host.ConfigError('Unable to find SSH configuration.')
@@ -88,7 +88,9 @@ class Device(object):
   def get_ssh_cmd(self, cmd):
     """Returns the SSH executable and options."""
     result = cmd[:1]
-    for opt, args in self._ssh_opts.items():
+    for opt, args in self._ssh_opts.iteritems():
+      if result[0] == 'scp' and opt == 'p':
+        opt = 'P'
       if not args:
         result.append('-' + opt)
       else:
@@ -193,28 +195,72 @@ class Device(object):
       pass
     return results
 
-  def _scp(self, src, dst):
+  def dlog(self, logfile):
+    """Appends the debug log from a device to a log file."""
+    artifact_pattern = re.compile(r'Test unit written to data/(\S*)')
+    artifacts = []
+    stacktrace_pattern = re.compile(r'==([0-9]+)== ERROR: ')
+    stacktrace = []
+    with open(logfile) as log:
+      with open(logfile + '.tmp', 'w') as tmp:
+        while True:
+          line = log.readline()
+          if not line:
+            break
+          tmp.write(line)
+          match = artifact_pattern.search(line)
+          if match:
+            artifacts.append(match.group(1))
+          match = stacktrace_pattern.match(line)
+          if not match:
+            continue
+          p = self._ssh(['dlog', '-p', match.group(1)])
+          while True:
+            line = p.stdout.readline()
+            if not line:
+              break
+            elif r'{{{reset}}}' in line:
+              stacktrace = [line]
+            elif r'{{{' in line:
+              stacktrace.append(line)
+          p.wait()
+          symbolized = self.host.symbolize(stacktrace)
+          ignore = 'CrashTrampolineAsm' in symbolized
+          for line in symbolized.split('\n'):
+            if not line:
+              break
+            elif r'{{{' in line:
+              continue
+            elif 'CrashTrampolineAsm' in line:
+              ignore = False
+            elif not ignore:
+              tmp.write(line + '\n')
+          tmp.write('\n')
+    os.rename(logfile + '.tmp', logfile)
+    return artifacts
+
+  def _scp(self, srcs, dst):
     """Copies `src` to `dst`.
 
     Don't call directly; use `fetch` or `store` instead.`
 
     Args:
-      src: Local or remote path to copy from.
+      srcs: Local or remote paths to copy from.
       dst: Local or remote path to copy to.
     """
-    subprocess.check_call(
-        self.get_ssh_cmd(['scp', src, dst]),
-        shell=True,
-        stdout=None,
-        stderr=None)
+    cmd = self.get_ssh_cmd(['scp'] + srcs + [dst])
+    subprocess.check_call(cmd, stdout=None, stderr=None)
 
   def fetch(self, data_src, host_dst):
     """Copies `data_src` on the target to `host_dst` on the host."""
     if not os.path.isdir(host_dst):
       raise ValueError(host_dst + ' is not a directory')
-    self._scp('[' + self._addr + ']:' + data_src, host_dst)
+    self._scp(['[{}]:{}'.format(self._addr, data_src)], host_dst)
 
   def store(self, host_src, data_dst):
     """Copies `host_src` on the host to `data_dst` on the target."""
     self.ssh(['mkdir', '-p', data_dst])
-    self._scp(host_src, '[' + self._addr + ']:' + data_dst)
+    srcs = glob.glob(host_src)
+    if not srcs:
+      return
+    self._scp(srcs, '[{}]:{}'.format(self._addr, data_dst))

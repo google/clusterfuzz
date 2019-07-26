@@ -617,6 +617,10 @@ def symbolize_stacktrace(unsymbolized_crash_stacktrace,
     # Windows Clang ASAN provides symbolized stacktraces anyway.
     return unsymbolized_crash_stacktrace
 
+  if platform == 'FUCHSIA':
+    # Fuchsia Clang ASAN provides symbolized stacktraces anyway.
+    return unsymbolized_crash_stacktrace
+
   # FIXME: Support symbolization on ChromeOS device.
   if platform == 'CHROMEOS':
     return unsymbolized_crash_stacktrace

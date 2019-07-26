@@ -13,8 +13,6 @@
 # limitations under the License.
 """Utilities for handling Fuchsia hosts."""
 
-from builtins import object
-from builtins import str
 import json
 import os
 import subprocess
@@ -30,6 +28,9 @@ class Host(object):
       fuzzers:   The fuzzer binaries available in the current Fuchsia image
       build_dir: The build output directory, if present.
   """
+
+  # Convenience file descriptor for silencing subprocess output
+  DEVNULL = open(os.devnull, 'w')
 
   class ConfigError(RuntimeError):
     """Indicates the host is not configured for building Fuchsia."""
@@ -89,8 +90,7 @@ class Host(object):
   def set_platform(self, platform):
     """Sets the platform used for host OS-specific behavior."""
     if not os.path.isdir(Host.join('buildtools', platform)):
-      raise Host.ConfigError('Unsupported host platform: ' + platform +
-                             ' (full path): ' + str(os.getenv('FUCHSIA_DIR')))
+      raise Host.ConfigError('Unsupported host platform: ' + platform)
     self._platform = platform
 
   def set_symbolizer(self, executable, symbolizer):
@@ -121,7 +121,9 @@ class Host(object):
     platform = 'mac-x64' if os.uname()[0] == 'Darwin' else 'linux-x64'
     self.set_platform(platform)
     self.set_symbolizer(
-        Host.join('zircon', 'prebuilt', 'downloads', 'symbolize'),  # change
+        # I CHANGED THIS
+        Host.join('zircon', 'prebuilt', 'downloads', 'symbolize', platform,
+                  'symbolize'),
         Host.join('buildtools', platform, 'clang', 'bin', 'llvm-symbolizer'))
     json_file = Host.join(build_dir, 'fuzzers.json')
     # fuzzers.json isn't emitted in release builds
@@ -129,7 +131,7 @@ class Host(object):
       self.set_fuzzers_json(json_file)
     self.build_dir = build_dir
 
-  def zircon_tool(self, cmd, logfile=None):  # pylint: disable=inconsistent-return-statement
+  def zircon_tool(self, cmd, logfile=None):
     """Executes a tool found in the ZIRCON_BUILD_DIR."""
     if not self._zxtools:
       raise Host.ConfigError('Zircon host tools unavailable.')
@@ -139,13 +141,14 @@ class Host(object):
       raise Host.ConfigError('Unable to find Zircon host tool: ' + cmd[0])
     if logfile:
       return subprocess.Popen(cmd, stdout=logfile, stderr=subprocess.STDOUT)
-    return subprocess.check_output(cmd).strip()
+    return subprocess.check_output(cmd, stderr=Host.DEVNULL).strip()
 
   def killall(self, process):
     """ Invokes killall on the process name."""
-    subprocess.call(['killall', process])
+    subprocess.call(
+        ['killall', process], stdout=Host.DEVNULL, stderr=Host.DEVNULL)
 
-  def symbolize(self, log_in, log_out):
+  def symbolize(self, stacktrace):
     """Symbolizes backtraces in a log file using the current build."""
     if not self._symbolizer_exec:
       raise Host.ConfigError('Symbolizer executable not set.')
@@ -153,13 +156,13 @@ class Host(object):
       raise Host.ConfigError('Build IDs not set.')
     if not self._llvm_symbolizer:
       raise Host.ConfigError('LLVM symbolizer not set.')
-    subprocess.check_call(
+    return subprocess.Popen(
         [
             self._symbolizer_exec, '-ids-rel', '-ids', self._ids,
             '-llvm-symbolizer', self._llvm_symbolizer
         ],
-        stdin=log_in,
-        stdout=log_out)
+        stdin=subprocess.PIPE,
+        stdout=subprocess.PIPE).communicate('\n'.join(stacktrace))[0]
 
   def notify_user(self, title, body):
     """Displays a message to the user in a platform-specific way"""
@@ -170,14 +173,23 @@ class Host(object):
           'osascript', '-e',
           'display notification "' + body + '" with title "' + title + '"'
       ])
-    elif subprocess.call(['which', 'notify-send']) == 0:
-      subprocess.call(['notify-send', title, body])
+    elif subprocess.call(
+        ['which', 'notify-send'], stdout=Host.DEVNULL,
+        stderr=Host.DEVNULL) == 0:
+      subprocess.call(
+          ['notify-send', title, body],
+          stdout=Host.DEVNULL,
+          stderr=Host.DEVNULL)
     else:
-      subprocess.call(['wall', title + '; ' + body])
+      subprocess.call(
+          ['wall', title + '; ' + body],
+          stdout=Host.DEVNULL,
+          stderr=Host.DEVNULL)
 
   def snapshot(self):
     integration = Host.join('integration')
     if not os.path.isdir(integration):
       raise Host.ConfigError('Missing integration repo.')
     return subprocess.check_output(
-        ['git', 'rev-parse', 'HEAD'], cwd=integration).strip()
+        ['git', 'rev-parse', 'HEAD'], stderr=Host.DEVNULL,
+        cwd=integration).strip()
