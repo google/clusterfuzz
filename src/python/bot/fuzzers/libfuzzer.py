@@ -394,9 +394,14 @@ class FuchsiaQemuLibFuzzerRunner(new_process.ProcessRunner, LibFuzzerCommon):
         for line in old_file:
           line_match = re.match(crash_location_regex, line)
           if line_match:
+            # We now know the name of our crash file.
+            crash_name = line_match.group(3).replace('data/', '')
+            # Save the crash locally.
+            self.device.fetch(
+                self.fuzzer.data_path(crash_name), self.fuzzer.results_output())
+            # Then update the crash report to point to that file.
             crash_testcase_file_path = os.path.join(
-                self.fuzzer.results_output(),
-                line_match.group(3).replace('data/', ''))
+                self.fuzzer.results_output(), crash_name)
             line = re.sub(crash_location_regex,
                           r'\1\2' + crash_testcase_file_path, line)
           new_file.write(line)
