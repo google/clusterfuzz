@@ -665,21 +665,7 @@ class Build(BaseBuild):
     if environment.platform() != 'ANDROID':
       return
 
-    # Android specific initialization.
-    # Prepare device for app install.
-    android.device.initialize_device()
-
-    # On Android, we may need to write a command line file. We do this in
-    # advance so that we do not have to write this to the device multiple
-    # times.
-    # TODO(mbarbella): Build code should not depend on fuzzing.
-    from fuzzing import testcase_manager
-    testcase_manager.get_command_line_for_application(
-        write_command_line_file=True)
-
-    # Install the app if it does not exist.
-    android.device.install_application_if_needed(absolute_file_path,
-                                                 build_update)
+    android.device.update_build(absolute_file_path, force_update=build_update)
 
 
 class RegularBuild(Build):

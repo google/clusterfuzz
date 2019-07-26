@@ -34,6 +34,7 @@ def _fake_get_testcase(*_):
       'additional_metadata': '{}',
       'fuzzer_name': 'fuzzer',
       'job_definition': 'APP_NAME = echo\nAPP_ARGS = -n\n',
+      'platform': environment.platform().lower(),
   }
 
   return reproduce.SerializedTestcase(testcase_map)
@@ -52,6 +53,7 @@ class ReproduceTest(unittest.TestCase):
     helpers.patch(self, [
         'local.butler.reproduce._download_testcase',
         'local.butler.reproduce._get_testcase',
+        'local.butler.reproduce._verify_app_path_exists',
         'local.butler.reproduce_tool.config.ReproduceToolConfiguration',
         'system.process_handler.run_process',
         'system.process_handler.terminate_stale_application_instances',

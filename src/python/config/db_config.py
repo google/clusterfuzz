@@ -16,12 +16,18 @@
 import base64
 
 from datastore import data_types
+from system import environment
 
 BASE64_MARKER = 'base64;'
 
 
 def get():
   """Return configuration data."""
+  # The reproduce tool does not have access to datastore. Rather than try to
+  # catch all uses and handle them individually, we catch any accesses here.
+  if environment.get_value('REPRODUCE_TOOL'):
+    return None
+
   return data_types.Config.query().get()
 
 

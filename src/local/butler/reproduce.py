@@ -38,6 +38,8 @@ from local.butler import common
 from local.butler.reproduce_tool import config
 from local.butler.reproduce_tool import errors
 from local.butler.reproduce_tool import http_utils
+from local.butler.reproduce_tool import prompts
+from platforms.android import device
 from system import archive
 from system import environment
 from system import shell
@@ -97,6 +99,7 @@ def _download_testcase(testcase_id, testcase, configuration):
   testcase_directory = os.path.join(
       environment.get_value('ROOT_DIR'), 'current-testcase')
   shell.create_directory(testcase_directory)
+  environment.set_value('FUZZ_INPUTS', testcase_directory)
   testcase_path = os.path.join(testcase_directory,
                                os.path.basename(bot_absolute_filename))
 
@@ -162,9 +165,18 @@ def _prepare_initial_environment(build_directory):
   environment.set_value('BUILD_DIR', build_directory)
   environment.set_value('BUILDS_DIR', build_directory)
 
-  # Avoid kililng the application we're testing as developers may have it
-  # running on the side.
-  environment.set_value('KILL_PROCESSES_MATCHING_APP_NAME', 'False')
+  # Some functionality must be disabled when running the tool.
+  environment.set_value('REPRODUCE_TOOL', 'True')
+
+
+def _verify_app_path_exists():
+  """Ensure that we can find the test binary before running it.
+
+  Separated into its own function to simplify test behavior."""
+  app_path = environment.get_value('APP_PATH', '')
+  if not os.path.exists(app_path):
+    raise errors.ReproduceToolUnrecoverableError(
+        'Unable to locate test binary at {app_path}.'.format(app_path=app_path))
 
 
 def _update_environment_for_testcase(testcase, build_directory):
@@ -175,6 +187,8 @@ def _update_environment_for_testcase(testcase, build_directory):
   # Update APP_PATH now that we know the application name.
   app_path = os.path.join(build_directory, environment.get_value('APP_NAME'))
   environment.set_value('APP_PATH', app_path)
+
+  _verify_app_path_exists()
 
   fuzzer_directory = setup.get_fuzzer_directory(testcase.fuzzer_name)
   environment.set_value('FUZZER_DIR', fuzzer_directory)
@@ -208,6 +222,31 @@ def _get_testcase_id_from_url(testcase_url):
   return testcase_id
 
 
+def _prepare_environment_for_android():
+  """Additional environment overrides needed to run on an Android device."""
+  environment.set_value('OS_OVERRIDE', 'ANDROID')
+
+  # Bail out if we don't have an Android device connected.
+  serial = environment.get_value('ANDROID_SERIAL')
+  if not serial:
+    # TODO(mbarbella): Handle the one-device case gracefully.
+    raise errors.ReproduceToolUnrecoverableError('Please set ANDROID_SERIAL.')
+
+  willing_to_continue = prompts.get_boolean(
+      'Warning: this tool will make changes to settings on the connected '
+      'android device with serial {serial} that could result in data loss. Are '
+      'you sure you want to continue?'.format(serial=serial))
+  if not willing_to_continue:
+    raise errors.ReproduceToolUnrecoverableError(
+        'Bailing out to avoid changing settings on the connected device.')
+
+  # Push the test case and build APK to the device.
+  apk_path = environment.get_value('APP_PATH')
+  device.update_build(apk_path)
+
+  device.push_testcases_to_device()
+
+
 def _reproduce_crash(testcase_url, build_directory):
   """Reproduce a crash."""
   _prepare_initial_environment(build_directory)
@@ -219,6 +258,21 @@ def _reproduce_crash(testcase_url, build_directory):
   testcase = _get_testcase(testcase_id, configuration)
   testcase_path = _download_testcase(testcase_id, testcase, configuration)
   _update_environment_for_testcase(testcase, build_directory)
+
+  # Validate that we're running on the right platform for this test case.
+  platform = environment.platform().lower()
+  if testcase.platform == 'android' and platform == 'linux':
+    _prepare_environment_for_android()
+  elif testcase.platform == 'android' and platform != 'linux':
+    raise errors.ReproduceToolUnrecoverableError(
+        'The ClusterFuzz environment only supports running Android test cases '
+        'on Linux host machines. Unable to reproduce the test case on '
+        '{current_platform}.'.format(current_platform=platform))
+  elif testcase.platform != platform:
+    raise errors.ReproduceToolUnrecoverableError(
+        'The specified test case was discovered on {testcase_platform}. '
+        'Unable to attempt to reproduce it on {current_platform}.'.format(
+            testcase_platform=testcase.platform, current_platform=platform))
 
   timeout = environment.get_value('TEST_TIMEOUT')
   result = testcase_manager.test_for_crash_with_retries(testcase, testcase_path,
