@@ -42,15 +42,56 @@ TRIAGE_MESSAGE_KEY = 'triage_message'
 
 def _add_triage_message(testcase, message):
   """Add a triage message."""
-  # Re-fetch testcase to get latest entity and avoid race condition in updates.
-  testcase = data_handler.get_testcase_by_id(testcase.key.id())
   if testcase.get_metadata(TRIAGE_MESSAGE_KEY) == message:
     # Message already exists, skip update.
     return
+  # Re-fetch testcase to get latest entity and avoid race condition in updates.
+  testcase = data_handler.get_testcase_by_id(testcase.key.id())
   testcase.set_metadata(TRIAGE_MESSAGE_KEY, message)
 
 
-def create_filed_bug_metadata(testcase):
+def _associate_testcase_with_existing_issue_if_needed(testcase,
+                                                      similar_testcase, issue):
+  """Associate an interesting testcase with an existing issue which is already
+  associated with an uninteresting testcase of similar crash signature if:
+  1. The current testcase is interesting as it is:
+     a. Fully reproducible AND
+     b. Not part to any group with a bug association.
+  3. Similar testcase attached to existing issue is uninteresting as it is:
+     a. Either unreproducible (but filed since it occurs frequently) OR
+     b. Got closed due to flakiness, but developer has re-opened the issue."""
+
+  if testcase.one_time_crasher_flag:
+    return
+
+  if testcase.bug_information or testcase.group_bug_information:
+    return
+
+  # If similar testcase is reproducible, make sure that it is not recently
+  # closed. If it is, it means we might have not verified the testcase itself
+  # as well, so need to give this for testcase to close as well.
+  if not similar_testcase.open and not similar_testcase.one_time_crasher_flag:
+    closed_time = similar_testcase.get_metadata('closed_time')
+    if not closed_time:
+      return
+    if not dates.time_has_expired(
+        closed_time, hours=data_types.MIN_ELAPSED_TIME_SINCE_FIXED):
+      return
+
+  testcase_id = testcase.key.id()
+  report_url = data_handler.TESTCASE_REPORT_URL.format(
+      domain=data_handler.get_domain(), testcase_id=testcase_id)
+  comment = ('ClusterFuzz found another reproducible variant for this '
+             'bug on {job_type} job: {report_url}.').format(
+                 job_type=testcase.job_type, report_url=report_url)
+  issue.save(new_comment=comment, notify=True)
+
+  testcase = data_handler.get_testcase_by_id(testcase_id)
+  testcase.bug_information = str(issue.id)
+  testcase.put()
+
+
+def _create_filed_bug_metadata(testcase):
   """Create a dummy bug entry for a test case."""
   metadata = data_types.FiledBug()
   metadata.timestamp = datetime.datetime.utcnow()
@@ -64,7 +105,7 @@ def create_filed_bug_metadata(testcase):
   metadata.put()
 
 
-def get_excluded_jobs():
+def _get_excluded_jobs():
   """Return list of jobs excluded from bug filing."""
   excluded_jobs = []
 
@@ -84,7 +125,7 @@ def get_excluded_jobs():
   return excluded_jobs
 
 
-def is_bug_filed(testcase):
+def _is_bug_filed(testcase):
   """Indicate if the bug is already filed."""
   # Check if the testcase is already associated with a bug.
   if testcase.bug_information:
@@ -99,7 +140,7 @@ def is_bug_filed(testcase):
   return False
 
 
-def is_crash_important(testcase):
+def _is_crash_important(testcase):
   """Indicate if the crash is important to file."""
   if not testcase.one_time_crasher_flag:
     # A reproducible crash is an important crash.
@@ -168,7 +209,7 @@ def is_crash_important(testcase):
           data_types.FILE_UNREPRODUCIBLE_TESTCASE_MIN_CRASH_THRESHOLD)
 
 
-def is_similar_bug_open_or_recently_closed(testcase, issue_tracker):
+def _check_and_update_similar_bug(testcase, issue_tracker):
   """Get list of similar open issues and ones that were recently closed."""
   # Get similar testcases from the same group.
   similar_testcases_from_group = []
@@ -190,7 +231,6 @@ def is_similar_bug_open_or_recently_closed(testcase, issue_tracker):
   similar_testcases_from_query = ndb_utils.get_all_from_query(
       same_crash_params_query,
       batch_size=data_types.TESTCASE_ENTITY_QUERY_LIMIT // 2)
-
   for similar_testcase in itertools.chain(similar_testcases_from_group,
                                           similar_testcases_from_query):
     # Exclude ourself from comparison.
@@ -214,25 +254,29 @@ def is_similar_bug_open_or_recently_closed(testcase, issue_tracker):
 
     # If the issue is still open, no need to file a duplicate bug.
     if issue.is_open:
+      _associate_testcase_with_existing_issue_if_needed(testcase,
+                                                        similar_testcase, issue)
       return True
 
     # If the issue indicates that this crash needs to be ignored, no need to
     # file another one.
     policy = issue_tracker_policy.get(issue_tracker.project)
-    if policy.label('ignore') in issue.labels:
+    ignore_label = policy.label('ignore')
+    if ignore_label in issue.labels:
       _add_triage_message(
           testcase,
-          ('Skipping bug filing since similar testcase ({testcase_id}) in '
-           'issue ({issue_id}) is blacklisted.').format(
-               testcase_id=similar_testcase.key.id(), issue_id=issue.id))
+          ('Skipping filing a bug since similar testcase ({testcase_id}) in '
+           'issue ({issue_id}) is blacklisted with {ignore_label} label.'
+          ).format(
+              testcase_id=similar_testcase.key.id(),
+              issue_id=issue.id,
+              ignore_label=ignore_label))
       return True
 
     # If the issue is recently closed, wait certain time period to make sure
     # our fixed verification has completed.
     if (issue.closed_time and not dates.time_has_expired(
-        issue.closed_time,
-        compare_to=datetime.datetime.utcnow(),
-        hours=data_types.MIN_ELAPSED_TIME_SINCE_FIXED)):
+        issue.closed_time, hours=data_types.MIN_ELAPSED_TIME_SINCE_FIXED)):
       _add_triage_message(
           testcase,
           ('Delaying filing a bug since similar testcase '
@@ -259,7 +303,7 @@ class Handler(base_handler.Handler):
     utils.python_gc()
 
     # Get list of jobs excluded from bug filing.
-    excluded_jobs = get_excluded_jobs()
+    excluded_jobs = _get_excluded_jobs()
 
     for testcase_id in data_handler.get_open_testcase_id_iterator():
       try:
@@ -277,12 +321,12 @@ class Handler(base_handler.Handler):
         continue
 
       # If the testcase has a bug filed already, no triage is needed.
-      if is_bug_filed(testcase):
+      if _is_bug_filed(testcase):
         continue
 
       # Check if the crash is important, i.e. it is either a reproducible crash
       # or an unreproducible crash happening frequently.
-      if not is_crash_important(testcase):
+      if not _is_crash_important(testcase):
         continue
 
       # Require that all tasks like minimizaton, regression testing, etc have
@@ -307,7 +351,7 @@ class Handler(base_handler.Handler):
 
       # If there are similar issues to this test case already filed or recently
       # closed, skip filing a duplicate bug.
-      if is_similar_bug_open_or_recently_closed(testcase, issue_tracker):
+      if _check_and_update_similar_bug(testcase, issue_tracker):
         continue
 
       # Clean up old triage messages that would be not applicable now.
@@ -315,6 +359,6 @@ class Handler(base_handler.Handler):
 
       # File the bug first and then create filed bug metadata.
       issue_filer.file_issue(testcase, issue_tracker)
-      create_filed_bug_metadata(testcase)
+      _create_filed_bug_metadata(testcase)
       logs.log('Filed new issue %s for testcase %d.' %
                (testcase.bug_information, testcase_id))

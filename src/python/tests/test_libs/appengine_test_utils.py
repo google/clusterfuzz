@@ -64,20 +64,33 @@ def create_issue_tracker_manager():
   """Create a fake issue tracker manager."""
 
   class FakeIssueTrackerManager(object):
-    """Fake issue tracker manager."""
+    """Mock issue tracker manager."""
+
+    def __init__(self):
+      self.project_name = 'test-project'
+      self.issues = {}
+      self.next_id = 1
 
     def get_issue(self, issue_id):
-      """Create a simple issue with the given id."""
-      issue = create_generic_issue()
-      issue.id = issue_id
+      """Get original issue."""
+      issue = self.issues.get(issue_id)
+      if not issue:
+        return None
+
+      issue.itm = self
       return issue
 
     def get_comments(self, issue):  # pylint: disable=unused-argument
       """Return an empty comment list."""
       return []
 
-    def save(self, issue, send_email=None):
-      """Fake wrapper on save function, does nothing."""
-      pass
+    def save(self, issue, *args, **kwargs):  # pylint: disable=unused-argument
+      """Save an issue."""
+      if issue.new:
+        issue.id = self.next_id
+        issue.new = False
+        self.next_id += 1
+
+      self.issues[issue.id] = issue
 
   return FakeIssueTrackerManager()
