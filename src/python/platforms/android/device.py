@@ -81,6 +81,9 @@ def add_test_accounts_if_needed():
     return
 
   config = db_config.get()
+  if not config:
+    return
+
   test_account_email = config.test_account_email
   test_account_password = config.test_account_password
   if not test_account_email or not test_account_password:
