@@ -49,7 +49,7 @@ class TestFuzzStrategySelection(unittest.TestCase):
     """Ensure that the expected probabilities are being set for
     various methods."""
     fuzz_strategy_selection._query_and_upload_strategy_probabilities(
-        'libFuzzer', strategy.libfuzzer_query_strategy_list)
+        'libFuzzer', [])
     row1 = data_types.FuzzStrategyProbability.query(
         data_types.FuzzStrategyProbability.strategy_name ==
         'corpus_mutations_ml_rnn,fork,').get()
@@ -73,9 +73,9 @@ class TestFuzzStrategySelection(unittest.TestCase):
     """Ensures that ndb datastore table is properly being
     cleared before being updated."""
     fuzz_strategy_selection._query_and_upload_strategy_probabilities(
-        'libFuzzer', strategy.libfuzzer_query_strategy_list)
+        'libFuzzer', [])
     count1 = data_types.FuzzStrategyProbability.query().count()
     fuzz_strategy_selection._query_and_upload_strategy_probabilities(
-        'libFuzzer', strategy.libfuzzer_query_strategy_list)
+        'libFuzzer', [])
     count2 = data_types.FuzzStrategyProbability.query().count()
     self.assertEqual(count1, count2)
