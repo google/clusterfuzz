@@ -26,32 +26,6 @@ from tests.test_libs import helpers
 from tests.test_libs import test_utils
 
 
-class IssueTrackerManager(object):
-  """Mock issue tracker manager."""
-
-  def __init__(self, project_name):
-    self.project_name = project_name
-    self.issues = {}
-    self.next_id = 1
-
-  def get_issue(self, issue_id):
-    """Get original issue."""
-    if not issue_id in self.issues:
-      return None
-
-    issue = self.issues[issue_id]
-    issue.itm = self
-    return issue
-
-  def save(self, issue, *args, **kwargs):  # pylint: disable=unused-argument
-    """Save an issue."""
-    if issue.new:
-      issue.id = self.next_id
-      self.next_id += 1
-
-    self.issues[issue.id] = issue
-
-
 @test_utils.with_cloud_emulators('datastore')
 class CrashImportantTest(unittest.TestCase):
   """Tests for _is_crash_important."""
@@ -288,7 +262,7 @@ class IsSimilarBugOpenOrRecentlyClosed(unittest.TestCase):
     similar_testcase.set_metadata(
         'closed_time',
         test_utils.CURRENT_TIME -
-        datetime.timedelta(days=data_types.MIN_ELAPSED_TIME_SINCE_FIXED + 1))
+        datetime.timedelta(hours=data_types.MIN_ELAPSED_TIME_SINCE_FIXED + 1))
     self.assertEqual(
         True,
         triage._is_similar_bug_open_or_recently_closed(self.testcase,
@@ -356,7 +330,8 @@ class IsSimilarBugOpenOrRecentlyClosed(unittest.TestCase):
     self.issue.status = 'Fixed'
     self.issue._monorail_issue.open = False
     self.issue._monorail_issue.closed = (
-        test_utils.CURRENT_TIME - datetime.timedelta(days=1))
+        test_utils.CURRENT_TIME -
+        datetime.timedelta(hours=data_types.MIN_ELAPSED_TIME_SINCE_FIXED - 1))
     self.issue.save()
 
     similar_testcase = test_utils.create_generic_testcase()
