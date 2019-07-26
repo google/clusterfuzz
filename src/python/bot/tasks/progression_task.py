@@ -62,6 +62,8 @@ def _update_completion_metadata(testcase,
         'last_tested_crash_revision', revision, update_testcase=False)
     testcase.set_metadata(
         'last_tested_crash_time', utils.utcnow(), update_testcase=False)
+  if not testcase.open:
+    testcase.set_metadata('closed_time', utils.utcnow(), update_testcase=False)
   data_handler.update_testcase_comment(testcase, data_types.TaskState.FINISHED,
                                        message)
 
