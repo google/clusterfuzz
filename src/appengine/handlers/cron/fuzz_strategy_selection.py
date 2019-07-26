@@ -21,6 +21,7 @@ combined strategies. In the upload_bandit_weights function, we can change
 metric to be for edges, crash, features, or units. Currently based on new
 edges."""
 
+from collections import namedtuple
 from datastore import data_types
 from datastore import ndb
 from datastore import ndb_utils
@@ -34,10 +35,26 @@ HIGH_TEMPERATURE_PARAMETER = .5
 MEDIUM_TEMPERATURE_PARAMETER = .25
 LOW_TEMPERATURE_PARAMETER = .15
 
-# A list of tuples of engine names and associated strategies to include in
-# query.
-ENGINE_LIST = [('libFuzzer', strategy.libfuzzer_query_strategy_list),
-               ('afl', strategy.afl_query_strategy_list)]
+# Maintain a list of strategies to include in query for each fuzzing engine.
+# Keep this strategy order for strategy combination tracking as strategy
+# combinations are tracked as strings.
+LIBFUZZER_QUERY_STRATEGY_LIST = [
+    strategy.CORPUS_MUTATION_RADAMSA_STRATEGY,
+    strategy.RANDOM_MAX_LENGTH_STRATEGY,
+    strategy.CORPUS_MUTATION_ML_RNN_STRATEGY, strategy.VALUE_PROFILE_STRATEGY,
+    strategy.FORK_STRATEGY, strategy.CORPUS_SUBSET_STRATEGY,
+    strategy.RECOMMENDED_DICTIONARY_STRATEGY
+]
+
+AFL_QUERY_STRATEGY_LIST = [strategy.CORPUS_SUBSET_STRATEGY]
+
+# A tuple of engine name and corresponding strategies to include in multi-armed
+# bandit query.
+Engine = namedtuple('Engine', 'name query_strategy_list')
+ENGINE_LIST = [
+    Engine(name='libFuzzer', query_strategy_list=LIBFUZZER_QUERY_STRATEGY_LIST),
+    Engine(name='afl', query_strategy_list=AFL_QUERY_STRATEGY_LIST)
+]
 
 # BigQuery query for calculating multi-armed bandit probabilities for
 # various strategies using a Boltzman Exploration (softmax) model.
@@ -135,32 +152,25 @@ def _query_multi_armed_bandit_probabilities(engine_name, strategy_list):
       for strategy_name in strategy_names_list
   ])
   client = big_query.Client()
+  strategies = ','.join(
+      ['strategy_' + strategy_name for strategy_name in strategy_names_list])
   formatted_query = BANDIT_PROBABILITY_QUERY_FORMAT.format(
       high_temperature_query=BANDIT_PROBABILITY_SUBQUERY_FORMAT.format(
           temperature_type='high',
           temperature_value=HIGH_TEMPERATURE_PARAMETER,
-          strategies=','.join([
-              'strategy_' + strategy_name
-              for strategy_name in strategy_names_list
-          ]),
+          strategies=strategies,
           strategies_subquery=strategies_subquery,
           engine=engine_name),
       low_temperature_query=BANDIT_PROBABILITY_SUBQUERY_FORMAT.format(
           temperature_type='low',
           temperature_value=LOW_TEMPERATURE_PARAMETER,
-          strategies=','.join([
-              'strategy_' + strategy_name
-              for strategy_name in strategy_names_list
-          ]),
+          strategies=strategies,
           strategies_subquery=strategies_subquery,
           engine=engine_name),
       medium_temperature_query=BANDIT_PROBABILITY_SUBQUERY_FORMAT.format(
           temperature_type='medium',
           temperature_value=MEDIUM_TEMPERATURE_PARAMETER,
-          strategies=','.join([
-              'strategy_' + strategy_name
-              for strategy_name in strategy_names_list
-          ]),
+          strategies=strategies,
           strategies_subquery=strategies_subquery,
           engine=engine_name))
   return client.query(query=formatted_query).rows
@@ -239,5 +249,6 @@ class Handler(base_handler.Handler):
   @handler.check_cron()
   def get(self):
     """Process all fuzz targets and update FuzzStrategy weights."""
-    for engine_name, strategy_list in ENGINE_LIST:
-      _query_and_upload_strategy_probabilities(engine_name, strategy_list)
+    for engine in ENGINE_LIST:
+      _query_and_upload_strategy_probabilities(engine.name,
+                                               engine.query_strategy_list)

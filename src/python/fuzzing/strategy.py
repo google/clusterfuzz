@@ -57,16 +57,6 @@ strategies_with_boolean_value = [
     VALUE_PROFILE_STRATEGY,
 ]
 
-# List of strategies to include in multi-armed bandit query for libfuzzer
-libfuzzer_query_strategy_list = [
-    CORPUS_MUTATION_RADAMSA_STRATEGY, RANDOM_MAX_LENGTH_STRATEGY,
-    CORPUS_MUTATION_ML_RNN_STRATEGY, VALUE_PROFILE_STRATEGY, FORK_STRATEGY,
-    CORPUS_SUBSET_STRATEGY, RECOMMENDED_DICTIONARY_STRATEGY
-]
-
-# List of strategies to include in multi-armed bandit query for afl
-afl_query_strategy_list = [CORPUS_SUBSET_STRATEGY]
-
 # To ensure that all strategies present in |strategy_list| are parsed for stats.
 assert (set(strategy_list) == set(strategies_with_prefix_value +
                                   strategies_with_boolean_value))

@@ -175,6 +175,7 @@ type FuzzStrategyProbability struct {
 	ProbabilityMediumTemperature float64        `datastore:"probability_medium_temperature"`
 	ProbabilityHighTemperature   float64        `datastore:"probability_high_temperature"`
 	ProbabilityLowTemperature    float64        `datastore:"probability_low_temperature"`
+	Engine                       string         `datastore:"engine"`
 }
 
 // FuzzTarget is auto-generated from data_types.py.
@@ -441,12 +442,15 @@ type TestcaseUploadMetadata struct {
 
 // TestcaseVariant is auto-generated from data_types.py.
 type TestcaseVariant struct {
-	Key             *datastore.Key `datastore:"__key__"`
-	TestcaseID      int            `datastore:"testcase_id"`
-	Status          int            `datastore:"status"`
-	JobType         string         `datastore:"job_type"`
-	Revision        int            `datastore:"revision"`
-	CrashStacktrace string         `datastore:"crash_stacktrace,noindex"`
+	Key          *datastore.Key `datastore:"__key__"`
+	TestcaseID   int            `datastore:"testcase_id"`
+	Status       int            `datastore:"status"`
+	JobType      string         `datastore:"job_type"`
+	Revision     int            `datastore:"revision"`
+	CrashType    string         `datastore:"crash_type"`
+	CrashState   string         `datastore:"crash_state"`
+	SecurityFlag bool           `datastore:"security_flag"`
+	IsSimilar    bool           `datastore:"is_similar"`
 }
 
 // Trial is auto-generated from data_types.py.
