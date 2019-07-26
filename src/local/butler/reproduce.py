@@ -169,6 +169,16 @@ def _prepare_initial_environment(build_directory):
   environment.set_value('REPRODUCE_TOOL', 'True')
 
 
+def _verify_app_path_exists():
+  """Ensure that we can find the test binary before running it.
+
+  Separated into its own function to simplify test behavior."""
+  app_path = environment.get_value('APP_PATH', '')
+  if not os.path.exists(app_path):
+    raise errors.ReproduceToolUnrecoverableError(
+        'Unable to locate test binary at {app_path}.'.format(app_path=app_path))
+
+
 def _update_environment_for_testcase(testcase, build_directory):
   """Update environment variables that depend on the test case."""
   commands.update_environment_for_job(testcase.job_definition)
@@ -178,9 +188,7 @@ def _update_environment_for_testcase(testcase, build_directory):
   app_path = os.path.join(build_directory, environment.get_value('APP_NAME'))
   environment.set_value('APP_PATH', app_path)
 
-  if not os.path.exists(app_path):
-    raise errors.ReproduceToolUnrecoverableError(
-        'Unable to locate test binary at {app_path}.'.format(app_path=app_path))
+  _verify_app_path_exists()
 
   fuzzer_directory = setup.get_fuzzer_directory(testcase.fuzzer_name)
   environment.set_value('FUZZER_DIR', fuzzer_directory)

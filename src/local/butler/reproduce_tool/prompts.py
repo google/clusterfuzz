@@ -15,14 +15,12 @@
 from builtins import input
 
 
-def get_string(prompt, add_colon=True):
+def get_string(prompt):
   """Prompt the user for a string from console input."""
-  if add_colon:
-    prompt = prompt + ': '
-  return input(prompt)
+  return input(prompt + ': ')
 
 
 def get_boolean(prompt):
   """Return a boolean representing a yes/no answer to a prompt."""
-  result = get_string(prompt + ' (Y/n): ', add_colon=False)
+  result = get_string(prompt + ' (Y/n)')
   return result.lower() == 'y'

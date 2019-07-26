@@ -53,6 +53,7 @@ class ReproduceTest(unittest.TestCase):
     helpers.patch(self, [
         'local.butler.reproduce._download_testcase',
         'local.butler.reproduce._get_testcase',
+        'local.butler.reproduce._verify_app_path_exists',
         'local.butler.reproduce_tool.config.ReproduceToolConfiguration',
         'system.process_handler.run_process',
         'system.process_handler.terminate_stale_application_instances',
