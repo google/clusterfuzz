@@ -64,7 +64,7 @@ class CrashImportantTest(unittest.TestCase):
     ])
     self.mock.utcnow.return_value = test_utils.CURRENT_TIME
 
-  def test__is_crash_important_1(self):
+  def test_is_crash_important_1(self):
     """Ensure that a reproducible testcase is important."""
     testcase = test_utils.create_generic_testcase()
     testcase.one_time_crasher_flag = False
@@ -72,7 +72,7 @@ class CrashImportantTest(unittest.TestCase):
 
     self.assertTrue(triage._is_crash_important(testcase))
 
-  def test__is_crash_important_2(self):
+  def test_is_crash_important_2(self):
     """Ensure that an unreproducible testcase with status Unreproducible is
     not important."""
     testcase = test_utils.create_generic_testcase()
@@ -82,7 +82,7 @@ class CrashImportantTest(unittest.TestCase):
 
     self.assertFalse(triage._is_crash_important(testcase))
 
-  def test__is_crash_important_3(self):
+  def test_is_crash_important_3(self):
     """Ensure that an unreproducible testcase with status Duplicate is
     not important."""
     testcase = test_utils.create_generic_testcase()
@@ -92,7 +92,7 @@ class CrashImportantTest(unittest.TestCase):
 
     self.assertFalse(triage._is_crash_important(testcase))
 
-  def test__is_crash_important_4(self):
+  def test_is_crash_important_4(self):
     """If the unreproducible testcase has another reproducible testcase in
     group, then crash is not important."""
     testcase_1 = test_utils.create_generic_testcase()
@@ -107,7 +107,7 @@ class CrashImportantTest(unittest.TestCase):
 
     self.assertFalse(triage._is_crash_important(testcase_1))
 
-  def test__is_crash_important_5(self):
+  def test_is_crash_important_5(self):
     """If we don't have any crash stats data for this unreproducible testcase,
     then we can't make judgement on crash importance, so we return result as
     False."""
@@ -118,7 +118,7 @@ class CrashImportantTest(unittest.TestCase):
 
     self.assertFalse(triage._is_crash_important(testcase))
 
-  def test__is_crash_important_6(self):
+  def test_is_crash_important_6(self):
     """If this unreproducible testcase is less than the total crash threshold,
     then it is not important."""
     self.mock.get_last_successful_hour.return_value = 417325
@@ -139,7 +139,7 @@ class CrashImportantTest(unittest.TestCase):
 
     self.assertFalse(triage._is_crash_important(testcase))
 
-  def test__is_crash_important_7(self):
+  def test_is_crash_important_7(self):
     """If this unreproducible testcase spiked only for a certain interval, then
     it is not important."""
     self.mock.get_last_successful_hour.return_value = 417325
@@ -160,7 +160,7 @@ class CrashImportantTest(unittest.TestCase):
 
     self.assertFalse(triage._is_crash_important(testcase))
 
-  def test__is_crash_important_8(self):
+  def test_is_crash_important_8(self):
     """If this unreproducible testcase is crashing frequently, then it is an
     important crash."""
     self.mock.get_last_successful_hour.return_value = 417325
@@ -181,7 +181,7 @@ class CrashImportantTest(unittest.TestCase):
 
     self.assertTrue(triage._is_crash_important(testcase))
 
-  def test__is_crash_important_9(self):
+  def test_is_crash_important_9(self):
     """If this unreproducible testcase is crashing frequently, but its crash
     type is one of crash type ignores, then it is not an important crash."""
     self.mock.get_last_successful_hour.return_value = 417325
