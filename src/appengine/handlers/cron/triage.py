@@ -209,7 +209,7 @@ def _is_crash_important(testcase):
           data_types.FILE_UNREPRODUCIBLE_TESTCASE_MIN_CRASH_THRESHOLD)
 
 
-def _is_similar_bug_open_or_recently_closed(testcase, issue_tracker):
+def _check_and_update_similar_bug(testcase, issue_tracker):
   """Get list of similar open issues and ones that were recently closed."""
   # Get similar testcases from the same group.
   similar_testcases_from_group = []
@@ -351,7 +351,7 @@ class Handler(base_handler.Handler):
 
       # If there are similar issues to this test case already filed or recently
       # closed, skip filing a duplicate bug.
-      if _is_similar_bug_open_or_recently_closed(testcase, issue_tracker):
+      if _check_and_update_similar_bug(testcase, issue_tracker):
         continue
 
       # Clean up old triage messages that would be not applicable now.

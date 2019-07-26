@@ -180,8 +180,8 @@ class CrashImportantTest(unittest.TestCase):
 
 
 @test_utils.with_cloud_emulators('datastore')
-class IsSimilarBugOpenOrRecentlyClosed(unittest.TestCase):
-  """Tests for _is_similar_bug_open_or_recently_closed."""
+class CheckAndUpdateSimilarBug(unittest.TestCase):
+  """Tests for _check_and_update_similar_bug."""
 
   def setUp(self):
     helpers.patch(self, [
@@ -197,8 +197,7 @@ class IsSimilarBugOpenOrRecentlyClosed(unittest.TestCase):
     """Tests result is false when there is no other similar testcase."""
     self.assertEqual(
         False,
-        triage._is_similar_bug_open_or_recently_closed(self.testcase,
-                                                       self.issue_tracker))
+        triage._check_and_update_similar_bug(self.testcase, self.issue_tracker))
 
   def test_similar_testcase_without_bug_information(self):
     """Tests result is false when there is a similar testcase but without an
@@ -207,8 +206,7 @@ class IsSimilarBugOpenOrRecentlyClosed(unittest.TestCase):
 
     self.assertEqual(
         False,
-        triage._is_similar_bug_open_or_recently_closed(self.testcase,
-                                                       self.issue_tracker))
+        triage._check_and_update_similar_bug(self.testcase, self.issue_tracker))
 
   def test_similar_testcase_get_issue_failed(self):
     """Tests result is false when there is a similar testcase with an associated
@@ -219,8 +217,7 @@ class IsSimilarBugOpenOrRecentlyClosed(unittest.TestCase):
 
     self.assertEqual(
         False,
-        triage._is_similar_bug_open_or_recently_closed(self.testcase,
-                                                       self.issue_tracker))
+        triage._check_and_update_similar_bug(self.testcase, self.issue_tracker))
 
   def test_similar_testcase_is_reproducible_and_open(self):
     """Tests result is true when there is a similar testcase which is
@@ -235,8 +232,7 @@ class IsSimilarBugOpenOrRecentlyClosed(unittest.TestCase):
 
     self.assertEqual(
         True,
-        triage._is_similar_bug_open_or_recently_closed(self.testcase,
-                                                       self.issue_tracker))
+        triage._check_and_update_similar_bug(self.testcase, self.issue_tracker))
 
   def test_similar_testcase_reproducible_and_closed_but_issue_open(self):
     """Tests result is true when there is a similar testcase which is
@@ -253,8 +249,7 @@ class IsSimilarBugOpenOrRecentlyClosed(unittest.TestCase):
 
     self.assertEqual(
         True,
-        triage._is_similar_bug_open_or_recently_closed(self.testcase,
-                                                       self.issue_tracker))
+        triage._check_and_update_similar_bug(self.testcase, self.issue_tracker))
     testcase = data_handler.get_testcase_by_id(self.testcase.key.id())
     self.assertEqual(None, testcase.bug_information)
     self.assertEqual('', self.issue._monorail_issue.comment)
@@ -265,8 +260,7 @@ class IsSimilarBugOpenOrRecentlyClosed(unittest.TestCase):
         datetime.timedelta(hours=data_types.MIN_ELAPSED_TIME_SINCE_FIXED + 1))
     self.assertEqual(
         True,
-        triage._is_similar_bug_open_or_recently_closed(self.testcase,
-                                                       self.issue_tracker))
+        triage._check_and_update_similar_bug(self.testcase, self.issue_tracker))
     testcase = data_handler.get_testcase_by_id(self.testcase.key.id())
     self.assertEqual('1', testcase.bug_information)
     self.assertEqual(
@@ -289,8 +283,7 @@ class IsSimilarBugOpenOrRecentlyClosed(unittest.TestCase):
 
     self.assertEqual(
         True,
-        triage._is_similar_bug_open_or_recently_closed(self.testcase,
-                                                       self.issue_tracker))
+        triage._check_and_update_similar_bug(self.testcase, self.issue_tracker))
     testcase = data_handler.get_testcase_by_id(self.testcase.key.id())
     self.assertEqual('1', testcase.bug_information)
     self.assertEqual(
@@ -315,8 +308,7 @@ class IsSimilarBugOpenOrRecentlyClosed(unittest.TestCase):
 
     self.assertEqual(
         True,
-        triage._is_similar_bug_open_or_recently_closed(self.testcase,
-                                                       self.issue_tracker))
+        triage._check_and_update_similar_bug(self.testcase, self.issue_tracker))
 
     testcase = data_handler.get_testcase_by_id(self.testcase.key.id())
     self.assertEqual(
@@ -342,8 +334,7 @@ class IsSimilarBugOpenOrRecentlyClosed(unittest.TestCase):
 
     self.assertEqual(
         True,
-        triage._is_similar_bug_open_or_recently_closed(self.testcase,
-                                                       self.issue_tracker))
+        triage._check_and_update_similar_bug(self.testcase, self.issue_tracker))
 
     testcase = data_handler.get_testcase_by_id(self.testcase.key.id())
     self.assertEqual(
