@@ -34,7 +34,6 @@ class PrepareTest(fake_fs_unittest.TestCase):
     test_helpers.patch_environ(self)
     test_utils.set_up_pyfakefs(self)
 
-    self.fs.CreateDirectory('/build')
     self.fs.CreateDirectory('/inputs')
     self.fs.CreateFile('/path/target')
     self.fs.CreateFile(
