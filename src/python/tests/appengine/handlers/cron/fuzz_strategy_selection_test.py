@@ -48,6 +48,8 @@ class TestFuzzStrategySelection(unittest.TestCase):
   def test_strategy_probabilities(self):
     """Ensure that the expected probabilities are being set for
     various methods."""
+
+    # We pass an empty list as the query is patched out.
     fuzz_strategy_selection._query_and_upload_strategy_probabilities(
         'libFuzzer', [])
     row1 = data_types.FuzzStrategyProbability.query(
@@ -72,6 +74,8 @@ class TestFuzzStrategySelection(unittest.TestCase):
   def test_delete_from_table(self):
     """Ensures that ndb datastore table is properly being
     cleared before being updated."""
+
+    # We pass an empty list as the query is patched out.
     fuzz_strategy_selection._query_and_upload_strategy_probabilities(
         'libFuzzer', [])
     count1 = data_types.FuzzStrategyProbability.query().count()
