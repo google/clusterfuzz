@@ -56,15 +56,25 @@ def _associate_testcase_with_existing_issue_if_needed(testcase,
   associated with an uninteresting testcase of similar crash signature if:
   1. The current testcase is interesting as it is:
      a. Fully reproducible AND
-     b. Not part to any group with a bug association.
+     b. No other reproducible testcase is open and attached to issue.
   3. Similar testcase attached to existing issue is uninteresting as it is:
      a. Either unreproducible (but filed since it occurs frequently) OR
      b. Got closed due to flakiness, but developer has re-opened the issue."""
 
+  # Don't change existing bug mapping if any.
+  if testcase.bug_information:
+    return
+
+  # If this testcase is not reproducible, no need to update bug mapping.
   if testcase.one_time_crasher_flag:
     return
 
-  if testcase.bug_information or testcase.group_bug_information:
+  # If another reproducible testcase is open and attached to this issue, then
+  # no need to update bug mapping.
+  if data_types.Testcase.query(
+      data_types.Testcase.bug_information == str(issue.id),
+      ndb_utils.is_true(data_types.Testcase.open),
+      ndb_utils.is_false(data_types.Testcase.one_time_crasher_flag)).get():
     return
 
   # If similar testcase is reproducible, make sure that it is not recently
@@ -88,6 +98,7 @@ def _associate_testcase_with_existing_issue_if_needed(testcase,
 
   testcase = data_handler.get_testcase_by_id(testcase_id)
   testcase.bug_information = str(issue.id)
+  testcase.group_bug_information = 0
   testcase.put()
 
 
