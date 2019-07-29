@@ -261,8 +261,10 @@ class FuzzingStrategies(object):
   FAST_CAL_MANUAL_STRATEGY = 'strategy_fast_cal_manual'
 
   def __init__(self):
-    strategy_pool = strategy_selection.generate_default_strategy_pool(strategy_list=strategy.AFL_STRATEGY_LIST, use_generator=False)
-    self.use_corpus_subset = strategy_pool.do_strategy(strategy.CORPUS_SUBSET_STRATEGY)
+    strategy_pool = strategy_selection.generate_default_strategy_pool(
+        strategy_list=strategy.AFL_STRATEGY_LIST, use_generator=False)
+    self.use_corpus_subset = strategy_pool.do_strategy(
+        strategy.CORPUS_SUBSET_STRATEGY)
 
     if self.use_corpus_subset:
       self.corpus_subset_size = engine_common.random_choice(

@@ -34,6 +34,7 @@ GENERATORS = [
 StrategyCombination = namedtuple('StrategyCombination',
                                  'strategy_name probability')
 
+
 class StrategyPool(object):
   """Object used to keep track of which strategies the launcher should attempt
   to enable."""
@@ -93,7 +94,10 @@ def generate_default_strategy_pool(strategy_list, use_generator):
 
   # Decide whether or not to add non-generator strategies according to
   # probability parameters.
-  for value in [strategy_entry for strategy_entry in strategy_list if strategy_entry not in GENERATORS]:
+  for value in [
+      strategy_entry for strategy_entry in strategy_list
+      if strategy_entry not in GENERATORS
+  ]:
     if do_strategy(value):
       pool.add_strategy(value)
 
@@ -147,7 +151,10 @@ def generate_weighted_strategy_pool(strategy_list, use_generator):
 
   # We consider certain strategies separately as those are only supported by a
   # small number of fuzz targets and should be used heavily when available.
-  for value in [strategy_entry for strategy_entry in strategy_list if strategy_entry.manually_enable]:
+  for value in [
+      strategy_entry for strategy_entry in strategy_list
+      if strategy_entry.manually_enable
+  ]:
     if do_strategy(value):
       pool.add_strategy(value)
 

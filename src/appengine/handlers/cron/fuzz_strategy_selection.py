@@ -38,8 +38,15 @@ LOW_TEMPERATURE_PARAMETER = .15
 # Maintain a list of strategies to include in query for each fuzzing engine.
 # Keep this strategy order for strategy combination tracking as strategy
 # combinations are tracked as strings.
-libfuzzer_query_strategy_list = [strategy_entry for strategy_entry in strategy.LIBFUZZER_STRATEGY_LIST if not strategy_entry.manually_enable]
-afl_query_strategy_list = [strategy_entry for strategy_entry in strategy.AFL_STRATEGY_LIST if not strategy_entry.manually_enable]
+libfuzzer_query_strategy_list = [
+    strategy_tuple for strategy_tuple in strategy.LIBFUZZER_STRATEGY_LIST
+    if not strategy_tuple.manually_enable
+]
+
+afl_query_strategy_list = [
+    strategy_tuple for strategy_tuple in strategy.AFL_STRATEGY_LIST
+    if not strategy_tuple.manually_enable
+]
 
 # A tuple of engine name and corresponding strategies to include in multi-armed
 # bandit query.

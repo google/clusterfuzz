@@ -2547,7 +2547,8 @@ class SelectGeneratorTest(unittest.TestCase):
   FUZZER_PATH = '/fake/fuzzer_path'
 
   def setUp(self):
-    self.pool = strategy_selection.generate_default_strategy_pool(strategy_list=strategy.LIBFUZZER_STRATEGY_LIST, use_generator=True)
+    self.pool = strategy_selection.generate_default_strategy_pool(
+        strategy_list=strategy.LIBFUZZER_STRATEGY_LIST, use_generator=True)
     test_helpers.patch(self, [
         'bot.fuzzers.engine_common.is_lpm_fuzz_target',
         'bot.fuzzers.strategy_selection.StrategyPool.do_strategy'
