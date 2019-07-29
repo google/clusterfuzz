@@ -40,13 +40,13 @@ from bot.fuzzers import dictionary_manager
 from bot.fuzzers import engine_common
 from bot.fuzzers import libfuzzer
 from bot.fuzzers import mutator_plugin
-from bot.fuzzers import strategy
 from bot.fuzzers import utils as fuzzer_utils
 from bot.fuzzers.libFuzzer import constants
 from bot.fuzzers.libFuzzer import stats
 from bot.fuzzers.libFuzzer import strategy_selection
 from bot.fuzzers.ml.rnn import generator as ml_rnn_generator
 from datastore import data_types
+from fuzzing import strategy
 from metrics import logs
 from metrics import profiler
 from system import environment

@@ -15,10 +15,10 @@
 import re
 
 from bot.fuzzers import dictionary_manager
-from bot.fuzzers import strategy
 from bot.fuzzers import utils as fuzzer_utils
 from bot.fuzzers.libFuzzer import constants
 from crash_analysis.stack_parsing import stack_analyzer
+from fuzzing import strategy
 from metrics import logs
 from system import environment
 

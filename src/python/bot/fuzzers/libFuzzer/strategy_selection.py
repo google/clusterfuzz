@@ -21,8 +21,8 @@ from builtins import object
 
 from base import utils
 from bot.fuzzers import engine_common
-from bot.fuzzers import strategy
 from collections import namedtuple
+from fuzzing import strategy
 from metrics import logs
 from system import environment
 
