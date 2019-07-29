@@ -84,6 +84,7 @@ class MinijailChroot(object):
   DEFAULT_BINDINGS = [
       '/lib',
       '/lib64',
+      '/lib32',
       '/usr/lib',
   ]
 
