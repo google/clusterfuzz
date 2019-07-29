@@ -61,7 +61,7 @@ def execute_task(testcase_id, job_type):
       http_flag=testcase.http_flag,
       compare_crash=False)
 
-  if result.is_crash():
+  if result.is_crash() and not result.should_ignore():
     crash_state = result.get_state()
     crash_type = result.get_type()
     security_flag = result.is_security_issue()
