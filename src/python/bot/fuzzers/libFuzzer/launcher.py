@@ -1059,7 +1059,8 @@ def main(argv):
     print(line)
 
   # Add fuzzing strategies used.
-  engine_common.print_fuzzing_strategies(strategy_info.fuzzing_strategies)
+  print(engine_common.format_fuzzing_strategies(
+      strategy_info.fuzzing_strategies))
 
   # Add merge error (if any).
   if merge_error:

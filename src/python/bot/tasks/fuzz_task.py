@@ -1372,6 +1372,9 @@ class FuzzingSession(object):
     result = self._run_engine_fuzzer(engine_impl, sync_corpus_directory)
     self.sync_new_corpus_files()
 
+    # TOOD(ochang): Upload logs, and include formatted formatted fuzzing
+    # strategies.
+
     # TODO(ochang): Return stats.
     return result.crashes
 

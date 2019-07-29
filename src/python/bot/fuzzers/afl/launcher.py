@@ -329,7 +329,7 @@ class FuzzingStrategies(object):
       fuzzing_strategies.append(self.CORPUS_SUBSET_STRATEGY + '_' +
                                 str(self.corpus_subset_size))
 
-    engine_common.print_fuzzing_strategies(fuzzing_strategies)
+    print(engine_common.format_fuzzing_strategies(fuzzing_strategies))
 
 
 class AflFuzzInputDirectory(object):

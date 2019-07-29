@@ -42,7 +42,8 @@ class Result(object):
   """Represents a result of a fuzzing session: a list of crashes found and the
   stats generated."""
 
-  def __init__(self, crashes, stats):
+  def __init__(self, logs, crashes, stats):
+    self.logs = logs
     self.crashes = crashes
     self.stats = stats
 
@@ -60,7 +61,7 @@ class Engine(object):
     FuzzOptions object."""
     raise NotImplementedError
 
-  def fuzz(self, target_path, options, max_time):
+  def fuzz(self, target_path, options, reproducers_dir, max_time):
     """Run a fuzz session. Returns a Result."""
     raise NotImplementedError
 
@@ -68,7 +69,8 @@ class Engine(object):
     """Reproduce a crash given an input. Returns a Result."""
     raise NotImplementedError
 
-  def minimize_corpus(self, target_path, dirs, max_time):
+  def minimize_corpus(self, target_path, arguments, output_dir, input_dirs,
+                      max_time):
     """Optional (but recommended): run corpus minimization. Returns a Result."""
     raise NotImplementedError
 

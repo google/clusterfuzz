@@ -215,10 +215,12 @@ def get_issue_labels(fuzz_target_path):
         handle, delimiter='\n', strip=True, remove_empty=True)
 
 
-def print_fuzzing_strategies(fuzzing_strategies):
-  """Print the strategies used for logging purposes."""
+def format_fuzzing_strategies(fuzzing_strategies):
+  """Format the strategies used for logging purposes."""
   if fuzzing_strategies:
-    print('cf::fuzzing_strategies: %s' % (','.join(fuzzing_strategies)))
+    return 'cf::fuzzing_strategies: %s' % (','.join(fuzzing_strategies))
+
+  return ''
 
 
 def random_choice(sequence):
