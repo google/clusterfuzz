@@ -63,7 +63,8 @@ class PrepareTest(fake_fs_unittest.TestCase):
         ['-max_len=31337', '-timeout=11', '-rss_limit_mb=2048', '-arg1'],
         options.arguments)
     self.assertItemsEqual(['strategy1', 'strategy2'], options.strategies)
-    self.assertItemsEqual(['/new_corpus_dir', '/corpus_dir'], options.fuzz_corpus_dirs)
+    self.assertItemsEqual(['/new_corpus_dir', '/corpus_dir'],
+                          options.fuzz_corpus_dirs)
     self.assertDictEqual({'extra_env': '1'}, options.extra_env)
     self.assertFalse(options.use_dataflow_tracing)
     self.assertTrue(options.is_mutations_run)
