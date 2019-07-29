@@ -993,11 +993,11 @@ class CorpusTest(fake_filesystem_unittest.TestCase):
 def dont_use_strategies(obj):
   """Helper function to prevent using fuzzing strategies, unless asked for."""
   test_helpers.patch(obj, [
-      'bot.fuzzers.engine_common.do_corpus_subset',
+      'bot.fuzzers.engine_common.decide_with_probability',
       'bot.fuzzers.afl.launcher.FuzzingStrategies.decide_fast_cal_manual',
       'bot.fuzzers.afl.launcher.FuzzingStrategies.decide_fast_cal_random',
   ])
-  obj.mock.do_corpus_subset.return_value = False
+  obj.mock.decide_with_probability.return_value = False
   obj.mock.decide_fast_cal_manual.return_value = False
 
   def mocked_decide_random(self, num_files):  # pylint: disable=unused-argument

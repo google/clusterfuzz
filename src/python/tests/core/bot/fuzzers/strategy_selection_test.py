@@ -26,7 +26,7 @@ from tests.test_libs import test_utils
 
 
 class TestRandomStrategySelectionGeneratorPatched(unittest.TestCase):
-  """Tests whether program properly generates strategy sets for use by the
+  """Tests whether program properly generates strategy pools for use by the
   launcher."""
 
   def setUp(self):
@@ -37,8 +37,8 @@ class TestRandomStrategySelectionGeneratorPatched(unittest.TestCase):
     self.mock.decide_with_probability.return_value = True
 
   def test_default_pool_deterministic(self):
-    """Deterministically tests the random strategy pool generator."""
-    strategy_pool = strategy_selection.generate_weighted_strategy_pool(strategy_list=strategy.LIBFUZZER_STRATEGY_LIST, use_generator=True)
+    """Deterministically tests the default strategy pool generator."""
+    strategy_pool = strategy_selection.generate_default_strategy_pool(strategy_list=strategy.LIBFUZZER_STRATEGY_LIST, use_generator=True)
 
     # Ml rnn and radamsa strategies are mutually exclusive. Because of how we
     # patch, ml rnn will evaluate to false, however this depends on the

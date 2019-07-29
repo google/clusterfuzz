@@ -215,8 +215,7 @@ class LauncherTest(fake_fs_unittest.TestCase):
     test_helpers.patch(self, [
         'atexit.register',
         'base.utils.default_project_name',
-        'bot.fuzzers.libFuzzer.strategy_selection.'
-        'generate_weighted_strategy_pool',
+        'bot.fuzzers.strategy_selection.generate_weighted_strategy_pool',
         'bot.fuzzers.engine_common.decide_with_probability',
         'os.getpid',
     ])
@@ -2551,7 +2550,7 @@ class SelectGeneratorTest(unittest.TestCase):
     self.pool = strategy_selection.generate_default_strategy_pool(strategy_list=strategy.LIBFUZZER_STRATEGY_LIST, use_generator=True)
     test_helpers.patch(self, [
         'bot.fuzzers.engine_common.is_lpm_fuzz_target',
-        'bot.fuzzers.libFuzzer.strategy_selection.StrategyPool.do_strategy'
+        'bot.fuzzers.strategy_selection.StrategyPool.do_strategy'
     ])
     self.mock.do_strategy.return_value = True
     self.mock.is_lpm_fuzz_target.return_value = True
