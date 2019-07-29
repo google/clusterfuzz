@@ -234,7 +234,7 @@ class CheckAndUpdateSimilarBug(unittest.TestCase):
         True,
         triage._check_and_update_similar_bug(self.testcase, self.issue_tracker))
 
-  def test_similar_testcase_reproducible_and_closed_but_issue_open(self):
+  def test_similar_testcase_reproducible_and_closed_but_issue_open_1(self):
     """Tests result is true when there is a similar testcase which is
     reproducible and fixed due to flakiness but issue is kept open. Only update
     testcase bug mapping if similar testcase is fixed longer than the grace
@@ -268,6 +268,32 @@ class CheckAndUpdateSimilarBug(unittest.TestCase):
         'test_content_shell_drt job: '
         'https://test-clusterfuzz.appspot.com/testcase?key=1.',
         self.issue._monorail_issue.comment)
+
+  def test_similar_testcase_reproducible_and_closed_but_issue_open_2(self):
+    """Tests result is true when there is a similar testcase which is
+    reproducible and fixed due to flakiness but issue is kept open. Don't update
+    testcase bug mapping if another reproducible testcase is open and attached
+    to this bug."""
+    self.issue.save()
+
+    similar_testcase_1 = test_utils.create_generic_testcase()
+    similar_testcase_1.one_time_crasher_flag = False
+    similar_testcase_1.open = False
+    similar_testcase_1.bug_information = str(self.issue.id)
+    similar_testcase_1.put()
+
+    similar_testcase_2 = test_utils.create_generic_testcase()
+    similar_testcase_2.one_time_crasher_flag = False
+    similar_testcase_2.open = True
+    similar_testcase_2.bug_information = str(self.issue.id)
+    similar_testcase_2.put()
+
+    self.assertEqual(
+        True,
+        triage._check_and_update_similar_bug(self.testcase, self.issue_tracker))
+    testcase = data_handler.get_testcase_by_id(self.testcase.key.id())
+    self.assertEqual(None, testcase.bug_information)
+    self.assertEqual('', self.issue._monorail_issue.comment)
 
   def test_similar_testcase_unreproducible_but_issue_open(self):
     """Tests result is true when there is a similar testcase which is
