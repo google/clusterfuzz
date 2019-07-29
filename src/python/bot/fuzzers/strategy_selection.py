@@ -26,9 +26,13 @@ from fuzzing import strategy
 from metrics import logs
 from system import environment
 
+GENERATORS = [
+    strategy.CORPUS_MUTATION_RADAMSA_STRATEGY,
+    strategy.CORPUS_MUTATION_ML_RNN_STRATEGY,
+]
+
 StrategyCombination = namedtuple('StrategyCombination',
                                  'strategy_name probability')
-
 
 class StrategyPool(object):
   """Object used to keep track of which strategies the launcher should attempt
@@ -75,35 +79,30 @@ def do_strategy(strategy_tuple):
                                              strategy_tuple.probability))
 
 
-def generate_default_strategy_pool():
-  """Return a strategy pool representing a random selection of strategies for
-  launcher to consider."""
+def generate_default_strategy_pool(strategy_list, use_generator):
+  """Return a strategy pool representing a selection of strategies for launcher
+  to consider.
+
+  Select strategies according to default strategy selection method."""
   pool = StrategyPool()
 
-  # Decide whether to include radamsa, ml rnn, or no generator (mutually
-  # exclusive).
-  choose_generator(pool)
+  # If use_generator is enabled, decide whether to include radamsa, ml rnn,
+  # or no generator (mutually exclusive).
+  if use_generator:
+    choose_generator(pool)
 
-  # Decide whether or not to include remaining strategies.
-  if engine_common.do_corpus_subset():
-    pool.add_strategy(strategy.CORPUS_SUBSET_STRATEGY)
-
-  for value in [
-      strategy.DATAFLOW_TRACING_STRATEGY,
-      strategy.FORK_STRATEGY,
-      strategy.MUTATOR_PLUGIN_STRATEGY,
-      strategy.RANDOM_MAX_LENGTH_STRATEGY,
-      strategy.RECOMMENDED_DICTIONARY_STRATEGY,
-      strategy.VALUE_PROFILE_STRATEGY,
-  ]:
+  # Decide whether or not to add non-generator strategies according to
+  # probability parameters.
+  for value in [strategy_entry for strategy_entry in strategy_list if strategy_entry not in GENERATORS]:
     if do_strategy(value):
       pool.add_strategy(value)
+
   logs.log("Strategy pool was generated according to default parameters. "
            "Chosen strategies: " + ", ".join(pool.strategy_names))
   return pool
 
 
-def generate_weighted_strategy_pool():
+def generate_weighted_strategy_pool(strategy_list, use_generator):
   """Generate a strategy pool based on probability
   distribution from multi armed bandit experimentation."""
 
@@ -115,9 +114,11 @@ def generate_weighted_strategy_pool():
 
   # Otherwise if weighted strategy selection is not enabled (strategy selection
   # method is default) or if we cannot query properly, generate strategy
-  # pool according to default parameters.
+  # pool according to default parameters. We pass the combined list of
+  # multi-armed bandit strategies and manual strategies for consideration in
+  # the default strategy selection process.
   if not distribution or selection_method == 'default':
-    return generate_default_strategy_pool()
+    return generate_default_strategy_pool(strategy_list, use_generator)
 
   probability_key = 'probability_medium_temperature'
   if selection_method == 'multi_armed_bandit_high':
@@ -146,9 +147,7 @@ def generate_weighted_strategy_pool():
 
   # We consider certain strategies separately as those are only supported by a
   # small number of fuzz targets and should be used heavily when available.
-  for value in [
-      strategy.DATAFLOW_TRACING_STRATEGY, strategy.MUTATOR_PLUGIN_STRATEGY
-  ]:
+  for value in [strategy_entry for strategy_entry in strategy_list if strategy_entry.manually_enable]:
     if do_strategy(value):
       pool.add_strategy(value)
 
