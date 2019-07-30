@@ -51,15 +51,20 @@ afl_query_strategy_list = [
 # A tuple of engine name and corresponding strategies to include in multi-armed
 # bandit query.
 Engine = namedtuple('Engine', 'name query_strategy_list performance_metric')
-ENGINE_LIST = [
-    Engine(
+
+LIBFUZZER_ENGINE = Engine(
         name='libFuzzer',
         query_strategy_list=libfuzzer_query_strategy_list,
-        performance_metric='new_edges'),
-    Engine(
+        performance_metric='new_edges')
+
+AFL_ENGINE = Engine(
         name='afl',
         query_strategy_list=afl_query_strategy_list,
         performance_metric='new_units_generated')
+
+ENGINE_LIST = [
+    LIBFUZZER_ENGINE,
+    AFL_ENGINE
 ]
 
 # BigQuery query for calculating multi-armed bandit probabilities for
