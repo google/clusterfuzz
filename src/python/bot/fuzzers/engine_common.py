@@ -133,11 +133,13 @@ def get_overridable_timeout(default_timeout, override_env_var):
   return timeout
 
 
-def get_hard_timeout():
+def get_hard_timeout(total_timeout=None):
   """Get the hard timeout for fuzzing."""
+  if total_timeout is None:
+    total_timeout = environment.get_value('FUZZ_TEST_TIMEOUT')
+
   # Give a small window of time to process (upload) the fuzzer output.
-  hard_timeout = (
-      environment.get_value('FUZZ_TEST_TIMEOUT') - POSTPROCESSING_TIME)
+  hard_timeout = total_timeout - POSTPROCESSING_TIME
   return get_overridable_timeout(hard_timeout, 'HARD_TIMEOUT_OVERRIDE')
 
 

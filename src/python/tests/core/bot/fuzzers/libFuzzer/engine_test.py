@@ -18,12 +18,17 @@ from future import standard_library
 standard_library.install_aliases()
 import os
 
+import mock
 import pyfakefs.fake_filesystem_unittest as fake_fs_unittest
 
 from bot.fuzzers.libFuzzer import engine
 from bot.fuzzers.libFuzzer import launcher
+from system import new_process
 from tests.test_libs import helpers as test_helpers
 from tests.test_libs import test_utils
+
+TEST_DIR = os.path.join(
+    os.path.dirname(os.path.abspath(__file__)), 'launcher_test_data')
 
 
 class PrepareTest(fake_fs_unittest.TestCase):
@@ -68,3 +73,136 @@ class PrepareTest(fake_fs_unittest.TestCase):
     self.assertDictEqual({'extra_env': '1'}, options.extra_env)
     self.assertFalse(options.use_dataflow_tracing)
     self.assertTrue(options.is_mutations_run)
+
+
+class FuzzTest(fake_fs_unittest.TestCase):
+  """Fuzz() tests."""
+
+  def setUp(self):
+    # Set up fake filesystem.
+    test_helpers.patch_environ(self)
+    test_utils.set_up_pyfakefs(self)
+
+    self.fs.CreateDirectory('/corpus')
+    self.fs.CreateDirectory('/fuzz-inputs')
+    self.fs.CreateDirectory('/fake')
+    self.fs.CreateFile('/target')
+    self.fs.add_real_directory(TEST_DIR)
+
+    test_helpers.patch(self, [
+        'bot.fuzzers.libfuzzer.LibFuzzerRunner.fuzz',
+        'bot.fuzzers.libfuzzer.LibFuzzerRunner.merge',
+        'os.getpid',
+    ])
+
+    os.environ['JOB_NAME'] = 'libfuzzer_asan_job'
+    os.environ['FUZZ_INPUTS_DISK'] = '/fuzz-inputs'
+
+    self.mock.getpid.return_value = 9001
+    self.maxDiff = None  # pylint: disable=invalid-name
+
+  def test_fuzz(self):
+    """Test fuzz."""
+    engine_impl = engine.LibFuzzerEngine()
+    options = engine.LibFuzzerOptions(
+        '/corpus',
+        ['-arg=1', '-timeout=123', '-dict=blah.dict', '-max_len=9001'], [],
+        ['/corpus'], {}, False, False)
+
+    with open(os.path.join(TEST_DIR, 'crash.txt')) as f:
+      fuzz_output = f.read()
+
+    def mock_fuzz(*args, **kwargs):  # pylint: disable=unused-argument
+      """Mock fuzz."""
+      self.fs.CreateFile('/fuzz-inputs/temp-9001/new/A')
+      self.fs.CreateFile('/fuzz-inputs/temp-9001/new/B')
+      return new_process.ProcessResult('command', 0, fuzz_output, 2.0, False)
+
+    def mock_merge(*args, **kwargs):  # pylint: disable=unused-argument
+      """Mock merge."""
+      self.fs.CreateFile('/fuzz-inputs/temp-9001/merge-corpus/A')
+      return new_process.ProcessResult('merge-command', 0, 'merge', 2.0, False)
+
+    self.mock.fuzz.side_effect = mock_fuzz
+    self.mock.merge.side_effect = mock_merge
+
+    result = engine_impl.fuzz('/target', options, '/fake', 3600)
+    self.assertEqual(1, len(result.crashes))
+    self.assertEqual(fuzz_output, result.logs)
+
+    crash = result.crashes[0]
+    self.assertEqual('/fake/crash-1e15825e6f0b2240a5af75d84214adda1b6b5340',
+                     crash.input_path)
+    self.assertEqual(fuzz_output, crash.stacktrace)
+    self.assertItemsEqual(['-arg=1', '-timeout=123'], crash.reproduce_args)
+    self.assertEqual(2, crash.crash_time)
+
+    self.mock.fuzz.assert_called_with(
+        mock.ANY, ['/fuzz-inputs/temp-9001/new', '/corpus'],
+        additional_args=[
+            '-arg=1', '-timeout=123', '-dict=blah.dict', '-max_len=9001',
+            '-artifact_prefix=/fake/'
+        ],
+        extra_env={},
+        fuzz_timeout=1470.0)
+
+    self.mock.merge.assert_called_with(
+        mock.ANY, [
+            '/fuzz-inputs/temp-9001/merge-corpus', '/fuzz-inputs/temp-9001/new',
+            '/corpus'
+        ],
+        additional_args=['-arg=1', '-timeout=123'],
+        merge_timeout=1800.0,
+        tmp_dir='/fuzz-inputs/temp-9001/merge-workdir')
+
+    self.assertDictEqual(
+        {
+            'actual_duration': 2,
+            'average_exec_per_sec': 21,
+            'bad_instrumentation': 0,
+            'corpus_crash_count': 0,
+            'corpus_size': 0,
+            'crash_count': 1,
+            'dict_used': 1,
+            'edge_coverage': 1603,
+            'edges_total': 398467,
+            'expected_duration': 1450,
+            'feature_coverage': 3572,
+            'fuzzing_time_percent': 0.13793103448275862,
+            'initial_edge_coverage': 1603,
+            'initial_feature_coverage': 3572,
+            'leak_count': 0,
+            'log_lines_from_engine': 2,
+            'log_lines_ignored': 67,
+            'log_lines_unwanted': 0,
+            'manual_dict_size': 0,
+            'max_len': 9001,
+            'merge_edge_coverage': 0,
+            'new_edges': 0,
+            'new_features': 0,
+            'new_units_added': 1,
+            'new_units_generated': 0,
+            'number_of_executed_units': 1249,
+            'oom_count': 0,
+            'peak_rss_mb': 1197,
+            'recommended_dict_size': 0,
+            'slow_unit_count': 0,
+            'slow_units_count': 0,
+            'slowest_unit_time_sec': 0,
+            'startup_crash_count': 0,
+            # TODO(ochang): Move strategy stats to common place, rather than in
+            # engine implementation.
+            'strategy_corpus_mutations_ml_rnn': 0,
+            'strategy_corpus_mutations_radamsa': 0,
+            'strategy_corpus_subset': 0,
+            'strategy_dataflow_tracing': 0,
+            'strategy_fork': 0,
+            'strategy_mutator_plugin': 0,
+            'strategy_random_max_len': 0,
+            'strategy_recommended_dict': 0,
+            'strategy_selection_method': 'default',
+            'strategy_value_profile': 0,
+            'timeout_count': 0,
+            'timeout_limit': 123,
+        },
+        result.stats)

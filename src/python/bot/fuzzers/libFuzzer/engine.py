@@ -29,10 +29,7 @@ from bot.fuzzers.libFuzzer import stats
 from fuzzing import strategy
 from metrics import logs
 from metrics import profiler
-from system import environment
 from system import shell
-
-LOG_HEADER_FORMAT = ('Command: %s\n' 'Bot: %s\n' 'Time ran: %f\n')
 
 
 class LibFuzzerError(Exception):
@@ -179,7 +176,8 @@ class LibFuzzerEngine(engine.Engine):
     new_corpus_dir = self._create_temp_corpus_dir('new')
 
     corpus_directories = [new_corpus_dir] + options.fuzz_corpus_dirs
-    fuzz_timeout = launcher.get_fuzz_timeout(options.is_mutations_run)
+    fuzz_timeout = launcher.get_fuzz_timeout(
+        options.is_mutations_run, total_timeout=max_time)
     fuzz_result = runner.fuzz(
         corpus_directories,
         fuzz_timeout=fuzz_timeout,
@@ -204,7 +202,7 @@ class LibFuzzerEngine(engine.Engine):
 
     # Extend parsed stats by additional performance features.
     parsed_stats.update(
-        stats.parse_performance_features(log_lines, options.fuzzing_strategies,
+        stats.parse_performance_features(log_lines, options.strategies,
                                          options.arguments))
 
     # Set some initial stat overrides.
@@ -214,28 +212,21 @@ class LibFuzzerEngine(engine.Engine):
     expected_duration = runner.get_max_total_time(fuzz_timeout)
     actual_duration = int(fuzz_result.time_executed)
     fuzzing_time_percent = 100 * actual_duration / float(expected_duration)
-    stat_overrides = {
+    parsed_stats.update({
         'timeout_limit': int(timeout_limit),
         'expected_duration': expected_duration,
         'actual_duration': actual_duration,
         'fuzzing_time_percent': fuzzing_time_percent,
-    }
-
-    # Print the command output.
-    bot_name = environment.get_value('BOT_NAME', '')
-    command = fuzz_result.command
-    header = LOG_HEADER_FORMAT % (engine_common.get_command_quoted(command),
-                                  bot_name, fuzz_result.time_executed)
+    })
 
     # Remove fuzzing arguments before merge and dictionary analysis step.
     arguments = options.arguments[:]
     launcher.remove_fuzzing_arguments(arguments)
 
     self._merge_new_units(target_path, options.corpus_dir, new_corpus_dir,
-                          options.fuzz_corpus_dirs, arguments, stat_overrides)
+                          options.fuzz_corpus_dirs, arguments, parsed_stats)
 
-    fuzz_logs = header + '\n' + '\n'.join(log_lines)
-
+    fuzz_logs = '\n'.join(log_lines)
     crashes = []
     if crash_testcase_file_path:
       # Write the new testcase.
@@ -247,7 +238,7 @@ class LibFuzzerEngine(engine.Engine):
     # TODO(ochang): Custom crash state.
     # TODO(ochang): Recommended dictionary.
 
-    return engine.Result(fuzz_logs, crashes, stats)
+    return engine.Result(fuzz_logs, crashes, parsed_stats)
 
   def reproduce(self, target_path, input_path, arguments, max_time):
     """Reproduce a crash given an input. Returns a Result."""

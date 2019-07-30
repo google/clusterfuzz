@@ -539,10 +539,10 @@ def expand_with_common_arguments(arguments):
   return arguments + common_arguments
 
 
-def get_fuzz_timeout(is_mutations_run):
+def get_fuzz_timeout(is_mutations_run, total_timeout=None):
   """Get the fuzz timeout."""
   fuzz_timeout = (
-      engine_common.get_hard_timeout() -
+      engine_common.get_hard_timeout(total_timeout=total_timeout) -
       engine_common.get_merge_timeout(DEFAULT_MERGE_TIMEOUT) -
       get_dictionary_analysis_timeout())
 
