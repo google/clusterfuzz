@@ -16,7 +16,6 @@
 import mock
 import os
 
-
 from pyfakefs import fake_filesystem_unittest
 
 from system import environment
@@ -152,7 +151,3 @@ class MinijailTest(fake_filesystem_unittest.TestCase):
           'MSAN_OPTIONS': 'override=1',
           'PATH': '/bin:/usr/bin',
       }, mock_popen.call_args[1]['env'])
-
-
-if __name__ == '__main__':
-  unittest.main()
