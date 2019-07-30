@@ -83,8 +83,8 @@ class MinijailChroot(object):
   # Default directories to bind from host to chroot. Mostly library directories.
   DEFAULT_BINDINGS = [
       '/lib',
-      '/lib64',
       '/lib32',
+      '/lib64',
       '/usr/lib',
   ]
 

@@ -45,24 +45,22 @@ class MinijailTest(unittest.TestCase):
     with minijail.MinijailChroot() as chroot:
       chroot_directory = chroot.directory
       self.assertListEqual(
-          sorted(os.listdir(chroot.directory)),
-          ['dev', 'lib', 'lib64', 'proc', 'tmp', 'usr'])
+          sorted(os.listdir(chroot_directory)),
+          ['dev', 'lib', 'lib32', 'lib64', 'proc', 'tmp', 'usr'])
 
       self.assertEqual(
           chroot.get_binding(chroot.tmp_directory),
           minijail.ChrootBinding(chroot.tmp_directory, '/tmp', True))
-      self.assertEqual(
-          chroot.get_binding('/lib'),
-          minijail.ChrootBinding('/lib', '/lib', False))
-      self.assertEqual(
-          chroot.get_binding('/lib64'),
-          minijail.ChrootBinding('/lib64', '/lib64', False))
-      self.assertEqual(
-          chroot.get_binding('/usr/lib'),
-          minijail.ChrootBinding('/usr/lib', '/usr/lib', False))
+
+      for directory in ['/lib', '/lib32', '/lib64', '/usr/lib']:
+        self.assertEqual(
+            chroot.get_binding(directory),
+            minijail.ChrootBinding(directory, directory, False))
+
       self.assertIsNone(chroot.get_binding('/usr'))
 
     self.assertFalse(os.path.exists(chroot_directory))
+
 
   def test_chroot_bindings(self):
     """Tests chroot setup with additional bind dirs."""
@@ -72,8 +70,8 @@ class MinijailTest(unittest.TestCase):
     ]) as chroot:
       chroot_directory = chroot.directory
       self.assertListEqual(
-          sorted(os.listdir(chroot.directory)),
-          ['bar', 'dev', 'lib', 'lib64', 'proc', 'tmp', 'usr'])
+          sorted(os.listdir(chroot_directory)),
+          ['bar', 'dev', 'lib', 'lib32', 'lib64', 'proc', 'tmp', 'usr'])
 
     self.assertEqual(
         chroot.get_binding('/foo/bar'),
@@ -90,7 +88,8 @@ class MinijailTest(unittest.TestCase):
           '-n', '-v', '-p', '-l', '-I', '-k', 'proc,/proc,proc,1', '-P',
           chroot.directory, '-b',
           '%s,/tmp,1' % chroot.tmp_directory, '-b', '/lib,/lib,0', '-b',
-          '/lib64,/lib64,0', '-b', '/usr/lib,/usr/lib,0', '/bin/ls'
+          '/lib32,/lib32,0', '-b', '/lib64,/lib64,0', '-b',
+          '/usr/lib,/usr/lib,0', '/bin/ls'
       ])
 
   @mock.patch('system.minijail.os.getuid', lambda: 1000)
@@ -106,8 +105,9 @@ class MinijailTest(unittest.TestCase):
           '-n', '-v', '-p', '-l', '-I', '-k', 'proc,/proc,proc,1', '-P',
           chroot.directory, '-b',
           '%s,/tmp,1' % chroot.tmp_directory, '-b', '/lib,/lib,0', '-b',
-          '/lib64,/lib64,0', '-b', '/usr/lib,/usr/lib,0', '-b',
-          '/foo/bar,/bar,1', '-b', '/foo/barr,/barr,0', '/bin/ls'
+          '/lib32,/lib32,0', '-b', '/lib64,/lib64,0', '-b',
+          '/usr/lib,/usr/lib,0', '-b', '/foo/bar,/bar,1', '-b',
+          '/foo/barr,/barr,0', '/bin/ls'
       ])
 
   @mock.patch('system.minijail.os.getuid', lambda: 1000)
@@ -125,7 +125,8 @@ class MinijailTest(unittest.TestCase):
           'static', '-c', '0', '-n', '-v', '-p', '-l', '-I', '-k',
           'proc,/proc,proc,1', '-P', chroot.directory, '-b',
           '%s,/tmp,1' % chroot.tmp_directory, '-b', '/lib,/lib,0', '-b',
-          '/lib64,/lib64,0', '-b', '/usr/lib,/usr/lib,0', 'bin/ls'
+          '/lib32,/lib32,0', '-b', '/lib64,/lib64,0', '-b',
+          '/usr/lib,/usr/lib,0', 'bin/ls'
       ])
 
   @mock.patch('system.minijail.subprocess.Popen')
