@@ -17,6 +17,7 @@ from bot.fuzzers import engine
 from bot.fuzzers import strategy_selection
 from bot.fuzzers.libFuzzer import fuzzer
 from bot.fuzzers.libFuzzer import launcher
+from fuzzing import strategy
 
 
 class LibFuzzerOptions(engine.FuzzOptions):
@@ -42,7 +43,8 @@ class LibFuzzerEngine(engine.Engine):
     """Prepare for a fuzzing session, by generating options. Returns a
     FuzzOptions object."""
     arguments = fuzzer.get_arguments(target_path)
-    strategy_pool = strategy_selection.generate_weighted_strategy_pool()
+    strategy_pool = strategy_selection.generate_weighted_strategy_pool(
+        strategy_list=strategy.LIBFUZZER_STRATEGY_LIST, use_generator=True)
     strategy_info = launcher.pick_strategies(strategy_pool, target_path,
                                              corpus_dir, arguments)
 
