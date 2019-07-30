@@ -39,13 +39,20 @@ class PrepareTest(fake_fs_unittest.TestCase):
     test_helpers.patch_environ(self)
     test_utils.set_up_pyfakefs(self)
 
-    self.fs.CreateDirectory('/inputs')
-    self.fs.CreateFile('/path/target')
-    self.fs.CreateFile(
+    test_helpers.patch(self, [
+        'bot.fuzzers.engine_common.unpack_seed_corpus_if_needed',
+    ])
+
+    self.fs.create_dir('/inputs')
+    self.fs.create_file('/path/target')
+    self.fs.create_file('/path/blah.dict')
+    self.fs.create_file('/path/target_seed_corpus.zip')
+    self.fs.create_file(
         '/path/target.options',
         contents=('[libfuzzer]\n'
                   'max_len=31337\n'
-                  'timeout=11\n'))
+                  'timeout=11\n'
+                  'dict=blah.dict\n'))
 
     os.environ['FUZZ_INPUTS_DISK'] = '/inputs'
 
@@ -64,15 +71,46 @@ class PrepareTest(fake_fs_unittest.TestCase):
     engine_impl = engine.LibFuzzerEngine()
     options = engine_impl.prepare('/corpus_dir', '/path/target', '/path')
     self.assertEqual('/corpus_dir', options.corpus_dir)
-    self.assertItemsEqual(
-        ['-max_len=31337', '-timeout=11', '-rss_limit_mb=2048', '-arg1'],
-        options.arguments)
+    self.assertItemsEqual([
+        '-max_len=31337', '-timeout=11', '-rss_limit_mb=2048', '-arg1',
+        '-dict=/path/blah.dict'
+    ], options.arguments)
     self.assertItemsEqual(['strategy1', 'strategy2'], options.strategies)
     self.assertItemsEqual(['/new_corpus_dir', '/corpus_dir'],
                           options.fuzz_corpus_dirs)
     self.assertDictEqual({'extra_env': '1'}, options.extra_env)
     self.assertFalse(options.use_dataflow_tracing)
     self.assertTrue(options.is_mutations_run)
+
+    self.mock.unpack_seed_corpus_if_needed.assert_called_with(
+        '/path/target', '/corpus_dir')
+
+  def test_prepare_invalid_dict(self):
+    """Test prepare with an invalid dict path."""
+    with open('/path/target.options', 'w') as f:
+      f.write('[libfuzzer]\n'
+              'max_len=31337\n'
+              'timeout=11\n'
+              'dict=nope.dict\n')
+
+    engine_impl = engine.LibFuzzerEngine()
+    options = engine_impl.prepare('/corpus_dir', '/path/target', '/path')
+    self.assertItemsEqual(
+        ['-max_len=31337', '-timeout=11', '-rss_limit_mb=2048', '-arg1'],
+        options.arguments)
+
+  def test_prepare_auto_add_dict(self):
+    """Test prepare automatically adding dict argument."""
+    with open('/path/target.options', 'w') as f:
+      f.write('[libfuzzer]\n' 'max_len=31337\n' 'timeout=11\n')
+    self.fs.create_file('/path/target.dict')
+
+    engine_impl = engine.LibFuzzerEngine()
+    options = engine_impl.prepare('/corpus_dir', '/path/target', '/path')
+    self.assertItemsEqual([
+        '-max_len=31337', '-timeout=11', '-rss_limit_mb=2048', '-arg1',
+        '-dict=/path/target.dict'
+    ], options.arguments)
 
 
 class FuzzTest(fake_fs_unittest.TestCase):
@@ -83,10 +121,10 @@ class FuzzTest(fake_fs_unittest.TestCase):
     test_helpers.patch_environ(self)
     test_utils.set_up_pyfakefs(self)
 
-    self.fs.CreateDirectory('/corpus')
-    self.fs.CreateDirectory('/fuzz-inputs')
-    self.fs.CreateDirectory('/fake')
-    self.fs.CreateFile('/target')
+    self.fs.create_dir('/corpus')
+    self.fs.create_dir('/fuzz-inputs')
+    self.fs.create_dir('/fake')
+    self.fs.create_file('/target')
     self.fs.add_real_directory(TEST_DIR)
 
     test_helpers.patch(self, [
@@ -114,13 +152,13 @@ class FuzzTest(fake_fs_unittest.TestCase):
 
     def mock_fuzz(*args, **kwargs):  # pylint: disable=unused-argument
       """Mock fuzz."""
-      self.fs.CreateFile('/fuzz-inputs/temp-9001/new/A')
-      self.fs.CreateFile('/fuzz-inputs/temp-9001/new/B')
+      self.fs.create_file('/fuzz-inputs/temp-9001/new/A')
+      self.fs.create_file('/fuzz-inputs/temp-9001/new/B')
       return new_process.ProcessResult('command', 0, fuzz_output, 2.0, False)
 
     def mock_merge(*args, **kwargs):  # pylint: disable=unused-argument
       """Mock merge."""
-      self.fs.CreateFile('/fuzz-inputs/temp-9001/merge-corpus/A')
+      self.fs.create_file('/fuzz-inputs/temp-9001/merge-corpus/A')
       return new_process.ProcessResult('merge-command', 0, 'merge', 2.0, False)
 
     self.mock.fuzz.side_effect = mock_fuzz
