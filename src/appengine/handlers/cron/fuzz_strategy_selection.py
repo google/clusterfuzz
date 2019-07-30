@@ -50,10 +50,10 @@ afl_query_strategy_list = [
 
 # A tuple of engine name and corresponding strategies to include in multi-armed
 # bandit query.
-Engine = namedtuple('Engine', 'name query_strategy_list')
+Engine = namedtuple('Engine', 'name query_strategy_list performance_metric')
 ENGINE_LIST = [
-    Engine(name='libFuzzer', query_strategy_list=libfuzzer_query_strategy_list),
-    Engine(name='afl', query_strategy_list=afl_query_strategy_list)
+    Engine(name='libFuzzer', query_strategy_list=libfuzzer_query_strategy_list, performance_metric='new_edges'),
+    Engine(name='afl', query_strategy_list=afl_query_strategy_list, performance_metric='new_units_generated')
 ]
 
 # BigQuery query for calculating multi-armed bandit probabilities for
@@ -95,7 +95,7 @@ BANDIT_PROBABILITY_SUBQUERY_FORMAT = """
     FROM (
       SELECT
         /* Standardize the new edges data and take averages per strategy. */
-        AVG((new_edges - overall_avg_new_edges) / overall_stddev_new_edges) AS strategy_avg_edges,
+        AVG(({performance_metric} - overall_avg_{performance_metric}) / overall_stddev_{performance_metric}) AS strategy_avg_edges,
         strategy,
         /* Change temperature parameter here. */
         {temperature_value} AS temperature,
@@ -106,16 +106,16 @@ BANDIT_PROBABILITY_SUBQUERY_FORMAT = """
           fuzzer,
           CONCAT({strategies}) AS strategy,
           fuzzer_stddev,
-          AVG(new_edges) OVER() AS overall_avg_new_edges,
-          STDDEV(new_edges) OVER() AS overall_stddev_new_edges,
-          new_edges,
+          AVG({performance_metric}) OVER() AS overall_avg_{performance_metric},
+          STDDEV({performance_metric}) OVER() AS overall_stddev_{performance_metric},
+          {performance_metric},
           strategy_selection_method
         FROM (
           SELECT
             fuzzer,
             {strategies_subquery}
-            STDDEV(new_edges) OVER(PARTITION BY fuzzer) AS fuzzer_stddev,
-            new_edges,
+            STDDEV({performance_metric}) OVER(PARTITION BY fuzzer) AS fuzzer_stddev,
+            {performance_metric},
             strategy_selection_method
           FROM
             {engine}_stats.TestcaseRun
@@ -139,13 +139,13 @@ IF
 """
 
 
-def _query_multi_armed_bandit_probabilities(engine_name, strategy_list):
+def _query_multi_armed_bandit_probabilities(engine):
   """Get query results.
 
   Queries above BANDIT_PROBABILITY_QUERY and yields results
   from bigquery. This query is sorted by strategies implemented."""
   strategy_names_list = [
-      strategy_entry.name for strategy_entry in strategy_list
+      strategy_entry.name for strategy_entry in engine.query_strategy_list
   ]
   strategies_subquery = '\n'.join([
       STRATEGY_SUBQUERY_FORMAT.format(strategy_name=strategy_name)
@@ -160,23 +160,26 @@ def _query_multi_armed_bandit_probabilities(engine_name, strategy_list):
           temperature_value=HIGH_TEMPERATURE_PARAMETER,
           strategies=strategies,
           strategies_subquery=strategies_subquery,
-          engine=engine_name),
+          engine=engine.name,
+          performance_metric=engine.performance_metric),
       low_temperature_query=BANDIT_PROBABILITY_SUBQUERY_FORMAT.format(
           temperature_type='low',
           temperature_value=LOW_TEMPERATURE_PARAMETER,
           strategies=strategies,
           strategies_subquery=strategies_subquery,
-          engine=engine_name),
+          engine=engine.name,
+          performance_metric=engine.performance_metric),
       medium_temperature_query=BANDIT_PROBABILITY_SUBQUERY_FORMAT.format(
           temperature_type='medium',
           temperature_value=MEDIUM_TEMPERATURE_PARAMETER,
           strategies=strategies,
           strategies_subquery=strategies_subquery,
-          engine=engine_name))
+          engine=engine.name,
+          performance_metric=engine.performance_metric))
   return client.query(query=formatted_query).rows
 
 
-def _store_probabilities_in_bigquery(engine_name, data):
+def _store_probabilities_in_bigquery(engine, data):
   """Update a bigquery table containing the daily updated
   probability distribution over strategies."""
   bigquery_data = []
@@ -196,7 +199,7 @@ def _store_probabilities_in_bigquery(engine_name, data):
         'run_count':
             row['run_count'],
         'engine':
-            engine_name
+            engine.name
     }
     bigquery_data.append(big_query.Insert(row=bigquery_row, insert_id=None))
 
@@ -209,14 +212,14 @@ def _store_probabilities_in_bigquery(engine_name, data):
              "BigQuery.")
 
 
-def _query_and_upload_strategy_probabilities(engine_name, strategy_list):
+def _query_and_upload_strategy_probabilities(engine):
   """Uploads queried data into datastore.
 
   Calls query functions and uploads query results
   to datastore to use as new probabilities. Probabilities
   are based on new_edges feature."""
   strategy_data = []
-  data = _query_multi_armed_bandit_probabilities(engine_name, strategy_list)
+  data = _query_multi_armed_bandit_probabilities(engine)
 
   # TODO(mukundv): Update once we choose a temperature parameter for final
   # implementation.
@@ -237,7 +240,7 @@ def _query_and_upload_strategy_probabilities(engine_name, strategy_list):
           data_types.FuzzStrategyProbability)
   ])
   ndb.put_multi(strategy_data)
-  _store_probabilities_in_bigquery(engine_name, data)
+  _store_probabilities_in_bigquery(engine, data)
 
 
 class Handler(base_handler.Handler):
@@ -250,5 +253,4 @@ class Handler(base_handler.Handler):
   def get(self):
     """Process all fuzz targets and update FuzzStrategy weights."""
     for engine in ENGINE_LIST:
-      _query_and_upload_strategy_probabilities(engine.name,
-                                               engine.query_strategy_list)
+      _query_and_upload_strategy_probabilities(engine)
