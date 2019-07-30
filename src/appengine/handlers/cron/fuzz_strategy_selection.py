@@ -228,6 +228,7 @@ def _query_and_upload_strategy_probabilities(engine):
   are based on new_edges feature."""
   strategy_data = []
   data = _query_multi_armed_bandit_probabilities(engine)
+  logs.log("Queried distribution for " + engine.name)
 
   # TODO(mukundv): Update once we choose a temperature parameter for final
   # implementation.
@@ -248,7 +249,9 @@ def _query_and_upload_strategy_probabilities(engine):
           data_types.FuzzStrategyProbability)
   ])
   ndb.put_multi(strategy_data)
+  logs.log("Uploaded queried distribution to ndb for " + engine.name)
   _store_probabilities_in_bigquery(engine, data)
+  logs.log("Uploaded queried distribution to BigQuery for " + engine.name)
 
 
 class Handler(base_handler.Handler):
