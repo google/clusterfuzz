@@ -134,8 +134,7 @@ class BaseLauncherTest(unittest.TestCase):
         'bot.fuzzers.engine_common.random_choice',
         'bot.fuzzers.mutator_plugin._download_mutator_plugin_archive',
         'bot.fuzzers.mutator_plugin._get_mutator_plugins_from_bucket',
-        'bot.fuzzers.libFuzzer.strategy_selection.'
-        'generate_weighted_strategy_pool',
+        'bot.fuzzers.strategy_selection.generate_weighted_strategy_pool',
         'bot.fuzzers.libFuzzer.launcher.get_dictionary_analysis_timeout',
         'os.getpid',
     ])
