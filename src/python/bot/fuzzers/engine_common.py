@@ -75,14 +75,6 @@ def get_strategy_probability(strategy_name, default):
   return fuzzing_strategies[strategy_name]
 
 
-def do_corpus_subset():
-  """Return whether or not to do corpus subset."""
-  return decide_with_probability(
-      get_strategy_probability(
-          strategy.CORPUS_SUBSET_STRATEGY.name,
-          default=strategy.CORPUS_SUBSET_STRATEGY.probability))
-
-
 def decide_with_probability(probability):
   """Decide if we want to do something with the given probability."""
   return random.SystemRandom().random() < probability

@@ -129,7 +129,6 @@ class BaseLauncherTest(unittest.TestCase):
 
     test_helpers.patch(self, [
         'atexit.register',
-        'bot.fuzzers.engine_common.do_corpus_subset',
         'bot.fuzzers.engine_common.get_merge_timeout',
         'bot.fuzzers.engine_common.random_choice',
         'bot.fuzzers.mutator_plugin._download_mutator_plugin_archive',
