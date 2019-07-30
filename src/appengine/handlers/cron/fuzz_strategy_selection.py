@@ -53,19 +53,16 @@ afl_query_strategy_list = [
 Engine = namedtuple('Engine', 'name query_strategy_list performance_metric')
 
 LIBFUZZER_ENGINE = Engine(
-        name='libFuzzer',
-        query_strategy_list=libfuzzer_query_strategy_list,
-        performance_metric='new_edges')
+    name='libFuzzer',
+    query_strategy_list=libfuzzer_query_strategy_list,
+    performance_metric='new_edges')
 
 AFL_ENGINE = Engine(
-        name='afl',
-        query_strategy_list=afl_query_strategy_list,
-        performance_metric='new_units_generated')
+    name='afl',
+    query_strategy_list=afl_query_strategy_list,
+    performance_metric='new_units_generated')
 
-ENGINE_LIST = [
-    LIBFUZZER_ENGINE,
-    AFL_ENGINE
-]
+ENGINE_LIST = [LIBFUZZER_ENGINE, AFL_ENGINE]
 
 # BigQuery query for calculating multi-armed bandit probabilities for
 # various strategies using a Boltzman Exploration (softmax) model.
