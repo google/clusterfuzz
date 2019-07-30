@@ -15,20 +15,26 @@
 
 import mock
 import os
-import unittest
+
+
+from pyfakefs import fake_filesystem_unittest
 
 from system import environment
 from system import minijail
-
 from tests.test_libs import helpers as test_helpers
 
 
-class MinijailTest(unittest.TestCase):
+class MinijailTest(fake_filesystem_unittest.TestCase):
   """Minijail tests."""
 
   def setUp(self):
     if environment.platform() != 'LINUX':
       self.skipTest('Minijail tests are only applicable for linux platform.')
+
+    self.setUpPyfakefs()
+    for subdir in ['dev', 'lib', 'lib32', 'lib64', 'proc']:
+      self.fs.CreateDirectory(os.path.join('/', subdir))
+    self.fs.CreateDirectory(os.path.join('/', 'usr', 'lib'))
 
     test_helpers.patch(self, [
         'system.minijail._get_minijail_path',
