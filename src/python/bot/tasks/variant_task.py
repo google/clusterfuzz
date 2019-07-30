@@ -27,6 +27,8 @@ from system import environment
 def execute_task(testcase_id, job_type):
   """Run a test case with a different job type to see if they reproduce."""
   testcase = data_handler.get_testcase_by_id(testcase_id)
+  if not testcase:
+    return
 
   if (environment.is_engine_fuzzer_job(testcase.job_type) !=
       environment.is_engine_fuzzer_job(job_type)):
