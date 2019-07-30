@@ -1,0 +1,97 @@
+[19.871] 15042.15055> dso: id=3846d7501f8083ca base=0x000075daec9d0000 name=/pkg/bin/toy_fuzzer
+[19.871] 15042.15055> dso: id=b715d488354a413b base=0x00006930a2952000 name=libc++.so.2
+[19.871] 15042.15055> dso: id=a889bd8ebd385a59 base=0x000048b6a8171000 name=libunwind.so.1
+[19.871] 15042.15055> dso: id=1699f35c2dc6b5e3 base=0x000046a588b58000 name=libc++abi.so.1
+[19.871] 15042.15055> dso: id=b08681628058b008 base=0x00002bc64d38d000 name=libclang_rt.asan.so
+[19.871] 15042.15055> dso: id=55a64c0451145961 base=0x000062fb852a5000 name=<vDSO>
+[19.871] 15042.15055> dso: id=06638858681d01d3 base=0x000044418c569000 name=libfdio.so
+[19.871] 15042.15055> dso: id=16fe0c53da8d56c1 base=0x00007a4538ea2000 name=libc.so
+[19.871] 15042.15055> =================================================================
+[19.871] 15042.15055> ERROR: AddressSanitizer: heap-buffer-overflow on address 0x4bdf2019c4b8 at pc 0x75daeca7cf68 bp 0x32e9a7a92750 sp 0x32e
+[19.871] 15042.15055> 9a7a92748
+[19.872] 15042.15055> WRITE of size 1 at 0x4bdf2019c4b8 thread T0 (initial-thread)
+[19.935] 15042.15055>    #0    0x000075daeca7cf67 in LLVMFuzzerTestOneInput ../../out/default/../../examples/fuzzer/toy.cc:8 <<application>>+0xacf67
+[19.935] 15042.15055>    #1.1  0x00002bc64d3d063c in Unwind ../recipe_cleanup/clangmRcYL3/llvm_build_dir/tools/clang/stage2-bins/runtimes/runtimes-x86_64-unknown-fuchsia-bins/compiler-rt/lib/asan/../sanitizer_common/sanitizer_stacktrace.h:115 <libclang_rt.asan.so>+0x4363c
+[19.935] 15042.15055>    #1    0x00002bc64d3d063c in __asan::ErrorGeneric::Print() ../recipe_cleanup/clangmRcYL3/llvm_build_dir/tools/clang/stage2-bins/runtimes/runtimes-x86_64-unknown-fuchsia-bins/compiler-rt/lib/asan/asan_errors.cc:585 <libclang_rt.asan.so>+0x4363c
+[19.935] 15042.15055>    #2    0x00002bc64d3da156 in __asan::ScopedInErrorReport::~ScopedInErrorReport() ../recipe_cleanup/clangmRcYL3/llvm_build_dir/tools/clang/stage2-bins/runtimes/runtimes-x86_64-unknown-fuchsia-bins/compiler-rt/lib/asan/asan_report.cc:141 <libclang_rt.asan.so>+0x4d156
+[19.935] 15042.15055>    #3    0x00002bc64d3dba1e in __asan::ReportGenericError(unsigned long, unsigned long, unsigned long, unsigned long, bool, unsigned long, unsigned int, bool) ../recipe_cleanup/clangmRcYL3/llvm_build_dir/tools/clang/stage2-bins/runtimes/runtimes-x86_64-unknown-fuchsia-bins/compiler-rt/lib/asan/asan_report.cc:470 <libclang_rt.asan.so>+0x4ea1e
+[19.935] 15042.15055>    #4    0x00002bc64d3dc41a in __asan_report_store1 ../recipe_cleanup/clangmRcYL3/llvm_build_dir/tools/clang/stage2-bins/runtimes/runtimes-x86_64-unknown-fuchsia-bins/compiler-rt/lib/asan/asan_rtl.cc:122 <libclang_rt.asan.so>+0x4f41a
+[19.935] 15042.15055>    #5    0x000075daeca7cf67 in LLVMFuzzerTestOneInput ../../out/default/../../examples/fuzzer/toy.cc:8 <<application>>+0xacf67
+[19.935] 15042.15055>    #6    0x000075daeca2db93 in fuzzer::Fuzzer::ExecuteCallback(unsigned char const*, unsigned long) <<application>>+0x5db93
+[19.935] 15042.15055>    #7    0x000075daeca2d394 in fuzzer::Fuzzer::RunOne(unsigned char const*, unsigned long, bool, fuzzer::InputInfo*, bool*) <<application>>+0x5d394
+[19.935] 15042.15055>    #8    0x000075daeca2f579 in fuzzer::Fuzzer::MutateAndTestOne() <<application>>+0x5f579
+[19.935] 15042.15055>    #9    0x000075daeca302c5 in fuzzer::Fuzzer::Loop(std::Fuzzer::vector<fuzzer::SizedFile, fuzzer::fuzzer_allocator<fuzzer::SizedFile> >&) <<application>>+0x602c5
+[19.935] 15042.15055>    #10   0x000075daeca20118 in fuzzer::FuzzerDriver(int*, char***, int (*)(unsigned char const*, unsigned long)) <<application>>+0x50118
+[19.935] 15042.15055>    #11   0x000075daeca46c02 in main ../recipe_cleanup/clangmRcYL3/llvm_build_dir/tools/clang/stage2-bins/runtimes/runtimes-x86_64-unknown-fuchsia-bins/compiler-rt/lib/fuzzer/FuzzerMain.cpp:19 <<application>>+0x76c02
+[19.935] 15042.15055>    #12   0x00007a4538f384de in start_main ../../out/default.zircon/../../zircon/third_party/ulib/musl/src/env/__libc_start_main.c:95 <libc.so>+0x964de
+[19.935] 15042.15055> 0x4bdf2019c4b8 is located 7 bytes to the right of 1-byte region [0x4bdf2019c4b0,0x4bdf2019c4b1)
+[19.950] 15042.15055> allocated by thread T0 (initial-thread) here:
+[19.950] 15042.15055>    #0    0x00002bc64d3d75bd in malloc ../recipe_cleanup/clangmRcYL3/llvm_build_dir/tools/clang/stage2-bins/runtimes/runtimes-x86_64-unknown-fuchsia-bins/compiler-rt/lib/asan/asan_malloc_linux.cc:145 <libclang_rt.asan.so>+0x4a5bd
+[19.950] 15042.15055>    #1    0x000075daeca7cf22 in LLVMFuzzerTestOneInput ../../out/default/../../examples/fuzzer/toy.cc:7 <<application>>+0xacf22
+[19.950] 15042.15055>    #2    0x000075daeca2db93 in fuzzer::Fuzzer::ExecuteCallback(unsigned char const*, unsigned long) <<application>>+0x5db93
+[19.950] 15042.15055> SUMMARY: AddressSanitizer: heap-buffer-overflow LLVMFuzzerTestOneInput at ../../out/default/../../examples/fuzzer/toy.cc:8
+[19.955] 15042.15055> Shadow bytes around the buggy address:
+[19.955] 15042.15055>   0x097be4033840: fa fa 00 00 fa fa
+[19.955] 15042.15055> [1m fd fa fa fa fd fa 
+[19.955] 15042.15055> fa fa fd fa
+[19.955] 15042.15055>   0x097be4033850: fa fa fd fa fa f
+[19.955] 15042.15055> a fd fa fa fa fd fa
+[0
+[19.955] 15042.15055> m fa fa fd fa
+[19.955] 15042.15055>   0x097be4033860: fa fa fd fa fa f
+[19.955] 15042.15055> a fd fa fa fa fd fa
+[0
+[19.955] 15042.15055> m fa fa fd fa
+[19.955] 15042.15055>   0x097be4033870: fa fa fd fa fa f
+[19.955] 15042.15055> a fd fa fa fa fd fa
+[0
+[19.955] 15042.15055> m fa fa fd fa
+[19.955] 15042.15055>   0x097be4033880: fa fa fd fa fa f
+[19.955] 15042.15055> a fd fa fa fa fd fa
+[0
+[19.955] 15042.15055> m fa fa fd fa
+[19.955] 15042.15055> =>0x097be4033890: fa fa 01 fa fa fa
+[19.955] 15042.15055>  01[fa]fa fa fa fa 
+[19.955] 15042.15055> fa fa fa fa
+[19.955] 15042.15055>   0x097be40338a0: fa fa fa fa fa f
+[19.955] 15042.15055> a fa fa fa fa fa fa
+[0
+[19.955] 15042.15055> m fa fa fa fa
+[19.955] 15042.15055>   0x097be40338b0: fa fa fa fa fa f
+[19.955] 15042.15055> a fa fa fa fa fa fa
+[0
+[19.955] 15042.15055> m fa fa fa fa
+[19.955] 15042.15055>   0x097be40338c0: fa fa fa fa fa f
+[19.955] 15042.15055> a fa fa fa fa fa fa
+[0
+[19.955] 15042.15055> m fa fa fa fa
+[19.955] 15042.15055>   0x097be40338d0: fa fa fa fa fa f
+[19.955] 15042.15055> a fa fa fa fa fa fa
+[0
+[19.955] 15042.15055> m fa fa fa fa
+[19.955] 15042.15055>   0x097be40338e0: fa fa fa fa fa f
+[19.955] 15042.15055> a fa fa fa fa fa fa
+[0
+[19.955] 15042.15055> m fa fa fa fa
+[19.955] 15042.15055> Shadow byte legend (one shadow byte represents 8 application bytes):
+[19.955] 15042.15055>   Addressable:           00
+[19.955] 15042.15055>   Partially addressable: 01 02 03 04 05 
+[19.955] 15042.15055> 06 07 
+[19.955] 15042.15055>   Heap left redzone:       fa
+[19.955] 15042.15055>   Freed heap region:       fd
+[19.955] 15042.15055>   Stack left redzone:      f1
+[19.955] 15042.15055>   Stack mid redzone:       f2
+[19.955] 15042.15055>   Stack right redzone:     f3
+[19.955] 15042.15055>   Stack after return:      f5
+[19.955] 15042.15055>   Stack use after scope:   f8
+[19.955] 15042.15055>   Global redzone:          f9
+[19.955] 15042.15055>   Global init order:       f6
+[19.955] 15042.15055>   Poisoned by user:        f7
+[19.955] 15042.15055>   Container overflow:      fc
+[19.955] 15042.15055>   Array cookie:            ac
+[19.955] 15042.15055>   Intra object redzone:    bb
+[19.955] 15042.15055>   ASan internal:           fe
+[19.955] 15042.15055>   Left alloca redzone:     ca
+[19.955] 15042.15055>   Right alloca redzone:    cb
+[19.955] 15042.15055>   Shadow gap:              cc
+[19.955] 15042.15055> ABORTING

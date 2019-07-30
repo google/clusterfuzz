@@ -1345,6 +1345,18 @@ class StackAnalyzerTestcase(unittest.TestCase):
                                   expected_state, expected_stacktrace,
                                   expected_security_flag)
 
+  def test_fuchsia_asan(self):
+    """Test for Fuchsia ASan crashes."""
+    data = self._read_test_data('fuchsia_asan.txt')
+    expected_type = 'Heap-buffer-overflow'
+    expected_state = 'NULL'
+    expected_address = '0x4bdf2019c4b8'
+    expected_stacktrace = data
+    expected_security_flag = True
+    self._validate_get_crash_data(data, expected_type, expected_address,
+                                  expected_state, expected_stacktrace,
+                                  expected_security_flag)
+
   def test_windows_asan_divide_by_zero(self):
     """Test for Windows ASan divide by zero crashes."""
     data = self._read_test_data('windows_asan_divide_by_zero.txt')
