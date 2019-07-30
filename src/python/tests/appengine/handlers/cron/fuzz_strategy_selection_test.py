@@ -50,7 +50,7 @@ class TestFuzzStrategySelection(unittest.TestCase):
 
     # We pass an empty list as the query is patched out.
     fuzz_strategy_selection._query_and_upload_strategy_probabilities(
-        'libFuzzer', [])
+        fuzz_strategy_selection.LIBFUZZER_ENGINE)
     row1 = data_types.FuzzStrategyProbability.query(
         data_types.FuzzStrategyProbability.strategy_name ==
         'corpus_mutations_ml_rnn,fork,').get()
@@ -76,9 +76,9 @@ class TestFuzzStrategySelection(unittest.TestCase):
 
     # We pass an empty list as the query is patched out.
     fuzz_strategy_selection._query_and_upload_strategy_probabilities(
-        'libFuzzer', [])
+        fuzz_strategy_selection.LIBFUZZER_ENGINE)
     count1 = data_types.FuzzStrategyProbability.query().count()
     fuzz_strategy_selection._query_and_upload_strategy_probabilities(
-        'libFuzzer', [])
+        fuzz_strategy_selection.LIBFUZZER_ENGINE)
     count2 = data_types.FuzzStrategyProbability.query().count()
     self.assertEqual(count1, count2)

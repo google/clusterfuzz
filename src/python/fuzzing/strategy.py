@@ -67,6 +67,8 @@ strategies_with_boolean_value = [
     VALUE_PROFILE_STRATEGY,
 ]
 
+# Keep this strategy order for strategy combination tracking as strategy
+# combinations are tracked as strings.
 LIBFUZZER_STRATEGY_LIST = [
     CORPUS_MUTATION_RADAMSA_STRATEGY,
     RANDOM_MAX_LENGTH_STRATEGY,
