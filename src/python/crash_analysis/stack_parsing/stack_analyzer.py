@@ -1492,12 +1492,12 @@ def get_crash_data(crash_data, symbolize_flag=True):
           address_filter=lambda s: '0x' + s,
           reset=True)
 
-      # Libfuzzer deadly signal errors.
+      # Libfuzzer fatal signal errors.
       update_state_on_match(
           LIBFUZZER_DEADLY_SIGNAL_REGEX,
           line,
           state,
-          new_type='deadly signal',
+          new_type='Fatal-signal',
           reset=True)
 
     if state.fatal_error_occurred:
