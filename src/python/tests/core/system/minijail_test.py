@@ -61,7 +61,6 @@ class MinijailTest(unittest.TestCase):
 
     self.assertFalse(os.path.exists(chroot_directory))
 
-
   def test_chroot_bindings(self):
     """Tests chroot setup with additional bind dirs."""
     chroot_directory = None
