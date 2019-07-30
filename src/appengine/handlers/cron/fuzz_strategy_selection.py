@@ -52,8 +52,14 @@ afl_query_strategy_list = [
 # bandit query.
 Engine = namedtuple('Engine', 'name query_strategy_list performance_metric')
 ENGINE_LIST = [
-    Engine(name='libFuzzer', query_strategy_list=libfuzzer_query_strategy_list, performance_metric='new_edges'),
-    Engine(name='afl', query_strategy_list=afl_query_strategy_list, performance_metric='new_units_generated')
+    Engine(
+        name='libFuzzer',
+        query_strategy_list=libfuzzer_query_strategy_list,
+        performance_metric='new_edges'),
+    Engine(
+        name='afl',
+        query_strategy_list=afl_query_strategy_list,
+        performance_metric='new_units_generated')
 ]
 
 # BigQuery query for calculating multi-armed bandit probabilities for
@@ -87,15 +93,15 @@ BANDIT_PROBABILITY_SUBQUERY_FORMAT = """
     strategy_selection_method
   FROM (
     SELECT
-      EXP(strategy_avg_edges / temperature) AS strategy_exp,
-      SUM(EXP(strategy_avg_edges / temperature)) OVER() AS exp_sum,
+      EXP(strategy_avg_{performance_metric} / temperature) AS strategy_exp,
+      SUM(EXP(strategy_avg_{performance_metric} / temperature)) OVER() AS exp_sum,
       strategy,
       run_count,
       strategy_selection_method
     FROM (
       SELECT
         /* Standardize the new edges data and take averages per strategy. */
-        AVG(({performance_metric} - overall_avg_{performance_metric}) / overall_stddev_{performance_metric}) AS strategy_avg_edges,
+        AVG(({performance_metric} - overall_avg_{performance_metric}) / overall_stddev_{performance_metric}) AS strategy_avg_{performance_metric},
         strategy,
         /* Change temperature parameter here. */
         {temperature_value} AS temperature,
@@ -232,7 +238,7 @@ def _query_and_upload_strategy_probabilities(engine):
         row['bandit_weight_low_temperature'])
     curr_strategy.probability_medium_temperature = float(
         row['bandit_weight_medium_temperature'])
-    curr_strategy.engine = engine_name
+    curr_strategy.engine = engine.name
     strategy_data.append(curr_strategy)
 
   ndb.delete_multi([
