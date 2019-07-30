@@ -28,6 +28,12 @@ def execute_task(testcase_id, job_type):
   """Run a test case with a different job type to see if they reproduce."""
   testcase = data_handler.get_testcase_by_id(testcase_id)
 
+  if (environment.is_engine_fuzzer_job(testcase.job_type) !=
+      environment.is_engine_fuzzer_job(job_type)):
+    # We should never reach here. But in case we do, we should bail out as
+    # otherwise we will run into exceptions.
+    return
+
   # Setup testcase and its dependencies.
   fuzzer_override = builtin_fuzzers.get_fuzzer_for_job(job_type)
   file_list, _, testcase_file_path = setup.setup_testcase(
