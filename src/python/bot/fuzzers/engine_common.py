@@ -26,7 +26,6 @@ import time
 from base import utils
 from bot.fuzzers import options
 from bot.fuzzers import utils as fuzzer_utils
-from fuzzing import strategy
 from metrics import fuzzer_stats
 from metrics import logs
 from system import archive
