@@ -26,7 +26,6 @@ import time
 from base import utils
 from bot.fuzzers import options
 from bot.fuzzers import utils as fuzzer_utils
-from fuzzing import strategy
 from metrics import fuzzer_stats
 from metrics import logs
 from system import archive
@@ -73,14 +72,6 @@ def get_strategy_probability(strategy_name, default):
     return 0.0
 
   return fuzzing_strategies[strategy_name]
-
-
-def do_corpus_subset():
-  """Return whether or not to do corpus subset."""
-  return decide_with_probability(
-      get_strategy_probability(
-          strategy.CORPUS_SUBSET_STRATEGY.name,
-          default=strategy.CORPUS_SUBSET_STRATEGY.probability))
 
 
 def decide_with_probability(probability):
