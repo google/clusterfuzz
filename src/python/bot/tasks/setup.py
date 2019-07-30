@@ -109,8 +109,11 @@ def prepare_environment_for_testcase(testcase):
     environment.set_value('TEST_TIMEOUT',
                           int(test_timeout * testcase.timeout_multiplier))
 
-  # Override APP_ARGS with minimized arguments (if available).
-  if (hasattr(testcase, 'minimized_arguments') and
+  # Override APP_ARGS with minimized arguments (if available). Don't do this
+  # for variant task since other job types can have its own set of required
+  # arguments, so use the full set of arguments of that job.
+  task_name = environment.get_value('TASK_NAME')
+  if (task_name != 'variant' and hasattr(testcase, 'minimized_arguments') and
       testcase.minimized_arguments):
     environment.set_value('APP_ARGS', testcase.minimized_arguments)
 
