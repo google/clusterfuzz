@@ -14,9 +14,9 @@
 """libFuzzer engine interface."""
 
 from bot.fuzzers import engine
+from bot.fuzzers import strategy_selection
 from bot.fuzzers.libFuzzer import fuzzer
 from bot.fuzzers.libFuzzer import launcher
-from bot.fuzzers.libFuzzer import strategy_selection
 
 
 class LibFuzzerOptions(engine.FuzzOptions):
