@@ -38,22 +38,22 @@ LOW_TEMPERATURE_PARAMETER = .15
 # Maintain a list of strategies to include in query for each fuzzing engine.
 # Keep this strategy order for strategy combination tracking as strategy
 # combinations are tracked as strings.
-LIBFUZZER_QUERY_STRATEGY_LIST = [
-    strategy.CORPUS_MUTATION_RADAMSA_STRATEGY,
-    strategy.RANDOM_MAX_LENGTH_STRATEGY,
-    strategy.CORPUS_MUTATION_ML_RNN_STRATEGY, strategy.VALUE_PROFILE_STRATEGY,
-    strategy.FORK_STRATEGY, strategy.CORPUS_SUBSET_STRATEGY,
-    strategy.RECOMMENDED_DICTIONARY_STRATEGY
+libfuzzer_query_strategy_list = [
+    strategy_tuple for strategy_tuple in strategy.LIBFUZZER_STRATEGY_LIST
+    if not strategy_tuple.manually_enable
 ]
 
-AFL_QUERY_STRATEGY_LIST = [strategy.CORPUS_SUBSET_STRATEGY]
+afl_query_strategy_list = [
+    strategy_tuple for strategy_tuple in strategy.AFL_STRATEGY_LIST
+    if not strategy_tuple.manually_enable
+]
 
 # A tuple of engine name and corresponding strategies to include in multi-armed
 # bandit query.
 Engine = namedtuple('Engine', 'name query_strategy_list')
 ENGINE_LIST = [
-    Engine(name='libFuzzer', query_strategy_list=LIBFUZZER_QUERY_STRATEGY_LIST),
-    Engine(name='afl', query_strategy_list=AFL_QUERY_STRATEGY_LIST)
+    Engine(name='libFuzzer', query_strategy_list=libfuzzer_query_strategy_list),
+    Engine(name='afl', query_strategy_list=afl_query_strategy_list)
 ]
 
 # BigQuery query for calculating multi-armed bandit probabilities for

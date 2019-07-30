@@ -38,12 +38,14 @@ from base import utils
 from bot.fuzzers import dictionary_manager
 from bot.fuzzers import engine_common
 from bot.fuzzers import options
+from bot.fuzzers import strategy_selection
 from bot.fuzzers import utils as fuzzer_utils
 from bot.fuzzers.afl import constants
 from bot.fuzzers.afl import stats
 from bot.fuzzers.afl import strategies
 from bot.fuzzers.afl.fuzzer import write_dummy_file
 from datastore import data_types
+from fuzzing import strategy
 from metrics import logs
 from metrics import profiler
 from system import environment
@@ -259,7 +261,10 @@ class FuzzingStrategies(object):
   FAST_CAL_MANUAL_STRATEGY = 'strategy_fast_cal_manual'
 
   def __init__(self):
-    self.use_corpus_subset = engine_common.do_corpus_subset()
+    strategy_pool = strategy_selection.generate_default_strategy_pool(
+        strategy_list=strategy.AFL_STRATEGY_LIST, use_generator=False)
+    self.use_corpus_subset = strategy_pool.do_strategy(
+        strategy.CORPUS_SUBSET_STRATEGY)
 
     if self.use_corpus_subset:
       self.corpus_subset_size = engine_common.random_choice(

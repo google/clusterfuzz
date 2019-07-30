@@ -15,7 +15,7 @@
 
 import unittest
 
-from bot.fuzzers.libFuzzer import strategy_selection
+from bot.fuzzers import strategy_selection
 from bot.tasks import fuzz_task
 from datastore import data_types
 from datastore import ndb
@@ -26,7 +26,7 @@ from tests.test_libs import test_utils
 
 
 class TestRandomStrategySelectionGeneratorPatched(unittest.TestCase):
-  """Tests whether program properly generates strategy sets for use by the
+  """Tests whether program properly generates strategy pools for use by the
   launcher."""
 
   def setUp(self):
@@ -37,8 +37,9 @@ class TestRandomStrategySelectionGeneratorPatched(unittest.TestCase):
     self.mock.decide_with_probability.return_value = True
 
   def test_default_pool_deterministic(self):
-    """Deterministically tests the random strategy pool generator."""
-    strategy_pool = strategy_selection.generate_default_strategy_pool()
+    """Deterministically tests the default strategy pool generator."""
+    strategy_pool = strategy_selection.generate_default_strategy_pool(
+        strategy_list=strategy.LIBFUZZER_STRATEGY_LIST, use_generator=True)
 
     # Ml rnn and radamsa strategies are mutually exclusive. Because of how we
     # patch, ml rnn will evaluate to false, however this depends on the
@@ -64,7 +65,8 @@ class TestStrategySelectionPatchless(unittest.TestCase):
   def test_default_pool_generator(self):
     """Ensures that a call to generate_default_strategy_pool does not yield an
     exception. Deterministic behaviors are tested in the previous test."""
-    strategy_selection.generate_default_strategy_pool()
+    strategy_selection.generate_default_strategy_pool(
+        strategy_list=strategy.LIBFUZZER_STRATEGY_LIST, use_generator=True)
 
 
 @test_utils.with_cloud_emulators('datastore')
@@ -112,15 +114,19 @@ class TestMultiArmedBanditStrategySelectionPatch(unittest.TestCase):
     """Ensures a call to the multi armed bandit strategy selection function
     doesn't yield an exception through any of the experimental paths."""
     environment.set_value('STRATEGY_SELECTION_METHOD', 'default')
-    strategy_selection.generate_weighted_strategy_pool()
+    strategy_selection.generate_weighted_strategy_pool(
+        strategy_list=strategy.LIBFUZZER_STRATEGY_LIST, use_generator=True)
     environment.set_value('STRATEGY_SELECTION_METHOD',
                           'multi_armed_bandit_medium')
-    strategy_selection.generate_weighted_strategy_pool()
+    strategy_selection.generate_weighted_strategy_pool(
+        strategy_list=strategy.LIBFUZZER_STRATEGY_LIST, use_generator=True)
     environment.set_value('STRATEGY_SELECTION_METHOD',
                           'multi_armed_bandit_high')
-    strategy_selection.generate_weighted_strategy_pool()
+    strategy_selection.generate_weighted_strategy_pool(
+        strategy_list=strategy.LIBFUZZER_STRATEGY_LIST, use_generator=True)
     environment.set_value('STRATEGY_SELECTION_METHOD', 'multi_armed_bandit_low')
-    strategy_selection.generate_weighted_strategy_pool()
+    strategy_selection.generate_weighted_strategy_pool(
+        strategy_list=strategy.LIBFUZZER_STRATEGY_LIST, use_generator=True)
 
 
 @test_utils.with_cloud_emulators('datastore')
@@ -162,7 +168,8 @@ class TestMultiArmedBanditStrategySelection(unittest.TestCase):
     be included in our strategy pool."""
     environment.set_value('STRATEGY_SELECTION_METHOD',
                           'multi_armed_bandit_medium')
-    strategy_pool = strategy_selection.generate_weighted_strategy_pool()
+    strategy_pool = strategy_selection.generate_weighted_strategy_pool(
+        strategy_list=strategy.LIBFUZZER_STRATEGY_LIST, use_generator=True)
     self.assertTrue(
         strategy_pool.do_strategy(strategy.CORPUS_MUTATION_ML_RNN_STRATEGY))
     self.assertTrue(
@@ -184,7 +191,8 @@ class TestMultiArmedBanditStrategySelection(unittest.TestCase):
     be included in our strategy pool."""
     environment.set_value('STRATEGY_SELECTION_METHOD',
                           'multi_armed_bandit_high')
-    strategy_pool = strategy_selection.generate_weighted_strategy_pool()
+    strategy_pool = strategy_selection.generate_weighted_strategy_pool(
+        strategy_list=strategy.LIBFUZZER_STRATEGY_LIST, use_generator=True)
     self.assertTrue(
         strategy_pool.do_strategy(strategy.CORPUS_MUTATION_ML_RNN_STRATEGY))
     self.assertTrue(
@@ -205,7 +213,8 @@ class TestMultiArmedBanditStrategySelection(unittest.TestCase):
     Based on deterministic strategy selection. Mutator plugin is patched to
     be included in our strategy pool."""
     environment.set_value('STRATEGY_SELECTION_METHOD', 'multi_armed_bandit_low')
-    strategy_pool = strategy_selection.generate_weighted_strategy_pool()
+    strategy_pool = strategy_selection.generate_weighted_strategy_pool(
+        strategy_list=strategy.LIBFUZZER_STRATEGY_LIST, use_generator=True)
     self.assertTrue(
         strategy_pool.do_strategy(strategy.CORPUS_MUTATION_ML_RNN_STRATEGY))
     self.assertTrue(

@@ -40,10 +40,10 @@ from bot.fuzzers import dictionary_manager
 from bot.fuzzers import engine_common
 from bot.fuzzers import libfuzzer
 from bot.fuzzers import mutator_plugin
+from bot.fuzzers import strategy_selection
 from bot.fuzzers import utils as fuzzer_utils
 from bot.fuzzers.libFuzzer import constants
 from bot.fuzzers.libFuzzer import stats
-from bot.fuzzers.libFuzzer import strategy_selection
 from bot.fuzzers.ml.rnn import generator as ml_rnn_generator
 from datastore import data_types
 from fuzzing import strategy
@@ -866,7 +866,8 @@ def main(argv):
   # fuzzing strategies is the list of strategies that are enabled. (e.g. if
   # mutator is selected in the pool, but not available for a given target, it
   # would not be added to fuzzing strategies.)
-  strategy_pool = strategy_selection.generate_weighted_strategy_pool()
+  strategy_pool = strategy_selection.generate_weighted_strategy_pool(
+      strategy_list=strategy.LIBFUZZER_STRATEGY_LIST, use_generator=True)
   strategy_info = pick_strategies(
       strategy_pool,
       fuzzer_path,

@@ -27,10 +27,10 @@ import unittest
 
 from bot.fuzzers import engine_common
 from bot.fuzzers import libfuzzer
+from bot.fuzzers import strategy_selection
 from bot.fuzzers.libFuzzer import constants
 from bot.fuzzers.libFuzzer import launcher
 from bot.fuzzers.libFuzzer import stats
-from bot.fuzzers.libFuzzer import strategy_selection
 from fuzzing import strategy
 from metrics import fuzzer_stats
 from system import environment
@@ -215,8 +215,7 @@ class LauncherTest(fake_fs_unittest.TestCase):
     test_helpers.patch(self, [
         'atexit.register',
         'base.utils.default_project_name',
-        'bot.fuzzers.libFuzzer.strategy_selection.'
-        'generate_weighted_strategy_pool',
+        'bot.fuzzers.strategy_selection.generate_weighted_strategy_pool',
         'bot.fuzzers.engine_common.decide_with_probability',
         'os.getpid',
     ])
@@ -2548,10 +2547,11 @@ class SelectGeneratorTest(unittest.TestCase):
   FUZZER_PATH = '/fake/fuzzer_path'
 
   def setUp(self):
-    self.pool = strategy_selection.generate_default_strategy_pool()
+    self.pool = strategy_selection.generate_default_strategy_pool(
+        strategy_list=strategy.LIBFUZZER_STRATEGY_LIST, use_generator=True)
     test_helpers.patch(self, [
         'bot.fuzzers.engine_common.is_lpm_fuzz_target',
-        'bot.fuzzers.libFuzzer.strategy_selection.StrategyPool.do_strategy'
+        'bot.fuzzers.strategy_selection.StrategyPool.do_strategy'
     ])
     self.mock.do_strategy.return_value = True
     self.mock.is_lpm_fuzz_target.return_value = True
