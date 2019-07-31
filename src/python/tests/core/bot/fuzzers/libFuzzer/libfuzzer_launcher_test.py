@@ -194,21 +194,21 @@ class LauncherTest(fake_fs_unittest.TestCase):
     # Set up fake filesystem.
     test_utils.set_up_pyfakefs(self)
 
-    self.fs.CreateDirectory(FUZZ_INPUTS_DISK)
-    self.fs.CreateDirectory(GSUTIL_PATH)
+    self.fs.create_dir(FUZZ_INPUTS_DISK)
+    self.fs.create_dir(GSUTIL_PATH)
 
     os.environ['BUILD_DIR'] = BUILD_DIR
 
-    self.fs.CreateFile(os.path.join(BUILD_DIR, 'fake_fuzzer'))
-    self.fs.CreateFile('/dev/null')
-    self.fs.CreateFile('/bin/sh')
-    self.fs.CreateDirectory('/lib')
-    self.fs.CreateDirectory('/lib64')
-    self.fs.CreateDirectory('/proc')
-    self.fs.CreateDirectory('/usr/lib')
-    self.fs.CreateDirectory(FAKE_ROOT_DIR)
-    self.fs.CreateDirectory(os.path.join(FAKE_ROOT_DIR, 'bot', 'logs'))
-    self.fs.CreateFile(
+    self.fs.create_file(os.path.join(BUILD_DIR, 'fake_fuzzer'))
+    self.fs.create_file('/dev/null')
+    self.fs.create_file('/bin/sh')
+    self.fs.create_dir('/lib')
+    self.fs.create_dir('/lib64')
+    self.fs.create_dir('/proc')
+    self.fs.create_dir('/usr/lib')
+    self.fs.create_dir(FAKE_ROOT_DIR)
+    self.fs.create_dir(os.path.join(FAKE_ROOT_DIR, 'bot', 'logs'))
+    self.fs.create_file(
         os.path.join(FAKE_ROOT_DIR, 'resources', 'platform',
                      environment.platform().lower(), 'llvm-symbolizer'))
 
@@ -239,8 +239,8 @@ class LauncherTest(fake_fs_unittest.TestCase):
   @mock.patch('sys.stdout', new_callable=test_utils.MockStdout)
   def test_analyze_recommended_dictionary(self, mock_stdout):
     """Test analysis of recommended dictionary."""
-    self.fs.CreateDirectory('/fake/inputs-disk/temp-1337')
-    self.fs.CreateFile('/fuzzer_path')
+    self.fs.create_dir('/fake/inputs-disk/temp-1337')
+    self.fs.create_file('/fuzzer_path')
     log_lines = self.analyze_dict_log.splitlines()
 
     with mock.patch('subprocess.Popen',
@@ -270,10 +270,10 @@ class LauncherTest(fake_fs_unittest.TestCase):
               lambda x, y, z: False)
   def test_basic_fuzz(self, mock_stdout):
     """Test a basic fuzzing run."""
-    self.fs.CreateDirectory('/fake/corpus_basic')
-    self.fs.CreateFile('/fake/testcase_basic')
+    self.fs.create_dir('/fake/corpus_basic')
+    self.fs.create_file('/fake/testcase_basic')
 
-    self.fs.CreateFile(
+    self.fs.create_file(
         os.path.join(BUILD_DIR, 'fake_fuzzer.options'),
         contents=self.options_data)
     os.environ['ASAN_OPTIONS'] = 'blah=1:foo=0'
@@ -459,13 +459,13 @@ class LauncherTest(fake_fs_unittest.TestCase):
     self.mock.generate_weighted_strategy_pool.return_value = set_strategy_pool(
         [strategy.RECOMMENDED_DICTIONARY_STRATEGY])
 
-    self.fs.CreateDirectory('/fake/corpus_basic')
-    self.fs.CreateFile('/fake/testcase_basic')
+    self.fs.create_dir('/fake/corpus_basic')
+    self.fs.create_file('/fake/testcase_basic')
 
-    self.fs.CreateFile(
+    self.fs.create_file(
         os.path.join(BUILD_DIR, 'fake_fuzzer.options'),
         contents=self.options_data)
-    self.fs.CreateFile(
+    self.fs.create_file(
         os.path.join(BUILD_DIR, 'fake_fuzzer.dict'),
         contents=self.dictionary_data)
     os.environ['ASAN_OPTIONS'] = 'blah=1:foo=0'
@@ -1135,8 +1135,8 @@ class LauncherTest(fake_fs_unittest.TestCase):
   @mock.patch('sys.stdout', new_callable=test_utils.MockStdout)
   def test_single_input(self, mock_stdout):
     """Tests a run for a single input."""
-    self.fs.CreateFile('/fake/testcase', contents='fake')
-    self.fs.CreateDirectory('/fake/corpus')
+    self.fs.create_file('/fake/testcase', contents='fake')
+    self.fs.create_dir('/fake/corpus')
 
     with mock.patch('subprocess.Popen',
                     create_mock_popen('OUTPUT')) as mock_popen:
@@ -1158,8 +1158,8 @@ class LauncherTest(fake_fs_unittest.TestCase):
   @mock.patch('sys.stdout', new_callable=test_utils.MockStdout)
   def test_single_input_with_custom_options(self, mock_stdout):
     """Tests a run for a single input with custom options."""
-    self.fs.CreateFile('/fake/testcase', contents='fake')
-    self.fs.CreateDirectory('/fake/corpus')
+    self.fs.create_file('/fake/testcase', contents='fake')
+    self.fs.create_dir('/fake/corpus')
 
     with mock.patch('subprocess.Popen',
                     create_mock_popen('OUTPUT')) as mock_popen:
@@ -1185,11 +1185,11 @@ class LauncherTest(fake_fs_unittest.TestCase):
   @mock.patch('sys.stdout', new_callable=test_utils.MockStdout)
   def test_fuzz_crash(self, mock_stdout):
     """Tests a fuzzing run with a crash found."""
-    self.fs.CreateFile('/fake/testcase_crash')
-    self.fs.CreateFile(
+    self.fs.create_file('/fake/testcase_crash')
+    self.fs.create_file(
         '/fake/crash-1e15825e6f0b2240a5af75d84214adda1b6b5340',
         contents='crasher')
-    self.fs.CreateDirectory('/fake/corpus_crash')
+    self.fs.create_dir('/fake/corpus_crash')
     os.environ['FUZZ_CORPUS_DIR'] = '/fake/corpus_crash'
 
     with mock.patch(
@@ -1223,11 +1223,11 @@ class LauncherTest(fake_fs_unittest.TestCase):
   @mock.patch('sys.stdout', new_callable=test_utils.MockStdout)
   def test_oom_crash(self, mock_stdout):
     """Tests a fuzzing run with a OOM."""
-    self.fs.CreateFile('/fake/testcase_oom')
-    self.fs.CreateFile(
+    self.fs.create_file('/fake/testcase_oom')
+    self.fs.create_file(
         '/fake/oom-755e18dc1b20912de7556d11380e540231dc292c',
         contents='oom_crasher')
-    self.fs.CreateDirectory('/fake/corpus_oom')
+    self.fs.create_dir('/fake/corpus_oom')
     os.environ['FUZZ_CORPUS_DIR'] = '/fake/corpus_oom'
 
     new_units_added = 11
@@ -1382,16 +1382,16 @@ class LauncherTest(fake_fs_unittest.TestCase):
     self.mock.generate_weighted_strategy_pool.return_value = set_strategy_pool(
         [strategy.CORPUS_SUBSET_STRATEGY])
 
-    self.fs.CreateFile('/fake/testcase_subset')
-    self.fs.CreateDirectory('/fake/main_corpus_dir')
+    self.fs.create_file('/fake/testcase_subset')
+    self.fs.create_dir('/fake/main_corpus_dir')
 
     # Intentionally put testcases into a subsir, as the main corpus directory
     # should be parsed recursively by both libFuzzer and CF code.
-    self.fs.CreateDirectory('/fake/main_corpus_dir/sub')
+    self.fs.create_dir('/fake/main_corpus_dir/sub')
 
     # To use corpus subset, there should be enough files in the main corpus.
     for i in range(1 + max(strategy.CORPUS_SUBSET_NUM_TESTCASES)):
-      self.fs.CreateFile('/fake/main_corpus_dir/sub/%d' % i)
+      self.fs.create_file('/fake/main_corpus_dir/sub/%d' % i)
 
     os.environ['FUZZ_CORPUS_DIR'] = '/fake/main_corpus_dir'
 
@@ -1431,7 +1431,7 @@ class LauncherTest(fake_fs_unittest.TestCase):
     testcase_path = '/fake/engine_error_testcase'
     corpus_path = '/fake/engine_error_corpus'
     os.environ['FUZZ_CORPUS_DIR'] = corpus_path
-    self.fs.CreateDirectory(corpus_path)
+    self.fs.create_dir(corpus_path)
     mocked_popen = create_mock_popen(
         '', return_code=constants.LIBFUZZER_ERROR_EXITCODE)
 
@@ -1448,7 +1448,7 @@ class LauncherTest(fake_fs_unittest.TestCase):
     """Tests that set_sanitizer_options sets the exitcode correctly."""
     testcase_path = '/fake/engine_error_testcase'
     corpus_path = '/fake/engine_error_corpus'
-    self.fs.CreateDirectory(corpus_path)
+    self.fs.create_dir(corpus_path)
     environment.set_value('ASAN_OPTIONS', 'exitcode=99')
     environment.set_value('JOB_NAME', 'libfuzzer_chrome_asan')
     launcher.set_sanitizer_options(testcase_path)
@@ -1464,8 +1464,8 @@ class LauncherTest(fake_fs_unittest.TestCase):
     self.mock.generate_weighted_strategy_pool.return_value = set_strategy_pool(
         [strategy.CORPUS_SUBSET_STRATEGY])
 
-    self.fs.CreateFile('/fake/testcase_subset')
-    self.fs.CreateDirectory('/fake/main_corpus_dir')
+    self.fs.create_file('/fake/testcase_subset')
+    self.fs.create_dir('/fake/main_corpus_dir')
     os.environ['FUZZ_CORPUS_DIR'] = '/fake/main_corpus_dir'
     # Main corpus directory is empty, we should fall back to regular fuzzing.
 
@@ -1510,17 +1510,17 @@ class LauncherTest(fake_fs_unittest.TestCase):
     mock_tempfile.return_value.__enter__.return_value.name = '/tmppath'
     mock_tempfile.return_value.name = '/tmpfile'
 
-    self.fs.CreateFile('/fake/testcase_subset')
-    self.fs.CreateDirectory('/fake/main_corpus_dir')
+    self.fs.create_file('/fake/testcase_subset')
+    self.fs.create_dir('/fake/main_corpus_dir')
     os.environ['FUZZ_CORPUS_DIR'] = '/fake/main_corpus_dir'
 
     # Intentionally put testcases into a subsir, as the main corpus directory
     # should be parsed recursively by both libFuzzer and CF code.
-    self.fs.CreateDirectory('/fake/main_corpus_dir/sub')
+    self.fs.create_dir('/fake/main_corpus_dir/sub')
 
     # To use corpus subset, there should be enough files in the main corpus.
     for i in range(1 + max(strategy.CORPUS_SUBSET_NUM_TESTCASES)):
-      self.fs.CreateFile('/fake/main_corpus_dir/sub/%d' % i)
+      self.fs.create_file('/fake/main_corpus_dir/sub/%d' % i)
 
     new_units_added = 11
     with mock.patch(
@@ -1637,10 +1637,10 @@ class LauncherTest(fake_fs_unittest.TestCase):
     mock_tempfile.return_value.__enter__.return_value.name = '/tmppath'
     mock_tempfile.return_value.name = '/tmpfile'
 
-    self.fs.CreateFile('/fake/testcase_subset')
+    self.fs.create_file('/fake/testcase_subset')
 
     # Main corpus directory is empty, we should fall back to regular fuzzing.
-    self.fs.CreateDirectory('/fake/main_corpus_dir')
+    self.fs.create_dir('/fake/main_corpus_dir')
     os.environ['FUZZ_CORPUS_DIR'] = '/fake/main_corpus_dir'
 
     new_units_added = 11
@@ -1750,8 +1750,8 @@ class LauncherTest(fake_fs_unittest.TestCase):
     self.mock.generate_weighted_strategy_pool.return_value = set_strategy_pool(
         [strategy.CORPUS_MUTATION_RADAMSA_STRATEGY])
 
-    self.fs.CreateFile('/fake/testcase_mutations')
-    self.fs.CreateDirectory('/fake/corpus_mutations')
+    self.fs.create_file('/fake/testcase_mutations')
+    self.fs.create_dir('/fake/corpus_mutations')
     os.environ['FUZZ_CORPUS_DIR'] = '/fake/corpus_mutations'
 
     new_units_added = 11
@@ -1798,8 +1798,8 @@ class LauncherTest(fake_fs_unittest.TestCase):
     self.mock.generate_weighted_strategy_pool.return_value = set_strategy_pool(
         [strategy.CORPUS_MUTATION_ML_RNN_STRATEGY])
 
-    self.fs.CreateFile('/fake/testcase_mutations')
-    self.fs.CreateDirectory('/fake/corpus_mutations')
+    self.fs.create_file('/fake/testcase_mutations')
+    self.fs.create_dir('/fake/corpus_mutations')
     os.environ['FUZZ_CORPUS_DIR'] = '/fake/corpus_mutations'
 
     new_units_added = 11
@@ -1845,9 +1845,9 @@ class LauncherTest(fake_fs_unittest.TestCase):
     self.mock.generate_weighted_strategy_pool.return_value = set_strategy_pool(
         [strategy.DATAFLOW_TRACING_STRATEGY])
 
-    self.fs.CreateDirectory('/fake/corpus_dir')
-    self.fs.CreateFile('/fake/testcase_basic')
-    self.fs.CreateFile('/fake/dfsan_build/fake_fuzzer')
+    self.fs.create_dir('/fake/corpus_dir')
+    self.fs.create_file('/fake/testcase_basic')
+    self.fs.create_file('/fake/dfsan_build/fake_fuzzer')
 
     os.environ['FUZZ_CORPUS_DIR'] = '/fake/corpus_dir'
     os.environ['DATAFLOW_BUILD_DIR'] = '/fake/dfsan_build'
@@ -2188,8 +2188,8 @@ class LauncherTest(fake_fs_unittest.TestCase):
     self.mock.generate_weighted_strategy_pool.return_value = set_strategy_pool(
         [strategy.FORK_STRATEGY])
 
-    self.fs.CreateDirectory('/fake/corpus_dir')
-    self.fs.CreateFile('/fake/testcase_basic')
+    self.fs.create_dir('/fake/corpus_dir')
+    self.fs.create_file('/fake/testcase_basic')
 
     os.environ['FUZZ_CORPUS_DIR'] = '/fake/corpus_dir'
 
@@ -2403,12 +2403,12 @@ class RecommendedDictionaryTest(fake_fs_unittest.TestCase):
     self.work_directory_path = '/fake/fuzzers/'
     self.fuzz_inputs_path = '/fake/fuzzers/inputs'
     self.fuzz_inputs_disk_path = '/fake/fuzzers/inputs-disk'
-    self.fs.CreateDirectory(self.work_directory_path)
-    self.fs.CreateDirectory(self.fuzz_inputs_path)
-    self.fs.CreateDirectory(self.fuzz_inputs_disk_path)
+    self.fs.create_dir(self.work_directory_path)
+    self.fs.create_dir(self.fuzz_inputs_path)
+    self.fs.create_dir(self.fuzz_inputs_disk_path)
     self.local_dictionaries_dir = os.path.join(self.work_directory_path,
                                                'dicts')
-    self.fs.CreateDirectory(self.local_dictionaries_dir)
+    self.fs.create_dir(self.local_dictionaries_dir)
     self.fuzzer_name = 'test_fuzzer'
     self.fuzzer_path = os.path.join(self.work_directory_path, self.fuzzer_name)
 
@@ -2445,7 +2445,7 @@ class RecommendedDictionaryTest(fake_fs_unittest.TestCase):
     """Test dictionary processing when there is a local dictionary."""
     dictionary_path = os.path.join(self.work_directory_path,
                                    'dictionary_from_repository.dict')
-    self.fs.CreateFile(
+    self.fs.create_file(
         dictionary_path, contents=self.dictionary_from_repository_data)
 
     dictionary_argument = '-dict=%s' % dictionary_path
@@ -2518,9 +2518,10 @@ class MoveMergeableUnitsTest(fake_fs_unittest.TestCase):
 
   def test_duplicate_not_moved(self):
     """Tests that a duplicated file is not moved into the corpus directory."""
-    self.fs.CreateFile(os.path.join(self.CORPUS_DIRECTORY, ARBITRARY_SHA1_HASH))
+    self.fs.create_file(
+        os.path.join(self.CORPUS_DIRECTORY, ARBITRARY_SHA1_HASH))
     merge_corpus_file = os.path.join(self.MERGE_DIRECTORY, ARBITRARY_SHA1_HASH)
-    self.fs.CreateFile(merge_corpus_file)
+    self.fs.create_file(merge_corpus_file)
     self.move_mergeable_units()
     # File will be deleted from merge directory if it isn't a duplicate.
     self.assertTrue(os.path.exists(merge_corpus_file))
@@ -2530,11 +2531,11 @@ class MoveMergeableUnitsTest(fake_fs_unittest.TestCase):
     # Make a file that looks like a sha1 hash but is different from
     # ARBITRARY_SHA1_HASH.
     filename = ARBITRARY_SHA1_HASH.replace('d', 'a')
-    self.fs.CreateFile(os.path.join(self.CORPUS_DIRECTORY, filename))
+    self.fs.create_file(os.path.join(self.CORPUS_DIRECTORY, filename))
     # Create an arbitrary file with a hash name that is different from this
     # filename.
     merge_corpus_file = os.path.join(self.MERGE_DIRECTORY, ARBITRARY_SHA1_HASH)
-    self.fs.CreateFile(merge_corpus_file)
+    self.fs.create_file(merge_corpus_file)
     self.move_mergeable_units()
     # File will be deleted from merge directory if it isn't a duplicate.
     self.assertFalse(os.path.exists(merge_corpus_file))

@@ -1221,11 +1221,11 @@ class BuildEvictionTests(fake_filesystem_unittest.TestCase):
     os.makedirs('/builds/build2/revisions')
     os.makedirs('/builds/build3/revisions')
     os.makedirs('/builds/build4/revisions')
-    self.fs.CreateFile(
+    self.fs.create_file(
         '/builds/build1/.timestamp', contents='1486166114.668105')
-    self.fs.CreateFile(
+    self.fs.create_file(
         '/builds/build2/.timestamp', contents='1486166110.142942')
-    self.fs.CreateFile(
+    self.fs.create_file(
         '/builds/build3/.timestamp', contents='1486166112.180345')
 
     self.free_disk_space = []

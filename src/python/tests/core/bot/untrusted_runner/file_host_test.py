@@ -62,7 +62,7 @@ class FileHostTest(fake_filesystem_unittest.TestCase):
                 'B' * config.FILE_TRANSFER_CHUNK_SIZE +
                 'C' * config.FILE_TRANSFER_CHUNK_SIZE)
 
-    self.fs.CreateFile('/file', contents=contents)
+    self.fs.create_file('/file', contents=contents)
 
     def mock_copy_file_to(iterator, metadata):
       """Mock copy file to."""
@@ -146,11 +146,11 @@ class FileHostTest(fake_filesystem_unittest.TestCase):
     """Test file_host.copy_directory_to_worker."""
     mock_copy_file_to_worker.return_value = True
 
-    self.fs.CreateFile('/host/dir/file1')
-    self.fs.CreateFile('/host/dir/file2')
-    self.fs.CreateFile('/host/dir/dir2/file3')
-    self.fs.CreateFile('/host/dir/dir2/file4')
-    self.fs.CreateFile('/host/dir/dir2/dir3/file5')
+    self.fs.create_file('/host/dir/file1')
+    self.fs.create_file('/host/dir/file2')
+    self.fs.create_file('/host/dir/dir2/file3')
+    self.fs.create_file('/host/dir/dir2/file4')
+    self.fs.create_file('/host/dir/dir2/dir3/file5')
 
     self.assertTrue(
         file_host.copy_directory_to_worker('/host/dir', '/worker/copied_dir'))
