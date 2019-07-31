@@ -61,7 +61,16 @@ class LibFuzzerEngine(engine.Engine):
 
   def prepare(self, corpus_dir, target_path, _):
     """Prepare for a fuzzing session, by generating options. Returns a
-    FuzzOptions object."""
+    FuzzOptions object.
+
+    Args:
+      corpus_dir: The main corpus directory.
+      target_path: Path to the target.
+      build_dir: Path to the build directory.
+
+    Returns:
+      A FuzzOptions object.
+    """
     arguments = fuzzer.get_arguments(target_path)
     strategy_pool = strategy_selection.generate_weighted_strategy_pool(
         strategy_list=strategy.LIBFUZZER_STRATEGY_LIST, use_generator=True)
@@ -164,7 +173,18 @@ class LibFuzzerEngine(engine.Engine):
     stat_overrides['new_units_added'] = new_units_added
 
   def fuzz(self, target_path, options, reproducers_dir, max_time):
-    """Run a fuzz session. Returns a Result."""
+    """Run a fuzz session.
+
+    Args:
+      target_path: Path to the target.
+      options: The FuzzOptions object returned by prepare().
+      reproducers_dir: The directory to put reproducers in when crashes
+          are found.
+      max_time: Maximum allowed time for the fuzzing to run.
+
+    Returns:
+      A Result object.
+    """
     profiler.start_if_needed('libfuzzer_fuzz')
     runner = libfuzzer.get_runner(target_path)
     launcher.set_sanitizer_options(target_path)
@@ -241,12 +261,33 @@ class LibFuzzerEngine(engine.Engine):
     return engine.Result(fuzz_logs, crashes, parsed_stats)
 
   def reproduce(self, target_path, input_path, arguments, max_time):
-    """Reproduce a crash given an input. Returns a Result."""
+    """Reproduce a crash given an input.
+
+    Args:
+      target_path: Path to the target.
+      input_path: Path to the reproducer input.
+      arguments: Additional arguments needed for reproduction.
+      max_time: Maximum allowed time for the reproduction.
+
+    Returns:
+      A Result object.
+    """
     raise NotImplementedError
 
   def minimize_corpus(self, target_path, arguments, output_dir, input_dirs,
                       max_time):
-    """Optional (but recommended): run corpus minimization. Returns a Result."""
+    """Optional (but recommended): run corpus minimization.
+
+    Args:
+      target_path: Path to the target.
+      arguments: Additional arguments needed for corpus minimization.
+      output_dir: Output directory to place minimized corpus.
+      input_dirs: Input corpora.
+      max_time: Maximum allowed time for the minimization.
+
+    Returns:
+      A Result object.
+    """
     runner = libfuzzer.get_runner(target_path)
     launcher.set_sanitizer_options(target_path)
     merge_tmp_dir = self._create_temp_corpus_dir('merge-workdir')
@@ -267,11 +308,33 @@ class LibFuzzerEngine(engine.Engine):
     # TODO(ochang): Get crashes found during merge.
     return engine.Result(merge_result.output, [], {})
 
-  def minimize_testcase(self, target_path, input_path, output_path, max_time):
-    """Optional: minimize a testcase. Returns a bool."""
+  def minimize_testcase(self, target_path, arguments, input_path, output_path,
+                        max_time):
+    """Optional (but recommended): Minimize a testcase.
+
+    Args:
+      target_path: Path to the target.
+      arguments: Additional arguments needed for testcase minimization.
+      input_path: Path to the reproducer input.
+      output_path: Path to the minimized output.
+      max_time: Maximum allowed time for the minimization.
+
+    Returns:
+      A boolean indicating success.
+    """
     raise NotImplementedError
 
-  def cleanse(self, target_path, input_path, output_path, max_time):
-    """Optional: scrub a testcase of potentially sensitive bytes. Returns a
-    bool."""
+  def cleanse(self, target_path, arguments, input_path, output_path, max_time):
+    """Optional (but recommended): Cleanse a testcase.
+
+    Args:
+      target_path: Path to the target.
+      arguments: Additional arguments needed for testcase cleanse.
+      input_path: Path to the reproducer input.
+      output_path: Path to the cleansed output.
+      max_time: Maximum allowed time for the cleanse.
+
+    Returns:
+      A boolean indicating success.
+    """
     raise NotImplementedError
