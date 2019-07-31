@@ -46,6 +46,8 @@ from system import environment
 from system import new_process
 from system import shell
 
+DISPLAY = ':99'
+
 
 class SerializedTestcase(object):
   """Minimal representation of a test case."""
@@ -136,14 +138,19 @@ def _download_testcase(testcase_id, testcase, configuration):
 
 def _setup_x():
   """Start Xvfb and blackbox before running the test application."""
-  environment.set_value('DISPLAY', ':99')
+  if environment.platform() != 'LINUX:':
+    return
 
+  environment.set_value('DISPLAY', DISPLAY)
+
+  print('Starting Xvfb...')
   xvfb_runner = new_process.ProcessRunner('/usr/bin/Xvfb')
   xvfb_process = xvfb_runner.run(additional_args=[
-      ':99', '-screen', '0', '1280x1024x24', '-ac', '-nolisten', 'tcp'
+      DISPLAY, '-screen', '0', '1280x1024x24', '-ac', '-nolisten', 'tcp'
   ])
   time.sleep(5)  # Allow some time for Xvfb to start.
 
+  print('Starting blackbox...')
   blackbox_runner = new_process.ProcessRunner('/usr/bin/blackbox')
   blackbox_process = blackbox_runner.run()
   time.sleep(5)  # Allow some time for blackbox to start.
