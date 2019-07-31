@@ -57,9 +57,6 @@ from system import shell
 # libFuzzer's merge timeout.
 DEFAULT_MERGE_TIMEOUT = 30 * 60
 
-# Prefix for the fuzzer's full name.
-AFL_PREFIX = 'afl_'
-
 BOT_NAME = environment.get_value('BOT_NAME', '')
 
 STDERR_FILENAME = 'stderr.out'
@@ -1495,7 +1492,7 @@ def main(argv):
                            runner.fuzzer_stderr, fuzz_result.output)
 
     engine_common.dump_big_query_data(stats_getter.stats, testcase_file_path,
-                                      AFL_PREFIX, fuzzer_name, command)
+                                      command)
 
   finally:
     print(runner.fuzzer_stderr)

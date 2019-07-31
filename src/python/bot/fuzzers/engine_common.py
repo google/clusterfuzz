@@ -79,16 +79,22 @@ def decide_with_probability(probability):
   return random.SystemRandom().random() < probability
 
 
-def dump_big_query_data(stats, testcase_file_path, fuzzer_name_prefix,
-                        fuzzer_name, fuzzer_command):
-  """Dump BigQuery stats."""
+def get_testcase_run(stats, fuzzer_command):
+  """Get testcase run for stats."""
   build_revision = fuzzer_utils.get_build_revision()
   job = environment.get_value('JOB_NAME')
-  testcase_run = fuzzer_stats.TestcaseRun(fuzzer_name_prefix + fuzzer_name, job,
-                                          build_revision, current_timestamp())
+  # fuzzer name is filled by fuzz_task.
+  testcase_run = fuzzer_stats.TestcaseRun('', job, build_revision,
+                                          current_timestamp())
 
   testcase_run['command'] = fuzzer_command
   testcase_run.update(stats)
+  return testcase_run
+
+
+def dump_big_query_data(stats, testcase_file_path, fuzzer_command):
+  """Dump BigQuery stats."""
+  testcase_run = get_testcase_run(stats, fuzzer_command)
   fuzzer_stats.TestcaseRun.write_to_disk(testcase_run, testcase_file_path)
 
 

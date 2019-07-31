@@ -384,7 +384,7 @@ def _get_testcase_time(testcase_path):
   return None
 
 
-def upload_testcase(testcase_path):
+def upload_testcase(testcase_path, log_time):
   """Uploads testcase so that a log file can be matched with it folder."""
   fuzz_logs_bucket = environment.get_value('FUZZ_LOGS_BUCKET')
   if not fuzz_logs_bucket:
@@ -393,13 +393,10 @@ def upload_testcase(testcase_path):
   with open(testcase_path, 'rb') as file_handle:
     testcase_contents = file_handle.read()
 
-  # This matches the time of the log file.
-  time = _get_testcase_time(testcase_path)
-
   fuzzer_logs.upload_to_logs(
       fuzz_logs_bucket,
       testcase_contents,
-      time=time,
+      time=log_time,
       file_extension='.testcase')
 
 
@@ -471,12 +468,19 @@ def run_testcase_and_return_result_in_queue(crash_queue,
       # Don't upload uninteresting testcases (no crash) or if there is no log to
       # correlate it with (not upload_output).
       if upload_output:
-        upload_testcase(file_path)
+        log_time = _get_testcase_time(file_path)
+        upload_testcase(file_path, log_time)
 
     if upload_output:
       # Include full output for uploaded logs (crash output, merge output, etc).
       crash_result_full = CrashResult(return_code, crash_time, output)
-      upload_testcase_output(crash_result_full, file_path)
+
+      # To provide consistency between stats and logs, we use timestamp taken
+      # from stats.
+      log_time = _get_testcase_time(file_path)
+      log = prepare_log_for_upload(crash_result_full.get_stacktrace(),
+                                   return_code)
+      upload_log(log, log_time)
   except Exception:
     logs.log_error('Exception occurred while running '
                    'run_testcase_and_return_result_in_queue.')
@@ -638,12 +642,8 @@ def test_for_reproducibility(testcase_path, expected_state,
   return False
 
 
-def upload_testcase_output(crash_result, testcase_path):
-  """Upload the output into corresponding GCS logs bucket."""
-  fuzz_logs_bucket = environment.get_value('FUZZ_LOGS_BUCKET')
-  if not fuzz_logs_bucket:
-    return
-
+def prepare_log_for_upload(symbolized_output, return_code):
+  """Prepare log for upload."""
   # Add revision information to the logs.
   app_revision = environment.get_value('APP_REVISION')
   job_name = environment.get_value('JOB_NAME')
@@ -656,17 +656,18 @@ def upload_testcase_output(crash_result, testcase_path):
       'Component revisions (build r{app_revision}):\n{component_revisions}\n'.
       format(
           app_revision=app_revision, component_revisions=component_revisions))
-  return_code_header = 'Return code: %s\n\n' % crash_result.return_code
-  symbolized_output = crash_result.get_stacktrace()
+  return_code_header = 'Return code: %s\n\n' % return_code
 
-  # To provide consistency between stats and logs, we use timestamp taken
-  # when the log has been parsed.
-  log_time = _get_testcase_time(testcase_path)
+  return revisions_header + return_code_header + symbolized_output
 
-  fuzzer_logs.upload_to_logs(
-      fuzz_logs_bucket,
-      revisions_header + return_code_header + symbolized_output,
-      time=log_time)
+
+def upload_log(log, log_time):
+  """Upload the output into corresponding GCS logs bucket."""
+  fuzz_logs_bucket = environment.get_value('FUZZ_LOGS_BUCKET')
+  if not fuzz_logs_bucket:
+    return
+
+  fuzzer_logs.upload_to_logs(fuzz_logs_bucket, log, time=log_time)
 
 
 def get_user_profile_directory(user_profile_index):

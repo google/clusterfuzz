@@ -1050,8 +1050,7 @@ def main(argv):
   parsed_stats.update(stat_overrides)
 
   # Dump stats data for further uploading to BigQuery.
-  engine_common.dump_big_query_data(parsed_stats, testcase_file_path,
-                                    LIBFUZZER_PREFIX, fuzzer_name, command)
+  engine_common.dump_big_query_data(parsed_stats, testcase_file_path, command)
 
   # Add custom crash state based on fuzzer name (if needed).
   add_custom_crash_state_if_needed(fuzzer_name, log_lines, parsed_stats)
