@@ -23,6 +23,7 @@ modules.fix_module_search_paths()
 
 import os
 import tempfile
+import time
 
 from urllib import parse
 
@@ -42,7 +43,10 @@ from local.butler.reproduce_tool import prompts
 from platforms.android import device
 from system import archive
 from system import environment
+from system import new_process
 from system import shell
+
+DISPLAY = ':99'
 
 
 class SerializedTestcase(object):
@@ -130,6 +134,29 @@ def _download_testcase(testcase_id, testcase, configuration):
               absolute_path=testcase.absolute_path, file_list=file_list))
 
   return testcase_path
+
+
+def _setup_x():
+  """Start Xvfb and blackbox before running the test application."""
+  if environment.platform() != 'LINUX':
+    return []
+
+  environment.set_value('DISPLAY', DISPLAY)
+
+  print('Starting Xvfb...')
+  xvfb_runner = new_process.ProcessRunner('/usr/bin/Xvfb')
+  xvfb_process = xvfb_runner.run(additional_args=[
+      DISPLAY, '-screen', '0', '1280x1024x24', '-ac', '-nolisten', 'tcp'
+  ])
+  time.sleep(5)  # Allow some time for Xvfb to start.
+
+  print('Starting blackbox...')
+  blackbox_runner = new_process.ProcessRunner('/usr/bin/blackbox')
+  blackbox_process = blackbox_runner.run()
+  time.sleep(5)  # Allow some time for blackbox to start.
+
+  # Return all handles we create so they can be terminated properly at exit.
+  return [xvfb_process, blackbox_process]
 
 
 def _prepare_initial_environment(build_directory):
@@ -274,9 +301,14 @@ def _reproduce_crash(testcase_url, build_directory):
         'Unable to attempt to reproduce it on {current_platform}.'.format(
             testcase_platform=testcase.platform, current_platform=platform))
 
+  x_processes = _setup_x()
   timeout = environment.get_value('TEST_TIMEOUT')
   result = testcase_manager.test_for_crash_with_retries(testcase, testcase_path,
                                                         timeout)
+
+  # Terminate Xvfb and blackbox.
+  for process in x_processes:
+    process.terminate()
 
   return result
 

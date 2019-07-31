@@ -53,6 +53,7 @@ class ReproduceTest(unittest.TestCase):
     helpers.patch(self, [
         'local.butler.reproduce._download_testcase',
         'local.butler.reproduce._get_testcase',
+        'local.butler.reproduce._setup_x',
         'local.butler.reproduce._verify_app_path_exists',
         'local.butler.reproduce_tool.config.ReproduceToolConfiguration',
         'system.process_handler.run_process',
@@ -62,6 +63,7 @@ class ReproduceTest(unittest.TestCase):
 
     self.mock._download_testcase.return_value = '/tmp/testcase'
     self.mock._get_testcase.side_effect = _fake_get_testcase
+    self.mock._setup_x.return_value = []
     self.mock.run_process.return_value = (0, 0, '/tmp/testcase')
 
   def test_reproduce_with_echo(self):
