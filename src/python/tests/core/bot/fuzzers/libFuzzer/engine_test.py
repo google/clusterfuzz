@@ -91,7 +91,7 @@ class PrepareTest(fake_fs_unittest.TestCase):
       f.write('[libfuzzer]\n'
               'max_len=31337\n'
               'timeout=11\n'
-              'dict=nope.dict\n')
+              'dict=not_exist.dict\n')
 
     engine_impl = engine.LibFuzzerEngine()
     options = engine_impl.prepare('/corpus_dir', '/path/target', '/path')
@@ -154,12 +154,22 @@ class FuzzTest(fake_fs_unittest.TestCase):
       """Mock fuzz."""
       self.fs.create_file('/fuzz-inputs/temp-9001/new/A')
       self.fs.create_file('/fuzz-inputs/temp-9001/new/B')
-      return new_process.ProcessResult('command', 0, fuzz_output, 2.0, False)
+      return new_process.ProcessResult(
+          command='command',
+          return_code=0,
+          output=fuzz_output,
+          time_executed=2.0,
+          timed_out=False)
 
     def mock_merge(*args, **kwargs):  # pylint: disable=unused-argument
       """Mock merge."""
       self.fs.create_file('/fuzz-inputs/temp-9001/merge-corpus/A')
-      return new_process.ProcessResult('merge-command', 0, 'merge', 2.0, False)
+      return new_process.ProcessResult(
+          command='merge-command',
+          return_code=0,
+          output='merge',
+          time_executed=2.0,
+          timed_out=False)
 
     self.mock.fuzz.side_effect = mock_fuzz
     self.mock.merge.side_effect = mock_merge

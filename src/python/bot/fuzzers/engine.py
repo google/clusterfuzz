@@ -58,29 +58,92 @@ class Engine(object):
 
   def prepare(self, corpus_dir, target_path, build_dir):
     """Prepare for a fuzzing session, by generating options. Returns a
-    FuzzOptions object."""
+    FuzzOptions object.
+
+    Args:
+      corpus_dir: The main corpus directory.
+      target_path: Path to the target.
+      build_dir: Path to the build directory.
+
+    Returns:
+      A FuzzOptions object.
+    """
     raise NotImplementedError
 
   def fuzz(self, target_path, options, reproducers_dir, max_time):
-    """Run a fuzz session. Returns a Result."""
+    """Run a fuzz session.
+
+    Args:
+      target_path: Path to the target.
+      options: The FuzzOptions object returned by prepare().
+      reproducers_dir: The directory to put reproducers in when crashes
+          are found.
+      max_time: Maximum allowed time for the fuzzing to run.
+
+    Returns:
+      A Result object.
+    """
     raise NotImplementedError
 
   def reproduce(self, target_path, input_path, arguments, max_time):
-    """Reproduce a crash given an input. Returns a Result."""
+    """Reproduce a crash given an input.
+
+    Args:
+      target_path: Path to the target.
+      input_path: Path to the reproducer input.
+      arguments: Additional arguments needed for reproduction.
+      max_time: Maximum allowed time for the reproduction.
+
+    Returns:
+      A Result object.
+    """
     raise NotImplementedError
 
   def minimize_corpus(self, target_path, arguments, output_dir, input_dirs,
                       max_time):
-    """Optional (but recommended): run corpus minimization. Returns a Result."""
+    """Optional (but recommended): run corpus minimization.
+
+    Args:
+      target_path: Path to the target.
+      arguments: Additional arguments needed for corpus minimization.
+      output_dir: Output directory to place minimized corpus.
+      input_dirs: Input corpora.
+      max_time: Maximum allowed time for the minimization.
+
+    Returns:
+      A Result object.
+    """
     raise NotImplementedError
 
-  def minimize_testcase(self, target_path, input_path, output_path, max_time):
-    """Optional: minimize a testcase. Returns a bool."""
+  def minimize_testcase(self, target_path, arguments, input_path, output_path,
+                        max_time):
+    """Optional (but recommended): Minimize a testcase.
+
+    Args:
+      target_path: Path to the target.
+      arguments: Additional arguments needed for testcase minimization.
+      input_path: Path to the reproducer input.
+      output_path: Path to the minimized output.
+      max_time: Maximum allowed time for the minimization.
+
+    Returns:
+      A boolean indicating success.
+    """
     raise NotImplementedError
 
-  def cleanse(self, target_path, input_path, output_path, max_time):
-    """Optional: scrub a testcase of potentially sensitive bytes. Returns a
-    bool."""
+  def cleanse(self, target_path, arguments, input_path, output_path, max_time):
+    """Optional (but recommended): Cleanse a testcase.
+
+    Args:
+      target_path: Path to the target.
+      arguments: Additional arguments needed for testcase cleanse.
+      input_path: Path to the reproducer input.
+      output_path: Path to the cleansed output.
+      max_time: Maximum allowed time for the cleanse.
+
+    Returns:
+      A boolean indicating success.
+    """
     raise NotImplementedError
 
 
