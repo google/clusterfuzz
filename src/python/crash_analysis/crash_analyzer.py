@@ -272,6 +272,10 @@ def is_security_issue(crash_stacktrace, crash_type, crash_address):
   if crash_type == 'Stack-overflow':
     return False
 
+  # Fatal signals.
+  if crash_type == 'Fatal-signal':
+    return False
+
   # LeakSanitizer, finds memory leaks.
   if '-leak' in crash_type:
     return False

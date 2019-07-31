@@ -103,6 +103,8 @@ KASAN_CRASH_TYPE_ADDRESS_REGEX = re.compile(
     r'BUG: KASAN: (.*) (in|on).*(addr|address) ([a-f0-9]+)')
 KASAN_GPF_REGEX = re.compile(r'general protection fault:.*KASAN')
 LIBFUZZER_TIMEOUT_REGEX = re.compile(r'.*ERROR:\s*libFuzzer:\s*timeout')
+LIBFUZZER_DEADLY_SIGNAL_REGEX = re.compile(
+    r'.*ERROR:\s*libFuzzer:\s*deadly signal')
 LINUX_GDB_CRASH_TYPE_REGEX = re.compile(r'Program received signal ([a-zA-Z]+),')
 LINUX_GDB_CRASH_ADDRESS_REGEX = re.compile(r'rip[ ]+([xX0-9a-fA-F]+)')
 LSAN_DIRECT_LEAK_REGEX = re.compile(r'Direct leak of ')
@@ -1490,6 +1492,14 @@ def get_crash_data(crash_data, symbolize_flag=True):
           new_type='UNKNOWN',
           address_from_group=1,
           address_filter=lambda s: '0x' + s,
+          reset=True)
+
+      # Libfuzzer fatal signal errors.
+      update_state_on_match(
+          LIBFUZZER_DEADLY_SIGNAL_REGEX,
+          line,
+          state,
+          new_type='Fatal-signal',
           reset=True)
 
     if state.fatal_error_occurred:
