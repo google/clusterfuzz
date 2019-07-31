@@ -42,7 +42,7 @@ class GetLastSavedModelTest(fake_fs_unittest.TestCase):
     test_utils.set_up_pyfakefs(self)
 
     # Create model directory.
-    self.fs.CreateDirectory(MODEL_DIR)
+    self.fs.create_dir(MODEL_DIR)
 
     # Create fake meta file, index file and data file.
     # Model_1 has three complete files.
@@ -52,9 +52,9 @@ class GetLastSavedModelTest(fake_fs_unittest.TestCase):
     self.model_1_index_path = os.path.join(MODEL_DIR, 'model_1.index')
 
     # Create three files for model_1.
-    self.fs.CreateFile(self.model_1_meta_path)
-    self.fs.CreateFile(self.model_1_data_path)
-    self.fs.CreateFile(self.model_1_index_path)
+    self.fs.create_file(self.model_1_meta_path)
+    self.fs.create_file(self.model_1_data_path)
+    self.fs.create_file(self.model_1_index_path)
 
     # Update timestamp.
     os.utime(self.model_1_meta_path, (1330711140, 1330711160))
@@ -68,9 +68,9 @@ class GetLastSavedModelTest(fake_fs_unittest.TestCase):
     self.model_2_index_path = os.path.join(MODEL_DIR, 'model_2.index')
 
     # Create three files for model_2.
-    self.fs.CreateFile(self.model_2_meta_path)
-    self.fs.CreateFile(self.model_2_data_path)
-    self.fs.CreateFile(self.model_2_index_path)
+    self.fs.create_file(self.model_2_meta_path)
+    self.fs.create_file(self.model_2_data_path)
+    self.fs.create_file(self.model_2_index_path)
 
     # Update timestamp. Make sure they are newer than model_1.
     os.utime(self.model_2_meta_path, (1330713340, 1330713360))

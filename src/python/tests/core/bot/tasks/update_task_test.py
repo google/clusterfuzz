@@ -42,7 +42,7 @@ class GetLocalSourceRevisionTest(fake_filesystem_unittest.TestCase):
   def test_has_revision(self):
     """Test when there's a revision."""
     os.mkdir('/root')
-    self.fs.CreateFile(
+    self.fs.create_file(
         os.path.join('/root', utils.LOCAL_SOURCE_MANIFEST), contents='revision')
     self.assertEqual('revision', update_task.get_local_source_revision())
 
@@ -70,7 +70,7 @@ class TrackRevisionTest(fake_filesystem_unittest.TestCase):
   def test_has_revision(self):
     """Test when there's a revision."""
     os.mkdir('/root')
-    self.fs.CreateFile(
+    self.fs.create_file(
         os.path.join('/root', utils.LOCAL_SOURCE_MANIFEST), contents='revision')
     update_task.track_revision()
     self.assertEqual(1,

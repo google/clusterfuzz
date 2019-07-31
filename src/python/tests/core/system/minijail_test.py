@@ -32,8 +32,8 @@ class MinijailTest(fake_filesystem_unittest.TestCase):
 
     self.setUpPyfakefs()
     for subdir in ['dev', 'lib', 'lib32', 'lib64', 'proc']:
-      self.fs.CreateDirectory(os.path.join('/', subdir))
-    self.fs.CreateDirectory(os.path.join('/', 'usr', 'lib'))
+      self.fs.create_dir(os.path.join('/', subdir))
+    self.fs.create_dir(os.path.join('/', 'usr', 'lib'))
 
     test_helpers.patch(self, [
         'system.minijail._get_minijail_path',

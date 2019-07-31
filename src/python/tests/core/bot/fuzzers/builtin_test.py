@@ -44,8 +44,8 @@ class BaseEngineFuzzerTest(fake_filesystem_unittest.TestCase):
     ])
 
     test_utils.set_up_pyfakefs(self)
-    self.fs.CreateDirectory('/input')
-    self.fs.CreateDirectory('/output')
+    self.fs.create_dir('/input')
+    self.fs.create_dir('/output')
 
     environment.set_value('BUILD_DIR', '/build_dir')
     environment.set_value('FAIL_RETRIES', 1)
@@ -56,7 +56,7 @@ class BaseEngineFuzzerTest(fake_filesystem_unittest.TestCase):
     self.mock.get_fuzz_targets.return_value = [
         '/build_dir/target',
     ]
-    self.fs.CreateFile(
+    self.fs.create_file(
         '/build_dir/target.owners',
         contents='dev1@example1.com\ndev2@example2.com')
 
@@ -87,7 +87,7 @@ class EngineFuzzerTest(BaseEngineFuzzerTest):
 
   def test_run_with_labels(self):
     """Test running an engine fuzzer with a labels file."""
-    self.fs.CreateFile('/build_dir/target.labels', contents='label1\nlabel2\n')
+    self.fs.create_file('/build_dir/target.labels', contents='label1\nlabel2\n')
 
     fuzzer = TestEngineFuzzer()
     result = fuzzer.run('/input', '/output', 1)

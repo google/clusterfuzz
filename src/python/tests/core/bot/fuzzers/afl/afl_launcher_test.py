@@ -45,9 +45,9 @@ class LauncherTestBase(fake_filesystem_unittest.TestCase):
 
   def setUp(self):
     test_utils.set_up_pyfakefs(self)
-    self.fs.CreateDirectory(self.INPUT_DIR)
+    self.fs.create_dir(self.INPUT_DIR)
     if not os.path.exists(self.TEMP_DIR):
-      self.fs.CreateDirectory(self.TEMP_DIR)
+      self.fs.create_dir(self.TEMP_DIR)
 
     self._create_file(fuzzer.AFL_DUMMY_INPUT)
     test_helpers.patch(self, [
@@ -65,7 +65,7 @@ class LauncherTestBase(fake_filesystem_unittest.TestCase):
       directory = self.INPUT_DIR
 
     file_path = os.path.join(directory, filename)
-    return file_path, self.fs.CreateFile(file_path, contents=contents)
+    return file_path, self.fs.create_file(file_path, contents=contents)
 
   def _assert_elements_equal(self, l1, l2):
     """Assert that the elements of |l1| and |l2|. Modifies |l1| and |l2| by
@@ -249,7 +249,7 @@ class AflFuzzInputDirectoryTest(LauncherTestBase):
     self._create_file('small_1')
     self._create_oversized_file(filename='too_big_1')
     subdirectory = os.path.join(self.INPUT_DIR, 'subdir')
-    self.fs.CreateDirectory(subdirectory)
+    self.fs.create_dir(subdirectory)
     self._create_file('small_2', directory=subdirectory)
     self._create_oversized_file(directory=subdirectory, filename='too_big_2')
     afl_input = self._new_afl_input()
@@ -654,7 +654,7 @@ class AflRunnerTest(LauncherTestBase):
   def test_fuzzer_stderr(self):
     """Test AflRunner.fuzzer_stderr works correctly."""
     stderr = 'hello'
-    self.fs.CreateFile(self.runner.stderr_file_path, contents=stderr)
+    self.fs.create_file(self.runner.stderr_file_path, contents=stderr)
     self.assertIsNone(self.runner._fuzzer_stderr)
     self.assertEqual(self.runner.fuzzer_stderr, stderr)
 
@@ -697,7 +697,7 @@ class AflRunnerTest(LauncherTestBase):
 
     # Make sure this initialized or else it will remove CRASHES_DIR.
     self.runner.afl_output  # pylint: disable=pointless-statement
-    self.fs.CreateDirectory(self.CRASHES_DIR)
+    self.fs.create_dir(self.CRASHES_DIR)
     self.runner.initial_max_total_time = 100
     self.mock.run_and_wait.side_effect = (
         lambda *args, **kwargs: self._process_result())
@@ -897,7 +897,7 @@ class ListFullFilePathsTest(LauncherTestBase):
 
     # Test it works with a subdirectory by not returning it:
     dummy_dir = os.path.join(self.INPUT_DIR, 'dummydir')
-    self.fs.CreateDirectory(dummy_dir)
+    self.fs.create_dir(dummy_dir)
     self._create_file(self.DUMMY_2_FILENAME, directory=dummy_dir)
 
     self._assert_elements_equal(
@@ -922,7 +922,7 @@ class CorpusTest(fake_filesystem_unittest.TestCase):
 
   def _create_file(self, path, size=1):
     """Creates a file at |path| that is |size| bytes large."""
-    self.fs.CreateFile(path, contents=size * 'A')
+    self.fs.create_file(path, contents=size * 'A')
 
   def test_corpus_element(self):
     """Tests CorpusElement class."""

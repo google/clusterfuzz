@@ -394,16 +394,16 @@ class FindFileExceedingLimitTest(fake_filesystem_unittest.TestCase):
 
   def setUp(self):
     test_utils.set_up_pyfakefs(self)
-    self.fs.CreateFile('/test/small1', contents='aaa')
-    self.fs.CreateFile('/test/small2', contents='aaa')
-    self.fs.CreateFile('/test/dir1/small3', contents='aaa')
-    self.fs.CreateFile('/test/dir1/small4', contents='aaa')
-    self.fs.CreateFile('/test/dir1/dir1/small5', contents='aaa')
-    self.fs.CreateFile('/test/dir2/small6', contents='aaa')
+    self.fs.create_file('/test/small1', contents='aaa')
+    self.fs.create_file('/test/small2', contents='aaa')
+    self.fs.create_file('/test/dir1/small3', contents='aaa')
+    self.fs.create_file('/test/dir1/small4', contents='aaa')
+    self.fs.create_file('/test/dir1/dir1/small5', contents='aaa')
+    self.fs.create_file('/test/dir2/small6', contents='aaa')
 
   def test_get_too_large_file(self):
     """Test getting a too large file."""
-    self.fs.CreateFile('/test/dir1/dir1/too_large', contents='aaaaaa')
+    self.fs.create_file('/test/dir1/dir1/too_large', contents='aaaaaa')
     self.assertEqual('/test/dir1/dir1/too_large',
                      deploy.find_file_exceeding_limit('/test', 5))
 

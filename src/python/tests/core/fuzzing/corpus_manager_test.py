@@ -210,7 +210,7 @@ class FuzzTargetCorpusTest(fake_filesystem_unittest.TestCase):
     self.mock.cpu_count.return_value = 2
     self.mock._count_corpus_files.return_value = 1  # pylint: disable=protected-access
     test_utils.set_up_pyfakefs(self)
-    self.fs.CreateDirectory('/dir')
+    self.fs.create_dir('/dir')
 
   def test_rsync_to_disk(self):
     """Test rsync_to_disk."""
@@ -269,7 +269,7 @@ class CorpusBackupTest(fake_filesystem_unittest.TestCase):
 
   def _mock_make_archive(self, archive_path, backup_format, _):
     path = archive_path + '.' + backup_format
-    self.fs.CreateFile(path)
+    self.fs.create_file(path)
 
     return path
 
@@ -277,7 +277,7 @@ class CorpusBackupTest(fake_filesystem_unittest.TestCase):
     test_helpers.patch_environ(self)
 
     test_utils.set_up_pyfakefs(self)
-    self.fs.CreateDirectory('/dir')
+    self.fs.create_dir('/dir')
 
     os.environ['GSUTIL_PATH'] = '/gsutil_path'
     os.environ['CORPUS_BUCKET'] = 'bucket'

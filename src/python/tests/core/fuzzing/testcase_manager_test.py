@@ -36,11 +36,11 @@ class CreateTestcaseListFileTest(fake_filesystem_unittest.TestCase):
 
   def test_create(self):
     """Tests creation of testcase list file."""
-    self.fs.CreateFile('/test/aa/bb.txt', contents='')
-    self.fs.CreateFile('/test/aa/cc.txt', contents='')
-    self.fs.CreateFile('/test/aa/aa/dd.txt', contents='')
-    self.fs.CreateFile('/test/aa/aa/files.info', contents='')
-    self.fs.CreateFile('/test/aa/bb/files.chrome.info', contents='')
+    self.fs.create_file('/test/aa/bb.txt', contents='')
+    self.fs.create_file('/test/aa/cc.txt', contents='')
+    self.fs.create_file('/test/aa/aa/dd.txt', contents='')
+    self.fs.create_file('/test/aa/aa/files.info', contents='')
+    self.fs.create_file('/test/aa/bb/files.chrome.info', contents='')
 
     testcase_manager.create_testcase_list_file('/test/aa')
 
@@ -63,7 +63,7 @@ class UploadTestcaseOutputTest(fake_filesystem_unittest.TestCase):
     test_helpers.patch_environ(self)
     test_utils.set_up_pyfakefs(self)
     self.testcase_path = '/test/fuzzer/testcase'
-    self.fs.CreateFile(self.testcase_path, contents='')
+    self.fs.create_file(self.testcase_path, contents='')
 
     environment.set_value('FUZZ_LOGS_BUCKET', 'fake-gcs-logs')
     environment.set_value('FUZZER_NAME', 'fuzzer')
@@ -98,7 +98,7 @@ class UploadTestcaseOutputTest(fake_filesystem_unittest.TestCase):
     mock_gsutil = mock.MagicMock()
     self.mock.write_data.return_value = mock_gsutil
 
-    self.fs.CreateFile(
+    self.fs.create_file(
         self.testcase_path + '.stats2',
         contents='{"stat": 1000, "timestamp": 1472846341.017923, "kind": '
         '"TestcaseRun", "job": "job", "fuzzer": "fuzzer", '
@@ -120,7 +120,7 @@ class UploadTestcaseOutputTest(fake_filesystem_unittest.TestCase):
     mock_gsutil = mock.MagicMock()
     self.mock.write_data.return_value = mock_gsutil
 
-    self.fs.CreateFile(
+    self.fs.create_file(
         self.testcase_path + '.stats2',
         contents='{"stat": 1000, "kind": "TestcaseRun", "job": "job", '
         '"fuzzer": "fuzzer", "build_revision": 123}\n')
@@ -140,7 +140,7 @@ class UploadTestcaseOutputTest(fake_filesystem_unittest.TestCase):
     mock_gsutil = mock.MagicMock()
     self.mock.write_data.return_value = mock_gsutil
 
-    self.fs.CreateFile(
+    self.fs.create_file(
         self.testcase_path + '.stats2',
         contents='{"stat": 1000, "timestamp": 1472846341.017923, "kind": '
         '"TestcaseRun", "job": "job", "fuzzer": "fuzzer", '
