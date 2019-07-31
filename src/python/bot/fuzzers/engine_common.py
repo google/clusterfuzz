@@ -133,11 +133,13 @@ def get_overridable_timeout(default_timeout, override_env_var):
   return timeout
 
 
-def get_hard_timeout():
+def get_hard_timeout(total_timeout=None):
   """Get the hard timeout for fuzzing."""
+  if total_timeout is None:
+    total_timeout = environment.get_value('FUZZ_TEST_TIMEOUT')
+
   # Give a small window of time to process (upload) the fuzzer output.
-  hard_timeout = (
-      environment.get_value('FUZZ_TEST_TIMEOUT') - POSTPROCESSING_TIME)
+  hard_timeout = total_timeout - POSTPROCESSING_TIME
   return get_overridable_timeout(hard_timeout, 'HARD_TIMEOUT_OVERRIDE')
 
 
@@ -215,10 +217,12 @@ def get_issue_labels(fuzz_target_path):
         handle, delimiter='\n', strip=True, remove_empty=True)
 
 
-def print_fuzzing_strategies(fuzzing_strategies):
-  """Print the strategies used for logging purposes."""
+def format_fuzzing_strategies(fuzzing_strategies):
+  """Format the strategies used for logging purposes."""
   if fuzzing_strategies:
-    print('cf::fuzzing_strategies: %s' % (','.join(fuzzing_strategies)))
+    return 'cf::fuzzing_strategies: %s' % (','.join(fuzzing_strategies))
+
+  return ''
 
 
 def random_choice(sequence):
