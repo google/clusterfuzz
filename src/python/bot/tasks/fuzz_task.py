@@ -1357,7 +1357,8 @@ class FuzzingSession(object):
     options = engine_impl.prepare(sync_corpus_directory, target_path, build_dir)
 
     fuzz_test_timeout = environment.get_value('FUZZ_TEST_TIMEOUT')
-    return engine_impl.fuzz(target_path, options, fuzz_test_timeout)
+    return engine_impl.fuzz(target_path, options, self.testcase_directory,
+                            fuzz_test_timeout)
 
   def do_engine_fuzzing(self, engine_impl):
     """Run fuzzing engine."""
@@ -1372,7 +1373,10 @@ class FuzzingSession(object):
     result = self._run_engine_fuzzer(engine_impl, sync_corpus_directory)
     self.sync_new_corpus_files()
 
-    # TODO(ochang): Return stats.
+    # TOOD(ochang): Upload logs, and include formatted header + fuzzing
+    # strategies.
+
+    # TODO(ochang): Upload stats.
     return result.crashes
 
   def do_blackbox_fuzzing(self, fuzzer, fuzzer_directory, job_type):

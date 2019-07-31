@@ -84,7 +84,7 @@ class FileImplTest(fake_filesystem_unittest.TestCase):
 
   def test_stat(self):
     """Test file_impl.stat."""
-    self.fs.CreateFile('/file')
+    self.fs.create_file('/file')
     request = untrusted_runner_pb2.StatRequest(path='/file')
     response = file_impl.stat(request, None)
 
@@ -129,7 +129,7 @@ class FileImplTest(fake_filesystem_unittest.TestCase):
         untrusted_runner_pb2.FileChunk(data='C'),
     )
 
-    self.fs.CreateFile('/file')
+    self.fs.create_file('/file')
 
     context = mock.MagicMock()
     context.invocation_metadata.return_value = (('path-bin', '/file/file'),)
@@ -147,7 +147,7 @@ class FileImplTest(fake_filesystem_unittest.TestCase):
         untrusted_runner_pb2.FileChunk(data='C'),
     )
 
-    self.fs.CreateFile('/file')
+    self.fs.create_file('/file')
 
     context = mock.MagicMock()
     context.invocation_metadata.return_value = (('path-bin', '/file/dir/file'),)
@@ -162,7 +162,7 @@ class FileImplTest(fake_filesystem_unittest.TestCase):
                 'B' * config.FILE_TRANSFER_CHUNK_SIZE +
                 'C' * config.FILE_TRANSFER_CHUNK_SIZE)
 
-    self.fs.CreateFile('/file', contents=contents)
+    self.fs.create_file('/file', contents=contents)
 
     request = untrusted_runner_pb2.CopyFileFromRequest(path='/file')
     context = mock.MagicMock()

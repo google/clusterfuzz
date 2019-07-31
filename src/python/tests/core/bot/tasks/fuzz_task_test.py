@@ -1138,12 +1138,12 @@ class TestCorpusSync(fake_filesystem_unittest.TestCase):
 
     self.mock.rsync_to_disk.return_value = True
     test_utils.set_up_pyfakefs(self)
-    self.fs.CreateDirectory('/dir')
-    self.fs.CreateDirectory('/dir1')
+    self.fs.create_dir('/dir')
+    self.fs.create_dir('/dir1')
 
   def _write_corpus_files(self, *args, **kwargs):  # pylint: disable=unused-argument
-    self.fs.CreateFile('/dir/a')
-    self.fs.CreateFile('/dir/b')
+    self.fs.create_file('/dir/a')
+    self.fs.create_file('/dir/b')
     return True
 
   def test_sync(self):
@@ -1154,7 +1154,7 @@ class TestCorpusSync(fake_filesystem_unittest.TestCase):
     self.assertTrue(corpus.sync_from_gcs())
     self.assertTrue(os.path.exists('/dir1/.child_sync'))
     self.assertEqual(('/dir',), self.mock.rsync_to_disk.call_args[0][1:])
-    self.fs.CreateFile('/dir/c')
+    self.fs.create_file('/dir/c')
     self.assertListEqual(['/dir/c'], corpus.get_new_files())
 
     corpus.upload_files(corpus.get_new_files())

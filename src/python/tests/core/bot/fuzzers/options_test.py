@@ -43,8 +43,8 @@ class FuzzerOptionsTest(fake_filesystem_unittest.TestCase):
                   '[ubsan]\n'
                   'ubsan_option=0\n')
 
-    self.fs.CreateFile('/path/blah.options', contents=input_data)
-    self.fs.CreateFile('/path/blah.dict', contents=input_data)
+    self.fs.create_file('/path/blah.options', contents=input_data)
+    self.fs.create_file('/path/blah.dict', contents=input_data)
     fuzzer_options = options.FuzzerOptions('/path/blah.options')
 
     fuzzer_arguments = fuzzer_options.get_engine_arguments('libfuzzer')
@@ -77,7 +77,7 @@ class GetFuzzTargetOptions(fake_filesystem_unittest.TestCase):
     test_utils.set_up_pyfakefs(self)
 
     input_data = ('[libfuzzer]\n' 'close_fd_mask=1\n')
-    self.fs.CreateFile('/path/fuzz_target.options', contents=input_data)
+    self.fs.create_file('/path/fuzz_target.options', contents=input_data)
 
   def _get_arguments(self, fuzz_target_path):
     """Helper to return fuzz target arguments by parsing options file for a

@@ -45,7 +45,7 @@ class SetInitialTestcaseMetadata(fake_filesystem_unittest.TestCase):
     os.environ['BUILD_URL'] = 'build_url_value'
     os.environ['APP_DIR'] = 'app_dir_value'
     os.environ['GN_ARGS_PATH'] = 'app_dir_value/args.gn'
-    self.fs.CreateFile(
+    self.fs.create_file(
         'app_dir_value/args.gn',
         contents=('is_asan = true\n'
                   'goma_dir = /home/user/goma\n'

@@ -32,22 +32,22 @@ class GetIssueOwnersTest(fake_filesystem_unittest.TestCase):
 
   def setUp(self):
     test_utils.set_up_pyfakefs(self)
-    self.fs.CreateDirectory('/test')
+    self.fs.create_dir('/test')
 
   def test_no_file(self):
     self.assertEqual([], engine_common.get_issue_owners('/test/does_not_exist'))
 
   def test_empty_file(self):
-    self.fs.CreateFile('/test/fuzz_target.owners', contents='')
+    self.fs.create_file('/test/fuzz_target.owners', contents='')
     self.assertEqual([], engine_common.get_issue_owners('/test/fuzz_target'))
 
   def test_all_allowed(self):
-    self.fs.CreateFile('/test/fuzz_target.owners', contents='*')
+    self.fs.create_file('/test/fuzz_target.owners', contents='*')
     self.assertEqual([], engine_common.get_issue_owners('/test/fuzz_target'))
 
   def test_sections(self):
     """Test sections."""
-    self.fs.CreateFile(
+    self.fs.create_file(
         '/test/fuzz_target.owners',
         contents=('file://ENG_REVIEW_OWNERS\n'
                   '  \n'
@@ -70,7 +70,7 @@ class GetIssueLabelsTest(fake_filesystem_unittest.TestCase):
 
   def setUp(self):
     test_utils.set_up_pyfakefs(self)
-    self.fs.CreateDirectory('/test')
+    self.fs.create_dir('/test')
 
   def test_no_file(self):
     """Test no labels file."""
@@ -78,19 +78,19 @@ class GetIssueLabelsTest(fake_filesystem_unittest.TestCase):
 
   def test_empty_file(self):
     """Test empty file."""
-    self.fs.CreateFile('/test/fuzz_target.labels', contents='')
+    self.fs.create_file('/test/fuzz_target.labels', contents='')
     self.assertEqual([], engine_common.get_issue_labels('/test/fuzz_target'))
 
   def test_well_formed(self):
     """Test well formed labels file."""
-    self.fs.CreateFile(
+    self.fs.create_file(
         '/test/fuzz_target.labels', contents='label1\nlabel2\nlabel3\n')
     self.assertEqual(['label1', 'label2', 'label3'],
                      engine_common.get_issue_labels('/test/fuzz_target'))
 
   def test_empty_lines(self):
     """Test labels file with empty lines."""
-    self.fs.CreateFile(
+    self.fs.create_file(
         '/test/fuzz_target.labels', contents='label1\n\t\nlabel2\n \nlabel3\n')
     self.assertEqual(['label1', 'label2', 'label3'],
                      engine_common.get_issue_labels('/test/fuzz_target'))
@@ -215,14 +215,14 @@ class FindFuzzerPathTest(fake_filesystem_unittest.TestCase):
     test_helpers.patch_environ(self)
     self.build_dir = '/test'
     self.fuzzer_name = 'fuzz_target'
-    self.fs.CreateDirectory(self.build_dir)
+    self.fs.create_dir(self.build_dir)
 
   def _setup_fuzzer(self, fuzzer_name=None):
     """Create a file to represent the fuzzer."""
     if fuzzer_name is None:
       fuzzer_name = self.fuzzer_name
     fuzzer_path = os.path.join(self.build_dir, fuzzer_name)
-    self.fs.CreateFile(fuzzer_path)
+    self.fs.create_file(fuzzer_path)
     return fuzzer_path
 
   def _find_fuzzer_path(self, fuzzer_name=None):
@@ -251,7 +251,7 @@ class FindFuzzerPathTest(fake_filesystem_unittest.TestCase):
 
   def test_only_finds_file(self):
     """Test that a directory is never returned."""
-    self.fs.CreateDirectory(os.path.join(self.build_dir, self.fuzzer_name))
+    self.fs.create_dir(os.path.join(self.build_dir, self.fuzzer_name))
     self.assertIsNone(self._find_fuzzer_path())
 
 
@@ -303,7 +303,7 @@ class GetSeedCorpusPath(fake_filesystem_unittest.TestCase):
 
   def _create_seed_corpus(self, extension):
     seed_corpus_archive_path = self.archive_path_without_extension + extension
-    self.fs.CreateFile(seed_corpus_archive_path)
+    self.fs.create_file(seed_corpus_archive_path)
     return seed_corpus_archive_path
 
   def _get_seed_corpus_path(self, fuzz_target_path):
@@ -372,7 +372,7 @@ class UnpackSeedCorpusIfNeededTest(fake_filesystem_unittest.TestCase):
       self.seed_corpus_subdirs_contents = seed_corpus_handle.read()
 
     test_utils.set_up_pyfakefs(self)
-    self.fs.CreateDirectory(self.CORPUS_DIRECTORY)
+    self.fs.create_dir(self.CORPUS_DIRECTORY)
 
   def _unpack_seed_corpus_if_needed(self, *args, **kwargs):
     return engine_common.unpack_seed_corpus_if_needed(
@@ -400,7 +400,7 @@ class UnpackSeedCorpusIfNeededTest(fake_filesystem_unittest.TestCase):
     filenames = []
     for file_num in range(num_files):
       file_num = str(file_num)
-      self.fs.CreateFile(os.path.join(self.CORPUS_DIRECTORY, file_num))
+      self.fs.create_file(os.path.join(self.CORPUS_DIRECTORY, file_num))
       filenames.append(file_num)
     return filenames
 

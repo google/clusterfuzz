@@ -28,52 +28,53 @@ class IsFuzzTargetLocalTest(fake_filesystem_unittest.TestCase):
     test_utils.set_up_pyfakefs(self)
 
   def test_not_a_fuzzer_invalid_name(self):
-    self.fs.CreateFile('/abc$_fuzzer', contents='anything')
+    self.fs.create_file('/abc$_fuzzer', contents='anything')
     self.assertFalse(utils.is_fuzz_target_local('/abc$_fuzzer'))
 
   def test_not_a_fuzzer_without_extension(self):
-    self.fs.CreateFile('/abc', contents='anything')
+    self.fs.create_file('/abc', contents='anything')
     self.assertFalse(utils.is_fuzz_target_local('/abc'))
 
   def test_not_a_fuzzer_with_extension(self):
-    self.fs.CreateFile('/abc.dict', contents='anything')
+    self.fs.create_file('/abc.dict', contents='anything')
     self.assertFalse(utils.is_fuzz_target_local('/abc.dict'))
 
   def test_not_a_fuzzer_with_extension_and_suffix(self):
-    self.fs.CreateFile('/abc_fuzzer.dict', contents='anything')
+    self.fs.create_file('/abc_fuzzer.dict', contents='anything')
     self.assertFalse(utils.is_fuzz_target_local('/abc_fuzzer.dict'))
 
   def test_fuzzer_posix(self):
-    self.fs.CreateFile('/abc_fuzzer', contents='anything')
+    self.fs.create_file('/abc_fuzzer', contents='anything')
     self.assertTrue(utils.is_fuzz_target_local('/abc_fuzzer'))
 
   def test_fuzzer_win(self):
-    self.fs.CreateFile('/abc_fuzzer.exe', contents='anything')
+    self.fs.create_file('/abc_fuzzer.exe', contents='anything')
     self.assertTrue(utils.is_fuzz_target_local('/abc_fuzzer.exe'))
 
   def test_fuzzer_not_exist(self):
     self.assertFalse(utils.is_fuzz_target_local('/not_exist_fuzzer'))
 
   def test_fuzzer_without_suffix(self):
-    self.fs.CreateFile('/abc', contents='anything\nLLVMFuzzerTestOneInput')
+    self.fs.create_file('/abc', contents='anything\nLLVMFuzzerTestOneInput')
     self.assertTrue(utils.is_fuzz_target_local('/abc'))
 
   def test_fuzzer_with_name_regex_match(self):
     environment.set_value('FUZZER_NAME_REGEX', '.*_custom$')
-    self.fs.CreateFile('/a_custom', contents='anything')
+    self.fs.create_file('/a_custom', contents='anything')
     self.assertTrue(utils.is_fuzz_target_local('/a_custom'))
 
   def test_fuzzer_with_file_string_and_without_name_regex_match(self):
     environment.set_value('FUZZER_NAME_REGEX', '.*_custom$')
-    self.fs.CreateFile('/nomatch', contents='anything\nLLVMFuzzerTestOneInput')
+    self.fs.create_file('/nomatch', contents='anything\nLLVMFuzzerTestOneInput')
     self.assertFalse(utils.is_fuzz_target_local('/nomatch'))
 
   def test_fuzzer_without_file_string_and_without_name_regex_match(self):
     environment.set_value('FUZZER_NAME_REGEX', '.*_custom$')
-    self.fs.CreateFile('/nomatch', contents='anything')
+    self.fs.create_file('/nomatch', contents='anything')
     self.assertFalse(utils.is_fuzz_target_local('/nomatch'))
 
   def test_fuzzer_with_fuzzer_name_and_without_name_regex_match(self):
     environment.set_value('FUZZER_NAME_REGEX', '.*_custom$')
-    self.fs.CreateFile('/a_fuzzer', contents='anything\nLLVMFuzzerTestOneInput')
+    self.fs.create_file(
+        '/a_fuzzer', contents='anything\nLLVMFuzzerTestOneInput')
     self.assertTrue(utils.is_fuzz_target_local('/a_fuzzer'))

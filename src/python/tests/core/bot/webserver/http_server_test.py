@@ -61,9 +61,9 @@ class RequestHandlerTest(fake_filesystem_unittest.TestCase):
     os.environ['FUZZ_DATA'] = '/data'
     os.environ['FUZZERS_DIR'] = '/fuzzers'
     os.environ['INPUT_DIR'] = '/input'
-    self.fs.CreateFile(
+    self.fs.create_file(
         os.path.join('/input', 'valid.txt'), contents='valid file')
-    self.fs.CreateFile(
+    self.fs.create_file(
         os.path.join('/input', 'unreadable.txt'), contents='unreadable file')
     os.chmod(os.path.join('/input', 'unreadable.txt'), 0)
 

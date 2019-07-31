@@ -1,0 +1,14 @@
+==247664== ERROR: libFuzzer: deadly signal
+    #0 0x4f2ae7 in __sanitizer_print_stack_trace /home/snd-local/releases/6.0/release/final/llvm.src/projects/compiler-rt/lib/asan/asan_stack.cc:38:3
+    #1 0x42f0f6 in fuzzer::Fuzzer::CrashCallback() /home/snd-local/releases/6.0/release/final/llvm.src/projects/compiler-rt/lib/fuzzer/FuzzerLoop.cpp:233:5
+    #2 0x42f0bf in fuzzer::Fuzzer::StaticCrashSignalCallback() /home/snd-local/releases/6.0/release/final/llvm.src/projects/compiler-rt/lib/fuzzer/FuzzerLoop.cpp:206:6
+    #3 0x7fa27237a39f  (/lib/x86_64-linux-gnu/libpthread.so.0+0x1239f)
+    #4 0x51a44a in LLVMFuzzerTestOneInput (/src/a.out+0x51a44a)
+    #5 0x43061c in fuzzer::Fuzzer::ExecuteCallback(unsigned char const*, unsigned long) /home/snd-local/releases/6.0/release/final/llvm.src/projects/compiler-rt/lib/fuzzer/FuzzerLoop.cpp:515:13
+    #6 0x42fe7b in fuzzer::Fuzzer::RunOne(unsigned char const*, unsigned long, bool, fuzzer::InputInfo*, bool*) /home/snd-local/releases/6.0/release/final/llvm.src/projects/compiler-rt/lib/fuzzer/FuzzerLoop.cpp:440:3
+    #7 0x43183d in fuzzer::Fuzzer::MutateAndTestOne() /home/snd-local/releases/6.0/release/final/llvm.src/projects/compiler-rt/lib/fuzzer/FuzzerLoop.cpp:648:19
+    #8 0x432235 in fuzzer::Fuzzer::Loop(std::vector<std::string, fuzzer::fuzzer_allocator<std::string> > const&) /home/snd-local/releases/6.0/release/final/llvm.src/projects/compiler-rt/lib/fuzzer/FuzzerLoop.cpp:775:5
+    #9 0x4270b3 in fuzzer::FuzzerDriver(int*, char***, int (*)(unsigned char const*, unsigned long)) /home/snd-local/releases/6.0/release/final/llvm.src/projects/compiler-rt/lib/fuzzer/FuzzerDriver.cpp:754:6
+    #10 0x44a012 in main /home/snd-local/releases/6.0/release/final/llvm.src/projects/compiler-rt/lib/fuzzer/FuzzerMain.cpp:20:10
+    #11 0x7fa2719a852a in __libc_start_main (/lib/x86_64-linux-gnu/libc.so.6+0x2352a)
+    #12 0x41fda9 in _start (/src/a.out+0x41fda9)

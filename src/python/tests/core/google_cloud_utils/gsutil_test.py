@@ -48,8 +48,8 @@ class GSUtilRunnerTest(fake_filesystem_unittest.TestCase):
   def test_rsync_local_gcs_1(self):
     """Test rsync."""
     os.environ['LOCAL_GCS_BUCKETS_PATH'] = '/local'
-    self.fs.CreateDirectory('/local/source_bucket')
-    self.fs.CreateDirectory('/local/target_bucket')
+    self.fs.create_dir('/local/source_bucket')
+    self.fs.create_dir('/local/target_bucket')
     self.gsutil_runner_obj.rsync('gs://source_bucket/source_path',
                                  'gs://target_bucket/target_path')
     self.mock.run_and_wait.assert_called_with(
@@ -77,8 +77,8 @@ class GSUtilRunnerTest(fake_filesystem_unittest.TestCase):
   def test_rsync_local_gcs_2(self):
     """Test rsync."""
     os.environ['LOCAL_GCS_BUCKETS_PATH'] = '/local'
-    self.fs.CreateDirectory('/local/source_bucket')
-    self.fs.CreateDirectory('/local/target_bucket')
+    self.fs.create_dir('/local/source_bucket')
+    self.fs.create_dir('/local/target_bucket')
     self.gsutil_runner_obj.rsync(
         'gs://source_bucket/source_path',
         'gs://target_bucket/target_path',
@@ -108,8 +108,8 @@ class GSUtilRunnerTest(fake_filesystem_unittest.TestCase):
   def test_rsync_local_gcs_3(self):
     """Test rsync."""
     os.environ['LOCAL_GCS_BUCKETS_PATH'] = '/local'
-    self.fs.CreateDirectory('/local/source_bucket')
-    self.fs.CreateDirectory('/local/target_bucket')
+    self.fs.create_dir('/local/source_bucket')
+    self.fs.create_dir('/local/target_bucket')
     self.gsutil_runner_obj.rsync(
         'gs://source_bucket/source_path',
         'gs://target_bucket/target_path',
@@ -139,8 +139,8 @@ class GSUtilRunnerTest(fake_filesystem_unittest.TestCase):
   def test_rsync_local_gcs_4(self):
     """Test rsync."""
     os.environ['LOCAL_GCS_BUCKETS_PATH'] = '/local'
-    self.fs.CreateDirectory('/local/source_bucket')
-    self.fs.CreateDirectory('/local/target_bucket')
+    self.fs.create_dir('/local/source_bucket')
+    self.fs.create_dir('/local/target_bucket')
     self.gsutil_runner_obj.rsync(
         'gs://source_bucket/source_path',
         'gs://target_bucket/target_path',
@@ -172,8 +172,8 @@ class GSUtilRunnerTest(fake_filesystem_unittest.TestCase):
   def test_rsync_local_gcs_5(self):
     """Test rsync."""
     os.environ['LOCAL_GCS_BUCKETS_PATH'] = '/local'
-    self.fs.CreateDirectory('/local/source_bucket')
-    self.fs.CreateDirectory('/local/target_bucket')
+    self.fs.create_dir('/local/source_bucket')
+    self.fs.create_dir('/local/target_bucket')
     self.gsutil_runner_obj.rsync(
         'gs://source_bucket/source_path',
         'gs://target_bucket/target_path',
@@ -239,7 +239,7 @@ class GSUtilRunnerTest(fake_filesystem_unittest.TestCase):
   def test_upload_file_local_gcs_1(self):
     """Test upload_file."""
     os.environ['LOCAL_GCS_BUCKETS_PATH'] = '/local'
-    self.fs.CreateDirectory('/local/target_bucket')
+    self.fs.create_dir('/local/target_bucket')
     self.gsutil_runner_obj.upload_file('/source_path',
                                        'gs://target_bucket/target_path')
     self.mock.run_and_wait.assert_called_with(
@@ -266,7 +266,7 @@ class GSUtilRunnerTest(fake_filesystem_unittest.TestCase):
   def test_upload_file_local_gcs_2(self):
     """Test upload_file."""
     os.environ['LOCAL_GCS_BUCKETS_PATH'] = '/local'
-    self.fs.CreateDirectory('/local/target_bucket')
+    self.fs.create_dir('/local/target_bucket')
     self.gsutil_runner_obj.upload_file(
         '/source_path',
         'gs://target_bucket/target_path',
@@ -294,7 +294,7 @@ class GSUtilRunnerTest(fake_filesystem_unittest.TestCase):
   def test_upload_files_local_gcs_1(self):
     """Test upload_files_to_url."""
     os.environ['LOCAL_GCS_BUCKETS_PATH'] = '/local'
-    self.fs.CreateDirectory('/local/target_bucket')
+    self.fs.create_dir('/local/target_bucket')
     self.gsutil_runner_obj.upload_files_to_url(
         ['/source_path1', '/source_path2'], 'gs://target_bucket/target_path')
     self.mock.run_and_wait.assert_called_with(
@@ -319,7 +319,7 @@ class GSUtilRunnerTest(fake_filesystem_unittest.TestCase):
   def test_upload_files_to_url_local_gcs_2(self):
     """Test upload_files_to_url."""
     os.environ['LOCAL_GCS_BUCKETS_PATH'] = '/local'
-    self.fs.CreateDirectory('/local/target_bucket')
+    self.fs.create_dir('/local/target_bucket')
     self.gsutil_runner_obj.upload_files_to_url(
         ['/source_path1', '/source_path2'],
         'gs://target_bucket/target_path',

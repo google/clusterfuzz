@@ -86,6 +86,7 @@ class MinijailChroot(object):
       '/lib32',
       '/lib64',
       '/usr/lib',
+      '/usr/lib32',
   ]
 
   def __init__(self, base_dir=None, bindings=None, use_existing_base=False):

@@ -37,10 +37,10 @@ class RemoveEmptyFilesTest(fake_filesystem_unittest.TestCase):
 
   def test_remove(self):
     """Test remove."""
-    self.fs.CreateFile('/test/aa/bb.txt', contents='s')
-    self.fs.CreateFile('/test/aa/cc.txt', contents='')
-    self.fs.CreateFile('/test/aa/aa/dd.txt', contents='s')
-    self.fs.CreateFile('/test/aa/aa/aa.txt', contents='')
+    self.fs.create_file('/test/aa/bb.txt', contents='s')
+    self.fs.create_file('/test/aa/cc.txt', contents='')
+    self.fs.create_file('/test/aa/aa/dd.txt', contents='s')
+    self.fs.create_file('/test/aa/aa/aa.txt', contents='')
 
     shell.remove_empty_files('/test')
 
@@ -50,7 +50,7 @@ class RemoveEmptyFilesTest(fake_filesystem_unittest.TestCase):
     self.assertFalse(os.path.exists('/test/aa/aa/aa.txt'))
 
   def test_ignore_file(self):
-    self.fs.CreateFile('/test/aa/cc.txt', contents='')
+    self.fs.create_file('/test/aa/cc.txt', contents='')
     shell.remove_empty_files('/test/aa/cc.txt')
     self.assertTrue(os.path.exists('/test/aa/cc.txt'))
 
@@ -60,7 +60,7 @@ class RemoveEmptyFilesTest(fake_filesystem_unittest.TestCase):
     os.remove = mock_remove
     mock_remove.side_effect = OSError()
 
-    self.fs.CreateFile('/test/aa/cc.txt', contents='')
+    self.fs.create_file('/test/aa/cc.txt', contents='')
     shell.remove_empty_files('/test')
     self.assertTrue(os.path.exists('/test/aa/cc.txt'))
 
@@ -174,10 +174,10 @@ class GetDirectoryFileCount(fake_filesystem_unittest.TestCase):
 
   def test(self):
     """Test get_directory_file_count."""
-    self.fs.CreateFile('/test/aa/bb.txt', contents='abc')
-    self.fs.CreateFile('/test/aa/cc.txt', contents='def')
-    self.fs.CreateFile('/test/aa/aa/aa.txt', contents='ghi')
-    self.fs.CreateFile('/test/aa/aa/dd.txt', contents='t')
+    self.fs.create_file('/test/aa/bb.txt', contents='abc')
+    self.fs.create_file('/test/aa/cc.txt', contents='def')
+    self.fs.create_file('/test/aa/aa/aa.txt', contents='ghi')
+    self.fs.create_file('/test/aa/aa/dd.txt', contents='t')
 
     self.assertEqual(shell.get_directory_file_count('/test/aa'), 4)
 
@@ -190,10 +190,10 @@ class GetDirectorySizeTest(fake_filesystem_unittest.TestCase):
 
   def test(self):
     """Test get_directory_size."""
-    self.fs.CreateFile('/test/aa/bb.txt', contents='abc')
-    self.fs.CreateFile('/test/aa/cc.txt', contents='def')
-    self.fs.CreateFile('/test/aa/aa/aa.txt', contents='ghi')
-    self.fs.CreateFile('/test/aa/aa/dd.txt', contents='t')
+    self.fs.create_file('/test/aa/bb.txt', contents='abc')
+    self.fs.create_file('/test/aa/cc.txt', contents='def')
+    self.fs.create_file('/test/aa/aa/aa.txt', contents='ghi')
+    self.fs.create_file('/test/aa/aa/dd.txt', contents='t')
 
     self.assertEqual(shell.get_directory_size('/test/aa'), 10)
 
@@ -223,12 +223,12 @@ class ClearSystemTempDirectoryTest(fake_filesystem_unittest.TestCase):
 
   def test(self):
     """Test clear_system_temp_directory works as expected."""
-    self.fs.CreateFile('/tmp/aa/bb.txt', contents='abc')
-    self.fs.CreateFile('/tmp/cc/dd/ee.txt', contents='def')
-    self.fs.CreateDirectory('/tmp/ff/gg')
-    self.fs.CreateDirectory('/tmp/hh')
-    self.fs.CreateDirectory('/unrelated')
-    self.fs.CreateFile('/unrelated/zz.txt', contents='zzz')
+    self.fs.create_file('/tmp/aa/bb.txt', contents='abc')
+    self.fs.create_file('/tmp/cc/dd/ee.txt', contents='def')
+    self.fs.create_dir('/tmp/ff/gg')
+    self.fs.create_dir('/tmp/hh')
+    self.fs.create_dir('/unrelated')
+    self.fs.create_file('/unrelated/zz.txt', contents='zzz')
     os.symlink('/unrelated/zz.txt', '/tmp/hh/gg.txt')
     os.symlink('/unrelated', '/tmp/ii')
 
