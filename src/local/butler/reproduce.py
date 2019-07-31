@@ -135,7 +135,7 @@ def _download_testcase(testcase_id, testcase, configuration):
 
 
 def _setup_x():
-  """Start Xvfb before running the test application."""
+  """Start Xvfb and blackbox before running the test application."""
   environment.set_value('DISPLAY', ':99')
 
   xvfb_runner = new_process.ProcessRunner('/usr/bin/Xvfb')
