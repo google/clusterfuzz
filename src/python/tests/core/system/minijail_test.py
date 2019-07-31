@@ -34,6 +34,7 @@ class MinijailTest(fake_filesystem_unittest.TestCase):
     for subdir in ['dev', 'lib', 'lib32', 'lib64', 'proc']:
       self.fs.create_dir(os.path.join('/', subdir))
     self.fs.create_dir(os.path.join('/', 'usr', 'lib'))
+    self.fs.create_dir(os.path.join('/', 'usr', 'lib32'))
 
     test_helpers.patch(self, [
         'system.minijail._get_minijail_path',
@@ -57,7 +58,7 @@ class MinijailTest(fake_filesystem_unittest.TestCase):
           chroot.get_binding(chroot.tmp_directory),
           minijail.ChrootBinding(chroot.tmp_directory, '/tmp', True))
 
-      for directory in ['/lib', '/lib32', '/lib64', '/usr/lib']:
+      for directory in ['/lib', '/lib32', '/lib64', '/usr/lib', '/usr/lib32']:
         self.assertEqual(
             chroot.get_binding(directory),
             minijail.ChrootBinding(directory, directory, False))
@@ -93,7 +94,7 @@ class MinijailTest(fake_filesystem_unittest.TestCase):
           chroot.directory, '-b',
           '%s,/tmp,1' % chroot.tmp_directory, '-b', '/lib,/lib,0', '-b',
           '/lib32,/lib32,0', '-b', '/lib64,/lib64,0', '-b',
-          '/usr/lib,/usr/lib,0', '/bin/ls'
+          '/usr/lib,/usr/lib,0', '-b', '/usr/lib32,/usr/lib32,0', '/bin/ls'
       ])
 
   @mock.patch('system.minijail.os.getuid', lambda: 1000)
@@ -110,8 +111,8 @@ class MinijailTest(fake_filesystem_unittest.TestCase):
           chroot.directory, '-b',
           '%s,/tmp,1' % chroot.tmp_directory, '-b', '/lib,/lib,0', '-b',
           '/lib32,/lib32,0', '-b', '/lib64,/lib64,0', '-b',
-          '/usr/lib,/usr/lib,0', '-b', '/foo/bar,/bar,1', '-b',
-          '/foo/barr,/barr,0', '/bin/ls'
+          '/usr/lib,/usr/lib,0', '-b', '/usr/lib32,/usr/lib32,0', '-b',
+          '/foo/bar,/bar,1', '-b', '/foo/barr,/barr,0', '/bin/ls'
       ])
 
   @mock.patch('system.minijail.os.getuid', lambda: 1000)
@@ -130,7 +131,7 @@ class MinijailTest(fake_filesystem_unittest.TestCase):
           'proc,/proc,proc,1', '-P', chroot.directory, '-b',
           '%s,/tmp,1' % chroot.tmp_directory, '-b', '/lib,/lib,0', '-b',
           '/lib32,/lib32,0', '-b', '/lib64,/lib64,0', '-b',
-          '/usr/lib,/usr/lib,0', 'bin/ls'
+          '/usr/lib,/usr/lib,0', '-b', '/usr/lib32,/usr/lib32,0', 'bin/ls'
       ])
 
   @mock.patch('system.minijail.subprocess.Popen')
