@@ -138,8 +138,8 @@ def _download_testcase(testcase_id, testcase, configuration):
 
 def _setup_x():
   """Start Xvfb and blackbox before running the test application."""
-  if environment.platform() != 'LINUX:':
-    return
+  if environment.platform() != 'LINUX':
+    return []
 
   environment.set_value('DISPLAY', DISPLAY)
 
