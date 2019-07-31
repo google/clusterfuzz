@@ -144,6 +144,11 @@ def create_regression_task_if_needed(testcase):
 
 def create_variant_tasks_if_needed(testcase):
   """Creates a variant task if needed."""
+  if testcase.duplicate_of:
+    # If another testcase exists with same params, no need to spend cycles on
+    # calculating variants again.
+    return
+
   testcase_id = testcase.key.id()
   jobs = ndb_utils.get_all_from_model(data_types.Job)
   for job in jobs:
