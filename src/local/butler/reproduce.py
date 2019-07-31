@@ -155,7 +155,7 @@ def _setup_x():
   blackbox_process = blackbox_runner.run()
   time.sleep(5)  # Allow some time for blackbox to start.
 
-  # Return all handles we create
+  # Return all handles we create so they can be terminated properly at exit.
   return [xvfb_process, blackbox_process]
 
 
