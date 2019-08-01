@@ -854,17 +854,6 @@ def list_blobs(cloud_storage_path, recursive=True):
     yield blob['name']
 
 
-@retry.wrap(
-    retries=DEFAULT_FAIL_RETRIES,
-    delay=DEFAULT_FAIL_WAIT,
-    function='google_cloud_utils.storage.list_blobs')
-def list_blobs_full(cloud_storage_path, recursive=True):
-  """Return list of blobs with full path (including bucket name) under the given
-  cloud storage path."""
-  for blob in _provider().list_blobs(cloud_storage_path, recursive=recursive):
-    yield '/{bucket}/{name}'.format(bucket=blob['bucket'], name=blob['name'])
-
-
 def get_download_file_size(cloud_storage_file_path,
                            file_path=None,
                            use_cache=False):
