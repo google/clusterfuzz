@@ -360,7 +360,7 @@ class LauncherTest(fake_fs_unittest.TestCase):
               'expected_duration':
                   2650,
               'fuzzer':
-                 None,
+                  None,
               'fuzzing_time_percent':
                   0.0,
               'job':
