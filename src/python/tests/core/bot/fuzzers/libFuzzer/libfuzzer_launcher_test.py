@@ -360,7 +360,7 @@ class LauncherTest(fake_fs_unittest.TestCase):
               'expected_duration':
                   2650,
               'fuzzer':
-                  u'',
+                 None,
               'fuzzing_time_percent':
                   0.0,
               'job':
@@ -563,7 +563,7 @@ class LauncherTest(fake_fs_unittest.TestCase):
               'expected_duration':
                   2650,
               'fuzzer':
-                  u'',
+                  None,
               'fuzzing_time_percent':
                   0.0,
               'job':
@@ -1282,7 +1282,7 @@ class LauncherTest(fake_fs_unittest.TestCase):
               'expected_duration':
                   2650,
               'fuzzer':
-                  u'',
+                  None,
               'fuzzing_time_percent':
                   0.0,
               'job':
@@ -1944,7 +1944,7 @@ class LauncherTest(fake_fs_unittest.TestCase):
               u'expected_duration':
                   2650,
               'fuzzer':
-                  u'',
+                  None,
               u'fuzzing_time_percent':
                   0.0,
               'job':
@@ -2271,7 +2271,7 @@ class LauncherTest(fake_fs_unittest.TestCase):
               u'expected_duration':
                   2650,
               'fuzzer':
-                  u'',
+                  None,
               u'fuzzing_time_percent':
                   0.0,
               'job':
