@@ -56,6 +56,7 @@ class CreateTestcaseListFileTest(fake_filesystem_unittest.TestCase):
     self.assertEqual(expected_files_list, actual_files_list)
 
 
+# pylint: disable=protected-access
 class UploadTestcaseOutputTest(fake_filesystem_unittest.TestCase):
   """Tests for logs uploading."""
 
@@ -106,7 +107,11 @@ class UploadTestcaseOutputTest(fake_filesystem_unittest.TestCase):
 
     crash_result = CrashResult(
         return_code=1, crash_time=5, output='fake output')
-    testcase_manager.upload_testcase_output(crash_result, self.testcase_path)
+
+    log = testcase_manager.prepare_log_for_upload(crash_result.get_stacktrace(),
+                                                  crash_result.return_code)
+    log_time = testcase_manager._get_testcase_time(self.testcase_path)
+    testcase_manager.upload_log(log, log_time)
 
     # Date and time below is derived from 1472846341 timestamp value.
     self.mock.write_data.assert_called_once_with(
@@ -126,7 +131,10 @@ class UploadTestcaseOutputTest(fake_filesystem_unittest.TestCase):
         '"fuzzer": "fuzzer", "build_revision": 123}\n')
 
     crash_result = CrashResult(return_code=None, crash_time=None, output=None)
-    testcase_manager.upload_testcase_output(crash_result, self.testcase_path)
+    log = testcase_manager.prepare_log_for_upload(crash_result.get_stacktrace(),
+                                                  crash_result.return_code)
+    log_time = testcase_manager._get_testcase_time(self.testcase_path)
+    testcase_manager.upload_log(log, log_time)
     self.mock.write_data.assert_called_once_with(
         'Component revisions (build r123):\n'
         'Component: REVISION\nComponent2: REVISION2\n\n'
@@ -148,7 +156,10 @@ class UploadTestcaseOutputTest(fake_filesystem_unittest.TestCase):
 
     crash_result = CrashResult(
         return_code=1, crash_time=5, output='fake output')
-    testcase_manager.upload_testcase_output(crash_result, self.testcase_path)
+    log = testcase_manager.prepare_log_for_upload(crash_result.get_stacktrace(),
+                                                  crash_result.return_code)
+    log_time = testcase_manager._get_testcase_time(self.testcase_path)
+    testcase_manager.upload_log(log, log_time)
 
     # Date and time below is derived from 1472846341 timestamp value.
     self.mock.write_data.assert_called_once_with(

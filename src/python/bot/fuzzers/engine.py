@@ -42,8 +42,9 @@ class Result(object):
   """Represents a result of a fuzzing session: a list of crashes found and the
   stats generated."""
 
-  def __init__(self, logs, crashes, stats):
+  def __init__(self, logs, command, crashes, stats):
     self.logs = logs
+    self.command = command
     self.crashes = crashes
     self.stats = stats
 

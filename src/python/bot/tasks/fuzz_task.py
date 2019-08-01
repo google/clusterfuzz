@@ -484,8 +484,21 @@ class GcsCorpus(object):
     return new_files
 
 
-def upload_testcase_run_stats(fuzzer_name, fully_qualified_fuzzer_name,
-                              job_type, revision, testcase_file_paths):
+def upload_testcase_run_stats(testcase_run):
+  """Upload TestcaseRun stats."""
+  fuzzer_stats.upload_stats([testcase_run])
+
+
+def add_additional_testcase_run_data(testcase_run, fully_qualified_fuzzer_name,
+                                     job_type, revision):
+  """Add additional testcase run data."""
+  testcase_run['fuzzer'] = fully_qualified_fuzzer_name
+  testcase_run['job'] = job_type
+  testcase_run['build_revision'] = revision
+
+
+def read_and_upload_testcase_run_stats(fuzzer_name, fully_qualified_fuzzer_name,
+                                       job_type, revision, testcase_file_paths):
   """Upload per-testcase stats."""
   if fuzzer_name not in builtin_fuzzers.BUILTIN_FUZZERS:
     # Testcase run stats are only applicable to builtin fuzzers (libFuzzer,AFL).
@@ -496,12 +509,12 @@ def upload_testcase_run_stats(fuzzer_name, fully_qualified_fuzzer_name,
     testcase_run = fuzzer_stats.TestcaseRun.read_from_disk(
         testcase_file_path, delete=True)
     if testcase_run:
-      testcase_run['fuzzer'] = fully_qualified_fuzzer_name
-      testcase_run['job'] = job_type
-      testcase_run['build_revision'] = revision
+      add_additional_testcase_run_data(
+          testcase_run, fully_qualified_fuzzer_name, job_type, revision)
       testcase_runs.append(testcase_run)
 
-  fuzzer_stats.upload_stats(testcase_runs)
+  for testcase_run in testcase_runs:
+    upload_testcase_run_stats(testcase_run)
 
 
 def get_fuzzer_metadata_from_output(fuzzer_output):
@@ -1357,11 +1370,23 @@ class FuzzingSession(object):
     options = engine_impl.prepare(sync_corpus_directory, target_path, build_dir)
 
     fuzz_test_timeout = environment.get_value('FUZZ_TEST_TIMEOUT')
-    return engine_impl.fuzz(target_path, options, self.testcase_directory,
-                            fuzz_test_timeout)
+    result = engine_impl.fuzz(target_path, options, self.testcase_directory,
+                              fuzz_test_timeout)
+
+    # Format logs with header and strategy information.
+    log_header = engine_common.get_log_header(result.command,
+                                              environment.get_value('BOT_NAME'),
+                                              result.crash_time)
+
+    formatted_strategies = engine_common.format_fuzzing_strategies(
+        options.strategies)
+
+    result.logs = log_header + '\n' + result.logs + '\n' + formatted_strategies
+    return result
 
   def do_engine_fuzzing(self, engine_impl):
     """Run fuzzing engine."""
+    # Record fuzz target.
     fuzz_target_name = environment.get_value('FUZZ_TARGET')
     self.fuzz_target = record_fuzz_target(engine_impl.name, fuzz_target_name,
                                           self.job_type)
@@ -1370,13 +1395,29 @@ class FuzzingSession(object):
         self.testcase_directory, self.fuzz_target.project_qualified_name())
     self.sync_corpus(sync_corpus_directory)
 
+    # Do the actual fuzzing.
     result = self._run_engine_fuzzer(engine_impl, sync_corpus_directory)
     self.sync_new_corpus_files()
 
-    # TOOD(ochang): Upload logs, and include formatted header + fuzzing
-    # strategies.
+    # Prepare stats.
+    testcase_run = engine_common.get_testcase_run(result.stats, result.command)
 
-    # TODO(ochang): Upload stats.
+    # Upload logs, testcases (if there are crashes), and stats.
+    # Use a consistent log time to allow correlating between logs, uploaded
+    # testcases, and stats.
+    log_time = datetime.datetime.utcfromtimestamp(float(testcase_run.timestamp))
+    for crash in result.crashes:
+      testcase_manager.upload_testcase(crash.input_path, log_time)
+
+    log = testcase_manager.prepare_log_for_upload(result.logs, 1)
+    testcase_manager.upload_log(log, log_time)
+
+    revision = environment.get_value('APP_REVISION')
+    add_additional_testcase_run_data(
+        testcase_run, self.fuzz_target.fully_qualified_fuzzer_name(),
+        self.job_type, revision)
+    upload_testcase_run_stats(testcase_run)
+
     return result.crashes
 
   def do_blackbox_fuzzing(self, fuzzer, fuzzer_directory, job_type):
@@ -1684,9 +1725,9 @@ class FuzzingSession(object):
             thread_wait_timeout=THREAD_WAIT_TIMEOUT,
             data_directory=self.data_directory))
 
-    upload_testcase_run_stats(self.fuzzer_name,
-                              self.fully_qualified_fuzzer_name, self.job_type,
-                              crash_revision, testcase_file_paths)
+    read_and_upload_testcase_run_stats(
+        self.fuzzer_name, self.fully_qualified_fuzzer_name, self.job_type,
+        crash_revision, testcase_file_paths)
     upload_job_run_stats(self.fully_qualified_fuzzer_name, self.job_type,
                          crash_revision, time.time(),
                          new_crash_count, known_crash_count,

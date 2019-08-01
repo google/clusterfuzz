@@ -941,14 +941,13 @@ def main(argv):
     shutil.move(crash_testcase_file_path, testcase_file_path)
 
   # Print the command output.
-  log_header_format = ('Command: %s\n' 'Bot: %s\n' 'Time ran: %f\n')
   bot_name = environment.get_value('BOT_NAME', '')
   command = fuzz_result.command
   if use_minijail:
     # Remove minijail prefix.
     command = engine_common.strip_minijail_command(command, fuzzer_path)
-  print(log_header_format % (engine_common.get_command_quoted(command),
-                             bot_name, fuzz_result.time_executed))
+  print(engine_common.get_log_header(command, bot_name,
+                                     fuzz_result.time_executed))
 
   # Parse stats information based on libFuzzer output.
   parsed_stats = parse_log_stats(log_lines)
@@ -1050,8 +1049,7 @@ def main(argv):
   parsed_stats.update(stat_overrides)
 
   # Dump stats data for further uploading to BigQuery.
-  engine_common.dump_big_query_data(parsed_stats, testcase_file_path,
-                                    LIBFUZZER_PREFIX, fuzzer_name, command)
+  engine_common.dump_big_query_data(parsed_stats, testcase_file_path, command)
 
   # Add custom crash state based on fuzzer name (if needed).
   add_custom_crash_state_if_needed(fuzzer_name, log_lines, parsed_stats)

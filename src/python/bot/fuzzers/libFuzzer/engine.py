@@ -258,7 +258,7 @@ class LibFuzzerEngine(engine.Engine):
     # TODO(ochang): Custom crash state.
     # TODO(ochang): Recommended dictionary.
 
-    return engine.Result(fuzz_logs, crashes, parsed_stats)
+    return engine.Result(fuzz_logs, fuzz_result.command, crashes, parsed_stats)
 
   def reproduce(self, target_path, input_path, arguments, max_time):
     """Reproduce a crash given an input.
@@ -306,7 +306,7 @@ class LibFuzzerEngine(engine.Engine):
       raise MergeError('Merging new testcases failed')
 
     # TODO(ochang): Get crashes found during merge.
-    return engine.Result(merge_result.output, [], {})
+    return engine.Result(merge_result.output, merge_result.command, [], {})
 
   def minimize_testcase(self, target_path, arguments, input_path, output_path,
                         max_time):

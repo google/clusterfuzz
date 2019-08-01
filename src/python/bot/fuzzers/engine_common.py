@@ -56,6 +56,9 @@ OWNERS_FILE_EXTENSION = '.owners'
 # Extension for per-fuzz target labels to be added to issue tracker.
 LABELS_FILE_EXTENSION = '.labels'
 
+# Header format for logs.
+LOG_HEADER_FORMAT = ('Command: {command}\n' 'Bot: {bot}\n' 'Time ran: {time}\n')
+
 
 def current_timestamp():
   """Returns the current timestamp. Needed for mocking."""
@@ -79,16 +82,22 @@ def decide_with_probability(probability):
   return random.SystemRandom().random() < probability
 
 
-def dump_big_query_data(stats, testcase_file_path, fuzzer_name_prefix,
-                        fuzzer_name, fuzzer_command):
-  """Dump BigQuery stats."""
+def get_testcase_run(stats, fuzzer_command):
+  """Get testcase run for stats."""
   build_revision = fuzzer_utils.get_build_revision()
   job = environment.get_value('JOB_NAME')
-  testcase_run = fuzzer_stats.TestcaseRun(fuzzer_name_prefix + fuzzer_name, job,
-                                          build_revision, current_timestamp())
+  # fuzzer name is filled by fuzz_task.
+  testcase_run = fuzzer_stats.TestcaseRun(None, job, build_revision,
+                                          current_timestamp())
 
   testcase_run['command'] = fuzzer_command
   testcase_run.update(stats)
+  return testcase_run
+
+
+def dump_big_query_data(stats, testcase_file_path, fuzzer_command):
+  """Dump BigQuery stats."""
+  testcase_run = get_testcase_run(stats, fuzzer_command)
   fuzzer_stats.TestcaseRun.write_to_disk(testcase_run, testcase_file_path)
 
 
@@ -394,3 +403,9 @@ def unpack_seed_corpus_if_needed(fuzz_target_path,
 
   logs.log('Unarchiving seed corpus %s took %s seconds.' %
            (seed_corpus_archive_path, time.time() - start_time))
+
+
+def get_log_header(command, bot_name, time_executed):
+  """Get the log header."""
+  return LOG_HEADER_FORMAT.format(
+      command=get_command_quoted(command), bot=bot_name, time=time_executed)

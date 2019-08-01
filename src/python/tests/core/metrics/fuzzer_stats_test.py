@@ -223,14 +223,14 @@ class FuzzerStatsTest(unittest.TestCase):
   @mock.patch('metrics.fuzzer_stats.TestcaseRun.read_from_disk')
   def test_fuzz_task_upload_testcase_run_stats_builtin_fuzzer(
       self, mock_read_from_disk_new):
-    """Tests that fuzz_task.upload_testcase_run_stats uploads stats."""
+    """Tests that fuzz_task.read_and_upload_testcase_run_stats uploads stats."""
     testcase_run = fuzzer_stats.TestcaseRun('placeholder', 'placeholder', 0,
                                             1472846341.017923)
     testcase_run['stat'] = 9001
 
     mock_read_from_disk_new.return_value = testcase_run
-    fuzz_task.upload_testcase_run_stats('libFuzzer', 'libFuzzer_fuzzer1', 'job',
-                                        123, ['fake_path'])
+    fuzz_task.read_and_upload_testcase_run_stats(
+        'libFuzzer', 'libFuzzer_fuzzer1', 'job', 123, ['fake_path'])
 
     self.assertEqual(1, self.mock.write_data.call_count)
 
@@ -242,14 +242,14 @@ class FuzzerStatsTest(unittest.TestCase):
   @mock.patch('metrics.fuzzer_stats.TestcaseRun.read_from_disk')
   def test_fuzz_task_upload_testcase_run_stats_blackbox_fuzzer(
       self, mock_read_from_disk_new):
-    """Tests that fuzz_task.upload_testcase_run_stats uploads stats."""
+    """Tests that fuzz_task.read_and_upload_testcase_run_stats uploads stats."""
     testcase_run = fuzzer_stats.TestcaseRun('placeholder', 'placeholder', 0,
                                             1472846341.017923)
     testcase_run['stat'] = 9001
 
     mock_read_from_disk_new.return_value = testcase_run
-    fuzz_task.upload_testcase_run_stats('blackbox_fuzzer', 'blackbox_fuzzer',
-                                        'job', 123, ['fake_path'])
+    fuzz_task.read_and_upload_testcase_run_stats(
+        'blackbox_fuzzer', 'blackbox_fuzzer', 'job', 123, ['fake_path'])
 
     self.assertEqual(0, self.mock.write_data.call_count)
 
