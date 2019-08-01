@@ -257,9 +257,29 @@ class FuzzingStrategies(object):
   FAST_CAL_RANDOM_STRATEGY = 'strategy_fast_cal_random'
   FAST_CAL_MANUAL_STRATEGY = 'strategy_fast_cal_manual'
 
-  def __init__(self):
+  def __init__(self, target_path, input_directory):
     strategy_pool = strategy_selection.generate_default_strategy_pool(
         strategy_list=strategy.AFL_STRATEGY_LIST, use_generator=False)
+
+    project_qualified_fuzzer_name = data_types.fuzz_target_project_qualified_name(
+      utils.current_project(), target_name)
+
+    # Select a generator to use for existing testcase mutations.
+    generator = engine_common.select_generator(strategy_pool, target_path)
+    is_mutations_run = generator != engine_common.Generator.NONE
+
+    used_generators = []
+
+    # Generate new testcase mutations using radamsa, etc.
+    if is_mutations_run:
+      new_testcase_mutations_directory = engine_common.generate_new_testcase_mutations(corpus_directory, project_qualified_fuzzer_name, generator, used_generators)
+      additional_corpus_dirs.append(new_testcase_mutations_directory)
+      if environment.get_value('USE_MINIJAIL'):
+        bind_corpus_dirs(minijail_chroot, [new_testcase_mutations_directory])
+
+    self.radamsa_generator = strategy.CORPUS_MUTATIONS_RADAMSA_STRATEGY.name in used_generators
+    self.ml_rnn_generator = strategy.CORPUS_MUTATIONS_ML_RNN_STRATEGY.name in used_generators
+
     self.use_corpus_subset = strategy_pool.do_strategy(
         strategy.CORPUS_SUBSET_STRATEGY)
 
@@ -539,7 +559,7 @@ class AflRunnerCommon(object):
     self._afl_input = None
     self._afl_output = None
 
-    self.strategies = FuzzingStrategies()
+    self.strategies = FuzzingStrategies(target_path, input_directory)
 
     # Set this to None so we can tell if it has never been set or if it's just
     # empty.

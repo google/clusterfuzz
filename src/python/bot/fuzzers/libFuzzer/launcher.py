@@ -44,7 +44,6 @@ from bot.fuzzers import strategy_selection
 from bot.fuzzers import utils as fuzzer_utils
 from bot.fuzzers.libFuzzer import constants
 from bot.fuzzers.libFuzzer import stats
-from bot.fuzzers.ml.rnn import generator as ml_rnn_generator
 from datastore import data_types
 from fuzzing import strategy
 from metrics import logs
@@ -102,34 +101,6 @@ StrategyInfo = collections.namedtuple('StrategiesInfo', [
 ])
 
 
-class Generator(object):
-  """Generators we can use."""
-  NONE = 0
-  RADAMSA = 1
-  ML_RNN = 2
-
-
-def _select_generator(strategy_pool, fuzzer_path):
-  """Pick a generator to generate new testcases before fuzzing or return
-  Generator.NONE if no generator selected."""
-  if environment.platform() == 'FUCHSIA':
-    # Unsupported.
-    return Generator.NONE
-
-  # We can't use radamsa binary on Windows. Disable ML for now until we know it
-  # works on Win.
-  # These generators don't produce testcases that LPM fuzzers can use.
-  if (environment.platform() == 'WINDOWS' or
-      engine_common.is_lpm_fuzz_target(fuzzer_path)):
-    return Generator.NONE
-  elif strategy_pool.do_strategy(strategy.CORPUS_MUTATION_ML_RNN_STRATEGY):
-    return Generator.ML_RNN
-  elif strategy_pool.do_strategy(strategy.CORPUS_MUTATION_RADAMSA_STRATEGY):
-    return Generator.RADAMSA
-
-  return Generator.NONE
-
-
 def add_recommended_dictionary(arguments, fuzzer_name, fuzzer_path):
   """Add recommended dictionary from GCS to existing .dict file or create
   a new one and update the arguments as needed.
@@ -173,12 +144,6 @@ def get_dictionary_analysis_timeout():
   """Get timeout for dictionary analysis."""
   return engine_common.get_overridable_timeout(5 * 60,
                                                'DICTIONARY_TIMEOUT_OVERRIDE')
-
-
-def get_new_testcase_mutations_timeout():
-  """Get the timeout for new testcase mutations."""
-  return engine_common.get_overridable_timeout(10 * 60,
-                                               'MUTATIONS_TIMEOUT_OVERRIDE')
 
 
 def add_custom_crash_state_if_needed(fuzzer_name, output_lines, parsed_stats):
@@ -284,14 +249,6 @@ def unbind_corpus_dirs(chroot, corpus_directories):
         minijail.ChrootBinding(corpus_directory, target_dir, True))
 
 
-def create_corpus_directory(name):
-  """Create a corpus directory with a give name in temp directory and return its
-  full path."""
-  new_corpus_directory = os.path.join(fuzzer_utils.get_temp_dir(), name)
-  engine_common.recreate_directory(new_corpus_directory)
-  return new_corpus_directory
-
-
 def copy_from_corpus(dest_corpus_path, src_corpus_path, num_testcases):
   """Choose |num_testcases| testcases from the src corpus directory (and its
   subdirectories) and copy it into the dest directory."""
@@ -303,37 +260,6 @@ def copy_from_corpus(dest_corpus_path, src_corpus_path, num_testcases):
   # There is no reason to preserve structure of src_corpus_path directory.
   for i, to_copy in enumerate(random.sample(src_corpus_files, num_testcases)):
     shutil.copy(os.path.join(to_copy), os.path.join(dest_corpus_path, str(i)))
-
-
-def generate_new_testcase_mutations(corpus_directory, fuzzer_name, generator,
-                                    fuzzing_strategies):
-  """Generate new testcase mutations, using existing corpus directory or other
-  methods."""
-  generation_timeout = get_new_testcase_mutations_timeout()
-  new_testcase_mutations_directory = create_corpus_directory('mutations')
-
-  # Generate new testcase mutations using Radamsa.
-  if generator == Generator.RADAMSA:
-    expected_completion_time = time.time() + generation_timeout
-    generate_new_testcase_mutations_using_radamsa(
-        corpus_directory, new_testcase_mutations_directory,
-        expected_completion_time)
-
-    # If new mutations are successfully generated, add radamsa stragegy.
-    if shell.get_directory_file_count(new_testcase_mutations_directory):
-      fuzzing_strategies.append(strategy.CORPUS_MUTATION_RADAMSA_STRATEGY.name)
-
-  # Generate new testcase mutations using ML RNN model.
-  elif generator == Generator.ML_RNN:
-    generate_new_testcase_mutations_using_ml_rnn(
-        corpus_directory, new_testcase_mutations_directory, fuzzer_name,
-        generation_timeout)
-
-    # If new mutations are successfully generated, add ml rnn stragegy.
-    if shell.get_directory_file_count(new_testcase_mutations_directory):
-      fuzzing_strategies.append(strategy.CORPUS_MUTATION_ML_RNN_STRATEGY.name)
-
-  return new_testcase_mutations_directory
 
 
 def get_corpus_directories(main_corpus_directory,
@@ -360,7 +286,7 @@ def get_corpus_directories(main_corpus_directory,
       strategy_pool.do_strategy(strategy.CORPUS_SUBSET_STRATEGY) and
       shell.get_directory_file_count(main_corpus_directory) > subset_size):
     # Copy |subset_size| testcases into 'subset' directory.
-    corpus_subset_directory = create_corpus_directory('subset')
+    corpus_subset_directory = engine_common.create_corpus_directory('subset')
     copy_from_corpus(corpus_subset_directory, main_corpus_directory,
                      subset_size)
     corpus_directories.append(corpus_subset_directory)
@@ -376,69 +302,6 @@ def get_corpus_directories(main_corpus_directory,
     bind_corpus_dirs(minijail_chroot, corpus_directories)
 
   return corpus_directories
-
-
-def generate_new_testcase_mutations_using_radamsa(
-    corpus_directory, new_testcase_mutations_directory,
-    expected_completion_time):
-  """Generate new testcase mutations based on Radamsa."""
-  radamsa_path = get_radamsa_path()
-  if not radamsa_path:
-    # Mutations using radamsa are not supported on current platform, bail out.
-    return
-
-  radamsa_runner = new_process.ProcessRunner(radamsa_path)
-  files_list = shell.get_files_list(corpus_directory)
-  if not files_list:
-    # No mutations to do on an empty corpus, bail out.
-    return
-
-  old_corpus_size = shell.get_directory_file_count(
-      new_testcase_mutations_directory)
-
-  for i in range(RADAMSA_MUTATIONS):
-    original_file_path = engine_common.random_choice(files_list)
-    original_filename = os.path.basename(original_file_path)
-    output_path = os.path.join(new_testcase_mutations_directory,
-                               'radamsa-%08d-%s' % (i + 1, original_filename))
-
-    result = radamsa_runner.run_and_wait(
-        ['-o', output_path, original_file_path], timeout=RADAMSA_TIMEOUT)
-    if result.return_code or result.timed_out:
-      logs.log_error(
-          'Radamsa failed to mutate or timed out.', output=result.output)
-
-    # Check if we exceeded our timeout. If yes, do no more mutations and break.
-    if time.time() > expected_completion_time:
-      break
-
-  new_corpus_size = shell.get_directory_file_count(
-      new_testcase_mutations_directory)
-  logs.log('Added %d tests using Radamsa mutations.' %
-           (new_corpus_size - old_corpus_size))
-
-
-def generate_new_testcase_mutations_using_ml_rnn(
-    corpus_directory, new_testcase_mutations_directory, fuzzer_name,
-    generation_timeout):
-  """Generate new testcase mutations using ML RNN model."""
-  # No return value for now. Will add later if this is necessary.
-  ml_rnn_generator.execute(corpus_directory, new_testcase_mutations_directory,
-                           fuzzer_name, generation_timeout)
-
-
-def get_radamsa_path():
-  """Return path to radamsa binary for current platform."""
-  bin_directory_path = os.path.join(
-      os.path.dirname(os.path.realpath(__file__)), 'bin')
-  platform = environment.platform()
-  if platform == 'LINUX':
-    return os.path.join(bin_directory_path, 'linux', 'radamsa')
-
-  if platform == 'MAC':
-    return os.path.join(bin_directory_path, 'mac', 'radamsa')
-
-  return None
 
 
 def remove_fuzzing_arguments(arguments):
@@ -547,7 +410,7 @@ def get_fuzz_timeout(is_mutations_run, total_timeout=None):
       get_dictionary_analysis_timeout())
 
   if is_mutations_run:
-    fuzz_timeout -= get_new_testcase_mutations_timeout()
+    fuzz_timeout -= engine_common.get_new_testcase_mutations_timeout()
 
   return fuzz_timeout
 
@@ -694,8 +557,8 @@ def pick_strategies(strategy_pool,
   additional_corpus_dirs = []
 
   # Select a generator to use for existing testcase mutations.
-  generator = _select_generator(strategy_pool, fuzzer_path)
-  is_mutations_run = generator != Generator.NONE
+  generator = engine_common.select_generator(strategy_pool, fuzzer_path)
+  is_mutations_run = generator != engine_common.Generator.NONE
 
   # Depends on the presense of DFSan instrumented build.
   dataflow_build_dir = environment.get_value('DATAFLOW_BUILD_DIR')
@@ -716,9 +579,7 @@ def pick_strategies(strategy_pool,
 
   # Generate new testcase mutations using radamsa, etc.
   if is_mutations_run:
-    new_testcase_mutations_directory = generate_new_testcase_mutations(
-        corpus_directory, project_qualified_fuzzer_name, generator,
-        fuzzing_strategies)
+    new_testcase_mutations_directory = engine_common.generate_new_testcase_mutations(corpus_directory, project_qualified_fuzzer_name, generator, fuzzing_strategies)
     additional_corpus_dirs.append(new_testcase_mutations_directory)
     if environment.get_value('USE_MINIJAIL'):
       bind_corpus_dirs(minijail_chroot, [new_testcase_mutations_directory])
@@ -855,7 +716,7 @@ def main(argv):
       arguments.append(constants.DICT_FLAG + default_dict_path)
 
   # Set up scratch directory for writing new units.
-  new_testcases_directory = create_corpus_directory('new')
+  new_testcases_directory = engine_common.create_corpus_directory('new')
 
   # Strategy pool is the list of strategies that we attempt to enable, whereas
   # fuzzing strategies is the list of strategies that are enabled. (e.g. if
