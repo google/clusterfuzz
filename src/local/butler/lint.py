@@ -185,6 +185,7 @@ def execute(_):
   for file_path in py_changed_file_paths:
     _execute_command_and_track_error('pylint ' + file_path)
     _execute_command_and_track_error('yapf -d ' + file_path)
+    _execute_command_and_track_error('futurize ' + file_path)
     py_import_order(file_path)
     py_test_init_check(file_path)
 
