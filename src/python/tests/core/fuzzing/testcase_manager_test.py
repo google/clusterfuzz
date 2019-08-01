@@ -56,6 +56,7 @@ class CreateTestcaseListFileTest(fake_filesystem_unittest.TestCase):
     self.assertEqual(expected_files_list, actual_files_list)
 
 
+# pylint: disable=protected-access
 class UploadTestcaseOutputTest(fake_filesystem_unittest.TestCase):
   """Tests for logs uploading."""
 

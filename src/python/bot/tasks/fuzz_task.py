@@ -497,8 +497,8 @@ def add_additional_testcase_run_data(testcase_run, fully_qualified_fuzzer_name,
   testcase_run['build_revision'] = revision
 
 
-def get_and_upload_testcase_run_stats(fuzzer_name, fully_qualified_fuzzer_name,
-                                      job_type, revision, testcase_file_paths):
+def read_and_upload_testcase_run_stats(fuzzer_name, fully_qualified_fuzzer_name,
+                                       job_type, revision, testcase_file_paths):
   """Upload per-testcase stats."""
   if fuzzer_name not in builtin_fuzzers.BUILTIN_FUZZERS:
     # Testcase run stats are only applicable to builtin fuzzers (libFuzzer,AFL).
@@ -1375,7 +1375,7 @@ class FuzzingSession(object):
 
     # Format logs with header and strategy information.
     log_header = engine_common.get_log_header(result.command,
-                                              environemnt.get_value('BOT_NAME'),
+                                              environment.get_value('BOT_NAME'),
                                               result.crash_time)
 
     formatted_strategies = engine_common.format_fuzzing_strategies(
@@ -1725,9 +1725,9 @@ class FuzzingSession(object):
             thread_wait_timeout=THREAD_WAIT_TIMEOUT,
             data_directory=self.data_directory))
 
-    get_and_upload_testcase_run_stats(self.fuzzer_name,
-                                      self.fully_qualified_fuzzer_name,
-                                      self.job_type, testcase_file_paths)
+    read_and_upload_testcase_run_stats(
+        self.fuzzer_name, self.fully_qualified_fuzzer_name, self.job_type,
+        crash_revision, testcase_file_paths)
     upload_job_run_stats(self.fully_qualified_fuzzer_name, self.job_type,
                          crash_revision, time.time(),
                          new_crash_count, known_crash_count,
