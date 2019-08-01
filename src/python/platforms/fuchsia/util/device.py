@@ -13,9 +13,9 @@
 # limitations under the License.
 """Utilities for managing Fuchsia devices."""
 from __future__ import absolute_import
-
 from builtins import range
 from builtins import object
+
 from .host import Host
 import glob
 import os
