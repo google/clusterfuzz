@@ -490,16 +490,15 @@ def upload_testcase_run_stats(testcase_run):
 
 
 def add_additional_testcase_run_data(testcase_run, fully_qualified_fuzzer_name,
-                                     job_type):
+                                     job_type, revision):
   """Add additional testcase run data."""
-  revision = environment.get_value('APP_REVISION')
   testcase_run['fuzzer'] = fully_qualified_fuzzer_name
   testcase_run['job'] = job_type
   testcase_run['build_revision'] = revision
 
 
 def get_and_upload_testcase_run_stats(fuzzer_name, fully_qualified_fuzzer_name,
-                                      job_type, testcase_file_paths):
+                                      job_type, revision, testcase_file_paths):
   """Upload per-testcase stats."""
   if fuzzer_name not in builtin_fuzzers.BUILTIN_FUZZERS:
     # Testcase run stats are only applicable to builtin fuzzers (libFuzzer,AFL).
@@ -510,8 +509,8 @@ def get_and_upload_testcase_run_stats(fuzzer_name, fully_qualified_fuzzer_name,
     testcase_run = fuzzer_stats.TestcaseRun.read_from_disk(
         testcase_file_path, delete=True)
     if testcase_run:
-      add_additional_testcase_run_data(testcase_run,
-                                       fully_qualified_fuzzer_name, job_type)
+      add_additional_testcase_run_data(
+          testcase_run, fully_qualified_fuzzer_name, job_type, revision)
       testcase_runs.append(testcase_run)
 
   for testcase_run in testcase_runs:
@@ -1374,15 +1373,14 @@ class FuzzingSession(object):
     result = engine_impl.fuzz(target_path, options, self.testcase_directory,
                               fuzz_test_timeout)
 
-    log_header_format = ('Command: %s\n' 'Bot: %s\n' 'Time ran: %f\n')
-    bot_name = environment.get_value('BOT_NAME', '')
+    # Format logs with header and strategy information.
+    log_header = engine_common.get_log_header(result.command,
+                                              environemnt.get_value('BOT_NAME'),
+                                              result.crash_time)
 
-    log_header = log_header_format % (result.command, bot_name,
-                                      result.crash_time)
     formatted_strategies = engine_common.format_fuzzing_strategies(
         options.strategies)
 
-    # Format logs with header and strategy information.
     result.logs = log_header + '\n' + result.logs + '\n' + formatted_strategies
     return result
 
@@ -1414,9 +1412,10 @@ class FuzzingSession(object):
     log = testcase_manager.prepare_log_for_upload(result.logs, 1)
     testcase_manager.upload_log(log, log_time)
 
+    revision = environment.get_value('APP_REVISION')
     add_additional_testcase_run_data(
         testcase_run, self.fuzz_target.fully_qualified_fuzzer_name(),
-        self.job_type)
+        self.job_type, revision)
     upload_testcase_run_stats(testcase_run)
 
     return result.crashes

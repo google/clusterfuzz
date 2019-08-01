@@ -56,6 +56,9 @@ OWNERS_FILE_EXTENSION = '.owners'
 # Extension for per-fuzz target labels to be added to issue tracker.
 LABELS_FILE_EXTENSION = '.labels'
 
+# Header format for logs.
+LOG_HEADER_FORMAT = ('Command: {command}\n' 'Bot: {bot}\n' 'Time ran: {time}\n')
+
 
 def current_timestamp():
   """Returns the current timestamp. Needed for mocking."""
@@ -400,3 +403,9 @@ def unpack_seed_corpus_if_needed(fuzz_target_path,
 
   logs.log('Unarchiving seed corpus %s took %s seconds.' %
            (seed_corpus_archive_path, time.time() - start_time))
+
+
+def get_log_header(command, bot_name, time_executed):
+  """Get the log header."""
+  return LOG_HEADER_FORMAT.format(
+      command=get_command_quoted(command), bot=bot_name, time=time_executed)

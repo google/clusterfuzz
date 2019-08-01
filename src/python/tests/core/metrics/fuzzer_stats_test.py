@@ -40,7 +40,6 @@ class FuzzerStatsTest(unittest.TestCase):
   """Fuzzer stats tests."""
 
   def setUp(self):
-    helpers.patch_environ(self)
     data_types.Fuzzer(name='parent').put()
 
     data_types.FuzzTarget(engine='parent', binary='child').put()
@@ -53,8 +52,6 @@ class FuzzerStatsTest(unittest.TestCase):
     helpers.patch(self, [
         'google_cloud_utils.storage.write_data',
     ])
-
-    os.environ['APP_REVISION'] = '123'
 
   def test_upload_testcase_run(self):
     """Tests uploading of TestcaseRun."""
@@ -234,7 +231,7 @@ class FuzzerStatsTest(unittest.TestCase):
 
     mock_read_from_disk_new.return_value = testcase_run
     fuzz_task.get_and_upload_testcase_run_stats(
-        'libFuzzer', 'libFuzzer_fuzzer1', 'job', ['fake_path'])
+        'libFuzzer', 'libFuzzer_fuzzer1', 'job', 123, ['fake_path'])
 
     self.assertEqual(1, self.mock.write_data.call_count)
 
@@ -253,7 +250,7 @@ class FuzzerStatsTest(unittest.TestCase):
 
     mock_read_from_disk_new.return_value = testcase_run
     fuzz_task.get_and_upload_testcase_run_stats(
-        'blackbox_fuzzer', 'blackbox_fuzzer', 'job', ['fake_path'])
+        'blackbox_fuzzer', 'blackbox_fuzzer', 'job', 123, ['fake_path'])
 
     self.assertEqual(0, self.mock.write_data.call_count)
 
