@@ -266,12 +266,13 @@ class FuzzingStrategies(object):
 
     # Select a generator to use for existing testcase mutations.
     generator = engine_common.select_generator(strategy_pool, target_path)
-    is_mutations_run = generator != engine_common.Generator.NONE
+    self.is_mutations_run = generator != engine_common.Generator.NONE
 
     used_generators = []
+    additional_corpus_dirs = []
 
     # Generate new testcase mutations using radamsa, etc.
-    if is_mutations_run:
+    if self.is_mutations_run:
       new_testcase_mutations_directory = engine_common.generate_new_testcase_mutations(corpus_directory, project_qualified_fuzzer_name, generator, used_generators)
       additional_corpus_dirs.append(new_testcase_mutations_directory)
       if environment.get_value('USE_MINIJAIL'):
@@ -969,8 +970,7 @@ class AflRunnerCommon(object):
     # Ensure self.executable_path is afl-fuzz
     self._executable_path = self.afl_fuzz_path
 
-    self.initial_max_total_time = (
-        get_fuzz_timeout() - self.AFL_CLEAN_EXIT_TIME - self.SIGTERM_WAIT_TIME)
+    self.initial_max_total_time = (get_fuzz_timeout(self.is_mutations_run) - self.AFL_CLEAN_EXIT_TIME - self.SIGTERM_WAIT_TIME)
 
     assert self.initial_max_total_time > 0
 
@@ -1381,11 +1381,15 @@ def get_first_stacktrace(stderr_data):
   return stderr_data[:match.end()]
 
 
-def get_fuzz_timeout():
+def get_fuzz_timeout(is_mutations_run):
   """Get the maximum amount of time that should be spent fuzzing."""
   hard_timeout = engine_common.get_hard_timeout()
   merge_timeout = engine_common.get_merge_timeout(DEFAULT_MERGE_TIMEOUT)
   fuzz_timeout = hard_timeout - merge_timeout
+ 
+  if is_mutations_run:
+    fuzz_timeout -= engine_common.generate_new_testcase_mutations_timeout()
+
   assert fuzz_timeout > 0, 'hard_timeout: %d merge_timeout: %d' % (
       hard_timeout, merge_timeout)
 
