@@ -59,17 +59,16 @@ def upload_testcases_if_needed(fuzzer_name, testcase_list, testcase_directory,
       bucket_name=bucket_name, date=formatted_date, fuzzer_name=fuzzer_name)
 
   runner = gsutil.GSUtilRunner()
-  batch_directory_blobs = storage.list_blobs(gcs_base_url)
+  batch_directory_blobs = storage.list_blobs_full(gcs_base_url)
   total_testcases = 0
   for blob in batch_directory_blobs:
     if not blob.endswith(LIST_FILE_BASENAME):
       continue
 
-    list_gcs_url = 'gs://{bucket}/{blob}'.format(bucket=bucket_name, blob=blob)
-    data = storage.read_data(list_gcs_url)
+    data = storage.read_data(blob)
     if not data:
-      logs.log_error('Read no data from test case list at {gcs_url}'.format(
-          gcs_url=list_gcs_url))
+      logs.log_error(
+          'Read no data from test case list at {blob}'.format(blob=blob))
       continue
 
     total_testcases += len(data.splitlines())

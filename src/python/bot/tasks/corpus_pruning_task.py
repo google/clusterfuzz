@@ -27,7 +27,6 @@ from bot.fuzzers import options
 from bot.tasks import setup
 from bot.tasks import task_creation
 from build_management import build_manager
-from build_management import revisions
 from crash_analysis import crash_analyzer
 from crash_analysis.stack_parsing import stack_analyzer
 from crash_analysis.stack_parsing import stack_symbolizer
@@ -113,19 +112,22 @@ def _get_corpus_file_paths(corpus_path):
   ]
 
 
-def _limit_corpus_size(corpus_directory, size_limit):
+def _limit_corpus_size(corpus_url, size_limit):
   """Limit number of files in a corpus directory."""
-  files_list = os.listdir(corpus_directory)
+  files_list = list(storage.list_blobs_full(corpus_url))
   corpus_size = len(files_list)
 
   if corpus_size <= size_limit:
     # Corpus directory size is within limit, no more work to do.
     return
 
+  logs.log(
+      'Limit corpus at {corpus_url} from {corpus_size} to {size_limit}.'.format(
+          corpus_url=corpus_url, corpus_size=corpus_size,
+          size_limit=size_limit))
   files_to_delete = random.sample(files_list, corpus_size - size_limit)
   for file_to_delete in files_to_delete:
-    file_to_delete_full_path = os.path.join(corpus_directory, file_to_delete)
-    shell.remove_file(file_to_delete_full_path)
+    storage.delete(file_to_delete)
 
 
 def _get_time_remaining(start_time):
@@ -549,17 +551,20 @@ def do_corpus_pruning(context, last_execution_failed, revision):
   pruner = CorpusPruner(runner)
   fuzzer_binary_name = os.path.basename(runner.fuzzer_path)
 
-  # Get initial corpus to process from GCS.
-  context.sync_to_disk()
-  initial_corpus_size = shell.get_directory_file_count(
-      context.initial_corpus_path)
-
   # If our last execution failed, shrink to a randomized corpus of usable size
   # to prevent corpus from growing unbounded and recurring failures when trying
   # to minimize it.
   if last_execution_failed:
-    _limit_corpus_size(context.initial_corpus_path,
-                       CORPUS_SIZE_LIMIT_FOR_FAILURES)
+    for corpus_url in [
+        context.corpus.get_gcs_url(),
+        context.quarantine_corpus.get_gcs_url()
+    ]:
+      _limit_corpus_size(corpus_url, CORPUS_SIZE_LIMIT_FOR_FAILURES)
+
+  # Get initial corpus to process from GCS.
+  context.sync_to_disk()
+  initial_corpus_size = shell.get_directory_file_count(
+      context.initial_corpus_path)
 
   # Restore a small batch of quarantined units back to corpus.
   context.restore_quarantined_units()
@@ -781,18 +786,11 @@ def _save_coverage_information(context, result):
         'Failed to save corpus pruning result: %s.' % str(e))
 
 
-def execute_task(fuzzer_name_and_revision, job_type):
+def execute_task(full_fuzzer_name, job_type):
   """Execute corpus pruning task."""
-  # TODO(ochang): Remove this once remaining jobs in queue are all processed.
-  if '@' in fuzzer_name_and_revision:
-    full_fuzzer_name, revision = fuzzer_name_and_revision.split('@')
-    revision = revisions.convert_revision_to_integer(revision)
-  else:
-    full_fuzzer_name = fuzzer_name_and_revision
-    revision = 0
-
   fuzz_target = data_handler.get_fuzz_target(full_fuzzer_name)
   task_name = 'corpus_pruning_%s_%s' % (full_fuzzer_name, job_type)
+  revision = 0  # Trunk revision
 
   # Get status of last execution.
   last_execution_metadata = data_handler.get_task_status(task_name)
