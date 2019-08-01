@@ -17,10 +17,7 @@ API."""
 # pylint: disable=protected-access
 # pylint: disable=unidiomatic-typecheck
 
-from past.builtins import basestring
-from builtins import object
 from builtins import range
-
 import collections
 import datetime
 import itertools
