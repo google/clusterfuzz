@@ -13,6 +13,7 @@
 # limitations under the License.
 """Fuchsia utilities for handling fuzzers."""
 from __future__ import absolute_import
+from __future__ import print_function
 from builtins import object
 from builtins import str
 
@@ -167,7 +168,7 @@ class Fuzzer(object):
     fuzz_cmd = ['run', self.url(), '-artifact_prefix=data/'] + fuzzer_args
     self.last_fuzz_cmd = self.device.get_ssh_cmd(['ssh', 'localhost'] +
                                                  fuzz_cmd)
-    print '+ ' + ' '.join(fuzz_cmd)
+    print('+ ' + ' '.join(fuzz_cmd))
     self.device.ssh(fuzz_cmd, quiet=True, logfile=logfile)
 
   def start(self, fuzzer_args):

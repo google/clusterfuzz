@@ -12,8 +12,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """Utilities for managing Fuchsia devices."""
+from __future__ import absolute_import
 
-from host import Host
+from builtins import range
+from builtins import object
+from .host import Host
 import glob
 import os
 import re
