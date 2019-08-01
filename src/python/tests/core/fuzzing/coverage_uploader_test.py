@@ -54,7 +54,7 @@ class UploadTestsToCloudStorageTest(fake_filesystem_unittest.TestCase):
         'datastore.locks.acquire_lock',
         'datastore.locks.release_lock',
         'google_cloud_utils.gsutil.GSUtilRunner',
-        'google_cloud_utils.storage.list_blobs_full',
+        'google_cloud_utils.storage.list_blobs',
         'google_cloud_utils.storage.read_data',
         'google_cloud_utils.storage.write_data',
     ])

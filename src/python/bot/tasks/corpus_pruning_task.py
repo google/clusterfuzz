@@ -113,8 +113,8 @@ def _get_corpus_file_paths(corpus_path):
 
 
 def _limit_corpus_size(corpus_url, size_limit):
-  """Limit number of files in a corpus directory."""
-  files_list = list(storage.list_blobs_full(corpus_url))
+  """Limit number of files in a corpus url."""
+  files_list = list(storage.list_blobs(corpus_url))
   corpus_size = len(files_list)
 
   if corpus_size <= size_limit:
@@ -126,8 +126,10 @@ def _limit_corpus_size(corpus_url, size_limit):
           corpus_url=corpus_url, corpus_size=corpus_size,
           size_limit=size_limit))
   files_to_delete = random.sample(files_list, corpus_size - size_limit)
+  bucket, _ = storage.get_bucket_name_and_path(corpus_url)
   for file_to_delete in files_to_delete:
-    storage.delete(file_to_delete)
+    path_to_delete = storage.get_cloud_storage_file_path(bucket, file_to_delete)
+    storage.delete(path_to_delete)
 
 
 def _get_time_remaining(start_time):
