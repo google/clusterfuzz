@@ -17,7 +17,7 @@ from builtins import input
 
 def get_string(prompt):
   """Prompt the user for a string from console input."""
-  return eval(input(prompt + ': '))
+  return input(prompt + ': ')
 
 
 def get_boolean(prompt):

@@ -185,7 +185,14 @@ def execute(_):
   for file_path in py_changed_file_paths:
     _execute_command_and_track_error('pylint ' + file_path)
     _execute_command_and_track_error('yapf -d ' + file_path)
-    _execute_command_and_track_error('futurize ' + file_path)
+    futurize_output = _execute_command_and_track_error(
+        'futurize -0 -x libfuturize.fixes.fix_unicode_keep_u '
+        '-x libfuturize.fixes.fix_future_builtins -x lib2to3.fixes.fix_dict '
+        '-x lib2to3.fixes.fix_ws_comma -x lib2to3.fixes.fix_idioms ' +
+        file_path)
+    if 'No changes to ' not in futurize_output:
+      # Futurize doesn't modify its return code depending on the result.
+      _error('Python 3 compatibility error introduced.')
     py_import_order(file_path)
     py_test_init_check(file_path)
 
