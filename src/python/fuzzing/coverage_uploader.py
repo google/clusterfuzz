@@ -65,7 +65,7 @@ def upload_testcases_if_needed(fuzzer_name, testcase_list, testcase_directory,
     if not blob.endswith(LIST_FILE_BASENAME):
       continue
 
-    list_gcs_url = 'gs://{bucket}/{blob}'.format(bucket=bucket_name, blob=blob)
+    list_gcs_url = storage.get_cloud_storage_file_path(bucket_name, blob)
     data = storage.read_data(list_gcs_url)
     if not data:
       logs.log_error('Read no data from test case list at {gcs_url}'.format(

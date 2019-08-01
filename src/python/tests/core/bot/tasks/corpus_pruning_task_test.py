@@ -149,7 +149,7 @@ class CorpusPruningTest(unittest.TestCase):
 
   def test_prune(self):
     """Basic pruning test."""
-    corpus_pruning_task.execute_task('libFuzzer_test_fuzzer@1337',
+    corpus_pruning_task.execute_task('libFuzzer_test_fuzzer',
                                      'libfuzzer_asan_job')
 
     quarantined = os.listdir(self.quarantine_dir)
@@ -339,7 +339,7 @@ class CorpusPruningTestUntrusted(
   def test_prune(self):
     """Test pruning."""
     self._setup_env(job_type='libfuzzer_asan_job')
-    corpus_pruning_task.execute_task('libFuzzer_test_fuzzer@1337',
+    corpus_pruning_task.execute_task('libFuzzer_test_fuzzer',
                                      'libfuzzer_asan_job')
 
     corpus_dir = os.path.join(self.temp_dir, 'corpus')
