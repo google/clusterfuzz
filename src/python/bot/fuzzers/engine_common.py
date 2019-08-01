@@ -90,38 +90,7 @@ def select_generator(strategy_pool, fuzzer_path):
   elif strategy_pool.do_strategy(strategy.CORPUS_MUTATION_RADAMSA_STRATEGY):
     return Generator.RADAMSA
 
-  return Generator.NONE  
-
-
-def generate_new_testcase_mutations(corpus_directory, fuzzer_name, generator,
-                                    fuzzing_strategies):
-  """Generate new testcase mutations, using existing corpus directory or other
-  methods."""
-  generation_timeout = get_new_testcase_mutations_timeout()
-  new_testcase_mutations_directory = create_corpus_directory('mutations')
-
-  # Generate new testcase mutations using Radamsa.
-  if generator == Generator.RADAMSA:
-    expected_completion_time = time.time() + generation_timeout
-    generate_new_testcase_mutations_using_radamsa(
-        corpus_directory, new_testcase_mutations_directory,
-        expected_completion_time)
-
-    # If new mutations are successfully generated, add radamsa stragegy.
-    if shell.get_directory_file_count(new_testcase_mutations_directory):
-      fuzzing_strategies.append(strategy.CORPUS_MUTATION_RADAMSA_STRATEGY.name)
-
-  # Generate new testcase mutations using ML RNN model.
-  elif generator == Generator.ML_RNN:
-    generate_new_testcase_mutations_using_ml_rnn(
-        corpus_directory, new_testcase_mutations_directory, fuzzer_name,
-        generation_timeout)
-
-    # If new mutations are successfully generated, add ml rnn stragegy.
-    if shell.get_directory_file_count(new_testcase_mutations_directory):
-      fuzzing_strategies.append(strategy.CORPUS_MUTATION_ML_RNN_STRATEGY.name)
-
-  return new_testcase_mutations_directory
+  return Generator.NONE
 
 
 def generate_new_testcase_mutations_using_radamsa(
@@ -190,14 +159,6 @@ def get_radamsa_path():
 def get_new_testcase_mutations_timeout():
   """Get the timeout for new testcase mutations."""
   return get_overridable_timeout(10 * 60, 'MUTATIONS_TIMEOUT_OVERRIDE')
-
-
-def create_corpus_directory(name):
-  """Create a corpus directory with a give name in temp directory and return its
-  full path."""
-  new_corpus_directory = os.path.join(fuzzer_utils.get_temp_dir(), name)
-  recreate_directory(new_corpus_directory)
-  return new_corpus_directory
 
 
 def current_timestamp():

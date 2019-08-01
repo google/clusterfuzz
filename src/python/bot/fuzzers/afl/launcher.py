@@ -257,29 +257,17 @@ class FuzzingStrategies(object):
   FAST_CAL_RANDOM_STRATEGY = 'strategy_fast_cal_random'
   FAST_CAL_MANUAL_STRATEGY = 'strategy_fast_cal_manual'
 
-  def __init__(self, target_path, input_directory):
+  def __init__(self, target_path):
     strategy_pool = strategy_selection.generate_default_strategy_pool(
         strategy_list=strategy.AFL_STRATEGY_LIST, use_generator=False)
 
-    project_qualified_fuzzer_name = data_types.fuzz_target_project_qualified_name(
-      utils.current_project(), target_name)
-
     # Select a generator to use for existing testcase mutations.
-    generator = engine_common.select_generator(strategy_pool, target_path)
-    self.is_mutations_run = generator != engine_common.Generator.NONE
+    self.generator = engine_common.select_generator(strategy_pool, target_path)
+    self.is_mutations_run = self.generator != engine_common.Generator.NONE
 
-    used_generators = []
-    additional_corpus_dirs = []
-
-    # Generate new testcase mutations using radamsa, etc.
-    if self.is_mutations_run:
-      new_testcase_mutations_directory = engine_common.generate_new_testcase_mutations(corpus_directory, project_qualified_fuzzer_name, generator, used_generators)
-      additional_corpus_dirs.append(new_testcase_mutations_directory)
-      if environment.get_value('USE_MINIJAIL'):
-        bind_corpus_dirs(minijail_chroot, [new_testcase_mutations_directory])
-
-    self.radamsa_generator = strategy.CORPUS_MUTATIONS_RADAMSA_STRATEGY.name in used_generators
-    self.ml_rnn_generator = strategy.CORPUS_MUTATIONS_ML_RNN_STRATEGY.name in used_generators
+    # Initialize to false. This is set to true if testcases are properly generated.
+    self.radamsa_generator = False
+    self.ml_rnn_generator = False
 
     self.use_corpus_subset = strategy_pool.do_strategy(
         strategy.CORPUS_SUBSET_STRATEGY)
@@ -334,6 +322,11 @@ class FuzzingStrategies(object):
         return
 
     assert None, 'This should not be reached'
+
+  def set_generator_strategies(self, used_generators):
+    self.radamsa_generator = strategy.CORPUS_MUTATIONS_RADAMSA_STRATEGY.name in used_generators
+    self.ml_rnn_generator = strategy.CORPUS_MUTATIONS_ML_RNN_STRATEGY.name in used_generators
+
 
   def print_strategies(self):
     """Print the strategies used for logging purposes."""
@@ -560,7 +553,8 @@ class AflRunnerCommon(object):
     self._afl_input = None
     self._afl_output = None
 
-    self.strategies = FuzzingStrategies(target_path, input_directory)
+    self.strategies = FuzzingStrategies(target_path)
+    generate_new_testcase_mutations()
 
     # Set this to None so we can tell if it has never been set or if it's just
     # empty.
@@ -970,7 +964,7 @@ class AflRunnerCommon(object):
     # Ensure self.executable_path is afl-fuzz
     self._executable_path = self.afl_fuzz_path
 
-    self.initial_max_total_time = (get_fuzz_timeout(self.is_mutations_run) - self.AFL_CLEAN_EXIT_TIME - self.SIGTERM_WAIT_TIME)
+    self.initial_max_total_time = (get_fuzz_timeout(self.strategies.is_mutations_run) - self.AFL_CLEAN_EXIT_TIME - self.SIGTERM_WAIT_TIME)
 
     assert self.initial_max_total_time > 0
 
@@ -1141,6 +1135,35 @@ class AflRunnerCommon(object):
     return new_units_generated, new_units_added, corpus_size
 
 
+  def generate_new_testcase_mutations(self):
+    """Generate new testcase mutations using radamsa, etc."""
+    project_qualified_fuzzer_name = data_types.fuzz_target_project_qualified_name(utils.current_project(), target_name)
+
+    generation_timeout = get_new_testcase_mutations_timeout()
+    old_input_directory_file_count = shell.get_directory_file_count(self.afl_input.input_directory)
+
+    # Generate new testcase mutations using Radamsa.
+    if self.strategies.generator == Generator.RADAMSA:
+      expected_completion_time = time.time() + generation_timeout
+      engine_common.generate_new_testcase_mutations_using_radamsa(
+          self.afl_input.input_directory, self.afl_input.input_directory,
+          expected_completion_time)
+
+      # If new mutations are successfully generated, add radamsa stragegy.
+      if shell.get_directory_file_count(self.afl_input.input_directory) > old_input_directory_file_count:
+        self.strategies.radamsa_generator = True
+
+    # Generate new testcase mutations using ML RNN model.
+    elif self.strategies.generator == Generator.ML_RNN:
+      engine_common.generate_new_testcase_mutations_using_ml_rnn(
+          self.afl_input.input_directory, self.afl_input.input_directory, project_qualified_fuzzer_name,
+          generation_timeout)
+
+      # If new mutations are successfully generated, add ml rnn stragegy.
+      if shell.get_directory_file_count(self.afl_input.input_directory) > old_input_directory_file_count:
+        self.strategies.ml_rnn_generator = True
+
+
 class AflRunner(AflRunnerCommon, new_process.ProcessRunner):
   """Afl runner."""
 
@@ -1158,7 +1181,7 @@ class AflRunner(AflRunnerCommon, new_process.ProcessRunner):
 
 class MinijailAflRunner(AflRunnerCommon,
                         engine_common.MinijailEngineFuzzerRunner):
-  """Minijail AFL runer."""
+  """Minijail AFL runner."""
 
   def __init__(self,
                chroot,
