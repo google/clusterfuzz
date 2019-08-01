@@ -553,8 +553,11 @@ class AflRunnerCommon(object):
     self._afl_input = None
     self._afl_output = None
 
+    logs.log('Input directory without generate testcase mutations has size: {}'.format(shell.get_directory_file_count(input_directory)))
+
     self.strategies = FuzzingStrategies(target_path)
     generate_new_testcase_mutations()
+    logs.log('Input directory with generate testcase mutations has size: {}'.format(shell.get_directory_file_count(self.afl_input.input_directory)))
 
     # Set this to None so we can tell if it has never been set or if it's just
     # empty.
