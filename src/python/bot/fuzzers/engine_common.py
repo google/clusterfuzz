@@ -87,7 +87,7 @@ def get_testcase_run(stats, fuzzer_command):
   build_revision = fuzzer_utils.get_build_revision()
   job = environment.get_value('JOB_NAME')
   # fuzzer name is filled by fuzz_task.
-  testcase_run = fuzzer_stats.TestcaseRun('', job, build_revision,
+  testcase_run = fuzzer_stats.TestcaseRun(None, job, build_revision,
                                           current_timestamp())
 
   testcase_run['command'] = fuzzer_command

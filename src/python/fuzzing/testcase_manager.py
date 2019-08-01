@@ -443,6 +443,12 @@ def run_testcase_and_return_result_in_queue(crash_queue,
     # Analyze the crash.
     crash_output = _get_crash_output(output)
     crash_result = CrashResult(return_code, crash_time, crash_output)
+
+    # To provide consistency between stats and logs, we use timestamp taken
+    # from stats when uploading logs and testcase.
+    if upload_output:
+      log_time = _get_testcase_time(file_path)
+
     if crash_result.is_crash():
       # Initialize resource list with the testcase path.
       resource_list = [file_path]
@@ -468,16 +474,11 @@ def run_testcase_and_return_result_in_queue(crash_queue,
       # Don't upload uninteresting testcases (no crash) or if there is no log to
       # correlate it with (not upload_output).
       if upload_output:
-        log_time = _get_testcase_time(file_path)
         upload_testcase(file_path, log_time)
 
     if upload_output:
       # Include full output for uploaded logs (crash output, merge output, etc).
       crash_result_full = CrashResult(return_code, crash_time, output)
-
-      # To provide consistency between stats and logs, we use timestamp taken
-      # from stats.
-      log_time = _get_testcase_time(file_path)
       log = prepare_log_for_upload(crash_result_full.get_stacktrace(),
                                    return_code)
       upload_log(log, log_time)
