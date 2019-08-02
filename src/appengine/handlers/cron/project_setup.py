@@ -42,11 +42,6 @@ from libs import handler
 from metrics import logs
 from system import environment
 
-AFL_BUILD_BUCKET = 'clusterfuzz-builds-afl'
-DATAFLOW_BUILD_BUCKET = 'clusterfuzz-builds-dataflow'
-LIBFUZZER_BUILD_BUCKET = 'clusterfuzz-builds'
-LIBFUZZER_BUILD_BUCKET_I386 = 'clusterfuzz-builds-i386'
-NO_ENGINE_BUILD_BUCKET = 'clusterfuzz-builds-no-engine'
 BUILD_BUCKET_PATH_TEMPLATE = (
     'gs://{bucket}/{project}/{project}-{sanitizer}-([0-9]+).zip')
 
@@ -881,17 +876,19 @@ class Handler(base_handler.Handler):
       logs.log_error('Failed to get AFL Fuzzer entity.')
       return
 
-    # TODO(ochang): Move hardcodes to config.
+    bucket_config = local_config.ProjectConfig().sub_config(
+        'project_setup.build_buckets')
+
     config = ProjectSetup(
         BUILD_BUCKET_PATH_TEMPLATE,
         REVISION_URL,
         segregate_projects=True,
         engine_build_buckets={
-            'libfuzzer': LIBFUZZER_BUILD_BUCKET,
-            'libfuzzer-i386': LIBFUZZER_BUILD_BUCKET_I386,
-            'afl': AFL_BUILD_BUCKET,
-            'none': NO_ENGINE_BUILD_BUCKET,
-            'dataflow': DATAFLOW_BUILD_BUCKET,
+            'libfuzzer': bucket_config.get('libfuzzer'),
+            'libfuzzer-i386': bucket_config.get('libfuzzer_i386'),
+            'afl': bucket_config.get('afl'),
+            'none': bucket_config.get('no_engine'),
+            'dataflow': bucket_config.get('dataflow'),
         },
         fuzzer_entities={
             'libfuzzer': libfuzzer,
