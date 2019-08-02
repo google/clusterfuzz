@@ -14,8 +14,6 @@
 """libFuzzer launcher."""
 from __future__ import print_function
 # pylint: disable=g-statement-before-imports
-from builtins import object
-from builtins import range
 try:
   # ClusterFuzz dependencies.
   from python.base import modules
@@ -50,7 +48,6 @@ from metrics import logs
 from metrics import profiler
 from system import environment
 from system import minijail
-from system import new_process
 from system import shell
 
 # Regex to find testcase path from a crash.
@@ -62,12 +59,6 @@ MAX_VALUE_FOR_MAX_LENGTH = 10000
 
 # Probability of doing DFT-based fuzzing (depends on DFSan build presence).
 DATAFLOW_TRACING_PROBABILITY = 0.25
-
-# Number of radamsa mutations.
-RADAMSA_MUTATIONS = 2000
-
-# Maximum number of seconds to run radamsa for.
-RADAMSA_TIMEOUT = 3
 
 # Testcase minimization arguments being used by ClusterFuzz.
 MINIMIZE_TO_ARGUMENT = '--cf-minimize-to='
@@ -618,7 +609,9 @@ def pick_strategies(strategy_pool,
 
   # Generate new testcase mutations using radamsa, etc.
   if is_mutations_run:
-    new_testcase_mutations_directory = generate_new_testcase_mutations(corpus_directory, project_qualified_fuzzer_name, generator, fuzzing_strategies)
+    new_testcase_mutations_directory = generate_new_testcase_mutations(
+        corpus_directory, project_qualified_fuzzer_name, generator,
+        fuzzing_strategies)
     additional_corpus_dirs.append(new_testcase_mutations_directory)
     if environment.get_value('USE_MINIJAIL'):
       bind_corpus_dirs(minijail_chroot, [new_testcase_mutations_directory])

@@ -2559,7 +2559,8 @@ class SelectGeneratorTest(unittest.TestCase):
 
   def test_lpm_fuzz_target(self):
     self.assertEqual(engine_common.Generator.NONE,
-                     engine_common.select_generator(self.pool, self.FUZZER_PATH))  # pylint: disable=protected-access
+                     engine_common.select_generator(self.pool,
+                                                    self.FUZZER_PATH))  # pylint: disable=protected-access
 
 
 if __name__ == '__main__':

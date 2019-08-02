@@ -33,6 +33,7 @@ import six
 import stat
 import subprocess
 import sys
+import time
 
 from base import utils
 from bot.fuzzers import dictionary_manager
@@ -261,11 +262,16 @@ class FuzzingStrategies(object):
     strategy_pool = strategy_selection.generate_default_strategy_pool(
         strategy_list=strategy.AFL_STRATEGY_LIST, use_generator=False)
 
+    if environment.get_value('USE_RADAMSA'):
+      strategy_pool.add_strategy(strategy.CORPUS_MUTATION_RADAMSA_STRATEGY)
+      logs.log('Added radamsa to strategy pool.')
+
     # Select a generator to use for existing testcase mutations.
     self.generator = engine_common.select_generator(strategy_pool, target_path)
     self.is_mutations_run = self.generator != engine_common.Generator.NONE
 
-    # Initialize to false. This is set to true if testcases are properly generated.
+    # Initialize to false. This is set to true if testcases are properly
+    # generated.
     self.radamsa_generator = False
     self.ml_rnn_generator = False
 
@@ -324,9 +330,10 @@ class FuzzingStrategies(object):
     assert None, 'This should not be reached'
 
   def set_generator_strategies(self, used_generators):
-    self.radamsa_generator = strategy.CORPUS_MUTATIONS_RADAMSA_STRATEGY.name in used_generators
-    self.ml_rnn_generator = strategy.CORPUS_MUTATIONS_ML_RNN_STRATEGY.name in used_generators
-
+    self.radamsa_generator = (
+        strategy.CORPUS_MUTATIONS_RADAMSA_STRATEGY.name in used_generators)
+    self.ml_rnn_generator = (
+        strategy.CORPUS_MUTATIONS_ML_RNN_STRATEGY.name in used_generators)
 
   def print_strategies(self):
     """Print the strategies used for logging purposes."""
@@ -553,11 +560,17 @@ class AflRunnerCommon(object):
     self._afl_input = None
     self._afl_output = None
 
-    logs.log('Input directory without generate testcase mutations has size: {}'.format(shell.get_directory_file_count(input_directory)))
+    logs.log(
+        'Input directory without generated testcase mutations has size: {}'.
+        format(shell.get_directory_file_count(input_directory)))
 
     self.strategies = FuzzingStrategies(target_path)
-    generate_new_testcase_mutations()
-    logs.log('Input directory with generate testcase mutations has size: {}'.format(shell.get_directory_file_count(self.afl_input.input_directory)))
+    if self.strategies.is_mutations_run:
+      self.generate_new_testcase_mutations()
+
+    logs.log(
+        'Input directory with generated testcase mutations has size: {}'.format(
+            shell.get_directory_file_count(self.afl_input.input_directory)))
 
     # Set this to None so we can tell if it has never been set or if it's just
     # empty.
@@ -967,7 +980,9 @@ class AflRunnerCommon(object):
     # Ensure self.executable_path is afl-fuzz
     self._executable_path = self.afl_fuzz_path
 
-    self.initial_max_total_time = (get_fuzz_timeout(self.strategies.is_mutations_run) - self.AFL_CLEAN_EXIT_TIME - self.SIGTERM_WAIT_TIME)
+    self.initial_max_total_time = (
+        get_fuzz_timeout(self.strategies.is_mutations_run) -
+        self.AFL_CLEAN_EXIT_TIME - self.SIGTERM_WAIT_TIME)
 
     assert self.initial_max_total_time > 0
 
@@ -1137,33 +1152,38 @@ class AflRunnerCommon(object):
 
     return new_units_generated, new_units_added, corpus_size
 
-
   def generate_new_testcase_mutations(self):
     """Generate new testcase mutations using radamsa, etc."""
-    project_qualified_fuzzer_name = data_types.fuzz_target_project_qualified_name(utils.current_project(), target_name)
+    target_name = os.path.basename(self.target_path)
+    project_qualified_fuzzer_name = (
+        data_types.fuzz_target_project_qualified_name(utils.current_project(),
+                                                      target_name))
 
-    generation_timeout = get_new_testcase_mutations_timeout()
-    old_input_directory_file_count = shell.get_directory_file_count(self.afl_input.input_directory)
+    generation_timeout = engine_common.get_new_testcase_mutations_timeout()
+    old_input_directory_file_count = shell.get_directory_file_count(
+        self.afl_input.input_directory)
 
     # Generate new testcase mutations using Radamsa.
-    if self.strategies.generator == Generator.RADAMSA:
+    if self.strategies.generator == engine_common.Generator.RADAMSA:
       expected_completion_time = time.time() + generation_timeout
       engine_common.generate_new_testcase_mutations_using_radamsa(
           self.afl_input.input_directory, self.afl_input.input_directory,
           expected_completion_time)
 
       # If new mutations are successfully generated, add radamsa stragegy.
-      if shell.get_directory_file_count(self.afl_input.input_directory) > old_input_directory_file_count:
+      if shell.get_directory_file_count(
+          self.afl_input.input_directory) > old_input_directory_file_count:
         self.strategies.radamsa_generator = True
 
     # Generate new testcase mutations using ML RNN model.
-    elif self.strategies.generator == Generator.ML_RNN:
+    elif self.strategies.generator == engine_common.Generator.ML_RNN:
       engine_common.generate_new_testcase_mutations_using_ml_rnn(
-          self.afl_input.input_directory, self.afl_input.input_directory, project_qualified_fuzzer_name,
-          generation_timeout)
+          self.afl_input.input_directory, self.afl_input.input_directory,
+          project_qualified_fuzzer_name, generation_timeout)
 
       # If new mutations are successfully generated, add ml rnn stragegy.
-      if shell.get_directory_file_count(self.afl_input.input_directory) > old_input_directory_file_count:
+      if shell.get_directory_file_count(
+          self.afl_input.input_directory) > old_input_directory_file_count:
         self.strategies.ml_rnn_generator = True
 
 
@@ -1412,7 +1432,7 @@ def get_fuzz_timeout(is_mutations_run):
   hard_timeout = engine_common.get_hard_timeout()
   merge_timeout = engine_common.get_merge_timeout(DEFAULT_MERGE_TIMEOUT)
   fuzz_timeout = hard_timeout - merge_timeout
- 
+
   if is_mutations_run:
     fuzz_timeout -= engine_common.generate_new_testcase_mutations_timeout()
 

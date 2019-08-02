@@ -64,6 +64,12 @@ COMPONENTS_FILE_EXTENSION = '.components'
 # Header format for logs.
 LOG_HEADER_FORMAT = ('Command: {command}\n' 'Bot: {bot}\n' 'Time ran: {time}\n')
 
+# Number of radamsa mutations.
+RADAMSA_MUTATIONS = 2000
+
+# Maximum number of seconds to run radamsa for.
+RADAMSA_TIMEOUT = 3
+
 
 class Generator(object):
   """Generators we can use."""
@@ -82,8 +88,7 @@ def select_generator(strategy_pool, fuzzer_path):
   # We can't use radamsa binary on Windows. Disable ML for now until we know it
   # works on Win.
   # These generators don't produce testcases that LPM fuzzers can use.
-  if (environment.platform() == 'WINDOWS' or
-      is_lpm_fuzz_target(fuzzer_path)):
+  if (environment.platform() == 'WINDOWS' or is_lpm_fuzz_target(fuzzer_path)):
     return Generator.NONE
   elif strategy_pool.do_strategy(strategy.CORPUS_MUTATION_ML_RNN_STRATEGY):
     return Generator.ML_RNN
@@ -114,6 +119,7 @@ def generate_new_testcase_mutations_using_radamsa(
   for i in range(RADAMSA_MUTATIONS):
     original_file_path = random_choice(files_list)
     original_filename = os.path.basename(original_file_path)
+    logs.log(new_testcase_mutations_directory + ' is our input dir')
     output_path = os.path.join(new_testcase_mutations_directory,
                                'radamsa-%08d-%s' % (i + 1, original_filename))
 
