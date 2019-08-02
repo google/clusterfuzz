@@ -109,8 +109,8 @@ def _mock_get_or_create_service_account(project):
 
 
 @test_utils.with_cloud_emulators('datastore', 'pubsub')
-class OssFuzzSetupTest(unittest.TestCase):
-  """Test LoadBigQueryStatsTest."""
+class ProjectSetupTest(unittest.TestCase):
+  """Test project_setup."""
 
   def setUp(self):
     self.app = webtest.TestApp(
@@ -165,6 +165,7 @@ class OssFuzzSetupTest(unittest.TestCase):
 
     helpers.patch(self, [
         'base.utils.is_oss_fuzz',
+        'config.local_config.Config.sub_config',
         ('get_application_id_1',
          'google.appengine.api.app_identity.get_application_id'),
         ('get_application_id_2', 'base.utils.get_application_id'),
@@ -180,6 +181,19 @@ class OssFuzzSetupTest(unittest.TestCase):
         _mock_get_or_create_service_account)
 
     self.mock.is_oss_fuzz.return_value = True
+
+    def mock_config_get(name):
+      buckets = {
+          'afl': 'clusterfuzz-builds-afl',
+          'dataflow': 'clusterfuzz-builds-dataflow',
+          'libfuzzer': 'clusterfuzz-builds',
+          'libfuzzer_i386': 'clusterfuzz-builds-i386',
+          'no_engine': 'clusterfuzz-builds-no-engine',
+      }
+
+      return buckets.get(name)
+
+    self.mock.sub_config.return_value.get.side_effect = mock_config_get
 
   def test_execute(self):
     """Tests executing of cron job."""

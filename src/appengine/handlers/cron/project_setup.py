@@ -879,6 +879,9 @@ class Handler(base_handler.Handler):
     bucket_config = local_config.ProjectConfig().sub_config(
         'project_setup.build_buckets')
 
+    if not bucket_config:
+      raise ProjectSetupError('Project setup buckets not specified.')
+
     config = ProjectSetup(
         BUILD_BUCKET_PATH_TEMPLATE,
         REVISION_URL,
