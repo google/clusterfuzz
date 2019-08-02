@@ -258,7 +258,8 @@ class LibFuzzerEngine(engine.Engine):
     # TODO(ochang): Custom crash state.
     # TODO(ochang): Recommended dictionary.
 
-    return engine.Result(fuzz_logs, fuzz_result.command, crashes, parsed_stats)
+    return engine.Result(fuzz_logs, fuzz_result.command, crashes, parsed_stats,
+                         fuzz_result.time_executed)
 
   def reproduce(self, target_path, input_path, arguments, max_time):
     """Reproduce a crash given an input.
@@ -270,9 +271,14 @@ class LibFuzzerEngine(engine.Engine):
       max_time: Maximum allowed time for the reproduction.
 
     Returns:
-      A Result object.
+      A tuple of (return_code, output).
     """
-    raise NotImplementedError
+    runner = libfuzzer.get_runner(target_path)
+    launcher.set_sanitizer_options(target_path)
+
+    result = runner.run_single_testcase(
+        input_path, timeout=max_time, additional_args=arguments)
+    return result.return_code, result.output
 
   def minimize_corpus(self, target_path, arguments, output_dir, input_dirs,
                       max_time):
@@ -306,7 +312,8 @@ class LibFuzzerEngine(engine.Engine):
       raise MergeError('Merging new testcases failed')
 
     # TODO(ochang): Get crashes found during merge.
-    return engine.Result(merge_result.output, merge_result.command, [], {})
+    return engine.Result(merge_result.output, merge_result.command, [], {},
+                         merge_result.time_executed)
 
   def minimize_testcase(self, target_path, arguments, input_path, output_path,
                         max_time):
@@ -322,7 +329,18 @@ class LibFuzzerEngine(engine.Engine):
     Returns:
       A boolean indicating success.
     """
-    raise NotImplementedError
+    runner = libfuzzer.get_runner(target_path)
+    launcher.set_sanitizer_options(target_path)
+
+    minimize_tmp_dir = self._create_temp_corpus_dir('minimize-workdir')
+    artifact_prefix = constants.ARTIFACT_PREFIX_FLAG + minimize_tmp_dir + '/'
+    result = runner.minimize_crash(
+        input_path,
+        output_path,
+        max_time,
+        additional_args=arguments + [artifact_prefix])
+
+    return result.return_code == 0
 
   def cleanse(self, target_path, arguments, input_path, output_path, max_time):
     """Optional (but recommended): Cleanse a testcase.
@@ -337,4 +355,15 @@ class LibFuzzerEngine(engine.Engine):
     Returns:
       A boolean indicating success.
     """
-    raise NotImplementedError
+    runner = libfuzzer.get_runner(target_path)
+    launcher.set_sanitizer_options(target_path)
+
+    cleanse_tmp_dir = self._create_temp_corpus_dir('cleanse-workdir')
+    artifact_prefix = constants.ARTIFACT_PREFIX_FLAG + cleanse_tmp_dir + '/'
+    result = runner.cleanse_crash(
+        input_path,
+        output_path,
+        max_time,
+        additional_args=arguments + [artifact_prefix])
+
+    return result.return_code == 0

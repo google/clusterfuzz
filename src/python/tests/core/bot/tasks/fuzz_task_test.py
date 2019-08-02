@@ -25,6 +25,7 @@ import unittest
 from pyfakefs import fake_filesystem_unittest
 
 from base import utils
+from bot.fuzzers import engine
 from bot.tasks import fuzz_task
 from chrome import crash_uploader
 from crash_analysis.stack_parsing import stack_analyzer
@@ -1285,3 +1286,90 @@ class RecordFuzzTargetTest(unittest.TestCase):
 
     self.assertEqual('libFuzzer_proj_child', fuzz_target.fully_qualified_name())
     self.assertEqual('proj_child', fuzz_target.project_qualified_name())
+
+
+@test_utils.with_cloud_emulators('datastore')
+class DoEngineFuzzingTest(fake_filesystem_unittest.TestCase):
+  """do_engine_fuzzing tests."""
+
+  def setUp(self):
+    helpers.patch_environ(self)
+    helpers.patch(self, [
+        'bot.fuzzers.engine_common.current_timestamp',
+        'bot.tasks.fuzz_task.GcsCorpus.sync_from_gcs',
+        'bot.tasks.fuzz_task.GcsCorpus.upload_files',
+        'build_management.revisions.get_component_list',
+        'fuzzing.testcase_manager.upload_log',
+        'fuzzing.testcase_manager.upload_testcase',
+        'metrics.fuzzer_stats.upload_stats',
+    ])
+    test_utils.set_up_pyfakefs(self)
+
+    os.environ['FUZZ_INPUTS'] = '/fuzz-inputs'
+    os.environ['FUZZ_INPUTS_DISK'] = '/fuzz-inputs-disk'
+    os.environ['BUILD_DIR'] = '/build_dir'
+
+    self.fs.create_file('/build_dir/test_target')
+    self.fs.create_file(
+        '/build_dir/test_target.labels', contents='label1\nlabel2')
+    self.fs.create_file(
+        '/build_dir/test_target.owners', contents='owner1@email.com')
+    self.fs.create_file(
+        '/build_dir/test_target.components', contents='component1\ncomponent2')
+    self.fs.create_file('/input')
+
+    self.mock.sync_from_gcs.return_value = True
+    self.mock.upload_files.return_value = True
+    self.mock.get_component_list.return_value = [{
+        'component': 'component',
+        'link_text': 'rev',
+    }]
+    self.mock.current_timestamp.return_value = 0.0
+
+  def test_basic(self):
+    """Test basic fuzzing session."""
+    session = fuzz_task.FuzzingSession('libFuzzer', 'libfuzzer_asan_test', 60)
+    session.testcase_directory = os.environ['FUZZ_INPUTS']
+    session.data_directory = '/data_dir'
+
+    os.environ['FUZZ_TARGET'] = 'test_target'
+    os.environ['APP_REVISION'] = '1'
+
+    expected_crashes = [engine.Crash('/input', 'stack', ['args'], 1.0)]
+
+    engine_impl = mock.Mock()
+    engine_impl.name = 'libFuzzer'
+    engine_impl.prepare.return_value = engine.FuzzOptions(
+        '/corpus', ['arg'], ['strategy_1', 'strategy_2'])
+    engine_impl.fuzz.return_value = engine.Result(
+        'logs', ['cmd'], expected_crashes, {'stat': 1}, 42.0)
+
+    crashes, fuzzer_metadata = session.do_engine_fuzzing(engine_impl)
+    self.assertDictEqual({
+        'issue_components': ['component1', 'component2'],
+        'issue_labels': ['label1', 'label2'],
+        'issue_owners': ['owner1@email.com'],
+    }, fuzzer_metadata)
+
+    log_time = datetime.datetime(1970, 1, 1, 0, 0)
+    self.mock.upload_log.assert_called_with(
+        'Component revisions (build r1):\n'
+        'component: rev\n\n'
+        'Return code: 1\n\n'
+        'Command: cmd\nBot: None\nTime ran: 42.0\n\n'
+        'logs\n'
+        'cf::fuzzing_strategies: strategy_1,strategy_2', log_time)
+    self.mock.upload_testcase.assert_called_with('/input', log_time)
+
+    self.assertEqual(expected_crashes, crashes)
+    upload_args = self.mock.upload_stats.call_args[0][0]
+    testcase_run = upload_args[0]
+    self.assertDictEqual({
+        'build_revision': 1,
+        'command': ['cmd'],
+        'fuzzer': u'libFuzzer_test_target',
+        'job': 'libfuzzer_asan_test',
+        'kind': 'TestcaseRun',
+        'stat': 1,
+        'timestamp': 0.0,
+    }, testcase_run.data)

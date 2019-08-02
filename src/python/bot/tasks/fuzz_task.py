@@ -1376,13 +1376,24 @@ class FuzzingSession(object):
     # Format logs with header and strategy information.
     log_header = engine_common.get_log_header(result.command,
                                               environment.get_value('BOT_NAME'),
-                                              result.crash_time)
+                                              result.time_executed)
 
     formatted_strategies = engine_common.format_fuzzing_strategies(
         options.strategies)
 
     result.logs = log_header + '\n' + result.logs + '\n' + formatted_strategies
-    return result
+
+    fuzzer_metadata = {}
+    issue_labels = engine_common.get_issue_labels(target_path)
+    fuzzer_metadata['issue_labels'] = issue_labels
+
+    issue_components = engine_common.get_issue_components(target_path)
+    fuzzer_metadata['issue_components'] = issue_components
+
+    issue_owners = engine_common.get_issue_owners(target_path)
+    fuzzer_metadata['issue_owners'] = issue_owners
+
+    return result, fuzzer_metadata
 
   def do_engine_fuzzing(self, engine_impl):
     """Run fuzzing engine."""
@@ -1396,7 +1407,8 @@ class FuzzingSession(object):
     self.sync_corpus(sync_corpus_directory)
 
     # Do the actual fuzzing.
-    result = self._run_engine_fuzzer(engine_impl, sync_corpus_directory)
+    result, fuzzer_metadata = self._run_engine_fuzzer(engine_impl,
+                                                      sync_corpus_directory)
     self.sync_new_corpus_files()
 
     # Prepare stats.
@@ -1413,12 +1425,12 @@ class FuzzingSession(object):
     testcase_manager.upload_log(log, log_time)
 
     revision = environment.get_value('APP_REVISION')
-    add_additional_testcase_run_data(
-        testcase_run, self.fuzz_target.fully_qualified_fuzzer_name(),
-        self.job_type, revision)
+    add_additional_testcase_run_data(testcase_run,
+                                     self.fuzz_target.fully_qualified_name(),
+                                     self.job_type, revision)
     upload_testcase_run_stats(testcase_run)
 
-    return result.crashes
+    return result.crashes, fuzzer_metadata
 
   def do_blackbox_fuzzing(self, fuzzer, fuzzer_directory, job_type):
     """Run blackbox fuzzing. Currently also used for engine fuzzing."""
@@ -1662,11 +1674,10 @@ class FuzzingSession(object):
     if engine_impl:
       # Note: This branch is not taken right now, and is part of ongoing
       # refactoring efforts (https://github.com/google/clusterfuzz/issues/483).
-      crashes = self.do_engine_fuzzing(engine_impl)
-      # TODO(ochang): fill these.
+      crashes, fuzzer_metadata = self.do_engine_fuzzing(engine_impl)
+      # Not applicable to engine fuzzers.
       testcase_file_paths = []
       testcases_metadata = {}
-      fuzzer_metadata = {}
       crash_constructor = Crash.from_engine_crash
     else:
       fuzzer_directory = setup.get_fuzzer_directory(self.fuzzer_name)
