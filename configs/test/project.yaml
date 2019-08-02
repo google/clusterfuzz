@@ -96,11 +96,3 @@ env:
   # input to fuzzer as part of --input-dir argument (disabled by default).
   # WEB_TESTS_URL: 'gs://bucket/path-to-tests-archive.zip'
   # UPDATE_WEB_TESTS: true
-
-project_setup:
-  build_buckets:
-    afl: clusterfuzz-builds-afl
-    dataflow: clusterfuzz-builds-dataflow
-    libfuzzer: clusterfuzz-builds
-    libfuzzer_i386: clusterfuzz-builds-i386
-    no_engine: clusterfuzz-builds-no-engine
