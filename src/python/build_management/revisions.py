@@ -241,10 +241,12 @@ def _git_commit_position_to_git_hash_for_chromium(revision, repository):
   query_url = '%s?%s' % (CRREV_NUMBERING_URL, query_string)
   url_content = _get_url_content(query_url)
   if url_content is None:
+    logs.log_error('Failed to fetch git hash from url: ' + query_url)
     return None
 
   result_dict = _to_dict(url_content)
   if result_dict is None:
+    logs.log_error('Failed to parse git hash from url: ' + query_url)
     return None
 
   return result_dict['git_sha']
