@@ -99,7 +99,10 @@ def _clank_revision_file_to_revisions_dict(content):
   # Initialize revisions dictionary with chromium repo.
   revisions_dict = get_component_revisions_dict(chromium_revision, 'default')
   if revisions_dict is None:
-    logs.log_error('Failed to get chromium component revisions.')
+    logs.log_error(
+        'Failed to get chromium component revisions.',
+        chromium_revision=chromium_revision,
+        clank_revision=clank_revision)
     return None
 
   # Add info on clank repo.
