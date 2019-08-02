@@ -31,7 +31,6 @@ import shutil
 import signal
 import string
 import sys
-import time
 
 from base import utils
 from bot.fuzzers import dictionary_manager
@@ -270,10 +269,8 @@ def generate_new_testcase_mutations(corpus_directory, fuzzer_name, generator,
 
   # Generate new testcase mutations using Radamsa.
   if generator == engine_common.Generator.RADAMSA:
-    expected_completion_time = time.time() + generation_timeout
     engine_common.generate_new_testcase_mutations_using_radamsa(
-        corpus_directory, new_testcase_mutations_directory,
-        expected_completion_time)
+        corpus_directory, new_testcase_mutations_directory, generation_timeout)
 
     # If new mutations are successfully generated, add radamsa stragegy.
     if shell.get_directory_file_count(new_testcase_mutations_directory):

@@ -33,7 +33,6 @@ import six
 import stat
 import subprocess
 import sys
-import time
 
 from base import utils
 from bot.fuzzers import dictionary_manager
@@ -1152,13 +1151,12 @@ class AflRunnerCommon(object):
         self.afl_input.input_directory)
     logs.log(
         'Input directory file count prior to generating testcase mutations is '
-            '{}.'.format(old_input_directory_file_count))
+        '{}.'.format(old_input_directory_file_count))
     # Generate new testcase mutations using Radamsa.
     if self.strategies.candidate_generator == engine_common.Generator.RADAMSA:
-      expected_completion_time = time.time() + generation_timeout
       engine_common.generate_new_testcase_mutations_using_radamsa(
           self.afl_input.input_directory, self.afl_input.input_directory,
-          expected_completion_time)
+          generation_timeout)
       logs.log('Generating new testcase mutations using radamsa.')
     # Generate new testcase mutations using ML RNN model.
     elif self.strategies.candidate_generator == engine_common.Generator.ML_RNN:

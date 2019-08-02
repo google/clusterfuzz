@@ -14,6 +14,8 @@
 """Common functionality for engine fuzzers (ie: libFuzzer or AFL)."""
 from __future__ import print_function
 
+from builtins import object
+from builtins import range
 import contextlib
 import glob
 import os
@@ -99,8 +101,7 @@ def select_generator(strategy_pool, fuzzer_path):
 
 
 def generate_new_testcase_mutations_using_radamsa(
-    corpus_directory, new_testcase_mutations_directory,
-    expected_completion_time):
+    corpus_directory, new_testcase_mutations_directory, generation_timeout):
   """Generate new testcase mutations based on Radamsa."""
   radamsa_path = get_radamsa_path()
   if not radamsa_path:
@@ -115,6 +116,7 @@ def generate_new_testcase_mutations_using_radamsa(
 
   old_corpus_size = shell.get_directory_file_count(
       new_testcase_mutations_directory)
+  expected_completion_time = time.time() + generation_timeout
 
   for i in range(RADAMSA_MUTATIONS):
     original_file_path = random_choice(files_list)

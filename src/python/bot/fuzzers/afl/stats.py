@@ -243,11 +243,11 @@ class StatsGetter(object):
     elif fuzzing_strategies.fast_cal == strategies.FastCal.RANDOM:
       self.stats[fuzzing_strategies.FAST_CAL_RANDOM_STRATEGY] = 1
 
-    if (fuzzing_strategies.generator_strategy == 
-        engine_common.Generator.RADAMSA):
+    if (fuzzing_strategies.generator_strategy == engine_common.Generator.RADAMSA
+       ):
       self.stats['strategy_{}'.format(
-          engine_common.CORPUS_MUTATION_RADAMSA_STRATEGY.name)] = 1
+          strategy.CORPUS_MUTATION_RADAMSA_STRATEGY.name)] = 1
     elif (fuzzing_strategies.generator_strategy ==
-        engine_common.Generator.ML_RNN):
+          engine_common.Generator.ML_RNN):
       self.stats['strategy_{}'.format(
-          engine_common.CORPUS_MUTATION_ML_RNN_STRATEGY.name)] = 1
+          strategy.CORPUS_MUTATION_ML_RNN_STRATEGY.name)] = 1
