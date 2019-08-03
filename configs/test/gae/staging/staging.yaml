@@ -23,7 +23,7 @@ handlers:
     upload: resources/favicon/.*$
     secure: always
     http_headers:
-      X-Frame-Options: "DENY"
+      X-Frame-Options: "deny"
       Strict-Transport-Security: "max-age=2592000; includeSubdomains"
       X-Content-Type-Options: "nosniff"
 
@@ -31,7 +31,7 @@ handlers:
     static_dir: resources
     secure: always
     http_headers:
-      X-Frame-Options: "DENY"
+      X-Frame-Options: "deny"
       Strict-Transport-Security: "max-age=2592000; includeSubdomains"
       X-Content-Type-Options: "nosniff"
 
