@@ -149,6 +149,13 @@ class Handler(webapp2.RequestHandler):
     }
     self.render('error-403.html', template_values, 403)
 
+  def _add_security_response_headers(self):
+    """Add security-related headers to response."""
+    self.response.headers['Strict-Transport-Security'] = (
+        'max-age=2592000; includeSubdomains')
+    self.response.headers['X-Content-Type-Options'] = 'nosniff'
+    self.response.headers['X-Frame-Options'] = 'deny'
+
   def render(self, path, values=None, status=200):
     """Write HTML response."""
     if values is None:
@@ -171,6 +178,7 @@ class Handler(webapp2.RequestHandler):
 
     template = _JINJA_ENVIRONMENT.get_template(path)
 
+    self._add_security_response_headers()
     self.response.headers['Content-Type'] = 'text/html'
     self.response.out.write(template.render(values))
     self.response.set_status(status)
@@ -180,6 +188,7 @@ class Handler(webapp2.RequestHandler):
 
   def render_json(self, values, status=200):
     """Write JSON response."""
+    self._add_security_response_headers()
     self.response.headers['Content-Type'] = 'application/json'
     self.before_render_json(values, status)
     self.response.out.write(json.dumps(values, cls=JsonEncoder))
