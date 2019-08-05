@@ -118,6 +118,10 @@ class LibFuzzerEngine(engine.Engine):
         strategy_info.additional_corpus_dirs, strategy_info.extra_env,
         strategy_info.use_dataflow_tracing, strategy_info.is_mutations_run)
 
+  def _artifact_prefix(self, prefix):
+    """Returns the artifact prefix argument."""
+    return constants.ARTIFACT_PREFIX_FLAG + prefix + '/'
+
   def _create_temp_corpus_dir(self, name):
     """Create temporary corpus directory."""
     new_corpus_directory = os.path.join(fuzzer_utils.get_temp_dir(), name)
@@ -189,8 +193,7 @@ class LibFuzzerEngine(engine.Engine):
     runner = libfuzzer.get_runner(target_path)
     launcher.set_sanitizer_options(target_path)
 
-    artifact_prefix = '%s%s/' % (constants.ARTIFACT_PREFIX_FLAG,
-                                 os.path.abspath(reproducers_dir))
+    artifact_prefix = self._artifact_prefix(os.path.abspath(reproducers_dir))
 
     # Directory to place new units.
     new_corpus_dir = self._create_temp_corpus_dir('new')
@@ -298,7 +301,6 @@ class LibFuzzerEngine(engine.Engine):
     launcher.set_sanitizer_options(target_path)
     merge_tmp_dir = self._create_temp_corpus_dir('merge-workdir')
 
-    # TODO(ochang): Use result.
     merge_result = runner.merge(
         [output_dir] + input_dirs,
         merge_timeout=max_time,
@@ -333,7 +335,7 @@ class LibFuzzerEngine(engine.Engine):
     launcher.set_sanitizer_options(target_path)
 
     minimize_tmp_dir = self._create_temp_corpus_dir('minimize-workdir')
-    artifact_prefix = constants.ARTIFACT_PREFIX_FLAG + minimize_tmp_dir + '/'
+    artifact_prefix = self._artifact_prefix(minimize_tmp_dir)
     result = runner.minimize_crash(
         input_path,
         output_path,
@@ -359,7 +361,7 @@ class LibFuzzerEngine(engine.Engine):
     launcher.set_sanitizer_options(target_path)
 
     cleanse_tmp_dir = self._create_temp_corpus_dir('cleanse-workdir')
-    artifact_prefix = constants.ARTIFACT_PREFIX_FLAG + cleanse_tmp_dir + '/'
+    artifact_prefix = self._artifact_prefix(cleanse_tmp_dir)
     result = runner.cleanse_crash(
         input_path,
         output_path,
