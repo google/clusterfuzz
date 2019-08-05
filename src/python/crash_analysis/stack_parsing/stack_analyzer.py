@@ -102,9 +102,11 @@ KASAN_ACCESS_TYPE_REGEX = re.compile(r'(Read|Write) of size ([0-9]+)')
 KASAN_CRASH_TYPE_ADDRESS_REGEX = re.compile(
     r'BUG: KASAN: (.*) (in|on).*(addr|address) ([a-f0-9]+)')
 KASAN_GPF_REGEX = re.compile(r'general protection fault:.*KASAN')
-LIBFUZZER_TIMEOUT_REGEX = re.compile(r'.*ERROR:\s*libFuzzer:\s*timeout')
 LIBFUZZER_DEADLY_SIGNAL_REGEX = re.compile(
     r'.*ERROR:\s*libFuzzer:\s*deadly signal')
+LIBFUZZER_FUZZ_TARGET_EXITED_REGEX = re.compile(
+    r'.*ERROR:\s*libFuzzer:\s*fuzz target exited')
+LIBFUZZER_TIMEOUT_REGEX = re.compile(r'.*ERROR:\s*libFuzzer:\s*timeout')
 LINUX_GDB_CRASH_TYPE_REGEX = re.compile(r'Program received signal ([a-zA-Z]+),')
 LINUX_GDB_CRASH_ADDRESS_REGEX = re.compile(r'rip[ ]+([xX0-9a-fA-F]+)')
 LSAN_DIRECT_LEAK_REGEX = re.compile(r'Direct leak of ')
@@ -260,6 +262,7 @@ STACK_FRAME_IGNORE_REGEXES = [
     r'^\<null\>',
     r'^Abort\(',
     r'^CFCrash',
+    r'^ExitCallback',
     r'^IsSandboxedProcess',
     r'^LLVMFuzzerTestOneInput',
     r'^New',
@@ -1500,6 +1503,14 @@ def get_crash_data(crash_data, symbolize_flag=True):
           line,
           state,
           new_type='Fatal-signal',
+          reset=True)
+
+      # Libfuzzer fuzz target exited errors.
+      update_state_on_match(
+          LIBFUZZER_FUZZ_TARGET_EXITED_REGEX,
+          line,
+          state,
+          new_type='Unexpected-exit',
           reset=True)
 
     if state.fatal_error_occurred:

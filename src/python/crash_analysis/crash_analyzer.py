@@ -322,6 +322,10 @@ def is_security_issue(crash_stacktrace, crash_type, crash_address):
   if crash_type == 'Timeout' or crash_type == 'Out-of-memory':
     return False
 
+  # Unexpected exit call in fuzz target.
+  if crash_type == 'Unexpected-exit':
+    return False
+
   # No crash type, can't process.
   if not crash_type:
     return False
