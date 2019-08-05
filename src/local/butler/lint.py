@@ -203,7 +203,8 @@ def execute(_):
     futurize_command = 'futurize -0 {excludes} {file_path}'.format(
         excludes=futurize_excludes, file_path=file_path)
     futurize_output = _execute_command_and_track_error(futurize_command)
-    if 'No changes to ' not in futurize_output:
+    if ('No changes to ' not in futurize_output and
+        'No files need to be modified' not in futurize_output):
       # Futurize doesn't modify its return code depending on the result.
       _error('Python 3 compatibility error introduced.')
 
