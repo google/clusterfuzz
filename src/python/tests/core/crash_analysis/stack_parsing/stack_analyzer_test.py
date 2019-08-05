@@ -1322,6 +1322,7 @@ class StackAnalyzerTestcase(unittest.TestCase):
                                   expected_security_flag)
 
   def test_libfuzzer_deadly_signal(self):
+    """Test for libfuzzer deadly signal."""
     data = self._read_test_data('libfuzzer_deadly_signal.txt')
     expected_type = 'Fatal-signal'
     expected_state = 'NULL'
@@ -1333,6 +1334,7 @@ class StackAnalyzerTestcase(unittest.TestCase):
                                   expected_security_flag)
 
   def test_libfuzzer_fuzz_target_exited(self):
+    """Test for unexpected fuzz target exit."""
     data = self._read_test_data('libfuzzer_fuzz_target_exited.txt')
     expected_type = 'Unexpected-exit'
     expected_state = 'clearsilver_fuzzer_file.cc\n'
