@@ -266,11 +266,14 @@ def main():
   parser_reproduce = subparsers.add_parser(
       'reproduce', help='Reproduce a crash or error from a test case.')
   parser_reproduce.add_argument(
-      '--testcase', required=True, help='Testcase URL.')
+      '-t', '--testcase', required=True, help='Testcase URL.')
   parser_reproduce.add_argument(
+      '-b',
       '--build-dir',
       required=True,
       help='Build directory containing the target app and dependencies.')
+  parser_reproduce.add_argument(
+      '-i', '--iterations', help='Number of times to attempt reproduction.')
 
   args = parser.parse_args()
 

@@ -28,7 +28,6 @@ from bot.untrusted_runner import untrusted
 from datastore import data_types
 from datastore import ndb
 from datastore import ndb_patcher
-from metrics import logs
 from system import environment
 from system import shell
 from tests.test_libs import helpers as test_helpers
@@ -114,8 +113,6 @@ class UntrustedRunnerIntegrationTest(unittest.TestCase):
 
   @classmethod
   def setUpClass(cls):
-    logs.configure_for_tests()
-
     os.environ['HOST_INSTANCE_NAME'] = 'host'
     os.environ['HOST_INSTANCE_NUM'] = '0'
     os.environ['BOT_NAME'] = 'host-0'

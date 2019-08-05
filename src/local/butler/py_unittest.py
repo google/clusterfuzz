@@ -38,7 +38,6 @@ import unittest
 from local.butler import appengine
 from local.butler import common
 from src.python.config import local_config
-from src.python.metrics import logs
 
 APPENGINE_TEST_DIRECTORY = os.path.join('src', 'python', 'tests', 'appengine')
 CORE_TEST_DIRECTORY = os.path.join('src', 'python', 'tests', 'core')
@@ -300,7 +299,8 @@ def execute(args):
   os.environ['DATASTORE_USE_PROJECT_ID_AS_APP_ID'] = 'true'
 
   if args.verbose:
-    logs.configure_for_tests()
+    # Force logging to console for this process and child processes.
+    os.environ['LOG_TO_CONSOLE'] = 'True'
   else:
     # Disable logging.
     logging.disable(logging.CRITICAL)
