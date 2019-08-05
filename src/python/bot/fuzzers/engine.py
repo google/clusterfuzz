@@ -42,11 +42,12 @@ class Result(object):
   """Represents a result of a fuzzing session: a list of crashes found and the
   stats generated."""
 
-  def __init__(self, logs, command, crashes, stats):
+  def __init__(self, logs, command, crashes, stats, time_executed):
     self.logs = logs
     self.command = command
     self.crashes = crashes
     self.stats = stats
+    self.time_executed = time_executed
 
 
 class Engine(object):
@@ -96,7 +97,7 @@ class Engine(object):
       max_time: Maximum allowed time for the reproduction.
 
     Returns:
-      A Result object.
+      A tuple of (return_code, output).
     """
     raise NotImplementedError
 

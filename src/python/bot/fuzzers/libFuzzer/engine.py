@@ -118,6 +118,10 @@ class LibFuzzerEngine(engine.Engine):
         strategy_info.additional_corpus_dirs, strategy_info.extra_env,
         strategy_info.use_dataflow_tracing, strategy_info.is_mutations_run)
 
+  def _artifact_prefix(self, prefix):
+    """Returns the artifact prefix argument."""
+    return constants.ARTIFACT_PREFIX_FLAG + prefix + '/'
+
   def _create_temp_corpus_dir(self, name):
     """Create temporary corpus directory."""
     new_corpus_directory = os.path.join(fuzzer_utils.get_temp_dir(), name)
@@ -189,8 +193,7 @@ class LibFuzzerEngine(engine.Engine):
     runner = libfuzzer.get_runner(target_path)
     launcher.set_sanitizer_options(target_path)
 
-    artifact_prefix = '%s%s/' % (constants.ARTIFACT_PREFIX_FLAG,
-                                 os.path.abspath(reproducers_dir))
+    artifact_prefix = self._artifact_prefix(os.path.abspath(reproducers_dir))
 
     # Directory to place new units.
     new_corpus_dir = self._create_temp_corpus_dir('new')
@@ -258,7 +261,8 @@ class LibFuzzerEngine(engine.Engine):
     # TODO(ochang): Custom crash state.
     # TODO(ochang): Recommended dictionary.
 
-    return engine.Result(fuzz_logs, fuzz_result.command, crashes, parsed_stats)
+    return engine.Result(fuzz_logs, fuzz_result.command, crashes, parsed_stats,
+                         fuzz_result.time_executed)
 
   def reproduce(self, target_path, input_path, arguments, max_time):
     """Reproduce a crash given an input.
@@ -270,9 +274,14 @@ class LibFuzzerEngine(engine.Engine):
       max_time: Maximum allowed time for the reproduction.
 
     Returns:
-      A Result object.
+      A tuple of (return_code, output).
     """
-    raise NotImplementedError
+    runner = libfuzzer.get_runner(target_path)
+    launcher.set_sanitizer_options(target_path)
+
+    result = runner.run_single_testcase(
+        input_path, timeout=max_time, additional_args=arguments)
+    return result.return_code, result.output
 
   def minimize_corpus(self, target_path, arguments, output_dir, input_dirs,
                       max_time):
@@ -292,7 +301,6 @@ class LibFuzzerEngine(engine.Engine):
     launcher.set_sanitizer_options(target_path)
     merge_tmp_dir = self._create_temp_corpus_dir('merge-workdir')
 
-    # TODO(ochang): Use result.
     merge_result = runner.merge(
         [output_dir] + input_dirs,
         merge_timeout=max_time,
@@ -306,7 +314,8 @@ class LibFuzzerEngine(engine.Engine):
       raise MergeError('Merging new testcases failed')
 
     # TODO(ochang): Get crashes found during merge.
-    return engine.Result(merge_result.output, merge_result.command, [], {})
+    return engine.Result(merge_result.output, merge_result.command, [], {},
+                         merge_result.time_executed)
 
   def minimize_testcase(self, target_path, arguments, input_path, output_path,
                         max_time):
@@ -322,7 +331,18 @@ class LibFuzzerEngine(engine.Engine):
     Returns:
       A boolean indicating success.
     """
-    raise NotImplementedError
+    runner = libfuzzer.get_runner(target_path)
+    launcher.set_sanitizer_options(target_path)
+
+    minimize_tmp_dir = self._create_temp_corpus_dir('minimize-workdir')
+    artifact_prefix = self._artifact_prefix(minimize_tmp_dir)
+    result = runner.minimize_crash(
+        input_path,
+        output_path,
+        max_time,
+        additional_args=arguments + [artifact_prefix])
+
+    return result.return_code == 0
 
   def cleanse(self, target_path, arguments, input_path, output_path, max_time):
     """Optional (but recommended): Cleanse a testcase.
@@ -337,4 +357,15 @@ class LibFuzzerEngine(engine.Engine):
     Returns:
       A boolean indicating success.
     """
-    raise NotImplementedError
+    runner = libfuzzer.get_runner(target_path)
+    launcher.set_sanitizer_options(target_path)
+
+    cleanse_tmp_dir = self._create_temp_corpus_dir('cleanse-workdir')
+    artifact_prefix = self._artifact_prefix(cleanse_tmp_dir)
+    result = runner.cleanse_crash(
+        input_path,
+        output_path,
+        max_time,
+        additional_args=arguments + [artifact_prefix])
+
+    return result.return_code == 0

@@ -56,6 +56,9 @@ OWNERS_FILE_EXTENSION = '.owners'
 # Extension for per-fuzz target labels to be added to issue tracker.
 LABELS_FILE_EXTENSION = '.labels'
 
+# Extension for per-fuzz target components to be added to issue tracker.
+COMPONENTS_FILE_EXTENSION = '.components'
+
 # Header format for logs.
 LOG_HEADER_FORMAT = ('Command: {command}\n' 'Bot: {bot}\n' 'Time ran: {time}\n')
 
@@ -209,21 +212,31 @@ def get_issue_owners(fuzz_target_path):
   return owners
 
 
-def get_issue_labels(fuzz_target_path):
-  """Return list of issue labels given a fuzz target path."""
-  labels_file_path = fuzzer_utils.get_supporting_file(fuzz_target_path,
-                                                      LABELS_FILE_EXTENSION)
+def get_issue_metadata(fuzz_target_path, extension):
+  """Get issue metadata."""
+  metadata_file_path = fuzzer_utils.get_supporting_file(fuzz_target_path,
+                                                        extension)
 
   if environment.is_trusted_host():
-    labels_file_path = fuzzer_utils.get_file_from_untrusted_worker(
-        labels_file_path)
+    metadata_file_path = fuzzer_utils.get_file_from_untrusted_worker(
+        metadata_file_path)
 
-  if not os.path.exists(labels_file_path):
+  if not os.path.exists(metadata_file_path):
     return []
 
-  with open(labels_file_path) as handle:
+  with open(metadata_file_path) as handle:
     return utils.parse_delimited(
         handle, delimiter='\n', strip=True, remove_empty=True)
+
+
+def get_issue_labels(fuzz_target_path):
+  """Return list of issue labels given a fuzz target path."""
+  return get_issue_metadata(fuzz_target_path, LABELS_FILE_EXTENSION)
+
+
+def get_issue_components(fuzz_target_path):
+  """Return list of issue components given a fuzz target path."""
+  return get_issue_metadata(fuzz_target_path, COMPONENTS_FILE_EXTENSION)
 
 
 def format_fuzzing_strategies(fuzzing_strategies):

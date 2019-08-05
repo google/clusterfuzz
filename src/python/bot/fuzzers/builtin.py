@@ -147,6 +147,10 @@ class EngineFuzzer(BuiltinFuzzer):
     if issue_labels:
       output += 'metadata::issue_labels: %s\n' % ','.join(issue_labels)
 
+    issue_components = engine_common.get_issue_components(fuzzer_path)
+    if issue_components:
+      output += 'metadata::issue_components: %s\n' % ','.join(issue_components)
+
     # Update *SAN_OPTIONS in current environment from .options file. This
     # environment is used in fuzz task later for deriving the environment
     # string in |get_environment_settings_as_string| and embedding this as
