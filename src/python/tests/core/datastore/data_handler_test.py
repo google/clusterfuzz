@@ -543,3 +543,38 @@ class UpdateTestcaseCommentTest(unittest.TestCase):
         '\n' * (data_types.TESTCASE_COMMENTS_LENGTH_LIMIT - len(expected_new)) +
         expected_new)
     self.assertEqual(expected, self.testcase.comments)
+
+
+@test_utils.with_cloud_emulators('datastore')
+class GetFormattedReproductionHelpTest(unittest.TestCase):
+  """Test get_formatted_reproduction_help."""
+
+  def setUp(self):
+    job = data_types.Job()
+    job.name = 'my_job'
+    job.environment_string = (
+        'HELP_FORMAT = prefix %TESTCASE% %FUZZER_NAME% %FUZZ_TARGET% suffix')
+    job.put()
+
+  def test_libfuzzer_testcase(self):
+    """Test the function with a libFuzzer test case."""
+    testcase = data_types.Testcase()
+    testcase.fuzzer_name = 'libFuzzer'
+    testcase.overridden_fuzzer_name = 'libFuzzer_test_fuzzer'
+    testcase.job_type = 'my_job'
+    testcase.put()
+
+    self.assertEquals(
+        data_handler.get_formatted_reproduction_help(testcase),
+        'prefix {id} libFuzzer test_fuzzer suffix'.format(id=testcase.key.id()))
+
+  def test_traditional_testcase(self):
+    """Test the function with a traditional fuzzer test case."""
+    testcase = data_types.Testcase()
+    testcase.fuzzer_name = 'simple_fuzzer'
+    testcase.job_type = 'my_job'
+    testcase.put()
+
+    self.assertEquals(
+        data_handler.get_formatted_reproduction_help(testcase),
+        'prefix {id} simple_fuzzer  suffix'.format(id=testcase.key.id()))

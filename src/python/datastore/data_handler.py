@@ -269,6 +269,26 @@ def get_reproduction_help_url(testcase, config):
       testcase.job_type, 'HELP_URL', default=config.reproduction_help_url)
 
 
+def get_formatted_reproduction_help(testcase):
+  """Return url to reproduce the bug."""
+  help_format = get_value_from_job_definition(testcase.job_type, 'HELP_FORMAT')
+  if not help_format:
+    return None
+
+  result = help_format.replace('%TESTCASE%', str(testcase.key.id()))
+  result = result.replace('%FUZZER_NAME%', testcase.fuzzer_name)
+
+  if testcase.overridden_fuzzer_name:
+    # Remove the libfuzzer_ or afl_ prefixes from the target name.
+    target_name = testcase.overridden_fuzzer_name.split('_', 1)[-1]
+  else:
+    target_name = ''
+
+  result = result.replace('%FUZZ_TARGET%', target_name)
+
+  return result
+
+
 def get_fixed_range_url(testcase):
   """Return url to testcase fixed range."""
   # Testcase is not fixed yet.

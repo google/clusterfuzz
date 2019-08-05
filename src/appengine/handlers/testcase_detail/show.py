@@ -86,7 +86,7 @@ def highlight_common_stack_frames(crash_stacktrace):
   stack_trace_line_format = '^ *#([0-9]+) *0x[0-9a-f]+ (.*)'
 
   for line in crash_stacktrace.splitlines():
-    # Stacktrace seperator prefix.
+    # Stacktrace separator prefix.
     if stack_index and line.startswith('+-'):
       break
 
@@ -368,8 +368,14 @@ def get_testcase_detail(testcase):
   crash_state = testcase.crash_state
   crash_state_lines = crash_state.strip().splitlines()
   crash_type = data_handler.get_crash_type_string(testcase)
-  reproduction_help_url = data_handler.get_reproduction_help_url(
-      testcase, config)
+  formatted_reproduction_help = data_handler.get_formatted_reproduction_help(
+      testcase)
+  # TODO(mbarbella): Remove this once everything has been moved to HELP_FORMAT.
+  if not formatted_reproduction_help:
+    reproduction_help_url = data_handler.get_reproduction_help_url(
+        testcase, config)
+  else:
+    reproduction_help_url = None
   external_user = not access.has_access(job_type=testcase.job_type)
   issue_url = issue_tracker_utils.get_issue_url(testcase)
   metadata = testcase.get_metadata()
@@ -506,6 +512,8 @@ def get_testcase_detail(testcase):
           external_user,
       'footer':
           testcase.comments,
+      'formatted_reproduction_help':
+          formatted_reproduction_help,
       'fixed':
           fixed,
       'fixed_full':
