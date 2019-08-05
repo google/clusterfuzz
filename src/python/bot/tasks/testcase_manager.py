@@ -529,7 +529,7 @@ class TestcaseRunner(object):
 
     if self._is_black_box:
       return_code, crash_time, output = process_handler.run_process(
-          self.command,
+          self._command,
           timeout=run_timeout,
           gestures=self._gestures,
           current_working_directory=app_directory)
@@ -671,7 +671,7 @@ def test_for_crash_with_retries(testcase,
 
   return runner.reproduce_with_retries(crash_retries, expected_state,
                                        expected_security_flag,
-                                       testcase.flaky_stacktrace)
+                                       testcase.flaky_stack)
 
 
 def test_for_reproducibility(fuzzer_name, testcase_path, expected_state,
