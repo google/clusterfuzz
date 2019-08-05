@@ -774,7 +774,7 @@ class AflRunnerTest(LauncherTestBase):
 
 class GetFuzzTimeoutTest(GetTimeoutTestBase):
   """Get fuzz timeout tests."""
-  function = staticmethod(launcher.get_fuzz_timeout)
+  function = staticmethod(launcher.get_fuzz_timeout(is_mutations_run=True))
 
   def test_validation(self):
     """Test that get_fuzz_timeout rejects an invalid combination of
