@@ -1397,11 +1397,6 @@ def main(argv):
   build_directory = environment.get_value('BUILD_DIR')
   fuzzer_path = engine_common.find_fuzzer_path(build_directory, target_name)
   if not fuzzer_path:
-    # This is an expected case when doing regression testing with old builds
-    # that do not have that fuzz target. It can also happen when a host sends a
-    # message to an untrusted worker that just restarted and lost information on
-    # build directory.
-    logs.log_warn('Could not find fuzz target %s.' % target_name)
     return
 
   # Install signal handler.

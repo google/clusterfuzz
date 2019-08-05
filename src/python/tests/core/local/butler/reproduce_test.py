@@ -13,11 +13,13 @@
 # limitations under the License.
 """Reproduce tool tests."""
 # pylint: disable=protected-access
-
+import os
+import tempfile
 import unittest
 
 from local.butler import reproduce
 from system import environment
+from system import shell
 from tests.test_libs import helpers
 from tests.test_libs import test_utils
 
@@ -54,7 +56,7 @@ class ReproduceTest(unittest.TestCase):
         'local.butler.reproduce._download_testcase',
         'local.butler.reproduce._get_testcase',
         'local.butler.reproduce._setup_x',
-        'local.butler.reproduce._verify_app_path_exists',
+        'local.butler.reproduce._verify_target_exists',
         'local.butler.reproduce_tool.config.ReproduceToolConfiguration',
         'system.process_handler.run_process',
         'system.process_handler.terminate_stale_application_instances',
@@ -66,13 +68,23 @@ class ReproduceTest(unittest.TestCase):
     self.mock._setup_x.return_value = []
     self.mock.run_process.return_value = (0, 0, '/tmp/testcase')
 
+    self.build_directory = tempfile.mkdtemp()
+    self.binary_path = os.path.join(self.build_directory, 'echo')
+    with open(self.binary_path, 'w') as f:
+      f.write('test')
+
+  def tearDown(self):
+    shell.remove_directory(self.build_directory)
+
   def test_reproduce_with_echo(self):
     """See if the reproduce tool can run a job configured to execute "echo"."""
+    crash_retries = 3
     reproduce._reproduce_crash('https://localhost/testcase-detail/1',
-                               '/path/to/binary')
+                               self.build_directory, crash_retries)
     reproduce._cleanup()
     self.mock.run_process.assert_called_with(
-        '/path/to/binary/echo -n /tmp/testcase',
-        current_working_directory='/path/to/binary',
+        self.binary_path + ' -n /tmp/testcase',
+        current_working_directory=self.build_directory,
         gestures=[],
         timeout=10)
+    self.assertEqual(self.mock.run_process.call_count, crash_retries)

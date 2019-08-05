@@ -124,6 +124,10 @@ def find_fuzzer_path(build_directory, fuzzer_name):
           filename == fuzzer_filename):
         return os.path.join(root, filename)
 
+  # This is an expected case when doing regression testing with old builds
+  # that do not have that fuzz target. It can also happen when a host sends a
+  # message to an untrusted worker that just restarted and lost information on
+  # build directory.
   logs.log_warn('Fuzzer: %s not found in build_directory: %s.' %
                 (fuzzer_name, build_directory))
   return None

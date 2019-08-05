@@ -57,6 +57,12 @@ def _is_running_on_app_engine():
            os.getenv('SERVER_SOFTWARE').startswith('Google App Engine/')))
 
 
+def _console_logging_enabled():
+  """Return bool on where console logging is enabled, usually for tests and
+  reproduce tool."""
+  return bool(os.getenv('LOG_TO_CONSOLE'))
+
+
 def set_logger(logger):
   """Set the logger."""
   global _logger
@@ -242,8 +248,14 @@ def configure(name, extras=None):
   if _is_running_on_app_engine():
     return
 
-  config.dictConfig(get_logging_config_dict(name))
-  set_logger(logging.getLogger(name))
+  if _console_logging_enabled():
+    logging.basicConfig()
+  else:
+    config.dictConfig(get_logging_config_dict(name))
+
+  logger = logging.getLogger(name)
+  logger.setLevel(logging.INFO)
+  set_logger(logger)
 
   # Set _default_extras so they can be used later.
   if extras is None:
@@ -256,19 +268,18 @@ def configure(name, extras=None):
   sys.excepthook = uncaught_exception_handler
 
 
-def configure_for_tests():
-  """Set logger for tests."""
-  set_logger(logging.getLogger())
-
-  logging.basicConfig()
-  _logger.setLevel(logging.INFO)
-
-
 def get_logger():
   """Return logger. We need this method because we need to mock logger."""
+  if _logger:
+    return _logger
+
   if _is_running_on_app_engine():
     # Running on App Engine.
-    return logging.getLogger()
+    set_logger(logging.getLogger())
+
+  elif _console_logging_enabled():
+    # Force a logger when console logging is enabled.
+    configure('root')
 
   return _logger
 

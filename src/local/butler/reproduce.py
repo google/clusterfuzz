@@ -87,6 +87,7 @@ def _get_testcase(testcase_id, configuration):
 
 def _download_testcase(testcase_id, testcase, configuration):
   """Download the test case and return its path."""
+  print('Downloading testcase...')
   testcase_download_url = '{url}?id={id}'.format(
       url=configuration.get('testcase_download_url'), id=testcase_id)
   response, content = http_utils.request(
@@ -141,6 +142,11 @@ def _setup_x():
   if environment.platform() != 'LINUX':
     return []
 
+  if environment.is_engine_fuzzer_job():
+    # For engine fuzzer jobs like AFL, libFuzzer, Xvfb is not needed as the
+    # those fuzz targets do not needed a UI.
+    return []
+
   environment.set_value('DISPLAY', DISPLAY)
 
   print('Starting Xvfb...')
@@ -159,7 +165,7 @@ def _setup_x():
   return [xvfb_process, blackbox_process]
 
 
-def _prepare_initial_environment(build_directory):
+def _prepare_initial_environment(build_directory, iterations):
   """Prepare common environment variables that don't depend on the job."""
   # Create a temporary directory to use as ROOT_DIR with a copy of the default
   # bot and configuration directories nested under it.
@@ -195,27 +201,28 @@ def _prepare_initial_environment(build_directory):
   # Some functionality must be disabled when running the tool.
   environment.set_value('REPRODUCE_TOOL', 'True')
 
+  # Force logging to console for this process and child processes.
+  environment.set_value('LOG_TO_CONSOLE', 'True')
 
-def _verify_app_path_exists():
-  """Ensure that we can find the test binary before running it.
+  if iterations:
+    environment.set_value('CRASH_RETRIES', iterations)
+
+
+def _verify_target_exists(build_directory):
+  """Ensure that we can find the test target before running it.
 
   Separated into its own function to simplify test behavior."""
-  app_path = environment.get_value('APP_PATH', '')
-  if not os.path.exists(app_path):
+  app_path = environment.get_value('APP_PATH')
+  if not app_path or not os.path.exists(app_path):
     raise errors.ReproduceToolUnrecoverableError(
-        'Unable to locate test binary at {app_path}.'.format(app_path=app_path))
+        'Unable to locate app binary in {build_directory}.'.format(
+            build_directory=build_directory))
 
 
 def _update_environment_for_testcase(testcase, build_directory):
   """Update environment variables that depend on the test case."""
   commands.update_environment_for_job(testcase.job_definition)
   environment.set_value('JOB_NAME', testcase.job_type)
-
-  # Update APP_PATH now that we know the application name.
-  app_path = os.path.join(build_directory, environment.get_value('APP_NAME'))
-  environment.set_value('APP_PATH', app_path)
-
-  _verify_app_path_exists()
 
   fuzzer_directory = setup.get_fuzzer_directory(testcase.fuzzer_name)
   environment.set_value('FUZZER_DIR', fuzzer_directory)
@@ -224,6 +231,8 @@ def _update_environment_for_testcase(testcase, build_directory):
 
   build_manager.set_environment_vars(
       [environment.get_value('FUZZER_DIR'), build_directory])
+
+  _verify_target_exists(build_directory)
 
 
 def _get_testcase_id_from_url(testcase_url):
@@ -243,7 +252,7 @@ def _get_testcase_id_from_url(testcase_url):
       path_parts[1] != 'testcase-detail' or not testcase_id):
     raise errors.ReproduceToolUnrecoverableError(
         'Invalid testcase URL {url}. Expected format: '
-        'https://clusterfuzz-deployment/testcase-detail/1234567890'.format(
+        'https://clusterfuzz-domain/testcase-detail/1234567890'.format(
             url=testcase_url))
 
   return testcase_id
@@ -274,9 +283,9 @@ def _prepare_environment_for_android():
   device.push_testcases_to_device()
 
 
-def _reproduce_crash(testcase_url, build_directory):
+def _reproduce_crash(testcase_url, build_directory, iterations):
   """Reproduce a crash."""
-  _prepare_initial_environment(build_directory)
+  _prepare_initial_environment(build_directory, iterations)
 
   # Validate the test case URL and fetch the tool's configuration.
   testcase_id = _get_testcase_id_from_url(testcase_url)
@@ -303,6 +312,8 @@ def _reproduce_crash(testcase_url, build_directory):
 
   x_processes = _setup_x()
   timeout = environment.get_value('TEST_TIMEOUT')
+
+  print('Running testcase...')
   result = testcase_manager.test_for_crash_with_retries(testcase, testcase_path,
                                                         timeout)
 
@@ -323,16 +334,17 @@ def _cleanup():
 def execute(args):
   """Attempt to reproduce a crash then report on the result."""
   try:
-    result = _reproduce_crash(args.testcase, args.build_dir)
+    result = _reproduce_crash(args.testcase, args.build_dir, args.iterations)
   except errors.ReproduceToolUnrecoverableError as exception:
     print(exception)
     return
+
+  print('Output:\n{output}'.format(output=result.get_stacktrace()))
 
   if result.is_crash():
     status_message = 'Test case reproduced successfully.'
   else:
     status_message = 'Unable to reproduce desired crash.'
+  print(status_message)
 
-  print('{status_message} Output:\n\n{output}'.format(
-      status_message=status_message, output=result.get_stacktrace()))
   _cleanup()
