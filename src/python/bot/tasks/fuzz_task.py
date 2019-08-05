@@ -129,6 +129,11 @@ class Crash(object):
     app_args = environment.get_value('APP_ARGS') or ''
     arguments = (app_args + ' ' + additional_args).strip()
 
+    needs_http = '-http-' in os.path.basename(crash.file_path)
+    application_command_line = (
+        testcase_manager.get_command_line_for_application(
+            crash.file_path, needs_http=needs_http))
+
     return Crash(
         file_path=crash.file_path,
         crash_time=crash.crash_time,
@@ -136,10 +141,12 @@ class Crash(object):
         resource_list=crash.resource_list,
         gestures=crash.gestures,
         unsymbolized_crash_stacktrace=orig_unsymbolized_crash_stacktrace,
-        arguments=arguments)
+        arguments=arguments,
+        application_command_line=application_command_line,
+        http_flag=needs_http)
 
   @classmethod
-  def from_engine_crash(cls, crash):
+  def from_engine_crash(cls, target_name, crash):
     """Create a Crash from a engine.Crash."""
     return Crash(
         file_path=crash.input_path,
@@ -148,10 +155,20 @@ class Crash(object):
         resource_list=[],
         gestures=[],
         unsymbolized_crash_stacktrace=crash.stacktrace,
-        arguments=crash.reproduce_args)
+        # We store the target name as the first argument.
+        arguments=[target_name] + crash.reproduce_args,
+        application_command_line='')  # TODO(ochang): Write actual command line.
 
-  def __init__(self, file_path, crash_time, return_code, resource_list,
-               gestures, unsymbolized_crash_stacktrace, arguments):
+  def __init__(self,
+               file_path,
+               crash_time,
+               return_code,
+               resource_list,
+               gestures,
+               unsymbolized_crash_stacktrace,
+               arguments,
+               application_command_line,
+               http_flag=False):
     self.file_path = file_path
     self.crash_time = crash_time
     self.return_code = return_code
@@ -162,11 +179,9 @@ class Crash(object):
     self.security_flag = False
     self.should_be_ignored = False
 
-    self.filename = os.path.basename(self.file_path)
-    self.http_flag = '-http-' in self.filename
-    self.application_command_line = (
-        testcase_manager.get_command_line_for_application(
-            self.file_path, needs_http=self.http_flag))
+    self.filename = os.path.basename(file_path)
+    self.http_flag = http_flag
+    self.application_command_line = application_command_line
     self.unsymbolized_crash_stacktrace = unsymbolized_crash_stacktrace
     state = stack_analyzer.get_crash_data(self.unsymbolized_crash_stacktrace)
     self.crash_type = state.crash_type
@@ -1432,8 +1447,15 @@ class FuzzingSession(object):
                                      self.fuzz_target.fully_qualified_name(),
                                      self.job_type, revision)
     upload_testcase_run_stats(testcase_run)
+    crashes = result.crashes
+    if crashes:
+      crashes = [
+          Crash.from_engine_crash(fuzz_target_name, crash)
+          for crash in result.crashes
+          if crash
+      ]
 
-    return result.crashes, fuzzer_metadata
+    return crashes, fuzzer_metadata
 
   def do_blackbox_fuzzing(self, fuzzer, fuzzer_directory, job_type):
     """Run blackbox fuzzing. Currently also used for engine fuzzing."""
@@ -1601,6 +1623,11 @@ class FuzzingSession(object):
 
     # Restore old values before attempting to test for reproducibility.
     set_test_timeout(self.test_timeout, 1.0)
+
+    if crashes:
+      crashes = [
+          Crash.from_testcase_manager_crash(crash) for crash in crashes if crash
+      ]
     return fuzzer_metadata, testcase_file_paths, testcases_metadata, crashes
 
   def run(self):
@@ -1681,12 +1708,10 @@ class FuzzingSession(object):
       # Not applicable to engine fuzzers.
       testcase_file_paths = []
       testcases_metadata = {}
-      crash_constructor = Crash.from_engine_crash
     else:
       fuzzer_directory = setup.get_fuzzer_directory(self.fuzzer_name)
       fuzzer_metadata, testcase_file_paths, testcases_metadata, crashes = (
           self.do_blackbox_fuzzing(fuzzer, fuzzer_directory, self.job_type))
-      crash_constructor = Crash.from_testcase_manager_crash
 
     if crashes is None:
       # Error occurred in generate_blackbox_testcases.
@@ -1707,14 +1732,6 @@ class FuzzingSession(object):
       # TODO(unassigned): Need to find a way to this efficiently before every
       # testcase is analyzed.
       android.device.initialize_device()
-
-    # Transform crashes into fuzz_task.Crash.
-    # And filter the crashes (e.g. removing errorneous crashes).
-    crashes = [
-        crash
-        for crash in [crash_constructor(raw_crash) for raw_crash in crashes]
-        if crash
-    ]
 
     project_name = data_handler.get_project_name(self.job_type)
 

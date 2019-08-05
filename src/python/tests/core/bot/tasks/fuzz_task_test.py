@@ -1362,7 +1362,12 @@ class DoEngineFuzzingTest(fake_filesystem_unittest.TestCase):
         'cf::fuzzing_strategies: strategy_1,strategy_2', log_time)
     self.mock.upload_testcase.assert_called_with('/input', log_time)
 
-    self.assertEqual(expected_crashes, crashes)
+    self.assertEqual(1, len(crashes))
+    self.assertEqual('/input', crashes[0].file_path)
+    self.assertEqual(1, crashes[0].return_code)
+    self.assertEqual('stack', crashes[0].unsymbolized_crash_stacktrace)
+    self.assertEqual(1.0, crashes[0].crash_time)
+    self.assertListEqual(['test_target', 'args'], crashes[0].arguments)
     upload_args = self.mock.upload_stats.call_args[0][0]
     testcase_run = upload_args[0]
     self.assertDictEqual({

@@ -509,6 +509,7 @@ class TestcaseRunner(object):
       self._is_black_box = False
       self._engine_impl = engine_impl
 
+      # Read target_name + args from flags file.
       additional_command_line_flags = get_additional_command_line_flags(
           testcase_path)
       self._arguments = additional_command_line_flags.split()
@@ -516,6 +517,8 @@ class TestcaseRunner(object):
 
       build_dir = environment.get_value('BUILD_DIR')
       self._target_path = engine_common.find_fuzzer_path(build_dir, target_name)
+      if not self._target_path:
+        raise RuntimeError('Failed to find target ' + target_name)
     else:
       self._is_black_box = True
       self._command = get_command_line_for_application(
