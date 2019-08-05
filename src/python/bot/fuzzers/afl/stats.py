@@ -234,7 +234,8 @@ class StatsGetter(object):
     |strategies|."""
 
     if fuzzing_strategies.use_corpus_subset:
-      self.stats['strategy_' + strategy.CORPUS_SUBSET_STRATEGY.name] = (fuzzing_strategies.corpus_subset_size)
+      self.stats['strategy_' + strategy.CORPUS_SUBSET_STRATEGY.name] = (
+          fuzzing_strategies.corpus_subset_size)
 
     if fuzzing_strategies.fast_cal == strategies.FastCal.MANUAL:
       self.stats[fuzzing_strategies.FAST_CAL_MANUAL_STRATEGY] = 1

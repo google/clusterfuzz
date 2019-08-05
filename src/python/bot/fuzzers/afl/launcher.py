@@ -1420,12 +1420,14 @@ def get_fuzz_timeout(is_mutations_run):
   hard_timeout = engine_common.get_hard_timeout()
   merge_timeout = engine_common.get_merge_timeout(DEFAULT_MERGE_TIMEOUT)
   fuzz_timeout = hard_timeout - merge_timeout
+  mutations_timeout = engine_common.get_new_testcase_mutations_timeout()
 
   if is_mutations_run:
-    fuzz_timeout -= engine_common.generate_new_testcase_mutations_timeout()
+    fuzz_timeout -= mutations_timeout
 
-  assert fuzz_timeout > 0, 'hard_timeout: %d merge_timeout: %d' % (
-      hard_timeout, merge_timeout)
+  assert fuzz_timeout > 0, (
+      'hard_timeout: %d merge_timeout: %d mutations_timeout: %d') % (
+          hard_timeout, merge_timeout, mutations_timeout)
 
   return fuzz_timeout
 
