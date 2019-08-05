@@ -1332,6 +1332,17 @@ class StackAnalyzerTestcase(unittest.TestCase):
                                   expected_state, expected_stacktrace,
                                   expected_security_flag)
 
+  def test_libfuzzer_fuzz_target_exited(self):
+    data = self._read_test_data('libfuzzer_fuzz_target_exited.txt')
+    expected_type = 'Unexpected-exit'
+    expected_state = 'clearsilver_fuzzer_file.cc\n'
+    expected_address = ''
+    expected_stacktrace = data
+    expected_security_flag = False
+    self._validate_get_crash_data(data, expected_type, expected_address,
+                                  expected_state, expected_stacktrace,
+                                  expected_security_flag)
+
   def test_windows_asan_divide_by_zero(self):
     """Test for Windows ASan divide by zero crashes."""
     data = self._read_test_data('windows_asan_divide_by_zero.txt')
