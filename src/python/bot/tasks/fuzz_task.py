@@ -36,6 +36,7 @@ from bot.fuzzers import engine_common
 from bot.fuzzers.libFuzzer import stats as libfuzzer_stats
 from bot.tasks import setup
 from bot.tasks import task_creation
+from bot.tasks import testcase_manager
 from bot.tasks import trials
 from build_management import build_manager
 from chrome import crash_uploader
@@ -51,7 +52,6 @@ from fuzzing import coverage_uploader
 from fuzzing import fuzzer_selection
 from fuzzing import gesture_handler
 from fuzzing import leak_blacklist
-from fuzzing import testcase_manager
 from google_cloud_utils import big_query
 from google_cloud_utils import blobs
 from google_cloud_utils import storage
@@ -224,7 +224,7 @@ class Crash(object):
     return None
 
 
-def find_main_crash(crashes, test_timeout):
+def find_main_crash(crashes, fuzzer_name, test_timeout):
   """Find the first reproducible crash or the first valid crash.
     And return the crash and the one_time_crasher_flag."""
   for crash in crashes:
@@ -242,7 +242,7 @@ def find_main_crash(crashes, test_timeout):
     # test_for_reproducibility. Minimize task will later update the new crash
     # type and crash state paramaters.
     if testcase_manager.test_for_reproducibility(
-        crash.file_path, None, crash.security_flag, test_timeout,
+        fuzzer_name, crash.file_path, None, crash.security_flag, test_timeout,
         crash.http_flag, crash.gestures):
       return crash, False
 
@@ -266,7 +266,7 @@ class CrashGroup(object):
 
     self.crashes = crashes
     self.main_crash, self.one_time_crasher_flag = find_main_crash(
-        crashes, context.test_timeout)
+        crashes, context.fuzzer_name, context.test_timeout)
 
     self.newly_created_testcase = None
 
@@ -1385,13 +1385,16 @@ class FuzzingSession(object):
 
     fuzzer_metadata = {}
     issue_labels = engine_common.get_issue_labels(target_path)
-    fuzzer_metadata['issue_labels'] = issue_labels
+    if issue_labels:
+      fuzzer_metadata['issue_labels'] = issue_labels
 
     issue_components = engine_common.get_issue_components(target_path)
-    fuzzer_metadata['issue_components'] = issue_components
+    if issue_components:
+      fuzzer_metadata['issue_components'] = issue_components
 
     issue_owners = engine_common.get_issue_owners(target_path)
-    fuzzer_metadata['issue_owners'] = issue_owners
+    if issue_owners:
+      fuzzer_metadata['issue_owners'] = issue_owners
 
     return result, fuzzer_metadata
 

@@ -22,6 +22,7 @@ import tempfile
 
 from base import utils
 from bot.tasks import setup
+from bot.tasks import testcase_manager
 from bot.untrusted_runner import config
 from bot.untrusted_runner import corpus_manager
 from bot.untrusted_runner import environment as untrusted_env
@@ -31,7 +32,6 @@ from bot.untrusted_runner import remote_process_host
 from bot.untrusted_runner import symbolize_host
 from build_management import build_manager
 from datastore import data_types
-from fuzzing import testcase_manager
 from google_cloud_utils import blobs
 from system import environment
 from system import process_handler

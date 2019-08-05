@@ -17,8 +17,8 @@ import os
 
 from base import utils
 from bot.fuzzers import builtin_fuzzers
+from bot.tasks import testcase_manager
 from config import local_config
-from fuzzing import testcase_manager
 from google_cloud_utils import gsutil
 from google_cloud_utils import storage
 from metrics import logs

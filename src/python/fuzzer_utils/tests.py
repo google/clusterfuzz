@@ -17,7 +17,7 @@ import os
 import random
 
 from base import utils
-from fuzzing import testcase_manager
+from bot.tasks import testcase_manager
 from metrics import logs
 
 # FIXME: Importing data_handler module is heavyweight and

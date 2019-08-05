@@ -24,13 +24,13 @@ from base import errors
 from base import tasks
 from base import utils
 from bot.fuzzers import builtin_fuzzers
+from bot.tasks import testcase_manager
 from build_management import revisions
 from datastore import data_handler
 from datastore import data_types
 from datastore import locks
 from datastore import ndb_utils
 from fuzzing import leak_blacklist
-from fuzzing import testcase_manager
 from google_cloud_utils import blobs
 from google_cloud_utils import storage
 from metrics import fuzzer_logs

@@ -19,8 +19,8 @@ import unittest
 
 from pyfakefs import fake_filesystem_unittest
 
+from bot.tasks import testcase_manager
 from crash_analysis.crash_result import CrashResult
-from fuzzing import testcase_manager
 from system import environment
 from tests.test_libs import helpers as test_helpers
 from tests.test_libs import test_utils
@@ -269,7 +269,7 @@ class GetResourcePathsTest(unittest.TestCase):
 
   def setUp(self):
     test_helpers.patch(self, [
-        'fuzzing.testcase_manager.convert_dependency_url_to_local_path',
+        'bot.tasks.testcase_manager.convert_dependency_url_to_local_path',
     ])
     self.mock.convert_dependency_url_to_local_path.side_effect = lambda x: x
 

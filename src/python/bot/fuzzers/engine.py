@@ -97,7 +97,7 @@ class Engine(object):
       max_time: Maximum allowed time for the reproduction.
 
     Returns:
-      A tuple of (return_code, output).
+      A tuple of (return_code, time_executed, output).
     """
     raise NotImplementedError
 

@@ -274,14 +274,14 @@ class LibFuzzerEngine(engine.Engine):
       max_time: Maximum allowed time for the reproduction.
 
     Returns:
-      A tuple of (return_code, output).
+      A tuple of (return_code, time_executed, output).
     """
     runner = libfuzzer.get_runner(target_path)
     launcher.set_sanitizer_options(target_path)
 
     result = runner.run_single_testcase(
         input_path, timeout=max_time, additional_args=arguments)
-    return result.return_code, result.output
+    return result.return_code, result.time_executed, result.output
 
   def minimize_corpus(self, target_path, arguments, output_dir, input_dirs,
                       max_time):

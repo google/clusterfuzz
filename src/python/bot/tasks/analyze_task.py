@@ -22,6 +22,7 @@ from base import tasks
 from base import utils
 from bot.tasks import setup
 from bot.tasks import task_creation
+from bot.tasks import testcase_manager
 from build_management import build_manager
 from chrome import crash_uploader
 from crash_analysis import crash_analyzer
@@ -29,7 +30,6 @@ from crash_analysis import severity_analyzer
 from datastore import data_handler
 from datastore import data_types
 from fuzzing import leak_blacklist
-from fuzzing import testcase_manager
 from metrics import logs
 from system import environment
 from system import process_handler
@@ -325,8 +325,8 @@ def execute_task(testcase_id, job_type):
 
   # Test for reproducibility.
   one_time_crasher_flag = not testcase_manager.test_for_reproducibility(
-      testcase_file_path, state.crash_state, security_flag, test_timeout,
-      http_flag, gestures)
+      testcase.fuzzer_name, testcase_file_path, state.crash_state,
+      security_flag, test_timeout, http_flag, gestures)
   testcase.one_time_crasher_flag = one_time_crasher_flag
 
   # Check to see if this is a duplicate.

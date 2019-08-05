@@ -34,13 +34,13 @@ from bot.minimizer import js_tokenizer
 from bot.minimizer import minimizer
 from bot.tasks import setup
 from bot.tasks import task_creation
+from bot.tasks import testcase_manager
 from build_management import build_manager
 from crash_analysis import severity_analyzer
 from crash_analysis.crash_comparer import CrashComparer
 from crash_analysis.crash_result import CrashResult
 from datastore import data_handler
 from datastore import data_types
-from fuzzing import testcase_manager
 from google_cloud_utils import blobs
 from metrics import logs
 from platforms import android
