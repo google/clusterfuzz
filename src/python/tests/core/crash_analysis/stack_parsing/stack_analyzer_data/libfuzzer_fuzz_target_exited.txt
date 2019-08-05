@@ -1,0 +1,12 @@
+==588579== ERROR: libFuzzer: fuzz target exited
+    #0 0x4e8327 in __sanitizer_print_stack_trace third_party/llvm/llvm/projects/compiler-rt/lib/asan/asan_stack.cc:38:3
+    #1 0x55209b in ExitCallback third_party/llvm/llvm/lib/Fuzzer/FuzzerLoop.cpp:211:5
+    #2 0x55209b in fuzzer::Fuzzer::StaticExitCallback() third_party/llvm/llvm/lib/Fuzzer/FuzzerLoop.cpp:180
+    #3 0x4f6a63 in LLVMFuzzerTestOneInput third_party/clearsilver/clearsilver_fuzzer_file.cc:4:16
+    #4 0x553b8e in fuzzer::Fuzzer::ExecuteCallback(unsigned char const*, unsigned long) third_party/llvm/llvm/lib/Fuzzer/FuzzerLoop.cpp:494:13
+    #5 0x55363e in fuzzer::Fuzzer::ShuffleAndMinimize(std::vector<std::vector<unsigned char, std::allocator<unsigned char> >, std::allocator<std::vector<unsigned char, std::allocator<unsigned char> > > >*) third_party/llvm/llvm/lib/Fuzzer/FuzzerLoop.cpp:389:3
+    #6 0x54bbbe in fuzzer::FuzzerDriver(int*, char***, int (*)(unsigned char const*, unsigned long)) third_party/llvm/llvm/lib/Fuzzer/FuzzerDriver.cpp:749:6
+    #7 0x55d3a2 in main third_party/llvm/llvm/lib/Fuzzer/FuzzerMain.cpp:20:10
+
+SUMMARY: libFuzzer: fuzz target exited
+MS: 0 ; base unit: 0000000000000000000000000000000000000000
