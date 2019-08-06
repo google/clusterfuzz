@@ -876,8 +876,9 @@ class Handler(base_handler.Handler):
       logs.log_error('Failed to get AFL Fuzzer entity.')
       return
 
-    bucket_config = local_config.ProjectConfig().sub_config(
-        'project_setup.build_buckets')
+    project_setup_config = local_config.ProjectConfig().sub_config(
+        'project_setup')
+    bucket_config = project_setup_config.sub_config('build_buckets')
 
     if not bucket_config:
       raise ProjectSetupError('Project setup buckets not specified.')
@@ -885,7 +886,8 @@ class Handler(base_handler.Handler):
     config = ProjectSetup(
         BUILD_BUCKET_PATH_TEMPLATE,
         REVISION_URL,
-        segregate_projects=True,
+        segregate_projects=project_setup_config.get('segregate_projects',
+                                                    False),
         engine_build_buckets={
             'libfuzzer': bucket_config.get('libfuzzer'),
             'libfuzzer-i386': bucket_config.get('libfuzzer_i386'),
@@ -897,7 +899,7 @@ class Handler(base_handler.Handler):
             'libfuzzer': libfuzzer,
             'afl': afl,
         },
-        add_info_labels=True)
+        add_info_labels=project_setup_config.get('add_info_labels'))
 
     projects = get_projects()
     config.set_up(projects)
