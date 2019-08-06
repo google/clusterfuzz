@@ -553,20 +553,29 @@ class GetFormattedReproductionHelpTest(unittest.TestCase):
     job = data_types.Job()
     job.name = 'my_job'
     job.environment_string = (
-        'HELP_FORMAT = prefix %TESTCASE% %FUZZER_NAME% %FUZZ_TARGET% suffix')
+        'HELP_FORMAT = -%TESTCASE%\\n-%FUZZER_NAME%\\n-%FUZZ_TARGET%\\n'
+        '-%PROJECT%\\n\n'
+        'PROJECT_NAME = test_project')
     job.put()
+
+    fuzz_target = data_types.FuzzTarget()
+    fuzz_target.binary = 'test_fuzzer'
+    fuzz_target.project = 'test_project'
+    fuzz_target.engine = 'libFuzzer'
+    fuzz_target.put()
 
   def test_libfuzzer_testcase(self):
     """Test the function with a libFuzzer test case."""
     testcase = data_types.Testcase()
     testcase.fuzzer_name = 'libFuzzer'
-    testcase.overridden_fuzzer_name = 'libFuzzer_test_fuzzer'
+    testcase.overridden_fuzzer_name = 'libFuzzer_test_project_test_fuzzer'
     testcase.job_type = 'my_job'
     testcase.put()
 
     self.assertEquals(
         data_handler.get_formatted_reproduction_help(testcase),
-        'prefix {id} libFuzzer test_fuzzer suffix'.format(id=testcase.key.id()))
+            '-{id}\n-libFuzzer\n-test_fuzzer\n-test_project\n'.format(
+                id=testcase.key.id()))
 
   def test_traditional_testcase(self):
     """Test the function with a traditional fuzzer test case."""
@@ -577,4 +586,5 @@ class GetFormattedReproductionHelpTest(unittest.TestCase):
 
     self.assertEquals(
         data_handler.get_formatted_reproduction_help(testcase),
-        'prefix {id} simple_fuzzer  suffix'.format(id=testcase.key.id()))
+        '-{id}\n-simple_fuzzer\n-\n-test_project\n'.format(
+            id=testcase.key.id()))

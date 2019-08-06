@@ -361,6 +361,28 @@ def _get_blob_size_string(blob_key):
   return utils.get_size_string(blob_size)
 
 
+def _format_reproduction_help(reproduction_help):
+  """Format a reproduction help string as HTML."""
+  def _linkify(plain_text_input):
+    """Convert links in a plain text string to HTML."""
+    if (not plain_text_input.startswith('http://') and
+        not plain_text_input.startswith('https://')):
+      return plain_text_input
+
+    return '<a href="{url}">{url}</a>'.format(url=plain_text_input)
+
+  result = ''
+  for line in reproduction_help.splitlines():
+    # Add a break before each line except the first.
+    if result:
+      result += '<br>'
+
+    input_parts = [_linkify(part) for part in line.split(' ')]
+    result += ' '.join(input_parts)
+
+  return result
+
+
 def get_testcase_detail(testcase):
   """Get testcase detail for rendering the testcase detail page."""
   config = db_config.get()
@@ -368,9 +390,9 @@ def get_testcase_detail(testcase):
   crash_state = testcase.crash_state
   crash_state_lines = crash_state.strip().splitlines()
   crash_type = data_handler.get_crash_type_string(testcase)
-  formatted_reproduction_help = data_handler.get_formatted_reproduction_help(
-      testcase)
-  # TODO(mbarbella): Remove this once everything has been moved to HELP_FORMAT.
+  formatted_reproduction_help = _format_reproduction_help(
+      data_handler.get_formatted_reproduction_help(testcase))
+  # When we have a HELP_TEMPLATE, ignore any default values set for HELP_URL.
   if not formatted_reproduction_help:
     reproduction_help_url = data_handler.get_reproduction_help_url(
         testcase, config)
