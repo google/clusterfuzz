@@ -13,6 +13,7 @@
 # limitations under the License.
 """Functions for testcase management."""
 
+from builtins import object
 from builtins import range
 import base64
 import collections
@@ -22,6 +23,8 @@ import re
 import zlib
 
 from base import utils
+from bot.fuzzers import engine
+from bot.fuzzers import engine_common
 from build_management import revisions
 from crash_analysis.crash_comparer import CrashComparer
 from crash_analysis.crash_result import CrashResult
@@ -71,6 +74,14 @@ BAD_STATE_HINTS = [
     # Android logging issues.
     'logging service has stopped',
 ]
+
+
+class TestcaseManagerError(Exception):
+  """Base exception."""
+
+
+class TargetNotFoundError(TestcaseManagerError):
+  """Error when a fuzz target is not found."""
 
 
 def create_testcase_list_file(output_directory):
@@ -487,6 +498,174 @@ def run_testcase_and_return_result_in_queue(crash_queue,
                    'run_testcase_and_return_result_in_queue.')
 
 
+class TestcaseRunner(object):
+  """Testcase runner."""
+
+  def __init__(self,
+               fuzzer_name,
+               testcase_path,
+               test_timeout,
+               gestures,
+               needs_http=False):
+    self._testcase_path = testcase_path
+    self._test_timeout = test_timeout
+    self._gestures = gestures
+    self._needs_http = needs_http
+
+    engine_impl = engine.get(fuzzer_name)
+    if engine_impl:
+      self._is_black_box = False
+      self._engine_impl = engine_impl
+
+      # Read target_name + args from flags file.
+      additional_command_line_flags = get_additional_command_line_flags(
+          testcase_path)
+      self._arguments = additional_command_line_flags.split()
+      target_name = self._arguments.pop(0)
+
+      build_dir = environment.get_value('BUILD_DIR')
+      self._target_path = engine_common.find_fuzzer_path(build_dir, target_name)
+      if not self._target_path:
+        raise TargetNotFoundError('Failed to find target ' + target_name)
+    else:
+      self._is_black_box = True
+      self._command = get_command_line_for_application(
+          testcase_path, needs_http=needs_http)
+
+  def run(self, round_number):
+    """Run the testcase once."""
+    app_directory = environment.get_value('APP_DIR')
+    warmup_timeout = environment.get_value('WARMUP_TIMEOUT')
+    run_timeout = warmup_timeout if round_number == 1 else self._test_timeout
+
+    if self._is_black_box:
+      return_code, crash_time, output = process_handler.run_process(
+          self._command,
+          timeout=run_timeout,
+          gestures=self._gestures,
+          current_working_directory=app_directory)
+    else:
+      result = self._engine_impl.reproduce(
+          self._target_path, self._testcase_path, self._arguments, run_timeout)
+      return_code = result.return_code
+      crash_time = result.time_executed
+      output = result.output
+
+    process_handler.terminate_stale_application_instances()
+
+    crash_result = CrashResult(return_code, crash_time, output)
+    if not crash_result.is_crash():
+      logs.log(
+          'No crash occurred (round {round_number}).'.format(
+              round_number=round_number),
+          output=output)
+
+    return crash_result
+
+  def _pre_run_cleanup(self):
+    """Common cleanup before running a testcase."""
+    # Cleanup any existing application instances and user profile directories.
+    # Cleaning up temp user profile directories. Should be done before calling
+    # |get_command_line_for_application| call since that creates dependencies in
+    # the profile folder.
+    process_handler.terminate_stale_application_instances()
+    shell.clear_temp_directory()
+
+  def _get_crash_state(self, round_number, crash_result):
+    """Get crash state from a CrashResult."""
+    state = crash_result.get_symbolized_data()
+    logs.log(
+        ('Crash occurred in {crash_time} seconds (round {round_number}). '
+         'State:\n{crash_state}').format(
+             crash_time=crash_result.crash_time,
+             round_number=round_number,
+             crash_state=state.crash_state),
+        output=state.crash_stacktrace)
+
+    return state
+
+  def reproduce_with_retries(self,
+                             retries,
+                             expected_state=None,
+                             expected_security_flag=None,
+                             flaky_stacktrace=False):
+    """Try reproducing a crash with retries."""
+    self._pre_run_cleanup()
+    crash_result = None
+
+    for round_number in range(1, retries + 1):
+      crash_result = self.run(round_number)
+      state = self._get_crash_state(round_number, crash_result)
+
+      if not expected_state:
+        logs.log('Crash stacktrace comparison skipped.')
+        return crash_result
+
+      if crash_result.should_ignore():
+        logs.log('Crash stacktrace matched ignore signatures, ignored.')
+        continue
+
+      if crash_result.is_security_issue() != expected_security_flag:
+        logs.log('Crash security flag does not match, ignored.')
+        continue
+
+      if flaky_stacktrace:
+        logs.log('Crash stacktrace is marked flaky, skipping comparison.')
+        return crash_result
+
+      crash_comparer = CrashComparer(state.crash_state, expected_state)
+      if crash_comparer.is_similar():
+        logs.log('Crash stacktrace is similar to original stacktrace.')
+        return crash_result
+      else:
+        logs.log('Crash stacktrace does not match original stacktrace.')
+
+    logs.log('Didn\'t crash at all.')
+    return CrashResult(return_code=0, crash_time=0, output=crash_result.output)
+
+  def test_reproduce_reliability(self, retries, expected_state,
+                                 expected_security_flag):
+    """Test to see if a crash is fully reproducible or is a one-time crasher."""
+    self._pre_run_cleanup()
+
+    reproducible_crash_target_count = retries * REPRODUCIBILITY_FACTOR
+    round_number = 0
+    crash_count = 0
+    for round_number in range(1, retries + 1):
+      # Bail out early if there is no hope of finding a reproducible crash.
+      if (retries - round_number + crash_count + 1 <
+          reproducible_crash_target_count):
+        break
+
+      crash_result = self.run(round_number)
+      state = self._get_crash_state(round_number, crash_result)
+
+      # If we don't have an expected crash state, set it to the one from initial
+      # crash.
+      if not expected_state:
+        expected_state = state.crash_state
+
+      if crash_result.is_security_issue() != expected_security_flag:
+        logs.log('Detected a crash without the correct security flag.')
+        continue
+
+      crash_comparer = CrashComparer(state.crash_state, expected_state)
+      if not crash_comparer.is_similar():
+        logs.log(
+            'Detected a crash with an unrelated state: '
+            'Expected(%s), Found(%s).' % (expected_state, state.crash_state))
+        continue
+
+      crash_count += 1
+      if crash_count >= reproducible_crash_target_count:
+        logs.log('Crash is reproducible.')
+        return True
+
+    logs.log('Crash is not reproducible. Crash count: %d/%d.' % (crash_count,
+                                                                 round_number))
+    return False
+
+
 def test_for_crash_with_retries(testcase,
                                 testcase_path,
                                 test_timeout,
@@ -494,153 +673,40 @@ def test_for_crash_with_retries(testcase,
                                 compare_crash=True):
   """Test for a crash and return crash parameters like crash type, crash state,
   crash stacktrace, etc."""
-  # Cleanup any existing application instances and user profile directories.
-  # Cleaning up temp clears user profile directories and should be done before
-  # calling |get_command_line_for_application| call since that creates
-  # dependencies in the profile folder.
-  process_handler.terminate_stale_application_instances()
-  shell.clear_temp_directory()
+  try:
+    runner = TestcaseRunner(testcase.fuzzer_name, testcase_path, test_timeout,
+                            testcase.gestures, http_flag)
+  except TargetNotFoundError:
+    # If a target isn't found, treat it as not crashing.
+    return CrashResult(return_code=0, crash_time=0, output='')
 
-  app_directory = environment.get_value('APP_DIR')
-  command = get_command_line_for_application(
-      testcase_path, needs_http=http_flag)
   crash_retries = environment.get_value('CRASH_RETRIES')
-  flaky_stacktrace = testcase.flaky_stack
-  warmup_timeout = environment.get_value('WARMUP_TIMEOUT')
+  if compare_crash:
+    expected_state = testcase.crash_state
+    expected_security_flag = testcase.security_flag
+  else:
+    expected_state = None
+    expected_security_flag = None
 
-  logs.log('Testing for crash (command="%s").' % command)
-
-  for round_number in range(1, crash_retries + 1):
-    run_timeout = warmup_timeout if round_number == 1 else test_timeout
-    # TODO(ochang): Set up engine for greybox testcases.
-    return_code, crash_time, output = process_handler.run_process(
-        command,
-        timeout=run_timeout,
-        gestures=testcase.gestures,
-        current_working_directory=app_directory)
-    process_handler.terminate_stale_application_instances()
-
-    crash_result = CrashResult(return_code, crash_time, output)
-    if not crash_result.is_crash():
-      logs.log(
-          'No crash occurred (round {round_number}).'.format(
-              round_number=round_number),
-          output=output)
-      continue
-
-    state = crash_result.get_symbolized_data()
-    logs.log(
-        ('Crash occurred in {crash_time} seconds (round {round_number}). '
-         'State:\n{crash_state}').format(
-             crash_time=crash_time,
-             round_number=round_number,
-             crash_state=state.crash_state),
-        output=state.crash_stacktrace)
-
-    if not compare_crash or not testcase.crash_state:
-      logs.log('Crash stacktrace comparison skipped.')
-      return crash_result
-
-    if crash_result.should_ignore():
-      logs.log('Crash stacktrace matched ignore signatures, ignored.')
-      continue
-
-    if crash_result.is_security_issue() != testcase.security_flag:
-      logs.log('Crash security flag does not match, ignored.')
-      continue
-
-    if flaky_stacktrace:
-      logs.log('Crash stacktrace is marked flaky, skipping comparison.')
-      return crash_result
-
-    crash_comparer = CrashComparer(state.crash_state, testcase.crash_state)
-    if crash_comparer.is_similar():
-      logs.log('Crash stacktrace is similar to original stacktrace.')
-      return crash_result
-    else:
-      logs.log('Crash stacktrace does not match original stacktrace.')
-
-  logs.log("Didn't crash at all.")
-  crash_result = CrashResult(return_code=0, crash_time=0, output=output)
-  return crash_result
+  return runner.reproduce_with_retries(crash_retries, expected_state,
+                                       expected_security_flag,
+                                       testcase.flaky_stack)
 
 
-def test_for_reproducibility(testcase_path, expected_state,
+def test_for_reproducibility(fuzzer_name, testcase_path, expected_state,
                              expected_security_flag, test_timeout, http_flag,
                              gestures):
   """Test to see if a crash is fully reproducible or is a one-time crasher."""
-  # Cleanup any existing application instances and user profile directories.
-  # Cleaning up temp clears user profile directories and should be done before
-  # calling |get_command_line_for_application| call since that creates
-  # dependencies in the profile folder.
-  process_handler.terminate_stale_application_instances()
-  shell.clear_temp_directory()
+  try:
+    runner = TestcaseRunner(fuzzer_name, testcase_path, test_timeout, gestures,
+                            http_flag)
+  except TargetNotFoundError:
+    # If a target isn't found, treat it as not crashing.
+    return False
 
-  app_directory = environment.get_value('APP_DIR')
-  command = get_command_line_for_application(
-      testcase_path, needs_http=http_flag)
-  crash_count = 0
   crash_retries = environment.get_value('CRASH_RETRIES')
-  reproducible_crash_target_count = crash_retries * REPRODUCIBILITY_FACTOR
-  warmup_timeout = environment.get_value('WARMUP_TIMEOUT')
-
-  logs.log('Testing for crash (command="%s").' % command)
-
-  round_number = 0
-  for round_number in range(1, crash_retries + 1):
-    # Bail out early if there is no hope of finding a reproducible crash.
-    if (crash_retries - round_number + crash_count + 1 <
-        reproducible_crash_target_count):
-      break
-
-    run_timeout = warmup_timeout if round_number == 1 else test_timeout
-    return_code, crash_time, output = process_handler.run_process(
-        command,
-        timeout=run_timeout,
-        gestures=gestures,
-        current_working_directory=app_directory)
-    process_handler.terminate_stale_application_instances()
-
-    crash_result = CrashResult(return_code, crash_time, output)
-    if not crash_result.is_crash():
-      logs.log(
-          'No crash occurred (round {round_number}).'.format(
-              round_number=round_number),
-          output=output)
-      continue
-
-    state = crash_result.get_symbolized_data()
-    logs.log(
-        ('Crash occurred in {crash_time} seconds (round {round_number}). '
-         'State:\n{crash_state}').format(
-             crash_time=crash_time,
-             round_number=round_number,
-             crash_state=state.crash_state),
-        output=state.crash_stacktrace)
-
-    # If we don't have an expected crash state, set it to the one from initial
-    # crash.
-    if not expected_state:
-      expected_state = state.crash_state
-
-    if crash_result.is_security_issue() != expected_security_flag:
-      logs.log('Detected a crash without the correct security flag.')
-      continue
-
-    crash_comparer = CrashComparer(state.crash_state, expected_state)
-    if not crash_comparer.is_similar():
-      logs.log('Detected a crash with an unrelated state: '
-               'Expected(%s), Found(%s).' % (expected_state, state.crash_state))
-      continue
-
-    crash_count += 1
-    if crash_count >= reproducible_crash_target_count:
-      logs.log('Crash is reproducible.')
-      return True
-
-  logs.log('Crash is not reproducible. Crash count: %d/%d.' % (crash_count,
-                                                               round_number))
-  return False
+  return runner.test_reproduce_reliability(crash_retries, expected_state,
+                                           expected_security_flag)
 
 
 def prepare_log_for_upload(symbolized_output, return_code):
