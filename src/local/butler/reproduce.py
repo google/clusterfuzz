@@ -123,7 +123,8 @@ def _download_testcase(testcase_id, testcase, configuration):
 
     testcase_path = None
     for file_name in file_list:
-      if testcase.absolute_path.endswith(file_name):
+      if os.path.basename(file_name) == os.path.basename(
+          testcase.absolute_path):
         testcase_path = os.path.join(testcase_directory, file_name)
         break
 
