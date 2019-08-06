@@ -79,8 +79,10 @@ class ReproduceTest(unittest.TestCase):
   def test_reproduce_with_echo(self):
     """See if the reproduce tool can run a job configured to execute "echo"."""
     crash_retries = 3
+    disable_xvfb = False
     reproduce._reproduce_crash('https://localhost/testcase-detail/1',
-                               self.build_directory, crash_retries)
+                               self.build_directory, crash_retries,
+                               disable_xvfb)
     reproduce._cleanup()
     self.mock.run_process.assert_called_with(
         self.binary_path + ' -n /tmp/testcase',
