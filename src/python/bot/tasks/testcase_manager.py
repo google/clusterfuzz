@@ -537,8 +537,12 @@ class TestcaseRunner(object):
           gestures=self._gestures,
           current_working_directory=app_directory)
     else:
-      return_code, crash_time, output = self._engine_impl.reproduce(
-          self._target_path, self._testcase_path, self._arguments, run_timeout)
+      result = self._engine_impl.reproduce(self._target_path,
+                                           self._testcase_path, self._arguments,
+                                           run_timeout)
+      return_code = result.return_code
+      crash_time = result.time_executed
+      output = result.output
 
     process_handler.terminate_stale_application_instances()
 
