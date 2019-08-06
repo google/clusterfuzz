@@ -29,6 +29,7 @@ from datastore import ndb
 from google_cloud_utils import pubsub
 from handlers.cron import project_setup
 from tests.test_libs import helpers
+from tests.test_libs import mock_config
 from tests.test_libs import test_utils
 
 DATA_DIRECTORY = os.path.join(os.path.dirname(__file__), 'project_setup_data')
@@ -109,8 +110,8 @@ def _mock_get_or_create_service_account(project):
 
 
 @test_utils.with_cloud_emulators('datastore', 'pubsub')
-class ProjectSetupTest(unittest.TestCase):
-  """Test project_setup."""
+class OssFuzzProjectSetupTest(unittest.TestCase):
+  """Test project_setup for OSS-Fuzz."""
 
   def setUp(self):
     self.app = webtest.TestApp(
@@ -164,15 +165,14 @@ class ProjectSetupTest(unittest.TestCase):
     self.afl.put()
 
     helpers.patch(self, [
-        'base.utils.is_oss_fuzz',
-        'config.local_config.Config.sub_config',
+        'config.local_config.ProjectConfig',
         ('get_application_id_1',
          'google.appengine.api.app_identity.get_application_id'),
         ('get_application_id_2', 'base.utils.get_application_id'),
         'google_cloud_utils.storage.build',
         'time.sleep',
         'handlers.base_handler.Handler.is_cron',
-        'handlers.cron.project_setup.get_projects',
+        'handlers.cron.project_setup.get_oss_fuzz_projects',
         'handlers.cron.service_accounts.get_or_create_service_account',
         'handlers.cron.service_accounts.set_service_account_roles',
     ])
@@ -180,20 +180,22 @@ class ProjectSetupTest(unittest.TestCase):
     self.mock.get_or_create_service_account.side_effect = (
         _mock_get_or_create_service_account)
 
-    self.mock.is_oss_fuzz.return_value = True
-
-    def mock_config_get(name):
-      buckets = {
-          'afl': 'clusterfuzz-builds-afl',
-          'dataflow': 'clusterfuzz-builds-dataflow',
-          'libfuzzer': 'clusterfuzz-builds',
-          'libfuzzer_i386': 'clusterfuzz-builds-i386',
-          'no_engine': 'clusterfuzz-builds-no-engine',
-      }
-
-      return buckets.get(name)
-
-    self.mock.sub_config.return_value.get.side_effect = mock_config_get
+    self.mock.ProjectConfig.return_value = mock_config.MockConfig({
+        'project_setup': {
+            'source': 'oss-fuzz',
+            'build_type': 'RELEASE_BUILD_BUCKET_PATH',
+            'segregate_projects': True,
+            'add_info_labels': True,
+            'add_revision_mappings': True,
+            'build_buckets': {
+                'afl': 'clusterfuzz-builds-afl',
+                'dataflow': 'clusterfuzz-builds-dataflow',
+                'libfuzzer': 'clusterfuzz-builds',
+                'libfuzzer_i386': 'clusterfuzz-builds-i386',
+                'no_engine': 'clusterfuzz-builds-no-engine',
+            }
+        }
+    })
 
   def test_execute(self):
     """Tests executing of cron job."""
@@ -216,7 +218,7 @@ class ProjectSetupTest(unittest.TestCase):
     pubsub_client.create_topic(other_topic_name)
     pubsub_client.create_subscription(old_subscription_name, old_topic_name)
 
-    self.mock.get_projects.return_value = [
+    self.mock.get_oss_fuzz_projects.return_value = [
         ('lib1', {
             'homepage': 'http://example.com',
             'primary_contact': 'primary@example.com',
@@ -289,9 +291,9 @@ class ProjectSetupTest(unittest.TestCase):
         'gs://clusterfuzz-builds/lib1/lib1-address-([0-9]+).zip\n'
         'PROJECT_NAME = lib1\n'
         'SUMMARY_PREFIX = lib1\n'
+        'MANAGED = True\n'
         'REVISION_VARS_URL = https://commondatastorage.googleapis.com/'
         'clusterfuzz-builds/lib1/lib1-address-%s.srcmap.json\n'
-        'MANAGED = True\n'
         'FUZZ_LOGS_BUCKET = lib1-logs.clusterfuzz-external.appspot.com\n'
         'CORPUS_BUCKET = lib1-corpus.clusterfuzz-external.appspot.com\n'
         'QUARANTINE_BUCKET = lib1-quarantine.clusterfuzz-external.appspot.com\n'
@@ -308,9 +310,9 @@ class ProjectSetupTest(unittest.TestCase):
         'gs://clusterfuzz-builds/lib2/lib2-address-([0-9]+).zip\n'
         'PROJECT_NAME = lib2\n'
         'SUMMARY_PREFIX = lib2\n'
+        'MANAGED = True\n'
         'REVISION_VARS_URL = https://commondatastorage.googleapis.com/'
         'clusterfuzz-builds/lib2/lib2-address-%s.srcmap.json\n'
-        'MANAGED = True\n'
         'FUZZ_LOGS_BUCKET = lib2-logs.clusterfuzz-external.appspot.com\n'
         'CORPUS_BUCKET = lib2-corpus.clusterfuzz-external.appspot.com\n'
         'QUARANTINE_BUCKET = lib2-quarantine.clusterfuzz-external.appspot.com\n'
@@ -327,9 +329,9 @@ class ProjectSetupTest(unittest.TestCase):
         'gs://clusterfuzz-builds/lib3/lib3-address-([0-9]+).zip\n'
         'PROJECT_NAME = lib3\n'
         'SUMMARY_PREFIX = lib3\n'
+        'MANAGED = True\n'
         'REVISION_VARS_URL = https://commondatastorage.googleapis.com/'
         'clusterfuzz-builds/lib3/lib3-address-%s.srcmap.json\n'
-        'MANAGED = True\n'
         'FUZZ_LOGS_BUCKET = lib3-logs.clusterfuzz-external.appspot.com\n'
         'CORPUS_BUCKET = lib3-corpus.clusterfuzz-external.appspot.com\n'
         'QUARANTINE_BUCKET = lib3-quarantine.clusterfuzz-external.appspot.com\n'
@@ -347,9 +349,9 @@ class ProjectSetupTest(unittest.TestCase):
         'gs://clusterfuzz-builds-i386/lib3/lib3-address-([0-9]+).zip\n'
         'PROJECT_NAME = lib3\n'
         'SUMMARY_PREFIX = lib3\n'
+        'MANAGED = True\n'
         'REVISION_VARS_URL = https://commondatastorage.googleapis.com/'
         'clusterfuzz-builds-i386/lib3/lib3-address-%s.srcmap.json\n'
-        'MANAGED = True\n'
         'FUZZ_LOGS_BUCKET = lib3-logs.clusterfuzz-external.appspot.com\n'
         'CORPUS_BUCKET = lib3-corpus.clusterfuzz-external.appspot.com\n'
         'QUARANTINE_BUCKET = lib3-quarantine.clusterfuzz-external.appspot.com\n'
@@ -367,9 +369,9 @@ class ProjectSetupTest(unittest.TestCase):
         'gs://clusterfuzz-builds/lib3/lib3-memory-([0-9]+).zip\n'
         'PROJECT_NAME = lib3\n'
         'SUMMARY_PREFIX = lib3\n'
+        'MANAGED = True\n'
         'REVISION_VARS_URL = https://commondatastorage.googleapis.com/'
         'clusterfuzz-builds/lib3/lib3-memory-%s.srcmap.json\n'
-        'MANAGED = True\n'
         'FUZZ_LOGS_BUCKET = lib3-logs.clusterfuzz-external.appspot.com\n'
         'CORPUS_BUCKET = lib3-corpus.clusterfuzz-external.appspot.com\n'
         'QUARANTINE_BUCKET = lib3-quarantine.clusterfuzz-external.appspot.com\n'
@@ -388,9 +390,9 @@ class ProjectSetupTest(unittest.TestCase):
         'gs://clusterfuzz-builds/lib3/lib3-undefined-([0-9]+).zip\n'
         'PROJECT_NAME = lib3\n'
         'SUMMARY_PREFIX = lib3\n'
+        'MANAGED = True\n'
         'REVISION_VARS_URL = https://commondatastorage.googleapis.com/'
         'clusterfuzz-builds/lib3/lib3-undefined-%s.srcmap.json\n'
-        'MANAGED = True\n'
         'FUZZ_LOGS_BUCKET = lib3-logs.clusterfuzz-external.appspot.com\n'
         'CORPUS_BUCKET = lib3-corpus.clusterfuzz-external.appspot.com\n'
         'QUARANTINE_BUCKET = lib3-quarantine.clusterfuzz-external.appspot.com\n'
@@ -407,9 +409,9 @@ class ProjectSetupTest(unittest.TestCase):
         'gs://clusterfuzz-builds-afl/lib1/lib1-address-([0-9]+).zip\n'
         'PROJECT_NAME = lib1\n'
         'SUMMARY_PREFIX = lib1\n'
+        'MANAGED = True\n'
         'REVISION_VARS_URL = https://commondatastorage.googleapis.com/'
         'clusterfuzz-builds-afl/lib1/lib1-address-%s.srcmap.json\n'
-        'MANAGED = True\n'
         'FUZZ_LOGS_BUCKET = lib1-logs.clusterfuzz-external.appspot.com\n'
         'CORPUS_BUCKET = lib1-corpus.clusterfuzz-external.appspot.com\n'
         'QUARANTINE_BUCKET = lib1-quarantine.clusterfuzz-external.appspot.com\n'
@@ -429,9 +431,9 @@ class ProjectSetupTest(unittest.TestCase):
         'gs://clusterfuzz-builds/lib5/lib5-address-([0-9]+).zip\n'
         'PROJECT_NAME = lib5\n'
         'SUMMARY_PREFIX = lib5\n'
+        'MANAGED = True\n'
         'REVISION_VARS_URL = https://commondatastorage.googleapis.com/'
         'clusterfuzz-builds/lib5/lib5-address-%s.srcmap.json\n'
-        'MANAGED = True\n'
         'FUZZ_LOGS_BUCKET = lib5-logs.clusterfuzz-external.appspot.com\n'
         'CORPUS_BUCKET = lib5-corpus.clusterfuzz-external.appspot.com\n'
         'QUARANTINE_BUCKET = lib5-quarantine.clusterfuzz-external.appspot.com\n'
@@ -448,9 +450,9 @@ class ProjectSetupTest(unittest.TestCase):
         'gs://clusterfuzz-builds/lib6/lib6-address-([0-9]+).zip\n'
         'PROJECT_NAME = lib6\n'
         'SUMMARY_PREFIX = lib6\n'
+        'MANAGED = True\n'
         'REVISION_VARS_URL = https://commondatastorage.googleapis.com/'
         'clusterfuzz-builds/lib6/lib6-address-%s.srcmap.json\n'
-        'MANAGED = True\n'
         'FUZZ_LOGS_BUCKET = lib6-logs.clusterfuzz-external.appspot.com\n'
         'CORPUS_BUCKET = lib6-corpus.clusterfuzz-external.appspot.com\n'
         'QUARANTINE_BUCKET = lib6-quarantine.clusterfuzz-external.appspot.com\n'
@@ -1493,7 +1495,7 @@ class MockRequestsGet(object):
 
 @test_utils.with_cloud_emulators('datastore')
 class GetLibrariesTest(unittest.TestCase):
-  """Test get_projects()."""
+  """Test get_oss_fuzz_projects()."""
 
   def setUp(self):
     data_types.Config(github_credentials='client_id;client_secret').put()
@@ -1501,9 +1503,9 @@ class GetLibrariesTest(unittest.TestCase):
     helpers.patch(self, ['requests.get'])
     self.mock.get.side_effect = MockRequestsGet
 
-  def test_get_projects(self):
-    """Tests get_projects()."""
-    libraries = project_setup.get_projects()
+  def test_get_oss_fuzz_projects(self):
+    """Tests get_oss_fuzz_projects()."""
+    libraries = project_setup.get_oss_fuzz_projects()
     self.assertListEqual(
         sorted(libraries), [('boringssl', {
             'homepage': 'https://boringssl.googlesource.com/boringssl/'
@@ -1514,3 +1516,73 @@ class GetLibrariesTest(unittest.TestCase):
                 'path': 'path/Dockerfile',
             }
         })])
+
+
+@test_utils.with_cloud_emulators('datastore', 'pubsub')
+class GenericProjectSetupTest(unittest.TestCase):
+  """Test generic project setup."""
+
+  def setUp(self):
+    self.app = webtest.TestApp(
+        webapp2.WSGIApplication([('/setup', project_setup.Handler)]))
+
+    helpers.patch_environ(self)
+
+    self.libfuzzer = data_types.Fuzzer(name='libFuzzer', jobs=[])
+    self.libfuzzer.put()
+
+    self.afl = data_types.Fuzzer(name='afl', jobs=[])
+    self.afl.put()
+
+    helpers.patch(self, [
+        'config.local_config.ProjectConfig',
+        ('get_application_id_1',
+         'google.appengine.api.app_identity.get_application_id'),
+        ('get_application_id_2', 'base.utils.get_application_id'),
+        'google_cloud_utils.storage.build',
+        'google_cloud_utils.storage.read_data',
+        'time.sleep',
+        'handlers.base_handler.Handler.is_cron',
+    ])
+
+    self.mock.read_data.return_value = (
+        '[{"build_path": '
+        '"gs://bucket/a-b/%ENGINE%/%SANITIZER%/'
+        '%TARGET%/([0-9]+).zip", '
+        '"name": "//a/b", "fuzzing_engines": ["libfuzzer"], '
+        '"sanitizers": ["address"]}]')
+
+    self.mock.ProjectConfig.return_value = mock_config.MockConfig({
+        'project_setup': {
+            'source': 'gs://bucket/projects.json',
+            'build_type': 'FUZZ_TARGET_BUILD_BUCKET_PATH',
+            'build_buckets': {
+                'afl': 'clusterfuzz-builds-afl',
+                'dataflow': 'clusterfuzz-builds-dataflow',
+                'libfuzzer': 'clusterfuzz-builds',
+                'libfuzzer_i386': 'clusterfuzz-builds-i386',
+                'no_engine': 'clusterfuzz-builds-no-engine',
+            }
+        }
+    })
+
+  def test_execute(self):
+    """Tests executing of cron job."""
+    self.app.get('/setup')
+    job = data_types.Job.query(
+        data_types.Job.name == 'libfuzzer_asan_a-b').get()
+    self.assertEqual(
+        'FUZZ_TARGET_BUILD_BUCKET_PATH = '
+        'gs://bucket/a-b/libfuzzer/address/%TARGET%/([0-9]+).zip\n'
+        'PROJECT_NAME = //a/b\nSUMMARY_PREFIX = //a/b\nMANAGED = True\n',
+        job.environment_string)
+    self.assertItemsEqual(['asan', 'libfuzzer', 'prune'], job.templates)
+
+    libfuzzer = data_types.Fuzzer.query(
+        data_types.Fuzzer.name == 'libFuzzer').get()
+    self.assertItemsEqual([
+        'libfuzzer_asan_a-b',
+    ], libfuzzer.jobs)
+
+    afl = data_types.Fuzzer.query(data_types.Fuzzer.name == 'afl').get()
+    self.assertItemsEqual([], afl.jobs)

@@ -43,16 +43,15 @@ from metrics import logs
 from system import environment
 
 BUILD_BUCKET_PATH_TEMPLATE = (
-    'gs://{bucket}/{project}/{project}-{sanitizer}-([0-9]+).zip')
+    'gs://%BUCKET%/%PROJECT%/%PROJECT%-%SANITIZER%-([0-9]+).zip')
 
 BACKUPS_LIFECYCLE = storage.generate_life_cycle_config('Delete', age=100)
 LOGS_LIFECYCLE = storage.generate_life_cycle_config('Delete', age=14)
 QUARANTINE_LIFECYCLE = storage.generate_life_cycle_config('Delete', age=90)
 
-JOB_TEMPLATE = ('RELEASE_BUILD_BUCKET_PATH = {build_bucket_path}\n'
+JOB_TEMPLATE = ('{build_type} = {build_bucket_path}\n'
                 'PROJECT_NAME = {project}\n'
                 'SUMMARY_PREFIX = {project}\n'
-                'REVISION_VARS_URL = {revision_vars_url}\n'
                 'MANAGED = True\n')
 
 OBJECT_VIEWER_IAM_ROLE = 'roles/storage.objectViewer'
@@ -94,7 +93,7 @@ class JobInfo(object):
     self.minimize_job_override = minimize_job_override
 
   def job_name(self, project_name):
-    return self.prefix + project_name
+    return self.prefix + data_types.normalized_name(project_name)
 
 
 # The order of templates is important here. Later templates override settings in
@@ -182,7 +181,7 @@ def find_github_item_url(github_json, name):
   return None
 
 
-def get_projects():
+def get_oss_fuzz_projects():
   """Return list of projects for oss-fuzz."""
   ossfuzz_tree_url = ('https://api.github.com/repos/google/oss-fuzz/'
                       'git/trees/master')
@@ -215,6 +214,12 @@ def get_projects():
     projects.append((item['path'], info))
 
   return projects
+
+
+def get_projects_from_gcs(gcs_url):
+  """Get projects from GCS path."""
+  data = json.loads(storage.read_data(gcs_url))
+  return [(project['name'], project) for project in data]
 
 
 def _process_sanitizers_field(sanitizers):
@@ -555,16 +560,20 @@ class ProjectSetup(object):
   def __init__(self,
                build_bucket_path_template,
                revision_url_template,
+               build_type,
                segregate_projects=False,
                engine_build_buckets=None,
                fuzzer_entities=None,
-               add_info_labels=False):
+               add_info_labels=False,
+               add_revision_mappings=False):
+    self._build_type = build_type
     self._build_bucket_path_template = build_bucket_path_template
     self._revision_url_template = revision_url_template
     self._segregate_projects = segregate_projects
     self._engine_build_buckets = engine_build_buckets
     self._fuzzer_entities = fuzzer_entities
     self._add_info_labels = add_info_labels
+    self._add_revision_mappings = add_revision_mappings
 
   def _sync_revision_mappings(self, project, info):
     """Sync ClusterFuzz revision mappings."""
@@ -676,14 +685,20 @@ class ProjectSetup(object):
     return (service_account, backup_bucket_name, corpus_bucket_name,
             logs_bucket_name, quarantine_bucket_name)
 
-  def _get_build_bucket_path(self, project_name, engine, memory_tool,
+  def _get_build_bucket_path(self, project_name, info, engine, memory_tool,
                              architecture):
     """Returns the build bucket path for the |project|, |engine|, |memory_tool|,
     and |architecture|."""
-    return self._build_bucket_path_template.format(
-        bucket=self._get_build_bucket(engine, architecture),
-        project=project_name,
-        sanitizer=memory_tool)
+    build_path = info.get('build_path')
+    if not build_path:
+      build_path = self._build_bucket_path_template
+
+    build_path = build_path.replace(
+        '%BUCKET%', self._get_build_bucket(engine, architecture))
+    build_path = build_path.replace('%PROJECT%', project_name)
+    build_path = build_path.replace('%ENGINE%', engine)
+    build_path = build_path.replace('%SANITIZER%', memory_tool)
+    return build_path
 
   def _sync_job(self, project, info, corpus_bucket_name, quarantine_bucket_name,
                 logs_bucket_name, backup_bucket_name):
@@ -716,18 +731,24 @@ class ProjectSetup(object):
 
       job.templates = template.cf_job_templates
 
-      revision_vars_url = self._revision_url_template.format(
-          project=project,
-          bucket=self._get_build_bucket(template.engine, template.architecture),
-          sanitizer=template.memory_tool)
-
       job.environment_string = JOB_TEMPLATE.format(
+          build_type=self._build_type,
           build_bucket_path=self._get_build_bucket_path(
-              project, template.engine, template.memory_tool,
+              project, info, template.engine, template.memory_tool,
               template.architecture),
           engine=template.engine,
-          project=project,
-          revision_vars_url=revision_vars_url)
+          project=project)
+
+      if self._add_revision_mappings:
+        revision_vars_url = self._revision_url_template.format(
+            project=project,
+            bucket=self._get_build_bucket(template.engine,
+                                          template.architecture),
+            sanitizer=template.memory_tool)
+
+        job.environment_string += (
+            'REVISION_VARS_URL = {revision_vars_url}\n'.format(
+                revision_vars_url=revision_vars_url))
 
       if logs_bucket_name:
         job.environment_string += 'FUZZ_LOGS_BUCKET = {logs_bucket}\n'.format(
@@ -785,6 +806,7 @@ class ProjectSetup(object):
         # as an auxiliary build with libFuzzer builds (e.g. with ASan or UBSan).
         dataflow_build_bucket_path = self._get_build_bucket_path(
             project_name=project,
+            info=info,
             engine='dataflow',
             memory_tool='dataflow',
             architecture=template.architecture)
@@ -809,10 +831,6 @@ class ProjectSetup(object):
     for project, info in projects:
       logs.log('Syncing configs for %s.' % project)
 
-      if not VALID_PROJECT_NAME_REGEX.match(project):
-        logs.log_error('Invalid project name: ' + project)
-        continue
-
       backup_bucket_name = None
       corpus_bucket_name = None
       logs_bucket_name = None
@@ -829,7 +847,8 @@ class ProjectSetup(object):
                      logs_bucket_name, backup_bucket_name)
 
       # Create revision mappings for CF.
-      self._sync_revision_mappings(project, info)
+      if self._add_revision_mappings:
+        self._sync_revision_mappings(project, info)
 
       if self._segregate_projects:
         sync_user_permissions(project, info)
@@ -886,8 +905,9 @@ class Handler(base_handler.Handler):
     config = ProjectSetup(
         BUILD_BUCKET_PATH_TEMPLATE,
         REVISION_URL,
-        segregate_projects=project_setup_config.get('segregate_projects',
-                                                    False),
+        project_setup_config.get('build_type'),
+        segregate_projects=project_setup_config.get(
+            'segregate_projects', default=False),
         engine_build_buckets={
             'libfuzzer': bucket_config.get('libfuzzer'),
             'libfuzzer-i386': bucket_config.get('libfuzzer_i386'),
@@ -899,7 +919,18 @@ class Handler(base_handler.Handler):
             'libfuzzer': libfuzzer,
             'afl': afl,
         },
-        add_info_labels=project_setup_config.get('add_info_labels'))
+        add_info_labels=project_setup_config.get(
+            'add_info_labels', default=False),
+        add_revision_mappings=project_setup_config.get(
+            'add_revision_mappings', default=False),
+    )
 
-    projects = get_projects()
+    projects_source = project_setup_config.get('source')
+    if projects_source == 'oss-fuzz':
+      projects = get_oss_fuzz_projects()
+    elif projects_source.startswith(storage.GS_PREFIX):
+      projects = get_projects_from_gcs(projects_source)
+    else:
+      raise ProjectSetupError('Invalid projects source: ' + projects_source)
+
     config.set_up(projects)
