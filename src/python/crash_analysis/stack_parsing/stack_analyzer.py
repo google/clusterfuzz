@@ -265,6 +265,7 @@ STACK_FRAME_IGNORE_REGEXES = [
     r'^ExitCallback',
     r'^IsSandboxedProcess',
     r'^LLVMFuzzerTestOneInput',
+    r'^MSanAtExitWrapper',
     r'^New',
     r'^RaiseException',
     r'^SbSystemBreakIntoDebugger',
