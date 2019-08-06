@@ -555,8 +555,9 @@ def pick_strategies(strategy_pool,
   additional_corpus_dirs = []
 
   # Select a generator to attempt to use for existing testcase mutations.
-  candidate_generator = engine_common.select_generator(strategy_pool, fuzzer_path)
-  is_mutations_run = generator != engine_common.Generator.NONE
+  candidate_generator = engine_common.select_generator(strategy_pool,
+                                                       fuzzer_path)
+  is_mutations_run = candidate_generator != engine_common.Generator.NONE
 
   # Depends on the presense of DFSan instrumented build.
   dataflow_build_dir = environment.get_value('DATAFLOW_BUILD_DIR')
@@ -578,12 +579,14 @@ def pick_strategies(strategy_pool,
   # Generate new testcase mutations using radamsa, etc.
   if is_mutations_run:
     new_testcase_mutations_directory = create_corpus_directory('mutations')
-    generator_strategy = engine_common.generate_new_testcase_mutations(corpus_directory, new_testcase_mutations_directory, project_qualified_fuzzer_name, candidate_generator)
-    
+    generator_strategy = engine_common.generate_new_testcase_mutations(
+        corpus_directory, new_testcase_mutations_directory,
+        project_qualified_fuzzer_name, candidate_generator)
+
     # Add the used generator strategy to our fuzzing strategies list.
     if generator_strategy != engine_common.Generator.NONE:
       fuzzing_strategies.append(generator_strategy)
-    
+
     additional_corpus_dirs.append(new_testcase_mutations_directory)
     if environment.get_value('USE_MINIJAIL'):
       bind_corpus_dirs(minijail_chroot, [new_testcase_mutations_directory])

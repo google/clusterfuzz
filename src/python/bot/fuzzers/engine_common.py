@@ -100,31 +100,36 @@ def select_generator(strategy_pool, fuzzer_path):
   return Generator.NONE
 
 
-def generate_new_testcase_mutations(corpus_directory, new_testcase_mutations_directory, fuzzer_name, candidate_generator):
+def generate_new_testcase_mutations(corpus_directory,
+                                    new_testcase_mutations_directory,
+                                    fuzzer_name, candidate_generator):
   """Generate new testcase mutations, using existing corpus directory or other
   methods."""
-  generation_timeout = engine_common.get_new_testcase_mutations_timeout()
+  generation_timeout = get_new_testcase_mutations_timeout()
 
   # Initialize to none, change if testcase mutations are succesfully generated
   # according to radamsa or ml rnn.
-  generator_strategy = engine_common.Generator.NONE
-  pre_mutations_filecount = shell.get_directory_file_count(new_testcase_mutations_directory)
+  generator_strategy = Generator.NONE
+  pre_mutations_filecount = shell.get_directory_file_count(
+      new_testcase_mutations_directory)
 
   # Generate new testcase mutations using Radamsa.
-  if candidate_generator == engine_common.Generator.RADAMSA:
-    engine_common.generate_new_testcase_mutations_using_radamsa(
+  if candidate_generator == Generator.RADAMSA:
+    generate_new_testcase_mutations_using_radamsa(
         corpus_directory, new_testcase_mutations_directory, generation_timeout)
   # Generate new testcase mutations using ML RNN model.
-  elif candidate_generator == engine_common.Generator.ML_RNN:
-    engine_common.generate_new_testcase_mutations_using_ml_rnn(
+  elif candidate_generator == Generator.ML_RNN:
+    generate_new_testcase_mutations_using_ml_rnn(
         corpus_directory, new_testcase_mutations_directory, fuzzer_name,
         generation_timeout)
 
   # If new mutations are successfully generated, set generator strategy.
-  if shell.get_directory_file_count(new_testcase_mutations_directory) > pre_mutations_filecount:
+  if shell.get_directory_file_count(
+      new_testcase_mutations_directory) > pre_mutations_filecount:
     generator_strategy = candidate_generator
 
   return generator_strategy
+
 
 def generate_new_testcase_mutations_using_radamsa(
     corpus_directory, new_testcase_mutations_directory, generation_timeout):
