@@ -1348,9 +1348,9 @@ class StackAnalyzerTestcase(unittest.TestCase):
   def test_fuchsia_asan(self):
     """Test for Fuchsia ASan crashes."""
     data = self._read_test_data('fuchsia_asan.txt')
-    expected_type = 'Heap-buffer-overflow'
-    expected_state = 'NULL'
-    expected_address = '0x4bdf2019c4b8'
+    expected_type = 'Heap-buffer-overflow\nWRITE 1'
+    expected_state = 'foo_function\nfoo_function\nbar_function\n'
+    expected_address = '0x663fa3bcf198'
     expected_stacktrace = data
     expected_security_flag = True
     self._validate_get_crash_data(data, expected_type, expected_address,
