@@ -260,35 +260,6 @@ def copy_from_corpus(dest_corpus_path, src_corpus_path, num_testcases):
     shutil.copy(os.path.join(to_copy), os.path.join(dest_corpus_path, str(i)))
 
 
-def generate_new_testcase_mutations(corpus_directory, fuzzer_name, generator,
-                                    fuzzing_strategies):
-  """Generate new testcase mutations, using existing corpus directory or other
-  methods."""
-  generation_timeout = engine_common.get_new_testcase_mutations_timeout()
-  new_testcase_mutations_directory = create_corpus_directory('mutations')
-
-  # Generate new testcase mutations using Radamsa.
-  if generator == engine_common.Generator.RADAMSA:
-    engine_common.generate_new_testcase_mutations_using_radamsa(
-        corpus_directory, new_testcase_mutations_directory, generation_timeout)
-
-    # If new mutations are successfully generated, add radamsa stragegy.
-    if shell.get_directory_file_count(new_testcase_mutations_directory):
-      fuzzing_strategies.append(strategy.CORPUS_MUTATION_RADAMSA_STRATEGY.name)
-
-  # Generate new testcase mutations using ML RNN model.
-  elif generator == engine_common.Generator.ML_RNN:
-    engine_common.generate_new_testcase_mutations_using_ml_rnn(
-        corpus_directory, new_testcase_mutations_directory, fuzzer_name,
-        generation_timeout)
-
-    # If new mutations are successfully generated, add ml rnn stragegy.
-    if shell.get_directory_file_count(new_testcase_mutations_directory):
-      fuzzing_strategies.append(strategy.CORPUS_MUTATION_ML_RNN_STRATEGY.name)
-
-  return new_testcase_mutations_directory
-
-
 def get_corpus_directories(main_corpus_directory,
                            new_testcases_directory,
                            fuzzer_path,
@@ -583,8 +554,8 @@ def pick_strategies(strategy_pool,
   arguments = []
   additional_corpus_dirs = []
 
-  # Select a generator to use for existing testcase mutations.
-  generator = engine_common.select_generator(strategy_pool, fuzzer_path)
+  # Select a generator to attempt to use for existing testcase mutations.
+  candidate_generator = engine_common.select_generator(strategy_pool, fuzzer_path)
   is_mutations_run = generator != engine_common.Generator.NONE
 
   # Depends on the presense of DFSan instrumented build.
@@ -606,9 +577,13 @@ def pick_strategies(strategy_pool,
 
   # Generate new testcase mutations using radamsa, etc.
   if is_mutations_run:
-    new_testcase_mutations_directory = generate_new_testcase_mutations(
-        corpus_directory, project_qualified_fuzzer_name, generator,
-        fuzzing_strategies)
+    new_testcase_mutations_directory = create_corpus_directory('mutations')
+    generator_strategy = engine_common.generate_new_testcase_mutations(corpus_directory, new_testcase_mutations_directory, project_qualified_fuzzer_name, candidate_generator)
+    
+    # Add the used generator strategy to our fuzzing strategies list.
+    if generator_strategy != engine_common.Generator.NONE:
+      fuzzing_strategies.append(generator_strategy)
+    
     additional_corpus_dirs.append(new_testcase_mutations_directory)
     if environment.get_value('USE_MINIJAIL'):
       bind_corpus_dirs(minijail_chroot, [new_testcase_mutations_directory])

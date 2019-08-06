@@ -557,7 +557,9 @@ class AflRunnerCommon(object):
 
     self.strategies = FuzzingStrategies(target_path)
     if self.strategies.is_mutations_run:
-      self.generate_new_testcase_mutations()
+      target_name = os.path.basename(self.target_path)
+      project_qualified_target_name = (data_types.fuzz_target_project_qualified_name(utils.current_project(), target_name))
+      engine_common.generate_new_testcase_mutations(self.afl_input.input_directory, self.afl_input.input_directory, project_qualified_target_name, self.strategies.candidate_generator)
 
     # Set this to None so we can tell if it has never been set or if it's just
     # empty.
@@ -1138,40 +1140,6 @@ class AflRunnerCommon(object):
     corpus_size = shell.get_directory_file_count(self.afl_input.input_directory)
 
     return new_units_generated, new_units_added, corpus_size
-
-  def generate_new_testcase_mutations(self):
-    """Generate new testcase mutations using radamsa, etc."""
-    target_name = os.path.basename(self.target_path)
-    project_qualified_target_name = (
-        data_types.fuzz_target_project_qualified_name(utils.current_project(),
-                                                      target_name))
-
-    generation_timeout = engine_common.get_new_testcase_mutations_timeout()
-    old_input_directory_file_count = shell.get_directory_file_count(
-        self.afl_input.input_directory)
-    logs.log(
-        'Input directory file count prior to generating testcase mutations is '
-        '{}.'.format(old_input_directory_file_count))
-    # Generate new testcase mutations using Radamsa.
-    if self.strategies.candidate_generator == engine_common.Generator.RADAMSA:
-      engine_common.generate_new_testcase_mutations_using_radamsa(
-          self.afl_input.input_directory, self.afl_input.input_directory,
-          generation_timeout)
-      logs.log('Generating new testcase mutations using radamsa.')
-    # Generate new testcase mutations using ML RNN model.
-    elif self.strategies.candidate_generator == engine_common.Generator.ML_RNN:
-      engine_common.generate_new_testcase_mutations_using_ml_rnn(
-          self.afl_input.input_directory, self.afl_input.input_directory,
-          project_qualified_target_name, generation_timeout)
-      logs.log('Generating new testcase mutations using ml rnn.')
-    new_input_directory_file_count = shell.get_directory_file_count(
-        self.afl_input.input_directory)
-    # If new mutations are successfully generated, set generator strategy.
-    if new_input_directory_file_count > old_input_directory_file_count:
-      self.strategies.generator_strategy = self.candidate_generator
-    logs.log(
-        'Input directory file count after generating testcase mutations is {}.'.
-        format(new_input_directory_file_count))
 
 
 class AflRunner(AflRunnerCommon, new_process.ProcessRunner):
