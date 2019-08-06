@@ -53,6 +53,7 @@ class ReproduceTest(unittest.TestCase):
 
   def setUp(self):
     helpers.patch(self, [
+        'config.local_config.ProjectConfig',
         'local.butler.reproduce._download_testcase',
         'local.butler.reproduce._get_testcase',
         'local.butler.reproduce._setup_x',
