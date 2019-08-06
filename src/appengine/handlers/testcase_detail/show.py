@@ -372,6 +372,9 @@ def _format_reproduction_help(reproduction_help):
 
     return '<a href="{url}">{url}</a>'.format(url=plain_text_input)
 
+  if not reproduction_help:
+    return ''
+
   result = ''
   for line in reproduction_help.splitlines():
     # Add a break before each line except the first.
