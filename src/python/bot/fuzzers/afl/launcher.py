@@ -561,13 +561,14 @@ class AflRunnerCommon(object):
       project_qualified_target_name = (
           data_types.fuzz_target_project_qualified_name(utils.current_project(),
                                                         target_name))
-      # Generate new testcase mutations according to candidate generator. Set
-      # generator strategy accordingly.
-      self.strategies.generator_strategy = (
-          engine_common.generate_new_testcase_mutations(
-              self.afl_input.input_directory, self.afl_input.input_directory,
-              project_qualified_target_name,
-              self.strategies.candidate_generator))
+      # Generate new testcase mutations according to candidate generator. If
+      # testcase mutations are properly generated, set generator strategy
+      # accordingly.
+      generator_used = engine_common.generate_new_testcase_mutations(
+          self.afl_input.input_directory, self.afl_input.input_directory,
+          project_qualified_target_name, self.strategies.candidate_generator)
+      if generator_used:
+        self.strategies.generator_strategy = self.strategies.candidate_generator
 
     # Set this to None so we can tell if it has never been set or if it's just
     # empty.

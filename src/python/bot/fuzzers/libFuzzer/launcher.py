@@ -579,13 +579,13 @@ def pick_strategies(strategy_pool,
   # Generate new testcase mutations using radamsa, etc.
   if is_mutations_run:
     new_testcase_mutations_directory = create_corpus_directory('mutations')
-    generator_strategy = engine_common.generate_new_testcase_mutations(
+    generator_used = engine_common.generate_new_testcase_mutations(
         corpus_directory, new_testcase_mutations_directory,
         project_qualified_fuzzer_name, candidate_generator)
 
     # Add the used generator strategy to our fuzzing strategies list.
-    if generator_strategy != engine_common.Generator.NONE:
-      fuzzing_strategies.append(generator_strategy)
+    if generator_used:
+      fuzzing_strategies.append(candidate_generator)
 
     additional_corpus_dirs.append(new_testcase_mutations_directory)
     if environment.get_value('USE_MINIJAIL'):

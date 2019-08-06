@@ -104,12 +104,12 @@ def generate_new_testcase_mutations(corpus_directory,
                                     new_testcase_mutations_directory,
                                     fuzzer_name, candidate_generator):
   """Generate new testcase mutations, using existing corpus directory or other
-  methods."""
-  generation_timeout = get_new_testcase_mutations_timeout()
+  methods.
 
-  # Initialize to none, change if testcase mutations are succesfully generated
-  # according to radamsa or ml rnn.
-  generator_strategy = Generator.NONE
+  Returns true if mutations are successfully generated using radamsa or ml rnn.
+  A false return signifies either no generator use or unsuccessful generation of
+  testcase mutations."""
+  generation_timeout = get_new_testcase_mutations_timeout()
   pre_mutations_filecount = shell.get_directory_file_count(
       new_testcase_mutations_directory)
 
@@ -123,12 +123,12 @@ def generate_new_testcase_mutations(corpus_directory,
         corpus_directory, new_testcase_mutations_directory, fuzzer_name,
         generation_timeout)
 
-  # If new mutations are successfully generated, set generator strategy.
+  # If new mutations are successfully generated, return true.
   if shell.get_directory_file_count(
       new_testcase_mutations_directory) > pre_mutations_filecount:
-    generator_strategy = candidate_generator
+    return True
 
-  return generator_strategy
+  return False
 
 
 def generate_new_testcase_mutations_using_radamsa(
