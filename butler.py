@@ -273,7 +273,15 @@ def main():
       required=True,
       help='Build directory containing the target app and dependencies.')
   parser_reproduce.add_argument(
-      '-i', '--iterations', help='Number of times to attempt reproduction.')
+      '-i',
+      '--iterations',
+      default=10,
+      help='Number of times to attempt reproduction.')
+  parser_reproduce.add_argument(
+      '-dx',
+      '--disable-xvfb',
+      action='store_true',
+      help='Disable running test case in a virtual frame buffer.')
 
   args = parser.parse_args()
 

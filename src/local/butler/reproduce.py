@@ -123,7 +123,8 @@ def _download_testcase(testcase_id, testcase, configuration):
 
     testcase_path = None
     for file_name in file_list:
-      if testcase.absolute_path.endswith(file_name):
+      if os.path.basename(file_name) == os.path.basename(
+          testcase.absolute_path):
         testcase_path = os.path.join(testcase_directory, file_name)
         break
 
@@ -283,7 +284,7 @@ def _prepare_environment_for_android():
   device.push_testcases_to_device()
 
 
-def _reproduce_crash(testcase_url, build_directory, iterations):
+def _reproduce_crash(testcase_url, build_directory, iterations, disable_xvfb):
   """Reproduce a crash."""
   _prepare_initial_environment(build_directory, iterations)
 
@@ -310,7 +311,9 @@ def _reproduce_crash(testcase_url, build_directory, iterations):
         'Unable to attempt to reproduce it on {current_platform}.'.format(
             testcase_platform=testcase.platform, current_platform=platform))
 
-  x_processes = _setup_x()
+  x_processes = []
+  if not disable_xvfb:
+    _setup_x()
   timeout = environment.get_value('TEST_TIMEOUT')
 
   print('Running testcase...')
@@ -334,7 +337,8 @@ def _cleanup():
 def execute(args):
   """Attempt to reproduce a crash then report on the result."""
   try:
-    result = _reproduce_crash(args.testcase, args.build_dir, args.iterations)
+    result = _reproduce_crash(args.testcase, args.build_dir, args.iterations,
+                              args.disable_xvfb)
   except errors.ReproduceToolUnrecoverableError as exception:
     print(exception)
     return
