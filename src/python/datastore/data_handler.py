@@ -286,8 +286,8 @@ def get_formatted_reproduction_help(testcase):
 
   if testcase.overridden_fuzzer_name:
     # Remove the libfuzzer_ or afl_ prefixes from the target name.
-    target = ndb.Key(
-        data_types.FuzzTarget, testcase.overridden_fuzzer_name).get()
+    target = ndb.Key(data_types.FuzzTarget,
+                     testcase.overridden_fuzzer_name).get()
     target_name = target.binary
   else:
     target_name = ''

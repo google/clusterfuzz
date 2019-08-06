@@ -574,8 +574,8 @@ class GetFormattedReproductionHelpTest(unittest.TestCase):
 
     self.assertEquals(
         data_handler.get_formatted_reproduction_help(testcase),
-            '-{id}\n-libFuzzer\n-test_fuzzer\n-test_project\n'.format(
-                id=testcase.key.id()))
+        '-{id}\n-libFuzzer\n-test_fuzzer\n-test_project\n'.format(
+            id=testcase.key.id()))
 
   def test_traditional_testcase(self):
     """Test the function with a traditional fuzzer test case."""

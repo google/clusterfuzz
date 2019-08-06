@@ -363,6 +363,7 @@ def _get_blob_size_string(blob_key):
 
 def _format_reproduction_help(reproduction_help):
   """Format a reproduction help string as HTML."""
+
   def _linkify(plain_text_input):
     """Convert links in a plain text string to HTML."""
     if (not plain_text_input.startswith('http://') and
