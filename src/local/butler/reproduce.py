@@ -29,9 +29,9 @@ from urllib import parse
 
 from base import json_utils
 from base import utils
+from bot import testcase_manager
 from bot.tasks import commands
 from bot.tasks import setup
-from bot.tasks import testcase_manager
 from build_management import build_manager
 from datastore import data_types
 from local.butler import appengine

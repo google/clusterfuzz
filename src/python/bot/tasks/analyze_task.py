@@ -20,9 +20,9 @@ import os
 
 from base import tasks
 from base import utils
+from bot import testcase_manager
 from bot.tasks import setup
 from bot.tasks import task_creation
-from bot.tasks import testcase_manager
 from build_management import build_manager
 from chrome import crash_uploader
 from crash_analysis import crash_analyzer

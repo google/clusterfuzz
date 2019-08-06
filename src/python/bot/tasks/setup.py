@@ -23,8 +23,8 @@ from base import dates
 from base import errors
 from base import tasks
 from base import utils
+from bot import testcase_manager
 from bot.fuzzers import builtin_fuzzers
-from bot.tasks import testcase_manager
 from build_management import revisions
 from datastore import data_handler
 from datastore import data_types

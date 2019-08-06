@@ -25,9 +25,9 @@ import unittest
 from pyfakefs import fake_filesystem_unittest
 
 from base import utils
+from bot import testcase_manager
 from bot.fuzzers import engine
 from bot.tasks import fuzz_task
-from bot.tasks import testcase_manager
 from chrome import crash_uploader
 from crash_analysis.stack_parsing import stack_analyzer
 from datastore import data_types
@@ -266,8 +266,8 @@ class CrashInitTest(fake_filesystem_unittest.TestCase):
         'chrome.crash_uploader.FileMetadataInfo',
         'bot.tasks.setup.archive_testcase_and_dependencies_in_gcs',
         'crash_analysis.stack_parsing.stack_analyzer.get_crash_data',
-        'bot.tasks.testcase_manager.get_additional_command_line_flags',
-        'bot.tasks.testcase_manager.get_command_line_for_application',
+        'bot.testcase_manager.get_additional_command_line_flags',
+        'bot.testcase_manager.get_command_line_for_application',
         'base.utils.get_crash_stacktrace_output',
         'crash_analysis.crash_analyzer.ignore_stacktrace',
         'crash_analysis.crash_analyzer.is_security_issue',
@@ -545,7 +545,7 @@ class FindMainCrashTest(unittest.TestCase):
 
   def setUp(self):
     helpers.patch(self, [
-        'bot.tasks.testcase_manager.test_for_reproducibility',
+        'bot.testcase_manager.test_for_reproducibility',
     ])
     self.crashes = [
         self._make_crash('g1'),
@@ -635,8 +635,8 @@ class ProcessCrashesTest(fake_filesystem_unittest.TestCase):
         'bot.tasks.setup.archive_testcase_and_dependencies_in_gcs',
         'crash_analysis.stack_parsing.stack_analyzer.get_crash_data',
         'build_management.revisions.get_real_revision',
-        'bot.tasks.testcase_manager.get_command_line_for_application',
-        'bot.tasks.testcase_manager.test_for_reproducibility',
+        'bot.testcase_manager.get_command_line_for_application',
+        'bot.testcase_manager.test_for_reproducibility',
         'base.utils.get_crash_stacktrace_output',
         'crash_analysis.crash_analyzer.ignore_stacktrace',
         'crash_analysis.crash_analyzer.is_security_issue',
@@ -1300,8 +1300,8 @@ class DoEngineFuzzingTest(fake_filesystem_unittest.TestCase):
         'bot.tasks.fuzz_task.GcsCorpus.sync_from_gcs',
         'bot.tasks.fuzz_task.GcsCorpus.upload_files',
         'build_management.revisions.get_component_list',
-        'bot.tasks.testcase_manager.upload_log',
-        'bot.tasks.testcase_manager.upload_testcase',
+        'bot.testcase_manager.upload_log',
+        'bot.testcase_manager.upload_testcase',
         'metrics.fuzzer_stats.upload_stats',
     ])
     test_utils.set_up_pyfakefs(self)

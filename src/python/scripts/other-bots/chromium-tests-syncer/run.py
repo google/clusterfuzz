@@ -25,8 +25,8 @@ import subprocess
 import time
 
 from base import utils
+from bot import testcase_manager
 from bot.tasks import setup
-from bot.tasks import testcase_manager
 from datastore import data_types
 from datastore import ndb_utils
 from metrics import logs

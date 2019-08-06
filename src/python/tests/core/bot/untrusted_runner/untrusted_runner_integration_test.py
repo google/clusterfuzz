@@ -21,8 +21,8 @@ import subprocess
 import tempfile
 
 from base import utils
+from bot import testcase_manager
 from bot.tasks import setup
-from bot.tasks import testcase_manager
 from bot.untrusted_runner import config
 from bot.untrusted_runner import corpus_manager
 from bot.untrusted_runner import environment as untrusted_env

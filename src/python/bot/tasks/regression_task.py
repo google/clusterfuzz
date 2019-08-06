@@ -20,9 +20,9 @@ import time
 
 from base import errors
 from base import tasks
+from bot import testcase_manager
 from bot.tasks import setup
 from bot.tasks import task_creation
-from bot.tasks import testcase_manager
 from build_management import build_manager
 from build_management import revisions
 from datastore import data_handler

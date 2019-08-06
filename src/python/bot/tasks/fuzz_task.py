@@ -29,6 +29,7 @@ import time
 from base import dates
 from base import retry
 from base import utils
+from bot import testcase_manager
 from bot.fuzzers import builtin
 from bot.fuzzers import builtin_fuzzers
 from bot.fuzzers import engine
@@ -36,7 +37,6 @@ from bot.fuzzers import engine_common
 from bot.fuzzers.libFuzzer import stats as libfuzzer_stats
 from bot.tasks import setup
 from bot.tasks import task_creation
-from bot.tasks import testcase_manager
 from bot.tasks import trials
 from build_management import build_manager
 from chrome import crash_uploader

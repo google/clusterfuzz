@@ -19,7 +19,8 @@ import unittest
 
 from pyfakefs import fake_filesystem_unittest
 
-from bot.tasks import testcase_manager
+from bot import testcase_manager
+from bot.fuzzers import engine
 from crash_analysis.crash_result import CrashResult
 from crash_analysis.stack_parsing import stack_analyzer
 from datastore import data_types
@@ -271,7 +272,7 @@ class GetResourcePathsTest(unittest.TestCase):
 
   def setUp(self):
     test_helpers.patch(self, [
-        'bot.tasks.testcase_manager.convert_dependency_url_to_local_path',
+        'bot.testcase_manager.convert_dependency_url_to_local_path',
     ])
     self.mock.convert_dependency_url_to_local_path.side_effect = lambda x: x
 
@@ -338,6 +339,17 @@ class GetCrashOutputTest(unittest.TestCase):
             'abc\ndef\nCRASH OUTPUT ENDS HERE\nghi'))
 
 
+def mock_get_crash_data(output, symbolize_flag=True):  # pylint: disable=unused-argument
+  """Mock get_crash_data."""
+  if output == 'crash':
+    stack_analyzer_state = stack_analyzer.StackAnalyzerState()
+    stack_analyzer_state.crash_state = 'state'
+    stack_analyzer_state.crash_type = 'Null-dereference'
+    return stack_analyzer_state
+
+  return stack_analyzer.StackAnalyzerState()
+
+
 class TestcaseRunningTest(fake_filesystem_unittest.TestCase):
   """Tests for running testcases."""
 
@@ -355,7 +367,7 @@ class TestcaseRunningTest(fake_filesystem_unittest.TestCase):
 
     os.environ['CRASH_RETRIES'] = '3'
     os.environ['FAIL_RETRIES'] = '3'
-    os.environ['BOT_TMPDIR'] = '/tmp'
+    os.environ['BOT_TMPDIR'] = '/bot/tmp'
     os.environ['USER_PROFILE_ROOT_DIR'] = '/user-profiles'
     os.environ['APP_NAME'] = 'app_name'
     os.environ['APP_PATH'] = '/build_dir/app_name'
@@ -365,21 +377,20 @@ class TestcaseRunningTest(fake_filesystem_unittest.TestCase):
     os.environ['FUZZER_DIR'] = '/fuzzer'
     os.environ['WARMUP_TIMEOUT'] = '120'
 
-    self.blackbox_testcase = data_types.Testcase(crash_state='state')
+    self.testcase = data_types.Testcase(crash_state='state')
     self.mock.find_fuzzer_path.return_value = '/build_dir/target'
     self.mock.run_process.return_value = (0, 0, 'output')
+    self.mock.get.return_value = None
 
-    self.stack_analyzer_state = stack_analyzer.StackAnalyzerState()
-    self.mock.get_crash_data.return_value = self.stack_analyzer_state
-
+    self.mock.get_crash_data.side_effect = mock_get_crash_data
     self.fs.create_file('/flags-testcase', contents='target -arg1 -arg2')
+    self.fs.create_dir('/bot/tmp')
 
   def test_test_for_crash_with_retries_blackbox_fail(self):
     """Test test_for_crash_with_retries failing to reproduce a crash
     (blackbox)."""
-    self.mock.get.return_value = None
     crash_result = testcase_manager.test_for_crash_with_retries(
-        self.blackbox_testcase, '/fuzz-testcase', 10)
+        self.testcase, '/fuzz-testcase', 10)
     self.assertEqual(0, crash_result.return_code)
     self.assertEqual(0, crash_result.crash_time)
     self.assertEqual('output', crash_result.output)
@@ -406,11 +417,11 @@ class TestcaseRunningTest(fake_filesystem_unittest.TestCase):
     """Test test_for_crash_with_retries failing to reproduce a crash
     (greybox)."""
     mock_engine = mock.Mock()
-    mock_engine.reproduce.return_value = (0, 0, 'output')
+    mock_engine.reproduce.return_value = engine.ReproduceResult(0, 0, 'output')
     self.mock.get.return_value = mock_engine
 
     crash_result = testcase_manager.test_for_crash_with_retries(
-        self.blackbox_testcase, '/fuzz-testcase', 10)
+        self.testcase, '/fuzz-testcase', 10)
     self.assertEqual(0, crash_result.return_code)
     self.assertEqual(0, crash_result.crash_time)
     self.assertEqual('output', crash_result.output)
@@ -424,14 +435,60 @@ class TestcaseRunningTest(fake_filesystem_unittest.TestCase):
                   10),
     ])
 
+  def test_test_for_crash_with_retries_blackbox_succeed(self):
+    """Test test_for_crash_with_retries reproducing a crash (blackbox)."""
+    self.mock.run_process.side_effect = [
+        (0, 0, 'nope'),
+        (1, 1, 'crash'),
+    ]
+
+    crash_result = testcase_manager.test_for_crash_with_retries(
+        self.testcase, '/fuzz-testcase', 10)
+    self.assertEqual(1, crash_result.return_code)
+    self.assertEqual(1, crash_result.crash_time)
+    self.assertEqual('crash', crash_result.output)
+    self.assertEqual(2, self.mock.run_process.call_count)
+
+    self.mock.run_process.assert_has_calls([
+        mock.call(
+            '/build_dir/app_name target -arg1 -arg2',
+            current_working_directory='/build_dir',
+            gestures=[],
+            timeout=120),
+        mock.call(
+            '/build_dir/app_name target -arg1 -arg2',
+            current_working_directory='/build_dir',
+            gestures=[],
+            timeout=10),
+    ])
+
+  def test_test_for_crash_with_retries_greybox_succeed(self):
+    """Test test_for_crash_with_retries reproducing a crash (greybox)."""
+    mock_engine = mock.Mock()
+    mock_engine.reproduce.side_effect = [
+        engine.ReproduceResult(0, 0, 'output'),
+        engine.ReproduceResult(1, 1, 'crash'),
+    ]
+    self.mock.get.return_value = mock_engine
+
+    crash_result = testcase_manager.test_for_crash_with_retries(
+        self.testcase, '/fuzz-testcase', 10)
+    self.assertEqual(1, crash_result.return_code)
+    self.assertEqual(1, crash_result.crash_time)
+    self.assertEqual('crash', crash_result.output)
+    self.assertEqual(2, mock_engine.reproduce.call_count)
+    mock_engine.reproduce.assert_has_calls([
+        mock.call('/build_dir/target', '/fuzz-testcase', ['-arg1', '-arg2'],
+                  120),
+        mock.call('/build_dir/target', '/fuzz-testcase', ['-arg1', '-arg2'],
+                  10),
+    ])
+
   def test_test_for_reproducibility_blackbox(self):
     """Test test_for_reproducibility (blackbox)."""
-    self.mock.get.return_value = None
     self.mock.run_process.return_value = (1, 1, 'crash')
-    self.stack_analyzer_state.crash_state = 'state'
-    self.stack_analyzer_state.crash_type = 'Null-dereference'
     result = testcase_manager.test_for_reproducibility(
-        'engine',
+        'fuzzer',
         '/fuzz-testcase',
         'state',
         expected_security_flag=False,
@@ -439,16 +496,16 @@ class TestcaseRunningTest(fake_filesystem_unittest.TestCase):
         http_flag=False,
         gestures=None)
     self.assertTrue(result)
+
+    # Only 2/3 runs needed to verify reproducibility.
     self.assertEqual(2, self.mock.run_process.call_count)
 
   def test_test_for_reproducibility_greybox(self):
     """Test test_for_reproducibility (greybox)."""
     mock_engine = mock.Mock()
-    mock_engine.reproduce.return_value = (1, 1, 'crash')
+    mock_engine.reproduce.return_value = engine.ReproduceResult(1, 1, 'crash')
     self.mock.get.return_value = mock_engine
 
-    self.stack_analyzer_state.crash_state = 'state'
-    self.stack_analyzer_state.crash_type = 'Null-dereference'
     result = testcase_manager.test_for_reproducibility(
         'engine',
         '/fuzz-testcase',
@@ -458,4 +515,6 @@ class TestcaseRunningTest(fake_filesystem_unittest.TestCase):
         http_flag=False,
         gestures=None)
     self.assertTrue(result)
+
+    # Only 2/3 runs needed to verify reproducibility.
     self.assertEqual(2, mock_engine.reproduce.call_count)

@@ -54,8 +54,8 @@ class TestcaseReproducesInRevisionTest(unittest.TestCase):
   def setUp(self):
     helpers.patch(self, [
         'build_management.build_manager.setup_regular_build',
-        'bot.tasks.testcase_manager.test_for_crash_with_retries',
-        'bot.tasks.testcase_manager.check_for_bad_build',
+        'bot.testcase_manager.test_for_crash_with_retries',
+        'bot.testcase_manager.check_for_bad_build',
     ])
 
   def test_error_on_failed_setup(self):

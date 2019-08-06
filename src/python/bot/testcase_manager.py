@@ -76,6 +76,14 @@ BAD_STATE_HINTS = [
 ]
 
 
+class TestcaseManagerError(Exception):
+  """Base exception."""
+
+
+class TargetNotFoundError(TestcaseManagerError):
+  """Error when a fuzz target is not found."""
+
+
 def create_testcase_list_file(output_directory):
   """Create a testcase list file for tests in a directory."""
   files_list = []
@@ -518,7 +526,7 @@ class TestcaseRunner(object):
       build_dir = environment.get_value('BUILD_DIR')
       self._target_path = engine_common.find_fuzzer_path(build_dir, target_name)
       if not self._target_path:
-        raise RuntimeError('Failed to find target ' + target_name)
+        raise TargetNotFoundError('Failed to find target ' + target_name)
     else:
       self._is_black_box = True
       self._command = get_command_line_for_application(
@@ -537,9 +545,8 @@ class TestcaseRunner(object):
           gestures=self._gestures,
           current_working_directory=app_directory)
     else:
-      result = self._engine_impl.reproduce(self._target_path,
-                                           self._testcase_path, self._arguments,
-                                           run_timeout)
+      result = self._engine_impl.reproduce(
+          self._target_path, self._testcase_path, self._arguments, run_timeout)
       return_code = result.return_code
       crash_time = result.time_executed
       output = result.output
@@ -666,8 +673,13 @@ def test_for_crash_with_retries(testcase,
                                 compare_crash=True):
   """Test for a crash and return crash parameters like crash type, crash state,
   crash stacktrace, etc."""
-  runner = TestcaseRunner(testcase.fuzzer_name, testcase_path, test_timeout,
-                          testcase.gestures, http_flag)
+  try:
+    runner = TestcaseRunner(testcase.fuzzer_name, testcase_path, test_timeout,
+                            testcase.gestures, http_flag)
+  except TargetNotFoundError:
+    # If a target isn't found, treat it as not crashing.
+    return CrashResult(return_code=0, crash_time=0, output='')
+
   crash_retries = environment.get_value('CRASH_RETRIES')
   if compare_crash:
     expected_state = testcase.crash_state
@@ -685,8 +697,13 @@ def test_for_reproducibility(fuzzer_name, testcase_path, expected_state,
                              expected_security_flag, test_timeout, http_flag,
                              gestures):
   """Test to see if a crash is fully reproducible or is a one-time crasher."""
-  runner = TestcaseRunner(fuzzer_name, testcase_path, test_timeout, gestures,
-                          http_flag)
+  try:
+    runner = TestcaseRunner(fuzzer_name, testcase_path, test_timeout, gestures,
+                            http_flag)
+  except TargetNotFoundError:
+    # If a target isn't found, treat it as not crashing.
+    return False
+
   crash_retries = environment.get_value('CRASH_RETRIES')
   return runner.test_reproduce_reliability(crash_retries, expected_state,
                                            expected_security_flag)

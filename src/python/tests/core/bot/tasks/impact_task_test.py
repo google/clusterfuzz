@@ -36,7 +36,7 @@ class ExecuteTaskTest(unittest.TestCase):
         'bot.tasks.setup.setup_testcase',
         'build_management.build_manager.is_custom_binary',
         'build_management.build_manager.has_production_builds',
-        'bot.tasks.testcase_manager.get_command_line_for_application',
+        'bot.testcase_manager.get_command_line_for_application',
         'base.tasks.add_task',
     ])
     impacts = impact_task.Impacts(
@@ -383,7 +383,7 @@ class GetImpactsOnProdBuilds(unittest.TestCase):
     helpers.patch(self, [
         'bot.tasks.impact_task.get_impact_on_build',
         'bot.tasks.impact_task.get_impacts_from_url',
-        'bot.tasks.testcase_manager.get_command_line_for_application',
+        'bot.testcase_manager.get_command_line_for_application',
     ])
     self.impacts = impact_task.Impacts(
         stable=impact_task.Impact('s', False),
@@ -453,8 +453,8 @@ class GetImpactOnBuild(unittest.TestCase):
     helpers.patch(self, [
         'build_management.build_manager.setup_production_build',
         'system.environment.get_value',
-        'bot.tasks.testcase_manager.get_command_line_for_application',
-        'bot.tasks.testcase_manager.test_for_crash_with_retries',
+        'bot.testcase_manager.get_command_line_for_application',
+        'bot.testcase_manager.test_for_crash_with_retries',
     ])
     self.env = {
         'APP_PATH': 'app',
@@ -520,7 +520,7 @@ class GetStartAndEndRevisionTest(unittest.TestCase):
     helpers.patch(self, [
         'build_management.revisions.get_start_and_end_revision',
         'build_management.revisions.get_component_range_list',
-        'bot.tasks.testcase_manager.get_command_line_for_application',
+        'bot.testcase_manager.get_command_line_for_application',
     ])
 
   def test_normal(self):

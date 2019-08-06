@@ -21,9 +21,9 @@ import random
 import sys
 
 from base import utils
+from bot import testcase_manager
 from bot.fuzzers import engine_common
 from bot.fuzzers import utils as fuzzers_utils
-from bot.tasks import testcase_manager
 from datastore import data_types
 from system import environment
 from system import shell

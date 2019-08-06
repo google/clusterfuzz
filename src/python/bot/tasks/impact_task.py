@@ -16,8 +16,8 @@
 
 from base import tasks
 from base import utils
+from bot import testcase_manager
 from bot.tasks import setup
-from bot.tasks import testcase_manager
 from build_management import build_manager
 from build_management import revisions
 from builtins import object

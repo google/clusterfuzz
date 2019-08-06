@@ -14,9 +14,9 @@
 """Variant task for analyzing testcase variants with a different job."""
 
 from base import utils
+from bot import testcase_manager
 from bot.fuzzers import builtin_fuzzers
 from bot.tasks import setup
-from bot.tasks import testcase_manager
 from build_management import build_manager
 from crash_analysis.crash_comparer import CrashComparer
 from datastore import data_handler

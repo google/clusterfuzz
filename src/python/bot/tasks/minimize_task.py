@@ -25,6 +25,7 @@ import zipfile
 from base import errors
 from base import tasks
 from base import utils
+from bot import testcase_manager
 from bot.minimizer import basic_minimizers
 from bot.minimizer import delta_minimizer
 from bot.minimizer import html_minimizer
@@ -34,7 +35,6 @@ from bot.minimizer import js_tokenizer
 from bot.minimizer import minimizer
 from bot.tasks import setup
 from bot.tasks import task_creation
-from bot.tasks import testcase_manager
 from build_management import build_manager
 from crash_analysis import severity_analyzer
 from crash_analysis.crash_comparer import CrashComparer

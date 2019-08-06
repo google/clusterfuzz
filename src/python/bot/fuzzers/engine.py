@@ -51,8 +51,8 @@ class Result(object):
     self.time_executed = time_executed
 
 
-ReproduceResult = namedtuple('ReproduceResult', ['return_code', 'time_executed',
-                                                 'output'])
+ReproduceResult = namedtuple('ReproduceResult',
+                             ['return_code', 'time_executed', 'output'])
 
 
 class Engine(object):
