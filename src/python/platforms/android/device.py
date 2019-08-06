@@ -451,7 +451,7 @@ def update_build(apk_path, force_update=True):
   # On Android, we may need to write a command line file. We do this in
   # advance so that we do not have to write this to the device multiple
   # times.
-  # TODO(mbarbella): Platforms code should not depend on fuzzing.
+  # TODO(mbarbella): Platforms code should not depend on bot.tasks.
   from bot.tasks import testcase_manager
   testcase_manager.get_command_line_for_application(
       write_command_line_file=True)

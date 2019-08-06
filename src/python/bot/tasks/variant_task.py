@@ -36,7 +36,7 @@ def execute_task(testcase_id, job_type):
     # otherwise we will run into exceptions.
     return
 
-  # Setup testcase and its duependencies.
+  # Setup testcase and its dependencies.
   fuzzer_override = builtin_fuzzers.get_fuzzer_for_job(job_type)
   file_list, _, testcase_file_path = setup.setup_testcase(
       testcase, fuzzer_override=fuzzer_override)

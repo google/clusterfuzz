@@ -500,9 +500,9 @@ class TestcaseRunner(object):
                gestures,
                needs_http=False):
     self._testcase_path = testcase_path
-    self._needs_http = needs_http
     self._test_timeout = test_timeout
     self._gestures = gestures
+    self._needs_http = needs_http
 
     engine_impl = engine.get(fuzzer_name)
     if engine_impl:
@@ -554,9 +554,9 @@ class TestcaseRunner(object):
   def _pre_run_cleanup(self):
     """Common cleanup before running a testcase."""
     # Cleanup any existing application instances and user profile directories.
-    # Cleaning up temp clears user profile directories and should be done before
-    # calling |get_command_line_for_application| call since that creates
-    # dependencies in the profile folder.
+    # Cleaning up temp user profile directories. Should be done before calling
+    # |get_command_line_for_application| call since that creates dependencies in
+    # the profile folder.
     process_handler.terminate_stale_application_instances()
     shell.clear_temp_directory()
 
