@@ -1546,11 +1546,11 @@ class GenericProjectSetupTest(unittest.TestCase):
     ])
 
     self.mock.read_data.return_value = (
-        '[{"build_path": '
+        '{"projects": [{"build_path": '
         '"gs://bucket/a-b/%ENGINE%/%SANITIZER%/'
         '%TARGET%/([0-9]+).zip", '
         '"name": "//a/b", "fuzzing_engines": ["libfuzzer"], '
-        '"sanitizers": ["address"]}]')
+        '"sanitizers": ["address"]}]}')
 
     self.mock.ProjectConfig.return_value = mock_config.MockConfig({
         'project_setup': {
