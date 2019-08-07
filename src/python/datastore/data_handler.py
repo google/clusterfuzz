@@ -265,13 +265,14 @@ def get_issue_summary(testcase):
 
 def get_reproduction_help_url(testcase, config):
   """Return url to reproduce the bug."""
-  return get_value_from_job_definition(
+  return get_value_from_job_definition_or_environment(
       testcase.job_type, 'HELP_URL', default=config.reproduction_help_url)
 
 
 def get_formatted_reproduction_help(testcase):
   """Return url to reproduce the bug."""
-  help_format = get_value_from_job_definition(testcase.job_type, 'HELP_FORMAT')
+  help_format = get_value_from_job_definition_or_environment(
+      testcase.job_type, 'HELP_FORMAT')
   if not help_format:
     return None
 
@@ -1036,13 +1037,15 @@ def get_value_from_job_definition(job_type, variable_pattern, default=None):
   return job.get_environment().get(variable_pattern, default)
 
 
-def get_value_from_job_definition_or_environment(job_type, variable_pattern):
+def get_value_from_job_definition_or_environment(job_type,
+                                                 variable_pattern,
+                                                 default=None):
   """Gets a specific environment variable's value from a job definition. If
   not found, it returns the value from current environment."""
   return get_value_from_job_definition(
       job_type,
       variable_pattern,
-      default=environment.get_value(variable_pattern))
+      default=environment.get_value(variable_pattern, default))
 
 
 def get_additional_values_for_variable(variable_name, job_type, fuzzer_name):
