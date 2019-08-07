@@ -44,6 +44,11 @@ class NewIssuePolicy(object):
     self.issue_body_footer = ''
 
 
+def _to_str_list(values):
+  """Convert a list to a list of strs."""
+  return [str(value) for value in values]
+
+
 class IssueTrackerPolicy(object):
   """Represents an issue tracker policy."""
 
@@ -66,7 +71,22 @@ class IssueTrackerPolicy(object):
 
   def label(self, label_type):
     """Get the actual label string for the given type."""
-    return self._data['labels'].get(label_type)
+    label = self._data['labels'].get(label_type)
+    if label is None:
+      return None
+
+    return str(label)
+
+  def substitution_mapping(self, label):
+    """Get an explicit substitution mapping."""
+    if 'substitutions' not in self._data:
+      return label
+
+    mapped = self._data['substitutions'].get(label)
+    if not mapped:
+      return label
+
+    return str(mapped)
 
   @property
   def deadline_policy_message(self):
@@ -93,21 +113,27 @@ class IssueTrackerPolicy(object):
 
   def _apply_new_issue_properties(self, policy, issue_type, is_crash):
     """Apply issue policies."""
+    if not issue_type:
+      return
+
     if 'status' in issue_type:
       policy.status = self._data['status'][issue_type['status']]
 
     if 'ccs' in issue_type:
       policy.labels.extend(issue_type['ccs'])
 
-    if 'labels' in issue_type:
-      policy.labels.extend(issue_type['labels'])
+    labels = issue_type.get('labels')
+    if labels:
+      policy.labels.extend(_to_str_list(labels))
 
     if is_crash:
-      if 'crash_labels' in issue_type:
-        policy.labels.extend(issue_type['crash_labels'])
+      crash_labels = issue_type.get('crash_labels')
+      if crash_labels:
+        policy.labels.extend(_to_str_list(crash_labels))
     else:
-      if 'non_crash_labels' in issue_type:
-        policy.labels.extend(issue_type['non_crash_labels'])
+      non_crash_labels = issue_type.get('non_crash_labels')
+      if non_crash_labels:
+        policy.labels.extend(_to_str_list(non_crash_labels))
 
   def get_existing_issue_properties(self):
     """Get the properties to apply to a new issue."""
