@@ -219,7 +219,7 @@ def get_oss_fuzz_projects():
 def get_projects_from_gcs(gcs_url):
   """Get projects from GCS path."""
   data = json.loads(storage.read_data(gcs_url))
-  return [(project['name'], project) for project in data]
+  return [(project['name'], project) for project in data['projects']]
 
 
 def _process_sanitizers_field(sanitizers):
