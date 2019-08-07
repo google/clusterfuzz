@@ -104,6 +104,9 @@ class IssueTrackerPolicy(object):
 
   def _apply_new_issue_properties(self, policy, issue_type, is_crash):
     """Apply issue policies."""
+    if not issue_type:
+      return
+
     if 'status' in issue_type:
       policy.status = self._data['status'][issue_type['status']]
 
