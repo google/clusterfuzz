@@ -216,8 +216,8 @@ def _store_probabilities_in_bigquery(engine, data):
         dataset_id='main', table_id='fuzz_strategy_experiments')
     client.insert(bigquery_data)
   else:
-    logs.log("No fuzz strategy distribution data was found to upload to "
-             "BigQuery.")
+    logs.log('No fuzz strategy distribution data was found to upload to '
+             'BigQuery.')
 
 
 def _query_and_upload_strategy_probabilities(engine):
@@ -228,7 +228,7 @@ def _query_and_upload_strategy_probabilities(engine):
   are based on new_edges feature."""
   strategy_data = []
   data = _query_multi_armed_bandit_probabilities(engine)
-  logs.log("Queried distribution for {}.".format(engine.name))
+  logs.log('Queried distribution for {}.'.format(engine.name))
 
   # TODO(mukundv): Update once we choose a temperature parameter for final
   # implementation.
@@ -249,9 +249,9 @@ def _query_and_upload_strategy_probabilities(engine):
           data_types.FuzzStrategyProbability)
   ])
   ndb.put_multi(strategy_data)
-  logs.log("Uploaded queried distribution to ndb for {}".format(engine.name))
+  logs.log('Uploaded queried distribution to ndb for {}'.format(engine.name))
   _store_probabilities_in_bigquery(engine, data)
-  logs.log("Uploaded queried distribution to BigQuery for {}".format(
+  logs.log('Uploaded queried distribution to BigQuery for {}'.format(
       engine.name))
 
 

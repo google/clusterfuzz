@@ -101,8 +101,8 @@ def generate_default_strategy_pool(strategy_list, use_generator):
     if do_strategy(value):
       pool.add_strategy(value)
 
-  logs.log("Strategy pool was generated according to default parameters. "
-           "Chosen strategies: " + ", ".join(pool.strategy_names))
+  logs.log('Strategy pool was generated according to default parameters. '
+           'Chosen strategies: ' + ', '.join(pool.strategy_names))
   return pool
 
 
@@ -158,6 +158,6 @@ def generate_weighted_strategy_pool(strategy_list, use_generator):
     if do_strategy(value):
       pool.add_strategy(value)
 
-  logs.log("Strategy pool was generated according to weighted distribution. "
-           "Chosen strategies: " + ", ".join(pool.strategy_names))
+  logs.log('Strategy pool was generated according to weighted distribution. '
+           'Chosen strategies: ' + ', '.join(pool.strategy_names))
   return pool
