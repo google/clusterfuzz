@@ -91,18 +91,18 @@ test-project:
     # Optional: For issue trackers where labels need to be mapped to some other
     # representation (e.g. an ID), substitutions from above need to be mapped
     # explicitly.
-    substitutions:
-      Stability-AFL: Stability-AFL
-      Stability-LibFuzzer: Stability-LibFuzzer
-      Stability-Memory-AddressSanitizer: Stability-Memory-AddressSanitizer
-      Stability-Memory-LeakSanitizer: Stability-Memory-LeakSanitizer
-      Stability-Memory-MemorySanitizer: Stability-Memory-MemorySanitizer
-      Stability-ThreadSanitizer: Stability-ThreadSanitizer
-      Stability-UndefinedBehaviorSanitizer: Stability-UndefinedBehaviorSanitizer
-      Security_Severity-Critical: Security_Severity-Critical
-      Security_Severity-High: Security_Severity-High
-      Security_Severity-Medium: Security_Severity-Medium
-      Security_Severity-Low: Security_Severity-Low
+    #substitutions:
+    #  Stability-AFL: Stability-AFL
+    #  Stability-LibFuzzer: Stability-LibFuzzer
+    #  Stability-Memory-AddressSanitizer: Stability-Memory-AddressSanitizer
+    #  Stability-Memory-LeakSanitizer: Stability-Memory-LeakSanitizer
+    #  Stability-Memory-MemorySanitizer: Stability-Memory-MemorySanitizer
+    #  Stability-ThreadSanitizer: Stability-ThreadSanitizer
+    #  Stability-UndefinedBehaviorSanitizer: Stability-UndefinedBehaviorSanitizer
+    #  Security_Severity-Critical: Security_Severity-Critical
+    #  Security_Severity-High: Security_Severity-High
+    #  Security_Severity-Medium: Security_Severity-Medium
+    #  Security_Severity-Low: Security_Severity-Low
     deadline_policy_message: |-
       This bug is subject to a 90 day disclosure deadline. If 90 days elapse
       without an upstream patch, then the bug report will automatically
