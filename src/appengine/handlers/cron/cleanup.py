@@ -760,7 +760,7 @@ def _update_issue_security_severity_and_get_comment(policy, testcase, issue):
                                              issue.labels)
 
   recommended_severity = issue_filer.apply_substitutions(
-      security_severity_label, testcase)
+      policy, security_severity_label, testcase)
   if not recommended_severity:
     return ''
 

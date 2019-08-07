@@ -88,7 +88,8 @@ class Handler(base_handler.Handler):
 
       if not issue.labels.has_with_pattern(reported_pattern):
         # Add reported label and deadline comment if necessary.
-        for result in issue_filer.apply_substitutions(reported_label, testcase):
+        for result in issue_filer.apply_substitutions(policy, reported_label,
+                                                      testcase):
           issue.labels.add(result)
 
         if policy.label('restrict_view') in issue.labels:

@@ -68,6 +68,17 @@ class IssueTrackerPolicy(object):
     """Get the actual label string for the given type."""
     return self._data['labels'].get(label_type)
 
+  def substitution_mapping(self, label):
+    """Get an explicit substitution mapping."""
+    if 'substitutions' not in self._data:
+      return label
+
+    mapped = self._data['substitutions'].get(label)
+    if not mapped:
+      return label
+
+    return mapped
+
   @property
   def deadline_policy_message(self):
     """Get the deadline policy message, if if exists."""

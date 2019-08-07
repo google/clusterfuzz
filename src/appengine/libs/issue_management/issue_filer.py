@@ -186,7 +186,7 @@ def update_issue_impact_labels(testcase, issue):
   issue.labels.add('Security_Impact-' + impact_to_string(new_impact))
 
 
-def apply_substitutions(label, testcase, security_severity=None):
+def apply_substitutions(policy, label, testcase, security_severity=None):
   """Apply label substitutions."""
   if label is None:
     # If the label is not configured, then nothing to subsitute.
@@ -201,7 +201,8 @@ def apply_substitutions(label, testcase, security_severity=None):
 
   for marker, handler in label_substitutions:
     if marker in label:
-      return handler(label, testcase, security_severity)
+      return policy.substitution_mapping(
+          handler(label, testcase, security_severity))
 
   # No match found. Return unmodified label.
   return [label]
@@ -323,7 +324,8 @@ def file_issue(testcase,
 
   # Apply label substitutions.
   for label in itertools.chain(properties.labels, additional_labels):
-    for result in apply_substitutions(label, testcase, security_severity):
+    for result in apply_substitutions(policy, label, testcase,
+                                      security_severity):
       issue.labels.add(result)
 
   issue.body += properties.issue_body_footer
