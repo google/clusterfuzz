@@ -376,6 +376,13 @@ def get_testcase_detail(testcase):
   crash_state = testcase.crash_state
   crash_state_lines = crash_state.strip().splitlines()
   crash_type = data_handler.get_crash_type_string(testcase)
+  external_user = not access.has_access(job_type=testcase.job_type)
+  issue_url = issue_tracker_utils.get_issue_url(testcase)
+  metadata = testcase.get_metadata()
+  original_testcase_size = _get_blob_size_string(testcase.fuzzed_keys)
+  minimized_testcase_size = _get_blob_size_string(testcase.minimized_keys)
+  has_issue_tracker = bool(data_handler.get_issue_tracker_name())
+
   formatted_reproduction_help = _format_reproduction_help(
       data_handler.get_formatted_reproduction_help(testcase))
   # When we have a HELP_TEMPLATE, ignore any default values set for HELP_URL.
@@ -384,12 +391,6 @@ def get_testcase_detail(testcase):
         testcase, config)
   else:
     reproduction_help_url = None
-  external_user = not access.has_access(job_type=testcase.job_type)
-  issue_url = issue_tracker_utils.get_issue_url(testcase)
-  metadata = testcase.get_metadata()
-  original_testcase_size = _get_blob_size_string(testcase.fuzzed_keys)
-  minimized_testcase_size = _get_blob_size_string(testcase.minimized_keys)
-  has_issue_tracker = bool(data_handler.get_issue_tracker_name())
 
   if not testcase.regression:
     regression = 'Pending'
