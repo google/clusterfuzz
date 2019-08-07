@@ -42,6 +42,10 @@
         display: block;
       }
 
+      :host td.value {
+        max-width: 200px;
+      }
+
       :host td.value paper-icon-button, :host .section .title paper-icon-button {
         padding: 0px;
         width: 16px;
@@ -87,16 +91,7 @@
         padding: 5px;
       }
 
-      :host .reproduce-tool {
-        padding: 5px 10px;
-        line-height: 16px;
-        font-size: 13px;
-        color: #888;
-        border-top: 1px dotted #ccc;
-        background-color: #e1e6e9;
-      }
-
-      :host .reproduce-tool code {
+      :host code {
         border-radius: 3px;
         padding: 0px 5px;
         font-family: 'Source Code Pro', monospace;
@@ -229,24 +224,13 @@
                     <render-either slot="f" main="[[info.crash_type]]" else="---"></render-either>
                   </if-else>
                 </td>
-                <template is="dom-if" if="[[getFuzzerName(info)]]">
-                  <td class="label">
-                    <span class="help" title="Fuzzer that generated the testcase.">Fuzzer:</span>
-                  </td>
-                  <td class="value">
-                    <a href$="/testcases?fuzzer=[[getFuzzerName(info)]]">
-                      [[getFuzzerName(info)]]
-                    </a>
-                  </td>
-                </template>
-                <template is="dom-if" if="[[info.testcase.uploader_email]]">
-                  <td class="label">
-                    <span class="help" title="Email address of person that uploaded the testcase.">Uploader:</span>
-                  </td>
-                  <td class="value">
-                    [[info.testcase.uploader_email]]
-                  </td>
-                </template>
+                <td class="label">Created:</td>
+                <td class="value">
+                  <if-else condition="[[info.timestamp]]">
+                    <span slot="t">[[formatTime(info.timestamp)]]</span>
+                    <span slot="f">NA</span>
+                  </if-else>
+                </td>
                 <td class="label">
                   <span class="help" title="Whether or not this crash has security implications (with recommended severity).">Security:</span>
                 </td>
@@ -273,11 +257,9 @@
                   <render-either main="[[info.testcase.crash_address]]" else="---"></render-either>
                 </td>
                 <td class="label">
-                  <span class="help" title="Job that specifies the build configuration.">Job Type:</span>
+                  <span class="help" title="Memory tool instrumentation used.">[[info.memory_tool_display_label]]:</span>
                 </td>
-                <td class="value">
-                  <a href$="/testcases?job=[[info.testcase.job_type]]">[[info.testcase.job_type]]</a>
-                </td>
+                <td class="value">[[info.memory_tool_display_value]]</td>
                 <td class="label">
                   <span class="help" title="Whether or not the crash is reliably reproducible (“No” for flaky test cases).">Reliably reproduces:</span>
                 </td>
@@ -318,7 +300,7 @@
                 </td>
                 <td class="label">
                   <span class="help" title="OS where the crash occurred.">Platform:</span>
-                 </td>
+                </td>
                 <td class="value">
                   <if-else condition="[[info.testcase.platform]]">
                     <a slot="t" href$="/testcases?q=platform%3A[[info.testcase.platform_id]]">
@@ -356,17 +338,30 @@
                 </td>
               </tr>
               <tr>
-                <td class="label">Created:</td>
-                <td class="value">
-                  <if-else condition="[[info.timestamp]]">
-                    <span slot="t">[[formatTime(info.timestamp)]]</span>
-                    <span slot="f">NA</span>
-                  </if-else>
-                </td>
+                <template is="dom-if" if="[[getFuzzerName(info)]]">
+                  <td class="label">
+                    <span class="help" title="Fuzzer that generated the testcase.">Fuzzer:</span>
+                  </td>
+                  <td class="value">
+                    <a href$="/testcases?fuzzer=[[getFuzzerName(info)]]">
+                      [[getFuzzerName(info)]]
+                    </a>
+                  </td>
+                </template>
+                <template is="dom-if" if="[[info.testcase.uploader_email]]">
+                  <td class="label">
+                    <span class="help" title="Email address of person that uploaded the testcase.">Uploader:</span>
+                  </td>
+                  <td class="value">
+                    [[info.testcase.uploader_email]]
+                  </td>
+                </template>
                 <td class="label">
-                  <span class="help" title="Memory tool instrumentation used.">[[info.memory_tool_display_label]]:</span>
+                  <span class="help" title="Job that specifies the build configuration.">Job Type:</span>
                 </td>
-                <td class="value">[[info.memory_tool_display_value]]</td>
+                <td class="value">
+                  <a href$="/testcases?job=[[info.testcase.job_type]]">[[info.testcase.job_type]]</a>
+                </td>
                 <template is="dom-if" if="[[info.show_impact]]">
                   <td class="label">
                     <span class="help" title="Whether or not this crash impacts current beta and stable builds.">Impacts:</span>
