@@ -47,6 +47,7 @@ from system import new_process
 from system import shell
 
 DISPLAY = ':99'
+SUPPORTED_PLATFORMS = ['android', 'linux', 'mac']
 
 
 class SerializedTestcase(object):
@@ -293,6 +294,13 @@ def _reproduce_crash(testcase_url, build_directory, iterations, disable_xvfb):
   configuration = config.ReproduceToolConfiguration(testcase_url)
 
   testcase = _get_testcase(testcase_id, configuration)
+
+  # Ensure that we support this test case.
+  if testcase.platform not in SUPPORTED_PLATFORMS:
+    raise errors.ReproduceToolUnrecoverableError(
+        'The reproduce tool is not yet supported on {platform}.'.format(
+            platform=testcase.platform))
+
   testcase_path = _download_testcase(testcase_id, testcase, configuration)
   _update_environment_for_testcase(testcase, build_directory)
 
@@ -336,9 +344,11 @@ def _cleanup():
 
 def execute(args):
   """Attempt to reproduce a crash then report on the result."""
+  # The current working directory may change while we're running.
+  absolute_build_dir = os.path.abspath(args.build_dir)
   try:
-    result = _reproduce_crash(args.testcase, args.build_dir, args.iterations,
-                              args.disable_xvfb)
+    result = _reproduce_crash(args.testcase, absolute_build_dir,
+                              args.iterations, args.disable_xvfb)
   except errors.ReproduceToolUnrecoverableError as exception:
     print(exception)
     return
