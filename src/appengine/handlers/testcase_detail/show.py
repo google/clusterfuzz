@@ -362,29 +362,11 @@ def _get_blob_size_string(blob_key):
 
 
 def _format_reproduction_help(reproduction_help):
-  """Format a reproduction help string as HTML."""
-
-  def _linkify(plain_text_input):
-    """Convert links in a plain text string to HTML."""
-    if (not plain_text_input.startswith('http://') and
-        not plain_text_input.startswith('https://')):
-      return plain_text_input
-
-    return '<a href="{url}">{url}</a>'.format(url=plain_text_input)
-
+  """Format a reproduction help string as HTML (linkified with break tags)."""
   if not reproduction_help:
     return ''
 
-  result = ''
-  for line in reproduction_help.splitlines():
-    # Add a break before each line except the first.
-    if result:
-      result += '<br>'
-
-    input_parts = [_linkify(part) for part in line.split(' ')]
-    result += ' '.join(input_parts)
-
-  return result
+  return jinja2.utils.urlize(reproduction_help).replace('\n', '<br>')
 
 
 def get_testcase_detail(testcase):
