@@ -1401,15 +1401,15 @@ class FuzzingSession(object):
     fuzzer_metadata = {}
     issue_labels = engine_common.get_issue_labels(target_path)
     if issue_labels:
-      fuzzer_metadata['issue_labels'] = issue_labels
+      fuzzer_metadata['issue_labels'] = ','.join(issue_labels)
 
     issue_components = engine_common.get_issue_components(target_path)
     if issue_components:
-      fuzzer_metadata['issue_components'] = issue_components
+      fuzzer_metadata['issue_components'] = ','.join(issue_components)
 
     issue_owners = engine_common.get_issue_owners(target_path)
     if issue_owners:
-      fuzzer_metadata['issue_owners'] = issue_owners
+      fuzzer_metadata['issue_owners'] = ','.join(issue_owners)
 
     return result, fuzzer_metadata
 
