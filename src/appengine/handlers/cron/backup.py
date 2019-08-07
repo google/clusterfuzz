@@ -42,9 +42,9 @@ class Handler(base_handler.Handler):
   @handler.check_cron()
   def get(self):
     """Handle a cron job."""
-    gs_bucket_name = local_config.Config(
+    backup_bucket = local_config.Config(
         local_config.PROJECT_PATH).get('backup.bucket')
-    if not gs_bucket_name:
+    if not backup_bucket:
       logs.log('No backup bucket is set, skipping.')
       return
 
@@ -55,7 +55,9 @@ class Handler(base_handler.Handler):
 
     app_id = utils.get_application_id()
     timestamp = datetime.datetime.utcnow().strftime('%Y-%m-%d-%H:%M:%S')
-    output_url_prefix = 'gs://%s/%s' % (gs_bucket_name, timestamp)
+    output_url_prefix = (
+        'gs://{backup_bucket}/datastore-backups/{timestamp}'.format(
+            backup_bucket=backup_bucket, timestamp=timestamp))
     body = {
         'output_url_prefix': output_url_prefix,
         'entity_filter': {
