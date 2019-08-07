@@ -48,6 +48,7 @@ class LabelStore(object):
     if not label:
       return
 
+    label = str(label)
     key = label.lower()
     if key in self._removed:
       del self._removed[key]
@@ -58,6 +59,7 @@ class LabelStore(object):
 
   def remove(self, label):
     """Remove a label."""
+    label = str(label)
     key = label.lower()
     if key not in self._backing:
       return

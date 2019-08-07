@@ -1347,9 +1347,9 @@ class DoEngineFuzzingTest(fake_filesystem_unittest.TestCase):
 
     crashes, fuzzer_metadata = session.do_engine_fuzzing(engine_impl)
     self.assertDictEqual({
-        'issue_components': ['component1', 'component2'],
-        'issue_labels': ['label1', 'label2'],
-        'issue_owners': ['owner1@email.com'],
+        'issue_components': 'component1,component2',
+        'issue_labels': 'label1,label2',
+        'issue_owners': 'owner1@email.com',
     }, fuzzer_metadata)
 
     log_time = datetime.datetime(1970, 1, 1, 0, 0)

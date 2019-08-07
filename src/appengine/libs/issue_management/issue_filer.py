@@ -345,6 +345,8 @@ def file_issue(testcase,
   for label in metadata_labels:
     issue.labels.add(label)
 
+  # TODO(ochang): Add additional components from testcase metadata once ready.
+
   issue.reporter = user_email
   issue.save()
 
