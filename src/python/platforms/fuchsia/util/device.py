@@ -21,7 +21,7 @@ import os
 import re
 import subprocess
 
-from .host import Host
+from host import Host
 
 
 class Device(object):
@@ -33,7 +33,7 @@ class Device(object):
     Attributes:
       host: A Host object represent the local platform attached to this target
         device.
-  """
+    """
 
   @classmethod
   def from_args(cls, host, args):
@@ -116,12 +116,11 @@ class Device(object):
       If check was false, a subprocess.Popen object representing the running
       child process.
 
-    Raises: Same as subprocess.Popen
+    Raises: A Process object.
     """
-    return subprocess.Popen(
-        self.get_ssh_cmd(['ssh', self._addr] + cmdline),
-        stdout=stdout,
-        stderr=subprocess.STDOUT)
+    args = self.get_ssh_cmd(['ssh', self._addr] + cmdline)
+    return self.host.create_process(
+        args, stdout=stdout, stderr=subprocess.STDOUT)
 
   def ssh(self, cmdline, quiet=True, logfile=None):
     """Runs a command to completion on the device.
@@ -139,15 +138,16 @@ class Device(object):
     if quiet:
       if logfile:
         with open(logfile, 'w') as f:
-          self._ssh(cmdline, stdout=f).wait()
+          self._ssh(cmdline, stdout=f).call()
       else:
-        self._ssh(cmdline, stdout=Host.DEVNULL).wait()
+        self._ssh(cmdline, stdout=Host.DEVNULL).call()
     else:
       if logfile:
-        proc = self._ssh(cmdline, stdout=subprocess.PIPE)
-        subprocess.check_call(['tee', logfile], stdin=proc.stdout)
+        p1 = self._ssh(cmdline, stdout=subprocess.PIPE).popen()
+        p2 = self.host.create_process(['tee', logfile], stdin=p1.stdout)
+        p2.check_call()
       else:
-        self._ssh(cmdline, stdout=None).wait()
+        self._ssh(cmdline, stdout=None).call()
 
   def getpids(self):
     """Maps names to process IDs for running fuzzers.
@@ -162,7 +162,8 @@ class Device(object):
       A dict mapping fuzz target names to process IDs. May be empty if no
       fuzzers are running.
     """
-    out, _ = self._ssh(['cs'], stdout=subprocess.PIPE).communicate()
+    p = self._ssh(['cs'], stdout=subprocess.PIPE).popen()
+    out, _ = p.communicate()
     pids = {}
     for fuzzer in self.host.fuzzers:
       tgt = (fuzzer[1] + '.cmx')[:32]
@@ -188,8 +189,8 @@ class Device(object):
     """
     results = {}
     try:
-      out, _ = self._ssh(
-          ['ls', '-l', path], stdout=subprocess.PIPE).communicate()
+      p = self._ssh(['ls', '-l', path], stdout=subprocess.PIPE).popen()
+      out, _ = p.communicate()
       for line in str(out).split('\n'):
         # Line ~= '-rw-r--r-- 1 0 0 8192 Mar 18 22:02 some-name'
         parts = line.split()
@@ -199,47 +200,88 @@ class Device(object):
       pass
     return results
 
-  def dlog(self, logfile):
-    """Appends the debug log from a device to a log file."""
-    artifact_pattern = re.compile(r'Test unit written to data/(\S*)')
+  def rm(self, pathname, recursive=False):
+    """Removes a file or directory from the device."""
+    args = ['rm']
+    if recursive:
+      args.append('-r')
+    args.append(pathname)
+    self.ssh(args)
+
+  def _dump_log(self, args):
+    """Retrieve a syslog from the device."""
+    p = self._ssh(['log_listener', '--dump_logs', 'yes'] + args)
+    return p.check_output()
+
+  def _guess_pid(self):
+    """Tries to guess the fuzzer process ID from the device syslog.
+
+        This will assume the last line which contained one of the strings
+        '{{{reset}}}', 'libFuzzer', or 'Sanitizer' is the fuzzer process, and
+        try to extract its PID.
+
+        Returns:
+          The PID of the process suspected to be the fuzzer, or -1 if no
+          suitable candidate was found.
+        """
+    out = self._dump_log(['--only', 'reset,Fuzzer,Sanitizer'])
+    pid = -1
+    for line in out.split('\n'):
+      # Log lines are like '[timestamp][pid][tid][name] data'
+      parts = line.split('][')
+      if len(parts) > 2:
+        pid = int(parts[1])
+    return pid
+
+  def process_logs(self, logfile, guess_pid=False):
+    """Constructs a symbolized fuzzer log from a device.
+
+        Merges the provided fuzzer log with the symbolized system log for the
+        fuzzer process.
+
+        Args:
+          logfile: Absolute path to a fuzzer's log file.
+          guess_pid: If true and the fuzzer process ID cannot be found in the
+            fuzzer log, the process ID is picked from candidates in the system
+            log.
+
+        Returns:
+          A list of the test artifacts (e.g. crashes) reported in the logs.
+        """
+    pid = -1
+    pid_pattern = re.compile(r'==([0-9]*)==')
+    mutation_pattern = re.compile(r'^MS: [0-9]*')
     artifacts = []
-    stacktrace_pattern = re.compile(r'==([0-9]+)== ERROR: ')
-    stacktrace = []
+    artifact_pattern = re.compile(r'Test unit written to data/(\S*)')
     with open(logfile) as log:
       with open(logfile + '.tmp', 'w') as tmp:
-        while True:
-          line = log.readline()
-          if not line:
-            break
-          tmp.write(line)
+        for line in log:
+          # Check for a line that tells us the process ID
+          match = pid_pattern.search(line)
+          if match:
+            pid = int(match.group(1))
+
+          # Check for a unit being dumped, i.e. a finding.
+          match = mutation_pattern.search(line)
+          if match:
+            if pid <= 0 and guess_pid:
+              pid = self._guess_pid()
+            if pid > 0:
+              raw = self._dump_log(['--pid', str(pid)])
+              for item in raw:
+                if re.search(r'.*ERROR: AddressSanitizer.*', item):
+                  tmp.write(item)
+              sym = self.host.symbolize(raw)
+              tmp.write('\n'.join(sym))
+              tmp.write('\n')
+
+          # Check for an artifact being reported.
           match = artifact_pattern.search(line)
           if match:
             artifacts.append(match.group(1))
-          match = stacktrace_pattern.match(line)
-          if not match:
-            continue
-          p = self._ssh(['dlog', '-p', match.group(1)])
-          while True:
-            line = p.stdout.readline()
-            if not line:
-              break
-            elif r'{{{reset}}}' in line:
-              stacktrace = [line]
-            elif r'{{{' in line:
-              stacktrace.append(line)
-          p.wait()
-          symbolized = self.host.symbolize(stacktrace)
-          ignore = 'CrashTrampolineAsm' in symbolized
-          for line in symbolized.split('\n'):
-            if not line:
-              break
-            elif r'{{{' in line:
-              continue
-            elif 'CrashTrampolineAsm' in line:
-              ignore = False
-            elif not ignore:
-              tmp.write(line + '\n')
-          tmp.write('\n')
+
+          # Echo the line
+          tmp.write(line)
     os.rename(logfile + '.tmp', logfile)
     return artifacts
 
@@ -252,8 +294,9 @@ class Device(object):
       srcs: Local or remote paths to copy from.
       dst: Local or remote path to copy to.
     """
-    cmd = self.get_ssh_cmd(['scp'] + srcs + [dst])
-    subprocess.check_call(cmd, stdout=None, stderr=None)
+    args = self.get_ssh_cmd(['scp'] + srcs + [dst])
+    p = self.host.create_process(args)
+    p.call()
 
   def fetch(self, data_src, host_dst):
     """Copies `data_src` on the target to `host_dst` on the host."""

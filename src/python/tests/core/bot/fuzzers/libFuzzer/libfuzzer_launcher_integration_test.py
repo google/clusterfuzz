@@ -698,7 +698,7 @@ class TestLauncherFuchsia(BaseLauncherTest):
     data_types.Fuzzer(
         revision=1,
         additional_environment_string=
-        'FUCHSIA_BUILD_URL = gs://fuchsia-clusterfuzz-test-july-15-2019/*\n',
+        'FUCHSIA_BUILD_URL = gs://fuchsia-clusterfuzz-test-august-6-2019/*\n',
         builtin=True,
         differential=False,
         file_size='builtin',
@@ -731,7 +731,8 @@ class TestLauncherFuchsia(BaseLauncherTest):
     data_types.Job(
         environment_string=(
             'CUSTOM_BINARY = True\n'
-            'FUCHSIA_BUILD_URL = gs://fuchsia-clusterfuzz-test-july-15-2019/*\n'
+            'FUCHSIA_BUILD_URL = gs://fuchsia-clusterfuzz-test-august-6-2019/*'
+            '\n'
             'QUEUE_OVERRIDE=FUCHSIA\n'
             'OS_OVERRIDE=FUCHSIA'),
         name='libfuzzer_asan_test_fuzzer',
@@ -766,7 +767,7 @@ class TestLauncherFuchsia(BaseLauncherTest):
     environment.set_value('QUEUE_OVERRIDE', 'FUCHSIA')
     environment.set_value('OS_OVERRIDE', 'FUCHSIA')
     environment.set_value('FUCHSIA_BUILD_URL',
-                          'gs://fuchsia-clusterfuzz-test-july-15-2019/*')
+                          'gs://fuchsia-clusterfuzz-test-august-6-2019/*')
     self.tmp_resources_dir = tempfile.mkdtemp()
     environment.set_value('RESOURCES_DIR', self.tmp_resources_dir)
 

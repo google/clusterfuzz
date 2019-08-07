@@ -374,10 +374,6 @@ class FuchsiaQemuLibFuzzerRunner(new_process.ProcessRunner, LibFuzzerCommon):
 
   def fetch_and_process_logs_and_crash(self):
     """Fetch symbolized logs and crashes."""
-    # Fetch the symbolized log.
-    for logname in os.listdir(self.fuzzer.results_output()):
-      if logname == os.path.basename(self.fuzzer.logfile):
-        self.device.dlog(self.fuzzer.logfile)
 
     # Clusterfuzz assumes that the Libfuzzer output points to an absolute path,
     # where it can find the crash file.
@@ -414,6 +410,7 @@ class FuchsiaQemuLibFuzzerRunner(new_process.ProcessRunner, LibFuzzerCommon):
     """LibFuzzerCommon.fuzz override."""
     self._test_qemu_ssh()
     self.fuzzer.start([])
+    self.fuzzer.monitor()
     self.fetch_and_process_logs_and_crash()
 
     with open(self.fuzzer.logfile) as logfile:

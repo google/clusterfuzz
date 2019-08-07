@@ -187,7 +187,7 @@ class FuchsiaBuildTest(fake_filesystem_unittest.TestCase):
     """Tests setting up a build."""
     environment.set_value('RESOURCES_DIR', self.tmp_resources_dir)
     environment.set_value('FUCHSIA_BUILD_URL',
-                          'gs://fuchsia-clusterfuzz-test-july-15-2019/*')
+                          'gs://fuchsia-clusterfuzz-test-august-6-2019/*')
     build = build_manager.setup_fuchsia_build()
     self.assertIsInstance(build, build_manager.FuchsiaBuild)
     self._assert_env_vars()
