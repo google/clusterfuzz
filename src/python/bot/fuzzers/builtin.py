@@ -21,10 +21,10 @@ import random
 import sys
 
 from base import utils
+from bot import testcase_manager
 from bot.fuzzers import engine_common
 from bot.fuzzers import utils as fuzzers_utils
 from datastore import data_types
-from fuzzing import testcase_manager
 from system import environment
 from system import shell
 

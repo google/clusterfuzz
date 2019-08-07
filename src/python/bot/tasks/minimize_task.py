@@ -25,6 +25,7 @@ import zipfile
 from base import errors
 from base import tasks
 from base import utils
+from bot import testcase_manager
 from bot.minimizer import basic_minimizers
 from bot.minimizer import delta_minimizer
 from bot.minimizer import html_minimizer
@@ -40,7 +41,6 @@ from crash_analysis.crash_comparer import CrashComparer
 from crash_analysis.crash_result import CrashResult
 from datastore import data_handler
 from datastore import data_types
-from fuzzing import testcase_manager
 from google_cloud_utils import blobs
 from metrics import logs
 from platforms import android

@@ -25,10 +25,10 @@ import subprocess
 import time
 
 from base import utils
+from bot import testcase_manager
 from bot.tasks import setup
 from datastore import data_types
 from datastore import ndb_utils
-from fuzzing import testcase_manager
 from metrics import logs
 from system import archive
 from system import environment

@@ -19,6 +19,7 @@ import os
 
 from base import tasks
 from base import utils
+from bot import testcase_manager
 from bot.tasks import setup
 from bot.tasks import task_creation
 from build_management import build_manager
@@ -26,7 +27,6 @@ from crash_analysis import crash_analyzer
 from crash_analysis.crash_result import CrashResult
 from datastore import data_handler
 from datastore import data_types
-from fuzzing import testcase_manager
 from metrics import logs
 from system import environment
 from system import process_handler

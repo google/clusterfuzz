@@ -25,13 +25,13 @@ import unittest
 from pyfakefs import fake_filesystem_unittest
 
 from base import utils
+from bot import testcase_manager
 from bot.fuzzers import engine
 from bot.tasks import fuzz_task
 from chrome import crash_uploader
 from crash_analysis.stack_parsing import stack_analyzer
 from datastore import data_types
 from datastore import ndb
-from fuzzing import testcase_manager
 from google_cloud_utils import big_query
 from metrics import monitor
 from metrics import monitoring_metrics
@@ -266,8 +266,8 @@ class CrashInitTest(fake_filesystem_unittest.TestCase):
         'chrome.crash_uploader.FileMetadataInfo',
         'bot.tasks.setup.archive_testcase_and_dependencies_in_gcs',
         'crash_analysis.stack_parsing.stack_analyzer.get_crash_data',
-        'fuzzing.testcase_manager.get_additional_command_line_flags',
-        'fuzzing.testcase_manager.get_command_line_for_application',
+        'bot.testcase_manager.get_additional_command_line_flags',
+        'bot.testcase_manager.get_command_line_for_application',
         'base.utils.get_crash_stacktrace_output',
         'crash_analysis.crash_analyzer.ignore_stacktrace',
         'crash_analysis.crash_analyzer.is_security_issue',
@@ -443,7 +443,7 @@ class CrashGroupTest(unittest.TestCase):
 
     self.mock.get_project_name.return_value = 'some_project'
     self.crashes = [self._make_crash('g1'), self._make_crash('g2')]
-    self.context = mock.MagicMock(test_timeout=99)
+    self.context = mock.MagicMock(test_timeout=99, fuzzer_name='test')
     self.reproducible_testcase = self._make_testcase(
         project_name='some_project',
         bug_information='',
@@ -485,7 +485,7 @@ class CrashGroupTest(unittest.TestCase):
     group = fuzz_task.CrashGroup(self.crashes, self.context)
 
     self.assertTrue(group.should_create_testcase())
-    self.mock.find_main_crash.assert_called_once_with(self.crashes,
+    self.mock.find_main_crash.assert_called_once_with(self.crashes, 'test',
                                                       self.context.test_timeout)
 
     self.assertIsNone(group.existing_testcase)
@@ -501,7 +501,7 @@ class CrashGroupTest(unittest.TestCase):
     group = fuzz_task.CrashGroup(self.crashes, self.context)
 
     self.assertEqual(self.crashes[0].gestures, group.main_crash.gestures)
-    self.mock.find_main_crash.assert_called_once_with(self.crashes,
+    self.mock.find_main_crash.assert_called_once_with(self.crashes, 'test',
                                                       self.context.test_timeout)
     self.assertFalse(group.is_new())
     self.assertFalse(group.should_create_testcase())
@@ -515,7 +515,7 @@ class CrashGroupTest(unittest.TestCase):
     group = fuzz_task.CrashGroup(self.crashes, self.context)
 
     self.assertEqual(self.crashes[0].gestures, group.main_crash.gestures)
-    self.mock.find_main_crash.assert_called_once_with(self.crashes,
+    self.mock.find_main_crash.assert_called_once_with(self.crashes, 'test',
                                                       self.context.test_timeout)
     self.assertFalse(group.is_new())
     self.assertTrue(group.should_create_testcase())
@@ -533,7 +533,7 @@ class CrashGroupTest(unittest.TestCase):
     self.assertFalse(group.should_create_testcase())
 
     self.assertEqual(self.crashes[0].gestures, group.main_crash.gestures)
-    self.mock.find_main_crash.assert_called_once_with(self.crashes,
+    self.mock.find_main_crash.assert_called_once_with(self.crashes, 'test',
                                                       self.context.test_timeout)
     self.assertFalse(group.is_new())
     self.assertFalse(group.has_existing_reproducible_testcase())
@@ -545,7 +545,7 @@ class FindMainCrashTest(unittest.TestCase):
 
   def setUp(self):
     helpers.patch(self, [
-        'fuzzing.testcase_manager.test_for_reproducibility',
+        'bot.testcase_manager.test_for_reproducibility',
     ])
     self.crashes = [
         self._make_crash('g1'),
@@ -556,8 +556,8 @@ class FindMainCrashTest(unittest.TestCase):
     self.reproducible_crashes = []
 
     # pylint: disable=unused-argument
-    def test_for_repro(file_path, state, security_flag, test_timeout, http_flag,
-                       gestures):
+    def test_for_repro(fuzzer_name, file_path, state, security_flag,
+                       test_timeout, http_flag, gestures):
       for c in self.reproducible_crashes:
         if c.gestures == gestures:
           return True
@@ -582,7 +582,7 @@ class FindMainCrashTest(unittest.TestCase):
     self.reproducible_crashes = [self.crashes[2]]
 
     self.assertEqual((self.crashes[2], False),
-                     fuzz_task.find_main_crash(self.crashes, 99))
+                     fuzz_task.find_main_crash(self.crashes, 'test', 99))
 
     self.crashes[0].archive_testcase_in_blobstore.assert_called_once_with()
     self.crashes[1].archive_testcase_in_blobstore.assert_called_once_with()
@@ -600,7 +600,7 @@ class FindMainCrashTest(unittest.TestCase):
     self.reproducible_crashes = []
 
     self.assertEqual((self.crashes[1], True),
-                     fuzz_task.find_main_crash(self.crashes, 99))
+                     fuzz_task.find_main_crash(self.crashes, 'test', 99))
 
     for c in self.crashes:
       c.archive_testcase_in_blobstore.assert_called_once_with()
@@ -615,7 +615,8 @@ class FindMainCrashTest(unittest.TestCase):
       c.is_valid.return_value = False
     self.reproducible_crashes = []
 
-    self.assertEqual((None, None), fuzz_task.find_main_crash(self.crashes, 99))
+    self.assertEqual((None, None),
+                     fuzz_task.find_main_crash(self.crashes, 'test', 99))
 
     for c in self.crashes:
       c.archive_testcase_in_blobstore.assert_called_once_with()
@@ -634,8 +635,8 @@ class ProcessCrashesTest(fake_filesystem_unittest.TestCase):
         'bot.tasks.setup.archive_testcase_and_dependencies_in_gcs',
         'crash_analysis.stack_parsing.stack_analyzer.get_crash_data',
         'build_management.revisions.get_real_revision',
-        'fuzzing.testcase_manager.get_command_line_for_application',
-        'fuzzing.testcase_manager.test_for_reproducibility',
+        'bot.testcase_manager.get_command_line_for_application',
+        'bot.testcase_manager.test_for_reproducibility',
         'base.utils.get_crash_stacktrace_output',
         'crash_analysis.crash_analyzer.ignore_stacktrace',
         'crash_analysis.crash_analyzer.is_security_issue',
@@ -1299,8 +1300,8 @@ class DoEngineFuzzingTest(fake_filesystem_unittest.TestCase):
         'bot.tasks.fuzz_task.GcsCorpus.sync_from_gcs',
         'bot.tasks.fuzz_task.GcsCorpus.upload_files',
         'build_management.revisions.get_component_list',
-        'fuzzing.testcase_manager.upload_log',
-        'fuzzing.testcase_manager.upload_testcase',
+        'bot.testcase_manager.upload_log',
+        'bot.testcase_manager.upload_testcase',
         'metrics.fuzzer_stats.upload_stats',
     ])
     test_utils.set_up_pyfakefs(self)
@@ -1346,9 +1347,9 @@ class DoEngineFuzzingTest(fake_filesystem_unittest.TestCase):
 
     crashes, fuzzer_metadata = session.do_engine_fuzzing(engine_impl)
     self.assertDictEqual({
-        'issue_components': ['component1', 'component2'],
-        'issue_labels': ['label1', 'label2'],
-        'issue_owners': ['owner1@email.com'],
+        'issue_components': 'component1,component2',
+        'issue_labels': 'label1,label2',
+        'issue_owners': 'owner1@email.com',
     }, fuzzer_metadata)
 
     log_time = datetime.datetime(1970, 1, 1, 0, 0)
@@ -1361,7 +1362,12 @@ class DoEngineFuzzingTest(fake_filesystem_unittest.TestCase):
         'cf::fuzzing_strategies: strategy_1,strategy_2', log_time)
     self.mock.upload_testcase.assert_called_with('/input', log_time)
 
-    self.assertEqual(expected_crashes, crashes)
+    self.assertEqual(1, len(crashes))
+    self.assertEqual('/input', crashes[0].file_path)
+    self.assertEqual(1, crashes[0].return_code)
+    self.assertEqual('stack', crashes[0].unsymbolized_crash_stacktrace)
+    self.assertEqual(1.0, crashes[0].crash_time)
+    self.assertListEqual(['test_target', 'args'], crashes[0].arguments)
     upload_args = self.mock.upload_stats.call_args[0][0]
     testcase_run = upload_args[0]
     self.assertDictEqual({

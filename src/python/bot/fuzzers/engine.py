@@ -14,6 +14,7 @@
 """Fuzzing engine interface."""
 
 from builtins import object
+from collections import namedtuple
 
 _ENGINES = {}
 
@@ -48,6 +49,10 @@ class Result(object):
     self.crashes = crashes
     self.stats = stats
     self.time_executed = time_executed
+
+
+ReproduceResult = namedtuple('ReproduceResult',
+                             ['return_code', 'time_executed', 'output'])
 
 
 class Engine(object):
@@ -97,7 +102,7 @@ class Engine(object):
       max_time: Maximum allowed time for the reproduction.
 
     Returns:
-      A tuple of (return_code, output).
+      A ReproduceResult.
     """
     raise NotImplementedError
 

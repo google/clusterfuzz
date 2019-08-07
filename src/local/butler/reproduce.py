@@ -29,11 +29,11 @@ from urllib import parse
 
 from base import json_utils
 from base import utils
+from bot import testcase_manager
 from bot.tasks import commands
 from bot.tasks import setup
 from build_management import build_manager
 from datastore import data_types
-from fuzzing import testcase_manager
 from local.butler import appengine
 from local.butler import common
 from local.butler.reproduce_tool import config
