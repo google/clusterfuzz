@@ -64,12 +64,15 @@ ENGINE_UBSAN_TEMPLATE = """LSAN = False
 ADDITIONAL_UBSAN_OPTIONS = symbolize=0:allocator_release_to_os_interval_ms=500
 """
 
+PRUNE_TEMPLATE = 'CORPUS_PRUNE = True'
+
 TEMPLATES = {
     'afl': AFL_TEMPLATE,
     'engine_asan': ENGINE_ASAN_TEMPLATE,
     'engine_msan': ENGINE_MSAN_TEMPLATE,
     'engine_ubsan': ENGINE_UBSAN_TEMPLATE,
     'libfuzzer': LIBFUZZER_TEMPLATE,
+    'prune': PRUNE_TEMPLATE,
 }
 
 

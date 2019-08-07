@@ -285,7 +285,7 @@ class OssFuzzProjectSetupTest(unittest.TestCase):
         data_types.Job.name == 'libfuzzer_asan_lib1').get()
     self.assertIsNotNone(job)
     self.assertEqual(job.platform, 'LIB1_LINUX')
-    self.assertItemsEqual(job.templates, ['asan', 'libfuzzer', 'prune'])
+    self.assertItemsEqual(job.templates, ['engine_asan', 'libfuzzer', 'prune'])
     self.assertEqual(
         job.environment_string, 'RELEASE_BUILD_BUCKET_PATH = '
         'gs://clusterfuzz-builds/lib1/lib1-address-([0-9]+).zip\n'
@@ -304,7 +304,7 @@ class OssFuzzProjectSetupTest(unittest.TestCase):
         data_types.Job.name == 'libfuzzer_asan_lib2').get()
     self.assertIsNotNone(job)
     self.assertEqual(job.platform, 'LIB2_LINUX')
-    self.assertItemsEqual(job.templates, ['asan', 'libfuzzer', 'prune'])
+    self.assertItemsEqual(job.templates, ['engine_asan', 'libfuzzer', 'prune'])
     self.assertEqual(
         job.environment_string, 'RELEASE_BUILD_BUCKET_PATH = '
         'gs://clusterfuzz-builds/lib2/lib2-address-([0-9]+).zip\n'
@@ -323,7 +323,7 @@ class OssFuzzProjectSetupTest(unittest.TestCase):
         data_types.Job.name == 'libfuzzer_asan_lib3').get()
     self.assertIsNotNone(job)
     self.assertEqual(job.platform, 'LIB3_LINUX')
-    self.assertItemsEqual(job.templates, ['asan', 'libfuzzer', 'prune'])
+    self.assertItemsEqual(job.templates, ['engine_asan', 'libfuzzer', 'prune'])
     self.assertEqual(
         job.environment_string, 'RELEASE_BUILD_BUCKET_PATH = '
         'gs://clusterfuzz-builds/lib3/lib3-address-([0-9]+).zip\n'
@@ -343,7 +343,7 @@ class OssFuzzProjectSetupTest(unittest.TestCase):
         data_types.Job.name == 'libfuzzer_asan_i386_lib3').get()
     self.assertIsNotNone(job)
     self.assertEqual(job.platform, 'LIB3_LINUX')
-    self.assertItemsEqual(job.templates, ['asan', 'libfuzzer'])
+    self.assertItemsEqual(job.templates, ['engine_asan', 'libfuzzer'])
     self.assertEqual(
         job.environment_string, 'RELEASE_BUILD_BUCKET_PATH = '
         'gs://clusterfuzz-builds-i386/lib3/lib3-address-([0-9]+).zip\n'
@@ -363,7 +363,7 @@ class OssFuzzProjectSetupTest(unittest.TestCase):
         data_types.Job.name == 'libfuzzer_msan_lib3').get()
     self.assertIsNotNone(job)
     self.assertEqual(job.platform, 'LIB3_LINUX')
-    self.assertItemsEqual(job.templates, ['msan', 'libfuzzer'])
+    self.assertItemsEqual(job.templates, ['engine_msan', 'libfuzzer'])
     self.assertEqual(
         job.environment_string, 'RELEASE_BUILD_BUCKET_PATH = '
         'gs://clusterfuzz-builds/lib3/lib3-memory-([0-9]+).zip\n'
@@ -384,7 +384,7 @@ class OssFuzzProjectSetupTest(unittest.TestCase):
         data_types.Job.name == 'libfuzzer_ubsan_lib3').get()
     self.assertIsNotNone(job)
     self.assertEqual(job.platform, 'LIB3_LINUX')
-    self.assertItemsEqual(job.templates, ['ubsan', 'libfuzzer'])
+    self.assertItemsEqual(job.templates, ['engine_ubsan', 'libfuzzer'])
     self.assertEqual(
         job.environment_string, 'RELEASE_BUILD_BUCKET_PATH = '
         'gs://clusterfuzz-builds/lib3/lib3-undefined-([0-9]+).zip\n'
@@ -403,7 +403,7 @@ class OssFuzzProjectSetupTest(unittest.TestCase):
     job = data_types.Job.query(data_types.Job.name == 'afl_asan_lib1').get()
     self.assertIsNotNone(job)
     self.assertEqual(job.platform, 'LIB1_LINUX')
-    self.assertItemsEqual(job.templates, ['asan', 'afl'])
+    self.assertItemsEqual(job.templates, ['engine_asan', 'afl'])
     self.assertEqual(
         job.environment_string, 'RELEASE_BUILD_BUCKET_PATH = '
         'gs://clusterfuzz-builds-afl/lib1/lib1-address-([0-9]+).zip\n'
@@ -1576,7 +1576,7 @@ class GenericProjectSetupTest(unittest.TestCase):
         'gs://bucket/a-b/libfuzzer/address/%TARGET%/([0-9]+).zip\n'
         'PROJECT_NAME = //a/b\nSUMMARY_PREFIX = //a/b\nMANAGED = True\n',
         job.environment_string)
-    self.assertItemsEqual(['asan', 'libfuzzer', 'prune'], job.templates)
+    self.assertItemsEqual(['engine_asan', 'libfuzzer', 'prune'], job.templates)
 
     libfuzzer = data_types.Fuzzer.query(
         data_types.Fuzzer.name == 'libFuzzer').get()
