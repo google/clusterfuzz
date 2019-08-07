@@ -21,7 +21,7 @@ import os
 import re
 import subprocess
 
-from host import Host
+from .host import Host
 
 
 class Device(object):

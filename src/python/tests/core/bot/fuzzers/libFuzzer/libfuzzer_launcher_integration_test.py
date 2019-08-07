@@ -685,6 +685,10 @@ class TestLauncherMinijail(BaseLauncherTest):
 
 @test_utils.integration
 @test_utils.with_cloud_emulators('datastore')
+@skipIf(
+    True,
+    'Temporarily disabling the Fuchsia integration test until build size reduced.'
+)
 class TestLauncherFuchsia(BaseLauncherTest):
   """libFuzzer launcher tests (Fuchsia)."""
 
