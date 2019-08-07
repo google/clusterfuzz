@@ -269,6 +269,49 @@ def get_reproduction_help_url(testcase, config):
       testcase.job_type, 'HELP_URL', default=config.reproduction_help_url)
 
 
+def get_formatted_reproduction_help(testcase):
+  """Return url to reproduce the bug."""
+  help_format = get_value_from_job_definition(testcase.job_type, 'HELP_FORMAT')
+  if not help_format:
+    return None
+
+  # Since this value may be in a job definition, it's non-trivial for it to
+  # include newlines. Instead, it will contain backslash-escaped characters
+  # that must be converted here (e.g. \n).
+  help_format = help_format.decode('unicode-escape')
+
+  result = help_format.replace('%TESTCASE%', str(testcase.key.id()))
+  result = result.replace('%PROJECT%', get_project_name(testcase.job_type))
+  result = result.replace('%FUZZER_NAME%', testcase.fuzzer_name)
+
+  if testcase.overridden_fuzzer_name:
+    # Remove the libfuzzer_ or afl_ prefixes from the target name.
+    target = ndb.Key(data_types.FuzzTarget,
+                     testcase.overridden_fuzzer_name).get()
+    target_name = target.binary
+  else:
+    target_name = ''
+
+  result = result.replace('%FUZZ_TARGET%', target_name)
+
+  return result
+
+
+def get_plaintext_help_text(testcase, config):
+  """Get the help text for this testcase for display in issue descriptions."""
+  # Prioritize a HELP_FORMAT message if available.
+  formatted_help = get_formatted_reproduction_help(testcase)
+  if formatted_help:
+    return formatted_help
+
+  # Show a default message and HELP_URL if only it has been supplied.
+  help_url = get_reproduction_help_url(testcase, config)
+  if help_url:
+    return 'See %s for instructions to reproduce this bug locally.' % help_url
+
+  return ''
+
+
 def get_fixed_range_url(testcase):
   """Return url to testcase fixed range."""
   # Testcase is not fixed yet.
@@ -377,8 +420,7 @@ def get_issue_description(testcase,
       content_string += 'Issue filed automatically.\n\n'
 
   # Jobs can override the help url.
-  content_string += 'See %s for instructions to reproduce this bug locally.' % (
-      get_reproduction_help_url(testcase, config))
+  content_string += get_plaintext_help_text(testcase, config)
 
   # Unreproducible crash text is only applicable when we are consistently seeing
   # it happening, and hence the reason for auto-filing it. Otherwise, someone

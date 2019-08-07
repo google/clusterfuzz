@@ -86,7 +86,7 @@ def highlight_common_stack_frames(crash_stacktrace):
   stack_trace_line_format = '^ *#([0-9]+) *0x[0-9a-f]+ (.*)'
 
   for line in crash_stacktrace.splitlines():
-    # Stacktrace seperator prefix.
+    # Stacktrace separator prefix.
     if stack_index and line.startswith('+-'):
       break
 
@@ -361,6 +361,14 @@ def _get_blob_size_string(blob_key):
   return utils.get_size_string(blob_size)
 
 
+def _format_reproduction_help(reproduction_help):
+  """Format a reproduction help string as HTML (linkified with break tags)."""
+  if not reproduction_help:
+    return ''
+
+  return jinja2.utils.urlize(reproduction_help).replace('\n', '<br>')
+
+
 def get_testcase_detail(testcase):
   """Get testcase detail for rendering the testcase detail page."""
   config = db_config.get()
@@ -368,8 +376,14 @@ def get_testcase_detail(testcase):
   crash_state = testcase.crash_state
   crash_state_lines = crash_state.strip().splitlines()
   crash_type = data_handler.get_crash_type_string(testcase)
-  reproduction_help_url = data_handler.get_reproduction_help_url(
-      testcase, config)
+  formatted_reproduction_help = _format_reproduction_help(
+      data_handler.get_formatted_reproduction_help(testcase))
+  # When we have a HELP_TEMPLATE, ignore any default values set for HELP_URL.
+  if not formatted_reproduction_help:
+    reproduction_help_url = data_handler.get_reproduction_help_url(
+        testcase, config)
+  else:
+    reproduction_help_url = None
   external_user = not access.has_access(job_type=testcase.job_type)
   issue_url = issue_tracker_utils.get_issue_url(testcase)
   metadata = testcase.get_metadata()
@@ -506,6 +520,8 @@ def get_testcase_detail(testcase):
           external_user,
       'footer':
           testcase.comments,
+      'formatted_reproduction_help':
+          formatted_reproduction_help,
       'fixed':
           fixed,
       'fixed_full':

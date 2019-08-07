@@ -557,6 +557,12 @@
             <div class="body padding">See <a href="[[info.reproduction_help_url]]">[[info.reproduction_help_url]]</a> for instructions to reproduce this bug locally.</div>
           </div>
         </template>
+        <template is="dom-if" if="[[info.formatted_reproduction_help]]">
+          <div class="section">
+            <div class="title">Reproduce bug</div>
+            <div class="body padding" inner-h-t-m-l="[[info.formatted_reproduction_help]]"></div>
+          </div>
+        </template>
         <template is="dom-if" if="[[shouldShowFindSimilarIssuesPanel(info)]]">
           <find-similar-issues-panel info="[[info]]"></find-similar-issues-panel>
         </template>
