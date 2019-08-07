@@ -70,6 +70,12 @@ env:
   # cross-pollinate the corpus).
   CORPUS_BUCKET: test-corpus-bucket
 
+  # Default bucket to store minimized corpus for various fuzzers. Once a day, corpus pruning task
+  # minimizes the current corpus in CORPUS_BUCKET and then archives it in this bucket. You can
+  # customize it to be different from the backup bucket above if you want separation from other
+  # backup items like datastore backups, etc.
+  BACKUP_BUCKET: test-backup-bucket
+
   # Default bucket to store quarantined corpus items. These items prevent fuzzer from making
   # progress during fuzzing (e.g. crashes, timeout, etc), so we automatically quarantine them once
   # they sneak into the corpus somehow. Once the bugs are fixed, items from quarantine are brought
