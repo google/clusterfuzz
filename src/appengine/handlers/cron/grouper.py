@@ -137,7 +137,7 @@ def group_testcases():
         # Determine the original issue id traversing the list of duplicates.
         try:
           issue = issue_tracker.get_original_issue(issue_id)
-          original_issue_id = issue.id
+          original_issue_id = int(issue.id)
         except:
           # If we are unable to access the issue, then we can't determine
           # the original issue id. Assume that it is the same as issue id.
