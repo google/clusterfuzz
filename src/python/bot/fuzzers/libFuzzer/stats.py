@@ -285,8 +285,11 @@ def parse_performance_features(log_lines, strategies, arguments):
   if has_corpus and not stats['log_lines_from_engine']:
     stats['corpus_crash_count'] = 1
 
-  # new_cov_* is a reliable metric when corpus subset strategy is not used.
-  if not stats['strategy_corpus_subset']:
+  # new_edges and new_features may not be correct when either corpus subset or
+  # random max length strategy is used. Skip recording these stats in such case.
+  # See https://github.com/google/clusterfuzz/issues/802.
+  if (not stats['strategy_corpus_subset'] and
+      not stats['strategy_random_max_len']):
     assert stats['edge_coverage'] >= stats['initial_edge_coverage']
     stats['new_edges'] = (
         stats['edge_coverage'] - stats['initial_edge_coverage'])
