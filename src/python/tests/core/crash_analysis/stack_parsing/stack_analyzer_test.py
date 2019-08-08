@@ -1345,6 +1345,20 @@ class StackAnalyzerTestcase(unittest.TestCase):
                                   expected_state, expected_stacktrace,
                                   expected_security_flag)
 
+  def test_fuchsia_asan(self):
+    """Test for Fuchsia ASan crashes."""
+    # TODO(flowerhack): Once the duplicated frames issue is fixed for Fuchsia,
+    # update this test to recognize proper frames.
+    data = self._read_test_data('fuchsia_asan.txt')
+    expected_type = 'Heap-buffer-overflow\nWRITE 1'
+    expected_state = 'foo_function\nfoo_function\nbar_function\n'
+    expected_address = '0x663fa3bcf198'
+    expected_stacktrace = data
+    expected_security_flag = True
+    self._validate_get_crash_data(data, expected_type, expected_address,
+                                  expected_state, expected_stacktrace,
+                                  expected_security_flag)
+
   def test_windows_asan_divide_by_zero(self):
     """Test for Windows ASan divide by zero crashes."""
     data = self._read_test_data('windows_asan_divide_by_zero.txt')

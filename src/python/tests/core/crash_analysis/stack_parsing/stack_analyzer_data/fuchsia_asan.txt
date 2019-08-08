@@ -1,0 +1,102 @@
+INFO: Seed: 4194731854
+INFO: Loaded 1 modules   (8 inline 8-bit counters): 8 [0x71dc3915b090, 0x71dc3915b098), 
+INFO: Loaded 1 PC tables (8 PCs): 8 [0x71dc3915b098,0x71dc3915b118), 
+INFO:        0 files found in data/corpus/
+INFO: -max_len is not provided; libFuzzer will not generate inputs larger than 4096 bytes
+dso: id=2531e2d2f5d7322c base=0x000071dc390a7000 name=/pkg/bin/toy_fuzzer
+dso: id=b715d488354a413b base=0x00004c51954bd000 name=libc++.so.2
+dso: id=a889bd8ebd385a59 base=0x000041df65fbc000 name=libunwind.so.1
+dso: id=1699f35c2dc6b5e3 base=0x00003c9076b8a000 name=libc++abi.so.1
+dso: id=b08681628058b008 base=0x0000658e5ed55000 name=libclang_rt.asan.so
+dso: id=55a64c0451145961 base=0x00006c057703f000 name=<vDSO>
+dso: id=4356ccc3a83a32f6 base=0x0000772e1a24f000 name=libfdio.so
+dso: id=fa543fd6e28902aa base=0x00005e203627a000 name=libc.so
+=================================================================
+ERROR: AddressSanitizer: heap-buffer-overflow on address 0x663fa3bcf198 at pc 0x71dc39153f4d bp 0x22cd5214c7d0 sp 0x22c
+d5214c7c8
+WRITE of size 1 at 0x663fa3bcf198 thread T0 (initial-thread)
+   #0    0x000071dc39153f4c in foo_function(unsigned char const*, unsigned long) ../../out/default/../../examples/fuzzer/toy.cc:12 <<application>>+0xacf4c
+   #1.1  0x0000658e5ed9863c in Unwind ../recipe_cleanup/clangmRcYL3/llvm_build_dir/tools/clang/stage2-bins/runtimes/runtimes-x86_64-unknown-fuchsia-bins/compiler-rt/lib/asan/../sanitizer_common/sanitizer_stacktrace.h:115 <libclang_rt.asan.so>+0x4363c
+   #1    0x0000658e5ed9863c in __asan::ErrorGeneric::Print() ../recipe_cleanup/clangmRcYL3/llvm_build_dir/tools/clang/stage2-bins/runtimes/runtimes-x86_64-unknown-fuchsia-bins/compiler-rt/lib/asan/asan_errors.cc:585 <libclang_rt.asan.so>+0x4363c
+   #2    0x0000658e5eda2156 in __asan::ScopedInErrorReport::~ScopedInErrorReport() ../recipe_cleanup/clangmRcYL3/llvm_build_dir/tools/clang/stage2-bins/runtimes/runtimes-x86_64-unknown-fuchsia-bins/compiler-rt/lib/asan/asan_report.cc:141 <libclang_rt.asan.so>+0x4d156
+   #3    0x0000658e5eda3a1e in __asan::ReportGenericError(unsigned long, unsigned long, unsigned long, unsigned long, bool, unsigned long, unsigned int, bool) ../recipe_cleanup/clangmRcYL3/llvm_build_dir/tools/clang/stage2-bins/runtimes/runtimes-x86_64-unknown-fuchsia-bins/compiler-rt/lib/asan/asan_report.cc:470 <libclang_rt.asan.so>+0x4ea1e
+   #4    0x0000658e5eda441a in __asan_report_store1 ../recipe_cleanup/clangmRcYL3/llvm_build_dir/tools/clang/stage2-bins/runtimes/runtimes-x86_64-unknown-fuchsia-bins/compiler-rt/lib/asan/asan_rtl.cc:122 <libclang_rt.asan.so>+0x4f41a
+   #5    0x000071dc39153f4c in foo_function(unsigned char const*, unsigned long) ../../out/default/../../examples/fuzzer/toy.cc:12 <<application>>+0xacf4c
+   #6    0x000071dc39153ffc in bar_function(unsigned char const*, unsigned long) ../../out/default/../../examples/fuzzer/toy.cc:21 <<application>>+0xacffc
+   #7    0x000071dc3915403a in LLVMFuzzerTestOneInput ../../out/default/../../examples/fuzzer/toy.cc:25 <<application>>+0xad03a
+   #8    0x000071dc39104b93 in fuzzer::Fuzzer::ExecuteCallback(unsigned char const*, unsigned long) <<application>>+0x5db93
+   #9    0x000071dc39106936 in fuzzer::Fuzzer::ReadAndExecuteSeedCorpora(std::Fuzzer::vector<fuzzer::SizedFile, fuzzer::fuzzer_allocator<fuzzer::SizedFile> >&) <<application>>+0x5f936
+   #10   0x000071dc39106f37 in fuzzer::Fuzzer::Loop(std::Fuzzer::vector<fuzzer::SizedFile, fuzzer::fuzzer_allocator<fuzzer::SizedFile> >&) <<application>>+0x5ff37
+   #11   0x000071dc390f7118 in fuzzer::FuzzerDriver(int*, char***, int (*)(unsigned char const*, unsigned long)) <<application>>+0x50118
+   #12   0x000071dc3911dc02 in main ../recipe_cleanup/clangmRcYL3/llvm_build_dir/tools/clang/stage2-bins/runtimes/runtimes-x86_64-unknown-fuchsia-bins/compiler-rt/lib/fuzzer/FuzzerMain.cpp:19 <<application>>+0x76c02
+   #13   0x00005e20363104de in start_main ../../out/default.zircon/../../zircon/third_party/ulib/musl/src/env/__libc_start_main.c:95 <libc.so>+0x964de
+0x663fa3bcf198 is located 7 bytes to the right of 1-byte region [0x663fa3bcf190,0x663fa3bcf191)
+allocated by thread T0 (initial-thread) here:
+   #0    0x0000658e5ed9f5bd in malloc ../recipe_cleanup/clangmRcYL3/llvm_build_dir/tools/clang/stage2-bins/runtimes/runtimes-x86_64-unknown-fuchsia-bins/compiler-rt/lib/asan/asan_malloc_linux.cc:145 <libclang_rt.asan.so>+0x4a5bd
+   #1    0x000071dc39153f07 in foo_function(unsigned char const*, unsigned long) ../../out/default/../../examples/fuzzer/toy.cc:11 <<application>>+0xacf07
+   #2    0x000071dc39153ffc in bar_function(unsigned char const*, unsigned long) ../../out/default/../../examples/fuzzer/toy.cc:21 <<application>>+0xacffc
+   #3    0x000071dc3915403a in LLVMFuzzerTestOneInput ../../out/default/../../examples/fuzzer/toy.cc:25 <<application>>+0xad03a
+   #4    0x000071dc39104b93 in fuzzer::Fuzzer::ExecuteCallback(unsigned char const*, unsigned long) <<application>>+0x5db93
+SUMMARY: AddressSanitizer: heap-buffer-overflow foo_function(unsigned char const*, unsigned long) at ../../out/default/../../examples/fuzzer/toy.cc:12
+Shadow bytes around the buggy address:
+  0x0cc7f4779de0: 00 00 00 00 00 00
+[0m 00 00 00 00 00 00 00
+ 00 00 00
+  0x0cc7f4779df0: 00 00 00 00 00 00
+[0m 00 00 00 00 00 00 00
+ 00 00 00
+  0x0cc7f4779e00: fa fa 00 00 fa fa
+[1m 00 00 fa fa 00 00 
+fa fa 00 00
+  0x0cc7f4779e10: fa fa 00 fa fa fa
+ 00 fa fa fa 00 fa 
+[1mfa fa 00 fa
+  0x0cc7f4779e20: fa fa 00 fa fa fa
+ 00 00 fa fa 00 fa 
+fa fa 01 fa
+=>0x0cc7f4779e30: fa fa 01[fa]fa fa
+ fa fa fa fa fa fa
+ fa fa fa fa
+  0x0cc7f4779e40: fa fa fa fa fa f
+a fa fa fa fa fa fa
+ fa fa fa fa
+  0x0cc7f4779e50: fa fa fa fa fa f
+a fa fa fa fa fa fa
+ fa fa fa fa
+  0x0cc7f4779e60: fa fa fa fa fa f
+a fa fa fa fa fa fa
+ fa fa fa fa
+  0x0cc7f4779e70: fa fa fa fa fa f
+a fa fa fa fa fa fa
+ fa fa fa fa
+  0x0cc7f4779e80: fa fa fa fa fa f
+a fa fa fa fa fa fa
+ fa fa fa fa
+Shadow byte legend (one shadow byte represents 8 application bytes):
+  Addressable:           00
+  Partially addressable: 01 02 03 04 05 
+06 07 
+  Heap left redzone:       fa
+  Freed heap region:       fd
+  Stack left redzone:      f1
+  Stack mid redzone:       f2
+  Stack right redzone:     f3
+  Stack after return:      f5
+  Stack use after scope:   f8
+  Global redzone:          f9
+  Global init order:       f6
+  Poisoned by user:        f7
+  Container overflow:      fc
+  Array cookie:            ac
+  Intra object redzone:    bb
+  ASan internal:           fe
+  Left alloca redzone:     ca
+  Right alloca redzone:    cb
+  Shadow gap:              cc
+ABORTING
+
+MS: 0 ; base unit: 0000000000000000000000000000000000000000
+
+
+artifact_prefix='data/'; Test unit written to data/crash-da39a3ee5e6b4b0d3255bfef95601890afd80709
+Base64: 
