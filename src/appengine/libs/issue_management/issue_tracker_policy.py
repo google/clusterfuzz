@@ -44,11 +44,6 @@ class NewIssuePolicy(object):
     self.issue_body_footer = ''
 
 
-def _to_str_list(values):
-  """Convert a list to a list of strs."""
-  return [str(value) for value in values]
-
-
 class IssueTrackerPolicy(object):
   """Represents an issue tracker policy."""
 
@@ -88,6 +83,10 @@ class IssueTrackerPolicy(object):
 
     return str(mapped)
 
+  def _map_labels(self, labels):
+    """Apply substitution mappings to labels."""
+    return [str(self.substitution_mapping(label)) for label in labels]
+
   @property
   def deadline_policy_message(self):
     """Get the deadline policy message, if if exists."""
@@ -124,16 +123,16 @@ class IssueTrackerPolicy(object):
 
     labels = issue_type.get('labels')
     if labels:
-      policy.labels.extend(_to_str_list(labels))
+      policy.labels.extend(self._map_labels(labels))
 
     if is_crash:
       crash_labels = issue_type.get('crash_labels')
       if crash_labels:
-        policy.labels.extend(_to_str_list(crash_labels))
+        policy.labels.extend(self._map_labels(crash_labels))
     else:
       non_crash_labels = issue_type.get('non_crash_labels')
       if non_crash_labels:
-        policy.labels.extend(_to_str_list(non_crash_labels))
+        policy.labels.extend(self._map_labels(non_crash_labels))
 
   def get_existing_issue_properties(self):
     """Get the properties to apply to a new issue."""
