@@ -205,20 +205,23 @@ def filter_stacktrace(stacktrace):
 
 def get_issue_summary(testcase):
   """Gets an issue description string for a testcase."""
-  # Get summary prefix. Note that values for fuzzers take priority over those
-  # from job definitions.
-  fuzzer_summary_prefix = get_value_from_fuzzer_environment_string(
-      testcase.fuzzer_name, 'SUMMARY_PREFIX')
-  job_summary_prefix = get_value_from_job_definition(testcase.job_type,
-                                                     'SUMMARY_PREFIX')
-  summary_prefix = fuzzer_summary_prefix or job_summary_prefix or ''
 
-  issue_summary = summary_prefix
+  def get_value(name, default=''):
+    """Get value from environment definition. note that values for fuzzers take
+    priority over those from job definitions."""
+    fuzzer_value = get_value_from_fuzzer_environment_string(
+        testcase.fuzzer_name, name)
+    job_value = get_value_from_job_definition(testcase.job_type, name)
+    return fuzzer_value or job_value or default
+
+  issue_summary = get_value('SUMMARY_PREFIX')
   binary_name = testcase.get_metadata('fuzzer_binary_name')
   if binary_name:
-    if summary_prefix:
-      issue_summary += '/'
+    if issue_summary:
+      issue_summary += get_value('SUMMARY_PREFIX_SEPARATOR', '/')
+
     issue_summary += binary_name
+
   if issue_summary:
     issue_summary += ': '
 
