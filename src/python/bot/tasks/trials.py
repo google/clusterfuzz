@@ -20,21 +20,6 @@ from datastore import data_types
 from system import environment
 
 
-def select_trial(trials):
-  """Select a trial at random from a list of trials."""
-  selection = random.random()
-  for trial in trials:
-    if selection < trial.probability:
-      return trial
-
-    # If there are multiple trials for this app, we assume the sum of the
-    # probabilities is <= 1. Subtracting the current probability here gives us a
-    # chance to select the next trial.
-    selection -= trial.probability
-
-  return None
-
-
 def setup_additional_args_for_app():
   """Select additional args for the specified app at random."""
   # Convert the app_name to lowercase. Case may vary by platform.
@@ -46,12 +31,15 @@ def setup_additional_args_for_app():
     app_name = utils.strip_from_right(app_name, extension)
 
   trials = data_types.Trial.query(data_types.Trial.app_name == app_name)
-  trial = select_trial(trials)
-  if not trial or not trial.app_args:
+  trials = [trial for trial in trials if random.random() < trial.probability]
+  if not trials:
     return
 
-  current_app_args = environment.get_value('APP_ARGS', '').rstrip()
-  environment.set_value('APP_ARGS',
-                        '%s %s' % (current_app_args, trial.app_args))
+  app_args = environment.get_value('APP_ARGS', '') + ' ' + trials[0].app_args
+  trial_app_args = trials[0].app_args
+  for trial in trials[1:]:
+    app_args += ' ' + trial.app_args
+    trial_app_args += ' ' + trial.app_args
 
-  environment.set_value('TRIAL_APP_ARGS', trial.app_args)
+  environment.set_value('APP_ARGS', app_args)
+  environment.set_value('TRIAL_APP_ARGS', trial_app_args)
