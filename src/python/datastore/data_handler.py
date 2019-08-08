@@ -275,10 +275,11 @@ def get_reproduction_help_url(testcase, config):
 
 def get_fuzzer_display(testcase):
   """Return FuzzerDisplay tuple."""
-  if not testcase.overridden_fuzzer_name:
+  if (testcase.overridden_fuzzer_name == testcase.fuzzer_name or
+      not testcase.overridden_fuzzer_name):
     return FuzzerDisplay(
-        engine='',
-        target='',
+        engine=None,
+        target=None,
         name=testcase.fuzzer_name,
         fully_qualified_name=testcase.fuzzer_name)
 
@@ -319,7 +320,7 @@ def get_formatted_reproduction_help(testcase):
   result = result.replace('%PROJECT%', get_project_name(testcase.job_type))
   result = result.replace('%REVISION%', str(last_tested_crash_revision))
   result = result.replace('%FUZZER_NAME%', fuzzer_display.name)
-  result = result.replace('%FUZZ_TARGET%', fuzzer_display.target)
+  result = result.replace('%FUZZ_TARGET%', fuzzer_display.target or '')
   return result
 
 

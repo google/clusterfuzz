@@ -338,73 +338,40 @@
                 </td>
               </tr>
               <tr>
-                <if-else condition="[[info.fuzzer_display.engine]]">
-                  <span slot="t">
+                <template is="dom-if" if="[[info.fuzzer_display.engine]]">
+                  <td class="label">
+                    <span class="help" title="Fuzzing engine that generated the testcase.">Fuzzing engine:</span>
+                  </td>
+                  <td class="value">
+                    <a href$="/testcases?fuzzer=[[info.fuzzer_display.engine]]">
+                      [[info.fuzzer_display.engine]]
+                    </a>
+                  </td>
+                  <td class="label">
+                    <span class="help" title="Fuzz target binary that calls the program api(s).">Fuzz target:</span>
+                  </td>
+                  <td class="value">
+                    <a href$="/testcases?fuzzer=[[info.fuzzer_display.fully_qualified_name]]">
+                      [[info.fuzzer_display.target]]
+                    </a>
+                  </td>
+                </template>
+                <template is="dom-if" if="[[!info.fuzzer_display.engine]]">
                     <td class="label">
-                      <span class="help" title="Fuzzing engine that generated the testcase.">Fuzzing engine:</span>
-                    </td>
-                    <td class="value">
-                      <a href$="/testcases?fuzzer=[[info.fuzzer_display.engine]]">
-                        [[info.fuzzer_display.engine]]
-                      </a>
-                    </td>
-                    <td class="label">
-                      <span class="help" title="Fuzz target binary that calls the program api(s).">Fuzz target:</span>
+                      <span class="help" title="Fuzzer that generated the testcase.">Fuzzer:</span>
                     </td>
                     <td class="value">
                       <a href$="/testcases?fuzzer=[[info.fuzzer_display.fully_qualified_name]]">
-                        [[info.fuzzer_display.target]]
+                        [[info.fuzzer_display.name]]
                       </a>
                     </td>
-                  </span>
-                  <span slot="f">
-                    <template is="dom-if" if="[[info.fuzzer_display.name]]">
-                      <td class="label">
-                        <span class="help" title="Fuzzer that generated the testcase.">Fuzzer:</span>
-                      </td>
-                      <td class="value">
-                        <a href$="/testcases?fuzzer=[[info.fuzzer_display.fully_qualified_name]]">
-                          [[info.fuzzer_display.name]]
-                        </a>
-                      </td>
-                    </template>
-                  </span>
-                <if-else>
+                </template>
                 <td class="label">
                   <span class="help" title="Job that specifies the build configuration.">Job Type:</span>
                 </td>
                 <td class="value">
                   <a href$="/testcases?job=[[info.testcase.job_type]]">[[info.testcase.job_type]]</a>
                 </td>
-                <template is="dom-if" if="[[info.show_impact]]">
-                  <td class="label">
-                    <span class="help" title="Whether or not this crash impacts current beta and stable builds.">Impacts:</span>
-                  </td>
-                  <td class="value impacts">
-                    <if-else condition="[[info.testcase.is_impact_set_flag]]">
-                      <span slot="t">
-                        <if-else condition="[[info.impacts_production]]">
-                          <span slot="t">
-                            <template is="dom-if" if="[[info.testcase.impact_stable_version]]">
-                              <impact-button
-                                  release="Stable"
-                                  version="[[info.testcase.impact_stable_version]]"
-                                  likely="[[info.testcase.impact_stable_version_likely]]"></impact-button>
-                            </template>
-                            <template is="dom-if" if="[[info.testcase.impact_beta_version]]">
-                              <impact-button
-                                  release="Beta"
-                                  version="[[info.testcase.impact_beta_version]]"
-                                  likely="[[info.testcase.impact_beta_version_likely]]"></impact-button>
-                            </template>
-                          </span>
-                          <span slot="f">Head</span>
-                        </if-else>
-                      </span>
-                      <span slot="f">Pending</span>
-                    </if-else>
-                  </td>
-                </template>
               </tr>
               <tr>
                 <td class="label">Project:</td>
@@ -458,6 +425,35 @@
                   <td class="value">
                     <a href="/testcases?q=group%3A[[info.testcase.group_id]]">Group [[info.testcase.group_id]]</a>
                     <paper-icon-button icon="highlight-off" toggles hidden$="[[!info.is_admin]]" active="{{removeGroupDialogOpened}}" title="Remove this testcase from the group."></paper-icon-button>
+                  </td>
+                </template>
+                <template is="dom-if" if="[[info.show_impact]]">
+                  <td class="label">
+                    <span class="help" title="Whether or not this crash impacts current beta and stable builds.">Impacts:</span>
+                  </td>
+                  <td class="value impacts">
+                    <if-else condition="[[info.testcase.is_impact_set_flag]]">
+                      <span slot="t">
+                        <if-else condition="[[info.impacts_production]]">
+                          <span slot="t">
+                            <template is="dom-if" if="[[info.testcase.impact_stable_version]]">
+                              <impact-button
+                                  release="Stable"
+                                  version="[[info.testcase.impact_stable_version]]"
+                                  likely="[[info.testcase.impact_stable_version_likely]]"></impact-button>
+                            </template>
+                            <template is="dom-if" if="[[info.testcase.impact_beta_version]]">
+                              <impact-button
+                                  release="Beta"
+                                  version="[[info.testcase.impact_beta_version]]"
+                                  likely="[[info.testcase.impact_beta_version_likely]]"></impact-button>
+                            </template>
+                          </span>
+                          <span slot="f">Head</span>
+                        </if-else>
+                      </span>
+                      <span slot="f">Pending</span>
+                    </if-else>
                   </td>
                 </template>
                 <template is="dom-if" if="[[info.testcase.uploader_email]]">
