@@ -96,9 +96,7 @@ def _clank_revision_file_to_revisions_dict(content):
   clank_revision = component_revision_mappings['clank_revision']
 
   # Initialize revisions dictionary with chromium repo.
-  revisions_dict = get_component_revisions_dict(
-      chromium_revision,
-      'linux_asan_chrome_mp')  # FIXME: Find a way to remove this hardcode.
+  revisions_dict = get_component_revisions_dict(chromium_revision, None)
   if revisions_dict is None:
     logs.log_error(
         'Failed to get chromium component revisions.',

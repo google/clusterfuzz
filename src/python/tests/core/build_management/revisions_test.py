@@ -55,6 +55,8 @@ class RevisionsTestcase(unittest.TestCase):
 
     self.mock.get.return_value = None
 
+    os.environ['REVISION_VARS_URL'] = (
+        'https://chromium.googlesource.com/chromium/src/+/%s/DEPS?format=text')
     data_types.Job(
         name=ANDROID_JOB_TYPE,
         environment_string=(
@@ -63,10 +65,7 @@ class RevisionsTestcase(unittest.TestCase):
             'chrome-test-builds/android/revisions/%s')).put()
     data_types.Job(
         name=BASIC_JOB_TYPE,
-        environment_string=(
-            'HELP_URL = help_url\n'
-            'REVISION_VARS_URL = https://chromium.googlesource.com/'
-            'chromium/src/+/%s/DEPS?format=text')).put()
+        environment_string=('HELP_URL = help_url\n')).put()
     data_types.Job(
         name=SRCMAP_JOB_TYPE,
         environment_string=(
