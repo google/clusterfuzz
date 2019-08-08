@@ -1347,6 +1347,8 @@ class StackAnalyzerTestcase(unittest.TestCase):
 
   def test_fuchsia_asan(self):
     """Test for Fuchsia ASan crashes."""
+    # TODO(flowerhack): Once the duplicated frames issue is fixed for Fuchsia,
+    # update this test to recognize proper frames.
     data = self._read_test_data('fuchsia_asan.txt')
     expected_type = 'Heap-buffer-overflow\nWRITE 1'
     expected_state = 'foo_function\nfoo_function\nbar_function\n'
