@@ -13,6 +13,7 @@
 # limitations under the License.
 """Data handler functions."""
 
+import collections
 import datetime
 import os
 import re
@@ -73,6 +74,9 @@ FILE_UNREPRODUCIBLE_TESTCASE_TEXT = (
     'We will auto-close the bug if the crash is not seen for %d days.'
     '</b>' % (data_types.FILE_CONSISTENT_UNREPRODUCIBLE_TESTCASE_DEADLINE,
               data_types.UNREPRODUCIBLE_TESTCASE_WITH_BUG_DEADLINE))
+
+FuzzerDisplay = collections.namedtuple(
+    'FuzzerDisplay', ['engine', 'target', 'name', 'fully_qualified_name'])
 
 # ------------------------------------------------------------------------------
 # Testcase, TestcaseUploadMetadata database related functions
@@ -269,6 +273,31 @@ def get_reproduction_help_url(testcase, config):
       testcase.job_type, 'HELP_URL', default=config.reproduction_help_url)
 
 
+def get_fuzzer_display(testcase):
+  """Return FuzzerDisplay tuple."""
+  if not testcase.overridden_fuzzer_name:
+    return FuzzerDisplay(
+        engine='',
+        target='',
+        name=testcase.fuzzer_name,
+        fully_qualified_name=testcase.fuzzer_name)
+
+  fuzz_target = get_fuzz_target(testcase.overridden_fuzzer_name)
+  if not fuzz_target:
+    # Legacy testcases.
+    return FuzzerDisplay(
+        engine=testcase.fuzzer_name,
+        target=testcase.get_metadata('fuzzer_binary_name'),
+        name=testcase.fuzzer_name,
+        fully_qualified_name=testcase.overridden_fuzzer_name)
+
+  return FuzzerDisplay(
+      engine=fuzz_target.engine,
+      target=fuzz_target.binary,
+      name=fuzz_target.engine,
+      fully_qualified_name=fuzz_target.fully_qualified_name())
+
+
 def get_formatted_reproduction_help(testcase):
   """Return url to reproduce the bug."""
   help_format = get_value_from_job_definition_or_environment(
@@ -281,20 +310,16 @@ def get_formatted_reproduction_help(testcase):
   # that must be converted here (e.g. \n).
   help_format = help_format.decode('unicode-escape')
 
+  fuzzer_display = get_fuzzer_display(testcase)
+  last_tested_crash_revision = (
+      testcase.get_metadata('last_tested_crash_revision') or
+      testcase.crash_revision)
+
   result = help_format.replace('%TESTCASE%', str(testcase.key.id()))
   result = result.replace('%PROJECT%', get_project_name(testcase.job_type))
-  result = result.replace('%FUZZER_NAME%', testcase.fuzzer_name)
-
-  if testcase.overridden_fuzzer_name:
-    # Remove the libfuzzer_ or afl_ prefixes from the target name.
-    target = ndb.Key(data_types.FuzzTarget,
-                     testcase.overridden_fuzzer_name).get()
-    target_name = target.binary
-  else:
-    target_name = ''
-
-  result = result.replace('%FUZZ_TARGET%', target_name)
-
+  result = result.replace('%REVISION%', str(last_tested_crash_revision))
+  result = result.replace('%FUZZER_NAME%', fuzzer_display.name)
+  result = result.replace('%FUZZ_TARGET%', fuzzer_display.target)
   return result
 
 
@@ -339,7 +364,6 @@ def get_issue_description(testcase,
   domain = get_domain()
   testcase_id = testcase.key.id()
 
-  fuzzer_name = testcase.actual_fuzzer_name()
   download_url = TESTCASE_DOWNLOAD_URL.format(
       domain=domain, testcase_id=testcase_id)
   report_url = TESTCASE_REPORT_URL.format(
@@ -363,11 +387,12 @@ def get_issue_description(testcase,
   if project_name and project_name != utils.default_project_name():
     content_string += 'Project: %s\n' % project_name
 
-  if fuzzer_name:
-    content_string += 'Fuzzer: %s\n' % fuzzer_name
-    binary_name = testcase.get_metadata('fuzzer_binary_name')
-    if binary_name:
-      content_string += 'Fuzz target binary: %s\n' % binary_name
+  fuzzer_display = get_fuzzer_display(testcase)
+  if fuzzer_display.engine:
+    content_string += 'Fuzzing engine: %s\n' % fuzzer_display.engine
+    content_string += 'Fuzz target: %s\n' % fuzzer_display.target
+  else:
+    content_string += 'Fuzzer: %s\n' % fuzzer_display.name
 
   content_string += 'Job Type: %s\n' % testcase.job_type
 

@@ -338,24 +338,38 @@
                 </td>
               </tr>
               <tr>
-                <template is="dom-if" if="[[getFuzzerName(info)]]">
-                  <td class="label">
-                    <span class="help" title="Fuzzer that generated the testcase.">Fuzzer:</span>
-                  </td>
-                  <td class="value">
-                    <a href$="/testcases?fuzzer=[[getFuzzerName(info)]]">
-                      [[getFuzzerName(info)]]
-                    </a>
-                  </td>
-                </template>
-                <template is="dom-if" if="[[info.testcase.uploader_email]]">
-                  <td class="label">
-                    <span class="help" title="Email address of person that uploaded the testcase.">Uploader:</span>
-                  </td>
-                  <td class="value">
-                    [[info.testcase.uploader_email]]
-                  </td>
-                </template>
+                <if-else condition="[[info.fuzzer_display.engine]]">
+                  <span slot="t">
+                    <td class="label">
+                      <span class="help" title="Fuzzing engine that generated the testcase.">Fuzzing engine:</span>
+                    </td>
+                    <td class="value">
+                      <a href$="/testcases?fuzzer=[[info.fuzzer_display.engine]]">
+                        [[info.fuzzer_display.engine]]
+                      </a>
+                    </td>
+                    <td class="label">
+                      <span class="help" title="Fuzz target binary that calls the program api(s).">Fuzz target:</span>
+                    </td>
+                    <td class="value">
+                      <a href$="/testcases?fuzzer=[[info.fuzzer_display.fully_qualified_name]]">
+                        [[info.fuzzer_display.target]]
+                      </a>
+                    </td>
+                  </span>
+                  <span slot="f">
+                    <template is="dom-if" if="[[info.fuzzer_display.name]]">
+                      <td class="label">
+                        <span class="help" title="Fuzzer that generated the testcase.">Fuzzer:</span>
+                      </td>
+                      <td class="value">
+                        <a href$="/testcases?fuzzer=[[info.fuzzer_display.fully_qualified_name]]">
+                          [[info.fuzzer_display.name]]
+                        </a>
+                      </td>
+                    </template>
+                  </span>
+                <if-else>
                 <td class="label">
                   <span class="help" title="Job that specifies the build configuration.">Job Type:</span>
                 </td>
@@ -436,8 +450,8 @@
                   </td>
                 </template>
               </tr>
-              <template is="dom-if" if="[[info.testcase.group_id]]">
-                <tr>
+              <tr>
+                <template is="dom-if" if="[[info.testcase.group_id]]">
                   <td class="label">
                     <span class="help" title="Click to see crashes with same and similar looking stacks (grouped by a 'Group ID').">Related:</span>
                   </td>
@@ -445,8 +459,16 @@
                     <a href="/testcases?q=group%3A[[info.testcase.group_id]]">Group [[info.testcase.group_id]]</a>
                     <paper-icon-button icon="highlight-off" toggles hidden$="[[!info.is_admin]]" active="{{removeGroupDialogOpened}}" title="Remove this testcase from the group."></paper-icon-button>
                   </td>
-                </tr>
-              </template>
+                </template>
+                <template is="dom-if" if="[[info.testcase.uploader_email]]">
+                  <td class="label">
+                    <span class="help" title="Email address of person that uploaded the testcase.">Uploader:</span>
+                  </td>
+                  <td class="value">
+                    [[info.testcase.uploader_email]]
+                  </td>
+                </template>
+              </tr>
               <template is="dom-if" if="[[info.metadata.triage_message]]">
                 <tr>
                   <td class="label">
@@ -704,10 +726,6 @@
         } else {
           return info.testcase.status;
         }
-      },
-      getFuzzerName(info) {
-        return (info.testcase.overridden_fuzzer_name ||
-                info.testcase.fuzzer_name || '');
       },
       shouldShowMinimizedKeys(info) {
         return this.isStatusReady(info) &&

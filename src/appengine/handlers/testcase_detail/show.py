@@ -383,6 +383,8 @@ def get_testcase_detail(testcase):
   minimized_testcase_size = _get_blob_size_string(testcase.minimized_keys)
   has_issue_tracker = bool(data_handler.get_issue_tracker_name())
 
+  fuzzer_display = data_handler.get_fuzzer_display(testcase)
+
   formatted_reproduction_help = _format_reproduction_help(
       data_handler.get_formatted_reproduction_help(testcase))
   # When we have a HELP_TEMPLATE, ignore any default values set for HELP_URL.
@@ -601,6 +603,12 @@ def get_testcase_detail(testcase):
           reproduction_help_url,
       'is_local_development':
           environment.is_running_on_app_engine_development(),
+      'fuzzer_display': {
+          'engine': fuzzer_display.engine,
+          'target': fuzzer_display.target,
+          'name': fuzzer_display.name,
+          'fully_qualified_name': fuzzer_display.fully_qualified_name,
+      }
   }
 
 
