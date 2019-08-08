@@ -603,12 +603,7 @@ def get_testcase_detail(testcase):
           reproduction_help_url,
       'is_local_development':
           environment.is_running_on_app_engine_development(),
-      'fuzzer_display': {
-          'engine': fuzzer_display.engine,
-          'target': fuzzer_display.target,
-          'name': fuzzer_display.name,
-          'fully_qualified_name': fuzzer_display.fully_qualified_name,
-      }
+      'fuzzer_display': vars(fuzzer_display),
   }
 
 
