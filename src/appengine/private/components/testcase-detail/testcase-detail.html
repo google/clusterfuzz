@@ -397,36 +397,6 @@
                     Will be auto-closed on [[formatDate(info.auto_close_timestamp)]] if flaky crash no longer seen
                   </td>
                 </template>
-                <template is="dom-if" if="[[shouldShowStatus(info)]]">
-                  <td class="label">Status:</td>
-                  <td class="value">
-                    <if-else condition="[[shouldShowDuplicateStatus(info)]]">
-                      <span slot="t">
-                        <a href="/testcase-detail/[[info.testcase.duplicate_of]]">Duplicate of testcase [[info.testcase.duplicate_of]]</a>
-                        <template is="dom-if" if="[[info.is_admin]]">
-                          <paper-icon-button icon="highlight-off" toggles active="{{removeDuplicateDialogOpened}}" title="Remove the duplicate status"></paper-icon-button>
-                        </template>
-                      </span>
-                      <span slot="f">
-                        <if-else condition="[[shouldShowPendingStatus(info)]]">
-                          <span slot="t">Pending, refreshes every 5 minutes.</span>
-                          <span slot="f">[[info.testcase.status]]</span>
-                        </if-else>
-                      </span>
-                    </if-else>
-                  </td>
-                </template>
-              </tr>
-              <tr>
-                <template is="dom-if" if="[[info.testcase.group_id]]">
-                  <td class="label">
-                    <span class="help" title="Click to see crashes with same and similar looking stacks (grouped by a 'Group ID').">Related:</span>
-                  </td>
-                  <td class="value">
-                    <a href="/testcases?q=group%3A[[info.testcase.group_id]]">Group [[info.testcase.group_id]]</a>
-                    <paper-icon-button icon="highlight-off" toggles hidden$="[[!info.is_admin]]" active="{{removeGroupDialogOpened}}" title="Remove this testcase from the group."></paper-icon-button>
-                  </td>
-                </template>
                 <template is="dom-if" if="[[info.show_impact]]">
                   <td class="label">
                     <span class="help" title="Whether or not this crash impacts current beta and stable builds.">Impacts:</span>
@@ -453,6 +423,36 @@
                         </if-else>
                       </span>
                       <span slot="f">Pending</span>
+                    </if-else>
+                  </td>
+                </template>
+              </tr>
+              <tr>
+                <template is="dom-if" if="[[info.testcase.group_id]]">
+                  <td class="label">
+                    <span class="help" title="Click to see crashes with same and similar looking stacks (grouped by a 'Group ID').">Related:</span>
+                  </td>
+                  <td class="value">
+                    <a href="/testcases?q=group%3A[[info.testcase.group_id]]">Group [[info.testcase.group_id]]</a>
+                    <paper-icon-button icon="highlight-off" toggles hidden$="[[!info.is_admin]]" active="{{removeGroupDialogOpened}}" title="Remove this testcase from the group."></paper-icon-button>
+                  </td>
+                </template>
+                <template is="dom-if" if="[[shouldShowStatus(info)]]">
+                  <td class="label">Status:</td>
+                  <td class="value">
+                    <if-else condition="[[shouldShowDuplicateStatus(info)]]">
+                      <span slot="t">
+                        <a href="/testcase-detail/[[info.testcase.duplicate_of]]">Duplicate of testcase [[info.testcase.duplicate_of]]</a>
+                        <template is="dom-if" if="[[info.is_admin]]">
+                          <paper-icon-button icon="highlight-off" toggles active="{{removeDuplicateDialogOpened}}" title="Remove the duplicate status"></paper-icon-button>
+                        </template>
+                      </span>
+                      <span slot="f">
+                        <if-else condition="[[shouldShowPendingStatus(info)]]">
+                          <span slot="t">Pending, refreshes every 5 minutes.</span>
+                          <span slot="f">[[info.testcase.status]]</span>
+                        </if-else>
+                      </span>
                     </if-else>
                   </td>
                 </template>
