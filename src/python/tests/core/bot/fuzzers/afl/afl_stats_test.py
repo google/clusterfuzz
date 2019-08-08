@@ -19,13 +19,10 @@ import os
 import six
 import unittest
 
-from bot.fuzzers import engine_common
 from bot.fuzzers.afl import launcher
 from bot.fuzzers.afl import stats
 from bot.fuzzers.afl import strategies
-from fuzzing import strategy
 from tests.core.bot.fuzzers.afl.afl_launcher_test import dont_use_strategies
-from tests.test_libs import helpers as test_helpers
 
 
 def override_fail_retries(env_var):
@@ -60,9 +57,7 @@ class StatsGetterTests(unittest.TestCase):
 
     self.stats_getter.set_afl_stats()
     dont_use_strategies(self)
-    test_helpers.patch(self, ['bot.fuzzers.engine_common.is_lpm_fuzz_target'])
-    self.mock.is_lpm_fuzz_target.return_value = True
-    self.strategies = launcher.FuzzingStrategies(None)
+    self.strategies = launcher.FuzzingStrategies()
 
     self.maxDiff = None  # pylint: disable=invalid-name
 
@@ -265,8 +260,7 @@ class StatsGetterTests(unittest.TestCase):
     self.strategies.fast_cal = strategies.FastCal.MANUAL
     # Implicitly calls set_strategy_stats
     actual_stats = self._set_stats()
-    self.assertEqual(
-        actual_stats['strategy_' + strategy.CORPUS_SUBSET_STRATEGY.name], 75)
+    self.assertEqual(actual_stats[self.strategies.CORPUS_SUBSET_STRATEGY], 75)
     self.assertEqual(actual_stats[self.strategies.FAST_CAL_MANUAL_STRATEGY], 1)
 
     # Test that stats for random fast cal strategy are correct.
@@ -274,19 +268,6 @@ class StatsGetterTests(unittest.TestCase):
     self.strategies.fast_cal_random_num_files = 50
     actual_stats = self._set_stats()
     self.assertEqual(actual_stats[self.strategies.FAST_CAL_RANDOM_STRATEGY], 1)
-
-    # Test that stats for generator strtagies are correct.
-    self.strategies.generator_strategy = engine_common.Generator.RADAMSA
-    actual_stats = self._set_stats()
-    self.assertEqual(
-        actual_stats['strategy_' +
-                     strategy.CORPUS_MUTATION_RADAMSA_STRATEGY.name], 1)
-
-    self.strategies.generator_strategy = engine_common.Generator.ML_RNN
-    actual_stats = self._set_stats()
-    self.assertEqual(
-        actual_stats['strategy_' +
-                     strategy.CORPUS_MUTATION_ML_RNN_STRATEGY.name], 1)
 
   def test_set_output_stats_bad_instrumentation(self):
     """Tests that set_output_stats sets bad_instrumentation properly."""

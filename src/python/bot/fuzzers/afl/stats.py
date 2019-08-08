@@ -22,7 +22,6 @@ import six
 from bot.fuzzers import dictionary_manager
 from bot.fuzzers import engine_common
 from bot.fuzzers.afl import strategies
-from fuzzing import strategy
 from metrics import logs
 
 SANITIZER_START_REGEX = re.compile(r'.*ERROR: [A-z]+Sanitizer:.*')
@@ -234,19 +233,10 @@ class StatsGetter(object):
     |strategies|."""
 
     if fuzzing_strategies.use_corpus_subset:
-      self.stats['strategy_' + strategy.CORPUS_SUBSET_STRATEGY.name] = (
+      self.stats[fuzzing_strategies.CORPUS_SUBSET_STRATEGY] = (
           fuzzing_strategies.corpus_subset_size)
 
     if fuzzing_strategies.fast_cal == strategies.FastCal.MANUAL:
       self.stats[fuzzing_strategies.FAST_CAL_MANUAL_STRATEGY] = 1
     elif fuzzing_strategies.fast_cal == strategies.FastCal.RANDOM:
       self.stats[fuzzing_strategies.FAST_CAL_RANDOM_STRATEGY] = 1
-
-    if (fuzzing_strategies.generator_strategy == engine_common.Generator.RADAMSA
-       ):
-      self.stats['strategy_' +
-                 strategy.CORPUS_MUTATION_RADAMSA_STRATEGY.name] = 1
-    elif (fuzzing_strategies.generator_strategy ==
-          engine_common.Generator.ML_RNN):
-      self.stats['strategy_' +
-                 strategy.CORPUS_MUTATION_ML_RNN_STRATEGY.name] = 1
