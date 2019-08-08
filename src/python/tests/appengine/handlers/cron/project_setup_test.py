@@ -1524,6 +1524,9 @@ class GenericProjectSetupTest(unittest.TestCase):
                 'libfuzzer': 'clusterfuzz-builds',
                 'libfuzzer_i386': 'clusterfuzz-builds-i386',
                 'no_engine': 'clusterfuzz-builds-no-engine',
+            },
+            'additional_vars': {
+                'ADDITIONAL_VAR': 'VAL',
             }
         }
     })
@@ -1536,8 +1539,8 @@ class GenericProjectSetupTest(unittest.TestCase):
     self.assertEqual(
         'FUZZ_TARGET_BUILD_BUCKET_PATH = '
         'gs://bucket/a-b/libfuzzer/address/%TARGET%/([0-9]+).zip\n'
-        'PROJECT_NAME = //a/b\nSUMMARY_PREFIX = //a/b\nMANAGED = True\n',
-        job.environment_string)
+        'PROJECT_NAME = //a/b\nSUMMARY_PREFIX = //a/b\nMANAGED = True\n'
+        'ADDITIONAL_VAR = VAL\n', job.environment_string)
     self.assertItemsEqual(['engine_asan', 'libfuzzer', 'prune'], job.templates)
 
     libfuzzer = data_types.Fuzzer.query(

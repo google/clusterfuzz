@@ -565,7 +565,8 @@ class ProjectSetup(object):
                engine_build_buckets=None,
                fuzzer_entities=None,
                add_info_labels=False,
-               add_revision_mappings=False):
+               add_revision_mappings=False,
+               additional_vars=None):
     self._build_type = build_type
     self._build_bucket_path_template = build_bucket_path_template
     self._revision_url_template = revision_url_template
@@ -574,6 +575,7 @@ class ProjectSetup(object):
     self._fuzzer_entities = fuzzer_entities
     self._add_info_labels = add_info_labels
     self._add_revision_mappings = add_revision_mappings
+    self._additional_vars = additional_vars
 
   def _get_build_bucket(self, engine, architecture):
     """Return the bucket for the given |engine| and |architecture|."""
@@ -791,6 +793,10 @@ class ProjectSetup(object):
         job.environment_string += (
             'DATAFLOW_BUILD_BUCKET_PATH = %s\n' % dataflow_build_bucket_path)
 
+      if self._additional_vars:
+        for key, value in six.iteritems(self._additional_vars):
+          job.environment_string += ('{} = {}\n'.format(key, value))
+
       job.put()
 
   def _update_fuzzer_entities(self):
@@ -897,7 +903,7 @@ class Handler(base_handler.Handler):
             'add_info_labels', default=False),
         add_revision_mappings=project_setup_config.get(
             'add_revision_mappings', default=False),
-    )
+        additional_vars=project_setup_config.get('additional_vars'))
 
     projects_source = project_setup_config.get('source')
     if projects_source == 'oss-fuzz':
