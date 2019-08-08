@@ -201,8 +201,10 @@ def apply_substitutions(policy, label, testcase, security_severity=None):
 
   for marker, handler in label_substitutions:
     if marker in label:
-      return policy.substitution_mapping(
-          handler(label, testcase, security_severity))
+      return [
+          policy.substitution_mapping(label)
+          for label in handler(label, testcase, security_severity)
+      ]
 
   # No match found. Return unmodified label.
   return [label]
