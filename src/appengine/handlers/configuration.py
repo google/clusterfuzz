@@ -122,7 +122,6 @@ class Handler(base_handler.Handler):
     reproduce_tool_client_secret = self.request.get(
         'reproduce_tool_client_secret')
     reproduction_help_url = self.request.get('reproduction_help_url')
-    revision_vars_url = self.request.get('revision_vars_url')
     test_account_email = self.request.get('test_account_email')
     test_account_password = self.request.get('test_account_password')
     wifi_ssid = self.request.get('wifi_ssid')
@@ -148,7 +147,6 @@ class Handler(base_handler.Handler):
     config.reproduce_tool_client_id = reproduce_tool_client_id
     config.reproduce_tool_client_secret = reproduce_tool_client_secret
     config.reproduction_help_url = reproduction_help_url
-    config.revision_vars_url = revision_vars_url
     config.test_account_email = test_account_email
     config.test_account_password = test_account_password
     config.wifi_ssid = wifi_ssid

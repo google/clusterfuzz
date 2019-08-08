@@ -23,7 +23,6 @@ import webapp2
 import webtest
 
 from base import utils
-from config import db_config
 from datastore import data_types
 from datastore import ndb
 from google_cloud_utils import pubsub
@@ -118,9 +117,6 @@ class OssFuzzProjectSetupTest(unittest.TestCase):
         webapp2.WSGIApplication([('/setup', project_setup.Handler)]))
 
     helpers.patch_environ(self)
-    data_types.Config(
-        revision_vars_url=('libfuzzer_asan_lib2;url\n'
-                           'blah;url2\n')).put()
 
     data_types.Job(
         name='libfuzzer_asan_old_job',
@@ -461,41 +457,7 @@ class OssFuzzProjectSetupTest(unittest.TestCase):
         'DATAFLOW_BUILD_BUCKET_PATH = '
         'gs://clusterfuzz-builds-dataflow/lib6/lib6-dataflow-([0-9]+).zip\n')
 
-    config = db_config.get()
     self.maxDiff = None  # pylint: disable=invalid-name
-    self.assertItemsEqual(config.revision_vars_url.splitlines(), [
-        u'libfuzzer_asan_lib2;https://commondatastorage.googleapis.com/'
-        'clusterfuzz-builds/lib2/lib2-address-%s.srcmap.json',
-        u'libfuzzer_asan_lib3;https://commondatastorage.googleapis.com/'
-        'clusterfuzz-builds/lib3/lib3-address-%s.srcmap.json',
-        u'libfuzzer_asan_lib1;https://commondatastorage.googleapis.com/'
-        'clusterfuzz-builds/lib1/lib1-address-%s.srcmap.json',
-        u'libfuzzer_asan_i386_lib3;https://commondatastorage.googleapis.com/'
-        'clusterfuzz-builds-i386/lib3/lib3-address-%s.srcmap.json',
-        u'libfuzzer_ubsan_lib1;https://commondatastorage.googleapis.com/'
-        'clusterfuzz-builds/lib1/lib1-undefined-%s.srcmap.json',
-        u'libfuzzer_ubsan_lib2;https://commondatastorage.googleapis.com/'
-        'clusterfuzz-builds/lib2/lib2-undefined-%s.srcmap.json',
-        u'afl_asan_lib1;https://commondatastorage.googleapis.com/'
-        'clusterfuzz-builds-afl/lib1/lib1-address-%s.srcmap.json',
-        u'blah;url2',
-        u'libfuzzer_ubsan_lib3;https://commondatastorage.googleapis.com/'
-        'clusterfuzz-builds/lib3/lib3-undefined-%s.srcmap.json',
-        u'libfuzzer_msan_lib3;https://commondatastorage.googleapis.com/'
-        'clusterfuzz-builds/lib3/lib3-memory-%s.srcmap.json',
-        u'asan_lib4;https://commondatastorage.googleapis.com/'
-        'clusterfuzz-builds-no-engine/lib4/lib4-address-%s.srcmap.json',
-        u'libfuzzer_asan_lib5;https://commondatastorage.googleapis.com/'
-        'clusterfuzz-builds/lib5/lib5-address-%s.srcmap.json',
-        u'libfuzzer_asan_lib6;https://commondatastorage.googleapis.com/'
-        'clusterfuzz-builds/lib6/lib6-address-%s.srcmap.json',
-        u'libfuzzer_ubsan_lib6;https://commondatastorage.googleapis.com/'
-        'clusterfuzz-builds/lib6/lib6-undefined-%s.srcmap.json',
-        u'libfuzzer_msan_lib6;https://commondatastorage.googleapis.com/'
-        'clusterfuzz-builds/lib6/lib6-memory-%s.srcmap.json',
-        u'afl_asan_lib6;https://commondatastorage.googleapis.com/'
-        'clusterfuzz-builds-afl/lib6/lib6-address-%s.srcmap.json',
-    ])
 
     libfuzzer = data_types.Fuzzer.query(
         data_types.Fuzzer.name == 'libFuzzer').get()

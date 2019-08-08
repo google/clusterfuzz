@@ -575,28 +575,6 @@ class ProjectSetup(object):
     self._add_info_labels = add_info_labels
     self._add_revision_mappings = add_revision_mappings
 
-  def _sync_revision_mappings(self, project, info):
-    """Sync ClusterFuzz revision mappings."""
-    config = db_config.get()
-
-    # Parse existing values.
-    revision_var_urls = {}
-    for line in config.revision_vars_url.splitlines():
-      job, vars_url = line.split(';')
-      revision_var_urls[job] = vars_url
-
-    for template in get_jobs_for_project(project, info):
-      job_name = template.job_name(project)
-      revision_var_urls[job_name] = self._revision_url_template.format(
-          project=project,
-          bucket=self._get_build_bucket(template.engine, template.architecture),
-          sanitizer=template.memory_tool)
-
-    config.revision_vars_url = '\n'.join(
-        '%s;%s' % (key_value, vars_url)
-        for key_value, vars_url in six.iteritems(revision_var_urls))
-    config.put()
-
   def _get_build_bucket(self, engine, architecture):
     """Return the bucket for the given |engine| and |architecture|."""
     if architecture != 'x86_64':
@@ -845,10 +823,6 @@ class ProjectSetup(object):
       # Create CF jobs for project.
       self._sync_job(project, info, corpus_bucket_name, quarantine_bucket_name,
                      logs_bucket_name, backup_bucket_name)
-
-      # Create revision mappings for CF.
-      if self._add_revision_mappings:
-        self._sync_revision_mappings(project, info)
 
       if self._segregate_projects:
         sync_user_permissions(project, info)
