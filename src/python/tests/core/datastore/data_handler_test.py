@@ -88,7 +88,8 @@ class DataHandlerTest(unittest.TestCase):
                             'HELP_URL = help_url\n'))
     self.testcase = data_types.Testcase(
         job_type='linux_asan_chrome',
-        fuzzer_name='libfuzzer_binary_name',
+        fuzzer_name='libFuzzer',
+        overridden_fuzzer_name='libfuzzer_binary_name',
         crash_type='Crash-type',
         crash_address='0x1337',
         crash_state='A\nB\nC\n')
@@ -97,7 +98,8 @@ class DataHandlerTest(unittest.TestCase):
 
     self.testcase_assert = data_types.Testcase(
         job_type='linux_asan_chrome',
-        fuzzer_name='libfuzzer_binary_name',
+        fuzzer_name='libFuzzer',
+        overridden_fuzzer_name='libfuzzer_binary_name',
         crash_type='ASSERT',
         crash_address='0x1337',
         crash_state='foo != bar\nB\nC\n')
@@ -106,21 +108,21 @@ class DataHandlerTest(unittest.TestCase):
 
     self.testcase_null = data_types.Testcase(
         job_type='linux_asan_chrome',
-        fuzzer_name='libfuzzer_binary_name',
+        fuzzer_name='fuzzer1',
         crash_type='UNKNOWN',
         crash_address='0x1337',
         crash_state='NULL')
 
     self.testcase_empty = data_types.Testcase(
         job_type='linux_asan_chrome',
-        fuzzer_name='libfuzzer_binary_name',
+        fuzzer_name='fuzzer2',
         crash_type='',
         crash_address='',
         crash_state='')
 
     self.testcase_bad_cast = data_types.Testcase(
         job_type='linux_asan_chrome',
-        fuzzer_name='libfuzzer_binary_name',
+        fuzzer_name='fuzzer3',
         crash_type='Bad-cast',
         crash_address='0x1337',
         crash_state=(
@@ -130,7 +132,7 @@ class DataHandlerTest(unittest.TestCase):
 
     self.testcase_bad_cast_without_crash_function = data_types.Testcase(
         job_type='linux_asan_chrome',
-        fuzzer_name='libfuzzer_binary_name',
+        fuzzer_name='fuzzer3',
         crash_type='Bad-cast',
         crash_address='0x1337',
         crash_state=(
@@ -255,8 +257,8 @@ class DataHandlerTest(unittest.TestCase):
     self.assertEqual(
         description, 'Detailed report: https://test-clusterfuzz.appspot.com/'
         'testcase?key=1\n\n'
-        'Fuzzer: libfuzzer_binary_name\n'
-        'Fuzz target binary: binary_name\n'
+        'Fuzzing engine: libFuzzer\n'
+        'Fuzz target: binary_name\n'
         'Job Type: windows_asan_chrome\n'
         'Crash Type: Out-of-memory (exceeds 2048 MB)\n'
         'Crash Address: 0x1337\n'
@@ -281,8 +283,8 @@ class DataHandlerTest(unittest.TestCase):
     self.assertEqual(
         description, 'Detailed report: https://test-clusterfuzz.appspot.com/'
         'testcase?key=1\n\n'
-        'Fuzzer: libfuzzer_binary_name\n'
-        'Fuzz target binary: binary_name\n'
+        'Fuzzing engine: libFuzzer\n'
+        'Fuzz target: binary_name\n'
         'Job Type: linux_asan_chrome\n'
         'Crash Type: Timeout (exceeds 25 secs)\n'
         'Crash Address: 0x1337\n'
@@ -302,8 +304,8 @@ class DataHandlerTest(unittest.TestCase):
         description, 'Detailed report: https://test-clusterfuzz.appspot.com/'
         'testcase?key=1\n\n'
         'Project: project\n'
-        'Fuzzer: libfuzzer_binary_name\n'
-        'Fuzz target binary: binary_name\n'
+        'Fuzzing engine: libFuzzer\n'
+        'Fuzz target: binary_name\n'
         'Job Type: linux_asan_chrome\n'
         'Crash Type: Crash-type\n'
         'Crash Address: 0x1337\n'
@@ -311,6 +313,26 @@ class DataHandlerTest(unittest.TestCase):
         'Sanitizer: address (ASAN)\n\n'
         'Reproducer Testcase: '
         'https://test-clusterfuzz.appspot.com/download?testcase_id=1\n\n'
+        'See help_url for instructions to reproduce this bug locally.')
+
+  def test_get_issue_description_blackbox_fuzzer_testcase(self):
+    """Test get_issue_description with a blackbox fuzzer testcase."""
+    self.mock.default_project_name.return_value = 'oss-fuzz'
+    self.mock.get().url = 'url'
+
+    description = data_handler.get_issue_description(self.testcase_null)
+    self.assertEqual(
+        description, 'Detailed report: https://test-clusterfuzz.appspot.com/'
+        'testcase?key=3\n\n'
+        'Project: project\n'
+        'Fuzzer: fuzzer1\n'
+        'Job Type: linux_asan_chrome\n'
+        'Crash Type: UNKNOWN\n'
+        'Crash Address: 0x1337\n'
+        'Crash State:\n  NULL\n'
+        'Sanitizer: address (ASAN)\n\n'
+        'Reproducer Testcase: https://test-clusterfuzz.appspot.com/'
+        'download?testcase_id=3\n\n'
         'See help_url for instructions to reproduce this bug locally.')
 
   def test_get_issue_summary_with_no_prefix(self):
@@ -556,7 +578,7 @@ class GetFormattedReproductionHelpTest(unittest.TestCase):
     job.name = 'job_with_help_format'
     job.environment_string = (
         'HELP_FORMAT = -%TESTCASE%\\n-%FUZZER_NAME%\\n-%FUZZ_TARGET%\\n'
-        '-%PROJECT%\\n\n'
+        '-%PROJECT%\\n-%REVISION%\\n\n'
         'PROJECT_NAME = test_project')
     job.put()
 
@@ -565,7 +587,7 @@ class GetFormattedReproductionHelpTest(unittest.TestCase):
     job.environment_string = ('PROJECT_NAME = test_project')
     job.put()
 
-    fuzz_target = data_types.FuzzTarget()
+    fuzz_target = data_types.FuzzTarget(id='libFuzzer_test_project_test_fuzzer')
     fuzz_target.binary = 'test_fuzzer'
     fuzz_target.project = 'test_project'
     fuzz_target.engine = 'libFuzzer'
@@ -577,11 +599,12 @@ class GetFormattedReproductionHelpTest(unittest.TestCase):
     testcase.fuzzer_name = 'libFuzzer'
     testcase.overridden_fuzzer_name = 'libFuzzer_test_project_test_fuzzer'
     testcase.job_type = 'job_with_help_format'
+    testcase.crash_revision = 1337
     testcase.put()
 
     self.assertEquals(
         data_handler.get_formatted_reproduction_help(testcase),
-        '-{id}\n-libFuzzer\n-test_fuzzer\n-test_project\n'.format(
+        '-{id}\n-libFuzzer\n-test_fuzzer\n-test_project\n-1337\n'.format(
             id=testcase.key.id()))
 
   def test_traditional_testcase(self):
@@ -589,11 +612,13 @@ class GetFormattedReproductionHelpTest(unittest.TestCase):
     testcase = data_types.Testcase()
     testcase.fuzzer_name = 'simple_fuzzer'
     testcase.job_type = 'job_with_help_format'
+    testcase.crash_revision = 1337
     testcase.put()
+    testcase.set_metadata('last_tested_crash_revision', 1338)
 
     self.assertEquals(
         data_handler.get_formatted_reproduction_help(testcase),
-        '-{id}\n-simple_fuzzer\n-\n-test_project\n'.format(
+        '-{id}\n-simple_fuzzer\n-\n-test_project\n-1338\n'.format(
             id=testcase.key.id()))
 
   def test_libfuzzer_testcase_with_default_help_format(self):
@@ -601,14 +626,16 @@ class GetFormattedReproductionHelpTest(unittest.TestCase):
     environment."""
     environment.set_value(
         'HELP_FORMAT',
-        '-%TESTCASE%\\n-%FUZZER_NAME%\\n-%FUZZ_TARGET%\\n-%PROJECT%\\n')
+        '-%TESTCASE%\\n-%FUZZER_NAME%\\n-%FUZZ_TARGET%\\n-%PROJECT%\\n'
+        '-%REVISION%\\n')
 
     testcase = data_types.Testcase()
     testcase.fuzzer_name = 'simple_fuzzer'
     testcase.job_type = 'job_without_help_format'
+    testcase.crash_revision = 1337
     testcase.put()
 
     self.assertEquals(
         data_handler.get_formatted_reproduction_help(testcase),
-        '-{id}\n-simple_fuzzer\n-\n-test_project\n'.format(
+        '-{id}\n-simple_fuzzer\n-\n-test_project\n-1337\n'.format(
             id=testcase.key.id()))

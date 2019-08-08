@@ -338,23 +338,33 @@
                 </td>
               </tr>
               <tr>
-                <template is="dom-if" if="[[getFuzzerName(info)]]">
+                <template is="dom-if" if="[[info.fuzzer_display.engine]]">
                   <td class="label">
-                    <span class="help" title="Fuzzer that generated the testcase.">Fuzzer:</span>
+                    <span class="help" title="Fuzzing engine that generated the testcase.">Fuzzing engine:</span>
                   </td>
                   <td class="value">
-                    <a href$="/testcases?fuzzer=[[getFuzzerName(info)]]">
-                      [[getFuzzerName(info)]]
+                    <a href$="/testcases?fuzzer=[[info.fuzzer_display.engine]]">
+                      [[info.fuzzer_display.engine]]
+                    </a>
+                  </td>
+                  <td class="label">
+                    <span class="help" title="Fuzz target binary that calls the program api(s).">Fuzz target:</span>
+                  </td>
+                  <td class="value">
+                    <a href$="/testcases?fuzzer=[[info.fuzzer_display.fully_qualified_name]]">
+                      [[info.fuzzer_display.target]]
                     </a>
                   </td>
                 </template>
-                <template is="dom-if" if="[[info.testcase.uploader_email]]">
-                  <td class="label">
-                    <span class="help" title="Email address of person that uploaded the testcase.">Uploader:</span>
-                  </td>
-                  <td class="value">
-                    [[info.testcase.uploader_email]]
-                  </td>
+                <template is="dom-if" if="[[!info.fuzzer_display.engine]]">
+                    <td class="label">
+                      <span class="help" title="Fuzzer that generated the testcase.">Fuzzer:</span>
+                    </td>
+                    <td class="value">
+                      <a href$="/testcases?fuzzer=[[info.fuzzer_display.fully_qualified_name]]">
+                        [[info.fuzzer_display.name]]
+                      </a>
+                    </td>
                 </template>
                 <td class="label">
                   <span class="help" title="Job that specifies the build configuration.">Job Type:</span>
@@ -362,6 +372,31 @@
                 <td class="value">
                   <a href$="/testcases?job=[[info.testcase.job_type]]">[[info.testcase.job_type]]</a>
                 </td>
+              </tr>
+              <tr>
+                <td class="label">Project:</td>
+                <td class="value">
+                  <if-else condition="[[info.testcase.project_name]]">
+                    <a slot="t" href$="/testcases?project=[[info.testcase.project_name]]">[[info.testcase.project_name]]</a>
+                    <span slot="f">---</span>
+                  </if-else>
+                </td>
+                <template is="dom-if" if="[[info.auto_delete_timestamp]]">
+                  <td class="label">
+                    <span class="help" title="Time of deletion, applicable to unreproducible testcases with no associated bug.">Deletion:</span>
+                  </td>
+                  <td class="value">
+                    Will be auto-deleted on [[formatDate(info.auto_delete_timestamp)]] if flaky crash no longer seen
+                  </td>
+                </template>
+                <template is="dom-if" if="[[info.auto_close_timestamp]]">
+                  <td class="label">
+                    <span class="help" title="Time of closure, applicable to unreproducible testcases with an associated bug.">Closure:</span>
+                  </td>
+                  <td class="value">
+                    Will be auto-closed on [[formatDate(info.auto_close_timestamp)]] if flaky crash no longer seen
+                  </td>
+                </template>
                 <template is="dom-if" if="[[info.show_impact]]">
                   <td class="label">
                     <span class="help" title="Whether or not this crash impacts current beta and stable builds.">Impacts:</span>
@@ -393,27 +428,13 @@
                 </template>
               </tr>
               <tr>
-                <td class="label">Project:</td>
-                <td class="value">
-                  <if-else condition="[[info.testcase.project_name]]">
-                    <a slot="t" href$="/testcases?project=[[info.testcase.project_name]]">[[info.testcase.project_name]]</a>
-                    <span slot="f">---</span>
-                  </if-else>
-                </td>
-                <template is="dom-if" if="[[info.auto_delete_timestamp]]">
+                <template is="dom-if" if="[[info.testcase.group_id]]">
                   <td class="label">
-                    <span class="help" title="Time of deletion, applicable to unreproducible testcases with no associated bug.">Deletion:</span>
+                    <span class="help" title="Click to see crashes with same and similar looking stacks (grouped by a 'Group ID').">Related:</span>
                   </td>
                   <td class="value">
-                    Will be auto-deleted on [[formatDate(info.auto_delete_timestamp)]] if flaky crash no longer seen
-                  </td>
-                </template>
-                <template is="dom-if" if="[[info.auto_close_timestamp]]">
-                  <td class="label">
-                    <span class="help" title="Time of closure, applicable to unreproducible testcases with an associated bug.">Closure:</span>
-                  </td>
-                  <td class="value">
-                    Will be auto-closed on [[formatDate(info.auto_close_timestamp)]] if flaky crash no longer seen
+                    <a href="/testcases?q=group%3A[[info.testcase.group_id]]">Group [[info.testcase.group_id]]</a>
+                    <paper-icon-button icon="highlight-off" toggles hidden$="[[!info.is_admin]]" active="{{removeGroupDialogOpened}}" title="Remove this testcase from the group."></paper-icon-button>
                   </td>
                 </template>
                 <template is="dom-if" if="[[shouldShowStatus(info)]]">
@@ -435,18 +456,15 @@
                     </if-else>
                   </td>
                 </template>
-              </tr>
-              <template is="dom-if" if="[[info.testcase.group_id]]">
-                <tr>
+                <template is="dom-if" if="[[info.testcase.uploader_email]]">
                   <td class="label">
-                    <span class="help" title="Click to see crashes with same and similar looking stacks (grouped by a 'Group ID').">Related:</span>
+                    <span class="help" title="Email address of person that uploaded the testcase.">Uploader:</span>
                   </td>
                   <td class="value">
-                    <a href="/testcases?q=group%3A[[info.testcase.group_id]]">Group [[info.testcase.group_id]]</a>
-                    <paper-icon-button icon="highlight-off" toggles hidden$="[[!info.is_admin]]" active="{{removeGroupDialogOpened}}" title="Remove this testcase from the group."></paper-icon-button>
+                    [[info.testcase.uploader_email]]
                   </td>
-                </tr>
-              </template>
+                </template>
+              </tr>
               <template is="dom-if" if="[[info.metadata.triage_message]]">
                 <tr>
                   <td class="label">
@@ -704,10 +722,6 @@
         } else {
           return info.testcase.status;
         }
-      },
-      getFuzzerName(info) {
-        return (info.testcase.overridden_fuzzer_name ||
-                info.testcase.fuzzer_name || '');
       },
       shouldShowMinimizedKeys(info) {
         return this.isStatusReady(info) &&
