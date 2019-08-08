@@ -585,7 +585,10 @@ def pick_strategies(strategy_pool,
 
     # Add the used generator strategy to our fuzzing strategies list.
     if generator_used:
-      fuzzing_strategies.append(candidate_generator)
+      if candidate_generator == engine_common.Generator.RADAMSA:
+        fuzzing_strategies.append(strategy.CORPUS_MUTATION_RADAMSA_STRATEGY.name)
+      elif candidate_generator == engine_common.Generator.ML_RNN:
+        fuzzing_strategies.append(strategy.CORPUS_MUTATION_ML_RNN_STRATEGY.name)
 
     additional_corpus_dirs.append(new_testcase_mutations_directory)
     if environment.get_value('USE_MINIJAIL'):
