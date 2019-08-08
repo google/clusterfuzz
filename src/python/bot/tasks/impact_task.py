@@ -100,7 +100,7 @@ def get_component_information_by_name(chromium_revision,
   """Returns a dictionary with information about a component at a revision."""
   lower_name = component_display_name.lower()
   component_revisions = revisions.get_component_revisions_dict(
-      chromium_revision, 'default')
+      chromium_revision, 'linux_asan_chrome_mp')  # FIXME: Remove this hardcode.
   all_details = []
   for value in component_revisions.values():
     if value and 'name' in value and value['name'].lower() == lower_name:
