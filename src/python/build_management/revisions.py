@@ -30,7 +30,6 @@ import urllib.parse
 from base import memoize
 from base import utils
 from build_management import source_mapper
-from config import db_config
 from datastore import data_handler
 from google_cloud_utils import storage
 from metrics import logs
@@ -97,7 +96,7 @@ def _clank_revision_file_to_revisions_dict(content):
   clank_revision = component_revision_mappings['clank_revision']
 
   # Initialize revisions dictionary with chromium repo.
-  revisions_dict = get_component_revisions_dict(chromium_revision, 'default')
+  revisions_dict = get_component_revisions_dict(chromium_revision, None)
   if revisions_dict is None:
     logs.log_error(
         'Failed to get chromium component revisions.',
@@ -326,9 +325,9 @@ def get_component_revisions_dict(revision, job_type):
     # Return empty dict for zero start revision.
     return {}
 
-  config = db_config.get()
-  revision_info_url_format = db_config.get_value_for_job(
-      config.revision_vars_url, job_type)
+  revision_info_url_format = (
+      data_handler.get_value_from_job_definition_or_environment(
+          job_type, 'REVISION_VARS_URL'))
   if not revision_info_url_format:
     return None
 
@@ -628,25 +627,6 @@ def get_real_revision(revision, job_type, display=False):
       component_revisions_dict, job_type)[0])
   helper = _get_display_revision if display else _get_revision
   return helper(component_revisions_dict[key])
-
-
-def get_src_map(revision):
-  """Get SrcMap json."""
-  if utils.is_chromium():
-    return None
-
-  revision_info_url_format = environment.get_value('REVISION_VARS_URL')
-  if not revision_info_url_format:
-    return None
-
-  revision_info_url = revision_info_url_format % revision
-  url_content = _get_url_content(revision_info_url)
-  if not url_content:
-    logs.log_error(
-        'Failed to get component revisions from %s.' % revision_info_url)
-    return None
-
-  return _to_dict(url_content)
 
 
 def needs_update(revision_file, revision):

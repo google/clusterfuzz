@@ -110,4 +110,10 @@ env:
   # WEB_TESTS_URL: 'gs://bucket/path-to-tests-archive.zip'
   # UPDATE_WEB_TESTS: true
 
+  # Points to a source map json file containing component revisions for this app revision. This is
+  # used to know which components changed in a particular regression range.
+  # Read more about it here:
+  # https://google.github.io/clusterfuzz/production-setup/build-pipeline/#providing-revisions-for-the-build-dependencies
+  # REVISION_VARS_URL:
+
   # Any of the above variables can be overridden in a job definition.

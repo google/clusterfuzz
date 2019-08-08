@@ -703,9 +703,6 @@ class Config(Model):
   # Admin contact string.
   contact_string = ndb.StringProperty(default='')
 
-  # Revision variables url (diff).
-  revision_vars_url = ndb.TextProperty(default='')
-
   # Component to repository mappings.
   component_repository_mappings = ndb.TextProperty(default='')
 

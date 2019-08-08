@@ -95,7 +95,6 @@ type Config struct {
 	TestAccountPassword                 string         `datastore:"test_account_password"`
 	PrivilegedUsers                     string         `datastore:"privileged_users,noindex"`
 	ContactString                       string         `datastore:"contact_string"`
-	RevisionVarsURL                     string         `datastore:"revision_vars_url,noindex"`
 	ComponentRepositoryMappings         string         `datastore:"component_repository_mappings,noindex"`
 	ReproductionHelpURL                 string         `datastore:"reproduction_help_url"`
 	DocumentationURL                    string         `datastore:"documentation_url"`

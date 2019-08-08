@@ -55,16 +55,24 @@ class RevisionsTestcase(unittest.TestCase):
 
     self.mock.get.return_value = None
 
+    os.environ['REVISION_VARS_URL'] = (
+        'https://chromium.googlesource.com/chromium/src/+/%s/DEPS?format=text')
     data_types.Job(
         name=ANDROID_JOB_TYPE,
-        environment_string=('HELP_URL = help_url\n')).put()
+        environment_string=(
+            'HELP_URL = help_url\n'
+            'REVISION_VARS_URL = https://commondatastorage.googleapis.com/'
+            'chrome-test-builds/android/revisions/%s')).put()
     data_types.Job(
         name=BASIC_JOB_TYPE,
         environment_string=('HELP_URL = help_url\n')).put()
     data_types.Job(
         name=SRCMAP_JOB_TYPE,
-        environment_string=('PROJECT_NAME = libass\n'
-                            'HELP_URL = help_url\n')).put()
+        environment_string=(
+            'PROJECT_NAME = libass\n'
+            'HELP_URL = help_url\n'
+            'REVISION_VARS_URL = https://commondatastorage.googleapis.com/'
+            'blah-%s.srcmap.json')).put()
 
   # General helper functions.
   @staticmethod
@@ -78,14 +86,12 @@ class RevisionsTestcase(unittest.TestCase):
     """Simple mocked configuration for chromium."""
 
     def __init__(self):
-      self.revision_vars_url = REVISION_VARS_URL
       self.component_repository_mappings = 'default;chromium/src\nv8;v8/v8\n'
 
   class MockConfigOSSFuzz(object):
     """Simple mocked configuration."""
 
     def __init__(self):
-      self.revision_vars_url = REVISION_VARS_URL
       self.component_repository_mappings = ''
 
   @staticmethod
@@ -251,31 +257,6 @@ class RevisionsTestcase(unittest.TestCase):
                      revisions.get_real_revision(9002, SRCMAP_JOB_TYPE))
     self.assertEqual('54444451414e3efb4a4c7e319a3f4110e20c7cf2',
                      revisions.get_real_revision(9003, SRCMAP_JOB_TYPE))
-
-  @mock.patch('config.db_config.get')
-  @mock.patch('build_management.revisions._get_url_content')
-  def test_get_src_map(self, mock_get_url_content, mock_get_config):
-    """Test that get_src_map works."""
-    os.environ['REVISION_VARS_URL'] = (
-        'https://commondatastorage.googleapis.com/blah-%s.srcmap.json')
-
-    mock_get_config.return_value = self.MockConfigOSSFuzz()
-    self.mock.default_project_name.return_value = 'oss-fuzz'
-    mock_get_url_content.side_effect = self.mock_get_url_content
-
-    self.assertDictEqual(
-        revisions.get_src_map(1337), {
-            u'/src/libass': {
-                u'url': u'https://github.com/libass/libass.git',
-                u'rev': u'35dc4dd0e14e3afb4a2c7e319a3f4110e20c7cf2',
-                u'type': u'git'
-            },
-            u'/src/fribidi': {
-                u'url': u'https://github.com/behdad/fribidi.git',
-                u'rev': u'881b8d891cc61989ab8811b74d0e721f72bf913b',
-                u'type': u'git'
-            }
-        })
 
   @mock.patch('config.db_config.get')
   @mock.patch('build_management.revisions._get_url_content')
