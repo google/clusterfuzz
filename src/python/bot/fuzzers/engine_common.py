@@ -72,6 +72,10 @@ RADAMSA_MUTATIONS = 2000
 # Maximum number of seconds to run radamsa for.
 RADAMSA_TIMEOUT = 3
 
+# Maximum input size to mutate. This is restricted to avoid adding too many
+# large inputs in the new testcase mutations directory and filing up disk.
+RADAMSA_INPUT_FILE_SIZE_LIMIT = 2 * 1024 * 1024  # 2 Mb.
+
 
 class Generator(object):
   """Generators we can use."""
@@ -141,8 +145,12 @@ def generate_new_testcase_mutations_using_radamsa(
 
   radamsa_runner = new_process.ProcessRunner(radamsa_path)
   files_list = shell.get_files_list(corpus_directory)
-  if not files_list:
-    # No mutations to do on an empty corpus, bail out.
+  filtered_files_list = [
+      f for f in files_list
+      if os.path.getsize(f) <= RADAMSA_INPUT_FILE_SIZE_LIMIT
+  ]
+  if not filtered_files_list:
+    # No mutations to do on an empty corpus or one with very large files.
     return
 
   old_corpus_size = shell.get_directory_file_count(
@@ -150,9 +158,8 @@ def generate_new_testcase_mutations_using_radamsa(
   expected_completion_time = time.time() + generation_timeout
 
   for i in range(RADAMSA_MUTATIONS):
-    original_file_path = random_choice(files_list)
+    original_file_path = random_choice(filtered_files_list)
     original_filename = os.path.basename(original_file_path)
-    logs.log(new_testcase_mutations_directory + ' is our input dir')
     output_path = os.path.join(new_testcase_mutations_directory,
                                'radamsa-%08d-%s' % (i + 1, original_filename))
 
