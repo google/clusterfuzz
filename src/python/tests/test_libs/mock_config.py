@@ -25,7 +25,7 @@ class MockConfig(object):
 
   def get(self, key_name='', default=None):
     """Get key value using a key name."""
-    parts = key_name.split(':')
+    parts = key_name.split('.')
     value = self._data
     for part in parts:
       if part not in value:

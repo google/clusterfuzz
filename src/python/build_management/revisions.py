@@ -30,6 +30,7 @@ import urllib.parse
 from base import memoize
 from base import utils
 from build_management import source_mapper
+from config import local_config
 from datastore import data_handler
 from google_cloud_utils import storage
 from metrics import logs
@@ -96,8 +97,7 @@ def _clank_revision_file_to_revisions_dict(content):
   clank_revision = component_revision_mappings['clank_revision']
 
   # Initialize revisions dictionary with chromium repo.
-  revisions_dict = get_component_revisions_dict(
-      chromium_revision, 'linux_asan_chrome_mp')  # FIXME: Remove this hardcode.
+  revisions_dict = get_component_revisions_dict(chromium_revision, None)
   if revisions_dict is None:
     logs.log_error(
         'Failed to get chromium component revisions.',
@@ -326,9 +326,14 @@ def get_component_revisions_dict(revision, job_type):
     # Return empty dict for zero start revision.
     return {}
 
-  revision_info_url_format = (
-      data_handler.get_value_from_job_definition_or_environment(
-          job_type, 'REVISION_VARS_URL'))
+  if job_type is None:
+    # Force it to use env attribute in project.yaml.
+    revision_info_url_format = local_config.ProjectConfig().get(
+        'env.REVISION_VARS_URL')
+  else:
+    revision_info_url_format = (
+        data_handler.get_value_from_job_definition_or_environment(
+            job_type, 'REVISION_VARS_URL'))
   if not revision_info_url_format:
     return None
 

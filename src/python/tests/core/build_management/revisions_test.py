@@ -23,6 +23,7 @@ import unittest
 from build_management import revisions
 from datastore import data_types
 from tests.test_libs import helpers
+from tests.test_libs import mock_config
 from tests.test_libs import test_utils
 
 ANDROID_JOB_TYPE = 'android_asan_chrome'
@@ -49,11 +50,20 @@ class RevisionsTestcase(unittest.TestCase):
   def setUp(self):
     helpers.patch_environ(self)
     helpers.patch(self, [
-        'base.utils.default_project_name', 'base.memoize.FifoOnDisk.get',
-        'base.memoize.FifoOnDisk.put'
+        'base.utils.default_project_name',
+        'base.memoize.FifoOnDisk.get',
+        'base.memoize.FifoOnDisk.put',
+        'config.local_config.ProjectConfig',
     ])
 
     self.mock.get.return_value = None
+    self.mock.ProjectConfig.return_value = mock_config.MockConfig({
+        'env': {
+            'REVISION_VARS_URL':
+                'https://chromium.googlesource.com/chromium/src/+/%s/DEPS'
+                '?format=text'
+        }
+    })
 
     os.environ['REVISION_VARS_URL'] = (
         'https://chromium.googlesource.com/chromium/src/+/%s/DEPS?format=text')
