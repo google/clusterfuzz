@@ -1742,7 +1742,7 @@ class LauncherTest(fake_fs_unittest.TestCase):
 
   @mock.patch('bot.fuzzers.libFuzzer.launcher.add_recommended_dictionary',
               lambda x, y, z: False)
-  @mock.patch('bot.fuzzers.libFuzzer.launcher.'
+  @mock.patch('bot.fuzzers.engine_common.'
               'generate_new_testcase_mutations_using_radamsa')
   @mock.patch('sys.stdout', new_callable=test_utils.MockStdout)
   def test_fuzz_with_mutations_using_radamsa(self, *_):
@@ -2558,8 +2558,9 @@ class SelectGeneratorTest(unittest.TestCase):
     self.mock.is_lpm_fuzz_target.return_value = True
 
   def test_lpm_fuzz_target(self):
-    self.assertEqual(launcher.Generator.NONE,
-                     launcher._select_generator(self.pool, self.FUZZER_PATH))  # pylint: disable=protected-access
+    self.assertEqual(engine_common.Generator.NONE,
+                     engine_common.select_generator(self.pool,
+                                                    self.FUZZER_PATH))  # pylint: disable=protected-access
 
 
 if __name__ == '__main__':

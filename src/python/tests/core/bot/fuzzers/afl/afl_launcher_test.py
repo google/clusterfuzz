@@ -25,6 +25,7 @@ from bot.fuzzers import engine_common
 from bot.fuzzers.afl import fuzzer
 from bot.fuzzers.afl import launcher
 from bot.fuzzers.afl import strategies
+from functools import partial
 from system import environment
 from system import new_process
 from tests.core.bot.fuzzers.engine_common_test import GetTimeoutTestBase
@@ -79,7 +80,9 @@ class FuzzingStrategiesTest(unittest.TestCase):
   NUM_FILES = 1000
 
   def setUp(self):
-    self.strategies = launcher.FuzzingStrategies()
+    test_helpers.patch(self, ['bot.fuzzers.engine_common.is_lpm_fuzz_target'])
+    self.mock.is_lpm_fuzz_target.return_value = True
+    self.strategies = launcher.FuzzingStrategies(None)
 
   def _decide_fast_cal_random(self):
     """Helper method that calls self.strategies.decide_fast_cal_random with a
@@ -184,7 +187,9 @@ class AflFuzzInputDirectoryTest(LauncherTestBase):
   def setUp(self):
     self.temp_input_dir = os.path.join(self.TEMP_DIR, 'afl_input_dir')
     super(AflFuzzInputDirectoryTest, self).setUp()
-    self.strategies = launcher.FuzzingStrategies()
+    test_helpers.patch(self, ['bot.fuzzers.engine_common.is_lpm_fuzz_target'])
+    self.mock.is_lpm_fuzz_target.return_value = True
+    self.strategies = launcher.FuzzingStrategies(None)
 
   def _new_afl_input(self):
     """Create a new AflFuzzInputDirectory object."""
@@ -505,8 +510,11 @@ class AflRunnerTest(LauncherTestBase):
   def setUp(self):
     super(AflRunnerTest, self).setUp()
     test_helpers.patch_environ(self)
+    test_helpers.patch(self, ['bot.fuzzers.engine_common.is_lpm_fuzz_target'])
+    self.mock.is_lpm_fuzz_target.return_value = True
     environment.set_value('HARD_TIMEOUT_OVERRIDE', 600)
     config = launcher.AflConfig.from_target_path(self.TARGET_PATH)
+
     self.runner = launcher.AflRunner(self.TARGET_PATH, config,
                                      self.TESTCASE_FILE_PATH, self.INPUT_DIR)
 
@@ -774,7 +782,8 @@ class AflRunnerTest(LauncherTestBase):
 
 class GetFuzzTimeoutTest(GetTimeoutTestBase):
   """Get fuzz timeout tests."""
-  function = staticmethod(launcher.get_fuzz_timeout)
+  function = staticmethod(
+      partial(launcher.get_fuzz_timeout, is_mutations_run=False))
 
   def test_validation(self):
     """Test that get_fuzz_timeout rejects an invalid combination of
