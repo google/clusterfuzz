@@ -46,6 +46,9 @@ class LibFuzzerCommon(object):
   # Window of time for libFuzzer to exit gracefully before we KILL it.
   LIBFUZZER_CLEAN_EXIT_TIME = 10.0
 
+  # Additional window of time for libFuzzer fork mode to exit gracefully.
+  LIBFUZZER_FORK_MODE_CLEAN_EXIT_TIME = 50.0
+
   # Time to wait for SIGTERM handler.
   SIGTERM_WAIT_TIME = 10.0
 
@@ -130,12 +133,14 @@ class LibFuzzerCommon(object):
     Returns:
       A process.ProcessResult.
     """
-    max_total_time = self.get_max_total_time(fuzz_timeout)
-    assert max_total_time > 0
-
     additional_args = copy.copy(additional_args)
     if additional_args is None:
       additional_args = []
+
+    max_total_time = self.get_max_total_time(fuzz_timeout)
+    if any(arg.startswith(constants.FORK_FLAG) for arg in additional_args):
+      max_total_time -= self.LIBFUZZER_FORK_MODE_CLEAN_EXIT_TIME
+    assert max_total_time > 0
 
     # Old libFuzzer jobs specify -artifact_prefix through additional_args
     if artifact_prefix:
@@ -251,9 +256,10 @@ class LibFuzzerCommon(object):
     # individual runs of the target and not for the entire minimization.
     # Internally, libFuzzer does 2 runs of the target every iteration. This is
     # the minimum for any results to be written at all.
-    max_total_time_value = (timeout - self.LIBFUZZER_CLEAN_EXIT_TIME) // 2
+    max_total_time = (timeout - self.LIBFUZZER_CLEAN_EXIT_TIME) // 2
+    assert max_total_time > 0
     max_total_time_argument = '%s%d' % (constants.MAX_TOTAL_TIME_FLAG,
-                                        max_total_time_value)
+                                        max_total_time)
 
     additional_args.extend([
         constants.MINIMIZE_CRASH_ARGUMENT, max_total_time_argument,

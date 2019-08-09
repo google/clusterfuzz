@@ -1875,7 +1875,7 @@ class LauncherTest(fake_fs_unittest.TestCase):
       self.assertEqual(mock_popen.commands, [[
           '/fake/build_dir/fake_fuzzer', '-max_len=80', '-rss_limit_mb=2048',
           '-timeout=25', '-collect_data_flow=/fake/dfsan_build/fake_fuzzer',
-          '-fork=1', '-artifact_prefix=/fake/', '-max_total_time=2650',
+          '-fork=1', '-artifact_prefix=/fake/', '-max_total_time=2600',
           '-print_final_stats=1', '/fake/inputs-disk/temp-1337/new',
           '/fake/corpus_dir'
       ], [
@@ -1918,7 +1918,7 @@ class LauncherTest(fake_fs_unittest.TestCase):
                   u'-collect_data_flow=/fake/dfsan_build/fake_fuzzer',
                   u'-fork=1',
                   u'-artifact_prefix=/fake/',
-                  u'-max_total_time=2650',
+                  u'-max_total_time=2600',
                   u'-print_final_stats=1',
                   u'/fake/inputs-disk/temp-1337/new',
                   u'/fake/corpus_dir',
@@ -2023,7 +2023,7 @@ class LauncherTest(fake_fs_unittest.TestCase):
           'Command: /fake/build_dir/fake_fuzzer '
           '-max_len=80 -rss_limit_mb=2048 -timeout=25 '
           '-collect_data_flow=/fake/dfsan_build/fake_fuzzer -fork=1 '
-          '-artifact_prefix=/fake/ -max_total_time=2650 -print_final_stats=1 '
+          '-artifact_prefix=/fake/ -max_total_time=2600 -print_final_stats=1 '
           '/fake/inputs-disk/temp-1337/new /fake/corpus_dir')
       self.assertIn(expected_command, mock_stdout.getvalue())
       self.assertIn('Bot: test-bot', mock_stdout.getvalue())
@@ -2125,7 +2125,7 @@ class LauncherTest(fake_fs_unittest.TestCase):
           '-collect_data_flow=/fake/dfsan_build/fake_fuzzer',
           '-fork=1',
           '-artifact_prefix=/',
-          '-max_total_time=2650',
+          '-max_total_time=2600',
           '-print_final_stats=1',
           '/new',
           '/corpus_dir',
@@ -2209,7 +2209,7 @@ class LauncherTest(fake_fs_unittest.TestCase):
       self.assertEqual(mock_popen.commands, [[
           '/fake/build_dir/fake_fuzzer', '-max_len=80', '-rss_limit_mb=2048',
           '-timeout=25', '-fork=2', '-artifact_prefix=/fake/',
-          '-max_total_time=2650', '-print_final_stats=1',
+          '-max_total_time=2600', '-print_final_stats=1',
           '/fake/inputs-disk/temp-1337/new', '/fake/corpus_dir'
       ], [
           '/fake/build_dir/fake_fuzzer',
@@ -2246,7 +2246,7 @@ class LauncherTest(fake_fs_unittest.TestCase):
               u'command': [
                   u'/fake/build_dir/fake_fuzzer', u'-max_len=80',
                   u'-rss_limit_mb=2048', u'-timeout=25', u'-fork=2',
-                  u'-artifact_prefix=/fake/', u'-max_total_time=2650',
+                  u'-artifact_prefix=/fake/', u'-max_total_time=2600',
                   u'-print_final_stats=1', u'/fake/inputs-disk/temp-1337/new',
                   u'/fake/corpus_dir'
               ],
@@ -2349,7 +2349,7 @@ class LauncherTest(fake_fs_unittest.TestCase):
       expected_command = (
           'Command: /fake/build_dir/fake_fuzzer '
           '-max_len=80 -rss_limit_mb=2048 -timeout=25 -fork=2 '
-          '-artifact_prefix=/fake/ -max_total_time=2650 -print_final_stats=1 '
+          '-artifact_prefix=/fake/ -max_total_time=2600 -print_final_stats=1 '
           '/fake/inputs-disk/temp-1337/new /fake/corpus_dir')
       self.assertIn(expected_command, mock_stdout.getvalue())
       self.assertIn('Bot: test-bot', mock_stdout.getvalue())
