@@ -318,6 +318,23 @@ def get_components_list(component_revisions_dict, job_type):
   return components
 
 
+def _get_revision_vars_url_format(job_type):
+  """Return REVISION_VARS_URL from job environment if available. Otherwise,
+  default to one set in project.yaml. For custom binary jobs, this is not
+  applicable."""
+  if job_type is None:
+    # Force it to use env attribute in project.yaml.
+    return local_config.ProjectConfig().get('env.REVISION_VARS_URL')
+
+  custom_binary = data_handler.get_value_from_job_definition(
+      job_type, 'CUSTOM_BINARY')
+  if custom_binary and custom_binary != 'False':
+    return None
+
+  return data_handler.get_value_from_job_definition_or_environment(
+      job_type, 'REVISION_VARS_URL')
+
+
 @memoize.wrap(memoize.FifoOnDisk(DISK_CACHE_SIZE))
 @memoize.wrap(memoize.Memcache(60 * 60 * 24 * 30))  # 30 day TTL
 def get_component_revisions_dict(revision, job_type):
@@ -326,15 +343,8 @@ def get_component_revisions_dict(revision, job_type):
     # Return empty dict for zero start revision.
     return {}
 
-  if job_type is None:
-    # Force it to use env attribute in project.yaml.
-    revision_info_url_format = local_config.ProjectConfig().get(
-        'env.REVISION_VARS_URL')
-  else:
-    revision_info_url_format = (
-        data_handler.get_value_from_job_definition_or_environment(
-            job_type, 'REVISION_VARS_URL'))
-  if not revision_info_url_format:
+  revision_vars_url_format = _get_revision_vars_url_format(job_type)
+  if not revision_vars_url_format:
     return None
 
   project_name = data_handler.get_project_name(job_type)
@@ -343,7 +353,7 @@ def get_component_revisions_dict(revision, job_type):
   if utils.is_chromium():
     component = data_handler.get_component_name(job_type)
     repository = data_handler.get_repository_for_component(component)
-    if repository and not _is_clank(revision_info_url_format):
+    if repository and not _is_clank(revision_vars_url_format):
       revision_hash = _git_commit_position_to_git_hash_for_chromium(
           revision, repository)
       if revision_hash is None:
@@ -363,15 +373,15 @@ def get_component_revisions_dict(revision, job_type):
       # Use revision hash for info url later.
       revision = revision_hash
 
-  revision_info_url = revision_info_url_format % revision
-  url_content = _get_url_content(revision_info_url)
+  revision_vars_url = revision_vars_url_format % revision
+  url_content = _get_url_content(revision_vars_url)
   if not url_content:
     logs.log_error(
-        'Failed to get component revisions from %s.' % revision_info_url)
+        'Failed to get component revisions from %s.' % revision_vars_url)
     return None
 
   # Parse as per DEPS format.
-  if _is_deps(revision_info_url):
+  if _is_deps(revision_vars_url):
     deps_revisions_dict = deps_to_revisions_dict(url_content)
     if not deps_revisions_dict:
       return None
@@ -380,18 +390,18 @@ def get_component_revisions_dict(revision, job_type):
     return revisions_dict
 
   # Parse as per Clank DEPS format.
-  if _is_clank(revision_info_url):
+  if _is_clank(revision_vars_url):
     return _clank_revision_file_to_revisions_dict(url_content)
 
   # Default case: parse content as yaml.
   revisions_dict = _to_dict(url_content)
   if not revisions_dict:
     logs.log_error(
-        'Failed to parse component revisions from %s.' % revision_info_url)
+        'Failed to parse component revisions from %s.' % revision_vars_url)
     return None
 
   # Parse as per source map format.
-  if revision_info_url.endswith(SOURCE_MAP_EXTENSION):
+  if revision_vars_url.endswith(SOURCE_MAP_EXTENSION):
     revisions_dict = _src_map_to_revisions_dict(revisions_dict, project_name)
 
   return revisions_dict
