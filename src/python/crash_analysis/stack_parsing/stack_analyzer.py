@@ -395,6 +395,7 @@ STACK_FRAME_IGNORE_REGEXES = [
     r'.*\/minkernel\/crts\/',
     r'.*\/sanitizer\_common\/',
     r'.*\/tcmalloc\/',
+    r'.*\/third_party\/crosstool\/',
     r'.*\/vc\/include\/',
     r'.*\/vctools\/crt\/',
     r'.*\/win\_toolchain\/',
