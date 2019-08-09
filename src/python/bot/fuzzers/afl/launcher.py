@@ -556,19 +556,6 @@ class AflRunnerCommon(object):
     self._afl_output = None
 
     self.strategies = FuzzingStrategies(target_path)
-    if self.strategies.is_mutations_run:
-      target_name = os.path.basename(self.target_path)
-      project_qualified_target_name = (
-          data_types.fuzz_target_project_qualified_name(utils.current_project(),
-                                                        target_name))
-      # Generate new testcase mutations according to candidate generator. If
-      # testcase mutations are properly generated, set generator strategy
-      # accordingly.
-      generator_used = engine_common.generate_new_testcase_mutations(
-          input_directory, input_directory, project_qualified_target_name,
-          self.strategies.candidate_generator)
-      if generator_used:
-        self.strategies.generator_strategy = self.strategies.candidate_generator
 
     # Set this to None so we can tell if it has never been set or if it's just
     # empty.
@@ -812,6 +799,20 @@ class AflRunnerCommon(object):
 
         return erroring_filename
       return None  # else
+
+    if self.strategies.is_mutations_run:
+      target_name = os.path.basename(self.target_path)
+      project_qualified_target_name = (
+          data_types.fuzz_target_project_qualified_name(utils.current_project(),
+                                                        target_name))
+      # Generate new testcase mutations according to candidate generator. If
+      # testcase mutations are properly generated, set generator strategy
+      # accordingly.
+      generator_used = engine_common.generate_new_testcase_mutations(
+          self.afl_input.input_directory, self.afl_input.input_directory,
+          project_qualified_target_name, self.strategies.candidate_generator)
+      if generator_used:
+        self.strategies.generator_strategy = self.strategies.candidate_generator
 
     # Decide if we want to use fast cal based on the size of the input
     # directory. This is only done once, but the function can be called
