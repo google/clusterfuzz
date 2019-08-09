@@ -71,7 +71,7 @@ class RemoveDirectoryTest(unittest.TestCase):
   def setUp(self):
     test_helpers.patch(self, [
         'os.chmod',
-        'os.mkdir',
+        'os.makedirs',
         'os.path.exists',
         'os.system',
         'system.environment.platform',
@@ -80,25 +80,25 @@ class RemoveDirectoryTest(unittest.TestCase):
         'shutil.rmtree',
     ])
 
-  def _test_remove_os_specific(self, platform, recreate, raise_mkdir_error):
+  def _test_remove_os_specific(self, platform, recreate, raise_makedirs_error):
     """Helper for testing removing dir with os-specific command."""
     self.mock.platform.return_value = platform
     self.mock.exists.side_effect = [True, False, False]
-    if raise_mkdir_error:
-      self.mock.mkdir.side_effect = OSError()
+    if raise_makedirs_error:
+      self.mock.makedirs.side_effect = OSError()
 
     result = shell.remove_directory('dir', recreate=recreate)
 
     if recreate:
-      self.assertEqual(not raise_mkdir_error, result)
+      self.assertEqual(not raise_makedirs_error, result)
     else:
       self.assertTrue(result)
 
     self.mock.rmtree.assert_has_calls([])
     if recreate:
-      self.mock.mkdir.assert_has_calls([mock.call('dir')])
+      self.mock.makedirs.assert_has_calls([mock.call('dir')])
     else:
-      self.mock.mkdir.assert_has_calls([])
+      self.mock.makedirs.assert_has_calls([])
 
   def test_remove_os_specific_windows(self):
     """Test remove with os-specific command on windows."""
@@ -115,8 +115,8 @@ class RemoveDirectoryTest(unittest.TestCase):
     """Test remove without recreate."""
     self._test_remove_os_specific('LINUX', False, True)
 
-  def test_remove_with_mkdir_error(self):
-    """Test remove when mkdir errors."""
+  def test_remove_with_makedirs_error(self):
+    """Test remove when makedirs errors."""
     self._test_remove_os_specific('LINUX', True, True)
 
   def test_remove_shutil_success(self):
