@@ -47,7 +47,7 @@ class LibFuzzerCommon(object):
   LIBFUZZER_CLEAN_EXIT_TIME = 10.0
 
   # Additional window of time for libFuzzer fork mode to exit gracefully.
-  LIBFUZZER_FORK_MODE_CLEAN_EXIT_TIME = 50.0
+  LIBFUZZER_FORK_MODE_CLEAN_EXIT_TIME = 100.0
 
   # Time to wait for SIGTERM handler.
   SIGTERM_WAIT_TIME = 10.0
