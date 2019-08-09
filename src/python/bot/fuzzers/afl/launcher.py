@@ -565,8 +565,8 @@ class AflRunnerCommon(object):
       # testcase mutations are properly generated, set generator strategy
       # accordingly.
       generator_used = engine_common.generate_new_testcase_mutations(
-          self.afl_input.input_directory, self.afl_input.input_directory,
-          project_qualified_target_name, self.strategies.candidate_generator)
+          input_directory, input_directory, project_qualified_target_name,
+          self.strategies.candidate_generator)
       if generator_used:
         self.strategies.generator_strategy = self.strategies.candidate_generator
 
