@@ -328,7 +328,7 @@ def _get_revision_vars_url_format(job_type):
 
   custom_binary = data_handler.get_value_from_job_definition(
       job_type, 'CUSTOM_BINARY')
-  if custom_binary and custom_binary != 'False':
+  if utils.string_is_true(custom_binary):
     return None
 
   return data_handler.get_value_from_job_definition_or_environment(
