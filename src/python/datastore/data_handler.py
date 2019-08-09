@@ -221,7 +221,7 @@ def get_issue_summary(testcase):
   binary_name = testcase.get_metadata('fuzzer_binary_name')
   if binary_name:
     if summary_prefix:
-      issue_summary += '/'
+      issue_summary += ':'
     issue_summary += binary_name
   if issue_summary:
     issue_summary += ': '
