@@ -186,7 +186,7 @@ def _prepare_initial_environment(build_directory, iterations):
         os.path.join(root_dir, directory_name),
         os.path.join(temp_root_dir, directory_name),
         ignore=lambda directory, contents:
-            contents if directory in ignore_paths else [])
+        contents if directory in ignore_paths else [])
 
   _update_directory('bot')
   _update_directory('configs')
