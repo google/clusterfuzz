@@ -456,7 +456,7 @@ def remove_directory(directory, recreate=False, ignore_errors=False):
     return True
 
   try:
-    os.mkdir(directory)
+    os.makedirs(directory)
   except:
     log_error_func('Unable to re-create directory %s.' % directory)
     return False
