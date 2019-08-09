@@ -29,6 +29,7 @@ from tests.test_libs import test_utils
 ANDROID_JOB_TYPE = 'android_asan_chrome'
 BASIC_JOB_TYPE = 'linux_asan_chrome_mp'
 SRCMAP_JOB_TYPE = 'linux_asan_libass'
+CUSTOM_BINARY_JOB_TYPE = 'linux_asan_custom'
 DATA_DIRECTORY = os.path.join(os.path.dirname(__file__), 'revisions_data')
 
 # For simplicity, the mocked URLs all end with the revision. They do not match
@@ -83,6 +84,9 @@ class RevisionsTestcase(unittest.TestCase):
             'HELP_URL = help_url\n'
             'REVISION_VARS_URL = https://commondatastorage.googleapis.com/'
             'blah-%s.srcmap.json')).put()
+    data_types.Job(
+        name=CUSTOM_BINARY_JOB_TYPE,
+        environment_string=('CUSTOM_BINARY = True\n')).put()
 
   # General helper functions.
   @staticmethod
@@ -324,6 +328,19 @@ class RevisionsTestcase(unittest.TestCase):
     result_as_html = revisions.format_revision_list(result)
     expected_html = self._read_data_file('srcmap_expected_html_3.txt')
     self.assertEqual(result_as_html, expected_html)
+
+  @mock.patch('config.db_config.get')
+  @mock.patch('build_management.revisions._get_url_content')
+  def test_get_component_range_list_custom_binary_job(
+      self, mock_get_url_content, mock_get_config):
+    """Test get_component_range_list with a custom binary job."""
+    mock_get_config.return_value = self.MockConfigChromium()
+    self.mock.default_project_name.return_value = 'chromium'
+    mock_get_url_content.side_effect = self.mock_get_url_content
+
+    self.assertEqual([],
+                     revisions.get_component_range_list(1337, 1338,
+                                                        CUSTOM_BINARY_JOB_TYPE))
 
   def test_find_min_revision_index(self):
     """Tests find_min_revision_index()."""
