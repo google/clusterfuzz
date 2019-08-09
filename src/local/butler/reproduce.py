@@ -22,6 +22,7 @@ from python.base import modules
 modules.fix_module_search_paths()
 
 import os
+import shutil
 import tempfile
 import time
 
@@ -35,7 +36,6 @@ from bot.tasks import setup
 from build_management import build_manager
 from datastore import data_types
 from local.butler import appengine
-from local.butler import common
 from local.butler.reproduce_tool import config
 from local.butler.reproduce_tool import errors
 from local.butler.reproduce_tool import http_utils
@@ -46,7 +46,10 @@ from system import environment
 from system import new_process
 from system import shell
 
+CONFIG_DIRECTORY = os.path.join(
+    os.path.expanduser('~'), '.config', 'clusterfuzz')
 DISPLAY = ':99'
+PROCESS_START_WAIT_SECONDS = 2
 SUPPORTED_PLATFORMS = ['android', 'linux', 'mac']
 
 
@@ -100,11 +103,10 @@ def _download_testcase(testcase_id, testcase, configuration):
     raise errors.ReproduceToolUnrecoverableError(
         'Unable to download test case.')
 
-  # Create a temporary directory where we can store the test case.
   bot_absolute_filename = response['x-goog-meta-filename']
-  testcase_directory = os.path.join(
-      environment.get_value('ROOT_DIR'), 'current-testcase')
-  shell.create_directory(testcase_directory)
+  # Store the test case in the config directory for debuggability.
+  testcase_directory = os.path.join(CONFIG_DIRECTORY, 'current-testcase')
+  shell.remove_directory(testcase_directory, recreate=True)
   environment.set_value('FUZZ_INPUTS', testcase_directory)
   testcase_path = os.path.join(testcase_directory,
                                os.path.basename(bot_absolute_filename))
@@ -156,12 +158,12 @@ def _setup_x():
   xvfb_process = xvfb_runner.run(additional_args=[
       DISPLAY, '-screen', '0', '1280x1024x24', '-ac', '-nolisten', 'tcp'
   ])
-  time.sleep(5)  # Allow some time for Xvfb to start.
+  time.sleep(PROCESS_START_WAIT_SECONDS)
 
   print('Starting blackbox...')
   blackbox_runner = new_process.ProcessRunner('/usr/bin/blackbox')
   blackbox_process = blackbox_runner.run()
-  time.sleep(5)  # Allow some time for blackbox to start.
+  time.sleep(PROCESS_START_WAIT_SECONDS)
 
   # Return all handles we create so they can be terminated properly at exit.
   return [xvfb_process, blackbox_process]
@@ -175,15 +177,30 @@ def _prepare_initial_environment(build_directory, iterations):
   temp_root_dir = tempfile.mkdtemp()
   environment.set_value('ROOT_DIR', temp_root_dir)
 
-  common.update_dir(
-      os.path.join(root_dir, 'bot'), os.path.join(temp_root_dir, 'bot'))
-  common.update_dir(
-      os.path.join(root_dir, 'configs'), os.path.join(temp_root_dir, 'configs'))
-  common.update_dir(
-      os.path.join(root_dir, 'resources'),
-      os.path.join(temp_root_dir, 'resources'))
-  common.update_dir(
-      os.path.join(root_dir, 'src'), os.path.join(temp_root_dir, 'src'))
+  def _update_directory(directory_name, ignore_paths=None):
+    """Copy a subdirectory from a checkout to a temp directory."""
+    if not ignore_paths:
+      ignore_paths = []
+
+    shutil.copytree(
+        os.path.join(root_dir, directory_name),
+        os.path.join(temp_root_dir, directory_name),
+        ignore=lambda directory, contents:
+            contents if directory in ignore_paths else [])
+
+  _update_directory('bot')
+  _update_directory('configs')
+  _update_directory('resources')
+  _update_directory(
+      'src',
+      ignore_paths=[
+          os.path.join(root_dir, 'src', 'appengine'),
+          os.path.join(root_dir, 'src', 'bazel-bin'),
+          os.path.join(root_dir, 'src', 'bazel-genfiles'),
+          os.path.join(root_dir, 'src', 'bazel-out'),
+          os.path.join(root_dir, 'src', 'bazel-src'),
+          os.path.join(root_dir, 'src', 'python', 'tests'),
+      ])
 
   environment.set_value('CONFIG_DIR_OVERRIDE',
                         os.path.join(temp_root_dir, 'configs', 'test'))
