@@ -14,6 +14,7 @@
 """show tests."""
 # pylint: disable=protected-access
 from past.builtins import basestring
+import collections
 import datetime
 import os
 import unittest
@@ -485,6 +486,7 @@ class GetTestcaseTest(unittest.TestCase):
     testcase.timestamp = datetime.datetime(1970, 1, 1)
     testcase.project_name = 'chromium'
     testcase.one_time_crasher_flag = False
+    testcase.fuzzer_name = 'fuzzer1'
     testcase.put()
 
     job = data_types.Job()
@@ -501,34 +503,64 @@ class GetTestcaseTest(unittest.TestCase):
 
     result = show.get_testcase_detail_by_id(2)
     expected_subset = {
-        'id': 2,
-        'crash_type': 'crash_type1 crash_type2',
-        'crash_address': 'crash_address',
-        'crash_state': 'crash_state',
+        'id':
+            2,
+        'crash_type':
+            'crash_type1 crash_type2',
+        'crash_address':
+            'crash_address',
+        'crash_state':
+            'crash_state',
         'crash_state_lines': ['crash_state'],
-        'crash_revision': 123,
-        'csrf_token': 'csrf',
-        'external_user': True,
-        'footer': '',
-        'fixed': 'NO',
-        'issue_url': 'issue_url',
+        'crash_revision':
+            123,
+        'csrf_token':
+            'csrf',
+        'external_user':
+            True,
+        'footer':
+            '',
+        'fixed':
+            'NO',
+        'issue_url':
+            'issue_url',
         'metadata': {},
-        'minimized_testcase_size': None,
-        'needs_refresh': True,
-        'original_testcase_size': None,
-        'privileged_user': False,
-        'regression': 'Pending',
-        'security_severity': None,
-        'show_impact': True,
-        'show_blame': True,
-        'auto_delete_timestamp': None,
-        'auto_close_timestamp': None,
-        'memory_tool_display_label': 'Sanitizer',
-        'memory_tool_display_value': 'address (ASAN)',
-        'last_tested': 'name: 0:revision<br />',
-        'is_admin_or_not_oss_fuzz': True,
-        'has_issue_tracker': True,
-        'reproduction_help_url': 'help_url',
+        'minimized_testcase_size':
+            None,
+        'needs_refresh':
+            True,
+        'original_testcase_size':
+            None,
+        'privileged_user':
+            False,
+        'regression':
+            'Pending',
+        'security_severity':
+            None,
+        'show_impact':
+            True,
+        'show_blame':
+            True,
+        'auto_delete_timestamp':
+            None,
+        'auto_close_timestamp':
+            None,
+        'memory_tool_display_label':
+            'Sanitizer',
+        'memory_tool_display_value':
+            'address (ASAN)',
+        'last_tested':
+            'name: 0:revision<br />',
+        'is_admin_or_not_oss_fuzz':
+            True,
+        'has_issue_tracker':
+            True,
+        'reproduction_help_url':
+            'help_url',
+        'fuzzer_display':
+            collections.OrderedDict([('engine', None), ('target', None),
+                                     ('name', 'fuzzer1'),
+                                     ('fully_qualified_name', 'fuzzer1')]),
     }
 
     self.maxDiff = None  # pylint: disable=invalid-name
@@ -559,7 +591,10 @@ class GetTestcaseTest(unittest.TestCase):
     testcase.timestamp = datetime.datetime(1970, 1, 1)
     testcase.project_name = 'chromium'
     testcase.one_time_crasher_flag = True
+    testcase.fuzzer_name = 'libFuzzer'
+    testcase.overridden_fuzzer_name = 'libFuzzer_test_fuzzer'
     testcase.put()
+    testcase.set_metadata('fuzzer_binary_name', 'test_fuzzer')
 
     job = data_types.Job()
     job.name = 'windows_asan_chrome'
@@ -575,34 +610,67 @@ class GetTestcaseTest(unittest.TestCase):
 
     result = show.get_testcase_detail_by_id(2)
     expected_subset = {
-        'id': 2,
-        'crash_type': 'crash_type1 crash_type2',
-        'crash_address': 'crash_address',
-        'crash_state': 'crash_state',
+        'id':
+            2,
+        'crash_type':
+            'crash_type1 crash_type2',
+        'crash_address':
+            'crash_address',
+        'crash_state':
+            'crash_state',
         'crash_state_lines': ['crash_state'],
-        'crash_revision': 123,
-        'csrf_token': 'csrf',
-        'external_user': True,
-        'footer': '',
-        'fixed': 'NO',
-        'issue_url': 'issue_url',
-        'metadata': {},
-        'minimized_testcase_size': None,
-        'needs_refresh': True,
-        'original_testcase_size': None,
-        'privileged_user': False,
-        'regression': 'Pending',
-        'security_severity': None,
-        'show_impact': False,
-        'show_blame': True,
-        'auto_delete_timestamp': 947289600.0,
-        'auto_close_timestamp': None,
-        'memory_tool_display_label': 'Sanitizer',
-        'memory_tool_display_value': 'address (ASAN)',
-        'last_tested': 'name: 0:revision<br />',
-        'is_admin_or_not_oss_fuzz': True,
-        'has_issue_tracker': True,
-        'reproduction_help_url': 'help_url',
+        'crash_revision':
+            123,
+        'csrf_token':
+            'csrf',
+        'external_user':
+            True,
+        'footer':
+            '',
+        'fixed':
+            'NO',
+        'issue_url':
+            'issue_url',
+        'metadata': {
+            'fuzzer_binary_name': 'test_fuzzer'
+        },
+        'minimized_testcase_size':
+            None,
+        'needs_refresh':
+            True,
+        'original_testcase_size':
+            None,
+        'privileged_user':
+            False,
+        'regression':
+            'Pending',
+        'security_severity':
+            None,
+        'show_impact':
+            False,
+        'show_blame':
+            True,
+        'auto_delete_timestamp':
+            947289600.0,
+        'auto_close_timestamp':
+            None,
+        'memory_tool_display_label':
+            'Sanitizer',
+        'memory_tool_display_value':
+            'address (ASAN)',
+        'last_tested':
+            'name: 0:revision<br />',
+        'is_admin_or_not_oss_fuzz':
+            True,
+        'has_issue_tracker':
+            True,
+        'reproduction_help_url':
+            'help_url',
+        'fuzzer_display':
+            collections.OrderedDict(
+                [('engine', 'libFuzzer'), ('target', 'test_fuzzer'),
+                 ('name', 'libFuzzer'), ('fully_qualified_name',
+                                         'libFuzzer_test_fuzzer')]),
     }
 
     self.maxDiff = None  # pylint: disable=invalid-name
