@@ -351,18 +351,18 @@ class DataHandlerTest(unittest.TestCase):
                                    'HELP_URL = help_url\n')
     self.job.put()
     summary = data_handler.get_issue_summary(self.testcase_assert)
-    self.assertEqual(summary, 'prefix/binary_name: ASSERT: foo != bar')
+    self.assertEqual(summary, 'prefix:binary_name: ASSERT: foo != bar')
 
     summary = data_handler.get_issue_summary(self.testcase)
-    self.assertEqual(summary, 'prefix/binary_name: Crash-type in A')
+    self.assertEqual(summary, 'prefix:binary_name: Crash-type in A')
 
   def test_get_issue_summary_with_project_prefix(self):
     """Test get_issue_description with project name as prefix."""
     summary = data_handler.get_issue_summary(self.testcase_assert)
-    self.assertEqual(summary, 'project/binary_name: ASSERT: foo != bar')
+    self.assertEqual(summary, 'project:binary_name: ASSERT: foo != bar')
 
     summary = data_handler.get_issue_summary(self.testcase)
-    self.assertEqual(summary, 'project/binary_name: Crash-type in A')
+    self.assertEqual(summary, 'project:binary_name: Crash-type in A')
 
   def test_get_issue_summary_null(self):
     """Test get_issue_summary for null crash state."""
