@@ -119,18 +119,26 @@ class TestMultiArmedBanditStrategySelectionLibFuzzerPatch(unittest.TestCase):
     doesn't yield an exception through any of the experimental paths."""
     environment.set_value('STRATEGY_SELECTION_METHOD', 'default')
     strategy_selection.generate_weighted_strategy_pool(
-        strategy_list=strategy.LIBFUZZER_STRATEGY_LIST, use_generator=True, engine_name='libFuzzer')
+        strategy_list=strategy.LIBFUZZER_STRATEGY_LIST,
+        use_generator=True,
+        engine_name='libFuzzer')
     environment.set_value('STRATEGY_SELECTION_METHOD',
                           'multi_armed_bandit_medium')
     strategy_selection.generate_weighted_strategy_pool(
-        strategy_list=strategy.LIBFUZZER_STRATEGY_LIST, use_generator=True, engine_name='libFuzzer')
+        strategy_list=strategy.LIBFUZZER_STRATEGY_LIST,
+        use_generator=True,
+        engine_name='libFuzzer')
     environment.set_value('STRATEGY_SELECTION_METHOD',
                           'multi_armed_bandit_high')
     strategy_selection.generate_weighted_strategy_pool(
-        strategy_list=strategy.LIBFUZZER_STRATEGY_LIST, use_generator=True, engine_name='libFuzzer')
+        strategy_list=strategy.LIBFUZZER_STRATEGY_LIST,
+        use_generator=True,
+        engine_name='libFuzzer')
     environment.set_value('STRATEGY_SELECTION_METHOD', 'multi_armed_bandit_low')
     strategy_selection.generate_weighted_strategy_pool(
-        strategy_list=strategy.LIBFUZZER_STRATEGY_LIST, use_generator=True, engine_name='libFuzzer')
+        strategy_list=strategy.LIBFUZZER_STRATEGY_LIST,
+        use_generator=True,
+        engine_name='libFuzzer')
 
 
 @test_utils.with_cloud_emulators('datastore')
@@ -174,7 +182,9 @@ class TestMultiArmedBanditStrategySelectionLibFuzzer(unittest.TestCase):
     environment.set_value('STRATEGY_SELECTION_METHOD',
                           'multi_armed_bandit_medium')
     strategy_pool = strategy_selection.generate_weighted_strategy_pool(
-        strategy_list=strategy.LIBFUZZER_STRATEGY_LIST, use_generator=True, engine_name='libFuzzer')
+        strategy_list=strategy.LIBFUZZER_STRATEGY_LIST,
+        use_generator=True,
+        engine_name='libFuzzer')
     self.assertTrue(
         strategy_pool.do_strategy(strategy.CORPUS_MUTATION_ML_RNN_STRATEGY))
     self.assertTrue(
@@ -197,7 +207,9 @@ class TestMultiArmedBanditStrategySelectionLibFuzzer(unittest.TestCase):
     environment.set_value('STRATEGY_SELECTION_METHOD',
                           'multi_armed_bandit_high')
     strategy_pool = strategy_selection.generate_weighted_strategy_pool(
-        strategy_list=strategy.LIBFUZZER_STRATEGY_LIST, use_generator=True, engine_name='libFuzzer')
+        strategy_list=strategy.LIBFUZZER_STRATEGY_LIST,
+        use_generator=True,
+        engine_name='libFuzzer')
     self.assertTrue(
         strategy_pool.do_strategy(strategy.CORPUS_MUTATION_ML_RNN_STRATEGY))
     self.assertTrue(
@@ -219,7 +231,9 @@ class TestMultiArmedBanditStrategySelectionLibFuzzer(unittest.TestCase):
     be included in our strategy pool."""
     environment.set_value('STRATEGY_SELECTION_METHOD', 'multi_armed_bandit_low')
     strategy_pool = strategy_selection.generate_weighted_strategy_pool(
-        strategy_list=strategy.LIBFUZZER_STRATEGY_LIST, use_generator=True, engine_name='libFuzzer')
+        strategy_list=strategy.LIBFUZZER_STRATEGY_LIST,
+        use_generator=True,
+        engine_name='libFuzzer')
     self.assertTrue(
         strategy_pool.do_strategy(strategy.CORPUS_MUTATION_ML_RNN_STRATEGY))
     self.assertTrue(
@@ -318,18 +332,26 @@ class TestMultiArmedBanditStrategySelectionAFLPatch(unittest.TestCase):
     doesn't yield an exception through any of the experimental paths."""
     environment.set_value('STRATEGY_SELECTION_METHOD', 'default')
     strategy_selection.generate_weighted_strategy_pool(
-        strategy_list=strategy.AFL_STRATEGY_LIST, use_generator=True, engine_name='afl')
+        strategy_list=strategy.AFL_STRATEGY_LIST,
+        use_generator=True,
+        engine_name='afl')
     environment.set_value('STRATEGY_SELECTION_METHOD',
                           'multi_armed_bandit_medium')
     strategy_selection.generate_weighted_strategy_pool(
-        strategy_list=strategy.AFL_STRATEGY_LIST, use_generator=True, engine_name='afl')
+        strategy_list=strategy.AFL_STRATEGY_LIST,
+        use_generator=True,
+        engine_name='afl')
     environment.set_value('STRATEGY_SELECTION_METHOD',
                           'multi_armed_bandit_high')
     strategy_selection.generate_weighted_strategy_pool(
-        strategy_list=strategy.AFL_STRATEGY_LIST, use_generator=True, engine_name='afl')
+        strategy_list=strategy.AFL_STRATEGY_LIST,
+        use_generator=True,
+        engine_name='afl')
     environment.set_value('STRATEGY_SELECTION_METHOD', 'multi_armed_bandit_low')
     strategy_selection.generate_weighted_strategy_pool(
-        strategy_list=strategy.AFL_STRATEGY_LIST, use_generator=True, engine_name='afl')
+        strategy_list=strategy.AFL_STRATEGY_LIST,
+        use_generator=True,
+        engine_name='afl')
 
 
 @test_utils.with_cloud_emulators('datastore')
@@ -372,7 +394,9 @@ class TestMultiArmedBanditStrategySelectionAFL(unittest.TestCase):
     environment.set_value('STRATEGY_SELECTION_METHOD',
                           'multi_armed_bandit_medium')
     strategy_pool = strategy_selection.generate_weighted_strategy_pool(
-        strategy_list=strategy.AFL_STRATEGY_LIST, use_generator=True, engine_name='afl')
+        strategy_list=strategy.AFL_STRATEGY_LIST,
+        use_generator=True,
+        engine_name='afl')
     self.assertTrue(
         strategy_pool.do_strategy(strategy.CORPUS_MUTATION_ML_RNN_STRATEGY))
     self.assertFalse(
@@ -388,7 +412,9 @@ class TestMultiArmedBanditStrategySelectionAFL(unittest.TestCase):
     environment.set_value('STRATEGY_SELECTION_METHOD',
                           'multi_armed_bandit_high')
     strategy_pool = strategy_selection.generate_weighted_strategy_pool(
-        strategy_list=strategy.AFL_STRATEGY_LIST, use_generator=True, engine_name='afl')
+        strategy_list=strategy.AFL_STRATEGY_LIST,
+        use_generator=True,
+        engine_name='afl')
     self.assertTrue(
         strategy_pool.do_strategy(strategy.CORPUS_MUTATION_ML_RNN_STRATEGY))
     self.assertFalse(
@@ -403,7 +429,9 @@ class TestMultiArmedBanditStrategySelectionAFL(unittest.TestCase):
     be included in our strategy pool."""
     environment.set_value('STRATEGY_SELECTION_METHOD', 'multi_armed_bandit_low')
     strategy_pool = strategy_selection.generate_weighted_strategy_pool(
-        strategy_list=strategy.AFL_STRATEGY_LIST, use_generator=True, engine_name='afl')
+        strategy_list=strategy.AFL_STRATEGY_LIST,
+        use_generator=True,
+        engine_name='afl')
     self.assertTrue(
         strategy_pool.do_strategy(strategy.CORPUS_MUTATION_ML_RNN_STRATEGY))
     self.assertFalse(
