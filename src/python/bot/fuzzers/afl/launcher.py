@@ -257,8 +257,7 @@ class FuzzingStrategies(object):
   FAST_CAL_MANUAL_STRATEGY = 'strategy_fast_cal_manual'
 
   def __init__(self, target_path):
-    strategy_pool = strategy_selection.generate_default_strategy_pool(
-        strategy_list=strategy.AFL_STRATEGY_LIST, use_generator=True)
+    strategy_pool = strategy_selection.generate_weighted_strategy_pool(strategy_list=strategy.AFL_STRATEGY_LIST, use_generator=True, engine_name='afl')
     # Select a generator to attempt to use for existing testcase mutations.
     self.candidate_generator = engine_common.select_generator(
         strategy_pool, target_path)

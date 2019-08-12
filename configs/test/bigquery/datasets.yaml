@@ -209,25 +209,19 @@ resources:
             type: STRING
           - name: weight
             type: FLOAT
-  - name: fuzz-strategy-experiments-table
+  - name: fuzz-strategy-probability-table
     type: gcp-types/bigquery-v2:tables
     properties:
       datasetId: $(ref.main-dataset.datasetReference.datasetId)
       tableReference:
-        tableId: fuzz_strategy_experiments
+        tableId: fuzz_strategy_probability
       timePartitioning:
         type: DAY
       schema:
         fields:
           - name: strategy_name
             type: STRING
-          - name: probability_high_temperature
+          - name: probability
             type: FLOAT
-          - name: probability_low_temperature
-            type: FLOAT
-          - name: probability_medium_temperature
-            type: FLOAT
-          - name: run_count
-            type: INTEGER
           - name: engine
             type: STRING
