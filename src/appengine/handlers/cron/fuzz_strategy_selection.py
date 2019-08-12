@@ -31,6 +31,8 @@ from handlers import base_handler
 from libs import handler
 from metrics import logs
 
+# After experimentation with high, low, and medium temperature parameters, we
+# decided on .15.
 TEMPERATURE_PARAMETER = .15
 
 # Maintain a list of strategies to include in query for each fuzzing engine.
