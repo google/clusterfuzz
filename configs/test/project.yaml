@@ -97,9 +97,9 @@ env:
   # Specify either a HELP_URL or HELP_FORMAT for guiding developers on how to fix bugs.
   # HELP_URL: help-page-for-reproducing-bugs
   # HELP_FORMAT: help-template-for-reproducing-bugs, supports variables such as:
-  #              %PROJECT%, %TESTCASE%, %FUZZER_NAME%, %FUZZ_TARGET% which get automatically
-  #              subsituted in the template. Make sure to unicode-escape the string, e.g.
-  #              \n becomes \\n, etc.
+  #              %PROJECT%, %TESTCASE%, %FUZZER_NAME%, %FUZZ_TARGET%, %SANITIZER%
+  #              which get automatically subsituted in the template.
+  #              Make sure to unicode-escape the string, e.g. \n becomes \\n, etc.
 
   # Default issue tracker name unless overridden in a job definition. Current only supports monorail
   # issue tracker (disabled by default).
