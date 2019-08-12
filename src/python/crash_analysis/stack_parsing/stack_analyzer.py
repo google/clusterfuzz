@@ -271,6 +271,7 @@ STACK_FRAME_IGNORE_REGEXES = [
     r'^SbSystemBreakIntoDebugger',
     r'^SignalAction',
     r'^SignalHandler',
+    r'^TestOneProtoInput',
     r'^V8\_Fatal',
     r'^WTF\:\:',
     r'^WTFCrash',
