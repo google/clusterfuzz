@@ -1161,7 +1161,9 @@ def get_strategy_distribution_from_ndb():
         "probability_low_temperature":
             strategy_entry.probability_low_temperature,
         "probability_medium_temperature":
-            strategy_entry.probability_medium_temperature
+            strategy_entry.probability_medium_temperature,
+        "engine":
+            strategy_entry.engine
     })
   return distribution
 
