@@ -117,7 +117,12 @@ def get_default_builder():
   # Add reporting so that violations don't break things silently.
   builder.add('report-uri', '/report-csp-failure')
 
-  # TODO(mbarbella): Try to improve the policy by limiting the additions below.
+  # TODO(mbarbella): Remove Google-specific cases by allowing configuration.
+
+  # Internal authentication.
+  builder.add('manifest-src', 'login.corp.google.com')
+
+  # TODO(mbarbella): Improve the policy by limiting the additions below.
 
   # Because we use Polymer Bundler to create large files containing all of our
   # scripts inline, our policy requires this (which weakens CSP significantly).
