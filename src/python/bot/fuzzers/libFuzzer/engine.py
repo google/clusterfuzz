@@ -73,7 +73,9 @@ class LibFuzzerEngine(engine.Engine):
     """
     arguments = fuzzer.get_arguments(target_path)
     strategy_pool = strategy_selection.generate_weighted_strategy_pool(
-        strategy_list=strategy.LIBFUZZER_STRATEGY_LIST, use_generator=True)
+        strategy_list=strategy.LIBFUZZER_STRATEGY_LIST,
+        use_generator=True,
+        engine_name=self.name)
     strategy_info = launcher.pick_strategies(strategy_pool, target_path,
                                              corpus_dir, arguments)
 
