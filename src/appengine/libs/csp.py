@@ -91,6 +91,7 @@ def get_default_builder():
 
   # Firebase.
   builder.add('img-src', 'www.gstatic.com')
+  builder.add('connect-src', 'securetoken.googleapis.com')
   builder.add('connect-src', 'www.googleapis.com')
   builder.add('frame-src', auth.auth_domain())
 
@@ -116,7 +117,12 @@ def get_default_builder():
   # Add reporting so that violations don't break things silently.
   builder.add('report-uri', '/report-csp-failure')
 
-  # TODO(mbarbella): Try to improve the policy by limiting the additions below.
+  # TODO(mbarbella): Remove Google-specific cases by allowing configuration.
+
+  # Internal authentication.
+  builder.add('manifest-src', 'login.corp.google.com')
+
+  # TODO(mbarbella): Improve the policy by limiting the additions below.
 
   # Because we use Polymer Bundler to create large files containing all of our
   # scripts inline, our policy requires this (which weakens CSP significantly).
@@ -127,6 +133,9 @@ def get_default_builder():
 
   # Our Polymer Bundler usage also requires inline style.
   builder.add('style-src', 'unsafe-inline', quote=True)
+
+  # Some fonts are loaded from data URIs.
+  builder.add('font-src', 'data:')
 
   return builder
 
