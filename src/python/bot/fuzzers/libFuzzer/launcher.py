@@ -734,7 +734,7 @@ def main(argv):
   # mutator is selected in the pool, but not available for a given target, it
   # would not be added to fuzzing strategies.)
   strategy_pool = strategy_selection.generate_weighted_strategy_pool(
-      strategy_list=strategy.LIBFUZZER_STRATEGY_LIST, use_generator=True)
+      strategy_list=strategy.LIBFUZZER_STRATEGY_LIST, use_generator=True, engine_name='libFuzzer')
   strategy_info = pick_strategies(
       strategy_pool,
       fuzzer_path,
