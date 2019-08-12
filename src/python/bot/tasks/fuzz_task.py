@@ -74,10 +74,8 @@ FUZZER_FAILURE_THRESHOLD = 0.33
 MAX_GESTURES = 30
 MAX_NEW_CORPUS_FILES = 500
 SELECTION_METHOD_DISTRIBUTION = [
-    SelectionMethod('default', .55),
-    SelectionMethod('multi_armed_bandit_medium', .15),
-    SelectionMethod('multi_armed_bandit_high', .15),
-    SelectionMethod('multi_armed_bandit_low', .15)
+    SelectionMethod('default', .7),
+    SelectionMethod('multi_armed_bandit', .3)
 ]
 THREAD_WAIT_TIMEOUT = 1
 

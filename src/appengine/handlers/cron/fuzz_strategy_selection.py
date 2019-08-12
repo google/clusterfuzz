@@ -140,7 +140,12 @@ def _query_multi_armed_bandit_probabilities(engine):
   client = big_query.Client()
   strategies = ','.join(
       ['strategy_' + strategy_name for strategy_name in strategy_names_list])
-  formatted_query = BANDIT_PROBABILITY_QUERY_FORMAT.format(performance_metric=engine.performance_metric, temperature_value=TEMPERATURE_PARAMETER, strategies=strategies, strategies_subquery=strategies_subquery, engine=engine.name)
+  formatted_query = BANDIT_PROBABILITY_QUERY_FORMAT.format(
+      performance_metric=engine.performance_metric,
+      temperature_value=TEMPERATURE_PARAMETER,
+      strategies=strategies,
+      strategies_subquery=strategies_subquery,
+      engine=engine.name)
   return client.query(query=formatted_query).rows
 
 
@@ -153,12 +158,9 @@ def _store_probabilities_in_bigquery(engine, data):
   # implementation.
   for row in data:
     bigquery_row = {
-        'strategy_name':
-            row['strategy'],
-        'probability':
-            row['bandit_weight'],
-        'engine':
-            engine.name
+        'strategy_name': row['strategy'],
+        'probability': row['bandit_weight'],
+        'engine': engine.name
     }
     bigquery_data.append(big_query.Insert(row=bigquery_row, insert_id=None))
 
