@@ -1152,16 +1152,9 @@ def get_strategy_distribution_from_ndb():
   distribution = []
   for strategy_entry in list(ndb_utils.get_all_from_query(query)):
     distribution.append({
-        "strategy_name":
-            strategy_entry.strategy_name,
-        "probability_high_temperature":
-            strategy_entry.probability_high_temperature,
-        "probability_low_temperature":
-            strategy_entry.probability_low_temperature,
-        "probability_medium_temperature":
-            strategy_entry.probability_medium_temperature,
-        "engine":
-            strategy_entry.engine
+        'strategy_name': strategy_entry.strategy_name,
+        'probability': strategy_entry.probability,
+        'engine': strategy_entry.engine
     })
   return distribution
 
