@@ -136,7 +136,9 @@ def generate_weighted_strategy_pool(strategy_list, use_generator, engine_name):
   distribution_tuples = [
       StrategyCombination(
           strategy_name=elem['strategy_name'],
-          probability=elem[probability_key]) for elem in distribution if elem['engine'] == engine_name
+          probability=elem[probability_key])
+      for elem in distribution
+      if elem['engine'] == engine_name
   ]
 
   strategy_selection = utils.random_weighted_choice(distribution_tuples,
