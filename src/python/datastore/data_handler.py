@@ -315,12 +315,14 @@ def get_formatted_reproduction_help(testcase):
   last_tested_crash_revision = (
       testcase.get_metadata('last_tested_crash_revision') or
       testcase.crash_revision)
+  sanitizer = environment.get_memory_tool_name(testcase.job_type).lower()
 
   result = help_format.replace('%TESTCASE%', str(testcase.key.id()))
   result = result.replace('%PROJECT%', get_project_name(testcase.job_type))
   result = result.replace('%REVISION%', str(last_tested_crash_revision))
-  result = result.replace('%FUZZER_NAME%', fuzzer_display.name)
+  result = result.replace('%FUZZER_NAME%', fuzzer_display.name or '')
   result = result.replace('%FUZZ_TARGET%', fuzzer_display.target or '')
+  result = result.replace('%SANITIZER%', sanitizer)
   return result
 
 
