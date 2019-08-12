@@ -91,6 +91,7 @@ def get_default_builder():
 
   # Firebase.
   builder.add('img-src', 'www.gstatic.com')
+  builder.add('connect-src', 'securetoken.googleapis.com')
   builder.add('connect-src', 'www.googleapis.com')
   builder.add('frame-src', auth.auth_domain())
 
@@ -127,6 +128,9 @@ def get_default_builder():
 
   # Our Polymer Bundler usage also requires inline style.
   builder.add('style-src', 'unsafe-inline', quote=True)
+
+  # Some fonts are loaded from data URIs.
+  builder.add('font-src', 'data:')
 
   return builder
 
