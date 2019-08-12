@@ -54,21 +54,18 @@ class TestFuzzStrategySelection(unittest.TestCase):
     row1 = data_types.FuzzStrategyProbability.query(
         data_types.FuzzStrategyProbability.strategy_name ==
         'corpus_mutations_ml_rnn,fork,').get()
-    self.assertEqual(row1.probability_medium_temperature, 0.008804204757789548)
-    self.assertEqual(row1.probability_high_temperature, 0.009414508234686947)
-    self.assertEqual(row1.probability_low_temperature, 0.006647206496077975)
+    self.assertEqual(row1.probability, 0.0061753988734031835)
+    self.assertEqual(row1.engine, 'libFuzzer')
     row2 = data_types.FuzzStrategyProbability.query(
         data_types.FuzzStrategyProbability.strategy_name ==
         'corpus_mutations_ml_rnn,fork,corpus_subset,').get()
-    self.assertEqual(row2.probability_medium_temperature, 0.008321279434105579)
-    self.assertEqual(row2.probability_high_temperature, 0.009067014025766948)
-    self.assertEqual(row2.probability_low_temperature, 0.005937985244578106)
+    self.assertEqual(row2.probability, 0.005077124089195762)
+    self.assertEqual(row2.engine, 'libFuzzer')
     row3 = data_types.FuzzStrategyProbability.query(
         data_types.FuzzStrategyProbability.strategy_name ==
         'random_max_len,corpus_mutations_ml_rnn,recommended_dict,').get()
-    self.assertEqual(row3.probability_medium_temperature, 0.0241049918676138)
-    self.assertEqual(row3.probability_high_temperature, 0.018425058537190255)
-    self.assertEqual(row3.probability_low_temperature, 0.04982793398153658)
+    self.assertEqual(row3.probability, 0.011855451527667878)
+    self.assertEqual(row3.engine, 'libFuzzer')
 
   def test_delete_from_table(self):
     """Ensures that ndb datastore table is properly being

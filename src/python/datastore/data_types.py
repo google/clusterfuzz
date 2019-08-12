@@ -1126,9 +1126,7 @@ class FuzzStrategyProbability(Model):
   should be selected."""
 
   strategy_name = ndb.StringProperty()
-  probability_medium_temperature = ndb.FloatProperty()
-  probability_high_temperature = ndb.FloatProperty()
-  probability_low_temperature = ndb.FloatProperty()
+  probability = ndb.FloatProperty()
   engine = ndb.StringProperty()
 
 

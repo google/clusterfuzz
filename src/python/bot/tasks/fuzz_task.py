@@ -74,10 +74,8 @@ FUZZER_FAILURE_THRESHOLD = 0.33
 MAX_GESTURES = 30
 MAX_NEW_CORPUS_FILES = 500
 SELECTION_METHOD_DISTRIBUTION = [
-    SelectionMethod('default', .55),
-    SelectionMethod('multi_armed_bandit_medium', .15),
-    SelectionMethod('multi_armed_bandit_high', .15),
-    SelectionMethod('multi_armed_bandit_low', .15)
+    SelectionMethod('default', .7),
+    SelectionMethod('multi_armed_bandit', .3)
 ]
 THREAD_WAIT_TIMEOUT = 1
 
@@ -1154,16 +1152,9 @@ def get_strategy_distribution_from_ndb():
   distribution = []
   for strategy_entry in list(ndb_utils.get_all_from_query(query)):
     distribution.append({
-        "strategy_name":
-            strategy_entry.strategy_name,
-        "probability_high_temperature":
-            strategy_entry.probability_high_temperature,
-        "probability_low_temperature":
-            strategy_entry.probability_low_temperature,
-        "probability_medium_temperature":
-            strategy_entry.probability_medium_temperature,
-        "engine":
-            strategy_entry.engine
+        'strategy_name': strategy_entry.strategy_name,
+        'probability': strategy_entry.probability,
+        'engine': strategy_entry.engine
     })
   return distribution
 

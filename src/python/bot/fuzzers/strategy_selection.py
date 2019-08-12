@@ -124,19 +124,12 @@ def generate_weighted_strategy_pool(strategy_list, use_generator, engine_name):
   if not distribution or selection_method == 'default':
     return generate_default_strategy_pool(strategy_list, use_generator)
 
-  probability_key = 'probability_medium_temperature'
-  if selection_method == 'multi_armed_bandit_high':
-    probability_key = 'probability_high_temperature'
-  elif selection_method == 'multi_armed_bandit_low':
-    probability_key = 'probability_low_temperature'
-
   # Change the distribution to a list of named tuples rather than a list of
   # dictionaries so that we can use the random_weighted_choice function. Filter
   # out probability entries from other engines.
   distribution_tuples = [
       StrategyCombination(
-          strategy_name=elem['strategy_name'],
-          probability=elem[probability_key])
+          strategy_name=elem['strategy_name'], probability=elem['probability'])
       for elem in distribution
       if elem['engine'] == engine_name
   ]

@@ -84,27 +84,21 @@ class TestMultiArmedBanditStrategySelectionLibFuzzerPatch(unittest.TestCase):
 
     strategy1 = data_types.FuzzStrategyProbability()
     strategy1.strategy_name = 'fork,corpus_subset,recommended_dict,'
-    strategy1.probability_medium_temperature = 0.33
-    strategy1.probability_high_temperature = 0.33
-    strategy1.probability_low_temperature = 0.33
+    strategy1.probability = 0.33
     strategy1.engine = 'libFuzzer'
     data.append(strategy1)
 
     strategy2 = data_types.FuzzStrategyProbability()
     strategy2.strategy_name = ('random_max_len,corpus_mutations_ml_rnn,'
                                'value_profile,recommended_dict,')
-    strategy2.probability_medium_temperature = 0.34
-    strategy2.probability_high_temperature = 0.34
-    strategy2.probability_low_temperature = 0.34
+    strategy2.probability = 0.34
     strategy2.engine = 'libFuzzer'
     data.append(strategy2)
 
     strategy3 = data_types.FuzzStrategyProbability()
     strategy3.strategy_name = ('corpus_mutations_radamsa,'
                                'random_max_len,corpus_subset,')
-    strategy3.probability_medium_temperature = 0.33
-    strategy3.probability_high_temperature = 0.33
-    strategy3.probability_low_temperature = 0.33
+    strategy3.probability = 0.33
     strategy3.engine = 'libFuzzer'
     data.append(strategy3)
     ndb.put_multi(data)
@@ -122,19 +116,7 @@ class TestMultiArmedBanditStrategySelectionLibFuzzerPatch(unittest.TestCase):
         strategy_list=strategy.LIBFUZZER_STRATEGY_LIST,
         use_generator=True,
         engine_name='libFuzzer')
-    environment.set_value('STRATEGY_SELECTION_METHOD',
-                          'multi_armed_bandit_medium')
-    strategy_selection.generate_weighted_strategy_pool(
-        strategy_list=strategy.LIBFUZZER_STRATEGY_LIST,
-        use_generator=True,
-        engine_name='libFuzzer')
-    environment.set_value('STRATEGY_SELECTION_METHOD',
-                          'multi_armed_bandit_high')
-    strategy_selection.generate_weighted_strategy_pool(
-        strategy_list=strategy.LIBFUZZER_STRATEGY_LIST,
-        use_generator=True,
-        engine_name='libFuzzer')
-    environment.set_value('STRATEGY_SELECTION_METHOD', 'multi_armed_bandit_low')
+    environment.set_value('STRATEGY_SELECTION_METHOD', 'multi_armed_bandit')
     strategy_selection.generate_weighted_strategy_pool(
         strategy_list=strategy.LIBFUZZER_STRATEGY_LIST,
         use_generator=True,
@@ -161,9 +143,7 @@ class TestMultiArmedBanditStrategySelectionLibFuzzer(unittest.TestCase):
     strategy1 = data_types.FuzzStrategyProbability()
     strategy1.strategy_name = ('random_max_len,corpus_mutations_ml_rnn,'
                                'value_profile,recommended_dict,')
-    strategy1.probability_medium_temperature = 1
-    strategy1.probability_high_temperature = 1
-    strategy1.probability_low_temperature = 1
+    strategy1.probability = 1
     strategy1.engine = 'libFuzzer'
     data.append(strategy1)
     ndb.put_multi(data)
@@ -173,63 +153,13 @@ class TestMultiArmedBanditStrategySelectionLibFuzzer(unittest.TestCase):
     environment.set_value('USE_BANDIT_STRATEGY_SELECTION', True)
     environment.set_value('STRATEGY_SELECTION_DISTRIBUTION', distribution)
 
-  def test_strategy_pool_medium_temperature(self):
+  def test_weighted_strategy_pool(self):
     """Tests whether a proper strategy pool is returned by the multi armed
     bandit selection implementation with medium temperature.
 
     Based on deterministic strategy selection. Mutator plugin is patched to
     be included in our strategy pool."""
-    environment.set_value('STRATEGY_SELECTION_METHOD',
-                          'multi_armed_bandit_medium')
-    strategy_pool = strategy_selection.generate_weighted_strategy_pool(
-        strategy_list=strategy.LIBFUZZER_STRATEGY_LIST,
-        use_generator=True,
-        engine_name='libFuzzer')
-    self.assertTrue(
-        strategy_pool.do_strategy(strategy.CORPUS_MUTATION_ML_RNN_STRATEGY))
-    self.assertTrue(
-        strategy_pool.do_strategy(strategy.RANDOM_MAX_LENGTH_STRATEGY))
-    self.assertTrue(strategy_pool.do_strategy(strategy.VALUE_PROFILE_STRATEGY))
-    self.assertTrue(
-        strategy_pool.do_strategy(strategy.RECOMMENDED_DICTIONARY_STRATEGY))
-    self.assertFalse(
-        strategy_pool.do_strategy(strategy.CORPUS_MUTATION_RADAMSA_STRATEGY))
-    self.assertFalse(strategy_pool.do_strategy(strategy.CORPUS_SUBSET_STRATEGY))
-    self.assertFalse(strategy_pool.do_strategy(strategy.FORK_STRATEGY))
-    self.assertTrue(strategy_pool.do_strategy(strategy.MUTATOR_PLUGIN_STRATEGY))
-
-  def test_strategy_pool_high_temperature(self):
-    """Tests whether a proper strategy pool is returned by the multi armed
-    bandit selection implementation with high temperature.
-
-    Based on deterministic strategy selection. Mutator plugin is patched to
-    be included in our strategy pool."""
-    environment.set_value('STRATEGY_SELECTION_METHOD',
-                          'multi_armed_bandit_high')
-    strategy_pool = strategy_selection.generate_weighted_strategy_pool(
-        strategy_list=strategy.LIBFUZZER_STRATEGY_LIST,
-        use_generator=True,
-        engine_name='libFuzzer')
-    self.assertTrue(
-        strategy_pool.do_strategy(strategy.CORPUS_MUTATION_ML_RNN_STRATEGY))
-    self.assertTrue(
-        strategy_pool.do_strategy(strategy.RANDOM_MAX_LENGTH_STRATEGY))
-    self.assertTrue(strategy_pool.do_strategy(strategy.VALUE_PROFILE_STRATEGY))
-    self.assertTrue(
-        strategy_pool.do_strategy(strategy.RECOMMENDED_DICTIONARY_STRATEGY))
-    self.assertFalse(
-        strategy_pool.do_strategy(strategy.CORPUS_MUTATION_RADAMSA_STRATEGY))
-    self.assertFalse(strategy_pool.do_strategy(strategy.CORPUS_SUBSET_STRATEGY))
-    self.assertFalse(strategy_pool.do_strategy(strategy.FORK_STRATEGY))
-    self.assertTrue(strategy_pool.do_strategy(strategy.MUTATOR_PLUGIN_STRATEGY))
-
-  def test_strategy_pool_low_temperature(self):
-    """Tests whether a proper strategy pool is returned by the multi armed
-    bandit selection implementation with low temperature.
-
-    Based on deterministic strategy selection. Mutator plugin is patched to
-    be included in our strategy pool."""
-    environment.set_value('STRATEGY_SELECTION_METHOD', 'multi_armed_bandit_low')
+    environment.set_value('STRATEGY_SELECTION_METHOD', 'multi_armed_bandit')
     strategy_pool = strategy_selection.generate_weighted_strategy_pool(
         strategy_list=strategy.LIBFUZZER_STRATEGY_LIST,
         use_generator=True,
@@ -299,25 +229,19 @@ class TestMultiArmedBanditStrategySelectionAFLPatch(unittest.TestCase):
 
     strategy1 = data_types.FuzzStrategyProbability()
     strategy1.strategy_name = 'corpus_mutations_ml_rnn,corpus_subset,'
-    strategy1.probability_medium_temperature = 0.33
-    strategy1.probability_high_temperature = 0.33
-    strategy1.probability_low_temperature = 0.33
+    strategy1.probability = 0.33
     strategy1.engine = 'afl'
     data.append(strategy1)
 
     strategy2 = data_types.FuzzStrategyProbability()
     strategy2.strategy_name = ('corpus_mutations_radamsa,corpus_subset,')
-    strategy2.probability_medium_temperature = 0.34
-    strategy2.probability_high_temperature = 0.34
-    strategy2.probability_low_temperature = 0.34
+    strategy2.probability = 0.34
     strategy2.engine = 'afl'
     data.append(strategy2)
 
     strategy3 = data_types.FuzzStrategyProbability()
     strategy3.strategy_name = ('corpus_subset,')
-    strategy3.probability_medium_temperature = 0.33
-    strategy3.probability_high_temperature = 0.33
-    strategy3.probability_low_temperature = 0.33
+    strategy3.probability = 0.33
     strategy3.engine = 'afl'
     data.append(strategy3)
     ndb.put_multi(data)
@@ -335,19 +259,7 @@ class TestMultiArmedBanditStrategySelectionAFLPatch(unittest.TestCase):
         strategy_list=strategy.AFL_STRATEGY_LIST,
         use_generator=True,
         engine_name='afl')
-    environment.set_value('STRATEGY_SELECTION_METHOD',
-                          'multi_armed_bandit_medium')
-    strategy_selection.generate_weighted_strategy_pool(
-        strategy_list=strategy.AFL_STRATEGY_LIST,
-        use_generator=True,
-        engine_name='afl')
-    environment.set_value('STRATEGY_SELECTION_METHOD',
-                          'multi_armed_bandit_high')
-    strategy_selection.generate_weighted_strategy_pool(
-        strategy_list=strategy.AFL_STRATEGY_LIST,
-        use_generator=True,
-        engine_name='afl')
-    environment.set_value('STRATEGY_SELECTION_METHOD', 'multi_armed_bandit_low')
+    environment.set_value('STRATEGY_SELECTION_METHOD', 'multi_armed_bandit')
     strategy_selection.generate_weighted_strategy_pool(
         strategy_list=strategy.AFL_STRATEGY_LIST,
         use_generator=True,
@@ -373,9 +285,7 @@ class TestMultiArmedBanditStrategySelectionAFL(unittest.TestCase):
 
     strategy1 = data_types.FuzzStrategyProbability()
     strategy1.strategy_name = 'corpus_mutations_ml_rnn,corpus_subset,'
-    strategy1.probability_medium_temperature = 1
-    strategy1.probability_high_temperature = 1
-    strategy1.probability_low_temperature = 1
+    strategy1.probability = 1
     strategy1.engine = 'afl'
     data.append(strategy1)
     ndb.put_multi(data)
@@ -385,49 +295,13 @@ class TestMultiArmedBanditStrategySelectionAFL(unittest.TestCase):
     environment.set_value('USE_BANDIT_STRATEGY_SELECTION', True)
     environment.set_value('STRATEGY_SELECTION_DISTRIBUTION', distribution)
 
-  def test_strategy_pool_medium_temperature(self):
+  def test_weighted_strategy_pool(self):
     """Tests whether a proper strategy pool is returned by the multi armed
     bandit selection implementation with medium temperature.
 
     Based on deterministic strategy selection. Mutator plugin is patched to
     be included in our strategy pool."""
-    environment.set_value('STRATEGY_SELECTION_METHOD',
-                          'multi_armed_bandit_medium')
-    strategy_pool = strategy_selection.generate_weighted_strategy_pool(
-        strategy_list=strategy.AFL_STRATEGY_LIST,
-        use_generator=True,
-        engine_name='afl')
-    self.assertTrue(
-        strategy_pool.do_strategy(strategy.CORPUS_MUTATION_ML_RNN_STRATEGY))
-    self.assertFalse(
-        strategy_pool.do_strategy(strategy.CORPUS_MUTATION_RADAMSA_STRATEGY))
-    self.assertTrue(strategy_pool.do_strategy(strategy.CORPUS_SUBSET_STRATEGY))
-
-  def test_strategy_pool_high_temperature(self):
-    """Tests whether a proper strategy pool is returned by the multi armed
-    bandit selection implementation with high temperature.
-
-    Based on deterministic strategy selection. Mutator plugin is patched to
-    be included in our strategy pool."""
-    environment.set_value('STRATEGY_SELECTION_METHOD',
-                          'multi_armed_bandit_high')
-    strategy_pool = strategy_selection.generate_weighted_strategy_pool(
-        strategy_list=strategy.AFL_STRATEGY_LIST,
-        use_generator=True,
-        engine_name='afl')
-    self.assertTrue(
-        strategy_pool.do_strategy(strategy.CORPUS_MUTATION_ML_RNN_STRATEGY))
-    self.assertFalse(
-        strategy_pool.do_strategy(strategy.CORPUS_MUTATION_RADAMSA_STRATEGY))
-    self.assertTrue(strategy_pool.do_strategy(strategy.CORPUS_SUBSET_STRATEGY))
-
-  def test_strategy_pool_low_temperature(self):
-    """Tests whether a proper strategy pool is returned by the multi armed
-    bandit selection implementation with low temperature.
-
-    Based on deterministic strategy selection. Mutator plugin is patched to
-    be included in our strategy pool."""
-    environment.set_value('STRATEGY_SELECTION_METHOD', 'multi_armed_bandit_low')
+    environment.set_value('STRATEGY_SELECTION_METHOD', 'multi_armed_bandit')
     strategy_pool = strategy_selection.generate_weighted_strategy_pool(
         strategy_list=strategy.AFL_STRATEGY_LIST,
         use_generator=True,
