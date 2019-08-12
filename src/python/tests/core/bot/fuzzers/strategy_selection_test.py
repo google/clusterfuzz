@@ -87,6 +87,7 @@ class TestMultiArmedBanditStrategySelectionLibFuzzerPatch(unittest.TestCase):
     strategy1.probability_medium_temperature = 0.33
     strategy1.probability_high_temperature = 0.33
     strategy1.probability_low_temperature = 0.33
+    strategy1.engine = 'libFuzzer'
     data.append(strategy1)
 
     strategy2 = data_types.FuzzStrategyProbability()
@@ -95,6 +96,7 @@ class TestMultiArmedBanditStrategySelectionLibFuzzerPatch(unittest.TestCase):
     strategy2.probability_medium_temperature = 0.34
     strategy2.probability_high_temperature = 0.34
     strategy2.probability_low_temperature = 0.34
+    strategy2.engine = 'libFuzzer'
     data.append(strategy2)
 
     strategy3 = data_types.FuzzStrategyProbability()
@@ -103,6 +105,7 @@ class TestMultiArmedBanditStrategySelectionLibFuzzerPatch(unittest.TestCase):
     strategy3.probability_medium_temperature = 0.33
     strategy3.probability_high_temperature = 0.33
     strategy3.probability_low_temperature = 0.33
+    strategy3.engine = 'libFuzzer'
     data.append(strategy3)
     ndb.put_multi(data)
 
@@ -116,18 +119,26 @@ class TestMultiArmedBanditStrategySelectionLibFuzzerPatch(unittest.TestCase):
     doesn't yield an exception through any of the experimental paths."""
     environment.set_value('STRATEGY_SELECTION_METHOD', 'default')
     strategy_selection.generate_weighted_strategy_pool(
-        strategy_list=strategy.LIBFUZZER_STRATEGY_LIST, use_generator=True)
+        strategy_list=strategy.LIBFUZZER_STRATEGY_LIST,
+        use_generator=True,
+        engine_name='libFuzzer')
     environment.set_value('STRATEGY_SELECTION_METHOD',
                           'multi_armed_bandit_medium')
     strategy_selection.generate_weighted_strategy_pool(
-        strategy_list=strategy.LIBFUZZER_STRATEGY_LIST, use_generator=True)
+        strategy_list=strategy.LIBFUZZER_STRATEGY_LIST,
+        use_generator=True,
+        engine_name='libFuzzer')
     environment.set_value('STRATEGY_SELECTION_METHOD',
                           'multi_armed_bandit_high')
     strategy_selection.generate_weighted_strategy_pool(
-        strategy_list=strategy.LIBFUZZER_STRATEGY_LIST, use_generator=True)
+        strategy_list=strategy.LIBFUZZER_STRATEGY_LIST,
+        use_generator=True,
+        engine_name='libFuzzer')
     environment.set_value('STRATEGY_SELECTION_METHOD', 'multi_armed_bandit_low')
     strategy_selection.generate_weighted_strategy_pool(
-        strategy_list=strategy.LIBFUZZER_STRATEGY_LIST, use_generator=True)
+        strategy_list=strategy.LIBFUZZER_STRATEGY_LIST,
+        use_generator=True,
+        engine_name='libFuzzer')
 
 
 @test_utils.with_cloud_emulators('datastore')
@@ -153,6 +164,7 @@ class TestMultiArmedBanditStrategySelectionLibFuzzer(unittest.TestCase):
     strategy1.probability_medium_temperature = 1
     strategy1.probability_high_temperature = 1
     strategy1.probability_low_temperature = 1
+    strategy1.engine = 'libFuzzer'
     data.append(strategy1)
     ndb.put_multi(data)
 
@@ -170,7 +182,9 @@ class TestMultiArmedBanditStrategySelectionLibFuzzer(unittest.TestCase):
     environment.set_value('STRATEGY_SELECTION_METHOD',
                           'multi_armed_bandit_medium')
     strategy_pool = strategy_selection.generate_weighted_strategy_pool(
-        strategy_list=strategy.LIBFUZZER_STRATEGY_LIST, use_generator=True)
+        strategy_list=strategy.LIBFUZZER_STRATEGY_LIST,
+        use_generator=True,
+        engine_name='libFuzzer')
     self.assertTrue(
         strategy_pool.do_strategy(strategy.CORPUS_MUTATION_ML_RNN_STRATEGY))
     self.assertTrue(
@@ -193,7 +207,9 @@ class TestMultiArmedBanditStrategySelectionLibFuzzer(unittest.TestCase):
     environment.set_value('STRATEGY_SELECTION_METHOD',
                           'multi_armed_bandit_high')
     strategy_pool = strategy_selection.generate_weighted_strategy_pool(
-        strategy_list=strategy.LIBFUZZER_STRATEGY_LIST, use_generator=True)
+        strategy_list=strategy.LIBFUZZER_STRATEGY_LIST,
+        use_generator=True,
+        engine_name='libFuzzer')
     self.assertTrue(
         strategy_pool.do_strategy(strategy.CORPUS_MUTATION_ML_RNN_STRATEGY))
     self.assertTrue(
@@ -215,7 +231,9 @@ class TestMultiArmedBanditStrategySelectionLibFuzzer(unittest.TestCase):
     be included in our strategy pool."""
     environment.set_value('STRATEGY_SELECTION_METHOD', 'multi_armed_bandit_low')
     strategy_pool = strategy_selection.generate_weighted_strategy_pool(
-        strategy_list=strategy.LIBFUZZER_STRATEGY_LIST, use_generator=True)
+        strategy_list=strategy.LIBFUZZER_STRATEGY_LIST,
+        use_generator=True,
+        engine_name='libFuzzer')
     self.assertTrue(
         strategy_pool.do_strategy(strategy.CORPUS_MUTATION_ML_RNN_STRATEGY))
     self.assertTrue(
@@ -284,6 +302,7 @@ class TestMultiArmedBanditStrategySelectionAFLPatch(unittest.TestCase):
     strategy1.probability_medium_temperature = 0.33
     strategy1.probability_high_temperature = 0.33
     strategy1.probability_low_temperature = 0.33
+    strategy1.engine = 'afl'
     data.append(strategy1)
 
     strategy2 = data_types.FuzzStrategyProbability()
@@ -291,6 +310,7 @@ class TestMultiArmedBanditStrategySelectionAFLPatch(unittest.TestCase):
     strategy2.probability_medium_temperature = 0.34
     strategy2.probability_high_temperature = 0.34
     strategy2.probability_low_temperature = 0.34
+    strategy2.engine = 'afl'
     data.append(strategy2)
 
     strategy3 = data_types.FuzzStrategyProbability()
@@ -298,6 +318,7 @@ class TestMultiArmedBanditStrategySelectionAFLPatch(unittest.TestCase):
     strategy3.probability_medium_temperature = 0.33
     strategy3.probability_high_temperature = 0.33
     strategy3.probability_low_temperature = 0.33
+    strategy3.engine = 'afl'
     data.append(strategy3)
     ndb.put_multi(data)
 
@@ -311,18 +332,26 @@ class TestMultiArmedBanditStrategySelectionAFLPatch(unittest.TestCase):
     doesn't yield an exception through any of the experimental paths."""
     environment.set_value('STRATEGY_SELECTION_METHOD', 'default')
     strategy_selection.generate_weighted_strategy_pool(
-        strategy_list=strategy.AFL_STRATEGY_LIST, use_generator=True)
+        strategy_list=strategy.AFL_STRATEGY_LIST,
+        use_generator=True,
+        engine_name='afl')
     environment.set_value('STRATEGY_SELECTION_METHOD',
                           'multi_armed_bandit_medium')
     strategy_selection.generate_weighted_strategy_pool(
-        strategy_list=strategy.AFL_STRATEGY_LIST, use_generator=True)
+        strategy_list=strategy.AFL_STRATEGY_LIST,
+        use_generator=True,
+        engine_name='afl')
     environment.set_value('STRATEGY_SELECTION_METHOD',
                           'multi_armed_bandit_high')
     strategy_selection.generate_weighted_strategy_pool(
-        strategy_list=strategy.AFL_STRATEGY_LIST, use_generator=True)
+        strategy_list=strategy.AFL_STRATEGY_LIST,
+        use_generator=True,
+        engine_name='afl')
     environment.set_value('STRATEGY_SELECTION_METHOD', 'multi_armed_bandit_low')
     strategy_selection.generate_weighted_strategy_pool(
-        strategy_list=strategy.AFL_STRATEGY_LIST, use_generator=True)
+        strategy_list=strategy.AFL_STRATEGY_LIST,
+        use_generator=True,
+        engine_name='afl')
 
 
 @test_utils.with_cloud_emulators('datastore')
@@ -347,6 +376,7 @@ class TestMultiArmedBanditStrategySelectionAFL(unittest.TestCase):
     strategy1.probability_medium_temperature = 1
     strategy1.probability_high_temperature = 1
     strategy1.probability_low_temperature = 1
+    strategy1.engine = 'afl'
     data.append(strategy1)
     ndb.put_multi(data)
 
@@ -364,7 +394,9 @@ class TestMultiArmedBanditStrategySelectionAFL(unittest.TestCase):
     environment.set_value('STRATEGY_SELECTION_METHOD',
                           'multi_armed_bandit_medium')
     strategy_pool = strategy_selection.generate_weighted_strategy_pool(
-        strategy_list=strategy.AFL_STRATEGY_LIST, use_generator=True)
+        strategy_list=strategy.AFL_STRATEGY_LIST,
+        use_generator=True,
+        engine_name='afl')
     self.assertTrue(
         strategy_pool.do_strategy(strategy.CORPUS_MUTATION_ML_RNN_STRATEGY))
     self.assertFalse(
@@ -380,7 +412,9 @@ class TestMultiArmedBanditStrategySelectionAFL(unittest.TestCase):
     environment.set_value('STRATEGY_SELECTION_METHOD',
                           'multi_armed_bandit_high')
     strategy_pool = strategy_selection.generate_weighted_strategy_pool(
-        strategy_list=strategy.AFL_STRATEGY_LIST, use_generator=True)
+        strategy_list=strategy.AFL_STRATEGY_LIST,
+        use_generator=True,
+        engine_name='afl')
     self.assertTrue(
         strategy_pool.do_strategy(strategy.CORPUS_MUTATION_ML_RNN_STRATEGY))
     self.assertFalse(
@@ -395,7 +429,9 @@ class TestMultiArmedBanditStrategySelectionAFL(unittest.TestCase):
     be included in our strategy pool."""
     environment.set_value('STRATEGY_SELECTION_METHOD', 'multi_armed_bandit_low')
     strategy_pool = strategy_selection.generate_weighted_strategy_pool(
-        strategy_list=strategy.AFL_STRATEGY_LIST, use_generator=True)
+        strategy_list=strategy.AFL_STRATEGY_LIST,
+        use_generator=True,
+        engine_name='afl')
     self.assertTrue(
         strategy_pool.do_strategy(strategy.CORPUS_MUTATION_ML_RNN_STRATEGY))
     self.assertFalse(

@@ -106,9 +106,9 @@ def generate_default_strategy_pool(strategy_list, use_generator):
   return pool
 
 
-def generate_weighted_strategy_pool(strategy_list, use_generator):
-  """Generate a strategy pool based on probability
-  distribution from multi armed bandit experimentation."""
+def generate_weighted_strategy_pool(strategy_list, use_generator, engine_name):
+  """Generate a strategy pool based on probability distribution from multi armed
+  bandit experimentation."""
 
   # If weighted strategy selection is enabled, there will be a distribution
   # stored in the environment.
@@ -131,11 +131,14 @@ def generate_weighted_strategy_pool(strategy_list, use_generator):
     probability_key = 'probability_low_temperature'
 
   # Change the distribution to a list of named tuples rather than a list of
-  # dictionaries so that we can use the random_weighted_choice function.
+  # dictionaries so that we can use the random_weighted_choice function. Filter
+  # out probability entries from other engines.
   distribution_tuples = [
       StrategyCombination(
           strategy_name=elem['strategy_name'],
-          probability=elem[probability_key]) for elem in distribution
+          probability=elem[probability_key])
+      for elem in distribution
+      if elem['engine'] == engine_name
   ]
 
   strategy_selection = utils.random_weighted_choice(distribution_tuples,
