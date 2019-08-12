@@ -62,7 +62,7 @@ AFL_ENGINE = Engine(
     query_strategy_list=afl_query_strategy_list,
     performance_metric='new_units_generated')
 
-ENGINE_LIST = [LIBFUZZER_ENGINE]
+ENGINE_LIST = [LIBFUZZER_ENGINE, AFL_ENGINE]
 
 # BigQuery query for calculating multi-armed bandit probabilities for
 # various strategies using a Boltzman Exploration (softmax) model.
