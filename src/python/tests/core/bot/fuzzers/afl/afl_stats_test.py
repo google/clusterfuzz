@@ -28,9 +28,10 @@ from tests.core.bot.fuzzers.afl.afl_launcher_test import dont_use_strategies
 from tests.test_libs import helpers as test_helpers
 
 
-def override_fail_retries(env_var):
+def override_fail_retries(env_var, default_value=None):
   """Used to patch environment.getEnv to set FAIL_RETRIES."""
-  return os.getenv(env_var) if env_var != 'FAIL_RETRIES' else 1
+  return os.getenv(
+      env_var, default=default_value) if env_var != 'FAIL_RETRIES' else 1
 
 
 class StatsGetterTests(unittest.TestCase):
