@@ -578,12 +578,12 @@ class GetFormattedReproductionHelpTest(unittest.TestCase):
     job.name = 'job_with_help_format'
     job.environment_string = (
         'HELP_FORMAT = -%TESTCASE%\\n-%FUZZER_NAME%\\n-%FUZZ_TARGET%\\n'
-        '-%PROJECT%\\n-%REVISION%\\n\n'
+        '-%PROJECT%\\n-%REVISION%\\n-%ENGINE%\\n-%SANITIZER%\\n\n'
         'PROJECT_NAME = test_project')
     job.put()
 
     job = data_types.Job()
-    job.name = 'job_without_help_format'
+    job.name = 'ubsan_job_without_help_format'
     job.environment_string = ('PROJECT_NAME = test_project')
     job.put()
 
@@ -604,11 +604,11 @@ class GetFormattedReproductionHelpTest(unittest.TestCase):
 
     self.assertEquals(
         data_handler.get_formatted_reproduction_help(testcase),
-        '-{id}\n-libFuzzer\n-test_fuzzer\n-test_project\n-1337\n'.format(
-            id=testcase.key.id()))
+        ('-{id}\n-libFuzzer\n-test_fuzzer\n-test_project\n-1337\n'
+         '-libFuzzer\n-ASAN\n').format(id=testcase.key.id()))
 
-  def test_traditional_testcase(self):
-    """Test the function with a traditional fuzzer test case."""
+  def test_blackbox_fuzzer_testcase(self):
+    """Test the function with a blackbox fuzzer test case."""
     testcase = data_types.Testcase()
     testcase.fuzzer_name = 'simple_fuzzer'
     testcase.job_type = 'job_with_help_format'
@@ -618,24 +618,24 @@ class GetFormattedReproductionHelpTest(unittest.TestCase):
 
     self.assertEquals(
         data_handler.get_formatted_reproduction_help(testcase),
-        '-{id}\n-simple_fuzzer\n-\n-test_project\n-1338\n'.format(
-            id=testcase.key.id()))
+        ('-{id}\n-simple_fuzzer\n-NA\n-test_project\n-1338\n'
+         '-NA\n-ASAN\n').format(id=testcase.key.id()))
 
-  def test_libfuzzer_testcase_with_default_help_format(self):
-    """Test the function with a libfuzzer test case, with HELP_FORMAT set in
-    environment."""
+  def test_blackbox_fuzzer_testcase_with_default_help_format(self):
+    """Test the function with a blackbox fuzzer test case, with HELP_FORMAT
+    set in environment."""
     environment.set_value(
         'HELP_FORMAT',
         '-%TESTCASE%\\n-%FUZZER_NAME%\\n-%FUZZ_TARGET%\\n-%PROJECT%\\n'
-        '-%REVISION%\\n')
+        '-%REVISION%\\n-%ENGINE%\\n-%SANITIZER%\\n')
 
     testcase = data_types.Testcase()
     testcase.fuzzer_name = 'simple_fuzzer'
-    testcase.job_type = 'job_without_help_format'
+    testcase.job_type = 'ubsan_job_without_help_format'
     testcase.crash_revision = 1337
     testcase.put()
 
     self.assertEquals(
         data_handler.get_formatted_reproduction_help(testcase),
-        '-{id}\n-simple_fuzzer\n-\n-test_project\n-1337\n'.format(
-            id=testcase.key.id()))
+        ('-{id}\n-simple_fuzzer\n-NA\n-test_project\n-1337\n'
+         '-NA\n-UBSAN\n').format(id=testcase.key.id()))
