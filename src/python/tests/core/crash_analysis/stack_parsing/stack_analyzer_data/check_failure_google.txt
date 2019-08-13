@@ -1,0 +1,12 @@
+F0813 00:29:27.775753  384244 file.cc:130] Check failed: std::is_sorted(foo.begin(), foo.end())
+AddressSanitizer:DEADLYSIGNAL
+=================================================================
+==384244==ERROR: AddressSanitizer: ABRT on unknown address 0x05390005dcf4 (pc 0x7f91eacc0602 bp 0x7ffeddeee0c0 sp 0x7ffeddeedf98 T0)
+SCARINESS: 10 (signal)
+    #0 0x7f91eacc0601 in raise (/usr/grte/v4/lib64/libc.so.6+0xfffff)
+    #1 0x7f91eacc231f in abort (/usr/grte/v4/lib64/libc.so.6+0xfffff)
+    #6 0x560e73b80fe2 in Frame(int) file/path.cc:130:3
+    #8 0x560e73b7d819 in LLVMFuzzerTestOneInput file/path.cc:10:1
+AddressSanitizer can not provide additional info.
+SUMMARY: AddressSanitizer: ABRT (/usr/grte/v4/lib64/libc.so.6+0xfffff) in raise
+==384244==ABORTING

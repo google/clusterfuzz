@@ -32,6 +32,9 @@ C_CPP_EXTENSIONS = ['c', 'cc', 'cpp', 'cxx', 'h', 'hh', 'hpp', 'hxx']
 CHECK_FAILURE_PATTERN = r'Check failed: '
 JNI_ERROR_STRING = r'JNI DETECTED ERROR IN APPLICATION:'
 
+# Common log prefix format for Google fatal logs.
+GOOGLE_LOG_FATAL_PREFIX = r'^F\d{4}\s+\d{2}:\d{2}:\d{2}\.\d+\s+\d+\s+(.*):\d+\]'
+
 # Compiled regular expressions.
 ANDROID_ABORT_REGEX = re.compile(r'^Abort message: (.*)')
 ANDROID_FATAL_EXCEPTION_REGEX = re.compile(r'.*FATAL EXCEPTION.*:')
@@ -59,6 +62,8 @@ ASAN_REGEX = re.compile(r'.*(ERROR: AddressSanitizer)[: ]*' r'[ ]*([^(:]+)')
 ASSERT_REGEX = re.compile(
     r'(?:\[.*?\]|.*\.(?:%s):.*)?' % ('|'.join(C_CPP_EXTENSIONS)) +
     r'\s*(?:ASSERT(?:ION)? FAIL(?:URE|ED)|panic): (.*)', re.IGNORECASE)
+ASSERT_REGEX_GOOGLE = re.compile(GOOGLE_LOG_FATAL_PREFIX +
+                                 r'.*assertion failed at\s.*\sin\s*.*: (.*)')
 ASSERT_REGEX_GLIBC = re.compile(
     r'.*:\s*assertion [`\'"]?(.*?)[`\'"]? failed\.?$', re.IGNORECASE)
 ASSERT_NOT_REACHED_REGEX = re.compile(r'^\s*SHOULD NEVER BE REACHED\s*$')
@@ -69,7 +74,7 @@ CFI_INVALID_DOWNCAST_REGEX = re.compile(r'.*note: vtable is of type (.*)')
 CFI_INVALID_VPTR_REGEX = re.compile(r'.*note: invalid vtable')
 CFI_NODEBUG_ERROR_MARKER_REGEX = re.compile(
     r'CFI: Most likely a control flow integrity violation;.*')
-CHECK_FAILURE_REGEX = re.compile(
+CHROME_CHECK_FAILURE_REGEX = re.compile(
     r'\s*[[][^]]*[:]([^](]*).*[]].*Check failed[:]\s*(.*)')
 CHROME_STACK_FRAME_REGEX = re.compile(
     r'[ ]*(#(?P<frame_id>[0-9]+)[ ]'  # frame id (2)
@@ -97,6 +102,9 @@ FATAL_ERROR_LINE_REGEX = re.compile(r'#\s*Fatal error in (.*), line [0-9]+')
 FATAL_ERROR_UNREACHABLE = re.compile(r'# un(reachable|implemented) code')
 GENERIC_SEGV_HANDLER_REGEX = re.compile(
     'Received signal 11 SEGV_[A-Z]+ ([0-9a-f]*)')
+GOOGLE_CHECK_FAILURE_REGEX = re.compile(GOOGLE_LOG_FATAL_PREFIX +
+                                        r'\s*Check failed[:]\s*(.*)')
+GOOGLE_LOG_FATAL_REGEX = re.compile(GOOGLE_LOG_FATAL_PREFIX + r'\s*(.*)')
 JAVA_EXCEPTION_CRASH_STATE_REGEX = re.compile(r'\s*at (.*)\(.*\)')
 KASAN_ACCESS_TYPE_REGEX = re.compile(r'(Read|Write) of size ([0-9]+)')
 KASAN_CRASH_TYPE_ADDRESS_REGEX = re.compile(
@@ -421,6 +429,7 @@ IGNORE_CRASH_TYPES_FOR_ABRT_BREAKPOINT_AND_ILLS = [
     'ASSERT',
     'CHECK failure',
     'DCHECK failure',
+    'Fatal error',
     'Security CHECK failure',
     'Security DCHECK failure',
 ]
@@ -936,13 +945,13 @@ def update_state_on_check_failure(state, line, regex, crash_type):
     state.crash_state = '%s in %s\n' % (failure_string, source_file)
 
 
-def match_assert(line, state, regex):
+def match_assert(line, state, regex, group=1):
   """Match an assert."""
   assert_match = update_state_on_match(
       regex, line, state, new_type='ASSERT', new_frame_count=1)
-  if assert_match and assert_match.group(1):
+  if assert_match and assert_match.group(group):
     # For asserts, we want to actually use the match as the crash state.
-    state.crash_state = assert_match.group(1) + '\n'
+    state.crash_state = assert_match.group(group) + '\n'
 
 
 def update_crash_state_for_stack_overflow_if_needed(state):
@@ -1060,6 +1069,7 @@ def get_crash_data(crash_data, symbolize_flag=True):
 
     # Assertions always come first, before the actual crash stacktrace.
     match_assert(line, state, ASSERT_REGEX)
+    match_assert(line, state, ASSERT_REGEX_GOOGLE, group=2)
     match_assert(line, state, ASSERT_REGEX_GLIBC)
 
     # ASSERT_NOT_REACHED prints a single line error then triggers a crash. We
@@ -1445,7 +1455,11 @@ def get_crash_data(crash_data, symbolize_flag=True):
         state.found_java_exception = True
 
       # Check failures.
-      update_state_on_check_failure(state, line, CHECK_FAILURE_REGEX,
+      update_state_on_check_failure(state, line, GOOGLE_LOG_FATAL_REGEX,
+                                    'Fatal error')
+      update_state_on_check_failure(state, line, CHROME_CHECK_FAILURE_REGEX,
+                                    'CHECK failure')
+      update_state_on_check_failure(state, line, GOOGLE_CHECK_FAILURE_REGEX,
                                     'CHECK failure')
 
       # V8 fatal errors.

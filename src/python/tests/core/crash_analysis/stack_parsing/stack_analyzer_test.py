@@ -2394,3 +2394,45 @@ class StackAnalyzerTestcase(unittest.TestCase):
     self._validate_get_crash_data(data, expected_type, expected_address,
                                   expected_state, expected_stacktrace,
                                   expected_security_flag)
+
+  def test_check_failure_google(self):
+    """Test check failure format for internal google."""
+    data = self._read_test_data('check_failure_google.txt')
+    expected_type = 'CHECK failure'
+    expected_address = ''
+    expected_state = (
+        'std::is_sorted(labels.begin(), labels.end()) in file.cc\n'
+        'Frame\n'
+        'path.cc\n')
+
+    expected_stacktrace = data
+    expected_security_flag = False
+    self._validate_get_crash_data(data, expected_type, expected_address,
+                                  expected_state, expected_stacktrace,
+                                  expected_security_flag)
+
+  def test_assert_google(self):
+    """Test check failure format for internal google."""
+    data = self._read_test_data('assert_failure_google.txt')
+    expected_type = 'ASSERT'
+    expected_address = ''
+    expected_state = ('Blah.empty() && "Failure!"\n' 'Frame\n' 'path.cc\n')
+
+    expected_stacktrace = data
+    expected_security_flag = True
+    self._validate_get_crash_data(data, expected_type, expected_address,
+                                  expected_state, expected_stacktrace,
+                                  expected_security_flag)
+
+  def test_log_fatal_google(self):
+    """Test log fatal format for internal google."""
+    data = self._read_test_data('log_fatal_google.txt')
+    expected_type = 'Fatal error'
+    expected_address = ''
+    expected_state = ('Log fatal in file.h\n' 'Frame\n' 'path.cc\n')
+
+    expected_stacktrace = data
+    expected_security_flag = False
+    self._validate_get_crash_data(data, expected_type, expected_address,
+                                  expected_state, expected_stacktrace,
+                                  expected_security_flag)
