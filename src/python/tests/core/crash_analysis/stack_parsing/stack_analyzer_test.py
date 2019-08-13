@@ -2400,10 +2400,9 @@ class StackAnalyzerTestcase(unittest.TestCase):
     data = self._read_test_data('check_failure_google.txt')
     expected_type = 'CHECK failure'
     expected_address = ''
-    expected_state = (
-        'std::is_sorted(labels.begin(), labels.end()) in file.cc\n'
-        'Frame\n'
-        'path.cc\n')
+    expected_state = ('std::is_sorted(foo.begin(), foo.end()) in file.cc\n'
+                      'Frame\n'
+                      'path.cc\n')
 
     expected_stacktrace = data
     expected_security_flag = False
@@ -2416,7 +2415,7 @@ class StackAnalyzerTestcase(unittest.TestCase):
     data = self._read_test_data('assert_failure_google.txt')
     expected_type = 'ASSERT'
     expected_address = ''
-    expected_state = ('Blah.empty() && "Failure!"\n' 'Frame\n' 'path.cc\n')
+    expected_state = ('Blah.empty() && "Failure!"\nFrame\npath.cc\n')
 
     expected_stacktrace = data
     expected_security_flag = True
@@ -2429,7 +2428,7 @@ class StackAnalyzerTestcase(unittest.TestCase):
     data = self._read_test_data('log_fatal_google.txt')
     expected_type = 'Fatal error'
     expected_address = ''
-    expected_state = ('Log fatal in file.h\n' 'Frame\n' 'path.cc\n')
+    expected_state = ('Log fatal in file.h\nFrame\npath.cc\n')
 
     expected_stacktrace = data
     expected_security_flag = False
