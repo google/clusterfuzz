@@ -1526,7 +1526,17 @@ class GenericProjectSetupTest(unittest.TestCase):
                 'no_engine': 'clusterfuzz-builds-no-engine',
             },
             'additional_vars': {
-                'ADDITIONAL_VAR': 'VAL',
+                'all': {
+                    'ADDITIONAL_VAR': 'VAL',
+                },
+                'libfuzzer': {
+                    'address': {
+                        'ASAN_VAR': 'VAL',
+                    },
+                    'memory': {
+                        'NOT_SET': 'VAL',
+                    }
+                }
             }
         }
     })
@@ -1540,6 +1550,7 @@ class GenericProjectSetupTest(unittest.TestCase):
         'FUZZ_TARGET_BUILD_BUCKET_PATH = '
         'gs://bucket/a-b/libfuzzer/address/%TARGET%/([0-9]+).zip\n'
         'PROJECT_NAME = //a/b\nSUMMARY_PREFIX = //a/b\nMANAGED = True\n'
+        'ASAN_VAR = VAL\n'
         'ADDITIONAL_VAR = VAL\n', job.environment_string)
     self.assertItemsEqual(['engine_asan', 'libfuzzer', 'prune'], job.templates)
 
