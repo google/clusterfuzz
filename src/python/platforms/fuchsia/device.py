@@ -181,7 +181,7 @@ def extend_fvm(fuchsia_resources_dir, drive_path):
                                'default.zircon', 'tools', 'fvm')
   os.chmod(fvm_tool_path, 0o500)
   process = new_process.ProcessRunner(fvm_tool_path,
-                                      [drive_path, 'extend', '--length', '2G'])
+                                      [drive_path, 'extend', '--length', '3G'])
   result = process.run_and_wait()
   if result.return_code or result.timed_out:
     raise errors.FuchsiaSdkError('Failed to extend FVM: ' + result.output)

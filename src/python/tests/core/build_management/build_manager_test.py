@@ -170,6 +170,9 @@ class TrunkBuildTest(unittest.TestCase):
     self.assertEqual(0, self.mock.setup_regular_build.call_count)
 
 
+@unittest.skipIf(
+    not environment.get_value('FUCHSIA_TESTS'),
+    'Temporarily disabling the Fuchsia test until build size reduced.')
 class FuchsiaBuildTest(fake_filesystem_unittest.TestCase):
   """Tests for Fuchsia build setup."""
 
@@ -187,7 +190,7 @@ class FuchsiaBuildTest(fake_filesystem_unittest.TestCase):
     """Tests setting up a build."""
     environment.set_value('RESOURCES_DIR', self.tmp_resources_dir)
     environment.set_value('FUCHSIA_BUILD_URL',
-                          'gs://fuchsia-clusterfuzz-test-july-15-2019/*')
+                          'gs://fuchsia-clusterfuzz-test-august-6-2019/*')
     build = build_manager.setup_fuchsia_build()
     self.assertIsInstance(build, build_manager.FuchsiaBuild)
     self._assert_env_vars()
