@@ -710,6 +710,8 @@ class AflRunnerTest(LauncherTestBase):
     self.mock.run_and_wait.side_effect = (
         lambda *args, **kwargs: self._process_result())
 
+    self.runner.strategies.decide_fast_cal_random(
+        len(os.listdir(self.runner.afl_input.input_directory)))
     self._write_bad_input()
 
   def test_run_afl_fuzz_fuzz_success(self):

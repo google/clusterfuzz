@@ -705,6 +705,30 @@ class AflRunnerCommon(object):
     cls.set_arg(afl_args, constants.TIMEOUT_FLAG, timeout_value)
     return afl_args
 
+  def do_offline_mutation(self):
+    """Mutate the corpus offline using Radamsa or ML RNN if specified."""
+    if not self.strategies.is_mutations_run:
+      return
+
+    target_name = os.path.basename(self.target_path)
+    project_qualified_target_name = (
+        data_types.fuzz_target_project_qualified_name(utils.current_project(),
+                                                      target_name))
+    # Generate new testcase mutations according to candidate generator. If
+    # testcase mutations are properly generated, set generator strategy
+    # accordingly.
+    generator_used = engine_common.generate_new_testcase_mutations(
+        self.afl_input.input_directory, self.afl_input.input_directory,
+        project_qualified_target_name, self.strategies.candidate_generator)
+
+    if generator_used:
+      self.strategies.generator_strategy = self.strategies.candidate_generator
+
+    # Delete large testcases created by generators.
+    for input_path in shell.get_files_list(self.input_directory):
+      if os.path.getsize(path) >= constants.MAX_FILE_BYTES:
+        remove_path(path)
+
   def generate_afl_args(self,
                         afl_input=None,
                         afl_output=None,
@@ -801,28 +825,6 @@ class AflRunnerCommon(object):
 
         return erroring_filename
       return None  # else
-
-    if self.strategies.is_mutations_run:
-      target_name = os.path.basename(self.target_path)
-      project_qualified_target_name = (
-          data_types.fuzz_target_project_qualified_name(utils.current_project(),
-                                                        target_name))
-      # Generate new testcase mutations according to candidate generator. If
-      # testcase mutations are properly generated, set generator strategy
-      # accordingly.
-      generator_used = engine_common.generate_new_testcase_mutations(
-          self.afl_input.input_directory, self.afl_input.input_directory,
-          project_qualified_target_name, self.strategies.candidate_generator)
-      if generator_used:
-        self.strategies.generator_strategy = self.strategies.candidate_generator
-
-    # Decide if we want to use fast cal based on the size of the input
-    # directory. This is only done once, but the function can be called
-    # multiple times. This is different than the call to fast_cal_manual where
-    # we deterministically decide to use fast cal based on how long we have
-    # spent fuzzing.
-    self.strategies.decide_fast_cal_random(
-        len(os.listdir(self.afl_input.input_directory)))
 
     num_first_testcase_hangs = 0
     num_retries = 0
@@ -999,6 +1001,15 @@ class AflRunnerCommon(object):
     # fuzzers with large seed corpora and short timeouts.
     if self.afl_input.skip_deterministic:
       self._fuzz_args.insert(0, constants.SKIP_DETERMINISTIC_FLAG)
+
+    self.do_offline_mutation()
+    # Decide if we want to use fast cal based on the size of the input
+    # directory. This is only done once, but the function can be called
+    # multiple times. This is different than the call to fast_cal_manual where
+    # we deterministically decide to use fast cal based on how long we have
+    # spent fuzzing.
+    self.strategies.decide_fast_cal_random(
+        len(os.listdir(self.afl_input.input_directory)))
 
     return self.run_afl_fuzz(self._fuzz_args)
 
