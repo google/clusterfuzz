@@ -605,7 +605,7 @@ class GetFormattedReproductionHelpTest(unittest.TestCase):
     self.assertEquals(
         data_handler.get_formatted_reproduction_help(testcase),
         ('-{id}\n-libFuzzer\n-test_fuzzer\n-test_project\n-1337\n'
-         '-libfuzzer\n-asan\n').format(id=testcase.key.id()))
+         '-libFuzzer\n-ASAN\n').format(id=testcase.key.id()))
 
   def test_blackbox_fuzzer_testcase(self):
     """Test the function with a blackbox fuzzer test case."""
@@ -618,8 +618,8 @@ class GetFormattedReproductionHelpTest(unittest.TestCase):
 
     self.assertEquals(
         data_handler.get_formatted_reproduction_help(testcase),
-        ('-{id}\n-simple_fuzzer\n-\n-test_project\n-1338\n'
-         '-\n-asan\n').format(id=testcase.key.id()))
+        ('-{id}\n-simple_fuzzer\n-NA\n-test_project\n-1338\n'
+         '-NA\n-ASAN\n').format(id=testcase.key.id()))
 
   def test_blackbox_fuzzer_testcase_with_default_help_format(self):
     """Test the function with a blackbox fuzzer test case, with HELP_FORMAT
@@ -637,5 +637,5 @@ class GetFormattedReproductionHelpTest(unittest.TestCase):
 
     self.assertEquals(
         data_handler.get_formatted_reproduction_help(testcase),
-        ('-{id}\n-simple_fuzzer\n-\n-test_project\n-1337\n'
-         '-\n-ubsan\n').format(id=testcase.key.id()))
+        ('-{id}\n-simple_fuzzer\n-NA\n-test_project\n-1337\n'
+         '-NA\n-UBSAN\n').format(id=testcase.key.id()))

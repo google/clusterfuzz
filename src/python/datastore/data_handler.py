@@ -317,10 +317,10 @@ def get_formatted_reproduction_help(testcase):
       testcase.get_metadata('last_tested_crash_revision') or
       testcase.crash_revision)
   fuzzer_display = get_fuzzer_display(testcase)
-  fuzzer_name = fuzzer_display.name or ''
-  fuzz_target = fuzzer_display.target or ''
-  engine = (fuzzer_display.engine or '').lower()
-  sanitizer = environment.get_memory_tool_name(testcase.job_type).lower()
+  fuzzer_name = fuzzer_display.name or 'NA'
+  fuzz_target = fuzzer_display.target or 'NA'
+  engine = fuzzer_display.engine or 'NA'
+  sanitizer = environment.get_memory_tool_name(testcase.job_type)
 
   result = help_format.replace('%TESTCASE%', testcase_id)
   result = result.replace('%PROJECT%', project_name)
