@@ -296,7 +296,7 @@
             type: Number,
             value: 0
           },
-          keywordFocused: Boolean
+          keywordFocused: Boolean,
         };
       }
 
@@ -404,7 +404,6 @@
         // Clear the selection in the list box;
         let listBox = searchBox.parentNode;
         listBox.selected = '';
-        listBox.offsetWidth;
 
         // Reset dropdown value.
         let dropdownMenu = listBox.parentNode;
@@ -412,6 +411,9 @@
 
         // Update the search params in url.
         this.submit();
+
+        // Don't restore focus to the keyword box.
+        this.keywordFocused = true;
       }
     }
 

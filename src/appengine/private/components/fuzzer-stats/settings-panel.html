@@ -258,6 +258,9 @@
         // Reset dropdown value.
         let dropdownMenu = listBox.parentNode;
         dropdownMenu.value = 'All';
+
+        // Restore focus to searchbox.
+        searchBox.$.input.focus();
       }
 
     });
