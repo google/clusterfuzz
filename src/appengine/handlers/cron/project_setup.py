@@ -794,7 +794,14 @@ class ProjectSetup(object):
             'DATAFLOW_BUILD_BUCKET_PATH = %s\n' % dataflow_build_bucket_path)
 
       if self._additional_vars:
-        for key, value in six.iteritems(self._additional_vars):
+        additional_vars = {}
+        additional_vars.update(self._additional_vars.get('all', {}))
+
+        engine_vars = self._additional_vars.get(template.engine, {})
+        engine_sanitizer_vars = engine_vars.get(template.memory_tool, {})
+        additional_vars.update(engine_sanitizer_vars)
+
+        for key, value in six.iteritems(additional_vars):
           job.environment_string += ('{} = {}\n'.format(key, value))
 
       job.put()
