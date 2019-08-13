@@ -68,9 +68,9 @@
           'Render',
           noop,
           () => {
-            expect(getItems('#projects')).to.eql(['All', 'b', 'bb']);
-            expect(getItems('#fuzzers')).to.eql(['All', 'f']);
-            expect(getItems('#jobs')).to.eql(['All', 'j']);
+            expect(getItems('#projects')).to.eql(['b', 'bb']);
+            expect(getItems('#fuzzers')).to.eql(['f']);
+            expect(getItems('#jobs')).to.eql(['j']);
             expect($.select('.permission-remark').innerHTML).to.include(
                 'You are allowed to see everything (including security) or' +
                 ' jobs:jj (including security) or fuzzers:ff (including' +
