@@ -1003,6 +1003,7 @@ class AflRunnerCommon(object):
       self._fuzz_args.insert(0, constants.SKIP_DETERMINISTIC_FLAG)
 
     self.do_offline_mutation()
+
     # Decide if we want to use fast cal based on the size of the input
     # directory. This is only done once, but the function can be called
     # multiple times. This is different than the call to fast_cal_manual where
