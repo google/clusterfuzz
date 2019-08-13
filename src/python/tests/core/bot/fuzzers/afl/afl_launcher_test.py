@@ -726,7 +726,6 @@ class AflRunnerTest(LauncherTestBase):
     self.runner.do_offline_mutation()
     self.assertNotIn(filename, os.listdir(input_dir))
 
-
   def test_run_afl_fuzz_fuzz_success(self):
     """Test AflRunner.run_afl_fuzz_and_handle_error when fuzzing succeeds."""
     self._initialization_for_run_afl()
