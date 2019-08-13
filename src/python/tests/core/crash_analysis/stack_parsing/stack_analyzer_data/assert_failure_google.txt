@@ -1,0 +1,9 @@
+F0812 21:22:15.159294   61315 logging.cc:89] assert.h assertion failed at file/path.cc:380 in Foo: Blah.empty() && "Failure!"
+AddressSanitizer:DEADLYSIGNAL
+=================================================================
+==61315==ERROR: AddressSanitizer: ABRT on unknown address 0x05390000ef83 (pc 0x7fd6607ef602 bp 0x7ffc9d927900 sp 0x7ffc9d9277d8 T0)
+SCARINESS: 10 (signal)
+    #0 0x7fd6607ef601 in raise (/usr/grte/v4/lib64/libc.so.6+0xfffff)
+    #1 0x7fd6607f131f in abort (/usr/grte/v4/lib64/libc.so.6+0xfffff)
+    #12 0x561b33363be6 in Frame(int) file/path.cc:48:11
+    #13 0x561b33360f41 in LLVMFuzzerTestOneInput file/path.cc:23:3

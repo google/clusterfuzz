@@ -1,0 +1,9 @@
+F0812 20:32:32.874783   47273 file.h:195] Log fatal.
+AddressSanitizer:DEADLYSIGNAL
+=================================================================
+==47273==ERROR: AddressSanitizer: ABRT on unknown address 0x05390000b8a9 (pc 0x7fb149fee602 bp 0x7ffe9a107800 sp 0x7ffe9a1076d8 T0)
+SCARINESS: 10 (signal)
+    #0 0x7fd6607ef601 in raise (/usr/grte/v4/lib64/libc.so.6+0xfffff)
+    #1 0x7fd6607f131f in abort (/usr/grte/v4/lib64/libc.so.6+0xfffff)
+    #10 0x5585f338030f in Frame(int) file/path.cc:87:9
+    #11 0x5585f33815b2 in LLVMFuzzerTestOneInput file/path.cc:98:1
