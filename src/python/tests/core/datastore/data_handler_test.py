@@ -578,7 +578,7 @@ class GetFormattedReproductionHelpTest(unittest.TestCase):
     job.name = 'job_with_help_format'
     job.environment_string = (
         'HELP_FORMAT = -%TESTCASE%\\n-%FUZZER_NAME%\\n-%FUZZ_TARGET%\\n'
-        '-%PROJECT%\\n-%REVISION%\\n-%SANITIZER%\\n\n'
+        '-%PROJECT%\\n-%REVISION%\\n-%ENGINE%\\n-%SANITIZER%\\n\n'
         'PROJECT_NAME = test_project')
     job.put()
 
@@ -604,11 +604,11 @@ class GetFormattedReproductionHelpTest(unittest.TestCase):
 
     self.assertEquals(
         data_handler.get_formatted_reproduction_help(testcase),
-        '-{id}\n-libFuzzer\n-test_fuzzer\n-test_project\n-1337\n-asan\n'.format(
-            id=testcase.key.id()))
+        ('-{id}\n-libFuzzer\n-test_fuzzer\n-test_project\n-1337\n'
+         '-libfuzzer\n-asan\n').format(id=testcase.key.id()))
 
-  def test_traditional_testcase(self):
-    """Test the function with a traditional fuzzer test case."""
+  def test_blackbox_fuzzer_testcase(self):
+    """Test the function with a blackbox fuzzer test case."""
     testcase = data_types.Testcase()
     testcase.fuzzer_name = 'simple_fuzzer'
     testcase.job_type = 'job_with_help_format'
@@ -618,16 +618,16 @@ class GetFormattedReproductionHelpTest(unittest.TestCase):
 
     self.assertEquals(
         data_handler.get_formatted_reproduction_help(testcase),
-        '-{id}\n-simple_fuzzer\n-\n-test_project\n-1338\n-asan\n'.format(
-            id=testcase.key.id()))
+        ('-{id}\n-simple_fuzzer\n-\n-test_project\n-1338\n'
+         '-\n-asan\n').format(id=testcase.key.id()))
 
-  def test_libfuzzer_testcase_with_default_help_format(self):
-    """Test the function with a libfuzzer test case, with HELP_FORMAT set in
-    environment."""
+  def test_blackbox_fuzzer_testcase_with_default_help_format(self):
+    """Test the function with a blackbox fuzzer test case, with HELP_FORMAT
+    set in environment."""
     environment.set_value(
         'HELP_FORMAT',
         '-%TESTCASE%\\n-%FUZZER_NAME%\\n-%FUZZ_TARGET%\\n-%PROJECT%\\n'
-        '-%REVISION%\\n-%SANITIZER%\\n')
+        '-%REVISION%\\n-%ENGINE%\\n-%SANITIZER%\\n')
 
     testcase = data_types.Testcase()
     testcase.fuzzer_name = 'simple_fuzzer'
@@ -637,5 +637,5 @@ class GetFormattedReproductionHelpTest(unittest.TestCase):
 
     self.assertEquals(
         data_handler.get_formatted_reproduction_help(testcase),
-        '-{id}\n-simple_fuzzer\n-\n-test_project\n-1337\n-ubsan\n'.format(
-            id=testcase.key.id()))
+        ('-{id}\n-simple_fuzzer\n-\n-test_project\n-1337\n'
+         '-\n-ubsan\n').format(id=testcase.key.id()))
