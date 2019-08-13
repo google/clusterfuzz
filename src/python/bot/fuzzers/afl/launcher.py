@@ -725,7 +725,7 @@ class AflRunnerCommon(object):
       self.strategies.generator_strategy = self.strategies.candidate_generator
 
     # Delete large testcases created by generators.
-    for input_path in shell.get_files_list(self.input_directory):
+    for input_path in shell.get_files_list(self.afl_input.input_directory):
       if os.path.getsize(input_path) >= constants.MAX_FILE_BYTES:
         remove_path(input_path)
 

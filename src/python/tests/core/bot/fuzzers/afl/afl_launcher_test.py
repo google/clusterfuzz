@@ -714,6 +714,19 @@ class AflRunnerTest(LauncherTestBase):
         len(os.listdir(self.runner.afl_input.input_directory)))
     self._write_bad_input()
 
+  def test_do_offline_mutation_large_testcase(self):
+    """Tests that do_offline_mutation doesn't add oversized testcases to the
+    corpus."""
+    contents = 'A' * 2**20  # 1 MB
+    filename = 'large'
+    input_dir = self.runner.afl_input.input_directory
+    filepath = os.path.join(input_dir, filename)
+    self.fs.create_file(filepath, contents=contents)
+    self.runner.strategies.is_mutations_run = True
+    self.runner.do_offline_mutation()
+    self.assertNotIn(filename, os.listdir(input_dir))
+
+
   def test_run_afl_fuzz_fuzz_success(self):
     """Test AflRunner.run_afl_fuzz_and_handle_error when fuzzing succeeds."""
     self._initialization_for_run_afl()
