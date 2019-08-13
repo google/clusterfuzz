@@ -311,18 +311,20 @@ def get_formatted_reproduction_help(testcase):
   # that must be converted here (e.g. \n).
   help_format = help_format.decode('unicode-escape')
 
-  fuzzer_display = get_fuzzer_display(testcase)
-  last_tested_crash_revision = (
+  testcase_id = str(testcase.key.id())
+  project_name = get_project_name(testcase.job_type)
+  last_tested_crash_revision = str(
       testcase.get_metadata('last_tested_crash_revision') or
       testcase.crash_revision)
+  fuzzer_display = get_fuzzer_display(testcase)
   fuzzer_name = fuzzer_display.name or ''
   fuzz_target = fuzzer_display.target or ''
   engine = (fuzzer_display.engine or '').lower()
   sanitizer = environment.get_memory_tool_name(testcase.job_type).lower()
 
-  result = help_format.replace('%TESTCASE%', str(testcase.key.id()))
-  result = result.replace('%PROJECT%', get_project_name(testcase.job_type))
-  result = result.replace('%REVISION%', str(last_tested_crash_revision))
+  result = help_format.replace('%TESTCASE%', testcase_id)
+  result = result.replace('%PROJECT%', project_name)
+  result = result.replace('%REVISION%', last_tested_crash_revision)
   result = result.replace('%FUZZER_NAME%', fuzzer_name)
   result = result.replace('%FUZZ_TARGET%', fuzz_target)
   result = result.replace('%ENGINE%', engine)
