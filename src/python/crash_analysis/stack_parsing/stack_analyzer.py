@@ -241,6 +241,12 @@ WINDOWS_CDB_CRASH_TYPE_REGEX = re.compile(
 WINDOWS_CDB_STACK_OVERFLOW_REGEX = re.compile(
     r'.*ExceptionCode: .*\(Stack overflow\).*')
 
+# Golang specific stack signatures.
+GOLANG_PANIC_REGEX = re.compile(r'^panic: (.*)')
+GOLANG_PANIC_MAX_LEN = 80
+GOLANG_STACK_FRAME_FUNCTION_REGEX = re.compile(
+    r'^([0-9a-zA-Z\.\-\_\\\/]+)\([0-9a-zA-Z\s,\_]*\)$')
+
 # Mappings of Android kernel error status codes to strings.
 ANDROID_KERNEL_STATUS_TO_STRING = {
     0b0001: 'Alignment Fault',
@@ -1005,6 +1011,21 @@ def llvm_test_one_input_override(frame, frame_struct):
   return frame
 
 
+def _reduce_string(text, length):
+  """Remove the middle part of the text to make it fit the given lenth."""
+  replacement_token = '<...>'
+  if len(text) <= length or len(text) < 2 * len(replacement_token):
+    # Do nothing if the text fits the given length or is too short otherwise.
+    return text
+
+  symbols_to_erase = len(text) + len(replacement_token) - length
+  index_to_erase = length - len(replacement_token)
+  index_to_erase = index_to_erase // 2 - index_to_erase % 1
+  result = text[:index_to_erase] + replacement_token
+  result += text[index_to_erase + symbols_to_erase:]
+  return result
+
+
 def get_crash_data(crash_data, symbolize_flag=True):
   """Get crash parameters from crash data.
   Crash parameters include crash type, address, state and stacktrace.
@@ -1227,6 +1248,13 @@ def get_crash_data(crash_data, symbolize_flag=True):
         new_type='Memcpy-param-overlap',
         reset=True,
         address_from_group=2)
+
+    # Golang stacktraces.
+    golang_panic_match = GOLANG_PANIC_REGEX.match(line)
+    if golang_panic_match:
+      reason = golang_panic_match.group(1)
+      state.crash_type = _reduce_string(reason, GOLANG_PANIC_MAX_LEN)
+      continue
 
     # Sanitizer SEGV crashes.
     segv_match = SAN_SEGV_REGEX.match(line)
@@ -1682,6 +1710,15 @@ def get_crash_data(crash_data, symbolize_flag=True):
         state,
         group=1,
         frame_filter=lambda s: s):
+      continue
+
+    # Golang stack frames.
+    if add_frame_on_match(
+        GOLANG_STACK_FRAME_FUNCTION_REGEX,
+        line,
+        state,
+        group=1,
+        frame_filter=lambda s: s.split('/')[-1]):
       continue
 
   # Detect cycles in stack overflow bugs and update crash state.

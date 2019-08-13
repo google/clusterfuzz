@@ -2435,3 +2435,50 @@ class StackAnalyzerTestcase(unittest.TestCase):
     self._validate_get_crash_data(data, expected_type, expected_address,
                                   expected_state, expected_stacktrace,
                                   expected_security_flag)
+
+  def test_golang_asan_panic(self):
+    """Test golang stacktrace with panic and ASan."""
+    data = self._read_test_data('golang_asan_panic.txt')
+    expected_type = 'asn1: string not valid UTF-8'
+    expected_address = ''
+    expected_state = (
+        'asn1: string not valid UTF-8\nasn1.Fuzz\nruntime.raise\n')
+
+    expected_stacktrace = data
+    expected_security_flag = True
+    self._validate_get_crash_data(data, expected_type, expected_address,
+                                  expected_state, expected_stacktrace,
+                                  expected_security_flag)
+
+  def test_golang_sigsegv_panic(self):
+    """Test golang stacktrace with panic and SIGSEGV."""
+    data = self._read_test_data('golang_sigsegv_panic.txt')
+    expected_type = (
+        'runtime error: invalid memory address or nil pointer dereference')
+    expected_address = ''
+    expected_state = (
+        'runtime error: invalid memory address or nil pointer dereference\n'
+        'math.glob..func1\n'
+        'math.init.ializers\n')
+
+    expected_stacktrace = data
+    expected_security_flag = True
+    self._validate_get_crash_data(data, expected_type, expected_address,
+                                  expected_state, expected_stacktrace,
+                                  expected_security_flag)
+
+  def test_golang_libfuzzer_panic(self):
+    """Test golang stacktrace with panic and libFuzzer's deadly signal."""
+    data = self._read_test_data('golang_libfuzzer_panic.txt')
+    expected_type = ('parse //%B9%B9%B9%B9%B9%01%00%00%00%0<...>%B9%B9%B9%B9: '
+                     'invalid URL escape "%01"')
+    expected_address = ''
+    expected_state = (
+        'parse //%B9%B9%B9%B9%B9%01%00%00%00%00%00%00%00%B9%B9%B9%B9%B9%B9%B9%B'
+        '9%B9%B9%B9\nurl.Fuzz\n')
+
+    expected_stacktrace = data
+    expected_security_flag = True
+    self._validate_get_crash_data(data, expected_type, expected_address,
+                                  expected_state, expected_stacktrace,
+                                  expected_security_flag)
