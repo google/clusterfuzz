@@ -17,7 +17,6 @@
 from builtins import range
 import mock
 import os
-import unittest
 
 from pyfakefs import fake_filesystem_unittest
 
@@ -74,12 +73,17 @@ class LauncherTestBase(fake_filesystem_unittest.TestCase):
     self.assertEqual(sorted(l1), sorted(l2))
 
 
-class FuzzingStrategiesTest(unittest.TestCase):
+class FuzzingStrategiesTest(fake_filesystem_unittest.TestCase):
   """Tests for launcher.FuzzingStrategies."""
 
   NUM_FILES = 1000
+  INPUT_DIR = '/input'
 
   def setUp(self):
+    test_utils.set_up_pyfakefs(self)
+    for file_num in range(self.NUM_FILES):
+      self.fs.create_file(os.path.join(self.INPUT_DIR, str(file_num)))
+
     test_helpers.patch(self, ['bot.fuzzers.engine_common.is_lpm_fuzz_target'])
     self.mock.is_lpm_fuzz_target.return_value = True
     self.strategies = launcher.FuzzingStrategies(None)
@@ -88,7 +92,7 @@ class FuzzingStrategiesTest(unittest.TestCase):
     """Helper method that calls self.strategies.decide_fast_cal_random with a
     default value."""
     self.strategies.fast_cal = strategies.FastCal.NOT_SET
-    return self.strategies.decide_fast_cal_random(self.NUM_FILES)
+    return self.strategies.decide_fast_cal_random(self.INPUT_DIR)
 
   def test_decide_fast_cal_random_finds_correct_prob(self):
     """Tests that FuzzingStrategies.decide_fast_cal finds the correct
@@ -711,24 +715,24 @@ class AflRunnerTest(LauncherTestBase):
         lambda *args, **kwargs: self._process_result())
 
     self.runner.strategies.decide_fast_cal_random(
-        len(os.listdir(self.runner.afl_input.input_directory)))
+        self.runner.afl_input.input_directory)
     self._write_bad_input()
 
-  def test_do_offline_mutation_small_testcase(self):
-    """Tests that do_offline_mutation doesn't remove non-oversized testcases
+  def test_do_offline_mutations_small_testcase(self):
+    """Tests that do_offline_mutations doesn't remove non-oversized testcases
     from the corpus."""
     # <1 MB testcase isn't oversized.
-    self.assertTrue(self._do_offline_mutation(2**20 - 1))
+    self.assertTrue(self._do_offline_mutations(2**20 - 1))
 
-  def test_do_offline_mutation_large_testcase(self):
-    """Tests that do_offline_mutation doesn't add oversized testcases to the
+  def test_do_offline_mutations_large_testcase(self):
+    """Tests that do_offline_mutations doesn't add oversized testcases to the
     corpus."""
     # 1 MB testcase is oversized.
-    self.assertFalse(self._do_offline_mutation(2**20))
+    self.assertFalse(self._do_offline_mutations(2**20))
 
-  def _do_offline_mutation(self, size):
+  def _do_offline_mutations(self, size):
     """Creates a file |size| bytes long in the input directory, then calls
-    do_offline_mutation and returns whether the file is in the input directory.
+    do_offline_mutations and returns whether the file is in the input directory.
     """
     contents = 'A' * size  # 1 MB
     filename = 'test-file'
@@ -736,7 +740,7 @@ class AflRunnerTest(LauncherTestBase):
     filepath = os.path.join(input_dir, filename)
     self.fs.create_file(filepath, contents=contents)
     self.runner.strategies.is_mutations_run = True
-    self.runner.do_offline_mutation()
+    self.runner.do_offline_mutations()
     return filename in os.listdir(input_dir)
 
   def test_run_afl_fuzz_fuzz_success(self):
