@@ -35,7 +35,6 @@ from system import environment
 from system import shell
 from tests.test_libs import helpers as test_helpers
 from tests.test_libs import test_utils
-from testtools import skipIf
 
 TEST_PATH = os.path.abspath(os.path.dirname(__file__))
 TEMP_DIRECTORY = os.path.join(TEST_PATH, 'temp')
@@ -775,8 +774,9 @@ class TestLauncherFuchsia(BaseLauncherTest):
   def tearDown(self):
     shutil.rmtree(self.tmp_resources_dir, ignore_errors=True)
 
-  @skipIf(True,
-          'Temporarily disabling the Fuchsia test until build size reduced.')
+  @unittest.skipIf(
+      not environment.get_value('FUCHSIA_TESTS'),
+      'Temporarily disabling the Fuchsia test until build size reduced.')
   def test_fuzzer_can_boot_and_run(self):
     """Tests running a single round of fuzzing on a Fuchsia target, using
     'echo' in place of a fuzzing command."""

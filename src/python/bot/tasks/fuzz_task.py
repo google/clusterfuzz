@@ -1145,9 +1145,8 @@ def process_crashes(crashes, context):
     time.sleep(1)
 
   logs.log('Finished processing crashes.')
-  logs.log('New crashes: ' + str(new_crash_count) + ', known crashes: ' +
-           str(known_crash_count) + ', processed groups: ' +
-           str(processed_groups))
+  logs.log('New crashes: {}, known crashes: {}, processed groups: {}'.format(
+      new_crash_count, known_crash_count, processed_groups))
   return new_crash_count, known_crash_count, processed_groups
 
 

@@ -170,6 +170,9 @@ class TrunkBuildTest(unittest.TestCase):
     self.assertEqual(0, self.mock.setup_regular_build.call_count)
 
 
+@unittest.skipIf(
+    not environment.get_value('FUCHSIA_TESTS'),
+    'Temporarily disabling the Fuchsia test until build size reduced.')
 class FuchsiaBuildTest(fake_filesystem_unittest.TestCase):
   """Tests for Fuchsia build setup."""
 
