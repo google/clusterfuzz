@@ -36,7 +36,7 @@ class Handler(base_handler.Handler):
       revision_range = self.request.get('range')
       if revision_range:
         try:
-          [start_revision, end_revision] = revision_range.split(':')
+          start_revision, end_revision = revision_range.split(':')
         except:
           raise helpers.EarlyExitException('Bad revision range.', 400)
       if not start_revision.isdigit():
