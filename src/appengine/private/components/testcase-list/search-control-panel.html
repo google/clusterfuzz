@@ -44,7 +44,7 @@
 
         --paper-input-container-label: {
           color: #666;
-          font-size: 18px;
+          font-size: 16px;
         };
         --paper-input-container-input: {
           color: #888;
@@ -53,8 +53,9 @@
       }
 
       paper-input.search {
-        --paper-input-container:{
+        --paper-input-container: {
           margin: 4px 10px -5px;
+          min-width: 350px;
         }
       }
 
@@ -137,6 +138,7 @@
                   attr-for-selected="val">
                 <paper-input
                     class="search"
+                    label="Search projects"
                     value="{{projectKey}}"
                     on-tap="stopEventPropagation"
                     on-keydown="stopEventPropagation"
@@ -162,6 +164,7 @@
                 attr-for-selected="val">
               <paper-input
                   class="search"
+                  label="Search fuzzers"
                   value="{{fuzzerKey}}"
                   on-tap="stopEventPropagation"
                   on-keydown="stopEventPropagation"
@@ -186,6 +189,7 @@
                 attr-for-selected="val">
               <paper-input
                   class="search"
+                  label="Search jobs"
                   value="{{jobKey}}"
                   on-tap="stopEventPropagation"
                   on-keydown="stopEventPropagation"
