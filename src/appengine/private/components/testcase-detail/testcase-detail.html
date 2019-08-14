@@ -261,7 +261,7 @@
                 </td>
                 <td class="value">[[info.memory_tool_display_value]]</td>
                 <td class="label">
-                  <span class="help" title="Whether or not the crash is reliably reproducible (“No” for flaky test cases).">Reliably reproduces:</span>
+                  <span class="help" title="Whether or not the crash is reliably reproducible (“No” for flaky test cases).">Reliably Reproduces:</span>
                 </td>
                 <td class="value">
                   <if-else condition="[[isStatusReady(info)]]">
@@ -340,7 +340,7 @@
               <tr>
                 <template is="dom-if" if="[[info.fuzzer_display.engine]]">
                   <td class="label">
-                    <span class="help" title="Fuzzing engine that generated the testcase.">Fuzzing engine:</span>
+                    <span class="help" title="Fuzzing engine that generated the testcase.">Fuzzing Engine:</span>
                   </td>
                   <td class="value">
                     <a href$="/testcases?fuzzer=[[info.fuzzer_display.engine]]">
@@ -348,7 +348,7 @@
                     </a>
                   </td>
                   <td class="label">
-                    <span class="help" title="Fuzz target binary that calls the program api(s).">Fuzz target:</span>
+                    <span class="help" title="Fuzz target binary that calls the program api(s).">Fuzz Target:</span>
                   </td>
                   <td class="value">
                     <a href$="/testcases?fuzzer=[[info.fuzzer_display.fully_qualified_name]]">
@@ -519,7 +519,7 @@
               </div>
 
               <div>
-                <span class="title help" title="Re-upload in case of trying with different params (e.g. different platform)">Re-upload testcase:</span>
+                <span class="title help" title="Re-upload in case of trying with different params (e.g. different platform)">Re-upload Testcase:</span>
                 <span class="content">
                   <a href="[[computeUploadUrl(info)]]"><iron-icon icon="icons:backup"></iron-icon></a>
                 </span>
