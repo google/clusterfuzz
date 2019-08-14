@@ -593,13 +593,17 @@ class GetFormattedReproductionHelpTest(unittest.TestCase):
     job.name = 'job_with_help_format'
     job.environment_string = (
         'HELP_FORMAT = -%TESTCASE%\\n-%FUZZER_NAME%\\n-%FUZZ_TARGET%\\n'
-        '-%PROJECT%\\n-%REVISION%\\n-%ENGINE%\\n-%SANITIZER%\\n\n'
+        '-%PROJECT%\\n-%REVISION%\\n-%ENGINE%\\n-%SANITIZER%\\n%ARGS%\\n\n'
         'PROJECT_NAME = test_project')
     job.put()
 
     job = data_types.Job()
     job.name = 'ubsan_job_without_help_format'
-    job.environment_string = ('PROJECT_NAME = test_project')
+    job.environment_string = (
+        'PROJECT_NAME = test_project\n'
+        'APP_ARGS = '
+        '--disable-logging --disable-experiments --testcase=%TESTCASE_HTTP_URL%'
+    )
     job.put()
 
     fuzz_target = data_types.FuzzTarget(id='libFuzzer_test_project_test_fuzzer')
@@ -615,12 +619,13 @@ class GetFormattedReproductionHelpTest(unittest.TestCase):
     testcase.overridden_fuzzer_name = 'libFuzzer_test_project_test_fuzzer'
     testcase.job_type = 'job_with_help_format'
     testcase.crash_revision = 1337
+    testcase.minimized_arguments = '%TESTCASE% test_fuzzer -runs=100'
     testcase.put()
 
     self.assertEquals(
         data_handler.get_formatted_reproduction_help(testcase),
         ('-{id}\n-libFuzzer\n-test_fuzzer\n-test_project\n-1337\n'
-         '-libFuzzer\n-ASAN\n').format(id=testcase.key.id()))
+         '-libFuzzer\n-ASAN\n-runs=100\n').format(id=testcase.key.id()))
 
   def test_blackbox_fuzzer_testcase(self):
     """Test the function with a blackbox fuzzer test case."""
@@ -628,13 +633,14 @@ class GetFormattedReproductionHelpTest(unittest.TestCase):
     testcase.fuzzer_name = 'simple_fuzzer'
     testcase.job_type = 'job_with_help_format'
     testcase.crash_revision = 1337
+    testcase.minimized_arguments = '--disable-logging %TESTCASE_FILE_URL%'
     testcase.put()
     testcase.set_metadata('last_tested_crash_revision', 1338)
 
     self.assertEquals(
         data_handler.get_formatted_reproduction_help(testcase),
         ('-{id}\n-simple_fuzzer\n-NA\n-test_project\n-1338\n'
-         '-NA\n-ASAN\n').format(id=testcase.key.id()))
+         '-NA\n-ASAN\n--disable-logging\n').format(id=testcase.key.id()))
 
   def test_blackbox_fuzzer_testcase_with_default_help_format(self):
     """Test the function with a blackbox fuzzer test case, with HELP_FORMAT
@@ -642,7 +648,7 @@ class GetFormattedReproductionHelpTest(unittest.TestCase):
     environment.set_value(
         'HELP_FORMAT',
         '-%TESTCASE%\\n-%FUZZER_NAME%\\n-%FUZZ_TARGET%\\n-%PROJECT%\\n'
-        '-%REVISION%\\n-%ENGINE%\\n-%SANITIZER%\\n')
+        '-%REVISION%\\n-%ENGINE%\\n-%SANITIZER%\\n%ARGS%\\n')
 
     testcase = data_types.Testcase()
     testcase.fuzzer_name = 'simple_fuzzer'
@@ -653,4 +659,5 @@ class GetFormattedReproductionHelpTest(unittest.TestCase):
     self.assertEquals(
         data_handler.get_formatted_reproduction_help(testcase),
         ('-{id}\n-simple_fuzzer\n-NA\n-test_project\n-1337\n'
-         '-NA\n-UBSAN\n').format(id=testcase.key.id()))
+         '-NA\n-UBSAN\n--disable-logging --disable-experiments\n'
+        ).format(id=testcase.key.id()))
