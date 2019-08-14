@@ -45,28 +45,6 @@ RECOMMENDED_DICTIONARY_STRATEGY = Strategy(
 VALUE_PROFILE_STRATEGY = Strategy(
     name='value_profile', probability=0.33, manually_enable=False)
 
-strategy_list = [
-    CORPUS_MUTATION_RADAMSA_STRATEGY, CORPUS_MUTATION_ML_RNN_STRATEGY,
-    DATAFLOW_TRACING_STRATEGY, CORPUS_SUBSET_STRATEGY, FORK_STRATEGY,
-    MUTATOR_PLUGIN_STRATEGY, RANDOM_MAX_LENGTH_STRATEGY,
-    RECOMMENDED_DICTIONARY_STRATEGY, VALUE_PROFILE_STRATEGY
-]
-
-strategies_with_prefix_value = [
-    CORPUS_SUBSET_STRATEGY,
-    FORK_STRATEGY,
-]
-
-strategies_with_boolean_value = [
-    CORPUS_MUTATION_RADAMSA_STRATEGY,
-    CORPUS_MUTATION_ML_RNN_STRATEGY,
-    DATAFLOW_TRACING_STRATEGY,
-    MUTATOR_PLUGIN_STRATEGY,
-    RANDOM_MAX_LENGTH_STRATEGY,
-    RECOMMENDED_DICTIONARY_STRATEGY,
-    VALUE_PROFILE_STRATEGY,
-]
-
 # Keep this strategy order for strategy combination tracking as strategy
 # combinations are tracked as strings.
 LIBFUZZER_STRATEGY_LIST = [
@@ -87,6 +65,23 @@ AFL_STRATEGY_LIST = [
     CORPUS_SUBSET_STRATEGY,
 ]
 
+# Lists of prefix and boolean strategies maintained for libFuzzer stats.
+libfuzzer_strategies_with_prefix_value = [
+    CORPUS_SUBSET_STRATEGY,
+    FORK_STRATEGY,
+]
+
+libfuzzer_strategies_with_boolean_value = [
+    CORPUS_MUTATION_RADAMSA_STRATEGY,
+    CORPUS_MUTATION_ML_RNN_STRATEGY,
+    DATAFLOW_TRACING_STRATEGY,
+    MUTATOR_PLUGIN_STRATEGY,
+    RANDOM_MAX_LENGTH_STRATEGY,
+    RECOMMENDED_DICTIONARY_STRATEGY,
+    VALUE_PROFILE_STRATEGY,
+]
+
 # To ensure that all strategies present in |strategy_list| are parsed for stats.
-assert (set(strategy_list) == set(strategies_with_prefix_value +
-                                  strategies_with_boolean_value))
+assert (set(LIBFUZZER_STRATEGY_LIST) ==
+        set(libfuzzer_strategies_with_prefix_value +
+            libfuzzer_strategies_with_boolean_value))
