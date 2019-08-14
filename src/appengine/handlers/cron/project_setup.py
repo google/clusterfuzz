@@ -442,8 +442,8 @@ def ccs_from_info(info):
   return [utils.normalize_email(cc) for cc in ccs]
 
 
-def cleanup_old_jobs(project_names):
-  """Delete old jobs that are no longer used."""
+def update_fuzzer_jobs(fuzzer_entities, project_names):
+  """Update fuzzer job mappings."""
   to_delete = []
 
   for job in data_types.Job.query():
@@ -455,8 +455,19 @@ def cleanup_old_jobs(project_names):
       continue
 
     job_project = job_environment['PROJECT_NAME']
-    if job_project not in project_names:
-      to_delete.append(job.key)
+    if job_project in project_names:
+      continue
+
+    to_delete.append(job.key)
+    for fuzzer_entity in fuzzer_entities:
+      try:
+        fuzzer_entity.jobs.remove(job.name)
+      except ValueError:
+        pass
+
+  for fuzzer_entity in fuzzer_entities:
+    fuzzer_entity.put()
+    fuzzer_selection.update_mappings_for_fuzzer(fuzzer_entity)
 
   if to_delete:
     ndb.delete_multi(to_delete)
@@ -806,19 +817,8 @@ class ProjectSetup(object):
 
       job.put()
 
-  def _update_fuzzer_entities(self):
-    """Update fuzzer entities."""
-    for fuzzer_entity in self._fuzzer_entities.values():
-      fuzzer_entity.put()
-      fuzzer_selection.update_mappings_for_fuzzer(fuzzer_entity)
-
   def set_up(self, projects):
     """Do project setup."""
-    # Clear old job associations.
-    fuzzer_entity_values = self._fuzzer_entities.values()
-    for fuzzer_entity in fuzzer_entity_values:
-      fuzzer_entity.jobs = []
-
     for project, info in projects:
       logs.log('Syncing configs for %s.' % project)
 
@@ -847,11 +847,9 @@ class ProjectSetup(object):
         if not info.get('disabled', False):
           create_project_settings(project, info, service_account)
 
-    self._update_fuzzer_entities()
-
     # Delete old jobs.
     project_names = [project[0] for project in projects]
-    cleanup_old_jobs(project_names)
+    update_fuzzer_jobs(self._fuzzer_entities.values(), project_names)
 
     if self._segregate_projects:
       # Delete old pubsub topics.
