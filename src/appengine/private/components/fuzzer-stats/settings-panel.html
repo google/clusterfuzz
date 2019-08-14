@@ -54,8 +54,9 @@
       }
 
       :host .settings-panel paper-input.search {
-        --paper-input-container:{
+        --paper-input-container: {
           margin: 4px 10px -5px;
+          min-width: 350px;
         }
       }
 
@@ -86,6 +87,7 @@
             class="dropdown-content">
           <paper-input
               class="search"
+              label="Search fuzzers"
               value="{{fuzzerKey}}"
               on-tap="stopEventPropagation"
               on-keydown="stopEventPropagation"
@@ -111,6 +113,7 @@
             selected="{{settings.job}}">
           <paper-input
               class="search"
+              label="Search jobs"
               value="{{jobKey}}"
               on-tap="stopEventPropagation"
               on-keydown="stopEventPropagation"
