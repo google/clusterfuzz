@@ -13,5 +13,7 @@
 # limitations under the License.
 FROM gcr.io/clusterfuzz-images/base
 
+RUN apt-get update && apt-get install -y openssh-client
+
 ENV OS_OVERRIDE FUCHSIA
 ENV QUEUE_OVERRIDE FUCHSIA
