@@ -54,7 +54,7 @@ def store_testcase_dependencies_from_bundled_testcase_archive(
   # Nothing to do if this is not a bundled testcase archive with
   # multiple testcase.
   if not metadata.bundled:
-    return 1
+    return True
 
   # Cleanup, before re-running the app to get resource list.
   process_handler.terminate_stale_application_instances()
@@ -109,9 +109,9 @@ def store_testcase_dependencies_from_bundled_testcase_archive(
   else:
     logs.log_error('Could not get crash data from queue. Retrying task.')
     tasks.add_task('analyze', testcase.key.id(), testcase.job_type)
-    return None
+    return False
 
-  return 1
+  return True
 
 
 def execute_task(testcase_id, job_type):
@@ -265,6 +265,15 @@ def execute_task(testcase_id, job_type):
     data_handler.update_testcase_comment(
         testcase, data_types.TaskState.FINISHED, log_message)
 
+    # In the general case, we will not attempt to symbolize if we do not detect
+    # a crash. For user uploads, we should symbolize anyway to provide more
+    # information about what might be happening.
+    crash_stacktrace_output = utils.get_crash_stacktrace_output(
+        application_command_line, state.crash_stacktrace,
+        unsymbolized_crash_stacktrace)
+    testcase.crash_stacktrace = data_handler.filter_stacktrace(
+        crash_stacktrace_output)
+
     # For an unreproducible testcase, retry once on another bot to confirm
     # our results and in case this bot is in a bad state which we didn't catch
     # through our usual means.
@@ -275,14 +284,6 @@ def execute_task(testcase_id, job_type):
       tasks.add_task('analyze', testcase_id, job_type)
       return
 
-    # In the general case, we will not attempt to symbolize if we do not detect
-    # a crash. For user uploads, we should symbolize anyway to provide more
-    # information about what might be happening.
-    crash_stacktrace_output = utils.get_crash_stacktrace_output(
-        application_command_line, state.crash_stacktrace,
-        unsymbolized_crash_stacktrace)
-    testcase.crash_stacktrace = data_handler.filter_stacktrace(
-        crash_stacktrace_output)
     close_invalid_testcase_and_update_status(testcase, metadata,
                                              'Unreproducible')
 
@@ -302,6 +303,11 @@ def execute_task(testcase_id, job_type):
   testcase.crash_type = state.crash_type
   testcase.crash_address = state.crash_address
   testcase.crash_state = state.crash_state
+  crash_stacktrace_output = utils.get_crash_stacktrace_output(
+      application_command_line, state.crash_stacktrace,
+      unsymbolized_crash_stacktrace)
+  testcase.crash_stacktrace = data_handler.filter_stacktrace(
+      crash_stacktrace_output)
 
   # Try to guess if the bug is security or not.
   security_flag = crash_analyzer.is_security_issue(
@@ -358,13 +364,6 @@ def execute_task(testcase_id, job_type):
     # Only add if testcase has a direct leak crash and if it's reproducible.
     if is_lsan_enabled:
       leak_blacklist.add_crash_to_global_blacklist_if_needed(testcase)
-
-  # Add application specific information in the trace.
-  crash_stacktrace_output = utils.get_crash_stacktrace_output(
-      application_command_line, state.crash_stacktrace,
-      unsymbolized_crash_stacktrace)
-  testcase.crash_stacktrace = data_handler.filter_stacktrace(
-      crash_stacktrace_output)
 
   # Update the testcase values.
   testcase.put()
