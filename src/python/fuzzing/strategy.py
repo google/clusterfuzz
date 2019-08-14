@@ -66,12 +66,12 @@ AFL_STRATEGY_LIST = [
 ]
 
 # Lists of prefix and boolean strategies maintained for libFuzzer stats.
-libfuzzer_strategies_with_prefix_value = [
+LIBFUZZER_STRATEGIES_WITH_PREFIX_VALUE = [
     CORPUS_SUBSET_STRATEGY,
     FORK_STRATEGY,
 ]
 
-libfuzzer_strategies_with_boolean_value = [
+LIBFUZZER_STRATEGIES_WITH_BOOLEAN_VALUE = [
     CORPUS_MUTATION_RADAMSA_STRATEGY,
     CORPUS_MUTATION_ML_RNN_STRATEGY,
     DATAFLOW_TRACING_STRATEGY,
@@ -83,5 +83,5 @@ libfuzzer_strategies_with_boolean_value = [
 
 # To ensure that all strategies present in |strategy_list| are parsed for stats.
 assert (set(LIBFUZZER_STRATEGY_LIST) ==
-        set(libfuzzer_strategies_with_prefix_value +
-            libfuzzer_strategies_with_boolean_value))
+        set(LIBFUZZER_STRATEGIES_WITH_PREFIX_VALUE +
+            LIBFUZZER_STRATEGIES_WITH_BOOLEAN_VALUE))

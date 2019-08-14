@@ -141,12 +141,12 @@ def parse_fuzzing_strategies(log_lines, strategies):
       logs.log_error('Failed to parse strategy "%s":\n%s\n' % (line, str(e)))
 
   # These strategies are used with different values specified in the prefix.
-  for strategy_type in strategy.libfuzzer_strategies_with_prefix_value:
+  for strategy_type in strategy.LIBFUZZER_STRATEGIES_WITH_PREFIX_VALUE:
     for line in strategies:
       parse_line_for_strategy_prefix(line, strategy_type.name)
 
   # Other strategies are either ON or OFF, without arbitrary values.
-  for strategy_type in strategy.libfuzzer_strategies_with_boolean_value:
+  for strategy_type in strategy.LIBFUZZER_STRATEGIES_WITH_BOOLEAN_VALUE:
     if strategy_type.name in strategies:
       stats[strategy_column_name(strategy_type.name)] = 1
 
