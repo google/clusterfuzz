@@ -141,7 +141,7 @@ def generate_weighted_strategy_pool(strategy_list, use_generator, engine_name):
   chosen_strategies = strategy_name.split(',')
   pool = StrategyPool()
 
-  for strategy_tuple in strategy.strategy_list:
+  for strategy_tuple in strategy_list:
     if strategy_tuple.name in chosen_strategies:
       pool.add_strategy(strategy_tuple)
 
