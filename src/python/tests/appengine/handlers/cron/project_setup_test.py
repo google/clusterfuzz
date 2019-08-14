@@ -126,6 +126,14 @@ class OssFuzzProjectSetupTest(unittest.TestCase):
         name='libfuzzer_msan_old_job',
         environment_string=('MANAGED = True\n'
                             'PROJECT_NAME = old\n')).put()
+    data_types.Job(
+        name='afl_asan_old_job',
+        environment_string=('MANAGED = True\n'
+                            'PROJECT_NAME = old\n')).put()
+    data_types.Job(
+        name='afl_msan_old_job',
+        environment_string=('MANAGED = True\n'
+                            'PROJECT_NAME = old\n')).put()
     data_types.Job(name='unmanaged_job', environment_string='').put()
 
     # Will be removed.
@@ -1490,7 +1498,13 @@ class GenericProjectSetupTest(unittest.TestCase):
 
     helpers.patch_environ(self)
 
-    self.libfuzzer = data_types.Fuzzer(name='libFuzzer', jobs=[])
+    data_types.Job(name='old_unmanaged').put()
+    data_types.Job(
+        name='old_managed',
+        environment_string='MANAGED = True\nPROJECT_NAME = old').put()
+
+    self.libfuzzer = data_types.Fuzzer(
+        name='libFuzzer', jobs=['old_unmanaged', 'old_managed'])
     self.libfuzzer.put()
 
     self.afl = data_types.Fuzzer(name='afl', jobs=[])
@@ -1558,6 +1572,7 @@ class GenericProjectSetupTest(unittest.TestCase):
         data_types.Fuzzer.name == 'libFuzzer').get()
     self.assertItemsEqual([
         'libfuzzer_asan_a-b',
+        'old_unmanaged',
     ], libfuzzer.jobs)
 
     afl = data_types.Fuzzer.query(data_types.Fuzzer.name == 'afl').get()
