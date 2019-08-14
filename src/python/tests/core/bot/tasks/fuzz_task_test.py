@@ -1347,6 +1347,7 @@ class DoEngineFuzzingTest(fake_filesystem_unittest.TestCase):
 
     crashes, fuzzer_metadata = session.do_engine_fuzzing(engine_impl)
     self.assertDictEqual({
+        'fuzzer_binary_name': 'test_target',
         'issue_components': 'component1,component2',
         'issue_labels': 'label1,label2',
         'issue_owners': 'owner1@email.com',
@@ -1377,5 +1378,7 @@ class DoEngineFuzzingTest(fake_filesystem_unittest.TestCase):
         'job': 'libfuzzer_asan_test',
         'kind': 'TestcaseRun',
         'stat': 1,
+        'strategy_strategy_1': 1,
+        'strategy_strategy_2': 1,
         'timestamp': 0.0,
     }, testcase_run.data)
