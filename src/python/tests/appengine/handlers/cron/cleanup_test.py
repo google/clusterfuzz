@@ -1891,7 +1891,7 @@ class NotifyUploaderIfTestcaseIsProcessed(unittest.TestCase):
 
     self.mock.send.assert_called_once_with(
         'uploader@email.com', 'Your testcase upload 1 analysis is complete.',
-        'Detailed report: https://test-clusterfuzz.appspot.com/'
+        'Detailed Report: https://test-clusterfuzz.appspot.com/'
         'testcase?key=1<br><br>'
         'Fuzzer: fuzzer1<br>'
         'Job Type: test_content_shell_drt<br>'
