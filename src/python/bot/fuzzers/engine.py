@@ -107,7 +107,7 @@ class Engine(object):
     raise NotImplementedError
 
   def minimize_corpus(self, target_path, arguments, output_dir, input_dirs,
-                      max_time):
+                      reproducers_dir, max_time):
     """Optional (but recommended): run corpus minimization.
 
     Args:
@@ -115,6 +115,8 @@ class Engine(object):
       arguments: Additional arguments needed for corpus minimization.
       output_dir: Output directory to place minimized corpus.
       input_dirs: Input corpora.
+      reproducers_dir: The directory to put reproducers in when crashes are
+          found.
       max_time: Maximum allowed time for the minimization.
 
     Returns:

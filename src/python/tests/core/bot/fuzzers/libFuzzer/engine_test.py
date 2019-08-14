@@ -17,18 +17,26 @@
 from future import standard_library
 standard_library.install_aliases()
 import os
+import shutil
+import unittest
 
 import mock
 import pyfakefs.fake_filesystem_unittest as fake_fs_unittest
 
+from bot.fuzzers import engine_common
+from bot.fuzzers import libfuzzer
+from bot.fuzzers import strategy_selection
 from bot.fuzzers.libFuzzer import engine
 from bot.fuzzers.libFuzzer import launcher
+from fuzzing import strategy
 from system import new_process
 from tests.test_libs import helpers as test_helpers
 from tests.test_libs import test_utils
 
-TEST_DIR = os.path.join(
-    os.path.dirname(os.path.abspath(__file__)), 'launcher_test_data')
+TEST_PATH = os.path.abspath(os.path.dirname(__file__))
+TEST_DIR = os.path.join(TEST_PATH, 'launcher_test_data')
+TEMP_DIRECTORY = os.path.join(TEST_PATH, 'temp')
+DATA_DIRECTORY = os.path.join(TEST_PATH, 'data')
 
 
 class PrepareTest(fake_fs_unittest.TestCase):
@@ -203,54 +211,217 @@ class FuzzTest(fake_fs_unittest.TestCase):
         merge_timeout=1800.0,
         tmp_dir='/fuzz-inputs/temp-9001/merge-workdir')
 
-    self.assertDictEqual(
-        {
-            'actual_duration': 2,
-            'average_exec_per_sec': 21,
-            'bad_instrumentation': 0,
-            'corpus_crash_count': 0,
-            'corpus_size': 0,
-            'crash_count': 1,
-            'dict_used': 1,
-            'edge_coverage': 1603,
-            'edges_total': 398467,
-            'expected_duration': 1450,
-            'feature_coverage': 3572,
-            'fuzzing_time_percent': 0.13793103448275862,
-            'initial_edge_coverage': 1603,
-            'initial_feature_coverage': 3572,
-            'leak_count': 0,
-            'log_lines_from_engine': 2,
-            'log_lines_ignored': 67,
-            'log_lines_unwanted': 0,
-            'manual_dict_size': 0,
-            'max_len': 9001,
-            'merge_edge_coverage': 0,
-            'new_edges': 0,
-            'new_features': 0,
-            'new_units_added': 1,
-            'new_units_generated': 0,
-            'number_of_executed_units': 1249,
-            'oom_count': 0,
-            'peak_rss_mb': 1197,
-            'recommended_dict_size': 0,
-            'slow_unit_count': 0,
-            'slow_units_count': 0,
-            'slowest_unit_time_sec': 0,
-            'startup_crash_count': 0,
-            # TODO(ochang): Move strategy stats to common place, rather than in
-            # engine implementation.
-            'strategy_corpus_mutations_ml_rnn': 0,
-            'strategy_corpus_mutations_radamsa': 0,
-            'strategy_corpus_subset': 0,
-            'strategy_dataflow_tracing': 0,
-            'strategy_fork': 0,
-            'strategy_mutator_plugin': 0,
-            'strategy_random_max_len': 0,
-            'strategy_recommended_dict': 0,
-            'strategy_selection_method': 'default',
-            'strategy_value_profile': 0,
-            'timeout_count': 0,
-            'timeout_limit': 123,
-        },
-        result.stats)
+    self.assertDictEqual({
+        'actual_duration': 2,
+        'average_exec_per_sec': 21,
+        'bad_instrumentation': 0,
+        'corpus_crash_count': 0,
+        'corpus_size': 0,
+        'crash_count': 1,
+        'dict_used': 1,
+        'edge_coverage': 1603,
+        'edges_total': 398467,
+        'expected_duration': 1450,
+        'feature_coverage': 3572,
+        'fuzzing_time_percent': 0.13793103448275862,
+        'initial_edge_coverage': 1603,
+        'initial_feature_coverage': 3572,
+        'leak_count': 0,
+        'log_lines_from_engine': 2,
+        'log_lines_ignored': 67,
+        'log_lines_unwanted': 0,
+        'manual_dict_size': 0,
+        'max_len': 9001,
+        'merge_edge_coverage': 0,
+        'new_edges': 0,
+        'new_features': 0,
+        'new_units_added': 1,
+        'new_units_generated': 0,
+        'number_of_executed_units': 1249,
+        'oom_count': 0,
+        'peak_rss_mb': 1197,
+        'recommended_dict_size': 0,
+        'slow_unit_count': 0,
+        'slow_units_count': 0,
+        'slowest_unit_time_sec': 0,
+        'startup_crash_count': 0,
+        'timeout_count': 0,
+        'timeout_limit': 123,
+        'strategy_selection_method': 'default',
+    }, result.stats)
+
+
+def set_strategy_pool(strategies=None):
+  """Helper method to create instances of strategy pools
+  for patching use."""
+  strategy_pool = strategy_selection.StrategyPool()
+
+  if strategies is not None:
+    for strategy_tuple in strategies:
+      strategy_pool.add_strategy(strategy_tuple)
+
+  return strategy_pool
+
+
+def mock_random_choice(seq):
+  """Always returns first element from the sequence."""
+  # We could try to mock a particular |seq| to be a list with a single element,
+  # but it does not work well, as random_choice returns a 'mock.mock.MagicMock'
+  # object that behaves differently from the actual type of |seq[0]|.
+  return seq[0]
+
+
+def clear_temp_dir():
+  """Clear temp directory."""
+  if os.path.exists(TEMP_DIRECTORY):
+    shutil.rmtree(TEMP_DIRECTORY)
+
+  os.mkdir(TEMP_DIRECTORY)
+
+
+def setup_testcase_and_corpus(testcase, corpus):
+  """Setup testcase and corpus."""
+  clear_temp_dir()
+  copied_testcase_path = os.path.join(TEMP_DIRECTORY, testcase)
+  shutil.copy(os.path.join(DATA_DIRECTORY, testcase), copied_testcase_path)
+
+  copied_corpus_path = os.path.join(TEMP_DIRECTORY, corpus)
+  src_corpus_path = os.path.join(DATA_DIRECTORY, corpus)
+
+  if os.path.exists(src_corpus_path):
+    shutil.copytree(src_corpus_path, copied_corpus_path)
+  else:
+    os.mkdir(copied_corpus_path)
+
+  return copied_testcase_path, copied_corpus_path
+
+
+def get_fuzz_timeout(fuzz_time):
+  """Return timeout for fuzzing."""
+  return (fuzz_time + libfuzzer.LibFuzzerCommon.LIBFUZZER_CLEAN_EXIT_TIME +
+          libfuzzer.LibFuzzerCommon.SIGTERM_WAIT_TIME)
+
+
+@test_utils.integration
+class IntegrationTests(unittest.TestCase):
+  """Base libFuzzer launcher tests."""
+
+  def setUp(self):
+    test_helpers.patch_environ(self)
+
+    os.environ['BUILD_DIR'] = DATA_DIRECTORY
+    os.environ['FAIL_RETRIES'] = '1'
+    os.environ['FUZZ_INPUTS_DISK'] = TEMP_DIRECTORY
+    os.environ['FUZZ_TEST_TIMEOUT'] = '4800'
+    os.environ['JOB_NAME'] = 'libfuzzer_asan'
+    os.environ['INPUT_DIR'] = TEMP_DIRECTORY
+
+    test_helpers.patch(self, [
+        'bot.fuzzers.engine_common.get_merge_timeout',
+        'bot.fuzzers.engine_common.random_choice',
+        'bot.fuzzers.mutator_plugin._download_mutator_plugin_archive',
+        'bot.fuzzers.mutator_plugin._get_mutator_plugins_from_bucket',
+        'bot.fuzzers.strategy_selection.generate_weighted_strategy_pool',
+        'bot.fuzzers.libFuzzer.launcher.get_dictionary_analysis_timeout',
+        'bot.fuzzers.libFuzzer.launcher.get_fuzz_timeout',
+        'os.getpid',
+    ])
+
+    self.mock.getpid.return_value = 1337
+
+    self.mock._get_mutator_plugins_from_bucket.return_value = []  # pylint: disable=protected-access
+    self.mock.generate_weighted_strategy_pool.return_value = set_strategy_pool()
+    self.mock.get_dictionary_analysis_timeout.return_value = 5
+    self.mock.get_merge_timeout.return_value = 10
+    self.mock.random_choice.side_effect = mock_random_choice
+
+  def assert_has_stats(self, stats):
+    """Asserts that libFuzzer stats are in output."""
+    self.assertIn('number_of_executed_units', stats)
+    self.assertIn('average_exec_per_sec', stats)
+    self.assertIn('new_units_added', stats)
+    self.assertIn('slowest_unit_time_sec', stats)
+    self.assertIn('peak_rss_mb', stats)
+
+  def test_single_testcase_crash(self):
+    """Tests launcher with a crashing testcase."""
+    testcase_path, _ = setup_testcase_and_corpus('crash', 'empty_corpus')
+    engine_impl = engine.LibFuzzerEngine()
+    target_path = engine_common.find_fuzzer_path(DATA_DIRECTORY, 'test_fuzzer')
+    result = engine_impl.reproduce(target_path, testcase_path, [], 30)
+    self.assertIn(
+        'ERROR: AddressSanitizer: SEGV on unknown address 0x000000000000',
+        result.output)
+
+  @test_utils.slow
+  def test_fuzz_no_crash(self):
+    """Tests fuzzing (no crash)."""
+    self.mock.generate_weighted_strategy_pool.return_value = set_strategy_pool(
+        [strategy.VALUE_PROFILE_STRATEGY])
+
+    self.mock.get_fuzz_timeout.return_value = get_fuzz_timeout(5.0)
+    _, corpus_path = setup_testcase_and_corpus('empty', 'corpus')
+    engine_impl = engine.LibFuzzerEngine()
+
+    target_path = engine_common.find_fuzzer_path(DATA_DIRECTORY, 'test_fuzzer')
+    options = engine_impl.prepare(corpus_path, target_path, DATA_DIRECTORY)
+
+    results = engine_impl.fuzz(target_path, options, TEMP_DIRECTORY, 10)
+
+    self.assert_has_stats(results.stats)
+    self.assertListEqual([
+        os.path.join(DATA_DIRECTORY, 'test_fuzzer'),
+        '-max_len=256',
+        '-timeout=25',
+        '-rss_limit_mb=2048',
+        '-use_value_profile=1',
+        '-artifact_prefix=' + TEMP_DIRECTORY + '/',
+        '-max_total_time=5',
+        '-print_final_stats=1',
+        os.path.join(TEMP_DIRECTORY, 'temp-1337/new'),
+        os.path.join(TEMP_DIRECTORY, 'corpus'),
+    ], results.command)
+    self.assertEqual(0, len(results.crashes))
+
+    # New items should've been added to the corpus.
+    self.assertNotEqual(0, len(os.listdir(corpus_path)))
+
+  def test_fuzz_crash(self):
+    """Tests fuzzing (crash)."""
+    self.mock.get_fuzz_timeout.return_value = get_fuzz_timeout(5.0)
+    _, corpus_path = setup_testcase_and_corpus('empty', 'corpus')
+    engine_impl = engine.LibFuzzerEngine()
+
+    target_path = engine_common.find_fuzzer_path(DATA_DIRECTORY,
+                                                 'always_crash_fuzzer')
+    options = engine_impl.prepare(corpus_path, target_path, DATA_DIRECTORY)
+
+    results = engine_impl.fuzz(target_path, options, TEMP_DIRECTORY, 10)
+
+    self.assert_has_stats(results.stats)
+    self.assertListEqual([
+        os.path.join(DATA_DIRECTORY, 'always_crash_fuzzer'),
+        '-max_len=100',
+        '-timeout=25',
+        '-rss_limit_mb=2048',
+        '-artifact_prefix=' + TEMP_DIRECTORY + '/',
+        '-max_total_time=5',
+        '-print_final_stats=1',
+        os.path.join(TEMP_DIRECTORY, 'temp-1337/new'),
+        os.path.join(TEMP_DIRECTORY, 'corpus'),
+    ], results.command)
+    self.assertEqual(1, len(results.crashes))
+
+    self.assertEqual(TEMP_DIRECTORY,
+                     os.path.dirname(results.crashes[0].input_path))
+    self.assertEqual(results.logs, results.crashes[0].stacktrace)
+    self.assertListEqual([
+        '-timeout=25',
+        '-rss_limit_mb=2048',
+    ], results.crashes[0].reproduce_args)
+
+    self.assertIn('Test unit written to {0}/crash-'.format(TEMP_DIRECTORY),
+                  results.logs)
+    self.assertIn(
+        'ERROR: AddressSanitizer: SEGV on unknown address '
+        '0x000000000000', results.logs)

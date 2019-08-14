@@ -153,7 +153,10 @@ def parse_fuzzing_strategies(log_lines, strategies):
   return stats
 
 
-def parse_performance_features(log_lines, strategies, arguments):
+def parse_performance_features(log_lines,
+                               strategies,
+                               arguments,
+                               include_strategies=True):
   """Extract stats for performance analysis."""
   # Initialize stats with default values.
   stats = {
@@ -185,15 +188,17 @@ def parse_performance_features(log_lines, strategies, arguments):
   }
 
   # Extract strategy selection method.
+  # TODO(ochang): Move to more general place?
   stats['strategy_selection_method'] = environment.get_value(
       'STRATEGY_SELECTION_METHOD', default_value='default')
 
-  # Initialize all strategy stats as disabled by default.
-  for strategy_type in strategy.LIBFUZZER_STRATEGY_LIST:
-    stats[strategy_column_name(strategy_type.name)] = 0
+  if include_strategies:
+    # Initialize all strategy stats as disabled by default.
+    for strategy_type in strategy.LIBFUZZER_STRATEGY_LIST:
+      stats[strategy_column_name(strategy_type.name)] = 0
 
-  # Process fuzzing strategies used.
-  stats.update(parse_fuzzing_strategies(log_lines, strategies))
+    # Process fuzzing strategies used.
+    stats.update(parse_fuzzing_strategies(log_lines, strategies))
 
   (stats['log_lines_unwanted'], stats['log_lines_from_engine'],
    stats['log_lines_ignored']) = calculate_log_lines(log_lines)
@@ -288,8 +293,7 @@ def parse_performance_features(log_lines, strategies, arguments):
   # new_edges and new_features may not be correct when either corpus subset or
   # random max length strategy is used. Skip recording these stats in such case.
   # See https://github.com/google/clusterfuzz/issues/802.
-  if (not stats['strategy_corpus_subset'] and
-      not stats['strategy_random_max_len']):
+  if ('corpus_subset' not in strategies and 'random_max_len' not in strategies):
     assert stats['edge_coverage'] >= stats['initial_edge_coverage']
     stats['new_edges'] = (
         stats['edge_coverage'] - stats['initial_edge_coverage'])
