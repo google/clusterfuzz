@@ -64,6 +64,8 @@ TESTCASE_REPORT_URL = 'https://{domain}/testcase?key={testcase_id}'
 TESTCASE_DOWNLOAD_URL = 'https://{domain}/download?testcase_id={testcase_id}'
 TESTCASE_REVISION_RANGE_URL = (
     'https://{domain}/revisions?job={job_type}&range={revision_range}')
+TESTCASE_REVISION_URL = (
+    'https://{domain}/revisions?job={job_type}&revision={revision}')
 
 FILE_UNREPRODUCIBLE_TESTCASE_TEXT = (
     '<b>Note: This crash might not be reproducible with the provided testcase. '
@@ -381,6 +383,10 @@ def get_issue_description(testcase,
       domain=domain,
       job_type=testcase.job_type,
       revision_range=testcase.regression)
+  revision_range_url = TESTCASE_REVISION_URL.format(
+      domain=domain,
+      job_type=testcase.job_type,
+      revision=testcase.crash_revision)
   fixed_revision_range_url = TESTCASE_REVISION_RANGE_URL.format(
       domain=domain, job_type=testcase.job_type, revision_range=testcase.fixed)
 
@@ -390,7 +396,7 @@ def get_issue_description(testcase,
                 testcase_id=testcase_id, report_url=report_url))
 
   # Now create the content string.
-  content_string = 'Detailed report: %s\n\n' % report_url
+  content_string = 'Detailed Report: %s\n\n' % report_url
 
   project_name = get_project_name(testcase.job_type)
   if project_name and project_name != utils.default_project_name():
@@ -398,8 +404,8 @@ def get_issue_description(testcase,
 
   fuzzer_display = get_fuzzer_display(testcase)
   if fuzzer_display.engine:
-    content_string += 'Fuzzing engine: %s\n' % fuzzer_display.engine
-    content_string += 'Fuzz target: %s\n' % fuzzer_display.target
+    content_string += 'Fuzzing Engine: %s\n' % fuzzer_display.engine
+    content_string += 'Fuzz Target: %s\n' % fuzzer_display.target
   else:
     content_string += 'Fuzzer: %s\n' % fuzzer_display.name
 
@@ -432,6 +438,8 @@ def get_issue_description(testcase,
       not testcase.regression.startswith('0:') and
       not testcase.regression.endswith('!')):
     content_string += 'Regressed: %s\n' % regressed_revision_range_url
+  else:
+    content_string += 'Crash Revision: %s\n' % revision_range_url
 
   if (testcase.fixed and testcase.fixed != 'NA' and testcase.fixed != 'Yes' and
       not testcase.fixed.endswith('!')):

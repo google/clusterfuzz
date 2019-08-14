@@ -92,7 +92,8 @@ class DataHandlerTest(unittest.TestCase):
         overridden_fuzzer_name='libfuzzer_binary_name',
         crash_type='Crash-type',
         crash_address='0x1337',
-        crash_state='A\nB\nC\n')
+        crash_state='A\nB\nC\n',
+        crash_revision=1337)
     self.testcase.set_metadata(
         'fuzzer_binary_name', 'binary_name', update_testcase=False)
 
@@ -102,7 +103,8 @@ class DataHandlerTest(unittest.TestCase):
         overridden_fuzzer_name='libfuzzer_binary_name',
         crash_type='ASSERT',
         crash_address='0x1337',
-        crash_state='foo != bar\nB\nC\n')
+        crash_state='foo != bar\nB\nC\n',
+        crash_revision=1337)
     self.testcase_assert.set_metadata(
         'fuzzer_binary_name', 'binary_name', update_testcase=False)
 
@@ -111,14 +113,16 @@ class DataHandlerTest(unittest.TestCase):
         fuzzer_name='fuzzer1',
         crash_type='UNKNOWN',
         crash_address='0x1337',
-        crash_state='NULL')
+        crash_state='NULL',
+        crash_revision=1337)
 
     self.testcase_empty = data_types.Testcase(
         job_type='linux_asan_chrome',
         fuzzer_name='fuzzer2',
         crash_type='',
         crash_address='',
-        crash_state='')
+        crash_state='',
+        crash_revision=1337)
 
     self.testcase_bad_cast = data_types.Testcase(
         job_type='linux_asan_chrome',
@@ -128,7 +132,8 @@ class DataHandlerTest(unittest.TestCase):
         crash_state=(
             'Bad-cast to blink::LayoutBlock from blink::LayoutTableSection\n'
             'blink::LayoutObject::ContainerForFixedPosition\n'
-            'blink::LayoutObject::Container\n'))
+            'blink::LayoutObject::Container\n'),
+        crash_revision=1337)
 
     self.testcase_bad_cast_without_crash_function = data_types.Testcase(
         job_type='linux_asan_chrome',
@@ -136,7 +141,8 @@ class DataHandlerTest(unittest.TestCase):
         crash_type='Bad-cast',
         crash_address='0x1337',
         crash_state=(
-            'Bad-cast to blink::LayoutBlock from blink::LayoutTableSection\n'))
+            'Bad-cast to blink::LayoutBlock from blink::LayoutTableSection\n'),
+        crash_revision=1337)
 
     self.local_data_bundle = data_types.DataBundle(name='local_data_bundle')
     self.cloud_data_bundle = data_types.DataBundle(name='cloud_data_bundle')
@@ -255,15 +261,17 @@ class DataHandlerTest(unittest.TestCase):
 
     description = data_handler.get_issue_description(self.testcase)
     self.assertEqual(
-        description, 'Detailed report: https://test-clusterfuzz.appspot.com/'
+        description, 'Detailed Report: https://test-clusterfuzz.appspot.com/'
         'testcase?key=1\n\n'
-        'Fuzzing engine: libFuzzer\n'
-        'Fuzz target: binary_name\n'
+        'Fuzzing Engine: libFuzzer\n'
+        'Fuzz Target: binary_name\n'
         'Job Type: windows_asan_chrome\n'
         'Crash Type: Out-of-memory (exceeds 2048 MB)\n'
         'Crash Address: 0x1337\n'
         'Crash State:\n  A\n  B\n  C\n  \n'
         'Sanitizer: address (ASAN)\n\n'
+        'Crash Revision: https://test-clusterfuzz.appspot.com/revisions?'
+        'job=windows_asan_chrome&revision=1337\n\n'
         'Reproducer Testcase: '
         'https://test-clusterfuzz.appspot.com/download?testcase_id=1\n\n'
         'See help_url for instructions to reproduce this bug locally.\n\n'
@@ -277,19 +285,22 @@ class DataHandlerTest(unittest.TestCase):
     self.testcase.crash_stacktrace = (
         'Line1\n'
         'Command: /fuzzer -rss_limit_mb=2048 -timeout=25 -max_len=10 /testcase')
+    self.testcase.regression = '1337:1338'
     self.testcase.put()
 
     description = data_handler.get_issue_description(self.testcase)
     self.assertEqual(
-        description, 'Detailed report: https://test-clusterfuzz.appspot.com/'
+        description, 'Detailed Report: https://test-clusterfuzz.appspot.com/'
         'testcase?key=1\n\n'
-        'Fuzzing engine: libFuzzer\n'
-        'Fuzz target: binary_name\n'
+        'Fuzzing Engine: libFuzzer\n'
+        'Fuzz Target: binary_name\n'
         'Job Type: linux_asan_chrome\n'
         'Crash Type: Timeout (exceeds 25 secs)\n'
         'Crash Address: 0x1337\n'
         'Crash State:\n  A\n  B\n  C\n  \n'
         'Sanitizer: address (ASAN)\n\n'
+        'Regressed: https://test-clusterfuzz.appspot.com/revisions?'
+        'job=linux_asan_chrome&range=1337:1338\n\n'
         'Reproducer Testcase: '
         'https://test-clusterfuzz.appspot.com/download?testcase_id=1\n\n'
         'See help_url for instructions to reproduce this bug locally.')
@@ -301,16 +312,18 @@ class DataHandlerTest(unittest.TestCase):
 
     description = data_handler.get_issue_description(self.testcase)
     self.assertEqual(
-        description, 'Detailed report: https://test-clusterfuzz.appspot.com/'
+        description, 'Detailed Report: https://test-clusterfuzz.appspot.com/'
         'testcase?key=1\n\n'
         'Project: project\n'
-        'Fuzzing engine: libFuzzer\n'
-        'Fuzz target: binary_name\n'
+        'Fuzzing Engine: libFuzzer\n'
+        'Fuzz Target: binary_name\n'
         'Job Type: linux_asan_chrome\n'
         'Crash Type: Crash-type\n'
         'Crash Address: 0x1337\n'
         'Crash State:\n  A\n  B\n  C\n  \n'
         'Sanitizer: address (ASAN)\n\n'
+        'Crash Revision: https://test-clusterfuzz.appspot.com/revisions?'
+        'job=linux_asan_chrome&revision=1337\n\n'
         'Reproducer Testcase: '
         'https://test-clusterfuzz.appspot.com/download?testcase_id=1\n\n'
         'See help_url for instructions to reproduce this bug locally.')
@@ -322,7 +335,7 @@ class DataHandlerTest(unittest.TestCase):
 
     description = data_handler.get_issue_description(self.testcase_null)
     self.assertEqual(
-        description, 'Detailed report: https://test-clusterfuzz.appspot.com/'
+        description, 'Detailed Report: https://test-clusterfuzz.appspot.com/'
         'testcase?key=3\n\n'
         'Project: project\n'
         'Fuzzer: fuzzer1\n'
@@ -331,6 +344,8 @@ class DataHandlerTest(unittest.TestCase):
         'Crash Address: 0x1337\n'
         'Crash State:\n  NULL\n'
         'Sanitizer: address (ASAN)\n\n'
+        'Crash Revision: https://test-clusterfuzz.appspot.com/revisions?'
+        'job=linux_asan_chrome&revision=1337\n\n'
         'Reproducer Testcase: https://test-clusterfuzz.appspot.com/'
         'download?testcase_id=3\n\n'
         'See help_url for instructions to reproduce this bug locally.')
