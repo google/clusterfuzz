@@ -405,7 +405,7 @@ class FuchsiaQemuLibFuzzerRunner(new_process.ProcessRunner, LibFuzzerCommon):
                           r'\1\2' + crash_testcase_file_path, line)
           new_file.write(line)
     os.remove(self.fuzzer.logfile)
-    os.rename(new_file_handle_path, self.fuzzer.logfile)
+    shutil.move(new_file_handle_path, self.fuzzer.logfile)
 
   def fuzz(self,
            corpus_directories,
