@@ -24,6 +24,7 @@ from bot.fuzzers import engine_common
 from bot.fuzzers.afl import strategies
 from fuzzing import strategy
 from metrics import logs
+from system import environment
 
 SANITIZER_START_REGEX = re.compile(r'.*ERROR: [A-z]+Sanitizer:.*')
 SANITIZER_SEPERATOR_REGEX = re.compile(r'^=+$')
@@ -232,6 +233,9 @@ class StatsGetter(object):
   def set_strategy_stats(self, fuzzing_strategies):
     """Sets strategy related stats for afl-fuzz to correct values based on
     |strategies|."""
+
+    self.stats['strategy_selection_method'] = environment.get_value(
+        'STRATEGY_SELECTION_METHOD', default_value='default')
 
     if fuzzing_strategies.use_corpus_subset:
       self.stats['strategy_' + strategy.CORPUS_SUBSET_STRATEGY.name] = (

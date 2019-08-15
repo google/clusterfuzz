@@ -151,6 +151,7 @@ class StatsGetterTests(unittest.TestCase):
         'new_units_generated': 2,
         'stability': 100,
         'startup_crash_count': 0,
+        'strategy_selection_method': 'default',
         'timeout_count': 1,
         'timeout_limit': 20,
     }
@@ -177,6 +178,7 @@ class StatsGetterTests(unittest.TestCase):
         'new_units_generated': 2,
         'stability': 0.0,
         'startup_crash_count': 0,
+        'strategy_selection_method': 'default',
         'timeout_count': 0,
         'timeout_limit': 0,
     }
@@ -200,6 +202,7 @@ class StatsGetterTests(unittest.TestCase):
         'new_units_generated': 2,
         'stability': 0.0,
         'startup_crash_count': 0,
+        'strategy_selection_method': 'default',
         'timeout_count': 0,
         'timeout_limit': 0,
     }
@@ -276,7 +279,7 @@ class StatsGetterTests(unittest.TestCase):
     actual_stats = self._set_stats()
     self.assertEqual(actual_stats[self.strategies.FAST_CAL_RANDOM_STRATEGY], 1)
 
-    # Test that stats for generator strtagies are correct.
+    # Test that stats for generator strategies are correct.
     self.strategies.generator_strategy = engine_common.Generator.RADAMSA
     actual_stats = self._set_stats()
     self.assertEqual(
