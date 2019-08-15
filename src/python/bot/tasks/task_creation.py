@@ -150,6 +150,9 @@ def create_variant_tasks_if_needed(testcase):
     return
 
   testcase_id = testcase.key.id()
+  testcase_platform = data_types.Job.query(
+      data_types.Job.name == testcase.job_type).get().platform
+
   jobs = ndb_utils.get_all_from_model(data_types.Job)
   for job in jobs:
     # The variant needs to be tested in a different job type than us.
@@ -171,6 +174,10 @@ def create_variant_tasks_if_needed(testcase):
     # Don't look for variants in other projects.
     project_name = data_handler.get_project_name(job_type)
     if testcase.project_name != project_name:
+      continue
+
+    # Don't create cross-platform variants for test cases with gestures.
+    if testcase.gestures and job.platform != testcase_platform:
       continue
 
     queue = tasks.queue_for_platform(job.platform)
