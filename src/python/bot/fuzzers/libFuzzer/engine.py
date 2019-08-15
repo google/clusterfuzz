@@ -16,6 +16,7 @@
 import os
 import re
 
+from base import utils
 from bot.fuzzers import dictionary_manager
 from bot.fuzzers import engine
 from bot.fuzzers import engine_common
@@ -26,6 +27,7 @@ from bot.fuzzers.libFuzzer import constants
 from bot.fuzzers.libFuzzer import fuzzer
 from bot.fuzzers.libFuzzer import launcher
 from bot.fuzzers.libFuzzer import stats
+from datastore import data_types
 from fuzzing import strategy
 from metrics import logs
 from metrics import profiler
@@ -161,8 +163,9 @@ class LibFuzzerEngine(engine.Engine):
       result = self.minimize_corpus(
           target_path=target_path,
           arguments=arguments,
-          output_dir=merge_corpus,
           input_dirs=merge_dirs,
+          output_dir=merge_corpus,
+          reproducers_dir=None,
           max_time=engine_common.get_merge_timeout(
               launcher.DEFAULT_MERGE_TIMEOUT))
 
@@ -177,6 +180,14 @@ class LibFuzzerEngine(engine.Engine):
       logs.log_error('Merge failed.')
 
     stat_overrides['new_units_added'] = new_units_added
+
+    logs.log('Stats calculated', stats=stat_overrides)
+
+    # Record the stats to make them easily searchable in stackdriver.
+    if new_units_added:
+      logs.log('New units added to corpus: %d.' % new_units_added)
+    else:
+      logs.log('No new units found.')
 
   def fuzz(self, target_path, options, reproducers_dir, max_time):
     """Run a fuzz session.
@@ -227,8 +238,11 @@ class LibFuzzerEngine(engine.Engine):
 
     # Extend parsed stats by additional performance features.
     parsed_stats.update(
-        stats.parse_performance_features(log_lines, options.strategies,
-                                         options.arguments))
+        stats.parse_performance_features(
+            log_lines,
+            options.strategies,
+            options.arguments,
+            include_strategies=False))
 
     # Set some initial stat overrides.
     timeout_limit = fuzzer_utils.extract_argument(
@@ -251,6 +265,13 @@ class LibFuzzerEngine(engine.Engine):
     self._merge_new_units(target_path, options.corpus_dir, new_corpus_dir,
                           options.fuzz_corpus_dirs, arguments, parsed_stats)
 
+    # Add custom crash state based on fuzzer name (if needed).
+    project_qualified_fuzzer_name = (
+        data_types.fuzz_target_project_qualified_name(
+            utils.current_project(), os.path.basename(target_path)))
+    launcher.add_custom_crash_state_if_needed(project_qualified_fuzzer_name,
+                                              log_lines, parsed_stats)
+
     fuzz_logs = '\n'.join(log_lines)
     crashes = []
     if crash_testcase_file_path:
@@ -260,8 +281,9 @@ class LibFuzzerEngine(engine.Engine):
           engine.Crash(crash_testcase_file_path, fuzz_logs, arguments,
                        actual_duration))
 
-    # TODO(ochang): Custom crash state.
-    # TODO(ochang): Recommended dictionary.
+    launcher.analyze_and_update_recommended_dictionary(
+        runner, project_qualified_fuzzer_name, log_lines, options.corpus_dir,
+        arguments)
 
     return engine.Result(fuzz_logs, fuzz_result.command, crashes, parsed_stats,
                          fuzz_result.time_executed)
@@ -286,15 +308,17 @@ class LibFuzzerEngine(engine.Engine):
     return engine.ReproduceResult(result.return_code, result.time_executed,
                                   result.output)
 
-  def minimize_corpus(self, target_path, arguments, output_dir, input_dirs,
-                      max_time):
+  def minimize_corpus(self, target_path, arguments, input_dirs, output_dir,
+                      reproducers_dir, max_time):
     """Optional (but recommended): run corpus minimization.
 
     Args:
       target_path: Path to the target.
       arguments: Additional arguments needed for corpus minimization.
-      output_dir: Output directory to place minimized corpus.
       input_dirs: Input corpora.
+      output_dir: Output directory to place minimized corpus.
+      reproducers_dir: The directory to put reproducers in when crashes are
+          found.
       max_time: Maximum allowed time for the minimization.
 
     Returns:
@@ -303,6 +327,10 @@ class LibFuzzerEngine(engine.Engine):
     runner = libfuzzer.get_runner(target_path)
     launcher.set_sanitizer_options(target_path)
     merge_tmp_dir = self._create_temp_corpus_dir('merge-workdir')
+
+    if reproducers_dir:
+      artifact_prefix = self._artifact_prefix(os.path.abspath(reproducers_dir))
+      arguments = arguments + [artifact_prefix]
 
     merge_result = runner.merge(
         [output_dir] + input_dirs,
