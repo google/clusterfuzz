@@ -279,7 +279,7 @@ class StatsGetterTests(unittest.TestCase):
     actual_stats = self._set_stats()
     self.assertEqual(actual_stats[self.strategies.FAST_CAL_RANDOM_STRATEGY], 1)
 
-    # Test that stats for generator strtagies are correct.
+    # Test that stats for generator strategies are correct.
     self.strategies.generator_strategy = engine_common.Generator.RADAMSA
     actual_stats = self._set_stats()
     self.assertEqual(
