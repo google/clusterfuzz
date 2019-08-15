@@ -813,7 +813,8 @@ class ProjectSetup(object):
         additional_vars.update(engine_sanitizer_vars)
 
         for key, value in six.iteritems(additional_vars):
-          job.environment_string += ('{} = {}\n'.format(key, value))
+          job.environment_string += ('{} = {}\n'.format(
+              key, value.encode('unicode-escape')))
 
       job.put()
 
