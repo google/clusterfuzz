@@ -161,6 +161,18 @@ _AFL_SCHEMA = [{
     'mode': 'NULLABLE',
     'name': 'leak_count',
     'type': 'INTEGER'
+}, {
+    'mode': 'NULLABLE',
+    'name': 'strategy_corpus_mutations_radamsa',
+    'type': 'INTEGER'
+}, {
+    'mode': 'NULLABLE',
+    'name': 'strategy_corpus_mutations_ml_rnn',
+    'type': 'INTEGER'
+}, {
+    'mode': 'NULLABLE',
+    'name': 'strategy_selection_method',
+    'type': 'STRING'
 }]
 
 _LIBFUZZER_SCHEMA = [{
