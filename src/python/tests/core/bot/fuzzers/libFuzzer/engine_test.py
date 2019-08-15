@@ -35,8 +35,8 @@ from tests.test_libs import test_utils
 
 TEST_PATH = os.path.abspath(os.path.dirname(__file__))
 TEST_DIR = os.path.join(TEST_PATH, 'launcher_test_data')
-TEMP_DIRECTORY = os.path.join(TEST_PATH, 'temp')
-DATA_DIRECTORY = os.path.join(TEST_PATH, 'data')
+TEMP_DIR = os.path.join(TEST_PATH, 'temp')
+DATA_DIR = os.path.join(TEST_PATH, 'data')
 
 
 class PrepareTest(fake_fs_unittest.TestCase):
@@ -273,20 +273,20 @@ def mock_random_choice(seq):
 
 def clear_temp_dir():
   """Clear temp directory."""
-  if os.path.exists(TEMP_DIRECTORY):
-    shutil.rmtree(TEMP_DIRECTORY)
+  if os.path.exists(TEMP_DIR):
+    shutil.rmtree(TEMP_DIR)
 
-  os.mkdir(TEMP_DIRECTORY)
+  os.mkdir(TEMP_DIR)
 
 
 def setup_testcase_and_corpus(testcase, corpus):
   """Setup testcase and corpus."""
   clear_temp_dir()
-  copied_testcase_path = os.path.join(TEMP_DIRECTORY, testcase)
-  shutil.copy(os.path.join(DATA_DIRECTORY, testcase), copied_testcase_path)
+  copied_testcase_path = os.path.join(TEMP_DIR, testcase)
+  shutil.copy(os.path.join(DATA_DIR, testcase), copied_testcase_path)
 
-  copied_corpus_path = os.path.join(TEMP_DIRECTORY, corpus)
-  src_corpus_path = os.path.join(DATA_DIRECTORY, corpus)
+  copied_corpus_path = os.path.join(TEMP_DIR, corpus)
+  src_corpus_path = os.path.join(DATA_DIR, corpus)
 
   if os.path.exists(src_corpus_path):
     shutil.copytree(src_corpus_path, copied_corpus_path)
@@ -309,12 +309,12 @@ class IntegrationTests(unittest.TestCase):
   def setUp(self):
     test_helpers.patch_environ(self)
 
-    os.environ['BUILD_DIR'] = DATA_DIRECTORY
+    os.environ['BUILD_DIR'] = DATA_DIR
     os.environ['FAIL_RETRIES'] = '1'
-    os.environ['FUZZ_INPUTS_DISK'] = TEMP_DIRECTORY
+    os.environ['FUZZ_INPUTS_DISK'] = TEMP_DIR
     os.environ['FUZZ_TEST_TIMEOUT'] = '4800'
     os.environ['JOB_NAME'] = 'libfuzzer_asan'
-    os.environ['INPUT_DIR'] = TEMP_DIRECTORY
+    os.environ['INPUT_DIR'] = TEMP_DIR
 
     test_helpers.patch(self, [
         'bot.fuzzers.engine_common.get_merge_timeout',
@@ -347,7 +347,7 @@ class IntegrationTests(unittest.TestCase):
     """Tests launcher with a crashing testcase."""
     testcase_path, _ = setup_testcase_and_corpus('crash', 'empty_corpus')
     engine_impl = engine.LibFuzzerEngine()
-    target_path = engine_common.find_fuzzer_path(DATA_DIRECTORY, 'test_fuzzer')
+    target_path = engine_common.find_fuzzer_path(DATA_DIR, 'test_fuzzer')
     result = engine_impl.reproduce(target_path, testcase_path, [], 30)
     self.assertIn(
         'ERROR: AddressSanitizer: SEGV on unknown address 0x000000000000',
@@ -363,23 +363,23 @@ class IntegrationTests(unittest.TestCase):
     _, corpus_path = setup_testcase_and_corpus('empty', 'corpus')
     engine_impl = engine.LibFuzzerEngine()
 
-    target_path = engine_common.find_fuzzer_path(DATA_DIRECTORY, 'test_fuzzer')
-    options = engine_impl.prepare(corpus_path, target_path, DATA_DIRECTORY)
+    target_path = engine_common.find_fuzzer_path(DATA_DIR, 'test_fuzzer')
+    options = engine_impl.prepare(corpus_path, target_path, DATA_DIR)
 
-    results = engine_impl.fuzz(target_path, options, TEMP_DIRECTORY, 10)
+    results = engine_impl.fuzz(target_path, options, TEMP_DIR, 10)
 
     self.assert_has_stats(results.stats)
     self.assertListEqual([
-        os.path.join(DATA_DIRECTORY, 'test_fuzzer'),
+        os.path.join(DATA_DIR, 'test_fuzzer'),
         '-max_len=256',
         '-timeout=25',
         '-rss_limit_mb=2048',
         '-use_value_profile=1',
-        '-artifact_prefix=' + TEMP_DIRECTORY + '/',
+        '-artifact_prefix=' + TEMP_DIR + '/',
         '-max_total_time=5',
         '-print_final_stats=1',
-        os.path.join(TEMP_DIRECTORY, 'temp-1337/new'),
-        os.path.join(TEMP_DIRECTORY, 'corpus'),
+        os.path.join(TEMP_DIR, 'temp-1337/new'),
+        os.path.join(TEMP_DIR, 'corpus'),
     ], results.command)
     self.assertEqual(0, len(results.crashes))
 
@@ -392,27 +392,27 @@ class IntegrationTests(unittest.TestCase):
     _, corpus_path = setup_testcase_and_corpus('empty', 'corpus')
     engine_impl = engine.LibFuzzerEngine()
 
-    target_path = engine_common.find_fuzzer_path(DATA_DIRECTORY,
+    target_path = engine_common.find_fuzzer_path(DATA_DIR,
                                                  'always_crash_fuzzer')
-    options = engine_impl.prepare(corpus_path, target_path, DATA_DIRECTORY)
+    options = engine_impl.prepare(corpus_path, target_path, DATA_DIR)
 
-    results = engine_impl.fuzz(target_path, options, TEMP_DIRECTORY, 10)
+    results = engine_impl.fuzz(target_path, options, TEMP_DIR, 10)
 
     self.assert_has_stats(results.stats)
     self.assertListEqual([
-        os.path.join(DATA_DIRECTORY, 'always_crash_fuzzer'),
+        os.path.join(DATA_DIR, 'always_crash_fuzzer'),
         '-max_len=100',
         '-timeout=25',
         '-rss_limit_mb=2048',
-        '-artifact_prefix=' + TEMP_DIRECTORY + '/',
+        '-artifact_prefix=' + TEMP_DIR + '/',
         '-max_total_time=5',
         '-print_final_stats=1',
-        os.path.join(TEMP_DIRECTORY, 'temp-1337/new'),
-        os.path.join(TEMP_DIRECTORY, 'corpus'),
+        os.path.join(TEMP_DIR, 'temp-1337/new'),
+        os.path.join(TEMP_DIR, 'corpus'),
     ], results.command)
     self.assertEqual(1, len(results.crashes))
 
-    self.assertEqual(TEMP_DIRECTORY,
+    self.assertEqual(TEMP_DIR,
                      os.path.dirname(results.crashes[0].input_path))
     self.assertEqual(results.logs, results.crashes[0].stacktrace)
     self.assertListEqual([
@@ -420,7 +420,7 @@ class IntegrationTests(unittest.TestCase):
         '-rss_limit_mb=2048',
     ], results.crashes[0].reproduce_args)
 
-    self.assertIn('Test unit written to {0}/crash-'.format(TEMP_DIRECTORY),
+    self.assertIn('Test unit written to {0}/crash-'.format(TEMP_DIR),
                   results.logs)
     self.assertIn(
         'ERROR: AddressSanitizer: SEGV on unknown address '
