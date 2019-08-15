@@ -412,8 +412,7 @@ class IntegrationTests(unittest.TestCase):
     ], results.command)
     self.assertEqual(1, len(results.crashes))
 
-    self.assertEqual(TEMP_DIR,
-                     os.path.dirname(results.crashes[0].input_path))
+    self.assertEqual(TEMP_DIR, os.path.dirname(results.crashes[0].input_path))
     self.assertEqual(results.logs, results.crashes[0].stacktrace)
     self.assertListEqual([
         '-timeout=25',

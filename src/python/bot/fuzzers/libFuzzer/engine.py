@@ -163,8 +163,8 @@ class LibFuzzerEngine(engine.Engine):
       result = self.minimize_corpus(
           target_path=target_path,
           arguments=arguments,
-          output_dir=merge_corpus,
           input_dirs=merge_dirs,
+          output_dir=merge_corpus,
           reproducers_dir=None,
           max_time=engine_common.get_merge_timeout(
               launcher.DEFAULT_MERGE_TIMEOUT))
@@ -181,13 +181,13 @@ class LibFuzzerEngine(engine.Engine):
 
     stat_overrides['new_units_added'] = new_units_added
 
+    logs.log('Stats calculated', stats=stat_overrides)
+
     # Record the stats to make them easily searchable in stackdriver.
     if new_units_added:
-      logs.log(
-          'New units added to corpus: %d.' % new_units_added,
-          stats=stat_overrides)
+      logs.log('New units added to corpus: %d.' % new_units_added)
     else:
-      logs.log('No new units found.', stats=stat_overrides)
+      logs.log('No new units found.')
 
   def fuzz(self, target_path, options, reproducers_dir, max_time):
     """Run a fuzz session.
@@ -308,15 +308,15 @@ class LibFuzzerEngine(engine.Engine):
     return engine.ReproduceResult(result.return_code, result.time_executed,
                                   result.output)
 
-  def minimize_corpus(self, target_path, arguments, output_dir, input_dirs,
+  def minimize_corpus(self, target_path, arguments, input_dirs, output_dir,
                       reproducers_dir, max_time):
     """Optional (but recommended): run corpus minimization.
 
     Args:
       target_path: Path to the target.
       arguments: Additional arguments needed for corpus minimization.
-      output_dir: Output directory to place minimized corpus.
       input_dirs: Input corpora.
+      output_dir: Output directory to place minimized corpus.
       reproducers_dir: The directory to put reproducers in when crashes are
           found.
       max_time: Maximum allowed time for the minimization.
