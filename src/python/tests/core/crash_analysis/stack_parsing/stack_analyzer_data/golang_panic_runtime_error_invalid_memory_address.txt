@@ -1,0 +1,24 @@
+2017/07/22 10:43:12 loop: instance 0 finished, crash=true
+2017/07/22 10:43:12 vm-0: crash: UBSAN: Undefined behaviour in net/ipv4/tcp_ipv4.c:1631:25
+2017/07/22 10:43:13 loop: add pending repro for 'UBSAN: Undefined behaviour in net/ipv4/tcp_ipv4.c:1631:25'
+2017/07/22 10:43:13 loop: add to repro queue 'UBSAN: Undefined behaviour in net/ipv4/tcp_ipv4.c:1631:25'
+2017/07/22 10:43:13 loop: phase=3 shutdown=false instances=1/1 [0] repro: pending=0 reproducing=1 queued=1
+2017/07/22 10:43:13 loop: starting repro of 'UBSAN: Undefined behaviour in net/ipv4/tcp_ipv4.c:1631:25' on instances [0]
+2017/07/22 10:43:14 reproducing crash 'UBSAN: Undefined behaviour in net/ipv4/tcp_ipv4.c:1631:25': 855 programs, 1 VMs
+2017/07/22 10:43:14 reproducing crash 'UBSAN: Undefined behaviour in net/ipv4/tcp_ipv4.c:1631:25': suspecting 0 programs
+2017/07/22 10:43:14 reproducing crash 'UBSAN: Undefined behaviour in net/ipv4/tcp_ipv4.c:1631:25': no program crashed
+2017/07/22 10:43:14 reproducing crash 'UBSAN: Undefined behaviour in net/ipv4/tcp_ipv4.c:1631:25': **minimizing guilty program
+panic: runtime error: invalid memory address or nil pointer dereference
+[signal SIGSEGV: segmentation violation code=0x1 addr=0x30 pc=0xac5680]**
+
+goroutine 173193 [running]:
+github.com/google/syzkaller/pkg/repro.(*context).reproMinimizeProg(0xc423875950, 0x0, 0x0, 0x400, 0x0)
+  /home/user/gopath/src/github.com/google/syzkaller/pkg/repro/repro.go:218 +0xd0
+github.com/google/syzkaller/pkg/repro.(*context).repro(0xc423875950, 0xc427362000, 0x357, 0x400, 0x578, 0xc4206ddb70, 0xc420418000, 0x39)
+  /home/user/gopath/src/github.com/google/syzkaller/pkg/repro/repro.go:385 +0xa2
+github.com/google/syzkaller/pkg/repro.Run(0xc4279a8000, 0x3bcd09, 0x6f0000, 0xc420418000, 0xc420434420, 0xc42071dfc8, 0x1, 0x1, 0x2, 0x2, ...)
+  /home/user/gopath/src/github.com/google/syzkaller/pkg/repro/repro.go:130 +0x518
+main.(*Manager).vmLoop.func2(0xc4213dc3c0, 0xc420025a20, 0xc42071dfc8, 0x1, 0x1, 0xc420ebfc80)
+  /home/user/gopath/src/github.com/google/syzkaller/syz-manager/manager.go:380 +0x96
+created by main.(*Manager).vmLoop
+  /home/user/gopath/src/github.com/google/syzkaller/syz-manager/manager.go:382 +0xaa9

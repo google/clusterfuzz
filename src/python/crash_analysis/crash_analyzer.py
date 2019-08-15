@@ -91,6 +91,13 @@ UBSAN_CRASH_TYPES_SECURITY = [
     'Non-positive-vla-bound-value',
     'Object-size',
 ]
+GOLANG_CRASH_TYPES_NON_SECURITY = [
+    'index out of range',
+    'integer divide by zero',
+    'makeslice: len out of range',
+    'slice bounds out of range',
+    'stack overflow',
+]
 
 # Default page size of 4KB.
 NULL_DEREFERENCE_BOUNDARY = 0x1000
@@ -296,6 +303,9 @@ def is_security_issue(crash_stacktrace, crash_type, crash_address):
     return True
 
   if crash_type in UBSAN_CRASH_TYPES_NON_SECURITY:
+    return False
+
+  if crash_type in GOLANG_CRASH_TYPES_NON_SECURITY:
     return False
 
   # Floating point exceptions.

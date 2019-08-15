@@ -1,0 +1,33 @@
+panic: bad hex char
+
+goroutine 305380 [running]:
+github.com/google/syzkaller/prog.fromHexChar(0x0, 0x1)
+  prog/encoding.go:905 +0x6d
+github.com/google/syzkaller/prog.hexToByte(0xc456803100, 0xc4567f4300)
+  prog/encoding.go:885 +0x40
+github.com/google/syzkaller/prog.(*parser).deserializeData(0xc456808d20, 0xc445bad730, 0x766744, 0xc456808d20, 0xc445bad720, 0x4084f5)
+  prog/encoding.go:846 +0x86d
+github.com/google/syzkaller/prog.(*parser).parseArgString(0xc456808d20, 0x147b880, 0x2fa3da0, 0x2cea3e0, 0xe, 0x1403bc0, 0x3c0)
+  prog/encoding.go:484 +0x58
+github.com/google/syzkaller/prog.(*parser).parseArgImpl(0xc456808d20, 0x147b880, 0x2fa3da0, 0x7faaddab8a30, 0x0, 0x0, 0xc42060b180)
+  prog/encoding.go:335 +0x79
+github.com/google/syzkaller/prog.(*parser).parseArg(0xc456808d20, 0x147b880, 0x2fa3da0, 0x0, 0x0, 0xc445bad9a0, 0x47942a)
+  prog/encoding.go:307 +0x6f
+github.com/google/syzkaller/prog.(*parser).parseArgAddr(0xc456808d20, 0x147bce0, 0x19f1260, 0x8, 0x8, 0xc42000c220, 0x7faadee331c8)
+  prog/encoding.go:461 +0x3e7
+github.com/google/syzkaller/prog.(*parser).parseArgImpl(0xc456808d20, 0x147bce0, 0x19f1260, 0x0, 0xc42000c220, 0x1, 0xc445bad9e8)
+  prog/encoding.go:333 +0x24e
+github.com/google/syzkaller/prog.(*parser).parseArg(0xc456808d20, 0x147bce0, 0x19f1260, 0x0, 0x1, 0xc42000c220, 0x0)
+  prog/encoding.go:307 +0x6f
+github.com/google/syzkaller/prog.(*parser).parseProg(0xc456808d20, 0xc4b73f4500, 0x27c, 0x280)
+  prog/encoding.go:261 +0x6d3
+github.com/google/syzkaller/prog.(*Target).Deserialize(0xc4201aab60, 0xc4b73f4500, 0x27c, 0x280, 0x1, 0xc4b73f4500, 0x0, 0x280)
+  prog/encoding.go:192 +0x75
+github.com/google/syzkaller/prog.(*Target).ParseLog(0xc4201aab60, 0xc45628eb23, 0x120038, 0x1f74dd, 0xc4201aab60, 0x0, 0x0)
+  prog/parse.go:58 +0x27c
+github.com/google/syzkaller/pkg/repro.Run(0xc45628eb23, 0x120038, 0x1f74dd, 0xc42026ab40, 0x13fc300, 0xc42012c840, 0xc420274be0, 0xc47cf63c00, 0x4, 0x4, ...)
+  pkg/repro/repro.go:69 +0xf7
+main.(*Manager).vmLoop.func2(0xc47a2748e0, 0xc421736160, 0xc47cf63c00, 0x4, 0x4, 0xc420944a80)
+  syz-manager/manager.go:346 +0xac
+created by main.(*Manager).vmLoop
+  syz-manager/manager.go:345 +0xa45

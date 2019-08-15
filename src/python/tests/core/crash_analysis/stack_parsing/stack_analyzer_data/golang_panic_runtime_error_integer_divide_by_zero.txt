@@ -1,0 +1,8 @@
+panic: runtime error: integer divide by zero
+
+goroutine 40 [running]:
+github.com/d2r2/go-bsbmp.(*SensorBMP180).ReadPressureMult10Pa(0x2502020, 0x2500080, 0x3, 0x4087becc, 0xc0000000, 0x4087becc)
+  /home/pi/go/src/github.com/d2r2/go-bsbmp/bmp180.go:340 +0xfa4
+github.com/d2r2/go-bsbmp.(*BMP).ReadAltitude(0x2500090, 0x3, 0x4087becc, 0x1, 0x4b2038)
+  /home/pi/go/src/github.com/d2r2/go-bsbmp/bmp.go:213 +0x38
+main.main.func3(0x2500090)
