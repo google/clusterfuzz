@@ -151,6 +151,7 @@ class StatsGetterTests(unittest.TestCase):
         'new_units_generated': 2,
         'stability': 100,
         'startup_crash_count': 0,
+        'strategy_selection_method': 'default',
         'timeout_count': 1,
         'timeout_limit': 20,
     }
@@ -177,6 +178,7 @@ class StatsGetterTests(unittest.TestCase):
         'new_units_generated': 2,
         'stability': 0.0,
         'startup_crash_count': 0,
+        'strategy_selection_method': 'default',
         'timeout_count': 0,
         'timeout_limit': 0,
     }
@@ -200,6 +202,7 @@ class StatsGetterTests(unittest.TestCase):
         'new_units_generated': 2,
         'stability': 0.0,
         'startup_crash_count': 0,
+        'strategy_selection_method': 'default',
         'timeout_count': 0,
         'timeout_limit': 0,
     }
