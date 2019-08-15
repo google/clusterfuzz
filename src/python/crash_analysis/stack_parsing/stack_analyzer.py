@@ -426,7 +426,7 @@ STACK_FRAME_IGNORE_REGEXES = [
     r'^\<unknown\>$',
     r'^\[vdso\]$',
 
-    # Golang specific regexes to ignore.
+    # Golang specific frames to ignore.
     r'^runtime.throw$',
     r'^runtime.newstack$',
     r'^runtime.morestack$',
