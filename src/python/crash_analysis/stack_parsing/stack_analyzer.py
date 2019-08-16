@@ -264,7 +264,7 @@ GOLANG_CRASH_TYPES_MAP = [
 ]
 
 GOLANG_STACK_FRAME_FUNCTION_REGEX = re.compile(
-    r'^([0-9a-zA-Z\.\-\_\\\/\(\)\*]+)\([0-9a-zA-Z\s,\_]*\)$')
+    r'^([0-9a-zA-Z\.\-\_\\\/\(\)\*]+)\([x0-9a-f\s,\.]*\)$')
 
 # Mappings of Android kernel error status codes to strings.
 ANDROID_KERNEL_STATUS_TO_STRING = {

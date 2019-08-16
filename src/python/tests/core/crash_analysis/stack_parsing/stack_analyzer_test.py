@@ -2530,7 +2530,8 @@ class StackAnalyzerTestcase(unittest.TestCase):
     expected_type = 'Invalid memory address'
     expected_address = ''
     expected_state = ('repro.(*context).reproMinimizeProg\n'
-                      'repro.(*context).repro\n')
+                      'repro.(*context).repro\n'
+                      'repro.Run\n')
 
     expected_stacktrace = data
     expected_security_flag = True
@@ -2560,7 +2561,8 @@ class StackAnalyzerTestcase(unittest.TestCase):
     expected_type = 'Slice bounds out of range'
     expected_address = ''
     expected_state = ('pefile.(*PeFile).readImports\n'
-                      'pefile.LoadPeFile\n')
+                      'pefile.LoadPeFile\n'
+                      'windows.New\n')
 
     expected_stacktrace = data
     expected_security_flag = False
