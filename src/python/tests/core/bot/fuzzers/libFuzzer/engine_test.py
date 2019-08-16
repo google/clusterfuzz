@@ -485,11 +485,16 @@ class IntegrationTests(unittest.TestCase):
       result = f.read()
       self.assertFalse(all(c == 'A' for c in result))
 
-  @mock.patch('bot.fuzzers.dictionary_manager.DictionaryManager.'
-              'parse_recommended_dictionary_from_log_lines')
-  def test_analyze_dict(self, mock_parse_recommended_dictionary):
+  def test_analyze_dict(self):
     """Tests recommended dictionary analysis."""
-    mock_parse_recommended_dictionary.return_value = set([
+    test_helpers.patch(self, [
+        'bot.fuzzers.dictionary_manager.DictionaryManager.'
+        'parse_recommended_dictionary_from_log_lines',
+        'bot.fuzzers.dictionary_manager.DictionaryManager.'
+        'update_recommended_dictionary',
+    ])
+
+    self.mock.parse_recommended_dictionary_from_log_lines.return_value = set([
         '"USELESS_0"',
         '"APPLE"',
         '"USELESS_1"',
@@ -502,11 +507,6 @@ class IntegrationTests(unittest.TestCase):
 
     _, corpus_path = setup_testcase_and_corpus('empty',
                                                'corpus_with_some_files')
-
-    test_helpers.patch(self, [
-        'bot.fuzzers.dictionary_manager.DictionaryManager.'
-        'update_recommended_dictionary',
-    ])
 
     engine_impl = engine.LibFuzzerEngine()
     target_path = engine_common.find_fuzzer_path(DATA_DIR,
