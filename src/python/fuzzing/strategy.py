@@ -34,7 +34,7 @@ CORPUS_MUTATION_ML_RNN_STRATEGY = Strategy(
 DATAFLOW_TRACING_STRATEGY = Strategy(
     name='dataflow_tracing', probability=0.25, manually_enable=True)
 CORPUS_SUBSET_STRATEGY = Strategy(
-    name='corpus_subset', probability=0.50, manually_enable=False)
+    name='corpus_subset', probability=0.50, manually_enable=True)
 FORK_STRATEGY = Strategy(name='fork', probability=0.50, manually_enable=False)
 MUTATOR_PLUGIN_STRATEGY = Strategy(
     name='mutator_plugin', probability=0.50, manually_enable=True)
