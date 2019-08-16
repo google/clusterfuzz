@@ -670,12 +670,14 @@ def test_for_crash_with_retries(testcase,
                                 testcase_path,
                                 test_timeout,
                                 http_flag=False,
-                                compare_crash=True):
+                                compare_crash=True,
+                                use_gestures=True):
   """Test for a crash and return crash parameters like crash type, crash state,
   crash stacktrace, etc."""
+  gestures = testcase.gestures if use_gestures else None
   try:
     runner = TestcaseRunner(testcase.fuzzer_name, testcase_path, test_timeout,
-                            testcase.gestures, http_flag)
+                            gestures, http_flag)
   except TargetNotFoundError:
     # If a target isn't found, treat it as not crashing.
     return CrashResult(return_code=0, crash_time=0, output='')
