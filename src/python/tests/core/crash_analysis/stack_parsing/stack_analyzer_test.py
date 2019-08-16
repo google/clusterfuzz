@@ -2441,8 +2441,7 @@ class StackAnalyzerTestcase(unittest.TestCase):
     data = self._read_test_data('golang_asan_panic.txt')
     expected_type = 'ASSERT'
     expected_address = ''
-    expected_state = (
-        'asn1: string not valid UTF-8\nasn1.Fuzz\nruntime.raise\n')
+    expected_state = 'asn1: string not valid UTF-8\nasn1.Fuzz\n'
 
     expected_stacktrace = data
     expected_security_flag = True
