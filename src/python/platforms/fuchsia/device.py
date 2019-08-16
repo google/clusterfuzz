@@ -115,8 +115,7 @@ def qemu_setup():
 
   # Detecing KVM is tricky, so let's use an environment variable, set from the
   # docker image, to determine whether to turn it on or not.
-  kvm = environment.get_value('FUCHSIA_USE_KVM')
-  if kvm:
+  if environment.get_value('FUCHSIA_USE_KVM'):
     qemu_args.append('-enable-kvm')
 
   # Get the list of fuzzers for ClusterFuzz to choose from.
