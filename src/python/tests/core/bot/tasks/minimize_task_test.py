@@ -69,11 +69,6 @@ class LibFuzzerMinimizeTaskTest(unittest.TestCase):
         security_flag=True)
     testcase.put()
 
-    job = data_types.Job()
-    job.platform = 'LINUX'
-    job.name = 'libfuzzer_asan_job'
-    job.put()
-
     stacktrace = (
         '==14970==ERROR: AddressSanitizer: heap-buffer-overflow on address '
         '0x61b00001f7d0 at pc 0x00000064801b bp 0x7ffce478dbd0 sp '
