@@ -444,10 +444,10 @@ STACK_FRAME_IGNORE_REGEXES = [
 
     # Golang specific frames to ignore.
     r'^panic$',
-    r'^runtime.throw$',
-    r'^runtime.newstack$',
-    r'^runtime.morestack$',
-    r'^runtime.raise$',
+    r'^runtime\.newstack$',
+    r'^runtime\.morestack$',
+    r'^runtime\.raise(\s.*|$)',
+    r'^runtime\.throw$',
 ]
 
 STACK_FRAME_IGNORE_REGEXES_IF_SYMBOLIZED = [
