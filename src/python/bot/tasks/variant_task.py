@@ -59,7 +59,7 @@ def execute_task(testcase_id, job_type):
 
   # Disable gestures if we're running on a different platform from that of
   # the original test case.
-  use_gestures = testcase.platform == environment.platform()
+  use_gestures = testcase.platform == environment.platform().lower()
 
   # Reproduce the crash.
   command = testcase_manager.get_command_line_for_application(
