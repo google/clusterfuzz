@@ -670,8 +670,8 @@ def test_for_crash_with_retries(testcase,
                                 testcase_path,
                                 test_timeout,
                                 http_flag=False,
-                                compare_crash=True,
-                                use_gestures=True):
+                                use_gestures=True,
+                                compare_crash=True):
   """Test for a crash and return crash parameters like crash type, crash state,
   crash stacktrace, etc."""
   gestures = testcase.gestures if use_gestures else None

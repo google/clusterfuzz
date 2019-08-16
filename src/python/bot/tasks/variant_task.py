@@ -71,8 +71,8 @@ def execute_task(testcase_id, job_type):
       testcase_file_path,
       test_timeout,
       http_flag=testcase.http_flag,
-      compare_crash=False,
-      use_gestures=use_gestures)
+      use_gestures=use_gestures,
+      compare_crash=False)
 
   if result.is_crash() and not result.should_ignore():
     crash_state = result.get_state()
