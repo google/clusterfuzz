@@ -242,11 +242,27 @@ WINDOWS_CDB_STACK_OVERFLOW_REGEX = re.compile(
     r'.*ExceptionCode: .*\(Stack overflow\).*')
 
 # Golang specific regular expressions.
-GOLANG_PANIC_REGEX = re.compile(
-    r'^(panic: runtime error|fatal error): (index out of range|'
-    r'integer divide by zero|invalid memory address|'
-    r'makeslice: len out of range|slice bounds out of range|stack overflow|'
-    r').*')
+GOLANG_DIVISION_BY_ZERO_REGEX = re.compile(
+    r'^panic: runtime error: integer divide by zero.*')
+GOLANG_INDEX_OUT_OF_RANGE_REGEX = re.compile(
+    r'^panic: runtime error: index out of range.*')
+GOLANG_INVALID_MEMORY_ADDRESS_REGEX = re.compile(
+    r'^panic: runtime error: invalid memory address.*')
+GOLANG_MAKESLICE_LEN_OUT_OF_RANGE_REGEX = re.compile(
+    r'^panic: runtime error: makeslice: len out of range.*')
+GOLANG_SLICE_BOUNDS_OUT_OF_RANGE_REGEX = re.compile(
+    r'^panic: runtime error: slice bounds out of range.*')
+GOLANG_STACK_OVERFLOW_REGEX = re.compile(r'^fatal error: stack overflow.*')
+
+GOLANG_CRASH_TYPES_MAP = [
+    (GOLANG_DIVISION_BY_ZERO_REGEX, 'Integer divide by zero'),
+    (GOLANG_INDEX_OUT_OF_RANGE_REGEX, 'Index out of range'),
+    (GOLANG_INVALID_MEMORY_ADDRESS_REGEX, 'Invalid memory address'),
+    (GOLANG_MAKESLICE_LEN_OUT_OF_RANGE_REGEX, 'Makeslice: len out of range'),
+    (GOLANG_SLICE_BOUNDS_OUT_OF_RANGE_REGEX, 'Slice bounds out of range'),
+    (GOLANG_STACK_OVERFLOW_REGEX, 'Stack overflow'),
+]
+
 GOLANG_STACK_FRAME_FUNCTION_REGEX = re.compile(
     r'^([0-9a-zA-Z\.\-\_\\\/\(\)\*]+)\([0-9a-zA-Z\s,\_]*\)$')
 
@@ -427,9 +443,11 @@ STACK_FRAME_IGNORE_REGEXES = [
     r'^\[vdso\]$',
 
     # Golang specific frames to ignore.
+    r'^panic$',
     r'^runtime.throw$',
     r'^runtime.newstack$',
     r'^runtime.morestack$',
+    r'^runtime.raise$',
 ]
 
 STACK_FRAME_IGNORE_REGEXES_IF_SYMBOLIZED = [
@@ -1064,6 +1082,7 @@ def get_crash_data(crash_data, symbolize_flag=True):
       (not redzone_size or redzone_size <= MAX_REDZONE_SIZE_FOR_OOMS_AND_HANGS))
 
   is_kasan = 'KASAN' in crash_stacktrace_without_inlines
+  is_golang = '.go:' in crash_stacktrace_without_inlines
 
   for line in crash_stacktrace_without_inlines.splitlines():
     if should_ignore_line_for_crash_processing(line, state):
@@ -1243,10 +1262,13 @@ def get_crash_data(crash_data, symbolize_flag=True):
         address_from_group=2)
 
     # Golang stacktraces.
-    golang_panic_match = GOLANG_PANIC_REGEX.match(line)
-    if golang_panic_match:
-      state.crash_type = golang_panic_match.group(2)
-      continue
+    if is_golang:
+      for golang_crash_regex, golang_crash_type in GOLANG_CRASH_TYPES_MAP:
+        if update_state_on_match(
+            golang_crash_regex, line, state, new_type=golang_crash_type):
+          state.crash_state = ''
+          state.frame_count = 0
+          continue
 
     # Sanitizer SEGV crashes.
     segv_match = SAN_SEGV_REGEX.match(line)
@@ -1705,7 +1727,7 @@ def get_crash_data(crash_data, symbolize_flag=True):
       continue
 
     # Golang stack frames.
-    if add_frame_on_match(
+    if is_golang and add_frame_on_match(
         GOLANG_STACK_FRAME_FUNCTION_REGEX,
         line,
         state,

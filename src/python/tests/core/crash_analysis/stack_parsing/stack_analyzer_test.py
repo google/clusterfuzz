@@ -2453,12 +2453,9 @@ class StackAnalyzerTestcase(unittest.TestCase):
   def test_golang_sigsegv_panic(self):
     """Test golang stacktrace with panic and SIGSEGV."""
     data = self._read_test_data('golang_sigsegv_panic.txt')
-    expected_type = 'invalid memory address'
+    expected_type = 'Invalid memory address'
     expected_address = ''
-    expected_state = (
-        'runtime error: invalid memory address or nil pointer dereference\n'
-        'math.glob..func1\n'
-        'math.init.ializers\n')
+    expected_state = 'math.glob..func1\nmath.init.ializers\n'
 
     expected_stacktrace = data
     expected_security_flag = True
@@ -2501,7 +2498,7 @@ class StackAnalyzerTestcase(unittest.TestCase):
   def test_golang_fatal_error_stack_overflow(self):
     """Test golang stacktrace with fatal error caused by stack overflow."""
     data = self._read_test_data('golang_fatal_error_stack_overflow.txt')
-    expected_type = 'stack overflow'
+    expected_type = 'Stack overflow'
     expected_address = ''
     expected_state = ('ast.(*scanner).next\n'
                       'ast.(*scanner).scanIdent\n'
@@ -2530,12 +2527,10 @@ class StackAnalyzerTestcase(unittest.TestCase):
     """Test golang stacktrace with panic caused by invalid memory address."""
     data = self._read_test_data(
         'golang_panic_runtime_error_invalid_memory_address.txt')
-    expected_type = 'invalid memory address'
+    expected_type = 'Invalid memory address'
     expected_address = ''
-    expected_state = (
-        'runtime error: invalid memory address or nil pointer dereference\n'
-        'repro.(*context).reproMinimizeProg\n'
-        'repro.(*context).repro\n')
+    expected_state = ('repro.(*context).reproMinimizeProg\n'
+                      'repro.(*context).repro\n')
 
     expected_stacktrace = data
     expected_security_flag = True
@@ -2547,12 +2542,11 @@ class StackAnalyzerTestcase(unittest.TestCase):
     """Test golang stacktrace with panic caused by index out of range."""
     data = self._read_test_data(
         'golang_panic_runtime_error_index_out_of_range.txt')
-    expected_type = 'index out of range'
+    expected_type = 'Index out of range'
     expected_address = ''
-    expected_state = ('runtime error: index out of range\n'
-                      'http.(*conn).serve.func1\n'
-                      'panic\n')
-
+    expected_state = ('http.(*conn).serve.func1\n'
+                      'http.HandlerFunc.ServeHTTP\n'
+                      'http.(*ServeMux).ServeHTTP\n')
     expected_stacktrace = data
     expected_security_flag = False
     self._validate_get_crash_data(data, expected_type, expected_address,
@@ -2563,10 +2557,9 @@ class StackAnalyzerTestcase(unittest.TestCase):
     """Test golang stacktrace with panic caused by slice bounds out of range."""
     data = self._read_test_data(
         'golang_panic_runtime_error_slice_bounds_out_of_range.txt')
-    expected_type = 'slice bounds out of range'
+    expected_type = 'Slice bounds out of range'
     expected_address = ''
-    expected_state = ('runtime error: slice bounds out of range\n'
-                      'pefile.(*PeFile).readImports\n'
+    expected_state = ('pefile.(*PeFile).readImports\n'
                       'pefile.LoadPeFile\n')
 
     expected_stacktrace = data
@@ -2579,10 +2572,9 @@ class StackAnalyzerTestcase(unittest.TestCase):
     """Test golang stacktrace with panic caused by integer divide by zero."""
     data = self._read_test_data(
         'golang_panic_runtime_error_integer_divide_by_zero.txt')
-    expected_type = 'integer divide by zero'
+    expected_type = 'Integer divide by zero'
     expected_address = ''
-    expected_state = ('runtime error: integer divide by zero\n'
-                      'go-bsbmp.(*SensorBMP180).ReadPressureMult10Pa\n'
+    expected_state = ('go-bsbmp.(*SensorBMP180).ReadPressureMult10Pa\n'
                       'go-bsbmp.(*BMP).ReadAltitude\n')
 
     expected_stacktrace = data
@@ -2596,10 +2588,9 @@ class StackAnalyzerTestcase(unittest.TestCase):
     """
     data = self._read_test_data(
         'golang_panic_runtime_error_makeslice_len_out_of_range.txt')
-    expected_type = 'makeslice: len out of range'
+    expected_type = 'Makeslice: len out of range'
     expected_address = ''
-    expected_state = (
-        'runtime error: makeslice: len out of range\npanic\ngc.newliveness\n')
+    expected_state = ('gc.newliveness\ngc.liveness\ngc.compile\n')
 
     expected_stacktrace = data
     expected_security_flag = False

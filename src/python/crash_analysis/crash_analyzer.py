@@ -92,11 +92,11 @@ UBSAN_CRASH_TYPES_SECURITY = [
     'Object-size',
 ]
 GOLANG_CRASH_TYPES_NON_SECURITY = [
-    'index out of range',
-    'integer divide by zero',
-    'makeslice: len out of range',
-    'slice bounds out of range',
-    'stack overflow',
+    'Index out of range',
+    'Integer divide by zero',
+    'Makeslice: len out of range',
+    'Slice bounds out of range',
+    'Stack overflow',
 ]
 
 # Default page size of 4KB.
