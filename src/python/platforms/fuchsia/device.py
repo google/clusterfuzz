@@ -113,6 +113,12 @@ def qemu_setup():
   ]
   # yapf: enable
 
+  # Detecing KVM is tricky, so let's use an environment variable, set from the
+  # docker image, to determine whether to turn it on or not.
+  kvm = environment.get_value('FUCHSIA_USE_KVM')
+  if kvm:
+    qemu_args.append('-enable-kvm')
+
   # Get the list of fuzzers for ClusterFuzz to choose from.
   host = Host.from_dir(
       os.path.join(fuchsia_resources_dir, 'build', 'out', 'default'))
