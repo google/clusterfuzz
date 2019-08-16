@@ -28,6 +28,7 @@ from bot.untrusted_runner import untrusted
 from datastore import data_types
 from datastore import ndb
 from datastore import ndb_patcher
+from google_cloud_utils import pubsub
 from system import environment
 from system import shell
 from tests.test_libs import helpers as test_helpers
@@ -107,7 +108,7 @@ def _which(prog):
 
 @unittest.skipIf(not os.getenv('UNTRUSTED_RUNNER_TESTS'),
                  'Skipping untrusted runner tests.')
-@test_utils.with_cloud_emulators('datastore')
+@test_utils.with_cloud_emulators('datastore', 'pubsub')
 class UntrustedRunnerIntegrationTest(unittest.TestCase):
   """Base class for doing integration testing of untrusted_runner."""
 
@@ -195,6 +196,10 @@ class UntrustedRunnerIntegrationTest(unittest.TestCase):
     shell.remove_directory(worker_fuzz_inputs, recreate=True)
 
     environment.set_value('GSUTIL_PATH', os.path.dirname(_which('gsutil')))
+
+    test_utils.setup_pubsub('test-clusterfuzz')
+    test_utils.create_pubsub_topic(pubsub.PubSubClient(), 'test-clusterfuzz',
+                                   'jobs-project-linux')
 
   def tearDown(self):
     shutil.rmtree(self.tmp_dir)

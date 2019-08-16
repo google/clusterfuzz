@@ -200,7 +200,7 @@ class LibFuzzerEngine(engine.Engine):
       max_time: Maximum allowed time for the fuzzing to run.
 
     Returns:
-      A Result object.
+      A FuzzResult object.
     """
     profiler.start_if_needed('libfuzzer_fuzz')
     runner = libfuzzer.get_runner(target_path)
@@ -285,8 +285,8 @@ class LibFuzzerEngine(engine.Engine):
         runner, project_qualified_fuzzer_name, log_lines, options.corpus_dir,
         arguments)
 
-    return engine.Result(fuzz_logs, fuzz_result.command, crashes, parsed_stats,
-                         fuzz_result.time_executed)
+    return engine.FuzzResult(fuzz_logs, fuzz_result.command, crashes,
+                             parsed_stats, fuzz_result.time_executed)
 
   def reproduce(self, target_path, input_path, arguments, max_time):
     """Reproduce a crash given an input.
@@ -345,8 +345,8 @@ class LibFuzzerEngine(engine.Engine):
       raise MergeError('Merging new testcases failed')
 
     # TODO(ochang): Get crashes found during merge.
-    return engine.Result(merge_result.output, merge_result.command, [], {},
-                         merge_result.time_executed)
+    return engine.FuzzResult(merge_result.output, merge_result.command, [], {},
+                             merge_result.time_executed)
 
   def minimize_testcase(self, target_path, arguments, input_path, output_path,
                         max_time):
@@ -360,7 +360,7 @@ class LibFuzzerEngine(engine.Engine):
       max_time: Maximum allowed time for the minimization.
 
     Returns:
-      A boolean indicating success.
+      A ReproduceResult.
     """
     runner = libfuzzer.get_runner(target_path)
     launcher.set_sanitizer_options(target_path)
@@ -373,7 +373,8 @@ class LibFuzzerEngine(engine.Engine):
         max_time,
         additional_args=arguments + [artifact_prefix])
 
-    return result.return_code == 0
+    return engine.ReproduceResult(result.return_code, result.time_executed,
+                                  result.output)
 
   def cleanse(self, target_path, arguments, input_path, output_path, max_time):
     """Optional (but recommended): Cleanse a testcase.
@@ -386,7 +387,7 @@ class LibFuzzerEngine(engine.Engine):
       max_time: Maximum allowed time for the cleanse.
 
     Returns:
-      A boolean indicating success.
+      A ReproduceResult.
     """
     runner = libfuzzer.get_runner(target_path)
     launcher.set_sanitizer_options(target_path)
@@ -399,4 +400,5 @@ class LibFuzzerEngine(engine.Engine):
         max_time,
         additional_args=arguments + [artifact_prefix])
 
-    return result.return_code == 0
+    return engine.ReproduceResult(result.return_code, result.time_executed,
+                                  result.output)

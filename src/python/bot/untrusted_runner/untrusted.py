@@ -180,6 +180,10 @@ class UntrustedRunnerServicer(
     return file_impl.get_fuzz_targets(request, context)
 
   @wrap_servicer
+  def ProcessTestcase(self, request, context):
+    return tasks_impl.process_testcase(request, context)
+
+  @wrap_servicer
   def PruneCorpus(self, request, context):
     return tasks_impl.prune_corpus(request, context)
 

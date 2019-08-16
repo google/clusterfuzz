@@ -1342,7 +1342,7 @@ class DoEngineFuzzingTest(fake_filesystem_unittest.TestCase):
     engine_impl.name = 'libFuzzer'
     engine_impl.prepare.return_value = engine.FuzzOptions(
         '/corpus', ['arg'], ['strategy_1', 'strategy_2'])
-    engine_impl.fuzz.return_value = engine.Result(
+    engine_impl.fuzz.return_value = engine.FuzzResult(
         'logs', ['cmd'], expected_crashes, {'stat': 1}, 42.0)
 
     crashes, fuzzer_metadata = session.do_engine_fuzzing(engine_impl)

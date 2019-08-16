@@ -6,6 +6,7 @@ $SCRIPT_DIR/run_ndb_patcher_tests
 $SCRIPT_DIR/run_reproduce_tool_tests
 $SCRIPT_DIR/run_js_tests
 $SCRIPT_DIR/run_untrusted_test untrusted_runner_integration
+$SCRIPT_DIR/run_untrusted_test minimize_task
 $SCRIPT_DIR/run_untrusted_test corpus_pruning
 $SCRIPT_DIR/run_afl_tests
 

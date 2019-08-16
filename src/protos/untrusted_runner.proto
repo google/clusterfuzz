@@ -264,6 +264,26 @@ message FuzzTarget {
   optional string binary = 3;
 }
 
+message ProcessTestcaseRequest {
+  enum Operation {
+    MINIMIZE = 0;
+    CLEANSE = 1;
+  }
+  optional string engine = 1;
+  optional Operation operation = 2;
+  optional string target_name = 3;
+  repeated string arguments = 4;
+  optional string testcase_path = 5;
+  optional string output_path = 6;
+  optional uint64 timeout = 7;
+}
+
+message ProcessTestcaseResponse {
+  optional int64 return_code = 1;
+  optional double time_executed = 2;
+  optional bytes output = 3;
+}
+
 // UntrusterRunner service.
 service UntrustedRunner {
   // Get information about the worker.
@@ -322,4 +342,7 @@ service UntrustedRunner {
 
   // libFuzzer specific: corpus pruning
   rpc PruneCorpus(PruneCorpusRequest) returns (PruneCorpusResponse);
+
+  // Engine specific: Do testcase minimization or cleanse.
+  rpc ProcessTestcase(ProcessTestcaseRequest) returns (ProcessTestcaseResponse);
 }

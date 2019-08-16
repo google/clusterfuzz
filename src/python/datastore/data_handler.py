@@ -301,7 +301,7 @@ def get_fuzzer_display(testcase):
       fully_qualified_name=fuzz_target.fully_qualified_name())
 
 
-def get_arguments(testcase):
+def get_arguments(testcase, strip_target=True):
   """Return minimized arguments, without testcase argument and fuzz target
   binary itself (for engine fuzzers)."""
   arguments = (
@@ -313,10 +313,11 @@ def get_arguments(testcase):
 
   # Filter out fuzz target argument. We shouldn't have any case for this other
   # than what is needed by launcher.py for engine based fuzzers.
-  fuzzer_display = get_fuzzer_display(testcase)
-  fuzz_target = fuzzer_display.target
-  if fuzz_target:
-    arguments = re.sub(fuzz_target, '', arguments)
+  if strip_target:
+    fuzzer_display = get_fuzzer_display(testcase)
+    fuzz_target = fuzzer_display.target
+    if fuzz_target:
+      arguments = re.sub(fuzz_target, '', arguments)
 
   return arguments.strip()
 

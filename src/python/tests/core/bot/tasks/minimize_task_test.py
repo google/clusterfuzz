@@ -172,7 +172,7 @@ class MinimizeTaskTestUntrusted(
         crash_revision=1337,
         fuzzed_keys=fuzzed_keys,
         fuzzer_name='libFuzzer',
-        overriden_fuzzer_name='libFuzzer_test_fuzzer',
+        overridden_fuzzer_name='libFuzzer_test_fuzzer',
         job_type='libfuzzer_asan_job',
         original_absolute_path=testcase_path,
         absolute_path=testcase_path,
