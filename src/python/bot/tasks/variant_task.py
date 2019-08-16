@@ -57,6 +57,10 @@ def execute_task(testcase_id, job_type):
         'Build setup failed with job: ' + job_type)
     return
 
+  # Disable gestures if we're running on a different platform from that of
+  # the original test case.
+  use_gestures = testcase.platform == environment.platform().lower()
+
   # Reproduce the crash.
   command = testcase_manager.get_command_line_for_application(
       testcase_file_path, app_path=app_path, needs_http=testcase.http_flag)
@@ -67,6 +71,7 @@ def execute_task(testcase_id, job_type):
       testcase_file_path,
       test_timeout,
       http_flag=testcase.http_flag,
+      use_gestures=use_gestures,
       compare_crash=False)
 
   if result.is_crash() and not result.should_ignore():
@@ -74,9 +79,10 @@ def execute_task(testcase_id, job_type):
     crash_type = result.get_type()
     security_flag = result.is_security_issue()
 
+    gestures = testcase.gestures if use_gestures else None
     one_time_crasher_flag = not testcase_manager.test_for_reproducibility(
         testcase.fuzzer_name, testcase_file_path, crash_state, security_flag,
-        test_timeout, testcase.http_flag, testcase.gestures)
+        test_timeout, testcase.http_flag, gestures)
     if one_time_crasher_flag:
       status = data_types.TestcaseVariantStatus.FLAKY
     else:
