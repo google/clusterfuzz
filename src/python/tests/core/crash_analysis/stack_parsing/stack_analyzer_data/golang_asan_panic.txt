@@ -1,0 +1,22 @@
+panic: asn1: string not valid UTF-8
+
+goroutine 17 [running, locked to thread]:
+github.com/dvyukov/go-fuzz-corpus/asn1.Fuzz(0x603000009100, 0x16, 0x16, 0x7ffd132f5368)
+  /src/go/packages/src/github.com/dvyukov/go-fuzz-corpus/asn1/asn1.go:46 +0x994
+main.LLVMFuzzerTestOneInput(0x603000009100, 0x16, 0x9d2410)
+  github.com/dvyukov/go-fuzz-corpus/asn1/go.fuzz.main/main.go:35 +0x66
+main._cgoexpwrap_0a73695ed89a_LLVMFuzzerTestOneInput(0x603000009100, 0x16, 0x27a5b0)
+  _cgo_gotypes.go:64 +0x37
+==42108== ERROR: libFuzzer: deadly signal
+    #0 0x49f071 in __sanitizer_print_stack_trace /src/llvm/projects/compiler-rt/lib/asan/asan_stack.cpp:86:3
+    #1 0x56236d in fuzzer::PrintStackTrace() /src/libfuzzer/FuzzerUtil.cpp:205:5
+    #2 0x511cae in fuzzer::Fuzzer::CrashCallback() /src/libfuzzer/FuzzerLoop.cpp:232:3
+    #3 0x7faa7c80b38f  (/lib/x86_64-linux-gnu/libpthread.so.0+0x1138f)
+    #4 0x5c8a90 in runtime.raise runtime/sys_linux_amd64.s:149
+
+NOTE: libFuzzer has rudimentary signal handlers.
+      Combine libFuzzer with AddressSanitizer or similar for better crash reports.
+SUMMARY: libFuzzer: deadly signal
+==42108==WARNING: ASan is ignoring requested __asan_handle_no_return: stack top: 0x7ffd132f9000; bottom 0x10c00015b000; size: 0x6f3d1319e000 (122308104151040)
+False positive error reports may follow
+For details see https://github.com/google/sanitizers/issues/189

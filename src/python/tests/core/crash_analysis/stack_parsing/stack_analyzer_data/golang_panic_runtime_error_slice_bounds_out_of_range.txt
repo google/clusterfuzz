@@ -1,0 +1,11 @@
+panic: runtime error: slice bounds out of range
+
+goroutine 1 [running]:
+binee/pefile.(*PeFile).readImports(0xc0000e4000)
+  /bineedev/go/src/binee/pefile/pefile.go:640 +0xbbe
+binee/pefile.LoadPeFile(0x7ffebeb925c7, 0x20, 0x0, 0x0, 0x0)
+  /bineedev/go/src/binee/pefile/pefile.go:325 +0x1f07
+binee/windows.New(0x7ffebeb925c7, 0x20, 0x4, 0x4, 0xc000058610, 0x1, 0x1, 0x0, 0x0, 0x0, ...)
+  /bineedev/go/src/binee/windows/winemulator.go:283 +0x20b1
+main.main()
+  /bineedev/go/src/binee/main.go:176 +0x604

@@ -1,0 +1,20 @@
+panic: runtime error: index out of range
+goroutine 108 [running]:
+net/http.(*conn).serve.func1(0xc420115a40)
+  /home/philipp/Documents/syzkaller/go/src/net/http/server.go:1726 +0xd0
+panic(0xc30720, 0x144ca60)
+  /home/philipp/Documents/syzkaller/go/src/runtime/panic.go:502 +0x229
+main.(*Manager).httpPrio(0xc4201dab60, 0xf2dac0, 0xc4211800e0, 0xc4203bc200)
+  /home/philipp/Documents/syzkaller/gopath/src/github.com/google/syzkaller/syz-manager/html.go:298 +0x5f4
+main.(*Manager).(main.httpPrio)-fm(0xf2dac0, 0xc4211800e0, 0xc4203bc200)
+  /home/philipp/Documents/syzkaller/gopath/src/github.com/google/syzkaller/syz-manager/html.go:37 +0x48
+net/http.HandlerFunc.ServeHTTP(0xc420272400, 0xf2dac0, 0xc4211800e0, 0xc4203bc200)
+  /home/philipp/Documents/syzkaller/go/src/net/http/server.go:1947 +0x44
+net/http.(*ServeMux).ServeHTTP(0x2e82ba0, 0xf2dac0, 0xc4211800e0, 0xc4203bc200)
+  /home/philipp/Documents/syzkaller/go/src/net/http/server.go:2337 +0x130
+net/http.serverHandler.ServeHTTP(0xc4203ac000, 0xf2dac0, 0xc4211800e0, 0xc4203bc200)
+  /home/philipp/Documents/syzkaller/go/src/net/http/server.go:2694 +0xbc
+net/http.(*conn).serve(0xc420115a40, 0xf2e540, 0xc420134800)
+  /home/philipp/Documents/syzkaller/go/src/net/http/server.go:1830 +0x651
+created by net/http.(*Server).Serve
+  /home/philipp/Documents/syzkaller/go/src/net/http/server.go:2795 +0x27b

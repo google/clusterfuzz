@@ -1,0 +1,34 @@
+runtime: goroutine stack exceeds 1000000000-byte limit
+fatal error: stack overflow
+
+runtime stack:
+runtime.throw(0x60f619, 0xe)
+/home/sdk/goroot/go/src/runtime/panic.go:619 +0x81
+runtime.newstack()
+/home/sdk/goroot/go/src/runtime/stack.go:1054 +0x71f
+runtime.morestack()
+/home/sdk/goroot/go/src/runtime/asm_amd64.s:480 +0x89
+
+goroutine 34 [running]:
+github.com/google/syzkaller/pkg/ast.(*scanner).next(0xc420158000)
+/home/sdk/gopath/src/github.com/google/syzkaller/pkg/ast/scanner.go:271 +0x218 fp=0xc446ec03a8 sp=0xc446ec03a0 pc=0x5035c8
+github.com/google/syzkaller/pkg/ast.(*scanner).scanIdent(0xc420158000, 0xc4201502ea, 0x8, 0x492488, 0x1, 0x492489, 0x0, 0x0, 0x0)
+/home/sdk/gopath/src/github.com/google/syzkaller/pkg/ast/scanner.go:253 +0x2c fp=0xc446ec03f8 sp=0xc446ec03a8 pc=0x5031ac
+github.com/google/syzkaller/pkg/ast.(*scanner).Scan(0xc420158000, 0x50269b, 0xd, 0xc4201502ea, 0xc4201502ea, 0x8, 0x492488, 0x1, 0x492489)
+/home/sdk/gopath/src/github.com/google/syzkaller/pkg/ast/scanner.go:160 +0x3ab fp=0xc446ec04c8 sp=0xc446ec03f8 pc=0x50269b
+github.com/google/syzkaller/pkg/ast.(*parser).next(0xc466ebfce0)
+/home/sdk/gopath/src/github.com/google/syzkaller/pkg/ast/parser.go:154 +0x4b fp=0xc446ec0548 sp=0xc446ec04c8 pc=0x4fecfb
+github.com/google/syzkaller/pkg/ast.(*parser).tryConsume(0xc466ebfce0, 0xd, 0xc4201502ea)
+/home/sdk/gopath/src/github.com/google/syzkaller/pkg/ast/parser.go:166 +0x48 fp=0xc446ec0560 sp=0xc446ec0548 pc=0x4fee88
+github.com/google/syzkaller/pkg/ast.(*parser).parseTypeList(0xc466ebfce0, 0x13, 0x0, 0x492487)
+/home/sdk/gopath/src/github.com/google/syzkaller/pkg/ast/parser.go:446 +0x38 fp=0xc446ec05d0 sp=0xc446ec0560 pc=0x501498
+github.com/google/syzkaller/pkg/ast.(*parser).parseType(0xc466ebfce0, 0xd)
+/home/sdk/gopath/src/github.com/google/syzkaller/pkg/ast/parser.go:440 +0xd4 fp=0xc446ec0640 sp=0xc446ec05d0 pc=0x5011b4
+github.com/google/syzkaller/pkg/ast.(*parser).parseTypeList(0xc466ebfce0, 0x13, 0x0, 0x492485)
+/home/sdk/gopath/src/github.com/google/syzkaller/pkg/ast/parser.go:447 +0x53 fp=0xc446ec06b0 sp=0xc446ec0640 pc=0x5014b3
+github.com/google/syzkaller/pkg/ast.(*parser).parseType(0xc466ebfce0, 0xd)
+/home/sdk/gopath/src/github.com/google/syzkaller/pkg/ast/parser.go:440 +0xd4 fp=0xc446ec0720 sp=0xc446ec06b0 pc=0x5011b4
+github.com/google/syzkaller/pkg/ast.(*parser).parseTypeList(0xc466ebfce0, 0x13, 0x0, 0x492483)
+/home/sdk/gopath/src/github.com/google/syzkaller/pkg/ast/parser.go:447 +0x53 fp=0xc446ec0790 sp=0xc446ec0720 pc=0x5014b3
+github.com/google/syzkaller/pkg/ast.(*parser).parseType(0xc466ebfce0, 0xd)
+/home/sdk/gopath/src/github.com/google/syzkaller/pkg/ast/parser.go:440 +0xd4 fp=0xc446ec0800 sp=0xc446ec0790 pc=0x5011b4

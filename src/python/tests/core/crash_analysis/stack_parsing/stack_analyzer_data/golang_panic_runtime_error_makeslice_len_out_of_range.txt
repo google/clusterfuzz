@@ -1,0 +1,19 @@
+panic: runtime error: makeslice: len out of range
+
+goroutine 1 [running]:
+panic(0x85d9e0, 0xc849858ed0)
+    /usr/lib/go/src/runtime/panic.go:464 +0x3e6
+cmd/compile/internal/gc.newliveness(0xc82082ee10, 0xc82b6e4240, 0xc8505aa000, 0x35a64, 0x3a000, 0xc8497de000, 0xd398, 0xf000, 0x4130239190186200)
+    /usr/lib/go/src/cmd/compile/internal/gc/plive.go:687 +0x161
+cmd/compile/internal/gc.liveness(0xc82082ee10, 0xc82b6e4240, 0xc82d2c3e80, 0xc82d2c3f00)
+    /usr/lib/go/src/cmd/compile/internal/gc/plive.go:1782 +0x2cf
+cmd/compile/internal/gc.compile(0xc82082ee10)
+    /usr/lib/go/src/cmd/compile/internal/gc/pgen.go:541 +0xdf2
+cmd/compile/internal/gc.funccompile(0xc82082ee10)
+    /usr/lib/go/src/cmd/compile/internal/gc/dcl.go:1450 +0x1c0
+cmd/compile/internal/gc.Main()
+    /usr/lib/go/src/cmd/compile/internal/gc/lex.go:476 +0x2205
+cmd/compile/internal/amd64.Main()
+    /usr/lib/go/src/cmd/compile/internal/amd64/galign.go:127 +0x58d
+main.main()
+    /usr/lib/go/src/cmd/compile/main.go:33 +0x395

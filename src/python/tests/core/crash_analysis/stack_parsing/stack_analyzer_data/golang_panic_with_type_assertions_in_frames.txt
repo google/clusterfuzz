@@ -1,0 +1,31 @@
+root@syztest:/SYZCALLER/gopath/src/github.com/google/syzkaller# ./bin/syz-manager -config=test.cfg
+//about 20h+//
+2018/09/18 15:35:31 VMs 18, executed 529729, cover 775463, crashes 324, repro 0
+2018/09/18 15:35:38 vm-0: crash: no output from test machine
+panic: index > windowEnd
+goroutine 962087 [running]:
+compress/flate.(*compressor).deflate(0xc459c18000)
+  /SYZCALLER/go/src/compress/flate/deflate.go:397 +0xb7d
+compress/flate.(*compressor).syncFlush(0xc459c18000, 0x0, 0x0)
+  /SYZCALLER/go/src/compress/flate/deflate.go:565 +0x5c
+compress/flate.(*Writer).Flush(0xc459c18000, 0xc468646fef, 0x13160)
+  /SYZCALLER/go/src/compress/flate/deflate.go:724 +0x2d
+github.com/google/syzkaller/pkg/rpctype.(*flateConn).Write(0xc420ad9380, 0xc468646fef, 0x13160, 0x2f011, 0xc424c82d80, 0xc422387228, 0xc420722be0)
+  /SYZCALLER/gopath/src/github.com/google/syzkaller/pkg/rpctype/rpc.go:139 +0x7c
+bufio.(*Writer).Write(0xc422efbb00, 0xc468646fef, 0x1414a, 0x2f011, 0x42abf6, 0xebbea0, 0xc420722c80)
+  /SYZCALLER/go/src/bufio/bufio.go:599 +0x14f
+encoding/gob.(*Encoder).writeMessage(0xc4202121e0, 0x1391760, 0xc422efbb00, 0xc420212218)
+  /SYZCALLER/go/src/encoding/gob/encoder.go:81 +0x18a
+encoding/gob.(*Encoder).EncodeValue(0xc4202121e0, 0xbe18e0, 0xc4579bc780, 0x16, 0x0, 0x0)
+  /SYZCALLER/go/src/encoding/gob/encoder.go:252 +0x478
+encoding/gob.(*Encoder).Encode(0xc4202121e0, 0xbe18e0, 0xc4579bc780, 0x0, 0x0)
+  /SYZCALLER/go/src/encoding/gob/encoder.go:175 +0x61
+net/rpc.(*gobServerCodec).WriteResponse(0xc420ad9470, 0xc4210aa6f0, 0xbe18e0, 0xc4579bc780, 0x4c4e64, 0xbe18e0)
+  /SYZCALLER/go/src/net/rpc/server.go:418 +0x17f
+net/rpc.(*Server).sendResponse(0xc420132500, 0xc42fead8e8, 0xc42bf736a0, 0xbe18e0, 0xc4579bc780, 0x13ad3e0, 0xc420ad9470, 0x0, 0x0)
+  /SYZCALLER/go/src/net/rpc/server.go:360 +0xff
+net/rpc.(*service).call(0xc4201403c0, 0xc420132500, 0xc42fead8e8, 0xc42013c580, 0xc42bf736a0, 0xbe18a0, 0xc440306050, 0x16, 0xbe18e0, 0xc4579bc780, ...)
+  /SYZCALLER/go/src/net/rpc/server.go:388 +0x218
+created by net/rpc.(*Server).ServeCodec
+  /SYZCALLER/go/src/net/rpc/server.go:475 +0x36b
+root@syztest:/SYZCALLER/gopath/src/github.com/google/syzkaller#
