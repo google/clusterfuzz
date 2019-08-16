@@ -17,3 +17,4 @@ RUN apt-get update && apt-get install -y openssh-client
 
 ENV OS_OVERRIDE FUCHSIA
 ENV QUEUE_OVERRIDE FUCHSIA
+ENV FUCHSIA_USE_KVM 1
