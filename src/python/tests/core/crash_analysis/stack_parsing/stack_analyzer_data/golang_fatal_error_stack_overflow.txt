@@ -32,3 +32,12 @@ github.com/google/syzkaller/pkg/ast.(*parser).parseTypeList(0xc466ebfce0, 0x13, 
 /home/sdk/gopath/src/github.com/google/syzkaller/pkg/ast/parser.go:447 +0x53 fp=0xc446ec0790 sp=0xc446ec0720 pc=0x5014b3
 github.com/google/syzkaller/pkg/ast.(*parser).parseType(0xc466ebfce0, 0xd)
 /home/sdk/gopath/src/github.com/google/syzkaller/pkg/ast/parser.go:440 +0xd4 fp=0xc446ec0800 sp=0xc446ec0790 pc=0x5011b4
+...additional frames elided...
+AddressSanitizer:DEADLYSIGNAL
+=================================================================
+==1==ERROR: AddressSanitizer: ABRT on unknown address 0x000000000001 (pc 0x0000005c1eb1 bp 0x7fff2cb506c8 sp 0x7fff2cb506b0 T0)
+SCARINESS: 10 (signal)
+    #0 0x5c1eb0 in runtime.raise /tmp/go-fuzz-build988081626/goroot/src/runtime/sys_linux_amd64.s:149
+AddressSanitizer can not provide additional info.
+SUMMARY: AddressSanitizer: ABRT (/mnt/scratch0/clusterfuzz/bot/builds/clusterfuzz-builds_syzkaller_74016d8d932a99eb2395761e6f76a07b59ae7a87/revisions/compiler_fuzzer+0x5c1eb0)
+==1==ABORTING

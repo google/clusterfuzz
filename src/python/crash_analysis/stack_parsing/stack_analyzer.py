@@ -1083,6 +1083,7 @@ def get_crash_data(crash_data, symbolize_flag=True):
 
   is_kasan = 'KASAN' in crash_stacktrace_without_inlines
   is_golang = '.go:' in crash_stacktrace_without_inlines
+  found_golang_crash = False
 
   for line in crash_stacktrace_without_inlines.splitlines():
     if should_ignore_line_for_crash_processing(line, state):
@@ -1320,7 +1321,7 @@ def get_crash_data(crash_data, symbolize_flag=True):
       continue
 
     # Sanitizer regular crash (includes ills, abrt, etc).
-    if not is_golang:
+    if not found_golang_crash:
       update_state_on_match(
           SAN_ADDR_REGEX,
           line,
@@ -1734,6 +1735,7 @@ def get_crash_data(crash_data, symbolize_flag=True):
         state,
         group=1,
         frame_filter=lambda s: s.split('/')[-1]):
+      found_golang_crash = True
       continue
 
   # Detect cycles in stack overflow bugs and update crash state.
