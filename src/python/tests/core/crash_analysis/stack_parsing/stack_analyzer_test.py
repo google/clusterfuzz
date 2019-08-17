@@ -2559,9 +2559,9 @@ class StackAnalyzerTestcase(unittest.TestCase):
         'golang_panic_runtime_error_slice_bounds_out_of_range.txt')
     expected_type = 'Slice bounds out of range'
     expected_address = ''
-    expected_state = ('pefile.(*PeFile).readImports\n'
-                      'pefile.LoadPeFile\n'
-                      'windows.New\n')
+    expected_state = ('json.(*decodeState).unquoteBytes\n'
+                      'json.(*decodeState).literalStore\n'
+                      'json.(*decodeState).object\n')
 
     expected_stacktrace = data
     expected_security_flag = False

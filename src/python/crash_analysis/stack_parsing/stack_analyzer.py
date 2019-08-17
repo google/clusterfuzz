@@ -1320,14 +1320,15 @@ def get_crash_data(crash_data, symbolize_flag=True):
       continue
 
     # Sanitizer regular crash (includes ills, abrt, etc).
-    update_state_on_match(
-        SAN_ADDR_REGEX,
-        line,
-        state,
-        type_from_group=2,
-        address_from_group=4,
-        reset=True,
-        type_filter=fix_sanitizer_crash_type)
+    if not is_golang:
+      update_state_on_match(
+          SAN_ADDR_REGEX,
+          line,
+          state,
+          type_from_group=2,
+          address_from_group=4,
+          reset=True,
+          type_filter=fix_sanitizer_crash_type)
 
     # Overwrite Unknown-crash type with more generic UNKNOWN type.
     if state.crash_type == 'Unknown-crash':
