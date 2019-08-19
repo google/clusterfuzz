@@ -105,7 +105,8 @@
         response="{{response}}"
         opened="{{opened}}"
         on-response="handleGcsResponseAndError"
-        on-before-error="handleGcsResponseAndError">
+        on-before-error="handleGcsResponseAndError"
+        loading="{{loading}}">
       <template is="dom-if" if="[[error]]">
         <div class="error">
           ERROR: [[error.response.message]]
@@ -215,7 +216,8 @@
       body="[[computeFinishBody(uploadParams.*)]]"
       last-error="{{error}}"
       on-response="handleFinishResponse"
-      debounce-duration="1000">
+      debounce-duration="1000"
+      loading="{{loading}}">
     </iron-ajax>
   </template>
   <script>
@@ -242,6 +244,7 @@
             notify: true
           },
           fieldValues: Object,
+          loading: Boolean,
         };
       }
 
