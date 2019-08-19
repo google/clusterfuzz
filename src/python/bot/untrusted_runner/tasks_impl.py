@@ -17,6 +17,7 @@ from __future__ import absolute_import
 from . import protobuf_utils
 
 from bot.tasks import corpus_pruning_task
+from bot.tasks import minimize_task
 from datastore import data_types
 from protos import untrusted_runner_pb2
 from system import environment
@@ -75,3 +76,25 @@ def prune_corpus(request, _):
       crashes=crashes,
       fuzzer_binary_name=result.fuzzer_binary_name,
       revision=result.revision)
+
+
+def process_testcase(request, _):
+  """Process testcase."""
+  tool_name_map = {
+      untrusted_runner_pb2.ProcessTestcaseRequest.MINIMIZE: 'minimize',
+      untrusted_runner_pb2.ProcessTestcaseRequest.CLEANSE: 'cleanse',
+  }
+
+  # TODO(ochang): Support other engines.
+  assert request.engine == 'libFuzzer'
+  assert request.operation in tool_name_map
+
+  result = minimize_task.run_libfuzzer_engine(
+      tool_name_map[request.operation], request.target_name,
+      list(request.arguments), request.testcase_path, request.output_path,
+      request.timeout)
+
+  return untrusted_runner_pb2.ProcessTestcaseResponse(
+      return_code=result.return_code,
+      time_executed=result.time_executed,
+      output=result.output)

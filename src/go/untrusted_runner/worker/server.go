@@ -122,6 +122,11 @@ func (s *UntrustedRunnerServer) PruneCorpus(context.Context, *pb.PruneCorpusRequ
 	return nil, nil
 }
 
+// ProcessTestcase is processes a testcase with a fuzzing engine (e.g. minimization).
+func (s *UntrustedRunnerServer) ProcessTestcase(context.Context, *pb.ProcessTestcaseRequest) (*pb.ProcessTestcaseResponse, error) {
+	return nil, nil
+}
+
 // GetTLSCertAndKey returns the TLS cert and key paths for the gRPC server.
 func GetTLSCertAndKey() (string, string, error) {
 	localCert := environ.GetValueStr("UNTRUSTED_TLS_CERT_FOR_TESTING")

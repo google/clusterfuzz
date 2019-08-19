@@ -26,6 +26,9 @@ from base import errors
 from base import tasks
 from base import utils
 from bot import testcase_manager
+from bot.fuzzers import engine
+from bot.fuzzers import engine_common
+from bot.fuzzers.libFuzzer.engine import LibFuzzerEngine
 from bot.minimizer import basic_minimizers
 from bot.minimizer import delta_minimizer
 from bot.minimizer import html_minimizer
@@ -1085,6 +1088,31 @@ def _run_libfuzzer_testcase(testcase, testcase_file_path):
   return CrashResult(return_code, crash_time, output)
 
 
+def run_libfuzzer_engine(tool_name, target_name, arguments, testcase_path,
+                         output_path, timeout):
+  """Run the libFuzzer engine."""
+  if environment.is_trusted_host():
+    from bot.untrusted_runner import tasks_host
+    # TODO(ochang): Remove hardcode.
+    return tasks_host.process_testcase('libFuzzer', tool_name, target_name,
+                                       arguments, testcase_path, output_path,
+                                       timeout)
+
+  target_path = engine_common.find_fuzzer_path(
+      environment.get_value('BUILD_DIR'), target_name)
+  if not target_path:
+    return engine.ReproduceResult(0, 0, '')
+
+  engine_impl = LibFuzzerEngine()
+  if tool_name == 'minimize':
+    func = engine_impl.minimize_testcase
+  else:
+    assert tool_name == 'cleanse'
+    func = engine_impl.cleanse
+
+  return func(target_path, arguments, testcase_path, output_path, timeout)
+
+
 def _run_libfuzzer_tool(tool_name,
                         testcase,
                         testcase_file_path,
@@ -1092,7 +1120,6 @@ def _run_libfuzzer_tool(tool_name,
                         expected_crash_state,
                         set_dedup_flags=False):
   """Run libFuzzer tool to either minimize or cleanse."""
-
   memory_tool_options_var = environment.get_current_memory_tool_var()
   saved_memory_tool_options = environment.get_value(memory_tool_options_var)
 
@@ -1122,25 +1149,15 @@ def _run_libfuzzer_tool(tool_name,
         testcase_file_path, file_host.rebase_to_worker_root(testcase_file_path))
     rebased_output_file_path = file_host.rebase_to_worker_root(output_file_path)
 
-  arguments = environment.get_value('APP_ARGS', '')
-  arguments += (' --cf-{tool_name}-timeout={timeout} '
-                '--cf-{tool_name}-to={output_file_path}').format(
-                    tool_name=tool_name,
-                    output_file_path=rebased_output_file_path,
-                    timeout=timeout)
-  command = testcase_manager.get_command_line_for_application(
-      file_to_run=testcase_file_path,
-      app_args=arguments,
-      needs_http=testcase.http_flag)
-  logs.log('Executing command: %s' % command)
+  arguments = data_handler.get_arguments(testcase).split()
+  fuzzer_display = data_handler.get_fuzzer_display(testcase)
 
   if set_dedup_flags:
     _set_dedup_flags()
 
-  # A small buffer is added to the timeout to allow the current test to
-  # finish, and file to be written. Since we should terminate beforehand, a
-  # long delay only slows fuzzing in cases where it's necessary.
-  _, _, output = process_handler.run_process(command, timeout=timeout + 60)
+  result = run_libfuzzer_engine(tool_name, fuzzer_display.target, arguments,
+                                testcase_file_path, rebased_output_file_path,
+                                timeout)
 
   if environment.is_trusted_host():
     from bot.untrusted_runner import file_host
@@ -1150,7 +1167,7 @@ def _run_libfuzzer_tool(tool_name,
     _unset_dedup_flags()
 
   if not os.path.exists(output_file_path):
-    logs.log_warn('LibFuzzer %s run failed.' % tool_name, output=output)
+    logs.log_warn('LibFuzzer %s run failed.' % tool_name, output=result.output)
     return None, None
 
   # Ensure that the crash parameters match. It's possible that we will

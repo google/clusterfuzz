@@ -39,7 +39,7 @@ class Crash(object):
     self.crash_time = crash_time
 
 
-class Result(object):
+class FuzzResult(object):
   """Represents a result of a fuzzing session: a list of crashes found and the
   stats generated."""
 
@@ -51,6 +51,7 @@ class Result(object):
     self.time_executed = time_executed
 
 
+# Results from running a testcase against a target.
 ReproduceResult = namedtuple('ReproduceResult',
                              ['return_code', 'time_executed', 'output'])
 
@@ -88,7 +89,7 @@ class Engine(object):
       max_time: Maximum allowed time for the fuzzing to run.
 
     Returns:
-      A Result object.
+      A FuzzResult object.
     """
     raise NotImplementedError
 
@@ -120,7 +121,7 @@ class Engine(object):
       max_time: Maximum allowed time for the minimization.
 
     Returns:
-      A Result object.
+      A FuzzResult object.
     """
     raise NotImplementedError
 
@@ -136,7 +137,7 @@ class Engine(object):
       max_time: Maximum allowed time for the minimization.
 
     Returns:
-      A boolean indicating success.
+      A ReproduceResult.
     """
     raise NotImplementedError
 
@@ -151,7 +152,7 @@ class Engine(object):
       max_time: Maximum allowed time for the cleanse.
 
     Returns:
-      A boolean indicating success.
+      A ReproduceResult.
     """
     raise NotImplementedError
 

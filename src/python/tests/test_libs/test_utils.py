@@ -250,7 +250,7 @@ def start_cloud_emulator(emulator, args=None, data_dir=None):
   return EmulatorInstance(proc, port, thread, cleanup_dir)
 
 
-def _create_pubsub_topic(client, project, name):
+def create_pubsub_topic(client, project, name):
   """Create topic if it doesn't exist."""
   full_name = pubsub.topic_name(project, name)
   if client.get_topic(full_name):
@@ -259,7 +259,7 @@ def _create_pubsub_topic(client, project, name):
   client.create_topic(full_name)
 
 
-def _create_pubsub_subscription(client, project, topic, name):
+def create_pubsub_subscription(client, project, topic, name):
   """Create subscription if it doesn't exist."""
   topic_name = pubsub.topic_name(project, topic)
   full_name = pubsub.subscription_name(project, name)
@@ -277,8 +277,8 @@ def setup_pubsub(project):
   queues = config.get('resources')
 
   for queue in queues:
-    _create_pubsub_topic(client, project, queue['name'])
-    _create_pubsub_subscription(client, project, queue['name'], queue['name'])
+    create_pubsub_topic(client, project, queue['name'])
+    create_pubsub_subscription(client, project, queue['name'], queue['name'])
 
 
 def with_cloud_emulators(*emulator_names):

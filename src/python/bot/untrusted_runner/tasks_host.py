@@ -19,6 +19,7 @@ import datetime
 from . import host
 
 from base import utils
+from bot.fuzzers import engine
 from bot.tasks import corpus_pruning_task
 from datastore import data_types
 from protos import untrusted_runner_pb2
@@ -85,3 +86,25 @@ def do_corpus_pruning(context, last_execution_failed, revision):
       crashes=crashes,
       fuzzer_binary_name=response.fuzzer_binary_name,
       revision=response.revision)
+
+
+def process_testcase(engine_name, tool_name, target_name, arguments,
+                     testcase_path, output_path, timeout):
+  """Process testcase on untrusted worker."""
+  if tool_name == 'minimize':
+    operation = untrusted_runner_pb2.ProcessTestcaseRequest.MINIMIZE
+  else:
+    operation = untrusted_runner_pb2.ProcessTestcaseRequest.CLEANSE
+
+  request = untrusted_runner_pb2.ProcessTestcaseRequest(
+      engine=engine_name,
+      operation=operation,
+      target_name=target_name,
+      arguments=arguments,
+      testcase_path=testcase_path,
+      output_path=output_path,
+      timeout=timeout)
+
+  response = host.stub().ProcessTestcase(request)
+  return engine.ReproduceResult(response.return_code, response.time_executed,
+                                response.output)

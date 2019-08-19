@@ -104,6 +104,7 @@ class UntrustedRunnerStub(untrusted_runner_pb2_grpc.UntrustedRunnerStub):
     self.GetFuzzTargets = _wrap_call(self.GetFuzzTargets)
     self.TerminateStaleApplicationInstances = _wrap_call(
         self.TerminateStaleApplicationInstances)
+    self.ProcessTestcase = _wrap_call(self.ProcessTestcase)
 
     # The following are RPCs that execute larger tasks. Don't retry these.
     self.PruneCorpus = _wrap_call(self.PruneCorpus, num_retries=0)
