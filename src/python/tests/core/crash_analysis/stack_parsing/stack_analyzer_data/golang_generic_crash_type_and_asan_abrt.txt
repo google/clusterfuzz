@@ -1,0 +1,17 @@
+fatal error: error message here
+
+goroutine 17 [running, locked to thread]:
+encoding/json.(*decodeState).unquoteBytes(0x10c000096420, 0x10c00001c568, 0x1, 0x8, 0x0, 0x0, 0x0, 0x0)
+ /src/go/src/encoding/json/decode.go:1264 +0xb3b
+main.LLVMFuzzerTestOneInput(0x6050000001d0, 0xa, 0x9b1ad0)
+ github.com/dvyukov/go-fuzz-corpus/json/go.fuzz.main/main.go:35 +0x66
+main._cgoexpwrap_e34c4d0cdb90_LLVMFuzzerTestOneInput(0x6050000001d0, 0xa, 0x2758b0)
+ _cgo_gotypes.go:64 +0x37
+AddressSanitizer:DEADLYSIGNAL
+=================================================================
+==1==ERROR: AddressSanitizer: ABRT on unknown address 0x000000000001 (pc 0x0000005c1a81 bp 0x10c0000bd628 sp 0x10c0000bd610 T0)
+SCARINESS: 10 (signal)
+    #0 0x5c1a80 in runtime.raise runtime/sys_linux_amd64.s:149
+AddressSanitizer can not provide additional info.
+SUMMARY: AddressSanitizer: ABRT (/mnt/scratch0/clusterfuzz/bot/builds/clusterfuzz-builds_golang_d17eb352b38c4d62fce2871b0afb04af926c5e25/revisions/fuzzer-json+0x5c1a80)
+==1==ABORTING

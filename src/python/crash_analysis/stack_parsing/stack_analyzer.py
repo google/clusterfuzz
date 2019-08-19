@@ -61,7 +61,8 @@ ASAN_MEMCPY_OVERLAP_REGEX = re.compile(
 ASAN_REGEX = re.compile(r'.*(ERROR: AddressSanitizer)[: ]*' r'[ ]*([^(:]+)')
 ASSERT_REGEX = re.compile(
     r'(?:\[.*?\]|.*\.(?:%s):.*)?' % ('|'.join(C_CPP_EXTENSIONS)) +
-    r'\s*(?:ASSERT(?:ION)? FAIL(?:URE|ED)|panic): (.*)', re.IGNORECASE)
+    r'\s*(?:ASSERT(?:ION)? FAIL(?:URE|ED)|panic|fatal error): (.*)',
+    re.IGNORECASE)
 ASSERT_REGEX_GOOGLE = re.compile(GOOGLE_LOG_FATAL_PREFIX +
                                  r'.*assertion failed at\s.*\sin\s*.*: (.*)')
 ASSERT_REGEX_GLIBC = re.compile(
@@ -444,10 +445,7 @@ STACK_FRAME_IGNORE_REGEXES = [
 
     # Golang specific frames to ignore.
     r'^panic$',
-    r'^runtime\.newstack$',
-    r'^runtime\.morestack$',
-    r'^runtime\.raise(\s.*|$)',
-    r'^runtime\.throw$',
+    r'^runtime\.',
 ]
 
 STACK_FRAME_IGNORE_REGEXES_IF_SYMBOLIZED = [
@@ -1097,7 +1095,7 @@ def get_crash_data(crash_data, symbolize_flag=True):
     # Ignore aborts, breakpoints and ills for asserts, check and dcheck
     # failures. These are intended, retain their original state.
     if (SAN_ABRT_REGEX.match(line) or SAN_BREAKPOINT_REGEX.match(line) or
-        SAN_ILL_REGEX.match(line)):
+        SAN_ILL_REGEX.match(line)) and not found_golang_crash:
       if state.crash_type in IGNORE_CRASH_TYPES_FOR_ABRT_BREAKPOINT_AND_ILLS:
         continue
 
@@ -1267,6 +1265,7 @@ def get_crash_data(crash_data, symbolize_flag=True):
       for golang_crash_regex, golang_crash_type in GOLANG_CRASH_TYPES_MAP:
         if update_state_on_match(
             golang_crash_regex, line, state, new_type=golang_crash_type):
+          found_golang_crash = True
           state.crash_state = ''
           state.frame_count = 0
           continue
@@ -1735,7 +1734,6 @@ def get_crash_data(crash_data, symbolize_flag=True):
         state,
         group=1,
         frame_filter=lambda s: s.split('/')[-1]):
-      found_golang_crash = True
       continue
 
   # Detect cycles in stack overflow bugs and update crash state.
