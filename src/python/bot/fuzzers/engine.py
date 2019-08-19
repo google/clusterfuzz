@@ -51,11 +51,6 @@ class FuzzResult(object):
     self.time_executed = time_executed
 
 
-# Represents a result of a fuzzing session including a list of crashes found and
-# stats generated.
-FuzzResult = namedtuple(
-    'FuzzResult', ['logs', 'command', 'crashes', 'stats', 'time_executed'])
-
 # Results from running a testcase against a target.
 ReproduceResult = namedtuple('ReproduceResult',
                              ['return_code', 'time_executed', 'output'])
