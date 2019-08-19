@@ -78,6 +78,13 @@
         };
       }
 
+      paper-input.search {
+        --paper-input-container: {
+          margin: 4px 10px -5px;
+          min-width: 350px;
+        }
+      }
+
       .job-select {
         padding: 0;
       }
@@ -127,11 +134,22 @@
           <paper-listbox
               slot="dropdown-content"
               multi slot="dropdown-content"
-              attr-for-selected="value"
+              attr-for-selected="val"
               selected-values="{{fuzzer.jobs}}"
               selected-attribute="checked">
-            <template is="dom-repeat" items="[[fieldValues.jobs]]">
-              <paper-checkbox class="job-checkbox" value="[[item]]">
+            <paper-input
+                autofocus
+                class="search"
+                label="Search jobs"
+                value="{{jobKey}}"
+                on-tap="stopEventPropagation"
+                on-keydown="stopEventPropagation"
+                on-keyup="stopEventPropagation" no-label-float>
+              <iron-icon icon="icons:search" slot="prefix"></iron-icon>
+              <iron-icon icon="icons:clear" slot="suffix" on-click="clearSearchInput"></iron-icon>
+            </paper-input>
+            <template is="dom-repeat" items="[[fieldValues.jobs]]" filter="{{onmatch(jobKey)}}">
+              <paper-checkbox class="job-checkbox" val="[[item]]">
                 [[item]]
               </paper-checkbox>
             </template>
@@ -144,10 +162,23 @@
             label="Corpus"
             title="Corpus to run this fuzzer with"
             noink>
-          <paper-listbox slot="dropdown-content" attr-for-selected="value" selected="{{fuzzer.data_bundle_name}}">
-            <paper-item value="">None</paper-item>
-            <template is="dom-repeat" items="[[fieldValues.corpora]]">
-              <paper-item value="[[item]]">[[item]]</paper-item>
+          <paper-listbox
+              slot="dropdown-content"
+              attr-for-selected="val"
+              selected="{{fuzzer.data_bundle_name}}">
+            <paper-input
+                class="search"
+                label="Search corpora"
+                value="{{corpusKey}}"
+                on-tap="stopEventPropagation"
+                on-keydown="stopEventPropagation"
+                on-keyup="stopEventPropagation" no-label-float>
+              <iron-icon icon="icons:search" slot="prefix"></iron-icon>
+              <iron-icon icon="icons:clear" slot="suffix" on-click="clearSearchInput"></iron-icon>
+            </paper-input>
+            <paper-item val="">None</paper-item>
+            <template is="dom-repeat" items="[[fieldValues.corpora]]" filter="{{onmatch(corpusKey)}}">
+              <paper-item val="[[item]]">[[item]]</paper-item>
             </template>
           </paper-listbox>
         </paper-dropdown-menu>
@@ -308,6 +339,38 @@
 
       nameIsReadOnly(create) {
         return !create;
+      }
+
+
+      onmatch(key) {
+        if (!key)
+          return null;
+
+        try {
+          key = key.toLowerCase();
+        } catch (err) {}
+
+        return function(item) {
+          if (item.toLowerCase().search(key) >= 0)
+            return true;
+        };
+      }
+
+      stopEventPropagation(ev) {
+        ev.stopPropagation();
+      }
+
+      clearSearchInput(ev) {
+        // Clear the search box.
+        let searchBox = ev.target.parentNode;
+        searchBox.value = '';
+
+        // Clear the selection in the list box;
+        let listBox = searchBox.parentNode;
+        listBox.selected = '';
+
+        // Restore focus to searchbox.
+        searchBox.$.input.focus();
       }
     }
 

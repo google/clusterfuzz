@@ -283,7 +283,10 @@ class UploadHandlerCommon(object):
       uploaded_file = blobs.get_blob_info(key)
 
     job_type = self.request.get('job')
-    if (not job_type or not data_types.Job.VALID_NAME_REGEX.match(job_type) or
+    if not job_type:
+      raise helpers.EarlyExitException('Missing job name.', 400)
+
+    if (not data_types.Job.VALID_NAME_REGEX.match(job_type) or
         not data_types.Job.query(data_types.Job.name == job_type).get()):
       raise helpers.EarlyExitException('Invalid job name.', 400)
 

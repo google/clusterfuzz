@@ -79,6 +79,13 @@
         };
       }
 
+      paper-input.search {
+        --paper-input-container: {
+          margin: 4px 10px -5px;
+          min-width: 350px;
+        }
+      }
+
       .get-link-button {
         display: inline-block;
       }
@@ -120,9 +127,19 @@
               slot="dropdown-content"
               selected="{{uploadParams.job}}"
               fallback-selection="linux_asan_chrome_mp"
-              attr-for-selected="value">
-            <template is="dom-repeat" items="[[fieldValues.jobs]]">
-              <paper-item on-click="submit" value="[[item]]">[[item]]</paper-item>
+              attr-for-selected="val">
+            <paper-input
+                class="search"
+                label="Search jobs"
+                value="{{jobKey}}"
+                on-tap="stopEventPropagation"
+                on-keydown="stopEventPropagation"
+                on-keyup="stopEventPropagation" no-label-float>
+              <iron-icon icon="icons:search" slot="prefix"></iron-icon>
+              <iron-icon icon="icons:clear" slot="suffix" on-click="clearSearchInput"></iron-icon>
+            </paper-input>
+            <template is="dom-repeat" items="[[fieldValues.jobs]]" filter="{{onmatch(jobKey)}}">
+              <paper-item on-click="submit" val="[[item]]">[[item]]</paper-item>
             </template>
           </paper-listbox>
         </paper-dropdown-menu>
@@ -134,9 +151,19 @@
             <paper-listbox
                 slot="dropdown-content"
                 selected="{{uploadParams.target}}"
-                attr-for-selected="value">
-              <template is="dom-repeat" items="[[getTargetNames(uploadParams.job)]]">
-                <paper-item on-click="submit" value="[[item]]">[[item]]</paper-item>
+                attr-for-selected="val">
+              <paper-input
+                  class="search"
+                  label="Search targets"
+                  value="{{targetKey}}"
+                  on-tap="stopEventPropagation"
+                  on-keydown="stopEventPropagation"
+                  on-keyup="stopEventPropagation" no-label-float>
+                <iron-icon icon="icons:search" slot="prefix"></iron-icon>
+                <iron-icon icon="icons:clear" slot="suffix" on-click="clearSearchInput"></iron-icon>
+              </paper-input>
+              <template is="dom-repeat" items="[[getTargetNames(uploadParams.job)]]" filter="{{onmatch(targetKey)}}">
+                <paper-item on-click="submit" val="[[item]]">[[item]]</paper-item>
               </template>
             </paper-listbox>
           </paper-dropdown-menu>
@@ -330,6 +357,37 @@
           s += jobs[i]
         }
         return s;
+      }
+
+      onmatch(key) {
+        if (!key)
+          return null;
+
+        try {
+          key = key.toLowerCase();
+        } catch (err) {}
+
+        return function(item) {
+          if (item.toLowerCase().search(key) >= 0)
+            return true;
+        };
+      }
+
+      stopEventPropagation(ev) {
+        ev.stopPropagation();
+      }
+
+      clearSearchInput(ev) {
+        // Clear the search box.
+        let searchBox = ev.target.parentNode;
+        searchBox.value = '';
+
+        // Clear the selection in the list box;
+        let listBox = searchBox.parentNode;
+        listBox.selected = '';
+
+        // Restore focus to searchbox.
+        searchBox.$.input.focus();
       }
     }
 
