@@ -95,7 +95,7 @@ def _copy_testcase_to_device_and_setup_environment(testcase,
 
 
 def _get_application_arguments(testcase, task_name):
-  """Get application arguments to use for setting up testcase. Use minimized
+  """Get application arguments to use for setting up |testcase|. Use minimized
    arguments if available. For variant task, where we run a testcase against
    another job type, use both minimized arguments and application arguments
    from job."""
@@ -111,13 +111,15 @@ def _get_application_arguments(testcase, task_name):
   job_args_list = shlex.split(job_args)
   testcase_args_list = shlex.split(testcase_args)
   testcase_args_filtered_list = [
-      s for s in testcase_args_list if s not in job_args_list
+      arg for arg in testcase_args_list if arg not in job_args_list
   ]
 
   app_args = ' '.join(testcase_args_filtered_list)
   if job_args:
-    app_args += ' ' + job_args
-  return app_args.strip()
+    if app_args:
+      app_args += ' '
+    app_args += job_args
+  return app_args
 
 
 def prepare_environment_for_testcase(testcase):
