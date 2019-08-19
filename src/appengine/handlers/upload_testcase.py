@@ -21,6 +21,7 @@ import cgi
 import datetime
 import io
 import json
+import os
 
 from base import external_users
 from base import tasks
@@ -281,6 +282,10 @@ class UploadHandlerCommon(object):
           testcase.minimized_keys != 'NA' else testcase.fuzzed_keys)
 
       uploaded_file = blobs.get_blob_info(key)
+
+      # Extract filename part from blob.
+      uploaded_file.filename = os.path.basename(
+          uploaded_file.filename.replace('\\', os.sep))
 
     job_type = self.request.get('job')
     if not job_type:
