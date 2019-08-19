@@ -87,6 +87,7 @@ def process_testcase(request, _):
 
   # TODO(ochang): Support other engines.
   assert request.engine == 'libFuzzer'
+  assert request.operation in tool_name_map
 
   result = minimize_task.run_libfuzzer_engine(
       tool_name_map[request.operation], request.target_name,

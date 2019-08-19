@@ -133,11 +133,11 @@ class MinimizeTaskTestUntrusted(
     job.put()
 
     data_types.FuzzTarget(
-        engine='libFuzzer', binary='test_fuzzer', project='test-project')
+        engine='libFuzzer', binary='test_fuzzer', project='test-project').put()
     data_types.FuzzTargetJob(
         fuzz_target_name='libFuzzer_test_fuzzer',
         engine='libFuzzer',
-        job='libfuzzer_asan_job')
+        job='libfuzzer_asan_job').put()
 
     environment.set_value('USE_MINIJAIL', True)
     data_types.Fuzzer(

@@ -26,6 +26,7 @@ from base import errors
 from base import tasks
 from base import utils
 from bot import testcase_manager
+from bot.fuzzers import engine
 from bot.fuzzers import engine_common
 from bot.fuzzers.libFuzzer.engine import LibFuzzerEngine
 from bot.minimizer import basic_minimizers
@@ -1099,11 +1100,14 @@ def run_libfuzzer_engine(tool_name, target_name, arguments, testcase_path,
 
   target_path = engine_common.find_fuzzer_path(
       environment.get_value('BUILD_DIR'), target_name)
+  if not target_path:
+    return engine.ReproduceResult(0, 0, '')
 
   engine_impl = LibFuzzerEngine()
   if tool_name == 'minimize':
     func = engine_impl.minimize_testcase
   else:
+    assert tool_name == 'cleanse'
     func = engine_impl.cleanse
 
   return func(target_path, arguments, testcase_path, output_path, timeout)
@@ -1145,13 +1149,13 @@ def _run_libfuzzer_tool(tool_name,
         testcase_file_path, file_host.rebase_to_worker_root(testcase_file_path))
     rebased_output_file_path = file_host.rebase_to_worker_root(output_file_path)
 
-  arguments = data_handler.get_arguments(testcase, strip_target=False).split()
-  target_name = arguments.pop(0)
+  arguments = data_handler.get_arguments(testcase).split()
+  fuzzer_display = data_handler.get_fuzzer_display(testcase)
 
   if set_dedup_flags:
     _set_dedup_flags()
 
-  result = run_libfuzzer_engine(tool_name, target_name, arguments,
+  result = run_libfuzzer_engine(tool_name, fuzzer_display.target, arguments,
                                 testcase_file_path, rebased_output_file_path,
                                 timeout)
 
