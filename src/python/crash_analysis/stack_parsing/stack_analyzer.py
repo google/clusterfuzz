@@ -61,8 +61,7 @@ ASAN_MEMCPY_OVERLAP_REGEX = re.compile(
 ASAN_REGEX = re.compile(r'.*(ERROR: AddressSanitizer)[: ]*' r'[ ]*([^(:]+)')
 ASSERT_REGEX = re.compile(
     r'(?:\[.*?\]|.*\.(?:%s):.*)?' % ('|'.join(C_CPP_EXTENSIONS)) +
-    r'\s*(?:ASSERT(?:ION)? FAIL(?:URE|ED)|panic|fatal error): (.*)',
-    re.IGNORECASE)
+    r'\s*(?:ASSERT(?:ION)? FAIL(?:URE|ED)|panic): (.*)', re.IGNORECASE)
 ASSERT_REGEX_GOOGLE = re.compile(GOOGLE_LOG_FATAL_PREFIX +
                                  r'.*assertion failed at\s.*\sin\s*.*: (.*)')
 ASSERT_REGEX_GLIBC = re.compile(
@@ -98,7 +97,8 @@ MSAN_TSAN_REGEX = re.compile(
 FATAL_ERROR_CHECK_FAILURE = re.compile(
     r'#\s+(Check failed: |RepresentationChangerError: node #\d+:)?(.*)')
 FATAL_ERROR_DCHECK_FAILURE = re.compile(r'#\s+(Debug check failed: )(.*)')
-FATAL_ERROR_REGEX = re.compile(r'#\s*Fatal error in (.*)')
+FATAL_ERROR_REGEX = re.compile(r'(^|#\s*)Fatal error(:| in) (.*)',
+                               re.IGNORECASE)
 FATAL_ERROR_LINE_REGEX = re.compile(r'#\s*Fatal error in (.*), line [0-9]+')
 FATAL_ERROR_UNREACHABLE = re.compile(r'# un(reachable|implemented) code')
 GENERIC_SEGV_HANDLER_REGEX = re.compile(
@@ -1505,12 +1505,15 @@ def get_crash_data(crash_data, symbolize_flag=True):
       update_state_on_check_failure(state, line, GOOGLE_CHECK_FAILURE_REGEX,
                                     'CHECK failure')
 
-      # V8 fatal errors.
+      # V8 and Golang fatal errors.
       fatal_error_match = update_state_on_match(
           FATAL_ERROR_REGEX, line, state, new_type='Fatal error', reset=True)
       if fatal_error_match:
-        state.crash_state = filter_stack_frame(fatal_error_match.group(1))
         state.fatal_error_occurred = True
+        if is_golang:
+          state.crash_state = fatal_error_match.group(3) + '\n'
+        else:
+          state.crash_state = filter_stack_frame(fatal_error_match.group(3))
 
       # V8 runtime errors.
       if detect_v8_runtime_errors:
