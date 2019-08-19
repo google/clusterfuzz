@@ -911,8 +911,12 @@ class ProductionBuild(Build):
 class CustomBuild(Build):
   """Custom binary."""
 
-  def __init__(self, base_build_dir, custom_binary_key, custom_binary_filename,
-               custom_binary_revision, target_weights):
+  def __init__(self,
+               base_build_dir,
+               custom_binary_key,
+               custom_binary_filename,
+               custom_binary_revision,
+               target_weights=None):
     super(CustomBuild, self).__init__(base_build_dir, custom_binary_revision)
     self.custom_binary_key = custom_binary_key
     self.custom_binary_filename = custom_binary_filename
@@ -1316,7 +1320,7 @@ def setup_symbolized_builds(revision):
   return None
 
 
-def setup_custom_binary(target_weights):
+def setup_custom_binary(target_weights=None):
   """Set up the custom binary for a particular job."""
   # Check if this build is dependent on any other custom job. If yes,
   # then fake out our job name for setting up the build.
