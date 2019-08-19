@@ -59,7 +59,7 @@ class LibFuzzerEngine(engine.Engine):
 
   @property
   def name(self):
-    return 'libFuzzer'
+    return 'libFuzzer_test'
 
   def prepare(self, corpus_dir, target_path, _):
     """Prepare for a fuzzing session, by generating options. Returns a

@@ -44,6 +44,7 @@ from base import errors
 from base import tasks
 from base import untrusted
 from base import utils
+from bot.fuzzers import init as fuzzers_init
 from bot.tasks import commands
 from bot.tasks import update_task
 from datastore import data_handler
@@ -132,6 +133,8 @@ def main():
 
   if not profiler.start_if_needed('python_profiler_bot'):
     sys.exit(-1)
+
+  fuzzers_init.run()
 
   if environment.is_trusted_host(ensure_connected=False):
     from bot.untrusted_runner import host

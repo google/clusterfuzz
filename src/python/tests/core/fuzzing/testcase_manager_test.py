@@ -350,6 +350,7 @@ def mock_get_crash_data(output, symbolize_flag=True):  # pylint: disable=unused-
   return stack_analyzer.StackAnalyzerState()
 
 
+@test_utils.with_cloud_emulators('datastore')
 class TestcaseRunningTest(fake_filesystem_unittest.TestCase):
   """Tests for running testcases."""
 
@@ -377,37 +378,42 @@ class TestcaseRunningTest(fake_filesystem_unittest.TestCase):
     os.environ['FUZZER_DIR'] = '/fuzzer'
     os.environ['WARMUP_TIMEOUT'] = '120'
 
-    self.testcase = data_types.Testcase(crash_state='state')
+    data_types.FuzzTarget(engine='engine', project=None, binary='target').put()
+
+    self.blackbox_testcase = data_types.Testcase(
+        crash_state='state', overridden_fuzzer_name='fuzzer')
+    self.greybox_testcase = data_types.Testcase(
+        crash_state='state', overridden_fuzzer_name='engine_target')
     self.mock.find_fuzzer_path.return_value = '/build_dir/target'
     self.mock.run_process.return_value = (0, 0, 'output')
     self.mock.get.return_value = None
 
     self.mock.get_crash_data.side_effect = mock_get_crash_data
-    self.fs.create_file('/flags-testcase', contents='target -arg1 -arg2')
+    self.fs.create_file('/flags-testcase', contents='-arg1 -arg2')
     self.fs.create_dir('/bot/tmp')
 
   def test_test_for_crash_with_retries_blackbox_fail(self):
     """Test test_for_crash_with_retries failing to reproduce a crash
     (blackbox)."""
     crash_result = testcase_manager.test_for_crash_with_retries(
-        self.testcase, '/fuzz-testcase', 10)
+        self.blackbox_testcase, '/fuzz-testcase', 10)
     self.assertEqual(0, crash_result.return_code)
     self.assertEqual(0, crash_result.crash_time)
     self.assertEqual('output', crash_result.output)
     self.assertEqual(3, self.mock.run_process.call_count)
     self.mock.run_process.assert_has_calls([
         mock.call(
-            '/build_dir/app_name target -arg1 -arg2',
+            '/build_dir/app_name -arg1 -arg2',
             current_working_directory='/build_dir',
             gestures=[],
             timeout=120),
         mock.call(
-            '/build_dir/app_name target -arg1 -arg2',
+            '/build_dir/app_name -arg1 -arg2',
             current_working_directory='/build_dir',
             gestures=[],
             timeout=10),
         mock.call(
-            '/build_dir/app_name target -arg1 -arg2',
+            '/build_dir/app_name -arg1 -arg2',
             current_working_directory='/build_dir',
             gestures=[],
             timeout=10),
@@ -421,7 +427,7 @@ class TestcaseRunningTest(fake_filesystem_unittest.TestCase):
     self.mock.get.return_value = mock_engine
 
     crash_result = testcase_manager.test_for_crash_with_retries(
-        self.testcase, '/fuzz-testcase', 10)
+        self.greybox_testcase, '/fuzz-testcase', 10)
     self.assertEqual(0, crash_result.return_code)
     self.assertEqual(0, crash_result.crash_time)
     self.assertEqual('output', crash_result.output)
@@ -443,7 +449,7 @@ class TestcaseRunningTest(fake_filesystem_unittest.TestCase):
     ]
 
     crash_result = testcase_manager.test_for_crash_with_retries(
-        self.testcase, '/fuzz-testcase', 10)
+        self.blackbox_testcase, '/fuzz-testcase', 10)
     self.assertEqual(1, crash_result.return_code)
     self.assertEqual(1, crash_result.crash_time)
     self.assertEqual('crash', crash_result.output)
@@ -451,12 +457,12 @@ class TestcaseRunningTest(fake_filesystem_unittest.TestCase):
 
     self.mock.run_process.assert_has_calls([
         mock.call(
-            '/build_dir/app_name target -arg1 -arg2',
+            '/build_dir/app_name -arg1 -arg2',
             current_working_directory='/build_dir',
             gestures=[],
             timeout=120),
         mock.call(
-            '/build_dir/app_name target -arg1 -arg2',
+            '/build_dir/app_name -arg1 -arg2',
             current_working_directory='/build_dir',
             gestures=[],
             timeout=10),
@@ -472,7 +478,7 @@ class TestcaseRunningTest(fake_filesystem_unittest.TestCase):
     self.mock.get.return_value = mock_engine
 
     crash_result = testcase_manager.test_for_crash_with_retries(
-        self.testcase, '/fuzz-testcase', 10)
+        self.greybox_testcase, '/fuzz-testcase', 10)
     self.assertEqual(1, crash_result.return_code)
     self.assertEqual(1, crash_result.crash_time)
     self.assertEqual('crash', crash_result.output)
@@ -507,7 +513,7 @@ class TestcaseRunningTest(fake_filesystem_unittest.TestCase):
     self.mock.get.return_value = mock_engine
 
     result = testcase_manager.test_for_reproducibility(
-        'engine',
+        'engine_target',
         '/fuzz-testcase',
         'state',
         expected_security_flag=False,
