@@ -1142,11 +1142,14 @@ def _run_libfuzzer_tool(tool_name,
 
   output_file_path = get_temporary_file_name(testcase_file_path)
   rebased_output_file_path = output_file_path
+  rebased_testcase_file_path = testcase_file_path
 
   if environment.is_trusted_host():
     from bot.untrusted_runner import file_host
-    file_host.copy_file_to_worker(
-        testcase_file_path, file_host.rebase_to_worker_root(testcase_file_path))
+    rebased_testcase_file_path = file_host.rebase_to_worker_root(
+        testcase_file_path)
+    file_host.copy_file_to_worker(testcase_file_path,
+                                  rebased_testcase_file_path)
     rebased_output_file_path = file_host.rebase_to_worker_root(output_file_path)
 
   arguments = data_handler.get_arguments(testcase).split()
@@ -1156,8 +1159,8 @@ def _run_libfuzzer_tool(tool_name,
     _set_dedup_flags()
 
   result = run_libfuzzer_engine(tool_name, fuzzer_display.target, arguments,
-                                testcase_file_path, rebased_output_file_path,
-                                timeout)
+                                rebased_testcase_file_path,
+                                rebased_output_file_path, timeout)
 
   if environment.is_trusted_host():
     from bot.untrusted_runner import file_host
