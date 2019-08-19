@@ -530,7 +530,7 @@ class TestcaseRunner(object):
       self._target_path = engine_common.find_fuzzer_path(
           build_dir, fuzz_target.binary)
       if not self._target_path:
-        raise TargetNotFoundError('Failed to find target ' + target_name)
+        raise TargetNotFoundError('Failed to find target ' + fuzz_target.binary)
     else:
       self._is_black_box = True
       self._command = get_command_line_for_application(
