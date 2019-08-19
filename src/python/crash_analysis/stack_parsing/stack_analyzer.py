@@ -1095,7 +1095,7 @@ def get_crash_data(crash_data, symbolize_flag=True):
     # Ignore aborts, breakpoints and ills for asserts, check and dcheck
     # failures. These are intended, retain their original state.
     if (SAN_ABRT_REGEX.match(line) or SAN_BREAKPOINT_REGEX.match(line) or
-        SAN_ILL_REGEX.match(line)) and not found_golang_crash:
+        SAN_ILL_REGEX.match(line)):
       if state.crash_type in IGNORE_CRASH_TYPES_FOR_ABRT_BREAKPOINT_AND_ILLS:
         continue
 
