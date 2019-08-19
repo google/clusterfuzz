@@ -36,6 +36,7 @@ def _fake_get_testcase(*_):
       'additional_metadata': '{}',
       'fuzzer_name': 'fuzzer',
       'job_definition': 'APP_NAME = echo\nAPP_ARGS = -n\n',
+      'overridden_fuzzer_name': 'fuzzer',
       'platform': environment.platform().lower(),
   }
 
