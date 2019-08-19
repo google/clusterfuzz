@@ -424,3 +424,102 @@ class IntegrationTests(unittest.TestCase):
     self.assertIn(
         'ERROR: AddressSanitizer: SEGV on unknown address '
         '0x000000000000', results.logs)
+
+  def test_fuzz_from_subset(self):
+    """Tests fuzzing from corpus subset."""
+    self.mock.generate_weighted_strategy_pool.return_value = set_strategy_pool(
+        [strategy.CORPUS_SUBSET_STRATEGY])
+    self.mock.get_fuzz_timeout.return_value = get_fuzz_timeout(5.0)
+
+    _, corpus_path = setup_testcase_and_corpus('empty',
+                                               'corpus_with_some_files')
+
+    engine_impl = engine.LibFuzzerEngine()
+    target_path = engine_common.find_fuzzer_path(DATA_DIR, 'test_fuzzer')
+    options = engine_impl.prepare(corpus_path, target_path, DATA_DIR)
+    results = engine_impl.fuzz(target_path, options, TEMP_DIR, 10)
+
+    self.assertListEqual([
+        os.path.join(DATA_DIR, 'test_fuzzer'),
+        '-max_len=256',
+        '-timeout=25',
+        '-rss_limit_mb=2048',
+        '-artifact_prefix=' + TEMP_DIR + '/',
+        '-max_total_time=5',
+        '-print_final_stats=1',
+        os.path.join(TEMP_DIR, 'temp-1337/new'),
+        os.path.join(TEMP_DIR, 'temp-1337/subset'),
+    ], results.command)
+
+    self.assert_has_stats(results.stats)
+
+  def test_minimize(self):
+    """Tests minimize."""
+    testcase_path, _ = setup_testcase_and_corpus('aaaa', 'empty_corpus')
+    minimize_output_path = os.path.join(TEMP_DIR, 'minimized_testcase')
+
+    engine_impl = engine.LibFuzzerEngine()
+    target_path = engine_common.find_fuzzer_path(DATA_DIR,
+                                                 'crash_with_A_fuzzer')
+    result = engine_impl.minimize_testcase(target_path, [], testcase_path,
+                                           minimize_output_path, 30)
+    self.assertTrue(result)
+    self.assertTrue(os.path.exists(minimize_output_path))
+    with open(minimize_output_path) as f:
+      result = f.read()
+      self.assertEqual('A', result)
+
+  def test_cleanse(self):
+    """Tests cleanse."""
+    testcase_path, _ = setup_testcase_and_corpus('aaaa', 'empty_corpus')
+    cleanse_output_path = os.path.join(TEMP_DIR, 'cleansed_testcase')
+
+    engine_impl = engine.LibFuzzerEngine()
+    target_path = engine_common.find_fuzzer_path(DATA_DIR,
+                                                 'crash_with_A_fuzzer')
+    result = engine_impl.cleanse(target_path, [], testcase_path,
+                                 cleanse_output_path, 30)
+    self.assertTrue(result)
+    self.assertTrue(os.path.exists(cleanse_output_path))
+    with open(cleanse_output_path) as f:
+      result = f.read()
+      self.assertFalse(all(c == 'A' for c in result))
+
+  def test_analyze_dict(self):
+    """Tests recommended dictionary analysis."""
+    test_helpers.patch(self, [
+        'bot.fuzzers.dictionary_manager.DictionaryManager.'
+        'parse_recommended_dictionary_from_log_lines',
+        'bot.fuzzers.dictionary_manager.DictionaryManager.'
+        'update_recommended_dictionary',
+    ])
+
+    self.mock.parse_recommended_dictionary_from_log_lines.return_value = set([
+        '"USELESS_0"',
+        '"APPLE"',
+        '"USELESS_1"',
+        '"GINGER"',
+        '"USELESS_2"',
+        '"BEET"',
+        '"USELESS_3"',
+    ])
+    self.mock.get_fuzz_timeout.return_value = get_fuzz_timeout(5.0)
+
+    _, corpus_path = setup_testcase_and_corpus('empty',
+                                               'corpus_with_some_files')
+
+    engine_impl = engine.LibFuzzerEngine()
+    target_path = engine_common.find_fuzzer_path(DATA_DIR,
+                                                 'analyze_dict_fuzzer')
+    options = engine_impl.prepare(corpus_path, target_path, DATA_DIR)
+    engine_impl.fuzz(target_path, options, TEMP_DIR, 10)
+    expected_recommended_dictionary = set([
+        '"APPLE"',
+        '"GINGER"',
+        '"BEET"',
+    ])
+
+    self.assertIn(expected_recommended_dictionary,
+                  self.mock.update_recommended_dictionary.call_args[0])
+
+  # TODO(ochang): Move fuchsia tests here once everything is migrated.
