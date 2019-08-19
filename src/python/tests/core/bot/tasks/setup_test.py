@@ -16,7 +16,10 @@
 import unittest
 
 from bot.tasks import setup
+from datastore import data_types
 from system import environment
+from tests.test_libs import helpers
+from tests.test_libs import test_utils
 
 
 class IsDirectoryOnNfsTest(unittest.TestCase):
@@ -40,3 +43,80 @@ class IsDirectoryOnNfsTest(unittest.TestCase):
   def test_is_directory_on_nfs_with_nfs_and_data_bundle_on_local(self):
     """Test is_directory_on_nfs with nfs and data bundle on local."""
     self.assertFalse(setup.is_directory_on_nfs('/tmp/dir1'))
+
+
+# pylint: disable=protected-access
+@test_utils.with_cloud_emulators('datastore')
+class GetApplicationArgumentsTest(unittest.TestCase):
+  """Tests _get_application_arguments."""
+
+  def setUp(self):
+    helpers.patch_environ(self)
+    data_types.Job(
+        name='linux_asan_chrome',
+        environment_string=(
+            'APP_ARGS = --arg1 --arg2 --arg3="--flag1 --flag2"')).put()
+
+    data_types.Job(name='libfuzzer_asan_chrome', environment_string=('')).put()
+
+    self.testcase = test_utils.create_generic_testcase()
+
+  def test_no_minimized_arguments(self):
+    """Test that None is returned when minimized arguments is not set."""
+    self.testcase.minimized_arguments = ''
+    self.testcase.job_type = 'linux_asan_chrome'
+    self.testcase.put()
+
+    self.assertEqual(
+        None, setup._get_application_arguments(self.testcase, 'minimize'))
+    self.assertEqual(None,
+                     setup._get_application_arguments(self.testcase, 'variant'))
+
+  def test_minimized_arguments_for_non_variant_task(self):
+    """Test that minimized arguments are returned for non-variant tasks."""
+    self.testcase.minimized_arguments = '--arg2'
+    self.testcase.job_type = 'linux_asan_chrome'
+    self.testcase.put()
+
+    self.assertEqual(
+        '--arg2', setup._get_application_arguments(self.testcase, 'minimize'))
+
+  def test_minimized_arguments_for_variant_task_1(self):
+    """Test that only APP_ARGS is returned if minimized arguments have no
+    unique arguments, for variant task."""
+    self.testcase.minimized_arguments = '--arg2'
+    self.testcase.job_type = 'linux_asan_chrome'
+    self.testcase.put()
+
+    self.assertEqual('--arg1 --arg2 --arg3="--flag1 --flag2"',
+                     setup._get_application_arguments(self.testcase, 'variant'))
+
+  def test_minimized_arguments_for_variant_task_2(self):
+    """Test that both minimized arguments and APP_ARGS are returned with
+    duplicate args stripped from minimized arguments for variant task."""
+    self.testcase.minimized_arguments = '--arg3="--flag1 --flag2" --arg4'
+    self.testcase.job_type = 'linux_asan_chrome'
+    self.testcase.put()
+
+    self.assertEqual('--arg4 --arg1 --arg2 --arg3="--flag1 --flag2"',
+                     setup._get_application_arguments(self.testcase, 'variant'))
+
+  def test_minimized_arguments_for_variant_task_3(self):
+    """Test that both minimized arguments and APP_ARGS are returned when they
+    don't have common args for variant task."""
+    self.testcase.minimized_arguments = '--arg5'
+    self.testcase.job_type = 'linux_asan_chrome'
+    self.testcase.put()
+
+    self.assertEqual('--arg5 --arg1 --arg2 --arg3="--flag1 --flag2"',
+                     setup._get_application_arguments(self.testcase, 'variant'))
+
+  def test_minimized_arguments_for_variant_task_4(self):
+    """Test that only minimized arguments is returned when APP_ARGS is not set
+    in job definition."""
+    self.testcase.minimized_arguments = '--arg5'
+    self.testcase.job_type = 'libfuzzer_asan_chrome'
+    self.testcase.put()
+
+    self.assertEqual('--arg5',
+                     setup._get_application_arguments(self.testcase, 'variant'))

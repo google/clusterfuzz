@@ -16,6 +16,7 @@
 from builtins import range
 import datetime
 import os
+import shlex
 import time
 import zipfile
 
@@ -93,6 +94,32 @@ def _copy_testcase_to_device_and_setup_environment(testcase,
     android.adb.run_shell_command(['chmod', '0755', device_testcase_file_path])
 
 
+def _get_application_arguments(testcase, task_name):
+  """Get application arguments to use for setting up testcase. Use minimized
+   arguments if available. For variant task, where we run a testcase against
+   another job type, use both minimized arguments and application arguments
+   from job."""
+  testcase_args = testcase.minimized_arguments
+  if not testcase_args:
+    return None
+
+  if task_name != 'variant':
+    return testcase_args
+
+  job_args = data_handler.get_value_from_job_definition(
+      testcase.job_type, 'APP_ARGS', default='')
+  job_args_list = shlex.split(job_args)
+  testcase_args_list = shlex.split(testcase_args)
+  testcase_args_filtered_list = [
+      s for s in testcase_args_list if s not in job_args_list
+  ]
+
+  app_args = ' '.join(testcase_args_filtered_list)
+  if job_args:
+    app_args += ' ' + job_args
+  return app_args.strip()
+
+
 def prepare_environment_for_testcase(testcase):
   """Set various environment variables based on the test case."""
   # Setup memory debugging tool environment.
@@ -100,27 +127,27 @@ def prepare_environment_for_testcase(testcase):
 
   # Setup environment variable for windows size and location properties.
   # Explicitly use empty string to indicate use of default window properties.
-  if hasattr(testcase, 'window_argument'):
+  if testcase.window_argument:
     environment.set_value('WINDOW_ARG', testcase.window_argument)
 
   # Adjust timeout based on the stored multiplier (if available).
-  if hasattr(testcase, 'timeout_multiplier') and testcase.timeout_multiplier:
+  if testcase.timeout_multiplier:
     test_timeout = environment.get_value('TEST_TIMEOUT')
     environment.set_value('TEST_TIMEOUT',
                           int(test_timeout * testcase.timeout_multiplier))
-
-  # Override APP_ARGS with minimized arguments (if available). Don't do this
-  # for variant task since other job types can have its own set of required
-  # arguments, so use the full set of arguments of that job.
-  task_name = environment.get_value('TASK_NAME')
-  if (task_name != 'variant' and hasattr(testcase, 'minimized_arguments') and
-      testcase.minimized_arguments):
-    environment.set_value('APP_ARGS', testcase.minimized_arguments)
 
   # Add FUZZ_TARGET to environment if this is a fuzz target testcase.
   fuzz_target = testcase.get_metadata('fuzzer_binary_name')
   if fuzz_target:
     environment.set_value('FUZZ_TARGET', fuzz_target)
+
+  # Override APP_ARGS with minimized arguments (if available). Don't do this
+  # for variant task since other job types can have its own set of required
+  # arguments, so use the full set of arguments of that job.
+  task_name = environment.get_value('TASK_NAME')
+  app_args = _get_application_arguments(testcase, task_name)
+  if app_args:
+    environment.set_value('APP_ARGS', app_args)
 
 
 def setup_testcase(testcase, fuzzer_override=None):
