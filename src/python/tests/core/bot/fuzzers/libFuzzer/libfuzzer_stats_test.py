@@ -150,6 +150,7 @@ class PerformanceStatsTest(unittest.TestCase):
     log_lines = self._read_test_data('oom.txt')
     parsed_stats = stats.parse_performance_features(log_lines, [], [])
     self.assertEqual(1, parsed_stats['oom_count'])
+    self.assertEqual(0, parsed_stats['timeout_count'])
 
   def test_parse_log_and_stats_oom_in_seed_corpus(self):
     """Test stats parsing and additional performance features extraction
