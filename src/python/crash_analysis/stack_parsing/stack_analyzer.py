@@ -97,8 +97,7 @@ MSAN_TSAN_REGEX = re.compile(
 FATAL_ERROR_CHECK_FAILURE = re.compile(
     r'#\s+(Check failed: |RepresentationChangerError: node #\d+:)?(.*)')
 FATAL_ERROR_DCHECK_FAILURE = re.compile(r'#\s+(Debug check failed: )(.*)')
-FATAL_ERROR_REGEX = re.compile(r'(^|#\s*)Fatal error(:| in) (.*)',
-                               re.IGNORECASE)
+FATAL_ERROR_REGEX = re.compile(r'#\s*Fatal error in (.*)')
 FATAL_ERROR_LINE_REGEX = re.compile(r'#\s*Fatal error in (.*), line [0-9]+')
 FATAL_ERROR_UNREACHABLE = re.compile(r'# un(reachable|implemented) code')
 GENERIC_SEGV_HANDLER_REGEX = re.compile(
@@ -263,6 +262,8 @@ GOLANG_CRASH_TYPES_MAP = [
     (GOLANG_SLICE_BOUNDS_OUT_OF_RANGE_REGEX, 'Slice bounds out of range'),
     (GOLANG_STACK_OVERFLOW_REGEX, 'Stack overflow'),
 ]
+
+GOLANG_FATAL_ERROR_REGEX = re.compile(r'^fatal error: (.*)')
 
 GOLANG_STACK_FRAME_FUNCTION_REGEX = re.compile(
     r'^([0-9a-zA-Z\.\-\_\\\/\(\)\*]+)\([x0-9a-f\s,\.]*\)$')
@@ -1510,10 +1511,17 @@ def get_crash_data(crash_data, symbolize_flag=True):
           FATAL_ERROR_REGEX, line, state, new_type='Fatal error', reset=True)
       if fatal_error_match:
         state.fatal_error_occurred = True
-        if is_golang:
-          state.crash_state = fatal_error_match.group(3) + '\n'
-        else:
-          state.crash_state = filter_stack_frame(fatal_error_match.group(3))
+        state.crash_state = filter_stack_frame(fatal_error_match.group(1))
+
+      if is_golang:
+        golang_fatal_error_match = update_state_on_match(
+            GOLANG_FATAL_ERROR_REGEX,
+            line,
+            state,
+            new_type='Fatal error',
+            reset=True)
+        if golang_fatal_error_match:
+          state.crash_state = golang_fatal_error_match.group(1) + '\n'
 
       # V8 runtime errors.
       if detect_v8_runtime_errors:
