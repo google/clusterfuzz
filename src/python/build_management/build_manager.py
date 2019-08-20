@@ -911,12 +911,17 @@ class ProductionBuild(Build):
 class CustomBuild(Build):
   """Custom binary."""
 
-  def __init__(self, base_build_dir, custom_binary_key, custom_binary_filename,
-               custom_binary_revision):
+  def __init__(self,
+               base_build_dir,
+               custom_binary_key,
+               custom_binary_filename,
+               custom_binary_revision,
+               target_weights=None):
     super(CustomBuild, self).__init__(base_build_dir, custom_binary_revision)
     self.custom_binary_key = custom_binary_key
     self.custom_binary_filename = custom_binary_filename
     self._build_dir = os.path.join(self.base_build_dir, 'custom')
+    self.target_weights = target_weights
 
   @property
   def build_dir(self):
@@ -953,6 +958,8 @@ class CustomBuild(Build):
       # Remove the archive.
       shell.remove_file(build_local_archive)
 
+    _set_random_fuzz_target_for_fuzzing_if_needed(
+        _get_fuzz_targets_from_dir(self.build_dir), self.target_weights)
     return True
 
   def setup(self):
@@ -975,6 +982,9 @@ class CustomBuild(Build):
       logs.log('Retrieved custom binary build r%d.' % self.revision)
     else:
       logs.log('Build already exists.')
+
+      _set_random_fuzz_target_for_fuzzing_if_needed(
+          _get_fuzz_targets_from_dir(self.build_dir), self.target_weights)
 
     self._setup_application_path(build_update=build_update)
     self._post_setup_success(update_revision=build_update)
@@ -1310,7 +1320,7 @@ def setup_symbolized_builds(revision):
   return None
 
 
-def setup_custom_binary():
+def setup_custom_binary(target_weights=None):
   """Set up the custom binary for a particular job."""
   # Check if this build is dependent on any other custom job. If yes,
   # then fake out our job name for setting up the build.
@@ -1331,8 +1341,12 @@ def setup_custom_binary():
     return False
 
   base_build_dir = _base_build_dir('')
-  build = CustomBuild(base_build_dir, job.custom_binary_key,
-                      job.custom_binary_filename, job.custom_binary_revision)
+  build = CustomBuild(
+      base_build_dir,
+      job.custom_binary_key,
+      job.custom_binary_filename,
+      job.custom_binary_revision,
+      target_weights=target_weights)
 
   # Revert back the actual job name.
   if share_build_job_type:
@@ -1404,7 +1418,7 @@ def setup_build(revision=0, target_weights=None):
   # For custom binaries we always use the latest version. Revision is ignored.
   custom_binary = environment.get_value('CUSTOM_BINARY')
   if custom_binary:
-    return setup_custom_binary()
+    return setup_custom_binary(target_weights=target_weights)
 
   # In this case, we assume the build is already installed on the system.
   system_binary = environment.get_value('SYSTEM_BINARY_DIR')

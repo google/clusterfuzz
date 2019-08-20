@@ -512,8 +512,12 @@ class TestcaseRunner(object):
     self._gestures = gestures
     self._needs_http = needs_http
 
-    engine_impl = engine.get(fuzzer_name)
-    if engine_impl:
+    fuzz_target = data_handler.get_fuzz_target(fuzzer_name)
+    if fuzz_target:
+      engine_impl = engine.get(fuzz_target.engine)
+      if not engine_impl:
+        raise RuntimeError('Could not find engine ' + engine_impl.name)
+
       self._is_black_box = False
       self._engine_impl = engine_impl
 
@@ -521,12 +525,12 @@ class TestcaseRunner(object):
       additional_command_line_flags = get_additional_command_line_flags(
           testcase_path)
       self._arguments = additional_command_line_flags.split()
-      target_name = self._arguments.pop(0)
 
       build_dir = environment.get_value('BUILD_DIR')
-      self._target_path = engine_common.find_fuzzer_path(build_dir, target_name)
+      self._target_path = engine_common.find_fuzzer_path(
+          build_dir, fuzz_target.binary)
       if not self._target_path:
-        raise TargetNotFoundError('Failed to find target ' + target_name)
+        raise TargetNotFoundError('Failed to find target ' + fuzz_target.binary)
     else:
       self._is_black_box = True
       self._command = get_command_line_for_application(
@@ -676,8 +680,8 @@ def test_for_crash_with_retries(testcase,
   crash stacktrace, etc."""
   gestures = testcase.gestures if use_gestures else None
   try:
-    runner = TestcaseRunner(testcase.fuzzer_name, testcase_path, test_timeout,
-                            gestures, http_flag)
+    runner = TestcaseRunner(testcase.overridden_fuzzer_name, testcase_path,
+                            test_timeout, gestures, http_flag)
   except TargetNotFoundError:
     # If a target isn't found, treat it as not crashing.
     return CrashResult(return_code=0, crash_time=0, output='')

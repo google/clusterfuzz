@@ -144,7 +144,7 @@ class Crash(object):
         http_flag=needs_http)
 
   @classmethod
-  def from_engine_crash(cls, target_name, crash):
+  def from_engine_crash(cls, crash):
     """Create a Crash from a engine.Crash."""
     return Crash(
         file_path=crash.input_path,
@@ -153,8 +153,7 @@ class Crash(object):
         resource_list=[],
         gestures=[],
         unsymbolized_crash_stacktrace=crash.stacktrace,
-        # We store the target name as the first argument.
-        arguments=[target_name] + crash.reproduce_args,
+        arguments=' '.join(crash.reproduce_args),
         application_command_line='')  # TODO(ochang): Write actual command line.
 
   def __init__(self,
@@ -278,8 +277,13 @@ class CrashGroup(object):
       assert crashes[0].security_flag == c.security_flag
 
     self.crashes = crashes
+    if context.fuzz_target:
+      fully_qualified_fuzzer_name = context.fuzz_target.fully_qualified_name()
+    else:
+      fully_qualified_fuzzer_name = context.fuzzer_name
+
     self.main_crash, self.one_time_crasher_flag = find_main_crash(
-        crashes, context.fuzzer_name, context.test_timeout)
+        crashes, fully_qualified_fuzzer_name, context.test_timeout)
 
     self.newly_created_testcase = None
 
@@ -1418,6 +1422,9 @@ class FuzzingSession(object):
     fuzz_target_name = environment.get_value('FUZZ_TARGET')
     self.fuzz_target = record_fuzz_target(engine_impl.name, fuzz_target_name,
                                           self.job_type)
+    environment.set_value('FUZZER_NAME',
+                          self.fuzz_target.fully_qualified_name())
+
     # Synchronize corpus files with GCS
     sync_corpus_directory = builtin.get_corpus_directory(
         self.testcase_directory, self.fuzz_target.project_qualified_name())
@@ -1449,9 +1456,7 @@ class FuzzingSession(object):
     crashes = result.crashes
     if crashes:
       crashes = [
-          Crash.from_engine_crash(fuzz_target_name, crash)
-          for crash in result.crashes
-          if crash
+          Crash.from_engine_crash(crash) for crash in result.crashes if crash
       ]
 
     return crashes, fuzzer_metadata
@@ -1673,8 +1678,8 @@ class FuzzingSession(object):
 
     # Check if we have an application path. If not, our build failed
     # to setup correctly.
-    app_path = environment.get_value('APP_PATH')
-    if not app_path:
+    if (environment.get_value('APP_NAME') and
+        not environment.get_value('APP_PATH')):
       _track_fuzzer_run_result(self.fuzzer_name, 0, 0,
                                FuzzErrorCode.BUILD_SETUP_FAILED)
       return

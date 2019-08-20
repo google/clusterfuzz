@@ -331,7 +331,7 @@ def execute_task(testcase_id, job_type):
 
   # Test for reproducibility.
   one_time_crasher_flag = not testcase_manager.test_for_reproducibility(
-      testcase.fuzzer_name, testcase_file_path, state.crash_state,
+      testcase.overridden_fuzzer_name, testcase_file_path, state.crash_state,
       security_flag, test_timeout, http_flag, gestures)
   testcase.one_time_crasher_flag = one_time_crasher_flag
 

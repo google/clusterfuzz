@@ -443,7 +443,8 @@ class CrashGroupTest(unittest.TestCase):
 
     self.mock.get_project_name.return_value = 'some_project'
     self.crashes = [self._make_crash('g1'), self._make_crash('g2')]
-    self.context = mock.MagicMock(test_timeout=99, fuzzer_name='test')
+    self.context = mock.MagicMock(
+        test_timeout=99, fuzzer_name='test', fuzz_target=None)
     self.reproducible_testcase = self._make_testcase(
         project_name='some_project',
         bug_information='',
@@ -1368,7 +1369,7 @@ class DoEngineFuzzingTest(fake_filesystem_unittest.TestCase):
     self.assertEqual(1, crashes[0].return_code)
     self.assertEqual('stack', crashes[0].unsymbolized_crash_stacktrace)
     self.assertEqual(1.0, crashes[0].crash_time)
-    self.assertListEqual(['test_target', 'args'], crashes[0].arguments)
+    self.assertEqual('args', crashes[0].arguments)
     upload_args = self.mock.upload_stats.call_args[0][0]
     testcase_run = upload_args[0]
     self.assertDictEqual({

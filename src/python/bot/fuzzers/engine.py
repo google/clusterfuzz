@@ -157,13 +157,12 @@ class Engine(object):
     raise NotImplementedError
 
 
-def register_engine(impl):
+def register(name, engine_class):
   """Register a fuzzing engine."""
-  if impl.name in _ENGINES:
-    raise ValueError(
-        'Engine {name} is already registered'.format(name=impl.name))
+  if name in _ENGINES:
+    raise ValueError('Engine {name} is already registered'.format(name=name))
 
-  _ENGINES[impl.name] = impl
+  _ENGINES[name] = engine_class
 
 
 def get(name):
