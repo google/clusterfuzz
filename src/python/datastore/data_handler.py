@@ -301,6 +301,17 @@ def get_fuzzer_display(testcase):
       fully_qualified_name=fuzz_target.fully_qualified_name())
 
 
+def filter_arguments(arguments, fuzz_target_name=None):
+  """Filter arguments, removing testcase argument and fuzz target binary
+  names."""
+  # Filter out %TESTCASE*% argument.
+  arguments = re.sub(r'[^\s]*%TESTCASE(|_FILE_URL|_HTTP_URL)%', '', arguments)
+  if fuzz_target_name:
+    arguments = arguments.replace(fuzz_target_name, '')
+
+  return arguments.strip()
+
+
 def get_arguments(testcase):
   """Return minimized arguments, without testcase argument and fuzz target
   binary itself (for engine fuzzers)."""
@@ -308,17 +319,11 @@ def get_arguments(testcase):
       testcase.minimized_arguments or
       get_value_from_job_definition(testcase.job_type, 'APP_ARGS', default=''))
 
-  # Filter out %TESTCASE*% argument.
-  arguments = re.sub(r'[^\s]*%TESTCASE(|_FILE_URL|_HTTP_URL)%', '', arguments)
-
   # Filter out fuzz target argument. We shouldn't have any case for this other
   # than what is needed by launcher.py for engine based fuzzers.
   fuzzer_display = get_fuzzer_display(testcase)
   fuzz_target = fuzzer_display.target
-  if fuzz_target:
-    arguments = re.sub(fuzz_target, '', arguments)
-
-  return arguments.strip()
+  return filter_arguments(arguments, fuzz_target)
 
 
 def get_formatted_reproduction_help(testcase):

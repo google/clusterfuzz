@@ -303,10 +303,13 @@ class LibFuzzerEngine(engine.Engine):
     runner = libfuzzer.get_runner(target_path)
     launcher.set_sanitizer_options(target_path)
 
+    runs_argument = constants.RUNS_FLAG + str(constants.RUNS_TO_REPRODUCE)
     result = runner.run_single_testcase(
-        input_path, timeout=max_time, additional_args=arguments)
-    return engine.ReproduceResult(result.return_code, result.time_executed,
-                                  result.output)
+        input_path,
+        timeout=max_time,
+        additional_args=arguments + [runs_argument])
+    return engine.ReproduceResult(result.command, result.return_code,
+                                  result.time_executed, result.output)
 
   def minimize_corpus(self, target_path, arguments, input_dirs, output_dir,
                       reproducers_dir, max_time):
@@ -373,8 +376,8 @@ class LibFuzzerEngine(engine.Engine):
         max_time,
         additional_args=arguments + [artifact_prefix])
 
-    return engine.ReproduceResult(result.return_code, result.time_executed,
-                                  result.output)
+    return engine.ReproduceResult(result.command, result.return_code,
+                                  result.time_executed, result.output)
 
   def cleanse(self, target_path, arguments, input_path, output_path, max_time):
     """Optional (but recommended): Cleanse a testcase.
@@ -400,5 +403,5 @@ class LibFuzzerEngine(engine.Engine):
         max_time,
         additional_args=arguments + [artifact_prefix])
 
-    return engine.ReproduceResult(result.return_code, result.time_executed,
-                                  result.output)
+    return engine.ReproduceResult(result.command, result.return_code,
+                                  result.time_executed, result.output)
