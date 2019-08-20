@@ -422,22 +422,26 @@ def sync_user_permissions(project, info):
 
 def ccs_from_info(info):
   """Get list of CC's from project info."""
-  ccs = []
-  if 'primary_contact' in info:
-    primary_contact = info['primary_contact']
-    if isinstance(primary_contact, basestring):
-      ccs.append(primary_contact)
-    else:
-      raise ProjectSetupError('Bad primary_contact %s.' % primary_contact)
 
-  if 'auto_ccs' in info:
-    auto_ccs = info.get('auto_ccs')
-    if isinstance(auto_ccs, list):
-      ccs.extend(auto_ccs)
-    elif isinstance(auto_ccs, basestring):
-      ccs.append(auto_ccs)
+  def _get_ccs(field_name, allow_list=True):
+    """Return list of emails to cc given a field name."""
+    if field_name not in info:
+      return []
+
+    field_value = info.get(field_name)
+    if allow_list and isinstance(field_value, list):
+      return field_value
+    elif isinstance(field_value, basestring):
+      return [field_value]
     else:
-      raise ProjectSetupError('Bad auto_ccs %s.' % auto_ccs)
+      raise ProjectSetupError(
+          'Bad value for field {field_name}: {field_value}.'.format(
+              field_name=field_name, field_value=field_value))
+
+  ccs = []
+  ccs.extend(_get_ccs('primary_contact', allow_list=False))
+  ccs.extend(_get_ccs('auto_ccs'))
+  ccs.extend(_get_ccs('vendor_ccs'))
 
   return [utils.normalize_email(cc) for cc in ccs]
 
