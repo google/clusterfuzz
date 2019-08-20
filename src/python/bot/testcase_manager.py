@@ -683,7 +683,7 @@ def test_for_crash_with_retries(testcase,
   crash stacktrace, etc."""
   gestures = testcase.gestures if use_gestures else None
   try:
-    runner = TestcaseRunner(testcase.overridden_fuzzer_name, testcase_path,
+    runner = TestcaseRunner(testcase.actual_fuzzer_name(), testcase_path,
                             test_timeout, gestures, http_flag)
   except TargetNotFoundError:
     # If a target isn't found, treat it as not crashing.
