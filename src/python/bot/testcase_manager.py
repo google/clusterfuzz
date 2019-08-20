@@ -515,9 +515,12 @@ class TestcaseRunner(object):
     fuzz_target = data_handler.get_fuzz_target(fuzzer_name)
     if fuzz_target:
       engine_impl = engine.get(fuzz_target.engine)
-      if not engine_impl:
-        raise RuntimeError('Could not find engine ' + engine_impl.name)
+    else:
+      engine_impl = None
 
+    # TODO(ochang): Make this hard fail once migration to new fuzzing pipeline
+    # is complete.
+    if fuzz_target and engine_impl:
       self._is_black_box = False
       self._engine_impl = engine_impl
 
