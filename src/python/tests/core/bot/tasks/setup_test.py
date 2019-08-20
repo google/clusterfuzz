@@ -81,7 +81,7 @@ class GetApplicationArgumentsTest(unittest.TestCase):
     self.assertEqual(
         '--arg2', setup._get_application_arguments(self.testcase, 'minimize'))
 
-  def test_minimized_arguments_for_variant_task_1(self):
+  def test_no_unique_minimized_arguments_for_variant_task(self):
     """Test that only APP_ARGS is returned if minimized arguments have no
     unique arguments, for variant task."""
     self.testcase.minimized_arguments = '--arg2'
@@ -91,7 +91,7 @@ class GetApplicationArgumentsTest(unittest.TestCase):
     self.assertEqual('--arg1 --arg2 --arg3="--flag1 --flag2"',
                      setup._get_application_arguments(self.testcase, 'variant'))
 
-  def test_minimized_arguments_for_variant_task_2(self):
+  def test_some_duplicate_minimized_arguments_for_variant_task(self):
     """Test that both minimized arguments and APP_ARGS are returned with
     duplicate args stripped from minimized arguments for variant task."""
     self.testcase.minimized_arguments = '--arg3="--flag1 --flag2" --arg4'
@@ -101,7 +101,7 @@ class GetApplicationArgumentsTest(unittest.TestCase):
     self.assertEqual('--arg4 --arg1 --arg2 --arg3="--flag1 --flag2"',
                      setup._get_application_arguments(self.testcase, 'variant'))
 
-  def test_minimized_arguments_for_variant_task_3(self):
+  def test_unique_minimized_arguments_for_variant_task(self):
     """Test that both minimized arguments and APP_ARGS are returned when they
     don't have common args for variant task."""
     self.testcase.minimized_arguments = '--arg5'
@@ -111,7 +111,7 @@ class GetApplicationArgumentsTest(unittest.TestCase):
     self.assertEqual('--arg5 --arg1 --arg2 --arg3="--flag1 --flag2"',
                      setup._get_application_arguments(self.testcase, 'variant'))
 
-  def test_minimized_arguments_for_variant_task_4(self):
+  def test_no_job_app_args_for_variant_task(self):
     """Test that only minimized arguments is returned when APP_ARGS is not set
     in job definition."""
     self.testcase.minimized_arguments = '--arg5'
