@@ -103,7 +103,8 @@
         submit-button="Submit"
         response="{{response}}"
         on-response="handleGcsResponseAndError"
-        opened="{{opened}}">
+        opened="{{opened}}"
+        loading="{{loading}}">
       <template is="dom-if" if="[[error]]">
         <div class="error">
           ERROR: [[error.response.message]]
@@ -239,7 +240,8 @@
       content-type="application/json"
       last-error="{{error}}"
       on-response="handleFinishResponse"
-      debounce-duration="1000">
+      debounce-duration="1000"
+      loading="{{loading}}">
     </iron-ajax>
   </template>
   <script>
@@ -272,6 +274,7 @@
           },
           fieldValues: Object,
           create: Boolean,
+          loading: Boolean,
         };
       }
 
