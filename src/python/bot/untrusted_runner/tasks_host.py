@@ -106,5 +106,5 @@ def process_testcase(engine_name, tool_name, target_name, arguments,
       timeout=timeout)
 
   response = host.stub().ProcessTestcase(request)
-  return engine.ReproduceResult(response.return_code, response.time_executed,
-                                response.output)
+  return engine.ReproduceResult(response.command, response.return_code,
+                                response.time_executed, response.output)
