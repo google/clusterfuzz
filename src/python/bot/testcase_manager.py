@@ -516,7 +516,7 @@ class TestcaseRunner(object):
     if fuzz_target:
       engine_impl = engine.get(fuzz_target.engine)
       if not engine_impl:
-        raise RuntimeError(engine_impl)
+        raise RuntimeError('Could not find engine ' + engine_impl.name)
 
       self._is_black_box = False
       self._engine_impl = engine_impl

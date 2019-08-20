@@ -277,9 +277,10 @@ class CrashGroup(object):
       assert crashes[0].security_flag == c.security_flag
 
     self.crashes = crashes
-    fully_qualified_fuzzer_name = context.fuzzer_name
     if context.fuzz_target:
       fully_qualified_fuzzer_name = context.fuzz_target.fully_qualified_name()
+    else:
+      fully_qualified_fuzzer_name = context.fuzzer_name
 
     self.main_crash, self.one_time_crasher_flag = find_main_crash(
         crashes, fully_qualified_fuzzer_name, context.test_timeout)
