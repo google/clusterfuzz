@@ -146,12 +146,13 @@ class MinijailChroot(object):
       logs.log_error('Failed to call mknod.', output=e.output)
 
   def _create_devices(self):
-    """Create /dev/null, /dev/random and /dev/urandom."""
+    """Create /dev/null, /dev/random, /dev/urandom, and /dev/shm."""
     dev_dir = os.path.join(self._chroot_dir, 'dev')
     os.mkdir(dev_dir)
     self._mknod(os.path.join(dev_dir, 'null'), 'c', 1, 3)
     self._mknod(os.path.join(dev_dir, 'random'), 'c', 1, 8)
     self._mknod(os.path.join(dev_dir, 'urandom'), 'c', 1, 9)
+    os.mkdir(os.path.join(dev_dir, 'shm'))
 
   def _makedirs(self, directory):
     """Create directories for binding in chroot.
