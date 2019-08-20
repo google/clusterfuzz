@@ -38,6 +38,9 @@ def _fake_get_testcase(*_):
       'job_definition': 'APP_NAME = echo\nAPP_ARGS = -n\n',
       'overridden_fuzzer_name': 'fuzzer',
       'platform': environment.platform().lower(),
+      'minimized_arguments': '',
+      'window_argument': '',
+      'timeout_multiplier': 1.0,
   }
 
   return reproduce.SerializedTestcase(testcase_map)
