@@ -263,6 +263,8 @@ GOLANG_CRASH_TYPES_MAP = [
     (GOLANG_STACK_OVERFLOW_REGEX, 'Stack overflow'),
 ]
 
+GOLANG_FATAL_ERROR_REGEX = re.compile(r'^fatal error: (.*)')
+
 GOLANG_STACK_FRAME_FUNCTION_REGEX = re.compile(
     r'^([0-9a-zA-Z\.\-\_\\\/\(\)\*]+)\([x0-9a-f\s,\.]*\)$')
 
@@ -444,10 +446,7 @@ STACK_FRAME_IGNORE_REGEXES = [
 
     # Golang specific frames to ignore.
     r'^panic$',
-    r'^runtime\.newstack$',
-    r'^runtime\.morestack$',
-    r'^runtime\.raise(\s.*|$)',
-    r'^runtime\.throw$',
+    r'^runtime\.',
 ]
 
 STACK_FRAME_IGNORE_REGEXES_IF_SYMBOLIZED = [
@@ -1083,6 +1082,7 @@ def get_crash_data(crash_data, symbolize_flag=True):
 
   is_kasan = 'KASAN' in crash_stacktrace_without_inlines
   is_golang = '.go:' in crash_stacktrace_without_inlines
+  found_golang_crash = False
 
   for line in crash_stacktrace_without_inlines.splitlines():
     if should_ignore_line_for_crash_processing(line, state):
@@ -1266,6 +1266,7 @@ def get_crash_data(crash_data, symbolize_flag=True):
       for golang_crash_regex, golang_crash_type in GOLANG_CRASH_TYPES_MAP:
         if update_state_on_match(
             golang_crash_regex, line, state, new_type=golang_crash_type):
+          found_golang_crash = True
           state.crash_state = ''
           state.frame_count = 0
           continue
@@ -1320,14 +1321,15 @@ def get_crash_data(crash_data, symbolize_flag=True):
       continue
 
     # Sanitizer regular crash (includes ills, abrt, etc).
-    update_state_on_match(
-        SAN_ADDR_REGEX,
-        line,
-        state,
-        type_from_group=2,
-        address_from_group=4,
-        reset=True,
-        type_filter=fix_sanitizer_crash_type)
+    if not found_golang_crash:
+      update_state_on_match(
+          SAN_ADDR_REGEX,
+          line,
+          state,
+          type_from_group=2,
+          address_from_group=4,
+          reset=True,
+          type_filter=fix_sanitizer_crash_type)
 
     # Overwrite Unknown-crash type with more generic UNKNOWN type.
     if state.crash_type == 'Unknown-crash':
@@ -1504,12 +1506,22 @@ def get_crash_data(crash_data, symbolize_flag=True):
       update_state_on_check_failure(state, line, GOOGLE_CHECK_FAILURE_REGEX,
                                     'CHECK failure')
 
-      # V8 fatal errors.
+      # V8 and Golang fatal errors.
       fatal_error_match = update_state_on_match(
           FATAL_ERROR_REGEX, line, state, new_type='Fatal error', reset=True)
       if fatal_error_match:
-        state.crash_state = filter_stack_frame(fatal_error_match.group(1))
         state.fatal_error_occurred = True
+        state.crash_state = filter_stack_frame(fatal_error_match.group(1))
+
+      if is_golang:
+        golang_fatal_error_match = update_state_on_match(
+            GOLANG_FATAL_ERROR_REGEX,
+            line,
+            state,
+            new_type='Fatal error',
+            reset=True)
+        if golang_fatal_error_match:
+          state.crash_state = golang_fatal_error_match.group(1) + '\n'
 
       # V8 runtime errors.
       if detect_v8_runtime_errors:

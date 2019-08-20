@@ -2559,9 +2559,9 @@ class StackAnalyzerTestcase(unittest.TestCase):
         'golang_panic_runtime_error_slice_bounds_out_of_range.txt')
     expected_type = 'Slice bounds out of range'
     expected_address = ''
-    expected_state = ('pefile.(*PeFile).readImports\n'
-                      'pefile.LoadPeFile\n'
-                      'windows.New\n')
+    expected_state = ('json.(*decodeState).unquoteBytes\n'
+                      'json.(*decodeState).literalStore\n'
+                      'json.(*decodeState).object\n')
 
     expected_stacktrace = data
     expected_security_flag = False
@@ -2591,7 +2591,49 @@ class StackAnalyzerTestcase(unittest.TestCase):
         'golang_panic_runtime_error_makeslice_len_out_of_range.txt')
     expected_type = 'Makeslice: len out of range'
     expected_address = ''
-    expected_state = ('gc.newliveness\ngc.liveness\ngc.compile\n')
+    expected_state = 'gc.newliveness\ngc.liveness\ngc.compile\n'
+
+    expected_stacktrace = data
+    expected_security_flag = False
+    self._validate_get_crash_data(data, expected_type, expected_address,
+                                  expected_state, expected_stacktrace,
+                                  expected_security_flag)
+
+  def test_golang_generic_fatal_error_and_asan_abrt(self):
+    """Test golang stacktrace with a generic fatal error and ASan's ABRT
+    signature that should be ignored for known golang crashes."""
+    data = self._read_test_data('golang_generic_fatal_error_and_asan_abrt.txt')
+    expected_type = 'Fatal error'
+    expected_address = ''
+    expected_state = 'error message here\njson.(*decodeState).unquoteBytes\n'
+
+    expected_stacktrace = data
+    expected_security_flag = False
+    self._validate_get_crash_data(data, expected_type, expected_address,
+                                  expected_state, expected_stacktrace,
+                                  expected_security_flag)
+
+  def test_golang_generic_panic_and_asan_abrt(self):
+    """Test golang stacktrace with a generic panic and ASan's ABRT signature
+    that should be ignored for known golang crashes."""
+    data = self._read_test_data('golang_generic_panic_and_asan_abrt.txt')
+    expected_type = 'ASSERT'
+    expected_address = ''
+    expected_state = 'error message here\njson.(*decodeState).unquoteBytes\n'
+
+    expected_stacktrace = data
+    expected_security_flag = True
+    self._validate_get_crash_data(data, expected_type, expected_address,
+                                  expected_state, expected_stacktrace,
+                                  expected_security_flag)
+
+  def test_golang_new_crash_type_and_asan_abrt(self):
+    """Test golang stacktrace with an unknown message and ASan's ABRT signature
+    that should be captured for unknown golang crashes."""
+    data = self._read_test_data('golang_new_crash_type_and_asan_abrt.txt')
+    expected_type = 'Abrt'
+    expected_address = '0x000000000001'
+    expected_state = 'NULL'
 
     expected_stacktrace = data
     expected_security_flag = False
