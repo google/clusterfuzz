@@ -81,7 +81,7 @@ def execute_task(testcase_id, job_type):
 
     gestures = testcase.gestures if use_gestures else None
     one_time_crasher_flag = not testcase_manager.test_for_reproducibility(
-        testcase.overridden_fuzzer_name, testcase_file_path, crash_state,
+        testcase.actual_fuzzer_name(), testcase_file_path, crash_state,
         security_flag, test_timeout, testcase.http_flag, gestures)
     if one_time_crasher_flag:
       status = data_types.TestcaseVariantStatus.FLAKY

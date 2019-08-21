@@ -73,6 +73,10 @@ class SerializedTestcase(object):
     except KeyError:
       return default
 
+  def actual_fuzzer_name(self):
+    """Actual fuzzer name, uses one from overridden attribute if available."""
+    return self.overridden_fuzzer_name or self.fuzzer_name
+
 
 def _get_testcase(testcase_id, configuration):
   """Retrieve the json representation of the test case with the given id."""
