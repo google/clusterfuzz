@@ -1383,6 +1383,9 @@ def get_testcase_variant(testcase_id, job_type):
 
 def get_fuzz_target(name):
   """Get FuzzTarget by fully qualified name."""
+  if name is None:
+    return None
+
   return ndb.Key(data_types.FuzzTarget, name).get()
 
 
