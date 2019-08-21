@@ -341,7 +341,7 @@ class GetCrashOutputTest(unittest.TestCase):
 
 def mock_get_crash_data(output, symbolize_flag=True):  # pylint: disable=unused-argument
   """Mock get_crash_data."""
-  if output == 'crash':
+  if 'crash' in output:
     stack_analyzer_state = stack_analyzer.StackAnalyzerState()
     stack_analyzer_state.crash_state = 'state'
     stack_analyzer_state.crash_type = 'Null-dereference'
@@ -353,6 +353,8 @@ def mock_get_crash_data(output, symbolize_flag=True):  # pylint: disable=unused-
 @test_utils.with_cloud_emulators('datastore')
 class TestcaseRunningTest(fake_filesystem_unittest.TestCase):
   """Tests for running testcases."""
+
+  EXPECTED_HEADER = 'Command: cmd\nBot: bot_name\nTime ran: 0\n\n'
 
   def setUp(self):
     test_helpers.patch_environ(self)
@@ -377,6 +379,7 @@ class TestcaseRunningTest(fake_filesystem_unittest.TestCase):
     os.environ['INPUT_DIR'] = '/input'
     os.environ['FUZZER_DIR'] = '/fuzzer'
     os.environ['WARMUP_TIMEOUT'] = '120'
+    os.environ['BOT_NAME'] = 'bot_name'
 
     data_types.FuzzTarget(engine='engine', project=None, binary='target').put()
 
@@ -423,14 +426,15 @@ class TestcaseRunningTest(fake_filesystem_unittest.TestCase):
     """Test test_for_crash_with_retries failing to reproduce a crash
     (greybox)."""
     mock_engine = mock.Mock()
-    mock_engine.reproduce.return_value = engine.ReproduceResult(0, 0, 'output')
+    mock_engine.reproduce.return_value = engine.ReproduceResult(['cmd'], 0, 0,
+                                                                'output')
     self.mock.get.return_value = mock_engine
 
     crash_result = testcase_manager.test_for_crash_with_retries(
         self.greybox_testcase, '/fuzz-testcase', 10)
     self.assertEqual(0, crash_result.return_code)
     self.assertEqual(0, crash_result.crash_time)
-    self.assertEqual('output', crash_result.output)
+    self.assertEqual(self.EXPECTED_HEADER + 'output', crash_result.output)
     self.assertEqual(3, mock_engine.reproduce.call_count)
     mock_engine.reproduce.assert_has_calls([
         mock.call('/build_dir/target', '/fuzz-testcase', ['-arg1', '-arg2'],
@@ -472,22 +476,40 @@ class TestcaseRunningTest(fake_filesystem_unittest.TestCase):
     """Test test_for_crash_with_retries reproducing a crash (greybox)."""
     mock_engine = mock.Mock()
     mock_engine.reproduce.side_effect = [
-        engine.ReproduceResult(0, 0, 'output'),
-        engine.ReproduceResult(1, 1, 'crash'),
+        engine.ReproduceResult(['cmd'], 0, 0, 'output'),
+        engine.ReproduceResult(['cmd'], 1, 0, 'crash'),
     ]
     self.mock.get.return_value = mock_engine
 
     crash_result = testcase_manager.test_for_crash_with_retries(
         self.greybox_testcase, '/fuzz-testcase', 10)
     self.assertEqual(1, crash_result.return_code)
-    self.assertEqual(1, crash_result.crash_time)
-    self.assertEqual('crash', crash_result.output)
+    self.assertEqual(0, crash_result.crash_time)
+    self.assertEqual(self.EXPECTED_HEADER + 'crash', crash_result.output)
     self.assertEqual(2, mock_engine.reproduce.call_count)
     mock_engine.reproduce.assert_has_calls([
         mock.call('/build_dir/target', '/fuzz-testcase', ['-arg1', '-arg2'],
                   120),
         mock.call('/build_dir/target', '/fuzz-testcase', ['-arg1', '-arg2'],
                   10),
+    ])
+
+  def test_test_for_crash_with_retries_greybox_legacy(self):
+    """Test test_for_crash_with_retries reproducing a legacy crash (greybox)."""
+    mock_engine = mock.Mock()
+    mock_engine.reproduce.side_effect = [
+        engine.ReproduceResult(['cmd'], 1, 1, 'crash'),
+    ]
+    self.mock.get.return_value = mock_engine
+
+    with open('/flags-testcase', 'w') as f:
+      f.write('%TESTCASE% target -arg1 -arg2')
+
+    testcase_manager.test_for_crash_with_retries(self.greybox_testcase,
+                                                 '/fuzz-testcase', 10)
+    mock_engine.reproduce.assert_has_calls([
+        mock.call('/build_dir/target', '/fuzz-testcase', ['-arg1', '-arg2'],
+                  120),
     ])
 
   def test_test_for_reproducibility_blackbox(self):
@@ -509,7 +531,8 @@ class TestcaseRunningTest(fake_filesystem_unittest.TestCase):
   def test_test_for_reproducibility_greybox(self):
     """Test test_for_reproducibility (greybox)."""
     mock_engine = mock.Mock()
-    mock_engine.reproduce.return_value = engine.ReproduceResult(1, 1, 'crash')
+    mock_engine.reproduce.return_value = engine.ReproduceResult(['cmd'], 1, 1,
+                                                                'crash')
     self.mock.get.return_value = mock_engine
 
     result = testcase_manager.test_for_reproducibility(

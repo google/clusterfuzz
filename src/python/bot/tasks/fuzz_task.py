@@ -17,6 +17,7 @@ from __future__ import division
 from future import standard_library
 standard_library.install_aliases()
 from builtins import object
+from builtins import range
 import collections
 import datetime
 import itertools
@@ -1431,8 +1432,10 @@ class FuzzingSession(object):
     self.sync_corpus(sync_corpus_directory)
 
     # Do the actual fuzzing.
-    result, fuzzer_metadata = self._run_engine_fuzzer(engine_impl,
-                                                      sync_corpus_directory)
+    for _ in range(environment.get_value('MAX_TESTCASES', 1)):
+      result, fuzzer_metadata = self._run_engine_fuzzer(engine_impl,
+                                                        sync_corpus_directory)
+
     self.sync_new_corpus_files()
 
     # Prepare stats.

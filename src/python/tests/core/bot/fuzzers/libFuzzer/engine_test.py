@@ -348,7 +348,15 @@ class IntegrationTests(unittest.TestCase):
     testcase_path, _ = setup_testcase_and_corpus('crash', 'empty_corpus')
     engine_impl = engine.LibFuzzerEngine()
     target_path = engine_common.find_fuzzer_path(DATA_DIR, 'test_fuzzer')
-    result = engine_impl.reproduce(target_path, testcase_path, [], 30)
+    result = engine_impl.reproduce(target_path, testcase_path,
+                                   ['-timeout=25', '-rss_limit_mb=2048'], 30)
+    self.assertListEqual([
+        os.path.join(DATA_DIR, 'test_fuzzer'),
+        '-timeout=25',
+        '-rss_limit_mb=2048',
+        '-runs=100',
+        testcase_path,
+    ], result.command)
     self.assertIn(
         'ERROR: AddressSanitizer: SEGV on unknown address 0x000000000000',
         result.output)

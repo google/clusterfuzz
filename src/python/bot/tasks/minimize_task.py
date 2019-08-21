@@ -1101,7 +1101,7 @@ def run_libfuzzer_engine(tool_name, target_name, arguments, testcase_path,
   target_path = engine_common.find_fuzzer_path(
       environment.get_value('BUILD_DIR'), target_name)
   if not target_path:
-    return engine.ReproduceResult(0, 0, '')
+    return engine.ReproduceResult([], 0, 0, '')
 
   engine_impl = LibFuzzerEngine()
   if tool_name == 'minimize':

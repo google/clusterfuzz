@@ -279,9 +279,10 @@ message ProcessTestcaseRequest {
 }
 
 message ProcessTestcaseResponse {
-  optional int64 return_code = 1;
-  optional double time_executed = 2;
-  optional bytes output = 3;
+  repeated string command = 1;
+  optional int64 return_code = 2;
+  optional double time_executed = 3;
+  optional bytes output = 4;
 }
 
 // UntrusterRunner service.

@@ -525,9 +525,9 @@ class TestcaseRunner(object):
       self._engine_impl = engine_impl
 
       # Read target_name + args from flags file.
-      additional_command_line_flags = get_additional_command_line_flags(
-          testcase_path)
-      self._arguments = additional_command_line_flags.split()
+      arguments = get_additional_command_line_flags(testcase_path)
+      arguments = data_handler.filter_arguments(arguments, fuzz_target.binary)
+      self._arguments = arguments.split()
 
       build_dir = environment.get_value('BUILD_DIR')
       self._target_path = engine_common.find_fuzzer_path(
@@ -556,7 +556,11 @@ class TestcaseRunner(object):
           self._target_path, self._testcase_path, self._arguments, run_timeout)
       return_code = result.return_code
       crash_time = result.time_executed
-      output = result.output
+
+      log_header = engine_common.get_log_header(
+          result.command, environment.get_value('BOT_NAME'),
+          result.time_executed)
+      output = log_header + '\n' + result.output
 
     process_handler.terminate_stale_application_instances()
 

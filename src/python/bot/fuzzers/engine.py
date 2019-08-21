@@ -52,8 +52,8 @@ class FuzzResult(object):
 
 
 # Results from running a testcase against a target.
-ReproduceResult = namedtuple('ReproduceResult',
-                             ['return_code', 'time_executed', 'output'])
+ReproduceResult = namedtuple(
+    'ReproduceResult', ['command', 'return_code', 'time_executed', 'output'])
 
 
 class Engine(object):
