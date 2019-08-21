@@ -421,6 +421,7 @@ _LIBFUZZER_SCHEMA = [{
 
 _SCHEMA = {
     'libFuzzer': _LIBFUZZER_SCHEMA,
+    'libFuzzer_test': _LIBFUZZER_SCHEMA,
     'afl': _AFL_SCHEMA,
 }
 
