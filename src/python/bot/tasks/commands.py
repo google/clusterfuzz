@@ -350,7 +350,10 @@ def process_command(task):
   cleanup_task_state()
 
   # Start http(s) servers.
-  http_server.start()
+  try:
+    http_server.start()
+  except Exception:
+    logs.log_error('Failed to start web server, skipping.')
 
   try:
     run_command(task_name, task_argument, job_name)
