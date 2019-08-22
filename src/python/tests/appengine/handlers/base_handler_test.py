@@ -66,6 +66,14 @@ class AccessDeniedExceptionHandler(base_handler.Handler):
     raise helpers.AccessDeniedException('this_random_message')
 
 
+class RedirectHandler(base_handler.Handler):
+  """Redirect handler."""
+
+  def get(self):
+    redirect = self.request.get('redirect')
+    self.redirect(redirect)
+
+
 class HandlerTest(unittest.TestCase):
   """Test Handler."""
 
@@ -139,3 +147,23 @@ class HandlerTest(unittest.TestCase):
     self.assertEqual(response.status_int, 403)
     self.assertRegexpMatches(response.body, '.*Access Denied.*')
     self.assertRegexpMatches(response.body, '.*this_random_message.*')
+
+  def test_redirect_another_page(self):
+    """Test redirect to another page."""
+    app = webtest.TestApp(webapp2.WSGIApplication([('/', RedirectHandler)]))
+    response = app.get('/?redirect=%2Fanother-page')
+    self.assertEqual('http://localhost/another-page',
+                     response.headers['Location'])
+
+  def test_redirect_another_domain(self):
+    """Test redirect to another domain."""
+    app = webtest.TestApp(webapp2.WSGIApplication([('/', RedirectHandler)]))
+    response = app.get('/?redirect=https%3A%2F%2Fblah.com%2Ftest')
+    self.assertEqual('https://blah.com/test', response.headers['Location'])
+
+  def test_redirect_javascript(self):
+    """Test redirect to a javascript url."""
+    app = webtest.TestApp(webapp2.WSGIApplication([('/', RedirectHandler)]))
+    response = app.get(
+        '/?redirect=javascript%3Aalert%281%29', expect_errors=True)
+    self.assertEqual(response.status_int, 403)
