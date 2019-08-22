@@ -25,6 +25,8 @@ import shutil
 import sys
 import time
 
+import six
+
 from base import utils
 from bot.fuzzers import options
 from bot.fuzzers import utils as fuzzer_utils
@@ -389,10 +391,19 @@ def get_issue_components(fuzz_target_path):
 
 def format_fuzzing_strategies(fuzzing_strategies):
   """Format the strategies used for logging purposes."""
-  if fuzzing_strategies:
-    return 'cf::fuzzing_strategies: %s' % (','.join(fuzzing_strategies))
+  if not fuzzing_strategies:
+    return ''
 
-  return ''
+  if isinstance(fuzzing_strategies, list):
+    # Legacy format. TODO(ochang): Remove this once it's not used.
+    value = ','.join(fuzzing_strategies)
+  else:
+    # New format.
+    assert isinstance(fuzzing_strategies, dict)
+    value = ','.join('{}:{}'.format(key, value)
+                     for key, value in six.iteritems(fuzzing_strategies))
+
+  return 'cf::fuzzing_strategies: ' + value
 
 
 def random_choice(sequence):

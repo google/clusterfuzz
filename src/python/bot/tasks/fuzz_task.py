@@ -1387,8 +1387,8 @@ class FuzzingSession(object):
     fuzz_test_timeout = environment.get_value('FUZZ_TEST_TIMEOUT')
     result = engine_impl.fuzz(target_path, options, self.testcase_directory,
                               fuzz_test_timeout)
-    for strategy in options.strategies:
-      result.stats['strategy_' + strategy] = 1
+    for strategy, value in six.iteritems(options.strategies):
+      result.stats['strategy_' + strategy] = value
 
     # Format logs with header and strategy information.
     log_header = engine_common.get_log_header(result.command,
