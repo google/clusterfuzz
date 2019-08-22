@@ -121,6 +121,12 @@ def make_logout_url(dest_url):
   })
 
 
+def check_redirect_url(url):
+  """Check redirect URL is safe."""
+  if not _SAFE_URL_PATTERN.match(url):
+    raise helpers.EarlyExitException('Invalid redirect.', 403)
+
+
 class _MenuItem(object):
   """A menu item used for rendering an item in the main navigation."""
 
@@ -252,10 +258,9 @@ class Handler(webapp2.RequestHandler):
   def redirect(self, url, **kwargs):
     """Explicitly converts url to 'str', because webapp2.RequestHandler.redirect
     strongly requires 'str' but url might be an unicode string."""
-    if not _SAFE_URL_PATTERN.match(url):
-      raise helpers.EarlyExitException('Invalid redirect.', 403)
-
-    super(Handler, self).redirect(str(url), **kwargs)
+    url = str(url)
+    check_redirect_url(url)
+    super(Handler, self).redirect(url, **kwargs)
 
 
 class GcsUploadHandler(Handler):
