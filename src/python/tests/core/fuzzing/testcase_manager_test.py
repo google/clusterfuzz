@@ -15,18 +15,23 @@
 import datetime
 import mock
 import os
+import shutil
+import tempfile
 import unittest
 
 from pyfakefs import fake_filesystem_unittest
 
 from bot import testcase_manager
 from bot.fuzzers import engine
+from bot.fuzzers.libFuzzer import engine as libfuzzer_engine
+from build_management import build_manager
 from crash_analysis.crash_result import CrashResult
 from crash_analysis.stack_parsing import stack_analyzer
 from datastore import data_types
 from system import environment
 from tests.test_libs import helpers as test_helpers
 from tests.test_libs import test_utils
+from tests.test_libs import untrusted_runner_helpers
 
 
 class CreateTestcaseListFileTest(fake_filesystem_unittest.TestCase):
@@ -547,3 +552,47 @@ class TestcaseRunningTest(fake_filesystem_unittest.TestCase):
 
     # Only 2/3 runs needed to verify reproducibility.
     self.assertEqual(2, mock_engine.reproduce.call_count)
+
+
+class UntrustedEngineReproduceTest(
+    untrusted_runner_helpers.UntrustedRunnerIntegrationTest):
+  """Engine reproduction tests for untrusted."""
+
+  def setUp(self):
+    """Set up."""
+    super(UntrustedEngineReproduceTest, self).setUp()
+    environment.set_value('JOB_NAME', 'libfuzzer_asan_job')
+
+    job = data_types.Job(
+        name='libfuzzer_asan_job',
+        environment_string=(
+            'RELEASE_BUILD_BUCKET_PATH = '
+            'gs://clusterfuzz-test-data/test_libfuzzer_builds/'
+            'test-libfuzzer-build-([0-9]+).zip\n'
+            'REVISION_VARS_URL = https://commondatastorage.googleapis.com/'
+            'clusterfuzz-test-data/test_libfuzzer_builds/'
+            'test-libfuzzer-build-%s.srcmap.json\n'))
+    job.put()
+
+    self.temp_dir = tempfile.mkdtemp(dir=environment.get_value('FUZZ_INPUTS'))
+
+  def tearDown(self):
+    super(UntrustedEngineReproduceTest, self).tearDown()
+    shutil.rmtree(self.temp_dir, ignore_errors=True)
+
+  def test_reproduce(self):
+    """Test reproduce."""
+    testcase_file_path = os.path.join(self.temp_dir, 'testcase')
+    with open(testcase_file_path, 'wb') as f:
+      f.write('EEE')
+
+    self._setup_env(job_type='libfuzzer_asan_job')
+
+    build_manager.setup_build()
+    result = testcase_manager.engine_reproduce(
+        libfuzzer_engine.LibFuzzerEngine(), 'test_fuzzer', testcase_file_path,
+        [], 30)
+
+    self.assertIn('Running 1 inputs 100 time(s) each', result.output)
+    self.assertIn('AddressSanitizer: SEGV on unknown address 0x000000000000',
+                  result.output)

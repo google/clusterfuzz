@@ -1166,6 +1166,52 @@ def get_strategy_distribution_from_ndb():
   return distribution
 
 
+def run_engine_fuzzer(engine_impl, target_name, sync_corpus_directory,
+                      testcase_directory):
+  """Run engine for fuzzing."""
+  if environment.is_trusted_host():
+    from bot.untrusted_runner import tasks_host
+    return tasks_host.run_engine_fuzzer(
+        engine_impl, target_name, sync_corpus_directory, testcase_directory)
+
+  build_dir = environment.get_value('BUILD_DIR')
+  target_path = engine_common.find_fuzzer_path(build_dir, target_name)
+  options = engine_impl.prepare(sync_corpus_directory, target_path, build_dir)
+
+  fuzz_test_timeout = environment.get_value('FUZZ_TEST_TIMEOUT')
+  result = engine_impl.fuzz(target_path, options, testcase_directory,
+                            fuzz_test_timeout)
+  for strategy, value in six.iteritems(options.strategies):
+    result.stats['strategy_' + strategy] = value
+
+  # Format logs with header and strategy information.
+  log_header = engine_common.get_log_header(result.command,
+                                            environment.get_value('BOT_NAME'),
+                                            result.time_executed)
+
+  formatted_strategies = engine_common.format_fuzzing_strategies(
+      options.strategies)
+
+  result.logs = log_header + '\n' + result.logs + '\n' + formatted_strategies
+
+  fuzzer_metadata = {
+      'fuzzer_binary_name': target_name,
+  }
+  issue_labels = engine_common.get_issue_labels(target_path)
+  if issue_labels:
+    fuzzer_metadata['issue_labels'] = ','.join(issue_labels)
+
+  issue_components = engine_common.get_issue_components(target_path)
+  if issue_components:
+    fuzzer_metadata['issue_components'] = ','.join(issue_components)
+
+  issue_owners = engine_common.get_issue_owners(target_path)
+  if issue_owners:
+    fuzzer_metadata['issue_owners'] = ','.join(issue_owners)
+
+  return result, fuzzer_metadata
+
+
 class FuzzingSession(object):
   """Class for orchestrating fuzzing sessions."""
 
@@ -1376,47 +1422,6 @@ class FuzzingSession(object):
     return (error_occurred, testcase_file_paths, sync_corpus_directory,
             fuzzer_metadata)
 
-  def _run_engine_fuzzer(self, engine_impl, sync_corpus_directory):
-    """Run engine for fuzzing."""
-    # TODO(ochang): Add RPC for untrusted runner.
-    build_dir = environment.get_value('BUILD_DIR')
-    target_path = engine_common.find_fuzzer_path(build_dir,
-                                                 self.fuzz_target.binary)
-    options = engine_impl.prepare(sync_corpus_directory, target_path, build_dir)
-
-    fuzz_test_timeout = environment.get_value('FUZZ_TEST_TIMEOUT')
-    result = engine_impl.fuzz(target_path, options, self.testcase_directory,
-                              fuzz_test_timeout)
-    for strategy, value in six.iteritems(options.strategies):
-      result.stats['strategy_' + strategy] = value
-
-    # Format logs with header and strategy information.
-    log_header = engine_common.get_log_header(result.command,
-                                              environment.get_value('BOT_NAME'),
-                                              result.time_executed)
-
-    formatted_strategies = engine_common.format_fuzzing_strategies(
-        options.strategies)
-
-    result.logs = log_header + '\n' + result.logs + '\n' + formatted_strategies
-
-    fuzzer_metadata = {
-        'fuzzer_binary_name': self.fuzz_target.binary,
-    }
-    issue_labels = engine_common.get_issue_labels(target_path)
-    if issue_labels:
-      fuzzer_metadata['issue_labels'] = ','.join(issue_labels)
-
-    issue_components = engine_common.get_issue_components(target_path)
-    if issue_components:
-      fuzzer_metadata['issue_components'] = ','.join(issue_components)
-
-    issue_owners = engine_common.get_issue_owners(target_path)
-    if issue_owners:
-      fuzzer_metadata['issue_owners'] = ','.join(issue_owners)
-
-    return result, fuzzer_metadata
-
   def do_engine_fuzzing(self, engine_impl):
     """Run fuzzing engine."""
     # Record fuzz target.
@@ -1433,8 +1438,9 @@ class FuzzingSession(object):
 
     # Do the actual fuzzing.
     for _ in range(environment.get_value('MAX_TESTCASES', 1)):
-      result, fuzzer_metadata = self._run_engine_fuzzer(engine_impl,
-                                                        sync_corpus_directory)
+      result, fuzzer_metadata = run_engine_fuzzer(
+          engine_impl, self.fuzz_target.binary, sync_corpus_directory,
+          self.testcase_directory)
 
     self.sync_new_corpus_files()
 

@@ -48,10 +48,14 @@ def rebase_to_worker_root(host_path):
     # variable value).
     return host_path
 
+  worker_root_dir = environment.get_value('WORKER_ROOT_DIR')
+  if os.path.abspath(host_path).startswith(worker_root_dir):
+    # Already rebased.
+    return host_path
+
   rel_path = os.path.relpath(
       os.path.abspath(host_path), environment.get_value('ROOT_DIR'))
 
-  worker_root_dir = environment.get_value('WORKER_ROOT_DIR')
   if rel_path == os.curdir:
     return worker_root_dir
 

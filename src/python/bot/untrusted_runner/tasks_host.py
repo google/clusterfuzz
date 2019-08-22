@@ -16,11 +16,15 @@ from __future__ import absolute_import
 
 import datetime
 
+from google.protobuf import wrappers_pb2
+import six
+
 from . import host
 
 from base import utils
 from bot.fuzzers import engine
 from bot.tasks import corpus_pruning_task
+from bot.untrusted_runner import file_host
 from datastore import data_types
 from protos import untrusted_runner_pb2
 
@@ -96,15 +100,80 @@ def process_testcase(engine_name, tool_name, target_name, arguments,
   else:
     operation = untrusted_runner_pb2.ProcessTestcaseRequest.CLEANSE
 
+  rebased_testcase_path = file_host.rebase_to_worker_root(testcase_path)
+  file_host.copy_file_to_worker(testcase_path, rebased_testcase_path)
+
   request = untrusted_runner_pb2.ProcessTestcaseRequest(
       engine=engine_name,
       operation=operation,
       target_name=target_name,
       arguments=arguments,
-      testcase_path=testcase_path,
-      output_path=output_path,
+      testcase_path=file_host.rebase_to_worker_root(testcase_path),
+      output_path=file_host.rebase_to_worker_root(output_path),
       timeout=timeout)
 
   response = host.stub().ProcessTestcase(request)
+
+  rebased_output_path = file_host.rebase_to_worker_root(output_path)
+  file_host.copy_file_from_worker(rebased_output_path, output_path)
+
+  return engine.ReproduceResult(response.command, response.return_code,
+                                response.time_executed, response.output)
+
+
+def run_engine_fuzzer(engine_impl, target_name, sync_corpus_directory,
+                      testcase_directory):
+  """Run engine fuzzer on untrusted worker."""
+  request = untrusted_runner_pb2.RunEngineFuzzerRequest(
+      engine=engine_impl.name,
+      target_name=target_name,
+      sync_corpus_directory=sync_corpus_directory,
+      testcase_directory=testcase_directory)
+
+  response = host.stub().RunEngineFuzzer(request)
+  crashes = [
+      engine.Crash(
+          input_path=crash.input_path,
+          stacktrace=crash.stacktrace,
+          reproduce_args=crash.reproduce_args,
+          crash_time=crash.crash_time) for crash in response.crashes
+  ]
+
+  unpacked_stats = {}
+  for key, packed_value in six.iteritems(response.stats):
+    if packed_value.Is(wrappers_pb2.DoubleValue.DESCRIPTOR):
+      value = wrappers_pb2.DoubleValue()
+    elif packed_value.Is(wrappers_pb2.Int32Value.DESCRIPTOR):
+      value = wrappers_pb2.Int32Value()
+    elif packed_value.Is(wrappers_pb2.StringValue.DESCRIPTOR):
+      value = wrappers_pb2.StringValue()
+    else:
+      raise ValueError('Unknown stat type for ' + key)
+
+    packed_value.Unpack(value)
+    unpacked_stats[key] = value.value
+
+  result = engine.FuzzResult(
+      logs=response.logs,
+      command=response.command,
+      crashes=crashes,
+      stats=unpacked_stats,
+      time_executed=response.time_executed)
+  return result, dict(response.fuzzer_metadata)
+
+
+def engine_reproduce(engine_impl, target_name, testcase_path, arguments,
+                     timeout):
+  """Run engine reproduce on untrusted worker."""
+  rebased_testcase_path = file_host.rebase_to_worker_root(testcase_path)
+  file_host.copy_file_to_worker(testcase_path, rebased_testcase_path)
+
+  request = untrusted_runner_pb2.EngineReproduceRequest(
+      engine=engine_impl.name,
+      target_name=target_name,
+      testcase_path=rebased_testcase_path,
+      arguments=arguments,
+      timeout=timeout)
+  response = host.stub().EngineReproduce(request)
   return engine.ReproduceResult(response.command, response.return_code,
                                 response.time_executed, response.output)

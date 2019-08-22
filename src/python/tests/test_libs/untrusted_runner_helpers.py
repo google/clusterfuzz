@@ -114,6 +114,7 @@ class UntrustedRunnerIntegrationTest(unittest.TestCase):
 
   @classmethod
   def setUpClass(cls):
+    cls.saved_env = os.environ.copy()
     os.environ['HOST_INSTANCE_NAME'] = 'host'
     os.environ['HOST_INSTANCE_NUM'] = '0'
     os.environ['BOT_NAME'] = 'host-0'
@@ -167,6 +168,9 @@ class UntrustedRunnerIntegrationTest(unittest.TestCase):
       except OSError:
         # Could already be killed.
         pass
+
+    os.environ.clear()
+    os.environ.update(cls.saved_env)
 
   def setUp(self):
     self.tmp_dir = tempfile.mkdtemp()
