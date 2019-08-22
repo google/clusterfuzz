@@ -40,6 +40,12 @@ from libs import form
 from libs import helpers
 from system import environment
 
+# Pattern from
+# https://github.com/google/closure-library/blob/
+# 3037e09cc471bfe99cb8f0ee22d9366583a20c28/closure/goog/html/safeurl.js
+_SAFE_URL_PATTERN = re.compile(
+    r'^(?:(?:https?|mailto|ftp):|[^:/?#]*(?:[/?#]|$))', flags=re.IGNORECASE)
+
 
 def add_jinja2_filter(name, fn):
   _JINJA_ENVIRONMENT.filters[name] = fn
@@ -113,6 +119,12 @@ def make_logout_url(dest_url):
       'csrf_token': form.generate_csrf_token(),
       'dest': dest_url,
   })
+
+
+def check_redirect_url(url):
+  """Check redirect URL is safe."""
+  if not _SAFE_URL_PATTERN.match(url):
+    raise helpers.EarlyExitException('Invalid redirect.', 403)
 
 
 class _MenuItem(object):
@@ -246,7 +258,9 @@ class Handler(webapp2.RequestHandler):
   def redirect(self, url, **kwargs):
     """Explicitly converts url to 'str', because webapp2.RequestHandler.redirect
     strongly requires 'str' but url might be an unicode string."""
-    super(Handler, self).redirect(str(url), **kwargs)
+    url = str(url)
+    check_redirect_url(url)
+    super(Handler, self).redirect(url, **kwargs)
 
 
 class GcsUploadHandler(Handler):
