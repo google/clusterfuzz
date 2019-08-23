@@ -67,7 +67,9 @@ class PrepareTest(fake_fs_unittest.TestCase):
     test_helpers.patch(self, ['bot.fuzzers.libFuzzer.launcher.pick_strategies'])
 
     self.mock.pick_strategies.return_value = launcher.StrategyInfo(
-        fuzzing_strategies=['strategy1', 'strategy2'],
+        fuzzing_strategies=[
+            'unknown_1', 'value_profile', 'corpus_subset_20', 'fork_2'
+        ],
         arguments=['-arg1'],
         additional_corpus_dirs=['/new_corpus_dir'],
         extra_env={'extra_env': '1'},
@@ -83,7 +85,11 @@ class PrepareTest(fake_fs_unittest.TestCase):
         '-max_len=31337', '-timeout=11', '-rss_limit_mb=2048', '-arg1',
         '-dict=/path/blah.dict'
     ], options.arguments)
-    self.assertItemsEqual(['strategy1', 'strategy2'], options.strategies)
+    self.assertDictEqual({
+        'value_profile': 1,
+        'corpus_subset': 20,
+        'fork': 2
+    }, options.strategies)
     self.assertItemsEqual(['/new_corpus_dir', '/corpus_dir'],
                           options.fuzz_corpus_dirs)
     self.assertDictEqual({'extra_env': '1'}, options.extra_env)

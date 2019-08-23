@@ -117,10 +117,12 @@ class LibFuzzerEngine(engine.Engine):
       if os.path.exists(default_dict_path):
         arguments.append(constants.DICT_FLAG + default_dict_path)
 
+    strategies = stats.process_strategies(
+        strategy_info.fuzzing_strategies, name_modifier=lambda x: x)
     return LibFuzzerOptions(
-        corpus_dir, arguments, strategy_info.fuzzing_strategies,
-        strategy_info.additional_corpus_dirs, strategy_info.extra_env,
-        strategy_info.use_dataflow_tracing, strategy_info.is_mutations_run)
+        corpus_dir, arguments, strategies, strategy_info.additional_corpus_dirs,
+        strategy_info.extra_env, strategy_info.use_dataflow_tracing,
+        strategy_info.is_mutations_run)
 
   def _artifact_prefix(self, prefix):
     """Returns the artifact prefix argument."""

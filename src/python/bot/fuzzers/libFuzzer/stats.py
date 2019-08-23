@@ -126,6 +126,11 @@ def parse_fuzzing_strategies(log_lines, strategies):
         strategies = match.group(1).split(',')
         break
 
+  return process_strategies(strategies)
+
+
+def process_strategies(strategies, name_modifier=strategy_column_name):
+  """Process strategies, parsing any stored values."""
   stats = {}
 
   def parse_line_for_strategy_prefix(line, strategy_name):
@@ -136,7 +141,7 @@ def parse_fuzzing_strategies(log_lines, strategies):
 
     try:
       strategy_value = int(line[len(strategy_prefix):])
-      stats[strategy_column_name(strategy_name)] = strategy_value
+      stats[name_modifier(strategy_name)] = strategy_value
     except (IndexError, ValueError) as e:
       logs.log_error('Failed to parse strategy "%s":\n%s\n' % (line, str(e)))
 
@@ -148,7 +153,7 @@ def parse_fuzzing_strategies(log_lines, strategies):
   # Other strategies are either ON or OFF, without arbitrary values.
   for strategy_type in strategy.LIBFUZZER_STRATEGIES_WITH_BOOLEAN_VALUE:
     if strategy_type.name in strategies:
-      stats[strategy_column_name(strategy_type.name)] = 1
+      stats[name_modifier(strategy_type.name)] = 1
 
   return stats
 
