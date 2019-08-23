@@ -1344,7 +1344,7 @@ class DoEngineFuzzingTest(fake_filesystem_unittest.TestCase):
     engine_impl.prepare.return_value = engine.FuzzOptions(
         '/corpus', ['arg'], {
             'strategy_1': 1,
-            'strategy_2': 2
+            'strategy_2': 50,
         })
     engine_impl.fuzz.return_value = engine.FuzzResult(
         'logs', ['cmd'], expected_crashes, {'stat': 1}, 42.0)
@@ -1364,7 +1364,7 @@ class DoEngineFuzzingTest(fake_filesystem_unittest.TestCase):
         'Return code: 1\n\n'
         'Command: cmd\nBot: None\nTime ran: 42.0\n\n'
         'logs\n'
-        'cf::fuzzing_strategies: strategy_1:1,strategy_2:2', log_time)
+        'cf::fuzzing_strategies: strategy_1:1,strategy_2:50', log_time)
     self.mock.upload_testcase.assert_called_with('/input', log_time)
 
     self.assertEqual(1, len(crashes))
@@ -1383,6 +1383,6 @@ class DoEngineFuzzingTest(fake_filesystem_unittest.TestCase):
         'kind': 'TestcaseRun',
         'stat': 1,
         'strategy_strategy_1': 1,
-        'strategy_strategy_2': 2,
+        'strategy_strategy_2': 50,
         'timestamp': 0.0,
     }, testcase_run.data)
