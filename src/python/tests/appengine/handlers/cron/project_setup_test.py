@@ -1590,7 +1590,9 @@ class GenericProjectSetupTest(unittest.TestCase):
             },
             'additional_vars': {
                 'all': {
-                    'ADDITIONAL_VAR': 'VAL',
+                    'STRING_VAR': 'VAL',
+                    'BOOL_VAR': True,
+                    'INT_VAR': 0,
                 },
                 'libfuzzer': {
                     'address': {
@@ -1614,7 +1616,9 @@ class GenericProjectSetupTest(unittest.TestCase):
         'gs://bucket/a-b/libfuzzer/address/%TARGET%/([0-9]+).zip\n'
         'PROJECT_NAME = //a/b\nSUMMARY_PREFIX = //a/b\nMANAGED = True\n'
         'ASAN_VAR = VAL\n'
-        'ADDITIONAL_VAR = VAL\n', job.environment_string)
+        'BOOL_VAR = True\n'
+        'INT_VAR = 0\n'
+        'STRING_VAR = VAL\n', job.environment_string)
     self.assertItemsEqual(['engine_asan', 'libfuzzer', 'prune'], job.templates)
 
     libfuzzer = data_types.Fuzzer.query(

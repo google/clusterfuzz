@@ -816,9 +816,10 @@ class ProjectSetup(object):
         engine_sanitizer_vars = engine_vars.get(template.memory_tool, {})
         additional_vars.update(engine_sanitizer_vars)
 
-        for key, value in six.iteritems(additional_vars):
+        for key, value in sorted(six.iteritems(additional_vars)):
           job.environment_string += ('{} = {}\n'.format(
-              key, value.encode('unicode-escape')))
+              key,
+              str(value).encode('unicode-escape')))
 
       job.put()
 
