@@ -128,9 +128,9 @@ def prepare_environment_for_testcase(testcase):
   environment.reset_current_memory_tool_options(redzone_size=testcase.redzone)
 
   # Setup environment variable for windows size and location properties.
-  # Explicitly use empty string to indicate use of default window properties.
-  if testcase.window_argument:
-    environment.set_value('WINDOW_ARG', testcase.window_argument)
+  # Explicit override to avoid using the default one from job definition since
+  # that contains unsubsituted vars like $WIDTH, etc.
+  environment.set_value('WINDOW_ARG', testcase.window_argument)
 
   # Adjust timeout based on the stored multiplier (if available).
   if testcase.timeout_multiplier:
