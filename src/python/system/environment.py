@@ -402,10 +402,8 @@ def get_suppressions_file(sanitizer, suffix='suppressions'):
 
 def get_lsan_options():
   """Generates default LSAN options."""
-  symbolizer_path = get_llvm_symbolizer_path()
   lsan_suppressions_path = get_suppressions_file('lsan')
   lsan_options = {
-      'external_symbolizer_path': symbolizer_path,
       'print_suppressions': '0',
       'symbolize': '1',
   }
@@ -484,9 +482,8 @@ def get_executable_filename(executable_name):
   return executable_name + extension
 
 
-def get_tsan_options(symbolize_inline_frames):
+def get_tsan_options():
   """Generates default TSAN options."""
-  symbolizer_path = get_llvm_symbolizer_path()
   tsan_suppressions_path = get_suppressions_file('tsan')
 
   tsan_options = {
@@ -498,8 +495,6 @@ def get_tsan_options(symbolize_inline_frames):
       'report_signal_unsafe': '0',
       'stack_trace_format': 'DEFAULT',
       'symbolize': '1',
-      'external_symbolizer_path': symbolizer_path,
-      'symbolize_inline_frames': str(symbolize_inline_frames).lower()
   }
 
   # Add common sanitizer options.
@@ -514,11 +509,9 @@ def get_tsan_options(symbolize_inline_frames):
 def get_ubsan_options():
   """Generates default UBSAN options."""
   # Note that UBSAN can work together with ASAN as well.
-  symbolizer_path = get_llvm_symbolizer_path()
   ubsan_suppressions_path = get_suppressions_file('ubsan')
 
   ubsan_options = {
-      'external_symbolizer_path': symbolizer_path,
       'halt_on_error': '1',
       'print_stacktrace': '1',
       'print_suppressions': '0',
@@ -753,7 +746,7 @@ def reset_current_memory_tool_options(redzone_size=0,
   elif tool_name == 'MSAN':
     tool_options = get_msan_options()
   elif tool_name == 'TSAN':
-    tool_options = get_tsan_options(symbolize_inline_frames)
+    tool_options = get_tsan_options()
   elif tool_name == 'UBSAN' or tool_name == 'CFI':
     tool_options = get_ubsan_options()
 
@@ -762,12 +755,17 @@ def reset_current_memory_tool_options(redzone_size=0,
   if additional_tool_options:
     tool_options.update(_parse_memory_tool_options(additional_tool_options))
 
-  # If symbolize flag is set, add path to external symbolizer.
-  if (tool_options.get('symbolize', 0) == 1 and
-      'external_symbolizer_path' not in tool_options):
-    llvm_symbolizer_path_arg = _quote_value_if_needed(
-        get_llvm_symbolizer_path())
-    tool_options.update({'external_symbolizer_path': llvm_symbolizer_path_arg})
+  if tool_options.get('symbolize', 0) == 1:
+    if 'external_symbolizer_path' not in tool_options:
+      llvm_symbolizer_path_arg = _quote_value_if_needed(
+          get_llvm_symbolizer_path())
+      tool_options.update({
+          'external_symbolizer_path': llvm_symbolizer_path_arg
+      })
+    if 'symbolize_inline_frames' not in tool_options:
+      tool_options.update({
+          'symbolize_inline_frames': str(symbolize_inline_frames).lower()
+      })
 
   # Join the options.
   joined_tool_options = _join_memory_tool_options(tool_options)
