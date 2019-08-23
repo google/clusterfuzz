@@ -193,13 +193,6 @@ def get_asan_options(redzone_size, malloc_context_size, quarantine_size_mb,
     ubsan_options = _join_memory_tool_options(get_ubsan_options())
     set_value('UBSAN_OPTIONS', ubsan_options)
 
-    # FIXME: Weird bug with UBSAN suppressions. If it is in an ASAN build, it
-    # uses the suppression file provided in ASAN_OPTIONS and not in
-    # UBSAN_OPTIONS. So, set the same suppressions path in ASAN_OPTIONS as well.
-    ubsan_suppressions_path = get_suppressions_file('ubsan')
-    if ubsan_suppressions_path:
-      asan_options['suppressions'] = ubsan_suppressions_path
-
   return asan_options
 
 
