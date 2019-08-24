@@ -404,8 +404,8 @@ def get_lsan_options():
   """Generates default LSAN options."""
   lsan_suppressions_path = get_suppressions_file('lsan')
   lsan_options = {
-      'print_suppressions': '0',
-      'symbolize': '1',
+      'print_suppressions': 0,
+      'symbolize': 1,
   }
 
   # Add common sanitizer options.
@@ -487,14 +487,14 @@ def get_tsan_options():
   tsan_suppressions_path = get_suppressions_file('tsan')
 
   tsan_options = {
-      'atexit_sleep_ms': '200',
-      'flush_memory_ms': '2000',
-      'history_size': '3',
-      'print_suppressions': '0',
-      'report_thread_leaks': '0',
-      'report_signal_unsafe': '0',
+      'atexit_sleep_ms': 200,
+      'flush_memory_ms': 2000,
+      'history_size': 3,
+      'print_suppressions': 0,
+      'report_thread_leaks': 0,
+      'report_signal_unsafe': 0,
       'stack_trace_format': 'DEFAULT',
-      'symbolize': '1',
+      'symbolize': 1,
   }
 
   # Add common sanitizer options.
@@ -512,15 +512,15 @@ def get_ubsan_options():
   ubsan_suppressions_path = get_suppressions_file('ubsan')
 
   ubsan_options = {
-      'halt_on_error': '1',
-      'print_stacktrace': '1',
-      'print_suppressions': '0',
+      'halt_on_error': 1,
+      'print_stacktrace': 1,
+      'print_suppressions': 0,
 
       # We use -fsanitize=unsigned-integer-overflow as an additional coverage
       # signal and do not want those errors to be reported by UBSan as bugs.
       # See https://github.com/google/oss-fuzz/issues/910 for additional info.
-      'silence_unsigned_overflow': '1',
-      'symbolize': '1',
+      'silence_unsigned_overflow': 1,
+      'symbolize': 1,
   }
 
   # Add common sanitizer options.
@@ -690,9 +690,9 @@ def set_common_environment_variables():
   # which would result in "obj:*" in backtraces.
   # NSS_DISABLE_ARENA_FREE_LIST = 1: make nss use system malloc.
   set_value('G_SLICE', 'always-malloc')
-  set_value('NSS_DISABLE_UNLOAD', '1')
-  set_value('NSS_DISABLE_ARENA_FREE_LIST', '1')
-  set_value('NACL_DANGEROUS_SKIP_QUALIFICATION_TEST', '1')
+  set_value('NSS_DISABLE_UNLOAD', 1)
+  set_value('NSS_DISABLE_ARENA_FREE_LIST', 1)
+  set_value('NACL_DANGEROUS_SKIP_QUALIFICATION_TEST', 1)
 
 
 def set_memory_tool_options(env_var, options_dict):
@@ -755,7 +755,7 @@ def reset_current_memory_tool_options(redzone_size=0,
   if additional_tool_options:
     tool_options.update(_parse_memory_tool_options(additional_tool_options))
 
-  if tool_options.get('symbolize', 0) == 1:
+  if tool_options.get('symbolize') == 1:
     if 'external_symbolizer_path' not in tool_options:
       llvm_symbolizer_path_arg = _quote_value_if_needed(
           get_llvm_symbolizer_path())
