@@ -487,9 +487,9 @@ def get_tsan_options():
   tsan_suppressions_path = get_suppressions_file('tsan')
 
   tsan_options = {
-      'atexit_sleep_ms': '200',
-      'flush_memory_ms': '2000',
-      'history_size': '3',
+      'atexit_sleep_ms': 200,
+      'flush_memory_ms': 2000,
+      'history_size': 3,
       'print_suppressions': 0,
       'report_thread_leaks': 0,
       'report_signal_unsafe': 0,
