@@ -63,7 +63,8 @@ def attach_testcases(rows):
           'isSecurity': testcase.security_flag,
           'issueNumber': testcase.bug_information,
           'job': testcase.job_type,
-          'fuzzerName': testcase.actual_fuzzer_name()
+          'fuzzerName': testcase.actual_fuzzer_name(),
+          'projectName': testcase.project_name,
       }
     row['testcase'] = testcase
 
@@ -146,6 +147,7 @@ def query_testcase(testcase_id):
               data_types.Testcase.job_type,
               data_types.Testcase.fuzzer_name,
               data_types.Testcase.overridden_fuzzer_name,
+              data_types.Testcase.project_name,
           ])
 
 

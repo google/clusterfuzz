@@ -187,14 +187,19 @@
         color: #FC2929;
       }
 
-      :host .testcases > div.row .fuzzer {
+      :host .testcases > div.row .project {
         border: 1px solid #5D4037;
         color: #5D4037;
       }
 
+      :host .testcases > div.row .fuzzer {
+        border: 1px solid #CB008E;
+        color: #CB008E;
+      }
+
       :host .testcases > div.row .job {
-        border: 1px solid #5D4037;
-        color: #5D4037;
+        border: 1px solid #CB008E;
+        color: #CB008E;
       }
 
       :host .testcases > div.row .issue {
@@ -285,6 +290,11 @@
                     </a>
                   </td>
                   <td class="right">
+                    <span
+                        class="label project"
+                        title="The crash is associated with the [[item.testcase.projectName]] project.">
+                      Project [[item.testcase.projectName]]
+                    </span>
                     <template is="dom-if" if="[[item.testcase.issueNumber]]">
                       <a class="label issue" href="/issue/[[item.testcaseId]]" title="Click to view the associated issue [[item.testcase.issueNumber]] in the issue tracker.">Issue [[item.testcase.issueNumber]]</a>
                     </template>

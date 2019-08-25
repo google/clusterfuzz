@@ -26,6 +26,7 @@
 <link rel="import" href="date-picker.html">
 
 <dom-module id="settings-panel">
+  <link rel="import" href="../../stylesheets/main.css" type="css">
   <link rel="import" href="../technology/technology.css" type="css">
   <template>
     <style>
@@ -51,13 +52,10 @@
 
       :host .settings-panel paper-dropdown-menu {
         width: 160px;
-      }
 
-      :host .settings-panel paper-input.search {
-        --paper-input-container: {
-          margin: 4px 10px -5px;
-          min-width: 350px;
-        }
+        --paper-input-container-input: {
+          font-size: 16px;
+        };
       }
 
       :host .date {
@@ -76,6 +74,7 @@
     <div class="settings-panel">
       <paper-dropdown-menu
           id="fuzzerName"
+          class="dropdown-filter"
           no-animations="true"
           label="Fuzzer"
           value="All"
@@ -86,7 +85,6 @@
             slot="dropdown-content"
             class="dropdown-content">
           <paper-input
-              class="search"
               label="Search fuzzers"
               value="{{fuzzerKey}}"
               on-tap="stopEventPropagation"
@@ -102,6 +100,7 @@
       </paper-dropdown-menu>
       <paper-dropdown-menu
           id="jobType"
+          class="dropdown-filter"
           no-animations="true"
           label="Job type"
           value="All"
@@ -112,7 +111,6 @@
             slot="dropdown-content"
             selected="{{settings.job}}">
           <paper-input
-              class="search"
               label="Search jobs"
               value="{{jobKey}}"
               on-tap="stopEventPropagation"

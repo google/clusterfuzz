@@ -402,3 +402,35 @@ paper-spinner {
   border-bottom: 1px solid #ccc;
   width: 100%;
 }
+
+paper-dropdown-menu {
+  --paper-input-container-label: {
+    color: #666;
+    font-size: 16px;
+  };
+
+  --paper-input-container-input: {
+    color: #888;
+    font-size: 14px;
+  };
+}
+
+.dropdown-filter > paper-listbox > paper-input {
+  --paper-input-container: {
+    margin: 4px 10px -5px;
+    min-width: 350px;
+  };
+}
+
+.dropdown-filter > paper-listbox > paper-input > iron-icon[slot="prefix"] {
+  margin-right: 5px;
+  color: #888;
+  height: 22px;
+  width: 22px;
+}
+
+.dropdown-filter > paper-listbox > paper-input > iron-icon[slot="suffix"] {
+  color: #888;
+  height: 22px;
+  width: 22px;
+}

@@ -184,6 +184,7 @@ indexes:
   - name: fuzzer_name
   - name: job_type
   - name: overridden_fuzzer_name
+  - name: project_name
   - name: security_flag
 
 - kind: Testcase
