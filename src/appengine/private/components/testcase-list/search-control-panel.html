@@ -23,6 +23,7 @@
 <link rel="import" href="../common/render-either/render-either.html">
 
 <dom-module id="search-control-panel">
+  <link rel="import" href="../../stylesheets/main.css" type="css">
   <link rel="import" href="../technology/technology.css" type="css">
   <template>
     <style>
@@ -37,26 +38,6 @@
 
       table td.filters {
         text-align: right;
-      }
-
-      paper-dropdown-menu {
-        width: 60px;
-
-        --paper-input-container-label: {
-          color: #666;
-          font-size: 16px;
-        };
-        --paper-input-container-input: {
-          color: #888;
-          font-size: 14px;
-        };
-      }
-
-      paper-input.search {
-        --paper-input-container: {
-          margin: 4px 10px -5px;
-          min-width: 350px;
-        }
       }
 
       #jobs, #fuzzers {
@@ -109,6 +90,10 @@
         font-size: 12px;
         color: #888;
       }
+
+      paper-dropdown-menu {
+        width: 60px;
+      }
     </style>
     <table>
       <tr>
@@ -128,6 +113,7 @@
           <template is="dom-if" if="[[shouldShowProjects(fieldValues)]]">
             <paper-dropdown-menu
                 id="projects"
+                class="dropdown-filter"
                 no-animations="true"
                 label="Project"
                 value="All"
@@ -137,7 +123,6 @@
                   selected="{{params.project}}"
                   attr-for-selected="val">
                 <paper-input
-                    class="search"
                     label="Search projects"
                     value="{{projectKey}}"
                     on-tap="stopEventPropagation"
@@ -154,6 +139,7 @@
           </template>
           <paper-dropdown-menu
               id="fuzzers"
+              class="dropdown-filter"
               no-animations="true"
               label="Fuzzer"
               value="All"
@@ -163,7 +149,6 @@
                 selected="{{params.fuzzer}}"
                 attr-for-selected="val">
               <paper-input
-                  class="search"
                   label="Search fuzzers"
                   value="{{fuzzerKey}}"
                   on-tap="stopEventPropagation"
@@ -179,6 +164,7 @@
           </paper-dropdown-menu>
           <paper-dropdown-menu
               id="jobs"
+              class="dropdown-filter"
               no-animations="true"
               label="Job"
               value="All"
@@ -188,7 +174,6 @@
                 selected="{{params.job}}"
                 attr-for-selected="val">
               <paper-input
-                  class="search"
                   label="Search jobs"
                   value="{{jobKey}}"
                   on-tap="stopEventPropagation"

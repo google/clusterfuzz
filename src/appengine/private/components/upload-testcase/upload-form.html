@@ -22,6 +22,7 @@
 <link rel="import" href="../../bower_components/paper-listbox/paper-listbox.html">
 
 <dom-module id="upload-form">
+  <link rel="import" href="../../stylesheets/main.css" type="css">
   <link rel="import" href="../technology/technology.css" type="css">
   <template>
     <style>
@@ -79,13 +80,6 @@
         };
       }
 
-      paper-input.search {
-        --paper-input-container: {
-          margin: 4px 10px -5px;
-          min-width: 350px;
-        }
-      }
-
       .get-link-button {
         display: inline-block;
       }
@@ -120,6 +114,7 @@
       <paper-input value="{{uploadParams.file}}" no-label-float always-float-label$="false" type="file" id="file" label="File" title="Test case file or archive. If an archive is uploaded, a file containing &quot;fuzz-&quot;, &quot;run&quot;, &quot;index.&quot;, or &quot;crash.&quot; will be treated as the test case and the rest as resources."></paper-input>
       <div class="inline wide">
         <paper-dropdown-menu
+            class="dropdown-filter"
             no-animations="true"
             label="Job"
             title="Job definition to use for this test case. A job controls which binary we run, memory tools used, which flags should be passed to it, and more."
@@ -130,7 +125,6 @@
               fallback-selection="linux_asan_chrome_mp"
               attr-for-selected="val">
             <paper-input
-                class="search"
                 label="Search jobs"
                 value="{{jobKey}}"
                 on-tap="stopEventPropagation"
@@ -146,6 +140,7 @@
         </paper-dropdown-menu>
         <template is="dom-if" if="[[shouldShowTargetNames(uploadParams.job)]]">
           <paper-dropdown-menu
+              class="dropdown-filter"
               no-animations="true"
               label="Target"
               noink>
@@ -154,7 +149,6 @@
                 selected="{{uploadParams.target}}"
                 attr-for-selected="val">
               <paper-input
-                  class="search"
                   label="Search targets"
                   value="{{targetKey}}"
                   on-tap="stopEventPropagation"
