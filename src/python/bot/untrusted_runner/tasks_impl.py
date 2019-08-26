@@ -122,9 +122,6 @@ def run_engine_fuzzer(request, _):
           crash_time=crash.crash_time) for crash in result.crashes
   ]
 
-  from metrics import logs
-  logs.log('stats %s' % result.stats)
-
   packed_stats = {}
   for key, value in six.iteritems(result.stats):
     packed_value = Any()

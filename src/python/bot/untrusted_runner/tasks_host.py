@@ -17,11 +17,13 @@ from __future__ import absolute_import
 import datetime
 
 from google.protobuf import wrappers_pb2
+import grpc
 import six
 
 from . import host
 
 from base import utils
+from bot import testcase_manager
 from bot.fuzzers import engine
 from bot.tasks import corpus_pruning_task
 from bot.untrusted_runner import file_host
@@ -174,6 +176,16 @@ def engine_reproduce(engine_impl, target_name, testcase_path, arguments,
       testcase_path=rebased_testcase_path,
       arguments=arguments,
       timeout=timeout)
-  response = host.stub().EngineReproduce(request)
+
+  try:
+    response = host.stub().EngineReproduce(request)
+  except grpc.RpcError as e:
+    if 'TargetNotFoundError' in str(e):
+      # Resurface the right exception.
+      raise testcase_manager.TargetNotFoundError('Failed to find target ' +
+                                                 target_name)
+    else:
+      raise
+
   return engine.ReproduceResult(response.command, response.return_code,
                                 response.time_executed, response.output)

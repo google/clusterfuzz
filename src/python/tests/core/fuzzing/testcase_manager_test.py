@@ -596,3 +596,17 @@ class UntrustedEngineReproduceTest(
     self.assertIn('Running 1 inputs 100 time(s) each', result.output)
     self.assertIn('AddressSanitizer: SEGV on unknown address 0x000000000000',
                   result.output)
+
+  def test_target_not_found(self):
+    """Test target not found."""
+    testcase_file_path = os.path.join(self.temp_dir, 'testcase')
+    with open(testcase_file_path, 'wb') as f:
+      f.write('EEE')
+
+    self._setup_env(job_type='libfuzzer_asan_job')
+
+    build_manager.setup_build()
+    with self.assertRaises(testcase_manager.TargetNotFoundError):
+      result = testcase_manager.engine_reproduce(
+          libfuzzer_engine.LibFuzzerEngine(), 'not_found', testcase_file_path,
+          [], 30)
