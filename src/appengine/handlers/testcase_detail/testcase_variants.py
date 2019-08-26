@@ -48,6 +48,7 @@ class Handler(base_handler.Handler):
 
       status = _display_status(variant.status)
       job = variant.job_type
+      reproducer_key = variant.reproducer_key
       if variant.status == data_types.TestcaseVariantStatus.PENDING:
         revision = crash_type = security_flag = is_similar = '---'
         crash_state_lines = ['---']
@@ -66,6 +67,7 @@ class Handler(base_handler.Handler):
           'crashStateLines': crash_state_lines,
           'securityFlag': security_flag,
           'isSimilar': is_similar,
+          'reproducerKey': reproducer_key,
       })
 
     return items

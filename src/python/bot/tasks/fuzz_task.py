@@ -1094,6 +1094,31 @@ def write_crashes_to_big_query(group, context):
         row_count, {'success': False})
 
 
+def _update_testcase_variant_if_needed(group, context):
+  """Update testcase variant if this is not already covered by existing testcase
+  variant on this job."""
+  assert group.existing_testcase
+
+  variant = data_handler.get_testcase_variant(group.existing_testcase.key.id(),
+                                              context.job_type)
+  if not variant or variant.status == data_types.TestcaseVariantStatus.PENDING:
+    # Either no variant created yet since minimization hasn't finished OR
+    # variant analysis is not yet finished. Wait in both cases, since we
+    # prefer existing testcase over current one.
+    return
+
+  if variant.status == data_types.TestcaseVariantStatus.REPRODUCIBLE:
+    # Already have a reproducible variant, don't need to update.
+    return
+
+  variant.reproducer_key = group.main_crash.fuzzed_key
+  if group.one_time_crasher_flag:
+    variant.status = data_types.TestcaseVariantStatus.FLAKY
+  else:
+    variant.status = data_types.TestcaseVariantStatus.REPRODUCIBLE
+  variant.put()
+
+
 def process_crashes(crashes, context):
   """Process a list of crashes."""
   processed_groups = []
@@ -1134,6 +1159,8 @@ def process_crashes(crashes, context):
     if group.should_create_testcase():
       group.newly_created_testcase = create_testcase(
           group=group, context=context)
+    else:
+      _update_testcase_variant_if_needed(group, context)
 
     write_crashes_to_big_query(group, context)
 
