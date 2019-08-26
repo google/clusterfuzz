@@ -607,6 +607,6 @@ class UntrustedEngineReproduceTest(
 
     build_manager.setup_build()
     with self.assertRaises(testcase_manager.TargetNotFoundError):
-      result = testcase_manager.engine_reproduce(
+      testcase_manager.engine_reproduce(
           libfuzzer_engine.LibFuzzerEngine(), 'not_found', testcase_file_path,
           [], 30)
