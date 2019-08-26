@@ -61,6 +61,7 @@ class Handler(base_handler.Handler):
             'isSimilar': variant.is_similar,
             'reproducerKey': variant.reproducer_key,
         })
+      items.append(item)
 
     return items
 
