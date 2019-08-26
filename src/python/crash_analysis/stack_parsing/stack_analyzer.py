@@ -912,7 +912,7 @@ def fix_check_failure_string(failure_string):
   failure_string = re.sub(r'(?<=failed): .*\svs\.\s.*$', r'', failure_string)
 
   # Cover example like len > 0 (-1 vs. 0)".
-  failure_string = re.sub(r' \(.*\svs\.\s.*\).*', r'', failure_string)
+  failure_string = re.sub(r' \(.*\s+vs\.\s+.*', r'', failure_string)
 
   # Strip unneeded chars at end.
   return failure_string.strip(' .\'"[]')
