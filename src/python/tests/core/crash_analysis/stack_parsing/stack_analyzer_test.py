@@ -1829,6 +1829,23 @@ class StackAnalyzerTestcase(unittest.TestCase):
                                   expected_state, expected_stacktrace,
                                   expected_security_flag)
 
+  def test_check_failure_vs_no_closing(self):
+    """Test a check failure with string vs string (no closing bracket)."""
+    data = self._read_test_data('check_failure_vs_no_closing.txt')
+    expected_type = 'CHECK failure'
+    expected_address = ''
+    expected_state = ('record1 == record2 in file.cc\n'
+                      'blink::TextIteratorAlgorithm<blink::EditingAlgorithm'
+                      '<blink::FlatTreeTraversal> >\n'
+                      'blink::TextIteratorAlgorithm<blink::EditingAlgorithm'
+                      '<blink::FlatTreeTraversal> >\n')
+    expected_stacktrace = data
+    expected_security_flag = False
+
+    self._validate_get_crash_data(data, expected_type, expected_address,
+                                  expected_state, expected_stacktrace,
+                                  expected_security_flag)
+
   def test_check_failure_with_msan_abrt(self):
     """Test a check failure with MSan SIGABRT stack."""
     data = self._read_test_data('check_failure_with_msan_abrt.txt')
