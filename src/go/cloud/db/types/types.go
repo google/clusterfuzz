@@ -439,16 +439,16 @@ type TestcaseUploadMetadata struct {
 
 // TestcaseVariant is auto-generated from data_types.py.
 type TestcaseVariant struct {
-	Key          *datastore.Key `datastore:"__key__"`
-	TestcaseID   int            `datastore:"testcase_id"`
-	Status       int            `datastore:"status"`
-	JobType      string         `datastore:"job_type"`
-	Revision     int            `datastore:"revision"`
-	CrashType    string         `datastore:"crash_type"`
-	CrashState   string         `datastore:"crash_state"`
-	SecurityFlag bool           `datastore:"security_flag"`
-	IsSimilar    bool           `datastore:"is_similar"`
-	BlobstoreKey string         `datastore:"blobstore_key"`
+	Key           *datastore.Key `datastore:"__key__"`
+	TestcaseID    int            `datastore:"testcase_id"`
+	Status        int            `datastore:"status"`
+	JobType       string         `datastore:"job_type"`
+	Revision      int            `datastore:"revision"`
+	CrashType     string         `datastore:"crash_type"`
+	CrashState    string         `datastore:"crash_state"`
+	SecurityFlag  bool           `datastore:"security_flag"`
+	IsSimilar     bool           `datastore:"is_similar"`
+	ReproducerKey string         `datastore:"reproducer_key"`
 }
 
 // Trial is auto-generated from data_types.py.
