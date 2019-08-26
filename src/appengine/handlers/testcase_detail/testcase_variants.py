@@ -46,35 +46,21 @@ class Handler(base_handler.Handler):
         # some unrelated job types in the same project.
         continue
 
-      status = _display_status(variant.status)
-      job = variant.job_type
       is_pending = variant.status == data_types.TestcaseVariantStatus.PENDING
-      if is_pending:
-        revision = None
-        crash_type = None
-        security_flag = None
-        is_similar = None
-        crash_state_lines = None
-        reproducer_key = None
-      else:
-        revision = variant.revision
-        crash_type = variant.crash_type
-        crash_state_lines = variant.crash_state.strip().splitlines()
-        security_flag = variant.security_flag
-        is_similar = variant.is_similar
-        reproducer_key = variant.reproducer_key
-
-      items.append({
+      item = {
           'isPending': is_pending,
-          'status': status,
-          'job': job,
-          'revision': revision,
-          'crashType': crash_type,
-          'crashStateLines': crash_state_lines,
-          'securityFlag': security_flag,
-          'isSimilar': is_similar,
-          'reproducerKey': reproducer_key,
-      })
+          'status': _display_status(variant.status),
+          'job': variant.job_type,
+      }
+      if not is_pending:
+        item.update({
+            'revision': variant.revision,
+            'crashType': variant.crash_type,
+            'crashStateLines': variant.crash_state.strip().splitlines(),
+            'securityFlag': variant.security_flag,
+            'isSimilar': variant.is_similar,
+            'reproducerKey': variant.reproducer_key,
+        })
 
     return items
 
