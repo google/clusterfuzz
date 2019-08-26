@@ -448,6 +448,7 @@ type TestcaseVariant struct {
 	CrashState   string         `datastore:"crash_state"`
 	SecurityFlag bool           `datastore:"security_flag"`
 	IsSimilar    bool           `datastore:"is_similar"`
+	BlobstoreKey string         `datastore:"blobstore_key"`
 }
 
 // Trial is auto-generated from data_types.py.

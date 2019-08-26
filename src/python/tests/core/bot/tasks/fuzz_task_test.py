@@ -30,6 +30,7 @@ from bot.fuzzers import engine
 from bot.tasks import fuzz_task
 from chrome import crash_uploader
 from crash_analysis.stack_parsing import stack_analyzer
+from datastore import data_handler
 from datastore import data_types
 from datastore import ndb
 from google_cloud_utils import big_query
@@ -697,6 +698,12 @@ class ProcessCrashesTest(fake_filesystem_unittest.TestCase):
     existing_testcase.project_name = 'some_project'
     existing_testcase.put()
 
+    variant = data_types.TestcaseVariant()
+    variant.status = data_types.TestcaseVariantStatus.UNREPRODUCIBLE
+    variant.job_type = 'job'
+    variant.testcase_id = existing_testcase.key.id()
+    variant.put()
+
     new_crash_count, known_crash_count, groups = fuzz_task.process_crashes(
         crashes=crashes,
         context=fuzz_task.Context(
@@ -729,6 +736,11 @@ class ProcessCrashesTest(fake_filesystem_unittest.TestCase):
     testcases = list(data_types.Testcase.query())
     self.assertEqual(1, len(testcases))
     self.assertEqual('existing', testcases[0].crash_stacktrace)
+
+    variant = data_handler.get_testcase_variant(existing_testcase.key.id(),
+                                                'job')
+    self.assertEqual(data_types.TestcaseVariantStatus.FLAKY, variant.status)
+    self.assertEqual('fuzzed_key', variant.reproducer_key)
 
   @parameterized.parameterized.expand(['some_project', 'chromium'])
   def test_create_many_groups(self, project_name):

@@ -15,7 +15,9 @@
 -->
 <link rel="import" href="../../bower_components/polymer/polymer.html">
 <link rel="import" href="../../bower_components/iron-ajax/iron-ajax.html">
+<link rel="import" href="../../bower_components/iron-icon/iron-icon.html">
 <link rel="import" href="../../bower_components/paper-spinner/paper-spinner.html">
+<link rel="import" href="../common/if-else/if-else.html">
 
 <dom-module id="testcase-variants">
   <link rel="import" href="../../stylesheets/main.css" type="css">
@@ -133,6 +135,7 @@
                   <td>Crash State</td>
                   <td>Security</td>
                   <td>Similar</td>
+                  <td>Reproducer</td>
                 </tr>
                 <template is="dom-repeat" items="[[response.items]]">
                   <tr class="body">
@@ -147,6 +150,16 @@
                     </td>
                     <td>[[item.securityFlag]]</td>
                     <td>[[item.isSimilar]]</td>
+                    <td>
+                      <if-else condition="[[item.reproducerKey]]">
+                        <span slot="t">
+                          <a href="/download/[[item.reproducerKey]]">
+                            <iron-icon icon="icons:cloud-download"></iron-icon>
+                          </a>
+                        </span>
+                        <span slot="f">Same</span>
+                      </if-else>
+                    </td>
                   </tr>
                 </template>
             </template>

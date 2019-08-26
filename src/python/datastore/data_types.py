@@ -1369,3 +1369,7 @@ class TestcaseVariant(Model):
 
   # Bool to indicate if crash is similar to original testcase.
   is_similar = ndb.BooleanProperty()
+
+  # Similar testcase reproducer key (optional). This is set in case we notice a
+  # similar crash on another platform.
+  reproducer_key = ndb.StringProperty()
