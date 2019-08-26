@@ -108,7 +108,7 @@
         debounce-duration="300"></iron-ajax>
     <div class="section">
       <div class="title">
-        <div title="Get crash analysis for this testcase on other jobs (sanitizers, platforms, etc).">
+        <div title="Get crash analysis for this testcase on other jobs (sanitizers, platforms, etc). If this testcase does not reproduce on a job, but find another variant that does, then it is provided in the Reproducer field.">
           Testcase analysis on other jobs
         </div>
       </div>
@@ -141,16 +141,17 @@
                   <tr class="body">
                     <td>[[item.job]]</td>
                     <td>[[item.status]]</td>
-                    <td>[[item.revision]]</td>
-                    <td>[[item.crashType]]</td>
-                    <td>
-                      <template is="dom-repeat" items="[[item.crashStateLines]]" as="state">
-                        <div>[[state]]</div>
-                      </template>
-                    </td>
-                    <td>[[item.securityFlag]]</td>
-                    <td>[[item.isSimilar]]</td>
-                    <td>
+
+                    <template is="dom-if" if="[[!item.isPending]]">
+                      <td>[[item.revision]]</td>
+                      <td>[[item.crashType]]</td>
+                      <td>
+                        <template is="dom-repeat" items="[[item.crashStateLines]]" as="state">
+                          <div>[[state]]</div>
+                        </template>
+                      </td>
+                      <td>[[item.securityFlag]]</td>
+                      <td>[[item.isSimilar]]</td><td>
                       <if-else condition="[[item.reproducerKey]]">
                         <span slot="t">
                           <a href="/download/[[item.reproducerKey]]">
@@ -159,14 +160,22 @@
                         </span>
                         <span slot="f">Same</span>
                       </if-else>
-                    </td>
+                    </template>
+                    <template is="dom-if" if="[[item.isPending]]">
+                      <td>---</td>
+                      <td>---</td>
+                      <td>---</td>
+                      <td>---</td>
+                      <td>---</td>
+                      <td>---</td>
+                    </template>
                   </tr>
                 </template>
             </template>
         </table>
         <template is="dom-if" if="[[!nonEmpty(response.items)]]">
           <div class="body padding">
-            No variants found.
+            No reproducible variants found.
           </div>
         </template>
       </template>
