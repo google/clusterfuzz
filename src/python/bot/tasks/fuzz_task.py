@@ -1097,8 +1097,7 @@ def write_crashes_to_big_query(group, context):
 def _update_testcase_variant_if_needed(group, context):
   """Update testcase variant if this is not already covered by existing testcase
   variant on this job."""
-  if not group.existing_testcase:
-    return
+  assert group.existing_testcase
 
   variant = data_handler.get_testcase_variant(group.existing_testcase.key.id(),
                                               context.job_type)
