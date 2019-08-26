@@ -1,3 +1,4 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library")
 load("@io_bazel_rules_go//proto:def.bzl", "go_proto_library")
 
 # gazelle:ignore
@@ -22,6 +23,7 @@ proto_library(
         "untrusted_runner.proto",
     ],
     visibility = ["//visibility:public"],
+    deps = ["@com_google_protobuf//:any_proto"],
 )
 
 go_proto_library(
@@ -31,4 +33,3 @@ go_proto_library(
     proto = ":untrusted_runner_proto",
     visibility = ["//visibility:public"],
 )
-
