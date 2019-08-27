@@ -17,6 +17,7 @@ from builtins import object
 from builtins import range
 import os
 import re
+import string
 import subprocess
 
 from base import utils
@@ -571,10 +572,10 @@ class StackAnalyzerState(object):
         r'(%s)' % '|'.join(STACK_FRAME_IGNORE_REGEXES_IF_SYMBOLIZED))
 
 
-def filter_addresses_and_numbers(string):
+def filter_addresses_and_numbers(stack_frame):
   """Return a normalized string without unique addresses and numbers."""
   # Remove offset part from end of every line.
-  result = re.sub(r'\+0x[0-9a-fA-F]+\n', '\n', string, re.DOTALL)
+  result = re.sub(r'\+0x[0-9a-fA-F]+\n', '\n', stack_frame, re.DOTALL)
 
   # Replace sections that appear to be addresses with the string "ADDRESS".
   address_expression = r'0x[a-fA-F0-9]{4,}[U]*'
@@ -594,6 +595,9 @@ def filter_crash_parameters(state):
   """Normalize crash parameters into generic format regardless of the tool
   used."""
   # Filter crash state represented in |state|.
+  # Remove non-printable chars from crash state.
+  state.crash_state = ''.join(
+      s for s in state.crash_state if s in string.printable)
 
   # Shorten JNI messages.
   if JNI_ERROR_STRING in state.crash_state:
