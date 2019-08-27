@@ -41,27 +41,37 @@ def is_directory_parent(path, directory):
              for i in range(len(directory_components)))
 
 
-def rebase_to_worker_root(host_path):
-  """Return corresponding worker path given a host CF path."""
-  if not host_path:
+def _rebase(path, target_base, cur_base):
+  """Rebase a path."""
+  if not path:
     # Don't rebase if the path is None or empty string (in case of default
     # variable value).
-    return host_path
+    return path
 
-  worker_root_dir = environment.get_value('WORKER_ROOT_DIR')
-  if os.path.abspath(host_path).startswith(worker_root_dir):
+  if os.path.abspath(path).startswith(target_base):
     # Already rebased.
-    return host_path
+    return path
 
-  rel_path = os.path.relpath(
-      os.path.abspath(host_path), environment.get_value('ROOT_DIR'))
+  rel_path = os.path.relpath(os.path.abspath(path), cur_base)
 
   if rel_path == os.curdir:
-    return worker_root_dir
+    return target_base
 
   # Only paths relative to ROOT_DIR are supported.
   assert not rel_path.startswith(os.pardir), 'Bad relative path %s' % rel_path
-  return os.path.join(worker_root_dir, rel_path)
+  return os.path.join(target_base, rel_path)
+
+
+def rebase_to_host_root(worker_path):
+  """Return corresponding host root given a worker CF path."""
+  return _rebase(worker_path, environment.get_value('ROOT_DIR'),
+                 environment.get_value('WORKER_ROOT_DIR'))
+
+
+def rebase_to_worker_root(host_path):
+  """Return corresponding worker path given a host CF path."""
+  return _rebase(host_path, environment.get_value('WORKER_ROOT_DIR'),
+                 environment.get_value('ROOT_DIR'))
 
 
 def create_directory(path, create_intermediates=False):

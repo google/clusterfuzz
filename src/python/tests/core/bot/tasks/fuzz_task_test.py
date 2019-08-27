@@ -32,6 +32,7 @@ from bot import testcase_manager
 from bot.fuzzers import engine
 from bot.fuzzers.libFuzzer import engine as libfuzzer_engine
 from bot.tasks import fuzz_task
+from bot.untrusted_runner import file_host
 from build_management import build_manager
 from chrome import crash_uploader
 from crash_analysis.stack_parsing import stack_analyzer
@@ -1446,8 +1447,8 @@ class UntrustedRunEngineFuzzerTest(
     build_manager.setup_build()
     corpus_directory = os.path.join(self.temp_dir, 'corpus')
     testcase_directory = os.path.join(self.temp_dir, 'artifacts')
-    os.mkdir(corpus_directory)
-    os.mkdir(testcase_directory)
+    os.makedirs(file_host.rebase_to_worker_root(corpus_directory))
+    os.makedirs(file_host.rebase_to_worker_root(testcase_directory))
 
     result, fuzzer_metadata = fuzz_task.run_engine_fuzzer(
         libfuzzer_engine.LibFuzzerEngine(), 'test_fuzzer', corpus_directory,
@@ -1456,6 +1457,9 @@ class UntrustedRunEngineFuzzerTest(
         'ERROR: AddressSanitizer: SEGV on unknown address 0x000000000000',
         result.logs)
     self.assertEqual(1, len(result.crashes))
+    self.assertTrue(result.crashes[0].input_path.startswith(
+        os.environ['ROOT_DIR']))
+    self.assertTrue(os.path.exists(result.crashes[0].input_path))
     self.assertIsInstance(result.stats.get('number_of_executed_units'), int)
     self.assertIsInstance(result.stats.get('oom_count'), int)
     self.assertIsInstance(

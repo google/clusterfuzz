@@ -129,13 +129,14 @@ def engine_fuzz(engine_impl, target_name, sync_corpus_directory,
   request = untrusted_runner_pb2.EngineFuzzRequest(
       engine=engine_impl.name,
       target_name=target_name,
-      sync_corpus_directory=sync_corpus_directory,
-      testcase_directory=testcase_directory)
+      sync_corpus_directory=file_host.rebase_to_worker_root(
+          sync_corpus_directory),
+      testcase_directory=file_host.rebase_to_worker_root(testcase_directory))
 
   response = host.stub().EngineFuzz(request)
   crashes = [
       engine.Crash(
-          input_path=crash.input_path,
+          input_path=file_host.rebase_to_host_root(crash.input_path),
           stacktrace=crash.stacktrace,
           reproduce_args=crash.reproduce_args,
           crash_time=crash.crash_time) for crash in response.crashes
@@ -161,6 +162,8 @@ def engine_fuzz(engine_impl, target_name, sync_corpus_directory,
       crashes=crashes,
       stats=unpacked_stats,
       time_executed=response.time_executed)
+
+  file_host.pull_testcases_from_worker()
   return result, dict(response.fuzzer_metadata)
 
 
