@@ -1389,6 +1389,8 @@ def get_fuzz_target(name):
     # Return the only fuzz target we know anything about. Other calls would
     # fail regardless as we would have no way of accessing the datastore.
     fuzz_target_dict = environment.get_value('CURRENT_SERIALIZED_FUZZ_TARGET')
+    if not fuzz_target_dict:
+      return None
 
     fuzz_target = data_types.FuzzTarget()
     fuzz_target.engine = fuzz_target_dict['engine']

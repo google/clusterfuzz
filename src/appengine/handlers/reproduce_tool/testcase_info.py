@@ -30,7 +30,7 @@ def _prepare_testcase_dict(testcase):
   if fuzz_target:
     fuzz_target_dict = fuzz_target._to_dict()
   else:
-    fuzz_target_dict = {}
+    fuzz_target_dict = None
   # pylint: enable=protected-access
 
   # Several nonstandard bits of information are required for the tool to run.

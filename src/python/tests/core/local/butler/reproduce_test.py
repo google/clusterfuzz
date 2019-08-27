@@ -41,6 +41,7 @@ def _fake_get_testcase(*_):
       'minimized_arguments': '',
       'window_argument': '',
       'timeout_multiplier': 1.0,
+      'serialized_fuzz_target': None,
   }
 
   return reproduce.SerializedTestcase(testcase_map)
