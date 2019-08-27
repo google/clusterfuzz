@@ -175,6 +175,7 @@ def clear_testcase_directories():
   """Clears the testcase directories."""
   remove_directory(environment.get_value('FUZZ_INPUTS'), recreate=True)
   remove_directory(environment.get_value('FUZZ_INPUTS_DISK'), recreate=True)
+  remove_directory(environment.get_value('FUZZ_DATA'), recreate=True)
 
   if environment.platform() == 'ANDROID':
     from platforms import android
