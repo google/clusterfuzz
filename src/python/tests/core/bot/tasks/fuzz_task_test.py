@@ -1415,6 +1415,7 @@ class UntrustedRunEngineFuzzerTest(
     job.put()
 
     self.temp_dir = tempfile.mkdtemp(dir=environment.get_value('FUZZ_INPUTS'))
+    environment.set_value('USE_MINIJAIL', False)
 
   def tearDown(self):
     super(UntrustedRunEngineFuzzerTest, self).tearDown()
