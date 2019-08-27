@@ -50,7 +50,7 @@ CONFIG_DIRECTORY = os.path.join(
     os.path.expanduser('~'), '.config', 'clusterfuzz')
 DISPLAY = ':99'
 PROCESS_START_WAIT_SECONDS = 2
-SUPPORTED_PLATFORMS = ['android', 'linux', 'mac']
+SUPPORTED_PLATFORMS = ['android', 'fuchsia', 'linux', 'mac']
 
 
 class SerializedTestcase(object):
@@ -249,6 +249,9 @@ def _update_environment_for_testcase(testcase, build_directory):
 
   fuzzer_directory = setup.get_fuzzer_directory(testcase.fuzzer_name)
   environment.set_value('FUZZER_DIR', fuzzer_directory)
+
+  environment.set_value('CURRENT_SERIALIZED_FUZZ_TARGET',
+                        testcase.serialized_fuzz_target)
 
   setup.prepare_environment_for_testcase(testcase)
 
