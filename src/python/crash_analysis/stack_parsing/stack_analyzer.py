@@ -17,6 +17,7 @@ from builtins import object
 from builtins import range
 import os
 import re
+import string
 import subprocess
 
 from base import utils
@@ -594,6 +595,8 @@ def filter_crash_parameters(state):
   """Normalize crash parameters into generic format regardless of the tool
   used."""
   # Filter crash state represented in |state|.
+  # Remove non-printable chars from crash state.
+  state.crash_state = filter(lambda x: x in string.printable, state.crash_state)
 
   # Shorten JNI messages.
   if JNI_ERROR_STRING in state.crash_state:
