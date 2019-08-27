@@ -58,7 +58,8 @@ def clear_values():
 def delete_value(key):
   """Removes the value for a key."""
   value_path = get_value_file_path(key)
-  os.remove(value_path)
+  if os.path.exists(value_path):
+    os.remove(value_path)
 
 
 def get_value(key, default_value=None, constructor=None):
