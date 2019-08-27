@@ -56,7 +56,7 @@ class Handler(base_handler.Handler):
         item.update({
             'revision': variant.revision,
             'crashType': variant.crash_type,
-            'crashStateLines': variant.crash_state.strip().splitlines(),
+            'crashStateLines': (variant.crash_state or '').strip().splitlines(),
             'securityFlag': variant.security_flag,
             'isSimilar': variant.is_similar,
             'reproducerKey': variant.reproducer_key,
