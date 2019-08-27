@@ -1107,8 +1107,9 @@ def _update_testcase_variant_if_needed(group, context):
     # prefer existing testcase over current one.
     return
 
-  if variant.status == data_types.TestcaseVariantStatus.REPRODUCIBLE:
-    # Already have a reproducible variant, don't need to update.
+  if (variant.status == data_types.TestcaseVariantStatus.REPRODUCIBLE and
+      variant.is_similar):
+    # Already have a similar reproducible variant, don't need to update.
     return
 
   variant.reproducer_key = group.main_crash.fuzzed_key
