@@ -223,7 +223,7 @@ class FileHostTest(fake_filesystem_unittest.TestCase):
     self.assertFalse(file_host.copy_directory_from_worker('/worker', '/host'))
 
   def test_get_cf_worker_path(self):
-    """Test get_cf_worker_path."""
+    """Test get worker path."""
     os.environ['WORKER_ROOT_DIR'] = '/worker'
     local_path = os.path.join(os.environ['ROOT_DIR'], 'a', 'b', 'c')
 
@@ -232,3 +232,14 @@ class FileHostTest(fake_filesystem_unittest.TestCase):
 
     local_path = os.environ['ROOT_DIR']
     self.assertEqual(file_host.rebase_to_worker_root(local_path), '/worker')
+
+  def test_get_cf_host_path(self):
+    """Test get host path."""
+    os.environ['ROOT_DIR'] = '/host'
+    os.environ['WORKER_ROOT_DIR'] = '/worker'
+    worker_path = os.path.join(os.environ['WORKER_ROOT_DIR'], 'a', 'b', 'c')
+
+    self.assertEqual(file_host.rebase_to_host_root(worker_path), '/host/a/b/c')
+
+    worker_path = os.environ['WORKER_ROOT_DIR']
+    self.assertEqual(file_host.rebase_to_host_root(worker_path), '/host')
