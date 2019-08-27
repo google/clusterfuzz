@@ -741,6 +741,11 @@ class ProcessCrashesTest(fake_filesystem_unittest.TestCase):
                                                 'job')
     self.assertEqual(data_types.TestcaseVariantStatus.FLAKY, variant.status)
     self.assertEqual('fuzzed_key', variant.reproducer_key)
+    self.assertEqual(1234, variant.revision)
+    self.assertEqual('type', variant.crash_type)
+    self.assertEqual('state', variant.crash_state)
+    self.assertEqual(True, variant.security_flag)
+    self.assertEqual(True, variant.is_similar)
 
   @parameterized.parameterized.expand(['some_project', 'chromium'])
   def test_create_many_groups(self, project_name):

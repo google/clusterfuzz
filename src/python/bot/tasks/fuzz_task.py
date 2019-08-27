@@ -1116,6 +1116,11 @@ def _update_testcase_variant_if_needed(group, context):
     variant.status = data_types.TestcaseVariantStatus.FLAKY
   else:
     variant.status = data_types.TestcaseVariantStatus.REPRODUCIBLE
+  variant.revision = context.crash_revision
+  variant.crash_type = group.main_crash.crash_type
+  variant.crash_state = group.main_crash.crash_state
+  variant.security_flag = group.main_crash.security_flag
+  variant.is_similar = True
   variant.put()
 
 
