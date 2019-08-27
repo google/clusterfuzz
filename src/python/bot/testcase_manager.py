@@ -510,7 +510,8 @@ def engine_reproduce(engine_impl, target_name, testcase_path, arguments,
   if not target_path:
     raise TargetNotFoundError('Failed to find target ' + target_name)
 
-  return engine_impl.reproduce(target_path, testcase_path, arguments, timeout)
+  return engine_impl.reproduce(target_path, testcase_path, list(arguments),
+                               timeout)
 
 
 class TestcaseRunner(object):

@@ -1091,6 +1091,7 @@ def _run_libfuzzer_testcase(testcase, testcase_file_path):
 def run_libfuzzer_engine(tool_name, target_name, arguments, testcase_path,
                          output_path, timeout):
   """Run the libFuzzer engine."""
+  arguments = list(arguments)
   if environment.is_trusted_host():
     from bot.untrusted_runner import tasks_host
     # TODO(ochang): Remove hardcode.

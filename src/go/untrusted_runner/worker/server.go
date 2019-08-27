@@ -122,7 +122,7 @@ func (s *UntrustedRunnerServer) PruneCorpus(context.Context, *pb.PruneCorpusRequ
 	return nil, nil
 }
 
-// ProcessTestcase is processes a testcase with a fuzzing engine (e.g. minimization).
+// ProcessTestcase processes a testcase with a fuzzing engine (e.g. minimization).
 func (s *UntrustedRunnerServer) ProcessTestcase(context.Context, *pb.ProcessTestcaseRequest) (*pb.EngineReproduceResult, error) {
 	return nil, nil
 }

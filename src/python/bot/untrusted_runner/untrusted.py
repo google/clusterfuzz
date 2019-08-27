@@ -184,8 +184,8 @@ class UntrustedRunnerServicer(
     return tasks_impl.process_testcase(request, context)
 
   @wrap_servicer
-  def RunEngineFuzzer(self, request, context):
-    return tasks_impl.run_engine_fuzzer(request, context)
+  def EngineFuzz(self, request, context):
+    return tasks_impl.engine_fuzz(request, context)
 
   @wrap_servicer
   def EngineReproduce(self, request, context):

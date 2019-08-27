@@ -123,16 +123,16 @@ def process_testcase(engine_name, tool_name, target_name, arguments,
                                 response.time_executed, response.output)
 
 
-def run_engine_fuzzer(engine_impl, target_name, sync_corpus_directory,
-                      testcase_directory):
+def engine_fuzz(engine_impl, target_name, sync_corpus_directory,
+                testcase_directory):
   """Run engine fuzzer on untrusted worker."""
-  request = untrusted_runner_pb2.RunEngineFuzzerRequest(
+  request = untrusted_runner_pb2.EngineFuzzRequest(
       engine=engine_impl.name,
       target_name=target_name,
       sync_corpus_directory=sync_corpus_directory,
       testcase_directory=testcase_directory)
 
-  response = host.stub().RunEngineFuzzer(request)
+  response = host.stub().EngineFuzz(request)
   crashes = [
       engine.Crash(
           input_path=crash.input_path,

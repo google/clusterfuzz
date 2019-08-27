@@ -128,10 +128,10 @@ class UntrustedRunnerStub(object):
         request_serializer=untrusted__runner__pb2.ProcessTestcaseRequest.SerializeToString,
         response_deserializer=untrusted__runner__pb2.EngineReproduceResult.FromString,
         )
-    self.RunEngineFuzzer = channel.unary_unary(
-        '/UntrustedRunner/RunEngineFuzzer',
-        request_serializer=untrusted__runner__pb2.RunEngineFuzzerRequest.SerializeToString,
-        response_deserializer=untrusted__runner__pb2.RunEngineFuzzerResponse.FromString,
+    self.EngineFuzz = channel.unary_unary(
+        '/UntrustedRunner/EngineFuzz',
+        request_serializer=untrusted__runner__pb2.EngineFuzzRequest.SerializeToString,
+        response_deserializer=untrusted__runner__pb2.EngineFuzzResponse.FromString,
         )
     self.EngineReproduce = channel.unary_unary(
         '/UntrustedRunner/EngineReproduce',
@@ -284,7 +284,7 @@ class UntrustedRunnerServicer(object):
     context.set_details('Method not implemented!')
     raise NotImplementedError('Method not implemented!')
 
-  def RunEngineFuzzer(self, request, context):
+  def EngineFuzz(self, request, context):
     """Engine specific: Do fuzzing.
     """
     context.set_code(grpc.StatusCode.UNIMPLEMENTED)
@@ -401,10 +401,10 @@ def add_UntrustedRunnerServicer_to_server(servicer, server):
           request_deserializer=untrusted__runner__pb2.ProcessTestcaseRequest.FromString,
           response_serializer=untrusted__runner__pb2.EngineReproduceResult.SerializeToString,
       ),
-      'RunEngineFuzzer': grpc.unary_unary_rpc_method_handler(
-          servicer.RunEngineFuzzer,
-          request_deserializer=untrusted__runner__pb2.RunEngineFuzzerRequest.FromString,
-          response_serializer=untrusted__runner__pb2.RunEngineFuzzerResponse.SerializeToString,
+      'EngineFuzz': grpc.unary_unary_rpc_method_handler(
+          servicer.EngineFuzz,
+          request_deserializer=untrusted__runner__pb2.EngineFuzzRequest.FromString,
+          response_serializer=untrusted__runner__pb2.EngineFuzzResponse.SerializeToString,
       ),
       'EngineReproduce': grpc.unary_unary_rpc_method_handler(
           servicer.EngineReproduce,

@@ -1171,8 +1171,8 @@ def run_engine_fuzzer(engine_impl, target_name, sync_corpus_directory,
   """Run engine for fuzzing."""
   if environment.is_trusted_host():
     from bot.untrusted_runner import tasks_host
-    return tasks_host.run_engine_fuzzer(
-        engine_impl, target_name, sync_corpus_directory, testcase_directory)
+    return tasks_host.engine_fuzz(engine_impl, target_name,
+                                  sync_corpus_directory, testcase_directory)
 
   build_dir = environment.get_value('BUILD_DIR')
   target_path = engine_common.find_fuzzer_path(build_dir, target_name)

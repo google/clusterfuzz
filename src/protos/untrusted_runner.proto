@@ -287,7 +287,7 @@ message EngineReproduceResult {
   optional bytes output = 4;
 }
 
-message RunEngineFuzzerRequest {
+message EngineFuzzRequest {
   optional string engine = 1;
   optional string target_name = 2;
   optional string sync_corpus_directory = 3;
@@ -301,7 +301,7 @@ message EngineCrash {
   optional double crash_time = 4;
 }
 
-message RunEngineFuzzerResponse {
+message EngineFuzzResponse {
   optional string logs = 1;
   repeated string command = 2;
   repeated EngineCrash crashes = 3;
@@ -381,7 +381,7 @@ service UntrustedRunner {
   rpc ProcessTestcase(ProcessTestcaseRequest) returns (EngineReproduceResult);
 
   // Engine specific: Do fuzzing.
-  rpc RunEngineFuzzer(RunEngineFuzzerRequest) returns (RunEngineFuzzerResponse);
+  rpc EngineFuzz(EngineFuzzRequest) returns (EngineFuzzResponse);
 
   // Engine specific: Do reproduction.
   rpc EngineReproduce(EngineReproduceRequest) returns (EngineReproduceResult);

@@ -97,9 +97,8 @@ def process_testcase(request, _):
   assert request.operation in tool_name_map
 
   result = minimize_task.run_libfuzzer_engine(
-      tool_name_map[request.operation], request.target_name,
-      list(request.arguments), request.testcase_path, request.output_path,
-      request.timeout)
+      tool_name_map[request.operation], request.target_name, request.arguments,
+      request.testcase_path, request.output_path, request.timeout)
 
   return untrusted_runner_pb2.EngineReproduceResult(
       return_code=result.return_code,
@@ -107,7 +106,7 @@ def process_testcase(request, _):
       output=result.output)
 
 
-def run_engine_fuzzer(request, _):
+def engine_fuzz(request, _):
   """Run engine fuzzer."""
   engine_impl = engine.get(request.engine)
   result, fuzzer_metadata = fuzz_task.run_engine_fuzzer(
@@ -136,7 +135,7 @@ def run_engine_fuzzer(request, _):
 
     packed_stats[key] = packed_value
 
-  return untrusted_runner_pb2.RunEngineFuzzerResponse(
+  return untrusted_runner_pb2.EngineFuzzResponse(
       logs=result.logs,
       command=result.command,
       crashes=crashes,
@@ -148,9 +147,9 @@ def run_engine_fuzzer(request, _):
 def engine_reproduce(request, _):
   """Run engine reproduce."""
   engine_impl = engine.get(request.engine)
-  result = testcase_manager.engine_reproduce(
-      engine_impl, request.target_name, request.testcase_path,
-      list(request.arguments), request.timeout)
+  result = testcase_manager.engine_reproduce(engine_impl, request.target_name,
+                                             request.testcase_path,
+                                             request.arguments, request.timeout)
   return untrusted_runner_pb2.EngineReproduceResult(
       return_code=result.return_code,
       time_executed=result.time_executed,
