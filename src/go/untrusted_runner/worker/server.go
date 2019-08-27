@@ -132,8 +132,8 @@ func (s *UntrustedRunnerServer) EngineReproduce(context.Context, *pb.EngineRepro
 	return nil, nil
 }
 
-// RunEngineFuzzer runs an engine fuzzer.
-func (s *UntrustedRunnerServer) RunEngineFuzzer(context.Context, *pb.RunEngineFuzzerRequest) (*pb.RunEngineFuzzerResponse, error) {
+// EngineFuzz runs an engine fuzzer.
+func (s *UntrustedRunnerServer) EngineFuzz(context.Context, *pb.EngineFuzzRequest) (*pb.EngineFuzzResponse, error) {
 	return nil, nil
 }
 
