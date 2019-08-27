@@ -21,7 +21,6 @@ import subprocess
 import sys
 import tempfile
 
-
 from base import persistent_cache
 from metrics import logs
 from system import environment
