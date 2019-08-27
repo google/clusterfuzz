@@ -20,7 +20,6 @@ import os
 from base import json_utils
 from metrics import logs
 from system import environment
-from system import shell
 
 # For any given value file, if a file with the same name with this added
 # extension exists, it is not cleared during initialization.
@@ -34,7 +33,7 @@ def initialize():
   if os.path.exists(cache_directory_path):
     clear_values()
   else:
-    shell.create_directory(cache_directory_path, create_intermediates=True)
+    os.makedirs(cache_directory_path)
 
 
 def clear_values():
@@ -59,7 +58,7 @@ def clear_values():
 def delete_value(key):
   """Removes the value for a key."""
   value_path = get_value_file_path(key)
-  shell.remove_file(value_path)
+  os.remove(value_path)
 
 
 def get_value(key, default_value=None, constructor=None):

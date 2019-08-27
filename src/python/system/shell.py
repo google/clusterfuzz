@@ -21,6 +21,7 @@ import subprocess
 import sys
 import tempfile
 
+from base import persistent_cache
 from metrics import logs
 from system import environment
 
@@ -104,6 +105,8 @@ def clear_data_directories():
   clear_testcase_directories()
   clear_mutator_plugins_directory()
 
+  persistent_cache.clear_values()
+
 
 def clear_data_directories_on_low_disk_space():
   """Clear all data directories on low disk space. This should ideally never
@@ -175,6 +178,7 @@ def clear_testcase_directories():
   """Clears the testcase directories."""
   remove_directory(environment.get_value('FUZZ_INPUTS'), recreate=True)
   remove_directory(environment.get_value('FUZZ_INPUTS_DISK'), recreate=True)
+  remove_directory(environment.get_value('FUZZ_DATA'), recreate=True)
 
   if environment.platform() == 'ANDROID':
     from platforms import android
