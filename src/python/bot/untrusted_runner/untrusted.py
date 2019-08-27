@@ -184,6 +184,14 @@ class UntrustedRunnerServicer(
     return tasks_impl.process_testcase(request, context)
 
   @wrap_servicer
+  def EngineFuzz(self, request, context):
+    return tasks_impl.engine_fuzz(request, context)
+
+  @wrap_servicer
+  def EngineReproduce(self, request, context):
+    return tasks_impl.engine_reproduce(request, context)
+
+  @wrap_servicer
   def PruneCorpus(self, request, context):
     return tasks_impl.prune_corpus(request, context)
 

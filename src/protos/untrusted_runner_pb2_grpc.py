@@ -126,7 +126,17 @@ class UntrustedRunnerStub(object):
     self.ProcessTestcase = channel.unary_unary(
         '/UntrustedRunner/ProcessTestcase',
         request_serializer=untrusted__runner__pb2.ProcessTestcaseRequest.SerializeToString,
-        response_deserializer=untrusted__runner__pb2.ProcessTestcaseResponse.FromString,
+        response_deserializer=untrusted__runner__pb2.EngineReproduceResult.FromString,
+        )
+    self.EngineFuzz = channel.unary_unary(
+        '/UntrustedRunner/EngineFuzz',
+        request_serializer=untrusted__runner__pb2.EngineFuzzRequest.SerializeToString,
+        response_deserializer=untrusted__runner__pb2.EngineFuzzResponse.FromString,
+        )
+    self.EngineReproduce = channel.unary_unary(
+        '/UntrustedRunner/EngineReproduce',
+        request_serializer=untrusted__runner__pb2.EngineReproduceRequest.SerializeToString,
+        response_deserializer=untrusted__runner__pb2.EngineReproduceResult.FromString,
         )
 
 
@@ -274,6 +284,20 @@ class UntrustedRunnerServicer(object):
     context.set_details('Method not implemented!')
     raise NotImplementedError('Method not implemented!')
 
+  def EngineFuzz(self, request, context):
+    """Engine specific: Do fuzzing.
+    """
+    context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+    context.set_details('Method not implemented!')
+    raise NotImplementedError('Method not implemented!')
+
+  def EngineReproduce(self, request, context):
+    """Engine specific: Do reproduction.
+    """
+    context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+    context.set_details('Method not implemented!')
+    raise NotImplementedError('Method not implemented!')
+
 
 def add_UntrustedRunnerServicer_to_server(servicer, server):
   rpc_method_handlers = {
@@ -375,7 +399,17 @@ def add_UntrustedRunnerServicer_to_server(servicer, server):
       'ProcessTestcase': grpc.unary_unary_rpc_method_handler(
           servicer.ProcessTestcase,
           request_deserializer=untrusted__runner__pb2.ProcessTestcaseRequest.FromString,
-          response_serializer=untrusted__runner__pb2.ProcessTestcaseResponse.SerializeToString,
+          response_serializer=untrusted__runner__pb2.EngineReproduceResult.SerializeToString,
+      ),
+      'EngineFuzz': grpc.unary_unary_rpc_method_handler(
+          servicer.EngineFuzz,
+          request_deserializer=untrusted__runner__pb2.EngineFuzzRequest.FromString,
+          response_serializer=untrusted__runner__pb2.EngineFuzzResponse.SerializeToString,
+      ),
+      'EngineReproduce': grpc.unary_unary_rpc_method_handler(
+          servicer.EngineReproduce,
+          request_deserializer=untrusted__runner__pb2.EngineReproduceRequest.FromString,
+          response_serializer=untrusted__runner__pb2.EngineReproduceResult.SerializeToString,
       ),
   }
   generic_handler = grpc.method_handlers_generic_handler(

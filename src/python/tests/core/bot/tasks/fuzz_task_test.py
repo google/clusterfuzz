@@ -19,15 +19,20 @@ import datetime
 import mock
 import os
 import parameterized
+import shutil
+import tempfile
 import time
 import unittest
 
 from pyfakefs import fake_filesystem_unittest
+import six
 
 from base import utils
 from bot import testcase_manager
 from bot.fuzzers import engine
+from bot.fuzzers.libFuzzer import engine as libfuzzer_engine
 from bot.tasks import fuzz_task
+from build_management import build_manager
 from chrome import crash_uploader
 from crash_analysis.stack_parsing import stack_analyzer
 from datastore import data_handler
@@ -39,6 +44,7 @@ from metrics import monitoring_metrics
 from system import environment
 from tests.test_libs import helpers
 from tests.test_libs import test_utils
+from tests.test_libs import untrusted_runner_helpers
 
 
 class TrackFuzzerRunResultTest(unittest.TestCase):
@@ -1398,3 +1404,56 @@ class DoEngineFuzzingTest(fake_filesystem_unittest.TestCase):
         'strategy_strategy_2': 50,
         'timestamp': 0.0,
     }, testcase_run.data)
+
+
+class UntrustedRunEngineFuzzerTest(
+    untrusted_runner_helpers.UntrustedRunnerIntegrationTest):
+  """Engine fuzzing tests for untrusted."""
+
+  def setUp(self):
+    """Set up."""
+    super(UntrustedRunEngineFuzzerTest, self).setUp()
+    environment.set_value('JOB_NAME', 'libfuzzer_asan_job')
+
+    job = data_types.Job(
+        name='libfuzzer_asan_job',
+        environment_string=(
+            'RELEASE_BUILD_BUCKET_PATH = '
+            'gs://clusterfuzz-test-data/test_libfuzzer_builds/'
+            'test-libfuzzer-build-([0-9]+).zip\n'
+            'REVISION_VARS_URL = https://commondatastorage.googleapis.com/'
+            'clusterfuzz-test-data/test_libfuzzer_builds/'
+            'test-libfuzzer-build-%s.srcmap.json\n'))
+    job.put()
+
+    self.temp_dir = tempfile.mkdtemp(dir=environment.get_value('FUZZ_INPUTS'))
+    environment.set_value('USE_MINIJAIL', False)
+
+  def tearDown(self):
+    super(UntrustedRunEngineFuzzerTest, self).tearDown()
+    shutil.rmtree(self.temp_dir, ignore_errors=True)
+
+  def test_run_engine_fuzzer(self):
+    """Test running engine fuzzer."""
+    self._setup_env(job_type='libfuzzer_asan_job')
+    environment.set_value('FUZZ_TEST_TIMEOUT', 3600)
+
+    build_manager.setup_build()
+    corpus_directory = os.path.join(self.temp_dir, 'corpus')
+    testcase_directory = os.path.join(self.temp_dir, 'artifacts')
+    os.mkdir(corpus_directory)
+    os.mkdir(testcase_directory)
+
+    result, fuzzer_metadata = fuzz_task.run_engine_fuzzer(
+        libfuzzer_engine.LibFuzzerEngine(), 'test_fuzzer', corpus_directory,
+        testcase_directory)
+    self.assertIn(
+        'ERROR: AddressSanitizer: SEGV on unknown address 0x000000000000',
+        result.logs)
+    self.assertEqual(1, len(result.crashes))
+    self.assertIsInstance(result.stats.get('number_of_executed_units'), int)
+    self.assertIsInstance(result.stats.get('oom_count'), int)
+    self.assertIsInstance(
+        result.stats.get('strategy_selection_method'), six.string_types)
+
+    self.assertDictEqual({'fuzzer_binary_name': 'test_fuzzer'}, fuzzer_metadata)

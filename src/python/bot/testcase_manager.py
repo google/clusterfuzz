@@ -498,6 +498,22 @@ def run_testcase_and_return_result_in_queue(crash_queue,
                    'run_testcase_and_return_result_in_queue.')
 
 
+def engine_reproduce(engine_impl, target_name, testcase_path, arguments,
+                     timeout):
+  """Do engine reproduction."""
+  if environment.is_trusted_host():
+    from bot.untrusted_runner import tasks_host
+    return tasks_host.engine_reproduce(engine_impl, target_name, testcase_path,
+                                       arguments, timeout)
+  build_dir = environment.get_value('BUILD_DIR')
+  target_path = engine_common.find_fuzzer_path(build_dir, target_name)
+  if not target_path:
+    raise TargetNotFoundError('Failed to find target ' + target_name)
+
+  return engine_impl.reproduce(target_path, testcase_path, list(arguments),
+                               timeout)
+
+
 class TestcaseRunner(object):
   """Testcase runner."""
 
@@ -529,11 +545,7 @@ class TestcaseRunner(object):
       arguments = data_handler.filter_arguments(arguments, fuzz_target.binary)
       self._arguments = arguments.split()
 
-      build_dir = environment.get_value('BUILD_DIR')
-      self._target_path = engine_common.find_fuzzer_path(
-          build_dir, fuzz_target.binary)
-      if not self._target_path:
-        raise TargetNotFoundError('Failed to find target ' + fuzz_target.binary)
+      self._fuzz_target = fuzz_target
     else:
       self._is_black_box = True
       self._command = get_command_line_for_application(
@@ -552,8 +564,9 @@ class TestcaseRunner(object):
           gestures=self._gestures,
           current_working_directory=app_directory)
     else:
-      result = self._engine_impl.reproduce(
-          self._target_path, self._testcase_path, self._arguments, run_timeout)
+      result = engine_reproduce(self._engine_impl, self._fuzz_target.binary,
+                                self._testcase_path, self._arguments,
+                                run_timeout)
       return_code = result.return_code
       crash_time = result.time_executed
 

@@ -122,8 +122,18 @@ func (s *UntrustedRunnerServer) PruneCorpus(context.Context, *pb.PruneCorpusRequ
 	return nil, nil
 }
 
-// ProcessTestcase is processes a testcase with a fuzzing engine (e.g. minimization).
-func (s *UntrustedRunnerServer) ProcessTestcase(context.Context, *pb.ProcessTestcaseRequest) (*pb.ProcessTestcaseResponse, error) {
+// ProcessTestcase processes a testcase with a fuzzing engine (e.g. minimization).
+func (s *UntrustedRunnerServer) ProcessTestcase(context.Context, *pb.ProcessTestcaseRequest) (*pb.EngineReproduceResult, error) {
+	return nil, nil
+}
+
+// EngineReproduce reproduces a crash.
+func (s *UntrustedRunnerServer) EngineReproduce(context.Context, *pb.EngineReproduceRequest) (*pb.EngineReproduceResult, error) {
+	return nil, nil
+}
+
+// EngineFuzz runs an engine fuzzer.
+func (s *UntrustedRunnerServer) EngineFuzz(context.Context, *pb.EngineFuzzRequest) (*pb.EngineFuzzResponse, error) {
 	return nil, nil
 }
 

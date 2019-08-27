@@ -14,6 +14,8 @@
 
 syntax = "proto2";
 
+import "google/protobuf/any.proto";
+
 option go_package = "clusterfuzz/protos/untrusted_runner";
 
 message GetStatusRequest {
@@ -278,11 +280,42 @@ message ProcessTestcaseRequest {
   optional uint64 timeout = 7;
 }
 
-message ProcessTestcaseResponse {
+message EngineReproduceResult {
   repeated string command = 1;
   optional int64 return_code = 2;
   optional double time_executed = 3;
   optional bytes output = 4;
+}
+
+message EngineFuzzRequest {
+  optional string engine = 1;
+  optional string target_name = 2;
+  optional string sync_corpus_directory = 3;
+  optional string testcase_directory = 4;
+}
+
+message EngineCrash {
+  optional string input_path = 1;
+  optional bytes stacktrace = 2;
+  repeated string reproduce_args = 3;
+  optional double crash_time = 4;
+}
+
+message EngineFuzzResponse {
+  optional string logs = 1;
+  repeated string command = 2;
+  repeated EngineCrash crashes = 3;
+  map<string, google.protobuf.Any> stats = 4;
+  optional double time_executed = 5;
+  map<string, string> fuzzer_metadata = 6;
+}
+
+message EngineReproduceRequest {
+  optional string engine = 1;
+  optional string target_name = 2;
+  optional string testcase_path = 3;
+  repeated string arguments = 4;
+  optional double timeout = 5;
 }
 
 // UntrusterRunner service.
@@ -345,5 +378,11 @@ service UntrustedRunner {
   rpc PruneCorpus(PruneCorpusRequest) returns (PruneCorpusResponse);
 
   // Engine specific: Do testcase minimization or cleanse.
-  rpc ProcessTestcase(ProcessTestcaseRequest) returns (ProcessTestcaseResponse);
+  rpc ProcessTestcase(ProcessTestcaseRequest) returns (EngineReproduceResult);
+
+  // Engine specific: Do fuzzing.
+  rpc EngineFuzz(EngineFuzzRequest) returns (EngineFuzzResponse);
+
+  // Engine specific: Do reproduction.
+  rpc EngineReproduce(EngineReproduceRequest) returns (EngineReproduceResult);
 }
