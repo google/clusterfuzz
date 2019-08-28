@@ -279,7 +279,7 @@ def _remove_invalid_files():
       os.remove(name)
 
 
-def install_dependencies(platform_name=None):
+def install_dependencies(platform_name=None, is_reproduce_tool_setup=False):
   """Install dependencies for bots."""
   _install_pip('src/requirements.txt', 'src/third_party')
   if platform_name:
@@ -287,6 +287,10 @@ def install_dependencies(platform_name=None):
         'src/platform_requirements.txt',
         'src/third_party',
         platform_name=platform_name)
+
+  # Only the previous dependencies are needed for reproduce tool installation.
+  if is_reproduce_tool_setup:
+    return
 
   _remove_invalid_files()
   execute('bower install --allow-root')

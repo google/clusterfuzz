@@ -157,8 +157,11 @@ if [ ! $only_reproduce ]; then
         google-cloud-sdk-pubsub-emulator
   fi
 
-  # Bootstrap code structure.
+  # Run the full bootstrap script to prepare for ClusterFuzz development.
   python butler.py bootstrap
+else
+  # The reproduce tool only needs a limited bootstrap.
+  python butler.py bootstrap --only-reproduce
 fi
 
 set +x
