@@ -251,8 +251,7 @@ def update_weight_for_target(fuzz_target_name, job, match):
   target_job = data_handler.get_fuzz_target_job(fuzz_target_name, job)
 
   if not target_job:
-    logs.log_error('FuzzTargetJob for target %s and job %s does not exist.' %
-                   (fuzz_target_name, job))
+    # Bail out. This is expected if any fuzzer/job combinations become outdated.
     return
 
   weight = match.new_weight
