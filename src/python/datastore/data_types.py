@@ -645,6 +645,14 @@ class Testcase(Model):
     """Actual fuzzer name, uses one from overridden attribute if available."""
     return self.overridden_fuzzer_name or self.fuzzer_name
 
+  def get_fuzz_target(self):
+    """Get the associated FuzzTarget entity for this test case."""
+    name = self.actual_fuzzer_name()
+    if not name:
+      return
+
+    return ndb.Key(FuzzTarget, name).get()
+
 
 class TestcaseGroup(Model):
   """Group for a set of testcases."""
@@ -1066,6 +1074,8 @@ class FuzzTarget(Model):
     """Get the name qualified by project."""
     return fuzz_target_project_qualified_name(self.project, self.binary)
 
+  def fuzzing_engine_name(self):
+    """Get the fuzzing engine name for this test case."""
 
 def fuzz_target_fully_qualified_name(engine, project, binary):
   """Get a fuzz target's fully qualified name."""

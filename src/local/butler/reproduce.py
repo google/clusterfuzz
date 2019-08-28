@@ -77,6 +77,17 @@ class SerializedTestcase(object):
     """Actual fuzzer name, uses one from overridden attribute if available."""
     return self.overridden_fuzzer_name or self.fuzzer_name
 
+  def get_fuzz_target(self):
+    """Return a fuzz target for this test case in the expected format."""
+    if not self.serialized_fuzz_target:
+      return None
+
+    fuzz_target = data_types.FuzzTarget()
+    fuzz_target.engine = self.serialized_fuzz_target['engine']
+    fuzz_target.project = self.serialized_fuzz_target['project']
+    fuzz_target.binary = self.serialized_fuzz_target['binary']
+    return fuzz_target
+
 
 def _get_testcase(testcase_id, configuration):
   """Retrieve the json representation of the test case with the given id."""

@@ -518,7 +518,7 @@ class TestcaseRunner(object):
   """Testcase runner."""
 
   def __init__(self,
-               fuzzer_name,
+               fuzz_target,
                testcase_path,
                test_timeout,
                gestures,
@@ -528,7 +528,6 @@ class TestcaseRunner(object):
     self._gestures = gestures
     self._needs_http = needs_http
 
-    fuzz_target = data_handler.get_fuzz_target(fuzzer_name)
     if fuzz_target:
       engine_impl = engine.get(fuzz_target.engine)
     else:
@@ -699,9 +698,9 @@ def test_for_crash_with_retries(testcase,
   """Test for a crash and return crash parameters like crash type, crash state,
   crash stacktrace, etc."""
   gestures = testcase.gestures if use_gestures else None
+  fuzz_target = testcase.get_fuzz_target()
   try:
-    runner = TestcaseRunner(testcase.actual_fuzzer_name(), testcase_path,
-                            test_timeout, gestures, http_flag)
+    runner = TestcaseRunner(fuzz_target, testcase_path, test_timeout, gestures, http_flag)
   except TargetNotFoundError:
     # If a target isn't found, treat it as not crashing.
     return CrashResult(return_code=0, crash_time=0, output='')
@@ -723,8 +722,9 @@ def test_for_reproducibility(fuzzer_name, testcase_path, expected_state,
                              expected_security_flag, test_timeout, http_flag,
                              gestures):
   """Test to see if a crash is fully reproducible or is a one-time crasher."""
+  fuzz_target = data_handler.get_fuzz_target(fuzzer_name)
   try:
-    runner = TestcaseRunner(fuzzer_name, testcase_path, test_timeout, gestures,
+    runner = TestcaseRunner(fuzz_target, testcase_path, test_timeout, gestures,
                             http_flag)
   except TargetNotFoundError:
     # If a target isn't found, treat it as not crashing.

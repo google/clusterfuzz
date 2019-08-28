@@ -1383,21 +1383,6 @@ def get_testcase_variant(testcase_id, job_type):
 
 def get_fuzz_target(name):
   """Get FuzzTarget by fully qualified name."""
-  # TODO(mbarbella): This is a fairly brittle hack. Remove it after finding a
-  # more general fix for datastore issues with the reproduce tool.
-  if environment.get_value('REPRODUCE_TOOL'):
-    # Return the only fuzz target we know anything about. Other calls would
-    # fail regardless as we would have no way of accessing the datastore.
-    fuzz_target_dict = environment.get_value('CURRENT_SERIALIZED_FUZZ_TARGET')
-    if not fuzz_target_dict:
-      return None
-
-    fuzz_target = data_types.FuzzTarget()
-    fuzz_target.engine = fuzz_target_dict['engine']
-    fuzz_target.project = fuzz_target_dict['project']
-    fuzz_target.binary = fuzz_target_dict['binary']
-    return fuzz_target
-
   if not name:
     return None
 
