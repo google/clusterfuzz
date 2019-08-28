@@ -105,10 +105,15 @@ def main():
       description='Butler is here to help you with command-line tasks.')
   subparsers = parser.add_subparsers(dest='command')
 
-  subparsers.add_parser(
+  parser_bootstrap = subparsers.add_parser(
       'bootstrap',
       help=('Install all required dependencies for running an appengine, a bot,'
             'and a mapreduce locally.'))
+  parser_bootstrap.add_argument(
+      '-r',
+      '--only-reproduce',
+      action='store_true',
+      help='Only install dependencies needed for the reproduce tool.')
 
   parser_py_unittest = subparsers.add_parser(
       'py_unittest', help='Run Python unit tests.')

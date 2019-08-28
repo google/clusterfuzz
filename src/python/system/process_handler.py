@@ -621,7 +621,7 @@ def terminate_processes_matching_cmd_line(match_strings,
     # important so that the reproduce tool does not terminate itself, as the
     # rest of its command line may contain strings we usually terminate such
     # as paths to build directories.
-    exclude_strings = ['butler.py']
+    exclude_strings = ['butler.py', 'reproduce.sh']
 
   if isinstance(match_strings, basestring):
     match_strings = [match_strings]
