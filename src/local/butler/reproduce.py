@@ -50,7 +50,7 @@ CONFIG_DIRECTORY = os.path.join(
     os.path.expanduser('~'), '.config', 'clusterfuzz')
 DISPLAY = ':99'
 PROCESS_START_WAIT_SECONDS = 2
-SUPPORTED_PLATFORMS = ['android', 'linux', 'mac']
+SUPPORTED_PLATFORMS = ['android', 'fuchsia', 'linux', 'mac']
 
 
 class SerializedTestcase(object):
@@ -76,6 +76,17 @@ class SerializedTestcase(object):
   def actual_fuzzer_name(self):
     """Actual fuzzer name, uses one from overridden attribute if available."""
     return self.overridden_fuzzer_name or self.fuzzer_name
+
+  def get_fuzz_target(self):
+    """Return a fuzz target for this test case in the expected format."""
+    if not self.serialized_fuzz_target:
+      return None
+
+    fuzz_target = data_types.FuzzTarget(
+        engine=self.serialized_fuzz_target['engine'],
+        project=self.serialized_fuzz_target['project'],
+        binary=self.serialized_fuzz_target['binary'])
+    return fuzz_target
 
 
 def _get_testcase(testcase_id, configuration):

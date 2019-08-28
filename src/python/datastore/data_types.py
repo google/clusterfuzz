@@ -645,6 +645,14 @@ class Testcase(Model):
     """Actual fuzzer name, uses one from overridden attribute if available."""
     return self.overridden_fuzzer_name or self.fuzzer_name
 
+  def get_fuzz_target(self):
+    """Get the associated FuzzTarget entity for this test case."""
+    name = self.actual_fuzzer_name()
+    if not name:
+      return None
+
+    return ndb.Key(FuzzTarget, name).get()
+
 
 class TestcaseGroup(Model):
   """Group for a set of testcases."""
