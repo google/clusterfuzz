@@ -17,7 +17,7 @@
 # Process command line arguments.
 while [ "$1" != "" ]; do
   case $1 in
-    -l | --limited ) limited=1
+    --only-reproduce) only_reproduce=1
   esac
   shift
 done
@@ -51,7 +51,7 @@ if ! uname -m | egrep -q "i686|x86_64"; then
   exit
 fi
 
-if [ ! $limited ]; then
+if [ ! $only_reproduce ]; then
   # Prerequisite for add-apt-repository.
   sudo apt-get install -y apt-transport-https software-properties-common
 
@@ -130,7 +130,7 @@ pip install --upgrade pip
 pip install --upgrade -r docker/ci/requirements.txt
 pip install --upgrade -r src/local/requirements.txt
 
-if [ ! $limited ]; then
+if [ ! $only_reproduce ]; then
   # Install other dependencies (e.g. bower).
   nodeenv -p --prebuilt
   npm install -g bower polymer-bundler

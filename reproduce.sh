@@ -14,16 +14,17 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-ROOT_DIRECTORY="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
+CLUSTERFUZZ_CONFIG_DIR=~/.config/clusterfuzz
+ROOT_DIRECTORY=$(dirname $(readlink -f "$0"))
 
-mkdir -p ~/.config/clusterfuzz
-if [ ! -f ~/.config/clusterfuzz/initialized ]; then
+mkdir -p $CLUSTERFUZZ_CONFIG_DIR
+if [ ! -f $CLUSTERFUZZ_CONFIG_DIR/initialized ] || [ ! -d $ROOT_DIRECTORY/ENV ]; then
   echo "Running first time setup. This may take a while, but is only required once."
   echo "You may see several password prompts to install required packages."
   sleep 5
-  $ROOT_DIRECTORY/local/install_deps.bash -l
-  echo 1 > ~/.config/clusterfuzz/initialized
+  $ROOT_DIRECTORY/local/install_deps.bash --only-reproduce
+  echo 1 > $CLUSTERFUZZ_CONFIG_DIR/initialized
 fi
 
 source ENV/bin/activate
-python butler.py reproduce $*
+python $ROOT_DIRECTORY/butler.py reproduce $*
