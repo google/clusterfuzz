@@ -649,7 +649,7 @@ class Testcase(Model):
     """Get the associated FuzzTarget entity for this test case."""
     name = self.actual_fuzzer_name()
     if not name:
-      return
+      return None
 
     return ndb.Key(FuzzTarget, name).get()
 
@@ -1076,6 +1076,7 @@ class FuzzTarget(Model):
 
   def fuzzing_engine_name(self):
     """Get the fuzzing engine name for this test case."""
+
 
 def fuzz_target_fully_qualified_name(engine, project, binary):
   """Get a fuzz target's fully qualified name."""

@@ -700,7 +700,8 @@ def test_for_crash_with_retries(testcase,
   gestures = testcase.gestures if use_gestures else None
   fuzz_target = testcase.get_fuzz_target()
   try:
-    runner = TestcaseRunner(fuzz_target, testcase_path, test_timeout, gestures, http_flag)
+    runner = TestcaseRunner(fuzz_target, testcase_path, test_timeout, gestures,
+                            http_flag)
   except TargetNotFoundError:
     # If a target isn't found, treat it as not crashing.
     return CrashResult(return_code=0, crash_time=0, output='')
