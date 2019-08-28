@@ -553,7 +553,6 @@ def unpack_seed_corpus_if_needed(fuzz_target_path,
   if force_unpack:
     logs.log('Forced unpack: %s.' % seed_corpus_archive_path)
 
-  start_time = time.time()
   archive_iterator = archive.iterator(seed_corpus_archive_path)
   # Unpack seed corpus recursively into the root of the main corpus directory.
   idx = 0
@@ -573,8 +572,8 @@ def unpack_seed_corpus_if_needed(fuzz_target_path,
 
     idx += 1
 
-  logs.log('Unarchiving seed corpus %s took %s seconds.' %
-           (seed_corpus_archive_path, time.time() - start_time))
+  logs.log('Unarchiving %d files from seed corpus %s.' %
+           (idx, seed_corpus_archive_path))
 
 
 def get_log_header(command, bot_name, time_executed):
