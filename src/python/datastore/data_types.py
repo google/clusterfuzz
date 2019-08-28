@@ -1074,9 +1074,6 @@ class FuzzTarget(Model):
     """Get the name qualified by project."""
     return fuzz_target_project_qualified_name(self.project, self.binary)
 
-  def fuzzing_engine_name(self):
-    """Get the fuzzing engine name for this test case."""
-
 
 def fuzz_target_fully_qualified_name(engine, project, binary):
   """Get a fuzz target's fully qualified name."""
