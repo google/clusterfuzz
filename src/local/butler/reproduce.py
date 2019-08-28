@@ -82,10 +82,10 @@ class SerializedTestcase(object):
     if not self.serialized_fuzz_target:
       return None
 
-    fuzz_target = data_types.FuzzTarget()
-    fuzz_target.engine = self.serialized_fuzz_target['engine']
-    fuzz_target.project = self.serialized_fuzz_target['project']
-    fuzz_target.binary = self.serialized_fuzz_target['binary']
+    fuzz_target = data_types.FuzzTarget(
+        engine=self.serialized_fuzz_target['engine'],
+        project=self.serialized_fuzz_target['project'],
+        binary=self.serialized_fuzz_target['binary'])
     return fuzz_target
 
 
