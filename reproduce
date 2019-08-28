@@ -25,4 +25,5 @@ if [ ! -f ~/.config/clusterfuzz/initialized ]; then
   echo 1 > ~/.config/clusterfuzz/initialized
 fi
 
+source ENV/bin/activate
 python butler.py reproduce $*
