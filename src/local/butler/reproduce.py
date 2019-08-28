@@ -261,9 +261,6 @@ def _update_environment_for_testcase(testcase, build_directory):
   fuzzer_directory = setup.get_fuzzer_directory(testcase.fuzzer_name)
   environment.set_value('FUZZER_DIR', fuzzer_directory)
 
-  environment.set_value('CURRENT_SERIALIZED_FUZZ_TARGET',
-                        testcase.serialized_fuzz_target)
-
   setup.prepare_environment_for_testcase(testcase)
 
   build_manager.set_environment_vars(
