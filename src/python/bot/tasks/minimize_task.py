@@ -1268,10 +1268,7 @@ def do_libfuzzer_minimization(testcase, testcase_file_path):
           timeout,
           expected_state.crash_state,
           set_dedup_flags=True)
-      if (not crash_result or crash_result.is_security_issue() !=
-          initial_crash_result.is_security_issue() or
-          not CrashComparer(crash_result.get_state(),
-                            initial_crash_result.get_state()).is_similar()):
+      if not crash_result:
         logs.log(
             'Skipped needed {options_env_var} option: {option_name}'.format(
                 options_env_var=options_env_var, option_name=option_name))
