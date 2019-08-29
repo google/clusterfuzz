@@ -149,6 +149,35 @@ class NormalizeSourcePathTest(unittest.TestCase):
 class VCSViewerTest(unittest.TestCase):
   """Tests for VCSViewer."""
 
+  def test_get_vcs_viewer_for_url(self):
+    """Test that VCS recognition logic from source_mapper.py works correctly."""
+    vcs = source_mapper.get_vcs_viewer_for_url(
+        'https://anongit.freedesktop.org/git/gstreamer/gstreamer.git')
+    self.assertIsInstance(vcs, source_mapper.FreeDesktopVCS)
+
+    vcs = source_mapper.get_vcs_viewer_for_url(
+        'https://github.com/imagemagick/imagemagick.git')
+    self.assertIsInstance(vcs, source_mapper.GitHubVCS)
+
+    vcs = source_mapper.get_vcs_viewer_for_url(
+        'https://gitlab.com/libidn/libidn2.git')
+    self.assertIsInstance(vcs, source_mapper.GitLabVCS)
+
+    vcs = source_mapper.get_vcs_viewer_for_url(
+        'https://gitlab.gnome.org/GNOME/libxml2.git')
+    self.assertIsInstance(vcs, source_mapper.GitLabVCS)
+
+    vcs = source_mapper.get_vcs_viewer_for_url(
+        'https://chromium.googlesource.com/webm/libwebp.git')
+    self.assertIsInstance(vcs, source_mapper.GoogleSourceVCS)
+
+    vcs = source_mapper.get_vcs_viewer_for_url('//dir1/dir2')
+    self.assertIsInstance(vcs, source_mapper.GoogleVCS)
+
+    vcs = source_mapper.get_vcs_viewer_for_url(
+        'http://hg.code.sf.net/p/graphicsmagick/code')
+    self.assertIsInstance(vcs, source_mapper.MercurialVCS)
+
   def test_google_vcs(self):
     vcs = source_mapper.GoogleVCS('//dir1/dir2')
     self.assertEqual('https://cs.corp.google.com/dir1/dir2/?rcl=1337',
