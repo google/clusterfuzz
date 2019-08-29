@@ -1256,7 +1256,7 @@ def do_libfuzzer_minimization(testcase, testcase_file_path):
     if not options:
       continue
 
-    minimized_options = copy.deepcopy(options)
+    minimized_options = options.copy()
     for option_name, option_var in six.iteritems(options):
       minimized_options.pop(option_name)
       environment.set_memory_tool_options(options_env_var, minimized_options)
