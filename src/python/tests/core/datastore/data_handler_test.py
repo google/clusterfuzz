@@ -660,7 +660,7 @@ class GetFormattedReproductionHelpTest(unittest.TestCase):
     testcase.set_metadata(
         'env', {
             'ASAN_OPTIONS': 'handle_abort=1:symbolize=0:redzone=512',
-            'UBSAN_OPTIONS': 'halt_on_error=1',
+            'UBSAN_OPTIONS': 'halt_on_error=1:symbolize=0',
             'OTHER_OPTIONS': 'symbolize=1'
         })
 

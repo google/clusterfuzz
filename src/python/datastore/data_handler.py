@@ -51,7 +51,7 @@ GOMA_DIR_LINE_REGEX = re.compile(r'^\s*goma_dir\s*=')
 HEARTBEAT_LAST_UPDATE_KEY = 'heartbeat_update'
 INPUT_DIR = 'inputs'
 MEMCACHE_TTL_IN_SECONDS = 15 * 60
-SYMBOLIZE_FLAG_REGEX = re.compile('symbolize=(0|1|true|false)[:]?')
+SYMBOLIZE_FLAG_REGEX = re.compile('[:]?symbolize=(0|1|true|false)')
 
 NUM_TESTCASE_QUALITY_BITS = 3
 MAX_TESTCASE_QUALITY = 2**NUM_TESTCASE_QUALITY_BITS - 1
