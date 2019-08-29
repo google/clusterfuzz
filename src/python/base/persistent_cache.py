@@ -36,7 +36,7 @@ def initialize():
     os.makedirs(cache_directory_path)
 
 
-def clear_values():
+def clear_values(clear_all=False):
   """Remove all values."""
   cache_directory_path = environment.get_value('CACHE_DIR')
   if not os.path.exists(cache_directory_path):
@@ -44,12 +44,12 @@ def clear_values():
 
   for root_directory, _, filenames in os.walk(cache_directory_path):
     for filename in filenames:
-      if filename.endswith(PERSIST_FILE_EXTENSION):
+      if filename.endswith(PERSIST_FILE_EXTENSION) and not clear_all:
         continue
 
       file_path = os.path.join(root_directory, filename)
       persist_file_path = file_path + PERSIST_FILE_EXTENSION
-      if os.path.exists(persist_file_path):
+      if os.path.exists(persist_file_path) and not clear_all:
         continue
 
       os.remove(file_path)
