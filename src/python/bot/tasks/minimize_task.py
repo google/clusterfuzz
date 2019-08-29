@@ -18,6 +18,7 @@ from builtins import range
 import binascii
 import functools
 import os
+import six
 import threading
 import time
 import zipfile
@@ -568,13 +569,15 @@ def execute_task(testcase_id, job_type):
 def finalize_testcase(testcase_id,
                       command,
                       last_crash_result,
-                      flaky_stack=False):
+                      flaky_stack=False,
+                      env=None):
   """Perform final updates on a test case and prepare it for other tasks."""
   # Symbolize crash output if we have it.
   testcase = data_handler.get_testcase_by_id(testcase_id)
   if last_crash_result:
     _update_crash_result(testcase, last_crash_result, command)
-
+  if env:
+    testcase.set_metadata('env', env, update_testcase=False)
   testcase.delete_metadata('redo_minimize', update_testcase=False)
 
   # Update remaining test case information.
@@ -1244,6 +1247,38 @@ def do_libfuzzer_minimization(testcase, testcase_file_path):
   expected_state = initial_crash_result.get_symbolized_data()
   logs.log('Initial crash state: %s\n' % expected_state.crash_state)
 
+  # Minimize *_OPTIONS env variable first.
+  env = {}
+  for tool in environment.SUPPORTED_MEMORY_TOOLS_FOR_OPTIONS:
+    options_env_var = tool + '_OPTIONS'
+    options = environment.get_memory_tool_options(options_env_var)
+    if not options:
+      continue
+
+    minimized_options = options.copy()
+    for option_name, option_var in six.iteritems(options):
+      minimized_options.pop(option_name)
+      environment.set_memory_tool_options(options_env_var, minimized_options)
+
+      crash_result = _run_libfuzzer_testcase(testcase, testcase_file_path)
+      if (not crash_result or \
+          crash_result.is_security_issue() !=
+          initial_crash_result.is_security_issue() or
+          crash_result.get_type() != initial_crash_result.get_type() or
+          crash_result.get_state() != initial_crash_result.get_state()):
+        logs.log(
+            'Skipped needed {options_env_var} option: {option_name}'.format(
+                options_env_var=options_env_var, option_name=option_name))
+        minimized_options[option_name] = option_var
+        continue
+
+      logs.log(
+          'Removed unneeded {options_env_var} option: {option_name}'.format(
+              options_env_var=options_env_var, option_name=option_name))
+
+    environment.set_memory_tool_options(options_env_var, minimized_options)
+    env[options_env_var] = environment.get_memory_tool_options(options_env_var)
+
   # We attempt minimization multiple times in case one round results in an
   # incorrect state, or runs into another issue such as a slow unit.
   for round_number in range(1, rounds + 1):
@@ -1281,7 +1316,12 @@ def do_libfuzzer_minimization(testcase, testcase_file_path):
   # Finalize the test case if we were able to reproduce it.
   repro_command = testcase_manager.get_command_line_for_application(
       file_to_run=current_testcase_path, needs_http=testcase.http_flag)
-  finalize_testcase(testcase.key.id(), repro_command, last_crash_result)
+  finalize_testcase(
+      testcase.key.id(),
+      repro_command,
+      last_crash_result,
+      flaky_stack=False,
+      env=env)
 
   # Clean up after we're done.
   shell.clear_testcase_directories()
