@@ -105,7 +105,7 @@ def clear_data_directories():
   clear_testcase_directories()
   clear_mutator_plugins_directory()
 
-  persistent_cache.clear_values()
+  persistent_cache.clear_values(clear_all=True)
 
 
 def clear_data_directories_on_low_disk_space():
