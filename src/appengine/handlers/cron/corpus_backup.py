@@ -99,5 +99,9 @@ class MakePublicHandler(base_handler.Handler):
           target_jobs)
 
       for target in fuzz_targets:
+        if not target:
+          # This is expected if any fuzzer/job combinations become outdated.
+          continue
+
         _make_corpus_backup_public(target, corpus_fuzzer_name_override,
                                    corpus_backup_bucket_name)
