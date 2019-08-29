@@ -16,7 +16,6 @@
 from builtins import object
 from builtins import range
 import binascii
-import copy
 import functools
 import os
 import six
