@@ -51,7 +51,6 @@ GOMA_DIR_LINE_REGEX = re.compile(r'^\s*goma_dir\s*=')
 HEARTBEAT_LAST_UPDATE_KEY = 'heartbeat_update'
 INPUT_DIR = 'inputs'
 MEMCACHE_TTL_IN_SECONDS = 15 * 60
-SYMBOLIZE_FLAG_REGEX = re.compile('[:]?symbolize=(0|1|true|false)')
 
 NUM_TESTCASE_QUALITY_BITS = 3
 MAX_TESTCASE_QUALITY = 2**NUM_TESTCASE_QUALITY_BITS - 1
@@ -341,12 +340,13 @@ def get_memory_tool_options_string(testcase):
   result = ''
   for options_name, options_value in sorted(six.iteritems(env)):
     # Strip symbolize flag, use default symbolize=1.
-    options_value = SYMBOLIZE_FLAG_REGEX.sub('', options_value)
+    options_value.pop('symbolize', None)
     if not options_value:
       continue
 
-    result += '{options_name}="{options_value}" '.format(
-        options_name=options_name, options_value=quote(options_value))
+    options_string = environment.join_memory_tool_options(options_value)
+    result += '{options_name}="{options_string}" '.format(
+        options_name=options_name, options_string=quote(options_string))
 
   return result
 

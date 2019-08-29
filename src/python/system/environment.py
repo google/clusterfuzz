@@ -61,11 +61,11 @@ def _eval_value(value_string):
     return value_string
 
 
-def _join_memory_tool_options(options):
+def join_memory_tool_options(options):
   """Joins a dict holding memory tool options into a string that can be set in
   the environment."""
-  return ':'.join(
-      '%s=%s' % (key, str(value)) for key, value in six.iteritems(options))
+  return ':'.join('%s=%s' % (key, str(value))
+                  for key, value in sorted(six.iteritems(options)))
 
 
 def _maybe_convert_to_int(value):
@@ -151,7 +151,7 @@ def get_asan_options(redzone_size, malloc_context_size, quarantine_size_mb,
 
   # Test for leaks if this is an LSan-enabled job type.
   if get_value('LSAN') and leaks:
-    lsan_options = _join_memory_tool_options(get_lsan_options())
+    lsan_options = join_memory_tool_options(get_lsan_options())
     set_value('LSAN_OPTIONS', lsan_options)
     asan_options['detect_leaks'] = 1
   else:
@@ -190,7 +190,7 @@ def get_asan_options(redzone_size, malloc_context_size, quarantine_size_mb,
   # Check if UBSAN is enabled as well for this ASAN build.
   # If yes, set UBSAN_OPTIONS and enable suppressions.
   if get_value('UBSAN'):
-    ubsan_options = _join_memory_tool_options(get_ubsan_options())
+    ubsan_options = join_memory_tool_options(get_ubsan_options())
     set_value('UBSAN_OPTIONS', ubsan_options)
 
   return asan_options
@@ -697,7 +697,7 @@ def set_common_environment_variables():
 
 def set_memory_tool_options(env_var, options_dict):
   """Set current memory tool options."""
-  set_value(env_var, _join_memory_tool_options(options_dict))
+  set_value(env_var, join_memory_tool_options(options_dict))
 
 
 def set_environment_parameters_from_file(file_path):
@@ -768,7 +768,7 @@ def reset_current_memory_tool_options(redzone_size=0,
       })
 
   # Join the options.
-  joined_tool_options = _join_memory_tool_options(tool_options)
+  joined_tool_options = join_memory_tool_options(tool_options)
   tool_options_variable_name = '%s_OPTIONS' % tool_name
   set_value(tool_options_variable_name, joined_tool_options)
 
