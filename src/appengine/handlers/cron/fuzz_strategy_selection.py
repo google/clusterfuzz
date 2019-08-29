@@ -196,9 +196,8 @@ def _query_and_upload_strategy_probabilities(engine):
 
   query = data_types.FuzzStrategyProbability.query(
       data_types.FuzzStrategyProbability.engine == engine.name)
-  ndb.delete_multi([
-      entity.key for entity in ndb_utils.get_all_from_query(query)
-  ])
+  ndb.delete_multi(
+      [entity.key for entity in ndb_utils.get_all_from_query(query)])
   ndb.put_multi(strategy_data)
   logs.log('Uploaded queried distribution to ndb for {}'.format(engine.name))
   _store_probabilities_in_bigquery(engine, data)
