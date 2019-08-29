@@ -146,7 +146,7 @@ class EngineFuzzerTest(BaseEngineFuzzerTest):
     fuzzer = TestEngineFuzzer()
     fuzzer.run('/input', '/output', 1)
 
-    self.assertEqual('fake_option2=1:fake_option1=1',
+    self.assertEqual('fake_option1=1:fake_option2=1',
                      environment.get_value('ASAN_OPTIONS'))
     self.assertEqual(None, environment.get_value('MSAN_OPTIONS'))
 
