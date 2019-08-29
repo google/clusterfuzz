@@ -1261,14 +1261,12 @@ def do_libfuzzer_minimization(testcase, testcase_file_path):
       minimized_options.pop(option_name)
       environment.set_memory_tool_options(options_env_var, minimized_options)
 
-      _, crash_result = _run_libfuzzer_tool(
-          'minimize',
-          testcase,
-          current_testcase_path,
-          timeout,
-          expected_state.crash_state,
-          set_dedup_flags=True)
-      if not crash_result:
+      crash_result = _run_libfuzzer_testcase(testcase, testcase_file_path)
+      if (not crash_result or \
+          crash_result.is_security_issue() !=
+          initial_crash_result.is_security_issue() or
+          crash_result.get_type() != initial_crash_result.get_type() or
+          crash_result.get_state() != initial_crash_result.get_state()):
         logs.log(
             'Skipped needed {options_env_var} option: {option_name}'.format(
                 options_env_var=options_env_var, option_name=option_name))

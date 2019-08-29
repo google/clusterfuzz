@@ -188,6 +188,7 @@ class MinimizeTaskTestUntrusted(
     self.assertNotEqual('', testcase.minimized_keys)
     self.assertNotEqual('NA', testcase.minimized_keys)
     self.assertNotEqual(testcase.fuzzed_keys, testcase.minimized_keys)
+    self.assertEqual({'ASAN_OPTIONS': {}}, testcase.get_metadata('env'))
 
     blobs.read_blob_to_disk(testcase.minimized_keys, testcase_path)
 
