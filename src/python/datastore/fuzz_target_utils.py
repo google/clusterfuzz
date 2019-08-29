@@ -16,7 +16,6 @@
 from datastore import data_types
 from datastore import ndb
 from datastore import ndb_utils
-from metrics import logs
 
 
 def get_fuzz_targets_for_target_jobs(target_jobs):
@@ -24,15 +23,7 @@ def get_fuzz_targets_for_target_jobs(target_jobs):
   target_keys = [
       ndb.Key(data_types.FuzzTarget, t.fuzz_target_name) for t in target_jobs
   ]
-  fuzz_targets = ndb.get_multi(target_keys)
-
-  for fuzz_target, target_job in zip(fuzz_targets, target_jobs):
-    # ndb.get_multi returns None for a non-existent key, log missing FuzzTarget.
-    if not fuzz_target:
-      logs.log_error('FuzzTarget entity for %s does not exist.' %
-                     target_job.fuzz_target_name)
-
-  return fuzz_targets
+  return ndb.get_multi(target_keys)
 
 
 def get_fuzz_target_jobs(fuzz_target_name=None,
