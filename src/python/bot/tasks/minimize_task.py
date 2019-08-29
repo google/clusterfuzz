@@ -56,6 +56,7 @@ IPCDUMP_TIMEOUT = 60
 COMBINED_IPCDUMP_TIMEOUT = 60 * 3
 MAX_DEADLINE_EXCEEDED_ATTEMPTS = 3
 MAX_TEMPORARY_FILE_BASENAME_LENGTH = 32
+MINIMIZE_SANITIZER_OPTIONS_RETRIES = 3
 TOKENS_PER_IPCDUMP = 2000
 
 IPC_MESSAGE_UTIL_EXECUTABLE_FOR_PLATFORM = {
@@ -1256,25 +1257,33 @@ def do_libfuzzer_minimization(testcase, testcase_file_path):
       continue
 
     minimized_options = options.copy()
-    for option_name, option_var in six.iteritems(options):
-      minimized_options.pop(option_name)
+    for options_name, options_value in six.iteritems(options):
+      minimized_options.pop(options_name)
       environment.set_memory_tool_options(options_env_var, minimized_options)
 
-      crash_result = _run_libfuzzer_testcase(testcase, testcase_file_path)
-      if (not crash_result or \
-          crash_result.is_security_issue() !=
-          initial_crash_result.is_security_issue() or
-          crash_result.get_type() != initial_crash_result.get_type() or
-          crash_result.get_state() != initial_crash_result.get_state()):
-        logs.log(
-            'Skipped needed {options_env_var} option: {option_name}'.format(
-                options_env_var=options_env_var, option_name=option_name))
-        minimized_options[option_name] = option_var
-        continue
+      reproduced = False
+      for _ in range(MINIMIZE_SANITIZER_OPTIONS_RETRIES):
+        crash_result = _run_libfuzzer_testcase(testcase, testcase_file_path)
+        if (crash_result and \
+            crash_result.is_security_issue() ==
+            initial_crash_result.is_security_issue() and
+            crash_result.get_type() == initial_crash_result.get_type() and
+            crash_result.get_state() == initial_crash_result.get_state()):
+          reproduced = True
+          break
 
-      logs.log(
-          'Removed unneeded {options_env_var} option: {option_name}'.format(
-              options_env_var=options_env_var, option_name=option_name))
+      if reproduced:
+        logs.log(
+            'Removed unneeded {options_env_var} option: {options_name}'.format(
+                options_env_var=options_env_var, options_name=options_name))
+      else:
+        minimized_options[options_name] = options_value
+        logs.log(
+            'Skipped needed {options_env_var} option: {options_name}'.format(
+                options_env_var=options_env_var, options_name=options_name),
+            crash_type=crash_result.get_type(),
+            crash_state=crash_result.get_state(),
+            security_flag=crash_result.is_security_issue())
 
     environment.set_memory_tool_options(options_env_var, minimized_options)
     env[options_env_var] = environment.get_memory_tool_options(options_env_var)

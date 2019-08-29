@@ -20,6 +20,11 @@ import re
 import six
 import time
 
+try:
+  from shlex import quote
+except ImportError:
+  from pipes import quote
+
 from base import dates
 from base import errors
 from base import memoize
@@ -46,6 +51,7 @@ GOMA_DIR_LINE_REGEX = re.compile(r'^\s*goma_dir\s*=')
 HEARTBEAT_LAST_UPDATE_KEY = 'heartbeat_update'
 INPUT_DIR = 'inputs'
 MEMCACHE_TTL_IN_SECONDS = 15 * 60
+SYMBOLIZE_FLAG_REGEX = re.compile('[:]?symbolize=(0|1|true|false)')
 
 NUM_TESTCASE_QUALITY_BITS = 3
 MAX_TESTCASE_QUALITY = 2**NUM_TESTCASE_QUALITY_BITS - 1
@@ -326,6 +332,25 @@ def get_arguments(testcase):
   return filter_arguments(arguments, fuzz_target)
 
 
+def get_memory_tool_options_string(testcase):
+  """Return memory tool options as a string to pass on command line."""
+  env = testcase.get_metadata('env')
+  if not env:
+    return ''
+
+  result = ''
+  for options_name, options_value in sorted(six.iteritems(env)):
+    # Strip symbolize flag, use default symbolize=1.
+    options_value = SYMBOLIZE_FLAG_REGEX.sub('', options_value)
+    if not options_value:
+      continue
+
+    result += '{options_name}="{options_value}" '.format(
+        options_name=options_name, options_value=quote(options_value))
+
+  return result
+
+
 def get_formatted_reproduction_help(testcase):
   """Return url to reproduce the bug."""
   help_format = get_value_from_job_definition_or_environment(
@@ -348,6 +373,7 @@ def get_formatted_reproduction_help(testcase):
   fuzz_target = fuzzer_display.target or 'NA'
   engine = fuzzer_display.engine or 'NA'
   sanitizer = environment.get_memory_tool_name(testcase.job_type)
+  sanitizer_options = get_memory_tool_options_string(testcase)
   arguments = get_arguments(testcase)
 
   result = help_format.replace('%TESTCASE%', testcase_id)
@@ -357,6 +383,7 @@ def get_formatted_reproduction_help(testcase):
   result = result.replace('%FUZZ_TARGET%', fuzz_target)
   result = result.replace('%ENGINE%', engine)
   result = result.replace('%SANITIZER%', sanitizer)
+  result = result.replace('%SANITIZER_OPTIONS%', sanitizer_options)
   result = result.replace('%ARGS%', arguments)
   return result
 
