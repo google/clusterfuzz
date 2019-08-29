@@ -648,7 +648,8 @@ class GetFormattedReproductionHelpTest(unittest.TestCase):
     environment.set_value(
         'HELP_FORMAT',
         '-%TESTCASE%\\n-%FUZZER_NAME%\\n-%FUZZ_TARGET%\\n-%PROJECT%\\n'
-        '-%REVISION%\\n-%ENGINE%\\n-%SANITIZER%\\n%ARGS%\\n')
+        '-%REVISION%\\n-%ENGINE%\\n-%SANITIZER%\\n%ARGS%\\n'
+        '%SANITIZER_OPTIONS%./binary')
 
     testcase = data_types.Testcase()
     testcase.fuzzer_name = 'simple_fuzzer'
@@ -656,8 +657,17 @@ class GetFormattedReproductionHelpTest(unittest.TestCase):
     testcase.crash_revision = 1337
     testcase.put()
 
+    testcase.set_metadata(
+        'env', {
+            'ASAN_OPTIONS': 'handle_abort=1:symbolize=0:redzone=512',
+            'UBSAN_OPTIONS': 'halt_on_error=1',
+            'OTHER_OPTIONS': 'symbolize=1'
+        })
+
     self.assertEquals(
         data_handler.get_formatted_reproduction_help(testcase),
         ('-{id}\n-simple_fuzzer\n-NA\n-test_project\n-1337\n'
          '-NA\n-UBSAN\n--disable-logging --disable-experiments\n'
+         'ASAN_OPTIONS="handle_abort=1:redzone=512" '
+         'UBSAN_OPTIONS="halt_on_error=1" ./binary'
         ).format(id=testcase.key.id()))
