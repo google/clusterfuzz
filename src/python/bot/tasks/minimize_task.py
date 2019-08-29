@@ -1257,8 +1257,8 @@ def do_libfuzzer_minimization(testcase, testcase_file_path):
       continue
 
     minimized_options = options.copy()
-    for option_name, option_var in six.iteritems(options):
-      minimized_options.pop(option_name)
+    for options_name, options_value in six.iteritems(options):
+      minimized_options.pop(options_name)
       environment.set_memory_tool_options(options_env_var, minimized_options)
 
       reproduced = False
@@ -1274,13 +1274,13 @@ def do_libfuzzer_minimization(testcase, testcase_file_path):
 
       if reproduced:
         logs.log(
-            'Removed unneeded {options_env_var} option: {option_name}'.format(
-                options_env_var=options_env_var, option_name=option_name))
+            'Removed unneeded {options_env_var} option: {options_name}'.format(
+                options_env_var=options_env_var, options_name=options_name))
       else:
-        minimized_options[option_name] = option_var
+        minimized_options[options_name] = options_value
         logs.log(
-            'Skipped needed {options_env_var} option: {option_name}'.format(
-                options_env_var=options_env_var, option_name=option_name),
+            'Skipped needed {options_env_var} option: {options_name}'.format(
+                options_env_var=options_env_var, options_name=options_name),
             crash_type=crash_result.get_type(),
             crash_state=crash_result.get_state(),
             security_flag=crash_result.is_security_issue())

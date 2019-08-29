@@ -593,7 +593,8 @@ class GetFormattedReproductionHelpTest(unittest.TestCase):
     job.name = 'job_with_help_format'
     job.environment_string = (
         'HELP_FORMAT = -%TESTCASE%\\n-%FUZZER_NAME%\\n-%FUZZ_TARGET%\\n'
-        '-%PROJECT%\\n-%REVISION%\\n-%ENGINE%\\n-%SANITIZER%\\n%ARGS%\\n\n'
+        '-%PROJECT%\\n-%REVISION%\\n-%ENGINE%\\n-%SANITIZER%\\n%ARGS%\\n'
+        '%SANITIZER_OPTIONS%\n'
         'PROJECT_NAME = test_project')
     job.put()
 

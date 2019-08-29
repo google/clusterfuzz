@@ -339,14 +339,14 @@ def get_memory_tool_options_string(testcase):
     return ''
 
   result = ''
-  for option_name, option_value in sorted(six.iteritems(env)):
+  for options_name, options_value in sorted(six.iteritems(env)):
     # Strip symbolize flag, use default symbolize=1.
-    option_value = SYMBOLIZE_FLAG_REGEX.sub('', option_value)
-    if not option_value:
+    options_value = SYMBOLIZE_FLAG_REGEX.sub('', options_value)
+    if not options_value:
       continue
 
-    result += '{option_name}="{option_value}" '.format(
-        option_name=option_name, option_value=quote(option_value))
+    result += '{options_name}="{options_value}" '.format(
+        options_name=options_name, options_value=quote(options_value))
 
   return result
 
