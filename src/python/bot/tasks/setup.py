@@ -132,6 +132,7 @@ def _setup_memory_tools_environment(testcase):
 
   for options_name, options_value in six.iteritems(env):
     if not options_value:
+      environment.remove_key(options_name)
       continue
     environment.set_memory_tool_options(options_name, options_value)
 
