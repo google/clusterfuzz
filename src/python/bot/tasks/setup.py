@@ -17,6 +17,7 @@ from builtins import range
 import datetime
 import os
 import shlex
+import six
 import time
 import zipfile
 
@@ -122,10 +123,22 @@ def _get_application_arguments(testcase, task_name):
   return app_args
 
 
+def _setup_memory_tools_environment(testcase):
+  """Set up environment for various memory tools used."""
+  env = testcase.get_metadata('env')
+  if not env:
+    environment.reset_current_memory_tool_options(redzone_size=testcase.redzone)
+    return
+
+  for options_name, options_value in six.iteritems(env):
+    if not options_value:
+      continue
+    environment.set_memory_tool_options(options_name, options_value)
+
+
 def prepare_environment_for_testcase(testcase):
   """Set various environment variables based on the test case."""
-  # Setup memory debugging tool environment.
-  environment.reset_current_memory_tool_options(redzone_size=testcase.redzone)
+  _setup_memory_tools_environment(testcase)
 
   # Setup environment variable for windows size and location properties.
   # Explicit override to avoid using the default one from job definition since

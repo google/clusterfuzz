@@ -451,6 +451,7 @@ def execute_task(testcase_id, job_type):
     return
 
   if flaky_stack:
+    testcase = data_handler.get_testcase_by_id(testcase_id)
     testcase.flaky_stack = flaky_stack
     testcase.put()
 
@@ -570,15 +571,12 @@ def execute_task(testcase_id, job_type):
 def finalize_testcase(testcase_id,
                       command,
                       last_crash_result,
-                      flaky_stack=False,
-                      env=None):
+                      flaky_stack=False):
   """Perform final updates on a test case and prepare it for other tasks."""
   # Symbolize crash output if we have it.
   testcase = data_handler.get_testcase_by_id(testcase_id)
   if last_crash_result:
     _update_crash_result(testcase, last_crash_result, command)
-  if env:
-    testcase.set_metadata('env', env, update_testcase=False)
   testcase.delete_metadata('redo_minimize', update_testcase=False)
 
   # Update remaining test case information.
@@ -1203,6 +1201,7 @@ def _update_crash_result(testcase, crash_result, command):
 
 def _skip_minimization(testcase, message, crash_result=None, command=None):
   """Skip minimization for a testcase."""
+  testcase = data_handler.get_testcase_by_id(testcase.key.id())
   testcase.minimized_keys = testcase.fuzzed_keys
 
   if crash_result:
@@ -1287,6 +1286,9 @@ def do_libfuzzer_minimization(testcase, testcase_file_path):
 
     environment.set_memory_tool_options(options_env_var, minimized_options)
     env[options_env_var] = environment.get_memory_tool_options(options_env_var)
+  if env:
+    testcase = data_handler.get_testcase_by_id(testcase.key.id())
+    testcase.set_metadata('env', env)
 
   # We attempt minimization multiple times in case one round results in an
   # incorrect state, or runs into another issue such as a slow unit.
@@ -1326,11 +1328,7 @@ def do_libfuzzer_minimization(testcase, testcase_file_path):
   repro_command = testcase_manager.get_command_line_for_application(
       file_to_run=current_testcase_path, needs_http=testcase.http_flag)
   finalize_testcase(
-      testcase.key.id(),
-      repro_command,
-      last_crash_result,
-      flaky_stack=False,
-      env=env)
+      testcase.key.id(), repro_command, last_crash_result, flaky_stack=False)
 
   # Clean up after we're done.
   shell.clear_testcase_directories()
