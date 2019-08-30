@@ -103,7 +103,8 @@ class GitHubVCS(VCSViewer):
 
 
 class GitLabVCS(GitHubVCS):
-  VCS_URL_REGEX = re.compile(r'(https://gitlab\.com/(.*?))(\.git)?$')
+  VCS_URL_REGEX = re.compile(
+      r'(https://gitlab(\.[\w\.\-]+)?\.(com|org)/(.*?))(\.git)?$')
 
 
 class GoogleSourceVCS(VCSViewer):
