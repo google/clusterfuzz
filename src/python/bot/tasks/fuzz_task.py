@@ -1284,6 +1284,16 @@ class FuzzingSession(object):
           'Failed to sync corpus for fuzzer %s (job %s).' %
           (self.fuzz_target.project_qualified_name(), self.job_type))
 
+  def _save_fuzz_targets_count(self):
+    """Save fuzz targets count."""
+    count = environment.get_value('FUZZ_TARGET_COUNT')
+    if count is None:
+      return
+
+    targets_count = ndb.Key(data_types.FuzzTargetsCount, self.job_type).get()
+    if not targets_count or targets_count.count != count:
+      data_types.FuzzTargetsCount(id=self.job_type, count=count).put()
+
   def sync_new_corpus_files(self):
     """Sync new files from corpus to GCS."""
     if not self.gcs_corpus:
@@ -1717,6 +1727,9 @@ class FuzzingSession(object):
       # builds accompanying libFuzzer builds to enable DFT-based fuzzing.
       build_manager.setup_trunk_build(
           [dataflow_bucket_path], build_prefix='DATAFLOW')
+
+    # Save fuzz targets count to aid with CPU weighting.
+    self._save_fuzz_targets_count()
 
     # Check if we have an application path. If not, our build failed
     # to setup correctly.

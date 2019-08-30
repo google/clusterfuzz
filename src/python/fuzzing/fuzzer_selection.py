@@ -86,7 +86,8 @@ def get_fuzz_task_payload(platform=None):
   if not mappings:
     return None, None
 
-  selection = utils.random_weighted_choice(mappings)
+  selection = utils.random_weighted_choice(
+      mappings, weight_attribute='actual_weight')
   return selection.fuzzer, selection.job
 
 

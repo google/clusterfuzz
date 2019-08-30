@@ -392,6 +392,9 @@ def _get_fuzz_targets_from_dir(build_dir):
 
 def _set_random_fuzz_target_for_fuzzing_if_needed(fuzz_targets, target_weights):
   """Sets a random fuzz target for fuzzing."""
+  fuzz_targets = list(fuzz_targets)
+  environment.set_value('FUZZ_TARGET_COUNT', len(fuzz_targets))
+
   fuzz_target = environment.get_value('FUZZ_TARGET')
   if fuzz_target:
     logs.log('Use previously picked fuzz target %s for fuzzing.' % fuzz_target)

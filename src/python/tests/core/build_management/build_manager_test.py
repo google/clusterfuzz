@@ -397,6 +397,7 @@ class RegularLibFuzzerBuildTest(fake_filesystem_unittest.TestCase):
       self.assertEqual(2, self.mock.unpack.call_count)
 
     self.assertEqual('target2', os.environ['FUZZ_TARGET'])
+    self.assertEqual('3', os.environ['FUZZ_TARGET_COUNT'])
 
   @parameterized.parameterized.expand(['True', 'False'])
   def test_setup_nonfuzz(self, unpack_all):

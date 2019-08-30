@@ -45,6 +45,7 @@ message SetupBuildResponse {
   optional string build_dir = 5;
   optional string build_url = 6;
   optional string fuzz_target = 7;
+  optional int32 fuzz_targets_count = 8;
 }
 
 message SetupRegularBuildRequest {
@@ -53,20 +54,6 @@ message SetupRegularBuildRequest {
   optional string build_url = 3;
   map<string, double> target_weights = 4;
   optional string build_prefix = 5;
-}
-
-message SetupSymbolizedBuildRequest {
-  optional string base_build_dir = 1;
-  optional int64 revision = 2;
-  optional string release_build_url = 3;
-  optional string debug_build_url = 4;
-}
-
-message SetupProductionBuildRequest {
-  optional string base_build_dir = 1;
-  optional string version = 2;
-  optional string build_url = 3;
-  optional string build_type = 4;
 }
 
 // Maps to process_handler.runProcess
@@ -325,12 +312,6 @@ service UntrustedRunner {
 
   // Set up regular build.
   rpc SetupRegularBuild(SetupRegularBuildRequest) returns (SetupBuildResponse);
-
-  // Set up symbolized build.
-  rpc SetupSymbolizedBuild(SetupSymbolizedBuildRequest) returns (SetupBuildResponse);
-
-  // Set up production build.
-  rpc SetupProductionBuild(SetupProductionBuildRequest) returns (SetupBuildResponse);
 
   // Run command using process_handler.runProcess
   rpc RunProcess(RunProcessRequest) returns (RunProcessResponse);

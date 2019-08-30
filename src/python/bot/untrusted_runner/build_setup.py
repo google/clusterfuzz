@@ -29,7 +29,8 @@ def _build_response(result):
       app_dir=environment.get_value('APP_DIR'),
       build_dir=environment.get_value('BUILD_DIR'),
       build_url=environment.get_value('BUILD_URL'),
-      fuzz_target=environment.get_value('FUZZ_TARGET'))
+      fuzz_target=environment.get_value('FUZZ_TARGET'),
+      fuzz_target_count=environment.get_value('FUZZ_TARGET_COUNT'))
 
 
 def setup_regular_build(request):
@@ -37,19 +38,4 @@ def setup_regular_build(request):
   build = build_manager.RegularBuild(request.base_build_dir, request.revision,
                                      request.build_url, request.target_weights,
                                      request.build_prefix)
-  return _build_response(build.setup())
-
-
-def setup_symbolized_build(request):
-  """Set up a symbolized build."""
-  build = build_manager.SymbolizedBuild(
-      request.base_build_dir, request.revision, request.release_build_url,
-      request.debug_build_url)
-  return _build_response(build.setup())
-
-
-def setup_production_build(request):
-  """Set up a production build."""
-  build = build_manager.ProductionBuild(request.base_build_dir, request.version,
-                                        request.build_url, request.build_type)
   return _build_response(build.setup())

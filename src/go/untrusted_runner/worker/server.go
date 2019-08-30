@@ -53,16 +53,6 @@ func (s *UntrustedRunnerServer) SetupRegularBuild(context.Context, *pb.SetupRegu
 	return nil, nil
 }
 
-// SetupSymbolizedBuild sets up a symbolized build.
-func (s *UntrustedRunnerServer) SetupSymbolizedBuild(context.Context, *pb.SetupSymbolizedBuildRequest) (*pb.SetupBuildResponse, error) {
-	return nil, nil
-}
-
-// SetupProductionBuild sets up a production build.
-func (s *UntrustedRunnerServer) SetupProductionBuild(context.Context, *pb.SetupProductionBuildRequest) (*pb.SetupBuildResponse, error) {
-	return nil, nil
-}
-
 // RunProcess runs a process using an interface similar to process_handler.runProcess (python).
 func (s *UntrustedRunnerServer) RunProcess(context.Context, *pb.RunProcessRequest) (*pb.RunProcessResponse, error) {
 	return nil, nil
