@@ -126,9 +126,6 @@ def _get_application_arguments(testcase, task_name):
 def _setup_memory_tools_environment(testcase):
   """Set up environment for various memory tools used."""
   env = testcase.get_metadata('env')
-  if not env:
-    environment.reset_current_memory_tool_options(redzone_size=testcase.redzone)
-    return
 
   for options_name, options_value in six.iteritems(env):
     if not options_value:
@@ -139,6 +136,7 @@ def _setup_memory_tools_environment(testcase):
 
 def prepare_environment_for_testcase(testcase):
   """Set various environment variables based on the test case."""
+  environment.reset_current_memory_tool_options(redzone_size=testcase.redzone)
   _setup_memory_tools_environment(testcase)
 
   # Setup environment variable for windows size and location properties.
