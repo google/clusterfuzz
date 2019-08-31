@@ -26,6 +26,7 @@ from base import utils
 from bot.fuzzers import engine
 from bot.fuzzers import engine_common
 from build_management import revisions
+from crash_analysis import crash_analyzer
 from crash_analysis.crash_comparer import CrashComparer
 from crash_analysis.crash_result import CrashResult
 from datastore import data_handler
@@ -510,8 +511,16 @@ def engine_reproduce(engine_impl, target_name, testcase_path, arguments,
   if not target_path:
     raise TargetNotFoundError('Failed to find target ' + target_name)
 
-  return engine_impl.reproduce(target_path, testcase_path, list(arguments),
-                               timeout)
+  result = engine_impl.reproduce(target_path, testcase_path, list(arguments),
+                                 timeout)
+
+  # This matches the check in process_handler.run_process.
+  if not result.return_code and \
+      (crash_analyzer.is_memory_tool_crash(result.output) or
+       crash_analyzer.is_check_failure_crash(result.output)):
+    result.return_code = 1
+
+  return result
 
 
 class TestcaseRunner(object):
