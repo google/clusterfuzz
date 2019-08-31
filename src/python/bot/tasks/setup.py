@@ -126,6 +126,8 @@ def _get_application_arguments(testcase, task_name):
 def _setup_memory_tools_environment(testcase):
   """Set up environment for various memory tools used."""
   env = testcase.get_metadata('env')
+  if not env:
+    return
 
   for options_name, options_value in six.iteritems(env):
     if not options_value:
