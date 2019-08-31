@@ -1264,6 +1264,7 @@ def do_libfuzzer_minimization(testcase, testcase_file_path):
       for _ in range(MINIMIZE_SANITIZER_OPTIONS_RETRIES):
         crash_result = _run_libfuzzer_testcase(testcase, testcase_file_path)
         if (crash_result and \
+            crash_result.is_crash() and \
             crash_result.is_security_issue() ==
             initial_crash_result.is_security_issue() and
             crash_result.get_type() == initial_crash_result.get_type() and

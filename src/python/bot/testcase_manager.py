@@ -26,6 +26,7 @@ from base import utils
 from bot.fuzzers import engine
 from bot.fuzzers import engine_common
 from build_management import revisions
+from crash_analysis import crash_analyzer
 from crash_analysis.crash_comparer import CrashComparer
 from crash_analysis.crash_result import CrashResult
 from datastore import data_handler
@@ -575,6 +576,10 @@ class TestcaseRunner(object):
       output = log_header + '\n' + result.output
 
     process_handler.terminate_stale_application_instances()
+
+    if not return_code and (crash_analyzer.is_memory_tool_crash(output) or
+                            crash_analyzer.is_check_failure_crash(output)):
+      return_code = 1
 
     crash_result = CrashResult(return_code, crash_time, output)
     if not crash_result.is_crash():
