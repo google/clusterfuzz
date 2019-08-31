@@ -511,8 +511,15 @@ def engine_reproduce(engine_impl, target_name, testcase_path, arguments,
   if not target_path:
     raise TargetNotFoundError('Failed to find target ' + target_name)
 
-  return engine_impl.reproduce(target_path, testcase_path, list(arguments),
-                               timeout)
+  result = engine_impl.reproduce(target_path, testcase_path, list(arguments),
+                                 timeout)
+
+  # This matches the check in process_handler.run_process.
+  if not result.return_code and (crash_analyzer.is_memory_tool_crash(
+      result.output) or crash_analyzer.is_check_failure_crash(result.output)):
+    result.return_code = 1
+
+  return result
 
 
 class TestcaseRunner(object):
@@ -576,10 +583,6 @@ class TestcaseRunner(object):
       output = log_header + '\n' + result.output
 
     process_handler.terminate_stale_application_instances()
-
-    if not return_code and (crash_analyzer.is_memory_tool_crash(output) or
-                            crash_analyzer.is_check_failure_crash(output)):
-      return_code = 1
 
     crash_result = CrashResult(return_code, crash_time, output)
     if not crash_result.is_crash():
