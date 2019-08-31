@@ -515,8 +515,9 @@ def engine_reproduce(engine_impl, target_name, testcase_path, arguments,
                                  timeout)
 
   # This matches the check in process_handler.run_process.
-  if not result.return_code and (crash_analyzer.is_memory_tool_crash(
-      result.output) or crash_analyzer.is_check_failure_crash(result.output)):
+  if not result.return_code and \
+      (crash_analyzer.is_memory_tool_crash(result.output) or
+       crash_analyzer.is_check_failure_crash(result.output)):
     result.return_code = 1
 
   return result
