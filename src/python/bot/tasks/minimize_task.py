@@ -1083,11 +1083,12 @@ def _run_libfuzzer_testcase(testcase, testcase_file_path):
 
   test_timeout = environment.get_value('TEST_TIMEOUT',
                                        process_handler.DEFAULT_TEST_TIMEOUT)
-  repro_command = testcase_manager.get_command_line_for_application(
-      file_to_run=testcase_file_path, needs_http=testcase.http_flag)
-  return_code, crash_time, output = process_handler.run_process(
-      repro_command, timeout=test_timeout)
-  return CrashResult(return_code, crash_time, output)
+  return testcase_manager.test_for_crash_with_retries(
+      testcase,
+      testcase_file_path,
+      test_timeout,
+      compare_crash=False,
+      crash_retries=1)
 
 
 def run_libfuzzer_engine(tool_name, target_name, arguments, testcase_path,
