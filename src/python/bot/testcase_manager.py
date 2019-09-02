@@ -703,7 +703,8 @@ def test_for_crash_with_retries(testcase,
                                 test_timeout,
                                 http_flag=False,
                                 use_gestures=True,
-                                compare_crash=True):
+                                compare_crash=True,
+                                crash_retries=None):
   """Test for a crash and return crash parameters like crash type, crash state,
   crash stacktrace, etc."""
   gestures = testcase.gestures if use_gestures else None
@@ -715,7 +716,9 @@ def test_for_crash_with_retries(testcase,
     # If a target isn't found, treat it as not crashing.
     return CrashResult(return_code=0, crash_time=0, output='')
 
-  crash_retries = environment.get_value('CRASH_RETRIES')
+  if crash_retries is None:
+    crash_retries = environment.get_value('CRASH_RETRIES')
+
   if compare_crash:
     expected_state = testcase.crash_state
     expected_security_flag = testcase.security_flag
