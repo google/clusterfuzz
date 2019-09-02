@@ -45,7 +45,7 @@ message SetupBuildResponse {
   optional string build_dir = 5;
   optional string build_url = 6;
   optional string fuzz_target = 7;
-  optional int32 fuzz_targets_count = 8;
+  optional int32 fuzz_target_count = 8;
 }
 
 message SetupRegularBuildRequest {
