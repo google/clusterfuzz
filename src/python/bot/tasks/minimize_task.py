@@ -1130,7 +1130,7 @@ def _run_libfuzzer_tool(tool_name,
   def _set_dedup_flags():
     """Allow libFuzzer to do its own crash comparison during minimization."""
     memory_tool_options = environment.get_memory_tool_options(
-        memory_tool_options_var)
+        memory_tool_options_var, default_value={})
 
     memory_tool_options['symbolize'] = 1
     memory_tool_options['dedup_token_length'] = 3
@@ -1142,7 +1142,8 @@ def _run_libfuzzer_tool(tool_name,
     """Reset memory tool options."""
     # This is needed so that when we re-run, we can symbolize ourselves
     # (ignoring inline frames).
-    environment.set_value(memory_tool_options_var, saved_memory_tool_options)
+    if saved_memory_tool_options is not None:
+      environment.set_value(memory_tool_options_var, saved_memory_tool_options)
 
   output_file_path = get_temporary_file_name(testcase_file_path)
 
