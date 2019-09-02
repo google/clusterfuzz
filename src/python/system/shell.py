@@ -84,6 +84,11 @@ def clear_crash_stacktraces_directory():
       environment.get_value('CRASH_STACKTRACES_DIR'), recreate=True)
 
 
+def clear_common_data_bundles_directory():
+  """Clear the common data bundle directory."""
+  remove_directory(environment.get_value('FUZZ_DATA'), recreate=True)
+
+
 def clear_data_bundles_directory():
   """Clears the data bundles directory."""
   remove_directory(environment.get_value('DATA_BUNDLES_DIR'), recreate=True)
@@ -99,6 +104,7 @@ def clear_data_directories():
   clear_build_directory()
   clear_build_urls_directory()
   clear_crash_stacktraces_directory()
+  clear_common_data_bundles_directory()
   clear_data_bundles_directory()
   clear_fuzzers_directories()
   clear_temp_directory()
@@ -178,7 +184,6 @@ def clear_testcase_directories():
   """Clears the testcase directories."""
   remove_directory(environment.get_value('FUZZ_INPUTS'), recreate=True)
   remove_directory(environment.get_value('FUZZ_INPUTS_DISK'), recreate=True)
-  remove_directory(environment.get_value('FUZZ_DATA'), recreate=True)
 
   if environment.platform() == 'ANDROID':
     from platforms import android
