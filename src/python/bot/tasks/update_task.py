@@ -42,8 +42,8 @@ from system import environment
 from system import process_handler
 from system import shell
 
-LAYOUT_TEST_LAST_UPDATE_KEY = 'layout_test_last_update'
-LAYOUT_TEST_UPDATE_INTERVAL_DAYS = 1
+TESTS_LAST_UPDATE_KEY = 'tests_last_update'
+TESTS_UPDATE_INTERVAL_DAYS = 1
 
 MANIFEST_FILENAME = 'clusterfuzz-source.manifest'
 
@@ -291,10 +291,9 @@ def update_tests_if_needed():
     return
 
   last_modified_time = persistent_cache.get_value(
-      LAYOUT_TEST_LAST_UPDATE_KEY,
-      constructor=datetime.datetime.utcfromtimestamp)
+      TESTS_LAST_UPDATE_KEY, constructor=datetime.datetime.utcfromtimestamp)
   if (last_modified_time is not None and not dates.time_has_expired(
-      last_modified_time, days=LAYOUT_TEST_UPDATE_INTERVAL_DAYS)):
+      last_modified_time, days=TESTS_UPDATE_INTERVAL_DAYS)):
     return
 
   logs.log('Updating layout tests.')
@@ -317,7 +316,7 @@ def update_tests_if_needed():
 
   if not error_occured:
     persistent_cache.set_value(
-        LAYOUT_TEST_LAST_UPDATE_KEY, time.time(), persist_across_reboots=True)
+        TESTS_LAST_UPDATE_KEY, time.time(), persist_across_reboots=True)
 
   tasks.track_task_end()
 
