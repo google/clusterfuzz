@@ -22,7 +22,7 @@ if [ ! -d $ROOT_DIRECTORY/ENV ]; then
   echo "Running first time setup. This may take a while, but is only required once."
   echo "You may see several password prompts to install required packages."
   sleep 5
-  $ROOT_DIRECTORY/local/install_deps.bash --only-reproduce || { rm -r $ROOT_DIRECTORY/ENV && exit 1; }
+  $ROOT_DIRECTORY/local/install_deps.bash --only-reproduce || { rm -rf $ROOT_DIRECTORY/ENV && exit 1; }
 fi
 
 source ENV/bin/activate
