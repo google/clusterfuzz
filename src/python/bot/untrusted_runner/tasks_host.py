@@ -119,8 +119,9 @@ def process_testcase(engine_name, tool_name, target_name, arguments,
   rebased_output_path = file_host.rebase_to_worker_root(output_path)
   file_host.copy_file_from_worker(rebased_output_path, output_path)
 
-  return engine.ReproduceResult(response.command, response.return_code,
-                                response.time_executed, response.output)
+  return engine.ReproduceResult(
+      list(response.command), response.return_code, response.time_executed,
+      response.output)
 
 
 def engine_fuzz(engine_impl, target_name, sync_corpus_directory,
@@ -158,7 +159,7 @@ def engine_fuzz(engine_impl, target_name, sync_corpus_directory,
 
   result = engine.FuzzResult(
       logs=response.logs,
-      command=response.command,
+      command=list(response.command),
       crashes=crashes,
       stats=unpacked_stats,
       time_executed=response.time_executed)
@@ -190,5 +191,6 @@ def engine_reproduce(engine_impl, target_name, testcase_path, arguments,
     else:
       raise
 
-  return engine.ReproduceResult(response.command, response.return_code,
-                                response.time_executed, response.output)
+  return engine.ReproduceResult(
+      list(response.command), response.return_code, response.time_executed,
+      response.output)
