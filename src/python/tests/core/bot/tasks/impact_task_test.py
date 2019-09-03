@@ -13,6 +13,7 @@
 # limitations under the License.
 """impact_task tests."""
 import mock
+import os
 import unittest
 
 from bot.tasks import impact_task
@@ -486,6 +487,7 @@ class GetImpactOnBuild(unittest.TestCase):
   def test_app_failed(self):
     """Test raising AppFailedException."""
     self.env['APP_PATH'] = ''
+    self.env['APP_NAME'] = 'app_name'
     with self.assertRaises(impact_task.AppFailedException):
       impact_task.get_impact_on_build('stable', '52', self.testcase, 'path')
 
