@@ -13,7 +13,6 @@
 # limitations under the License.
 """impact_task tests."""
 import mock
-import os
 import unittest
 
 from bot.tasks import impact_task
