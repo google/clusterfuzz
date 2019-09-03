@@ -653,9 +653,14 @@ def symbolize_stacktrace(unsymbolized_crash_stacktrace,
 
 def download_system_symbols_if_needed(symbols_directory):
   """Download system libraries from |SYMBOLS_URL| and cache locally."""
-  # For local testing, we likely do not have access to the authenticated cloud
-  # storage bucket with the symbols. In this case, just bail out.
+  # For local testing, we do not have access to the cloud storage bucket with
+  # the symbols. In this case, just bail out.
   if environment.get_value('LOCAL_DEVELOPMENT'):
+    return
+
+  # When running reproduce tool locally, we do not have access to the cloud
+  # storage bucket with the symbols. In this case, just bail out.
+  if environment.get_value('REPRODUCE_TOOL'):
     return
 
   # We have archived symbols for google builds only.
