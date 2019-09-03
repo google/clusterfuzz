@@ -18,12 +18,11 @@ CLUSTERFUZZ_CONFIG_DIR=~/.config/clusterfuzz
 ROOT_DIRECTORY=$(dirname $(readlink -f "$0"))
 
 mkdir -p $CLUSTERFUZZ_CONFIG_DIR
-if [ ! -f $CLUSTERFUZZ_CONFIG_DIR/initialized ] || [ ! -d $ROOT_DIRECTORY/ENV ]; then
+if [ ! -d $ROOT_DIRECTORY/ENV ]; then
   echo "Running first time setup. This may take a while, but is only required once."
   echo "You may see several password prompts to install required packages."
   sleep 5
-  $ROOT_DIRECTORY/local/install_deps.bash --only-reproduce
-  echo 1 > $CLUSTERFUZZ_CONFIG_DIR/initialized
+  $ROOT_DIRECTORY/local/install_deps.bash --only-reproduce || { rm -r $ROOT_DIRECTORY/ENV && exit 1; }
 fi
 
 source ENV/bin/activate
