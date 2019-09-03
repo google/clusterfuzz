@@ -4,6 +4,9 @@ Change Log
 ## Next Version
 - Various bug fixes.
 
+## Version 1.5.1
+- Fixed XSS in login page.
+
 ## Version 1.5.0
 - Added Golang stack parsing.
 - Added Sanitizer options minimization.
