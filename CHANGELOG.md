@@ -4,8 +4,19 @@ Change Log
 ## Next Version
 - Various bug fixes.
 
-## Version 1.4.0
+## Version 1.5.0
+- Added Golang stack parsing.
+- Added Sanitizer options minimization.
+- Added HELP_FORMAT for custom crash reproduction instructions.
+  See documentation [here](configs/test/project.yaml#L99).
+- Added feature to show reproducible variants for a crash on other jobs
+  (`Reproducer` column in `Testcase analysis on other jobs` section).
+- Refactored engine fuzzer code for easy pluggability.
+- Reproduce tool improvements - performance fixes, added android support.
+- UI improvements - search filter in dropdowns.
 - Various bug fixes.
+
+## Version 1.4.0
 - Implemented issue tracker policy and finishing the refactoring for supporting
   different issue trackers.
 - Disabled external mutators (Radamsa and ML RNN) for fuzz targets built with
@@ -23,21 +34,21 @@ Change Log
   provide more information about the bugs.
 - Implemented the new version of the reproduce tool, which currently works on
   Linux.
+- Various bug fixes.
 
 ## Version 1.3.0
-- Various bug fixes.
 - Fixed security severity listbox not working.
 - More Python 2->3 conversions using futurize.
 - Delete button on jobs page.
 - New interface for issue management, as part of refactor to support more issue
   trackers.
 - Android code refactoring.
+- Various bug fixes.
 
 ## Version 1.2.1
 - Various bug fixes.
 
 ## Version 1.2.0
-- Various bug fixes.
 - Use Firebase auth for authentication.
 - Use Sendgrid for emails.
 - Remove various dependencies on App Engine SDK.
@@ -46,9 +57,9 @@ Change Log
 - Support for multiple device per host in Android startup script.
 - Fix corpus minimization in libFuzzer and AFL to prioritize smaller units.
 - Preparation for Python 2->3 migration using futurize.
+- Various bug fixes.
 
 ## Version 1.1.0
-- Various bug fixes.
 - Add support for
   [android-cuttlefish](https://github.com/google/android-cuttlefish).
 - Add production startup scripts for Android.
@@ -57,6 +68,7 @@ Change Log
 - Add an initial permissive CSP, to be improved in later releases.
 - Fuzzer weights now scale based on the severity of discovered issues instead of
   imposing a fixed penalty beyond a threshold.
+- Various bug fixes.
 
 ## Version 1.0.1
 - Bug fixes to improve local development.
