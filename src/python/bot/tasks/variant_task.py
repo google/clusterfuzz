@@ -49,8 +49,7 @@ def execute_task(testcase_id, job_type):
 
   # Check if we have an application path. If not, our build failed to setup
   # correctly.
-  app_path = environment.get_value('APP_PATH')
-  if not app_path:
+  if not build_manager.check_app_path():
     testcase = data_handler.get_testcase_by_id(testcase_id)
     data_handler.update_testcase_comment(
         testcase, data_types.TaskState.ERROR,
@@ -62,6 +61,7 @@ def execute_task(testcase_id, job_type):
   use_gestures = testcase.platform == environment.platform().lower()
 
   # Reproduce the crash.
+  app_path = environment.get_value('APP_PATH')
   command = testcase_manager.get_command_line_for_application(
       testcase_file_path, app_path=app_path, needs_http=testcase.http_flag)
   test_timeout = environment.get_value('TEST_TIMEOUT', 10)

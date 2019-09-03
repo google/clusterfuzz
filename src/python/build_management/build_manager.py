@@ -1572,3 +1572,11 @@ def get_rpaths(binary_path):
     return rpaths[start_index:].split(':')
 
   return []
+
+
+def check_app_path(app_path='APP_PATH'):
+  """Check if APP_PATH is properly set."""
+  # If APP_NAME is not set (e.g. for grey box jobs), then we don't need
+  # APP_PATH.
+  return (not environment.get_value('APP_NAME') or
+          environment.get_value(app_path))

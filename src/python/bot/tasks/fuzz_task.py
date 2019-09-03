@@ -1720,8 +1720,7 @@ class FuzzingSession(object):
 
     # Check if we have an application path. If not, our build failed
     # to setup correctly.
-    if (environment.get_value('APP_NAME') and
-        not environment.get_value('APP_PATH')):
+    if not build_manager.check_app_path():
       _track_fuzzer_run_result(self.fuzzer_name, 0, 0,
                                FuzzErrorCode.BUILD_SETUP_FAILED)
       return

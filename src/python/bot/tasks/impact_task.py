@@ -220,14 +220,14 @@ def get_impact_on_build(build_type, current_version, testcase,
     raise BuildFailedException(
         'Build setup failed for %s' % build_type.capitalize())
 
-  app_path = environment.get_value('APP_PATH')
-  if not app_path:
+  if not build_manager.check_app_path():
     raise AppFailedException()
 
   version = build.revision
   if version == current_version:
     return Impact(current_version, likely=False)
 
+  app_path = environment.get_value('APP_PATH')
   command = testcase_manager.get_command_line_for_application(
       testcase_file_path, app_path=app_path, needs_http=testcase.http_flag)
   result = testcase_manager.test_for_crash_with_retries(
