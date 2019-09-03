@@ -184,6 +184,8 @@ def configure_device_settings():
 def configure_system_build_properties():
   """Modifies system build properties in /system/build.prop for better boot
   speed and power use."""
+  adb.run_as_root()
+
   # Check md5 checksum of build.prop to see if already updated,
   # in which case exit. If build.prop does not exist, something
   # is very wrong with the device, so bail.
