@@ -15,6 +15,7 @@
 # pylint: disable=unused-argument
 # pylint: disable=protected-access
 
+import os
 import unittest
 
 from base import errors
@@ -64,6 +65,7 @@ class TestcaseReproducesInRevisionTest(unittest.TestCase):
 
   def test_error_on_failed_setup(self):
     """Ensure that we throw an exception if we fail to set up a build."""
+    os.environ['APP_NAME'] = 'app_name'
     # No need to implement a fake setup_regular_build. Since it's doing nothing,
     # we won't have the build directory properly set.
     with self.assertRaises(errors.BuildSetupError):

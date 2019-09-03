@@ -102,8 +102,7 @@ def _testcase_reproduces_in_revision(testcase,
                                          log_message)
 
   build_manager.setup_build(revision)
-  app_path = environment.get_value('APP_PATH')
-  if not app_path:
+  if not build_manager.check_app_path():
     raise errors.BuildSetupError(revision, job_type)
 
   if testcase_manager.check_for_bad_build(job_type, revision):

@@ -376,8 +376,7 @@ def execute_task(testcase_id, job_type):
 
   # Check if we have an application path. If not, our build failed
   # to setup correctly.
-  app_path = environment.get_value('APP_PATH')
-  if not app_path:
+  if not build_manager.check_app_path():
     logs.log_error('Unable to setup build for minimization.')
     build_fail_wait = environment.get_value('FAIL_WAIT')
 

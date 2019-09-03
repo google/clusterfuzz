@@ -166,8 +166,7 @@ def execute_task(testcase_id, job_type):
 
   # Check if we have an application path. If not, our build failed
   # to setup correctly.
-  app_path = environment.get_value('APP_PATH')
-  if not app_path:
+  if not build_manager.check_app_path():
     data_handler.update_testcase_comment(testcase, data_types.TaskState.ERROR,
                                          'Build setup failed')
 

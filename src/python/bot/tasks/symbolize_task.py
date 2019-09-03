@@ -78,7 +78,7 @@ def execute_task(testcase_id, job_type):
   # Get crash revision used in setting up build.
   crash_revision = environment.get_value('APP_REVISION')
 
-  if not environment.get_value('APP_PATH'):
+  if not build_manager.check_app_path():
     testcase = data_handler.get_testcase_by_id(testcase_id)
     data_handler.update_testcase_comment(testcase, data_types.TaskState.ERROR,
                                          'Build setup failed')
@@ -128,8 +128,9 @@ def execute_task(testcase_id, job_type):
 
   # We should have atleast a symbolized debug or a release build.
   symbolized_builds = build_manager.setup_symbolized_builds(crash_revision)
-  if (not symbolized_builds or (not environment.get_value('APP_PATH') and
-                                not environment.get_value('APP_PATH_DEBUG'))):
+  if (not symbolized_builds or
+      (not build_manager.check_app_path() and
+       not build_manager.check_app_path('APP_PATH_DEBUG'))):
     testcase = data_handler.get_testcase_by_id(testcase_id)
     data_handler.update_testcase_comment(testcase, data_types.TaskState.ERROR,
                                          'Build setup failed')
