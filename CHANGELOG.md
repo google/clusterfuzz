@@ -7,7 +7,8 @@ Change Log
 ## Version 1.5.0
 - Added Golang stack parsing.
 - Added Sanitizer options minimization.
-- Added HELP_FORMAT for custom reproduce instructions.
+- Added HELP_FORMAT for custom crash reproduction instructions.
+  See documentation [here](configs/test/project.yaml#L99).
 - Added feature to show reproducible variants for a crash on other jobs
   (`Reproducer` column in `Testcase analysis on other jobs` section).
 - Refactored engine fuzzer code for easy pluggability.
