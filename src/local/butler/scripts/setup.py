@@ -135,7 +135,7 @@ leak_percent: "Percent of fuzzing runs that crashed on memory leaks (should be 0
 timeout_percent: "Percent of fuzzing runs that had testcases timeout (should be 0)"
 startup_crash_percent: "Percent of fuzzing runs that crashed on startup (should be 0)"
 avg_unwanted_log_lines: "Average number of unwanted log lines in fuzzing runs (should be 0)"
-runs_count: "Number of libFuzzer fuzzing runs or sessions (default is ~1 hr)"
+total_fuzzing_time_hrs: "Total time in hours for which the fuzzer(s) ran. Will be lower if fuzzer hits a crash frequently."
 logs: "Link to fuzzing logs"
 corpus_backup: "Backup copy of the minimized corpus generated based on code coverage"'''
 
@@ -155,7 +155,7 @@ avg(t.leak_count*100) as leak_percent,
 avg(t.timeout_count*100) as timeout_percent,
 avg(t.startup_crash_count*100) as startup_crash_percent,
 avg(t.log_lines_unwanted) as avg_unwanted_log_lines,
-COUNT(t.bad_instrumentation) as runs_count,
+sum(t.actual_duration/3600.0) as total_fuzzing_time_hrs,
 _FUZZER_RUN_LOGS as logs,
 _CORPUS_BACKUP as corpus_backup,"""
 
@@ -182,7 +182,7 @@ regular_crash_percent: "Percent of fuzzing runs that had regular crashes (other 
 timeout_percent: "Percent of fuzzing runs that had testcases timeout (should be 0)"
 startup_crash_percent: "Percent of fuzzing runs that crashed on startup (should be 0)"
 avg_unwanted_log_lines: "Average number of unwanted log lines in fuzzing runs (should be 0)"
-runs_count: "Number of libFuzzer fuzzing runs or sessions (default is ~1 hr)"
+total_fuzzing_time_hrs: "Total time in hours for which the fuzzer(s) ran. Will be lower if fuzzer hits a crash frequently."
 logs: "Link to fuzzing logs"
 corpus_backup: "Backup copy of the minimized corpus generated based on code coverage"'''
 
@@ -197,7 +197,7 @@ avg(t.crash_count*100) as regular_crash_percent,
 avg(t.timeout_count*100) as timeout_percent,
 avg(t.startup_crash_count*100) as startup_crash_percent,
 avg(t.log_lines_unwanted) as avg_unwanted_log_lines,
-COUNT(t.bad_instrumentation) as runs_count,
+sum(t.actual_duration/3600.0) as total_fuzzing_time_hrs,
 _FUZZER_RUN_LOGS as logs,
 _CORPUS_BACKUP as corpus_backup,"""
 
