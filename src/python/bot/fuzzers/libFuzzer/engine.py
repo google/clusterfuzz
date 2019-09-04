@@ -305,11 +305,16 @@ class LibFuzzerEngine(engine.Engine):
     runner = libfuzzer.get_runner(target_path)
     launcher.set_sanitizer_options(target_path)
 
+    # Remove fuzzing specific arguments. This is only really needed for legacy
+    # testcases, and can be removed in the distant future.
+    arguments = arguments[:]
+    launcher.remove_fuzzing_arguments(arguments)
+
     runs_argument = constants.RUNS_FLAG + str(constants.RUNS_TO_REPRODUCE)
+    arguments.append(runs_argument)
+
     result = runner.run_single_testcase(
-        input_path,
-        timeout=max_time,
-        additional_args=arguments + [runs_argument])
+        input_path, timeout=max_time, additional_args=arguments)
     return engine.ReproduceResult(result.command, result.return_code,
                                   result.time_executed, result.output)
 
