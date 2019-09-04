@@ -366,6 +366,7 @@ class TestcaseRunningTest(fake_filesystem_unittest.TestCase):
     test_utils.set_up_pyfakefs(self)
 
     test_helpers.patch(self, [
+        'bot.fuzzers.engine.do_trial',
         'bot.fuzzers.engine.get',
         'bot.fuzzers.engine_common.find_fuzzer_path',
         'crash_analysis.stack_parsing.stack_analyzer.get_crash_data',
@@ -395,6 +396,7 @@ class TestcaseRunningTest(fake_filesystem_unittest.TestCase):
     self.mock.find_fuzzer_path.return_value = '/build_dir/target'
     self.mock.run_process.return_value = (0, 0, 'output')
     self.mock.get.return_value = None
+    self.mock.do_trial.return_value = True
 
     self.mock.get_crash_data.side_effect = mock_get_crash_data
     self.fs.create_file('/flags-testcase', contents='-arg1 -arg2')

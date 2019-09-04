@@ -544,7 +544,7 @@ class TestcaseRunner(object):
 
     # TODO(ochang): Make this hard fail once migration to new fuzzing pipeline
     # is complete.
-    if fuzz_target and engine_impl:
+    if fuzz_target and engine_impl and engine.do_trial():
       self._is_black_box = False
       self._engine_impl = engine_impl
 

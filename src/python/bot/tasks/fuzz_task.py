@@ -1746,7 +1746,7 @@ class FuzzingSession(object):
       return
 
     engine_impl = engine.get(fuzzer.name)
-    if engine_impl:
+    if engine_impl and engine.do_trial():
       # Note: This branch is not taken right now, and is part of ongoing
       # refactoring efforts (https://github.com/google/clusterfuzz/issues/483).
       crashes, fuzzer_metadata = self.do_engine_fuzzing(engine_impl)

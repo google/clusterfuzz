@@ -15,8 +15,13 @@
 
 from builtins import object
 from collections import namedtuple
+import random
+
+from system import environment
 
 _ENGINES = {}
+_TRIAL_PROBABILITY_FUZZ = 0.2
+_TRIAL_PROBABILITY_OTHERS = 0.0
 
 
 class FuzzOptions(object):
@@ -172,3 +177,16 @@ def get(name):
     return engine_class()
 
   return None
+
+
+def do_trial():
+  """Returns or not we should trial using this new implementation."""
+  if environment.get_value('USE_NEW_ENGINE_IMPL'):
+    return True
+
+  if environment.get_value('TASK_NAME') == 'fuzz':
+    probability = _TRIAL_PROBABILITY_FUZZ
+  else:
+    probability = _TRIAL_PROBABILITY_OTHERS
+
+  return random.SystemRandom().random() < probability
