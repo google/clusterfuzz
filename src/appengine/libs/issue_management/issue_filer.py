@@ -271,6 +271,12 @@ def file_issue(testcase,
   for component in automatic_components:
     issue.components.add(component)
 
+  # Add issue assignee from the job definition and fuzzer.
+  automatic_assignee = data_handler.get_additional_values_for_variable(
+      'AUTOMATIC_ASSIGNEE', testcase.job_type, testcase.fuzzer_name)
+  if automatic_assignee:
+    issue.assignee = automatic_assignee[0]
+
   is_crash = not utils.sub_string_exists_in(NON_CRASH_TYPES,
                                             testcase.crash_type)
   properties = policy.get_new_issue_properties(
