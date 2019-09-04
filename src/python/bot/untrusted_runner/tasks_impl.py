@@ -116,7 +116,7 @@ def engine_fuzz(request, _):
   crashes = [
       untrusted_runner_pb2.EngineCrash(
           input_path=crash.input_path,
-          stacktrace=crash.stacktrace,
+          stacktrace=protobuf_utils.encode_utf8_if_unicode(crash.stacktrace),
           reproduce_args=crash.reproduce_args,
           crash_time=crash.crash_time) for crash in result.crashes
   ]
@@ -136,7 +136,7 @@ def engine_fuzz(request, _):
     packed_stats[key] = packed_value
 
   return untrusted_runner_pb2.EngineFuzzResponse(
-      logs=result.logs,
+      logs=protobuf_utils.encode_utf8_if_unicode(result.logs),
       command=result.command,
       crashes=crashes,
       stats=packed_stats,

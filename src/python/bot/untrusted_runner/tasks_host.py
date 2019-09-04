@@ -138,7 +138,7 @@ def engine_fuzz(engine_impl, target_name, sync_corpus_directory,
   crashes = [
       engine.Crash(
           input_path=file_host.rebase_to_host_root(crash.input_path),
-          stacktrace=crash.stacktrace,
+          stacktrace=utils.decode_to_unicode(crash.stacktrace),
           reproduce_args=crash.reproduce_args,
           crash_time=crash.crash_time) for crash in response.crashes
   ]
@@ -158,7 +158,7 @@ def engine_fuzz(engine_impl, target_name, sync_corpus_directory,
     unpacked_stats[key] = value.value
 
   result = engine.FuzzResult(
-      logs=response.logs,
+      logs=utils.decode_to_unicode(response.logs),
       command=list(response.command),
       crashes=crashes,
       stats=unpacked_stats,

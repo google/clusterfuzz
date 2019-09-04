@@ -302,7 +302,7 @@ message EngineCrash {
 }
 
 message EngineFuzzResponse {
-  optional string logs = 1;
+  optional bytes logs = 1;
   repeated string command = 2;
   repeated EngineCrash crashes = 3;
   map<string, google.protobuf.Any> stats = 4;
