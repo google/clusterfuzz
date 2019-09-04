@@ -21,7 +21,7 @@ from system import environment
 
 _ENGINES = {}
 _TRIAL_PROBABILITY_FUZZ = 0.2
-_TRIAL_PROBABILITY_OTHERS = 0.05
+_TRIAL_PROBABILITY_OTHERS = 0.0
 
 
 class FuzzOptions(object):
