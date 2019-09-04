@@ -35,15 +35,18 @@ QuerySpecification = collections.namedtuple(
 SpecificationMatch = collections.namedtuple('SpecificationMatch',
                                             ['new_weight', 'reason'])
 
-DEFAULT_MULTIPLIER = 10.0  # Used for blackbox and unrun jobs.
+DEFAULT_MULTIPLIER = 10.0  # Used for blackbox and jobs that are not yet run.
 DEFAULT_SANITIZER_WEIGHT = 0.1
 
+SANITIZER_BASE_WEIGHT = 0.1
+
+# TODO(ochang): architecture weights.
 SANITIZER_WEIGHTS = {
-    'ASAN': 0.5,
-    'CFI': 0.1,
-    'MSAN': 0.2,
-    'TSAN': 0.1,
-    'UBSAN': 0.1,
+    'ASAN': 5 * SANITIZER_BASE_WEIGHT,
+    'CFI': 1 * SANITIZER_BASE_WEIGHT,
+    'MSAN': 2 * SANITIZER_BASE_WEIGHT,
+    'TSAN': 1 * SANITIZER_BASE_WEIGHT,
+    'UBSAN': 1 * SANITIZER_BASE_WEIGHT,
 }
 
 

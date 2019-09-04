@@ -403,7 +403,6 @@ def _set_random_fuzz_target_for_fuzzing_if_needed(fuzz_targets, target_weights):
   if not environment.is_engine_fuzzer_job():
     return None
 
-  fuzz_targets = list(fuzz_targets)
   if not fuzz_targets:
     logs.log_error('No fuzz targets found. Unable to pick random one.')
     return None
