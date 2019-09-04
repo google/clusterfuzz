@@ -306,10 +306,13 @@ class LibFuzzerEngine(engine.Engine):
     launcher.set_sanitizer_options(target_path)
 
     runs_argument = constants.RUNS_FLAG + str(constants.RUNS_TO_REPRODUCE)
+    arguments = arguments + [runs_argument]
+    launcher.remove_fuzzing_arguments(arguments)
+
     result = runner.run_single_testcase(
         input_path,
         timeout=max_time,
-        additional_args=arguments + [runs_argument])
+        additional_args=arguments)
     return engine.ReproduceResult(result.command, result.return_code,
                                   result.time_executed, result.output)
 
