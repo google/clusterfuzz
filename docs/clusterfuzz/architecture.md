@@ -24,7 +24,7 @@ ClusterFuzz is written in Python and Go. It runs on **Linux**, **macOS**, and **
 ## Requirements
 ClusterFuzz runs on the [Google Cloud Platform](https://cloud.google.com/) and depends
 on a number of services:
-- Compute Engine (Not strictly necessary. Bots can run anywhere.)
+- Compute Engine (Not strictly necessary. [Fuzzing bots](#bots) can run anywhere.)
 - App Engine
 - Cloud Storage
 - Cloud Datastore
@@ -47,16 +47,16 @@ Stackdriver will be disabled due to lack of emulator support.
 The two main components of ClusterFuzz are:
 
 - App Engine instance
-- A pool of [bots]({{ site.baseurl }}/reference/glossary/#bot)
+- A pool of [fuzzing bots]({{ site.baseurl }}/reference/glossary/#bot)
 
 ### App Engine
 
 The App Engine instance provides a web interface to access crashes, stats and
 other information. It's also responsible for scheduling regular cron jobs.
 
-### Bots 
+### Fuzzing Bots 
 
-Bots are machines that run scheduled tasks. They lease tasks from platform
+Fuzzing bots are machines that run scheduled tasks. They lease tasks from platform
 specific queues. The main tasks that bots run are:
 - `fuzz`: Run a fuzzing session.
 - `progression`: Check if a testcase still reproduces or if it's fixed.

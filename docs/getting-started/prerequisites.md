@@ -42,7 +42,7 @@ where X.Y.Z is the release version (for example, 1.0.1).
 
 ## Installing prerequisites
 
-### Google Cloud SDK 
+### Google Cloud SDK
 Install the Google Cloud SDK by following the [online
 instructions](https://cloud.google.com/sdk/).
 
