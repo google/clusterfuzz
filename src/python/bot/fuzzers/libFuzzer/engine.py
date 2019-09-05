@@ -179,7 +179,7 @@ class LibFuzzerEngine(engine.Engine):
         stat_overrides.update(
             stats.parse_stats_from_merge_log(result.logs.splitlines()))
     except MergeError:
-      logs.log_error('Merge failed.')
+      logs.log_warn('Merge failed', target=os.path.basename(target_path))
 
     stat_overrides['new_units_added'] = new_units_added
 
@@ -265,12 +265,8 @@ class LibFuzzerEngine(engine.Engine):
     arguments = options.arguments[:]
     launcher.remove_fuzzing_arguments(arguments)
 
-    try:
-      self._merge_new_units(target_path, options.corpus_dir, new_corpus_dir,
-                            options.fuzz_corpus_dirs, arguments, parsed_stats)
-    except MergeError as e:
-      logs.log_warn(
-          'Merge failed: ' + str(e), target=os.path.basename(target_path))
+    self._merge_new_units(target_path, options.corpus_dir, new_corpus_dir,
+                          options.fuzz_corpus_dirs, arguments, parsed_stats)
 
     # Add custom crash state based on fuzzer name (if needed).
     project_qualified_fuzzer_name = (
