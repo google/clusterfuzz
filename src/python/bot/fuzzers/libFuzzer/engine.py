@@ -179,8 +179,7 @@ class LibFuzzerEngine(engine.Engine):
         stat_overrides.update(
             stats.parse_stats_from_merge_log(result.logs.splitlines()))
     except MergeError:
-      logs.log_warn(
-          'Merge failed', target=os.path.basename(target_path))
+      logs.log_warn('Merge failed', target=os.path.basename(target_path))
 
     stat_overrides['new_units_added'] = new_units_added
 
