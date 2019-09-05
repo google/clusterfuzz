@@ -248,7 +248,6 @@ def file_issue(testcase,
   issue.title = data_handler.get_issue_summary(testcase)
   issue.body = data_handler.get_issue_description(
       testcase, reporter=user_email, show_reporter=True)
-  issue.status = properties.status
 
   # Add reproducibility flag label.
   if testcase.one_time_crasher_flag:
@@ -285,6 +284,8 @@ def file_issue(testcase,
   if automatic_assignee:
     issue.status = policy.status('assigned')
     issue.assignee = automatic_assignee[0]
+  else:
+    issue.status = properties.status
 
   # Add additional ccs from the job definition and fuzzer.
   ccs = data_handler.get_additional_values_for_variable(
