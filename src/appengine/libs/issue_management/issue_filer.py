@@ -22,6 +22,7 @@ from crash_analysis import severity_analyzer
 from datastore import data_handler
 from datastore import data_types
 from libs.issue_management import issue_tracker_policy
+from metrics import logs
 from system import environment
 
 NON_CRASH_TYPES = [
@@ -235,12 +236,19 @@ def file_issue(testcase,
                user_email=None,
                additional_ccs=None):
   """File an issue for the given test case."""
+  logs.log('Filing new issue for testcase: %d' % testcase.key.id())
+
+  policy = issue_tracker_policy.get(issue_tracker.project)
+  is_crash = not utils.sub_string_exists_in(NON_CRASH_TYPES,
+                                            testcase.crash_type)
+  properties = policy.get_new_issue_properties(
+      is_security=testcase.security_flag, is_crash=is_crash)
+
   issue = issue_tracker.new_issue()
   issue.title = data_handler.get_issue_summary(testcase)
   issue.body = data_handler.get_issue_description(
       testcase, reporter=user_email, show_reporter=True)
-
-  policy = issue_tracker_policy.get(issue_tracker.project)
+  issue.status = properties.status
 
   # Add reproducibility flag label.
   if testcase.one_time_crasher_flag:
@@ -277,13 +285,6 @@ def file_issue(testcase,
   if automatic_assignee:
     issue.status = policy.status('assigned')
     issue.assignee = automatic_assignee[0]
-
-  is_crash = not utils.sub_string_exists_in(NON_CRASH_TYPES,
-                                            testcase.crash_type)
-  properties = policy.get_new_issue_properties(
-      is_security=testcase.security_flag, is_crash=is_crash)
-
-  issue.status = properties.status
 
   # Add additional ccs from the job definition and fuzzer.
   ccs = data_handler.get_additional_values_for_variable(
