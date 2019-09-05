@@ -1466,7 +1466,7 @@ class FuzzingSession(object):
 
     # Synchronize corpus files with GCS
     sync_corpus_directory = builtin.get_corpus_directory(
-        self.testcase_directory, self.fuzz_target.project_qualified_name())
+        self.data_directory, self.fuzz_target.project_qualified_name())
     self.sync_corpus(sync_corpus_directory)
 
     # Do the actual fuzzing.
@@ -1747,6 +1747,7 @@ class FuzzingSession(object):
 
     engine_impl = engine.get(fuzzer.name)
     if engine_impl and engine.do_trial():
+      logs.log('Using new engine implementation.')
       # Note: This branch is not taken right now, and is part of ongoing
       # refactoring efforts (https://github.com/google/clusterfuzz/issues/483).
       crashes, fuzzer_metadata = self.do_engine_fuzzing(engine_impl)
