@@ -41,7 +41,7 @@ It's possible to run ClusterFuzz locally without these dependencies by using
 local Google Cloud emulators. If you do, some features that depend on BigQuery and
 Stackdriver will be disabled due to lack of emulator support.
 
-**Note:** Local development is only supported on **Linux** and **macOS**.
+**Note:** Local instances are only supported on **Linux** and **macOS**.
 
 ## Operation
 The two main components of ClusterFuzz are:
