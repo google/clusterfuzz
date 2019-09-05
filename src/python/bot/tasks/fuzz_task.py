@@ -153,7 +153,7 @@ class Crash(object):
         return_code=1,
         resource_list=[],
         gestures=[],
-        unsymbolized_crash_stacktrace=crash.stacktrace,
+        unsymbolized_crash_stacktrace=utils.decode_to_unicode(crash.stacktrace),
         arguments=' '.join(crash.reproduce_args),
         application_command_line='')  # TODO(ochang): Write actual command line.
 
