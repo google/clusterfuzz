@@ -275,6 +275,7 @@ def file_issue(testcase,
   automatic_assignee = data_handler.get_additional_values_for_variable(
       'AUTOMATIC_ASSIGNEE', testcase.job_type, testcase.fuzzer_name)
   if automatic_assignee:
+    issue.status = policy.status('assigned')
     issue.assignee = automatic_assignee[0]
 
   is_crash = not utils.sub_string_exists_in(NON_CRASH_TYPES,
