@@ -205,7 +205,8 @@ class LibFuzzerEngine(engine.Engine):
       A FuzzResult object.
     """
     profiler.start_if_needed('libfuzzer_fuzz')
-    runner = libfuzzer.get_runner(target_path)
+    # TODO(ochang): Figure out solution for ChromeOS.
+    runner = libfuzzer.get_runner(target_path, use_minijail=False)
     launcher.set_sanitizer_options(target_path)
 
     artifact_prefix = self._artifact_prefix(os.path.abspath(reproducers_dir))

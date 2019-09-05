@@ -597,9 +597,11 @@ class MinijailLibFuzzerRunner(engine_common.MinijailEngineFuzzerRunner,
       return result
 
 
-def get_runner(fuzzer_path, temp_dir=None):
+def get_runner(fuzzer_path, temp_dir=None, use_minijail=None):
   """Get a libfuzzer runner."""
-  use_minijail = environment.get_value('USE_MINIJAIL')
+  if use_minijail is None:
+    use_minijail = environment.get_value('USE_MINIJAIL')
+
   build_dir = environment.get_value('BUILD_DIR')
   dataflow_build_dir = environment.get_value('DATAFLOW_BUILD_DIR')
 
