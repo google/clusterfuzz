@@ -173,7 +173,7 @@ def analyze_and_update_recommended_dictionary(runner, fuzzer_name, log_lines,
   temp_dictionary_path = os.path.join(fuzzer_utils.get_temp_dir(),
                                       temp_dictionary_filename)
 
-  with open(temp_dictionary_path, 'w') as file_handle:
+  with open(temp_dictionary_path, 'wb') as file_handle:
     file_handle.write('\n'.join(recommended_dictionary))
 
   dictionary_analysis = runner.analyze_dictionary(
