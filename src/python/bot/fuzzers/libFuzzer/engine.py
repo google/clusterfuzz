@@ -265,8 +265,12 @@ class LibFuzzerEngine(engine.Engine):
     arguments = options.arguments[:]
     launcher.remove_fuzzing_arguments(arguments)
 
-    self._merge_new_units(target_path, options.corpus_dir, new_corpus_dir,
-                          options.fuzz_corpus_dirs, arguments, parsed_stats)
+    try:
+      self._merge_new_units(target_path, options.corpus_dir, new_corpus_dir,
+                            options.fuzz_corpus_dirs, arguments, parsed_stats)
+    except MergeError as e:
+      logs.log_warn(
+          'Merge failed: ' + str(e), target=os.path.basename(target_path))
 
     # Add custom crash state based on fuzzer name (if needed).
     project_qualified_fuzzer_name = (
