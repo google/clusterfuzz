@@ -7,10 +7,11 @@ parent: ClusterFuzz
 ---
 
 # Architecture
+{: .no_toc}
 ![overview]({{ site.baseurl }}/images/overview.png)
 
 ClusterFuzz provides an automated end-to-end infrastructure for finding and
-triaging crashes, minimizing reproducers, [bisecting], and verification of fixes.
+triaging crashes, minimizing reproducers, [bisecting], and verifying fixes.
 
 - TOC
 {:toc}
@@ -21,9 +22,9 @@ triaging crashes, minimizing reproducers, [bisecting], and verification of fixes
 ClusterFuzz is written in Python and Go. It runs on **Linux**, **macOS**, and **Windows**.
 
 ## Requirements
-It runs on the [Google Cloud Platform](https://cloud.google.com/), and depends
+ClusterFuzz runs on the [Google Cloud Platform](https://cloud.google.com/) and depends
 on a number of services:
-- Compute Engine (Not strictly necessary. Bots can run anywhere).
+- Compute Engine (Not strictly necessary. Bots can run anywhere.)
 - App Engine
 - Cloud Storage
 - Cloud Datastore
@@ -31,14 +32,16 @@ on a number of services:
 - BigQuery
 - Stackdriver Logging and Monitoring
 
-**Note**: The only bug tracker supported now is the Chromium hosted
+**Note**: The only bug tracker we currently support is the Chromium-hosted
 [Monorail](https://opensource.google.com/projects/monorail). Support for custom
-bug trackers will be added in the near future.
+bug trackers will be added in the future.
 
 ### Local instance
 It's possible to run ClusterFuzz locally without these dependencies by using
-local Google Cloud emulators, but some features which depend on BigQuery and
+local Google Cloud emulators. If you do, some features that depend on BigQuery and
 Stackdriver will be disabled due to lack of emulator support.
+
+**Note:** Local development is only supported on **Linux** and **macOS**.
 
 ## Operation
 The two main components of ClusterFuzz are:
@@ -46,10 +49,14 @@ The two main components of ClusterFuzz are:
 - App Engine instance
 - A pool of [bots]({{ site.baseurl }}/reference/glossary/#bot)
 
+### App Engine
+
 The App Engine instance provides a web interface to access crashes, stats and
 other information. It's also responsible for scheduling regular cron jobs.
 
-Bots are machines which run scheduled tasks. They lease tasks from platform
+### Bots 
+
+Bots are machines that run scheduled tasks. They lease tasks from platform
 specific queues. The main tasks that bots run are:
 - `fuzz`: Run a fuzzing session.
 - `progression`: Check if a testcase still reproduces or if it's fixed.
@@ -59,16 +66,14 @@ specific queues. The main tasks that bots run are:
   }}/reference/glossary/#corpus) to smallest size based on coverage (libFuzzer only).
 - `analyze`: Run a manually uploaded testcase against a job to see if it crashes.
 
-### Bots
-There are 2 kinds of bots on ClusterFuzz - preemptible and non-preemptible.
+There are two kinds of bots on ClusterFuzz:
 
-Preemptible means that the machine can shutdown at any time. On these machines
-we only run `fuzz` task. These machines are often cheaper on cloud providers, so
-it's recommended to scale using these machines.
+- **Preemptible**: The machine can shut down at any time, and can only run the
+`fuzz` task. These machines are often cheaper on cloud
+providers, so we recommended using them to scale.
 
-Non-preemptible machines are not expected to shutdown. They are able to run all
-tasks (including `fuzz`) and other critical tasks such as `progression` which
-must run uninterrupted.
+- **Non-preemptible**: The machine is not expected to shut down. It can run all
+tasks, including critical ones like `progression` that must run uninterrupted.
 
 [bisecting]: https://en.wikipedia.org/wiki/Bisection_(software_engineering)
 [minimization]: {{ site.baseurl }}/reference/glossary/#minimization
