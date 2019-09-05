@@ -7,6 +7,9 @@ permalink: /getting-started/prerequisites/
 ---
 
 # Prerequisites
+{: .no_toc}
+
+This page explains how to set up your environment for using ClusterFuzz.
 
 - TOC
 {:toc}
@@ -14,39 +17,39 @@ permalink: /getting-started/prerequisites/
 ---
 ## Requirements
 Many features of ClusterFuzz depend on [Google Cloud
-Platform](https://cloud.google.com) services (see
-[this]({{ site.baseurl }}/architecture/#requirements) page for more details).
-However, it's possible to run it locally without these dependencies for testing
-purposes.
+Platform](https://cloud.google.com) services, but it's possible to run it locally without these dependencies for testing purposes. See the [Architecture page]({{ site.baseurl }}/architecture/#requirements) for more details.
 
-While ClusterFuzz runs on a number of platforms, local development is only
-supported on **Linux** and **macOS**.
+**Note:** Local development is only supported on **Linux** and **macOS**.
 
 ## Getting the code
+
+Clone the ClusterFuzz repository to your machine by running the following command:
+
 ```bash
 git clone https://github.com/google/clusterfuzz
 cd clusterfuzz
 ```
 
-We recommend that you use the [last release version](https://github.com/google/clusterfuzz/releases/latest)
-of our code for stability reasons (rather than master branch).
-You can checkout a particular release using:
+We recommend that you use the [latest release
+version](https://github.com/google/clusterfuzz/releases/latest) of our code
+(rather than master branch) for stability reasons. You can check out a
+particular release using:
 
 ```bash
 git checkout tags/vX.Y.Z
 ```
-where X.Y.Z is the release version (e.g. 1.0.1). 
+where X.Y.Z is the release version (for example, 1.0.1). 
 
 ## Installing prerequisites
 
 ### Google Cloud SDK
-Install the Google Cloud SDK by following the instructions
-[here](https://cloud.google.com/sdk/).
+Install the Google Cloud SDK by following the [online
+instructions](https://cloud.google.com/sdk/).
 
-### (Optional) Log in to your Google Cloud account
-This is **not** necessary if you are simply running ClusterFuzz [locally].
+### Log in to your Google Cloud account
+**Note:** This is **not** necessary if you're [running ClusterFuzz locally].
 
-If you are planning to set up ClusterFuzz in [production], you should
+If you're planning to [set up ClusterFuzz in production], you should
 authenticate your account with the `gcloud` tool:
 
 ```bash
@@ -54,20 +57,17 @@ gcloud auth application-default login
 gcloud auth login
 ```
 
-[production]: {{ "/production-setup/" | relative_url }}
-[locally]: {{ "/getting-started/local-instance/" | relative_url }}
+[set up ClusterFuzz in production]: {{ "/production-setup/" | relative_url }}
+[running ClusterFuzz locally]: {{ "/getting-started/local-instance/" | relative_url }}
 
 ### Python programming language
-Install Python 2.7. You can download it
-[here](https://www.python.org/downloads/release/python-2715/).
+[Download Python 2.7](https://www.python.org/downloads/release/python-2715/), then install it.
 
 If you already have Python installed, you can verify its version by running `python --version`.
 The minimum required version is 2.7.10.
 
 ### Go programming language
-Install the Go programming language by following the instructions
-[here](https://golang.org/doc/install).
-
+[Install the Go programming language](https://golang.org/doc/install).
 
 ### Other dependencies
 We provide a script for installing all other development dependencies on Linux
@@ -87,14 +87,14 @@ local/install_deps.bash
 [homebrew]: https://brew.sh/
 
 ## Loading virtualenv
-Activate the virtualenv created by the `local/install_deps.bash` script. This
-loads all the python dependencies in the current environment.
+After you run the `local/install_deps.bash` script, activate the virtualenv by running the following command:
 
 ```bash
 source ENV/bin/activate
 ```
+This loads all the Python dependencies in the current environment.
 
-Verify everything works by running:
+You can verify that everything works by running:
 ```bash
 python butler.py --help
 ```

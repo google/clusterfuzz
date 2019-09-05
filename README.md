@@ -4,10 +4,10 @@
   <img src="docs/images/logo.png" width="400">
 </p>
 
-ClusterFuzz is a scalable fuzzing infrastructure which finds security and
-stability issues in software.
+ClusterFuzz is a scalable [fuzzing](https://en.wikipedia.org/wiki/Fuzzing)
+infrastructure that finds security and stability issues in software.
 
-It is used by Google for fuzzing the Chrome Browser, and serves as the fuzzing
+Google uses ClusterFuzz to fuzz the Chrome Browser and as the fuzzing
 backend for [OSS-Fuzz].
 
 ClusterFuzz provides many features which help seamlessly integrate fuzzing into
