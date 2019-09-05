@@ -436,8 +436,25 @@ class FuchsiaQemuLibFuzzerRunner(new_process.ProcessRunner, LibFuzzerCommon):
                           testcase_path,
                           timeout=None,
                           additional_args=None):
-    # TODO(flowerhack): Fill out this command.
-    pass
+    # TODO(flowerhack): a lot of this code is repetitive with `fuzz`; once we
+    # transition to the new fuzzing interface, a lot of this should be
+    # factored out.
+    # Copy the testcase from the host to the target.
+    testcase_path_name = os.path.basename(os.path.normpath(testcase_path))
+    self.device.store(testcase_path, self.fuzzer.data_path())
+    # Run a single round, using the testcase we just pushed to target.
+    self.fuzzer.start([self.fuzzer.data_path(testcase_path_name)])
+    self.fuzzer.monitor()
+    self.fetch_and_process_logs_and_crash()
+    with open(self.fuzzer.logfile) as logfile:
+      symbolized_output = logfile.read()
+
+    fuzzer_process_result = new_process.ProcessResult()
+    fuzzer_process_result.return_code = 0
+    fuzzer_process_result.output = symbolized_output
+    fuzzer_process_result.time_executed = 0
+    fuzzer_process_result.command = self.fuzzer.last_fuzz_cmd
+    return fuzzer_process_result
 
   def ssh_command(self, *args):
     return ['ssh'] + self.ssh_root + list(args)
