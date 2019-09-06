@@ -35,6 +35,10 @@ from system import shell
 
 MAX_OUTPUT_LEN = 1 * 1024 * 1024  # 1 MB
 
+# Regex to find testcase path from a crash.
+CRASH_TESTCASE_REGEX = (r'.*Test unit written to\s*'
+                        r'(.*(crash|oom|timeout|leak)-.*)')
+
 
 class LibFuzzerException(Exception):
   """LibFuzzer exception."""
@@ -60,6 +64,15 @@ class LibFuzzerCommon(object):
       return artifact_prefix
 
     return artifact_prefix + sep
+
+  def get_testcase_path(self, log_lines):
+    """Get testcase path from log lines."""
+    for line in log_lines:
+      match = re.match(CRASH_TESTCASE_REGEX, line)
+      if match:
+        return match.group(1)
+
+    return None
 
   def analyze_dictionary(self,
                          dictionary_path,
@@ -238,6 +251,7 @@ class LibFuzzerCommon(object):
                      testcase_path,
                      output_path,
                      timeout,
+                     artifact_prefix=None,
                      additional_args=None):
     """Minimize crasher with libFuzzer.
 
@@ -262,8 +276,12 @@ class LibFuzzerCommon(object):
                                         max_total_time)
 
     additional_args.extend([
-        constants.MINIMIZE_CRASH_ARGUMENT, max_total_time_argument,
-        constants.EXACT_ARTIFACT_PATH_FLAG + output_path, testcase_path
+        constants.MINIMIZE_CRASH_ARGUMENT,
+        max_total_time_argument,
+        constants.EXACT_ARTIFACT_PATH_FLAG + output_path,
+        constants.ARTIFACT_PREFIX_FLAG +
+        self._normalize_artifact_prefix(artifact_prefix),
+        testcase_path,
     ])
 
     return self.run_and_wait(
@@ -275,6 +293,7 @@ class LibFuzzerCommon(object):
                     testcase_path,
                     output_path,
                     timeout,
+                    artifact_prefix=None,
                     additional_args=None):
     """Cleanse crasher with libFuzzer. This attempts to remove non-essential
     bits of the testcase by replacing them with garbage.
@@ -292,7 +311,9 @@ class LibFuzzerCommon(object):
 
     additional_args.extend([
         constants.CLEANSE_CRASH_ARGUMENT,
-        constants.EXACT_ARTIFACT_PATH_FLAG + output_path, testcase_path
+        constants.EXACT_ARTIFACT_PATH_FLAG + output_path,
+        constants.ARTIFACT_PREFIX_FLAG +
+        self._normalize_artifact_prefix(artifact_prefix), testcase_path
     ])
 
     return self.run_and_wait(
@@ -476,6 +497,14 @@ class MinijailLibFuzzerRunner(engine_common.MinijailEngineFuzzerRunner,
         chroot=chroot,
         default_args=default_args)
 
+  def get_testcase_path(self, log_lines):
+    """Get testcase path from log lines."""
+    path = LibFuzzerCommon.get_testcase_path(self, log_lines)
+    if not path:
+      return path
+
+    return os.path.join(self.chroot.directory, path[1:])
+
   def _get_chroot_corpus_paths(self, corpus_directories):
     """Return chroot relative paths for the given corpus directories.
 
@@ -502,6 +531,19 @@ class MinijailLibFuzzerRunner(engine_common.MinijailEngineFuzzerRunner,
           'Failed to get chroot binding for "%s".' % directory_path)
     return binding.dest_path
 
+  def _bind_corpus_dirs(self, corpus_directories):
+    """Bind corpus directories to the minijail chroot.
+
+    Also makes sure that the directories are world writeable.
+
+    Args:
+      corpus_directories: A list of corpus paths.
+    """
+    for corpus_directory in corpus_directories:
+      target_dir = '/' + os.path.basename(corpus_directory)
+      self.chroot.add_binding(
+          minijail.ChrootBinding(corpus_directory, target_dir, True))
+
   def analyze_dictionary(self,
                          dictionary_path,
                          corpus_directory,
@@ -526,9 +568,24 @@ class MinijailLibFuzzerRunner(engine_common.MinijailEngineFuzzerRunner,
            additional_args=None,
            extra_env=None):
     """LibFuzzerCommon.fuzz override."""
+    self._bind_corpus_dirs(corpus_directories)
+    crash_location_regex = re.compile(r'.*Test unit written to\s*(.*)')
+
     corpus_directories = self._get_chroot_corpus_paths(corpus_directories)
-    return LibFuzzerCommon.fuzz(self, corpus_directories, fuzz_timeout,
-                                artifact_prefix, additional_args, extra_env)
+    # Set artifact prefix to '/' in minijail.
+    result = LibFuzzerCommon.fuzz(
+        self,
+        corpus_directories,
+        fuzz_timeout,
+        artifact_prefix='/',
+        additional_args=additional_args,
+        extra_env=extra_env)
+
+    log_lines = result.output.splitlines()
+    for line in log_lines:
+      crash_location_regex.match(line)
+
+    return result
 
   def merge(self,
             corpus_directories,
@@ -537,6 +594,8 @@ class MinijailLibFuzzerRunner(engine_common.MinijailEngineFuzzerRunner,
             tmp_dir=None,
             additional_args=None):
     """LibFuzzerCommon.merge override."""
+    self._bind_corpus_dirs(corpus_directories)
+
     corpus_directories = self._get_chroot_corpus_paths(corpus_directories)
     if artifact_prefix:
       artifact_prefix = self._get_chroot_directory(artifact_prefix)
@@ -546,7 +605,7 @@ class MinijailLibFuzzerRunner(engine_common.MinijailEngineFuzzerRunner,
         corpus_directories,
         merge_timeout,
         artifact_prefix=artifact_prefix,
-        tmp_dir=tmp_dir,
+        tmp_dir=None,  # Use default in minijail.
         additional_args=additional_args)
 
   def run_single_testcase(self,
@@ -562,6 +621,7 @@ class MinijailLibFuzzerRunner(engine_common.MinijailEngineFuzzerRunner,
                      testcase_path,
                      output_path,
                      timeout,
+                     artifact_prefix=None,
                      additional_args=None):
     """LibFuzzerCommon.minimize_crash override."""
     with self._chroot_testcase(testcase_path) as chroot_testcase_path:
@@ -569,9 +629,13 @@ class MinijailLibFuzzerRunner(engine_common.MinijailEngineFuzzerRunner,
       chroot_output_path = '/' + chroot_output_name
       host_output_path = os.path.join(self.chroot.directory, chroot_output_name)
 
-      result = LibFuzzerCommon.minimize_crash(self, chroot_testcase_path,
-                                              chroot_output_path, timeout,
-                                              additional_args)
+      result = LibFuzzerCommon.minimize_crash(
+          self,
+          chroot_testcase_path,
+          chroot_output_path,
+          timeout,
+          artifact_prefix=constants.TMP_ARTIFACT_PREFIX_ARGUMENT,
+          additional_args=additional_args)
       if os.path.exists(host_output_path):
         shutil.copy(host_output_path, output_path)
 
@@ -581,6 +645,7 @@ class MinijailLibFuzzerRunner(engine_common.MinijailEngineFuzzerRunner,
                     testcase_path,
                     output_path,
                     timeout,
+                    artifact_prefix=None,
                     additional_args=None):
     """LibFuzzerCommon.cleanse_crash override."""
     with self._chroot_testcase(testcase_path) as chroot_testcase_path:
@@ -588,9 +653,13 @@ class MinijailLibFuzzerRunner(engine_common.MinijailEngineFuzzerRunner,
       chroot_output_path = '/' + chroot_output_name
       host_output_path = os.path.join(self.chroot.directory, chroot_output_name)
 
-      result = LibFuzzerCommon.cleanse_crash(self, chroot_testcase_path,
-                                             chroot_output_path, timeout,
-                                             additional_args)
+      result = LibFuzzerCommon.cleanse_crash(
+          self,
+          chroot_testcase_path,
+          chroot_output_path,
+          timeout,
+          artifact_prefix=constants.TMP_ARTIFACT_PREFIX_ARGUMENT,
+          additional_args=additional_args)
       if os.path.exists(host_output_path):
         shutil.copy(host_output_path, output_path)
 
@@ -610,13 +679,13 @@ def get_runner(fuzzer_path, temp_dir=None, use_minijail=None):
     # To ensure that we can run the fuzz target.
     os.chmod(fuzzer_path, 0o755)
 
-  if use_minijail:
-    # Set up chroot and runner.
-    if environment.is_chromeos_system_job():
-      minijail_chroot = minijail.ChromeOSChroot(build_dir)
-    else:
-      minijail_chroot = minijail.MinijailChroot(base_dir=temp_dir)
+  is_chromeos_system_job = environment.is_chromeos_system_job()
+  if is_chromeos_system_job:
+    minijail_chroot = minijail.ChromeOSChroot(build_dir)
+  elif use_minijail:
+    minijail_chroot = minijail.MinijailChroot(base_dir=temp_dir)
 
+  if use_minijail or is_chromeos_system_job:
     # While it's possible for dynamic binaries to run without this, they need
     # to be accessible for symbolization etc. For simplicity we bind BUILD_DIR
     # to the same location within the chroot, which leaks the directory

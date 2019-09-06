@@ -205,7 +205,6 @@ class LibFuzzerEngine(engine.Engine):
       A FuzzResult object.
     """
     profiler.start_if_needed('libfuzzer_fuzz')
-    # TODO(ochang): Figure out solution for ChromeOS.
     runner = libfuzzer.get_runner(target_path, use_minijail=False)
     launcher.set_sanitizer_options(target_path)
 
@@ -229,12 +228,7 @@ class LibFuzzerEngine(engine.Engine):
     fuzz_result.output = None
 
     # Check if we crashed, and get the crash testcase path.
-    crash_testcase_file_path = None
-    for line in log_lines:
-      match = re.match(launcher.CRASH_TESTCASE_REGEX, line)
-      if match:
-        crash_testcase_file_path = match.group(1)
-        break
+    crash_testcase_file_path = runner.get_testcase_path(log_lines)
 
     # Parse stats information based on libFuzzer output.
     parsed_stats = launcher.parse_log_stats(log_lines)
@@ -377,12 +371,12 @@ class LibFuzzerEngine(engine.Engine):
     launcher.set_sanitizer_options(target_path)
 
     minimize_tmp_dir = self._create_temp_corpus_dir('minimize-workdir')
-    artifact_prefix = self._artifact_prefix(minimize_tmp_dir)
     result = runner.minimize_crash(
         input_path,
         output_path,
         max_time,
-        additional_args=arguments + [artifact_prefix])
+        artifact_prefix=minimize_tmp_dir,
+        additional_args=arguments)
 
     return engine.ReproduceResult(result.command, result.return_code,
                                   result.time_executed, result.output)
@@ -404,12 +398,12 @@ class LibFuzzerEngine(engine.Engine):
     launcher.set_sanitizer_options(target_path)
 
     cleanse_tmp_dir = self._create_temp_corpus_dir('cleanse-workdir')
-    artifact_prefix = self._artifact_prefix(cleanse_tmp_dir)
     result = runner.cleanse_crash(
         input_path,
         output_path,
         max_time,
-        additional_args=arguments + [artifact_prefix])
+        artifact_prefix=cleanse_tmp_dir,
+        additional_args=arguments)
 
     return engine.ReproduceResult(result.command, result.return_code,
                                   result.time_executed, result.output)

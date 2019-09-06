@@ -49,23 +49,11 @@ from system import environment
 from system import minijail
 from system import shell
 
-# Regex to find testcase path from a crash.
-CRASH_TESTCASE_REGEX = (r'.*Test unit written to\s*'
-                        r'(.*(crash|oom|timeout|leak)-.*)')
-
 # Maximum length of a random chosen length for `-max_len`.
 MAX_VALUE_FOR_MAX_LENGTH = 10000
 
 # Probability of doing DFT-based fuzzing (depends on DFSan build presence).
 DATAFLOW_TRACING_PROBABILITY = 0.25
-
-# Testcase minimization arguments being used by ClusterFuzz.
-MINIMIZE_TO_ARGUMENT = '--cf-minimize-to='
-MINIMIZE_TIMEOUT_ARGUMENT = '--cf-minimize-timeout='
-
-# Cleanse arguments being used by ClusterFuzz.
-CLEANSE_TO_ARGUMENT = '--cf-cleanse-to='
-CLEANSE_TIMEOUT_ARGUMENT = '--cf-cleanse-timeout='
 
 # Prefix for the fuzzer's full name.
 LIBFUZZER_PREFIX = 'libfuzzer_'
@@ -413,62 +401,6 @@ def get_fuzz_timeout(is_mutations_run, total_timeout=None):
   return fuzz_timeout
 
 
-def minimize_testcase(runner, testcase_file_path, minimize_to, minimize_timeout,
-                      arguments, use_minijail):
-  """Minimize testcase."""
-  remove_fuzzing_arguments(arguments)
-
-  # Write in-progress minimization testcases to temp dir.
-  if use_minijail:
-    arguments.append(constants.TMP_ARTIFACT_PREFIX_ARGUMENT)
-  else:
-    minimize_temp_dir = os.path.join(fuzzer_utils.get_temp_dir(),
-                                     'minimize_temp')
-
-    engine_common.recreate_directory(minimize_temp_dir)
-    arguments.append(
-        '%s%s/' % (constants.ARTIFACT_PREFIX_FLAG, minimize_temp_dir))
-
-  # Call the fuzzer to minimize.
-  result = runner.minimize_crash(
-      testcase_file_path,
-      minimize_to,
-      minimize_timeout,
-      additional_args=arguments)
-
-  print('Running command:',
-        get_printable_command(result.command, runner.executable_path,
-                              use_minijail))
-  print(result.output)
-
-
-def cleanse_testcase(runner, testcase_file_path, cleanse_to, cleanse_timeout,
-                     arguments, use_minijail):
-  """Cleanse testcase."""
-  remove_fuzzing_arguments(arguments)
-
-  # Write in-progress cleanse testcases to temp dir.
-  if use_minijail:
-    arguments.append(constants.TMP_ARTIFACT_PREFIX_ARGUMENT)
-  else:
-    cleanse_temp_dir = os.path.join(fuzzer_utils.get_temp_dir(), 'cleanse_temp')
-    engine_common.recreate_directory(cleanse_temp_dir)
-    arguments.append(
-        '%s%s/' % (constants.ARTIFACT_PREFIX_FLAG, cleanse_temp_dir))
-
-  # Call the fuzzer to cleanse.
-  result = runner.cleanse_crash(
-      testcase_file_path,
-      cleanse_to,
-      cleanse_timeout,
-      additional_args=arguments)
-
-  print('Running command:',
-        get_printable_command(result.command, runner.executable_path,
-                              use_minijail))
-  print(result.output)
-
-
 def get_printable_command(command, fuzzer_path, use_minijail):
   """Return a printable version of the command."""
   if use_minijail:
@@ -592,7 +524,7 @@ def pick_strategies(strategy_pool,
         fuzzing_strategies.append(strategy.CORPUS_MUTATION_ML_RNN_STRATEGY.name)
 
     additional_corpus_dirs.append(new_testcase_mutations_directory)
-    if environment.get_value('USE_MINIJAIL'):
+    if minijail_chroot:
       bind_corpus_dirs(minijail_chroot, [new_testcase_mutations_directory])
 
   if strategy_pool.do_strategy(strategy.RANDOM_MAX_LENGTH_STRATEGY):
@@ -682,26 +614,6 @@ def main(argv):
   # file and options that this script requires.
   set_sanitizer_options(fuzzer_path)
 
-  # Minimize test argument.
-  minimize_to = fuzzer_utils.extract_argument(arguments, MINIMIZE_TO_ARGUMENT)
-  minimize_timeout = fuzzer_utils.extract_argument(arguments,
-                                                   MINIMIZE_TIMEOUT_ARGUMENT)
-
-  if minimize_to and minimize_timeout:
-    minimize_testcase(runner, testcase_file_path, minimize_to,
-                      int(minimize_timeout), arguments, use_minijail)
-    return
-
-  # Cleanse argument.
-  cleanse_to = fuzzer_utils.extract_argument(arguments, CLEANSE_TO_ARGUMENT)
-  cleanse_timeout = fuzzer_utils.extract_argument(arguments,
-                                                  CLEANSE_TIMEOUT_ARGUMENT)
-
-  if cleanse_to and cleanse_timeout:
-    cleanse_testcase(runner, testcase_file_path, cleanse_to,
-                     int(cleanse_timeout), arguments, use_minijail)
-    return
-
   # If we don't have a corpus, then that means this is not a fuzzing run.
   # TODO(flowerhack): Implement this to properly load past testcases.
   if not corpus_directory and environment.platform() != 'FUCHSIA':
@@ -765,17 +677,13 @@ def main(argv):
   corpus_directories.extend(strategy_info.additional_corpus_dirs)
 
   # Bind corpus directories in minijail.
-  if use_minijail:
-    artifact_prefix = constants.ARTIFACT_PREFIX_FLAG + '/'
-  else:
-    artifact_prefix = '%s%s/' % (constants.ARTIFACT_PREFIX_FLAG,
-                                 os.path.abspath(
-                                     os.path.dirname(testcase_file_path)))
+  artifact_prefix = os.path.abspath(os.path.dirname(testcase_file_path))
   # Execute the fuzzer binary with original arguments.
   fuzz_result = runner.fuzz(
       corpus_directories,
       fuzz_timeout=fuzz_timeout,
-      additional_args=arguments + [artifact_prefix],
+      artifact_prefix=artifact_prefix,
+      additional_args=arguments,
       extra_env=strategy_info.extra_env)
 
   if (not use_minijail and
@@ -791,21 +699,8 @@ def main(argv):
   fuzz_result.output = None
 
   # Check if we crashed, and get the crash testcase path.
-  crash_testcase_file_path = None
-  for line in log_lines:
-    match = re.match(CRASH_TESTCASE_REGEX, line)
-    if match:
-      crash_testcase_file_path = match.group(1)
-      break
-
+  crash_testcase_file_path = runner.get_testcase_path(log_lines)
   if crash_testcase_file_path:
-    # Write the new testcase.
-    if use_minijail:
-      # Convert chroot relative path to host path. Remove the leading '/' before
-      # joining.
-      crash_testcase_file_path = os.path.join(minijail_chroot.directory,
-                                              crash_testcase_file_path[1:])
-
     # Copy crash testcase contents into the main testcase path.
     shutil.move(crash_testcase_file_path, testcase_file_path)
 
