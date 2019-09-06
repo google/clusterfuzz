@@ -345,14 +345,13 @@ def store_current_weights_in_bigquery():
 def update_job_weight(job_name, multiplier):
   """Update a job weight."""
   tool_name = environment.get_memory_tool_name(job_name)
-  weight = SANITIZER_WEIGHTS.get(tool_name, DEFAULT_SANITIZER_WEIGHT)
-  weight = weight * multiplier
+  multiplier *= SANITIZER_WEIGHTS.get(tool_name, DEFAULT_SANITIZER_WEIGHT)
 
   query = data_types.FuzzerJob.query(data_types.FuzzerJob.job == job_name)
   changed_weights = []
   for fuzzer_job in query:
-    if fuzzer_job.automated_weight != weight:
-      fuzzer_job.automated_weight = weight
+    if fuzzer_job.multiplier != multiplier:
+      fuzzer_job.multiplier = multiplier
       changed_weights.append(fuzzer_job)
 
   if changed_weights:

@@ -1330,13 +1330,13 @@ class FuzzerJob(Model):
   fuzzer = ndb.StringProperty()
   job = ndb.StringProperty()
   platform = ndb.StringProperty()
-  weight = ndb.FloatProperty()
-  automated_weight = ndb.FloatProperty(default=1.0)
+  weight = ndb.FloatProperty(default=1.0)
+  multiplier = ndb.FloatProperty(default=1.0)
 
   @property
   def actual_weight(self):
     """Get the actual weight for this job."""
-    return self.weight or self.automated_weight
+    return self.weight * self.multiplier
 
 
 class OssFuzzBuildFailure(Model):

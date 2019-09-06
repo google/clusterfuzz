@@ -315,10 +315,10 @@ class TestUpdateJobWeights(unittest.TestCase):
     def get_result(job):
       return data_types.FuzzerJob.query(data_types.FuzzerJob.job == job).get()
 
-    self.assertEqual(5.0, get_result('libfuzzer_asan_job').automated_weight)
-    self.assertEqual(1.0, get_result('libfuzzer_msan_job').automated_weight)
-    self.assertEqual(0.5, get_result('libfuzzer_ubsan_job').automated_weight)
-    self.assertEqual(0.5, get_result('libfuzzer_tsan_job').automated_weight)
-    self.assertEqual(0.5, get_result('libfuzzer_cfi_job').automated_weight)
-    self.assertEqual(5.0, get_result('afl_asan_job').automated_weight)
-    self.assertEqual(5.0, get_result('asan_blackbox_job').automated_weight)
+    self.assertEqual(5.0, get_result('libfuzzer_asan_job').multiplier)
+    self.assertEqual(1.0, get_result('libfuzzer_msan_job').multiplier)
+    self.assertEqual(0.5, get_result('libfuzzer_ubsan_job').multiplier)
+    self.assertEqual(0.5, get_result('libfuzzer_tsan_job').multiplier)
+    self.assertEqual(0.5, get_result('libfuzzer_cfi_job').multiplier)
+    self.assertEqual(5.0, get_result('afl_asan_job').multiplier)
+    self.assertEqual(5.0, get_result('asan_blackbox_job').multiplier)
