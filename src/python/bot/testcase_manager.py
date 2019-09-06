@@ -606,7 +606,7 @@ class TestcaseRunner(object):
   def _get_crash_state(self, round_number, crash_result):
     """Get crash state from a CrashResult."""
     state = crash_result.get_symbolized_data()
-    if state.is_crash():
+    if crash_result.is_crash():
       logs.log(
           ('Crash occurred in {crash_time} seconds (round {round_number}). '
            'State:\n{crash_state}').format(
