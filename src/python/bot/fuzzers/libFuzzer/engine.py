@@ -14,7 +14,6 @@
 """libFuzzer engine interface."""
 
 import os
-import re
 
 from base import utils
 from bot.fuzzers import dictionary_manager
