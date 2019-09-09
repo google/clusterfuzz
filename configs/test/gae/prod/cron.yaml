@@ -51,8 +51,8 @@ cron:
     schedule: every day 04:30
     target: cron-service
 
-  - description: Adjust target weights based on fuzzer stats.
-    url: /fuzzer-weights
+  - description: Adjust target and job weights based on fuzzer stats.
+    url: /fuzzer-and-job-weights
     schedule: every day 03:00
     target: cron-service
 

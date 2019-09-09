@@ -17,18 +17,19 @@ import datetime
 import unittest
 
 from datastore import data_types
-from handlers.cron import fuzzer_weights
+from handlers.cron import fuzzer_and_job_weights
 from tests.test_libs import helpers as test_helpers
 from tests.test_libs import test_utils
 
-_TEST_SPECIFICATION = fuzzer_weights.QuerySpecification(
+_TEST_SPECIFICATION = fuzzer_and_job_weights.QuerySpecification(
     query_format='ignored',
-    formatter=fuzzer_weights._past_day_formatter,
+    formatter=fuzzer_and_job_weights._past_day_formatter,
     reason='matches test specification')
 
 
 class TestFormatters(unittest.TestCase):
-  """Tests for the query formatter functions used by fuzzer_weights.py."""
+  """Tests for the query formatter functions used by
+  fuzzer_and_job_weights.py."""
 
   def setUp(self):
     test_helpers.patch(self, [
@@ -52,10 +53,10 @@ GROUP BY
   fuzzer,
   job
 """
-    specific_query_format = fuzzer_weights.GENERIC_QUERY_FORMAT.format(
+    specific_query_format = fuzzer_and_job_weights.GENERIC_QUERY_FORMAT.format(
         field_name='field', min_weight=0.25)
-    actual_query = fuzzer_weights._past_day_formatter(specific_query_format,
-                                                      'engine')
+    actual_query = fuzzer_and_job_weights._past_day_formatter(
+        specific_query_format, 'engine')
     self.assertEqual(actual_query, expected_query)
 
   def test_new_fuzzer_formatter(self):
@@ -74,8 +75,8 @@ GROUP BY
 HAVING
   first_time >= TIMESTAMP('2017-12-25')
 """
-    actual_query = fuzzer_weights._new_fuzzer_formatter(
-        fuzzer_weights.NEW_FUZZER_FORMAT, 'engine')
+    actual_query = fuzzer_and_job_weights._new_fuzzer_formatter(
+        fuzzer_and_job_weights.NEW_FUZZER_FORMAT, 'engine')
     self.assertEqual(actual_query, expected_query)
 
   def test_coverage_formatter(self):
@@ -125,8 +126,8 @@ ON
 WHERE
   ABS((recent.coverage - older.coverage) / recent.coverage) < 0.01
 """
-    actual_query = fuzzer_weights._coverage_formatter(
-        fuzzer_weights.COVERAGE_UNCHANGED_FORMAT, 'engine')
+    actual_query = fuzzer_and_job_weights._coverage_formatter(
+        fuzzer_and_job_weights.COVERAGE_UNCHANGED_FORMAT, 'engine')
     self.assertEqual(actual_query, expected_query)
 
 
@@ -137,9 +138,10 @@ class TestUpdateChildWeightsForParentFuzzer(unittest.TestCase):
   def setUp(self):
     test_helpers.patch_environ(self)
     test_helpers.patch(self, [
-        'handlers.cron.fuzzer_weights._query_helper',
-        'handlers.cron.fuzzer_weights.store_current_weights_in_bigquery',
-        'handlers.cron.fuzzer_weights.update_weight_for_target',
+        'handlers.cron.fuzzer_and_job_weights._query_helper',
+        'handlers.cron.fuzzer_and_job_weights.'
+        'store_current_weights_in_bigquery',
+        'handlers.cron.fuzzer_and_job_weights.update_weight_for_target',
     ])
 
   def test_reported_fuzzer_has_weight_restored(self):
@@ -161,10 +163,11 @@ class TestUpdateChildWeightsForParentFuzzer(unittest.TestCase):
         },
     ]
 
-    fuzzer_weights.update_target_weights_for_engine(None, 'libFuzzer',
-                                                    [_TEST_SPECIFICATION])
+    fuzzer_and_job_weights.update_target_weights_for_engine(
+        None, 'libFuzzer', [_TEST_SPECIFICATION])
     self.mock.update_weight_for_target.assert_called_with(
-        'libFuzzer_good_fuzzer', 'asan', fuzzer_weights.RESTORE_DEFAULT_MATCH)
+        'libFuzzer_good_fuzzer', 'asan',
+        fuzzer_and_job_weights.RESTORE_DEFAULT_MATCH)
 
   def test_weight_increase(self):
     """Ensure that weight increases are possible."""
@@ -186,14 +189,14 @@ class TestUpdateChildWeightsForParentFuzzer(unittest.TestCase):
         },
     ]
 
-    specification = fuzzer_weights.QuerySpecification(
+    specification = fuzzer_and_job_weights.QuerySpecification(
         query_format='ignored',
-        formatter=fuzzer_weights._past_day_formatter,
+        formatter=fuzzer_and_job_weights._past_day_formatter,
         reason='increase weight for test')
-    match = fuzzer_weights.SpecificationMatch(
+    match = fuzzer_and_job_weights.SpecificationMatch(
         new_weight=2.0, reason=specification.reason)
-    fuzzer_weights.update_target_weights_for_engine(None, 'libFuzzer',
-                                                    [specification])
+    fuzzer_and_job_weights.update_target_weights_for_engine(
+        None, 'libFuzzer', [specification])
     self.mock.update_weight_for_target.assert_called_with(
         'libFuzzer_very_good_fuzzer', 'asan', match)
 
@@ -210,8 +213,8 @@ class TestUpdateChildWeightsForParentFuzzer(unittest.TestCase):
     # Do not report any runs.
     self.mock._query_helper.return_value = []
 
-    fuzzer_weights.update_target_weights_for_engine(None, 'libFuzzer',
-                                                    [_TEST_SPECIFICATION])
+    fuzzer_and_job_weights.update_target_weights_for_engine(
+        None, 'libFuzzer', [_TEST_SPECIFICATION])
     self.assertFalse(self.mock.update_weight_for_target.called)
 
   def test_problem_penalized(self):
@@ -233,9 +236,9 @@ class TestUpdateChildWeightsForParentFuzzer(unittest.TestCase):
         },
     ]
 
-    fuzzer_weights.update_target_weights_for_engine(None, 'libFuzzer',
-                                                    [_TEST_SPECIFICATION])
-    expected_match = fuzzer_weights.SpecificationMatch(
+    fuzzer_and_job_weights.update_target_weights_for_engine(
+        None, 'libFuzzer', [_TEST_SPECIFICATION])
+    expected_match = fuzzer_and_job_weights.SpecificationMatch(
         new_weight=0.25, reason=_TEST_SPECIFICATION.reason)
     self.mock.update_weight_for_target.assert_called_with(
         'libFuzzer_problematic_fuzzer', 'dummy_job', expected_match)
@@ -267,9 +270,55 @@ class TestUpdateChildWeightsForParentFuzzer(unittest.TestCase):
         },
     ]
 
-    fuzzer_weights.update_target_weights_for_engine(
-        None, 'libFuzzer', [fuzzer_weights.NEW_FUZZER_SPECIFICATION])
-    expected_match = fuzzer_weights.SpecificationMatch(
-        new_weight=5.0, reason=fuzzer_weights.NEW_FUZZER_SPECIFICATION.reason)
+    fuzzer_and_job_weights.update_target_weights_for_engine(
+        None, 'libFuzzer', [fuzzer_and_job_weights.NEW_FUZZER_SPECIFICATION])
+    expected_match = fuzzer_and_job_weights.SpecificationMatch(
+        new_weight=5.0,
+        reason=fuzzer_and_job_weights.NEW_FUZZER_SPECIFICATION.reason)
     self.mock.update_weight_for_target.assert_called_with(
         'libFuzzer_new_fuzzer', 'dummy_job', expected_match)
+
+
+@test_utils.with_cloud_emulators('datastore')
+class TestUpdateJobWeights(unittest.TestCase):
+  """Test updating job weights."""
+
+  def setUp(self):
+    test_fuzzer_jobs = {
+        'libFuzzer': [
+            'libfuzzer_asan_job',
+            'libfuzzer_msan_job',
+            'libfuzzer_ubsan_job',
+            'libfuzzer_tsan_job',
+            'libfuzzer_cfi_job',
+        ],
+        'afl': ['afl_asan_job',],
+        'blackbox': ['asan_blackbox_job',]
+    }
+
+    for fuzzer, jobs in test_fuzzer_jobs.items():
+      for job in jobs:
+        data_types.Job(name=job).put()
+        data_types.FuzzerJob(fuzzer=fuzzer, job=job).put()
+
+    data_types.FuzzTargetsCount(id='libfuzzer_asan_job', count=10).put()
+    data_types.FuzzTargetsCount(id='libfuzzer_msan_job', count=5).put()
+    data_types.FuzzTargetsCount(id='libfuzzer_ubsan_job', count=5).put()
+    data_types.FuzzTargetsCount(id='libfuzzer_tsan_job', count=5).put()
+    data_types.FuzzTargetsCount(id='libfuzzer_cfi_job', count=5).put()
+    data_types.FuzzTargetsCount(id='afl_asan_job', count=10).put()
+
+  def test_update_job_weights(self):
+    """Test update job weights."""
+    fuzzer_and_job_weights.update_job_weights()
+
+    def get_result(job):
+      return data_types.FuzzerJob.query(data_types.FuzzerJob.job == job).get()
+
+    self.assertEqual(5.0, get_result('libfuzzer_asan_job').multiplier)
+    self.assertEqual(1.0, get_result('libfuzzer_msan_job').multiplier)
+    self.assertEqual(0.5, get_result('libfuzzer_ubsan_job').multiplier)
+    self.assertEqual(0.5, get_result('libfuzzer_tsan_job').multiplier)
+    self.assertEqual(0.5, get_result('libfuzzer_cfi_job').multiplier)
+    self.assertEqual(5.0, get_result('afl_asan_job').multiplier)
+    self.assertEqual(15.0, get_result('asan_blackbox_job').multiplier)

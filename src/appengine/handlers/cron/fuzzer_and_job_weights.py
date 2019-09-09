@@ -20,18 +20,34 @@ import six
 from base import utils
 from datastore import data_handler
 from datastore import data_types
+from datastore import ndb
 from datastore import ndb_utils
 from google_cloud_utils import big_query
 from handlers import base_handler
 from libs import handler
 from metrics import fuzzer_stats
 from metrics import logs
+from system import environment
 
 QuerySpecification = collections.namedtuple(
     'QuerySpecification', ['query_format', 'formatter', 'reason'])
 
 SpecificationMatch = collections.namedtuple('SpecificationMatch',
                                             ['new_weight', 'reason'])
+
+DEFAULT_MULTIPLIER = 30.0  # Used for blackbox and jobs that are not yet run.
+DEFAULT_SANITIZER_WEIGHT = 0.1
+
+SANITIZER_BASE_WEIGHT = 0.1
+
+# TODO(ochang): architecture weights.
+SANITIZER_WEIGHTS = {
+    'ASAN': 5 * SANITIZER_BASE_WEIGHT,
+    'CFI': 1 * SANITIZER_BASE_WEIGHT,
+    'MSAN': 2 * SANITIZER_BASE_WEIGHT,
+    'TSAN': 1 * SANITIZER_BASE_WEIGHT,
+    'UBSAN': 1 * SANITIZER_BASE_WEIGHT,
+}
 
 
 # Formatters for query specifications.
@@ -326,6 +342,34 @@ def store_current_weights_in_bigquery():
   client.insert(rows)
 
 
+def update_job_weight(job_name, multiplier):
+  """Update a job weight."""
+  tool_name = environment.get_memory_tool_name(job_name)
+  multiplier *= SANITIZER_WEIGHTS.get(tool_name, DEFAULT_SANITIZER_WEIGHT)
+
+  query = data_types.FuzzerJob.query(data_types.FuzzerJob.job == job_name)
+  changed_weights = []
+  for fuzzer_job in query:
+    if fuzzer_job.multiplier != multiplier:
+      fuzzer_job.multiplier = multiplier
+      changed_weights.append(fuzzer_job)
+
+  if changed_weights:
+    ndb.put_multi(changed_weights)
+
+
+def update_job_weights():
+  """Update job weights."""
+  for job in data_types.Job.query():
+    multiplier = DEFAULT_MULTIPLIER
+    if environment.is_engine_fuzzer_job(job.name):
+      targets_count = ndb.Key(data_types.FuzzTargetsCount, job.name).get()
+      if targets_count:
+        multiplier = targets_count.count
+
+    update_job_weight(job.name, multiplier)
+
+
 class Handler(base_handler.Handler):
   """Handler to periodically update fuzz target weights based on performance."""
 
@@ -336,5 +380,6 @@ class Handler(base_handler.Handler):
     update_target_weights_for_engine(client, 'libFuzzer',
                                      LIBFUZZER_SPECIFICATIONS)
     update_target_weights_for_engine(client, 'afl', AFL_SPECIFICATIONS)
+    update_job_weights()
 
     store_current_weights_in_bigquery()

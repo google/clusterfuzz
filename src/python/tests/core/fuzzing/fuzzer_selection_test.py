@@ -121,6 +121,13 @@ class UpdateMappingsForFuzzerTest(unittest.TestCase):
     self.assertEqual([], mappings)
 
 
+def _mock_random_weighted_choice(items, weight_attribute='weight'):  # pylint: disable=unused-argument
+  """Mock random_weighted_choice."""
+  # Always select the first element rather than a random one for the sake of
+  # determinism.
+  return items[0]
+
+
 @test_utils.with_cloud_emulators('datastore')
 class GetFuzzTaskPayloadTest(unittest.TestCase):
   """Tests for the get_fuzz_task_payload function."""
@@ -130,9 +137,7 @@ class GetFuzzTaskPayloadTest(unittest.TestCase):
         'base.utils.random_weighted_choice',
     ])
 
-    # Always select the first element rather than a random one for the sake of
-    # determinism.
-    self.mock.random_weighted_choice.side_effect = lambda x: x[0]
+    self.mock.random_weighted_choice.side_effect = _mock_random_weighted_choice
 
   def test_no_mappings(self):
     """Ensure that we raise an exception if we don't find a task."""

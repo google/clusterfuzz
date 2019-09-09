@@ -1105,6 +1105,11 @@ def fuzz_target_project_qualified_name(project, binary):
   return normalized_project_prefix + binary
 
 
+class FuzzTargetsCount(Model):
+  """Fuzz targets count for every job. Key IDs are the job name."""
+  count = ndb.IntegerProperty(indexed=False)
+
+
 class FuzzTargetJob(Model):
   """Mapping between fuzz target and jobs with additional metadata for
   selection."""
@@ -1326,6 +1331,12 @@ class FuzzerJob(Model):
   job = ndb.StringProperty()
   platform = ndb.StringProperty()
   weight = ndb.FloatProperty(default=1.0)
+  multiplier = ndb.FloatProperty(default=1.0)
+
+  @property
+  def actual_weight(self):
+    """Get the actual weight for this job."""
+    return self.weight * self.multiplier
 
 
 class OssFuzzBuildFailure(Model):

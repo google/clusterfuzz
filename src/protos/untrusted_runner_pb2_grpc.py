@@ -38,16 +38,6 @@ class UntrustedRunnerStub(object):
         request_serializer=untrusted__runner__pb2.SetupRegularBuildRequest.SerializeToString,
         response_deserializer=untrusted__runner__pb2.SetupBuildResponse.FromString,
         )
-    self.SetupSymbolizedBuild = channel.unary_unary(
-        '/UntrustedRunner/SetupSymbolizedBuild',
-        request_serializer=untrusted__runner__pb2.SetupSymbolizedBuildRequest.SerializeToString,
-        response_deserializer=untrusted__runner__pb2.SetupBuildResponse.FromString,
-        )
-    self.SetupProductionBuild = channel.unary_unary(
-        '/UntrustedRunner/SetupProductionBuild',
-        request_serializer=untrusted__runner__pb2.SetupProductionBuildRequest.SerializeToString,
-        response_deserializer=untrusted__runner__pb2.SetupBuildResponse.FromString,
-        )
     self.RunProcess = channel.unary_unary(
         '/UntrustedRunner/RunProcess',
         request_serializer=untrusted__runner__pb2.RunProcessRequest.SerializeToString,
@@ -153,20 +143,6 @@ class UntrustedRunnerServicer(object):
 
   def SetupRegularBuild(self, request, context):
     """Set up regular build.
-    """
-    context.set_code(grpc.StatusCode.UNIMPLEMENTED)
-    context.set_details('Method not implemented!')
-    raise NotImplementedError('Method not implemented!')
-
-  def SetupSymbolizedBuild(self, request, context):
-    """Set up symbolized build.
-    """
-    context.set_code(grpc.StatusCode.UNIMPLEMENTED)
-    context.set_details('Method not implemented!')
-    raise NotImplementedError('Method not implemented!')
-
-  def SetupProductionBuild(self, request, context):
-    """Set up production build.
     """
     context.set_code(grpc.StatusCode.UNIMPLEMENTED)
     context.set_details('Method not implemented!')
@@ -309,16 +285,6 @@ def add_UntrustedRunnerServicer_to_server(servicer, server):
       'SetupRegularBuild': grpc.unary_unary_rpc_method_handler(
           servicer.SetupRegularBuild,
           request_deserializer=untrusted__runner__pb2.SetupRegularBuildRequest.FromString,
-          response_serializer=untrusted__runner__pb2.SetupBuildResponse.SerializeToString,
-      ),
-      'SetupSymbolizedBuild': grpc.unary_unary_rpc_method_handler(
-          servicer.SetupSymbolizedBuild,
-          request_deserializer=untrusted__runner__pb2.SetupSymbolizedBuildRequest.FromString,
-          response_serializer=untrusted__runner__pb2.SetupBuildResponse.SerializeToString,
-      ),
-      'SetupProductionBuild': grpc.unary_unary_rpc_method_handler(
-          servicer.SetupProductionBuild,
-          request_deserializer=untrusted__runner__pb2.SetupProductionBuildRequest.FromString,
           response_serializer=untrusted__runner__pb2.SetupBuildResponse.SerializeToString,
       ),
       'RunProcess': grpc.unary_unary_rpc_method_handler(

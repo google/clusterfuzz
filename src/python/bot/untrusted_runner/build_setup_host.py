@@ -57,6 +57,7 @@ def _update_env_from_response(response):
   environment.set_value('BUILD_DIR', response.build_dir)
   environment.set_value('BUILD_URL', response.build_url)
   environment.set_value('FUZZ_TARGET', response.fuzz_target)
+  environment.set_value('FUZZ_TARGET_COUNT', response.fuzz_target_count)
 
 
 class RemoteRegularBuild(build_manager.RegularBuild):
@@ -72,29 +73,3 @@ class RemoteRegularBuild(build_manager.RegularBuild):
       request.target_weights.update(self.target_weights)
 
     return _handle_response(self, host.stub().SetupRegularBuild(request))
-
-
-class RemoteSymbolizedBuild(build_manager.SymbolizedBuild):
-  """Remote symbolized build."""
-
-  def setup(self):
-    request = untrusted_runner_pb2.SetupSymbolizedBuildRequest(
-        base_build_dir=self.base_build_dir,
-        revision=self.revision,
-        release_build_url=self.release_build_url,
-        debug_build_url=self.debug_build_url)
-
-    return _handle_response(self, host.stub().SetupSymbolizedBuild(request))
-
-
-class RemoteProductionBuild(build_manager.ProductionBuild):
-  """Remote production build."""
-
-  def setup(self):
-    request = untrusted_runner_pb2.SetupProductionBuildRequest(
-        base_build_dir=self.base_build_dir,
-        version=self.revision,
-        build_url=self.build_url,
-        build_type=self.build_type)
-
-    return _handle_response(self, host.stub().SetupProductionBuild(request))

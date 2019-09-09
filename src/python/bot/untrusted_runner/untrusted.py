@@ -111,14 +111,6 @@ class UntrustedRunnerServicer(
     return build_setup.setup_regular_build(request)
 
   @wrap_servicer
-  def SetupSymbolizedBuild(self, request, _):
-    return build_setup.setup_symbolized_build(request)
-
-  @wrap_servicer
-  def SetupProductionBuild(self, request, _):
-    return build_setup.setup_production_build(request)
-
-  @wrap_servicer
   def RunAndWait(self, request, context):
     return remote_process.run_and_wait(request, context)
 
