@@ -279,10 +279,12 @@ class LibFuzzerCommon(object):
         constants.MINIMIZE_CRASH_ARGUMENT,
         max_total_time_argument,
         constants.EXACT_ARTIFACT_PATH_FLAG + output_path,
-        constants.ARTIFACT_PREFIX_FLAG +
-        self._normalize_artifact_prefix(artifact_prefix),
-        testcase_path,
     ])
+
+    if artifact_prefix:
+      additional_args.append(constants.ARTIFACT_PREFIX_FLAG +
+                             self._normalize_artifact_prefix(artifact_prefix))
+    additional_args.append(testcase_path)
 
     return self.run_and_wait(
         additional_args=additional_args,
@@ -312,9 +314,12 @@ class LibFuzzerCommon(object):
     additional_args.extend([
         constants.CLEANSE_CRASH_ARGUMENT,
         constants.EXACT_ARTIFACT_PATH_FLAG + output_path,
-        constants.ARTIFACT_PREFIX_FLAG +
-        self._normalize_artifact_prefix(artifact_prefix), testcase_path
     ])
+
+    if artifact_prefix:
+      additional_args.append(constants.ARTIFACT_PREFIX_FLAG +
+                             self._normalize_artifact_prefix(artifact_prefix))
+    additional_args.append(testcase_path)
 
     return self.run_and_wait(
         additional_args=additional_args,
@@ -503,7 +508,7 @@ class MinijailLibFuzzerRunner(engine_common.MinijailEngineFuzzerRunner,
     if not path:
       return path
 
-    return os.path.join(self.chroot.directory, path[1:])
+    return os.path.join(self.chroot.directory, path.lstrip(os.sep))
 
   def _get_chroot_corpus_paths(self, corpus_directories):
     """Return chroot relative paths for the given corpus directories.
@@ -542,7 +547,7 @@ class MinijailLibFuzzerRunner(engine_common.MinijailEngineFuzzerRunner,
     for corpus_directory in corpus_directories:
       target_dir = '/' + os.path.basename(corpus_directory)
       self.chroot.add_binding(
-          minijail.ChrootBinding(corpus_directory, target_dir, True))
+          minijail.ChrootBinding(corpus_directory, target_dir, writeable=True))
 
   def analyze_dictionary(self,
                          dictionary_path,
@@ -569,23 +574,16 @@ class MinijailLibFuzzerRunner(engine_common.MinijailEngineFuzzerRunner,
            extra_env=None):
     """LibFuzzerCommon.fuzz override."""
     self._bind_corpus_dirs(corpus_directories)
-    crash_location_regex = re.compile(r'.*Test unit written to\s*(.*)')
-
     corpus_directories = self._get_chroot_corpus_paths(corpus_directories)
+
     # Set artifact prefix to '/' in minijail.
-    result = LibFuzzerCommon.fuzz(
+    return LibFuzzerCommon.fuzz(
         self,
         corpus_directories,
         fuzz_timeout,
         artifact_prefix='/',
         additional_args=additional_args,
         extra_env=extra_env)
-
-    log_lines = result.output.splitlines()
-    for line in log_lines:
-      crash_location_regex.match(line)
-
-    return result
 
   def merge(self,
             corpus_directories,
@@ -671,6 +669,10 @@ def get_runner(fuzzer_path, temp_dir=None, use_minijail=None):
   if use_minijail is None:
     use_minijail = environment.get_value('USE_MINIJAIL')
 
+  if use_minijail is False:
+    # If minijail is explicitly disabled, set the environment variable as well.
+    environment.set_value('USE_MINIJAIL', False)
+
   build_dir = environment.get_value('BUILD_DIR')
   dataflow_build_dir = environment.get_value('DATAFLOW_BUILD_DIR')
 
@@ -691,16 +693,17 @@ def get_runner(fuzzer_path, temp_dir=None, use_minijail=None):
     # to the same location within the chroot, which leaks the directory
     # structure of CF but this shouldn't be a big deal.
     minijail_chroot.add_binding(
-        minijail.ChrootBinding(build_dir, build_dir, False))
+        minijail.ChrootBinding(build_dir, build_dir, writeable=False))
 
     if dataflow_build_dir:
       minijail_chroot.add_binding(
-          minijail.ChrootBinding(dataflow_build_dir, dataflow_build_dir, False))
+          minijail.ChrootBinding(
+              dataflow_build_dir, dataflow_build_dir, writeable=False))
 
     # Also bind the build dir to /out to make it easier to hardcode references
     # to data files.
     minijail_chroot.add_binding(
-        minijail.ChrootBinding(build_dir, '/out', False))
+        minijail.ChrootBinding(build_dir, '/out', writeable=False))
 
     minijail_bin = os.path.join(minijail_chroot.directory, 'bin')
     shell.create_directory(minijail_bin)
