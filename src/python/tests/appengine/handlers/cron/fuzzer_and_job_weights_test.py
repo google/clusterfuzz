@@ -321,4 +321,4 @@ class TestUpdateJobWeights(unittest.TestCase):
     self.assertEqual(0.5, get_result('libfuzzer_tsan_job').multiplier)
     self.assertEqual(0.5, get_result('libfuzzer_cfi_job').multiplier)
     self.assertEqual(5.0, get_result('afl_asan_job').multiplier)
-    self.assertEqual(5.0, get_result('asan_blackbox_job').multiplier)
+    self.assertEqual(15.0, get_result('asan_blackbox_job').multiplier)

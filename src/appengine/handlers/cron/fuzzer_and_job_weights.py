@@ -35,7 +35,7 @@ QuerySpecification = collections.namedtuple(
 SpecificationMatch = collections.namedtuple('SpecificationMatch',
                                             ['new_weight', 'reason'])
 
-DEFAULT_MULTIPLIER = 10.0  # Used for blackbox and jobs that are not yet run.
+DEFAULT_MULTIPLIER = 30.0  # Used for blackbox and jobs that are not yet run.
 DEFAULT_SANITIZER_WEIGHT = 0.1
 
 SANITIZER_BASE_WEIGHT = 0.1
