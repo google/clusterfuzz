@@ -336,43 +336,6 @@ class TestLauncher(BaseLauncherTest):
     self.assertIn(expected, output)
     self.assert_has_stats(output, testcase_path)
 
-  def test_minimize(self):
-    """Tests minimize."""
-    testcase_path = setup_testcase_and_corpus(
-        'aaaa', 'empty_corpus', fuzz=False)
-
-    minimize_output_path = os.path.join(TEMP_DIRECTORY, 'minimized_testcase')
-    output = run_launcher(testcase_path, 'crash_with_A_fuzzer', '-max_len=1337',
-                          '--cf-minimize-to=' + minimize_output_path,
-                          '--cf-minimize-timeout=60')
-
-    expected = ('CRASH_MIN: failed to minimize beyond %s (1 bytes), '
-                'exiting' % minimize_output_path)
-    self.assertIn(expected, output)
-    self.assertTrue(os.path.exists(minimize_output_path))
-
-    with open(minimize_output_path) as f:
-      result = f.read()
-      self.assertEqual('A', result)
-
-  def test_cleanse(self):
-    """Tests cleanse."""
-    testcase_path = setup_testcase_and_corpus(
-        'aaaa', 'empty_corpus', fuzz=False)
-
-    cleanse_output_path = os.path.join(TEMP_DIRECTORY, 'cleansed_testcase')
-    output = run_launcher(testcase_path, 'crash_with_A_fuzzer', '-max_len=1337',
-                          '--cf-cleanse-to=' + cleanse_output_path,
-                          '--cf-cleanse-timeout=60')
-
-    expected = 'CLEANSE: Replaced byte'
-    self.assertIn(expected, output)
-    self.assertTrue(os.path.exists(cleanse_output_path))
-
-    with open(cleanse_output_path) as f:
-      result = f.read()
-      self.assertFalse(all(c == 'A' for c in result))
-
   @mock.patch('bot.fuzzers.dictionary_manager.DictionaryManager.'
               'parse_recommended_dictionary_from_log_lines')
   @mock.patch('bot.fuzzers.libFuzzer.launcher.get_fuzz_timeout')
@@ -580,41 +543,6 @@ class TestLauncherMinijail(BaseLauncherTest):
         'empty', 'corpus_with_some_files', fuzz=True)
     output = run_launcher(testcase_path, 'check_tmp', '-max_len=100')
     self.assertIn('SUCCESS!', output)
-
-  def test_minimize(self):
-    """Tests minimize."""
-    testcase_path = setup_testcase_and_corpus(
-        'aaaa', 'empty_corpus', fuzz=False)
-
-    minimize_output_path = os.path.join(TEMP_DIRECTORY, 'minimized_testcase')
-    output = run_launcher(testcase_path, 'crash_with_A_fuzzer', '-max_len=1337',
-                          '--cf-minimize-to=' + minimize_output_path,
-                          '--cf-minimize-timeout=60')
-    self.assertIn(
-        'CRASH_MIN: failed to minimize beyond /minimized_crash '
-        '(1 bytes), exiting', output)
-    self.assertTrue(os.path.exists(minimize_output_path))
-    with open(minimize_output_path) as f:
-      result = f.read()
-      self.assertEqual('A', result)
-
-  def test_cleanse(self):
-    """Tests cleanse."""
-    testcase_path = setup_testcase_and_corpus(
-        'aaaa', 'empty_corpus', fuzz=False)
-
-    cleanse_output_path = os.path.join(TEMP_DIRECTORY, 'cleansed_testcase')
-    output = run_launcher(testcase_path, 'crash_with_A_fuzzer', '-max_len=1337',
-                          '--cf-cleanse-to=' + cleanse_output_path,
-                          '--cf-cleanse-timeout=60')
-
-    expected = 'CLEANSE: Replaced byte'
-    self.assertIn(expected, output)
-    self.assertTrue(os.path.exists(cleanse_output_path))
-
-    with open(cleanse_output_path) as f:
-      result = f.read()
-      self.assertFalse(all(c == 'A' for c in result))
 
   @mock.patch('bot.fuzzers.dictionary_manager.DictionaryManager.'
               'parse_recommended_dictionary_from_log_lines')

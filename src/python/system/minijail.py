@@ -184,6 +184,9 @@ class MinijailChroot(object):
     Args:
       binding: A ChrootBinding.
     """
+    if binding in self._bindings:
+      return
+
     self._makedirs(binding.dest_path)
     self._bindings.append(binding)
 
