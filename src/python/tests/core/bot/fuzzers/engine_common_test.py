@@ -462,6 +462,7 @@ class UnpackSeedCorpusIfNeededTest(fake_filesystem_unittest.TestCase):
 
 
 class GetRadamsaOutputFilenameTest(unittest.TestCase):
+  """get_radamsa_output_filename tests."""
 
   def test_get_output_filename(self):
     output_filename = engine_common.get_radamsa_output_filename('file', 0)

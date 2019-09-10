@@ -140,7 +140,7 @@ def generate_new_testcase_mutations(corpus_directory,
 
 FILENAME_LENGTH_LIMIT = 255
 
-RADAMSA_FILENAME_REGEX = 'radamsa-\d+-(.*)'
+RADAMSA_FILENAME_REGEX = r'radamsa-\d+-(.*)'
 
 
 def get_radamsa_output_filename(initial_filename, i):
