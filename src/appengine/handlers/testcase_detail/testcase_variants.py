@@ -79,7 +79,7 @@ class Handler(base_handler.Handler):
     if testcase.one_time_crasher_flag:
       message = 'Not run for unreproducible testcases.'
     elif not testcase.minimized_keys:
-      message = 'Not started, waiting for minimization to finish.'
+      message = 'Pending, waiting for minimization to finish.'
     else:
       items = self.get_variants(testcase)
 
