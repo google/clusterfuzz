@@ -54,12 +54,17 @@ class Handler(base_handler.Handler):
       }
       if not is_pending:
         item.update({
-            'revision': variant.revision,
-            'crashType': variant.crash_type,
+            'revision':
+                variant.revision,
+            'crashType':
+                variant.crash_type,
             'crashStateLines': (variant.crash_state or '').strip().splitlines(),
-            'securityFlag': variant.security_flag,
-            'isSimilar': variant.is_similar,
-            'reproducerKey': variant.reproducer_key,
+            'securityFlag':
+                variant.security_flag,
+            'isSimilar':
+                variant.is_similar,
+            'reproducerKey':
+                variant.reproducer_key,
         })
       items.append(item)
 
@@ -69,7 +74,17 @@ class Handler(base_handler.Handler):
   @handler.check_testcase_access
   def get(self, testcase):
     """Return testcase variants."""
+    items = []
+    message = None
+    if testcase.one_time_crasher_flag:
+      message = 'Not run for unreproducible testcases.'
+    elif not testcase.minimized_keys:
+      message = 'Not started, waiting for minimization to finish.'
+    else:
+      items = self.get_variants(testcase)
+
     response = {
-        'items': self.get_variants(testcase),
+        'items': items,
+        'message': message,
     }
     self.render_json(response)

@@ -616,9 +616,7 @@
               testcase-id="[[info.testcase.id]]"></crash-stats>
         </template>
 
-        <template is="dom-if" if="[[shouldShowVariants(info)]]">
-          <testcase-variants testcase-id="[[info.testcase.id]]"></testcase-variants>
-        </template>
+        <testcase-variants testcase-id="[[info.testcase.id]]"></testcase-variants>
 
         <template is="dom-if" if="[[info.metadata.gn_args]]">
           <div class="section">
@@ -728,10 +726,6 @@
       shouldShowMinimizedKeys(info) {
         return this.isStatusReady(info) &&
             !this.isNA(info.testcase.minimized_keys);
-      },
-      shouldShowVariants(info) {
-        return !info.testcase.one_time_crasher_flag &&
-            info.testcase.minimized_keys;
       },
       isUnknown(crashType) {
         return crashType == 'UNKNOWN';
