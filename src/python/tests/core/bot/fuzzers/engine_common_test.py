@@ -464,17 +464,22 @@ class UnpackSeedCorpusIfNeededTest(fake_filesystem_unittest.TestCase):
 class GetRadamsaOutputFilenameTest(unittest.TestCase):
   """get_radamsa_output_filename tests."""
 
-  def test_get_output_filename(self):
+  def test_get_radamsa_output_filename(self):
+    """Test get_radamsa_output_filename works as expected."""
     output_filename = engine_common.get_radamsa_output_filename('file', 0)
     self.assertEqual('radamsa-00001-file', output_filename)
 
   def test_no_double_prefix(self):
+    """Test get_radamsa_output_filename strips an existing prefix before adding
+    a new one."""
     output_filename = engine_common.get_radamsa_output_filename(
         'radamsa-00002-file', 0)
     self.assertEqual('radamsa-00001-file', output_filename)
 
-  def test_length_limit(self):
-    linux_filename_length_limit = 255
+  def test_filename_length_limit(self):
+    """Test get_radamsa_output_filename does not return filenames that are too
+    long."""
+    filename_length_limit = 255
     output_filename = engine_common.get_radamsa_output_filename(
-        linux_filename_length_limit * 2 * 'a', 0)
-    self.assertLessEqual(len(output_filename), linux_filename_length_limit)
+        filename_length_limit * 2 * 'a', 0)
+    self.assertLessEqual(len(output_filename), filename_length_limit)

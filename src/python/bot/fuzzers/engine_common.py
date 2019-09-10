@@ -141,14 +141,14 @@ def generate_new_testcase_mutations(corpus_directory,
 # Filename length limit on ext4.
 FILENAME_LENGTH_LIMIT = 255
 
-RADAMSA_FILENAME_REGEX = r'radamsa-\d+-(.*)'
+RADAMSA_FILENAME_REGEX = re.compile(r'radamsa-\d+-(.*)', re.DOTALL)
 
 
 def get_radamsa_output_filename(initial_filename, i):
   """Get the name of a file mutated by radamsa."""
   # Don't add the radamsa prefix to a file that already has it to avoid hitting
   # filename/path length limits.
-  match = re.search(RADAMSA_FILENAME_REGEX, initial_filename, re.DOTALL)
+  match = RADAMSA_FILENAME_REGEX.search(initial_filename)
   if match:
     base_filename = match.group(1)
   else:
