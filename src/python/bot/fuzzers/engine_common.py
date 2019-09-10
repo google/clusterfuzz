@@ -21,6 +21,7 @@ import glob
 import os
 import pipes
 import random
+import re
 import shutil
 import sys
 import time
@@ -137,6 +138,8 @@ def generate_new_testcase_mutations(corpus_directory,
   return False
 
 
+FILENAME_LENGTH_LIMIT = 255
+
 RADAMSA_FILENAME_REGEX = 'radamsa-\d+-(.*)'
 
 
@@ -144,12 +147,13 @@ def get_radamsa_output_filename(initial_filename, i):
   """Get the name of a file mutated by radamsa."""
   # Don't add the radamsa prefix to a file that already has it to avoid hitting
   # filename/path length limits.
-  match = re.search(initial_filename, RADAMSA_FILENAME_REGEX, re.DOTALL)
+  match = re.search(RADAMSA_FILENAME_REGEX, initial_filename, re.DOTALL)
   if match:
-    base_filename = match.group(0)
+    base_filename = match.group(1)
   else:
     base_filename = initial_filename
-  return 'radamsa-%05d-%s' % (i + 1, base_filename)
+  prefix = 'radamsa-%05d' % (i + 1)
+  return '%s-%s' % (prefix, base_filename[:FILENAME_LENGTH_LIMIT - len(prefix)])
 
 
 def generate_new_testcase_mutations_using_radamsa(
@@ -177,8 +181,9 @@ def generate_new_testcase_mutations_using_radamsa(
   for i in range(RADAMSA_MUTATIONS):
     original_file_path = random_choice(filtered_files_list)
     original_filename = os.path.basename(original_file_path)
-    output_path = os.path.join(new_testcase_mutations_directory,
-                               get_radamsa_output_filename(i, original_filename))
+    output_path = os.path.join(
+        new_testcase_mutations_directory,
+        get_radamsa_output_filename(original_filename, i))
 
     result = radamsa_runner.run_and_wait(
         ['-o', output_path, original_file_path], timeout=RADAMSA_TIMEOUT)

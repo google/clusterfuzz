@@ -459,3 +459,19 @@ class UnpackSeedCorpusIfNeededTest(fake_filesystem_unittest.TestCase):
     self._write_seed_corpus(self.seed_corpus_subdirs_contents, '.zip')
     self._unpack_seed_corpus_if_needed()
     self._assert_elements_equal(expected_dir_contents, self._list_corpus_dir())
+
+
+class GetRadamsaOutputFilenameTest(unittest.TestCase):
+
+  def test_get_output_filename(self):
+    output_filename = engine_common.get_radamsa_output_filename('file', 0)
+    self.assertEqual('radamsa-00001-file', output_filename)
+
+  def test_no_double_prefix(self):
+    output_filename = engine_common.get_radamsa_output_filename(
+        'radamsa-00002-file', 0)
+    self.assertEqual('radamsa-00001-file', output_filename)
+
+  def test_length_limit(self):
+    output_filename = engine_common.get_radamsa_output_filename(500 * 'a', 0)
+    self.assertLessThan(len(output_filename), 255)
