@@ -155,7 +155,8 @@ def get_radamsa_output_filename(initial_filename, i):
     base_filename = initial_filename
   prefix = 'radamsa-%05d-' % (i + 1)
   # FIXME: AFL will still break if the filename is near 255 chars since it
-  # naively appends. AFL needs to rename every file to a sensible length.
+  # naively appends. AFL needs to rename every file to a sensible length (not
+  # just those created by radamsa).
   return prefix + base_filename[:FILENAME_LENGTH_LIMIT - len(prefix)]
 
 
