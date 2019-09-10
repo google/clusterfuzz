@@ -154,6 +154,8 @@ def get_radamsa_output_filename(initial_filename, i):
   else:
     base_filename = initial_filename
   prefix = 'radamsa-%05d-' % (i + 1)
+  # FIXME: AFL will still break if the filename is 255. AFL needs to rename
+  # every file to a sensible length.
   return prefix + base_filename[:FILENAME_LENGTH_LIMIT - len(prefix)]
 
 
