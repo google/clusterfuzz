@@ -595,15 +595,13 @@ class MinijailLibFuzzerRunner(engine_common.MinijailEngineFuzzerRunner,
       artifact_prefix = self._get_chroot_directory(artifact_prefix)
 
     # Set artifact prefix to '/' in minijail.
-    result = LibFuzzerCommon.fuzz(
+    return LibFuzzerCommon.fuzz(
         self,
         corpus_directories,
         fuzz_timeout,
         artifact_prefix=artifact_prefix,
         additional_args=additional_args,
         extra_env=extra_env)
-
-    return result
 
   def merge(self,
             corpus_directories,
