@@ -125,54 +125,54 @@
         </div>
       </template>
       <template is="dom-if" if="[[shouldShowresponse(response, loading)]]">
-        <table cellpadding="0" cellspacing="0" class="variant">
-            <template is="dom-if" if="[[nonEmpty(response.items)]]">
-                <tr class="title">
-                  <td>Job name</td>
-                  <td>Status</td>
-                  <td>Revision</td>
-                  <td>Crash type</td>
-                  <td>Crash State</td>
-                  <td>Security</td>
-                  <td>Similar</td>
-                  <td>Reproducer</td>
-                </tr>
-                <template is="dom-repeat" items="[[response.items]]">
-                  <tr class="body">
-                    <td>[[item.job]]</td>
-                    <td>[[item.status]]</td>
+        <template is="dom-if" if="[[nonEmpty(response.items)]]">
+          <table cellpadding="0" cellspacing="0" class="variant">
+            <tr class="title">
+              <td>Job name</td>
+              <td>Status</td>
+              <td>Revision</td>
+              <td>Crash type</td>
+              <td>Crash State</td>
+              <td>Security</td>
+              <td>Similar</td>
+              <td>Reproducer</td>
+            </tr>
+            <template is="dom-repeat" items="[[response.items]]">
+              <tr class="body">
+                <td>[[item.job]]</td>
+                <td>[[item.status]]</td>
 
-                    <template is="dom-if" if="[[!item.isPending]]">
-                      <td>[[item.revision]]</td>
-                      <td>[[item.crashType]]</td>
-                      <td>
-                        <template is="dom-repeat" items="[[item.crashStateLines]]" as="state">
-                          <div>[[state]]</div>
-                        </template>
-                      </td>
-                      <td>[[item.securityFlag]]</td>
-                      <td>[[item.isSimilar]]</td><td>
-                      <if-else condition="[[item.reproducerKey]]">
-                        <span slot="t">
-                          <a href="/download/[[item.reproducerKey]]">
-                            <iron-icon icon="icons:cloud-download"></iron-icon>
-                          </a>
-                        </span>
-                        <span slot="f">Same</span>
-                      </if-else>
+                <template is="dom-if" if="[[!item.isPending]]">
+                  <td>[[item.revision]]</td>
+                  <td>[[item.crashType]]</td>
+                  <td>
+                    <template is="dom-repeat" items="[[item.crashStateLines]]" as="state">
+                      <div>[[state]]</div>
                     </template>
-                    <template is="dom-if" if="[[item.isPending]]">
-                      <td>---</td>
-                      <td>---</td>
-                      <td>---</td>
-                      <td>---</td>
-                      <td>---</td>
-                      <td>---</td>
-                    </template>
-                  </tr>
+                  </td>
+                  <td>[[item.securityFlag]]</td>
+                  <td>[[item.isSimilar]]</td><td>
+                  <if-else condition="[[item.reproducerKey]]">
+                    <span slot="t">
+                      <a href="/download/[[item.reproducerKey]]">
+                        <iron-icon icon="icons:cloud-download"></iron-icon>
+                      </a>
+                    </span>
+                    <span slot="f">Same</span>
+                  </if-else>
                 </template>
+                <template is="dom-if" if="[[item.isPending]]">
+                  <td>---</td>
+                  <td>---</td>
+                  <td>---</td>
+                  <td>---</td>
+                  <td>---</td>
+                  <td>---</td>
+                </template>
+              </tr>
             </template>
-        </table>
+          </table>
+        </template>
         <template is="dom-if" if="[[!nonEmpty(response.items)]]">
           <div class="body padding">
             No reproducible variants found.
