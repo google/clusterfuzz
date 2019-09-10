@@ -202,9 +202,12 @@ class FuzzTest(fake_fs_unittest.TestCase):
     self.mock.fuzz.assert_called_with(
         mock.ANY, ['/fuzz-inputs/temp-9001/new', '/corpus'],
         additional_args=[
-            '-arg=1', '-timeout=123', '-dict=blah.dict', '-max_len=9001',
-            '-artifact_prefix=/fake/'
+            '-arg=1',
+            '-timeout=123',
+            '-dict=blah.dict',
+            '-max_len=9001',
         ],
+        artifact_prefix='/fake',
         extra_env={},
         fuzz_timeout=1470.0)
 
@@ -214,6 +217,7 @@ class FuzzTest(fake_fs_unittest.TestCase):
             '/corpus'
         ],
         additional_args=['-arg=1', '-timeout=123'],
+        artifact_prefix=None,
         merge_timeout=1800.0,
         tmp_dir='/fuzz-inputs/temp-9001/merge-workdir')
 

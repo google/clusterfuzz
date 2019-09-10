@@ -123,10 +123,6 @@ class LibFuzzerEngine(engine.Engine):
         strategy_info.extra_env, strategy_info.use_dataflow_tracing,
         strategy_info.is_mutations_run)
 
-  def _artifact_prefix(self, prefix):
-    """Returns the artifact prefix argument."""
-    return constants.ARTIFACT_PREFIX_FLAG + prefix + '/'
-
   def _create_temp_corpus_dir(self, name):
     """Create temporary corpus directory."""
     new_corpus_directory = os.path.join(fuzzer_utils.get_temp_dir(), name)
@@ -207,8 +203,6 @@ class LibFuzzerEngine(engine.Engine):
     runner = libfuzzer.get_runner(target_path)
     launcher.set_sanitizer_options(target_path)
 
-    artifact_prefix = self._artifact_prefix(os.path.abspath(reproducers_dir))
-
     # Directory to place new units.
     new_corpus_dir = self._create_temp_corpus_dir('new')
 
@@ -218,7 +212,8 @@ class LibFuzzerEngine(engine.Engine):
     fuzz_result = runner.fuzz(
         corpus_directories,
         fuzz_timeout=fuzz_timeout,
-        additional_args=options.arguments + [artifact_prefix],
+        additional_args=options.arguments,
+        artifact_prefix=reproducers_dir,
         extra_env=options.extra_env)
 
     log_lines = fuzz_result.output.splitlines()
@@ -332,15 +327,12 @@ class LibFuzzerEngine(engine.Engine):
     launcher.set_sanitizer_options(target_path)
     merge_tmp_dir = self._create_temp_corpus_dir('merge-workdir')
 
-    if reproducers_dir:
-      artifact_prefix = self._artifact_prefix(os.path.abspath(reproducers_dir))
-      arguments = arguments + [artifact_prefix]
-
     merge_result = runner.merge(
         [output_dir] + input_dirs,
         merge_timeout=max_time,
         tmp_dir=merge_tmp_dir,
-        additional_args=arguments)
+        additional_args=arguments,
+        artifact_prefix=reproducers_dir)
 
     if merge_result.timed_out:
       raise MergeError('Merging new testcases timed out')

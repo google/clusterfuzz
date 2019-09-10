@@ -594,7 +594,6 @@ class MinijailLibFuzzerRunner(engine_common.MinijailEngineFuzzerRunner,
     if artifact_prefix:
       artifact_prefix = self._get_chroot_directory(artifact_prefix)
 
-    # Set artifact prefix to '/' in minijail.
     return LibFuzzerCommon.fuzz(
         self,
         corpus_directories,
