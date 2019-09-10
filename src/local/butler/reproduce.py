@@ -232,11 +232,11 @@ def _prepare_initial_environment(build_directory, iterations, verbose):
   environment.set_value('BUILDS_DIR', build_directory)
 
   # Some functionality must be disabled when running the tool.
-  environment.set_value('REPRODUCE_TOOL', 'True')
+  environment.set_value('REPRODUCE_TOOL', True)
 
   # Force logging to console for this process and child processes.
   if verbose:
-    environment.set_value('LOG_TO_CONSOLE', 'True')
+    environment.set_value('LOG_TO_CONSOLE', True)
 
   if iterations:
     environment.set_value('CRASH_RETRIES', iterations)
