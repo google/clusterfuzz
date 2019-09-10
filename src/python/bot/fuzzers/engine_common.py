@@ -21,6 +21,7 @@ import glob
 import os
 import pipes
 import random
+import re
 import shutil
 import sys
 import time
@@ -137,6 +138,28 @@ def generate_new_testcase_mutations(corpus_directory,
   return False
 
 
+# Filename length limit on ext4.
+FILENAME_LENGTH_LIMIT = 255
+
+RADAMSA_FILENAME_REGEX = re.compile(r'radamsa-\d+-(.*)', re.DOTALL)
+
+
+def get_radamsa_output_filename(initial_filename, i):
+  """Get the name of a file mutated by radamsa."""
+  # Don't add the radamsa prefix to a file that already has it to avoid hitting
+  # filename/path length limits.
+  match = RADAMSA_FILENAME_REGEX.search(initial_filename)
+  if match:
+    base_filename = match.group(1)
+  else:
+    base_filename = initial_filename
+  prefix = 'radamsa-%05d-' % (i + 1)
+  # FIXME: AFL will still break if the filename is near 255 chars since it
+  # naively appends. AFL needs to rename every file to a sensible length (not
+  # just those created by radamsa).
+  return prefix + base_filename[:FILENAME_LENGTH_LIMIT - len(prefix)]
+
+
 def generate_new_testcase_mutations_using_radamsa(
     corpus_directory, new_testcase_mutations_directory, generation_timeout):
   """Generate new testcase mutations based on Radamsa."""
@@ -162,8 +185,9 @@ def generate_new_testcase_mutations_using_radamsa(
   for i in range(RADAMSA_MUTATIONS):
     original_file_path = random_choice(filtered_files_list)
     original_filename = os.path.basename(original_file_path)
-    output_path = os.path.join(new_testcase_mutations_directory,
-                               'radamsa-%08d-%s' % (i + 1, original_filename))
+    output_path = os.path.join(
+        new_testcase_mutations_directory,
+        get_radamsa_output_filename(original_filename, i))
 
     result = radamsa_runner.run_and_wait(
         ['-o', output_path, original_file_path], timeout=RADAMSA_TIMEOUT)
