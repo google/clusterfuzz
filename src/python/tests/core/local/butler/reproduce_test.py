@@ -42,6 +42,7 @@ def _fake_get_testcase(*_):
       'window_argument': '',
       'timeout_multiplier': 1.0,
       'serialized_fuzz_target': None,
+      'one_time_crasher_flag': False,
   }
 
   return reproduce.SerializedTestcase(testcase_map)
@@ -64,6 +65,7 @@ class ReproduceTest(unittest.TestCase):
         'local.butler.reproduce._setup_x',
         'local.butler.reproduce._verify_target_exists',
         'local.butler.reproduce_tool.config.ReproduceToolConfiguration',
+        'local.butler.reproduce_tool.prompts.get_boolean',
         'system.process_handler.run_process',
         'system.process_handler.terminate_stale_application_instances',
     ])
@@ -72,6 +74,7 @@ class ReproduceTest(unittest.TestCase):
     self.mock._download_testcase.return_value = '/tmp/testcase'
     self.mock._get_testcase.side_effect = _fake_get_testcase
     self.mock._setup_x.return_value = []
+    self.mock.get_boolean.return_value = True
     self.mock.run_process.return_value = (0, 0, '/tmp/testcase')
 
     self.build_directory = tempfile.mkdtemp()
@@ -86,13 +89,17 @@ class ReproduceTest(unittest.TestCase):
     """See if the reproduce tool can run a job configured to execute "echo"."""
     crash_retries = 3
     disable_xvfb = False
+    verbose = False
+    disable_android_setup = False
     reproduce._reproduce_crash('https://localhost/testcase-detail/1',
                                self.build_directory, crash_retries,
-                               disable_xvfb)
+                               disable_xvfb, verbose, disable_android_setup)
     reproduce._cleanup()
     self.mock.run_process.assert_called_with(
         self.binary_path + ' -n /tmp/testcase',
         current_working_directory=self.build_directory,
         gestures=[],
         timeout=10)
-    self.assertEqual(self.mock.run_process.call_count, crash_retries)
+
+    # The tool does an initial run before running |crash_retries| times.
+    self.assertEqual(self.mock.run_process.call_count, crash_retries + 1)

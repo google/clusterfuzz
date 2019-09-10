@@ -445,10 +445,11 @@ def setup_host_and_device_forwarder_if_needed():
     adb.run_command(['reverse', port_string, port_string])
 
 
-def update_build(apk_path, force_update=True):
+def update_build(apk_path, force_update=True, should_initialize_device=True):
   """Prepares the device and updates the build if necessary."""
   # Prepare device for app install.
-  initialize_device()
+  if should_initialize_device:
+    initialize_device()
 
   # On Android, we may need to write a command line file. We do this in
   # advance so that we do not have to write this to the device multiple
