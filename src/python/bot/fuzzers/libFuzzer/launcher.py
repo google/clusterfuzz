@@ -676,7 +676,6 @@ def main(argv):
 
   corpus_directories.extend(strategy_info.additional_corpus_dirs)
 
-  # Bind corpus directories in minijail.
   artifact_prefix = os.path.abspath(os.path.dirname(testcase_file_path))
   # Execute the fuzzer binary with original arguments.
   fuzz_result = runner.fuzz(

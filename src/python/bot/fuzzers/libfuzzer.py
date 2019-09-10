@@ -509,7 +509,12 @@ class MinijailLibFuzzerRunner(engine_common.MinijailEngineFuzzerRunner,
     if not path:
       return path
 
-    return os.path.join(self.chroot.directory, path.lstrip(os.sep))
+    for binding in self.chroot.bindings:
+      if path.startswith(binding.dest_path):
+        return os.path.join(binding.src_path,
+                            os.path.relpath(path, binding.dest_path))
+
+    raise LibFuzzerException('Invalid testcase path ' + path)
 
   def _get_chroot_corpus_paths(self, corpus_directories):
     """Return chroot relative paths for the given corpus directories.
@@ -557,7 +562,11 @@ class MinijailLibFuzzerRunner(engine_common.MinijailEngineFuzzerRunner,
                          artifact_prefix=None,
                          additional_args=None):
     """LibFuzzerCommon.analyze_dictionary override."""
-    self._bind_corpus_dirs([corpus_directory])
+    bind_directories = [corpus_directory]
+    if artifact_prefix:
+      bind_directories.append(artifact_prefix)
+
+    self._bind_corpus_dirs(bind_directories)
     corpus_directory = self._get_chroot_directory(corpus_directory)
 
     if artifact_prefix:
@@ -575,15 +584,22 @@ class MinijailLibFuzzerRunner(engine_common.MinijailEngineFuzzerRunner,
            additional_args=None,
            extra_env=None):
     """LibFuzzerCommon.fuzz override."""
-    self._bind_corpus_dirs(corpus_directories)
+    bind_directories = copy.copy(corpus_directories)
+    if artifact_prefix:
+      bind_directories.append(artifact_prefix)
+
+    self._bind_corpus_dirs(bind_directories)
     corpus_directories = self._get_chroot_corpus_paths(corpus_directories)
+
+    if artifact_prefix:
+      artifact_prefix = self._get_chroot_directory(artifact_prefix)
 
     # Set artifact prefix to '/' in minijail.
     return LibFuzzerCommon.fuzz(
         self,
         corpus_directories,
         fuzz_timeout,
-        artifact_prefix='/',
+        artifact_prefix=artifact_prefix,
         additional_args=additional_args,
         extra_env=extra_env)
 
@@ -594,9 +610,13 @@ class MinijailLibFuzzerRunner(engine_common.MinijailEngineFuzzerRunner,
             tmp_dir=None,
             additional_args=None):
     """LibFuzzerCommon.merge override."""
-    self._bind_corpus_dirs(corpus_directories)
+    bind_directories = copy.copy(corpus_directories)
+    if artifact_prefix:
+      bind_directories.append(artifact_prefix)
 
+    self._bind_corpus_dirs(bind_directories)
     corpus_directories = self._get_chroot_corpus_paths(corpus_directories)
+
     if artifact_prefix:
       artifact_prefix = self._get_chroot_directory(artifact_prefix)
 

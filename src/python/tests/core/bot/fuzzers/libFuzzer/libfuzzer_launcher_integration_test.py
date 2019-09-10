@@ -478,7 +478,7 @@ class TestLauncherMinijail(BaseLauncherTest):
     testcase_path = setup_testcase_and_corpus('empty', 'corpus', fuzz=True)
     output = run_launcher(testcase_path, 'test_fuzzer', '-max_len=256')
     expected = ('Command: {build_dir}/test_fuzzer -max_len=256 '
-                '-rss_limit_mb=2048 -timeout=25 -artifact_prefix=/ '
+                '-rss_limit_mb=2048 -timeout=25 -artifact_prefix=/temp/ '
                 '-max_total_time=5 -print_final_stats=1 /new '
                 '/corpus'.format(build_dir=DATA_DIRECTORY))
     self.assertIn(expected, output)
@@ -495,13 +495,13 @@ class TestLauncherMinijail(BaseLauncherTest):
     testcase_path = setup_testcase_and_corpus('empty', 'corpus', fuzz=True)
     output = run_launcher(testcase_path, 'always_crash_fuzzer', '-max_len=100')
     expected = ('Command: {build_dir}/always_crash_fuzzer -max_len=100 '
-                '-rss_limit_mb=2048 -timeout=25 -artifact_prefix=/ '
+                '-rss_limit_mb=2048 -timeout=25 -artifact_prefix=/temp/ '
                 '-max_total_time=5 -print_final_stats=1 /new '
                 '/corpus'.format(build_dir=DATA_DIRECTORY))
     self.assertIn(expected, output)
     self.assert_has_stats(output, testcase_path)
 
-    self.assertIn('Test unit written to /crash-', output)
+    self.assertIn('Test unit written to /temp/crash-', output)
     self.assertIn(
         'ERROR: AddressSanitizer: SEGV on unknown address '
         '0x000000000000', output)
@@ -519,10 +519,11 @@ class TestLauncherMinijail(BaseLauncherTest):
     testcase_path = setup_testcase_and_corpus(
         'empty', 'corpus_with_some_files', fuzz=True)
     output = run_launcher(testcase_path, 'test_fuzzer', '-max_len=100')
-    expected = ('Command: {build_dir}/test_fuzzer -max_len=100 '
-                '-rss_limit_mb=2048 -timeout=25 -use_value_profile=1 '
-                '-artifact_prefix=/ -max_total_time=5 -print_final_stats=1 '
-                '/new /subset'.format(build_dir=DATA_DIRECTORY))
+    expected = (
+        'Command: {build_dir}/test_fuzzer -max_len=100 '
+        '-rss_limit_mb=2048 -timeout=25 -use_value_profile=1 '
+        '-artifact_prefix=/temp/ -max_total_time=5 '
+        '-print_final_stats=1 /new /subset'.format(build_dir=DATA_DIRECTORY))
     self.assertIn(expected, output)
     self.assert_has_stats(output, testcase_path)
 
