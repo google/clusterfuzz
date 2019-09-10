@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """HTTP utility functions for the reproduce tool."""
+from __future__ import print_function
 from builtins import object
 
 import httplib2
@@ -59,8 +60,12 @@ def _get_authorization(force_reauthorization, configuration):
       return cached_authorization
 
   # Prompt the user for a code if we don't have one or need a new one.
+  oauth_url = configuration.get('oauth_url')
+  print('Please login at the following URL to authenticate: {oauth_url}'.format(
+      oauth_url=oauth_url))
+
   with SuppressOutput():
-    webbrowser.open(configuration.get('oauth_url'), new=1, autoraise=True)
+    webbrowser.open(oauth_url, new=1, autoraise=True)
 
   verification_code = prompts.get_string('Enter verification code')
   return 'VerificationCode {code}'.format(code=verification_code)

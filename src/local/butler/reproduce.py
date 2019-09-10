@@ -168,14 +168,13 @@ def _setup_x():
 
   environment.set_value('DISPLAY', DISPLAY)
 
-  print('Starting Xvfb...')
+  print('Creating virtual display...')
   xvfb_runner = new_process.ProcessRunner('/usr/bin/Xvfb')
   xvfb_process = xvfb_runner.run(additional_args=[
       DISPLAY, '-screen', '0', '1280x1024x24', '-ac', '-nolisten', 'tcp'
   ])
   time.sleep(PROCESS_START_WAIT_SECONDS)
 
-  print('Starting blackbox...')
   blackbox_runner = new_process.ProcessRunner('/usr/bin/blackbox')
   blackbox_process = blackbox_runner.run()
   time.sleep(PROCESS_START_WAIT_SECONDS)
@@ -184,7 +183,7 @@ def _setup_x():
   return [xvfb_process, blackbox_process]
 
 
-def _prepare_initial_environment(build_directory, iterations):
+def _prepare_initial_environment(build_directory, iterations, verbose):
   """Prepare common environment variables that don't depend on the job."""
   # Create a temporary directory to use as ROOT_DIR with a copy of the default
   # bot and configuration directories nested under it.
@@ -233,10 +232,11 @@ def _prepare_initial_environment(build_directory, iterations):
   environment.set_value('BUILDS_DIR', build_directory)
 
   # Some functionality must be disabled when running the tool.
-  environment.set_value('REPRODUCE_TOOL', 'True')
+  environment.set_value('REPRODUCE_TOOL', True)
 
   # Force logging to console for this process and child processes.
-  environment.set_value('LOG_TO_CONSOLE', 'True')
+  if verbose:
+    environment.set_value('LOG_TO_CONSOLE', True)
 
   if iterations:
     environment.set_value('CRASH_RETRIES', iterations)
@@ -292,7 +292,7 @@ def _get_testcase_id_from_url(testcase_url):
   return testcase_id
 
 
-def _prepare_environment_for_android():
+def _prepare_environment_for_android(disable_android_setup):
   """Additional environment overrides needed to run on an Android device."""
   environment.set_value('OS_OVERRIDE', 'ANDROID')
 
@@ -300,26 +300,39 @@ def _prepare_environment_for_android():
   serial = environment.get_value('ANDROID_SERIAL')
   if not serial:
     # TODO(mbarbella): Handle the one-device case gracefully.
-    raise errors.ReproduceToolUnrecoverableError('Please set ANDROID_SERIAL.')
+    raise errors.ReproduceToolUnrecoverableError(
+        'This test case requires an Android device. Please set the '
+        'ANDROID_SERIAL environment variable and try again.')
 
+  print('Warning: this tool will make changes to settings on the connected '
+        'Android device with serial {serial} that could result in data '
+        'loss.'.format(serial=serial))
   willing_to_continue = prompts.get_boolean(
-      'Warning: this tool will make changes to settings on the connected '
-      'android device with serial {serial} that could result in data loss. Are '
-      'you sure you want to continue?'.format(serial=serial))
+      'Are you sure you want to continue?')
   if not willing_to_continue:
     raise errors.ReproduceToolUnrecoverableError(
         'Bailing out to avoid changing settings on the connected device.')
 
   # Push the test case and build APK to the device.
   apk_path = environment.get_value('APP_PATH')
-  device.update_build(apk_path)
+  device.update_build(
+      apk_path, should_initialize_device=not disable_android_setup)
 
   device.push_testcases_to_device()
 
 
-def _reproduce_crash(testcase_url, build_directory, iterations, disable_xvfb):
+def _print_stacktrace(result):
+  """Display the output from a test case run."""
+  print('#' * 80)
+  print(result.get_stacktrace())
+  print('#' * 80)
+  print()
+
+
+def _reproduce_crash(testcase_url, build_directory, iterations, disable_xvfb,
+                     verbose, disable_android_setup):
   """Reproduce a crash."""
-  _prepare_initial_environment(build_directory, iterations)
+  _prepare_initial_environment(build_directory, iterations, verbose)
 
   # Validate the test case URL and fetch the tool's configuration.
   testcase_id = _get_testcase_id_from_url(testcase_url)
@@ -333,13 +346,21 @@ def _reproduce_crash(testcase_url, build_directory, iterations, disable_xvfb):
         'The reproduce tool is not yet supported on {platform}.'.format(
             platform=testcase.platform))
 
+  # Print warnings for this test case.
+  if not testcase.one_time_crasher_flag:
+    print('Warning: this test case was a one-time crash. It may not be '
+          'reproducible.')
+  if testcase.flaky_stack:
+    print('Warning: this test case is known to crash with different stack '
+          'traces.')
+
   testcase_path = _download_testcase(testcase_id, testcase, configuration)
   _update_environment_for_testcase(testcase, build_directory)
 
   # Validate that we're running on the right platform for this test case.
   platform = environment.platform().lower()
   if testcase.platform == 'android' and platform == 'linux':
-    _prepare_environment_for_android()
+    _prepare_environment_for_android(disable_android_setup)
   elif testcase.platform == 'android' and platform != 'linux':
     raise errors.ReproduceToolUnrecoverableError(
         'The ClusterFuzz environment only supports running Android test cases '
@@ -357,8 +378,25 @@ def _reproduce_crash(testcase_url, build_directory, iterations, disable_xvfb):
   timeout = environment.get_value('TEST_TIMEOUT')
 
   print('Running testcase...')
-  result = testcase_manager.test_for_crash_with_retries(testcase, testcase_path,
-                                                        timeout)
+  try:
+    result = testcase_manager.test_for_crash_with_retries(
+        testcase, testcase_path, timeout, crash_retries=1)
+
+    # If we can't reproduce the crash, prompt the user to try again.
+    if not result.is_crash():
+      _print_stacktrace(result)
+      use_default_retries = prompts.get_boolean(
+          'Failed to find the desired crash on first run. Re-run '
+          '{crash_retries} times?'.format(
+              crash_retries=environment.get_value('CRASH_RETRIES')))
+      if use_default_retries:
+        print('Attempting to reproduce test case. This may take a while...')
+        result = testcase_manager.test_for_crash_with_retries(
+            testcase, testcase_path, timeout)
+
+  except KeyboardInterrupt:
+    print('Aborting...')
+    result = None
 
   # Terminate Xvfb and blackbox.
   for process in x_processes:
@@ -380,17 +418,21 @@ def execute(args):
   absolute_build_dir = os.path.abspath(args.build_dir)
   try:
     result = _reproduce_crash(args.testcase, absolute_build_dir,
-                              args.iterations, args.disable_xvfb)
+                              args.iterations, args.disable_xvfb, args.verbose,
+                              args.disable_android_setup)
   except errors.ReproduceToolUnrecoverableError as exception:
     print(exception)
     return
 
-  print('Output:\n{output}'.format(output=result.get_stacktrace()))
+  if not result:
+    return
+
+  _print_stacktrace(result)
 
   if result.is_crash():
     status_message = 'Test case reproduced successfully.'
   else:
-    status_message = 'Unable to reproduce desired crash.'
+    status_message = 'Unable to reproduce the desired crash.'
   print(status_message)
 
   _cleanup()

@@ -287,6 +287,17 @@ def main():
       '--disable-xvfb',
       action='store_true',
       help='Disable running test case in a virtual frame buffer.')
+  parser_reproduce.add_argument(
+      '-da',
+      '--disable-android-setup',
+      action='store_true',
+      help='Skip Android device setup. Speeds up Android reproduction, but '
+      'assumes the device has already been configured by the tool.')
+  parser_reproduce.add_argument(
+      '-v',
+      '--verbose',
+      action='store_true',
+      help='Print additional log messages while running.')
 
   args = parser.parse_args()
 
