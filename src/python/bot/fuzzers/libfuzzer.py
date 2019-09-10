@@ -556,6 +556,7 @@ class MinijailLibFuzzerRunner(engine_common.MinijailEngineFuzzerRunner,
                          artifact_prefix=None,
                          additional_args=None):
     """LibFuzzerCommon.analyze_dictionary override."""
+    self._bind_corpus_dirs([corpus_directory])
     corpus_directory = self._get_chroot_directory(corpus_directory)
 
     if artifact_prefix:
