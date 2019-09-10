@@ -23,6 +23,7 @@ import tempfile
 
 from base import retry
 from bot.fuzzers import engine_common
+from bot.fuzzers import utils as fuzzer_utils
 from bot.fuzzers.libFuzzer import constants
 from platforms import fuchsia
 from platforms.fuchsia.util.device import Device
@@ -673,6 +674,9 @@ def get_runner(fuzzer_path, temp_dir=None, use_minijail=None):
   if use_minijail is False:
     # If minijail is explicitly disabled, set the environment variable as well.
     environment.set_value('USE_MINIJAIL', False)
+
+  if temp_dir is None:
+    temp_dir = fuzzer_utils.get_temp_dir()
 
   build_dir = environment.get_value('BUILD_DIR')
   dataflow_build_dir = environment.get_value('DATAFLOW_BUILD_DIR')

@@ -53,11 +53,6 @@ class LibFuzzerOptions(engine.FuzzOptions):
     self.is_mutations_run = is_mutations_run
 
 
-def _get_runner(target_path):
-  """Get the libFuzzer runner."""
-  return libfuzzer.get_runner(target_path, temp_dir=fuzzer_utils.get_temp_dir())
-
-
 class LibFuzzerEngine(engine.Engine):
   """LibFuzzer engine implementation."""
 
@@ -209,8 +204,7 @@ class LibFuzzerEngine(engine.Engine):
       A FuzzResult object.
     """
     profiler.start_if_needed('libfuzzer_fuzz')
-
-    runner = _get_runner(target_path)
+    runner = libfuzzer.get_runner(target_path)
     launcher.set_sanitizer_options(target_path)
 
     artifact_prefix = self._artifact_prefix(os.path.abspath(reproducers_dir))
@@ -302,7 +296,7 @@ class LibFuzzerEngine(engine.Engine):
     Returns:
       A ReproduceResult.
     """
-    runner = _get_runner(target_path)
+    runner = libfuzzer.get_runner(target_path)
     launcher.set_sanitizer_options(target_path)
 
     # Remove fuzzing specific arguments. This is only really needed for legacy
@@ -334,7 +328,7 @@ class LibFuzzerEngine(engine.Engine):
     Returns:
       A Result object.
     """
-    runner = _get_runner(target_path)
+    runner = libfuzzer.get_runner(target_path)
     launcher.set_sanitizer_options(target_path)
     merge_tmp_dir = self._create_temp_corpus_dir('merge-workdir')
 
@@ -372,7 +366,7 @@ class LibFuzzerEngine(engine.Engine):
     Returns:
       A ReproduceResult.
     """
-    runner = _get_runner(target_path)
+    runner = libfuzzer.get_runner(target_path)
     launcher.set_sanitizer_options(target_path)
 
     minimize_tmp_dir = self._create_temp_corpus_dir('minimize-workdir')
@@ -399,7 +393,7 @@ class LibFuzzerEngine(engine.Engine):
     Returns:
       A ReproduceResult.
     """
-    runner = _get_runner(target_path)
+    runner = libfuzzer.get_runner(target_path)
     launcher.set_sanitizer_options(target_path)
 
     cleanse_tmp_dir = self._create_temp_corpus_dir('cleanse-workdir')
