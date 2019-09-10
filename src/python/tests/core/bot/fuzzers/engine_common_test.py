@@ -474,5 +474,7 @@ class GetRadamsaOutputFilenameTest(unittest.TestCase):
     self.assertEqual('radamsa-00001-file', output_filename)
 
   def test_length_limit(self):
-    output_filename = engine_common.get_radamsa_output_filename(500 * 'a', 0)
-    self.assertLessThan(len(output_filename), 255)
+    linux_filename_length_limit = 255
+    output_filename = engine_common.get_radamsa_output_filename(
+        linux_filename_length_limit * 2 * 'a', 0)
+    self.assertLessEqual(len(output_filename), linux_filename_length_limit)

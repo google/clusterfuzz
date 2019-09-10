@@ -138,6 +138,7 @@ def generate_new_testcase_mutations(corpus_directory,
   return False
 
 
+# Filename length limit on ext4.
 FILENAME_LENGTH_LIMIT = 255
 
 RADAMSA_FILENAME_REGEX = r'radamsa-\d+-(.*)'
@@ -152,8 +153,8 @@ def get_radamsa_output_filename(initial_filename, i):
     base_filename = match.group(1)
   else:
     base_filename = initial_filename
-  prefix = 'radamsa-%05d' % (i + 1)
-  return '%s-%s' % (prefix, base_filename[:FILENAME_LENGTH_LIMIT - len(prefix)])
+  prefix = 'radamsa-%05d-' % (i + 1)
+  return prefix + base_filename[:FILENAME_LENGTH_LIMIT - len(prefix)]
 
 
 def generate_new_testcase_mutations_using_radamsa(
