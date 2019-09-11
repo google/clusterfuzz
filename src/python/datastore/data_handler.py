@@ -17,6 +17,7 @@ import collections
 import datetime
 import os
 import re
+import shlex
 import six
 import time
 
@@ -331,13 +332,13 @@ def get_arguments(testcase):
   return filter_arguments(arguments, fuzz_target)
 
 
-def get_memory_tool_options_string(testcase):
+def _get_memory_tool_options(testcase):
   """Return memory tool options as a string to pass on command line."""
   env = testcase.get_metadata('env')
   if not env:
-    return ''
+    return []
 
-  result = ''
+  result = []
   for options_name, options_value in sorted(six.iteritems(env)):
     # Strip symbolize flag, use default symbolize=1.
     options_value.pop('symbolize', None)
@@ -345,8 +346,21 @@ def get_memory_tool_options_string(testcase):
       continue
 
     options_string = environment.join_memory_tool_options(options_value)
-    result += '{options_name}="{options_string}" '.format(
-        options_name=options_name, options_string=quote(options_string))
+    result.append('{options_name}="{options_string}"'.format(
+        options_name=options_name, options_string=quote(options_string)))
+
+  return result
+
+
+def _get_blaze_test_args(arguments, sanitizer_options):
+  """Return arguments to pass to a blaze test."""
+  result = '--test_env=ENABLE_BLAZE_TEST_FUZZING=1'
+
+  for sanitizer_option in sanitizer_options:
+    result += ' --test_env=%s' % sanitizer_option
+
+  for argument in shlex.split(arguments):
+    result += ' --test_arg=%s' % quote(argument)
 
   return result
 
@@ -363,18 +377,20 @@ def get_formatted_reproduction_help(testcase):
   # that must be converted here (e.g. \n).
   help_format = help_format.decode('unicode-escape')
 
-  testcase_id = str(testcase.key.id())
-  project_name = get_project_name(testcase.job_type)
-  last_tested_crash_revision = str(
-      testcase.get_metadata('last_tested_crash_revision') or
-      testcase.crash_revision)
+  arguments = get_arguments(testcase)
   fuzzer_display = get_fuzzer_display(testcase)
   fuzzer_name = fuzzer_display.name or 'NA'
   fuzz_target = fuzzer_display.target or 'NA'
   engine = fuzzer_display.engine or 'NA'
+  last_tested_crash_revision = str(
+      testcase.get_metadata('last_tested_crash_revision') or
+      testcase.crash_revision)
+  project_name = get_project_name(testcase.job_type)
+  testcase_id = str(testcase.key.id())
   sanitizer = environment.get_memory_tool_name(testcase.job_type)
-  sanitizer_options = get_memory_tool_options_string(testcase)
-  arguments = get_arguments(testcase)
+  sanitizer_options = _get_memory_tool_options(testcase)
+  sanitizer_options_string = ' '.join(sanitizer_options)
+  blaze_test_args = _get_blaze_test_args(arguments, sanitizer_options)
 
   result = help_format.replace('%TESTCASE%', testcase_id)
   result = result.replace('%PROJECT%', project_name)
@@ -383,8 +399,9 @@ def get_formatted_reproduction_help(testcase):
   result = result.replace('%FUZZ_TARGET%', fuzz_target)
   result = result.replace('%ENGINE%', engine)
   result = result.replace('%SANITIZER%', sanitizer)
-  result = result.replace('%SANITIZER_OPTIONS%', sanitizer_options)
+  result = result.replace('%SANITIZER_OPTIONS%', sanitizer_options_string)
   result = result.replace('%ARGS%', arguments)
+  result = result.replace('%BLAZE_TEST_ARGS%', blaze_test_args)
   return result
 
 
