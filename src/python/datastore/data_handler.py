@@ -352,17 +352,16 @@ def _get_memory_tool_options(testcase):
   return result
 
 
-def _get_blaze_test_args(arguments, sanitizer_options):
-  """Return arguments to pass to a blaze test."""
-  result = '--test_env=ENABLE_BLAZE_TEST_FUZZING=1'
-
+def _get_bazel_test_args(arguments, sanitizer_options):
+  """Return arguments to pass to a bazel test."""
+  result = []
   for sanitizer_option in sanitizer_options:
-    result += ' --test_env=%s' % sanitizer_option
+    result.append('--test_env=%s' % sanitizer_option)
 
   for argument in shlex.split(arguments):
-    result += ' --test_arg=%s' % quote(argument)
+    result.append('--test_arg=%s' % quote(argument))
 
-  return result
+  return ' '.join(result)
 
 
 def get_formatted_reproduction_help(testcase):
@@ -390,7 +389,7 @@ def get_formatted_reproduction_help(testcase):
   sanitizer = environment.get_memory_tool_name(testcase.job_type)
   sanitizer_options = _get_memory_tool_options(testcase)
   sanitizer_options_string = ' '.join(sanitizer_options)
-  blaze_test_args = _get_blaze_test_args(arguments, sanitizer_options)
+  bazel_test_args = _get_bazel_test_args(arguments, sanitizer_options)
 
   result = help_format.replace('%TESTCASE%', testcase_id)
   result = result.replace('%PROJECT%', project_name)
@@ -401,7 +400,7 @@ def get_formatted_reproduction_help(testcase):
   result = result.replace('%SANITIZER%', sanitizer)
   result = result.replace('%SANITIZER_OPTIONS%', sanitizer_options_string)
   result = result.replace('%ARGS%', arguments)
-  result = result.replace('%BLAZE_TEST_ARGS%', blaze_test_args)
+  result = result.replace('%BAZEL_TEST_ARGS%', bazel_test_args)
   return result
 
 
