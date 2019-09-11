@@ -216,7 +216,7 @@ class LibFuzzerEngine(engine.Engine):
         artifact_prefix=reproducers_dir,
         extra_env=options.extra_env)
 
-    log_lines = fuzz_result.output.splitlines()
+    log_lines = utils.decode_to_unicode(fuzz_result.output).splitlines()
     # Output can be large, so save some memory by removing reference to the
     # original output which is no longer needed.
     fuzz_result.output = None
