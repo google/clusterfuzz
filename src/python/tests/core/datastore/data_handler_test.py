@@ -683,8 +683,7 @@ class GetFormattedReproductionHelpTest(unittest.TestCase):
         ).format(id=testcase.key.id()))
 
   def test_blaze_test_args(self):
-    """Test the function with a blackbox fuzzer test case, with HELP_FORMAT
-    set in environment."""
+    """Test blaze test args with a libFuzzer test case"""
     environment.set_value('HELP_FORMAT', 'blaze test %BLAZE_TEST_ARGS%')
 
     testcase = data_types.Testcase()
