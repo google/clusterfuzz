@@ -360,7 +360,6 @@ def _get_blaze_test_args(arguments, sanitizer_options):
     result += ' --test_env=%s' % sanitizer_option
 
   for argument in shlex.split(arguments):
-    print argument
     result += ' --test_arg=%s' % quote(argument)
 
   return result
