@@ -169,7 +169,7 @@ class Fuzzer(object):
     print('+ ' + ' '.join(fuzz_cmd))
     self.last_fuzz_cmd = self.device.get_ssh_cmd(['ssh', 'localhost'] +
                                                  fuzz_cmd)
-    self.device.ssh(fuzz_cmd, quiet=False, logfile=logfile)
+    return self.device.ssh(fuzz_cmd, quiet=True, logfile=logfile)
 
   def start(self, fuzzer_args):
     """Runs the fuzzer.
@@ -208,17 +208,22 @@ class Fuzzer(object):
     self.device.ssh(['mkdir', '-p', self.data_path('corpus')])
     if [x for x in fuzzer_args if not x.startswith('-')]:
       fuzzer_args.append('data/corpus/')
+    if 'repro' in fuzzer_args:
+      # If this is a reproducer run, we don't need the corpus.
+      if 'data/corpus/' in fuzzer_args:
+        fuzzer_args.remove('data/corpus/')
+      fuzzer_args.remove('repro')
 
     # Fuzzer logs are saved to fuzz-*.log when running in the background.
     # We tee the output to fuzz-0.log when running in the foreground to
     # make the rest of the plumbing look the same.
     if self._foreground:
-      self.run(fuzzer_args, logfile=self.results_output('fuzz-0.log'))
+      return self.run(fuzzer_args, logfile=self.results_output('fuzz-0.log'))
     else:
       self.device.rm(self.data_path('fuzz-*.log'))
       self.run(fuzzer_args)
 
-  def monitor(self):
+  def monitor(self, retcode=0):
     """Waits for a fuzzer to complete and symbolizes its logs.
 
         Polls the device to determine when the fuzzer stops. Retrieves,
@@ -233,7 +238,7 @@ class Fuzzer(object):
     guess_pid = len(logs) == 1
     artifacts = []
     for log in logs:
-      artifacts += self.device.process_logs(log, guess_pid)
+      artifacts += self.device.process_logs(log, guess_pid, retcode)
     for artifact in artifacts:
       self.device.fetch(self.data_path(artifact), self.results_output())
 
