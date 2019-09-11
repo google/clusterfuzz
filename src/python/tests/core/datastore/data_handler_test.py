@@ -650,7 +650,7 @@ class GetFormattedReproductionHelpTest(unittest.TestCase):
         'HELP_FORMAT',
         '-%TESTCASE%\\n-%FUZZER_NAME%\\n-%FUZZ_TARGET%\\n-%PROJECT%\\n'
         '-%REVISION%\\n-%ENGINE%\\n-%SANITIZER%\\n%ARGS%\\n'
-        '%SANITIZER_OPTIONS%./binary')
+        '%SANITIZER_OPTIONS% ./binary')
 
     testcase = data_types.Testcase()
     testcase.fuzzer_name = 'simple_fuzzer'
@@ -681,3 +681,41 @@ class GetFormattedReproductionHelpTest(unittest.TestCase):
          'ASAN_OPTIONS="handle_abort=1:redzone=512" '
          'UBSAN_OPTIONS="halt_on_error=1" ./binary'
         ).format(id=testcase.key.id()))
+
+  def test_blaze_test_args(self):
+    """Test the function with a blackbox fuzzer test case, with HELP_FORMAT
+    set in environment."""
+    environment.set_value('HELP_FORMAT', 'blaze test %BLAZE_TEST_ARGS%')
+
+    testcase = data_types.Testcase()
+    testcase.fuzzer_name = 'libFuzzer'
+    testcase.overridden_fuzzer_name = 'libFuzzer_test_project_test_fuzzer'
+    testcase.job_type = 'ubsan_job_without_help_format'
+    testcase.crash_revision = 1337
+    testcase.minimized_arguments = (
+        '%TESTCASE% test_fuzzer -arg1=val1 -arg2="val2 val3"')
+    testcase.put()
+
+    testcase.set_metadata(
+        'env', {
+            'ASAN_OPTIONS': {
+                'handle_abort': 1,
+                'symbolize': 0,
+                'redzone': 512,
+            },
+            'UBSAN_OPTIONS': {
+                'halt_on_error': 1,
+                'symbolize': 0,
+            },
+            'OTHER_OPTIONS': {
+                'symbolize': 1
+            }
+        })
+
+    self.assertEquals(
+        data_handler.get_formatted_reproduction_help(testcase), 'blaze test '
+        '--test_env=ENABLE_BLAZE_TEST_FUZZING=1 '
+        '--test_env=ASAN_OPTIONS="handle_abort=1:redzone=512" '
+        '--test_env=UBSAN_OPTIONS="halt_on_error=1" '
+        '--test_arg=-arg1=val1 '
+        '--test_arg=\'-arg2=val2 val3\'')
