@@ -682,9 +682,9 @@ class GetFormattedReproductionHelpTest(unittest.TestCase):
          'UBSAN_OPTIONS="halt_on_error=1" ./binary'
         ).format(id=testcase.key.id()))
 
-  def test_blaze_test_args(self):
-    """Test blaze test args with a libFuzzer test case"""
-    environment.set_value('HELP_FORMAT', 'blaze test %BLAZE_TEST_ARGS%')
+  def test_bazel_test_args(self):
+    """Test bazel test args with a libFuzzer test case"""
+    environment.set_value('HELP_FORMAT', 'bazel test %BAZEL_TEST_ARGS%')
 
     testcase = data_types.Testcase()
     testcase.fuzzer_name = 'libFuzzer'
@@ -712,8 +712,7 @@ class GetFormattedReproductionHelpTest(unittest.TestCase):
         })
 
     self.assertEquals(
-        data_handler.get_formatted_reproduction_help(testcase), 'blaze test '
-        '--test_env=ENABLE_BLAZE_TEST_FUZZING=1 '
+        data_handler.get_formatted_reproduction_help(testcase), 'bazel test '
         '--test_env=ASAN_OPTIONS="handle_abort=1:redzone=512" '
         '--test_env=UBSAN_OPTIONS="halt_on_error=1" '
         '--test_arg=-arg1=val1 '
