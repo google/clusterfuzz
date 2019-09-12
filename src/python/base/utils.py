@@ -33,6 +33,7 @@ import urllib.request
 import weakref
 
 from base import errors
+from base import memoize
 from base import retry
 from config import local_config
 from metrics import logs
@@ -798,6 +799,7 @@ def write_data_to_file(content, file_path, append=False):
   logs.log_error('Failed to write data to file %s.' % file_path)
 
 
+@memoize.wrap(memoize.FifoInMemory(1))
 def default_project_name():
   """Return the default project name for this instance of ClusterFuzz."""
   # Do not use |PROJECT_NAME| environment variable as that is the overridden
