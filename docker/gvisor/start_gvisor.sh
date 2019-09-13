@@ -14,7 +14,6 @@
 # limitations under the License.
 
 source /data/setup_gcloud.sh
-
 source /data/setup_common.sh
 source /data/setup_clusterfuzz.sh
 
@@ -24,7 +23,7 @@ export LC_ALL=en_US.UTF-8
 export PATH="$EXTRA_PATH:$PATH"
 export TZ='America/Los_Angeles'
 
-touch /mnt/scratch0/clusterfuzz/bot/logs/bot.log
-tail -f /mnt/scratch0/clusterfuzz/bot/logs/bot.log &
+touch $INSTALL_DIRECTORY/clusterfuzz/bot/logs/bot.log
+tail -f $INSTALL_DIRECTORY/clusterfuzz/bot/logs/bot.log &
 
 $RUN_CMD
