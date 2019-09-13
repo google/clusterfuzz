@@ -54,7 +54,6 @@ from system import shell
 
 IPCDUMP_TIMEOUT = 60
 COMBINED_IPCDUMP_TIMEOUT = 60 * 3
-LIBFUZZER_CRASH_CHECK_RETRIES = 3
 MAX_DEADLINE_EXCEEDED_ATTEMPTS = 3
 MAX_TEMPORARY_FILE_BASENAME_LENGTH = 32
 MINIMIZE_SANITIZER_OPTIONS_RETRIES = 3
@@ -1233,7 +1232,7 @@ def do_libfuzzer_minimization(testcase, testcase_file_path):
 
   # Get initial crash state.
   initial_crash_result = _run_libfuzzer_testcase(
-      testcase, testcase_file_path, crash_retries=LIBFUZZER_CRASH_CHECK_RETRIES)
+      testcase, testcase_file_path, crash_retries=None)
   if not initial_crash_result.is_crash():
     logs.log_warn('Did not crash. Output:\n' +
                   initial_crash_result.get_stacktrace(symbolized=True))
