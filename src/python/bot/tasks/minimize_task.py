@@ -1232,7 +1232,7 @@ def do_libfuzzer_minimization(testcase, testcase_file_path):
 
   # Get initial crash state.
   initial_crash_result = _run_libfuzzer_testcase(
-      testcase, testcase_file_path, crash_retries=None)
+      testcase, testcase_file_path, crash_retries=None)  # Use default retries.
   if not initial_crash_result.is_crash():
     logs.log_warn('Did not crash. Output:\n' +
                   initial_crash_result.get_stacktrace(symbolized=True))
