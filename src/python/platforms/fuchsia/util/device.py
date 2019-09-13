@@ -270,7 +270,7 @@ class Device(object):
           # indicates this is a *reproducer* run that has successfully crashed)
           repro_match = repro_pattern.search(line)
           match = mutation_pattern.search(line)
-          if match or (repro_match and retcode > 0):
+          if match or (repro_match and retcode):
             if pid <= 0 and guess_pid:
               pid = self._guess_pid()
             if pid > 0:
@@ -294,13 +294,16 @@ class Device(object):
     # `==[num]== ERROR: [SanitizerName]: [failure type]` line
     # to occur *before* the stacktrace, so make a new tempfile
     # where we insert that line at the top.
-    with open(logfile + '.tmp', 'r+') as tmp:
-      with open(logfile + '.tmp2', 'w') as tmp2:
-        tmp2.write(line_with_crash_message)
+    # TODO(flowerhack): Change the log output in Fuchsia itself, s.t. the
+    # ordering is correct the *first* time, and we won't have to do this
+    # fix-up-the-logs dance!
+    with open(logfile + '.tmp', 'r') as tmp:
+      with open(logfile + '.final', 'w') as final:
+        final.write(line_with_crash_message)
         for line in tmp:
-          tmp2.write(line)
+          final.write(line)
     os.remove(logfile + '.tmp')
-    os.rename(logfile + '.tmp2', logfile)
+    os.rename(logfile + '.final', logfile)
     return artifacts
 
   def _scp(self, srcs, dst):

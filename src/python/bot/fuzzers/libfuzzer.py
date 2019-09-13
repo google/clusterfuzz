@@ -443,8 +443,8 @@ class FuchsiaQemuLibFuzzerRunner(new_process.ProcessRunner, LibFuzzerCommon):
     """LibFuzzerCommon.fuzz override."""
     self._test_qemu_ssh()
 
-    ret = self.fuzzer.start([])
-    self.fuzzer.monitor(ret)
+    return_code = self.fuzzer.start([])
+    self.fuzzer.monitor(return_code)
     self.fetch_and_process_logs_and_crash()
 
     with open(self.fuzzer.logfile) as logfile:
@@ -468,8 +468,8 @@ class FuchsiaQemuLibFuzzerRunner(new_process.ProcessRunner, LibFuzzerCommon):
     testcase_path_name = os.path.basename(os.path.normpath(testcase_path))
     self.device.store(testcase_path, self.fuzzer.data_path())
 
-    ret = self.fuzzer.start(['repro', 'data/' + testcase_path_name])
-    self.fuzzer.monitor(ret)
+    return_code = self.fuzzer.start(['repro', 'data/' + testcase_path_name])
+    self.fuzzer.monitor(return_code)
     self.fetch_and_process_logs_and_crash()
 
     with open(self.fuzzer.logfile) as logfile:
