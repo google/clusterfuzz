@@ -13,18 +13,17 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-source /data/setup_gcloud.sh
+if [ -z "$CLOUD_PROJECT_ID" ]; then
+  echo "FATAL: no CLOUD_PROJECT_ID set"
+  exit 1
+fi
 
-source /data/setup_common.sh
-source /data/setup_clusterfuzz.sh
+gcloud config set project "$CLOUD_PROJECT_ID"
+gcloud auth activate-service-account --key-file=/credentials.json
 
-export DISPLAY=:1
-export LANG=en_US.UTF-8
-export LC_ALL=en_US.UTF-8
-export PATH="$EXTRA_PATH:$PATH"
-export TZ='America/Los_Angeles'
+BOTO_CONFIG_PATH=$(/usr/bin/gsutil -D 2>&1 | grep "config_file_list" | egrep -o "/[^']+gserviceaccount\.com/\.boto") || true
+if [[ -f "$BOTO_CONFIG_PATH" ]]; then
+  export BOTO_CONFIG="$BOTO_CONFIG_PATH"
+else
+  echo "WARNING: failed to identify the Boto configuration file and specify BOTO_CONFIG env."
 
-touch /mnt/scratch0/clusterfuzz/bot/logs/bot.log
-tail -f /mnt/scratch0/clusterfuzz/bot/logs/bot.log &
-
-$RUN_CMD

@@ -11,9 +11,10 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-FROM gcr.io/clusterfuzz-images/base:latest
+FROM gcr.io/clusterfuzz-images/base
 
 COPY start_gvisor.sh /data/start.sh
+COPY setup_gcloud.sh /data/setup_gcloud.sh
 RUN cp /bin/true /bin/mount
 RUN cp /bin/true /bin/chown
 
