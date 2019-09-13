@@ -1,5 +1,10 @@
 #!/bin/bash -ex
 
+if [ -z "$CLOUD_PROJECT_ID" ]; then
+  echo "FATAL: no CLOUD_PROJECT_ID set"
+  exit 1
+fi
+
 gcloud auth activate-service-account --key-file=/credentials.json
 gcloud config set project "$CLOUD_PROJECT_ID"
 
