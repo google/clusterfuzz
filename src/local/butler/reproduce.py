@@ -347,7 +347,7 @@ def _reproduce_crash(testcase_url, build_directory, iterations, disable_xvfb,
             platform=testcase.platform))
 
   # Print warnings for this test case.
-  if not testcase.one_time_crasher_flag:
+  if testcase.one_time_crasher_flag:
     print('Warning: this test case was a one-time crash. It may not be '
           'reproducible.')
   if testcase.flaky_stack:
