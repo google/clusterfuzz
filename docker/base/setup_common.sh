@@ -16,8 +16,11 @@
 source /data/setup_mock_metadata.sh
 
 # Create user with matching UID as host
-export HOST_UID=${HOST_UID:-1337}
-useradd -mU -G nopwsudo -u $HOST_UID $USER
+if [[ "$USER" != "root" ]]
+then
+  export HOST_UID=${HOST_UID:-1337}
+  useradd -mU -G nopwsudo -u $HOST_UID $USER
+fi
 
 mkdir -p $BOT_TMPDIR
 chmod 777 $BOT_TMPDIR
@@ -27,17 +30,21 @@ export HOSTNAME=${HOSTNAME:-$(curl --header "Metadata-Flavor: Google" http://met
 # Setup PREEMPTIBLE flag based on hostname.
 if [[ $HOSTNAME =~ "-pre-" ]]
 then
-    export PREEMPTIBLE=True
+  export PREEMPTIBLE=True
 fi
 
 # Make sure mounted volume doesn't have noexec,nosuid,nodev
 mount /mnt/scratch0 -o remount,exec,suid,dev
 
 # Prevent /dev/random hangs.
-rm /dev/random && ln -s /dev/urandom /dev/random
+if [[ -z "$DISABLE_DEV_RANDOM_RENAME" ]] 
+then
+  rm /dev/random
+  ln -s /dev/urandom /dev/random
+fi
 
 # Running without credentials will cause this to fail.
-if [[ -z "$LOCAL_SRC" ]]; then
+if [[ -z "$LOCAL_SRC" && -z "$DISABLE_FLUENTD" ]]; then
   service google-fluentd restart
 fi
 
