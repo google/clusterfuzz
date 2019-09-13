@@ -1214,6 +1214,8 @@ def run_engine_fuzzer(engine_impl, target_name, sync_corpus_directory,
   fuzz_test_timeout = environment.get_value('FUZZ_TEST_TIMEOUT')
   result = engine_impl.fuzz(target_path, options, testcase_directory,
                             fuzz_test_timeout)
+
+  logs.log('Used strategies.', strategies=options.strategies)
   for strategy, value in six.iteritems(options.strategies):
     result.stats['strategy_' + strategy] = value
 
@@ -1480,11 +1482,13 @@ class FuzzingSession(object):
     self.sync_corpus(sync_corpus_directory)
 
     # Do the actual fuzzing.
-    for _ in range(environment.get_value('MAX_TESTCASES', 1)):
+    for fuzzing_round in range(environment.get_value('MAX_TESTCASES', 1)):
+      logs.log('Fuzzing round {}.'.format(fuzzing_round))
       result, fuzzer_metadata = run_engine_fuzzer(
           engine_impl, self.fuzz_target.binary, sync_corpus_directory,
           self.testcase_directory)
 
+    logs.log('All fuzzing rounds complete.')
     self.sync_new_corpus_files()
 
     # Prepare stats.
