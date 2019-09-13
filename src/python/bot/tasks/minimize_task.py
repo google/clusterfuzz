@@ -54,6 +54,7 @@ from system import shell
 
 IPCDUMP_TIMEOUT = 60
 COMBINED_IPCDUMP_TIMEOUT = 60 * 3
+LIBFUZZER_CRASH_CHECK_RETRIES = 3
 MAX_DEADLINE_EXCEEDED_ATTEMPTS = 3
 MAX_TEMPORARY_FILE_BASENAME_LENGTH = 32
 MINIMIZE_SANITIZER_OPTIONS_RETRIES = 3
@@ -1087,7 +1088,7 @@ def _run_libfuzzer_testcase(testcase, testcase_file_path):
       testcase_file_path,
       test_timeout,
       compare_crash=False,
-      crash_retries=1)
+      crash_retries=LIBFUZZER_CRASH_CHECK_RETRIES)
 
 
 def run_libfuzzer_engine(tool_name, target_name, arguments, testcase_path,
