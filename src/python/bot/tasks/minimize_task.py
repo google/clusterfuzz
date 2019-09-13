@@ -1069,7 +1069,7 @@ def do_js_minimization(test_function, get_temp_file, data, deadline, threads,
                               threads, cleanup_interval, delete_temp_files)
 
 
-def _run_libfuzzer_testcase(testcase, testcase_file_path):
+def _run_libfuzzer_testcase(testcase, testcase_file_path, crash_retries=1):
   """Run libFuzzer testcase, and return the CrashResult."""
   # Cleanup any existing application instances and temp directories.
   process_handler.cleanup_stale_processes()
@@ -1087,7 +1087,7 @@ def _run_libfuzzer_testcase(testcase, testcase_file_path):
       testcase_file_path,
       test_timeout,
       compare_crash=False,
-      crash_retries=1)
+      crash_retries=crash_retries)
 
 
 def run_libfuzzer_engine(tool_name, target_name, arguments, testcase_path,
@@ -1231,7 +1231,8 @@ def do_libfuzzer_minimization(testcase, testcase_file_path):
   last_crash_result = None
 
   # Get initial crash state.
-  initial_crash_result = _run_libfuzzer_testcase(testcase, testcase_file_path)
+  initial_crash_result = _run_libfuzzer_testcase(
+      testcase, testcase_file_path, crash_retries=None)  # Use default retries.
   if not initial_crash_result.is_crash():
     logs.log_warn('Did not crash. Output:\n' +
                   initial_crash_result.get_stacktrace(symbolized=True))
