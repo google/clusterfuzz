@@ -630,6 +630,9 @@ class TestcaseRunner(object):
       crash_result = self.run(round_number)
       state = self._get_crash_state(round_number, crash_result)
 
+      if not crash_result.is_crash():
+        continue
+
       if not expected_state:
         logs.log('Crash stacktrace comparison skipped.')
         return crash_result
@@ -672,6 +675,9 @@ class TestcaseRunner(object):
 
       crash_result = self.run(round_number)
       state = self._get_crash_state(round_number, crash_result)
+
+      if not crash_result.is_crash():
+        continue
 
       # If we don't have an expected crash state, set it to the one from initial
       # crash.
