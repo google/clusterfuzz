@@ -13,8 +13,8 @@
 # limitations under the License.
 """Content viewer."""
 
-from builtins import str
 from base import utils
+from builtins import str
 from google_cloud_utils import blobs
 from handlers import base_handler
 from libs import access

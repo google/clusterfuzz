@@ -15,7 +15,6 @@
 
 from builtins import str
 import collections
-
 import webapp2
 
 from base import memoize

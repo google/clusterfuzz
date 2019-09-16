@@ -15,10 +15,10 @@
 from __future__ import division
 
 from builtins import next
-from builtins import zip
-from builtins import str
 from builtins import object
 from builtins import range
+from builtins import str
+from builtins import zip
 import copy
 import itertools
 import json

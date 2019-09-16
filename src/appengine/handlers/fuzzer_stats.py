@@ -13,11 +13,12 @@
 # limitations under the License.
 """Fuzzer statistics handler."""
 from __future__ import absolute_import
-
-from builtins import str
-from builtins import object
 from future import standard_library
 standard_library.install_aliases()
+
+from builtins import object
+from builtins import str
+
 import cgi
 import datetime
 import re
