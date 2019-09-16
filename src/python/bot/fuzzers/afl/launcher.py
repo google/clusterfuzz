@@ -1429,7 +1429,7 @@ def main(argv):
   atexit.register(fuzzer_utils.cleanup)
 
   # Initialize variables.
-  _, testcase_file_path = argv[:2]
+  testcase_file_path = argv[1]
   target_name = environment.get_value('FUZZ_TARGET')
 
   input_directory = environment.get_value('FUZZ_CORPUS_DIR')
