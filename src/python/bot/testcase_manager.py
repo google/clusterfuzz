@@ -548,8 +548,14 @@ class TestcaseRunner(object):
       self._is_black_box = False
       self._engine_impl = engine_impl
 
-      # Read target_name + args from flags file.
-      arguments = get_additional_command_line_flags(testcase_path)
+      # Read target_name + args.
+      arguments = environment.get_value('APP_ARGS')
+      additional_arguments = get_additional_command_line_flags(testcase_path)
+      if arguments:
+        arguments += ' ' + additional_arguments
+      else:
+        arguments = additional_arguments
+
       arguments = data_handler.filter_arguments(arguments, fuzz_target.binary)
       self._arguments = arguments.split()
 
