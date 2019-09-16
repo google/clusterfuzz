@@ -568,7 +568,12 @@ def main(argv):
   # Initialize variables.
   arguments = argv[1:]
   testcase_file_path = arguments.pop(0)
-  target_name = arguments.pop(0)
+
+  target_name = environment.get_value('FUZZ_TARGET')
+  if arguments and arguments[0] == target_name:
+    # Pop legacy fuzz target argument.
+    arguments.pop(0)
+
   fuzzer_name = data_types.fuzz_target_project_qualified_name(
       utils.current_project(), target_name)
 
