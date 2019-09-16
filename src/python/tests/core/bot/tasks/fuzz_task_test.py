@@ -1341,6 +1341,7 @@ class DoEngineFuzzingTest(fake_filesystem_unittest.TestCase):
     os.environ['FUZZ_INPUTS'] = '/fuzz-inputs'
     os.environ['FUZZ_INPUTS_DISK'] = '/fuzz-inputs-disk'
     os.environ['BUILD_DIR'] = '/build_dir'
+    os.environ['MAX_TESTCASES'] = '2'
 
     self.fs.create_file('/build_dir/test_target')
     self.fs.create_file(
@@ -1377,7 +1378,7 @@ class DoEngineFuzzingTest(fake_filesystem_unittest.TestCase):
             'strategy_1': 1,
             'strategy_2': 50,
         })
-    engine_impl.fuzz.return_value = engine.FuzzResult(
+    engine_impl.fuzz.side_effect = lambda *_: engine.FuzzResult(
         'logs', ['cmd'], expected_crashes, {'stat': 1}, 42.0)
 
     crashes, fuzzer_metadata = session.do_engine_fuzzing(engine_impl)
@@ -1389,34 +1390,41 @@ class DoEngineFuzzingTest(fake_filesystem_unittest.TestCase):
     }, fuzzer_metadata)
 
     log_time = datetime.datetime(1970, 1, 1, 0, 0)
-    self.mock.upload_log.assert_called_with(
+    log_call = mock.call(
         'Component revisions (build r1):\n'
         'component: rev\n\n'
         'Return code: 1\n\n'
         'Command: cmd\nBot: None\nTime ran: 42.0\n\n'
         'logs\n'
         'cf::fuzzing_strategies: strategy_1:1,strategy_2:50', log_time)
-    self.mock.upload_testcase.assert_called_with('/input', log_time)
+    self.mock.upload_log.assert_has_calls([log_call, log_call])
+    self.mock.upload_testcase.assert_has_calls([
+        mock.call('/input', log_time),
+        mock.call('/input', log_time),
+    ])
 
-    self.assertEqual(1, len(crashes))
-    self.assertEqual('/input', crashes[0].file_path)
-    self.assertEqual(1, crashes[0].return_code)
-    self.assertEqual('stack', crashes[0].unsymbolized_crash_stacktrace)
-    self.assertEqual(1.0, crashes[0].crash_time)
-    self.assertEqual('args', crashes[0].arguments)
-    upload_args = self.mock.upload_stats.call_args[0][0]
-    testcase_run = upload_args[0]
-    self.assertDictEqual({
-        'build_revision': 1,
-        'command': ['cmd'],
-        'fuzzer': u'libFuzzer_test_target',
-        'job': 'libfuzzer_asan_test',
-        'kind': 'TestcaseRun',
-        'stat': 1,
-        'strategy_strategy_1': 1,
-        'strategy_strategy_2': 50,
-        'timestamp': 0.0,
-    }, testcase_run.data)
+    self.assertEqual(2, len(crashes))
+    for i in range(2):
+      self.assertEqual('/input', crashes[i].file_path)
+      self.assertEqual(1, crashes[i].return_code)
+      self.assertEqual('stack', crashes[i].unsymbolized_crash_stacktrace)
+      self.assertEqual(1.0, crashes[i].crash_time)
+      self.assertEqual('args', crashes[i].arguments)
+
+    for i in range(2):
+      upload_args = self.mock.upload_stats.call_args_list[i][0][0]
+      testcase_run = upload_args[0]
+      self.assertDictEqual({
+          'build_revision': 1,
+          'command': ['cmd'],
+          'fuzzer': u'libFuzzer_test_target',
+          'job': 'libfuzzer_asan_test',
+          'kind': 'TestcaseRun',
+          'stat': 1,
+          'strategy_strategy_1': 1,
+          'strategy_strategy_2': 50,
+          'timestamp': 0.0,
+      }, testcase_run.data)
 
 
 class UntrustedRunEngineFuzzerTest(

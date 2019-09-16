@@ -1485,38 +1485,42 @@ class FuzzingSession(object):
     self.sync_corpus(sync_corpus_directory)
 
     # Do the actual fuzzing.
+    revision = environment.get_value('APP_REVISION')
+    crashes = []
+    fuzzer_metadata = {}
     for fuzzing_round in range(environment.get_value('MAX_TESTCASES', 1)):
       logs.log('Fuzzing round {}.'.format(fuzzing_round))
-      result, fuzzer_metadata = run_engine_fuzzer(
+      result, current_fuzzer_metadata = run_engine_fuzzer(
           engine_impl, self.fuzz_target.binary, sync_corpus_directory,
           self.testcase_directory)
+      fuzzer_metadata.update(current_fuzzer_metadata)
+
+      # Prepare stats.
+      testcase_run = engine_common.get_testcase_run(result.stats,
+                                                    result.command)
+
+      # Upload logs, testcases (if there are crashes), and stats.
+      # Use a consistent log time to allow correlating between logs, uploaded
+      # testcases, and stats.
+      log_time = datetime.datetime.utcfromtimestamp(
+          float(testcase_run.timestamp))
+      for crash in result.crashes:
+        testcase_manager.upload_testcase(crash.input_path, log_time)
+
+      log = testcase_manager.prepare_log_for_upload(result.logs, 1)
+      testcase_manager.upload_log(log, log_time)
+
+      add_additional_testcase_run_data(testcase_run,
+                                       self.fuzz_target.fully_qualified_name(),
+                                       self.job_type, revision)
+      upload_testcase_run_stats(testcase_run)
+      if result.crashes:
+        crashes.extend([
+            Crash.from_engine_crash(crash) for crash in result.crashes if crash
+        ])
 
     logs.log('All fuzzing rounds complete.')
     self.sync_new_corpus_files()
-
-    # Prepare stats.
-    testcase_run = engine_common.get_testcase_run(result.stats, result.command)
-
-    # Upload logs, testcases (if there are crashes), and stats.
-    # Use a consistent log time to allow correlating between logs, uploaded
-    # testcases, and stats.
-    log_time = datetime.datetime.utcfromtimestamp(float(testcase_run.timestamp))
-    for crash in result.crashes:
-      testcase_manager.upload_testcase(crash.input_path, log_time)
-
-    log = testcase_manager.prepare_log_for_upload(result.logs, 1)
-    testcase_manager.upload_log(log, log_time)
-
-    revision = environment.get_value('APP_REVISION')
-    add_additional_testcase_run_data(testcase_run,
-                                     self.fuzz_target.fully_qualified_name(),
-                                     self.job_type, revision)
-    upload_testcase_run_stats(testcase_run)
-    crashes = result.crashes
-    if crashes:
-      crashes = [
-          Crash.from_engine_crash(crash) for crash in result.crashes if crash
-      ]
 
     return crashes, fuzzer_metadata
 
