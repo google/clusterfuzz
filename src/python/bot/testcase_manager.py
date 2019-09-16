@@ -543,7 +543,8 @@ class TestcaseRunner(object):
                testcase_path,
                test_timeout,
                gestures,
-               needs_http=False):
+               needs_http=False,
+               arguments=None):
     self._testcase_path = testcase_path
     self._test_timeout = test_timeout
     self._gestures = gestures
@@ -561,7 +562,9 @@ class TestcaseRunner(object):
       self._engine_impl = engine_impl
 
       # Read target_name + args.
-      arguments = get_command_line_flags(testcase_path)
+      if not arguments:
+        arguments = get_command_line_flags(testcase_path)
+
       arguments = data_handler.filter_arguments(arguments, fuzz_target.binary)
       self._arguments = arguments.split()
 
@@ -750,14 +753,24 @@ def test_for_crash_with_retries(testcase,
                                        testcase.flaky_stack)
 
 
-def test_for_reproducibility(fuzzer_name, testcase_path, expected_state,
-                             expected_security_flag, test_timeout, http_flag,
-                             gestures):
+def test_for_reproducibility(fuzzer_name,
+                             testcase_path,
+                             expected_state,
+                             expected_security_flag,
+                             test_timeout,
+                             http_flag,
+                             gestures,
+                             arguments=None):
   """Test to see if a crash is fully reproducible or is a one-time crasher."""
   fuzz_target = data_handler.get_fuzz_target(fuzzer_name)
   try:
-    runner = TestcaseRunner(fuzz_target, testcase_path, test_timeout, gestures,
-                            http_flag)
+    runner = TestcaseRunner(
+        fuzz_target,
+        testcase_path,
+        test_timeout,
+        gestures,
+        http_flag,
+        arguments=arguments)
   except TargetNotFoundError:
     # If a target isn't found, treat it as not crashing.
     return False

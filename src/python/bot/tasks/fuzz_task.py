@@ -252,8 +252,14 @@ def find_main_crash(crashes, fuzzer_name, test_timeout):
     # test_for_reproducibility. Minimize task will later update the new crash
     # type and crash state paramaters.
     if testcase_manager.test_for_reproducibility(
-        fuzzer_name, crash.file_path, None, crash.security_flag, test_timeout,
-        crash.http_flag, crash.gestures):
+        fuzzer_name,
+        crash.file_path,
+        None,
+        crash.security_flag,
+        test_timeout,
+        crash.http_flag,
+        crash.gestures,
+        arguments=crash.arguments):
       return crash, False
 
   # All crashes are non-reproducible. Therefore, we get the first valid one.
