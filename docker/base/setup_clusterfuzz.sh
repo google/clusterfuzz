@@ -47,4 +47,6 @@ if [[ -z "$DISABLE_MOUNTS" ]]; then
   mount -o loop $FUZZER_TESTCASES_DISK_FILE $INSTALL_DIRECTORY/clusterfuzz/bot/inputs/fuzzer-testcases-disk
 fi
 
-chown -R $USER:$USER $INSTALL_DIRECTORY
+if [[ "$USER" != "root" ]]; then
+  chown -R $USER:$USER $INSTALL_DIRECTORY
+fi
