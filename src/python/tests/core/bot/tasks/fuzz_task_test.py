@@ -573,6 +573,7 @@ class FindMainCrashTest(unittest.TestCase):
                        http_flag,
                        gestures,
                        arguments=None):
+      """Mock test_for_reproducibility."""
       for c in self.reproducible_crashes:
         if c.gestures == gestures:
           return True
