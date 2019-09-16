@@ -807,3 +807,40 @@ class UntrustedEngineReproduceTest(
       testcase_manager.engine_reproduce(libfuzzer_engine.LibFuzzerEngine(),
                                         'does_not_exist', testcase_file_path,
                                         [], 30)
+
+
+class GetCommandLineFlagsTest(fake_filesystem_unittest.TestCase):
+  """get_command_line_flags tests."""
+
+  def setUp(self):
+    test_helpers.patch_environ(self)
+    test_utils.set_up_pyfakefs(self)
+
+    os.environ['FAIL_WAIT'] = '0'
+    os.environ['FAIL_RETRIES'] = '1'
+
+    self.fs.create_file('/fuzz-testcase')
+
+  def test_both_args_and_additional(self):
+    """Test both APP_ARGS and additional args."""
+    os.environ['APP_ARGS'] = 'arg1'
+    self.fs.create_file('/flags-testcase', contents='arg2')
+    self.assertEqual('arg1 arg2',
+                     testcase_manager.get_command_line_flags('/fuzz-testcase'))
+
+  def test_only_args(self):
+    """Test both APP_ARGS and additional args."""
+    os.environ['APP_ARGS'] = 'arg1'
+    self.assertEqual('arg1',
+                     testcase_manager.get_command_line_flags('/fuzz-testcase'))
+
+  def test_only_additional(self):
+    """Test both APP_ARGS and additional args."""
+    self.fs.create_file('/flags-testcase', contents='arg2')
+    self.assertEqual('arg2',
+                     testcase_manager.get_command_line_flags('/fuzz-testcase'))
+
+  def test_no_args_and_additional(self):
+    """Test both APP_ARGS and additional args."""
+    self.assertEqual('',
+                     testcase_manager.get_command_line_flags('/fuzz-testcase'))
