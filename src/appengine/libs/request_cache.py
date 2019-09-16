@@ -13,6 +13,7 @@
 # limitations under the License.
 """Request specific caching.."""
 
+from builtins import str
 import collections
 
 import webapp2

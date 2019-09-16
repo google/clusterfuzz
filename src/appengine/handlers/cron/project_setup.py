@@ -14,6 +14,7 @@
 """Handler used for setting up oss-fuzz jobs."""
 from __future__ import absolute_import
 
+from builtins import str
 from builtins import object
 from past.builtins import basestring
 import base64
@@ -819,7 +820,7 @@ class ProjectSetup(object):
         for key, value in sorted(six.iteritems(additional_vars)):
           job.environment_string += ('{} = {}\n'.format(
               key,
-              str(value).encode('unicode-escape')))
+              str(value).encode('unicode-escape').decode('utf-8')))
 
       job.put()
 

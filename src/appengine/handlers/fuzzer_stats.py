@@ -14,6 +14,7 @@
 """Fuzzer statistics handler."""
 from __future__ import absolute_import
 
+from builtins import str
 from builtins import object
 from future import standard_library
 standard_library.install_aliases()
@@ -290,7 +291,7 @@ def _get_cloud_storage_link(bucket_path):
 
 def _get_filter_from_job(job):
   """Creates a job filter from |job|."""
-  return [unicode(job)] if job else None
+  return [str(job)] if job else None
 
 
 def build_results(fuzzer, jobs, group_by, date_start, date_end):
