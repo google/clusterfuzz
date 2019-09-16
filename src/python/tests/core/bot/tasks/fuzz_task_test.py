@@ -565,8 +565,14 @@ class FindMainCrashTest(unittest.TestCase):
     self.reproducible_crashes = []
 
     # pylint: disable=unused-argument
-    def test_for_repro(fuzzer_name, file_path, state, security_flag,
-                       test_timeout, http_flag, gestures, arguments=None):
+    def test_for_repro(fuzzer_name,
+                       file_path,
+                       state,
+                       security_flag,
+                       test_timeout,
+                       http_flag,
+                       gestures,
+                       arguments=None):
       for c in self.reproducible_crashes:
         if c.gestures == gestures:
           return True
