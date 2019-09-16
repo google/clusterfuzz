@@ -123,10 +123,7 @@ class Crash(object):
       return None
 
     # If there are per-testcase additional flags, we need to store them.
-    additional_args = testcase_manager.get_additional_command_line_flags(
-        crash.file_path) or ''
-    app_args = environment.get_value('APP_ARGS') or ''
-    arguments = (app_args + ' ' + additional_args).strip()
+    arguments = testcase_manager.get_command_line_flags(crash.file_path)
 
     needs_http = '-http-' in os.path.basename(crash.file_path)
     application_command_line = (

@@ -267,6 +267,18 @@ def get_resource_dependencies(testcase_absolute_path, test_prefix=FUZZ_PREFIX):
   return resources
 
 
+def get_command_line_flags(testcase_path):
+  """Returns command line flags to use for a testcase."""
+  arguments = environment.get_value('APP_ARGS')
+  additional_arguments = get_additional_command_line_flags(testcase_path)
+  if arguments:
+    arguments += ' ' + additional_arguments
+  else:
+    arguments = additional_arguments
+
+  return arguments.strip()
+
+
 def get_additional_command_line_flags(testcase_path):
   """Returns additional command line flags to use for a testcase."""
   # Get the initial flags list from the environment value.
@@ -549,13 +561,7 @@ class TestcaseRunner(object):
       self._engine_impl = engine_impl
 
       # Read target_name + args.
-      arguments = environment.get_value('APP_ARGS')
-      additional_arguments = get_additional_command_line_flags(testcase_path)
-      if arguments:
-        arguments += ' ' + additional_arguments
-      else:
-        arguments = additional_arguments
-
+      arguments = get_command_line_flags(testcase_path)
       arguments = data_handler.filter_arguments(arguments, fuzz_target.binary)
       self._arguments = arguments.split()
 
