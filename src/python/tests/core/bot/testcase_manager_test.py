@@ -839,3 +839,8 @@ class GetCommandLineFlagsTest(fake_filesystem_unittest.TestCase):
     self.fs.create_file('/flags-testcase', contents='arg2')
     self.assertEqual('arg2',
                      testcase_manager.get_command_line_flags('/fuzz-testcase'))
+
+  def test_no_args_and_additional(self):
+    """Test both APP_ARGS and additional args."""
+    self.assertEqual('',
+                     testcase_manager.get_command_line_flags('/fuzz-testcase'))
