@@ -296,12 +296,14 @@ class Device(object):
     # TODO(flowerhack): Change the log output in Fuchsia itself, s.t. the
     # ordering is correct the *first* time, and we won't have to do this
     # fix-up-the-logs dance!
-    with open(logfile + '.tmp', 'r') as tmp:
-      with open(logfile + '.final', 'w') as final:
-        final.write(line_with_crash_message)
+    with open(logfile + '.tmp') as tmp:
+      with open(logfile, 'w') as final:
+        if line_with_crash_message:
+          final.write(line_with_crash_message)
+
         shutil.copyfileobj(tmp, final)
+
     os.remove(logfile + '.tmp')
-    os.rename(logfile + '.final', logfile)
     return artifacts
 
   def _scp(self, srcs, dst):
