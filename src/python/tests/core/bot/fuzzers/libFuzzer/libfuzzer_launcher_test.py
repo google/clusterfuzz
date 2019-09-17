@@ -224,6 +224,7 @@ class LauncherTest(fake_fs_unittest.TestCase):
         [strategy.DATAFLOW_TRACING_STRATEGY])
     self.mock.decide_with_probability.return_value = False
     environment.set_value('STRATEGY_SELECTION_METHOD', 'default')
+    environment.set_value('FUZZ_TARGET', 'fake_fuzzer')
 
   @mock.patch('google_cloud_utils.storage.exists', lambda x: None)
   @mock.patch('google_cloud_utils.storage.read_data', lambda x: None)

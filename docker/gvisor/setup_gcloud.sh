@@ -26,4 +26,5 @@ if [[ -f "$BOTO_CONFIG_PATH" ]]; then
   export BOTO_CONFIG="$BOTO_CONFIG_PATH"
 else
   echo "WARNING: failed to identify the Boto configuration file and specify BOTO_CONFIG env."
+fi
 

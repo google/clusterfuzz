@@ -1,0 +1,51 @@
+==14454== ERROR: libFuzzer: deadly signal
+Warning: Permanently added '[localhost.corp.google.com]:53263' (ED25519) to the list of known hosts.
+INFO: Seed: 3976025544
+INFO: Loaded 1 modules   (14 inline 8-bit counters): 14 [0x5332f2cf8090, 0x5332f2cf809e),
+INFO: Loaded 1 PC tables (14 PCs): 14 [0x5332f2cf80a0,0x5332f2cf8180),
+INFO: -max_len is not provided; libFuzzer will not generate inputs larger than 4096 bytes
+INFO: A corpus is not provided, starting from an empty corpus
+#2	INITED cov: 5 ft: 5 corp: 1/1b exec/s: 0 rss: 30Mb
+#225	NEW    cov: 6 ft: 6 corp: 2/2b lim: 6 exec/s: 0 rss: 30Mb L: 1/1 MS: 3 ChangeBit-ShuffleBytes-ChangeBit-
+#239	NEW    cov: 7 ft: 7 corp: 3/8b lim: 6 exec/s: 0 rss: 30Mb L: 6/6 MS: 4 InsertByte-CMP-ChangeByte-CrossOver- DE: "\x01\x00\x00\x00"-
+#270	REDUCE cov: 7 ft: 7 corp: 3/7b lim: 6 exec/s: 0 rss: 30Mb L: 5/5 MS: 1 EraseBytes-
+#309	REDUCE cov: 7 ft: 7 corp: 3/5b lim: 6 exec/s: 0 rss: 30Mb L: 3/3 MS: 4 CopyPart-CopyPart-EraseBytes-EraseBytes-
+#396	REDUCE cov: 8 ft: 8 corp: 4/8b lim: 6 exec/s: 0 rss: 30Mb L: 3/3 MS: 2 CopyPart-ChangeBit-
+#464	NEW    cov: 9 ft: 9 corp: 5/10b lim: 6 exec/s: 0 rss: 30Mb L: 2/3 MS: 3 CopyPart-EraseBytes-EraseBytes-
+#520	REDUCE cov: 9 ft: 9 corp: 5/9b lim: 6 exec/s: 0 rss: 30Mb L: 2/3 MS: 1 EraseBytes-
+==14454== ERROR: libFuzzer: deadly signal
+NOTE: libFuzzer has rudimentary signal handlers.
+      Combine libFuzzer with AddressSanitizer or similar for better crash reports.
+SUMMARY: libFuzzer: deadly signal
+Warning: Permanently added '[localhost.corp.google.com]:53263' (ED25519) to the list of known hosts.
+dso: id=88668a286c5c0e12 base=0x00005332f2c44000 name=/pkg/bin/basic_fuzzer
+dso: id=b715d488354a413b base=0x00005a9510140000 name=libc++.so.2
+dso: id=a889bd8ebd385a59 base=0x000058554cfe3000 name=libunwind.so.1
+dso: id=1699f35c2dc6b5e3 base=0x0000237685d86000 name=libc++abi.so.1
+dso: id=b08681628058b008 base=0x00004329b78bc000 name=libclang_rt.asan.so
+dso: id=0baa718c4f9739dc base=0x00007b70dbada000 name=<vDSO>
+dso: id=4e7da3de6c4cacb2 base=0x00007bc363909000 name=libfdio.so
+dso: id=46e83932b8bc1add base=0x00007602e25fb000 name=libc.so
+   #0    0x00004329b790d331 in __sanitizer_print_stack_trace ../recipe_cleanup/clangmRcYL3/llvm_build_dir/tools/clang/stage2-bins/runtimes/runtimes-x86_64-unknown-fuchsia-bins/compiler-rt/lib/asan/asan_stack.cc:86 <libclang_rt.asan.so>+0x51331
+   #1.1  0x00004329b790d35e in Unwind ../recipe_cleanup/clangmRcYL3/llvm_build_dir/tools/clang/stage2-bins/runtimes/runtimes-x86_64-unknown-fuchsia-bins/compiler-rt/lib/asan/../sanitizer_common/sanitizer_stacktrace.h:115 <libclang_rt.asan.so>+0x5135e
+   #1    0x00004329b790d35e in __sanitizer_print_stack_trace ../recipe_cleanup/clangmRcYL3/llvm_build_dir/tools/clang/stage2-bins/runtimes/runtimes-x86_64-unknown-fuchsia-bins/compiler-rt/lib/asan/asan_stack.cc:86 <libclang_rt.asan.so>+0x5135e
+   #2    0x00005332f2cb9a95 in fuzzer::PrintStackTrace() <<application>>+0x75a95
+   #3    0x00005332f2ca0579 in fuzzer::Fuzzer::CrashCallback() <<application>>+0x5c579
+   #4    0x00005332f2cb9c25 in fuzzer::(anonymous namespace)::StaticCrashHandler() ../recipe_cleanup/clangmRcYL3/llvm_build_dir/tools/clang/stage2-bins/runtimes/runtimes-x86_64-unknown-fuchsia-bins/compiler-rt/lib/fuzzer/FuzzerUtilFuchsia.cpp:164 <<application>>+0x75c25
+   #5    0x00005332f2cb9c0e in CrashTrampolineAsm <<application>>+0x75c0e
+   #6    0x00005332f2cf10f1 in foo_function(unsigned char const*, unsigned long) ../../out/default/../../examples/fuzzer/basic.cc:12 <<application>>+0xad0f1
+   #7    0x00005332f2cf11ac in bar_function(unsigned char const*, unsigned long) ../../out/default/../../examples/fuzzer/basic.cc:21 <<application>>+0xad1ac
+   #8    0x00005332f2cf11ea in LLVMFuzzerTestOneInput ../../out/default/../../examples/fuzzer/basic.cc:25 <<application>>+0xad1ea
+   #9    0x00005332f2ca1b93 in fuzzer::Fuzzer::ExecuteCallback(unsigned char const*, unsigned long) <<application>>+0x5db93
+   #10   0x00005332f2ca1394 in fuzzer::Fuzzer::RunOne(unsigned char const*, unsigned long, bool, fuzzer::InputInfo*, bool*) <<application>>+0x5d394
+   #11   0x00005332f2ca3579 in fuzzer::Fuzzer::MutateAndTestOne() <<application>>+0x5f579
+   #12   0x00005332f2ca42c5 in fuzzer::Fuzzer::Loop(std::Fuzzer::vector<fuzzer::SizedFile, fuzzer::fuzzer_allocator<fuzzer::SizedFile> >&) <<application>>+0x602c5
+   #13   0x00005332f2c94118 in fuzzer::FuzzerDriver(int*, char***, int (*)(unsigned char const*, unsigned long)) <<application>>+0x50118
+   #14   0x00005332f2cbac02 in main ../recipe_cleanup/clangmRcYL3/llvm_build_dir/tools/clang/stage2-bins/runtimes/runtimes-x86_64-unknown-fuchsia-bins/compiler-rt/lib/fuzzer/FuzzerMain.cpp:19 <<application>>+0x76c02
+   #15   0x00007602e26925fe in start_main ../../out/default.zircon/../../zircon/third_party/ulib/musl/src/env/__libc_start_main.c:93 <libc.so>+0x975fe
+
+MS: 1 ChangeByte-; base unit: 6e41c5a19b9646fe31c77ed7a16829913888c33e
+0x48,0x49,0x21,
+HI!
+artifact_prefix='data/'; Test unit written to /usr/local/google/home/flowerhack/arash2/clusterfuzz/bot/resources/fuchsia/build/out/default/test_data/fuzzing/example_fuzzers/basic_fuzzer/2019-09-16T23:25:50.754886/crash-7a8dc3985d2a90fb6e62e94910fc11d31949c348
+Base64: SEkh

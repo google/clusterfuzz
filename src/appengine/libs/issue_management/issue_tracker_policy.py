@@ -127,6 +127,10 @@ class IssueTrackerPolicy(object):
     if labels:
       policy.labels.extend(_to_str_list(labels))
 
+    issue_body_footer = issue_type.get('issue_body_footer')
+    if issue_body_footer:
+      policy.issue_body_footer = issue_body_footer
+
     if is_crash:
       crash_labels = issue_type.get('crash_labels')
       if crash_labels:

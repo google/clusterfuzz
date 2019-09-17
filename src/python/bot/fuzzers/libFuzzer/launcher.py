@@ -568,7 +568,12 @@ def main(argv):
   # Initialize variables.
   arguments = argv[1:]
   testcase_file_path = arguments.pop(0)
-  target_name = arguments.pop(0)
+
+  target_name = environment.get_value('FUZZ_TARGET')
+  if arguments and arguments[0].endswith(target_name):
+    # Pop legacy fuzz target argument.
+    arguments.pop(0)
+
   fuzzer_name = data_types.fuzz_target_project_qualified_name(
       utils.current_project(), target_name)
 
@@ -615,8 +620,7 @@ def main(argv):
   set_sanitizer_options(fuzzer_path)
 
   # If we don't have a corpus, then that means this is not a fuzzing run.
-  # TODO(flowerhack): Implement this to properly load past testcases.
-  if not corpus_directory and environment.platform() != 'FUCHSIA':
+  if not corpus_directory:
     load_testcase_if_exists(runner, testcase_file_path, fuzzer_name,
                             use_minijail, arguments)
     return

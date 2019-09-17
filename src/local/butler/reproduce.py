@@ -385,6 +385,7 @@ def _reproduce_crash(testcase_url, build_directory, iterations, disable_xvfb,
     # If we can't reproduce the crash, prompt the user to try again.
     if not result.is_crash():
       _print_stacktrace(result)
+      result = None
       use_default_retries = prompts.get_boolean(
           'Failed to find the desired crash on first run. Re-run '
           '{crash_retries} times?'.format(

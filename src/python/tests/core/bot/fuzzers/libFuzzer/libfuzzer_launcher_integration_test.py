@@ -95,6 +95,8 @@ def setup_testcase_and_corpus(testcase, corpus, fuzz=False):
 
 def run_launcher(*args):
   """Run launcher.py."""
+  os.environ['FUZZ_TARGET'] = args[1]
+
   mock_stdout = test_utils.MockStdout()
   with mock.patch('sys.stdout', mock_stdout):
     launcher.main(['launcher.py'] + list(args))
