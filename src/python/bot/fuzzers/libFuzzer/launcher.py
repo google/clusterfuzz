@@ -570,7 +570,7 @@ def main(argv):
   testcase_file_path = arguments.pop(0)
 
   target_name = environment.get_value('FUZZ_TARGET')
-  if arguments and arguments[0] == target_name:
+  if arguments and arguments[0].endswith(target_name):
     # Pop legacy fuzz target argument.
     arguments.pop(0)
 
