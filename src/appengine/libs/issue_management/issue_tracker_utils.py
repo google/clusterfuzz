@@ -13,7 +13,6 @@
 # limitations under the License.
 """Utilities for managing issue tracker instance."""
 
-from builtins import str
 from config import local_config
 from datastore import data_types
 from datastore import ndb_utils

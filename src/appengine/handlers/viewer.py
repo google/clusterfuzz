@@ -14,7 +14,6 @@
 """Content viewer."""
 
 from base import utils
-from builtins import str
 from google_cloud_utils import blobs
 from handlers import base_handler
 from libs import access
@@ -55,7 +54,7 @@ class Handler(base_handler.Handler):
     # https://github.com/googleapis/google-cloud-python/issues/6572
     if blob_size:
       try:
-        content = str(blobs.read_key(key), errors='replace')
+        content = unicode(blobs.read_key(key), errors='replace')
       except Exception:
         raise helpers.EarlyExitException('Failed to read content.', 400)
     else:

@@ -14,7 +14,6 @@
 """Library to manage bots using GCE instance templates and groups."""
 
 from builtins import object
-from builtins import str
 import google_auth_httplib2
 import googleapiclient
 import httplib2
