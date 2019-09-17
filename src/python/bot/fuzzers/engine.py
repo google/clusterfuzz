@@ -14,7 +14,6 @@
 """Fuzzing engine interface."""
 
 from builtins import object
-from collections import namedtuple
 import random
 
 from system import environment
@@ -56,9 +55,14 @@ class FuzzResult(object):
     self.time_executed = time_executed
 
 
-# Results from running a testcase against a target.
-ReproduceResult = namedtuple(
-    'ReproduceResult', ['command', 'return_code', 'time_executed', 'output'])
+class ReproduceResult(object):
+  """Results from running a testcase against a target."""
+
+  def __init__(self, command, return_code, time_executed, output):
+    self.command = command
+    self.return_code = return_code
+    self.time_executed = time_executed
+    self.output = output
 
 
 class Engine(object):
