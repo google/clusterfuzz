@@ -16,8 +16,6 @@
 from future import standard_library
 standard_library.install_aliases()
 from builtins import object
-from builtins import str
-
 import ast
 import cgi
 import datetime

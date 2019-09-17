@@ -14,7 +14,6 @@
 """App Engine GCS helpers."""
 
 from builtins import object
-from builtins import str
 from future import standard_library
 standard_library.install_aliases()
 import base64

@@ -12,9 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """Helpers used to generate Content Security Policies for pages."""
-# TODO(mbarbella): This file cannot import str from builtins since it causes
-# issues with header values used by App Engine APIs, which have an explicit
-# type checks.
 from builtins import object
 import collections
 
