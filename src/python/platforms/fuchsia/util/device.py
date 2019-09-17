@@ -19,6 +19,7 @@ from builtins import range
 import glob
 import os
 import re
+import shutil
 import subprocess
 
 from .host import Host
@@ -138,16 +139,14 @@ class Device(object):
     if quiet:
       if logfile:
         with open(logfile, 'w') as f:
-          self._ssh(cmdline, stdout=f).call()
-      else:
-        self._ssh(cmdline, stdout=Host.DEVNULL).call()
+          return self._ssh(cmdline, stdout=f).call()
+      return self._ssh(cmdline, stdout=Host.DEVNULL).call()
     else:
       if logfile:
         p1 = self._ssh(cmdline, stdout=subprocess.PIPE).popen()
         p2 = self.host.create_process(['tee', logfile], stdin=p1.stdout)
-        p2.check_call()
-      else:
-        self._ssh(cmdline, stdout=None).call()
+        return p2.check_call()
+      return self._ssh(cmdline, stdout=None).call()
 
   def getpids(self):
     """Maps names to process IDs for running fuzzers.
@@ -233,7 +232,7 @@ class Device(object):
         pid = int(parts[1])
     return pid
 
-  def process_logs(self, logfile, guess_pid=False):
+  def process_logs(self, logfile, guess_pid=False, retcode=0):
     """Constructs a symbolized fuzzer log from a device.
 
         Merges the provided fuzzer log with the symbolized system log for the
@@ -253,17 +252,24 @@ class Device(object):
     mutation_pattern = re.compile(r'^MS: [0-9]*')
     artifacts = []
     artifact_pattern = re.compile(r'Test unit written to data/(\S*)')
+    repro_pattern = re.compile(r'Running: .*')
+    line_with_crash_message = None
     with open(logfile) as log:
       with open(logfile + '.tmp', 'w') as tmp:
         for line in log:
           # Check for a line that tells us the process ID
           match = pid_pattern.search(line)
           if match:
+            line_with_crash_message = line
             pid = int(match.group(1))
 
-          # Check for a unit being dumped, i.e. a finding.
+          # Check for one of two things:
+          # 1) a unit being dumped (e.g. a finding from a regular fuzz run)
+          # 2) a nonzero return code plus a "Running: [foo]" message (which
+          # indicates this is a *reproducer* run that has successfully crashed)
+          repro_match = repro_pattern.search(line)
           match = mutation_pattern.search(line)
-          if match:
+          if match or (repro_match and retcode):
             if pid <= 0 and guess_pid:
               pid = self._guess_pid()
             if pid > 0:
@@ -282,7 +288,20 @@ class Device(object):
 
           # Echo the line
           tmp.write(line)
-    os.rename(logfile + '.tmp', logfile)
+
+    # Clusterfuzz's stack analyzer expects the
+    # `==[num]== ERROR: [SanitizerName]: [failure type]` line
+    # to occur *before* the stacktrace, so make a new tempfile
+    # where we insert that line at the top.
+    # TODO(flowerhack): Change the log output in Fuchsia itself, s.t. the
+    # ordering is correct the *first* time, and we won't have to do this
+    # fix-up-the-logs dance!
+    with open(logfile + '.tmp', 'r') as tmp:
+      with open(logfile + '.final', 'w') as final:
+        final.write(line_with_crash_message)
+        shutil.copyfileobj(tmp, final)
+    os.remove(logfile + '.tmp')
+    os.rename(logfile + '.final', logfile)
     return artifacts
 
   def _scp(self, srcs, dst):

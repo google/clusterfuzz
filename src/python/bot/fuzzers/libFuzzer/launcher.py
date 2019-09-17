@@ -620,8 +620,7 @@ def main(argv):
   set_sanitizer_options(fuzzer_path)
 
   # If we don't have a corpus, then that means this is not a fuzzing run.
-  # TODO(flowerhack): Implement this to properly load past testcases.
-  if not corpus_directory and environment.platform() != 'FUCHSIA':
+  if not corpus_directory:
     load_testcase_if_exists(runner, testcase_file_path, fuzzer_name,
                             use_minijail, arguments)
     return
