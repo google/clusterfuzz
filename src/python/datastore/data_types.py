@@ -806,6 +806,9 @@ class TestcaseUploadMetadata(Model):
   # Flag to indicate where bug title should be updated or not.
   bug_summary_update_flag = ndb.BooleanProperty()
 
+  # Flag to indicate if we are running in quiet mode (e.g. bug updates).
+  quiet_flag = ndb.BooleanProperty()
+
 
 class JobTemplate(Model):
   # Job template name.

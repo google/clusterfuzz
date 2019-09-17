@@ -339,6 +339,7 @@ class UploadHandlerCommon(object):
     timeout = self.request.get('timeout')
     retries = self.request.get('retries')
     bug_summary_update_flag = bool(self.request.get('updateIssue'))
+    quiet_flag = bool(self.request.get('quiet'))
     additional_arguments = self.request.get('args')
     app_launch_command = self.request.get('cmd')
     platform_id = self.request.get('platform')
@@ -515,9 +516,10 @@ class UploadHandlerCommon(object):
         bundled,
         retries,
         bug_summary_update_flag,
+        quiet_flag,
         additional_metadata=testcase_metadata)
 
-    if not self.request.get('quiet'):
+    if not quiet_flag:
       testcase = data_handler.get_testcase_by_id(testcase_id)
       issue = issue_tracker_utils.get_issue_for_testcase(testcase)
       if issue:

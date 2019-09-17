@@ -779,9 +779,9 @@ def _update_issue_security_severity_and_get_comment(policy, testcase, issue):
 
 
 def _update_issue_when_uploaded_testcase_is_processed(
-    policy, testcase, issue, description, upload_metadata):
+    policy, testcase, issue, description, update_bug_summary, notify):
   """Add issue comment when uploaded testcase is processed."""
-  if upload_metadata.bug_summary_update_flag and testcase.is_crash():
+  if update_bug_summary and testcase.is_crash():
     issue.title = data_handler.get_issue_summary(testcase)
 
   # Impact labels like impacting head/beta/stable only apply for Chromium.
@@ -791,7 +791,7 @@ def _update_issue_when_uploaded_testcase_is_processed(
   # Add severity labels for all project types.
   comment = description + _update_issue_security_severity_and_get_comment(
       policy, testcase, issue)
-  issue.save(new_comment=comment)
+  issue.save(new_comment=comment, notify=notify)
 
 
 def notify_uploader_when_testcase_is_processed(policy, testcase, issue):
@@ -822,16 +822,19 @@ def notify_uploader_when_testcase_is_processed(policy, testcase, issue):
   if not data_handler.critical_tasks_completed(testcase):
     return
 
-  issue_description = data_handler.get_issue_description(testcase)
+  notify = not upload_metadata.quiet_flag
   if issue:
+    issue_description = data_handler.get_issue_description(testcase)
     _update_issue_when_uploaded_testcase_is_processed(
-        policy, testcase, issue, issue_description, upload_metadata)
+        policy, testcase, issue, issue_description,
+        upload_metadata.bug_summary_update_flag, notify)
 
-  issue_description_without_crash_state = data_handler.get_issue_description(
-      testcase, hide_crash_state=True)
-  _send_email_to_uploader(testcase_id, to_email,
-                          issue_description_without_crash_state)
-  data_handler.create_notification_entry(testcase_id, to_email)
+  if notify:
+    issue_description_without_crash_state = data_handler.get_issue_description(
+        testcase, hide_crash_state=True)
+    _send_email_to_uploader(testcase_id, to_email,
+                            issue_description_without_crash_state)
+    data_handler.create_notification_entry(testcase_id, to_email)
 
 
 def update_os_labels(policy, testcase, issue):

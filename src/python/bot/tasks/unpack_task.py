@@ -96,7 +96,8 @@ def execute_task(metadata_id, job_type):
         metadata.uploader_email, metadata.platform_id,
         metadata.app_launch_command, metadata.fuzzer_name,
         metadata.overridden_fuzzer_name, metadata.fuzzer_binary_name, bundled,
-        upload_metadata.retries, upload_metadata.bug_summary_update_flag)
+        upload_metadata.retries, upload_metadata.bug_summary_update_flag,
+        upload_metadata.quiet_flag)
 
   # The upload metadata for the archive is not needed anymore since we created
   # one for each testcase.
