@@ -443,6 +443,7 @@ class FuchsiaQemuLibFuzzerRunner(new_process.ProcessRunner, LibFuzzerCommon):
     """LibFuzzerCommon.fuzz override."""
     self._test_qemu_ssh()
 
+    #TODO(flowerhack): Pass libfuzzer args (additional_args) here
     return_code = self.fuzzer.start([])
     self.fuzzer.monitor(return_code)
     self.fetch_and_process_logs_and_crash()
@@ -468,6 +469,7 @@ class FuchsiaQemuLibFuzzerRunner(new_process.ProcessRunner, LibFuzzerCommon):
     testcase_path_name = os.path.basename(os.path.normpath(testcase_path))
     self.device.store(testcase_path, self.fuzzer.data_path())
 
+    # TODO(flowerhack): Pass libfuzzer args (additional_args) here
     return_code = self.fuzzer.start(['repro', 'data/' + testcase_path_name])
     self.fuzzer.monitor(return_code)
     self.fetch_and_process_logs_and_crash()
@@ -481,6 +483,14 @@ class FuchsiaQemuLibFuzzerRunner(new_process.ProcessRunner, LibFuzzerCommon):
     fuzzer_process_result.time_executed = 0
     fuzzer_process_result.command = self.fuzzer.last_fuzz_cmd
     return fuzzer_process_result
+
+  def minimize_crash(self,
+                     testcase_path,
+                     output_path,
+                     timeout,
+                     artifact_prefix=None,
+                     additional_args=None):
+    return new_process.ProcessResult()
 
   def ssh_command(self, *args):
     return ['ssh'] + self.ssh_root + list(args)
