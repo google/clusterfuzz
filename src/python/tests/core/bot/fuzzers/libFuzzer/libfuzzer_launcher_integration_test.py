@@ -710,14 +710,22 @@ class TestLauncherFuchsia(BaseLauncherTest):
       'Temporarily disabling the Fuchsia test until build size reduced.')
   def test_fuzzer_can_boot_and_run(self):
     """Tests running a single round of fuzzing on a Fuchsia target, using
-    'echo' in place of a fuzzing command."""
-    # TODO(flowerhack): Fuchsia's `fuzz` only calls 'echo running on fuchsia!'
-    # right now by default, but we'll call it explicitly in here as we
-    # diversity `fuzz`'s functionality
+    a toy fuzzer that should crash very quickly."""
     build_manager.setup_fuchsia_build()
-    environment.set_value('FUZZ_TARGET', 'example_fuzzers/toy_fuzzer')
     testcase_path = setup_testcase_and_corpus('aaaa', 'empty_corpus', fuzz=True)
-    output = run_launcher(testcase_path, 'test_fuzzer')
+    output = run_launcher(testcase_path, 'example_fuzzers/toy_fuzzer')
     self.assertIn(
         'localhost run \'fuchsia-pkg://fuchsia.com/example_fuzzers#meta/'
         'toy_fuzzer.cmx\'', output)
+    self.assertIn('ERROR: AddressSanitizer: heap-buffer-overflow on address', output)
+
+  @unittest.skipIf(
+    not environment.get_value('FUCHSIA_TESTS'),
+    'Temporarily disabling the Fuchsia tests until build size reduced.')
+  def test_fuzzer_can_boot_and_run_reproducer(self):
+    build_manager.setup_fuchsia_build()
+    testcase_path = setup_testcase_and_corpus('fuchsia_crash', 'empty_corpus')
+    output = run_launcher(testcase_path, 'example_fuzzers/toy_fuzzer')
+    self.assertIn('run fuchsia-pkg://fuchsia.com/example_fuzzers#meta/toy_fuzzer.cmx -artifact_prefix=data/ data/fuchsia_crash', output)
+    self.assertIn('ERROR: AddressSanitizer: heap-buffer-overflow on address', output)
+    self.assertIn('Running: data/fuchsia_crash', output)
