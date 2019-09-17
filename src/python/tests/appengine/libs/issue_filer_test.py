@@ -280,6 +280,8 @@ class IssueFilerTests(unittest.TestCase):
     self.assertFalse(
         issue_tracker._itm.last_issue.has_label_matching('reported-2016-01-01'))
     self.assertNotIn(DEADLINE_NOTE, issue_tracker._itm.last_issue.body)
+    self.assertIn(FIX_NOTE, issue_tracker._itm.last_issue.body)
+    self.assertIn(QUESTIONS_NOTE, issue_tracker._itm.last_issue.body)
 
     issue_filer.file_issue(self.testcase1_security, issue_tracker)
     self.assertTrue(
@@ -288,6 +290,8 @@ class IssueFilerTests(unittest.TestCase):
     self.assertFalse(
         issue_tracker._itm.last_issue.has_label_matching('reported-2016-01-01'))
     self.assertNotIn(DEADLINE_NOTE, issue_tracker._itm.last_issue.body)
+    self.assertIn(FIX_NOTE, issue_tracker._itm.last_issue.body)
+    self.assertIn(QUESTIONS_NOTE, issue_tracker._itm.last_issue.body)
 
     issue_filer.file_issue(self.testcase2, issue_tracker)
     self.assertFalse(
@@ -296,6 +300,8 @@ class IssueFilerTests(unittest.TestCase):
     self.assertTrue(
         issue_tracker._itm.last_issue.has_label_matching('reported-2016-01-01'))
     self.assertNotIn(DEADLINE_NOTE, issue_tracker._itm.last_issue.body)
+    self.assertIn(FIX_NOTE, issue_tracker._itm.last_issue.body)
+    self.assertIn(QUESTIONS_NOTE, issue_tracker._itm.last_issue.body)
 
     issue_filer.file_issue(self.testcase2_security, issue_tracker)
     self.assertTrue(
@@ -304,6 +310,8 @@ class IssueFilerTests(unittest.TestCase):
     self.assertTrue(
         issue_tracker._itm.last_issue.has_label_matching('reported-2016-01-01'))
     self.assertIn(DEADLINE_NOTE, issue_tracker._itm.last_issue.body)
+    self.assertIn(FIX_NOTE, issue_tracker._itm.last_issue.body)
+    self.assertIn(QUESTIONS_NOTE, issue_tracker._itm.last_issue.body)
 
     issue_filer.file_issue(self.testcase3, issue_tracker)
     self.assertFalse(
@@ -312,6 +320,8 @@ class IssueFilerTests(unittest.TestCase):
     self.assertFalse(
         issue_tracker._itm.last_issue.has_label_matching('reported-2016-01-01'))
     self.assertNotIn(DEADLINE_NOTE, issue_tracker._itm.last_issue.body)
+    self.assertIn(FIX_NOTE, issue_tracker._itm.last_issue.body)
+    self.assertIn(QUESTIONS_NOTE, issue_tracker._itm.last_issue.body)
 
     issue_filer.file_issue(self.testcase3_security, issue_tracker)
     self.assertFalse(
@@ -320,6 +330,8 @@ class IssueFilerTests(unittest.TestCase):
     self.assertTrue(
         issue_tracker._itm.last_issue.has_label_matching('reported-2016-01-01'))
     self.assertNotIn(DEADLINE_NOTE, issue_tracker._itm.last_issue.body)
+    self.assertIn(FIX_NOTE, issue_tracker._itm.last_issue.body)
+    self.assertIn(QUESTIONS_NOTE, issue_tracker._itm.last_issue.body)
 
   def test_testcase_metadata_labels(self):
     """Tests issue filing with additional labels."""
