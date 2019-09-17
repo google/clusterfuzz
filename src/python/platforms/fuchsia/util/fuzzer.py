@@ -219,9 +219,8 @@ class Fuzzer(object):
     # make the rest of the plumbing look the same.
     if self._foreground:
       return self.run(fuzzer_args, logfile=self.results_output('fuzz-0.log'))
-    else:
-      self.device.rm(self.data_path('fuzz-*.log'))
-      self.run(fuzzer_args)
+    self.device.rm(self.data_path('fuzz-*.log'))
+    return self.run(fuzzer_args)
 
   def monitor(self, retcode=0):
     """Waits for a fuzzer to complete and symbolizes its logs.

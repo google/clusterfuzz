@@ -140,15 +140,13 @@ class Device(object):
       if logfile:
         with open(logfile, 'w') as f:
           return self._ssh(cmdline, stdout=f).call()
-      else:
-        return self._ssh(cmdline, stdout=Host.DEVNULL).call()
+      return self._ssh(cmdline, stdout=Host.DEVNULL).call()
     else:
       if logfile:
         p1 = self._ssh(cmdline, stdout=subprocess.PIPE).popen()
         p2 = self.host.create_process(['tee', logfile], stdin=p1.stdout)
-        p2.check_call()
-      else:
-        self._ssh(cmdline, stdout=None).call()
+        return p2.check_call()
+      return self._ssh(cmdline, stdout=None).call()
 
   def getpids(self):
     """Maps names to process IDs for running fuzzers.
@@ -255,7 +253,7 @@ class Device(object):
     artifacts = []
     artifact_pattern = re.compile(r'Test unit written to data/(\S*)')
     repro_pattern = re.compile(r'Running: .*')
-    line_of_actual_crash = None
+    line_with_crash_message = None
     with open(logfile) as log:
       with open(logfile + '.tmp', 'w') as tmp:
         for line in log:

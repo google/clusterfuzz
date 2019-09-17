@@ -1358,6 +1358,7 @@ class StackAnalyzerTestcase(unittest.TestCase):
     self._validate_get_crash_data(data, expected_type, expected_address,
                                   expected_state, expected_stacktrace,
                                   expected_security_flag)
+
   def test_fuchsia_reproducible_crash(self):
     """Test for Fuchsia ASan crashes found via reproduction."""
     # TODO(flowerhack): right now, we get the logs from reproducer runs, and
