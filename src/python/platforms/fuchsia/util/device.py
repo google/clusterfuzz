@@ -19,6 +19,7 @@ from builtins import range
 import glob
 import os
 import re
+import shutil
 import subprocess
 
 from .host import Host
@@ -300,8 +301,7 @@ class Device(object):
     with open(logfile + '.tmp', 'r') as tmp:
       with open(logfile + '.final', 'w') as final:
         final.write(line_with_crash_message)
-        for line in tmp:
-          final.write(line)
+        shutil.copyfileobj(tmp, final)
     os.remove(logfile + '.tmp')
     os.rename(logfile + '.final', logfile)
     return artifacts

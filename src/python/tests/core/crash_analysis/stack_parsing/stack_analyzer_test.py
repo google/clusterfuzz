@@ -1358,6 +1358,21 @@ class StackAnalyzerTestcase(unittest.TestCase):
     self._validate_get_crash_data(data, expected_type, expected_address,
                                   expected_state, expected_stacktrace,
                                   expected_security_flag)
+  def test_fuchsia_reproducible_crash(self):
+    """Test for Fuchsia ASan crashes found via reproduction."""
+    # TODO(flowerhack): right now, we get the logs from reproducer runs, and
+    # then post-process them to be in a format ClusterFuzz understands. Once we
+    # patch Fuchsia to emit logs properly the first time, update this test
+    # accordingly.
+    data = self._read_test_data('fuchsia_reproducible_crash.txt')
+    expected_type = 'Fatal-signal'
+    expected_state = 'CrashTrampolineAsm\nfoo_function\nbar_function\n'
+    expected_address = ''
+    expected_stacktrace = data
+    expected_security_flag = False
+    self._validate_get_crash_data(data, expected_type, expected_address,
+                                  expected_state, expected_stacktrace,
+                                  expected_security_flag)
 
   def test_windows_asan_divide_by_zero(self):
     """Test for Windows ASan divide by zero crashes."""
