@@ -566,6 +566,7 @@ def main(argv):
   atexit.register(fuzzer_utils.cleanup)
 
   # Initialize variables.
+  logs.log('argv passed to the launcher: "%s"' % str(argv))
   arguments = argv[1:]
   testcase_file_path = arguments.pop(0)
 
