@@ -12,10 +12,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """The superclass of all handlers."""
-
 from builtins import object
+from builtins import str
 from future import standard_library
+from future import utils as future_utils
 standard_library.install_aliases()
+
 import base64
 import cgi
 import datetime
@@ -225,7 +227,7 @@ class Handler(webapp2.RequestHandler):
 
       # 4XX is not our fault. Therefore, we hide the trace dump and log on
       # the INFO level.
-      if status >= 400 and status <= 499:
+      if 400 <= status <= 499:
         logging.info(json.dumps(values, cls=JsonEncoder))
         del values['traceDump']
       else:  # Other error codes should be logged with the EXCEPTION level.
@@ -261,6 +263,21 @@ class Handler(webapp2.RequestHandler):
     url = str(url)
     check_redirect_url(url)
     super(Handler, self).redirect(url, **kwargs)
+
+  # TODO(mbarbella): Delete this once the Python 3 migration is complete.
+  def dispatch(self):
+    """Dispatch a request and postprocess."""
+    @future_utils.as_native_str()
+    def to_native_str(text):
+      """Convert from future's newstr to a native str."""
+      return text
+
+    super(Handler, self).dispatch()
+
+    # Replace header values with Python 2-style strings after dispatching. There
+    # is an explicit type check against str that causes issues with newstr here.
+    for key, value in self.response.headers.items():
+      self.response.headers[key] = to_native_str(value)
 
 
 class GcsUploadHandler(Handler):

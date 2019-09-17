@@ -16,6 +16,7 @@
   backing up all entities. Therefore, we have to get all entities here and
   send them to the backup URL."""
 
+from builtins import str
 import datetime
 import googleapiclient
 
