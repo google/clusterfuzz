@@ -13,6 +13,7 @@
 # limitations under the License.
 """Helper functions to file issues."""
 
+from builtins import str
 import itertools
 import re
 

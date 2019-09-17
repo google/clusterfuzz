@@ -13,6 +13,7 @@
 # limitations under the License.
 """Handler for updating issue."""
 
+from builtins import str
 from datastore import data_handler
 from handlers import base_handler
 from handlers.testcase_detail import show

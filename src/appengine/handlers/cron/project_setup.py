@@ -15,7 +15,9 @@
 from __future__ import absolute_import
 
 from builtins import object
+from builtins import str
 from past.builtins import basestring
+
 import base64
 import copy
 import json
@@ -819,7 +821,7 @@ class ProjectSetup(object):
         for key, value in sorted(six.iteritems(additional_vars)):
           job.environment_string += ('{} = {}\n'.format(
               key,
-              str(value).encode('unicode-escape')))
+              str(value).encode('unicode-escape').decode('utf-8')))
 
       job.put()
 
