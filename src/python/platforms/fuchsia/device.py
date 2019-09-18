@@ -20,6 +20,7 @@ from __future__ import print_function
 import os
 import socket
 import subprocess
+import time
 
 from metrics import logs
 from platforms.fuchsia import errors
@@ -29,6 +30,8 @@ from platforms.fuchsia.util.host import Host
 from system import environment
 from system import new_process
 from system import shell
+
+_QEMU_WAIT_SECONDS = 30
 
 
 def setup_qemu_values(initial_setup=True):
@@ -141,6 +144,7 @@ def setup_qemu_instance(qemu_path, qemu_args):
 
 def run_qemu_instance(qemu_process):
   qemu_popen = qemu_process.run(stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+  time.sleep(_QEMU_WAIT_SECONDS)
   return qemu_popen
 
 
