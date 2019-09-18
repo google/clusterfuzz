@@ -799,9 +799,7 @@ class FuchsiaBuild(Build):
       logs.log('Extracted fuzz target ' + fuzz_target)
 
     self._setup_application_path()
-
-    # TODO(flowerhack): Figure out how to shutdown this process cleanly.
-    fuchsia.device.qemu_setup()
+    fuchsia.device.setup_qemu_values()
     return True
 
 
