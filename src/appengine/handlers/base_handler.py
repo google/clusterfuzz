@@ -267,6 +267,7 @@ class Handler(webapp2.RequestHandler):
   # TODO(mbarbella): Delete this once the Python 3 migration is complete.
   def dispatch(self):
     """Dispatch a request and postprocess."""
+
     @future_utils.as_native_str()
     def to_native_str(text):
       """Convert from future's newstr to a native str."""
