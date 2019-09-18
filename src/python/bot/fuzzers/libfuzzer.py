@@ -449,16 +449,9 @@ class FuchsiaQemuLibFuzzerRunner(new_process.ProcessRunner, LibFuzzerCommon):
     os.remove(self.fuzzer.logfile)
     shutil.move(new_file_handle_path, self.fuzzer.logfile)
 
-  def fuzz(self,
-           corpus_directories,
-           fuzz_timeout,
-           artifact_prefix=None,
-           additional_args=None,
-           extra_env=None):
-    """LibFuzzerCommon.fuzz override."""
-
-    # Since we're seeing Fuchsia connection errors:
-    # - Test the connection.  If this works, proceed.
+  def _test_ssh(self):
+    """Test the ssh connection."""
+    # Test the connection.  If this works, proceed.
     # - If we fail, restart QEMU and test the connection again.
     # - If that fails, throw the error; we can't seem to recover.
     try:
@@ -466,6 +459,23 @@ class FuchsiaQemuLibFuzzerRunner(new_process.ProcessRunner, LibFuzzerCommon):
     except fuchsia.errors.FuchsiaConnectionError:
       self._restart_qemu()
       self._test_qemu_ssh()
+
+  def _restart_qemu(self):
+    """Restart QEMU."""
+    self.qemu_instance.kill()
+    qemu_path, qemu_args = setup_qemu_values(initial_setup=False)
+    qemu_process = setup_qemu_instance(qemu_path, qemu_args)
+    self._setup_fuzzer_and_device()
+    self.qemu_instance = run_qemu_instance(qemu_process)
+
+  def fuzz(self,
+           corpus_directories,
+           fuzz_timeout,
+           artifact_prefix=None,
+           additional_args=None,
+           extra_env=None):
+    """LibFuzzerCommon.fuzz override."""
+    self._test_ssh()
 
     #TODO(flowerhack): Pass libfuzzer args (additional_args) here
     return_code = self.fuzzer.start([])
@@ -485,27 +495,12 @@ class FuchsiaQemuLibFuzzerRunner(new_process.ProcessRunner, LibFuzzerCommon):
     fuzzer_process_result.command = self.fuzzer.last_fuzz_cmd
     return fuzzer_process_result
 
-  def _restart_qemu(self):
-    self.qemu_instance.kill()
-    qemu_path, qemu_args = setup_qemu_values(initial_setup=False)
-    qemu_process = setup_qemu_instance(qemu_path, qemu_args)
-    self._setup_fuzzer_and_device()
-    self.qemu_instance = run_qemu_instance(qemu_process)
-
   def run_single_testcase(self,
                           testcase_path,
                           timeout=None,
                           additional_args=None):
-
-    # Since we're seeing Fuchsia connection errors:
-    # - Test the connection.  If this works, proceed.
-    # - If we fail, restart QEMU and test the connection again.
-    # - If that fails, throw the error; we can't seem to recover.
-    try:
-      self._test_qemu_ssh()
-    except fuchsia.errors.FuchsiaConnectionError:
-      self._restart_qemu()
-      self._test_qemu_ssh()
+    """Run a single testcase."""
+    self._test_ssh()
 
     # We need to push the testcase to the device and pass in the name.
     self._test_qemu_ssh()
