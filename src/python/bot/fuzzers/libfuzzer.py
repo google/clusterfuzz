@@ -26,6 +26,9 @@ from bot.fuzzers import engine_common
 from bot.fuzzers import utils as fuzzer_utils
 from bot.fuzzers.libFuzzer import constants
 from platforms import fuchsia
+from platforms.fuchsia.device import run_qemu_instance
+from platforms.fuchsia.device import setup_qemu_instance
+from platforms.fuchsia.device import setup_qemu_values
 from platforms.fuchsia.util.device import Device
 from platforms.fuchsia.util.fuzzer import Fuzzer
 from platforms.fuchsia.util.host import Host
@@ -373,7 +376,9 @@ class FuchsiaQemuLibFuzzerRunner(new_process.ProcessRunner, LibFuzzerCommon):
 
   FUZZER_TEST_DATA_REL_PATH = os.path.join('test_data', 'fuzzing')
 
-  def __init__(self, executable_path, default_args=None):
+  def _setup_fuzzer_and_device(self):
+    """ Build a Fuzzer object based on the QEMU values.
+    Call this only after setup_qemu_values()"""
     fuchsia_pkey_path = environment.get_value('FUCHSIA_PKEY_PATH')
     fuchsia_portnum = environment.get_value('FUCHSIA_PORTNUM')
     fuchsia_resources_dir = environment.get_value('FUCHSIA_RESOURCES_DIR')
@@ -389,6 +394,7 @@ class FuchsiaQemuLibFuzzerRunner(new_process.ProcessRunner, LibFuzzerCommon):
     self.device.set_ssh_option('StrictHostKeyChecking no')
     self.device.set_ssh_option('UserKnownHostsFile=/dev/null')
     self.device.set_ssh_identity(fuchsia_pkey_path)
+
     # Fuchsia fuzzer names have the format {package_name}/{binary_name}.
     package, target = environment.get_value('FUZZ_TARGET').split('/')
     test_data_dir = os.path.join(fuchsia_resources_dir_plus_build,
@@ -397,8 +403,17 @@ class FuchsiaQemuLibFuzzerRunner(new_process.ProcessRunner, LibFuzzerCommon):
     self.fuzzer = Fuzzer(
         self.device, package, target, output=test_data_dir, foreground=True)
 
+  def __init__(self, executable_path, default_args=None):
+    qemu_path, qemu_args = setup_qemu_values(initial_setup=False)
+    qemu_process = setup_qemu_instance(qemu_path, qemu_args)
+    self._setup_fuzzer_and_device()
+    self.qemu_instance = run_qemu_instance(qemu_process)
+
     super(FuchsiaQemuLibFuzzerRunner, self).__init__(
         executable_path=executable_path, default_args=default_args)
+
+  def __del__(self):
+    self.qemu_instance.kill()
 
   def get_command(self, additional_args=None):
     # TODO(flowerhack): Update this to dynamically pick a result from "fuzz
@@ -434,6 +449,25 @@ class FuchsiaQemuLibFuzzerRunner(new_process.ProcessRunner, LibFuzzerCommon):
     os.remove(self.fuzzer.logfile)
     shutil.move(new_file_handle_path, self.fuzzer.logfile)
 
+  def _test_ssh(self):
+    """Test the ssh connection."""
+    # Test the connection.  If this works, proceed.
+    # - If we fail, restart QEMU and test the connection again.
+    # - If that fails, throw the error; we can't seem to recover.
+    try:
+      self._test_qemu_ssh()
+    except fuchsia.errors.FuchsiaConnectionError:
+      self._restart_qemu()
+      self._test_qemu_ssh()
+
+  def _restart_qemu(self):
+    """Restart QEMU."""
+    self.qemu_instance.kill()
+    qemu_path, qemu_args = setup_qemu_values(initial_setup=False)
+    qemu_process = setup_qemu_instance(qemu_path, qemu_args)
+    self._setup_fuzzer_and_device()
+    self.qemu_instance = run_qemu_instance(qemu_process)
+
   def fuzz(self,
            corpus_directories,
            fuzz_timeout,
@@ -441,7 +475,7 @@ class FuchsiaQemuLibFuzzerRunner(new_process.ProcessRunner, LibFuzzerCommon):
            additional_args=None,
            extra_env=None):
     """LibFuzzerCommon.fuzz override."""
-    self._test_qemu_ssh()
+    self._test_ssh()
 
     #TODO(flowerhack): Pass libfuzzer args (additional_args) here
     return_code = self.fuzzer.start([])
@@ -465,6 +499,9 @@ class FuchsiaQemuLibFuzzerRunner(new_process.ProcessRunner, LibFuzzerCommon):
                           testcase_path,
                           timeout=None,
                           additional_args=None):
+    """Run a single testcase."""
+    self._test_ssh()
+
     # We need to push the testcase to the device and pass in the name.
     self._test_qemu_ssh()
     testcase_path_name = os.path.basename(os.path.normpath(testcase_path))

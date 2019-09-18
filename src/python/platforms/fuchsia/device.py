@@ -31,7 +31,7 @@ from system import new_process
 from system import shell
 
 
-def qemu_setup():
+def setup_qemu_values(initial_setup=True):
   """Sets up and runs a QEMU VM in the background.
   Returns a process.Popen object.
   Does not block the calling process, and teardown must be handled by the
@@ -76,8 +76,10 @@ def qemu_setup():
   initrd_path = os.path.join(fuchsia_resources_dir, 'fuchsia-ssh.zbi')
 
   # Perform some more initiailization steps.
-  extend_fvm(fuchsia_resources_dir, drive_path)
-  add_keys_to_zbi(fuchsia_resources_dir, initrd_path, fuchsia_zbi)
+  # Only do these the first time you run QEMU after downloading the build.
+  if initial_setup:
+    extend_fvm(fuchsia_resources_dir, drive_path)
+    add_keys_to_zbi(fuchsia_resources_dir, initrd_path, fuchsia_zbi)
 
   # Get a free port for the VM, so we can SSH in later.
   tcp = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -121,10 +123,16 @@ def qemu_setup():
 
   # Fuzzing jobs that SSH into the QEMU VM need access to this env var.
   environment.set_value('FUCHSIA_PKEY_PATH', pkey_path)
+  return qemu_path, qemu_args
 
-  # Finally, launch QEMU.
-  logs.log('Running QEMU. Command: ' + qemu_path + ' ' + str(qemu_args))
+
+def setup_qemu_instance(qemu_path, qemu_args):
   qemu_process = new_process.ProcessRunner(qemu_path, qemu_args)
+  logs.log('Ready to run QEMU. Command: ' + qemu_path + ' ' + str(qemu_args))
+  return qemu_process
+
+
+def run_qemu_instance(qemu_process):
   qemu_popen = qemu_process.run(stdout=subprocess.PIPE, stderr=subprocess.PIPE)
   return qemu_popen
 
