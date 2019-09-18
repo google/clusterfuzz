@@ -103,10 +103,6 @@ def setup_qemu_values(initial_setup=True):
       '-append', '"kernel.serial=legacy TERM=dumb"',
       '-machine', 'q35',
       '-display', 'none',
-      # Can't use host CPU since we don't necessarily have KVM on the machine.
-      # Emulate a Haswell CPU with a few feature toggles. This mirrors the most
-      # common configuration for Fuchsia VMs when using in-tree tools.
-      '-cpu', 'Haswell,+smap,-check,-fsgsbase',
       '-netdev',
       ('user,id=net0,net=192.168.3.0/24,dhcpstart=192.168.3.9,'
        'host=192.168.3.2,hostfwd=tcp::') + str(port) + '-:22',
@@ -114,6 +110,17 @@ def setup_qemu_values(initial_setup=True):
       '-L', sharefiles_path
   ]
   # yapf: enable
+
+  # Detecing KVM is tricky, so use an environment variable to determine whether
+  # to turn it on or not.
+  if environment.get_value('FUCHSIA_USE_KVM'):
+    qemu_args.append('-cpu', 'host,migratable=no')
+    qemu_args.append('-enable-kvm')
+  else:
+    # Can't use host CPU since we don't necessarily have KVM on the machine.
+    # Emulate a Haswell CPU with a few feature toggles. This mirrors the most
+    # common configuration for Fuchsia VMs when using in-tree tools.
+    qemu_args.append('-cpu', 'Haswell,+smap,-check,-fsgsbase')
 
   # Get the list of fuzzers for ClusterFuzz to choose from.
   host = Host.from_dir(
