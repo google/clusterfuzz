@@ -56,7 +56,6 @@ Base64: Lit7ODg5fTB9UFB8Lit7ODg5fTB9UFB8Lit7ODg5fTB9UFB8Lit7ODg5fTB9UFB8Lit7ODg5
     #23 0x7f551b12782f in __libc_start_main
     #24 0x41cb38 in _start
 
-custom-crash-state: re2_fuzzer
 SUMMARY: libFuzzer: timeout
 stat::number_of_executed_units: 4333
 stat::average_exec_per_sec:     9

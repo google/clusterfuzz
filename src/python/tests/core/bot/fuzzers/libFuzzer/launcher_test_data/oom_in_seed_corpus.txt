@@ -117,7 +117,6 @@ MS: 2 InsertByte-ManualDict- DE: "https://"-; base unit: b87d6b4ffdcb428bc6ab242
 
 artifact_prefix='/mnt/scratch0/clusterfuzz/bot/inputs/fuzzer-testcases/'; Test unit written to /mnt/scratch0/clusterfuzz/bot/inputs/fuzzer-testcases/oom-da39a3ee5e6b4b0d3255bfef95601890afd80709
 Base64:
-custom-crash-state: origin_trial_token_fuzzer
 SUMMARY: libFuzzer: out-of-memory
 stat::number_of_executed_units: 19380
 stat::average_exec_per_sec:     74

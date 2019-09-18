@@ -57,6 +57,5 @@ stat::new_units_added:          0
 stat::slowest_unit_time_sec:    0
 stat::peak_rss_mb:              3015
 
-custom-crash-state: pdf_fm2js_fuzzer
 SIGTERMed
 /mnt/scratch0/clusterfuzz/bot/builds/chromium-browser-libfuzzer_linux-release-asan_ae530a86793cd6b8b56ce9af9159ac101396e802/revisions/libfuzzer-linux-release-404048/pdf_fm2js_fuzzer: no process found

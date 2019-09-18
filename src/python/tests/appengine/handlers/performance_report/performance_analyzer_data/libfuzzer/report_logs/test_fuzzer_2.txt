@@ -34,7 +34,6 @@ artifact_prefix='/mnt/scratch0/clusterfuzz/bot/inputs/fuzzer-testcases/'; Test u
     #18 0x5296f8 in main third_party/libFuzzer/src/FuzzerMain.cpp:20:10
     #19 0x7f03421b9f44 in __libc_start_main /build/eglibc-SvCtMH/eglibc-2.19/csu/libc-start.c:287
 
-custom-crash-state: icu_ucasemap_fuzzer
 SUMMARY: libFuzzer: timeout
 stat::number_of_executed_units: 2093
 stat::average_exec_per_sec:     32

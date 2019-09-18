@@ -15,5 +15,4 @@ Running: /mnt/scratch0/clusterfuzz/bot/inputs/fuzzer-testcases/2865ac1ef97c5b82f
 #12 0x40a250 in main third_party/libFuzzer/src/FuzzerMain.cpp:20:10
 #13 0x7f41340d382f in __libc_start_main /build/glibc-Cl5G7W/glibc-2.23/csu/libc-start.c:291
 ==7320==HINT: if you don't care about these errors you may set =allocator_may_return_null=1
-custom-crash-state: pdf_jpx_fuzzer
 SUMMARY: MemorySanitizer: allocation-size-too-big (/mnt/scratch0/clusterfuzz/bot/builds/chromium-browser-libfuzzer_linux-release-msan_ae530a86793cd6b8b56ce9af9159ac101396e802/revisions/libfuzzer-linux-release-569934/pdf_jpx_fuzzer+0x35c73d)

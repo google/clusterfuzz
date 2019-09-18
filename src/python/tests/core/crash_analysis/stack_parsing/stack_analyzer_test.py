@@ -230,7 +230,7 @@ class StackAnalyzerTestcase(unittest.TestCase):
     data = self._read_test_data('android_null_stack.txt')
     expected_type = 'UNKNOWN'
     expected_address = '0xb6e43000'
-    expected_state = 'Surfaceflinger'
+    expected_state = 'Surfaceflinger\n'
     expected_stacktrace = data
     expected_security_flag = True
 
@@ -2124,7 +2124,9 @@ class StackAnalyzerTestcase(unittest.TestCase):
 
   def test_oom4(self):
     """Test an out of memory stacktrace."""
+    os.environ['FUZZ_TARGET'] = 'pdf_jpx_fuzzer'
     os.environ['REPORT_OOMS_AND_HANGS'] = 'True'
+
     data = self._read_test_data('oom4.txt')
     expected_type = 'Out-of-memory'
     expected_address = ''
@@ -2138,8 +2140,10 @@ class StackAnalyzerTestcase(unittest.TestCase):
 
   def test_libfuzzer_timeout_enabled(self):
     """Test a libFuzzer timeout stacktrace (with reporting enabled)."""
-    data = self._read_test_data('libfuzzer_timeout.txt')
+    os.environ['FUZZ_TARGET'] = 'pdfium_fuzzer'
     os.environ['REPORT_OOMS_AND_HANGS'] = 'True'
+
+    data = self._read_test_data('libfuzzer_timeout.txt')
     expected_type = 'Timeout'
     expected_address = ''
     expected_state = 'pdfium_fuzzer\n'
@@ -2165,8 +2169,10 @@ class StackAnalyzerTestcase(unittest.TestCase):
 
   def test_libfuzzer_oom_without_redzone(self):
     """Test a libFuzzer OOM stacktrace with no redzone."""
-    data = self._read_test_data('libfuzzer_oom.txt')
+    os.environ['FUZZ_TARGET'] = 'freetype2_fuzzer'
     os.environ['REPORT_OOMS_AND_HANGS'] = 'True'
+
+    data = self._read_test_data('libfuzzer_oom.txt')
     expected_type = 'Out-of-memory'
     expected_address = ''
     expected_state = 'freetype2_fuzzer\n'
@@ -2185,9 +2191,11 @@ class StackAnalyzerTestcase(unittest.TestCase):
 
   def test_libfuzzer_oom_with_small_redzone(self):
     """Test a libFuzzer OOM stacktrace with redzone equal or smaller than 64."""
-    data = self._read_test_data('libfuzzer_oom.txt')
+    os.environ['FUZZ_TARGET'] = 'freetype2_fuzzer'
     os.environ['REPORT_OOMS_AND_HANGS'] = 'True'
     os.environ['REDZONE'] = '64'
+
+    data = self._read_test_data('libfuzzer_oom.txt')
     expected_type = 'Out-of-memory'
     expected_address = ''
     expected_state = 'freetype2_fuzzer\n'

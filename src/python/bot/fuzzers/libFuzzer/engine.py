@@ -256,13 +256,6 @@ class LibFuzzerEngine(engine.Engine):
     self._merge_new_units(target_path, options.corpus_dir, new_corpus_dir,
                           options.fuzz_corpus_dirs, arguments, parsed_stats)
 
-    # Add custom crash state based on fuzzer name (if needed).
-    project_qualified_fuzzer_name = (
-        data_types.fuzz_target_project_qualified_name(
-            utils.current_project(), os.path.basename(target_path)))
-    launcher.add_custom_crash_state_if_needed(project_qualified_fuzzer_name,
-                                              log_lines, parsed_stats)
-
     fuzz_logs = '\n'.join(log_lines)
     crashes = []
     if crash_testcase_file_path:
@@ -272,6 +265,9 @@ class LibFuzzerEngine(engine.Engine):
           engine.Crash(crash_testcase_file_path, fuzz_logs, arguments,
                        actual_duration))
 
+    project_qualified_fuzzer_name = (
+        data_types.fuzz_target_project_qualified_name(
+            utils.current_project(), os.path.basename(target_path)))
     launcher.analyze_and_update_recommended_dictionary(
         runner, project_qualified_fuzzer_name, log_lines, options.corpus_dir,
         arguments)

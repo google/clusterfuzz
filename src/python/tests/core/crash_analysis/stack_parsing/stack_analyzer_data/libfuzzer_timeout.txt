@@ -28,5 +28,4 @@ ALARM: working on the last Unit for 5 seconds
     #24 0x5897be in main out/Fuzzer/../../third_party/libFuzzer/src/FuzzerMain.cpp:21:10
     #25 0x7f6146b3ef44 in __libc_start_main /build/eglibc-oGUzwX/eglibc-2.19/csu/libc-start.c:287
 
-custom-crash-state: pdfium_fuzzer
 SUMMARY: libFuzzer: timeout
