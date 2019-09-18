@@ -466,6 +466,7 @@ class FuchsiaQemuLibFuzzerRunner(new_process.ProcessRunner, LibFuzzerCommon):
                           timeout=None,
                           additional_args=None):
     # We need to push the testcase to the device and pass in the name.
+    self._test_qemu_ssh()
     testcase_path_name = os.path.basename(os.path.normpath(testcase_path))
     self.device.store(testcase_path, self.fuzzer.data_path())
 
