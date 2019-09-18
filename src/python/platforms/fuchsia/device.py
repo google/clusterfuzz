@@ -30,6 +30,8 @@ from system import environment
 from system import new_process
 from system import shell
 
+_QEMU_WAIT_SECONDS = 30
+
 
 def setup_qemu_values(initial_setup=True):
   """Sets up and runs a QEMU VM in the background.
@@ -141,6 +143,7 @@ def setup_qemu_instance(qemu_path, qemu_args):
 
 def run_qemu_instance(qemu_process):
   qemu_popen = qemu_process.run(stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+  time.sleep(_QEMU_WAIT_SECONDS)
   return qemu_popen
 
 
