@@ -92,7 +92,6 @@ CHROME_MAC_STACK_FRAME_REGEX = re.compile(
     r'([xX0-9a-fA-F]+)\s+'  # addr[hex] (5)
     r'(.*)\s*\+\s*'  # fun (6)
     r'(\d+)')  # off[dec] (7)
-CUSTOM_CRASH_STATE_REGEX = re.compile(r'.*custom-crash-state:\s*([^\s]+)')
 MSAN_TSAN_REGEX = re.compile(
     r'.*(ThreadSanitizer|MemorySanitizer):[ ]*([^(:]+)')
 FATAL_ERROR_CHECK_FAILURE = re.compile(
@@ -540,6 +539,7 @@ class StackAnalyzerState(object):
     self.crash_state = ''
     self.crash_stacktrace = ''
     self.frame_count = 0
+    self.fuzz_target = environment.get_value('FUZZ_TARGET')
     self.process_name = 'NULL'
     self.process_died = False
     self.tool = ''
@@ -621,14 +621,20 @@ def filter_crash_parameters(state):
       else:
         state.crash_state += line[:LINE_LENGTH_CAP] + '\n'
 
-  # 3. Add a trailing \n if it does not exist in crash state.
-  if state.crash_state and state.crash_state[-1] != '\n':
-    state.crash_state += '\n'
-
-  # 4. Don't return an empty crash state if we have a crash type. Either set to
+  # 3. Don't return an empty crash state if we have a crash type. Either set to
   # NULL or use the crashing process name if available.
   if state.crash_type and not state.crash_state.strip():
     state.crash_state = state.process_name
+
+  # 4. For timeout and OOMs in fuzz targets, force use of fuzz target name since
+  # stack itself is not usable for deduplication.
+  if state.fuzz_target and state.crash_type in ['Out-of-memory', 'Timeout']:
+    state.crash_state = state.fuzz_target
+
+  # 5. Add a trailing \n if it does not exist in crash state.
+  if (state.crash_state and state.crash_state != 'NULL' and
+      state.crash_state[-1] != '\n'):
+    state.crash_state += '\n'
 
   # Normalize access size parameter if greater than 16 bytes.
   m = re.match('([^0-9]+)([0-9]+)', state.crash_type, re.DOTALL)
@@ -1659,12 +1665,6 @@ def get_crash_data(crash_data, symbolize_flag=True):
     # For JNI errors, don't use stack frames for crash state from art/runtime,
     # since it helps to do testcase de-duplication.
     if JNI_ERROR_STRING in state.crash_state and '/art/runtime/' in line:
-      continue
-
-    # Timeouts/OOMs.
-    if state.crash_type == 'Timeout' or state.crash_type == 'Out-of-memory':
-      add_frame_on_match(
-          CUSTOM_CRASH_STATE_REGEX, line, state, group=1, can_ignore=False)
       continue
 
     # Platform specific: Windows cdb style stack frame.

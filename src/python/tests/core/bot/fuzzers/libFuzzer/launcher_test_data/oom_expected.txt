@@ -59,7 +59,6 @@ Live Heap Allocations: 2236539140 bytes in 4979 chunks; quarantined: 9002806 byt
 
 MS: 1 ChangeBit-; base unit: 251d1c6ee4136b020b7eb0900c5e40bc83b133a4
 artifact_prefix='/fake/'; Test unit written to /fake/oom-755e18dc1b20912de7556d11380e540231dc292c
-custom-crash-state: fake_fuzzer
 SUMMARY: libFuzzer: out-of-memory
 stat::number_of_executed_units: 90667
 stat::average_exec_per_sec:     53

@@ -13,6 +13,5 @@ Live Heap Allocations: 2379484 bytes from 64 allocations; showing top 50%
     #4 0x915a48 in main /src/llvm/lib/Fuzzer/FuzzerMain.cpp:21:10
     #5 0x7f2c7742582f in __libc_start_main (/lib/x86_64-linux-gnu/libc.so.6+0x2082f)
 
-custom-crash-state: freetype2_fuzzer
 SUMMARY: libFuzzer: out-of-memory
 

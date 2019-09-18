@@ -19,7 +19,6 @@ MS: 0 ; base unit: 0000000000000000000000000000000000000000
 \xff\xff\xff\x01\x00\x00\x00\x0c\x0c\x0c\x0c\x0c\xff\xf2\x14\xe3\x00*\x00\x00\x00\x00\x15\xcf\xff\x007\x047U\x8c,\x0c\x0c\x0c\x0c\xff\xf2\x149\x00c\x00\x00\x15\x002\x0c3\x0c\x14\x0c
 artifact_prefix='c:\clusterfuzz\bot\inputs\fuzzer-testcases/'; Test unit written to c:\clusterfuzz\bot\inputs\fuzzer-testcases/oom-2b1256adb7bff4d0b70a3edca49756177ef40306
 Base64: ////AQAAAAwMDAwM//IU4wAqAAAAABXP/wA3BDdVjCwMDAwM//IUOQBjAAAVADIMMwwUDA==
-custom-crash-state: mediasource_MP3_pipeline_integration_fuzzer
 SUMMARY: libFuzzer: out-of-memory
 stat::number_of_executed_units: 1142
 stat::average_exec_per_sec:     40

@@ -124,22 +124,6 @@ def get_dictionary_analysis_timeout():
                                                'DICTIONARY_TIMEOUT_OVERRIDE')
 
 
-def add_custom_crash_state_if_needed(fuzzer_name, output_lines, parsed_stats):
-  """Insert a custom crash state into the output lines if needed."""
-  if not parsed_stats['oom_count'] and not parsed_stats['timeout_count']:
-    return
-
-  summary_index = None
-
-  for index, line in enumerate(output_lines):
-    if 'SUMMARY:' in line or 'DEATH:' in line:
-      summary_index = index
-      break
-
-  if summary_index is not None:
-    output_lines.insert(summary_index, 'custom-crash-state: ' + fuzzer_name)
-
-
 def analyze_and_update_recommended_dictionary(runner, fuzzer_name, log_lines,
                                               corpus_directory, arguments):
   """Extract and analyze recommended dictionary from fuzzer output, then update
@@ -304,7 +288,6 @@ def remove_fuzzing_arguments(arguments):
 
 def load_testcase_if_exists(fuzzer_runner,
                             testcase_file_path,
-                            fuzzer_name,
                             use_minijail=False,
                             additional_args=None):
   """Loads a crash testcase if it exists."""
@@ -321,10 +304,6 @@ def load_testcase_if_exists(fuzzer_runner,
         get_printable_command(result.command, fuzzer_runner.executable_path,
                               use_minijail))
   output_lines = result.output.splitlines()
-
-  # Parse performance features to extract custom crash flags.
-  parsed_stats = stats.parse_performance_features(output_lines, [], [])
-  add_custom_crash_state_if_needed(fuzzer_name, output_lines, parsed_stats)
   print('\n'.join(output_lines))
 
 
@@ -621,8 +600,7 @@ def main(argv):
 
   # If we don't have a corpus, then that means this is not a fuzzing run.
   if not corpus_directory:
-    load_testcase_if_exists(runner, testcase_file_path, fuzzer_name,
-                            use_minijail, arguments)
+    load_testcase_if_exists(runner, testcase_file_path, use_minijail, arguments)
     return
 
   # We don't have a crash testcase, fuzz.
@@ -818,8 +796,6 @@ def main(argv):
   # Dump stats data for further uploading to BigQuery.
   engine_common.dump_big_query_data(parsed_stats, testcase_file_path, command)
 
-  # Add custom crash state based on fuzzer name (if needed).
-  add_custom_crash_state_if_needed(fuzzer_name, log_lines, parsed_stats)
   for line in log_lines:
     print(line)
 

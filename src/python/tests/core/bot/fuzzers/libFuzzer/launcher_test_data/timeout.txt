@@ -40,7 +40,6 @@ MS: 0 ; base unit: 0000000000000000000000000000000000000000
 #15 0x49f221 in main /src/libfuzzer/FuzzerMain.cpp:20:10
 #16 0x7f0d6f37282f in __libc_start_main /build/glibc-bfm8X4/glibc-2.23/csu/libc-start.c:291
 #17 0x41fa18 in _start
-custom-crash-state: imagemagick_encoder_miff_fuzzer
 SUMMARY: libFuzzer: timeout
 stat::number_of_executed_units: 5769
 stat::average_exec_per_sec:     16

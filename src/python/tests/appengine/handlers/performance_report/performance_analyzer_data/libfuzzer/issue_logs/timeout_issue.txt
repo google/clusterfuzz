@@ -49,4 +49,3 @@ stat::new_units_added:          1
 stat::slowest_unit_time_sec:    0
 stat::peak_rss_mb:              99
 
-custom-crash-state: skia_path_fuzzer

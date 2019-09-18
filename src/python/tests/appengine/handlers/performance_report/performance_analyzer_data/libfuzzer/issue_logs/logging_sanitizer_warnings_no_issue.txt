@@ -57,7 +57,6 @@ SCARINESS: 24 (2-byte-read-heap-buffer-overflow-far-from-bounds)
     #18 0x41e5c8 in _start
 
 Address 0x61d0000ffc68 is a wild pointer.
-custom-crash-state: libarchive_fuzzer
 SUMMARY: AddressSanitizer: heap-buffer-overflow (/mnt/scratch0/clusterfuzz/bot/builds/clusterfuzz-builds_libarchive_77ea478b318ee8043f24c087f94cd0ba1edb3f3a/revisions/libarchive_fuzzer+0x5de3fa)
 Shadow bytes around the buggy address:
   0x0c3a80017f30: fa fa fa fa fa fa fa fa fa fa fa fa fa fa fa fa

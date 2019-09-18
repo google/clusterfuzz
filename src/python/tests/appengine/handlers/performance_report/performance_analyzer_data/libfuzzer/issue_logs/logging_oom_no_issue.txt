@@ -733,7 +733,6 @@ P57 940 57 940 5\x0a\x09 *;55\x0a 7 \x973use_cmp\xc1 7 939 5\x0a\x0940 #593\xb0s
 #141007	NEW    cov: 8111 ft: 1354 corp: 300/155Kb exec/s: 594 rss: 2098Mb L: 159 MS: 5 ChangeASCIIInt-ChangeByte-CMP-ChangeBinInt-ShuffleBytes- DE: "71826a1fbbf93c1a2f21c5004b3"-
 artifact_prefix='/'; Test unit written to /oom-8f149ff4204ba7c2964724cfc509916f8bbcf0ef
 Base64: UDU3IDk0MCA1NyA5NDAgNQoJICo7NTUKIDcglzN1c2VfY21wwSA3IDkzOSA1Cgk0MCAjNTkzsHNlX2NtUFDBUDpQcFBQUFBQUFBQUFA3MTgyNmExZmJiZjkzYzFhMmYyMWM1MDA0YjNQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFCws1BQUFBQUFBQUFBQIDggOTM5IDkg
-custom-crash-state: libreoffice_ppmfuzzer
 SUMMARY: libFuzzer: out-of-memory
 stat::number_of_executed_units: 141013
 stat::average_exec_per_sec:     594
