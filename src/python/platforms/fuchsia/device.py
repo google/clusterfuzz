@@ -20,6 +20,7 @@ from __future__ import print_function
 import os
 import socket
 import subprocess
+import time
 
 from metrics import logs
 from platforms.fuchsia import errors
