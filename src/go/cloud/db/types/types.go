@@ -193,6 +193,12 @@ type FuzzTargetJob struct {
 	LastRun        time.Time      `datastore:"last_run"`
 }
 
+// FuzzTargetsCount is auto-generated from data_types.py.
+type FuzzTargetsCount struct {
+	Key   *datastore.Key `datastore:"__key__"`
+	Count int            `datastore:"count,noindex"`
+}
+
 // Fuzzer is auto-generated from data_types.py.
 type Fuzzer struct {
 	Key                         *datastore.Key `datastore:"__key__"`
@@ -226,11 +232,12 @@ type Fuzzer struct {
 
 // FuzzerJob is auto-generated from data_types.py.
 type FuzzerJob struct {
-	Key      *datastore.Key `datastore:"__key__"`
-	Fuzzer   string         `datastore:"fuzzer"`
-	Job      string         `datastore:"job"`
-	Platform string         `datastore:"platform"`
-	Weight   float64        `datastore:"weight"`
+	Key        *datastore.Key `datastore:"__key__"`
+	Fuzzer     string         `datastore:"fuzzer"`
+	Job        string         `datastore:"job"`
+	Platform   string         `datastore:"platform"`
+	Weight     float64        `datastore:"weight"`
+	Multiplier float64        `datastore:"multiplier"`
 }
 
 // Heartbeat is auto-generated from data_types.py.
@@ -435,6 +442,7 @@ type TestcaseUploadMetadata struct {
 	SecurityFlag         bool           `datastore:"security_flag"`
 	Retries              int            `datastore:"retries"`
 	BugSummaryUpdateFlag bool           `datastore:"bug_summary_update_flag"`
+	QuietFlag            bool           `datastore:"quiet_flag"`
 }
 
 // TestcaseVariant is auto-generated from data_types.py.

@@ -1225,6 +1225,7 @@ def create_user_uploaded_testcase(key,
                                   bundled,
                                   retries,
                                   bug_summary_update_flag,
+                                  quiet_flag,
                                   additional_metadata=None):
   """Create a testcase object, metadata, and task for a user uploaded test."""
   testcase = data_types.Testcase()
@@ -1294,7 +1295,8 @@ def create_user_uploaded_testcase(key,
   if bundled:
     metadata.path_in_archive = file_path_input
   metadata.timestamp = testcase.timestamp
-  metadata.bug_summary_update_flag = bool(bug_summary_update_flag)
+  metadata.bug_summary_update_flag = bug_summary_update_flag
+  metadata.quiet_flag = quiet_flag
   metadata.put()
 
   # Create the job to analyze the testcase.
