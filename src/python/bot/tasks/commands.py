@@ -121,6 +121,17 @@ def update_environment_for_job(environment_string):
   if environment.get_value('SHARE_BUILD_WITH_JOB_TYPE'):
     environment.set_value('CUSTOM_BINARY', True)
 
+  # Allow the default FUZZ_TEST_TIMEOUT and MAX_TESTCASES to be overridden on
+  # machines that are preempted more often.
+  fuzz_test_timeout_override = environment.get_value(
+      'FUZZ_TEST_TIMEOUT_OVERRIDE')
+  if fuzz_test_timeout_override:
+    environment.set_value('FUZZ_TEST_TIMEOUT', fuzz_test_timeout_override)
+
+  max_testcases_override = environment.get_value('MAX_TESTCASES_OVERRIDE')
+  if max_testcases_override:
+    environment.set_value('MAX_TESTCASES', max_testcases_override)
+
   if environment.is_trusted_host():
     environment_values['JOB_NAME'] = environment.get_value('JOB_NAME')
     from bot.untrusted_runner import environment as worker_environment
