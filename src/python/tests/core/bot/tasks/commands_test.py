@@ -23,6 +23,7 @@ from base import errors
 from bot.tasks import commands
 from datastore import data_types
 from datastore import ndb
+from system import environment
 from tests.test_libs import helpers
 from tests.test_libs import test_utils
 
@@ -195,3 +196,28 @@ class RunCommandTest(unittest.TestCase):
         'status': 'finished',
         'time': test_utils.CURRENT_TIME,
     }, task_status.to_dict())
+
+
+class UpdateEnvironmentForJobTest(unittest.TestCase):
+  """update_environment_for_job tests."""
+
+  def setUp(self):
+    helpers.patch_environ(self)
+
+  def test_basic(self):
+    """Basic tests."""
+    commands.update_environment_for_job('FUZZ_TEST_TIMEOUT = 123\n'
+                                        'MAX_TESTCASES = 5\n'
+                                        'B = abcdef\n')
+    self.assertEqual(123, environment.get_value('FUZZ_TEST_TIMEOUT'))
+    self.assertEqual(5, environment.get_value('MAX_TESTCASES'))
+    self.assertEqual('abcdef', environment.get_value('B'))
+
+  def test_timeout_overrides(self):
+    """Test timeout overrides."""
+    environment.set_value('FUZZ_TEST_TIMEOUT_OVERRIDE', 9001)
+    environment.set_value('MAX_TESTCASES_OVERRIDE', 42)
+    commands.update_environment_for_job(
+        'FUZZ_TEST_TIMEOUT = 123\nMAX_TESTCASES = 5\n')
+    self.assertEqual(9001, environment.get_value('FUZZ_TEST_TIMEOUT'))
+    self.assertEqual(42, environment.get_value('MAX_TESTCASES'))
