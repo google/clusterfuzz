@@ -420,8 +420,10 @@ class FuchsiaQemuLibFuzzerRunner(new_process.ProcessRunner, LibFuzzerCommon):
     # list" and then run that fuzzer.
     return self.ssh_command('ls')
 
-  def fetch_and_process_logs_and_crash(self):
+  def process_logs_and_crash(self, artifact_prefix=None):
     """Fetch symbolized logs and crashes."""
+    if not artifact_prefix:
+      return
 
     # Clusterfuzz assumes that the Libfuzzer output points to an absolute path,
     # where it can find the crash file.
@@ -429,8 +431,8 @@ class FuchsiaQemuLibFuzzerRunner(new_process.ProcessRunner, LibFuzzerCommon):
     # So, we make a new file, change the appropriate line with a regex to point
     # to the true location. Apologies for the hackery.
     crash_location_regex = r'(.*)(Test unit written to )(data/.*)'
-    _, new_file_handle_path = tempfile.mkstemp()
-    with open(new_file_handle_path, 'w') as new_file:
+    _, processed_log_path = tempfile.mkstemp()
+    with open(processed_log_path, 'w') as new_file:
       with open(self.fuzzer.logfile) as old_file:
         for line in old_file:
           line_match = re.match(crash_location_regex, line)
@@ -441,13 +443,15 @@ class FuchsiaQemuLibFuzzerRunner(new_process.ProcessRunner, LibFuzzerCommon):
             self.device.fetch(
                 self.fuzzer.data_path(crash_name), self.fuzzer.results_output())
             # Then update the crash report to point to that file.
-            crash_testcase_file_path = os.path.join(
-                self.fuzzer.results_output(), crash_name)
+            crash_testcase_file_path = os.path.join(artifact_prefix, crash_name)
+            shutil.move(
+                os.path.join(self.fuzzer.results_output(), crash_name),
+                crash_testcase_file_path)
             line = re.sub(crash_location_regex,
                           r'\1\2' + crash_testcase_file_path, line)
           new_file.write(line)
     os.remove(self.fuzzer.logfile)
-    shutil.move(new_file_handle_path, self.fuzzer.logfile)
+    shutil.move(processed_log_path, self.fuzzer.logfile)
 
   def _test_ssh(self):
     """Test the ssh connection."""
@@ -480,7 +484,7 @@ class FuchsiaQemuLibFuzzerRunner(new_process.ProcessRunner, LibFuzzerCommon):
     #TODO(flowerhack): Pass libfuzzer args (additional_args) here
     return_code = self.fuzzer.start([])
     self.fuzzer.monitor(return_code)
-    self.fetch_and_process_logs_and_crash()
+    self.process_logs_and_crash(artifact_prefix)
 
     with open(self.fuzzer.logfile) as logfile:
       symbolized_output = logfile.read()
@@ -503,14 +507,13 @@ class FuchsiaQemuLibFuzzerRunner(new_process.ProcessRunner, LibFuzzerCommon):
     self._test_ssh()
 
     # We need to push the testcase to the device and pass in the name.
-    self._test_qemu_ssh()
     testcase_path_name = os.path.basename(os.path.normpath(testcase_path))
     self.device.store(testcase_path, self.fuzzer.data_path())
 
     # TODO(flowerhack): Pass libfuzzer args (additional_args) here
     return_code = self.fuzzer.start(['repro', 'data/' + testcase_path_name])
     self.fuzzer.monitor(return_code)
-    self.fetch_and_process_logs_and_crash()
+    self.process_logs_and_crash()
 
     with open(self.fuzzer.logfile) as logfile:
       symbolized_output = logfile.read()
