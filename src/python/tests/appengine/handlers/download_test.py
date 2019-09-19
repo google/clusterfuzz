@@ -95,7 +95,10 @@ class DownloadTest(unittest.TestCase):
           'attachment%3B+filename%3D' + urllib.parse.quote(expect_filename))
 
     if expect_blob:
-      self.assertEqual(expected_url, resp.location)
+      # TODO(mbarbella): Remove explicit decode after Python 3 migration. This
+      # is required because header values are bytes while working around an
+      # issue with App Engine headers that will be resolved after migrating.
+      self.assertEqual(expected_url, resp.location.decode())
     elif expect_status == 302:
       self.assertNotIn('SIGNED_URL', resp.location)
 

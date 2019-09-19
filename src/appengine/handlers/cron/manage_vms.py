@@ -14,8 +14,11 @@
 """Cron to managed VMs."""
 from __future__ import division
 
+from builtins import next
 from builtins import object
 from builtins import range
+from builtins import str
+from builtins import zip
 import copy
 import itertools
 import json

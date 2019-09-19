@@ -13,6 +13,7 @@
 # limitations under the License.
 """Process results from Predator and update test cases accordingly."""
 
+from builtins import str
 import json
 
 from base import errors
