@@ -17,6 +17,7 @@
 # pylint: disable=unused-argument
 from __future__ import print_function
 
+from builtins import object
 import os
 import socket
 import subprocess
@@ -34,14 +35,12 @@ from system import shell
 _QEMU_WAIT_SECONDS = 30
 
 
-def setup_qemu_values(initial_setup=True):
-  """Sets up and runs a QEMU VM in the background.
-  Returns a process.Popen object.
-  Does not block the calling process, and teardown must be handled by the
-  caller (use .kill()).
-  Fuchsia fuzzers assume a QEMU VM is running; call this routine prior to
-  beginning Fuchsia fuzzing tasks.
-  This initialization routine assumes the following layout for
+def _fetch_qemu_vars():
+  """
+  Returns a dictionary with variables necessary for configuring and running
+  Fuchsia via QEMU.
+
+  This function assumes the following layout for
   fuchsia_resources_dir:
 
   * /qemu-for-fuchsia/*
@@ -54,98 +53,140 @@ def setup_qemu_values(initial_setup=True):
   * build/out/default/ids.txt
   * build/out/default.zircon/tools/*
   * build/zircon/prebuilt/downloads/symbolize
-  * build/buildtools/linux-x64/clang/bin/llvm-symbolizer"""
+  * build/buildtools/linux-x64/clang/bin/llvm-symbolizer
 
-  # First download the Fuchsia resources locally.
+  If these locations change in the build, they should be changed here as well.
+  """
+  qemu_vars = {}
+
+  # First, ensure we have a resources directory.
   fuchsia_resources_dir = environment.get_value('FUCHSIA_RESOURCES_DIR')
   if not fuchsia_resources_dir:
     raise errors.FuchsiaConfigError('Could not find FUCHSIA_RESOURCES_DIR')
 
-  # Then, save paths for necessary commands later.
-  qemu_path = os.path.join(fuchsia_resources_dir, 'qemu-for-fuchsia', 'bin',
-                           'qemu-system-x86_64')
-  os.chmod(qemu_path, 0o550)
-  kernel_path = os.path.join(fuchsia_resources_dir, 'target', 'x64',
-                             'multiboot.bin')
-  os.chmod(kernel_path, 0o644)
-  pkey_path = os.path.join(fuchsia_resources_dir, '.ssh', 'pkey')
-  os.chmod(pkey_path, 0o400)
-  sharefiles_path = os.path.join(fuchsia_resources_dir, 'qemu-for-fuchsia',
-                                 'share', 'qemu')
-  drive_path = os.path.join(fuchsia_resources_dir, 'target', 'x64', 'fvm.blk')
-  os.chmod(drive_path, 0o644)
-  fuchsia_zbi = os.path.join(fuchsia_resources_dir, 'target', 'x64',
-                             'fuchsia.zbi')
-  initrd_path = os.path.join(fuchsia_resources_dir, 'fuchsia-ssh.zbi')
-
-  # Perform some more initiailization steps.
-  # Only do these the first time you run QEMU after downloading the build.
-  if initial_setup:
-    extend_fvm(fuchsia_resources_dir, drive_path)
-    add_keys_to_zbi(fuchsia_resources_dir, initrd_path, fuchsia_zbi)
-
-  # Get a free port for the VM, so we can SSH in later.
-  tcp = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-  tcp.bind(('localhost', 0))
-  _, port = tcp.getsockname()
-  tcp.close()
-  # Fuzzing jobs that SSH into the QEMU VM need access to this env var.
-  environment.set_value('FUCHSIA_PORTNUM', port)
-  environment.set_value('FUCHSIA_RESOURCES_DIR', fuchsia_resources_dir)
-
-  # yapf: disable
-  qemu_args = [
-      '-m', '2048',
-      '-nographic',
-      '-kernel', kernel_path,
-      '-initrd', initrd_path,
-      '-smp', '4',
-      '-drive', 'file=' + drive_path + ',format=raw,if=none,id=blobstore',
-      '-device', 'virtio-blk-pci,drive=blobstore',
-      '-monitor', 'none',
-      '-append', '"kernel.serial=legacy TERM=dumb"',
-      '-machine', 'q35',
-      '-display', 'none',
-      '-netdev',
-      ('user,id=net0,net=192.168.3.0/24,dhcpstart=192.168.3.9,'
-       'host=192.168.3.2,hostfwd=tcp::') + str(port) + '-:22',
-      '-device', 'e1000,netdev=net0,mac=52:54:00:63:5e:7b',
-      '-L', sharefiles_path
-  ]
-  # yapf: enable
-
-  # Detecing KVM is tricky, so use an environment variable to determine whether
-  # to turn it on or not.
-  if environment.get_value('FUCHSIA_USE_KVM'):
-    qemu_args.extend(['-cpu', 'host,migratable=no'])
-    qemu_args.append('-enable-kvm')
-  else:
-    # Can't use host CPU since we don't necessarily have KVM on the machine.
-    # Emulate a Haswell CPU with a few feature toggles. This mirrors the most
-    # common configuration for Fuchsia VMs when using in-tree tools.
-    qemu_args.extend(['-cpu', 'Haswell,+smap,-check,-fsgsbase'])
-
-  # Get the list of fuzzers for ClusterFuzz to choose from.
-  host = Host.from_dir(
-      os.path.join(fuchsia_resources_dir, 'build', 'out', 'default'))
-  Device(host, 'localhost', str(port))
-  Fuzzer.filter(host.fuzzers, '')
-
-  # Fuzzing jobs that SSH into the QEMU VM need access to this env var.
-  environment.set_value('FUCHSIA_PKEY_PATH', pkey_path)
-  return qemu_path, qemu_args
+  # Then, save and chmod the associated paths.
+  qemu_vars['qemu_path'] = os.path.join(
+      fuchsia_resources_dir, 'qemu-for-fuchsia', 'bin', 'qemu-system-x86_64')
+  os.chmod(qemu_vars['qemu_path'], 0o550)
+  qemu_vars['kernel_path'] = os.path.join(fuchsia_resources_dir, 'target',
+                                          'x64', 'multiboot.bin')
+  os.chmod(qemu_vars['kernel_path'], 0o644)
+  qemu_vars['pkey_path'] = os.path.join(fuchsia_resources_dir, '.ssh', 'pkey')
+  os.chmod(qemu_vars['pkey_path'], 0o400)
+  qemu_vars['sharefiles_path'] = os.path.join(
+      fuchsia_resources_dir, 'qemu-for-fuchsia', 'share', 'qemu')
+  qemu_vars['drive_path'] = os.path.join(fuchsia_resources_dir, 'target', 'x64',
+                                         'fvm.blk')
+  os.chmod(qemu_vars['drive_path'], 0o644)
+  qemu_vars['fuchsia_zbi'] = os.path.join(fuchsia_resources_dir, 'target',
+                                          'x64', 'fuchsia.zbi')
+  qemu_vars['initrd_path'] = os.path.join(fuchsia_resources_dir,
+                                          'fuchsia-ssh.zbi')
+  return qemu_vars
 
 
-def setup_qemu_instance(qemu_path, qemu_args):
-  qemu_process = new_process.ProcessRunner(qemu_path, qemu_args)
-  logs.log('Ready to run QEMU. Command: ' + qemu_path + ' ' + str(qemu_args))
-  return qemu_process
+def initial_qemu_setup():
+  """Performs one-time setup necessary to subsequently run Fuchsia QEMU VMs.
+  Only call this *once*, immediately after downloading a Fuchsia build.
+  (Calling it more than once per download will cause errors.)
+  This function does not run a VM, merely performs setup for a VM.
+  """
+  qemu_vars = _fetch_qemu_vars()
+  extend_fvm(qemu_vars['fuchsia_resources_dir'], qemu_vars['drive_path'])
+  add_keys_to_zbi(qemu_vars['fuchsia_resources_dir'], qemu_vars['initrd_path'],
+                  qemu_vars['fuchsia_zbi'])
 
 
-def run_qemu_instance(qemu_process):
-  qemu_popen = qemu_process.run(stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-  time.sleep(_QEMU_WAIT_SECONDS)
-  return qemu_popen
+class QemuException(Exception):
+  """Exception for errors handling QEMU."""
+  pass
+
+
+class QemuProcess(object):
+  """A QemuProcess encapsulates the creation, running, and destruction
+  of Fuchsia QEMU processes."""
+
+  def __init__(self):
+    self.process_runner = None
+    self.popen = None
+
+  def create(self):
+    """Configures a QEMU process which can subsequently be `run`.
+
+    Assumes that initial_qemu_setup was already called exactly once.
+    """
+    qemu_vars = _fetch_qemu_vars()
+
+    # Get a free port for the VM, so we can SSH in later.
+    tcp = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    tcp.bind(('localhost', 0))
+    _, port = tcp.getsockname()
+    tcp.close()
+    # Fuzzing jobs that SSH into the QEMU VM need access to this env var.
+    environment.set_value('FUCHSIA_PORTNUM', port)
+    environment.set_value('FUCHSIA_RESOURCES_DIR',
+                          qemu_vars['fuchsia_resources_dir'])
+
+    # yapf: disable
+    qemu_args = [
+        '-m', '2048',
+        '-nographic',
+        '-kernel', qemu_vars['kernel_path'],
+        '-initrd', qemu_vars['initrd_path'],
+        '-smp', '4',
+        '-drive',
+        ('file=' + qemu_vars['drive_path'] + ',format=raw,if=none,'
+         'id=blobstore'),
+        '-device', 'virtio-blk-pci,drive=blobstore',
+        '-monitor', 'none',
+        '-append', '"kernel.serial=legacy TERM=dumb"',
+        '-machine', 'q35',
+        '-display', 'none',
+        '-netdev',
+        ('user,id=net0,net=192.168.3.0/24,dhcpstart=192.168.3.9,'
+         'host=192.168.3.2,hostfwd=tcp::') + str(port) + '-:22',
+        '-device', 'e1000,netdev=net0,mac=52:54:00:63:5e:7b',
+        '-L', qemu_vars['sharefiles_path']
+    ]
+    # yapf: enable
+
+    # Detecing KVM is tricky, so use an environment variable to determine
+    # whether to turn it on or not.
+    if environment.get_value('FUCHSIA_USE_KVM'):
+      qemu_args.extend(['-cpu', 'host,migratable=no'])
+      qemu_args.append('-enable-kvm')
+    else:
+      # Can't use host CPU since we don't necessarily have KVM on the machine.
+      # Emulate a Haswell CPU with a few feature toggles. This mirrors the most
+      # common configuration for Fuchsia VMs when using in-tree tools.
+      qemu_args.extend(['-cpu', 'Haswell,+smap,-check,-fsgsbase'])
+
+    # Get the list of fuzzers for ClusterFuzz to choose from.
+    host = Host.from_dir(
+        os.path.join(qemu_vars['fuchsia_resources_dir'], 'build', 'out',
+                     'default'))
+    Device(host, 'localhost', str(port))
+    Fuzzer.filter(host.fuzzers, '')
+
+    # Fuzzing jobs that SSH into the QEMU VM need access to this env var.
+    environment.set_value('FUCHSIA_PKEY_PATH', qemu_vars['pkey_path'])
+    logs.log('Ready to run QEMU. Command: ' + qemu_vars['qemu_path'] + ' ' +
+             str(qemu_args))
+    self.process_runner = new_process.ProcessRunner(qemu_vars['qemu_path'],
+                                                    qemu_args)
+
+  def run(self):
+    """Actually runs a QEMU VM, assuming `create` has already been called."""
+    if not self.process_runner:
+      raise QemuException('Attempted to `run` QEMU VM before calling `create`')
+    self.popen = self.process_runner.run(
+        stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    time.sleep(_QEMU_WAIT_SECONDS)
+
+  def kill(self):
+    if not self.popen:
+      return
+    self.popen.kill()
 
 
 def initialize_resources_dir():
