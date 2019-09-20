@@ -1367,7 +1367,7 @@ class StackAnalyzerTestcase(unittest.TestCase):
     # accordingly.
     data = self._read_test_data('fuchsia_reproducible_crash.txt')
     expected_type = 'Fatal-signal'
-    expected_state = 'CrashTrampolineAsm\nfoo_function\nbar_function\n'
+    expected_state = 'foo_function\nbar_function\nbasic.cc\n'
     expected_address = ''
     expected_stacktrace = data
     expected_security_flag = False

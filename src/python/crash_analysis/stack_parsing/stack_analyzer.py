@@ -447,6 +447,9 @@ STACK_FRAME_IGNORE_REGEXES = [
     # Golang specific frames to ignore.
     r'^panic$',
     r'^runtime\.',
+
+    # Fuchsia libFuzzer specific.
+    r'^CrashTrampolineAsm',
 ]
 
 STACK_FRAME_IGNORE_REGEXES_IF_SYMBOLIZED = [
