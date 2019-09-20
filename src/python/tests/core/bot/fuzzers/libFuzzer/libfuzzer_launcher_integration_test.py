@@ -717,15 +717,20 @@ class TestLauncherFuchsia(BaseLauncherTest):
     self.assertIn(
         'localhost run \'fuchsia-pkg://fuchsia.com/example_fuzzers#meta/'
         'toy_fuzzer.cmx\'', output)
-    self.assertIn('ERROR: AddressSanitizer: heap-buffer-overflow on address', output)
+    self.assertIn('ERROR: AddressSanitizer: heap-buffer-overflow on address',
+                  output)
 
   @unittest.skipIf(
-    not environment.get_value('FUCHSIA_TESTS'),
-    'Temporarily disabling the Fuchsia tests until build size reduced.')
+      not environment.get_value('FUCHSIA_TESTS'),
+      'Temporarily disabling the Fuchsia tests until build size reduced.')
   def test_fuzzer_can_boot_and_run_reproducer(self):
+    """Tests running a testcase that should cause a fast, predictable crash."""
     build_manager.setup_fuchsia_build()
     testcase_path = setup_testcase_and_corpus('fuchsia_crash', 'empty_corpus')
     output = run_launcher(testcase_path, 'example_fuzzers/toy_fuzzer')
-    self.assertIn('run fuchsia-pkg://fuchsia.com/example_fuzzers#meta/toy_fuzzer.cmx -artifact_prefix=data/ data/fuchsia_crash', output)
-    self.assertIn('ERROR: AddressSanitizer: heap-buffer-overflow on address', output)
+    self.assertIn(
+        ('run fuchsia-pkg://fuchsia.com/example_fuzzers#meta/toy_fuzzer.cmx'
+         ' -artifact_prefix=data/ data/fuchsia_crash'), output)
+    self.assertIn('ERROR: AddressSanitizer: heap-buffer-overflow on address',
+                  output)
     self.assertIn('Running: data/fuchsia_crash', output)
