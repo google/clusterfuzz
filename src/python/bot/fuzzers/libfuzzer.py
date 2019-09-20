@@ -396,7 +396,7 @@ class FuchsiaQemuLibFuzzerRunner(new_process.ProcessRunner, LibFuzzerCommon):
     self.device.set_ssh_identity(fuchsia_pkey_path)
 
     # Fuchsia fuzzer names have the format {package_name}/{binary_name}.
-    package, target = environment.get_value('FUZZ_TARGET').split('/')
+    package, target = self.executable_path.split('/')
     test_data_dir = os.path.join(fuchsia_resources_dir_plus_build,
                                  self.FUZZER_TEST_DATA_REL_PATH, package,
                                  target)
@@ -404,13 +404,13 @@ class FuchsiaQemuLibFuzzerRunner(new_process.ProcessRunner, LibFuzzerCommon):
         self.device, package, target, output=test_data_dir, foreground=True)
 
   def __init__(self, executable_path, default_args=None):
+    super(FuchsiaQemuLibFuzzerRunner, self).__init__(
+        executable_path=executable_path, default_args=default_args)
+
     qemu_path, qemu_args = setup_qemu_values(initial_setup=False)
     qemu_process = setup_qemu_instance(qemu_path, qemu_args)
     self._setup_fuzzer_and_device()
     self.qemu_instance = run_qemu_instance(qemu_process)
-
-    super(FuchsiaQemuLibFuzzerRunner, self).__init__(
-        executable_path=executable_path, default_args=default_args)
 
   def __del__(self):
     self.qemu_instance.kill()
@@ -652,8 +652,18 @@ class MinijailLibFuzzerRunner(engine_common.MinijailEngineFuzzerRunner,
     if artifact_prefix:
       bind_directories.append(artifact_prefix)
 
+    ld_preload = None
+    if extra_env and 'LD_PRELOAD' in extra_env:
+      ld_preload = extra_env['LD_PRELOAD']
+      bind_directories.append(os.path.dirname(ld_preload))
+
     self._bind_corpus_dirs(bind_directories)
     corpus_directories = self._get_chroot_corpus_paths(corpus_directories)
+
+    if ld_preload:
+      extra_env['LD_PRELOAD'] = os.path.join(
+          self._get_chroot_directory(os.path.dirname(ld_preload)),
+          os.path.basename(ld_preload))
 
     if artifact_prefix:
       artifact_prefix = self._get_chroot_directory(artifact_prefix)

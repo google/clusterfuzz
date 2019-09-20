@@ -30,7 +30,10 @@ from datastore import data_types
 from fuzzing import strategy
 from metrics import logs
 from metrics import profiler
+from system import environment
 from system import shell
+
+ENGINE_ERROR_MESSAGE = 'libFuzzer: engine encountered an error.'
 
 
 class LibFuzzerError(Exception):
@@ -129,6 +132,10 @@ class LibFuzzerEngine(engine.Engine):
     engine_common.recreate_directory(new_corpus_directory)
     return new_corpus_directory
 
+  def _create_merge_corpus_dir(self):
+    """Create merge corpus directory."""
+    return self._create_temp_corpus_dir('merge-corpus')
+
   def _merge_new_units(self, target_path, corpus_dir, new_corpus_dir,
                        fuzz_corpus_dirs, arguments, stat_overrides):
     """Merge new units."""
@@ -144,7 +151,7 @@ class LibFuzzerEngine(engine.Engine):
     # we're taking >10 minutes to load/merge the corpus something is going very
     # wrong and we probably don't want to make things worse by adding units
     # anyway.
-    merge_corpus = self._create_temp_corpus_dir('merge-corpus')
+    merge_corpus = self._create_merge_corpus_dir()
 
     merge_dirs = [new_corpus_dir]
     merge_dirs.extend(fuzz_corpus_dirs)
@@ -215,6 +222,13 @@ class LibFuzzerEngine(engine.Engine):
         additional_args=options.arguments,
         artifact_prefix=reproducers_dir,
         extra_env=options.extra_env)
+
+    if (not environment.get_value('USE_MINIJAIL') and
+        fuzz_result.return_code == constants.LIBFUZZER_ERROR_EXITCODE):
+      # Minijail returns 1 if the exit code is nonzero.
+      # Otherwise: we can assume that a return code of 1 means that libFuzzer
+      # itself ran into an error.
+      logs.log_error(ENGINE_ERROR_MESSAGE, engine_output=fuzz_result.output)
 
     log_lines = utils.decode_to_unicode(fuzz_result.output).splitlines()
     # Output can be large, so save some memory by removing reference to the
