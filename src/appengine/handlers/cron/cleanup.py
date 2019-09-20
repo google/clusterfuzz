@@ -835,7 +835,7 @@ def notify_uploader_when_testcase_is_processed(policy, testcase, issue):
     _send_email_to_uploader(testcase_id, to_email,
                             issue_description_without_crash_state)
 
-  # Make sure to send notification, as we use this to update bug.
+  # Make sure to create notification entry, as we use this to update bug.
   data_handler.create_notification_entry(testcase_id, to_email)
 
 
