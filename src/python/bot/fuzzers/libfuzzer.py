@@ -420,7 +420,7 @@ class FuchsiaQemuLibFuzzerRunner(new_process.ProcessRunner, LibFuzzerCommon):
     # list" and then run that fuzzer.
     return self.ssh_command('ls')
 
-  def process_logs_and_crash(self, artifact_prefix=None):
+  def process_logs_and_crash(self, artifact_prefix):
     """Fetch symbolized logs and crashes."""
     if not artifact_prefix:
       return
@@ -441,12 +441,9 @@ class FuchsiaQemuLibFuzzerRunner(new_process.ProcessRunner, LibFuzzerCommon):
             crash_name = line_match.group(3).replace('data/', '')
             # Save the crash locally.
             self.device.fetch(
-                self.fuzzer.data_path(crash_name), self.fuzzer.results_output())
+                self.fuzzer.data_path(crash_name), artifact_prefix)
             # Then update the crash report to point to that file.
             crash_testcase_file_path = os.path.join(artifact_prefix, crash_name)
-            shutil.move(
-                os.path.join(self.fuzzer.results_output(), crash_name),
-                crash_testcase_file_path)
             line = re.sub(crash_location_regex,
                           r'\1\2' + crash_testcase_file_path, line)
           new_file.write(line)
@@ -514,7 +511,6 @@ class FuchsiaQemuLibFuzzerRunner(new_process.ProcessRunner, LibFuzzerCommon):
     return_code = self.fuzzer.start(['repro', 'data/' + testcase_path_name] +
                                     additional_args)
     self.fuzzer.monitor(return_code)
-    self.process_logs_and_crash()
 
     with open(self.fuzzer.logfile) as logfile:
       symbolized_output = logfile.read()
