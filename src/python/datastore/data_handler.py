@@ -74,14 +74,14 @@ TESTCASE_REVISION_URL = (
     'https://{domain}/revisions?job={job_type}&revision={revision}')
 
 FILE_UNREPRODUCIBLE_TESTCASE_TEXT = (
-    '<b>Note: This crash might not be reproducible with the provided testcase. '
+    'Note: This crash might not be reproducible with the provided testcase. '
     'That said, for the past %d days we\'ve been seeing this crash frequently. '
     'If you are unable to reproduce this, please try a speculative fix based '
     'on the crash stacktrace in the report. The fix can be verified by looking '
     'at the crash statistics in the report, a day after the fix is deployed. '
-    'We will auto-close the bug if the crash is not seen for %d days.'
-    '</b>' % (data_types.FILE_CONSISTENT_UNREPRODUCIBLE_TESTCASE_DEADLINE,
-              data_types.UNREPRODUCIBLE_TESTCASE_WITH_BUG_DEADLINE))
+    'We will auto-close the bug if the crash is not seen for %d days.' %
+    (data_types.FILE_CONSISTENT_UNREPRODUCIBLE_TESTCASE_DEADLINE,
+     data_types.UNREPRODUCIBLE_TESTCASE_WITH_BUG_DEADLINE))
 
 FuzzerDisplay = collections.namedtuple(
     'FuzzerDisplay', ['engine', 'target', 'name', 'fully_qualified_name'])
