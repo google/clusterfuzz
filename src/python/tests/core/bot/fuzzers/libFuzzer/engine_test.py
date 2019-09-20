@@ -379,6 +379,7 @@ class BaseIntegrationTest(unittest.TestCase):
         'bot.fuzzers.libFuzzer.launcher.get_dictionary_analysis_timeout',
         'bot.fuzzers.libFuzzer.launcher.get_fuzz_timeout',
         'os.getpid',
+        'system.minijail.MinijailChroot._mknod',
     ])
 
     self.mock.getpid.return_value = 1337
