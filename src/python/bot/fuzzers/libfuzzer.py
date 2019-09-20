@@ -482,7 +482,7 @@ class FuchsiaQemuLibFuzzerRunner(new_process.ProcessRunner, LibFuzzerCommon):
     self._test_ssh()
 
     #TODO(flowerhack): Pass libfuzzer args (additional_args) here
-    return_code = self.fuzzer.start([])
+    return_code = self.fuzzer.start(additional_args)
     self.fuzzer.monitor(return_code)
     self.process_logs_and_crash(artifact_prefix)
 
@@ -511,7 +511,8 @@ class FuchsiaQemuLibFuzzerRunner(new_process.ProcessRunner, LibFuzzerCommon):
     self.device.store(testcase_path, self.fuzzer.data_path())
 
     # TODO(flowerhack): Pass libfuzzer args (additional_args) here
-    return_code = self.fuzzer.start(['repro', 'data/' + testcase_path_name])
+    return_code = self.fuzzer.start(['repro', 'data/' + testcase_path_name] +
+                                    additional_args)
     self.fuzzer.monitor(return_code)
     self.process_logs_and_crash()
 
