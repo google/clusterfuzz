@@ -14,7 +14,10 @@
 """Helpers for sending mail."""
 from builtins import str
 from sendgrid import SendGridAPIClient
+from sendgrid.helpers.mail import From
+from sendgrid.helpers.mail import HtmlContent
 from sendgrid.helpers.mail import Mail
+from sendgrid.helpers.mail import To
 
 from config import db_config
 from metrics import logs
@@ -33,10 +36,10 @@ def send(to_email, subject, html_content):
     return
 
   message = Mail(
-      from_email=str(from_email),
-      to_emails=str(to_email),
+      from_email=From(str(from_email)),
+      to_emails=To(str(to_email)),
       subject=subject,
-      html_content=str(html_content))
+      html_content=HtmlContent(str(html_content)))
   try:
     sg = SendGridAPIClient(sendgrid_api_key)
     response = sg.send(message)
