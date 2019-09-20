@@ -834,7 +834,9 @@ def notify_uploader_when_testcase_is_processed(policy, testcase, issue):
         testcase, hide_crash_state=True)
     _send_email_to_uploader(testcase_id, to_email,
                             issue_description_without_crash_state)
-    data_handler.create_notification_entry(testcase_id, to_email)
+
+  # Make sure to create notification entry, as we use this to update bug.
+  data_handler.create_notification_entry(testcase_id, to_email)
 
 
 def update_os_labels(policy, testcase, issue):
