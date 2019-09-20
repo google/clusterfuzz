@@ -1932,6 +1932,28 @@ class NotifyUploaderIfTestcaseIsProcessed(unittest.TestCase):
         'try re-doing that job on the testcase report page.')
     self.assertIsNotNone(self._get_notification())
 
+  def test_notification_sent_with_one_issue_update_when_quiet_flag_set(self):
+    """Ensure that notification is sent and issue is updated only once when
+    quiet flag is set."""
+    data_types.TestcaseUploadMetadata(
+        testcase_id=self.testcase_id,
+        uploader_email=self.uploader_email,
+        bundled=False,
+        quiet_flag=True).put()
+    self.testcase.status = 'Processed'
+    self.testcase.minimized_keys = 'some-key'
+    self.testcase.regression = '1:2'
+    self.testcase.is_impact_set_flag = True
+    self.testcase.put()
+
+    for _ in range(3):
+      cleanup.notify_uploader_when_testcase_is_processed(
+          self.policy, self.testcase, self.issue)
+
+    self.assertEqual(
+        1, self.mock._update_issue_security_severity_and_get_comment.call_count)
+    self.assertIsNotNone(self._get_notification())
+
 
 @test_utils.with_cloud_emulators('datastore')
 class CleanupUnusedFuzzTargetsTest(unittest.TestCase):
