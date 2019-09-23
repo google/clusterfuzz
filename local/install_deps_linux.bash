@@ -115,10 +115,10 @@ fi
 
 # Install other packages that we depend on unconditionally.
 sudo apt-get install -y \
+    blackbox \
     python-pip \
     python-virtualenv \
     unzip \
-    blackbox \
     xvfb
 
 # Setup virtualenv.
