@@ -309,9 +309,8 @@ def get_directory_hash_for_path(file_path):
 def get_file_contents_with_fatal_error_on_failure(path):
   """Return the contents of the specified file, or None on error."""
   try:
-    handle = open(path, 'rb')
-    data = handle.read()
-    handle.close()
+    with open(path, 'rb') as file_handle:
+      data = file_handle.read()
     return data
   except IOError:
     logs.log_error('Unable to read file `%s\'' % path)
@@ -444,9 +443,8 @@ def is_binary_file(file_path, bytes_to_read=1024):
 
   text_characters = list(map(chr, list(range(32, 128)))) + ['\r', '\n', '\t']
   try:
-    file_handle = open(file_path, 'rb')
-    data = file_handle.read(bytes_to_read)
-    file_handle.close()
+    with open(file_path, 'rb') as file_handle:
+      data = file_handle.read(bytes_to_read)
   except:
     logs.log_error('Could not read file %s in is_binary_file.' % file_path)
     return None
@@ -565,9 +563,8 @@ def read_data_from_file(file_path, eval_data=True, default=None):
   retry_limit = environment.get_value('FAIL_RETRIES')
   for _ in range(retry_limit):
     try:
-      file_handle = open(file_path, 'rb')
-      file_content = file_handle.read()
-      file_handle.close()
+      with open(file_path, 'rb') as file_handle:
+        file_content = file_handle.read()
     except:
       file_content = None
       logs.log_warn('Error occurred while reading %s, retrying.' % file_path)
@@ -785,9 +782,8 @@ def write_data_to_file(content, file_path, append=False):
 
   for _ in range(retry_limit):
     try:
-      file_handle = open(file_path, file_mode)
-      file_handle.write(content_string)
-      file_handle.close()
+      with open(file_path, file_mode) as file_handle:
+        file_handle.write(content_string)
     except:
       logs.log_warn('Error occurred while writing %s, retrying.' % file_path)
       time.sleep(random.uniform(1, failure_wait_interval))
