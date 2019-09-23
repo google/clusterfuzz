@@ -14,6 +14,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+if ! which gcloud > /dev/null 2>&1; then
+  echo 'Please install the google cloud SDK (https://cloud.google.com/sdk/install)'
+  exit 1
+fi
+
 if ! which brew > /dev/null 2>&1; then
   echo 'Please install homebrew (https://brew.sh).'
   exit 1
