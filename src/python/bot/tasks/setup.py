@@ -120,6 +120,13 @@ def _get_application_arguments(testcase, task_name):
     if app_args:
       app_args += ' '
     app_args += job_args
+
+  # TODO(aarya): Add %TESTCASE% explicitly since it will not exist with new
+  # engine impl libFuzzer testcases and AFL's launcher.py requires it as the
+  # first argument. Remove once AFL is migrated to the new engine impl.
+  if environment.is_afl_job(testcase.job_type) and not '%TESTCASE%' in app_args:
+    app_args = '%TESTCASE% ' + app_args
+
   return app_args
 
 
