@@ -14,13 +14,8 @@
 """Fuzzing engine interface."""
 
 from builtins import object
-import random
-
-from system import environment
 
 _ENGINES = {}
-_TRIAL_PROBABILITY_FUZZ = 1.0
-_TRIAL_PROBABILITY_OTHERS = 1.0
 
 
 class FuzzOptions(object):
@@ -181,20 +176,3 @@ def get(name):
     return engine_class()
 
   return None
-
-
-def do_trial():
-  """Returns or not we should trial using this new implementation."""
-  use_new_impl = environment.get_value('USE_NEW_ENGINE_IMPL')
-  if use_new_impl:
-    return True
-
-  if use_new_impl is False:  # Explicitly set to false.
-    return False
-
-  if environment.get_value('TASK_NAME') == 'fuzz':
-    probability = _TRIAL_PROBABILITY_FUZZ
-  else:
-    probability = _TRIAL_PROBABILITY_OTHERS
-
-  return random.SystemRandom().random() < probability

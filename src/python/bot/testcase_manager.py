@@ -557,7 +557,7 @@ class TestcaseRunner(object):
 
     # TODO(ochang): Make this hard fail once migration to new fuzzing pipeline
     # is complete.
-    if fuzz_target and engine_impl and engine.do_trial():
+    if fuzz_target and engine_impl:
       self._is_black_box = False
       self._engine_impl = engine_impl
 
@@ -734,23 +734,23 @@ def test_for_crash_with_retries(testcase,
   try:
     runner = TestcaseRunner(fuzz_target, testcase_path, test_timeout, gestures,
                             http_flag)
+
+    if crash_retries is None:
+      crash_retries = environment.get_value('CRASH_RETRIES')
+
+    if compare_crash:
+      expected_state = testcase.crash_state
+      expected_security_flag = testcase.security_flag
+    else:
+      expected_state = None
+      expected_security_flag = None
+
+    return runner.reproduce_with_retries(crash_retries, expected_state,
+                                         expected_security_flag,
+                                         testcase.flaky_stack)
   except TargetNotFoundError:
     # If a target isn't found, treat it as not crashing.
     return CrashResult(return_code=0, crash_time=0, output='')
-
-  if crash_retries is None:
-    crash_retries = environment.get_value('CRASH_RETRIES')
-
-  if compare_crash:
-    expected_state = testcase.crash_state
-    expected_security_flag = testcase.security_flag
-  else:
-    expected_state = None
-    expected_security_flag = None
-
-  return runner.reproduce_with_retries(crash_retries, expected_state,
-                                       expected_security_flag,
-                                       testcase.flaky_stack)
 
 
 def test_for_reproducibility(fuzzer_name,
@@ -771,13 +771,13 @@ def test_for_reproducibility(fuzzer_name,
         gestures,
         http_flag,
         arguments=arguments)
+
+    crash_retries = environment.get_value('CRASH_RETRIES')
+    return runner.test_reproduce_reliability(crash_retries, expected_state,
+                                             expected_security_flag)
   except TargetNotFoundError:
     # If a target isn't found, treat it as not crashing.
     return False
-
-  crash_retries = environment.get_value('CRASH_RETRIES')
-  return runner.test_reproduce_reliability(crash_retries, expected_state,
-                                           expected_security_flag)
 
 
 def prepare_log_for_upload(symbolized_output, return_code):
