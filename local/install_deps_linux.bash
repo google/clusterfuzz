@@ -121,6 +121,11 @@ sudo apt-get install -y \
     unzip \
     xvfb
 
+# Only install the google cloud SDK via apt if it's missing.
+if ! which gcloud > /dev/null 2>&1; then
+  sudo apt-get install -y google-cloud-sdk
+fi
+
 # Setup virtualenv.
 rm -rf ENV
 virtualenv ENV
