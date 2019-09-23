@@ -17,6 +17,7 @@ from sendgrid import SendGridAPIClient
 from sendgrid.helpers.mail import From
 from sendgrid.helpers.mail import HtmlContent
 from sendgrid.helpers.mail import Mail
+from sendgrid.helpers.mail import Subject
 from sendgrid.helpers.mail import To
 
 from config import db_config
@@ -38,7 +39,7 @@ def send(to_email, subject, html_content):
   message = Mail(
       from_email=From(str(from_email)),
       to_emails=To(str(to_email)),
-      subject=subject,
+      subject=Subject(subject),
       html_content=HtmlContent(str(html_content)))
   try:
     sg = SendGridAPIClient(sendgrid_api_key)
