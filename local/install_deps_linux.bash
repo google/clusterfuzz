@@ -118,6 +118,7 @@ sudo apt-get install -y \
     python-pip \
     python-virtualenv \
     unzip \
+    blackbox \
     xvfb
 
 # Setup virtualenv.
