@@ -399,9 +399,11 @@ class IntegrationTests(BaseIntegrationTest):
     BaseIntegrationTest.setUp(self)
     self.crash_dir = TEMP_DIR
 
-  def compare_arguments(self, target_path, arguments, corpora, actual):
+  def compare_arguments(self, target_path, arguments, corpora_or_testcase,
+                        actual):
     """Compare expected arguments."""
-    self.assertListEqual(actual, [target_path] + arguments + corpora)
+    self.assertListEqual(actual,
+                         [target_path] + arguments + corpora_or_testcase)
 
   def assert_has_stats(self, stats):
     """Asserts that libFuzzer stats are in output."""
