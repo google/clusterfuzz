@@ -180,9 +180,7 @@ class MinimizeTaskTestUntrusted(
         minimized_arguments='%TESTCASE% test_fuzzer')
     testcase.put()
 
-    data_types.FuzzTarget(
-        engine='libFuzzer',
-        binary='test_fuzzer').put()
+    data_types.FuzzTarget(engine='libFuzzer', binary='test_fuzzer').put()
 
     fuzzers_init.run()
 
