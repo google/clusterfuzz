@@ -309,8 +309,8 @@ def get_directory_hash_for_path(file_path):
 def get_file_contents_with_fatal_error_on_failure(path):
   """Return the contents of the specified file, or None on error."""
   try:
-    with open(path, 'rb') as handle:
-      data = handle.read()
+    with open(path, 'rb') as file_handle:
+      data = file_handle.read()
     return data
   except IOError:
     logs.log_error('Unable to read file `%s\'' % path)
