@@ -21,32 +21,24 @@ try:
 except ImportError:
   pass
 
-import atexit
 import collections
 import multiprocessing
 import os
 import random
 import re
 import shutil
-import signal
 import string
-import sys
 
 from base import utils
 from bot.fuzzers import dictionary_manager
 from bot.fuzzers import engine_common
-from bot.fuzzers import libfuzzer
 from bot.fuzzers import mutator_plugin
-from bot.fuzzers import strategy_selection
 from bot.fuzzers import utils as fuzzer_utils
 from bot.fuzzers.libFuzzer import constants
-from bot.fuzzers.libFuzzer import stats
 from datastore import data_types
 from fuzzing import strategy
 from metrics import logs
-from metrics import profiler
 from system import environment
-from system import minijail
 from system import shell
 
 # Maximum length of a random chosen length for `-max_len`.
@@ -62,8 +54,6 @@ LIBFUZZER_PREFIX = 'libfuzzer_'
 DEFAULT_MERGE_TIMEOUT = 30 * 60
 
 MERGED_DICT_SUFFIX = '.merged'
-
-ENGINE_ERROR_MESSAGE = 'libFuzzer: engine encountered an error.'
 
 MERGE_DIRECTORY_NAME = 'merge-corpus'
 
@@ -183,34 +173,6 @@ def analyze_and_update_recommended_dictionary(runner, fuzzer_name, log_lines,
   return recommended_dictionary
 
 
-def bind_corpus_dirs(chroot, corpus_directories):
-  """Bind corpus directories to the minijail chroot.
-
-  Also makes sure that the directories are world writeable.
-
-  Args:
-    chroot: The MinijailChroot.
-    corpus_directories: A list of corpus paths.
-  """
-  for corpus_directory in corpus_directories:
-    target_dir = '/' + os.path.basename(corpus_directory)
-    chroot.add_binding(
-        minijail.ChrootBinding(corpus_directory, target_dir, True))
-
-
-def unbind_corpus_dirs(chroot, corpus_directories):
-  """Unbind corpus directories from the minijail chroot.
-
-  Args:
-    chroot: The MinijailChroot.
-    corpus_directories: A list of corpus paths.
-  """
-  for corpus_directory in corpus_directories:
-    target_dir = '/' + os.path.basename(corpus_directory)
-    chroot.remove_binding(
-        minijail.ChrootBinding(corpus_directory, target_dir, True))
-
-
 def create_corpus_directory(name):
   """Create a corpus directory with a give name in temp directory and return its
   full path."""
@@ -232,48 +194,6 @@ def copy_from_corpus(dest_corpus_path, src_corpus_path, num_testcases):
     shutil.copy(os.path.join(to_copy), os.path.join(dest_corpus_path, str(i)))
 
 
-def get_corpus_directories(main_corpus_directory,
-                           new_testcases_directory,
-                           fuzzer_path,
-                           fuzzing_strategies,
-                           strategy_pool,
-                           minijail_chroot=None,
-                           allow_corpus_subset=True):
-  """Return a list of corpus directories to be passed to the fuzzer binary for
-  fuzzing."""
-  corpus_directories = []
-
-  corpus_directories.append(new_testcases_directory)
-
-  # Check for seed corpus and add it into corpus directory.
-  engine_common.unpack_seed_corpus_if_needed(fuzzer_path, main_corpus_directory)
-
-  # Pick a few testcases from our corpus to use as the initial corpus.
-  subset_size = engine_common.random_choice(
-      engine_common.CORPUS_SUBSET_NUM_TESTCASES)
-
-  if (allow_corpus_subset and
-      strategy_pool.do_strategy(strategy.CORPUS_SUBSET_STRATEGY) and
-      shell.get_directory_file_count(main_corpus_directory) > subset_size):
-    # Copy |subset_size| testcases into 'subset' directory.
-    corpus_subset_directory = create_corpus_directory('subset')
-    copy_from_corpus(corpus_subset_directory, main_corpus_directory,
-                     subset_size)
-    corpus_directories.append(corpus_subset_directory)
-    fuzzing_strategies.append(strategy.CORPUS_SUBSET_STRATEGY.name + '_' +
-                              str(subset_size))
-    if minijail_chroot:
-      bind_corpus_dirs(minijail_chroot, [main_corpus_directory])
-  else:
-    # Regular fuzzing with the full main corpus directory.
-    corpus_directories.append(main_corpus_directory)
-
-  if minijail_chroot:
-    bind_corpus_dirs(minijail_chroot, corpus_directories)
-
-  return corpus_directories
-
-
 def remove_fuzzing_arguments(arguments):
   """Remove arguments used during fuzzing."""
   for argument in [
@@ -284,27 +204,6 @@ def remove_fuzzing_arguments(arguments):
       constants.COLLECT_DATA_FLOW_FLAG,  # Used for fuzzing only.
   ]:
     fuzzer_utils.extract_argument(arguments, argument)
-
-
-def load_testcase_if_exists(fuzzer_runner,
-                            testcase_file_path,
-                            use_minijail=False,
-                            additional_args=None):
-  """Loads a crash testcase if it exists."""
-  arguments = additional_args[:]
-  remove_fuzzing_arguments(arguments)
-
-  # Add retries for reliability.
-  arguments.append('%s%d' % (constants.RUNS_FLAG, constants.RUNS_TO_REPRODUCE))
-
-  result = fuzzer_runner.run_single_testcase(
-      testcase_file_path, additional_args=arguments)
-
-  print('Running command:',
-        get_printable_command(result.command, fuzzer_runner.executable_path,
-                              use_minijail))
-  output_lines = result.output.splitlines()
-  print('\n'.join(output_lines))
 
 
 def parse_log_stats(log_lines):
@@ -347,26 +246,6 @@ def set_sanitizer_options(fuzzer_path):
   environment.set_memory_tool_options(sanitizer_options_var, sanitizer_options)
 
 
-def expand_with_common_arguments(arguments):
-  """Return list of arguments expanded by necessary common options."""
-  # We prefer to add common arguments (either default or custom) in run.py, but
-  # in order to maintain compatibility with previously found testcases, we do
-  # add necessary common arguments here as well.
-  common_arguments = []
-
-  if not fuzzer_utils.extract_argument(
-      arguments, constants.RSS_LIMIT_FLAG, remove=False):
-    common_arguments.append(
-        '%s%d' % (constants.RSS_LIMIT_FLAG, constants.DEFAULT_RSS_LIMIT_MB))
-
-  if not fuzzer_utils.extract_argument(
-      arguments, constants.TIMEOUT_FLAG, remove=False):
-    common_arguments.append(
-        '%s%d' % (constants.TIMEOUT_FLAG, constants.DEFAULT_TIMEOUT_LIMIT))
-
-  return arguments + common_arguments
-
-
 def get_fuzz_timeout(is_mutations_run, total_timeout=None):
   """Get the fuzz timeout."""
   fuzz_timeout = (
@@ -380,18 +259,10 @@ def get_fuzz_timeout(is_mutations_run, total_timeout=None):
   return fuzz_timeout
 
 
-def get_printable_command(command, fuzzer_path, use_minijail):
-  """Return a printable version of the command."""
-  if use_minijail:
-    command = engine_common.strip_minijail_command(command, fuzzer_path)
-
-  return engine_common.get_command_quoted(command)
-
-
-def use_mutator_plugin(target_name, extra_env, chroot):
+def use_mutator_plugin(target_name, extra_env):
   """Decide whether to use a mutator plugin. If yes and there is a usable plugin
-  available for |target_name|, then add it to LD_PRELOAD in |extra_env|, add
-  chroot bindings if |chroot| is not None, and return True."""
+  available for |target_name|, then add it to LD_PRELOAD in |extra_env|, and
+  return True."""
 
   # TODO(metzman): Support Windows.
   if environment.platform() == 'WINDOWS':
@@ -405,27 +276,7 @@ def use_mutator_plugin(target_name, extra_env, chroot):
   # TODO(metzman): Change the strategy to record which plugin was used, and
   # not simply that a plugin was used.
   extra_env['LD_PRELOAD'] = mutator_plugin_path
-
-  if chroot:
-    mutator_plugin_dir = os.path.dirname(mutator_plugin_path)
-    chroot.add_binding(
-        minijail.ChrootBinding(mutator_plugin_dir, mutator_plugin_dir, False))
-
   return True
-
-
-def get_merge_directory():
-  """Returns the path of the directory we can use for merging."""
-  temp_dir = fuzzer_utils.get_temp_dir()
-  return os.path.join(temp_dir, MERGE_DIRECTORY_NAME)
-
-
-def create_merge_directory():
-  """Create the merge directory and return its path."""
-  merge_directory_path = get_merge_directory()
-  shell.create_directory(
-      merge_directory_path, create_intermediates=True, recreate=True)
-  return merge_directory_path
 
 
 def is_sha1_hash(possible_hash):
@@ -450,11 +301,8 @@ def move_mergeable_units(merge_directory, corpus_directory):
     shell.move(unit_path, dest_path)
 
 
-def pick_strategies(strategy_pool,
-                    fuzzer_path,
-                    corpus_directory,
-                    existing_arguments,
-                    minijail_chroot=None):
+def pick_strategies(strategy_pool, fuzzer_path, corpus_directory,
+                    existing_arguments):
   """Pick strategies."""
   build_directory = environment.get_value('BUILD_DIR')
   target_name = os.path.basename(fuzzer_path)
@@ -503,8 +351,6 @@ def pick_strategies(strategy_pool,
         fuzzing_strategies.append(strategy.CORPUS_MUTATION_ML_RNN_STRATEGY.name)
 
     additional_corpus_dirs.append(new_testcase_mutations_directory)
-    if minijail_chroot:
-      bind_corpus_dirs(minijail_chroot, [new_testcase_mutations_directory])
 
   if strategy_pool.do_strategy(strategy.RANDOM_MAX_LENGTH_STRATEGY):
     max_len_argument = fuzzer_utils.extract_argument(
@@ -533,299 +379,8 @@ def pick_strategies(strategy_pool,
 
   extra_env = {}
   if (strategy_pool.do_strategy(strategy.MUTATOR_PLUGIN_STRATEGY) and
-      use_mutator_plugin(target_name, extra_env, minijail_chroot)):
+      use_mutator_plugin(target_name, extra_env)):
     fuzzing_strategies.append(strategy.MUTATOR_PLUGIN_STRATEGY.name)
 
   return StrategyInfo(fuzzing_strategies, arguments, additional_corpus_dirs,
                       extra_env, use_dataflow_tracing, is_mutations_run)
-
-
-def main(argv):
-  """Run libFuzzer as specified by argv."""
-  atexit.register(fuzzer_utils.cleanup)
-
-  # Initialize variables.
-  arguments = argv[1:]
-  testcase_file_path = arguments.pop(0)
-
-  target_name = environment.get_value('FUZZ_TARGET')
-  if arguments and arguments[0].endswith(target_name):
-    # Pop legacy fuzz target argument.
-    arguments.pop(0)
-
-  fuzzer_name = data_types.fuzz_target_project_qualified_name(
-      utils.current_project(), target_name)
-
-  # Initialize log handler.
-  logs.configure(
-      'run_fuzzer', {
-          'fuzzer': fuzzer_name,
-          'engine': 'libFuzzer',
-          'job_name': environment.get_value('JOB_NAME')
-      })
-
-  profiler.start_if_needed('libfuzzer_launcher')
-
-  # Make sure that the fuzzer binary exists.
-  build_directory = environment.get_value('BUILD_DIR')
-  fuzzer_path = engine_common.find_fuzzer_path(build_directory, target_name)
-  if not fuzzer_path:
-    return
-
-  # Install signal handler.
-  signal.signal(signal.SIGTERM, engine_common.signal_term_handler)
-
-  # Set up temp dir.
-  engine_common.recreate_directory(fuzzer_utils.get_temp_dir())
-
-  # Setup minijail if needed.
-  use_minijail = environment.get_value('USE_MINIJAIL')
-  runner = libfuzzer.get_runner(
-      fuzzer_path, temp_dir=fuzzer_utils.get_temp_dir())
-
-  if use_minijail:
-    minijail_chroot = runner.chroot
-  else:
-    minijail_chroot = None
-
-  # Get corpus directory.
-  corpus_directory = environment.get_value('FUZZ_CORPUS_DIR')
-
-  # Add common arguments which are necessary to be used for every run.
-  arguments = expand_with_common_arguments(arguments)
-
-  # Add sanitizer options to environment that were specified in the .options
-  # file and options that this script requires.
-  set_sanitizer_options(fuzzer_path)
-
-  # If we don't have a corpus, then that means this is not a fuzzing run.
-  if not corpus_directory:
-    load_testcase_if_exists(runner, testcase_file_path, use_minijail, arguments)
-    return
-
-  # We don't have a crash testcase, fuzz.
-
-  # Check dict argument to make sure that it's valid.
-  dict_argument = fuzzer_utils.extract_argument(
-      arguments, constants.DICT_FLAG, remove=False)
-  if dict_argument and not os.path.exists(dict_argument):
-    logs.log_error('Invalid dict %s for %s.' % (dict_argument, fuzzer_name))
-    fuzzer_utils.extract_argument(arguments, constants.DICT_FLAG)
-
-  # If there's no dict argument, check for %target_binary_name%.dict file.
-  if (not fuzzer_utils.extract_argument(
-      arguments, constants.DICT_FLAG, remove=False)):
-    default_dict_path = dictionary_manager.get_default_dictionary_path(
-        fuzzer_path)
-    if os.path.exists(default_dict_path):
-      arguments.append(constants.DICT_FLAG + default_dict_path)
-
-  # Set up scratch directory for writing new units.
-  new_testcases_directory = create_corpus_directory('new')
-
-  # Strategy pool is the list of strategies that we attempt to enable, whereas
-  # fuzzing strategies is the list of strategies that are enabled. (e.g. if
-  # mutator is selected in the pool, but not available for a given target, it
-  # would not be added to fuzzing strategies.)
-  strategy_pool = strategy_selection.generate_weighted_strategy_pool(
-      strategy_list=strategy.LIBFUZZER_STRATEGY_LIST,
-      use_generator=True,
-      engine_name='libFuzzer')
-  strategy_info = pick_strategies(
-      strategy_pool,
-      fuzzer_path,
-      corpus_directory,
-      arguments,
-      minijail_chroot=minijail_chroot)
-  arguments.extend(strategy_info.arguments)
-
-  # Timeout for fuzzer run.
-  fuzz_timeout = get_fuzz_timeout(strategy_info.is_mutations_run)
-
-  # Get list of corpus directories.
-  # TODO(flowerhack): Implement this to handle corpus sync'ing.
-  if environment.platform() == 'FUCHSIA':
-    corpus_directories = []
-  else:
-    corpus_directories = get_corpus_directories(
-        corpus_directory,
-        new_testcases_directory,
-        fuzzer_path,
-        strategy_info.fuzzing_strategies,
-        strategy_pool,
-        minijail_chroot=minijail_chroot,
-        allow_corpus_subset=not strategy_info.use_dataflow_tracing)
-
-  corpus_directories.extend(strategy_info.additional_corpus_dirs)
-
-  artifact_prefix = os.path.abspath(os.path.dirname(testcase_file_path))
-  # Execute the fuzzer binary with original arguments.
-  fuzz_result = runner.fuzz(
-      corpus_directories,
-      fuzz_timeout=fuzz_timeout,
-      artifact_prefix=artifact_prefix,
-      additional_args=arguments,
-      extra_env=strategy_info.extra_env)
-
-  if (not use_minijail and
-      fuzz_result.return_code == constants.LIBFUZZER_ERROR_EXITCODE):
-    # Minijail returns 1 if the exit code is nonzero.
-    # Otherwise: we can assume that a return code of 1 means that libFuzzer
-    # itself ran into an error.
-    logs.log_error(ENGINE_ERROR_MESSAGE, engine_output=fuzz_result.output)
-
-  log_lines = fuzz_result.output.splitlines()
-  # Output can be large, so save some memory by removing reference to the
-  # original output which is no longer needed.
-  fuzz_result.output = None
-
-  # Check if we crashed, and get the crash testcase path.
-  crash_testcase_file_path = runner.get_testcase_path(log_lines)
-  if crash_testcase_file_path:
-    # Copy crash testcase contents into the main testcase path.
-    shutil.move(crash_testcase_file_path, testcase_file_path)
-
-  # Print the command output.
-  bot_name = environment.get_value('BOT_NAME', '')
-  command = fuzz_result.command
-  if use_minijail:
-    # Remove minijail prefix.
-    command = engine_common.strip_minijail_command(command, fuzzer_path)
-  print(engine_common.get_log_header(command, bot_name,
-                                     fuzz_result.time_executed))
-
-  # Parse stats information based on libFuzzer output.
-  parsed_stats = parse_log_stats(log_lines)
-
-  # Extend parsed stats by additional performance features.
-  parsed_stats.update(
-      stats.parse_performance_features(
-          log_lines, strategy_info.fuzzing_strategies, arguments))
-
-  # Set some initial stat overrides.
-  timeout_limit = fuzzer_utils.extract_argument(
-      arguments, constants.TIMEOUT_FLAG, remove=False)
-
-  expected_duration = runner.get_max_total_time(fuzz_timeout)
-  actual_duration = int(fuzz_result.time_executed)
-  fuzzing_time_percent = 100 * actual_duration / float(expected_duration)
-  stat_overrides = {
-      'timeout_limit': int(timeout_limit),
-      'expected_duration': expected_duration,
-      'actual_duration': actual_duration,
-      'fuzzing_time_percent': fuzzing_time_percent,
-  }
-
-  # Remove fuzzing arguments before merge and dictionary analysis step.
-  remove_fuzzing_arguments(arguments)
-
-  # Make a decision on whether merge step is needed at all. If there are no
-  # new units added by libFuzzer run, then no need to do merge at all.
-  new_units_added = shell.get_directory_file_count(new_testcases_directory)
-  merge_error = None
-  if new_units_added:
-    # Merge the new units with the initial corpus.
-    if corpus_directory not in corpus_directories:
-      corpus_directories.append(corpus_directory)
-
-    # If this times out, it's possible that we will miss some units. However, if
-    # we're taking >10 minutes to load/merge the corpus something is going very
-    # wrong and we probably don't want to make things worse by adding units
-    # anyway.
-
-    merge_tmp_dir = None
-    if not use_minijail:
-      merge_tmp_dir = os.path.join(fuzzer_utils.get_temp_dir(), 'merge_workdir')
-      engine_common.recreate_directory(merge_tmp_dir)
-
-    old_corpus_len = shell.get_directory_file_count(corpus_directory)
-    merge_directory = create_merge_directory()
-    corpus_directories.insert(0, merge_directory)
-
-    if use_minijail:
-      bind_corpus_dirs(minijail_chroot, [merge_directory])
-
-    merge_result = runner.merge(
-        corpus_directories,
-        merge_timeout=engine_common.get_merge_timeout(DEFAULT_MERGE_TIMEOUT),
-        tmp_dir=merge_tmp_dir,
-        additional_args=arguments)
-
-    move_mergeable_units(merge_directory, corpus_directory)
-    new_corpus_len = shell.get_directory_file_count(corpus_directory)
-    new_units_added = 0
-
-    merge_error = None
-    if merge_result.timed_out:
-      merge_error = 'Merging new testcases timed out:'
-    elif merge_result.return_code != 0:
-      merge_error = 'Merging new testcases failed:'
-    else:
-      new_units_added = new_corpus_len - old_corpus_len
-
-    stat_overrides['new_units_added'] = new_units_added
-
-    if merge_result.output:
-      stat_overrides.update(
-          stats.parse_stats_from_merge_log(merge_result.output.splitlines()))
-  else:
-    stat_overrides['new_units_added'] = 0
-    logs.log('Skipped corpus merge since no new units added by fuzzing.')
-
-  # Get corpus size after merge. This removes the duplicate units that were
-  # created during this fuzzing session.
-  # TODO(flowerhack): Remove this workaround once we can handle corpus sync.
-  if environment.platform() != 'FUCHSIA':
-    stat_overrides['corpus_size'] = shell.get_directory_file_count(
-        corpus_directory)
-
-  # Delete all corpus directories except for the main one. These were temporary
-  # directories to store new testcase mutations and have already been merged to
-  # main corpus directory.
-  if corpus_directory in corpus_directories:
-    corpus_directories.remove(corpus_directory)
-  for directory in corpus_directories:
-    shutil.rmtree(directory, ignore_errors=True)
-
-  if use_minijail:
-    unbind_corpus_dirs(minijail_chroot, corpus_directories)
-
-  # Apply overridden stats to the parsed stats prior to dumping.
-  parsed_stats.update(stat_overrides)
-
-  # Dump stats data for further uploading to BigQuery.
-  engine_common.dump_big_query_data(parsed_stats, testcase_file_path, command)
-
-  for line in log_lines:
-    print(line)
-
-  # Add fuzzing strategies used.
-  print(engine_common.format_fuzzing_strategies(
-      strategy_info.fuzzing_strategies))
-
-  # Add merge error (if any).
-  if merge_error:
-    print(data_types.CRASH_STACKTRACE_END_MARKER)
-    print(merge_error)
-    print('Command:',
-          get_printable_command(merge_result.command, fuzzer_path,
-                                use_minijail))
-    print(merge_result.output)
-
-  analyze_and_update_recommended_dictionary(runner, fuzzer_name, log_lines,
-                                            corpus_directory, arguments)
-
-  # Close minijail chroot.
-  if use_minijail:
-    minijail_chroot.close()
-
-  # Record the stats to make them easily searchable in stackdriver.
-  if new_units_added:
-    logs.log(
-        'New units added to corpus: %d.' % new_units_added, stats=parsed_stats)
-  else:
-    logs.log('No new units found.', stats=parsed_stats)
-
-
-if __name__ == '__main__':
-  main(sys.argv)
