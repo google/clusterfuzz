@@ -20,6 +20,7 @@ import tempfile
 import unittest
 
 from base import utils
+from bot.fuzzers import init as fuzzers_init
 from bot.tasks import minimize_task
 from datastore import data_handler
 from datastore import data_types
@@ -178,6 +179,12 @@ class MinimizeTaskTestUntrusted(
         absolute_path=testcase_path,
         minimized_arguments='%TESTCASE% test_fuzzer')
     testcase.put()
+
+    data_types.FuzzTarget(
+        engine='libFuzzer',
+        binary='test_fuzzer').put()
+
+    fuzzers_init.run()
 
     self._setup_env(job_type='libfuzzer_asan_job')
     environment.set_value('APP_ARGS', testcase.minimized_arguments)
