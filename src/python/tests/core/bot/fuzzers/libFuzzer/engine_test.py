@@ -725,7 +725,8 @@ class MinijailIntegrationTests(IntegrationTests):
     os.environ['USE_MINIJAIL'] = 'True'
     self.crash_dir = '/temp'
 
-  def compare_arguments(self, target_path, arguments, corpora, actual):
+  def compare_arguments(self, target_path, arguments, corpora_or_testcase,
+                        actual):
     """Overridden compare_arguments."""
 
     def _to_chroot_path(path):
@@ -740,7 +741,7 @@ class MinijailIntegrationTests(IntegrationTests):
           argument[len(constants.ARTIFACT_PREFIX_FLAG):]) + '/'
 
     expected_arguments = [target_path] + arguments + [
-        _to_chroot_path(corpus) for corpus in corpora
+        _to_chroot_path(item) for item in corpora_or_testcase
     ]
     # Ignore minijail arguments
     self.assertListEqual(expected_arguments, actual[-len(expected_arguments):])
