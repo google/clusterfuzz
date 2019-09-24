@@ -419,9 +419,9 @@ class FuchsiaQemuLibFuzzerRunner(new_process.ProcessRunner, LibFuzzerCommon):
     # We always assume QEMU is running on __init__, since build_manager sets
     # it up initially. If this isn't the case, _test_ssh will detect and
     # restart QEMU anyway.
-    self._setup_device_and_fuzzer(qemu_is_running=True)
     super(FuchsiaQemuLibFuzzerRunner, self).__init__(
         executable_path=executable_path, default_args=default_args)
+    self._setup_device_and_fuzzer(qemu_is_running=True)
 
   def get_command(self, additional_args=None):
     # TODO(flowerhack): Update this to dynamically pick a result from "fuzz

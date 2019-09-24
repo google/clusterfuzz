@@ -65,6 +65,7 @@ def _fetch_qemu_vars():
     raise errors.FuchsiaConfigError('Could not find FUCHSIA_RESOURCES_DIR')
 
   # Then, save and chmod the associated paths.
+  qemu_vars['fuchsia_resources_dir'] = fuchsia_resources_dir
   qemu_vars['qemu_path'] = os.path.join(
       fuchsia_resources_dir, 'qemu-for-fuchsia', 'bin', 'qemu-system-x86_64')
   os.chmod(qemu_vars['qemu_path'], 0o550)
