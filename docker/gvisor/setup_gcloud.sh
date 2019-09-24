@@ -18,10 +18,8 @@ if [ -z "$CLOUD_PROJECT_ID" ]; then
   exit 1
 fi
 
-export GOOGLE_APPLICATION_CREDENTIALS="${GOOGLE_APPLICATION_CREDENTIALS:-/credentials.json}"
-
 gcloud config set project "$CLOUD_PROJECT_ID"
-gcloud auth activate-service-account --key-file=$GOOGLE_APPLICATION_CREDENTIALS
+gcloud auth activate-service-account --key-file=/credentials.json
 
 BOTO_CONFIG_PATH=$(/usr/bin/gsutil -D 2>&1 | grep "config_file_list" | egrep -o "/[^']+gserviceaccount\.com/\.boto") || true
 if [[ -f "$BOTO_CONFIG_PATH" ]]; then
