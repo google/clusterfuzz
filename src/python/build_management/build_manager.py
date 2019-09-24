@@ -40,6 +40,7 @@ from metrics import logs
 from platforms import android
 from system import archive
 from system import environment
+from system import process_handler
 from system import shell
 
 # The default environment variables for specifying build bucket paths.

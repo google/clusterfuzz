@@ -421,7 +421,7 @@ class FuchsiaQemuLibFuzzerRunner(new_process.ProcessRunner, LibFuzzerCommon):
     # restart QEMU anyway.
     self._setup_device_and_fuzzer(qemu_is_running=True)
     super(FuchsiaQemuLibFuzzerRunner, self).__init__(
-      executable_path=executable_path, default_args=default_args)
+        executable_path=executable_path, default_args=default_args)
 
   def get_command(self, additional_args=None):
     # TODO(flowerhack): Update this to dynamically pick a result from "fuzz
