@@ -231,6 +231,15 @@ def get_memory_tool_labels(stacktrace):
   return labels
 
 
+def _get_from_metadata(testcase, name):
+  """Get values from testcase metadata."""
+  return utils.parse_delimited(
+      testcase.get_metadata(name, ''),
+      delimiter=',',
+      strip=True,
+      remove_empty=True)
+
+
 def file_issue(testcase,
                issue_tracker,
                security_severity=None,
@@ -348,16 +357,14 @@ def file_issue(testcase,
   for cc in ccs:
     issue.ccs.add(cc)
 
-  # Add additional labels from testcase metadata.
-  metadata_labels = utils.parse_delimited(
-      testcase.get_metadata('issue_labels', ''),
-      delimiter=',',
-      strip=True,
-      remove_empty=True)
+  # Add additional labels and components from testcase metadata.
+  metadata_labels = _get_from_metadata(testcase, 'issue_labels')
   for label in metadata_labels:
     issue.labels.add(label)
 
-  # TODO(ochang): Add additional components from testcase metadata once ready.
+  metadata_components = _get_from_metadata(testcase, 'issue_components')
+  for component in metadata_components:
+    issue.components.add(component)
 
   issue.reporter = user_email
   issue.save()
