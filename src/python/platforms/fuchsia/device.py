@@ -97,8 +97,8 @@ def initial_qemu_setup():
                   qemu_vars['fuchsia_zbi'])
 
 
-class QemuException(Exception):
-  """Exception for errors handling QEMU."""
+class QemuError(Exception):
+  """Error for errors handling QEMU."""
   pass
 
 
@@ -178,12 +178,13 @@ class QemuProcess(object):
   def run(self):
     """Actually runs a QEMU VM, assuming `create` has already been called."""
     if not self.process_runner:
-      raise QemuException('Attempted to `run` QEMU VM before calling `create`')
+      raise QemuError('Attempted to `run` QEMU VM before calling `create`')
     self.popen = self.process_runner.run(
         stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     time.sleep(_QEMU_WAIT_SECONDS)
 
   def kill(self):
+    """ Kills the currently-running QEMU VM, if there is one. """
     if not self.popen:
       return
     self.popen.kill()

@@ -801,8 +801,14 @@ class FuchsiaBuild(Build):
       environment.set_value('FUZZ_TARGET', fuzz_target)
       logs.log('Extracted fuzz target ' + fuzz_target)
 
+    logs.log('Initializing QEMU.')
+    # Kill any stale processes that may be left over from previous build.
+    process_handler.terminate_processes_matching_names('qemu_system-x86_64')
     self._setup_application_path()
     fuchsia.device.initial_qemu_setup()
+    qemu = fuchsia.device.QemuProcess()
+    qemu.create()
+    qemu.run()
     return True
 
 

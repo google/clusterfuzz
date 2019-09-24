@@ -33,6 +33,7 @@ from platforms.fuchsia.util.host import Host
 from system import environment
 from system import minijail
 from system import new_process
+from system import process_handler
 from system import shell
 
 MAX_OUTPUT_LEN = 1 * 1024 * 1024  # 1 MB
@@ -374,13 +375,14 @@ class FuchsiaQemuLibFuzzerRunner(new_process.ProcessRunner, LibFuzzerCommon):
 
   FUZZER_TEST_DATA_REL_PATH = os.path.join('test_data', 'fuzzing')
 
-  def _setup_qemu_device_and_fuzzer(self):
-    """Initialize QEMU, then build a Device and Fuzzer object
-    based on its settings."""
-    if not self.qemu:
-      self.qemu = QemuProcess()
+  def _setup_device_and_fuzzer(self, qemu_is_running=True):
+    """Build a Device and Fuzzer object based on QEMU's settings."""
 
-    self.qemu.create()
+    # If QEMU isn't currently running, set that up first.
+    if not qemu_is_running:
+      qemu = QemuProcess()
+      qemu.create()
+      qemu.run()
 
     # These environment variables are set when a QemuProcess is `create`ed.
     # We need them in order to ssh / otherwise communicate with the VM.
@@ -414,13 +416,12 @@ class FuchsiaQemuLibFuzzerRunner(new_process.ProcessRunner, LibFuzzerCommon):
         self.device, package, target, output=test_data_dir, foreground=True)
 
   def __init__(self, executable_path, default_args=None):
-    self.qemu = None
-    self._setup_qemu_device_and_fuzzer()
+    # We always assume QEMU is running on __init__, since build_manager sets
+    # it up initially. If this isn't the case, _test_ssh will detect and
+    # restart QEMU anyway.
+    self._setup_device_and_fuzzer(qemu_is_running=True)
     super(FuchsiaQemuLibFuzzerRunner, self).__init__(
       executable_path=executable_path, default_args=default_args)
-
-  def __del__(self):
-    self.qemu.kill()
 
   def get_command(self, additional_args=None):
     # TODO(flowerhack): Update this to dynamically pick a result from "fuzz
@@ -486,8 +487,8 @@ class FuchsiaQemuLibFuzzerRunner(new_process.ProcessRunner, LibFuzzerCommon):
 
   def _restart_qemu(self):
     """Restart QEMU."""
-    self.qemu.kill()
-    self._setup_qemu_device_and_fuzzer()
+    process_handler.terminate_processes_matching_names('qemu_system-x86_64')
+    self._setup_device_and_fuzzer(qemu_is_running=False)
 
   def fuzz(self,
            corpus_directories,
