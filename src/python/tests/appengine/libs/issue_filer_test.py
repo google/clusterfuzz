@@ -215,7 +215,8 @@ class IssueFilerTests(unittest.TestCase):
 
     self.testcase5 = data_types.Testcase(
         job_type='job',
-        additional_metadata='{"issue_labels": "label1 , label2,,"}',
+        additional_metadata=('{"issue_labels": "label1 , label2,,", '
+                             '"issue_components": "component1,component2"}'),
         **testcase_args)
     self.testcase5.put()
 
@@ -333,8 +334,8 @@ class IssueFilerTests(unittest.TestCase):
     self.assertIn(FIX_NOTE, issue_tracker._itm.last_issue.body)
     self.assertIn(QUESTIONS_NOTE, issue_tracker._itm.last_issue.body)
 
-  def test_testcase_metadata_labels(self):
-    """Tests issue filing with additional labels."""
+  def test_testcase_metadata_labels_and_components(self):
+    """Tests issue filing with additional labels and components."""
     self.mock.get.return_value = CHROMIUM_POLICY
     issue_tracker = monorail.IssueTracker(IssueTrackerManager('chromium'))
     issue_filer.file_issue(self.testcase5, issue_tracker)
@@ -347,6 +348,10 @@ class IssueFilerTests(unittest.TestCase):
         'label1',
         'label2',
     ], issue_tracker._itm.last_issue.labels)
+    self.assertItemsEqual([
+        'component1',
+        'component2',
+    ], issue_tracker._itm.last_issue.components)
 
   def test_testcase_metadata_invalid(self):
     """Tests issue filing with invalid metadata."""
