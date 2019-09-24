@@ -121,9 +121,25 @@ sudo apt-get install -y \
     unzip \
     xvfb
 
-# Only install the google cloud SDK via apt if it's missing.
-if ! which gcloud > /dev/null 2>&1; then
-  sudo apt-get install -y google-cloud-sdk
+# Install gcloud dependencies.
+if gcloud components install --quiet beta; then
+  gcloud components install --quiet \
+      app-engine-go \
+      app-engine-python \
+      app-engine-python-extras \
+      beta \
+      cloud-datastore-emulator \
+      pubsub-emulator
+else
+  # Either Cloud SDK component manager is disabled (default on GCE), or google-cloud-sdk package is
+  # installed via apt-get.
+  sudo apt-get install -y \
+      google-cloud-sdk-app-engine-go \
+      google-cloud-sdk-app-engine-python \
+      google-cloud-sdk-app-engine-python-extras \
+      google-cloud-sdk \
+      google-cloud-sdk-datastore-emulator \
+      google-cloud-sdk-pubsub-emulator
 fi
 
 # Setup virtualenv.
@@ -141,27 +157,6 @@ if [ ! $only_reproduce ]; then
   nodeenv -p --prebuilt
   npm install -g bower polymer-bundler
   bower install
-
-  # Install gcloud dependencies.
-  if gcloud components install --quiet beta; then
-    gcloud components install --quiet \
-        app-engine-go \
-        app-engine-python \
-        app-engine-python-extras \
-        beta \
-        cloud-datastore-emulator \
-        pubsub-emulator
-  else
-    # Either Cloud SDK component manager is disabled (default on GCE), or google-cloud-sdk package is
-    # installed via apt-get.
-    sudo apt-get install -y \
-        google-cloud-sdk-app-engine-go \
-        google-cloud-sdk-app-engine-python \
-        google-cloud-sdk-app-engine-python-extras \
-        google-cloud-sdk \
-        google-cloud-sdk-datastore-emulator \
-        google-cloud-sdk-pubsub-emulator
-  fi
 
   # Run the full bootstrap script to prepare for ClusterFuzz development.
   python butler.py bootstrap
