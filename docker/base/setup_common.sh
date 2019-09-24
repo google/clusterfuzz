@@ -44,7 +44,7 @@ then
 fi
 
 # Running without credentials will cause this to fail.
-if [[ -z "$LOCAL_SRC" && -z "$DISABLE_FLUENTD" ]]; then
+if [[ -z "$LOCAL_SRC" ]]; then
   service google-fluentd restart
 fi
 
