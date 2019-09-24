@@ -19,7 +19,6 @@ RUN cp /bin/true /bin/mount
 RUN cp /bin/true /bin/chown
 
 ENV DISABLE_DEV_RANDOM_RENAME 1
-ENV DISABLE_FLUENTD 1
 ENV USER root
 
 CMD ["bash", "-ex", "/data/start.sh"]
