@@ -374,7 +374,7 @@ class Handler(base_handler.Handler):
         issue_filer.file_issue(testcase, issue_tracker)
       except Exception:
         logs.log_error('Failed to file issue for testcase %d.' % testcase_id)
-        return
+        continue
 
       _create_filed_bug_metadata(testcase)
       logs.log('Filed new issue %s for testcase %d.' %
