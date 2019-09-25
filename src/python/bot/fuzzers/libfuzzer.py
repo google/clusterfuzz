@@ -25,6 +25,7 @@ from base import retry
 from bot.fuzzers import engine_common
 from bot.fuzzers import utils as fuzzer_utils
 from bot.fuzzers.libFuzzer import constants
+from metrics import logs
 from platforms import fuchsia
 from platforms.fuchsia.device import start_qemu
 from platforms.fuchsia.util.device import Device
@@ -416,11 +417,6 @@ class FuchsiaQemuLibFuzzerRunner(new_process.ProcessRunner, LibFuzzerCommon):
         executable_path=executable_path, default_args=default_args)
     self._setup_device_and_fuzzer()
 
-  def get_command(self, additional_args=None):
-    # TODO(flowerhack): Update this to dynamically pick a result from "fuzz
-    # list" and then run that fuzzer.
-    return self.ssh_command('ls')
-
   def process_logs_and_crash(self, artifact_prefix):
     """Fetch symbolized logs and crashes."""
     if not artifact_prefix:
@@ -493,7 +489,15 @@ class FuchsiaQemuLibFuzzerRunner(new_process.ProcessRunner, LibFuzzerCommon):
     """LibFuzzerCommon.fuzz override."""
     self._test_ssh()
 
-    #TODO(flowerhack): Pass libfuzzer args (additional_args) here
+    logs.log('SSH works; sync corpus directories')
+    # Push corpus directories to the device.
+    data_dst = self.fuzzer.data_path('corpus')
+    for corpus in corpus_directories:
+      for corpfile in os.listdir(corpus):
+        self.fuzzer.device.store(os.path.join(corpus, corpfile), data_dst)
+
+    logs.log('Corpus synced; run fuzzer')
+    # Run the fuzzer.
     return_code = self.fuzzer.start(additional_args)
     self.fuzzer.monitor(return_code)
     self.process_logs_and_crash(artifact_prefix)
@@ -501,6 +505,14 @@ class FuchsiaQemuLibFuzzerRunner(new_process.ProcessRunner, LibFuzzerCommon):
     with open(self.fuzzer.logfile) as logfile:
       symbolized_output = logfile.read()
 
+    logs.log('Fuzzer ran; pull down corpus')
+    # Pull corpus directories from the device.
+    data_src = self.fuzzer.data_path('corpus/*')
+    # By convention, the *first* corpus directory in the list is always where
+    # fetched corpuses should be stored.
+    self.fuzzer.device.fetch(data_src, corpus_directories[0])
+
+    logs.log('Corpus pulled; construct and return result')
     # TODO(flowerhack): Would be nice if we could figure out a way to make
     # the "fuzzer start" code return its own ProcessResult. For now, we simply
     # craft one by hand here.
@@ -545,8 +557,21 @@ class FuchsiaQemuLibFuzzerRunner(new_process.ProcessRunner, LibFuzzerCommon):
                      additional_args=None):
     return new_process.ProcessResult()
 
-  def ssh_command(self, *args):
-    return ['ssh'] + self.ssh_root + list(args)
+  @retry.wrap(retries=SSH_RETRIES, delay=SSH_WAIT, function='_test_qemu_ssh')
+  def _test_qemu_ssh(self):
+    """Tests that a VM is up and can be successfully SSH'd into.
+    Raises an exception if no success after MAX_SSH_RETRIES."""
+    ssh_test_process = new_process.ProcessRunner(
+        'ssh',
+        self.device.get_ssh_cmd(
+            ['ssh', 'localhost', 'echo running on fuchsia!'])[1:])
+    result = ssh_test_process.run_and_wait()
+    if result.return_code or result.timed_out:
+      raise fuchsia.errors.FuchsiaConnectionError(
+          'Failed to establish initial SSH connection: ' +
+          str(result.return_code) + " , " + str(result.command) + " , " +
+          str(result.output))
+    return result
 
 
 class MinijailLibFuzzerRunner(engine_common.MinijailEngineFuzzerRunner,

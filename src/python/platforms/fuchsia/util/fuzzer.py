@@ -206,7 +206,12 @@ class Fuzzer(object):
       else:
         fuzzer_args.append('-jobs=1')
     self.device.ssh(['mkdir', '-p', self.data_path('corpus')])
-    if [x for x in fuzzer_args if not x.startswith('-')]:
+    # If all the arguments are prepended with '-', then we do not need to add
+    # a corpus.
+    # This list comprehension returns a list of all arguments that do *not*
+    # start with '-'.
+    # Thus, if the list is empty, we append data/corpus/.
+    if not [x for x in fuzzer_args if not x.startswith('-')]:
       fuzzer_args.append('data/corpus/')
     if 'repro' in fuzzer_args:
       # If this is a reproducer run, we don't need the corpus.
