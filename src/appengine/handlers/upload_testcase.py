@@ -363,9 +363,9 @@ class UploadHandlerCommon(object):
 
     # If we have a AFL or libFuzzer target, use that for arguments.
     # Launch command looks like
-    # python launcher.py {testcase_path} {target_name}
+    # python launcher.py {testcase_path}
     if target_name:
-      additional_arguments = '%%TESTCASE%% %s' % target_name
+      additional_arguments = '%%TESTCASE%%'
 
     # Certain modifications such as app launch command, issue updates are only
     # allowed for privileged users.
@@ -395,6 +395,8 @@ class UploadHandlerCommon(object):
     else:
       crash_revision = 0
 
+    if bug_information == '0':  # Auto-recover from this bad input.
+      bug_information = None
     if bug_information and not bug_information.isdigit():
       raise helpers.EarlyExitException('Bug is not a number.', 400)
 

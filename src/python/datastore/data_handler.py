@@ -1257,7 +1257,7 @@ def create_user_uploaded_testcase(key,
   else:
     testcase.absolute_path = filename
   testcase.gestures = gestures
-  if bug_information:
+  if bug_information and bug_information.isdigit() and int(bug_information):
     testcase.bug_information = bug_information
   if platform_id:
     testcase.platform_id = platform_id.strip().lower()
