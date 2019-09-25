@@ -370,7 +370,12 @@ class Handler(base_handler.Handler):
       testcase.delete_metadata(TRIAGE_MESSAGE_KEY, update_testcase=False)
 
       # File the bug first and then create filed bug metadata.
-      issue_filer.file_issue(testcase, issue_tracker)
+      try:
+        issue_filer.file_issue(testcase, issue_tracker)
+      except Exception:
+        logs.log_error('Failed to file issue for testcase %d.' % testcase_id)
+        continue
+
       _create_filed_bug_metadata(testcase)
       logs.log('Filed new issue %s for testcase %d.' %
                (testcase.bug_information, testcase_id))
