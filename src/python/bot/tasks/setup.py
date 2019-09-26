@@ -130,10 +130,10 @@ def _get_application_arguments(testcase, task_name):
   return app_args
 
 
-def _setup_memory_tools_environment(testcase):
+def _setup_memory_tools_environment(testcase, task_name):
   """Set up environment for various memory tools used."""
   env = testcase.get_metadata('env')
-  if not env:
+  if not env or task_name == 'minimize':
     environment.reset_current_memory_tool_options(redzone_size=testcase.redzone)
     return
 
@@ -146,7 +146,8 @@ def _setup_memory_tools_environment(testcase):
 
 def prepare_environment_for_testcase(testcase):
   """Set various environment variables based on the test case."""
-  _setup_memory_tools_environment(testcase)
+  task_name = environment.get_value('TASK_NAME')
+  _setup_memory_tools_environment(testcase, task_name)
 
   # Setup environment variable for windows size and location properties.
   # Explicit override to avoid using the default one from job definition since
@@ -167,7 +168,6 @@ def prepare_environment_for_testcase(testcase):
   # Override APP_ARGS with minimized arguments (if available). Don't do this
   # for variant task since other job types can have its own set of required
   # arguments, so use the full set of arguments of that job.
-  task_name = environment.get_value('TASK_NAME')
   app_args = _get_application_arguments(testcase, task_name)
   if app_args:
     environment.set_value('APP_ARGS', app_args)

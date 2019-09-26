@@ -191,6 +191,10 @@ def get_asan_options(redzone_size, malloc_context_size, quarantine_size_mb,
   # If yes, set UBSAN_OPTIONS and enable suppressions.
   if get_value('UBSAN'):
     ubsan_options = join_memory_tool_options(get_ubsan_options())
+
+    # Remove |symbolize| explicitly to avoid overridding ASan defaults.
+    ubsan_options.pop('symbolize', None)
+
     set_value('UBSAN_OPTIONS', ubsan_options)
 
   return asan_options

@@ -426,7 +426,7 @@ def redo_testcase(testcase, tasks, user_email):
     testcase.minimized_keys = ''
     testcase.set_metadata('redo_minimize', True, update_testcase=False)
     metadata_keys_to_clear += [
-        'current_minimization_phase_attempts', 'minimization_phase'
+        'env', 'current_minimization_phase_attempts', 'minimization_phase'
     ]
 
     # If this testcase was archived during minimization, update the state.
