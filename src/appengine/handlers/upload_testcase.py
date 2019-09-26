@@ -365,7 +365,7 @@ class UploadHandlerCommon(object):
     # Launch command looks like
     # python launcher.py {testcase_path}
     if target_name:
-      additional_arguments = '%%TESTCASE%%'
+      additional_arguments = '%TESTCASE%'
 
     # Certain modifications such as app launch command, issue updates are only
     # allowed for privileged users.
