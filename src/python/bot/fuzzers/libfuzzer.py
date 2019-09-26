@@ -523,6 +523,28 @@ class FuchsiaQemuLibFuzzerRunner(new_process.ProcessRunner, LibFuzzerCommon):
     fuzzer_process_result.command = self.fuzzer.last_fuzz_cmd
     return fuzzer_process_result
 
+    def merge(self,
+            corpus_directories,
+            merge_timeout,
+            artifact_prefix=None, # merge_tmp_dir
+            tmp_dir=None,
+            additional_args=None):
+      # TODO(flowerhack): Integrate some notion of a merge timeout.
+      logs.log('Push corpus to device for merge')
+      data_dst = self.fuzzer.data_path('corpus')
+      # TODO(flowerhack): scp -r
+      for corpus in corpus_directories:
+        for corpfile in os.listdir(corpus):
+          self.fuzzer.device.store(os.path.join(corpus, corpfile), data_dst)
+      logs.log('Corpus synced; run merge')
+      corpus_elements, corpus_size = self.fuzzer.merge(additional_args)
+      logs.log('Merge ran; pull down corpus')
+      data_src = self.fuzzer.data_path('corpus/*')
+      # By convention, the *first* corpus directory in the list is always where
+      # fetched corpuses should be stored.
+      self.fuzzer.device.fetch(data_src, corpus_directories[0])
+
+
   def run_single_testcase(self,
                           testcase_path,
                           timeout=None,
@@ -846,8 +868,10 @@ def get_runner(fuzzer_path, temp_dir=None, use_minijail=None):
 
     runner = MinijailLibFuzzerRunner(fuzzer_path, minijail_chroot)
   elif is_fuchsia:
+    logs.log('!!! Getting Fuchsia runner')
     runner = FuchsiaQemuLibFuzzerRunner(fuzzer_path)
   else:
+    logs.log('!!! Getting not-Fuchsia runner')
     runner = LibFuzzerRunner(fuzzer_path)
 
   return runner

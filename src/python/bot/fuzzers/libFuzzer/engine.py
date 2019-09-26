@@ -334,6 +334,7 @@ class LibFuzzerEngine(engine.Engine):
       A Result object.
     """
     runner = libfuzzer.get_runner(target_path)
+    logs.log('Runner is ' + str(type(runner)))
     launcher.set_sanitizer_options(target_path)
     merge_tmp_dir = self._create_temp_corpus_dir('merge-workdir')
 
