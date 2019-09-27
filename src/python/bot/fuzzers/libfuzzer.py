@@ -506,10 +506,11 @@ class FuchsiaQemuLibFuzzerRunner(new_process.ProcessRunner, LibFuzzerCommon):
       symbolized_output = logfile.read()
 
     logs.log('Fuzzer ran; pull down corpus')
-    # Pull corpus directories from the device.
+    # There is only one corpus directory on the target. Pull down all files
+    # in that directory.
     data_src = self.fuzzer.data_path('corpus/*')
-    # By convention, the *first* corpus directory in the list is always where
-    # fetched corpuses should be stored.
+    # By convention, the *first* corpus directory in corpus_directories is
+    # always where the corpus files from the target should be stored.
     self.fuzzer.device.fetch(data_src, corpus_directories[0])
 
     logs.log('Corpus pulled; construct and return result')
@@ -532,9 +533,9 @@ class FuchsiaQemuLibFuzzerRunner(new_process.ProcessRunner, LibFuzzerCommon):
     # TODO(flowerhack): Integrate some notion of a merge timeout.
     logs.log('Push corpus to device for merge')
     data_dst = self.fuzzer.data_path('corpus')
-    for corpus in corpus_directories:
-      for corpus_dir in os.listdir(corpus):
-        self.fuzzer.device.store(os.path.join(corpus, corpus_dir), data_dst)
+    for corpus_dir in corpus_directories:
+      for corpus_file in os.listdir(corpus_dir):
+        self.fuzzer.device.store(os.path.join(corpus_dir, corpus_file), data_dst)
     logs.log('Corpus synced; run merge')
     _, _ = self.fuzzer.merge(additional_args)
     logs.log('Merge ran; pull down corpus')
