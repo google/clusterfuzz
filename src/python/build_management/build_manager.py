@@ -40,6 +40,7 @@ from metrics import logs
 from platforms import android
 from system import archive
 from system import environment
+from system import process_handler
 from system import shell
 
 # The default environment variables for specifying build bucket paths.
@@ -766,6 +767,16 @@ class FuchsiaBuild(Build):
     fuchsia_resources_dir = fuchsia.device.initialize_resources_dir()
     environment.set_value('FUCHSIA_RESOURCES_DIR', fuchsia_resources_dir)
 
+    # We set these values here, rather than in initial_qemu_setup, since
+    # SYMBOLIZE_REL_PATH and LLVM_SYMBOLIZER_REL_PATH are properties of the
+    # Build object.
+    symbolize_path = os.path.join(fuchsia_resources_dir,
+                                  self.SYMBOLIZE_REL_PATH)
+    os.chmod(symbolize_path, 0o777)
+    llvm_symbolizer_path = os.path.join(fuchsia_resources_dir,
+                                        self.LLVM_SYMBOLIZER_REL_PATH)
+    os.chmod(llvm_symbolizer_path, 0o777)
+
     logs.log('Retrieved build r%d.' % self.revision)
     logs.log('Extracting fuzz targets.' + fuchsia_resources_dir)
     environment.set_value(
@@ -773,13 +784,6 @@ class FuchsiaBuild(Build):
         os.path.join(fuchsia_resources_dir, self.FUCHSIA_DIR_REL_PATH))
     # TODO(flowerhack): Update here once Fuchsia understand revision tracking.
     environment.set_value('APP_REVISION', '0')
-
-    symbolize_path = os.path.join(fuchsia_resources_dir,
-                                  self.SYMBOLIZE_REL_PATH)
-    os.chmod(symbolize_path, 0o777)
-    llvm_symbolizer_path = os.path.join(fuchsia_resources_dir,
-                                        self.LLVM_SYMBOLIZER_REL_PATH)
-    os.chmod(llvm_symbolizer_path, 0o777)
 
     host = Host.from_dir(
         os.path.join(fuchsia_resources_dir, self.FUCHSIA_BUILD_REL_PATH))
@@ -798,8 +802,12 @@ class FuchsiaBuild(Build):
       environment.set_value('FUZZ_TARGET', fuzz_target)
       logs.log('Extracted fuzz target ' + fuzz_target)
 
+    logs.log('Initializing QEMU.')
+    # Kill any stale processes that may be left over from previous build.
+    process_handler.terminate_processes_matching_names('qemu_system-x86_64')
     self._setup_application_path()
-    fuchsia.device.setup_qemu_values()
+    fuchsia.device.initial_qemu_setup()
+    fuchsia.device.start_qemu()
     return True
 
 

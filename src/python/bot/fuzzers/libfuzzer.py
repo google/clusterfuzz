@@ -26,15 +26,14 @@ from bot.fuzzers import engine_common
 from bot.fuzzers import utils as fuzzer_utils
 from bot.fuzzers.libFuzzer import constants
 from platforms import fuchsia
-from platforms.fuchsia.device import run_qemu_instance
-from platforms.fuchsia.device import setup_qemu_instance
-from platforms.fuchsia.device import setup_qemu_values
+from platforms.fuchsia.device import start_qemu
 from platforms.fuchsia.util.device import Device
 from platforms.fuchsia.util.fuzzer import Fuzzer
 from platforms.fuchsia.util.host import Host
 from system import environment
 from system import minijail
 from system import new_process
+from system import process_handler
 from system import shell
 
 MAX_OUTPUT_LEN = 1 * 1024 * 1024  # 1 MB
@@ -376,9 +375,10 @@ class FuchsiaQemuLibFuzzerRunner(new_process.ProcessRunner, LibFuzzerCommon):
 
   FUZZER_TEST_DATA_REL_PATH = os.path.join('test_data', 'fuzzing')
 
-  def _setup_fuzzer_and_device(self):
-    """ Build a Fuzzer object based on the QEMU values.
-    Call this only after setup_qemu_values()"""
+  def _setup_device_and_fuzzer(self):
+    """Build a Device and Fuzzer object based on QEMU's settings."""
+    # These environment variables are set when start_qemu is run.
+    # We need them in order to ssh / otherwise communicate with the VM.
     fuchsia_pkey_path = environment.get_value('FUCHSIA_PKEY_PATH')
     fuchsia_portnum = environment.get_value('FUCHSIA_PORTNUM')
     fuchsia_resources_dir = environment.get_value('FUCHSIA_RESOURCES_DIR')
@@ -387,6 +387,9 @@ class FuchsiaQemuLibFuzzerRunner(new_process.ProcessRunner, LibFuzzerCommon):
       raise fuchsia.errors.FuchsiaConfigError(
           ('FUCHSIA_PKEY_PATH, FUCHSIA_PORTNUM, or FUCHSIA_RESOURCES_DIR was '
            'not set'))
+
+    # Fuzzer objects communicate with the VM via a Device object,
+    # which we set up here.
     fuchsia_resources_dir_plus_build = os.path.join(fuchsia_resources_dir,
                                                     self.FUCHSIA_BUILD_REL_PATH)
     self.host = Host.from_dir(fuchsia_resources_dir_plus_build)
@@ -400,20 +403,18 @@ class FuchsiaQemuLibFuzzerRunner(new_process.ProcessRunner, LibFuzzerCommon):
     test_data_dir = os.path.join(fuchsia_resources_dir_plus_build,
                                  self.FUZZER_TEST_DATA_REL_PATH, package,
                                  target)
+
+    # Finally, we set up the Fuzzer object itself, which will run our fuzzer!
     self.fuzzer = Fuzzer(
         self.device, package, target, output=test_data_dir, foreground=True)
 
   def __init__(self, executable_path, default_args=None):
+    # We always assume QEMU is running on __init__, since build_manager sets
+    # it up initially. If this isn't the case, _test_ssh will detect and
+    # restart QEMU anyway.
     super(FuchsiaQemuLibFuzzerRunner, self).__init__(
         executable_path=executable_path, default_args=default_args)
-
-    qemu_path, qemu_args = setup_qemu_values(initial_setup=False)
-    qemu_process = setup_qemu_instance(qemu_path, qemu_args)
-    self._setup_fuzzer_and_device()
-    self.qemu_instance = run_qemu_instance(qemu_process)
-
-  def __del__(self):
-    self.qemu_instance.kill()
+    self._setup_device_and_fuzzer()
 
   def get_command(self, additional_args=None):
     # TODO(flowerhack): Update this to dynamically pick a result from "fuzz
@@ -461,13 +462,27 @@ class FuchsiaQemuLibFuzzerRunner(new_process.ProcessRunner, LibFuzzerCommon):
       self._restart_qemu()
       self._test_qemu_ssh()
 
+  @retry.wrap(retries=SSH_RETRIES, delay=SSH_WAIT, function='_test_qemu_ssh')
+  def _test_qemu_ssh(self):
+    """Tests that a VM is up and can be successfully SSH'd into.
+    Raises an exception if no success after MAX_SSH_RETRIES."""
+    ssh_test_process = new_process.ProcessRunner(
+        'ssh',
+        self.device.get_ssh_cmd(
+            ['ssh', 'localhost', 'echo running on fuchsia!'])[1:])
+    result = ssh_test_process.run_and_wait()
+    if result.return_code or result.timed_out:
+      raise fuchsia.errors.FuchsiaConnectionError(
+          'Failed to establish initial SSH connection: ' +
+          str(result.return_code) + " , " + str(result.command) + " , " +
+          str(result.output))
+    return result
+
   def _restart_qemu(self):
     """Restart QEMU."""
-    self.qemu_instance.kill()
-    qemu_path, qemu_args = setup_qemu_values(initial_setup=False)
-    qemu_process = setup_qemu_instance(qemu_path, qemu_args)
-    self._setup_fuzzer_and_device()
-    self.qemu_instance = run_qemu_instance(qemu_process)
+    process_handler.terminate_processes_matching_names('qemu_system-x86_64')
+    start_qemu()
+    self._setup_device_and_fuzzer()
 
   def fuzz(self,
            corpus_directories,
@@ -532,22 +547,6 @@ class FuchsiaQemuLibFuzzerRunner(new_process.ProcessRunner, LibFuzzerCommon):
 
   def ssh_command(self, *args):
     return ['ssh'] + self.ssh_root + list(args)
-
-  @retry.wrap(retries=SSH_RETRIES, delay=SSH_WAIT, function='_test_qemu_ssh')
-  def _test_qemu_ssh(self):
-    """Tests that a VM is up and can be successfully SSH'd into.
-    Raises an exception if no success after MAX_SSH_RETRIES."""
-    ssh_test_process = new_process.ProcessRunner(
-        'ssh',
-        self.device.get_ssh_cmd(
-            ['ssh', 'localhost', 'echo running on fuchsia!'])[1:])
-    result = ssh_test_process.run_and_wait()
-    if result.return_code or result.timed_out:
-      raise fuchsia.errors.FuchsiaConnectionError(
-          'Failed to establish initial SSH connection: ' +
-          str(result.return_code) + " , " + str(result.command) + " , " +
-          str(result.output))
-    return result
 
 
 class MinijailLibFuzzerRunner(engine_common.MinijailEngineFuzzerRunner,
