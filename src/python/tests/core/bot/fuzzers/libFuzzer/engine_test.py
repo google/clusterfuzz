@@ -876,8 +876,8 @@ class TestLauncherFuchsia(BaseIntegrationTest):
 
     options = engine_impl.prepare(corpus_path, 'example_fuzzers/corpus_fuzzer',
                                   DATA_DIR)
-    results = engine_impl.fuzz('example_fuzzers/corpus_fuzzer', options, TEMP_DIR,
-                               10)
+    results = engine_impl.fuzz('example_fuzzers/corpus_fuzzer', options,
+                               TEMP_DIR, 10)
 
     # If we don't get a crash, something went wrong.
     self.assertIn('Test unit written to', results.logs)
@@ -899,7 +899,8 @@ class TestLauncherFuchsia(BaseIntegrationTest):
     testcase_path, _ = setup_testcase_and_corpus('fuchsia_crash',
                                                  'empty_corpus')
     engine_impl = engine.LibFuzzerEngine()
-    result = engine_impl.reproduce('example_fuzzers/overflow_fuzzer', testcase_path,
+    result = engine_impl.reproduce('example_fuzzers/overflow_fuzzer',
+                                   testcase_path,
                                    ['-timeout=25', '-rss_limit_mb=2048'], 30)
 
     self.assertIn('ERROR: AddressSanitizer: heap-buffer-overflow on address',
