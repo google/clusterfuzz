@@ -219,6 +219,10 @@ class IssueTracker(issue_tracker.IssueTracker):
     self._itm = itm
 
   @property
+  def name(self):
+    return 'monorail'
+
+  @property
   def project(self):
     return self._itm.project_name
 

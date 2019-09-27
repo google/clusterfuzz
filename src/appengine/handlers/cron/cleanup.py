@@ -81,6 +81,17 @@ def _append_generic_incorrect_comment(comment, policy, suffix):
   return comment + GENERIC_INCORRECT_COMMENT.format(label=wrong_label) + suffix
 
 
+def _label_display_name(issue):
+  """Return label display for a issue (based on its issue tracker type)."""
+  issue_tracker_name = issue.issue_tracker.name
+  if issue_tracker_name == 'monorail':
+    return 'label'
+  elif issue_tracker_name == 'buganizer':
+    return 'hotlist ID'
+
+  raise Exception('Unknown issue tracker.')
+
+
 def job_platform_to_real_platform(job_platform):
   """Get real platform from job platform."""
   for platform in data_types.PLATFORMS:
@@ -666,9 +677,10 @@ def notify_closed_issue_if_testcase_is_open(policy, testcase, issue):
 
     wrong_label = policy.label('wrong')
     if wrong_label:
-      issue_comment += (
-          ' Otherwise, ignore this notification and add {label} label.'.format(
-              label=wrong_label))
+      issue_comment += ((' Otherwise, ignore this notification and add '
+                         '{label} {label_display_name}.').format(
+                             label=wrong_label,
+                             label_display_name=_label_display_name(issue)))
   else:
     # Covers WontFix, Archived cases.
     issue_comment = (
@@ -681,8 +693,10 @@ def notify_closed_issue_if_testcase_is_open(policy, testcase, issue):
     if ignore_label:
       issue_comment += (
           'Otherwise, if this is not intended to be fixed (e.g. this is an '
-          'intentional crash), please add {label} label to prevent future bug '
-          'filing with similar crash stacktrace.'.format(label=ignore_label))
+          'intentional crash), please add {label} {label_display_name} to '
+          'prevent future bug filing with similar crash stacktrace.'.format(
+              label=ignore_label,
+              label_display_name=_label_display_name(issue)))
 
   issue.save(new_comment=issue_comment, notify=True)
   logs.log('Notified closed issue for open testcase %d.' % testcase.key.id())
@@ -902,8 +916,10 @@ def update_fuzz_blocker_label(policy, testcase, issue,
   elif utils.is_chromium():
     update_message += '\n\nMarking this bug as a blocker for next Beta release.'
     update_message = _append_generic_incorrect_comment(
-        update_message, policy, ' and remove the %s label.' %
-        data_types.CHROMIUM_ISSUE_RELEASEBLOCK_BETA_LABEL)
+        update_message, policy,
+        ' and remove the {label} {label_display_name}.'.format(
+            label=data_types.CHROMIUM_ISSUE_RELEASEBLOCK_BETA_LABEL,
+            label_display_name=_label_display_name(issue)))
     issue.labels.add(data_types.CHROMIUM_ISSUE_RELEASEBLOCK_BETA_LABEL)
 
     # Update with the next beta for trunk, and remove existing milestone label.
@@ -955,8 +971,10 @@ def update_component_labels(testcase, issue):
   issue_comment = (
       'Automatically applying components based on crash stacktrace and '
       'information from OWNERS files.\n\n'
-      'If this is incorrect, please apply the %s label.' %
-      data_types.CHROMIUM_ISSUE_PREDATOR_WRONG_COMPONENTS_LABEL)
+      'If this is incorrect, please apply the {label} {label_display_name}.'.
+      format(
+          label=data_types.CHROMIUM_ISSUE_PREDATOR_WRONG_COMPONENTS_LABEL,
+          label_display_name=_label_display_name(issue)))
   issue.save(new_comment=issue_comment, notify=True)
 
 
@@ -1041,8 +1059,10 @@ def update_issue_labels_for_flaky_testcase(policy, testcase, issue):
 
   issue.labels.remove(reproducible_label)
   issue.labels.add(unreproducible_label)
-  comment = ('ClusterFuzz testcase %d appears to be flaky, '
-             'updating reproducibility label.' % testcase.key.id())
+  comment = ('ClusterFuzz testcase {testcase_id} appears to be flaky, '
+             'updating reproducibility {label_display_name}.'.format(
+                 testcase_id=testcase.key.id(),
+                 label_display_name=_label_display_name(issue)))
   issue.save(new_comment=comment)
 
 
@@ -1148,9 +1168,11 @@ def update_issue_owner_and_ccs_from_predator_results(policy,
       return
 
     issue.labels.add(data_types.CHROMIUM_ISSUE_PREDATOR_AUTO_CC_LABEL)
-    issue_comment += (
-        'If this is incorrect, please let us know why and apply the %s label.' %
-        data_types.CHROMIUM_ISSUE_PREDATOR_WRONG_CL_LABEL)
+    issue_comment += ((
+        'If this is incorrect, please let us know why and apply the '
+        '{label} {label_display_name}.').format(
+            label=data_types.CHROMIUM_ISSUE_PREDATOR_WRONG_CL_LABEL,
+            label_display_name=_label_display_name(issue)))
 
   try:
     issue.save(new_comment=issue_comment, notify=True)
