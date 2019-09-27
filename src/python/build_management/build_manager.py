@@ -807,9 +807,7 @@ class FuchsiaBuild(Build):
     process_handler.terminate_processes_matching_names('qemu_system-x86_64')
     self._setup_application_path()
     fuchsia.device.initial_qemu_setup()
-    qemu = fuchsia.device.QemuProcess()
-    qemu.create()
-    qemu.run()
+    fuchsia.device.start_qemu()
     return True
 
 

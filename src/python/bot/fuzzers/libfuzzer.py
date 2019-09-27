@@ -26,7 +26,7 @@ from bot.fuzzers import engine_common
 from bot.fuzzers import utils as fuzzer_utils
 from bot.fuzzers.libFuzzer import constants
 from platforms import fuchsia
-from platforms.fuchsia.device import QemuProcess
+from platforms.fuchsia.device import start_qemu
 from platforms.fuchsia.util.device import Device
 from platforms.fuchsia.util.fuzzer import Fuzzer
 from platforms.fuchsia.util.host import Host
@@ -375,16 +375,9 @@ class FuchsiaQemuLibFuzzerRunner(new_process.ProcessRunner, LibFuzzerCommon):
 
   FUZZER_TEST_DATA_REL_PATH = os.path.join('test_data', 'fuzzing')
 
-  def _setup_device_and_fuzzer(self, qemu_is_running=True):
+  def _setup_device_and_fuzzer(self):
     """Build a Device and Fuzzer object based on QEMU's settings."""
-
-    # If QEMU isn't currently running, set that up first.
-    if not qemu_is_running:
-      qemu = QemuProcess()
-      qemu.create()
-      qemu.run()
-
-    # These environment variables are set when a QemuProcess is `create`ed.
+    # These environment variables are set when start_qemu is run.
     # We need them in order to ssh / otherwise communicate with the VM.
     fuchsia_pkey_path = environment.get_value('FUCHSIA_PKEY_PATH')
     fuchsia_portnum = environment.get_value('FUCHSIA_PORTNUM')
@@ -421,7 +414,7 @@ class FuchsiaQemuLibFuzzerRunner(new_process.ProcessRunner, LibFuzzerCommon):
     # restart QEMU anyway.
     super(FuchsiaQemuLibFuzzerRunner, self).__init__(
         executable_path=executable_path, default_args=default_args)
-    self._setup_device_and_fuzzer(qemu_is_running=True)
+    self._setup_device_and_fuzzer()
 
   def get_command(self, additional_args=None):
     # TODO(flowerhack): Update this to dynamically pick a result from "fuzz
@@ -488,7 +481,8 @@ class FuchsiaQemuLibFuzzerRunner(new_process.ProcessRunner, LibFuzzerCommon):
   def _restart_qemu(self):
     """Restart QEMU."""
     process_handler.terminate_processes_matching_names('qemu_system-x86_64')
-    self._setup_device_and_fuzzer(qemu_is_running=False)
+    start_qemu()
+    self._setup_device_and_fuzzer()
 
   def fuzz(self,
            corpus_directories,

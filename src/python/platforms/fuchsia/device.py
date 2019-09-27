@@ -191,6 +191,12 @@ class QemuProcess(object):
     self.popen.kill()
 
 
+def start_qemu():
+  qemu = QemuProcess()
+  qemu.create()
+  qemu.run()
+
+
 def initialize_resources_dir():
   """Download Fuchsia QEMU resources from GCS bucket."""
   # This module depends on multiprocessing, which is not available in
