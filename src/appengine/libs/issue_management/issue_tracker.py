@@ -264,14 +264,14 @@ class IssueTracker(object):
   """Issue tracker interface."""
 
   @property
-  def name(self):
-    """Name of this issue tracker."""
-    raise NotImplementedError
-
-  @property
   def project(self):
     """Get the project name of this issue tracker."""
     raise NotImplementedError
+
+  @property
+  def label_type(self):
+    """Label type."""
+    return 'label'  # default
 
   def new_issue(self):
     """Create an unsaved new issue."""
