@@ -783,7 +783,7 @@ class TestLauncherFuchsia(BaseIntegrationTest):
     data_types.Fuzzer(
         revision=1,
         additional_environment_string=
-        'FUCHSIA_BUILD_URL = gs://fuchsia-clusterfuzz-test-august-12-2019/*\n',
+        'FUCHSIA_BUILD_URL = gs://fuchsia-clusterfuzz-test-sept-26-2019/*\n',
         builtin=True,
         differential=False,
         file_size='builtin',
@@ -816,7 +816,7 @@ class TestLauncherFuchsia(BaseIntegrationTest):
     data_types.Job(
         environment_string=(
             'CUSTOM_BINARY = True\n'
-            'FUCHSIA_BUILD_URL = gs://fuchsia-clusterfuzz-test-august-12-2019/*'
+            'FUCHSIA_BUILD_URL = gs://fuchsia-clusterfuzz-test-sept-26-2019/*'
             '\n'
             'QUEUE_OVERRIDE=FUCHSIA\n'
             'OS_OVERRIDE=FUCHSIA'),
@@ -851,10 +851,9 @@ class TestLauncherFuchsia(BaseIntegrationTest):
     environment.set_value('QUEUE_OVERRIDE', 'FUCHSIA')
     environment.set_value('OS_OVERRIDE', 'FUCHSIA')
     environment.set_value('FUCHSIA_BUILD_URL',
-                          'gs://fuchsia-clusterfuzz-test-august-12-2019/*')
+                          'gs://fuchsia-clusterfuzz-test-sept-26-2019/*')
     self.tmp_resources_dir = tempfile.mkdtemp()
     environment.set_value('RESOURCES_DIR', self.tmp_resources_dir)
-    environment.set_value('FUZZ_TARGET', 'example_fuzzers/basic_fuzzer')
 
   def tearDown(self):
     shutil.rmtree(self.tmp_resources_dir, ignore_errors=True)
@@ -868,24 +867,25 @@ class TestLauncherFuchsia(BaseIntegrationTest):
 
     Additionally, tests that pushing a corpus to the target works & produces
     an expanded corpus."""
+    environment.set_value('FUZZ_TARGET', 'example_fuzzers/corpus_fuzzer')
     build_manager.setup_fuchsia_build()
 
-    _, corpus_path = setup_testcase_and_corpus('aaaa', 'corpus_with_some_files')
+    _, corpus_path = setup_testcase_and_corpus('aaaa', 'fuchsia_corpus')
     num_files_original = len([corpfile for corpfile in os.listdir(corpus_path)])
     engine_impl = engine.LibFuzzerEngine()
 
-    options = engine_impl.prepare(corpus_path, 'example_fuzzers/toy_fuzzer',
+    options = engine_impl.prepare(corpus_path, 'example_fuzzers/corpus_fuzzer',
                                   DATA_DIR)
-    results = engine_impl.fuzz('example_fuzzers/toy_fuzzer', options, TEMP_DIR,
+    results = engine_impl.fuzz('example_fuzzers/corpus_fuzzer', options, TEMP_DIR,
                                10)
 
     # If we don't get a crash, something went wrong.
     self.assertIn('Test unit written to', results.logs)
-    self.assertIn('ERROR: AddressSanitizer: heap-buffer-overflow on address',
-                  results.logs)
+    #self.assertIn('ERROR: AddressSanitizer: heap-buffer-overflow on address',
+    #              results.logs)
     # Check that the command was invoked with a corpus argument.
     self.assertIn('data/corpus/', results.command)
-    # Check that a new unit was added to the corups.
+    # Check that a new unit was added to the corpus.
     num_files_new = len([corpfile for corpfile in os.listdir(corpus_path)])
     self.assertGreater(num_files_new, num_files_original)
 
@@ -894,11 +894,12 @@ class TestLauncherFuchsia(BaseIntegrationTest):
       'Temporarily disabling the Fuchsia tests until build size reduced.')
   def test_fuzzer_can_boot_and_run_reproducer(self):
     """Tests running a testcase that should cause a fast, predictable crash."""
+    environment.set_value('FUZZ_TARGET', 'example_fuzzers/overflow_fuzzer')
     build_manager.setup_fuchsia_build()
     testcase_path, _ = setup_testcase_and_corpus('fuchsia_crash',
                                                  'empty_corpus')
     engine_impl = engine.LibFuzzerEngine()
-    result = engine_impl.reproduce('example_fuzzers/toy_fuzzer', testcase_path,
+    result = engine_impl.reproduce('example_fuzzers/overflow_fuzzer', testcase_path,
                                    ['-timeout=25', '-rss_limit_mb=2048'], 30)
 
     self.assertIn('ERROR: AddressSanitizer: heap-buffer-overflow on address',

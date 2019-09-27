@@ -533,7 +533,6 @@ class FuchsiaQemuLibFuzzerRunner(new_process.ProcessRunner, LibFuzzerCommon):
     # TODO(flowerhack): Integrate some notion of a merge timeout.
     logs.log('Push corpus to device for merge')
     data_dst = self.fuzzer.data_path('corpus')
-    # TODO(flowerhack): scp -r
     for corpus in corpus_directories:
       for corpfile in os.listdir(corpus):
         self.fuzzer.device.store(os.path.join(corpus, corpfile), data_dst)
@@ -876,10 +875,8 @@ def get_runner(fuzzer_path, temp_dir=None, use_minijail=None):
 
     runner = MinijailLibFuzzerRunner(fuzzer_path, minijail_chroot)
   elif is_fuchsia:
-    logs.log('!!! Getting Fuchsia runner')
     runner = FuchsiaQemuLibFuzzerRunner(fuzzer_path)
   else:
-    logs.log('!!! Getting not-Fuchsia runner')
     runner = LibFuzzerRunner(fuzzer_path)
 
   return runner
