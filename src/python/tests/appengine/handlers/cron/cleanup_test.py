@@ -1146,7 +1146,7 @@ class UpdateTopCrashLabelsTest(unittest.TestCase):
         'preventing the fuzzer fuzzer1 from making much progress. '
         'Fixing this will allow more bugs to be found.'
         '\n\nMarking this bug as a blocker for next Beta release.'
-        '\n\nIf this is incorrect, please add ClusterFuzz-Wrong label and '
+        '\n\nIf this is incorrect, please add the ClusterFuzz-Wrong label and '
         'remove the ReleaseBlock-Beta label.',
         self.issue._monorail_issue.comment)
 
@@ -1214,7 +1214,7 @@ class UpdateTopCrashLabelsTest(unittest.TestCase):
         'and is likely preventing the fuzzer fuzzer1 from making much '
         'progress. Fixing this will allow more bugs to be found.'
         '\n\nMarking this bug as a blocker for next Beta release.'
-        '\n\nIf this is incorrect, please add ClusterFuzz-Wrong label and '
+        '\n\nIf this is incorrect, please add the ClusterFuzz-Wrong label and '
         'remove the ReleaseBlock-Beta label.',
         self.issue._monorail_issue.comment)
 
@@ -1443,7 +1443,7 @@ class UpdateIssueCCsFromOwnersFileTest(unittest.TestCase):
                                               self.issue)
     self.assertEqual(
         'Automatically adding ccs based on OWNERS file / target commit history.'
-        '\n\nIf this is incorrect, please add ClusterFuzz-Wrong label.',
+        '\n\nIf this is incorrect, please add the ClusterFuzz-Wrong label.',
         self.issue._monorail_issue.comment)
     self.assertItemsEqual(['dev1@example1.com', 'dev2@example2.com'],
                           sorted(self.issue.ccs))
@@ -1474,7 +1474,7 @@ class UpdateIssueCCsFromOwnersFileTest(unittest.TestCase):
                                               self.issue)
     self.assertEqual(
         'Automatically adding ccs based on OWNERS file / target commit history.'
-        '\n\nIf this is incorrect, please add ClusterFuzz-Wrong label.',
+        '\n\nIf this is incorrect, please add the ClusterFuzz-Wrong label.',
         self.issue._monorail_issue.comment)
 
     self.assertItemsEqual(issue_owners[-5:], self.issue.ccs)
