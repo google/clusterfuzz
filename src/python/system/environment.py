@@ -409,7 +409,6 @@ def get_lsan_options():
   lsan_suppressions_path = get_suppressions_file('lsan')
   lsan_options = {
       'print_suppressions': 0,
-      'symbolize': 1,
   }
 
   # Add common sanitizer options.
