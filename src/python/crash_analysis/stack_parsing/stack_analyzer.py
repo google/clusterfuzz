@@ -294,6 +294,15 @@ STACK_FRAME_IGNORE_REGEXES = [
     r'^tgkill$',
 
     # Function names (startswith).
+    r'^(|\_\_)memcmp',
+    r'^(|\_\_)memcpy',
+    r'^(|\_\_)memmove',
+    r'^(|\_\_)memset',
+    r'^(|\_\_)strcmp',
+    r'^(|\_\_)strcpy',
+    r'^(|\_\_)strdup',
+    r'^(|\_\_)strlen',
+    r'^(|\_\_)strncpy',
     r'^\<null\>',
     r'^Abort\(',
     r'^CFCrash',
@@ -363,10 +372,6 @@ STACK_FRAME_IGNORE_REGEXES = [
     r'^kasan\_',
     r'^main',
     r'^malloc',
-    r'^memcmp',
-    r'^memcpy',
-    r'^memmove',
-    r'^memset',
     r'^mozalloc\_',
     r'^new',
     r'^object\_err',
@@ -376,9 +381,6 @@ STACK_FRAME_IGNORE_REGEXES = [
     r'^scanf',
     r'^show\_stack',
     r'^std\:\:\_\_terminate',
-    r'^strcmp',
-    r'^strcpy',
-    r'^strlen',
 
     # Functions names (contains).
     r'.*ASAN\_OnSIGSEGV',
@@ -416,7 +418,6 @@ STACK_FRAME_IGNORE_REGEXES = [
     r'.*logger',
     r'.*logging\:\:ErrnoLogMessage',
     r'.*logging\:\:LogMessage',
-    r'.*memcpy\-ssse3\-back\.S',
     r'.*stdext\:\:exception\:\:what',
     r'.*v8\:\:base\:\:OS\:\:Abort',
 
