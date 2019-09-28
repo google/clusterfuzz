@@ -273,6 +273,10 @@ class IssueTracker(object):
     """Label type."""
     return 'label'  # default
 
+  def label_text(self, label):
+    """Text for a label (with label type)."""
+    return label + ' ' + self.label_type
+
   def new_issue(self):
     """Create an unsaved new issue."""
     raise NotImplementedError
