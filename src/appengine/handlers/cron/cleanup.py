@@ -41,7 +41,7 @@ from metrics import crash_stats
 from metrics import logs
 
 GENERIC_INCORRECT_COMMENT = (
-    '\n\nIf this is incorrect, please add the {label} label')
+    '\n\nIf this is incorrect, please add the {label} {label_type}')
 
 OSS_FUZZ_INCORRECT_COMMENT = ('\n\nIf this is incorrect, please file a bug on '
                               'https://github.com/google/oss-fuzz/issues/new')
@@ -73,13 +73,14 @@ def _get_predator_result_item(testcase, key, default=None):
   return predator_result['result'].get(key, default)
 
 
-def _append_generic_incorrect_comment(comment, policy, suffix):
+def _append_generic_incorrect_comment(comment, policy, issue, suffix):
   """Get the generic incorrect comment."""
   wrong_label = policy.label('wrong')
   if not wrong_label:
     return comment
 
-  return comment + GENERIC_INCORRECT_COMMENT.format(label=wrong_label) + suffix
+  return comment + GENERIC_INCORRECT_COMMENT.format(
+      label=wrong_label, label_type=issue.issue_tracker.label_type) + suffix
 
 
 def job_platform_to_real_platform(job_platform):
@@ -435,7 +436,7 @@ def mark_issue_as_closed_if_testcase_is_fixed(policy, testcase, issue):
   if utils.is_oss_fuzz():
     comment += OSS_FUZZ_INCORRECT_COMMENT
   else:
-    comment = _append_generic_incorrect_comment(comment, policy,
+    comment = _append_generic_incorrect_comment(comment, policy, issue,
                                                 ' and re-open the issue.')
 
   issue.status = policy.status('verified')
@@ -540,7 +541,7 @@ def mark_unreproducible_testcase_and_issue_as_closed_after_deadline(
   if utils.is_oss_fuzz():
     comment += OSS_FUZZ_INCORRECT_COMMENT
   else:
-    comment = _append_generic_incorrect_comment(comment, policy,
+    comment = _append_generic_incorrect_comment(comment, policy, issue,
                                                 ' and re-open the issue.')
 
   issue.status = policy.status('wontfix')
@@ -905,7 +906,8 @@ def update_fuzz_blocker_label(policy, testcase, issue,
   elif utils.is_chromium():
     update_message += '\n\nMarking this bug as a blocker for next Beta release.'
     update_message = _append_generic_incorrect_comment(
-        update_message, policy, ' and remove the {label} {label_type}.'.format(
+        update_message, policy, issue,
+        ' and remove the {label} {label_type}.'.format(
             label=data_types.CHROMIUM_ISSUE_RELEASEBLOCK_BETA_LABEL,
             label_type=issue.issue_tracker.label_type))
     issue.labels.add(data_types.CHROMIUM_ISSUE_RELEASEBLOCK_BETA_LABEL)
@@ -1019,7 +1021,7 @@ def update_issue_ccs_from_owners_file(policy, testcase, issue):
     issue_comment += OSS_FUZZ_INCORRECT_COMMENT + '.'
   else:
     issue_comment = _append_generic_incorrect_comment(issue_comment, policy,
-                                                      '.')
+                                                      issue, '.')
 
   issue.labels.add(auto_cc_label)
   issue.save(new_comment=issue_comment, notify=True)
