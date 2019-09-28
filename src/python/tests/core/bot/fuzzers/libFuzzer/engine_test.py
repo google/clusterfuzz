@@ -881,28 +881,26 @@ class TestLauncherFuchsia(BaseIntegrationTest):
 
     # If we don't get a crash, something went wrong.
     self.assertIn('Test unit written to', results.logs)
-    #self.assertIn('ERROR: AddressSanitizer: heap-buffer-overflow on address',
-    #              results.logs)
     # Check that the command was invoked with a corpus argument.
     self.assertIn('data/corpus/new', results.command)
-    # Check that a new unit was added to the corpus.
-    num_files_new = len([corpfile for corpfile in os.listdir(corpus_path)])
+    # Check that new units were added to the corpus.
+    num_files_new = len([corpfile for corpfile in os.listdir(os.path.join(TEMP_DIR, 'temp-1337/new'))])
     self.assertGreater(num_files_new, num_files_original)
 
-  #@unittest.skipIf(
-  #    not environment.get_value('FUCHSIA_TESTS'),
-  #    'Temporarily disabling the Fuchsia tests until build size reduced.')
-  #def test_fuzzer_can_boot_and_run_reproducer(self):
-  #  """Tests running a testcase that should cause a fast, predictable crash."""
-  #  environment.set_value('FUZZ_TARGET', 'example_fuzzers/overflow_fuzzer')
-  #  build_manager.setup_fuchsia_build()
-  #  testcase_path, _ = setup_testcase_and_corpus('fuchsia_crash',
-  #                                               'empty_corpus')
-  #  engine_impl = engine.LibFuzzerEngine()
-  #  result = engine_impl.reproduce('example_fuzzers/overflow_fuzzer',
-  #                                 testcase_path,
-  #                                 ['-timeout=25', '-rss_limit_mb=2048'], 30)
-  #
-  #  self.assertIn('ERROR: AddressSanitizer: heap-buffer-overflow on address',
-  #                result.output)
-  #  self.assertIn('Running: data/fuchsia_crash', result.output)
+  @unittest.skipIf(
+      not environment.get_value('FUCHSIA_TESTS'),
+      'Temporarily disabling the Fuchsia tests until build size reduced.')
+  def test_fuzzer_can_boot_and_run_reproducer(self):
+    """Tests running a testcase that should cause a fast, predictable crash."""
+    environment.set_value('FUZZ_TARGET', 'example_fuzzers/overflow_fuzzer')
+    build_manager.setup_fuchsia_build()
+    testcase_path, _ = setup_testcase_and_corpus('fuchsia_crash',
+                                                 'empty_corpus')
+    engine_impl = engine.LibFuzzerEngine()
+    result = engine_impl.reproduce('example_fuzzers/overflow_fuzzer',
+                                   testcase_path,
+                                   ['-timeout=25', '-rss_limit_mb=2048'], 30)
+
+    self.assertIn('ERROR: AddressSanitizer: heap-buffer-overflow on address',
+                  result.output)
+    self.assertIn('Running: data/fuchsia_crash', result.output)

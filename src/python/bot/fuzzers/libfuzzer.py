@@ -494,15 +494,13 @@ class FuchsiaQemuLibFuzzerRunner(new_process.ProcessRunner, LibFuzzerCommon):
     # the host.
     self.new_corpus_relative_dir_target = os.path.join('corpus', os.path.basename(self.new_corpus_dir_host))
     self.new_corpus_dir_target = self.fuzzer.data_path(self.new_corpus_relative_dir_target)
-    logs.log('New corpus dir target ' + str(self.new_corpus_dir_target))
-    logs.log('Corpus dir target ' + str(self.corpus_directories_target))
-    logs.log('New corpus dir host ' + str(self.new_corpus_dir_host))
 
   def _push_corpora_from_host_to_target(self):
     # Push corpus directories to the device.
     logs.log('Push corpora from host to target.')
     for corpus_dir in self.corpus_directories:
-      self.fuzzer.device.store(corpus_dir, self._corpus_target_subdir(os.path.basename(corpus_dir)))
+      # Appending '/*' indicates we want all the *files* in the corpus_dir's
+      self.fuzzer.device.store(corpus_dir + '/*', self._corpus_target_subdir(os.path.basename(corpus_dir)))
 
   def _pull_new_corpus_from_target_to_host(self):
     # Appending '/*' indicates we want all the *files* in the target's
@@ -553,6 +551,8 @@ class FuchsiaQemuLibFuzzerRunner(new_process.ProcessRunner, LibFuzzerCommon):
             tmp_dir=None,
             additional_args=None):
     # TODO(flowerhack): Integrate some notion of a merge timeout.
+    # TODO(flowerhack): device.py doesn't have a notion of custom
+    # corpus directories, teach it
     self._init_corpus_info(corpus_directories)
     self._push_corpora_from_host_to_target()
 
