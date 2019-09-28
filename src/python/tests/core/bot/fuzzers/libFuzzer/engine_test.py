@@ -884,7 +884,10 @@ class TestLauncherFuchsia(BaseIntegrationTest):
     # Check that the command was invoked with a corpus argument.
     self.assertIn('data/corpus/new', results.command)
     # Check that new units were added to the corpus.
-    num_files_new = len([corpfile for corpfile in os.listdir(os.path.join(TEMP_DIR, 'temp-1337/new'))])
+    num_files_new = len([
+        corpfile
+        for corpfile in os.listdir(os.path.join(TEMP_DIR, 'temp-1337/new'))
+    ])
     self.assertGreater(num_files_new, num_files_original)
 
   @unittest.skipIf(

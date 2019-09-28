@@ -484,6 +484,7 @@ class FuchsiaQemuLibFuzzerRunner(new_process.ProcessRunner, LibFuzzerCommon):
     return os.path.join(self.corpus_directories_target, relpath)
 
   def _init_corpus_info(self, corpus_directories):
+    """ Initialize corpus info for fuzzing and merging. """
     self.corpus_directories = corpus_directories
     # By convention, the *first* corpus directory in corpus_directories is
     # always where new corpus files from the target are stored.
@@ -492,22 +493,27 @@ class FuchsiaQemuLibFuzzerRunner(new_process.ProcessRunner, LibFuzzerCommon):
     self.corpus_directories_target = self.fuzzer.data_path('corpus')
     # Make the name of the "new corpus directory" on the target match that of
     # the host.
-    self.new_corpus_relative_dir_target = os.path.join('corpus', os.path.basename(self.new_corpus_dir_host))
-    self.new_corpus_dir_target = self.fuzzer.data_path(self.new_corpus_relative_dir_target)
+    self.new_corpus_relative_dir_target = os.path.join(
+        'corpus', os.path.basename(self.new_corpus_dir_host))
+    self.new_corpus_dir_target = self.fuzzer.data_path(
+        self.new_corpus_relative_dir_target)
 
   def _push_corpora_from_host_to_target(self):
     # Push corpus directories to the device.
     logs.log('Push corpora from host to target.')
     for corpus_dir in self.corpus_directories:
       # Appending '/*' indicates we want all the *files* in the corpus_dir's
-      self.fuzzer.device.store(corpus_dir + '/*', self._corpus_target_subdir(os.path.basename(corpus_dir)))
+      self.fuzzer.device.store(
+          corpus_dir + '/*',
+          self._corpus_target_subdir(os.path.basename(corpus_dir)))
 
   def _pull_new_corpus_from_target_to_host(self):
     # Appending '/*' indicates we want all the *files* in the target's
     # directory, rather than the directory itself.
     logs.log('Fuzzer ran; pull down corpus')
     files_in_new_corpus_dir_target = self.new_corpus_dir_target + "/*"
-    self.fuzzer.device.fetch(files_in_new_corpus_dir_target, self.new_corpus_dir_host)
+    self.fuzzer.device.fetch(files_in_new_corpus_dir_target,
+                             self.new_corpus_dir_host)
 
   def _clear_all_target_corpora(self):
     logs.log('Clearing corpora on target')
@@ -525,7 +531,8 @@ class FuchsiaQemuLibFuzzerRunner(new_process.ProcessRunner, LibFuzzerCommon):
     self._push_corpora_from_host_to_target()
 
     # Run the fuzzer.
-    return_code = self.fuzzer.start(['data/' + self.new_corpus_relative_dir_target] + additional_args)
+    return_code = self.fuzzer.start(
+        ['data/' + self.new_corpus_relative_dir_target] + additional_args)
     self.fuzzer.monitor(return_code)
     self.process_logs_and_crash(artifact_prefix)
     with open(self.fuzzer.logfile) as logfile:
