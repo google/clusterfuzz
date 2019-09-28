@@ -610,21 +610,8 @@ class FuchsiaQemuLibFuzzerRunner(new_process.ProcessRunner, LibFuzzerCommon):
                      additional_args=None):
     return new_process.ProcessResult()
 
-  @retry.wrap(retries=SSH_RETRIES, delay=SSH_WAIT, function='_test_qemu_ssh')
-  def _test_qemu_ssh(self):
-    """Tests that a VM is up and can be successfully SSH'd into.
-    Raises an exception if no success after MAX_SSH_RETRIES."""
-    ssh_test_process = new_process.ProcessRunner(
-        'ssh',
-        self.device.get_ssh_cmd(
-            ['ssh', 'localhost', 'echo running on fuchsia!'])[1:])
-    result = ssh_test_process.run_and_wait()
-    if result.return_code or result.timed_out:
-      raise fuchsia.errors.FuchsiaConnectionError(
-          'Failed to establish initial SSH connection: ' +
-          str(result.return_code) + " , " + str(result.command) + " , " +
-          str(result.output))
-    return result
+  def ssh_command(self, *args):
+    return ['ssh'] + self.ssh_root + list(args)
 
 
 class MinijailLibFuzzerRunner(engine_common.MinijailEngineFuzzerRunner,
