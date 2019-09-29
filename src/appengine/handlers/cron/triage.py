@@ -51,58 +51,6 @@ def _add_triage_message(testcase, message):
   testcase.set_metadata(TRIAGE_MESSAGE_KEY, message)
 
 
-def _associate_testcase_with_existing_issue_if_needed(testcase,
-                                                      similar_testcase, issue):
-  """Associate an interesting testcase with an existing issue which is already
-  associated with an uninteresting testcase of similar crash signature if:
-  1. The current testcase is interesting as it is:
-     a. Fully reproducible AND
-     b. No other reproducible testcase is open and attached to issue.
-  3. Similar testcase attached to existing issue is uninteresting as it is:
-     a. Either unreproducible (but filed since it occurs frequently) OR
-     b. Got closed due to flakiness, but developer has re-opened the issue."""
-
-  # Don't change existing bug mapping if any.
-  if testcase.bug_information:
-    return
-
-  # If this testcase is not reproducible, no need to update bug mapping.
-  if testcase.one_time_crasher_flag:
-    return
-
-  # If another reproducible testcase is open and attached to this issue, then
-  # no need to update bug mapping.
-  if data_types.Testcase.query(
-      data_types.Testcase.bug_information == str(issue.id),
-      ndb_utils.is_true(data_types.Testcase.open),
-      ndb_utils.is_false(data_types.Testcase.one_time_crasher_flag)).get():
-    return
-
-  # If similar testcase is reproducible, make sure that it is not recently
-  # closed. If it is, it means we might have not verified the testcase itself
-  # as well, so need to give this for testcase to close as well.
-  if not similar_testcase.open and not similar_testcase.one_time_crasher_flag:
-    closed_time = similar_testcase.get_metadata('closed_time')
-    if not closed_time:
-      return
-    if not dates.time_has_expired(
-        closed_time, hours=data_types.MIN_ELAPSED_TIME_SINCE_FIXED):
-      return
-
-  testcase_id = testcase.key.id()
-  report_url = data_handler.TESTCASE_REPORT_URL.format(
-      domain=data_handler.get_domain(), testcase_id=testcase_id)
-  comment = ('ClusterFuzz found another reproducible variant for this '
-             'bug on {job_type} job: {report_url}.').format(
-                 job_type=testcase.job_type, report_url=report_url)
-  issue.save(new_comment=comment, notify=True)
-
-  testcase = data_handler.get_testcase_by_id(testcase_id)
-  testcase.bug_information = str(issue.id)
-  testcase.group_bug_information = 0
-  testcase.put()
-
-
 def _create_filed_bug_metadata(testcase):
   """Create a dummy bug entry for a test case."""
   metadata = data_types.FiledBug()
@@ -266,8 +214,6 @@ def _check_and_update_similar_bug(testcase, issue_tracker):
 
     # If the issue is still open, no need to file a duplicate bug.
     if issue.is_open:
-      _associate_testcase_with_existing_issue_if_needed(testcase,
-                                                        similar_testcase, issue)
       return True
 
     # If the issue indicates that this crash needs to be ignored, no need to
