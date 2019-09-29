@@ -261,13 +261,6 @@ class CheckAndUpdateSimilarBug(unittest.TestCase):
     self.assertEqual(
         True,
         triage._check_and_update_similar_bug(self.testcase, self.issue_tracker))
-    testcase = data_handler.get_testcase_by_id(self.testcase.key.id())
-    self.assertEqual('1', testcase.bug_information)
-    self.assertEqual(
-        'ClusterFuzz found another reproducible variant for this bug on '
-        'test_content_shell_drt job: '
-        'https://test-clusterfuzz.appspot.com/testcase?key=1.',
-        self.issue._monorail_issue.comment)
 
   def test_similar_testcase_reproducible_and_closed_but_issue_open_2(self):
     """Tests result is true when there is a similar testcase which is
@@ -310,13 +303,6 @@ class CheckAndUpdateSimilarBug(unittest.TestCase):
     self.assertEqual(
         True,
         triage._check_and_update_similar_bug(self.testcase, self.issue_tracker))
-    testcase = data_handler.get_testcase_by_id(self.testcase.key.id())
-    self.assertEqual('1', testcase.bug_information)
-    self.assertEqual(
-        'ClusterFuzz found another reproducible variant for this bug on '
-        'test_content_shell_drt job: '
-        'https://test-clusterfuzz.appspot.com/testcase?key=1.',
-        self.issue._monorail_issue.comment)
 
   def test_similar_testcase_with_issue_closed_with_ignore_label(self):
     """Tests result is true when there is a similar testcase with closed issue
