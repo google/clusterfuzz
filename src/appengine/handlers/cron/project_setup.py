@@ -101,23 +101,23 @@ class JobInfo(object):
 # The order of templates is important here. Later templates override settings in
 # the earlier ones. An engine template may override vars set for a sanitizer.
 LIBFUZZER_ASAN_JOB = JobInfo('libfuzzer_asan_', 'libfuzzer', 'address',
-                             ['engine_asan', 'libfuzzer', 'prune'])
+                             ['libfuzzer', 'engine_asan', 'prune'])
 LIBFUZZER_MSAN_JOB = JobInfo('libfuzzer_msan_', 'libfuzzer', 'memory',
-                             ['engine_msan', 'libfuzzer'])
+                             ['libfuzzer', 'engine_msan'])
 LIBFUZZER_UBSAN_JOB = JobInfo('libfuzzer_ubsan_', 'libfuzzer', 'undefined',
-                              ['engine_ubsan', 'libfuzzer'])
-AFL_ASAN_JOB = JobInfo(
-    'afl_asan_',
-    'afl',
-    'address', ['engine_asan', 'afl'],
-    minimize_job_override=LIBFUZZER_ASAN_JOB)
-NO_ENGINE_ASAN_JOB = JobInfo('asan_', 'none', 'address', [])
-
+                              ['libfuzzer', 'engine_ubsan'])
 LIBFUZZER_ASAN_I386_JOB = JobInfo(
     'libfuzzer_asan_i386_',
     'libfuzzer',
-    'address', ['engine_asan', 'libfuzzer'],
+    'address', ['libfuzzer', 'engine_asan'],
     architecture='i386')
+
+AFL_ASAN_JOB = JobInfo(
+    'afl_asan_',
+    'afl',
+    'address', ['afl', 'engine_asan'],
+    minimize_job_override=LIBFUZZER_ASAN_JOB)
+NO_ENGINE_ASAN_JOB = JobInfo('asan_', 'none', 'address', [])
 
 JOB_MAP = {
     'libfuzzer': {
