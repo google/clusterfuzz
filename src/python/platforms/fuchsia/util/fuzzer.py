@@ -284,17 +284,28 @@ class Fuzzer(object):
     self.require_stopped()
     if self.measure_corpus() == (0, 0):
       return (0, 0)
-    self.device.ssh(['mkdir', '-p', self.data_path('corpus')])
-    self.device.ssh(['mkdir', '-p', self.data_path('corpus.prev')])
-    self.device.ssh(
-        ['mv', self.data_path('corpus/*'),
-         self.data_path('corpus.prev')])
-    self.device.ssh(['mkdir', '-p', self.data_path('corpus')])
+
+    # If all the arguments are prepended with '-', then no corpus has been
+    # passed in, so we need to execute the "default" behavior: assuming
+    # "corpus" is the only relevant directory, and making a new corpus
+    # directory.
+    # If corpora have been passed in, we trust that the caller has passed
+    # them in the order they want.
+    if not [x for x in fuzzer_args if not x.starts_with('-')]:
+      self.device.ssh(['mkdir', '-p', self.data_path('corpus')])
+      self.device.ssh(['mkdir', '-p', self.data_path('corpus.prev')])
+      self.device.ssh(
+          ['mv',
+           self.data_path('corpus/*'),
+           self.data_path('corpus.prev')])
+      self.device.ssh(['mkdir', '-p', self.data_path('corpus')])
+      fuzzer_args.append('data/corpus/')
+      fuzzer_args.append('data/corpus.prev/')
+
     # Save mergefile in case we are interrupted
     fuzzer_args = ['-merge=1', '-merge_control_file=data/.mergefile'
                   ] + fuzzer_args
-    fuzzer_args.append('data/corpus/')
-    fuzzer_args.append('data/corpus.prev/')
+
     self.run(fuzzer_args)
     # Cleanup
     self.device.rm(self.data_path('.mergefile'))
