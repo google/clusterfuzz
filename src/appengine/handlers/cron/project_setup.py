@@ -109,14 +109,14 @@ LIBFUZZER_UBSAN_JOB = JobInfo('libfuzzer_ubsan_', 'libfuzzer', 'undefined',
 AFL_ASAN_JOB = JobInfo(
     'afl_asan_',
     'afl',
-    'address', ['engine_asan', 'afl'],
+    'address', ['afl', 'engine_asan'],
     minimize_job_override=LIBFUZZER_ASAN_JOB)
 NO_ENGINE_ASAN_JOB = JobInfo('asan_', 'none', 'address', [])
 
 LIBFUZZER_ASAN_I386_JOB = JobInfo(
     'libfuzzer_asan_i386_',
     'libfuzzer',
-    'address', ['engine_asan', 'libfuzzer'],
+    'address', ['libfuzzer', 'engine_asan'],
     architecture='i386')
 
 JOB_MAP = {
