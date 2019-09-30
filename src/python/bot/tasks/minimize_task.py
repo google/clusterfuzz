@@ -1225,8 +1225,8 @@ def do_libfuzzer_minimization(testcase, testcase_file_path):
     else:
       task_creation.mark_unreproducible_if_flaky(testcase, True)
 
-  timeout = environment.get_value('LIBFUZZER_MINIMIZATION_TIMEOUT', 180)
-  rounds = environment.get_value('LIBFUZZER_MINIMIZATION_ROUNDS', 10)
+  timeout = environment.get_value('LIBFUZZER_MINIMIZATION_TIMEOUT', 600)
+  rounds = environment.get_value('LIBFUZZER_MINIMIZATION_ROUNDS', 5)
   current_testcase_path = testcase_file_path
   last_crash_result = None
 

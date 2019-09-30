@@ -30,7 +30,7 @@ from metrics import logs
 from system import environment
 
 REQUEST_TIMEOUT = 60
-QUERY_TIMEOUT = 5 * 60
+QUERY_TIMEOUT = 10 * 60
 QUERY_MAX_RESULTS = 10000
 QUERY_RETRY_COUNT = 3
 QUERY_RETRY_DELAY = 3
