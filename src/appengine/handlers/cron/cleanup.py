@@ -1041,11 +1041,11 @@ def update_issue_labels_for_flaky_testcase(policy, testcase, issue):
 
   # Make sure that no other reproducible testcases associated with this issue
   # are open. If yes, no need to update label.
-  similar_testcase = data_types.Testcase.query(
+  similar_reproducible_testcase = data_types.Testcase.query(
       data_types.Testcase.bug_information == testcase.bug_information,
       ndb_utils.is_true(data_types.Testcase.open),
       ndb_utils.is_false(data_types.Testcase.one_time_crasher_flag)).get()
-  if similar_testcase:
+  if similar_reproducible_testcase:
     return
 
   reproducible_label = policy.label('reproducible')
