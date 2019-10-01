@@ -521,10 +521,10 @@ class FuchsiaQemuLibFuzzerRunner(new_process.ProcessRunner, LibFuzzerCommon):
     # Appending '/*' indicates we want all the *files* in the target's
     # directory, rather than the directory itself.
     logs.log('Fuzzer ran; pull down corpus')
-    files_in_new_corpus_dir_target = self.new_corpus_dir_target(
+    files_in_new_corpus_dir_target = self._new_corpus_dir_target(
         corpus_directories) + "/*"
     self.fuzzer.device.fetch(files_in_new_corpus_dir_target,
-                             self.new_corpus_dir_host(corpus_directories))
+                             self._new_corpus_dir_host(corpus_directories))
 
   def _clear_all_target_corpora(self):
     """ Clears out all the corpora on the target. """
@@ -543,7 +543,7 @@ class FuchsiaQemuLibFuzzerRunner(new_process.ProcessRunner, LibFuzzerCommon):
 
     # Run the fuzzer.
     # TODO: actually we want new_corpus_relative_dir_target for *each* corpus
-    return_code = self.fuzzer.start(self._corpus_directories_libfuzzer +
+    return_code = self.fuzzer.start(self._corpus_directories_libfuzzer(corpus_directories) +
                                     additional_args)
     self.fuzzer.monitor(return_code)
     self.process_logs_and_crash(artifact_prefix)
