@@ -1494,6 +1494,7 @@ class UpdateIssueLabelsForFlakyTestcaseTest(unittest.TestCase):
     """Test that we change label on issue if the testcase is now flaky."""
     self.issue.labels.add('Reproducible')
     self.testcase.one_time_crasher_flag = True
+    self.testcase.put()
     cleanup.update_issue_labels_for_flaky_testcase(self.policy, self.testcase,
                                                    self.issue)
 
@@ -1508,6 +1509,7 @@ class UpdateIssueLabelsForFlakyTestcaseTest(unittest.TestCase):
     issue is already marked unreproducible."""
     self.issue.labels.add('Unreproducible')
     self.testcase.one_time_crasher_flag = True
+    self.testcase.put()
     cleanup.update_issue_labels_for_flaky_testcase(self.policy, self.testcase,
                                                    self.issue)
 
@@ -1519,6 +1521,24 @@ class UpdateIssueLabelsForFlakyTestcaseTest(unittest.TestCase):
     """Test that we don't change labels if the testcase is reproducible."""
     self.issue.labels.add('Reproducible')
     self.testcase.one_time_crasher_flag = False
+    self.testcase.put()
+    cleanup.update_issue_labels_for_flaky_testcase(self.policy, self.testcase,
+                                                   self.issue)
+
+    self.assertIn('Reproducible', self.issue.labels)
+    self.assertNotIn('Unreproducible', self.issue.labels)
+    self.assertEqual('', self.issue._monorail_issue.comment)
+
+  def test_skip_if_another_reproducible_testcase(self):
+    """Test that we don't change label on issue if another reproducible
+    testcase exists."""
+    similar_testcase = test_utils.create_generic_testcase()
+    similar_testcase.one_time_crasher_flag = False
+    similar_testcase.open = True
+    similar_testcase.put()
+
+    self.issue.labels.add('Reproducible')
+    self.testcase.one_time_crasher_flag = True
     cleanup.update_issue_labels_for_flaky_testcase(self.policy, self.testcase,
                                                    self.issue)
 
