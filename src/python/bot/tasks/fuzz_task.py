@@ -231,6 +231,9 @@ class Crash(object):
     if self.is_archived() and not self.fuzzed_key:
       return 'Unable to store testcase in blobstore: %s' % self.crash_state
 
+    if not self.crash_state or not self.crash_type:
+      return 'Empty crash state or type'
+
     return None
 
 
@@ -996,8 +999,8 @@ def filter_crashes(crashes):
 
   for crash in crashes:
     if not crash.is_valid():
-      logs.log('Ignore crash (reason=%s, state=%s).' % (crash.get_error(),
-                                                        crash.crash_state))
+      logs.log('Ignore crash (reason=%s, type=%s, state=%s).' %
+               (crash.get_error(), crash.crash_type, crash.crash_state))
       continue
 
     filtered.append(crash)
