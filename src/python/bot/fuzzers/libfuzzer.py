@@ -25,6 +25,7 @@ from base import retry
 from bot.fuzzers import engine_common
 from bot.fuzzers import utils as fuzzer_utils
 from bot.fuzzers.libFuzzer import constants
+from metrics import logs
 from platforms import fuchsia
 from platforms.fuchsia.device import start_qemu
 from platforms.fuchsia.util.device import Device
@@ -416,11 +417,6 @@ class FuchsiaQemuLibFuzzerRunner(new_process.ProcessRunner, LibFuzzerCommon):
         executable_path=executable_path, default_args=default_args)
     self._setup_device_and_fuzzer()
 
-  def get_command(self, additional_args=None):
-    # TODO(flowerhack): Update this to dynamically pick a result from "fuzz
-    # list" and then run that fuzzer.
-    return self.ssh_command('ls')
-
   def process_logs_and_crash(self, artifact_prefix):
     """Fetch symbolized logs and crashes."""
     if not artifact_prefix:
@@ -484,6 +480,57 @@ class FuchsiaQemuLibFuzzerRunner(new_process.ProcessRunner, LibFuzzerCommon):
     start_qemu()
     self._setup_device_and_fuzzer()
 
+  def _corpus_target_subdir(self, relpath):
+    """ Returns the absolute path of the corpus subdirectory on the target,
+    given "relpath", the name of the specific corpus. """
+    return os.path.join(self._corpus_directories_target(), relpath)
+
+  def _corpus_directories_libfuzzer(self, corpus_directories):
+    """ Returns the corpus directory paths expected by libfuzzer itself. """
+    corpus_directories_libfuzzer = []
+    for corpus_dir in corpus_directories:
+      corpus_directories_libfuzzer.append(
+          os.path.join('data', 'corpus', os.path.basename(corpus_dir)))
+    return corpus_directories_libfuzzer
+
+  def _new_corpus_dir_host(self, corpus_directories):
+    """ Returns the path of the 'new' corpus directory on the host. """
+    return corpus_directories[0]
+
+  def _new_corpus_dir_target(self, corpus_directories):
+    """ Returns the path of the 'new' corpus directory on the target. """
+    new_corpus_dir_host = self._new_corpus_dir_host(corpus_directories)
+    return self.fuzzer.data_path(
+        os.path.join('corpus', os.path.basename(new_corpus_dir_host)))
+
+  def _corpus_directories_target(self):
+    """ Returns the path of the root corpus directory on the target. """
+    return self.fuzzer.data_path('corpus')
+
+  def _push_corpora_from_host_to_target(self, corpus_directories):
+    # Push corpus directories to the device.
+    self._clear_all_target_corpora()
+    logs.log('Push corpora from host to target.')
+    for corpus_dir in corpus_directories:
+      # Appending '/*' indicates we want all the *files* in the corpus_dir's
+      self.fuzzer.device.store(
+          corpus_dir + '/*',
+          self._corpus_target_subdir(os.path.basename(corpus_dir)))
+
+  def _pull_new_corpus_from_target_to_host(self, corpus_directories):
+    # Appending '/*' indicates we want all the *files* in the target's
+    # directory, rather than the directory itself.
+    logs.log('Fuzzer ran; pull down corpus')
+    files_in_new_corpus_dir_target = self._new_corpus_dir_target(
+        corpus_directories) + "/*"
+    self.fuzzer.device.fetch(files_in_new_corpus_dir_target,
+                             self._new_corpus_dir_host(corpus_directories))
+
+  def _clear_all_target_corpora(self):
+    """ Clears out all the corpora on the target. """
+    logs.log('Clearing corpora on target')
+    self.fuzzer.device.ssh(['rm', '-rf', self._corpus_directories_target()])
+
   def fuzz(self,
            corpus_directories,
            fuzz_timeout,
@@ -492,14 +539,20 @@ class FuchsiaQemuLibFuzzerRunner(new_process.ProcessRunner, LibFuzzerCommon):
            extra_env=None):
     """LibFuzzerCommon.fuzz override."""
     self._test_ssh()
+    self._push_corpora_from_host_to_target(corpus_directories)
 
-    #TODO(flowerhack): Pass libfuzzer args (additional_args) here
-    return_code = self.fuzzer.start(additional_args)
+    # Run the fuzzer.
+    # TODO: actually we want new_corpus_relative_dir_target for *each* corpus
+    return_code = self.fuzzer.start(
+        self._corpus_directories_libfuzzer(corpus_directories) +
+        additional_args)
     self.fuzzer.monitor(return_code)
     self.process_logs_and_crash(artifact_prefix)
-
     with open(self.fuzzer.logfile) as logfile:
       symbolized_output = logfile.read()
+
+    self._pull_new_corpus_from_target_to_host(corpus_directories)
+    self._clear_all_target_corpora()
 
     # TODO(flowerhack): Would be nice if we could figure out a way to make
     # the "fuzzer start" code return its own ProcessResult. For now, we simply
@@ -510,6 +563,31 @@ class FuchsiaQemuLibFuzzerRunner(new_process.ProcessRunner, LibFuzzerCommon):
     fuzzer_process_result.time_executed = 0
     fuzzer_process_result.command = self.fuzzer.last_fuzz_cmd
     return fuzzer_process_result
+
+  def merge(self,
+            corpus_directories,
+            merge_timeout,
+            artifact_prefix=None,
+            tmp_dir=None,
+            additional_args=None):
+    # TODO(flowerhack): Integrate some notion of a merge timeout.
+    self._push_corpora_from_host_to_target(corpus_directories)
+
+    # Run merge.
+    _, _ = self.fuzzer.merge(
+        self._corpus_directories_libfuzzer(corpus_directories) +
+        additional_args)
+
+    self._pull_new_corpus_from_target_to_host(corpus_directories)
+    self._clear_all_target_corpora()
+
+    merge_result = new_process.ProcessResult()
+    merge_result.return_code = 0
+    merge_result.timed_out = False
+    merge_result.output = ''
+    merge_result.time_executed = 0
+    merge_result.command = ''
+    return merge_result
 
   def run_single_testcase(self,
                           testcase_path,
@@ -522,7 +600,6 @@ class FuchsiaQemuLibFuzzerRunner(new_process.ProcessRunner, LibFuzzerCommon):
     testcase_path_name = os.path.basename(os.path.normpath(testcase_path))
     self.device.store(testcase_path, self.fuzzer.data_path())
 
-    # TODO(flowerhack): Pass libfuzzer args (additional_args) here
     return_code = self.fuzzer.start(['repro', 'data/' + testcase_path_name] +
                                     additional_args)
     self.fuzzer.monitor(return_code)

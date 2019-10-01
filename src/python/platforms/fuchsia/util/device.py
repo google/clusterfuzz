@@ -193,7 +193,10 @@ class Device(object):
       for line in str(out).split('\n'):
         # Line ~= '-rw-r--r-- 1 0 0 8192 Mar 18 22:02 some-name'
         parts = line.split()
-        if len(parts) > 8:
+        # When we're running ls over ssh, we may get a note about
+        # "Warning: Permanently added [address] to the list of known hosts"
+        # Don't try to treat those as file paths
+        if len(parts) > 8 and "Warning:" not in parts:
           results[' '.join(parts[8:])] = int(parts[4])
     except subprocess.CalledProcessError:
       pass
