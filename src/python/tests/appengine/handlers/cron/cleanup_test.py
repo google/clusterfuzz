@@ -1530,7 +1530,8 @@ class UpdateIssueLabelsForFlakyTestcaseTest(unittest.TestCase):
     self.assertEqual('', self.issue._monorail_issue.comment)
 
   def test_skip_if_another_reproducible_testcase(self):
-    """Test that we change label on issue if the testcase is now flaky."""
+    """Test that we don't change label on issue if another reproducible
+    testcase exists."""
     similar_testcase = test_utils.create_generic_testcase()
     similar_testcase.one_time_crasher_flag = False
     similar_testcase.open = True
