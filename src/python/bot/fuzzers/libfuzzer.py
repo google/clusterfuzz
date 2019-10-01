@@ -543,8 +543,9 @@ class FuchsiaQemuLibFuzzerRunner(new_process.ProcessRunner, LibFuzzerCommon):
 
     # Run the fuzzer.
     # TODO: actually we want new_corpus_relative_dir_target for *each* corpus
-    return_code = self.fuzzer.start(self._corpus_directories_libfuzzer(corpus_directories) +
-                                    additional_args)
+    return_code = self.fuzzer.start(
+        self._corpus_directories_libfuzzer(corpus_directories) +
+        additional_args)
     self.fuzzer.monitor(return_code)
     self.process_logs_and_crash(artifact_prefix)
     with open(self.fuzzer.logfile) as logfile:
