@@ -573,11 +573,9 @@ class FuchsiaQemuLibFuzzerRunner(new_process.ProcessRunner, LibFuzzerCommon):
     self._push_corpora_from_host_to_target(corpus_directories)
 
     # Run merge.
-    logs.log('Gonna run merge')
     _, _ = self.fuzzer.merge(
         self._corpus_directories_libfuzzer(corpus_directories) +
         additional_args)
-    logs.log('Ran merge')
 
     self._pull_new_corpus_from_target_to_host(corpus_directories)
     self._clear_all_target_corpora()
