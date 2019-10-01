@@ -291,7 +291,7 @@ class Fuzzer(object):
     # directory.
     # If corpora have been passed in, we trust that the caller has passed
     # them in the order they want.
-    if not [x for x in fuzzer_args if not x.starts_with('-')]:
+    if not [x for x in fuzzer_args if not x.startswith('-')]:
       self.device.ssh(['mkdir', '-p', self.data_path('corpus')])
       self.device.ssh(['mkdir', '-p', self.data_path('corpus.prev')])
       self.device.ssh(

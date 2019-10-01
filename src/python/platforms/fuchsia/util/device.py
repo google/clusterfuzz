@@ -22,6 +22,8 @@ import re
 import shutil
 import subprocess
 
+from metrics import logs
+
 from .host import Host
 
 
@@ -102,6 +104,7 @@ class Device(object):
         for arg in args:
           result.append('-' + opt)
           result.append(arg)
+    logs.log('SSH COMMAND IS ' + str(result + cmd[1:]))
     return result + cmd[1:]
 
   def _ssh(self, cmdline, stdout=subprocess.PIPE):

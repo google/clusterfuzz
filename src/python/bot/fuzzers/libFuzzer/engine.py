@@ -267,6 +267,7 @@ class LibFuzzerEngine(engine.Engine):
     arguments = options.arguments[:]
     launcher.remove_fuzzing_arguments(arguments)
 
+    logs.log("About to merge new units")
     self._merge_new_units(target_path, options.corpus_dir, new_corpus_dir,
                           options.fuzz_corpus_dirs, arguments, parsed_stats)
 
