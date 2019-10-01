@@ -211,6 +211,12 @@ class Fuzzer(object):
     # This list comprehension returns a list of all arguments that do *not*
     # start with '-'.
     # Thus, if the list is empty, we append data/corpus/.
+    # TODO(flowerhack): Strictly speaking, libfuzzer doesn't *need* a corpus
+    # directory to run, and a user may find it confusing that one is
+    # automagically created.
+    # Change this to *not* be the default.  (If we'd like it to make it the
+    # default for e.g. most non-Clusterfuzz callers, we can have some variable
+    # that those callers pass in to set this.)
     if not [x for x in fuzzer_args if not x.startswith('-')]:
       fuzzer_args.append('data/corpus/')
     if 'repro' in fuzzer_args:
