@@ -486,6 +486,7 @@ class FuchsiaQemuLibFuzzerRunner(new_process.ProcessRunner, LibFuzzerCommon):
     return os.path.join(self._corpus_directories_target(), relpath)
 
   def _corpus_directories_libfuzzer(self, corpus_directories):
+    """ Returns the corpus directory paths expected by libfuzzer itself. """
     corpus_directories_libfuzzer = []
     for corpus_dir in corpus_directories:
       corpus_directories_libfuzzer.append(
@@ -493,14 +494,17 @@ class FuchsiaQemuLibFuzzerRunner(new_process.ProcessRunner, LibFuzzerCommon):
     return corpus_directories_libfuzzer
 
   def _new_corpus_dir_host(self, corpus_directories):
+    """ Returns the path of the 'new' corpus directory on the host. """
     return corpus_directories[0]
 
   def _new_corpus_dir_target(self, corpus_directories):
+    """ Returns the path of the 'new' corpus directory on the target. """
     new_corpus_dir_host = self._new_corpus_dir_host(corpus_directories)
     return self.fuzzer.data_path(
         os.path.join('corpus', os.path.basename(new_corpus_dir_host)))
 
   def _corpus_directories_target(self):
+    """ Returns the path of the root corpus directory on the target. """
     return self.fuzzer.data_path('corpus')
 
   def _push_corpora_from_host_to_target(self, corpus_directories):
@@ -523,6 +527,7 @@ class FuchsiaQemuLibFuzzerRunner(new_process.ProcessRunner, LibFuzzerCommon):
                              self.new_corpus_dir_host(corpus_directories))
 
   def _clear_all_target_corpora(self):
+    """ Clears out all the corpora on the target. """
     logs.log('Clearing corpora on target')
     self.fuzzer.device.ssh(['rm', '-rf', self._corpus_directories_target()])
 
@@ -565,8 +570,6 @@ class FuchsiaQemuLibFuzzerRunner(new_process.ProcessRunner, LibFuzzerCommon):
             tmp_dir=None,
             additional_args=None):
     # TODO(flowerhack): Integrate some notion of a merge timeout.
-    # TODO(flowerhack): device.py doesn't have a notion of custom
-    # corpus directories, teach it
     self._push_corpora_from_host_to_target(corpus_directories)
 
     # Run merge.
