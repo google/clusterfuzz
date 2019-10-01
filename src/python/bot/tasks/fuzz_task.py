@@ -231,8 +231,8 @@ class Crash(object):
     if self.is_archived() and not self.fuzzed_key:
       return 'Unable to store testcase in blobstore: %s' % self.crash_state
 
-    if not self.crash_state:
-      return 'Empty crash state'
+    if not self.crash_state or not self.crash_type:
+      return 'Empty crash state or type'
 
     return None
 
