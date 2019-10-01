@@ -999,8 +999,8 @@ def filter_crashes(crashes):
 
   for crash in crashes:
     if not crash.is_valid():
-      logs.log('Ignore crash (reason=%s, state=%s).' % (crash.get_error(),
-                                                        crash.crash_state))
+      logs.log('Ignore crash (reason=%s, type=%s, state=%s).' %
+               (crash.get_error(), crash.crash_type, crash.crash_state))
       continue
 
     filtered.append(crash)
