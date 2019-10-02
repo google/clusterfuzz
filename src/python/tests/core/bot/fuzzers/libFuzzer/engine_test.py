@@ -808,16 +808,16 @@ class IntegrationTestFuchsia(BaseIntegrationTest):
 
     Additionally, tests that pushing a corpus to the target works & produces
     an expanded corpus."""
-    environment.set_value('FUZZ_TARGET', 'example_fuzzers/baz_fuzzer')
+    environment.set_value('FUZZ_TARGET', 'example_fuzzers/trap_fuzzer')
     build_manager.setup_build()
 
     _, corpus_path = setup_testcase_and_corpus('aaaa', 'fuchsia_corpus')
     num_files_original = len([corpfile for corpfile in os.listdir(corpus_path)])
     engine_impl = engine.LibFuzzerEngine()
 
-    options = engine_impl.prepare(corpus_path, 'example_fuzzers/baz_fuzzer',
+    options = engine_impl.prepare(corpus_path, 'example_fuzzers/trap_fuzzer',
                                   DATA_DIR)
-    results = engine_impl.fuzz('example_fuzzers/baz_fuzzer', options, TEMP_DIR,
+    results = engine_impl.fuzz('example_fuzzers/trap_fuzzer', options, TEMP_DIR,
                                10)
 
     # If we don't get a crash, something went wrong.
