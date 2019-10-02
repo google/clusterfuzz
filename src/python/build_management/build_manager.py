@@ -765,8 +765,8 @@ class FuchsiaBuild(RegularBuild):
         'FUCHSIA_DIR', os.path.join(self.build_dir, self.FUCHSIA_DIR_REL_PATH))
     environment.set_value('FUCHSIA_RESOURCES_DIR', self.build_dir)
 
-    # Does not support partial unpack.
-    assert environment.get_value('UNPACK_ALL_FUZZ_TARGETS_AND_FILES')
+    assert environment.get_value('UNPACK_ALL_FUZZ_TARGETS_AND_FILES'), \
+        'Fuchsia does not support partial unpacks'
     result = super(FuchsiaBuild, self).setup()
     if not result:
       return result
