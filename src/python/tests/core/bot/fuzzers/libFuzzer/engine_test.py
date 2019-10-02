@@ -33,7 +33,6 @@ from bot.fuzzers.libFuzzer import constants
 from bot.fuzzers.libFuzzer import engine
 from bot.fuzzers.libFuzzer import launcher
 from build_management import build_manager
-from datastore import data_types
 from fuzzing import strategy
 from system import environment
 from system import new_process
@@ -773,90 +772,32 @@ class MinijailIntegrationTests(IntegrationTests):
 
 @test_utils.integration
 @test_utils.with_cloud_emulators('datastore')
-class TestLauncherFuchsia(BaseIntegrationTest):
+class IntegrationTestFuchsia(BaseIntegrationTest):
   """libFuzzer launcher tests (Fuchsia)."""
 
   def setUp(self):
     BaseIntegrationTest.setUp(self)
+    self.temp_dir = tempfile.mkdtemp()
+    builds_dir = os.path.join(self.temp_dir, 'builds')
+    os.mkdir(builds_dir)
+    urls_dir = os.path.join(self.temp_dir, 'urls')
+    os.mkdir(urls_dir)
 
-    # Set up a Fuzzer.
-    data_types.Fuzzer(
-        revision=1,
-        additional_environment_string=
-        'FUCHSIA_BUILD_URL = gs://fuchsia-clusterfuzz-test-sept-26-2019/*\n',
-        builtin=True,
-        differential=False,
-        file_size='builtin',
-        jobs=['libfuzzer_asan_test_fuzzer'],
-        name='libFuzzer',
-        source='builtin',
-        max_testcases=4).put()
-
-    # Set up a FuzzerJob.
-    data_types.FuzzerJob(
-        fuzzer='libFuzzer',
-        job='libfuzzer_asan_test_fuzzer',
-        platform='FUCHSIA',
-        weight=1.0).put()
-
-    # Set up a FuzzTarget
-    data_types.FuzzTarget(
-        binary='libfuzzer_asan_test_fuzzer',
-        engine='libFuzzer',
-        project='test-project').put()
-
-    # Set up a FuzzTargetJob
-    data_types.FuzzTargetJob(
-        engine='libFuzzer',
-        fuzz_target_name='libFuzzer_libfuzzer_asan_test_fuzzer',
-        job='libfuzzer_asan_test_fuzzer',
-        weight=1.0).put()
-
-    # Set up a Job
-    data_types.Job(
-        environment_string=(
-            'CUSTOM_BINARY = True\n'
-            'FUCHSIA_BUILD_URL = gs://fuchsia-clusterfuzz-test-sept-26-2019/*'
-            '\n'
-            'QUEUE_OVERRIDE=FUCHSIA\n'
-            'OS_OVERRIDE=FUCHSIA'),
-        name='libfuzzer_asan_test_fuzzer',
-        platform='FUCHSIA',
-        templates=['libfuzzer', 'engine_asan']).put()
-
-    # Set up a JobTemplate
-    data_types.JobTemplate(
-        name='libfuzzer',
-        environment_string=('MAX_FUZZ_THREADS = 1\n'
-                            'MAX_TESTCASES = 4\n'
-                            'FUZZ_TEST_TIMEOUT = 4800\n'
-                            'TEST_TIMEOUT = 30\n'
-                            'WARMUP_TIMEOUT = 30\n'
-                            'BAD_BUILD_CHECK = False\n'
-                            'THREAD_ALIVE_CHECK_INTERVAL = 1\n'
-                            'REPORT_OOMS_AND_HANGS = True\n'
-                            'CORPUS_FUZZER_NAME_OVERRIDE = libFuzzer\n'
-                            'ENABLE_GESTURES = False\n'
-                            'THREAD_DELAY = 30.0')).put()
-
-    # Set up another JobTemplate
-    data_types.JobTemplate(
-        name='engine_asan',
-        environment_string=(
-            'LSAN = True\n'
-            'ADDITIONAL_ASAN_OPTIONS = quarantine_size_mb=64:strict_memcmp=1'
-            ':symbolize=0:fast_unwind_on_fatal=0'
-            ':allocator_release_to_os_interval_ms=500\n')).put()
-
+    environment.set_value('BUILDS_DIR', builds_dir)
+    environment.set_value('BUILD_URLS_DIR', urls_dir)
     environment.set_value('QUEUE_OVERRIDE', 'FUCHSIA')
     environment.set_value('OS_OVERRIDE', 'FUCHSIA')
-    environment.set_value('FUCHSIA_BUILD_URL',
-                          'gs://fuchsia-clusterfuzz-test-sept-26-2019/*')
-    self.tmp_resources_dir = tempfile.mkdtemp()
-    environment.set_value('RESOURCES_DIR', self.tmp_resources_dir)
+    environment.set_value(
+        'RELEASE_BUILD_BUCKET_PATH',
+        'gs://clusterfuchsia-builds-test/libfuzzer/'
+        'fuchsia-([0-9]+).zip')
+    environment.set_value('UNPACK_ALL_FUZZ_TARGETS_AND_FILES', True)
+    test_helpers.patch(self, [
+        'system.shell.clear_temp_directory',
+    ])
 
   def tearDown(self):
-    shutil.rmtree(self.tmp_resources_dir, ignore_errors=True)
+    shutil.rmtree(self.temp_dir, ignore_errors=True)
 
   @unittest.skipIf(
       not environment.get_value('FUCHSIA_TESTS'),
@@ -867,17 +808,17 @@ class TestLauncherFuchsia(BaseIntegrationTest):
 
     Additionally, tests that pushing a corpus to the target works & produces
     an expanded corpus."""
-    environment.set_value('FUZZ_TARGET', 'example_fuzzers/corpus_fuzzer')
-    build_manager.setup_fuchsia_build()
+    environment.set_value('FUZZ_TARGET', 'example_fuzzers/trap_fuzzer')
+    build_manager.setup_build()
 
     _, corpus_path = setup_testcase_and_corpus('aaaa', 'fuchsia_corpus')
     num_files_original = len([corpfile for corpfile in os.listdir(corpus_path)])
     engine_impl = engine.LibFuzzerEngine()
 
-    options = engine_impl.prepare(corpus_path, 'example_fuzzers/corpus_fuzzer',
+    options = engine_impl.prepare(corpus_path, 'example_fuzzers/trap_fuzzer',
                                   DATA_DIR)
-    results = engine_impl.fuzz('example_fuzzers/corpus_fuzzer', options,
-                               TEMP_DIR, 10)
+    results = engine_impl.fuzz('example_fuzzers/trap_fuzzer', options, TEMP_DIR,
+                               10)
 
     # If we don't get a crash, something went wrong.
     self.assertIn('Test unit written to', results.logs)
@@ -896,7 +837,7 @@ class TestLauncherFuchsia(BaseIntegrationTest):
   def test_fuzzer_can_boot_and_run_reproducer(self):
     """Tests running a testcase that should cause a fast, predictable crash."""
     environment.set_value('FUZZ_TARGET', 'example_fuzzers/overflow_fuzzer')
-    build_manager.setup_fuchsia_build()
+    build_manager.setup_build()
     testcase_path, _ = setup_testcase_and_corpus('fuchsia_crash',
                                                  'empty_corpus')
     engine_impl = engine.LibFuzzerEngine()
