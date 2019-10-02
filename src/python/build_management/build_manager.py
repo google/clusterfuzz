@@ -193,105 +193,6 @@ def _handle_unrecoverable_error_on_windows():
   utils.restart_machine()
 
 
-def _unpack_build(base_build_dir, build_dir, build_url, target_weights=None):
-  """Unpacks a build from a build url into the build directory."""
-  # Track time taken to unpack builds so that it doesn't silently regress.
-  start_time = time.time()
-
-  # Free up memory.
-  utils.python_gc()
-
-  # Remove the current build.
-  logs.log('Removing build directory %s.' % build_dir)
-  if not shell.remove_directory(build_dir, recreate=True):
-    logs.log_error('Unable to clear build directory %s.' % build_dir)
-    _handle_unrecoverable_error_on_windows()
-    return False
-
-  # Decide whether to use cache build archives or not.
-  use_cache = environment.get_value('CACHE_STORE', False)
-
-  # Download build archive locally.
-  build_local_archive = os.path.join(build_dir, os.path.basename(build_url))
-
-  # Make the disk space necessary for the archive available.
-  archive_size = storage.get_download_file_size(
-      build_url, build_local_archive, use_cache=True)
-  if archive_size is not None and not _make_space(archive_size, base_build_dir):
-    shell.clear_data_directories()
-    logs.log_fatal_and_exit(
-        'Failed to make space for download. '
-        'Cleared all data directories to free up space, exiting.')
-
-  logs.log('Downloading build from url %s.' % build_url)
-  try:
-    storage.copy_file_from(build_url, build_local_archive, use_cache=use_cache)
-  except:
-    logs.log_error('Unable to download build url %s.' % build_url)
-    return False
-
-  unpack_everything = environment.get_value('UNPACK_ALL_FUZZ_TARGETS_AND_FILES')
-  if not unpack_everything:
-    # For fuzzing, pick a random fuzz target so that we only un-archive that
-    # particular fuzz target and its dependencies and save disk space.
-    # If we are going to unpack everythng in archive based on
-    # |UNPACK_ALL_FUZZ_TARGETS_AND_FILES| in the job defition, then don't set a
-    # random fuzz target before we've unpacked the build. It won't actually save
-    # us anything in this case and can be really expensive for large builds
-    # (such as Chrome OS). Defer setting it until after the build has been
-    # unpacked.
-    _set_random_fuzz_target_for_fuzzing_if_needed(
-        _get_fuzz_targets_from_archive(build_local_archive), target_weights)
-
-  # Actual list of files to unpack can be smaller if we are only unarchiving
-  # a particular fuzz target.
-  file_match_callback = _get_file_match_callback()
-  assert not (unpack_everything and file_match_callback is not None)
-
-  if not _make_space_for_build(build_local_archive, base_build_dir,
-                               file_match_callback):
-    shell.clear_data_directories()
-    logs.log_fatal_and_exit(
-        'Failed to make space for build. '
-        'Cleared all data directories to free up space, exiting.')
-
-  # Unpack the local build archive.
-  logs.log('Unpacking build archive %s.' % build_local_archive)
-  trusted = not utils.is_oss_fuzz()
-  try:
-    archive.unpack(
-        build_local_archive,
-        build_dir,
-        trusted=trusted,
-        file_match_callback=file_match_callback)
-  except:
-    logs.log_error('Unable to unpack build archive %s.' % build_local_archive)
-    return False
-
-  if unpack_everything:
-    # Set a random fuzz target now that the build has been unpacked, if we
-    # didn't set one earlier. For an auxiliary build, fuzz target is already
-    # specified during main build unpacking.
-    _set_random_fuzz_target_for_fuzzing_if_needed(
-        _get_fuzz_targets_from_dir(build_dir), target_weights)
-
-  # If this is partial build due to selected build files, then mark it as such
-  # so that it is not re-used.
-  if file_match_callback:
-    partial_build_file_path = os.path.join(build_dir, PARTIAL_BUILD_FILE)
-    utils.write_data_to_file('', partial_build_file_path)
-
-  # No point in keeping the archive around.
-  shell.remove_file(build_local_archive)
-
-  end_time = time.time()
-  elapsed_time = end_time - start_time
-  log_func = logs.log_warn if elapsed_time > UNPACK_TIME_LIMIT else logs.log
-  log_func('Build took %0.02f minutes to unpack.' % (elapsed_time / 60.))
-
-  return True
-
-
 def _get_file_match_callback():
   """Returns a file match callback to decide which files to unpack in an
   archive.
@@ -367,27 +268,6 @@ def _get_build_directory(bucket_path, job_name):
     job_directory = job_name
 
   return os.path.join(builds_directory, job_directory)
-
-
-def _get_fuzz_targets_from_archive(archive_path):
-  """Get iterator of fuzz targets from archive path."""
-  # Import here as this path is not available in App Engine context.
-  from bot.fuzzers import utils as fuzzer_utils
-
-  for archive_file in archive.iterator(archive_path):
-    if fuzzer_utils.is_fuzz_target_local(archive_file.name,
-                                         archive_file.handle):
-      fuzz_target = os.path.splitext(os.path.basename(archive_file.name))[0]
-      yield fuzz_target
-
-
-def _get_fuzz_targets_from_dir(build_dir):
-  """Get iterator of fuzz targets from build dir."""
-  # Import here as this path is not available in App Engine context.
-  from bot.fuzzers import utils as fuzzer_utils
-
-  for path in fuzzer_utils.get_fuzz_targets(build_dir):
-    yield os.path.splitext(os.path.basename(path))[0]
 
 
 def _set_random_fuzz_target_for_fuzzing_if_needed(fuzz_targets, target_weights):
@@ -583,6 +463,131 @@ class Build(BaseBuild):
     if instrumented_library_paths:
       self._patch_rpaths(instrumented_library_paths)
 
+  def _unpack_build(self,
+                    base_build_dir,
+                    build_dir,
+                    build_url,
+                    target_weights=None):
+    """Unpacks a build from a build url into the build directory."""
+    # Track time taken to unpack builds so that it doesn't silently regress.
+    start_time = time.time()
+
+    # Free up memory.
+    utils.python_gc()
+
+    # Remove the current build.
+    logs.log('Removing build directory %s.' % build_dir)
+    if not shell.remove_directory(build_dir, recreate=True):
+      logs.log_error('Unable to clear build directory %s.' % build_dir)
+      _handle_unrecoverable_error_on_windows()
+      return False
+
+    # Decide whether to use cache build archives or not.
+    use_cache = environment.get_value('CACHE_STORE', False)
+
+    # Download build archive locally.
+    build_local_archive = os.path.join(build_dir, os.path.basename(build_url))
+
+    # Make the disk space necessary for the archive available.
+    archive_size = storage.get_download_file_size(
+        build_url, build_local_archive, use_cache=True)
+    if archive_size is not None and not _make_space(archive_size,
+                                                    base_build_dir):
+      shell.clear_data_directories()
+      logs.log_fatal_and_exit(
+          'Failed to make space for download. '
+          'Cleared all data directories to free up space, exiting.')
+
+    logs.log('Downloading build from url %s.' % build_url)
+    try:
+      storage.copy_file_from(
+          build_url, build_local_archive, use_cache=use_cache)
+    except:
+      logs.log_error('Unable to download build url %s.' % build_url)
+      return False
+
+    unpack_everything = environment.get_value(
+        'UNPACK_ALL_FUZZ_TARGETS_AND_FILES')
+    if not unpack_everything:
+      # For fuzzing, pick a random fuzz target so that we only un-archive that
+      # particular fuzz target and its dependencies and save disk space.  If we
+      # are going to unpack everythng in archive based on
+      # |UNPACK_ALL_FUZZ_TARGETS_AND_FILES| in the job defition, then don't set
+      # a random fuzz target before we've unpacked the build. It won't actually
+      # save us anything in this case and can be really expensive for large
+      # builds (such as Chrome OS). Defer setting it until after the build has
+      # been unpacked.
+      _set_random_fuzz_target_for_fuzzing_if_needed(
+          self._get_fuzz_targets_from_archive(build_local_archive),
+          target_weights)
+
+    # Actual list of files to unpack can be smaller if we are only unarchiving
+    # a particular fuzz target.
+    file_match_callback = _get_file_match_callback()
+    assert not (unpack_everything and file_match_callback is not None)
+
+    if not _make_space_for_build(build_local_archive, base_build_dir,
+                                 file_match_callback):
+      shell.clear_data_directories()
+      logs.log_fatal_and_exit(
+          'Failed to make space for build. '
+          'Cleared all data directories to free up space, exiting.')
+
+    # Unpack the local build archive.
+    logs.log('Unpacking build archive %s.' % build_local_archive)
+    trusted = not utils.is_oss_fuzz()
+    try:
+      archive.unpack(
+          build_local_archive,
+          build_dir,
+          trusted=trusted,
+          file_match_callback=file_match_callback)
+    except:
+      logs.log_error('Unable to unpack build archive %s.' % build_local_archive)
+      return False
+
+    if unpack_everything:
+      # Set a random fuzz target now that the build has been unpacked, if we
+      # didn't set one earlier. For an auxiliary build, fuzz target is already
+      # specified during main build unpacking.
+      _set_random_fuzz_target_for_fuzzing_if_needed(
+          self._get_fuzz_targets_from_dir(build_dir), target_weights)
+
+    # If this is partial build due to selected build files, then mark it as such
+    # so that it is not re-used.
+    if file_match_callback:
+      partial_build_file_path = os.path.join(build_dir, PARTIAL_BUILD_FILE)
+      utils.write_data_to_file('', partial_build_file_path)
+
+    # No point in keeping the archive around.
+    shell.remove_file(build_local_archive)
+
+    end_time = time.time()
+    elapsed_time = end_time - start_time
+    log_func = logs.log_warn if elapsed_time > UNPACK_TIME_LIMIT else logs.log
+    log_func('Build took %0.02f minutes to unpack.' % (elapsed_time / 60.))
+
+    return True
+
+  def _get_fuzz_targets_from_archive(self, archive_path):
+    """Get iterator of fuzz targets from archive path."""
+    # Import here as this path is not available in App Engine context.
+    from bot.fuzzers import utils as fuzzer_utils
+
+    for archive_file in archive.iterator(archive_path):
+      if fuzzer_utils.is_fuzz_target_local(archive_file.name,
+                                           archive_file.handle):
+        fuzz_target = os.path.splitext(os.path.basename(archive_file.name))[0]
+        yield fuzz_target
+
+  def _get_fuzz_targets_from_dir(self, build_dir):
+    """Get iterator of fuzz targets from build dir."""
+    # Import here as this path is not available in App Engine context.
+    from bot.fuzzers import utils as fuzzer_utils
+
+    for path in fuzzer_utils.get_fuzz_targets(build_dir):
+      yield os.path.splitext(os.path.basename(path))[0]
+
   def setup(self):
     """Set up the build on disk, and set all the necessary environment
     variables. Should return whether or not build setup succeeded."""
@@ -694,10 +699,6 @@ class RegularBuild(Build):
   def build_dir(self):
     return self._build_dir
 
-  def _get_fuzz_targets_from_dir(self):
-    """Get fuzz targets from directory."""
-    return _get_fuzz_targets_from_dir(self.build_dir)
-
   def setup(self):
     """Sets up build with a particular revision."""
     self._pre_setup()
@@ -706,14 +707,14 @@ class RegularBuild(Build):
     logs.log('Retrieving build r%d.' % self.revision)
     build_update = not self.exists()
     if build_update:
-      if not _unpack_build(self.base_build_dir, self.build_dir, self.build_url,
-                           self.target_weights):
+      if not self._unpack_build(self.base_build_dir, self.build_dir,
+                                self.build_url, self.target_weights):
         return False
 
       logs.log('Retrieved build r%d.' % self.revision)
     else:
       _set_random_fuzz_target_for_fuzzing_if_needed(
-          self._get_fuzz_targets_from_dir(), self.target_weights)
+          self._get_fuzz_targets_from_dir(self.build_dir), self.target_weights)
 
       # We have the revision required locally, no more work to do, other than
       # setting application path environment variables.
@@ -742,15 +743,14 @@ class FuchsiaBuild(RegularBuild):
   FUCHSIA_BUILD_REL_PATH = os.path.join('build', 'out', 'default')
   FUCHSIA_DIR_REL_PATH = 'build'
 
-  def _get_fuzz_targets_from_dir(self):
+  def _get_fuzz_targets_from_dir(self, build_dir):
     """Overridden to get targets list from fuchsia."""
     # Prevent App Engine import issues.
     from platforms.fuchsia.util.fuzzer import Fuzzer
     from platforms.fuchsia.util.host import Host
-    host = Host.from_dir(
-        os.path.join(self.build_dir, self.FUCHSIA_BUILD_REL_PATH))
+    host = Host.from_dir(os.path.join(build_dir, self.FUCHSIA_BUILD_REL_PATH))
     return [
-        target[0] + '/' + target[1]
+        str(target[0] + '/' + target[1])
         for target in Fuzzer.filter(host.fuzzers, '')
     ]
 
@@ -760,6 +760,12 @@ class FuchsiaBuild(RegularBuild):
     from platforms import fuchsia
     new_setup = not self.exists()
 
+    # Need to be set before fuchsia utils is called in setup().
+    environment.set_value(
+        'FUCHSIA_DIR', os.path.join(self.build_dir, self.FUCHSIA_DIR_REL_PATH))
+    environment.set_value('FUCHSIA_RESOURCES_DIR', self.build_dir)
+
+    # Does not support partial unpack.
     assert environment.get_value('UNPACK_ALL_FUZZ_TARGETS_AND_FILES')
     result = super(FuchsiaBuild, self).setup()
     if not result:
@@ -773,10 +779,6 @@ class FuchsiaBuild(RegularBuild):
     llvm_symbolizer_path = os.path.join(self.build_dir,
                                         self.LLVM_SYMBOLIZER_REL_PATH)
     os.chmod(llvm_symbolizer_path, 0o777)
-
-    environment.set_value(
-        'FUCHSIA_DIR', os.path.join(self.build_dir, self.FUCHSIA_DIR_REL_PATH))
-    environment.set_value('FUCHSIA_RESOURCES_DIR', self.build_dir)
 
     logs.log('Initializing QEMU.')
 
@@ -817,13 +819,13 @@ class SymbolizedBuild(Build):
       return False
 
     if self.release_build_url:
-      if not _unpack_build(self.base_build_dir, self.release_build_dir,
-                           self.release_build_url):
+      if not self._unpack_build(self.base_build_dir, self.release_build_dir,
+                                self.release_build_url):
         return False
 
     if self.debug_build_url:
-      if not _unpack_build(self.base_build_dir, self.debug_build_dir,
-                           self.debug_build_url):
+      if not self._unpack_build(self.base_build_dir, self.debug_build_dir,
+                                self.debug_build_url):
         return False
 
     return True
@@ -879,7 +881,8 @@ class ProductionBuild(Build):
     build_update = revisions.needs_update(version_file, self.revision)
 
     if build_update:
-      if not _unpack_build(self.base_build_dir, self.build_dir, self.build_url):
+      if not self._unpack_build(self.base_build_dir, self.build_dir,
+                                self.build_url):
         return False
 
       revisions.write_revision_to_revision_file(version_file, self.revision)
@@ -913,7 +916,7 @@ class CustomBuild(Build):
   def build_dir(self):
     return self._build_dir
 
-  def _unpack_build(self):
+  def _unpack_custom_build(self):
     """Unpack the custom build."""
     if not shell.remove_directory(self.build_dir, recreate=True):
       logs.log_error('Unable to clear custom binary directory.')
@@ -945,7 +948,7 @@ class CustomBuild(Build):
       shell.remove_file(build_local_archive)
 
     _set_random_fuzz_target_for_fuzzing_if_needed(
-        _get_fuzz_targets_from_dir(self.build_dir), self.target_weights)
+        self._get_fuzz_targets_from_dir(self.build_dir), self.target_weights)
     return True
 
   def setup(self):
@@ -962,7 +965,7 @@ class CustomBuild(Build):
     build_update = revisions.needs_update(revision_file, self.revision)
 
     if build_update:
-      if not self._unpack_build():
+      if not self._unpack_custom_build():
         return False
 
       logs.log('Retrieved custom binary build r%d.' % self.revision)
@@ -970,7 +973,7 @@ class CustomBuild(Build):
       logs.log('Build already exists.')
 
       _set_random_fuzz_target_for_fuzzing_if_needed(
-          _get_fuzz_targets_from_dir(self.build_dir), self.target_weights)
+          self._get_fuzz_targets_from_dir(self.build_dir), self.target_weights)
 
     self._setup_application_path(build_update=build_update)
     self._post_setup_success(update_revision=build_update)

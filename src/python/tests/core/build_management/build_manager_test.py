@@ -41,9 +41,10 @@ FAKE_APP_NAME = 'app'
 
 # pylint: disable=unused-argument
 def _mock_unpack_build(
+    self,
     _,
     build_dir,
-    unused,
+    build_url,
     target_weights=None,
 ):
   """Mock _unpack_build."""
@@ -204,10 +205,12 @@ class FuchsiaBuildTest(unittest.TestCase):
 
   def test_setup(self):
     """Tests setting up a build."""
-    build = build_manager.setup_build(target_weights={})
+    build = build_manager.setup_build(
+        target_weights={'example_fuzzers/trap_fuzzer': 1000000.0})
     self.assertIsInstance(build, build_manager.FuchsiaBuild)
 
     self.assertIsNotNone(os.environ['FUZZ_TARGET'])
+    self.assertEqual('example_fuzzers/trap_fuzzer', os.environ['FUZZ_TARGET'])
     self.assertEqual(20190926201257, environment.get_value('APP_REVISION'))
 
 
@@ -219,7 +222,7 @@ class RegularBuildTest(fake_filesystem_unittest.TestCase):
 
     test_helpers.patch(self, [
         'build_management.build_manager.get_build_urls_list',
-        'build_management.build_manager._unpack_build',
+        'build_management.build_manager.Build._unpack_build',
         'fuzzing.fuzzer_selection.get_fuzz_target_weights',
         'system.shell.clear_temp_directory',
         'time.time',
@@ -277,7 +280,7 @@ class RegularBuildTest(fake_filesystem_unittest.TestCase):
     self.assertEqual(_get_timestamp(build.base_build_dir), 1000.0)
 
     self.mock._unpack_build.assert_called_once_with(
-        '/builds/path_be4c9ca0267afcd38b7c1a3eebb5998d0908f025',
+        mock.ANY, '/builds/path_be4c9ca0267afcd38b7c1a3eebb5998d0908f025',
         '/builds/path_be4c9ca0267afcd38b7c1a3eebb5998d0908f025/revisions',
         'gs://path/file-release-2.zip', None)
 
@@ -327,7 +330,7 @@ class RegularLibFuzzerBuildTest(fake_filesystem_unittest.TestCase):
     test_helpers.patch(self, [
         'bot.fuzzers.utils.get_fuzz_targets',
         'build_management.build_manager.get_build_urls_list',
-        'build_management.build_manager._get_fuzz_targets_from_archive',
+        'build_management.build_manager.Build._get_fuzz_targets_from_archive',
         'build_management.build_manager._make_space',
         'build_management.build_manager._make_space_for_build',
         'system.shell.clear_temp_directory',
@@ -498,7 +501,7 @@ class SymbolizedBuildTest(fake_filesystem_unittest.TestCase):
 
     test_helpers.patch(self, [
         'build_management.build_manager.get_build_urls_list',
-        'build_management.build_manager._unpack_build',
+        'build_management.build_manager.Build._unpack_build',
         'system.shell.clear_temp_directory', 'time.time'
     ])
 
@@ -610,11 +613,11 @@ class SymbolizedBuildTest(fake_filesystem_unittest.TestCase):
 
     self.mock._unpack_build.assert_has_calls([
         mock.call(
-            '/builds/path_be4c9ca0267afcd38b7c1a3eebb5998d0908f025',
+            mock.ANY, '/builds/path_be4c9ca0267afcd38b7c1a3eebb5998d0908f025',
             '/builds/path_be4c9ca0267afcd38b7c1a3eebb5998d0908f025/'
             'symbolized/release', 'gs://path/file-release-2.zip'),
         mock.call(
-            '/builds/path_be4c9ca0267afcd38b7c1a3eebb5998d0908f025',
+            mock.ANY, '/builds/path_be4c9ca0267afcd38b7c1a3eebb5998d0908f025',
             '/builds/path_be4c9ca0267afcd38b7c1a3eebb5998d0908f025/'
             'symbolized/debug', 'gs://path/file-debug-2.zip'),
     ])
@@ -646,7 +649,7 @@ class SymbolizedBuildTest(fake_filesystem_unittest.TestCase):
 
     self.assertIsInstance(build, build_manager.SymbolizedBuild)
     self.mock._unpack_build.assert_called_once_with(
-        '/builds/path_be4c9ca0267afcd38b7c1a3eebb5998d0908f025',
+        mock.ANY, '/builds/path_be4c9ca0267afcd38b7c1a3eebb5998d0908f025',
         '/builds/path_be4c9ca0267afcd38b7c1a3eebb5998d0908f025/'
         'symbolized/release', 'gs://path/file-release-2.zip')
     self._assert_env_vars_release()
@@ -700,7 +703,7 @@ class ProductionBuildTest(fake_filesystem_unittest.TestCase):
 
     test_helpers.patch(self, [
         'build_management.build_manager.get_build_urls_list',
-        'build_management.build_manager._unpack_build',
+        'build_management.build_manager.Build._unpack_build',
         'system.shell.clear_temp_directory',
         'time.sleep',
         'time.time',
@@ -772,7 +775,7 @@ class ProductionBuildTest(fake_filesystem_unittest.TestCase):
     self._assert_env_vars('stable')
 
     self.mock._unpack_build.assert_called_once_with(
-        '/builds/path_8102046d3cea496c945743eb5f79284e7b10b51b',
+        mock.ANY, '/builds/path_8102046d3cea496c945743eb5f79284e7b10b51b',
         '/builds/path_8102046d3cea496c945743eb5f79284e7b10b51b/stable',
         'gs://path/file-stable-45.0.1824.2.zip')
 
@@ -795,7 +798,7 @@ class ProductionBuildTest(fake_filesystem_unittest.TestCase):
     self._assert_env_vars('beta')
 
     self.mock._unpack_build.assert_called_once_with(
-        '/builds/path_8102046d3cea496c945743eb5f79284e7b10b51b',
+        mock.ANY, '/builds/path_8102046d3cea496c945743eb5f79284e7b10b51b',
         '/builds/path_8102046d3cea496c945743eb5f79284e7b10b51b/beta',
         'gs://path/file-beta-45.0.1824.2.zip')
 
@@ -854,7 +857,7 @@ class CustomBuildTest(fake_filesystem_unittest.TestCase):
   # pylint: disable=unused-argument
   def _mock_unpack(self, _, build_dir, trusted=True):
     """mock archive.unpack."""
-    _mock_unpack_build(None, build_dir, None)
+    _mock_unpack_build(None, None, build_dir, None)
 
   def _assert_env_vars(self):
     """Assert env vars."""
@@ -942,7 +945,8 @@ class SystemBuildTest(fake_filesystem_unittest.TestCase):
     os.environ['FAIL_RETRIES'] = '1'
     os.environ['APP_NAME'] = FAKE_APP_NAME
     os.environ['SYSTEM_BINARY_DIR'] = '/system_binary'
-    _mock_unpack_build(None, '/system_binary', None)
+    _mock_unpack_build(
+        build_manager.SystemBuild('/'), None, '/system_binary', None)
 
   def test_setup(self):
     """Test setting up a system binary."""
@@ -968,7 +972,7 @@ class AuxiliaryRegularBuildTest(fake_filesystem_unittest.TestCase):
 
     test_helpers.patch(self, [
         'build_management.build_manager.get_build_urls_list',
-        'build_management.build_manager._unpack_build',
+        'build_management.build_manager.Build._unpack_build',
         'system.shell.clear_temp_directory',
         'time.time',
     ])
@@ -1016,7 +1020,7 @@ class AuxiliaryRegularBuildTest(fake_filesystem_unittest.TestCase):
     self.assertEqual(_get_timestamp(build.base_build_dir), 1000.0)
 
     self.mock._unpack_build.assert_called_once_with(
-        '/builds/path_2992e823e35fd34a63e0f8733cdafd6875036a1d',
+        mock.ANY, '/builds/path_2992e823e35fd34a63e0f8733cdafd6875036a1d',
         '/builds/path_2992e823e35fd34a63e0f8733cdafd6875036a1d/dataflow',
         'gs://path/file-dataflow-10.zip', None)
 
@@ -1064,7 +1068,7 @@ class AuxiliaryRegularLibFuzzerBuildTest(fake_filesystem_unittest.TestCase):
     test_helpers.patch(self, [
         'bot.fuzzers.utils.get_fuzz_targets',
         'build_management.build_manager.get_build_urls_list',
-        'build_management.build_manager._get_fuzz_targets_from_archive',
+        'build_management.build_manager.Build._get_fuzz_targets_from_archive',
         'build_management.build_manager._make_space',
         'build_management.build_manager._make_space_for_build',
         'system.shell.clear_temp_directory',
@@ -1447,7 +1451,7 @@ class RpathsTest(unittest.TestCase):
   def setUp(self):
     test_helpers.patch_environ(self)
     test_helpers.patch(self, [
-        'build_management.build_manager._unpack_build',
+        'build_management.build_manager.Build._unpack_build',
         'system.shell.clear_temp_directory',
     ])
 
@@ -1465,8 +1469,8 @@ class RpathsTest(unittest.TestCase):
     shutil.rmtree(self.base_build_dir, ignore_errors=True)
 
   # pylint: disable=unused-argument
-  def mock_unpack_build(self, test_build_dir, base_build_dir, build_dir, url,
-                        target_weights):
+  def mock_unpack_build(self, test_build_dir, actual_self, base_build_dir,
+                        build_dir, url, target_weights):
     test_data_dir = os.path.join(
         os.path.dirname(os.path.abspath(__file__)), 'build_manager_data',
         test_build_dir)
