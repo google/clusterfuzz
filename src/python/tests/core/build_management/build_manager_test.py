@@ -197,7 +197,7 @@ class FuchsiaBuildTest(unittest.TestCase):
     environment.set_value(
         'RELEASE_BUILD_BUCKET_PATH',
         'gs://clusterfuchsia-builds-test/libfuzzer/'
-        'address/fuchsia-([0-9]+).zip')
+        'fuchsia-([0-9]+).zip')
     environment.set_value('OS_OVERRIDE', 'FUCHSIA')
 
   def tearDown(self):

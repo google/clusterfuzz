@@ -790,7 +790,7 @@ class IntegrationTestFuchsia(BaseIntegrationTest):
     environment.set_value(
         'RELEASE_BUILD_BUCKET_PATH',
         'gs://clusterfuchsia-builds-test/libfuzzer/'
-        'address/fuchsia-([0-9]+).zip')
+        'fuchsia-([0-9]+).zip')
     environment.set_value('UNPACK_ALL_FUZZ_TARGETS_AND_FILES', True)
     test_helpers.patch(self, [
         'system.shell.clear_temp_directory',
