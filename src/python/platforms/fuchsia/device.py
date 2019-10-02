@@ -30,7 +30,6 @@ from platforms.fuchsia.util.fuzzer import Fuzzer
 from platforms.fuchsia.util.host import Host
 from system import environment
 from system import new_process
-from system import shell
 
 _QEMU_WAIT_SECONDS = 30
 
@@ -195,51 +194,6 @@ def start_qemu():
   qemu = QemuProcess()
   qemu.create()
   qemu.run()
-
-
-def initialize_resources_dir():
-  """Download Fuchsia QEMU resources from GCS bucket."""
-  # This module depends on multiprocessing, which is not available in
-  # appengine, and since appengine *imports* this file (but does not run this
-  # function!), we import it here.
-  from google_cloud_utils import gsutil
-  resources_dir = environment.get_value('RESOURCES_DIR')
-  if not resources_dir:
-    raise errors.FuchsiaConfigError('Could not find RESOURCES_DIR')
-  fuchsia_resources_dir = os.path.join(resources_dir, 'fuchsia')
-
-  shell.create_directory(
-      fuchsia_resources_dir, create_intermediates=True, recreate=True)
-
-  # Bucket for QEMU resources.
-  fuchsia_resources_url = environment.get_value('FUCHSIA_BUILD_URL')
-  if not fuchsia_resources_url:
-    raise errors.FuchsiaConfigError(
-        'Could not find path for remote'
-        'Fuchsia resources bucket (FUCHSIA_BUILD_URL')
-
-  gsutil_command_arguments = [
-      '-m', 'cp', '-r', fuchsia_resources_url, fuchsia_resources_dir
-  ]
-  logs.log("Fetching Fuchsia build.")
-  result = gsutil.GSUtilRunner().run_gsutil(gsutil_command_arguments)
-  if result.return_code or result.timed_out:
-    raise errors.FuchsiaSdkError('Failed to download Fuchsia '
-                                 'resources: ' + result.output)
-
-  # Chmod the symbolizers so they can be used easily.
-  symbolizer_path = os.path.join(fuchsia_resources_dir, 'build', 'zircon',
-                                 'prebuilt', 'downloads', 'symbolize',
-                                 'linux-x64', 'symbolize')
-  llvm_symbolizer_path = os.path.join(fuchsia_resources_dir, 'build',
-                                      'buildtools', 'linux-x64', 'clang', 'bin',
-                                      'llvm-symbolizer')
-  os.chmod(symbolizer_path, 0o111)
-  os.chmod(llvm_symbolizer_path, 0o111)
-
-  logs.log("Fuchsia build download complete.")
-
-  return fuchsia_resources_dir
 
 
 def extend_fvm(fuchsia_resources_dir, drive_path):

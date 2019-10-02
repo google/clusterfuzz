@@ -173,28 +173,42 @@ class TrunkBuildTest(unittest.TestCase):
 @unittest.skipIf(
     not environment.get_value('FUCHSIA_TESTS'),
     'Temporarily disabling the Fuchsia test until build size reduced.')
-class FuchsiaBuildTest(fake_filesystem_unittest.TestCase):
+class FuchsiaBuildTest(unittest.TestCase):
   """Tests for Fuchsia build setup."""
 
   def setUp(self):
     test_helpers.patch_environ(self)
-    self.tmp_resources_dir = tempfile.mkdtemp()
+    test_helpers.patch(self, [
+        'system.shell.clear_temp_directory',
+    ])
+
+    self.temp_dir = tempfile.mkdtemp()
+    builds_dir = os.path.join(self.temp_dir, 'builds')
+    os.mkdir(builds_dir)
+    urls_dir = os.path.join(self.temp_dir, 'urls')
+    os.mkdir(urls_dir)
+
+    environment.set_value('JOB_NAME', 'libfuzzer_asan_fuchsia')
+    environment.set_value('FAIL_RETRIES', 1)
+    environment.set_value('BUILDS_DIR', builds_dir)
+    environment.set_value('BUILD_URLS_DIR', urls_dir)
+    environment.set_value('UNPACK_ALL_FUZZ_TARGETS_AND_FILES', True)
+    environment.set_value(
+        'RELEASE_BUILD_BUCKET_PATH',
+        'gs://clusterfuchsia-builds-test/libfuzzer/'
+        'address/fuchsia-([0-9]+).zip')
+    environment.set_value('OS_OVERRIDE', 'FUCHSIA')
 
   def tearDown(self):
-    shutil.rmtree(self.tmp_resources_dir)
-
-  def _assert_env_vars(self):
-    self.assertTrue(os.environ['FUZZ_TARGET'])
+    shutil.rmtree(self.temp_dir)
 
   def test_setup(self):
     """Tests setting up a build."""
-    environment.set_value('RESOURCES_DIR', self.tmp_resources_dir)
-    environment.set_value('FUCHSIA_BUILD_URL',
-                          'gs://fuchsia-clusterfuzz-test-august-6-2019/*')
-    build = build_manager.setup_fuchsia_build()
+    build = build_manager.setup_build(target_weights={})
     self.assertIsInstance(build, build_manager.FuchsiaBuild)
-    self._assert_env_vars()
-    environment.reset_environment()
+
+    self.assertIsNotNone(os.environ['FUZZ_TARGET'])
+    self.assertEqual(20190926201257, environment.get_value('APP_REVISION'))
 
 
 class RegularBuildTest(fake_filesystem_unittest.TestCase):

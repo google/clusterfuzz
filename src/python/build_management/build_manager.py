@@ -17,7 +17,6 @@ from builtins import object
 from builtins import range
 import datetime
 import os
-import random
 import re
 import six
 import subprocess
@@ -695,6 +694,10 @@ class RegularBuild(Build):
   def build_dir(self):
     return self._build_dir
 
+  def _get_fuzz_targets_from_dir(self):
+    """Get fuzz targets from directory."""
+    return _get_fuzz_targets_from_dir(self.build_dir)
+
   def setup(self):
     """Sets up build with a particular revision."""
     self._pre_setup()
@@ -710,7 +713,7 @@ class RegularBuild(Build):
       logs.log('Retrieved build r%d.' % self.revision)
     else:
       _set_random_fuzz_target_for_fuzzing_if_needed(
-          _get_fuzz_targets_from_dir(self.build_dir), self.target_weights)
+          self._get_fuzz_targets_from_dir(), self.target_weights)
 
       # We have the revision required locally, no more work to do, other than
       # setting application path environment variables.
@@ -722,9 +725,8 @@ class RegularBuild(Build):
     return True
 
 
-class FuchsiaBuild(Build):
+class FuchsiaBuild(RegularBuild):
   """Represents a Fuchsia build."""
-  # TODO(flowerhack): Inherit from RegularBuild.
   # If we properly subclass RegularBuild, checking revision numbers for
   # different builds (and other nice things) should automagically "just work."
   # This'll mean (1) downloading in the standard _build_dir instead of our
@@ -740,75 +742,51 @@ class FuchsiaBuild(Build):
   FUCHSIA_BUILD_REL_PATH = os.path.join('build', 'out', 'default')
   FUCHSIA_DIR_REL_PATH = 'build'
 
-  def __init__(self, base_build_dir, revision, target_weights=None):
-    super(FuchsiaBuild, self).__init__(base_build_dir, revision)
-    self.base_build_dir = ''
-    self.build_url = ''
-    self.build_dir_name = ''
-    self._build_dir = ''
-    self.target_weights = target_weights
-    self.revision = 0
-
-  @property
-  def build_dir(self):
-    return self._build_dir
-
-  def setup(self):
-    # Appengine imports build_manager for some reason, though it doesn't execute
-    # any code in this class. However, this class relies on imports that contain
-    # things like subprocess and pipes and multiprocessing, which causes
-    # appengine to panic, so we import it here instead of at the toplevel.
-    from platforms import fuchsia
+  def _get_fuzz_targets_from_dir(self):
+    """Overridden to get targets list from fuchsia."""
+    # Prevent App Engine import issues.
     from platforms.fuchsia.util.fuzzer import Fuzzer
     from platforms.fuchsia.util.host import Host
-    logs.log('Retrieving build %d.' % self.revision)
+    host = Host.from_dir(
+        os.path.join(self.build_dir, self.FUCHSIA_BUILD_REL_PATH))
+    return [
+        target[0] + '/' + target[1]
+        for target in Fuzzer.filter(host.fuzzers, '')
+    ]
 
-    # Bucket for QEMU resources.
-    fuchsia_resources_dir = fuchsia.device.initialize_resources_dir()
-    environment.set_value('FUCHSIA_RESOURCES_DIR', fuchsia_resources_dir)
+  def setup(self):
+    """Fuchsia build setup."""
+    # Prevent App Engine import issues.
+    from platforms import fuchsia
+    new_setup = not self.exists()
+
+    assert environment.get_value('UNPACK_ALL_FUZZ_TARGETS_AND_FILES')
+    result = super(FuchsiaBuild, self).setup()
+    if not result:
+      return result
 
     # We set these values here, rather than in initial_qemu_setup, since
     # SYMBOLIZE_REL_PATH and LLVM_SYMBOLIZER_REL_PATH are properties of the
     # Build object.
-    symbolize_path = os.path.join(fuchsia_resources_dir,
-                                  self.SYMBOLIZE_REL_PATH)
+    symbolize_path = os.path.join(self.build_dir, self.SYMBOLIZE_REL_PATH)
     os.chmod(symbolize_path, 0o777)
-    llvm_symbolizer_path = os.path.join(fuchsia_resources_dir,
+    llvm_symbolizer_path = os.path.join(self.build_dir,
                                         self.LLVM_SYMBOLIZER_REL_PATH)
     os.chmod(llvm_symbolizer_path, 0o777)
 
-    logs.log('Retrieved build r%d.' % self.revision)
-    logs.log('Extracting fuzz targets.' + fuchsia_resources_dir)
     environment.set_value(
-        'FUCHSIA_DIR',
-        os.path.join(fuchsia_resources_dir, self.FUCHSIA_DIR_REL_PATH))
-    # TODO(flowerhack): Update here once Fuchsia understand revision tracking.
-    environment.set_value('APP_REVISION', '0')
-
-    host = Host.from_dir(
-        os.path.join(fuchsia_resources_dir, self.FUCHSIA_BUILD_REL_PATH))
-    fuzz_targets = Fuzzer.filter(host.fuzzers, '')
-    # TODO(flowerhack): Get list of fuzz targets and pass to the actual
-    # randomizer, instead of using random.choice().
-    fuzz_target = random.choice(fuzz_targets)
-    fuzz_target = str(fuzz_target[0] + '/' + fuzz_target[1])
-
-    # This allows you to override the standard fuzzer selection process, in
-    # order to e.g. deliberately test a specific fuzzer during development.
-    if environment.get_value('FUZZ_TARGET'):
-      logs.log('OVERRIDING RANDOM SELECTION: Extracted fuzz_target ' +
-               environment.get_value('FUZZ_TARGET'))
-    else:
-      environment.set_value('FUZZ_TARGET', fuzz_target)
-      logs.log('Extracted fuzz target ' + fuzz_target)
+        'FUCHSIA_DIR', os.path.join(self.build_dir, self.FUCHSIA_DIR_REL_PATH))
+    environment.set_value('FUCHSIA_RESOURCES_DIR', self.build_dir)
 
     logs.log('Initializing QEMU.')
+
     # Kill any stale processes that may be left over from previous build.
     process_handler.terminate_processes_matching_names('qemu_system-x86_64')
-    self._setup_application_path()
-    fuchsia.device.initial_qemu_setup()
+    if new_setup:
+      fuchsia.device.initial_qemu_setup()
+
     fuchsia.device.start_qemu()
-    return True
+    return result
 
 
 class SymbolizedBuild(Build):
@@ -1266,6 +1244,8 @@ def setup_regular_build(revision,
   if environment.is_trusted_host():
     from bot.untrusted_runner import build_setup_host
     build_class = build_setup_host.RemoteRegularBuild
+  elif environment.platform() == 'FUCHSIA':
+    build_class = FuchsiaBuild
 
   build = build_class(
       base_build_dir,
@@ -1273,19 +1253,6 @@ def setup_regular_build(revision,
       build_url,
       target_weights=target_weights,
       build_prefix=build_prefix)
-  if build.setup():
-    return build
-  return None
-
-
-def setup_fuchsia_build():
-  """Sets up Fuchsia build."""
-  #TODO(flowerhack): Use real values here.
-  base_build_dir = ''
-  revision = 0
-  target_weights = {}
-
-  build = FuchsiaBuild(base_build_dir, revision, target_weights)
   if build.setup():
     return build
   return None
@@ -1420,9 +1387,6 @@ def setup_system_binary():
 
 def setup_build(revision=0, target_weights=None):
   """Set up a custom or regular build based on revision."""
-  if environment.platform() == 'FUCHSIA':
-    return setup_fuchsia_build()
-
   # For custom binaries we always use the latest version. Revision is ignored.
   custom_binary = environment.get_value('CUSTOM_BINARY')
   if custom_binary:
