@@ -175,6 +175,7 @@ _ROUTES = [
     ('/fuzzers/edit', fuzzers.EditHandler),
     ('/fuzzers/log/([^/]+)', fuzzers.LogHandler),
     ('/fuzzer-stats/load', fuzzer_stats.LoadHandler),
+    ('/fuzzer-stats/load-filters', fuzzer_stats.LoadFiltersHandler),
     ('/fuzzer-stats', fuzzer_stats.Handler),
     ('/fuzzer-stats/.*', fuzzer_stats.Handler),
     ('/gcs-redirect', gcs_redirector.Handler),

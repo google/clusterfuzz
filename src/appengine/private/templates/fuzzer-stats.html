@@ -37,13 +37,8 @@
 {% block content %}
   <dom-bind id="page">
     <template>
-      <template is="dom-if" if="[[info]]">
-        <fuzzer-stats info="[[info]]" prefix="/fuzzer-stats"></fuzzer-stats>
-      </template>
+      <fuzzer-stats prefix="/fuzzer-stats"></fuzzer-stats>
     </template>
   </dom-bind>
-  <script>
-    document.querySelector('#page').info = JSON.parse(atob('{{info|json}}'));
-  </script>
 {% endblock %}
 

@@ -53,13 +53,8 @@
       </template>
     </app-toolbar>
     <div id="mainContent">
-      <app-location route="{{route}}"></app-location>
-      <app-route route="{{route}}" pattern="[[prefix]]" tail="{{subroute}}"></app-route>
-      <app-route route="{{subroute}}" pattern="/:group_by/date-start/:date_start/date-end/:date_end/fuzzer/:fuzzer" data="{{params}}" tail="{{jobSubroute}}"></app-route>
-      <app-route route="{{subroute}}" pattern="/:group_by/fuzzer/:fuzzer" data="{{params}}" tail="{{jobSubroute}}"></app-route>
-      <app-route route="{{jobSubroute}}" pattern="/job/:job" data="{{jobParams}}"></app-route>
-      <app-route route="{{subroute}}" pattern="/:group_by/date-start/:date_start/date-end/:date_end/job/:job" data="{{params}}"></app-route>
-      <app-route route="{{subroute}}" pattern="/:group_by/job/:job" data="{{params}}"></app-route>
+      <app-location route="{{route}}" query-params="{{params}}"></app-location>
+      <app-route route="{{route}}" pattern="[[prefix]]"></app-route>
       <iron-ajax
         id="ajax"
         url="/fuzzer-stats/load"
@@ -74,8 +69,23 @@
         on-request="handleRequest"
         on-response="handleResponse"
         debounce-duration="500"></iron-ajax>
+      <iron-ajax
+        id="filtersAjax"
+        url="/fuzzer-stats/load-filters"
+        method="GET"
+        content-type="application/json"
+        params="[[settings]]"
+        loading="{{loading}}"
+        last-request="{{filtersRequest}}"
+        last-error="{{error}}"
+        last-response="{{filtersResponse}}"
+        on-error="handleError"
+        on-request="handleFiltersRequest"
+        on-response="handleFiltersResponse"
+        debounce-duration="500"></iron-ajax>
       <settings-panel
         loading="[[loading]]"
+        projects="[[info.projects]]"
         fuzzers="[[info.fuzzers]]"
         jobs="[[info.jobs]]"
         params="[[params]]"
@@ -98,7 +108,6 @@
         return {
           info: Object,
           params: Object,
-          jobParams: Object,
           settings: {
             type: Object,
             value: () => { return {}; }
@@ -114,17 +123,22 @@
       static get observers() {
         return [
           'paramChanged(params.*)',
-          'jobParamChanged(jobParams.*)',
           'routeChanged(route.path)',
+          'projectChanged(settings.project)',
         ];
       }
 
       ready() {
         super.ready();
         this.fillDefaultSettings();
+        this.$.filtersAjax.generateRequest();
       }
 
       fillDefaultSettings(settings) {
+        if (!this.settings.project) {
+          this.set('settings.project', '');
+        }
+
         if (!this.settings.fuzzer) {
           this.set('settings.fuzzer', '');
         }
@@ -142,6 +156,7 @@
       }
 
       setParams(params) {
+        this.set('settings.project', params.project);
         this.set('settings.fuzzer', params.fuzzer);
         this.set('settings.job', params.job);
         this.set('settings.group_by', params.group_by);
@@ -159,8 +174,13 @@
         }
       }
 
-      jobParamChanged(cr) {
-        this.set('params.job', cr.base.job);
+      projectChanged() {
+        if (!this.settings.project)
+          return;
+
+        this.set('settings.fuzzer', '');
+        this.set('settings.job', '');
+        this.$.filtersAjax.generateRequest();
       }
 
       routeChanged() {
@@ -171,39 +191,45 @@
       }
 
       submitTapped() {
-        var path = this._getURL(this.settings);
-        this.set('route.path', path);
+        this.set('route.path', this.prefix);
+        this.set('route.__queryParams', this._getURLQueryParams(this.settings));
         this.$.errorDialog.close();
         this.$.ajax.generateRequest();
       }
 
-      _getURL(settings) {
-        var url = this.prefix + '/' + settings.group_by;
+      _getURLQueryParams(settings) {
+        var queryParams = {};
+
+        queryParams['group_by'] = settings.group_by;
 
         if (settings.date_start === undefined) {
           console.assert(settings.date_end === undefined,
-                         "Start date is undefined but end date is not.");
+              "Start date is undefined but end date is not.");
         } else {
           console.assert(settings.date_end !== undefined,
-                         "End date is undefined but start date is not.");
-          url += '/date-start/' + settings.date_start + '/date-end/' +
-              settings.date_end;
+              "End date is undefined but start date is not.");
+          queryParams['date_start'] = settings.date_start;
+          queryParams['date_end'] = settings.date_end;
         }
 
         if (settings.fuzzer) {
-          url += '/fuzzer/' + settings.fuzzer;
+          queryParams['fuzzer'] = settings.fuzzer;
         }
 
         if (settings.job) {
-          url += '/job/' + settings.job;
+          queryParams['job'] = settings.job;
         }
 
-        return url;
+        if (settings.project) {
+          queryParams['project'] = settings.project;
+        }
+
+        return queryParams;
       }
 
       handleRequest() {
         var reqs = this.$.ajax.activeRequests;
-        for (let i=0;i<reqs.length;i++) {
+        for (let i = 0; i < reqs.length; i++) {
           if (reqs[i] != this.request) {
             reqs[i].abort();
           }
@@ -218,6 +244,21 @@
         this.processResponse(this.response);
         this.result = this.response;
         this.responseError = null;
+      }
+
+      handleFiltersRequest() {
+        var reqs = this.$.filtersAjax.activeRequests;
+        for (let i = 0; i < reqs.length; i++) {
+          if (reqs[i] != this.filtersRequest) {
+            reqs[i].abort();
+          }
+        }
+
+        this.info = null;
+      }
+
+      handleFiltersResponse() {
+        this.info = this.filtersResponse;
       }
 
       handleError() {
@@ -255,6 +296,7 @@
             var val = firstCol['v']
 
             var settings = {};
+            settings.project = this.params.project;
             settings.fuzzer = this.params.fuzzer;
             settings.job = this.params.job;
             settings.group_by = "by-day";
@@ -267,7 +309,11 @@
               settings.job = val;
             }
 
-            var url = this._getURL(settings);
+            var url = this.prefix;
+            var urlQueryParams = this._getURLQueryParams(settings);
+            url += '?' + Object.keys(urlQueryParams).map(
+                function(key) { return key + "=" + urlQueryParams[key] }).join("&");
+
             firstCol['f'] = `<a href="${url}">${val}</a>`;
           }
         }
