@@ -270,6 +270,7 @@ type Job struct {
 	CustomBinaryRevision int            `datastore:"custom_binary_revision"`
 	Description          string         `datastore:"description,noindex"`
 	Templates            []string       `datastore:"templates"`
+	Project              string         `datastore:"project"`
 }
 
 // JobTemplate is auto-generated from data_types.py.
