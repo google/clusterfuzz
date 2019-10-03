@@ -121,7 +121,8 @@ class Fuzzer(object):
                tgt,
                output=None,
                foreground=False,
-               sanitizer=''):
+               sanitizer='',
+               is_zircon_fuzzer=False):
     self.device = device
     self.host = device.host
     self.pkg = pkg
@@ -135,6 +136,7 @@ class Fuzzer(object):
     self._results_output = self.host.join('test_data', 'fuzzing', self.pkg,
                                           self.tgt)
     self._foreground = foreground
+    self.is_zircon_fuzzer=is_zircon_fuzzer
 
   def __str__(self):
     return self.pkg + '/' + self.tgt
@@ -188,7 +190,7 @@ class Fuzzer(object):
 
   def url(self):
     tgt = self.tgt
-    if sanitizer:
+    if is_zircon_fuzzer:
       tgt = tgt + '.' + sanitizer
     return 'fuchsia-pkg://fuchsia.com/%s#meta/%s.cmx' % (self.pkg, self.tgt)
 
