@@ -483,6 +483,7 @@ class FuchsiaQemuLibFuzzerRunner(new_process.ProcessRunner, LibFuzzerCommon):
 
   def _restart_qemu(self):
     """Restart QEMU."""
+    logs.log_warn('Connection to fuzzing VM lost. Restarting.')
     process_handler.terminate_processes_matching_names('qemu_system-x86_64')
     start_qemu()
     self._setup_device_and_fuzzer()
