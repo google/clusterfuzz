@@ -289,6 +289,7 @@ class OssFuzzProjectSetupTest(unittest.TestCase):
     job = data_types.Job.query(
         data_types.Job.name == 'libfuzzer_asan_lib1').get()
     self.assertIsNotNone(job)
+    self.assertEqual(job.project, 'lib1')
     self.assertEqual(job.platform, 'LIB1_LINUX')
     self.assertItemsEqual(job.templates, ['engine_asan', 'libfuzzer', 'prune'])
     self.assertEqual(
@@ -308,6 +309,7 @@ class OssFuzzProjectSetupTest(unittest.TestCase):
     job = data_types.Job.query(
         data_types.Job.name == 'libfuzzer_asan_lib2').get()
     self.assertIsNotNone(job)
+    self.assertEqual(job.project, 'lib2')
     self.assertEqual(job.platform, 'LIB2_LINUX')
     self.assertItemsEqual(job.templates, ['engine_asan', 'libfuzzer', 'prune'])
     self.assertEqual(
@@ -327,6 +329,7 @@ class OssFuzzProjectSetupTest(unittest.TestCase):
     job = data_types.Job.query(
         data_types.Job.name == 'libfuzzer_asan_lib3').get()
     self.assertIsNotNone(job)
+    self.assertEqual(job.project, 'lib3')
     self.assertEqual(job.platform, 'LIB3_LINUX')
     self.assertItemsEqual(job.templates, ['engine_asan', 'libfuzzer', 'prune'])
     self.assertEqual(
@@ -347,6 +350,7 @@ class OssFuzzProjectSetupTest(unittest.TestCase):
     job = data_types.Job.query(
         data_types.Job.name == 'libfuzzer_asan_i386_lib3').get()
     self.assertIsNotNone(job)
+    self.assertEqual(job.project, 'lib3')
     self.assertEqual(job.platform, 'LIB3_LINUX')
     self.assertItemsEqual(job.templates, ['engine_asan', 'libfuzzer'])
     self.assertEqual(
@@ -367,6 +371,7 @@ class OssFuzzProjectSetupTest(unittest.TestCase):
     job = data_types.Job.query(
         data_types.Job.name == 'libfuzzer_msan_lib3').get()
     self.assertIsNotNone(job)
+    self.assertEqual(job.project, 'lib3')
     self.assertEqual(job.platform, 'LIB3_LINUX')
     self.assertItemsEqual(job.templates, ['engine_msan', 'libfuzzer'])
     self.assertEqual(
@@ -388,6 +393,7 @@ class OssFuzzProjectSetupTest(unittest.TestCase):
     job = data_types.Job.query(
         data_types.Job.name == 'libfuzzer_ubsan_lib3').get()
     self.assertIsNotNone(job)
+    self.assertEqual(job.project, 'lib3')
     self.assertEqual(job.platform, 'LIB3_LINUX')
     self.assertItemsEqual(job.templates, ['engine_ubsan', 'libfuzzer'])
     self.assertEqual(
@@ -407,6 +413,7 @@ class OssFuzzProjectSetupTest(unittest.TestCase):
 
     job = data_types.Job.query(data_types.Job.name == 'afl_asan_lib1').get()
     self.assertIsNotNone(job)
+    self.assertEqual(job.project, 'lib1')
     self.assertEqual(job.platform, 'LIB1_LINUX')
     self.assertItemsEqual(job.templates, ['engine_asan', 'afl'])
     self.assertEqual(
@@ -430,6 +437,7 @@ class OssFuzzProjectSetupTest(unittest.TestCase):
 
     job = data_types.Job.query(
         data_types.Job.name == 'libfuzzer_asan_lib5').get()
+    self.assertEqual(job.project, 'lib5')
     self.assertEqual(job.platform, 'LIB5_LINUX')
     self.assertEqual(
         job.environment_string, 'RELEASE_BUILD_BUCKET_PATH = '
@@ -449,6 +457,7 @@ class OssFuzzProjectSetupTest(unittest.TestCase):
 
     job = data_types.Job.query(
         data_types.Job.name == 'libfuzzer_asan_lib6').get()
+    self.assertEqual(job.project, 'lib6')
     self.assertEqual(job.platform, 'LIB6_LINUX')
     self.assertEqual(
         job.environment_string, 'RELEASE_BUILD_BUCKET_PATH = '

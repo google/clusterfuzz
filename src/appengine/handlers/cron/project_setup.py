@@ -735,6 +735,7 @@ class ProjectSetup(object):
               template.architecture),
           engine=template.engine,
           project=project)
+      job.project = project
 
       if self._add_revision_mappings:
         revision_vars_url = self._revision_url_template.format(

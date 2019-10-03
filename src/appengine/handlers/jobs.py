@@ -17,6 +17,7 @@ from builtins import str
 import six
 
 from base import tasks
+from base import utils
 from datastore import data_handler
 from datastore import data_types
 from datastore import ndb
@@ -27,6 +28,7 @@ from libs import form
 from libs import gcs
 from libs import handler
 from libs import helpers
+from system import environment
 
 
 def get_queues():
@@ -105,6 +107,8 @@ class UpdateJob(base_handler.GcsUploadHandler):
 
     description = self.request.get('description', '')
     environment_string = self.request.get('environment_string', '')
+    env = environment.parse_environment_definition(environment_string)
+    project = env.get('PROJECT_NAME', utils.default_project_name())
     previous_custom_binary_revision = 0
 
     job = data_types.Job.query(data_types.Job.name == name).get()
@@ -127,6 +131,7 @@ class UpdateJob(base_handler.GcsUploadHandler):
     job.description = description
     job.environment_string = environment_string
     job.templates = templates
+    job.project = project
 
     blob_info = self.get_upload()
     if blob_info:

@@ -847,6 +847,9 @@ class Job(Model):
   # Template to use, if any.
   templates = ndb.StringProperty(repeated=True)
 
+  # Project name.
+  project = ndb.StringProperty()
+
   def get_environment(self):
     """Get the environment as a dict for this job, including any environment
     variables in its template."""
