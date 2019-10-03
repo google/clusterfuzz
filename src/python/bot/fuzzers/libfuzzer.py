@@ -406,7 +406,7 @@ class FuchsiaQemuLibFuzzerRunner(new_process.ProcessRunner, LibFuzzerCommon):
                                  target)
 
     is_zircon_fuzzer = False
-    if pkg == 'zircon_fuzzers':
+    if package == 'zircon_fuzzers':
       is_zircon_fuzzer = True
 
     # Finally, we set up the Fuzzer object itself, which will run our fuzzer!
@@ -416,7 +416,8 @@ class FuchsiaQemuLibFuzzerRunner(new_process.ProcessRunner, LibFuzzerCommon):
         target,
         output=test_data_dir,
         foreground=True,
-        sanitizer=environment.get_memory_tool_name(get_value('JOB_NAME')).lower(),
+        sanitizer=environment.get_memory_tool_name(
+            environment.get_value('JOB_NAME')).lower(),
         is_zircon_fuzzer=is_zircon_fuzzer)
 
   def __init__(self, executable_path, default_args=None):
