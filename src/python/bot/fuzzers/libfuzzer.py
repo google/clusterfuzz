@@ -416,7 +416,7 @@ class FuchsiaQemuLibFuzzerRunner(new_process.ProcessRunner, LibFuzzerCommon):
         target,
         output=test_data_dir,
         foreground=True,
-        sanitizer='asan',
+        sanitizer=environment.get_memory_tool_name(get_value('JOB_NAME')).lower(),
         is_zircon_fuzzer=is_zircon_fuzzer)
 
   def __init__(self, executable_path, default_args=None):

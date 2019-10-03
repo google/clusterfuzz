@@ -102,7 +102,9 @@ class Fuzzer(object):
       if sanitizer:
         if not Fuzzer._matches_sanitizer(tgt, sanitizer):
           continue
-      filtered.append((pkg, tgt))
+      # Remove the sanitizer extension name.
+      # Clusterfuzz only needs to know foo/bar, not foo/bar.asan.
+      filtered.append((pkg, os.path.splitext(tgt[0])))
     return filtered
 
   @classmethod
