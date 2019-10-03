@@ -58,6 +58,7 @@ class RevisionsTestcase(unittest.TestCase):
     ])
 
     self.mock.get.return_value = None
+    self.mock.default_project_name.return_value = 'project'
     self.mock.ProjectConfig.return_value = mock_config.MockConfig({
         'env': {
             'REVISION_VARS_URL':
