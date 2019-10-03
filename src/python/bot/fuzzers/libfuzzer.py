@@ -406,8 +406,15 @@ class FuchsiaQemuLibFuzzerRunner(new_process.ProcessRunner, LibFuzzerCommon):
                                  target)
 
     # Finally, we set up the Fuzzer object itself, which will run our fuzzer!
+    sanitizer = environment.get_memory_tool_name(
+        environment.get_value('JOB_NAME')).lower()
     self.fuzzer = Fuzzer(
-        self.device, package, target, output=test_data_dir, foreground=True)
+        self.device,
+        package,
+        target,
+        output=test_data_dir,
+        foreground=True,
+        sanitizer=sanitizer)
 
   def __init__(self, executable_path, default_args=None):
     # We always assume QEMU is running on __init__, since build_manager sets

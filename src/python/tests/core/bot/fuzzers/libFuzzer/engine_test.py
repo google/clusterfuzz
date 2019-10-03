@@ -808,6 +808,7 @@ class IntegrationTestFuchsia(BaseIntegrationTest):
 
     Additionally, tests that pushing a corpus to the target works & produces
     an expanded corpus."""
+    environment.set_value('JOB_NAME', 'libfuzzer_asan_fuchsia')
     environment.set_value('FUZZ_TARGET', 'example_fuzzers/trap_fuzzer')
     build_manager.setup_build()
 
@@ -837,6 +838,7 @@ class IntegrationTestFuchsia(BaseIntegrationTest):
   def test_fuzzer_can_boot_and_run_reproducer(self):
     """Tests running a testcase that should cause a fast, predictable crash."""
     environment.set_value('FUZZ_TARGET', 'example_fuzzers/overflow_fuzzer')
+    environment.set_value('JOB_NAME', 'libfuzzer_asan_fuchsia')
     build_manager.setup_build()
     testcase_path, _ = setup_testcase_and_corpus('fuchsia_crash',
                                                  'empty_corpus')
