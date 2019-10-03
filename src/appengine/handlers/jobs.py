@@ -107,8 +107,6 @@ class UpdateJob(base_handler.GcsUploadHandler):
 
     description = self.request.get('description', '')
     environment_string = self.request.get('environment_string', '')
-    env = environment.parse_environment_definition(environment_string)
-    project = env.get('PROJECT_NAME', utils.default_project_name())
     previous_custom_binary_revision = 0
 
     job = data_types.Job.query(data_types.Job.name == name).get()
