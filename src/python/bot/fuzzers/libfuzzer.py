@@ -405,9 +405,18 @@ class FuchsiaQemuLibFuzzerRunner(new_process.ProcessRunner, LibFuzzerCommon):
                                  self.FUZZER_TEST_DATA_REL_PATH, package,
                                  target)
 
+    sanitizer = ''
+    if pkg == 'zircon_fuzzers':
+      sanitizer = 'asan'
+
     # Finally, we set up the Fuzzer object itself, which will run our fuzzer!
     self.fuzzer = Fuzzer(
-        self.device, package, target, output=test_data_dir, foreground=True)
+        self.device,
+        package,
+        target,
+        output=test_data_dir,
+        foreground=True,
+        sanitizer='asan')
 
   def __init__(self, executable_path, default_args=None):
     # We always assume QEMU is running on __init__, since build_manager sets

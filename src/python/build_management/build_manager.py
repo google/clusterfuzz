@@ -749,9 +749,10 @@ class FuchsiaBuild(RegularBuild):
     from platforms.fuchsia.util.fuzzer import Fuzzer
     from platforms.fuchsia.util.host import Host
     host = Host.from_dir(os.path.join(build_dir, self.FUCHSIA_BUILD_REL_PATH))
+    # Right now, we only care about ASAN fuzzers.
     return [
         str(target[0] + '/' + target[1])
-        for target in Fuzzer.filter(host.fuzzers, '')
+        for target in Fuzzer.filter(host.fuzzers, '', 'asan')
     ]
 
   def setup(self):

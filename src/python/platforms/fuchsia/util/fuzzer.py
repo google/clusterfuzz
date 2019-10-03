@@ -55,7 +55,19 @@ class Fuzzer(object):
     pass
 
   @classmethod
-  def filter(cls, fuzzers, name):
+  def _matches_sanitizer(cls, tgt, sanitizer):
+    """ Returns whether or not a target is for a given sanitizer. """
+    tgt, ext = os.path.splitext(tgt)
+    # Remove the leading '.' from the extension.
+    ext = ext[1:]
+    if ext == sanitizer:
+      return True
+    if sanitizer == 'asan' and ext == '':
+      return True
+    return False
+
+  @classmethod
+  def filter(cls, fuzzers, name, sanitizer=None):
     """Filters a list of fuzzer names.
 
       Takes a list of fuzzer names in the form `pkg`/`tgt` and a name to filter
@@ -70,21 +82,27 @@ class Fuzzer(object):
       Raises:
         FuzzerNameError: Name is malformed, e.g. of the form 'x/y/z'.
     """
-    if not name or name == '':
+    if not name and not sanitizer:
       return fuzzers
-    names = name.split('/')
-    if len(names) == 2 and (names[0], names[1]) in fuzzers:
-      return [(names[0], names[1])]
-    if len(names) == 1:
-      return list(
-          set(Fuzzer.filter(fuzzers, '/' + name))
-          | set(Fuzzer.filter(fuzzers, name + '/')))
-    elif len(names) != 2:
-      raise Fuzzer.NameError('Malformed fuzzer name: ' + name)
+    if name:
+      names = name.split('/')
+      if len(names) == 2 and (names[0], names[1]) in fuzzers:
+        return [(names[0], names[1])]
+      if len(names) == 1:
+        return list(
+            set(Fuzzer.filter(fuzzers, '/' + name))
+            | set(Fuzzer.filter(fuzzers, name + '/')))
+      elif len(names) != 2:
+        raise Fuzzer.NameError('Malformed fuzzer name: ' + name)
     filtered = []
     for pkg, tgt in fuzzers:
-      if names[0] in pkg and names[1] in tgt:
-        filtered.append((pkg, tgt))
+      if name:
+        if not (names[0] in pkg and names[1] in tgt):
+          continue
+      if sanitizer:
+        if not Fuzzer._matches_sanitizer(tgt, sanitizer):
+          continue
+      filtered.append((pkg, tgt))
     return filtered
 
   @classmethod
@@ -97,12 +115,19 @@ class Fuzzer(object):
     return cls(device, fuzzers[0][0], fuzzers[0][1], args.output,
                args.foreground)
 
-  def __init__(self, device, pkg, tgt, output=None, foreground=False):
+  def __init__(self,
+               device,
+               pkg,
+               tgt,
+               output=None,
+               foreground=False,
+               sanitizer=''):
     self.device = device
     self.host = device.host
     self.pkg = pkg
     self.tgt = tgt
     self.last_fuzz_cmd = None
+    self.sanitizer = sanitizer
     if output:
       self._output = output
     else:
@@ -162,6 +187,9 @@ class Fuzzer(object):
     return self._results_output
 
   def url(self):
+    tgt = self.tgt
+    if sanitizer:
+      tgt = tgt + '.' + sanitizer
     return 'fuchsia-pkg://fuchsia.com/%s#meta/%s.cmx' % (self.pkg, self.tgt)
 
   def run(self, fuzzer_args, logfile=None):
