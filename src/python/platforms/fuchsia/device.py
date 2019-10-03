@@ -30,6 +30,7 @@ from platforms.fuchsia.util.fuzzer import Fuzzer
 from platforms.fuchsia.util.host import Host
 from system import environment
 from system import new_process
+from system import process_handler
 
 _QEMU_WAIT_SECONDS = 30
 
@@ -191,9 +192,15 @@ class QemuProcess(object):
 
 
 def start_qemu():
+  """Start qemu."""
   qemu = QemuProcess()
   qemu.create()
   qemu.run()
+
+
+def stop_qemu():
+  """Stop qemu."""
+  process_handler.terminate_processes_matching_names('qemu-system-x86_64')
 
 
 def extend_fvm(fuchsia_resources_dir, drive_path):

@@ -39,7 +39,6 @@ from metrics import logs
 from platforms import android
 from system import archive
 from system import environment
-from system import process_handler
 from system import shell
 
 # The default environment variables for specifying build bucket paths.
@@ -786,7 +785,7 @@ class FuchsiaBuild(RegularBuild):
     logs.log('Initializing QEMU.')
 
     # Kill any stale processes that may be left over from previous build.
-    process_handler.terminate_processes_matching_names('qemu_system-x86_64')
+    fuchsia.device.stop_qemu()
     if new_setup:
       fuchsia.device.initial_qemu_setup()
 

@@ -28,13 +28,13 @@ from bot.fuzzers.libFuzzer import constants
 from metrics import logs
 from platforms import fuchsia
 from platforms.fuchsia.device import start_qemu
+from platforms.fuchsia.device import stop_qemu
 from platforms.fuchsia.util.device import Device
 from platforms.fuchsia.util.fuzzer import Fuzzer
 from platforms.fuchsia.util.host import Host
 from system import environment
 from system import minijail
 from system import new_process
-from system import process_handler
 from system import shell
 
 MAX_OUTPUT_LEN = 1 * 1024 * 1024  # 1 MB
@@ -484,7 +484,7 @@ class FuchsiaQemuLibFuzzerRunner(new_process.ProcessRunner, LibFuzzerCommon):
   def _restart_qemu(self):
     """Restart QEMU."""
     logs.log_warn('Connection to fuzzing VM lost. Restarting.')
-    process_handler.terminate_processes_matching_names('qemu_system-x86_64')
+    stop_qemu()
     start_qemu()
     self._setup_device_and_fuzzer()
 
