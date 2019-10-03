@@ -408,7 +408,6 @@ class GetTestcaseTest(unittest.TestCase):
         'config.db_config.get_value',
         'config.db_config.get_value_for_job',
         'datastore.data_handler.get_stacktrace',
-        'datastore.data_types.Job.get_environment',
         'handlers.testcase_detail.show.filter_stacktrace',
         'libs.issue_management.issue_tracker_utils.get_issue_url',
         'libs.access.can_user_access_testcase',
@@ -492,13 +491,13 @@ class GetTestcaseTest(unittest.TestCase):
     job = data_types.Job()
     job.name = 'linux_asan_chrome'
     job.custom_binary_revision = 1234
+    job.environment_string = 'HELP_URL=help_url'
     job.put()
 
     self.mock.can_user_access_testcase.return_value = True
     self.mock.get_issue_url.return_value = 'issue_url'
     self.mock.get_stacktrace.return_value = 'crash_stacktrace'
     self.mock.filter_stacktrace.return_value = 'crash_stacktrace'
-    self.mock.get_environment.return_value = ({'HELP_URL': 'help_url'})
     self.mock.generate_csrf_token.return_value = 'csrf'
 
     result = show.get_testcase_detail_by_id(2)
@@ -599,13 +598,13 @@ class GetTestcaseTest(unittest.TestCase):
     job = data_types.Job()
     job.name = 'windows_asan_chrome'
     job.custom_binary_revision = 1234
+    job.environment_string = 'HELP_URL=help_url'
     job.put()
 
     self.mock.can_user_access_testcase.return_value = True
     self.mock.get_issue_url.return_value = 'issue_url'
     self.mock.get_stacktrace.return_value = 'crash_stacktrace'
     self.mock.filter_stacktrace.return_value = 'crash_stacktrace'
-    self.mock.get_environment.return_value = ({'HELP_URL': 'help_url'})
     self.mock.generate_csrf_token.return_value = 'csrf'
 
     result = show.get_testcase_detail_by_id(2)

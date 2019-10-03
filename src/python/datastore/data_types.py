@@ -847,6 +847,9 @@ class Job(Model):
   # Template to use, if any.
   templates = ndb.StringProperty(repeated=True)
 
+  # Project name.
+  project = ndb.StringProperty()
+
   def get_environment(self):
     """Get the environment as a dict for this job, including any environment
     variables in its template."""
@@ -879,6 +882,11 @@ class Job(Model):
       environment_string += '%s = %s\n' % (key, value)
 
     return environment_string
+
+  def _pre_put_hook(self):
+    """Pre-put hook."""
+    self.project = self.get_environment().get('PROJECT_NAME',
+                                              utils.default_project_name())
 
 
 class CSRFToken(Model):

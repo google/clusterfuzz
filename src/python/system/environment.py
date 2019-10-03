@@ -620,6 +620,9 @@ def is_running_on_app_engine_development():
 
 def parse_environment_definition(environment_string):
   """Parses a job's environment definition."""
+  if not environment_string:
+    return {}
+
   definitions = [environment_string.splitlines()]
   values = {}
   for definition in definitions:
