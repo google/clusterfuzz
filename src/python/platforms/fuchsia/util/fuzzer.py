@@ -62,6 +62,7 @@ class Fuzzer(object):
     ext = ext[1:]
     if ext == sanitizer:
       return True
+    # If there's no extension, assume it's an ASAN fuzzer.
     if sanitizer == 'asan' and ext == '':
       return True
     return False
