@@ -105,7 +105,7 @@ class Fuzzer(object):
           continue
       # Remove the sanitizer extension name.
       # Clusterfuzz only needs to know foo/bar, not foo/bar.asan.
-      filtered.append((pkg, os.path.splitext(tgt[0])))
+      filtered.append((pkg, os.path.splitext(tgt)[0]))
     return filtered
 
   @classmethod
@@ -124,8 +124,7 @@ class Fuzzer(object):
                tgt,
                output=None,
                foreground=False,
-               sanitizer='',
-               is_zircon_fuzzer=False):
+               sanitizer=''):
     self.device = device
     self.host = device.host
     self.pkg = pkg
@@ -139,7 +138,7 @@ class Fuzzer(object):
     self._results_output = self.host.join('test_data', 'fuzzing', self.pkg,
                                           self.tgt)
     self._foreground = foreground
-    self.is_zircon_fuzzer = is_zircon_fuzzer
+    self.is_zircon_fuzzer = pkg == 'zircon_fuzzers'
 
   def __str__(self):
     return self.pkg + '/' + self.tgt

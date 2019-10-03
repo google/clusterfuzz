@@ -200,6 +200,8 @@ class FuchsiaBuildTest(unittest.TestCase):
         'fuchsia-([0-9]+).zip')
     environment.set_value('OS_OVERRIDE', 'FUCHSIA')
 
+    self.maxDiff = None  # pylint: disable=invalid-name
+
   def tearDown(self):
     shutil.rmtree(self.temp_dir)
 
@@ -212,6 +214,27 @@ class FuchsiaBuildTest(unittest.TestCase):
     self.assertIsNotNone(os.environ['FUZZ_TARGET'])
     self.assertEqual('example_fuzzers/trap_fuzzer', os.environ['FUZZ_TARGET'])
     self.assertEqual(20190926201257, environment.get_value('APP_REVISION'))
+
+    # pylint: disable=protected-access
+    targets = build._get_fuzz_targets_from_dir(build.build_dir)
+    self.assertItemsEqual([
+        'example_fuzzers/baz_fuzzer',
+        'example_fuzzers/overflow_fuzzer',
+        'example_fuzzers/trap_fuzzer',
+        'ledger_fuzzers/p2p_sync_fuzzer',
+        'ledger_fuzzers/encoding_fuzzer',
+        'ledger_fuzzers/commit_pack_fuzzer',
+        'bluetooth_fuzzers/basic_mode_rx_engine_fuzzer',
+        'bluetooth_fuzzers/enhanced_retransmission_mode_rx_engine_fuzzer',
+        'mdns_fuzzers/packet_reader_fuzzer',
+        'zircon_fuzzers/nhlt-fuzzer',
+        'zircon_fuzzers/zstd-fuzzer',
+        'zircon_fuzzers/utf_conversion-fuzzer',
+        'zircon_fuzzers/zbi-bootfs-fuzzer',
+        'zircon_fuzzers/lz4-decompress-fuzzer',
+        'zircon_fuzzers/lz4-fuzzer',
+        'zircon_fuzzers/noop-fuzzer',
+    ], targets)
 
 
 class RegularBuildTest(fake_filesystem_unittest.TestCase):
