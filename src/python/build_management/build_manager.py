@@ -751,8 +751,10 @@ class FuchsiaBuild(RegularBuild):
     host = Host.from_dir(os.path.join(build_dir, self.FUCHSIA_BUILD_REL_PATH))
     # Right now, we only care about ASAN fuzzers.
     return [
-        str(target[0] + '/' + target[1])
-        for target in Fuzzer.filter(host.fuzzers, '', 'asan')
+        str(target[0] + '/' + target[1]) for target in Fuzzer.filter(
+            host.fuzzers, '',
+            environment.get_memory_tool_name(environment.get_value('JOB_NAME'))
+            .lower())
     ]
 
   def setup(self):
