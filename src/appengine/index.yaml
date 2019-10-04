@@ -580,3 +580,8 @@ indexes:
     - name: status
     - name: job_type
       direction: asc
+
+- kind: Job
+  properties:
+    - name: project
+    - name: name
