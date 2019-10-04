@@ -39,7 +39,7 @@ def execute_task(testcase_id, job_type):
   # Setup testcase and its dependencies.
   fuzzer_override = builtin_fuzzers.get_fuzzer_for_job(job_type)
   file_list, _, testcase_file_path = setup.setup_testcase(
-      testcase, fuzzer_override=fuzzer_override)
+      testcase, job_type, fuzzer_override=fuzzer_override)
   if not file_list:
     return
 

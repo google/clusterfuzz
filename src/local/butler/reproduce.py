@@ -234,6 +234,8 @@ def _prepare_initial_environment(build_directory, iterations, verbose):
   # Some functionality must be disabled when running the tool.
   environment.set_value('REPRODUCE_TOOL', True)
 
+  environment.set_value('TASK_NAME', 'reproduce')
+
   # Force logging to console for this process and child processes.
   if verbose:
     environment.set_value('LOG_TO_CONSOLE', True)
@@ -261,7 +263,8 @@ def _update_environment_for_testcase(testcase, build_directory):
   fuzzer_directory = setup.get_fuzzer_directory(testcase.fuzzer_name)
   environment.set_value('FUZZER_DIR', fuzzer_directory)
 
-  setup.prepare_environment_for_testcase(testcase)
+  task_name = environment.get_value('TASK_NAME')
+  setup.prepare_environment_for_testcase(testcase, testcase.job_type, task_name)
 
   build_manager.set_environment_vars(
       [environment.get_value('FUZZER_DIR'), build_directory])

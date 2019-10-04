@@ -359,7 +359,7 @@ def execute_task(testcase_id, job_type):
   # fuzzer.
   minimize_fuzzer_override = environment.get_value('MINIMIZE_FUZZER_OVERRIDE')
   file_list, input_directory, testcase_file_path = setup.setup_testcase(
-      testcase, fuzzer_override=minimize_fuzzer_override)
+      testcase, job_type, fuzzer_override=minimize_fuzzer_override)
   if not file_list:
     return
 
