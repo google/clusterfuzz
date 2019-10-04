@@ -95,7 +95,7 @@ def _copy_testcase_to_device_and_setup_environment(testcase,
     android.adb.run_shell_command(['chmod', '0755', device_testcase_file_path])
 
 
-def _get_application_arguments(testcase):
+def _get_application_arguments(testcase, job_type, task_name):
   """Get application arguments to use for setting up |testcase|. Use minimized
    arguments if available. For variant task, where we run a testcase against
    another job type, use both minimized arguments and application arguments
@@ -104,13 +104,8 @@ def _get_application_arguments(testcase):
   if not testcase_args:
     return None
 
-  task_name = environment.get_value('TASK_NAME')
   if task_name != 'variant':
     return testcase_args
-
-  # Use job from environment as variant task uses a different job than
-  # |testcase.job_type|.
-  job_type = environment.get_value('JOB_NAME')
 
   # TODO(aarya): Use %TESTCASE% explicitly since it will not exist with new
   # engine impl libFuzzer testcases and AFL's launcher.py requires it as the
@@ -149,7 +144,7 @@ def _setup_memory_tools_environment(testcase):
     environment.set_memory_tool_options(options_name, options_value)
 
 
-def prepare_environment_for_testcase(testcase):
+def prepare_environment_for_testcase(testcase, task_name, job_type):
   """Set various environment variables based on the test case."""
   _setup_memory_tools_environment(testcase)
 
@@ -172,16 +167,15 @@ def prepare_environment_for_testcase(testcase):
   # Override APP_ARGS with minimized arguments (if available). Don't do this
   # for variant task since other job types can have its own set of required
   # arguments, so use the full set of arguments of that job.
-  app_args = _get_application_arguments(testcase)
+  app_args = _get_application_arguments(testcase, job_type, task_name)
   if app_args:
     environment.set_value('APP_ARGS', app_args)
 
 
-def setup_testcase(testcase, fuzzer_override=None):
+def setup_testcase(testcase, job_type, fuzzer_override=None):
   """Sets up the testcase and needed dependencies like fuzzer,
   data bundle, etc."""
   fuzzer_name = fuzzer_override or testcase.fuzzer_name
-  job_type = environment.get_value('JOB_NAME')
   task_name = environment.get_value('TASK_NAME')
   testcase_fail_wait = environment.get_value('FAIL_WAIT')
   testcase_id = testcase.key.id()
@@ -244,7 +238,7 @@ def setup_testcase(testcase, fuzzer_override=None):
     # Get local blacklist without this testcase's entry.
     leak_blacklist.copy_global_to_local_blacklist(excluded_testcase=testcase)
 
-  prepare_environment_for_testcase(testcase)
+  prepare_environment_for_testcase(testcase, task_name, job_type)
 
   return file_list, input_directory, testcase_file_path
 
