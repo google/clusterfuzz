@@ -97,11 +97,7 @@ def get_all_project_names():
   query = data_types.Testcase.query(
       projection=[data_types.Testcase.project_name],
       distinct=True).order(data_types.Testcase.project_name)
-  return [
-      testcase.project_name
-      for testcase in query
-      if testcase.project_name and testcase.project_name.strip()
-  ]
+  return [testcase.project_name for testcase in query if testcase.project_name]
 
 
 def get_domain():
@@ -1470,7 +1466,8 @@ def is_fuzzing_engine(name):
 
 
 @memoize.wrap(memoize.Memcache(MEMCACHE_TTL_IN_SECONDS))
-def get_all_fuzzer_names_including_children(include_parents=False):
+def get_all_fuzzer_names_including_children(include_parents=False,
+                                            project=None):
   """Returns all fuzzer names, including expanded child fuzzers."""
   all_fuzzers = set()
   engine_fuzzers = get_fuzzing_engines()
@@ -1482,16 +1479,18 @@ def get_all_fuzzer_names_including_children(include_parents=False):
     if include_parents or fuzzer.name not in engine_fuzzers:
       all_fuzzers.add(fuzzer.name)
 
-  for fuzz_target in get_fuzz_targets():
+  for fuzz_target in get_fuzz_targets(project=project):
     all_fuzzers.add(fuzz_target.fully_qualified_name())
 
   return sorted(list(all_fuzzers))
 
 
 @memoize.wrap(memoize.Memcache(MEMCACHE_TTL_IN_SECONDS))
-def get_all_job_type_names():
+def get_all_job_type_names(project=None):
   """Return all job type names."""
   query = data_types.Job.query(projection=['name'])
+  if project:
+    query = query.filter(data_types.Job.project == project)
   return sorted([_.name for _ in query])
 
 

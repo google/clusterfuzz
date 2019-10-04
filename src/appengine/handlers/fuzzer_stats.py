@@ -387,43 +387,71 @@ def _get_date(date_value, days_ago):
 
 
 class Handler(base_handler.Handler):
-  """Group by day handler."""
+  """Fuzzer stats main page handler."""
 
   @handler.unsupported_on_local_server
   @handler.get(handler.HTML)
   def get(self):
     """Handle a GET request."""
-    # Create a list of externally contributed fuzzers.
-    user_email = helpers.get_user_email()
+    if not access.has_access():
+      # User is an external user of ClusterFuzz (eg: non-Chrome dev who
+      # submitted a fuzzer or someone with a project in OSS-Fuzz).
+      user_email = helpers.get_user_email()
+      fuzzers_list = external_users.allowed_fuzzers_for_user(
+          user_email, include_from_jobs=True, include_parents=True)
+      if not fuzzers_list:
+        # User doesn't actually have access to any fuzzers.
+        raise helpers.AccessDeniedException(
+            "You don't have access to any fuzzers.")
+
+    self.render('fuzzer-stats.html', {})
+
+
+class LoadFiltersHandler(base_handler.Handler):
+  """Load filters handler."""
+
+  @handler.unsupported_on_local_server
+  @handler.get(handler.HTML)
+  def get(self):
+    """Handle a GET request."""
+    project = self.request.get('project')
 
     if access.has_access():
       # User is an internal user of ClusterFuzz (eg: ClusterFuzz developer).
+
+      # Show all projects in the list, since this allows user to pick another
+      # project as needed.
+      projects_list = data_handler.get_all_project_names()
+
+      # Filter fuzzers and job list if a project is provided.
       fuzzers_list = (
           data_handler.get_all_fuzzer_names_including_children(
-              include_parents=True))
-      jobs_list = data_handler.get_all_job_type_names()
+              include_parents=True, project=project))
+      jobs_list = data_handler.get_all_job_type_names(project=project)
     else:
       # User is an external user of ClusterFuzz (eg: non-Chrome dev who
       # submitted a fuzzer or someone with a project in OSS-Fuzz).
-      fuzzers_list = external_users.allowed_fuzzers_for_user(
-          user_email, include_from_jobs=True, include_parents=True)
+      user_email = helpers.get_user_email()
 
+      # TODO(aarya): Filter fuzzer and job if |project| is provided.
+      fuzzers_list = sorted(
+          external_users.allowed_fuzzers_for_user(
+              user_email, include_from_jobs=True, include_parents=True))
       if not fuzzers_list:
         # User doesn't actually have access to any fuzzers.
-        raise helpers.AccessDeniedException()
+        raise helpers.AccessDeniedException(
+            "You don't have access to any fuzzers.")
 
-      jobs_list = external_users.allowed_jobs_for_user(user_email)
+      jobs_list = sorted(external_users.allowed_jobs_for_user(user_email))
+      projects_list = sorted(
+          set([data_handler.get_project_name(job) for job in jobs_list]))
 
-    fuzzers_list.sort()
-    jobs_list.sort()
     result = {
-        'info': {
-            'fuzzers': fuzzers_list,
-            'jobs': jobs_list,
-        }
+        'projects': projects_list,
+        'fuzzers': fuzzers_list,
+        'jobs': jobs_list,
     }
-
-    self.render('fuzzer-stats.html', result)
+    self.render_json(result)
 
 
 class LoadHandler(base_handler.Handler):
