@@ -443,8 +443,8 @@ class LoadFiltersHandler(base_handler.Handler):
             "You don't have access to any fuzzers.")
 
       jobs_list = sorted(external_users.allowed_jobs_for_user(user_email))
-      projects_list = sorted(set(
-          [data_handler.get_project_name(job) for job in jobs_list]))
+      projects_list = sorted(
+          set([data_handler.get_project_name(job) for job in jobs_list]))
 
     result = {
         'projects': projects_list,
