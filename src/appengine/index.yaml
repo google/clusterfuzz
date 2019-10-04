@@ -44,21 +44,6 @@ indexes:
   - name: bad_build
   - name: job_type
 
-- kind: CodeCoverage
-  properties:
-  - name: status
-  - name: platform
-  - name: timestamp
-    direction: desc
-
-- kind: CodeCoverage
-  properties:
-  - name: status
-  - name: fuzzer_name
-  - name: job_type
-  - name: timestamp
-    direction: desc
-
 - kind: CoverageInformation
   properties:
   - name: fuzzer
@@ -124,26 +109,6 @@ indexes:
   - name: is_uploaded
   - name: job_type
   - name: crash_revision
-
-- kind: SheriffItem
-  properties:
-  - name: item_type
-  - name: priority
-
-- kind: SheriffItem
-  properties:
-  - name: item_type
-  - name: package
-
-- kind: StatusDashboardItem
-  properties:
-  - name: identifier
-  - name: type
-
-- kind: StatusDashboardItem
-  properties:
-  - name: resolved
-  - name: current_timestamp
 
 - kind: Testcase
   properties:
@@ -580,3 +545,8 @@ indexes:
     - name: status
     - name: job_type
       direction: asc
+
+- kind: Job
+  properties:
+    - name: project
+    - name: name
