@@ -419,11 +419,12 @@ class UntrustedRunnerIntegrationTest(
 
   def test_setup_testcase(self):
     """Test setup_testcase."""
-    self._setup_env(job_type='job')
+    job_type = 'job'
+    self._setup_env(job_type=job_type)
     fuzz_inputs = os.environ['FUZZ_INPUTS']
 
     testcase = data_types.Testcase()
-    testcase.job_type = 'job'
+    testcase.job_type = job_type
     testcase.absolute_path = os.path.join(fuzz_inputs, 'testcase.ext')
 
     with tempfile.NamedTemporaryFile() as f:
@@ -434,7 +435,7 @@ class UntrustedRunnerIntegrationTest(
     testcase.put()
 
     file_list, input_directory, testcase_file_path = (
-        setup.setup_testcase(testcase))
+        setup.setup_testcase(testcase, job_type))
 
     self.assertItemsEqual(file_list, [
         testcase.absolute_path,
