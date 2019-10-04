@@ -52,12 +52,21 @@ class GetApplicationArgumentsTest(unittest.TestCase):
 
   def setUp(self):
     helpers.patch_environ(self)
+
     data_types.Job(
         name='linux_asan_chrome',
+        environment_string=('APP_ARGS = --orig-arg1 --orig-arg2')).put()
+
+    data_types.Job(
+        name='linux_msan_chrome_variant',
         environment_string=(
             'APP_ARGS = --arg1 --arg2 --arg3="--flag1 --flag2"')).put()
 
     data_types.Job(name='libfuzzer_asan_chrome', environment_string=('')).put()
+    data_types.Job(
+        name='libfuzzer_msan_chrome_variant', environment_string=('')).put()
+    data_types.Job(
+        name='afl_asan_chrome_variant', environment_string=('')).put()
 
     self.testcase = test_utils.create_generic_testcase()
 
@@ -67,56 +76,84 @@ class GetApplicationArgumentsTest(unittest.TestCase):
     self.testcase.job_type = 'linux_asan_chrome'
     self.testcase.put()
 
-    self.assertEqual(
-        None, setup._get_application_arguments(self.testcase, 'minimize'))
-    self.assertEqual(None,
-                     setup._get_application_arguments(self.testcase, 'variant'))
+    environment.set_value('TASK_NAME', 'minimize')
+    self.assertEqual(None, setup._get_application_arguments(self.testcase))
+
+    environment.set_value('TASK_NAME', 'variant')
+    environment.set_value('JOB_NAME', 'linux_msan_chrome_variant')
+    self.assertEqual(None, setup._get_application_arguments(self.testcase))
 
   def test_minimized_arguments_for_non_variant_task(self):
     """Test that minimized arguments are returned for non-variant tasks."""
-    self.testcase.minimized_arguments = '--arg2'
+    environment.set_value('TASK_NAME', 'minimize')
+
+    self.testcase.minimized_arguments = '--orig-arg2'
     self.testcase.job_type = 'linux_asan_chrome'
     self.testcase.put()
 
-    self.assertEqual(
-        '--arg2', setup._get_application_arguments(self.testcase, 'minimize'))
+    self.assertEqual('--orig-arg2',
+                     setup._get_application_arguments(self.testcase))
 
   def test_no_unique_minimized_arguments_for_variant_task(self):
     """Test that only APP_ARGS is returned if minimized arguments have no
     unique arguments, for variant task."""
+    environment.set_value('TASK_NAME', 'variant')
+    environment.set_value('JOB_NAME', 'linux_msan_chrome_variant')
+
     self.testcase.minimized_arguments = '--arg2'
     self.testcase.job_type = 'linux_asan_chrome'
     self.testcase.put()
 
     self.assertEqual('--arg1 --arg2 --arg3="--flag1 --flag2"',
-                     setup._get_application_arguments(self.testcase, 'variant'))
+                     setup._get_application_arguments(self.testcase))
 
   def test_some_duplicate_minimized_arguments_for_variant_task(self):
     """Test that both minimized arguments and APP_ARGS are returned with
     duplicate args stripped from minimized arguments for variant task."""
+    environment.set_value('TASK_NAME', 'variant')
+    environment.set_value('JOB_NAME', 'linux_msan_chrome_variant')
+
     self.testcase.minimized_arguments = '--arg3="--flag1 --flag2" --arg4'
     self.testcase.job_type = 'linux_asan_chrome'
     self.testcase.put()
 
     self.assertEqual('--arg4 --arg1 --arg2 --arg3="--flag1 --flag2"',
-                     setup._get_application_arguments(self.testcase, 'variant'))
+                     setup._get_application_arguments(self.testcase))
 
   def test_unique_minimized_arguments_for_variant_task(self):
     """Test that both minimized arguments and APP_ARGS are returned when they
     don't have common args for variant task."""
+    environment.set_value('TASK_NAME', 'variant')
+    environment.set_value('JOB_NAME', 'linux_msan_chrome_variant')
+
     self.testcase.minimized_arguments = '--arg5'
     self.testcase.job_type = 'linux_asan_chrome'
     self.testcase.put()
 
     self.assertEqual('--arg5 --arg1 --arg2 --arg3="--flag1 --flag2"',
-                     setup._get_application_arguments(self.testcase, 'variant'))
+                     setup._get_application_arguments(self.testcase))
 
   def test_no_job_app_args_for_variant_task(self):
     """Test that only minimized arguments is returned when APP_ARGS is not set
     in job definition."""
+    environment.set_value('TASK_NAME', 'variant')
+    environment.set_value('JOB_NAME', 'libfuzzer_msan_chrome_variant')
+
     self.testcase.minimized_arguments = '--arg5'
     self.testcase.job_type = 'libfuzzer_asan_chrome'
     self.testcase.put()
 
-    self.assertEqual('--arg5',
-                     setup._get_application_arguments(self.testcase, 'variant'))
+    self.assertEqual('--arg5', setup._get_application_arguments(self.testcase))
+
+  def test_afl_job_for_variant_task(self):
+    """Test that we use a different argument list if this is an afl variant
+    task."""
+    environment.set_value('TASK_NAME', 'variant')
+    environment.set_value('JOB_NAME', 'afl_asan_chrome_variant')
+
+    self.testcase.minimized_arguments = '--arg5'
+    self.testcase.job_type = 'libfuzzer_asan_chrome'
+    self.testcase.put()
+
+    self.assertEqual('%TESTCASE%',
+                     setup._get_application_arguments(self.testcase))

@@ -95,7 +95,7 @@ def _copy_testcase_to_device_and_setup_environment(testcase,
     android.adb.run_shell_command(['chmod', '0755', device_testcase_file_path])
 
 
-def _get_application_arguments(testcase, task_name):
+def _get_application_arguments(testcase):
   """Get application arguments to use for setting up |testcase|. Use minimized
    arguments if available. For variant task, where we run a testcase against
    another job type, use both minimized arguments and application arguments
@@ -104,17 +104,22 @@ def _get_application_arguments(testcase, task_name):
   if not testcase_args:
     return None
 
+  task_name = environment.get_value('TASK_NAME')
   if task_name != 'variant':
     return testcase_args
+
+  # Use job from environment as variant task uses a different job than
+  # |testcase.job_type|.
+  job_type = environment.get_value('JOB_NAME')
 
   # TODO(aarya): Use %TESTCASE% explicitly since it will not exist with new
   # engine impl libFuzzer testcases and AFL's launcher.py requires it as the
   # first argument. Remove once AFL is migrated to the new engine impl.
-  if environment.is_afl_job(testcase.job_type):
+  if environment.is_afl_job(job_type):
     return '%TESTCASE%'
 
   job_args = data_handler.get_value_from_job_definition(
-      testcase.job_type, 'APP_ARGS', default='')
+      job_type, 'APP_ARGS', default='')
   job_args_list = shlex.split(job_args)
   testcase_args_list = shlex.split(testcase_args)
   testcase_args_filtered_list = [
@@ -130,10 +135,10 @@ def _get_application_arguments(testcase, task_name):
   return app_args
 
 
-def _setup_memory_tools_environment(testcase, task_name):
+def _setup_memory_tools_environment(testcase):
   """Set up environment for various memory tools used."""
   env = testcase.get_metadata('env')
-  if not env or task_name == 'minimize':
+  if not env:
     environment.reset_current_memory_tool_options(redzone_size=testcase.redzone)
     return
 
@@ -146,8 +151,7 @@ def _setup_memory_tools_environment(testcase, task_name):
 
 def prepare_environment_for_testcase(testcase):
   """Set various environment variables based on the test case."""
-  task_name = environment.get_value('TASK_NAME')
-  _setup_memory_tools_environment(testcase, task_name)
+  _setup_memory_tools_environment(testcase)
 
   # Setup environment variable for windows size and location properties.
   # Explicit override to avoid using the default one from job definition since
@@ -168,7 +172,7 @@ def prepare_environment_for_testcase(testcase):
   # Override APP_ARGS with minimized arguments (if available). Don't do this
   # for variant task since other job types can have its own set of required
   # arguments, so use the full set of arguments of that job.
-  app_args = _get_application_arguments(testcase, task_name)
+  app_args = _get_application_arguments(testcase)
   if app_args:
     environment.set_value('APP_ARGS', app_args)
 
@@ -177,7 +181,7 @@ def setup_testcase(testcase, fuzzer_override=None):
   """Sets up the testcase and needed dependencies like fuzzer,
   data bundle, etc."""
   fuzzer_name = fuzzer_override or testcase.fuzzer_name
-  job_type = testcase.job_type
+  job_type = environment.get_value('JOB_NAME')
   task_name = environment.get_value('TASK_NAME')
   testcase_fail_wait = environment.get_value('FAIL_WAIT')
   testcase_id = testcase.key.id()
