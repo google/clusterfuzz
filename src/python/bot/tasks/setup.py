@@ -144,7 +144,7 @@ def _setup_memory_tools_environment(testcase):
     environment.set_memory_tool_options(options_name, options_value)
 
 
-def prepare_environment_for_testcase(testcase, task_name, job_type):
+def prepare_environment_for_testcase(testcase, job_type, task_name):
   """Set various environment variables based on the test case."""
   _setup_memory_tools_environment(testcase)
 
@@ -238,7 +238,7 @@ def setup_testcase(testcase, job_type, fuzzer_override=None):
     # Get local blacklist without this testcase's entry.
     leak_blacklist.copy_global_to_local_blacklist(excluded_testcase=testcase)
 
-  prepare_environment_for_testcase(testcase, task_name, job_type)
+  prepare_environment_for_testcase(testcase, job_type, task_name)
 
   return file_list, input_directory, testcase_file_path
 
