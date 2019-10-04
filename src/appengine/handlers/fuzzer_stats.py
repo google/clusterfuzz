@@ -401,7 +401,8 @@ class Handler(base_handler.Handler):
           user_email, include_from_jobs=True, include_parents=True)
       if not fuzzers_list:
         # User doesn't actually have access to any fuzzers.
-        raise helpers.AccessDeniedException()
+        raise helpers.AccessDeniedException(
+            "You don't have access to any fuzzers.")
 
     self.render('fuzzer-stats.html', {})
 
@@ -432,16 +433,18 @@ class LoadFiltersHandler(base_handler.Handler):
       # submitted a fuzzer or someone with a project in OSS-Fuzz).
       user_email = helpers.get_user_email()
 
+      # TODO(aarya): Filter fuzzer and job if |project| is provided.
       fuzzers_list = sorted(
           external_users.allowed_fuzzers_for_user(
               user_email, include_from_jobs=True, include_parents=True))
       if not fuzzers_list:
         # User doesn't actually have access to any fuzzers.
-        raise helpers.AccessDeniedException()
+        raise helpers.AccessDeniedException(
+            "You don't have access to any fuzzers.")
 
       jobs_list = sorted(external_users.allowed_jobs_for_user(user_email))
-      projects_list = sorted(
-          [data_handler.get_project_name(job) for job in jobs_list])
+      projects_list = sorted(set(
+          [data_handler.get_project_name(job) for job in jobs_list]))
 
     result = {
         'projects': projects_list,
