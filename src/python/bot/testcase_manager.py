@@ -579,18 +579,15 @@ class TestcaseRunner(object):
     app_directory = environment.get_value('APP_DIR')
     warmup_timeout = environment.get_value('WARMUP_TIMEOUT')
     run_timeout = warmup_timeout if round_number == 1 else self._test_timeout
-    bot_name = environment.get_value('BOT_NAME')
 
     if self._is_black_box:
+      logs.log('Executing command: %s' % self._command)
+
       return_code, crash_time, output = process_handler.run_process(
           self._command,
           timeout=run_timeout,
           gestures=self._gestures,
           current_working_directory=app_directory)
-
-      log_header = engine_common.get_log_header(self._command, bot_name,
-                                                crash_time)
-      output = log_header + '\n' + output
     else:
       result = engine_reproduce(self._engine_impl, self._fuzz_target.binary,
                                 self._testcase_path, self._arguments,
@@ -598,8 +595,9 @@ class TestcaseRunner(object):
       return_code = result.return_code
       crash_time = result.time_executed
 
-      log_header = engine_common.get_log_header(result.command, bot_name,
-                                                result.time_executed)
+      log_header = engine_common.get_log_header(
+          result.command, environment.get_value('BOT_NAME'),
+          result.time_executed)
       output = log_header + '\n' + result.output
 
     process_handler.terminate_stale_application_instances()
