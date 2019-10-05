@@ -546,8 +546,22 @@ class FuchsiaQemuLibFuzzerRunner(new_process.ProcessRunner, LibFuzzerCommon):
            additional_args=None,
            extra_env=None):
     """LibFuzzerCommon.fuzz override."""
+    additional_args = copy.copy(additional_args)
+    if additional_args is None:
+      additional_args = []
+
     self._test_ssh()
     self._push_corpora_from_host_to_target(corpus_directories)
+
+    max_total_time = self.get_max_total_time(fuzz_timeout)
+    if any(arg.startswith(constants.FORK_FLAG) for arg in additional_args):
+      max_total_time -= self.LIBFUZZER_FORK_MODE_CLEAN_EXIT_TIME
+    assert max_total_time > 0
+
+    additional_args.extend([
+        '%s%d' % (constants.MAX_TOTAL_TIME_FLAG, max_total_time),
+        constants.PRINT_FINAL_STATS_ARGUMENT,
+    ])
 
     # Run the fuzzer.
     # TODO: actually we want new_corpus_relative_dir_target for *each* corpus
