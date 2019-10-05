@@ -816,10 +816,11 @@ class IntegrationTestFuchsia(BaseIntegrationTest):
     num_files_original = len([corpfile for corpfile in os.listdir(corpus_path)])
     engine_impl = engine.LibFuzzerEngine()
 
+    self.mock.get_fuzz_timeout.return_value = get_fuzz_timeout(20.0)
     options = engine_impl.prepare(corpus_path, 'example_fuzzers/trap_fuzzer',
                                   DATA_DIR)
     results = engine_impl.fuzz('example_fuzzers/trap_fuzzer', options, TEMP_DIR,
-                               10)
+                               20)
 
     # If we don't get a crash, something went wrong.
     self.assertIn('Test unit written to', results.logs)
