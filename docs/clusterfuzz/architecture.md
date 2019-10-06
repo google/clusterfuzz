@@ -59,12 +59,12 @@ other information. It's also responsible for scheduling regular cron jobs.
 Fuzzing bots are machines that run scheduled tasks. They lease tasks from platform
 specific queues. The main tasks that bots run are:
 - `fuzz`: Run a fuzzing session.
-- `progression`: Check if a testcase still reproduces or if it's fixed.
+- `progression`: Check if a test case still reproduces or if it's fixed.
 - `regression`: Calculate the revision range in which a crash was introduced.
 - `minimize`: Perform testcase [minimization].
 - `corpus_pruning`: Minimize a [corpus]({{ site.baseurl
   }}/reference/glossary/#corpus) to smallest size based on coverage (libFuzzer only).
-- `analyze`: Run a manually uploaded testcase against a job to see if it crashes.
+- `analyze`: Run a manually uploaded test case against a job to see if it crashes.
 
 There are two kinds of bots on ClusterFuzz:
 
