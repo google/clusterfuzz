@@ -1284,6 +1284,12 @@ class FuzzingSession(object):
 
   def sync_corpus(self, sync_corpus_directory):
     """Sync corpus from GCS."""
+    is_ephemeral_bot = environment.get_value('EPHEMERAL')
+    if is_ephemeral_bot:
+      # TODO(aarya): Remove after we figure out the network optimizations
+      # needed for ephemeral bots.
+      return
+
     self.gcs_corpus = GcsCorpus(self.fuzzer_name,
                                 self.fuzz_target.project_qualified_name(),
                                 sync_corpus_directory, self.data_directory)
