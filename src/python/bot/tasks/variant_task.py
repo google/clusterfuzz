@@ -24,6 +24,34 @@ from datastore import data_types
 from system import environment
 
 
+def _get_variant_testcase_for_job(testcase, job_type):
+  """Return a testcase entity for variant task use. This changes the fuzz
+  target params for a particular fuzzing engine."""
+  if testcase.job_type == job_type:
+    # Update stack operation on same testcase.
+    return testcase
+
+  if not environment.is_engine_fuzzer_job(testcase.job_type):
+    # For blackbox fuzzer testcases, there is no change of fuzzer required.
+    return testcase
+
+  engine_name = builtin_fuzzers.get_fuzzer_for_job(job_type)
+  project = data_handler.get_project_name(job_type)
+  binary_name = testcase.get_metadata('fuzzer_binary_name')
+  fully_qualified_fuzzer_name = data_types.fuzz_target_fully_qualified_name(
+      engine_name, project, binary_name)
+
+  variant_testcase = data_types.clone_entity(testcase)
+  variant_testcase.fuzzer_name = engine_name
+  variant_testcase.overridden_fuzzer_name = fully_qualified_fuzzer_name
+  variant_testcase.job_type = job_type
+
+  # Remove put() method to avoid updates.
+  variant_testcase.put = lambda: None
+
+  return variant_testcase
+
+
 def execute_task(testcase_id, job_type):
   """Run a test case with a different job type to see if they reproduce."""
   testcase = data_handler.get_testcase_by_id(testcase_id)
@@ -36,10 +64,12 @@ def execute_task(testcase_id, job_type):
     # otherwise we will run into exceptions.
     return
 
+  # Use a cloned testcase entity with different fuzz target paramaters for
+  # a different fuzzing engine.
+  testcase = _get_variant_testcase_for_job(testcase, job_type)
+
   # Setup testcase and its dependencies.
-  fuzzer_override = builtin_fuzzers.get_fuzzer_for_job(job_type)
-  file_list, _, testcase_file_path = setup.setup_testcase(
-      testcase, job_type, fuzzer_override=fuzzer_override)
+  file_list, _, testcase_file_path = setup.setup_testcase(testcase, job_type)
   if not file_list:
     return
 
@@ -104,10 +134,10 @@ def execute_task(testcase_id, job_type):
     security_flag = False
     crash_stacktrace_output = 'No crash occurred.'
 
-  testcase = data_handler.get_testcase_by_id(testcase_id)
   if testcase.job_type == job_type:
     # This case happens when someone clicks 'Update last tested stacktrace using
     # trunk build' button.
+    testcase = data_handler.get_testcase_by_id(testcase_id)
     testcase.last_tested_crash_stacktrace = (
         data_handler.filter_stacktrace(crash_stacktrace_output))
     testcase.set_metadata(
