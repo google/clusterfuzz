@@ -128,7 +128,16 @@ CHROMIUM_ISSUE_PREDATOR_WRONG_CL_LABEL = 'Test-Predator-Wrong-CLs'
 
 MISSING_VALUE_STRING = '---'
 
-# FIXME: Move these "enums" into seperate file(s).
+
+def clone_entity(e, **extra_args):
+  """Clones a DataStore entity and returns the clone."""
+  ent_class = e.__class__
+  # pylint: disable=protected-access
+  props = dict((v._code_name, v.__get__(e, ent_class))
+               for v in ent_class._properties.itervalues()
+               if not isinstance(v, ndb.ComputedProperty))
+  props.update(extra_args)
+  return ent_class(**props)
 
 
 class SecuritySeverity(object):
