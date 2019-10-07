@@ -15,6 +15,7 @@
 import unittest
 
 from bot.tasks import variant_task
+from datastore import data_handler
 from datastore import data_types
 from tests.test_libs import helpers
 from tests.test_libs import test_utils
@@ -66,7 +67,7 @@ class GetVariantTestcaseForJob(unittest.TestCase):
     variant_testcase = variant_task._get_variant_testcase_for_job(  # pylint: disable=protected-access
         testcase, 'afl_asan_project')
     self.assertNotEqual(testcase, variant_testcase)
-    self.assertEqual(None, variant_testcase.key)
+    self.assertEqual(testcase.key.id(), variant_testcase.key.id())
     self.assertEqual('afl', variant_testcase.fuzzer_name)
     self.assertEqual('afl_project_binary_name',
                      variant_testcase.overridden_fuzzer_name)
@@ -79,5 +80,8 @@ class GetVariantTestcaseForJob(unittest.TestCase):
     self.assertEqual('binary_name',
                      variant_testcase.get_metadata('fuzzer_binary_name'))
 
+    # Test that a put() call does not change original testcase.
+    variant_testcase.comments = 'ABC'
     variant_testcase.put()
-    self.assertEqual(None, variant_testcase.key)
+    testcase = data_handler.get_testcase_by_id(testcase.key.id())
+    self.assertEqual('', testcase.comments)
