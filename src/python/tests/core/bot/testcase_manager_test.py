@@ -285,33 +285,30 @@ class GetResourcePathsTest(unittest.TestCase):
     """Tests getting resource paths."""
     # pylint: disable=line-too-long
     output = (
-        '[54110:54110:0802/103321.557701:VERBOSE1:gles2_cmd_decoder.cc(3412)] '
-        'GL_EXT_packed_depth_stencil '
-        'supported.\n[54110:54110:0802/103321.577720:VERBOSE1:gles2_cmd_decoder.cc(3412)]'
-        ' GL_EXT_packed_depth_stencil '
-        'supported.\n[54041:54075:0802/103321.618566:VERBOSE1:network_delegate.cc(31)]'
-        ' NetworkDelegate::NotifyBeforeURLRequest: '
-        'file:///projects/chromium/src/third_party/WebKit/LayoutTests/paint/invalidation/resources/text-based-repaint.js\n[54041:54075:0802/103321.618677:VERBOSE1:network_delegate.cc(31)]'
-        ' NetworkDelegate::NotifyBeforeURLRequest: '
-        'file:///projects/chromium/src/third_party/WebKit/LayoutTests/paint/invalidation/resources/text-based-repaint.js\n[54041:54075:0802/103321.618765:VERBOSE1:network_delegate.cc(31)]'
-        ' NetworkDelegate::NotifyBeforeURLRequest: '
-        'file:///projects/chromium/src/third_party/WebKit/LayoutTests/resources/test-harness.js\n[1:1:0802/103321.658122:VERBOSE1:script_context.cc(110)]'
-        ' Created '
-        'context:\r\n[3408:4060:0807/053137.661:54090359:VERBOSE1:network_delegate.cc(31)]'
-        ' NetworkDelegate::NotifyBeforeURLRequest: '
-        'http://127.0.0.1:8000/fuzzer-common-data-bundles/webkit/layouttests/fast/canvas/fuzz-http-11.html\r\nV/chromium('
-        ' 8530): [VERBOSE1:network_delegate.cc(31)] '
-        'NetworkDelegate::NotifyBeforeURLRequest: https://en.m.wikipedia.org  '
-        'extension id:           (none)\n')
+        '[54110:54110:0802/103321.557701:VERBOSE1:gles2_cmd_decoder.cc(3412)] GL_EXT_packed_depth_stencil supported.\n'
+        '[54110:54110:0802/103321.577720:VERBOSE1:gles2_cmd_decoder.cc(3412)] GL_EXT_packed_depth_stencil supported.\n'
+        '[54041:54075:0802/103321.618566:VERBOSE1:network_delegate.cc(31)] NetworkDelegate::NotifyBeforeURLRequest: '
+        'file:///projects/chromium/src/third_party/WebKit/LayoutTests/paint/invalidation/resources/text-based-repaint.js\n'
+        '[54041:54075:0802/103321.618677:VERBOSE1:network_delegate.cc(31)] NetworkDelegate::NotifyBeforeURLRequest: '
+        'file:///projects/chromium/src/third_party/WebKit/LayoutTests/paint/invalidation/resources/text-based-repaint.js\n'
+        '[54041:54075:0802/103321.618765:VERBOSE1:network_delegate.cc(31)] NetworkDelegate::NotifyBeforeURLRequest: '
+        'file:///projects/chromium/src/third_party/WebKit/LayoutTests/resources/test-harness.js\n'
+        '[1:1:0802/103321.658122:VERBOSE1:script_context.cc(110)] Created context:\r\n'
+        '[3408:4060:0807/053137.661:54090359:VERBOSE1:network_delegate.cc(31)] NetworkDelegate::NotifyBeforeURLRequest: '
+        'http://127.0.0.1:8000/fuzzer-common-data-bundles/webkit/layouttests/fast/canvas/fuzz-http-11.html\r\n'
+        'V/chromium( 8530): [VERBOSE1:network_delegate.cc(31)] NetworkDelegate::NotifyBeforeURLRequest: https://en.m.wikipedia.org\n'
+        '[36633:36655:1008/094348.879824:VERBOSE1:file_url_loader_factory.cc(441)] FileURLLoader::Start: file:///tmp/test.js'
+    )
 
     result = testcase_manager.get_resource_paths(output)
-    self.assertEqual(4, len(result))
+    self.assertEqual(5, len(result))
     self.assertEqual(
         set([
             'file:///projects/chromium/src/third_party/WebKit/LayoutTests/paint/invalidation/resources/text-based-repaint.js',
             'file:///projects/chromium/src/third_party/WebKit/LayoutTests/resources/test-harness.js',
             'http://127.0.0.1:8000/fuzzer-common-data-bundles/webkit/layouttests/fast/canvas/fuzz-http-11.html',
-            'https://en.m.wikipedia.org'
+            'https://en.m.wikipedia.org',
+            'file:///tmp/test.js',
         ]), set(result))
     self.mock.convert_dependency_url_to_local_path.assert_has_calls([
         mock.call(
