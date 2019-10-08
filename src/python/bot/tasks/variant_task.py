@@ -67,6 +67,7 @@ def execute_task(testcase_id, job_type):
 
   # Use a cloned testcase entity with different fuzz target paramaters for
   # a different fuzzing engine.
+  original_job_type = testcase.job_type
   testcase = _get_variant_testcase_for_job(testcase, job_type)
 
   # Setup testcase and its dependencies.
@@ -135,14 +136,14 @@ def execute_task(testcase_id, job_type):
     security_flag = False
     crash_stacktrace_output = 'No crash occurred.'
 
-  if testcase.job_type == job_type:
+  if original_job_type == job_type:
     # This case happens when someone clicks 'Update last tested stacktrace using
     # trunk build' button.
     testcase = data_handler.get_testcase_by_id(testcase_id)
     testcase.last_tested_crash_stacktrace = (
         data_handler.filter_stacktrace(crash_stacktrace_output))
     testcase.set_metadata(
-        'last_tested_crash_revision', revision, update_testcase=False)
+        'last_tested_crash_revision', revision, update_testcase=True)
   else:
     # Regular case of variant analysis.
     variant = data_handler.get_testcase_variant(testcase_id, job_type)
