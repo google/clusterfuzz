@@ -60,8 +60,9 @@ SEARCH_INDEX_TESTCASES_DIRNAME = 'common'
 SEARCH_INDEX_BUNDLE_PREFIX = '__%s_' % SEARCH_INDEX_TESTCASES_DIRNAME
 TESTCASE_LIST_FILENAME = 'files.info'
 
-NETWORK_DELETEGATE_URL_REGEX = re.compile(
-    r'.*NetworkDelegate::NotifyBeforeURLRequest:\s+([^\s]+)')
+CHROME_URL_LOAD_REGEX = re.compile(
+    r'.*(NetworkDelegate::NotifyBeforeURLRequest|FileURLLoader::Start)'
+    r':\s+(.*)')
 FILE_URL_REGEX = re.compile(r'file:///([^"#?]+)')
 HTTP_URL_REGEX = re.compile(
     r'.*(localhost|\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})[^/]*[/]([^"#?]+)')
@@ -344,11 +345,11 @@ def get_resource_paths(output):
   """Read the urls from the output."""
   resource_paths = set()
   for line in output.splitlines():
-    match = NETWORK_DELETEGATE_URL_REGEX.match(line)
+    match = CHROME_URL_LOAD_REGEX.match(line)
     if not match:
       continue
 
-    local_path = convert_dependency_url_to_local_path(match.group(1))
+    local_path = convert_dependency_url_to_local_path(match.group(2))
     if local_path:
       logs.log('Detected resource: %s.' % local_path)
       resource_paths.add(local_path)
