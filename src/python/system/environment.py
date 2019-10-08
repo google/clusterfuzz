@@ -852,6 +852,10 @@ def set_bot_environment():
   if not get_value('BOT_TMPDIR'):
     os.environ['BOT_TMPDIR'] = os.path.join(bot_dir, 'tmp')
 
+  # Add common environment variables needed by Bazel test runner.
+  # See https://docs.bazel.build/versions/master/test-encyclopedia.html.
+  os.environ['TEST_TMPDIR'] = get_value('BOT_TMPDIR')
+
   # Sets the default configuration. Can be overridden by job environment.
   set_default_vars()
 
