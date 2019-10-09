@@ -1159,12 +1159,14 @@ def _setup_split_targets_build(bucket_path, target_weights, revision=None):
   """Set up targets build."""
   targets_list = _get_targets_list(bucket_path)
   if not targets_list:
-    raise BuildManagerException('No targets found in targets.list.')
+    raise BuildManagerException(
+        'No targets found in targets.list (path=%s).' % bucket_path)
 
   fuzz_target = _set_random_fuzz_target_for_fuzzing_if_needed(
       targets_list, target_weights)
   if not fuzz_target:
-    raise BuildManagerException('Failed to choose a fuzz target.')
+    raise BuildManagerException(
+        'Failed to choose a fuzz target (path=%s).' % bucket_path)
 
   fuzz_target_bucket_path = bucket_path.replace('%TARGET%', fuzz_target)
   if not revision:
