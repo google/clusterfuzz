@@ -118,6 +118,10 @@ def analyze_and_update_recommended_dictionary(runner, fuzzer_name, log_lines,
                                               corpus_directory, arguments):
   """Extract and analyze recommended dictionary from fuzzer output, then update
   the corresponding dictionary stored in GCS if needed."""
+  if environment.platform() == 'FUCHSIA':
+    # TODO(flowerhack): Support this.
+    return None
+
   logs.log(
       'Extracting and analyzing recommended dictionary for %s.' % fuzzer_name)
 
