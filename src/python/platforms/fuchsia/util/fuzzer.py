@@ -130,7 +130,6 @@ class Fuzzer(object):
     self.pkg = pkg
     self.tgt = tgt
     self.last_fuzz_cmd = None
-    self.sanitizer = sanitizer
     if output:
       self._output = output
     else:
@@ -138,7 +137,9 @@ class Fuzzer(object):
     self._results_output = self.host.join('test_data', 'fuzzing', self.pkg,
                                           self.tgt)
     self._foreground = foreground
-    self.is_zircon_fuzzer = pkg == 'zircon_fuzzers'
+
+    if pkg == 'zircon_fuzzers' and sanitizer:
+      self.tgt += '.' + sanitizer
 
   def __str__(self):
     return self.pkg + '/' + self.tgt
@@ -191,10 +192,7 @@ class Fuzzer(object):
     return self._results_output
 
   def url(self):
-    tgt = self.tgt
-    if self.is_zircon_fuzzer:
-      tgt = self.tgt + '.' + self.sanitizer
-    return 'fuchsia-pkg://fuchsia.com/%s#meta/%s.cmx' % (self.pkg, tgt)
+    return 'fuchsia-pkg://fuchsia.com/%s#meta/%s.cmx' % (self.pkg, self.tgt)
 
   def run(self, fuzzer_args, logfile=None):
     fuzz_cmd = ['run', self.url(), '-artifact_prefix=data/'] + fuzzer_args
