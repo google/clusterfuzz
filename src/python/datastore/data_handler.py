@@ -94,10 +94,9 @@ FuzzerDisplay = collections.namedtuple(
 @memoize.wrap(memoize.Memcache(MEMCACHE_TTL_IN_SECONDS))
 def get_all_project_names():
   """Return all project names."""
-  query = data_types.Testcase.query(
-      projection=[data_types.Testcase.project_name],
-      distinct=True).order(data_types.Testcase.project_name)
-  return [testcase.project_name for testcase in query if testcase.project_name]
+  query = data_types.Job.query(
+      projection=[data_types.Job.project], distinct=True)
+  return sorted([_.project for _ in query])
 
 
 def get_domain():
