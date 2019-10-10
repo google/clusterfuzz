@@ -31,6 +31,8 @@ CONFIG_DIRECTORY = os.path.join(
     os.path.expanduser('~'), '.config', 'clusterfuzz')
 AUTHORIZATION_CACHE_FILE = os.path.join(CONFIG_DIRECTORY, 'authorization-cache')
 
+AUTHORIZATION_HEADER = 'x-clusterfuzz-authorization'
+
 
 class SuppressOutput(object):
   """Suppress stdout and stderr.
@@ -101,10 +103,10 @@ def request(url,
         force_reauthorization=True,
         configuration=configuration)
 
-  if 'x-clusterfuzz-authorization' in response:
+  if AUTHORIZATION_HEADER in response:
     shell.create_directory(
         os.path.dirname(AUTHORIZATION_CACHE_FILE), create_intermediates=True)
-    utils.write_data_to_file(response['x-clusterfuzz-authorization'],
+    utils.write_data_to_file(response[AUTHORIZATION_HEADER],
                              AUTHORIZATION_CACHE_FILE)
 
   return response, content
