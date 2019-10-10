@@ -96,7 +96,7 @@ def get_all_project_names():
   """Return all project names."""
   query = data_types.Job.query(
       projection=[data_types.Job.project], distinct=True)
-  return sorted([_.project for _ in query])
+  return sorted([job.project for job in query])
 
 
 def get_domain():
@@ -1490,7 +1490,7 @@ def get_all_job_type_names(project=None):
   query = data_types.Job.query(projection=['name'])
   if project:
     query = query.filter(data_types.Job.project == project)
-  return sorted([_.name for _ in query])
+  return sorted([job.name for job in query])
 
 
 def get_coverage_information(fuzzer_name, date, create_if_needed=False):
