@@ -1000,9 +1000,10 @@ class GetTopCrashesForAllProjectsAndPlatforms(unittest.TestCase):
     ]
     self.mock.get.return_value = (1, self.top_crashes_rows)
     self.mock.get_last_successful_hour.return_value = 10000
-
-    data_types.Job(name='job', platform='LINUX', environment_string=('')).put()
-    test_utils.create_generic_testcase()
+    data_types.Job(
+        name='job',
+        platform='LINUX',
+        environment_string=('PROJECT_NAME = project')).put()
 
   def test(self):
     """Test."""

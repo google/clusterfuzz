@@ -94,10 +94,9 @@ FuzzerDisplay = collections.namedtuple(
 @memoize.wrap(memoize.Memcache(MEMCACHE_TTL_IN_SECONDS))
 def get_all_project_names():
   """Return all project names."""
-  query = data_types.Testcase.query(
-      projection=[data_types.Testcase.project_name],
-      distinct=True).order(data_types.Testcase.project_name)
-  return [testcase.project_name for testcase in query if testcase.project_name]
+  query = data_types.Job.query(
+      projection=[data_types.Job.project], distinct=True)
+  return sorted([job.project for job in query])
 
 
 def get_domain():
@@ -1491,7 +1490,7 @@ def get_all_job_type_names(project=None):
   query = data_types.Job.query(projection=['name'])
   if project:
     query = query.filter(data_types.Job.project == project)
-  return sorted([_.name for _ in query])
+  return sorted([job.name for job in query])
 
 
 def get_coverage_information(fuzzer_name, date, create_if_needed=False):
