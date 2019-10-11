@@ -117,6 +117,14 @@ def slow(func):
                              func)
 
 
+def reproduce_tool(func):
+  """Slow tests which are skipped during presubmit."""
+  return unittest.skipIf(
+      not environment.get_value('REPRODUCE_TOOL_TESTS', False),
+      'Skipping reproduce tool tests.')(
+          func)
+
+
 def android_device_required(func):
   """Skip Android-specific tests if we cannot run them."""
   reason = None

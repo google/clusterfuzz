@@ -31,6 +31,7 @@ from urllib import parse
 from base import json_utils
 from base import utils
 from bot import testcase_manager
+from bot.fuzzers import init
 from bot.tasks import commands
 from bot.tasks import setup
 from build_management import build_manager
@@ -51,6 +52,8 @@ CONFIG_DIRECTORY = os.path.join(
 DISPLAY = ':99'
 PROCESS_START_WAIT_SECONDS = 2
 SUPPORTED_PLATFORMS = ['android', 'fuchsia', 'linux', 'mac']
+
+FILENAME_RESPONSE_HEADER = 'x-goog-meta-filename'
 
 
 class SerializedTestcase(object):
@@ -118,7 +121,7 @@ def _download_testcase(testcase_id, testcase, configuration):
     raise errors.ReproduceToolUnrecoverableError(
         'Unable to download test case.')
 
-  bot_absolute_filename = response['x-goog-meta-filename']
+  bot_absolute_filename = response[FILENAME_RESPONSE_HEADER]
   # Store the test case in the config directory for debuggability.
   testcase_directory = os.path.join(CONFIG_DIRECTORY, 'current-testcase')
   shell.remove_directory(testcase_directory, recreate=True)
@@ -418,6 +421,9 @@ def _cleanup():
 
 def execute(args):
   """Attempt to reproduce a crash then report on the result."""
+  # Initialize fuzzing engines.
+  init.run()
+
   # The current working directory may change while we're running.
   absolute_build_dir = os.path.abspath(args.build_dir)
   try:
