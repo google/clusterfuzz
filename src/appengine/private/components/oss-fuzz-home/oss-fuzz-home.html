@@ -79,8 +79,8 @@
             <div class="card-actions">
              <template is="dom-if" if="{{job.has_stats}}">
                <if-else condition="[[job.single_target]]">
-                  <a slot="t" href="/fuzzer-stats?fuzzer=[[job.single_target]]&job=[[job.name]]&group_by=by-day"><paper-button>Fuzzer stats/coverage</paper-button></a>
-                  <a slot="f" href="/fuzzer-stats?fuzzer=[[job.engine_name]]&job=[[job.name]]&group_by=by-fuzzer"><paper-button>Fuzzer stats/coverage</paper-button></a>
+                  <a slot="t" href="/fuzzer-stats?project=[[project.name]]&fuzzer=[[job.single_target]]&job=[[job.name]]&group_by=by-day"><paper-button>Fuzzer stats/coverage</paper-button></a>
+                  <a slot="f" href="/fuzzer-stats?project=[[project.name]]&fuzzer=[[job.engine_name]]&job=[[job.name]]&group_by=by-fuzzer"><paper-button>Fuzzer stats/coverage</paper-button></a>
                </if-else>
              </template>
             </div>
