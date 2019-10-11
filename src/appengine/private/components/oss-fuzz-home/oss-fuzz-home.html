@@ -54,7 +54,7 @@
        <div class="card-actions">
          <a href="/testcases"><paper-button>All current crashes</paper-button></a>
          <template is="dom-if" if="[[info.is_internal_user]]">
-           <a href="/fuzzer-stats/by-fuzzer/fuzzer/libFuzzer"><paper-button>All fuzzer stats</paper-button></a>
+           <a href="/fuzzer-stats?fuzzer=libFuzzer&group_by=by-fuzzer"><paper-button>All fuzzer stats</paper-button></a>
            <a href="/crash-stats"><paper-button>All crash stats</paper-button></a>
          </template>
          <a href="https://oss-fuzz-build-logs.storage.googleapis.com/index.html"><paper-button>Builds status</paper-button></a>
@@ -79,8 +79,8 @@
             <div class="card-actions">
              <template is="dom-if" if="{{job.has_stats}}">
                <if-else condition="[[job.single_target]]">
-                  <a slot="t" href="/fuzzer-stats/by-day/fuzzer/[[job.single_target]]/job/[[job.name]]"><paper-button>Fuzzer stats/coverage</paper-button></a>
-                  <a slot="f" href="/fuzzer-stats/by-fuzzer/fuzzer/[[job.engine_name]]/job/[[job.name]]"><paper-button>Fuzzer stats/coverage</paper-button></a>
+                  <a slot="t" href="/fuzzer-stats?project=[[project.name]]&fuzzer=[[job.single_target]]&job=[[job.name]]&group_by=by-day"><paper-button>Fuzzer stats/coverage</paper-button></a>
+                  <a slot="f" href="/fuzzer-stats?project=[[project.name]]&fuzzer=[[job.engine_name]]&job=[[job.name]]&group_by=by-fuzzer"><paper-button>Fuzzer stats/coverage</paper-button></a>
                </if-else>
              </template>
             </div>
