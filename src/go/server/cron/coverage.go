@@ -230,6 +230,7 @@ func readJSON(ctx context.Context, url string, data interface{}) error {
 
 // FuzzerCoverage gets the latest code coverage stats and links to reports.
 func FuzzerCoverage(w http.ResponseWriter, r *http.Request) {
+	logs.Logf("FuzzerCoverage task started.")
 	cfg := config.NewProjectConfig()
 	bucket := cfg.GetString("coverage.reports.bucket")
 	url := latestReportInfoDir(bucket)
