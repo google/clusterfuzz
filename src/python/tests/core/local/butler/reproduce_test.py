@@ -175,7 +175,7 @@ class DownloadTestcaseTest(unittest.TestCase):
   def test_initial_request_failed(self):
     """Ensure that we bail out if the initial request fails."""
     self.mock.request.return_value = (FakeResponse(500), '')
-    testcase = reproduce.SerializedTestcase('{}')
+    testcase = reproduce.SerializedTestcase({})
     with self.assertRaises(errors.ReproduceToolUnrecoverableError):
       reproduce._download_testcase(1, testcase, self.config)
 
