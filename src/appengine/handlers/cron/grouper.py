@@ -30,15 +30,16 @@ FORWARDED_ATTRIBUTES = ('crash_state', 'crash_type', 'group_id',
                         'one_time_crasher_flag', 'project_name',
                         'security_flag', 'timestamp')
 
-GROUP_MAX_TESTCASE_LIMIT = 100
+GROUP_MAX_TESTCASE_LIMIT = 25
 
 
 class TestcaseAttributes(object):
   """Testcase attributes used for grouping."""
 
-  __slots__ = ('is_leader', 'issue_id') + FORWARDED_ATTRIBUTES
+  __slots__ = ('id', 'is_leader', 'issue_id') + FORWARDED_ATTRIBUTES
 
-  def __init__(self):
+  def __init__(self, testcase_id):
+    self.id = testcase_id
     self.is_leader = True
     self.issue_id = None
 
@@ -57,7 +58,7 @@ def combine_testcases_into_group(testcase_1, testcase_2, testcase_map):
   # If none of the two testcases have a group id, just assign a new group id to
   # both.
   if not testcase_1.group_id and not testcase_2.group_id:
-    new_group_id = get_new_group_id()
+    new_group_id = _get_new_group_id()
     testcase_1.group_id = new_group_id
     testcase_2.group_id = new_group_id
     return
@@ -80,152 +81,14 @@ def combine_testcases_into_group(testcase_1, testcase_2, testcase_map):
       testcase.group_id = group_id_to_reuse
 
 
-def get_new_group_id():
+def _get_new_group_id():
   """Get a new group id for testcase grouping."""
   new_group = data_types.TestcaseGroup()
   new_group.put()
   return new_group.key.id()
 
 
-def group_testcases():
-  """Group testcases based on rules like same bug numbers, similar crash
-  states, etc."""
-  testcase_map = {}
-  cached_issue_map = {}
-
-  for testcase_id in data_handler.get_open_testcase_id_iterator():
-    try:
-      testcase = data_handler.get_testcase_by_id(testcase_id)
-    except errors.InvalidTestcaseError:
-      # Already deleted.
-      continue
-
-    # Remove duplicates early on to avoid large groups.
-    if (not testcase.bug_information and not testcase.uploader_email and
-        has_testcase_with_same_params(testcase, testcase_map)):
-      logs.log('Deleting duplicate testcase %d.' % testcase_id)
-      testcase.key.delete()
-      continue
-
-    # Wait for minimization to finish as this might change crash params such
-    # as type and may mark it as duplicate / closed.
-    if not testcase.minimized_keys:
-      continue
-
-    # Store needed testcase attributes into |testcase_map|.
-    testcase_map[testcase_id] = TestcaseAttributes()
-    testcase_attributes = testcase_map[testcase_id]
-    for attribute_name in FORWARDED_ATTRIBUTES:
-      setattr(testcase_attributes, attribute_name,
-              getattr(testcase, attribute_name))
-
-    # Store original issue mappings in the testcase attributes.
-    if testcase.bug_information:
-      issue_id = int(testcase.bug_information)
-      project_name = testcase.project_name
-
-      if (project_name in cached_issue_map and
-          issue_id in cached_issue_map[project_name]):
-        testcase_attributes.issue_id = (
-            cached_issue_map[project_name][issue_id])
-      else:
-        issue_tracker = issue_tracker_utils.get_issue_tracker_for_testcase(
-            testcase)
-        if not issue_tracker:
-          continue
-
-        # Determine the original issue id traversing the list of duplicates.
-        try:
-          issue = issue_tracker.get_original_issue(issue_id)
-          original_issue_id = int(issue.id)
-        except:
-          # If we are unable to access the issue, then we can't determine
-          # the original issue id. Assume that it is the same as issue id.
-          logs.log_error(
-              'Unable to determine original issue for %d.' % issue_id)
-          original_issue_id = issue_id
-
-        if project_name not in cached_issue_map:
-          cached_issue_map[project_name] = {}
-        cached_issue_map[project_name][issue_id] = original_issue_id
-        cached_issue_map[project_name][original_issue_id] = original_issue_id
-        testcase_attributes.issue_id = original_issue_id
-
-  # No longer needed. Free up some memory.
-  cached_issue_map.clear()
-
-  group_testcases_with_similar_states(testcase_map)
-  group_testcases_with_same_issues(testcase_map)
-  group_leader.choose(testcase_map)
-
-  # TODO(aarya): Replace with an optimized implementation using dirty flag.
-  # Update the group mapping in testcase object.
-  for testcase_id in data_handler.get_open_testcase_id_iterator():
-    if testcase_id not in testcase_map:
-      # A new testcase that was just created. Skip for now, will be grouped in
-      # next iteration of group task.
-      continue
-
-    # If we are part of a group, then calculate the number of testcases in that
-    # group and lowest issue id of issues associated with testcases in that
-    # group.
-    updated_group_id = testcase_map[testcase_id].group_id
-    updated_is_leader = testcase_map[testcase_id].is_leader
-    updated_group_id_count = 0
-    updated_group_bug_information = 0
-    if updated_group_id:
-      for other_testcase in six.itervalues(testcase_map):
-        if other_testcase.group_id != updated_group_id:
-          continue
-        updated_group_id_count += 1
-
-        # Update group issue id to be lowest issue id in the entire group.
-        if other_testcase.issue_id is None:
-          continue
-        if (not updated_group_bug_information or
-            updated_group_bug_information > other_testcase.issue_id):
-          updated_group_bug_information = other_testcase.issue_id
-
-    # If this group id is used by only one testcase, then remove it.
-    if updated_group_id_count == 1:
-      data_handler.delete_group(updated_group_id, update_testcases=False)
-      updated_group_id = 0
-      updated_group_bug_information = 0
-      updated_is_leader = True
-
-    # If this group has more than the maximum allowed testcases, log an error
-    # so that the sheriff can later debug what caused this. Usually, this is a
-    # bug in grouping logic OR a ever changing crash signature (e.g. slightly
-    # different crash types or crash states). We cannot bail out as otherwise,
-    # we will not group the testcase leading to a spam of new filed bugs.
-    if updated_group_id_count > GROUP_MAX_TESTCASE_LIMIT:
-      logs.log_error(
-          'Group %d exceeds maximum allowed testcases.' % updated_group_id)
-
-    try:
-      testcase = data_handler.get_testcase_by_id(testcase_id)
-    except errors.InvalidTestcaseError:
-      # Already deleted.
-      continue
-
-    is_changed = (
-        (testcase.group_id != updated_group_id) or
-        (testcase.group_bug_information != updated_group_bug_information) or
-        (testcase.is_leader != updated_is_leader))
-
-    if not is_changed:
-      # If nothing is changed, no more work to do. It's faster this way.
-      continue
-
-    testcase.group_bug_information = updated_group_bug_information
-    testcase.group_id = updated_group_id
-    testcase.is_leader = updated_is_leader
-    testcase.put()
-    logs.log(
-        'Updated testcase %d group to %d.' % (testcase_id, updated_group_id))
-
-
-def group_testcases_with_same_issues(testcase_map):
+def _group_testcases_with_same_issues(testcase_map):
   """Group testcases that are associated with same underlying issue."""
   for testcase_1_id, testcase_1 in six.iteritems(testcase_map):
     for testcase_2_id, testcase_2 in six.iteritems(testcase_map):
@@ -253,7 +116,7 @@ def group_testcases_with_same_issues(testcase_map):
       combine_testcases_into_group(testcase_1, testcase_2, testcase_map)
 
 
-def group_testcases_with_similar_states(testcase_map):
+def _group_testcases_with_similar_states(testcase_map):
   """Group testcases with similar looking crash states."""
   for testcase_1_id, testcase_1 in six.iteritems(testcase_map):
     for testcase_2_id, testcase_2 in six.iteritems(testcase_map):
@@ -301,7 +164,7 @@ def group_testcases_with_similar_states(testcase_map):
       combine_testcases_into_group(testcase_1, testcase_2, testcase_map)
 
 
-def has_testcase_with_same_params(testcase, testcase_map):
+def _has_testcase_with_same_params(testcase, testcase_map):
   """Return a bool whether there is another testcase with same params."""
   for other_testcase_id in testcase_map:
     # yapf: disable
@@ -319,3 +182,175 @@ def has_testcase_with_same_params(testcase, testcase_map):
     # yapf: enable
 
   return False
+
+
+def _shink_large_groups_if_needed(testcase_map):
+  """Shrinks groups that exceed a particular limit."""
+  group_id_with_testcases_map = {}
+
+  for testcase in six.itervalues(testcase_map):
+    if not testcase.group_id:
+      continue
+
+    if not testcase.group_id in group_id_with_testcases_map:
+      group_id_with_testcases_map[testcase.group_id] = []
+
+    # Prioritize testcase with issues over regular testcases.
+    if testcase.issue_id:
+      group_id_with_testcases_map[testcase.group_id].insert(0, testcase)
+    else:
+      group_id_with_testcases_map[testcase.group_id].append(testcase)
+
+  for group_id in group_id_with_testcases_map:
+    testcases_in_group = group_id_with_testcases_map[group_id]
+    if len(testcases_in_group) <= GROUP_MAX_TESTCASE_LIMIT:
+      continue
+
+    for testcase in testcases_in_group[GROUP_MAX_TESTCASE_LIMIT:]:
+      try:
+        testcase_entity = data_handler.get_testcase_by_id(testcase.id)
+      except errors.InvalidTestcaseError:
+        # Already deleted.
+        continue
+
+      if testcase_entity.bug_information:
+        continue
+
+      logs.log_warn(('Deleting testcase {testcase_id} due to overflowing group '
+                     '{group_id}.').format(
+                         testcase_id=testcase.id, group_id=testcase.group_id))
+      testcase_entity.key.delete()
+
+
+def group_testcases():
+  """Group testcases based on rules like same bug numbers, similar crash
+  states, etc."""
+  testcase_map = {}
+  cached_issue_map = {}
+
+  for testcase_id in data_handler.get_open_testcase_id_iterator():
+    try:
+      testcase = data_handler.get_testcase_by_id(testcase_id)
+    except errors.InvalidTestcaseError:
+      # Already deleted.
+      continue
+
+    # Remove duplicates early on to avoid large groups.
+    if (not testcase.bug_information and not testcase.uploader_email and
+        _has_testcase_with_same_params(testcase, testcase_map)):
+      logs.log('Deleting duplicate testcase %d.' % testcase_id)
+      testcase.key.delete()
+      continue
+
+    # Wait for minimization to finish as this might change crash params such
+    # as type and may mark it as duplicate / closed.
+    if not testcase.minimized_keys:
+      continue
+
+    # Store needed testcase attributes into |testcase_map|.
+    testcase_map[testcase_id] = TestcaseAttributes(testcase_id)
+    testcase_attributes = testcase_map[testcase_id]
+    for attribute_name in FORWARDED_ATTRIBUTES:
+      setattr(testcase_attributes, attribute_name,
+              getattr(testcase, attribute_name))
+
+    # Store original issue mappings in the testcase attributes.
+    if testcase.bug_information:
+      issue_id = int(testcase.bug_information)
+      project_name = testcase.project_name
+
+      if (project_name in cached_issue_map and
+          issue_id in cached_issue_map[project_name]):
+        testcase_attributes.issue_id = (
+            cached_issue_map[project_name][issue_id])
+      else:
+        issue_tracker = issue_tracker_utils.get_issue_tracker_for_testcase(
+            testcase)
+        if not issue_tracker:
+          logs.log_error(
+              'Unable to access issue tracker for issue %d.' % issue_id)
+          testcase_attributes.issue_id = issue_id
+          continue
+
+        # Determine the original issue id traversing the list of duplicates.
+        try:
+          issue = issue_tracker.get_original_issue(issue_id)
+          original_issue_id = int(issue.id)
+        except:
+          # If we are unable to access the issue, then we can't determine
+          # the original issue id. Assume that it is the same as issue id.
+          logs.log_error(
+              'Unable to determine original issue for issue %d.' % issue_id)
+          testcase_attributes.issue_id = issue_id
+          continue
+
+        if project_name not in cached_issue_map:
+          cached_issue_map[project_name] = {}
+        cached_issue_map[project_name][issue_id] = original_issue_id
+        cached_issue_map[project_name][original_issue_id] = original_issue_id
+        testcase_attributes.issue_id = original_issue_id
+
+  # No longer needed. Free up some memory.
+  cached_issue_map.clear()
+
+  _group_testcases_with_similar_states(testcase_map)
+  _group_testcases_with_same_issues(testcase_map)
+  _shink_large_groups_if_needed(testcase_map)
+  group_leader.choose(testcase_map)
+
+  # TODO(aarya): Replace with an optimized implementation using dirty flag.
+  # Update the group mapping in testcase object.
+  for testcase_id in data_handler.get_open_testcase_id_iterator():
+    if testcase_id not in testcase_map:
+      # A new testcase that was just created. Skip for now, will be grouped in
+      # next iteration of group task.
+      continue
+
+    # If we are part of a group, then calculate the number of testcases in that
+    # group and lowest issue id of issues associated with testcases in that
+    # group.
+    updated_group_id = testcase_map[testcase_id].group_id
+    updated_is_leader = testcase_map[testcase_id].is_leader
+    updated_group_id_count = 0
+    updated_group_bug_information = 0
+    if updated_group_id:
+      for other_testcase in six.itervalues(testcase_map):
+        if other_testcase.group_id != updated_group_id:
+          continue
+        updated_group_id_count += 1
+
+        # Update group issue id to be lowest issue id in the entire group.
+        if other_testcase.issue_id is None:
+          continue
+        if (not updated_group_bug_information or
+            updated_group_bug_information > other_testcase.issue_id):
+          updated_group_bug_information = other_testcase.issue_id
+
+    # If this group id is used by only one testcase, then remove it.
+    if updated_group_id_count == 1:
+      data_handler.delete_group(updated_group_id, update_testcases=False)
+      updated_group_id = 0
+      updated_group_bug_information = 0
+      updated_is_leader = True
+
+    try:
+      testcase = data_handler.get_testcase_by_id(testcase_id)
+    except errors.InvalidTestcaseError:
+      # Already deleted.
+      continue
+
+    is_changed = (
+        (testcase.group_id != updated_group_id) or
+        (testcase.group_bug_information != updated_group_bug_information) or
+        (testcase.is_leader != updated_is_leader))
+
+    if not is_changed:
+      # If nothing is changed, no more work to do. It's faster this way.
+      continue
+
+    testcase.group_bug_information = updated_group_bug_information
+    testcase.group_id = updated_group_id
+    testcase.is_leader = updated_is_leader
+    testcase.put()
+    logs.log(
+        'Updated testcase %d group to %d.' % (testcase_id, updated_group_id))

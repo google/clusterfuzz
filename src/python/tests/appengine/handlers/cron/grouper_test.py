@@ -13,6 +13,8 @@
 # limitations under the License.
 """Tests for grouper."""
 
+from builtins import range
+
 import datetime
 import unittest
 
@@ -249,3 +251,30 @@ class GrouperTest(unittest.TestCase):
       self.testcases[index] = data_handler.get_testcase_by_id(t.key.id())
       self.assertEqual(self.testcases[index].group_id, 0)
       self.assertTrue(self.testcases[index].is_leader)
+
+
+@test_utils.with_cloud_emulators('datastore')
+class GroupExceedMaxTestcasesTest(unittest.TestCase):
+  """Grouper test when a group exceeds maximum number of testcases."""
+
+  def test_group_exceed_max_testcases(self):
+    """Test that group auto-shrinks when it exceeds maximum number of
+    testcases."""
+    for i in range(1, 31):
+      testcase = test_utils.create_generic_testcase()
+      testcase.crash_type = 'Heap-buffer-overflow'
+      testcase.crash_state = 'abcdefgh' + str(i)
+      testcase.project_name = 'project'
+      # Attach actual issues to some testcases.
+      if i in [9, 10, 28, 29]:
+        testcase.bug_information = '123'
+      testcase.put()
+
+    unrelated_testcase = test_utils.create_generic_testcase()
+
+    grouper.group_testcases()
+
+    testcase_ids = list(data_handler.get_open_testcase_id_iterator())
+    expected_testcase_ids = list(range(
+        1, 24)) + [28, 29, unrelated_testcase.key.id()]
+    self.assertEqual(expected_testcase_ids, testcase_ids)
