@@ -19,6 +19,7 @@ from base import errors
 from base import tasks
 from base import utils
 from bot import testcase_manager
+from bot.fuzzers import engine_common
 from bot.tasks import setup
 from bot.tasks import task_creation
 from build_management import build_manager
@@ -137,8 +138,32 @@ def _check_fixed_for_custom_binary(testcase, job_type, testcase_file_path):
       testcase, revision, message='fixed on latest custom build')
 
 
-def _testcase_reproduces_in_revision(testcase, testcase_file_path, job_type,
-                                     revision):
+def _update_issue_metadata(testcase):
+  """Update issue metadata."""
+  fuzz_target = testcase.get_fuzz_target()
+  if not fuzz_target:
+    return
+
+  build_dir = environment.get_value('BUILD_DIR')
+  target_path = engine_common.find_fuzzer_path(build_dir, fuzz_target.binary)
+  if not target_path:
+    logs.log_error('Failed to find target path for ' + fuzz_target.binary)
+    return
+
+  metadata = engine_common.get_all_issue_metadata(target_path)
+  for key, value in metadata.items():
+    old_value = testcase.get_metadata(key)
+    if old_value != value:
+      logs.log('Updating issue metadata for {} from {} to {}.'.format(
+          key, old_value, value))
+      testcase.set_metadata(key, value)
+
+
+def _testcase_reproduces_in_revision(testcase,
+                                     testcase_file_path,
+                                     job_type,
+                                     revision,
+                                     update_metadata=False):
   """Test to see if a test case reproduces in the specified revision."""
   build_manager.setup_build(revision)
   if not build_manager.check_app_path():
@@ -155,6 +180,10 @@ def _testcase_reproduces_in_revision(testcase, testcase_file_path, job_type,
   result = testcase_manager.test_for_crash_with_retries(
       testcase, testcase_file_path, test_timeout, http_flag=testcase.http_flag)
   _log_output(revision, result)
+
+  if update_metadata:
+    _update_issue_metadata(testcase)
+
   return result
 
 
@@ -242,8 +271,12 @@ def find_fixed_range(testcase_id, job_type):
 
   # Check to see if this testcase is still crashing now. If it is, then just
   # bail out.
-  result = _testcase_reproduces_in_revision(testcase, testcase_file_path,
-                                            job_type, max_revision)
+  result = _testcase_reproduces_in_revision(
+      testcase,
+      testcase_file_path,
+      job_type,
+      max_revision,
+      update_metadata=True)
   if result.is_crash():
     logs.log('Found crash with same signature on latest revision r%d.' %
              max_revision)
