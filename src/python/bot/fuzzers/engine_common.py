@@ -413,6 +413,25 @@ def get_issue_components(fuzz_target_path):
   return get_issue_metadata(fuzz_target_path, COMPONENTS_FILE_EXTENSION)
 
 
+def get_all_issue_metadata(fuzz_target_path):
+  """Get issue related metadata for a target."""
+  metadata = {}
+
+  issue_labels = get_issue_labels(fuzz_target_path)
+  if issue_labels:
+    metadata['issue_labels'] = ','.join(issue_labels)
+
+  issue_components = get_issue_components(fuzz_target_path)
+  if issue_components:
+    metadata['issue_components'] = ','.join(issue_components)
+
+  issue_owners = get_issue_owners(fuzz_target_path)
+  if issue_owners:
+    metadata['issue_owners'] = ','.join(issue_owners)
+
+  return metadata
+
+
 def format_fuzzing_strategies(fuzzing_strategies):
   """Format the strategies used for logging purposes."""
   if not fuzzing_strategies:

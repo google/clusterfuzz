@@ -13,6 +13,7 @@
 # limitations under the License.
 """Tests for regression_task."""
 
+import json
 import os
 import unittest
 
@@ -20,6 +21,7 @@ from base import errors
 from bot.tasks import progression_task
 from datastore import data_types
 from tests.test_libs import helpers
+from tests.test_libs import test_utils
 
 
 class WriteToBigqueryTest(unittest.TestCase):
@@ -67,3 +69,66 @@ class TestcaseReproducesInRevisionTest(unittest.TestCase):
     with self.assertRaises(errors.BuildSetupError):
       progression_task._testcase_reproduces_in_revision(  # pylint: disable=protected-access
           None, '/tmp/blah', 'job_type', 1)
+
+
+@test_utils.with_cloud_emulators('datastore')
+class UpdateIssueMetadataTest(unittest.TestCase):
+  """Test _update_issue_metadata."""
+
+  def setUp(self):
+    helpers.patch(self, [
+        'bot.fuzzers.engine_common.find_fuzzer_path',
+        'bot.fuzzers.engine_common.get_all_issue_metadata',
+    ])
+
+    data_types.FuzzTarget(engine='libFuzzer', binary='fuzzer').put()
+    self.mock.get_all_issue_metadata.return_value = {
+        'issue_labels': 'label1',
+        'issue_components': 'component1',
+    }
+
+    self.testcase = data_types.Testcase(
+        overridden_fuzzer_name='libFuzzer_fuzzer')
+    self.testcase.put()
+
+  def test_update_issue_metadata_non_existent(self):
+    """Test update issue metadata a testcase with no metadata."""
+    progression_task._update_issue_metadata(self.testcase)  # pylint: disable=protected-access
+
+    testcase = self.testcase.key.get()
+    self.assertDictEqual({
+        'issue_labels': 'label1',
+        'issue_components': 'component1',
+    }, json.loads(testcase.additional_metadata))
+
+  def test_update_issue_metadata_replace(self):
+    """Test update issue metadata a testcase with different metadata."""
+    self.testcase.additional_metadata = json.dumps({
+        'issue_labels': 'label1',
+        'issue_components': 'component2',
+    })
+    progression_task._update_issue_metadata(self.testcase)  # pylint: disable=protected-access
+
+    testcase = self.testcase.key.get()
+    self.assertDictEqual({
+        'issue_labels': 'label1',
+        'issue_components': 'component1',
+    }, json.loads(testcase.additional_metadata))
+
+  def test_update_issue_metadata_same(self):
+    """Test update issue metadata a testcase with the same metadata."""
+    self.testcase.additional_metadata = json.dumps({
+        'issue_labels': 'label1',
+        'issue_components': 'component1',
+    })
+    self.testcase.put()
+
+    self.testcase.crash_type = 'test'  # Should not be written.
+    progression_task._update_issue_metadata(self.testcase)  # pylint: disable=protected-access
+
+    testcase = self.testcase.key.get()
+    self.assertDictEqual({
+        'issue_labels': 'label1',
+        'issue_components': 'component1',
+    }, json.loads(testcase.additional_metadata))
+    self.assertIsNone(testcase.crash_type)
