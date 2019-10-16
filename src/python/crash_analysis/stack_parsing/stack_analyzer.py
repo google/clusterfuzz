@@ -922,13 +922,16 @@ def fix_check_failure_string(failure_string):
   # Remove |CHECK_FAILURE_PATTERN| from start of failure string.
   failure_string = utils.strip_from_left(failure_string, CHECK_FAILURE_PATTERN)
 
-  # Cover example like "CHECK_EQ( (unsigned)ptr[0],1u) failed: 25 vs. 1".
+  # Handle cases like "CHECK_EQ( (unsigned)ptr[0],1u) failed: 25 vs. 1".
   # This only happens on Android, where we cannot strip the
   # CHECK_FAILURE_PATTERN, so we looked for "failed:" as preceding string.
   failure_string = re.sub(r'(?<=failed): .*\svs\.\s.*$', r'', failure_string)
 
-  # Cover example like len > 0 (-1 vs. 0)".
+  # Handle cases like "len > 0 (-1 vs. 0)".
   failure_string = re.sub(r' \(.*\s+vs\.\s+.*', r'', failure_string)
+
+  # Handle cases like ": '....'", '= "..."', etc.
+  failure_string = re.sub(r'\s*[:=]\s*([\'"]).*\1$', r'', failure_string)
 
   # Strip unneeded chars at end.
   return failure_string.strip(' .\'"[]')

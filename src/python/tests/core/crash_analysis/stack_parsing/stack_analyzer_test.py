@@ -2083,6 +2083,26 @@ class StackAnalyzerTestcase(unittest.TestCase):
                                   expected_state, expected_stacktrace,
                                   expected_security_flag)
 
+  def test_check_failure_with_fuzzer_data(self):
+    """Test the CHECK failure crash with fuzzer data."""
+    for data in [('F0813 00:29:27.775753  384244 file.cc:130] '
+                  'Check failed: query failed: "fuzzed456$data"'),
+                 ('F0813 00:29:27.775753  384244 file.cc:130] '
+                  'Check failed: query failed: \'fuzzed456$data\''),
+                 ('F0813 00:29:27.775753  384244 file.cc:130] '
+                  'Check failed: query failed = \'fuzzed456$data\''),
+                 ('F0813 00:29:27.775753  384244 file.cc:130] '
+                  'Check failed: query failed = "fuzzed456$data"')]:
+      expected_type = 'CHECK failure'
+      expected_address = ''
+      expected_state = ('query failed in file.cc\n')
+      expected_stacktrace = data
+      expected_security_flag = False
+
+      self._validate_get_crash_data(data, expected_type, expected_address,
+                                    expected_state, expected_stacktrace,
+                                    expected_security_flag)
+
   def test_oom(self):
     """Test an out of memory stacktrace."""
     data = self._read_test_data('oom.txt')
