@@ -576,6 +576,7 @@ class AflRunnerCommon(object):
     self.merge_timeout = engine_common.get_merge_timeout(DEFAULT_MERGE_TIMEOUT)
     self.showmap_no_output_logged = False
     self._fuzz_args = []
+    self._retried_slow_start = False
 
   @property
   def showmap_output_path(self):
@@ -626,6 +627,7 @@ class AflRunnerCommon(object):
     Returns:
       A new_process.ProcessResult.
     """
+    initial_executable_path = self._executable_path
     self._executable_path = self.target_path
 
     assert not testcase_path.isdigit(), ('We don\'t want to specify number of'
@@ -639,6 +641,7 @@ class AflRunnerCommon(object):
           'AFL target exited with abnormal exit code: %s.' % result.return_code,
           output=result.output)
 
+    self._executable_path = initial_executable_path
     return result
 
   def set_environment_variables(self):
@@ -652,7 +655,7 @@ class AflRunnerCommon(object):
 
   def afl_setup(self):
     """Make sure we can run afl. Delete any files that afl_driver needs to
-    create and set any environmnet variables it needs.
+    create and set any environment variables it needs.
     """
     self.set_environment_variables()
     remove_path(self.stderr_file_path)
@@ -914,6 +917,9 @@ class AflRunnerCommon(object):
       if self.prepare_retry_if_cpu_error(fuzz_result):
         continue  # Try fuzzing again with the cpu error fixed.
 
+      if self.prepare_retry_if_slow_start(fuzz_result):
+        continue  # Try fuzzing again with the cpu error fixed.
+
       # If we can't do anything useful about the error, log it and don't try to
       # fuzz again.
       logs.log_error(
@@ -924,6 +930,20 @@ class AflRunnerCommon(object):
       break
 
     return fuzz_result
+
+  def prepare_retry_if_slow_start(self, fuzz_result):
+    """Retry running AFL if this looks like a slow start error.
+    See https://github.com/google/clusterfuzz/issues/1112."""
+    # Only try this once.
+    if self._retried_slow_start:
+      return False
+    if 'Timeout while initializing fork server' not in fuzz_result.output:
+      return False
+
+    # Try to warm up the filesystem cache by running the binary once.
+    self._retried_slow_start = True
+    self.run_single_testcase('/dev/null')
+    return True
 
   def prepare_retry_if_cpu_error(self, fuzz_result):
     """AFL will try to bind targets to a particular core for a speed
