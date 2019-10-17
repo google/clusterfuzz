@@ -166,6 +166,10 @@ def format_record(record):
   if worker_bot_name:
     entry['worker_bot_name'] = worker_bot_name
 
+  fuzz_target = os.getenv('FUZZ_TARGET')
+  if fuzz_target:
+    entry['fuzz_target'] = fuzz_target
+
   # Log bot shutdown cases as WARNINGs since this is expected for preemptibles.
   if (entry['severity'] in ['ERROR', 'CRITICAL'] and
       'IOError: [Errno 4] Interrupted function call' in entry['message']):

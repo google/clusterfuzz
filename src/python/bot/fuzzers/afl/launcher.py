@@ -1431,18 +1431,11 @@ def main(argv):
   # Initialize variables.
   testcase_file_path = argv[1]
   target_name = environment.get_value('FUZZ_TARGET')
-
   input_directory = environment.get_value('FUZZ_CORPUS_DIR')
-  fuzzer_name = data_types.fuzz_target_project_qualified_name(
-      utils.current_project(), target_name)
 
-  # Initialize log handler.
-  logs.configure(
-      'run_fuzzer', {
-          'fuzzer': fuzzer_name,
-          'engine': 'afl',
-          'job_name': environment.get_value('JOB_NAME')
-      })
+  # FIXME: Remove this once AFL is migrated to the new engine impl and runs in
+  # same python process.
+  logs.configure('run_fuzzer')
 
   _verify_system_config()
 
