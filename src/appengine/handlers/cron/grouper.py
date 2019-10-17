@@ -184,20 +184,24 @@ def _has_testcase_with_same_params(testcase, testcase_map):
   return False
 
 
-def _shink_large_groups_if_needed(testcase_map):
+def _shrink_large_groups_if_needed(testcase_map):
   """Shrinks groups that exceed a particular limit."""
-  group_id_with_testcases_map = {}
 
+  def _key_func(testcase):
+    weight = 0
+    if not testcase.one_time_crasher_flag:
+      weight |= 2**1
+    if testcase.issue_id:
+      weight |= 2**2
+    return weight
+
+  group_id_with_testcases_map = {}
   for testcase in six.itervalues(testcase_map):
     if not testcase.group_id:
       continue
 
-    if not testcase.group_id in group_id_with_testcases_map:
-      group_id_with_testcases_map[testcase.group_id] = []
-
-    # Prioritize testcase with issues over regular testcases.
-    if testcase.issue_id:
-      group_id_with_testcases_map[testcase.group_id].insert(0, testcase)
+    if testcase.group_id not in group_id_with_testcases_map:
+      group_id_with_testcases_map[testcase.group_id] = [testcase]
     else:
       group_id_with_testcases_map[testcase.group_id].append(testcase)
 
@@ -206,7 +210,8 @@ def _shink_large_groups_if_needed(testcase_map):
     if len(testcases_in_group) <= GROUP_MAX_TESTCASE_LIMIT:
       continue
 
-    for testcase in testcases_in_group[GROUP_MAX_TESTCASE_LIMIT:]:
+    testcases_in_group = sorted(testcases_in_group, key=_key_func)
+    for testcase in testcases_in_group[:-GROUP_MAX_TESTCASE_LIMIT]:
       try:
         testcase_entity = data_handler.get_testcase_by_id(testcase.id)
       except errors.InvalidTestcaseError:
@@ -295,7 +300,7 @@ def group_testcases():
 
   _group_testcases_with_similar_states(testcase_map)
   _group_testcases_with_same_issues(testcase_map)
-  _shink_large_groups_if_needed(testcase_map)
+  _shrink_large_groups_if_needed(testcase_map)
   group_leader.choose(testcase_map)
 
   # TODO(aarya): Replace with an optimized implementation using dirty flag.
