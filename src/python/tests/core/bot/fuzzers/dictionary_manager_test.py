@@ -21,6 +21,9 @@ from bot.fuzzers import dictionary_manager
 from system import environment
 from tests.test_libs import helpers as test_helpers
 
+DATA_DIRECTORY = os.path.join(
+    os.path.dirname(__file__), 'dictionary_manager_data')
+
 
 class DictionaryManagerTest(unittest.TestCase):
   """Dictionary management tests."""
@@ -28,10 +31,8 @@ class DictionaryManagerTest(unittest.TestCase):
   def setUp(self):
     """Initialize path for a local copy of the dictionary and other values."""
     test_helpers.patch_environ(self)
-    self.data_directory = os.path.join(
-        os.path.dirname(__file__), 'dictionary_manager_data')
     self.local_dict_path = os.path.join(
-        self.data_directory, dictionary_manager.RECOMMENDED_DICTIONARY_FILENAME)
+        DATA_DIRECTORY, dictionary_manager.RECOMMENDED_DICTIONARY_FILENAME)
     environment.set_value('FAIL_RETRIES', 1)
 
   def tearDown(self):
@@ -51,26 +52,26 @@ class DictionaryManagerTest(unittest.TestCase):
     """Test parsing of recommended dictionary from fuzzer log."""
     dict_manager = dictionary_manager.DictionaryManager('fuzzer_name')
     log_data = utils.read_data_from_file(
-        os.path.join(self.data_directory, 'log_with_recommended_dict.txt'),
+        os.path.join(DATA_DIRECTORY, 'log_with_recommended_dict.txt'),
         eval_data=False)
 
     recommended_dict = dict_manager.parse_recommended_dictionary_from_data(
         log_data)
 
     expected_dictionary_path = os.path.join(
-        self.data_directory, 'expected_parsed_recommended_dictionary.txt')
+        DATA_DIRECTORY, 'expected_parsed_recommended_dictionary.txt')
     expected_dictionary = self._parse_dictionary_file(expected_dictionary_path)
 
     self.assertEqual(sorted(recommended_dict), sorted(expected_dictionary))
 
   def test_recommended_dictionary_merge(self):
     """Test merging with GCS copy of recommended dictionary."""
-    fake_gcs_dict_path = os.path.join(self.data_directory,
+    fake_gcs_dict_path = os.path.join(DATA_DIRECTORY,
                                       'fake_gcs_recommended_dictionary.txt')
 
     dict_manager = dictionary_manager.DictionaryManager('fuzzer_name')
     log_data = utils.read_data_from_file(
-        os.path.join(self.data_directory, 'log_with_recommended_dict.txt'),
+        os.path.join(DATA_DIRECTORY, 'log_with_recommended_dict.txt'),
         eval_data=False)
 
     dict_from_log = dict_manager.parse_recommended_dictionary_from_data(
@@ -83,7 +84,7 @@ class DictionaryManagerTest(unittest.TestCase):
     # Compare resulting dictionary with its expected result.
     merged_dictionary = self._parse_dictionary_file(self.local_dict_path)
     expected_dictionary_path = os.path.join(
-        self.data_directory, 'expected_merged_recommended_dictionary.txt')
+        DATA_DIRECTORY, 'expected_merged_recommended_dictionary.txt')
     expected_dictionary = self._parse_dictionary_file(expected_dictionary_path)
 
     self.assertEqual(sorted(merged_dictionary), sorted(expected_dictionary))
@@ -92,13 +93,62 @@ class DictionaryManagerTest(unittest.TestCase):
     """Test parsing of useless dictionary from fuzzer log."""
     dict_manager = dictionary_manager.DictionaryManager('fuzzer_name')
     log_data = utils.read_data_from_file(
-        os.path.join(self.data_directory, 'log_with_useless_dict.txt'),
+        os.path.join(DATA_DIRECTORY, 'log_with_useless_dict.txt'),
         eval_data=False)
 
     useless_dict = dict_manager.parse_useless_dictionary_from_data(log_data)
 
     expected_dictionary_path = os.path.join(
-        self.data_directory, 'expected_parsed_useless_dictionary.txt')
+        DATA_DIRECTORY, 'expected_parsed_useless_dictionary.txt')
     expected_dictionary = self._parse_dictionary_file(expected_dictionary_path)
 
     self.assertEqual(sorted(useless_dict), sorted(expected_dictionary))
+
+
+class CorrectIfNeededTest(unittest.TestCase):
+  """Tests for the correct_if_needed function."""
+
+  def setUp(self):
+    test_helpers.patch_environ(self)
+    test_helpers.patch(self, [
+        'base.utils.write_data_to_file',
+    ])
+    environment.set_value('FAIL_RETRIES', 1)
+
+  def _validate_correction(self, input_filename, output_filename):
+    full_input_filename = os.path.join(DATA_DIRECTORY, input_filename)
+    dictionary_manager.correct_if_needed(full_input_filename)
+    full_output_filename = os.path.join(DATA_DIRECTORY, output_filename)
+    expected_output = utils.read_data_from_file(
+        full_output_filename, eval_data=False)
+    self.mock.write_data_to_file.assert_called_once_with(
+        expected_output, full_input_filename)
+
+  def _validate_no_action(self, input_filename):
+    dictionary_manager.correct_if_needed(
+        os.path.join(DATA_DIRECTORY, input_filename))
+    self.assertFalse(self.mock.write_data_to_file.called)
+
+  def test_no_action_for_valid_dict(self):
+    """Ensure that we don't rewrite valid dictionaries."""
+    self._validate_no_action('simple_correct_dictionary.txt')
+
+  def test_no_action_for_complex_valid_dict(self):
+    """Ensure that we don't rewrite an in-use valid dictionary."""
+    self._validate_no_action('example_correct_dictionary.txt')
+
+  def test_simple_corrections(self):
+    """Ensure that we correct various classes of issues in a single dict."""
+    self._validate_correction('incorrect_dictionary.txt',
+                              'corrected_dictionary_expected.txt')
+
+  def test_realworld_example(self):
+    """Ensure that we can correct an in-use invalid dictionary."""
+    self._validate_correction('example_invalid_dictionary.txt',
+                              'example_corrected_dictionary.txt')
+
+  def test_no_exception_on_invalid_paths(self):
+    """Ensure that the function bails out on invalid file paths."""
+    dictionary_manager.correct_if_needed(None)
+    dictionary_manager.correct_if_needed('')
+    dictionary_manager.correct_if_needed('/does/not/exist')
