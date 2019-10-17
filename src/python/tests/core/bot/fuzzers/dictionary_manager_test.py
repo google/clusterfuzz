@@ -119,14 +119,14 @@ class CorrectDictionaryTest(unittest.TestCase):
     full_input_filename = os.path.join(DATA_DIRECTORY, input_filename)
     dictionary_manager.correct_dictionary(full_input_filename)
     full_output_filename = os.path.join(DATA_DIRECTORY, output_filename)
-    expected_output = utils.read_data_from_file(full_output_filename,
-                                                eval_data=False)
+    expected_output = utils.read_data_from_file(
+        full_output_filename, eval_data=False)
     self.mock.write_data_to_file.assert_called_once_with(
         expected_output, full_input_filename)
 
   def _validate_no_action(self, input_filename):
-    dictionary_manager.correct_dictionary(os.path.join(
-        DATA_DIRECTORY, input_filename))
+    dictionary_manager.correct_dictionary(
+        os.path.join(DATA_DIRECTORY, input_filename))
     self.assertFalse(self.mock.write_data_to_file.called)
 
   def test_no_action_for_valid_dict(self):

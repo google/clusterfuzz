@@ -135,7 +135,9 @@ def merge_dictionary_files(original_dictionary_path,
 
 def correct_dictionary(dictionary_path):
   """Corrects obvious errors such as missing quotes in a dictionary."""
+
   def fix_line(line):
+    """Correct a single dictionary line."""
     # Ignore blank and comment lines.
     if not line or line.startswith('#'):
       return line
