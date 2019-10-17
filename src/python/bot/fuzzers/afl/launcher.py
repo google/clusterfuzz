@@ -815,6 +815,7 @@ class AflRunnerCommon(object):
     # Define here to capture in closures.
     max_total_time = self.initial_max_total_time
     fuzz_result = None
+    from remote_pdb import RemotePdb; RemotePdb('127.0.0.1', 4444).set_trace()
 
     def get_time_spent_fuzzing():
       """Gets the amount of time spent running afl-fuzz so far."""
@@ -923,7 +924,7 @@ class AflRunnerCommon(object):
         continue  # Try fuzzing again with the cpu error fixed.
 
       if self.prepare_retry_if_slow_start(fuzz_result):
-        continue  # Try fuzzing again with the cpu error fixed.
+        continue  # Try fuzzing again with the slow start error fixed.
 
       # If we can't do anything useful about the error, log it and don't try to
       # fuzz again.
@@ -947,6 +948,7 @@ class AflRunnerCommon(object):
 
     # Try to warm up the filesystem cache by running the binary once.
     self._retried_slow_start = True
+    logs.log('Trying to prevent forkserver timeouts by warming cache.')
     self.run_single_testcase('/dev/null')
     return True
 

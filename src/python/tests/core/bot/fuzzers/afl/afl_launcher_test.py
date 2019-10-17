@@ -517,7 +517,9 @@ class AflRunnerTest(LauncherTestBase):
   def setUp(self):
     super(AflRunnerTest, self).setUp()
     test_helpers.patch_environ(self)
-    test_helpers.patch(self, ['bot.fuzzers.engine_common.is_lpm_fuzz_target'])
+    test_helpers.patch(self, [
+        'bot.fuzzers.engine_common.is_lpm_fuzz_target',
+        'bot.fuzzers.afl.launcher.AflRunner.run_single_testcase'])
     self.mock.is_lpm_fuzz_target.return_value = True
     environment.set_value('HARD_TIMEOUT_OVERRIDE', 600)
     config = launcher.AflConfig.from_target_path(self.TARGET_PATH)
@@ -653,9 +655,29 @@ class AflRunnerTest(LauncherTestBase):
     self.assertIn('AFL_NO_AFFINITY', os.environ)
     self.assertEqual(os.environ['AFL_NO_AFFINITY'], '1')
 
-    # Now test it doesn't try to fix the issue again (this is a sanity check
-    # on our code).
+    # Now test it doesn't try to fix the issue again.
     self.assertFalse(self.runner.prepare_retry_if_cpu_error(self.fuzz_result))
+
+  def test_prepare_retry_if_slow_start(self):
+    """Test AflRunner.prepare_retry_if_slow_start."""
+    # Test that it doesn't prepare a retry if the error is unrelated:
+    self.fuzz_result.output = (
+        '[-] PROGRAM ABORT : All test cases time out, giving up!\n'
+        'Location : perform_dry_run(), afl-fuzz.c:3240\n')
+
+    self.assertFalse(self.runner.prepare_retry_if_slow_start(self.fuzz_result))
+
+    self.fuzz_result.output = (
+        'PROGRAM ABORT : Timeout while initializing fork server '
+        '(adjusting -t may help)')
+    self.runner._retried_slow_start = False
+
+    self.assertTrue(self.runner.prepare_retry_if_slow_start(self.fuzz_result))
+    self.runner.run_single_testcase.assert_called_once_with(self.runner,
+                                                            '/dev/null')
+
+    # Now test it doesn't try to fix the issue again.
+    self.assertFalse(self.runner.prepare_retry_if_slow_start(self.fuzz_result))
 
   def test_fuzzer_stderr_ioerror(self):
     """Test AflRunner.fuzzer_stderr when there is an error reading the
