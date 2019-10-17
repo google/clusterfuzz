@@ -135,6 +135,8 @@ class FormatRecordTest(unittest.TestCase):
     helpers.patch(self, ['metrics.logs.update_entry_with_exc'])
     helpers.patch_environ(self)
 
+    self.maxDiff = None  # pylint: disable=invalid-name
+
   def get_record(self):
     """Make a fake record."""
     os.environ['BOT_NAME'] = 'linux-bot'
@@ -155,6 +157,7 @@ class FormatRecordTest(unittest.TestCase):
 
   def test_format_record(self):
     """Test format a LogRecord into JSON string."""
+    os.environ['FUZZ_TARGET'] = 'fuzz_target1'
     record = self.get_record()
     record.extras = {'a': 1}
     self.assertEqual({
@@ -163,6 +166,7 @@ class FormatRecordTest(unittest.TestCase):
         'severity': 'INFO',
         'bot_name': 'linux-bot',
         'task_payload': 'fuzz fuzzer1 job1',
+        'fuzz_target': 'fuzz_target1',
         'name': 'logger_name',
         'extras': {
             'a': 1,
@@ -187,6 +191,7 @@ class FormatRecordTest(unittest.TestCase):
         'severity': 'INFO',
         'bot_name': 'linux-bot',
         'task_payload': 'fuzz fuzzer1 job1',
+        'fuzz_target': None,
         'name': 'logger_name',
         'location': {
             'path': 'path',
@@ -210,6 +215,7 @@ class FormatRecordTest(unittest.TestCase):
         'bot_name': 'linux-bot',
         'worker_bot_name': 'worker',
         'task_payload': 'fuzz fuzzer1 job1',
+        'fuzz_target': None,
         'name': 'logger_name',
         'location': {
             'path': 'path',
