@@ -191,7 +191,6 @@ class FormatRecordTest(unittest.TestCase):
         'severity': 'INFO',
         'bot_name': 'linux-bot',
         'task_payload': 'fuzz fuzzer1 job1',
-        'fuzz_target': None,
         'name': 'logger_name',
         'location': {
             'path': 'path',
@@ -215,7 +214,6 @@ class FormatRecordTest(unittest.TestCase):
         'bot_name': 'linux-bot',
         'worker_bot_name': 'worker',
         'task_payload': 'fuzz fuzzer1 job1',
-        'fuzz_target': None,
         'name': 'logger_name',
         'location': {
             'path': 'path',

@@ -151,8 +151,6 @@ def format_record(record):
           os.getenv('BOT_NAME'),
       'task_payload':
           os.getenv('TASK_PAYLOAD'),
-      'fuzz_target':
-          os.getenv('FUZZ_TARGET'),
       'name':
           record.name,
   }
@@ -167,6 +165,10 @@ def format_record(record):
   worker_bot_name = os.environ.get('WORKER_BOT_NAME')
   if worker_bot_name:
     entry['worker_bot_name'] = worker_bot_name
+
+  fuzz_target = os.getenv('FUZZ_TARGET')
+  if fuzz_target:
+    entry['fuzz_target'] = fuzz_target
 
   # Log bot shutdown cases as WARNINGs since this is expected for preemptibles.
   if (entry['severity'] in ['ERROR', 'CRITICAL'] and
