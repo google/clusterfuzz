@@ -71,6 +71,7 @@ class PrepareTest(fake_fs_unittest.TestCase):
                   'timeout=11\n'
                   'dict=blah.dict\n'))
 
+    os.environ['FAIL_RETRIES'] = '1'
     os.environ['FUZZ_INPUTS_DISK'] = '/inputs'
 
     test_helpers.patch(self, ['bot.fuzzers.libFuzzer.launcher.pick_strategies'])

@@ -44,6 +44,9 @@ class LauncherTestBase(fake_filesystem_unittest.TestCase):
   DATA_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data')
 
   def setUp(self):
+    test_helpers.patch_environ(self)
+    os.environ['FAIL_RETRIES'] = '1'
+
     test_utils.set_up_pyfakefs(self)
     self.fs.create_dir(self.INPUT_DIR)
     if not os.path.exists(self.TEMP_DIR):
@@ -838,11 +841,11 @@ class GetFuzzTimeoutTest(GetTimeoutTestBase):
         })
 
 
-class AlfConfigTest(LauncherTestBase):
+class AflConfigTest(LauncherTestBase):
   """Test AflConfig."""
 
   def setUp(self):
-    super(AlfConfigTest, self).setUp()
+    super(AflConfigTest, self).setUp()
     self.target_path = '/build_dir/target'
     self.options_path = self.target_path + '.options'
 
