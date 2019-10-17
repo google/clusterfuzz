@@ -112,12 +112,17 @@ class LibFuzzerEngine(engine.Engine):
       fuzzer_utils.extract_argument(arguments, constants.DICT_FLAG)
 
     # If there's no dict argument, check for %target_binary_name%.dict file.
-    if (not fuzzer_utils.extract_argument(
-        arguments, constants.DICT_FLAG, remove=False)):
+    dict_argument = fuzzer_utils.extract_argument(
+        arguments, constants.DICT_FLAG, remove=False)
+    if not dict_argument:
       default_dict_path = dictionary_manager.get_default_dictionary_path(
           target_path)
       if os.path.exists(default_dict_path):
         arguments.append(constants.DICT_FLAG + default_dict_path)
+
+    # If we have a dictionary, correct any items that are not formatted properly
+    # (e.g. quote items that are missing them).
+    dictionary_manager.correct_dictionary(dict_argument)
 
     strategies = stats.process_strategies(
         strategy_info.fuzzing_strategies, name_modifier=lambda x: x)

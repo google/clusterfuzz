@@ -15,7 +15,9 @@
 
 from builtins import object
 import os
+import re
 
+from base import errors
 from base import utils
 from bot.fuzzers import utils as fuzzer_utils
 from google_cloud_utils import storage
@@ -41,6 +43,8 @@ TOKEN_RECOMMENDED_DICT_START = 'Recommended dictionary.'
 # Tokens to detect "useless dictionary" section in the output.
 TOKEN_USELESS_DICT_END = 'End of useless dictionary elements.'
 TOKEN_USELESS_DICT_START = 'Useless dictionary elements.'
+
+DICTIONARY_PART_PATTERN = re.compile('([^"]+=)?(.*)')
 
 
 def extract_dictionary_element(line):
@@ -127,6 +131,54 @@ def merge_dictionary_files(original_dictionary_path,
 
   merged_dictionary_data += '\n'.join(dictionary_lines_to_add)
   utils.write_data_to_file(merged_dictionary_data, merged_dictionary_path)
+
+
+def correct_dictionary(dictionary_path):
+  """Corrects obvious errors such as missing quotes in a dictionary."""
+  def fix_line(line):
+    # Ignore blank and comment lines.
+    if not line or line.startswith('#'):
+      return line
+
+    match = DICTIONARY_PART_PATTERN.match(line)
+    # We expect this pattern to match even invalid dictionary entries. Failures
+    # to match should be treated as bugs in this function.
+    if not match:
+      raise errors.BadStateError(
+          'Failed to correct dictionary line "{line}" in {path}.'.format(
+              line=line, path=dictionary_path))
+
+    name_part = match.group(1) or ''
+    entry = match.group(2)
+
+    # Handle quote entries as a special case. This simplifies later logic.
+    if entry == '"':
+      entry = '"\\\""'
+
+    if entry.startswith('"') and entry.endswith('"'):
+      return name_part + entry
+
+    # In this case, we know the entry is invalid. Escape any unescaped quotes
+    # within it, then append quotes to the front and back.
+    new_entry = ''
+    prev_character = ''
+    for character in entry:
+      if character == '"' and prev_character != '\\':
+        new_entry += '\\'
+      new_entry += character
+      prev_character = character
+
+    new_entry = '"{entry}"'.format(entry=new_entry)
+    return name_part + new_entry
+
+  content = utils.read_data_from_file(dictionary_path, eval_data=False)
+  new_content = ''
+  for current_line in content.splitlines():
+    new_content += fix_line(current_line) + '\n'
+
+  # End of file newlines are inconsistent in dictionaries.
+  if new_content.strip('\n') != content.strip('\n'):
+    utils.write_data_to_file(new_content, dictionary_path)
 
 
 class DictionaryManager(object):
