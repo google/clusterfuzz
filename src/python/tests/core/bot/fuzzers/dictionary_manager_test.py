@@ -105,8 +105,8 @@ class DictionaryManagerTest(unittest.TestCase):
     self.assertEqual(sorted(useless_dict), sorted(expected_dictionary))
 
 
-class CorrectDictionaryTest(unittest.TestCase):
-  """Tests for the correct_dictionary function."""
+class CorrectIfNeededTest(unittest.TestCase):
+  """Tests for the correct_if_needed function."""
 
   def setUp(self):
     test_helpers.patch_environ(self)
@@ -117,7 +117,7 @@ class CorrectDictionaryTest(unittest.TestCase):
 
   def _validate_correction(self, input_filename, output_filename):
     full_input_filename = os.path.join(DATA_DIRECTORY, input_filename)
-    dictionary_manager.correct_dictionary(full_input_filename)
+    dictionary_manager.correct_if_needed(full_input_filename)
     full_output_filename = os.path.join(DATA_DIRECTORY, output_filename)
     expected_output = utils.read_data_from_file(
         full_output_filename, eval_data=False)
@@ -125,7 +125,7 @@ class CorrectDictionaryTest(unittest.TestCase):
         expected_output, full_input_filename)
 
   def _validate_no_action(self, input_filename):
-    dictionary_manager.correct_dictionary(
+    dictionary_manager.correct_if_needed(
         os.path.join(DATA_DIRECTORY, input_filename))
     self.assertFalse(self.mock.write_data_to_file.called)
 
@@ -146,3 +146,9 @@ class CorrectDictionaryTest(unittest.TestCase):
     """Ensure that we can correct an in-use invalid dictionary."""
     self._validate_correction('example_invalid_dictionary.txt',
                               'example_corrected_dictionary.txt')
+
+  def test_no_exception_on_invalid_paths(self):
+    """Ensure that the function bails out on invalid file paths."""
+    dictionary_manager.correct_if_needed(None)
+    dictionary_manager.correct_if_needed('')
+    dictionary_manager.correct_if_needed('/does/not/exist')

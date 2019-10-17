@@ -133,7 +133,7 @@ def merge_dictionary_files(original_dictionary_path,
   utils.write_data_to_file(merged_dictionary_data, merged_dictionary_path)
 
 
-def correct_dictionary(dictionary_path):
+def correct_if_needed(dict_path):
   """Corrects obvious errors such as missing quotes in a dictionary."""
 
   def fix_line(line):
@@ -148,7 +148,7 @@ def correct_dictionary(dictionary_path):
     if not match:
       raise errors.BadStateError(
           'Failed to correct dictionary line "{line}" in {path}.'.format(
-              line=line, path=dictionary_path))
+              line=line, path=dict_path))
 
     name_part = match.group(1) or ''
     entry = match.group(2)
@@ -173,14 +173,17 @@ def correct_dictionary(dictionary_path):
     new_entry = '"{entry}"'.format(entry=new_entry)
     return name_part + new_entry
 
-  content = utils.read_data_from_file(dictionary_path, eval_data=False)
+  if not dict_path or not os.path.exists(dict_path):
+    return
+
+  content = utils.read_data_from_file(dict_path, eval_data=False)
   new_content = ''
   for current_line in content.splitlines():
     new_content += fix_line(current_line) + '\n'
 
   # End of file newlines are inconsistent in dictionaries.
-  if new_content.strip('\n') != content.strip('\n'):
-    utils.write_data_to_file(new_content, dictionary_path)
+  if new_content.rstrip('\n') != content.rstrip('\n'):
+    utils.write_data_to_file(new_content, dict_path)
 
 
 class DictionaryManager(object):

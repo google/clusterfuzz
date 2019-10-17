@@ -105,24 +105,23 @@ class LibFuzzerEngine(engine.Engine):
       strategy_info.additional_corpus_dirs.append(corpus_dir)
 
     # Check dict argument to make sure that it's valid.
-    dict_argument = fuzzer_utils.extract_argument(
+    dict_path = fuzzer_utils.extract_argument(
         arguments, constants.DICT_FLAG, remove=False)
-    if dict_argument and not os.path.exists(dict_argument):
-      logs.log_error('Invalid dict %s for %s.' % (dict_argument, target_path))
+    if dict_path and not os.path.exists(dict_path):
+      logs.log_error('Invalid dict %s for %s.' % (dict_path, target_path))
       fuzzer_utils.extract_argument(arguments, constants.DICT_FLAG)
 
     # If there's no dict argument, check for %target_binary_name%.dict file.
-    dict_argument = fuzzer_utils.extract_argument(
+    dict_path = fuzzer_utils.extract_argument(
         arguments, constants.DICT_FLAG, remove=False)
-    if not dict_argument:
-      default_dict_path = dictionary_manager.get_default_dictionary_path(
-          target_path)
-      if os.path.exists(default_dict_path):
-        arguments.append(constants.DICT_FLAG + default_dict_path)
+    if not dict_path:
+      dict_path = dictionary_manager.get_default_dictionary_path(target_path)
+      if os.path.exists(dict_path):
+        arguments.append(constants.DICT_FLAG + dict_path)
 
     # If we have a dictionary, correct any items that are not formatted properly
     # (e.g. quote items that are missing them).
-    dictionary_manager.correct_dictionary(dict_argument)
+    dictionary_manager.correct_if_needed(dict_path)
 
     strategies = stats.process_strategies(
         strategy_info.fuzzing_strategies, name_modifier=lambda x: x)
