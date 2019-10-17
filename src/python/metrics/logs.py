@@ -151,6 +151,8 @@ def format_record(record):
           os.getenv('BOT_NAME'),
       'task_payload':
           os.getenv('TASK_PAYLOAD'),
+      'fuzz_target':
+          os.getenv('FUZZ_TARGET'),
       'name':
           record.name,
   }
