@@ -68,6 +68,10 @@ USE_MINIJAIL = environment.get_value('USE_MINIJAIL')
 # .options file option for the number of persistent executions.
 PERSISTENT_EXECUTIONS_OPTION = 'n'
 
+# Max time any testcase can be run for. Set it high so that we have time to warm
+# up the filesystem cache for certain fuzzers.
+TESTCASE_TIMEOUT = 3 * 60
+
 
 class AflOptionType(object):
   ARG = 0
@@ -634,7 +638,8 @@ class AflRunnerCommon(object):
                                          ' executions by accident.')
 
     self.afl_setup()
-    result = self.run_and_wait(additional_args=[testcase_path])
+    result = self.run_and_wait(
+        additional_args=[testcase_path], timeout=TESTCASE_TIMEOUT)
     print('Running command:', engine_common.get_command_quoted(result.command))
     if result.return_code not in [0, 1]:
       logs.log_error(
@@ -1047,7 +1052,7 @@ class AflRunnerCommon(object):
         input_data=engine_common.read_data_from_file(input_file_path),
         # TODO(metzman): Set a more reasonable per-file timeout. This is a must
         # to make timeouts smarter for afl-fuzz.
-        timeout=self.merge_timeout)
+        timeout=min(self.merge_timeout, TESTCASE_TIMEOUT))
 
     self.merge_timeout -= showmap_result.time_executed
 
