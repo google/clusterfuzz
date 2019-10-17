@@ -133,53 +133,53 @@ def merge_dictionary_files(original_dictionary_path,
   utils.write_data_to_file(merged_dictionary_data, merged_dictionary_path)
 
 
-def _fix_dictionary_line(line, dict_path):
-  """Correct a single dictionary line."""
-  # Ignore blank and comment lines.
-  if not line or line.strip().startswith('#'):
-    return line
-
-  match = DICTIONARY_PART_PATTERN.match(line)
-  # We expect this pattern to match even invalid dictionary entries. Failures
-  # to match should be treated as bugs in this function.
-  if not match:
-    raise errors.BadStateError(
-        'Failed to correct dictionary line "{line}" in {path}.'.format(
-            line=line, path=dict_path))
-
-  name_part = match.group(1) or ''
-  entry = match.group(2)
-
-  # Handle quote entries as a special case. This simplifies later logic.
-  if entry == '"':
-    entry = '"\\\""'
-
-  if entry.startswith('"') and entry.endswith('"'):
-    return name_part + entry
-
-  # In this case, we know the entry is invalid. Escape any unescaped quotes
-  # within it, then append quotes to the front and back.
-  new_entry = ''
-  prev_character = ''
-  for character in entry:
-    if character == '"' and prev_character != '\\':
-      new_entry += '\\'
-    new_entry += character
-    prev_character = character
-
-  new_entry = '"{entry}"'.format(entry=new_entry)
-  return name_part + new_entry
-
-
 def correct_if_needed(dict_path):
   """Corrects obvious errors such as missing quotes in a dictionary."""
+
+  def fix_line(line):
+    """Correct a single dictionary line."""
+    # Ignore blank and comment lines.
+    if not line or line.startswith('#'):
+      return line
+
+    match = DICTIONARY_PART_PATTERN.match(line)
+    # We expect this pattern to match even invalid dictionary entries. Failures
+    # to match should be treated as bugs in this function.
+    if not match:
+      raise errors.BadStateError(
+          'Failed to correct dictionary line "{line}" in {path}.'.format(
+              line=line, path=dict_path))
+
+    name_part = match.group(1) or ''
+    entry = match.group(2)
+
+    # Handle quote entries as a special case. This simplifies later logic.
+    if entry == '"':
+      entry = '"\\\""'
+
+    if entry.startswith('"') and entry.endswith('"'):
+      return name_part + entry
+
+    # In this case, we know the entry is invalid. Escape any unescaped quotes
+    # within it, then append quotes to the front and back.
+    new_entry = ''
+    prev_character = ''
+    for character in entry:
+      if character == '"' and prev_character != '\\':
+        new_entry += '\\'
+      new_entry += character
+      prev_character = character
+
+    new_entry = '"{entry}"'.format(entry=new_entry)
+    return name_part + new_entry
+
   if not dict_path or not os.path.exists(dict_path):
     return
 
   content = utils.read_data_from_file(dict_path, eval_data=False)
   new_content = ''
   for current_line in content.splitlines():
-    new_content += _fix_dictionary_line(current_line, dict_path) + '\n'
+    new_content += fix_line(current_line) + '\n'
 
   # End of file newlines are inconsistent in dictionaries.
   if new_content.rstrip('\n') != content.rstrip('\n'):
