@@ -250,17 +250,24 @@ class BaseLauncherTest(unittest.TestCase):
     # will break deploys.
     mock_get_timeout.return_value = get_fuzz_timeout(90.0)
     testcase_path = setup_testcase_and_corpus('empty', 'corpus', fuzz=True)
-    later_run_filename = os.path.join(
-        '/tmp', 'later_run_file-' + uuid.uuid4().hex)
+    later_run_filename = os.path.join('/tmp',
+                                      'later_run_file-' + uuid.uuid4().hex)
     os.environ['AFL_TARGET_LATER_RUN_FILE'] = later_run_filename
-    with mock.patch('metrics.logs.log') as mocked_log:
-      function_name = (
-          'bot.untrusted_runner.environment.get_env_for_untrusted_process')
-      output = run_launcher(testcase_path, 'forkserver_timeout_fuzzer')
-      mocked_log.assert_any_call(
-          'Trying to prevent forkserver timeouts by warming cache.')
-    # Test that the target makes it to the crash.
-    self.assertIn('Test case \'id:000000,orig:in1\' results in a crash', output)
+    try:
+      with mock.patch('metrics.logs.log') as mocked_log:
+        function_name = (
+            'bot.untrusted_runner.environment.get_env_for_untrusted_process')
+        output = run_launcher(testcase_path, 'forkserver_timeout_fuzzer')
+        mocked_log.assert_any_call(
+            'Trying to prevent forkserver timeouts by warming cache.')
+        # Test that the target makes it to the crash.
+        self.assertIn('Test case \'id:000000,orig:in1\' results in a crash',
+                      output)
+    finally:
+      if os.path.exists(later_run_filename):
+        # In minijail the file won't actually be at the location we think it
+        # will be. That is fine because it will be in a temporary directory.
+        os.remove(later_run_filename)
 
 
 class TestLauncher(BaseLauncherTest):
@@ -459,7 +466,6 @@ class TestLauncherMinijail(BaseLauncherTest):
     self.assertGreaterEqual(os.path.getsize(testcase_path), 3)
     with open(testcase_path) as f:
       self.assertEqual(f.read()[:3], 'ABC')
-
 
   @no_errors
   @mock.patch('bot.fuzzers.afl.launcher.get_fuzz_timeout')

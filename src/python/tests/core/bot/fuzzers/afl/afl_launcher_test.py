@@ -519,7 +519,8 @@ class AflRunnerTest(LauncherTestBase):
     test_helpers.patch_environ(self)
     test_helpers.patch(self, [
         'bot.fuzzers.engine_common.is_lpm_fuzz_target',
-        'bot.fuzzers.afl.launcher.AflRunner.run_single_testcase'])
+        'bot.fuzzers.afl.launcher.AflRunner.run_single_testcase'
+    ])
     self.mock.is_lpm_fuzz_target.return_value = True
     environment.set_value('HARD_TIMEOUT_OVERRIDE', 600)
     config = launcher.AflConfig.from_target_path(self.TARGET_PATH)
@@ -673,8 +674,8 @@ class AflRunnerTest(LauncherTestBase):
     self.runner._retried_slow_start = False
 
     self.assertTrue(self.runner.prepare_retry_if_slow_start(self.fuzz_result))
-    self.runner.run_single_testcase.assert_called_once_with(self.runner,
-                                                            '/dev/null')
+    self.runner.run_single_testcase.assert_called_once_with(
+        self.runner, '/dev/null')
 
     # Now test it doesn't try to fix the issue again.
     self.assertFalse(self.runner.prepare_retry_if_slow_start(self.fuzz_result))
