@@ -1,6 +1,8 @@
 # Lines that need to be corrected.
 auto
 tok1=boot
+=
+!=
 "
 },
 :
