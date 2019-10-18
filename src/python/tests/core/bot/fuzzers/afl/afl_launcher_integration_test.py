@@ -245,6 +245,7 @@ class BaseLauncherTest(unittest.TestCase):
   def _test_fuzz_forkserver_timeout(self, mock_get_timeout):
     """Tests fuzzing with a binary that will timeout before forkserver can be
     contacted by AFL."""
+    # FIXME: Use a shorter timeout for AFL to speed up this test.
     # *WARNING* Do not lower the fuzz timeout unless you really know what you
     # are doing. Doing so will cause the test to fail on rare ocassion, which
     # will break deploys.
@@ -255,8 +256,6 @@ class BaseLauncherTest(unittest.TestCase):
     os.environ['AFL_TARGET_LATER_RUN_FILE'] = later_run_filename
     try:
       with mock.patch('metrics.logs.log') as mocked_log:
-        function_name = (
-            'bot.untrusted_runner.environment.get_env_for_untrusted_process')
         output = run_launcher(testcase_path, 'forkserver_timeout_fuzzer')
         mocked_log.assert_any_call(
             'Trying to prevent forkserver timeouts by warming cache.')
