@@ -20,17 +20,24 @@
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <sys/stat.h>
+#include <sys/types.h>
+#include <unistd.h>
 
-__attribute__((constructor(0))) static void infite_loop() {
-  system("echo hi >> /tmp/logg");
-  char* first_run_file = getenv("FIRST_RUN_FILE");
-  if (!first_run_file)
-    return;
-  system("echo removiing >> /tmp/logg");
-  if (remove(first_run_file) == -1)
-    return;
-  system("echo looping >> /tmp/logg");
+extern "C" int LLVMFuzzerInitialize(int *argc, char ***argv)  {
+  (void) argc;
+  (void) argv;
+  char* later_run_file = getenv("AFL_TARGET_LATER_RUN_FILE");
+  if (!later_run_file)
+    return 0;
+  struct stat stat_buf;
+  if (stat(later_run_file, &stat_buf) == 0)
+    return 0; // File exists, we aren't in first run.
+  FILE* fp = fopen(later_run_file, "w");
+  fclose(fp);
+  // Create the file since it doesn't exist.
   while (true);
+  return 0;
 }
 
 void Foo() {

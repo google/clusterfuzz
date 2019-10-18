@@ -250,13 +250,12 @@ class BaseLauncherTest(unittest.TestCase):
     # will break deploys.
     mock_get_timeout.return_value = get_fuzz_timeout(90.0)
     testcase_path = setup_testcase_and_corpus('empty', 'corpus', fuzz=True)
-    first_run_filename = os.path.join(
-        os.path.dirname(testcase_path), 'first_run_file-' + uuid.uuid4().hex)
-    os.environ['FIRST_RUN_FILE'] = first_run_filename
-    with open(first_run_filename, 'w') as file_handle:
-      file_handle.write('')
-
+    later_run_filename = os.path.join(
+        '/tmp', 'later_run_file-' + uuid.uuid4().hex)
+    os.environ['AFL_TARGET_LATER_RUN_FILE'] = later_run_filename
     with mock.patch('metrics.logs.log') as mocked_log:
+      function_name = (
+          'bot.untrusted_runner.environment.get_env_for_untrusted_process')
       output = run_launcher(testcase_path, 'forkserver_timeout_fuzzer')
       mocked_log.assert_any_call(
           'Trying to prevent forkserver timeouts by warming cache.')
