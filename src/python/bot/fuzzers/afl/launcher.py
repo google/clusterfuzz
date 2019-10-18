@@ -923,7 +923,7 @@ class AflRunnerCommon(object):
         continue  # Try fuzzing again with the cpu error fixed.
 
       if self.prepare_retry_if_slow_start(fuzz_result):
-        continue  # Try fuzzing again with the slow start error fixed.
+        continue  # Try fuzzing again with the slow start issue fixed.
 
       # If we can't do anything useful about the error, log it and don't try to
       # fuzz again.
@@ -937,8 +937,9 @@ class AflRunnerCommon(object):
     return fuzz_result
 
   def prepare_retry_if_slow_start(self, fuzz_result):
-    """Retry running AFL if this looks like a slow start error.
-    See https://github.com/google/clusterfuzz/issues/1112."""
+    """Retry running AFL if this looks like a slow start issue where a fuzz
+    target will be much slower the first time it is run. See
+    https://github.com/google/clusterfuzz/issues/1112."""
     # Only try this once.
     if self._retried_slow_start:
       return False
