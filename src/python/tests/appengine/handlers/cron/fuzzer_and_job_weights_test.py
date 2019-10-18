@@ -85,7 +85,7 @@ HAVING
 SELECT
   recent.fuzzer AS fuzzer,
   recent.job AS job,
-  0.70 as new_weight
+  0.75 as new_weight
 FROM (
   SELECT
     fuzzer,
