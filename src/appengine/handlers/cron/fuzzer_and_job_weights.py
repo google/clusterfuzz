@@ -109,7 +109,7 @@ STARTUP_CRASH_SPECIFICATION = QuerySpecification(
 # fuzzer is not making good use of its cycles while running or needs a fix.
 SLOW_UNIT_SPECIFICATION = QuerySpecification(
     query_format=GENERIC_QUERY_FORMAT.format(
-        field_name='slow_unit_count', min_weight=0.50),
+        field_name='slow_unit_count', min_weight=0.25),
     formatter=_past_day_formatter,
     reason='frequent slow units')
 
@@ -117,7 +117,7 @@ SLOW_UNIT_SPECIFICATION = QuerySpecification(
 # included for the same reason.
 TIMEOUT_SPECIFICATION = QuerySpecification(
     query_format=GENERIC_QUERY_FORMAT.format(
-        field_name='timeout_count', min_weight=0.50),
+        field_name='timeout_count', min_weight=0.25),
     formatter=_past_day_formatter,
     reason='frequent timeouts')
 
@@ -126,7 +126,7 @@ TIMEOUT_SPECIFICATION = QuerySpecification(
 # until the issues are fixed.
 OOM_SPECIFICATION = QuerySpecification(
     query_format=GENERIC_QUERY_FORMAT.format(
-        field_name='oom_count', min_weight=0.50),
+        field_name='oom_count', min_weight=0.25),
     formatter=_past_day_formatter,
     reason='frequent OOMs')
 
@@ -136,7 +136,7 @@ OOM_SPECIFICATION = QuerySpecification(
 # healthy fuzzers are expected to have some crashes.
 CRASH_SPECIFICATION = QuerySpecification(
     query_format=GENERIC_QUERY_FORMAT.format(
-        field_name='crash_count', min_weight=0.70),
+        field_name='crash_count', min_weight=0.50),
     formatter=_past_day_formatter,
     reason='frequent crashes')
 
@@ -168,7 +168,7 @@ COVERAGE_UNCHANGED_FORMAT = """
 SELECT
   recent.fuzzer AS fuzzer,
   recent.job AS job,
-  0.70 as new_weight
+  0.75 as new_weight
 FROM (
   SELECT
     fuzzer,
