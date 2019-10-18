@@ -126,7 +126,7 @@ TIMEOUT_SPECIFICATION = QuerySpecification(
 # until the issues are fixed.
 OOM_SPECIFICATION = QuerySpecification(
     query_format=GENERIC_QUERY_FORMAT.format(
-        field_name='oom_count', min_weight=0.50),
+        field_name='oom_count', min_weight=0.25),
     formatter=_past_day_formatter,
     reason='frequent OOMs')
 
