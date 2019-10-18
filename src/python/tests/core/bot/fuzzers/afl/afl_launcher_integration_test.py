@@ -273,7 +273,7 @@ class TestLauncher(BaseLauncherTest):
   """AFL launcher tests."""
 
   def test_fuzz_forkserver_timeout(self):
-    self._test_fuzz_forkserver_timeout()
+    self._test_fuzz_forkserver_timeout()  # pylint: disable=no-value-for-parameter
 
   def test_abnormal_return_code(self):
     self._test_abnormal_return_code()
@@ -494,4 +494,4 @@ class TestLauncherMinijail(BaseLauncherTest):
     self._test_libfuzzerize_corpus(mock_get_timeout)
 
   def test_fuzz_forkserver_timeout(self):
-    self._test_fuzz_forkserver_timeout()
+    self._test_fuzz_forkserver_timeout()  # pylint: disable=no-value-for-parameter
