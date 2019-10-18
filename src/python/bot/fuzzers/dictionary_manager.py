@@ -44,7 +44,7 @@ TOKEN_RECOMMENDED_DICT_START = 'Recommended dictionary.'
 TOKEN_USELESS_DICT_END = 'End of useless dictionary elements.'
 TOKEN_USELESS_DICT_START = 'Useless dictionary elements.'
 
-DICTIONARY_PART_PATTERN = re.compile(r'([A-Za-z0-9_]+\s*=\s*)?(.*)')
+DICTIONARY_PART_PATTERN = re.compile(r'([^"]+\s*=\s*)?(.*)')
 
 
 def extract_dictionary_element(line):
@@ -149,6 +149,12 @@ def _fix_dictionary_line(line, dict_path):
 
   name_part = match.group(1) or ''
   entry = match.group(2)
+
+  # In some cases, we'll detect the user's intended entry as a token name. This
+  # can happen if the user included unquoted tokens such as "!=" or ">=".
+  if not entry and name_part:
+    entry = name_part
+    name_part = ''
 
   # Handle quote entries as a special case. This simplifies later logic.
   if entry == '"':
