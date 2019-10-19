@@ -55,6 +55,11 @@ def _add_env_vars_if_needed(yaml_path):
     # Not a service.
     return
 
+  if 'runtime' in data and data['runtime'].startswith('go'):
+    # Remove HELP_FORMAT as multi-line environment variable values are not
+    # allowed in Go flex deployment.
+    env_values.pop('HELP_FORMAT', None)
+
   data.setdefault('env_variables', {}).update(env_values)
   with open(yaml_path, 'w') as f:
     yaml.safe_dump(data, f)
