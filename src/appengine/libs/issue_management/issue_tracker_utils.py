@@ -177,6 +177,10 @@ def was_label_added(issue, label):
   if not label:
     return False
 
+  # Optimization that does not require pulling in issue's actions.
+  if any([label.lower() == l.lower() for l in issue.labels]):
+    return True
+
   for action in issue.actions:
     for added in action.labels.added:
       if label.lower() == added.lower():
