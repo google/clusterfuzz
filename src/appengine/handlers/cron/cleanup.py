@@ -979,11 +979,6 @@ def update_issue_ccs_from_owners_file(policy, testcase, issue):
   if not issue or not issue.is_open:
     return
 
-  # If we've assigned the ccs before, it likely means we were incorrect.
-  # Don't try again for this particular issue.
-  if issue_tracker_utils.was_label_added(issue, auto_cc_label):
-    return
-
   if testcase.get_metadata('has_issue_ccs_from_owners_file'):
     return
 
@@ -993,6 +988,11 @@ def update_issue_ccs_from_owners_file(policy, testcase, issue):
       strip=True,
       remove_empty=True)
   if not ccs_list:
+    return
+
+  # If we've assigned the ccs before, it likely means we were incorrect.
+  # Don't try again for this particular issue.
+  if issue_tracker_utils.was_label_added(issue, auto_cc_label):
     return
 
   ccs_added = False
@@ -1078,18 +1078,18 @@ def update_issue_owner_and_ccs_from_predator_results(policy,
   if issue.assignee:
     return
 
+  # If there are more than 3 suspected CLs, we can't be confident in the
+  # results. Just skip any sort of notification to CL authors in this case.
+  suspected_cls = _get_predator_result_item(testcase, 'suspected_cls')
+  if not suspected_cls or len(suspected_cls) > 3:
+    return
+
   # If we've assigned an owner or cc once before, it likely means we were
   # incorrect. Don't try again for this particular issue.
   if (issue_tracker_utils.was_label_added(
       issue, data_types.CHROMIUM_ISSUE_PREDATOR_AUTO_OWNER_LABEL) or
       issue_tracker_utils.was_label_added(
           issue, data_types.CHROMIUM_ISSUE_PREDATOR_AUTO_CC_LABEL)):
-    return
-
-  # If there are more than 3 suspected CLs, we can't be confident in the
-  # results. Just skip any sort of notification to CL authors in this case.
-  suspected_cls = _get_predator_result_item(testcase, 'suspected_cls')
-  if not suspected_cls or len(suspected_cls) > 3:
     return
 
   # Validate that the suspected CLs have all of the information we need before
