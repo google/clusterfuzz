@@ -56,9 +56,6 @@ BUILD_TYPE_SUBSTRINGS = [
     '-beta', '-stable', '-debug', '-release', '-symbolized'
 ]
 
-# Persistent cache key for tracking when last unused build check was done.
-LAST_UNUSED_BUILD_CHECK_KEY = 'last_unused_build_check'
-
 # Build eviction constants.
 MAX_EVICTED_BUILDS = 100
 MIN_FREE_DISK_SPACE_CHROMIUM = 10 * 1024 * 1024 * 1024  # 10 GB
