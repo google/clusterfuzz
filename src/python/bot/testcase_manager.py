@@ -837,6 +837,10 @@ def get_command_line_for_application(file_to_run='',
   if app_path is None:
     app_path = environment.get_value('APP_PATH')
 
+  if app_path is None:
+    # No APP_PATH is available for e.g. grey box fuzzers.
+    return None
+
   additional_command_line_flags = get_additional_command_line_flags(file_to_run)
   app_args_append_testcase = environment.get_value('APP_ARGS_APPEND_TESTCASE')
   app_directory = environment.get_value('APP_DIR')

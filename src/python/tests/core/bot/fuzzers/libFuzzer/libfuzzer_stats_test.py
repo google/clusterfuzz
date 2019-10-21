@@ -16,7 +16,7 @@
 import os
 import unittest
 
-from bot.fuzzers.libFuzzer import launcher
+from bot.fuzzers import libfuzzer
 from bot.fuzzers.libFuzzer import stats
 from tests.test_libs import helpers as test_helpers
 
@@ -30,7 +30,7 @@ class PerformanceStatsTest(unittest.TestCase):
 
     test_helpers.patch_environ(self)
     self.data_directory = os.path.join(
-        os.path.dirname(__file__), 'launcher_test_data')
+        os.path.dirname(__file__), 'libfuzzer_test_data')
 
   def _read_test_data(self, name):
     """Read test data."""
@@ -51,7 +51,7 @@ class PerformanceStatsTest(unittest.TestCase):
   def test_parse_log_stats(self):
     """Test pure stats parsing without applying of stat_overrides."""
     log_lines = self._read_test_data('no_crash.txt')
-    parsed_stats = launcher.parse_log_stats(log_lines)
+    parsed_stats = libfuzzer.parse_log_stats(log_lines)
     expected_stats = {
         'average_exec_per_sec': 97,
         'new_units_added': 55,
@@ -163,7 +163,7 @@ class PerformanceStatsTest(unittest.TestCase):
   def test_parse_log_and_stats_from_corrupted_output(self):
     """Test stats parsing from a log with corrupted libFuzzer stats."""
     log_lines = self._read_test_data('corrupted_stats.txt')
-    parsed_stats = launcher.parse_log_stats(log_lines)
+    parsed_stats = libfuzzer.parse_log_stats(log_lines)
     self.assertNotIn('peak_rss_mb', parsed_stats)
 
   def test_parse_log_and_stats_timeout(self):
