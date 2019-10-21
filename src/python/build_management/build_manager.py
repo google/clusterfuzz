@@ -720,13 +720,6 @@ class RegularBuild(Build):
 
 class FuchsiaBuild(RegularBuild):
   """Represents a Fuchsia build."""
-  # If we properly subclass RegularBuild, checking revision numbers for
-  # different builds (and other nice things) should automagically "just work."
-  # This'll mean (1) downloading in the standard _build_dir instead of our
-  # artisinal FUCHSIA_RESOURCES_DIR, and (2) create new build buckets with
-  # the name format `gs://bucket/path/fuchsia-resources-([0-9]+).zip, and
-  # (3) do some refactoring on the RegularBuild logic so we can keep using our
-  # target selection logic.
 
   SYMBOLIZE_REL_PATH = os.path.join('build', 'zircon', 'prebuilt', 'downloads',
                                     'symbolize')
@@ -746,7 +739,7 @@ class FuchsiaBuild(RegularBuild):
         environment.get_value('JOB_NAME')).lower()
     return [
         str(target[0] + '/' + target[1])
-        for target in Fuzzer.filter(host.fuzzers, '', sanitizer)
+        for target in Fuzzer.filter(host.fuzzers, '', sanitizer, False)
     ]
 
   def setup(self):
