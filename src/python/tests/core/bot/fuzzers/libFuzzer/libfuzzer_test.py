@@ -212,7 +212,7 @@ class RecommendedDictionaryTest(fake_fs_unittest.TestCase):
     ]
 
     libfuzzer.add_recommended_dictionary(arguments, self.fuzzer_name,
-                                        self.fuzzer_path)
+                                         self.fuzzer_path)
 
     expected_dictionary_path = '%s.dict.merged' % self.fuzzer_path
 
@@ -245,7 +245,7 @@ class RecommendedDictionaryTest(fake_fs_unittest.TestCase):
 
     # The function call below is expected to modify actual_arguments list.
     libfuzzer.add_recommended_dictionary(actual_arguments, self.fuzzer_name,
-                                        self.fuzzer_path)
+                                         self.fuzzer_path)
 
     # The dictionary argument is expected to be removed and added to the end.
     expected_arguments.remove(dictionary_argument)
@@ -267,7 +267,7 @@ class RecommendedDictionaryTest(fake_fs_unittest.TestCase):
     ]
 
     libfuzzer.add_recommended_dictionary(arguments, self.fuzzer_name,
-                                        self.fuzzer_path)
+                                         self.fuzzer_path)
     self.assertIn(
         '/fake/fuzzers/inputs-disk/temp-1337/recommended_dictionary.dict',
         self.mock.download_recommended_dictionary_from_gcs.call_args[0])
