@@ -25,8 +25,8 @@ import shutil
 import unittest
 
 from bot.fuzzers import engine_common
-from bot.fuzzers import strategy_selection
 from bot.fuzzers import libfuzzer
+from bot.fuzzers import strategy_selection
 from fuzzing import strategy
 from system import environment
 from tests.test_libs import helpers as test_helpers
