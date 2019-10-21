@@ -333,9 +333,6 @@ def run():
     # Download new layout tests once per day.
     update_tests_if_needed()
 
-    # Remove unused builds once per day.
-    build_manager.remove_unused_builds()
-
     # Check overall free disk space. If we are running too low, clear all
     # data directories like builds, fuzzers, data bundles, etc.
     shell.clear_data_directories_on_low_disk_space()
