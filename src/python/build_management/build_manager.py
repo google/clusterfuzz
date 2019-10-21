@@ -15,19 +15,15 @@
 
 from builtins import object
 from builtins import range
-import datetime
 import os
 import re
-import six
 import subprocess
 import time
 
 from collections import namedtuple
 from distutils import spawn
 
-from base import dates
 from base import errors
-from base import persistent_cache
 from base import utils
 from build_management import revisions
 from datastore import data_types

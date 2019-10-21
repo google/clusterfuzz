@@ -31,7 +31,6 @@ from bot.init_scripts import fuchsia as fuchsia_init
 from bot.init_scripts import linux as linux_init
 from bot.init_scripts import mac as mac_init
 from bot.init_scripts import windows as windows_init
-from build_management import build_manager
 from config import local_config
 from datastore import data_handler
 from google_cloud_utils import storage
