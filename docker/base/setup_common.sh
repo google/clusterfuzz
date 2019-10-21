@@ -45,7 +45,7 @@ fi
 
 # Running without credentials will cause this to fail.
 if [[ -z "$LOCAL_SRC" ]]; then
-  service google-fluentd restart
+  /etc/init.d/google-fluentd restart
 fi
 
 # Prevent anything from being written to downloads directory.
