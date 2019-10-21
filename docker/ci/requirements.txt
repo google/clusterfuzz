@@ -1,6 +1,6 @@
 beautifulsoup4==4.5.1
 coverage==4.2
-ecdsa==0.13
+ecdsa==0.13.3
 extras==1.0.0
 fixtures==3.0.0
 funcsigs==1.0.2
