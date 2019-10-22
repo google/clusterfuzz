@@ -13,6 +13,8 @@
 # limitations under the License.
 """Tests for grouper."""
 
+from builtins import range
+
 import datetime
 import unittest
 
@@ -249,3 +251,42 @@ class GrouperTest(unittest.TestCase):
       self.testcases[index] = data_handler.get_testcase_by_id(t.key.id())
       self.assertEqual(self.testcases[index].group_id, 0)
       self.assertTrue(self.testcases[index].is_leader)
+
+
+@test_utils.with_cloud_emulators('datastore')
+class GroupExceedMaxTestcasesTest(unittest.TestCase):
+  """Grouper test when a group exceeds maximum number of testcases."""
+
+  def test_group_exceed_max_testcases(self):
+    """Test that group auto-shrinks when it exceeds maximum number of
+    testcases."""
+    for i in range(1, 31):
+      testcase = test_utils.create_generic_testcase()
+      testcase.crash_type = 'Heap-buffer-overflow'
+      testcase.crash_state = 'abcdefgh' + str(i)
+      testcase.project_name = 'project'
+      testcase.one_time_crasher_flag = False
+
+      # Attach actual issues to some testcases.
+      if i in [3, 4, 5]:
+        testcase.bug_information = '123'
+
+      # Make some testcases unreproducible.
+      if i in [1, 2, 3]:
+        testcase.one_time_crasher_flag = True
+
+      testcase.put()
+
+    unrelated_testcase = test_utils.create_generic_testcase()
+
+    grouper.group_testcases()
+
+    testcase_ids = list(data_handler.get_open_testcase_id_iterator())
+
+    # [1, 2] get removed since they are unreproducible testcases.
+    # [3] is not removed since it has bug attached (even though unreproducible).
+    # [6, 7, 8] are removed to account for max group size. Even though they
+    # are reproducible, they are the ones with least weight.
+    expected_testcase_ids = [3, 4, 5] + list(range(
+        9, 31)) + [unrelated_testcase.key.id()]
+    self.assertEqual(expected_testcase_ids, testcase_ids)
