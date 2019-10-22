@@ -49,20 +49,10 @@ from system import shell
 # Maximum length of a random chosen length for `-max_len`.
 MAX_VALUE_FOR_MAX_LENGTH = 10000
 
-# Probability of doing DFT-based fuzzing (depends on DFSan build presence).
-DATAFLOW_TRACING_PROBABILITY = 0.25
-
-# Prefix for the fuzzer's full name.
-LIBFUZZER_PREFIX = 'libfuzzer_'
-
 # Allow 30 minutes to merge the testcases back into the corpus.
 DEFAULT_MERGE_TIMEOUT = 30 * 60
 
 MERGED_DICT_SUFFIX = '.merged'
-
-MERGE_DIRECTORY_NAME = 'merge-corpus'
-
-HEXDIGITS_SET = set(string.hexdigits)
 
 StrategyInfo = collections.namedtuple('StrategiesInfo', [
     'fuzzing_strategies',
@@ -1182,7 +1172,8 @@ def is_sha1_hash(possible_hash):
   if len(possible_hash) != 40:
     return False
 
-  return all(char in HEXDIGITS_SET for char in possible_hash)
+  hexdigits_set = set(string.hexdigits)
+  return all(char in hexdigits_set for char in possible_hash)
 
 
 def move_mergeable_units(merge_directory, corpus_directory):
