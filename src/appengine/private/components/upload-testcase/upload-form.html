@@ -182,6 +182,7 @@
       <div class="inline wide">
         <paper-input value="{{uploadParams.args}}" label="Command-line arguments (optional)" title="Additional command line flags to append when running this test case. Only necessary if a flag that isn't part of the job definition is required."></paper-input>
         <paper-input value="{{uploadParams.gestures}}" label="Gestures (optional)" title="A string representing gestures to use with this test case. It's generally not possible to manually create a gesture string. This tends to be used when re-uploading existing test cases which require gestures."></paper-input>
+        <paper-input value="{{uploadParams.issue_labels}}" label="Issue labels / hotlists (optional)" title="A set of label(s) / hotlist(s) to add to the issue. Should be a string of values separated by commas, e.g. value1,value2"></paper-input>
       </div>
       <template is="dom-if" if="[[isAndroid(uploadParams.job)]]">
         <div class="inline wide">

@@ -345,8 +345,9 @@ class UploadHandlerCommon(object):
     additional_arguments = self.request.get('args')
     app_launch_command = self.request.get('cmd')
     platform_id = self.request.get('platform')
+    issue_labels = self.request.get('issue_labels')
 
-    testcase_metadata = self.request.get('metadata')
+    testcase_metadata = self.request.get('metadata', {})
     if testcase_metadata:
       try:
         testcase_metadata = json.loads(testcase_metadata)
@@ -355,6 +356,9 @@ class UploadHandlerCommon(object):
                                            400)
       except Exception:
         raise helpers.EarlyExitException('Invalid metadata JSON.', 400)
+
+    if issue_labels:
+      testcase_metadata['issue_labels'] = issue_labels
 
     archive_state = 0
     bundled = False
