@@ -15,19 +15,15 @@
 
 from builtins import object
 from builtins import range
-import datetime
 import os
 import re
-import six
 import subprocess
 import time
 
 from collections import namedtuple
 from distutils import spawn
 
-from base import dates
 from base import errors
-from base import persistent_cache
 from base import utils
 from build_management import revisions
 from datastore import data_types
@@ -55,9 +51,6 @@ REVISION_FILE_NAME = 'REVISION'
 BUILD_TYPE_SUBSTRINGS = [
     '-beta', '-stable', '-debug', '-release', '-symbolized'
 ]
-
-# Persistent cache key for tracking when last unused build check was done.
-LAST_UNUSED_BUILD_CHECK_KEY = 'last_unused_build_check'
 
 # Build eviction constants.
 MAX_EVICTED_BUILDS = 100
@@ -1423,59 +1416,6 @@ def setup_build(revision=0, target_weights=None):
       bucket_paths.append(bucket_path)
 
   return setup_trunk_build(bucket_paths, target_weights=target_weights)
-
-
-def remove_unused_builds():
-  """Remove any builds that are no longer in use by this bot."""
-  builds_directory = environment.get_value('BUILDS_DIR')
-  last_checked_time = persistent_cache.get_value(
-      LAST_UNUSED_BUILD_CHECK_KEY,
-      constructor=datetime.datetime.utcfromtimestamp)
-  if (last_checked_time is not None and
-      not dates.time_has_expired(last_checked_time, days=1)):
-    return
-
-  # Initialize the map with all of our build directories.
-  build_in_use_map = {}
-  for build_directory in os.listdir(builds_directory):
-    absolute_build_directory = os.path.join(builds_directory, build_directory)
-    if os.path.isdir(absolute_build_directory):
-      build_in_use_map[absolute_build_directory] = False
-
-  # Platforms for jobs may come from the queue override, but use the default
-  # if no override is present.
-  job_platform = environment.get_platform_group()
-  jobs_for_platform = ndb_utils.get_all_from_query(
-      data_types.Job.query(data_types.Job.platform == job_platform))
-  for job in jobs_for_platform:
-    job_environment = job.get_environment()
-
-    # Do not attempt to process any incomplete job definitions.
-    if not job_environment:
-      continue
-
-    for key, value in six.iteritems(job_environment):
-      if 'BUILD_BUCKET_PATH' in key:
-        bucket_path = value
-      elif key == 'CUSTOM_BINARY' and value != 'False':
-        bucket_path = None
-      else:
-        continue
-
-      # If we made it to this point, this build is potentially in use.
-      build_directory = _get_build_directory(bucket_path, job.name)
-      if build_directory in build_in_use_map:
-        build_in_use_map[build_directory] = True
-
-  for build_directory, in_use in six.iteritems(build_in_use_map):
-    if in_use:
-      continue
-
-    # Remove the build.
-    logs.log('Removing unused build directory: %s' % build_directory)
-    shell.remove_directory(build_directory)
-
-  persistent_cache.set_value(LAST_UNUSED_BUILD_CHECK_KEY, time.time())
 
 
 def is_custom_binary():

@@ -31,7 +31,6 @@ from bot.init_scripts import fuchsia as fuchsia_init
 from bot.init_scripts import linux as linux_init
 from bot.init_scripts import mac as mac_init
 from bot.init_scripts import windows as windows_init
-from build_management import build_manager
 from config import local_config
 from datastore import data_handler
 from google_cloud_utils import storage
@@ -332,9 +331,6 @@ def run():
 
     # Download new layout tests once per day.
     update_tests_if_needed()
-
-    # Remove unused builds once per day.
-    build_manager.remove_unused_builds()
 
     # Check overall free disk space. If we are running too low, clear all
     # data directories like builds, fuzzers, data bundles, etc.
