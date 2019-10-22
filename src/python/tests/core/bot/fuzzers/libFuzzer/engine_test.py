@@ -31,7 +31,6 @@ from bot.fuzzers import strategy_selection
 from bot.fuzzers import utils as fuzzer_utils
 from bot.fuzzers.libFuzzer import constants
 from bot.fuzzers.libFuzzer import engine
-from bot.fuzzers.libFuzzer import launcher
 from build_management import build_manager
 from fuzzing import strategy
 from system import environment
@@ -41,7 +40,7 @@ from tests.test_libs import helpers as test_helpers
 from tests.test_libs import test_utils
 
 TEST_PATH = os.path.abspath(os.path.dirname(__file__))
-TEST_DIR = os.path.join(TEST_PATH, 'launcher_test_data')
+TEST_DIR = os.path.join(TEST_PATH, 'libfuzzer_test_data')
 TEMP_DIR = os.path.join(TEST_PATH, 'temp')
 DATA_DIR = os.path.join(TEST_PATH, 'data')
 
@@ -74,9 +73,9 @@ class PrepareTest(fake_fs_unittest.TestCase):
     os.environ['FAIL_RETRIES'] = '1'
     os.environ['FUZZ_INPUTS_DISK'] = '/inputs'
 
-    test_helpers.patch(self, ['bot.fuzzers.libFuzzer.launcher.pick_strategies'])
+    test_helpers.patch(self, ['bot.fuzzers.libfuzzer.pick_strategies'])
 
-    self.mock.pick_strategies.return_value = launcher.StrategyInfo(
+    self.mock.pick_strategies.return_value = libfuzzer.StrategyInfo(
         fuzzing_strategies=[
             'unknown_1', 'value_profile', 'corpus_subset_20', 'fork_2'
         ],
@@ -150,16 +149,16 @@ class PickStrategiesTest(fake_fs_unittest.TestCase):
   def test_max_length_strategy_with_override(self):
     """Tests max length strategy with override."""
     strategy_pool = set_strategy_pool([strategy.RANDOM_MAX_LENGTH_STRATEGY])
-    strategy_info = launcher.pick_strategies(strategy_pool, '/path/target',
-                                             '/path/corpus', ['-max_len=100'])
+    strategy_info = libfuzzer.pick_strategies(strategy_pool, '/path/target',
+                                              '/path/corpus', ['-max_len=100'])
     self.assertItemsEqual([], strategy_info.arguments)
 
   def test_max_length_strategy_without_override(self):
     """Tests max length strategy without override."""
     self.mock.randint.return_value = 1337
     strategy_pool = set_strategy_pool([strategy.RANDOM_MAX_LENGTH_STRATEGY])
-    strategy_info = launcher.pick_strategies(strategy_pool, '/path/target',
-                                             '/path/corpus', [])
+    strategy_info = libfuzzer.pick_strategies(strategy_pool, '/path/target',
+                                              '/path/corpus', [])
     self.assertItemsEqual(['-max_len=1337'], strategy_info.arguments)
 
 
@@ -376,8 +375,8 @@ class BaseIntegrationTest(unittest.TestCase):
         'bot.fuzzers.mutator_plugin._download_mutator_plugin_archive',
         'bot.fuzzers.mutator_plugin._get_mutator_plugins_from_bucket',
         'bot.fuzzers.strategy_selection.generate_weighted_strategy_pool',
-        'bot.fuzzers.libFuzzer.launcher.get_dictionary_analysis_timeout',
-        'bot.fuzzers.libFuzzer.launcher.get_fuzz_timeout',
+        'bot.fuzzers.libfuzzer.get_dictionary_analysis_timeout',
+        'bot.fuzzers.libfuzzer.get_fuzz_timeout',
         'os.getpid',
         'system.minijail.MinijailChroot._mknod',
     ])
@@ -393,7 +392,7 @@ class BaseIntegrationTest(unittest.TestCase):
 
 @test_utils.integration
 class IntegrationTests(BaseIntegrationTest):
-  """Base libFuzzer launcher tests."""
+  """Base libFuzzer libfuzzer tests."""
 
   def setUp(self):
     BaseIntegrationTest.setUp(self)
@@ -414,7 +413,7 @@ class IntegrationTests(BaseIntegrationTest):
     self.assertIn('peak_rss_mb', stats)
 
   def test_single_testcase_crash(self):
-    """Tests launcher with a crashing testcase."""
+    """Tests libfuzzer with a crashing testcase."""
     testcase_path, _ = setup_testcase_and_corpus('crash', 'empty_corpus')
     engine_impl = engine.LibFuzzerEngine()
     target_path = engine_common.find_fuzzer_path(DATA_DIR, 'test_fuzzer')
@@ -647,7 +646,7 @@ class IntegrationTests(BaseIntegrationTest):
     def mocked_create_merge_directory(_):
       """A mocked version of create_merge_directory that adds some interesting
       files to the merge corpus and initial corpus."""
-      merge_directory_path = launcher.create_corpus_directory('merge-corpus')
+      merge_directory_path = libfuzzer.create_corpus_directory('merge-corpus')
       shell.create_directory(
           merge_directory_path, create_intermediates=True, recreate=True)
 
@@ -774,7 +773,7 @@ class MinijailIntegrationTests(IntegrationTests):
 @test_utils.integration
 @test_utils.with_cloud_emulators('datastore')
 class IntegrationTestFuchsia(BaseIntegrationTest):
-  """libFuzzer launcher tests (Fuchsia)."""
+  """libFuzzer tests (Fuchsia)."""
 
   def setUp(self):
     BaseIntegrationTest.setUp(self)

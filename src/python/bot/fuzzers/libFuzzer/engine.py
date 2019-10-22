@@ -24,7 +24,6 @@ from bot.fuzzers import strategy_selection
 from bot.fuzzers import utils as fuzzer_utils
 from bot.fuzzers.libFuzzer import constants
 from bot.fuzzers.libFuzzer import fuzzer
-from bot.fuzzers.libFuzzer import launcher
 from bot.fuzzers.libFuzzer import stats
 from datastore import data_types
 from fuzzing import strategy
@@ -80,8 +79,8 @@ class LibFuzzerEngine(engine.Engine):
         strategy_list=strategy.LIBFUZZER_STRATEGY_LIST,
         use_generator=True,
         engine_name=self.name)
-    strategy_info = launcher.pick_strategies(strategy_pool, target_path,
-                                             corpus_dir, arguments)
+    strategy_info = libfuzzer.pick_strategies(strategy_pool, target_path,
+                                              corpus_dir, arguments)
 
     arguments.extend(strategy_info.arguments)
 
@@ -97,7 +96,7 @@ class LibFuzzerEngine(engine.Engine):
         shell.get_directory_file_count(corpus_dir) > subset_size):
       # Copy |subset_size| testcases into 'subset' directory.
       corpus_subset_dir = self._create_temp_corpus_dir('subset')
-      launcher.copy_from_corpus(corpus_subset_dir, corpus_dir, subset_size)
+      libfuzzer.copy_from_corpus(corpus_subset_dir, corpus_dir, subset_size)
       strategy_info.fuzzing_strategies.append(
           strategy.CORPUS_SUBSET_STRATEGY.name + '_' + str(subset_size))
       strategy_info.additional_corpus_dirs.append(corpus_subset_dir)
@@ -175,9 +174,9 @@ class LibFuzzerEngine(engine.Engine):
           output_dir=merge_corpus,
           reproducers_dir=None,
           max_time=engine_common.get_merge_timeout(
-              launcher.DEFAULT_MERGE_TIMEOUT))
+              libfuzzer.DEFAULT_MERGE_TIMEOUT))
 
-      launcher.move_mergeable_units(merge_corpus, corpus_dir)
+      libfuzzer.move_mergeable_units(merge_corpus, corpus_dir)
       new_corpus_len = shell.get_directory_file_count(corpus_dir)
       new_units_added = new_corpus_len - old_corpus_len
 
@@ -212,13 +211,13 @@ class LibFuzzerEngine(engine.Engine):
     """
     profiler.start_if_needed('libfuzzer_fuzz')
     runner = libfuzzer.get_runner(target_path)
-    launcher.set_sanitizer_options(target_path)
+    libfuzzer.set_sanitizer_options(target_path)
 
     # Directory to place new units.
     new_corpus_dir = self._create_temp_corpus_dir('new')
 
     corpus_directories = [new_corpus_dir] + options.fuzz_corpus_dirs
-    fuzz_timeout = launcher.get_fuzz_timeout(
+    fuzz_timeout = libfuzzer.get_fuzz_timeout(
         options.is_mutations_run, total_timeout=max_time)
     fuzz_result = runner.fuzz(
         corpus_directories,
@@ -243,7 +242,7 @@ class LibFuzzerEngine(engine.Engine):
     crash_testcase_file_path = runner.get_testcase_path(log_lines)
 
     # Parse stats information based on libFuzzer output.
-    parsed_stats = launcher.parse_log_stats(log_lines)
+    parsed_stats = libfuzzer.parse_log_stats(log_lines)
 
     # Extend parsed stats by additional performance features.
     parsed_stats.update(
@@ -269,7 +268,7 @@ class LibFuzzerEngine(engine.Engine):
 
     # Remove fuzzing arguments before merge and dictionary analysis step.
     arguments = options.arguments[:]
-    launcher.remove_fuzzing_arguments(arguments)
+    libfuzzer.remove_fuzzing_arguments(arguments)
 
     self._merge_new_units(target_path, options.corpus_dir, new_corpus_dir,
                           options.fuzz_corpus_dirs, arguments, parsed_stats)
@@ -286,7 +285,7 @@ class LibFuzzerEngine(engine.Engine):
     project_qualified_fuzzer_name = (
         data_types.fuzz_target_project_qualified_name(
             utils.current_project(), os.path.basename(target_path)))
-    launcher.analyze_and_update_recommended_dictionary(
+    libfuzzer.analyze_and_update_recommended_dictionary(
         runner, project_qualified_fuzzer_name, log_lines, options.corpus_dir,
         arguments)
 
@@ -306,12 +305,12 @@ class LibFuzzerEngine(engine.Engine):
       A ReproduceResult.
     """
     runner = libfuzzer.get_runner(target_path)
-    launcher.set_sanitizer_options(target_path)
+    libfuzzer.set_sanitizer_options(target_path)
 
     # Remove fuzzing specific arguments. This is only really needed for legacy
     # testcases, and can be removed in the distant future.
     arguments = arguments[:]
-    launcher.remove_fuzzing_arguments(arguments)
+    libfuzzer.remove_fuzzing_arguments(arguments)
 
     runs_argument = constants.RUNS_FLAG + str(constants.RUNS_TO_REPRODUCE)
     arguments.append(runs_argument)
@@ -338,7 +337,7 @@ class LibFuzzerEngine(engine.Engine):
       A Result object.
     """
     runner = libfuzzer.get_runner(target_path)
-    launcher.set_sanitizer_options(target_path)
+    libfuzzer.set_sanitizer_options(target_path)
     merge_tmp_dir = self._create_temp_corpus_dir('merge-workdir')
 
     merge_result = runner.merge(
@@ -373,7 +372,7 @@ class LibFuzzerEngine(engine.Engine):
       A ReproduceResult.
     """
     runner = libfuzzer.get_runner(target_path)
-    launcher.set_sanitizer_options(target_path)
+    libfuzzer.set_sanitizer_options(target_path)
 
     minimize_tmp_dir = self._create_temp_corpus_dir('minimize-workdir')
     result = runner.minimize_crash(
@@ -400,7 +399,7 @@ class LibFuzzerEngine(engine.Engine):
       A ReproduceResult.
     """
     runner = libfuzzer.get_runner(target_path)
-    launcher.set_sanitizer_options(target_path)
+    libfuzzer.set_sanitizer_options(target_path)
 
     cleanse_tmp_dir = self._create_temp_corpus_dir('cleanse-workdir')
     result = runner.cleanse_crash(

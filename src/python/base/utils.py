@@ -277,7 +277,9 @@ def get_crash_stacktrace_output(application_command_line,
     build_type = _guess_build_type(application_command_line)
 
   crash_stacktraces_output = environment.get_environment_settings_as_string()
-  crash_stacktraces_output += '[Command line] %s\n\n' % application_command_line
+  if application_command_line:
+    crash_stacktraces_output += (
+        '[Command line] %s\n\n' % application_command_line)
   crash_stacktraces_output += ('+%s%s Build Stacktrace%s+\n%s' % (
       separator, build_type.capitalize(), separator, symbolized_stacktrace))
 

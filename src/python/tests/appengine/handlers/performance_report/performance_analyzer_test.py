@@ -18,7 +18,7 @@ import os
 import unittest
 
 from base import utils
-from bot.fuzzers.libFuzzer import launcher
+from bot.fuzzers import libfuzzer
 from bot.fuzzers.libFuzzer import stats as performance_stats
 from handlers.performance_report import performance_analyzer
 from system import environment
@@ -36,14 +36,14 @@ def _get_stats_from_log(log_path,
                         strategies=None,
                         arguments=None,
                         stats_overrides=None):
-  """Calculate stats for the given log the same way as the launcher does."""
+  """Calculate stats for the given log the same way as the engine does."""
   if strategies is None:
     strategies = []
   if arguments is None:
     arguments = []
 
   log_lines = utils.read_data_from_file(log_path, eval_data=False).splitlines()
-  stats = launcher.parse_log_stats(log_lines)
+  stats = libfuzzer.parse_log_stats(log_lines)
   stats.update(
       performance_stats.parse_performance_features(log_lines, strategies,
                                                    arguments))

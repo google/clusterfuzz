@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""Tests for libFuzzer launcher script."""
+"""Tests for libFuzzer script."""
 # pylint: disable=unused-argument
 
 from future import standard_library
@@ -25,14 +25,14 @@ import shutil
 import unittest
 
 from bot.fuzzers import engine_common
+from bot.fuzzers import libfuzzer
 from bot.fuzzers import strategy_selection
-from bot.fuzzers.libFuzzer import launcher
 from fuzzing import strategy
 from system import environment
 from tests.test_libs import helpers as test_helpers
 from tests.test_libs import test_utils
 
-TESTDATA_PATH = os.path.join(os.path.dirname(__file__), 'launcher_test_data')
+TESTDATA_PATH = os.path.join(os.path.dirname(__file__), 'libfuzzer_test_data')
 
 BOT_NAME = 'test-bot'
 BUILD_DIR = '/fake/build_dir'
@@ -211,8 +211,8 @@ class RecommendedDictionaryTest(fake_fs_unittest.TestCase):
         '/fake/corpus_basic'
     ]
 
-    launcher.add_recommended_dictionary(arguments, self.fuzzer_name,
-                                        self.fuzzer_path)
+    libfuzzer.add_recommended_dictionary(arguments, self.fuzzer_name,
+                                         self.fuzzer_path)
 
     expected_dictionary_path = '%s.dict.merged' % self.fuzzer_path
 
@@ -244,8 +244,8 @@ class RecommendedDictionaryTest(fake_fs_unittest.TestCase):
     actual_arguments = copy.deepcopy(expected_arguments)
 
     # The function call below is expected to modify actual_arguments list.
-    launcher.add_recommended_dictionary(actual_arguments, self.fuzzer_name,
-                                        self.fuzzer_path)
+    libfuzzer.add_recommended_dictionary(actual_arguments, self.fuzzer_name,
+                                         self.fuzzer_path)
 
     # The dictionary argument is expected to be removed and added to the end.
     expected_arguments.remove(dictionary_argument)
@@ -266,8 +266,8 @@ class RecommendedDictionaryTest(fake_fs_unittest.TestCase):
         '/fake/corpus_basic'
     ]
 
-    launcher.add_recommended_dictionary(arguments, self.fuzzer_name,
-                                        self.fuzzer_path)
+    libfuzzer.add_recommended_dictionary(arguments, self.fuzzer_name,
+                                         self.fuzzer_path)
     self.assertIn(
         '/fake/fuzzers/inputs-disk/temp-1337/recommended_dictionary.dict',
         self.mock.download_recommended_dictionary_from_gcs.call_args[0])
@@ -278,15 +278,15 @@ class IsSha1HashTest(unittest.TestCase):
 
   def test_non_hashes(self):
     """Tests that False is returned for non hashes."""
-    self.assertFalse(launcher.is_sha1_hash(''))
-    self.assertFalse(launcher.is_sha1_hash('z' * 40))
-    self.assertFalse(launcher.is_sha1_hash('a' * 50))
+    self.assertFalse(libfuzzer.is_sha1_hash(''))
+    self.assertFalse(libfuzzer.is_sha1_hash('z' * 40))
+    self.assertFalse(libfuzzer.is_sha1_hash('a' * 50))
     fake_hash = str('z' + ARBITRARY_SHA1_HASH[1:])
-    self.assertFalse(launcher.is_sha1_hash(fake_hash))
+    self.assertFalse(libfuzzer.is_sha1_hash(fake_hash))
 
   def test_hash(self):
     """Tests that False is returned for a real hash."""
-    self.assertTrue(launcher.is_sha1_hash(ARBITRARY_SHA1_HASH))
+    self.assertTrue(libfuzzer.is_sha1_hash(ARBITRARY_SHA1_HASH))
 
 
 class MoveMergeableUnitsTest(fake_fs_unittest.TestCase):
@@ -299,7 +299,7 @@ class MoveMergeableUnitsTest(fake_fs_unittest.TestCase):
 
   def move_mergeable_units(self):
     """Helper function for move_mergeable_units."""
-    launcher.move_mergeable_units(self.MERGE_DIRECTORY, self.CORPUS_DIRECTORY)
+    libfuzzer.move_mergeable_units(self.MERGE_DIRECTORY, self.CORPUS_DIRECTORY)
 
   def test_duplicate_not_moved(self):
     """Tests that a duplicated file is not moved into the corpus directory."""
