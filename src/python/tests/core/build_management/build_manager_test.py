@@ -1830,9 +1830,7 @@ class SplitFuzzTargetsBuildTest(fake_filesystem_unittest.TestCase):
         '77651789446b3c3a04b9f492ff141f003d437347/revisions'.format(
             target=target),
         os.environ['BUILD_DIR'])
-    self.assertEqual(
-        os.path.join(os.environ['FUZZER_DIR'], 'launcher.py'),
-        os.environ['APP_PATH'])
+    self.assertEqual('', os.environ['APP_PATH'])
 
   def test_setup_fuzz(self):
     """Tests setting up a build during fuzzing."""
