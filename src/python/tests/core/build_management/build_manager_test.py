@@ -1589,7 +1589,6 @@ class RpathsTest(unittest.TestCase):
 
   def test_patch_rpaths_libfuzzer(self):
     """Tests patching rpaths for libFuzzer targets."""
-    os.environ['APP_NAME'] = 'launcher.py'
     os.environ['JOB_NAME'] = 'libfuzzer_msan_test'
 
     self.mock._unpack_build.side_effect = functools.partial(
@@ -1783,7 +1782,6 @@ class SplitFuzzTargetsBuildTest(fake_filesystem_unittest.TestCase):
 
     os.environ['BUILDS_DIR'] = '/builds'
     os.environ['FAIL_RETRIES'] = '1'
-    os.environ['APP_NAME'] = 'launcher.py'
     os.environ['JOB_NAME'] = 'libfuzzer_job'
     os.environ['UNPACK_ALL_FUZZ_TARGETS_AND_FILES'] = 'True'
     os.environ['FUZZER_DIR'] = os.path.join(

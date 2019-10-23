@@ -331,7 +331,7 @@ class UntrustedRunnerIntegrationTest(
     self.assertEqual('1337', os.environ['APP_REVISION'])
     self.assertEqual('', os.environ['APP_PATH_DEBUG'])
     self.assertEqual(expected_build_dir, os.environ['BUILD_DIR'])
-    self.assertEqual(expected_app_dir, os.environ['APP_DIR'])
+    self.assertEqual('', os.environ['APP_DIR'])
     self.assertEqual('test_fuzzer', os.environ['FUZZ_TARGET'])
 
   def test_run_process_testcase(self):
