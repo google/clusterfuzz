@@ -87,7 +87,7 @@ class BuildSetupHostTest(unittest.TestCase):
                                                 'https://build/url.zip')
     self.assertTrue(build.setup())
     self.assertEqual(os.getenv('APP_PATH'), '')
-    self.assertEqual(os.getenv('APP_DIR'), '/fuzzer_dir')
+    self.assertEqual(os.getenv('APP_DIR'), '')
     self.assertEqual(os.getenv('BUILD_DIR'), '/release')
     self.assertEqual(os.getenv('BUILD_URL'), 'https://build/url.zip')
     self.assertEqual(os.getenv('APP_REVISION'), '1337')
