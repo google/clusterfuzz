@@ -1597,8 +1597,7 @@ class RpathsTest(unittest.TestCase):
                                        'chained-origins')
     self.assertTrue(build.setup())
 
-    self.assertEqual(
-        os.path.join(self.base_build_dir, 'revisions'), os.environ['APP_DIR'])
+    self.assertEqual('', os.environ['APP_DIR'])
 
     rpaths = build_manager.get_rpaths(
         os.path.join(os.environ['APP_DIR'], 'target_1'))
