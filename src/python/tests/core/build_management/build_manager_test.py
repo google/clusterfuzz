@@ -1600,11 +1600,11 @@ class RpathsTest(unittest.TestCase):
     self.assertEqual('', os.environ['APP_DIR'])
 
     rpaths = build_manager.get_rpaths(
-        os.path.join(os.environ['APP_DIR'], 'target_1'))
+        os.path.join(os.environ['BUILD_DIR'], 'target_1'))
     self.assertListEqual(['/msan/lib', '/msan/usr/lib'], rpaths)
 
     rpaths = build_manager.get_rpaths(
-        os.path.join(os.environ['APP_DIR'], 'target_2'))
+        os.path.join(os.environ['BUILD_DIR'], 'target_2'))
     self.assertListEqual(['/msan/lib', '/msan/usr/lib'], rpaths)
 
   def test_patch_rpaths_existing_msan(self):
