@@ -251,8 +251,7 @@ def _verify_target_exists(build_directory):
   """Ensure that we can find the test target before running it.
 
   Separated into its own function to simplify test behavior."""
-  app_path = environment.get_value('APP_PATH')
-  if not app_path or not os.path.exists(app_path):
+  if not build_manager.check_app_path():
     raise errors.ReproduceToolUnrecoverableError(
         'Unable to locate app binary in {build_directory}.'.format(
             build_directory=build_directory))
