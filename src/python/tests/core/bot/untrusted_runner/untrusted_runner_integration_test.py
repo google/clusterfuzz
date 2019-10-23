@@ -324,8 +324,6 @@ class UntrustedRunnerIntegrationTest(
         'clusterfuzz-test-data_test_libfuzzer_builds_'
         '41a87efdd470c6f00e8babf61548bf6c7de57137', 'revisions')
 
-    expected_app_dir = os.path.join(worker_root_dir, launcher_dir)
-
     self.assertEqual('', os.environ['APP_PATH'])
     self.assertEqual('1337', os.environ['APP_REVISION'])
     self.assertEqual('', os.environ['APP_PATH_DEBUG'])
