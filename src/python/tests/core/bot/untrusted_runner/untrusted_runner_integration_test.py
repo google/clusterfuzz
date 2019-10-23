@@ -327,8 +327,7 @@ class UntrustedRunnerIntegrationTest(
 
     expected_app_dir = os.path.join(worker_root_dir, launcher_dir)
 
-    self.assertEqual(
-        os.path.join(expected_app_dir, 'launcher.py'), os.environ['APP_PATH'])
+    self.assertEqual('', os.environ['APP_PATH'])
     self.assertEqual('1337', os.environ['APP_REVISION'])
     self.assertEqual('', os.environ['APP_PATH_DEBUG'])
     self.assertEqual(expected_build_dir, os.environ['BUILD_DIR'])
