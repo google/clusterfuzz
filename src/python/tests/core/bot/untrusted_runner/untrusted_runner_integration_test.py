@@ -77,8 +77,7 @@ class UntrustedRunnerIntegrationTest(
                           'test-build-([0-9]+).zip\n')
     data_types.Job(name='job', environment_string=environment_string).put()
 
-    environment_string = ('APP_NAME = launcher.py\n'
-                          'RELEASE_BUILD_BUCKET_PATH = '
+    environment_string = ('RELEASE_BUILD_BUCKET_PATH = '
                           'gs://clusterfuzz-test-data/test_libfuzzer_builds/'
                           'test-libfuzzer-build-([0-9]+).zip\n'
                           'UNPACK_ALL_FUZZ_TARGETS_AND_FILES = True')

@@ -23,8 +23,8 @@ from tests.test_libs import helpers as test_helpers
 
 def _mock_set_environment_vars(_):
   """Mock build_manager.set_environment_vars."""
-  os.environ['APP_PATH'] = '/fuzzer_dir/launcher.py'
-  os.environ['APP_DIR'] = '/fuzzer_dir'
+  os.environ['APP_PATH'] = ''
+  os.environ['APP_DIR'] = ''
 
 
 class BuildSetupHostTest(unittest.TestCase):
@@ -86,7 +86,7 @@ class BuildSetupHostTest(unittest.TestCase):
     build = build_setup_host.RemoteRegularBuild('/', 1337,
                                                 'https://build/url.zip')
     self.assertTrue(build.setup())
-    self.assertEqual(os.getenv('APP_PATH'), '/fuzzer_dir/launcher.py')
+    self.assertEqual(os.getenv('APP_PATH'), '')
     self.assertEqual(os.getenv('APP_DIR'), '/fuzzer_dir')
     self.assertEqual(os.getenv('BUILD_DIR'), '/release')
     self.assertEqual(os.getenv('BUILD_URL'), 'https://build/url.zip')
