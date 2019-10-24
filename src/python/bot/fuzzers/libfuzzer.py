@@ -888,8 +888,6 @@ class MinijailLibFuzzerRunner(engine_common.MinijailEngineFuzzerRunner,
 class AndroidLibFuzzerRunner(new_process.ProcessRunner, LibFuzzerCommon):
   """Android libFuzzer runner."""
   DEVICE_FUZZING_DIR = '/data/fuzz'
-  PATH_MAPPING = collections.namedtuple('PathMapping',
-                                        ['local_path', 'device_path'])
 
   def __init__(self, executable_path, build_directory, default_args=None):
     """Inits the AndroidLibFuzzerRunner.
@@ -962,7 +960,7 @@ class AndroidLibFuzzerRunner(new_process.ProcessRunner, LibFuzzerCommon):
                                                device_directory)
 
   def _copy_local_directories_from_device(self, local_directories):
-    """Copies local corpus directories to device."""
+    """Copies directories from device to local."""
     for local_directory in set(local_directories):
       device_directory = self._get_device_path(local_directory)
       android.adb.copy_remote_directory_to_local(device_directory,
