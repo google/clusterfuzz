@@ -65,14 +65,27 @@ def bad_state_reached():
 
 
 def copy_local_directory_to_remote(local_directory, remote_directory):
-  """Copies local directory contents to remote directory."""
+  """Copies local directory contents to a device directory."""
   create_directory_if_needed(remote_directory)
   run_command(['push', '%s/*' % local_directory, remote_directory])
 
 
+def copy_local_file_to_remote(local_file_path, remote_file_path):
+  """Copies local file to a device file."""
+  create_directory_if_needed(os.path.dirname(remote_file_path))
+  run_command(['push', local_file_path, remote_file_path])
+
+
 def copy_remote_directory_to_local(remote_directory, local_directory):
-  """Copies local directory contents to remote directory."""
+  """Copies local directory contents to a device directory."""
   run_command(['pull', '%s/.' % remote_directory, local_directory])
+
+
+def copy_remote_file_to_local(remote_file_path, local_file_path):
+  """Copies device file to a local file."""
+  shell.create_directory(
+      os.path.dirname(local_file_path), create_intermediates=True)
+  run_command(['pull', remote_file_path, local_file_path])
 
 
 def create_directory_if_needed(device_directory):
@@ -374,6 +387,7 @@ def remount():
   run_as_root()
   run_command('remount')
   wait_for_device()
+  run_as_root()
 
 
 def remove_directory(device_directory, recreate=False):

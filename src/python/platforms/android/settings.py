@@ -127,7 +127,10 @@ def get_product_brand():
 
 def get_sanitizer_tool_name():
   """Return sanitizer tool name e.g. ASAN if found on device."""
-  if 'asan' in get_build_flavor():
+  build_flavor = get_build_flavor()
+  if 'hwasan' in build_flavor:
+    return 'hwasan'
+  if 'asan' in build_flavor:
     return 'asan'
 
   return ''
