@@ -871,18 +871,20 @@ class IntegrationTestsAndroid(BaseIntegrationTest, android_helpers.AndroidTest):
     android_helpers.AndroidTest.setUp(self)
     BaseIntegrationTest.setUp(self)
 
+    if android.settings.get_sanitizer_tool_name() != 'hwasan':
+      raise Exception('Device is not set up with HWASan.')
+
     environment.set_value('BUILD_DIR', ANDROID_DATA_DIR)
     environment.set_value('JOB_NAME', 'libfuzzer_hwasan_android_device')
-
     environment.reset_current_memory_tool_options()
 
     self.crash_dir = TEMP_DIR
     self.adb_path = android.adb.get_adb_path()
     self.hwasan_options = 'HWASAN_OPTIONS="%s"' % quote(
         environment.get_value('HWASAN_OPTIONS'))
-
-    # FIXME: This should not be hardcoded.
-    self.ld_library_path = 'LD_LIBRARY_PATH=/system/lib64:/system/lib64/vndk-R'
+    self.ld_library_path = (
+        'LD_LIBRARY_PATH=' +
+        android.sanitizer.get_ld_library_path_for_sanitizers())
 
   def device_path(self, local_path):
     """Return device path for a local path."""

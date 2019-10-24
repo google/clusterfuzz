@@ -903,22 +903,15 @@ class AndroidLibFuzzerRunner(new_process.ProcessRunner, LibFuzzerCommon):
 
     self._copy_local_directory_to_device(build_directory)
 
-  def get_testcase_path(self, log_lines):
-    """Get testcase path from log lines."""
-    path = LibFuzzerCommon.get_testcase_path(self, log_lines)
-    if not path:
-      return path
-
-    return self._get_local_path(path)
-
   def _get_default_args(self, executable_path, custom_default_args):
     """Return a set of default arguments to pass to adb binary."""
     default_args = ['shell']
 
     # Add directory containing libclang_rt.ubsan_standalone-aarch64-android.so
     # to LD_LIBRARY_PATH.
-    # FIXME: Remove this hardcode and get rid of this dependency completely.
-    default_args.append('LD_LIBRARY_PATH=/system/lib64:/system/lib64/vndk-R')
+    ld_library_path = android.sanitizer.get_ld_library_path_for_sanitizers()
+    if ld_library_path:
+      default_args.append('LD_LIBRARY_PATH=' + ld_library_path)
 
     # Add sanitizer options.
     default_args += environment.get_sanitizer_options_for_display()
@@ -977,6 +970,14 @@ class AndroidLibFuzzerRunner(new_process.ProcessRunner, LibFuzzerCommon):
     yield device_file_path
     # Cleanup
     android.adb.remove_file(device_file_path)
+
+  def get_testcase_path(self, log_lines):
+    """Get testcase path from log lines."""
+    path = LibFuzzerCommon.get_testcase_path(self, log_lines)
+    if not path:
+      return path
+
+    return self._get_local_path(path)
 
   def analyze_dictionary(self,
                          dictionary_path,

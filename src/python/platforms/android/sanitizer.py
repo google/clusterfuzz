@@ -33,6 +33,20 @@ SANITIZER_TOOL_TO_FILE_MAPPINGS = {
 }
 
 
+def get_ld_library_path_for_sanitizers():
+  """Return LD_LIBRARY_PATH setting for sanitizers, None otherwise."""
+  if not settings.get_sanitizer_tool_name():
+    return None
+
+  sanitizer_libs = adb.run_shell_command(
+      ['find', '/system/lib64/', '-name', '*san_standalone*'])
+  if not sanitizer_libs:
+    raise Exception('Sanitizer library not found.')
+
+  sanitizer_lib_directory = os.path.dirname(sanitizer_libs.splitlines()[0])
+  return '/system/lib64:' + sanitizer_lib_directory
+
+
 def get_options_file_path(sanitizer_tool_name):
   """Return path for the sanitizer options file."""
   # If this a full sanitizer system build, then update the options file in
