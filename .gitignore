@@ -21,6 +21,7 @@
 /bot/*
 /coverage
 /deployment
+/local/bin/android-sdk/*
 /local/storage
 /paramiko.log
 /src/appengine/app.yaml

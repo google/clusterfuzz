@@ -298,6 +298,11 @@ def main():
       '--verbose',
       action='store_true',
       help='Print additional log messages while running.')
+  parser_reproduce.add_argument(
+      '-e',
+      '--emulator',
+      action='store_true',
+      help='Run and attempt to reproduce using the Android emulator.')
 
   args = parser.parse_args()
 

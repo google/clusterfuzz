@@ -18,7 +18,7 @@ CLUSTERFUZZ_CONFIG_DIR=~/.config/clusterfuzz
 ROOT_DIRECTORY=$(dirname $(readlink -f "$0"))
 
 mkdir -p $CLUSTERFUZZ_CONFIG_DIR
-if [ ! -d $ROOT_DIRECTORY/ENV ]; then
+if [ ! -d $ROOT_DIRECTORY/ENV ] || [ ! -d $ROOT_DIRECTORY/local/bin/android-sdk ]; then
   echo "Running first time setup. This may take a while, but is only required once."
   echo "You may see several password prompts to install required packages."
   sleep 5

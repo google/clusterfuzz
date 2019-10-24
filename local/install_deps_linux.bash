@@ -152,6 +152,20 @@ pip install --upgrade pip
 pip install --upgrade -r docker/ci/requirements.txt
 pip install --upgrade -r src/local/requirements.txt
 
+# Install the Android emulator and its dependencies. Used in tests and as an
+# option during Android test case reproduction.
+rm -rf local/bin/android-sdk
+mkdir local/bin/android-sdk
+curl https://dl.google.com/android/repository/sdk-tools-linux-4333796.zip --output local/bin/android-sdk/sdk-tools-linux.zip
+unzip -d local/bin/android-sdk local/bin/android-sdk/sdk-tools-linux.zip
+
+tools_bin=local/bin/android-sdk/tools/bin/
+$tools_bin/sdkmanager "emulator"
+$tools_bin/sdkmanager "platform-tools" "platforms;android-28"
+$tools_bin/sdkmanager "system-images;android-28;google_apis;x86"
+$tools_bin/sdkmanager --licenses
+$tools_bin/avdmanager create avd --force -n Android28 -k "system-images;android-28;google_apis;x86"
+
 if [ ! $only_reproduce ]; then
   # Install other dependencies (e.g. bower).
   nodeenv -p --prebuilt

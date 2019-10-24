@@ -21,16 +21,15 @@ import webbrowser
 
 from base import json_utils
 from base import utils
+from local.butler.reproduce_tool import constants
 from local.butler.reproduce_tool import prompts
 from system import shell
 
 GET_METHOD = 'GET'
 POST_METHOD = 'POST'
 
-CONFIG_DIRECTORY = os.path.join(
-    os.path.expanduser('~'), '.config', 'clusterfuzz')
-AUTHORIZATION_CACHE_FILE = os.path.join(CONFIG_DIRECTORY, 'authorization-cache')
-
+AUTHORIZATION_CACHE_FILE = os.path.join(constants.CONFIG_DIRECTORY,
+                                        'authorization-cache')
 AUTHORIZATION_HEADER = 'x-clusterfuzz-authorization'
 
 
