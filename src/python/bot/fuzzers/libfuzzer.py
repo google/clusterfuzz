@@ -903,7 +903,7 @@ class AndroidLibFuzzerRunner(new_process.ProcessRunner, LibFuzzerCommon):
 
     self._copy_local_directory_to_device(build_directory)
 
-  def _get_default_args(self, executable_path, custom_default_args):
+  def _get_default_args(self, executable_path, extra_args):
     """Return a set of default arguments to pass to adb binary."""
     default_args = ['shell']
 
@@ -918,8 +918,8 @@ class AndroidLibFuzzerRunner(new_process.ProcessRunner, LibFuzzerCommon):
 
     default_args.append(self._get_device_path(executable_path))
 
-    if custom_default_args:
-      default_args += custom_default_args
+    if extra_args:
+      default_args += extra_args
 
     return default_args
 
@@ -927,17 +927,21 @@ class AndroidLibFuzzerRunner(new_process.ProcessRunner, LibFuzzerCommon):
     """Return device paths for the given corpus directories."""
     return [self._get_device_path(path) for path in corpus_directories]
 
-  def _get_device_path(self, path):
+  def _get_device_path(self, local_path):
     """Return device path for the given local path."""
     root_directory = environment.get_root_directory()
     return os.path.join(self.DEVICE_FUZZING_DIR,
-                        os.path.relpath(path, root_directory))
+                        os.path.relpath(local_path, root_directory))
 
-  def _get_local_path(self, path):
+  def _get_local_path(self, device_path):
     """Return local path for the given device path."""
+    if not device_path.startswith(self.DEVICE_FUZZING_DIR + '/'):
+      logs.log_error('Bad device path: ' + device_path)
+      return None
+
     root_directory = environment.get_root_directory()
     return os.path.join(root_directory,
-                        os.path.relpath(path, self.DEVICE_FUZZING_DIR))
+                        os.path.relpath(device_path, self.DEVICE_FUZZING_DIR))
 
   def _copy_local_directories_to_device(self, local_directories):
     """Copies local directories to device."""
