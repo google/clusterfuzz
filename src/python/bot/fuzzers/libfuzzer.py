@@ -16,6 +16,7 @@ from __future__ import print_function
 
 from builtins import object
 import collections
+import contextlib
 import copy
 import multiprocessing
 import os
@@ -35,6 +36,7 @@ from bot.fuzzers.libFuzzer import constants
 from datastore import data_types
 from fuzzing import strategy
 from metrics import logs
+from platforms import android
 from platforms import fuchsia
 from platforms.fuchsia.device import start_qemu
 from platforms.fuchsia.device import stop_qemu
@@ -883,6 +885,235 @@ class MinijailLibFuzzerRunner(engine_common.MinijailEngineFuzzerRunner,
       return result
 
 
+class AndroidLibFuzzerRunner(new_process.ProcessRunner, LibFuzzerCommon):
+  """Android libFuzzer runner."""
+  DEVICE_FUZZING_DIR = '/data/fuzz'
+  PATH_MAPPING = collections.namedtuple('PathMapping',
+                                        ['local_path', 'device_path'])
+
+  def __init__(self, executable_path, build_directory, default_args=None):
+    """Inits the AndroidLibFuzzerRunner.
+
+    Args:
+      executable_path: Path to the fuzzer executable.
+      build_directory: A MinijailChroot.
+      default_args: Default arguments to always pass to the fuzzer.
+    """
+    super(AndroidLibFuzzerRunner, self).__init__(
+        executable_path=android.adb.get_adb_path(),
+        default_args=self._get_default_args(executable_path, default_args))
+
+    self._copy_local_directory_to_device(build_directory)
+
+  def get_testcase_path(self, log_lines):
+    """Get testcase path from log lines."""
+    path = LibFuzzerCommon.get_testcase_path(self, log_lines)
+    if not path:
+      return path
+
+    return self._get_local_path(path)
+
+  def _get_default_args(self, executable_path, custom_default_args):
+    """Return a set of default arguments to pass to adb binary."""
+    default_args = ['shell']
+
+    # Add directory containing libclang_rt.ubsan_standalone-aarch64-android.so
+    # to LD_LIBRARY_PATH.
+    default_args.append('LD_LIBRARY_PATH=/system/lib64:/system/lib64/vndk-R')
+
+    # Add sanitizer options.
+    default_args += environment.get_sanitizer_options_for_display()
+
+    default_args.append(self._get_device_path(executable_path))
+
+    if custom_default_args:
+      default_args += custom_default_args
+
+    return default_args
+
+  def _get_device_corpus_paths(self, corpus_directories):
+    """Return device paths for the given corpus directories."""
+    return [self._get_device_path(path) for path in corpus_directories]
+
+  def _get_device_path(self, path):
+    """Return device path for the given local path."""
+    root_directory = environment.get_root_directory()
+    return os.path.join(self.DEVICE_FUZZING_DIR,
+                        os.path.relpath(path, root_directory))
+
+  def _get_local_path(self, path):
+    """Return local path for the given device path."""
+    root_directory = environment.get_root_directory()
+    return os.path.join(root_directory,
+                        os.path.relpath(path, self.DEVICE_FUZZING_DIR))
+
+  def _copy_local_directories_to_device(self, local_directories):
+    """Copies local directories to device."""
+    for local_directory in set(local_directories):
+      self._copy_local_directory_to_device(local_directory)
+
+  def _copy_local_directory_to_device(self, local_directory):
+    """Copy local directory to device."""
+    if not os.path.exists(local_directory):
+      return
+
+    device_directory = self._get_device_path(local_directory)
+    android.adb.copy_local_directory_to_remote(local_directory,
+                                               device_directory)
+
+  def _copy_local_directories_from_device(self, local_directories):
+    """Copies local corpus directories to device."""
+    for local_directory in set(local_directories):
+      device_directory = self._get_device_path(local_directory)
+      android.adb.copy_remote_directory_to_local(device_directory,
+                                                 local_directory)
+
+  @contextlib.contextmanager
+  def _device_file(self, file_path):
+    """Context manager for device files.
+    Args:
+      file_path: Host path to file.
+    Returns:
+      Path to file on device.
+    """
+    device_file_path = self._get_device_path(file_path)
+    android.adb.copy_local_file_to_remote(file_path, device_file_path)
+    yield device_file_path
+    # Cleanup
+    android.adb.remove_file(device_file_path)
+
+  def analyze_dictionary(self,
+                         dictionary_path,
+                         corpus_directory,
+                         analyze_timeout,
+                         artifact_prefix=None,
+                         additional_args=None):
+    """LibFuzzerCommon.analyze_dictionary override."""
+    sync_directories = [corpus_directory]
+    if artifact_prefix:
+      sync_directories.append(artifact_prefix)
+
+    self._copy_local_directories_to_device(sync_directories)
+    corpus_directory = self._get_device_path(corpus_directory)
+
+    if artifact_prefix:
+      artifact_prefix = self._get_device_path(artifact_prefix)
+
+    with self._device_file(dictionary_path) as device_dictionary_path:
+      return LibFuzzerCommon.analyze_dictionary(
+          self, device_dictionary_path, corpus_directory, analyze_timeout,
+          artifact_prefix, additional_args)
+
+  def fuzz(self,
+           corpus_directories,
+           fuzz_timeout,
+           artifact_prefix=None,
+           additional_args=None,
+           extra_env=None):
+    """LibFuzzerCommon.fuzz override."""
+    sync_directories = copy.copy(corpus_directories)
+    if artifact_prefix:
+      sync_directories.append(artifact_prefix)
+
+    self._copy_local_directories_to_device(sync_directories)
+    corpus_directories = self._get_device_corpus_paths(corpus_directories)
+
+    if artifact_prefix:
+      artifact_prefix = self._get_device_path(artifact_prefix)
+
+    result = LibFuzzerCommon.fuzz(
+        self,
+        corpus_directories,
+        fuzz_timeout,
+        artifact_prefix=artifact_prefix,
+        additional_args=additional_args,
+        extra_env=extra_env)
+
+    self._copy_local_directories_from_device(sync_directories)
+    return result
+
+  def merge(self,
+            corpus_directories,
+            merge_timeout,
+            artifact_prefix=None,
+            tmp_dir=None,
+            additional_args=None):
+    """LibFuzzerCommon.merge override."""
+    sync_directories = copy.copy(corpus_directories)
+    if artifact_prefix:
+      sync_directories.append(artifact_prefix)
+
+    self._copy_local_directories_to_device(sync_directories)
+    corpus_directories = self._get_device_corpus_paths(corpus_directories)
+
+    if artifact_prefix:
+      artifact_prefix = self._get_device_path(artifact_prefix)
+
+    result = LibFuzzerCommon.merge(
+        self,
+        corpus_directories,
+        merge_timeout,
+        artifact_prefix=artifact_prefix,
+        tmp_dir=None,
+        additional_args=additional_args)
+
+    self._copy_local_directories_from_device(sync_directories)
+    return result
+
+  def run_single_testcase(self,
+                          testcase_path,
+                          timeout=None,
+                          additional_args=None):
+    """LibFuzzerCommon.test_single_input override."""
+    with self._device_file(testcase_path) as device_testcase_path:
+      return LibFuzzerCommon.run_single_testcase(self, device_testcase_path,
+                                                 timeout, additional_args)
+
+  def minimize_crash(self,
+                     testcase_path,
+                     output_path,
+                     timeout,
+                     artifact_prefix=None,
+                     additional_args=None):
+    """LibFuzzerCommon.minimize_crash override."""
+    with self._device_file(testcase_path) as device_testcase_path:
+      device_output_path = self._get_device_path(output_path)
+
+      result = LibFuzzerCommon.minimize_crash(
+          self,
+          device_testcase_path,
+          device_output_path,
+          timeout,
+          artifact_prefix=constants.TMP_ARTIFACT_PREFIX_ARGUMENT,
+          additional_args=additional_args)
+      if android.adb.file_exists(device_output_path):
+        android.adb.copy_remote_file_to_local(device_output_path, output_path)
+
+      return result
+
+  def cleanse_crash(self,
+                    testcase_path,
+                    output_path,
+                    timeout,
+                    artifact_prefix=None,
+                    additional_args=None):
+    """LibFuzzerCommon.cleanse_crash override."""
+    with self._device_file(testcase_path) as device_testcase_path:
+      device_output_path = self._get_device_path(output_path)
+
+      result = LibFuzzerCommon.cleanse_crash(
+          self,
+          device_testcase_path,
+          device_output_path,
+          timeout,
+          artifact_prefix=constants.TMP_ARTIFACT_PREFIX_ARGUMENT,
+          additional_args=additional_args)
+      if android.adb.file_exists(device_output_path):
+        android.adb.copy_remote_file_to_local(device_output_path, output_path)
+
+      return result
+
+
 def get_runner(fuzzer_path, temp_dir=None, use_minijail=None):
   """Get a libfuzzer runner."""
   if use_minijail is None:
@@ -897,8 +1128,9 @@ def get_runner(fuzzer_path, temp_dir=None, use_minijail=None):
 
   build_dir = environment.get_value('BUILD_DIR')
   dataflow_build_dir = environment.get_value('DATAFLOW_BUILD_DIR')
-
+  is_android = environment.platform() == 'ANDROID'
   is_fuchsia = environment.platform() == 'FUCHSIA'
+
   if not is_fuchsia:
     # To ensure that we can run the fuzz target.
     os.chmod(fuzzer_path, 0o755)
@@ -947,6 +1179,8 @@ def get_runner(fuzzer_path, temp_dir=None, use_minijail=None):
     runner = MinijailLibFuzzerRunner(fuzzer_path, minijail_chroot)
   elif is_fuchsia:
     runner = FuchsiaQemuLibFuzzerRunner(fuzzer_path)
+  elif is_android:
+    runner = AndroidLibFuzzerRunner(fuzzer_path, build_dir)
   else:
     runner = LibFuzzerRunner(fuzzer_path)
 

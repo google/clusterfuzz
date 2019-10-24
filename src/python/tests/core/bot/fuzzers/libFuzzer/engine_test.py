@@ -33,16 +33,24 @@ from bot.fuzzers.libFuzzer import constants
 from bot.fuzzers.libFuzzer import engine
 from build_management import build_manager
 from fuzzing import strategy
+from platforms import android
 from system import environment
 from system import new_process
 from system import shell
+from tests.test_libs import android_helpers
 from tests.test_libs import helpers as test_helpers
 from tests.test_libs import test_utils
+
+try:
+  from shlex import quote
+except ImportError:
+  from pipes import quote
 
 TEST_PATH = os.path.abspath(os.path.dirname(__file__))
 TEST_DIR = os.path.join(TEST_PATH, 'libfuzzer_test_data')
 TEMP_DIR = os.path.join(TEST_PATH, 'temp')
 DATA_DIR = os.path.join(TEST_PATH, 'data')
+ANDROID_DATA_DIR = os.path.join(DATA_DIR, 'android')
 
 _get_directory_file_count_orig = shell.get_directory_file_count
 
@@ -481,6 +489,7 @@ class IntegrationTests(BaseIntegrationTest):
         ], results.command)
     self.assertEqual(1, len(results.crashes))
 
+    self.assertTrue(os.path.exists(results.crashes[0].input_path))
     self.assertEqual(TEMP_DIR, os.path.dirname(results.crashes[0].input_path))
     self.assertEqual(results.logs, results.crashes[0].stacktrace)
     self.assertListEqual([
@@ -772,7 +781,7 @@ class MinijailIntegrationTests(IntegrationTests):
 
 @test_utils.integration
 @test_utils.with_cloud_emulators('datastore')
-class IntegrationTestFuchsia(BaseIntegrationTest):
+class IntegrationTestsFuchsia(BaseIntegrationTest):
   """libFuzzer tests (Fuchsia)."""
 
   def setUp(self):
@@ -851,3 +860,247 @@ class IntegrationTestFuchsia(BaseIntegrationTest):
     self.assertIn('ERROR: AddressSanitizer: heap-buffer-overflow on address',
                   result.output)
     self.assertIn('Running: data/fuchsia_crash', result.output)
+
+
+@test_utils.integration
+@test_utils.with_cloud_emulators('datastore')
+class IntegrationTestsAndroid(BaseIntegrationTest, android_helpers.AndroidTest):
+  """libFuzzer tests (Android)."""
+
+  def setUp(self):
+    android_helpers.AndroidTest.setUp(self)
+    BaseIntegrationTest.setUp(self)
+
+    test_helpers.patch(self, [
+        'system.shell.clear_temp_directory',
+    ])
+
+    environment.set_value('BUILD_DIR', ANDROID_DATA_DIR)
+    environment.set_value('JOB_NAME', 'libfuzzer_hwasan_android_device')
+
+    environment.reset_current_memory_tool_options()
+
+    self.crash_dir = TEMP_DIR
+    self.adb_path = android.adb.get_adb_path()
+    self.hwasan_options = 'HWASAN_OPTIONS="%s"' % quote(
+        environment.get_value('HWASAN_OPTIONS'))
+
+  def device_path(self, local_path):
+    """Return device path for a local path."""
+    return os.path.join(
+        libfuzzer.AndroidLibFuzzerRunner.DEVICE_FUZZING_DIR,
+        os.path.relpath(local_path, environment.get_root_directory()))
+
+  def assert_has_stats(self, stats):
+    """Asserts that libFuzzer stats are in output."""
+    self.assertIn('number_of_executed_units', stats)
+    self.assertIn('average_exec_per_sec', stats)
+    self.assertIn('new_units_added', stats)
+    self.assertIn('slowest_unit_time_sec', stats)
+    self.assertIn('peak_rss_mb', stats)
+
+  def test_single_testcase_crash(self):
+    """Tests libfuzzer with a crashing testcase."""
+    testcase_path, _ = setup_testcase_and_corpus('crash', 'empty_corpus')
+    engine_impl = engine.LibFuzzerEngine()
+    target_path = engine_common.find_fuzzer_path(ANDROID_DATA_DIR,
+                                                 'test_fuzzer')
+    result = engine_impl.reproduce(target_path, testcase_path,
+                                   ['-timeout=25', '-rss_limit_mb=2048'], 30)
+
+    self.assertEqual([
+        self.adb_path, 'shell',
+        'LD_LIBRARY_PATH=/system/lib64:/system/lib64/vndk-R',
+        self.hwasan_options,
+        self.device_path(target_path), '-timeout=25', '-rss_limit_mb=2048',
+        '-runs=100',
+        self.device_path(testcase_path)
+    ], result.command)
+    self.assertIn(
+        'ERROR: HWAddressSanitizer: SEGV on unknown address 0x000000000000',
+        result.output)
+
+  @test_utils.slow
+  def test_fuzz_no_crash(self):
+    """Tests fuzzing (no crash)."""
+    self.mock.generate_weighted_strategy_pool.return_value = set_strategy_pool(
+        [strategy.VALUE_PROFILE_STRATEGY])
+
+    self.mock.get_fuzz_timeout.return_value = get_fuzz_timeout(5.0)
+    _, corpus_path = setup_testcase_and_corpus('empty', 'corpus')
+    engine_impl = engine.LibFuzzerEngine()
+
+    target_path = engine_common.find_fuzzer_path(ANDROID_DATA_DIR,
+                                                 'test_fuzzer')
+    options = engine_impl.prepare(corpus_path, target_path, ANDROID_DATA_DIR)
+
+    results = engine_impl.fuzz(target_path, options, TEMP_DIR, 10)
+
+    self.assert_has_stats(results.stats)
+    self.assertEqual([
+        self.adb_path,
+        'shell',
+        'LD_LIBRARY_PATH=/system/lib64:/system/lib64/vndk-R',
+        self.hwasan_options,
+        self.device_path(target_path),
+        '-max_len=256',
+        '-timeout=25',
+        '-rss_limit_mb=2048',
+        '-use_value_profile=1',
+        '-artifact_prefix=' + self.device_path(TEMP_DIR) + '/',
+        '-max_total_time=5',
+        '-print_final_stats=1',
+        self.device_path(os.path.join(TEMP_DIR, 'temp-1337/new')),
+        self.device_path(os.path.join(TEMP_DIR, 'corpus')),
+    ], results.command)
+    self.assertEqual(0, len(results.crashes))
+
+    # New items should've been added to the corpus.
+    self.assertNotEqual(0, len(os.listdir(corpus_path)))
+
+  def test_fuzz_crash(self):
+    """Tests fuzzing (crash)."""
+    self.mock.get_fuzz_timeout.return_value = get_fuzz_timeout(5.0)
+    _, corpus_path = setup_testcase_and_corpus('empty', 'corpus')
+    engine_impl = engine.LibFuzzerEngine()
+
+    target_path = engine_common.find_fuzzer_path(ANDROID_DATA_DIR,
+                                                 'always_crash_fuzzer')
+    options = engine_impl.prepare(corpus_path, target_path, ANDROID_DATA_DIR)
+
+    results = engine_impl.fuzz(target_path, options, TEMP_DIR, 10)
+
+    self.assert_has_stats(results.stats)
+    self.assertEqual([
+        self.adb_path,
+        'shell',
+        'LD_LIBRARY_PATH=/system/lib64:/system/lib64/vndk-R',
+        self.hwasan_options,
+        self.device_path(target_path),
+        '-max_len=100',
+        '-timeout=25',
+        '-rss_limit_mb=2048',
+        '-artifact_prefix=' + self.device_path(TEMP_DIR) + '/',
+        '-max_total_time=5',
+        '-print_final_stats=1',
+        self.device_path(os.path.join(TEMP_DIR, 'temp-1337/new')),
+        self.device_path(os.path.join(TEMP_DIR, 'corpus')),
+    ], results.command)
+    self.assertEqual(1, len(results.crashes))
+
+    self.assertTrue(os.path.exists(results.crashes[0].input_path))
+    self.assertEqual(TEMP_DIR, os.path.dirname(results.crashes[0].input_path))
+    self.assertEqual(results.logs, results.crashes[0].stacktrace)
+    self.assertListEqual([
+        '-timeout=25',
+        '-rss_limit_mb=2048',
+    ], results.crashes[0].reproduce_args)
+
+    self.assertIn(
+        'Test unit written to {0}/crash-'.format(
+            self.device_path(self.crash_dir)), results.logs)
+    self.assertIn(
+        'ERROR: HWAddressSanitizer: SEGV on unknown address '
+        '0x000000000000', results.logs)
+
+  def test_fuzz_from_subset(self):
+    """Tests fuzzing from corpus subset."""
+    self.mock.generate_weighted_strategy_pool.return_value = set_strategy_pool(
+        [strategy.CORPUS_SUBSET_STRATEGY])
+    self.mock.get_fuzz_timeout.return_value = get_fuzz_timeout(5.0)
+
+    _, corpus_path = setup_testcase_and_corpus('empty',
+                                               'corpus_with_some_files')
+
+    engine_impl = engine.LibFuzzerEngine()
+    target_path = engine_common.find_fuzzer_path(ANDROID_DATA_DIR,
+                                                 'test_fuzzer')
+    options = engine_impl.prepare(corpus_path, target_path, ANDROID_DATA_DIR)
+    results = engine_impl.fuzz(target_path, options, TEMP_DIR, 10)
+
+    self.assertEqual([
+        self.adb_path,
+        'shell',
+        'LD_LIBRARY_PATH=/system/lib64:/system/lib64/vndk-R',
+        self.hwasan_options,
+        self.device_path(target_path),
+        '-max_len=256',
+        '-timeout=25',
+        '-rss_limit_mb=2048',
+        '-artifact_prefix=' + self.device_path(TEMP_DIR) + '/',
+        '-max_total_time=5',
+        '-print_final_stats=1',
+        self.device_path(os.path.join(TEMP_DIR, 'temp-1337/new')),
+        self.device_path(os.path.join(TEMP_DIR, 'temp-1337/subset')),
+    ], results.command)
+    self.assert_has_stats(results.stats)
+
+  def test_minimize(self):
+    """Tests minimize."""
+    testcase_path, _ = setup_testcase_and_corpus('aaaa', 'empty_corpus')
+    minimize_output_path = os.path.join(TEMP_DIR, 'minimized_testcase')
+
+    engine_impl = engine.LibFuzzerEngine()
+    target_path = engine_common.find_fuzzer_path(ANDROID_DATA_DIR,
+                                                 'crash_with_A_fuzzer')
+    result = engine_impl.minimize_testcase(target_path, [], testcase_path,
+                                           minimize_output_path, 30)
+    self.assertTrue(result)
+    self.assertTrue(os.path.exists(minimize_output_path))
+    with open(minimize_output_path) as f:
+      result = f.read()
+      self.assertEqual('A', result)
+
+  def test_cleanse(self):
+    """Tests cleanse."""
+    testcase_path, _ = setup_testcase_and_corpus('aaaa', 'empty_corpus')
+    cleanse_output_path = os.path.join(TEMP_DIR, 'cleansed_testcase')
+
+    engine_impl = engine.LibFuzzerEngine()
+    target_path = engine_common.find_fuzzer_path(ANDROID_DATA_DIR,
+                                                 'crash_with_A_fuzzer')
+    result = engine_impl.cleanse(target_path, [], testcase_path,
+                                 cleanse_output_path, 30)
+    self.assertTrue(result)
+    self.assertTrue(os.path.exists(cleanse_output_path))
+    with open(cleanse_output_path) as f:
+      result = f.read()
+      self.assertFalse(all(c == 'A' for c in result))
+
+  def test_analyze_dict(self):
+    """Tests recommended dictionary analysis."""
+    test_helpers.patch(self, [
+        'bot.fuzzers.dictionary_manager.DictionaryManager.'
+        'parse_recommended_dictionary_from_log_lines',
+        'bot.fuzzers.dictionary_manager.DictionaryManager.'
+        'update_recommended_dictionary',
+    ])
+
+    self.mock.parse_recommended_dictionary_from_log_lines.return_value = set([
+        '"USELESS_0"',
+        '"APPLE"',
+        '"USELESS_1"',
+        '"GINGER"',
+        '"USELESS_2"',
+        '"BEET"',
+        '"USELESS_3"',
+    ])
+    self.mock.get_fuzz_timeout.return_value = get_fuzz_timeout(5.0)
+
+    _, corpus_path = setup_testcase_and_corpus('empty',
+                                               'corpus_with_some_files')
+
+    engine_impl = engine.LibFuzzerEngine()
+    target_path = engine_common.find_fuzzer_path(ANDROID_DATA_DIR,
+                                                 'analyze_dict_fuzzer')
+    options = engine_impl.prepare(corpus_path, target_path, DATA_DIR)
+
+    engine_impl.fuzz(target_path, options, TEMP_DIR, 10)
+    expected_recommended_dictionary = set([
+        '"APPLE"',
+        '"GINGER"',
+        '"BEET"',
+    ])
+
+    self.assertIn(expected_recommended_dictionary,
+                  self.mock.update_recommended_dictionary.call_args[0])

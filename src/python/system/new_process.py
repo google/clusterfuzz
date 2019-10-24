@@ -267,7 +267,6 @@ class ProcessRunner(object):
     """
     # TODO: Rename popen_args to popen_kwargs.
     command = self.get_command(additional_args)
-
     if stdout == subprocess.PIPE and max_stdout_len:
       stdout = tempfile.TemporaryFile()
 

@@ -31,7 +31,9 @@ except ImportError:
 # Tools supporting customization of options via ADDITIONAL_{TOOL_NAME}_OPTIONS.
 # FIXME: Support ADDITIONAL_UBSAN_OPTIONS and ADDITIONAL_LSAN_OPTIONS in an
 # ASAN instrumented build.
-SUPPORTED_MEMORY_TOOLS_FOR_OPTIONS = ['ASAN', 'CFI', 'MSAN', 'TSAN', 'UBSAN']
+SUPPORTED_MEMORY_TOOLS_FOR_OPTIONS = [
+    'HWASAN', 'ASAN', 'CFI', 'MSAN', 'TSAN', 'UBSAN'
+]
 
 SANITIZER_NAME_MAP = {
     'ASAN': 'address',
@@ -307,16 +309,25 @@ def get_environment_settings_as_string():
 
   else:
     # For desktop platforms, add |*_OPTIONS| variables from environment.
-    for tool in SUPPORTED_MEMORY_TOOLS_FOR_OPTIONS:
-      environment_variable = tool + '_OPTIONS'
-      environment_variable_value = os.getenv(environment_variable)
-      if not environment_variable_value:
-        continue
-
-      environment_string += '[Environment] %s="%s"\n' % (
-          environment_variable, quote(environment_variable_value))
+    for sanitizer_option in get_sanitizer_options_for_display():
+      environment_string += '[Environment] %s\n' % sanitizer_option
 
   return environment_string
+
+
+def get_sanitizer_options_for_display():
+  """Return a list of sanitizer options with quoted values."""
+  result = []
+  for tool in SUPPORTED_MEMORY_TOOLS_FOR_OPTIONS:
+    options_variable = tool + '_OPTIONS'
+    options_value = os.getenv(options_variable)
+    if not options_value:
+      continue
+
+    result.append('{options_variable}="{options_value}"'.format(
+        options_variable=options_variable, options_value=quote(options_value)))
+
+  return result
 
 
 def get_llvm_symbolizer_path():
@@ -746,14 +757,14 @@ def reset_current_memory_tool_options(redzone_size=0,
   bot_platform = platform()
 
   # Default options for memory debuggin tool used.
-  if tool_name == 'ASAN':
+  if tool_name in ['ASAN', 'HWASAN']:
     tool_options = get_asan_options(redzone_size, malloc_context_size,
                                     quarantine_size_mb, bot_platform, leaks)
   elif tool_name == 'MSAN':
     tool_options = get_msan_options()
   elif tool_name == 'TSAN':
     tool_options = get_tsan_options()
-  elif tool_name == 'UBSAN' or tool_name == 'CFI':
+  elif tool_name in ['UBSAN', 'CFI']:
     tool_options = get_ubsan_options()
 
   # Additional options. These override the defaults.
@@ -784,7 +795,9 @@ def reset_current_memory_tool_options(redzone_size=0,
     set_value('UBSAN_OPTIONS', joined_tool_options)
 
   # For Android, we need to set shell property |asan.options|.
-  if bot_platform == 'ANDROID':
+  # For engine-based uzzers, it is not needed as options variable is directly
+  # passed to shell.
+  if bot_platform == 'ANDROID' and not is_engine_fuzzer_job():
     android.sanitizer.set_options(tool_name, joined_tool_options)
 
 
