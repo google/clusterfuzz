@@ -173,6 +173,18 @@ def find_fuzz_target(engine, target_name, job_name):
   return None, None
 
 
+def _allow_unprivileged_metadata(testcase_metadata):
+  """Returns whether or not the provided testcase metadata can be set by an
+  unprivileged user."""
+  if utils.is_oss_fuzz():
+    # Labels in OSS-Fuzz are privileged and control things like disclosure
+    # deadlines. Do not let these be editable.
+    return False
+
+  # Allow *only* issue labels to be set.
+  return len(testcase_metadata) == 1 and 'issue_labels' in testcase_metadata
+
+
 class Handler(base_handler.Handler):
   """Handler for the testcase uploads page."""
 
@@ -390,7 +402,8 @@ class UploadHandlerCommon(object):
         raise helpers.EarlyExitException(
             'You are not privileged to run arbitary launch commands.', 400)
 
-      if testcase_metadata:
+      if (testcase_metadata and
+          not _allow_unprivileged_metadata(testcase_metadata)):
         raise helpers.EarlyExitException(
             'You are not privileged to set testcase metadata.', 400)
 
