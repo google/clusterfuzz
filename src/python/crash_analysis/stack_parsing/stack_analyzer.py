@@ -59,7 +59,8 @@ ASAN_DOUBLE_FREE_REGEX = re.compile(
 ASAN_MEMCPY_OVERLAP_REGEX = re.compile(
     r'.*(AddressSanitizer).*memcpy-param-overlap'
     r'[^\[]*([\[].*[)])')
-ASAN_REGEX = re.compile(r'.*(ERROR: AddressSanitizer)[: ]*' r'[ ]*([^(:]+)')
+ASAN_REGEX = re.compile(
+    r'.*ERROR: (HWAddressSanitizer|AddressSanitizer)[: ]*[ ]*([^(:]+)')
 ASSERT_REGEX = re.compile(
     r'(?:\[.*?\]|.*\.(?:%s):.*)?' % ('|'.join(C_CPP_EXTENSIONS)) +
     r'\s*(?:ASSERT(?:ION)? FAIL(?:URE|ED)|panic): (.*)', re.IGNORECASE)
