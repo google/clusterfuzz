@@ -917,6 +917,7 @@ class AndroidLibFuzzerRunner(new_process.ProcessRunner, LibFuzzerCommon):
 
     # Add directory containing libclang_rt.ubsan_standalone-aarch64-android.so
     # to LD_LIBRARY_PATH.
+    # FIXME: Remove this hardcode and get rid of this dependency completely.
     default_args.append('LD_LIBRARY_PATH=/system/lib64:/system/lib64/vndk-R')
 
     # Add sanitizer options.
@@ -952,9 +953,6 @@ class AndroidLibFuzzerRunner(new_process.ProcessRunner, LibFuzzerCommon):
 
   def _copy_local_directory_to_device(self, local_directory):
     """Copy local directory to device."""
-    if not os.path.exists(local_directory):
-      return
-
     device_directory = self._get_device_path(local_directory)
     android.adb.copy_local_directory_to_remote(local_directory,
                                                device_directory)

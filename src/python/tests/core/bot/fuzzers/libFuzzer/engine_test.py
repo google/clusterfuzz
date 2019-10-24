@@ -871,10 +871,6 @@ class IntegrationTestsAndroid(BaseIntegrationTest, android_helpers.AndroidTest):
     android_helpers.AndroidTest.setUp(self)
     BaseIntegrationTest.setUp(self)
 
-    test_helpers.patch(self, [
-        'system.shell.clear_temp_directory',
-    ])
-
     environment.set_value('BUILD_DIR', ANDROID_DATA_DIR)
     environment.set_value('JOB_NAME', 'libfuzzer_hwasan_android_device')
 
@@ -884,6 +880,9 @@ class IntegrationTestsAndroid(BaseIntegrationTest, android_helpers.AndroidTest):
     self.adb_path = android.adb.get_adb_path()
     self.hwasan_options = 'HWASAN_OPTIONS="%s"' % quote(
         environment.get_value('HWASAN_OPTIONS'))
+
+    # FIXME: This should not be hardcoded.
+    self.ld_library_path = 'LD_LIBRARY_PATH=/system/lib64:/system/lib64/vndk-R'
 
   def device_path(self, local_path):
     """Return device path for a local path."""
@@ -909,9 +908,7 @@ class IntegrationTestsAndroid(BaseIntegrationTest, android_helpers.AndroidTest):
                                    ['-timeout=25', '-rss_limit_mb=2048'], 30)
 
     self.assertEqual([
-        self.adb_path, 'shell',
-        'LD_LIBRARY_PATH=/system/lib64:/system/lib64/vndk-R',
-        self.hwasan_options,
+        self.adb_path, 'shell', self.ld_library_path, self.hwasan_options,
         self.device_path(target_path), '-timeout=25', '-rss_limit_mb=2048',
         '-runs=100',
         self.device_path(testcase_path)
@@ -940,7 +937,7 @@ class IntegrationTestsAndroid(BaseIntegrationTest, android_helpers.AndroidTest):
     self.assertEqual([
         self.adb_path,
         'shell',
-        'LD_LIBRARY_PATH=/system/lib64:/system/lib64/vndk-R',
+        self.ld_library_path,
         self.hwasan_options,
         self.device_path(target_path),
         '-max_len=256',
@@ -974,7 +971,7 @@ class IntegrationTestsAndroid(BaseIntegrationTest, android_helpers.AndroidTest):
     self.assertEqual([
         self.adb_path,
         'shell',
-        'LD_LIBRARY_PATH=/system/lib64:/system/lib64/vndk-R',
+        self.ld_library_path,
         self.hwasan_options,
         self.device_path(target_path),
         '-max_len=100',
@@ -1021,7 +1018,7 @@ class IntegrationTestsAndroid(BaseIntegrationTest, android_helpers.AndroidTest):
     self.assertEqual([
         self.adb_path,
         'shell',
-        'LD_LIBRARY_PATH=/system/lib64:/system/lib64/vndk-R',
+        self.ld_library_path,
         self.hwasan_options,
         self.device_path(target_path),
         '-max_len=256',
