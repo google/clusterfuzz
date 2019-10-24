@@ -43,6 +43,7 @@ from build_management import build_manager
 from chrome import crash_uploader
 from collections import namedtuple
 from crash_analysis import crash_analyzer
+from crash_analysis.crash_result import CrashResult
 from crash_analysis.stack_parsing import stack_analyzer
 from datastore import data_handler
 from datastore import data_types
@@ -1483,10 +1484,12 @@ class FuzzingSession(object):
         self.data_directory, self.fuzz_target.project_qualified_name())
     self.sync_corpus(sync_corpus_directory)
 
-    # Do the actual fuzzing.
     revision = environment.get_value('APP_REVISION')
     crashes = []
     fuzzer_metadata = {}
+    return_code = 1  # Vanilla return-code for engine crashes.
+
+    # Do the actual fuzzing.
     for fuzzing_round in range(environment.get_value('MAX_TESTCASES', 1)):
       logs.log('Fuzzing round {}.'.format(fuzzing_round))
       result, current_fuzzer_metadata = run_engine_fuzzer(
@@ -1506,7 +1509,9 @@ class FuzzingSession(object):
       for crash in result.crashes:
         testcase_manager.upload_testcase(crash.input_path, log_time)
 
-      log = testcase_manager.prepare_log_for_upload(result.logs, 1)
+      crash_result = CrashResult(return_code, result.time_executed, result.logs)
+      log = testcase_manager.prepare_log_for_upload(
+          crash_result.get_stacktrace(), return_code)
       testcase_manager.upload_log(log, log_time)
 
       add_additional_testcase_run_data(testcase_run,
