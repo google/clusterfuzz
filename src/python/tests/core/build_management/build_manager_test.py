@@ -1589,7 +1589,6 @@ class RpathsTest(unittest.TestCase):
 
   def test_patch_rpaths_libfuzzer(self):
     """Tests patching rpaths for libFuzzer targets."""
-    os.environ['APP_NAME'] = 'launcher.py'
     os.environ['JOB_NAME'] = 'libfuzzer_msan_test'
 
     self.mock._unpack_build.side_effect = functools.partial(
@@ -1598,15 +1597,14 @@ class RpathsTest(unittest.TestCase):
                                        'chained-origins')
     self.assertTrue(build.setup())
 
-    self.assertEqual(
-        os.path.join(self.base_build_dir, 'revisions'), os.environ['APP_DIR'])
+    self.assertEqual('', os.environ['APP_DIR'])
 
     rpaths = build_manager.get_rpaths(
-        os.path.join(os.environ['APP_DIR'], 'target_1'))
+        os.path.join(os.environ['BUILD_DIR'], 'target_1'))
     self.assertListEqual(['/msan/lib', '/msan/usr/lib'], rpaths)
 
     rpaths = build_manager.get_rpaths(
-        os.path.join(os.environ['APP_DIR'], 'target_2'))
+        os.path.join(os.environ['BUILD_DIR'], 'target_2'))
     self.assertListEqual(['/msan/lib', '/msan/usr/lib'], rpaths)
 
   def test_patch_rpaths_existing_msan(self):
@@ -1783,7 +1781,6 @@ class SplitFuzzTargetsBuildTest(fake_filesystem_unittest.TestCase):
 
     os.environ['BUILDS_DIR'] = '/builds'
     os.environ['FAIL_RETRIES'] = '1'
-    os.environ['APP_NAME'] = 'launcher.py'
     os.environ['JOB_NAME'] = 'libfuzzer_job'
     os.environ['UNPACK_ALL_FUZZ_TARGETS_AND_FILES'] = 'True'
     os.environ['FUZZER_DIR'] = os.path.join(
@@ -1830,9 +1827,7 @@ class SplitFuzzTargetsBuildTest(fake_filesystem_unittest.TestCase):
         '77651789446b3c3a04b9f492ff141f003d437347/revisions'.format(
             target=target),
         os.environ['BUILD_DIR'])
-    self.assertEqual(
-        os.path.join(os.environ['FUZZER_DIR'], 'launcher.py'),
-        os.environ['APP_PATH'])
+    self.assertEqual('', os.environ['APP_PATH'])
 
   def test_setup_fuzz(self):
     """Tests setting up a build during fuzzing."""

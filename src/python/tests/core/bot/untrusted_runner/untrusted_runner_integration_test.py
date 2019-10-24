@@ -77,8 +77,7 @@ class UntrustedRunnerIntegrationTest(
                           'test-build-([0-9]+).zip\n')
     data_types.Job(name='job', environment_string=environment_string).put()
 
-    environment_string = ('APP_NAME = launcher.py\n'
-                          'RELEASE_BUILD_BUCKET_PATH = '
+    environment_string = ('RELEASE_BUILD_BUCKET_PATH = '
                           'gs://clusterfuzz-test-data/test_libfuzzer_builds/'
                           'test-libfuzzer-build-([0-9]+).zip\n'
                           'UNPACK_ALL_FUZZ_TARGETS_AND_FILES = True')
@@ -325,14 +324,11 @@ class UntrustedRunnerIntegrationTest(
         'clusterfuzz-test-data_test_libfuzzer_builds_'
         '41a87efdd470c6f00e8babf61548bf6c7de57137', 'revisions')
 
-    expected_app_dir = os.path.join(worker_root_dir, launcher_dir)
-
-    self.assertEqual(
-        os.path.join(expected_app_dir, 'launcher.py'), os.environ['APP_PATH'])
+    self.assertEqual('', os.environ['APP_PATH'])
     self.assertEqual('1337', os.environ['APP_REVISION'])
     self.assertEqual('', os.environ['APP_PATH_DEBUG'])
     self.assertEqual(expected_build_dir, os.environ['BUILD_DIR'])
-    self.assertEqual(expected_app_dir, os.environ['APP_DIR'])
+    self.assertEqual('', os.environ['APP_DIR'])
     self.assertEqual('test_fuzzer', os.environ['FUZZ_TARGET'])
 
   def test_run_process_testcase(self):

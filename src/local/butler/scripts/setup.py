@@ -24,8 +24,7 @@ from datastore import data_types
 from metrics import monitor
 from metrics import monitoring_metrics
 
-LIBFUZZER_TEMPLATE = """APP_NAME = launcher.py
-MAX_FUZZ_THREADS = 1
+LIBFUZZER_TEMPLATE = """MAX_FUZZ_THREADS = 1
 MAX_TESTCASES = 4
 FUZZ_TEST_TIMEOUT = 4800
 TEST_TIMEOUT = 30

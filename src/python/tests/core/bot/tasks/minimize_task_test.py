@@ -49,8 +49,8 @@ class LibFuzzerMinimizeTaskTest(unittest.TestCase):
 
     environment.set_value('APP_ARGS', '%TESTCASE% fuzz_target')
     environment.set_value('APP_DIR', '/libfuzzer')
-    environment.set_value('APP_NAME', 'launcher.py')
-    environment.set_value('APP_PATH', '/libfuzzer/launcher.py')
+    environment.set_value('APP_NAME', '')
+    environment.set_value('APP_PATH', '')
     environment.set_value('BOT_TMPDIR', '/bot_tmpdir')
     environment.set_value('CRASH_STACKTRACES_DIR', '/crash_stacks')
     environment.set_value('FUZZER_DIR', '/fuzzer_dir')
@@ -90,8 +90,6 @@ class LibFuzzerMinimizeTaskTest(unittest.TestCase):
     self.assertEqual('frame0\nframe1\nframe2\n', testcase.crash_state)
     self.assertEqual('0x61b00001f7d0', testcase.crash_address)
     self.assertEqual(
-        '[Command line] python /libfuzzer/launcher.py /testcase_file_path '
-        'fuzz_target\n\n'
         '+----------------------------------------Release Build Stacktrace'
         '----------------------------------------+\n%s' % stacktrace,
         testcase.crash_stacktrace)
@@ -124,7 +122,6 @@ class MinimizeTaskTestUntrusted(
     job = data_types.Job(
         name='libfuzzer_asan_job',
         environment_string=(
-            'APP_NAME = launcher.py\n'
             'RELEASE_BUILD_BUCKET_PATH = '
             'gs://clusterfuzz-test-data/test_libfuzzer_builds/'
             'test-libfuzzer-build-([0-9]+).zip\n'
