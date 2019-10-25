@@ -888,6 +888,8 @@ class MinijailLibFuzzerRunner(engine_common.MinijailEngineFuzzerRunner,
 class AndroidLibFuzzerRunner(new_process.ProcessRunner, LibFuzzerCommon):
   """Android libFuzzer runner."""
   DEVICE_FUZZING_DIR = '/data/fuzz'
+
+  # This temp directory is used by libFuzzer merge tool. DONT CHANGE.
   LIBFUZZER_TEMP_DIR = '/data/local/tmp'
 
   def __init__(self, executable_path, build_directory, default_args=None):
