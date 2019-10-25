@@ -1499,10 +1499,11 @@ def pick_strategies(strategy_pool, fuzzer_path, corpus_directory,
     fuzzing_strategies.append(strategy.VALUE_PROFILE_STRATEGY.name)
 
   # DataFlow Tracing requires fork mode, always use it with DFT strategy.
-  # Fuchsia does not support fork mode.
-  is_fuchsia = environment.platform() == 'FUCHSIA'
-  if (not is_fuchsia and (use_dataflow_tracing or
-                          strategy_pool.do_strategy(strategy.FORK_STRATEGY))):
+  is_android = environment.platform() == 'ANDROID'  # Avoid battery drainage.
+  is_fuchsia = environment.platform() == 'FUCHSIA'  # Not supported on Fuchsia.
+  if (not is_fuchsia and not is_android and
+      (use_dataflow_tracing or
+       strategy_pool.do_strategy(strategy.FORK_STRATEGY))):
     max_fuzz_threads = environment.get_value('MAX_FUZZ_THREADS', 1)
     num_fuzz_processes = max(1, multiprocessing.cpu_count() // max_fuzz_threads)
     arguments.append('%s%d' % (constants.FORK_FLAG, num_fuzz_processes))
