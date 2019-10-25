@@ -1440,7 +1440,8 @@ def pick_strategies(strategy_pool, fuzzer_path, corpus_directory,
   # Select a generator to attempt to use for existing testcase mutations.
   candidate_generator = engine_common.select_generator(strategy_pool,
                                                        fuzzer_path)
-  is_mutations_run = candidate_generator != engine_common.Generator.NONE
+  is_mutations_run = (not environment.is_ephemeral() and
+                      candidate_generator != engine_common.Generator.NONE)
 
   # Depends on the presense of DFSan instrumented build.
   dataflow_build_dir = environment.get_value('DATAFLOW_BUILD_DIR')

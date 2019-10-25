@@ -960,3 +960,8 @@ def local_noop(func):
     return func(*args, **kwargs)
 
   return wrapper
+
+
+def is_ephemeral():
+  """Return whether or not we are an ephemeral bot."""
+  return get_value('EPHEMERAL')
