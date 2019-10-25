@@ -888,6 +888,7 @@ class MinijailLibFuzzerRunner(engine_common.MinijailEngineFuzzerRunner,
 class AndroidLibFuzzerRunner(new_process.ProcessRunner, LibFuzzerCommon):
   """Android libFuzzer runner."""
   DEVICE_FUZZING_DIR = '/data/fuzz'
+  LIBFUZZER_TEMP_DIR = '/data/local/tmp'
 
   def __init__(self, executable_path, build_directory, default_args=None):
     """Inits the AndroidLibFuzzerRunner.
@@ -901,6 +902,7 @@ class AndroidLibFuzzerRunner(new_process.ProcessRunner, LibFuzzerCommon):
         executable_path=android.adb.get_adb_path(),
         default_args=self._get_default_args(executable_path, default_args))
 
+    android.adb.create_directory_if_needed(self.LIBFUZZER_TEMP_DIR)
     self._copy_local_directory_to_device(build_directory)
 
   def _get_default_args(self, executable_path, extra_args):
