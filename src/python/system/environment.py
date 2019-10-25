@@ -951,4 +951,4 @@ def local_noop(func):
 
 def is_ephemeral():
   """Return whether or not we are an ephemeral bot."""
-  return environment.get_value('EPHEMERAL')
+  return get_value('EPHEMERAL')
