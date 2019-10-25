@@ -29,7 +29,6 @@ IMAGES=(
   gcr.io/clusterfuzz-images/oss-fuzz/worker
   gcr.io/clusterfuzz-images/ci
   gcr.io/clusterfuzz-images/fuchsia
-  gcr.io/clusterfuzz-images/gvisor
 )
 
 GIT_HASH=$1
