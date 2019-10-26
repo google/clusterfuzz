@@ -546,14 +546,13 @@ def filter_binary_path(binary_path):
       return ''
 
     # Initialize some helper variables.
-    app_path = environment.get_value('APP_PATH')
-    app_directory = os.path.dirname(app_path)
     binary_filename = os.path.basename(binary_path)
+    build_directory = environment.get_value('BUILD_DIR')
     nfs_directory = environment.get_value('NFS_ROOT')
     symbols_directory = environment.get_value('SYMBOLS_DIR')
 
     # Try to find the library in the build directory first.
-    local_binary_path = utils.find_binary_path(app_directory, binary_path)
+    local_binary_path = utils.find_binary_path(build_directory, binary_path)
     if local_binary_path:
       return local_binary_path
 
