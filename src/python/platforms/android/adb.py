@@ -68,7 +68,7 @@ def copy_local_directory_to_remote(local_directory, remote_directory):
   """Copies local directory contents to a device directory."""
   create_directory_if_needed(remote_directory)
   if os.listdir(local_directory):
-    run_command(['push', '%s/*' % local_directory, remote_directory])
+    run_command(['push', '%s/.' % local_directory, remote_directory])
 
 
 def copy_local_file_to_remote(local_file_path, remote_file_path):
