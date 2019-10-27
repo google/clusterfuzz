@@ -66,6 +66,12 @@ class CrashBaseTest(unittest.TestCase):
 
   def setUp(self):
     test_helpers.patch_environ(self)
+    test_helpers.patch(
+        self,
+        ['crash_analysis.stack_parsing.stack_symbolizer.filter_binary_path'])
+
+    # For Android, skip symbolization as real device is unavailable.
+    self.mock.filter_binary_path.return_value = ''
 
     os.environ['APP_NAME'] = 'chrome'
     os.environ['BOT_TMPDIR'] = TEST_BOT_TMPDIR
