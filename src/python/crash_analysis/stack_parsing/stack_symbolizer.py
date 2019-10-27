@@ -536,11 +536,6 @@ def filter_binary_path(binary_path):
   platform = environment.platform()
 
   if platform == 'ANDROID':
-    # Make sure we have a valid device codename.
-    device_codename = environment.get_value('DEVICE_CODENAME')
-    if not device_codename:
-      return ''
-
     # Skip symbolization when running it on bad entries like [stack:XYZ].
     if not binary_path.startswith('/') or '(deleted)' in binary_path:
       return ''
@@ -548,23 +543,12 @@ def filter_binary_path(binary_path):
     # Initialize some helper variables.
     binary_filename = os.path.basename(binary_path)
     build_directory = environment.get_value('BUILD_DIR')
-    nfs_directory = environment.get_value('NFS_ROOT')
     symbols_directory = environment.get_value('SYMBOLS_DIR')
 
     # Try to find the library in the build directory first.
     local_binary_path = utils.find_binary_path(build_directory, binary_path)
     if local_binary_path:
       return local_binary_path
-
-    # Try finding the symbols on NFS server.
-    if nfs_directory:
-      nfs_symbols_directory = os.path.join(nfs_directory, 'symbols',
-                                           device_codename)
-      if os.path.exists(nfs_symbols_directory):
-        local_binary_path = utils.find_binary_path(nfs_symbols_directory,
-                                                   binary_path)
-        if local_binary_path:
-          return local_binary_path
 
     # We didn't find the library locally in the build directory.
     # Try finding the library in the local system library cache.

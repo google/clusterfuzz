@@ -19,9 +19,12 @@ CRASH_DUMPS_DIR = '/sdcard/crash-reports'
 
 DEVICE_DOWNLOAD_DIR = '/sdcard/Download'
 
+DEVICE_TESTCASES_DIR = '/sdcard/fuzzer-testcases'
+
 DEVICE_TMP_DIR = '/data/local/tmp'
 
-DEVICE_TESTCASES_DIR = '/sdcard/fuzzer-testcases'
+# Directory to keep fuzzing artifacts for grey-box fuzzers e.g. corpus.
+DEVICE_FUZZING_DIR = '/data/fuzz'
 
 # The format of logcat when lowmemorykiller kills a process. See:
 # https://android.googlesource.com/platform/system/core/+/master/lmkd/lmkd.c#586

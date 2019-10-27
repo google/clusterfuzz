@@ -887,8 +887,6 @@ class MinijailLibFuzzerRunner(engine_common.MinijailEngineFuzzerRunner,
 
 class AndroidLibFuzzerRunner(new_process.ProcessRunner, LibFuzzerCommon):
   """Android libFuzzer runner."""
-  DEVICE_FUZZING_DIR = '/data/fuzz'
-
   # This temp directory is used by libFuzzer merge tool. DONT CHANGE.
   LIBFUZZER_TEMP_DIR = '/data/local/tmp'
 
@@ -934,18 +932,19 @@ class AndroidLibFuzzerRunner(new_process.ProcessRunner, LibFuzzerCommon):
   def _get_device_path(self, local_path):
     """Return device path for the given local path."""
     root_directory = environment.get_root_directory()
-    return os.path.join(self.DEVICE_FUZZING_DIR,
+    return os.path.join(android.constants.DEVICE_FUZZING_DIR,
                         os.path.relpath(local_path, root_directory))
 
   def _get_local_path(self, device_path):
     """Return local path for the given device path."""
-    if not device_path.startswith(self.DEVICE_FUZZING_DIR + '/'):
+    if not device_path.startswith(android.constants.DEVICE_FUZZING_DIR + '/'):
       logs.log_error('Bad device path: ' + device_path)
       return None
 
     root_directory = environment.get_root_directory()
-    return os.path.join(root_directory,
-                        os.path.relpath(device_path, self.DEVICE_FUZZING_DIR))
+    return os.path.join(
+        root_directory,
+        os.path.relpath(device_path, android.constants.DEVICE_FUZZING_DIR))
 
   def _copy_local_directories_to_device(self, local_directories):
     """Copies local directories to device."""
