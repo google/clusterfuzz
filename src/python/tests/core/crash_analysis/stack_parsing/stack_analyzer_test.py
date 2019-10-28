@@ -2706,7 +2706,7 @@ class StackAnalyzerTestcase(unittest.TestCase):
     """Test HWASan allocation tail overwritten crash."""
     data = self._read_test_data('hwasan_allocation_tail_overwritten.txt')
     expected_type = 'Allocation-tail-overwritten'
-    expected_address = ''
+    expected_address = '0x00444b02b180'
     expected_state = 'frame1\nframe2\nframe3\n'
 
     expected_stacktrace = data
