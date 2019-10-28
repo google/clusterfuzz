@@ -78,6 +78,7 @@ def cleanup_task_state():
   shell.clear_testcase_directories()
   shell.clear_temp_directory()
   shell.clear_system_temp_directory()
+  shell.clear_device_temp_directories()
 
   # Reset memory tool environment variables.
   environment.reset_current_memory_tool_options()

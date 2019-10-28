@@ -112,12 +112,15 @@ def add_test_accounts_if_needed():
   persistent_cache.set_value(constants.LAST_TEST_ACCOUNT_CHECK_KEY, time.time())
 
 
+def clear_temp_directories():
+  """Clear temp directories."""
+  adb.remove_directory(constants.DEVICE_DOWNLOAD_DIR, recreate=True)
+  adb.remove_directory(constants.DEVICE_TMP_DIR, recreate=True)
+  adb.remove_directory(constants.DEVICE_FUZZING_DIR, recreate=True)
+
+
 def clear_testcase_directory():
   """Clears testcase directory."""
-  # Cleanup downloads folder on /sdcard.
-  adb.remove_directory(constants.DEVICE_DOWNLOAD_DIR, recreate=True)
-
-  # Cleanup testcase directory.
   adb.remove_directory(constants.DEVICE_TESTCASES_DIR, recreate=True)
 
 
@@ -305,9 +308,6 @@ def initialize_device():
   # General device configuration settings.
   configure_system_build_properties()
   configure_device_settings()
-
-  # FIXME: This functionality is disabled until a user account is whitelisted so
-  # as to not trigger GAIA alerts.
   add_test_accounts_if_needed()
 
   # Setup AddressSanitizer if needed.

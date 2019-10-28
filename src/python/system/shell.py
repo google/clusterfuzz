@@ -130,6 +130,13 @@ def clear_data_directories_on_low_disk_space():
       'Low disk space detected, cleared all data directories to free up space.')
 
 
+def clear_device_temp_directories():
+  """Clear device specific temp directories."""
+  if environment.platform() == 'ANDROID':
+    from platforms import android
+    android.device.clear_temp_directories()
+
+
 def clear_fuzzers_directories():
   """Clears the fuzzers directory."""
   remove_directory(environment.get_value('FUZZERS_DIR'), recreate=True)

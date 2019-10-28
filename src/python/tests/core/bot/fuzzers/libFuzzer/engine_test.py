@@ -889,7 +889,7 @@ class IntegrationTestsAndroid(BaseIntegrationTest, android_helpers.AndroidTest):
   def device_path(self, local_path):
     """Return device path for a local path."""
     return os.path.join(
-        libfuzzer.AndroidLibFuzzerRunner.DEVICE_FUZZING_DIR,
+        android.constants.DEVICE_FUZZING_DIR,
         os.path.relpath(local_path, environment.get_root_directory()))
 
   def assert_has_stats(self, stats):
