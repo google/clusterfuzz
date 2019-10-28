@@ -276,6 +276,14 @@ def dump_big_query_data(stats, testcase_file_path, fuzzer_command):
 
 def find_fuzzer_path(build_directory, fuzzer_name):
   """Find the fuzzer path with the given name."""
+  if not build_directory:
+    # Grey-box fuzzers might not have the build directory for a particular job
+    # configuration when doing variant task testing (e.g. Android on-device
+    # fuzz target might not exist on host). In this case, treat it similar to
+    # target not found by returning None.
+    logs.log_warn('No build directory found for fuzzer: %s' % fuzzer_name)
+    return None
+
   if environment.platform() == 'FUCHSIA':
     # Fuchsia targets are not on disk.
     return fuzzer_name
