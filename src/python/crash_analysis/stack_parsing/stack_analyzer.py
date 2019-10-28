@@ -60,7 +60,7 @@ ASAN_MEMCPY_OVERLAP_REGEX = re.compile(
     r'.*(AddressSanitizer).*memcpy-param-overlap'
     r'[^\[]*([\[].*[)])')
 ASAN_REGEX = re.compile(
-    r'.*ERROR: (HWAddressSanitizer|AddressSanitizer)[: ]*[ ]*([^(:]+)')
+    r'.*ERROR: (HWAddressSanitizer|AddressSanitizer)[: ]*[ ]*([^(:;]+)')
 ASSERT_REGEX = re.compile(
     r'(?:\[.*?\]|.*\.(?:%s):.*)?' % ('|'.join(C_CPP_EXTENSIONS)) +
     r'\s*(?:ASSERT(?:ION)? FAIL(?:URE|ED)|panic): (.*)', re.IGNORECASE)
@@ -106,6 +106,9 @@ GENERIC_SEGV_HANDLER_REGEX = re.compile(
 GOOGLE_CHECK_FAILURE_REGEX = re.compile(GOOGLE_LOG_FATAL_PREFIX +
                                         r'\s*Check failed[:]\s*(.*)')
 GOOGLE_LOG_FATAL_REGEX = re.compile(GOOGLE_LOG_FATAL_PREFIX + r'\s*(.*)')
+HWASAN_ALLOCATION_TAIL_OVERWRITTEN_ADDRESS_REGEX = re.compile(
+    r'.*ERROR: HWAddressSanitizer: allocation-tail-overwritten; '
+    r'heap object \[([xX0-9a-fA-F]+),.*of size')
 JAVA_EXCEPTION_CRASH_STATE_REGEX = re.compile(r'\s*at (.*)\(.*\)')
 KASAN_ACCESS_TYPE_REGEX = re.compile(r'(Read|Write) of size ([0-9]+)')
 KASAN_CRASH_TYPE_ADDRESS_REGEX = re.compile(
@@ -1508,6 +1511,14 @@ def get_crash_data(crash_data, symbolize_flag=True):
           reset=True,
           type_from_group=2,
           type_filter=fix_sanitizer_crash_type)
+
+      # HWASan object address for allocation tail overwritten is on same line as
+      # crash type, so add it here.
+      update_state_on_match(
+          HWASAN_ALLOCATION_TAIL_OVERWRITTEN_ADDRESS_REGEX,
+          line,
+          state,
+          address_from_group=1)
 
       # Android fatal exceptions.
       if update_state_on_match(

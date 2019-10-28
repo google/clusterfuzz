@@ -1,0 +1,44 @@
+==11246==ERROR: HWAddressSanitizer: allocation-tail-overwritten; heap object [0x00444b02b180,0x00444b02b182) of size 2
+    #0 0x7e9aa0a3fc  frame1
+    #1 0x634b04d474  frame2
+    #2 0x634b053238  frame3
+allocated here:
+    #0 0x7e9aa09fa8  frame4
+    #1 0x634b04c4f8  frame5
+    #2 0x634b04d398  frame6
+
+Tail contains: .. .. 80 80 80 80 80 80 dd 03 df 1d 71 dd 95 18
+Expected:      .. .. d0 0d a4 56 0d c1 dd 03 df 1d 71 dd 95 46
+                     ^^ ^^ ^^ ^^ ^^ ^^                      ^^
+This error occurs when a buffer overflow overwrites memory
+to the right of a heap object, but within the 16-byte granule, e.g.
+   char *x = new char[20];
+   x[25] = 42;
+HWAddressSanitizer does not detect such bugs in uninstrumented code at the time of write,
+but can detect them at the time of free/delete.
+To disable this feature set HWASAN_OPTIONS=free_checks_tail_magic=0
+Thread: T0 0x007500002000 stack: [0x007fcf489000,0x007fcfc89000) sz: 8388608 tls: [0x000000000000,0x000000000000)
+Memory tags around the buggy address (one tag corresponds to 16 bytes):
+   00  00  00  00  00  00  00  00  00  00  00  00  00  00  00  00
+   00  00  00  00  00  00  00  00  00  00  00  00  00  00  00  00
+   00  00  00  00  00  00  00  00  00  00  00  00  00  00  00  00
+   00  00  00  00  00  00  00  00  00  00  00  00  00  00  00  00
+   00  00  00  00  00  00  00  00  00  00  00  00  00  00  00  00
+   00  00  00  00  00  00  00  00  00  00  00  00  00  00  00  00
+   00  00  00  00  00  00  00  00  00  00  00  00  00  00  00  00
+   08  00  38  08  c7  08  b6  08  66  00  08  00  08  00  3b  00
+=> 08  00  a7  a7  96  07  0f  00 [02] 00  02  00  00  00  00  00 <=
+   00  00  00  00  00  00  00  00  00  00  00  00  00  00  00  00
+   00  00  00  00  00  00  00  00  00  00  00  00  00  00  00  00
+   00  00  00  00  00  00  00  00  00  00  00  00  00  00  00  00
+   00  00  00  00  00  00  00  00  00  00  00  00  00  00  00  00
+   00  00  00  00  00  00  00  00  00  00  00  00  00  00  00  00
+   00  00  00  00  00  00  00  00  00  00  00  00  00  00  00  00
+   00  00  00  00  00  00  00  00  00  00  00  00  00  00  00  00
+   00  00  00  00  00  00  00  00  00  00  00  00  00  00  00  00
+Tags for short granules around the buggy address (one tag corresponds to 16 bytes):
+   d2  ..  ..  38  ..  c7  ..  b6  ..  ..  74  ..  2c  ..  ..  ..
+=> 20  ..  ..  ..  ..  96  c8  .. [18] ..  1b  ..  ..  ..  ..  .. <=
+   ..  ..  ..  ..  ..  ..  ..  ..  ..  ..  ..  ..  ..  ..  ..  ..
+See https://clang.llvm.org/docs/HardwareAssistedAddressSanitizerDesign.html#short-granules for a description of short granule tags
+SUMMARY: HWAddressSanitizer: alocation-tail-overwritten (/apex/com.android.runtime/lib64/bionic/libclang_rt.hwasan-aarch64-android.so+0x1b3fc)
