@@ -254,6 +254,10 @@ class FindFuzzerPathTest(fake_filesystem_unittest.TestCase):
     self.fs.create_dir(os.path.join(self.build_dir, self.fuzzer_name))
     self.assertIsNone(self._find_fuzzer_path())
 
+  def test_no_build_directory(self):
+    """Test that no exception occurs when there is no build directory set."""
+    self.assertIsNone(engine_common.find_fuzzer_path(None, self.fuzzer_name))
+
 
 class GetStrategyProbabilityTest(unittest.TestCase):
   """Tests get_strategy_probability."""
