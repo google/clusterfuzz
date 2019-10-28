@@ -173,6 +173,10 @@ _AFL_SCHEMA = [{
     'mode': 'NULLABLE',
     'name': 'strategy_selection_method',
     'type': 'STRING'
+}, {
+    'mode': 'NULLABLE',
+    'name': 'source',
+    'type': 'STRING'
 }]
 
 _LIBFUZZER_SCHEMA = [{
@@ -417,6 +421,10 @@ _LIBFUZZER_SCHEMA = [{
     'mode': 'NULLABLE',
     'name': 'edge_coverage_count',
     'type': 'INTEGER'
+}, {
+    'mode': 'NULLABLE',
+    'name': 'source',
+    'type': 'STRING'
 }]
 
 _SCHEMA = {

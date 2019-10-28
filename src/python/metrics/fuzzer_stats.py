@@ -226,6 +226,10 @@ class TestcaseRun(BaseRun):
         'kind': 'TestcaseRun',
     })
 
+    source = environment.get_value('STATS_SOURCE')
+    if source:
+      self._stats_data['source'] = source
+
   @staticmethod
   def get_stats_filename(testcase_file_path):
     """Get stats filename for the given testcase."""
