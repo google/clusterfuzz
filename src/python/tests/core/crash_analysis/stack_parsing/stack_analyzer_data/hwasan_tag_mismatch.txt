@@ -1,0 +1,18 @@
+==872==ERROR: HWAddressSanitizer: tag-mismatch on address 0x0040e1287be0 at pc 0x007618899e7c
+READ of size 8 at 0x0040e1287be0 tags: 0f/47 (ptr/mem) in thread T31
+    #0 0x7618899e78  frame1
+    #1 0x761889ddb8  frame2
+    #2 0x7618896a00  frame3
+
+[0x0040e1287b80,0x0040e1287c00) is a small unallocated heap chunk; size: 128 offset: 96
+0x0040e1287be0 is located 96 bytes inside of 112-byte region [0x0040e1287b80,0x0040e1287bf0)
+freed by thread T0 here:
+    #0 0x761a68a9dc  frame4
+    #1 0x7618897814  frame5
+    #2 0x7618899150  frame6
+
+previously allocated here:
+    #0 0x761a68a7ac  frame7
+    #1 0x7618898aec  frame8
+    #2 0x7618898770  frame9
+    #3 0x76188917a0  frame10
