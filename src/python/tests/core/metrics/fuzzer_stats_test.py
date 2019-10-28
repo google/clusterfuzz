@@ -16,6 +16,7 @@
 import datetime
 import json
 import mock
+import os
 import re
 import unittest
 
@@ -39,6 +40,7 @@ class FuzzerStatsTest(unittest.TestCase):
   """Fuzzer stats tests."""
 
   def setUp(self):
+    helpers.patch_environ(self)
     data_types.Fuzzer(name='parent').put()
 
     data_types.FuzzTarget(engine='parent', binary='child').put()
@@ -69,6 +71,19 @@ class FuzzerStatsTest(unittest.TestCase):
         '{"stat": 1000, "timestamp": 1472846341.017923, "kind": "TestcaseRun", '
         '"job": "job", "fuzzer": "fuzzer", "build_revision": 123}\n'
         '{"stat": 2000, "timestamp": 1472846341.017923, "kind": "TestcaseRun", '
+        '"job": "job", "fuzzer": "fuzzer", "build_revision": 123}',
+        'gs://test-bigquery-bucket/fuzzer/TestcaseRun/date/20160902/upload.json'
+    )
+
+  def tests_upload_testcase_run_with_source(self):
+    """Test uploading testcase run with source."""
+    os.environ['STATS_SOURCE'] = 'custom_source'
+    testcase_run = fuzzer_stats.TestcaseRun('fuzzer', 'job', 123,
+                                            1472846341.017923)
+    fuzzer_stats.upload_stats([testcase_run], filename='upload.json')
+    self.mock.write_data.assert_called_once_with(
+        '{"kind": "TestcaseRun", "timestamp": 1472846341.017923, '
+        '"source": "custom_source", '
         '"job": "job", "fuzzer": "fuzzer", "build_revision": 123}',
         'gs://test-bigquery-bucket/fuzzer/TestcaseRun/date/20160902/upload.json'
     )
