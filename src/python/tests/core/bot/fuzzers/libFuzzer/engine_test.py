@@ -21,6 +21,7 @@ import shutil
 import tempfile
 import unittest
 
+import metrics
 import mock
 import parameterized
 import pyfakefs.fake_filesystem_unittest as fake_fs_unittest
@@ -860,6 +861,36 @@ class IntegrationTestsFuchsia(BaseIntegrationTest):
     self.assertIn('ERROR: AddressSanitizer: heap-buffer-overflow on address',
                   result.output)
     self.assertIn('Running: data/fuchsia_crash', result.output)
+
+  @unittest.skipIf(
+      not environment.get_value('FUCHSIA_TESTS'),
+      'Temporarily disabling the Fuchsia tests until build size reduced.')
+  def test_qemu_logs_returned_on_error(self):
+    """Test running against a qemu that has died"""
+    test_helpers.patch(self, ['metrics.logs.log_warn'])
+    # Pass-through logs just so we can see what's going on (but moving from
+    # log_warn to plain log to avoid creating a loop)
+    self.mock.log_warn.side_effect = metrics.logs.log
+
+    environment.set_value('FUZZ_TARGET', 'example_fuzzers/overflow_fuzzer')
+    environment.set_value('JOB_NAME', 'libfuzzer_asan_fuchsia')
+    build_manager.setup_build()
+    testcase_path, _ = setup_testcase_and_corpus('fuchsia_crash',
+                                                 'empty_corpus')
+
+    runner = libfuzzer.FuchsiaQemuLibFuzzerRunner("fake/fuzzer")
+    # Check that it's up properly
+    self.assertEqual(runner.device.ssh(["echo", "hello"]), 0)
+    # Force shutdown
+    runner.device.ssh(["dm", "shutdown"])
+
+    # Try to fuzz against the dead qemu to trigger automatic recovery behavior
+    engine_impl = engine.LibFuzzerEngine()
+    engine_impl.reproduce('example_fuzzers/overflow_fuzzer', testcase_path,
+                          ['-timeout=25', '-rss_limit_mb=2048'], 30)
+
+    # Check the logs for the shutdown sequence
+    self.assertIn('Shutting down', self.mock.log_warn.call_args[0][0])
 
 
 @test_utils.integration
