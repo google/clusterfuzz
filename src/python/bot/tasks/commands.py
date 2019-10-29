@@ -173,7 +173,7 @@ def should_update_task_status(task_name):
 
 
 def start_web_server_if_needed():
-  """Starts web server for blackbox fuzzer jobs (non-engine fuzzer jobs)."""
+  """Start web server for blackbox fuzzer jobs (non-engine fuzzer jobs)."""
   if environment.is_engine_fuzzer_job():
     return
 
