@@ -49,7 +49,7 @@ ANDROID_KERNEL_STACK_FRAME_REGEX = re.compile(
 # Parentheses are optional.
 ANDROID_PROCESS_NAME_REGEX = re.compile(r'.*[(](.*)[)]$')
 ANDROID_SEGV_REGEX = re.compile(r'.*signal.*\(SIG.*fault addr ([^ ]*)(.*)')
-ASAN_BAD_FREE_REGEX = re.compile(
+ASAN_INVALID_FREE_REGEX = re.compile(
     r'.*AddressSanitizer\: '
     r'attempting free on address which was not malloc\(\)-ed\: '
     r'([xX0-9a-fA-F]+)')
@@ -1316,10 +1316,10 @@ def get_crash_data(crash_data, symbolize_flag=True):
 
     # AddressSanitizer free on non malloc()-ed address.
     if update_state_on_match(
-        ASAN_BAD_FREE_REGEX,
+        ASAN_INVALID_FREE_REGEX,
         line,
         state,
-        new_type='Bad-free',
+        new_type='Invalid-free',
         reset=True,
         address_from_group=1):
       continue
