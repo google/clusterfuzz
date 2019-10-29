@@ -44,13 +44,16 @@ LIBFUZZER_TIMEOUT_TESTCASE_REGEX = re.compile(
 LIBFUZZER_FUZZING_STRATEGIES = re.compile(r'cf::fuzzing_strategies:\s*(.*)')
 LIBFUZZER_LOG_COVERAGE_REGEX = re.compile(r'#\d+.*cov:\s+(\d+)\s+ft:\s+(\d+).*')
 LIBFUZZER_LOG_DICTIONARY_REGEX = re.compile(r'Dictionary: \d+ entries')
-LIBFUZZER_LOG_END_REGEX = re.compile(r'Done \d+ runs.*')
+LIBFUZZER_LOG_END_REGEX = re.compile(r'Done\s+\d+\s+runs.*')
 LIBFUZZER_LOG_IGNORE_REGEX = re.compile(r'.*WARNING:.*Sanitizer')
-LIBFUZZER_LOG_LINE_REGEX = re.compile(r'^#\d+.*(READ|cov:)')
+LIBFUZZER_LOG_LINE_REGEX = re.compile(
+    r'^#\d+.*(READ|INITED|NEW|pulse|REDUCE|RELOAD|DONE)')
 LIBFUZZER_LOG_SEED_CORPUS_INFO_REGEX = re.compile(
     r'INFO:\s+seed corpus:\s+files:\s+(\d+).*rss:\s+(\d+)Mb.*')
 LIBFUZZER_LOG_START_INITED_REGEX = re.compile(
     r'#\d+\s+INITED\s+cov:\s+(\d+)\s+ft:\s+(\d+).*')
+LIBFUZZER_LOG_START_INITED_NO_COVERAGE_REGEX = re.compile(
+    r'#\d+\s+INITED\s+ft:\s+(\d+).*')
 LIBFUZZER_MERGE_LOG_EDGE_COVERAGE_REGEX = re.compile(r'#\d+.*cov:\s+(\d+).*')
 LIBFUZZER_MODULES_LOADED_REGEX = re.compile(
     r'^INFO:\s+Loaded\s+\d+\s+(modules|PC tables)\s+\((\d+)\s+.*\).*')
@@ -74,7 +77,8 @@ def calculate_log_lines(log_lines):
   for line in log_lines:
     if not libfuzzer_inited:
       # Skip to start of libFuzzer log output.
-      if LIBFUZZER_LOG_START_INITED_REGEX.match(line):
+      if (LIBFUZZER_LOG_START_INITED_REGEX.match(line) or
+          LIBFUZZER_LOG_START_INITED_NO_COVERAGE_REGEX.match(line)):
         libfuzzer_inited = True
       else:
         ignored_lines_count += 1
@@ -209,6 +213,9 @@ def parse_performance_features(log_lines,
   (stats['log_lines_unwanted'], stats['log_lines_from_engine'],
    stats['log_lines_ignored']) = calculate_log_lines(log_lines)
 
+  if stats['log_lines_from_engine'] > 0:
+    stats['startup_crash_count'] = 0
+
   # Extract '-max_len' value from arguments, if possible.
   stats['max_len'] = int(
       fuzzer_utils.extract_argument(
@@ -259,6 +266,8 @@ def parse_performance_features(log_lines,
 
     match = LIBFUZZER_MODULES_LOADED_REGEX.match(line)
     if match:
+      # TODO(mmoroz): this is missing cases when fuzz target binary does not
+      # have edge coverage instrumentation (e.g. Go targets).
       stats['startup_crash_count'] = 0
       stats['edges_total'] = int(match.group(2))
 
