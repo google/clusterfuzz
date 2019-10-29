@@ -41,13 +41,13 @@ LIBFUZZER_TIMEOUT_TESTCASE_REGEX = re.compile(
     LIBFUZZER_CRASH_TYPE_REGEX.format(type='timeout'))
 
 # Regular expressions to detect different sections of logs.
-LIBFUZZER_EXTRA_COUNTERS_REGEX = re.compile(r'^INFO:\s+\d+\s+Extra\s+Counters')
 LIBFUZZER_FUZZING_STRATEGIES = re.compile(r'cf::fuzzing_strategies:\s*(.*)')
 LIBFUZZER_LOG_COVERAGE_REGEX = re.compile(r'#\d+.*cov:\s+(\d+)\s+ft:\s+(\d+).*')
 LIBFUZZER_LOG_DICTIONARY_REGEX = re.compile(r'Dictionary: \d+ entries')
 LIBFUZZER_LOG_END_REGEX = re.compile(r'Done\s+\d+\s+runs.*')
 LIBFUZZER_LOG_IGNORE_REGEX = re.compile(r'.*WARNING:.*Sanitizer')
-LIBFUZZER_LOG_LINE_REGEX = re.compile(r'^#\d+.*(READ|NEW|pulse|REDUCE|ft:)')
+LIBFUZZER_LOG_LINE_REGEX = re.compile(
+    r'^#\d+.*(READ|NEW|pulse|REDUCE|RELOAD|ft:)')
 LIBFUZZER_LOG_SEED_CORPUS_INFO_REGEX = re.compile(
     r'INFO:\s+seed corpus:\s+files:\s+(\d+).*rss:\s+(\d+)Mb.*')
 LIBFUZZER_LOG_START_INITED_REGEX = re.compile(
@@ -213,6 +213,9 @@ def parse_performance_features(log_lines,
   (stats['log_lines_unwanted'], stats['log_lines_from_engine'],
    stats['log_lines_ignored']) = calculate_log_lines(log_lines)
 
+  if stats['log_lines_from_engine'] > 0:
+    stats['startup_crash_count'] = 0
+
   # Extract '-max_len' value from arguments, if possible.
   stats['max_len'] = int(
       fuzzer_utils.extract_argument(
@@ -265,10 +268,6 @@ def parse_performance_features(log_lines,
     if match:
       stats['startup_crash_count'] = 0
       stats['edges_total'] = int(match.group(2))
-
-    match = LIBFUZZER_EXTRA_COUNTERS_REGEX.match(line)
-    if match:
-      stats['startup_crash_count'] = 0
 
     match = LIBFUZZER_LOG_START_INITED_REGEX.match(line)
     if match:
