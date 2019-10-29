@@ -47,7 +47,7 @@ LIBFUZZER_LOG_DICTIONARY_REGEX = re.compile(r'Dictionary: \d+ entries')
 LIBFUZZER_LOG_END_REGEX = re.compile(r'Done\s+\d+\s+runs.*')
 LIBFUZZER_LOG_IGNORE_REGEX = re.compile(r'.*WARNING:.*Sanitizer')
 LIBFUZZER_LOG_LINE_REGEX = re.compile(
-    r'^#\d+.*(READ|NEW|pulse|REDUCE|RELOAD|ft:)')
+    r'^#\d+.*(READ|INITED|NEW|pulse|REDUCE|RELOAD|DONE)')
 LIBFUZZER_LOG_SEED_CORPUS_INFO_REGEX = re.compile(
     r'INFO:\s+seed corpus:\s+files:\s+(\d+).*rss:\s+(\d+)Mb.*')
 LIBFUZZER_LOG_START_INITED_REGEX = re.compile(
@@ -266,6 +266,8 @@ def parse_performance_features(log_lines,
 
     match = LIBFUZZER_MODULES_LOADED_REGEX.match(line)
     if match:
+      # TODO(mmoroz): this is missing cases when fuzz target binary does not
+      # have edge coverage instrumentation (e.g. Go targets).
       stats['startup_crash_count'] = 0
       stats['edges_total'] = int(match.group(2))
 
