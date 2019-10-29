@@ -1,0 +1,38 @@
+Command: /mnt/scratch0/clusterfuzz/resources/platform/linux/minijail0 -f /tmp/tmpMg_9Md -U -m '0 1337 1' -T static -c 0 -n -v -p -l -I -k proc,/proc,proc,1 -P /mnt/scratch0/clusterfuzz/bot/inputs/fuzzer-testcases-disk/temp-387/tmpot31jp -b /mnt/scratch0/clusterfuzz/bot/inputs/fuzzer-testcases-disk/temp-387/tmpd5Appy,/tmp,1 -b /lib,/lib,0 -b /lib32,/lib32,0 -b /lib64,/lib64,0 -b /usr/lib,/usr/lib,0 -b /usr/lib32,/usr/lib32,0 -b /mnt/scratch0/clusterfuzz/bot/builds/clusterfuzz-builds_go-attestation_6af98b8fbc8e1eba35c78858068206247723399f/revisions,/mnt/scratch0/clusterfuzz/bot/builds/clusterfuzz-builds_go-attestation_6af98b8fbc8e1eba35c78858068206247723399f/revisions,0 -b /mnt/scratch0/clusterfuzz/bot/builds/clusterfuzz-builds_go-attestation_6af98b8fbc8e1eba35c78858068206247723399f/revisions,/out,0 -b /mnt/scratch0/clusterfuzz/bot/inputs/fuzzer-testcases-disk/temp-387/new,/new,1 -b /mnt/scratch0/clusterfuzz/bot/inputs/data-bundles/global/go-attestation_parse_event_log_fuzzer,/go-attestation_parse_event_log_fuzzer,1 -b /mnt/scratch0/clusterfuzz/bot/inputs/fuzzer-testcases,/fuzzer-testcases,1 /mnt/scratch0/clusterfuzz/bot/builds/clusterfuzz-builds_go-attestation_6af98b8fbc8e1eba35c78858068206247723399f/revisions/parse_event_log_fuzzer -timeout=25 -rss_limit_mb=2048 -dict=/mnt/scratch0/clusterfuzz/bot/builds/clusterfuzz-builds_go-attestation_6af98b8fbc8e1eba35c78858068206247723399f/revisions/parse_event_log_fuzzer.dict.merged -artifact_prefix=/fuzzer-testcases/ -max_total_time=6250 -print_final_stats=1 /new /go-attestation_parse_event_log_fuzzer
+Bot: oss-fuzz-linux-zone3-worker-go-attestation-8nv6
+Time ran: 6251.10500097
+
+Dictionary: 6 entries
+INFO: Seed: 3372372460
+INFO: 65536 Extra Counters
+INFO:        0 files found in /new
+INFO:      654 files found in /go-attestation_parse_event_log_fuzzer
+INFO: -max_len is not provided; libFuzzer will not generate inputs larger than 251192 bytes
+INFO: seed corpus: files: 654 min: 1b max: 251192b total: 994633b rss: 29Mb
+#655  INITED ft: 1256 corp: 90/114Kb exec/s: 0 rss: 46Mb
+#32434  NEW    ft: 1257 corp: 91/114Kb lim: 8152 exec/s: 16217 rss: 136Mb L: 184/7840 MS: 4 ChangeASCIIInt-EraseBytes-ChangeByte-ShuffleBytes-
+#32768  pulse  ft: 1257 corp: 91/114Kb lim: 8152 exec/s: 16384 rss: 136Mb
+#65536  pulse  ft: 1257 corp: 91/114Kb lim: 8473 exec/s: 13107 rss: 136Mb
+#131072 pulse  ft: 1257 corp: 91/114Kb lim: 9123 exec/s: 13107 rss: 136Mb
+#262144 pulse  ft: 1257 corp: 91/114Kb lim: 10436 exec/s: 13107 rss: 141Mb
+#524288 pulse  ft: 1257 corp: 91/114Kb lim: 13049 exec/s: 12787 rss: 149Mb
+#1048576  pulse  ft: 1257 corp: 91/114Kb lim: 18266 exec/s: 12633 rss: 166Mb
+#2097152  pulse  ft: 1257 corp: 91/114Kb lim: 28710 exec/s: 12409 rss: 191Mb
+#2784915  REDUCE ft: 1257 corp: 91/114Kb lim: 35575 exec/s: 12377 rss: 198Mb L: 110/7840 MS: 1 EraseBytes-
+#4194304  pulse  ft: 1257 corp: 91/114Kb lim: 49615 exec/s: 12228 rss: 229Mb
+#8064536  REDUCE ft: 1257 corp: 91/114Kb lim: 88185 exec/s: 12018 rss: 241Mb L: 86/7840 MS: 1 EraseBytes-
+#8388608  pulse  ft: 1257 corp: 91/114Kb lim: 91401 exec/s: 12000 rss: 241Mb
+#9421732  REDUCE ft: 1257 corp: 91/114Kb lim: 101705 exec/s: 11971 rss: 265Mb L: 57/7840 MS: 1 EraseBytes-
+#11047358 REDUCE ft: 1257 corp: 91/114Kb lim: 117897 exec/s: 11866 rss: 269Mb L: 36/7840 MS: 1 EraseBytes-
+#15412369 REDUCE ft: 1257 corp: 91/114Kb lim: 161409 exec/s: 11120 rss: 286Mb L: 35/7840 MS: 1 EraseBytes-
+#15602250 REDUCE ft: 1257 corp: 91/114Kb lim: 163296 exec/s: 11081 rss: 286Mb L: 32/7840 MS: 1 EraseBytes-
+#16777216 pulse  ft: 1257 corp: 91/114Kb lim: 175009 exec/s: 10880 rss: 286Mb
+#33554432 pulse  ft: 1257 corp: 91/114Kb lim: 251192 exec/s: 9054 rss: 286Mb
+#50928490 DONE   ft: 1257 corp: 91/114Kb lim: 251192 exec/s: 8147 rss: 286Mb
+Done 50928490 runs in 6251 second(s)
+stat::number_of_executed_units: 50928490
+stat::average_exec_per_sec:     8147
+stat::new_units_added:          7
+stat::slowest_unit_time_sec:    0
+stat::peak_rss_mb:              286
+cf::fuzzing_strategies: recommended_dict:1
