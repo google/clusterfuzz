@@ -1291,10 +1291,10 @@ class StackAnalyzerTestcase(unittest.TestCase):
                                   expected_state, expected_stacktrace,
                                   expected_security_flag)
 
-  def test_asan_bad_free(self):
+  def test_asan_invalid_free(self):
     """Test the ASan bad free format."""
-    data = self._read_test_data('asan_bad_free.txt')
-    expected_type = 'Bad-free'
+    data = self._read_test_data('asan_invalid_free.txt')
+    expected_type = 'Invalid-free'
     expected_state = ('_gnutls_buffer_append_printf\n'
                       'print_cert\n'
                       'gnutls_x509_crt_print\n')
