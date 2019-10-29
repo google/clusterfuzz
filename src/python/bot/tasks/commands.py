@@ -172,6 +172,17 @@ def should_update_task_status(task_name):
   ]
 
 
+def start_web_server_if_needed():
+  """Starts web server for blackbox fuzzer jobs (non-engine fuzzer jobs)."""
+  if environment.is_engine_fuzzer_job():
+    return
+
+  try:
+    http_server.start()
+  except Exception:
+    logs.log_error('Failed to start web server, skipping.')
+
+
 def run_command(task_name, task_argument, job_name):
   """Run the command."""
   if task_name not in COMMAND_MAP:
@@ -361,11 +372,7 @@ def process_command(task):
   # Initial cleanup.
   cleanup_task_state()
 
-  # Start http(s) servers.
-  try:
-    http_server.start()
-  except Exception:
-    logs.log_error('Failed to start web server, skipping.')
+  start_web_server_if_needed()
 
   try:
     run_command(task_name, task_argument, job_name)
