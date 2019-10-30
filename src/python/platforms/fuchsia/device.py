@@ -36,14 +36,6 @@ from system import process_handler
 _QEMU_WAIT_SECONDS = 30
 
 
-class QemuRunner(new_process.ProcessRunner):
-
-  def get_command(self, additional_args=None):
-    import pipes
-    command = super(QemuRunner, self).get_command(additional_args)
-    return ' '.join(pipes.quote(part) for part in command)
-
-
 def _fetch_qemu_vars():
   """
   Returns a dictionary with variables necessary for configuring and running
@@ -118,7 +110,7 @@ class QemuProcess(object):
 
   # For now, use a system-global log path so we don't need to pass a tempfile
   # path around everywhere
-  LOG_PATH = os.path.join(tempfile.gettempdir(), "fuchsia-qemu-log")
+  LOG_PATH = os.path.join(tempfile.gettempdir(), 'fuchsia-qemu-log')
 
   def __init__(self):
     self.process_runner = None
@@ -187,18 +179,17 @@ class QemuProcess(object):
     environment.set_value('FUCHSIA_PKEY_PATH', qemu_vars['pkey_path'])
     logs.log('Ready to run QEMU. Command: ' + qemu_vars['qemu_path'] + ' ' +
              str(qemu_args))
-    self.process_runner = QemuRunner(qemu_vars['qemu_path'], qemu_args)
+    self.process_runner = new_process.ProcessRunner(qemu_vars['qemu_path'],
+                                                    qemu_args)
 
   def run(self):
     """Actually runs a QEMU VM, assuming `create` has already been called."""
     if not self.process_runner:
       raise QemuError('Attempted to `run` QEMU VM before calling `create`')
 
-    self.logfile = open(QemuProcess.LOG_PATH, "wb")
-    # shell=True appears to be necessary to get qemu to give us non-truncated
-    # logs
+    self.logfile = open(QemuProcess.LOG_PATH, 'wb')
     self.popen = self.process_runner.run(
-        stdout=self.logfile, stderr=subprocess.PIPE, shell=True)
+        stdout=self.logfile, stderr=subprocess.PIPE)
     time.sleep(_QEMU_WAIT_SECONDS)
 
   def kill(self):

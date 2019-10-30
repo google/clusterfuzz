@@ -21,7 +21,6 @@ import shutil
 import tempfile
 import unittest
 
-import metrics
 import mock
 import parameterized
 import pyfakefs.fake_filesystem_unittest as fake_fs_unittest
@@ -34,6 +33,7 @@ from bot.fuzzers.libFuzzer import constants
 from bot.fuzzers.libFuzzer import engine
 from build_management import build_manager
 from fuzzing import strategy
+from metrics import logs
 from platforms import android
 from system import environment
 from system import new_process
@@ -870,7 +870,7 @@ class IntegrationTestsFuchsia(BaseIntegrationTest):
     test_helpers.patch(self, ['metrics.logs.log_warn'])
     # Pass-through logs just so we can see what's going on (but moving from
     # log_warn to plain log to avoid creating a loop)
-    self.mock.log_warn.side_effect = metrics.logs.log
+    self.mock.log_warn.side_effect = logs.log
 
     environment.set_value('FUZZ_TARGET', 'example_fuzzers/overflow_fuzzer')
     environment.set_value('JOB_NAME', 'libfuzzer_asan_fuchsia')
@@ -878,11 +878,11 @@ class IntegrationTestsFuchsia(BaseIntegrationTest):
     testcase_path, _ = setup_testcase_and_corpus('fuchsia_crash',
                                                  'empty_corpus')
 
-    runner = libfuzzer.FuchsiaQemuLibFuzzerRunner("fake/fuzzer")
+    runner = libfuzzer.FuchsiaQemuLibFuzzerRunner('fake/fuzzer')
     # Check that it's up properly
-    self.assertEqual(runner.device.ssh(["echo", "hello"]), 0)
+    self.assertEqual(runner.device.ssh(['echo', 'hello']), 0)
     # Force shutdown
-    runner.device.ssh(["dm", "shutdown"])
+    runner.device.ssh(['dm', 'shutdown'])
 
     # Try to fuzz against the dead qemu to trigger automatic recovery behavior
     engine_impl = engine.LibFuzzerEngine()

@@ -521,6 +521,8 @@ class FuchsiaQemuLibFuzzerRunner(new_process.ProcessRunner, LibFuzzerCommon):
         # Strip non-printable characters at beginning of qemu log
         qemu_log = ''.join(c for c in f.read() if c in string.printable)
         logs.log_warn(qemu_log)
+    else:
+      logs.log_error('Qemu log not found in {}'.format(QemuProcess.LOG_PATH))
 
     start_qemu()
     self._setup_device_and_fuzzer()
