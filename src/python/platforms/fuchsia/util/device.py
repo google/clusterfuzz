@@ -251,7 +251,7 @@ class Device(object):
           A list of the test artifacts (e.g. crashes) reported in the logs.
         """
     pid = -1
-    pid_pattern = re.compile(r'==([0-9]*)==')
+    pid_pattern = re.compile(r'==([0-9]+)==')
     mutation_pattern = re.compile(r'^MS: [0-9]*')
     artifacts = []
     artifact_pattern = re.compile(r'Test unit written to data/(\S*)')
