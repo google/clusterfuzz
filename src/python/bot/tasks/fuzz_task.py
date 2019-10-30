@@ -1507,13 +1507,13 @@ class FuzzingSession(object):
       # testcases, and stats.
       log_time = datetime.datetime.utcfromtimestamp(
           float(testcase_run.timestamp))
-      for crash in result.crashes:
-        testcase_manager.upload_testcase(crash.input_path, log_time)
-
       crash_result = CrashResult(return_code, result.time_executed, result.logs)
       log = testcase_manager.prepare_log_for_upload(
           crash_result.get_stacktrace(), return_code)
       testcase_manager.upload_log(log, log_time)
+
+      for crash in result.crashes:
+        testcase_manager.upload_testcase(crash.input_path, log_time)
 
       add_additional_testcase_run_data(testcase_run,
                                        self.fuzz_target.fully_qualified_name(),
