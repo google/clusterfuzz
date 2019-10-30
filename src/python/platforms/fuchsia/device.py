@@ -21,6 +21,7 @@ from builtins import object
 import os
 import socket
 import subprocess
+import tempfile
 import time
 
 from metrics import logs
@@ -107,9 +108,14 @@ class QemuProcess(object):
   """A QemuProcess encapsulates the creation, running, and destruction
   of Fuchsia QEMU processes."""
 
+  # For now, use a system-global log path so we don't need to pass a tempfile
+  # path around everywhere
+  LOG_PATH = os.path.join(tempfile.gettempdir(), 'fuchsia-qemu-log')
+
   def __init__(self):
     self.process_runner = None
     self.popen = None
+    self.logfile = None
 
   def create(self):
     """Configures a QEMU process which can subsequently be `run`.
@@ -140,7 +146,7 @@ class QemuProcess(object):
          'id=blobstore'),
         '-device', 'virtio-blk-pci,drive=blobstore',
         '-monitor', 'none',
-        '-append', '"kernel.serial=legacy TERM=dumb"',
+        '-append', 'kernel.serial=legacy TERM=dumb',
         '-machine', 'q35',
         '-display', 'none',
         '-netdev',
@@ -180,15 +186,21 @@ class QemuProcess(object):
     """Actually runs a QEMU VM, assuming `create` has already been called."""
     if not self.process_runner:
       raise QemuError('Attempted to `run` QEMU VM before calling `create`')
+
+    self.logfile = open(QemuProcess.LOG_PATH, 'wb')
     self.popen = self.process_runner.run(
-        stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        stdout=self.logfile, stderr=subprocess.PIPE)
     time.sleep(_QEMU_WAIT_SECONDS)
 
   def kill(self):
     """ Kills the currently-running QEMU VM, if there is one. """
-    if not self.popen:
-      return
-    self.popen.kill()
+    if self.popen:
+      self.popen.kill()
+      self.popen = None
+
+    if self.logfile:
+      self.logfile.close()
+      self.logfile = None
 
 
 def start_qemu():

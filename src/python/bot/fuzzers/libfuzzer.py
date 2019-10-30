@@ -38,6 +38,7 @@ from fuzzing import strategy
 from metrics import logs
 from platforms import android
 from platforms import fuchsia
+from platforms.fuchsia.device import QemuProcess
 from platforms.fuchsia.device import start_qemu
 from platforms.fuchsia.device import stop_qemu
 from platforms.fuchsia.util.device import Device
@@ -513,6 +514,16 @@ class FuchsiaQemuLibFuzzerRunner(new_process.ProcessRunner, LibFuzzerCommon):
     """Restart QEMU."""
     logs.log_warn('Connection to fuzzing VM lost. Restarting.')
     stop_qemu()
+
+    # Do this after the stop, to make sure everything is flushed
+    if os.path.exists(QemuProcess.LOG_PATH):
+      with open(QemuProcess.LOG_PATH) as f:
+        # Strip non-printable characters at beginning of qemu log
+        qemu_log = ''.join(c for c in f.read() if c in string.printable)
+        logs.log_warn(qemu_log)
+    else:
+      logs.log_error('Qemu log not found in {}'.format(QemuProcess.LOG_PATH))
+
     start_qemu()
     self._setup_device_and_fuzzer()
 
