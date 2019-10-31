@@ -333,6 +333,7 @@ STACK_FRAME_IGNORE_REGEXES = [
     r'^\_\_cxa\_rethrow',
     r'^\_\_cxa\_throw',
     r'^\_\_dump\_stack',
+    r'^\_\_hwasan\:\:',
     r'^\_\_hwasan\_',
     r'^\_\_interceptor\_',
     r'^\_\_libc\_',
