@@ -724,6 +724,20 @@ class IntegrationTests(BaseIntegrationTest):
     options = engine_impl.prepare(corpus_path, target_path, DATA_DIR)
     engine_impl.fuzz(target_path, options, TEMP_DIR, 10)
 
+  def test_single_testcase_timeout_crash(self):
+    """Tests libfuzzer with a timeout testcase. Ensure that -runs argument is
+    removed and testcase re-tested with longer 60 sec timeout."""
+    testcase_path, _ = setup_testcase_and_corpus('crash', 'empty_corpus')
+    engine_impl = engine.LibFuzzerEngine()
+    target_path = engine_common.find_fuzzer_path(DATA_DIR,
+                                                 'always_timeout_fuzzer')
+    result = engine_impl.reproduce(target_path, testcase_path,
+                                   ['-timeout=25', '-rss_limit_mb=2048'], 30)
+    self.compare_arguments(
+        os.path.join(DATA_DIR, 'always_timeout_fuzzer'),
+        ['-rss_limit_mb=2048', '-timeout=60'], [testcase_path], result.command)
+    self.assertIn('ERROR: libFuzzer: timeout after', result.output)
+
 
 @test_utils.integration
 class MinijailIntegrationTests(IntegrationTests):

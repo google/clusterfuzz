@@ -329,7 +329,8 @@ class LibFuzzerEngine(engine.Engine):
                                  constants.REPRODUCTION_TIMEOUT_LIMIT))
       result = runner.run_single_testcase(
           input_path,
-          timeout=constants.REPRODUCTION_TIMEOUT_LIMIT + 5,  # processing buffer
+          timeout=constants.REPRODUCTION_TIMEOUT_LIMIT +
+          10,  # processing buffer.
           additional_args=arguments)
 
     return engine.ReproduceResult(result.command, result.return_code,
