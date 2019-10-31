@@ -317,6 +317,20 @@ class LibFuzzerEngine(engine.Engine):
 
     result = runner.run_single_testcase(
         input_path, timeout=max_time, additional_args=arguments)
+
+    # If this is a timeout crash, then re-run with a higher limit to make
+    # sure it reproduces.
+    if constants.TEST_TIMEOUT_SIGNATURE in result.output:
+      logs.log('Retrying timeout crash with a higher timeout: %d secs' %
+               constants.REPRODUCTION_TIMEOUT_LIMIT)
+      fuzzer_utils.extract_argument(arguments, constants.TIMEOUT_FLAG)
+      arguments.append('%s%d' % (constants.TIMEOUT_FLAG,
+                                 constants.REPRODUCTION_TIMEOUT_LIMIT))
+      result = runner.run_single_testcase(
+          input_path,
+          timeout=constants.REPRODUCTION_TIMEOUT_LIMIT + 5,  # processing buffer
+          additional_args=arguments)
+
     return engine.ReproduceResult(result.command, result.return_code,
                                   result.time_executed, result.output)
 

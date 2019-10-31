@@ -58,7 +58,12 @@ VALUE_PROFILE_ARGUMENT = '-use_value_profile=1'
 # Value for RSS_LIMIT_FLAG to catch OOM.
 DEFAULT_RSS_LIMIT_MB = 2048
 
+# Value for TIMEOUT_FLAG to catch timeouts.
 DEFAULT_TIMEOUT_LIMIT = 25
+REPRODUCTION_TIMEOUT_LIMIT = 60
+
+# String to match to determine if this is a timeout crash.
+TEST_TIMEOUT_SIGNATURE = 'libFuzzer: timeout after'
 
 # libFuzzer's exit code if a bug occurred in libFuzzer.
 LIBFUZZER_ERROR_EXITCODE = 1
