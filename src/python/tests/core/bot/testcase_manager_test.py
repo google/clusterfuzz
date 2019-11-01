@@ -23,7 +23,9 @@ from pyfakefs import fake_filesystem_unittest
 
 from bot import testcase_manager
 from bot.fuzzers import engine
+from bot.fuzzers.libFuzzer import constants as libfuzzer_constants
 from bot.fuzzers.libFuzzer import engine as libfuzzer_engine
+from bot.untrusted_runner import file_host
 from build_management import build_manager
 from crash_analysis.crash_result import CrashResult
 from crash_analysis.stack_parsing import stack_analyzer
@@ -758,6 +760,7 @@ class UntrustedEngineReproduceTest(
     """Set up."""
     super(UntrustedEngineReproduceTest, self).setUp()
     environment.set_value('JOB_NAME', 'libfuzzer_asan_job')
+    environment.set_value('USE_MINIJAIL', False)
 
     job = data_types.Job(
         name='libfuzzer_asan_job',
@@ -789,6 +792,14 @@ class UntrustedEngineReproduceTest(
         libfuzzer_engine.LibFuzzerEngine(), 'test_fuzzer', testcase_file_path,
         [], 30)
 
+    self.assertEqual([
+        os.path.join(environment.get_value('BUILD_DIR'), 'test_fuzzer'),
+        '-runs=100',
+        file_host.rebase_to_worker_root(testcase_file_path)
+    ], result.command)
+    self.assertEqual(result.return_code,
+                     libfuzzer_constants.TARGET_ERROR_EXITCODE)
+    self.assertGreater(result.time_executed, 0)
     self.assertIn('Running 1 inputs 100 time(s) each', result.output)
     self.assertIn('AddressSanitizer: SEGV on unknown address 0x000000000000',
                   result.output)
