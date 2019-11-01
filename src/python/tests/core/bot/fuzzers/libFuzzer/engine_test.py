@@ -240,7 +240,7 @@ class FuzzTest(fake_fs_unittest.TestCase):
     self.assertEqual('/fake/crash-1e15825e6f0b2240a5af75d84214adda1b6b5340',
                      crash.input_path)
     self.assertEqual(fuzz_output, crash.stacktrace)
-    self.assertItemsEqual(['-arg=1', '-timeout=123'], crash.reproduce_args)
+    self.assertItemsEqual(['-arg=1', '-timeout=60'], crash.reproduce_args)
     self.assertEqual(2, crash.crash_time)
 
     self.mock.fuzz.assert_called_with(
@@ -427,10 +427,10 @@ class IntegrationTests(BaseIntegrationTest):
     engine_impl = engine.LibFuzzerEngine()
     target_path = engine_common.find_fuzzer_path(DATA_DIR, 'test_fuzzer')
     result = engine_impl.reproduce(target_path, testcase_path,
-                                   ['-timeout=25', '-rss_limit_mb=2048'], 30)
+                                   ['-timeout=60', '-rss_limit_mb=2048'], 65)
     self.compare_arguments(
         os.path.join(DATA_DIR, 'test_fuzzer'),
-        ['-timeout=25', '-rss_limit_mb=2048', '-runs=100'], [testcase_path],
+        ['-timeout=60', '-rss_limit_mb=2048', '-runs=100'], [testcase_path],
         result.command)
     self.assertIn(
         'ERROR: AddressSanitizer: SEGV on unknown address 0x000000000000',
@@ -494,8 +494,8 @@ class IntegrationTests(BaseIntegrationTest):
     self.assertEqual(TEMP_DIR, os.path.dirname(results.crashes[0].input_path))
     self.assertEqual(results.logs, results.crashes[0].stacktrace)
     self.assertListEqual([
-        '-timeout=25',
         '-rss_limit_mb=2048',
+        '-timeout=60',
     ], results.crashes[0].reproduce_args)
 
     self.assertIn('Test unit written to {0}/crash-'.format(self.crash_dir),
@@ -938,11 +938,11 @@ class IntegrationTestsAndroid(BaseIntegrationTest, android_helpers.AndroidTest):
     target_path = engine_common.find_fuzzer_path(ANDROID_DATA_DIR,
                                                  'test_fuzzer')
     result = engine_impl.reproduce(target_path, testcase_path,
-                                   ['-timeout=25', '-rss_limit_mb=2048'], 30)
+                                   ['-timeout=60', '-rss_limit_mb=2048'], 65)
 
     self.assertEqual([
         self.adb_path, 'shell', self.ld_library_path, self.hwasan_options,
-        self.device_path(target_path), '-timeout=25', '-rss_limit_mb=2048',
+        self.device_path(target_path), '-timeout=60', '-rss_limit_mb=2048',
         '-runs=100',
         self.device_path(testcase_path)
     ], result.command)
@@ -1022,8 +1022,8 @@ class IntegrationTestsAndroid(BaseIntegrationTest, android_helpers.AndroidTest):
     self.assertEqual(TEMP_DIR, os.path.dirname(results.crashes[0].input_path))
     self.assertEqual(results.logs, results.crashes[0].stacktrace)
     self.assertListEqual([
-        '-timeout=25',
         '-rss_limit_mb=2048',
+        '-timeout=60',
     ], results.crashes[0].reproduce_args)
 
     self.assertIn(
