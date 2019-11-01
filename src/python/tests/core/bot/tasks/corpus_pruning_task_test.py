@@ -217,15 +217,15 @@ class CorpusPruningTest(unittest.TestCase):
     self.assertEqual(self.mock.unpack_seed_corpus_if_needed.call_count, 1)
 
 
-class CorpusPruningTestMinijail(CorpusPruningTest):
-  """Tests for corpus pruning (minijail)."""
+#class CorpusPruningTestMinijail(CorpusPruningTest):
+#  """Tests for corpus pruning (minijail)."""
 
-  def setUp(self):
-    if environment.platform() != 'LINUX':
-      self.skipTest('Minijail tests are only applicable for linux platform.')
+#  def setUp(self):
+#    if environment.platform() != 'LINUX':
+#      self.skipTest('Minijail tests are only applicable for linux platform.')
 
-    super(CorpusPruningTestMinijail, self).setUp()
-    os.environ['USE_MINIJAIL'] = 'True'
+#    super(CorpusPruningTestMinijail, self).setUp()
+#    os.environ['USE_MINIJAIL'] = 'True'
 
 
 class CorpusPruningTestUntrusted(
