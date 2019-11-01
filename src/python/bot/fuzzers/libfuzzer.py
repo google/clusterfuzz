@@ -1343,6 +1343,14 @@ def remove_fuzzing_arguments(arguments):
     fuzzer_utils.extract_argument(arguments, argument)
 
 
+def fix_timeout_argument_for_reproduction(arguments):
+  """Changes timeout argument for reproduction. This is higher than default to
+  avoid noise with smaller fuzzing defaults."""
+  fuzzer_utils.extract_argument(arguments, constants.TIMEOUT_FLAG)
+  arguments.append(
+      '%s%d' % (constants.TIMEOUT_FLAG, constants.REPRODUCTION_TIMEOUT_LIMIT))
+
+
 def parse_log_stats(log_lines):
   """Parse libFuzzer log output."""
   log_stats = {}

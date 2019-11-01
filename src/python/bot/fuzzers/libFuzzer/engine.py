@@ -276,10 +276,14 @@ class LibFuzzerEngine(engine.Engine):
     fuzz_logs = '\n'.join(log_lines)
     crashes = []
     if crash_testcase_file_path:
+      # Use higher timeout for reproduction.
+      reproduce_arguments = arguments[:]
+      libfuzzer.fix_timeout_argument_for_reproduction(reproduce_arguments)
+
       # Write the new testcase.
       # Copy crash testcase contents into the main testcase path.
       crashes.append(
-          engine.Crash(crash_testcase_file_path, fuzz_logs, arguments,
+          engine.Crash(crash_testcase_file_path, fuzz_logs, reproduce_arguments,
                        actual_duration))
 
     project_qualified_fuzzer_name = (
