@@ -151,6 +151,7 @@ def engine_reproduce(request, _):
                                              request.testcase_path,
                                              request.arguments, request.timeout)
   return untrusted_runner_pb2.EngineReproduceResult(
+      command=result.command,
       return_code=result.return_code,
       time_executed=result.time_executed,
       output=result.output)
