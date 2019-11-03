@@ -1036,6 +1036,15 @@ class AndroidLibFuzzerRunner(new_process.ProcessRunner, LibFuzzerCommon):
     if artifact_prefix:
       artifact_prefix = self._get_device_path(artifact_prefix)
 
+    # Extract local dict path from arguments list and subsitute with device one.
+    additional_args = additional_args[:]
+    dict_path = fuzzer_utils.extract_argument(additional_args,
+                                              constants.DICT_FLAG)
+    if dict_path:
+      device_dict_path = self._get_device_path(dict_path)
+      android.adb.copy_local_file_to_remote(dict_path, device_dict_path)
+      additional_args.append(constants.DICT_FLAG + device_dict_path)
+
     result = LibFuzzerCommon.fuzz(
         self,
         corpus_directories,
