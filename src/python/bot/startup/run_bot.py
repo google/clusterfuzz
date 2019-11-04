@@ -167,9 +167,8 @@ def main():
       return
 
     logs.log_error(
-        'Task exited with exception.',
-        error_stacktrace=error_stacktrace,
-        task_payload=task_payload)
+        'Task exited with exception (payload="%s")' % task_payload,
+        error_stacktrace=error_stacktrace)
 
     should_hang = errors.error_in_list(error_stacktrace,
                                        errors.BOT_ERROR_HANG_LIST)

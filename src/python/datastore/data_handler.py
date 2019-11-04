@@ -797,7 +797,9 @@ def update_testcase_comment(testcase, task_state, message=None):
 
   # Truncate if too long.
   if len(testcase.comments) > data_types.TESTCASE_COMMENTS_LENGTH_LIMIT:
-    logs.log_error('Testcase comments truncated.')
+    logs.log_error(
+        'Testcase comments truncated (testcase {testcase_id}, job {job_type}).'.
+        format(testcase_id=testcase.key.id(), job_type=testcase.job_type))
     testcase.comments = testcase.comments[
         -data_types.TESTCASE_COMMENTS_LENGTH_LIMIT:]
 
@@ -809,8 +811,10 @@ def update_testcase_comment(testcase, task_state, message=None):
     log_func = (
         logs.log_error
         if task_state == data_types.TaskState.ERROR else logs.log)
-    log_func('%s (testcase %s, job %s).' % (message, testcase.key.id(),
-                                            testcase.job_type))
+    log_func('{message} (testcase {testcase_id}, job {job_type}).'.format(
+        message=message,
+        testcase_id=testcase.key.id(),
+        job_type=testcase.job_type))
 
 
 def get_open_testcase_id_iterator():
