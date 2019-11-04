@@ -447,6 +447,7 @@ class IntegrationTests(BaseIntegrationTest):
     engine_impl = engine.LibFuzzerEngine()
 
     target_path = engine_common.find_fuzzer_path(DATA_DIR, 'test_fuzzer')
+    dict_path = target_path + '.dict'
     options = engine_impl.prepare(corpus_path, target_path, DATA_DIR)
 
     results = engine_impl.fuzz(target_path, options, TEMP_DIR, 10)
@@ -455,8 +456,9 @@ class IntegrationTests(BaseIntegrationTest):
     self.compare_arguments(
         os.path.join(DATA_DIR, 'test_fuzzer'), [
             '-max_len=256', '-timeout=25', '-rss_limit_mb=2048',
-            '-use_value_profile=1', '-artifact_prefix=' + TEMP_DIR + '/',
-            '-max_total_time=5', '-print_final_stats=1'
+            '-use_value_profile=1', '-dict=' + dict_path,
+            '-artifact_prefix=' + TEMP_DIR + '/', '-max_total_time=5',
+            '-print_final_stats=1'
         ], [
             os.path.join(TEMP_DIR, 'temp-1337/new'),
             os.path.join(TEMP_DIR, 'corpus')
@@ -515,14 +517,15 @@ class IntegrationTests(BaseIntegrationTest):
 
     engine_impl = engine.LibFuzzerEngine()
     target_path = engine_common.find_fuzzer_path(DATA_DIR, 'test_fuzzer')
+    dict_path = target_path + '.dict'
     options = engine_impl.prepare(corpus_path, target_path, DATA_DIR)
     results = engine_impl.fuzz(target_path, options, TEMP_DIR, 10)
 
     self.compare_arguments(
         os.path.join(DATA_DIR, 'test_fuzzer'), [
             '-max_len=256', '-timeout=25', '-rss_limit_mb=2048',
-            '-artifact_prefix=' + TEMP_DIR + '/', '-max_total_time=5',
-            '-print_final_stats=1'
+            '-dict=' + dict_path, '-artifact_prefix=' + TEMP_DIR + '/',
+            '-max_total_time=5', '-print_final_stats=1'
         ], [
             os.path.join(TEMP_DIR, 'temp-1337/new'),
             os.path.join(TEMP_DIR, 'temp-1337/subset')
@@ -962,6 +965,7 @@ class IntegrationTestsAndroid(BaseIntegrationTest, android_helpers.AndroidTest):
 
     target_path = engine_common.find_fuzzer_path(ANDROID_DATA_DIR,
                                                  'test_fuzzer')
+    dict_path = target_path + '.dict'
     options = engine_impl.prepare(corpus_path, target_path, ANDROID_DATA_DIR)
 
     results = engine_impl.fuzz(target_path, options, TEMP_DIR, 10)
@@ -977,12 +981,14 @@ class IntegrationTestsAndroid(BaseIntegrationTest, android_helpers.AndroidTest):
         '-timeout=25',
         '-rss_limit_mb=2048',
         '-use_value_profile=1',
+        '-dict=' + self.device_path(dict_path),
         '-artifact_prefix=' + self.device_path(TEMP_DIR) + '/',
         '-max_total_time=5',
         '-print_final_stats=1',
         self.device_path(os.path.join(TEMP_DIR, 'temp-1337/new')),
         self.device_path(os.path.join(TEMP_DIR, 'corpus')),
     ], results.command)
+    self.assertTrue(android.adb.file_exists(self.device_path(dict_path)))
     self.assertEqual(0, len(results.crashes))
 
     # New items should've been added to the corpus.
@@ -1045,6 +1051,7 @@ class IntegrationTestsAndroid(BaseIntegrationTest, android_helpers.AndroidTest):
     engine_impl = engine.LibFuzzerEngine()
     target_path = engine_common.find_fuzzer_path(ANDROID_DATA_DIR,
                                                  'test_fuzzer')
+    dict_path = target_path + '.dict'
     options = engine_impl.prepare(corpus_path, target_path, ANDROID_DATA_DIR)
     results = engine_impl.fuzz(target_path, options, TEMP_DIR, 10)
 
@@ -1057,12 +1064,14 @@ class IntegrationTestsAndroid(BaseIntegrationTest, android_helpers.AndroidTest):
         '-max_len=256',
         '-timeout=25',
         '-rss_limit_mb=2048',
+        '-dict=' + self.device_path(dict_path),
         '-artifact_prefix=' + self.device_path(TEMP_DIR) + '/',
         '-max_total_time=5',
         '-print_final_stats=1',
         self.device_path(os.path.join(TEMP_DIR, 'temp-1337/new')),
         self.device_path(os.path.join(TEMP_DIR, 'temp-1337/subset')),
     ], results.command)
+    self.assertTrue(android.adb.file_exists(self.device_path(dict_path)))
     self.assert_has_stats(results.stats)
 
   def test_minimize(self):
