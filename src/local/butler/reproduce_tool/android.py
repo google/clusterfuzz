@@ -25,16 +25,17 @@ from system import environment
 from system import new_process
 
 ADB_DEVICES_SEPARATOR_STRING = 'List of devices attached'
-EMULATOR_PATH = os.path.join(
-    os.path.dirname(__file__), os.pardir, os.pardir, os.pardir, os.pardir,
-    'local', 'bin', 'android-sdk', 'emulator', 'emulator')
+EMULATOR_RELATIVE_PATH = os.path.join('local', 'bin', 'android-sdk', 'emulator',
+                                      'emulator')
 
 
 def start_emulator():
   """Return a ProcessRunner configured to start the Android emulator."""
+  root_dir = environment.get_value('ROOT_DIR')
+
   runner = new_process.ProcessRunner(
-      EMULATOR_PATH,
-      ['-avd', 'Android28', '-writable-system', '-partition-size', '2048'])
+      os.path.join(root_dir, EMULATOR_RELATIVE_PATH),
+      ['-avd', 'TestImage', '-writable-system', '-partition-size', '2048'])
   emulator_process = runner.run()
 
   # If we run adb commands too soon after the emulator starts, we may see
@@ -50,7 +51,6 @@ def start_emulator():
 def get_devices():
   """Get a list of all connected Android devices."""
   adb_runner = new_process.ProcessRunner(adb.get_adb_path())
-  adb_runner.run_and_wait(additional_args=['run-server'])
   result = adb_runner.run_and_wait(additional_args=['devices'])
 
   if result.return_code:
@@ -100,9 +100,6 @@ def prepare_environment(disable_android_setup):
   if not willing_to_continue:
     raise errors.ReproduceToolUnrecoverableError(
         'Bailing out to avoid changing settings on the connected device.')
-
-  if 'emulator' in serial:
-    adb.run_command(['remount'])
 
   # Push the test case and build APK to the device.
   apk_path = environment.get_value('APP_PATH')

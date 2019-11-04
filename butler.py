@@ -302,7 +302,7 @@ def main():
       '-e',
       '--emulator',
       action='store_true',
-      help='Run and attempt to reproduce using the Android emulator.')
+      help='Run and attempt to reproduce a crash using the Android emulator.')
 
   args = parser.parse_args()
 
