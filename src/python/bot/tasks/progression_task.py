@@ -140,6 +140,10 @@ def _check_fixed_for_custom_binary(testcase, job_type, testcase_file_path):
 
 def _update_issue_metadata(testcase):
   """Update issue metadata."""
+  if environment.is_trusted_host():
+    # Not applicable.
+    return
+
   fuzz_target = testcase.get_fuzz_target()
   if not fuzz_target:
     return
