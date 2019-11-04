@@ -164,7 +164,7 @@ class UntrustedRunnerIntegrationTest(unittest.TestCase):
   def tearDownClass(cls):
     if cls.bot_proc:
       try:
-        cls.bot_proc.terminate()
+        cls.bot_proc.kill()
       except OSError:
         # Could already be killed.
         pass

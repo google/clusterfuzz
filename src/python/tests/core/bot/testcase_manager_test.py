@@ -760,7 +760,6 @@ class UntrustedEngineReproduceTest(
     """Set up."""
     super(UntrustedEngineReproduceTest, self).setUp()
     environment.set_value('JOB_NAME', 'libfuzzer_asan_job')
-    environment.set_value('USE_MINIJAIL', False)
 
     job = data_types.Job(
         name='libfuzzer_asan_job',
