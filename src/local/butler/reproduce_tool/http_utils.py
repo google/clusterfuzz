@@ -29,8 +29,8 @@ POST_METHOD = 'POST'
 
 CONFIG_DIRECTORY = os.path.join(
     os.path.expanduser('~'), '.config', 'clusterfuzz')
-AUTHORIZATION_CACHE_FILE = os.path.join(CONFIG_DIRECTORY, 'authorization-cache')
 
+AUTHORIZATION_CACHE_FILE = os.path.join(CONFIG_DIRECTORY, 'authorization-cache')
 AUTHORIZATION_HEADER = 'x-clusterfuzz-authorization'
 
 

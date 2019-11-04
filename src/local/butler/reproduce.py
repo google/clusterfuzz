@@ -37,11 +37,11 @@ from bot.tasks import setup
 from build_management import build_manager
 from datastore import data_types
 from local.butler import appengine
+from local.butler.reproduce_tool import android
 from local.butler.reproduce_tool import config
 from local.butler.reproduce_tool import errors
 from local.butler.reproduce_tool import http_utils
 from local.butler.reproduce_tool import prompts
-from platforms.android import device
 from system import archive
 from system import environment
 from system import new_process
@@ -297,35 +297,6 @@ def _get_testcase_id_from_url(testcase_url):
   return testcase_id
 
 
-def _prepare_environment_for_android(disable_android_setup):
-  """Additional environment overrides needed to run on an Android device."""
-  environment.set_value('OS_OVERRIDE', 'ANDROID')
-
-  # Bail out if we don't have an Android device connected.
-  serial = environment.get_value('ANDROID_SERIAL')
-  if not serial:
-    # TODO(mbarbella): Handle the one-device case gracefully.
-    raise errors.ReproduceToolUnrecoverableError(
-        'This test case requires an Android device. Please set the '
-        'ANDROID_SERIAL environment variable and try again.')
-
-  print('Warning: this tool will make changes to settings on the connected '
-        'Android device with serial {serial} that could result in data '
-        'loss.'.format(serial=serial))
-  willing_to_continue = prompts.get_boolean(
-      'Are you sure you want to continue?')
-  if not willing_to_continue:
-    raise errors.ReproduceToolUnrecoverableError(
-        'Bailing out to avoid changing settings on the connected device.')
-
-  # Push the test case and build APK to the device.
-  apk_path = environment.get_value('APP_PATH')
-  device.update_build(
-      apk_path, should_initialize_device=not disable_android_setup)
-
-  device.push_testcases_to_device()
-
-
 def _print_stacktrace(result):
   """Display the output from a test case run."""
   print('#' * 80)
@@ -345,7 +316,12 @@ def _reproduce_crash(testcase_url, build_directory, iterations, disable_xvfb,
 
   testcase = _get_testcase(testcase_id, configuration)
 
-  # Ensure that we support this test case.
+  # For new user uploads, we'll fail without the metadata set by analyze task.
+  if not testcase.platform:
+    raise errors.ReproduceToolUnrecoverableError(
+        'This test case has not yet been processed. Please try again later.')
+
+  # Ensure that we support this test case's platform.
   if testcase.platform not in SUPPORTED_PLATFORMS:
     raise errors.ReproduceToolUnrecoverableError(
         'The reproduce tool is not yet supported on {platform}.'.format(
@@ -365,7 +341,7 @@ def _reproduce_crash(testcase_url, build_directory, iterations, disable_xvfb,
   # Validate that we're running on the right platform for this test case.
   platform = environment.platform().lower()
   if testcase.platform == 'android' and platform == 'linux':
-    _prepare_environment_for_android(disable_android_setup)
+    android.prepare_environment(disable_android_setup)
   elif testcase.platform == 'android' and platform != 'linux':
     raise errors.ReproduceToolUnrecoverableError(
         'The ClusterFuzz environment only supports running Android test cases '
@@ -423,6 +399,12 @@ def execute(args):
   # Initialize fuzzing engines.
   init.run()
 
+  # Prepare the emulator if needed.
+  emulator_process = None
+  if args.emulator:
+    print('Starting emulator...')
+    emulator_process = android.start_emulator()
+
   # The current working directory may change while we're running.
   absolute_build_dir = os.path.abspath(args.build_dir)
   try:
@@ -432,6 +414,9 @@ def execute(args):
   except errors.ReproduceToolUnrecoverableError as exception:
     print(exception)
     return
+  finally:
+    if emulator_process:
+      emulator_process.terminate()
 
   if not result:
     return

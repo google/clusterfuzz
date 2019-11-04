@@ -17,7 +17,12 @@
 # Process command line arguments.
 while [ "$1" != "" ]; do
   case $1 in
-    --only-reproduce) only_reproduce=1
+    --only-reproduce)
+      only_reproduce=1
+      ;;
+    --install-android-emulator)
+      install_android_emulator=1
+      ;;
   esac
   shift
 done
@@ -151,6 +156,27 @@ source ENV/bin/activate
 pip install --upgrade pip
 pip install --upgrade -r docker/ci/requirements.txt
 pip install --upgrade -r src/local/requirements.txt
+
+if [ $install_android_emulator ]; then
+  ANDROID_SDK_INSTALL_DIR=local/bin/android-sdk
+  ANDROID_SDK_REVISION=4333796
+  ANDROID_VERSION=28
+  ANDROID_TOOLS_BIN=$ANDROID_SDK_INSTALL_DIR/tools/bin/
+
+  # Install the Android emulator and its dependencies. Used in tests and as an
+  # option during Android test case reproduction.
+  rm -rf $ANDROID_SDK_INSTALL_DIR
+  mkdir $ANDROID_SDK_INSTALL_DIR
+  curl https://dl.google.com/android/repository/sdk-tools-linux-$ANDROID_SDK_REVISION.zip \
+    --output $ANDROID_SDK_INSTALL_DIR/sdk-tools-linux.zip
+  unzip -d $ANDROID_SDK_INSTALL_DIR $ANDROID_SDK_INSTALL_DIR/sdk-tools-linux.zip
+
+  $ANDROID_TOOLS_BIN/sdkmanager "emulator"
+  $ANDROID_TOOLS_BIN/sdkmanager "platform-tools" "platforms;android-$ANDROID_VERSION"
+  $ANDROID_TOOLS_BIN/sdkmanager "system-images;android-$ANDROID_VERSION;google_apis;x86"
+  $ANDROID_TOOLS_BIN/sdkmanager --licenses
+  $ANDROID_TOOLS_BIN/avdmanager create avd --force -n TestImage -k "system-images;android-$ANDROID_VERSION;google_apis;x86"
+fi
 
 if [ ! $only_reproduce ]; then
   # Install other dependencies (e.g. bower).

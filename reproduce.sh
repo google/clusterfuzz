@@ -17,13 +17,27 @@
 CLUSTERFUZZ_CONFIG_DIR=~/.config/clusterfuzz
 ROOT_DIRECTORY=$(dirname $(readlink -f "$0"))
 
+# If we're using the emulator, make sure we install the Android SDK.
+original_args="$*"
+while [ "$1" != "" ]; do
+  case $1 in
+    -e)
+      additional_deps_args=--install-android-emulator
+      ;;
+    --emulator)
+      additional_deps_args=--install-android-emulator
+      ;;
+  esac
+  shift
+done
+
 mkdir -p $CLUSTERFUZZ_CONFIG_DIR
-if [ ! -d $ROOT_DIRECTORY/ENV ]; then
+if [ ! -d $ROOT_DIRECTORY/ENV ] || ([ $additional_deps_args ] && [ ! -d $ROOT_DIRECTORY/local/bin/android-sdk ]); then
   echo "Running first time setup. This may take a while, but is only required once."
   echo "You may see several password prompts to install required packages."
   sleep 5
-  $ROOT_DIRECTORY/local/install_deps.bash --only-reproduce || { rm -rf $ROOT_DIRECTORY/ENV && exit 1; }
+  $ROOT_DIRECTORY/local/install_deps.bash --only-reproduce $additional_deps_args || { rm -rf $ROOT_DIRECTORY/ENV && exit 1; }
 fi
 
 source ENV/bin/activate
-python $ROOT_DIRECTORY/butler.py reproduce $*
+python $ROOT_DIRECTORY/butler.py reproduce $original_args
