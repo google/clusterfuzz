@@ -670,7 +670,7 @@ class ProjectSetup(object):
 
     data_bundles = set([
         fuzzer_entity.data_bundle_name
-        for fuzzer_entity in self._fuzzer_entities.values()
+        for fuzzer_entity in six.itervalues(self._fuzzer_entities)
     ])
     for data_bundle in data_bundles:
       # Workers also need to be able to set up these global bundles.
@@ -857,7 +857,7 @@ class ProjectSetup(object):
 
     # Delete old jobs.
     project_names = [project[0] for project in projects]
-    update_fuzzer_jobs(self._fuzzer_entities.values(), project_names)
+    update_fuzzer_jobs(list(self._fuzzer_entities.values()), project_names)
 
     if self._segregate_projects:
       # Delete old pubsub topics.

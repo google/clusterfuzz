@@ -14,6 +14,7 @@
 """Tests for the automatic weight adjusment cron job."""
 # pylint: disable=protected-access
 import datetime
+import six
 import unittest
 
 from datastore import data_types
@@ -296,7 +297,7 @@ class TestUpdateJobWeights(unittest.TestCase):
         'blackbox': ['asan_blackbox_job',]
     }
 
-    for fuzzer, jobs in test_fuzzer_jobs.items():
+    for fuzzer, jobs in six.iteritems(test_fuzzer_jobs):
       for job in jobs:
         data_types.Job(name=job).put()
         data_types.FuzzerJob(fuzzer=fuzzer, job=job).put()

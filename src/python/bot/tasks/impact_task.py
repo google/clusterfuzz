@@ -14,6 +14,8 @@
 """Impact task.
    Determine whether or not a test case affects production branches."""
 
+import six
+
 from base import tasks
 from base import utils
 from bot import testcase_manager
@@ -102,7 +104,7 @@ def get_component_information_by_name(chromium_revision,
   component_revisions = revisions.get_component_revisions_dict(
       chromium_revision, None)
   all_details = []
-  for value in component_revisions.values():
+  for value in six.itervalues(component_revisions):
     if value and 'name' in value and value['name'].lower() == lower_name:
       all_details.append(value)
   # If we found several components with the same name, return nothing useful.
