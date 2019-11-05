@@ -134,7 +134,7 @@ def clone_entity(e, **extra_args):
   ent_class = e.__class__
   # pylint: disable=protected-access
   props = dict((v._code_name, v.__get__(e, ent_class))
-               for v in ent_class._properties.itervalues()
+               for v in six.itervalues(ent_class._properties)
                if not isinstance(v, ndb.ComputedProperty))
   props.update(extra_args)
   return ent_class(**props)

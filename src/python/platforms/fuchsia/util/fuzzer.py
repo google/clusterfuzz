@@ -21,6 +21,7 @@ import datetime
 import errno
 import glob
 import os
+import six
 import subprocess
 import time
 
@@ -162,7 +163,7 @@ class Fuzzer(object):
     artifacts = []
     try:
       lines = self.device.ls(self.data_path())
-      for artifact, _ in lines.iteritems():
+      for artifact, _ in six.iteritems(lines):
         for prefix in Fuzzer.ARTIFACT_PREFIXES:
           if artifact.startswith(prefix):
             artifacts.append(artifact)

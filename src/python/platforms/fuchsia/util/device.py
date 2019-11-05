@@ -20,6 +20,7 @@ import glob
 import os
 import re
 import shutil
+import six
 import subprocess
 
 from .host import Host
@@ -93,7 +94,7 @@ class Device(object):
   def get_ssh_cmd(self, cmd):
     """Returns the SSH executable and options."""
     result = cmd[:1]
-    for opt, args in self._ssh_opts.iteritems():
+    for opt, args in six.iteritems(self._ssh_opts):
       if result[0] == 'scp' and opt == 'p':
         opt = 'P'
       if not args:

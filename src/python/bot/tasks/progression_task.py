@@ -13,6 +13,7 @@
 # limitations under the License.
 """Test to see if test cases are fixed."""
 
+import six
 import time
 
 from base import errors
@@ -155,7 +156,7 @@ def _update_issue_metadata(testcase):
     return
 
   metadata = engine_common.get_all_issue_metadata(target_path)
-  for key, value in metadata.items():
+  for key, value in six.iteritems(metadata):
     old_value = testcase.get_metadata(key)
     if old_value != value:
       logs.log('Updating issue metadata for {} from {} to {}.'.format(
