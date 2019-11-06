@@ -22,8 +22,16 @@ from system import environment
 
 def setup_additional_args_for_app():
   """Select additional args for the specified app at random."""
+  if environment.is_engine_fuzzer_job():
+    # Not applicable to engine fuzzers.
+    return
+
+  app_name = environment.get_value('APP_NAME')
+  if not app_name:
+    return
+
   # Convert the app_name to lowercase. Case may vary by platform.
-  app_name = environment.get_value('APP_NAME', '').lower()
+  app_name = app_name.lower()
 
   # Hack: strip file extensions that may be appended on various platforms.
   extensions_to_strip = ['.exe', '.apk']
