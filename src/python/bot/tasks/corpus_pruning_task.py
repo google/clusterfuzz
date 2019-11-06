@@ -733,14 +733,15 @@ def _get_cross_pollinate_fuzzers(engine, current_fuzzer_name):
 
   jobs = {}
   for job in data_types.Job.query():
-    backup_bucket_name = job.get_environment().get('BACKUP_BUCKET',
-                                                   default_backup_bucket)
+    job_environment = job.get_environment()
+    backup_bucket_name = job_environment.get('BACKUP_BUCKET',
+                                             default_backup_bucket)
     if not backup_bucket_name:
       # Skip jobs that don't do corpus backups.
       continue
 
-    corpus_engine_name = job.get_environment().get(
-        'CORPUS_FUZZER_NAME_OVERRIDE', engine)
+    corpus_engine_name = job_environment.get('CORPUS_FUZZER_NAME_OVERRIDE',
+                                             engine)
     jobs[job.name] = JobMetadata(backup_bucket_name, corpus_engine_name)
 
   for target, target_job in zip(targets, target_jobs):
