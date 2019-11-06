@@ -103,6 +103,9 @@ CorpusCrash = collections.namedtuple('CorpusCrash', [
     'security_flag',
 ])
 
+JobMetadata = collections.namedtuple(
+    'JobMetadata', ['backup_bucket_name', 'corpus_engine_name'])
+
 
 def _get_corpus_file_paths(corpus_path):
   """Return full paths to corpus files in |corpus_path|."""
@@ -726,27 +729,33 @@ def _get_cross_pollinate_fuzzers(engine, current_fuzzer_name):
 
   target_jobs = list(fuzz_target_utils.get_fuzz_target_jobs(engine=engine))
   targets = fuzz_target_utils.get_fuzz_targets_for_target_jobs(target_jobs)
+  default_backup_bucket = utils.default_backup_bucket()
+
+  jobs = {}
+  for job in data_types.Job.query():
+    backup_bucket_name = job.get_environment().get('BACKUP_BUCKET',
+                                                   default_backup_bucket)
+    if not backup_bucket_name:
+      # Skip jobs that don't do corpus backups.
+      continue
+
+    corpus_engine_name = job.get_environment().get(
+        'CORPUS_FUZZER_NAME_OVERRIDE', engine)
+    jobs[job.name] = JobMetadata(backup_bucket_name, corpus_engine_name)
 
   for target, target_job in zip(targets, target_jobs):
     if (target_job.fuzz_target_name == current_fuzzer_name or
         target_job.fuzz_target_name in cross_pollinate_fuzzers):
       continue
 
-    job = data_types.Job.query(data_types.Job.name == target_job.job).get()
-    if not job:
+    if target_job.job not in jobs:
       continue
 
-    backup_bucket_name = job.get_environment().get('BACKUP_BUCKET')
-    if not backup_bucket_name:
-      continue
-
-    corpus_engine_name = job.get_environment().get(
-        'CORPUS_FUZZER_NAME_OVERRIDE', engine)
-
+    job = jobs[target_job.job]
     cross_pollinate_fuzzers[target_job.fuzz_target_name] = CrossPollinateFuzzer(
         target,
-        backup_bucket_name,
-        corpus_engine_name,
+        job.backup_bucket_name,
+        job.corpus_engine_name,
     )
 
   return random.SystemRandom().sample(

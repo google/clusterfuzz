@@ -798,6 +798,14 @@ def write_data_to_file(content, file_path, append=False):
 
 
 @memoize.wrap(memoize.FifoInMemory(1))
+def default_backup_bucket():
+  """Return the default backup bucket for this instance of ClusterFuzz."""
+  # Do not use |BACKUP_BUCKET| environment variable as that is the overridden
+  # backup bucket from job type and is not the default backup bucket.
+  return local_config.ProjectConfig().get('env.BACKUP_BUCKET')
+
+
+@memoize.wrap(memoize.FifoInMemory(1))
 def default_project_name():
   """Return the default project name for this instance of ClusterFuzz."""
   # Do not use |PROJECT_NAME| environment variable as that is the overridden

@@ -76,6 +76,7 @@ class MakePublicHandler(base_handler.Handler):
   def get(self):
     """Handle a GET request."""
     jobs = ndb_utils.get_all_from_model(data_types.Job)
+    default_backup_bucket = utils.default_backup_bucket()
     for job in jobs:
       job_environment = job.get_environment()
       if utils.string_is_true(job_environment.get('EXPERIMENTAL')):
@@ -86,7 +87,8 @@ class MakePublicHandler(base_handler.Handler):
         # There won't be any corpus backups for these jobs. Skip.
         continue
 
-      corpus_backup_bucket_name = job_environment.get('BACKUP_BUCKET')
+      corpus_backup_bucket_name = job_environment.get('BACKUP_BUCKET',
+                                                      default_backup_bucket)
       if not corpus_backup_bucket_name:
         # No backup bucket found. Skip.
         continue
