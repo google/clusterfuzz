@@ -926,4 +926,7 @@ class Handler(base_handler.Handler):
     else:
       raise ProjectSetupError('Invalid projects source: ' + projects_source)
 
+    if not projects:
+      raise ProjectSetupError('Missing projects list.')
+
     config.set_up(projects)
