@@ -722,36 +722,40 @@ def _process_corpus_crashes(context, result):
 
 def _get_cross_pollinate_fuzzers(engine, current_fuzzer_name):
   """Return a list of fuzzer objects to use for cross pollination."""
-  cross_pollinate_fuzzers = {}
+  cross_pollinate_fuzzers = []
 
   target_jobs = list(fuzz_target_utils.get_fuzz_target_jobs(engine=engine))
   targets = fuzz_target_utils.get_fuzz_targets_for_target_jobs(target_jobs)
 
-  for target, target_job in zip(targets, target_jobs):
-    if (target_job.fuzz_target_name == current_fuzzer_name or
-        target_job.fuzz_target_name in cross_pollinate_fuzzers):
-      continue
+  targets_and_jobs = [(target, target_job)
+                      for target, target_job in zip(targets, target_jobs)
+                      if target_job.fuzz_target_name != current_fuzzer_name]
+  selected_targets_and_jobs = random.SystemRandom().sample(
+      targets_and_jobs, min(
+          len(targets_and_jobs), CROSS_POLLINATE_FUZZER_COUNT))
 
+  default_backup_bucket = utils.default_backup_bucket()
+  for target, target_job in selected_targets_and_jobs:
     job = data_types.Job.query(data_types.Job.name == target_job.job).get()
     if not job:
       continue
 
-    backup_bucket_name = job.get_environment().get('BACKUP_BUCKET')
+    job_environment = job.get_environment()
+    backup_bucket_name = job_environment.get('BACKUP_BUCKET',
+                                             default_backup_bucket)
     if not backup_bucket_name:
       continue
+    corpus_engine_name = job_environment.get('CORPUS_FUZZER_NAME_OVERRIDE',
+                                             engine)
 
-    corpus_engine_name = job.get_environment().get(
-        'CORPUS_FUZZER_NAME_OVERRIDE', engine)
+    cross_pollinate_fuzzers.append(
+        CrossPollinateFuzzer(
+            target,
+            backup_bucket_name,
+            corpus_engine_name,
+        ))
 
-    cross_pollinate_fuzzers[target_job.fuzz_target_name] = CrossPollinateFuzzer(
-        target,
-        backup_bucket_name,
-        corpus_engine_name,
-    )
-
-  return random.SystemRandom().sample(
-      list(cross_pollinate_fuzzers.values()),
-      min(len(cross_pollinate_fuzzers), CROSS_POLLINATE_FUZZER_COUNT))
+  return cross_pollinate_fuzzers
 
 
 def _save_coverage_information(context, result):
