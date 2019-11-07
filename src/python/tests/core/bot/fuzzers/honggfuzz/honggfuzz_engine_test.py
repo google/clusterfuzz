@@ -96,9 +96,9 @@ class IntegrationTest(unittest.TestCase):
         '25',
         '--dict',
         os.path.join(DATA_DIR, 'test_fuzzer.dict'),
-        '-f',
+        '--input',
         os.path.join(TEMP_DIR, 'corpus'),
-        '-W',
+        '--workspace',
         TEMP_DIR,
         '--run_time',
         '10',
@@ -129,9 +129,9 @@ class IntegrationTest(unittest.TestCase):
         '2048',
         '--timeout',
         '25',
-        '-f',
+        '--input',
         os.path.join(TEMP_DIR, 'corpus'),
-        '-W',
+        '--workspace',
         TEMP_DIR,
         '--run_time',
         '10',
@@ -145,3 +145,6 @@ class IntegrationTest(unittest.TestCase):
     self.assertEqual(TEMP_DIR, os.path.dirname(crash.input_path))
     self.assertIn('ERROR: AddressSanitizer: heap-use-after-free',
                   crash.stacktrace)
+
+    with open(crash.input_path) as f:
+      self.assertEqual('A', f.read()[0])

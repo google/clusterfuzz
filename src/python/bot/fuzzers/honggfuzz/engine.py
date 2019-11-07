@@ -22,6 +22,9 @@ from bot.fuzzers import engine
 from system import environment
 from system import new_process
 
+_CLEAN_EXIT_SECS = 10
+_RSS_LIMIT = 2048
+_TIMEOUT = 25
 _DEFAULT_ARGUMENTS = [
     '-n',
     '1',  # single threaded
@@ -31,9 +34,9 @@ _DEFAULT_ARGUMENTS = [
     '-P',  # persistent mode
     '-S',  # enable sanitizers
     '--rlimit_rss',
-    '2048',
+    str(_RSS_LIMIT),
     '--timeout',
-    '25',
+    str(_TIMEOUT),
 ]
 
 _CRASH_REGEX = re.compile('Crash: saved as \'(.*)\'')
@@ -99,9 +102,9 @@ class HonggfuzzEngine(engine.Engine):
     arguments = _DEFAULT_ARGUMENTS[:]
     arguments.extend(options.arguments)
     arguments.extend([
-        '-f',
+        '--input',
         options.corpus_dir,
-        '-W',
+        '--workspace',
         reproducers_dir,
         '--run_time',
         str(max_time),
@@ -110,7 +113,7 @@ class HonggfuzzEngine(engine.Engine):
     ])
 
     fuzz_result = runner.run_and_wait(
-        additional_args=arguments, timeout=max_time + 10)
+        additional_args=arguments, timeout=max_time + _CLEAN_EXIT_SECS)
     log_lines = fuzz_result.output.splitlines()
     sanitizer_stacktrace = _find_sanitizer_stacktrace(reproducers_dir)
 
