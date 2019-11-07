@@ -43,9 +43,16 @@ _CRASH_REGEX = re.compile('Crash: saved as \'(.*)\'')
 _HF_SANITIZER_LOG_PREFIX = 'HF.sanitizer.log'
 
 
+class HonggfuzzError(Exception):
+  """Base exception class."""
+
+
 def _get_runner():
   """Get the honggfuzz runner."""
   honggfuzz_path = os.path.join(environment.get_value('BUILD_DIR'), 'honggfuzz')
+  if not os.path.exists(honggfuzz_path):
+    raise HonggfuzzError('honggfuzz not found in build')
+
   return new_process.ProcessRunner(honggfuzz_path)
 
 
