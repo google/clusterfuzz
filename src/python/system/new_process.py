@@ -296,6 +296,7 @@ class ProcessRunner(object):
                    input_data=None,
                    max_stdout_len=None,
                    extra_env=None,
+                   stdin=subprocess.PIPE,
                    stdout=subprocess.PIPE,
                    stderr=subprocess.STDOUT,
                    **popen_args):
@@ -328,7 +329,7 @@ class ProcessRunner(object):
         additional_args,
         max_stdout_len=max_stdout_len,
         extra_env=extra_env,
-        stdin=subprocess.PIPE,
+        stdin=stdin,
         stdout=stdout,
         stderr=stderr,
         **popen_args)
