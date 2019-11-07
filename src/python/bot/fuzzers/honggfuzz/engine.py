@@ -99,7 +99,7 @@ class HonggfuzzEngine(engine.Engine):
     arguments = _DEFAULT_ARGUMENTS[:]
     arguments.extend(options.arguments)
     arguments.extend([
-        '-i',
+        '-f',
         options.corpus_dir,
         '-W',
         reproducers_dir,

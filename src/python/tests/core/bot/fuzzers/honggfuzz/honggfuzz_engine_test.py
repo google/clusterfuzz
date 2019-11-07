@@ -96,7 +96,7 @@ class IntegrationTest(unittest.TestCase):
         '25',
         '--dict',
         os.path.join(DATA_DIR, 'test_fuzzer.dict'),
-        '-i',
+        '-f',
         os.path.join(TEMP_DIR, 'corpus'),
         '-W',
         TEMP_DIR,
@@ -105,6 +105,8 @@ class IntegrationTest(unittest.TestCase):
         '--',
         target_path,
     ], results.command)
+
+    self.assertGreater(len(os.listdir(corpus_path)), 0)
 
   def test_fuzz_crash(self):
     """Test fuzzing that results in a crash."""
@@ -127,7 +129,7 @@ class IntegrationTest(unittest.TestCase):
         '2048',
         '--timeout',
         '25',
-        '-i',
+        '-f',
         os.path.join(TEMP_DIR, 'corpus'),
         '-W',
         TEMP_DIR,
