@@ -5,6 +5,7 @@
 [24222:24246:0324/233643:ERROR:bad_message.cc(18)] Terminating renderer for bad IPC message, reason 77
 [24256:24256:0324/233644:FATAL:latency_info.cc(299)] Check failed: !terminated_.
 #0 0x7f48a3cf4141 __interceptor_backtrace
+#0 0x7f48a3cf4141 /usr/lib/x86_64-linux-gnu/libx.so
 #1 0x7f48a51f99e0 base::debug::StackTrace::StackTrace()
 #2 0x7f48a526964d logging::LogMessage::~LogMessage()
 #3 0x7f48b4856ef4 ui::LatencyInfo::AddLatencyNumberWithTimestampImpl()
