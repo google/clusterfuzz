@@ -81,9 +81,9 @@ CHROME_CHECK_FAILURE_REGEX = re.compile(
 CHROME_STACK_FRAME_REGEX = re.compile(
     r'[ ]*(#(?P<frame_id>[0-9]+)[ ]'  # frame id (2)
     r'([xX0-9a-fA-F]+)[ ])'  # addr (3)
-    r'(.+)')  # rest, usually fun (4); may have off
+    r'([^/\\]+)$')  # rest, usually fun (4); may have off
 CHROME_WIN_STACK_FRAME_REGEX = re.compile(
-    r'[ ]*(.+) '  # fun (1)
+    r'[ ]*([^/\\]+) '  # fun (1)
     r'\[([xX0-9a-fA-F]+)\+'  # fun_base (2)
     r'(\d+)\]'  # off[dec] (3)
     r'( \((.*):(\d+)\))?')  # if available, file (5) and line (6)
@@ -91,7 +91,7 @@ CHROME_MAC_STACK_FRAME_REGEX = re.compile(
     r'(?P<frame_id>\d+)\s+'  # frame id (1)
     r'(([\w ]+)|(\?\?\?))\s+'  # image (2)
     r'([xX0-9a-fA-F]+)\s+'  # addr[hex] (5)
-    r'(.*)\s*\+\s*'  # fun (6)
+    r'([^/\\]+)\s*\+\s*'  # fun (6)
     r'(\d+)')  # off[dec] (7)
 MSAN_TSAN_REGEX = re.compile(
     r'.*(ThreadSanitizer|MemorySanitizer):[ ]*([^(:]+)')
