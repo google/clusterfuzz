@@ -63,6 +63,19 @@ class IntegrationTest(unittest.TestCase):
 
     os.environ['BUILD_DIR'] = DATA_DIR
 
+  def assert_has_stats(self, results):
+    """Assert that stats exist."""
+    self.assertIn('iterations', results.stats)
+    self.assertIn('time', results.stats)
+    self.assertIn('speed', results.stats)
+    self.assertIn('crashes_count', results.stats)
+    self.assertIn('timeout_count', results.stats)
+    self.assertIn('new_units_added', results.stats)
+    self.assertIn('slowest_unit_ms', results.stats)
+    self.assertIn('guard_nb', results.stats)
+    self.assertIn('branch_coverage_percent', results.stats)
+    self.assertIn('peak_rss_mb', results.stats)
+
   def test_reproduce(self):
     """Tests reproducing a crash."""
     testcase_path, _ = setup_testcase_and_corpus('crash', 'empty_corpus')
@@ -107,6 +120,7 @@ class IntegrationTest(unittest.TestCase):
     ], results.command)
 
     self.assertGreater(len(os.listdir(corpus_path)), 0)
+    self.assert_has_stats(results)
 
   def test_fuzz_crash(self):
     """Test fuzzing that results in a crash."""
@@ -148,3 +162,5 @@ class IntegrationTest(unittest.TestCase):
 
     with open(crash.input_path) as f:
       self.assertEqual('A', f.read()[0])
+
+    self.assert_has_stats(results)
