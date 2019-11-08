@@ -198,7 +198,7 @@ def unpack(archive_path,
   """Extracts an archive into the target directory."""
   if not os.path.exists(archive_path):
     logs.log_error('Archive %s not found.' % archive_path)
-    return
+    return False
 
   # If the output directory is a symlink, get its actual path since we will be
   # doing directory traversal checks later when unpacking the archive.
@@ -233,7 +233,7 @@ def unpack(archive_path,
             'Directory traversal attempted while unpacking archive %s '
             '(file path=%s, actual file path=%s). Aborting.' %
             (archive_path, absolute_file_path, real_file_path))
-        return
+        return False
 
   archive_type = get_archive_type(archive_filename)
 
@@ -284,6 +284,8 @@ def unpack(archive_path,
         error_occurred = True
         continue
 
+    logs.log('Unpacked %d/%d.' % (archive_file_unpack_count,
+                                  archive_file_total_count))
     zip_archive.close()
     zip_file_handle.close()
 
@@ -308,6 +310,7 @@ def unpack(archive_path,
       tar_archive.extractall(path=output_directory)
     except:
       # In case of errors, we try to extract whatever we can without errors.
+      error_occurred = True
       logs.log_error(
           'Failed to extract everything from archive %s, trying one at a time.'
           % archive_filename)
@@ -330,4 +333,6 @@ def unpack(archive_path,
   else:
     logs.log_error(
         'Unsupported compression type for file %s.' % archive_filename)
-    return
+    return False
+
+  return not error_occurred
