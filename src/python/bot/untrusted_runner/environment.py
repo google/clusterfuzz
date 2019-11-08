@@ -43,6 +43,7 @@ FORWARDED_ENVIRONMENT_VARIABLES = [
         r'^GSUTIL_PATH$',
         r'^JOB_NAME$',
         r'^MSAN_OPTIONS$',
+        r'^PATH$',
         r'^QUARANTINE_BUCKET$',
         r'^SHARED_CORPUS_BUCKET$',
         r'^STRATEGY_SELECTION_DISTRIBUTION$',
@@ -54,6 +55,7 @@ FORWARDED_ENVIRONMENT_VARIABLES = [
         r'^UBSAN_OPTIONS$',
         r'^UNPACK_ALL_FUZZ_TARGETS_AND_FILES$',
         r'^USE_MINIJAIL$',
+        r'^USER$',
     )
 ]
 
