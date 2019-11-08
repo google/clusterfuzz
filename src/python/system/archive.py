@@ -326,6 +326,9 @@ def unpack(archive_path,
           logs.log('Unpacked %d/%d.' % (archive_file_unpack_count,
                                         archive_file_total_count))
 
+      logs.log('Unpacked %d/%d.' % (archive_file_unpack_count,
+                                    archive_file_total_count))
+
     tar_archive.close()
     if archive_type == ArchiveType.TAR_LZMA:
       lzma_file.close()
