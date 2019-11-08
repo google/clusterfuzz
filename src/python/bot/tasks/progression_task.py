@@ -145,6 +145,10 @@ def _update_issue_metadata(testcase):
     # Not applicable.
     return
 
+  if testcase.uploader_email:
+    # Trust the uploader specified metadata.
+    return
+
   fuzz_target = testcase.get_fuzz_target()
   if not fuzz_target:
     return
