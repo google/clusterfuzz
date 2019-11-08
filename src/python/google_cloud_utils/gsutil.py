@@ -96,7 +96,7 @@ class GSUtilRunner(object):
     self.gsutil_runner = _process_runner(
         _get_gsutil_path(), default_args=default_gsutil_args)
 
-  def run_gsutil(self, arguments, timeout=None, quiet=False):
+  def run_gsutil(self, arguments, quiet=False, **kwargs):
     """Run GSUtil."""
     if quiet:
       arguments = ['-q'] + arguments
@@ -107,7 +107,7 @@ class GSUtilRunner(object):
       # Python 2.
       env.pop('PYTHONPATH')
 
-    return self.gsutil_runner.run_and_wait(arguments, timeout=timeout, env=env)
+    return self.gsutil_runner.run_and_wait(arguments, env=env, **kwargs)
 
   def rsync(self,
             source,
@@ -143,7 +143,7 @@ class GSUtilRunner(object):
   def download_file(self, gcs_url, file_path, timeout=None):
     """Download a file from GCS."""
     command = ['cp', _filter_path(gcs_url), file_path]
-    result = self.gsutil_runner.run_and_wait(command, timeout=timeout)
+    result = self.run_gsutil(command, timeout=timeout)
     if result.return_code:
       logs.log_error('GSUtilRunner.download_file failed:\nCommand: %s\n'
                      'Url: %s\n'
@@ -171,7 +171,7 @@ class GSUtilRunner(object):
       command.append('-Z')
 
     command.extend([file_path, _filter_path(gcs_url, write=True)])
-    result = self.gsutil_runner.run_and_wait(command, timeout=timeout)
+    result = self.run_gsutil(command, timeout=timeout)
 
     # Check result of command execution, log output if command failed.
     if result.return_code:
@@ -199,7 +199,7 @@ class GSUtilRunner(object):
     sync_corpus_command = ['cp', '-I', _filter_path(gcs_url, write=True)]
     filenames_buffer = '\n'.join(file_paths)
 
-    result = self.gsutil_runner.run_and_wait(
+    result = self.run_gsutil(
         sync_corpus_command,
         input_data=filenames_buffer.encode('utf-8'),
         timeout=timeout)
