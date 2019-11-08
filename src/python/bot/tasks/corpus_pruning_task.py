@@ -277,16 +277,17 @@ class Context(object):
       corpus_backup_output_directory = os.path.join(self.shared_corpus_path,
                                                     project_qualified_name)
       shell.create_directory(corpus_backup_output_directory)
-      archive.unpack(corpus_backup_local_path, corpus_backup_output_directory)
+      result = archive.unpack(corpus_backup_local_path,
+                              corpus_backup_output_directory)
       shell.remove_file(corpus_backup_local_path)
 
-      if not shell.get_directory_file_count(corpus_backup_output_directory):
-        logs.log_error(
-            'Failed to unpack corpus backup from url %s.' % corpus_backup_url)
-      else:
+      if result:
         logs.log(
             'Corpus backup url %s successfully unpacked into shared corpus.' %
             corpus_backup_url)
+      else:
+        logs.log_error(
+            'Failed to unpack corpus backup from url %s.' % corpus_backup_url)
 
 
 class Runner(object):
