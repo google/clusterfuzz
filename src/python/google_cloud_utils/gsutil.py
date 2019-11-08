@@ -101,7 +101,13 @@ class GSUtilRunner(object):
     if quiet:
       arguments = ['-q'] + arguments
 
-    return self.gsutil_runner.run_and_wait(arguments, timeout=timeout)
+    env = os.environ.copy()
+    if 'PYTHONPATH' in env:
+      # GSUtil may be on Python 3, and our PYTHONPATH breaks it because we're on
+      # Python 2.
+      env.pop('PYTHONPATH')
+
+    return self.gsutil_runner.run_and_wait(arguments, timeout=timeout, env=env)
 
   def rsync(self,
             source,
