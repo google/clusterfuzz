@@ -356,6 +356,7 @@ def kill_leftover_emulators():
   kill_process('dev_appserver.py')
   kill_process('CloudDatastore.jar')
   kill_process('pubsub-emulator')
+  kill_process('run_bot')
 
 
 def get_platform():
