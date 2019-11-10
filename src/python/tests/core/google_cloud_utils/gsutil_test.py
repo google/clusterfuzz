@@ -16,6 +16,7 @@
 import os
 
 from pyfakefs import fake_filesystem_unittest
+import mock
 
 from google_cloud_utils import gsutil
 from tests.test_libs import helpers as test_helpers
@@ -43,7 +44,8 @@ class GSUtilRunnerTest(fake_filesystem_unittest.TestCase):
             '-q', 'rsync', '-r', '-d', 'gs://source_bucket/source_path',
             'gs://target_bucket/target_path'
         ],
-        timeout=18000)
+        timeout=18000,
+        env=mock.ANY)
 
   def test_rsync_local_gcs_1(self):
     """Test rsync."""
@@ -58,7 +60,8 @@ class GSUtilRunnerTest(fake_filesystem_unittest.TestCase):
             '/local/source_bucket/objects/source_path',
             '/local/target_bucket/objects/target_path'
         ],
-        timeout=18000)
+        timeout=18000,
+        env=mock.ANY)
     self.assertTrue(os.path.exists('/local/target_bucket/objects'))
 
   def test_rsync_remote_gcs_2(self):
@@ -72,7 +75,8 @@ class GSUtilRunnerTest(fake_filesystem_unittest.TestCase):
             '-q', 'rsync', '-r', '-d', 'gs://source_bucket/source_path',
             'gs://target_bucket/target_path'
         ],
-        timeout=1337)
+        timeout=1337,
+        env=mock.ANY)
 
   def test_rsync_local_gcs_2(self):
     """Test rsync."""
@@ -89,7 +93,8 @@ class GSUtilRunnerTest(fake_filesystem_unittest.TestCase):
             '/local/source_bucket/objects/source_path',
             '/local/target_bucket/objects/target_path'
         ],
-        timeout=1337)
+        timeout=1337,
+        env=mock.ANY)
     self.assertTrue(os.path.exists('/local/target_bucket/objects'))
 
   def test_rsync_remote_gcs_3(self):
@@ -103,7 +108,8 @@ class GSUtilRunnerTest(fake_filesystem_unittest.TestCase):
             '-q', 'rsync', '-r', 'gs://source_bucket/source_path',
             'gs://target_bucket/target_path'
         ],
-        timeout=18000)
+        timeout=18000,
+        env=mock.ANY)
 
   def test_rsync_local_gcs_3(self):
     """Test rsync."""
@@ -119,7 +125,8 @@ class GSUtilRunnerTest(fake_filesystem_unittest.TestCase):
             '-q', 'rsync', '-r', '/local/source_bucket/objects/source_path',
             '/local/target_bucket/objects/target_path'
         ],
-        timeout=18000)
+        timeout=18000,
+        env=mock.ANY)
     self.assertTrue(os.path.exists('/local/target_bucket/objects'))
 
   def test_rsync_remote_gcs_4(self):
@@ -134,7 +141,8 @@ class GSUtilRunnerTest(fake_filesystem_unittest.TestCase):
             '-q', 'rsync', '-r', 'gs://source_bucket/source_path',
             'gs://target_bucket/target_path'
         ],
-        timeout=1337)
+        timeout=1337,
+        env=mock.ANY)
 
   def test_rsync_local_gcs_4(self):
     """Test rsync."""
@@ -151,7 +159,8 @@ class GSUtilRunnerTest(fake_filesystem_unittest.TestCase):
             '-q', 'rsync', '-r', '/local/source_bucket/objects/source_path',
             '/local/target_bucket/objects/target_path'
         ],
-        timeout=1337)
+        timeout=1337,
+        env=mock.ANY)
     self.assertTrue(os.path.exists('/local/target_bucket/objects'))
 
   def test_rsync_remote_gcs_5(self):
@@ -167,7 +176,8 @@ class GSUtilRunnerTest(fake_filesystem_unittest.TestCase):
             '-q', 'rsync', '-r', '-x', '"*.txt$"',
             'gs://source_bucket/source_path', 'gs://target_bucket/target_path'
         ],
-        timeout=1337)
+        timeout=1337,
+        env=mock.ANY)
 
   def test_rsync_local_gcs_5(self):
     """Test rsync."""
@@ -186,7 +196,8 @@ class GSUtilRunnerTest(fake_filesystem_unittest.TestCase):
             '/local/source_bucket/objects/source_path',
             '/local/target_bucket/objects/target_path'
         ],
-        timeout=1337)
+        timeout=1337,
+        env=mock.ANY)
     self.assertTrue(os.path.exists('/local/target_bucket/objects'))
 
   def test_download_file_remote_gcs_1(self):
@@ -196,7 +207,8 @@ class GSUtilRunnerTest(fake_filesystem_unittest.TestCase):
     self.mock.run_and_wait.assert_called_with(
         self.gsutil_runner_obj.gsutil_runner,
         ['cp', 'gs://source_bucket/source_path', '/target_path'],
-        timeout=None)
+        timeout=None,
+        env=mock.ANY)
 
   def test_download_file_local_gcs_1(self):
     """Test download_file."""
@@ -206,7 +218,8 @@ class GSUtilRunnerTest(fake_filesystem_unittest.TestCase):
     self.mock.run_and_wait.assert_called_with(
         self.gsutil_runner_obj.gsutil_runner,
         ['cp', '/local/source_bucket/objects/source_path', '/target_path'],
-        timeout=None)
+        timeout=None,
+        env=mock.ANY)
 
   def test_download_file_remote_gcs_2(self):
     """Test download_file."""
@@ -215,7 +228,8 @@ class GSUtilRunnerTest(fake_filesystem_unittest.TestCase):
     self.mock.run_and_wait.assert_called_with(
         self.gsutil_runner_obj.gsutil_runner,
         ['cp', 'gs://source_bucket/source_path', '/target_path'],
-        timeout=1337)
+        timeout=1337,
+        env=mock.ANY)
 
   def test_download_file_local_gcs_2(self):
     """Test download_file."""
@@ -225,7 +239,8 @@ class GSUtilRunnerTest(fake_filesystem_unittest.TestCase):
     self.mock.run_and_wait.assert_called_with(
         self.gsutil_runner_obj.gsutil_runner,
         ['cp', '/local/source_bucket/objects/source_path', '/target_path'],
-        timeout=1337)
+        timeout=1337,
+        env=mock.ANY)
 
   def test_upload_file_remote_gcs_1(self):
     """Test upload_file."""
@@ -234,7 +249,8 @@ class GSUtilRunnerTest(fake_filesystem_unittest.TestCase):
     self.mock.run_and_wait.assert_called_with(
         self.gsutil_runner_obj.gsutil_runner,
         ['cp', '/source_path', 'gs://target_bucket/target_path'],
-        timeout=None)
+        timeout=None,
+        env=mock.ANY)
 
   def test_upload_file_local_gcs_1(self):
     """Test upload_file."""
@@ -245,7 +261,8 @@ class GSUtilRunnerTest(fake_filesystem_unittest.TestCase):
     self.mock.run_and_wait.assert_called_with(
         self.gsutil_runner_obj.gsutil_runner,
         ['cp', '/source_path', '/local/target_bucket/objects/target_path'],
-        timeout=None)
+        timeout=None,
+        env=mock.ANY)
     self.assertTrue(os.path.exists('/local/target_bucket/objects'))
 
   def test_upload_file_remote_gcs_2(self):
@@ -261,7 +278,8 @@ class GSUtilRunnerTest(fake_filesystem_unittest.TestCase):
             '-h', 'a:b', 'cp', '-Z', '/source_path',
             'gs://target_bucket/target_path'
         ],
-        timeout=1337)
+        timeout=1337,
+        env=mock.ANY)
 
   def test_upload_file_local_gcs_2(self):
     """Test upload_file."""
@@ -278,7 +296,8 @@ class GSUtilRunnerTest(fake_filesystem_unittest.TestCase):
             '-h', 'a:b', 'cp', '-Z', '/source_path',
             '/local/target_bucket/objects/target_path'
         ],
-        timeout=1337)
+        timeout=1337,
+        env=mock.ANY)
     self.assertTrue(os.path.exists('/local/target_bucket/objects'))
 
   def test_upload_files_to_url_remote_gcs_1(self):
@@ -289,7 +308,8 @@ class GSUtilRunnerTest(fake_filesystem_unittest.TestCase):
         self.gsutil_runner_obj.gsutil_runner,
         ['cp', '-I', 'gs://target_bucket/target_path'],
         input_data='/source_path1\n/source_path2',
-        timeout=None)
+        timeout=None,
+        env=mock.ANY)
 
   def test_upload_files_local_gcs_1(self):
     """Test upload_files_to_url."""
@@ -301,7 +321,8 @@ class GSUtilRunnerTest(fake_filesystem_unittest.TestCase):
         self.gsutil_runner_obj.gsutil_runner,
         ['cp', '-I', '/local/target_bucket/objects/target_path'],
         input_data='/source_path1\n/source_path2',
-        timeout=None)
+        timeout=None,
+        env=mock.ANY)
     self.assertTrue(os.path.exists('/local/target_bucket/objects'))
 
   def test_upload_files_remote_gcs_2(self):
@@ -314,7 +335,8 @@ class GSUtilRunnerTest(fake_filesystem_unittest.TestCase):
         self.gsutil_runner_obj.gsutil_runner,
         ['cp', '-I', 'gs://target_bucket/target_path'],
         input_data='/source_path1\n/source_path2',
-        timeout=1337)
+        timeout=1337,
+        env=mock.ANY)
 
   def test_upload_files_to_url_local_gcs_2(self):
     """Test upload_files_to_url."""
@@ -328,5 +350,6 @@ class GSUtilRunnerTest(fake_filesystem_unittest.TestCase):
         self.gsutil_runner_obj.gsutil_runner,
         ['cp', '-I', '/local/target_bucket/objects/target_path'],
         input_data='/source_path1\n/source_path2',
-        timeout=1337)
+        timeout=1337,
+        env=mock.ANY)
     self.assertTrue(os.path.exists('/local/target_bucket/objects'))
