@@ -156,6 +156,7 @@ def file_path_to_file_url(path):
   # TODO(mbarbella): urljoin has several type checks for arguments. Ensure that
   # we're passing newstr on both sides while migrating to Python 3. After
   # migrating, ensure that callers pass strs to avoid this hack.
+  from builtins import str
   return urllib.parse.urljoin(
       str(u'file:'), str(urllib.request.pathname2url(path)))
 
