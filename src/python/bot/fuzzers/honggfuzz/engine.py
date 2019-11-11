@@ -19,6 +19,7 @@ import re
 
 from bot.fuzzers import dictionary_manager
 from bot.fuzzers import engine
+from metrics import logs
 from system import environment
 from system import new_process
 
@@ -41,6 +42,7 @@ _DEFAULT_ARGUMENTS = [
 
 _CRASH_REGEX = re.compile('Crash: saved as \'(.*)\'')
 _HF_SANITIZER_LOG_PREFIX = 'HF.sanitizer.log'
+_STATS_PREFIX = 'Summary '
 
 
 class HonggfuzzError(Exception):
@@ -64,6 +66,36 @@ def _find_sanitizer_stacktrace(reproducers_dir):
       return f.read()
 
   return None
+
+
+def _get_reproducer_path(line):
+  """Get the reproducer path, if any."""
+  crash_match = _CRASH_REGEX.match(line)
+  if not crash_match:
+    return None
+
+  return crash_match.group(1)
+
+
+def _get_stats(line):
+  """Get stats, if any."""
+  if not line.startswith(_STATS_PREFIX):
+    return None
+
+  parts = line[len(_STATS_PREFIX):].split()
+  stats = {}
+
+  for part in parts:
+    if ':' not in part:
+      logs.log_error('Invalid stat part.', value=part)
+
+    key, value = part.split(':', 2)
+    try:
+      stats[key] = int(value)
+    except (ValueError, TypeError):
+      logs.log_error('Invalid stat value.', key=key, value=value)
+
+  return stats
 
 
 class HonggfuzzEngine(engine.Engine):
@@ -125,20 +157,22 @@ class HonggfuzzEngine(engine.Engine):
     sanitizer_stacktrace = _find_sanitizer_stacktrace(reproducers_dir)
 
     crashes = []
+    stats = None
     for line in log_lines:
-      crash_match = _CRASH_REGEX.match(line)
-      if not crash_match:
+      reproducer_path = _get_reproducer_path(line)
+      if reproducer_path:
+        crashes.append(
+            engine.Crash(reproducer_path, sanitizer_stacktrace, [],
+                         int(fuzz_result.time_executed)))
         continue
 
-      reproducer_path = crash_match.group(1)
-      crashes.append(
-          engine.Crash(reproducer_path, sanitizer_stacktrace, [],
-                       int(fuzz_result.time_executed)))
-      break
+      stats = _get_stats(line)
 
-    # TODO(ochang): Parse stats.
+    if stats is None:
+      stats = {}
+
     return engine.FuzzResult(fuzz_result.output, fuzz_result.command, crashes,
-                             {}, fuzz_result.time_executed)
+                             stats, fuzz_result.time_executed)
 
   def reproduce(self, target_path, input_path, arguments, max_time):
     """Reproduce a crash given an input.
