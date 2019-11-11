@@ -1,6 +1,9 @@
 Change Log
 ==========
 
+## Version 1.6.1
+- Various bug fixes.
+
 ## Version 1.6.0
 - Added platform support for Fuchsia OS.
 - Migrated libFuzzer to the new pluggable engine pipeline.
