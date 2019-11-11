@@ -86,11 +86,14 @@ def _get_stats(line):
   stats = {}
 
   for part in parts:
+    if ':' not in part:
+      logs.log_error('Invalid stat part.', value=part)
+
     key, value = part.split(':', 2)
     try:
       stats[key] = int(value)
     except (ValueError, TypeError):
-      logs.log_error('Invalid stat value', value=value)
+      logs.log_error('Invalid stat value.', key=key, value=value)
 
   return stats
 
@@ -154,6 +157,7 @@ class HonggfuzzEngine(engine.Engine):
     sanitizer_stacktrace = _find_sanitizer_stacktrace(reproducers_dir)
 
     crashes = []
+    stats = None
     for line in log_lines:
       reproducer_path = _get_reproducer_path(line)
       if reproducer_path:
