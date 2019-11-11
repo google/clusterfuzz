@@ -153,7 +153,10 @@ def file_path_to_file_url(path):
     return ''
 
   path = path.lstrip(WINDOWS_PREFIX_PATH)
-  return urllib.parse.urljoin(u'file:', urllib.request.pathname2url(path))
+  # TODO(mbarbella): urljoin has several explicit type checks. When migrating
+  # this to Python 3, ensure that the types match.
+  return urllib.parse.urljoin(u'file:',
+                              urllib.request.pathname2url(path).decode('utf-8'))
 
 
 def filter_file_list(file_list):
