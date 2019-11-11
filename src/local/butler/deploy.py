@@ -303,6 +303,8 @@ def _prod_deployment_helper(config_dir,
 
 def execute(args):
   """Deploy Clusterfuzz to Appengine."""
+  # TODO(ochang): Remove once python3 deployment is fixed.
+  os.environ['CLOUDSDK_PYTHON'] = 'python2'
   os.environ['ROOT_DIR'] = '.'
 
   if not os.path.exists(args.config_dir):
