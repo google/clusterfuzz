@@ -153,9 +153,11 @@ def file_path_to_file_url(path):
     return ''
 
   path = path.lstrip(WINDOWS_PREFIX_PATH)
-  # TODO(mbarbella): This is brittle since it assumes |path| can be encoded.
-  # When migrating from Python 2 to 3, ensure that callers are using strs.
-  return urllib.parse.urljoin(u'file:', urllib.request.pathname2url(str(path)))
+  # TODO(mbarbella): urljoin has several type checks for arguments. Ensure that
+  # we're passing newstr on both sides while migrating to Python 3. After
+  # migrating, ensure that callers pass strs to avoid this hack.
+  return urllib.parse.urljoin(str(u'file:'),
+                              str(urllib.request.pathname2url(path)))
 
 
 def filter_file_list(file_list):
