@@ -153,7 +153,7 @@ def file_path_to_file_url(path):
     return ''
 
   path = path.lstrip(WINDOWS_PREFIX_PATH)
-  return urllib.parse.urljoin(u'file:', urllib.request.pathname2url(path))
+  return urllib.parse.urljoin('file:', urllib.request.pathname2url(path))
 
 
 def filter_file_list(file_list):
