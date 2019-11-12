@@ -38,6 +38,12 @@ DICT_PARSING_FAILED_REGEX = re.compile(
     r'ParseDictionaryFile: error in line (\d+)')
 
 
+def _project_qualified_fuzzer_name(target_path):
+  """Return project qualified fuzzer name for a given target path."""
+  return data_types.fuzz_target_project_qualified_name(
+      utils.current_project(), os.path.basename(target_path))
+
+
 class LibFuzzerError(Exception):
   """Base libFuzzer error."""
 
@@ -229,10 +235,8 @@ class LibFuzzerEngine(engine.Engine):
         artifact_prefix=reproducers_dir,
         extra_env=options.extra_env)
 
-    project_qualified_fuzzer_name = (
-        data_types.fuzz_target_project_qualified_name(
-            utils.current_project(), os.path.basename(target_path)))
-    dict_error_match = DICT_PARSING_FAILED_REGEX.match(fuzz_result.output)
+    project_qualified_fuzzer_name = _project_qualified_fuzzer_name(target_path)
+    dict_error_match = DICT_PARSING_FAILED_REGEX.search(fuzz_result.output)
     if dict_error_match:
       logs.log_error(
           'Dictionary parsing failed (target={target}, line={line}).'.format(

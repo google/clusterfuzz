@@ -731,6 +731,29 @@ class IntegrationTests(BaseIntegrationTest):
     options = engine_impl.prepare(corpus_path, target_path, DATA_DIR)
     engine_impl.fuzz(target_path, options, TEMP_DIR, 10)
 
+  def test_fuzz_invalid_dict(self):
+    """Tests fuzzing with an invalid dictionary (ParseDictionaryFile crash)."""
+    test_helpers.patch(self, [
+        'metrics.logs.log_error',
+    ])
+
+    def mocked_log_error(*args, **kwargs):  # pylint: disable=unused-argument
+      self.assertIn('Dictionary parsing failed (target=test_fuzzer, line=2).',
+                    args[0])
+
+    self.mock.log_error.side_effect = mocked_log_error
+    self.mock.get_fuzz_timeout.return_value = get_fuzz_timeout(5.0)
+    _, corpus_path = setup_testcase_and_corpus('empty', 'corpus')
+    engine_impl = engine.LibFuzzerEngine()
+
+    target_path = engine_common.find_fuzzer_path(DATA_DIR, 'test_fuzzer')
+    options = engine_impl.prepare(corpus_path, target_path, DATA_DIR)
+
+    invalid_dict_path = os.path.join(DATA_DIR, 'invalid.dict')
+    options.arguments.append('-dict=' + invalid_dict_path)
+
+    engine_impl.fuzz(target_path, options, TEMP_DIR, 10)
+
 
 @test_utils.integration
 class MinijailIntegrationTests(IntegrationTests):
