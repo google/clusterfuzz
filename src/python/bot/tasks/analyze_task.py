@@ -17,10 +17,12 @@ from future import standard_library
 standard_library.install_aliases()
 import datetime
 import os
+import six
 
 from base import tasks
 from base import utils
 from bot import testcase_manager
+from bot.fuzzers import engine_common
 from bot.tasks import setup
 from bot.tasks import task_creation
 from build_management import build_manager
@@ -34,6 +36,37 @@ from metrics import logs
 from system import environment
 from system import process_handler
 from system import shell
+
+
+def _add_default_issue_metadata(testcase):
+  """Adds the default issue metadata (e.g. components, labels) to testcase."""
+  if environment.is_trusted_host():
+    # Not applicable.
+    return
+
+  default_metadata = engine_common.get_all_issue_metadata_for_testcase(testcase)
+  if not default_metadata:
+    return
+
+  testcase_metadata = testcase.get_metadata()
+  for key, default_value in six.iteritems(default_metadata):
+    # Initialize new value list to the value from default issue metadata.
+    # This needs to be appended first since component preference should be given
+    # to existing testcase metadata value.
+    new_value_list = utils.parse_delimited(default_value, delimiter=',')
+
+    # Append existing testcase metadata value to end (for preference).
+    current_value = testcase_metadata.get(key)
+    if current_value:
+      current_value_list = utils.parse_delimited(current_value, delimiter=',')
+      for value in current_value_list:
+        if value not in new_value_list:
+          new_value_list.append(value)
+
+    new_value = ','.join(new_value_list)
+    logs.log('Updating issue metadata for {} from {} to {}.'.format(
+        key, current_value, new_value))
+    testcase.set_metadata(key, new_value)
 
 
 def close_invalid_testcase_and_update_status(testcase, metadata, status):
@@ -370,6 +403,8 @@ def execute_task(testcase_id, job_type):
   # Update the upload metadata.
   metadata.security_flag = security_flag
   metadata.put()
+
+  _add_default_issue_metadata(testcase)
 
   # Create tasks to
   # 1. Minimize testcase (minimize).

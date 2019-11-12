@@ -440,6 +440,21 @@ def get_all_issue_metadata(fuzz_target_path):
   return metadata
 
 
+def get_all_issue_metadata_for_testcase(testcase):
+  """Get issue related metadata given a testcase."""
+  fuzz_target = testcase.get_fuzz_target()
+  if not fuzz_target:
+    return None
+
+  build_dir = environment.get_value('BUILD_DIR')
+  target_path = find_fuzzer_path(build_dir, fuzz_target.binary)
+  if not target_path:
+    logs.log_error('Failed to find target path for ' + fuzz_target.binary)
+    return None
+
+  return get_all_issue_metadata(target_path)
+
+
 def format_fuzzing_strategies(fuzzing_strategies):
   """Format the strategies used for logging purposes."""
   if not fuzzing_strategies:

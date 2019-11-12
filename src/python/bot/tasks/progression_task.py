@@ -149,17 +149,10 @@ def _update_issue_metadata(testcase):
     # Trust the uploader specified metadata.
     return
 
-  fuzz_target = testcase.get_fuzz_target()
-  if not fuzz_target:
+  metadata = engine_common.get_all_issue_metadata_for_testcase(testcase)
+  if not metadata:
     return
 
-  build_dir = environment.get_value('BUILD_DIR')
-  target_path = engine_common.find_fuzzer_path(build_dir, fuzz_target.binary)
-  if not target_path:
-    logs.log_error('Failed to find target path for ' + fuzz_target.binary)
-    return
-
-  metadata = engine_common.get_all_issue_metadata(target_path)
   for key, value in six.iteritems(metadata):
     old_value = testcase.get_metadata(key)
     if old_value != value:
