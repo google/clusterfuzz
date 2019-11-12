@@ -697,6 +697,10 @@ class IntegrationTests(BaseIntegrationTest):
         'metrics.logs.log_error',
     ])
 
+    def mocked_log_error(*args, **kwargs):  # pylint: disable=unused-argument
+      self.assertIn(engine.ENGINE_ERROR_MESSAGE, args[0])
+
+    self.mock.log_error.side_effect = mocked_log_error
     _, corpus_path = setup_testcase_and_corpus('empty',
                                                'corpus_with_some_files')
     os.environ['EXIT_FUZZER_CODE'] = '1'
@@ -715,7 +719,7 @@ class IntegrationTests(BaseIntegrationTest):
     ])
 
     def mocked_log_error(*args, **kwargs):  # pylint: disable=unused-argument
-      self.assertNotIn(engine.ENGINE_ERROR_MESSAGE, args)
+      self.assertNotIn(engine.ENGINE_ERROR_MESSAGE, args[0])
 
     self.mock.log_error.side_effect = mocked_log_error
     _, corpus_path = setup_testcase_and_corpus('empty',
@@ -770,7 +774,7 @@ class MinijailIntegrationTests(IntegrationTests):
     ])
 
     def mocked_log_error(*args, **kwargs):  # pylint: disable=unused-argument
-      self.assertNotIn(engine.ENGINE_ERROR_MESSAGE, args)
+      self.assertNotIn(engine.ENGINE_ERROR_MESSAGE, args[0])
 
     self.mock.log_error.side_effect = mocked_log_error
     _, corpus_path = setup_testcase_and_corpus('empty',

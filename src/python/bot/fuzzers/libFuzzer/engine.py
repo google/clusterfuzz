@@ -33,6 +33,7 @@ from metrics import profiler
 from system import environment
 from system import shell
 
+ENGINE_ERROR_MESSAGE = 'libFuzzer: engine encountered an error'
 DICT_PARSING_FAILED_REGEX = re.compile(
     r'ParseDictionaryFile: error in line (\d+)')
 
@@ -244,8 +245,8 @@ class LibFuzzerEngine(engine.Engine):
       # Otherwise: we can assume that a return code of 1 means that libFuzzer
       # itself ran into an error.
       logs.log_error(
-          'libFuzzer: engine encountered an error (target={target}).'.format(
-              target=project_qualified_fuzzer_name),
+          ENGINE_ERROR_MESSAGE +
+          ' (target={target}).'.format(target=project_qualified_fuzzer_name),
           engine_output=fuzz_result.output)
 
     log_lines = utils.decode_to_unicode(fuzz_result.output).splitlines()
