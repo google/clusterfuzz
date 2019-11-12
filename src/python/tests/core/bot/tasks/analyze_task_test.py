@@ -25,9 +25,13 @@ class AddDefaultIssueMetadataTest(unittest.TestCase):
   """Test _add_default_issue_metadata."""
 
   def setUp(self):
-    helpers.patch(self, [
-        'bot.fuzzers.engine_common.get_all_issue_metadata_for_testcase',
-    ])
+    helpers.patch(
+        self,
+        [
+            'bot.fuzzers.engine_common.get_all_issue_metadata_for_testcase',
+            'datastore.data_types.Testcase._post_put_hook',  # Disable logging.
+            'metrics.logs.log',
+        ])
 
   def test_union(self):
     """Test union of current testcase metadata and default issue metadata."""
@@ -49,6 +53,7 @@ class AddDefaultIssueMetadataTest(unittest.TestCase):
                      testcase.get_metadata('issue_components'))
     self.assertEqual('label1,label2,label3,label4,label5',
                      testcase.get_metadata('issue_labels'))
+    self.assertEqual(3, self.mock.log.call_count)
 
   def test_no_testcase_metadata(self):
     """Test when we only have default issue metadata and no testcase
@@ -66,6 +71,7 @@ class AddDefaultIssueMetadataTest(unittest.TestCase):
     self.assertEqual('component1', testcase.get_metadata('issue_components'))
     self.assertEqual('label1,label2,label3',
                      testcase.get_metadata('issue_labels'))
+    self.assertEqual(0, self.mock.log.call_count)
 
   def test_no_default_issue_metadata(self):
     """Test when we only have testcase metadata and no default issue
@@ -84,6 +90,7 @@ class AddDefaultIssueMetadataTest(unittest.TestCase):
     self.assertEqual('component1', testcase.get_metadata('issue_components'))
     self.assertEqual('label1,label2,label3',
                      testcase.get_metadata('issue_labels'))
+    self.assertEqual(3, self.mock.log.call_count)
 
   def test_same_testcase_and_default_issue_metadata(self):
     """Test when we have same testcase metadata and default issue metadata."""
@@ -104,3 +111,4 @@ class AddDefaultIssueMetadataTest(unittest.TestCase):
     self.assertEqual('component1', testcase.get_metadata('issue_components'))
     self.assertEqual('label1,label2,label3',
                      testcase.get_metadata('issue_labels'))
+    self.assertEqual(0, self.mock.log.call_count)
