@@ -64,6 +64,9 @@ def _add_default_issue_metadata(testcase):
           new_value_list.append(value)
 
     new_value = ','.join(new_value_list)
+    if new_value == current_value:
+      continue
+
     logs.log('Updating issue metadata for {} from {} to {}.'.format(
         key, current_value, new_value))
     testcase.set_metadata(key, new_value)
