@@ -169,6 +169,11 @@ def clear_system_temp_directory():
     except:
       pass
 
+  if environment.get_value('SKIP_SYSTEM_TEMP_CLEANUP'):
+    # This provides a way to avoid clearing system temporary directory when it
+    # can interfere with other processes on the system.
+    return
+
   # Cache system temp directory to avoid iterating through the system dir list
   # on every gettempdir call. Also, it helps to avoid a case where temp dir
   # fills up the disk and gets ignored by gettempdir.
