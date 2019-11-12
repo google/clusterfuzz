@@ -40,10 +40,6 @@ from system import shell
 
 def _add_default_issue_metadata(testcase):
   """Adds the default issue metadata (e.g. components, labels) to testcase."""
-  if environment.is_trusted_host():
-    # Not applicable.
-    return
-
   default_metadata = engine_common.get_all_issue_metadata_for_testcase(testcase)
   if not default_metadata:
     return
