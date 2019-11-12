@@ -14,6 +14,7 @@
 """libFuzzer engine interface."""
 
 import os
+import re
 
 from base import utils
 from bot.fuzzers import dictionary_manager
@@ -32,7 +33,15 @@ from metrics import profiler
 from system import environment
 from system import shell
 
-ENGINE_ERROR_MESSAGE = 'libFuzzer: engine encountered an error.'
+ENGINE_ERROR_MESSAGE = 'libFuzzer: engine encountered an error'
+DICT_PARSING_FAILED_REGEX = re.compile(
+    r'ParseDictionaryFile: error in line (\d+)')
+
+
+def _project_qualified_fuzzer_name(target_path):
+  """Return project qualified fuzzer name for a given target path."""
+  return data_types.fuzz_target_project_qualified_name(
+      utils.current_project(), os.path.basename(target_path))
 
 
 class LibFuzzerError(Exception):
@@ -226,12 +235,23 @@ class LibFuzzerEngine(engine.Engine):
         artifact_prefix=reproducers_dir,
         extra_env=options.extra_env)
 
-    if (not environment.get_value('USE_MINIJAIL') and
-        fuzz_result.return_code == constants.LIBFUZZER_ERROR_EXITCODE):
+    project_qualified_fuzzer_name = _project_qualified_fuzzer_name(target_path)
+    dict_error_match = DICT_PARSING_FAILED_REGEX.search(fuzz_result.output)
+    if dict_error_match:
+      logs.log_error(
+          'Dictionary parsing failed (target={target}, line={line}).'.format(
+              target=project_qualified_fuzzer_name,
+              line=dict_error_match.group(1)),
+          engine_output=fuzz_result.output)
+    elif (not environment.get_value('USE_MINIJAIL') and
+          fuzz_result.return_code == constants.LIBFUZZER_ERROR_EXITCODE):
       # Minijail returns 1 if the exit code is nonzero.
       # Otherwise: we can assume that a return code of 1 means that libFuzzer
       # itself ran into an error.
-      logs.log_error(ENGINE_ERROR_MESSAGE, engine_output=fuzz_result.output)
+      logs.log_error(
+          ENGINE_ERROR_MESSAGE +
+          ' (target={target}).'.format(target=project_qualified_fuzzer_name),
+          engine_output=fuzz_result.output)
 
     log_lines = utils.decode_to_unicode(fuzz_result.output).splitlines()
     # Output can be large, so save some memory by removing reference to the
@@ -286,9 +306,6 @@ class LibFuzzerEngine(engine.Engine):
           engine.Crash(crash_testcase_file_path, fuzz_logs, reproduce_arguments,
                        actual_duration))
 
-    project_qualified_fuzzer_name = (
-        data_types.fuzz_target_project_qualified_name(
-            utils.current_project(), os.path.basename(target_path)))
     libfuzzer.analyze_and_update_recommended_dictionary(
         runner, project_qualified_fuzzer_name, log_lines, options.corpus_dir,
         arguments)
