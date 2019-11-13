@@ -36,15 +36,15 @@ class AddDefaultIssueMetadataTest(unittest.TestCase):
   def test_union(self):
     """Test union of current testcase metadata and default issue metadata."""
     self.mock.get_all_issue_metadata_for_testcase.return_value = {
-        'issue_owners': 'dev1@example1.com,dev2@example2.com',
+        'issue_owners': 'dev1@example1.com, dev2@example2.com',
         'issue_components': 'component1',
-        'issue_labels': 'label1,label2,label3'
+        'issue_labels': 'label1, label2 ,label3'
     }
 
     testcase = test_utils.create_generic_testcase()
     testcase.set_metadata('issue_owners', 'dev3@example3.com,dev2@example2.com')
     testcase.set_metadata('issue_components', 'component2')
-    testcase.set_metadata('issue_labels', 'label4,label5,label2')
+    testcase.set_metadata('issue_labels', 'label4,label5, label2,')
 
     analyze_task._add_default_issue_metadata(testcase)  # pylint: disable=protected-access
     self.assertEqual('dev1@example1.com,dev2@example2.com,dev3@example3.com',

@@ -46,25 +46,25 @@ def _add_default_issue_metadata(testcase):
 
   testcase_metadata = testcase.get_metadata()
   for key, default_value in six.iteritems(default_metadata):
-    # Initialize new value list to the value from default issue metadata.
-    # This needs to be appended first since component preference should be given
-    # to existing testcase metadata value.
-    new_value_list = utils.parse_delimited(default_value, delimiter=',')
+    # Add the default issue metadata first. This gives preference to uploader
+    # specified issue metadata.
+    new_value_list = utils.parse_delimited(
+        default_value, delimiter=',', strip=True, remove_empty=True)
 
-    # Append existing testcase metadata value to end (for preference).
-    current_value = testcase_metadata.get(key)
-    if current_value:
-      current_value_list = utils.parse_delimited(current_value, delimiter=',')
-      for value in current_value_list:
-        if value not in new_value_list:
-          new_value_list.append(value)
+    # Append uploader specified testcase metadata value to end (for preference).
+    uploader_value = testcase_metadata.get(key, '')
+    uploader_value_list = utils.parse_delimited(
+        uploader_value, delimiter=',', strip=True, remove_empty=True)
+    for value in uploader_value_list:
+      if value not in new_value_list:
+        new_value_list.append(value)
 
     new_value = ','.join(new_value_list)
-    if new_value == current_value:
+    if new_value == uploader_value:
       continue
 
     logs.log('Updating issue metadata for {} from {} to {}.'.format(
-        key, current_value, new_value))
+        key, uploader_value, new_value))
     testcase.set_metadata(key, new_value)
 
 
