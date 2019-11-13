@@ -17,10 +17,12 @@ from future import standard_library
 standard_library.install_aliases()
 import datetime
 import os
+import six
 
 from base import tasks
 from base import utils
 from bot import testcase_manager
+from bot.fuzzers import engine_common
 from bot.tasks import setup
 from bot.tasks import task_creation
 from build_management import build_manager
@@ -34,6 +36,36 @@ from metrics import logs
 from system import environment
 from system import process_handler
 from system import shell
+
+
+def _add_default_issue_metadata(testcase):
+  """Adds the default issue metadata (e.g. components, labels) to testcase."""
+  default_metadata = engine_common.get_all_issue_metadata_for_testcase(testcase)
+  if not default_metadata:
+    return
+
+  testcase_metadata = testcase.get_metadata()
+  for key, default_value in six.iteritems(default_metadata):
+    # Add the default issue metadata first. This gives preference to uploader
+    # specified issue metadata.
+    new_value_list = utils.parse_delimited(
+        default_value, delimiter=',', strip=True, remove_empty=True)
+
+    # Append uploader specified testcase metadata value to end (for preference).
+    uploader_value = testcase_metadata.get(key, '')
+    uploader_value_list = utils.parse_delimited(
+        uploader_value, delimiter=',', strip=True, remove_empty=True)
+    for value in uploader_value_list:
+      if value not in new_value_list:
+        new_value_list.append(value)
+
+    new_value = ','.join(new_value_list)
+    if new_value == uploader_value:
+      continue
+
+    logs.log('Updating issue metadata for {} from {} to {}.'.format(
+        key, uploader_value, new_value))
+    testcase.set_metadata(key, new_value)
 
 
 def close_invalid_testcase_and_update_status(testcase, metadata, status):
@@ -370,6 +402,8 @@ def execute_task(testcase_id, job_type):
   # Update the upload metadata.
   metadata.security_flag = security_flag
   metadata.put()
+
+  _add_default_issue_metadata(testcase)
 
   # Create tasks to
   # 1. Minimize testcase (minimize).
