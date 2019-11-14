@@ -65,6 +65,21 @@ def _get_services(paths):
   return services
 
 
+def _get_redis_ip(project):
+  """Get the redis IP address."""
+  _, ip = common.execute('gcloud redis instances describe redis-instance '
+                         '--project={project} --region=us-central1 '
+                         '--format="value(host)"'.format(project=project))
+  return ip.strip()
+
+
+def _additional_app_env_vars(project):
+  """Additional environment variables to include for App Engine."""
+  return {
+      'REDIS_HOST': _get_redis_ip(project),
+  }
+
+
 def _deploy_app_prod(project,
                      deployment_bucket,
                      yaml_paths,
@@ -73,7 +88,8 @@ def _deploy_app_prod(project,
   """Deploy app in production."""
   if deploy_appengine:
     services = _get_services(yaml_paths)
-    rebased_yaml_paths = appengine.copy_yamls_and_preprocess(yaml_paths)
+    rebased_yaml_paths = appengine.copy_yamls_and_preprocess(
+        yaml_paths, _additional_app_env_vars(project))
 
     _deploy_appengine(
         project, [INDEX_YAML_PATH] + rebased_yaml_paths,
@@ -94,7 +110,9 @@ def _deploy_app_prod(project,
 def _deploy_app_staging(project, yaml_paths):
   """Deploy app in staging."""
   services = _get_services(yaml_paths)
-  rebased_yaml_paths = appengine.copy_yamls_and_preprocess(yaml_paths)
+
+  rebased_yaml_paths = appengine.copy_yamls_and_preprocess(
+      yaml_paths, _additional_app_env_vars(project))
   _deploy_appengine(project, rebased_yaml_paths, stop_previous_version=True)
   for path in rebased_yaml_paths:
     os.remove(path)
@@ -236,6 +254,24 @@ def _update_bigquery(project):
                              os.path.join('bigquery', 'datasets.yaml'))
 
 
+def _update_redis(project):
+  """Update redis instance."""
+  _update_deployment_manager(project, 'redis',
+                             os.path.join('redis', 'instance.yaml'))
+
+  return_code, _ = common.execute(
+      'gcloud compute networks vpc-access connectors describe '
+      'connector --region=us-central1 '
+      '--project={project}'.format(project=project),
+      exit_on_error=False)
+
+  if return_code != 0:
+    common.execute('gcloud compute networks vpc-access connectors create '
+                   'connector --network=default --region=us-central1 '
+                   '--range=10.8.0.0/28 '
+                   '--project={project}'.format(project=project))
+
+
 def get_remote_sha():
   """Get remote sha of origin/master."""
   _, remote_sha_line = common.execute('git ls-remote origin refs/heads/master')
@@ -287,6 +323,7 @@ def _prod_deployment_helper(config_dir,
     _update_pubsub_queues(project)
     _update_alerts(project)
     _update_bigquery(project)
+    _update_redis(project)
 
   _deploy_app_prod(
       project,

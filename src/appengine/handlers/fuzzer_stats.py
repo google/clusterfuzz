@@ -314,14 +314,14 @@ def build_results(fuzzer, jobs, group_by, date_start, date_end):
   return _build_todays_results(fuzzer, jobs, group_by, date_start, date_end)
 
 
-@memoize.wrap(memoize.MemcacheLarge(MEMCACHE_TODAY_TTL_IN_SECONDS))
+@memoize.wrap(memoize.Memcache(MEMCACHE_TODAY_TTL_IN_SECONDS))
 def _build_todays_results(fuzzer, jobs, group_by, date_start, date_end):
   """Wrapper around _build_results that is intended for use by queries where
   date_end is today. Caches results for 15 minutes."""
   return _build_results(fuzzer, jobs, group_by, date_start, date_end)
 
 
-@memoize.wrap(memoize.MemcacheLarge(MEMCACHE_OLD_TTL_IN_SECONDS))
+@memoize.wrap(memoize.Memcache(MEMCACHE_OLD_TTL_IN_SECONDS))
 def _build_old_results(fuzzer, jobs, group_by, date_start, date_end):
   """Wrapper around _build_results that is intended for use by queries where
   date_end is before today. Caches results for 24 hours."""

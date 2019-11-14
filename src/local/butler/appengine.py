@@ -38,13 +38,16 @@ def _get_target_directory(yaml_path):
   return SRC_DIR_GO if _is_go_yaml(yaml_path) else SRC_DIR_PY
 
 
-def _add_env_vars_if_needed(yaml_path):
+def _add_env_vars_if_needed(yaml_path, additional_env_vars):
   """Add environment variables to yaml file if necessary."""
   # Defer imports since our python paths have to be set up first.
   import yaml
   from src.python.config import local_config
 
   env_values = local_config.ProjectConfig().get('env')
+  if additional_env_vars:
+    env_values.update(additional_env_vars)
+
   if not env_values:
     return
 
@@ -65,7 +68,7 @@ def _add_env_vars_if_needed(yaml_path):
     yaml.safe_dump(data, f)
 
 
-def copy_yamls_and_preprocess(paths):
+def copy_yamls_and_preprocess(paths, additional_env_vars=None):
   """Copy paths to appengine source directories since they reference sources
   and otherwise, deployment fails."""
   rebased_paths = []
@@ -80,7 +83,7 @@ def copy_yamls_and_preprocess(paths):
     shutil.copy(path, rebased_path)
     os.chmod(rebased_path, 0o600)
 
-    _add_env_vars_if_needed(rebased_path)
+    _add_env_vars_if_needed(rebased_path, additional_env_vars)
     rebased_paths.append(rebased_path)
 
   return rebased_paths

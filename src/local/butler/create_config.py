@@ -58,6 +58,7 @@ _REQUIRED_SERVICES = (
     'stackdriver.googleapis.com',
     'storage-api.googleapis.com',
     'storage-component.googleapis.com',
+    'vpcaccess.googleapis.com',
 )
 
 _NUM_RETRIES = 2

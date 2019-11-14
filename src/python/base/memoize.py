@@ -14,24 +14,35 @@
 """Memoize caches the result of methods."""
 
 from builtins import object
-from builtins import range
 import collections
 import functools
 import json
-import six
+import os
 import threading
 
-try:
-  from google.appengine.api import memcache
-except ImportError:
-  # This is expected to fail on bots without appengine sdk and with local butler
-  # commands.
-  pass
+import redis
+import six
 
 from base import persistent_cache
-from metrics import logs
 from system.environment import appengine_noop
 from system.environment import bot_noop
+
+# Thead local globals.
+_local = threading.local()
+
+_DEFAULT_REDIS_HOST = 'localhost'
+_DEFAULT_REDIS_PORT = 6379
+
+
+def _redis_client():
+  """Get the redis client."""
+  if hasattr(_local, 'redis'):
+    return _local.redis
+
+  host = os.getenv('REDIS_HOST', _DEFAULT_REDIS_HOST)
+  port = os.getenv('REDIS_PORT', _DEFAULT_REDIS_PORT)
+  _local.redis = redis.Redis(host=host, port=port)
+  return _local.redis
 
 
 class FifoInMemory(object):
@@ -120,71 +131,21 @@ class Memcache(object):
   @bot_noop
   def put(self, key, value):
     """Put (key, value) into cache."""
-    memcache.set(key, value, self.ttl_in_seconds)
+    _redis_client().set(
+        json.dumps(key), json.dumps(value), ex=self.ttl_in_seconds)
 
   @bot_noop
   def get(self, key):
     """Get the value from cache."""
-    return memcache.get(key)
+    value_raw = _redis_client().get(json.dumps(key))
+
+    if value_raw is None:
+      return value_raw
+
+    return json.loads(value_raw)
 
   def get_key(self, func, args, kwargs):
     return self.key_fn(func, args, kwargs)
-
-
-class MemcacheLarge(Memcache):
-  """Memcache caching engine for caching large python objects. These must be
-  serializable as JSON."""
-
-  CHUNK_LEN = 90000
-  MAGIC_STR = 'chunk'
-
-  @bot_noop
-  def put(self, key, value):
-    logs.log('MemcacheLarge put %s.' + key)
-    # Make JSON representation as compact as possible (don't use spaces).
-    string_value = json.dumps(value, separators=(',', ':'))
-    keys_and_values = {key: len(string_value)}
-    for chunk_start in range(0, len(string_value), self.CHUNK_LEN):
-      full_key = '%s-%s-%s' % (self.MAGIC_STR, key, chunk_start)
-      keys_and_values[full_key] = string_value[chunk_start:chunk_start +
-                                               self.CHUNK_LEN]
-
-    memcache.set_multi(keys_and_values)
-
-  @bot_noop
-  def get(self, key):
-    logs.log('MemcacheLarge get %s.' % key)
-    value_len = memcache.get(key)
-    if not value_len:
-      return value_len
-
-    value_len = int(value_len)
-    keys = [
-        '%s-%s-%s' % (self.MAGIC_STR, key, chunk_start)
-        for chunk_start in range(0, value_len, self.CHUNK_LEN)
-    ]
-
-    keys_and_values = list(memcache.get_multi(keys).items())
-
-    def get_chunk_start(key_and_value):
-      full_key = key_and_value[0]
-      key_without_chunk_start = '%s-%s-' % (self.MAGIC_STR, key)
-      return int(full_key[len(key_without_chunk_start):])
-
-    string_value = ''.join(
-        value for key, value in sorted(keys_and_values, key=get_chunk_start))
-
-    string_len = len(string_value)
-    if string_len != value_len:
-      logs.log_error('Unable to retrieve %s. Expected length: %s. actual: %s' %
-                     (key, value_len, string_len))
-      return None
-
-    try:
-      return json.loads(string_value)
-    except ValueError:
-      logs.log_error('Unable to retrieve ' + key)
-      return None
 
 
 def _default_key(func, args, kwargs):
