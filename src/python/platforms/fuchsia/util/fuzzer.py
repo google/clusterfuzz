@@ -75,7 +75,7 @@ class Fuzzer(object):
     production). """
     # We want to remove the noop-fuzzer regardless of the extension.
     tgt = os.path.splitext(tgt)[0]
-    return (pkg == 'example_fuzzers' or tgt == 'noop-fuzzer')
+    return pkg == 'example_fuzzers' or tgt == 'noop-fuzzer'
 
   @classmethod
   def filter(cls, fuzzers, name, sanitizer=None, example_fuzzers=True):
