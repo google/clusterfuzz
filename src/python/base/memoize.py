@@ -26,6 +26,7 @@ import six
 from base import persistent_cache
 from system.environment import appengine_noop
 from system.environment import bot_noop
+from system.environment import local_noop
 
 # Thead local globals.
 _local = threading.local()
@@ -128,12 +129,14 @@ class Memcache(object):
     self.ttl_in_seconds = ttl_in_seconds
     self.key_fn = key_fn or _default_key
 
+  @local_noop
   @bot_noop
   def put(self, key, value):
     """Put (key, value) into cache."""
     _redis_client().set(
         json.dumps(key), json.dumps(value), ex=self.ttl_in_seconds)
 
+  @local_noop
   @bot_noop
   def get(self, key):
     """Get the value from cache."""

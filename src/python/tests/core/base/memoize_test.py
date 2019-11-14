@@ -217,7 +217,7 @@ class _MockRedis(object):
 
 
 class MemcacheTest(unittest.TestCase):
-  """Test Memcache.iii"""
+  """Test Memcache."""
 
   def setUp(self):
     test_helpers.patch(self, [
