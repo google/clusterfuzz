@@ -51,6 +51,18 @@ ENABLE_GESTURES = False
 THREAD_DELAY  = 30.0
 """
 
+HONGGFUZZ_TEMPLATE = """MAX_FUZZ_THREADS = 1
+MAX_TESTCASES = 4
+FUZZ_TEST_TIMEOUT = 4800
+TEST_TIMEOUT = 65
+WARMUP_TIMEOUT = 65
+BAD_BUILD_CHECK = False
+THREAD_ALIVE_CHECK_INTERVAL = 1
+CORPUS_FUZZER_NAME_OVERRIDE = libFuzzer
+ENABLE_GESTURES = False
+THREAD_DELAY = 30.0
+"""
+
 ENGINE_ASAN_TEMPLATE = """LSAN = True
 ADDITIONAL_ASAN_OPTIONS = quarantine_size_mb=64:strict_memcmp=1:symbolize=0:fast_unwind_on_fatal=0:allocator_release_to_os_interval_ms=500
 """
@@ -70,6 +82,7 @@ TEMPLATES = {
     'engine_asan': ENGINE_ASAN_TEMPLATE,
     'engine_msan': ENGINE_MSAN_TEMPLATE,
     'engine_ubsan': ENGINE_UBSAN_TEMPLATE,
+    'honggfuzz': HONGGFUZZ_TEMPLATE,
     'libfuzzer': LIBFUZZER_TEMPLATE,
     'prune': PRUNE_TEMPLATE,
 }
