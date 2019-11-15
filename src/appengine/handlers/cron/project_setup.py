@@ -119,8 +119,11 @@ AFL_ASAN_JOB = JobInfo(
     minimize_job_override=LIBFUZZER_ASAN_JOB)
 NO_ENGINE_ASAN_JOB = JobInfo('asan_', 'none', 'address', [])
 
-HONGGFUZZ_ASAN_JOB = JobInfo('honggfuzz_asan_', 'honggfuzz', 'address',
-                             ['honggfuzz', 'engine_asan'])
+HONGGFUZZ_ASAN_JOB = JobInfo(
+    'honggfuzz_asan_',
+    'honggfuzz',
+    'address', ['honggfuzz', 'engine_asan'],
+    minimize_job_override=LIBFUZZER_ASAN_JOB)
 
 JOB_MAP = {
     'libfuzzer': {
