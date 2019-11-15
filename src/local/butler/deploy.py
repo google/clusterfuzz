@@ -67,9 +67,11 @@ def _get_services(paths):
 
 def _get_redis_ip(project):
   """Get the redis IP address."""
+  region = appengine.region(project)
   _, ip = common.execute('gcloud redis instances describe redis-instance '
-                         '--project={project} --region=us-central1 '
-                         '--format="value(host)"'.format(project=project))
+                         '--project={project} --region={region} '
+                         '--format="value(host)"'.format(
+                             project=project, region=region))
   return ip.strip()
 
 
