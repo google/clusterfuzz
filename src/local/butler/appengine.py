@@ -157,3 +157,20 @@ def symlink_config_dir():
   config_dir = os.getenv('CONFIG_DIR_OVERRIDE', constants.TEST_CONFIG_DIR)
   common.symlink(src=config_dir, target=os.path.join(SRC_DIR_PY, 'config'))
   common.symlink(src=config_dir, target=os.path.join(SRC_DIR_GO, 'config'))
+
+
+def region_from_location(location):
+  """Convert an app engine location ID to a region."""
+  if not location[-1].isdigit():
+    # e.g. us-central -> us-central1
+    location += '1'
+
+  return location
+
+
+def region(project):
+  """Get the App Engine region."""
+  _, location = common.execute(
+      'gcloud app describe --project={project} '
+      '--format="value(locationId)"'.format(project=project))
+  return region_from_location(location.strip())

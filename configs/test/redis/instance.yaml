@@ -19,5 +19,5 @@ resources:
 - name: redis
   type: memorystore-instance.jinja
   properties:
-    region: us-central1
+    region: gae-region
     memorySizeGb: 1

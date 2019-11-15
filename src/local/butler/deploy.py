@@ -259,17 +259,18 @@ def _update_redis(project):
   _update_deployment_manager(project, 'redis',
                              os.path.join('redis', 'instance.yaml'))
 
+  region = appengine.region(project)
   return_code, _ = common.execute(
       'gcloud compute networks vpc-access connectors describe '
-      'connector --region=us-central1 '
-      '--project={project}'.format(project=project),
+      'connector --region={region} '
+      '--project={project}'.format(project=project, region=region),
       exit_on_error=False)
 
   if return_code != 0:
     common.execute('gcloud compute networks vpc-access connectors create '
-                   'connector --network=default --region=us-central1 '
+                   'connector --network=default --region={region} '
                    '--range=10.8.0.0/28 '
-                   '--project={project}'.format(project=project))
+                   '--project={project}'.format(project=project, region=region))
 
 
 def get_remote_sha():

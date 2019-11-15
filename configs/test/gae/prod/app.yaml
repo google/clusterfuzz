@@ -58,4 +58,4 @@ includes:
   - skip_files.yaml
 
 vpc_access_connector:
-  name: "projects/test-project/locations/us-central1/connectors/connector"
+  name: "projects/test-project/locations/gae-region/connectors/connector"

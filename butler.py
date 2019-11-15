@@ -260,10 +260,10 @@ def main():
       default='us-central1-f',
       help='Region for GCE VMs.')
   parser_create_config.add_argument(
-      '--appengine-region',
+      '--appengine-location',
       type=str,
       default='us-central',
-      help='Region for App Engine.json.')
+      help='Location for App Engine.')
 
   subparsers.add_parser(
       'integration_tests', help='Run end-to-end integration tests.')
