@@ -214,6 +214,15 @@ _FUZZER_RUN_LOGS as logs,
 _CORPUS_BACKUP as corpus_backup,"""
 
 
+class HonggfuzzDefaults(BaseBuiltinFuzzerDefaults):
+  """Default values for honggfuzz."""
+
+  def __init__(self):
+    super(HonggfuzzDefaults, self).__init__()
+    self.name = 'honggfuzz'
+    self.key_id = 1339
+
+
 def setup_config(non_dry_run):
   """Set up configuration."""
   config = data_types.Config.query().get()
@@ -229,7 +238,10 @@ def setup_config(non_dry_run):
 
 def setup_fuzzers(non_dry_run):
   """Set up fuzzers."""
-  for fuzzer_defaults in [AflDefaults(), LibFuzzerDefaults()]:
+  for fuzzer_defaults in [
+      AflDefaults(), LibFuzzerDefaults(),
+      HonggfuzzDefaults()
+  ]:
     fuzzer = data_types.Fuzzer.query(
         data_types.Fuzzer.name == fuzzer_defaults.name).get()
     if fuzzer:
