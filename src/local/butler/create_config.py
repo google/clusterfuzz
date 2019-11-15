@@ -277,7 +277,7 @@ def execute(args):
                     domain_verification_tag, bucket_replacements,
                     args.appengine_location, args.gce_zone,
                     args.firebase_api_key)
-  nrev_dir = os.getcwd()
+  prev_dir = os.getcwd()
   os.chdir(args.new_config_dir)
 
   # Deploy App Engine and finish verification of domain.
