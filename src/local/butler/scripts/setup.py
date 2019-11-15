@@ -51,6 +51,18 @@ ENABLE_GESTURES = False
 THREAD_DELAY  = 30.0
 """
 
+HONGGFUZZ_TEMPLATE = """MAX_FUZZ_THREADS = 1
+MAX_TESTCASES = 4
+FUZZ_TEST_TIMEOUT = 4800
+TEST_TIMEOUT = 65
+WARMUP_TIMEOUT = 65
+BAD_BUILD_CHECK = False
+THREAD_ALIVE_CHECK_INTERVAL = 1
+CORPUS_FUZZER_NAME_OVERRIDE = libFuzzer
+ENABLE_GESTURES = False
+THREAD_DELAY = 30.0
+"""
+
 ENGINE_ASAN_TEMPLATE = """LSAN = True
 ADDITIONAL_ASAN_OPTIONS = quarantine_size_mb=64:strict_memcmp=1:symbolize=0:fast_unwind_on_fatal=0:allocator_release_to_os_interval_ms=500
 """
@@ -70,6 +82,7 @@ TEMPLATES = {
     'engine_asan': ENGINE_ASAN_TEMPLATE,
     'engine_msan': ENGINE_MSAN_TEMPLATE,
     'engine_ubsan': ENGINE_UBSAN_TEMPLATE,
+    'honggfuzz': HONGGFUZZ_TEMPLATE,
     'libfuzzer': LIBFUZZER_TEMPLATE,
     'prune': PRUNE_TEMPLATE,
 }
@@ -201,6 +214,15 @@ _FUZZER_RUN_LOGS as logs,
 _CORPUS_BACKUP as corpus_backup,"""
 
 
+class HonggfuzzDefaults(BaseBuiltinFuzzerDefaults):
+  """Default values for honggfuzz."""
+
+  def __init__(self):
+    super(HonggfuzzDefaults, self).__init__()
+    self.name = 'honggfuzz'
+    self.key_id = 1339
+
+
 def setup_config(non_dry_run):
   """Set up configuration."""
   config = data_types.Config.query().get()
@@ -216,7 +238,10 @@ def setup_config(non_dry_run):
 
 def setup_fuzzers(non_dry_run):
   """Set up fuzzers."""
-  for fuzzer_defaults in [AflDefaults(), LibFuzzerDefaults()]:
+  for fuzzer_defaults in [
+      AflDefaults(), LibFuzzerDefaults(),
+      HonggfuzzDefaults()
+  ]:
     fuzzer = data_types.Fuzzer.query(
         data_types.Fuzzer.name == fuzzer_defaults.name).get()
     if fuzzer:

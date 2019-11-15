@@ -119,6 +119,12 @@ AFL_ASAN_JOB = JobInfo(
     minimize_job_override=LIBFUZZER_ASAN_JOB)
 NO_ENGINE_ASAN_JOB = JobInfo('asan_', 'none', 'address', [])
 
+HONGGFUZZ_ASAN_JOB = JobInfo(
+    'honggfuzz_asan_',
+    'honggfuzz',
+    'address', ['honggfuzz', 'engine_asan'],
+    minimize_job_override=LIBFUZZER_ASAN_JOB)
+
 JOB_MAP = {
     'libfuzzer': {
         'x86_64': {
@@ -134,6 +140,11 @@ JOB_MAP = {
         'x86_64': {
             'address': AFL_ASAN_JOB,
         }
+    },
+    'honggfuzz': {
+        'x86_64': {
+            'address': HONGGFUZZ_ASAN_JOB,
+        },
     },
     'none': {
         'x86_64': {
@@ -888,6 +899,12 @@ class Handler(base_handler.Handler):
       logs.log_error('Failed to get AFL Fuzzer entity.')
       return
 
+    honggfuzz = data_types.Fuzzer.query(
+        data_types.Fuzzer.name == 'honggfuzz').get()
+    if not honggfuzz:
+      logs.log_error('Failed to get honggfuzz Fuzzer entity.')
+      return
+
     project_setup_config = local_config.ProjectConfig().sub_config(
         'project_setup')
     bucket_config = project_setup_config.sub_config('build_buckets')
@@ -905,11 +922,13 @@ class Handler(base_handler.Handler):
             'libfuzzer': bucket_config.get('libfuzzer'),
             'libfuzzer-i386': bucket_config.get('libfuzzer_i386'),
             'afl': bucket_config.get('afl'),
+            'honggfuzz': bucket_config.get('honggfuzz'),
             'none': bucket_config.get('no_engine'),
             'dataflow': bucket_config.get('dataflow'),
         },
         fuzzer_entities={
             'libfuzzer': libfuzzer,
+            'honggfuzz': honggfuzz,
             'afl': afl,
         },
         add_info_labels=project_setup_config.get(

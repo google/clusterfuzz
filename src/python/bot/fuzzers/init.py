@@ -14,9 +14,11 @@
 """Fuzzing engine initialization."""
 
 from bot.fuzzers import engine
+from bot.fuzzers.honggfuzz import engine as honggfuzz_engine
 from bot.fuzzers.libFuzzer import engine as libFuzzer_engine
 
 
 def run():
   """Initialise builtin fuzzing engines."""
   engine.register('libFuzzer', libFuzzer_engine.LibFuzzerEngine)
+  engine.register('honggfuzz', honggfuzz_engine.HonggfuzzEngine)
