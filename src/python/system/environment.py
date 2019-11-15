@@ -597,9 +597,16 @@ def is_libfuzzer_job(job_name=None):
   return _job_substring_match('libfuzzer', job_name)
 
 
+def is_honggfuzz_job(job_name=None):
+  """Return true if the current job uses honggfuzz."""
+  return _job_substring_match('honggfuzz', job_name)
+
+
 def is_engine_fuzzer_job(job_name=None):
   """Return if true is this is an engine fuzzer."""
-  return is_afl_job(job_name) or is_libfuzzer_job(job_name)
+  # TODO(ochang): Generalize this rather than hardcoding all these engines.
+  return (is_afl_job(job_name) or is_libfuzzer_job(job_name) or
+          is_honggfuzz_job(job_name))
 
 
 def is_posix():
