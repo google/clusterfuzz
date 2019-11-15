@@ -91,6 +91,9 @@ class DeployTest(fake_filesystem_unittest.TestCase):
     if 'app describe' in command:
       return (0, 'us-central')
 
+    if 'describe redis-instance' in command:
+      return (0, 'redis-ip')
+
     if 'describe' in command:
       return (1, '')
 
