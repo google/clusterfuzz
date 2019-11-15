@@ -170,7 +170,10 @@ def region_from_location(location):
 
 def region(project):
   """Get the App Engine region."""
-  _, location = common.execute(
+  return_code, location = common.execute(
       'gcloud app describe --project={project} '
       '--format="value(locationId)"'.format(project=project))
+  if return_code:
+    raise RuntimeError('Could not get App Engine region')
+
   return region_from_location(location.strip())

@@ -68,10 +68,14 @@ def _get_services(paths):
 def _get_redis_ip(project):
   """Get the redis IP address."""
   region = appengine.region(project)
-  _, ip = common.execute('gcloud redis instances describe redis-instance '
-                         '--project={project} --region={region} '
-                         '--format="value(host)"'.format(
-                             project=project, region=region))
+  return_code, ip = common.execute(
+      'gcloud redis instances describe redis-instance '
+      '--project={project} --region={region} '
+      '--format="value(host)"'.format(project=project, region=region))
+
+  if return_code:
+    raise RuntimeError('Failed to get redis IP.')
+
   return ip.strip()
 
 
@@ -268,7 +272,8 @@ def _update_redis(project):
       '--project={project}'.format(project=project, region=region),
       exit_on_error=False)
 
-  if return_code != 0:
+  if return_code:
+    # Does not exist.
     common.execute('gcloud compute networks vpc-access connectors create '
                    'connector --network=default --region={region} '
                    '--range=10.8.0.0/28 '
