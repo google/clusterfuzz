@@ -39,13 +39,6 @@ class BuiltinFuzzersTest(unittest.TestCase):
         builtin_fuzzers.get('libFuzzer'), builtin.BuiltinFuzzer)
     self.assertIsNone(builtin_fuzzers.get('does_not_exist'))
 
-  def test_all(self):
-    """Tests all()."""
-    self.assertItemsEqual([
-        ('afl', builtin_fuzzers.get('afl')),
-        ('libFuzzer', builtin_fuzzers.get('libFuzzer')),
-    ], builtin_fuzzers.all())
-
 
 # pylint: disable=unused-argument
 def _mock_fuzzer_run(output, num_generated, corpus_directory, self,

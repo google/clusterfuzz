@@ -604,9 +604,20 @@ def is_honggfuzz_job(job_name=None):
 
 def is_engine_fuzzer_job(job_name=None):
   """Return if true is this is an engine fuzzer."""
+  return bool(get_engine_for_job(job_name))
+
+
+def get_engine_for_job(job_name=None):
+  """Get the engine for the given job."""
   # TODO(ochang): Generalize this rather than hardcoding all these engines.
-  return (is_afl_job(job_name) or is_libfuzzer_job(job_name) or
-          is_honggfuzz_job(job_name))
+  if is_libfuzzer_job(job_name):
+    return 'libFuzzer'
+  elif is_afl_job(job_name):
+    return 'afl'
+  elif is_honggfuzz_job(job_name):
+    return 'honggfuzz'
+
+  return None
 
 
 def is_posix():
