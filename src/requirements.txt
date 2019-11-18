@@ -9,7 +9,6 @@ google-cloud-monitoring==0.30.1
 google-cloud-profiler==1.0.3
 google-cloud-storage==1.13.2
 grpcio==1.15.0
-html5lib==1.0.1
 httplib2==0.11.3
 mozprocess==1.0.0
 oauth2client==4.1.3
