@@ -363,16 +363,16 @@ class UnpackSeedCorpusIfNeededTest(fake_filesystem_unittest.TestCase):
         os.path.dirname(os.path.abspath(__file__)), 'data')
 
     zip_seed_corpus_path = os.path.join(self.data_path, 'seed_corpus.zip')
-    with open(zip_seed_corpus_path) as zip_seed_corpus_handle:
+    with open(zip_seed_corpus_path, 'rb') as zip_seed_corpus_handle:
       self.zip_seed_corpus_contents = zip_seed_corpus_handle.read()
 
     targz_seed_corpus_path = os.path.join(self.data_path, 'seed_corpus.tar.gz')
-    with open(targz_seed_corpus_path) as targz_seed_corpus_handle:
+    with open(targz_seed_corpus_path, 'rb') as targz_seed_corpus_handle:
       self.targz_seed_corpus_contents = targz_seed_corpus_handle.read()
 
     seed_corpus_with_subdirectories_path = os.path.join(
         self.data_path, 'seed_corpus_with_subdirectories.zip')
-    with open(seed_corpus_with_subdirectories_path) as seed_corpus_handle:
+    with open(seed_corpus_with_subdirectories_path, 'rb') as seed_corpus_handle:
       self.seed_corpus_subdirs_contents = seed_corpus_handle.read()
 
     test_utils.set_up_pyfakefs(self)
@@ -396,7 +396,7 @@ class UnpackSeedCorpusIfNeededTest(fake_filesystem_unittest.TestCase):
         self.FUZZ_TARGET_PATH + engine_common.SEED_CORPUS_ARCHIVE_SUFFIX +
         extension)
 
-    with open(seed_corpus_path, 'w+') as seed_corpus_handle:
+    with open(seed_corpus_path, 'wb+') as seed_corpus_handle:
       seed_corpus_handle.write(data)
 
   def _create_corpus_files(self, num_files):
