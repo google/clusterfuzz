@@ -15,7 +15,6 @@
 
 from base import utils
 from bot import testcase_manager
-from bot.fuzzers import builtin_fuzzers
 from bot.tasks import setup
 from build_management import build_manager
 from crash_analysis.crash_comparer import CrashComparer
@@ -35,7 +34,7 @@ def _get_variant_testcase_for_job(testcase, job_type):
     # For blackbox fuzzer testcases, there is no change of fuzzer required.
     return testcase
 
-  engine_name = builtin_fuzzers.get_fuzzer_for_job(job_type)
+  engine_name = environment.get_engine_for_job(job_type)
   project = data_handler.get_project_name(job_type)
   binary_name = testcase.get_metadata('fuzzer_binary_name')
   fully_qualified_fuzzer_name = data_types.fuzz_target_fully_qualified_name(

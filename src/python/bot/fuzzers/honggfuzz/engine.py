@@ -122,7 +122,7 @@ class HonggfuzzEngine(engine.Engine):
     if os.path.exists(dict_path):
       arguments.extend(['--dict', dict_path])
 
-    return engine.FuzzOptions(corpus_dir, arguments, [])
+    return engine.FuzzOptions(corpus_dir, arguments, {})
 
   def fuzz(self, target_path, options, reproducers_dir, max_time):
     """Run a fuzz session.
