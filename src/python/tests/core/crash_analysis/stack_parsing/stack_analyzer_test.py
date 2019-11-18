@@ -2728,12 +2728,25 @@ class StackAnalyzerTestcase(unittest.TestCase):
                                   expected_state, expected_stacktrace,
                                   expected_security_flag)
 
-  def test_missing_library(self):
-    """Test for missing library crash."""
-    data = self._read_test_data('missing_library.txt')
+  def test_missing_library_android(self):
+    """Test for missing library crash (Android)."""
+    data = self._read_test_data('missing_library_android.txt')
     expected_type = 'Missing-library'
     expected_address = ''
     expected_state = 'libvts_codecoverage.so\n'
+
+    expected_stacktrace = data
+    expected_security_flag = False
+    self._validate_get_crash_data(data, expected_type, expected_address,
+                                  expected_state, expected_stacktrace,
+                                  expected_security_flag)
+
+  def test_missing_library_linux(self):
+    """Test for missing library crash (Linux)."""
+    data = self._read_test_data('missing_library_linux.txt')
+    expected_type = 'Missing-library'
+    expected_address = ''
+    expected_state = 'libtest.so.1\n'
 
     expected_stacktrace = data
     expected_security_flag = False
