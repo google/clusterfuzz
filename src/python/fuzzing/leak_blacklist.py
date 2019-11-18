@@ -39,7 +39,7 @@ LSAN_SUPPRESSION_LINE = 'leak:{function}\n'
 def create_empty_local_blacklist():
   """Creates an empty local blacklist."""
   lsan_suppressions_path = get_local_blacklist_file_path()
-  with open(lsan_suppressions_path, 'w') as local_blacklist:
+  with open(lsan_suppressions_path, 'wb') as local_blacklist:
     # Insert comment on top to avoid parsing errors on empty file.
     local_blacklist.write('# This is a LSAN suppressions file.\n')
 
@@ -74,7 +74,7 @@ def copy_global_to_local_blacklist(excluded_testcase=None):
 
   # The local suppressions file should always have a comment on top
   # to prevent parsing errors.
-  with open(lsan_suppressions_path, 'w') as local_blacklist:
+  with open(lsan_suppressions_path, 'wb') as local_blacklist:
     local_blacklist.write('# This is a LSAN suppressions file.\n')
 
     # Copy global blacklist into local blacklist.
