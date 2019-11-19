@@ -69,7 +69,16 @@ class Fuzzer(object):
     return False
 
   @classmethod
-  def filter(cls, fuzzers, name, sanitizer=None):
+  def _is_example(cls, pkg, tgt):
+    """ Returns whether or not a given pkg/tgt pair is an example fuzzer.
+    (Helper function to prevent us from wasting cycles on example fuzzers in
+    production). """
+    # We want to remove the noop-fuzzer regardless of the extension.
+    tgt = os.path.splitext(tgt)[0]
+    return pkg == 'example_fuzzers' or tgt == 'noop-fuzzer'
+
+  @classmethod
+  def filter(cls, fuzzers, name, sanitizer=None, example_fuzzers=True):
     """Filters a list of fuzzer names.
 
       Takes a list of fuzzer names in the form `pkg`/`tgt` and a name to filter
@@ -103,6 +112,9 @@ class Fuzzer(object):
           continue
       if sanitizer:
         if not Fuzzer._matches_sanitizer(tgt, sanitizer):
+          continue
+      if not example_fuzzers:
+        if Fuzzer._is_example(pkg, tgt):
           continue
       # Remove the sanitizer extension name.
       # Clusterfuzz only needs to know foo/bar, not foo/bar.asan.
