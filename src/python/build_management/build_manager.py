@@ -739,7 +739,7 @@ class FuchsiaBuild(RegularBuild):
         environment.get_value('JOB_NAME')).lower()
     return [
         str(target[0] + '/' + target[1])
-        for target in Fuzzer.filter(host.fuzzers, '', sanitizer, False)
+        for target in Fuzzer.filter(host.fuzzers, '', sanitizer, example_fuzzers=False)
     ]
 
   def setup(self):
