@@ -119,6 +119,11 @@ LIBFUZZER_DEADLY_SIGNAL_REGEX = re.compile(
 LIBFUZZER_FUZZ_TARGET_EXITED_REGEX = re.compile(
     r'.*ERROR:\s*libFuzzer:\s*fuzz target exited')
 LIBFUZZER_TIMEOUT_REGEX = re.compile(r'.*ERROR:\s*libFuzzer:\s*timeout')
+LIBRARY_NOT_FOUND_ANDROID_REGEX = re.compile(
+    r'.*: library ([`\'"])(.*)\1 not found')
+LIBRARY_NOT_FOUND_LINUX_REGEX = re.compile(
+    r'.*error while loading shared libraries: ([^:]*): '
+    r'cannot open shared object file')
 LINUX_GDB_CRASH_TYPE_REGEX = re.compile(r'Program received signal ([a-zA-Z]+),')
 LINUX_GDB_CRASH_ADDRESS_REGEX = re.compile(r'rip[ ]+([xX0-9a-fA-F]+)')
 LSAN_DIRECT_LEAK_REGEX = re.compile(r'Direct leak of ')
@@ -1616,6 +1621,22 @@ def get_crash_data(crash_data, symbolize_flag=True):
           line,
           state,
           new_type='Unexpected-exit',
+          reset=True)
+
+      # Missing library (e.g. a shared library missing in build archive).
+      update_state_on_match(
+          LIBRARY_NOT_FOUND_ANDROID_REGEX,
+          line,
+          state,
+          new_type='Missing-library',
+          state_from_group=2,
+          reset=True)
+      update_state_on_match(
+          LIBRARY_NOT_FOUND_LINUX_REGEX,
+          line,
+          state,
+          new_type='Missing-library',
+          state_from_group=1,
           reset=True)
 
     if state.fatal_error_occurred:

@@ -1,0 +1,1 @@
+CANNOT LINK EXECUTABLE "/build/vts_proto_fuzzer": library "libvts_codecoverage.so" not found

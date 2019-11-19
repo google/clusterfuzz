@@ -45,8 +45,9 @@ CRASH_STACKTRACE_END_MARKER = 'CRASH OUTPUT ENDS HERE'
 # Skips using crash state similarity for these types.
 CRASH_TYPES_WITH_UNIQUE_STATE = [
     'Hang',
-    'Timeout',
+    'Missing-library',
     'Out-of-memory',
+    'Timeout',
     # V8 correctness failures use metadata from the fuzz test cases as crash
     # state. This is not suitable for using levenshtein distance for
     # similarity.

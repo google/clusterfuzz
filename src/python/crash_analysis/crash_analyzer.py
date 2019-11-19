@@ -275,12 +275,13 @@ def is_security_issue(crash_stacktrace, crash_type, crash_address):
       crash_type.endswith('Exception') or crash_type.endswith('CHECK failure')):
     return False
 
-  # Stack overflows.
   if crash_type == 'Stack-overflow':
     return False
 
-  # Fatal signals.
   if crash_type == 'Fatal-signal':
+    return False
+
+  if crash_type == 'Missing-library':
     return False
 
   # LeakSanitizer, finds memory leaks.
