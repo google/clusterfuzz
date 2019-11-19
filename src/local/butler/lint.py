@@ -29,10 +29,6 @@ _FUTURIZE_EXCEPTIONS = [
 
     # Causes issues if applied to the same code multiple times.
     'lib2to3.fixes.fix_dict',
-
-    # Disabled by default, but causes spam if not explicitly disabled.
-    'lib2to3.fixes.fix_ws_comma',
-    'lib2to3.fixes.fix_idioms',
 ]
 _GOLINT_EXCEPTIONS = [
     'types.go'  # Not all model names conform to Go naming conventions.

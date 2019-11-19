@@ -100,7 +100,7 @@ def cleanup_defunct_processes():
   """Cleans up defunct processes."""
   # Defunct processes happen only on unix platforms.
   if environment.platform() != 'WINDOWS':
-    while 1:
+    while True:
       try:
         # Matches any defunct child process.
         p, _ = os.waitpid(-1, os.WNOHANG)
