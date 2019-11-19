@@ -79,7 +79,7 @@ def wait_until_good_state():
       'MAX_BATTERY_TEMPERATURE_THRESHOLD', MAX_BATTERY_TEMPERATURE_THRESHOLD)
   device_restarted = False
 
-  while 1:
+  while True:
     battery_information = get_battery_level_and_temperature()
     if battery_information is None:
       logs.log_error('Failed to get battery information, skipping check.')

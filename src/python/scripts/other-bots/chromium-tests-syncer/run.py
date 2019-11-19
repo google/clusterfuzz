@@ -323,7 +323,7 @@ if __name__ == '__main__':
   fail_wait = environment.get_value('FAIL_WAIT')
 
   # Continue this forever.
-  while 1:
+  while True:
     try:
       main()
     except Exception:

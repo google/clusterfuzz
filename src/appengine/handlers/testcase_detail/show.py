@@ -111,7 +111,7 @@ def highlight_common_stack_frames(crash_stacktrace):
   match_index = -1
   start_index_crash_stack_1 = len(crash_stacks[0]) - 1
   start_index_crash_stack_2 = len(crash_stacks[1]) - 1
-  while 1:
+  while True:
     if (crash_stacks[0][start_index_crash_stack_1] !=
         crash_stacks[1][start_index_crash_stack_2]):
       break
