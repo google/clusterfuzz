@@ -88,6 +88,12 @@ class DeployTest(fake_filesystem_unittest.TestCase):
       self.deploy_failure_count -= 1
       return (1, 'failure')
 
+    if 'app describe' in command:
+      return (0, 'us-central')
+
+    if 'describe redis-instance' in command:
+      return (0, 'redis-ip')
+
     if 'describe' in command:
       return (1, '')
 

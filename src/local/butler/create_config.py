@@ -28,6 +28,7 @@ from googleapiclient import discovery
 import google_auth_httplib2
 import httplib2
 
+from local.butler import appengine
 from local.butler import common
 
 _REQUIRED_SERVICES = (
@@ -58,6 +59,7 @@ _REQUIRED_SERVICES = (
     'stackdriver.googleapis.com',
     'storage-api.googleapis.com',
     'storage-component.googleapis.com',
+    'vpcaccess.googleapis.com',
 )
 
 _NUM_RETRIES = 2
@@ -161,19 +163,21 @@ def project_bucket(project_id, bucket_name):
 
 
 def create_new_config(gcloud, project_id, new_config_dir,
-                      domain_verification_tag, bucket_replacements, gce_zone,
-                      firebase_api_key):
+                      domain_verification_tag, bucket_replacements,
+                      gae_location, gce_zone, firebase_api_key):
   """Create a new config directory."""
   if os.path.exists(new_config_dir):
     print('Overwriting existing directory.')
     shutil.rmtree(new_config_dir)
 
+  gae_region = appengine.region_from_location(gae_location)
   replacements = [
       ('test-clusterfuzz-service-account-email',
        compute_engine_service_account(gcloud, project_id)),
       ('test-clusterfuzz', project_id),
       ('test-project', project_id),
       ('domain-verification-tag', domain_verification_tag),
+      ('gae-region', gae_region),
       ('gce-zone', gce_zone),
       ('firebase-api-key', firebase_api_key),
   ]
@@ -186,13 +190,13 @@ def create_new_config(gcloud, project_id, new_config_dir,
       replace_file_contents(file_path, replacements)
 
 
-def deploy_appengine(gcloud, config_dir, appengine_region):
+def deploy_appengine(gcloud, config_dir, appengine_location):
   """Deploy to App Engine."""
   try:
     gcloud.run('app', 'describe')
   except common.GcloudError:
     # Create new App Engine app if it does not exist.
-    gcloud.run('app', 'create', '--region=' + appengine_region)
+    gcloud.run('app', 'create', '--region=' + appengine_location)
 
   subprocess.check_call([
       'python', 'butler.py', 'deploy', '--force', '--targets', 'appengine',
@@ -270,7 +274,8 @@ def execute(args):
 
   # Write new configs.
   create_new_config(gcloud, args.project_id, args.new_config_dir,
-                    domain_verification_tag, bucket_replacements, args.gce_zone,
+                    domain_verification_tag, bucket_replacements,
+                    args.appengine_location, args.gce_zone,
                     args.firebase_api_key)
   prev_dir = os.getcwd()
   os.chdir(args.new_config_dir)
@@ -278,7 +283,7 @@ def execute(args):
   # Deploy App Engine and finish verification of domain.
   os.chdir(prev_dir)
   deploy_appengine(
-      gcloud, args.new_config_dir, appengine_region=args.appengine_region)
+      gcloud, args.new_config_dir, appengine_location=args.appengine_location)
   verifier.verify(appspot_domain)
 
   # App Engine service account requires:
