@@ -65,9 +65,6 @@ REPRODUCTION_TIMEOUT_LIMIT = 60
 # libFuzzer's exit code if a bug occurred in libFuzzer.
 LIBFUZZER_ERROR_EXITCODE = 1
 
-# libFuzzer's exit code if a bug was found in the target code.
-TARGET_ERROR_EXITCODE = 77
-
 # Defines value of runs argument when loading a testcase.
 RUNS_TO_REPRODUCE = 100
 
