@@ -261,6 +261,12 @@ class LibFuzzerEngine(engine.Engine):
     # Check if we crashed, and get the crash testcase path.
     crash_testcase_file_path = runner.get_testcase_path(log_lines)
 
+    # If we exited with a non-zero return code with no crash file in output from
+    # libFuzzer, this is most likely a startup crash. Use an empty testcase to
+    # to store it as a crash.
+    if not crash_testcase_file_path and fuzz_result.return_code:
+      crash_testcase_file_path = '/dev/null'
+
     # Parse stats information based on libFuzzer output.
     parsed_stats = libfuzzer.parse_log_stats(log_lines)
 

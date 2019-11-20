@@ -703,13 +703,17 @@ class IntegrationTests(BaseIntegrationTest):
     self.mock.log_error.side_effect = mocked_log_error
     _, corpus_path = setup_testcase_and_corpus('empty',
                                                'corpus_with_some_files')
-    os.environ['EXIT_FUZZER_CODE'] = '1'
 
     target_path = engine_common.find_fuzzer_path(DATA_DIR, 'exit_fuzzer')
     engine_impl = engine.LibFuzzerEngine()
     options = engine_impl.prepare(corpus_path, target_path, DATA_DIR)
-    engine_impl.fuzz(target_path, options, TEMP_DIR, 10)
+    options.extra_env['EXIT_FUZZER_CODE'] = '1'
+
+    results = engine_impl.fuzz(target_path, options, TEMP_DIR, 10)
     self.assertEqual(1, self.mock.log_error.call_count)
+
+    self.assertEqual(1, len(results.crashes))
+    self.assertEqual('/dev/null', results.crashes[0].input_path)
 
   @parameterized.parameterized.expand(['77', '27'])
   def test_exit_target_bug_not_logged(self, exit_code):
@@ -724,12 +728,16 @@ class IntegrationTests(BaseIntegrationTest):
     self.mock.log_error.side_effect = mocked_log_error
     _, corpus_path = setup_testcase_and_corpus('empty',
                                                'corpus_with_some_files')
-    os.environ['EXIT_FUZZER_CODE'] = exit_code
 
     target_path = engine_common.find_fuzzer_path(DATA_DIR, 'exit_fuzzer')
     engine_impl = engine.LibFuzzerEngine()
     options = engine_impl.prepare(corpus_path, target_path, DATA_DIR)
-    engine_impl.fuzz(target_path, options, TEMP_DIR, 10)
+    options.extra_env['EXIT_FUZZER_CODE'] = exit_code
+
+    results = engine_impl.fuzz(target_path, options, TEMP_DIR, 10)
+
+    self.assertEqual(1, len(results.crashes))
+    self.assertEqual('/dev/null', results.crashes[0].input_path)
 
   def test_fuzz_invalid_dict(self):
     """Tests fuzzing with an invalid dictionary (ParseDictionaryFile crash)."""
