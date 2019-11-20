@@ -264,9 +264,6 @@ def _get_build_directory(bucket_path, job_name):
 
 def _set_random_fuzz_target_for_fuzzing_if_needed(fuzz_targets, target_weights):
   """Sets a random fuzz target for fuzzing."""
-  fuzz_targets = list(fuzz_targets)
-  environment.set_value('FUZZ_TARGET_COUNT', len(fuzz_targets))
-
   fuzz_target = environment.get_value('FUZZ_TARGET')
   if fuzz_target:
     logs.log('Use previously picked fuzz target %s for fuzzing.' % fuzz_target)
@@ -278,6 +275,9 @@ def _set_random_fuzz_target_for_fuzzing_if_needed(fuzz_targets, target_weights):
   if not fuzz_targets:
     logs.log_error('No fuzz targets found. Unable to pick random one.')
     return None
+
+  fuzz_targets = list(fuzz_targets)
+  environment.set_value('FUZZ_TARGET_COUNT', len(fuzz_targets))
 
   fuzz_target = fuzzer_selection.select_fuzz_target(fuzz_targets,
                                                     target_weights)
