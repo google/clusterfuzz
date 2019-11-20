@@ -886,6 +886,7 @@ def set_bot_environment():
   # Add common environment variables needed by Bazel test runner.
   # See https://docs.bazel.build/versions/master/test-encyclopedia.html.
   os.environ['TEST_TMPDIR'] = get_value('BOT_TMPDIR')
+  os.environ['TZ'] = 'UTC'
 
   # Sets the default configuration. Can be overridden by job environment.
   set_default_vars()
