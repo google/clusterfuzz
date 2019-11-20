@@ -738,8 +738,8 @@ class FuchsiaBuild(RegularBuild):
     sanitizer = environment.get_memory_tool_name(
         environment.get_value('JOB_NAME')).lower()
     return [
-        str(target[0] + '/' + target[1])
-        for target in Fuzzer.filter(host.fuzzers, '', sanitizer, example_fuzzers=False)
+        str(target[0] + '/' + target[1]) for target in Fuzzer.filter(
+            host.fuzzers, '', sanitizer, example_fuzzers=False)
     ]
 
   def setup(self):
