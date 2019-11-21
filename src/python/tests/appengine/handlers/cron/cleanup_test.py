@@ -1036,11 +1036,7 @@ class GetTopCrashesForAllProjectsAndPlatforms(unittest.TestCase):
             'crash_state NOT IN UNNEST(["NULL"]) AND '
             'job_type IN UNNEST(["job"]) AND '
             'platform LIKE "linux%" AND '
-            'project = "project" AND '
-            'crash_state NOT LIKE "%Zygote%" AND '
-            'crash_state NOT LIKE "%__printf_chk%" AND '
-            'crash_state NOT LIKE "%gtk_%" AND '
-            'crash_state NOT LIKE "%sandbox::%"'),
+            'project = "project"'),
         group_having_clause='',
         sort_by='total_count',
         offset=0,
@@ -1996,7 +1992,7 @@ class CleanupUnusedFuzzTargetsTest(unittest.TestCase):
     data_types.FuzzTargetJob(
         fuzz_target_name='libFuzzer_binary1',
         job='job1',
-        last_run=datetime.datetime(2018, 1, 23)).put()
+        last_run=datetime.datetime(2018, 1, 15)).put()
 
     # FuzzTarget should be removed. No FuzzTargetJobs.
     data_types.FuzzTarget(
@@ -2009,11 +2005,11 @@ class CleanupUnusedFuzzTargetsTest(unittest.TestCase):
     data_types.FuzzTargetJob(
         fuzz_target_name='libFuzzer_binary3',
         job='job1',
-        last_run=datetime.datetime(2018, 1, 25)).put()
+        last_run=datetime.datetime(2018, 1, 20)).put()
     data_types.FuzzTargetJob(
         fuzz_target_name='libFuzzer_binary3',
         job='job2',
-        last_run=datetime.datetime(2018, 1, 23)).put()
+        last_run=datetime.datetime(2018, 1, 15)).put()
 
     # FuzzTarget should not be removed. All FuzzTargetJob valid.
     data_types.FuzzTarget(
@@ -2021,11 +2017,11 @@ class CleanupUnusedFuzzTargetsTest(unittest.TestCase):
     data_types.FuzzTargetJob(
         fuzz_target_name='libFuzzer_binary4',
         job='job1',
-        last_run=datetime.datetime(2018, 1, 25)).put()
+        last_run=datetime.datetime(2018, 1, 20)).put()
     data_types.FuzzTargetJob(
         fuzz_target_name='libFuzzer_binary4',
         job='job2',
-        last_run=datetime.datetime(2018, 1, 25)).put()
+        last_run=datetime.datetime(2018, 1, 20)).put()
 
     cleanup.cleanup_unused_fuzz_targets_and_jobs()
 
