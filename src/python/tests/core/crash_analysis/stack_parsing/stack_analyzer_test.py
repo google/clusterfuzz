@@ -2753,3 +2753,17 @@ class StackAnalyzerTestcase(unittest.TestCase):
     self._validate_get_crash_data(data, expected_type, expected_address,
                                   expected_state, expected_stacktrace,
                                   expected_security_flag)
+
+  def test_libfuzzer_overwrites_const_input(self):
+    """Test for libFuzzer when target tries to overwrite const input."""
+    os.environ['FUZZ_TARGET'] = 'ap-mgmt'
+    data = self._read_test_data('libfuzzer_overwrites_const_input.txt')
+    expected_type = 'Overwrites-const-input'
+    expected_address = ''
+    expected_state = 'ap-mgmt\n'
+
+    expected_stacktrace = data
+    expected_security_flag = False
+    self._validate_get_crash_data(data, expected_type, expected_address,
+                                  expected_state, expected_stacktrace,
+                                  expected_security_flag)

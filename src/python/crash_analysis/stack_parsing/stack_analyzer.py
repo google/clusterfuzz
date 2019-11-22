@@ -118,6 +118,8 @@ LIBFUZZER_DEADLY_SIGNAL_REGEX = re.compile(
     r'.*ERROR:\s*libFuzzer:\s*deadly signal')
 LIBFUZZER_FUZZ_TARGET_EXITED_REGEX = re.compile(
     r'.*ERROR:\s*libFuzzer:\s*fuzz target exited')
+LIBFUZZER_OVERWRITES_CONST_INPUT_REGEX = re.compile(
+    r'.*ERROR:\s*libFuzzer:\s*fuzz target overwrites its const input')
 LIBFUZZER_TIMEOUT_REGEX = re.compile(r'.*ERROR:\s*libFuzzer:\s*timeout')
 LIBRARY_NOT_FOUND_ANDROID_REGEX = re.compile(
     r'.*: library ([`\'"])(.*)\1 not found')
@@ -644,9 +646,11 @@ def filter_crash_parameters(state):
   if state.crash_type and not state.crash_state.strip():
     state.crash_state = state.process_name
 
-  # 4. For timeout and OOMs in fuzz targets, force use of fuzz target name since
-  # stack itself is not usable for deduplication.
-  if state.fuzz_target and state.crash_type in ['Out-of-memory', 'Timeout']:
+  # 4. For timeout, OOMs, const-input-overwrites in fuzz targets, force use of
+  # fuzz target name since stack itself is not usable for deduplication.
+  if state.fuzz_target and state.crash_type in [
+      'Out-of-memory', 'Timeout', 'Overwrites-const-input'
+  ]:
     state.crash_state = state.fuzz_target
 
   # 5. Add a trailing \n if it does not exist in crash state.
@@ -1621,6 +1625,14 @@ def get_crash_data(crash_data, symbolize_flag=True):
           line,
           state,
           new_type='Unexpected-exit',
+          reset=True)
+
+      # Libfuzzer fuzz target overwrites const input errors.
+      update_state_on_match(
+          LIBFUZZER_OVERWRITES_CONST_INPUT_REGEX,
+          line,
+          state,
+          new_type='Overwrites-const-input',
           reset=True)
 
       # Missing library (e.g. a shared library missing in build archive).
