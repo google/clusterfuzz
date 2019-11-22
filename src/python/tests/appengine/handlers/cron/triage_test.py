@@ -174,7 +174,7 @@ class CrashImportantTest(unittest.TestCase):
     testcase.one_time_crasher_flag = True
     testcase.put()
 
-    for crash_type in ['Hang', 'Out-of-memory', 'Stack-overflow', 'Timeout']:
+    for crash_type in ['Out-of-memory', 'Stack-overflow', 'Timeout']:
       testcase.crash_type = crash_type
       self.assertFalse(triage._is_crash_important(testcase))
 

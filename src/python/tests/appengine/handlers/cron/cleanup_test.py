@@ -1030,13 +1030,12 @@ class GetTopCrashesForAllProjectsAndPlatforms(unittest.TestCase):
         block='day',
         days=7,
         group_by='platform',
-        where_clause=(
-            'crash_type NOT IN UNNEST('
-            '["Hang", "Out-of-memory", "Stack-overflow", "Timeout"]) AND '
-            'crash_state NOT IN UNNEST(["NULL"]) AND '
-            'job_type IN UNNEST(["job"]) AND '
-            'platform LIKE "linux%" AND '
-            'project = "project"'),
+        where_clause=('crash_type NOT IN UNNEST('
+                      '["Out-of-memory", "Stack-overflow", "Timeout"]) AND '
+                      'crash_state NOT IN UNNEST(["NULL"]) AND '
+                      'job_type IN UNNEST(["job"]) AND '
+                      'platform LIKE "linux%" AND '
+                      'project = "project"'),
         group_having_clause='',
         sort_by='total_count',
         offset=0,

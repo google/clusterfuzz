@@ -35,7 +35,7 @@ from metrics import crash_stats
 from metrics import logs
 
 UNREPRODUCIBLE_CRASH_IGNORE_CRASH_TYPES = [
-    'Hang', 'Out-of-memory', 'Stack-overflow', 'Timeout'
+    'Out-of-memory', 'Stack-overflow', 'Timeout'
 ]
 TRIAGE_MESSAGE_KEY = 'triage_message'
 

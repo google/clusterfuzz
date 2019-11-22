@@ -50,7 +50,9 @@ TOP_CRASHES_LIMIT = 5
 TOP_CRASHES_DAYS_LOOKBEHIND = 7
 TOP_CRASHES_MIN_THRESHOLD = 50 * TOP_CRASHES_DAYS_LOOKBEHIND
 TOP_CRASHES_IGNORE_CRASH_TYPES = [
-    'Hang', 'Out-of-memory', 'Stack-overflow', 'Timeout'
+    'Out-of-memory',
+    'Stack-overflow',
+    'Timeout',
 ]
 TOP_CRASHES_IGNORE_CRASH_STATES = ['NULL']
 
