@@ -42,7 +42,6 @@ from metrics import logs
 
 GENERIC_INCORRECT_COMMENT = (
     '\n\nIf this is incorrect, please add the {label_text}')
-
 OSS_FUZZ_INCORRECT_COMMENT = ('\n\nIf this is incorrect, please file a bug on '
                               'https://github.com/google/oss-fuzz/issues/new')
 
@@ -55,12 +54,7 @@ TOP_CRASHES_IGNORE_CRASH_TYPES = [
 ]
 TOP_CRASHES_IGNORE_CRASH_STATES = ['NULL']
 
-# FIXME: Remove from this list once these crashes are fixed.
-TOP_CRASHES_IGNORE_CRASH_STATE_KEYWORDS = [
-    'Zygote', '__printf_chk', 'gtk_', 'sandbox::'
-]
-
-FUZZ_TARGET_UNUSED_THRESHOLD = 7
+FUZZ_TARGET_UNUSED_THRESHOLD = 15
 UNUSED_HEARTBEAT_THRESHOLD = 15
 
 
@@ -272,9 +266,6 @@ def get_top_crashes_for_all_projects_and_platforms():
           (json.dumps(TOP_CRASHES_IGNORE_CRASH_TYPES),
            json.dumps(TOP_CRASHES_IGNORE_CRASH_STATES), json.dumps(list(jobs)),
            json.dumps(platform.lower() + '%'), json.dumps(project_name)))
-
-      for keyword in TOP_CRASHES_IGNORE_CRASH_STATE_KEYWORDS:
-        where_clause += ' AND crash_state NOT LIKE "%%%s%%"' % keyword
 
       _, rows = crash_stats.get(
           end=last_hour,
