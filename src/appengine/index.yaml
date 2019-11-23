@@ -550,8 +550,3 @@ indexes:
   properties:
     - name: project
     - name: name
-
-- kind: Fuzzer
-  properties:
-  - name: jobs
-  - name: name
