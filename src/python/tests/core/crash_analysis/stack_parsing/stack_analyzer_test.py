@@ -498,9 +498,7 @@ class StackAnalyzerTestcase(unittest.TestCase):
     data = self._read_test_data('ubsan_pointer_overflow_null_zero_offset.txt')
     expected_type = 'Pointer-overflow'
     expected_address = ''
-    expected_state = ('cff_subfont_load\n'
-                      'cff_font_load\n'
-                      'cff_face_init\n')
+    expected_state = ('cff_subfont_load\n' 'cff_font_load\n' 'cff_face_init\n')
     expected_stacktrace = data
     expected_security_flag = False
 
