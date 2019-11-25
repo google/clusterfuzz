@@ -217,7 +217,7 @@ the *Bots* page.
 [deploy]: #deploying-new-changes
 [fuzzing engine]: {{ site.baseurl }}/reference/glossary/#fuzzing-engine
 [job]: {{ site.baseurl }}/reference/glossary/#job-type
-[preemptible]: {{ site.baseurl }}/architecture/#bots
+[preemptible]: {{ site.baseurl }}/architecture/#fuzzing-bots
 [sanitizer]: {{ site.baseurl }}/reference/glossary/#sanitizer
 [AddressSanitizer]: https://clang.llvm.org/docs/AddressSanitizer.html
 [LeakSanitizer]: https://clang.llvm.org/docs/LeakSanitizer.html

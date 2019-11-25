@@ -961,9 +961,6 @@ class IntegrationTestsAndroid(BaseIntegrationTest, android_helpers.AndroidTest):
     self.adb_path = android.adb.get_adb_path()
     self.hwasan_options = 'HWASAN_OPTIONS="%s"' % quote(
         environment.get_value('HWASAN_OPTIONS'))
-    self.ld_library_path = (
-        'LD_LIBRARY_PATH=' +
-        android.sanitizer.get_ld_library_path_for_sanitizers())
 
   def device_path(self, local_path):
     """Return device path for a local path."""
@@ -989,7 +986,7 @@ class IntegrationTestsAndroid(BaseIntegrationTest, android_helpers.AndroidTest):
                                    ['-timeout=60', '-rss_limit_mb=2048'], 65)
 
     self.assertEqual([
-        self.adb_path, 'shell', self.ld_library_path, self.hwasan_options,
+        self.adb_path, 'shell', self.hwasan_options,
         self.device_path(target_path), '-timeout=60', '-rss_limit_mb=2048',
         '-runs=100',
         self.device_path(testcase_path)
@@ -1019,7 +1016,6 @@ class IntegrationTestsAndroid(BaseIntegrationTest, android_helpers.AndroidTest):
     self.assertEqual([
         self.adb_path,
         'shell',
-        self.ld_library_path,
         self.hwasan_options,
         self.device_path(target_path),
         '-max_len=256',
@@ -1055,7 +1051,6 @@ class IntegrationTestsAndroid(BaseIntegrationTest, android_helpers.AndroidTest):
     self.assertEqual([
         self.adb_path,
         'shell',
-        self.ld_library_path,
         self.hwasan_options,
         self.device_path(target_path),
         '-max_len=100',
@@ -1103,7 +1098,6 @@ class IntegrationTestsAndroid(BaseIntegrationTest, android_helpers.AndroidTest):
     self.assertEqual([
         self.adb_path,
         'shell',
-        self.ld_library_path,
         self.hwasan_options,
         self.device_path(target_path),
         '-max_len=256',
