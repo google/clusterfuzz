@@ -661,6 +661,9 @@ class Build(BaseBuild):
       os.system('rm %s' % symbolic_link_target)
       os.system('ln -s %s %s' % (app_directory, symbolic_link_target))
 
+    if utils.is_chromium():
+      environment.set_value('FONTCONFIG_SYSROOT', app_directory)
+
     if environment.platform() != 'ANDROID':
       return
 
