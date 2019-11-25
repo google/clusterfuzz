@@ -703,13 +703,19 @@ class IntegrationTests(BaseIntegrationTest):
     self.mock.log_error.side_effect = mocked_log_error
     _, corpus_path = setup_testcase_and_corpus('empty',
                                                'corpus_with_some_files')
-    os.environ['EXIT_FUZZER_CODE'] = '1'
 
     target_path = engine_common.find_fuzzer_path(DATA_DIR, 'exit_fuzzer')
     engine_impl = engine.LibFuzzerEngine()
     options = engine_impl.prepare(corpus_path, target_path, DATA_DIR)
-    engine_impl.fuzz(target_path, options, TEMP_DIR, 10)
+    options.extra_env['EXIT_FUZZER_CODE'] = '1'
+
+    results = engine_impl.fuzz(target_path, options, TEMP_DIR, 10)
     self.assertEqual(1, self.mock.log_error.call_count)
+
+    self.assertEqual(1, len(results.crashes))
+    self.assertEqual(fuzzer_utils.get_temp_dir(),
+                     os.path.dirname(results.crashes[0].input_path))
+    self.assertEqual(0, os.path.getsize(results.crashes[0].input_path))
 
   @parameterized.parameterized.expand(['77', '27'])
   def test_exit_target_bug_not_logged(self, exit_code):
@@ -724,12 +730,18 @@ class IntegrationTests(BaseIntegrationTest):
     self.mock.log_error.side_effect = mocked_log_error
     _, corpus_path = setup_testcase_and_corpus('empty',
                                                'corpus_with_some_files')
-    os.environ['EXIT_FUZZER_CODE'] = exit_code
 
     target_path = engine_common.find_fuzzer_path(DATA_DIR, 'exit_fuzzer')
     engine_impl = engine.LibFuzzerEngine()
     options = engine_impl.prepare(corpus_path, target_path, DATA_DIR)
-    engine_impl.fuzz(target_path, options, TEMP_DIR, 10)
+    options.extra_env['EXIT_FUZZER_CODE'] = exit_code
+
+    results = engine_impl.fuzz(target_path, options, TEMP_DIR, 10)
+
+    self.assertEqual(1, len(results.crashes))
+    self.assertEqual(fuzzer_utils.get_temp_dir(),
+                     os.path.dirname(results.crashes[0].input_path))
+    self.assertEqual(0, os.path.getsize(results.crashes[0].input_path))
 
   def test_fuzz_invalid_dict(self):
     """Tests fuzzing with an invalid dictionary (ParseDictionaryFile crash)."""
@@ -802,12 +814,18 @@ class MinijailIntegrationTests(IntegrationTests):
     self.mock.log_error.side_effect = mocked_log_error
     _, corpus_path = setup_testcase_and_corpus('empty',
                                                'corpus_with_some_files')
-    os.environ['EXIT_FUZZER_CODE'] = exit_code
 
     target_path = engine_common.find_fuzzer_path(DATA_DIR, 'exit_fuzzer')
     engine_impl = engine.LibFuzzerEngine()
     options = engine_impl.prepare(corpus_path, target_path, DATA_DIR)
-    engine_impl.fuzz(target_path, options, TEMP_DIR, 10)
+    options.extra_env['EXIT_FUZZER_CODE'] = exit_code
+
+    results = engine_impl.fuzz(target_path, options, TEMP_DIR, 10)
+
+    self.assertEqual(1, len(results.crashes))
+    self.assertEqual(fuzzer_utils.get_temp_dir(),
+                     os.path.dirname(results.crashes[0].input_path))
+    self.assertEqual(0, os.path.getsize(results.crashes[0].input_path))
 
 
 @test_utils.integration
@@ -943,9 +961,6 @@ class IntegrationTestsAndroid(BaseIntegrationTest, android_helpers.AndroidTest):
     self.adb_path = android.adb.get_adb_path()
     self.hwasan_options = 'HWASAN_OPTIONS="%s"' % quote(
         environment.get_value('HWASAN_OPTIONS'))
-    self.ld_library_path = (
-        'LD_LIBRARY_PATH=' +
-        android.sanitizer.get_ld_library_path_for_sanitizers())
 
   def device_path(self, local_path):
     """Return device path for a local path."""
@@ -971,7 +986,7 @@ class IntegrationTestsAndroid(BaseIntegrationTest, android_helpers.AndroidTest):
                                    ['-timeout=60', '-rss_limit_mb=2048'], 65)
 
     self.assertEqual([
-        self.adb_path, 'shell', self.ld_library_path, self.hwasan_options,
+        self.adb_path, 'shell', self.hwasan_options,
         self.device_path(target_path), '-timeout=60', '-rss_limit_mb=2048',
         '-runs=100',
         self.device_path(testcase_path)
@@ -1001,7 +1016,6 @@ class IntegrationTestsAndroid(BaseIntegrationTest, android_helpers.AndroidTest):
     self.assertEqual([
         self.adb_path,
         'shell',
-        self.ld_library_path,
         self.hwasan_options,
         self.device_path(target_path),
         '-max_len=256',
@@ -1037,7 +1051,6 @@ class IntegrationTestsAndroid(BaseIntegrationTest, android_helpers.AndroidTest):
     self.assertEqual([
         self.adb_path,
         'shell',
-        self.ld_library_path,
         self.hwasan_options,
         self.device_path(target_path),
         '-max_len=100',
@@ -1085,7 +1098,6 @@ class IntegrationTestsAndroid(BaseIntegrationTest, android_helpers.AndroidTest):
     self.assertEqual([
         self.adb_path,
         'shell',
-        self.ld_library_path,
         self.hwasan_options,
         self.device_path(target_path),
         '-max_len=256',

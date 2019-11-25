@@ -284,6 +284,9 @@ def is_security_issue(crash_stacktrace, crash_type, crash_address):
   if crash_type == 'Missing-library':
     return False
 
+  if crash_type == 'Overwrites-const-input':
+    return False
+
   # LeakSanitizer, finds memory leaks.
   if '-leak' in crash_type:
     return False

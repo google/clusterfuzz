@@ -24,7 +24,7 @@ ClusterFuzz is written in Python and Go. It runs on **Linux**, **macOS**, and **
 ## Requirements
 ClusterFuzz runs on the [Google Cloud Platform](https://cloud.google.com/) and depends
 on a number of services:
-- Compute Engine (Not strictly necessary. [Fuzzing bots](#bots) can run anywhere.)
+- Compute Engine (Not strictly necessary. [Fuzzing bots](#fuzzing-bots) can run anywhere.)
 - App Engine
 - Cloud Storage
 - Cloud Datastore

@@ -51,6 +51,7 @@ _REQUIRED_SERVICES = (
     'monitoring.googleapis.com',
     'oslogin.googleapis.com',
     'pubsub.googleapis.com',
+    'redis.googleapis.com',
     'replicapool.googleapis.com',
     'replicapoolupdater.googleapis.com',
     'resourceviews.googleapis.com',

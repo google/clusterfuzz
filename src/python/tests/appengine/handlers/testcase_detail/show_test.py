@@ -157,10 +157,6 @@ class ConvertToLinesTest(unittest.TestCase):
     """Test convert timeout."""
     self._test_special_type('Timeout something')
 
-  def test_convert_hang(self):
-    """Test convert hang."""
-    self._test_special_type('Hang something')
-
   def test_convert_v8_correctness(self):
     """Test convert V8 correctness failure."""
     self._test_special_type('V8 correctness failure something')

@@ -41,7 +41,7 @@ def get_ld_library_path_for_sanitizers():
   sanitizer_libs = adb.run_shell_command(
       ['find', '/system/lib64/', '-name', '*san_standalone*'])
   if not sanitizer_libs:
-    raise Exception('Sanitizer library not found.')
+    return None
 
   sanitizer_lib_directory = os.path.dirname(sanitizer_libs.splitlines()[0])
   return '/system/lib64:' + sanitizer_lib_directory

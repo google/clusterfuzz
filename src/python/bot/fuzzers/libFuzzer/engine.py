@@ -15,6 +15,7 @@
 
 import os
 import re
+import tempfile
 
 from base import utils
 from bot.fuzzers import dictionary_manager
@@ -138,6 +139,11 @@ class LibFuzzerEngine(engine.Engine):
         strategy_info.extra_env, strategy_info.use_dataflow_tracing,
         strategy_info.is_mutations_run)
 
+  def _create_empty_testcase_file(self):
+    """Create an empty testcase file in temporary directory."""
+    _, path = tempfile.mkstemp(dir=fuzzer_utils.get_temp_dir())
+    return path
+
   def _create_temp_corpus_dir(self, name):
     """Create temporary corpus directory."""
     new_corpus_directory = os.path.join(fuzzer_utils.get_temp_dir(), name)
@@ -260,6 +266,12 @@ class LibFuzzerEngine(engine.Engine):
 
     # Check if we crashed, and get the crash testcase path.
     crash_testcase_file_path = runner.get_testcase_path(log_lines)
+
+    # If we exited with a non-zero return code with no crash file in output from
+    # libFuzzer, this is most likely a startup crash. Use an empty testcase to
+    # to store it as a crash.
+    if not crash_testcase_file_path and fuzz_result.return_code:
+      crash_testcase_file_path = self._create_empty_testcase_file()
 
     # Parse stats information based on libFuzzer output.
     parsed_stats = libfuzzer.parse_log_stats(log_lines)
