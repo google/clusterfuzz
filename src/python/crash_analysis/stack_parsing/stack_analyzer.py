@@ -504,6 +504,10 @@ STATE_STOP_MARKERS = [
 ]
 
 UBSAN_CRASH_TYPES_MAP = [
+    # Since this covers a superset of 'Invalid-bool-value', it is intentionally
+    # placed at the start of the list so that it will be overridden by bool.
+    (UBSAN_INVALID_ENUM_VALUE_REGEX, 'Invalid-enum-value'),
+
     (UBSAN_DIVISION_BY_ZERO_REGEX, 'Divide-by-zero'),
     (UBSAN_FLOAT_CAST_OVERFLOW_REGEX, 'Float-cast-overflow'),
     (UBSAN_INCORRECT_FUNCTION_POINTER_REGEX, 'Incorrect-function-pointer-type'),
@@ -523,10 +527,6 @@ UBSAN_CRASH_TYPES_MAP = [
     (UBSAN_SHIFT_ERROR_REGEX, 'Undefined-shift'),
     (UBSAN_UNREACHABLE_REGEX, 'Unreachable code'),
     (UBSAN_VLA_BOUND_REGEX, 'Non-positive-vla-bound-value'),
-
-    # Since this covers a superset of 'Invalid-bool-value', it is intentionally
-    # placed at the end of the list.
-    (UBSAN_INVALID_ENUM_VALUE_REGEX, 'Invalid-enum-value'),
 ]
 
 # Additional regexes for cleaning up format.
