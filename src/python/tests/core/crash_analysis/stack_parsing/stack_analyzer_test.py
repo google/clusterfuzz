@@ -13,7 +13,6 @@
 # limitations under the License.
 """Tests for the stack analyzer module."""
 
-import mock
 import os
 import unittest
 
