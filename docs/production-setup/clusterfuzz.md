@@ -157,4 +157,4 @@ We provide [Docker images] for running ClusterFuzz bots.
 [Google Compute Engine]: https://cloud.google.com/compute/
 [service account]: https://cloud.google.com/iam/docs/creating-managing-service-account-keys
 [Docker images]: https://github.com/google/clusterfuzz/tree/master/docker
-[preemptible]: {{ site.baseurl }}/architecture/#bots
+[preemptible]: {{ site.baseurl }}/architecture/#fuzzing-bots
