@@ -1,0 +1,7 @@
+Running: /mnt/scratch0/clusterfuzz/bot/inputs/fuzzer-testcases/crash-1ecd3fd5c9ee4c8545301c3dd5ddc333dbe7360c
+../../third_party/freetype/src/src/cff/cffload.c:2060:51: runtime error: unsupported ubsan error that needs a new signature
+    #0 0x564ca63e03d4 in a ../../file:1234:1
+    #1 0x564ca63de001 in b ../../file:1234:1
+    #2 0x564ca63d2426 in c ../../file:1234:1
+SUMMARY: UndefinedBehaviorSanitizer: undefined-behavior ../../file:1234:1
+Executed /mnt/scratch0/clusterfuzz/bot/inputs/fuzzer-testcases/crash-1ecd3fd5c9ee4c8545301c3dd5ddc333dbe7360c in 1 ms

@@ -1,0 +1,21 @@
+Running: /mnt/scratch0/clusterfuzz/bot/inputs/fuzzer-testcases/crash-1ecd3fd5c9ee4c8545301c3dd5ddc333dbe7360c
+../../third_party/freetype/src/src/cff/cffload.c:2060:51: runtime error: applying zero offset to null pointer
+    #0 0x564ca63e03d4 in cff_subfont_load third_party/freetype/src/src/cff/cffload.c:2060:51
+    #1 0x564ca63de001 in cff_font_load third_party/freetype/src/src/cff/cffload.c:2374:13
+    #2 0x564ca63d2426 in cff_face_init third_party/freetype/src/src/cff/cffobjs.c:615:15
+    #3 0x564ca63cdf98 in open_face third_party/freetype/src/src/base/ftobjs.c:1403:15
+    #4 0x564ca63c12ad in ft_open_face_internal third_party/freetype/src/src/base/ftobjs.c:2475:19
+    #5 0x564ca63c18e1 in FT_New_Memory_Face third_party/freetype/src/src/base/ftobjs.c:1493:12
+    #6 0x564ca68d4420 in CFX_Face::New(FT_LibraryRec_*, fxcrt::RetainPtr<fxcrt::Retainable> const&, pdfium::span<unsigned char const>, long) third_party/pdfium/core/fxge/cfx_face.cpp:15:7
+    #7 0x564ca68f4314 in CFX_FontMgr::NewFixedFace(fxcrt::RetainPtr<CFX_FontMgr::FontDesc> const&, pdfium::span<unsigned char const>, int) third_party/pdfium/core/fxge/cfx_fontmgr.cpp:151:7
+    #8 0x564ca68dea29 in CFX_Font::LoadEmbedded(pdfium::span<unsigned char const>, bool) third_party/pdfium/core/fxge/cfx_font.cpp:386:47
+    #9 0x564ca6c12bc9 in FPDFText_LoadFont third_party/pdfium/fpdfsdk/fpdf_edittext.cpp:493:15
+    #10 0x564ca62e7813 in LLVMFuzzerTestOneInput third_party/pdfium/testing/fuzzers/pdf_font_fuzzer.cc:22:23
+    #11 0x564ca6323806 in fuzzer::Fuzzer::ExecuteCallback(unsigned char const*, unsigned long) third_party/libFuzzer/src/FuzzerLoop.cpp:556:15
+    #12 0x564ca63083a5 in fuzzer::RunOneTest(fuzzer::Fuzzer*, char const*, unsigned long) third_party/libFuzzer/src/FuzzerDriver.cpp:292:6
+    #13 0x564ca630b4a9 in fuzzer::FuzzerDriver(int*, char***, int (*)(unsigned char const*, unsigned long)) third_party/libFuzzer/src/FuzzerDriver.cpp:774:9
+    #14 0x564ca632d87a in main third_party/libFuzzer/src/FuzzerMain.cpp:19:10
+    #15 0x7f84246c682f in __libc_start_main /build/glibc-LK5gWL/glibc-2.23/csu/../csu/libc-start.c:291
+    #16 0x564ca62d2169 in _start (/mnt/scratch0/clusterfuzz/bot/builds/chromium-browser-libfuzzer_linux-release-ubsan_ae530a86793cd6b8b56ce9af9159ac101396e802/revisions/libfuzzer-linux-release-718607/pdf_font_fuzzer+0x26c6169)
+SUMMARY: UndefinedBehaviorSanitizer: undefined-behavior ../../third_party/freetype/src/src/cff/cffload.c:2060:51 in
+Executed /mnt/scratch0/clusterfuzz/bot/inputs/fuzzer-testcases/crash-1ecd3fd5c9ee4c8545301c3dd5ddc333dbe7360c in 3782 ms

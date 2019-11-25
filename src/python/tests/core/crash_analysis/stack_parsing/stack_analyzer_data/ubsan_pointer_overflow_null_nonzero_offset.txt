@@ -1,0 +1,15 @@
+Running: /mnt/scratch0/clusterfuzz/bot/inputs/fuzzer-testcases/crash-711bfa4abfce32eefd009ed5e6aff6ad1df26753
+../../courgette/disassembler_win32.cc:241:44: runtime error: applying non-zero offset 255 to null pointer
+    #0 0x56431fe9163e in courgette::DisassemblerWin32::ParseRelocs(std::__1::vector<unsigned int, std::__1::allocator<unsigned int> >*) courgette/disassembler_win32.cc:241:44
+    #1 0x56431fe91ed9 in courgette::DisassemblerWin32::ExtractAbs32Locations() courgette/disassembler_win32.cc:369:8
+    #2 0x56431fe67c67 in courgette::Disassembler::CreateProgram(bool) courgette/disassembler.cc:59:17
+    #3 0x56431fe62d5f in courgette::CourgetteFlow::CreateAssemblyProgramFromDisassembler(courgette::CourgetteFlow::Group, bool) courgette/courgette_flow.cc:116:33
+    #4 0x56431fcd0e20 in LLVMFuzzerTestOneInput testing/libfuzzer/fuzzers/courgette_fuzzer.cc:17:8
+    #5 0x56431fd0c7e6 in fuzzer::Fuzzer::ExecuteCallback(unsigned char const*, unsigned long) third_party/libFuzzer/src/FuzzerLoop.cpp:556:15
+    #6 0x56431fcf1385 in fuzzer::RunOneTest(fuzzer::Fuzzer*, char const*, unsigned long) third_party/libFuzzer/src/FuzzerDriver.cpp:292:6
+    #7 0x56431fcf4489 in fuzzer::FuzzerDriver(int*, char***, int (*)(unsigned char const*, unsigned long)) third_party/libFuzzer/src/FuzzerDriver.cpp:774:9
+    #8 0x56431fd1674a in main third_party/libFuzzer/src/FuzzerMain.cpp:19:10
+    #9 0x7f79915ec82f in __libc_start_main /build/glibc-LK5gWL/glibc-2.23/csu/../csu/libc-start.c:291
+    #10 0x56431fcbb829 in _start (/mnt/scratch0/clusterfuzz/bot/builds/chromium-browser-libfuzzer_linux-release-ubsan_ae530a86793cd6b8b56ce9af9159ac101396e802/revisions/libfuzzer-linux-release-718607/courgette_fuzzer+0x23d829)
+SUMMARY: UndefinedBehaviorSanitizer: undefined-behavior ../../courgette/disassembler_win32.cc:241:44 in
+Executed /mnt/scratch0/clusterfuzz/bot/inputs/fuzzer-testcases/crash-711bfa4abfce32eefd009ed5e6aff6ad1df26753 in 4395 ms
