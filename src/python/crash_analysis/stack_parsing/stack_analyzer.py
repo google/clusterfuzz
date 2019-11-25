@@ -208,7 +208,9 @@ UBSAN_UNSIGNED_INTEGER_OVERFLOW_REGEX = re.compile(
 UBSAN_INTEGER_OVERFLOW_REGEX = re.compile(
     r'.*(integer overflow|negation of.*cannot be represented in type).*')
 UBSAN_INVALID_BOOL_VALUE_REGEX = re.compile(
-    r'.*not a valid value for type \'bool\'.*')
+    r'.*not a valid value for type \'(bool|BOOL)\'.*')
+UBSAN_INVALID_BUILTIN_REGEX = re.compile(r'.*, which is not a valid argument.*')
+UBSAN_INVALID_ENUM_VALUE_REGEX = re.compile(r'.*not a valid value for type.*')
 UBSAN_MISALIGNED_ADDRESS_REGEX = re.compile(r'.*misaligned address.*')
 UBSAN_NO_RETURN_VALUE_REGEX = re.compile(
     r'.*reached the end of a value-returning function.*')
@@ -223,8 +225,12 @@ UBSAN_POINTER_OVERFLOW_REGEX = re.compile(
     r'pointer index expression with base |'
     r'applying non-zero offset [0-9]+ to null pointer|'
     r'applying zero offset to null pointer).*')
+UBSAN_RETURNS_NONNULL_ATTRIBUTE_REGEX = re.compile(
+    r'.*null pointer returned from function declared to never return null.*')
 UBSAN_RUNTIME_ERROR_REGEX = re.compile(r'(.*): runtime error: (.*)')
 UBSAN_SHIFT_ERROR_REGEX = re.compile(r'.*shift.*')
+UBSAN_UNREACHABLE_REGEX = re.compile(
+    r'.*execution reached an unreachable program point.*')
 UBSAN_VLA_BOUND_REGEX = re.compile(
     r'.*variable length array bound evaluates to non-positive value.*')
 UBSAN_VPTR_REGEX = re.compile(
@@ -505,6 +511,7 @@ UBSAN_CRASH_TYPES_MAP = [
     (UBSAN_INTEGER_OVERFLOW_REGEX, 'Integer-overflow'),
     (UBSAN_UNSIGNED_INTEGER_OVERFLOW_REGEX, 'Unsigned-integer-overflow'),
     (UBSAN_INVALID_BOOL_VALUE_REGEX, 'Invalid-bool-value'),
+    (UBSAN_INVALID_BUILTIN_REGEX, 'Invalid-builtin-use'),
     (UBSAN_MISALIGNED_ADDRESS_REGEX, 'Misaligned-address'),
     (UBSAN_NO_RETURN_VALUE_REGEX, 'No-return-value'),
     (UBSAN_NULL_POINTER_READ_REGEX, 'Null-dereference READ'),
@@ -512,8 +519,14 @@ UBSAN_CRASH_TYPES_MAP = [
     (UBSAN_NULL_POINTER_WRITE_REGEX, 'Null-dereference WRITE'),
     (UBSAN_OBJECT_SIZE_REGEX, 'Object-size'),
     (UBSAN_POINTER_OVERFLOW_REGEX, 'Pointer-overflow'),
+    (UBSAN_RETURNS_NONNULL_ATTRIBUTE_REGEX, 'Invalid-null-return'),
     (UBSAN_SHIFT_ERROR_REGEX, 'Undefined-shift'),
+    (UBSAN_UNREACHABLE_REGEX, 'Unreachable code'),
     (UBSAN_VLA_BOUND_REGEX, 'Non-positive-vla-bound-value'),
+
+    # Since this covers a superset of 'Invalid-bool-value', it is intentionally
+    # placed at the end of the list.
+    (UBSAN_INVALID_ENUM_VALUE_REGEX, 'Invalid-enum-value'),
 ]
 
 # Additional regexes for cleaning up format.
