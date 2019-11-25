@@ -34,6 +34,10 @@ class GetOptionsFilePathTest(android_helpers.AndroidTest):
     """Test that options file path is returned inside device temp dir when
     device has ASan setup with partial instrumentation using asan_device_setup
     script."""
+    test_helpers.patch(self,
+                       ['platforms.android.settings.get_sanitizer_tool_name'])
+    self.mock.get_sanitizer_tool_name.return_value = None
+
     self.assertEqual('/data/local/tmp/asan.options',
                      sanitizer.get_options_file_path('asan'))
 
@@ -67,6 +71,9 @@ class SetOptionsTest(android_helpers.AndroidTest):
     super(SetOptionsTest, self).setUp()
 
     test_helpers.patch(self, ['metrics.logs.log_error'])
+
+    if settings.get_sanitizer_tool_name():
+      self.skipTest('This test is not applicable on a system sanitizer build.')
 
     # Clear and create temporary directory on device.
     self.device_temp_dir = constants.DEVICE_TMP_DIR
