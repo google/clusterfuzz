@@ -504,16 +504,10 @@ STATE_STOP_MARKERS = [
 ]
 
 UBSAN_CRASH_TYPES_MAP = [
-    # Since this covers a superset of 'Invalid-bool-value', it is intentionally
-    # placed at the start of the list so that it will be overridden by bool.
-    (UBSAN_INVALID_ENUM_VALUE_REGEX, 'Invalid-enum-value'),
-
     (UBSAN_DIVISION_BY_ZERO_REGEX, 'Divide-by-zero'),
     (UBSAN_FLOAT_CAST_OVERFLOW_REGEX, 'Float-cast-overflow'),
     (UBSAN_INCORRECT_FUNCTION_POINTER_REGEX, 'Incorrect-function-pointer-type'),
     (UBSAN_INDEX_OOB_REGEX, 'Index-out-of-bounds'),
-    (UBSAN_INTEGER_OVERFLOW_REGEX, 'Integer-overflow'),
-    (UBSAN_UNSIGNED_INTEGER_OVERFLOW_REGEX, 'Unsigned-integer-overflow'),
     (UBSAN_INVALID_BOOL_VALUE_REGEX, 'Invalid-bool-value'),
     (UBSAN_INVALID_BUILTIN_REGEX, 'Invalid-builtin-use'),
     (UBSAN_MISALIGNED_ADDRESS_REGEX, 'Misaligned-address'),
@@ -526,7 +520,13 @@ UBSAN_CRASH_TYPES_MAP = [
     (UBSAN_RETURNS_NONNULL_ATTRIBUTE_REGEX, 'Invalid-null-return'),
     (UBSAN_SHIFT_ERROR_REGEX, 'Undefined-shift'),
     (UBSAN_UNREACHABLE_REGEX, 'Unreachable code'),
+    (UBSAN_UNSIGNED_INTEGER_OVERFLOW_REGEX, 'Unsigned-integer-overflow'),
     (UBSAN_VLA_BOUND_REGEX, 'Non-positive-vla-bound-value'),
+
+    # The following types are supersets of other types, and should be placed
+    # at the end to avoid subsuming crashes from the more specialized types.
+    (UBSAN_INVALID_ENUM_VALUE_REGEX, 'Invalid-enum-value'),
+    (UBSAN_INTEGER_OVERFLOW_REGEX, 'Integer-overflow'),
 ]
 
 # Additional regexes for cleaning up format.
@@ -1296,8 +1296,9 @@ def get_crash_data(crash_data, symbolize_flag=True):
       state.crash_type = 'UNKNOWN'
 
       for ubsan_crash_regex, ubsan_crash_type in UBSAN_CRASH_TYPES_MAP:
-        update_state_on_match(
-            ubsan_crash_regex, reason, state, new_type=ubsan_crash_type)
+        if update_state_on_match(
+            ubsan_crash_regex, reason, state, new_type=ubsan_crash_type):
+          break
 
       if state.crash_type == 'UNKNOWN':
         logs.log_error(
