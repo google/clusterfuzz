@@ -133,7 +133,7 @@ def get_sanitizer_tool_name():
   if 'asan' in build_flavor:
     return 'asan'
 
-  return ''
+  return None
 
 
 def get_security_patch_level():
