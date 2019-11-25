@@ -2795,7 +2795,7 @@ class StackAnalyzerTestcase(unittest.TestCase):
     self.mock.log_error.assert_called_once_with(
         'Unknown UBSan crash type: '
         'unsupported ubsan error that needs a new signature')
-    
+
   def test_libfuzzer_overwrites_const_input(self):
     """Test for libFuzzer when target tries to overwrite const input."""
     os.environ['FUZZ_TARGET'] = 'ap-mgmt'
