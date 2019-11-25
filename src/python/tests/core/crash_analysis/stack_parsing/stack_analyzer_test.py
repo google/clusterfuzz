@@ -40,17 +40,14 @@ class StackAnalyzerTestcase(unittest.TestCase):
   def setUp(self):
     """Set environment variables used by stack analyzer tests."""
     helpers.patch_environ(self)
+    helpers.patch(self, [
+        'crash_analysis.stack_parsing.stack_symbolizer.symbolize_stacktrace',
+        'metrics.logs.log_error',
+    ])
 
     os.environ['JOB_NAME'] = TEST_JOB_NAME
 
-    self.symbolize_stacktrace_patcher = mock.patch(
-        'crash_analysis.stack_parsing.stack_symbolizer.symbolize_stacktrace',
-        side_effect=self._mock_symbolize_stacktrace)
-    self.symbolize_stacktrace_patcher.start()
-
-  def tearDown(self):
-    """Tear down environment."""
-    self.symbolize_stacktrace_patcher.stop()
+    self.mock.symbolize_stacktrace.side_effect = self._mock_symbolize_stacktrace
 
   def _read_test_data(self, name):
     """Helper function to read test data."""
@@ -489,6 +486,37 @@ class StackAnalyzerTestcase(unittest.TestCase):
     expected_state = ('SkRasterPipelineBlitter::blitMask\n'
                       'blitClippedMask\n'
                       'draw_nine_clipped\n')
+    expected_stacktrace = data
+    expected_security_flag = False
+
+    self._validate_get_crash_data(data, expected_type, expected_address,
+                                  expected_state, expected_stacktrace,
+                                  expected_security_flag)
+
+  def test_ubsan_pointer_overflow_null_zero_offset(self):
+    """Test the null pointer with zero offset case for pointer overflow."""
+    data = self._read_test_data('ubsan_pointer_overflow_null_zero_offset.txt')
+    expected_type = 'Pointer-overflow'
+    expected_address = ''
+    expected_state = ('cff_subfont_load\n'
+                      'cff_font_load\n'
+                      'cff_face_init\n')
+    expected_stacktrace = data
+    expected_security_flag = False
+
+    self._validate_get_crash_data(data, expected_type, expected_address,
+                                  expected_state, expected_stacktrace,
+                                  expected_security_flag)
+
+  def test_ubsan_pointer_overflow_null_nonzero_offset(self):
+    """Test the null pointer with nonzero offset case for pointer overflow."""
+    data = self._read_test_data(
+        'ubsan_pointer_overflow_null_nonzero_offset.txt')
+    expected_type = 'Pointer-overflow'
+    expected_address = ''
+    expected_state = ('courgette::DisassemblerWin32::ParseRelocs\n'
+                      'courgette::DisassemblerWin32::ExtractAbs32Locations\n'
+                      'courgette::Disassembler::CreateProgram\n')
     expected_stacktrace = data
     expected_security_flag = False
 
@@ -2753,3 +2781,20 @@ class StackAnalyzerTestcase(unittest.TestCase):
     self._validate_get_crash_data(data, expected_type, expected_address,
                                   expected_state, expected_stacktrace,
                                   expected_security_flag)
+
+  def test_undetected_ubsan_error_logs_error(self):
+    """Ensure that we log an error if we see an unknown UBSan error type."""
+    data = self._read_test_data('ubsan_unknown_logs_error.txt')
+    expected_type = 'UNKNOWN'
+    expected_address = ''
+    expected_state = 'a\nb\nc\n'
+    expected_stacktrace = data
+    expected_security_flag = False
+
+    self._validate_get_crash_data(data, expected_type, expected_address,
+                                  expected_state, expected_stacktrace,
+                                  expected_security_flag)
+
+    self.mock.log_error.assert_called_once_with(
+        'Unknown UBSan crash type: '
+        'unsupported ubsan error that needs a new signature')

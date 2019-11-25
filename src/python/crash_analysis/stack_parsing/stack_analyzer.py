@@ -24,6 +24,7 @@ from base import utils
 from config import local_config
 from crash_analysis import crash_analyzer
 from crash_analysis.stack_parsing import stack_parser
+from metrics import logs
 from system import environment
 
 C_CPP_EXTENSIONS = ['c', 'cc', 'cpp', 'cxx', 'h', 'hh', 'hpp', 'hxx']
@@ -217,7 +218,9 @@ UBSAN_OBJECT_SIZE_REGEX = re.compile(
     r'.*address .* with insufficient space for an object of type.*')
 UBSAN_POINTER_OVERFLOW_REGEX = re.compile(
     r'.*((addition|subtraction) of unsigned offset |'
-    r'pointer index expression with base ).*')
+    r'pointer index expression with base |'
+    r'applying non-zero offset [0-9]+ to null pointer|'
+    r'applying zero offset to null pointer).*')
 UBSAN_RUNTIME_ERROR_REGEX = re.compile(r'(.*): runtime error: (.*)')
 UBSAN_SHIFT_ERROR_REGEX = re.compile(r'.*shift.*')
 UBSAN_VLA_BOUND_REGEX = re.compile(
@@ -1278,6 +1281,10 @@ def get_crash_data(crash_data, symbolize_flag=True):
       for ubsan_crash_regex, ubsan_crash_type in UBSAN_CRASH_TYPES_MAP:
         update_state_on_match(
             ubsan_crash_regex, reason, state, new_type=ubsan_crash_type)
+
+      if state.crash_type == 'UNKNOWN':
+        logs.log_error(
+            'Unknown UBSan crash type: {reason}'.format(reason=reason))
 
       state.crash_address = ''
       state.crash_state = ''
