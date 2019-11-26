@@ -1,6 +1,13 @@
 Change Log
 ==========
 
+## Version 1.7.0
+- Better crash type reporting on various UBSan issues.
+- Initial support for Honggfuzz.
+- Additional fixes in preparation for migration to Python 3.
+- Improved HWASan support for Android.
+- Various bug fixes.
+
 ## Version 1.6.1
 - Various bug fixes.
 
