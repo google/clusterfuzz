@@ -126,7 +126,7 @@ def run_one_test_parallel(args):
     raise
 
 
-def run_tests_single_core(args, test_directory, top_level_dir, enable_coverage):
+def run_tests_single_core(args, test_directory, top_level_dir):
   """Run tests (single CPU)."""
   suites = unittest.loader.TestLoader().discover(
       test_directory, pattern=args.pattern, top_level_dir=top_level_dir)
@@ -278,7 +278,6 @@ def execute(args):
     # Disable logging.
     logging.disable(logging.CRITICAL)
 
-  enable_coverage = args.pattern is None
   if args.pattern is None:
     args.pattern = '*_test.py'
 
@@ -286,4 +285,4 @@ def execute(args):
     # TODO(tanin): Support coverage.
     run_tests_parallel(args, test_directory, top_level_dir)
   else:
-    run_tests_single_core(args, test_directory, top_level_dir, enable_coverage)
+    run_tests_single_core(args, test_directory, top_level_dir)
