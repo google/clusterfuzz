@@ -74,12 +74,17 @@ TESTCASE_REVISION_URL = (
     'https://{domain}/revisions?job={job_type}&revision={revision}')
 
 FILE_UNREPRODUCIBLE_TESTCASE_TEXT = (
+    '***************************************\n'
     'Note: This crash might not be reproducible with the provided testcase. '
-    'That said, for the past %d days we\'ve been seeing this crash frequently. '
-    'If you are unable to reproduce this, please try a speculative fix based '
-    'on the crash stacktrace in the report. The fix can be verified by looking '
-    'at the crash statistics in the report, a day after the fix is deployed. '
-    'We will auto-close the bug if the crash is not seen for %d days.' %
+    'That said, for the past %d days, we\'ve been seeing this crash '
+    'frequently.\n\n'
+    'If you are unable to reproduce this, please try the following options:\n'
+    '- Run testcase multiple times for a longer duration.\n'
+    '- Run fuzzing without testcase argument to hit the same crash signature.\n'
+    '- Try a speculative fix based on the crash stacktrace and verify if it '
+    'works by looking at the crash statistics in the report.\n\n'
+    'We will auto-close the bug if the crash is not seen for %d days.\n'
+    '***************************************' %
     (data_types.FILE_CONSISTENT_UNREPRODUCIBLE_TESTCASE_DEADLINE,
      data_types.UNREPRODUCIBLE_TESTCASE_WITH_BUG_DEADLINE))
 
