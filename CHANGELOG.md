@@ -5,7 +5,9 @@ Change Log
 - Better crash type reporting on various UBSan issues.
 - Initial support for Honggfuzz.
 - Additional fixes in preparation for migration to Python 3.
-- Improved HWASan support for Android.
+- Migrated off deprecated App Engine Memcache to Cloud MemoryStore for Redis.
+- Added libFuzzer fuzzing support for Android (using HWASan).
+- Automatically correct certain common mistakes in dictionaries.
 - Various bug fixes.
 
 ## Version 1.6.1
