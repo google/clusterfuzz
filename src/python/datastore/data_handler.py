@@ -81,10 +81,10 @@ FILE_UNREPRODUCIBLE_TESTCASE_TEXT = (
     'It may be possible to reproduce by trying the following options:\n'
     '- Run testcase multiple times for a longer duration.\n'
     '- Run fuzzing without testcase argument to hit the same crash signature.\n'
-    '\nIt is recommended to try a speculative fix based on the crash '
-    'stacktrace and verify if it works by looking at the crash statistics in '
-    'the report. We will auto-close the bug if the crash is not seen for '
-    '%d days.\n'
+    '\nIf it still does not reproduce, try a speculative fix based on the '
+    'crash stacktrace and verify if it works by looking at the crash '
+    'statistics in the report. We will auto-close the bug if the crash is not '
+    'seen for %d days.\n'
     '******************************************************************' %
     (data_types.FILE_CONSISTENT_UNREPRODUCIBLE_TESTCASE_DEADLINE,
      data_types.UNREPRODUCIBLE_TESTCASE_WITH_BUG_DEADLINE))
