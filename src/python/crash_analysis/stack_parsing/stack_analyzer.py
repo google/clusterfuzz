@@ -206,7 +206,8 @@ UBSAN_INDEX_OOB_REGEX = re.compile(r'.*out of bounds for type.*')
 UBSAN_UNSIGNED_INTEGER_OVERFLOW_REGEX = re.compile(
     r'.*unsigned integer overflow.*')
 UBSAN_INTEGER_OVERFLOW_REGEX = re.compile(
-    r'.*(integer overflow|negation of.*cannot be represented in type).*')
+    r'.*(integer overflow|'
+    r'(negation|division) of.*cannot be represented in type).*')
 UBSAN_INVALID_BOOL_VALUE_REGEX = re.compile(
     r'.*not a valid value for type \'(bool|BOOL)\'.*')
 UBSAN_INVALID_BUILTIN_REGEX = re.compile(r'.*, which is not a valid argument.*')
@@ -214,6 +215,8 @@ UBSAN_INVALID_ENUM_VALUE_REGEX = re.compile(r'.*not a valid value for type.*')
 UBSAN_MISALIGNED_ADDRESS_REGEX = re.compile(r'.*misaligned address.*')
 UBSAN_NO_RETURN_VALUE_REGEX = re.compile(
     r'.*reached the end of a value-returning function.*')
+UBSAN_NULL_ARGUMENT_REGEX = re.compile(
+    r'.*null pointer passed as .*, which is declared to never be null.*')
 UBSAN_NULL_POINTER_READ_REGEX = re.compile(r'.*load of null pointer.*')
 UBSAN_NULL_POINTER_REFERENCE_REGEX = re.compile(
     r'.*(binding to|access within|call on) null pointer.*')
@@ -512,6 +515,7 @@ UBSAN_CRASH_TYPES_MAP = [
     (UBSAN_INVALID_BUILTIN_REGEX, 'Invalid-builtin-use'),
     (UBSAN_MISALIGNED_ADDRESS_REGEX, 'Misaligned-address'),
     (UBSAN_NO_RETURN_VALUE_REGEX, 'No-return-value'),
+    (UBSAN_NULL_ARGUMENT_REGEX, 'Invalid-null-argument'),
     (UBSAN_NULL_POINTER_READ_REGEX, 'Null-dereference READ'),
     (UBSAN_NULL_POINTER_REFERENCE_REGEX, 'Potential-null-reference'),
     (UBSAN_NULL_POINTER_WRITE_REGEX, 'Null-dereference WRITE'),
