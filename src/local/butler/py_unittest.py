@@ -17,11 +17,6 @@ from future import standard_library
 standard_library.install_aliases()
 from builtins import object
 from builtins import range
-import coverage
-
-# Coverage needs to be at the top of the page. See: go/why-top-cov
-COV = coverage.Coverage(config_file='.coveragerc')
-COV.start()
 
 import io
 import itertools
@@ -86,28 +81,6 @@ class TrackedTestRunner(unittest.TextTestRunner):
     return result
 
 
-class MeasureCoverage(object):
-  """Use with `with` statement for measuring test coverage."""
-
-  def __init__(self, enabled):
-    self.enabled = enabled
-
-  def __enter__(self):
-    pass
-
-  def __exit__(self, exc_type, value, _):
-    COV.stop()
-
-    if not self.enabled:
-      return
-
-    COV.html_report(directory='coverage')
-
-    print('The tests cover %0.2f%% of the source code.' %
-          COV.report(file=io.BytesIO()))
-    print('The test coverage by lines can be seen at ./coverage/index.html')
-
-
 class TestResult(object):
   """Test results."""
 
@@ -153,16 +126,16 @@ def run_one_test_parallel(args):
     raise
 
 
-def run_tests_single_core(args, test_directory, top_level_dir, enable_coverage):
+def run_tests_single_core(args, test_directory, top_level_dir):
   """Run tests (single CPU)."""
   suites = unittest.loader.TestLoader().discover(
       test_directory, pattern=args.pattern, top_level_dir=top_level_dir)
 
-  with MeasureCoverage(enable_coverage):
-    # Verbosity=2 since we want to see real-time test execution with test name
-    # and result.
-    result = TrackedTestRunner(
-        verbosity=2, buffer=(not args.unsuppress_output)).run(suites)
+  # TODO(mbarbella): Re-implement code coverage after migrating to Python 3.
+  # Verbosity=2 since we want to see real-time test execution with test name
+  # and result.
+  result = TrackedTestRunner(
+      verbosity=2, buffer=(not args.unsuppress_output)).run(suites)
 
   if result.errors or result.failures:
     sys.exit(1)
@@ -305,7 +278,6 @@ def execute(args):
     # Disable logging.
     logging.disable(logging.CRITICAL)
 
-  enable_coverage = args.pattern is None
   if args.pattern is None:
     args.pattern = '*_test.py'
 
@@ -313,4 +285,4 @@ def execute(args):
     # TODO(tanin): Support coverage.
     run_tests_parallel(args, test_directory, top_level_dir)
   else:
-    run_tests_single_core(args, test_directory, top_level_dir, enable_coverage)
+    run_tests_single_core(args, test_directory, top_level_dir)
