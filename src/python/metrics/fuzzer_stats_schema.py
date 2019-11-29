@@ -467,7 +467,29 @@ _HONGGFUZZ_SCHEMA = [{
     'mode': 'NULLABLE',
     'name': 'speed',
     'type': 'INTEGER'
+}, {
+    'mode': 'NULLABLE',
+    'name': 'kind',
+    'type': 'STRING'
+}, {
+    'mode': 'NULLABLE',
+    'name': 'timestamp',
+    'type': 'FLOAT'
+}, {
+    'mode': 'REPEATED',
+    'name': 'command',
+    'type': 'STRING'
+}, {
+    'mode': 'NULLABLE',
+    'name': 'build_revision',
+    'type': 'INTEGER'
+}, {
+    'mode': 'NULLABLE',
+    'name': 'fuzzer',
+    'type': 'STRING'
 }]
+
+# TODO(ochang): Factor out common schema items.
 
 _SCHEMA = {
     'afl': _AFL_SCHEMA,
