@@ -136,7 +136,7 @@ class QemuProcess(object):
 
     # yapf: disable
     qemu_args = [
-        '-m', '2048',
+        '-m', '3072',
         '-nographic',
         '-kernel', qemu_vars['kernel_path'],
         '-initrd', qemu_vars['initrd_path'],

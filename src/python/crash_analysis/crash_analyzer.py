@@ -73,8 +73,14 @@ UBSAN_CRASH_TYPES_NON_SECURITY = [
     # being used in LLVM and C++, as there is no "signed int" type.
     'Integer-overflow',
     'Invalid-bool-value',
+    'Invalid-builtin-use',
+    'Incorrect-function-pointer-type',
+    'Invalid-enum-value',
+    'Invalid-null-argument',
+    'Invalid-null-return',
     'Misaligned-address',
     'No-return-value',
+    'Non-positive-vla-bound-value',
     'Pointer-overflow',
     'Potential-null-reference',
     'Undefined-shift',
@@ -83,6 +89,7 @@ UBSAN_CRASH_TYPES_NON_SECURITY = [
     # issues may cause some bugs, unless it's not an intended overflow, e.g. in
     # math of crpto libraries.
     'Unsigned-integer-overflow',
+    'Unreachable code',
 ]
 UBSAN_CRASH_TYPES_SECURITY = [
     'Bad-cast',

@@ -427,10 +427,74 @@ _LIBFUZZER_SCHEMA = [{
     'type': 'STRING'
 }]
 
+_HONGGFUZZ_SCHEMA = [{
+    'mode': 'NULLABLE',
+    'name': 'timeout_count',
+    'type': 'INTEGER'
+}, {
+    'mode': 'NULLABLE',
+    'name': 'branch_coverage_percent',
+    'type': 'INTEGER'
+}, {
+    'mode': 'NULLABLE',
+    'name': 'guard_nb',
+    'type': 'INTEGER'
+}, {
+    'mode': 'NULLABLE',
+    'name': 'crashes_count',
+    'type': 'INTEGER'
+}, {
+    'mode': 'NULLABLE',
+    'name': 'new_units_added',
+    'type': 'INTEGER'
+}, {
+    'mode': 'NULLABLE',
+    'name': 'slowest_unit_ms',
+    'type': 'INTEGER'
+}, {
+    'mode': 'NULLABLE',
+    'name': 'peak_rss_mb',
+    'type': 'INTEGER'
+}, {
+    'mode': 'NULLABLE',
+    'name': 'iterations',
+    'type': 'INTEGER'
+}, {
+    'mode': 'NULLABLE',
+    'name': 'time',
+    'type': 'INTEGER'
+}, {
+    'mode': 'NULLABLE',
+    'name': 'speed',
+    'type': 'INTEGER'
+}, {
+    'mode': 'NULLABLE',
+    'name': 'kind',
+    'type': 'STRING'
+}, {
+    'mode': 'NULLABLE',
+    'name': 'timestamp',
+    'type': 'FLOAT'
+}, {
+    'mode': 'REPEATED',
+    'name': 'command',
+    'type': 'STRING'
+}, {
+    'mode': 'NULLABLE',
+    'name': 'build_revision',
+    'type': 'INTEGER'
+}, {
+    'mode': 'NULLABLE',
+    'name': 'fuzzer',
+    'type': 'STRING'
+}]
+
+# TODO(ochang): Factor out common schema items.
+
 _SCHEMA = {
-    'libFuzzer': _LIBFUZZER_SCHEMA,
-    'libFuzzer_test': _LIBFUZZER_SCHEMA,
     'afl': _AFL_SCHEMA,
+    'honggfuzz': _HONGGFUZZ_SCHEMA,
+    'libFuzzer': _LIBFUZZER_SCHEMA,
 }
 
 
