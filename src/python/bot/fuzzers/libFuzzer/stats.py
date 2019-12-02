@@ -54,7 +54,10 @@ LIBFUZZER_LOG_START_INITED_REGEX = re.compile(
     r'#\d+\s+INITED\s+cov:\s+(\d+)\s+ft:\s+(\d+).*')
 LIBFUZZER_LOG_START_INITED_NO_COVERAGE_REGEX = re.compile(
     r'#\d+\s+INITED\s+ft:\s+(\d+).*')
-LIBFUZZER_MERGE_LOG_EDGE_COVERAGE_REGEX = re.compile(r'#\d+.*cov:\s+(\d+).*')
+LIBFUZZER_MERGE_LOG_STATS_REGEX = re.compile(
+    r'MERGE-OUTER:\s+\d+\s+new files with'
+    r'\s+(\d+)\s+new features added;'
+    r'\s+(\d+)\s+new coverage edges.*')
 LIBFUZZER_MODULES_LOADED_REGEX = re.compile(
     r'^INFO:\s+Loaded\s+\d+\s+(modules|PC tables)\s+\((\d+)\s+.*\).*')
 
@@ -323,10 +326,13 @@ def parse_performance_features(log_lines,
 def parse_stats_from_merge_log(log_lines):
   """Extract stats from a log produced by libFuzzer run with -merge=1."""
   stats = {}
-  for line in log_lines:
-    match = LIBFUZZER_MERGE_LOG_EDGE_COVERAGE_REGEX.match(line)
+
+  # Revese the list as an optimization. The line of our interest is the last.
+  for line in log_lines[::-1]:
+    match = LIBFUZZER_MERGE_LOG_STATS_REGEX.match(line)
     if match:
-      stats['merge_edge_coverage'] = int(match.group(1))
-      continue
+      stats['edge_coverage'] = int(match.group(2))
+      stats['feature_coverage'] = int(match.group(1))
+      break
 
   return stats

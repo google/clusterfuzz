@@ -238,14 +238,17 @@ class LibFuzzerCommon(object):
       additional_args = []
 
     additional_args.append(constants.MERGE_ARGUMENT)
-    if artifact_prefix:
-      additional_args.append(
-          '%s%s' % (constants.ARTIFACT_PREFIX_FLAG,
-                    self._normalize_artifact_prefix(artifact_prefix)))
 
     extra_env = {}
     if tmp_dir:
       extra_env['TMPDIR'] = tmp_dir
+      additional_args.append('%s%s' % (constants.MERGE_CONTROL_FILE_ARGUMENT,
+                                       os.path.join(tmp_dir, 'MCF')))
+
+    if artifact_prefix:
+      additional_args.append(
+          '%s%s' % (constants.ARTIFACT_PREFIX_FLAG,
+                    self._normalize_artifact_prefix(artifact_prefix)))
 
     additional_args.extend(corpus_directories)
     return self.run_and_wait(

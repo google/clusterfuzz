@@ -47,6 +47,8 @@ CLEANSE_CRASH_ARGUMENT = '-cleanse_crash=1'
 
 MERGE_ARGUMENT = '-merge=1'
 
+MERGE_CONTROL_FILE_ARGUMENT = '-merge_control_file='
+
 MINIMIZE_CRASH_ARGUMENT = '-minimize_crash=1'
 
 PRINT_FINAL_STATS_ARGUMENT = '-print_final_stats=1'

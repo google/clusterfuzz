@@ -111,15 +111,17 @@ class Engine(object):
     """
     raise NotImplementedError
 
-  def minimize_corpus(self, target_path, arguments, input_dirs, output_dir,
-                      reproducers_dir, max_time):
+  def minimize_corpus(self, target_path, arguments, existing_corpus_dirs,
+                      new_corpus_dir, output_corpus_dir, reproducers_dir,
+                      max_time):
     """Optional (but recommended): run corpus minimization.
 
     Args:
       target_path: Path to the target.
       arguments: Additional arguments needed for corpus minimization.
-      input_dirs: Input corpora.
-      output_dir: Output directory to place minimized corpus.
+      existing_corpus_dirs: Input corpora that existed before the fuzzing run.
+      new_corpus_dir: Input corpus that was generated during the fuzzing run.
+      output_corpus_dir: Output directory to place minimized corpus.
       reproducers_dir: The directory to put reproducers in when crashes are
           found.
       max_time: Maximum allowed time for the minimization.

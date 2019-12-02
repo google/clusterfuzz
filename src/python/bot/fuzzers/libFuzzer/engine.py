@@ -13,6 +13,7 @@
 # limitations under the License.
 """libFuzzer engine interface."""
 
+import copy
 import os
 import re
 import tempfile
@@ -171,8 +172,7 @@ class LibFuzzerEngine(engine.Engine):
     # anyway.
     merge_corpus = self._create_merge_corpus_dir()
 
-    merge_dirs = [new_corpus_dir]
-    merge_dirs.extend(fuzz_corpus_dirs)
+    merge_dirs = copy.copy(fuzz_corpus_dirs)
 
     # Merge the new units with the initial corpus.
     if corpus_dir not in merge_dirs:
@@ -185,8 +185,9 @@ class LibFuzzerEngine(engine.Engine):
       result = self.minimize_corpus(
           target_path=target_path,
           arguments=arguments,
-          input_dirs=merge_dirs,
-          output_dir=merge_corpus,
+          existing_corpus_dirs=merge_dirs,
+          new_corpus_dir=new_corpus_dir,
+          output_corpus_dir=merge_corpus,
           reproducers_dir=None,
           max_time=engine_common.get_merge_timeout(
               libfuzzer.DEFAULT_MERGE_TIMEOUT))
@@ -195,17 +196,14 @@ class LibFuzzerEngine(engine.Engine):
       new_corpus_len = shell.get_directory_file_count(corpus_dir)
       new_units_added = new_corpus_len - old_corpus_len
 
-      if result.logs:
-        stat_overrides.update(
-            stats.parse_stats_from_merge_log(result.logs.splitlines()))
+      stat_overrides.update(result.stats)
     except MergeError:
       logs.log_warn('Merge failed', target=os.path.basename(target_path))
 
     stat_overrides['new_units_added'] = new_units_added
 
-    logs.log('Stats calculated', stats=stat_overrides)
-
     # Record the stats to make them easily searchable in stackdriver.
+    logs.log('Stats calculated', stats=stat_overrides)
     if new_units_added:
       logs.log('New units added to corpus: %d.' % new_units_added)
     else:
@@ -353,15 +351,17 @@ class LibFuzzerEngine(engine.Engine):
     return engine.ReproduceResult(result.command, result.return_code,
                                   result.time_executed, result.output)
 
-  def minimize_corpus(self, target_path, arguments, input_dirs, output_dir,
-                      reproducers_dir, max_time):
+  def minimize_corpus(self, target_path, arguments, existing_corpus_dirs,
+                      new_corpus_dir, output_corpus_dir, reproducers_dir,
+                      max_time):
     """Optional (but recommended): run corpus minimization.
 
     Args:
       target_path: Path to the target.
       arguments: Additional arguments needed for corpus minimization.
-      input_dirs: Input corpora.
-      output_dir: Output directory to place minimized corpus.
+      existing_corpus_dirs: Input corpora that existed before the fuzzing run.
+      new_corpus_dir: Input corpus that was generated during the fuzzing run.
+      output_corpus_dir: Output directory to place minimized corpus.
       reproducers_dir: The directory to put reproducers in when crashes are
           found.
       max_time: Maximum allowed time for the minimization.
@@ -372,23 +372,57 @@ class LibFuzzerEngine(engine.Engine):
     runner = libfuzzer.get_runner(target_path)
     libfuzzer.set_sanitizer_options(target_path)
     merge_tmp_dir = self._create_temp_corpus_dir('merge-workdir')
+    merge_stats = {}
 
-    merge_result = runner.merge(
-        [output_dir] + input_dirs,
-        merge_timeout=max_time,
-        tmp_dir=merge_tmp_dir,
-        additional_args=arguments,
-        artifact_prefix=reproducers_dir)
+    # Two step merge process to obtain accurate stats for the new corpus units.
+    # See https://reviews.llvm.org/D66107 for a more detailed description.
+    def _merge_step(corpus_directories, step):
+      """Execute the fuzz target, check the result, record the stats."""
+      result = runner.merge(
+          corpus_directories,
+          merge_timeout=max_time,
+          tmp_dir=merge_tmp_dir,
+          additional_args=arguments,
+          artifact_prefix=reproducers_dir)
 
-    if merge_result.timed_out:
-      raise MergeError('Merging new testcases timed out')
+      if result.timed_out:
+        raise MergeError('Merging new testcases (step %d) timed out' % step)
 
-    if merge_result.return_code != 0:
-      raise MergeError('Merging new testcases failed')
+      if result.return_code != 0:
+        raise MergeError('Merging new testcases (step %d) failed' % step)
+
+      step_stats = stats.parse_stats_from_merge_log(result.output.splitlines())
+      if not step_stats:
+        raise MergeError('Stats from the merge (step %d) are missing' % step)
+
+      return result, step_stats
+
+    # Step 1. Use only existing corpus and collect "initial" stats.
+    corpus_directories = [output_corpus_dir] + existing_corpus_dirs
+    result_1, stats_1 = _merge_step(corpus_directories, 1)
+    merge_stats['initial_edge_coverage'] = stats_1['edge_coverage']
+    merge_stats['initial_feature_coverage'] = stats_1['feature_coverage']
+
+    # Clear the output dir as it does not have any new units at this point.
+    engine_common.recreate_directory(output_corpus_dir)
+
+    # Step 2. Process the new corpus units as well.
+    corpus_directories.append(new_corpus_dir)
+    result_2, stats_2 = _merge_step(corpus_directories, 2)
+    merge_stats['edge_coverage'] = stats_2['edge_coverage']
+    merge_stats['feature_coverage'] = stats_2['feature_coverage']
+
+    # Diff the stats to obtain accurate values for the new corpus units.
+    merge_stats['new_edges'] = (
+        merge_stats['edge_coverage'] - merge_stats['initial_edge_coverage'])
+    merge_stats['new_features'] = (
+        merge_stats['feature_coverage'] -
+        merge_stats['initial_feature_coverage'])
 
     # TODO(ochang): Get crashes found during merge.
-    return engine.FuzzResult(merge_result.output, merge_result.command, [], {},
-                             merge_result.time_executed)
+    return engine.FuzzResult(result_1.output + result_2.output,
+                             result_2.command, [], merge_stats,
+                             result_1.time_executed + result_2.time_executed)
 
   def minimize_testcase(self, target_path, arguments, input_path, output_path,
                         max_time):
