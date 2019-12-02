@@ -17,6 +17,7 @@
 <link rel="import" href="../../../bower_components/iron-ajax/iron-ajax.html">
 <link rel="import" href="../../../bower_components/paper-button/paper-button.html">
 <link rel="import" href="../../../bower_components/paper-dialog/paper-dialog.html">
+<link rel="import" href="../../../bower_components/paper-dialog-scrollable/paper-dialog-scrollable.html">
 <link rel="import" href="../../../bower_components/paper-spinner/paper-spinner.html">
 
 <dom-module id="ajax-dialog">
@@ -95,17 +96,19 @@
       debounce-duration="1000"></iron-ajax>
     <paper-dialog id="dialog" opened="{{opened}}" modal>
       <h2>[[title]]</h2>
-      <div class="body">
-        <slot></slot>
-        <template is="dom-if" if="[[shouldShowError(error, loading)]]">
-          <div class="error">
-            <span class="title">[[error.message]]</span>
-            <template is="dom-if" if="[[error.traceDump]]">
-              <span class="trace-dump">[[error.traceDump]]</span>
-            </template>
-          </div>
-        </template>
-      </div>
+      <paper-dialog-scrollable>
+        <div class="body">
+          <slot></slot>
+          <template is="dom-if" if="[[shouldShowError(error, loading)]]">
+            <div class="error">
+              <span class="title">[[error.message]]</span>
+              <template is="dom-if" if="[[error.traceDump]]">
+                <span class="trace-dump">[[error.traceDump]]</span>
+              </template>
+            </div>
+          </template>
+        </div>
+      </paper-dialog-scrollable>
       <div class="buttons">
         <div class="left">
           <slot name="more-buttons"></slot>
