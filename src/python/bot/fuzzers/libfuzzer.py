@@ -242,8 +242,6 @@ class LibFuzzerCommon(object):
     extra_env = {}
     if tmp_dir:
       extra_env['TMPDIR'] = tmp_dir
-      additional_args.append('%s%s' % (constants.MERGE_CONTROL_FILE_ARGUMENT,
-                                       os.path.join(tmp_dir, 'MCF')))
 
     if artifact_prefix:
       additional_args.append(

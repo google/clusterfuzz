@@ -219,13 +219,20 @@ class FuzzTest(fake_fs_unittest.TestCase):
           time_executed=2.0,
           timed_out=False)
 
+    with open(os.path.join(TEST_DIR, 'merge.txt')) as f:
+      merge_output = f.read()
+
+    # Record the merge calls manually as the mock module duplicates the second
+    # call and overwrites the first call arguments.
+    mock_merge_calls = []
+
     def mock_merge(*args, **kwargs):  # pylint: disable=unused-argument
-      """Mock merge."""
+      mock_merge_calls.append(self.mock.merge.mock_calls[-1])
       self.fs.create_file('/fuzz-inputs/temp-9001/merge-corpus/A')
       return new_process.ProcessResult(
           command='merge-command',
           return_code=0,
-          output='merge',
+          output=merge_output,
           time_executed=2.0,
           timed_out=False)
 
@@ -255,12 +262,33 @@ class FuzzTest(fake_fs_unittest.TestCase):
         extra_env={},
         fuzz_timeout=1470.0)
 
-    self.mock.merge.assert_called_with(
+    self.assertEqual(2, len(mock_merge_calls))
+
+    mock_merge_calls[0].assert_called_with(
         mock.ANY, [
-            '/fuzz-inputs/temp-9001/merge-corpus', '/fuzz-inputs/temp-9001/new',
-            '/corpus'
+            '/fuzz-inputs/temp-9001/merge-corpus',
+            '/corpus',
         ],
-        additional_args=['-arg=1', '-timeout=123'],
+        additional_args=[
+            '-arg=1',
+            '-timeout=123',
+            '-merge_control_file=/fuzz-inputs/temp-9001/merge-workdir/MCF',
+        ],
+        artifact_prefix=None,
+        merge_timeout=1800.0,
+        tmp_dir='/fuzz-inputs/temp-9001/merge-workdir')
+
+    mock_merge_calls[1].assert_called_with(
+        mock.ANY, [
+            '/fuzz-inputs/temp-9001/merge-corpus',
+            '/corpus',
+            '/fuzz-inputs/temp-9001/new',
+        ],
+        additional_args=[
+            '-arg=1',
+            '-timeout=123',
+            '-merge_control_file=/fuzz-inputs/temp-9001/merge-workdir/MCF',
+        ],
         artifact_prefix=None,
         merge_timeout=1800.0,
         tmp_dir='/fuzz-inputs/temp-9001/merge-workdir')

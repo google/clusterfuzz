@@ -299,7 +299,6 @@ class LibFuzzerEngine(engine.Engine):
     # Remove fuzzing arguments before merge and dictionary analysis step.
     arguments = options.arguments[:]
     libfuzzer.remove_fuzzing_arguments(arguments)
-
     self._merge_new_units(target_path, options.corpus_dir, new_corpus_dir,
                           options.fuzz_corpus_dirs, arguments, parsed_stats)
 
@@ -372,6 +371,10 @@ class LibFuzzerEngine(engine.Engine):
     runner = libfuzzer.get_runner(target_path)
     libfuzzer.set_sanitizer_options(target_path)
     merge_tmp_dir = self._create_temp_corpus_dir('merge-workdir')
+    merge_control_file = os.path.join(merge_tmp_dir, 'MCF')
+    additional_args = arguments + [
+        '%s%s' % (constants.MERGE_CONTROL_FILE_ARGUMENT, merge_control_file)
+    ]
     merge_stats = {}
 
     # Two step merge process to obtain accurate stats for the new corpus units.
@@ -382,7 +385,7 @@ class LibFuzzerEngine(engine.Engine):
           corpus_directories,
           merge_timeout=max_time,
           tmp_dir=merge_tmp_dir,
-          additional_args=arguments,
+          additional_args=additional_args,
           artifact_prefix=reproducers_dir)
 
       if result.timed_out:
