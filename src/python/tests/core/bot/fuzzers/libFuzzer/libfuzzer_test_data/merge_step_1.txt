@@ -21,9 +21,9 @@ MERGE-INNER: 4599 total files; 0 processed earlier; will process 4599 files now
 #512  pulse  cov: 294 ft: 476 exec/s: 0 rss: 50Mb
 #1024 pulse  cov: 324 ft: 657 exec/s: 0 rss: 63Mb
 #2048 pulse  cov: 373 ft: 982 exec/s: 0 rss: 88Mb
-#4096 pulse  cov: 411 ft: 1830 exec/s: 0 rss: 147Mb
-#4599 DONE   cov: 411 ft: 1869 exec/s: 4599 rss: 271Mb
+#4096 pulse  cov: 410 ft: 1830 exec/s: 0 rss: 147Mb
+#4599 DONE   cov: 410 ft: 1869 exec/s: 4599 rss: 271Mb
 MERGE-OUTER: succesfull in 1 attempt(s)
 MERGE-OUTER: the control file has 667170 bytes
 MERGE-OUTER: consumed 0Mb (52Mb rss) to parse the control file
-MERGE-OUTER: 844 new files with 1869 new features added; 411 new coverage edges
+MERGE-OUTER: 844 new files with 1869 new features added; 410 new coverage edges

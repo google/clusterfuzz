@@ -219,15 +219,19 @@ class FuzzTest(fake_fs_unittest.TestCase):
           time_executed=2.0,
           timed_out=False)
 
-    with open(os.path.join(TEST_DIR, 'merge.txt')) as f:
-      merge_output = f.read()
-
     # Record the merge calls manually as the mock module duplicates the second
     # call and overwrites the first call arguments.
     mock_merge_calls = []
 
     def mock_merge(*args, **kwargs):  # pylint: disable=unused-argument
+      """Mock merge."""
       mock_merge_calls.append(self.mock.merge.mock_calls[-1])
+      self.assertTrue(len(mock_merge_calls) <= 2)
+
+      merge_output_file = 'merge_step_%d.txt' % len(mock_merge_calls)
+      with open(os.path.join(TEST_DIR, merge_output_file)) as f:
+        merge_output = f.read()
+
       self.fs.create_file('/fuzz-inputs/temp-9001/merge-corpus/A')
       return new_process.ProcessResult(
           command='merge-command',
@@ -301,13 +305,13 @@ class FuzzTest(fake_fs_unittest.TestCase):
         'corpus_size': 0,
         'crash_count': 1,
         'dict_used': 1,
-        'edge_coverage': 1603,
+        'edge_coverage': 411,
         'edges_total': 398467,
         'expected_duration': 1450,
-        'feature_coverage': 3572,
+        'feature_coverage': 1873,
         'fuzzing_time_percent': 0.13793103448275862,
-        'initial_edge_coverage': 1603,
-        'initial_feature_coverage': 3572,
+        'initial_edge_coverage': 410,
+        'initial_feature_coverage': 1869,
         'leak_count': 0,
         'log_lines_from_engine': 2,
         'log_lines_ignored': 67,
@@ -315,8 +319,8 @@ class FuzzTest(fake_fs_unittest.TestCase):
         'manual_dict_size': 0,
         'max_len': 9001,
         'merge_edge_coverage': 0,
-        'new_edges': 0,
-        'new_features': 0,
+        'new_edges': 1,
+        'new_features': 4,
         'new_units_added': 1,
         'new_units_generated': 0,
         'number_of_executed_units': 1249,
