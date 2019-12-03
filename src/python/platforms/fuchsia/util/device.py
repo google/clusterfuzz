@@ -203,10 +203,6 @@ class Device(object):
       pass
     return results
 
-  def mkdir(self, path):
-    """Creates a directory via `mkdir -p`."""
-    self.ssh(['mkdir', '-p', path])
-
   def rm(self, pathname, recursive=False):
     """Removes a file or directory from the device."""
     args = ['rm']
@@ -335,7 +331,7 @@ class Device(object):
 
   def store(self, host_src, data_dst):
     """Copies `host_src` on the host to `data_dst` on the target."""
-    self.mkdir(data_dst)
+    self.ssh(['mkdir', '-p', data_dst])
     srcs = glob.glob(host_src)
     if not srcs:
       return
