@@ -351,11 +351,13 @@ class Fuzzer(object):
       fuzzer_args.append('data/corpus/')
       fuzzer_args.append('data/corpus.prev/')
 
-    # Save mergefile in case we are interrupted
-    fuzzer_args = ['-merge=1', '-merge_control_file=data/.mergefile'
-                  ] + fuzzer_args
+    # Save mergefile in case we are interrupted.
+    merge_args = ['-merge=1']
+    if not any('-merge_control_file=' in arg for arg in fuzzer_args):
+      merge_args.append('-merge_control_file=data/.mergefile')
 
-    self.run(fuzzer_args)
+    self.run(merge_args + fuzzer_args)
+
     # Cleanup
     self.device.rm(self.data_path('.mergefile'))
     self.device.rm(self.data_path('corpus.prev'), recursive=True)

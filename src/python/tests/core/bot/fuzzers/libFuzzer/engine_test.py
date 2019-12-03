@@ -483,7 +483,6 @@ class IntegrationTests(BaseIntegrationTest):
     options = engine_impl.prepare(corpus_path, target_path, DATA_DIR)
 
     results = engine_impl.fuzz(target_path, options, TEMP_DIR, 10)
-
     self.assert_has_stats(results.stats)
     self.compare_arguments(
         os.path.join(DATA_DIR, 'test_fuzzer'), [
@@ -662,6 +661,7 @@ class IntegrationTests(BaseIntegrationTest):
       results = engine_impl.fuzz(target_path, options, TEMP_DIR, 10)
     finally:
       shutil.rmtree(os.environ['MUTATOR_PLUGINS_DIR'])
+
     # custom_mutator_print_string gets printed before the custom mutator mutates
     # a test case. Assert that the count is greater than 1 to ensure that the
     # function didn't crash on its first execution (after printing).
@@ -686,17 +686,21 @@ class IntegrationTests(BaseIntegrationTest):
     minimal_unit_contents = 'APPLE'
     minimal_unit_hash = '569bea285d70dda2218f89ef5454ea69fb5111ef'
     nonminimal_unit_contents = 'APPLEO'
-    nonminimal_unit_hash = '540d9ba6239483d60cd7448a3202b96c90409186'
+    nonminimal_unit_hash = '07aef0e305db0779f3b52ab4dad975a1b737c461'
 
     def mocked_create_merge_directory(_):
       """A mocked version of create_merge_directory that adds some interesting
       files to the merge corpus and initial corpus."""
       merge_directory_path = libfuzzer.create_corpus_directory('merge-corpus')
       shell.create_directory(
-          merge_directory_path, create_intermediates=True, recreate=True)
+          merge_directory_path, create_intermediates=True,
+          recreate=True)  ## remove?
 
-      # Write the minimal unit to the merge directory.
-      minimal_unit_path = os.path.join(merge_directory_path, minimal_unit_hash)
+      # Write the minimal unit to the new corpus directory.
+      new_corpus_directory_path = libfuzzer.create_corpus_directory('new')
+      minimal_unit_path = os.path.join(new_corpus_directory_path,
+                                       minimal_unit_hash)
+
       with open(minimal_unit_path, 'w+') as file_handle:
         file_handle.write(minimal_unit_contents)
 

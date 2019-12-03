@@ -325,7 +325,10 @@ def parse_performance_features(log_lines,
 
 def parse_stats_from_merge_log(log_lines):
   """Extract stats from a log produced by libFuzzer run with -merge=1."""
-  stats = {}
+  stats = {
+      'edge_coverage': 0,
+      'feature_coverage': 0,
+  }
 
   # Revese the list as an optimization. The line of our interest is the last.
   for line in log_lines[::-1]:

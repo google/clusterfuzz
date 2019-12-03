@@ -372,6 +372,10 @@ class LibFuzzerEngine(engine.Engine):
     libfuzzer.set_sanitizer_options(target_path)
     merge_tmp_dir = self._create_temp_corpus_dir('merge-workdir')
     merge_control_file = os.path.join(merge_tmp_dir, 'MCF')
+
+    # Make sure the merge control file does not exist at this point.
+    shell.remove_file(merge_control_file)
+
     additional_args = arguments + [
         '%s%s' % (constants.MERGE_CONTROL_FILE_ARGUMENT, merge_control_file)
     ]
@@ -395,9 +399,6 @@ class LibFuzzerEngine(engine.Engine):
         raise MergeError('Merging new testcases (step %d) failed' % step)
 
       step_stats = stats.parse_stats_from_merge_log(result.output.splitlines())
-      if not step_stats:
-        raise MergeError('Stats from the merge (step %d) are missing' % step)
-
       return result, step_stats
 
     # Step 1. Use only existing corpus and collect "initial" stats.
