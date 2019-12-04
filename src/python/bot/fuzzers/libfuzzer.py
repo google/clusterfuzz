@@ -848,6 +848,7 @@ class MinijailLibFuzzerRunner(engine_common.MinijailEngineFuzzerRunner,
     if artifact_prefix:
       artifact_prefix = self._get_chroot_directory(artifact_prefix)
 
+    chroot_tmp_dir = None
     if tmp_dir:
       chroot_tmp_dir = self._get_chroot_directory(tmp_dir)
 
@@ -1101,6 +1102,7 @@ class AndroidLibFuzzerRunner(new_process.ProcessRunner, LibFuzzerCommon):
     if artifact_prefix:
       artifact_prefix = self._get_device_path(artifact_prefix)
 
+    device_tmp_dir = None
     if tmp_dir:
       device_tmp_dir = self._get_device_path(tmp_dir)
 
