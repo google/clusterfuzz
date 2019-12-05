@@ -330,7 +330,7 @@ def parse_stats_from_merge_log(log_lines):
       'feature_coverage': 0,
   }
 
-  # Revese the list as an optimization. The line of our interest is the last.
+  # Reverse the list as an optimization. The line of our interest is the last.
   for line in log_lines[::-1]:
     match = LIBFUZZER_MERGE_LOG_STATS_REGEX.match(line)
     if match:

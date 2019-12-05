@@ -636,7 +636,7 @@ class FuchsiaQemuLibFuzzerRunner(new_process.ProcessRunner, LibFuzzerCommon):
 
     target_tmp_dir = None
     if tmp_dir:
-      # Temp dir may have artifacts, e.g. merge control file for two step merge.
+      # Tmp dir may have artifacts, e.g. merge control file for two step merge.
       target_tmp_dir = self._corpus_target_subdir(os.path.basename(tmp_dir))
       self.fuzzer.device.rm(target_tmp_dir, recursive=True)
       self.fuzzer.device.store(tmp_dir, target_tmp_dir)
@@ -651,7 +651,7 @@ class FuchsiaQemuLibFuzzerRunner(new_process.ProcessRunner, LibFuzzerCommon):
 
     self._pull_new_corpus_from_target_to_host(corpus_directories)
     if tmp_dir:
-      # Fetch artifacts from the temp dir (e.g. merge control file).
+      # Fetch artifacts from the tmp dir (e.g. merge control file).
       self.fuzzer.device.fetch(target_tmp_dir, tmp_dir)
       self.fuzzer.device.rm(target_tmp_dir, recursive=True)
 

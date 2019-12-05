@@ -13,7 +13,6 @@
 # limitations under the License.
 """libFuzzer engine interface."""
 
-import copy
 import os
 import re
 import tempfile
@@ -172,7 +171,7 @@ class LibFuzzerEngine(engine.Engine):
     # anyway.
     merge_corpus = self._create_merge_corpus_dir()
 
-    merge_dirs = copy.copy(fuzz_corpus_dirs)
+    merge_dirs = fuzz_corpus_dirs[:]
 
     # Merge the new units with the initial corpus.
     if corpus_dir not in merge_dirs:
