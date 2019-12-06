@@ -37,8 +37,8 @@ from bot.minimizer import html_tokenizer
 from bot.minimizer import js_minimizer
 from bot.minimizer import js_tokenizer
 from bot.minimizer import minimizer
-from bot.minimizer import antlr_tokenizer
-from bot.minimizer.grammars import JavaScriptLexer
+from bot.minimizer.antlr_tokenizer import AntlrTokenizer
+from bot.minimizer.grammars.JavaScriptLexer import JavaScriptLexer
 from bot.tasks import setup
 from bot.tasks import task_creation
 from build_management import build_manager
@@ -1351,17 +1351,26 @@ def do_libfuzzer_cleanse(testcase, testcase_file_path, expected_crash_state):
 
 def do_antlr_tokenized_minimization(test_function, get_temp_file, data, deadline, threads,
     cleanup_interval, delete_temp_files, tokenizer):
+
+  # Line minimization is much faster and reduces the time of tokenized
+  # minimization if done first
+  data = do_line_minimization(test_function, get_temp_file, data, deadline,
+                              threads, cleanup_interval, delete_temp_files)
+
   current_minimizer = delta_minimizer.DeltaMinimizer(
       test_function,
       max_threads=threads,
-      tokenizer=tokenizer,
+      tokenizer=tokenizer.tokenize,
+      token_combiner=tokenizer.combine,
       deadline=deadline,
       cleanup_function=process_handler.cleanup_stale_processes,
       single_thread_cleanup_interval=cleanup_interval,
       get_temp_file=get_temp_file,
       delete_temp_files=delete_temp_files,
       progress_report_function=functools.partial(logs.log))
+
   return current_minimizer.minimize(data)
+
 
 def do_line_minimization(test_function, get_temp_file, data, deadline, threads,
                          cleanup_interval, delete_temp_files):
@@ -1410,9 +1419,9 @@ def minimize_file(file_path,
 
   # Specialized minimization strategy for javascript.
   if file_path.endswith('.js'):
-    js_tokenizer = AntlrTokenizer(JavaScriptLexer).tokenize
+    js_tokenizer = AntlrTokenizer(JavaScriptLexer)
     return do_antlr_tokenized_minimization(test_function, get_temp_file, data, deadline,
-                              threads, cleanup_interval, delete_temp_files,js_tokenizer)
+                              threads, cleanup_interval, delete_temp_files, js_tokenizer)
 
   if file_path.endswith('.html'):
     return do_html_minimization(test_function, get_temp_file, data, deadline,

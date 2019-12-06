@@ -13,18 +13,34 @@
 # limitations under the License.
 
 from antlr4 import *
+from grammars.JavaScriptLexer import JavaScriptLexer
 
 class AntlrTokenizer:
   '''Tokenizer. Takes an Antlr Lexer created using
   $ antlr4 -Dlanguage=Pythonn <AntlrGrammar.g4>
-  tokenize will return a list of all of the tokens'''
+  and allows user to tokenize files using that grammar'''
   def __init__(self, lexer):
     self._lexer = lexer
+
+  def fill(self, stream):
+    i = 0
+    while stream.fetch(1):
+      i += 1
+    return i
+
 
   def tokenize(self, data):
     lexer_input = InputStream(data)
     stream = CommonTokenStream(self._lexer(lexer_input))
-    stream.fill()
-    end = stream.getNumberOfOnChannelTokens()
+
+    end = self.fill(stream)
+
     tokens = stream.getTokens(0, end)
     return [token.text for token in tokens]
+
+
+  def combine(self, tokens):
+    return ''.join(tokens)
+
+
+tokenizer = AntlrTokenizer(JavaScriptLexer)

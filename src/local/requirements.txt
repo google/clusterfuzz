@@ -8,3 +8,4 @@ paramiko==2.6.0
 protobuf==3.6.1
 psutil==5.4.7
 tensorflow==1.8.0
+antlr4-python2-runtime==4.7.2

@@ -11,6 +11,8 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+"""Translation from Java code for JavaScriptBaseLexer made to work with
+JavaScriptLexer"""
 
 from antlr4 import *
 
@@ -25,26 +27,25 @@ class JavaScriptBaseLexer(Lexer):
   def IsStartOfFile(self):
     return self._lastToken == None
 
-  def GetStrictDefault(self):
+  def getStrictDefault(self):
     return self._useStrictDefault
 
-  def SetUseStrictDefault(self, bool):
+  def setUseStrictDefault(self, bool):
     self._useStrictDefault = bool
     self._useStrictCurrent = bool
 
   def IsStrictMode(self):
     return self._useStrictCurrent
 
-  def NextToken(self):
+  def nextToken(self):
     next = super(JavaScriptBaseLexer, self).nextToken()
-
-    if (next.getChannel() -- Token.DEFAULT_CHANNEL):
+    if (next.channel == Token.DEFAULT_CHANNEL):
       self._lastToken = next
 
     return next
 
   def ProcessOpenBrace(self):
-    if len(self._scopeStrictModes) > 0 and self._scopeStrictModes[0]:
+    if len(self._scopeStrictModes) > 0 and self._scopeStrictModes[-1]:
       self._useStrictCurrent = True
     else:
       self._useStrictCurrent = self._useStrictDefault
@@ -59,7 +60,7 @@ class JavaScriptBaseLexer(Lexer):
 
 
   def ProcessStringLiteral(self):
-    if self._lastToken == None or self._lastToken.getType() == JavaScriptLexer.OpenBrace:
+    if self._lastToken == None or self._lastToken.type == self.OpenBrace:
       text = super(JavaScriptBaseLexer, self).text
       if text == "\"use strict\"" or text == "'use strict'":
         if len(self._scopeStrictModes) > 0:
@@ -72,16 +73,15 @@ class JavaScriptBaseLexer(Lexer):
     if self._lastToken == None:
       return True
 
-    if self._lastToken in [JavaScriptLexer.Identifier,
-                           JavaScriptLexer.NullLiteral,
-                           JavaScriptLexer.BooleanLiteral,
-                           JavaScriptLexer.This,
-                           JavaScriptLexer.CloseBracket,
-                           JavaScriptLexer.CloseParen,
-                           JavaScriptLexer.OctalIntegerLiteral,
-                           JavaScriptLexer.StringLiteral,
-                           JavaScriptLexer.PlusPlus,
-                           JavaScriptLexer.MinusMinus]:
+    if self._lastToken in [self.Identifier,
+                           self.NullLiteral,
+                           self.BooleanLiteral,
+                           self.This,
+                           self.CloseBracket,
+                           self.CloseParen,
+                           self.OctalIntegerLiteral,
+                           self.StringLiteral,
+                           self.PlusPlus,
+                           self.MinusMinus]:
       return False
     return True
-
