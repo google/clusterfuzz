@@ -932,7 +932,7 @@ class JavaScriptLexer(JavaScriptBaseLexer):
 
     def RegularExpressionLiteral_sempred(self, localctx, predIndex):
             if predIndex == 1:
-                return super(JavaScriptLexer, self).IsRegexPossible()
+                return super(JavaScriptLexer, self).IsRegExPossible()
          
 
     def OctalIntegerLiteral_sempred(self, localctx, predIndex):
