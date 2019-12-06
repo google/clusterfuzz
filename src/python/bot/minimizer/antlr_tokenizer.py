@@ -11,11 +11,11 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+"""Antlr Tokenizer"""
 
 from antlr4 import *
-from grammars.JavaScriptLexer import JavaScriptLexer
 
-class AntlrTokenizer:
+class AntlrTokenizer():
   '''Tokenizer. Takes an Antlr Lexer created using
   $ antlr4 -Dlanguage=Pythonn <AntlrGrammar.g4>
   and allows user to tokenize files using that grammar'''
@@ -41,6 +41,3 @@ class AntlrTokenizer:
 
   def combine(self, tokens):
     return ''.join(tokens)
-
-
-tokenizer = AntlrTokenizer(JavaScriptLexer)

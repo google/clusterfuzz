@@ -18,7 +18,7 @@ from bot.minimizer.antlr_tokenizer import AntlrTokenizer
 from bot.minimizer.grammars.JavaScriptLexer import JavaScriptLexer
 
 class AntlrTokenizerTest(unittest.TestCase):
-
+  '''Tests for AntlrTokenizer'''
   def test_empty_list_on_empty_data(self):
     tokenizer = AntlrTokenizer(JavaScriptLexer)
     data = ""
@@ -36,24 +36,25 @@ class AntlrTokenizerTest(unittest.TestCase):
           }"""
 
     tokens = tokenizer.tokenize(txt)
-    self.assertEqual(tokens, ['async',' ','function',' ','process','(','array',
-                              ')',' ','{','\n','          ','for',' ','await',
-                              ' ','(','let',' ','i',' ','of',' ','array',')',
-                              ' ','{','\n','              ','doSomething','(',
-                              'i',')',';','\n','            ','}','\n',
-                              '          ','}'])
+    self.assertEqual(tokens, ['async', ' ', 'function', ' ', 'process', '(',
+                              'array', ')', ' ', '{', '\n', '          ', 'for',
+                              ' ', 'await', ' ', '(', 'let', ' ', 'i', ' ',
+                              'of', ' ', 'array', ')', ' ', '{', '\n',
+                              '              ', 'doSomething', '(', 'i', ')',
+                              ';', '\n', '            ', '}', '\n',
+                              '          ', '}'])
 
   def test_combine_same_as_orig(self):
-      tokenizer = AntlrTokenizer(JavaScriptLexer)
-      txt = """async function process(array) {
+    tokenizer = AntlrTokenizer(JavaScriptLexer)
+    txt = """async function process(array) {
           for await (let i of array) {
               doSomething(i);
             }
           }"""
 
-      tokens = tokenizer.tokenize(txt)
+    tokens = tokenizer.tokenize(txt)
 
-      self.assertEqual(tokenizer.combine(tokens),txt)
+    self.assertEqual(tokenizer.combine(tokens), txt)
 
   def test_tokenizes_malformed_without_error(self):
     tokenizer = AntlrTokenizer(JavaScriptLexer)
