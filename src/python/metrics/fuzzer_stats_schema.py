@@ -13,14 +13,40 @@
 # limitations under the License.
 """Fuzzer stats schema."""
 
+_COMMON_COLUMNS = [{
+    'mode': 'NULLABLE',
+    'name': 'kind',
+    'type': 'STRING'
+}, {
+    'mode': 'NULLABLE',
+    'name': 'timestamp',
+    'type': 'FLOAT'
+}, {
+    'mode': 'REPEATED',
+    'name': 'command',
+    'type': 'STRING'
+}, {
+    'mode': 'NULLABLE',
+    'name': 'build_revision',
+    'type': 'INTEGER'
+}, {
+    'mode': 'NULLABLE',
+    'name': 'fuzzer',
+    'type': 'STRING'
+}, {
+    'mode': 'NULLABLE',
+    'name': 'job',
+    'type': 'string'
+}, {
+    'mode': 'NULLABLE',
+    'name': 'source',
+    'type': 'STRING'
+}]
+
 _AFL_SCHEMA = [{
     'mode': 'NULLABLE',
     'name': 'strategy_fast_cal_random',
     'type': 'INTEGER'
-}, {
-    'mode': 'NULLABLE',
-    'name': 'job',
-    'type': 'STRING'
 }, {
     'mode': 'NULLABLE',
     'name': 'dict_used',
@@ -39,20 +65,12 @@ _AFL_SCHEMA = [{
     'type': 'INTEGER'
 }, {
     'mode': 'NULLABLE',
-    'name': 'timestamp',
-    'type': 'FLOAT'
-}, {
-    'mode': 'NULLABLE',
     'name': 'timeout_count',
     'type': 'INTEGER'
 }, {
     'mode': 'NULLABLE',
     'name': 'stability',
     'type': 'FLOAT'
-}, {
-    'mode': 'NULLABLE',
-    'name': 'build_revision',
-    'type': 'INTEGER'
 }, {
     'mode': 'NULLABLE',
     'name': 'corpus_crash_count',
@@ -79,10 +97,6 @@ _AFL_SCHEMA = [{
     'type': 'INTEGER'
 }, {
     'mode': 'NULLABLE',
-    'name': 'kind',
-    'type': 'STRING'
-}, {
-    'mode': 'NULLABLE',
     'name': 'strategy_fast_cal_manual',
     'type': 'INTEGER'
 }, {
@@ -95,16 +109,8 @@ _AFL_SCHEMA = [{
     'type': 'INTEGER'
 }, {
     'mode': 'NULLABLE',
-    'name': 'fuzzer',
-    'type': 'STRING'
-}, {
-    'mode': 'NULLABLE',
     'name': 'log_lines_unwanted',
     'type': 'INTEGER'
-}, {
-    'mode': 'REPEATED',
-    'name': 'command',
-    'type': 'STRING'
 }, {
     'mode': 'NULLABLE',
     'name': 'actual_duration',
@@ -173,11 +179,7 @@ _AFL_SCHEMA = [{
     'mode': 'NULLABLE',
     'name': 'strategy_selection_method',
     'type': 'STRING'
-}, {
-    'mode': 'NULLABLE',
-    'name': 'source',
-    'type': 'STRING'
-}]
+}] + _COMMON_COLUMNS
 
 _LIBFUZZER_SCHEMA = [{
     'mode': 'NULLABLE',
@@ -187,14 +189,6 @@ _LIBFUZZER_SCHEMA = [{
     'mode': 'NULLABLE',
     'name': 'log_lines_ignored',
     'type': 'INTEGER'
-}, {
-    'mode': 'REPEATED',
-    'name': 'command',
-    'type': 'STRING'
-}, {
-    'mode': 'NULLABLE',
-    'name': 'fuzzer',
-    'type': 'STRING'
 }, {
     'mode': 'NULLABLE',
     'name': 'feature_coverage',
@@ -257,10 +251,6 @@ _LIBFUZZER_SCHEMA = [{
     'type': 'INTEGER'
 }, {
     'mode': 'NULLABLE',
-    'name': 'build_revision',
-    'type': 'INTEGER'
-}, {
-    'mode': 'NULLABLE',
     'name': 'startup_crash_count',
     'type': 'INTEGER'
 }, {
@@ -279,10 +269,6 @@ _LIBFUZZER_SCHEMA = [{
     'mode': 'NULLABLE',
     'name': 'manual_dict_size',
     'type': 'INTEGER'
-}, {
-    'mode': 'NULLABLE',
-    'name': 'timestamp',
-    'type': 'FLOAT'
 }, {
     'mode': 'NULLABLE',
     'name': 'strategy_fork',
@@ -347,10 +333,6 @@ _LIBFUZZER_SCHEMA = [{
     'type': 'STRING'
 }, {
     'mode': 'NULLABLE',
-    'name': 'job',
-    'type': 'STRING'
-}, {
-    'mode': 'NULLABLE',
     'name': 'recommended_dict_size',
     'type': 'INTEGER'
 }, {
@@ -361,10 +343,6 @@ _LIBFUZZER_SCHEMA = [{
     'mode': 'NULLABLE',
     'name': 'strategy_value_profile',
     'type': 'INTEGER'
-}, {
-    'mode': 'NULLABLE',
-    'name': 'kind',
-    'type': 'STRING'
 }, {
     'mode': 'NULLABLE',
     'name': 'strategy_recommended_dict',
@@ -421,11 +399,7 @@ _LIBFUZZER_SCHEMA = [{
     'mode': 'NULLABLE',
     'name': 'edge_coverage_count',
     'type': 'INTEGER'
-}, {
-    'mode': 'NULLABLE',
-    'name': 'source',
-    'type': 'STRING'
-}]
+}] + _COMMON_COLUMNS
 
 _HONGGFUZZ_SCHEMA = [{
     'mode': 'NULLABLE',
@@ -467,29 +441,7 @@ _HONGGFUZZ_SCHEMA = [{
     'mode': 'NULLABLE',
     'name': 'speed',
     'type': 'INTEGER'
-}, {
-    'mode': 'NULLABLE',
-    'name': 'kind',
-    'type': 'STRING'
-}, {
-    'mode': 'NULLABLE',
-    'name': 'timestamp',
-    'type': 'FLOAT'
-}, {
-    'mode': 'REPEATED',
-    'name': 'command',
-    'type': 'STRING'
-}, {
-    'mode': 'NULLABLE',
-    'name': 'build_revision',
-    'type': 'INTEGER'
-}, {
-    'mode': 'NULLABLE',
-    'name': 'fuzzer',
-    'type': 'STRING'
-}]
-
-# TODO(ochang): Factor out common schema items.
+}] + _COMMON_COLUMNS
 
 _SCHEMA = {
     'afl': _AFL_SCHEMA,
