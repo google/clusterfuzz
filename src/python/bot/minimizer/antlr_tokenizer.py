@@ -13,12 +13,15 @@
 # limitations under the License.
 """Antlr Tokenizer"""
 
-from antlr4 import *
+from builtins import object
+import antlr4
 
-class AntlrTokenizer():
+
+class AntlrTokenizer(object):
   '''Tokenizer. Takes an Antlr Lexer created using
   $ antlr4 -Dlanguage=Pythonn <AntlrGrammar.g4>
   and allows user to tokenize files using that grammar'''
+
   def __init__(self, lexer):
     self._lexer = lexer
 
@@ -28,16 +31,14 @@ class AntlrTokenizer():
       i += 1
     return i
 
-
   def tokenize(self, data):
-    lexer_input = InputStream(data)
-    stream = CommonTokenStream(self._lexer(lexer_input))
+    lexer_input = antlr4.InputStream(data)
+    stream = antlr4.CommonTokenStream(self._lexer(lexer_input))
 
     end = self.fill(stream)
 
     tokens = stream.getTokens(0, end)
     return [token.text for token in tokens]
-
 
   def combine(self, tokens):
     return ''.join(tokens)

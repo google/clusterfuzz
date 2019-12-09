@@ -1041,6 +1041,7 @@ def do_ipc_dump_minimization(test_function, get_temp_file, file_path, deadline,
       progress_report_function=functools.partial(logs.log))
   return current_minimizer.minimize(file_path)
 
+
 def do_js_minimization(test_function, get_temp_file, data, deadline, threads,
                        cleanup_interval, delete_temp_files):
   """Javascript minimization strategy."""
@@ -1349,8 +1350,9 @@ def do_libfuzzer_cleanse(testcase, testcase_file_path, expected_crash_state):
   return output_file_path
 
 
-def do_antlr_tokenized_minimization(test_function, get_temp_file, data, deadline, threads,
-    cleanup_interval, delete_temp_files, tokenizer):
+def do_antlr_tokenized_minimization(test_function, get_temp_file, data,
+                                    deadline, threads, cleanup_interval,
+                                    delete_temp_files, tokenizer):
 
   # Line minimization is much faster and reduces the time of tokenized
   # minimization if done first
@@ -1420,8 +1422,9 @@ def minimize_file(file_path,
   # Specialized minimization strategy for javascript.
   if file_path.endswith('.js'):
     js_tokenizer = AntlrTokenizer(JavaScriptLexer)
-    return do_antlr_tokenized_minimization(test_function, get_temp_file, data, deadline,
-                              threads, cleanup_interval, delete_temp_files, js_tokenizer)
+    return do_antlr_tokenized_minimization(test_function, get_temp_file, data,
+                                           deadline, threads, cleanup_interval,
+                                           delete_temp_files, js_tokenizer)
 
   if file_path.endswith('.html'):
     return do_html_minimization(test_function, get_temp_file, data, deadline,

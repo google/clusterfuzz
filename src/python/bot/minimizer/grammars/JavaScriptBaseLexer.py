@@ -16,7 +16,9 @@ JavaScriptLexer"""
 
 from antlr4 import *
 
+
 class JavaScriptBaseLexer(Lexer):
+
   def __init__(self, input, output):
     super(JavaScriptBaseLexer, self).__init__(input, output)
     self._scopeStrictModes = []
@@ -58,7 +60,6 @@ class JavaScriptBaseLexer(Lexer):
     else:
       self._useStrictCurrent = self._useStrictDefault
 
-
   def ProcessStringLiteral(self):
     if self._lastToken == None or self._lastToken.type == self.OpenBrace:
       text = super(JavaScriptBaseLexer, self).text
@@ -68,20 +69,14 @@ class JavaScriptBaseLexer(Lexer):
         self._useStrictCurrent = True
         self._scopeStrictModes.append(self._useStrictCurrent)
 
-
   def IsRegExPossible(self):
     if self._lastToken == None:
       return True
 
-    if self._lastToken in [self.Identifier,
-                           self.NullLiteral,
-                           self.BooleanLiteral,
-                           self.This,
-                           self.CloseBracket,
-                           self.CloseParen,
-                           self.OctalIntegerLiteral,
-                           self.StringLiteral,
-                           self.PlusPlus,
-                           self.MinusMinus]:
+    if self._lastToken in [
+        self.Identifier, self.NullLiteral, self.BooleanLiteral, self.This,
+        self.CloseBracket, self.CloseParen, self.OctalIntegerLiteral,
+        self.StringLiteral, self.PlusPlus, self.MinusMinus
+    ]:
       return False
     return True
