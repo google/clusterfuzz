@@ -63,7 +63,7 @@ class JavaScriptBaseLexer(Lexer):
   def ProcessStringLiteral(self):
     if self._lastToken == None or self._lastToken.type == self.OpenBrace:
       text = super(JavaScriptBaseLexer, self).text
-      if text == "\"use strict\"" or text == "'use strict'":
+      if text == '"use strict"' or text == '\'use strict\'':
         if len(self._scopeStrictModes) > 0:
           self._scopeStrictModes.pop()
         self._useStrictCurrent = True

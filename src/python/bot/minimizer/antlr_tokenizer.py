@@ -18,20 +18,24 @@ import antlr4
 
 
 class AntlrTokenizer(object):
-  '''Tokenizer. Takes an Antlr Lexer created using
+  """Tokenizer. Takes an Antlr Lexer created using
   $ antlr4 -Dlanguage=Pythonn <AntlrGrammar.g4>
-  and allows user to tokenize files using that grammar'''
+  and allows user to tokenize files using that grammar"""
 
   def __init__(self, lexer):
+    """constructor"""
     self._lexer = lexer
 
   def fill(self, stream):
+    """Helper function. antlr4.CommonTokenStream.fill should work, but
+    it does not fetch all of the tokens. This is a replacement that works"""
     i = 0
     while stream.fetch(1):
       i += 1
     return i
 
   def tokenize(self, data):
+    """Takes in a file and uses the antlr lexer to return a list of tokens"""
     lexer_input = antlr4.InputStream(data)
     stream = antlr4.CommonTokenStream(self._lexer(lexer_input))
 
