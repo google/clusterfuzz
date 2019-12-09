@@ -374,7 +374,7 @@ class LibFuzzerEngine(engine.Engine):
     shell.remove_file(merge_control_file)
 
     additional_args = arguments + [
-        '%s%s' % (constants.MERGE_CONTROL_FILE_ARGUMENT, merge_control_file)
+        constants.MERGE_CONTROL_FILE_ARGUMENT + merge_control_file
     ]
     merge_stats = {}
 
@@ -408,8 +408,8 @@ class LibFuzzerEngine(engine.Engine):
     self.merge_tmp_dir = None
 
     # TODO(ochang): Get crashes found during merge.
-    return engine.FuzzResult(result_1.logs + result_2.logs,
-                             result_2.command, [], merge_stats,
+    return engine.FuzzResult(result_1.logs + result_2.logs, result_2.command,
+                             [], merge_stats,
                              result_1.time_executed + result_2.time_executed)
 
   def minimize_corpus(self, target_path, arguments, input_dirs, output_dir,

@@ -331,7 +331,7 @@ def parse_stats_from_merge_log(log_lines):
   }
 
   # Reverse the list as an optimization. The line of our interest is the last.
-  for line in log_lines[::-1]:
+  for line in reversed(log_lines):
     match = LIBFUZZER_MERGE_LOG_STATS_REGEX.match(line)
     if match:
       stats['edge_coverage'] = int(match.group(2))

@@ -634,13 +634,16 @@ class FuchsiaQemuLibFuzzerRunner(new_process.ProcessRunner, LibFuzzerCommon):
     # TODO(flowerhack): Integrate some notion of a merge timeout.
     self._push_corpora_from_host_to_target(corpus_directories)
 
+    additional_args = copy.copy(additional_args)
+    if additional_args is None:
+      additional_args = []
+
     target_tmp_dir = None
     if tmp_dir:
       # Tmp dir may have artifacts, e.g. merge control file for two step merge.
       target_tmp_dir = self._corpus_target_subdir(os.path.basename(tmp_dir))
       self.fuzzer.device.rm(target_tmp_dir, recursive=True)
       self.fuzzer.device.store(tmp_dir, target_tmp_dir)
-      additional_args = copy.copy(additional_args)
       for i, argument in enumerate(additional_args):
         additional_args[i] = argument.replace(tmp_dir, target_tmp_dir)
 
@@ -671,6 +674,10 @@ class FuchsiaQemuLibFuzzerRunner(new_process.ProcessRunner, LibFuzzerCommon):
                           additional_args=None):
     """Run a single testcase."""
     self._test_ssh()
+
+    additional_args = copy.copy(additional_args)
+    if additional_args is None:
+      additional_args = []
 
     # We need to push the testcase to the device and pass in the name.
     testcase_path_name = os.path.basename(os.path.normpath(testcase_path))
@@ -835,6 +842,10 @@ class MinijailLibFuzzerRunner(engine_common.MinijailEngineFuzzerRunner,
             tmp_dir=None,
             additional_args=None):
     """LibFuzzerCommon.merge override."""
+    additional_args = copy.copy(additional_args)
+    if additional_args is None:
+      additional_args = []
+
     bind_directories = copy.copy(corpus_directories)
     if artifact_prefix:
       bind_directories.append(artifact_prefix)
@@ -1063,7 +1074,9 @@ class AndroidLibFuzzerRunner(new_process.ProcessRunner, LibFuzzerCommon):
       artifact_prefix = self._get_device_path(artifact_prefix)
 
     # Extract local dict path from arguments list and subsitute with device one.
-    additional_args = additional_args[:]
+    additional_args = copy.copy(additional_args)
+    if additional_args is None:
+      additional_args = []
     dict_path = fuzzer_utils.extract_argument(additional_args,
                                               constants.DICT_FLAG)
     if dict_path:
@@ -1089,6 +1102,10 @@ class AndroidLibFuzzerRunner(new_process.ProcessRunner, LibFuzzerCommon):
             tmp_dir=None,
             additional_args=None):
     """LibFuzzerCommon.merge override."""
+    additional_args = copy.copy(additional_args)
+    if additional_args is None:
+      additional_args = []
+
     sync_directories = copy.copy(corpus_directories)
     if artifact_prefix:
       sync_directories.append(artifact_prefix)
