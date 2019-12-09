@@ -181,7 +181,7 @@ class LibFuzzerEngine(engine.Engine):
 
     new_units_added = 0
     try:
-      result = self.minimize_corpus(
+      result = self._minimize_corpus_two_step(
           target_path=target_path,
           arguments=arguments,
           existing_corpus_dirs=merge_dirs,
@@ -349,9 +349,9 @@ class LibFuzzerEngine(engine.Engine):
     return engine.ReproduceResult(result.command, result.return_code,
                                   result.time_executed, result.output)
 
-  def minimize_corpus(self, target_path, arguments, existing_corpus_dirs,
-                      new_corpus_dir, output_corpus_dir, reproducers_dir,
-                      max_time):
+  def _minimize_corpus_two_step(self, target_path, arguments,
+                                existing_corpus_dirs, new_corpus_dir,
+                                output_corpus_dir, reproducers_dir, max_time):
     """Optional (but recommended): run corpus minimization.
 
     Args:
@@ -367,10 +367,8 @@ class LibFuzzerEngine(engine.Engine):
     Returns:
       A Result object.
     """
-    runner = libfuzzer.get_runner(target_path)
-    libfuzzer.set_sanitizer_options(target_path)
-    merge_tmp_dir = self._create_temp_corpus_dir('merge-workdir')
-    merge_control_file = os.path.join(merge_tmp_dir, 'MCF')
+    self.merge_tmp_dir = self._create_temp_corpus_dir('merge-workdir')
+    merge_control_file = os.path.join(self.merge_tmp_dir, 'MCF')
 
     # Make sure the merge control file does not exist at this point.
     shell.remove_file(merge_control_file)
@@ -382,38 +380,23 @@ class LibFuzzerEngine(engine.Engine):
 
     # Two step merge process to obtain accurate stats for the new corpus units.
     # See https://reviews.llvm.org/D66107 for a more detailed description.
-    def _merge_step(corpus_directories, step):
-      """Execute the fuzz target, check the result, record the stats."""
-      result = runner.merge(
-          corpus_directories,
-          merge_timeout=max_time,
-          tmp_dir=merge_tmp_dir,
-          additional_args=additional_args,
-          artifact_prefix=reproducers_dir)
-
-      if result.timed_out:
-        raise MergeError('Merging new testcases (step %d) timed out' % step)
-
-      if result.return_code != 0:
-        raise MergeError('Merging new testcases (step %d) failed' % step)
-
-      step_stats = stats.parse_stats_from_merge_log(result.output.splitlines())
-      return result, step_stats
 
     # Step 1. Use only existing corpus and collect "initial" stats.
-    corpus_directories = [output_corpus_dir] + existing_corpus_dirs
-    result_1, stats_1 = _merge_step(corpus_directories, 1)
-    merge_stats['initial_edge_coverage'] = stats_1['edge_coverage']
-    merge_stats['initial_feature_coverage'] = stats_1['feature_coverage']
+    result_1 = self.minimize_corpus(target_path, additional_args,
+                                    existing_corpus_dirs, output_corpus_dir,
+                                    reproducers_dir, max_time)
+    merge_stats['initial_edge_coverage'] = result_1.stats['edge_coverage']
+    merge_stats['initial_feature_coverage'] = result_1.stats['feature_coverage']
 
     # Clear the output dir as it does not have any new units at this point.
     engine_common.recreate_directory(output_corpus_dir)
 
     # Step 2. Process the new corpus units as well.
-    corpus_directories.append(new_corpus_dir)
-    result_2, stats_2 = _merge_step(corpus_directories, 2)
-    merge_stats['edge_coverage'] = stats_2['edge_coverage']
-    merge_stats['feature_coverage'] = stats_2['feature_coverage']
+    result_2 = self.minimize_corpus(
+        target_path, additional_args, existing_corpus_dirs + [new_corpus_dir],
+        output_corpus_dir, reproducers_dir, max_time)
+    merge_stats['edge_coverage'] = result_2.stats['edge_coverage']
+    merge_stats['feature_coverage'] = result_2.stats['feature_coverage']
 
     # Diff the stats to obtain accurate values for the new corpus units.
     merge_stats['new_edges'] = (
@@ -422,10 +405,51 @@ class LibFuzzerEngine(engine.Engine):
         merge_stats['feature_coverage'] -
         merge_stats['initial_feature_coverage'])
 
+    self.merge_tmp_dir = None
+
     # TODO(ochang): Get crashes found during merge.
-    return engine.FuzzResult(result_1.output + result_2.output,
+    return engine.FuzzResult(result_1.logs + result_2.logs,
                              result_2.command, [], merge_stats,
                              result_1.time_executed + result_2.time_executed)
+
+  def minimize_corpus(self, target_path, arguments, input_dirs, output_dir,
+                      reproducers_dir, max_time):
+    """Optional (but recommended): run corpus minimization.
+    Args:
+      target_path: Path to the target.
+      arguments: Additional arguments needed for corpus minimization.
+      input_dirs: Input corpora.
+      output_dir: Output directory to place minimized corpus.
+      reproducers_dir: The directory to put reproducers in when crashes are
+          found.
+      max_time: Maximum allowed time for the minimization.
+    Returns:
+      A Result object.
+    """
+    runner = libfuzzer.get_runner(target_path)
+    libfuzzer.set_sanitizer_options(target_path)
+    if not self.merge_tmp_dir:
+      self.merge_tmp_dir = self._create_temp_corpus_dir('merge-workdir')
+
+    result = runner.merge(
+        [output_dir] + input_dirs,
+        merge_timeout=max_time,
+        tmp_dir=self.merge_tmp_dir,
+        additional_args=arguments,
+        artifact_prefix=reproducers_dir)
+
+    if result.timed_out:
+      raise MergeError('Merging new testcases timed out')
+
+    if result.return_code != 0:
+      raise MergeError('Merging new testcases failed')
+
+    # return stats from here
+    merge_stats = stats.parse_stats_from_merge_log(result.output.splitlines())
+
+    # TODO(ochang): Get crashes found during merge.
+    return engine.FuzzResult(result.output, result.command, [], merge_stats,
+                             result.time_executed)
 
   def minimize_testcase(self, target_path, arguments, input_path, output_path,
                         max_time):
