@@ -394,6 +394,11 @@ class LibFuzzerEngine(engine.Engine):
     # Clear the output dir as it does not have any new units at this point.
     engine_common.recreate_directory(output_corpus_dir)
 
+    # Adjust the time limit for the time we spent on the first merge step.
+    max_time -= result_1.time_executed
+    if max_time <= 0:
+      raise MergeError('Merging new testcases timed out')
+
     # Step 2. Process the new corpus units as well.
     result_2 = self.minimize_corpus(
         target_path, additional_args, existing_corpus_dirs + [new_corpus_dir],
