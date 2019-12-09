@@ -17,6 +17,7 @@ from bot.minimizer.antlr_tokenizer import AntlrTokenizer
 from bot.minimizer.grammars.JavaScriptLexer import JavaScriptLexer
 import unittest
 
+
 class AntlrTokenizerTest(unittest.TestCase):
   """Tests for AntlrTokenizer"""
 
