@@ -351,8 +351,10 @@ class Fuzzer(object):
       fuzzer_args.append('data/corpus/')
       fuzzer_args.append('data/corpus.prev/')
 
-    # Save mergefile in case we are interrupted.
     merge_args = ['-merge=1']
+
+    # Save mergefile in case we are interrupted, but do not overwrite the
+    # argument if there is already a merge control file specified.
     if not any('-merge_control_file=' in arg for arg in fuzzer_args):
       merge_args.append('-merge_control_file=data/.mergefile')
 

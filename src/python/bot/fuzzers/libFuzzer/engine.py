@@ -367,6 +367,9 @@ class LibFuzzerEngine(engine.Engine):
     Returns:
       A Result object.
     """
+    # Create the merge tmp dir here to make sure it persists for both steps of
+    # the merge being performed below. Otherwise, `minimize_corpus` would
+    # re-create it for every step and delete the merge control file therefore.
     self.merge_tmp_dir = self._create_temp_corpus_dir('merge-workdir')
     merge_control_file = os.path.join(self.merge_tmp_dir, 'MCF')
 
@@ -376,10 +379,10 @@ class LibFuzzerEngine(engine.Engine):
     additional_args = arguments + [
         constants.MERGE_CONTROL_FILE_ARGUMENT + merge_control_file
     ]
-    merge_stats = {}
 
     # Two step merge process to obtain accurate stats for the new corpus units.
     # See https://reviews.llvm.org/D66107 for a more detailed description.
+    merge_stats = {}
 
     # Step 1. Use only existing corpus and collect "initial" stats.
     result_1 = self.minimize_corpus(target_path, additional_args,
@@ -415,6 +418,7 @@ class LibFuzzerEngine(engine.Engine):
   def minimize_corpus(self, target_path, arguments, input_dirs, output_dir,
                       reproducers_dir, max_time):
     """Optional (but recommended): run corpus minimization.
+
     Args:
       target_path: Path to the target.
       arguments: Additional arguments needed for corpus minimization.
@@ -423,6 +427,7 @@ class LibFuzzerEngine(engine.Engine):
       reproducers_dir: The directory to put reproducers in when crashes are
           found.
       max_time: Maximum allowed time for the minimization.
+
     Returns:
       A Result object.
     """
@@ -444,7 +449,6 @@ class LibFuzzerEngine(engine.Engine):
     if result.return_code != 0:
       raise MergeError('Merging new testcases failed')
 
-    # return stats from here
     merge_stats = stats.parse_stats_from_merge_log(result.output.splitlines())
 
     # TODO(ochang): Get crashes found during merge.
