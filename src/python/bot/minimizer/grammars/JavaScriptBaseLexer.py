@@ -14,10 +14,10 @@
 """Translation from Java code for JavaScriptBaseLexer made to work with
 JavaScriptLexer"""
 
-from antlr4 import *
+import antlr4
 
 
-class JavaScriptBaseLexer(Lexer):
+class JavaScriptBaseLexer(antlr4.Lexer):
 
   def __init__(self, input, output):
     super(JavaScriptBaseLexer, self).__init__(input, output)
@@ -41,7 +41,7 @@ class JavaScriptBaseLexer(Lexer):
 
   def nextToken(self):
     next = super(JavaScriptBaseLexer, self).nextToken()
-    if (next.channel == Token.DEFAULT_CHANNEL):
+    if (next.channel == antlr4.Token.DEFAULT_CHANNEL):
       self._lastToken = next
 
     return next

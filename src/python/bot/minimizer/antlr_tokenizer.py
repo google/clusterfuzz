@@ -45,4 +45,5 @@ class AntlrTokenizer(object):
     return [token.text for token in tokens]
 
   def combine(self, tokens):
+    """Token combiner passed to minimizer"""
     return ''.join(tokens)
