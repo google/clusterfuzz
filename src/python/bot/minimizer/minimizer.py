@@ -156,6 +156,7 @@ class Testcase(object):
     self.currently_processing = False
     self.last_progress_report_time = 0
     self.runs_since_last_cleanup = 0
+    self.runs_executed = 0
 
     if minimizer.max_threads > 1:
       self.test_queue = TestQueue(
@@ -198,7 +199,7 @@ class Testcase(object):
 
   def _delete_file_if_needed(self, input_file):
     """Deletes a temporary file if necessary."""
-    # If we are not running in a mode where we need to delete files, do nothing.
+    # If we are not running in a mode where we need to delete files, do nothing.add
     if not self.minimizer.tokenize or not self.minimizer.delete_temp_files:
       return
 
@@ -216,8 +217,9 @@ class Testcase(object):
       return
 
     self.last_progress_report_time = time.time()
-    message = '%d/%d tokens remaining.' % (len(self.get_required_tokens()),
-                                           len(self.required_tokens))
+    message = '%d/%d tokens remaining. - %d runs executed so far.' % (len(
+        self.get_required_tokens()), len(
+            self.required_tokens), self.runs_executed)
     self.minimizer.progress_report_function(message)
 
   # Functions used when preparing tests.
@@ -279,6 +281,7 @@ class Testcase(object):
     if self._has_tested(hypothesis):
       return
 
+    self.runs_executed += 1
     # If we are single-threaded, just run and process results immediately.
     if not self.test_queue:
       # In the threaded case, we call the cleanup function before each pass
