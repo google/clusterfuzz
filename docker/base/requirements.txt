@@ -3,7 +3,6 @@ future==0.17.1
 psutil==5.4.7
 tensorflow==1.8.0
 numpy==1.16.4
-antlr4-python2-runtime==4.7.2
 
 # The following are added by pip freeze.
 asn1crypto==0.24.0

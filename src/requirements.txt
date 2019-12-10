@@ -1,3 +1,4 @@
+antlr4-python2-runtime==4.7.2
 backports.lzma==0.0.13
 configparser==3.7.4
 firebase-admin==2.16.0
