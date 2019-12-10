@@ -217,7 +217,7 @@ class Testcase(object):
       return
 
     self.last_progress_report_time = time.time()
-    message = '%d/%d tokens remaining. - %d runs executed so far.' % (len(
+    message = '%d/%d tokens remaining. %d runs executed so far.' % (len(
         self.get_required_tokens()), len(
             self.required_tokens), self.runs_executed)
     self.minimizer.progress_report_function(message)
