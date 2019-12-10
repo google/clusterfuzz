@@ -199,7 +199,7 @@ class Testcase(object):
 
   def _delete_file_if_needed(self, input_file):
     """Deletes a temporary file if necessary."""
-    # If we are not running in a mode where we need to delete files, do nothing.add
+    # If we are not running in a mode where we need to delete files, do nothing.
     if not self.minimizer.tokenize or not self.minimizer.delete_temp_files:
       return
 
