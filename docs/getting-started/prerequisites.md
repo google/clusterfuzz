@@ -78,6 +78,7 @@ Our supported systems include:
 - **Ubuntu** (14.04, 16.04, 17.10, 18.04, 18.10)
 - **Debian** 8 (jessie) or later
 - Recent versions of **macOS** with [homebrew] (experimental)
+- **Fuchsia OS** 
 
 To install the dependencies, run the script:
 ```bash
