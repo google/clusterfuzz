@@ -167,7 +167,7 @@ def yaml_validate(file_path):
     _error('Failed: Invalid yaml file %s.\n\n%s' % (file_path, e))
 
 
-def is_auto_generated(filepath):
+def is_auto_generated_file(filepath):
   """Check if file is auto-generated so we dont lint it"""
   return filepath.endswith('_pb2.py') or filepath.endswith('pb2_grpc.py') or \
          os.path.dirname(filepath) == os.path.join('src', 'python', 'bot',
@@ -190,7 +190,8 @@ def execute(_):
 
   file_paths = [f for f in output.splitlines() if os.path.exists(f)]
   py_changed_file_paths = [
-      f for f in file_paths if f.endswith('.py') and not is_auto_generated(f)
+      f for f in file_paths
+      if f.endswith('.py') and not is_auto_generated_file(f)
   ]
   go_changed_file_paths = [f for f in file_paths if f.endswith('.go')]
   yaml_changed_file_paths = [f for f in file_paths if f.endswith('.yaml')]
