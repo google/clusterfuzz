@@ -37,8 +37,6 @@ from bot.minimizer import html_tokenizer
 from bot.minimizer import js_minimizer
 from bot.minimizer import js_tokenizer
 from bot.minimizer import minimizer
-#from bot.minimizer.antlr_tokenizer import AntlrTokenizer
-#from bot.minimizer.grammars.JavaScriptLexer import JavaScriptLexer
 from bot.tasks import setup
 from bot.tasks import task_creation
 from build_management import build_manager
@@ -1422,12 +1420,6 @@ def minimize_file(file_path,
 
   # Specialized minimization strategy for javascript.
   if file_path.endswith('.js'):
-    #New Antlr-Tokenized minimization disabled until happy with behavior
-    #Remember to uncomment imports when re-adding
-    #js_tokenizer = AntlrTokenizer(JavaScriptLexer)
-    #return do_antlr_tokenized_minimization(test_function, get_temp_file, data,
-    #                                       deadline, threads, cleanup_interval,
-    #                                       delete_temp_files, js_tokenizer)
     do_js_minimization(test_function, get_temp_file, data, deadline, threads,
                        cleanup_interval, delete_temp_files)
 
