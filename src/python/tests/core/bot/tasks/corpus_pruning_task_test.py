@@ -22,6 +22,7 @@ import shutil
 import tempfile
 import unittest
 
+from bot.fuzzers.libFuzzer import engine as libFuzzer_engine
 from bot.tasks import corpus_pruning_task
 from datastore import data_handler
 from datastore import data_types
@@ -48,6 +49,7 @@ class CorpusPruningTest(unittest.TestCase):
 
   def setUp(self):
     helpers.patch(self, [
+        'bot.fuzzers.engine.get',
         'bot.fuzzers.engine_common.unpack_seed_corpus_if_needed',
         'bot.tasks.task_creation.create_tasks',
         'bot.tasks.setup.update_fuzzer_and_data_bundles',
@@ -61,6 +63,7 @@ class CorpusPruningTest(unittest.TestCase):
     ])
 
     helpers.patch_environ(self)
+    self.mock.get.return_value = libFuzzer_engine.LibFuzzerEngine()
     self.mock.setup_build.side_effect = self._mock_setup_build
     self.mock.rsync_to_disk.side_effect = self._mock_rsync_to_disk
     self.mock.rsync_from_disk.side_effect = self._mock_rsync_from_disk
@@ -238,11 +241,13 @@ class CorpusPruningTestUntrusted(
     environment.set_value('JOB_NAME', 'libfuzzer_asan_job')
 
     helpers.patch(self, [
+        'bot.fuzzers.engine.get',
         'bot.fuzzers.libFuzzer.fuzzer.LibFuzzer.fuzzer_directory',
         'base.tasks.add_task',
         'datastore.data_handler.get_data_bundle_bucket_name',
     ])
 
+    self.mock.get.return_value = libFuzzer_engine.LibFuzzerEngine()
     self.mock.fuzzer_directory.return_value = os.path.join(
         environment.get_value('ROOT_DIR'), 'src', 'python', 'bot', 'fuzzers',
         'libFuzzer')

@@ -21,8 +21,8 @@ import random
 import shutil
 
 from base import utils
+from bot.fuzzers import engine
 from bot.fuzzers import engine_common
-from bot.fuzzers import libfuzzer
 from bot.fuzzers import options
 from bot.tasks import setup
 from bot.tasks import task_creation
@@ -41,7 +41,6 @@ from google_cloud_utils import storage
 from metrics import logs
 from system import archive
 from system import environment
-from system import minijail
 from system import shell
 
 # TODO(ochang): Move common libFuzzer code from fuzzer into CF.
@@ -154,12 +153,15 @@ class CrossPollinateFuzzer(object):
 class Context(object):
   """Pruning state."""
 
-  def __init__(self, fuzz_target, cross_pollinate_fuzzers, use_minijail):
+  def __init__(self, fuzz_target, cross_pollinate_fuzzers):
     self.fuzz_target = fuzz_target
     self.cross_pollinate_fuzzers = cross_pollinate_fuzzers
-    self.use_minijail = use_minijail
 
     self.merge_tmp_dir = None
+    self.engine = engine.get(self.fuzz_target.engine)
+    if not self.engine:
+      raise CorpusPruningException('Engine {} not found'.format(engine))
+
     self._created_directories = []
 
     # Set up temporary directories where corpora will be synced to.
@@ -178,8 +180,7 @@ class Context(object):
     # Bad units.
     self.bad_units_path = self._create_temp_corpus_directory(
         '%s_bad_units' % self.fuzz_target.project_qualified_name())
-    if not self.use_minijail:
-      self.merge_tmp_dir = self._create_temp_corpus_directory('merge_workdir')
+    self.merge_tmp_dir = self._create_temp_corpus_directory('merge_workdir')
 
     self.corpus = corpus_manager.FuzzTargetCorpus(
         self.fuzz_target.engine, self.fuzz_target.project_qualified_name())
@@ -297,31 +298,13 @@ class Runner(object):
     self.build_directory = build_directory
     self.context = context
 
-    self.fuzzer_path = engine_common.find_fuzzer_path(
+    self.target_path = engine_common.find_fuzzer_path(
         self.build_directory, self.context.fuzz_target.binary)
-    if not self.fuzzer_path:
+    if not self.target_path:
       raise CorpusPruningException(
           'Failed to get fuzzer path for %s.' % self.context.fuzz_target.binary)
 
-    fuzz_inputs_disk = environment.get_value('FUZZ_INPUTS_DISK')
-    self.runner = libfuzzer.get_runner(
-        self.fuzzer_path, temp_dir=fuzz_inputs_disk)
-
-    if context.use_minijail:
-      self.runner.chroot.add_binding(
-          minijail.ChrootBinding(self.context.initial_corpus_path, '/corpus',
-                                 False))
-      self.runner.chroot.add_binding(
-          minijail.ChrootBinding(self.context.minimized_corpus_path, '/min',
-                                 True))
-      self.runner.chroot.add_binding(
-          minijail.ChrootBinding(self.context.shared_corpus_path, '/shared',
-                                 False))
-      self.runner.chroot.add_binding(
-          minijail.ChrootBinding(self.context.bad_units_path, '/bad_units',
-                                 True))
-
-    self.fuzzer_options = options.get_fuzz_target_options(self.fuzzer_path)
+    self.fuzzer_options = options.get_fuzz_target_options(self.target_path)
 
   def get_libfuzzer_flags(self):
     """Get default libFuzzer options."""
@@ -366,11 +349,15 @@ class Runner(object):
     asan_options.update(overrides)
     environment.set_memory_tool_options('ASAN_OPTIONS', asan_options)
 
-  def run_single_testcase(self, *args, **kwargs):
-    return self.runner.run_single_testcase(*args, **kwargs)
+  def reproduce(self, input_path, arguments, max_time):
+    return self.context.engine.reproduce(self.target_path, input_path,
+                                         arguments, max_time)
 
-  def merge(self, *args, **kwargs):
-    return self.runner.merge(*args, **kwargs)
+  def minimize_corpus(self, arguments, input_dirs, output_dir, reproducers_dir,
+                      max_time):
+    return self.context.engine.minimize_corpus(self.target_path, arguments,
+                                               input_dirs, output_dir,
+                                               reproducers_dir, max_time)
 
 
 class CorpusPruner(object):
@@ -383,8 +370,7 @@ class CorpusPruner(object):
   def _run_single_unit(self, unit_path):
     """Run a single unit, and return the result."""
     arguments = self.runner.get_libfuzzer_flags()
-    return self.runner.run_single_testcase(
-        unit_path, additional_args=arguments, timeout=SINGLE_UNIT_TIMEOUT)
+    return self.runner.reproduce(unit_path, arguments, SINGLE_UNIT_TIMEOUT)
 
   def _quarantine_unit(self, unit_path, quarantine_corpus_path):
     """Moves the given unit to the quarantine, and returns the path to the unit
@@ -420,17 +406,16 @@ class CorpusPruner(object):
         num_bad_units += 1
         continue
 
-      result = self._run_single_unit(unit_path)
-
-      if (not result.timed_out and
-          not crash_analyzer.is_memory_tool_crash(result.output)):
-        # Didn't crash or time out.
-        continue
-
-      if result.timed_out:
+      try:
+        result = self._run_single_unit(unit_path)
+      except engine.TimeoutError:
         # Slow unit. Quarantine it.
         unit_path = self._quarantine_unit(unit_path, quarantine_corpus_path)
         num_bad_units += 1
+        continue
+
+      if not crash_analyzer.is_memory_tool_crash(result.output):
+        # Didn't crash or time out.
         continue
 
       # Get memory tool crash information.
@@ -462,7 +447,7 @@ class CorpusPruner(object):
 
     # Set memory tool options and fuzzer arguments.
     engine_common.unpack_seed_corpus_if_needed(
-        self.runner.fuzzer_path, initial_corpus_path, force_unpack=True)
+        self.runner.target_path, initial_corpus_path, force_unpack=True)
 
     environment.reset_current_memory_tool_options(
         redzone_size=MIN_REDZONE, leaks=True)
@@ -471,25 +456,23 @@ class CorpusPruner(object):
 
     # Execute fuzzer with arguments for corpus pruning.
     logs.log('Running merge...')
-    result = self.runner.merge(
-        [minimized_corpus_path, initial_corpus_path],
-        CORPUS_PRUNING_TIMEOUT,
-        artifact_prefix=bad_units_path,
-        tmp_dir=self.context.merge_tmp_dir,
-        additional_args=additional_args)
-
-    # Sanity check that we didn't time out.
-    symbolized_output = stack_symbolizer.symbolize_stacktrace(result.output)
-    if result.timed_out:
+    try:
+      result = self.runner.minimize_corpus(
+          additional_args, [initial_corpus_path], minimized_corpus_path,
+          bad_units_path, CORPUS_PRUNING_TIMEOUT)
+    except engine.TimeoutError as e:
       raise CorpusPruningException(
-          'Corpus pruning timed out while merging corpus: %s.' %
-          symbolized_output)
-    # Sanity check that we didn't error out and there are files in minimized
-    # corpus after merging.
-    if (result.return_code or
-        not shell.get_directory_file_count(minimized_corpus_path)):
+          'Corpus pruning timed out while merging corpus: ' + e.message)
+    except engine.MergeError as e:
+      raise CorpusPruningException('Corpus pruning failed to merge corpus: ' +
+                                   e.message)
+
+    # Sanity check that there are files in minimized corpus after merging.
+    symbolized_output = stack_symbolizer.symbolize_stacktrace(result.logs)
+    if not shell.get_directory_file_count(minimized_corpus_path):
       raise CorpusPruningException(
           'Corpus pruning failed to merge corpus: %s.' % symbolized_output)
+
     logs.log('Corpus merge finished successfully.', output=symbolized_output)
 
 
@@ -513,24 +496,21 @@ class CrossPollinator(object):
 
     additional_args = self.runner.get_libfuzzer_flags()
 
-    result = self.runner.merge(
-        [self.context.minimized_corpus_path, self.context.shared_corpus_path],
-        timeout,
-        artifact_prefix=self.context.bad_units_path,
-        tmp_dir=self.context.merge_tmp_dir,
-        additional_args=additional_args)
+    try:
+      result = self.runner.minimize_corpus(additional_args,
+                                           [self.context.shared_corpus_path],
+                                           self.context.minimized_corpus_path,
+                                           self.context.bad_units_path, timeout)
+    except engine.TimeoutError as e:
+      logs.log_error('Corpus pruning timed out while merging shared corpus: ' +
+                     e.message)
+    except engine.MergeError as e:
+      raise CorpusPruningException(
+          'Corpus pruning failed to merge shared corpus: ' + e.message)
 
-    symbolized_output = stack_symbolizer.symbolize_stacktrace(result.output)
-    if result.timed_out:
-      logs.log_error('Corpus pruning timed out while merging shared corpus: %s.'
-                     % symbolized_output)
-    elif result.return_code:
-      logs.log_error('Corpus pruning failed to merge shared corpus: %s.' %
-                     symbolized_output)
-    else:
-      logs.log(
-          'Shared corpus merge finished successfully.',
-          output=symbolized_output)
+    symbolized_output = stack_symbolizer.symbolize_stacktrace(result.logs)
+    logs.log(
+        'Shared corpus merge finished successfully.', output=symbolized_output)
 
 
 def do_corpus_pruning(context, last_execution_failed, revision):
@@ -552,7 +532,7 @@ def do_corpus_pruning(context, last_execution_failed, revision):
   start_time = datetime.datetime.utcnow()
   runner = Runner(build_directory, context)
   pruner = CorpusPruner(runner)
-  fuzzer_binary_name = os.path.basename(runner.fuzzer_path)
+  fuzzer_binary_name = os.path.basename(runner.target_path)
 
   # If our last execution failed, shrink to a randomized corpus of usable size
   # to prevent corpus from growing unbounded and recurring failures when trying
@@ -721,11 +701,11 @@ def _process_corpus_crashes(context, result):
     task_creation.create_tasks(testcase)
 
 
-def _get_cross_pollinate_fuzzers(engine, current_fuzzer_name):
+def _get_cross_pollinate_fuzzers(engine_name, current_fuzzer_name):
   """Return a list of fuzzer objects to use for cross pollination."""
   cross_pollinate_fuzzers = []
 
-  target_jobs = list(fuzz_target_utils.get_fuzz_target_jobs(engine=engine))
+  target_jobs = list(fuzz_target_utils.get_fuzz_target_jobs(engine=engine_name))
   targets = fuzz_target_utils.get_fuzz_targets_for_target_jobs(target_jobs)
 
   targets_and_jobs = [(target, target_job)
@@ -747,7 +727,7 @@ def _get_cross_pollinate_fuzzers(engine, current_fuzzer_name):
     if not backup_bucket_name:
       continue
     corpus_engine_name = job_environment.get('CORPUS_FUZZER_NAME_OVERRIDE',
-                                             engine)
+                                             engine_name)
 
     cross_pollinate_fuzzers.append(
         CrossPollinateFuzzer(
@@ -817,13 +797,11 @@ def execute_task(full_fuzzer_name, job_type):
     raise CorpusPruningException(
         'Failed to set up fuzzer %s.' % fuzz_target.engine)
 
-  use_minijail = environment.get_value('USE_MINIJAIL')
-
   # TODO(unassigned): Use coverage information for better selection here.
   cross_pollinate_fuzzers = _get_cross_pollinate_fuzzers(
       fuzz_target.engine, full_fuzzer_name)
 
-  context = Context(fuzz_target, cross_pollinate_fuzzers, use_minijail)
+  context = Context(fuzz_target, cross_pollinate_fuzzers)
 
   # Copy global blacklist into local suppressions file if LSan is enabled.
   is_lsan_enabled = environment.get_value('LSAN')

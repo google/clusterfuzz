@@ -18,6 +18,11 @@ from builtins import object
 _ENGINES = {}
 
 
+class TimeoutError(Exception):
+  """TimeoutError."""
+  # TODO(ochang): Remove once migrated to Python 3.
+
+
 class FuzzOptions(object):
   """Represents options passed to the engine. Can be overridden to provide more
   options."""
@@ -108,6 +113,9 @@ class Engine(object):
 
     Returns:
       A ReproduceResult.
+
+    Raises:
+      TimeoutError: If the reproduction exceeds max_time.
     """
     raise NotImplementedError
 
@@ -126,6 +134,10 @@ class Engine(object):
 
     Returns:
       A FuzzResult object.
+
+    Raises:
+      TimeoutError: If the minimization exceeds max_time.
+      MergeError: If the merge failed in some other way.
     """
     raise NotImplementedError
 
@@ -142,6 +154,9 @@ class Engine(object):
 
     Returns:
       A ReproduceResult.
+
+    Raises:
+      TimeoutError: If the minimization exceeds max_time.
     """
     raise NotImplementedError
 
@@ -157,6 +172,9 @@ class Engine(object):
 
     Returns:
       A ReproduceResult.
+
+    Raises:
+      TimeoutError: If the cleanse exceeds max_time.
     """
     raise NotImplementedError
 
