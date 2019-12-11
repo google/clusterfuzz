@@ -317,7 +317,7 @@ class Fuzzer(object):
       self.run(fuzzer_args + ['data/' + a for a in artifacts])
     return len(artifacts)
 
-  def merge(self, fuzzer_args):
+  def merge(self, fuzzer_args, merge_control_file='data/.mergefile'):
     """Attempts to minimizes the fuzzer's corpus.
 
       Executes a command like:
@@ -351,13 +351,7 @@ class Fuzzer(object):
       fuzzer_args.append('data/corpus/')
       fuzzer_args.append('data/corpus.prev/')
 
-    merge_args = ['-merge=1']
-
-    # Save mergefile in case we are interrupted, but do not overwrite the
-    # argument if there is already a merge control file specified.
-    if not any('-merge_control_file=' in arg for arg in fuzzer_args):
-      merge_args.append('-merge_control_file=data/.mergefile')
-
+    merge_args = ['-merge=1', '-merge_control_file=' + merge_control_file]
     self.run(merge_args + fuzzer_args)
 
     # Cleanup

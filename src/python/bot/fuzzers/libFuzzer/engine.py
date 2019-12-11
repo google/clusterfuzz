@@ -202,7 +202,7 @@ class LibFuzzerEngine(engine.Engine):
     stat_overrides['new_units_added'] = new_units_added
 
     # Record the stats to make them easily searchable in stackdriver.
-    logs.log('Stats calculated', stats=stat_overrides)
+    logs.log('Stats calculated.', stats=stat_overrides)
     if new_units_added:
       logs.log('New units added to corpus: %d.' % new_units_added)
     else:
@@ -359,6 +359,7 @@ class LibFuzzerEngine(engine.Engine):
       arguments: Additional arguments needed for corpus minimization.
       existing_corpus_dirs: Input corpora that existed before the fuzzing run.
       new_corpus_dir: Input corpus that was generated during the fuzzing run.
+          Must have at least one new file.
       output_corpus_dir: Output directory to place minimized corpus.
       reproducers_dir: The directory to put reproducers in when crashes are
           found.
@@ -367,25 +368,17 @@ class LibFuzzerEngine(engine.Engine):
     Returns:
       A Result object.
     """
-    # Create the merge tmp dir here to make sure it persists for both steps of
-    # the merge being performed below. Otherwise, `minimize_corpus` would
-    # re-create it for every step and delete the merge control file therefore.
-    self.merge_tmp_dir = self._create_temp_corpus_dir('merge-workdir')
-    merge_control_file = os.path.join(self.merge_tmp_dir, 'MCF')
-
-    # Make sure the merge control file does not exist at this point.
-    shell.remove_file(merge_control_file)
-
-    additional_args = arguments + [
-        constants.MERGE_CONTROL_FILE_ARGUMENT + merge_control_file
-    ]
+    # The dir where merge control file is located must persist for both merge
+    # steps. The second step re-uses the MCF produced during the first step.
+    merge_control_file_dir = self._create_temp_corpus_dir('mcf_tmp_dir')
+    self._merge_control_file = os.path.join(merge_control_file_dir, 'MCF')
 
     # Two step merge process to obtain accurate stats for the new corpus units.
     # See https://reviews.llvm.org/D66107 for a more detailed description.
     merge_stats = {}
 
     # Step 1. Use only existing corpus and collect "initial" stats.
-    result_1 = self.minimize_corpus(target_path, additional_args,
+    result_1 = self.minimize_corpus(target_path, arguments,
                                     existing_corpus_dirs, output_corpus_dir,
                                     reproducers_dir, max_time)
     merge_stats['initial_edge_coverage'] = result_1.stats['edge_coverage']
@@ -401,7 +394,7 @@ class LibFuzzerEngine(engine.Engine):
 
     # Step 2. Process the new corpus units as well.
     result_2 = self.minimize_corpus(
-        target_path, additional_args, existing_corpus_dirs + [new_corpus_dir],
+        target_path, arguments, existing_corpus_dirs + [new_corpus_dir],
         output_corpus_dir, reproducers_dir, max_time)
     merge_stats['edge_coverage'] = result_2.stats['edge_coverage']
     merge_stats['feature_coverage'] = result_2.stats['feature_coverage']
@@ -413,11 +406,14 @@ class LibFuzzerEngine(engine.Engine):
         merge_stats['feature_coverage'] -
         merge_stats['initial_feature_coverage'])
 
-    self.merge_tmp_dir = None
+    assert merge_stats['new_edges'] >= 0
+    assert merge_stats['new_features'] >= 0
+
+    self._merge_control_file = None
 
     # TODO(ochang): Get crashes found during merge.
-    return engine.FuzzResult(result_1.logs + result_2.logs, result_2.command,
-                             [], merge_stats,
+    return engine.FuzzResult(result_1.logs + '\n\n' + result_2.logs,
+                             result_2.command, [], merge_stats,
                              result_1.time_executed + result_2.time_executed)
 
   def minimize_corpus(self, target_path, arguments, input_dirs, output_dir,
@@ -438,15 +434,15 @@ class LibFuzzerEngine(engine.Engine):
     """
     runner = libfuzzer.get_runner(target_path)
     libfuzzer.set_sanitizer_options(target_path)
-    if not self.merge_tmp_dir:
-      self.merge_tmp_dir = self._create_temp_corpus_dir('merge-workdir')
+    merge_tmp_dir = self._create_temp_corpus_dir('merge-workdir')
 
     result = runner.merge(
         [output_dir] + input_dirs,
         merge_timeout=max_time,
-        tmp_dir=self.merge_tmp_dir,
+        tmp_dir=merge_tmp_dir,
         additional_args=arguments,
-        artifact_prefix=reproducers_dir)
+        artifact_prefix=reproducers_dir,
+        merge_control_file=getattr(self, '_merge_control_file', None))
 
     if result.timed_out:
       raise MergeError('Merging new testcases timed out')

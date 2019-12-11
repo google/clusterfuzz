@@ -642,11 +642,14 @@ class IntegrationTests(BaseIntegrationTest):
 
     os.environ['MUTATOR_PLUGINS_DIR'] = os.path.join(TEMP_DIR,
                                                      'mutator-plugins')
-    fuzz_target_name = 'test_fuzzer'
+    # TODO(metzman): Remove the old binary and switch the test to the new one.
+    fuzz_target_name = 'test_fuzzer_old'
+    plugin_archive_name = (
+        'custom_mutator_plugin-libfuzzer_asan-test_fuzzer_old.zip')
+
     # Call before setting up the plugin since this call will erase the directory
     # the plugin is written to.
     _, corpus_path = setup_testcase_and_corpus('empty', 'empty_corpus')
-    plugin_archive_name = 'custom_mutator_plugin-libfuzzer_asan-test_fuzzer.zip'
     plugin_archive_path = os.path.join(DATA_DIR, plugin_archive_name)
 
     self.mock.generate_weighted_strategy_pool.return_value = set_strategy_pool(
