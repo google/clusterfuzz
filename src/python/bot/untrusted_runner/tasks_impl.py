@@ -27,7 +27,6 @@ from bot.tasks import fuzz_task
 from bot.tasks import minimize_task
 from datastore import data_types
 from protos import untrusted_runner_pb2
-from system import environment
 
 
 def _proto_to_fuzz_target(proto):
