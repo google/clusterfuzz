@@ -42,7 +42,6 @@ LIBFUZZER_TIMEOUT_TESTCASE_REGEX = re.compile(
 
 # Regular expressions to detect different sections of logs.
 LIBFUZZER_FUZZING_STRATEGIES = re.compile(r'cf::fuzzing_strategies:\s*(.*)')
-LIBFUZZER_LOG_COVERAGE_REGEX = re.compile(r'#\d+.*cov:\s+(\d+)\s+ft:\s+(\d+).*')
 LIBFUZZER_LOG_DICTIONARY_REGEX = re.compile(r'Dictionary: \d+ entries')
 LIBFUZZER_LOG_END_REGEX = re.compile(r'Done\s+\d+\s+runs.*')
 LIBFUZZER_LOG_IGNORE_REGEX = re.compile(r'.*WARNING:.*Sanitizer')
@@ -50,11 +49,11 @@ LIBFUZZER_LOG_LINE_REGEX = re.compile(
     r'^#\d+.*(READ|INITED|NEW|pulse|REDUCE|RELOAD|DONE)')
 LIBFUZZER_LOG_SEED_CORPUS_INFO_REGEX = re.compile(
     r'INFO:\s+seed corpus:\s+files:\s+(\d+).*rss:\s+(\d+)Mb.*')
-LIBFUZZER_LOG_START_INITED_REGEX = re.compile(
-    r'#\d+\s+INITED\s+cov:\s+(\d+)\s+ft:\s+(\d+).*')
-LIBFUZZER_LOG_START_INITED_NO_COVERAGE_REGEX = re.compile(
-    r'#\d+\s+INITED\s+ft:\s+(\d+).*')
-LIBFUZZER_MERGE_LOG_EDGE_COVERAGE_REGEX = re.compile(r'#\d+.*cov:\s+(\d+).*')
+LIBFUZZER_LOG_START_INITED_REGEX = re.compile(r'#\d+\s+INITED\s+.*')
+LIBFUZZER_MERGE_LOG_STATS_REGEX = re.compile(
+    r'MERGE-OUTER:\s+\d+\s+new files with'
+    r'\s+(\d+)\s+new features added;'
+    r'\s+(\d+)\s+new coverage edges.*')
 LIBFUZZER_MODULES_LOADED_REGEX = re.compile(
     r'^INFO:\s+Loaded\s+\d+\s+(modules|PC tables)\s+\((\d+)\s+.*\).*')
 
@@ -77,8 +76,7 @@ def calculate_log_lines(log_lines):
   for line in log_lines:
     if not libfuzzer_inited:
       # Skip to start of libFuzzer log output.
-      if (LIBFUZZER_LOG_START_INITED_REGEX.match(line) or
-          LIBFUZZER_LOG_START_INITED_NO_COVERAGE_REGEX.match(line)):
+      if LIBFUZZER_LOG_START_INITED_REGEX.match(line):
         libfuzzer_inited = True
       else:
         ignored_lines_count += 1
@@ -229,7 +227,6 @@ def parse_performance_features(log_lines,
 
   # Different crashes and other flags extracted via regexp match.
   has_corpus = False
-  libfuzzer_inited = False
   for line in log_lines:
     if LIBFUZZER_BAD_INSTRUMENTATION_REGEX.match(line):
       stats['bad_instrumentation'] = 1
@@ -271,25 +268,6 @@ def parse_performance_features(log_lines,
       stats['startup_crash_count'] = 0
       stats['edges_total'] = int(match.group(2))
 
-    match = LIBFUZZER_LOG_START_INITED_REGEX.match(line)
-    if match:
-      stats['initial_edge_coverage'] = stats['edge_coverage'] = int(
-          match.group(1))
-      stats['initial_feature_coverage'] = stats['feature_coverage'] = int(
-          match.group(2))
-      libfuzzer_inited = True
-      continue
-
-    # This regexp will match multiple lines and will be overwriting the stats.
-    # This is done on purpose, as the last line in the log may have different
-    # format, e.g. 'DONE' without a crash and 'NEW' or 'pulse' with a crash.
-    # Also, ignore values before INITED i.e. while seed corpus is being read.
-    match = LIBFUZZER_LOG_COVERAGE_REGEX.match(line)
-    if match and libfuzzer_inited:
-      stats['edge_coverage'] = int(match.group(1))
-      stats['feature_coverage'] = int(match.group(2))
-      continue
-
     if (LIBFUZZER_TIMEOUT_TESTCASE_REGEX.match(line) or
         stack_analyzer.LIBFUZZER_TIMEOUT_REGEX.match(line)):
       stats['timeout_count'] = 1
@@ -305,28 +283,22 @@ def parse_performance_features(log_lines,
   if has_corpus and not stats['log_lines_from_engine']:
     stats['corpus_crash_count'] = 1
 
-  # new_edges and new_features may not be correct when either corpus subset or
-  # random max length strategy is used. Skip recording these stats in such case.
-  # See https://github.com/google/clusterfuzz/issues/802.
-  if ('corpus_subset' not in strategies and 'random_max_len' not in strategies):
-    assert stats['edge_coverage'] >= stats['initial_edge_coverage']
-    stats['new_edges'] = (
-        stats['edge_coverage'] - stats['initial_edge_coverage'])
-
-    assert stats['feature_coverage'] >= stats['initial_feature_coverage']
-    stats['new_features'] = (
-        stats['feature_coverage'] - stats['initial_feature_coverage'])
-
   return stats
 
 
 def parse_stats_from_merge_log(log_lines):
   """Extract stats from a log produced by libFuzzer run with -merge=1."""
-  stats = {}
-  for line in log_lines:
-    match = LIBFUZZER_MERGE_LOG_EDGE_COVERAGE_REGEX.match(line)
+  stats = {
+      'edge_coverage': 0,
+      'feature_coverage': 0,
+  }
+
+  # Reverse the list as an optimization. The line of our interest is the last.
+  for line in reversed(log_lines):
+    match = LIBFUZZER_MERGE_LOG_STATS_REGEX.match(line)
     if match:
-      stats['merge_edge_coverage'] = int(match.group(1))
-      continue
+      stats['edge_coverage'] = int(match.group(2))
+      stats['feature_coverage'] = int(match.group(1))
+      break
 
   return stats
