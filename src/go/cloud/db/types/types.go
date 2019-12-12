@@ -393,6 +393,7 @@ type Testcase struct {
 	GroupBugInformation        int            `datastore:"group_bug_information"`
 	Gestures                   []string       `datastore:"gestures,noindex"`
 	Redzone                    int            `datastore:"redzone,noindex"`
+	DisableUbsan               bool           `datastore:"disable_ubsan"`
 	Open                       bool           `datastore:"open"`
 	TimeoutMultiplier          float64        `datastore:"timeout_multiplier,noindex"`
 	AdditionalMetadata         string         `datastore:"additional_metadata,noindex"`
@@ -416,7 +417,6 @@ type Testcase struct {
 	ImpactBetaVersionIndices   []string       `datastore:"impact_beta_version_indices"`
 	ImpactBetaVersionLikely    bool           `datastore:"impact_beta_version_likely"`
 	IsImpactSetFlag            bool           `datastore:"is_impact_set_flag"`
-	Coverage                   string         `datastore:"coverage"`
 	UploaderEmail              string         `datastore:"uploader_email"`
 }
 
