@@ -96,9 +96,10 @@ class FuzzErrorCode(object):
 
 Context = collections.namedtuple('Context', [
     'project_name', 'bot_name', 'job_type', 'fuzz_target', 'redzone',
-    'platform_id', 'crash_revision', 'fuzzer_name', 'window_argument',
-    'fuzzer_metadata', 'testcases_metadata', 'timeout_multiplier',
-    'test_timeout', 'thread_wait_timeout', 'data_directory'
+    'disable_ubsan', 'platform_id', 'crash_revision', 'fuzzer_name',
+    'window_argument', 'fuzzer_metadata', 'testcases_metadata',
+    'timeout_multiplier', 'test_timeout', 'thread_wait_timeout',
+    'data_directory'
 ])
 Redzone = collections.namedtuple('Redzone', ['size', 'weight'])
 
@@ -665,6 +666,20 @@ def pick_redzone():
   return utils.random_weighted_choice(redzone_list).size
 
 
+def pick_ubsan_disabled(job_type):
+  """Choose whether to disable UBSan in an ASan+UBSan build."""
+  # This is only applicable in an ASan build.
+  memory_tool_name = environment.get_memory_tool_name(job_type)
+  if memory_tool_name not in ['ASAN', 'HWASAN']:
+    return False
+
+  # Check if UBSan is enabled in this ASan build. If not, can't disable it.
+  if not environment.get_value('UBSAN'):
+    return False
+
+  return not utils.random_number(0, DEFAULT_CHOOSE_PROBABILITY)
+
+
 def pick_timeout_multiplier():
   """Return a random testcase timeout multiplier and adjust timeout."""
   fuzz_test_timeout = environment.get_value('FUZZ_TEST_TIMEOUT')
@@ -936,6 +951,7 @@ def create_testcase(group, context):
       http_flag=crash.http_flag,
       gestures=crash.gestures,
       redzone=context.redzone,
+      disable_ubsan=context.disable_ubsan,
       minidump_keys=get_minidump_keys(crash.crash_info),
       window_argument=context.window_argument,
       timeout_multiplier=get_testcase_timeout_multiplier(
@@ -1255,6 +1271,7 @@ class FuzzingSession(object):
 
     # Set up randomly selected fuzzing parameters.
     self.redzone = pick_redzone()
+    self.disable_ubsan = pick_ubsan_disabled(job_type)
     self.timeout_multiplier = pick_timeout_multiplier()
     self.window_argument = pick_window_argument()
     self.test_timeout = set_test_timeout(test_timeout, self.timeout_multiplier)
@@ -1596,7 +1613,8 @@ class FuzzingSession(object):
         environment.set_value('STRATEGY_SELECTION_DISTRIBUTION', distribution)
 
     # Reset memory tool options.
-    environment.reset_current_memory_tool_options(redzone_size=self.redzone)
+    environment.reset_current_memory_tool_options(
+        redzone_size=self.redzone, disable_ubsan=self.disable_ubsan)
 
     # Create a dict to store metadata specific to each testcase.
     testcases_metadata = {}
@@ -1820,6 +1838,7 @@ class FuzzingSession(object):
             job_type=self.job_type,
             fuzz_target=self.fuzz_target,
             redzone=self.redzone,
+            disable_ubsan=self.disable_ubsan,
             platform_id=platform_id,
             crash_revision=crash_revision,
             fuzzer_name=self.fuzzer_name,

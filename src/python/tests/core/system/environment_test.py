@@ -236,10 +236,12 @@ class EvalValueTest(unittest.TestCase):
 class ResetCurrentMemoryToolOptionsTest(unittest.TestCase):
   """Tests for reset_current_memory_tool_options."""
 
+  def setUp(self):
+    test_helpers.patch_environ(self)
+
   def test_windows_symbolizer(self):
     """Test that the reset_current_memory_tool_options returns the expected path
     to the llvm symbolizer on Windows."""
-    test_helpers.patch_environ(self)
     os.environ['JOB_NAME'] = 'windows_libfuzzer_chrome_asan'
     test_helpers.patch(self, [
         'system.environment.platform',
@@ -252,6 +254,36 @@ class ResetCurrentMemoryToolOptionsTest(unittest.TestCase):
     environment.reset_current_memory_tool_options()
     self.assertIn('external_symbolizer_path="%s"' % windows_symbolizer_path,
                   os.environ['ASAN_OPTIONS'])
+
+  def test_ubsan_enabled(self):
+    """Test reset_current_memory_tool_options when ubsan is enabled."""
+    os.environ['JOB_NAME'] = 'libfuzzer_chrome_asan'
+    os.environ['UBSAN'] = 'True'
+    environment.reset_current_memory_tool_options(disable_ubsan=False)
+    self.assertDictEqual({
+        'halt_on_error': 1,
+        'handle_abort': 1,
+        'handle_segv': 1,
+        'handle_sigbus': 1,
+        'handle_sigfpe': 1,
+        'handle_sigill': 1,
+        'print_stacktrace': 1,
+        'print_summary': 1,
+        'print_suppressions': 0,
+        'silence_unsigned_overflow': 1,
+        'use_sigaltstack': 1
+    }, environment.get_memory_tool_options('UBSAN_OPTIONS'))
+
+  def test_ubsan_disabled(self):
+    """Test reset_current_memory_tool_options when ubsan is disabled."""
+    os.environ['JOB_NAME'] = 'libfuzzer_chrome_asan'
+    os.environ['UBSAN'] = 'True'
+    environment.reset_current_memory_tool_options(disable_ubsan=True)
+    self.assertDictEqual({
+        'halt_on_error': 0,
+        'print_stacktrace': 0,
+        'print_suppressions': 0
+    }, environment.get_memory_tool_options('UBSAN_OPTIONS'))
 
 
 class MaybeConvertToIntTest(unittest.TestCase):
