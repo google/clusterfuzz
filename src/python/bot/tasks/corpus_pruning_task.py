@@ -467,8 +467,9 @@ class CorpusPruner(object):
       raise CorpusPruningException('Corpus pruning failed to merge corpus: ' +
                                    e.message)
 
-    # Sanity check that there are files in minimized corpus after merging.
     symbolized_output = stack_symbolizer.symbolize_stacktrace(result.logs)
+
+    # Sanity check that there are files in minimized corpus after merging.
     if not shell.get_directory_file_count(minimized_corpus_path):
       raise CorpusPruningException(
           'Corpus pruning failed to merge corpus: %s.' % symbolized_output)

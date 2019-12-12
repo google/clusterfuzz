@@ -377,7 +377,7 @@ class LibFuzzerEngine(engine.Engine):
       A Result object.
 
     Raises:
-      TimeoutError: If the minimization exceeds max_time.
+      TimeoutError: If the corpus minimization exceeds max_time.
       MergeError: If the merge failed in some other way.
     """
     runner = libfuzzer.get_runner(target_path)
@@ -417,7 +417,7 @@ class LibFuzzerEngine(engine.Engine):
       A ReproduceResult.
 
     Raises:
-      TimeoutError: If the minimization exceeds max_time.
+      TimeoutError: If the testcase minimization exceeds max_time.
     """
     runner = libfuzzer.get_runner(target_path)
     libfuzzer.set_sanitizer_options(target_path)

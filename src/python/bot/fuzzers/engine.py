@@ -136,7 +136,7 @@ class Engine(object):
       A FuzzResult object.
 
     Raises:
-      TimeoutError: If the minimization exceeds max_time.
+      TimeoutError: If the corpus minimization exceeds max_time.
       MergeError: If the merge failed in some other way.
     """
     raise NotImplementedError
@@ -156,7 +156,7 @@ class Engine(object):
       A ReproduceResult.
 
     Raises:
-      TimeoutError: If the minimization exceeds max_time.
+      TimeoutError: If the testcase minimization exceeds max_time.
     """
     raise NotImplementedError
 
