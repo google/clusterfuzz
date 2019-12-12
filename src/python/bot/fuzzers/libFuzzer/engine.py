@@ -55,9 +55,12 @@ def _is_multistep_merge_supported(target_path):
   # The temporary implementation checks that the version of libFuzzer is at
   # least https://github.com/llvm/llvm-project/commit/da3cf61, which supports
   # multi step merge: https://github.com/llvm/llvm-project/commit/f054067.
-  with open(target_path, 'rb') as file_handle:
-    return utils.search_string_in_file(MULTISTEP_MERGE_SUPPORT_TOKEN,
-                                       file_handle)
+  if os.path.exists(target_path):
+    with open(target_path, 'rb') as file_handle:
+      return utils.search_string_in_file(MULTISTEP_MERGE_SUPPORT_TOKEN,
+                                         file_handle)
+
+  return False
 
 
 class MergeError(engine.Error):
