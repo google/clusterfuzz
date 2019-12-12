@@ -134,7 +134,8 @@ def _setup_memory_tools_environment(testcase):
   """Set up environment for various memory tools used."""
   env = testcase.get_metadata('env')
   if not env:
-    environment.reset_current_memory_tool_options(redzone_size=testcase.redzone)
+    environment.reset_current_memory_tool_options(
+        redzone_size=testcase.redzone, disable_ubsan=testcase.disable_ubsan)
     return
 
   for options_name, options_value in six.iteritems(env):

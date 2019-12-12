@@ -127,7 +127,7 @@ def copy():
 
 
 def get_asan_options(redzone_size, malloc_context_size, quarantine_size_mb,
-                     bot_platform, leaks):
+                     bot_platform, leaks, disable_ubsan):
   """Generates default ASAN options."""
   asan_options = {}
 
@@ -192,7 +192,10 @@ def get_asan_options(redzone_size, malloc_context_size, quarantine_size_mb,
   # Check if UBSAN is enabled as well for this ASAN build.
   # If yes, set UBSAN_OPTIONS and enable suppressions.
   if get_value('UBSAN'):
-    ubsan_options = get_ubsan_options()
+    if disable_ubsan:
+      ubsan_options = get_ubsan_disabled_options()
+    else:
+      ubsan_options = get_ubsan_options()
 
     # Remove |symbolize| explicitly to avoid overridding ASan defaults.
     ubsan_options.pop('symbolize', None)
@@ -547,6 +550,15 @@ def get_ubsan_options():
   return ubsan_options
 
 
+def get_ubsan_disabled_options():
+  """Generates ubsan options """
+  return {
+      'halt_on_error': 0,
+      'print_stacktrace': 0,
+      'print_suppressions': 0,
+  }
+
+
 def get_value(environment_variable, default_value=None):
   """Return an environment variable value."""
   value_string = os.getenv(environment_variable)
@@ -758,7 +770,8 @@ def reset_current_memory_tool_options(redzone_size=0,
                                       malloc_context_size=0,
                                       leaks=True,
                                       symbolize_inline_frames=False,
-                                      quarantine_size_mb=None):
+                                      quarantine_size_mb=None,
+                                      disable_ubsan=False):
   """Resets environment variables for memory debugging tool to default
   values."""
   # FIXME: Handle these imports in a cleaner way.
@@ -777,7 +790,8 @@ def reset_current_memory_tool_options(redzone_size=0,
   # Default options for memory debuggin tool used.
   if tool_name in ['ASAN', 'HWASAN']:
     tool_options = get_asan_options(redzone_size, malloc_context_size,
-                                    quarantine_size_mb, bot_platform, leaks)
+                                    quarantine_size_mb, bot_platform, leaks,
+                                    disable_ubsan)
   elif tool_name == 'MSAN':
     tool_options = get_msan_options()
   elif tool_name == 'TSAN':

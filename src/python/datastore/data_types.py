@@ -479,6 +479,12 @@ class Testcase(Model):
   # ASAN redzone size in bytes.
   redzone = ndb.IntegerProperty(default=128, indexed=False)
 
+  # Flag indicating if UBSan detection should be disabled. This is needed for
+  # cases when ASan and UBSan are bundled in the same build configuration
+  # and we need to disable UBSan in some runs to find the potentially more
+  # interesting ASan bugs.
+  disable_ubsan = ndb.BooleanProperty(default=False)
+
   # Whether testcase is open.
   open = ndb.BooleanProperty(default=True)
 
@@ -557,9 +563,6 @@ class Testcase(Model):
 
   # Whether or not impact task has been run on this testcase.
   is_impact_set_flag = ndb.BooleanProperty()
-
-  # Code coverage data for the testcase.
-  coverage = StringProperty()
 
   # Uploader email address.
   uploader_email = StringProperty()
