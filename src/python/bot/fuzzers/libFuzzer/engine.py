@@ -37,12 +37,27 @@ from system import shell
 ENGINE_ERROR_MESSAGE = 'libFuzzer: engine encountered an error'
 DICT_PARSING_FAILED_REGEX = re.compile(
     r'ParseDictionaryFile: error in line (\d+)')
+MULTISTEP_MERGE_SUPPORT_TOKEN = 'fuzz target overwrites its const input'
 
 
 def _project_qualified_fuzzer_name(target_path):
   """Return project qualified fuzzer name for a given target path."""
   return data_types.fuzz_target_project_qualified_name(
       utils.current_project(), os.path.basename(target_path))
+
+
+def _is_multistep_merge_supported(target_path):
+  """Checks whether a particular binary support multistep merge."""
+  # TODO(Dor1s): implementation below a temporary workaround, do not tell any
+  # body that we are doing this. The real solution would be to execute a
+  # fuzz target with '-help=1' and check the output for the presence of
+  # multistep merge support added in https://reviews.llvm.org/D71423.
+  # The temporary implementation checks that the version of libFuzzer is at
+  # least https://github.com/llvm/llvm-project/commit/da3cf61, which supports
+  # multi step merge: https://github.com/llvm/llvm-project/commit/f054067.
+  with open(target_path, 'rb') as file_handle:
+    return utils.search_string_in_file(MULTISTEP_MERGE_SUPPORT_TOKEN,
+                                       file_handle)
 
 
 class MergeError(engine.Error):
@@ -371,20 +386,6 @@ class LibFuzzerEngine(engine.Engine):
     Returns:
       A Result object.
     """
-
-    def _is_multistep_merge_supported(target_path):
-      """Checks whether a particular binary support multistep merge."""
-      # TODO(Dor1s): implementation below a temporary workaround, do not tell
-      # anyone that we are doing this. The real solution would be to execute a
-      # fuzz target with '-help=1' and check the output for the presence of
-      # multistep merge support added in https://reviews.llvm.org/D71423.
-      # The temporary implementation checks that the version of libFuzzer is at
-      # least https://github.com/llvm/llvm-project/commit/da3cf61 which supports
-      # multi step merge: https://github.com/llvm/llvm-project/commit/f054067.
-      with open(target_path, 'rb') as file_handle:
-        return utils.search_string_in_file(
-            'fuzz target overwrites its const input', file_handle)
-
     if not _is_multistep_merge_supported(target_path):
       # Fallback to the old single step merge. It does not support incremental
       # stats and provides only `edge_coverage` and `feature_coverage` stats.

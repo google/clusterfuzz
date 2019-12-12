@@ -186,6 +186,7 @@ class FuzzTest(fake_fs_unittest.TestCase):
     self.fs.add_real_directory(TEST_DIR)
 
     test_helpers.patch(self, [
+        'bot.fuzzers.libFuzzer.engine._is_multistep_merge_supported',
         'bot.fuzzers.libfuzzer.LibFuzzerRunner.fuzz',
         'bot.fuzzers.libfuzzer.LibFuzzerRunner.merge',
         'os.getpid',
@@ -194,6 +195,7 @@ class FuzzTest(fake_fs_unittest.TestCase):
     os.environ['JOB_NAME'] = 'libfuzzer_asan_job'
     os.environ['FUZZ_INPUTS_DISK'] = '/fuzz-inputs'
 
+    self.mock._is_multistep_merge_supported = True  # pylint: disable=protected-access
     self.mock.getpid.return_value = 9001
     self.maxDiff = None  # pylint: disable=invalid-name
 
