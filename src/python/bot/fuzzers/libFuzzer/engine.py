@@ -371,6 +371,27 @@ class LibFuzzerEngine(engine.Engine):
     Returns:
       A Result object.
     """
+
+    def _is_multistep_merge_supported(target_path):
+      """Checks whether a particular binary support multistep merge."""
+      # TODO(Dor1s): implementation below a temporary workaround, do not tell
+      # anyone that we are doing this. The real solution would be to execute a
+      # fuzz target with '-help=1' and check the output for the presence of
+      # multistep merge support added in https://reviews.llvm.org/D71423.
+      # The temporary implementation checks that the version of libFuzzer is at
+      # least https://github.com/llvm/llvm-project/commit/da3cf61 which supports
+      # multi step merge: https://github.com/llvm/llvm-project/commit/f054067.
+      with open(target_path, 'rb') as file_handle:
+        return utils.search_string_in_file(
+            'fuzz target overwrites its const input', file_handle)
+
+    if not _is_multistep_merge_supported(target_path):
+      # Fallback to the old single step merge. It does not support incremental
+      # stats and provides only `edge_coverage` and `feature_coverage` stats.
+      return self.minimize_corpus(target_path, arguments,
+                                  existing_corpus_dirs + [new_corpus_dir],
+                                  output_corpus_dir, reproducers_dir, max_time)
+
     # The dir where merge control file is located must persist for both merge
     # steps. The second step re-uses the MCF produced during the first step.
     merge_control_file_dir = self._create_temp_corpus_dir('mcf_tmp_dir')
@@ -409,14 +430,17 @@ class LibFuzzerEngine(engine.Engine):
         merge_stats['feature_coverage'] -
         merge_stats['initial_feature_coverage'])
 
-    assert merge_stats['new_edges'] >= 0
-    assert merge_stats['new_features'] >= 0
+    output = result_1.logs + '\n\n' + result_2.logs
+    if (merge_stats['new_edges'] < 0 or merge_stats['new_features'] < 0):
+      logs.log_error(
+          'Two step merge failed.', merge_stats=merge_stats, output=output)
+      merge_stats['new_edges'] = 0
+      merge_stats['new_features'] = 0
 
     self._merge_control_file = None
 
     # TODO(ochang): Get crashes found during merge.
-    return engine.FuzzResult(result_1.logs + '\n\n' + result_2.logs,
-                             result_2.command, [], merge_stats,
+    return engine.FuzzResult(output, result_2.command, [], merge_stats,
                              result_1.time_executed + result_2.time_executed)
 
   def minimize_corpus(self, target_path, arguments, input_dirs, output_dir,
@@ -453,10 +477,10 @@ class LibFuzzerEngine(engine.Engine):
 
     if result.timed_out:
       raise engine.TimeoutError('Merging new testcases timed out: ' +
-                                merge_result.output)
+                                result.output)
 
     if result.return_code != 0:
-      raise MergeError('Merging new testcases failed: ' + merge_result.output)
+      raise MergeError('Merging new testcases failed: ' + result.output)
 
     merge_stats = stats.parse_stats_from_merge_log(result.output.splitlines())
 
