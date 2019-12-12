@@ -92,7 +92,8 @@ def execute_task(testcase_id, job_type):
   if environment.tool_matches('ASAN', job_type) and testcase.security_flag:
     redzone = MAX_REDZONE
     while redzone >= MIN_REDZONE:
-      environment.reset_current_memory_tool_options(testcase.redzone)
+      environment.reset_current_memory_tool_options(
+          redzone_size=testcase.redzone, disable_ubsan=testcase.disable_ubsan)
 
       process_handler.terminate_stale_application_instances()
       command = testcase_manager.get_command_line_for_application(
@@ -140,7 +141,10 @@ def execute_task(testcase_id, job_type):
 
   # Increase malloc_context_size to get all stack frames. Default is 30.
   environment.reset_current_memory_tool_options(
-      sym_redzone, STACK_FRAME_COUNT, symbolize_inline_frames=True)
+      redzone_size=sym_redzone,
+      malloc_context_size=STACK_FRAME_COUNT,
+      symbolize_inline_frames=True,
+      disable_ubsan=testcase.disable_ubsan)
 
   # TSAN tool settings (if the tool is used).
   if environment.tool_matches('TSAN', job_type):
