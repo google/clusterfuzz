@@ -346,15 +346,14 @@ def find_fixed_range(testcase_id, job_type):
     if max_index - min_index == 1:
       _save_fixed_range(testcase_id, min_revision, max_revision)
       return
-    # TODO(mbarbella): Occasionally, we get into this bad state. It seems to be
-    # related to test cases with flaky stacks, but the exact cause is unknown.
-    # Remove this if the root cause can be resolved elsewhere.
+
+    # Occasionally, we get into this bad state. It seems to be related to test
+    # cases with flaky stacks, but the exact cause is unknown.
     elif max_index - min_index < 1:
       testcase = data_handler.get_testcase_by_id(testcase_id)
       testcase.fixed = 'NA'
       testcase.open = False
-
-      message = ('fixed testing errored out (min and max revisions '
+      message = ('Fixed testing errored out (min and max revisions '
                  'are both %d)' % min_revision)
       _update_completion_metadata(testcase, max_revision, message=message)
       return
