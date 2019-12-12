@@ -15,6 +15,9 @@
 # pylint: disable=unused-argument
 # pylint: disable=protected-access
 
+from future import standard_library
+standard_library.install_aliases()
+from builtins import object
 import datetime
 import mock
 import os
@@ -23,6 +26,7 @@ import tempfile
 import unittest
 
 from bot.fuzzers.libFuzzer import engine as libFuzzer_engine
+from bot.tasks import commands
 from bot.tasks import corpus_pruning_task
 from datastore import data_handler
 from datastore import data_types
@@ -41,19 +45,17 @@ TEST_SHARED_BUCKET = 'clusterfuzz-test-shared-corpus'
 TEST2_BACKUP_BUCKET = 'clusterfuzz-test2-backup-bucket'
 
 
-# TODO(unassigned): Support macOS.
-@test_utils.supported_platforms('LINUX')
-@test_utils.with_cloud_emulators('datastore')
-class CorpusPruningTest(unittest.TestCase):
-  """Corpus pruning tests."""
+class BaseTest(object):
+  """Base corpus pruning tests."""
 
   def setUp(self):
+    """Setup."""
+    helpers.patch_environ(self)
     helpers.patch(self, [
         'bot.fuzzers.engine.get',
         'bot.fuzzers.engine_common.unpack_seed_corpus_if_needed',
         'bot.tasks.task_creation.create_tasks',
         'bot.tasks.setup.update_fuzzer_and_data_bundles',
-        'build_management.build_manager.setup_build',
         'fuzzing.corpus_manager.backup_corpus',
         'fuzzing.corpus_manager.GcsCorpus.rsync_to_disk',
         'fuzzing.corpus_manager.FuzzTargetCorpus.rsync_from_disk',
@@ -61,10 +63,7 @@ class CorpusPruningTest(unittest.TestCase):
         'google_cloud_utils.blobs.write_blob',
         'google_cloud_utils.storage.write_data',
     ])
-
-    helpers.patch_environ(self)
     self.mock.get.return_value = libFuzzer_engine.LibFuzzerEngine()
-    self.mock.setup_build.side_effect = self._mock_setup_build
     self.mock.rsync_to_disk.side_effect = self._mock_rsync_to_disk
     self.mock.rsync_from_disk.side_effect = self._mock_rsync_from_disk
     self.mock.update_fuzzer_and_data_bundles.return_value = True
@@ -150,6 +149,20 @@ class CorpusPruningTest(unittest.TestCase):
     shutil.copytree(sync_dir, corpus_dir)
     return True
 
+
+# TODO(unassigned): Support macOS.
+@test_utils.supported_platforms('LINUX')
+@test_utils.with_cloud_emulators('datastore')
+class CorpusPruningTest(unittest.TestCase, BaseTest):
+  """Corpus pruning tests."""
+
+  def setUp(self):
+    BaseTest.setUp(self)
+    helpers.patch(self, [
+        'build_management.build_manager.setup_build',
+    ])
+    self.mock.setup_build.side_effect = self._mock_setup_build
+
   def test_prune(self):
     """Basic pruning test."""
     corpus_pruning_task.execute_task('libFuzzer_test_fuzzer',
@@ -229,6 +242,57 @@ class CorpusPruningTestMinijail(CorpusPruningTest):
 
     super(CorpusPruningTestMinijail, self).setUp()
     os.environ['USE_MINIJAIL'] = 'True'
+
+
+@unittest.skipIf(
+    not environment.get_value('FUCHSIA_TESTS'),
+    'Temporarily disabling the Fuchsia test until build size reduced.')
+@test_utils.with_cloud_emulators('datastore')
+@test_utils.integration
+class CorpusPruningTestFuchsia(unittest.TestCase, BaseTest):
+  """Corpus pruning test for fuchsia."""
+
+  def setUp(self):
+    BaseTest.setUp(self)
+    self.temp_dir = tempfile.mkdtemp()
+    builds_dir = os.path.join(self.temp_dir, 'builds')
+    os.mkdir(builds_dir)
+    urls_dir = os.path.join(self.temp_dir, 'urls')
+    os.mkdir(urls_dir)
+
+    environment.set_value('BUILDS_DIR', builds_dir)
+    environment.set_value('BUILD_URLS_DIR', urls_dir)
+    environment.set_value('QUEUE_OVERRIDE', 'FUCHSIA')
+    environment.set_value('OS_OVERRIDE', 'FUCHSIA')
+
+    env_string = ('RELEASE_BUILD_BUCKET_PATH = '
+                  'gs://clusterfuchsia-builds-test/libfuzzer/'
+                  'fuchsia-([0-9]+).zip')
+    commands.update_environment_for_job(env_string)
+
+    data_types.Job(
+        name='libfuzzer_asan_fuchsia',
+        platform='FUCHSIA',
+        environment_string=env_string).put()
+    data_types.FuzzTarget(
+        binary='example_fuzzers/overflow_fuzzer',
+        engine='libFuzzer',
+        project='fuchsia').put()
+
+    environment.set_value('UNPACK_ALL_FUZZ_TARGETS_AND_FILES', True)
+    helpers.patch(self, [
+        'system.shell.clear_temp_directory',
+    ])
+
+  def tearDown(self):
+    shutil.rmtree(self.temp_dir, ignore_errors=True)
+
+  def test_prune(self):
+    """Basic pruning test."""
+    # TODO(flowerhack): Actually test this.
+    corpus_pruning_task.execute_task(
+        'libFuzzer_fuchsia_example_fuzzers-overflow_fuzzer',
+        'libfuzzer_asan_fuchsia')
 
 
 class CorpusPruningTestUntrusted(
