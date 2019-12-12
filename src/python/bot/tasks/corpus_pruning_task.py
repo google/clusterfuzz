@@ -415,7 +415,7 @@ class CorpusPruner(object):
         continue
 
       if not crash_analyzer.is_memory_tool_crash(result.output):
-        # Didn't crash or time out.
+        # Didn't crash.
         continue
 
       # Get memory tool crash information.
