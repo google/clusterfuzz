@@ -256,10 +256,6 @@ def find_fixed_range(testcase_id, job_type):
   if not max_revision:
     max_revision = revisions.get_last_revision_in_list(revision_list)
 
-  # If the min and max revisions are the same, there's no work to do.
-  if min_revision == max_revision:
-    return
-
   min_index = revisions.find_min_revision_index(revision_list, min_revision)
   if min_index is None:
     raise errors.BuildNotFoundError(min_revision, job_type)
@@ -349,6 +345,18 @@ def find_fixed_range(testcase_id, job_type):
     # narrow the range.
     if max_index - min_index == 1:
       _save_fixed_range(testcase_id, min_revision, max_revision)
+      return
+    # TODO(mbarbella): Occasionally, we get into this bad state. It seems to be
+    # related to test cases with flaky stacks, but the exact cause is unknown.
+    # Remove this if the root cause can be resolved elsewhere.
+    elif max_index - min_index < 1:
+      testcase = data_handler.get_testcase_by_id(testcase_id)
+      testcase.fixed = 'NA'
+      testcase.open = False
+
+      message = ('fixed testing errored out (min and max revisions '
+                 'are both %d)' % min_revision)
+      _update_completion_metadata(testcase, max_revision, message=message)
       return
 
     # Test the middle revision of our range.
