@@ -256,6 +256,10 @@ def find_fixed_range(testcase_id, job_type):
   if not max_revision:
     max_revision = revisions.get_last_revision_in_list(revision_list)
 
+  # If the min and max revisions are the same, there's no work to do.
+  if min_revision == max_revision:
+    return
+
   min_index = revisions.find_min_revision_index(revision_list, min_revision)
   if min_index is None:
     raise errors.BuildNotFoundError(min_revision, job_type)
