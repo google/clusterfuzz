@@ -18,6 +18,10 @@ from builtins import object
 _ENGINES = {}
 
 
+class Error(Exception):
+  """Engine error."""
+
+
 class TimeoutError(Exception):
   """TimeoutError."""
   # TODO(ochang): Remove once migrated to Python 3.
@@ -137,7 +141,7 @@ class Engine(object):
 
     Raises:
       TimeoutError: If the corpus minimization exceeds max_time.
-      MergeError: If the merge failed in some other way.
+      Error: If the merge failed in some other way.
     """
     raise NotImplementedError
 

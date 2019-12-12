@@ -463,7 +463,7 @@ class CorpusPruner(object):
     except engine.TimeoutError as e:
       raise CorpusPruningException(
           'Corpus pruning timed out while merging corpus: ' + e.message)
-    except engine.MergeError as e:
+    except engine.Error as e:
       raise CorpusPruningException('Corpus pruning failed to merge corpus: ' +
                                    e.message)
 
