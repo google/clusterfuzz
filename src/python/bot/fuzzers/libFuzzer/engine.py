@@ -336,6 +336,9 @@ class LibFuzzerEngine(engine.Engine):
 
     Returns:
       A ReproduceResult.
+
+    Raises:
+      TimeoutError: If the reproduction exceeds max_time.
     """
     runner = libfuzzer.get_runner(target_path)
     libfuzzer.set_sanitizer_options(target_path)
@@ -350,6 +353,10 @@ class LibFuzzerEngine(engine.Engine):
 
     result = runner.run_single_testcase(
         input_path, timeout=max_time, additional_args=arguments)
+
+    if result.timed_out:
+      raise engine.TimeoutError('Reproducing timed out: ' + result.output)
+
     return engine.ReproduceResult(result.command, result.return_code,
                                   result.time_executed, result.output)
 
@@ -368,6 +375,10 @@ class LibFuzzerEngine(engine.Engine):
 
     Returns:
       A Result object.
+
+    Raises:
+      TimeoutError: If the corpus minimization exceeds max_time.
+      MergeError: If the merge failed in some other way.
     """
     runner = libfuzzer.get_runner(target_path)
     libfuzzer.set_sanitizer_options(target_path)
@@ -381,10 +392,11 @@ class LibFuzzerEngine(engine.Engine):
         artifact_prefix=reproducers_dir)
 
     if merge_result.timed_out:
-      raise MergeError('Merging new testcases timed out')
+      raise engine.TimeoutError('Merging new testcases timed out: ' +
+                                merge_result.output)
 
     if merge_result.return_code != 0:
-      raise MergeError('Merging new testcases failed')
+      raise MergeError('Merging new testcases failed: ' + merge_result.output)
 
     # TODO(ochang): Get crashes found during merge.
     return engine.FuzzResult(merge_result.output, merge_result.command, [], {},
@@ -403,6 +415,9 @@ class LibFuzzerEngine(engine.Engine):
 
     Returns:
       A ReproduceResult.
+
+    Raises:
+      TimeoutError: If the testcase minimization exceeds max_time.
     """
     runner = libfuzzer.get_runner(target_path)
     libfuzzer.set_sanitizer_options(target_path)
@@ -414,6 +429,9 @@ class LibFuzzerEngine(engine.Engine):
         max_time,
         artifact_prefix=minimize_tmp_dir,
         additional_args=arguments)
+
+    if result.timed_out:
+      raise engine.TimeoutError('Minimization timed out: ' + result.output)
 
     return engine.ReproduceResult(result.command, result.return_code,
                                   result.time_executed, result.output)
@@ -430,6 +448,9 @@ class LibFuzzerEngine(engine.Engine):
 
     Returns:
       A ReproduceResult.
+
+    Raises:
+      TimeoutError: If the cleanse exceeds max_time.
     """
     runner = libfuzzer.get_runner(target_path)
     libfuzzer.set_sanitizer_options(target_path)
@@ -441,6 +462,9 @@ class LibFuzzerEngine(engine.Engine):
         max_time,
         artifact_prefix=cleanse_tmp_dir,
         additional_args=arguments)
+
+    if result.timed_out:
+      raise engine.TimeoutError('Cleanse timed out: ' + result.output)
 
     return engine.ReproduceResult(result.command, result.return_code,
                                   result.time_executed, result.output)

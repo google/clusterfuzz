@@ -188,6 +188,8 @@ def engine_reproduce(engine_impl, target_name, testcase_path, arguments,
       # Resurface the right exception.
       raise testcase_manager.TargetNotFoundError('Failed to find target ' +
                                                  target_name)
+    if 'TimeoutError' in str(e):
+      raise engine.TimeoutError(e.message)
     else:
       raise
 

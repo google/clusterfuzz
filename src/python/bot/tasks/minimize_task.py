@@ -1152,8 +1152,11 @@ def _run_libfuzzer_tool(tool_name,
   if set_dedup_flags:
     _set_dedup_flags()
 
-  result = run_libfuzzer_engine(tool_name, fuzzer_display.target, arguments,
-                                testcase_file_path, output_file_path, timeout)
+  try:
+    result = run_libfuzzer_engine(tool_name, fuzzer_display.target, arguments,
+                                  testcase_file_path, output_file_path, timeout)
+  except engine.TimeoutError:
+    logs.log_warn('LibFuzzer timed out.')
 
   if set_dedup_flags:
     _unset_dedup_flags()

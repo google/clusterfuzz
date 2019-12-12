@@ -27,7 +27,6 @@ from bot.tasks import fuzz_task
 from bot.tasks import minimize_task
 from datastore import data_types
 from protos import untrusted_runner_pb2
-from system import environment
 
 
 def _proto_to_fuzz_target(proto):
@@ -50,7 +49,7 @@ def prune_corpus(request, _):
       _proto_to_fuzz_target(request.fuzz_target), [
           _proto_to_cross_pollinate_fuzzer(proto)
           for proto in request.cross_pollinate_fuzzers
-      ], environment.get_value('USE_MINIJAIL'))
+      ])
 
   result = corpus_pruning_task.do_corpus_pruning(
       context, request.last_execution_failed, request.revision)

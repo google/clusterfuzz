@@ -542,7 +542,7 @@ class IntegrationTests(BaseIntegrationTest):
     target_path = engine_common.find_fuzzer_path(DATA_DIR,
                                                  'crash_with_A_fuzzer')
     result = engine_impl.minimize_testcase(target_path, [], testcase_path,
-                                           minimize_output_path, 30)
+                                           minimize_output_path, 120)
     self.assertTrue(result)
     self.assertTrue(os.path.exists(minimize_output_path))
     with open(minimize_output_path) as f:
@@ -558,7 +558,7 @@ class IntegrationTests(BaseIntegrationTest):
     target_path = engine_common.find_fuzzer_path(DATA_DIR,
                                                  'crash_with_A_fuzzer')
     result = engine_impl.cleanse(target_path, [], testcase_path,
-                                 cleanse_output_path, 30)
+                                 cleanse_output_path, 120)
     self.assertTrue(result)
     self.assertTrue(os.path.exists(cleanse_output_path))
     with open(cleanse_output_path) as f:
@@ -1122,7 +1122,7 @@ class IntegrationTestsAndroid(BaseIntegrationTest, android_helpers.AndroidTest):
     target_path = engine_common.find_fuzzer_path(ANDROID_DATA_DIR,
                                                  'crash_with_A_fuzzer')
     result = engine_impl.minimize_testcase(target_path, [], testcase_path,
-                                           minimize_output_path, 30)
+                                           minimize_output_path, 120)
     self.assertTrue(result)
     self.assertTrue(os.path.exists(minimize_output_path))
     with open(minimize_output_path) as f:
@@ -1138,7 +1138,7 @@ class IntegrationTestsAndroid(BaseIntegrationTest, android_helpers.AndroidTest):
     target_path = engine_common.find_fuzzer_path(ANDROID_DATA_DIR,
                                                  'crash_with_A_fuzzer')
     result = engine_impl.cleanse(target_path, [], testcase_path,
-                                 cleanse_output_path, 30)
+                                 cleanse_output_path, 120)
     self.assertTrue(result)
     self.assertTrue(os.path.exists(cleanse_output_path))
     with open(cleanse_output_path) as f:
