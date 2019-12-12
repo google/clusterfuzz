@@ -389,6 +389,7 @@ class LibFuzzerEngine(engine.Engine):
     if not _is_multistep_merge_supported(target_path):
       # Fallback to the old single step merge. It does not support incremental
       # stats and provides only `edge_coverage` and `feature_coverage` stats.
+      logs.log('Old version of libFuzzer is used. Using single step merge.')
       return self.minimize_corpus(target_path, arguments,
                                   existing_corpus_dirs + [new_corpus_dir],
                                   output_corpus_dir, reproducers_dir, max_time)
