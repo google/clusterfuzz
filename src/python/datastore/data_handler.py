@@ -682,8 +682,8 @@ def store_testcase(crash, fuzzed_keys, minimized_keys, regression, fixed,
                    one_time_crasher_flag, crash_revision, comment,
                    absolute_path, fuzzer_name, fully_qualified_fuzzer_name,
                    job_type, archived, archive_filename, binary_flag, http_flag,
-                   gestures, redzone, minidump_keys, window_argument,
-                   timeout_multiplier, minimized_arguments):
+                   gestures, redzone, disable_ubsan, minidump_keys,
+                   window_argument, timeout_multiplier, minimized_arguments):
   """Create a testcase and store it in the datastore using remote api."""
   # Initialize variable to prevent invalid values.
   if archived:
@@ -724,6 +724,7 @@ def store_testcase(crash, fuzzed_keys, minimized_keys, regression, fixed,
   testcase.timestamp = datetime.datetime.utcnow()
   testcase.gestures = gestures
   testcase.redzone = redzone
+  testcase.disable_ubsan = disable_ubsan
   testcase.minidump_keys = minidump_keys
   testcase.window_argument = window_argument
   testcase.timeout_multiplier = float(timeout_multiplier)

@@ -688,6 +688,7 @@ def _process_corpus_crashes(context, result):
         http_flag=False,
         gestures=None,
         redzone=DEFAULT_REDZONE,
+        disable_ubsan=False,
         minidump_keys=None,
         window_argument=None,
         timeout_multiplier=1.0,
