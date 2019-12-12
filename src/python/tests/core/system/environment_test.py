@@ -261,17 +261,6 @@ class ResetCurrentMemoryToolOptionsTest(unittest.TestCase):
     os.environ['UBSAN'] = 'True'
     environment.reset_current_memory_tool_options(disable_ubsan=False)
     self.assertDictEqual({
-        'halt_on_error': 0,
-        'print_stacktrace': 0,
-        'print_suppressions': 0
-    }, environment.get_memory_tool_options('UBSAN_OPTIONS'))
-
-  def test_ubsan_disabled(self):
-    """Test reset_current_memory_tool_options when ubsan is disabled."""
-    os.environ['JOB_NAME'] = 'libfuzzer_chrome_asan'
-    os.environ['UBSAN'] = 'True'
-    environment.reset_current_memory_tool_options(disable_ubsan=True)
-    self.assertDictEqual({
         'halt_on_error': 1,
         'handle_abort': 1,
         'handle_segv': 1,
@@ -283,6 +272,17 @@ class ResetCurrentMemoryToolOptionsTest(unittest.TestCase):
         'print_suppressions': 0,
         'silence_unsigned_overflow': 1,
         'use_sigaltstack': 1
+    }, environment.get_memory_tool_options('UBSAN_OPTIONS'))
+
+  def test_ubsan_disabled(self):
+    """Test reset_current_memory_tool_options when ubsan is disabled."""
+    os.environ['JOB_NAME'] = 'libfuzzer_chrome_asan'
+    os.environ['UBSAN'] = 'True'
+    environment.reset_current_memory_tool_options(disable_ubsan=True)
+    self.assertDictEqual({
+        'halt_on_error': 0,
+        'print_stacktrace': 0,
+        'print_suppressions': 0
     }, environment.get_memory_tool_options('UBSAN_OPTIONS'))
 
 
