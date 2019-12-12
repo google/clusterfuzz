@@ -1,0 +1,29 @@
+INFO: Seed: 1598288985
+INFO: Loaded 3 modules   (15976 inline 8-bit counters): 13663 [0x7f18ec9595b0, 0x7f18ec95cb0f), 2312 [0x7f18ecbb2efc, 0x7f18ecbb3804), 1 [0x558716a405c0, 0x558716a405c1), 
+INFO: Loaded 3 PC tables (15976 PCs): 13663 [0x7f18ec95cb10,0x7f18ec992100), 2312 [0x7f18ecbb3808,0x7f18ecbbc888), 1 [0x558716a405c8,0x558716a405d8), 
+MERGE-OUTER: 4599 files, 0 in the initial corpus, 0 processed earlier
+MERGE-OUTER: attempt 1
+INFO: Seed: 1598378622
+INFO: Loaded 3 modules   (15976 inline 8-bit counters): 13663 [0x7f0cb4a975b0, 0x7f0cb4a9ab0f), 2312 [0x7f0cb4cf0efc, 0x7f0cb4cf1804), 1 [0x5638d78065c0, 0x5638d78065c1), 
+INFO: Loaded 3 PC tables (15976 PCs): 13663 [0x7f0cb4a9ab10,0x7f0cb4ad0100), 2312 [0x7f0cb4cf1808,0x7f0cb4cfa888), 1 [0x5638d78065c8,0x5638d78065d8), 
+INFO: -max_len is not provided; libFuzzer will not generate inputs larger than 1048576 bytes
+MERGE-INNER: using the control file 'MCF'
+MERGE-INNER: 4599 total files; 0 processed earlier; will process 4599 files now
+#1  pulse  cov: 69 ft: 55 exec/s: 0 rss: 43Mb
+#2  pulse  cov: 69 ft: 55 exec/s: 0 rss: 43Mb
+#4  pulse  cov: 69 ft: 55 exec/s: 0 rss: 43Mb
+#8  pulse  cov: 75 ft: 69 exec/s: 0 rss: 43Mb
+#16 pulse  cov: 91 ft: 86 exec/s: 0 rss: 43Mb
+#32 pulse  cov: 93 ft: 89 exec/s: 0 rss: 43Mb
+#64 pulse  cov: 135 ft: 139 exec/s: 0 rss: 43Mb
+#128  pulse  cov: 186 ft: 213 exec/s: 0 rss: 43Mb
+#256  pulse  cov: 256 ft: 337 exec/s: 0 rss: 43Mb
+#512  pulse  cov: 294 ft: 476 exec/s: 0 rss: 50Mb
+#1024 pulse  cov: 324 ft: 657 exec/s: 0 rss: 63Mb
+#2048 pulse  cov: 373 ft: 982 exec/s: 0 rss: 88Mb
+#4096 pulse  cov: 410 ft: 1830 exec/s: 0 rss: 147Mb
+#4599 DONE   cov: 410 ft: 1869 exec/s: 4599 rss: 271Mb
+MERGE-OUTER: succesfull in 1 attempt(s)
+MERGE-OUTER: the control file has 667170 bytes
+MERGE-OUTER: consumed 0Mb (52Mb rss) to parse the control file
+MERGE-OUTER: 844 new files with 1869 new features added; 410 new coverage edges

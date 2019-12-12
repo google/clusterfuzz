@@ -40,11 +40,12 @@ class PerformanceStatsTest(unittest.TestCase):
 
   def test_parse_stats_from_merge_log(self):
     """Test parsing of a log file produced by libFuzzer run with -merge=1."""
-    lines = self._read_test_data('merge.txt')
+    lines = self._read_test_data('merge_step_1.txt')
     actual_stats = stats.parse_stats_from_merge_log(lines)
 
     expected_stats = {
-        'merge_edge_coverage': 683,
+        'edge_coverage': 410,
+        'feature_coverage': 1869,
     }
     self.assertEqual(expected_stats, actual_stats)
 
@@ -74,11 +75,11 @@ class PerformanceStatsTest(unittest.TestCase):
         'crash_count': 0,
         'corpus_size': 0,
         'dict_used': 1,
-        'edge_coverage': 1769,
+        'edge_coverage': 0,
         'edges_total': 398408,
-        'feature_coverage': 4958,
-        'initial_edge_coverage': 1769,
-        'initial_feature_coverage': 4958,
+        'feature_coverage': 0,
+        'initial_edge_coverage': 0,
+        'initial_feature_coverage': 0,
         'leak_count': 0,
         'log_lines_from_engine': 65,
         'log_lines_ignored': 8,

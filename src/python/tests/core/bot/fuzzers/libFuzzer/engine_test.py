@@ -186,6 +186,7 @@ class FuzzTest(fake_fs_unittest.TestCase):
     self.fs.add_real_directory(TEST_DIR)
 
     test_helpers.patch(self, [
+        'bot.fuzzers.libFuzzer.engine._is_multistep_merge_supported',
         'bot.fuzzers.libfuzzer.LibFuzzerRunner.fuzz',
         'bot.fuzzers.libfuzzer.LibFuzzerRunner.merge',
         'os.getpid',
@@ -194,6 +195,7 @@ class FuzzTest(fake_fs_unittest.TestCase):
     os.environ['JOB_NAME'] = 'libfuzzer_asan_job'
     os.environ['FUZZ_INPUTS_DISK'] = '/fuzz-inputs'
 
+    self.mock._is_multistep_merge_supported = True  # pylint: disable=protected-access
     self.mock.getpid.return_value = 9001
     self.maxDiff = None  # pylint: disable=invalid-name
 
@@ -219,13 +221,24 @@ class FuzzTest(fake_fs_unittest.TestCase):
           time_executed=2.0,
           timed_out=False)
 
+    # Record the merge calls manually as the mock module duplicates the second
+    # call and overwrites the first call arguments.
+    mock_merge_calls = []
+
     def mock_merge(*args, **kwargs):  # pylint: disable=unused-argument
       """Mock merge."""
+      mock_merge_calls.append(self.mock.merge.mock_calls[-1])
+      self.assertTrue(len(mock_merge_calls) <= 2)
+
+      merge_output_file = 'merge_step_%d.txt' % len(mock_merge_calls)
+      with open(os.path.join(TEST_DIR, merge_output_file)) as f:
+        merge_output = f.read()
+
       self.fs.create_file('/fuzz-inputs/temp-9001/merge-corpus/A')
       return new_process.ProcessResult(
           command='merge-command',
           return_code=0,
-          output='merge',
+          output=merge_output,
           time_executed=2.0,
           timed_out=False)
 
@@ -255,12 +268,36 @@ class FuzzTest(fake_fs_unittest.TestCase):
         extra_env={},
         fuzz_timeout=1470.0)
 
-    self.mock.merge.assert_called_with(
+    self.assertEqual(2, len(mock_merge_calls))
+
+    # Main things to test are:
+    # 1) The new corpus directory is used in the second call only.
+    # 2) the merge contro file is explicitly specified for both calls.
+    mock_merge_calls[0].assert_called_with(
         mock.ANY, [
-            '/fuzz-inputs/temp-9001/merge-corpus', '/fuzz-inputs/temp-9001/new',
-            '/corpus'
+            '/fuzz-inputs/temp-9001/merge-corpus',
+            '/corpus',
         ],
-        additional_args=['-arg=1', '-timeout=123'],
+        additional_args=[
+            '-arg=1',
+            '-timeout=123',
+            '-merge_control_file=/fuzz-inputs/temp-9001/merge-workdir/MCF',
+        ],
+        artifact_prefix=None,
+        merge_timeout=1800.0,
+        tmp_dir='/fuzz-inputs/temp-9001/merge-workdir')
+
+    mock_merge_calls[1].assert_called_with(
+        mock.ANY, [
+            '/fuzz-inputs/temp-9001/merge-corpus',
+            '/corpus',
+            '/fuzz-inputs/temp-9001/new',
+        ],
+        additional_args=[
+            '-arg=1',
+            '-timeout=123',
+            '-merge_control_file=/fuzz-inputs/temp-9001/merge-workdir/MCF',
+        ],
         artifact_prefix=None,
         merge_timeout=1800.0,
         tmp_dir='/fuzz-inputs/temp-9001/merge-workdir')
@@ -273,13 +310,13 @@ class FuzzTest(fake_fs_unittest.TestCase):
         'corpus_size': 0,
         'crash_count': 1,
         'dict_used': 1,
-        'edge_coverage': 1603,
+        'edge_coverage': 411,
         'edges_total': 398467,
         'expected_duration': 1450,
-        'feature_coverage': 3572,
+        'feature_coverage': 1873,
         'fuzzing_time_percent': 0.13793103448275862,
-        'initial_edge_coverage': 1603,
-        'initial_feature_coverage': 3572,
+        'initial_edge_coverage': 410,
+        'initial_feature_coverage': 1869,
         'leak_count': 0,
         'log_lines_from_engine': 2,
         'log_lines_ignored': 67,
@@ -287,8 +324,8 @@ class FuzzTest(fake_fs_unittest.TestCase):
         'manual_dict_size': 0,
         'max_len': 9001,
         'merge_edge_coverage': 0,
-        'new_edges': 0,
-        'new_features': 0,
+        'new_edges': 1,
+        'new_features': 4,
         'new_units_added': 1,
         'new_units_generated': 0,
         'number_of_executed_units': 1249,
@@ -451,7 +488,6 @@ class IntegrationTests(BaseIntegrationTest):
     options = engine_impl.prepare(corpus_path, target_path, DATA_DIR)
 
     results = engine_impl.fuzz(target_path, options, TEMP_DIR, 10)
-
     self.assert_has_stats(results.stats)
     self.compare_arguments(
         os.path.join(DATA_DIR, 'test_fuzzer'), [
@@ -467,6 +503,45 @@ class IntegrationTests(BaseIntegrationTest):
 
     # New items should've been added to the corpus.
     self.assertNotEqual(0, len(os.listdir(corpus_path)))
+
+    # The incremental stats are not zero as the two step merge was used.
+    self.assertNotEqual(0, results.stats['new_edges'])
+    self.assertNotEqual(0, results.stats['new_features'])
+
+  @test_utils.slow
+  def test_fuzz_no_crash_with_old_libfuzzer(self):
+    """Tests fuzzing (no crash) with an old version of libFuzzer."""
+    self.mock.generate_weighted_strategy_pool.return_value = set_strategy_pool(
+        [strategy.VALUE_PROFILE_STRATEGY])
+
+    self.mock.get_fuzz_timeout.return_value = get_fuzz_timeout(5.0)
+    _, corpus_path = setup_testcase_and_corpus('empty', 'corpus')
+    engine_impl = engine.LibFuzzerEngine()
+
+    target_path = engine_common.find_fuzzer_path(DATA_DIR, 'test_fuzzer_old')
+    dict_path = target_path + '.dict'
+    options = engine_impl.prepare(corpus_path, target_path, DATA_DIR)
+
+    results = engine_impl.fuzz(target_path, options, TEMP_DIR, 10)
+    self.assert_has_stats(results.stats)
+    self.compare_arguments(
+        os.path.join(DATA_DIR, 'test_fuzzer_old'), [
+            '-max_len=256', '-timeout=25', '-rss_limit_mb=2048',
+            '-use_value_profile=1', '-dict=' + dict_path,
+            '-artifact_prefix=' + TEMP_DIR + '/', '-max_total_time=5',
+            '-print_final_stats=1'
+        ], [
+            os.path.join(TEMP_DIR, 'temp-1337/new'),
+            os.path.join(TEMP_DIR, 'corpus')
+        ], results.command)
+    self.assertEqual(0, len(results.crashes))
+
+    # New items should've been added to the corpus.
+    self.assertNotEqual(0, len(os.listdir(corpus_path)))
+
+    # The incremental stats are zero as the single step merge was used.
+    self.assertEqual(0, results.stats['new_edges'])
+    self.assertEqual(0, results.stats['new_features'])
 
   def test_fuzz_crash(self):
     """Tests fuzzing (crash)."""
@@ -608,11 +683,14 @@ class IntegrationTests(BaseIntegrationTest):
 
     os.environ['MUTATOR_PLUGINS_DIR'] = os.path.join(TEMP_DIR,
                                                      'mutator-plugins')
-    fuzz_target_name = 'test_fuzzer'
+    # TODO(metzman): Remove the old binary and switch the test to the new one.
+    fuzz_target_name = 'test_fuzzer_old'
+    plugin_archive_name = (
+        'custom_mutator_plugin-libfuzzer_asan-test_fuzzer_old.zip')
+
     # Call before setting up the plugin since this call will erase the directory
     # the plugin is written to.
     _, corpus_path = setup_testcase_and_corpus('empty', 'empty_corpus')
-    plugin_archive_name = 'custom_mutator_plugin-libfuzzer_asan-test_fuzzer.zip'
     plugin_archive_path = os.path.join(DATA_DIR, plugin_archive_name)
 
     self.mock.generate_weighted_strategy_pool.return_value = set_strategy_pool(
@@ -630,6 +708,7 @@ class IntegrationTests(BaseIntegrationTest):
       results = engine_impl.fuzz(target_path, options, TEMP_DIR, 10)
     finally:
       shutil.rmtree(os.environ['MUTATOR_PLUGINS_DIR'])
+
     # custom_mutator_print_string gets printed before the custom mutator mutates
     # a test case. Assert that the count is greater than 1 to ensure that the
     # function didn't crash on its first execution (after printing).
@@ -654,17 +733,18 @@ class IntegrationTests(BaseIntegrationTest):
     minimal_unit_contents = 'APPLE'
     minimal_unit_hash = '569bea285d70dda2218f89ef5454ea69fb5111ef'
     nonminimal_unit_contents = 'APPLEO'
-    nonminimal_unit_hash = '540d9ba6239483d60cd7448a3202b96c90409186'
+    nonminimal_unit_hash = '07aef0e305db0779f3b52ab4dad975a1b737c461'
 
     def mocked_create_merge_directory(_):
       """A mocked version of create_merge_directory that adds some interesting
       files to the merge corpus and initial corpus."""
       merge_directory_path = libfuzzer.create_corpus_directory('merge-corpus')
-      shell.create_directory(
-          merge_directory_path, create_intermediates=True, recreate=True)
 
-      # Write the minimal unit to the merge directory.
-      minimal_unit_path = os.path.join(merge_directory_path, minimal_unit_hash)
+      # Write the minimal unit to the new corpus directory.
+      new_corpus_directory_path = libfuzzer.create_corpus_directory('new')
+      minimal_unit_path = os.path.join(new_corpus_directory_path,
+                                       minimal_unit_hash)
+
       with open(minimal_unit_path, 'w+') as file_handle:
         file_handle.write(minimal_unit_contents)
 
