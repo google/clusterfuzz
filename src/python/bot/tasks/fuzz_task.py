@@ -1502,6 +1502,10 @@ class FuzzingSession(object):
         self.data_directory, self.fuzz_target.project_qualified_name())
     self.sync_corpus(sync_corpus_directory)
 
+    # Reset memory tool options.
+    environment.reset_current_memory_tool_options(
+        redzone_size=self.redzone, disable_ubsan=self.disable_ubsan)
+
     revision = environment.get_value('APP_REVISION')
     crashes = []
     fuzzer_metadata = {}
