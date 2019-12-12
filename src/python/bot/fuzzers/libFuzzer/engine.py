@@ -45,11 +45,7 @@ def _project_qualified_fuzzer_name(target_path):
       utils.current_project(), os.path.basename(target_path))
 
 
-class LibFuzzerError(Exception):
-  """Base libFuzzer error."""
-
-
-class MergeError(LibFuzzerError):
+class MergeError(engine.Error):
   """Merge error."""
 
 
@@ -378,7 +374,7 @@ class LibFuzzerEngine(engine.Engine):
 
     Raises:
       TimeoutError: If the corpus minimization exceeds max_time.
-      MergeError: If the merge failed in some other way.
+      Error: If the merge failed in some other way.
     """
     runner = libfuzzer.get_runner(target_path)
     libfuzzer.set_sanitizer_options(target_path)
