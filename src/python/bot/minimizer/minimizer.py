@@ -208,18 +208,21 @@ class Testcase(object):
     except OSError:
       pass
 
-  def _report_progress(self):
+  def _report_progress(self, is_final=False):
     """Call a function to report progress if the minimizer uses one."""
-    if not self.minimizer.progress_report_function:
+    if not self.minimizer.progress_report_function and not is_final:
       return
 
-    if time.time() - self.last_progress_report_time < PROGRESS_REPORT_INTERVAL:
+    if time.time() - self.last_progress_report_time < PROGRESS_REPORT_INTERVAL \
+        and not is_final:
       return
 
     self.last_progress_report_time = time.time()
     message = '%d/%d tokens remaining. %d runs executed so far.' % (len(
         self.get_required_tokens()), len(
             self.required_tokens), self.runs_executed)
+    if is_final:
+      message = "Done with this round of minimization. " + message
     self.minimizer.progress_report_function(message)
 
   # Functions used when preparing tests.
@@ -466,6 +469,8 @@ class Testcase(object):
   # Result checking functions.
   def get_result(self):
     """Get the result of minimization."""
+    # Done with minimization, output log one more time
+    self._report_progress(True)
     if not self.minimizer.tokenize:
       return self.get_required_tokens()
     return str(self)
