@@ -317,7 +317,7 @@ class Fuzzer(object):
       self.run(fuzzer_args + ['data/' + a for a in artifacts])
     return len(artifacts)
 
-  def merge(self, fuzzer_args, merge_control_file='data/.mergefile'):
+  def merge(self, fuzzer_args, merge_control_file=None):
     """Attempts to minimizes the fuzzer's corpus.
 
       Executes a command like:
@@ -350,6 +350,9 @@ class Fuzzer(object):
       self.device.ssh(['mkdir', '-p', self.data_path('corpus')])
       fuzzer_args.append('data/corpus/')
       fuzzer_args.append('data/corpus.prev/')
+
+    if not merge_control_file:
+      merge_control_file = 'data/.mergefile'
 
     merge_args = ['-merge=1', '-merge_control_file=' + merge_control_file]
     self.run(merge_args + fuzzer_args)
