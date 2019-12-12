@@ -730,7 +730,7 @@ class ProcessCrashesTest(fake_filesystem_unittest.TestCase):
             job_type='job',
             fuzz_target=data_types.FuzzTarget(engine='engine', binary='binary'),
             redzone=111,
-            disable_ubsan=False,
+            disable_ubsan=True,
             platform_id='platform',
             crash_revision=1234,
             fuzzer_name='fuzzer',
