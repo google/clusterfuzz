@@ -367,6 +367,30 @@ class CleanupTest(unittest.TestCase):
     self.assertNotEqual(self.issue.status, 'Verified')
     self.assertEqual('', self.issue._monorail_issue.comment)
 
+  def test_mark_issue_as_closed_if_testcase_is_fixed_11(self):
+    """Ensure that we mark issue as verified, but don't close it if job
+    definition specifies to skip it."""
+    testcase = test_utils.create_generic_testcase()
+    testcase.bug_information = str(self.issue.id)
+    testcase.fixed = '1:2'
+    testcase.open = False
+    testcase.one_time_crasher_flag = False
+    testcase.put()
+
+    data_types.Job(
+        name=testcase.job_type,
+        platform='LINUX',
+        environment_string=('SKIP_AUTO_CLOSE_ISSUE = True\n')).put()
+
+    cleanup.mark_issue_as_closed_if_testcase_is_fixed(
+        policy=self.policy, testcase=testcase, issue=self.issue)
+    self.assertIn(
+        'ClusterFuzz testcase 1 is verified as fixed in '
+        'https://test-clusterfuzz.appspot.com/revisions'
+        '?job=test_content_shell_drt&range=1:2',
+        self.issue._monorail_issue.comment)
+    self.assertEqual(self.issue.status, 'Assigned')
+
   def test_mark_testcase_as_closed_if_issue_is_closed_1(self):
     """Test that we don't do anything if testcase is already closed."""
     testcase = test_utils.create_generic_testcase()

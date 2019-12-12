@@ -432,10 +432,14 @@ def mark_issue_as_closed_if_testcase_is_fixed(policy, testcase, issue):
     comment = _append_generic_incorrect_comment(comment, policy, issue,
                                                 ' and re-open the issue.')
 
-  issue.status = policy.status('verified')
+  skip_auto_close = data_handler.get_value_from_job_definition(
+      testcase.job_type, 'SKIP_AUTO_CLOSE_ISSUE')
+  if not skip_auto_close:
+    issue.status = policy.status('verified')
+
   issue.save(new_comment=comment, notify=True)
-  logs.log(
-      'Closed issue %d for fixed testcase %d.' % (issue.id, testcase.key.id()))
+  logs.log('Mark issue %d as verified for fixed testcase %d.' %
+           (issue.id, testcase.key.id()))
 
 
 def mark_unreproducible_testcase_as_fixed_if_issue_is_closed(testcase, issue):
