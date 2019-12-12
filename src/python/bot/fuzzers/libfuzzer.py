@@ -216,8 +216,7 @@ class LibFuzzerCommon(object):
             merge_timeout,
             artifact_prefix=None,
             tmp_dir=None,
-            additional_args=None,
-            merge_control_file=None):
+            additional_args=None):
     """Runs a corpus merge command.
 
     Args:
@@ -230,7 +229,6 @@ class LibFuzzerCommon(object):
       tmp_dir: Temporary directory that merge uses to write progress.
       additional_args: A sequence of additional arguments to be passed to the
           executable.
-      merge_control_file: Path to the merge control file to be used.
 
     Returns:
       A process.ProcessResult.
@@ -244,10 +242,6 @@ class LibFuzzerCommon(object):
       additional_args.append(
           '%s%s' % (constants.ARTIFACT_PREFIX_FLAG,
                     self._normalize_artifact_prefix(artifact_prefix)))
-
-    if merge_control_file:
-      additional_args.append(constants.MERGE_CONTROL_FILE_ARGUMENT +
-                             merge_control_file)
 
     extra_env = {}
     if tmp_dir:
@@ -636,41 +630,18 @@ class FuchsiaQemuLibFuzzerRunner(new_process.ProcessRunner, LibFuzzerCommon):
             merge_timeout,
             artifact_prefix=None,
             tmp_dir=None,
-            additional_args=None,
-            merge_control_file=None):
+            additional_args=None):
     # TODO(flowerhack): Integrate some notion of a merge timeout.
     self._push_corpora_from_host_to_target(corpus_directories)
-
-    additional_args = copy.copy(additional_args)
-    if additional_args is None:
-      additional_args = []
-
-    target_merge_control_file = None
-    if merge_control_file:
-      merge_control_dir = os.path.dirname(merge_control_file)
-      target_merge_control_dir = self._corpus_target_subdir(
-          os.path.basename(merge_control_dir))
-      self.fuzzer.device.rm(target_merge_control_dir, recursive=True)
-      self.fuzzer.device.store(merge_control_dir, target_merge_control_dir)
-      target_merge_control_file = os.path.join(
-          target_merge_control_dir,
-          os.path.relpath(merge_control_file, merge_control_dir))
 
     # Run merge.
     _, _ = self.fuzzer.merge(
         self._corpus_directories_libfuzzer(corpus_directories) +
-        additional_args,
-        merge_control_file=target_merge_control_file)
+        additional_args)
 
     self._pull_new_corpus_from_target_to_host(corpus_directories)
-    if merge_control_file:
-      # Fetch artifacts from the merge control file dir.
-      self.fuzzer.device.fetch(target_merge_control_dir, merge_control_dir)
-      self.fuzzer.device.rm(target_merge_control_dir, recursive=True)
-
     self._clear_all_target_corpora()
 
-    # TODO(flowerhack): Return actual output for accurate stats tracking.
     merge_result = new_process.ProcessResult()
     merge_result.return_code = 0
     merge_result.timed_out = False
@@ -685,10 +656,6 @@ class FuchsiaQemuLibFuzzerRunner(new_process.ProcessRunner, LibFuzzerCommon):
                           additional_args=None):
     """Run a single testcase."""
     self._test_ssh()
-
-    additional_args = copy.copy(additional_args)
-    if additional_args is None:
-      additional_args = []
 
     # We need to push the testcase to the device and pass in the name.
     testcase_path_name = os.path.basename(os.path.normpath(testcase_path))
@@ -851,13 +818,8 @@ class MinijailLibFuzzerRunner(engine_common.MinijailEngineFuzzerRunner,
             merge_timeout,
             artifact_prefix=None,
             tmp_dir=None,
-            additional_args=None,
-            merge_control_file=None):
+            additional_args=None):
     """LibFuzzerCommon.merge override."""
-    additional_args = copy.copy(additional_args)
-    if additional_args is None:
-      additional_args = []
-
     bind_directories = copy.copy(corpus_directories)
     if artifact_prefix:
       bind_directories.append(artifact_prefix)
@@ -868,23 +830,13 @@ class MinijailLibFuzzerRunner(engine_common.MinijailEngineFuzzerRunner,
     if artifact_prefix:
       artifact_prefix = self._get_chroot_directory(artifact_prefix)
 
-    chroot_merge_control_file = None
-    if merge_control_file:
-      merge_control_dir = os.path.dirname(merge_control_file)
-      self._bind_corpus_dirs([merge_control_dir])
-      chroot_merge_control_dir = self._get_chroot_directory(merge_control_dir)
-      chroot_merge_control_file = os.path.join(
-          chroot_merge_control_dir,
-          os.path.relpath(merge_control_file, merge_control_dir))
-
     return LibFuzzerCommon.merge(
         self,
         corpus_directories,
         merge_timeout,
         artifact_prefix=artifact_prefix,
         tmp_dir=None,  # Use default in minijail.
-        additional_args=additional_args,
-        merge_control_file=chroot_merge_control_file)
+        additional_args=additional_args)
 
   def run_single_testcase(self,
                           testcase_path,
@@ -1085,9 +1037,7 @@ class AndroidLibFuzzerRunner(new_process.ProcessRunner, LibFuzzerCommon):
       artifact_prefix = self._get_device_path(artifact_prefix)
 
     # Extract local dict path from arguments list and subsitute with device one.
-    additional_args = copy.copy(additional_args)
-    if additional_args is None:
-      additional_args = []
+    additional_args = additional_args[:]
     dict_path = fuzzer_utils.extract_argument(additional_args,
                                               constants.DICT_FLAG)
     if dict_path:
@@ -1111,13 +1061,8 @@ class AndroidLibFuzzerRunner(new_process.ProcessRunner, LibFuzzerCommon):
             merge_timeout,
             artifact_prefix=None,
             tmp_dir=None,
-            additional_args=None,
-            merge_control_file=None):
+            additional_args=None):
     """LibFuzzerCommon.merge override."""
-    additional_args = copy.copy(additional_args)
-    if additional_args is None:
-      additional_args = []
-
     sync_directories = copy.copy(corpus_directories)
     if artifact_prefix:
       sync_directories.append(artifact_prefix)
@@ -1128,23 +1073,13 @@ class AndroidLibFuzzerRunner(new_process.ProcessRunner, LibFuzzerCommon):
     if artifact_prefix:
       artifact_prefix = self._get_device_path(artifact_prefix)
 
-    device_merge_control_file = None
-    if merge_control_file:
-      merge_control_dir = os.path.dirname(merge_control_file)
-      self._copy_local_directories_to_device([merge_control_dir])
-      device_merge_control_dir = self._get_device_path(merge_control_dir)
-      device_merge_control_dir = os.path.join(
-          device_merge_control_dir,
-          os.path.relpath(merge_control_file, merge_control_dir))
-
     result = LibFuzzerCommon.merge(
         self,
         corpus_directories,
         merge_timeout,
         artifact_prefix=artifact_prefix,
         tmp_dir=None,
-        additional_args=additional_args,
-        merge_control_file=device_merge_control_file)
+        additional_args=additional_args)
 
     self._copy_local_directories_from_device(sync_directories)
     return result
