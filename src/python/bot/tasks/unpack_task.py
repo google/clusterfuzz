@@ -14,8 +14,8 @@
 """Unpack task for unpacking a multi-testcase archive
 from user upload."""
 
-import os
 import json
+import os
 
 from base import tasks
 from datastore import data_handler
