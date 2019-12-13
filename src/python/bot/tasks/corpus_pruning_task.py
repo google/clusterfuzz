@@ -504,7 +504,8 @@ class CrossPollinator(object):
                                            self.context.bad_units_path, timeout)
       symbolized_output = stack_symbolizer.symbolize_stacktrace(result.logs)
       logs.log(
-        'Shared corpus merge finished successfully.', output=symbolized_output)
+          'Shared corpus merge finished successfully.',
+          output=symbolized_output)
     except engine.TimeoutError as e:
       logs.log_error('Corpus pruning timed out while merging shared corpus: ' +
                      e.message)
