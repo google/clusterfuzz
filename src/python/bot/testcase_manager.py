@@ -588,9 +588,14 @@ class TestcaseRunner(object):
           gestures=self._gestures,
           current_working_directory=app_directory)
     else:
-      result = engine_reproduce(self._engine_impl, self._fuzz_target.binary,
-                                self._testcase_path, self._arguments,
-                                run_timeout)
+      try:
+        result = engine_reproduce(self._engine_impl, self._fuzz_target.binary,
+                                  self._testcase_path, self._arguments,
+                                  run_timeout)
+      except engine.TimeoutError:
+        # Treat reproduction timeouts as not crashing.
+        return CrashResult(0, run_timeout, '')
+
       return_code = result.return_code
       crash_time = result.time_executed
 
