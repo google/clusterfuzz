@@ -462,17 +462,17 @@ class CorpusPruner(object):
           bad_units_path, CORPUS_PRUNING_TIMEOUT)
     except engine.TimeoutError as e:
       raise CorpusPruningException(
-          'Corpus pruning timed out while merging corpus: ' + e.message)
+          'Corpus pruning timed out while minimizing corpus\n' + e.message)
     except engine.Error as e:
-      raise CorpusPruningException('Corpus pruning failed to merge corpus: ' +
-                                   e.message)
+      raise CorpusPruningException(
+          'Corpus pruning failed to minimize corpus\n' + e.message)
 
     symbolized_output = stack_symbolizer.symbolize_stacktrace(result.logs)
 
     # Sanity check that there are files in minimized corpus after merging.
     if not shell.get_directory_file_count(minimized_corpus_path):
       raise CorpusPruningException(
-          'Corpus pruning failed to merge corpus: %s.' % symbolized_output)
+          'Corpus pruning failed to minimize corpus\n' + symbolized_output)
 
     logs.log('Corpus merge finished successfully.', output=symbolized_output)
 
@@ -507,7 +507,7 @@ class CrossPollinator(object):
                      e.message)
     except engine.Error as e:
       raise CorpusPruningException(
-          'Corpus pruning failed to merge shared corpus: ' + e.message)
+          'Corpus pruning failed to merge shared corpus\n' + e.message)
 
     symbolized_output = stack_symbolizer.symbolize_stacktrace(result.logs)
     logs.log(

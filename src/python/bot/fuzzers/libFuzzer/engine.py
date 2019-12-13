@@ -365,7 +365,7 @@ class LibFuzzerEngine(engine.Engine):
         input_path, timeout=max_time, additional_args=arguments)
 
     if result.timed_out:
-      raise engine.TimeoutError('Reproducing timed out: ' + result.output)
+      raise engine.TimeoutError('Reproducing timed out\n' + result.output)
 
     return engine.ReproduceResult(result.command, result.return_code,
                                   result.time_executed, result.output)
@@ -481,7 +481,7 @@ class LibFuzzerEngine(engine.Engine):
         merge_control_file=getattr(self, '_merge_control_file', None))
 
     if result.timed_out:
-      raise engine.TimeoutError('Merging new testcases timed out: ' +
+      raise engine.TimeoutError('Merging new testcases timed out\n' +
                                 result.output)
 
     if result.return_code != 0:
@@ -522,7 +522,7 @@ class LibFuzzerEngine(engine.Engine):
         additional_args=arguments)
 
     if result.timed_out:
-      raise engine.TimeoutError('Minimization timed out: ' + result.output)
+      raise engine.TimeoutError('Minimization timed out\n' + result.output)
 
     return engine.ReproduceResult(result.command, result.return_code,
                                   result.time_executed, result.output)
@@ -555,7 +555,7 @@ class LibFuzzerEngine(engine.Engine):
         additional_args=arguments)
 
     if result.timed_out:
-      raise engine.TimeoutError('Cleanse timed out: ' + result.output)
+      raise engine.TimeoutError('Cleanse timed out\n' + result.output)
 
     return engine.ReproduceResult(result.command, result.return_code,
                                   result.time_executed, result.output)
