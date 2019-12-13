@@ -16,7 +16,6 @@
 from future import standard_library
 standard_library.install_aliases()
 import datetime
-import os
 import six
 
 from base import tasks
@@ -34,8 +33,6 @@ from datastore import data_types
 from fuzzing import leak_blacklist
 from metrics import logs
 from system import environment
-from system import process_handler
-from system import shell
 
 
 def _add_default_issue_metadata(testcase):
