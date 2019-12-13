@@ -79,73 +79,6 @@ def close_invalid_testcase_and_update_status(testcase, metadata, status):
   metadata.put()
 
 
-def store_testcase_dependencies_from_bundled_testcase_archive(
-    metadata, testcase, testcase_file_path):
-  """Store testcase dependencies from a bundled testcase archive
-  (with multiple testcases)."""
-  # Nothing to do if this is not a bundled testcase archive with
-  # multiple testcase.
-  if not metadata.bundled:
-    return True
-
-  # Cleanup, before re-running the app to get resource list.
-  process_handler.terminate_stale_application_instances()
-  shell.clear_temp_directory()
-
-  # Increase the test timeout to warmup timeout. This is needed
-  # since we use warmup timeout in test_for_crash_with_retries.
-  warmup_timeout = environment.get_value('WARMUP_TIMEOUT')
-  environment.set_value('TEST_TIMEOUT', warmup_timeout)
-
-  env_copy = environment.copy()
-  crash_queue = process_handler.get_queue()
-  thread_index = 0
-  thread = process_handler.get_process()(
-      target=testcase_manager.run_testcase_and_return_result_in_queue,
-      args=(crash_queue, thread_index, testcase_file_path, testcase.gestures,
-            env_copy))
-  thread.start()
-  thread.join(warmup_timeout)
-
-  if thread.is_alive():
-    try:
-      thread.terminate()
-    except:
-      logs.log_error('Process termination failed or was not needed.')
-
-  # We should be able to reproduce this reproducible crash. If not,
-  # something wrong happened and we would just try to redo task.
-  if not crash_queue.empty():
-    crash = crash_queue.get()
-    fuzzed_key, archived, absolute_path, archive_filename = (
-        setup.archive_testcase_and_dependencies_in_gcs(crash.resource_list,
-                                                       testcase_file_path))
-
-    if archived:
-      testcase.archive_state = data_types.ArchiveStatus.FUZZED
-    else:
-      testcase.archive_state = 0
-
-    testcase.fuzzed_keys = fuzzed_key
-    metadata.blobstore_key = fuzzed_key
-    testcase.absolute_path = absolute_path
-
-    if archive_filename:
-      testcase.archive_filename = archive_filename
-      metadata.filename = os.path.basename(archive_filename)
-    else:
-      metadata.filename = os.path.basename(testcase_file_path)
-
-    metadata.bundled = False
-    metadata.put()
-  else:
-    logs.log_error('Could not get crash data from queue. Retrying task.')
-    tasks.add_task('analyze', testcase.key.id(), testcase.job_type)
-    return False
-
-  return True
-
-
 def execute_task(testcase_id, job_type):
   """Run analyze task."""
   # Reset redzones.
@@ -323,14 +256,8 @@ def execute_task(testcase_id, job_type):
     task_creation.create_impact_task_if_needed(testcase)
     return
 
-  # Update http flag and re-run testcase to store dependencies (for bundled
-  # archives only).
-  testcase.http_flag = http_flag
-  if not store_testcase_dependencies_from_bundled_testcase_archive(
-      metadata, testcase, testcase_file_path):
-    return
-
   # Update testcase crash parameters.
+  testcase.http_flag = http_flag
   testcase.crash_type = state.crash_type
   testcase.crash_address = state.crash_address
   testcase.crash_state = state.crash_state
