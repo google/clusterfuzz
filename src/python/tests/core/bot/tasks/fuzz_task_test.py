@@ -1345,6 +1345,7 @@ class DoEngineFuzzingTest(fake_filesystem_unittest.TestCase):
     ])
     test_utils.set_up_pyfakefs(self)
 
+    os.environ['JOB_NAME'] = 'libfuzzer_asan_test'
     os.environ['FUZZ_INPUTS'] = '/fuzz-inputs'
     os.environ['FUZZ_INPUTS_DISK'] = '/fuzz-inputs-disk'
     os.environ['BUILD_DIR'] = '/build_dir'
