@@ -427,23 +427,24 @@ type TestcaseGroup struct {
 
 // TestcaseUploadMetadata is auto-generated from data_types.py.
 type TestcaseUploadMetadata struct {
-	Key                  *datastore.Key `datastore:"__key__"`
-	Timestamp            time.Time      `datastore:"timestamp"`
-	Filename             string         `datastore:"filename"`
-	Status               string         `datastore:"status"`
-	UploaderEmail        string         `datastore:"uploader_email"`
-	BotName              string         `datastore:"bot_name"`
-	TestcaseID           int            `datastore:"testcase_id"`
-	DuplicateOf          int            `datastore:"duplicate_of"`
-	BlobstoreKey         string         `datastore:"blobstore_key"`
-	Timeout              int            `datastore:"timeout"`
-	Bundled              bool           `datastore:"bundled"`
-	PathInArchive        string         `datastore:"path_in_archive,noindex"`
-	OriginalBlobstoreKey string         `datastore:"original_blobstore_key"`
-	SecurityFlag         bool           `datastore:"security_flag"`
-	Retries              int            `datastore:"retries"`
-	BugSummaryUpdateFlag bool           `datastore:"bug_summary_update_flag"`
-	QuietFlag            bool           `datastore:"quiet_flag"`
+	Key                      *datastore.Key `datastore:"__key__"`
+	Timestamp                time.Time      `datastore:"timestamp"`
+	Filename                 string         `datastore:"filename"`
+	Status                   string         `datastore:"status"`
+	UploaderEmail            string         `datastore:"uploader_email"`
+	BotName                  string         `datastore:"bot_name"`
+	TestcaseID               int            `datastore:"testcase_id"`
+	DuplicateOf              int            `datastore:"duplicate_of"`
+	BlobstoreKey             string         `datastore:"blobstore_key"`
+	Timeout                  int            `datastore:"timeout"`
+	Bundled                  bool           `datastore:"bundled"`
+	PathInArchive            string         `datastore:"path_in_archive,noindex"`
+	OriginalBlobstoreKey     string         `datastore:"original_blobstore_key"`
+	SecurityFlag             bool           `datastore:"security_flag"`
+	Retries                  int            `datastore:"retries"`
+	BugSummaryUpdateFlag     bool           `datastore:"bug_summary_update_flag"`
+	QuietFlag                bool           `datastore:"quiet_flag"`
+	AdditionalMetadataString string         `datastore:"additional_metadata_string,noindex"`
 }
 
 // TestcaseVariant is auto-generated from data_types.py.

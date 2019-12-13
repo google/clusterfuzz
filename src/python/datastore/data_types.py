@@ -849,6 +849,9 @@ class TestcaseUploadMetadata(Model):
   # Flag to indicate if we are running in quiet mode (e.g. bug updates).
   quiet_flag = ndb.BooleanProperty()
 
+  # Additional testcase metadata dict stored as a string.
+  additional_metadata_string = TextProperty(indexed=False)
+
 
 class JobTemplate(Model):
   # Job template name.
