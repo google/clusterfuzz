@@ -497,7 +497,6 @@ class CrossPollinator(object):
 
     additional_args = self.runner.get_libfuzzer_flags()
 
-    symbolized_output = None
     try:
       result = self.runner.minimize_corpus(additional_args,
                                            [self.context.shared_corpus_path],
