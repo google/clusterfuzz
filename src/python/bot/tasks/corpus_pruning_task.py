@@ -497,21 +497,21 @@ class CrossPollinator(object):
 
     additional_args = self.runner.get_libfuzzer_flags()
 
+    symbolized_output = None
     try:
       result = self.runner.minimize_corpus(additional_args,
                                            [self.context.shared_corpus_path],
                                            self.context.minimized_corpus_path,
                                            self.context.bad_units_path, timeout)
+      symbolized_output = stack_symbolizer.symbolize_stacktrace(result.logs)
+      logs.log(
+        'Shared corpus merge finished successfully.', output=symbolized_output)
     except engine.TimeoutError as e:
       logs.log_error('Corpus pruning timed out while merging shared corpus: ' +
                      e.message)
     except engine.Error as e:
       raise CorpusPruningException(
           'Corpus pruning failed to merge shared corpus\n' + e.message)
-
-    symbolized_output = stack_symbolizer.symbolize_stacktrace(result.logs)
-    logs.log(
-        'Shared corpus merge finished successfully.', output=symbolized_output)
 
 
 def do_corpus_pruning(context, last_execution_failed, revision):
