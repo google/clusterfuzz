@@ -15,6 +15,7 @@
 from user upload."""
 
 import os
+import json
 
 from base import tasks
 from datastore import data_handler
@@ -64,9 +65,15 @@ def execute_task(metadata_id, job_type):
     tasks.add_task('unpack', metadata_id, job_type)
     return
 
+  # Get additional testcase metadata (if any).
+  additional_metadata = None
+  if upload_metadata.additional_metadata_string:
+    additional_metadata = json.loads(upload_metadata.additional_metadata_string)
+
   archive_state = data_types.ArchiveStatus.NONE
   bundled = True
   file_list = archive.get_file_list(archive_path)
+
   for file_path in file_list:
     absolute_file_path = os.path.join(testcases_directory, file_path)
     filename = os.path.basename(absolute_file_path)
@@ -97,7 +104,7 @@ def execute_task(metadata_id, job_type):
         metadata.app_launch_command, metadata.fuzzer_name,
         metadata.overridden_fuzzer_name, metadata.fuzzer_binary_name, bundled,
         upload_metadata.retries, upload_metadata.bug_summary_update_flag,
-        upload_metadata.quiet_flag)
+        upload_metadata.quiet_flag, additional_metadata)
 
   # The upload metadata for the archive is not needed anymore since we created
   # one for each testcase.

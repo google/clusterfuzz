@@ -363,12 +363,10 @@ class UploadHandlerCommon(object):
     if testcase_metadata:
       try:
         testcase_metadata = json.loads(testcase_metadata)
-        if not isinstance(testcase_metadata, dict):
-          raise helpers.EarlyExitException('Metadata is not a JSON object.',
-                                           400)
       except Exception:
         raise helpers.EarlyExitException('Invalid metadata JSON.', 400)
-
+      if not isinstance(testcase_metadata, dict):
+        raise helpers.EarlyExitException('Metadata is not a JSON object.', 400)
     if issue_labels:
       testcase_metadata['issue_labels'] = issue_labels
 
@@ -459,9 +457,6 @@ class UploadHandlerCommon(object):
         archive_state = data_types.ArchiveStatus.FUZZED
       if archive_state:
         if multiple_testcases:
-          if testcase_metadata:
-            raise helpers.EarlyExitException(
-                'Testcase metadata not supported with multiple testcases.', 400)
           # Create a job to unpack an archive.
           metadata = data_types.BundledArchiveMetadata()
           metadata.blobstore_key = key
@@ -499,6 +494,9 @@ class UploadHandlerCommon(object):
           upload_metadata.uploader_email = email
           upload_metadata.retries = retries
           upload_metadata.bug_summary_update_flag = bug_summary_update_flag
+          upload_metadata.quiet_flag = quiet_flag
+          upload_metadata.additional_metadata_string = json.dumps(
+              testcase_metadata)
           upload_metadata.put()
 
           helpers.log('Uploaded multiple testcases.', helpers.VIEW_OPERATION)
