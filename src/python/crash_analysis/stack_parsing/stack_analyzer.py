@@ -1138,6 +1138,8 @@ def get_crash_data(crash_data, symbolize_flag=True):
   is_kasan = 'KASAN' in crash_stacktrace_without_inlines
   is_golang = '.go:' in crash_stacktrace_without_inlines
   found_golang_crash = False
+  ubsan_disabled = 'halt_on_error=0' in environment.get_value(
+      'UBSAN_OPTIONS', '')
 
   for line in crash_stacktrace_without_inlines.splitlines():
     if should_ignore_line_for_crash_processing(line, state):
@@ -1231,7 +1233,7 @@ def get_crash_data(crash_data, symbolize_flag=True):
           reset=True)
 
     # UndefinedBehavior Sanitizer VPTR (bad-cast) crash.
-    if not state.crash_type:
+    if not state.crash_type and not ubsan_disabled:
       ubsan_vptr_match = update_state_on_match(
           UBSAN_VPTR_REGEX,
           line,
@@ -1295,7 +1297,7 @@ def get_crash_data(crash_data, symbolize_flag=True):
 
     # Other UndefinedBehavior Sanitizer crash.
     ubsan_runtime_match = UBSAN_RUNTIME_ERROR_REGEX.match(line)
-    if ubsan_runtime_match and not state.crash_type:
+    if ubsan_runtime_match and not state.crash_type and not ubsan_disabled:
       reason = ubsan_runtime_match.group(2)
       state.crash_type = 'UNKNOWN'
 
