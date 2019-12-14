@@ -1157,6 +1157,7 @@ def _run_libfuzzer_tool(tool_name,
                                   testcase_file_path, output_file_path, timeout)
   except engine.TimeoutError:
     logs.log_warn('LibFuzzer timed out.')
+    return None, None
 
   if set_dedup_flags:
     _unset_dedup_flags()
