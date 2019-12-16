@@ -919,3 +919,12 @@ def file_hash(file_path):
       chunk = file_handle.read(chunk_size)
 
   return digest.hexdigest()
+
+
+def cpu_count():
+  """Get the CPU count."""
+  # Does not import on App Engine.
+  import multiprocessing
+
+  return environment.get_value('CPU_COUNT_OVERRIDE',
+                               multiprocessing.cpu_count())

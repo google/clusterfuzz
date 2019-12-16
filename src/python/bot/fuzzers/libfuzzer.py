@@ -18,7 +18,6 @@ from builtins import object
 import collections
 import contextlib
 import copy
-import multiprocessing
 import os
 import random
 import re
@@ -1600,7 +1599,7 @@ def pick_strategies(strategy_pool, fuzzer_path, corpus_directory,
       (use_dataflow_tracing or
        strategy_pool.do_strategy(strategy.FORK_STRATEGY))):
     max_fuzz_threads = environment.get_value('MAX_FUZZ_THREADS', 1)
-    num_fuzz_processes = max(1, multiprocessing.cpu_count() // max_fuzz_threads)
+    num_fuzz_processes = max(1, utils.cpu_count() // max_fuzz_threads)
     arguments.append('%s%d' % (constants.FORK_FLAG, num_fuzz_processes))
     fuzzing_strategies.append(
         '%s_%d' % (strategy.FORK_STRATEGY.name, num_fuzz_processes))

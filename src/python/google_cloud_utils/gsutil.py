@@ -14,10 +14,10 @@
 """Functions for running gsutil."""
 
 from builtins import object
-import multiprocessing
 import os
 import six
 
+from base import utils
 from google_cloud_utils import storage
 from metrics import logs
 from system import environment
@@ -55,7 +55,7 @@ def _get_gsutil_path():
 
 def _multiprocessing_args():
   """Get multiprocessing args for gsutil."""
-  if multiprocessing.cpu_count() == 1:
+  if utils.cpu_count() == 1:
     # GSUtil's default thread count is 5 as it assumes the common configuration
     # is many CPUs (GSUtil uses num_cpu processes).
     return ['-o', 'GSUtil:parallel_thread_count=16']
