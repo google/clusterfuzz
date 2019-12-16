@@ -303,7 +303,7 @@ def symlink(src, target):
   src = os.path.abspath(src)
   target = os.path.abspath(target)
   try:
-    os.remove(target)
+    os.rmdir(target)
   except:
     pass
 

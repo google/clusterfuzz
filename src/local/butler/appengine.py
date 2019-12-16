@@ -91,16 +91,17 @@ def copy_yamls_and_preprocess(paths, additional_env_vars=None):
 
 def find_sdk_path():
   """Find the App Engine SDK path."""
-  gcloud_executable = 'gcloud'
   if platform.system() == 'Windows':
-    gcloud_executable += '.cmd'
+    _, gcloud_path = common.execute('where gcloud.cmd', print_output=False)
+  else:
+    gcloud_path = spawn.find_executable('gcloud')
 
-  gcloud_path = os.path.realpath(spawn.find_executable('gcloud'))
   if not gcloud_path:
     print('Please install the Google Cloud SDK and set up PATH to point to it.')
     sys.exit(1)
 
-  cloud_sdk_path = os.path.dirname(os.path.dirname(gcloud_path))
+  cloud_sdk_path = os.path.dirname(
+      os.path.dirname(os.path.realpath(gcloud_path)))
   appengine_sdk_path = os.path.join(cloud_sdk_path, 'platform',
                                     'google_appengine')
   if not os.path.exists(appengine_sdk_path):
