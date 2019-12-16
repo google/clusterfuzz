@@ -419,6 +419,28 @@ def _track_testcase_run_result(fuzzer, job_type, new_crash_count,
   })
 
 
+def _last_sync_time(sync_file_path):
+  """Read and parse the last sync file for the GCS corpus."""
+  if not os.path.exists(sync_file_path):
+    return None
+
+  file_contents = utils.read_data_from_file(sync_file_path, eval_data=False)
+  if not file_contents:
+    logs.log_warn('Empty last sync file.', path=sync_file_path)
+    return None
+
+  last_sync_time = None
+  try:
+    last_sync_time = datetime.datetime.utcfromtimestamp(float(file_contents))
+  except Exception as e:
+    logs.log_error(
+        'Malformed last sync file: "%s".' % str(e),
+        path=sync_file_path,
+        contents=file_contents)
+
+  return last_sync_time
+
+
 class GcsCorpus(object):
   """Sync state for a corpus."""
 
@@ -451,7 +473,6 @@ class GcsCorpus(object):
   def sync_from_gcs(self):
     """Update sync state after a sync from GCS."""
     already_synced = False
-    last_sync_time = None
     sync_file_path = os.path.join(
         self._data_directory, '.%s_sync' % self._project_qualified_target_name)
 
@@ -461,9 +482,7 @@ class GcsCorpus(object):
       worker_sync_file_path = file_host.rebase_to_worker_root(sync_file_path)
       shell.remove_file(sync_file_path)
       file_host.copy_file_from_worker(worker_sync_file_path, sync_file_path)
-    if os.path.exists(sync_file_path):
-      last_sync_time = datetime.datetime.utcfromtimestamp(
-          utils.read_data_from_file(sync_file_path))
+    last_sync_time = _last_sync_time(sync_file_path)
 
     # Check if the corpus was recently synced. If yes, set a flag so that we
     # don't sync it again and save some time.
