@@ -431,7 +431,7 @@ def _last_sync_time(sync_file_path):
 
   last_sync_time = None
   try:
-    last_sync_time = datetime.datetime.utcfromtimestamp(file_contents)
+    last_sync_time = datetime.datetime.utcfromtimestamp(float(file_contents))
   except Exception as e:
     logs.log_error(
         'Malformed last sync file: "%s".' % str(e),
