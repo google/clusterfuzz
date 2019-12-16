@@ -120,8 +120,9 @@ class RevisionsTestcase(unittest.TestCase):
       if url[:format_index] != current_url[:format_index]:
         continue
 
-      revision = url[format_index:].split('/')[0]
-      deps_file = 'deps_%s_%s.txt' % (prefix, revision)
+      revision_without_path = url[format_index:].split('/')[0]
+      revision_without_path_and_query = revision_without_path.split('?')[0]
+      deps_file = 'deps_%s_%s.txt' % (prefix, revision_without_path_and_query)
       data = RevisionsTestcase._read_data_file(deps_file)
       return data
 
