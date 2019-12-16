@@ -34,33 +34,58 @@ class JSMinimizer(minimizer.Minimizer):
 
     for index, token in enumerate(testcase.tokens):
       if token == '{':
-        brace_stack.append((last_start_of_line_token, index))
+        brace_stack.append(index)
 
       elif token == '}' and brace_stack:
-        previous_line_start, previous_end = brace_stack.pop()
-
-        # Move |previous_line_start| to the first non-empty string.
-        while previous_line_start > 0:
-          if testcase.tokens[previous_line_start].strip():
-            break
-          previous_line_start -= 1
 
         # Two hypotheses for tokens grouped by curly braces:
-        # 1) Remove from start of line to curly brace and the closing brace.
+        # 1) Remove from start of line to open brace and the closing brace.
         #    e.g.: if (statement_that_evaluates_to_true) { crash() } -> crash()
-        hypothesis = list(range(previous_line_start,
-                                previous_end + 1)) + [index]
+
+        open_brace = brace_stack.pop()
+
+        # Find the first non-empty token prior to the starting brackets
+        line_start = open_brace - 1
+        while not testcase.tokens[line_start].strip() and line_start >= 0:
+          line_start -= 1
+
+        # If that token is a clothes paren, we need to grab everything else too
+        if testcase.tokens[line_start] == ")":
+          # Find everything in the paren
+          while testcase.tokens[line_start] != "(":
+            line_start -= 1
+          # and the token before the paren
+          line_start -= 1
+          while not testcase.tokens[line_start].strip():
+            line_start -= 1
+
+        # Walk back to the start of that line as well to get if/else and funcs
+        # Do this after paren to manage situations where there are newlines in
+        # the parens
+        while line_start >= 0 and testcase.tokens[line_start] != "\n":
+          line_start -= 1
+        line_start += 1
+
+        hypothesis = list(range(line_start, open_brace + 1)) + [index]
+
         testcase.prepare_test(hypothesis)
 
         # 2) Remove previous tokens and from the closing brace to the next one.
         #    e.g.: try { crash() } catch(e) {} -> crash()
         future_index = len(testcase.tokens)
+        open_count = 0
         for future_index in range(index + 1, len(testcase.tokens)):
+          if testcase.tokens[future_index] == "{":
+            open_count += 1
           if testcase.tokens[future_index] == '}':
-            break
+            open_count -= 1
+            # Make sure to grab the entire outer brace if there are inner braces
+            if not open_count:
+              break
         if future_index != len(testcase.tokens):
           lookahead_hypothesis = hypothesis + list(
               range(index + 1, future_index + 1))
+
           testcase.prepare_test(lookahead_hypothesis)
 
       elif token == '(':
@@ -84,8 +109,13 @@ class JSMinimizer(minimizer.Minimizer):
         # 3) Like 1, but to start of line instead of previous token.
         #    e.g.: leftover_junk = (function() {
         #          });
-        hypothesis = list(range(previous_line_start,
-                                previous_end + 1)) + [index]
+
+        # Find the beginning of the line
+        line_start = previous_end
+        while line_start >= 0 and testcase.tokens[line_start] != "\n":
+          line_start -= 1
+
+        hypothesis = list(range(line_start + 1, previous_end + 1)) + [index]
         testcase.prepare_test(hypothesis)
 
         # 4) Like 3, but also from the closing brace to the next one.
@@ -109,12 +139,21 @@ class JSMinimizer(minimizer.Minimizer):
 
         # 2) Remove comma and right-hand-side.
         #    e.g.: f(crash(), whatever) -> f(crash())
-        if index + 1 < len(testcase.tokens):
-          hypothesis = [index, index + 1]
+
+        # Find the next non whitespace token after the comma
+        i = 1
+        whitespace = []
+        while (index + 1 < len(testcase.tokens) and
+               not testcase.tokens[index + i].strip()):
+          whitespace.append(index + i)
+          i += 1
+
+        if index + i < len(testcase.tokens):
+          hypothesis = [index] + whitespace + [index + i]
           testcase.prepare_test(hypothesis)
 
       # Keep track of where the previous line started.
-      elif token.endswith('\n'):
+      elif '\n' in token:
         last_start_of_line_token = index + 1
 
     testcase.process()

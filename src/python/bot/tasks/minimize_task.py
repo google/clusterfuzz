@@ -33,12 +33,12 @@ from bot.fuzzers.libFuzzer.engine import LibFuzzerEngine
 from bot.minimizer import basic_minimizers
 from bot.minimizer import delta_minimizer
 from bot.minimizer import html_minimizer
-from bot.minimizer import html_tokenizer
 from bot.minimizer import js_minimizer
-from bot.minimizer import js_tokenizer
 from bot.minimizer import minimizer
 from bot.tasks import setup
 from bot.tasks import task_creation
+from bot.tokenizer.antlr_tokenizer import AntlrTokenizer
+from bot.tokenizer.grammars.JavaScriptLexer import JavaScriptLexer
 from build_management import build_manager
 from crash_analysis import severity_analyzer
 from crash_analysis.crash_comparer import CrashComparer
@@ -1047,19 +1047,22 @@ def do_js_minimization(test_function, get_temp_file, data, deadline, threads,
   data = do_line_minimization(test_function, get_temp_file, data, deadline,
                               threads, cleanup_interval, delete_temp_files)
 
-  tokenizers = [js_tokenizer.paren_tokenizer, js_tokenizer.comma_tokenizer]
-  for tokenizer in tokenizers:
-    current_minimizer = js_minimizer.JSMinimizer(
-        test_function,
-        max_threads=threads,
-        deadline=deadline,
-        cleanup_function=process_handler.cleanup_stale_processes,
-        single_thread_cleanup_interval=cleanup_interval,
-        get_temp_file=get_temp_file,
-        delete_temp_files=delete_temp_files,
-        tokenizer=tokenizer,
-        token_combiner=html_tokenizer.combine_tokens,
-        progress_report_function=functools.partial(logs.log))
+  tokenizer = AntlrTokenizer(JavaScriptLexer)
+
+  current_minimizer = js_minimizer.JSMinimizer(
+      test_function,
+      max_threads=threads,
+      deadline=deadline,
+      cleanup_function=process_handler.cleanup_stale_processes,
+      single_thread_cleanup_interval=cleanup_interval,
+      get_temp_file=get_temp_file,
+      delete_temp_files=delete_temp_files,
+      tokenizer=tokenizer.tokenize,
+      token_combiner=tokenizer.combine,
+      progress_report_function=functools.partial(logs.log))
+
+  # Some tokens can't be removed until other have, so do 2 passes
+  for _ in range(2):
     data = current_minimizer.minimize(data)
 
   # FIXME(mbarbella): Improve the JS minimizer so that this is not necessary.
