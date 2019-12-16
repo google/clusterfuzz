@@ -462,8 +462,11 @@ class GcsCorpus(object):
       shell.remove_file(sync_file_path)
       file_host.copy_file_from_worker(worker_sync_file_path, sync_file_path)
     if os.path.exists(sync_file_path):
-      last_sync_time = datetime.datetime.utcfromtimestamp(
-          utils.read_data_from_file(sync_file_path))
+      last_sync_time = utils.read_data_from_file(sync_file_path)
+      if last_sync_time:
+        last_sync_time = datetime.datetime.utcfromtimestamp(last_sync_time)
+      else:
+        logs.log_warn("Empty or malformed last sync file.", path=sync_file_path)
 
     # Check if the corpus was recently synced. If yes, set a flag so that we
     # don't sync it again and save some time.
