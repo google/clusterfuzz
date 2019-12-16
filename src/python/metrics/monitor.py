@@ -16,9 +16,10 @@
 # TODO(ochang): Remove V3 from names once all metrics are migrated to
 # stackdriver.
 
-from builtins import str
 from builtins import object
 from builtins import range
+from builtins import str
+
 import bisect
 import collections
 import functools

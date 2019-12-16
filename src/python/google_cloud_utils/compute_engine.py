@@ -13,8 +13,9 @@
 # limitations under the License.
 """Compute Engine helpers."""
 
-from builtins import str
 from builtins import range
+from builtins import str
+
 import datetime
 import random
 import six

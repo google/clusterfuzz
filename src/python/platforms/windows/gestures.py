@@ -15,6 +15,7 @@
 
 from builtins import chr
 from builtins import range
+
 import ast
 import random
 import time

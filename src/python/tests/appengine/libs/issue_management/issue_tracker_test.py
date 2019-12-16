@@ -14,6 +14,7 @@
 """Tests for the issue_tracker module."""
 
 from builtins import str
+
 import mock
 import unittest
 

@@ -14,6 +14,7 @@
 """Report upload task."""
 
 from builtins import str
+
 from base import errors
 from chrome import crash_uploader
 from datastore import data_handler

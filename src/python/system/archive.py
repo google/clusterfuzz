@@ -13,8 +13,9 @@
 # limitations under the License.
 """Functions for handling archives."""
 
-from builtins import oct
 from builtins import object
+from builtins import oct
+
 import os
 import tarfile
 import zipfile

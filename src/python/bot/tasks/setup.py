@@ -13,8 +13,9 @@
 # limitations under the License.
 """Common helper functions for setup at the start of tasks."""
 
-from builtins import str
 from builtins import range
+from builtins import str
+
 import datetime
 import os
 import shlex

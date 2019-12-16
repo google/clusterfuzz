@@ -13,12 +13,13 @@
 # limitations under the License.
 """Revisions related helper functions."""
 
+from builtins import range
 from builtins import str
-from builtins import bytes
+from past.builtins import basestring
+
 from future import standard_library
 standard_library.install_aliases()
-from builtins import range
-from past.builtins import basestring
+
 import ast
 import base64
 import bisect

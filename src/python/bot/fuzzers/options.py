@@ -13,10 +13,12 @@
 # limitations under the License.
 """Fuzzer options."""
 
+from builtins import object
 from builtins import str
+
 from future import standard_library
 standard_library.install_aliases()
-from builtins import object
+
 import configparser
 import os
 import random

@@ -13,8 +13,9 @@
 # limitations under the License.
 """Tests fuzzers.builtin."""
 
-from builtins import str
 from builtins import range
+from builtins import str
+
 import os
 import parameterized
 import unittest

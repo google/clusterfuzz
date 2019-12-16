@@ -13,9 +13,10 @@
 # limitations under the License.
 """Stack analyzer module."""
 
-from builtins import str
 from builtins import object
 from builtins import range
+from builtins import str
+
 import os
 import re
 import string

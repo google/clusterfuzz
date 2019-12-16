@@ -14,6 +14,7 @@
 """honggfuzz engine interface."""
 
 from builtins import str
+
 import glob
 import os
 import re

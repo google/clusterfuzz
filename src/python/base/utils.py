@@ -14,11 +14,13 @@
 """Common utility functions."""
 
 from builtins import map
-from builtins import str
 from builtins import range
+from builtins import str
+from past.builtins import basestring
+
 from future import standard_library
 standard_library.install_aliases()
-from past.builtins import basestring
+
 import ast
 import datetime
 import functools
@@ -97,6 +99,8 @@ def utc_datetime_to_timestamp(dt):
   return (dt - datetime.datetime.utcfromtimestamp(0)).total_seconds()
 
 
+# TODO(mbarbella): Clean up call-sites and delete this function. Any usage is
+# potentially indicative of poor tracking of encodings.
 def decode_to_unicode(obj, encoding='utf-8'):
   """Decode object to unicode encoding."""
   if isinstance(obj, basestring) and not isinstance(obj, str):
@@ -158,7 +162,6 @@ def file_path_to_file_url(path):
   # TODO(mbarbella): urljoin has several type checks for arguments. Ensure that
   # we're passing newstr on both sides while migrating to Python 3. After
   # migrating, ensure that callers pass strs to avoid this hack.
-  from builtins import str
   return urllib.parse.urljoin(
       str(u'file:'), str(urllib.request.pathname2url(path)))
 

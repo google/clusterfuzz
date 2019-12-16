@@ -18,6 +18,7 @@
 
 from builtins import next
 from builtins import object
+
 import re
 import six
 

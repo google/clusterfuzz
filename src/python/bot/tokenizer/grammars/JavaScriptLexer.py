@@ -15,7 +15,9 @@
 JavaScriptLexer"""
 
 from __future__ import print_function
+
 from builtins import str
+
 from antlr4 import *
 from io import StringIO
 import sys

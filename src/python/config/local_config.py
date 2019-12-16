@@ -13,8 +13,9 @@
 # limitations under the License.
 """Get values / settings from local configuration."""
 
-from builtins import str
 from builtins import object
+from builtins import str
+
 import os
 import six
 import yaml

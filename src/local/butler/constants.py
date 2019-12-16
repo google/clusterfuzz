@@ -14,6 +14,7 @@
 """Constants shared across butler commands."""
 
 from builtins import str
+
 import collections
 import os
 

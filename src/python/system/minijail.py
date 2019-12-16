@@ -14,8 +14,9 @@
 """Running processes with minijail."""
 
 from builtins import next
-from builtins import str
 from builtins import object
+from builtins import str
+
 from collections import namedtuple
 
 import os

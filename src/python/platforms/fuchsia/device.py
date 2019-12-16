@@ -17,8 +17,9 @@
 # pylint: disable=unused-argument
 from __future__ import print_function
 
-from builtins import str
 from builtins import object
+from builtins import str
+
 import os
 import socket
 import subprocess

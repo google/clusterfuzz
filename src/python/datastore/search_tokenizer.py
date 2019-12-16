@@ -14,8 +14,9 @@
 """search_tokenizer tokenizes a string into tokens
   according to our keyword searching use cases."""
 
-from builtins import str
 from builtins import range
+from builtins import str
+
 import re
 
 
