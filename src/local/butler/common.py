@@ -298,14 +298,23 @@ def install_dependencies(platform_name=None, is_reproduce_tool_setup=False):
   _install_chromedriver()
 
 
+def remove_symlink(target):
+  """Removes a symlink."""
+  if not os.path.exists(target):
+    return
+
+  if os.path.isdir(target) and get_platform() == 'windows':
+    os.rmdir(target)
+  else:
+    os.remove(target)
+
+
 def symlink(src, target):
   """Create the target to link to the src."""
   src = os.path.abspath(src)
   target = os.path.abspath(target)
-  try:
-    os.remove(target)
-  except:
-    pass
+
+  remove_symlink(target)
 
   if get_platform() == 'windows':
     execute(r'cmd /c mklink /j %s %s' % (target, src))
@@ -322,10 +331,7 @@ def symlink(src, target):
 
 def copy_dir(src, target):
   """Copy directory."""
-  if os.path.islink(target):
-    os.remove(target)
-
-  if os.path.isdir(target):
+  if os.path.exists(target):
     shutil.rmtree(target, ignore_errors=True)
 
   shutil.copytree(src, target)
