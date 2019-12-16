@@ -22,10 +22,6 @@ from . import minimizer
 from . import utils
 
 
-def dec(x):
-  return x - 1
-
-
 def step_back_while(cur_index, expr):
   while expr(cur_index):
     cur_index -= 1
