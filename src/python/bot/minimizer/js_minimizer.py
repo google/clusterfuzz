@@ -23,6 +23,7 @@ from . import utils
 
 
 def step_back_while(cur_index, expr):
+  """Helper function. Decreases index from cur until expr is satisfied"""
   while expr(cur_index):
     cur_index -= 1
   return cur_index
