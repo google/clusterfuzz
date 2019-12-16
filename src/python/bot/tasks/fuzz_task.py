@@ -421,19 +421,23 @@ def _track_testcase_run_result(fuzzer, job_type, new_crash_count,
 
 def _last_sync_time(sync_file_path):
   """Read and parse the last sync file for the GCS corpus."""
+  if not os.path.exists(sync_file_path):
+    return None
+
+  file_contents = utils.read_data_from_file(sync_file_path, eval_data=False)
+  if not file_contents:
+    logs.log_warn('Empty last sync file.', path=sync_file_path)
+    return None
+
   last_sync_time = None
-  if os.path.exists(sync_file_path):
-    file_contents = utils.read_data_from_file(sync_file_path, eval_data=False)
-    if not file_contents:
-      logs.log_warn('Empty last sync file.', path=sync_file_path)
-    else:
-      try:
-        last_sync_time = datetime.datetime.utcfromtimestamp(file_contents)
-      except Exception as e:
-        logs.log_error(
-            'Malformed last sync file: "%s".' % str(e),
-            path=sync_file_path,
-            contents=file_contents)
+  try:
+    last_sync_time = datetime.datetime.utcfromtimestamp(file_contents)
+  except Exception as e:
+    logs.log_error(
+        'Malformed last sync file: "%s".' % str(e),
+        path=sync_file_path,
+        contents=file_contents)
+
   return last_sync_time
 
 
