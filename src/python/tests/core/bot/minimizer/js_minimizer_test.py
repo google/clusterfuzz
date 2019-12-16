@@ -46,7 +46,7 @@ class JSMinimizerTest(unittest.TestCase):
     return
 
   def _mock_prepare_test(self, testcase, hypothesis):
-    txt = ""
+    txt = ''
     for index in hypothesis:
       txt += testcase.tokens[index]
 
@@ -56,30 +56,31 @@ class JSMinimizerTest(unittest.TestCase):
     return True
 
   def test_minimize_empty_string(self):
-    data = ""
+    """Minimizer does not break on empty data"""
+    data = ''
 
     self._minimizer.minimize(data)
 
     self.assertEqual(self._tests_to_queue, [])
 
-  def test_bracket_hypotheses_1(self):
-    """Hypothesis is: Remove from start of line to open brace and the closing
-    brace. e.g.: if (statement_that_evaluates_to_true) { crash() } -> crash()"""
+  def test_if_hypothesis(self):
+    """e.g.: if (statement_that_evaluates_to_true) { crash() } -> crash()"""
     data = "if(boolean) { crash }"
 
     self._minimizer.minimize(data)
 
     self.assertIn("if(boolean) {}", self._tests_to_queue)
 
-  def test_bracket_hypotheses_2(self):
-    """Hypothesis is: Remove previous tokens and from the closing brace to the
-    next one. e.g.: try { crash() } catch(e) {} -> crash()"""
+  def test_try_catch_hypothesis(self):
+    """e.g.: try { crash() } catch(e) {} -> crash()"""
     data = "try{ crash() } catch(e){ }"
     self._minimizer.minimize(data)
 
     self.assertIn("try{} catch(e){ }", self._tests_to_queue)
 
   def test_handle_if_else(self):
+    """Make sure the minimizer runs all of the other hypothesis cleanly on
+      if else"""
     data = "if(boolean) {crash} else { do_something_else }"
 
     self._minimizer.minimize(data)
@@ -90,6 +91,7 @@ class JSMinimizerTest(unittest.TestCase):
     self.assertIn("if(boolean) {crash} else {}", self._tests_to_queue)
 
   def test_remove_function_call(self):
+    """Test that it removes functions calls effectively"""
     data = "function name(param1, param2){ stuff inside function }"
 
     self._minimizer.minimize(data)
@@ -97,6 +99,7 @@ class JSMinimizerTest(unittest.TestCase):
     self.assertIn("function name(param1, param2){}", self._tests_to_queue)
 
   def test_handle_bracket_with_new_line(self):
+    """Test for try/catch with extra whitespace"""
     data = """try{\n\tcrash()\n}\ncatch(e){\n\n}"""
 
     self._minimizer.minimize(data)
@@ -105,22 +108,22 @@ class JSMinimizerTest(unittest.TestCase):
     self.assertIn("try{}\ncatch(e){\n\n}", self._tests_to_queue)
 
   def test_handle_function_with_new_lines(self):
+    """Test for functions with extra whitespace"""
     data = "function name(param1,\n\t\tparam2){\n\tstuff inside function\n}"
 
     self._minimizer.minimize(data)
 
     self.assertIn("function name(param1,\n\t\tparam2){}", self._tests_to_queue)
 
-  def test_handle_paren_hypothesis_1(self):
-    """Hypothesis is Remove the parentheses and the previous token.
-      e.g.: assertTrue(crash()); -> crash()"""
+  def test_remove_outer_paren(self):
+    """e.g.: assertTrue(crash()); -> crash()"""
     data = "assertTrue(crash());"
 
     self._minimizer.minimize(data)
 
     self.assertIn("assertTrue()", self._tests_to_queue)
 
-  def test_handle_paren_hypothesis_2(self):
+  def test_remove_inside_paren(self):
     """Hypothesis is Remove everything between the parentheses.
       e.g.: crash(junk, more_junk) -> crash()"""
     data = "crash(junk, more_junk)"
@@ -129,9 +132,8 @@ class JSMinimizerTest(unittest.TestCase):
 
     self.assertIn("junk, more_junk", self._tests_to_queue)
 
-  def test_handle_paren_hypothesis_3(self):
-    """Hypothesis is Like 1, but to start of line instead of previous token.
-        e.g.: leftover_junk = (function() {
+  def test_remove_paren_to_start_of_line(self):
+    """e.g.: leftover_junk = (function() {
              });"""
     data = "leftover_junk = (function(){\n})"
 
@@ -139,27 +141,24 @@ class JSMinimizerTest(unittest.TestCase):
 
     self.assertIn("leftover_junk = (function(){\n})", self._tests_to_queue)
 
-  def test_handle_paren_hypothesis_4(self):
-    """Hypothesis is Like 3, but also from the closing brace to the next one.
-      e.g.: (function(global) { })(this);"""
+  def test_remove_paren_with_attached_brackets(self):
+    """e.g.: (function(global) { })(this);"""
     data = "(function(global) { })(this)"
 
     self._minimizer.minimize(data)
 
     self.assertIn("(function(global) { })(this)", self._tests_to_queue)
 
-  def test_handle_comma_hypothesis_1(self):
-    """Hypothesis is: Remove comma and left-hand-side.
-      e.g.: f(whatever, crash()) -> f(crash())"""
+  def test_remove_left_of_comma(self):
+    """e.g.: f(whatever, crash()) -> f(crash())"""
     data = "f(whatever, crash())"
 
     self._minimizer.minimize(data)
 
     self.assertIn("whatever,", self._tests_to_queue)
 
-  def test_handle_comma_hypothesis_2(self):
-    """Hypothesis is Remove comma and right-hand-side.
-      e.g.: f(crash(),whatever) -> f(crash())"""
+  def test_remove_right_of_comma(self):
+    """e.g.: f(crash(),whatever) -> f(crash())"""
     data = "f(crash(), whatever)"
 
     self._minimizer.minimize(data)
