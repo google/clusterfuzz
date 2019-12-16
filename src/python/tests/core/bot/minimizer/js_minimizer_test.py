@@ -22,7 +22,7 @@ from tests.test_libs import helpers
 
 
 class JSMinimizerTest(unittest.TestCase):
-  """Test for Javascript Minimizer"""
+  """Test for Javascript Minimizer."""
 
   def setUp(self):
     self._hypotheses_tested = []
@@ -60,7 +60,7 @@ class JSMinimizerTest(unittest.TestCase):
     return True
 
   def test_minimize_empty_string(self):
-    """Minimizer does not break on empty data"""
+    """Minimizer does not break on empty data."""
     data = ''
 
     self._minimizer.minimize(data)
@@ -68,7 +68,7 @@ class JSMinimizerTest(unittest.TestCase):
     self.assertEqual(self._hypotheses_tested, [])
 
   def test_if_hypothesis(self):
-    """e.g.: if (statement_that_evaluates_to_true) { crash() } -> crash()"""
+    """e.g.: if (statement_that_evaluates_to_true) { crash() } -> crash()."""
     data = "if(boolean) { crash }"
 
     self._minimizer.minimize(data)
@@ -76,7 +76,7 @@ class JSMinimizerTest(unittest.TestCase):
     self.assertIn("if(boolean) {}", self._hypotheses_tested)
 
   def test_try_catch_hypothesis(self):
-    """e.g.: try { crash() } catch(e) {} -> crash()"""
+    """e.g.: try { crash() } catch(e) {} -> crash()."""
     data = "try{ crash() } catch(e){ }"
     self._minimizer.minimize(data)
 
@@ -84,7 +84,7 @@ class JSMinimizerTest(unittest.TestCase):
 
   def test_handle_if_else(self):
     """Make sure the minimizer runs all of the other hypothesis cleanly on
-      if else"""
+      if else."""
     data = "if(boolean) {crash} else { do_something_else }"
 
     self._minimizer.minimize(data)
@@ -95,7 +95,7 @@ class JSMinimizerTest(unittest.TestCase):
     self.assertIn("if(boolean) {crash} else {}", self._hypotheses_tested)
 
   def test_remove_function_call(self):
-    """Test that it removes functions calls effectively"""
+    """Test that it removes functions calls effectively."""
     data = "function name(param1, param2){ stuff inside function }"
 
     self._minimizer.minimize(data)
@@ -103,7 +103,7 @@ class JSMinimizerTest(unittest.TestCase):
     self.assertIn("function name(param1, param2){}", self._hypotheses_tested)
 
   def test_handle_bracket_with_new_line(self):
-    """Test for try/catch with extra whitespace"""
+    """Test for try/catch with extra whitespace."""
     data = """try{\n\tcrash()\n}\ncatch(e){\n\n}"""
 
     self._minimizer.minimize(data)
@@ -112,7 +112,7 @@ class JSMinimizerTest(unittest.TestCase):
     self.assertIn("try{}\ncatch(e){\n\n}", self._hypotheses_tested)
 
   def test_handle_function_with_new_lines(self):
-    """Test for functions with extra whitespace"""
+    """Test for functions with extra whitespace."""
     data = "function name(param1,\n\t\tparam2){\n\tstuff inside function\n}"
 
     self._minimizer.minimize(data)
@@ -121,7 +121,7 @@ class JSMinimizerTest(unittest.TestCase):
                   self._hypotheses_tested)
 
   def test_remove_outer_paren(self):
-    """e.g.: assertTrue(crash()); -> crash()"""
+    """e.g.: assertTrue(crash()); -> crash()."""
     data = "assertTrue(crash());"
 
     self._minimizer.minimize(data)
@@ -130,7 +130,7 @@ class JSMinimizerTest(unittest.TestCase):
 
   def test_remove_inside_paren(self):
     """Hypothesis is Remove everything between the parentheses.
-      e.g.: crash(junk, more_junk) -> crash()"""
+      e.g.: crash(junk, more_junk) -> crash()."""
     data = "crash(junk, more_junk)"
 
     self._minimizer.minimize(data)
@@ -139,7 +139,7 @@ class JSMinimizerTest(unittest.TestCase):
 
   def test_remove_paren_to_start_of_line(self):
     """e.g.: leftover_junk = (function() {
-             });"""
+             });."""
     data = "leftover_junk = (function(){\n})"
 
     self._minimizer.minimize(data)
@@ -147,7 +147,7 @@ class JSMinimizerTest(unittest.TestCase):
     self.assertIn("leftover_junk = (function(){\n})", self._hypotheses_tested)
 
   def test_remove_paren_with_attached_brackets(self):
-    """e.g.: (function(global) { })(this);"""
+    """e.g.: (function(global) { })(this);."""
     data = "(function(global) { })(this)"
 
     self._minimizer.minimize(data)
@@ -155,7 +155,7 @@ class JSMinimizerTest(unittest.TestCase):
     self.assertIn("(function(global) { })(this)", self._hypotheses_tested)
 
   def test_remove_left_of_comma(self):
-    """e.g.: f(whatever, crash()) -> f(crash())"""
+    """e.g.: f(whatever, crash()) -> f(crash())."""
     data = "f(whatever, crash())"
 
     self._minimizer.minimize(data)
@@ -163,7 +163,7 @@ class JSMinimizerTest(unittest.TestCase):
     self.assertIn("whatever,", self._hypotheses_tested)
 
   def test_remove_right_of_comma(self):
-    """e.g.: f(crash(),whatever) -> f(crash())"""
+    """e.g.: f(crash(),whatever) -> f(crash())."""
     data = "f(crash(), whatever)"
 
     self._minimizer.minimize(data)
