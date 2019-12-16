@@ -13,6 +13,7 @@
 # limitations under the License.
 """Tests for grouper."""
 
+from builtins import str
 from builtins import range
 
 import datetime

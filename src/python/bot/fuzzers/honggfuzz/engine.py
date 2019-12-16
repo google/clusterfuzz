@@ -13,6 +13,7 @@
 # limitations under the License.
 """honggfuzz engine interface."""
 
+from builtins import str
 import glob
 import os
 import re

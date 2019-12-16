@@ -13,6 +13,8 @@
 # limitations under the License.
 """Corpus pruning task."""
 
+from builtins import zip
+from builtins import str
 from builtins import object
 import collections
 import datetime

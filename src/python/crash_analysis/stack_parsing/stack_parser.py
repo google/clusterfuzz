@@ -13,6 +13,7 @@
 # limitations under the License.
 """Stack parser module."""
 
+from builtins import str
 from builtins import object
 import inspect
 

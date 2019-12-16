@@ -14,6 +14,7 @@
 """Tests for Handler."""
 from __future__ import print_function
 
+from builtins import str
 import json
 import mock
 import os

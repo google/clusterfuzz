@@ -14,6 +14,7 @@
 """Test the launcher.py script for AFL-based fuzzers."""
 # pylint: disable=protected-access
 
+from builtins import str
 from builtins import range
 import mock
 import os

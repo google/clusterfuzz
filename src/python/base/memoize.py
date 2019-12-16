@@ -13,6 +13,7 @@
 # limitations under the License.
 """Memoize caches the result of methods."""
 
+from builtins import str
 from builtins import object
 import collections
 import functools
@@ -156,10 +157,10 @@ def _default_key(func, args, kwargs):
   # Use unicode instead of str where possible. This makes it less likely to
   # have false misses.
   args = tuple(
-      arg if not isinstance(arg, str) else unicode(arg) for arg in args)
+      arg if not isinstance(arg, str) else str(arg) for arg in args)
 
   kwargs = {
-      key: value if not isinstance(value, str) else unicode(value)
+      key: value if not isinstance(value, str) else str(value)
       for key, value in six.iteritems(kwargs)
   }
 

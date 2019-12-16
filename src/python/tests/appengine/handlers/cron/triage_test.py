@@ -14,6 +14,7 @@
 # pylint: disable=protected-access
 """Tests for triage task."""
 
+from builtins import str
 from builtins import range
 import datetime
 import unittest

@@ -13,6 +13,7 @@
 # limitations under the License.
 """Tests for the revisions module."""
 
+from builtins import str
 from builtins import object
 import ast
 import hashlib

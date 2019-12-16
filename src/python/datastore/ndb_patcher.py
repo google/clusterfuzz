@@ -17,6 +17,8 @@ API."""
 # pylint: disable=protected-access
 # pylint: disable=unidiomatic-typecheck
 
+from builtins import str
+from builtins import next
 from builtins import range
 import collections
 import datetime
@@ -298,7 +300,7 @@ def _ndb_entity_to_cloud_entity(ndb_entity):
       # All 'str' values are written as byte strings by Cloud Datastore, but ndb
       # ndb_entitys can have 'str' values for StringProperty or TextProperty, so
       # check the type of the property.
-      value = unicode(value)
+      value = str(value)
     elif type(value) is datetime.date:
       value = datetime.datetime.combine(value, datetime.datetime.min.time())
     elif type(value) is datetime.time:

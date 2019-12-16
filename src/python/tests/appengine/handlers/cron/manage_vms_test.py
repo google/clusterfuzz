@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """manage_vms tests."""
+from builtins import str
 from builtins import object
 from builtins import range
 import copy

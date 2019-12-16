@@ -13,6 +13,7 @@
 # limitations under the License.
 """Task queue functions."""
 
+from builtins import str
 from builtins import object
 import contextlib
 import datetime

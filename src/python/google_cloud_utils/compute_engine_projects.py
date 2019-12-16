@@ -13,6 +13,7 @@
 # limitations under the License.
 """Load project data."""
 
+from builtins import next
 from builtins import object
 from past.builtins import basestring
 import os

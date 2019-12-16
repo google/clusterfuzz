@@ -23,10 +23,6 @@ from local.butler import appengine
 from local.butler import common
 
 _FUTURIZE_EXCEPTIONS = [
-    # Not yet handled across the codebase.
-    'libfuturize.fixes.fix_unicode_keep_u',
-    'libfuturize.fixes.fix_future_builtins',
-
     # Causes issues if applied to the same code multiple times.
     'lib2to3.fixes.fix_dict',
 ]

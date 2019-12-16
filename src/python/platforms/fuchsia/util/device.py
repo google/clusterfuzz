@@ -13,6 +13,7 @@
 # limitations under the License.
 """Utilities for managing Fuchsia devices."""
 from __future__ import absolute_import
+from builtins import str
 from builtins import object
 from builtins import range
 

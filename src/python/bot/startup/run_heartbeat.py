@@ -17,6 +17,7 @@ from __future__ import print_function
 # We want to use utf-8 encoding everywhere throughout the application
 # instead of the default 'ascii' encoding. This must happen before any
 # other imports.
+from builtins import str
 import sys
 reload(sys)
 sys.setdefaultencoding('utf-8')

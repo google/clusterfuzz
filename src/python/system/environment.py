@@ -13,6 +13,7 @@
 # limitations under the License.
 """Environment functions."""
 
+from builtins import str
 from builtins import range
 import ast
 import functools

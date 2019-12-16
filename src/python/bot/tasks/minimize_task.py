@@ -13,6 +13,7 @@
 # limitations under the License.
 """Minimize task for handling testcase minimization."""
 
+from builtins import str
 from builtins import object
 from builtins import range
 import binascii

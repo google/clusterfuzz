@@ -13,6 +13,7 @@
 # limitations under the License.
 """Functions for process management."""
 
+from builtins import str
 from future import standard_library
 standard_library.install_aliases()
 from builtins import object

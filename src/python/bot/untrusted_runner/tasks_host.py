@@ -14,6 +14,7 @@
 """Tasks host."""
 from __future__ import absolute_import
 
+from builtins import str
 import datetime
 
 from google.protobuf import wrappers_pb2

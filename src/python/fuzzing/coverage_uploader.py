@@ -13,6 +13,7 @@
 # limitations under the License.
 """Uploads test cases from blackbox fuzzers for coverage collection."""
 
+from builtins import str
 import os
 
 from base import utils

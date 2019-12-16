@@ -14,6 +14,7 @@
 """Tests for cleanup task."""
 # pylint: disable=protected-access
 
+from builtins import str
 from builtins import range
 import datetime
 import unittest

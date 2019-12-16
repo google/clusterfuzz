@@ -13,6 +13,8 @@
 # limitations under the License.
 """Common utility functions."""
 
+from builtins import map
+from builtins import str
 from builtins import range
 from future import standard_library
 standard_library.install_aliases()
@@ -97,11 +99,11 @@ def utc_datetime_to_timestamp(dt):
 
 def decode_to_unicode(obj, encoding='utf-8'):
   """Decode object to unicode encoding."""
-  if isinstance(obj, basestring) and not isinstance(obj, unicode):
+  if isinstance(obj, basestring) and not isinstance(obj, str):
     try:
-      obj = unicode(obj, encoding)
+      obj = str(obj, encoding)
     except:
-      obj = unicode(''.join(char for char in obj if ord(char) < 128), encoding)
+      obj = str(''.join(char for char in obj if ord(char) < 128), encoding)
 
   return obj
 
@@ -782,16 +784,20 @@ def wait_until_timeout(threads, thread_timeout):
 
 def write_data_to_file(content, file_path, append=False):
   """Writes data to file."""
-  content_string = str(content)
   failure_wait_interval = environment.get_value('FAIL_WAIT')
   file_mode = 'ab' if append else 'wb'
   retry_limit = environment.get_value('FAIL_RETRIES')
 
-  for _ in range(retry_limit):
+  # TODO(mbarbella): Require callers to pass strings or bytes then reduce this
+  # back to the original retry limit.
+  for _ in range(retry_limit + 1):
     try:
       with open(file_path, file_mode) as file_handle:
-        file_handle.write(content_string)
-    except:
+        file_handle.write(content)
+    except TypeError:
+      content = str(content)
+      continue
+    except EnvironmentError:
       logs.log_warn('Error occurred while writing %s, retrying.' % file_path)
       time.sleep(random.uniform(1, failure_wait_interval))
       continue

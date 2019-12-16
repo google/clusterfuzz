@@ -20,6 +20,7 @@ from __future__ import print_function
 # 3. Once all builds have succeeded, run:
 #    build_msan_libs.py [--no-track-origins] merge
 
+from builtins import str
 import argparse
 import datetime
 

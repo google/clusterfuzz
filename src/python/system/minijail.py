@@ -13,6 +13,8 @@
 # limitations under the License.
 """Running processes with minijail."""
 
+from builtins import next
+from builtins import str
 from builtins import object
 from collections import namedtuple
 

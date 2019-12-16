@@ -15,6 +15,7 @@
 from __future__ import print_function
 
 # pylint: disable=g-statement-before-imports
+from builtins import str
 from builtins import object
 try:
   # ClusterFuzz dependencies.

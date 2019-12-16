@@ -13,6 +13,7 @@
 # limitations under the License.
 """Generate new inputs using ML RNN model."""
 # pylint: disable=g-statement-before-imports
+from builtins import str
 try:
   # ClusterFuzz dependencies.
   from python.base import modules

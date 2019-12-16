@@ -14,6 +14,7 @@
 """build_manager tests."""
 # pylint: disable=protected-access
 
+from builtins import str
 from builtins import object
 import functools
 import mock

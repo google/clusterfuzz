@@ -13,6 +13,7 @@
 # limitations under the License.
 """Tests fuzzers.engine_common."""
 
+from builtins import str
 from builtins import range
 import os
 import parameterized

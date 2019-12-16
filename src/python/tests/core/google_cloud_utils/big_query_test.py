@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """big_query tests."""
+from builtins import str
 import datetime
 import mock
 import unittest
