@@ -17,7 +17,6 @@ from __future__ import print_function
 
 from distutils import spawn
 import os
-import platform
 import shutil
 import sys
 
@@ -91,7 +90,7 @@ def copy_yamls_and_preprocess(paths, additional_env_vars=None):
 
 def find_sdk_path():
   """Find the App Engine SDK path."""
-  if platform.system() == 'Windows':
+  if common.get_platform() == 'windows':
     _, gcloud_path = common.execute('where gcloud.cmd', print_output=False)
   else:
     gcloud_path = spawn.find_executable('gcloud')
@@ -141,8 +140,7 @@ def symlink_dirs():
   # we will try deploying the directory in production. This is only needed for
   # local development in run_server.
   local_gcs_symlink_path = os.path.join(SRC_DIR_PY, 'local_gcs')
-  if os.path.exists(local_gcs_symlink_path):
-    os.remove(local_gcs_symlink_path)
+  common.remove_symlink(local_gcs_symlink_path)
 
   _, output = common.execute('bazel run //local:create_gopath', cwd='src')
   os.environ['GOPATH'] = output.splitlines()[-1]
