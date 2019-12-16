@@ -43,9 +43,13 @@ class JSMinimizerTest(unittest.TestCase):
         token_combiner=self._tokenizer.combine)
 
   def _mock_process(self):
+    """Skip actually processing any of the hypotheses to save time."""
     return
 
   def _mock_prepare_test(self, testcase, hypothesis):
+    """No need to prepare anything, because tests wont be run. Just save what
+      tests would have been run to validate that the correct tokens will be
+      removed."""
     txt = ''
     for index in hypothesis:
       txt += testcase.tokens[index]
