@@ -420,7 +420,7 @@ class LibFuzzerEngine(engine.Engine):
     max_time -= result_1.time_executed
     if max_time <= 0:
       raise engine.TimeoutError('Merging new testcases timed out\n' +
-                                result_1.output)
+                                result_1.logs)
 
     # Step 2. Process the new corpus units as well.
     result_2 = self.minimize_corpus(
