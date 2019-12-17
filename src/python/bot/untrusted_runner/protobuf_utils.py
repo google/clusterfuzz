@@ -13,6 +13,8 @@
 # limitations under the License.
 """Protobuf helpers."""
 
+from builtins import str
+
 
 def get_protobuf_field(result, buf, field_name):
   """Add protobuf field to dict, if the field exists."""
