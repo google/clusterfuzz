@@ -210,8 +210,8 @@ class LibFuzzerEngine(engine.Engine):
       new_units_added = new_corpus_len - old_corpus_len
 
       stat_overrides.update(result.stats)
-    except MergeError:
-      logs.log_warn('Merge failed', target=os.path.basename(target_path))
+    except (MergeError, engine.TimeoutError):
+      logs.log_warn('Merge failed.')
 
     stat_overrides['new_units_added'] = new_units_added
 
