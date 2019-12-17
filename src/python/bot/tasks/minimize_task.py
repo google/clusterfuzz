@@ -1061,7 +1061,7 @@ def do_js_minimization(test_function, get_temp_file, data, deadline, threads,
       token_combiner=tokenizer.combine,
       progress_report_function=functools.partial(logs.log))
 
-  # Some tokens can't be removed until other have, so do 2 passes
+  # Some tokens can't be removed until other have, so do 2 passes.
   for _ in range(2):
     data = current_minimizer.minimize(data)
 

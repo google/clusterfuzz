@@ -30,11 +30,9 @@ class JSMinimizerTest(unittest.TestCase):
     helpers.patch_environ(self)
     helpers.patch(self, [
         'bot.minimizer.minimizer.Testcase.prepare_test',
-        'bot.minimizer.minimizer.Testcase.process'
     ])
 
     self.mock.prepare_test.side_effect = self._mock_prepare_test
-    self.mock.process.side_effect = self._mock_process()
 
     self._tokenizer = antlr_tokenizer.AntlrTokenizer(JavaScriptLexer)
     self._minimizer = js_minimizer.JSMinimizer(
@@ -42,19 +40,15 @@ class JSMinimizerTest(unittest.TestCase):
         tokenizer=self._tokenizer.tokenize,
         token_combiner=self._tokenizer.combine)
 
-  def _mock_process(self):
-    """Skip actually processing any of the hypotheses to save time."""
-    return
-
   def _mock_prepare_test(self, testcase, hypothesis):
     """No need to prepare anything, because tests wont be run. Just save what
       tests would have been run to validate that the correct tokens will be
       removed."""
-    txt = ''
+    text = ''
     for index in hypothesis:
-      txt += testcase.tokens[index]
+      text += testcase.tokens[index]
 
-    self._hypotheses_tested.append(txt)
+    self._hypotheses_tested.append(text)
 
   def _mock_test_function(self):
     return True
