@@ -226,7 +226,7 @@ def run_command(task_name, task_argument, job_name):
 @set_task_payload
 def process_command(task):
   """Figures out what to do with the given task and executes the command."""
-  logs.log("Executing command '%s' (staging)" % task.payload())
+  logs.log("Executing command '%s'" % task.payload())
   if not task.payload().strip():
     logs.log_error('Empty task received.')
     return
