@@ -199,6 +199,7 @@ def execute(_):
     py_import_order(file_path)
     py_test_init_check(file_path)
 
+    # TODO(mbarbella): Remove futurize checks after migrating to Python 3.
     # Skip files that cause futurize to report false positive issues.
     if file_path.endswith('ndb_patcher.py'):
       continue

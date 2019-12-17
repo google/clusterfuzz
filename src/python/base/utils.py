@@ -798,7 +798,7 @@ def write_data_to_file(content, file_path, append=False):
       with open(file_path, file_mode) as file_handle:
         file_handle.write(content)
     except TypeError:
-      content = str(content)
+      content = str(content).encode('utf-8')
       continue
     except EnvironmentError:
       logs.log_warn('Error occurred while writing %s, retrying.' % file_path)
