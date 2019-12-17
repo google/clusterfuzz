@@ -152,15 +152,11 @@ class JSMinimizer(minimizer.Minimizer):
 
         # Find the next non whitespace token after the comma.
         hypothesis = [index]
-        right_token_index = index + 1
-        while (right_token_index < len(testcase.tokens) and
-               not testcase.tokens[right_token_index].strip()):
+        for right_token_index in range(index + 1, len(testcase.tokens)):
           hypothesis.append(right_token_index)
-          right_token_index += 1
-
-        if right_token_index < len(testcase.tokens):
-          hypothesis.append(right_token_index)
-          testcase.prepare_test(hypothesis)
+          if testcase.tokens[right_token_index].strip():
+            testcase.prepare_test(hypothesis)
+            break
 
     testcase.process()
     return testcase
