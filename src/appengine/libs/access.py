@@ -69,7 +69,10 @@ class UserAccess(object):
   Allowed, Denied, Redirected = list(range(3))  # pylint: disable=invalid-name
 
 
-def has_access(need_privileged_access=False, job_type=None, fuzzer_name=None, in_upload=False):
+def has_access(need_privileged_access=False,
+               job_type=None,
+               fuzzer_name=None,
+               in_upload=False):
   """Check if the user has access."""
   result = get_access(
       need_privileged_access=need_privileged_access,

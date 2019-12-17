@@ -126,6 +126,13 @@ class ExternalUsersTest(unittest.TestCase):
         is_prefix=False,
         auto_cc=data_types.AutoCCType.NONE).put()
 
+    data_types.ExternalUserPermission(
+        email='uploader1@example.com',
+        entity_name=None,
+        entity_kind=data_types.PermissionEntityKind.UPLOADER,
+        is_prefix=False,
+        auto_cc=data_types.AutoCCType.NONE).put()
+
     # Fake fuzzers.
     data_types.Fuzzer(name='fuzzer').put()
     data_types.Fuzzer(name='parent', jobs=['job', 'job2', 'job3']).put()
@@ -281,6 +288,13 @@ class ExternalUsersTest(unittest.TestCase):
         external_users.is_job_allowed_for_user('user9@example.com', 'job2'))
     self.assertFalse(
         external_users.is_job_allowed_for_user('user@example.com', 'job2'))
+
+  def test_is_upload_allowed_for_user(self):
+    """is_upload_allowed_for_user tests."""
+    self.assertTrue(
+        external_users.is_upload_allowed_for_user('uploader1@example.com'))
+    self.assertFalse(
+        external_users.is_upload_allowed_for_user('user@example.com'))
 
   def test_cc_users_for_fuzzer(self):
     """cc_users_for_fuzzer tests."""

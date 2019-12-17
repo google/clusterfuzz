@@ -320,7 +320,7 @@ def is_job_allowed_for_user(user_email, job_type):
 
 
 def is_upload_allowed_for_user(user_email):
-  """Return whether if the given user has access to the job.
+  """Return whether if the given user has upload permissions.
 
   Args:
     user_email: The email of the user.
