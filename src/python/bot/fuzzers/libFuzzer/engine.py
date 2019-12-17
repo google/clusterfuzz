@@ -210,8 +210,8 @@ class LibFuzzerEngine(engine.Engine):
       new_units_added = new_corpus_len - old_corpus_len
 
       stat_overrides.update(result.stats)
-    except (MergeError, engine.TimeoutError):
-      logs.log_warn('Merge failed.')
+    except (MergeError, engine.TimeoutError) as e:
+      logs.log_warn('Merge failed.', error=e.message)
 
     stat_overrides['new_units_added'] = new_units_added
 
@@ -419,7 +419,8 @@ class LibFuzzerEngine(engine.Engine):
     # Adjust the time limit for the time we spent on the first merge step.
     max_time -= result_1.time_executed
     if max_time <= 0:
-      raise MergeError('Merging new testcases timed out')
+      raise engine.TimeoutError('Merging new testcases timed out\n' +
+                                result_1.output)
 
     # Step 2. Process the new corpus units as well.
     result_2 = self.minimize_corpus(
