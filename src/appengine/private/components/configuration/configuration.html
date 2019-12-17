@@ -329,7 +329,7 @@
                     <paper-input label="Fuzzer or job name" name="entity_name"></paper-input>
                   </td>
                   <td>
-                    <paper-dropdown-menu label="Type (fuzzer or job)" name="entity_kind" no-animations="true" noink>
+                    <paper-dropdown-menu label="Entity type" name="entity_kind" no-animations="true" noink>
                       <paper-listbox slot="dropdown-content" class="dropdown-content">
                         <template is="dom-repeat" items="[[fieldValues.user_permission_entity_kinds]]">
                           <paper-item label="[[item.name]]" value="[[item.value]]">[[item.name]]</paper-item>

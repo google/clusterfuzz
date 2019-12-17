@@ -195,11 +195,11 @@ class Handler(base_handler.Handler):
     if not email:
       raise helpers.AccessDeniedException()
 
-    is_privileged_or_domain_user = access.has_access(
-        need_privileged_access=False)
+    is_privileged_or_domain_or_upload_user = access.has_access(
+        need_privileged_access=False, in_upload=True)
 
-    if is_privileged_or_domain_user:
-      # Privileged and domain users can see all job and fuzzer names.
+    if is_privileged_or_domain_or_upload_user:
+      # Privileged, domain and upload users can see all job and fuzzer names.
       allowed_jobs = data_handler.get_all_job_type_names()
       allowed_fuzzers = data_handler.get_all_fuzzer_names_including_children(
           include_parents=True)
@@ -231,7 +231,7 @@ class Handler(base_handler.Handler):
                 'csrfToken':
                     form.generate_csrf_token(),
                 'isExternalUser':
-                    not is_privileged_or_domain_user,
+                    not is_privileged_or_domain_or_upload_user,
                 'uploadInfo':
                     gcs.prepare_blob_upload()._asdict(),
                 'hasIssueTracker':
@@ -342,7 +342,8 @@ class UploadHandlerCommon(object):
     if not access.has_access(
         need_privileged_access=False,
         job_type=job_type,
-        fuzzer_name=(fully_qualified_fuzzer_name or fuzzer_name)):
+        fuzzer_name=(fully_qualified_fuzzer_name or fuzzer_name),
+        in_upload=True):
       raise helpers.AccessDeniedException()
 
     multiple_testcases = bool(self.request.get('multiple'))
