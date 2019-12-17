@@ -68,7 +68,9 @@ class JSMinimizerTest(unittest.TestCase):
     self.assertEqual(self._hypotheses_tested, [])
 
   def test_if_hypothesis(self):
-    """e.g.: if (statement_that_evaluates_to_true) { crash() } -> crash()."""
+    """Test that the minimizer successfully removes all of the if statement
+      syntax when it hits a bracket.
+      e.g.: if (statement_that_evaluates_to_true) { crash() } -> crash()."""
     data = "if(boolean) { crash }"
 
     self._minimizer.minimize(data)
@@ -76,7 +78,9 @@ class JSMinimizerTest(unittest.TestCase):
     self.assertIn("if(boolean) {}", self._hypotheses_tested)
 
   def test_try_catch_hypothesis(self):
-    """e.g.: try { crash() } catch(e) {} -> crash()."""
+    """Test that the minimizer successfully removes all of the try/catch
+      syntax when it hits a bracket.
+      e.g.: try { crash() } catch(e) {} -> crash()."""
     data = "try{ crash() } catch(e){ }"
     self._minimizer.minimize(data)
 
@@ -121,7 +125,9 @@ class JSMinimizerTest(unittest.TestCase):
                   self._hypotheses_tested)
 
   def test_remove_outer_paren(self):
-    """e.g.: assertTrue(crash()); -> crash()."""
+    """Test that the minimizer successfully removes all of the outer parens
+      to check for nested parens.
+      e.g.: assertTrue(crash()); -> crash()."""
     data = "assertTrue(crash());"
 
     self._minimizer.minimize(data)
@@ -129,7 +135,7 @@ class JSMinimizerTest(unittest.TestCase):
     self.assertIn("assertTrue()", self._hypotheses_tested)
 
   def test_remove_inside_paren(self):
-    """Hypothesis is Remove everything between the parentheses.
+    """Test that minimizer removes everything between the parentheses.
       e.g.: crash(junk, more_junk) -> crash()."""
     data = "crash(junk, more_junk)"
 
@@ -138,7 +144,9 @@ class JSMinimizerTest(unittest.TestCase):
     self.assertIn("junk, more_junk", self._hypotheses_tested)
 
   def test_remove_paren_to_start_of_line(self):
-    """e.g.: leftover_junk = (function() {
+    """Tests that the minimizer will remove the whole line (including setting
+      vars) when there are parens.
+      e.g.: leftover_junk = (function() {
              });."""
     data = "leftover_junk = (function(){\n})"
 
@@ -147,7 +155,9 @@ class JSMinimizerTest(unittest.TestCase):
     self.assertIn("leftover_junk = (function(){\n})", self._hypotheses_tested)
 
   def test_remove_paren_with_attached_brackets(self):
-    """e.g.: (function(global) { })(this);."""
+    """Test that the minimizer removes the whole line and following brackets
+      when there are parens.
+      e.g.: (function(global) { })(this);."""
     data = "(function(global) { })(this)"
 
     self._minimizer.minimize(data)
@@ -155,7 +165,8 @@ class JSMinimizerTest(unittest.TestCase):
     self.assertIn("(function(global) { })(this)", self._hypotheses_tested)
 
   def test_remove_left_of_comma(self):
-    """e.g.: f(whatever, crash()) -> f(crash())."""
+    """Test the minimizer removes the comma and token left of the comma
+      e.g.: f(whatever, crash()) -> f(crash())."""
     data = "f(whatever, crash())"
 
     self._minimizer.minimize(data)
@@ -163,7 +174,8 @@ class JSMinimizerTest(unittest.TestCase):
     self.assertIn("whatever,", self._hypotheses_tested)
 
   def test_remove_right_of_comma(self):
-    """e.g.: f(crash(),whatever) -> f(crash())."""
+    """Test the minimizer removes the comma and right of the comma.
+      e.g.: f(crash(),whatever) -> f(crash())."""
     data = "f(crash(), whatever)"
 
     self._minimizer.minimize(data)

@@ -22,9 +22,9 @@ from . import minimizer
 from . import utils
 
 
-def step_back_while(cur_index, expr):
+def step_back_while(cur_index, condition):
   """Helper function. Decreases index from cur until expr is satisfied."""
-  while expr(cur_index):
+  while cur_index >= 0 and condition(cur_index):
     cur_index -= 1
   return cur_index
 
@@ -50,32 +50,27 @@ class JSMinimizer(minimizer.Minimizer):
         open_brace_index = brace_stack.pop()
 
         # Find the first non-empty token prior to the starting brackets.
-        token_before_bracket = (
-            step_back_while(
-                open_brace_index - 1,
-                (lambda x: x >= 0 and not testcase.tokens[x].strip())))
+        token_before_bracket = step_back_while(
+            open_brace_index - 1, (lambda x: not testcase.tokens[x].strip()))
 
         # If that token is a close paren, we need to grab everything else too.
         # Do this to grab the whole paren so we don't create a syntax error by
-        # removing only part of a paren
+        # removing only part of a paren.
         if testcase.tokens[token_before_bracket] == ")":
-          # Find everything in the paren
-          token_before_bracket = (
-              step_back_while(token_before_bracket,
-                              (lambda x: testcase.tokens[x] != "(")))
+          # Find everything in the paren.
+          token_before_bracket = step_back_while(
+              token_before_bracket, (lambda x: testcase.tokens[x] != "("))
 
-          # and the token before the paren
+          # Get the token before the paren.
           token_before_bracket -= 1
-          token_before_bracket = (
-              step_back_while(token_before_bracket,
-                              (lambda x: not testcase.tokens[x].strip())))
+          token_before_bracket = step_back_while(
+              token_before_bracket, (lambda x: not testcase.tokens[x].strip()))
 
         # Walk back to the start of that line as well to get if/else and funcs.
         # Do this after paren to manage situations where there are newlines in
         # the parens.
         token_before_bracket = step_back_while(
-            token_before_bracket,
-            (lambda x: x >= 0 and testcase.tokens[x] != "\n"))
+            token_before_bracket, (lambda x: testcase.tokens[x] != "\n"))
 
         token_before_bracket += 1
 
@@ -127,7 +122,7 @@ class JSMinimizer(minimizer.Minimizer):
         # Find the beginning of the line
         token_before_paren = previous_end
         token_before_paren = step_back_while(
-            previous_end, (lambda x: x >= 0 and testcase.tokens[x] != "\n"))
+            previous_end, (lambda x: testcase.tokens[x] != "\n"))
         token_before_paren += 1
 
         hypothesis = list(range(token_before_paren, previous_end + 1)) + [index]
