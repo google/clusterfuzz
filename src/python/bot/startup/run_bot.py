@@ -148,6 +148,8 @@ def main():
     untrusted_worker.start_server()
     assert False, 'Unreachable code'
 
+  logs.log('Starting test run.')
+
   while True:
     # task_loop should be an infinite loop,
     # unless we run into an exception.
