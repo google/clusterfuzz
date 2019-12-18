@@ -261,15 +261,18 @@ class DeleteExternalUserPermission(base_handler.Handler):
     if not email:
       raise helpers.EarlyExitException('No email provided.', 400)
 
-    if not entity_name:
-      raise helpers.EarlyExitException('No entity_name provided.', 400)
-
     if not entity_kind or entity_kind == 'undefined':
       raise helpers.EarlyExitException('No entity_kind provided.', 400)
 
     entity_kind = get_value_by_name(USER_PERMISSION_ENTITY_KINDS, entity_kind)
     if entity_kind is None:
       raise helpers.EarlyExitException('Invalid entity_kind provided.', 400)
+
+    if entity_kind == data_types.PermissionEntityKind.UPLOADER:
+      entity_name = None
+    else:
+      if not entity_name:
+        raise helpers.EarlyExitException('No entity_name provided.', 400)
 
     # Check for existing permission.
     permission = data_types.ExternalUserPermission.query(
