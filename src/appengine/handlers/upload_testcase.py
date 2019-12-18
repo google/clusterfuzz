@@ -364,6 +364,7 @@ class UploadHandlerCommon(object):
     app_launch_command = self.request.get('cmd')
     platform_id = self.request.get('platform')
     issue_labels = self.request.get('issue_labels')
+    gestures = self.request.get('gestures', [])
 
     testcase_metadata = self.request.get('metadata', {})
     if testcase_metadata:
@@ -384,10 +385,6 @@ class UploadHandlerCommon(object):
     # allowed for privileged users.
     privileged_user = access.has_access(need_privileged_access=True)
     if not privileged_user:
-      if additional_arguments:
-        raise helpers.EarlyExitException(
-            'You are not privileged to add command-line arguments.', 400)
-
       if bug_information or bug_summary_update_flag:
         raise helpers.EarlyExitException(
             'You are not privileged to update existing issues.', 400)
@@ -401,16 +398,22 @@ class UploadHandlerCommon(object):
 
       if app_launch_command:
         raise helpers.EarlyExitException(
-            'You are not privileged to run arbitary launch commands.', 400)
+            'You are not privileged to run arbitrary launch commands.', 400)
 
       if (testcase_metadata and
           not _allow_unprivileged_metadata(testcase_metadata)):
         raise helpers.EarlyExitException(
             'You are not privileged to set testcase metadata.', 400)
 
-    # If we have a AFL or libFuzzer target, use that for arguments.
-    # Launch command looks like
-    # python launcher.py {testcase_path}
+      if additional_arguments:
+        raise helpers.EarlyExitException(
+            'You are not privileged to add command-line arguments.', 400)
+
+      if gestures:
+        raise helpers.EarlyExitException(
+            'You are not privileged to run arbitrary gestures.', 400)
+
+    # TODO(aarya): Remove once AFL is migrated to engine pipeline.
     if target_name:
       additional_arguments = '%TESTCASE%'
 
@@ -449,9 +452,9 @@ class UploadHandlerCommon(object):
       retries = None
 
     try:
-      gestures = ast.literal_eval(self.request.get('gestures'))
-    except:
-      gestures = []
+      gestures = ast.literal_eval(gestures)
+    except Exception:
+      raise helpers.EarlyExitException('Failed to parse gestures.', 400)
     if not gestures:
       gestures = []
 
