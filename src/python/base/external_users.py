@@ -319,6 +319,20 @@ def is_job_allowed_for_user(user_email, job_type):
                                      data_types.PermissionEntityKind.JOB)
 
 
+def is_upload_allowed_for_user(user_email):
+  """Return whether if the given user has upload permissions.
+
+  Args:
+    user_email: The email of the user.
+
+  Returns:
+    A bool indicating whether the given user has upload permissions.
+  """
+  permissions = _get_permissions_query_for_user(
+      user_email, data_types.PermissionEntityKind.UPLOADER)
+  return bool(permissions.get())
+
+
 def cc_users_for_job(job_type, security_flag):
   """Return external users that should be CC'ed according to the given rule.
 

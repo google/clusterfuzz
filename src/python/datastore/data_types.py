@@ -240,6 +240,7 @@ class AutoCCType(object):
 class PermissionEntityKind(object):
   FUZZER = 0
   JOB = 1
+  UPLOADER = 2
 
 
 # Task state string mappings.

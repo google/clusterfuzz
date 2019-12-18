@@ -50,6 +50,11 @@ MORE_LIMIT = 100 - PAGE_SIZE
 UPLOAD_URL = '/upload-testcase/upload-oauth'
 
 
+def _is_uploader_allowed(email):
+  """Return bool on whether user is allowed to upload to any job or fuzzer."""
+  return external_users.is_upload_allowed_for_user(email)
+
+
 def attach_testcases(rows):
   """Attach testcase to each crash."""
   testcases = {}
@@ -197,9 +202,8 @@ class Handler(base_handler.Handler):
 
     is_privileged_or_domain_user = access.has_access(
         need_privileged_access=False)
-
-    if is_privileged_or_domain_user:
-      # Privileged and domain users can see all job and fuzzer names.
+    if is_privileged_or_domain_user or _is_uploader_allowed(email):
+      # Privileged, domain and upload users can see all job and fuzzer names.
       allowed_jobs = data_handler.get_all_job_type_names()
       allowed_fuzzers = data_handler.get_all_fuzzer_names_including_children(
           include_parents=True)
@@ -285,6 +289,7 @@ class UploadHandlerCommon(object):
 
   def do_post(self):
     """Upload a testcase."""
+    email = helpers.get_user_email()
     testcase_id = self.request.get('testcaseId')
     uploaded_file = self.get_upload()
     if testcase_id and not uploaded_file:
@@ -339,10 +344,11 @@ class UploadHandlerCommon(object):
       if not fully_qualified_fuzzer_name:
         raise helpers.EarlyExitException('Target does not exist.', 400)
 
-    if not access.has_access(
+    if (not access.has_access(
         need_privileged_access=False,
         job_type=job_type,
-        fuzzer_name=(fully_qualified_fuzzer_name or fuzzer_name)):
+        fuzzer_name=(fully_qualified_fuzzer_name or fuzzer_name)) and
+        not _is_uploader_allowed(email)):
       raise helpers.AccessDeniedException()
 
     multiple_testcases = bool(self.request.get('multiple'))
@@ -358,6 +364,7 @@ class UploadHandlerCommon(object):
     app_launch_command = self.request.get('cmd')
     platform_id = self.request.get('platform')
     issue_labels = self.request.get('issue_labels')
+    gestures = self.request.get('gestures', [])
 
     testcase_metadata = self.request.get('metadata', {})
     if testcase_metadata:
@@ -370,16 +377,14 @@ class UploadHandlerCommon(object):
     if issue_labels:
       testcase_metadata['issue_labels'] = issue_labels
 
+    try:
+      gestures = ast.literal_eval(gestures)
+    except Exception:
+      raise helpers.EarlyExitException('Failed to parse gestures.', 400)
+
     archive_state = 0
     bundled = False
     file_path_input = ''
-    email = helpers.get_user_email()
-
-    # If we have a AFL or libFuzzer target, use that for arguments.
-    # Launch command looks like
-    # python launcher.py {testcase_path}
-    if target_name:
-      additional_arguments = '%TESTCASE%'
 
     # Certain modifications such as app launch command, issue updates are only
     # allowed for privileged users.
@@ -398,12 +403,24 @@ class UploadHandlerCommon(object):
 
       if app_launch_command:
         raise helpers.EarlyExitException(
-            'You are not privileged to run arbitary launch commands.', 400)
+            'You are not privileged to run arbitrary launch commands.', 400)
 
       if (testcase_metadata and
           not _allow_unprivileged_metadata(testcase_metadata)):
         raise helpers.EarlyExitException(
             'You are not privileged to set testcase metadata.', 400)
+
+      if additional_arguments:
+        raise helpers.EarlyExitException(
+            'You are not privileged to add command-line arguments.', 400)
+
+      if gestures:
+        raise helpers.EarlyExitException(
+            'You are not privileged to run arbitrary gestures.', 400)
+
+    # TODO(aarya): Remove once AFL is migrated to engine pipeline.
+    if target_name:
+      additional_arguments = '%TESTCASE%'
 
     if crash_revision and crash_revision.isdigit():
       crash_revision = int(crash_revision)
@@ -438,13 +455,6 @@ class UploadHandlerCommon(object):
             400)
     else:
       retries = None
-
-    try:
-      gestures = ast.literal_eval(self.request.get('gestures'))
-    except:
-      gestures = []
-    if not gestures:
-      gestures = []
 
     job_queue = tasks.queue_for_job(job_type, is_high_end=high_end_job)
 

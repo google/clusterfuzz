@@ -29,7 +29,11 @@ USER_PERMISSION_ENTITY_KINDS = [
     },
     {
         'name': 'job',
-        'value': data_types.PermissionEntityKind.JOB
+        'value': data_types.PermissionEntityKind.JOB,
+    },
+    {
+        'name': 'uploader',
+        'value': data_types.PermissionEntityKind.UPLOADER,
     },
 ]
 
@@ -191,9 +195,6 @@ class AddExternalUserPermission(base_handler.Handler):
     if not email:
       raise helpers.EarlyExitException('No email provided.', 400)
 
-    if not entity_name:
-      raise helpers.EarlyExitException('No entity_name provided.', 400)
-
     if not entity_kind or entity_kind == 'undefined':
       raise helpers.EarlyExitException('No entity_kind provided.', 400)
 
@@ -201,12 +202,20 @@ class AddExternalUserPermission(base_handler.Handler):
     if entity_kind is None:
       raise helpers.EarlyExitException('Invalid entity_kind provided.', 400)
 
-    if not auto_cc or auto_cc == 'undefined':
-      raise helpers.EarlyExitException('No auto_cc provided.', 400)
+    if entity_kind == data_types.PermissionEntityKind.UPLOADER:
+      # Enforce null values for entity name and auto-cc when uploader is chosen.
+      entity_name = None
+      auto_cc = data_types.AutoCCType.NONE
+    else:
+      if not entity_name:
+        raise helpers.EarlyExitException('No entity_name provided.', 400)
 
-    auto_cc = get_value_by_name(USER_PERMISSION_AUTO_CC_TYPES, auto_cc)
-    if auto_cc is None:
-      raise helpers.EarlyExitException('Invalid auto_cc provided.', 400)
+      if not auto_cc or auto_cc == 'undefined':
+        raise helpers.EarlyExitException('No auto_cc provided.', 400)
+
+      auto_cc = get_value_by_name(USER_PERMISSION_AUTO_CC_TYPES, auto_cc)
+      if auto_cc is None:
+        raise helpers.EarlyExitException('Invalid auto_cc provided.', 400)
 
     # Check for existing permission.
     query = data_types.ExternalUserPermission.query(
