@@ -14,13 +14,10 @@
 """Fuzz task for handling fuzzing."""
 from __future__ import division
 
-from builtins import object
-from builtins import range
-from builtins import str
-
 from future import standard_library
 standard_library.install_aliases()
-
+from builtins import object
+from builtins import range
 import collections
 import datetime
 import itertools

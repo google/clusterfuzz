@@ -13,8 +13,6 @@
 # limitations under the License.
 """Settings change related functions."""
 
-from builtins import str
-
 import re
 
 from . import adb

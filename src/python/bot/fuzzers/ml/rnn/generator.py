@@ -20,8 +20,6 @@ try:
 except ImportError:
   pass
 
-from builtins import str
-
 import os
 
 from bot.fuzzers.ml.rnn import constants
