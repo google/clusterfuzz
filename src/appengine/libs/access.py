@@ -69,24 +69,17 @@ class UserAccess(object):
   Allowed, Denied, Redirected = list(range(3))  # pylint: disable=invalid-name
 
 
-def has_access(need_privileged_access=False,
-               job_type=None,
-               fuzzer_name=None,
-               in_upload=False):
+def has_access(need_privileged_access=False, job_type=None, fuzzer_name=None):
   """Check if the user has access."""
   result = get_access(
       need_privileged_access=need_privileged_access,
       job_type=job_type,
-      fuzzer_name=fuzzer_name,
-      in_upload=in_upload)
+      fuzzer_name=fuzzer_name)
 
   return result == UserAccess.Allowed
 
 
-def get_access(need_privileged_access=False,
-               job_type=None,
-               fuzzer_name=None,
-               in_upload=False):
+def get_access(need_privileged_access=False, job_type=None, fuzzer_name=None):
   """Return 'allowed', 'redirected', or 'failed'."""
   if auth.is_current_user_admin():
     return UserAccess.Allowed
@@ -107,9 +100,6 @@ def get_access(need_privileged_access=False,
     return UserAccess.Allowed
 
   if not need_privileged_access and _is_domain_allowed(email):
-    return UserAccess.Allowed
-
-  if in_upload and external_users.is_upload_allowed_for_user(email):
     return UserAccess.Allowed
 
   return UserAccess.Denied

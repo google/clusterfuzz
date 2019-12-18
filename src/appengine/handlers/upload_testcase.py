@@ -50,6 +50,11 @@ MORE_LIMIT = 100 - PAGE_SIZE
 UPLOAD_URL = '/upload-testcase/upload-oauth'
 
 
+def _is_uploader_allowed(email):
+  """Return bool on whether user is allowed to upload to any job or fuzzer."""
+  return external_users.is_upload_allowed_for_user(email)
+
+
 def attach_testcases(rows):
   """Attach testcase to each crash."""
   testcases = {}
@@ -195,10 +200,9 @@ class Handler(base_handler.Handler):
     if not email:
       raise helpers.AccessDeniedException()
 
-    is_privileged_or_domain_or_upload_user = access.has_access(
-        need_privileged_access=False, in_upload=True)
-
-    if is_privileged_or_domain_or_upload_user:
+    is_privileged_or_domain_user = access.has_access(
+        need_privileged_access=False)
+    if is_privileged_or_domain_user or _is_uploader_allowed(email):
       # Privileged, domain and upload users can see all job and fuzzer names.
       allowed_jobs = data_handler.get_all_job_type_names()
       allowed_fuzzers = data_handler.get_all_fuzzer_names_including_children(
@@ -231,7 +235,7 @@ class Handler(base_handler.Handler):
                 'csrfToken':
                     form.generate_csrf_token(),
                 'isExternalUser':
-                    not is_privileged_or_domain_or_upload_user,
+                    not is_privileged_or_domain_user,
                 'uploadInfo':
                     gcs.prepare_blob_upload()._asdict(),
                 'hasIssueTracker':
@@ -285,6 +289,7 @@ class UploadHandlerCommon(object):
 
   def do_post(self):
     """Upload a testcase."""
+    email = helpers.get_user_email()
     testcase_id = self.request.get('testcaseId')
     uploaded_file = self.get_upload()
     if testcase_id and not uploaded_file:
@@ -339,11 +344,11 @@ class UploadHandlerCommon(object):
       if not fully_qualified_fuzzer_name:
         raise helpers.EarlyExitException('Target does not exist.', 400)
 
-    if not access.has_access(
+    if (not access.has_access(
         need_privileged_access=False,
         job_type=job_type,
-        fuzzer_name=(fully_qualified_fuzzer_name or fuzzer_name),
-        in_upload=True):
+        fuzzer_name=(fully_qualified_fuzzer_name or fuzzer_name)) and
+        not _is_uploader_allowed(email)):
       raise helpers.AccessDeniedException()
 
     multiple_testcases = bool(self.request.get('multiple'))
@@ -374,18 +379,15 @@ class UploadHandlerCommon(object):
     archive_state = 0
     bundled = False
     file_path_input = ''
-    email = helpers.get_user_email()
-
-    # If we have a AFL or libFuzzer target, use that for arguments.
-    # Launch command looks like
-    # python launcher.py {testcase_path}
-    if target_name:
-      additional_arguments = '%TESTCASE%'
 
     # Certain modifications such as app launch command, issue updates are only
     # allowed for privileged users.
     privileged_user = access.has_access(need_privileged_access=True)
     if not privileged_user:
+      if additional_arguments:
+        raise helpers.EarlyExitException(
+            'You are not privileged to add command-line arguments.', 400)
+
       if bug_information or bug_summary_update_flag:
         raise helpers.EarlyExitException(
             'You are not privileged to update existing issues.', 400)
@@ -405,6 +407,12 @@ class UploadHandlerCommon(object):
           not _allow_unprivileged_metadata(testcase_metadata)):
         raise helpers.EarlyExitException(
             'You are not privileged to set testcase metadata.', 400)
+
+    # If we have a AFL or libFuzzer target, use that for arguments.
+    # Launch command looks like
+    # python launcher.py {testcase_path}
+    if target_name:
+      additional_arguments = '%TESTCASE%'
 
     if crash_revision and crash_revision.isdigit():
       crash_revision = int(crash_revision)

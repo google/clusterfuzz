@@ -114,7 +114,6 @@ class GetAccessTest(unittest.TestCase):
         'libs.access._is_domain_allowed',
         'base.external_users.is_fuzzer_allowed_for_user',
         'base.external_users.is_job_allowed_for_user',
-        'base.external_users.is_upload_allowed_for_user',
     ])
     self.user = auth.User('test@test.com')
 
@@ -159,7 +158,6 @@ class GetAccessTest(unittest.TestCase):
     self.mock._is_domain_allowed.return_value = False
     self.mock.is_fuzzer_allowed_for_user.return_value = True
     self.mock.is_job_allowed_for_user.return_value = False
-    self.mock.is_upload_allowed_for_user.return_value = False
     self.assertEqual(
         access.get_access(fuzzer_name='test'), access.UserAccess.Allowed)
     self.assertEqual(access.get_access(), access.UserAccess.Denied)
@@ -172,22 +170,8 @@ class GetAccessTest(unittest.TestCase):
     self.mock._is_domain_allowed.return_value = False
     self.mock.is_fuzzer_allowed_for_user.return_value = False
     self.mock.is_job_allowed_for_user.return_value = True
-    self.mock.is_upload_allowed_for_user.return_value = False
     self.assertEqual(
         access.get_access(job_type='test'), access.UserAccess.Allowed)
-    self.assertEqual(access.get_access(), access.UserAccess.Denied)
-
-  def test_get_access_external_uploader(self):
-    """For a uploader, ensure it allows when a user is allowed."""
-    self.mock.get_current_user.return_value = self.user
-    self.mock.is_current_user_admin.return_value = False
-    self.mock._is_privileged_user.return_value = False
-    self.mock._is_domain_allowed.return_value = False
-    self.mock.is_fuzzer_allowed_for_user.return_value = False
-    self.mock.is_job_allowed_for_user.return_value = False
-    self.mock.is_upload_allowed_for_user.return_value = True
-    self.assertEqual(
-        access.get_access(in_upload=True), access.UserAccess.Allowed)
     self.assertEqual(access.get_access(), access.UserAccess.Denied)
 
   def test_get_access_denied(self):
@@ -215,19 +199,19 @@ class HasAccessTest(unittest.TestCase):
     """Test allowed."""
     self.mock.get_access.return_value = access.UserAccess.Allowed
     self.assertTrue(access.has_access(True, 'a', 'b'))
-    self.mock.get_access.assert_has_calls([mock.call(True, 'a', 'b', False)])
+    self.mock.get_access.assert_has_calls([mock.call(True, 'a', 'b')])
 
   def test_denied(self):
     """Test denied."""
     self.mock.get_access.return_value = access.UserAccess.Denied
     self.assertFalse(access.has_access(True, 'a', 'b'))
-    self.mock.get_access.assert_has_calls([mock.call(True, 'a', 'b', False)])
+    self.mock.get_access.assert_has_calls([mock.call(True, 'a', 'b')])
 
   def test_redirected(self):
     """Test redirected."""
     self.mock.get_access.return_value = access.UserAccess.Redirected
     self.assertFalse(access.has_access(True, 'a', 'b'))
-    self.mock.get_access.assert_has_calls([mock.call(True, 'a', 'b', False)])
+    self.mock.get_access.assert_has_calls([mock.call(True, 'a', 'b')])
 
 
 @test_utils.with_cloud_emulators('datastore')
