@@ -16,8 +16,6 @@ from __future__ import print_function
 
 from builtins import object
 from builtins import range
-from builtins import str
-
 import contextlib
 import glob
 import os

@@ -15,13 +15,8 @@
 from __future__ import division
 from __future__ import print_function
 
-from builtins import chr
-from builtins import map
-from builtins import next
 from builtins import object
 from builtins import range
-from builtins import str
-
 import numpy as np
 import os
 import random

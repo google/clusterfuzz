@@ -14,8 +14,6 @@
 """Tests for the revisions module."""
 
 from builtins import object
-from builtins import str
-
 import ast
 import hashlib
 import mock

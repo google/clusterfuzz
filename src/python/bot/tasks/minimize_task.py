@@ -15,8 +15,6 @@
 
 from builtins import object
 from builtins import range
-from builtins import str
-
 import binascii
 import functools
 import os
