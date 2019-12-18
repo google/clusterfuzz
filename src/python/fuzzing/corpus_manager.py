@@ -14,6 +14,8 @@
 """Functions for corpus synchronization with GCS."""
 
 from builtins import object
+from builtins import str
+
 import os
 import re
 import shutil

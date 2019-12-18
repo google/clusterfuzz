@@ -15,13 +15,15 @@
 from __future__ import print_function
 
 # pylint: disable=g-statement-before-imports
-from builtins import object
 try:
   # ClusterFuzz dependencies.
   from python.base import modules
   modules.fix_module_search_paths()
 except ImportError:
   pass
+
+from builtins import object
+from builtins import str
 
 import atexit
 import collections

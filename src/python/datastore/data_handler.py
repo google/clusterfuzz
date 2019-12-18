@@ -13,6 +13,8 @@
 # limitations under the License.
 """Data handler functions."""
 
+from builtins import str
+
 import collections
 import datetime
 import os
@@ -375,7 +377,7 @@ def get_formatted_reproduction_help(testcase):
   # Since this value may be in a job definition, it's non-trivial for it to
   # include newlines. Instead, it will contain backslash-escaped characters
   # that must be converted here (e.g. \n).
-  help_format = help_format.decode('unicode-escape')
+  help_format = help_format.encode().decode('unicode-escape')
 
   arguments = get_arguments(testcase)
   fuzzer_display = get_fuzzer_display(testcase)
@@ -557,7 +559,7 @@ def get_stacktrace(testcase, stack_attribute='crash_stacktrace'):
   # For App Engine, we can't write to local file, so use blobs.read_key instead.
   if environment.is_running_on_app_engine():
     key = result[len(data_types.BLOBSTORE_STACK_PREFIX):]
-    return unicode(blobs.read_key(key), errors='replace')
+    return str(blobs.read_key(key), errors='replace')
 
   key = result[len(data_types.BLOBSTORE_STACK_PREFIX):]
   tmpdir = environment.get_value('BOT_TMPDIR')
