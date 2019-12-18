@@ -219,7 +219,7 @@ def _get_tls_cert_and_key():
   cert = future_utils.native(cert_newstr).encode()
   key_newstr = str(compute_metadata.get('instance/attributes/tls-key'))
   key = future_utils.native(key_newstr).encode()
-  return (cert, key)
+  return cert, key
 
 
 def start_server():

@@ -278,7 +278,7 @@ class ProcessRunner(object):
 
     # TODO(mbarbella): Remove this after the Python 3 conversion. Subprocess
     # contains a check that keys in the environment are strings.
-    env = { k: future_utils.native(v).encode() for k, v in env.items() }
+    env = {k: future_utils.native(v).encode() for k, v in env.items()}
 
     return ChildProcess(
         subprocess.Popen(
