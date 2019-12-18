@@ -15,6 +15,8 @@
   according to our keyword searching use cases."""
 
 from builtins import range
+from builtins import str
+
 import re
 
 

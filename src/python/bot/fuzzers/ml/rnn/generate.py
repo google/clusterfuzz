@@ -15,6 +15,8 @@
 from __future__ import print_function
 
 from builtins import range
+from builtins import str
+
 import argparse
 import math
 import numpy as np

@@ -13,10 +13,14 @@
 # limitations under the License.
 """Common utility functions."""
 
+from builtins import map
 from builtins import range
+from builtins import str
+from past.builtins import basestring
+
 from future import standard_library
 standard_library.install_aliases()
-from past.builtins import basestring
+
 import ast
 import datetime
 import functools
@@ -95,13 +99,15 @@ def utc_datetime_to_timestamp(dt):
   return (dt - datetime.datetime.utcfromtimestamp(0)).total_seconds()
 
 
+# TODO(mbarbella): Clean up call-sites and delete this function. Any usage is
+# potentially indicative of poor tracking of encodings.
 def decode_to_unicode(obj, encoding='utf-8'):
   """Decode object to unicode encoding."""
-  if isinstance(obj, basestring) and not isinstance(obj, unicode):
+  if isinstance(obj, basestring) and not isinstance(obj, str):
     try:
-      obj = unicode(obj, encoding)
+      obj = str(obj, encoding)
     except:
-      obj = unicode(''.join(char for char in obj if ord(char) < 128), encoding)
+      obj = str(''.join(char for char in obj if ord(char) < 128), encoding)
 
   return obj
 
@@ -156,7 +162,6 @@ def file_path_to_file_url(path):
   # TODO(mbarbella): urljoin has several type checks for arguments. Ensure that
   # we're passing newstr on both sides while migrating to Python 3. After
   # migrating, ensure that callers pass strs to avoid this hack.
-  from builtins import str
   return urllib.parse.urljoin(
       str(u'file:'), str(urllib.request.pathname2url(path)))
 
@@ -782,16 +787,20 @@ def wait_until_timeout(threads, thread_timeout):
 
 def write_data_to_file(content, file_path, append=False):
   """Writes data to file."""
-  content_string = str(content)
   failure_wait_interval = environment.get_value('FAIL_WAIT')
   file_mode = 'ab' if append else 'wb'
   retry_limit = environment.get_value('FAIL_RETRIES')
 
-  for _ in range(retry_limit):
+  # TODO(mbarbella): Require callers to pass strings or bytes then reduce this
+  # back to the original retry limit.
+  for _ in range(retry_limit + 1):
     try:
       with open(file_path, file_mode) as file_handle:
-        file_handle.write(content_string)
-    except:
+        file_handle.write(content)
+    except TypeError:
+      content = str(content).encode('utf-8')
+      continue
+    except EnvironmentError:
       logs.log_warn('Error occurred while writing %s, retrying.' % file_path)
       time.sleep(random.uniform(1, failure_wait_interval))
       continue

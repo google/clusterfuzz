@@ -14,7 +14,9 @@
 """Blobs handling."""
 from __future__ import absolute_import
 
+from builtins import str
 from past.builtins import basestring
+
 import os
 import re
 import uuid
