@@ -377,6 +377,11 @@ class UploadHandlerCommon(object):
     if issue_labels:
       testcase_metadata['issue_labels'] = issue_labels
 
+    try:
+      gestures = ast.literal_eval(gestures)
+    except Exception:
+      raise helpers.EarlyExitException('Failed to parse gestures.', 400)
+
     archive_state = 0
     bundled = False
     file_path_input = ''
@@ -450,13 +455,6 @@ class UploadHandlerCommon(object):
             400)
     else:
       retries = None
-
-    try:
-      gestures = ast.literal_eval(gestures)
-    except Exception:
-      raise helpers.EarlyExitException('Failed to parse gestures.', 400)
-    if not gestures:
-      gestures = []
 
     job_queue = tasks.queue_for_job(job_type, is_high_end=high_end_job)
 
