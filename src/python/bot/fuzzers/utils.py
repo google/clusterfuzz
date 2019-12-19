@@ -13,8 +13,6 @@
 # limitations under the License.
 """Fuzzer utils."""
 
-from builtins import str
-
 import os
 import re
 import stat

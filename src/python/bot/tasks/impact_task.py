@@ -14,8 +14,6 @@
 """Impact task.
    Determine whether or not a test case affects production branches."""
 
-from builtins import str
-
 import six
 
 from base import tasks

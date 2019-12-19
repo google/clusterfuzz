@@ -15,8 +15,6 @@
 """Tests for triage task."""
 
 from builtins import range
-from builtins import str
-
 import datetime
 import unittest
 

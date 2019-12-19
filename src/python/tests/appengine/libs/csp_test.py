@@ -13,8 +13,6 @@
 # limitations under the License.
 """Tests for CSP."""
 
-from builtins import str
-
 import unittest
 
 from libs import csp

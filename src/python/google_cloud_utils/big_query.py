@@ -16,8 +16,6 @@
   oauth2client 1.4.2. Therefore, we implement our own BigQuery client."""
 
 from builtins import object
-from builtins import str
-
 import collections
 import datetime
 import time

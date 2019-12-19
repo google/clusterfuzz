@@ -14,7 +14,6 @@
 """Tests for grouper."""
 
 from builtins import range
-from builtins import str
 
 import datetime
 import unittest

@@ -13,11 +13,8 @@
 # limitations under the License.
 """ADB shell related functions."""
 
-from builtins import str
-
 from future import standard_library
 standard_library.install_aliases()
-
 import collections
 import glob
 import os
