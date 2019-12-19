@@ -364,7 +364,7 @@ class UploadHandlerCommon(object):
     app_launch_command = self.request.get('cmd')
     platform_id = self.request.get('platform')
     issue_labels = self.request.get('issue_labels')
-    gestures = self.request.get('gestures', [])
+    gestures = self.request.get('gestures') or '[]'
 
     testcase_metadata = self.request.get('metadata', {})
     if testcase_metadata:
