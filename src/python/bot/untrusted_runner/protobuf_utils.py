@@ -13,6 +13,8 @@
 # limitations under the License.
 """Protobuf helpers."""
 
+from builtins import str
+
 
 def get_protobuf_field(result, buf, field_name):
   """Add protobuf field to dict, if the field exists."""
@@ -22,7 +24,7 @@ def get_protobuf_field(result, buf, field_name):
 
 def encode_utf8_if_unicode(data):
   """Encode string as utf-8 if it's unicode."""
-  if isinstance(data, unicode):
+  if isinstance(data, str):
     return data.encode('utf-8')
 
   return data
