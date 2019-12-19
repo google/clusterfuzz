@@ -55,6 +55,7 @@ def _get_runner():
   if not os.path.exists(honggfuzz_path):
     raise HonggfuzzError('honggfuzz not found in build')
 
+  os.chmod(honggfuzz_path, 0o755)
   return new_process.ProcessRunner(honggfuzz_path)
 
 
