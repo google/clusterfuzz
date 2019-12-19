@@ -9,6 +9,7 @@ google-auth==1.8.1
 google-auth-oauthlib==0.2.0
 google-cloud-datastore==1.7.0
 google-cloud-monitoring==0.30.1
+google-cloud-ndb==0.2.1
 google-cloud-profiler==1.0.3
 google-cloud-storage==1.13.2
 grpcio==1.15.0

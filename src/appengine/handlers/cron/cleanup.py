@@ -17,6 +17,7 @@ import datetime
 import json
 import random
 
+from google.cloud import ndb
 from googleapiclient.errors import HttpError
 
 from base import dates
@@ -28,7 +29,6 @@ from crash_analysis import crash_comparer
 from crash_analysis import severity_analyzer
 from datastore import data_handler
 from datastore import data_types
-from datastore import ndb
 from datastore import ndb_utils
 from fuzzing import leak_blacklist
 from handlers import base_handler

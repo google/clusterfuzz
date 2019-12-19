@@ -14,7 +14,6 @@
 """NDB utilities. Provides utility functions for NDB."""
 
 from base import utils
-from datastore import ndb_patcher
 
 DEFAULT_BATCH_SIZE = 1000
 
@@ -37,16 +36,7 @@ def get_all_from_model(model):
 def get_all_from_query(query, **kwargs):
   """Return all entities based on the query by paging, to avoid query
   expirations on App Engine."""
-  if isinstance(query, ndb_patcher.Query):
-    # Not necessary with ndb_patcher.Query.
-    for result in query.iter(**kwargs):
-      yield result
-
-    return
-
   batch_size = kwargs.pop('batch_size', DEFAULT_BATCH_SIZE)
-  kwargs['batch_size'] = batch_size
-
   while True:
     entities, cursor, more = query.fetch_page(batch_size, **kwargs)
     if not entities:

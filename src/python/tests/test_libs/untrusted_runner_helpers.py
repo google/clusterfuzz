@@ -21,13 +21,13 @@ import subprocess
 import tempfile
 import unittest
 
+from google.cloud import ndb
+
 from bot.tasks import commands
 from bot.untrusted_runner import file_host
 from bot.untrusted_runner import host
 from bot.untrusted_runner import untrusted
 from datastore import data_types
-from datastore import ndb
-from datastore import ndb_patcher
 from google_cloud_utils import pubsub
 from system import environment
 from system import shell
@@ -134,9 +134,6 @@ class UntrustedRunnerIntegrationTest(unittest.TestCase):
     os.environ['WORKER_ROOT_DIR'] = bot_root_dir
     os.environ['WORKER_BOT_TMPDIR'] = os.path.join(bot_root_dir, 'bot_tmpdir')
 
-    # Explicitly patch datastore.ndb here, as otherwise we patch
-    # google.appengine.ext.ndb which is not what is imported everywhere.
-    ndb_patcher.patch_ndb(ndb)
     environment.set_default_vars()
 
     data_types.HostWorkerAssignment(

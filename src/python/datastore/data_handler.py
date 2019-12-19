@@ -28,6 +28,8 @@ try:
 except ImportError:
   from pipes import quote
 
+from google.cloud import ndb
+
 from base import dates
 from base import errors
 from base import memoize
@@ -39,7 +41,6 @@ from config import db_config
 from config import local_config
 from crash_analysis import severity_analyzer
 from datastore import data_types
-from datastore import ndb
 from datastore import ndb_utils
 from google_cloud_utils import blobs
 from google_cloud_utils import storage

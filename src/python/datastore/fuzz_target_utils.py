@@ -12,9 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """Helper functions related to fuzz target entities."""
+from google.cloud import ndb
 
 from datastore import data_types
-from datastore import ndb
 from datastore import ndb_utils
 
 

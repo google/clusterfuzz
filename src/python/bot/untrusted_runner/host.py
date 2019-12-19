@@ -22,13 +22,13 @@ import sys
 import threading
 import time
 
+from google.cloud import ndb
 import grpc
 
 from base import untrusted
 from base import utils
 from bot.fuzzers import engine
 from datastore import data_types
-from datastore import ndb
 from metrics import logs
 from metrics import monitoring_metrics
 from protos import heartbeat_pb2

@@ -17,10 +17,11 @@ from user upload."""
 import json
 import os
 
+from google.cloud import ndb
+
 from base import tasks
 from datastore import data_handler
 from datastore import data_types
-from datastore import ndb
 from google_cloud_utils import blobs
 from metrics import logs
 from system import archive

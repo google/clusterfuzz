@@ -22,8 +22,9 @@ import functools
 import mock
 import unittest
 
+from google.cloud import ndb
+
 from datastore import data_types
-from datastore import ndb
 from google_cloud_utils import compute_engine_projects
 from handlers.cron import manage_vms
 from handlers.cron.helpers import bot_manager

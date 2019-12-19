@@ -14,7 +14,8 @@
 """Query handles pagination and OR conditions with its best effort."""
 
 from builtins import object
-from google.appengine.api import datastore_errors
+
+from google.cloud.ndb import exceptions
 
 from libs.query import base
 
@@ -164,8 +165,7 @@ class _KeyQuery(object):
               q.to_datastore_query(),
               keys_only=False,
               projection=[self.order_property],
-              limit=total,
-              batch_size=total))
+              limit=total))
     return runs
 
   def _get_total_count(self, runs, offset, limit, items, more_limit):
@@ -181,7 +181,7 @@ class _KeyQuery(object):
     for run in runs:
       try:
         cursor = run.result.cursor_after()
-      except datastore_errors.BadArgumentError:
+      except exceptions.BadArgumentError:
         # iterator had no results.
         cursor = None
 
@@ -191,8 +191,7 @@ class _KeyQuery(object):
               start_cursor=cursor,
               keys_only=True,
               projection=None,
-              limit=more_limit,
-              batch_size=more_limit))
+              limit=more_limit))
 
     keys = set([item.key.id() for item in items])
     for run in more_runs:

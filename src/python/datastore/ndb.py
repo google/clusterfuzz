@@ -14,20 +14,4 @@
 """NDB importer."""
 from __future__ import absolute_import
 
-from system import environment
-if (not environment.is_running_on_app_engine() and
-    not environment.get_value('PY_UNITTESTS')):
-  # Override the default google-cloud-datastore retry parameters to include
-  # INTERNAL errors.
-  # See https://github.com/googleapis/google-cloud-python/issues/6119.
-  from google.cloud.datastore_v1.gapic import datastore_client_config
-  datastore_config = datastore_client_config.config['interfaces'][
-      'google.datastore.v1.Datastore']
-  retry_codes = datastore_config['retry_codes']['idempotent']
-  if 'INTERNAL' not in retry_codes:
-    retry_codes.append('INTERNAL')
-
-  from . import ndb_patcher
-  ndb_patcher.patch_ndb()
-
-from google.appengine.ext.ndb import *  # pylint:disable=wildcard-import,unused-wildcard-import
+from google.cloud.ndb import *

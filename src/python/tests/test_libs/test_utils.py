@@ -32,9 +32,10 @@ import tempfile
 import threading
 import unittest
 
+from google.cloud import ndb
+
 from config import local_config
 from datastore import data_types
-from datastore import ndb
 from google_cloud_utils import pubsub
 from system import environment
 from system import process_handler
@@ -310,15 +311,22 @@ def with_cloud_emulators(*emulator_names):
             atexit.register(_emulators[emulator_name].cleanup)
 
           if emulator_name == 'datastore':
-            ndb.get_context().set_memcache_policy(False)
-            ndb.get_context().set_cache_policy(False)
-
-            # Work around bug with App Engine datastore_stub_util.py relying on
-            # missing protobuf enum.
-            import googledatastore
-            googledatastore.PropertyFilter.HAS_PARENT = 12
+            ndb_client = ndb.Client()
+            cls._context_generator = ndb_client.context()
+            context = cls._context_generator.__enter__()
+            context.set_memcache_policy(False)
+            context.set_cache_policy(False)
 
         super(Wrapped, cls).setUpClass()
+
+      @classmethod
+      def tearDownClass(cls):
+        """Class teardown."""
+        for emulator_name in emulator_names:
+          if emulator_name == 'datastore':
+            cls._context_generator.__exit__(None, None, None)
+
+        super(Wrapped, cls).tearDownClass()
 
       def setUp(self):
         for emulator in six.itervalues(_emulators):

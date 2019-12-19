@@ -39,6 +39,8 @@ import os
 import time
 import traceback
 
+from google.cloud import ndb
+
 from base import dates
 from base import errors
 from base import tasks
@@ -188,7 +190,9 @@ def main():
 
 if __name__ == '__main__':
   try:
-    main()
+    ndb_client = ndb.Client()
+    with ndb_client.context():
+      main()
     exit_code = 0
   except Exception:
     traceback.print_exc()

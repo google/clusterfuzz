@@ -29,13 +29,13 @@ import sys
 import traceback
 import urllib.parse
 
+from google.cloud import ndb
 import jinja2
 import webapp2
 
 from base import utils
 from config import db_config
 from config import local_config
-from datastore import ndb
 from google_cloud_utils import storage
 from libs import auth
 from libs import form

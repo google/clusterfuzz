@@ -19,10 +19,11 @@ import mock
 import os
 import unittest
 
+from google.cloud import ndb
+
 from base import errors
 from bot.tasks import commands
 from datastore import data_types
-from datastore import ndb
 from system import environment
 from tests.test_libs import helpers
 from tests.test_libs import test_utils

@@ -18,11 +18,11 @@ import datetime
 import random
 import time
 
-from google.appengine.api import datastore_errors
+from google.cloud import ndb
+from google.cloud.ndb import exceptions
 
 from config import db_config
 from datastore import data_types
-from datastore import ndb
 from metrics import logs
 from system import environment
 
@@ -121,7 +121,7 @@ def acquire_lock(key_name,
       if lock_entity.holder == bot_name:
         logs.log('Got the lock.')
         return lock_entity.expiration_time
-    except datastore_errors.TransactionFailedError:
+    except exceptions.TransactionFailedError:
       pass
 
     failed_acquires += 1

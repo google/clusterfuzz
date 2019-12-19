@@ -25,12 +25,13 @@ import io
 import json
 import os
 
+from google.cloud import ndb
+
 from base import external_users
 from base import tasks
 from base import utils
 from datastore import data_handler
 from datastore import data_types
-from datastore import ndb
 from google_cloud_utils import blobs
 from google_cloud_utils import storage
 from handlers import base_handler

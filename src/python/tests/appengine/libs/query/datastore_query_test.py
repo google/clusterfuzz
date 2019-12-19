@@ -18,9 +18,8 @@ import datetime
 import mock
 import unittest
 
-from google.appengine.api import datastore_types
+from google.cloud import ndb
 
-from datastore import ndb
 from libs.query import datastore_query
 from tests.test_libs import test_utils
 
@@ -209,6 +208,7 @@ class QueryWrapper(ndb.Query):
     return getattr(self.wrapped, attr)
 
 
+@test_utils.with_cloud_emulators('datastore')
 class QueryMockTest(unittest.TestCase):
   """Test Query with mocks. This test is important because we want to make sure
     we call the underlying query correctly."""
@@ -255,11 +255,9 @@ class QueryMockTest(unittest.TestCase):
     self.assertIsInstance(self.queries[2][-1].filters, ndb.OR)
     self.assertItemsEqual([
         ('__key__', '=',
-         datastore_types.Key.from_path(
-             u'TestDatastoreModel', 0, _app=u'test-clusterfuzz')),
+         ndb.Key(u'TestDatastoreModel', 0, project=u'test-clusterfuzz')),
         ('__key__', '=',
-         datastore_types.Key.from_path(
-             u'TestDatastoreModel', 1, _app=u'test-clusterfuzz')),
+         ndb.Key(u'TestDatastoreModel', 1, project=u'test-clusterfuzz')),
     ], [f.__getnewargs__() for f in self.queries[2][-1].filters])
 
 

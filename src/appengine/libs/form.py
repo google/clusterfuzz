@@ -16,9 +16,10 @@ import base64
 import datetime
 import os
 
+from google.cloud import ndb
+
 from base import utils
 from datastore import data_types
-from datastore import ndb
 
 from libs import helpers
 

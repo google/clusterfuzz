@@ -16,7 +16,6 @@
 import os
 import sys
 
-from google.appengine.ext import ndb
 from google.appengine.ext import vendor
 
 # True if the app is running inside the dev appserver, false otherwise.  This
@@ -66,6 +65,7 @@ if IS_RUNNING_IN_DEV_APPSERVER:
 
 # In tests this is done in test_utils.with_cloud_emulators.
 if IS_RUNNING_IN_PRODUCTION or IS_RUNNING_IN_DEV_APPSERVER:
+  from google.cloud import ndb
   # Disable NDB caching, as NDB on GCE VMs do not use memcache and therefore
   # can't invalidate the memcache cache.
   ndb.get_context().set_memcache_policy(False)

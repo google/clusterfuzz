@@ -24,6 +24,7 @@ import atexit
 import os
 import time
 
+from google.cloud import ndb
 import mozprocess
 
 from base import persistent_cache
@@ -195,4 +196,6 @@ def main():
 
 
 if __name__ == '__main__':
-  main()
+  ndb_client = ndb.Client()
+  with ndb_client.context():
+    main()
