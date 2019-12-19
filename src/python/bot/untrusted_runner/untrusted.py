@@ -215,11 +215,11 @@ def _get_tls_cert_and_key():
 
   # TODO(mbarbella): Remove this after migrating to Python 3. The grpc library
   # has explicit type checks against str.
-  cert_newstr = str(compute_metadata.get('instance/attributes/tls-cert'))
-  cert = future_utils.native(cert_newstr).encode()
-  key_newstr = str(compute_metadata.get('instance/attributes/tls-key'))
-  key = future_utils.native(key_newstr).encode()
-  return cert, key
+  cert_contents = str(compute_metadata.get('instance/attributes/tls-cert'))
+  cert_contents = future_utils.native(cert_contents).encode()
+  key_contents = str(compute_metadata.get('instance/attributes/tls-key'))
+  key_contents = future_utils.native(key_contents).encode()
+  return cert_contents, key_contents
 
 
 def start_server():

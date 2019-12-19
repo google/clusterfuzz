@@ -14,6 +14,7 @@
 """Process handling utilities."""
 
 from builtins import object
+from builtins import str
 from future import utils as future_utils
 
 import os
@@ -277,8 +278,11 @@ class ProcessRunner(object):
       env.update(extra_env)
 
     # TODO(mbarbella): Remove this after the Python 3 conversion. Subprocess
-    # contains a check that keys in the environment are strings.
-    env = {k: future_utils.native(v).encode() for k, v in env.items()}
+    # contains a check that keys in the environment are native strings. In some
+    # cases, passed keys will have newstr values.
+    for key in env or {}:
+      if isinstance(env[key], str):
+        env[key] = future_utils.native(env[key]).encode()
 
     return ChildProcess(
         subprocess.Popen(
