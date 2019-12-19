@@ -23,7 +23,7 @@ from . import utils
 
 
 def step_back_while(cur_index, condition):
-  """Helper function. Decreases index from cur until condition is satisfied."""
+  """Helper function. Decreases index from cur while condition is satisfied."""
   while cur_index >= 0 and condition(cur_index):
     cur_index -= 1
   return cur_index
@@ -56,10 +56,10 @@ class JSMinimizer(minimizer.Minimizer):
         # If that token is a close paren, we need to grab everything else too.
         # Do this to grab the whole paren so we don't create a syntax error by
         # removing only part of a paren.
-        if testcase.tokens[token_before_bracket] == ")":
+        if testcase.tokens[token_before_bracket] == ')':
           # Find everything in the paren.
           token_before_bracket = step_back_while(
-              token_before_bracket, (lambda x: testcase.tokens[x] != "("))
+              token_before_bracket, (lambda x: testcase.tokens[x] != '('))
 
           # Get the token before the paren.
           token_before_bracket -= 1
@@ -70,7 +70,7 @@ class JSMinimizer(minimizer.Minimizer):
         # Do this after paren to manage situations where there are newlines in
         # the parens.
         token_before_bracket = step_back_while(
-            token_before_bracket, (lambda x: testcase.tokens[x] != "\n"))
+            token_before_bracket, (lambda x: testcase.tokens[x] != '\n'))
 
         token_before_bracket += 1
 
@@ -84,7 +84,7 @@ class JSMinimizer(minimizer.Minimizer):
         future_index = len(testcase.tokens)
         open_count = 0
         for future_index in range(index + 1, len(testcase.tokens)):
-          if testcase.tokens[future_index] == "{":
+          if testcase.tokens[future_index] == '{':
             open_count += 1
           if testcase.tokens[future_index] == '}':
             open_count -= 1
@@ -122,7 +122,7 @@ class JSMinimizer(minimizer.Minimizer):
         # Find the beginning of the line
         token_before_paren = previous_end
         token_before_paren = step_back_while(
-            previous_end, (lambda x: testcase.tokens[x] != "\n"))
+            previous_end, (lambda x: testcase.tokens[x] != '\n'))
         token_before_paren += 1
 
         hypothesis = list(range(token_before_paren, previous_end + 1)) + [index]
