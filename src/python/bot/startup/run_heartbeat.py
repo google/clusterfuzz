@@ -14,8 +14,6 @@
 """Heartbeat script wrapper."""
 from __future__ import print_function
 
-from builtins import str
-
 # We want to use utf-8 encoding everywhere throughout the application
 # instead of the default 'ascii' encoding. This must happen before any
 # other imports.

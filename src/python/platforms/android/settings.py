@@ -13,8 +13,6 @@
 # limitations under the License.
 """Settings change related functions."""
 
-from builtins import str
-
 import re
 
 from . import adb
@@ -170,9 +168,9 @@ def set_content_setting(table, key, value):
       return 'f'
     if isinstance(value, int):
       return 'i'
-
-    # Default to string.
-    return 's'
+    if isinstance(value, str):
+      return 's'
+    raise ValueError('Unsupported type %s' % type(value))
 
   content_setting_command = (
       'content insert --uri content://%s --bind name:s:%s --bind value:%s:%s' %
