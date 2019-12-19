@@ -13,6 +13,8 @@
 # limitations under the License.
 """Helper functions to update fuzzer-job mappings, and select fuzzers to run."""
 
+from builtins import zip
+
 import collections
 
 from base import utils

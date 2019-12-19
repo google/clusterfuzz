@@ -16,7 +16,9 @@
 # `python butler.py generate_datastore_models`
 # to generate Go structs for the models defined here.
 
+from builtins import next
 from builtins import object
+
 import re
 import six
 

@@ -16,6 +16,8 @@ from __future__ import absolute_import
 
 from builtins import object
 from builtins import range
+from builtins import str
+
 import sys
 import threading
 import time

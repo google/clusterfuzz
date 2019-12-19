@@ -12,6 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """Performance stats constants and helpers for libFuzzer."""
+from builtins import str
+
 import re
 
 from bot.fuzzers import dictionary_manager

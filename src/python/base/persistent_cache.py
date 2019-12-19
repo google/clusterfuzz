@@ -14,6 +14,8 @@
 """Disk backed cache for preserving values across runs of
 run.py."""
 
+from builtins import str
+
 import hashlib
 import os
 

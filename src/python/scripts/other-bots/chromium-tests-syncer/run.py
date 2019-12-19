@@ -19,6 +19,8 @@
 from python.base import modules
 modules.fix_module_search_paths()
 
+from builtins import str
+
 import os
 import re
 import subprocess
