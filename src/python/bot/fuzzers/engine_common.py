@@ -302,7 +302,8 @@ def find_fuzzer_path(build_directory, fuzzer_name):
   # TODO(mbarbella): Remove this after the Python 3 migration. If newstrs are
   # passed to the os library, this can throw exceptions while attempting to
   # encode file paths as unicode, as they are not guaranteed to be valid.
-  for root, _, files in os.walk(future_utils.native(str(build_directory))):
+  for root, _, files in os.walk(
+      future_utils.native(str(build_directory)).encode()):
     for filename in files:
       if (legacy_name_prefix + filename == fuzzer_name or
           filename == fuzzer_filename):
