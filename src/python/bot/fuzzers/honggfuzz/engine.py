@@ -118,6 +118,7 @@ class HonggfuzzEngine(engine.Engine):
     Returns:
       A FuzzOptions object.
     """
+    os.chmod(target_path, 0o775)
     arguments = []
     dict_path = dictionary_manager.get_default_dictionary_path(target_path)
     if os.path.exists(dict_path):
@@ -187,6 +188,7 @@ class HonggfuzzEngine(engine.Engine):
     Returns:
       A ReproduceResult.
     """
+    os.chmod(target_path, 0o775)
     runner = new_process.ProcessRunner(target_path)
     with open(input_path) as f:
       result = runner.run_and_wait(timeout=max_time, stdin=f)
