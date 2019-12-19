@@ -280,9 +280,11 @@ class ProcessRunner(object):
     # TODO(mbarbella): Remove this after the Python 3 conversion. Subprocess
     # contains a check that keys in the environment are native strings. In some
     # cases, passed keys will have newstr values.
-    for key in env or {}:
-      if isinstance(env[key], str):
-        env[key] = future_utils.native(env[key]).encode()
+    if env:
+      env = {
+          future_utils.native(str(k)).decode():
+            future_utils.native(str(v)).decode() for k, v in env.items()
+      }
 
     return ChildProcess(
         subprocess.Popen(
