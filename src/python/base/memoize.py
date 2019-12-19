@@ -14,6 +14,8 @@
 """Memoize caches the result of methods."""
 
 from builtins import object
+from builtins import str
+
 import collections
 import functools
 import json
@@ -155,11 +157,10 @@ def _default_key(func, args, kwargs):
   """Get a key name based on function, arguments and keyword arguments."""
   # Use unicode instead of str where possible. This makes it less likely to
   # have false misses.
-  args = tuple(
-      arg if not isinstance(arg, str) else unicode(arg) for arg in args)
+  args = tuple(arg if not isinstance(arg, str) else str(arg) for arg in args)
 
   kwargs = {
-      key: value if not isinstance(value, str) else unicode(value)
+      key: value if not isinstance(value, str) else str(value)
       for key, value in six.iteritems(kwargs)
   }
 

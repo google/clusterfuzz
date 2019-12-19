@@ -13,10 +13,13 @@
 # limitations under the License.
 """Functions for process management."""
 
+from builtins import object
+from builtins import str
+from past.builtins import basestring
+
 from future import standard_library
 standard_library.install_aliases()
-from builtins import object
-from past.builtins import basestring
+
 import copy
 import datetime
 import logging
@@ -342,7 +345,7 @@ def run_process(cmdline,
 
   logs.log(
       'Process (%s) ended, exit code (%s), output (%s).' %
-      (str(cmdline), str(return_code), str(output)),
+      (str(cmdline), str(return_code), str(output, 'utf-8', errors='replace')),
       level=logging.DEBUG)
 
   return return_code, round(time.time() - start_time, 1), output
