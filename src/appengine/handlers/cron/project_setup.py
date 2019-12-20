@@ -468,7 +468,7 @@ def update_fuzzer_jobs(fuzzer_entities, project_names):
       continue
 
     job_environment = job.get_environment()
-    if not job_environment.get('MANAGED', False):
+    if not utils.string_is_true(job_environment.get('MANAGED', 'False')):
       continue
 
     job_project = job_environment['PROJECT_NAME']
