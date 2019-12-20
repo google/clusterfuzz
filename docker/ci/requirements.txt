@@ -17,6 +17,6 @@ six==1.12.0
 testtools==2.2.0
 traceback2==1.4.0
 unittest2==1.1.0
-waitress==1.0.0
+waitress==1.4.0
 WebTest==2.0.23
 yapf==0.22.0
