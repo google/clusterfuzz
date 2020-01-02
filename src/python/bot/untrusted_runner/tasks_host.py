@@ -114,7 +114,14 @@ def process_testcase(engine_name, tool_name, target_name, arguments,
       output_path=file_host.rebase_to_worker_root(output_path),
       timeout=timeout)
 
-  response = host.stub().ProcessTestcase(request)
+  try:
+    response = host.stub().ProcessTestcase(request)
+  except grpc.RpcError as e:
+    # Resurface the right exception.
+    if 'TimeoutError' in str(e):
+      raise engine.TimeoutError(e.message)
+    else:
+      raise
 
   rebased_output_path = file_host.rebase_to_worker_root(output_path)
   file_host.copy_file_from_worker(rebased_output_path, output_path)
