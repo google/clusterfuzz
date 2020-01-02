@@ -364,7 +364,9 @@ def update_job_weights():
     multiplier = DEFAULT_MULTIPLIER
     if environment.is_engine_fuzzer_job(job.name):
       targets_count = ndb.Key(data_types.FuzzTargetsCount, job.name).get()
-      if targets_count:
+      # If the count is 0, it may be due to a bad build or some other issue. Use
+      # the default weight in that case to allow for recovery.
+      if targets_count and targets_count.count:
         multiplier = targets_count.count
 
     update_job_weight(job.name, multiplier)
