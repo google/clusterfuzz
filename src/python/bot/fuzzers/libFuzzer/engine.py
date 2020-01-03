@@ -556,7 +556,7 @@ class LibFuzzerEngine(engine.Engine):
         additional_args=arguments)
 
     if result.timed_out:
-      raise engine.TimeoutError('Cleanse timed out.')
+      raise engine.TimeoutError('Cleanse timed out\n' + result.output)
 
     return engine.ReproduceResult(result.command, result.return_code,
                                   result.time_executed, result.output)
