@@ -19,11 +19,12 @@ from builtins import object
 import functools
 
 from . import chunk_minimizer
-from . import html_tokenizer
 from . import js_minimizer
-from . import js_tokenizer
 from . import minimizer
 from . import utils
+from bot.tokenizer.antlr_tokenizer import AntlrTokenizer
+from bot.tokenizer.grammars.HTMLLexer import HTMLLexer
+from bot.tokenizer.grammars.JavaScriptLexer import JavaScriptLexer
 
 SCRIPT_START_STRING = '<script'
 SCRIPT_END_STRING = '</script>'
@@ -57,16 +58,12 @@ class HTMLMinimizer(minimizer.Minimizer):  # pylint:disable=abstract-method
   TOKENIZER_MAP = {
       Token.TYPE_HTML: [
           # Level 0 intentionally omitted.
-          functools.partial(html_tokenizer.tokenize, level=1),
-          functools.partial(html_tokenizer.tokenize, level=2),
-          functools.partial(html_tokenizer.tokenize, level=3),
+          AntlrTokenizer(HTMLLexer).tokenize
       ],
       Token.TYPE_SCRIPT: [
           # Line tokenizer intentionally omitted.
-          js_tokenizer.comment_tokenizer,
-          js_tokenizer.bracket_tokenizer,
-          js_tokenizer.paren_tokenizer,
-          js_tokenizer.comma_tokenizer,
+          AntlrTokenizer(JavaScriptLexer).tokenize,
+          AntlrTokenizer(JavaScriptLexer).tokenize
       ],
   }
 
@@ -91,12 +88,14 @@ class HTMLMinimizer(minimizer.Minimizer):  # pylint:disable=abstract-method
   def minimize(self, data):
     """Wrapper to perform common tasks and call |_execute|."""
     # Do an initial line-by-line minimization to filter out noise.
+    #print("Line Minimizer")
     line_minimizer = chunk_minimizer.ChunkMinimizer(
         self.test_function, chunk_sizes=self.CHUNK_SIZES[-1], **self.kwargs)
     data = line_minimizer.minimize(data)
 
     tokens = self.get_tokens_and_metadata(data)
     for index, token in enumerate(tokens):
+      #print(token.data)
       current_tokenizers = self.TOKENIZER_MAP[token.token_type]
       prefix = self.combine_tokens(tokens[:index])
       suffix = self.combine_tokens(tokens[index + 1:])
@@ -107,7 +106,9 @@ class HTMLMinimizer(minimizer.Minimizer):  # pylint:disable=abstract-method
         # We need to preserve the parts of the test case that are not currently
         # being minimized. Create a special token combiner that adds these
         # portions of the test to the combined tokens.
+
         if token.token_type == HTMLMinimizer.Token.TYPE_HTML:
+          #print("HTML MINIMIZER")
           current_minimizer = chunk_minimizer.ChunkMinimizer(
               self.test_function,
               chunk_sizes=HTMLMinimizer.CHUNK_SIZES[level],
@@ -115,11 +116,13 @@ class HTMLMinimizer(minimizer.Minimizer):  # pylint:disable=abstract-method
               tokenizer=current_tokenizer,
               **self.kwargs)
         else:
+          #print("JS MINIMIZER")
           current_minimizer = js_minimizer.JSMinimizer(
               self.test_function,
               token_combiner=token_combiner,
               tokenizer=current_tokenizer,
               **self.kwargs)
+
         result_data = current_minimizer.minimize(token.data)
         start = len(prefix)
         end = len(result_data) - len(suffix)
