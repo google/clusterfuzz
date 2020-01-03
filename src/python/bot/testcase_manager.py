@@ -1001,8 +1001,17 @@ def get_command_line_for_application(file_to_run='',
   content_shell_app_names = [
       'content_shell', 'content_shell.exe', 'Content Shell'
   ]
+
+  # In some cases, APP_REVISION is not an integer. In these cases, we assume
+  # the revisions are recent enough that we should remove the command line.
+  # This primarily affects impact tasks.
+  try:
+    revision = int(environment.get_value('APP_REVISION', 0))
+  except ValueError:
+    revision = 0
+
   if (environment.get_value('APP_NAME') in content_shell_app_names and
-      environment.get_value('APP_REVISION', 0) >= 558998):
+      (revision == 0 or revision >= 558998)):
     command = command.replace(' --run-layout-test', '')
 
   if plt == 'ANDROID' and not launcher:
