@@ -159,6 +159,11 @@ def _wrap_call(func, num_retries=config.RPC_RETRY_ATTEMPTS):
           # TODO(ochang): Replace with generic TimeoutError in Python 3.
           raise engine.TimeoutError(e.message)
 
+        if num_retries == 0:
+          # Just re-raise the original exception if this RPC is not configured
+          # for retries.
+          raise
+
         logs.log_warn('Failed RPC: ' + str(e))
         if retry_attempt == num_retries:
           # Last attempt.
