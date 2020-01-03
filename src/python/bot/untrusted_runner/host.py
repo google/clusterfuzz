@@ -24,6 +24,7 @@ import grpc
 
 from base import untrusted
 from base import utils
+from bot.fuzzers import engine
 from datastore import data_types
 from datastore import ndb
 from metrics import logs
@@ -102,10 +103,12 @@ class UntrustedRunnerStub(untrusted_runner_pb2_grpc.UntrustedRunnerStub):
     self.GetFuzzTargets = _wrap_call(self.GetFuzzTargets)
     self.TerminateStaleApplicationInstances = _wrap_call(
         self.TerminateStaleApplicationInstances)
-    self.ProcessTestcase = _wrap_call(self.ProcessTestcase)
 
     # The following are RPCs that execute larger tasks. Don't retry these.
     self.PruneCorpus = _wrap_call(self.PruneCorpus, num_retries=0)
+    self.ProcessTestcase = _wrap_call(self.ProcessTestcase, num_retries=0)
+    self.EngineFuzz = _wrap_call(self.EngineFuzz, num_retries=0)
+    self.EngineReproduce = _wrap_call(self.EngineReproduce, num_retries=0)
     # pylint: enable=invalid-name
 
 
@@ -150,6 +153,12 @@ def _wrap_call(func, num_retries=config.RPC_RETRY_ATTEMPTS):
       try:
         return func(*args, **kwargs)
       except grpc.RpcError as e:
+        # For timeouts, which aren't fatal errors, resurface the right
+        # exception.
+        if 'TimeoutError' in str(e):
+          # TODO(ochang): Replace with generic TimeoutError in Python 3.
+          raise engine.TimeoutError(e.message)
+
         logs.log_warn('Failed RPC: ' + str(e))
         if retry_attempt == num_retries:
           # Last attempt.

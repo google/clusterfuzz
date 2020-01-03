@@ -114,14 +114,7 @@ def process_testcase(engine_name, tool_name, target_name, arguments,
       output_path=file_host.rebase_to_worker_root(output_path),
       timeout=timeout)
 
-  try:
-    response = host.stub().ProcessTestcase(request)
-  except grpc.RpcError as e:
-    # Resurface the right exception.
-    if 'TimeoutError' in str(e):
-      raise engine.TimeoutError(e.message)
-    else:
-      raise
+  response = host.stub().ProcessTestcase(request)
 
   rebased_output_path = file_host.rebase_to_worker_root(output_path)
   file_host.copy_file_from_worker(rebased_output_path, output_path)
@@ -195,8 +188,6 @@ def engine_reproduce(engine_impl, target_name, testcase_path, arguments,
       # Resurface the right exception.
       raise testcase_manager.TargetNotFoundError('Failed to find target ' +
                                                  target_name)
-    if 'TimeoutError' in str(e):
-      raise engine.TimeoutError(e.message)
     else:
       raise
 
