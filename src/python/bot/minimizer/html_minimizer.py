@@ -19,6 +19,7 @@ from builtins import object
 import functools
 
 from . import chunk_minimizer
+from . import delta_minimizer
 from . import js_minimizer
 from . import minimizer
 from . import utils
@@ -58,6 +59,8 @@ class HTMLMinimizer(minimizer.Minimizer):  # pylint:disable=abstract-method
   TOKENIZER_MAP = {
       Token.TYPE_HTML: [
           # Level 0 intentionally omitted.
+          AntlrTokenizer(HTMLLexer).tokenize,
+          AntlrTokenizer(HTMLLexer).tokenize,
           AntlrTokenizer(HTMLLexer).tokenize
       ],
       Token.TYPE_SCRIPT: [
@@ -88,14 +91,12 @@ class HTMLMinimizer(minimizer.Minimizer):  # pylint:disable=abstract-method
   def minimize(self, data):
     """Wrapper to perform common tasks and call |_execute|."""
     # Do an initial line-by-line minimization to filter out noise.
-    #print("Line Minimizer")
-    line_minimizer = chunk_minimizer.ChunkMinimizer(
-        self.test_function, chunk_sizes=self.CHUNK_SIZES[-1], **self.kwargs)
+    line_minimizer = delta_minimizer.DeltaMinimizer(self.test_function,
+                                                    **self.kwargs)
     data = line_minimizer.minimize(data)
 
     tokens = self.get_tokens_and_metadata(data)
     for index, token in enumerate(tokens):
-      #print(token.data)
       current_tokenizers = self.TOKENIZER_MAP[token.token_type]
       prefix = self.combine_tokens(tokens[:index])
       suffix = self.combine_tokens(tokens[index + 1:])
@@ -108,7 +109,6 @@ class HTMLMinimizer(minimizer.Minimizer):  # pylint:disable=abstract-method
         # portions of the test to the combined tokens.
 
         if token.token_type == HTMLMinimizer.Token.TYPE_HTML:
-          #print("HTML MINIMIZER")
           current_minimizer = chunk_minimizer.ChunkMinimizer(
               self.test_function,
               chunk_sizes=HTMLMinimizer.CHUNK_SIZES[level],
@@ -116,7 +116,6 @@ class HTMLMinimizer(minimizer.Minimizer):  # pylint:disable=abstract-method
               tokenizer=current_tokenizer,
               **self.kwargs)
         else:
-          #print("JS MINIMIZER")
           current_minimizer = js_minimizer.JSMinimizer(
               self.test_function,
               token_combiner=token_combiner,
