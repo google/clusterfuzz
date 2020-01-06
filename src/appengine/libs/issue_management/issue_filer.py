@@ -240,6 +240,16 @@ def _get_from_metadata(testcase, name):
       remove_empty=True)
 
 
+def _get_additional_values(testcase, name):
+  """Get additional values from the job or fuzzer environment."""
+  values = data_handler.get_additional_values_for_variable(
+      name, testcase.job_type, testcase.fuzzer_name)
+
+  # TODO(ochang): Find a less hacky way of concatenating multiple values.
+  return values + data_handler.get_additional_values_for_variable(
+      name + '_1', testcase.job_type, testcase.fuzzer_name)
+
+
 def file_issue(testcase,
                issue_tracker,
                security_severity=None,
@@ -277,20 +287,18 @@ def file_issue(testcase,
     update_issue_impact_labels(testcase, issue)
 
   # Add additional labels from the job definition and fuzzer.
-  additional_labels = data_handler.get_additional_values_for_variable(
-      'AUTOMATIC_LABELS', testcase.job_type, testcase.fuzzer_name)
+  additional_labels = _get_additional_values(testcase, 'AUTOMATIC_LABELS')
   for label in additional_labels:
     issue.labels.add(label)
 
   # Add additional components from the job definition and fuzzer.
-  automatic_components = data_handler.get_additional_values_for_variable(
-      'AUTOMATIC_COMPONENTS', testcase.job_type, testcase.fuzzer_name)
+  automatic_components = _get_additional_values(testcase,
+                                                'AUTOMATIC_COMPONENTS')
   for component in automatic_components:
     issue.components.add(component)
 
   # Add issue assignee from the job definition and fuzzer.
-  automatic_assignee = data_handler.get_additional_values_for_variable(
-      'AUTOMATIC_ASSIGNEE', testcase.job_type, testcase.fuzzer_name)
+  automatic_assignee = _get_additional_values(testcase, 'AUTOMATIC_ASSIGNEE')
   if automatic_assignee:
     issue.status = policy.status('assigned')
     issue.assignee = automatic_assignee[0]
@@ -298,8 +306,7 @@ def file_issue(testcase,
     issue.status = properties.status
 
   # Add additional ccs from the job definition and fuzzer.
-  ccs = data_handler.get_additional_values_for_variable(
-      'AUTOMATIC_CCS', testcase.job_type, testcase.fuzzer_name)
+  ccs = _get_additional_values(testcase, 'AUTOMATIC_CCS')
 
   # For externally contributed fuzzers, potentially cc the author.
   # Use fully qualified fuzzer name if one is available.
