@@ -354,7 +354,8 @@ class IssueFilerTests(unittest.TestCase):
     ], issue_tracker._itm.last_issue.components)
 
   def test_testcase_automatic_issue_data(self):
-    """Tests issue filing with automatic labels, assignees, CCs and components."""
+    """Tests issue filing with automatic labels, assignees, CCs and
+    components."""
     data_types.Job(
         name='job',
         environment_string=('AUTOMATIC_LABELS = auto\n'
