@@ -245,7 +245,6 @@ def _get_additional_values(testcase, name):
   values = data_handler.get_additional_values_for_variable(
       name, testcase.job_type, testcase.fuzzer_name)
 
-  # TODO(ochang): Find a less hacky way of concatenating multiple values.
   return values + data_handler.get_additional_values_for_variable(
       name + '_1', testcase.job_type, testcase.fuzzer_name)
 
