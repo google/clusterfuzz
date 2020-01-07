@@ -1595,7 +1595,10 @@ def pick_strategies(strategy_pool, fuzzer_path, corpus_directory,
   is_android = environment.platform() == 'ANDROID'
   # Fork mode is not supported on Fuchsia platform.
   is_fuchsia = environment.platform() == 'FUCHSIA'
-  if (not is_fuchsia and not is_android and
+  # Fork mode is disabled on ephemeral bots due to a bug on the platform.
+  is_ephemeral = environment.is_ephemeral()
+
+  if (not is_fuchsia and not is_android and not is_ephemeral and
       (use_dataflow_tracing or
        strategy_pool.do_strategy(strategy.FORK_STRATEGY))):
     max_fuzz_threads = environment.get_value('MAX_FUZZ_THREADS', 1)
