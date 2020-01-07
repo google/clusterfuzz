@@ -122,4 +122,3 @@ class HTMLMinimizerTest(unittest.TestCase):
                 '\n</script>\n</html>'
     res = self._minimizer.minimize(self._simple_test)
     self.assertEqual(res, minimized)
-    

@@ -56,17 +56,18 @@ class HTMLMinimizer(minimizer.Minimizer):  # pylint:disable=abstract-method
     SEARCHING_FOR_TAG_END = 1
     SEARCHING_FOR_CLOSE_SCRIPT = 2
 
+  HTMLTOKENIZER = AntlrTokenizer(HTMLLexer).tokenize
+  JSTOKENIZER = AntlrTokenizer(JavaScriptLexer).tokenize
+
   TOKENIZER_MAP = {
       Token.TYPE_HTML: [
-          # Level 0 intentionally omitted.
-          AntlrTokenizer(HTMLLexer).tokenize,
-          AntlrTokenizer(HTMLLexer).tokenize,
-          AntlrTokenizer(HTMLLexer).tokenize
+          HTMLTOKENIZER,
+          HTMLTOKENIZER,
+          HTMLTOKENIZER
       ],
       Token.TYPE_SCRIPT: [
-          # Line tokenizer intentionally omitted.
-          AntlrTokenizer(JavaScriptLexer).tokenize,
-          AntlrTokenizer(JavaScriptLexer).tokenize
+          JSTOKENIZER,
+          JSTOKENIZER
       ],
   }
 
