@@ -60,15 +60,8 @@ class HTMLMinimizer(minimizer.Minimizer):  # pylint:disable=abstract-method
   JSTOKENIZER = AntlrTokenizer(JavaScriptLexer).tokenize
 
   TOKENIZER_MAP = {
-      Token.TYPE_HTML: [
-          HTMLTOKENIZER,
-          HTMLTOKENIZER,
-          HTMLTOKENIZER
-      ],
-      Token.TYPE_SCRIPT: [
-          JSTOKENIZER,
-          JSTOKENIZER
-      ],
+      Token.TYPE_HTML: [HTMLTOKENIZER, HTMLTOKENIZER, HTMLTOKENIZER],
+      Token.TYPE_SCRIPT: [JSTOKENIZER, JSTOKENIZER],
   }
 
   CHUNK_SIZES = [
