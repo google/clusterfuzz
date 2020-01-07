@@ -22,6 +22,13 @@ from . import minimizer
 from . import utils
 
 
+def step_back_while(cur_index, condition):
+  """Helper function. Decreases index from cur while condition is satisfied."""
+  while cur_index >= 0 and condition(cur_index):
+    cur_index -= 1
+  return cur_index
+
+
 class JSMinimizer(minimizer.Minimizer):
   """Intended as a second-pass minimizer to remove unneeded tokens from JS."""
 
@@ -30,47 +37,74 @@ class JSMinimizer(minimizer.Minimizer):
 
     brace_stack = []
     paren_stack = []
-    last_start_of_line_token = 0
 
     for index, token in enumerate(testcase.tokens):
       if token == '{':
-        brace_stack.append((last_start_of_line_token, index))
+        brace_stack.append(index)
 
       elif token == '}' and brace_stack:
-        previous_line_start, previous_end = brace_stack.pop()
-
-        # Move |previous_line_start| to the first non-empty string.
-        while previous_line_start > 0:
-          if testcase.tokens[previous_line_start].strip():
-            break
-          previous_line_start -= 1
 
         # Two hypotheses for tokens grouped by curly braces:
-        # 1) Remove from start of line to curly brace and the closing brace.
+        # 1) Remove from start of line to open brace and the closing brace.
         #    e.g.: if (statement_that_evaluates_to_true) { crash() } -> crash()
-        hypothesis = list(range(previous_line_start,
-                                previous_end + 1)) + [index]
+        open_brace_index = brace_stack.pop()
+
+        # Find the first non-empty token prior to the starting brackets.
+        token_before_bracket = step_back_while(
+            open_brace_index - 1, (lambda x: not testcase.tokens[x].strip()))
+
+        # If that token is a close paren, we need to grab everything else too.
+        # Do this to grab the whole paren so we don't create a syntax error by
+        # removing only part of a paren.
+        if testcase.tokens[token_before_bracket] == ')':
+          # Find everything in the paren.
+          token_before_bracket = step_back_while(
+              token_before_bracket, (lambda x: testcase.tokens[x] != '('))
+
+          # Get the token before the paren.
+          token_before_bracket -= 1
+          token_before_bracket = step_back_while(
+              token_before_bracket, (lambda x: not testcase.tokens[x].strip()))
+
+        # Walk back to the start of that line as well to get if/else and funcs.
+        # Do this after paren to manage situations where there are newlines in
+        # the parens.
+        token_before_bracket = step_back_while(
+            token_before_bracket, (lambda x: testcase.tokens[x] != '\n'))
+
+        token_before_bracket += 1
+
+        hypothesis = list(range(token_before_bracket,
+                                open_brace_index + 1)) + [index]
+
         testcase.prepare_test(hypothesis)
 
         # 2) Remove previous tokens and from the closing brace to the next one.
-        #    e.g.: try { crash() } catch(e) {} -> crash()
+        #    e.g.: try { crash() } catch(e) {} -> crash().
         future_index = len(testcase.tokens)
+        open_count = 0
         for future_index in range(index + 1, len(testcase.tokens)):
+          if testcase.tokens[future_index] == '{':
+            open_count += 1
           if testcase.tokens[future_index] == '}':
-            break
+            open_count -= 1
+            # Make sure to grab entire outer brace if there are inner braces.
+            if not open_count:
+              break
         if future_index != len(testcase.tokens):
           lookahead_hypothesis = hypothesis + list(
               range(index + 1, future_index + 1))
+
           testcase.prepare_test(lookahead_hypothesis)
 
       elif token == '(':
-        paren_stack.append((last_start_of_line_token, index))
+        paren_stack.append(index)
 
       elif token == ')' and paren_stack:
         # Three hypotheses for tokens grouped by parentheses:
         # 1) Remove the parentheses and the previous token.
         #    e.g.: assertTrue(crash()); -> crash()
-        previous_line_start, previous_end = paren_stack.pop()
+        previous_end = paren_stack.pop()
         if previous_end > 0:
           hypothesis = [previous_end - 1, previous_end, index]
           testcase.prepare_test(hypothesis)
@@ -84,8 +118,14 @@ class JSMinimizer(minimizer.Minimizer):
         # 3) Like 1, but to start of line instead of previous token.
         #    e.g.: leftover_junk = (function() {
         #          });
-        hypothesis = list(range(previous_line_start,
-                                previous_end + 1)) + [index]
+
+        # Find the beginning of the line
+        token_before_paren = previous_end
+        token_before_paren = step_back_while(
+            previous_end, (lambda x: testcase.tokens[x] != '\n'))
+        token_before_paren += 1
+
+        hypothesis = list(range(token_before_paren, previous_end + 1)) + [index]
         testcase.prepare_test(hypothesis)
 
         # 4) Like 3, but also from the closing brace to the next one.
@@ -96,7 +136,7 @@ class JSMinimizer(minimizer.Minimizer):
             break
         if future_index != len(testcase.tokens):
           lookahead_hypothesis = list(
-              range(previous_line_start, future_index + 1))
+              range(token_before_paren, future_index + 1))
           testcase.prepare_test(lookahead_hypothesis)
 
       elif token == ',':
@@ -109,13 +149,14 @@ class JSMinimizer(minimizer.Minimizer):
 
         # 2) Remove comma and right-hand-side.
         #    e.g.: f(crash(), whatever) -> f(crash())
-        if index + 1 < len(testcase.tokens):
-          hypothesis = [index, index + 1]
-          testcase.prepare_test(hypothesis)
 
-      # Keep track of where the previous line started.
-      elif token.endswith('\n'):
-        last_start_of_line_token = index + 1
+        # Find the next non whitespace token after the comma.
+        hypothesis = [index]
+        for right_token_index in range(index + 1, len(testcase.tokens)):
+          hypothesis.append(right_token_index)
+          if testcase.tokens[right_token_index].strip():
+            testcase.prepare_test(hypothesis)
+            break
 
     testcase.process()
     return testcase
