@@ -122,3 +122,15 @@ class HTMLMinimizerTest(unittest.TestCase):
                 '\n</script>\n</html>'
     res = self._minimizer.minimize(self._simple_test)
     self.assertEqual(res, minimized)
+
+  def test_combine_worker_tokens_with_prefix_and_suffix(self):
+    """Test that combine worker tokens works the way that the minimizer expects
+    it to."""
+
+    prefix = "PRE"
+    suffix = "POST"
+    tokens = ["Here", "Are", "The", "Tokens"]
+
+    combo = self._minimizer.combine_worker_tokens(tokens, prefix, suffix)
+
+    self.assertEqual(combo, "PREHereAreTheTokensPOST")
