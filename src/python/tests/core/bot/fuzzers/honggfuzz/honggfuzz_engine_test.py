@@ -81,8 +81,7 @@ class IntegrationTest(unittest.TestCase):
     testcase_path, _ = setup_testcase_and_corpus('crash', 'empty_corpus')
     engine_impl = engine.HonggfuzzEngine()
     target_path = engine_common.find_fuzzer_path(DATA_DIR, 'test_fuzzer')
-    result = engine_impl.reproduce(target_path, testcase_path,
-                                   ['-timeout=60', '-rss_limit_mb=2048'], 65)
+    result = engine_impl.reproduce(target_path, testcase_path, [], 65)
     self.assertListEqual([target_path], result.command)
     self.assertIn('ERROR: AddressSanitizer: heap-use-after-free', result.output)
 
@@ -104,7 +103,7 @@ class IntegrationTest(unittest.TestCase):
         '-P',
         '-S',
         '--rlimit_rss',
-        '2048',
+        '2560',
         '--timeout',
         '25',
         '--dict',
@@ -140,7 +139,7 @@ class IntegrationTest(unittest.TestCase):
         '-P',
         '-S',
         '--rlimit_rss',
-        '2048',
+        '2560',
         '--timeout',
         '25',
         '--input',

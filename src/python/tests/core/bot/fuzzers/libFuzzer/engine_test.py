@@ -100,7 +100,7 @@ class PrepareTest(fake_fs_unittest.TestCase):
     options = engine_impl.prepare('/corpus_dir', '/path/target', '/path')
     self.assertEqual('/corpus_dir', options.corpus_dir)
     self.assertItemsEqual([
-        '-max_len=31337', '-timeout=11', '-rss_limit_mb=2048', '-arg1',
+        '-max_len=31337', '-timeout=11', '-rss_limit_mb=2560', '-arg1',
         '-dict=/path/blah.dict'
     ], options.arguments)
     self.assertDictEqual({
@@ -128,7 +128,7 @@ class PrepareTest(fake_fs_unittest.TestCase):
     engine_impl = engine.LibFuzzerEngine()
     options = engine_impl.prepare('/corpus_dir', '/path/target', '/path')
     self.assertItemsEqual(
-        ['-max_len=31337', '-timeout=11', '-rss_limit_mb=2048', '-arg1'],
+        ['-max_len=31337', '-timeout=11', '-rss_limit_mb=2560', '-arg1'],
         options.arguments)
 
   def test_prepare_auto_add_dict(self):
@@ -140,7 +140,7 @@ class PrepareTest(fake_fs_unittest.TestCase):
     engine_impl = engine.LibFuzzerEngine()
     options = engine_impl.prepare('/corpus_dir', '/path/target', '/path')
     self.assertItemsEqual([
-        '-max_len=31337', '-timeout=11', '-rss_limit_mb=2048', '-arg1',
+        '-max_len=31337', '-timeout=11', '-rss_limit_mb=2560', '-arg1',
         '-dict=/path/target.dict'
     ], options.arguments)
 
@@ -464,10 +464,10 @@ class IntegrationTests(BaseIntegrationTest):
     engine_impl = engine.LibFuzzerEngine()
     target_path = engine_common.find_fuzzer_path(DATA_DIR, 'test_fuzzer')
     result = engine_impl.reproduce(target_path, testcase_path,
-                                   ['-timeout=60', '-rss_limit_mb=2048'], 65)
+                                   ['-timeout=60', '-rss_limit_mb=2560'], 65)
     self.compare_arguments(
         os.path.join(DATA_DIR, 'test_fuzzer'),
-        ['-timeout=60', '-rss_limit_mb=2048', '-runs=100'], [testcase_path],
+        ['-timeout=60', '-rss_limit_mb=2560', '-runs=100'], [testcase_path],
         result.command)
     self.assertIn(
         'ERROR: AddressSanitizer: SEGV on unknown address 0x000000000000',
@@ -491,7 +491,7 @@ class IntegrationTests(BaseIntegrationTest):
     self.assert_has_stats(results.stats)
     self.compare_arguments(
         os.path.join(DATA_DIR, 'test_fuzzer'), [
-            '-max_len=256', '-timeout=25', '-rss_limit_mb=2048',
+            '-max_len=256', '-timeout=25', '-rss_limit_mb=2560',
             '-use_value_profile=1', '-dict=' + dict_path,
             '-artifact_prefix=' + TEMP_DIR + '/', '-max_total_time=5',
             '-print_final_stats=1'
@@ -526,7 +526,7 @@ class IntegrationTests(BaseIntegrationTest):
     self.assert_has_stats(results.stats)
     self.compare_arguments(
         os.path.join(DATA_DIR, 'test_fuzzer_old'), [
-            '-max_len=256', '-timeout=25', '-rss_limit_mb=2048',
+            '-max_len=256', '-timeout=25', '-rss_limit_mb=2560',
             '-use_value_profile=1', '-dict=' + dict_path,
             '-artifact_prefix=' + TEMP_DIR + '/', '-max_total_time=5',
             '-print_final_stats=1'
@@ -558,7 +558,7 @@ class IntegrationTests(BaseIntegrationTest):
     self.assert_has_stats(results.stats)
     self.compare_arguments(
         os.path.join(DATA_DIR, 'always_crash_fuzzer'), [
-            '-max_len=100', '-timeout=25', '-rss_limit_mb=2048',
+            '-max_len=100', '-timeout=25', '-rss_limit_mb=2560',
             '-artifact_prefix=' + TEMP_DIR + '/', '-max_total_time=5',
             '-print_final_stats=1'
         ], [
@@ -571,7 +571,7 @@ class IntegrationTests(BaseIntegrationTest):
     self.assertEqual(TEMP_DIR, os.path.dirname(results.crashes[0].input_path))
     self.assertEqual(results.logs, results.crashes[0].stacktrace)
     self.assertListEqual([
-        '-rss_limit_mb=2048',
+        '-rss_limit_mb=2560',
         '-timeout=60',
     ], results.crashes[0].reproduce_args)
 
@@ -598,7 +598,7 @@ class IntegrationTests(BaseIntegrationTest):
 
     self.compare_arguments(
         os.path.join(DATA_DIR, 'test_fuzzer'), [
-            '-max_len=256', '-timeout=25', '-rss_limit_mb=2048',
+            '-max_len=256', '-timeout=25', '-rss_limit_mb=2560',
             '-dict=' + dict_path, '-artifact_prefix=' + TEMP_DIR + '/',
             '-max_total_time=5', '-print_final_stats=1'
         ], [
@@ -984,7 +984,7 @@ class IntegrationTestsFuchsia(BaseIntegrationTest):
     engine_impl = engine.LibFuzzerEngine()
     result = engine_impl.reproduce('example_fuzzers/overflow_fuzzer',
                                    testcase_path,
-                                   ['-timeout=25', '-rss_limit_mb=2048'], 30)
+                                   ['-timeout=25', '-rss_limit_mb=2560'], 30)
 
     self.assertIn('ERROR: AddressSanitizer: heap-buffer-overflow on address',
                   result.output)
@@ -1015,7 +1015,7 @@ class IntegrationTestsFuchsia(BaseIntegrationTest):
     # Try to fuzz against the dead qemu to trigger automatic recovery behavior
     engine_impl = engine.LibFuzzerEngine()
     engine_impl.reproduce('example_fuzzers/overflow_fuzzer', testcase_path,
-                          ['-timeout=25', '-rss_limit_mb=2048'], 30)
+                          ['-timeout=25', '-rss_limit_mb=2560'], 30)
 
     # Check the logs for the shutdown sequence
     self.assertIn('Shutting down', self.mock.log_warn.call_args[0][0])
@@ -1063,11 +1063,11 @@ class IntegrationTestsAndroid(BaseIntegrationTest, android_helpers.AndroidTest):
     target_path = engine_common.find_fuzzer_path(ANDROID_DATA_DIR,
                                                  'test_fuzzer')
     result = engine_impl.reproduce(target_path, testcase_path,
-                                   ['-timeout=60', '-rss_limit_mb=2048'], 65)
+                                   ['-timeout=60', '-rss_limit_mb=2560'], 65)
 
     self.assertEqual([
         self.adb_path, 'shell', self.hwasan_options,
-        self.device_path(target_path), '-timeout=60', '-rss_limit_mb=2048',
+        self.device_path(target_path), '-timeout=60', '-rss_limit_mb=2560',
         '-runs=100',
         self.device_path(testcase_path)
     ], result.command)
@@ -1100,7 +1100,7 @@ class IntegrationTestsAndroid(BaseIntegrationTest, android_helpers.AndroidTest):
         self.device_path(target_path),
         '-max_len=256',
         '-timeout=25',
-        '-rss_limit_mb=2048',
+        '-rss_limit_mb=2560',
         '-use_value_profile=1',
         '-dict=' + self.device_path(dict_path),
         '-artifact_prefix=' + self.device_path(TEMP_DIR) + '/',
@@ -1135,7 +1135,7 @@ class IntegrationTestsAndroid(BaseIntegrationTest, android_helpers.AndroidTest):
         self.device_path(target_path),
         '-max_len=100',
         '-timeout=25',
-        '-rss_limit_mb=2048',
+        '-rss_limit_mb=2560',
         '-artifact_prefix=' + self.device_path(TEMP_DIR) + '/',
         '-max_total_time=5',
         '-print_final_stats=1',
@@ -1148,7 +1148,7 @@ class IntegrationTestsAndroid(BaseIntegrationTest, android_helpers.AndroidTest):
     self.assertEqual(TEMP_DIR, os.path.dirname(results.crashes[0].input_path))
     self.assertEqual(results.logs, results.crashes[0].stacktrace)
     self.assertListEqual([
-        '-rss_limit_mb=2048',
+        '-rss_limit_mb=2560',
         '-timeout=60',
     ], results.crashes[0].reproduce_args)
 
@@ -1182,7 +1182,7 @@ class IntegrationTestsAndroid(BaseIntegrationTest, android_helpers.AndroidTest):
         self.device_path(target_path),
         '-max_len=256',
         '-timeout=25',
-        '-rss_limit_mb=2048',
+        '-rss_limit_mb=2560',
         '-dict=' + self.device_path(dict_path),
         '-artifact_prefix=' + self.device_path(TEMP_DIR) + '/',
         '-max_total_time=5',
