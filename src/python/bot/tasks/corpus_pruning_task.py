@@ -68,7 +68,7 @@ CORPUS_SIZE_LIMIT_FOR_FAILURES = 10000
 MAX_QUARANTINE_UNITS_TO_RESTORE = 128
 
 # Memory limits for testcase.
-RSS_LIMIT = 2048
+RSS_LIMIT = 2560
 RSS_LIMIT_MB_FLAG = '-rss_limit_mb=%d'
 
 # Flag to disable leak checking.

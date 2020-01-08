@@ -24,7 +24,7 @@ from system import environment
 from system import new_process
 
 _CLEAN_EXIT_SECS = 10
-_RSS_LIMIT = 2048
+_RSS_LIMIT = 2560
 _TIMEOUT = 25
 _DEFAULT_ARGUMENTS = [
     '-n',
