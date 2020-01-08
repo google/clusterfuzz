@@ -254,7 +254,7 @@ def file_issue(testcase,
   properties = policy.get_new_issue_properties(
       is_security=testcase.security_flag, is_crash=is_crash)
 
-  issue = issue_tracker.new_issue()
+  issue = issue_tracker.new_issue(testcase.job_type)
   issue.title = data_handler.get_issue_summary(testcase)
   issue.body = data_handler.get_issue_description(
       testcase, reporter=user_email, show_reporter=True)

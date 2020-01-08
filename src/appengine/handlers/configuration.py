@@ -111,6 +111,8 @@ class Handler(base_handler.Handler):
         'build_apiary_service_account_private_key')
     bug_report_url = self.request.get('bug_report_url')
     client_credentials = self.request.get('client_credentials')
+    jira_url = self.request.get('jira_url')
+    jira_credentials = self.request.get('jira_credentials')
     component_repository_mappings = self.request.get(
         'component_repository_mappings')
     contact_string = self.request.get('contact_string')
@@ -143,6 +145,8 @@ class Handler(base_handler.Handler):
     config.contact_string = contact_string
     config.documentation_url = documentation_url
     config.github_credentials = github_credentials
+    config.jira_credentials = jira_credentials
+    config.jira_url = jira_url
     config.platform_group_mappings = platform_group_mappings
     config.privileged_users = privileged_users
     config.relax_security_bug_restrictions = bool(

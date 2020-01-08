@@ -20,11 +20,13 @@ from datastore import ndb_utils
 from libs import request_cache
 from libs.issue_management import issue_tracker_policy
 from libs.issue_management import monorail
+from libs.issue_management import jira
 from metrics import logs
 
 _ISSUE_TRACKER_CACHE_CAPACITY = 8
 _ISSUE_TRACKER_CONSTRUCTORS = {
     'monorail': monorail.get_issue_tracker,
+    'jira': jira.get_issue_tracker
 }
 
 
