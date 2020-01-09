@@ -32,6 +32,9 @@ class HTMLMinimizerTest(unittest.TestCase):
          ('line_minimizer',
           'bot.minimizer.delta_minimizer.DeltaMinimizer.minimize')])
 
+    # HTML Minimizer passes data to a series of sub-minimizers. These take a
+    # long time to run. We just want to test that the results are being handled
+    # correctly.
     self.mock.js_minimizer.side_effect = self._mock_js_minimization
     self.mock.html_minimizer.side_effect = self._mock_html_minimization
     self.mock.line_minimizer.side_effect = self._mock_line_minimization
@@ -79,7 +82,7 @@ class HTMLMinimizerTest(unittest.TestCase):
   def _mock_html_minimization(self, minimizer, data):
     """Mock html minimization. Returns minimized top tags when its called for
     the first section, otherwise returns minimized bottom section"""
-    #The first 3 times the html_minimizer is called will be for the begining.
+    # The first 3 times the html_minimizer is called will be for the begining.
     if "<html>" in data:
       return minimizer.token_combiner(['<html>\n<script>\n'])
 
