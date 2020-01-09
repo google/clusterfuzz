@@ -37,6 +37,7 @@ SpecificationMatch = collections.namedtuple('SpecificationMatch',
 
 DEFAULT_MULTIPLIER = 30.0  # Used for blackbox and jobs that are not yet run.
 DEFAULT_SANITIZER_WEIGHT = 0.1
+DEFAULT_ENGINE_WEIGHT = 1.0
 
 SANITIZER_BASE_WEIGHT = 0.1
 
@@ -47,6 +48,12 @@ SANITIZER_WEIGHTS = {
     'MSAN': 2 * SANITIZER_BASE_WEIGHT,
     'TSAN': 1 * SANITIZER_BASE_WEIGHT,
     'UBSAN': 1 * SANITIZER_BASE_WEIGHT,
+}
+
+ENGINE_WEIGHTS = {
+    'libFuzzer': 1.0,
+    'afl': 1.0,
+    'honggfuzz': 0.2,
 }
 
 
@@ -346,6 +353,9 @@ def update_job_weight(job_name, multiplier):
   """Update a job weight."""
   tool_name = environment.get_memory_tool_name(job_name)
   multiplier *= SANITIZER_WEIGHTS.get(tool_name, DEFAULT_SANITIZER_WEIGHT)
+
+  engine = environment.get_engine_for_job(job_name)
+  multiplier *= ENGINE_WEIGHTS.get(engine, DEFAULT_ENGINE_WEIGHT)
 
   query = data_types.FuzzerJob.query(data_types.FuzzerJob.job == job_name)
   changed_weights = []
