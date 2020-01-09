@@ -137,7 +137,7 @@ class MonorailTests(unittest.TestCase):
 
   def test_new_issue(self):
     """Test new_issue."""
-    issue = self.issue_tracker.new_issue()
+    issue = self.issue_tracker.new_issue('job_type')
     issue.assignee = 'owner'
     issue.title = 'summary'
     issue.body = 'body'

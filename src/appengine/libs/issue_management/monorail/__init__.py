@@ -222,7 +222,7 @@ class IssueTracker(issue_tracker.IssueTracker):
   def project(self):
     return self._itm.project_name
 
-  def new_issue(self):
+  def new_issue(self, job_type):
     monorail_issue = MonorailIssue()
     monorail_issue.itm = self._itm
     return Issue(monorail_issue)

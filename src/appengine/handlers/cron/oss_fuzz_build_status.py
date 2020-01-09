@@ -139,7 +139,7 @@ def file_bug(issue_tracker, project_name, build_id, ccs, build_type):
   logs.log('Filing bug for new build failure (project=%s, build_type=%s, '
            'build_id=%s).' % (project_name, build_type, build_id))
 
-  issue = issue_tracker.new_issue()
+  issue = issue_tracker.new_issue('job_type')
   issue.title = '{project_name}: {build_type} build failure'.format(
       project_name=project_name, build_type=build_type.capitalize())
   issue.body = _get_issue_body(project_name, build_id, build_type)
