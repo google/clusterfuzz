@@ -38,6 +38,8 @@ CORPUS_SUBSET_STRATEGY = Strategy(
 FORK_STRATEGY = Strategy(name='fork', probability=0.50, manually_enable=False)
 MUTATOR_PLUGIN_STRATEGY = Strategy(
     name='mutator_plugin', probability=0.50, manually_enable=True)
+IN_PROCESS_RADAMSA_STRATEGY = Strategy(
+    name='in_process_radamsa', probability=1.0, manually_enable=False)
 RANDOM_MAX_LENGTH_STRATEGY = Strategy(
     name='random_max_len', probability=0.15, manually_enable=False)
 RECOMMENDED_DICTIONARY_STRATEGY = Strategy(
@@ -57,6 +59,7 @@ LIBFUZZER_STRATEGY_LIST = [
     RECOMMENDED_DICTIONARY_STRATEGY,
     DATAFLOW_TRACING_STRATEGY,
     MUTATOR_PLUGIN_STRATEGY,
+    IN_PROCESS_RADAMSA_STRATEGY,
 ]
 
 AFL_STRATEGY_LIST = [
@@ -76,6 +79,7 @@ LIBFUZZER_STRATEGIES_WITH_BOOLEAN_VALUE = [
     CORPUS_MUTATION_ML_RNN_STRATEGY,
     DATAFLOW_TRACING_STRATEGY,
     MUTATOR_PLUGIN_STRATEGY,
+    IN_PROCESS_RADAMSA_STRATEGY,
     RANDOM_MAX_LENGTH_STRATEGY,
     RECOMMENDED_DICTIONARY_STRATEGY,
     VALUE_PROFILE_STRATEGY,

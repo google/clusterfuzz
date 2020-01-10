@@ -1503,6 +1503,20 @@ def use_mutator_plugin(target_name, extra_env):
   return True
 
 
+def use_radamsa_in_process(extra_env):
+  """Decide whether to use Radamsa in process. If yes, add the path to the
+  radamsa so to LD_PRELOAD in |extra_env| and return True."""
+
+  #Like above. Not sure if there is a reason why this would work for windows
+  #When Mutator plugin does not.
+  if environment.platform() == "WINDOWS":
+    return False
+
+  radamsa_path = "HARDCODED PATH TO SO"
+  extra_env['LD_PRELOAD'] = radamsa_path
+  return True
+
+
 def is_sha1_hash(possible_hash):
   """Returns True if |possible_hash| looks like a valid sha1 hash."""
   if len(possible_hash) != 40:
@@ -1620,6 +1634,10 @@ def pick_strategies(strategy_pool, fuzzer_path, corpus_directory,
   if (strategy_pool.do_strategy(strategy.MUTATOR_PLUGIN_STRATEGY) and
       use_mutator_plugin(target_name, extra_env)):
     fuzzing_strategies.append(strategy.MUTATOR_PLUGIN_STRATEGY.name)
+
+  if (strategy_pool.do_strategy(strategy.IN_PROCESS_RADAMSA_STRATEGY) and
+      use_radamsa_in_process(extra_env)):
+    fuzzing_strategies.append(strategy.IN_PROCESS_RADAMSA_STRATEGY.name)
 
   return StrategyInfo(fuzzing_strategies, arguments, additional_corpus_dirs,
                       extra_env, use_dataflow_tracing, is_mutations_run)
