@@ -1,6 +1,12 @@
 Change Log
 ==========
 
+## Version 1.8.0
+- Added an uploader permission type to allow certain users to upload to any job/fuzzer.
+- More Python 3 conversion changes.
+- Bumped up libFuzzer rss limit to 2.5GB.
+- Various bug fixes.
+
 ## Version 1.7.1
 - Various bug fixes.
 
