@@ -1350,6 +1350,8 @@ class DoEngineFuzzingTest(fake_filesystem_unittest.TestCase):
     os.environ['FUZZ_INPUTS_DISK'] = '/fuzz-inputs-disk'
     os.environ['BUILD_DIR'] = '/build_dir'
     os.environ['MAX_TESTCASES'] = '2'
+    os.environ['AUTOMATIC_LABELS'] = 'auto,auto1'
+    os.environ['AUTOMATIC_COMPONENTS'] = 'auto,auto1'
 
     self.fs.create_file('/build_dir/test_target')
     self.fs.create_file(
@@ -1392,8 +1394,8 @@ class DoEngineFuzzingTest(fake_filesystem_unittest.TestCase):
     crashes, fuzzer_metadata = session.do_engine_fuzzing(engine_impl)
     self.assertDictEqual({
         'fuzzer_binary_name': 'test_target',
-        'issue_components': 'component1,component2',
-        'issue_labels': 'label1,label2',
+        'issue_components': 'component1,component2,auto,auto1',
+        'issue_labels': 'label1,label2,auto,auto1',
         'issue_owners': 'owner1@email.com',
     }, fuzzer_metadata)
 
@@ -1489,3 +1491,38 @@ class UntrustedRunEngineFuzzerTest(
         result.stats.get('strategy_selection_method'), six.string_types)
 
     self.assertDictEqual({'fuzzer_binary_name': 'test_fuzzer'}, fuzzer_metadata)
+
+
+class AddIssueMetadataFromEnvironmentTest(unittest.TestCase):
+  """Tests for _add_issue_metadata_from_environment."""
+
+  def setUp(self):
+    helpers.patch_environ(self)
+
+  def test_add_no_existing(self):
+    """Test adding issue metadata when there are none existing."""
+    os.environ['AUTOMATIC_LABELS'] = 'auto'
+    os.environ['AUTOMATIC_LABELS_1'] = 'auto1'
+    os.environ['AUTOMATIC_COMPONENTS'] = 'auto'
+    os.environ['AUTOMATIC_COMPONENTS_1'] = 'auto1'
+
+    metadata = {}
+    fuzz_task._add_issue_metadata_from_environment(metadata)
+    self.assertDictEqual({
+        'issue_components': 'auto,auto1',
+        'issue_labels': 'auto,auto1',
+    }, metadata)
+
+  def test_add_append(self):
+    """Test adding issue metadata when there are already existing metadata."""
+    os.environ['AUTOMATIC_LABELS'] = 'auto'
+    os.environ['AUTOMATIC_LABELS_1'] = 'auto1'
+    os.environ['AUTOMATIC_COMPONENTS'] = 'auto'
+    os.environ['AUTOMATIC_COMPONENTS_1'] = 'auto1'
+
+    metadata = {'issue_components': 'existing', 'issue_labels': 'existing'}
+    fuzz_task._add_issue_metadata_from_environment(metadata)
+    self.assertDictEqual({
+        'issue_components': 'existing,auto,auto1',
+        'issue_labels': 'existing,auto,auto1',
+    }, metadata)
