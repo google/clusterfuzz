@@ -21,7 +21,8 @@ import shlex
 import subprocess
 
 from . import errors
-from . import html_tokenizer
+from bot.tokenizer.antlr_tokenizer import AntlrTokenizer
+from bot.tokenizer.grammars.HTMLLexer import HTMLLexer
 
 # TODO(mbarbella): Improve configuration of the test function.
 attempts = 1
@@ -130,9 +131,9 @@ def single_test_run(test_path):
   return True
 
 
-def tokenize(data, level=0):
+def tokenize(data):
   """HTML tokenizer."""
-  return html_tokenizer.tokenize(data, level)
+  return AntlrTokenizer(HTMLLexer).tokenize(data)
 
 
 def token_combiner(tokens):

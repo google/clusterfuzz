@@ -17,9 +17,11 @@ from __future__ import absolute_import
 from builtins import range
 
 from . import delta_minimizer
-from . import js_tokenizer
 from . import minimizer
 from . import utils
+
+from bot.tokenizer.antlr_tokenizer import AntlrTokenizer
+from bot.tokenizer.grammars.JavaScriptLexer import JavaScriptLexer
 
 
 def step_back_while(cur_index, condition):
@@ -168,35 +170,19 @@ class JSMinimizer(minimizer.Minimizer):
     """Attempt to minimize a javascript test case."""
     line_minimizer = delta_minimizer.DeltaMinimizer(
         utils.test, max_threads=thread_count, file_extension=file_extension)
-    comment_minimizer = delta_minimizer.DeltaMinimizer(
+
+    js_tokenizer = AntlrTokenizer(JavaScriptLexer)
+
+    js_minimizer = JSMinimizer(
         utils.test,
         max_threads=thread_count,
-        tokenizer=js_tokenizer.comment_tokenizer,
-        token_combiner=js_tokenizer.combine_tokens,
-        file_extension=file_extension)
-    bracket_minimizer = JSMinimizer(
-        utils.test,
-        max_threads=thread_count,
-        tokenizer=js_tokenizer.bracket_tokenizer,
-        token_combiner=js_tokenizer.combine_tokens,
-        file_extension=file_extension)
-    paren_minimizer = JSMinimizer(
-        utils.test,
-        max_threads=thread_count,
-        tokenizer=js_tokenizer.paren_tokenizer,
-        token_combiner=js_tokenizer.combine_tokens,
-        file_extension=file_extension)
-    comma_minimizer = JSMinimizer(
-        utils.test,
-        max_threads=thread_count,
-        tokenizer=js_tokenizer.comma_tokenizer,
-        token_combiner=js_tokenizer.combine_tokens,
+        tokenizer=js_tokenizer.tokenize,
+        token_combiner=js_tokenizer.combine,
         file_extension=file_extension)
 
-    result = comment_minimizer.minimize(data)
+    result = line_minimizer.minimize(data)
+    result = js_minimizer(result)
+    result = js_minimizer(result)
     result = line_minimizer.minimize(result)
-    result = bracket_minimizer.minimize(result)
-    result = paren_minimizer.minimize(result)
-    result = comma_minimizer.minimize(result)
-    result = line_minimizer.minimize(result)
+
     return result
