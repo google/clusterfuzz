@@ -353,50 +353,6 @@ class IssueFilerTests(unittest.TestCase):
         'component2',
     ], issue_tracker._itm.last_issue.components)
 
-  def test_testcase_automatic_issue_data(self):
-    """Tests issue filing with automatic labels, assignees, CCs and
-    components."""
-    data_types.Job(
-        name='job',
-        environment_string=('AUTOMATIC_LABELS = auto\n'
-                            'AUTOMATIC_LABELS_1 = auto_1\n'
-                            'AUTOMATIC_COMPONENTS = auto\n'
-                            'AUTOMATIC_COMPONENTS_1 = auto_1\n'
-                            'AUTOMATIC_ASSIGNEE = auto\n'
-                            'AUTOMATIC_ASSIGNEE_1 = auto_1\n'
-                            'AUTOMATIC_CCS = auto\n'
-                            'AUTOMATIC_CCS_1 = auto_1\n'),
-        platform='linux').put()
-
-    self.mock.get.return_value = CHROMIUM_POLICY
-    issue_tracker = monorail.IssueTracker(IssueTrackerManager('chromium'))
-    issue_filer.file_issue(self.testcase5, issue_tracker)
-    self.assertItemsEqual([
-        'ClusterFuzz',
-        'Reproducible',
-        'Pri-1',
-        'Stability-Crash',
-        'Type-Bug',
-        'label1',
-        'label2',
-        'auto',
-        'auto_1',
-    ], issue_tracker._itm.last_issue.labels)
-
-    self.assertEqual('auto', issue_tracker._itm.last_issue.owner)
-
-    self.assertItemsEqual([
-        'auto',
-        'auto_1',
-    ], issue_tracker._itm.last_issue.cc)
-
-    self.assertItemsEqual([
-        'component1',
-        'component2',
-        'auto',
-        'auto_1',
-    ], issue_tracker._itm.last_issue.components)
-
   def test_testcase_metadata_invalid(self):
     """Tests issue filing with invalid metadata."""
     self.mock.get.return_value = CHROMIUM_POLICY
