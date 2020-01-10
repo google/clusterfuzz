@@ -1535,3 +1535,13 @@ class AddIssueMetadataFromEnvironmentTest(unittest.TestCase):
         'issue_labels':
             'existing_label,auto_label,auto_label1',
     }, metadata)
+
+  def test_add_numeric(self):
+    """Tests adding a numeric label."""
+    os.environ['AUTOMATIC_LABELS'] = '123'
+
+    metadata = {}
+    fuzz_task._add_issue_metadata_from_environment(metadata)
+    self.assertDictEqual({
+        'issue_labels': '123',
+    }, metadata)
