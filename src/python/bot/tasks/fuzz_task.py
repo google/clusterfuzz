@@ -1249,7 +1249,7 @@ def _get_issue_metadata_from_environment(variable_name):
   # Allow a variation with a '_1' to specified. This is needed in cases where
   # this is specified in both the job and the bot environment.
   values.extend(environment.get_value(variable_name + '_1', '').split())
-  return [value.strip() for value in values]
+  return [value.strip() for value in values if value.strip()]
 
 
 def _add_issue_metadata_from_environment(metadata):
@@ -1268,7 +1268,7 @@ def _add_issue_metadata_from_environment(metadata):
 
   labels = _get_issue_metadata_from_environment('AUTOMATIC_LABELS')
   if labels:
-    metadata['issue_labels'] = _append(metadata.get('issue_labels'), components)
+    metadata['issue_labels'] = _append(metadata.get('issue_labels'), labels)
 
 
 def run_engine_fuzzer(engine_impl, target_name, sync_corpus_directory,
