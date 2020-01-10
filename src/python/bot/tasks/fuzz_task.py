@@ -1243,6 +1243,34 @@ def get_strategy_distribution_from_ndb():
   return distribution
 
 
+def _get_issue_metadata_from_environment(variable_name):
+  """Get issue metadata from environment."""
+  values = environment.get_value(variable_name, '').split()
+  # Allow a variation with a '_1' to specified. This is needed in cases where
+  # this is specified in both the job and the bot environment.
+  values.extend(environment.get_value(variable_name + '_1', '').split())
+  return [value.strip() for value in values if value.strip()]
+
+
+def _add_issue_metadata_from_environment(metadata):
+  """Add issue metadata from environment."""
+
+  def _append(old, new_values):
+    if not old:
+      return ','.join(new_values)
+
+    return ','.join(old.split(',') + new_values)
+
+  components = _get_issue_metadata_from_environment('AUTOMATIC_COMPONENTS')
+  if components:
+    metadata['issue_components'] = _append(
+        metadata.get('issue_components'), components)
+
+  labels = _get_issue_metadata_from_environment('AUTOMATIC_LABELS')
+  if labels:
+    metadata['issue_labels'] = _append(metadata.get('issue_labels'), labels)
+
+
 def run_engine_fuzzer(engine_impl, target_name, sync_corpus_directory,
                       testcase_directory):
   """Run engine for fuzzing."""
@@ -1278,6 +1306,7 @@ def run_engine_fuzzer(engine_impl, target_name, sync_corpus_directory,
   }
 
   fuzzer_metadata.update(engine_common.get_all_issue_metadata(target_path))
+  _add_issue_metadata_from_environment(fuzzer_metadata)
   return result, fuzzer_metadata
 
 
@@ -1461,6 +1490,7 @@ class FuzzingSession(object):
       file_host.push_testcases_to_worker()
 
     fuzzer_metadata = get_fuzzer_metadata_from_output(fuzzer_output)
+    _add_issue_metadata_from_environment(fuzzer_metadata)
 
     # Filter fuzzer output, set to default value if empty.
     if fuzzer_output:
