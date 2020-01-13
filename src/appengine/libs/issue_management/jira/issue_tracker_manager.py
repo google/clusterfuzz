@@ -20,7 +20,6 @@ import datetime
 import json
 
 from libs.issue_management import issue_tracker_policy
-from datastore import data_handler
 from config import db_config
 
 
@@ -54,10 +53,9 @@ class IssueTrackerManager(object):
         """Save an issue."""
         self._update(issue)
 
-    def _create(self, job_type):
+    def _create(self):
         """Create an issue."""
-        jira_project = data_handler.get_value_from_job_definition(
-            job_type, 'JIRA_PROJECT')
+        jira_project = self.project_name
         default_fields = {
             'project': jira_project,
             'summary': 'Default summary',

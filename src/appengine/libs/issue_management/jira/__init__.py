@@ -25,7 +25,8 @@ class Issue(issue_tracker.Issue):
         self.itm = itm
         self.jira_issue = jira_issue
 
-        self._ccs = issue_tracker.LabelStore(self.itm.get_watchers(self.jira_issue))
+        self._ccs = issue_tracker.LabelStore(
+            self.itm.get_watchers(self.jira_issue))
         self._components = issue_tracker.LabelStore(
             self.jira_issue.fields.components)
         self._labels = issue_tracker.LabelStore(self.jira_issue.fields.labels)
@@ -145,8 +146,8 @@ class IssueTracker(issue_tracker.IssueTracker):
     def project(self):
         return self._itm.project_name
 
-    def new_issue(self, job_type):
-        jira_issue = self._itm._create(job_type)
+    def new_issue(self):
+        jira_issue = self._itm._create()
         wrapped_issue = Issue(self._itm, jira_issue)
         return wrapped_issue
 
@@ -187,10 +188,11 @@ def get_issue_tracker(project_name, config):  # pylint: disable=unused-argument
 
     return IssueTracker(itm)
 
-def _get_search_text(keywords):
-  """Get search text."""
-  search_text = ' '.join(['"{}"'.format(keyword) for keyword in keywords])
-  search_text = search_text.replace(':', ' ')
-  search_text = search_text.replace('=', ' ')
 
-  return search_text
+def _get_search_text(keywords):
+    """Get search text."""
+    search_text = ' '.join(['"{}"'.format(keyword) for keyword in keywords])
+    search_text = search_text.replace(':', ' ')
+    search_text = search_text.replace('=', ' ')
+
+    return search_text
