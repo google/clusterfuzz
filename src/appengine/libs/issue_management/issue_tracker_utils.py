@@ -19,8 +19,8 @@ from datastore import data_types
 from datastore import ndb_utils
 from libs import request_cache
 from libs.issue_management import issue_tracker_policy
-from libs.issue_management import monorail
 from libs.issue_management import jira
+from libs.issue_management import monorail
 from metrics import logs
 
 _ISSUE_TRACKER_CACHE_CAPACITY = 8
