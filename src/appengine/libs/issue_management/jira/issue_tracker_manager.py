@@ -52,9 +52,8 @@ class IssueTrackerManager(object):
 
   def create(self):
     """Create an issue."""
-    jira_project = self.project_name
     default_fields = {
-        'project': jira_project,
+        'project': self.project_name,
         'summary': 'Default summary',
         'description': 'Default description',
         'issuetype': {
@@ -69,19 +68,13 @@ class IssueTrackerManager(object):
     """Update an issue."""
 
     # Get labels from LabelStore.
-    labels = []
-    for label in issue.labels:
-      labels.append(label)
+    labels = list(issue.labels)
 
     # Get components from LabelStore.
-    components = []
-    for component in issue.components:
-      components.append(component)
+    components = list(issue.components)
 
     # Get watchers from LabelStore.
-    watchers = []
-    for watcher in issue.ccs:
-      watchers.append(watcher)
+    watchers = list(issue.ccs)
 
     update_fields = {
         'summary': issue.title,
@@ -113,6 +106,7 @@ class IssueTrackerManager(object):
     issue.jira_issue.update(fields=update_fields)
 
   def get_watchers(self, issue):
+    """Retrieve list of watchers."""
     watchlist = self.client.watchers(issue)
     watchers = []
     for watcher in watchlist.watchers:
