@@ -64,6 +64,14 @@ IPC_MESSAGE_UTIL_EXECUTABLE_FOR_PLATFORM = {
     'WINDOWS': 'ipc_message_util.exe',
 }
 
+# These options should not ever be removed during minimization. They might seem
+# unneeded when reproducing a given crash, but after the bug is fixed, the lack
+# of these options might prevent ClusterFuzz from verifying the fix and closing
+# the bug. See https://github.com/google/oss-fuzz/issues/3227 for example.
+MANDATORY_OSS_FUZZ_OPTIONS = [
+    'silence_unsigned_overflow',
+]
+
 
 class MinimizationPhase(object):
   """Effectively an enum to represent the current phase of minimization."""
@@ -1266,6 +1274,9 @@ def do_libfuzzer_minimization(testcase, testcase_file_path):
 
     minimized_options = options.copy()
     for options_name, options_value in six.iteritems(options):
+      if utils.is_oss_fuzz() and options_name in MANDATORY_OSS_FUZZ_OPTIONS:
+        continue
+
       minimized_options.pop(options_name)
       environment.set_memory_tool_options(options_env_var, minimized_options)
 

@@ -153,6 +153,9 @@ class MinimizeTaskTestUntrusted(
 
   def test_minimize(self):
     """Test minimize."""
+    helpers.patch(self, ['base.utils.is_oss_fuzz'])
+    self.mock.is_oss_fuzz.return_value = True
+
     testcase_file_path = os.path.join(self.temp_dir, 'testcase')
     with open(testcase_file_path, 'wb') as f:
       f.write('EEE')
@@ -184,13 +187,20 @@ class MinimizeTaskTestUntrusted(
     self._setup_env(job_type='libfuzzer_asan_job')
     environment.set_value('APP_ARGS', testcase.minimized_arguments)
     environment.set_value('LIBFUZZER_MINIMIZATION_ROUNDS', 3)
+    environment.set_value('UBSAN_OPTIONS',
+                          'unneeded_option=1:silence_unsigned_overflow=1')
     minimize_task.execute_task(testcase.key.id(), 'libfuzzer_asan_job')
 
     testcase = data_handler.get_testcase_by_id(testcase.key.id())
     self.assertNotEqual('', testcase.minimized_keys)
     self.assertNotEqual('NA', testcase.minimized_keys)
     self.assertNotEqual(testcase.fuzzed_keys, testcase.minimized_keys)
-    self.assertEqual({'ASAN_OPTIONS': {}}, testcase.get_metadata('env'))
+    self.assertEqual({
+        'ASAN_OPTIONS': {},
+        'UBSAN_OPTIONS': {
+            'silence_unsigned_overflow': 1
+        }
+    }, testcase.get_metadata('env'))
 
     blobs.read_blob_to_disk(testcase.minimized_keys, testcase_path)
 
