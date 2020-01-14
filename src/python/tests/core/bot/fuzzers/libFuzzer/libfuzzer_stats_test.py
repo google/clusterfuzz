@@ -99,6 +99,7 @@ class PerformanceStatsTest(unittest.TestCase):
         'strategy_corpus_mutations_ml_rnn': 0,
         'strategy_corpus_subset': 50,
         'strategy_fork': 1,
+        'strategy_radamsa_mutator_plugin': 0,
         'strategy_mutator_plugin': 1,
         'strategy_random_max_len': 1,
         'strategy_recommended_dict': 0,
