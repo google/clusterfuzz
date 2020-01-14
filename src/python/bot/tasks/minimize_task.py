@@ -68,7 +68,7 @@ IPC_MESSAGE_UTIL_EXECUTABLE_FOR_PLATFORM = {
 # unneeded when reproducing a given crash, but after the bug is fixed, the lack
 # of these options might prevent ClusterFuzz from verifying the fix and closing
 # the bug. See https://github.com/google/oss-fuzz/issues/3227 for example.
-MANDATORY_SANITIZER_OPTIONS = [
+MANDATORY_OSS_FUZZ_OPTIONS = [
     'silence_unsigned_overflow',
 ]
 
@@ -1274,7 +1274,7 @@ def do_libfuzzer_minimization(testcase, testcase_file_path):
 
     minimized_options = options.copy()
     for options_name, options_value in six.iteritems(options):
-      if options_name in MANDATORY_SANITIZER_OPTIONS:
+      if utils.is_oss_fuzz() and options_name in MANDATORY_OSS_FUZZ_OPTIONS:
         continue
 
       minimized_options.pop(options_name)

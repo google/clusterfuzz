@@ -153,6 +153,9 @@ class MinimizeTaskTestUntrusted(
 
   def test_minimize(self):
     """Test minimize."""
+    helpers.patch(self, ['base.utils.is_oss_fuzz'])
+    self.mock.is_oss_fuzz.return_value = True
+
     testcase_file_path = os.path.join(self.temp_dir, 'testcase')
     with open(testcase_file_path, 'wb') as f:
       f.write('EEE')
