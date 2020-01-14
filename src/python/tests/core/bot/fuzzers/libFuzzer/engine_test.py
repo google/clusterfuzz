@@ -336,9 +336,18 @@ class FuzzTest(fake_fs_unittest.TestCase):
         'slow_units_count': 0,
         'slowest_unit_time_sec': 0,
         'startup_crash_count': 0,
+        'strategy_corpus_mutations_ml_rnn': 0,
+        'strategy_corpus_mutations_radamsa': 0,
+        'strategy_corpus_subset': 0,
+        'strategy_dataflow_tracing': 0,
+        'strategy_fork': 0,
+        'strategy_mutator_plugin': 0,
+        'strategy_random_max_len': 0,
+        'strategy_recommended_dict': 0,
+        'strategy_selection_method': 'default',
+        'strategy_value_profile': 0,
         'timeout_count': 0,
         'timeout_limit': 123,
-        'strategy_selection_method': 'default',
     }, result.stats)
 
 

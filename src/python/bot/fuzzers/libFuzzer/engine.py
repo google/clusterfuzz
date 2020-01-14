@@ -292,8 +292,7 @@ class LibFuzzerEngine(engine.Engine):
         stats.parse_performance_features(
             log_lines,
             options.strategies,
-            options.arguments,
-            include_strategies=False))
+            options.arguments))
 
     # Set some initial stat overrides.
     timeout_limit = fuzzer_utils.extract_argument(
