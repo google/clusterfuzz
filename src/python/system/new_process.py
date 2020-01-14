@@ -278,8 +278,8 @@ class ProcessRunner(object):
       env.update(extra_env)
 
     # TODO(mbarbella): Remove this after the Python 3 conversion. Subprocess
-    # contains a check that keys in the environment are native strings. In some
-    # cases, passed keys will have newstr values.
+    # contains some explicit type checks, causing errors when newstrs are used.
+    command = [future_utils.native(str(x)).decode() for x in command]
     if env:
       env = {
           future_utils.native(str(k)).decode():
