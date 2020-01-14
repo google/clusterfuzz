@@ -160,9 +160,7 @@ def process_strategies(strategies, name_modifier=strategy_column_name):
   return stats
 
 
-def parse_performance_features(log_lines,
-                               strategies,
-                               arguments):
+def parse_performance_features(log_lines, strategies, arguments):
   """Extract stats for performance analysis."""
   # TODO(ochang): Remove include_strategies once refactor is complete.
   # Initialize stats with default values.
