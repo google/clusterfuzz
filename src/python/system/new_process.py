@@ -283,7 +283,7 @@ class ProcessRunner(object):
     if env:
       env = {
           future_utils.native(str(k)).decode():
-            future_utils.native(str(v)).decode() for k, v in env.items()
+          future_utils.native(str(v)).decode() for k, v in env.items()
       }
 
     return ChildProcess(
