@@ -162,14 +162,14 @@ class IssueTracker(issue_tracker.IssueTracker):
     """Find issues."""
     search_text = _get_search_text(keywords)
     if only_open:
-      search_text += "AND resolution = Unresolved"
+      search_text += 'AND resolution = Unresolved'
     issues = self._itm.get_issues(search_text)
     return [Issue(self._itm, issue) for issue in issues]
 
   def issue_url(self, issue_id):
     """Return the issue URL with the given ID."""
     config = db_config.get()
-    url = config.jira_url + "/browse/" + str(issue_id)
+    url = config.jira_url + '/browse/' + str(issue_id)
     return url
 
 
