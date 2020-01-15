@@ -1,0 +1,28 @@
+Command: /mnt/scratch0/clusterfuzz/resources/platform/linux/minijail0 -f /tmp/tmpYPTz08 -U -m '0 1337 1' -T static -c 0 -n -v -p -l -I -k proc,/proc,proc,1 -P /mnt/scratch0/clusterfuzz/bot/inputs/fuzzer-testcases-disk/temp-1356/tmpPQAiZ0 -b /mnt/scratch0/clusterfuzz/bot/inputs/fuzzer-testcases-disk/temp-1356/tmpwkdz0p,/tmp,1 -b /lib,/lib,0 -b /lib32,/lib32,0 -b /lib64,/lib64,0 -b /usr/lib,/usr/lib,0 -b /usr/lib32,/usr/lib32,0 -b /mnt/scratch0/clusterfuzz/bot/builds/clusterfuzz-builds_gonids_4fd1d07459dc0e09cc34419f8d397495d6d91ed0/revisions,/mnt/scratch0/clusterfuzz/bot/builds/clusterfuzz-builds_gonids_4fd1d07459dc0e09cc34419f8d397495d6d91ed0/revisions,0 -b /mnt/scratch0/clusterfuzz/bot/builds/clusterfuzz-builds_gonids_4fd1d07459dc0e09cc34419f8d397495d6d91ed0/revisions,/out,0 -b /mnt/scratch0/clusterfuzz/bot/inputs/fuzzer-testcases-disk/temp-1356/new,/new,1 -b /mnt/scratch0/clusterfuzz/bot/inputs/fuzzer-testcases-disk/temp-1356/mutations,/mutations,1 -b /mnt/scratch0/clusterfuzz/bot/inputs/data-bundles/global/gonids_fuzz_parserule,/gonids_fuzz_parserule,1 -b /mnt/scratch0/clusterfuzz/bot/inputs/fuzzer-testcases,/fuzzer-testcases,1 /mnt/scratch0/clusterfuzz/bot/builds/clusterfuzz-builds_gonids_4fd1d07459dc0e09cc34419f8d397495d6d91ed0/revisions/fuzz_parserule -timeout=25 -rss_limit_mb=2560 -fork=1 -artifact_prefix=/fuzzer-testcases/ -max_total_time=5550 -print_final_stats=1 /new /mutations /gonids_fuzz_parserule
+Bot: oss-fuzz-linux-zone3-worker-gonids-l0bl
+Time ran: 5645.80244493
+
+INFO: Seed: 972166136
+INFO: 65536 Extra Counters
+INFO: -fork=1: fuzzing in separate process(s)
+INFO: -fork=1: 2430 seed inputs, starting to fuzz in /tmp/libFuzzerTemp.1.dir
+#448: cov: 0 ft: 10979 corp: 2430 exec/s 224 oom/timeout/crash: 0/0/0 time: 165s job: 1 dft_time: 0
+#4485: cov: 0 ft: 10979 corp: 2430 exec/s 1345 oom/timeout/crash: 0/0/0 time: 168s job: 2 dft_time: 0
+#6892: cov: 0 ft: 10979 corp: 2430 exec/s 601 oom/timeout/crash: 0/0/0 time: 173s job: 3 dft_time: 0
+#9222: cov: 0 ft: 10979 corp: 2430 exec/s 466 oom/timeout/crash: 0/0/0 time: 178s job: 4 dft_time: 0
+#12364: cov: 0 ft: 10979 corp: 2430 exec/s 523 oom/timeout/crash: 0/0/0 time: 184s job: 5 dft_time: 0
+#15053: cov: 0 ft: 10979 corp: 2430 exec/s 384 oom/timeout/crash: 0/0/0 time: 191s job: 6 dft_time: 0
+#16466: cov: 0 ft: 10979 corp: 2430 exec/s 176 oom/timeout/crash: 0/0/0 time: 200s job: 7 dft_time: 0
+#21019: cov: 0 ft: 10979 corp: 2430 exec/s 505 oom/timeout/crash: 0/0/0 time: 209s job: 8 dft_time: 0
+#24559: cov: 0 ft: 10979 corp: 2430 exec/s 354 oom/timeout/crash: 0/0/0 time: 219s job: 9 dft_time: 0
+#27169: cov: 0 ft: 10979 corp: 2430 exec/s 237 oom/timeout/crash: 0/0/0 time: 230s job: 10 dft_time: 0
+#28975: cov: 0 ft: 10979 corp: 2430 exec/s 150 oom/timeout/crash: 0/0/0 time: 242s job: 11 dft_time: 0
+#35971: cov: 0 ft: 10979 corp: 2430 exec/s 538 oom/timeout/crash: 0/0/0 time: 256s job: 12 dft_time: 0
+#39377: cov: 0 ft: 10979 corp: 2430 exec/s 243 oom/timeout/crash: 0/0/0 time: 270s job: 13 dft_time: 0
+#40354: cov: 0 ft: 10979 corp: 2430 exec/s 65 oom/timeout/crash: 0/0/0 time: 285s job: 14 dft_time: 0
+#49229: cov: 0 ft: 10979 corp: 2430 exec/s 554 oom/timeout/crash: 0/0/0 time: 301s job: 15 dft_time: 0
+#1116313: cov: 0 ft: 10979 corp: 2430 exec/s 341 oom/timeout/crash: 0/0/0 time: 5541s job: 102 dft_time: 0
+#1172812: cov: 0 ft: 10979 corp: 2430 exec/s 543 oom/timeout/crash: 0/0/0 time: 5645s job: 103 dft_time: 0
+INFO: fuzzed for 5645 seconds, wrapping up soon
+INFO: exiting: 0 time: 5645s
+cf::fuzzing_strategies: fork:1,corpus_mutations_radamsa:1
