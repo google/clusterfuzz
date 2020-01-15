@@ -18,6 +18,7 @@ import googleapiclient
 
 from base import utils
 from datastore import data_types
+from datastore import ndb_utils
 from handlers import base_handler
 from libs import handler
 from metrics import logs

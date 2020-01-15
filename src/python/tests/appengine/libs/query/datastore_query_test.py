@@ -253,12 +253,17 @@ class QueryMockTest(unittest.TestCase):
     ], [f.__getnewargs__() for f in self.queries[1][-1].filters])
 
     self.assertIsInstance(self.queries[2][-1].filters, ndb.OR)
+
+    expected = []
+    for item in [f.__getnewargs__() for f in self.queries[2][-1].filters]:
+      expected.append((item[0], item[1], repr(item[2])))
+
     self.assertItemsEqual([
         ('__key__', '=',
-         ndb.Key(u'TestDatastoreModel', 0, project=u'test-clusterfuzz')),
+         '<Key(\'TestDatastoreModel\', 0), project=test-clusterfuzz>'),
         ('__key__', '=',
-         ndb.Key(u'TestDatastoreModel', 1, project=u'test-clusterfuzz')),
-    ], [f.__getnewargs__() for f in self.queries[2][-1].filters])
+         '<Key(\'TestDatastoreModel\', 1), project=test-clusterfuzz>'),
+    ], expected)
 
 
 class ComputeProjectionTest(unittest.TestCase):

@@ -179,16 +179,17 @@ class _KeyQuery(object):
     more_limit += 1
     more_runs = []
     for run in runs:
-      try:
-        cursor = run.result.cursor_after()
-      except exceptions.BadArgumentError:
-        # iterator had no results.
-        cursor = None
+      # try:
+      #   cursor = run.result.cursor_after()
+      # except exceptions.BadArgumentError as e:
+      #   # iterator had no results.
+      #   cursor = None
 
       more_runs.append(
           _Run(
               run.query,
-              start_cursor=cursor,
+              # TODO(ochang): Use cursor once bug is fixed. It's more efficient.
+              offset=offset + limit,
               keys_only=True,
               projection=None,
               limit=more_limit))

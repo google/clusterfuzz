@@ -28,12 +28,11 @@ from libs.issue_management import issue_tracker_utils
 
 def get_open_testcases_with_bugs():
   """Return iterator to open testcases with bugs."""
-  return ndb_utils.get_all_from_query(
-      data_types.Testcase.query(
+  return data_types.Testcase.query(
           ndb_utils.is_true(data_types.Testcase.open),
           data_types.Testcase.status == 'Processed',
           data_types.Testcase.bug_information != '').order(  # pylint: disable=g-explicit-bool-comparison
-              data_types.Testcase.bug_information, data_types.Testcase.key))
+              data_types.Testcase.bug_information, data_types.Testcase.key)
 
 
 class Handler(base_handler.Handler):
