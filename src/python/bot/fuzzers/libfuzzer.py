@@ -1512,7 +1512,9 @@ def use_radamsa_mutator_plugin(extra_env):
     return False
 
   # TODO(mpherman): Get real path for shared object
-  radamsa_path = "HARDCODED PATH TO SO"
+  radamsa_path = os.path.join(
+      environment.get_value('ROOT_DIR'), 'resources', 'platform', 'linux',
+      'libradamsa.so')
   extra_env['LD_PRELOAD'] = radamsa_path
   return True
 
