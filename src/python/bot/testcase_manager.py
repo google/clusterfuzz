@@ -994,26 +994,6 @@ def get_command_line_for_application(file_to_run='',
   command = command.replace('%TMP_DIR%', temp_directory)
   command = command.replace('%USER_PROFILE_DIR%', user_profile_directory)
 
-  # Though we attempt to pass all flags that have been used to run html as
-  # a test in our content shell job types for backwards compatibility, a
-  # deprecation warning in recent revisions now causes it to fail. Remove
-  # the --run-layout-test flag to avoid this.
-  content_shell_app_names = [
-      'content_shell', 'content_shell.exe', 'Content Shell'
-  ]
-
-  # In some cases, APP_REVISION is not an integer. In these cases, we assume
-  # the revisions are recent enough that we should remove the command line.
-  # This primarily affects impact tasks.
-  try:
-    revision = int(environment.get_value('APP_REVISION', 0))
-  except ValueError:
-    revision = 0
-
-  if (environment.get_value('APP_NAME') in content_shell_app_names and
-      (revision == 0 or revision >= 558998)):
-    command = command.replace(' --run-layout-test', '')
-
   if plt == 'ANDROID' and not launcher:
     # Initial setup phase for command line.
     if write_command_line_file:

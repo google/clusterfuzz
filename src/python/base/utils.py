@@ -16,6 +16,7 @@
 from builtins import map
 from builtins import range
 from builtins import str
+from future import utils as future_utils
 from past.builtins import basestring
 
 from future import standard_library
@@ -791,16 +792,20 @@ def write_data_to_file(content, file_path, append=False):
   file_mode = 'ab' if append else 'wb'
   retry_limit = environment.get_value('FAIL_RETRIES')
 
-  # TODO(mbarbella): Require callers to pass strings or bytes then reduce this
-  # back to the original retry limit.
+  # TODO(mbarbella): One extra iteration is allowed for the type conversion hack
+  # included here. Once this function is converted to only accept bytes-like
+  # objects, it should be adjusted back to the normal retry limit.
   for _ in range(retry_limit + 1):
     try:
       with open(file_path, file_mode) as file_handle:
         file_handle.write(content)
     except TypeError:
+      # If we saw a TypeError, content was not bytes-like. Convert it.
       content = str(content).encode('utf-8')
       continue
     except EnvironmentError:
+      # An EnvironmentError signals a problem writing the file. Retry in case
+      # it was a spurious error.
       logs.log_warn('Error occurred while writing %s, retrying.' % file_path)
       time.sleep(random.uniform(1, failure_wait_interval))
       continue
@@ -937,3 +942,8 @@ def cpu_count():
 
   return environment.get_value('CPU_COUNT_OVERRIDE',
                                multiprocessing.cpu_count())
+
+
+# TODO(mbarbella): Delete this once fully migrated to Python 3.
+def newstr_to_native_str(s):
+  return future_utils.native(str(s)).encode()

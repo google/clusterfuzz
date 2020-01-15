@@ -14,8 +14,6 @@
 """Process handling utilities."""
 
 from builtins import object
-from builtins import str
-from future import utils as future_utils
 
 import os
 import subprocess
@@ -279,11 +277,11 @@ class ProcessRunner(object):
 
     # TODO(mbarbella): Remove this after the Python 3 conversion. Subprocess
     # contains some explicit type checks, causing errors when newstrs are used.
-    command = [future_utils.native(str(x)).decode() for x in command]
+    command = [utils.newstr_to_native_str(x) for x in command]
     if env:
       env = {
-          future_utils.native(str(k)).decode():
-          future_utils.native(str(v)).decode() for k, v in env.items()
+          utils.newstr_to_native_str(k): utils.newstr_to_native_str(v)
+          for k, v in env.items()
       }
 
     return ChildProcess(

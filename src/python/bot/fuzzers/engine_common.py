@@ -17,7 +17,6 @@ from __future__ import print_function
 from builtins import object
 from builtins import range
 from builtins import str
-from future import utils as future_utils
 
 import contextlib
 import glob
@@ -302,8 +301,7 @@ def find_fuzzer_path(build_directory, fuzzer_name):
   # TODO(mbarbella): Remove this after the Python 3 migration. If newstrs are
   # passed to the os library, this can throw exceptions while attempting to
   # encode file paths as unicode, as they are not guaranteed to be valid.
-  for root, _, files in os.walk(
-      future_utils.native(str(build_directory)).encode()):
+  for root, _, files in os.walk(utils.newstr_to_native_str(build_directory)):
     for filename in files:
       if (legacy_name_prefix + filename == fuzzer_name or
           filename == fuzzer_filename):
