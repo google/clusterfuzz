@@ -1511,10 +1511,10 @@ def use_radamsa_mutator_plugin(extra_env):
   if environment.platform() == "WINDOWS":
     return False
 
-  # TODO(mpherman): Get real path for shared object
   radamsa_path = os.path.join(
       environment.get_value('ROOT_DIR'), 'resources', 'platform', 'linux',
       'libradamsa.so')
+
   extra_env['LD_PRELOAD'] = radamsa_path
   return True
 
@@ -1637,9 +1637,9 @@ def pick_strategies(strategy_pool, fuzzer_path, corpus_directory,
       use_mutator_plugin(target_name, extra_env)):
     fuzzing_strategies.append(strategy.MUTATOR_PLUGIN_STRATEGY.name)
 
-  if (strategy_pool.do_strategy(strategy.RADAMSA_MUTATOR_PLUGIN_STRATEGY) and
+  if (strategy_pool.do_strategy(strategy.MUTATOR_PLUGIN_RADAMSA_STRATEGY) and
       use_radamsa_mutator_plugin(extra_env)):
-    fuzzing_strategies.append(strategy.RADAMSA_MUTATOR_PLUGIN_STRATEGY.name)
+    fuzzing_strategies.append(strategy.MUTATOR_PLUGIN_RADAMSA_STRATEGY.name)
 
   return StrategyInfo(fuzzing_strategies, arguments, additional_corpus_dirs,
                       extra_env, use_dataflow_tracing, is_mutations_run)
