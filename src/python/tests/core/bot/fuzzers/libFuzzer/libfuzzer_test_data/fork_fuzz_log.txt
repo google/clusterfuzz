@@ -1,0 +1,23 @@
+Command: /mnt/scratch0/clusterfuzz/resources/platform/linux/minijail0 -f /tmp/tmpL48QXz -U -m '0 1337 1' -T static -c 0 -n -v -p -l -I -k proc,/proc,proc,1 -P /mnt/scratch0/clusterfuzz/bot/inputs/fuzzer-testcases-disk/temp-1062366/tmpo4sx0e -b /mnt/scratch0/clusterfuzz/bot/inputs/fuzzer-testcases-disk/temp-1062366/tmpczzzLy,/tmp,1 -b /lib,/lib,0 -b /lib32,/lib32,0 -b /lib64,/lib64,0 -b /usr/lib,/usr/lib,0 -b /usr/lib32,/usr/lib32,0 -b /mnt/scratch0/clusterfuzz/bot/builds/clusterfuzz-builds_zlib_b798cdb6c6db308d8c54cde60579b7897243b308/revisions,/mnt/scratch0/clusterfuzz/bot/builds/clusterfuzz-builds_zlib_b798cdb6c6db308d8c54cde60579b7897243b308/revisions,0 -b /mnt/scratch0/clusterfuzz/bot/builds/clusterfuzz-builds-dataflow_zlib_293cddb7b1264b5228116e2535684a23e3a71181/dataflow,/mnt/scratch0/clusterfuzz/bot/builds/clusterfuzz-builds-dataflow_zlib_293cddb7b1264b5228116e2535684a23e3a71181/dataflow,0 -b /mnt/scratch0/clusterfuzz/bot/builds/clusterfuzz-builds_zlib_b798cdb6c6db308d8c54cde60579b7897243b308/revisions,/out,0 -b /mnt/scratch0/clusterfuzz/bot/inputs/fuzzer-testcases-disk/temp-1062366/new,/new,1 -b /mnt/scratch0/clusterfuzz/bot/inputs/data-bundles/global/zlib_uncompress2_fuzzer,/zlib_uncompress2_fuzzer,1 -b /mnt/scratch0/clusterfuzz/bot/inputs/fuzzer-testcases,/fuzzer-testcases,1 /mnt/scratch0/clusterfuzz/bot/builds/clusterfuzz-builds_zlib_b798cdb6c6db308d8c54cde60579b7897243b308/revisions/zlib_uncompress2_fuzzer -timeout=25 -rss_limit_mb=2560 -collect_data_flow=/mnt/scratch0/clusterfuzz/bot/builds/clusterfuzz-builds-dataflow_zlib_293cddb7b1264b5228116e2535684a23e3a71181/dataflow/zlib_uncompress2_fuzzer -fork=1 -artifact_prefix=/fuzzer-testcases/ -max_total_time=6150 -print_final_stats=1 /new /zlib_uncompress2_fuzzer
+Bot: oss-fuzz-linux-zone3-worker-zlib-ncdx
+Time ran: 6258.58569407
+
+INFO: Seed: 96674931
+INFO: Loaded 1 modules   (664 inline 8-bit counters): 664 [0x7c7b50, 0x7c7de8),
+INFO: Loaded 1 PC tables (664 PCs): 664 [0x5846f8,0x587078),
+INFO: -fork=1: fuzzing in separate process(s)
+INFO: -fork=1: 648 seed inputs, starting to fuzz in /tmp/libFuzzerTemp.1.dir
+#59248: cov: 300 ft: 1346 corp: 648 exec/s 29624 oom/timeout/crash: 0/0/0 time: 3s job: 1 dft_time: 1
+#122564: cov: 300 ft: 1346 corp: 648 exec/s 21105 oom/timeout/crash: 0/0/0 time: 7s job: 2 dft_time: 1
+#183056: cov: 300 ft: 1346 corp: 648 exec/s 15123 oom/timeout/crash: 0/0/0 time: 13s job: 3 dft_time: 1
+#283280: cov: 300 ft: 1346 corp: 648 exec/s 20044 oom/timeout/crash: 0/0/0 time: 20s job: 4 dft_time: 1
+#397256: cov: 300 ft: 1346 corp: 648 exec/s 18996 oom/timeout/crash: 0/0/0 time: 27s job: 5 dft_time: 1
+#508977: cov: 300 ft: 1346 corp: 648 exec/s 15960 oom/timeout/crash: 0/0/0 time: 36s job: 6 dft_time: 1
+#623899: cov: 300 ft: 1346 corp: 648 exec/s 14365 oom/timeout/crash: 0/0/0 time: 46s job: 7 dft_time: 2
+#770395: cov: 300 ft: 1347 corp: 649 exec/s 16277 oom/timeout/crash: 0/0/0 time: 57s job: 8 dft_time: 1
+#83688424: cov: 300 ft: 1347 corp: 649 exec/s 21229 oom/timeout/crash: 0/0/0 time: 6037s job: 108 dft_time: 0
+#84955243: cov: 300 ft: 1347 corp: 649 exec/s 11516 oom/timeout/crash: 0/0/0 time: 6147s job: 109 dft_time: 0
+#86430386: cov: 300 ft: 1347 corp: 649 exec/s 13289 oom/timeout/crash: 0/0/0 time: 6258s job: 110 dft_time: 0
+INFO: fuzzed for 6258 seconds, wrapping up soon
+INFO: exiting: 0 time: 6258s
+cf::fuzzing_strategies: fork:1,dataflow_tracing:1
