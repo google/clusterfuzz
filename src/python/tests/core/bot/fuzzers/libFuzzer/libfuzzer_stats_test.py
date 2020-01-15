@@ -131,7 +131,7 @@ class PerformanceStatsTest(unittest.TestCase):
 
   def test_parse_log_and_stats_go_fork_fuzz(self):
     """Test stats parsing and additional performance features extraction
-    without applying of stat_overrides for a Go fuzz target in form mode."""
+    without applying of stat_overrides for a Go fuzz target in fork mode."""
     log_lines = self._read_test_data('go_fork_fuzz_log.txt')
     parsed_stats = stats.parse_performance_features(log_lines, [],
                                                     ['-max_len=1337'])
