@@ -291,11 +291,8 @@ class LibFuzzerEngine(engine.Engine):
 
     # Extend parsed stats by additional performance features.
     parsed_stats.update(
-        stats.parse_performance_features(
-            log_lines,
-            options.strategies,
-            options.arguments,
-            include_strategies=False))
+        stats.parse_performance_features(log_lines, options.strategies,
+                                         options.arguments))
 
     # Set some initial stat overrides.
     timeout_limit = fuzzer_utils.extract_argument(

@@ -162,10 +162,7 @@ def process_strategies(strategies, name_modifier=strategy_column_name):
   return stats
 
 
-def parse_performance_features(log_lines,
-                               strategies,
-                               arguments,
-                               include_strategies=True):
+def parse_performance_features(log_lines, strategies, arguments):
   """Extract stats for performance analysis."""
   # TODO(ochang): Remove include_strategies once refactor is complete.
   # Initialize stats with default values.
@@ -202,13 +199,12 @@ def parse_performance_features(log_lines,
   stats['strategy_selection_method'] = environment.get_value(
       'STRATEGY_SELECTION_METHOD', default_value='default')
 
-  if include_strategies:
-    # Initialize all strategy stats as disabled by default.
-    for strategy_type in strategy.LIBFUZZER_STRATEGY_LIST:
-      stats[strategy_column_name(strategy_type.name)] = 0
+  # Initialize all strategy stats as disabled by default.
+  for strategy_type in strategy.LIBFUZZER_STRATEGY_LIST:
+    stats[strategy_column_name(strategy_type.name)] = 0
 
-    # Process fuzzing strategies used.
-    stats.update(parse_fuzzing_strategies(log_lines, strategies))
+  # Process fuzzing strategies used.
+  stats.update(parse_fuzzing_strategies(log_lines, strategies))
 
   (stats['log_lines_unwanted'], stats['log_lines_from_engine'],
    stats['log_lines_ignored']) = calculate_log_lines(log_lines)
