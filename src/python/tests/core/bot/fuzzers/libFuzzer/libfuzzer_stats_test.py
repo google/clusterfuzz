@@ -121,8 +121,28 @@ class PerformanceStatsTest(unittest.TestCase):
 
   def test_parse_log_and_stats_go_fuzz(self):
     """Test stats parsing and additional performance features extraction
-    without applying of stat_overrides."""
+    without applying of stat_overrides for a Go fuzz target."""
     log_lines = self._read_test_data('go_fuzz_log.txt')
+    parsed_stats = stats.parse_performance_features(log_lines, [],
+                                                    ['-max_len=1337'])
+    self.assertEqual(0, parsed_stats['crash_count'])
+    self.assertEqual(0, parsed_stats['corpus_crash_count'])
+    self.assertEqual(0, parsed_stats['startup_crash_count'])
+
+  def test_parse_log_and_stats_go_fork_fuzz(self):
+    """Test stats parsing and additional performance features extraction
+    without applying of stat_overrides for a Go fuzz target in form mode."""
+    log_lines = self._read_test_data('go_fork_fuzz_log.txt')
+    parsed_stats = stats.parse_performance_features(log_lines, [],
+                                                    ['-max_len=1337'])
+    self.assertEqual(0, parsed_stats['crash_count'])
+    self.assertEqual(0, parsed_stats['corpus_crash_count'])
+    self.assertEqual(0, parsed_stats['startup_crash_count'])
+
+  def test_parse_log_and_stats_fork_fuzz(self):
+    """Test stats parsing and additional performance features extraction
+    without applying of stat_overrides for a fuzz target in fork mode."""
+    log_lines = self._read_test_data('fork_fuzz_log.txt')
     parsed_stats = stats.parse_performance_features(log_lines, [],
                                                     ['-max_len=1337'])
     self.assertEqual(0, parsed_stats['crash_count'])
