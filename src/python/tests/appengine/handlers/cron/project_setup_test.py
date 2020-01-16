@@ -1313,6 +1313,7 @@ class OssFuzzProjectSetupTest(unittest.TestCase):
         ('LIB6_LINUX', 'libFuzzer', 'libfuzzer_msan_lib6'),
         ('LIB6_LINUX', 'libFuzzer', 'libfuzzer_ubsan_lib6'),
         ('LIB6_LINUX', 'afl', 'afl_asan_lib6'),
+        ('LIB1_LINUX', 'honggfuzz', 'honggfuzz_asan_lib1'),
     ])
 
     all_permissions = [
@@ -1475,6 +1476,24 @@ class OssFuzzProjectSetupTest(unittest.TestCase):
         'is_prefix': False,
         'email': u'vendor2@example.com',
         'entity_name': u'afl_asan_lib6',
+        'auto_cc': 1
+    }, {
+        'entity_kind': 1,
+        'is_prefix': False,
+        'email': u'primary@example.com',
+        'entity_name': u'honggfuzz_asan_lib1',
+        'auto_cc': 1
+    }, {
+        'entity_kind': 1,
+        'is_prefix': False,
+        'email': u'user@example.com',
+        'entity_name': u'honggfuzz_asan_lib1',
+        'auto_cc': 1
+    }, {
+        'entity_kind': 1,
+        'is_prefix': False,
+        'email': u'user2@googlemail.com',
+        'entity_name': u'honggfuzz_asan_lib1',
         'auto_cc': 1
     }])
 
