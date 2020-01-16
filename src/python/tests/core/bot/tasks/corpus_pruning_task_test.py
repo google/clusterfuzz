@@ -304,7 +304,8 @@ class CorpusPruningTestFuchsia(unittest.TestCase, BaseTest):
     ], corpus)
     quarantine = os.listdir(self.quarantine_dir)
     self.assertEqual(1, len(quarantine))
-    self.assertItemsEqual(['crash-7a8dc3985d2a90fb6e62e94910fc11d31949c348'], quarantine)
+    self.assertItemsEqual(['crash-7a8dc3985d2a90fb6e62e94910fc11d31949c348'],
+                          quarantine)
 
 
 class CorpusPruningTestUntrusted(
