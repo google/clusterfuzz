@@ -155,7 +155,7 @@ JOB_MAP = {
 
 DEFAULT_ARCHITECTURES = ['x86_64']
 DEFAULT_SANITIZERS = ['address', 'undefined']
-DEFAULT_ENGINES = ['libfuzzer', 'afl']
+DEFAULT_ENGINES = ['libfuzzer', 'afl', 'honggfuzz']
 
 
 def _to_experimental_job(job_info):
