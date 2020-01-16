@@ -87,7 +87,8 @@ class HTMLMinimizer(minimizer.Minimizer):  # pylint:disable=abstract-method
     # Do an initial line-by-line minimization to filter out noise.
     line_minimizer = delta_minimizer.DeltaMinimizer(self.test_function,
                                                     **self.kwargs)
-    data = line_minimizer.minimize(data)
+    for _ in range(2):
+      data = line_minimizer.minimize(data)
 
     tokens = self.get_tokens_and_metadata(data)
     for index, token in enumerate(tokens):
