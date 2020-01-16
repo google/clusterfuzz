@@ -1054,7 +1054,7 @@ def do_js_minimization(test_function, get_temp_file, data, deadline, threads,
   # Start by using a generic line minimizer on the test.
   for _ in range(2):
     data = do_line_minimization(test_function, get_temp_file, data, deadline,
-                              threads, cleanup_interval, delete_temp_files)
+                                threads, cleanup_interval, delete_temp_files)
 
   tokenizer = AntlrTokenizer(JavaScriptLexer)
 
