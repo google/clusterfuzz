@@ -94,7 +94,9 @@ class BaseTest(object):
     self.corpus_dir = os.path.join(self.corpus_bucket, 'corpus')
     self.quarantine_dir = os.path.join(self.corpus_bucket, 'quarantine')
     self.shared_corpus_dir = os.path.join(self.corpus_bucket, 'shared')
+    self.fuchsia_corpus_dir = os.path.join(self.corpus_bucket, 'fuchsia')
 
+    shutil.copytree(os.path.join(TEST_DIR, 'fuchsia'), self.fuchsia_corpus_dir)
     shutil.copytree(os.path.join(TEST_DIR, 'corpus'), self.corpus_dir)
     shutil.copytree(os.path.join(TEST_DIR, 'quarantine'), self.quarantine_dir)
     shutil.copytree(os.path.join(TEST_DIR, 'shared'), self.shared_corpus_dir)
@@ -276,7 +278,7 @@ class CorpusPruningTestFuchsia(unittest.TestCase, BaseTest):
         platform='FUCHSIA',
         environment_string=env_string).put()
     data_types.FuzzTarget(
-        binary='example_fuzzers/overflow_fuzzer',
+        binary='example_fuzzers/trap_fuzzer',
         engine='libFuzzer',
         project='fuchsia').put()
 
@@ -290,10 +292,19 @@ class CorpusPruningTestFuchsia(unittest.TestCase, BaseTest):
 
   def test_prune(self):
     """Basic pruning test."""
-    # TODO(flowerhack): Actually test this.
+    self.corpus_dir = self.fuchsia_corpus_dir
     corpus_pruning_task.execute_task(
-        'libFuzzer_fuchsia_example_fuzzers-overflow_fuzzer',
+        'libFuzzer_fuchsia_example_fuzzers-trap_fuzzer',
         'libfuzzer_asan_fuchsia')
+    corpus = os.listdir(self.corpus_dir)
+    self.assertEqual(2, len(corpus))
+    self.assertItemsEqual([
+        'c5a976de7b5231fa616fbeac8a2d2805c1e84ee2',
+        '31836aeaab22dc49555a97edb4c753881432e01d',
+    ], corpus)
+    quarantine = os.listdir(self.quarantine_dir)
+    self.assertEqual(1, len(quarantine))
+    self.assertItemsEqual(['crash-7a8dc3985d2a90fb6e62e94910fc11d31949c348'], quarantine)
 
 
 class CorpusPruningTestUntrusted(
