@@ -1508,6 +1508,7 @@ def use_radamsa_mutator_plugin(extra_env):
   radamsa shared object to LD_PRELOAD in |extra_env| and return True."""
 
   # Radamsa will only work on LINUX ASAN jobs
+  # TODO Include Architecture Info in Job Definition and exclude I386
   if environment.platform() != "LINUX" or environment.get_value(
       "MEMORY_TOOL") != "ASAN":
     return False
