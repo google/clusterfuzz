@@ -39,7 +39,7 @@ FORK_STRATEGY = Strategy(name='fork', probability=0.50, manually_enable=False)
 MUTATOR_PLUGIN_STRATEGY = Strategy(
     name='mutator_plugin', probability=0.50, manually_enable=True)
 MUTATOR_PLUGIN_RADAMSA_STRATEGY = Strategy(
-    name='mutator_plugin_radamsa', probability=0.01, manually_enable=False)
+    name='mutator_plugin_radamsa', probability=.20, manually_enable=False)
 RANDOM_MAX_LENGTH_STRATEGY = Strategy(
     name='random_max_len', probability=0.15, manually_enable=False)
 RECOMMENDED_DICTIONARY_STRATEGY = Strategy(

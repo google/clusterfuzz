@@ -1509,14 +1509,14 @@ def use_radamsa_mutator_plugin(extra_env):
 
   # Radamsa will only work on LINUX ASAN jobs.
   # TODO(mpherman) Include Architecture Info in Job Definition and exclude I386
-  if environment.platform() != "LINUX" or environment.get_value(
-      "MEMORY_TOOL") != "ASAN":
+  if environment.platform() != 'LINUX' or environment.get_value(
+      'MEMORY_TOOL') != 'ASAN':
     return False
 
-  radamsa_path = os.path.join(
-      environment.get_value('ROOT_DIR'), 'resources', 'platform', 'linux',
-      'libradamsa.so')
+  radamsa_path = os.path.join(environment.get_platform_resources_directory(),
+                              'libradamsa.so')
 
+  logs.log('Using Radamsa mutator plugin : %s' % radamsa_path)
   extra_env['LD_PRELOAD'] = radamsa_path
   return True
 
