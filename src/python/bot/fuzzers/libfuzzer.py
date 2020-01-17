@@ -71,6 +71,9 @@ MAX_OUTPUT_LEN = 1 * 1024 * 1024  # 1 MB
 CRASH_TESTCASE_REGEX = (r'.*Test unit written to\s*'
                         r'(.*(crash|oom|timeout|leak)-.*)')
 
+# Currently matches oss-fuzz/infra/base-images/base-runner/collect_dft#L34.
+DATAFLOW_TRACE_DIR_SUFFIX = '_dft'
+
 
 class LibFuzzerException(Exception):
   """LibFuzzer exception."""
@@ -1546,13 +1549,15 @@ def pick_strategies(strategy_pool, fuzzer_path, corpus_directory,
   if use_dataflow_tracing:
     dataflow_binary_path = os.path.join(
         dataflow_build_dir, os.path.relpath(fuzzer_path, build_directory))
-    if os.path.exists(dataflow_binary_path):
+    dataflow_trace_dir = dataflow_binary_path + DATAFLOW_TRACE_DIR_SUFFIX
+    if os.path.exists(dataflow_trace_dir):
       arguments.append(
-          '%s%s' % (constants.COLLECT_DATA_FLOW_FLAG, dataflow_binary_path))
+          '%s%s' % (constants.DATA_FLOW_TRACE_FLAG, dataflow_trace_dir))
+      arguments.append(constants.FOCUS_FUNCTION_AUTO_ARGUMENT)
       fuzzing_strategies.append(strategy.DATAFLOW_TRACING_STRATEGY.name)
     else:
       logs.log_error(
-          'Fuzz target is not found in dataflow build, skiping strategy.')
+          'Dataflow trace is not found in dataflow build, skipping strategy.')
       use_dataflow_tracing = False
 
   # Generate new testcase mutations using radamsa, etc.
@@ -1599,8 +1604,8 @@ def pick_strategies(strategy_pool, fuzzer_path, corpus_directory,
   is_ephemeral = environment.is_ephemeral()
 
   if (not is_fuchsia and not is_android and not is_ephemeral and
-      (use_dataflow_tracing or
-       strategy_pool.do_strategy(strategy.FORK_STRATEGY))):
+      not use_dataflow_tracing and
+       strategy_pool.do_strategy(strategy.FORK_STRATEGY)):
     max_fuzz_threads = environment.get_value('MAX_FUZZ_THREADS', 1)
     num_fuzz_processes = max(1, utils.cpu_count() // max_fuzz_threads)
     arguments.append('%s%d' % (constants.FORK_FLAG, num_fuzz_processes))
