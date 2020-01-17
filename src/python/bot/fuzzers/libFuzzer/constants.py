@@ -22,9 +22,11 @@ defined in this function that end with the suffix "_FLAG" should contain
 # libFuzzer flags.
 ARTIFACT_PREFIX_FLAG = '-artifact_prefix='
 
-COLLECT_DATA_FLOW_FLAG = '-collect_data_flow='
+DATA_FLOW_TRACE_FLAG = '-data_flow_trace='
 
 DICT_FLAG = '-dict='
+
+FOCUS_FUNCTION_FLAG = '-focus_function='
 
 FORK_FLAG = '-fork='
 
