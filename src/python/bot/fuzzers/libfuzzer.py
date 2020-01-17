@@ -1508,13 +1508,13 @@ def use_radamsa_mutator_plugin(extra_env):
   radamsa shared object to LD_PRELOAD in |extra_env| and return True."""
 
   # Radamsa will only work on LINUX ASAN jobs.
-  # TODO(mpherman) Include Architecture Info in Job Definition and exclude I386
+  # TODO(mpherman) Include Architecture Info in Job Definition and exclude i386.
   if environment.platform() != 'LINUX' or environment.get_value(
       'MEMORY_TOOL') != 'ASAN':
     return False
 
   radamsa_path = os.path.join(environment.get_platform_resources_directory(),
-                              'libradamsa.so')
+                              'radamsa', 'libradamsa.so')
 
   logs.log('Using Radamsa mutator plugin : %s' % radamsa_path)
   extra_env['LD_PRELOAD'] = radamsa_path
