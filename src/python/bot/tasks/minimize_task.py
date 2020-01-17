@@ -1052,8 +1052,11 @@ def do_js_minimization(test_function, get_temp_file, data, deadline, threads,
                        cleanup_interval, delete_temp_files):
   """Javascript minimization strategy."""
   # Start by using a generic line minimizer on the test.
-  data = do_line_minimization(test_function, get_temp_file, data, deadline,
-                              threads, cleanup_interval, delete_temp_files)
+  # Do two line minimizations to make up for the fact that minimzations on bots
+  # don't always minimize as much as they can.
+  for _ in range(2):
+    data = do_line_minimization(test_function, get_temp_file, data, deadline,
+                                threads, cleanup_interval, delete_temp_files)
 
   tokenizer = AntlrTokenizer(JavaScriptLexer)
 
