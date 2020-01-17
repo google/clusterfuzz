@@ -189,6 +189,7 @@ class CorpusPruningTest(unittest.TestCase, BaseTest):
     self.assertEqual(1337, testcases[0].crash_revision)
     self.assertEqual('test_fuzzer',
                      testcases[0].get_metadata('fuzzer_binary_name'))
+    self.assertEqual('label1,label2', testcases[0].get_metadata('issue_labels'))
 
     today = datetime.datetime.utcnow().date()
     # get_coverage_information on test_fuzzer rather than libFuzzer_test_fuzzer
