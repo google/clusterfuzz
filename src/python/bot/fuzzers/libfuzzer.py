@@ -1605,7 +1605,7 @@ def pick_strategies(strategy_pool, fuzzer_path, corpus_directory,
 
   if (not is_fuchsia and not is_android and not is_ephemeral and
       not use_dataflow_tracing and
-       strategy_pool.do_strategy(strategy.FORK_STRATEGY)):
+      strategy_pool.do_strategy(strategy.FORK_STRATEGY)):
     max_fuzz_threads = environment.get_value('MAX_FUZZ_THREADS', 1)
     num_fuzz_processes = max(1, utils.cpu_count() // max_fuzz_threads)
     arguments.append('%s%d' % (constants.FORK_FLAG, num_fuzz_processes))
