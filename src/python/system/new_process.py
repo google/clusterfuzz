@@ -277,7 +277,6 @@ class ProcessRunner(object):
 
     # TODO(mbarbella): Remove this after the Python 3 conversion. Subprocess
     # contains some explicit type checks, causing errors when newstrs are used.
-    command = [utils.newstr_to_native_str(x) for x in command]
     if env:
       env = {
           utils.newstr_to_native_str(k): utils.newstr_to_native_str(v)

@@ -22,8 +22,8 @@ import zipfile
 
 from metrics import logs
 
-FILE_ATTRIBUTE = '010'
-SYMLINK_ATTRIBUTE = '012'
+FILE_ATTRIBUTE = '0o10'
+SYMLINK_ATTRIBUTE = '0o12'
 
 # File extensions for archive files.
 ZIP_FILE_EXTENSIONS = ['.zip']
