@@ -18,6 +18,8 @@ from libs.issue_management.jira.issue_tracker_manager import (
     IssueTrackerManager)
 from config import db_config
 
+import datetime
+
 
 class Issue(issue_tracker.Issue):
   """Represents an issue."""
@@ -34,12 +36,12 @@ class Issue(issue_tracker.Issue):
   @property
   def issue_tracker(self):
     """The IssueTracker for this issue."""
-    return IssueTracker(self._itm)
+    return IssueTracker(self.itm)
 
   @property
   def id(self):
     """The issue identifier."""
-    return self.jira_issue.id
+    return self.jira_issue.key
 
   @property
   def title(self):
@@ -68,6 +70,10 @@ class Issue(issue_tracker.Issue):
 
   @property
   def closed_time(self):
+    res_date = self.jira_issue.fields.resolutiondate
+    if res_date is not None:
+      date = res_date[:res_date.index('T')]
+      return datetime.datetime.strptime(date, '%Y-%m-%d')
     return self.jira_issue.fields.resolutiondate
 
   @property
@@ -160,9 +166,10 @@ class IssueTracker(issue_tracker.IssueTracker):
 
   def find_issues(self, keywords=None, only_open=False):
     """Find issues."""
-    search_text = _get_search_text(keywords)
+    search_text = 'project = {project_name}' + _get_search_text(keywords)
+    search_text.format(project_name=self._itm.project_name)
     if only_open:
-      search_text += 'AND resolution = Unresolved'
+      search_text += ' AND resolution = Unresolved'
     issues = self._itm.get_issues(search_text)
     return [Issue(self._itm, issue) for issue in issues]
 
@@ -193,8 +200,8 @@ def get_issue_tracker(project_name, config):  # pylint: disable=unused-argument
 
 def _get_search_text(keywords):
   """Get search text."""
-  search_text = ' '.join(['"{}"'.format(keyword) for keyword in keywords])
-  search_text = search_text.replace(':', ' ')
-  search_text = search_text.replace('=', ' ')
+  search_text = ''
+  for keyword in keywords:
+    search_text += ' AND text ~ "%s"' % keyword
 
   return search_text
