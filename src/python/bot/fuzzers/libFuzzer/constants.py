@@ -26,7 +26,7 @@ DATA_FLOW_TRACE_FLAG = '-data_flow_trace='
 
 DICT_FLAG = '-dict='
 
-FOCUS_FUNCTION_AUTO_ARGUMENT = '-focus_function=auto'
+FOCUS_FUNCTION_FLAG = '-focus_function='
 
 FORK_FLAG = '-fork='
 

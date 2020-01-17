@@ -1414,7 +1414,8 @@ def remove_fuzzing_arguments(arguments):
       constants.MAX_LEN_FLAG,  # This may shrink the testcases.
       constants.RUNS_FLAG,  # Make sure we don't have any '-runs' argument.
       constants.FORK_FLAG,  # It overrides `-merge` argument.
-      constants.COLLECT_DATA_FLOW_FLAG,  # Used for fuzzing only.
+      constants.DATA_FLOW_TRACE_FLAG,  # Used for fuzzing only.
+      constants.FOCUS_FUNCTION_FLAG,  # Used for fuzzing only.
   ]:
     fuzzer_utils.extract_argument(arguments, argument)
 
@@ -1553,7 +1554,7 @@ def pick_strategies(strategy_pool, fuzzer_path, corpus_directory,
     if os.path.exists(dataflow_trace_dir):
       arguments.append(
           '%s%s' % (constants.DATA_FLOW_TRACE_FLAG, dataflow_trace_dir))
-      arguments.append(constants.FOCUS_FUNCTION_AUTO_ARGUMENT)
+      arguments.append('%s%s' % (constants.FOCUS_FUNCTION_FLAG, 'auto'))
       fuzzing_strategies.append(strategy.DATAFLOW_TRACING_STRATEGY.name)
     else:
       logs.log_error(
