@@ -16,6 +16,7 @@
   oauth2client 1.4.2. Therefore, we implement our own BigQuery client."""
 
 from builtins import object
+from builtins import range
 import collections
 import datetime
 import time
@@ -34,6 +35,10 @@ QUERY_TIMEOUT = 10 * 60
 QUERY_MAX_RESULTS = 10000
 QUERY_RETRY_COUNT = 3
 QUERY_RETRY_DELAY = 3
+
+# The actual limit is 10,000, but the documentation suggests using batches of
+# 500 rows at most (https://cloud.google.com/bigquery/quotas#streaminginserts).
+INSERT_BATCH_SIZE = 500
 
 
 @retry.wrap(
@@ -331,9 +336,9 @@ class Client(object):
       retries=QUERY_RETRY_COUNT,
       delay=QUERY_RETRY_DELAY,
       function='google_cloud_utils.big_query.Client.insert')
-  def insert(self, inserts):
+  def _insert_batch(self, inserts):
     # pylint: disable=line-too-long
-    """Insert multiple rows.
+    """Insert a single batch of rows to BigQuery.
 
     Args:
       inserts: a list of Inserts, each of which represents a row.
@@ -352,3 +357,30 @@ class Client(object):
         datasetId=self.dataset_id,
         tableId=self.table_id,
         body=body).execute()
+
+  @environment.local_noop
+  def insert(self, inserts):
+    # pylint: disable=line-too-long
+    """Insert the given rows and batch them if needed.
+
+    Args:
+        inserts: a list of Inserts, each of which represents a row.
+
+    Returns:
+      A json explained here:
+      https://cloud.google.com/bigquery/docs/reference/rest/v2/tabledata/insertAll
+    """
+    result = None
+    for i in range(0, len(inserts), INSERT_BATCH_SIZE):
+      response = self._insert_batch(
+          inserts[i:min(len(inserts), i + INSERT_BATCH_SIZE)])
+
+      # There is also quota for the total number of requests / rows per second.
+      time.sleep(1)
+
+      if not result:
+        result = response
+      else:
+        result['insertErrors'].extend(response['insertErrors'])
+
+    return result
