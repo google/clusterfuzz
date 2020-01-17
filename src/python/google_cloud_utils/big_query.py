@@ -370,7 +370,7 @@ class Client(object):
       A json explained here:
       https://cloud.google.com/bigquery/docs/reference/rest/v2/tabledata/insertAll
     """
-    result = None
+    result = {}
     for i in range(0, len(inserts), INSERT_BATCH_SIZE):
       response = self._insert_batch(
           inserts[i:min(len(inserts), i + INSERT_BATCH_SIZE)])
@@ -391,6 +391,6 @@ class Client(object):
         if result.get('insertErrors'):
           result['insertErrors'].extend(new_errors)
         else:
-          result = response
+          result['insertErrors'] = new_errors
 
     return result
