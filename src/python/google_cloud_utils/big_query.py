@@ -336,7 +336,7 @@ class Client(object):
       retries=QUERY_RETRY_COUNT,
       delay=QUERY_RETRY_DELAY,
       function='google_cloud_utils.big_query.Client.insert')
-  def insert_batch(self, inserts):
+  def _insert_batch(self, inserts):
     # pylint: disable=line-too-long
     """Insert a single batch of rows to BigQuery.
 
@@ -372,7 +372,7 @@ class Client(object):
     """
     result = None
     for i in range(0, len(inserts), INSERT_BATCH_SIZE):
-      response = self.insert_batch(
+      response = self._insert_batch(
           inserts[i:min(len(inserts), i + INSERT_BATCH_SIZE)])
 
       # There is also quota for the total number of requests / rows per second.
