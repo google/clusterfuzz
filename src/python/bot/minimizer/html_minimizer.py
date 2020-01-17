@@ -16,6 +16,7 @@
 from __future__ import absolute_import
 
 from builtins import object
+from builtins import range
 from builtins import str
 
 import functools
@@ -89,7 +90,10 @@ class HTMLMinimizer(minimizer.Minimizer):  # pylint:disable=abstract-method
     # Do an initial line-by-line minimization to filter out noise.
     line_minimizer = delta_minimizer.DeltaMinimizer(self.test_function,
                                                     **self.kwargs)
-    data = line_minimizer.minimize(data)
+    # Do two line minimizations to make up for the fact that minimzations on
+    # bots don't always minimize as much as they can.
+    for _ in range(2):
+      data = line_minimizer.minimize(data)
 
     tokens = self.get_tokens_and_metadata(data)
     for index, token in enumerate(tokens):

@@ -78,6 +78,7 @@ FUZZ_TARGET_WHITELISTED_BINARIES = [
     'afl-fuzz',
     'afl-showmap',
     'afl-tmin',
+    'honggfuzz',
     'llvm-symbolizer',
 ]
 
