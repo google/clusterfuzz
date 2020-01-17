@@ -379,8 +379,18 @@ class Client(object):
       time.sleep(1)
 
       if not result:
+        # Use result from the first batch, appending errors from the rest.
         result = response
       else:
-        result['insertErrors'].extend(response['insertErrors'])
+        # If there are new errors from the current batch, append to the result.
+        new_errors = response.get('insertErrors')
+        if not new_errors:
+          continue
+
+        # Apparently result may not have errors, be careful.
+        if result.get('insertErrors'):
+          result['insertErrors'].extend(new_errors)
+        else:
+          result = response
 
     return result
