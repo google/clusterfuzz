@@ -1595,7 +1595,6 @@ def pick_strategies(strategy_pool, fuzzer_path, corpus_directory,
     arguments.append(constants.VALUE_PROFILE_ARGUMENT)
     fuzzing_strategies.append(strategy.VALUE_PROFILE_STRATEGY.name)
 
-  # DataFlow Tracing requires fork mode, always use it with DFT strategy.
   # FIXME: Disable for now to avoid severe battery drainage. Stabilize and
   # re-enable with a lower process count.
   is_android = environment.platform() == 'ANDROID'
@@ -1604,6 +1603,8 @@ def pick_strategies(strategy_pool, fuzzer_path, corpus_directory,
   # Fork mode is disabled on ephemeral bots due to a bug on the platform.
   is_ephemeral = environment.is_ephemeral()
 
+  # Do not use fork mode for DFT-based fuzzing. This is needed in order to
+  # collect readable and actionable logs from fuzz targets running with DFT.
   if (not is_fuchsia and not is_android and not is_ephemeral and
       not use_dataflow_tracing and
       strategy_pool.do_strategy(strategy.FORK_STRATEGY)):
