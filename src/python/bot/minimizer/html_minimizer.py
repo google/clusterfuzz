@@ -88,6 +88,8 @@ class HTMLMinimizer(minimizer.Minimizer):  # pylint:disable=abstract-method
     # Do an initial line-by-line minimization to filter out noise.
     line_minimizer = delta_minimizer.DeltaMinimizer(self.test_function,
                                                     **self.kwargs)
+    # Do two line minimizations to make up for the fact that minimzations on
+    # bots don't always minimize as much as they can.
     for _ in range(2):
       data = line_minimizer.minimize(data)
 
