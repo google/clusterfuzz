@@ -133,8 +133,8 @@ def query_testcase(project_name, crash_type, crash_state, security_flag,
           -data_types.Testcase.timestamp).iter(
               limit=1,
               projection=[
-                  data_types.Testcase.bug_information,
-                  data_types.Testcase.group_bug_information
+                  'bug_information',
+                  'group_bug_information'
               ])
 
 
