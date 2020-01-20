@@ -311,9 +311,7 @@ def with_cloud_emulators(*emulator_names):
 
           if emulator_name == 'datastore':
             cls._context_generator = ndb_init.context()
-            context = cls._context_generator.__enter__()
-            context.set_memcache_policy(False)
-            context.set_cache_policy(False)
+            cls._context_generator.__enter__()
 
         super(Wrapped, cls).setUpClass()
 
