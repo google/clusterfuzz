@@ -32,10 +32,9 @@ import tempfile
 import threading
 import unittest
 
-from google.cloud import ndb
-
 from config import local_config
 from datastore import data_types
+from datastore import ndb_init
 from google_cloud_utils import pubsub
 from system import environment
 from system import process_handler
@@ -311,8 +310,7 @@ def with_cloud_emulators(*emulator_names):
             atexit.register(_emulators[emulator_name].cleanup)
 
           if emulator_name == 'datastore':
-            ndb_client = ndb.Client()
-            cls._context_generator = ndb_client.context()
+            cls._context_generator = ndb_init.context()
             context = cls._context_generator.__enter__()
             context.set_memcache_policy(False)
             context.set_cache_policy(False)

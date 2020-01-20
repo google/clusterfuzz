@@ -13,6 +13,7 @@
 # limitations under the License.
 """datastore_query tests."""
 # pylint: disable=protected-access
+from builtins import object
 from builtins import range
 import datetime
 import mock
@@ -181,13 +182,15 @@ class MockIterator(object):
   def __iter__(self):
     return self
 
-  def next(self):
+  def __next__(self):
     if self._index >= len(self._items):
       raise StopIteration
 
     result = self._items[self._index]
     self._index += 1
     return result
+
+  next = __next__
 
   def cursor_after(self):
     return None

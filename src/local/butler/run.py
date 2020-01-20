@@ -20,6 +20,7 @@ import os
 
 from local.butler import constants
 from src.python.config import local_config
+from src.python.datastore import ndb_init
 
 
 def execute(args):
@@ -38,8 +39,10 @@ def execute(args):
     print('Running in dry-run mode, no datastore writes are committed. '
           'For permanent modifications, re-run with --non-dry-run.')
 
-  script = importlib.import_module('local.butler.scripts.%s' % args.script_name)
-  script.execute(args)
+  with ndb_init.context():
+    script = importlib.import_module(
+        'local.butler.scripts.%s' % args.script_name)
+    script.execute(args)
 
   if not args.local:
     print()

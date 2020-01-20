@@ -65,7 +65,7 @@ class QueryIteratorWrapper(object):
   def __iter__(self):
     return self
 
-  def next(self):
+  def __next__(self):
     if not self._it.has_next():
       try:
         self._last_cursor = self._it.cursor_after()
@@ -73,6 +73,8 @@ class QueryIteratorWrapper(object):
         pass
 
     return next(self._it)
+
+  next = __next__
 
   def last_cursor(self):
     if not self._last_cursor:
@@ -86,8 +88,7 @@ class _Run(object):
 
   def __init__(self, query, **kwargs):
     self.query = query
-    self.result = QueryIteratorWrapper(
-        query.iter(produce_cursors=True, **kwargs))
+    self.result = QueryIteratorWrapper(query.iter(**kwargs))
 
 
 class _KeyQuery(object):

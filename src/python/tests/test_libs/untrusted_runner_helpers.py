@@ -21,8 +21,6 @@ import subprocess
 import tempfile
 import unittest
 
-from google.cloud import ndb
-
 from bot.tasks import commands
 from bot.untrusted_runner import file_host
 from bot.untrusted_runner import host

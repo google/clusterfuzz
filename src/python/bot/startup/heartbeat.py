@@ -26,12 +26,11 @@ import os
 import sys
 import time
 
-from google.cloud import ndb
-
 from base import dates
 from base import tasks
 from datastore import data_handler
 from datastore import data_types
+from datastore import ndb_init
 from metrics import logs
 from system import environment
 from system import process_handler
@@ -120,6 +119,5 @@ def main():
 
 
 if __name__ == '__main__':
-  ndb_client = ndb.Client()
-  with ndb_client.context():
+  with ndb_init.context():
     main()

@@ -36,6 +36,7 @@ import webapp2
 from base import utils
 from config import db_config
 from config import local_config
+from datastore import ndb_init
 from google_cloud_utils import storage
 from libs import auth
 from libs import form
@@ -264,16 +265,16 @@ class Handler(webapp2.RequestHandler):
     check_redirect_url(url)
     super(Handler, self).redirect(url, **kwargs)
 
-  # TODO(mbarbella): Delete this once the Python 3 migration is complete.
   def dispatch(self):
     """Dispatch a request and postprocess."""
-
+    # TODO(mbarbella): Delete this once the Python 3 migration is complete.
     @future_utils.as_native_str()
     def to_native_str(text):
       """Convert from future's newstr to a native str."""
       return text
 
-    super(Handler, self).dispatch()
+    with ndb_init.context():
+      super(Handler, self).dispatch()
 
     # Replace header values with Python 2-style strings after dispatching. There
     # is an explicit type check against str that causes issues with newstr here.

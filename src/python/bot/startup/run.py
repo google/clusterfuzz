@@ -24,13 +24,13 @@ import atexit
 import os
 import time
 
-from google.cloud import ndb
 import mozprocess
 
 from base import persistent_cache
 from base.untrusted import untrusted_noop
 from bot.tasks import update_task
 from datastore import data_handler
+from datastore import ndb_init
 from metrics import logs
 from system import environment
 from system import process_handler
@@ -196,6 +196,5 @@ def main():
 
 
 if __name__ == '__main__':
-  ndb_client = ndb.Client()
-  with ndb_client.context():
+  with ndb_init.context():
     main()
