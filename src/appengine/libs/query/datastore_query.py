@@ -54,12 +54,40 @@ def _combine(q1, q2):
   return result
 
 
+# TODO(ochang): Remove once bug is fixed.
+class QueryIteratorWrapper(object):
+  """Workaround for https://github.com/googleapis/python-ndb/issues/292."""
+
+  def __init__(self, it):
+    self._it = it
+    self._last_cursor = None
+
+  def __iter__(self):
+    return self
+
+  def next(self):
+    if not self._it.has_next():
+      try:
+        self._last_cursor = self._it.cursor_after()
+      except exceptions.BadArgumentError:
+        pass
+
+    return next(self._it)
+
+  def last_cursor(self):
+    if not self._last_cursor:
+      raise exceptions.BadArgumentError
+
+    return self._last_cursor
+
+
 class _Run(object):
   """Encapsulate a query and its run."""
 
   def __init__(self, query, **kwargs):
     self.query = query
-    self.result = query.iter(produce_cursors=True, **kwargs)
+    self.result = QueryIteratorWrapper(
+        query.iter(produce_cursors=True, **kwargs))
 
 
 class _KeyQuery(object):
@@ -179,17 +207,16 @@ class _KeyQuery(object):
     more_limit += 1
     more_runs = []
     for run in runs:
-      # try:
-      #   cursor = run.result.cursor_after()
-      # except exceptions.BadArgumentError as e:
-      #   # iterator had no results.
-      #   cursor = None
+      try:
+        cursor = run.result.last_cursor()
+      except exceptions.BadArgumentError:
+        # iterator had no results.
+        cursor = None
 
       more_runs.append(
           _Run(
               run.query,
-              # TODO(ochang): Use cursor once bug is fixed. It's more efficient.
-              offset=offset + limit,
+              start_cursor=cursor,
               keys_only=True,
               projection=None,
               limit=more_limit))
