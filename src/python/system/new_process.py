@@ -14,6 +14,7 @@
 """Process handling utilities."""
 
 from builtins import object
+
 import os
 import subprocess
 import tempfile
@@ -273,6 +274,14 @@ class ProcessRunner(object):
     env = popen_args.pop('env', os.environ.copy())
     if extra_env is not None:
       env.update(extra_env)
+
+    # TODO(mbarbella): Remove this after the Python 3 conversion. Subprocess
+    # contains some explicit type checks, causing errors when newstrs are used.
+    if env:
+      env = {
+          utils.newstr_to_native_str(k): utils.newstr_to_native_str(v)
+          for k, v in env.items()
+      }
 
     return ChildProcess(
         subprocess.Popen(

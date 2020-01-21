@@ -15,6 +15,8 @@
 
 from builtins import object
 from builtins import range
+from builtins import str
+
 import base64
 import collections
 import datetime
@@ -991,17 +993,6 @@ def get_command_line_for_application(file_to_run='',
   command = command.replace('%TESTCASE_HTTP_URL%', testcase_http_url)
   command = command.replace('%TMP_DIR%', temp_directory)
   command = command.replace('%USER_PROFILE_DIR%', user_profile_directory)
-
-  # Though we attempt to pass all flags that have been used to run html as
-  # a test in our content shell job types for backwards compatibility, a
-  # deprecation warning in recent revisions now causes it to fail. Remove
-  # the --run-layout-test flag to avoid this.
-  content_shell_app_names = [
-      'content_shell', 'content_shell.exe', 'Content Shell'
-  ]
-  if (environment.get_value('APP_NAME') in content_shell_app_names and
-      environment.get_value('APP_REVISION', 0) >= 558998):
-    command = command.replace(' --run-layout-test', '')
 
   if plt == 'ANDROID' and not launcher:
     # Initial setup phase for command line.

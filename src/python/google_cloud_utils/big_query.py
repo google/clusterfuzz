@@ -17,6 +17,8 @@
 
 from builtins import object
 from builtins import range
+from builtins import str
+
 import collections
 import datetime
 import time

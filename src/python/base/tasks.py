@@ -14,6 +14,8 @@
 """Task queue functions."""
 
 from builtins import object
+from builtins import str
+
 import contextlib
 import datetime
 import random

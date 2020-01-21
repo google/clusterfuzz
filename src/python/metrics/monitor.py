@@ -18,6 +18,8 @@
 
 from builtins import object
 from builtins import range
+from builtins import str
+
 import bisect
 import collections
 import functools
