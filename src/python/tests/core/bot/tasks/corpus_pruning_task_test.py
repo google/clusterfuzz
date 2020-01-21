@@ -94,9 +94,7 @@ class BaseTest(object):
     self.corpus_dir = os.path.join(self.corpus_bucket, 'corpus')
     self.quarantine_dir = os.path.join(self.corpus_bucket, 'quarantine')
     self.shared_corpus_dir = os.path.join(self.corpus_bucket, 'shared')
-    self.fuchsia_corpus_dir = os.path.join(self.corpus_bucket, 'fuchsia')
 
-    shutil.copytree(os.path.join(TEST_DIR, 'fuchsia'), self.fuchsia_corpus_dir)
     shutil.copytree(os.path.join(TEST_DIR, 'corpus'), self.corpus_dir)
     shutil.copytree(os.path.join(TEST_DIR, 'quarantine'), self.quarantine_dir)
     shutil.copytree(os.path.join(TEST_DIR, 'shared'), self.shared_corpus_dir)
@@ -257,6 +255,8 @@ class CorpusPruningTestFuchsia(unittest.TestCase, BaseTest):
 
   def setUp(self):
     BaseTest.setUp(self)
+    self.fuchsia_corpus_dir = os.path.join(self.corpus_bucket, 'fuchsia')
+    shutil.copytree(os.path.join(TEST_DIR, 'fuchsia'), self.fuchsia_corpus_dir)
     self.temp_dir = tempfile.mkdtemp()
     builds_dir = os.path.join(self.temp_dir, 'builds')
     os.mkdir(builds_dir)
@@ -299,8 +299,8 @@ class CorpusPruningTestFuchsia(unittest.TestCase, BaseTest):
     corpus = os.listdir(self.corpus_dir)
     self.assertEqual(2, len(corpus))
     self.assertItemsEqual([
-        'c5a976de7b5231fa616fbeac8a2d2805c1e84ee2',
         '31836aeaab22dc49555a97edb4c753881432e01d',
+        '7cf184f4c67ad58283ecb19349720b0cae756829'
     ], corpus)
     quarantine = os.listdir(self.quarantine_dir)
     self.assertEqual(1, len(quarantine))
