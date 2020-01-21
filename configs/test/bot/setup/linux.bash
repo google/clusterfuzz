@@ -23,12 +23,12 @@ function run_bot () {
   cp -r $INSTALL_DIRECTORY/clusterfuzz $bot_directory/clusterfuzz
   echo "Created bot directory $bot_directory."
 
-  # Wait for device and run clusterfuzz indefinitely for this bot.
   while true; do
     echo "Running ClusterFuzz instance for linux bot."
     PATH="$PATH" NFS_ROOT="$NFS_ROOT" GOOGLE_APPLICATION_CREDENTIALS="$GOOGLE_APPLICATION_CREDENTIALS" ROOT_DIR="$bot_directory/clusterfuzz" PYTHONPATH="$PYTHONPATH" GSUTIL_PATH="$GSUTIL_PATH" BOT_NAME="linux-$(hostname)" HTTP_PORT_1="$((bot_index+8000))" HTTP_PORT_2="$((bot_index+8080))" python $bot_directory/clusterfuzz/src/python/bot/startup/run.py || true
 
-    echo "ClusterFuzz instance for linux bot quit unexpectedly. Restarting."
+    echo "ClusterFuzz instance for linux bot quit unexpectedly. Restarting in 30 seconds."
+    sleep 30
   done
 }
 
