@@ -188,7 +188,7 @@ class HTMLMinimizer(minimizer.Minimizer):  # pylint:disable=abstract-method
     return tokens
 
   @staticmethod
-  def combine_worker_tokens(tokens, prefix='', suffix=''):
+  def combine_worker_tokens(tokens, prefix=b'', suffix=b''):
     """Combine tokens for a worker minimizer."""
     return prefix + b''.join(tokens) + suffix
 
