@@ -22,7 +22,6 @@ from builtins import object
 import re
 import six
 
-from future import utils as future_utils
 from google.cloud import ndb
 
 from base import json_utils
