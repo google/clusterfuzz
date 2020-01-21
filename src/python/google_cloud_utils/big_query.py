@@ -390,6 +390,7 @@ class Client(object):
       if not new_errors:
         continue
 
+      # Apparently result may not have errors, use |setdefault| to be careful.
       result.setdefault('insertErrors', []).extend(new_errors)
 
     return result
