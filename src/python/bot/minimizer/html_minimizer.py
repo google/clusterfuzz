@@ -195,7 +195,7 @@ class HTMLMinimizer(minimizer.Minimizer):  # pylint:disable=abstract-method
   @staticmethod
   def combine_tokens(tokens):
     """Combine tokens into a usable format, stripping metadata."""
-    return ''.join([bytes(t) for t in tokens])
+    return b''.join([bytes(t) for t in tokens])
 
   @staticmethod
   def run(data,
