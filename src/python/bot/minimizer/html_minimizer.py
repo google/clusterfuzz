@@ -15,9 +15,9 @@
    an HTML test case."""
 from __future__ import absolute_import
 
+from builtins import bytes
 from builtins import object
 from builtins import range
-from builtins import str
 
 import functools
 
@@ -190,12 +190,12 @@ class HTMLMinimizer(minimizer.Minimizer):  # pylint:disable=abstract-method
   @staticmethod
   def combine_worker_tokens(tokens, prefix='', suffix=''):
     """Combine tokens for a worker minimizer."""
-    return '%s%s%s' % (prefix, ''.join(tokens), suffix)
+    return prefix + b''.join(tokens) + suffix
 
   @staticmethod
   def combine_tokens(tokens):
     """Combine tokens into a usable format, stripping metadata."""
-    return ''.join([str(t) for t in tokens])
+    return b''.join([bytes(t) for t in tokens])
 
   @staticmethod
   def run(data,
