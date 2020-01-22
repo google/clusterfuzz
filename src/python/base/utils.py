@@ -946,4 +946,4 @@ def cpu_count():
 
 # TODO(mbarbella): Delete this once fully migrated to Python 3.
 def newstr_to_native_str(s):
-  return future_utils.native(str(s)).encode()
+  return future_utils.native(str(s, encoding='utf-8')).encode()

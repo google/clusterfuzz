@@ -278,10 +278,17 @@ class ProcessRunner(object):
     # TODO(mbarbella): Remove this after the Python 3 conversion. Subprocess
     # contains some explicit type checks, causing errors when newstrs are used.
     if env:
-      env = {
-          utils.newstr_to_native_str(k): utils.newstr_to_native_str(v)
-          for k, v in env.items()
-      }
+      new_env = {}
+      for k, v in env.items():
+        try:
+          new_env[utils.decode_to_unicode(k)] = utils.newstr_to_native_str(v)
+        except UnicodeDecodeError:
+          # If any non-unicode keys or values are already set in the
+          # environment, we know those aren't of type newstr (since they could
+          # not have been decoded in the first place).
+          new_env[k] = v
+
+      env = new_env
 
     return ChildProcess(
         subprocess.Popen(
