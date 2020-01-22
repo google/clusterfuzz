@@ -22,6 +22,7 @@ import sys
 import tempfile
 
 from base import persistent_cache
+from base import utils
 from metrics import logs
 from system import environment
 
@@ -183,7 +184,7 @@ def clear_system_temp_directory():
 
   # Use a custom cleanup rather than using |remove_directory| since it
   # recreates the directory and can mess up permissions and symlinks.
-  for root, dirs, files in os.walk(_system_temp_dir, topdown=False):
+  for root, dirs, files in walk(_system_temp_dir, topdown=False):
     for name in files:
       _delete_object(os.path.join(root, name), os.remove)
 
@@ -289,7 +290,7 @@ def get_command_line_from_argument_list(argument_list):
 def get_directory_file_count(directory_path):
   """Returns number of files within a directory (recursively)."""
   file_count = 0
-  for (root, _, files) in os.walk(directory_path):
+  for (root, _, files) in walk(directory_path):
     for filename in files:
       file_path = os.path.join(root, filename)
       if not os.path.isfile(file_path):
@@ -302,7 +303,7 @@ def get_directory_file_count(directory_path):
 def get_directory_size(directory_path):
   """Returns size of a directory (in bytes)."""
   directory_size = 0
-  for (root, _, files) in os.walk(directory_path):
+  for (root, _, files) in walk(directory_path):
     for filename in files:
       file_path = os.path.join(root, filename)
       directory_size += os.path.getsize(file_path)
@@ -313,7 +314,7 @@ def get_directory_size(directory_path):
 def get_files_list(directory_path):
   """Returns a list of files in a directory (recursively)."""
   files_list = []
-  for (root, _, files) in os.walk(directory_path):
+  for (root, _, files) in walk(directory_path):
     for filename in files:
       file_path = os.path.join(root, filename)
       if not os.path.isfile(file_path):
@@ -377,7 +378,7 @@ def move(src, dst):
 
 def remove_empty_files(root_path):
   """Removes empty files in a path recursively"""
-  for directory, _, filenames in os.walk(root_path):
+  for directory, _, filenames in walk(root_path):
     for filename in filenames:
       path = os.path.join(directory, filename)
       if os.path.getsize(path) > 0:
@@ -483,6 +484,14 @@ def remove_directory(directory, recreate=False, ignore_errors=False):
     return False
 
   return True
+
+
+def walk(directory, **kwargs):
+  """Wrapper around walk to resolve compatibility issues."""
+  # TODO(mbarbella): Remove this hack once the Python 3 migration is complete.
+  # The os library has some explicit type checks that cause issues when newstrs
+  # are passed.
+  return os.walk(utils.newstr_to_native_str(directory), **kwargs)
 
 
 # Copy of shutil.which from Python 3.3 (unavailable in Python 2.7).

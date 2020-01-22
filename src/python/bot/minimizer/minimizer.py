@@ -16,7 +16,6 @@ from __future__ import absolute_import
 
 from builtins import object
 from builtins import range
-from builtins import str
 
 from future import standard_library
 standard_library.install_aliases()
@@ -177,8 +176,8 @@ class Testcase(object):
       self.cache_lock = DummyLock()
       self.tests_to_queue_lock = DummyLock()
 
-  def __str__(self):
-    """Return the string form of the minimized test case (at this point)."""
+  def get_current_testcase_data(self):
+    """Return the current test case data."""
     return self.minimizer.token_combiner(self.get_required_tokens())
 
   # Helper functions based on minimizer configuration.
@@ -476,7 +475,7 @@ class Testcase(object):
     self._report_progress(is_final_progress_report=True)
     if not self.minimizer.tokenize:
       return self.get_required_tokens()
-    return str(self)
+    return self.get_current_testcase_data()
 
   def get_required_tokens(self):
     """Return all required tokens for this test case."""

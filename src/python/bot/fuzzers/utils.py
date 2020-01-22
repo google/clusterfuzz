@@ -79,7 +79,7 @@ def get_fuzz_targets_local(path):
   """Get list of fuzz targets paths (local)."""
   fuzz_target_paths = []
 
-  for root, _, files in os.walk(path):
+  for root, _, files in shell.walk(path):
     for filename in files:
       file_path = os.path.join(root, filename)
       if is_fuzz_target_local(file_path):

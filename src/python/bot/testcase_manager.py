@@ -92,7 +92,7 @@ def create_testcase_list_file(output_directory):
   """Create a testcase list file for tests in a directory."""
   files_list = []
   files_list_file_path = os.path.join(output_directory, TESTCASE_LIST_FILENAME)
-  for root, _, files in os.walk(output_directory):
+  for root, _, files in shell.walk(output_directory):
     for filename in files:
       if filename.endswith(INFO_FILE_EXTENSION):
         # Skip an info file.
@@ -119,7 +119,7 @@ def get_testcases_from_directories(directories):
     if not directory.strip():
       continue
 
-    generators.append(os.walk(directory))
+    generators.append(shell.walk(directory))
 
   for generator in generators:
     for structure in generator:
@@ -173,7 +173,7 @@ def remove_testcases_from_directories(directories):
     bot_testcases_file_path = utils.get_bot_testcases_file_path(directory)
     shell.remove_file(bot_testcases_file_path)
 
-    generators.append(os.walk(directory))
+    generators.append(shell.walk(directory))
 
   for generator in generators:
     for structure in generator:
@@ -259,7 +259,7 @@ def get_resource_dependencies(testcase_absolute_path, test_prefix=FUZZ_PREFIX):
 
   # For extensions, archive everything in the extension directory.
   if APPS_PREFIX in testcase_filename or EXTENSIONS_PREFIX in testcase_filename:
-    for root, _, files in os.walk(base_directory):
+    for root, _, files in shell.walk(base_directory):
       for filename in files:
         file_path = os.path.join(root, filename)
         if file_path == testcase_absolute_path:

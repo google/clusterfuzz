@@ -87,7 +87,7 @@ def get_source_manifest_url():
 
 def clear_old_files(directory, extracted_file_set):
   """Remove files from the directory that isn't in the given file list."""
-  for root_directory, _, filenames in os.walk(directory):
+  for root_directory, _, filenames in shell.walk(directory):
     for filename in filenames:
       file_path = os.path.join(root_directory, filename)
       if file_path not in extracted_file_set:
@@ -98,7 +98,7 @@ def clear_old_files(directory, extracted_file_set):
 
 def clear_pyc_files(directory):
   """Recursively remove all .pyc files from the given directory"""
-  for root_directory, _, filenames in os.walk(directory):
+  for root_directory, _, filenames in shell.walk(directory):
     for filename in filenames:
       if not filename.endswith('.pyc'):
         continue
