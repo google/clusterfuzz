@@ -2,7 +2,8 @@ In order to update the libradamsa shared object, clone the radamsa repo
 
 `git clone https://gitlab.com/akihe/radamsa.git`
 
-Patch the changes into the directory using the mutator.patch file in this dir
+Patch the changes into the directory using the mutator.patch file in this 
+directory
 
 `git apply mutator.patch`
 

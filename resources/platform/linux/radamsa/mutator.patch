@@ -1,5 +1,5 @@
 diff --git a/c/lib.c b/c/lib.c
-index 829a32c..9ef1453 100644
+index 829a32c..b1b50bf 100644
 --- a/c/lib.c
 +++ b/c/lib.c
 @@ -1,4 +1,5 @@
@@ -17,7 +17,7 @@ index 829a32c..9ef1453 100644
 +    static bool initialized = false;
 +    if (!initialized) {
 +      radamsa_init();
-+      init = true;
++      initialized = true;
 +    }
 +    return radamsa(Data, Size, Data, MaxSize, Seed);
 +}
