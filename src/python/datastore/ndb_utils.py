@@ -36,6 +36,6 @@ def get_all_from_query(query, **kwargs):
   expirations on App Engine."""
   # TODO(ochang): Queries no longer expire with new NDB. Remove this and all
   # fix up callers.
-  kwargs.pop('batch_size')  # No longer supported.
+  kwargs.pop('batch_size', None)  # No longer supported.
   for entity in query.iter(**kwargs):
     yield entity
