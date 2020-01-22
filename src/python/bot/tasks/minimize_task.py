@@ -1078,7 +1078,7 @@ def do_js_minimization(test_function, get_temp_file, data, deadline, threads,
   try:
     for _ in range(2):
       data = current_minimizer.minimize(data)
-  except UnicodeDecodeError:
+  except minimizer.AntlrDecodeError:
     data = do_line_minimization(test_function, get_temp_file, data, deadline,
                                 threads, cleanup_interval, delete_temp_files)
 
@@ -1404,7 +1404,7 @@ def do_html_minimization(test_function, get_temp_file, data, deadline, threads,
       progress_report_function=functools.partial(logs.log))
   try:
     return current_minimizer.minimize(data)
-  except UnicodeDecodeError:
+  except minimizer.AntlrDecodeError:
     return do_line_minimization(test_function, get_temp_file, data, deadline,
                                 threads, cleanup_interval, delete_temp_files)
 
