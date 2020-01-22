@@ -327,7 +327,7 @@ def set_environment_vars(search_directories, app_path='APP_PATH',
   initialexe_folder_path = '%sinitialexe' % os.path.sep
 
   for search_directory in search_directories:
-    for root, _, files in os.walk(search_directory):
+    for root, _, files in shell.walk(search_directory):
       # .dSYM folder contain symbol files on Mac and should
       # not be searched for application binary.
       if platform == 'MAC' and '.dSYM' in root:

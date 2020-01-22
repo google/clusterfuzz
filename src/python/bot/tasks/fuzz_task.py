@@ -469,7 +469,7 @@ class GcsCorpus(object):
           self._corpus_directory, recursive=True):
         yield file_path
     else:
-      for root, _, files in os.walk(self._corpus_directory):
+      for root, _, files in shell.walk(self._corpus_directory):
         for filename in files:
           yield os.path.join(root, filename)
 

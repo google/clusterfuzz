@@ -24,6 +24,7 @@ from . import host
 from metrics import logs
 from protos import untrusted_runner_pb2
 from system import environment
+from system import shell
 
 
 def is_directory_parent(path, directory):
@@ -144,7 +145,7 @@ def copy_directory_to_worker(host_directory, worker_directory, replace=False):
   if replace:
     remove_directory(worker_directory, recreate=True)
 
-  for root, _, files in os.walk(host_directory):
+  for root, _, files in shell.walk(host_directory):
     for filename in files:
       file_path = os.path.join(root, filename)
       worker_file_path = os.path.join(

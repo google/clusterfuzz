@@ -1417,7 +1417,7 @@ def copy_from_corpus(dest_corpus_path, src_corpus_path, num_testcases):
   """Choose |num_testcases| testcases from the src corpus directory (and its
   subdirectories) and copy it into the dest directory."""
   src_corpus_files = []
-  for root, _, files in os.walk(src_corpus_path):
+  for root, _, files in shell.walk(src_corpus_path):
     for f in files:
       src_corpus_files.append(os.path.join(root, f))
 

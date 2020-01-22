@@ -22,6 +22,7 @@ import os
 from base import json_utils
 from metrics import logs
 from system import environment
+from system import shell
 
 # For any given value file, if a file with the same name with this added
 # extension exists, it is not cleared during initialization.
@@ -44,7 +45,7 @@ def clear_values(clear_all=False):
   if not os.path.exists(cache_directory_path):
     return
 
-  for root_directory, _, filenames in os.walk(cache_directory_path):
+  for root_directory, _, filenames in shell.walk(cache_directory_path):
     for filename in filenames:
       if filename.endswith(PERSIST_FILE_EXTENSION) and not clear_all:
         continue

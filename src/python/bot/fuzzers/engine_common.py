@@ -14,6 +14,7 @@
 """Common functionality for engine fuzzers (ie: libFuzzer or AFL)."""
 from __future__ import print_function
 
+from builtins import bytes
 from builtins import object
 from builtins import range
 from builtins import str
@@ -298,13 +299,9 @@ def find_fuzzer_path(build_directory, fuzzer_name):
     legacy_name_prefix = project_name + '_'
 
   fuzzer_filename = environment.get_executable_filename(fuzzer_name)
-  # TODO(mbarbella): Remove this after the Python 3 migration. If newstrs are
-  # passed to the os library, this can throw exceptions while attempting to
-  # encode file paths as unicode, as they are not guaranteed to be valid.
-  str_legacy_name_prefix = utils.newstr_to_native_str(legacy_name_prefix)
-  for root, _, files in os.walk(utils.newstr_to_native_str(build_directory)):
+  for root, _, files in shell.walk(build_directory):
     for filename in files:
-      if (str_legacy_name_prefix + filename == fuzzer_name or
+      if (bytes(legacy_name_prefix) + filename == fuzzer_name or
           filename == fuzzer_filename):
         return os.path.join(root, filename)
 

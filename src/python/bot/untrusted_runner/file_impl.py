@@ -40,7 +40,7 @@ def list_files(request, _):
   """List files."""
   file_paths = []
   if request.recursive:
-    for root, _, files in os.walk(request.path):
+    for root, _, files in shell.walk(request.path):
       for filename in files:
         file_paths.append(os.path.join(root, filename))
   else:

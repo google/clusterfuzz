@@ -429,7 +429,7 @@ class FileSystemProvider(StorageProvider):
 
   def _list_files_recursive(self, fs_path):
     """List files recursively."""
-    for root, _, filenames in os.walk(fs_path):
+    for root, _, filenames in shell.walk(fs_path):
       for filename in filenames:
         yield os.path.join(root, filename)
 
