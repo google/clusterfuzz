@@ -14,6 +14,7 @@
 """Tests for jira issue management."""
 
 from builtins import object
+from dateutil import tz
 import datetime
 import unittest
 
@@ -124,7 +125,10 @@ class JiraTests(unittest.TestCase):
 
     issue = self.issue_tracker.get_issue('VSEC-3112')
     self.assertEqual('VSEC-3112', issue.id)
-    self.assertEqual(datetime.datetime(2020, 1, 14), issue.closed_time)
+    self.assertEqual(
+        datetime.datetime(
+            2020, 1, 14, 11, 46, 34, tzinfo=tz.tzoffset(None, -28800)),
+        issue.closed_time)
 
   def test_modify_labels(self):
     """Test modifying labels."""

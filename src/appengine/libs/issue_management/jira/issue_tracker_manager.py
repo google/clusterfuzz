@@ -15,6 +15,7 @@
 from __future__ import absolute_import
 
 from builtins import object
+from builtins import str
 import jira
 import json
 
@@ -85,7 +86,7 @@ class IssueTrackerManager(object):
 
     # Only add status if it has changed.
     # Brittle - we should be pulling the equivalent of 'new' from the policy.
-    if issue.status != 'NOT STARTED':
+    if issue.status != 'Open':
       status = {'name': issue.status}
       update_fields['status'] = status
 

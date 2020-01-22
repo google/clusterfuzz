@@ -18,7 +18,8 @@ from libs.issue_management.jira.issue_tracker_manager import (
     IssueTrackerManager)
 from config import db_config
 
-import datetime
+from builtins import str
+from dateutil import parser
 
 
 class Issue(issue_tracker.Issue):
@@ -64,17 +65,11 @@ class Issue(issue_tracker.Issue):
   @property
   def is_open(self):
     """Whether the issue is open."""
-    if self.jira_issue.resolution not in ['Closed', 'Done', 'Resolved']:
-      return True
-    return False
+    return self.jira_issue.resolution not in ['Closed', 'Done', 'Resolved']
 
   @property
   def closed_time(self):
-    res_date = self.jira_issue.fields.resolutiondate
-    if res_date is not None:
-      date = res_date[:res_date.index('T')]
-      return datetime.datetime.strptime(date, '%Y-%m-%d')
-    return self.jira_issue.fields.resolutiondate
+    return parser.parse(self.jira_issue.fields.resolutiondate)
 
   @property
   def status(self):
@@ -120,7 +115,6 @@ class Issue(issue_tracker.Issue):
 
   def save(self):
     """Save the issue."""
-
     for added in self._components.added:
       self.components.add(added)
     for removed in self._components.removed:
@@ -154,8 +148,7 @@ class IssueTracker(issue_tracker.IssueTracker):
 
   def new_issue(self):
     jira_issue = self._itm.create()
-    wrapped_issue = Issue(self._itm, jira_issue)
-    return wrapped_issue
+    return Issue(self._itm, jira_issue)
 
   def get_issue(self, issue_id):
     jira_issue = self._itm.get_issue(issue_id)
