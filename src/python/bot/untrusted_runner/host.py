@@ -157,7 +157,7 @@ def _wrap_call(func, num_retries=config.RPC_RETRY_ATTEMPTS):
       except grpc.RpcError as e:
         # For timeouts, which aren't fatal errors, resurface the right
         # exception.
-        if 'TimeoutError' in str(e):
+        if 'TimeoutError' in e:
           # TODO(ochang): Replace with generic TimeoutError in Python 3.
           raise engine.TimeoutError(e.message)
 
