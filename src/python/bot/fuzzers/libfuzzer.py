@@ -574,7 +574,9 @@ class FuchsiaQemuLibFuzzerRunner(new_process.ProcessRunner, LibFuzzerCommon):
           corpus_dir + '/*',
           self._corpus_target_subdir(os.path.basename(corpus_dir)))
 
-  def _pull_new_corpus_from_target_to_host(self, corpus_directories):
+  def _pull_new_corpus_from_target_to_host(self, corpus_directories,
+                                           artifact_prefix):
+    """ Pull corpus directories from device to host. """
     # Appending '/*' indicates we want all the *files* in the target's
     # directory, rather than the directory itself.
     logs.log('Fuzzer ran; pull down corpus')
@@ -582,6 +584,19 @@ class FuchsiaQemuLibFuzzerRunner(new_process.ProcessRunner, LibFuzzerCommon):
         corpus_directories) + "/*"
     self.fuzzer.device.fetch(files_in_new_corpus_dir_target,
                              self._new_corpus_dir_host(corpus_directories))
+
+    # TODO(flowerhack): While this should fetch all the "bad units" after the
+    # merge, the *ideal* solution is that we move all these bad units to a
+    # directory *on* the target, so that we can just sync/pull that one
+    # directory automagically. Since we're moving to the Go-based
+    # Clusterfuchsia interface soon, and since setting that up is nontrivial
+    # on the Fuchsia end, we just pull each type of bad unit manually for now.
+    # Note this wouldn't work if we ran more than one merge task per run (we'd
+    # be double-copying crashes etc.)
+    self.device.fetch(self.fuzzer.data_path('crash*'), artifact_prefix)
+    self.device.fetch(self.fuzzer.data_path('oom*'), artifact_prefix)
+    self.device.fetch(self.fuzzer.data_path('timeout*'), artifact_prefix)
+    self.device.fetch(self.fuzzer.data_path('leak*'), artifact_prefix)
 
   def _clear_all_target_corpora(self):
     """ Clears out all the corpora on the target. """
@@ -622,7 +637,8 @@ class FuchsiaQemuLibFuzzerRunner(new_process.ProcessRunner, LibFuzzerCommon):
     with open(self.fuzzer.logfile) as logfile:
       symbolized_output = logfile.read()
 
-    self._pull_new_corpus_from_target_to_host(corpus_directories)
+    self._pull_new_corpus_from_target_to_host(corpus_directories,
+                                              artifact_prefix)
     self._clear_all_target_corpora()
 
     # TODO(flowerhack): Would be nice if we could figure out a way to make
@@ -666,7 +682,8 @@ class FuchsiaQemuLibFuzzerRunner(new_process.ProcessRunner, LibFuzzerCommon):
         additional_args,
         merge_control_file=target_merge_control_file)
 
-    self._pull_new_corpus_from_target_to_host(corpus_directories)
+    self._pull_new_corpus_from_target_to_host(corpus_directories,
+                                              artifact_prefix)
     if merge_control_file:
       # Fetch artifacts from the merge control file dir.
       self.fuzzer.device.fetch(target_merge_control_dir, merge_control_dir)

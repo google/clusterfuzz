@@ -255,6 +255,8 @@ class CorpusPruningTestFuchsia(unittest.TestCase, BaseTest):
 
   def setUp(self):
     BaseTest.setUp(self)
+    self.fuchsia_corpus_dir = os.path.join(self.corpus_bucket, 'fuchsia')
+    shutil.copytree(os.path.join(TEST_DIR, 'fuchsia'), self.fuchsia_corpus_dir)
     self.temp_dir = tempfile.mkdtemp()
     builds_dir = os.path.join(self.temp_dir, 'builds')
     os.mkdir(builds_dir)
@@ -276,7 +278,7 @@ class CorpusPruningTestFuchsia(unittest.TestCase, BaseTest):
         platform='FUCHSIA',
         environment_string=env_string).put()
     data_types.FuzzTarget(
-        binary='example_fuzzers/overflow_fuzzer',
+        binary='example_fuzzers/trap_fuzzer',
         engine='libFuzzer',
         project='fuchsia').put()
 
@@ -290,10 +292,20 @@ class CorpusPruningTestFuchsia(unittest.TestCase, BaseTest):
 
   def test_prune(self):
     """Basic pruning test."""
-    # TODO(flowerhack): Actually test this.
+    self.corpus_dir = self.fuchsia_corpus_dir
     corpus_pruning_task.execute_task(
-        'libFuzzer_fuchsia_example_fuzzers-overflow_fuzzer',
+        'libFuzzer_fuchsia_example_fuzzers-trap_fuzzer',
         'libfuzzer_asan_fuchsia')
+    corpus = os.listdir(self.corpus_dir)
+    self.assertEqual(2, len(corpus))
+    self.assertItemsEqual([
+        '31836aeaab22dc49555a97edb4c753881432e01d',
+        '7cf184f4c67ad58283ecb19349720b0cae756829'
+    ], corpus)
+    quarantine = os.listdir(self.quarantine_dir)
+    self.assertEqual(1, len(quarantine))
+    self.assertItemsEqual(['crash-7a8dc3985d2a90fb6e62e94910fc11d31949c348'],
+                          quarantine)
 
 
 class CorpusPruningTestUntrusted(
