@@ -36,21 +36,8 @@ def get_all_from_model(model):
 def get_all_from_query(query, **kwargs):
   """Return all entities based on the query by paging, to avoid query
   expirations on App Engine."""
-  batch_size = kwargs.pop('batch_size', DEFAULT_BATCH_SIZE)
-  while True:
-    entities, cursor, more = query.fetch_page(batch_size, **kwargs)
-    if not entities:
-      break
-
-    for entity in entities:
-      yield entity
-
-    kwargs['start_cursor'] = cursor
-
-    if not more:
-      # No more results to process, bail out.
-      break
-
-    # Free up some memory in between batches.
-    del entities
-    utils.python_gc()
+  # TODO(ochang): Queries no longer expire with new NDB. Remove this and all
+  # fix up callers.
+  kwargs.pop('batch_size')  # No longer supported.
+  for entity in query.iter(**kwargs):
+    yield entity

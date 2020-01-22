@@ -211,8 +211,7 @@ def get_result(this):
 
 def get_all_platforms():
   """Get all platforms including parent platform."""
-  items = data_types.Testcase.query(
-      projection=[data_types.Testcase.platform], distinct=True)
+  items = data_types.Testcase.query(projection=['platform'], distinct=True)
 
   return sorted(
       list(
