@@ -75,17 +75,12 @@ class RunCommandTest(unittest.TestCase):
         ('fuzz_execute_task', 'bot.tasks.fuzz_task.execute_task'),
         ('progression_execute_task', 'bot.tasks.progression_task.execute_task'),
         'base.utils.utcnow',
-        'datastore.ndb.transaction',
     ])
 
     os.environ['BOT_NAME'] = 'bot_name'
     os.environ['TASK_LEASE_SECONDS'] = '60'
     os.environ['FAIL_WAIT'] = '60'
     self.mock.utcnow.return_value = test_utils.CURRENT_TIME
-
-    # ndb.transaction seems to cause hangs with testbed when run after another
-    # test that uses testbed.
-    self.mock.transaction.side_effect = lambda f, **_: f()
 
   def test_run_command_fuzz(self):
     """Test run_command with a normal command."""
