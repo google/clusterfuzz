@@ -13,8 +13,6 @@
 # limitations under the License.
 """NDB utilities. Provides utility functions for NDB."""
 
-from base import utils
-
 DEFAULT_BATCH_SIZE = 1000
 
 
