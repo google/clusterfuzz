@@ -37,6 +37,11 @@ MAX_MERGE_BATCH_SIZE = 32
 PROGRESS_REPORT_INTERVAL = 300
 
 
+class AntlrDecodeError(Exception):
+  """Raised when Antlr can't minimize input because it is not unicode."""
+  pass
+
+
 class DummyLock(object):
   """Dummy to replace threading.Lock for single-threaded tests."""
 
@@ -147,7 +152,10 @@ class Testcase(object):
   def __init__(self, data, minimizer):
     self.minimizer = minimizer
     if minimizer.tokenize:
-      self.tokens = minimizer.tokenizer(data)
+      try:
+        self.tokens = minimizer.tokenizer(data)
+      except UnicodeDecodeError:
+        raise AntlrDecodeError
     else:
       self.tokens = data
 

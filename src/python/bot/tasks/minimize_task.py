@@ -1075,8 +1075,12 @@ def do_js_minimization(test_function, get_temp_file, data, deadline, threads,
       progress_report_function=functools.partial(logs.log))
 
   # Some tokens can't be removed until other have, so do 2 passes.
-  for _ in range(2):
-    data = current_minimizer.minimize(data)
+  try:
+    for _ in range(2):
+      data = current_minimizer.minimize(data)
+  except minimizer.AntlrDecodeError:
+    data = do_line_minimization(test_function, get_temp_file, data, deadline,
+                                threads, cleanup_interval, delete_temp_files)
 
   # FIXME(mbarbella): Improve the JS minimizer so that this is not necessary.
   # Sometimes, lines that could not have been removed on their own can now be
@@ -1398,7 +1402,11 @@ def do_html_minimization(test_function, get_temp_file, data, deadline, threads,
       get_temp_file=get_temp_file,
       delete_temp_files=delete_temp_files,
       progress_report_function=functools.partial(logs.log))
-  return current_minimizer.minimize(data)
+  try:
+    return current_minimizer.minimize(data)
+  except minimizer.AntlrDecodeError:
+    return do_line_minimization(test_function, get_temp_file, data, deadline,
+                                threads, cleanup_interval, delete_temp_files)
 
 
 def minimize_file(file_path,
