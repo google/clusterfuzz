@@ -637,8 +637,9 @@ class FuchsiaQemuLibFuzzerRunner(new_process.ProcessRunner, LibFuzzerCommon):
     with open(self.fuzzer.logfile) as logfile:
       symbolized_output = logfile.read()
 
-    self._pull_new_corpus_from_target_to_host(corpus_directories,
-                                              artifact_prefix)
+    if artifact_prefix:
+      self._pull_new_corpus_from_target_to_host(corpus_directories,
+                                                artifact_prefix)
     self._clear_all_target_corpora()
 
     # TODO(flowerhack): Would be nice if we could figure out a way to make
@@ -682,8 +683,9 @@ class FuchsiaQemuLibFuzzerRunner(new_process.ProcessRunner, LibFuzzerCommon):
         additional_args,
         merge_control_file=target_merge_control_file)
 
-    self._pull_new_corpus_from_target_to_host(corpus_directories,
-                                              artifact_prefix)
+    if artifact_prefix:
+      self._pull_new_corpus_from_target_to_host(corpus_directories,
+                                                artifact_prefix)
     if merge_control_file:
       # Fetch artifacts from the merge control file dir.
       self.fuzzer.device.fetch(target_merge_control_dir, merge_control_dir)
