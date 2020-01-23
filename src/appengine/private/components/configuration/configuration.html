@@ -150,6 +150,30 @@
 
               <tr>
                 <td class="label">
+                  <div class="help" title="Jira server URL">
+                    Jira server url
+                  </div>
+                </td>
+                <td>
+                  <paper-input name="jira_url" max-rows="5" value="[[config.jira_url]]" no-label-float>
+                  </paper-input>
+                </td>
+              </tr>
+
+              <tr>
+                <td class="label">
+                  <div class="help" title="Jira credentials to access Jira bug tracker.">
+                    Jira credentials
+                  </div>
+                </td>
+                <td>
+                  <paper-input name="jira_credentials" max-rows="5" value="[[config.jira_credentials]]" no-label-float>
+                  </paper-input>
+                </td>
+              </tr>
+
+              <tr>
+                <td class="label">
                   <div class="help" title="Component to googlesource repository mappings (one per line - component,repository)">
                     Component repository mappings (Chromium only)
                   </div>

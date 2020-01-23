@@ -740,6 +740,10 @@ class Config(Model):
   # Issue tracker client authentication parameters.
   client_credentials = TextProperty(default='')
 
+  # Jira url and credentials
+  jira_url = StringProperty(default='')
+  jira_credentials = TextProperty(default='')
+
   # Build apiary authentication parameters.
   build_apiary_service_account_email = StringProperty(default='')
   build_apiary_service_account_private_key = TextProperty(default='')
