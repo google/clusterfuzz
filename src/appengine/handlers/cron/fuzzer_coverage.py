@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""Cron job to get the latest code coverage stats and links to reports."""
+"""Cron job to get the latest code coverage stats and HTML reports."""
 
 import datetime
 import json
@@ -30,23 +30,32 @@ _GCS_PROVIDER = storage.GcsProvider()
 
 
 def _latest_report_info_dir(bucket):
+  """Returns a GCS URL to the latest report info for the given bucket."""
   return 'gs://{0}/latest_report_info/'.format(bucket)
 
 
 def _basename(gcs_path):
+  """Returns the basename for the given path without file extension."""
   return os.path.splitext(os.path.basename(gcs_path))[0]
 
 
 def _gcs_path(gcs_object):
+  """Returns a GCS URL for the given GCS object."""
   return storage.get_cloud_storage_file_path(gcs_object['bucket'],
                                              gcs_object['name'])
 
 
-def _coverage_information(summary_path, name, info):
+def _read_json(url):
+  """Returns a JSON obejct loaded from the given GCS url."""
+  data = _GCS_PROVIDER.read_data(url)
+  return json.loads(data)
+
+
+def _coverage_information(summary_path, name, report_info):
   """Returns a CoverageInformation entity with coverage stats populated."""
   summary = _read_json(summary_path)
   date = datetime.datetime.strptime(
-      info['report_date'], data_types.COVERAGE_INFORMATION_DATE_FORMAT).date()
+      report_info['report_date'], data_types.COVERAGE_INFORMATION_DATE_FORMAT).date()
 
   # |name| can be either a project qualified fuzz target name or a project name.
   cov_info = data_handler.get_coverage_information(
@@ -60,11 +69,12 @@ def _coverage_information(summary_path, name, info):
   cov_info.edges_total = summary['data'][0]['totals']['regions']['count']
 
   # Link to a per project report as long as we don't have per fuzzer reports.
-  cov_info.html_report_url = info['html_report_url']
+  cov_info.html_report_url = report_info['html_report_url']
   return cov_info
 
 
 def _process_fuzzer_stats(fuzzer, project_info, project_name):
+  """Processes coverage stats for a single fuzz target."""
   fuzzer_name = data_types.fuzz_target_project_qualified_name(
       project_name, _basename(fuzzer['name']))
   fuzzer_info_path = _gcs_path(fuzzer)
@@ -74,6 +84,7 @@ def _process_fuzzer_stats(fuzzer, project_info, project_name):
 
 
 def _process_project_stats(project_info, project_name):
+  """Processes coverage stats for a single project."""
   summary_path = project_info['report_summary_path']
   logs.log("Processing total stats for %s project (%s).",
            (project_name, summary_path))
@@ -81,7 +92,8 @@ def _process_project_stats(project_info, project_name):
 
 
 def _process_project(project):
-  """For the given GCS objhect."""
+  """Collects coverage information for all fuzz targets in the given project and
+  the total stats for the project."""
   project_name = _basename(project['name'])
   logs.log('Processing coverage for %s project.' % project_name)
   report_info = _read_json(_gcs_path(project))
@@ -96,14 +108,10 @@ def _process_project(project):
   logs.log("Processed coverage for %d targets in %s project." % (len(entities),
                                                                  project_name))
 
+  # Prepare CoverageInformation entity for the total project stats.
   entities.append(_process_project_stats(report_info, project_name))
 
   ndb.put_multi(entities)
-
-
-def _read_json(url):
-  data = _GCS_PROVIDER.read_data(url)
-  return json.loads(data)
 
 
 def collect_fuzzer_coverage(bucket):
@@ -111,8 +119,6 @@ def collect_fuzzer_coverage(bucket):
   url = _latest_report_info_dir(bucket)
   for project in _GCS_PROVIDER.list_blobs(url, recursive=False):
     _process_project(project)
-
-  return True
 
 
 class Handler(base_handler.Handler):

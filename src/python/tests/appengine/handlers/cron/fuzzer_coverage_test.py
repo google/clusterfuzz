@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""Tests for fuzzer-coverage cron task."""
+"""Tests for the fuzzer-coverage cron task."""
 
 import datetime
 import unittest
@@ -32,6 +32,9 @@ class HandlerTest(unittest.TestCase):
 
   def setUp(self):
     test_helpers.patch(self, ['base.utils.default_project_name'])
+
+    # It's important to use chromium here to test they datastore key generation
+    # logic which uses project qualified fuzz target names.
     self.mock.default_project_name.return_value = 'chromium'
 
   def assertCoverageInformation(
@@ -117,6 +120,7 @@ class HandlerTest(unittest.TestCase):
     self.assertCoverageInformation(entities[key], expected_entity)
     del entities[key]
 
+    # This is the "old" entity that should not be updated (|cov_info_old|).
     key = ndb.Key('CoverageInformation', 'boringssl_privkey-20180901')
     expected_entity = data_types.CoverageInformation(
         date=datetime.date(2018, 9, 1),
@@ -160,6 +164,7 @@ class HandlerTest(unittest.TestCase):
     self.assertCoverageInformation(entities[key], expected_entity)
     del entities[key]
 
+    # The "recent" entity that should be updated (|cov_info_recent|).
     key = ndb.Key('CoverageInformation', 'base64_decode_fuzzer-20180907')
     expected_entity = data_types.CoverageInformation(
         date=datetime.date(2018, 9, 7),
@@ -217,7 +222,7 @@ class HandlerTest(unittest.TestCase):
     self.assertCoverageInformation(entities[key], expected_entity)
     del entities[key]
 
-    # Entity for zlib project.
+    # The recent project entity that should be updated (|cov_info_project|).
     key = ndb.Key('CoverageInformation', 'zlib-20180907')
     expected_entity = data_types.CoverageInformation(
         date=datetime.date(2018, 9, 7),
@@ -232,5 +237,8 @@ class HandlerTest(unittest.TestCase):
     self.assertCoverageInformation(entities[key], expected_entity)
     del entities[key]
 
-    # Should not have any entities left unverified.
+    # Should not have any entities left unverified. Ensures collect logic of
+    # not creating duplicated entities if there is an existing one. In practice,
+    # an existing entity could either be created by an earlier execution of
+    # the cron task, or by the corpus pruning task.
     self.assertEqual(len(entities), 0)
