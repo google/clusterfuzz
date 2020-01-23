@@ -735,7 +735,31 @@ class FuchsiaQemuLibFuzzerRunner(new_process.ProcessRunner, LibFuzzerCommon):
                      timeout,
                      artifact_prefix=None,
                      additional_args=None):
-    return new_process.ProcessResult()
+    self._test_ssh()
+
+    additional_args = copy.copy(additional_args)
+    if additional_args is None:
+      additional_args = []
+    additional_args.append('-minimize_crash=1')
+
+    # We need to push the testcase to the device and pass in the name.
+    testcase_path_name = os.path.basename(os.path.normpath(testcase_path))
+    self.device.store(testcase_path, self.fuzzer.data_path())
+
+    return_code = self.fuzzer.start(additional_args + ['data/' + testcase_path_name])
+    self.fuzzer.monitor(return_code)
+
+    with open(self.fuzzer.logfile) as logfile:
+      symbolized_output = logfile.read()
+
+    self.device.fetch(self.fuzzer.data_path('minimized-from-*'), output_path)
+
+    fuzzer_process_result = new_process.ProcessResult()
+    fuzzer_process_result.return_code = 0
+    fuzzer_process_result.output = symbolized_output
+    fuzzer_process_result.time_executed = 0
+    fuzzer_process_result.command = self.fuzzer.last_fuzz_cmd
+    return fuzzer_process_result
 
   def ssh_command(self, *args):
     return ['ssh'] + self.ssh_root + list(args)
