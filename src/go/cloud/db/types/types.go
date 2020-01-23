@@ -89,6 +89,8 @@ type Config struct {
 	PreviousHash                        string         `datastore:"previous_hash"`
 	URL                                 string         `datastore:"url"`
 	ClientCredentials                   string         `datastore:"client_credentials,noindex"`
+	JiraURL                             string         `datastore:"jira_url"`
+	JiraCredentials                     string         `datastore:"jira_credentials,noindex"`
 	BuildApiaryServiceAccountEmail      string         `datastore:"build_apiary_service_account_email"`
 	BuildApiaryServiceAccountPrivateKey string         `datastore:"build_apiary_service_account_private_key,noindex"`
 	TestAccountEmail                    string         `datastore:"test_account_email"`
