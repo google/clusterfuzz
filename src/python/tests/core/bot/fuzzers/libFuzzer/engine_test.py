@@ -1042,11 +1042,13 @@ class IntegrationTestsFuchsia(BaseIntegrationTest):
     minimize_output_path = tempfile.mkdtemp()
 
     engine_impl = engine.LibFuzzerEngine()
-    result = engine_impl.minimize_testcase('example_fuzzers/trap_fuzzer', ['-runs=1000000'],
-                                   testcase_path, minimize_output_path, 30)
+    result = engine_impl.minimize_testcase('example_fuzzers/trap_fuzzer',
+                                           ['-runs=1000000'], testcase_path,
+                                           minimize_output_path, 30)
     self.assertTrue(os.path.exists(minimize_output_path))
     minimized_files = os.listdir(minimize_output_path)
-    # There should only be one minimized file, since the crash can only be reduced by one
+    # There should only be one minimized file, because
+    #  crash can only be reduced by one
     with open(os.path.join(minimize_output_path, minimized_files[0])) as f:
       result = f.read()
       self.assertEqual('HI!', result)
