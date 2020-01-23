@@ -826,7 +826,7 @@ def execute_task(full_fuzzer_name, job_type):
     _save_coverage_information(context, result)
     _process_corpus_crashes(context, result)
   except CorpusPruningException as e:
-    logs.log_error('Corpus pruning failed: %s.' % str(e))
+    logs.log_error('Corpus pruning failed.')
     data_handler.update_task_status(task_name, data_types.TaskState.ERROR)
     return
   finally:
