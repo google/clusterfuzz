@@ -946,4 +946,10 @@ def cpu_count():
 
 # TODO(mbarbella): Delete this once fully migrated to Python 3.
 def newstr_to_native_str(s):
-  return future_utils.native(str(s)).encode()
+  try:
+    newstr = str(s, 'utf-8')
+  except TypeError:
+    # Python 3 does not support an encoding argument when given a unicode str.
+    newstr = str(s)
+
+  return future_utils.native(newstr).encode('utf-8')
