@@ -186,7 +186,7 @@ def engine_reproduce(engine_impl, target_name, testcase_path, arguments,
   try:
     response = host.stub().EngineReproduce(request)
   except grpc.RpcError as e:
-    if 'TargetNotFoundError' in str(e):
+    if 'TargetNotFoundError' in str(e, encoding='utf-8', errors='ignore'):
       # Resurface the right exception.
       raise testcase_manager.TargetNotFoundError('Failed to find target ' +
                                                  target_name)
