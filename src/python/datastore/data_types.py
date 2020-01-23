@@ -133,6 +133,8 @@ CHROMIUM_ISSUE_PREDATOR_WRONG_CL_LABEL = 'Test-Predator-Wrong-CLs'
 
 MISSING_VALUE_STRING = '---'
 
+COVERAGE_INFORMATION_DATE_FORMAT = '%Y%m%d'
+
 
 def clone_entity(e, **extra_args):
   """Clones a DataStore entity and returns the clone."""
@@ -1150,7 +1152,6 @@ def normalized_name(name):
 
 def fuzz_target_project_qualified_name(project, binary):
   """Get a fuzz target's project qualified name."""
-
   binary = normalized_name(binary)
   if not project:
     return binary
@@ -1289,14 +1290,14 @@ class CoverageInformation(Model):
                        coverage_information_key(self.fuzzer, self.date))
 
 
-def coverage_information_date_string(date):
+def coverage_information_date_to_string(date):
   """Returns string representation of the date in a format used for coverage."""
-  return date.strftime('%Y%m%d')
+  return date.strftime(COVERAGE_INFORMATION_DATE_FORMAT)
 
 
 def coverage_information_key(project_qualified_fuzzer_name, date):
   """Constructs an ndb key for CoverageInformation entity."""
-  date_string = coverage_information_date_string(date)
+  date_string = coverage_information_date_to_string(date)
   return project_qualified_fuzzer_name + '-' + date_string
 
 

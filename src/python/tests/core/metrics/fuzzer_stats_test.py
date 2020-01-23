@@ -1145,7 +1145,7 @@ class BuiltinFieldTests(unittest.TestCase):
     cov_info.functions_covered = 10
     cov_info.functions_total = 15
     cov_info.html_report_url = 'https://report_for_fuzzer1/{}'.format(
-        data_types.coverage_information_date_string(self.yesterday))
+        data_types.coverage_information_date_to_string(self.yesterday))
     cov_info.corpus_size_units = 20
     cov_info.corpus_size_bytes = 200
     cov_info.quarantine_size_units = 5
@@ -1161,7 +1161,7 @@ class BuiltinFieldTests(unittest.TestCase):
     cov_info.functions_covered = 58
     cov_info.functions_total = 90
     cov_info.html_report_url = 'https://report_for_fuzzer2/{}'.format(
-        data_types.coverage_information_date_string(self.today))
+        data_types.coverage_information_date_to_string(self.today))
     cov_info.corpus_size_units = 40
     cov_info.corpus_size_bytes = 99
     cov_info.quarantine_size_units = 6
@@ -1178,7 +1178,7 @@ class BuiltinFieldTests(unittest.TestCase):
     cov_info.functions_covered = 11
     cov_info.functions_total = 16
     cov_info.html_report_url = 'https://report_for_fuzzer2/{}'.format(
-        data_types.coverage_information_date_string(self.yesterday))
+        data_types.coverage_information_date_to_string(self.yesterday))
     cov_info.corpus_size_units = 15
     cov_info.corpus_size_bytes = 230
     cov_info.quarantine_size_units = 8
@@ -1347,14 +1347,14 @@ class BuiltinFieldTests(unittest.TestCase):
     self.assertEqual(data.value, 'Coverage')
     self.assertEqual(
         data.link, 'https://report_for_fuzzer2/{}'.format(
-            data_types.coverage_information_date_string(self.today)))
+            data_types.coverage_information_date_to_string(self.today)))
 
     data = coverage_report_field.get(fuzzer_stats.QueryGroupBy.GROUP_BY_DAY,
                                      self.yesterday)
     self.assertEqual(data.value, 'Coverage')
     self.assertEqual(
         data.link, 'https://report_for_fuzzer2/{}'.format(
-            data_types.coverage_information_date_string(self.yesterday)))
+            data_types.coverage_information_date_to_string(self.yesterday)))
 
   def test_coverage_field_invalid_info(self):
     """Test that coverage field works as expected with invalid coverage info."""
