@@ -717,8 +717,8 @@ class Config(Model):
   client_credentials = ndb.TextProperty(default='')
 
   # Jira url and credentials
-  jira_url = StringProperty(default='')
-  jira_credentials = TextProperty(default='')
+  jira_url = ndb.StringProperty(default='')
+  jira_credentials = ndb.TextProperty(default='')
 
   # Build apiary authentication parameters.
   build_apiary_service_account_email = ndb.StringProperty(default='')
