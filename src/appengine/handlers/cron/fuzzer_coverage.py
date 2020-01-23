@@ -55,7 +55,8 @@ def _coverage_information(summary_path, name, report_info):
   """Returns a CoverageInformation entity with coverage stats populated."""
   summary = _read_json(summary_path)
   date = datetime.datetime.strptime(
-      report_info['report_date'], data_types.COVERAGE_INFORMATION_DATE_FORMAT).date()
+      report_info['report_date'],
+      data_types.COVERAGE_INFORMATION_DATE_FORMAT).date()
 
   # |name| can be either a project qualified fuzz target name or a project name.
   cov_info = data_handler.get_coverage_information(
