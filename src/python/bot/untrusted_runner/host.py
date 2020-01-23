@@ -157,7 +157,12 @@ def _wrap_call(func, num_retries=config.RPC_RETRY_ATTEMPTS):
       except grpc.RpcError as e:
         # For timeouts, which aren't fatal errors, resurface the right
         # exception.
-        if 'TimeoutError' in str(e, encoding='utf-8', errors='ignore'):
+        # TODO(mbarbella): Ignoring errors on the next line fixes an issue while
+        # trying to support this code in both Python 2 and 3, but may not be
+        # necessary in Python 3 since presumably the exception class will
+        # allow us to properly convert it to a string. Delete after migrating.
+        exception_message = e.message.decode('utf-8', errors='ignore')
+        if 'TimeoutError' in exception_message:
           # TODO(ochang): Replace with generic TimeoutError in Python 3.
           raise engine.TimeoutError(e.message)
 
@@ -166,7 +171,7 @@ def _wrap_call(func, num_retries=config.RPC_RETRY_ATTEMPTS):
           # for retries.
           raise
 
-        logs.log_warn('Failed RPC: ' + str(e))
+        logs.log_warn('Failed RPC: ' + exception_message)
         if retry_attempt == num_retries:
           # Last attempt.
           host_exit_no_return()
