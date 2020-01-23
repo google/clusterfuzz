@@ -1803,24 +1803,24 @@ class FuzzingSession(object):
     # Set up a custom or regular build based on revision. By default, fuzzing
     # is done on trunk build (using revision=None). Otherwise, a job definition
     # can provide a revision to use via |APP_REVISION|.
-    dataflow_bucket_path = environment.get_value('DATAFLOW_BUILD_BUCKET_PATH')
     target_weights = fuzzer_selection.get_fuzz_target_weights()
 
     build_setup_result = build_manager.setup_build(
         environment.get_value('APP_REVISION'), target_weights=target_weights)
-    if build_setup_result and dataflow_bucket_path:
-      # Some fuzzing jobs may use auxiliary builds, such as DFSan instrumented
-      # builds accompanying libFuzzer builds to enable DFT-based fuzzing.
-      if not build_manager.setup_trunk_build(
-          [dataflow_bucket_path], build_prefix='DATAFLOW'):
-        logs.log_error('Failed to set up dataflow build.')
-
     # Check if we have an application path. If not, our build failed
     # to setup correctly.
     if not build_setup_result or not build_manager.check_app_path():
       _track_fuzzer_run_result(self.fuzzer_name, 0, 0,
                                FuzzErrorCode.BUILD_SETUP_FAILED)
       return
+
+    dataflow_bucket_path = environment.get_value('DATAFLOW_BUILD_BUCKET_PATH')
+    if dataflow_bucket_path:
+      # Some fuzzing jobs may use auxiliary builds, such as DFSan instrumented
+      # builds accompanying libFuzzer builds to enable DFT-based fuzzing.
+      if not build_manager.setup_trunk_build(
+          [dataflow_bucket_path], build_prefix='DATAFLOW'):
+        logs.log_error('Failed to set up dataflow build.')
 
     # Save fuzz targets count to aid with CPU weighting.
     self._save_fuzz_targets_count()
