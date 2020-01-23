@@ -14,7 +14,6 @@
 """Trusted host."""
 from __future__ import absolute_import
 
-from builtins import bytes
 from builtins import object
 from builtins import range
 from builtins import str
