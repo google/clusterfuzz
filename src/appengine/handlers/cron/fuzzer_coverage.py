@@ -128,6 +128,8 @@ class Handler(base_handler.Handler):
   @handler.check_cron()
   def get(self):
     """Handle a GET request."""
+    # The task is supposed to be super reliable and never fail. If anything goes
+    # wrong, we just re-raise the exception and report an explicit error.
     try:
       logs.log('FuzzerCoverage task started.')
       config = local_config.GAEConfig()
