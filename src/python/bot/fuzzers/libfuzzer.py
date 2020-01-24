@@ -160,6 +160,15 @@ class LibFuzzerCommon(object):
     timeout = timeout - self.LIBFUZZER_CLEAN_EXIT_TIME - self.SIGTERM_WAIT_TIME
     return int(timeout)
 
+  def get_minimize_total_time(self, timeout):
+    # We do timeout / 2 here because libFuzzer uses max_total_time for
+    # individual runs of the target and not for the entire minimization.
+    # Internally, libFuzzer does 2 runs of the target every iteration. This is
+    # the minimum for any results to be written at all.
+    max_total_time = (timeout - self.LIBFUZZER_CLEAN_EXIT_TIME) // 2
+    assert max_total_time > 0
+    return max_total_time
+
   def fuzz(self,
            corpus_directories,
            fuzz_timeout,
@@ -309,12 +318,7 @@ class LibFuzzerCommon(object):
     if additional_args is None:
       additional_args = []
 
-    # We do timeout / 2 here because libFuzzer uses max_total_time for
-    # individual runs of the target and not for the entire minimization.
-    # Internally, libFuzzer does 2 runs of the target every iteration. This is
-    # the minimum for any results to be written at all.
-    max_total_time = (timeout - self.LIBFUZZER_CLEAN_EXIT_TIME) // 2
-    assert max_total_time > 0
+    max_total_time = get_minimize_total_time(timeout)
     max_total_time_argument = '%s%d' % (constants.MAX_TOTAL_TIME_FLAG,
                                         max_total_time)
 
@@ -663,8 +667,7 @@ class FuchsiaQemuLibFuzzerRunner(new_process.ProcessRunner, LibFuzzerCommon):
     additional_args = copy.copy(additional_args)
     if additional_args is None:
       additional_args = []
-    max_total_time_flag = '%s%d' % (constants.MAX_TOTAL_TIME_FLAG,
-                                    merge_timeout)
+    max_total_time_flag = constants.MAX_TOTAL_TIME_FLAG + str(merge_timeout)
     additional_args.append(max_total_time_flag)
 
     target_merge_control_file = None
@@ -743,15 +746,8 @@ class FuchsiaQemuLibFuzzerRunner(new_process.ProcessRunner, LibFuzzerCommon):
     if additional_args is None:
       additional_args = []
     additional_args.append(constants.MINIMIZE_CRASH_ARGUMENT)
-    # Similarly to Linux: we do timeout / 2 here, because libFuzzer uses
-    # max_total_time for ndividual runs of the target and not for the entire
-    # minimization.
-    # Internally, libFuzzer does 2 runs of the target every iteration. This is
-    # the minimum for any results to be written at all.
-    max_total_time = (timeout - self.LIBFUZZER_CLEAN_EXIT_TIME) // 2
-    assert max_total_time > 0
-    max_total_time_argument = '%s%d' % (constants.MAX_TOTAL_TIME_FLAG,
-                                        max_total_time)
+    max_total_time = get_minimize_total_time(timeout)
+    max_total_time_argument = constants.MAX_TOTAL_TIME_FLAG + str(max_total_time)
     additional_args.append(max_total_time_argument)
 
     # TODO(flowerhack): libfuzzer-on-Fuchsia believes that all files are in
