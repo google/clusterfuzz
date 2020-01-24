@@ -593,10 +593,11 @@ class FuchsiaQemuLibFuzzerRunner(new_process.ProcessRunner, LibFuzzerCommon):
     # on the Fuchsia end, we just pull each type of bad unit manually for now.
     # Note this wouldn't work if we ran more than one merge task per run (we'd
     # be double-copying crashes etc.)
-    self.device.fetch(self.fuzzer.data_path('crash*'), artifact_prefix)
-    self.device.fetch(self.fuzzer.data_path('oom*'), artifact_prefix)
-    self.device.fetch(self.fuzzer.data_path('timeout*'), artifact_prefix)
-    self.device.fetch(self.fuzzer.data_path('leak*'), artifact_prefix)
+    if artifact_prefix:
+      self.device.fetch(self.fuzzer.data_path('crash*'), artifact_prefix)
+      self.device.fetch(self.fuzzer.data_path('oom*'), artifact_prefix)
+      self.device.fetch(self.fuzzer.data_path('timeout*'), artifact_prefix)
+      self.device.fetch(self.fuzzer.data_path('leak*'), artifact_prefix)
 
   def _clear_all_target_corpora(self):
     """ Clears out all the corpora on the target. """
