@@ -605,6 +605,10 @@ class Testcase(Model):
     self.populate_indices()
 
   def _post_put_hook(self, _):
+    if not self.key:
+      # Failed put.
+      return
+
     logs.log('Updated testcase %d (bug %s).' % (self.key.id(),
                                                 self.bug_information or '-'))
 
