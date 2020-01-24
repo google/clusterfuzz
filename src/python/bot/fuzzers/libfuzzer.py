@@ -658,12 +658,13 @@ class FuchsiaQemuLibFuzzerRunner(new_process.ProcessRunner, LibFuzzerCommon):
             tmp_dir=None,
             additional_args=None,
             merge_control_file=None):
-    # TODO(flowerhack): Integrate some notion of a merge timeout.
     self._push_corpora_from_host_to_target(corpus_directories)
 
     additional_args = copy.copy(additional_args)
     if additional_args is None:
       additional_args = []
+    max_total_time_flag = '%s%d' % (constants.MAX_TOTAL_TIME_FLAG, merge_timeout)
+    additional_args.append(max_total_time_flag)
 
     target_merge_control_file = None
     if merge_control_file:
@@ -740,7 +741,9 @@ class FuchsiaQemuLibFuzzerRunner(new_process.ProcessRunner, LibFuzzerCommon):
     additional_args = copy.copy(additional_args)
     if additional_args is None:
       additional_args = []
-    additional_args.append('-minimize_crash=1')
+    additional_args.append(constants.MINIMIZE_CRASH_ARGUMENT)
+    max_total_time_flag = '%s%d' % (constants.MAX_TOTAL_TIME_FLAG, timeout)
+    additional_args.append(max_total_time_flag)
 
     # We need to push the testcase to the device and pass in the name.
     testcase_path_name = os.path.basename(os.path.normpath(testcase_path))
@@ -756,7 +759,7 @@ class FuchsiaQemuLibFuzzerRunner(new_process.ProcessRunner, LibFuzzerCommon):
     self.device.fetch(self.fuzzer.data_path('minimized-from-*'), output_path)
 
     fuzzer_process_result = new_process.ProcessResult()
-    fuzzer_process_result.return_code = 0
+    fuzzer_process_result.return_code = return_code
     fuzzer_process_result.output = symbolized_output
     fuzzer_process_result.time_executed = 0
     fuzzer_process_result.command = self.fuzzer.last_fuzz_cmd
