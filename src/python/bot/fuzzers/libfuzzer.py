@@ -663,7 +663,8 @@ class FuchsiaQemuLibFuzzerRunner(new_process.ProcessRunner, LibFuzzerCommon):
     additional_args = copy.copy(additional_args)
     if additional_args is None:
       additional_args = []
-    max_total_time_flag = '%s%d' % (constants.MAX_TOTAL_TIME_FLAG, merge_timeout)
+    max_total_time_flag = '%s%d' % (constants.MAX_TOTAL_TIME_FLAG,
+                                    merge_timeout)
     additional_args.append(max_total_time_flag)
 
     target_merge_control_file = None
@@ -742,27 +743,46 @@ class FuchsiaQemuLibFuzzerRunner(new_process.ProcessRunner, LibFuzzerCommon):
     if additional_args is None:
       additional_args = []
     additional_args.append(constants.MINIMIZE_CRASH_ARGUMENT)
-    max_total_time_flag = '%s%d' % (constants.MAX_TOTAL_TIME_FLAG, timeout)
-    additional_args.append(max_total_time_flag)
+    # Similarly to Linux: we do timeout / 2 here, because libFuzzer uses
+    # max_total_time for ndividual runs of the target and not for the entire
+    # minimization.
+    # Internally, libFuzzer does 2 runs of the target every iteration. This is
+    # the minimum for any results to be written at all.
+    max_total_time = (timeout - self.LIBFUZZER_CLEAN_EXIT_TIME) // 2
+    assert max_total_time > 0
+    max_total_time_argument = '%s%d' % (constants.MAX_TOTAL_TIME_FLAG,
+                                        max_total_time)
+    additional_args.append(max_total_time_argument)
+
+    # TODO(flowerhack): libfuzzer-on-Fuchsia believes that all files are in
+    # the directory 'data/'.  We bake that 'data/' assumption into this file
+    # in a few places--may need to move it into constants?
+    target_artifact_prefix = 'data/'
+    target_minimized_file = 'final-minimized-crash'
+    min_file_fullpath = target_artifact_prefix + target_minimized_file
+    exact_artifact_arg = constants.EXACT_ARTIFACT_PATH_FLAG + min_file_fullpath
+    additional_args.append(exact_artifact_arg)
 
     # We need to push the testcase to the device and pass in the name.
     testcase_path_name = os.path.basename(os.path.normpath(testcase_path))
     self.device.store(testcase_path, self.fuzzer.data_path())
 
-    return_code = self.fuzzer.start(additional_args +
-                                    ['data/' + testcase_path_name])
+    return_code = self.fuzzer.start(
+        additional_args + [target_artifact_prefix + testcase_path_name])
     self.fuzzer.monitor(return_code)
 
     with open(self.fuzzer.logfile) as logfile:
       symbolized_output = logfile.read()
 
-    self.device.fetch(self.fuzzer.data_path('minimized-from-*'), output_path)
+    self.device.fetch(
+        self.fuzzer.data_path(target_minimized_file), output_path)
 
     fuzzer_process_result = new_process.ProcessResult()
     fuzzer_process_result.return_code = return_code
     fuzzer_process_result.output = symbolized_output
     fuzzer_process_result.time_executed = 0
-    fuzzer_process_result.command = self.fuzzer.last_fuzz_cmd
+    # It's not a standard fuzzer command, so don't save it.
+    fuzzer_process_result.command = None
     return fuzzer_process_result
 
   def ssh_command(self, *args):
