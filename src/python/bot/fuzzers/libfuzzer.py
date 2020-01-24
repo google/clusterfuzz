@@ -318,7 +318,7 @@ class LibFuzzerCommon(object):
     if additional_args is None:
       additional_args = []
 
-    max_total_time = get_minimize_total_time(timeout)
+    max_total_time = self.get_minimize_total_time(timeout)
     max_total_time_argument = '%s%d' % (constants.MAX_TOTAL_TIME_FLAG,
                                         max_total_time)
 
@@ -746,7 +746,7 @@ class FuchsiaQemuLibFuzzerRunner(new_process.ProcessRunner, LibFuzzerCommon):
     if additional_args is None:
       additional_args = []
     additional_args.append(constants.MINIMIZE_CRASH_ARGUMENT)
-    max_total_time = get_minimize_total_time(timeout)
+    max_total_time = self.get_minimize_total_time(timeout)
     max_total_time_argument = constants.MAX_TOTAL_TIME_FLAG + str(max_total_time)
     additional_args.append(max_total_time_argument)
 
