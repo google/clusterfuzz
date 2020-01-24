@@ -1029,6 +1029,30 @@ class IntegrationTestsFuchsia(BaseIntegrationTest):
     # Check the logs for the shutdown sequence
     self.assertIn('Shutting down', self.mock.log_warn.call_args[0][0])
 
+  @unittest.skipIf(
+      not environment.get_value('FUCHSIA_TESTS'),
+      'Temporarily disabling the Fuchsia tests until build size reduced.')
+  def test_minimize_testcase(self):
+    """Tests running a testcase that should be able to minimize."""
+    environment.set_value('FUZZ_TARGET', 'example_fuzzers/trap_fuzzer')
+    environment.set_value('JOB_NAME', 'libfuzzer_asan_fuchsia')
+    build_manager.setup_build()
+    testcase_path, _ = setup_testcase_and_corpus('fuchsia_overlong_crash',
+                                                 'empty_corpus')
+    minimize_output_path = tempfile.mkdtemp()
+
+    engine_impl = engine.LibFuzzerEngine()
+    result = engine_impl.minimize_testcase('example_fuzzers/trap_fuzzer',
+                                           ['-runs=1000000'], testcase_path,
+                                           minimize_output_path, 30)
+    self.assertTrue(os.path.exists(minimize_output_path))
+    minimized_files = os.listdir(minimize_output_path)
+    # There should only be one minimized file, because
+    #  crash can only be reduced by one
+    with open(os.path.join(minimize_output_path, minimized_files[0])) as f:
+      result = f.read()
+      self.assertEqual('HI!', result)
+
 
 @test_utils.integration
 @test_utils.with_cloud_emulators('datastore')
