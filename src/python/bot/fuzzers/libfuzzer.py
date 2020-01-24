@@ -774,8 +774,7 @@ class FuchsiaQemuLibFuzzerRunner(new_process.ProcessRunner, LibFuzzerCommon):
     with open(self.fuzzer.logfile) as logfile:
       symbolized_output = logfile.read()
 
-    self.device.fetch(
-        self.fuzzer.data_path(target_minimized_file), output_path)
+    self.device.fetch(self.fuzzer.data_path(target_minimized_file), output_path)
 
     fuzzer_process_result = new_process.ProcessResult()
     fuzzer_process_result.return_code = return_code
