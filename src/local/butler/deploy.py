@@ -409,7 +409,7 @@ def execute(args):
     # package.package calls these, so only set these up if we're not packaging,
     # since they can be fairly slow.
     appengine.symlink_dirs()
-    #common.install_dependencies('linux')
+    common.install_dependencies('linux')
     with open(constants.PACKAGE_TARGET_MANIFEST_PATH, 'w') as f:
       f.write('%s\n' % revision)
 
