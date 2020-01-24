@@ -747,8 +747,8 @@ class FuchsiaQemuLibFuzzerRunner(new_process.ProcessRunner, LibFuzzerCommon):
       additional_args = []
     additional_args.append(constants.MINIMIZE_CRASH_ARGUMENT)
     max_total_time = self.get_minimize_total_time(timeout)
-    max_total_time_argument = constants.MAX_TOTAL_TIME_FLAG + str(max_total_time)
-    additional_args.append(max_total_time_argument)
+    max_total_time_arg = constants.MAX_TOTAL_TIME_FLAG + str(max_total_time)
+    additional_args.append(max_total_time_arg)
 
     # TODO(flowerhack): libfuzzer-on-Fuchsia believes that all files are in
     # the directory 'data/'.  We bake that 'data/' assumption into this file
