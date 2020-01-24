@@ -18,6 +18,8 @@ import threading
 
 from google.cloud import ndb
 
+from base import utils
+
 _ndb_client = None
 _ndb_client_lock = threading.Lock()
 
@@ -29,7 +31,7 @@ def _client():
   if not _ndb_client:
     with _ndb_client_lock:
       if not _ndb_client:
-        _ndb_client = ndb.Client()
+        _ndb_client = ndb.Client(project=utils.get_application_id())
 
   return _ndb_client
 
