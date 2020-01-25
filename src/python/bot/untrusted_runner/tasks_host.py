@@ -184,7 +184,9 @@ def engine_reproduce(engine_impl, target_name, testcase_path, arguments,
   try:
     response = host.stub().EngineReproduce(request)
   except grpc.RpcError as e:
-    if 'TargetNotFoundError' in e.message.decode('utf-8', errors='ignore'):
+    # TODO(mbarbella): Clean this up when switching to the Python 3 version of
+    # grpc.
+    if 'TargetNotFoundError' in e.details().decode('utf-8', errors='replace'):
       # Resurface the right exception.
       raise testcase_manager.TargetNotFoundError('Failed to find target ' +
                                                  target_name)
