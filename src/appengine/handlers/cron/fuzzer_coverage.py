@@ -37,12 +37,6 @@ def _basename(gcs_path):
   return os.path.splitext(os.path.basename(gcs_path))[0]
 
 
-def _gcs_path(gcs_object):
-  """Returns a GCS URL for the given GCS object."""
-  return storage.get_cloud_storage_file_path(gcs_object['bucket'],
-                                             gcs_object['name'])
-
-
 def _read_json(url):
   """Returns a JSON obejct loaded from the given GCS url."""
   data = storage.read_data(url)
@@ -73,11 +67,11 @@ def _coverage_information(summary_path, name, report_info):
   return cov_info
 
 
-def _process_fuzzer_stats(fuzzer, project_info, project_name):
+def _process_fuzzer_stats(fuzzer, project_info, project_name, bucket):
   """Processes coverage stats for a single fuzz target."""
   fuzzer_name = data_types.fuzz_target_project_qualified_name(
-      project_name, _basename(fuzzer['name']))
-  fuzzer_info_path = _gcs_path(fuzzer)
+      project_name, _basename(fuzzer))
+  fuzzer_info_path = storage.get_cloud_storage_file_path(bucket, fuzzer)
   logs.log(
       'Processing fuzzer stats for %s (%s).' % (fuzzer_name, fuzzer_info_path))
   return _coverage_information(fuzzer_info_path, fuzzer_name, project_info)
@@ -91,19 +85,21 @@ def _process_project_stats(project_info, project_name):
   return _coverage_information(summary_path, project_name, project_info)
 
 
-def _process_project(project):
+def _process_project(project, bucket):
   """Collects coverage information for all fuzz targets in the given project and
   the total stats for the project."""
-  project_name = _basename(project['name'])
+  project_name = _basename(project)
   logs.log('Processing coverage for %s project.' % project_name)
-  report_info = _read_json(_gcs_path(project))
+  report_path = storage.get_cloud_storage_file_path(bucket, project)
+  report_info = _read_json(report_path)
 
   # Iterate through report_info['fuzzer_stats_dir'] and prepare
   # CoverageInformation entities for invididual fuzz targets.
   entities = []
   for fuzzer in storage.list_blobs(
-      report_info['fuzzer_stats_dir'], recursive=False, name_only=False):
-    entities.append(_process_fuzzer_stats(fuzzer, report_info, project_name))
+      report_info['fuzzer_stats_dir'], recursive=False):
+    entities.append(
+        _process_fuzzer_stats(fuzzer, report_info, project_name, bucket))
 
   logs.log('Processed coverage for %d targets in %s project.' % (len(entities),
                                                                  project_name))
@@ -117,8 +113,8 @@ def _process_project(project):
 def collect_fuzzer_coverage(bucket):
   """Actual implementation of the fuzzer coverage task."""
   url = _latest_report_info_dir(bucket)
-  for project in storage.list_blobs(url, recursive=False, name_only=False):
-    _process_project(project)
+  for project in storage.list_blobs(url, recursive=False):
+    _process_project(project, bucket)
 
 
 class Handler(base_handler.Handler):
