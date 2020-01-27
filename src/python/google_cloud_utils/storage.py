@@ -850,10 +850,13 @@ def write_data(data, cloud_storage_file_path, metadata=None):
     retries=DEFAULT_FAIL_RETRIES,
     delay=DEFAULT_FAIL_WAIT,
     function='google_cloud_utils.storage.list_blobs')
-def list_blobs(cloud_storage_path, recursive=True):
+def list_blobs(cloud_storage_path, recursive=True, name_only=True):
   """Return list of blobs under the given cloud storage path."""
   for blob in _provider().list_blobs(cloud_storage_path, recursive=recursive):
-    yield blob['name']
+    if name_only:
+      yield blob['name']
+    else:
+      yield blob
 
 
 def get_download_file_size(cloud_storage_file_path,

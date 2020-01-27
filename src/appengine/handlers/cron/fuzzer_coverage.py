@@ -26,8 +26,6 @@ from handlers import base_handler
 from libs import handler
 from metrics import logs
 
-_GCS_PROVIDER = storage.GcsProvider()
-
 
 def _latest_report_info_dir(bucket):
   """Returns a GCS URL to the latest report info for the given bucket."""
@@ -47,7 +45,7 @@ def _gcs_path(gcs_object):
 
 def _read_json(url):
   """Returns a JSON obejct loaded from the given GCS url."""
-  data = _GCS_PROVIDER.read_data(url)
+  data = storage.read_data(url)
   return json.loads(data)
 
 
@@ -63,11 +61,12 @@ def _coverage_information(summary_path, name, report_info):
       name, date, create_if_needed=True)
   cov_info.fuzzer = name
   cov_info.date = date
-  cov_info.functions_covered = summary['data'][0]['totals']['functions'][
-      'covered']
-  cov_info.functions_total = summary['data'][0]['totals']['functions']['count']
-  cov_info.edges_covered = summary['data'][0]['totals']['regions']['covered']
-  cov_info.edges_total = summary['data'][0]['totals']['regions']['count']
+
+  total_stats = summary['data'][0]['totals']
+  cov_info.functions_covered = total_stats['functions']['covered']
+  cov_info.functions_total = total_stats['functions']['count']
+  cov_info.edges_covered = total_stats['regions']['covered']
+  cov_info.edges_total = total_stats['regions']['count']
 
   # Link to a per project report as long as we don't have per fuzzer reports.
   cov_info.html_report_url = report_info['html_report_url']
@@ -87,7 +86,7 @@ def _process_fuzzer_stats(fuzzer, project_info, project_name):
 def _process_project_stats(project_info, project_name):
   """Processes coverage stats for a single project."""
   summary_path = project_info['report_summary_path']
-  logs.log("Processing total stats for %s project (%s).",
+  logs.log('Processing total stats for %s project (%s).',
            (project_name, summary_path))
   return _coverage_information(summary_path, project_name, project_info)
 
@@ -102,11 +101,11 @@ def _process_project(project):
   # Iterate through report_info['fuzzer_stats_dir'] and prepare
   # CoverageInformation entities for invididual fuzz targets.
   entities = []
-  for fuzzer in _GCS_PROVIDER.list_blobs(
-      report_info['fuzzer_stats_dir'], recursive=False):
+  for fuzzer in storage.list_blobs(
+      report_info['fuzzer_stats_dir'], recursive=False, name_only=False):
     entities.append(_process_fuzzer_stats(fuzzer, report_info, project_name))
 
-  logs.log("Processed coverage for %d targets in %s project." % (len(entities),
+  logs.log('Processed coverage for %d targets in %s project.' % (len(entities),
                                                                  project_name))
 
   # Prepare CoverageInformation entity for the total project stats.
@@ -118,7 +117,7 @@ def _process_project(project):
 def collect_fuzzer_coverage(bucket):
   """Actual implementation of the fuzzer coverage task."""
   url = _latest_report_info_dir(bucket)
-  for project in _GCS_PROVIDER.list_blobs(url, recursive=False):
+  for project in storage.list_blobs(url, recursive=False, name_only=False):
     _process_project(project)
 
 
@@ -129,13 +128,9 @@ class Handler(base_handler.Handler):
   def get(self):
     """Handle a GET request."""
     # The task is supposed to be super reliable and never fail. If anything goes
-    # wrong, we just re-raise the exception and report an explicit error.
-    try:
-      logs.log('FuzzerCoverage task started.')
-      config = local_config.GAEConfig()
-      bucket = config.get('coverage.reports.bucket')
-      collect_fuzzer_coverage(bucket)
-      logs.log('FuzzerCoverage task finished successfully.')
-    except:
-      logs.log_error('FuzzerCoverage task failed.')
-      raise
+    # wrong, we just fail with the exception going straight into StackDriver.
+    logs.log('FuzzerCoverage task started.')
+    config = local_config.GAEConfig()
+    bucket = config.get('coverage.reports.bucket')
+    collect_fuzzer_coverage(bucket)
+    logs.log('FuzzerCoverage task finished successfully.')
