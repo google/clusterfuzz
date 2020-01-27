@@ -28,6 +28,7 @@ from handlers import coverage_report
 from handlers import crash_stats
 from handlers import domain_verifier
 from handlers import download
+from handlers import fuzzer_coverage
 from handlers import fuzzer_stats
 from handlers import fuzzers
 from handlers import gcs_redirector
@@ -127,6 +128,7 @@ _CRON_ROUTES = [
     ('/build-crash-stats', build_crash_stats.Handler),
     ('/cleanup', cleanup.Handler),
     ('/corpus-backup/make-public', corpus_backup.MakePublicHandler),
+    ('/fuzzer-coverage', fuzzer_coverage.Handler),
     ('/fuzzer-stats/cache', fuzzer_stats.RefreshCacheHandler),
     ('/fuzzer-stats/preload', fuzzer_stats.PreloadHandler),
     ('/fuzzer-and-job-weights', fuzzer_and_job_weights.Handler),
