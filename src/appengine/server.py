@@ -48,6 +48,7 @@ from handlers.cron import cleanup
 from handlers.cron import corpus_backup
 from handlers.cron import fuzz_strategy_selection
 from handlers.cron import fuzzer_and_job_weights
+from handlers.cron import fuzzer_coverage
 from handlers.cron import load_bigquery_stats
 from handlers.cron import manage_vms
 from handlers.cron import ml_train
@@ -127,6 +128,7 @@ _CRON_ROUTES = [
     ('/build-crash-stats', build_crash_stats.Handler),
     ('/cleanup', cleanup.Handler),
     ('/corpus-backup/make-public', corpus_backup.MakePublicHandler),
+    ('/fuzzer-coverage', fuzzer_coverage.Handler),
     ('/fuzzer-stats/cache', fuzzer_stats.RefreshCacheHandler),
     ('/fuzzer-stats/preload', fuzzer_stats.PreloadHandler),
     ('/fuzzer-and-job-weights', fuzzer_and_job_weights.Handler),
