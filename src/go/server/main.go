@@ -29,7 +29,6 @@ func main() {
 	db.Init()
 	buckets.RegisterProvider(gcs.Scheme, gcs.New())
 
-	http.HandleFunc("/cron/fuzzer-coverage", appengine.VerifyCronRequest(cron.FuzzerCoverage))
 	http.HandleFunc("/cron/oss-fuzz-generate-certs", appengine.VerifyCronRequest(cron.OSSFuzzGenerateCerts))
 	log.Fatal(http.ListenAndServe(":8080", nil))
 }

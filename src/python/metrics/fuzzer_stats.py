@@ -1019,7 +1019,7 @@ def get_gcs_stats_path(kind, fuzzer, timestamp):
     return None
 
   datetime_value = datetime.datetime.utcfromtimestamp(timestamp)
-  dir_name = data_types.coverage_information_date_string(datetime_value)
+  dir_name = data_types.coverage_information_date_to_string(datetime_value)
 
   path = '/%s/%s/%s/date/%s/' % (bucket_name, fuzzer, kind, dir_name)
   return path

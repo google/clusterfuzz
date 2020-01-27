@@ -16,9 +16,9 @@ cron:
   # Golang crons start here.
   # Run fuzzer coverage task right before the corpus pruning task.
   - description: Obtain code coverage information from the coverage GCS bucket.
-    url: /cron/fuzzer-coverage
+    url: /fuzzer-coverage
     schedule: every day 18:30
-    target: go-cron-service
+    target: cron-service
 
   # Python crons start here.
   - description: Backup
