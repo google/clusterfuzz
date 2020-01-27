@@ -28,7 +28,6 @@ from handlers import coverage_report
 from handlers import crash_stats
 from handlers import domain_verifier
 from handlers import download
-from handlers import fuzzer_coverage
 from handlers import fuzzer_stats
 from handlers import fuzzers
 from handlers import gcs_redirector
@@ -49,6 +48,7 @@ from handlers.cron import cleanup
 from handlers.cron import corpus_backup
 from handlers.cron import fuzz_strategy_selection
 from handlers.cron import fuzzer_and_job_weights
+from handlers.cron import fuzzer_coverage
 from handlers.cron import load_bigquery_stats
 from handlers.cron import manage_vms
 from handlers.cron import ml_train
