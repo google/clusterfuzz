@@ -126,7 +126,11 @@ class Handler(base_handler.Handler):
     # The task is supposed to be super reliable and never fail. If anything goes
     # wrong, we just fail with the exception going straight into StackDriver.
     logs.log('FuzzerCoverage task started.')
-    config = local_config.GAEConfig()
-    bucket = config.get('coverage.reports.bucket')
+    bucket = local_config.ProjectConfig().get('coverage.reports.bucket')
+    if not bucket:
+      logs.log(
+          'Coverage bucket is not specified. Skipping FuzzerCoverage task.')
+      return
+
     collect_fuzzer_coverage(bucket)
     logs.log('FuzzerCoverage task finished successfully.')
