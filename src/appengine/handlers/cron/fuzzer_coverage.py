@@ -80,7 +80,7 @@ def _process_fuzzer_stats(fuzzer, project_info, project_name, bucket):
 def _process_project_stats(project_info, project_name):
   """Processes coverage stats for a single project."""
   summary_path = project_info['report_summary_path']
-  logs.log('Processing total stats for %s project (%s).',
+  logs.log('Processing total stats for %s project (%s).' %
            (project_name, summary_path))
   return _coverage_information(summary_path, project_name, project_info)
 
