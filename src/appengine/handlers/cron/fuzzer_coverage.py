@@ -40,12 +40,14 @@ def _basename(gcs_path):
 def _read_json(url):
   """Returns a JSON obejct loaded from the given GCS url."""
   data = storage.read_data(url)
+  if not data:
+    return None
+
   return json.loads(data)
 
 
 def _coverage_information(summary_path, name, report_info):
   """Returns a CoverageInformation entity with coverage stats populated."""
-  summary = _read_json(summary_path)
   date = datetime.datetime.strptime(
       report_info['report_date'],
       data_types.COVERAGE_INFORMATION_DATE_FORMAT).date()
@@ -56,14 +58,20 @@ def _coverage_information(summary_path, name, report_info):
   cov_info.fuzzer = name
   cov_info.date = date
 
+  # Link to a per project report as long as we don't have per fuzzer reports.
+  cov_info.html_report_url = report_info['html_report_url']
+
+  summary = _read_json(summary_path)
+  if not summary:
+    # We can encounter empty JSON files for broken fuzz targets.
+    return cov_info
+
   total_stats = summary['data'][0]['totals']
   cov_info.functions_covered = total_stats['functions']['covered']
   cov_info.functions_total = total_stats['functions']['count']
   cov_info.edges_covered = total_stats['regions']['covered']
   cov_info.edges_total = total_stats['regions']['count']
 
-  # Link to a per project report as long as we don't have per fuzzer reports.
-  cov_info.html_report_url = report_info['html_report_url']
   return cov_info
 
 
@@ -92,6 +100,10 @@ def _process_project(project, bucket):
   logs.log('Processing coverage for %s project.' % project_name)
   report_path = storage.get_cloud_storage_file_path(bucket, project)
   report_info = _read_json(report_path)
+  if not report_info:
+    logs.log_warn('Empty code coverage report info for %s project (%s).' %
+                  (project_name, report_path))
+    return
 
   # Iterate through report_info['fuzzer_stats_dir'] and prepare
   # CoverageInformation entities for invididual fuzz targets.
