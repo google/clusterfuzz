@@ -1566,6 +1566,25 @@ def use_mutator_plugin(target_name, extra_env):
   return True
 
 
+def use_radamsa_mutator_plugin(extra_env):
+  """Decide whether to use Radamsa in process. If yes, add the path to the
+  radamsa shared object to LD_PRELOAD in |extra_env| and return True."""
+
+  # Radamsa will only work on LINUX ASAN jobs.
+  # TODO(mpherman): Include architecture info in job definition and exclude
+  #  i386.
+  if environment.platform() != 'LINUX' or environment.get_value(
+      'MEMORY_TOOL') != 'ASAN':
+    return False
+
+  radamsa_path = os.path.join(environment.get_platform_resources_directory(),
+                              'radamsa', 'libradamsa.so')
+
+  logs.log('Using Radamsa mutator plugin : %s' % radamsa_path)
+  extra_env['LD_PRELOAD'] = radamsa_path
+  return True
+
+
 def is_sha1_hash(possible_hash):
   """Returns True if |possible_hash| looks like a valid sha1 hash."""
   if len(possible_hash) != 40:
@@ -1683,6 +1702,10 @@ def pick_strategies(strategy_pool, fuzzer_path, corpus_directory,
   if (strategy_pool.do_strategy(strategy.MUTATOR_PLUGIN_STRATEGY) and
       use_mutator_plugin(target_name, extra_env)):
     fuzzing_strategies.append(strategy.MUTATOR_PLUGIN_STRATEGY.name)
+
+  if (strategy_pool.do_strategy(strategy.MUTATOR_PLUGIN_RADAMSA_STRATEGY) and
+      use_radamsa_mutator_plugin(extra_env)):
+    fuzzing_strategies.append(strategy.MUTATOR_PLUGIN_RADAMSA_STRATEGY.name)
 
   return StrategyInfo(fuzzing_strategies, arguments, additional_corpus_dirs,
                       extra_env, use_dataflow_tracing, is_mutations_run)
