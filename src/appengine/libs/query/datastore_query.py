@@ -78,6 +78,7 @@ class QueryIteratorWrapper(object):
   next = __next__
 
   def last_cursor(self):
+    """Return the last cursor after all results have been iterated through."""
     if not self._last_cursor:
       raise exceptions.BadArgumentError
 
