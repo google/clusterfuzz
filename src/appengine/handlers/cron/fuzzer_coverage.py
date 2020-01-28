@@ -13,6 +13,7 @@
 # limitations under the License.
 """Cron job to get the latest code coverage stats and HTML reports."""
 
+from builtins import str
 import datetime
 import json
 import os
@@ -40,10 +41,15 @@ def _basename(gcs_path):
 def _read_json(url):
   """Returns a JSON obejct loaded from the given GCS url."""
   data = storage.read_data(url)
-  if not data:
-    return None
 
-  return json.loads(data)
+  result = None
+  try:
+    result = json.loads(data)
+  except Exception as e:
+    logs.log_warn(
+        'Empty or malformed code coverage JSON (%s): %s.' % (url, str(e)))
+
+  return result
 
 
 def _coverage_information(summary_path, name, report_info):
@@ -101,8 +107,7 @@ def _process_project(project, bucket):
   report_path = storage.get_cloud_storage_file_path(bucket, project)
   report_info = _read_json(report_path)
   if not report_info:
-    logs.log_warn('Empty code coverage report info for %s project (%s).' %
-                  (project_name, report_path))
+    logs.log_warn('Skipping code coverage for %s project.' % project_name)
     return
 
   # Iterate through report_info['fuzzer_stats_dir'] and prepare
