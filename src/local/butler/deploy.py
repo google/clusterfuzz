@@ -38,7 +38,6 @@ RETRY_WAIT_SECONDS = 10
 # Give 12 hours for cron jobs to complete before deleting a version.
 VERSION_DELETE_WINDOW_MINUTES = 12 * 60
 
-GO_SRC_PREFIX = 'go-'
 INDEX_YAML_PATH = os.path.join(appengine.SRC_DIR_PY, 'index.yaml')
 SERVICE_REGEX = re.compile(r'service\s*:\s*(.*)')
 
