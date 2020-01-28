@@ -632,7 +632,7 @@ class Testcase(Model):
 
   def _post_put_hook(self, _):
     if not self.key:
-      # Failed put.
+      # Failed put. An exception will be thrown automatically afterwards.
       return
 
     logs.log('Updated testcase %d (bug %s).' % (self.key.id(),

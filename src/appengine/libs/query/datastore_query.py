@@ -55,7 +55,8 @@ def _combine(q1, q2):
   return result
 
 
-# TODO(ochang): Remove once bug is fixed.
+# TODO(ochang): Remove once https://github.com/googleapis/python-ndb/issues/292
+# is fixed.
 class QueryIteratorWrapper(object):
   """Workaround for https://github.com/googleapis/python-ndb/issues/292."""
 
