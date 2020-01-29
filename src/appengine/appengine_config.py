@@ -37,19 +37,22 @@ IS_RUNNING_IN_PRODUCTION = (
 config_modules_path = os.path.join('config', 'modules')
 
 if IS_RUNNING_IN_PRODUCTION or IS_RUNNING_IN_DEV_APPSERVER:
-  import pkg_resources
   vendor.add('third_party')
   vendor.add('python')
   if os.path.exists(config_modules_path):
     vendor.add(config_modules_path)
-
-  # Hack for python-ndb.
-  pkg_resources.working_set.add_entry('third_party')
 else:
   sys.path.insert(0, 'third_party')
   sys.path.insert(0, 'python')
   if os.path.exists(config_modules_path):
     sys.path.insert(0, config_modules_path)
+
+if IS_RUNNING_IN_PRODUCTION:
+  import pkg_resources
+  reload(pkg_resources)
+elif IS_RUNNING_IN_DEV_APPSERVER:
+  import pkg_resources
+  pkg_resources.working_set.add_entry('third_party')
 
 try:
   # Run any module initialization code.
