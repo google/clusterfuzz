@@ -59,7 +59,6 @@ class BaseTest(object):
         'fuzzing.corpus_manager.backup_corpus',
         'fuzzing.corpus_manager.GcsCorpus.rsync_to_disk',
         'fuzzing.corpus_manager.FuzzTargetCorpus.rsync_from_disk',
-        'datastore.ndb.transaction',
         'google_cloud_utils.blobs.write_blob',
         'google_cloud_utils.storage.write_data',
     ])
@@ -108,10 +107,6 @@ class BaseTest(object):
     os.environ['JOB_NAME'] = 'libfuzzer_asan_job'
     os.environ['FAIL_RETRIES'] = '1'
     os.environ['APP_REVISION'] = '1337'
-
-    # ndb.transaction seems to cause hangs with testbed when run after another
-    # test that uses testbed.
-    self.mock.transaction.side_effect = lambda f, **_: f()
 
   def tearDown(self):
     shutil.rmtree(self.fuzz_inputs_disk, ignore_errors=True)

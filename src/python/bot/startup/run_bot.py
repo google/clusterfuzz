@@ -48,6 +48,7 @@ from bot.fuzzers import init as fuzzers_init
 from bot.tasks import commands
 from bot.tasks import update_task
 from datastore import data_handler
+from datastore import ndb_init
 from metrics import logs
 from metrics import monitor
 from metrics import monitoring_metrics
@@ -188,7 +189,8 @@ def main():
 
 if __name__ == '__main__':
   try:
-    main()
+    with ndb_init.context():
+      main()
     exit_code = 0
   except Exception:
     traceback.print_exc()

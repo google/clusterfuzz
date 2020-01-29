@@ -21,6 +21,7 @@ standard_library.install_aliases()
 import base64
 import cgi
 import datetime
+import gc
 import json
 import logging
 import os
@@ -29,13 +30,14 @@ import sys
 import traceback
 import urllib.parse
 
+from google.cloud import ndb
 import jinja2
 import webapp2
 
 from base import utils
 from config import db_config
 from config import local_config
-from datastore import ndb
+from datastore import ndb_init
 from google_cloud_utils import storage
 from libs import auth
 from libs import form
@@ -264,16 +266,27 @@ class Handler(webapp2.RequestHandler):
     check_redirect_url(url)
     super(Handler, self).redirect(url, **kwargs)
 
-  # TODO(mbarbella): Delete this once the Python 3 migration is complete.
   def dispatch(self):
     """Dispatch a request and postprocess."""
-
+    # TODO(mbarbella): Delete this once the Python 3 migration is complete.
     @future_utils.as_native_str()
     def to_native_str(text):
       """Convert from future's newstr to a native str."""
       return text
 
-    super(Handler, self).dispatch()
+    if environment.get_value('PY_UNITTESTS'):
+      # Unit tests may not have NDB available.
+      super(Handler, self).dispatch()
+    else:
+      with ndb_init.context():
+        super(Handler, self).dispatch()
+
+      # App Engine Python 2 does not like it when there are threads still alive
+      # at the end of a request. In particular, NDB and gRPC may create threads
+      # which aren't automatically stopped at this point due to reference
+      # cycles. Garbage collect here to get rid of them.
+      # TODO(ochang): Check if this is still needed for Python 3 GAE.
+      gc.collect()
 
     # Replace header values with Python 2-style strings after dispatching. There
     # is an explicit type check against str that causes issues with newstr here.

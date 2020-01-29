@@ -26,7 +26,7 @@ import requests
 import six
 import yaml
 
-from . import service_accounts
+from google.cloud import ndb
 
 from base import tasks
 from base import untrusted
@@ -35,7 +35,6 @@ from config import db_config
 from config import local_config
 from datastore import data_handler
 from datastore import data_types
-from datastore import ndb
 from fuzzing import fuzzer_selection
 from google_cloud_utils import pubsub
 from google_cloud_utils import storage
@@ -43,6 +42,8 @@ from handlers import base_handler
 from libs import handler
 from metrics import logs
 from system import environment
+
+from . import service_accounts
 
 BUILD_BUCKET_PATH_TEMPLATE = (
     'gs://%BUCKET%/%PROJECT%/%PROJECT%-%SANITIZER%-([0-9]+).zip')

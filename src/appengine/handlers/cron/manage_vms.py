@@ -19,18 +19,18 @@ from builtins import object
 from builtins import range
 from builtins import str
 from builtins import zip
+from collections import namedtuple
+from concurrent.futures import ThreadPoolExecutor
 import copy
 import itertools
 import json
 import logging
 
-from collections import namedtuple
-from concurrent.futures import ThreadPoolExecutor
+from google.cloud import ndb
 
 from base import utils
 from config import local_config
 from datastore import data_types
-from datastore import ndb
 from google_cloud_utils import compute_engine_projects
 from handlers import base_handler
 from handlers.cron.helpers import bot_manager

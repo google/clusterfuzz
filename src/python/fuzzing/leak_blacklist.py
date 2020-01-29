@@ -16,10 +16,11 @@
 import os
 import re
 
+from google.cloud import ndb
+
 from base import errors
 from datastore import data_handler
 from datastore import data_types
-from datastore import ndb
 from metrics import logs
 from system import environment
 

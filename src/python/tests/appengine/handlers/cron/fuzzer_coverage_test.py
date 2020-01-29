@@ -16,8 +16,9 @@
 import datetime
 import unittest
 
+from google.cloud import ndb
+
 from datastore import data_types
-from datastore import ndb
 from handlers.cron import fuzzer_coverage
 from tests.test_libs import helpers as test_helpers
 from tests.test_libs import test_utils

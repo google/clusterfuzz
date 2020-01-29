@@ -14,12 +14,12 @@
 """Report upload task."""
 
 from builtins import str
+from google.cloud import ndb
 
 from base import errors
 from chrome import crash_uploader
 from datastore import data_handler
 from datastore import data_types
-from datastore import ndb
 from datastore import ndb_utils
 from metrics import logs
 from system import environment

@@ -316,13 +316,6 @@ def _setup():
   appengine_sdk_path = appengine.find_sdk_path()
   sys.path.insert(0, appengine_sdk_path)
 
-  # This is necessary for our local environment, where googledatastore (old
-  # library used only in tests) depends on protobufs which have duplicate
-  # definitions in google-cloud-datastore. The python implementation of
-  # protobufs are more relaxed and allow this.
-  # TODO(ochang): Remove this once we no longer depend on googledatastore.
-  os.environ['PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION'] = 'python'
-
   os.environ['ROOT_DIR'] = os.path.abspath('.')
 
   sys.path.insert(0, os.path.abspath(os.path.join('src')))

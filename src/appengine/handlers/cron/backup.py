@@ -18,11 +18,12 @@
 
 from builtins import str
 import datetime
+
+from google.cloud import ndb
 import googleapiclient
 
 from base import utils
 from config import local_config
-from datastore import ndb
 from handlers import base_handler
 from libs import handler
 from metrics import logs

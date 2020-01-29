@@ -158,7 +158,7 @@ def _allowed_users_for_entity(name, entity_kind, auto_cc=None):
       data_types.ExternalUserPermission.entity_kind == entity_kind,
       data_types.ExternalUserPermission.entity_name == name,
       ndb_utils.is_false(data_types.ExternalUserPermission.is_prefix),
-      projection=[data_types.ExternalUserPermission.email])
+      projection=['email'])
   if auto_cc is not None:
     direct_match_permissions = direct_match_permissions.filter(
         data_types.ExternalUserPermission.auto_cc == auto_cc)
@@ -176,8 +176,8 @@ def _allowed_users_for_entity(name, entity_kind, auto_cc=None):
       data_types.ExternalUserPermission.entity_name >= name[0],
       ndb_utils.is_true(data_types.ExternalUserPermission.is_prefix),
       projection=[
-          data_types.ExternalUserPermission.email,
-          data_types.ExternalUserPermission.entity_name
+          'email',
+          'entity_name',
       ])
   if auto_cc is not None:
     prefix_match_permissions = prefix_match_permissions.filter(
