@@ -28,6 +28,8 @@ try:
 except ImportError:
   from pipes import quote
 
+from google.cloud import ndb
+
 from base import dates
 from base import errors
 from base import memoize
@@ -39,7 +41,6 @@ from config import db_config
 from config import local_config
 from crash_analysis import severity_analyzer
 from datastore import data_types
-from datastore import ndb
 from datastore import ndb_utils
 from google_cloud_utils import blobs
 from google_cloud_utils import storage
@@ -102,8 +103,7 @@ FuzzerDisplay = collections.namedtuple(
 @memoize.wrap(memoize.Memcache(MEMCACHE_TTL_IN_SECONDS))
 def get_all_project_names():
   """Return all project names."""
-  query = data_types.Job.query(
-      projection=[data_types.Job.project], distinct=True)
+  query = data_types.Job.query(projection=['project'], distinct=True)
   return sorted([job.project for job in query])
 
 
@@ -1466,8 +1466,7 @@ def get_fuzz_targets(engine=None, project=None, binary=None):
 
 def get_fuzzing_engines():
   """Return the fuzzing engines currently running."""
-  query = data_types.FuzzTarget.query(
-      projection=[data_types.FuzzTarget.engine], distinct=True)
+  query = data_types.FuzzTarget.query(projection=['engine'], distinct=True)
   return [f.engine for f in ndb_utils.get_all_from_query(query)]
 
 

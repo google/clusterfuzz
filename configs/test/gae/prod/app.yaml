@@ -49,6 +49,8 @@ libraries:
     version: latest
   - name: ssl
     version: latest
+  - name: grpcio
+    version: latest
 
 basic_scaling:
   max_instances: 7

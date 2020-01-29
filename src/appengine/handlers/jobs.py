@@ -16,10 +16,11 @@
 from builtins import str
 import six
 
+from google.cloud import ndb
+
 from base import tasks
 from datastore import data_handler
 from datastore import data_types
-from datastore import ndb
 from datastore import ndb_utils
 from fuzzing import fuzzer_selection
 from handlers import base_handler

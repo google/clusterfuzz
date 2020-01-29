@@ -17,10 +17,11 @@ from builtins import zip
 
 import collections
 
+from google.cloud import ndb
+
 from base import utils
 from datastore import data_types
 from datastore import fuzz_target_utils
-from datastore import ndb
 from datastore import ndb_utils
 from metrics import logs
 from system import environment

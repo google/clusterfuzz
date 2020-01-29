@@ -17,10 +17,11 @@ import collections
 import datetime
 import six
 
+from google.cloud import ndb
+
 from base import utils
 from datastore import data_handler
 from datastore import data_types
-from datastore import ndb
 from datastore import ndb_utils
 from google_cloud_utils import big_query
 from handlers import base_handler

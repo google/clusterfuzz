@@ -188,6 +188,7 @@ def execute(args):
         '--dev_appserver_log_level={log_level} '
         '--support_datastore_emulator=true '
         '--env_var LOCAL_DEVELOPMENT=True '
+        '--env_var DATASTORE_EMULATOR_HOST={datastore_emulator_host} '
         '--env_var PUBSUB_EMULATOR_HOST={pubsub_emulator_host} '
         '--env_var LOCAL_GCS_BUCKETS_PATH=local_gcs '
         '--env_var LOCAL_GCS_SERVER_HOST={local_gcs_server_host} '
@@ -200,6 +201,7 @@ def execute(args):
             admin_port=constants.DEV_APPSERVER_ADMIN_PORT,
             datastore_emulator_port=constants.DATASTORE_EMULATOR_PORT,
             log_level=args.log_level,
+            datastore_emulator_host=constants.DATASTORE_EMULATOR_HOST,
             pubsub_emulator_host=constants.PUBSUB_EMULATOR_HOST,
             local_gcs_server_host=constants.LOCAL_GCS_SERVER_HOST,
             cron_port=constants.CRON_SERVICE_PORT),
