@@ -32,6 +32,8 @@ def _client():
     with _ndb_client_lock:
       if not _ndb_client:
         _ndb_client = ndb.Client(project=utils.get_application_id())
+        # TODO(ochang): Remove hack once migration to Python 3 is done.
+        _ndb_client.host = utils.newstr_to_native_str(_ndb_client.host)
 
   return _ndb_client
 
