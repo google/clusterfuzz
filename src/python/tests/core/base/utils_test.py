@@ -20,10 +20,10 @@ import sys
 import time
 import unittest
 
-from google.cloud import ndb
 from pyfakefs import fake_filesystem_unittest
 
 from base import utils
+from datastore import ndb
 from tests.test_libs import helpers
 from tests.test_libs import test_utils
 

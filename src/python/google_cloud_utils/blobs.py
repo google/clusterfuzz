@@ -21,14 +21,13 @@ import os
 import re
 import uuid
 
-from google.cloud import ndb
+from . import storage
 
 from base import memoize
 from base import retry
 from datastore import data_types
+from datastore import ndb
 from system import environment
-
-from . import storage
 
 FAIL_NUM_RETRIES = 2
 FAIL_WAIT = 1.5

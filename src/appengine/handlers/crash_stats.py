@@ -131,7 +131,11 @@ def query_testcase(project_name, crash_type, crash_state, security_flag,
       data_types.Testcase.open == is_open,
       ndb_utils.is_false(data_types.Testcase.is_a_duplicate_flag)).order(
           -data_types.Testcase.timestamp).iter(
-              limit=1, projection=['bug_information', 'group_bug_information'])
+              limit=1,
+              projection=[
+                  data_types.Testcase.bug_information,
+                  data_types.Testcase.group_bug_information
+              ])
 
 
 def attach_testcases(rows):
@@ -211,7 +215,8 @@ def get_result(this):
 
 def get_all_platforms():
   """Get all platforms including parent platform."""
-  items = data_types.Testcase.query(projection=['platform'], distinct=True)
+  items = data_types.Testcase.query(
+      projection=[data_types.Testcase.platform], distinct=True)
 
   return sorted(
       list(

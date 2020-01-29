@@ -13,6 +13,9 @@
 # limitations under the License.
 """NDB utilities. Provides utility functions for NDB."""
 
+from base import utils
+from datastore import ndb_patcher
+
 DEFAULT_BATCH_SIZE = 1000
 
 
@@ -34,8 +37,30 @@ def get_all_from_model(model):
 def get_all_from_query(query, **kwargs):
   """Return all entities based on the query by paging, to avoid query
   expirations on App Engine."""
-  # TODO(ochang): Queries no longer expire with new NDB. Remove this and all
-  # fix up callers.
-  kwargs.pop('batch_size', None)  # No longer supported.
-  for entity in query.iter(**kwargs):
-    yield entity
+  if isinstance(query, ndb_patcher.Query):
+    # Not necessary with ndb_patcher.Query.
+    for result in query.iter(**kwargs):
+      yield result
+
+    return
+
+  batch_size = kwargs.pop('batch_size', DEFAULT_BATCH_SIZE)
+  kwargs['batch_size'] = batch_size
+
+  while True:
+    entities, cursor, more = query.fetch_page(batch_size, **kwargs)
+    if not entities:
+      break
+
+    for entity in entities:
+      yield entity
+
+    kwargs['start_cursor'] = cursor
+
+    if not more:
+      # No more results to process, bail out.
+      break
+
+    # Free up some memory in between batches.
+    del entities
+    utils.python_gc()

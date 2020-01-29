@@ -22,10 +22,9 @@ import unittest
 import webapp2
 import webtest
 
-from google.cloud import ndb
-
 from base import utils
 from datastore import data_types
+from datastore import ndb
 from google_cloud_utils import pubsub
 from handlers.cron import project_setup
 from tests.test_libs import helpers

@@ -25,13 +25,12 @@ import io
 import json
 import os
 
-from google.cloud import ndb
-
 from base import external_users
 from base import tasks
 from base import utils
 from datastore import data_handler
 from datastore import data_types
+from datastore import ndb
 from google_cloud_utils import blobs
 from google_cloud_utils import storage
 from handlers import base_handler
@@ -148,14 +147,14 @@ def query_testcase(testcase_id):
       data_types.Testcase, testcase_id)).iter(
           limit=1,
           projection=[
-              'crash_type',
-              'crash_state',
-              'security_flag',
-              'bug_information',
-              'job_type',
-              'fuzzer_name',
-              'overridden_fuzzer_name',
-              'project_name',
+              data_types.Testcase.crash_type,
+              data_types.Testcase.crash_state,
+              data_types.Testcase.security_flag,
+              data_types.Testcase.bug_information,
+              data_types.Testcase.job_type,
+              data_types.Testcase.fuzzer_name,
+              data_types.Testcase.overridden_fuzzer_name,
+              data_types.Testcase.project_name,
           ])
 
 

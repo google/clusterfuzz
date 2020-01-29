@@ -13,14 +13,14 @@
 # limitations under the License.
 """datastore_query tests."""
 # pylint: disable=protected-access
-from builtins import object
 from builtins import range
 import datetime
 import mock
 import unittest
 
-from google.cloud import ndb
+from google.appengine.api import datastore_types
 
+from datastore import ndb
 from libs.query import datastore_query
 from tests.test_libs import test_utils
 
@@ -172,33 +172,6 @@ class QueryTest(unittest.TestCase):
     self.assertFalse(has_more)
 
 
-class MockIterator(object):
-  """Fake iterator."""
-
-  def __init__(self, items):
-    self._items = items
-    self._index = 0
-
-  def __iter__(self):
-    return self
-
-  def __next__(self):
-    if self._index >= len(self._items):
-      raise StopIteration
-
-    result = self._items[self._index]
-    self._index += 1
-    return result
-
-  next = __next__
-
-  def cursor_after(self):
-    return None
-
-  def has_next(self):
-    return self._index < len(self._items) - 1
-
-
 class QueryWrapper(ndb.Query):
   """Query wrapper for easy mocking."""
 
@@ -226,7 +199,9 @@ class QueryWrapper(ndb.Query):
     return self.results
 
   def iter(self, **kwargs):  # pylint: disable=unused-argument
-    m = MockIterator(self.results)
+    m = mock.MagicMock()
+    m.__iter__.return_value = self.results
+    m.cursor_after.return_value = None
     return m
 
   def __getattr__(self, attr):
@@ -234,7 +209,6 @@ class QueryWrapper(ndb.Query):
     return getattr(self.wrapped, attr)
 
 
-@test_utils.with_cloud_emulators('datastore')
 class QueryMockTest(unittest.TestCase):
   """Test Query with mocks. This test is important because we want to make sure
     we call the underlying query correctly."""
@@ -279,17 +253,14 @@ class QueryMockTest(unittest.TestCase):
     ], [f.__getnewargs__() for f in self.queries[1][-1].filters])
 
     self.assertIsInstance(self.queries[2][-1].filters, ndb.OR)
-
-    expected = []
-    for item in [f.__getnewargs__() for f in self.queries[2][-1].filters]:
-      expected.append((item[0], item[1], repr(item[2])))
-
     self.assertItemsEqual([
         ('__key__', '=',
-         '<Key(\'TestDatastoreModel\', 0), project=test-clusterfuzz>'),
+         datastore_types.Key.from_path(
+             u'TestDatastoreModel', 0, _app=u'test-clusterfuzz')),
         ('__key__', '=',
-         '<Key(\'TestDatastoreModel\', 1), project=test-clusterfuzz>'),
-    ], expected)
+         datastore_types.Key.from_path(
+             u'TestDatastoreModel', 1, _app=u'test-clusterfuzz')),
+    ], [f.__getnewargs__() for f in self.queries[2][-1].filters])
 
 
 class ComputeProjectionTest(unittest.TestCase):
