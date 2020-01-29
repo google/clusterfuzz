@@ -37,16 +37,14 @@ IS_RUNNING_IN_PRODUCTION = (
 config_modules_path = os.path.join('config', 'modules')
 
 if IS_RUNNING_IN_PRODUCTION or IS_RUNNING_IN_DEV_APPSERVER:
+  import pkg_resources
   vendor.add('third_party')
   vendor.add('python')
   if os.path.exists(config_modules_path):
     vendor.add(config_modules_path)
 
   # Hack for python-ndb.
-  import site
-  site.addsitedir('third_party')
-  import pkg_resources
-  reload(pkg_resources)
+  pkg_resources.working_set.add_entry('third_party')
 else:
   sys.path.insert(0, 'third_party')
   sys.path.insert(0, 'python')

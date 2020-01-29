@@ -52,7 +52,7 @@ ENV ROOT_DIR /workspace
 ENV PYTHONPATH $APPENGINE_SDK_PATH:$ROOT_DIR/src
 
 COPY requirements.txt /tmp
-RUN pip install -r /tmp/requirements.txt && pip install --upgrade pip==19.3.1
+RUN pip install -r /tmp/requirements.txt && pip install --upgrade pip
 
 ENV APPENGINE_DIRECTORY $APPENGINE_SDK_PATH
 
