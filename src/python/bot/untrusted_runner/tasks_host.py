@@ -14,8 +14,6 @@
 """Tasks host."""
 from __future__ import absolute_import
 
-from builtins import str
-
 import datetime
 
 from google.protobuf import wrappers_pb2
@@ -186,7 +184,7 @@ def engine_reproduce(engine_impl, target_name, testcase_path, arguments,
   try:
     response = host.stub().EngineReproduce(request)
   except grpc.RpcError as e:
-    if 'TargetNotFoundError' in str(e, encoding='utf-8', errors='ignore'):
+    if 'TargetNotFoundError' in repr(e):
       # Resurface the right exception.
       raise testcase_manager.TargetNotFoundError('Failed to find target ' +
                                                  target_name)

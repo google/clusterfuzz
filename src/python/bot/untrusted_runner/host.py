@@ -16,7 +16,6 @@ from __future__ import absolute_import
 
 from builtins import object
 from builtins import range
-from builtins import str
 
 import sys
 import threading
@@ -157,12 +156,7 @@ def _wrap_call(func, num_retries=config.RPC_RETRY_ATTEMPTS):
       except grpc.RpcError as e:
         # For timeouts, which aren't fatal errors, resurface the right
         # exception.
-        # TODO(mbarbella): Ignoring errors on the next line fixes an issue while
-        # trying to support this code in both Python 2 and 3, but may not be
-        # necessary in Python 3 since presumably the exception class will
-        # allow us to properly convert it to a string. Delete after migrating.
-        exception_message = e.message.decode('utf-8', errors='ignore')
-        if 'TimeoutError' in exception_message:
+        if 'TimeoutError' in repr(e):
           # TODO(ochang): Replace with generic TimeoutError in Python 3.
           raise engine.TimeoutError(e.message)
 
@@ -171,7 +165,7 @@ def _wrap_call(func, num_retries=config.RPC_RETRY_ATTEMPTS):
           # for retries.
           raise
 
-        logs.log_warn('Failed RPC: ' + exception_message)
+        logs.log_warn('Failed RPC: ' + repr(e))
         if retry_attempt == num_retries:
           # Last attempt.
           host_exit_no_return()
@@ -191,7 +185,7 @@ def _do_heartbeat():
           heartbeat_pb2.HeartbeatRequest(),
           timeout=config.HEARTBEAT_TIMEOUT_SECONDS)
     except grpc.RpcError as e:
-      logs.log_warn('worker heartbeat failed: ' + str(e))
+      logs.log_warn('worker heartbeat failed: ' + repr(e))
 
     time.sleep(config.HEARTBEAT_INTERVAL_SECONDS)
 
