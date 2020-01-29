@@ -18,10 +18,9 @@ import datetime
 import six
 import sys
 
-from google.cloud import ndb
-
 from base import utils
 from datastore import data_types
+from datastore import ndb
 from local.butler.scripts import attribute_builder
 from local.butler.scripts import batcher
 

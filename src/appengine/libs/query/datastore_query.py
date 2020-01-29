@@ -13,10 +13,8 @@
 # limitations under the License.
 """Query handles pagination and OR conditions with its best effort."""
 
-from builtins import next
 from builtins import object
-
-from google.cloud.ndb import exceptions
+from google.appengine.api import datastore_errors
 
 from libs.query import base
 
@@ -55,43 +53,12 @@ def _combine(q1, q2):
   return result
 
 
-# TODO(ochang): Remove once https://github.com/googleapis/python-ndb/issues/292
-# is fixed.
-class QueryIteratorWrapper(object):
-  """Workaround for https://github.com/googleapis/python-ndb/issues/292."""
-
-  def __init__(self, it):
-    self._it = it
-    self._last_cursor = None
-
-  def __iter__(self):
-    return self
-
-  def __next__(self):
-    if not self._it.has_next():
-      try:
-        self._last_cursor = self._it.cursor_after()
-      except exceptions.BadArgumentError:
-        pass
-
-    return next(self._it)
-
-  next = __next__
-
-  def last_cursor(self):
-    """Return the last cursor after all results have been iterated through."""
-    if not self._last_cursor:
-      raise exceptions.BadArgumentError
-
-    return self._last_cursor
-
-
 class _Run(object):
   """Encapsulate a query and its run."""
 
   def __init__(self, query, **kwargs):
     self.query = query
-    self.result = QueryIteratorWrapper(query.iter(**kwargs))
+    self.result = query.iter(produce_cursors=True, **kwargs)
 
 
 class _KeyQuery(object):
@@ -197,7 +164,8 @@ class _KeyQuery(object):
               q.to_datastore_query(),
               keys_only=False,
               projection=[self.order_property],
-              limit=total))
+              limit=total,
+              batch_size=total))
     return runs
 
   def _get_total_count(self, runs, offset, limit, items, more_limit):
@@ -212,8 +180,8 @@ class _KeyQuery(object):
     more_runs = []
     for run in runs:
       try:
-        cursor = run.result.last_cursor()
-      except exceptions.BadArgumentError:
+        cursor = run.result.cursor_after()
+      except datastore_errors.BadArgumentError:
         # iterator had no results.
         cursor = None
 
@@ -223,7 +191,8 @@ class _KeyQuery(object):
               start_cursor=cursor,
               keys_only=True,
               projection=None,
-              limit=more_limit))
+              limit=more_limit,
+              batch_size=more_limit))
 
     keys = set([item.key.id() for item in items])
     for run in more_runs:

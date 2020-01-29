@@ -30,7 +30,6 @@ from base import persistent_cache
 from base.untrusted import untrusted_noop
 from bot.tasks import update_task
 from datastore import data_handler
-from datastore import ndb_init
 from metrics import logs
 from system import environment
 from system import process_handler
@@ -196,5 +195,4 @@ def main():
 
 
 if __name__ == '__main__':
-  with ndb_init.context():
-    main()
+  main()

@@ -30,8 +30,6 @@ import re
 import six
 import time
 
-from google.cloud import ndb
-
 from base import dates
 from base import retry
 from base import utils
@@ -52,6 +50,7 @@ from crash_analysis.crash_result import CrashResult
 from crash_analysis.stack_parsing import stack_analyzer
 from datastore import data_handler
 from datastore import data_types
+from datastore import ndb
 from datastore import ndb_utils
 from fuzzing import corpus_manager
 from fuzzing import coverage_uploader
