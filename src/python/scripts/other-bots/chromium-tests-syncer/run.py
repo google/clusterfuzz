@@ -30,6 +30,7 @@ from base import utils
 from bot import testcase_manager
 from bot.tasks import setup
 from datastore import data_types
+from datastore import ndb_init
 from datastore import ndb_utils
 from metrics import logs
 from system import archive
@@ -327,7 +328,8 @@ if __name__ == '__main__':
   # Continue this forever.
   while True:
     try:
-      main()
+      with ndb_init.context():
+        main()
     except Exception:
       logs.log_error('Failed to sync tests.')
       time.sleep(fail_wait)
