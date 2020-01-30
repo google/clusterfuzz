@@ -113,8 +113,11 @@ def run_one_test_parallel(args):
 
     # Verbosity=0 since we cannot see real-time test execution order when tests
     # are executed in parallel.
+    tests = ', '.join(test_modules)
+    print('Running', tests)
     result = unittest.TextTestRunner(
         stream=stream, verbosity=0, buffer=suppress_output).run(suite)
+    print('Done running', tests)
 
     stream.flush()
     return TestResult(stream.raw.getvalue(), len(result.errors),
