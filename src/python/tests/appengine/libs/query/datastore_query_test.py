@@ -172,33 +172,6 @@ class QueryTest(unittest.TestCase):
     self.assertFalse(has_more)
 
 
-class MockIterator(object):
-  """Fake iterator."""
-
-  def __init__(self, items):
-    self._items = items
-    self._index = 0
-
-  def __iter__(self):
-    return self
-
-  def __next__(self):
-    if self._index >= len(self._items):
-      raise StopIteration
-
-    result = self._items[self._index]
-    self._index += 1
-    return result
-
-  next = __next__
-
-  def cursor_after(self):
-    return None
-
-  def has_next(self):
-    return self._index < len(self._items) - 1
-
-
 class QueryWrapper(ndb.Query):
   """Query wrapper for easy mocking."""
 
@@ -226,7 +199,9 @@ class QueryWrapper(ndb.Query):
     return self.results
 
   def iter(self, **kwargs):  # pylint: disable=unused-argument
-    m = MockIterator(self.results)
+    m = mock.MagicMock()
+    m.__iter__.return_value = self.results
+    m.cursor_after.return_value = None
     return m
 
   def __getattr__(self, attr):

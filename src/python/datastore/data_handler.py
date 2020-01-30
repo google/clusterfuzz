@@ -103,7 +103,8 @@ FuzzerDisplay = collections.namedtuple(
 @memoize.wrap(memoize.Memcache(MEMCACHE_TTL_IN_SECONDS))
 def get_all_project_names():
   """Return all project names."""
-  query = data_types.Job.query(projection=['project'], distinct=True)
+  query = data_types.Job.query(
+      projection=[data_types.Job.project], distinct=True)
   return sorted([job.project for job in query])
 
 
@@ -1466,7 +1467,8 @@ def get_fuzz_targets(engine=None, project=None, binary=None):
 
 def get_fuzzing_engines():
   """Return the fuzzing engines currently running."""
-  query = data_types.FuzzTarget.query(projection=['engine'], distinct=True)
+  query = data_types.FuzzTarget.query(
+      projection=[data_types.FuzzTarget.engine], distinct=True)
   return [f.engine for f in ndb_utils.get_all_from_query(query)]
 
 
