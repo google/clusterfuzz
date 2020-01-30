@@ -28,6 +28,7 @@ import tempfile
 import time
 import unittest
 
+from google.cloud import ndb
 from pyfakefs import fake_filesystem_unittest
 import six
 
@@ -42,7 +43,6 @@ from chrome import crash_uploader
 from crash_analysis.stack_parsing import stack_analyzer
 from datastore import data_handler
 from datastore import data_types
-from datastore import ndb
 from google_cloud_utils import big_query
 from metrics import monitor
 from metrics import monitoring_metrics

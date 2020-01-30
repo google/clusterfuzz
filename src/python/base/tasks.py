@@ -22,10 +22,11 @@ import random
 import threading
 import time
 
+from google.cloud import ndb
+
 from base import persistent_cache
 from base import utils
 from datastore import data_types
-from datastore import ndb
 from datastore import ndb_utils
 from fuzzing import fuzzer_selection
 from google_cloud_utils import pubsub

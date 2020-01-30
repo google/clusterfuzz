@@ -33,6 +33,7 @@ from crash_analysis.crash_comparer import CrashComparer
 from crash_analysis.crash_result import CrashResult
 from datastore import data_handler
 from datastore import data_types
+from datastore import ndb_init
 from metrics import fuzzer_logs
 from metrics import fuzzer_stats
 from metrics import logs
@@ -448,7 +449,6 @@ def run_testcase_and_return_result_in_queue(crash_queue,
                                             env_copy,
                                             upload_output=False):
   """Run a single testcase and return crash results in the crash queue."""
-
   # Since this is running in its own process, initialize the log handler again.
   # This is needed for Windows where instances are not shared across child
   # processes. See:
@@ -457,6 +457,24 @@ def run_testcase_and_return_result_in_queue(crash_queue,
       'testcase_path': file_path,
   })
 
+  # Also reinitialize NDB context for the same reason as above.
+  with ndb_init.context():
+    _do_run_testcase_and_return_result_in_queue(
+        crash_queue,
+        thread_index,
+        file_path,
+        gestures,
+        env_copy,
+        upload_output=upload_output)
+
+
+def _do_run_testcase_and_return_result_in_queue(crash_queue,
+                                                thread_index,
+                                                file_path,
+                                                gestures,
+                                                env_copy,
+                                                upload_output=False):
+  """Run a single testcase and return crash results in the crash queue."""
   try:
     # Run testcase and check whether a crash occurred or not.
     return_code, crash_time, output = run_testcase(thread_index, file_path,

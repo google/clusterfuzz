@@ -21,10 +21,11 @@ combined strategies. In the upload_bandit_weights function, we can change
 metric to be for edges, crash, features, or units. Currently based on new
 edges."""
 
+from google.cloud import ndb
+
 from builtins import str
 from collections import namedtuple
 from datastore import data_types
-from datastore import ndb
 from datastore import ndb_utils
 from fuzzing import strategy
 from google_cloud_utils import big_query

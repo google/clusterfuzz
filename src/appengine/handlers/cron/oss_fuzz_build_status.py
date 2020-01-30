@@ -20,9 +20,10 @@ import json
 import re
 import requests
 
+from google.cloud import ndb
+
 from base import utils
 from datastore import data_types
-from datastore import ndb
 from handlers import base_handler
 from libs import handler
 from libs import helpers

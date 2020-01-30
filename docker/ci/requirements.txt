@@ -3,7 +3,6 @@ ecdsa==0.13.3
 extras==1.0.0
 fixtures==3.0.0
 funcsigs==1.0.2
-googledatastore==7.0.1
 linecache2==1.0.0
 mock==2.0.0
 mox3==0.18.0

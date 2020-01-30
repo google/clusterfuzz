@@ -20,10 +20,11 @@ standard_library.install_aliases()
 import datetime
 import io
 
+from google.cloud import ndb
+
 from base import utils
 from datastore import data_handler
 from datastore import data_types
-from datastore import ndb
 from fuzzing import fuzzer_selection
 from google_cloud_utils import storage
 from handlers import base_handler

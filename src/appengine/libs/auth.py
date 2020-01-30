@@ -16,12 +16,12 @@
 import collections
 
 from firebase_admin import auth
+from google.cloud import ndb
 import webapp2
 
 from base import utils
 from config import local_config
 from datastore import data_types
-from datastore import ndb
 from metrics import logs
 from system import environment
 

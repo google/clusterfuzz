@@ -30,6 +30,7 @@ from base import dates
 from base import tasks
 from datastore import data_handler
 from datastore import data_types
+from datastore import ndb_init
 from metrics import logs
 from system import environment
 from system import process_handler
@@ -118,4 +119,5 @@ def main():
 
 
 if __name__ == '__main__':
-  main()
+  with ndb_init.context():
+    main()
