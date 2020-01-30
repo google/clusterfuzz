@@ -243,6 +243,7 @@ def execute(args):
 
     # Get additional App Engine third party imports.
     import dev_appserver
+    dev_appserver.fix_google_path()
     sys.path.extend(dev_appserver.EXTRA_PATHS)
 
     # Loading appengine_config from the current project ensures that any

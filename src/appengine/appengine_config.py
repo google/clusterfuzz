@@ -70,10 +70,6 @@ reload(six)
 import google
 google.__path__.insert(0, os.path.join('third_party', 'google'))
 
-if IS_RUNNING_IN_DEV_APPSERVER:
-  from base import modules
-  modules.disable_known_module_warnings()
-
 # In tests this is done in test_utils.with_cloud_emulators.
 if IS_RUNNING_IN_PRODUCTION or IS_RUNNING_IN_DEV_APPSERVER:
   # Use the App Engine Requests adapter. This makes sure that Requests uses
