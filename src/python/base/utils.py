@@ -739,7 +739,9 @@ def timeout(duration):
         THREAD_POOL = multiprocessing.pool.ThreadPool(processes=3)
 
       try:
-        async_result = THREAD_POOL.apply_async(func, args=args, kwds=kwargs)
+        from datastore import ndb_init  # Avoid circular import.
+        async_result = THREAD_POOL.apply_async(
+            ndb_init.thread_wrapper(func), args=args, kwds=kwargs)
         return async_result.get(timeout=duration)
       except multiprocessing.TimeoutError:
         # Sleep for some minutes in order to wait for flushing metrics.
