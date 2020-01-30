@@ -14,6 +14,7 @@
 """NDB initialization."""
 
 import contextlib
+import functools
 import threading
 
 from google.cloud import ndb
@@ -58,3 +59,15 @@ def context():
     ndb_context.set_cache_policy(False)
 
     yield ndb_context
+
+
+def thread_wrapper(func):
+  """Wrapper for thread targets to initialize an NDB context, since contexts are
+  thread local."""
+
+  @functools.wraps(func)
+  def _wrapper(*args, **kwargs):
+    with context():
+      return func(*args, **kwargs)
+
+  return _wrapper
