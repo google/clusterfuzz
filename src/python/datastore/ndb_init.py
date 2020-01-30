@@ -17,6 +17,7 @@ import contextlib
 import threading
 
 from google.cloud import ndb
+import grpc
 
 from base import utils
 
@@ -42,6 +43,11 @@ def _client():
 def context():
   """Get the NDB context."""
   with _client().context() as ndb_context:
+    from google.cloud.ndb import _retry
+    # Add an additional code to retry on.
+    if grpc.StatusCode.UNKNOWN not in _retry.TRANSIENT_CODES:
+      _retry.TRANSIENT_CODES = _retry.TRANSIENT_CODES + (
+          grpc.StatusCode.UNKNOWN,)
 
     # Disable NDB caching, as NDB on GCE VMs do not use memcache and therefore
     # can't invalidate the memcache cache.
