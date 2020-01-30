@@ -500,6 +500,9 @@ class CorpusSizeField(BaseCoverageField):
       corpus_size_bytes = coverage_info.quarantine_size_bytes
       corpus_location = coverage_info.quarantine_location
 
+    if corpus_size_units is None or corpus_size_bytes is None:
+      return None
+
     display_value = '%d (%s)' % (corpus_size_units,
                                  utils.get_size_string(corpus_size_bytes))
 
