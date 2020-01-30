@@ -253,6 +253,15 @@ def execute(args):
       (appengine_config)  # pylint: disable=pointless-statement
     except ImportError:
       print('Note: unable to import appengine_config.')
+
+    # google.auth uses App Engine credentials based on importability of
+    # google.appengine.api.app_identity.
+    try:
+      from google.auth import app_engine as auth_app_engine
+      if auth_app_engine.app_identity:
+        auth_app_engine.app_identity = None
+    except ImportError:
+      pass
   elif args.target == 'core':
     test_directory = CORE_TEST_DIRECTORY
   else:
