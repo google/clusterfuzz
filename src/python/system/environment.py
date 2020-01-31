@@ -770,7 +770,7 @@ def set_environment_parameters_from_file(file_path):
 
 def update_symbolizer_options(tool_options, symbolize_inline_frames=False):
   """Checks and updates the necessary symbolizer options such as
-  # `external_symbolizer_path` and `symbolize_inline_frames`."""
+  `external_symbolizer_path` and `symbolize_inline_frames`."""
   if 'external_symbolizer_path' not in tool_options:
     llvm_symbolizer_path_arg = _quote_value_if_needed(
         get_llvm_symbolizer_path())
