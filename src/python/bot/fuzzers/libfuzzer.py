@@ -1522,7 +1522,7 @@ def parse_log_stats(log_lines):
   return log_stats
 
 
-def set_sanitizer_options(fuzzer_path):
+def set_sanitizer_options(fuzzer_path, fuzz_options=None):
   """Sets sanitizer options based on .options file overrides and what this
   script requires."""
   engine_common.process_sanitizer_options_overrides(fuzzer_path)
@@ -1530,6 +1530,9 @@ def set_sanitizer_options(fuzzer_path):
   sanitizer_options = environment.get_memory_tool_options(
       sanitizer_options_var, {})
   sanitizer_options['exitcode'] = constants.TARGET_ERROR_EXITCODE
+  if fuzz_options and fuzz_options.use_dataflow_tracing:
+    # Focus function feature does not work without symbolization.
+    sanitizer_options['symbolize'] = 1
   environment.set_memory_tool_options(sanitizer_options_var, sanitizer_options)
 
 
