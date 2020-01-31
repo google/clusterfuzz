@@ -1703,9 +1703,9 @@ def pick_strategies(strategy_pool, fuzzer_path, corpus_directory,
       use_mutator_plugin(target_name, extra_env)):
     fuzzing_strategies.append(strategy.MUTATOR_PLUGIN_STRATEGY.name)
 
-  if (strategy_pool.do_strategy(strategy.MUTATOR_PLUGIN_RADAMSA_STRATEGY) and
-      use_radamsa_mutator_plugin(extra_env) and
-      not fuzzing_strategies.contains(strategy.MUTATOR_PLUGIN_STRATEGY.name)):
+  if (not fuzzing_strategies.contains(strategy.MUTATOR_PLUGIN_STRATEGY.name) and
+      strategy_pool.do_strategy(strategy.MUTATOR_PLUGIN_RADAMSA_STRATEGY) and
+      use_radamsa_mutator_plugin(extra_env)):
     fuzzing_strategies.append(strategy.MUTATOR_PLUGIN_RADAMSA_STRATEGY.name)
 
   return StrategyInfo(fuzzing_strategies, arguments, additional_corpus_dirs,
