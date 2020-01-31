@@ -239,7 +239,7 @@ class LibFuzzerEngine(engine.Engine):
     """
     profiler.start_if_needed('libfuzzer_fuzz')
     runner = libfuzzer.get_runner(target_path)
-    libfuzzer.set_sanitizer_options(target_path)
+    libfuzzer.set_sanitizer_options(target_path, fuzz_options=options)
 
     # Directory to place new units.
     new_corpus_dir = self._create_temp_corpus_dir('new')

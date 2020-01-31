@@ -768,6 +768,19 @@ def set_environment_parameters_from_file(file_path):
       set_value(environment_variable, environment_variable_value)
 
 
+def update_symbolizer_options(tool_options, symbolize_inline_frames=False):
+  """Checks and updates the necessary symbolizer options such as
+  `external_symbolizer_path` and `symbolize_inline_frames`."""
+  if 'external_symbolizer_path' not in tool_options:
+    llvm_symbolizer_path_arg = _quote_value_if_needed(
+        get_llvm_symbolizer_path())
+    tool_options.update({'external_symbolizer_path': llvm_symbolizer_path_arg})
+  if 'symbolize_inline_frames' not in tool_options:
+    tool_options.update({
+        'symbolize_inline_frames': str(symbolize_inline_frames).lower()
+    })
+
+
 def reset_current_memory_tool_options(redzone_size=0,
                                       malloc_context_size=0,
                                       leaks=True,
@@ -807,16 +820,8 @@ def reset_current_memory_tool_options(redzone_size=0,
     tool_options.update(_parse_memory_tool_options(additional_tool_options))
 
   if tool_options.get('symbolize') == 1:
-    if 'external_symbolizer_path' not in tool_options:
-      llvm_symbolizer_path_arg = _quote_value_if_needed(
-          get_llvm_symbolizer_path())
-      tool_options.update({
-          'external_symbolizer_path': llvm_symbolizer_path_arg
-      })
-    if 'symbolize_inline_frames' not in tool_options:
-      tool_options.update({
-          'symbolize_inline_frames': str(symbolize_inline_frames).lower()
-      })
+    update_symbolizer_options(
+        tool_options, symbolize_inline_frames=symbolize_inline_frames)
 
   # Join the options.
   joined_tool_options = join_memory_tool_options(tool_options)
