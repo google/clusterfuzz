@@ -772,11 +772,11 @@ def update_symbolizer_options(tool_options, symbolize_inline_frames=False):
   """Checks and updates the necessary symbolizer options such as
   `external_symbolizer_path` and `symbolize_inline_frames`."""
   if 'external_symbolizer_path' not in tool_options:
-    llvm_symbolizer_path_arg = _quote_value_if_needed(
-        get_llvm_symbolizer_path())
-    if llvm_symbolizer_path_arg:
+    llvm_symbolizer_path = get_llvm_symbolizer_path()
+    if llvm_symbolizer_path:
       tool_options.update({
-          'external_symbolizer_path': llvm_symbolizer_path_arg
+          'external_symbolizer_path':
+              _quote_value_if_needed(llvm_symbolizer_path)
       })
   if 'symbolize_inline_frames' not in tool_options:
     tool_options.update({
