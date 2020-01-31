@@ -774,7 +774,10 @@ def update_symbolizer_options(tool_options, symbolize_inline_frames=False):
   if 'external_symbolizer_path' not in tool_options:
     llvm_symbolizer_path_arg = _quote_value_if_needed(
         get_llvm_symbolizer_path())
-    tool_options.update({'external_symbolizer_path': llvm_symbolizer_path_arg})
+    if llvm_symbolizer_path_arg:
+      tool_options.update({
+          'external_symbolizer_path': llvm_symbolizer_path_arg
+      })
   if 'symbolize_inline_frames' not in tool_options:
     tool_options.update({
         'symbolize_inline_frames': str(symbolize_inline_frames).lower()
