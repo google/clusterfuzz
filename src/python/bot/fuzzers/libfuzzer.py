@@ -1533,6 +1533,10 @@ def set_sanitizer_options(fuzzer_path, fuzz_options=None):
   if fuzz_options and fuzz_options.use_dataflow_tracing:
     # Focus function feature does not work without symbolization.
     sanitizer_options['symbolize'] = 1
+
+    # But we still need to disable symbolization inlined frames to make sure
+    # deduplication works correctly.
+    sanitizer_options['symbolize_inline_frames'] = 'false'
   environment.set_memory_tool_options(sanitizer_options_var, sanitizer_options)
 
 
