@@ -306,13 +306,11 @@ class CronTest(unittest.TestCase):
         'base.utils.is_oss_fuzz',
         'handlers.cron.helpers.bot_manager.BotManager',
         'system.environment.is_running_on_app_engine',
-        'google.appengine.api.app_identity.get_application_id',
         'google_cloud_utils.compute_engine_projects.load_project',
     ])
 
     self.mock.is_oss_fuzz.return_value = True
     self.mock.is_running_on_app_engine.return_value = True
-    self.mock.get_application_id.return_value = 'clusterfuzz-external'
     self.mock.load_project.return_value = compute_engine_projects.Project(
         project_id='clusterfuzz-external',
         clusters=[

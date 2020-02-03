@@ -1,0 +1,44 @@
+# This is currently only used for Python 3.
+
+[[source]]
+url = "https://pypi.python.org/simple"
+verify_ssl = true
+name = "pypi"
+
+[packages]
+beautifulsoup4 = "==4.5.1"
+ecdsa = "==0.13.3"
+extras = "==1.0.0"
+fixtures = "==3.0.0"
+funcsigs = "==1.0.2"
+linecache2 = "==1.0.0"
+mock = "==2.0.0"
+mox3 = "==0.18.0"
+parameterized = "==0.6.1"
+pbr = "==1.10.0"
+pyfakefs = "==3.4.3"
+pylint = "~=2.4"
+python-mimeparse = "==1.5.2"
+PyYAML = "==5.1"
+six = "==1.12.0"
+testtools = "==2.2.0"
+traceback2 = "==1.4.0"
+unittest2 = "==1.1.0"
+waitress = "==1.4.2"
+WebTest = "==2.0.23"
+yapf = "==0.22.0"
+
+[dev-packages]
+crcmod = "==1.7"
+Fabric = "==1.14.1"
+future = "==0.17.1"
+google-compute-engine = "==2.8.13"
+grpcio-tools = "==1.15.0"
+nodeenv = "==1.0.0"
+paramiko = "==2.6.0"
+protobuf = "==3.6.1"
+psutil = "==5.4.7"
+# tensorflow = "==1.8.0"  # does not seem to be available
+
+[requires]
+python_version = "3.7"
