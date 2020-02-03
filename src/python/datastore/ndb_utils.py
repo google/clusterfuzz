@@ -18,7 +18,7 @@ from builtins import range
 from google.cloud import ndb
 
 _GET_BATCH_SIZE = 1000
-_PUT_BATCH_SIZE = 500
+_MODIFY_BATCH_SIZE = 500
 
 
 def is_true(boolean_prop):
@@ -67,7 +67,7 @@ def put_multi(entities):
   """Put multiple entities, working around a limitation in the NDB library with
   the maximum number of keys allowed."""
   result = []
-  for chunk in _gen_chunks(entities, _PUT_BATCH_SIZE):
+  for chunk in _gen_chunks(entities, _MODIFY_BATCH_SIZE):
     result.extend(ndb.put_multi(chunk))
 
   return result
@@ -76,5 +76,5 @@ def put_multi(entities):
 def delete_multi(keys):
   """Delete multiple entities, working around a limitation in the NDB library
   with the maximum number of keys allowed."""
-  for chunk in _gen_chunks(keys, _PUT_BATCH_SIZE):
+  for chunk in _gen_chunks(keys, _MODIFY_BATCH_SIZE):
     ndb.delete_multi(chunk)
