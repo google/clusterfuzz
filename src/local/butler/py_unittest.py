@@ -241,6 +241,9 @@ def execute(args):
     test_directory = APPENGINE_TEST_DIRECTORY
     sys.path.insert(0, os.path.abspath(os.path.join('src', 'appengine')))
 
+    appengine_sdk_path = appengine.find_sdk_path()
+    sys.path.insert(0, appengine_sdk_path)
+
     # Get additional App Engine third party imports.
     import dev_appserver
     dev_appserver.fix_google_path()
