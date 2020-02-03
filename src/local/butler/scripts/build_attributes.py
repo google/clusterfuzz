@@ -18,10 +18,9 @@ import datetime
 import six
 import sys
 
-from google.cloud import ndb
-
 from base import utils
 from datastore import data_types
+from datastore import ndb_utils
 from local.butler.scripts import attribute_builder
 from local.butler.scripts import batcher
 
@@ -86,7 +85,7 @@ def execute(args):
 
     if args.non_dry_run:
       try:
-        ndb.put_multi(testcases)
+        ndb_utils.put_multi(testcases)
       except Exception:
         for testcase in testcases:
           try:

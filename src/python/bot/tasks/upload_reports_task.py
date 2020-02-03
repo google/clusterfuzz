@@ -14,7 +14,6 @@
 """Report upload task."""
 
 from builtins import str
-from google.cloud import ndb
 
 from base import errors
 from chrome import crash_uploader
@@ -76,7 +75,7 @@ def execute_task(*_):
   # Delete report metadata entries where testcase does not exist anymore or
   # upload is not supported.
   if report_metadata_to_delete:
-    ndb.delete_multi(report_metadata_to_delete)
+    ndb_utils.delete_multi(report_metadata_to_delete)
 
   # Log done with uploads.
   # Deletion happens in batches in cleanup_task, so that in case of error there

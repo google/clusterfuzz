@@ -18,11 +18,10 @@ import datetime
 import json
 import os
 
-from google.cloud import ndb
-
 from config import local_config
 from datastore import data_handler
 from datastore import data_types
+from datastore import ndb_utils
 from google_cloud_utils import storage
 from handlers import base_handler
 from libs import handler
@@ -125,7 +124,7 @@ def _process_project(project, bucket):
   # Prepare CoverageInformation entity for the total project stats.
   entities.append(_process_project_stats(report_info, project_name))
 
-  ndb.put_multi(entities)
+  ndb_utils.put_multi(entities)
 
 
 def collect_fuzzer_coverage(bucket):

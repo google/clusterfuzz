@@ -22,8 +22,6 @@ import random
 import threading
 import time
 
-from google.cloud import ndb
-
 from base import persistent_cache
 from base import utils
 from datastore import data_types
@@ -473,7 +471,7 @@ def redo_testcase(testcase, tasks, user_email):
       data_types.Notification.query(
           data_types.Notification.testcase_id == testcase.key.id()),
       keys_only=True)
-  ndb.delete_multi(notifications)
+  ndb_utils.delete_multi(notifications)
 
   # If we are re-doing minimization, other tasks will be done automatically
   # after minimization completes. So, don't add those tasks.
