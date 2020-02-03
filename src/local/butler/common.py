@@ -121,7 +121,7 @@ def process_proc_output(proc, print_output=True):
     _print('| %s' % line.rstrip())
     lines.append(line)
 
-  return ''.join(lines)
+  return b''.join(lines)
 
 
 def execute_async(command, extra_environments=None, cwd=None):

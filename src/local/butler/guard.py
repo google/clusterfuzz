@@ -14,9 +14,15 @@
 """guard.py checks virtualenv environment and dev requirements."""
 import os
 import subprocess
+import sys
 
 
 def check_virtualenv():
+  """Check that we're in a virtualenv."""
+  if sys.version_info.major != 2:
+    # TODO(ochang): Implement check for Python 3.
+    return
+
   root_path = os.path.realpath(
       os.path.join(os.path.dirname(__file__), '..', '..', '..'))
   is_in_virtualenv = os.getenv('VIRTUAL_ENV') == os.path.join(root_path, 'ENV')
@@ -30,6 +36,10 @@ def check_virtualenv():
 
 def check_dev_requirements():
   """Check that dev requirements are installed."""
+  if sys.version_info.major != 2:
+    # TODO(ochang): Implement check for Python 3.
+    return
+
   freeze_output = subprocess.check_output('pip freeze', shell=True)
   installed_pips = freeze_output.strip().splitlines()
 

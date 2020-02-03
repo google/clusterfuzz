@@ -143,7 +143,7 @@ def symlink_dirs():
   common.remove_symlink(local_gcs_symlink_path)
 
   _, output = common.execute('bazel run //local:create_gopath', cwd='src')
-  os.environ['GOPATH'] = output.splitlines()[-1]
+  os.environ['GOPATH'] = output.decode('utf-8').splitlines()[-1]
 
 
 def build_templates():

@@ -37,10 +37,10 @@ IS_RUNNING_IN_PRODUCTION = (
 config_modules_path = os.path.join('config', 'modules')
 
 if IS_RUNNING_IN_PRODUCTION or IS_RUNNING_IN_DEV_APPSERVER:
-  vendor.add('third_party')
-  vendor.add('python')
+  vendor.add('third_party', 0)
+  vendor.add('python', 0)
   if os.path.exists(config_modules_path):
-    vendor.add(config_modules_path)
+    vendor.add(config_modules_path, 0)
 else:
   sys.path.insert(0, 'third_party')
   sys.path.insert(0, 'python')

@@ -148,14 +148,21 @@ else
 fi
 
 # Setup virtualenv.
-rm -rf ENV
-virtualenv ENV
-source ENV/bin/activate
+if [[ -n "$PY3" ]]; then
+  sudo apt-get install -y pipenv
+  pipenv install --python 3.7
+  pipenv install --dev
+  source "$(pipenv --venv)/bin/activate"
+else
+  rm -rf ENV
+  virtualenv ENV
+  source ENV/bin/activate
 
-# Install needed python packages.
-pip install --upgrade pip
-pip install --upgrade -r docker/ci/requirements.txt
-pip install --upgrade -r src/local/requirements.txt
+  # Install needed python packages.
+  pip install --upgrade pip
+  pip install --upgrade -r docker/ci/requirements.txt
+  pip install --upgrade -r src/local/requirements.txt
+fi
 
 if [ $install_android_emulator ]; then
   ANDROID_SDK_INSTALL_DIR=local/bin/android-sdk
@@ -192,9 +199,18 @@ else
 fi
 
 set +x
+if [[ -n "$PY3" ]]; then
+echo "
+
+Installation succeeded!
+Please load environment by running 'pipenv shell'.
+
+"
+else
 echo "
 
 Installation succeeded!
 Please load virtualenv environment by running 'source ENV/bin/activate'.
 
 "
+fi
