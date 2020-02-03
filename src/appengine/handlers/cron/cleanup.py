@@ -17,7 +17,6 @@ import datetime
 import json
 import random
 
-from google.cloud import ndb
 from googleapiclient.errors import HttpError
 
 from base import dates
@@ -94,7 +93,7 @@ def cleanup_reports_metadata():
       data_types.ReportMetadata.query(
           ndb_utils.is_true(data_types.ReportMetadata.is_uploaded)),
       keys_only=True)
-  ndb.delete_multi(uploaded_reports)
+  ndb_utils.delete_multi(uploaded_reports)
 
 
 def cleanup_testcases_and_issues():
@@ -168,7 +167,7 @@ def cleanup_unused_fuzz_targets_and_jobs():
     if fuzz_target.fully_qualified_name() not in valid_fuzz_targets:
       to_delete.append(fuzz_target.key)
 
-  ndb.delete_multi(to_delete)
+  ndb_utils.delete_multi(to_delete)
 
 
 def get_jobs_and_platforms_for_top_crashes():
@@ -1196,7 +1195,7 @@ def cleanup_unused_heartbeats():
           data_types.Heartbeat.last_beat_time < cutoff_time),
       keys_only=True)
 
-  ndb.delete_multi(unused_heartbeats)
+  ndb_utils.delete_multi(unused_heartbeats)
 
 
 class Handler(base_handler.Handler):

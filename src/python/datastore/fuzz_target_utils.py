@@ -23,7 +23,7 @@ def get_fuzz_targets_for_target_jobs(target_jobs):
   target_keys = [
       ndb.Key(data_types.FuzzTarget, t.fuzz_target_name) for t in target_jobs
   ]
-  return ndb.get_multi(target_keys)
+  return ndb_utils.get_multi(target_keys)
 
 
 def get_fuzz_target_jobs(fuzz_target_name=None,

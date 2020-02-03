@@ -16,10 +16,9 @@ import base64
 import datetime
 import os
 
-from google.cloud import ndb
-
 from base import utils
 from datastore import data_types
+from datastore import ndb_utils
 
 from libs import helpers
 
@@ -38,7 +37,7 @@ def generate_csrf_token(length=64, valid_seconds=3600, html=False):
       valid_token = token
       continue
     tokens_to_delete.append(token.key)
-  ndb.delete_multi(tokens_to_delete)
+  ndb_utils.delete_multi(tokens_to_delete)
 
   # Generate a new token.
   if not valid_token:

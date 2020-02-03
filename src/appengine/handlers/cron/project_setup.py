@@ -35,6 +35,7 @@ from config import db_config
 from config import local_config
 from datastore import data_handler
 from datastore import data_types
+from datastore import ndb_utils
 from fuzzing import fuzzer_selection
 from google_cloud_utils import pubsub
 from google_cloud_utils import storage
@@ -409,7 +410,7 @@ def sync_user_permissions(project, info):
         data_types.ExternalUserPermission.entity_kind ==
         data_types.PermissionEntityKind.JOB,
         data_types.ExternalUserPermission.entity_name == job_name)
-    ndb.delete_multi([
+    ndb_utils.delete_multi([
         permission.key
         for permission in existing_ccs
         if permission.email not in ccs
@@ -488,7 +489,7 @@ def update_fuzzer_jobs(fuzzer_entities, project_names):
     fuzzer_selection.update_mappings_for_fuzzer(fuzzer_entity)
 
   if to_delete:
-    ndb.delete_multi(to_delete)
+    ndb_utils.delete_multi(to_delete)
 
 
 def cleanup_old_projects_settings(project_names):
@@ -500,7 +501,7 @@ def cleanup_old_projects_settings(project_names):
       to_delete.append(project.key)
 
   if to_delete:
-    ndb.delete_multi(to_delete)
+    ndb_utils.delete_multi(to_delete)
 
 
 def create_project_settings(project, info, service_account):

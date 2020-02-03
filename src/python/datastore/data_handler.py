@@ -1393,7 +1393,7 @@ def update_group_bug(group_id):
 
   for testcase in testcases:
     testcase.group_bug_information = group_bug_information
-  ndb.put_multi(testcases)
+  ndb_utils.put_multi(testcases)
 
 
 # ------------------------------------------------------------------------------

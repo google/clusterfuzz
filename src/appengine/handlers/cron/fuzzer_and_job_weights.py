@@ -366,7 +366,7 @@ def update_job_weight(job_name, multiplier):
       changed_weights.append(fuzzer_job)
 
   if changed_weights:
-    ndb.put_multi(changed_weights)
+    ndb_utils.put_multi(changed_weights)
 
 
 def update_job_weights():

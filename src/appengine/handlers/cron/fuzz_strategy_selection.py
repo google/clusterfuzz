@@ -21,8 +21,6 @@ combined strategies. In the upload_bandit_weights function, we can change
 metric to be for edges, crash, features, or units. Currently based on new
 edges."""
 
-from google.cloud import ndb
-
 from builtins import str
 from collections import namedtuple
 from datastore import data_types
@@ -198,9 +196,9 @@ def _query_and_upload_strategy_probabilities(engine):
 
   query = data_types.FuzzStrategyProbability.query(
       data_types.FuzzStrategyProbability.engine == engine.name)
-  ndb.delete_multi(
+  ndb_utils.delete_multi(
       [entity.key for entity in ndb_utils.get_all_from_query(query)])
-  ndb.put_multi(strategy_data)
+  ndb_utils.put_multi(strategy_data)
   logs.log('Uploaded queried distribution to ndb for {}'.format(engine.name))
   _store_probabilities_in_bigquery(engine, data)
   logs.log('Uploaded queried distribution to BigQuery for {}'.format(

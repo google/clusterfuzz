@@ -17,8 +17,6 @@ from builtins import zip
 
 import collections
 
-from google.cloud import ndb
-
 from base import utils
 from datastore import data_types
 from datastore import fuzz_target_utils
@@ -60,8 +58,8 @@ def update_mappings_for_fuzzer(fuzzer, mappings=None):
     mapping.platform = job.platform
     new_mappings.append(mapping)
 
-  ndb.put_multi(new_mappings)
-  ndb.delete_multi([m.key for m in list(old_mappings.values())])
+  ndb_utils.put_multi(new_mappings)
+  ndb_utils.delete_multi([m.key for m in list(old_mappings.values())])
 
 
 def update_platform_for_job(job_name, new_platform):
@@ -73,7 +71,7 @@ def update_platform_for_job(job_name, new_platform):
   for mapping in mappings:
     mapping.platform = new_platform
     new_mappings.append(mapping)
-  ndb.put_multi(new_mappings)
+  ndb_utils.put_multi(new_mappings)
 
 
 def get_fuzz_task_payload(platform=None):

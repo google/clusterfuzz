@@ -13,7 +13,6 @@
 # limitations under the License.
 """Cron to sync admin users."""
 
-from google.cloud import ndb
 import googleapiclient
 
 from base import utils
@@ -63,7 +62,7 @@ def update_admins(new_admins):
 
     existing_admin_emails.add(admin.email)
 
-  ndb.delete_multi(to_remove)
+  ndb_utils.delete_multi(to_remove)
 
   to_add = []
   for admin in new_admins:
@@ -71,7 +70,7 @@ def update_admins(new_admins):
       to_add.append(data_types.Admin(id=admin, email=admin))
       logs.log('Adding admin ' + admin)
 
-  ndb.put_multi(to_add)
+  ndb_utils.put_multi(to_add)
 
 
 class Handler(base_handler.Handler):

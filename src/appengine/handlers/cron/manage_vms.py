@@ -31,6 +31,7 @@ from google.cloud import ndb
 from base import utils
 from config import local_config
 from datastore import data_types
+from datastore import ndb_utils
 from google_cloud_utils import compute_engine_projects
 from handlers import base_handler
 from handlers.cron.helpers import bot_manager
@@ -315,7 +316,7 @@ class OssFuzzClustersManager(ClustersManager):
       if assignment.host_name not in host_names:
         to_delete.append(assignment.key)
 
-    ndb.delete_multi(to_delete)
+    ndb_utils.delete_multi(to_delete)
 
   def distribute_cpus(self, projects, total_cpus):
     """Distribute OSS-Fuzz CPUs for each project by weight.
@@ -460,7 +461,7 @@ class OssFuzzClustersManager(ClustersManager):
 
       to_delete.append(project_info.key)
 
-    ndb.delete_multi(to_delete)
+    ndb_utils.delete_multi(to_delete)
 
   def cleanup_clusters(self, project, project_info):
     """Remove nonexistant clusters."""
@@ -604,8 +605,8 @@ class OssFuzzClustersManager(ClustersManager):
             disk_size_gb=project.disk_size_gb)
 
     self.finish_updates()
-    ndb.put_multi(project_infos)
-    ndb.put_multi(high_end_project_infos)
+    ndb_utils.put_multi(project_infos)
+    ndb_utils.put_multi(high_end_project_infos)
 
   def get_all_workers_in_cluster(self, manager, cluster_name):
     """Get all workers in a cluster."""
@@ -692,7 +693,7 @@ class OssFuzzClustersManager(ClustersManager):
 
       new_assignments = self.do_assign_hosts_to_workers(
           host_names, worker_instances, assignment.workers_per_host)
-      ndb.put_multi(new_assignments)
+      ndb_utils.put_multi(new_assignments)
 
     self.cleanup_old_assignments(all_host_names)
 

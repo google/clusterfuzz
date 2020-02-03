@@ -16,11 +16,10 @@
 import os
 import re
 
-from google.cloud import ndb
-
 from base import errors
 from datastore import data_handler
 from datastore import data_types
+from datastore import ndb_utils
 from metrics import logs
 from system import environment
 
@@ -62,7 +61,7 @@ def cleanup_global_blacklist():
     if not testcase or not testcase.open or testcase.one_time_crasher_flag:
       blacklists_to_delete.append(blacklist.key)
 
-  ndb.delete_multi(blacklists_to_delete)
+  ndb_utils.delete_multi(blacklists_to_delete)
 
 
 def copy_global_to_local_blacklist(excluded_testcase=None):
