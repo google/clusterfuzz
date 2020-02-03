@@ -28,6 +28,22 @@ def _config_modules_directory(root_directory):
   return os.path.join(config_dir, 'modules')
 
 
+def _patch_appengine_modules_for_bots():
+  """Patch out App Engine reliant behaviour from bots."""
+  if os.getenv('SERVER_SOFTWARE'):
+    # Not applicable on App Engine.
+    return
+
+  # google.auth uses App Engine credentials based on importability of
+  # google.appengine.api.app_identity.
+  try:
+    from google.auth import app_engine as auth_app_engine
+    if auth_app_engine.app_identity:
+      auth_app_engine.app_identity = None
+  except ImportError:
+    pass
+
+
 def fix_module_search_paths():
   """Add directories that we must be able to import from to path."""
   root_directory = os.environ['ROOT_DIR']
@@ -61,3 +77,6 @@ def fix_module_search_paths():
 
   # Add site directory to make from imports work in google namespace.
   site.addsitedir(third_party_libraries_directory)
+
+  # TODO(ochang): Remove this.
+  _patch_appengine_modules_for_bots()
