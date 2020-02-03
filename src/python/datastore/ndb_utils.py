@@ -48,6 +48,7 @@ def get_all_from_query(query, **kwargs):
 
 def _gen_chunks(values, size):
   """Generate chunks of iterable."""
+  values = list(values)
   for i in range(0, len(values), size):
     yield values[i:i + size]
 
