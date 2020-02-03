@@ -67,8 +67,7 @@ def _get_host_workers_heartbeats():
   cursor = None
 
   while True:
-    results, cursor, more = query.fetch_page(
-        page_size, batch_size=page_size, start_cursor=cursor)
+    results, cursor, more = query.fetch_page(page_size, start_cursor=cursor)
     key_ids = [assignment.key.id() for assignment in results]
     if not key_ids:
       break
