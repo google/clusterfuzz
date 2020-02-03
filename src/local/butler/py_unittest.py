@@ -242,6 +242,7 @@ def execute(args):
     sys.path.insert(0, os.path.abspath(os.path.join('src', 'appengine')))
 
     if sys.version_info.major == 2:
+      # TODO(ochang): Remove once migrated to Python 3.
       appengine_sdk_path = appengine.find_sdk_path()
       sys.path.insert(0, appengine_sdk_path)
 
