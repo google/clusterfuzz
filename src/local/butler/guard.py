@@ -20,6 +20,7 @@ import sys
 def check_virtualenv():
   """Check that we're in a virtualenv."""
   if sys.version_info.major != 2:
+    # TODO(ochang): Implement check for Python 3.
     return
 
   root_path = os.path.realpath(
@@ -36,7 +37,9 @@ def check_virtualenv():
 def check_dev_requirements():
   """Check that dev requirements are installed."""
   if sys.version_info.major != 2:
+    # TODO(ochang): Implement check for Python 3.
     return
+
   freeze_output = subprocess.check_output('pip freeze', shell=True)
   installed_pips = freeze_output.strip().splitlines()
 
