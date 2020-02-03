@@ -148,14 +148,14 @@ def query_testcase(testcase_id):
       data_types.Testcase, testcase_id)).iter(
           limit=1,
           projection=[
-              data_types.Testcase.crash_type,
-              data_types.Testcase.crash_state,
-              data_types.Testcase.security_flag,
-              data_types.Testcase.bug_information,
-              data_types.Testcase.job_type,
-              data_types.Testcase.fuzzer_name,
-              data_types.Testcase.overridden_fuzzer_name,
-              data_types.Testcase.project_name,
+              'crash_type',
+              'crash_state',
+              'security_flag',
+              'bug_information',
+              'job_type',
+              'fuzzer_name',
+              'overridden_fuzzer_name',
+              'project_name',
           ])
 
 
