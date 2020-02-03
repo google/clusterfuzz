@@ -666,7 +666,6 @@ class ProcessCrashesTest(fake_filesystem_unittest.TestCase):
         'crash_analysis.crash_analyzer.is_security_issue',
         'datastore.data_handler.get_issue_tracker_name',
         'datastore.data_handler.get_project_name',
-        'google.appengine.api.app_identity.get_application_id',
         'google_cloud_utils.big_query.Client.insert',
         'google_cloud_utils.big_query.get_api_client', 'time.sleep', 'time.time'
     ])

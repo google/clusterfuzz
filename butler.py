@@ -32,8 +32,6 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'src'))
 from local.butler import guard
 guard.check()
 
-from local.butler import appengine
-
 
 class _ArgumentParser(argparse.ArgumentParser):
   """Custom ArgumentParser."""
@@ -313,9 +311,6 @@ def main():
 
 def _setup():
   """Set up configs and import paths."""
-  appengine_sdk_path = appengine.find_sdk_path()
-  sys.path.insert(0, appengine_sdk_path)
-
   os.environ['ROOT_DIR'] = os.path.abspath('.')
 
   sys.path.insert(0, os.path.abspath(os.path.join('src')))
