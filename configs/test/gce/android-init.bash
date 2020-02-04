@@ -28,8 +28,6 @@ echo "$USER ALL=NOPASSWD: ALL" >> /etc/sudoers
 
 # Setup helper variables.
 ANDROID_SERIAL=127.0.0.1:6520
-APPENGINE=google_appengine
-APPENGINE_FILE=google_appengine_1.9.75.zip
 CVD_DIR=$HOME  # To avoid custom params in launch_cvd for various image type locations.
 DEPLOYMENT_BUCKET=$(curl -H "Metadata-Flavor: Google" \
   http://metadata.google.internal/computeMetadata/v1/project/attributes/deployment-bucket)
@@ -41,9 +39,8 @@ DEVICE_MEMORY_MB=$(curl -H "Metadata-Flavor: Google" \
   http://metadata.google.internal/computeMetadata/v1/instance/attributes/device-memory-mb)
 GSUTIL_PATH="/usr/bin"
 INSTALL_DIRECTORY=$HOME
-APPENGINE_DIR="$INSTALL_DIRECTORY/$APPENGINE"
 ROOT_DIR="$INSTALL_DIRECTORY/clusterfuzz"
-PYTHONPATH="$PYTHONPATH:$APPENGINE_DIR:$ROOT_DIR/src"
+PYTHONPATH="$PYTHONPATH:$ROOT_DIR/src"
 
 # Use nodesource nodejs packages.
 curl -sL https://deb.nodesource.com/setup_11.x | sudo -E bash -
@@ -87,10 +84,6 @@ sysctl kernel.hung_task_timeout_secs=0
 echo "Adding workaround to prevent /dev/random hangs."
 rm /dev/random
 ln -s /dev/urandom /dev/random
-
-echo "Forcing google to be a namespace package."
-echo "import google; import pkgutil; pkgutil.extend_path(google.__path__, google.__name__)" > \
-  /usr/local/lib/python2.7/dist-packages/gae.pth
 
 echo "Setting up google-fluentd."
 curl -sSO https://dl.google.com/cloudagents/install-logging-agent.sh
@@ -136,14 +129,6 @@ exec sudo -i -u clusterfuzz bash - << eof
 echo "Creating directory $INSTALL_DIRECTORY."
 mkdir -p "$INSTALL_DIRECTORY"
 cd $INSTALL_DIRECTORY
-
-echo "Fetching Google App Engine SDK."
-if [ ! -d "$INSTALL_DIRECTORY/$APPENGINE" ]; then
-  curl -O \
-    "https://commondatastorage.googleapis.com/clusterfuzz-data/$APPENGINE_FILE"
-  unzip -q $APPENGINE_FILE
-  rm $APPENGINE_FILE
-fi
 
 echo "Downloading ClusterFuzz source code."
 rm -rf $ROOT_DIR

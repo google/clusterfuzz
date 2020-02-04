@@ -24,16 +24,13 @@ if [ -z "$GOOGLE_APPLICATION_CREDENTIALS" ]; then
 fi
 
 NFS_ROOT=  # Fill in NFS information if available.
-APPENGINE=google_appengine
-APPENGINE_FILE=google_appengine_1.9.75.zip
 GOOGLE_CLOUD_SDK=google-cloud-sdk
 GOOGLE_CLOUD_SDK_ARCHIVE=google-cloud-sdk-232.0.0-darwin-x86_64.tar.gz
 INSTALL_DIRECTORY=${INSTALL_DIRECTORY:-${HOME}}
-APPENGINE_DIR="$INSTALL_DIRECTORY/$APPENGINE"
 DEPLOYMENT_BUCKET=${DEPLOYMENT_BUCKET:-"deployment.$CLOUD_PROJECT_ID.appspot.com"}
 GSUTIL_PATH="$INSTALL_DIRECTORY/$GOOGLE_CLOUD_SDK/bin"
 ROOT_DIR="$INSTALL_DIRECTORY/clusterfuzz"
-PYTHONPATH="$PYTHONPATH:$APPENGINE_DIR:$ROOT_DIR/src"
+PYTHONPATH="$PYTHONPATH:$ROOT_DIR/src"
 
 echo "Disabling macOS crash reporting (requires sudo)."
 sudo -u $USER bash -c "launchctl unload -w /System/Library/LaunchAgents/com.apple.ReportCrash.plist"
@@ -80,13 +77,6 @@ if [ -f $BOTO_CONFIG_PATH ]; then
   export BOTO_CONFIG="$BOTO_CONFIG_PATH"
 else
   echo "WARNING: failed to identify the Boto configuration file and specify BOTO_CONFIG env."
-fi
-
-echo "Fetching Google App Engine SDK."
-if [ ! -d "$INSTALL_DIRECTORY/$APPENGINE" ]; then
-  curl -O "https://commondatastorage.googleapis.com/clusterfuzz-data/$APPENGINE_FILE"
-  unzip -q $APPENGINE_FILE
-  rm $APPENGINE_FILE
 fi
 
 echo "Downloading ClusterFuzz source code."
