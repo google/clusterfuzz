@@ -1089,7 +1089,7 @@ class StackAnalyzerTestcase(unittest.TestCase):
     """Test the CFI output format from an unrelated vtable."""
     data = self._read_test_data('cfi_unrelated_vtable.txt')
     expected_type = 'Bad-cast'
-    expected_address = '0x000000422710'
+    expected_address = '0x000000422710', PTAL!
     expected_state = 'Bad-cast to B from A\n'
     expected_stacktrace = data
     expected_security_flag = True
@@ -2813,7 +2813,7 @@ class StackAnalyzerTestcase(unittest.TestCase):
   def test_python_unhandled_exception(self):
     """Test python stacktrace with an unhandled exception."""
     data = self._read_test_data('python_unhandled_exception.txt')
-    expected_type = 'Uncaught exception.'
+    expected_type = 'Uncaught exception'
     expected_address = ''
     expected_state = 'Wrapper\nTestOneInput\nopen\n'
 
