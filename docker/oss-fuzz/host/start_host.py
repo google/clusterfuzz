@@ -64,8 +64,7 @@ def start_bot_instance(instance_num):
 
   env['ROOT_DIR'] = bot_root_directory
   env['BOT_TMPDIR'] = tmp_directory
-  env['PYTHONPATH'] = (
-      '%s/src:%s' % (bot_root_directory, env['APPENGINE_SDK_PATH']))
+  env['PYTHONPATH'] = os.path.join(bot_root_directory, 'src')
 
   if os.path.exists(bot_root_directory):
     shutil.rmtree(bot_root_directory)
