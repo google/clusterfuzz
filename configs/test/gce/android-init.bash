@@ -85,10 +85,6 @@ echo "Adding workaround to prevent /dev/random hangs."
 rm /dev/random
 ln -s /dev/urandom /dev/random
 
-echo "Forcing google to be a namespace package."
-echo "import google; import pkgutil; pkgutil.extend_path(google.__path__, google.__name__)" > \
-  /usr/local/lib/python2.7/dist-packages/gae.pth
-
 echo "Setting up google-fluentd."
 curl -sSO https://dl.google.com/cloudagents/install-logging-agent.sh
 sudo bash install-logging-agent.sh
