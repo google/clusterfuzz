@@ -2809,3 +2809,16 @@ class StackAnalyzerTestcase(unittest.TestCase):
     self._validate_get_crash_data(data, expected_type, expected_address,
                                   expected_state, expected_stacktrace,
                                   expected_security_flag)
+
+  def test_python_unhandled_exception(self):
+    """Test python stacktrace with an unhandled exception."""
+    data = self._read_test_data('python_unhandled_exception.txt')
+    expected_type = 'Uncaught exception.'
+    expected_address = ''
+    expected_state = 'Wrapper\nTestOneInput\nopen\n'
+
+    expected_stacktrace = data
+    expected_security_flag = False
+    self._validate_get_crash_data(data, expected_type, expected_address,
+                                  expected_state, expected_stacktrace,
+                                  expected_security_flag)

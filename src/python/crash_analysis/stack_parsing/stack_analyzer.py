@@ -293,6 +293,19 @@ GOLANG_FATAL_ERROR_REGEX = re.compile(r'^fatal error: (.*)')
 GOLANG_STACK_FRAME_FUNCTION_REGEX = re.compile(
     r'^([0-9a-zA-Z\.\-\_\\\/\(\)\*]+)\([x0-9a-f\s,\.]*\)$')
 
+
+# Python specific regular expressions.
+PYTHON_UNHANDLED_EXCEPTION = re.compile(r'^ === Uncaught Python exception: ===$')
+
+PYTHON_CRASH_TYPES_MAP = [
+    (PYTHON_UNHANDLED_EXCEPTION, 'Uncaught exception.'),
+]
+
+PYTHON_STACK_FRAME_FUNCTION_REGEX = re.compile(
+    #  File "<embedded stdlib>/gzip.py", line 421, in _read_gzip_header
+    r'^  File "([^"]+)", line (\d+), in (.+)$'
+)
+
 # Mappings of Android kernel error status codes to strings.
 ANDROID_KERNEL_STATUS_TO_STRING = {
     0b0001: 'Alignment Fault',
@@ -1139,6 +1152,8 @@ def get_crash_data(crash_data, symbolize_flag=True):
 
   is_kasan = 'KASAN' in crash_stacktrace_without_inlines
   is_golang = '.go:' in crash_stacktrace_without_inlines
+  is_python = '.py", line' in crash_stacktrace_without_inlines
+  found_python_crash = False
   found_golang_crash = False
   ubsan_disabled = 'halt_on_error=0' in environment.get_value(
       'UBSAN_OPTIONS', '')
@@ -1335,6 +1350,16 @@ def get_crash_data(crash_data, symbolize_flag=True):
           state.frame_count = 0
           continue
 
+    # Python stacktraces.
+    if is_python:
+      for python_crash_regex, python_crash_type in PYTHON_CRASH_TYPES_MAP:
+        if update_state_on_match(
+            python_crash_regex, line, state, new_type=python_crash_type):
+          found_python_crash = True
+          state.crash_state = ''
+          state.frame_count = 0
+          continue
+
     # Sanitizer SEGV crashes.
     segv_match = SAN_SEGV_REGEX.match(line)
     if segv_match:
@@ -1385,7 +1410,7 @@ def get_crash_data(crash_data, symbolize_flag=True):
       continue
 
     # Sanitizer regular crash (includes ills, abrt, etc).
-    if not found_golang_crash:
+    if not found_golang_crash and not found_python_crash:
       update_state_on_match(
           SAN_ADDR_REGEX,
           line,
@@ -1835,6 +1860,14 @@ def get_crash_data(crash_data, symbolize_flag=True):
         state,
         group=1,
         frame_filter=lambda s: s.split('/')[-1]):
+      continue
+
+    # Python stack frames.
+    if is_python and add_frame_on_match(
+        PYTHON_STACK_FRAME_FUNCTION_REGEX,
+        line,
+        state,
+        group=3):
       continue
 
   # Detect cycles in stack overflow bugs and update crash state.
