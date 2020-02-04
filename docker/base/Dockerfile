@@ -67,10 +67,6 @@ RUN curl -sSO https://dl.google.com/cloudagents/install-logging-agent.sh && \
     sed -i 's/flush_interval 5s/flush_interval 60s/' /etc/google-fluentd/google-fluentd.conf
 COPY clusterfuzz-fluentd.conf /etc/google-fluentd/config.d/clusterfuzz.conf
 
-# Hack to force google to be a namespace package.
-# https://github.com/google/protobuf/issues/1296#issuecomment-264264926
-RUN echo "import google; import pkgutil; pkgutil.extend_path(google.__path__, google.__name__)" > /usr/local/lib/python2.7/dist-packages/gae.pth
-
 # Common environment variables.
 ENV USER=clusterfuzz
 ENV INSTALL_DIRECTORY /mnt/scratch0
