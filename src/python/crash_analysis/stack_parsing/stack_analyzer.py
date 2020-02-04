@@ -293,9 +293,9 @@ GOLANG_FATAL_ERROR_REGEX = re.compile(r'^fatal error: (.*)')
 GOLANG_STACK_FRAME_FUNCTION_REGEX = re.compile(
     r'^([0-9a-zA-Z\.\-\_\\\/\(\)\*]+)\([x0-9a-f\s,\.]*\)$')
 
-
 # Python specific regular expressions.
-PYTHON_UNHANDLED_EXCEPTION = re.compile(r'^\s*=== Uncaught Python exception: ===$')
+PYTHON_UNHANDLED_EXCEPTION = re.compile(
+    r'^\s*=== Uncaught Python exception: ===$')
 
 PYTHON_CRASH_TYPES_MAP = [
     (PYTHON_UNHANDLED_EXCEPTION, 'Uncaught exception'),
@@ -303,8 +303,7 @@ PYTHON_CRASH_TYPES_MAP = [
 
 PYTHON_STACK_FRAME_FUNCTION_REGEX = re.compile(
     #  File "<embedded stdlib>/gzip.py", line 421, in _read_gzip_header
-    r'^  File "([^"]+)", line (\d+), in (.+)$'
-)
+    r'^  File "([^"]+)", line (\d+), in (.+)$')
 
 # Mappings of Android kernel error status codes to strings.
 ANDROID_KERNEL_STATUS_TO_STRING = {
@@ -1864,10 +1863,7 @@ def get_crash_data(crash_data, symbolize_flag=True):
 
     # Python stack frames.
     if is_python and add_frame_on_match(
-        PYTHON_STACK_FRAME_FUNCTION_REGEX,
-        line,
-        state,
-        group=3):
+        PYTHON_STACK_FRAME_FUNCTION_REGEX, line, state, group=3):
       continue
 
   # Detect cycles in stack overflow bugs and update crash state.
