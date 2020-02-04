@@ -415,7 +415,7 @@ class FuchsiaQemuLibFuzzerRunner(new_process.ProcessRunner, LibFuzzerCommon):
   FUCHSIA_BUILD_REL_PATH = os.path.join('build', 'out', 'default')
 
   SSH_RETRIES = 3
-  SSH_WAIT = 3
+  SSH_WAIT = 5
 
   FUZZER_TEST_DATA_REL_PATH = os.path.join('test_data', 'fuzzing')
 
