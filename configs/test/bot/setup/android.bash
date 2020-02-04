@@ -46,16 +46,13 @@ if [ -z "$GOOGLE_APPLICATION_CREDENTIALS" ]; then
 fi
 
 NFS_ROOT=  # Fill in NFS information if available.
-APPENGINE=google_appengine
-APPENGINE_FILE=google_appengine_1.9.75.zip
 GOOGLE_CLOUD_SDK=google-cloud-sdk
 GOOGLE_CLOUD_SDK_ARCHIVE=google-cloud-sdk-232.0.0-linux-x86_64.tar.gz
 INSTALL_DIRECTORY=${INSTALL_DIRECTORY:-${HOME}}
-APPENGINE_DIR="$INSTALL_DIRECTORY/$APPENGINE"
 DEPLOYMENT_BUCKET=${DEPLOYMENT_BUCKET:-"deployment.$CLOUD_PROJECT_ID.appspot.com"}
 GSUTIL_PATH="$INSTALL_DIRECTORY/$GOOGLE_CLOUD_SDK/bin"
 ROOT_DIR="$INSTALL_DIRECTORY/clusterfuzz"
-PYTHONPATH="$PYTHONPATH:$APPENGINE_DIR:$ROOT_DIR/src"
+PYTHONPATH="$PYTHONPATH:$ROOT_DIR/src"
 ADB_PATH="$ROOT_DIR/resources/platform/android"
 PATH="$PATH:$ADB_PATH"
 
@@ -71,13 +68,6 @@ if [ ! -d "$INSTALL_DIRECTORY/$GOOGLE_CLOUD_SDK" ]; then
   curl -O "https://dl.google.com/dl/cloudsdk/channels/rapid/downloads/$GOOGLE_CLOUD_SDK_ARCHIVE"
   tar -xzf $GOOGLE_CLOUD_SDK_ARCHIVE
   rm $GOOGLE_CLOUD_SDK_ARCHIVE
-fi
-
-echo "Fetching Google App Engine SDK."
-if [ ! -d "$INSTALL_DIRECTORY/$APPENGINE" ]; then
-  curl -O "https://commondatastorage.googleapis.com/clusterfuzz-data/$APPENGINE_FILE"
-  unzip -q $APPENGINE_FILE
-  rm $APPENGINE_FILE
 fi
 
 echo "Installing ClusterFuzz package dependencies."
