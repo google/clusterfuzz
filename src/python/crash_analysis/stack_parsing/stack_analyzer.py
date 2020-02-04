@@ -295,10 +295,10 @@ GOLANG_STACK_FRAME_FUNCTION_REGEX = re.compile(
 
 
 # Python specific regular expressions.
-PYTHON_UNHANDLED_EXCEPTION = re.compile(r'^ === Uncaught Python exception: ===$')
+PYTHON_UNHANDLED_EXCEPTION = re.compile(r'^\s*=== Uncaught Python exception: ===$')
 
 PYTHON_CRASH_TYPES_MAP = [
-    (PYTHON_UNHANDLED_EXCEPTION, 'Uncaught exception.'),
+    (PYTHON_UNHANDLED_EXCEPTION, 'Uncaught exception'),
 ]
 
 PYTHON_STACK_FRAME_FUNCTION_REGEX = re.compile(
