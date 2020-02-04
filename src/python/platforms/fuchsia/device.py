@@ -35,7 +35,7 @@ from system import environment
 from system import new_process
 from system import process_handler
 
-_QEMU_WAIT_SECONDS = 30
+_QEMU_WAIT_SECONDS = 60
 
 
 def _fetch_qemu_vars():
