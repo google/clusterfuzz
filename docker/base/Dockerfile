@@ -67,13 +67,6 @@ RUN curl -sSO https://dl.google.com/cloudagents/install-logging-agent.sh && \
     sed -i 's/flush_interval 5s/flush_interval 60s/' /etc/google-fluentd/google-fluentd.conf
 COPY clusterfuzz-fluentd.conf /etc/google-fluentd/config.d/clusterfuzz.conf
 
-# Install App Engine SDK.
-ENV APPENGINE_FILE=google_appengine_1.9.75.zip \
-    APPENGINE_SDK_PATH=/data/google_appengine
-RUN wget https://commondatastorage.googleapis.com/clusterfuzz-data/$APPENGINE_FILE && \
-    unzip $APPENGINE_FILE && \
-    rm $APPENGINE_FILE
-
 # Hack to force google to be a namespace package.
 # https://github.com/google/protobuf/issues/1296#issuecomment-264264926
 RUN echo "import google; import pkgutil; pkgutil.extend_path(google.__path__, google.__name__)" > /usr/local/lib/python2.7/dist-packages/gae.pth
@@ -84,7 +77,7 @@ ENV INSTALL_DIRECTORY /mnt/scratch0
 ENV BOT_TMPDIR $INSTALL_DIRECTORY/tmp
 ENV ROOT_DIR $INSTALL_DIRECTORY/clusterfuzz
 ENV UPDATE_WEB_TESTS True
-ENV PYTHONPATH $APPENGINE_SDK_PATH:$INSTALL_DIRECTORY/clusterfuzz/src
+ENV PYTHONPATH $INSTALL_DIRECTORY/clusterfuzz/src
 ENV RUN_CMD "python $ROOT_DIR/src/python/bot/startup/run.py"
 
 # Passwordless sudo (needed for AFL launcher).
