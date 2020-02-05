@@ -2813,9 +2813,9 @@ class StackAnalyzerTestcase(unittest.TestCase):
   def test_python_unhandled_exception(self):
     """Test python stacktrace with an unhandled exception."""
     data = self._read_test_data('python_unhandled_exception.txt')
-    expected_type = 'Uncaught exception.'
+    expected_type = 'Uncaught exception'
     expected_address = ''
-    expected_state = 'Wrapper\nTestOneInput\nopen\n'
+    expected_state = '_read_exact\n_read_gzip_header\nread\n'
 
     expected_stacktrace = data
     expected_security_flag = False

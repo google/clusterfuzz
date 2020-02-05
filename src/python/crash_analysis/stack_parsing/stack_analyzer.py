@@ -1157,7 +1157,23 @@ def get_crash_data(crash_data, symbolize_flag=True):
   ubsan_disabled = 'halt_on_error=0' in environment.get_value(
       'UBSAN_OPTIONS', '')
 
-  for line in crash_stacktrace_without_inlines.splitlines():
+  split_crash_stacktrace = crash_stacktrace_without_inlines.splitlines()
+
+  if is_python:
+    # Python stacktraces are reversed, and followed by an ASAN one
+    python_crash_stacktrace = []
+    for line in split_crash_stacktrace:
+      if not line:
+        continue
+      if '===========' in line:  # begining of ASAN stacktrace, skip this
+        break
+      python_crash_stacktrace.append(line)
+    # Add the "title" of the stacktrace at the top
+    split_crash_stacktrace = [python_crash_stacktrace[0]]
+    # Add the stacktrace, reversed
+    split_crash_stacktrace += python_crash_stacktrace[1:][::-1]
+
+  for line in split_crash_stacktrace:
     if should_ignore_line_for_crash_processing(line, state):
       continue
 
