@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """impact_task tests."""
+from builtins import str
 import mock
 import unittest
 
@@ -481,7 +482,7 @@ class GetImpactOnBuild(unittest.TestCase):
     with self.assertRaises(impact_task.BuildFailedException) as cm:
       impact_task.get_impact_on_build('stable', '52', self.testcase, 'path')
 
-    self.assertEqual('Build setup failed for Stable', cm.exception.message)
+    self.assertEqual('Build setup failed for Stable', str(cm.exception))
 
   def test_app_failed(self):
     """Test raising AppFailedException."""

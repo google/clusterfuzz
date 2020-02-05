@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """commands tests."""
+from builtins import str
 from future import standard_library
 standard_library.install_aliases()
 import datetime
@@ -60,7 +61,7 @@ class SetTaskPayloadTest(unittest.TestCase):
     task.payload.return_value = 'payload something'
     with self.assertRaises(Exception) as cm:
       self.assertEqual('payload something', dummy_exception(task))
-    self.assertEqual('payload something', cm.exception.message)
+    self.assertEqual('payload something', str(cm.exception))
     self.assertEqual({'task_payload': 'payload something'}, cm.exception.extras)
     self.assertIsNone(os.getenv('TASK_PAYLOAD'))
 

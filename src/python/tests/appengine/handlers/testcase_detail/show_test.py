@@ -13,6 +13,7 @@
 # limitations under the License.
 """show tests."""
 # pylint: disable=protected-access
+from builtins import str
 from past.builtins import basestring
 import collections
 import datetime
@@ -445,7 +446,7 @@ class GetTestcaseTest(unittest.TestCase):
       show.get_testcase_detail_by_id(None)
 
     self.assertEqual(cm.exception.status, 404)
-    self.assertEqual(cm.exception.message, 'No test case specified!')
+    self.assertEqual(str(cm.exception), 'No test case specified!')
 
   def test_no_testcase(self):
     """Test invalid testcase."""
@@ -453,7 +454,7 @@ class GetTestcaseTest(unittest.TestCase):
       show.get_testcase_detail_by_id(1)
 
     self.assertEqual(cm.exception.status, 404)
-    self.assertEqual(cm.exception.message, 'Invalid test case!')
+    self.assertEqual(str(cm.exception), 'Invalid test case!')
 
   def test_forbidden(self):
     """Test forbidden testcase."""
@@ -464,7 +465,7 @@ class GetTestcaseTest(unittest.TestCase):
       show.get_testcase_detail_by_id(2)
 
     self.assertEqual(cm.exception.status, 403)
-    self.assertEqual(cm.exception.message, '')
+    self.assertEqual(str(cm.exception), '')
 
   def test_reproducible_get(self):
     """Test valid reproducible testcase."""

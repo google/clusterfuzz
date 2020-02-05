@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """Download testcase tests."""
+from builtins import str
 import unittest
 import webapp2
 import webtest
@@ -118,4 +119,4 @@ class GetTestcaseBlobInfoTest(unittest.TestCase):
     self.assertEqual(400, cm.exception.status)
     self.assertEqual((
         "The testcase (%d) doesn't have fuzzed keys." % self.testcase.key.id()),
-                     cm.exception.message)
+                     str(cm.exception))

@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """Tests for tasks."""
+from builtins import str
 from future import standard_library
 standard_library.install_aliases()
 import os
@@ -38,7 +39,7 @@ class RedoTestcaseTest(unittest.TestCase):
     with self.assertRaises(tasks.InvalidRedoTask) as cm:
       tasks.redo_testcase(None, ['blame', 'rand'], 'test@user.com')
 
-    self.assertEqual("The task 'rand' is invalid.", cm.exception.message)
+    self.assertEqual("The task 'rand' is invalid.", str(cm.exception))
 
 
 @test_utils.integration

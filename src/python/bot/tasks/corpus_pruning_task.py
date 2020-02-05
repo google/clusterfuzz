@@ -466,10 +466,10 @@ class CorpusPruner(object):
           bad_units_path, CORPUS_PRUNING_TIMEOUT)
     except engine.TimeoutError as e:
       raise CorpusPruningException(
-          'Corpus pruning timed out while minimizing corpus\n' + e.message)
+          'Corpus pruning timed out while minimizing corpus\n' + str(e))
     except engine.Error as e:
       raise CorpusPruningException(
-          'Corpus pruning failed to minimize corpus\n' + e.message)
+          'Corpus pruning failed to minimize corpus\n' + str(e))
 
     symbolized_output = stack_symbolizer.symbolize_stacktrace(result.logs)
 
@@ -512,10 +512,10 @@ class CrossPollinator(object):
           output=symbolized_output)
     except engine.TimeoutError as e:
       logs.log_error('Corpus pruning timed out while merging shared corpus: ' +
-                     e.message)
+                     str(e))
     except engine.Error as e:
       raise CorpusPruningException(
-          'Corpus pruning failed to merge shared corpus\n' + e.message)
+          'Corpus pruning failed to merge shared corpus\n' + str(e))
 
 
 def do_corpus_pruning(context, last_execution_failed, revision):
