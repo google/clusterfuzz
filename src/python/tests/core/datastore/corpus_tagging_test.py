@@ -29,33 +29,40 @@ class CorpusTaggingTest(unittest.TestCase):
 
   def test_get_targets_with_correct_tag(self):
     """Tests get_targets_with_tag returns the correct fuzz target."""
-    data_types.CorpusTag(tag='Test', fuzz_target='Test_fuzz_target').put()
+    data_types.CorpusTag(
+        tag='test_tag', fuzz_target_name='test_fuzz_target').put()
 
     self.assertEqual(
-        "Test_fuzz_target",
-        list(corpus_tagging.get_targets_with_tag("Test"))[0].fuzz_target)
+        'test_fuzz_target',
+        list(corpus_tagging.get_targets_with_tag('test_tag'))[0]
+        .fuzz_target_name)
 
   def test_get_no_results_with_incorrect_tag(self):
     """Tests get_targets_with_tag returns the nothing if non match the tag."""
 
-    self.assertEqual(0, len(list(corpus_tagging.get_targets_with_tag("Test"))))
+    self.assertEqual(0,
+                     len(list(corpus_tagging.get_targets_with_tag('test_tag'))))
 
   def test_get_all_targets_with_correct_tag(self):
     """Tests that get_targets_with tag returns all and only targets with
     matching tag."""
-    data_types.CorpusTag(tag='Test', fuzz_target='Test_fuzz_target1').put()
-
-    data_types.CorpusTag(tag='Test', fuzz_target='Test_fuzz_target2').put()
+    data_types.CorpusTag(
+        tag='test_tag', fuzz_target_name='test_fuzz_target1').put()
 
     data_types.CorpusTag(
-        tag='Not The Same Tag', fuzz_target='Test_fuzz_target3').put()
+        tag='test_tag', fuzz_target_name='test_fuzz_target2').put()
 
-    self.assertEqual(2, len(list(corpus_tagging.get_targets_with_tag("Test"))))
+    data_types.CorpusTag(
+        tag='not_the_same_tag', fuzz_target_name='test_fuzz_target3').put()
+
+    self.assertEqual(2,
+                     len(list(corpus_tagging.get_targets_with_tag('test_tag'))))
 
   def test_get_tag_from_target(self):
     """Test getting the tag of a given fuzz target."""
-    data_types.CorpusTag(tag='Test', fuzz_target='Test_fuzz_target').put()
+    data_types.CorpusTag(
+        tag='test_tag', fuzz_target_name='test_fuzz_target').put()
 
     self.assertEqual(
-        "Test",
-        list(corpus_tagging.get_fuzz_target_tag("Test_fuzz_target"))[0].tag)
+        'test_tag',
+        list(corpus_tagging.get_fuzz_target_tag('test_fuzz_target'))[0].tag)
