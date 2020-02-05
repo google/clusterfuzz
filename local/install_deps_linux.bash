@@ -150,8 +150,8 @@ fi
 # Setup virtualenv.
 if [[ -n "$PY3" ]]; then
   sudo apt-get install -y pipenv
-  pipenv install --python 3.7
-  pipenv install --dev
+  pipenv sync --python 3.7
+  pipenv sync --dev
   source "$(pipenv --venv)/bin/activate"
 else
   rm -rf ENV
