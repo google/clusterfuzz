@@ -1293,6 +1293,9 @@ class CoverageInformation(Model):
     self.key = ndb.Key(CoverageInformation,
                        coverage_information_key(self.fuzzer, self.date))
 
+class CorpusTag(Model):
+  tag = StringProperty()
+  fuzz_target = StringProperty()
 
 def coverage_information_date_to_string(date):
   """Returns string representation of the date in a format used for coverage."""
