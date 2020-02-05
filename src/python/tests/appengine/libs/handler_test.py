@@ -5,7 +5,6 @@
 # You may obtain a copy of the License at
 #
 #      http://www.apache.org/licenses/LICENSE-2.0
-#
 # Unless required by applicable law or agreed to in writing, software
 # distributed under the License is distributed on an "AS IS" BASIS,
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -19,6 +18,7 @@ from builtins import str
 import json
 import mock
 import os
+import sys
 import unittest
 import webapp2
 import webtest
@@ -31,6 +31,11 @@ from libs import auth
 from libs import handler
 from libs import helpers
 from tests.test_libs import helpers as test_helpers
+
+if sys.version_info.major == 3:
+  _JSON_CONTENT_TYPE = 'application/json; charset=utf-8'
+else:
+  _JSON_CONTENT_TYPE = 'application/json'
 
 
 def mocked_db_config_get_value(key):
@@ -190,7 +195,7 @@ class PostTest(unittest.TestCase):
         webapp2.WSGIApplication([('/', JsonJsonPostHandler)]))
 
     resp = self.app.post_json('/', {'test': 123})
-    self.assertEqual('application/json', resp.headers['Content-Type'])
+    self.assertEqual(_JSON_CONTENT_TYPE, resp.headers['Content-Type'])
     self.assertEqual(123, resp.json['data'])
 
   def test_post_json_json_failure(self):
@@ -199,7 +204,7 @@ class PostTest(unittest.TestCase):
         webapp2.WSGIApplication([('/', JsonJsonPostHandler)]))
 
     resp = self.app.post('/', {'test': 123}, expect_errors=True)
-    self.assertEqual('application/json', resp.headers['Content-Type'])
+    self.assertEqual(_JSON_CONTENT_TYPE, resp.headers['Content-Type'])
     self.assertEqual(400, resp.status_int)
 
   def test_post_form_html(self):
@@ -209,7 +214,7 @@ class PostTest(unittest.TestCase):
 
     resp = self.app.post('/', {'test': 123})
     self.assertNotEqual('application/json', resp.headers['Content-Type'])
-    self.assertEqual('123', resp.body)
+    self.assertEqual(b'123', resp.body)
 
 
 class GetTest(unittest.TestCase):
@@ -220,7 +225,7 @@ class GetTest(unittest.TestCase):
     self.app = webtest.TestApp(webapp2.WSGIApplication([('/', JsonGetHandler)]))
 
     resp = self.app.get('/', {'test': 123})
-    self.assertEqual('application/json', resp.headers['Content-Type'])
+    self.assertEqual(_JSON_CONTENT_TYPE, resp.headers['Content-Type'])
     self.assertEqual('123', resp.json['data'])
 
   def test_get_html(self):
@@ -229,7 +234,7 @@ class GetTest(unittest.TestCase):
 
     resp = self.app.get('/', {'test': 123})
     self.assertNotEqual('application/json', resp.headers['Content-Type'])
-    self.assertEqual('123', resp.body)
+    self.assertEqual(b'123', resp.body)
 
 
 class CheckUserAccessTest(unittest.TestCase):
@@ -525,7 +530,7 @@ class TestGetEmailAndAccessToken(unittest.TestCase):
     self.assertEqual(401, cm.exception.status)
     self.assertEqual(
         'The Authorization header is invalid. It should have been started with'
-        " 'Bearer '.", cm.exception.message)
+        " 'Bearer '.", str(cm.exception))
     self.assertEqual(0, self.mock.get.call_count)
 
   def test_bad_status(self):
@@ -537,7 +542,7 @@ class TestGetEmailAndAccessToken(unittest.TestCase):
     self.assertEqual(401, cm.exception.status)
     self.assertEqual(
         ('Failed to authorize. The Authorization header (Bearer AccessToken)'
-         ' might be invalid.'), cm.exception.message)
+         ' might be invalid.'), str(cm.exception))
     self._assert_requests_get_call()
 
   def test_invalid_json(self):
@@ -548,7 +553,7 @@ class TestGetEmailAndAccessToken(unittest.TestCase):
       handler.get_email_and_access_token('Bearer AccessToken')
     self.assertEqual(500, cm.exception.status)
     self.assertEqual('Parsing the JSON response body failed: test',
-                     cm.exception.message)
+                     str(cm.exception))
     self._assert_requests_get_call()
 
   def test_invalid_client_id(self):
@@ -566,7 +571,7 @@ class TestGetEmailAndAccessToken(unittest.TestCase):
     self.assertEqual(401, cm.exception.status)
     self.assertIn(
         "The access token doesn't belong to one of the allowed OAuth clients",
-        cm.exception.message)
+        str(cm.exception))
     self._assert_requests_get_call()
 
   def test_unverified_email(self):
@@ -583,7 +588,7 @@ class TestGetEmailAndAccessToken(unittest.TestCase):
       handler.get_email_and_access_token('Bearer AccessToken')
     self.assertEqual(401, cm.exception.status)
     self.assertIn('The email (test@test.com) is not verified',
-                  cm.exception.message)
+                  str(cm.exception))
     self._assert_requests_get_call()
 
 
@@ -634,7 +639,7 @@ class TestGetAccessToken(unittest.TestCase):
       handler.get_access_token('verify')
     self.assertEqual(401, cm.exception.status)
     self.assertEqual('Invalid verification code (verify): test',
-                     cm.exception.message)
+                     str(cm.exception))
     self._assert_requests_post_call()
 
   def test_invalid_json(self):
@@ -645,7 +650,7 @@ class TestGetAccessToken(unittest.TestCase):
       handler.get_access_token('verify')
     self.assertEqual(500, cm.exception.status)
     self.assertEqual('Parsing the JSON response body failed: test',
-                     cm.exception.message)
+                     str(cm.exception))
     self._assert_requests_post_call()
 
 

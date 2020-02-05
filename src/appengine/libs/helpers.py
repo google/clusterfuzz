@@ -14,6 +14,7 @@
 """helper.py is a kitchen sink. It contains static methods that are used by
    multiple handlers."""
 
+from builtins import str
 import logging
 import sys
 import traceback
@@ -50,7 +51,7 @@ class EarlyExitException(Exception):
     """Build dict that is used for JSON serialisation."""
     return {
         'traceDump': self.trace_dump,
-        'message': self.message,
+        'message': str(self),
         'email': get_user_email(),
         'status': self.status,
         'type': self.__class__.__name__
@@ -139,8 +140,8 @@ def get_or_exit(fn,
     pass
   except Exception:
     raise EarlyExitException(
-        '%s (%s: %s)' % (error_message, sys.exc_info()[0],
-                         sys.exc_info()[1].message), 500)
+        '%s (%s: %s)' % (error_message, sys.exc_info()[0], str(
+            sys.exc_info()[1])), 500)
 
   if non_empty_fn(result):
     return result

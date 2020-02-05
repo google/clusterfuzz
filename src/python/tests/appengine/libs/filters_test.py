@@ -13,6 +13,7 @@
 # limitations under the License.
 """filters tests"""
 
+from builtins import str
 import mock
 import unittest
 
@@ -83,7 +84,7 @@ class SimpleFilterTest(unittest.TestCase):
     with self.assertRaises(helpers.EarlyExitException) as cm:
       fltr.add(self.query, {'param': ''})
 
-    self.assertEqual("'param' is required.", cm.exception.message)
+    self.assertEqual("'param' is required.", str(cm.exception))
     self.assertEqual(400, cm.exception.status)
     self.query.filter.assert_not_called()
 

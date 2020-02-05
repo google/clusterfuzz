@@ -12,6 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """Handler for redoing."""
+from builtins import str
+
 from base import tasks
 from handlers import base_handler
 from handlers.testcase_detail import show
@@ -28,7 +30,7 @@ class Handler(base_handler.Handler):
     try:
       tasks.redo_testcase(testcase, testcase_tasks, user_email)
     except tasks.InvalidRedoTask as error:
-      raise helpers.EarlyExitException(error.message, 400)
+      raise helpers.EarlyExitException(str(error), 400)
 
     helpers.log('Redo testcase %d: %s' % (testcase.key.id(), testcase_tasks),
                 helpers.MODIFY_OPERATION)

@@ -216,7 +216,7 @@ class Handler(webapp2.RequestHandler):
 
       status = 500
       values = {
-          'message': exception.message,
+          'message': str(exception),
           'email': helpers.get_user_email(),
           'traceDump': traceback.format_exc(),
           'status': status,
@@ -241,7 +241,7 @@ class Handler(webapp2.RequestHandler):
         self.render_json(values, status)
       else:
         if status == 403 or status == 401:
-          self.render_forbidden(exception.message)
+          self.render_forbidden(str(exception))
         else:
           self.render('error.html', values, status)
     except Exception:
@@ -250,7 +250,7 @@ class Handler(webapp2.RequestHandler):
   def handle_exception_exception(self):
     """Catch exception in handle_exception and format it properly."""
     exception = sys.exc_info()[1]
-    values = {'message': exception.message, 'traceDump': traceback.format_exc()}
+    values = {'message': str(exception), 'traceDump': traceback.format_exc()}
     logging.exception(exception)
     if helpers.should_render_json(
         self.request.headers.get('accept', ''),
