@@ -303,7 +303,7 @@ PYTHON_CRASH_TYPES_MAP = [
 
 PYTHON_STACK_FRAME_FUNCTION_REGEX = re.compile(
     #  File "<embedded stdlib>/gzip.py", line 421, in _read_gzip_header
-    r'^  File "([^"]+)", line (\d+), in (.+)$')
+    r'^\s*File "([^"]+)", line (\d+), in (.+)$')
 
 # Mappings of Android kernel error status codes to strings.
 ANDROID_KERNEL_STATUS_TO_STRING = {
