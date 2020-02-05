@@ -58,7 +58,18 @@ class CorpusTaggingTest(unittest.TestCase):
     self.assertEqual(2,
                      len(list(corpus_tagging.get_targets_with_tag('test_tag'))))
 
-  def test_get_tag_from_target(self):
+  def test_get_target_with_correct_tag_when_target_has_multiple_tags(self):
+    data_types.CorpusTag(
+        tag='test_tag', fuzz_target_name='test_fuzz_target').put()
+    data_types.CorpusTag(
+        tag='test_tag2', fuzz_target_name='test_fuzz_target').put()
+
+    self.assertEqual(
+        'test_fuzz_target',
+        list(corpus_tagging.get_targets_with_tag('test_tag'))[0]
+        .fuzz_target_name)
+
+  def test_get_tag_from_target_with_one_tag(self):
     """Test getting the tag of a given fuzz target."""
     data_types.CorpusTag(
         tag='test_tag', fuzz_target_name='test_fuzz_target').put()
@@ -66,3 +77,16 @@ class CorpusTaggingTest(unittest.TestCase):
     self.assertEqual(
         'test_tag',
         list(corpus_tagging.get_fuzz_target_tag('test_fuzz_target'))[0].tag)
+
+  def test_get_tags_from_target_with_multiple_tags(self):
+    """Test getting the tags of a given fuzz target with more than one tag."""
+    data_types.CorpusTag(
+        tag='test_tag', fuzz_target_name='test_fuzz_target').put()
+    data_types.CorpusTag(
+        tag='test_tag2', fuzz_target_name='test_fuzz_target').put()
+
+    tags = [
+        i.tag for i in corpus_tagging.get_fuzz_target_tag('test_fuzz_target')
+    ]
+
+    self.assertEqual(tags, ['test_tag', 'test_tag2'])
