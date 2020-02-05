@@ -175,8 +175,6 @@ class OssFuzzProjectSetupTest(unittest.TestCase):
 
     helpers.patch(self, [
         'config.local_config.ProjectConfig',
-        ('get_application_id_1',
-         'google.appengine.api.app_identity.get_application_id'),
         ('get_application_id_2', 'base.utils.get_application_id'),
         'google_cloud_utils.storage.build',
         'time.sleep',
@@ -211,7 +209,6 @@ class OssFuzzProjectSetupTest(unittest.TestCase):
     """Tests executing of cron job."""
     mock_storage = mock.MagicMock()
     mock_storage.buckets().insert().execute.return_value = 'timeCreated'
-    self.mock.get_application_id_1.return_value = 'clusterfuzz-external'
     self.mock.get_application_id_2.return_value = 'clusterfuzz-external'
     self.mock.build.return_value = mock_storage
 
@@ -1598,8 +1595,6 @@ class GenericProjectSetupTest(unittest.TestCase):
 
     helpers.patch(self, [
         'config.local_config.ProjectConfig',
-        ('get_application_id_1',
-         'google.appengine.api.app_identity.get_application_id'),
         ('get_application_id_2', 'base.utils.get_application_id'),
         'google_cloud_utils.storage.build',
         'google_cloud_utils.storage.read_data',

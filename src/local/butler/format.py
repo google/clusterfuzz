@@ -22,7 +22,9 @@ def execute(_):
   """Format changed code."""
   _, output = common.execute('git diff --name-only FETCH_HEAD')
 
-  file_paths = [f for f in output.splitlines() if os.path.exists(f)]
+  file_paths = [
+      f.decode('utf-8') for f in output.splitlines() if os.path.exists(f)
+  ]
   py_changed_file_paths = [
       f for f in file_paths if f.endswith('.py') and
       # Exclude auto-generated files.

@@ -241,31 +241,33 @@ def execute(args):
     test_directory = APPENGINE_TEST_DIRECTORY
     sys.path.insert(0, os.path.abspath(os.path.join('src', 'appengine')))
 
-    appengine_sdk_path = appengine.find_sdk_path()
-    sys.path.insert(0, appengine_sdk_path)
+    if sys.version_info.major == 2:
+      # TODO(ochang): Remove once migrated to Python 3.
+      appengine_sdk_path = appengine.find_sdk_path()
+      sys.path.insert(0, appengine_sdk_path)
 
-    # Get additional App Engine third party imports.
-    import dev_appserver
-    dev_appserver.fix_google_path()
-    sys.path.extend(dev_appserver.EXTRA_PATHS)
+      # Get additional App Engine third party imports.
+      import dev_appserver
+      dev_appserver.fix_google_path()
+      sys.path.extend(dev_appserver.EXTRA_PATHS)
 
-    # Loading appengine_config from the current project ensures that any
-    # changes to configuration there are available to all tests (e.g.
-    # sys.path modifications, namespaces, etc.)
-    try:
-      from src.appengine import appengine_config
-      (appengine_config)  # pylint: disable=pointless-statement
-    except ImportError:
-      print('Note: unable to import appengine_config.')
+      # Loading appengine_config from the current project ensures that any
+      # changes to configuration there are available to all tests (e.g.
+      # sys.path modifications, namespaces, etc.)
+      try:
+        from src.appengine import appengine_config
+        (appengine_config)  # pylint: disable=pointless-statement
+      except ImportError:
+        print('Note: unable to import appengine_config.')
 
-    # google.auth uses App Engine credentials based on importability of
-    # google.appengine.api.app_identity.
-    try:
-      from google.auth import app_engine as auth_app_engine
-      if auth_app_engine.app_identity:
-        auth_app_engine.app_identity = None
-    except ImportError:
-      pass
+      # google.auth uses App Engine credentials based on importability of
+      # google.appengine.api.app_identity.
+      try:
+        from google.auth import app_engine as auth_app_engine
+        if auth_app_engine.app_identity:
+          auth_app_engine.app_identity = None
+      except ImportError:
+        pass
   elif args.target == 'core':
     test_directory = CORE_TEST_DIRECTORY
   else:

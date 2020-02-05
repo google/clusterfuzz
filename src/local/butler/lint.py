@@ -75,7 +75,7 @@ def _execute_command_and_track_error(command):
   if returncode != 0:
     _error()
 
-  return output
+  return output.decode('utf-8')
 
 
 def license_validate(file_path):
@@ -184,7 +184,9 @@ def execute(_):
   else:
     _, output = common.execute('git diff --name-only FETCH_HEAD')
 
-  file_paths = [f for f in output.splitlines() if os.path.exists(f)]
+  file_paths = [
+      f.decode('utf-8') for f in output.splitlines() if os.path.exists(f)
+  ]
   py_changed_file_paths = [
       f for f in file_paths
       if f.endswith('.py') and not is_auto_generated_file(f)
