@@ -1293,9 +1293,6 @@ class CoverageInformation(Model):
     self.key = ndb.Key(CoverageInformation,
                        coverage_information_key(self.fuzzer, self.date))
 
-class CorpusTag(Model):
-  tag = StringProperty()
-  fuzz_target = StringProperty()
 
 class CorpusTag(Model):
   """Corpus Tags for sharing corpora between fuzz targets."""
