@@ -1297,7 +1297,7 @@ class CoverageInformation(Model):
 class CorpusTag(Model):
   """Corpus Tags for use in cross-pollination."""
   tag = StringProperty()
-  fuzz_target_name = StringProperty()
+  fully_qualified_fuzz_target_name = StringProperty()
 
 
 def coverage_information_date_to_string(date):

@@ -16,11 +16,11 @@
 from datastore import data_types
 
 
-def get_fuzz_target_tag(fuzz_target_name):
+def get_fuzz_target_tag(fully_qualified_fuzz_target_name):
   """Get all the tag of a given fuzz target."""
   query = data_types.CorpusTag().query()
-  query = query.filter(
-      data_types.CorpusTag.fuzz_target_name == fuzz_target_name)
+  query = query.filter(data_types.CorpusTag.fully_qualified_fuzz_target_name ==
+                       fully_qualified_fuzz_target_name)
   return list(query)
 
 
