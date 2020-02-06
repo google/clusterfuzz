@@ -49,7 +49,7 @@ def _is_nodejs_up_to_date():
   if return_code != 0:
     return False
 
-  m = re.match(r'v([0-9]+)\..+', output.strip())
+  m = re.match(br'v([0-9]+)\..+', output.strip())
 
   if not m:
     return False
@@ -89,7 +89,7 @@ def package(revision,
   appengine.symlink_dirs()
 
   _, ls_files_output = common.execute('git -C . ls-files', print_output=False)
-  file_paths = ls_files_output.splitlines()
+  file_paths = [path.decode('utf-8') for path in ls_files_output.splitlines()]
 
   if not os.path.exists(target_zip_dir):
     os.makedirs(target_zip_dir)

@@ -169,6 +169,8 @@ def main():
   parser_deploy.add_argument(
       '--staging', action='store_true', help='Deploy to staging.')
   parser_deploy.add_argument(
+      '--staging3', action='store_true', help='Deploy to staging (Python 3).')
+  parser_deploy.add_argument(
       '--prod', action='store_true', help='Deploy to production.')
   parser_deploy.add_argument(
       '--targets', nargs='*', default=['appengine', 'zips'])

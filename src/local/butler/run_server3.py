@@ -179,13 +179,13 @@ def execute(args):
   os.environ['PUBSUB_EMULATOR_HOST'] = constants.PUBSUB_EMULATOR_HOST
   try:
     cron_server = common.execute_async(
-        'gunicorn -b :{port} server:app'.format(
-            port=constants.CRON_SERVICE_PORT),
-       cwd=os.path.join('src', 'appengine'))
+        'gunicorn -b :{port} main:app'.format(port=constants.CRON_SERVICE_PORT),
+        cwd=os.path.join('src', 'appengine'))
 
-    common.execute('gunicorn -b :{port} server:app'.format(
-       port=constants.DEV_APPSERVER_PORT),
-       cwd=os.path.join('src', 'appengine'))
+    common.execute(
+        'gunicorn -b :{port} main:app'.format(
+            port=constants.DEV_APPSERVER_PORT),
+        cwd=os.path.join('src', 'appengine'))
   except KeyboardInterrupt:
     print('Server has been stopped. Exit.')
     cron_server.terminate()

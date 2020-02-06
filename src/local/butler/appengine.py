@@ -175,4 +175,4 @@ def region(project):
   if return_code:
     raise RuntimeError('Could not get App Engine region')
 
-  return region_from_location(location.strip())
+  return region_from_location(location.strip().decode('utf-8'))
