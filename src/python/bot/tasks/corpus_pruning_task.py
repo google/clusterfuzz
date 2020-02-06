@@ -14,7 +14,6 @@
 """Corpus pruning task."""
 
 from builtins import object
-from builtins import str
 from builtins import zip
 
 import collections
@@ -466,10 +465,10 @@ class CorpusPruner(object):
           bad_units_path, CORPUS_PRUNING_TIMEOUT)
     except engine.TimeoutError as e:
       raise CorpusPruningException(
-          'Corpus pruning timed out while minimizing corpus\n' + str(e))
+          'Corpus pruning timed out while minimizing corpus\n' + repr(e))
     except engine.Error as e:
       raise CorpusPruningException(
-          'Corpus pruning failed to minimize corpus\n' + str(e))
+          'Corpus pruning failed to minimize corpus\n' + repr(e))
 
     symbolized_output = stack_symbolizer.symbolize_stacktrace(result.logs)
 
@@ -512,10 +511,10 @@ class CrossPollinator(object):
           output=symbolized_output)
     except engine.TimeoutError as e:
       logs.log_error('Corpus pruning timed out while merging shared corpus: ' +
-                     str(e))
+                     repr(e))
     except engine.Error as e:
       raise CorpusPruningException(
-          'Corpus pruning failed to merge shared corpus\n' + str(e))
+          'Corpus pruning failed to merge shared corpus\n' + repr(e))
 
 
 def do_corpus_pruning(context, last_execution_failed, revision):
@@ -783,7 +782,7 @@ def _save_coverage_information(context, result):
         retries=data_handler.DEFAULT_FAIL_RETRIES)
   except Exception as e:
     raise CorpusPruningException(
-        'Failed to save corpus pruning result: %s.' % str(e))
+        'Failed to save corpus pruning result: %s.' % repr(e))
 
 
 def execute_task(full_fuzzer_name, job_type):
