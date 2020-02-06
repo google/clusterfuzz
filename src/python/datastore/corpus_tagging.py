@@ -17,15 +17,15 @@ from datastore import data_types
 
 
 def get_fuzz_target_tag(fully_qualified_fuzz_target_name):
-  """Get all the tag of a given fuzz target."""
+  """Get all the tags of a given fuzz target."""
   query = data_types.CorpusTag().query()
   query = query.filter(data_types.CorpusTag.fully_qualified_fuzz_target_name ==
                        fully_qualified_fuzz_target_name)
-  return list(query)
+  return query.fetch()
 
 
 def get_targets_with_tag(tag):
   """Get all fuzz targets with a given tag."""
   query = data_types.CorpusTag().query()
   query = query.filter(data_types.CorpusTag.tag == tag)
-  return list(query)
+  return query.fetch()

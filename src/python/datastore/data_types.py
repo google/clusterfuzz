@@ -1295,7 +1295,7 @@ class CoverageInformation(Model):
 
 
 class CorpusTag(Model):
-  """Corpus Tags for use in cross-pollination."""
+  """Corpus Tags for sharing corpora between fuzz targets."""
   tag = StringProperty()
   fully_qualified_fuzz_target_name = StringProperty()
 
