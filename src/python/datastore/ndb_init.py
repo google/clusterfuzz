@@ -15,8 +15,8 @@
 
 import contextlib
 import functools
-import threading
 import sys
+import threading
 
 from google.cloud import ndb
 import grpc
