@@ -17,12 +17,12 @@ import os
 import sys
 
 # Add necessary directories to path.
-sys.path.insert(0, 'third_party')
-sys.path.insert(0, 'python')
+sys.path.append('python')
+sys.path.append('third_party')
 
 config_modules_path = os.path.join('config', 'modules')
 if os.path.exists(config_modules_path):
-  sys.path.insert(0, config_modules_path)
+  sys.path.append(config_modules_path)
 
 try:
   # Run any module initialization code.

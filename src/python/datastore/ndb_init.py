@@ -42,7 +42,6 @@ def _client():
           # "b'datastore.googleapis.com'" which doesn't work.
           _ndb_client.host = utils.newstr_to_native_str(_ndb_client.host)
 
-
   return _ndb_client
 
 
