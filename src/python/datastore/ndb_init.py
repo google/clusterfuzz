@@ -16,6 +16,7 @@
 import contextlib
 import functools
 import threading
+import sys
 
 from google.cloud import ndb
 import grpc
@@ -35,7 +36,12 @@ def _client():
       if not _ndb_client:
         _ndb_client = ndb.Client(project=utils.get_application_id())
         # TODO(ochang): Remove hack once migration to Python 3 is done.
-        _ndb_client.host = utils.newstr_to_native_str(_ndb_client.host)
+        if sys.version_info.major == 2:
+          # NDB doesn't like newstrs. On Python 3, keeping this breaks because
+          # the bytes gets propgated down to a DNS resolution on
+          # "b'datastore.googleapis.com'" which doesn't work.
+          _ndb_client.host = utils.newstr_to_native_str(_ndb_client.host)
+
 
   return _ndb_client
 
