@@ -203,7 +203,7 @@ def execute(_):
 
     # TODO(mbarbella): Remove futurize checks after migrating to Python 3.
     # Skip files that cause futurize to report false positive issues.
-    if file_path.endswith('ndb_patcher.py'):
+    if file_path.endswith(os.path.join('appengine', 'main.py')):
       continue
 
     futurize_excludes = ' '.join(
