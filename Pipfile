@@ -1,4 +1,4 @@
-# This is currently only used for Python 3.
+# This is currently only used for Python 3.	
 
 [[source]]
 url = "https://pypi.python.org/simple"
@@ -38,6 +38,7 @@ nodeenv = "==1.0.0"
 paramiko = "==2.6.0"
 protobuf = "==3.6.1"
 psutil = "==5.4.7"
+gunicorn = "*"
 # tensorflow = "==1.8.0"  # does not seem to be available
 
 [requires]

@@ -90,7 +90,8 @@ def split_br(text):
 
 def encode_json(value):
   """Dump base64-encoded JSON string (to avoid XSS)."""
-  return base64.b64encode(json.dumps(value, cls=JsonEncoder))
+  return base64.b64encode(json.dumps(
+      value, cls=JsonEncoder).encode('utf-8')).decode('utf-8')
 
 
 _JINJA_ENVIRONMENT = jinja2.Environment(

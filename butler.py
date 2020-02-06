@@ -177,24 +177,28 @@ def main():
 
   parser_run_server = subparsers.add_parser(
       'run_server', help='Run the local Clusterfuzz server.')
-  parser_run_server.add_argument(
-      '-b',
-      '--bootstrap',
-      action='store_true',
-      help='Bootstrap the local database.')
-  parser_run_server.add_argument(
-      '--storage-path',
-      default='local/storage',
-      help='storage path for local database.')
-  parser_run_server.add_argument(
-      '--skip-install-deps',
-      action='store_true',
-      help=('Don\'t install dependencies before running this command (useful '
-            'when you\'re restarting the server often).'))
-  parser_run_server.add_argument(
-      '--log-level', default='info', help='Logging level')
-  parser_run_server.add_argument(
-      '--clean', action='store_true', help='Clear existing database data.')
+  parser_run_server3 = subparsers.add_parser(
+      'run_server3',
+      help='Run the local Clusterfuzz server (Python 3, experimental).')
+
+  for sub_parser in (parser_run_server, parser_run_server3):
+    sub_parser.add_argument(
+        '-b',
+        '--bootstrap',
+        action='store_true',
+        help='Bootstrap the local database.')
+    sub_parser.add_argument(
+        '--storage-path',
+        default='local/storage',
+        help='storage path for local database.')
+    sub_parser.add_argument(
+        '--skip-install-deps',
+        action='store_true',
+        help=('Don\'t install dependencies before running this command (useful '
+              'when you\'re restarting the server often).'))
+    sub_parser.add_argument('--log-level', default='info', help='Logging level')
+    sub_parser.add_argument(
+        '--clean', action='store_true', help='Clear existing database data.')
 
   parser_run = subparsers.add_parser(
       'run', help='Run a one-off script against a datastore (e.g. migration).')
@@ -314,9 +318,6 @@ def _setup():
   os.environ['ROOT_DIR'] = os.path.abspath('.')
 
   sys.path.insert(0, os.path.abspath(os.path.join('src')))
-  sys.path.insert(0, os.path.abspath(os.path.join('src', 'third_party')))
-
-  # Add our third_party libs before older appengine libs.
   from python.base import modules
   modules.fix_module_search_paths()
 
