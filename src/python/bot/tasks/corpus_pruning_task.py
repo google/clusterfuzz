@@ -778,13 +778,18 @@ def _get_cross_pollinate_fuzzers(engine_name, current_fuzzer_name):
   similar_tagged_targets = corpus_tagging.get_similarly_tagged_fuzzers(
       current_fuzzer_name)
 
-  # Get all targets jobs with the same tag.
-  tagged_target_jobs = [
-      target for target in target_jobs if target.fuzz_target_name in [
-          tagged.fully_quallified_fuzz_target_name
-          for tagged in similar_tagged_targets
+  # Cross Pollinate randomly if there are no similarly tagged targets.
+  if similar_tagged_targets:
+    # Even if there are similarly tagged targets, only use them half the time.
+    if random.choice([0, 1]):
+      # Intersect target_jobs and similar_tagged_targets on fully qualified
+      # fuzz target name.
+      target_jobs = [
+          target for target in target_jobs if target.fuzz_target_name in [
+              tagged.fully_quallified_fuzz_target_name
+              for tagged in similar_tagged_targets
+          ]
       ]
-  ]
 
   targets = fuzz_target_utils.get_fuzz_targets_for_target_jobs(target_jobs)
 

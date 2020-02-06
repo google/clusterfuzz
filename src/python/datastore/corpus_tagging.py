@@ -30,10 +30,10 @@ def get_targets_with_tag(tag):
   query = query.filter(data_types.CorpusTag.tag == tag)
   return query.fetch()
 
+
 def get_similarly_tagged_fuzzers(current_fully_qualified_fuzzer_name):
   similarly_tagged_targets = []
   for tag in get_fuzz_target_tag(current_fully_qualified_fuzzer_name):
     similarly_tagged_targets += get_targets_with_tag(tag)
 
   return similarly_tagged_targets
-
