@@ -34,6 +34,7 @@ from build_management import build_manager
 from crash_analysis import crash_analyzer
 from crash_analysis.stack_parsing import stack_analyzer
 from crash_analysis.stack_parsing import stack_symbolizer
+from datastore import corpus_tagging
 from datastore import data_handler
 from datastore import data_types
 from datastore import fuzz_target_utils
@@ -774,6 +775,17 @@ def _get_cross_pollinate_fuzzers(engine_name, current_fuzzer_name):
   cross_pollinate_fuzzers = []
 
   target_jobs = list(fuzz_target_utils.get_fuzz_target_jobs(engine=engine_name))
+  similar_tagged_targets = corpus_tagging.get_similarly_tagged_fuzzers(
+      current_fuzzer_name)
+
+  # Get all targets jobs with the same tag.
+  tagged_target_jobs = [
+      target for target in target_jobs if target.fuzz_target_name in [
+          tagged.fully_quallified_fuzz_target_name
+          for tagged in similar_tagged_targets
+      ]
+  ]
+
   targets = fuzz_target_utils.get_fuzz_targets_for_target_jobs(target_jobs)
 
   targets_and_jobs = [(target, target_job)
