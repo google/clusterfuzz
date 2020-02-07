@@ -17,6 +17,8 @@ import datetime
 import mock
 import unittest
 
+import six
+
 from libs.issue_management import monorail
 from libs.issue_management.monorail import issue_tracker_manager
 from libs.issue_management.monorail.comment import Comment as MonorailComment
@@ -119,15 +121,15 @@ class MonorailTests(unittest.TestCase):
     self.assertEqual('New', issue.status)
     self.assertIsNone(issue.merged_into)
 
-    self.assertItemsEqual([
+    six.assertCountEqual(self, [
         'label1',
         'label2',
     ], issue.labels)
-    self.assertItemsEqual([
+    six.assertCountEqual(self, [
         'A>B',
         'C>D',
     ], issue.components)
-    self.assertItemsEqual([
+    six.assertCountEqual(self, [
         'cc@cc.com',
     ], issue.ccs)
 
@@ -160,15 +162,15 @@ class MonorailTests(unittest.TestCase):
     self.assertEqual('New', monorail_issue.status)
     self.assertEqual('comment', monorail_issue.comment)
 
-    self.assertItemsEqual([
+    six.assertCountEqual(self, [
         'label1',
         'label2',
     ], monorail_issue.labels)
-    self.assertItemsEqual([
+    six.assertCountEqual(self, [
         'A>B',
         'C>D',
     ], monorail_issue.components)
-    self.assertItemsEqual([
+    six.assertCountEqual(self, [
         'cc@cc.com',
     ], monorail_issue.cc)
 
@@ -182,45 +184,45 @@ class MonorailTests(unittest.TestCase):
     self.assertEqual('comment', actions[0].comment)
     self.assertEqual('owner', actions[0].assignee)
     self.assertEqual('status', actions[0].status)
-    self.assertItemsEqual(['cc@cc.com'], actions[0].ccs.added)
-    self.assertItemsEqual(['removed@cc.com'], actions[0].ccs.removed)
-    self.assertItemsEqual(['label1'], actions[0].labels.added)
-    self.assertItemsEqual(['label0'], actions[0].labels.removed)
-    self.assertItemsEqual(['A>B'], actions[0].components.added)
-    self.assertItemsEqual(['E>F'], actions[0].components.removed)
+    six.assertCountEqual(self, ['cc@cc.com'], actions[0].ccs.added)
+    six.assertCountEqual(self, ['removed@cc.com'], actions[0].ccs.removed)
+    six.assertCountEqual(self, ['label1'], actions[0].labels.added)
+    six.assertCountEqual(self, ['label0'], actions[0].labels.removed)
+    six.assertCountEqual(self, ['A>B'], actions[0].components.added)
+    six.assertCountEqual(self, ['E>F'], actions[0].components.removed)
 
     self.assertIsNone(actions[1].title)
     self.assertEqual('comment', actions[1].comment)
     self.assertIsNone(actions[1].assignee)
     self.assertIsNone(actions[1].status)
-    self.assertItemsEqual([], actions[1].ccs.added)
-    self.assertItemsEqual([], actions[1].ccs.removed)
-    self.assertItemsEqual([], actions[1].labels.added)
-    self.assertItemsEqual([], actions[1].labels.removed)
-    self.assertItemsEqual([], actions[1].components.added)
-    self.assertItemsEqual([], actions[1].components.removed)
+    six.assertCountEqual(self, [], actions[1].ccs.added)
+    six.assertCountEqual(self, [], actions[1].ccs.removed)
+    six.assertCountEqual(self, [], actions[1].labels.added)
+    six.assertCountEqual(self, [], actions[1].labels.removed)
+    six.assertCountEqual(self, [], actions[1].components.added)
+    six.assertCountEqual(self, [], actions[1].components.removed)
 
   def test_modify_labels(self):
     """Test modifying labels."""
     issue = self.issue_tracker.get_issue(1337)
     issue.labels.add('Label3')
     issue.labels.remove('laBel1')
-    self.assertItemsEqual(['label2', 'Label3'], issue.labels)
+    six.assertCountEqual(self, ['label2', 'Label3'], issue.labels)
     issue.save()
 
-    self.assertItemsEqual(['label2', 'Label3', '-laBel1'],
-                          self.itm.last_issue.labels)
+    six.assertCountEqual(self, ['label2', 'Label3', '-laBel1'],
+                         self.itm.last_issue.labels)
 
   def test_modify_components(self):
     """Test modifying labels."""
     issue = self.issue_tracker.get_issue(1337)
     issue.components.add('Y>Z')
     issue.components.remove('a>B')
-    self.assertItemsEqual(['C>D', 'Y>Z'], issue.components)
+    six.assertCountEqual(self, ['C>D', 'Y>Z'], issue.components)
     issue.save()
 
-    self.assertItemsEqual(['-a>B', 'C>D', 'Y>Z'],
-                          self.itm.last_issue.components)
+    six.assertCountEqual(self, ['-a>B', 'C>D', 'Y>Z'],
+                         self.itm.last_issue.components)
 
   def test_get_original_issue(self):
     """Test get_original_issue."""
@@ -240,7 +242,7 @@ class MonorailTests(unittest.TestCase):
     ]
     issues = self.issue_tracker.find_issues(
         keywords=['one', 'two'], only_open=True)
-    self.assertItemsEqual([1, 2], [issue.id for issue in issues])
+    six.assertCountEqual(self, [1, 2], [issue.id for issue in issues])
 
     self.mock.get_issues.assert_has_calls([
         mock.call(mock.ANY, '"one" "two"', can='open'),
@@ -248,7 +250,7 @@ class MonorailTests(unittest.TestCase):
 
     issues = self.issue_tracker.find_issues(
         keywords=['one', 'two'], only_open=False)
-    self.assertItemsEqual([1, 2], [issue.id for issue in issues])
+    six.assertCountEqual(self, [1, 2], [issue.id for issue in issues])
 
     self.mock.get_issues.assert_has_calls([
         mock.call(mock.ANY, '"one" "two"', can='all'),

@@ -16,6 +16,7 @@ from builtins import object
 import datetime
 import unittest
 
+import six
 import webapp2
 import webtest
 
@@ -148,7 +149,7 @@ class OssFuzzApplyCcsTest(unittest.TestCase):
     self.assertEqual(len(self.itm.modified_issues), 3)
 
     issue_1337 = self.itm.modified_issues[1337]
-    self.assertItemsEqual(issue_1337.cc, [
+    six.assertCountEqual(self, issue_1337.cc, [
         'user@example.com',
         'user2@example.com',
     ])
@@ -159,7 +160,7 @@ class OssFuzzApplyCcsTest(unittest.TestCase):
     self.assertNotIn(1338, self.itm.modified_issues)
 
     issue_1339 = self.itm.modified_issues[1339]
-    self.assertItemsEqual(issue_1339.cc, [
+    six.assertCountEqual(self, issue_1339.cc, [
         'user@example.com',
         'user2@example.com',
     ])
@@ -168,7 +169,7 @@ class OssFuzzApplyCcsTest(unittest.TestCase):
     self.assertEqual(issue_1339.comment, '')
 
     issue_1340 = self.itm.modified_issues[1340]
-    self.assertItemsEqual(issue_1340.cc, [
+    six.assertCountEqual(self, issue_1340.cc, [
         'user@example.com',
         'user2@example.com',
     ])

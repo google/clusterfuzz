@@ -16,9 +16,10 @@
 import filecmp
 import os
 import shutil
-import six
 import subprocess
 import tempfile
+
+import six
 
 from base import utils
 from bot import testcase_manager
@@ -177,13 +178,13 @@ class UntrustedRunnerIntegrationTest(
     with open(os.path.join(fuzz_inputs, 'c', 'c'), 'w') as f:
       f.write('')
 
-    self.assertItemsEqual([
+    six.assertCountEqual(self, [
         os.path.join(fuzz_inputs, 'a'),
         os.path.join(fuzz_inputs, 'b'),
         os.path.join(fuzz_inputs, 'c'),
     ], file_host.list_files(fuzz_inputs))
 
-    self.assertItemsEqual([
+    six.assertCountEqual(self, [
         os.path.join(fuzz_inputs, 'a'),
         os.path.join(fuzz_inputs, 'b'),
         os.path.join(fuzz_inputs, 'c', 'c'),
@@ -433,7 +434,7 @@ class UntrustedRunnerIntegrationTest(
     file_list, input_directory, testcase_file_path = (
         setup.setup_testcase(testcase, job_type))
 
-    self.assertItemsEqual(file_list, [
+    six.assertCountEqual(self, file_list, [
         testcase.absolute_path,
     ])
     self.assertEqual(input_directory, fuzz_inputs)
@@ -482,8 +483,8 @@ class UntrustedRunnerIntegrationTest(
 
     try:
       self.assertTrue(corpus.rsync_to_disk(test_corpus_directory))
-      self.assertItemsEqual(
-          os.listdir(test_corpus_directory), ['123', '456', 'abc'])
+      six.assertCountEqual(self, os.listdir(test_corpus_directory),
+                           ['123', '456', 'abc'])
     finally:
       if os.path.exists(test_corpus_directory):
         shutil.rmtree(test_corpus_directory, ignore_errors=True)
@@ -530,7 +531,7 @@ class UntrustedRunnerIntegrationTest(
                                          'core', 'bot', 'untrusted_runner',
                                          'test_data', 'test_build')
     fuzz_target_paths = file_host.get_fuzz_targets(worker_test_build_dir)
-    self.assertItemsEqual([
+    six.assertCountEqual(self, [
         os.path.join(worker_test_build_dir, 'do_stuff_fuzzer'),
         os.path.join(worker_test_build_dir, 'target'),
     ], fuzz_target_paths)

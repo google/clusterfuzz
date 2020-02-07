@@ -17,6 +17,8 @@ from builtins import range
 import time
 import unittest
 
+import six
+
 from google_cloud_utils import pubsub
 from tests.test_libs import helpers
 from tests.test_libs import test_utils
@@ -77,7 +79,7 @@ class PubSubTest(unittest.TestCase):
     time.sleep(ACK_DEADLINE + ACK_DEADLINE_WINDOW)
     messages = self.client.pull_from_subscription(self.subscription)
     self.assertEqual(2, len(messages))
-    self.assertItemsEqual([
+    six.assertCountEqual(self, [
         {
             'data': 'MTIz',
         },
@@ -135,14 +137,14 @@ class PubSubTest(unittest.TestCase):
     expected.append('projects/fake-project/topics/test-topic')
 
     topics = list(self.client.list_topics('projects/' + PROJECT_NAME))
-    self.assertItemsEqual(expected, topics)
+    six.assertCountEqual(self, expected, topics)
 
     # Note: Page size appears to be ignored by the emulator. Even when creating
     # large amounts of topics to force paging, the nextPageToken returned is
     # buggy and results in infinite loops.
     topics = list(
         self.client.list_topics('projects/' + PROJECT_NAME, page_size=1))
-    self.assertItemsEqual(expected, topics)
+    six.assertCountEqual(self, expected, topics)
 
   def test_list_topic_subscriptions(self):
     """Test listing topic subscriptions."""
@@ -155,14 +157,14 @@ class PubSubTest(unittest.TestCase):
     expected.append('projects/fake-project/subscriptions/subscription')
 
     subscriptions = list(self.client.list_topic_subscriptions(self.topic))
-    self.assertItemsEqual(expected, subscriptions)
+    six.assertCountEqual(self, expected, subscriptions)
 
     # Note: Page size appears to be ignored by the emulator. Even when creating
     # large amounts of topics to force paging, the nextPageToken returned is
     # buggy and results in infinite loops.
     subscriptions = list(
         self.client.list_topic_subscriptions(self.topic, page_size=1))
-    self.assertItemsEqual(expected, subscriptions)
+    six.assertCountEqual(self, expected, subscriptions)
 
   def test_get_topic(self):
     """Test getting a topic."""

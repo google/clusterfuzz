@@ -23,6 +23,7 @@ import mock
 import unittest
 
 from google.cloud import ndb
+import six
 
 from datastore import data_types
 from google_cloud_utils import compute_engine_projects
@@ -845,7 +846,7 @@ class CronTest(unittest.TestCase):
             size=4,
             wait_for_instances=False)
 
-    self.assertItemsEqual([{
+    six.assertCountEqual(self, [{
         'instance_num': 0,
         'worker_name': u'oss-fuzz-linux-zone3-worker-proj1-0001',
         'project_name': u'proj1',
