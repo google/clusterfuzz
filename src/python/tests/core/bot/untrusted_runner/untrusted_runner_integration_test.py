@@ -16,7 +16,6 @@
 import filecmp
 import os
 import shutil
-import six
 import subprocess
 import tempfile
 
