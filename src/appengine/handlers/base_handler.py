@@ -260,7 +260,7 @@ class Handler(webapp2.RequestHandler):
     else:
       self.render('error.html', values, 500)
 
-  def redirect(self, url, **kwargs):
+  def redirect(self, url, **kwargs):  # pylint: disable=arguments-differ
     """Explicitly converts url to 'str', because webapp2.RequestHandler.redirect
     strongly requires 'str' but url might be an unicode string."""
     url = str(url)
@@ -299,6 +299,7 @@ class GcsUploadHandler(Handler):
   """A handler which uploads files to GCS."""
 
   def __init__(self, request, response):
+    super(GcsUploadHandler, self).__init__()
     self.initialize(request, response)
     self.upload = None
 
