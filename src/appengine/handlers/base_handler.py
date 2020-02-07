@@ -70,8 +70,10 @@ class JsonEncoder(json.JSONEncoder):
       return obj.to_dict()
     elif isinstance(obj, cgi.FieldStorage):
       return str(obj)
-    else:
-      raise Exception('Cannot serialise %s' % obj)
+    elif isinstance(obj, bytes):
+      return obj.decode('utf-8')
+
+    return json.JSONEncoder.default(self, obj)
 
 
 def format_time(dt):
