@@ -1119,10 +1119,10 @@ def reverse_python_stacktrace(stacktrace):
       for regex, _ in PYTHON_CRASH_TYPES_MAP:
         if regex.match(line):
           in_python_stacktrace = True
-          python_stacktrace_split = [line]  # Add the "title" of the stacktrace.
+          python_stacktrace_split = [line]  # Add the "title" of the stacktrace
           break
     else:
-      if '=========' in line:  # Locate the begining of the sanitizer stacktrace.
+      if '=========' in line:  # Locate the begining of the sanitizer stacktrace
         break
       python_stacktrace_split.insert(1, line)
 
