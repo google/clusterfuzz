@@ -39,6 +39,7 @@ from datastore import data_types
 from datastore import fuzz_target_utils
 from fuzzing import corpus_manager
 from fuzzing import leak_blacklist
+from google_cloud_utils import big_query
 from google_cloud_utils import blobs
 from google_cloud_utils import storage
 from metrics import logs
@@ -446,7 +447,7 @@ class CorpusPruner(object):
     """Run corpus pruning. Output result to directory."""
     if not shell.get_directory_file_count(initial_corpus_path):
       # Empty corpus, nothing to do.
-      return
+      return None
 
     # Set memory tool options and fuzzer arguments.
     engine_common.unpack_seed_corpus_if_needed(
@@ -479,6 +480,8 @@ class CorpusPruner(object):
 
     logs.log('Corpus merge finished successfully.', output=symbolized_output)
 
+    return result.stats
+
 
 class CrossPollinator(object):
   """Cross pollination."""
@@ -491,7 +494,7 @@ class CrossPollinator(object):
     """Merge testcases from corpus from other fuzz targets."""
     if not shell.get_directory_file_count(self.context.shared_corpus_path):
       logs.log('No files found in shared corpus, skip merge.')
-      return
+      return None
 
     # Run pruning on the shared corpus and log the result in case of error.
     logs.log('Merging shared corpus...')
@@ -515,6 +518,8 @@ class CrossPollinator(object):
     except engine.Error as e:
       raise CorpusPruningException(
           'Corpus pruning failed to merge shared corpus\n' + repr(e))
+
+    return result.stats
 
 
 def do_corpus_pruning(context, last_execution_failed, revision):
@@ -557,8 +562,9 @@ def do_corpus_pruning(context, last_execution_failed, revision):
   context.restore_quarantined_units()
 
   # Shrink to a minimized corpus using corpus merge.
-  pruner.run(context.initial_corpus_path, context.minimized_corpus_path,
-             context.bad_units_path)
+  pruner_stats = pruner.run(context.initial_corpus_path,
+                            context.minimized_corpus_path,
+                            context.bad_units_path)
 
   # Sync minimized corpus back to GCS.
   context.sync_to_gcs()
@@ -594,6 +600,9 @@ def do_corpus_pruning(context, last_execution_failed, revision):
   quarantine_corpus_dir_size = shell.get_directory_size(
       context.quarantine_corpus_path)
 
+  # Save the minimize corpus size before cross pollination to put in Big Query.
+  pre_pollination_corpus_size = minimized_corpus_size_units
+
   # Populate coverage stats.
   coverage_info.corpus_size_units = minimized_corpus_size_units
   coverage_info.corpus_size_bytes = minimized_corpus_size_bytes
@@ -610,7 +619,7 @@ def do_corpus_pruning(context, last_execution_failed, revision):
     return None
 
   cross_pollinator = CrossPollinator(runner)
-  cross_pollinator.run(time_remaining)
+  pollinator_stats = cross_pollinator.run(time_remaining)
 
   context.sync_to_gcs()
 
@@ -629,6 +638,23 @@ def do_corpus_pruning(context, last_execution_failed, revision):
       crashes=list(crashes.values()),
       fuzzer_binary_name=fuzzer_binary_name,
       revision=environment.get_value('APP_REVISION'))
+
+  if pruner_stats and pollinator_stats:
+    # TODO(mpherman) : Change tagged once tagged cross-pollination works.
+    bigquery_row = {
+        'project_qualified_name': project_qualified_name,
+        'tagged': False,
+        'original_corpus_size': pre_pollination_corpus_size,
+        'post_pollination_corpus_size': minimized_corpus_size_units,
+        'original_edge_coverage': pruner_stats.edge_coverage,
+        'post_pollination_edge_coverage': pollinator_stats.edge_coverage,
+        'original_feature_coverage': pruner_stats.feature_coverage,
+        'post_pollination_feature_coverage': pollinator_stats.feature_coverage
+    }
+
+    client = big_query.Client(
+        dataset_id='main', table_id='cross-pollination-statistics')
+    client.insert([big_query.Insert(row=bigquery_row, insert_id=None)])
 
   return result
 
