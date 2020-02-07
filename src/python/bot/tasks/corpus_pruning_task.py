@@ -685,6 +685,7 @@ def do_corpus_pruning(context, last_execution_failed, revision):
   record_cross_pollination_stats(
       pruner_stats, pollinator_stats, project_qualified_name, sources, tags,
       pre_pollination_corpus_size, minimized_corpus_size_units)
+
   return result
 
 
