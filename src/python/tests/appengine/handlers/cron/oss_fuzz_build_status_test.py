@@ -19,6 +19,7 @@ import json
 import mock
 import unittest
 
+import six
 import webapp2
 import webtest
 
@@ -275,7 +276,7 @@ class OssFuzzBuildStatusTest(unittest.TestCase):
         id='proj6', name='proj7', ccs=['b@user.com']).put()
 
     self.app.get('/build-status')
-    self.assertItemsEqual([
+    six.assertCountEqual(self, [
         {
             'build_type': 'fuzzing',
             'consecutive_failures': 1,
@@ -324,7 +325,7 @@ class OssFuzzBuildStatusTest(unittest.TestCase):
 
     self.assertEqual(2, len(self.itm.issues))
     issue = self.itm.issues[1]
-    self.assertItemsEqual(['a@user.com'], issue.cc)
+    six.assertCountEqual(self, ['a@user.com'], issue.cc)
     self.assertEqual('New', issue.status)
     self.assertEqual('proj2: Fuzzing build failure', issue.summary)
     self.assertEqual(
@@ -345,7 +346,7 @@ class OssFuzzBuildStatusTest(unittest.TestCase):
     self.assertTrue(issue.has_label('Type-Build-Failure'))
 
     issue = self.itm.issues[2]
-    self.assertItemsEqual(['b@user.com'], issue.cc)
+    six.assertCountEqual(self, ['b@user.com'], issue.cc)
     self.assertEqual('New', issue.status)
     self.assertEqual('proj6: Coverage build failure', issue.summary)
     self.assertEqual(
@@ -476,7 +477,7 @@ class OssFuzzBuildStatusTest(unittest.TestCase):
         build_type='fuzzing').put()
 
     self.app.get('/build-status')
-    self.assertItemsEqual([
+    six.assertCountEqual(self, [
         {
             'build_type': 'fuzzing',
             'consecutive_failures': 1,

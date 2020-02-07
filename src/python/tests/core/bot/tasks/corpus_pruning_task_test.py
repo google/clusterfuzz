@@ -25,6 +25,8 @@ import shutil
 import tempfile
 import unittest
 
+import six
+
 from bot.fuzzers.libFuzzer import engine as libFuzzer_engine
 from bot.tasks import commands
 from bot.tasks import corpus_pruning_task
@@ -170,7 +172,7 @@ class CorpusPruningTest(unittest.TestCase, BaseTest):
 
     corpus = os.listdir(self.corpus_dir)
     self.assertEqual(4, len(corpus))
-    self.assertItemsEqual([
+    six.assertCountEqual(self, [
         '39e0574a4abfd646565a3e436c548eeb1684fb57',
         '7d157d7c000ae27db146575c08ce30df893d3a64',
         '31836aeaab22dc49555a97edb4c753881432e01d',
@@ -293,14 +295,14 @@ class CorpusPruningTestFuchsia(unittest.TestCase, BaseTest):
         'libfuzzer_asan_fuchsia')
     corpus = os.listdir(self.corpus_dir)
     self.assertEqual(2, len(corpus))
-    self.assertItemsEqual([
+    six.assertCountEqual(self, [
         '31836aeaab22dc49555a97edb4c753881432e01d',
         '7cf184f4c67ad58283ecb19349720b0cae756829'
     ], corpus)
     quarantine = os.listdir(self.quarantine_dir)
     self.assertEqual(1, len(quarantine))
-    self.assertItemsEqual(['crash-7a8dc3985d2a90fb6e62e94910fc11d31949c348'],
-                          quarantine)
+    six.assertCountEqual(
+        self, ['crash-7a8dc3985d2a90fb6e62e94910fc11d31949c348'], quarantine)
 
 
 class CorpusPruningTestUntrusted(
@@ -423,7 +425,7 @@ class CorpusPruningTestUntrusted(
     os.mkdir(corpus_dir)
     self.corpus.rsync_to_disk(corpus_dir)
 
-    self.assertItemsEqual([
+    six.assertCountEqual(self, [
         '39e0574a4abfd646565a3e436c548eeb1684fb57',
         '7d157d7c000ae27db146575c08ce30df893d3a64',
         '31836aeaab22dc49555a97edb4c753881432e01d',
@@ -434,8 +436,9 @@ class CorpusPruningTestUntrusted(
     os.mkdir(quarantine_dir)
     self.quarantine_corpus.rsync_to_disk(quarantine_dir)
 
-    self.assertItemsEqual(['crash-7acd6a2b3fe3c5ec97fa37e5a980c106367491fa'],
-                          os.listdir(quarantine_dir))
+    six.assertCountEqual(self,
+                         ['crash-7acd6a2b3fe3c5ec97fa37e5a980c106367491fa'],
+                         os.listdir(quarantine_dir))
 
     testcases = list(data_types.Testcase.query())
     self.assertEqual(1, len(testcases))

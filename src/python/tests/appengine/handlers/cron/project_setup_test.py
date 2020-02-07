@@ -23,6 +23,7 @@ import webapp2
 import webtest
 
 from google.cloud import ndb
+import six
 
 from base import utils
 from datastore import data_types
@@ -294,7 +295,8 @@ class OssFuzzProjectSetupTest(unittest.TestCase):
     self.assertIsNotNone(job)
     self.assertEqual(job.project, 'lib1')
     self.assertEqual(job.platform, 'LIB1_LINUX')
-    self.assertItemsEqual(job.templates, ['engine_asan', 'libfuzzer', 'prune'])
+    six.assertCountEqual(self, job.templates,
+                         ['engine_asan', 'libfuzzer', 'prune'])
     self.assertEqual(
         job.environment_string, 'RELEASE_BUILD_BUCKET_PATH = '
         'gs://clusterfuzz-builds/lib1/lib1-address-([0-9]+).zip\n'
@@ -314,7 +316,8 @@ class OssFuzzProjectSetupTest(unittest.TestCase):
     self.assertIsNotNone(job)
     self.assertEqual(job.project, 'lib2')
     self.assertEqual(job.platform, 'LIB2_LINUX')
-    self.assertItemsEqual(job.templates, ['engine_asan', 'libfuzzer', 'prune'])
+    six.assertCountEqual(self, job.templates,
+                         ['engine_asan', 'libfuzzer', 'prune'])
     self.assertEqual(
         job.environment_string, 'RELEASE_BUILD_BUCKET_PATH = '
         'gs://clusterfuzz-builds/lib2/lib2-address-([0-9]+).zip\n'
@@ -334,7 +337,8 @@ class OssFuzzProjectSetupTest(unittest.TestCase):
     self.assertIsNotNone(job)
     self.assertEqual(job.project, 'lib3')
     self.assertEqual(job.platform, 'LIB3_LINUX')
-    self.assertItemsEqual(job.templates, ['engine_asan', 'libfuzzer', 'prune'])
+    six.assertCountEqual(self, job.templates,
+                         ['engine_asan', 'libfuzzer', 'prune'])
     self.assertEqual(
         job.environment_string, 'RELEASE_BUILD_BUCKET_PATH = '
         'gs://clusterfuzz-builds/lib3/lib3-address-([0-9]+).zip\n'
@@ -355,7 +359,7 @@ class OssFuzzProjectSetupTest(unittest.TestCase):
     self.assertIsNotNone(job)
     self.assertEqual(job.project, 'lib3')
     self.assertEqual(job.platform, 'LIB3_LINUX')
-    self.assertItemsEqual(job.templates, ['engine_asan', 'libfuzzer'])
+    six.assertCountEqual(self, job.templates, ['engine_asan', 'libfuzzer'])
     self.assertEqual(
         job.environment_string, 'RELEASE_BUILD_BUCKET_PATH = '
         'gs://clusterfuzz-builds-i386/lib3/lib3-address-([0-9]+).zip\n'
@@ -376,7 +380,7 @@ class OssFuzzProjectSetupTest(unittest.TestCase):
     self.assertIsNotNone(job)
     self.assertEqual(job.project, 'lib3')
     self.assertEqual(job.platform, 'LIB3_LINUX')
-    self.assertItemsEqual(job.templates, ['engine_msan', 'libfuzzer'])
+    six.assertCountEqual(self, job.templates, ['engine_msan', 'libfuzzer'])
     self.assertEqual(
         job.environment_string, 'RELEASE_BUILD_BUCKET_PATH = '
         'gs://clusterfuzz-builds/lib3/lib3-memory-([0-9]+).zip\n'
@@ -398,7 +402,7 @@ class OssFuzzProjectSetupTest(unittest.TestCase):
     self.assertIsNotNone(job)
     self.assertEqual(job.project, 'lib3')
     self.assertEqual(job.platform, 'LIB3_LINUX')
-    self.assertItemsEqual(job.templates, ['engine_ubsan', 'libfuzzer'])
+    six.assertCountEqual(self, job.templates, ['engine_ubsan', 'libfuzzer'])
     self.assertEqual(
         job.environment_string, 'RELEASE_BUILD_BUCKET_PATH = '
         'gs://clusterfuzz-builds/lib3/lib3-undefined-([0-9]+).zip\n'
@@ -418,7 +422,7 @@ class OssFuzzProjectSetupTest(unittest.TestCase):
     self.assertIsNotNone(job)
     self.assertEqual(job.project, 'lib1')
     self.assertEqual(job.platform, 'LIB1_LINUX')
-    self.assertItemsEqual(job.templates, ['engine_asan', 'afl'])
+    six.assertCountEqual(self, job.templates, ['engine_asan', 'afl'])
     self.assertEqual(
         job.environment_string, 'RELEASE_BUILD_BUCKET_PATH = '
         'gs://clusterfuzz-builds-afl/lib1/lib1-address-([0-9]+).zip\n'
@@ -482,7 +486,7 @@ class OssFuzzProjectSetupTest(unittest.TestCase):
 
     libfuzzer = data_types.Fuzzer.query(
         data_types.Fuzzer.name == 'libFuzzer').get()
-    self.assertItemsEqual(libfuzzer.jobs, [
+    six.assertCountEqual(self, libfuzzer.jobs, [
         'libfuzzer_asan_lib1',
         'libfuzzer_asan_lib3',
         'libfuzzer_asan_i386_lib3',
@@ -496,7 +500,7 @@ class OssFuzzProjectSetupTest(unittest.TestCase):
     ])
 
     afl = data_types.Fuzzer.query(data_types.Fuzzer.name == 'afl').get()
-    self.assertItemsEqual(afl.jobs, [
+    six.assertCountEqual(self, afl.jobs, [
         'afl_asan_lib1',
         'afl_asan_lib6',
     ])
@@ -1298,7 +1302,7 @@ class OssFuzzProjectSetupTest(unittest.TestCase):
 
     mappings = data_types.FuzzerJob.query()
     tags_fuzzers_and_jobs = [(m.platform, m.fuzzer, m.job) for m in mappings]
-    self.assertItemsEqual(tags_fuzzers_and_jobs, [
+    six.assertCountEqual(self, tags_fuzzers_and_jobs, [
         ('LIB1_LINUX', 'afl', 'afl_asan_lib1'),
         ('LIB1_LINUX', 'libFuzzer', 'libfuzzer_asan_lib1'),
         ('LIB3_LINUX', 'libFuzzer', 'libfuzzer_asan_lib3'),
@@ -1319,7 +1323,7 @@ class OssFuzzProjectSetupTest(unittest.TestCase):
         for entity in data_types.ExternalUserPermission.query()
     ]
 
-    self.assertItemsEqual(all_permissions, [{
+    six.assertCountEqual(self, all_permissions, [{
         'entity_kind': 1,
         'is_prefix': False,
         'auto_cc': 1,
@@ -1505,11 +1509,11 @@ class OssFuzzProjectSetupTest(unittest.TestCase):
         'projects/clusterfuzz-external/topics/jobs-lib5-linux',
         'projects/clusterfuzz-external/topics/jobs-lib6-linux',
     ]
-    self.assertItemsEqual(expected_topics,
-                          list(pubsub_client.list_topics('projects/' + app_id)))
+    six.assertCountEqual(self, expected_topics,
+                         list(pubsub_client.list_topics('projects/' + app_id)))
 
     for i, topic in enumerate(expected_topics[2:]):
-      self.assertItemsEqual([
+      six.assertCountEqual(self, [
           'projects/clusterfuzz-external/subscriptions/'
           'jobs-lib{}-linux'.format(i + 1),
       ], pubsub_client.list_topic_subscriptions(topic))
@@ -1652,7 +1656,8 @@ class GenericProjectSetupTest(unittest.TestCase):
         'BOOL_VAR = True\n'
         'INT_VAR = 0\n'
         'STRING_VAR = VAL\n', job.environment_string)
-    self.assertItemsEqual(['engine_asan', 'libfuzzer', 'prune'], job.templates)
+    six.assertCountEqual(self, ['engine_asan', 'libfuzzer', 'prune'],
+                         job.templates)
 
     job = data_types.Job.query(
         data_types.Job.name == 'honggfuzz_asan_a-b').get()
@@ -1664,20 +1669,20 @@ class GenericProjectSetupTest(unittest.TestCase):
         'BOOL_VAR = True\n'
         'INT_VAR = 0\n'
         'STRING_VAR = VAL\n', job.environment_string)
-    self.assertItemsEqual(['engine_asan', 'honggfuzz'], job.templates)
+    six.assertCountEqual(self, ['engine_asan', 'honggfuzz'], job.templates)
 
     libfuzzer = data_types.Fuzzer.query(
         data_types.Fuzzer.name == 'libFuzzer').get()
-    self.assertItemsEqual([
+    six.assertCountEqual(self, [
         'libfuzzer_asan_a-b',
         'old_unmanaged',
     ], libfuzzer.jobs)
 
     afl = data_types.Fuzzer.query(data_types.Fuzzer.name == 'afl').get()
-    self.assertItemsEqual([], afl.jobs)
+    six.assertCountEqual(self, [], afl.jobs)
 
     honggfuzz = data_types.Fuzzer.query(
         data_types.Fuzzer.name == 'honggfuzz').get()
-    self.assertItemsEqual([
+    six.assertCountEqual(self, [
         'honggfuzz_asan_a-b',
     ], honggfuzz.jobs)

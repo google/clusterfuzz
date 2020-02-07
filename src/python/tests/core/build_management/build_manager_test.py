@@ -27,6 +27,7 @@ import types
 import unittest
 
 from pyfakefs import fake_filesystem_unittest
+import six
 
 from base import errors
 from base import utils
@@ -219,7 +220,7 @@ class FuchsiaBuildTest(unittest.TestCase):
 
     # pylint: disable=protected-access
     targets = build._get_fuzz_targets_from_dir(build.build_dir)
-    self.assertItemsEqual([
+    six.assertCountEqual(self, [
         'example_fuzzers/baz_fuzzer',
         'example_fuzzers/overflow_fuzzer',
         'example_fuzzers/trap_fuzzer',
@@ -1906,7 +1907,7 @@ class SplitFuzzTargetsBuildTest(fake_filesystem_unittest.TestCase):
 
     targets_list = build_manager._get_targets_list(
         os.environ['FUZZ_TARGET_BUILD_BUCKET_PATH'])
-    self.assertItemsEqual(['target1', 'target3'], targets_list)
+    six.assertCountEqual(self, ['target1', 'target3'], targets_list)
 
 
 class GetPrimaryBucketPathTest(unittest.TestCase):

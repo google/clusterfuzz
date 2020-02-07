@@ -20,6 +20,8 @@ import os
 import re
 import unittest
 
+import six
+
 from bot.tasks import fuzz_task
 from datastore import data_types
 from metrics import fuzzer_stats
@@ -141,7 +143,8 @@ class FuzzerStatsTest(unittest.TestCase):
             'upload.json'),
     ]
 
-    self.assertItemsEqual(self.mock.write_data.call_args_list, expected_calls)
+    six.assertCountEqual(self, self.mock.write_data.call_args_list,
+                         expected_calls)
 
   def test_upload_job_run(self):
     """Tests uploading of JobRun."""

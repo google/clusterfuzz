@@ -19,6 +19,7 @@ import os
 import unittest
 
 from pyfakefs import fake_filesystem_unittest
+import six
 
 from bot.fuzzers import builtin
 from bot.fuzzers import builtin_fuzzers
@@ -111,7 +112,7 @@ class BuiltinFuzzersSetupTest(fake_filesystem_unittest.TestCase):
     self.assertEqual(('/input', '/output', 4), self.mock.run.call_args[0][1:])
 
     self.assertFalse(error_occurred)
-    self.assertItemsEqual([
+    six.assertCountEqual(self, [
         '/output/fuzz-0',
         '/output/fuzz-1',
         '/output/fuzz-2',

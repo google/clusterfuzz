@@ -15,6 +15,7 @@
 
 import unittest
 
+import six
 import webapp2
 import webtest
 
@@ -85,7 +86,7 @@ class SyncAdminsTest(unittest.TestCase):
     """Test syncing admins."""
     self.app.get('/sync-admins')
     admins = data_types.Admin.query()
-    self.assertItemsEqual([
+    six.assertCountEqual(self, [
         'user1@email.com',
         'user2@email.com',
         'user3@email.com',

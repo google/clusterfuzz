@@ -18,6 +18,8 @@ from dateutil import tz
 import datetime
 import unittest
 
+import six
+
 from libs.issue_management import jira
 from libs.issue_management.jira import Issue
 from libs.issue_management.jira import issue_tracker_manager
@@ -111,15 +113,15 @@ class JiraTests(unittest.TestCase):
     self.assertEqual('reporter', issue.reporter)
     self.assertEqual('NOT STARTED', issue.status)
 
-    self.assertItemsEqual([
+    six.assertCountEqual(self, [
         'label1',
         'label2',
     ], issue.labels)
-    self.assertItemsEqual([
+    six.assertCountEqual(self, [
         'A>B',
         'C>D',
     ], issue.components)
-    self.assertItemsEqual([
+    six.assertCountEqual(self, [
         'cc@cc.com',
     ], issue.ccs)
 
@@ -136,7 +138,7 @@ class JiraTests(unittest.TestCase):
     issue = self.issue_tracker.get_issue('VSEC-3112')
     issue.labels.add('Label3')
     issue.labels.remove('laBel1')
-    self.assertItemsEqual(['label2', 'Label3'], issue.labels)
+    six.assertCountEqual(self, ['label2', 'Label3'], issue.labels)
 
   def test_modify_components(self):
     """Test modifying components."""
@@ -144,14 +146,14 @@ class JiraTests(unittest.TestCase):
     issue = self.issue_tracker.get_issue('VSEC-3112')
     issue.components.add('Y>Z')
     issue.components.remove('a>B')
-    self.assertItemsEqual(['C>D', 'Y>Z'], issue.components)
+    six.assertCountEqual(self, ['C>D', 'Y>Z'], issue.components)
 
   def test_find_issues(self):
     """Test find_issues."""
     issue = self.mock_issue
     self.mock.get_issues.return_value = [self.jira_issue]
     issues = self.issue_tracker.find_issues(keywords=['body'], only_open=True)
-    self.assertItemsEqual(['VSEC-3112'], [issue.id for issue in issues])
+    six.assertCountEqual(self, ['VSEC-3112'], [issue.id for issue in issues])
 
   def test_issue_url(self):
     """Test issue_url."""
