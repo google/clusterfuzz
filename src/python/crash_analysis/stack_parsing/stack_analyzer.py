@@ -1105,6 +1105,30 @@ def llvm_test_one_input_override(frame, frame_struct):
   return frame
 
 
+def reverse_python_stacktrace(stacktrace):
+  """Extract a Python stacktrace.
+  Python stacktraces are a bit special: they are reversed,
+  and followed by a sanitizer one, so we need to extract them, reverse them,
+  and put their "title" back on top."""
+  python_stacktrace_split = []
+  in_python_stacktrace = False
+
+  for line in stacktrace:
+    # locate the begining of the python stacktrace
+    if in_python_stacktrace is False:
+      for regex, _ in PYTHON_CRASH_TYPES_MAP:
+        if regex.match(line):
+          in_python_stacktrace = True
+          python_stacktrace_split = [line]  # add the "title" of the stacktrace
+          break
+    else:
+      if '=========' in line:  # locate the begining of the sanitizer stacktrace
+        break
+      python_stacktrace_split.insert(1, line)
+
+  return python_stacktrace_split
+
+
 def get_crash_data(crash_data, symbolize_flag=True):
   """Get crash parameters from crash data.
   Crash parameters include crash type, address, state and stacktrace.
@@ -1160,18 +1184,7 @@ def get_crash_data(crash_data, symbolize_flag=True):
   split_crash_stacktrace = crash_stacktrace_without_inlines.splitlines()
 
   if is_python:
-    # Python stacktraces are reversed, and followed by an ASAN one
-    python_crash_stacktrace = []
-    for line in split_crash_stacktrace:
-      if not line:
-        continue
-      if '===========' in line:  # begining of ASAN stacktrace, skip this
-        break
-      python_crash_stacktrace.append(line)
-    # Add the "title" of the stacktrace at the top
-    split_crash_stacktrace = [python_crash_stacktrace[0]]
-    # Add the stacktrace, reversed
-    split_crash_stacktrace += python_crash_stacktrace[1:][::-1]
+    split_crash_stacktrace = reverse_python_stacktrace(split_crash_stacktrace)
 
   for line in split_crash_stacktrace:
     if should_ignore_line_for_crash_processing(line, state):

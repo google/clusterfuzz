@@ -1,3 +1,6 @@
+random output from the fuzzee
+an other line of output
+and a third one, for good measure!
 
  === Uncaught Python exception: ===
 FuzzError: Traceback (most recent call last):
