@@ -222,6 +222,7 @@ class QueryMockTest(unittest.TestCase):
       query = original_query(*args, **kwargs)
       item = mock.MagicMock()
       item.key = ndb.Key(TestDatastoreModel, len(self.queries))
+      item.datetime_value = datetime.datetime.utcnow()
 
       self.queries.append([query])
       return QueryWrapper(query, [item], self.queries[-1])

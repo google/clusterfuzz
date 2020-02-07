@@ -29,255 +29,259 @@ from crash_analysis.stack_parsing import stack_parser
 from metrics import logs
 from system import environment
 
-C_CPP_EXTENSIONS = ['c', 'cc', 'cpp', 'cxx', 'h', 'hh', 'hpp', 'hxx']
+C_CPP_EXTENSIONS = [b'c', b'cc', b'cpp', b'cxx', b'h', b'hh', b'hpp', b'hxx']
 
 # Patterns which cannot be compiled directly, or which are used for direct
 # comparison.
-CHECK_FAILURE_PATTERN = r'Check failed: '
-JNI_ERROR_STRING = r'JNI DETECTED ERROR IN APPLICATION:'
+CHECK_FAILURE_PATTERN = br'Check failed: '
+JNI_ERROR_STRING = br'JNI DETECTED ERROR IN APPLICATION:'
 
 # Common log prefix format for Google fatal logs.
-GOOGLE_LOG_FATAL_PREFIX = r'^F\d{4}\s+\d{2}:\d{2}:\d{2}\.\d+\s+\d+\s+(.*):\d+\]'
+GOOGLE_LOG_FATAL_PREFIX = (
+    br'^F\d{4}\s+\d{2}:\d{2}:\d{2}\.\d+\s+\d+\s+(.*):\d+\]')
 
 # Compiled regular expressions.
-ANDROID_ABORT_REGEX = re.compile(r'^Abort message: (.*)')
-ANDROID_FATAL_EXCEPTION_REGEX = re.compile(r'.*FATAL EXCEPTION.*:')
+ANDROID_ABORT_REGEX = re.compile(br'^Abort message: (.*)')
+ANDROID_FATAL_EXCEPTION_REGEX = re.compile(br'.*FATAL EXCEPTION.*:')
 ANDROID_KERNEL_ERROR_REGEX = re.compile(
-    r'.*Internal error: (Oops)?( -|:) (BUG|[0-9a-fA-F]+)')
+    br'.*Internal error: (Oops)?( -|:) (BUG|[0-9a-fA-F]+)')
 ANDROID_KERNEL_STACK_FRAME_REGEX = re.compile(
     # e.g. "[ 1998.156940] [<c0667574>] "
-    r'[^(]*\[\<([0-9a-fA-F]+)\>\]\s+'
+    br'[^(]*\[\<([0-9a-fA-F]+)\>\]\s+'
     # e.g. "(msm_vidc_prepare_buf+0xa0/0x124)"; function (3), offset (4)
-    r'\(?(([\w]+)\+([\w]+)/[\w]+)\)?')
+    br'\(?(([\w]+)\+([\w]+)/[\w]+)\)?')
 # Parentheses are optional.
-ANDROID_PROCESS_NAME_REGEX = re.compile(r'.*[(](.*)[)]$')
-ANDROID_SEGV_REGEX = re.compile(r'.*signal.*\(SIG.*fault addr ([^ ]*)(.*)')
+ANDROID_PROCESS_NAME_REGEX = re.compile(br'.*[(](.*)[)]$')
+ANDROID_SEGV_REGEX = re.compile(br'.*signal.*\(SIG.*fault addr ([^ ]*)(.*)')
 ASAN_INVALID_FREE_REGEX = re.compile(
-    r'.*AddressSanitizer\: '
-    r'attempting free on address which was not malloc\(\)-ed\: '
-    r'([xX0-9a-fA-F]+)')
+    br'.*AddressSanitizer\: '
+    br'attempting free on address which was not malloc\(\)-ed\: '
+    br'([xX0-9a-fA-F]+)')
 ASAN_DOUBLE_FREE_REGEX = re.compile(
-    r'.*(AddressSanitizer).*double-free'
-    r' on (unknown address |address |)([xX0-9a-fA-F]+)')
+    br'.*(AddressSanitizer).*double-free'
+    br' on (unknown address |address |)([xX0-9a-fA-F]+)')
 ASAN_MEMCPY_OVERLAP_REGEX = re.compile(
-    r'.*(AddressSanitizer).*memcpy-param-overlap'
-    r'[^\[]*([\[].*[)])')
+    br'.*(AddressSanitizer).*memcpy-param-overlap'
+    br'[^\[]*([\[].*[)])')
 ASAN_REGEX = re.compile(
-    r'.*ERROR: (HWAddressSanitizer|AddressSanitizer)[: ]*[ ]*([^(:;]+)')
+    br'.*ERROR: (HWAddressSanitizer|AddressSanitizer)[: ]*[ ]*([^(:;]+)')
 ASSERT_REGEX = re.compile(
-    r'(?:\[.*?\]|.*\.(?:%s):.*)?' % ('|'.join(C_CPP_EXTENSIONS)) +
-    r'\s*(?:ASSERT(?:ION)? FAIL(?:URE|ED)|panic): (.*)', re.IGNORECASE)
+    br'(?:\[.*?\]|.*\.(?:%s):.*)?' % (b'|'.join(C_CPP_EXTENSIONS)) +
+    br'\s*(?:ASSERT(?:ION)? FAIL(?:URE|ED)|panic): (.*)', re.IGNORECASE)
 ASSERT_REGEX_GOOGLE = re.compile(GOOGLE_LOG_FATAL_PREFIX +
-                                 r'.*assertion failed at\s.*\sin\s*.*: (.*)')
+                                 br'.*assertion failed at\s.*\sin\s*.*: (.*)')
 ASSERT_REGEX_GLIBC = re.compile(
-    r'.*:\s*assertion [`\'"]?(.*?)[`\'"]? failed\.?$', re.IGNORECASE)
-ASSERT_NOT_REACHED_REGEX = re.compile(r'^\s*SHOULD NEVER BE REACHED\s*$')
+    br'.*:\s*assertion [`\'"]?(.*?)[`\'"]? failed\.?$', re.IGNORECASE)
+ASSERT_NOT_REACHED_REGEX = re.compile(br'^\s*SHOULD NEVER BE REACHED\s*$')
 CFI_ERROR_REGEX = re.compile(
-    r'(.*): runtime error: control flow integrity check for type (.*) '
-    r'failed during (.*) \(vtable address ([xX0-9a-fA-F]+)\)')
-CFI_INVALID_DOWNCAST_REGEX = re.compile(r'.*note: vtable is of type (.*)')
-CFI_INVALID_VPTR_REGEX = re.compile(r'.*note: invalid vtable')
+    br'(.*): runtime error: control flow integrity check for type (.*) '
+    br'failed during (.*) \(vtable address ([xX0-9a-fA-F]+)\)')
+CFI_INVALID_DOWNCAST_REGEX = re.compile(br'.*note: vtable is of type (.*)')
+CFI_INVALID_VPTR_REGEX = re.compile(br'.*note: invalid vtable')
 CFI_NODEBUG_ERROR_MARKER_REGEX = re.compile(
-    r'CFI: Most likely a control flow integrity violation;.*')
+    br'CFI: Most likely a control flow integrity violation;.*')
 CHROME_CHECK_FAILURE_REGEX = re.compile(
-    r'\s*[[][^]]*[:]([^](]*).*[]].*Check failed[:]\s*(.*)')
+    br'\s*[[][^]]*[:]([^](]*).*[]].*Check failed[:]\s*(.*)')
 CHROME_STACK_FRAME_REGEX = re.compile(
-    r'[ ]*(#(?P<frame_id>[0-9]+)[ ]'  # frame id (2)
-    r'([xX0-9a-fA-F]+)[ ])'  # addr (3)
-    r'([^/\\]+)$')  # rest, usually fun (4); may have off
+    br'[ ]*(#(?P<frame_id>[0-9]+)[ ]'  # frame id (2)
+    br'([xX0-9a-fA-F]+)[ ])'  # addr (3)
+    br'([^/\\]+)$')  # rest, usually fun (4); may have off
 CHROME_WIN_STACK_FRAME_REGEX = re.compile(
-    r'[ ]*([^/\\]+) '  # fun (1)
-    r'\[([xX0-9a-fA-F]+)\+'  # fun_base (2)
-    r'(\d+)\]'  # off[dec] (3)
-    r'( \((.*):(\d+)\))?')  # if available, file (5) and line (6)
+    br'[ ]*([^/\\]+) '  # fun (1)
+    br'\[([xX0-9a-fA-F]+)\+'  # fun_base (2)
+    br'(\d+)\]'  # off[dec] (3)
+    br'( \((.*):(\d+)\))?')  # if available, file (5) and line (6)
 CHROME_MAC_STACK_FRAME_REGEX = re.compile(
-    r'(?P<frame_id>\d+)\s+'  # frame id (1)
-    r'(([\w ]+)|(\?\?\?))\s+'  # image (2)
-    r'([xX0-9a-fA-F]+)\s+'  # addr[hex] (5)
-    r'([^/\\]+)\s*\+\s*'  # fun (6)
-    r'(\d+)')  # off[dec] (7)
+    br'(?P<frame_id>\d+)\s+'  # frame id (1)
+    br'(([\w ]+)|(\?\?\?))\s+'  # image (2)
+    br'([xX0-9a-fA-F]+)\s+'  # addr[hex] (5)
+    br'([^/\\]+)\s*\+\s*'  # fun (6)
+    br'(\d+)')  # off[dec] (7)
 MSAN_TSAN_REGEX = re.compile(
-    r'.*(ThreadSanitizer|MemorySanitizer):[ ]*([^(:]+)')
+    br'.*(ThreadSanitizer|MemorySanitizer):[ ]*([^(:]+)')
 FATAL_ERROR_CHECK_FAILURE = re.compile(
-    r'#\s+(Check failed: |RepresentationChangerError: node #\d+:)?(.*)')
-FATAL_ERROR_DCHECK_FAILURE = re.compile(r'#\s+(Debug check failed: )(.*)')
-FATAL_ERROR_REGEX = re.compile(r'#\s*Fatal error in (.*)')
-FATAL_ERROR_LINE_REGEX = re.compile(r'#\s*Fatal error in (.*), line [0-9]+')
-FATAL_ERROR_UNREACHABLE = re.compile(r'# un(reachable|implemented) code')
+    br'#\s+(Check failed: |RepresentationChangerError: node #\d+:)?(.*)')
+FATAL_ERROR_DCHECK_FAILURE = re.compile(br'#\s+(Debug check failed: )(.*)')
+FATAL_ERROR_REGEX = re.compile(br'#\s*Fatal error in (.*)')
+FATAL_ERROR_LINE_REGEX = re.compile(br'#\s*Fatal error in (.*), line [0-9]+')
+FATAL_ERROR_UNREACHABLE = re.compile(br'# un(reachable|implemented) code')
 GENERIC_SEGV_HANDLER_REGEX = re.compile(
     'Received signal 11 SEGV_[A-Z]+ ([0-9a-f]*)')
 GOOGLE_CHECK_FAILURE_REGEX = re.compile(GOOGLE_LOG_FATAL_PREFIX +
-                                        r'\s*Check failed[:]\s*(.*)')
-GOOGLE_LOG_FATAL_REGEX = re.compile(GOOGLE_LOG_FATAL_PREFIX + r'\s*(.*)')
+                                        br'\s*Check failed[:]\s*(.*)')
+GOOGLE_LOG_FATAL_REGEX = re.compile(GOOGLE_LOG_FATAL_PREFIX + br'\s*(.*)')
 HWASAN_ALLOCATION_TAIL_OVERWRITTEN_ADDRESS_REGEX = re.compile(
-    r'.*ERROR: HWAddressSanitizer: allocation-tail-overwritten; '
-    r'heap object \[([xX0-9a-fA-F]+),.*of size')
-JAVA_EXCEPTION_CRASH_STATE_REGEX = re.compile(r'\s*at (.*)\(.*\)')
-KASAN_ACCESS_TYPE_REGEX = re.compile(r'(Read|Write) of size ([0-9]+)')
+    br'.*ERROR: HWAddressSanitizer: allocation-tail-overwritten; '
+    br'heap object \[([xX0-9a-fA-F]+),.*of size')
+JAVA_EXCEPTION_CRASH_STATE_REGEX = re.compile(br'\s*at (.*)\(.*\)')
+KASAN_ACCESS_TYPE_REGEX = re.compile(br'(Read|Write) of size ([0-9]+)')
 KASAN_CRASH_TYPE_ADDRESS_REGEX = re.compile(
-    r'BUG: KASAN: (.*) (in|on).*(addr|address) ([a-f0-9]+)')
-KASAN_GPF_REGEX = re.compile(r'general protection fault:.*KASAN')
+    br'BUG: KASAN: (.*) (in|on).*(addr|address) ([a-f0-9]+)')
+KASAN_GPF_REGEX = re.compile(br'general protection fault:.*KASAN')
 LIBFUZZER_DEADLY_SIGNAL_REGEX = re.compile(
-    r'.*ERROR:\s*libFuzzer:\s*deadly signal')
+    br'.*ERROR:\s*libFuzzer:\s*deadly signal')
 LIBFUZZER_FUZZ_TARGET_EXITED_REGEX = re.compile(
-    r'.*ERROR:\s*libFuzzer:\s*fuzz target exited')
+    br'.*ERROR:\s*libFuzzer:\s*fuzz target exited')
 LIBFUZZER_OVERWRITES_CONST_INPUT_REGEX = re.compile(
-    r'.*ERROR:\s*libFuzzer:\s*fuzz target overwrites its const input')
-LIBFUZZER_TIMEOUT_REGEX = re.compile(r'.*ERROR:\s*libFuzzer:\s*timeout')
+    br'.*ERROR:\s*libFuzzer:\s*fuzz target overwrites its const input')
+LIBFUZZER_TIMEOUT_REGEX = re.compile(br'.*ERROR:\s*libFuzzer:\s*timeout')
 LIBRARY_NOT_FOUND_ANDROID_REGEX = re.compile(
-    r'.*: library ([`\'"])(.*)\1 not found')
+    br'.*: library ([`\'"])(.*)\1 not found')
 LIBRARY_NOT_FOUND_LINUX_REGEX = re.compile(
-    r'.*error while loading shared libraries: ([^:]*): '
-    r'cannot open shared object file')
-LINUX_GDB_CRASH_TYPE_REGEX = re.compile(r'Program received signal ([a-zA-Z]+),')
-LINUX_GDB_CRASH_ADDRESS_REGEX = re.compile(r'rip[ ]+([xX0-9a-fA-F]+)')
-LSAN_DIRECT_LEAK_REGEX = re.compile(r'Direct leak of ')
-LSAN_INDIRECT_LEAK_REGEX = re.compile(r'Indirect leak of ')
+    br'.*error while loading shared libraries: ([^:]*): '
+    br'cannot open shared object file')
+LINUX_GDB_CRASH_TYPE_REGEX = re.compile(
+    br'Program received signal ([a-zA-Z]+),')
+LINUX_GDB_CRASH_ADDRESS_REGEX = re.compile(br'rip[ ]+([xX0-9a-fA-F]+)')
+LSAN_DIRECT_LEAK_REGEX = re.compile(br'Direct leak of ')
+LSAN_INDIRECT_LEAK_REGEX = re.compile(br'Indirect leak of ')
 MAC_GDB_CRASH_ADDRESS_REGEX = re.compile(
-    r'Reason:.*at address[^0-9]*([0-9a-zA-Z]+)')
+    br'Reason:.*at address[^0-9]*([0-9a-zA-Z]+)')
 OUT_OF_MEMORY_REGEX = re.compile(
-    r'.*('
-    r'# Allocation failed.*out of memory|'
-    r'::OnNoMemory|'
-    r'ERROR.*Sanitizer failed to allocate|'
-    r'FatalProcessOutOfMemory|'
-    r'FX_OutOfMemoryTerminate|'
-    r'Out of memory\. Dying.|'
-    r'Out of memory\. size=|'
-    r'Sanitizer: allocation-size-too-big|'
-    r'Sanitizer: calloc-overflow|'
-    r'Sanitizer: calloc parameters overflow|'
-    r'Sanitizer: requested allocation size.*exceeds maximum supported size|'
-    r'allocator is out of memory trying to allocate|'
-    r'blinkGCOutOfMemory|'
-    r'couldnt allocate.*Out of memory|'
-    r'libFuzzer: out-of-memory \(|'
-    r'rss limit exhausted).*')
-RUNTIME_ERROR_REGEX = re.compile(r'#\s*Runtime error in (.*)')
-RUNTIME_ERROR_LINE_REGEX = re.compile(r'#\s*Runtime error in (.*), line [0-9]+')
-SAN_ABRT_REGEX = re.compile(r'.*[a-zA-Z]+Sanitizer: ABRT ')
-SAN_BREAKPOINT_REGEX = re.compile(r'.*[a-zA-Z]+Sanitizer: breakpoint ')
+    br'.*('
+    br'# Allocation failed.*out of memory|'
+    br'::OnNoMemory|'
+    br'ERROR.*Sanitizer failed to allocate|'
+    br'FatalProcessOutOfMemory|'
+    br'FX_OutOfMemoryTerminate|'
+    br'Out of memory\. Dying.|'
+    br'Out of memory\. size=|'
+    br'Sanitizer: allocation-size-too-big|'
+    br'Sanitizer: calloc-overflow|'
+    br'Sanitizer: calloc parameters overflow|'
+    br'Sanitizer: requested allocation size.*exceeds maximum supported size|'
+    br'allocator is out of memory trying to allocate|'
+    br'blinkGCOutOfMemory|'
+    br'couldnt allocate.*Out of memory|'
+    br'libFuzzer: out-of-memory \(|'
+    br'rss limit exhausted).*')
+RUNTIME_ERROR_REGEX = re.compile(br'#\s*Runtime error in (.*)')
+RUNTIME_ERROR_LINE_REGEX = re.compile(
+    br'#\s*Runtime error in (.*), line [0-9]+')
+SAN_ABRT_REGEX = re.compile(br'.*[a-zA-Z]+Sanitizer: ABRT ')
+SAN_BREAKPOINT_REGEX = re.compile(br'.*[a-zA-Z]+Sanitizer: breakpoint ')
 SAN_CHECK_FAILURE_REGEX = re.compile(
-    r'.*Sanitizer CHECK failed[:]\s*[^ ]*\s*(.*)')
+    br'.*Sanitizer CHECK failed[:]\s*[^ ]*\s*(.*)')
 SAN_CRASH_TYPE_ADDRESS_REGEX = re.compile(
-    r'[ ]*([^ ]*|Atomic [^ ]*) of size ([^ ]*) at ([^ ]*)')
-SAN_DEADLYSIGNAL_REGEX = re.compile(r'.*:DEADLYSIGNAL')
-SAN_FPE_REGEX = re.compile(r'.*[a-zA-Z]+Sanitizer: FPE ')
-SAN_ILL_REGEX = re.compile(r'.*[a-zA-Z]+Sanitizer: ILL ')
+    br'[ ]*([^ ]*|Atomic [^ ]*) of size ([^ ]*) at ([^ ]*)')
+SAN_DEADLYSIGNAL_REGEX = re.compile(br'.*:DEADLYSIGNAL')
+SAN_FPE_REGEX = re.compile(br'.*[a-zA-Z]+Sanitizer: FPE ')
+SAN_ILL_REGEX = re.compile(br'.*[a-zA-Z]+Sanitizer: ILL ')
 SAN_SEGV_CRASH_TYPE_REGEX = re.compile(
-    r'.*The signal is caused by a ([A-Z]+) memory access.')
+    br'.*The signal is caused by a ([A-Z]+) memory access.')
 # FIXME: Replace when better ways to check signal crashes are available.
-SAN_SIGNAL_REGEX = re.compile(r'.*SCARINESS: (\d+) \(signal\)', re.DOTALL)
+SAN_SIGNAL_REGEX = re.compile(br'.*SCARINESS: (\d+) \(signal\)', re.DOTALL)
 SAN_STACK_FRAME_REGEX = re.compile(
     # frame id (1)
-    r'\s*#(?P<frame_id>\d+)\s+'
+    br'\s*#(?P<frame_id>\d+)\s+'
     # addr (2)
-    r'([xX0-9a-fA-F]+)\s+'
+    br'([xX0-9a-fA-F]+)\s+'
     # Format is [in {fun}[+{off}]] [{file}[:{line}[:{char}]]] [({mod}[+{off}])]
     # If there is fun and mod/file info, extract
     # fun+off, where fun (7, 5, 23), off (8)
-    r'((in\s*(((.*)\+([xX0-9a-fA-F]+))|(.*)) '
-    r'('
+    br'((in\s*(((.*)\+([xX0-9a-fA-F]+))|(.*)) '
+    br'('
     # file:line:char, where file (12, 16), line (13, 17), char (14)
-    r'(([^ ]+):(\d+):(\d+))|(([^ ]+):(\d+))'
+    br'(([^ ]+):(\d+):(\d+))|(([^ ]+):(\d+))'
     # or mod+off, where mod (19, 31), off (21, 32)
-    r'|'
-    r'(\(([^+]+)(\+([xX0-9a-fA-F]+))?\)))'
-    r')'
+    br'|'
+    br'(\(([^+]+)(\+([xX0-9a-fA-F]+))?\)))'
+    br')'
     # If there is only fun info, extract
-    r'|'
-    r'(in\s*(((.*)\+([xX0-9a-fA-F]+))|(.*)))'
+    br'|'
+    br'(in\s*(((.*)\+([xX0-9a-fA-F]+))|(.*)))'
     # If there is only mod info, extract
-    r'|'
-    r'(\((((.*)\+([xX0-9a-fA-F]+))|(.*))\))'
-    r')')
-SAN_ADDR_REGEX = re.compile(r'.*(ERROR: [a-zA-Z]+Sanitizer)[: ]*(.*) on '
-                            r'(unknown address |address |)([xX0-9a-fA-F]+)')
-SAN_SEGV_REGEX = re.compile(r'.*([a-zA-Z]+Sanitizer).*(SEGV|access-violation) '
-                            r'on unknown address ([xX0-9a-fA-F]+)')
+    br'|'
+    br'(\((((.*)\+([xX0-9a-fA-F]+))|(.*))\))'
+    br')')
+SAN_ADDR_REGEX = re.compile(br'.*(ERROR: [a-zA-Z]+Sanitizer)[: ]*(.*) on '
+                            br'(unknown address |address |)([xX0-9a-fA-F]+)')
+SAN_SEGV_REGEX = re.compile(br'.*([a-zA-Z]+Sanitizer).*(SEGV|access-violation) '
+                            br'on unknown address ([xX0-9a-fA-F]+)')
 SECURITY_CHECK_FAILURE_REGEX = re.compile(
-    r'.*[[][^]]*[:]([^](]*).*[]].*Security CHECK failed[:]\s*(.*)\.\s*')
+    br'.*[[][^]]*[:]([^](]*).*[]].*Security CHECK failed[:]\s*(.*)\.\s*')
 SECURITY_DCHECK_FAILURE_REGEX = re.compile(
-    r'.*[[][^]]*[:]([^](]*).*[]].*Security DCHECK failed[:]\s*(.*)\.\s*')
-UBSAN_DIVISION_BY_ZERO_REGEX = re.compile(r'.*division by zero.*')
-UBSAN_FLOAT_CAST_OVERFLOW_REGEX = re.compile(r'.*outside the range of '
-                                             r'representable values.*')
+    br'.*[[][^]]*[:]([^](]*).*[]].*Security DCHECK failed[:]\s*(.*)\.\s*')
+UBSAN_DIVISION_BY_ZERO_REGEX = re.compile(br'.*division by zero.*')
+UBSAN_FLOAT_CAST_OVERFLOW_REGEX = re.compile(br'.*outside the range of '
+                                             br'representable values.*')
 UBSAN_INCORRECT_FUNCTION_POINTER_REGEX = re.compile(
-    r'.*call to function [^\s]+ through pointer to incorrect function type.*')
-UBSAN_INDEX_OOB_REGEX = re.compile(r'.*out of bounds for type.*')
+    br'.*call to function [^\s]+ through pointer to incorrect function type.*')
+UBSAN_INDEX_OOB_REGEX = re.compile(br'.*out of bounds for type.*')
 UBSAN_UNSIGNED_INTEGER_OVERFLOW_REGEX = re.compile(
-    r'.*unsigned integer overflow.*')
+    br'.*unsigned integer overflow.*')
 UBSAN_INTEGER_OVERFLOW_REGEX = re.compile(
-    r'.*(integer overflow|'
-    r'(negation|division) of.*cannot be represented in type).*')
+    br'.*(integer overflow|'
+    br'(negation|division) of.*cannot be represented in type).*')
 UBSAN_INVALID_BOOL_VALUE_REGEX = re.compile(
-    r'.*not a valid value for type \'(bool|BOOL)\'.*')
-UBSAN_INVALID_BUILTIN_REGEX = re.compile(r'.*, which is not a valid argument.*')
-UBSAN_INVALID_ENUM_VALUE_REGEX = re.compile(r'.*not a valid value for type.*')
-UBSAN_MISALIGNED_ADDRESS_REGEX = re.compile(r'.*misaligned address.*')
+    br'.*not a valid value for type \'(bool|BOOL)\'.*')
+UBSAN_INVALID_BUILTIN_REGEX = re.compile(
+    br'.*, which is not a valid argument.*')
+UBSAN_INVALID_ENUM_VALUE_REGEX = re.compile(br'.*not a valid value for type.*')
+UBSAN_MISALIGNED_ADDRESS_REGEX = re.compile(br'.*misaligned address.*')
 UBSAN_NO_RETURN_VALUE_REGEX = re.compile(
-    r'.*reached the end of a value-returning function.*')
+    br'.*reached the end of a value-returning function.*')
 UBSAN_NULL_ARGUMENT_REGEX = re.compile(
-    r'.*null pointer passed as .*, which is declared to never be null.*')
-UBSAN_NULL_POINTER_READ_REGEX = re.compile(r'.*load of null pointer.*')
+    br'.*null pointer passed as .*, which is declared to never be null.*')
+UBSAN_NULL_POINTER_READ_REGEX = re.compile(br'.*load of null pointer.*')
 UBSAN_NULL_POINTER_REFERENCE_REGEX = re.compile(
-    r'.*(binding to|access within|call on) null pointer.*')
-UBSAN_NULL_POINTER_WRITE_REGEX = re.compile(r'.*store to null pointer.*')
+    br'.*(binding to|access within|call on) null pointer.*')
+UBSAN_NULL_POINTER_WRITE_REGEX = re.compile(br'.*store to null pointer.*')
 UBSAN_OBJECT_SIZE_REGEX = re.compile(
-    r'.*address .* with insufficient space for an object of type.*')
+    br'.*address .* with insufficient space for an object of type.*')
 UBSAN_POINTER_OVERFLOW_REGEX = re.compile(
-    r'.*((addition|subtraction) of unsigned offset |'
-    r'pointer index expression with base |'
-    r'applying non-zero offset [0-9]+ to null pointer|'
-    r'applying zero offset to null pointer).*')
+    br'.*((addition|subtraction) of unsigned offset |'
+    br'pointer index expression with base |'
+    br'applying non-zero offset [0-9]+ to null pointer|'
+    br'applying zero offset to null pointer).*')
 UBSAN_RETURNS_NONNULL_ATTRIBUTE_REGEX = re.compile(
-    r'.*null pointer returned from function declared to never return null.*')
-UBSAN_RUNTIME_ERROR_REGEX = re.compile(r'(.*): runtime error: (.*)')
-UBSAN_SHIFT_ERROR_REGEX = re.compile(r'.*shift.*')
+    br'.*null pointer returned from function declared to never return null.*')
+UBSAN_RUNTIME_ERROR_REGEX = re.compile(br'(.*): runtime error: (.*)')
+UBSAN_SHIFT_ERROR_REGEX = re.compile(br'.*shift.*')
 UBSAN_UNREACHABLE_REGEX = re.compile(
-    r'.*execution reached an unreachable program point.*')
+    br'.*execution reached an unreachable program point.*')
 UBSAN_VLA_BOUND_REGEX = re.compile(
-    r'.*variable length array bound evaluates to non-positive value.*')
+    br'.*variable length array bound evaluates to non-positive value.*')
 UBSAN_VPTR_REGEX = re.compile(
-    r'(.*): runtime error: '
-    r'(member access within|member call on|downcast of)'
-    r' address ([xX0-9a-fA-F]+) .* of type (.*)')
+    br'(.*): runtime error: '
+    br'(member access within|member call on|downcast of)'
+    br' address ([xX0-9a-fA-F]+) .* of type (.*)')
 UBSAN_VPTR_INVALID_DOWNCAST_REGEX = re.compile(
-    r'.*note: object is of type (.*)')
+    br'.*note: object is of type (.*)')
 UBSAN_VPTR_INVALID_OFFSET_REGEX = re.compile(
-    r'.*at offset (\d+) within object of type (.*)')
-UBSAN_VPTR_INVALID_VPTR_REGEX = re.compile(r'.*note: object has invalid vptr')
-V8_ABORT_FAILURE_REGEX = re.compile(r'^abort: (CSA_ASSERT failed:.*)')
-V8_ABORT_METADATA_REGEX = re.compile(r'(.*) \[(.*):\d+\]$')
-V8_CORRECTNESS_FAILURE_REGEX = re.compile(r'#\s*V8 correctness failure')
+    br'.*at offset (\d+) within object of type (.*)')
+UBSAN_VPTR_INVALID_VPTR_REGEX = re.compile(br'.*note: object has invalid vptbr')
+V8_ABORT_FAILURE_REGEX = re.compile(br'^abort: (CSA_ASSERT failed:.*)')
+V8_ABORT_METADATA_REGEX = re.compile(br'(.*) \[(.*):\d+\]$')
+V8_CORRECTNESS_FAILURE_REGEX = re.compile(br'#\s*V8 correctness failure')
 V8_CORRECTNESS_METADATA_REGEX = re.compile(
-    r'#\s*V8 correctness ((configs|sources|suppression): .*)')
+    br'#\s*V8 correctness ((configs|sources|suppression): .*)')
 WINDOWS_CDB_STACK_FRAME_REGEX = re.compile(
-    r'([0-9a-zA-Z`]+) '  # Child EBP or SP; remove ` if needed (1)
-    r'([0-9a-zA-Z`]+) '  # RetAddr; remove ` if needed (2)
-    r'([0-9a-zA-Z_]+)'  # mod (3)
-    r'!(.*)\+'  # fun (4)
-    r'([xX0-9a-fA-F]+)')  # off (5)
-WINDOWS_CDB_STACK_START_REGEX = re.compile(r'ChildEBP RetAddr')
+    br'([0-9a-zA-Z`]+) '  # Child EBP or SP; remove ` if needed (1)
+    br'([0-9a-zA-Z`]+) '  # RetAddr; remove ` if needed (2)
+    br'([0-9a-zA-Z_]+)'  # mod (3)
+    br'!(.*)\+'  # fun (4)
+    br'([xX0-9a-fA-F]+)')  # off (5)
+WINDOWS_CDB_STACK_START_REGEX = re.compile(br'ChildEBP RetAddbr')
 WINDOWS_CDB_CRASH_TYPE_ADDRESS_REGEX = re.compile(
-    r'Attempt to (.*) [^ ]* address (.*)')
+    br'Attempt to (.*) [^ ]* address (.*)')
 WINDOWS_CDB_CRASH_TYPE_REGEX = re.compile(
-    r'.*DEFAULT_BUCKET_ID[ ]*[:][ ]*([a-zA-Z_]+)')
+    br'.*DEFAULT_BUCKET_ID[ ]*[:][ ]*([a-zA-Z_]+)')
 WINDOWS_CDB_STACK_OVERFLOW_REGEX = re.compile(
-    r'.*ExceptionCode: .*\(Stack overflow\).*')
+    br'.*ExceptionCode: .*\(Stack overflow\).*')
 
 # Golang specific regular expressions.
 GOLANG_DIVISION_BY_ZERO_REGEX = re.compile(
-    r'^panic: runtime error: integer divide by zero.*')
+    br'^panic: runtime error: integer divide by zero.*')
 GOLANG_INDEX_OUT_OF_RANGE_REGEX = re.compile(
-    r'^panic: runtime error: index out of range.*')
+    br'^panic: runtime error: index out of range.*')
 GOLANG_INVALID_MEMORY_ADDRESS_REGEX = re.compile(
-    r'^panic: runtime error: invalid memory address.*')
+    br'^panic: runtime error: invalid memory address.*')
 GOLANG_MAKESLICE_LEN_OUT_OF_RANGE_REGEX = re.compile(
-    r'^panic: runtime error: makeslice: len out of range.*')
+    br'^panic: runtime error: makeslice: len out of range.*')
 GOLANG_SLICE_BOUNDS_OUT_OF_RANGE_REGEX = re.compile(
-    r'^panic: runtime error: slice bounds out of range.*')
-GOLANG_STACK_OVERFLOW_REGEX = re.compile(r'^fatal error: stack overflow.*')
+    br'^panic: runtime error: slice bounds out of range.*')
+GOLANG_STACK_OVERFLOW_REGEX = re.compile(br'^fatal error: stack overflow.*')
 
 GOLANG_CRASH_TYPES_MAP = [
     (GOLANG_DIVISION_BY_ZERO_REGEX, 'Integer divide by zero'),
@@ -288,10 +292,10 @@ GOLANG_CRASH_TYPES_MAP = [
     (GOLANG_STACK_OVERFLOW_REGEX, 'Stack overflow'),
 ]
 
-GOLANG_FATAL_ERROR_REGEX = re.compile(r'^fatal error: (.*)')
+GOLANG_FATAL_ERROR_REGEX = re.compile(br'^fatal error: (.*)')
 
 GOLANG_STACK_FRAME_FUNCTION_REGEX = re.compile(
-    r'^([0-9a-zA-Z\.\-\_\\\/\(\)\*]+)\([x0-9a-f\s,\.]*\)$')
+    br'^([0-9a-zA-Z\.\-\_\\\/\(\)\*]+)\([x0-9a-f\s,\.]*\)$')
 
 # Mappings of Android kernel error status codes to strings.
 ANDROID_KERNEL_STATUS_TO_STRING = {
@@ -312,182 +316,182 @@ ANDROID_KERNEL_STATUS_TO_STRING = {
 # Ignore lists.
 STACK_FRAME_IGNORE_REGEXES = [
     # Function names (exact match).
-    r'^abort$',
-    r'^exit$',
-    r'^pthread\_kill$',
-    r'^raise$',
-    r'^tgkill$',
+    br'^abort$',
+    br'^exit$',
+    br'^pthread\_kill$',
+    br'^raise$',
+    br'^tgkill$',
 
     # Function names (startswith).
-    r'^(|\_\_)memcmp',
-    r'^(|\_\_)memcpy',
-    r'^(|\_\_)memmove',
-    r'^(|\_\_)memset',
-    r'^(|\_\_)strcmp',
-    r'^(|\_\_)strcpy',
-    r'^(|\_\_)strdup',
-    r'^(|\_\_)strlen',
-    r'^(|\_\_)strncpy',
-    r'^\<null\>',
-    r'^Abort\(',
-    r'^CFCrash',
-    r'^ExitCallback',
-    r'^IsSandboxedProcess',
-    r'^LLVMFuzzerTestOneInput',
-    r'^MSanAtExitWrapper',
-    r'^New',
-    r'^RaiseException',
-    r'^SbSystemBreakIntoDebugger',
-    r'^SignalAction',
-    r'^SignalHandler',
-    r'^TestOneProtoInput',
-    r'^V8\_Fatal',
-    r'^WTF\:\:',
-    r'^WTFCrash',
-    r'^X11Error',
-    r'^\_L\_unlock\_',
-    r'^\_\_GI\_',
-    r'^\_\_asan\:\:',
-    r'^\_\_asan\_',
-    r'^\_\_assert\_',
-    r'^\_\_cxa\_atexit',
-    r'^\_\_cxa\_rethrow',
-    r'^\_\_cxa\_throw',
-    r'^\_\_dump\_stack',
-    r'^\_\_hwasan\:\:',
-    r'^\_\_hwasan\_',
-    r'^\_\_interceptor\_',
-    r'^\_\_libc\_',
-    r'^\_\_lsan\:\:',
-    r'^\_\_lsan\_',
-    r'^\_\_msan\:\:',
-    r'^\_\_msan\_',
-    r'^\_\_pthread\_kill',
-    r'^\_\_run\_exit\_handlers',
-    r'^\_\_sanitizer\:\:',
-    r'^\_\_sanitizer\_',
-    r'^\_\_tsan\:\:',
-    r'^\_\_tsan\_',
-    r'^\_\_ubsan\:\:',
-    r'^\_\_ubsan\_',
-    r'^\_asan\_',
-    r'^\_hwasan\_',
-    r'^\_lsan\_',
-    r'^\_msan\_',
-    r'^\_objc\_terminate',
-    r'^\_sanitizer\_',
-    r'^\_start',
-    r'^\_tsan\_',
-    r'^\_ubsan\_',
-    r'^abort',
-    r'^android\.app\.ActivityManagerProxy\.',
-    r'^android\.os\.Parcel\.',
-    r'^asan\_',
-    r'^calloc',
-    r'^check\_memory\_region',
-    r'^common\_exit',
-    r'^delete',
-    r'^demangling\_terminate\_handler',
-    r'^dump\_backtrace',
-    r'^dump\_stack',
-    r'^exit\_or\_terminate\_process',
-    r'^fpehandler\(',
-    r'^free',
-    r'^fuzzer\:\:',
-    r'^g\_log',
-    r'^generic\_cpp\_',
-    r'^gsignal',
-    r'^kasan\_',
-    r'^main',
-    r'^malloc',
-    r'^mozalloc\_',
-    r'^new',
-    r'^object\_err',
-    r'^operator',
-    r'^print\_trailer',
-    r'^realloc',
-    r'^scanf',
-    r'^show\_stack',
-    r'^std\:\:\_\_terminate',
+    br'^(|\_\_)memcmp',
+    br'^(|\_\_)memcpy',
+    br'^(|\_\_)memmove',
+    br'^(|\_\_)memset',
+    br'^(|\_\_)strcmp',
+    br'^(|\_\_)strcpy',
+    br'^(|\_\_)strdup',
+    br'^(|\_\_)strlen',
+    br'^(|\_\_)strncpy',
+    br'^\<null\>',
+    br'^Abort\(',
+    br'^CFCrash',
+    br'^ExitCallback',
+    br'^IsSandboxedProcess',
+    br'^LLVMFuzzerTestOneInput',
+    br'^MSanAtExitWrappebr',
+    br'^New',
+    br'^RaiseException',
+    br'^SbSystemBreakIntoDebuggebr',
+    br'^SignalAction',
+    br'^SignalHandlebr',
+    br'^TestOneProtoInput',
+    br'^V8\_Fatal',
+    br'^WTF\:\:',
+    br'^WTFCrash',
+    br'^X11Errobr',
+    br'^\_L\_unlock\_',
+    br'^\_\_GI\_',
+    br'^\_\_asan\:\:',
+    br'^\_\_asan\_',
+    br'^\_\_assert\_',
+    br'^\_\_cxa\_atexit',
+    br'^\_\_cxa\_rethrow',
+    br'^\_\_cxa\_throw',
+    br'^\_\_dump\_stack',
+    br'^\_\_hwasan\:\:',
+    br'^\_\_hwasan\_',
+    br'^\_\_interceptor\_',
+    br'^\_\_libc\_',
+    br'^\_\_lsan\:\:',
+    br'^\_\_lsan\_',
+    br'^\_\_msan\:\:',
+    br'^\_\_msan\_',
+    br'^\_\_pthread\_kill',
+    br'^\_\_run\_exit\_handlers',
+    br'^\_\_sanitizer\:\:',
+    br'^\_\_sanitizer\_',
+    br'^\_\_tsan\:\:',
+    br'^\_\_tsan\_',
+    br'^\_\_ubsan\:\:',
+    br'^\_\_ubsan\_',
+    br'^\_asan\_',
+    br'^\_hwasan\_',
+    br'^\_lsan\_',
+    br'^\_msan\_',
+    br'^\_objc\_terminate',
+    br'^\_sanitizer\_',
+    br'^\_start',
+    br'^\_tsan\_',
+    br'^\_ubsan\_',
+    br'^abort',
+    br'^android\.app\.ActivityManagerProxy\.',
+    br'^android\.os\.Parcel\.',
+    br'^asan\_',
+    br'^calloc',
+    br'^check\_memory\_region',
+    br'^common\_exit',
+    br'^delete',
+    br'^demangling\_terminate\_handlebr',
+    br'^dump\_backtrace',
+    br'^dump\_stack',
+    br'^exit\_or\_terminate\_process',
+    br'^fpehandler\(',
+    br'^free',
+    br'^fuzzer\:\:',
+    br'^g\_log',
+    br'^generic\_cpp\_',
+    br'^gsignal',
+    br'^kasan\_',
+    br'^main',
+    br'^malloc',
+    br'^mozalloc\_',
+    br'^new',
+    br'^object\_erbr',
+    br'^operatobr',
+    br'^print\_trailebr',
+    br'^realloc',
+    br'^scanf',
+    br'^show\_stack',
+    br'^std\:\:\_\_terminate',
 
     # Functions names (contains).
-    r'.*ASAN\_OnSIGSEGV',
-    r'.*BaseThreadInitThunk',
-    r'.*DebugBreak',
-    r'.*DefaultDcheckHandler',
-    r'.*ForceCrashOnSigAbort',
-    r'.*MemoryProtection\:\:CMemoryProtector',
-    r'.*PartitionAlloc',
-    r'.*RtlFreeHeap',
-    r'.*RtlInitializeExceptionChain',
-    r'.*RtlReportCriticalFailure',
-    r'.*RtlUserThreadStart',
-    r'.*RtlpHeapHandleError',
-    r'.*RtlpLogHeapFailure',
-    r'.*SkDebugf',
-    r'.*StackDumpSignalHandler',
-    r'.*\_\_android\_log\_assert',
-    r'.*\_\_tmainCRTStartup',
-    r'.*\_asan\_rtl\_',
-    r'.*agent\:\:asan\:\:',
-    r'.*allocator\_shim',
-    r'.*asan\_Heap',
-    r'.*asan\_check\_access',
-    r'.*asan\_osx\_dynamic\.dylib',
-    r'.*assert',
-    r'.*base\:\:FuzzedDataProvider',
-    r'.*base\:\:allocator',
-    r'.*base\:\:android\:\:CheckException',
-    r'.*base\:\:debug\:\:BreakDebugger',
-    r'.*base\:\:debug\:\:CollectStackTrace',
-    r'.*base\:\:debug\:\:StackTrace\:\:StackTrace',
-    r'.*ieee754\-',
-    r'.*libpthread',
-    r'.*logger',
-    r'.*logging\:\:ErrnoLogMessage',
-    r'.*logging\:\:LogMessage',
-    r'.*stdext\:\:exception\:\:what',
-    r'.*v8\:\:base\:\:OS\:\:Abort',
+    br'.*ASAN\_OnSIGSEGV',
+    br'.*BaseThreadInitThunk',
+    br'.*DebugBreak',
+    br'.*DefaultDcheckHandlebr',
+    br'.*ForceCrashOnSigAbort',
+    br'.*MemoryProtection\:\:CMemoryProtectobr',
+    br'.*PartitionAlloc',
+    br'.*RtlFreeHeap',
+    br'.*RtlInitializeExceptionChain',
+    br'.*RtlReportCriticalFailure',
+    br'.*RtlUserThreadStart',
+    br'.*RtlpHeapHandleErrobr',
+    br'.*RtlpLogHeapFailure',
+    br'.*SkDebugf',
+    br'.*StackDumpSignalHandlebr',
+    br'.*\_\_android\_log\_assert',
+    br'.*\_\_tmainCRTStartup',
+    br'.*\_asan\_rtl\_',
+    br'.*agent\:\:asan\:\:',
+    br'.*allocator\_shim',
+    br'.*asan\_Heap',
+    br'.*asan\_check\_access',
+    br'.*asan\_osx\_dynamic\.dylib',
+    br'.*assert',
+    br'.*base\:\:FuzzedDataProvidebr',
+    br'.*base\:\:allocatobr',
+    br'.*base\:\:android\:\:CheckException',
+    br'.*base\:\:debug\:\:BreakDebuggebr',
+    br'.*base\:\:debug\:\:CollectStackTrace',
+    br'.*base\:\:debug\:\:StackTrace\:\:StackTrace',
+    br'.*ieee754\-',
+    br'.*libpthread',
+    br'.*loggebr',
+    br'.*logging\:\:ErrnoLogMessage',
+    br'.*logging\:\:LogMessage',
+    br'.*stdext\:\:exception\:\:what',
+    br'.*v8\:\:base\:\:OS\:\:Abort',
 
     # File paths.
-    r'.*\ base\/callback',
-    r'.*\/AOSP\-toolchain\/',
-    r'.*\/bindings\/ToV8\.h',
-    r'.*\/crosstool\/',
-    r'.*\/gcc\/',
-    r'.*\/glibc\-',
-    r'.*\/jemalloc\/',
-    r'.*\/libc\+\+',
-    r'.*\/libc\/',
-    r'.*\/llvm\-build\/',
-    r'.*\/minkernel\/crts\/',
-    r'.*\/sanitizer\_common\/',
-    r'.*\/tcmalloc\/',
-    r'.*\/vc\/include\/',
-    r'.*\/vctools\/crt\/',
-    r'.*\/win\_toolchain\/',
-    r'.*libc\+\+\/',
+    br'.*\ base\/callback',
+    br'.*\/AOSP\-toolchain\/',
+    br'.*\/bindings\/ToV8\.h',
+    br'.*\/crosstool\/',
+    br'.*\/gcc\/',
+    br'.*\/glibc\-',
+    br'.*\/jemalloc\/',
+    br'.*\/libc\+\+',
+    br'.*\/libc\/',
+    br'.*\/llvm\-build\/',
+    br'.*\/minkernel\/crts\/',
+    br'.*\/sanitizer\_common\/',
+    br'.*\/tcmalloc\/',
+    br'.*\/vc\/include\/',
+    br'.*\/vctools\/crt\/',
+    br'.*\/win\_toolchain\/',
+    br'.*libc\+\+\/',
 
     # Others (uncategorized).
-    r'.*\+Unknown',
-    r'.*\<unknown\ module\>',
-    r'.*Inline\ Function\ \@',
-    r'^\<unknown\>$',
-    r'^\[vdso\]$',
+    br'.*\+Unknown',
+    br'.*\<unknown\ module\>',
+    br'.*Inline\ Function\ \@',
+    br'^\<unknown\>$',
+    br'^\[vdso\]$',
 
     # Golang specific frames to ignore.
-    r'^panic$',
-    r'^runtime\.',
+    br'^panic$',
+    br'^runtime\.',
 
     # Fuchsia libFuzzer specific.
-    r'^CrashTrampolineAsm',
+    br'^CrashTrampolineAsm',
 ]
 
 STACK_FRAME_IGNORE_REGEXES_IF_SYMBOLIZED = [
-    r'.*libc\.so',
-    r'.*libc\+\+\.so',
-    r'.*libc\+\+\_shared\.so',
-    r'.*libstdc\+\+\.so',
+    br'.*libc\.so',
+    br'.*libc\+\+\.so',
+    br'.*libc\+\+\_shared\.so',
+    br'.*libstdc\+\+\.so',
 ]
 
 IGNORE_CRASH_TYPES_FOR_ABRT_BREAKPOINT_AND_ILLS = [
@@ -607,11 +611,11 @@ class StackAnalyzerState(object):
         local_config.ProjectConfig().get(
             'stacktrace.stack_frame_ignore_regexes', []))
     self.stack_frame_ignore_regex = re.compile(
-        r'(%s)' % '|'.join(STACK_FRAME_IGNORE_REGEXES +
-                           custom_stack_frame_ignore_regexes))
+        br'(%s)' % b'|'.join(STACK_FRAME_IGNORE_REGEXES +
+                             custom_stack_frame_ignore_regexes))
 
     self.stack_frame_ignore_regex_if_symbolized = re.compile(
-        r'(%s)' % '|'.join(STACK_FRAME_IGNORE_REGEXES_IF_SYMBOLIZED))
+        br'(%s)' % b'|'.join(STACK_FRAME_IGNORE_REGEXES_IF_SYMBOLIZED))
 
 
 def filter_addresses_and_numbers(stack_frame):

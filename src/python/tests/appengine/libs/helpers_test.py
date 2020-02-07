@@ -15,6 +15,7 @@
 # pylint: disable=protected-access
 
 from builtins import str
+import sys
 import unittest
 
 from libs import auth
@@ -111,9 +112,15 @@ class GetOrExitTest(unittest.TestCase):
       helpers.get_or_exit(fn, 'not_found', 'other')
 
     self.assertEqual(catched.exception.status, 500)
-    self.assertEqual(
-        str(catched.exception),
-        "other (<type 'exceptions.Exception'>: message)")
+
+    if sys.version_info.major == 2:
+      # TODO(ochang): Remove this once migrated to Python 3.
+      self.assertEqual(
+          str(catched.exception),
+          "other (<type 'exceptions.Exception'>: message)")
+    else:
+      self.assertEqual(
+          str(catched.exception), "other (<class 'Exception'>: message)")
 
 
 class GetUserEmailTest(unittest.TestCase):

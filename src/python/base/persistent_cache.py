@@ -104,7 +104,7 @@ def get_value_file_path(key):
   """Return the full path to the value file for the given key."""
   # Not using utils.string_hash here to avoid a circular dependency.
   # TODO(mbarbella): Avoid this once utils.py is broken into multiple files.
-  key_filename = 'cache-%s.json' % hashlib.sha1(str(key)).hexdigest()
+  key_filename = 'cache-%s.json' % hashlib.sha1(str(key).encode()).hexdigest()
   cache_directory_path = environment.get_value('CACHE_DIR')
   return os.path.join(cache_directory_path, key_filename)
 
@@ -123,7 +123,7 @@ def set_value(key, value, persist_across_reboots=False):
 
   try:
     with open(value_path, 'wb') as f:
-      f.write(value_str)
+      f.write(value_str.encode())
   except IOError:
     logs.log_error('Failed to write %s to persistent cache.' % key)
 

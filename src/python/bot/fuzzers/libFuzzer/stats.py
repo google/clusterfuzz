@@ -25,45 +25,43 @@ from metrics import logs
 from system import environment
 
 # Regular expressions to detect different types of crashes.
-LEAK_TESTCASE_REGEX = re.compile(r'.*ERROR: LeakSanitizer.*')
+LEAK_TESTCASE_REGEX = re.compile(br'.*ERROR: LeakSanitizer.*')
 LIBFUZZER_BAD_INSTRUMENTATION_REGEX = re.compile(
-    r'.*ERROR:.*Is the code instrumented for coverage.*')
-LIBFUZZER_CRASH_TYPE_REGEX = r'.*Test unit written to.*{type}'
-LIBFUZZER_CRASH_START_MARKER = r'.*ERROR: (libFuzzer|.*Sanitizer):'
+    br'.*ERROR:.*Is the code instrumented for coverage.*')
+LIBFUZZER_CRASH_TYPE_REGEX = br'.*Test unit written to.*'
+LIBFUZZER_CRASH_START_MARKER = br'.*ERROR: (libFuzzer|.*Sanitizer):'
 LIBFUZZER_ANY_CRASH_TYPE_REGEX = re.compile(
-    r'(%s|%s)' % (LIBFUZZER_CRASH_START_MARKER,
-                  LIBFUZZER_CRASH_TYPE_REGEX.format(type='')))
-LIBFUZZER_CRASH_TESTCASE_REGEX = re.compile(
-    LIBFUZZER_CRASH_TYPE_REGEX.format(type='crash'))
-LIBFUZZER_OOM_TESTCASE_REGEX = re.compile(
-    LIBFUZZER_CRASH_TYPE_REGEX.format(type='oom'))
-LIBFUZZER_SLOW_UNIT_TESTCASE_REGEX = re.compile(
-    LIBFUZZER_CRASH_TYPE_REGEX.format(type='slow-unit'))
-LIBFUZZER_TIMEOUT_TESTCASE_REGEX = re.compile(
-    LIBFUZZER_CRASH_TYPE_REGEX.format(type='timeout'))
+    br'(%s|%s)' % (LIBFUZZER_CRASH_START_MARKER, LIBFUZZER_CRASH_TYPE_REGEX))
+LIBFUZZER_CRASH_TESTCASE_REGEX = re.compile(LIBFUZZER_CRASH_TYPE_REGEX +
+                                            b'crash')
+LIBFUZZER_OOM_TESTCASE_REGEX = re.compile(LIBFUZZER_CRASH_TYPE_REGEX + b'oom')
+LIBFUZZER_SLOW_UNIT_TESTCASE_REGEX = re.compile(LIBFUZZER_CRASH_TYPE_REGEX +
+                                                b'slow-unit')
+LIBFUZZER_TIMEOUT_TESTCASE_REGEX = re.compile(LIBFUZZER_CRASH_TYPE_REGEX +
+                                              b'timeout')
 
 # Regular expressions to detect different sections of logs.
-LIBFUZZER_FUZZING_STRATEGIES = re.compile(r'cf::fuzzing_strategies:\s*(.*)')
-LIBFUZZER_LOG_DICTIONARY_REGEX = re.compile(r'Dictionary: \d+ entries')
-LIBFUZZER_LOG_END_REGEX = re.compile(r'Done\s+\d+\s+runs.*')
-LIBFUZZER_LOG_IGNORE_REGEX = re.compile(r'.*WARNING:.*Sanitizer')
+LIBFUZZER_FUZZING_STRATEGIES = re.compile(br'cf::fuzzing_strategies:\s*(.*)')
+LIBFUZZER_LOG_DICTIONARY_REGEX = re.compile(br'Dictionary: \d+ entries')
+LIBFUZZER_LOG_END_REGEX = re.compile(br'Done\s+\d+\s+runs.*')
+LIBFUZZER_LOG_IGNORE_REGEX = re.compile(br'.*WARNING:.*Sanitizer')
 LIBFUZZER_LOG_LINE_REGEX = re.compile(
-    r'^#\d+[\s]*(READ|INITED|NEW|pulse|REDUCE|RELOAD|DONE|:)\s.*')
+    br'^#\d+[\s]*(READ|INITED|NEW|pulse|REDUCE|RELOAD|DONE|:)\s.*')
 LIBFUZZER_LOG_SEED_CORPUS_INFO_REGEX = re.compile(
-    r'INFO:\s+seed corpus:\s+files:\s+(\d+).*rss:\s+(\d+)Mb.*')
+    br'INFO:\s+seed corpus:\s+files:\s+(\d+).*rss:\s+(\d+)Mb.*')
 LIBFUZZER_LOG_START_INITED_REGEX = re.compile(
-    r'(#\d+\s+INITED\s+|INFO:\s+-fork=\d+:\s+fuzzing in separate process).*')
+    br'(#\d+\s+INITED\s+|INFO:\s+-fork=\d+:\s+fuzzing in separate process).*')
 LIBFUZZER_MERGE_LOG_STATS_REGEX = re.compile(
-    r'MERGE-OUTER:\s+\d+\s+new files with'
-    r'\s+(\d+)\s+new features added;'
-    r'\s+(\d+)\s+new coverage edges.*')
+    br'MERGE-OUTER:\s+\d+\s+new files with'
+    br'\s+(\d+)\s+new features added;'
+    br'\s+(\d+)\s+new coverage edges.*')
 LIBFUZZER_MODULES_LOADED_REGEX = re.compile(
-    r'^INFO:\s+Loaded\s+\d+\s+(modules|PC tables)\s+\((\d+)\s+.*\).*')
+    br'^INFO:\s+Loaded\s+\d+\s+(modules|PC tables)\s+\((\d+)\s+.*\).*')
 
 # Regular expressions to extract different values from the log.
 LIBFUZZER_LOG_MAX_LEN_REGEX = re.compile(
-    r'.*-max_len is not provided; libFuzzer will not generate inputs larger'
-    r' than (\d+) bytes.*')
+    br'.*-max_len is not provided; libFuzzer will not generate inputs larger'
+    br' than (\d+) bytes.*')
 
 
 def calculate_log_lines(log_lines):
@@ -128,7 +126,7 @@ def parse_fuzzing_strategies(log_lines, strategies):
     for line in log_lines:
       match = LIBFUZZER_FUZZING_STRATEGIES.match(line)
       if match:
-        strategies = match.group(1).split(',')
+        strategies = match.group(1).split(b',')
         break
 
   return process_strategies(strategies)
@@ -141,7 +139,7 @@ def process_strategies(strategies, name_modifier=strategy_column_name):
   def parse_line_for_strategy_prefix(line, strategy_name):
     """Parse log line to find the value of a strategy with a prefix."""
     strategy_prefix = strategy_name + '_'
-    if not line.startswith(strategy_prefix):
+    if not line.startswith(strategy_prefix.encode()):
       return
 
     try:

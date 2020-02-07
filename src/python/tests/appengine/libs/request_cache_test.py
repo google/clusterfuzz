@@ -44,6 +44,10 @@ class CacheClass2(object):
     return a + 2
 
 
+class FakeRequest(object):
+  """Fake request."""
+
+
 class CacheTest(unittest.TestCase):
   """Cache tests."""
 
@@ -52,7 +56,7 @@ class CacheTest(unittest.TestCase):
         'webapp2.get_request',
     ])
 
-    self.mock.get_request.return_value = object()
+    self.mock.get_request.return_value = FakeRequest()
 
   def test_basic(self):
     """Basic tests."""
@@ -99,7 +103,7 @@ class CacheTest(unittest.TestCase):
     """Test that the cache is scoped to requests."""
     c = CacheClass()
     self.assertEqual(2, c.foo(1))
-    self.mock.get_request.return_value = object()
+    self.mock.get_request.return_value = FakeRequest()
     self.assertEqual(2, c.foo(1))
 
     self.assertListEqual([
