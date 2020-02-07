@@ -90,7 +90,8 @@ def split_br(text):
 
 def encode_json(value):
   """Dump base64-encoded JSON string (to avoid XSS)."""
-  return base64.b64encode(json.dumps(value, cls=JsonEncoder))
+  return base64.b64encode(json.dumps(
+      value, cls=JsonEncoder).encode('utf-8')).decode('utf-8')
 
 
 _JINJA_ENVIRONMENT = jinja2.Environment(
@@ -259,7 +260,7 @@ class Handler(webapp2.RequestHandler):
     else:
       self.render('error.html', values, 500)
 
-  def redirect(self, url, **kwargs):
+  def redirect(self, url, **kwargs):  # pylint: disable=arguments-differ
     """Explicitly converts url to 'str', because webapp2.RequestHandler.redirect
     strongly requires 'str' but url might be an unicode string."""
     url = str(url)
@@ -298,6 +299,7 @@ class GcsUploadHandler(Handler):
   """A handler which uploads files to GCS."""
 
   def __init__(self, request, response):
+    super(GcsUploadHandler, self).__init__()
     self.initialize(request, response)
     self.upload = None
 
