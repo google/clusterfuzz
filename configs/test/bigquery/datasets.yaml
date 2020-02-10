@@ -225,7 +225,7 @@ resources:
             type: FLOAT
           - name: engine
             type: STRING
-  - name: cross-pollination-statistics-table
+  - name: cross-pollination-stats-table
     type: gcp-types/bigquery-v2:tables
     properties:
       datasetId: $(ref.main-dataset.datasetReference.datasetId)
@@ -239,15 +239,15 @@ resources:
           type: STRING
         - name: tagged
           type: BOOLEAN
-        - name: original_corpus_size
+        - name: initial_corpus_size
           type: INTEGER
-        - name: post_pollination_corpus_size
+        - name: corpus_size
           type: INTEGER
-        - name: original_edge_coverage
+        - name: initial_edge_coverage
           type: INTEGER
-        - name: post_pollination_edge_coverage
+        - name: edge_coverage
           type: INTEGER
-        - name: original_feature_coverage
+        - name: initial_feature_coverage
           type: INTEGER
-        - name: post_pollination_feature_coverage
+        - name: feature_coverage
           type: INTEGER

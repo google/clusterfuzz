@@ -644,12 +644,12 @@ def do_corpus_pruning(context, last_execution_failed, revision):
     bigquery_row = {
         'project_qualified_name': project_qualified_name,
         'tagged': False,
-        'original_corpus_size': pre_pollination_corpus_size,
-        'post_pollination_corpus_size': minimized_corpus_size_units,
-        'original_edge_coverage': pruner_stats['edge_coverage'],
-        'post_pollination_edge_coverage': pollinator_stats['edge_coverage'],
-        'original_feature_coverage': pruner_stats['feature_coverage'],
-        'post_pollination_feature_coverage': pollinator_stats['feature_coverage']
+        'initial_corpus_size': pre_pollination_corpus_size,
+        'corpus_size': minimized_corpus_size_units,
+        'initial_edge_coverage': pruner_stats['edge_coverage'],
+        'edge_coverage': pollinator_stats['edge_coverage'],
+        'initial_feature_coverage': pruner_stats['feature_coverage'],
+        'feature_coverage': pollinator_stats['feature_coverage']
     }
 
     client = big_query.Client(

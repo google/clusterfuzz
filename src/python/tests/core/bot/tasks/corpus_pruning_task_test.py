@@ -165,6 +165,15 @@ class CorpusPruningTest(unittest.TestCase, BaseTest):
 
   def test_prune(self):
     """Basic pruning test."""
+    underlying = mock.MagicMock()
+    tabledata = mock.MagicMock()
+    insert_all = mock.MagicMock()
+
+    underlying.tabledata.return_value = tabledata
+    tabledata.insertAll.return_value = insert_all
+    insert_all.execute.return_value = {'test': 1}
+    self.mock.get_api_client.return_value = underlying
+
     corpus_pruning_task.execute_task('libFuzzer_test_fuzzer',
                                      'libfuzzer_asan_job')
 
@@ -232,6 +241,28 @@ class CorpusPruningTest(unittest.TestCase, BaseTest):
         coverage_info.to_dict())
 
     self.assertEqual(self.mock.unpack_seed_corpus_if_needed.call_count, 1)
+
+    tabledata.insertAll.assert_called_once_with(
+        body={
+            'kind':
+                'bigquery#tableDataInsertAllRequest',
+            'rows': [{
+                'insertId': None,
+                'json': {
+                    'edge_coverage': 0,
+                    'tagged': False,
+                    'initial_feature_coverage': 0,
+                    'feature_coverage': 0,
+                    'project_qualified_name': 'test_fuzzer',
+                    'corpus_size': 4,
+                    'initial_edge_coverage': 0,
+                    'initial_corpus_size': 3
+                }
+            }]
+        },
+        datasetId='main',
+        projectId='project',
+        tableId='cross-pollination-statistics')
 
 
 class CorpusPruningTestMinijail(CorpusPruningTest):
