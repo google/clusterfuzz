@@ -646,10 +646,10 @@ def do_corpus_pruning(context, last_execution_failed, revision):
         'tagged': False,
         'original_corpus_size': pre_pollination_corpus_size,
         'post_pollination_corpus_size': minimized_corpus_size_units,
-        'original_edge_coverage': pruner_stats.edge_coverage,
-        'post_pollination_edge_coverage': pollinator_stats.edge_coverage,
-        'original_feature_coverage': pruner_stats.feature_coverage,
-        'post_pollination_feature_coverage': pollinator_stats.feature_coverage
+        'original_edge_coverage': pruner_stats['edge_coverage'],
+        'post_pollination_edge_coverage': pollinator_stats['edge_coverage'],
+        'original_feature_coverage': pruner_stats['feature_coverage'],
+        'post_pollination_feature_coverage': pollinator_stats['feature_coverage']
     }
 
     client = big_query.Client(
