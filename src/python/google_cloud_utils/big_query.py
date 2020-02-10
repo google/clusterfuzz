@@ -258,7 +258,7 @@ class Client(object):
     # totalRows is only present after the job completed successfully.
     total_count = int(result['totalRows'])
 
-    while len(rows) < limit or limit < 0:
+    while limit is None or len(rows) < limit:
       rows += convert(result)
 
       if result['jobComplete'] and 'pageToken' not in result:
