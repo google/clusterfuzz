@@ -62,7 +62,7 @@ class GenerateCrsfTokenTest(unittest.TestCase):
   def test_invalid_token(self):
     """Ensure it returns a new token when the valid token expires"""
     self.mock.utcnow.return_value = self._NOW
-    self.mock.urandom.return_value = 'a'
+    self.mock.urandom.return_value = b'a'
     self.make_token(value='token', time=self._BEFORE).put()
     self.assertEqual(form.generate_csrf_token(), 'YQ==')
 

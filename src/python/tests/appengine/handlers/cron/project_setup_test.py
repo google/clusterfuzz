@@ -54,7 +54,7 @@ class MockRequest(object):
   def execute(self):
     """Mock execute()."""
     if self.raise_exception:
-      raise googleapiclient.errors.HttpError(mock.Mock(status=404), '')
+      raise googleapiclient.errors.HttpError(mock.Mock(status=404), b'')
 
     return self.return_value
 

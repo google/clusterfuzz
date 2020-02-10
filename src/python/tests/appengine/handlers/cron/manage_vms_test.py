@@ -516,8 +516,8 @@ class CronTest(unittest.TestCase):
       data_types.WorkerTlsCert(
           id=project_name,
           project_name=project_name,
-          cert_contents=project_name + '_cert',
-          key_contents=project_name + '_key').put()
+          cert_contents=project_name.encode() + b'_cert',
+          key_contents=project_name.encode() + b'_key').put()
 
     data_types.OssFuzzProjectInfo(id='old_proj', name='old_proj').put()
 
