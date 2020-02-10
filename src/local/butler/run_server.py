@@ -131,6 +131,7 @@ def start_cron_threads():
 def execute(args):
   """Run the server."""
   os.environ['LOCAL_DEVELOPMENT'] = 'True'
+  os.environ['CLOUDSDK_PYTHON'] = 'python2'
   common.kill_leftover_emulators()
 
   if not args.skip_install_deps:
