@@ -624,7 +624,7 @@ def do_corpus_pruning(context, last_execution_failed, revision):
   quarantine_corpus_dir_size = shell.get_directory_size(
       context.quarantine_corpus_path)
 
-  # Save the minimize corpus size before cross pollination to put in Big Query.
+  # Save the minimize corpus size before cross pollination to put in BigQuery.
   pre_pollination_corpus_size = minimized_corpus_size_units
 
   # Populate coverage stats.
