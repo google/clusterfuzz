@@ -56,6 +56,7 @@ class BaseTest(object):
     helpers.patch(self, [
         'bot.fuzzers.engine.get',
         'bot.fuzzers.engine_common.unpack_seed_corpus_if_needed',
+        'bot.tasks.corpus_pruning_task.record_cross_pollination_stats',
         'bot.tasks.task_creation.create_tasks',
         'bot.tasks.setup.update_fuzzer_and_data_bundles',
         'fuzzing.corpus_manager.backup_corpus',
@@ -63,7 +64,6 @@ class BaseTest(object):
         'fuzzing.corpus_manager.FuzzTargetCorpus.rsync_from_disk',
         'google_cloud_utils.blobs.write_blob',
         'google_cloud_utils.storage.write_data',
-        'google_cloud_utils.big_query.get_api_client',
     ])
     self.mock.get.return_value = libFuzzer_engine.LibFuzzerEngine()
     self.mock.rsync_to_disk.side_effect = self._mock_rsync_to_disk
@@ -72,11 +72,6 @@ class BaseTest(object):
     self.mock.write_blob.return_value = 'key'
     self.mock.backup_corpus.return_value = 'backup_link'
 
-    # Set up mock table for BigQuery insert.
-    self._underlying = mock.MagicMock()
-    self._tabledata = mock.MagicMock()
-    self._underlying.tabledata.return_value = self._tabledata
-    self.mock.get_api_client.return_value = self._underlying
 
     def mocked_unpack_seed_corpus_if_needed(*args, **kwargs):
       """Mock's assert called methods are not powerful enough to ensure that
@@ -239,30 +234,6 @@ class CorpusPruningTest(unittest.TestCase, BaseTest):
 
     self.assertEqual(self.mock.unpack_seed_corpus_if_needed.call_count, 1)
 
-    self._tabledata.insertAll.assert_called_once_with(
-        body={
-            'kind':
-                'bigquery#tableDataInsertAllRequest',
-            'rows': [{
-                'insertId': None,
-                'json': {
-                    'edge_coverage': 0,
-                    'method': 'random',
-                    'sources': '',
-                    'tags': '',
-                    'initial_feature_coverage': 0,
-                    'feature_coverage': 0,
-                    'project_qualified_name': 'test_fuzzer',
-                    'corpus_size': 4,
-                    'initial_edge_coverage': 0,
-                    'initial_corpus_size': 3
-                }
-            }]
-        },
-        datasetId='main',
-        projectId='project',
-        tableId='cross-pollination-statistics')
-
 
 class CorpusPruningTestMinijail(CorpusPruningTest):
   """Tests for corpus pruning (minijail)."""
@@ -352,7 +323,7 @@ class CorpusPruningTestUntrusted(
         'bot.fuzzers.libFuzzer.fuzzer.LibFuzzer.fuzzer_directory',
         'base.tasks.add_task',
         'datastore.data_handler.get_data_bundle_bucket_name',
-        'google_cloud_utils.big_query.get_api_client',
+        'bot.tasks.corpus_pruning_task.record_cross_pollination_stats',
     ])
 
     self.mock.get.return_value = libFuzzer_engine.LibFuzzerEngine()
@@ -444,12 +415,6 @@ class CorpusPruningTestUntrusted(
         (corpus_backup_dir +
          '%s.zip' % corpus_backup_date).format(bucket=self.backup_bucket)
     ])
-
-    # Set up mock table for BigQuery insert.
-    self._underlying = mock.MagicMock()
-    self._tabledata = mock.MagicMock()
-    self._underlying.tabledata.return_value = self._tabledata
-    self.mock.get_api_client.return_value = self._underlying
 
   def tearDown(self):
     super(CorpusPruningTestUntrusted, self).tearDown()
