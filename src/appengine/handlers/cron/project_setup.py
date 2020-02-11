@@ -127,6 +127,10 @@ HONGGFUZZ_ASAN_JOB = JobInfo(
     'address', ['honggfuzz', 'engine_asan'],
     minimize_job_override=LIBFUZZER_ASAN_JOB)
 
+SYZKALLER_KASAN_JOB = JobInfo('syzkaller_kasan_',
+    'syzkaller', 'address', ['syzkaller', 
+    'engine_kasan', 'prune'])
+
 JOB_MAP = {
     'libfuzzer': {
         'x86_64': {
@@ -148,6 +152,11 @@ JOB_MAP = {
             'address': HONGGFUZZ_ASAN_JOB,
         },
     },
+    'syzkaller': {
+        'x86_64': {
+            'address': SYZKALLER_KASAN_JOB,
+        },
+    },
     'none': {
         'x86_64': {
             'address': NO_ENGINE_ASAN_JOB,
@@ -157,7 +166,7 @@ JOB_MAP = {
 
 DEFAULT_ARCHITECTURES = ['x86_64']
 DEFAULT_SANITIZERS = ['address', 'undefined']
-DEFAULT_ENGINES = ['libfuzzer', 'afl', 'honggfuzz']
+DEFAULT_ENGINES = ['libfuzzer', 'afl', 'honggfuzz', 'syzkaller']
 
 
 def _to_experimental_job(job_info):
@@ -907,6 +916,12 @@ class Handler(base_handler.Handler):
       logs.log_error('Failed to get honggfuzz Fuzzer entity.')
       return
 
+    syzkaller = data_types.Fuzzer.query(
+        data_types.Fuzzer.name == 'syzkaller').get()
+    if not libfuzzer:
+      logs.log_error('Failed to get syzkaller Fuzzer entity.')
+      return
+
     project_setup_config = local_config.ProjectConfig().sub_config(
         'project_setup')
     bucket_config = project_setup_config.sub_config('build_buckets')
@@ -927,11 +942,13 @@ class Handler(base_handler.Handler):
             'honggfuzz': bucket_config.get('honggfuzz'),
             'none': bucket_config.get('no_engine'),
             'dataflow': bucket_config.get('dataflow'),
+            'syzkaller': bucket_config.get('syzkaller'),
         },
         fuzzer_entities={
             'libfuzzer': libfuzzer,
             'honggfuzz': honggfuzz,
             'afl': afl,
+            'syzkaller': syzkaller,
         },
         add_info_labels=project_setup_config.get(
             'add_info_labels', default=False),

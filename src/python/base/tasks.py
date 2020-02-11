@@ -68,6 +68,7 @@ TASK_QUEUE_DISPLAY_NAMES = {
     'MAC': 'Mac',
     'WINDOWS': 'Windows',
     'WINDOWS_WITH_GPU': 'Windows (with GPU)',
+    'ANDROID_KERNEL': 'Android Kernel',
 }
 
 VALID_REDO_TASKS = ['minimize', 'regression', 'progression', 'impact', 'blame']

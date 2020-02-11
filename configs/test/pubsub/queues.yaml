@@ -40,6 +40,10 @@ resources:
     type: queue.jinja
   - name: high-end-jobs-android
     type: queue.jinja
+  - name: jobs-android-kernel
+    type: queue.jinja
+  - name: high-end-jobs-android-kernel
+    type: queue.jinja
   - name: jobs-android-x86
     type: queue.jinja
   - name: high-end-jobs-android-x86

@@ -11,16 +11,18 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""Fuzzing engine initialization."""
+"""Constants that are meaningful to syzkaller.
+Should not have any dependancies.
+"""
 
-from bot.fuzzers import engine
-from bot.fuzzers.honggfuzz import engine as honggfuzz_engine
-from bot.fuzzers.libFuzzer import engine as libFuzzer_engine
-from bot.fuzzers.syzkaller import engine as syzkaller_engine
+# syzkaller's exit code if a bug occurred in syzkaller.
+SYZKALLER_ERROR_EXITCODE = 1
 
+# syzkaller's exit code if a bug was found in the kernel code.
+TARGET_ERROR_EXITCODE = 77
 
-def run():
-  """Initialise builtin fuzzing engines."""
-  engine.register('libFuzzer', libFuzzer_engine.LibFuzzerEngine)
-  engine.register('honggfuzz', honggfuzz_engine.HonggfuzzEngine)
-  engine.register('syzkaller', syzkaller_engine.SyzkallerEngine)
+TIMEOUT_FLAG = '-timeout='
+
+REPRODUCTION_TIMEOUT_LIMIT = 600
+
+DEFAULT_TIMEOUT_LIMIT = 25
