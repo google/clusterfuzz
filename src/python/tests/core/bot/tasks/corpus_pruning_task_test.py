@@ -72,7 +72,6 @@ class BaseTest(object):
     self.mock.write_blob.return_value = 'key'
     self.mock.backup_corpus.return_value = 'backup_link'
 
-
     def mocked_unpack_seed_corpus_if_needed(*args, **kwargs):
       """Mock's assert called methods are not powerful enough to ensure that
       unpack_seed_corpus_if_needed was called once with force_unpack=True.
