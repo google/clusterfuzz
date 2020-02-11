@@ -18,8 +18,9 @@ from __future__ import print_function
 # instead of the default 'ascii' encoding. This must happen before any
 # other imports.
 import sys
-reload(sys)
-sys.setdefaultencoding('utf-8')
+if sys.version_info.major == 2:
+  reload(sys)
+  sys.setdefaultencoding('utf-8')
 
 # Before other modules import os, we patch path-related methods, so they are
 # compatible with windows.
