@@ -526,7 +526,9 @@ def record_cross_pollination_stats(
     pruner_stats, pollinator_stats, project_qualified_name, sources, tags,
     initial_corpus_size, minimized_corpus_size_units):
   """Log stats about cross pollination in BigQuery."""
-  if pruner_stats and pollinator_stats:
+  if pruner_stats and pollinator_stats and not environment.get_value(
+      'DISABLE_CROSS_POLINATION_STATS', 'False') == 'True':
+
     # TODO(mpherman) : Change method once tagged corpora are done.
     bigquery_row = {
         'project_qualified_name': project_qualified_name,

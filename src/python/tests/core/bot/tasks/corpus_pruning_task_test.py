@@ -415,6 +415,8 @@ class CorpusPruningTestUntrusted(
          '%s.zip' % corpus_backup_date).format(bucket=self.backup_bucket)
     ])
 
+    environment.set_value("DISABLE_CROSS_POLINATION_STATS", "True")
+
   def tearDown(self):
     super(CorpusPruningTestUntrusted, self).tearDown()
     shutil.rmtree(self.temp_dir, ignore_errors=True)
