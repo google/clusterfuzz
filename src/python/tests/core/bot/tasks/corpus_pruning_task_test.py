@@ -321,6 +321,7 @@ class CorpusPruningTestUntrusted(
         'bot.fuzzers.libFuzzer.fuzzer.LibFuzzer.fuzzer_directory',
         'base.tasks.add_task',
         'datastore.data_handler.get_data_bundle_bucket_name',
+        'google_cloud_utils.big_query.get_api_client',
     ])
 
     self.mock.get.return_value = libFuzzer_engine.LibFuzzerEngine()
@@ -412,6 +413,12 @@ class CorpusPruningTestUntrusted(
         (corpus_backup_dir +
          '%s.zip' % corpus_backup_date).format(bucket=self.backup_bucket)
     ])
+
+    # Set up mock table for BigQuery insert.
+    self._underlying = mock.MagicMock()
+    self._tabledata = mock.MagicMock()
+    self._underlying.tabledata.return_value = self._tabledata
+    self.mock.get_api_client.return_value = self._underlying
 
   def tearDown(self):
     super(CorpusPruningTestUntrusted, self).tearDown()
