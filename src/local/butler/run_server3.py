@@ -15,7 +15,6 @@
 from __future__ import print_function
 from future import standard_library
 standard_library.install_aliases()
-from distutils import spawn
 import os
 import shutil
 import threading
@@ -82,19 +81,6 @@ def bootstrap_gcs(storage_path):
       target=os.path.join(appengine.SRC_DIR_PY, 'local_gcs'))
 
 
-def _dev_appserver_path():
-  """Return the actual path to dev_appserver. It uses the path to
-  dev_appserver.py to find the cloud emulator, so that fails if it is a
-  symlink."""
-  dev_appserver_path = spawn.find_executable('dev_appserver.py')
-  if not os.path.islink(dev_appserver_path):
-    return dev_appserver_path
-
-  return os.path.normpath(
-      os.path.join(
-          os.path.dirname(dev_appserver_path), os.readlink(dev_appserver_path)))
-
-
 def start_cron_threads():
   """Start threads to trigger essential cron jobs."""
 
@@ -131,7 +117,6 @@ def start_cron_threads():
 def execute(args):
   """Run the server."""
   os.environ['LOCAL_DEVELOPMENT'] = 'True'
-  os.environ['CLOUDSDK_PYTHON'] = 'python2'
   common.kill_leftover_emulators()
 
   if not args.skip_install_deps:
@@ -167,6 +152,12 @@ def execute(args):
       data_dir=args.storage_path)
   test_utils.setup_pubsub(constants.TEST_APP_ID)
 
+  # Start Datastore emulator
+  datastore_emulator = test_utils.start_cloud_emulator(
+      'datastore',
+      args=['--host-port=' + constants.DATASTORE_EMULATOR_HOST],
+      data_dir=args.storage_path)
+
   # Start our custom GCS emulator.
   local_gcs = common.execute_async(
       'bazel run //go/testing/gcs '
@@ -179,39 +170,24 @@ def execute(args):
 
   start_cron_threads()
 
+  os.environ['APPLICATION_ID'] = constants.TEST_APP_ID
+  os.environ['LOCAL_DEVELOPMENT'] = 'True'
+  os.environ['LOCAL_GCS_BUCKETS_PATH'] = 'local_gcs'
+  os.environ['LOCAL_GCS_SERVER_HOST'] = constants.LOCAL_GCS_SERVER_HOST
+  os.environ['DATASTORE_EMULATOR_HOST'] = constants.DATASTORE_EMULATOR_HOST
+  os.environ['PUBSUB_EMULATOR_HOST'] = constants.PUBSUB_EMULATOR_HOST
   try:
+    cron_server = common.execute_async(
+        'gunicorn -b :{port} main:app'.format(port=constants.CRON_SERVICE_PORT),
+        cwd=os.path.join('src', 'appengine'))
+
     common.execute(
-        '{dev_appserver_path} -A {project} --skip_sdk_update_check=1 '
-        '--storage_path={storage_path} --port={appserver_port} '
-        '--admin_port={admin_port} '
-        '--datastore_emulator_port={datastore_emulator_port} '
-        '--require_indexes=true --log_level={log_level} '
-        '--dev_appserver_log_level={log_level} '
-        '--support_datastore_emulator=true '
-        '--env_var LOCAL_DEVELOPMENT=True '
-        '--env_var DATASTORE_EMULATOR_HOST={datastore_emulator_host} '
-        '--env_var PUBSUB_EMULATOR_HOST={pubsub_emulator_host} '
-        '--env_var LOCAL_GCS_BUCKETS_PATH=local_gcs '
-        '--env_var LOCAL_GCS_SERVER_HOST={local_gcs_server_host} '
-        '--specified_service_ports=cron-service:{cron_port} '
-        'src/appengine src/appengine/cron-service.yaml'.format(
-            dev_appserver_path=_dev_appserver_path(),
-            project=constants.TEST_APP_ID,
-            storage_path=args.storage_path,
-            appserver_port=constants.DEV_APPSERVER_PORT,
-            admin_port=constants.DEV_APPSERVER_ADMIN_PORT,
-            datastore_emulator_port=constants.DATASTORE_EMULATOR_PORT,
-            log_level=args.log_level,
-            datastore_emulator_host=constants.DATASTORE_EMULATOR_HOST,
-            pubsub_emulator_host=constants.PUBSUB_EMULATOR_HOST,
-            local_gcs_server_host=constants.LOCAL_GCS_SERVER_HOST,
-            cron_port=constants.CRON_SERVICE_PORT),
-        extra_environments={
-            # PYTHONPATH on CI includes an outdated App Engine SDK, which has
-            # bugs in dev_appserver.py.
-            'PYTHONPATH': '',
-        })
+        'gunicorn -b :{port} main:app'.format(
+            port=constants.DEV_APPSERVER_PORT),
+        cwd=os.path.join('src', 'appengine'))
   except KeyboardInterrupt:
     print('Server has been stopped. Exit.')
+    cron_server.terminate()
+    datastore_emulator.cleanup()
     pubsub_emulator.cleanup()
     local_gcs.terminate()

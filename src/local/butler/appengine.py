@@ -142,8 +142,12 @@ def symlink_dirs():
   local_gcs_symlink_path = os.path.join(SRC_DIR_PY, 'local_gcs')
   common.remove_symlink(local_gcs_symlink_path)
 
-  _, output = common.execute('bazel run //local:create_gopath', cwd='src')
-  os.environ['GOPATH'] = output.splitlines()[-1]
+  # TODO(ochang): Remove extra_environments once migrated to Python 3.
+  _, output = common.execute(
+      'bazel run //local:create_gopath',
+      cwd='src',
+      extra_environments={'PYTHONPATH': ''})
+  os.environ['GOPATH'] = output.decode('utf-8').splitlines()[-1]
 
 
 def build_templates():
@@ -175,4 +179,4 @@ def region(project):
   if return_code:
     raise RuntimeError('Could not get App Engine region')
 
-  return region_from_location(location.strip())
+  return region_from_location(location.strip().decode('utf-8'))

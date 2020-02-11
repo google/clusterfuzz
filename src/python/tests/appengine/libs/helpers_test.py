@@ -14,6 +14,8 @@
 """helpers tests."""
 # pylint: disable=protected-access
 
+from builtins import str
+import sys
 import unittest
 
 from libs import auth
@@ -76,7 +78,7 @@ class GetOrExitTest(unittest.TestCase):
       helpers.get_or_exit(fn, 'not_found', 'error')
 
     self.assertEqual(catched.exception.status, 404)
-    self.assertEqual(catched.exception.message, 'not_found')
+    self.assertEqual(str(catched.exception), 'not_found')
 
   def test_get_or_exit_tuple_none(self):
     """Ensure it raises 404 when the value is a tuple of None."""
@@ -85,7 +87,7 @@ class GetOrExitTest(unittest.TestCase):
       helpers.get_or_exit(fn, 'not_found', 'error')
 
     self.assertEqual(catched.exception.status, 404)
-    self.assertEqual(catched.exception.message, 'not_found')
+    self.assertEqual(str(catched.exception), 'not_found')
 
   def test_get_or_exit_not_found_exception(self):
     """Ensure it raises 404 when `fn` throws a recognised exception."""
@@ -98,7 +100,7 @@ class GetOrExitTest(unittest.TestCase):
           fn, 'not_found', 'error', not_found_exception=TestNotFoundException)
 
     self.assertEqual(catched.exception.status, 404)
-    self.assertEqual(catched.exception.message, 'not_found')
+    self.assertEqual(str(catched.exception), 'not_found')
 
   def test_get_or_exit_other_exception(self):
     """Ensure it raises 500 when `fn` throws an unknown exception."""
@@ -110,8 +112,15 @@ class GetOrExitTest(unittest.TestCase):
       helpers.get_or_exit(fn, 'not_found', 'other')
 
     self.assertEqual(catched.exception.status, 500)
-    self.assertEqual(catched.exception.message,
-                     "other (<type 'exceptions.Exception'>: message)")
+
+    if sys.version_info.major == 2:
+      # TODO(ochang): Remove this once migrated to Python 3.
+      self.assertEqual(
+          str(catched.exception),
+          "other (<type 'exceptions.Exception'>: message)")
+    else:
+      self.assertEqual(
+          str(catched.exception), "other (<class 'Exception'>: message)")
 
 
 class GetUserEmailTest(unittest.TestCase):

@@ -103,7 +103,7 @@ def _compute_revision(timestamp, *extras):
     crbug.com/674173."""
   timestamp = timestamp.strftime('%Y%m%d%H%M%S-utc')
   _, git_sha = execute('git rev-parse --short HEAD')
-  git_sha = git_sha.strip()
+  git_sha = git_sha.strip().decode('utf-8')
 
   components = [timestamp, git_sha, os.environ['USER']] + list(extras)
   return '-'.join(components)
@@ -121,7 +121,7 @@ def process_proc_output(proc, print_output=True):
     _print('| %s' % line.rstrip())
     lines.append(line)
 
-  return ''.join(lines)
+  return b''.join(lines)
 
 
 def execute_async(command, extra_environments=None, cwd=None):

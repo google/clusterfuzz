@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """Tests for tasks."""
+from builtins import str
 from future import standard_library
 standard_library.install_aliases()
 import os
@@ -38,7 +39,7 @@ class RedoTestcaseTest(unittest.TestCase):
     with self.assertRaises(tasks.InvalidRedoTask) as cm:
       tasks.redo_testcase(None, ['blame', 'rand'], 'test@user.com')
 
-    self.assertEqual("The task 'rand' is invalid.", cm.exception.message)
+    self.assertEqual("The task 'rand' is invalid.", str(cm.exception))
 
 
 @test_utils.integration
@@ -157,6 +158,7 @@ class LeaseTaskTest(unittest.TestCase):
 
     self.temp_dir = tempfile.mkdtemp()
     os.environ['CACHE_DIR'] = self.temp_dir
+    self.mock.time.return_value = 1337
 
   def tearDown(self):
     shutil.rmtree(self.temp_dir, ignore_errors=True)
@@ -229,9 +231,13 @@ class LeaseTaskTest(unittest.TestCase):
     }
 
     task = tasks.PubSubTask(message)
-    with self.assertRaises(Exception):
+
+    class Error(Exception):
+      """Fake error."""
+
+    with self.assertRaises(Error):
       with task.lease() as thread:
-        raise Exception
+        raise Error
 
     self.assertFalse(thread.is_alive())
     self.assertEqual(0, message.ack.call_count)

@@ -325,7 +325,7 @@ def execute_task(testcase_id, job_type):
   except BuildFailedException as error:
     testcase = data_handler.get_testcase_by_id(testcase_id)
     data_handler.update_testcase_comment(testcase, data_types.TaskState.ERROR,
-                                         error.message)
+                                         str(error))
     tasks.add_task(
         'impact',
         testcase_id,

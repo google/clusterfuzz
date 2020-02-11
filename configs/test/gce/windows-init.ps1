@@ -15,8 +15,6 @@
 Write-Host "Start"
 
 # Helper variables.
-$appengineDir = 'c:\google_appengine'
-$appengineFile = 'google_appengine_1.9.72.zip'
 $webClient = New-Object System.Net.WebClient
 $webClient.Headers.add('Metadata-Flavor', 'Google')
 $hostName = ($webClient.DownloadString('http://metadata.google.internal/computeMetadata/v1/instance/hostname')).split('.')[0]
@@ -62,7 +60,7 @@ setx /M PYTHONDONTWRITEBYTECODE "1"
 setx /M RUBY_GC_HEAP_OLDOBJECT_LIMIT_FACTOR "0.9"
 
 # Set startup script contents.
-$s = "if not exist $registrySetFilePath ( EXIT )`nw32tm /resync`nnetsh winhttp import proxy source=ie`nnfsadmin client config protocol=tcp+udp UseReservedPorts=yes`nnfsadmin client stop`nnfsadmin client start`nset NFS_HOST=$nfsHost`nset NFS_VOLUME=$nfsVolume`nset NFS_ROOT=$nfsRoot`nmount -o anon -o nolock -o retry=10 $nfsHost`:/$nfsVolume $nfsRoot`nnet start w32time`nw32tm /resync`nset PREEMPTIBLE=$preemptible`nset QUEUE_OVERRIDE=$queueOverride`nset USER=bot`nset BOT_TMPDIR=c:\tmp`nset PYTHONPATH=c:\google_appengine;c:\clusterfuzz\src`nset ROOT_DIR=c:\clusterfuzz`nset PATH=c:\java\bin;c:\python27;c:\nodejs;c:\Program Files (x86)\Windows Kits\10\Debuggers\x64;c:\Program Files (x86)\Google\Cloud SDK\google-cloud-sdk\bin;%PATH%`nc: `ncd \ `ncd clusterfuzz\src\python\bot\startup `npython -W ignore run.py"
+$s = "if not exist $registrySetFilePath ( EXIT )`nw32tm /resync`nnetsh winhttp import proxy source=ie`nnfsadmin client config protocol=tcp+udp UseReservedPorts=yes`nnfsadmin client stop`nnfsadmin client start`nset NFS_HOST=$nfsHost`nset NFS_VOLUME=$nfsVolume`nset NFS_ROOT=$nfsRoot`nmount -o anon -o nolock -o retry=10 $nfsHost`:/$nfsVolume $nfsRoot`nnet start w32time`nw32tm /resync`nset PREEMPTIBLE=$preemptible`nset QUEUE_OVERRIDE=$queueOverride`nset USER=bot`nset BOT_TMPDIR=c:\tmp`nset PYTHONPATH=c:\clusterfuzz\src`nset ROOT_DIR=c:\clusterfuzz`nset PATH=c:\java\bin;c:\python27;c:\nodejs;c:\Program Files (x86)\Windows Kits\10\Debuggers\x64;c:\Program Files (x86)\Google\Cloud SDK\google-cloud-sdk\bin;%PATH%`nc: `ncd \ `ncd clusterfuzz\src\python\bot\startup `npython -W ignore run.py"
 Set-Content c:\startup.bat $s
 
 if (!(Test-Path ($scriptExecutedFilePath))) {
@@ -138,14 +136,6 @@ if (!(Test-Path ($fileName))) {
   $webClient.DownloadFile("https://commondatastorage.googleapis.com/clusterfuzz-data/python-2.7.15.amd64.msi", $fileName)
   Remove-Item c:\python27 -Recurse -ErrorAction Ignore
   cmd /c msiexec /qn /i $fileName TARGETDIR=c:\python27
-}
-
-# Download Appengine SDK.
-$fileName = "$tmp\$appengineFile"
-if (!(Test-Path ($fileName))) {
-  $webClient.DownloadFile("https://commondatastorage.googleapis.com/clusterfuzz-data/$appengineFile", $fileName)
-  Remove-Item $appengineDir -Recurse -ErrorAction Ignore
-  unzip $fileName
 }
 
 # Install specific python package versions.

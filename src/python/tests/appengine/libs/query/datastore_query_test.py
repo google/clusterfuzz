@@ -19,6 +19,7 @@ import mock
 import unittest
 
 from google.cloud import ndb
+import six
 
 from libs.query import datastore_query
 from tests.test_libs import test_utils
@@ -221,6 +222,7 @@ class QueryMockTest(unittest.TestCase):
       query = original_query(*args, **kwargs)
       item = mock.MagicMock()
       item.key = ndb.Key(TestDatastoreModel, len(self.queries))
+      item.datetime_value = datetime.datetime.utcnow()
 
       self.queries.append([query])
       return QueryWrapper(query, [item], self.queries[-1])
@@ -241,13 +243,13 @@ class QueryMockTest(unittest.TestCase):
     query.fetch_page(page=1, page_size=2, projection=['tokens'], more_limit=4)
 
     self.assertIsInstance(self.queries[0][-1].filters, ndb.AND)
-    self.assertItemsEqual([
+    six.assertCountEqual(self, [
         ('tokens', '=', 'a'),
         ('boolean_value', '=', True),
     ], [f.__getnewargs__() for f in self.queries[0][-1].filters])
 
     self.assertIsInstance(self.queries[1][-1].filters, ndb.AND)
-    self.assertItemsEqual([
+    six.assertCountEqual(self, [
         ('tokens', '=', 'b'),
         ('boolean_value', '=', True),
     ], [f.__getnewargs__() for f in self.queries[1][-1].filters])
@@ -258,7 +260,7 @@ class QueryMockTest(unittest.TestCase):
     for item in [f.__getnewargs__() for f in self.queries[2][-1].filters]:
       expected.append((item[0], item[1], repr(item[2])))
 
-    self.assertItemsEqual([
+    six.assertCountEqual(self, [
         ('__key__', '=',
          '<Key(\'TestDatastoreModel\', 0), project=test-clusterfuzz>'),
         ('__key__', '=',

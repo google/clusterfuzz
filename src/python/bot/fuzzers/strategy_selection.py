@@ -44,8 +44,10 @@ class StrategyPool(object):
     self.strategy_names = set()
 
   def add_strategy(self, strategy_tuple):
-    """Add a strategy into our existing strategy pool."""
-    self.strategy_names.add(strategy_tuple.name)
+    """Add a strategy into our existing strategy pool unless it is disabled."""
+    if strategy_tuple.name not in environment.get_value('DISABLED_STRATEGIES',
+                                                        '').split(','):
+      self.strategy_names.add(strategy_tuple.name)
 
   def do_strategy(self, strategy_tuple):
     """Boolean value representing whether or not a strategy is in our strategy

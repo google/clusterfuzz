@@ -17,6 +17,7 @@ from builtins import str
 
 import collections
 import os
+import sys
 
 # Chromedriver related constants.
 CHROMEDRIVER_VERSION_URL = (
@@ -41,7 +42,11 @@ PLATFORMS = collections.OrderedDict([
     ('macos', ('macosx_10_10_intel', 'macosx_10_12_x86_64')),
     ('linux', 'manylinux1_x86_64'),
 ])
-ABIS = {'linux': 'cp27mu', 'windows': 'cp27m', 'macos': 'cp27m'}
+
+if sys.version_info.major == 2:
+  ABIS = {'linux': 'cp27mu', 'windows': 'cp27m', 'macos': 'cp27m'}
+else:
+  ABIS = {'linux': 'cp37m', 'windows': 'cp37m', 'macos': 'cp37m'}
 
 # Config directory to use for tests.
 TEST_CONFIG_DIR = os.path.join('configs', 'test')

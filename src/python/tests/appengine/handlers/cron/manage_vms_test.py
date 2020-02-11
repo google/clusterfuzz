@@ -23,6 +23,7 @@ import mock
 import unittest
 
 from google.cloud import ndb
+import six
 
 from datastore import data_types
 from google_cloud_utils import compute_engine_projects
@@ -281,10 +282,10 @@ def expected_instance_template(gce_project_name,
   if tls_cert:
     expected['properties']['metadata']['items'].extend([{
         'key': 'tls-cert',
-        'value': project_name + '_cert',
+        'value': project_name.encode() + b'_cert',
     }, {
         'key': 'tls-key',
-        'value': project_name + '_key',
+        'value': project_name.encode() + b'_key',
     }])
 
   return expected
@@ -306,13 +307,11 @@ class CronTest(unittest.TestCase):
         'base.utils.is_oss_fuzz',
         'handlers.cron.helpers.bot_manager.BotManager',
         'system.environment.is_running_on_app_engine',
-        'google.appengine.api.app_identity.get_application_id',
         'google_cloud_utils.compute_engine_projects.load_project',
     ])
 
     self.mock.is_oss_fuzz.return_value = True
     self.mock.is_running_on_app_engine.return_value = True
-    self.mock.get_application_id.return_value = 'clusterfuzz-external'
     self.mock.load_project.return_value = compute_engine_projects.Project(
         project_id='clusterfuzz-external',
         clusters=[
@@ -517,8 +516,8 @@ class CronTest(unittest.TestCase):
       data_types.WorkerTlsCert(
           id=project_name,
           project_name=project_name,
-          cert_contents=project_name + '_cert',
-          key_contents=project_name + '_key').put()
+          cert_contents=project_name.encode() + b'_cert',
+          key_contents=project_name.encode() + b'_key').put()
 
     data_types.OssFuzzProjectInfo(id='old_proj', name='old_proj').put()
 
@@ -847,7 +846,7 @@ class CronTest(unittest.TestCase):
             size=4,
             wait_for_instances=False)
 
-    self.assertItemsEqual([{
+    six.assertCountEqual(self, [{
         'instance_num': 0,
         'worker_name': u'oss-fuzz-linux-zone3-worker-proj1-0001',
         'project_name': u'proj1',

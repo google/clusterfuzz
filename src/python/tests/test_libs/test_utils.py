@@ -211,8 +211,8 @@ def wait_for_emulator_ready(proc,
 def start_cloud_emulator(emulator, args=None, data_dir=None):
   """Start a cloud emulator."""
   ready_indicators = {
-      'datastore': 'is now running',
-      'pubsub': 'Server started',
+      'datastore': b'is now running',
+      'pubsub': b'Server started',
   }
 
   default_flags = {
@@ -255,8 +255,8 @@ def start_cloud_emulator(emulator, args=None, data_dir=None):
   ])
 
   for line in env_vars.splitlines():
-    key, value = line.split()[1].split('=')
-    os.environ[key.strip()] = value.strip()
+    key, value = line.split()[1].split(b'=')
+    os.environ[key.strip().decode('utf-8')] = value.strip().decode('utf-8')
 
   return EmulatorInstance(proc, port, thread, cleanup_dir)
 

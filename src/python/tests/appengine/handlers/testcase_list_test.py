@@ -13,6 +13,7 @@
 # limitations under the License.
 """testcase_list tests."""
 from builtins import range
+from builtins import str
 import datetime
 import mock
 import unittest
@@ -128,7 +129,7 @@ class GroupFilterTest(unittest.TestCase):
       self.filter.add(self.query, {'group': '123x4'})
 
     self.query.filter.assert_has_calls([])
-    self.assertEqual("'group' must be int.", cm.exception.message)
+    self.assertEqual("'group' must be int.", str(cm.exception))
 
 
 @test_utils.with_cloud_emulators('datastore')

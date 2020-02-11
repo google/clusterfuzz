@@ -32,7 +32,7 @@ CORPUS_MUTATION_RADAMSA_STRATEGY = Strategy(
 CORPUS_MUTATION_ML_RNN_STRATEGY = Strategy(
     name='corpus_mutations_ml_rnn', probability=0.50, manually_enable=False)
 DATAFLOW_TRACING_STRATEGY = Strategy(
-    name='dataflow_tracing', probability=0.90, manually_enable=True)
+    name='dataflow_tracing', probability=0.50, manually_enable=True)
 CORPUS_SUBSET_STRATEGY = Strategy(
     name='corpus_subset', probability=0.50, manually_enable=True)
 FORK_STRATEGY = Strategy(name='fork', probability=0.50, manually_enable=False)

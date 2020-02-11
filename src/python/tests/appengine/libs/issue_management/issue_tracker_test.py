@@ -18,6 +18,8 @@ from builtins import str
 import mock
 import unittest
 
+import six
+
 from libs.issue_management.issue_tracker import IssueTracker
 from libs.issue_management.issue_tracker import LabelStore
 
@@ -28,69 +30,69 @@ class LabelStoreTest(unittest.TestCase):
   def test_init_and_iter(self):
     """Test initializing and iterating LabelStore."""
     store = LabelStore(['label1', 'label2'])
-    self.assertItemsEqual([], store.added)
-    self.assertItemsEqual([], store.removed)
-    self.assertItemsEqual(['label1', 'label2'], list(store))
+    six.assertCountEqual(self, [], store.added)
+    six.assertCountEqual(self, [], store.removed)
+    six.assertCountEqual(self, ['label1', 'label2'], list(store))
 
   def test_add(self):
     """Test adding items."""
     store = LabelStore()
     store.add('laBel1')
-    self.assertItemsEqual(['laBel1'], store)
-    self.assertItemsEqual(['laBel1'], store.added)
-    self.assertItemsEqual([], store.removed)
+    six.assertCountEqual(self, ['laBel1'], store)
+    six.assertCountEqual(self, ['laBel1'], store.added)
+    six.assertCountEqual(self, [], store.removed)
 
     store.add('label2')
-    self.assertItemsEqual(['laBel1', 'label2'], store)
-    self.assertItemsEqual(['laBel1', 'label2'], store.added)
-    self.assertItemsEqual([], store.removed)
+    six.assertCountEqual(self, ['laBel1', 'label2'], store)
+    six.assertCountEqual(self, ['laBel1', 'label2'], store.added)
+    six.assertCountEqual(self, [], store.removed)
 
     store.add('labEl2')
-    self.assertItemsEqual(['laBel1', 'labEl2'], store)
-    self.assertItemsEqual(['laBel1', 'labEl2'], store.added)
-    self.assertItemsEqual([], store.removed)
+    six.assertCountEqual(self, ['laBel1', 'labEl2'], store)
+    six.assertCountEqual(self, ['laBel1', 'labEl2'], store.added)
+    six.assertCountEqual(self, [], store.removed)
 
   def test_remove(self):
     """Test removing items."""
     store = LabelStore(['laBel1', 'label2', 'Label3'])
     store.remove('Label1')
-    self.assertItemsEqual(['label2', 'Label3'], store)
-    self.assertItemsEqual([], store.added)
-    self.assertItemsEqual(['Label1'], store.removed)
+    six.assertCountEqual(self, ['label2', 'Label3'], store)
+    six.assertCountEqual(self, [], store.added)
+    six.assertCountEqual(self, ['Label1'], store.removed)
 
     store.remove('Label2')
-    self.assertItemsEqual(['Label3'], store)
-    self.assertItemsEqual([], store.added)
-    self.assertItemsEqual(['Label1', 'Label2'], store.removed)
+    six.assertCountEqual(self, ['Label3'], store)
+    six.assertCountEqual(self, [], store.added)
+    six.assertCountEqual(self, ['Label1', 'Label2'], store.removed)
 
     store.remove('LaBel2')
-    self.assertItemsEqual(['Label3'], store)
-    self.assertItemsEqual([], store.added)
-    self.assertItemsEqual(['Label1', 'Label2'], store.removed)
+    six.assertCountEqual(self, ['Label3'], store)
+    six.assertCountEqual(self, [], store.added)
+    six.assertCountEqual(self, ['Label1', 'Label2'], store.removed)
 
     store.remove('Label4')
-    self.assertItemsEqual(['Label3'], store)
-    self.assertItemsEqual([], store.added)
-    self.assertItemsEqual(['Label1', 'Label2'], store.removed)
+    six.assertCountEqual(self, ['Label3'], store)
+    six.assertCountEqual(self, [], store.added)
+    six.assertCountEqual(self, ['Label1', 'Label2'], store.removed)
 
   def test_add_and_remove(self):
     """Test both adding and removing."""
     store = LabelStore(['laBel1', 'label2', 'Label3'])
     store.remove('Label1')
-    self.assertItemsEqual(['label2', 'Label3'], store)
-    self.assertItemsEqual([], store.added)
-    self.assertItemsEqual(['Label1'], store.removed)
+    six.assertCountEqual(self, ['label2', 'Label3'], store)
+    six.assertCountEqual(self, [], store.added)
+    six.assertCountEqual(self, ['Label1'], store.removed)
 
     store.add('label1')
-    self.assertItemsEqual(['label1', 'label2', 'Label3'], store)
-    self.assertItemsEqual([], store.added)
-    self.assertItemsEqual([], store.removed)
+    six.assertCountEqual(self, ['label1', 'label2', 'Label3'], store)
+    six.assertCountEqual(self, [], store.added)
+    six.assertCountEqual(self, [], store.removed)
 
     store.remove('Label1')
     store.add('label4')
-    self.assertItemsEqual(['label2', 'Label3', 'label4'], store)
-    self.assertItemsEqual(['label4'], store.added)
-    self.assertItemsEqual(['Label1'], store.removed)
+    six.assertCountEqual(self, ['label2', 'Label3', 'label4'], store)
+    six.assertCountEqual(self, ['label4'], store.added)
+    six.assertCountEqual(self, ['Label1'], store.removed)
 
   def test_reset(self):
     """Test reset."""
@@ -100,14 +102,14 @@ class LabelStoreTest(unittest.TestCase):
     store.remove('label1')
 
     store.reset_tracking()
-    self.assertItemsEqual([], store.added)
-    self.assertItemsEqual([], store.removed)
+    six.assertCountEqual(self, [], store.added)
+    six.assertCountEqual(self, [], store.removed)
 
   def test_remove_by_prefix(self):
     """Test remove_by_prefix."""
     store = LabelStore(['p-0', 'P-1', 'Q-2'])
     store.remove_by_prefix('p-')
-    self.assertItemsEqual(['Q-2'], store)
+    six.assertCountEqual(self, ['Q-2'], store)
 
   def test_in(self):
     """Test in operator."""

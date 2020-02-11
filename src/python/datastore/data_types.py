@@ -1295,6 +1295,12 @@ class CoverageInformation(Model):
                        coverage_information_key(self.fuzzer, self.date))
 
 
+class CorpusTag(Model):
+  """Corpus Tags for sharing corpora between fuzz targets."""
+  tag = StringProperty()
+  fully_qualified_fuzz_target_name = StringProperty()
+
+
 def coverage_information_date_to_string(date):
   """Returns string representation of the date in a format used for coverage."""
   return date.strftime(COVERAGE_INFORMATION_DATE_FORMAT)

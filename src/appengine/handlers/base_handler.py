@@ -70,8 +70,10 @@ class JsonEncoder(json.JSONEncoder):
       return obj.to_dict()
     elif isinstance(obj, cgi.FieldStorage):
       return str(obj)
-    else:
-      raise Exception('Cannot serialise %s' % obj)
+    elif isinstance(obj, bytes):
+      return obj.decode('utf-8')
+
+    return json.JSONEncoder.default(self, obj)
 
 
 def format_time(dt):
@@ -90,7 +92,8 @@ def split_br(text):
 
 def encode_json(value):
   """Dump base64-encoded JSON string (to avoid XSS)."""
-  return base64.b64encode(json.dumps(value, cls=JsonEncoder))
+  return base64.b64encode(json.dumps(
+      value, cls=JsonEncoder).encode('utf-8')).decode('utf-8')
 
 
 _JINJA_ENVIRONMENT = jinja2.Environment(
@@ -216,7 +219,7 @@ class Handler(webapp2.RequestHandler):
 
       status = 500
       values = {
-          'message': exception.message,
+          'message': str(exception),
           'email': helpers.get_user_email(),
           'traceDump': traceback.format_exc(),
           'status': status,
@@ -241,7 +244,7 @@ class Handler(webapp2.RequestHandler):
         self.render_json(values, status)
       else:
         if status == 403 or status == 401:
-          self.render_forbidden(exception.message)
+          self.render_forbidden(str(exception))
         else:
           self.render('error.html', values, status)
     except Exception:
@@ -250,7 +253,7 @@ class Handler(webapp2.RequestHandler):
   def handle_exception_exception(self):
     """Catch exception in handle_exception and format it properly."""
     exception = sys.exc_info()[1]
-    values = {'message': exception.message, 'traceDump': traceback.format_exc()}
+    values = {'message': str(exception), 'traceDump': traceback.format_exc()}
     logging.exception(exception)
     if helpers.should_render_json(
         self.request.headers.get('accept', ''),
@@ -259,7 +262,7 @@ class Handler(webapp2.RequestHandler):
     else:
       self.render('error.html', values, 500)
 
-  def redirect(self, url, **kwargs):
+  def redirect(self, url, **kwargs):  # pylint: disable=arguments-differ
     """Explicitly converts url to 'str', because webapp2.RequestHandler.redirect
     strongly requires 'str' but url might be an unicode string."""
     url = str(url)
@@ -298,6 +301,7 @@ class GcsUploadHandler(Handler):
   """A handler which uploads files to GCS."""
 
   def __init__(self, request, response):
+    super(GcsUploadHandler, self).__init__()
     self.initialize(request, response)
     self.upload = None
 

@@ -283,7 +283,7 @@ def get_remote_sha():
   """Get remote sha of origin/master."""
   _, remote_sha_line = common.execute('git ls-remote origin refs/heads/master')
 
-  return re.split(r'\s+', remote_sha_line)[0]
+  return re.split(br'\s+', remote_sha_line)[0]
 
 
 def is_diff_origin_master():
@@ -296,14 +296,20 @@ def is_diff_origin_master():
   return diff_output.strip() or remote_sha.strip() != local_sha.strip()
 
 
-def _staging_deployment_helper(deploy_go):
+def _staging_deployment_helper(deploy_go, python3=False):
   """Helper for staging deployment."""
   config = local_config.Config(local_config.GAE_CONFIG_PATH)
   project = config.get('application_id')
 
   print('Deploying %s to staging.' % project)
   deployment_config = config.sub_config('deployment')
-  yaml_paths = deployment_config.get_absolute_path('staging')
+
+  if python3:
+    path = 'staging3'
+  else:
+    path = 'staging'
+
+  yaml_paths = deployment_config.get_absolute_path(path)
   yaml_paths = appengine.filter_yaml_paths(yaml_paths, deploy_go)
 
   _deploy_app_staging(project, yaml_paths)
@@ -373,7 +379,7 @@ def execute(args):
   # Build templates before deployment.
   appengine.build_templates()
 
-  if not is_ci and not args.staging:
+  if not is_ci and not (args.staging or args.staging3):
     if is_diff_origin_master():
       if args.force:
         print('You are not on origin/master. --force is used. Continue.')
@@ -385,7 +391,7 @@ def execute(args):
         print('You are not on origin/master. Please fix or use --force.')
         sys.exit(1)
 
-  if args.staging:
+  if args.staging or args.staging3:
     revision = common.compute_staging_revision()
     platforms = ['linux']  # No other platforms required.
   elif args.prod:
@@ -422,7 +428,9 @@ def execute(args):
 
   deploy_go = args.with_go
   if args.staging:
-    _staging_deployment_helper(deploy_go)
+    _staging_deployment_helper(deploy_go, python3=False)
+  elif args.staging3:
+    _staging_deployment_helper(deploy_go, python3=True)
   else:
     _prod_deployment_helper(args.config_dir, package_zip_paths, deploy_go,
                             deploy_appengine)

@@ -20,8 +20,9 @@ from builtins import str
 # instead of the default 'ascii' encoding. This must happen before any
 # other imports.
 import sys
-reload(sys)
-sys.setdefaultencoding('utf-8')
+if sys.version_info.major == 2:
+  reload(sys)
+  sys.setdefaultencoding('utf-8')
 
 # Before any other imports, we must fix the path. Some libraries might expect
 # to be able to import dependencies directly, but we must store these in

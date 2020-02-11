@@ -1,0 +1,53 @@
+random output from the fuzzee
+an other line of output
+and a third one, for good measure!
+
+ === Uncaught Python exception: ===
+FuzzError: Traceback (most recent call last):
+  File "/python/fuzzer.py", line 69, in Wrapper
+    ret = target(data)
+  File "/fuzzers/fuzz_tar.py", line 24, in TestOneInput
+    with tarfile.open(path) as mytar:
+  File "<embedded stdlib>/tarfile.py", line 1571, in open
+    return func(name, "r", fileobj, **kwargs)
+  File "<embedded stdlib>/tarfile.py", line 1643, in gzopen
+    t = cls.taropen(name, mode, fileobj, **kwargs)
+  File "<embedded stdlib>/tarfile.py", line 1619, in taropen
+    return cls(name, mode, fileobj, **kwargs)
+  File "<embedded stdlib>/tarfile.py", line 1482, in __init__
+    self.firstmember = self.next()
+  File "<embedded stdlib>/tarfile.py", line 2297, in next
+    tarinfo = self.tarinfo.fromtarfile(self)
+  File "<embedded stdlib>/tarfile.py", line 1092, in fromtarfile
+    buf = tarfile.fileobj.read(BLOCKSIZE)
+  File "<embedded stdlib>/gzip.py", line 276, in read
+    return self._buffer.read(size)
+  File "<embedded stdlib>/_compression.py", line 68, in readinto
+    data = self.read(len(byte_view))
+  File "<embedded stdlib>/gzip.py", line 463, in read
+    if not self._read_gzip_header():
+  File "<embedded stdlib>/gzip.py", line 421, in _read_gzip_header
+    self._read_exact(extra_len)
+  File "<embedded stdlib>/gzip.py", line 400, in _read_exact
+    raise EOFError("Compressed file ended before the "
+EOFError: Compressed file ended before the end-of-stream marker was reached
+
+AddressSanitizer:DEADLYSIGNAL
+=================================================================
+==216753==ERROR: AddressSanitizer: ABRT on unknown address 0x97cb400034eb1 (pc 0x7efc3e145849 bp 0x7ffc9776f1d0 sp 0x7ffc9776f1c8 T0)
+    #0 0x7efc3e145849 in raise (/usr/grte/v4/lib64/libpthread.so.0+0xf849)
+    #1 0x5629075d5730 in LLVMFuzzerTestOneInput security/fuzzing/blaze/python_fuzzer_impl.cc:111:5
+    #2 0x562907ad7a56 in fuzzer::Fuzzer::ExecuteCallback(unsigned char const*, unsigned long) third_party/llvm/llvm-project/compiler-rt/lib/fuzzer/FuzzerLoop.cpp:556:15
+    #3 0x562907ad7125 in fuzzer::Fuzzer::RunOne(unsigned char const*, unsigned long, bool, fuzzer::InputInfo*, bool*) third_party/llvm/llvm-project/compiler-rt/lib/fuzzer/FuzzerLoop.cpp:470:3
+    #4 0x562907ad92b4 in fuzzer::Fuzzer::ReadAndExecuteSeedCorpora(std::__u::vector<fuzzer::SizedFile, fuzzer::fuzzer_allocator<fuzzer::SizedFile> >&) third_party/llvm/llvm-project/compiler-rt/lib/fuzzer/FuzzerLoop.cpp:765:7
+    #5 0x562907ad95f9 in fuzzer::Fuzzer::Loop(std::__u::vector<fuzzer::SizedFile, fuzzer::fuzzer_allocator<fuzzer::SizedFile> >&) third_party/llvm/llvm-project/compiler-rt/lib/fuzzer/FuzzerLoop.cpp:792:3
+    #6 0x562907ac8c48 in fuzzer::FuzzerDriver(int*, char***, int (*)(unsigned char const*, unsigned long)) third_party/llvm/llvm-project/compiler-rt/lib/fuzzer/FuzzerDriver.cpp:832:6
+    #7 0x562907abb502 in main third_party/llvm/llvm-project/compiler-rt/lib/fuzzer/FuzzerMain.cpp:19:10
+    #8 0x7efc3df75bbc in __libc_start_main (/usr/grte/v4/lib64/libc.so.6+0x38bbc)
+    #9 0x5629064d47e8 in _start /usr/grte/v4/debug-src/src/csu/../sysdeps/x86_64/start.S:108
+
+AddressSanitizer can not provide additional info.
+SUMMARY: AddressSanitizer: ABRT (/usr/grte/v4/lib64/libpthread.so.0+0xf849) in raise
+==216753==ABORTING
+MS: 0 ; base unit: 0000000000000000000000000000000000000000
+artifact_prefix='./'; Test unit written to ./crash-fa60b4aff2c5e904bf41b420614260d5d11e623b

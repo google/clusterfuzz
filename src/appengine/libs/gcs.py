@@ -54,7 +54,7 @@ def sign_data(data):
       name=service_account,
       body={
           'delegates': [],
-          'payload': base64.b64encode(data),
+          'payload': base64.b64encode(data).decode('utf-8'),
       }).execute()
 
   try:
@@ -100,13 +100,13 @@ def get_signed_url(bucket_name,
     service_account_name = 'service_account'
   else:
     url = STORAGE_URL % bucket_name
-    signed_blob = sign_data(str(blob))
+    signed_blob = sign_data(blob.encode('utf-8'))
     service_account_name = utils.service_account_email()
 
   params = {
       'GoogleAccessId': service_account_name,
       'Expires': timestamp,
-      'Signature': base64.b64encode(signed_blob),
+      'Signature': base64.b64encode(signed_blob).decode('utf-8'),
   }
 
   return str(url + '/' + path + '?' + urllib.parse.urlencode(params))
@@ -132,7 +132,7 @@ def prepare_upload(bucket_name, path, expiry=DEFAULT_URL_VALID_SECONDS):
       json.dumps({
           'expiration': expiration_time.isoformat() + 'Z',
           'conditions': conditions,
-      }))
+      }).encode('utf-8'))
 
   local_server = environment.get_value('LOCAL_GCS_SERVER_HOST')
   if local_server:

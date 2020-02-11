@@ -44,7 +44,8 @@ def _get_stats_from_log(log_path,
   if arguments is None:
     arguments = []
 
-  log_lines = utils.read_data_from_file(log_path, eval_data=False).splitlines()
+  log_lines = utils.decode_to_unicode(
+      utils.read_data_from_file(log_path, eval_data=False)).splitlines()
   stats = libfuzzer.parse_log_stats(log_lines)
   stats.update(
       performance_stats.parse_performance_features(log_lines, strategies,

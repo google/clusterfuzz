@@ -75,7 +75,7 @@ def _execute_command_and_track_error(command):
   if returncode != 0:
     _error()
 
-  return output
+  return output.decode('utf-8')
 
 
 def license_validate(file_path):
@@ -184,7 +184,9 @@ def execute(_):
   else:
     _, output = common.execute('git diff --name-only FETCH_HEAD')
 
-  file_paths = [f for f in output.splitlines() if os.path.exists(f)]
+  file_paths = [
+      f.decode('utf-8') for f in output.splitlines() if os.path.exists(f)
+  ]
   py_changed_file_paths = [
       f for f in file_paths
       if f.endswith('.py') and not is_auto_generated_file(f)
@@ -201,7 +203,7 @@ def execute(_):
 
     # TODO(mbarbella): Remove futurize checks after migrating to Python 3.
     # Skip files that cause futurize to report false positive issues.
-    if file_path.endswith('ndb_patcher.py'):
+    if file_path.endswith(os.path.join('appengine', 'main.py')):
       continue
 
     futurize_excludes = ' '.join(

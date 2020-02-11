@@ -15,6 +15,7 @@
 
 import unittest
 
+import six
 import webapp2
 import webtest
 
@@ -41,51 +42,53 @@ class SyncAdminsTest(unittest.TestCase):
     data_types.Admin(id='user1@email.com', email='keep@email.com').put()
 
     self.mock.is_cron.return_value = True
-    self.mock.build().projects().getIamPolicy().execute.return_value = {
-        'version':
-            1,
-        'etag':
-            'etag',
-        'bindings': [
-            {
-                'role':
-                    'roles/appengine.appAdmin',
-                'members': [
-                    'user:user1@email.com',
-                    'serviceAccount:service_account@gserviceaccount.com',
-                ]
-            },
-            {
-                'role': 'roles/appengine.deployer',
-                'members': ['user:not_added@email.com',]
-            },
-            {
-                'role': 'roles/appengine.serviceAdmin',
-                'members': ['user:not_added@email.com',]
-            },
-            {
-                'role': 'roles/editor',
-                'members': [
-                    'user:user2@email.com',
-                    'user:user3@email.com',
-                ]
-            },
-            {
-                'role': 'roles/owner',
-                'members': ['user:user4@email.com',]
-            },
-            {
-                'role': 'roles/viewer',
-                'members': ['user:user5@email.com',]
-            },
-        ]
-    }
+    self.mock.build(
+        serviceName='',
+        version='').projects().getIamPolicy().execute.return_value = {
+            'version':
+                1,
+            'etag':
+                'etag',
+            'bindings': [
+                {
+                    'role':
+                        'roles/appengine.appAdmin',
+                    'members': [
+                        'user:user1@email.com',
+                        'serviceAccount:service_account@gserviceaccount.com',
+                    ]
+                },
+                {
+                    'role': 'roles/appengine.deployer',
+                    'members': ['user:not_added@email.com',]
+                },
+                {
+                    'role': 'roles/appengine.serviceAdmin',
+                    'members': ['user:not_added@email.com',]
+                },
+                {
+                    'role': 'roles/editor',
+                    'members': [
+                        'user:user2@email.com',
+                        'user:user3@email.com',
+                    ]
+                },
+                {
+                    'role': 'roles/owner',
+                    'members': ['user:user4@email.com',]
+                },
+                {
+                    'role': 'roles/viewer',
+                    'members': ['user:user5@email.com',]
+                },
+            ]
+        }
 
   def test_sync_admins(self):
     """Test syncing admins."""
     self.app.get('/sync-admins')
     admins = data_types.Admin.query()
-    self.assertItemsEqual([
+    six.assertCountEqual(self, [
         'user1@email.com',
         'user2@email.com',
         'user3@email.com',

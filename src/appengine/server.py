@@ -36,7 +36,6 @@ from handlers import home
 from handlers import issue_redirector
 from handlers import jobs
 from handlers import login
-from handlers import parse_stacktrace
 from handlers import report_csp_failure
 from handlers import revisions_info
 from handlers import testcase_list
@@ -188,7 +187,6 @@ _ROUTES = [
     ('/logout', login.LogoutHandler),
     ('/update-job', jobs.UpdateJob),
     ('/update-job-template', jobs.UpdateJobTemplate),
-    ('/parse_stacktrace', parse_stacktrace.Handler),
     ('/performance-report/(.+)/(.+)/(.+)', show_performance_report.Handler),
     ('/report-csp-failure', report_csp_failure.ReportCspFailureHandler),
     ('/reproduce-tool/get-config', get_config.Handler),

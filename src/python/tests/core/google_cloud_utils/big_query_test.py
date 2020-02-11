@@ -620,7 +620,7 @@ class QueryTest(unittest.TestCase):
       client.query('sql', timeout=10, max_results=100, offset=50)
 
     self.assertEqual("Timeout: the query doesn't finish within 10 seconds.",
-                     cm.exception.message)
+                     str(cm.exception))
 
     self.query.execute.assert_called_once_with()
     self.jobs.query.assert_called_once_with(
