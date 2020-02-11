@@ -640,7 +640,7 @@ def do_corpus_pruning(context, last_execution_failed, revision):
       revision=environment.get_value('APP_REVISION'))
 
   sources = ','.join([
-      fuzzer.target.project_qualified_name()
+      fuzzer.fuzz_target.project_qualified_name()
       for fuzzer in context.cross_pollinate_fuzzers
   ])
 
