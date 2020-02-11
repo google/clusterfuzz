@@ -83,19 +83,19 @@ class DeployTest(fake_filesystem_unittest.TestCase):
     """Mock execute."""
     if 'app deploy' in command:
       if self.deploy_failure_count == 0:
-        return (0, 'ok')
+        return (0, b'ok')
 
       self.deploy_failure_count -= 1
-      return (1, 'failure')
+      return (1, b'failure')
 
     if 'app describe' in command:
-      return (0, 'us-central')
+      return (0, b'us-central')
 
     if 'describe redis-instance' in command:
-      return (0, 'redis-ip')
+      return (0, b'redis-ip')
 
     if 'describe' in command:
-      return (1, '')
+      return (1, b'')
 
     if 'versions list' in command:
       return (0,
@@ -136,9 +136,9 @@ class DeployTest(fake_filesystem_unittest.TestCase):
                       },
                       'traffic_split': 1.0,
                   },
-              ]))
+              ]).encode())
 
-    return (0, '')
+    return (0, b'')
 
   def test_app(self):
     """Test deploy app."""
@@ -427,9 +427,9 @@ class GetRemoteShaTest(unittest.TestCase):
   def test_get(self):
     """Test get_remote_sha."""
     self.mock.execute.return_value = (
-        0, 'cbb7f93c7ddc1c3a3c98f45ebf5c3490a0c38e95        refs/heads/master')
+        0, b'cbb7f93c7ddc1c3a3c98f45ebf5c3490a0c38e95        refs/heads/master')
 
-    self.assertEqual('cbb7f93c7ddc1c3a3c98f45ebf5c3490a0c38e95',
+    self.assertEqual(b'cbb7f93c7ddc1c3a3c98f45ebf5c3490a0c38e95',
                      deploy.get_remote_sha())
 
 

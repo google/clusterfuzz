@@ -1,4 +1,5 @@
-antlr4-python2-runtime==4.7.2
+antlr4-python2-runtime==4.7.2; python_version < '3.0'
+antlr4-python3-runtime==4.7.2; python_version >= '3.0'
 # TODO(aarya): Remove backports.lzma after python 3 migration.
 backports.lzma==0.0.13; sys_platform != 'win32'
 configparser==3.7.4
