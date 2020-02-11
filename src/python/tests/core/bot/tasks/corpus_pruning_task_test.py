@@ -168,10 +168,7 @@ class CorpusPruningTest(unittest.TestCase, BaseTest):
     # Set up mock table for BigQuery insert.
     underlying = mock.MagicMock()
     tabledata = mock.MagicMock()
-    insert_all = mock.MagicMock()
     underlying.tabledata.return_value = tabledata
-    tabledata.insertAll.return_value = insert_all
-    insert_all.execute.return_value = {'test': 1}
     self.mock.get_api_client.return_value = underlying
 
     corpus_pruning_task.execute_task('libFuzzer_test_fuzzer',
