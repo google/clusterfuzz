@@ -639,11 +639,21 @@ def do_corpus_pruning(context, last_execution_failed, revision):
       fuzzer_binary_name=fuzzer_binary_name,
       revision=environment.get_value('APP_REVISION'))
 
+  sources = ','.join([
+      fuzzer.target.project_qualified_name()
+      for fuzzer in context.cross_pollinate_fuzzers
+  ])
+
+  # TODO(mpherman): Add way to get tags string when tagged corpora are done.
+  tags = ''
+
   if pruner_stats and pollinator_stats:
-    # TODO(mpherman) : Change tagged once tagged cross-pollination works.
+    # TODO(mpherman) : Change method once tagged corpora are done.
     bigquery_row = {
         'project_qualified_name': project_qualified_name,
         'method': 'random',
+        'sources': sources,
+        'tags': tags,
         'initial_corpus_size': pre_pollination_corpus_size,
         'corpus_size': minimized_corpus_size_units,
         'initial_edge_coverage': pruner_stats['edge_coverage'],

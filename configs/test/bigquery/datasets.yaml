@@ -239,6 +239,10 @@ resources:
           type: STRING
         - name: method
           type: STRING
+        - name: sources
+          type: STRING
+        - name: tags
+          type: STRING
         - name: initial_corpus_size
           type: INTEGER
         - name: corpus_size

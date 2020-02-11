@@ -248,6 +248,8 @@ class CorpusPruningTest(unittest.TestCase, BaseTest):
                 'json': {
                     'edge_coverage': 0,
                     'method': 'random',
+                    'sources': '',
+                    'tags': '',
                     'initial_feature_coverage': 0,
                     'feature_coverage': 0,
                     'project_qualified_name': 'test_fuzzer',
