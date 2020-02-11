@@ -63,6 +63,7 @@ class BaseTest(object):
         'fuzzing.corpus_manager.FuzzTargetCorpus.rsync_from_disk',
         'google_cloud_utils.blobs.write_blob',
         'google_cloud_utils.storage.write_data',
+        'google_cloud_utils.big_query.get_api_client',
     ])
     self.mock.get.return_value = libFuzzer_engine.LibFuzzerEngine()
     self.mock.rsync_to_disk.side_effect = self._mock_rsync_to_disk
@@ -70,6 +71,12 @@ class BaseTest(object):
     self.mock.update_fuzzer_and_data_bundles.return_value = True
     self.mock.write_blob.return_value = 'key'
     self.mock.backup_corpus.return_value = 'backup_link'
+
+    # Set up mock table for BigQuery insert.
+    self._underlying = mock.MagicMock()
+    self._tabledata = mock.MagicMock()
+    self._underlying.tabledata.return_value = self._tabledata
+    self.mock.get_api_client.return_value = self._underlying
 
     def mocked_unpack_seed_corpus_if_needed(*args, **kwargs):
       """Mock's assert called methods are not powerful enough to ensure that
@@ -158,19 +165,12 @@ class CorpusPruningTest(unittest.TestCase, BaseTest):
     helpers.patch(self, [
         'build_management.build_manager.setup_build',
         'base.utils.get_application_id',
-        'google_cloud_utils.big_query.get_api_client',
     ])
     self.mock.setup_build.side_effect = self._mock_setup_build
     self.mock.get_application_id.return_value = 'project'
 
   def test_prune(self):
     """Basic pruning test."""
-    # Set up mock table for BigQuery insert.
-    underlying = mock.MagicMock()
-    tabledata = mock.MagicMock()
-    underlying.tabledata.return_value = tabledata
-    self.mock.get_api_client.return_value = underlying
-
     corpus_pruning_task.execute_task('libFuzzer_test_fuzzer',
                                      'libfuzzer_asan_job')
 
@@ -239,7 +239,7 @@ class CorpusPruningTest(unittest.TestCase, BaseTest):
 
     self.assertEqual(self.mock.unpack_seed_corpus_if_needed.call_count, 1)
 
-    tabledata.insertAll.assert_called_once_with(
+    self._tabledata.insertAll.assert_called_once_with(
         body={
             'kind':
                 'bigquery#tableDataInsertAllRequest',
