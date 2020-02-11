@@ -237,8 +237,8 @@ resources:
         fields:
         - name: project_qualified_name
           type: STRING
-        - name: tagged
-          type: BOOLEAN
+        - name: method
+          type: STRING
         - name: initial_corpus_size
           type: INTEGER
         - name: corpus_size

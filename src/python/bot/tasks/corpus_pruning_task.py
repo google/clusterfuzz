@@ -643,7 +643,7 @@ def do_corpus_pruning(context, last_execution_failed, revision):
     # TODO(mpherman) : Change tagged once tagged cross-pollination works.
     bigquery_row = {
         'project_qualified_name': project_qualified_name,
-        'tagged': False,
+        'method': 'random',
         'initial_corpus_size': pre_pollination_corpus_size,
         'corpus_size': minimized_corpus_size_units,
         'initial_edge_coverage': pruner_stats['edge_coverage'],

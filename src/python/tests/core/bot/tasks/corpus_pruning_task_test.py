@@ -165,10 +165,10 @@ class CorpusPruningTest(unittest.TestCase, BaseTest):
 
   def test_prune(self):
     """Basic pruning test."""
+    # Set up mock table for BigQuery insert.
     underlying = mock.MagicMock()
     tabledata = mock.MagicMock()
     insert_all = mock.MagicMock()
-
     underlying.tabledata.return_value = tabledata
     tabledata.insertAll.return_value = insert_all
     insert_all.execute.return_value = {'test': 1}
@@ -250,7 +250,7 @@ class CorpusPruningTest(unittest.TestCase, BaseTest):
                 'insertId': None,
                 'json': {
                     'edge_coverage': 0,
-                    'tagged': False,
+                    'method': 'random',
                     'initial_feature_coverage': 0,
                     'feature_coverage': 0,
                     'project_qualified_name': 'test_fuzzer',
