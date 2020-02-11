@@ -1498,7 +1498,7 @@ def parse_log_stats(log_lines):
   log_stats = {}
 
   # Parse libFuzzer generated stats (`-print_final_stats=1`).
-  stats_regex = re.compile(br'stat::([A-Za-z_]+):\s*([^\s]+)')
+  stats_regex = re.compile(r'stat::([A-Za-z_]+):\s*([^\s]+)')
   for line in log_lines:
     match = stats_regex.match(line)
     if not match:
