@@ -107,9 +107,13 @@ def run_one_test_parallel(args):
     test_modules, suppress_output = args
     suite = unittest.loader.TestLoader().loadTestsFromNames(test_modules)
 
-    # We use BufferedWriter as a hack to accept both unicode and str write
-    # arguments.
-    stream = io.BufferedWriter(io.BytesIO())
+    if sys.version_info.major == 2:
+      # We use BufferedWriter as a hack to accept both unicode and str write
+      # arguments.
+      # TODO(ochang): Remove this once migrated to Python 3.
+      stream = io.BufferedWriter(io.BytesIO())
+    else:
+      stream = io.StringIO()
 
     # Verbosity=0 since we cannot see real-time test execution order when tests
     # are executed in parallel.
@@ -120,9 +124,14 @@ def run_one_test_parallel(args):
     print('Done running', tests)
 
     stream.flush()
-    return TestResult(stream.raw.getvalue(), len(result.errors),
-                      len(result.failures), len(result.skipped),
-                      result.testsRun)
+    if sys.version_info.major == 2:
+      # TODO(ochang): Remove this once migrated to Python 3.
+      value = stream.raw.getvalue()
+    else:
+      value = stream.getvalue()
+
+    return TestResult(value, len(result.errors), len(result.failures),
+                      len(result.skipped), result.testsRun)
   except BaseException:
     # Print exception traceback here, as it will be lost otherwise.
     traceback.print_exc()
