@@ -526,11 +526,13 @@ def record_cross_pollination_stats(
     pruner_stats, pollinator_stats, project_qualified_name, sources, tags,
     initial_corpus_size, minimized_corpus_size_units):
   """Log stats about cross pollination in BigQuery."""
+  # TODO(mpherman): Find a way to collect these stats for OSS Fuzz.
+  if environment.is_untrusted_worker():
+    return
   # BigQuery not available in local development.This is necessary because the
   # untrusted runner is in a separate process and can't be easily mocked.
-  # TODO(mpherman): Find a way to collect these stats for OSS Fuzz.
-  if environment.is_untrusted_worker() or environment.get_value(
-      'LOCAL_DEVELOPMENT') or environment.get_value('PY_UNITTESTS'):
+  if environment.get_value('LOCAL_DEVELOPMENT') or environment.get_value(
+      'PY_UNITTESTS'):
     return
 
   if not pruner_stats or not pollinator_stats:
