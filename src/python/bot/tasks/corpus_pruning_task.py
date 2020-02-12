@@ -692,10 +692,10 @@ def do_corpus_pruning(context, last_execution_failed, revision):
             context.fuzz_target.fully_qualified_name())
     ])
 
-
   record_cross_pollination_stats(
       pruner_stats, pollinator_stats, project_qualified_name, sources, tags,
-      pre_pollination_corpus_size, minimized_corpus_size_units)
+      pre_pollination_corpus_size, minimized_corpus_size_units,
+      context.cross_pollination_method)
 
   return result
 
@@ -787,19 +787,21 @@ def _get_cross_pollinate_fuzzers(engine_name, current_fuzzer_name, method):
   target_jobs = list(fuzz_target_utils.get_fuzz_target_jobs(engine=engine_name))
   similar_tagged_targets = corpus_tagging.get_similarly_tagged_fuzzers(
       current_fuzzer_name)
-
+  print("TJs", similar_tagged_targets)
   # Cross Pollinate randomly if there are no similarly tagged targets.
   if similar_tagged_targets:
     # Even if there are similarly tagged targets, only use them half the time.
     if method == 'tagged':
+      print("HERE")
       # Intersect target_jobs and similar_tagged_targets on fully qualified
       # fuzz target name.
       target_jobs = [
           target for target in target_jobs if target.fuzz_target_name in [
-              tagged.fully_quallified_fuzz_target_name
+              tagged.fully_qualified_fuzz_target_name
               for tagged in similar_tagged_targets
           ]
       ]
+      print("target_jobs =", target_jobs)
 
   targets = fuzz_target_utils.get_fuzz_targets_for_target_jobs(target_jobs)
 
@@ -868,6 +870,12 @@ def _save_coverage_information(context, result):
         'Failed to save corpus pruning result: %s.' % repr(e))
 
 
+def choose_cross_pollination_strategy():
+  """Chooses cross pollination strategy. In seperate function to mock for
+    predictable test behaviror."""
+  return random.choice(['random', 'tagged'])
+
+
 def execute_task(full_fuzzer_name, job_type):
   """Execute corpus pruning task."""
   fuzz_target = data_handler.get_fuzz_target(full_fuzzer_name)
@@ -892,8 +900,8 @@ def execute_task(full_fuzzer_name, job_type):
     raise CorpusPruningException(
         'Failed to set up fuzzer %s.' % fuzz_target.engine)
 
-  cross_pollination_method = random.choice(['random', 'tagged'])
-
+  cross_pollination_method = choose_cross_pollination_strategy()
+  print(cross_pollination_method)
   # TODO(unassigned): Use coverage information for better selection here.
   cross_pollinate_fuzzers = _get_cross_pollinate_fuzzers(
       fuzz_target.engine, full_fuzzer_name, cross_pollination_method)

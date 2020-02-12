@@ -18,6 +18,7 @@ from datastore import data_types
 
 def get_fuzz_target_tag(fully_qualified_fuzz_target_name):
   """Get all the tags of a given fuzz target."""
+  print("HI")
   query = data_types.CorpusTag().query()
   query = query.filter(data_types.CorpusTag.fully_qualified_fuzz_target_name ==
                        fully_qualified_fuzz_target_name)
@@ -27,6 +28,9 @@ def get_fuzz_target_tag(fully_qualified_fuzz_target_name):
 def get_targets_with_tag(tag):
   """Get all fuzz targets with a given tag."""
   query = data_types.CorpusTag().query()
+  print("ALL: ")
+  print(query.fetch())
+  print()
   query = query.filter(data_types.CorpusTag.tag == tag)
   return query.fetch()
 
@@ -34,6 +38,10 @@ def get_targets_with_tag(tag):
 def get_similarly_tagged_fuzzers(current_fully_qualified_fuzzer_name):
   similarly_tagged_targets = []
   for tag in get_fuzz_target_tag(current_fully_qualified_fuzzer_name):
-    similarly_tagged_targets += get_targets_with_tag(tag)
+    similarly_tagged_targets += get_targets_with_tag(tag.tag)
 
-  return similarly_tagged_targets
+  return [
+      target for target in similarly_tagged_targets
+      if target.fully_qualified_fuzz_target_name !=
+      current_fully_qualified_fuzzer_name
+  ]
