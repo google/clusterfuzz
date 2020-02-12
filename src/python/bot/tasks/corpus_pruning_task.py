@@ -526,26 +526,32 @@ def record_cross_pollination_stats(
     pruner_stats, pollinator_stats, project_qualified_name, sources, tags,
     initial_corpus_size, minimized_corpus_size_units):
   """Log stats about cross pollination in BigQuery."""
-  if pruner_stats and pollinator_stats and not environment.get_value(
-      'DISABLE_CROSS_POLINATION_STATS', 'False') == 'True':
+  # BigQuery not available in local development.
 
-    # TODO(mpherman) : Change method once tagged corpora are done.
-    bigquery_row = {
-        'project_qualified_name': project_qualified_name,
-        'method': 'random',
-        'sources': sources,
-        'tags': tags,
-        'initial_corpus_size': initial_corpus_size,
-        'corpus_size': minimized_corpus_size_units,
-        'initial_edge_coverage': pruner_stats['edge_coverage'],
-        'edge_coverage': pollinator_stats['edge_coverage'],
-        'initial_feature_coverage': pruner_stats['feature_coverage'],
-        'feature_coverage': pollinator_stats['feature_coverage']
-    }
+  if environment.get_value("LOCAL_DEVELOPMENT") or environment.get_value(
+      "PY_UNITTESTS"):
+    return
 
-    client = big_query.Client(
-        dataset_id='main', table_id='cross-pollination-statistics')
-    client.insert([big_query.Insert(row=bigquery_row, insert_id=None)])
+  if not pruner_stats or not pollinator_stats:
+    return
+
+  # TODO(mpherman) : Change method once tagged corpora are done.
+  bigquery_row = {
+      'project_qualified_name': project_qualified_name,
+      'method': 'random',
+      'sources': sources,
+      'tags': tags,
+      'initial_corpus_size': initial_corpus_size,
+      'corpus_size': minimized_corpus_size_units,
+      'initial_edge_coverage': pruner_stats['edge_coverage'],
+      'edge_coverage': pollinator_stats['edge_coverage'],
+      'initial_feature_coverage': pruner_stats['feature_coverage'],
+      'feature_coverage': pollinator_stats['feature_coverage']
+  }
+
+  client = big_query.Client(
+      dataset_id='main', table_id='cross-pollination-statistics')
+  client.insert([big_query.Insert(row=bigquery_row, insert_id=None)])
 
 
 def do_corpus_pruning(context, last_execution_failed, revision):
