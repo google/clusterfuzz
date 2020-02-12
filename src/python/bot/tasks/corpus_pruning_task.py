@@ -543,10 +543,9 @@ def record_cross_pollination_stats(
   if not pruner_stats or not pollinator_stats:
     return
 
-  # TODO(mpherman) : Change method once tagged corpora are done.
   bigquery_row = {
       'project_qualified_name': project_qualified_name,
-      'method': 'random',
+      'method': method,
       'sources': sources,
       'tags': tags,
       'initial_corpus_size': initial_corpus_size,
@@ -780,19 +779,16 @@ def _process_corpus_crashes(context, result):
     task_creation.create_tasks(testcase)
 
 
-def _get_cross_pollinate_fuzzers(engine_name, current_fuzzer_name, method):
-  """Return a list of fuzzer objects to use for cross pollination."""
-  cross_pollinate_fuzzers = []
-
+def _select_targets_and_jobs_for_pollination(engine_name, current_fuzzer_name,
+                                             method):
+  """Select jobs to use for cross pollination."""
   target_jobs = list(fuzz_target_utils.get_fuzz_target_jobs(engine=engine_name))
   similar_tagged_targets = corpus_tagging.get_similarly_tagged_fuzzers(
       current_fuzzer_name)
-  print("TJs", similar_tagged_targets)
   # Cross Pollinate randomly if there are no similarly tagged targets.
   if similar_tagged_targets:
     # Even if there are similarly tagged targets, only use them half the time.
     if method == 'tagged':
-      print("HERE")
       # Intersect target_jobs and similar_tagged_targets on fully qualified
       # fuzz target name.
       target_jobs = [
@@ -801,7 +797,6 @@ def _get_cross_pollinate_fuzzers(engine_name, current_fuzzer_name, method):
               for tagged in similar_tagged_targets
           ]
       ]
-      print("target_jobs =", target_jobs)
 
   targets = fuzz_target_utils.get_fuzz_targets_for_target_jobs(target_jobs)
 
@@ -811,6 +806,16 @@ def _get_cross_pollinate_fuzzers(engine_name, current_fuzzer_name, method):
   selected_targets_and_jobs = random.SystemRandom().sample(
       targets_and_jobs, min(
           len(targets_and_jobs), CROSS_POLLINATE_FUZZER_COUNT))
+
+  return selected_targets_and_jobs
+
+
+def _get_cross_pollinate_fuzzers(engine_name, current_fuzzer_name, method):
+  """Return a list of fuzzer objects to use for cross pollination."""
+  cross_pollinate_fuzzers = []
+
+  selected_targets_and_jobs = _select_targets_and_jobs_for_pollination(
+      engine_name, current_fuzzer_name, method)
 
   default_backup_bucket = utils.default_backup_bucket()
   for target, target_job in selected_targets_and_jobs:
@@ -901,7 +906,6 @@ def execute_task(full_fuzzer_name, job_type):
         'Failed to set up fuzzer %s.' % fuzz_target.engine)
 
   cross_pollination_method = choose_cross_pollination_strategy()
-  print(cross_pollination_method)
   # TODO(unassigned): Use coverage information for better selection here.
   cross_pollinate_fuzzers = _get_cross_pollinate_fuzzers(
       fuzz_target.engine, full_fuzzer_name, cross_pollination_method)
