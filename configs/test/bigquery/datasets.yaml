@@ -230,7 +230,7 @@ resources:
     properties:
       datasetId: $(ref.main-dataset.datasetReference.datasetId)
       tableReference:
-        tableId: cross-pollination-statistics
+        tableId: cross_pollination_statistics
       timePartitioning:
         type: DAY
       schema:
