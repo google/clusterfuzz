@@ -1645,7 +1645,7 @@ def pick_strategies(strategy_pool, fuzzer_path, corpus_directory,
       arguments.append('%s%s' % (constants.FOCUS_FUNCTION_FLAG, 'auto'))
       fuzzing_strategies.append(strategy.DATAFLOW_TRACING_STRATEGY.name)
     else:
-      logs.log_error(
+      logs.log_warn(
           'Dataflow trace is not found in dataflow build, skipping strategy.')
       use_dataflow_tracing = False
 
