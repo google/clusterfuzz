@@ -550,7 +550,7 @@ def record_cross_pollination_stats(
   }
 
   client = big_query.Client(
-      dataset_id='main', table_id='cross-pollination-statistics')
+      dataset_id='main', table_id='cross_pollination_statistics')
   client.insert([big_query.Insert(row=bigquery_row, insert_id=None)])
 
 
