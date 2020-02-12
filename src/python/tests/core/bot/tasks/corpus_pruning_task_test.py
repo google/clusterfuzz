@@ -157,8 +157,10 @@ class CorpusPruningTest(unittest.TestCase, BaseTest):
     BaseTest.setUp(self)
     helpers.patch(self, [
         'build_management.build_manager.setup_build',
+        'base.utils.get_application_id',
     ])
     self.mock.setup_build.side_effect = self._mock_setup_build
+    self.mock.get_application_id.return_value = 'project'
 
   def test_prune(self):
     """Basic pruning test."""

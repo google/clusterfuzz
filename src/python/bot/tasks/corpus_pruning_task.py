@@ -39,6 +39,7 @@ from datastore import data_types
 from datastore import fuzz_target_utils
 from fuzzing import corpus_manager
 from fuzzing import leak_blacklist
+from google_cloud_utils import big_query
 from google_cloud_utils import blobs
 from google_cloud_utils import storage
 from metrics import logs
@@ -446,7 +447,7 @@ class CorpusPruner(object):
     """Run corpus pruning. Output result to directory."""
     if not shell.get_directory_file_count(initial_corpus_path):
       # Empty corpus, nothing to do.
-      return
+      return None
 
     # Set memory tool options and fuzzer arguments.
     engine_common.unpack_seed_corpus_if_needed(
@@ -479,6 +480,8 @@ class CorpusPruner(object):
 
     logs.log('Corpus merge finished successfully.', output=symbolized_output)
 
+    return result.stats
+
 
 class CrossPollinator(object):
   """Cross pollination."""
@@ -491,7 +494,7 @@ class CrossPollinator(object):
     """Merge testcases from corpus from other fuzz targets."""
     if not shell.get_directory_file_count(self.context.shared_corpus_path):
       logs.log('No files found in shared corpus, skip merge.')
-      return
+      return None
 
     # Run pruning on the shared corpus and log the result in case of error.
     logs.log('Merging shared corpus...')
@@ -515,6 +518,40 @@ class CrossPollinator(object):
     except engine.Error as e:
       raise CorpusPruningException(
           'Corpus pruning failed to merge shared corpus\n' + repr(e))
+
+    return result.stats
+
+
+def record_cross_pollination_stats(
+    pruner_stats, pollinator_stats, project_qualified_name, sources, tags,
+    initial_corpus_size, minimized_corpus_size_units):
+  """Log stats about cross pollination in BigQuery."""
+  # BigQuery not available in local development.This is necessary because the
+  # untrusted runner is in a separate process and can't be easily mocked.
+  if environment.get_value('LOCAL_DEVELOPMENT') or environment.get_value(
+      'PY_UNITTESTS'):
+    return
+
+  if not pruner_stats or not pollinator_stats:
+    return
+
+  # TODO(mpherman) : Change method once tagged corpora are done.
+  bigquery_row = {
+      'project_qualified_name': project_qualified_name,
+      'method': 'random',
+      'sources': sources,
+      'tags': tags,
+      'initial_corpus_size': initial_corpus_size,
+      'corpus_size': minimized_corpus_size_units,
+      'initial_edge_coverage': pruner_stats['edge_coverage'],
+      'edge_coverage': pollinator_stats['edge_coverage'],
+      'initial_feature_coverage': pruner_stats['feature_coverage'],
+      'feature_coverage': pollinator_stats['feature_coverage']
+  }
+
+  client = big_query.Client(
+      dataset_id='main', table_id='cross-pollination-statistics')
+  client.insert([big_query.Insert(row=bigquery_row, insert_id=None)])
 
 
 def do_corpus_pruning(context, last_execution_failed, revision):
@@ -557,8 +594,9 @@ def do_corpus_pruning(context, last_execution_failed, revision):
   context.restore_quarantined_units()
 
   # Shrink to a minimized corpus using corpus merge.
-  pruner.run(context.initial_corpus_path, context.minimized_corpus_path,
-             context.bad_units_path)
+  pruner_stats = pruner.run(context.initial_corpus_path,
+                            context.minimized_corpus_path,
+                            context.bad_units_path)
 
   # Sync minimized corpus back to GCS.
   context.sync_to_gcs()
@@ -594,6 +632,9 @@ def do_corpus_pruning(context, last_execution_failed, revision):
   quarantine_corpus_dir_size = shell.get_directory_size(
       context.quarantine_corpus_path)
 
+  # Save the minimize corpus size before cross pollination to put in BigQuery.
+  pre_pollination_corpus_size = minimized_corpus_size_units
+
   # Populate coverage stats.
   coverage_info.corpus_size_units = minimized_corpus_size_units
   coverage_info.corpus_size_bytes = minimized_corpus_size_bytes
@@ -610,7 +651,7 @@ def do_corpus_pruning(context, last_execution_failed, revision):
     return None
 
   cross_pollinator = CrossPollinator(runner)
-  cross_pollinator.run(time_remaining)
+  pollinator_stats = cross_pollinator.run(time_remaining)
 
   context.sync_to_gcs()
 
@@ -630,6 +671,17 @@ def do_corpus_pruning(context, last_execution_failed, revision):
       fuzzer_binary_name=fuzzer_binary_name,
       revision=environment.get_value('APP_REVISION'))
 
+  sources = ','.join([
+      fuzzer.fuzz_target.project_qualified_name()
+      for fuzzer in context.cross_pollinate_fuzzers
+  ])
+
+  # TODO(mpherman): Add way to get tags string when tagged corpora are done.
+  tags = ''
+
+  record_cross_pollination_stats(
+      pruner_stats, pollinator_stats, project_qualified_name, sources, tags,
+      pre_pollination_corpus_size, minimized_corpus_size_units)
   return result
 
 
