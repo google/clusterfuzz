@@ -39,6 +39,7 @@ except:
 BACKUP_ARCHIVE_FORMAT = 'zip'
 CORPUS_FILES_SYNC_TIMEOUT = 60 * 60
 LATEST_BACKUP_TIMESTAMP = 'latest'
+PUBLIC_BACKUP_TIMESTAMP = 'public'
 STATIC_CORPUS_GCS_PATH_SUFFIX = '_static'
 
 RSYNC_ERROR_REGEX = (r'CommandException:\s*(\d+)\s*files?/objects? '

@@ -14,6 +14,7 @@
 """corpus backup handler."""
 
 import datetime
+import os
 
 from base import utils
 from datastore import data_types
@@ -64,6 +65,23 @@ def _make_corpus_backup_public(target, corpus_fuzzer_name_override,
   if not result:
     logs.log_error(
         'Failed to mark corpus backup %s public.' % corpus_backup_url)
+    return
+
+  try:
+    filename = (
+        corpus_manager.PUBLIC_BACKUP_TIMESTAMP + os.extsep +
+        corpus_manager.BACKUP_ARCHIVE_FORMAT)
+    public_url = os.path.join(os.path.dirname(corpus_backup_url), filename)
+    result = storage.copy_blob(corpus_backup_url, public_url)
+    if result:
+      result = storage.set_acl(public_url, 'allUsers')
+  except:
+    result = None
+
+  if not result:
+    logs.log_error(
+        'Failed to overwrite %s with the latest public corpus backup.' %
+        public_url)
     return
 
   logs.log('Corpus backup %s is now marked public.' % corpus_backup_url)
