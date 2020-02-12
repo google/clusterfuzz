@@ -12,19 +12,17 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """syzkaller fuzzer."""
-import copy
-import re
-import tempfile
-import engine
-import constants
-import generate_config
 from base import utils
 from bot.fuzzers import builtin
-from bot.fuzzers import options
 from bot.fuzzers import utils as fuzzer_utils
-from metrics import logs
 from system import environment
 from system import new_process
+import constants
+import copy
+import engine
+import generate_config
+import re
+import tempfile
 
 # Regex to find testcase path from a crash.
 KASAN_CRASH_TESTCASE_REGEX = (r'.*Test unit written to\s*'
@@ -32,18 +30,21 @@ KASAN_CRASH_TESTCASE_REGEX = (r'.*Test unit written to\s*'
 
 def get_arguments(fuzzer_path):
   """Get arguments for a given fuzz target."""
+  del fuzzer_path
   build_dir = environment.get_value('BUILD_DIR')
-  device_serial = serial = environment.get_value('ANDROID_SERIAL')#'801KPYR1359762'
+  device_serial = environment.get_value('ANDROID_SERIAL')
   json_config_path = '/tmp/' + device_serial + '/config.json'
-  generate_config.run(serial=device_serial, work_dir_path='/tmp/syzkaller', 
-    binary_path=build_dir + '/syzkaller', 
-    vmlinux_path='/tmp/syzkaller/vmlinux', config_path=json_config_path, kcov=True, reproduce=False)
-  arguments = ['--config', json_config_path ]
+  generate_config.run(serial=device_serial, work_dir_path='/tmp/syzkaller',
+                      binary_path=build_dir + '/syzkaller',
+                      vmlinux_path='/tmp/syzkaller/vmlinux',
+                      config_path=json_config_path, kcov=True, reproduce=False)
+  arguments = ['--config', json_config_path]
   return arguments
 
 def get_runner(fuzzer_path):
-   build_dir = environment.get_value('BUILD_DIR')
-   return SyzkallerRunner(fuzzer_path, build_dir)
+  """Return a suzkaller runner object."""
+  build_dir = environment.get_value('BUILD_DIR')
+  return SyzkallerRunner(fuzzer_path, build_dir)
 
 class Syzkaller(builtin.EngineFuzzer):
   """Builtin syzkaller fuzzing engine."""
@@ -91,8 +92,8 @@ class SyzkallerRunner(new_process.ProcessRunner):
     """Changes timeout argument for reproduction. This is higher than default to
     avoid noise with smaller fuzzing defaults."""
     fuzzer_utils.extract_argument(arguments, constants.TIMEOUT_FLAG)
-    arguments.append(
-      '%s%d' % (constants.TIMEOUT_FLAG, constants.REPRODUCTION_TIMEOUT_LIMIT))
+    arguments.append('%s%d' % (constants.TIMEOUT_FLAG,
+                               constants.REPRODUCTION_TIMEOUT_LIMIT))
 
   def fuzz(self,
            corpus_directories,
@@ -100,9 +101,11 @@ class SyzkallerRunner(new_process.ProcessRunner):
            artifact_prefix=None,
            additional_args=None,
            extra_env=None):
+    """This is where actual syzkaller fuzzing is done."""
+    del corpus_directories, artifact_prefix, extra_env
     additional_args = copy.copy(additional_args)
-    fuzz_result = self.run_and_wait(additional_args=additional_args, 
-       timeout=fuzz_timeout)
+    fuzz_result = self.run_and_wait(additional_args=additional_args,
+                                    timeout=fuzz_timeout)
 
     log_lines = utils.decode_to_unicode(fuzz_result.output).splitlines()
     fuzz_result.output = None

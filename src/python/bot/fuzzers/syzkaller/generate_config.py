@@ -17,7 +17,7 @@ import json
 import os
 
 def run(serial, work_dir_path, binary_path,
-    vmlinux_path, config_path, kcov=True, reproduce=True):
+        vmlinux_path, config_path, kcov=True, reproduce=True):
   """Generates syzkaller config file.
 
   Args:
@@ -39,25 +39,25 @@ def run(serial, work_dir_path, binary_path,
   data["http"] = "localhost:50001"
   data["syzkaller"] = binary_path
   data["suppressions"] = [
-    "do_rt_sigqueueinfo",
-    "do_rt_tgsigqueueinfo"
-  ]
+      "do_rt_sigqueueinfo",
+      "do_rt_tgsigqueueinfo"
+      ]
   data["vm"] = devices
   data["kernel_obj"] = vmlinux_path
   data["sandbox"] = "android"
   data["ignores"] = [
-    "WARNING:",
-    "INFO:"
-  ]
+      "WARNING:",
+      "INFO:"
+      ]
   data["type"] = "adb"
   data["procs"] = 1
   data["cover"] = kcov
-  
+
   ensure_dir(config_path)
   with open(config_path, "w") as write_file:
     json.dump(data, write_file)
 
 def ensure_dir(file_path):
-    directory = os.path.dirname(file_path)
-    if not os.path.exists(directory):
-        os.makedirs(directory)
+  directory = os.path.dirname(file_path)
+  if not os.path.exists(directory):
+    os.makedirs(directory)

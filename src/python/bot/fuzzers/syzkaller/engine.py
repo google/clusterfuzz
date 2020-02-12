@@ -13,21 +13,17 @@
 # limitations under the License.
 """Fuzzing engine interface."""
 
-import os
 from bot.fuzzers import engine
 from bot.fuzzers import engine_common
 from bot.fuzzers import libfuzzer
 from bot.fuzzers import strategy_selection
 from bot.fuzzers import utils as fuzzer_utils
-from bot.fuzzers.syzkaller import constants
 from bot.fuzzers.syzkaller import fuzzer
 from bot.fuzzers.syzkaller import stats
-from datastore import data_types
 from fuzzing import strategy
-from metrics import logs
 from metrics import profiler
 from system import environment
-from system import shell
+import os
 
 ENGINE_ERROR_MESSAGE = 'syzkaller: engine encountered an error'
 _ENGINES = {}
@@ -40,8 +36,8 @@ class SyzkallerOptions(engine.FuzzOptions):
   """Represents options passed to the engine. Can be overridden to provide more
   options."""
 
-  def __init__(self, corpus_dir, arguments, strategies, fuzz_corpus_dirs, 
-    extra_env):
+  def __init__(self, corpus_dir, arguments, strategies, fuzz_corpus_dirs,
+               extra_env):
     super(SyzkallerOptions, self).__init__(corpus_dir, arguments, strategies)
     self.fuzz_corpus_dirs = fuzz_corpus_dirs
     self.extra_env = extra_env
@@ -69,6 +65,7 @@ class SyzkallerEngine(object):
     Returns:
       A FuzzOptions object.
     """
+    del build_dir
     arguments = fuzzer.get_arguments(target_path)
     strategy_pool = strategy_selection.generate_weighted_strategy_pool(
         strategy_list=strategy.SYZKALLER_STRATEGY_LIST,
@@ -106,7 +103,8 @@ class SyzkallerEngine(object):
     profiler.start_if_needed('syzkaller_kasan')
     runner = fuzzer.get_runner(target_path)
 
-    syzkaller_path = os.path.join(environment.get_value('BUILD_DIR'), 'syzkaller')
+    syzkaller_path = os.path.join(environment.get_value('BUILD_DIR'),
+                                  'syzkaller')
     if not os.path.exists(syzkaller_path):
       raise SyzkallerError('syzkaller not found in build')
 
@@ -206,13 +204,13 @@ class Crash(object):
 
 class FuzzResult(object):
   """Represents a result of a fuzzing session: a list of crashes found and the
-  stats generated."""
+  statistics generated."""
 
-  def __init__(self, logs, command, crashes, stats, time_executed):
+  def __init__(self, logs, command, crashes, statistics, time_executed):
     self.logs = logs
     self.command = command
     self.crashes = crashes
-    self.stats = stats
+    self.stats = statistics
     self.time_executed = time_executed
 
 

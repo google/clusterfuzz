@@ -18,10 +18,6 @@ import os
 import shutil
 import unittest
 
-from bot.fuzzers import engine_common
-from bot.fuzzers.syzkaller import engine
-from bot.fuzzers.syzkaller import fuzzer
-
 from tests.test_libs import helpers as test_helpers
 from tests.test_libs import test_utils
 
@@ -46,4 +42,3 @@ class IntegrationTest(unittest.TestCase):
     test_helpers.patch_environ(self)
 
     os.environ['BUILD_DIR'] = DATA_DIR
-
