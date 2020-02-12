@@ -42,7 +42,7 @@ FORWARDED_ENVIRONMENT_VARIABLES = [
         r'^FUZZ_TEST_TIMEOUT$',
         r'^GSUTIL_PATH$',
         r'^JOB_NAME$',
-        r'^LOCAL_DEVELOPMENT$'
+        r'^LOCAL_DEVELOPMENT$',
         r'^MSAN_OPTIONS$',
         r'^PATH$',
         r'^PY_UNITTESTS$',
