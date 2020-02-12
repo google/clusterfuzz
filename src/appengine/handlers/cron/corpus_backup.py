@@ -67,11 +67,12 @@ def _make_corpus_backup_public(target, corpus_fuzzer_name_override,
         'Failed to mark corpus backup %s public.' % corpus_backup_url)
     return
 
+  filename = (
+      corpus_manager.PUBLIC_BACKUP_TIMESTAMP + os.extsep +
+      corpus_manager.BACKUP_ARCHIVE_FORMAT)
+  public_url = os.path.join(os.path.dirname(corpus_backup_url), filename)
+
   try:
-    filename = (
-        corpus_manager.PUBLIC_BACKUP_TIMESTAMP + os.extsep +
-        corpus_manager.BACKUP_ARCHIVE_FORMAT)
-    public_url = os.path.join(os.path.dirname(corpus_backup_url), filename)
     result = storage.copy_blob(corpus_backup_url, public_url)
     if result:
       result = storage.set_acl(public_url, 'allUsers')
