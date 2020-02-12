@@ -560,7 +560,7 @@ def get_stacktrace(testcase, stack_attribute='crash_stacktrace'):
   # For App Engine, we can't write to local file, so use blobs.read_key instead.
   if environment.is_running_on_app_engine():
     key = result[len(data_types.BLOBSTORE_STACK_PREFIX):]
-    return str(blobs.read_key(key), errors='replace')
+    return str(blobs.read_key(key), 'utf-8', errors='replace')
 
   key = result[len(data_types.BLOBSTORE_STACK_PREFIX):]
   tmpdir = environment.get_value('BOT_TMPDIR')
