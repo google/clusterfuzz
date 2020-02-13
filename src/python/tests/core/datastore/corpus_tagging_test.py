@@ -81,7 +81,7 @@ class CorpusTaggingTest(unittest.TestCase):
 
     self.assertEqual(
         'test_tag',
-        corpus_tagging.get_fuzz_target_tag('test_fuzz_target')[0].tag)
+        corpus_tagging.get_fuzz_target_tags('test_fuzz_target')[0].tag)
 
   def test_get_tags_from_target_with_multiple_tags(self):
     """Test getting the tags of a given fuzz target with more than one tag."""
@@ -93,7 +93,7 @@ class CorpusTaggingTest(unittest.TestCase):
         fully_qualified_fuzz_target_name='test_fuzz_target').put()
 
     tags = [
-        i.tag for i in corpus_tagging.get_fuzz_target_tag('test_fuzz_target')
+        i.tag for i in corpus_tagging.get_fuzz_target_tags('test_fuzz_target')
     ]
 
     self.assertEqual(tags, ['test_tag', 'test_tag2'])

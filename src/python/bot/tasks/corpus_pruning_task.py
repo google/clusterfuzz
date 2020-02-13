@@ -107,6 +107,9 @@ CorpusCrash = collections.namedtuple('CorpusCrash', [
     'security_flag',
 ])
 
+RANDOM_METHOD = 'random'
+TAGGED_METHOD = 'tagged'
+
 
 def _get_corpus_file_paths(corpus_path):
   """Return full paths to corpus files in |corpus_path|."""
@@ -161,7 +164,7 @@ class Context(object):
   def __init__(self,
                fuzz_target,
                cross_pollinate_fuzzers,
-               cross_pollination_method="random"):
+               cross_pollination_method=RANDOM_METHOD):
     self.fuzz_target = fuzz_target
     self.cross_pollinate_fuzzers = cross_pollinate_fuzzers
     self.cross_pollination_method = cross_pollination_method
@@ -685,9 +688,9 @@ def do_corpus_pruning(context, last_execution_failed, revision):
 
   # Leave tags blank if random method was used. Even if corpus has tags.
   tags = ''
-  if context.cross_pollination_method == "tagged":
+  if context.cross_pollination_method == TAGGED_METHOD:
     tags = ','.join([
-        corpus_tag.tag for corpus_tag in corpus_tagging.get_fuzz_target_tag(
+        corpus_tag.tag for corpus_tag in corpus_tagging.get_fuzz_target_tags(
             context.fuzz_target.fully_qualified_name())
     ])
 
@@ -786,17 +789,15 @@ def _select_targets_and_jobs_for_pollination(engine_name, current_fuzzer_name,
   similar_tagged_targets = corpus_tagging.get_similarly_tagged_fuzzers(
       current_fuzzer_name)
   # Cross Pollinate randomly if there are no similarly tagged targets.
-  if similar_tagged_targets:
-    # Even if there are similarly tagged targets, only use them half the time.
-    if method == 'tagged':
-      # Intersect target_jobs and similar_tagged_targets on fully qualified
-      # fuzz target name.
-      target_jobs = [
-          target for target in target_jobs if target.fuzz_target_name in [
-              tagged.fully_qualified_fuzz_target_name
-              for tagged in similar_tagged_targets
-          ]
-      ]
+  if similar_tagged_targets and method == TAGGED_METHOD:
+    # Intersect target_jobs and similar_tagged_targets on fully qualified
+    # fuzz target name.
+    target_jobs = [
+        target for target in target_jobs if target.fuzz_target_name in [
+            tagged.fully_qualified_fuzz_target_name
+            for tagged in similar_tagged_targets
+        ]
+    ]
 
   targets = fuzz_target_utils.get_fuzz_targets_for_target_jobs(target_jobs)
 
@@ -878,7 +879,7 @@ def _save_coverage_information(context, result):
 def choose_cross_pollination_strategy():
   """Chooses cross pollination strategy. In seperate function to mock for
     predictable test behaviror."""
-  return random.choice(['random', 'tagged'])
+  return random.choice([RANDOM_METHOD, TAGGED_METHOD])
 
 
 def execute_task(full_fuzzer_name, job_type):
