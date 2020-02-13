@@ -27,6 +27,19 @@ from libs import handler
 from metrics import logs
 
 
+def _set_public_acl_if_needed(url):
+  """Sets public ACL on the object with given URL, if it's not public yet."""
+  if storage.get_acl(url, 'allUsers'):
+    logs.log('%s is already marked public, skipping.' % url)
+    return True
+
+  if not storage.set_acl(url, 'allUsers'):
+    logs.log_error('Failed to mark %s public.' % url)
+    return False
+
+  return True
+
+
 def _make_corpus_backup_public(target, corpus_fuzzer_name_override,
                                corpus_backup_bucket_name):
   """Identifies old corpus backups and makes them public."""
@@ -37,28 +50,11 @@ def _make_corpus_backup_public(target, corpus_fuzzer_name_override,
       corpus_backup_bucket_name, corpus_fuzzer_name_override or target.engine,
       target.project_qualified_name(), corpus_backup_date)
 
-  try:
-    result = storage.get(corpus_backup_url)
-  except:
+  if not storage.get(corpus_backup_url):
     logs.log_warn('Failed to find corpus backup %s.' % corpus_backup_url)
     return
 
-  try:
-    result = storage.get_acl(corpus_backup_url, 'allUsers')
-  except:
-    result = None
-
-  if result:
-    # Backup is already marked public. Skip.
-    logs.log('Corpus backup %s is already marked public, skipping.' %
-             corpus_backup_url)
-    return
-
-  try:
-    result = storage.set_acl(corpus_backup_url, 'allUsers')
-  except:
-    logs.log_error(
-        'Failed to mark corpus backup %s public.' % corpus_backup_url)
+  if not _set_public_acl_if_needed(corpus_backup_url):
     return
 
   filename = (
@@ -66,14 +62,13 @@ def _make_corpus_backup_public(target, corpus_fuzzer_name_override,
       corpus_manager.BACKUP_ARCHIVE_FORMAT)
   public_url = os.path.join(os.path.dirname(corpus_backup_url), filename)
 
-  try:
-    result = storage.copy_blob(corpus_backup_url, public_url)
-    if result:
-      result = storage.set_acl(public_url, 'allUsers')
-  except:
+  if not storage.copy_blob(corpus_backup_url, public_url):
     logs.log_error(
         'Failed to overwrite %s with the latest public corpus backup.' %
         public_url)
+    return
+
+  if not _set_public_acl_if_needed(public_url):
     return
 
   logs.log('Corpus backup %s is now marked public.' % corpus_backup_url)
@@ -115,5 +110,8 @@ class MakePublicHandler(base_handler.Handler):
           # This is expected if any fuzzer/job combinations become outdated.
           continue
 
-        _make_corpus_backup_public(target, corpus_fuzzer_name_override,
-                                   corpus_backup_bucket_name)
+        try:
+          _make_corpus_backup_public(target, corpus_fuzzer_name_override,
+                                     corpus_backup_bucket_name)
+        except:
+          logs.log_error('Failed to make %s corpus backup public.' % target)
