@@ -804,8 +804,7 @@ class IntegrationTests(BaseIntegrationTest):
     self.assertEqual(1, self.mock.log_error.call_count)
 
     self.assertEqual(1, len(results.crashes))
-    self.assertEqual(fuzzer_utils.get_temp_dir(),
-                     os.path.dirname(results.crashes[0].input_path))
+    self.assertEqual(TEMP_DIR, os.path.dirname(results.crashes[0].input_path))
     self.assertEqual(0, os.path.getsize(results.crashes[0].input_path))
 
   @parameterized.parameterized.expand(['77', '27'])
@@ -830,8 +829,7 @@ class IntegrationTests(BaseIntegrationTest):
     results = engine_impl.fuzz(target_path, options, TEMP_DIR, 10)
 
     self.assertEqual(1, len(results.crashes))
-    self.assertEqual(fuzzer_utils.get_temp_dir(),
-                     os.path.dirname(results.crashes[0].input_path))
+    self.assertEqual(TEMP_DIR, os.path.dirname(results.crashes[0].input_path))
     self.assertEqual(0, os.path.getsize(results.crashes[0].input_path))
 
   def test_fuzz_invalid_dict(self):
@@ -914,8 +912,7 @@ class MinijailIntegrationTests(IntegrationTests):
     results = engine_impl.fuzz(target_path, options, TEMP_DIR, 10)
 
     self.assertEqual(1, len(results.crashes))
-    self.assertEqual(fuzzer_utils.get_temp_dir(),
-                     os.path.dirname(results.crashes[0].input_path))
+    self.assertEqual(TEMP_DIR, os.path.dirname(results.crashes[0].input_path))
     self.assertEqual(0, os.path.getsize(results.crashes[0].input_path))
 
 
