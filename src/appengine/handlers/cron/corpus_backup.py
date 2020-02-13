@@ -40,9 +40,6 @@ def _make_corpus_backup_public(target, corpus_fuzzer_name_override,
   try:
     result = storage.get(corpus_backup_url)
   except:
-    result = None
-
-  if not result:
     logs.log_warn('Failed to find corpus backup %s.' % corpus_backup_url)
     return
 
@@ -60,9 +57,6 @@ def _make_corpus_backup_public(target, corpus_fuzzer_name_override,
   try:
     result = storage.set_acl(corpus_backup_url, 'allUsers')
   except:
-    result = None
-
-  if not result:
     logs.log_error(
         'Failed to mark corpus backup %s public.' % corpus_backup_url)
     return
@@ -77,9 +71,6 @@ def _make_corpus_backup_public(target, corpus_fuzzer_name_override,
     if result:
       result = storage.set_acl(public_url, 'allUsers')
   except:
-    result = None
-
-  if not result:
     logs.log_error(
         'Failed to overwrite %s with the latest public corpus backup.' %
         public_url)
