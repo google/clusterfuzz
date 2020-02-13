@@ -155,9 +155,9 @@ class LibFuzzerEngine(engine.Engine):
         strategy_info.extra_env, strategy_info.use_dataflow_tracing,
         strategy_info.is_mutations_run)
 
-  def _create_empty_testcase_file(self):
+  def _create_empty_testcase_file(self, reproducers_dir):
     """Create an empty testcase file in temporary directory."""
-    _, path = tempfile.mkstemp(dir=fuzzer_utils.get_temp_dir())
+    _, path = tempfile.mkstemp(dir=reproducers_dir)
     return path
 
   def _create_temp_corpus_dir(self, name):
@@ -284,7 +284,8 @@ class LibFuzzerEngine(engine.Engine):
     # libFuzzer, this is most likely a startup crash. Use an empty testcase to
     # to store it as a crash.
     if not crash_testcase_file_path and fuzz_result.return_code:
-      crash_testcase_file_path = self._create_empty_testcase_file()
+      crash_testcase_file_path = self._create_empty_testcase_file(
+          reproducers_dir)
 
     # Parse stats information based on libFuzzer output.
     parsed_stats = libfuzzer.parse_log_stats(log_lines)
