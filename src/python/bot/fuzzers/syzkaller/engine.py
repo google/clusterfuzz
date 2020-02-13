@@ -16,11 +16,9 @@
 from bot.fuzzers import engine
 from bot.fuzzers import engine_common
 from bot.fuzzers import libfuzzer
-from bot.fuzzers import strategy_selection
 from bot.fuzzers import utils as fuzzer_utils
 from bot.fuzzers.syzkaller import fuzzer
-from bot.fuzzers.syzkaller import stats
-from fuzzing import strategy
+from builtins import object
 from metrics import profiler
 from system import environment
 import os
@@ -31,6 +29,7 @@ _ENGINES = {}
 
 class SyzkallerError(Exception):
   """Base exception class."""
+
 
 class SyzkallerOptions(engine.FuzzOptions):
   """Represents options passed to the engine. Can be overridden to provide more
@@ -67,25 +66,15 @@ class SyzkallerEngine(object):
     """
     del build_dir
     arguments = fuzzer.get_arguments(target_path)
-    strategy_pool = strategy_selection.generate_weighted_strategy_pool(
-        strategy_list=strategy.SYZKALLER_STRATEGY_LIST,
-        use_generator=True,
-        engine_name=self.name)
 
-     # Add strategies here
-    strategy_info = libfuzzer.pick_strategies(strategy_pool, target_path,
-                                              corpus_dir, arguments)
-    strategies = stats.process_strategies(
-        strategy_info.fuzzing_strategies, name_modifier=lambda x: x)
-    return SyzkallerOptions(corpus_dir, arguments, strategies, None, None)
-
+    # Add strategies here
+    return SyzkallerOptions(corpus_dir, arguments, None, None, None)
 
   def _create_temp_corpus_dir(self, name):
     """Create temporary corpus directory."""
     new_corpus_directory = os.path.join(fuzzer_utils.get_temp_dir(), name)
     engine_common.recreate_directory(new_corpus_directory)
     return new_corpus_directory
-
 
   def fuzz(self, target_path, options, reproducers_dir, max_time):
     """Run a fuzz session.
@@ -103,8 +92,8 @@ class SyzkallerEngine(object):
     profiler.start_if_needed('syzkaller_kasan')
     runner = fuzzer.get_runner(target_path)
 
-    syzkaller_path = os.path.join(environment.get_value('BUILD_DIR'),
-                                  'syzkaller')
+    syzkaller_path = os.path.join(
+        environment.get_value('BUILD_DIR'), 'syzkaller')
     if not os.path.exists(syzkaller_path):
       raise SyzkallerError('syzkaller not found in build')
 
@@ -116,8 +105,7 @@ class SyzkallerEngine(object):
     new_corpus_dir = self._create_temp_corpus_dir('new')
 
     corpus_directories = [new_corpus_dir]
-    fuzz_timeout = libfuzzer.get_fuzz_timeout(
-        False, total_timeout=max_time)
+    fuzz_timeout = libfuzzer.get_fuzz_timeout(False, total_timeout=max_time)
 
     return runner.fuzz(
         corpus_directories,
@@ -125,7 +113,6 @@ class SyzkallerEngine(object):
         additional_args=options.arguments,
         artifact_prefix=reproducers_dir,
         extra_env=options.extra_env)
-
 
   def reproduce(self, target_path, input_path, arguments, max_time):
     """Reproduce a crash given an input.
@@ -189,29 +176,6 @@ class SyzkallerEngine(object):
       A ReproduceResult.
     """
     raise NotImplementedError
-
-
-
-class Crash(object):
-  """Represents a crash found by the fuzzing engine."""
-
-  def __init__(self, input_path, stacktrace, reproduce_args, crash_time):
-    self.input_path = input_path
-    self.stacktrace = stacktrace
-    self.reproduce_args = reproduce_args
-    self.crash_time = crash_time
-
-
-class FuzzResult(object):
-  """Represents a result of a fuzzing session: a list of crashes found and the
-  statistics generated."""
-
-  def __init__(self, logs, command, crashes, statistics, time_executed):
-    self.logs = logs
-    self.command = command
-    self.crashes = crashes
-    self.stats = statistics
-    self.time_executed = time_executed
 
 
 class ReproduceResult(object):

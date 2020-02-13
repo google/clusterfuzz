@@ -62,13 +62,13 @@ TASK_QUEUE_DISPLAY_NAMES = {
     'LINUX_WITH_GPU': 'Linux (with GPU)',
     'LINUX_UNTRUSTED': 'Linux (untrusted)',
     'ANDROID': 'Android',
+    'ANDROID_KERNEL': 'Android Kernel',
     'ANDROID_X86': 'Android (x86)',
     'CHROMEOS': 'Chrome OS',
     'FUCHSIA': 'Fuchsia OS',
     'MAC': 'Mac',
     'WINDOWS': 'Windows',
     'WINDOWS_WITH_GPU': 'Windows (with GPU)',
-    'ANDROID_KERNEL': 'Android Kernel',
 }
 
 VALID_REDO_TASKS = ['minimize', 'regression', 'progression', 'impact', 'blame']

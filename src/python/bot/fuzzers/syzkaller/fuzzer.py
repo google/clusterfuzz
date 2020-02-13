@@ -12,15 +12,16 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """syzkaller fuzzer."""
+from __future__ import absolute_import
 from base import utils
 from bot.fuzzers import builtin
 from bot.fuzzers import utils as fuzzer_utils
+from bot.fuzzers.syzkaller import constants
+from bot.fuzzers.syzkaller import generate_config
+from builtins import object
 from system import environment
 from system import new_process
-import constants
 import copy
-import engine
-import generate_config
 import re
 import tempfile
 
@@ -28,23 +29,30 @@ import tempfile
 KASAN_CRASH_TESTCASE_REGEX = (r'.*Test unit written to\s*'
                               r'(Read|Write) of .*')
 
+
 def get_arguments(fuzzer_path):
   """Get arguments for a given fuzz target."""
   del fuzzer_path
   build_dir = environment.get_value('BUILD_DIR')
   device_serial = environment.get_value('ANDROID_SERIAL')
   json_config_path = '/tmp/' + device_serial + '/config.json'
-  generate_config.run(serial=device_serial, work_dir_path='/tmp/syzkaller',
-                      binary_path=build_dir + '/syzkaller',
-                      vmlinux_path='/tmp/syzkaller/vmlinux',
-                      config_path=json_config_path, kcov=True, reproduce=False)
+  generate_config.run(
+      serial=device_serial,
+      work_dir_path='/tmp/syzkaller',
+      binary_path=build_dir + '/syzkaller',
+      vmlinux_path='/tmp/syzkaller/vmlinux',
+      config_path=json_config_path,
+      kcov=True,
+      reproduce=False)
   arguments = ['--config', json_config_path]
   return arguments
+
 
 def get_runner(fuzzer_path):
   """Return a suzkaller runner object."""
   build_dir = environment.get_value('BUILD_DIR')
   return SyzkallerRunner(fuzzer_path, build_dir)
+
 
 class Syzkaller(builtin.EngineFuzzer):
   """Builtin syzkaller fuzzing engine."""
@@ -92,8 +100,8 @@ class SyzkallerRunner(new_process.ProcessRunner):
     """Changes timeout argument for reproduction. This is higher than default to
     avoid noise with smaller fuzzing defaults."""
     fuzzer_utils.extract_argument(arguments, constants.TIMEOUT_FLAG)
-    arguments.append('%s%d' % (constants.TIMEOUT_FLAG,
-                               constants.REPRODUCTION_TIMEOUT_LIMIT))
+    arguments.append(
+        '%s%d' % (constants.TIMEOUT_FLAG, constants.REPRODUCTION_TIMEOUT_LIMIT))
 
   def fuzz(self,
            corpus_directories,
@@ -104,8 +112,8 @@ class SyzkallerRunner(new_process.ProcessRunner):
     """This is where actual syzkaller fuzzing is done."""
     del corpus_directories, artifact_prefix, extra_env
     additional_args = copy.copy(additional_args)
-    fuzz_result = self.run_and_wait(additional_args=additional_args,
-                                    timeout=fuzz_timeout)
+    fuzz_result = self.run_and_wait(
+        additional_args=additional_args, timeout=fuzz_timeout)
 
     log_lines = utils.decode_to_unicode(fuzz_result.output).splitlines()
     fuzz_result.output = None
@@ -130,8 +138,30 @@ class SyzkallerRunner(new_process.ProcessRunner):
       # Write the new testcase.
       # Copy crash testcase contents into the main testcase path.
       crashes.append(
-          engine.Crash(crash_testcase_file_path, fuzz_logs, reproduce_arguments,
-                       actual_duration))
+          Crash(crash_testcase_file_path, fuzz_logs, reproduce_arguments,
+                actual_duration))
 
-    return engine.FuzzResult(fuzz_logs, fuzz_result.command, crashes,
-                             parsed_stats, fuzz_result.time_executed)
+    return FuzzResult(fuzz_logs, fuzz_result.command, crashes, parsed_stats,
+                      fuzz_result.time_executed)
+
+
+class Crash(object):
+  """Represents a crash found by the fuzzing engine."""
+
+  def __init__(self, input_path, stacktrace, reproduce_args, crash_time):
+    self.input_path = input_path
+    self.stacktrace = stacktrace
+    self.reproduce_args = reproduce_args
+    self.crash_time = crash_time
+
+
+class FuzzResult(object):
+  """Represents a result of a fuzzing session: a list of crashes found and the
+  statistics generated."""
+
+  def __init__(self, logs, command, crashes, statistics, time_executed):
+    self.logs = logs
+    self.command = command
+    self.crashes = crashes
+    self.stats = statistics
+    self.time_executed = time_executed

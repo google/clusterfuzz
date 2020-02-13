@@ -170,7 +170,7 @@ def run_platform_init_scripts():
   if plt == 'ANDROID':
     android_init.run()
   elif plt == 'ANDROID_KERNEL':
-    linux_init.run()
+    android_init.run()
   elif plt == 'CHROMEOS':
     chromeos_init.run()
   elif plt == 'FUCHSIA':

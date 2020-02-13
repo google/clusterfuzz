@@ -15,14 +15,6 @@
 Should not have any dependancies.
 """
 
-# syzkaller's exit code if a bug occurred in syzkaller.
-SYZKALLER_ERROR_EXITCODE = 1
-
-# syzkaller's exit code if a bug was found in the kernel code.
-TARGET_ERROR_EXITCODE = 77
-
-TIMEOUT_FLAG = '-timeout='
-
 REPRODUCTION_TIMEOUT_LIMIT = 600
 
 DEFAULT_TIMEOUT_LIMIT = 25
