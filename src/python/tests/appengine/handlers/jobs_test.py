@@ -68,6 +68,9 @@ class JobsTest(unittest.TestCase):
                 'display_name': 'Android (x86)',
                 'name': 'ANDROID_X86'
             }, {
+                'display_name': 'Android Kernel',
+                'name': 'ANDROID_KERNEL'
+            }, {
                 'display_name': 'Chrome OS',
                 'name': 'CHROMEOS'
             }, {

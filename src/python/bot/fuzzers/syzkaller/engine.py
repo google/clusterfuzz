@@ -23,6 +23,7 @@ from metrics import profiler
 from system import environment
 import os
 
+BIN_FOLDER_PATH = 'bin/linux_arm64'
 ENGINE_ERROR_MESSAGE = 'syzkaller: engine encountered an error'
 _ENGINES = {}
 
@@ -49,10 +50,7 @@ class SyzkallerEngine(object):
   def name(self):
     return 'syzkaller'
 
-  def get_name(self):
-    return 'syzkaller'
-
-  def prepare(self, corpus_dir, target_path, build_dir):
+  def prepare(self, corpus_dir, target_path, unused_build_dir):
     """Prepare for a fuzzing session, by generating options. Returns a
     FuzzOptions object.
 
@@ -64,10 +62,9 @@ class SyzkallerEngine(object):
     Returns:
       A FuzzOptions object.
     """
-    del build_dir
     arguments = fuzzer.get_arguments(target_path)
 
-    # Add strategies here
+    # TODO(hzawawy): Add strategies here
     return SyzkallerOptions(corpus_dir, arguments, None, None, None)
 
   def _create_temp_corpus_dir(self, name):
@@ -76,7 +73,7 @@ class SyzkallerEngine(object):
     engine_common.recreate_directory(new_corpus_directory)
     return new_corpus_directory
 
-  def fuzz(self, target_path, options, reproducers_dir, max_time):
+  def fuzz(self, target_path, options, unused_reproducers_dir=None, max_time=0):
     """Run a fuzz session.
 
     Args:
@@ -97,22 +94,17 @@ class SyzkallerEngine(object):
     if not os.path.exists(syzkaller_path):
       raise SyzkallerError('syzkaller not found in build')
 
-    binary_path = syzkaller_path + '/bin/linux_arm64'
-    for filename in os.listdir(syzkaller_path + '/bin/linux_arm64'):
-      os.chmod(binary_path + '/' + filename, 0o755)
+    binary_full_path = os.path.join(syzkaller_path, BIN_FOLDER_PATH)
+    for filename in os.listdir(binary_full_path):
+      os.chmod(os.path.join(binary_full_path, filename), 0o755)
 
     # Directory to place new units.
-    new_corpus_dir = self._create_temp_corpus_dir('new')
+    self._create_temp_corpus_dir('new')
 
-    corpus_directories = [new_corpus_dir]
     fuzz_timeout = libfuzzer.get_fuzz_timeout(False, total_timeout=max_time)
 
     return runner.fuzz(
-        corpus_directories,
-        fuzz_timeout=fuzz_timeout,
-        additional_args=options.arguments,
-        artifact_prefix=reproducers_dir,
-        extra_env=options.extra_env)
+        fuzz_timeout=fuzz_timeout, additional_args=options.arguments)
 
   def reproduce(self, target_path, input_path, arguments, max_time):
     """Reproduce a crash given an input.
@@ -129,7 +121,7 @@ class SyzkallerEngine(object):
     raise NotImplementedError
 
   def minimize_corpus(self, target_path, arguments, input_dirs, output_dir,
-                      reproducers_dir, max_time):
+                      unused_reproducers_dir, unused_max_time):
     """Optional (but recommended): run corpus minimization.
 
     Args:
@@ -186,20 +178,3 @@ class ReproduceResult(object):
     self.return_code = return_code
     self.time_executed = time_executed
     self.output = output
-
-
-def register(name, engine_class):
-  """Register a fuzzing engine."""
-  if name in _ENGINES:
-    raise ValueError('Engine {name} is already registered'.format(name=name))
-
-  _ENGINES[name] = engine_class
-
-
-def get(name):
-  """Get an implemntation of a fuzzing engine, or None if one does not exist."""
-  engine_class = _ENGINES.get(name)
-  if engine_class:
-    return engine_class()
-
-  return None

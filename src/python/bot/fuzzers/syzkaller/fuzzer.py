@@ -15,69 +15,62 @@
 from __future__ import absolute_import
 from base import utils
 from bot.fuzzers import builtin
+from bot.fuzzers import engine
 from bot.fuzzers import utils as fuzzer_utils
 from bot.fuzzers.syzkaller import constants
-from bot.fuzzers.syzkaller import generate_config
-from builtins import object
+from bot.fuzzers.syzkaller import config
 from system import environment
 from system import new_process
 import copy
+import os
 import re
 import tempfile
 
 # Regex to find testcase path from a crash.
 KASAN_CRASH_TESTCASE_REGEX = (r'.*Test unit written to\s*'
                               r'(Read|Write) of .*')
+SYZKALLER_WORK_FOLDER = '/tmp/syzkaller'
+VMLINUX_FOLDER = '/tmp/syzkaller/vmlinux'
 
 
-def get_arguments(fuzzer_path):
+def get_arguments(unused_fuzzer_path):
   """Get arguments for a given fuzz target."""
-  del fuzzer_path
   build_dir = environment.get_value('BUILD_DIR')
   device_serial = environment.get_value('ANDROID_SERIAL')
-  json_config_path = '/tmp/' + device_serial + '/config.json'
-  generate_config.run(
+  json_config_path = os.path.join('/tmp', device_serial, 'config.json')
+  config.generate(
       serial=device_serial,
-      work_dir_path='/tmp/syzkaller',
-      binary_path=build_dir + '/syzkaller',
-      vmlinux_path='/tmp/syzkaller/vmlinux',
+      work_dir_path=SYZKALLER_WORK_FOLDER,
+      binary_path=os.path.join(build_dir, 'syzkaller'),
+      vmlinux_path=VMLINUX_FOLDER,
       config_path=json_config_path,
       kcov=True,
       reproduce=False)
-  arguments = ['--config', json_config_path]
-  return arguments
+  return ['--config', json_config_path]
 
 
 def get_runner(fuzzer_path):
   """Return a suzkaller runner object."""
   build_dir = environment.get_value('BUILD_DIR')
-  return SyzkallerRunner(fuzzer_path, build_dir)
+  return AndroidSyzkallerRunner(fuzzer_path, build_dir)
 
 
-class Syzkaller(builtin.EngineFuzzer):
-  """Builtin syzkaller fuzzing engine."""
-
-  def generate_arguments(self, fuzzer_path):
-    """Generate arguments for fuzzer using .options file or default values."""
-    return ' '.join(get_arguments(fuzzer_path))
-
-
-class SyzkallerRunner(new_process.ProcessRunner):
+class AndroidSyzkallerRunner(new_process.ProcessRunner):
   """Syzkaller runner."""
 
   def __init__(self, executable_path, default_args=None):
-    """Inits the SyzkallerRunner.
+    """Inits the AndroidSyzkallerRunner.
 
     Args:
       executable_path: Path to the fuzzer executable.
       default_args: Default arguments to always pass to the fuzzer.
     """
-    super(SyzkallerRunner, self).__init__(
+    super(AndroidSyzkallerRunner, self).__init__(
         executable_path=executable_path, default_args=None)
 
   def get_command(self, additional_args=None):
     """Process.get_command override."""
-    base_command = super(SyzkallerRunner,
+    base_command = super(AndroidSyzkallerRunner,
                          self).get_command(additional_args=additional_args)
 
     return base_command
@@ -96,72 +89,39 @@ class SyzkallerRunner(new_process.ProcessRunner):
 
     return None
 
-  def fix_timeout_argument_for_reproduction(self, arguments):
-    """Changes timeout argument for reproduction. This is higher than default to
-    avoid noise with smaller fuzzing defaults."""
-    fuzzer_utils.extract_argument(arguments, constants.TIMEOUT_FLAG)
-    arguments.append(
-        '%s%d' % (constants.TIMEOUT_FLAG, constants.REPRODUCTION_TIMEOUT_LIMIT))
-
   def fuzz(self,
-           corpus_directories,
            fuzz_timeout,
-           artifact_prefix=None,
-           additional_args=None,
-           extra_env=None):
+           additional_args,
+           unused_additional_args=None,
+           unused_extra_env=None):
     """This is where actual syzkaller fuzzing is done."""
-    del corpus_directories, artifact_prefix, extra_env
     additional_args = copy.copy(additional_args)
-    fuzz_result = self.run_and_wait(
-        additional_args=additional_args, timeout=fuzz_timeout)
+    fuzz_result = self.run_and_wait(additional_args, timeout=fuzz_timeout)
 
     log_lines = utils.decode_to_unicode(fuzz_result.output).splitlines()
     fuzz_result.output = None
     crash_testcase_file_path = self.get_testcase_path(log_lines)
 
+    #TODO(hzawawy): remove once syzkaller code is completed.
     if not crash_testcase_file_path and fuzz_result.return_code:
       crash_testcase_file_path = self._create_empty_testcase_file()
 
     fuzz_logs = '\n'.join(log_lines)
 
-    # TODO: Parse stats information and add them to FuzzResult
+    # TODO(hzawawy): Parse stats information and add them to FuzzResult
     parsed_stats = []
 
     crashes = []
     if crash_testcase_file_path:
       arguments = additional_args[:]
-      #libfuzzer.remove_fuzzing_arguments(arguments)
-      arguments = additional_args[:]
-      reproduce_arguments = arguments[:]
-      self.fix_timeout_argument_for_reproduction(reproduce_arguments)
+      #TODO(hzawawy): add repro arguments
+      reproduce_arguments = None
       actual_duration = int(fuzz_result.time_executed)
       # Write the new testcase.
       # Copy crash testcase contents into the main testcase path.
       crashes.append(
-          Crash(crash_testcase_file_path, fuzz_logs, reproduce_arguments,
-                actual_duration))
+          engine.Crash(crash_testcase_file_path, fuzz_logs, reproduce_arguments,
+                       actual_duration))
 
-    return FuzzResult(fuzz_logs, fuzz_result.command, crashes, parsed_stats,
-                      fuzz_result.time_executed)
-
-
-class Crash(object):
-  """Represents a crash found by the fuzzing engine."""
-
-  def __init__(self, input_path, stacktrace, reproduce_args, crash_time):
-    self.input_path = input_path
-    self.stacktrace = stacktrace
-    self.reproduce_args = reproduce_args
-    self.crash_time = crash_time
-
-
-class FuzzResult(object):
-  """Represents a result of a fuzzing session: a list of crashes found and the
-  statistics generated."""
-
-  def __init__(self, logs, command, crashes, statistics, time_executed):
-    self.logs = logs
-    self.command = command
-    self.crashes = crashes
-    self.stats = statistics
-    self.time_executed = time_executed
+    return engine.FuzzResult(fuzz_logs, fuzz_result.command, crashes,
+                             parsed_stats, fuzz_result.time_executed)
