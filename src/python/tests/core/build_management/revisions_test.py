@@ -133,7 +133,7 @@ class RevisionsTestcase(unittest.TestCase):
   @staticmethod
   def mock_get_git_hash_for_git_commit_pos(git_commit_pos, _):
     """Return a fake git hash for a git commit position."""
-    return hashlib.sha1(str(git_commit_pos)).hexdigest()
+    return hashlib.sha1(str(git_commit_pos).encode('utf-8')).hexdigest()
 
   # Tests.
   def test_convert_revision_to_integer_simple(self):
