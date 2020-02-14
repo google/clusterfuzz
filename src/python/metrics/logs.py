@@ -250,7 +250,6 @@ def configure(name, extras=None):
   Also configures the process to log any uncaught exceptions as an error.
   |extras| will be included by emit() in log messages."""
   if _is_running_on_app_engine():
-    logging.getLogger().setLevel(logging.INFO)
     return
 
   if _console_logging_enabled():
