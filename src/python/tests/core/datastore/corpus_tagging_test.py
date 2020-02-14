@@ -97,3 +97,26 @@ class CorpusTaggingTest(unittest.TestCase):
     ]
 
     self.assertEqual(tags, ['test_tag', 'test_tag2'])
+
+  def test_get_similarly_tagged_fuzzers_returns_empty_on_no_matches(self):
+    data_types.CorpusTag(
+        tag='test_tag',
+        fully_qualified_fuzz_target_name='test_fuzz_target').put()
+    data_types.CorpusTag(
+        tag='test_tag2',
+        fully_qualified_fuzz_target_name='test_fuzz_target').put()
+
+    self.assertEqual(
+        {}, corpus_tagging.get_similarly_tagged_fuzzers('test_fuzz_target'))
+
+  def test_get_similarly_tagged_fuzzers_returns_with_correct_values(self):
+    data_types.CorpusTag(
+        tag='test_tag',
+        fully_qualified_fuzz_target_name='test_fuzz_target').put()
+    data_types.CorpusTag(
+        tag='test_tag',
+        fully_qualified_fuzz_target_name='test_fuzz_target_2').put()
+
+    self.assertEqual({
+        'test_tag': ['test_fuzz_target_2']
+    }, corpus_tagging.get_similarly_tagged_fuzzers('test_fuzz_target'))

@@ -71,7 +71,7 @@ class BaseTest(object):
     self.mock.update_fuzzer_and_data_bundles.return_value = True
     self.mock.write_blob.return_value = 'key'
     self.mock.backup_corpus.return_value = 'backup_link'
-    self.mock.choose_cross_pollination_strategy.return_value = 'random'
+    self.mock.choose_cross_pollination_strategy.return_value = ('random', None)
 
     def mocked_unpack_seed_corpus_if_needed(*args, **kwargs):
       """Mock's assert called methods are not powerful enough to ensure that

@@ -38,6 +38,7 @@ from datastore import corpus_tagging
 from datastore import data_handler
 from datastore import data_types
 from datastore import fuzz_target_utils
+from enum import Enum
 from fuzzing import corpus_manager
 from fuzzing import leak_blacklist
 from google_cloud_utils import big_query
@@ -107,8 +108,10 @@ CorpusCrash = collections.namedtuple('CorpusCrash', [
     'security_flag',
 ])
 
-RANDOM_METHOD = 'random'
-TAGGED_METHOD = 'tagged'
+
+class Pollination(Enum):
+  RANDOM = 1
+  TAGGED = 2
 
 
 def _get_corpus_file_paths(corpus_path):
@@ -164,7 +167,7 @@ class Context(object):
   def __init__(self,
                fuzz_target,
                cross_pollinate_fuzzers,
-               cross_pollination_method=RANDOM_METHOD,
+               cross_pollination_method=Pollination.RANDOM,
                tag=None):
 
     self.fuzz_target = fuzz_target
@@ -782,18 +785,17 @@ def _select_targets_and_jobs_for_pollination(engine_name, current_fuzzer_name,
   """Select jobs to use for cross pollination."""
   target_jobs = list(fuzz_target_utils.get_fuzz_target_jobs(engine=engine_name))
 
-  if method == TAGGED_METHOD:
+  if method == Pollination.TAGGED:
     similar_tagged_targets = [
-        target for target in corpus_tagging.get_targets_with_tag(tag)
+        target.fully_qualified_fuzz_target_name
+        for target in corpus_tagging.get_targets_with_tag(tag)
         if target.fully_qualified_fuzz_target_name != current_fuzzer_name
     ]
     # Intersect target_jobs and similar_tagged_targets on fully qualified
     # fuzz target name.
     target_jobs = [
-        target for target in target_jobs if target.fuzz_target_name in [
-            tagged.fully_qualified_fuzz_target_name
-            for tagged in similar_tagged_targets
-        ]
+        target for target in target_jobs
+        if target.fuzz_target_name in similar_tagged_targets
     ]
 
   targets = fuzz_target_utils.get_fuzz_targets_for_target_jobs(target_jobs)
@@ -877,10 +879,14 @@ def choose_cross_pollination_strategy(current_fuzzer_name):
   """Chooses cross pollination strategy. In seperate function to mock for
     predictable test behaviror."""
   # Do not choose tagged method if there is no tag for the current fuzzer.
-  if corpus_tagging.get_similarly_tagged_fuzzers(current_fuzzer_name):
-    return random.choice([RANDOM_METHOD, TAGGED_METHOD])
+  method = random.choice([Pollination.RANDOM, Pollination.TAGGED])
+  if method == Pollination.TAGGED:
+    similar_targets = corpus_tagging.get_similarly_tagged_fuzzers(
+        current_fuzzer_name)
+    if similar_targets:
+      return (Pollination.TAGGED, similar_targets.keys())
 
-  return RANDOM_METHOD
+  return (Pollination.Random, None)
 
 
 def execute_task(full_fuzzer_name, job_type):
@@ -907,11 +913,9 @@ def execute_task(full_fuzzer_name, job_type):
     raise CorpusPruningException(
         'Failed to set up fuzzer %s.' % fuzz_target.engine)
 
-  cross_pollination_method = choose_cross_pollination_strategy(full_fuzzer_name)
-  tag = None
-  if cross_pollination_method == TAGGED_METHOD:
-    tag = random.choice(
-        corpus_tagging.get_fuzz_target_tags(full_fuzzer_name)).tag
+  method_and_tag = choose_cross_pollination_strategy(full_fuzzer_name)
+  cross_pollination_method = method_and_tag[0]
+  tag = method_and_tag[1]
 
   # TODO(unassigned): Use coverage information for better selection here.
   cross_pollinate_fuzzers = _get_cross_pollinate_fuzzers(
