@@ -110,8 +110,8 @@ CorpusCrash = collections.namedtuple('CorpusCrash', [
 
 
 class Pollination(Enum):
-  RANDOM = 1
-  TAGGED = 2
+  RANDOM = 'random'
+  TAGGED = 'tagged'
 
 
 def _get_corpus_file_paths(corpus_path):
