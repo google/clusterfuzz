@@ -515,6 +515,7 @@ class CrossPollinator(object):
     except engine.TimeoutError as e:
       logs.log_error('Corpus pruning timed out while merging shared corpus: ' +
                      repr(e))
+      return None
     except engine.Error as e:
       raise CorpusPruningException(
           'Corpus pruning failed to merge shared corpus\n' + repr(e))
