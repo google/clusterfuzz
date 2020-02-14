@@ -640,7 +640,7 @@ def search_string_in_file(search_string, file_handle):
 
 def string_hash(obj):
   """Returns a SHA-1 hash of the object. Not used for security purposes."""
-  return hashlib.sha1(str(obj)).hexdigest()
+  return hashlib.sha1(str(obj).encode('utf-8')).hexdigest()
 
 
 def entity_hash(obj):
@@ -652,7 +652,7 @@ def entity_hash(obj):
   hasher = hashlib.sha1()
   entity_dict = obj.to_dict()
   for key in sorted(entity_dict.keys()):
-    hasher.update(str(entity_dict[key]))
+    hasher.update(str(entity_dict[key]).encode('utf-8'))
 
   return hasher.hexdigest()
 
@@ -849,7 +849,8 @@ def current_source_version():
   root_directory = environment.get_value('ROOT_DIR')
   local_manifest_path = os.path.join(root_directory, LOCAL_SOURCE_MANIFEST)
   if os.path.exists(local_manifest_path):
-    return read_data_from_file(local_manifest_path, eval_data=False).strip()
+    return read_data_from_file(
+        local_manifest_path, eval_data=False).strip().decode('utf-8')
 
   return None
 

@@ -45,7 +45,7 @@ class IteratorTest(unittest.TestCase):
   def test_tar_xz(self):
     """Test that a .tar.xz file is handled properly by iterator()."""
     tar_xz_path = os.path.join(TESTDATA_PATH, 'archive.tar.xz')
-    expected_results = {'archive_dir/hi': 'hi\n', 'archive_dir/bye': 'bye\n'}
+    expected_results = {'archive_dir/hi': b'hi\n', 'archive_dir/bye': b'bye\n'}
     actual_results = {
         archive_file.name: archive_file.handle.read()
         for archive_file in archive.iterator(tar_xz_path)
@@ -56,7 +56,7 @@ class IteratorTest(unittest.TestCase):
   def test_cwd_prefix(self):
     """Test that a .tgz file with cwd prefix is handled."""
     tgz_path = os.path.join(TESTDATA_PATH, 'cwd-prefix.tgz')
-    expected_results = {'./test': 'abc\n'}
+    expected_results = {'./test': b'abc\n'}
     actual_results = {
         archive_file.name: archive_file.handle.read()
         for archive_file in archive.iterator(tgz_path)
@@ -85,9 +85,9 @@ class IteratorTest(unittest.TestCase):
     expected_results = [
         ('testdir', 0, None),
         ('testdir/1', 0, None),
-        ('testdir/1/a', 12, 'hello world\n'),
+        ('testdir/1/a', 12, b'hello world\n'),
         ('testdir/2', 0, None),
-        ('testdir/2/c', 0, 'hello world\n'),  # Working link
+        ('testdir/2/c', 0, b'hello world\n'),  # Working link
         ('testdir/2/a', 0, None),
         ('testdir/2/b', 0, None)
     ]
