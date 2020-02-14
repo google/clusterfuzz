@@ -13,6 +13,7 @@
 # limitations under the License.
 """server.py initialises the appengine server for ClusterFuzz."""
 from __future__ import absolute_import
+import logging
 
 from webapp2_extras import routes
 import webapp2
@@ -222,6 +223,8 @@ _ROUTES = [
     ('/report-bug', help_redirector.ReportBugHandler),
     ('/viewer', viewer.Handler),
 ]
+
+logging.getLogger().setLevel(logging.INFO)
 
 config = local_config.GAEConfig()
 main_domain = config.get('domains.main')
