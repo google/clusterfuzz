@@ -164,10 +164,13 @@ class Context(object):
   def __init__(self,
                fuzz_target,
                cross_pollinate_fuzzers,
-               cross_pollination_method=RANDOM_METHOD):
+               cross_pollination_method=RANDOM_METHOD,
+               tag=None):
+
     self.fuzz_target = fuzz_target
     self.cross_pollinate_fuzzers = cross_pollinate_fuzzers
     self.cross_pollination_method = cross_pollination_method
+    self.tag = tag
 
     self.merge_tmp_dir = None
     self.engine = engine.get(self.fuzz_target.engine)
@@ -531,7 +534,7 @@ class CrossPollinator(object):
 
 
 def record_cross_pollination_stats(
-    pruner_stats, pollinator_stats, project_qualified_name, sources, tags,
+    pruner_stats, pollinator_stats, project_qualified_name, sources, tag,
     initial_corpus_size, minimized_corpus_size_units, method):
   """Log stats about cross pollination in BigQuery."""
   # TODO(mpherman): Find a way to collect these stats for OSS Fuzz.
@@ -550,7 +553,7 @@ def record_cross_pollination_stats(
       'project_qualified_name': project_qualified_name,
       'method': method,
       'sources': sources,
-      'tags': tags,
+      'tags': tag if tag else '',
       'initial_corpus_size': initial_corpus_size,
       'corpus_size': minimized_corpus_size_units,
       'initial_edge_coverage': pruner_stats['edge_coverage'],
@@ -686,17 +689,9 @@ def do_corpus_pruning(context, last_execution_failed, revision):
       for fuzzer in context.cross_pollinate_fuzzers
   ])
 
-  # Leave tags blank if random method was used. Even if corpus has tags.
-  tags = ''
-  if context.cross_pollination_method == TAGGED_METHOD:
-    tags = ','.join([
-        corpus_tag.tag for corpus_tag in corpus_tagging.get_fuzz_target_tags(
-            context.fuzz_target.fully_qualified_name())
-    ])
-
   record_cross_pollination_stats(
-      pruner_stats, pollinator_stats, project_qualified_name, sources, tags,
-      pre_pollination_corpus_size, minimized_corpus_size_units,
+      pruner_stats, pollinator_stats, project_qualified_name, sources,
+      context.tag, pre_pollination_corpus_size, minimized_corpus_size_units,
       context.cross_pollination_method)
 
   return result
@@ -783,13 +778,15 @@ def _process_corpus_crashes(context, result):
 
 
 def _select_targets_and_jobs_for_pollination(engine_name, current_fuzzer_name,
-                                             method):
+                                             method, tag):
   """Select jobs to use for cross pollination."""
   target_jobs = list(fuzz_target_utils.get_fuzz_target_jobs(engine=engine_name))
-  similar_tagged_targets = corpus_tagging.get_similarly_tagged_fuzzers(
-      current_fuzzer_name)
-  # Cross Pollinate randomly if there are no similarly tagged targets.
-  if similar_tagged_targets and method == TAGGED_METHOD:
+
+  if method == TAGGED_METHOD:
+    similar_tagged_targets = [
+        target for target in corpus_tagging.get_targets_with_tag(tag)
+        if target.fully_qualified_fuzz_target_name != current_fuzzer_name
+    ]
     # Intersect target_jobs and similar_tagged_targets on fully qualified
     # fuzz target name.
     target_jobs = [
@@ -811,12 +808,12 @@ def _select_targets_and_jobs_for_pollination(engine_name, current_fuzzer_name,
   return selected_targets_and_jobs
 
 
-def _get_cross_pollinate_fuzzers(engine_name, current_fuzzer_name, method):
+def _get_cross_pollinate_fuzzers(engine_name, current_fuzzer_name, method, tag):
   """Return a list of fuzzer objects to use for cross pollination."""
   cross_pollinate_fuzzers = []
 
   selected_targets_and_jobs = _select_targets_and_jobs_for_pollination(
-      engine_name, current_fuzzer_name, method)
+      engine_name, current_fuzzer_name, method, tag)
 
   default_backup_bucket = utils.default_backup_bucket()
   for target, target_job in selected_targets_and_jobs:
@@ -911,12 +908,17 @@ def execute_task(full_fuzzer_name, job_type):
         'Failed to set up fuzzer %s.' % fuzz_target.engine)
 
   cross_pollination_method = choose_cross_pollination_strategy(full_fuzzer_name)
+  tag = None
+  if cross_pollination_method == TAGGED_METHOD:
+    tag = random.choice(
+        corpus_tagging.get_fuzz_target_tags(full_fuzzer_name)).tag
+
   # TODO(unassigned): Use coverage information for better selection here.
   cross_pollinate_fuzzers = _get_cross_pollinate_fuzzers(
-      fuzz_target.engine, full_fuzzer_name, cross_pollination_method)
+      fuzz_target.engine, full_fuzzer_name, cross_pollination_method, tag)
 
   context = Context(fuzz_target, cross_pollinate_fuzzers,
-                    cross_pollination_method)
+                    cross_pollination_method, tag)
 
   # Copy global blacklist into local suppressions file if LSan is enabled.
   is_lsan_enabled = environment.get_value('LSAN')

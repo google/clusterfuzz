@@ -29,16 +29,3 @@ def get_targets_with_tag(tag):
   query = data_types.CorpusTag().query()
   query = query.filter(data_types.CorpusTag.tag == tag)
   return query.fetch()
-
-
-def get_similarly_tagged_fuzzers(current_fully_qualified_fuzzer_name):
-  """Get all fuzz targets with any similar tags to current fuzzer."""
-  similarly_tagged_targets = []
-  for tag in get_fuzz_target_tags(current_fully_qualified_fuzzer_name):
-    similarly_tagged_targets += get_targets_with_tag(tag.tag)
-
-  return [
-      target for target in similarly_tagged_targets
-      if target.fully_qualified_fuzz_target_name !=
-      current_fully_qualified_fuzzer_name
-  ]

@@ -97,35 +97,3 @@ class CorpusTaggingTest(unittest.TestCase):
     ]
 
     self.assertEqual(tags, ['test_tag', 'test_tag2'])
-
-  def test_get_similarly_tagged_fuzzers_gets_all_targets(self):
-    """Tests that get_similarly_tagged_fuzzers gets targets for all tags."""
-    data_types.CorpusTag(
-        tag='test_tag',
-        fully_qualified_fuzz_target_name='test_fuzz_target').put()
-    data_types.CorpusTag(
-        tag='test_tag2',
-        fully_qualified_fuzz_target_name='test_fuzz_target').put()
-
-    tag1 = data_types.CorpusTag(
-        tag='test_tag', fully_qualified_fuzz_target_name='test_fuzz_target2')
-    tag2 = data_types.CorpusTag(
-        tag='test_tag2', fully_qualified_fuzz_target_name='test_fuzz_target2')
-    tag1.put()
-    tag2.put()
-
-    self.assertEqual(
-        [tag1, tag2],
-        corpus_tagging.get_similarly_tagged_fuzzers('test_fuzz_target'))
-
-  def test_get_similarly_tagged_fuzzers_does_not_include_self(self):
-    """Tests that get similarly tagged fuzzers does not include the target."""
-    data_types.CorpusTag(
-        tag='test_tag',
-        fully_qualified_fuzz_target_name='test_fuzz_target').put()
-    data_types.CorpusTag(
-        tag='test_tag2',
-        fully_qualified_fuzz_target_name='test_fuzz_target').put()
-
-    self.assertEqual(
-        [], corpus_tagging.get_similarly_tagged_fuzzers('test_fuzz_target'))

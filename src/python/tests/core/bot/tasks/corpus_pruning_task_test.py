@@ -529,6 +529,6 @@ class CrossPollinationTest(unittest.TestCase):
     similar_job.put()
 
     selected = corpus_pruning_task._select_targets_and_jobs_for_pollination(
-        'libFuzzer', 'libFuzzer_test_fuzzer', 'tagged')
+        'libFuzzer', 'libFuzzer_test_fuzzer', 'tagged', 'test_tag')
 
     self.assertEqual([(similar_target, similar_job)], selected)
