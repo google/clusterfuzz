@@ -878,15 +878,14 @@ def _save_coverage_information(context, result):
 def choose_cross_pollination_strategy(current_fuzzer_name):
   """Chooses cross pollination strategy. In seperate function to mock for
     predictable test behaviror."""
-  # Do not choose tagged method if there is no tag for the current fuzzer.
   method = random.choice([Pollination.RANDOM, Pollination.TAGGED])
   if method == Pollination.TAGGED:
     similar_targets = corpus_tagging.get_similarly_tagged_fuzzers(
         current_fuzzer_name)
     if similar_targets:
-      return (Pollination.TAGGED, similar_targets.keys())
+      return (Pollination.TAGGED, random.choice(similar_targets.keys()))
 
-  return (Pollination.Random, None)
+  return (Pollination.RANDOM, None)
 
 
 def execute_task(full_fuzzer_name, job_type):
@@ -913,9 +912,8 @@ def execute_task(full_fuzzer_name, job_type):
     raise CorpusPruningException(
         'Failed to set up fuzzer %s.' % fuzz_target.engine)
 
-  method_and_tag = choose_cross_pollination_strategy(full_fuzzer_name)
-  cross_pollination_method = method_and_tag[0]
-  tag = method_and_tag[1]
+  cross_pollination_method, tag = choose_cross_pollination_strategy(
+      full_fuzzer_name)
 
   # TODO(unassigned): Use coverage information for better selection here.
   cross_pollinate_fuzzers = _get_cross_pollinate_fuzzers(
