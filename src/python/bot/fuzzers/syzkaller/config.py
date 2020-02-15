@@ -18,12 +18,12 @@ import os
 
 
 def generate(serial,
-        work_dir_path,
-        binary_path,
-        vmlinux_path,
-        config_path,
-        kcov=True,
-        reproduce=True):
+             work_dir_path,
+             binary_path,
+             vmlinux_path,
+             config_path,
+             kcov=True,
+             reproduce=True):
   """Generates syzkaller config file.
 
   Args:

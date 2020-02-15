@@ -17,8 +17,8 @@ from base import utils
 from bot.fuzzers import builtin
 from bot.fuzzers import engine
 from bot.fuzzers import utils as fuzzer_utils
-from bot.fuzzers.syzkaller import constants
 from bot.fuzzers.syzkaller import config
+from bot.fuzzers.syzkaller import constants
 from system import environment
 from system import new_process
 import copy
