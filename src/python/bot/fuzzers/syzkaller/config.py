@@ -42,13 +42,15 @@ def generate(serial,
   data['workdir'] = work_dir_path
   data['http'] = 'localhost:50001'
   data['syzkaller'] = binary_path
+  #TODO(hzawawy): consider what suppressions are best for Android.
   data['suppressions'] = ['do_rt_sigqueueinfo', 'do_rt_tgsigqueueinfo']
   data['vm'] = devices
   data['kernel_obj'] = vmlinux_path
   data['sandbox'] = 'android'
   data['ignores'] = ['WARNING:', 'INFO:']
   data['type'] = 'adb'
-  data['procs'] = 2
+  #TODO(hzawawy): set procs to be half the number of CPUs 
+  data['procs'] = 4
   data['cover'] = kcov
 
   ensure_dir(config_path)
