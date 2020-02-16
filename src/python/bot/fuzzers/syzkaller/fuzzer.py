@@ -14,11 +14,9 @@
 """syzkaller fuzzer."""
 from __future__ import absolute_import
 from base import utils
-from bot.fuzzers import builtin
 from bot.fuzzers import engine
 from bot.fuzzers import utils as fuzzer_utils
 from bot.fuzzers.syzkaller import config
-from bot.fuzzers.syzkaller import constants
 from system import environment
 from system import new_process
 import copy
@@ -82,6 +80,7 @@ class AndroidSyzkallerRunner(new_process.ProcessRunner):
 
   def get_testcase_path(self, log_lines):
     """Get testcase path from log lines."""
+    #TODO(hzawawy) when a crash is detected extract testcase from report.
     for line in log_lines:
       match = re.match(KASAN_CRASH_TESTCASE_REGEX, line)
       if match:
@@ -113,7 +112,6 @@ class AndroidSyzkallerRunner(new_process.ProcessRunner):
 
     crashes = []
     if crash_testcase_file_path:
-      arguments = additional_args[:]
       #TODO(hzawawy): add repro arguments
       reproduce_arguments = None
       actual_duration = int(fuzz_result.time_executed)
