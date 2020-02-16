@@ -15,6 +15,7 @@
 
 # Python pycache:
 __pycache__/
+**.pyc
 # Ignored by the build system
 /setup.cfg
 
