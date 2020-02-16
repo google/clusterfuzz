@@ -49,7 +49,7 @@ def generate(serial,
   data['sandbox'] = 'android'
   data['ignores'] = ['WARNING:', 'INFO:']
   data['type'] = 'adb'
-  #TODO(hzawawy): set procs to be half the number of CPUs 
+  #TODO(hzawawy): set procs to be half the number of CPUs
   data['procs'] = 4
   data['cover'] = kcov
 
