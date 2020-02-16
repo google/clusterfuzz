@@ -48,7 +48,7 @@ def generate(serial,
   data['sandbox'] = 'android'
   data['ignores'] = ['WARNING:', 'INFO:']
   data['type'] = 'adb'
-  data['procs'] = 1
+  data['procs'] = 2
   data['cover'] = kcov
 
   ensure_dir(config_path)
