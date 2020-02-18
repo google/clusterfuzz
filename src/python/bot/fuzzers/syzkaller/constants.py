@@ -15,6 +15,10 @@
 Should not have any dependancies.
 """
 
-REPRODUCTION_TIMEOUT_LIMIT = 600
+# Regex to find testcase path from a crash.
+KASAN_CRASH_TESTCASE_REGEX = (r'.*Test unit written to\s*'
+                              r'(Read|Write) of .*')
 
-DEFAULT_TIMEOUT_LIMIT = 25
+SYZKALLER_WORK_FOLDER = '/tmp/syzkaller'
+
+VMLINUX_FOLDER = '/tmp/syzkaller/vmlinux'

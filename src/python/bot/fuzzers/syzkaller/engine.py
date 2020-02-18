@@ -24,7 +24,6 @@ from system import environment
 import os
 
 BIN_FOLDER_PATH = 'bin'
-ENGINE_ERROR_MESSAGE = 'syzkaller: engine encountered an error'
 _ENGINES = {}
 
 
