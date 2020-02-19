@@ -31,6 +31,7 @@ VALID_TARGET_NAME = re.compile(r'^[a-zA-Z0-9_-]+$')
 
 
 def is_fuzz_target_local(file_path, file_handle=None):
+  #TODO(hzawawy): handle syzkaller case.
   """Returns whether |file_path| is a fuzz target binary (local path)."""
   filename, file_extension = os.path.splitext(os.path.basename(file_path))
   if not VALID_TARGET_NAME.match(filename):

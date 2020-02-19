@@ -79,17 +79,7 @@ class SyzkallerEngine(object):
     engine_common.recreate_directory(new_corpus_directory)
     return new_corpus_directory
 
-  def get_fuzz_timeout(self,
-                       unused_is_mutations_run=False,
-                       unused_total_timeout=None):
-    """Get the fuzz timeout."""
-    return engine_common.get_hard_timeout()
-
-  def fuzz(self,
-           target_path,
-           options,
-           unused_reproducers_dir=None,
-           unused_max_time=0):
+  def fuzz(self, target_path, options, unused_reproducers_dir=None, max_time=0):
     """Run a fuzz session.
 
     Args:
@@ -108,10 +98,7 @@ class SyzkallerEngine(object):
     # Directory to place new units.
     self._create_temp_corpus_dir('new')
 
-    fuzz_timeout = self.get_fuzz_timeout()
-
-    return syzkaller_runner.fuzz(
-        fuzz_timeout=fuzz_timeout, additional_args=options.arguments)
+    return syzkaller_runner.fuzz(max_time, additional_args=options.arguments)
 
   def reproduce(self, target_path, input_path, arguments, max_time):
     """Reproduce a crash given an input.
