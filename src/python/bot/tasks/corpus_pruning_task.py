@@ -109,7 +109,7 @@ CorpusCrash = collections.namedtuple('CorpusCrash', [
 ])
 
 
-class Pollination(Enum):
+class Pollination(str, Enum):
   RANDOM = 'random'
   TAGGED = 'tagged'
 
