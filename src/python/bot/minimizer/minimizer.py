@@ -167,6 +167,8 @@ class Testcase(object):
     self.last_progress_report_time = 0
     self.runs_since_last_cleanup = 0
     self.runs_executed = 0
+    self.failed = False
+    self.original_data = data
 
     if minimizer.max_threads > 1:
       self.test_queue = TestQueue(
@@ -481,6 +483,9 @@ class Testcase(object):
     """Get the result of minimization."""
     # Done with minimization, output log one more time
     self._report_progress(is_final_progress_report=True)
+    if self.failed:
+      return self.original_data
+
     if not self.minimizer.tokenize:
       return self.get_required_tokens()
     return self.get_current_testcase_data()

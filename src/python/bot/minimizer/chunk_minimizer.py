@@ -19,6 +19,7 @@ import functools
 
 from . import minimizer
 from . import utils
+from metrics import logs
 
 
 class ChunkMinimizer(minimizer.Minimizer):
@@ -32,6 +33,12 @@ class ChunkMinimizer(minimizer.Minimizer):
   def _execute(self, data):
     """Minimize |data| using the algorithm from CF (but backwards)."""
     testcase = minimizer.Testcase(data, self)
+    if testcase.get_current_testcase_data() != data:
+      logs.log_error(
+          "Unable to perform Chunk Minimization. Tokenized data did not match \
+          original data.")
+      testcase.failed = True
+      return testcase
 
     for lines_to_remove in self.chunk_sizes:
       remaining_tokens = testcase.get_required_token_indices()

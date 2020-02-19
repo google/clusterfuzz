@@ -18,6 +18,7 @@ from builtins import range
 
 from . import minimizer
 from . import utils
+from metrics import logs
 
 
 class DeltaTestcase(minimizer.Testcase):
@@ -45,6 +46,13 @@ class DeltaMinimizer(minimizer.Minimizer):
   def _execute(self, data):
     """Prepare tests for delta minimization and process."""
     testcase = DeltaTestcase(data, self)
+    if testcase.get_current_testcase_data() != data:
+      logs.log_error(
+          "Unable to perform Delta Minimization. Tokenized data did not match \
+          original data.")
+      testcase.failed = True
+      return testcase
+
     tokens = testcase.tokens
 
     step = max(1, len(tokens) // self.max_threads)
