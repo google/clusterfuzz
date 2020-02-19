@@ -28,7 +28,6 @@ import tempfile
 import threading
 import time
 
-
 from . import errors
 
 DEFAULT_CLEANUP_INTERVAL = 20
