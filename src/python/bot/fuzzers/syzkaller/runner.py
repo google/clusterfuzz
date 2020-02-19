@@ -43,7 +43,7 @@ def get_arguments(unused_fuzzer_path):
 
 
 def get_runner(fuzzer_path):
-  """Return a suzkaller runner object."""
+  """Return a syzkaller runner object."""
   build_dir = environment.get_value('BUILD_DIR')
   return AndroidSyzkallerRunner(fuzzer_path, build_dir)
 

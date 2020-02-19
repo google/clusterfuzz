@@ -15,9 +15,8 @@
 
 from bot.fuzzers import engine
 from bot.fuzzers import engine_common
-from bot.fuzzers import libfuzzer
 from bot.fuzzers import utils as fuzzer_utils
-from bot.fuzzers.syzkaller import fuzzer
+from bot.fuzzers.syzkaller import runner
 from builtins import object
 from metrics import profiler
 from system import environment
@@ -50,8 +49,8 @@ class SyzkallerEngine(object):
     return 'syzkaller'
 
   def prepare(self, corpus_dir, target_path, unused_build_dir):
-    """Prepare for a fuzzing session, by generating options. Returns a
-    FuzzOptions object.
+    """Prepare for a fuzzing session, by generating options and making
+    syzkaller binaries executable.
 
     Args:
       corpus_dir: The main corpus directory.
@@ -61,9 +60,17 @@ class SyzkallerEngine(object):
     Returns:
       A FuzzOptions object.
     """
-    arguments = fuzzer.get_arguments(target_path)
+    syzkaller_path = os.path.join(
+        environment.get_value('BUILD_DIR'), 'syzkaller')
+    if not os.path.exists(syzkaller_path):
+      raise SyzkallerError('syzkaller not found in build')
+    binary_full_path = os.path.join(syzkaller_path, BIN_FOLDER_PATH)
+    for filename in os.listdir(binary_full_path):
+      os.chmod(os.path.join(binary_full_path, filename), 0o755)
 
     # TODO(hzawawy): Add strategies here
+
+    arguments = runner.get_arguments(target_path)
     return SyzkallerOptions(corpus_dir, arguments, None, None, None)
 
   def _create_temp_corpus_dir(self, name):
@@ -72,7 +79,17 @@ class SyzkallerEngine(object):
     engine_common.recreate_directory(new_corpus_directory)
     return new_corpus_directory
 
-  def fuzz(self, target_path, options, unused_reproducers_dir=None, max_time=0):
+  def get_fuzz_timeout(self,
+                       unused_is_mutations_run=False,
+                       unused_total_timeout=None):
+    """Get the fuzz timeout."""
+    return engine_common.get_hard_timeout()
+
+  def fuzz(self,
+           target_path,
+           options,
+           unused_reproducers_dir=None,
+           unused_max_time=0):
     """Run a fuzz session.
 
     Args:
@@ -86,23 +103,14 @@ class SyzkallerEngine(object):
       A FuzzResult object.
     """
     profiler.start_if_needed('syzkaller_kasan')
-    runner = fuzzer.get_runner(target_path)
-
-    syzkaller_path = os.path.join(
-        environment.get_value('BUILD_DIR'), 'syzkaller')
-    if not os.path.exists(syzkaller_path):
-      raise SyzkallerError('syzkaller not found in build')
-
-    binary_full_path = os.path.join(syzkaller_path, BIN_FOLDER_PATH)
-    for filename in os.listdir(binary_full_path):
-      os.chmod(os.path.join(binary_full_path, filename), 0o755)
+    syzkaller_runner = runner.get_runner(target_path)
 
     # Directory to place new units.
     self._create_temp_corpus_dir('new')
 
-    fuzz_timeout = libfuzzer.get_fuzz_timeout(False, total_timeout=max_time)
+    fuzz_timeout = self.get_fuzz_timeout()
 
-    return runner.fuzz(
+    return syzkaller_runner.fuzz(
         fuzz_timeout=fuzz_timeout, additional_args=options.arguments)
 
   def reproduce(self, target_path, input_path, arguments, max_time):
