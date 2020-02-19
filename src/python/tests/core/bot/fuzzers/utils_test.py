@@ -51,6 +51,10 @@ class IsFuzzTargetLocalTest(fake_filesystem_unittest.TestCase):
     self.fs.create_file('/abc_fuzzer.exe', contents='anything')
     self.assertTrue(utils.is_fuzz_target_local('/abc_fuzzer.exe'))
 
+  def test_fuzzer_py(self):
+    self.fs.create_file('/abc_fuzzer.par', contents='anything')
+    self.assertTrue(utils.is_fuzz_target_local('/abc_fuzzer.par'))
+
   def test_fuzzer_not_exist(self):
     self.assertFalse(utils.is_fuzz_target_local('/not_exist_fuzzer'))
 

@@ -1395,7 +1395,11 @@ class GetFileMatchCallbackTest(unittest.TestCase):
     self.assertTrue(
         match_callback(
             '/b/build/instrumented_libraries/msan/lib/libgcrypt.so.11.8.2'))
-    self.assertTrue(match_callback(r'/b/build/afl-fuzz'))
+    self.assertTrue(match_callback('/b/build/afl-fuzz'))
+    # Windows
+    self.assertTrue(match_callback('my_fuzzer.exe'))
+    # Python
+    self.assertTrue(match_callback('my_fuzzer.par'))
 
     # Tests for relative path.
     self.assertTrue(match_callback('build/my_fuzzer'))
@@ -1458,6 +1462,8 @@ class GetFileMatchCallbackTest(unittest.TestCase):
     self.assertTrue(match_callback('shared.dll.pdb'))
     self.assertFalse(match_callback('other_fuzzer.exe'))
     self.assertFalse(match_callback('other_fuzzer.exe.pdb'))
+    # Test that other .par targets are not included.
+    self.assertFalse(match_callback('other_fuzzer.par'))
     # Make sure we aren't excluding files that contain but don't end in
     # ".exe.pdb".
     self.assertTrue(match_callback('other_fuzzer.exe.pdbb'))

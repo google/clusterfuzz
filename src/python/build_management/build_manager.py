@@ -70,7 +70,9 @@ ICU_DATA_FILENAME = 'icudtl.dat'
 
 # Extensions to exclude when unarchiving a fuzz target. Note that fuzz target
 # own files like seed corpus, options, etc are covered by its own regex.
-FUZZ_TARGET_EXCLUDED_EXTENSIONS = ['exe', 'options', 'txt', 'zip', 'exe.pdb']
+FUZZ_TARGET_EXCLUDED_EXTENSIONS = [
+    'exe', 'options', 'txt', 'zip', 'exe.pdb', 'par'
+]
 
 # Binaries to explicitly include when unarchiving a fuzz target.
 FUZZ_TARGET_WHITELISTED_BINARIES = [

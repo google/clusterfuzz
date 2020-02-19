@@ -25,7 +25,7 @@ from metrics import logs
 from system import environment
 from system import shell
 
-ALLOWED_FUZZ_TARGET_EXTENSIONS = ['', '.exe']
+ALLOWED_FUZZ_TARGET_EXTENSIONS = ['', '.exe', '.par']
 FUZZ_TARGET_SEARCH_STRING = 'LLVMFuzzerTestOneInput'
 VALID_TARGET_NAME = re.compile(r'^[a-zA-Z0-9_-]+$')
 
