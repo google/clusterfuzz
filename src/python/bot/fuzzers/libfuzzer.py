@@ -1588,6 +1588,22 @@ def use_radamsa_mutator_plugin(extra_env):
   extra_env['LD_PRELOAD'] = radamsa_path
   return True
 
+def use_peach_mutator(extra_env):
+  # TODO(mpherman): Include architecture info in job definition and exclude
+  #  i386.
+  if environment.platform() != 'LINUX' or environment.get_value(
+      'MEMORY_TOOL') != 'ASAN':
+    return False
+
+  peach_path = "Path to peach mutator so"
+
+  # extract zip
+  # Set LD_PRELOAD
+  # Set Python path
+  # Look in libfuzzers options file to get grammar desired and title
+  # Set title and pit environment variables
+
+  return True
 
 def is_sha1_hash(possible_hash):
   """Returns True if |possible_hash| looks like a valid sha1 hash."""

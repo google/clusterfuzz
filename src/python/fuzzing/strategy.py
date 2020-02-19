@@ -46,6 +46,9 @@ RECOMMENDED_DICTIONARY_STRATEGY = Strategy(
     name='recommended_dict', probability=0.10, manually_enable=False)
 VALUE_PROFILE_STRATEGY = Strategy(
     name='value_profile', probability=0.33, manually_enable=False)
+PEACH_GRAMMAR_MUTATION_STRATEGY = Strategy(
+    name='peach_grammar_mutation', probability=0.05, manually_enable=True)
+
 
 # Keep this strategy order for strategy combination tracking as strategy
 # combinations are tracked as strings.
@@ -60,6 +63,7 @@ LIBFUZZER_STRATEGY_LIST = [
     DATAFLOW_TRACING_STRATEGY,
     MUTATOR_PLUGIN_STRATEGY,
     MUTATOR_PLUGIN_RADAMSA_STRATEGY,
+    PEACH_GRAMMAR_MUTATION_STRATEGY,
 ]
 
 AFL_STRATEGY_LIST = [
@@ -80,6 +84,7 @@ LIBFUZZER_STRATEGIES_WITH_BOOLEAN_VALUE = [
     DATAFLOW_TRACING_STRATEGY,
     MUTATOR_PLUGIN_STRATEGY,
     MUTATOR_PLUGIN_RADAMSA_STRATEGY,
+    PEACH_GRAMMAR_MUTATION_STRATEGY,
     RANDOM_MAX_LENGTH_STRATEGY,
     RECOMMENDED_DICTIONARY_STRATEGY,
     VALUE_PROFILE_STRATEGY,
