@@ -139,8 +139,7 @@ def patch():
   if not _is_windows():
     return
 
-  # TODO(mbarbella): Verify that this is no longer necessary in Python 3 and
-  # remove it completely after transitioning.
+  # TODO(mbarbella): Remove this file after fully transitioning to Python 3.
   if sys.version_info.major != 2:
     return
 
