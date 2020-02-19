@@ -17,12 +17,12 @@ from __future__ import absolute_import
 from builtins import range
 
 from . import delta_minimizer
+from . import errors
 from . import minimizer
 from . import utils
 
 from bot.tokenizer.antlr_tokenizer import AntlrTokenizer
 from bot.tokenizer.grammars.JavaScriptLexer import JavaScriptLexer
-from metrics import logs
 
 
 def step_back_while(cur_index, condition):
@@ -38,11 +38,7 @@ class JSMinimizer(minimizer.Minimizer):
   def _execute(self, data):
     testcase = minimizer.Testcase(data, self)
     if testcase.get_current_testcase_data() != data:
-      logs.log_error(
-          "Unable to perform JSMinimization. Tokenized data did not match \
-          original data.")
-      testcase.failed = True
-      return testcase
+      raise errors.TokenizationFailureError("JSMinimizer")
 
     brace_stack = []
     paren_stack = []

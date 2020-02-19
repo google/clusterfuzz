@@ -16,9 +16,9 @@ from __future__ import absolute_import
 
 from builtins import range
 
+from. import  errors
 from . import minimizer
 from . import utils
-from metrics import logs
 
 
 class DeltaTestcase(minimizer.Testcase):
@@ -47,11 +47,7 @@ class DeltaMinimizer(minimizer.Minimizer):
     """Prepare tests for delta minimization and process."""
     testcase = DeltaTestcase(data, self)
     if testcase.get_current_testcase_data() != data:
-      logs.log_error(
-          "Unable to perform Delta Minimization. Tokenized data did not match \
-          original data.")
-      testcase.failed = True
-      return testcase
+      raise errors.TokenizationFailureError("JSMinimizer")
 
     tokens = testcase.tokens
 
