@@ -221,6 +221,7 @@ class RevisionsTestcase(unittest.TestCase):
     expected_html = self._read_data_file('clank_expected_html.txt')
     self.assertEqual(result_as_html, expected_html)
 
+  @test_utils.python2_only
   @mock.patch('config.db_config.get')
   @mock.patch('build_management.revisions._get_url_content')
   def test_get_git_hash_for_git_commit_pos(self, mock_get_url_content,
