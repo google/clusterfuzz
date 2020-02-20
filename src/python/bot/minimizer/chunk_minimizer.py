@@ -34,7 +34,7 @@ class ChunkMinimizer(minimizer.Minimizer):
     """Minimize |data| using the algorithm from CF (but backwards)."""
     testcase = minimizer.Testcase(data, self)
     if testcase.get_current_testcase_data() != data:
-      raise errors.TokenizationFailureError("JSMinimizer")
+      raise errors.TokenizationFailureError('Chunk Minimizer')
 
     for lines_to_remove in self.chunk_sizes:
       remaining_tokens = testcase.get_required_token_indices()
