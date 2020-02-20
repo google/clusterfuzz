@@ -35,12 +35,6 @@ from system import environment
 from system import new_process
 from system import process_handler
 
-# Import will fail on AppEngine
-try:
-  import psutil
-except ImportError:
-  pass
-
 _QEMU_WAIT_SECONDS = 60
 
 
@@ -220,20 +214,6 @@ def start_qemu():
 
 def stop_qemu():
   """Stop qemu."""
-
-  # Report whether qemu is running, for diagnostics
-  found = False
-  for process in psutil.process_iter():
-    try:
-      if process.name() == 'qemu-system-x86_64':
-        found = True
-        break
-    except (psutil.AccessDenied, psutil.NoSuchProcess, OSError):
-      continue
-
-  if not found:
-    logs.log_warn('qemu stop requested, but it was not running.')
-
   process_handler.terminate_processes_matching_names('qemu-system-x86_64')
 
 

@@ -48,6 +48,7 @@ from platforms.fuchsia.util.host import Host
 from system import environment
 from system import minijail
 from system import new_process
+from system import process_handler
 from system import shell
 
 # Maximum length of a random chosen length for `-max_len`.
@@ -526,7 +527,9 @@ class FuchsiaQemuLibFuzzerRunner(new_process.ProcessRunner, LibFuzzerCommon):
 
   def _restart_qemu(self):
     """Restart QEMU."""
-    logs.log_warn('Connection to fuzzing VM lost. Restarting.')
+    logs.log_warn(
+        'Connection to fuzzing VM lost. Restarting.',
+        processes=process_handler.get_runtime_snapshot())
     stop_qemu()
 
     # Do this after the stop, to make sure everything is flushed
