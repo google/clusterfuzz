@@ -56,6 +56,7 @@ class FuzzerStatsTest(unittest.TestCase):
         'google_cloud_utils.storage.write_data',
     ])
 
+  @test_utils.python2_only
   def test_upload_testcase_run(self):
     """Tests uploading of TestcaseRun."""
     testcase_run_0 = fuzzer_stats.TestcaseRun('fuzzer', 'job', 123,
@@ -77,6 +78,7 @@ class FuzzerStatsTest(unittest.TestCase):
         'gs://test-bigquery-bucket/fuzzer/TestcaseRun/date/20160902/upload.json'
     )
 
+  @test_utils.python2_only
   def tests_upload_testcase_run_with_source(self):
     """Test uploading testcase run with source."""
     os.environ['STATS_SOURCE'] = 'custom_source'
@@ -90,6 +92,7 @@ class FuzzerStatsTest(unittest.TestCase):
         'gs://test-bigquery-bucket/fuzzer/TestcaseRun/date/20160902/upload.json'
     )
 
+  @test_utils.python2_only
   def test_upload_testcase_run_child(self):
     """Tests uploading of Testcaserun for a child fuzzer."""
     testcase_run_0 = fuzzer_stats.TestcaseRun('parent_child', 'job', 123,
@@ -103,6 +106,7 @@ class FuzzerStatsTest(unittest.TestCase):
         'gs://test-bigquery-bucket/parent/TestcaseRun/date/20160902/upload.json'
     )
 
+  @test_utils.python2_only
   def test_upload_testcase_run_2_days(self):
     """Tests uploading TestcaseRuns that span multiple days."""
     testcase_run_0 = fuzzer_stats.TestcaseRun('fuzzer', 'job', 123,
@@ -197,6 +201,7 @@ class FuzzerStatsTest(unittest.TestCase):
     self.assertEqual(testcase_run.timestamp, 1472846341.017923)
     self.assertEqual(testcase_run['stat'], 1000)
 
+  @test_utils.python2_only
   def test_testcase_run_write_to_disk(self):
     """Tests TestcaseRun serialization."""
     testcase_run = fuzzer_stats.TestcaseRun('fuzzer', 'job', 123,
@@ -238,6 +243,7 @@ class FuzzerStatsTest(unittest.TestCase):
     self.assertEqual(job_run['testcases_executed'], 9001)
     self.assertEqual(job_run['crashes'], [{'test': 'crash'}])
 
+  @test_utils.python2_only
   @mock.patch('metrics.fuzzer_stats.TestcaseRun.read_from_disk')
   def test_fuzz_task_upload_testcase_run_stats_builtin_fuzzer(
       self, mock_read_from_disk_new):

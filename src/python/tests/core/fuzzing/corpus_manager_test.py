@@ -96,7 +96,7 @@ class GcsCorpusTest(unittest.TestCase):
         'cp', '-I', 'gs://bucket/'
     ])
 
-    mock_popen.communicate.assert_called_with('/dir/a\n/dir/b')
+    mock_popen.communicate.assert_called_with(b'/dir/a\n/dir/b')
 
     self.mock.cpu_count.return_value = 2
     corpus = corpus_manager.GcsCorpus('bucket')
@@ -257,7 +257,7 @@ class FuzzTargetCorpusTest(fake_filesystem_unittest.TestCase):
 
     corpus = corpus_manager.FuzzTargetCorpus('libFuzzer', 'fuzzer')
     self.assertTrue(corpus.upload_files(['/dir/a', '/dir/b']))
-    mock_popen.communicate.assert_called_with('/dir/a\n/dir/b')
+    mock_popen.communicate.assert_called_with(b'/dir/a\n/dir/b')
 
     self.assertEqual(self.mock.Popen.call_args[0][0], [
         '/gsutil_path/gsutil', '-m', 'cp', '-I', 'gs://bucket/libFuzzer/fuzzer/'
