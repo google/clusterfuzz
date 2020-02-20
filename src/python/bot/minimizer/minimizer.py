@@ -20,6 +20,7 @@ from builtins import range
 from future import standard_library
 standard_library.install_aliases()
 
+from metrics import logs
 import copy
 import functools
 import os
@@ -481,6 +482,7 @@ class Testcase(object):
     """Get the result of minimization."""
     # Done with minimization, output log one more time
     self._report_progress(is_final_progress_report=True)
+
     if not self.minimizer.tokenize:
       return self.get_required_tokens()
     return self.get_current_testcase_data()
@@ -574,6 +576,9 @@ class Minimizer(object):
       # minimized test case is stored with it so that we can recover the work
       # that had been done up to that point.
       testcase = error.testcase
+    except errors.TokenizationFailureError:
+      logs.log_error('Tokenized data did not match original data.')
+      return data
 
     return testcase.get_result()
 
