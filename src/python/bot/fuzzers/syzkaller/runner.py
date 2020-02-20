@@ -90,7 +90,8 @@ class AndroidSyzkallerRunner(new_process.ProcessRunner):
            unused_extra_env=None):
     """This is where actual syzkaller fuzzing is done."""
     additional_args = copy.copy(additional_args)
-    fuzz_result = self.run_and_wait(additional_args, timeout=fuzz_timeout)
+    fuzz_result = self.run_and_wait(
+        additional_args, timeout=fuzz_timeout + constants.CLEAN_EXIT_SECS)
 
     log_lines = utils.decode_to_unicode(fuzz_result.output).splitlines()
     fuzz_result.output = None

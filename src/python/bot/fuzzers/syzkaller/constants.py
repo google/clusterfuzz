@@ -22,3 +22,5 @@ KASAN_CRASH_TESTCASE_REGEX = (r'.*Test unit written to\s*'
 SYZKALLER_WORK_FOLDER = '/tmp/syzkaller'
 
 VMLINUX_FOLDER = '/tmp/syzkaller/vmlinux'
+
+CLEAN_EXIT_SECS = 10

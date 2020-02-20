@@ -17,13 +17,11 @@ from bot.fuzzers import engine
 from bot.fuzzers import engine_common
 from bot.fuzzers import utils as fuzzer_utils
 from bot.fuzzers.syzkaller import runner
-from builtins import object
 from metrics import profiler
 from system import environment
 import os
 
 BIN_FOLDER_PATH = 'bin'
-_ENGINES = {}
 
 
 class SyzkallerError(Exception):
@@ -41,7 +39,7 @@ class SyzkallerOptions(engine.FuzzOptions):
     self.extra_env = extra_env
 
 
-class SyzkallerEngine(object):
+class SyzkallerEngine(engine.Engine):
   """Syzkaller fuzzing engine implementation."""
 
   @property
