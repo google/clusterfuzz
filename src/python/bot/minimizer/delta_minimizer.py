@@ -47,7 +47,7 @@ class DeltaMinimizer(minimizer.Minimizer):
     """Prepare tests for delta minimization and process."""
     testcase = DeltaTestcase(data, self)
     if testcase.get_current_testcase_data() != data:
-      raise errors.TokenizationFailureError("JSMinimizer")
+      raise errors.TokenizationFailureError('Delta Minimizer')
 
     tokens = testcase.tokens
 

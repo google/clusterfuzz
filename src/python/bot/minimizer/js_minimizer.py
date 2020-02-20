@@ -38,7 +38,7 @@ class JSMinimizer(minimizer.Minimizer):
   def _execute(self, data):
     testcase = minimizer.Testcase(data, self)
     if testcase.get_current_testcase_data() != data:
-      raise errors.TokenizationFailureError("JSMinimizer")
+      raise errors.TokenizationFailureError('JS Minimizer')
 
     brace_stack = []
     paren_stack = []
