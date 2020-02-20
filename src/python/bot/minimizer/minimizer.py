@@ -578,9 +578,25 @@ class Minimizer(object):
       testcase = error.testcase
     except errors.TokenizationFailureError:
       logs.log_error('Tokenized data did not match original data.')
-      return data
+      # In situation where the tokenizer does not work, we still want to use
+      # the token combiner. This will not change the data unless
+      # token combiner changes the data such as appending extra data to the
+      # start or end. If this is the case, that change will be expected
+      # in the return.
+      return self.token_combiner([data])
 
     return testcase.get_result()
+
+  def validate_tokenizer(self, data, testcase):
+    """Validate that the tokenizer correctly tokenized the data. This is
+    necessary because if the tokenizer does not recognize a character, it will
+    skip it."""
+    # For most token_combiners, using the combiner on data like below will do
+    # nothing, but in situations where data is changed in the token combiner
+    # such as data being appended to the start or end of data we want to make
+    # sure the same change happens to both before comparison.
+    data = self.token_combiner([data])
+    return testcase.get_current_testcase_data() == data
 
   @staticmethod
   def run(data, thread_count=DEFAULT_THREAD_COUNT, file_extension=''):
