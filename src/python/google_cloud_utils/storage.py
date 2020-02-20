@@ -697,7 +697,7 @@ def set_bucket_iam_policy(client, bucket_name, iam_policy):
       # Expected error for non-Google emails or groups. Warn about these.
       logs.log_warn('Invalid Google email or group being added to bucket %s.' %
                     bucket_name)
-    elif 'is of type "group"' in error_reason:
+    elif error_reason and 'is of type "group"' in error_reason:
       logs.log_warn('Failed to set IAM policy for %s bucket for a group: %s.' %
                     (bucket_name, error_reason))
     else:
