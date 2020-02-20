@@ -409,8 +409,6 @@ class PreparePredatorRequestBodyTest(ComponentRevisionPatchingTest):
     testcase.regression = 'NA'
     testcase.put()
 
-    self.maxDiff = None
-
     expected_message = {
         'stack_trace': 'crashy_function()',
         'customized_data': {
