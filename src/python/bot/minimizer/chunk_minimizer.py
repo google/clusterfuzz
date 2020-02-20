@@ -33,7 +33,7 @@ class ChunkMinimizer(minimizer.Minimizer):
   def _execute(self, data):
     """Minimize |data| using the algorithm from CF (but backwards)."""
     testcase = minimizer.Testcase(data, self)
-    if testcase.get_current_testcase_data() != data:
+    if not self.validate_tokenizer(data, testcase):
       raise errors.TokenizationFailureError('Chunk Minimizer')
 
     for lines_to_remove in self.chunk_sizes:
