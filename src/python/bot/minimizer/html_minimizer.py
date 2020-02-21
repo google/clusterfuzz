@@ -190,7 +190,8 @@ class HTMLMinimizer(minimizer.Minimizer):  # pylint:disable=abstract-method
   @staticmethod
   def combine_worker_tokens(tokens, prefix=b'', suffix=b''):
     """Combine tokens for a worker minimizer."""
-    return prefix + b''.join(tokens) + suffix
+    # The Antlr tokenizer decodes the bytes objects we originally pass to it.
+    return prefix + b''.join([t.encode('utf-8') for t in tokens] + suffix
 
   @staticmethod
   def combine_tokens(tokens):
