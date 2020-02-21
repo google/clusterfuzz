@@ -11,16 +11,3 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""Fuzzing engine initialization."""
-
-from bot.fuzzers import engine
-from bot.fuzzers.honggfuzz import engine as honggfuzz_engine
-from bot.fuzzers.libFuzzer import engine as libFuzzer_engine
-from bot.fuzzers.syzkaller import engine as syzkaller_engine
-
-
-def run():
-  """Initialise builtin fuzzing engines."""
-  engine.register('libFuzzer', libFuzzer_engine.LibFuzzerEngine)
-  engine.register('honggfuzz', honggfuzz_engine.HonggfuzzEngine)
-  engine.register('syzkaller', syzkaller_engine.SyzkallerEngine)

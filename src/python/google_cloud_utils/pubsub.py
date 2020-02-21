@@ -16,11 +16,10 @@
 from builtins import object
 import base64
 import collections
+import googleapiclient
 import httplib2
 import json
 import threading
-
-import googleapiclient
 
 from base import retry
 from google_cloud_utils import credentials

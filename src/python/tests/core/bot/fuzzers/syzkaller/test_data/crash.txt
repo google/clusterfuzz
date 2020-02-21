@@ -1,0 +1,19 @@
+c5  11608 SELinux: unrecognized netlink message: protocol=0 nlmsg_type=5120 sclass=netlink_route_socket
+c7  11612 SELinux: unrecognized netlink message: protocol=0 nlmsg_type=5120 sclass=netlink_route_socket
+c7  11616 SELinux: unrecognized netlink message: protocol=0 nlmsg_type=46823 sclass=netlink_route_socket
+c6    907 ==================================================================
+c6    907 BUG: KASAN: slab-out-of-bounds in save_stack_trace_tsk+0x3c0/0x420 usr/local/google/buildbot/src/partner-android/o-dev-msm-wahoo-4.4/private/msm-google/arch/arm64/kernel/stacktrace.c:169
+c6    907 Read of size 4 at addr ffffffc06155b8f0 by task kworker/u16:10/907
+c6    907 
+c6    907 CPU: 6 PID: 907 Comm: kworker/u16:10 Tainted: G        WC      4.4.205-gc19cb486686f-ab6115091 #1
+c6    907 Hardware name: Qualcomm Technologies, Inc. MSM8998 v2.1 (DT)
+c6    907 usercopy: kernel memory overwrite attempt detected to ffffffc06155b3a0 (selinux_file_security) (8 bytes)
+c6    907 ------------[ cut here ]------------
+c6    907 kernel BUG at /buildbot/src/partner-android/o-dev-msm-wahoo-4.4/private/msm-google/mm/usercopy.c:76!
+c6    907 Internal error: Oops - BUG: 0 [#1] PREEMPT SMP
+Modules linked in: wlan(C) lge_battery sw49408 ftm4 touch_core_base
+c6    907 CPU: 6 PID: 907 Comm: kworker/u16:10 Tainted: G        WC      4.4.205-gc19cb486686f-ab6115091 #1
+c6    907 Hardware name: Qualcomm Technologies, Inc. MSM8998 v2.1 (DT)
+c6    907 usercopy: kernel memory overwrite attempt detected to ffffffc06155ab00 (selinux_file_security) (8 bytes)
+c6    907 ------------[ cut here ]------------
+c6    907 kernel BUG at /buildbot/src/partner-android/o-dev-msm-wahoo-4.4/private/msm-google/mm/usercopy.c:76!

@@ -167,7 +167,7 @@ def run_platform_init_scripts():
   logs.log('Running platform initialization scripts.')
 
   plt = environment.platform()
-  if plt == 'ANDROID':
+  if plt in ('ANDROID', 'ANDROID_KERNEL'):
     android_init.run()
   elif plt == 'CHROMEOS':
     chromeos_init.run()

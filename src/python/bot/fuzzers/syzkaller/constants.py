@@ -11,16 +11,16 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""Fuzzing engine initialization."""
+"""Constants that are meaningful to syzkaller.
+Should not have any dependancies.
+"""
 
-from bot.fuzzers import engine
-from bot.fuzzers.honggfuzz import engine as honggfuzz_engine
-from bot.fuzzers.libFuzzer import engine as libFuzzer_engine
-from bot.fuzzers.syzkaller import engine as syzkaller_engine
+# Regex to find testcase path from a crash.
+KASAN_CRASH_TESTCASE_REGEX = (r'.*Test unit written to\s*'
+                              r'(Read|Write) of .*')
 
+SYZKALLER_WORK_FOLDER = '/tmp/syzkaller'
 
-def run():
-  """Initialise builtin fuzzing engines."""
-  engine.register('libFuzzer', libFuzzer_engine.LibFuzzerEngine)
-  engine.register('honggfuzz', honggfuzz_engine.HonggfuzzEngine)
-  engine.register('syzkaller', syzkaller_engine.SyzkallerEngine)
+VMLINUX_FOLDER = '/tmp/syzkaller/vmlinux'
+
+CLEAN_EXIT_SECS = 10

@@ -37,6 +37,19 @@ ENABLE_GESTURES = False
 THREAD_DELAY = 30.0
 """
 
+SYZKALLER_TEMPLATE = """MAX_FUZZ_THREADS = 1
+MAX_TESTCASES = 4
+FUZZ_TEST_TIMEOUT = 600
+TEST_TIMEOUT = 65
+WARMUP_TIMEOUT = 65
+BAD_BUILD_CHECK = False
+THREAD_ALIVE_CHECK_INTERVAL = 1
+REPORT_OOMS_AND_HANGS = True
+ADDITIONAL_PROCESSES_TO_KILL = syz-manager
+ENABLE_GESTURES = False
+THREAD_DELAY = 30.0
+"""
+
 AFL_TEMPLATE = """APP_NAME = launcher.py
 MAX_FUZZ_THREADS = 1
 MAX_TESTCASES = 4
@@ -84,6 +97,7 @@ TEMPLATES = {
     'engine_ubsan': ENGINE_UBSAN_TEMPLATE,
     'honggfuzz': HONGGFUZZ_TEMPLATE,
     'libfuzzer': LIBFUZZER_TEMPLATE,
+    'syzkaller': SYZKALLER_TEMPLATE,
     'prune': PRUNE_TEMPLATE,
 }
 
@@ -223,6 +237,16 @@ class HonggfuzzDefaults(BaseBuiltinFuzzerDefaults):
     self.key_id = 1339
 
 
+class SyzkallerDefaults(BaseBuiltinFuzzerDefaults):
+  """Default values for syzkaller."""
+
+  def __init__(self):
+    super(SyzkallerDefaults, self).__init__()
+    # Override empty values from parent.
+    self.name = 'syzkaller'
+    self.key_id = 1340
+
+
 def setup_config(non_dry_run):
   """Set up configuration."""
   config = data_types.Config.query().get()
@@ -239,8 +263,10 @@ def setup_config(non_dry_run):
 def setup_fuzzers(non_dry_run):
   """Set up fuzzers."""
   for fuzzer_defaults in [
-      AflDefaults(), LibFuzzerDefaults(),
-      HonggfuzzDefaults()
+      AflDefaults(),
+      LibFuzzerDefaults(),
+      HonggfuzzDefaults(),
+      SyzkallerDefaults()
   ]:
     fuzzer = data_types.Fuzzer.query(
         data_types.Fuzzer.name == fuzzer_defaults.name).get()
