@@ -25,6 +25,7 @@ import random
 import re
 import shutil
 import string
+import sys
 import tempfile
 
 from base import retry
@@ -34,6 +35,7 @@ from bot.fuzzers import engine_common
 from bot.fuzzers import mutator_plugin
 from bot.fuzzers import utils as fuzzer_utils
 from bot.fuzzers.libFuzzer import constants
+from bot.fuzzers.libFuzzer.peach import pits
 from datastore import data_types
 from fuzzing import strategy
 from metrics import logs
@@ -49,6 +51,7 @@ from system import environment
 from system import minijail
 from system import new_process
 from system import shell
+from zipfile import ZipFile
 
 # Maximum length of a random chosen length for `-max_len`.
 MAX_VALUE_FOR_MAX_LENGTH = 10000
@@ -1588,22 +1591,51 @@ def use_radamsa_mutator_plugin(extra_env):
   extra_env['LD_PRELOAD'] = radamsa_path
   return True
 
+
 def use_peach_mutator(extra_env):
+  """Decide whether or not to use peach mutator, and set up all of the
+  environment variables necessary to do so."""
   # TODO(mpherman): Include architecture info in job definition and exclude
   #  i386.
   if environment.platform() != 'LINUX' or environment.get_value(
       'MEMORY_TOOL') != 'ASAN':
     return False
 
-  peach_path = "Path to peach mutator so"
+  # Extract zip of peach mutator code.
+  peach_dir = os.path.join(environment.get_platform_resources_directory(),
+                           'peach')
+  unzipped = os.path.join(peach_dir, 'mutator')
+  source = os.path.join(peach_dir, 'peach_mutator.zip')
+  #ZipFile.extractall(path=unzipped, members=source)
 
-  # extract zip
-  # Set LD_PRELOAD
-  # Set Python path
-  # Look in libfuzzers options file to get grammar desired and title
+  with ZipFile(source, 'r') as zipped:
+    zipped.extractall(unzipped)
+
+  # Set LD_PRELOAD.
+  peach_path = os.path.join(unzipped, 'peach_mutator', 'src', 'peach.so')
+  extra_env['LD_PRELOAD'] = peach_path
+
+  # Set Python path.
+  # TODO(mpherman): Change this to explicitly point to Python 2
+  new_path = sys.path
+  new_path.append(os.path.join(unzipped, 'peach_mutator', 'src'))
+  new_path.append(
+      os.path.join(unzipped, 'peach_mutator', 'third_party', 'peach'))
+  extra_env['PYTHON_PATH'] = new_path
+
+  # Select grammar.
+  # TODO(mpherman): Look in libfuzzers options file to get grammar
+  grammar = "PDF"
+
+  if not pits.validate(grammar):
+    return False
+
   # Set title and pit environment variables
+  extra_env['PIT_PATH'] = pits.get_path(grammar)
+  extra_env['PIT_TITLE'] = pits.get_title(grammar)
 
   return True
+
 
 def is_sha1_hash(possible_hash):
   """Returns True if |possible_hash| looks like a valid sha1 hash."""
@@ -1724,6 +1756,13 @@ def pick_strategies(strategy_pool, fuzzer_path, corpus_directory,
     fuzzing_strategies.append(strategy.MUTATOR_PLUGIN_STRATEGY.name)
 
   if (strategy.MUTATOR_PLUGIN_STRATEGY.name not in fuzzing_strategies and
+      strategy_pool.do_strategy(strategy.PEACH_GRAMMAR_MUTATION_STRATEGY) and
+      use_peach_mutator(extra_env)):
+    fuzzing_strategies.append(strategy.PEACH_GRAMMAR_MUTATION_STRATEGY.name)
+
+  if (strategy.MUTATOR_PLUGIN_STRATEGY.name not in fuzzing_strategies and
+      strategy.PEACH_GRAMMAR_MUTATION_STRATEGY.name not in fuzzing_strategies
+      and
       strategy_pool.do_strategy(strategy.MUTATOR_PLUGIN_RADAMSA_STRATEGY) and
       use_radamsa_mutator_plugin(extra_env)):
     fuzzing_strategies.append(strategy.MUTATOR_PLUGIN_RADAMSA_STRATEGY.name)
