@@ -591,6 +591,12 @@ class Minimizer(object):
     """Validate that the tokenizer correctly tokenized the data. This is
     necessary because if the tokenizer does not recognize a character, it will
     skip it."""
+    # If data is a list, it means we're not minimizing a test case but another
+    # feature such as files or command line arguments. In these cases, we don't
+    # rely on a tokenizer.
+    if isinstance(data, list):
+      return True
+
     # For most token_combiners, using the combiner on data like below will do
     # nothing, but in situations where data is changed in the token combiner
     # such as data being appended to the start or end of data we want to make
