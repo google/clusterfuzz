@@ -617,6 +617,19 @@ class StackAnalyzerTestcase(unittest.TestCase):
                                   expected_state, expected_stacktrace,
                                   expected_security_flag)
 
+  def test_ignore_honggfuzz(self):
+    """Test that frames from honggfuzz wrappers are ignored."""
+    data = self._read_test_data('ignore_honggfuzz.txt')
+    expected_type = 'Segv on unknown address'
+    expected_address = ''
+    expected_state = ('function1\n' 'function2\n' 'function3\n')
+    expected_stacktrace = data
+    expected_security_flag = True
+
+    self._validate_get_crash_data(data, expected_type, expected_address,
+                                  expected_state, expected_stacktrace,
+                                  expected_security_flag)
+
   def test_ignore_libc_if_symbolized(self):
     """Test that we ignore certain shared libraries if symbolized."""
     data = self._read_test_data('ignore_libc_if_symbolized.txt')
