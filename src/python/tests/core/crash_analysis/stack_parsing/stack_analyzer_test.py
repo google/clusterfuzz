@@ -622,7 +622,7 @@ class StackAnalyzerTestcase(unittest.TestCase):
     data = self._read_test_data('ignore_honggfuzz.txt')
     expected_type = 'Segv on unknown address'
     expected_address = ''
-    expected_state = ('function1\n' 'function2\n' 'function3\n')
+    expected_state = ('function1\nfunction2\nfunction3\n')
     expected_stacktrace = data
     expected_security_flag = True
 
