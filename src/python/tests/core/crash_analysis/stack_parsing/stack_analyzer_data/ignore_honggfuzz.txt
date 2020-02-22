@@ -1,0 +1,21 @@
+AddressSanitizer:DEADLYSIGNAL
+=================================================================
+==3921205==ERROR: AddressSanitizer: SEGV on unknown address (pc 0x55f2fda19db0 bp 0x7fff42342520 sp 0x7fff42342500 T0)
+==3921205==The signal is caused by a READ memory access.
+==3921205==Hint: this fault was caused by a dereference of a high value address (see register values below).  Dissassemble the provided pc to learn which register was used.
+SCARINESS: 20 (wild-addr-read)
+    #0 0x55f2fda19db0 in HF_strcmp /proc/self/cwd/third_party/honggfuzz/libhfuzz/memorycmp.c:17:26
+    #1 0x55f2fda19d8c in __wrap_strcmp /proc/self/cwd/third_party/honggfuzz/libhfuzz/memorycmp.c:146:12
+    #2 0x55f2fd41dfc6 in function1 file1.c:486:12
+    #3 0x55f2fd3392b1 in function2 file2.c:349:12
+    #4 0x55f2fd4593b5 in function3 file3.c:906:21
+    #5 0x55f2fd21672b in LLVMFuzzerTestOneInput /proc/self/cwd/fuzzer/fuzzer.cc:10:16
+    #6 0x55f2fda1a7c8 in HonggfuzzRunOneInput /proc/self/cwd/third_party/honggfuzz/libhfuzz/persistent.c:60:15
+    #7 0x55f2fda1a713 in HonggfuzzRunFromFile /proc/self/cwd/third_party/honggfuzz/libhfuzz/persistent.c:99:5
+    #8 0x55f2fda1a5e7 in HonggfuzzMain /proc/self/cwd/third_party/honggfuzz/libhfuzz/persistent.c:109:16
+    #8 0x55f2fda1a7b8 in main /proc/self/cwd/third_party/honggfuzz/libhfuzz/persistent.c:124:12
+    #10 0x7f147a0e6bbc in __libc_start_main
+    #11 0x55f2fd165488 in _start src/sysdeps/x86_64/start.S:108
+AddressSanitizer can not provide additional info.
+SUMMARY: AddressSanitizer: SEGV (/mnt/scratch0/clusterfuzz/bot/builds/path_to_the-fuzzer_77651789446b3c3a04b9f492ff141f003d437347/revisions/some-fuzzer+0xe28db0)
+==3921205==ABORTING
