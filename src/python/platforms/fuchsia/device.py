@@ -122,7 +122,8 @@ class QemuProcess(object):
     self.logfile = None
 
     if not QemuProcess.LOG_PATH:
-      QemuProcess.LOG_PATH = os.path.join(tempfile.gettempdir(), 'fuchsia-qemu-log')
+      QemuProcess.LOG_PATH = os.path.join(tempfile.gettempdir(),
+                                          'fuchsia-qemu-log')
 
   def create(self):
     """Configures a QEMU process which can subsequently be `run`.
