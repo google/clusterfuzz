@@ -111,13 +111,19 @@ class QemuProcess(object):
   of Fuchsia QEMU processes."""
 
   # For now, use a system-global log path so we don't need to pass a tempfile
-  # path around everywhere
-  LOG_PATH = os.path.join(tempfile.gettempdir(), 'fuchsia-qemu-log')
+  # path around everywhere. We use a class constant so it can be accessed
+  # without an instance, but defer initialization until the constructor so that
+  # it isn't run in non-Fuchsia contexts.
+  LOG_PATH = None
 
   def __init__(self):
     self.process_runner = None
     self.popen = None
     self.logfile = None
+
+    if not QemuProcess.LOG_PATH:
+      QemuProcess.LOG_PATH = os.path.join(tempfile.gettempdir(),
+                                          'fuchsia-qemu-log')
 
   def create(self):
     """Configures a QEMU process which can subsequently be `run`.
