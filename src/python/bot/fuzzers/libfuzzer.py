@@ -1606,7 +1606,6 @@ def use_peach_mutator(extra_env):
                            'peach')
   unzipped = os.path.join(peach_dir, 'mutator')
   source = os.path.join(peach_dir, 'peach_mutator.zip')
-  #ZipFile.extractall(path=unzipped, members=source)
 
   with ZipFile(source, 'r') as zipped:
     zipped.extractall(unzipped)
@@ -1617,11 +1616,14 @@ def use_peach_mutator(extra_env):
 
   # Set Python path.
   # TODO(mpherman): Change this to explicitly point to Python 2
-  new_path = sys.path
+  new_path = []
   new_path.append(os.path.join(unzipped, 'peach_mutator', 'src'))
   new_path.append(
       os.path.join(unzipped, 'peach_mutator', 'third_party', 'peach'))
-  extra_env['PYTHON_PATH'] = new_path
+
+  # Append the mutator to the begining of the Python path.
+  new_path = new_path + sys.path
+  extra_env['PYTHONPATH'] = ':'.join(new_path)
 
   # Select grammar.
   # TODO(mpherman): Look in libfuzzers options file to get grammar
