@@ -1592,7 +1592,7 @@ def use_radamsa_mutator_plugin(extra_env):
   return True
 
 
-def use_peach_mutator(extra_env):
+def use_peach_mutator(extra_env, arguments):
   """Decide whether or not to use peach mutator, and set up all of the
   environment variables necessary to do so."""
   # TODO(mpherman): Include architecture info in job definition and exclude
@@ -1626,8 +1626,10 @@ def use_peach_mutator(extra_env):
   extra_env['PYTHONPATH'] = ':'.join(new_path)
 
   # Select grammar.
-  # TODO(mpherman): Look in libfuzzers options file to get grammar
-  grammar = "PDF"
+  grammar = fuzzer_utils.extract_argument(arguments, 'grammar')
+  # If the target has no grammar, do not use this strategy.
+  if not grammar:
+    return False
 
   if not pits.validate(grammar):
     return False
@@ -1759,7 +1761,7 @@ def pick_strategies(strategy_pool, fuzzer_path, corpus_directory,
 
   if (strategy.MUTATOR_PLUGIN_STRATEGY.name not in fuzzing_strategies and
       strategy_pool.do_strategy(strategy.PEACH_GRAMMAR_MUTATION_STRATEGY) and
-      use_peach_mutator(extra_env)):
+      use_peach_mutator(extra_env, existing_arguments)):
     fuzzing_strategies.append(strategy.PEACH_GRAMMAR_MUTATION_STRATEGY.name)
 
   if (strategy.MUTATOR_PLUGIN_STRATEGY.name not in fuzzing_strategies and

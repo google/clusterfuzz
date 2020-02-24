@@ -367,7 +367,7 @@ _LIBFUZZER_SCHEMA = [{
     'mode': 'NULLABLE',
     'name': 'strategy_peach_grammar_mutation',
     'type': 'INTEGER'
-},{
+}, {
     'mode': 'NULLABLE',
     'name': 'corpus_rss_mb',
     'type': 'INTEGER'
