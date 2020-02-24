@@ -75,9 +75,9 @@ class Fuzzer(object):
     production). """
     # Strip any sanitizer extensions
     tgt = os.path.splitext(tgt)[0]
-    return (pkg == 'example_fuzzers' and tgt != 'oom_fuzzer') \
-        or (pkg == 'zircon_fuzzers' and tgt == 'noop-fuzzer') \
-        or (pkg == 'go_fuzzers' and tgt == 'basic_fuzzer')
+    return ((pkg == 'example_fuzzers' and tgt != 'oom_fuzzer') or
+            (pkg == 'zircon_fuzzers' and tgt == 'noop-fuzzer') or
+            (pkg == 'go_fuzzers' and tgt == 'basic_fuzzer'))
 
   @classmethod
   def filter(cls, fuzzers, name, sanitizer=None, example_fuzzers=True):
