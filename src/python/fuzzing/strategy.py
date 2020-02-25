@@ -47,7 +47,7 @@ RECOMMENDED_DICTIONARY_STRATEGY = Strategy(
 VALUE_PROFILE_STRATEGY = Strategy(
     name='value_profile', probability=0.33, manually_enable=False)
 PEACH_GRAMMAR_MUTATION_STRATEGY = Strategy(
-    name='peach_grammar_mutation', probability=1.00, manually_enable=True)
+    name='peach_grammar_mutation', probability=0.10, manually_enable=True)
 
 # Keep this strategy order for strategy combination tracking as strategy
 # combinations are tracked as strings.
