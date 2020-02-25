@@ -47,11 +47,11 @@ from platforms.fuchsia.device import stop_qemu
 from platforms.fuchsia.util.device import Device
 from platforms.fuchsia.util.fuzzer import Fuzzer
 from platforms.fuchsia.util.host import Host
+from system import archive
 from system import environment
 from system import minijail
 from system import new_process
 from system import shell
-from zipfile import ZipFile
 
 # Maximum length of a random chosen length for `-max_len`.
 MAX_VALUE_FOR_MAX_LENGTH = 10000
@@ -1601,14 +1601,30 @@ def use_peach_mutator(extra_env, arguments):
       'MEMORY_TOOL') != 'ASAN':
     return False
 
+  # Select grammar.
+  grammar = fuzzer_utils.extract_argument(arguments, 'grammar')
+
+  # If the target has no grammar, do not use this strategy.
+  if not grammar:
+    return False
+
+  pit_path = pits.get_path(grammar)
+  if not os.path.exists(pit_path):
+    logs.log_error('Peach Mutator is being used with the grammar named ' +
+                   grammar + ' that does not have a corresponding pit.')
+    return False
+
+  # Set title and pit environment variables
+  extra_env['PIT_PATH'] = pits.get_path(grammar)
+  extra_env['PIT_TITLE'] = grammar
+
   # Extract zip of peach mutator code.
   peach_dir = os.path.join(environment.get_platform_resources_directory(),
                            'peach')
   unzipped = os.path.join(peach_dir, 'mutator')
   source = os.path.join(peach_dir, 'peach_mutator.zip')
 
-  with ZipFile(source, 'r') as zipped:
-    zipped.extractall(unzipped)
+  archive.unpack(source, unzipped, trusted=True)
 
   # Set LD_PRELOAD.
   peach_path = os.path.join(unzipped, 'peach_mutator', 'src', 'peach.so')
@@ -1624,19 +1640,6 @@ def use_peach_mutator(extra_env, arguments):
   # Append the mutator to the begining of the Python path.
   new_path = new_path + sys.path
   extra_env['PYTHONPATH'] = ':'.join(new_path)
-
-  # Select grammar.
-  grammar = fuzzer_utils.extract_argument(arguments, 'grammar')
-  # If the target has no grammar, do not use this strategy.
-  if not grammar:
-    return False
-
-  if not pits.validate(grammar):
-    return False
-
-  # Set title and pit environment variables
-  extra_env['PIT_PATH'] = pits.get_path(grammar)
-  extra_env['PIT_TITLE'] = pits.get_title(grammar)
 
   return True
 

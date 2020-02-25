@@ -16,22 +16,9 @@
 from system import environment
 import os
 
-PIT_DIR = os.path.join(environment.get_platform_resources_directory(), 'peach',
-                       'pits')
-PATH = 0
-TITLE = 1
-# The key is the name of the grammar as defined in the libfuzzer options file.
-# The value is the path to the pit, and the title of the pit.
-PIT_INFORMATION = {'PDF': (os.path.join(PIT_DIR, 'pdf.xml'), 'PDF')}
-
-
-def validate(grammar):
-  return grammar in PIT_INFORMATION
-
 
 def get_path(grammar):
-  return PIT_INFORMATION[grammar][PATH]
+  pit_dir = os.path.join(environment.get_platform_resources_directory(),
+                         'peach', 'pits')
 
-
-def get_title(grammar):
-  return PIT_INFORMATION[grammar][TITLE]
+  return os.path.join(pit_dir, grammar + '.xml')
