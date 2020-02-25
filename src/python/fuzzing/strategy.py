@@ -46,6 +46,7 @@ RECOMMENDED_DICTIONARY_STRATEGY = Strategy(
     name='recommended_dict', probability=0.10, manually_enable=False)
 VALUE_PROFILE_STRATEGY = Strategy(
     name='value_profile', probability=0.33, manually_enable=False)
+# TODO(mpherman): Increase the probability of peach mutation strategy.
 PEACH_GRAMMAR_MUTATION_STRATEGY = Strategy(
     name='peach_grammar_mutation', probability=0.10, manually_enable=True)
 

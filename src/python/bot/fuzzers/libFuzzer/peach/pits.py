@@ -18,7 +18,18 @@ import os
 
 
 def get_path(grammar):
+  # If the target has no grammar, do not use this strategy.
+
+  if not grammar:
+    return None
+
   pit_dir = os.path.join(environment.get_platform_resources_directory(),
                          'peach', 'pits')
+  pit_path = os.path.join(pit_dir, grammar + '.xml')
 
-  return os.path.join(pit_dir, grammar + '.xml')
+  if not os.path.exists(pit_path):
+    logs.log_error('Peach Mutator is being used with the grammar named ' +
+                   grammar + ' that does not have a corresponding pit.')
+    return None
+
+  return pit_path

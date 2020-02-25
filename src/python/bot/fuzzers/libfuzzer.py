@@ -1603,19 +1603,13 @@ def use_peach_mutator(extra_env, arguments):
 
   # Select grammar.
   grammar = fuzzer_utils.extract_argument(arguments, 'grammar')
-
-  # If the target has no grammar, do not use this strategy.
-  if not grammar:
-    return False
-
   pit_path = pits.get_path(grammar)
-  if not os.path.exists(pit_path):
-    logs.log_error('Peach Mutator is being used with the grammar named ' +
-                   grammar + ' that does not have a corresponding pit.')
+
+  if not pit_path:
     return False
 
   # Set title and pit environment variables
-  extra_env['PIT_PATH'] = pits.get_path(grammar)
+  extra_env['PIT_PATH'] = pit_path
   extra_env['PIT_TITLE'] = grammar
 
   # Extract zip of peach mutator code.
@@ -1631,7 +1625,7 @@ def use_peach_mutator(extra_env, arguments):
   extra_env['LD_PRELOAD'] = peach_path
 
   # Set Python path.
-  # TODO(mpherman): Change this to explicitly point to Python 2
+  # TODO(mpherman): Change this to explicitly point to Python 2.
   new_path = []
   new_path.append(os.path.join(unzipped, 'peach_mutator', 'src'))
   new_path.append(
