@@ -18,8 +18,6 @@ from google.protobuf import wrappers_pb2
 from google.protobuf.any_pb2 import Any
 import six
 
-from . import protobuf_utils
-
 from bot import testcase_manager
 from bot.fuzzers import engine
 from bot.tasks import corpus_pruning_task
@@ -70,8 +68,7 @@ def prune_corpus(request, _):
           crash_state=crash.crash_state,
           crash_type=crash.crash_type,
           crash_address=crash.crash_address,
-          crash_stacktrace=protobuf_utils.encode_utf8_if_unicode(
-              crash.crash_stacktrace),
+          crash_stacktrace=crash.crash_stacktrace,
           unit_path=crash.unit_path,
           security_flag=crash.security_flag,
       ) for crash in result.crashes
@@ -115,7 +112,7 @@ def engine_fuzz(request, _):
   crashes = [
       untrusted_runner_pb2.EngineCrash(
           input_path=crash.input_path,
-          stacktrace=protobuf_utils.encode_utf8_if_unicode(crash.stacktrace),
+          stacktrace=crash.stacktrace,
           reproduce_args=crash.reproduce_args,
           crash_time=crash.crash_time) for crash in result.crashes
   ]
@@ -135,7 +132,7 @@ def engine_fuzz(request, _):
     packed_stats[key] = packed_value
 
   return untrusted_runner_pb2.EngineFuzzResponse(
-      logs=protobuf_utils.encode_utf8_if_unicode(result.logs),
+      logs=result.logs,
       command=result.command,
       crashes=crashes,
       stats=packed_stats,
