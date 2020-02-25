@@ -1,8 +1,7 @@
 # Copyright 2019 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
+# you may not use this file except in compliance with the License.  You may obtain a copy of the License at
 #
 #      http://www.apache.org/licenses/LICENSE-2.0
 #
@@ -141,10 +140,10 @@ class UntrustedRunnerIntegrationTest(unittest.TestCase):
         project_name='project',
         id='host-0').put()
 
-    with open(cert_location) as f:
+    with open(cert_location, 'rb') as f:
       cert_contents = f.read()
 
-    with open(key_location) as f:
+    with open(key_location, 'rb') as f:
       key_contents = f.read()
 
     data_types.WorkerTlsCert(

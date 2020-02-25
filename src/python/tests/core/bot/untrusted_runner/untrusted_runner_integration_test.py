@@ -66,10 +66,6 @@ class UntrustedRunnerIntegrationTest(
   def setUp(self):
     """Set up."""
     super(UntrustedRunnerIntegrationTest, self).setUp()
-    test_helpers.patch(self, [
-        'datastore.data_handler.get_data_bundle_bucket_name',
-    ])
-
     data_types.Config().put()
 
     environment_string = ('APP_NAME = app\n'

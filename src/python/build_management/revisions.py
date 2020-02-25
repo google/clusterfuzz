@@ -276,7 +276,7 @@ def deps_to_revisions_dict(content):
       'Var': lambda x: '{%s}' % x,
   }
   # pylint: disable=exec-used
-  exec (content, global_context, local_context)
+  exec(content, global_context, local_context)
 
   revisions_dict = {}
 

@@ -14,6 +14,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-SCRIPT_DIR=$( dirname ${BASH_SOURCE[0]} )
+SCRIPT_DIR=$( readlink -f $( dirname ${BASH_SOURCE[0]} ) )
+PARENT_DIR=$( dirname ${SCRIPT_DIR} )
 
-python2 -m grpc_tools.protoc --proto_path=$SCRIPT_DIR --python_out=$SCRIPT_DIR --grpc_python_out=$SCRIPT_DIR $SCRIPT_DIR/*.proto
+python -m grpc_tools.protoc --proto_path=$PARENT_DIR --python_out=$PARENT_DIR --grpc_python_out=$PARENT_DIR $SCRIPT_DIR/*.proto

@@ -320,13 +320,12 @@ class CorpusPruningTestUntrusted(
 
     helpers.patch(self, [
         'bot.fuzzers.engine.get',
-        'bot.fuzzers.libFuzzer.fuzzer.LibFuzzer.fuzzer_directory',
+        'bot.tasks.setup.get_fuzzer_directory',
         'base.tasks.add_task',
-        'datastore.data_handler.get_data_bundle_bucket_name',
     ])
 
     self.mock.get.return_value = libFuzzer_engine.LibFuzzerEngine()
-    self.mock.fuzzer_directory.return_value = os.path.join(
+    self.mock.get_fuzzer_directory.return_value = os.path.join(
         environment.get_value('ROOT_DIR'), 'src', 'python', 'bot', 'fuzzers',
         'libFuzzer')
 
