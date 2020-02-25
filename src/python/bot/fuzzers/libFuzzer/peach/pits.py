@@ -22,7 +22,7 @@ PATH = 0
 TITLE = 1
 # The key is the name of the grammar as defined in the libfuzzer options file.
 # The value is the path to the pit, and the title of the pit.
-PIT_INFORMATION = {"PDF": (os.path.join(PIT_DIR, 'PDF.XML'), 'PDF')}
+PIT_INFORMATION = {"PDF": (os.path.join(PIT_DIR, 'pdf.xml'), 'PDF')}
 
 
 def validate(grammar):
