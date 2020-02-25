@@ -13,13 +13,16 @@
 # limitations under the License.
 """Dictionary to keep track of pit information."""
 
+from metrics import logs
 from system import environment
 import os
 
 
 def get_path(grammar):
-  # If the target has no grammar, do not use this strategy.
+  """Return the path of the peach pit for the given grammar. Return None if the
+  Pit does not exist or the grammar is None."""
 
+  # If the target has no grammar, do not use this strategy.
   if not grammar:
     return None
 
