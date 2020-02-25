@@ -1067,7 +1067,7 @@ def get_build_urls_list(bucket_path, reverse=True):
           f.write(path + '\n')
 
     content = utils.read_data_from_file(
-        keys_file_path, eval_data=False).decode()
+        keys_file_path, eval_data=False).decode('utf-8')
     if not content:
       return []
 
