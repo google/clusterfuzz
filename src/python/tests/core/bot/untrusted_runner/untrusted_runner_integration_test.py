@@ -37,7 +37,6 @@ from google_cloud_utils import blobs
 from system import environment
 from system import process_handler
 from system import shell
-from tests.test_libs import helpers as test_helpers
 from tests.test_libs import untrusted_runner_helpers
 
 TEST_FILE_CONTENTS = ('A' * config.FILE_TRANSFER_CHUNK_SIZE +
