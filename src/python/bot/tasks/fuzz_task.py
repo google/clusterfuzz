@@ -202,6 +202,12 @@ class Crash(object):
     self.crash_frames = state.frames
     self.crash_info = None
 
+    # Fuzzing log containing strategy is stored here.
+    self.fuzzing_log = None
+
+  def set_fuzzing_log(self, log):
+    self.fuzzing_log = log
+
   def is_archived(self):
     """Return true if archive_testcase_in_blobstore(..) was
       performed."""
@@ -990,8 +996,7 @@ def create_testcase(group, context):
     testcase.put()
 
   fuzzing_strategies = (
-      libfuzzer_stats.LIBFUZZER_FUZZING_STRATEGIES.search(
-          crash.crash_stacktrace))
+      libfuzzer_stats.LIBFUZZER_FUZZING_STRATEGIES.search(crash.fuzzing_log))
 
   if fuzzing_strategies:
     assert len(fuzzing_strategies.groups()) == 1
@@ -1589,9 +1594,12 @@ class FuzzingSession(object):
                                        self.job_type, revision)
       upload_testcase_run_stats(testcase_run)
       if result.crashes:
-        crashes.extend([
+        new_crashes = [
             Crash.from_engine_crash(crash) for crash in result.crashes if crash
-        ])
+        ]
+        for crash in new_crashes:
+          crash.set_fuzzing_log(result.logs)
+        crashes.extend(new_crashes)
 
     logs.log('All fuzzing rounds complete.')
     self.sync_new_corpus_files()
