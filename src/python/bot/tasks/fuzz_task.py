@@ -203,7 +203,7 @@ class Crash(object):
     self.crash_info = None
 
     # Fuzzing log containing strategy is stored here.
-    self.fuzzing_log = None
+    self.fuzzing_log = ''
 
   def set_fuzzing_log(self, log):
     self.fuzzing_log = log
@@ -996,8 +996,7 @@ def create_testcase(group, context):
     testcase.put()
 
   fuzzing_strategies = (
-      libfuzzer_stats.LIBFUZZER_FUZZING_STRATEGIES.search(
-          crash.fuzzing_log if crash.fuzzing_log else ''))
+      libfuzzer_stats.LIBFUZZER_FUZZING_STRATEGIES.search(crash.fuzzing_log))
 
   if fuzzing_strategies:
     assert len(fuzzing_strategies.groups()) == 1
