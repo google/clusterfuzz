@@ -297,10 +297,14 @@ def find_fuzzer_path(build_directory, fuzzer_name):
   if project_name:
     legacy_name_prefix = project_name + u'_'
 
+  if sys.version_info.major == 2:
+    # TODO(ochang): Remove hack once moved to Python 3.
+    legacy_name_prefix = legacy_name_prefix.encode()
+
   fuzzer_filename = environment.get_executable_filename(fuzzer_name)
   for root, _, files in shell.walk(build_directory):
     for filename in files:
-      if (legacy_name_prefix.encode() + filename == fuzzer_name or
+      if (legacy_name_prefix + filename == fuzzer_name or
           filename == fuzzer_filename):
         return os.path.join(root, filename)
 

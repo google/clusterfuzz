@@ -22,7 +22,6 @@ import six
 
 from . import host
 
-from base import utils
 from bot import testcase_manager
 from bot.fuzzers import engine
 from bot.tasks import corpus_pruning_task
@@ -81,7 +80,7 @@ def do_corpus_pruning(context, last_execution_failed, revision):
           crash_state=crash.crash_state,
           crash_type=crash.crash_type,
           crash_address=crash.crash_address,
-          crash_stacktrace=utils.decode_to_unicode(crash.crash_stacktrace),
+          crash_stacktrace=crash.crash_stacktrace,
           unit_path=crash.unit_path,
           security_flag=crash.security_flag,
       ) for crash in response.crashes
@@ -138,7 +137,7 @@ def engine_fuzz(engine_impl, target_name, sync_corpus_directory,
   crashes = [
       engine.Crash(
           input_path=file_host.rebase_to_host_root(crash.input_path),
-          stacktrace=utils.decode_to_unicode(crash.stacktrace),
+          stacktrace=crash.stacktrace,
           reproduce_args=crash.reproduce_args,
           crash_time=crash.crash_time) for crash in response.crashes
   ]
@@ -158,7 +157,7 @@ def engine_fuzz(engine_impl, target_name, sync_corpus_directory,
     unpacked_stats[key] = value.value
 
   result = engine.FuzzResult(
-      logs=utils.decode_to_unicode(response.logs),
+      logs=response.logs,
       command=list(response.command),
       crashes=crashes,
       stats=unpacked_stats,

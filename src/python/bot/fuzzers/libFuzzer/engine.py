@@ -368,7 +368,8 @@ class LibFuzzerEngine(engine.Engine):
       raise engine.TimeoutError('Reproducing timed out\n' + result.output)
 
     return engine.ReproduceResult(result.command, result.return_code,
-                                  result.time_executed, result.output)
+                                  result.time_executed,
+                                  utils.decode_to_unicode(result.output))
 
   def _minimize_corpus_two_step(self, target_path, arguments,
                                 existing_corpus_dirs, new_corpus_dir,
@@ -488,10 +489,11 @@ class LibFuzzerEngine(engine.Engine):
     if result.return_code != 0:
       raise MergeError('Merging new testcases failed: ' + result.output)
 
-    merge_stats = stats.parse_stats_from_merge_log(result.output.splitlines())
+    merge_output = utils.decode_to_unicode(result.output)
+    merge_stats = stats.parse_stats_from_merge_log(merge_output.splitlines())
 
     # TODO(ochang): Get crashes found during merge.
-    return engine.FuzzResult(result.output, result.command, [], merge_stats,
+    return engine.FuzzResult(merge_output, result.command, [], merge_stats,
                              result.time_executed)
 
   def minimize_testcase(self, target_path, arguments, input_path, output_path,

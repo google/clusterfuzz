@@ -491,7 +491,10 @@ def walk(directory, **kwargs):
   # TODO(mbarbella): Remove this hack once the Python 3 migration is complete.
   # The os library has some explicit type checks that cause issues when newstrs
   # are passed.
-  return os.walk(utils.newstr_to_native_str(directory), **kwargs)
+  if sys.version_info.major == 2:
+    return os.walk(utils.newstr_to_native_str(directory), **kwargs)
+
+  return os.walk(directory, **kwargs)
 
 
 # Copy of shutil.which from Python 3.3 (unavailable in Python 2.7).

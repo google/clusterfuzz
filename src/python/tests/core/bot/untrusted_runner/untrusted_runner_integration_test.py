@@ -37,7 +37,6 @@ from google_cloud_utils import blobs
 from system import environment
 from system import process_handler
 from system import shell
-from tests.test_libs import helpers as test_helpers
 from tests.test_libs import untrusted_runner_helpers
 
 TEST_FILE_CONTENTS = ('A' * config.FILE_TRANSFER_CHUNK_SIZE +
@@ -66,10 +65,6 @@ class UntrustedRunnerIntegrationTest(
   def setUp(self):
     """Set up."""
     super(UntrustedRunnerIntegrationTest, self).setUp()
-    test_helpers.patch(self, [
-        'datastore.data_handler.get_data_bundle_bucket_name',
-    ])
-
     data_types.Config().put()
 
     environment_string = ('APP_NAME = app\n'

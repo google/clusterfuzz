@@ -78,7 +78,7 @@ def copy_file_from_worker(request, context):
     context.set_trailing_metadata([('result', 'invalid-path')])
     return
 
-  with open(path) as f:
+  with open(path, 'rb') as f:
     for chunk in file_utils.file_chunk_generator(f):
       yield chunk
   context.set_trailing_metadata([('result', 'ok')])
