@@ -776,12 +776,9 @@ class ProcessCrashesTest(fake_filesystem_unittest.TestCase):
 
     self.mock.insert.return_value = {'insertErrors': [{'index': 0}]}
 
-    # TODO(metzman): Add a seperate test for strategies.
-    r2_stacktrace = ('r2\ncf::fuzzing_strategies: value_profile\n')
-
     crashes = [
         self._make_crash('r1', state='reproducible1'),
-        self._make_crash(r2_stacktrace, state='reproducible1'),
+        self._make_crash('r2', state='reproducible1'),
         self._make_crash('r3', state='reproducible1'),
         self._make_crash('r4', state='reproducible2'),
         self._make_crash('u1', state='unreproducible1'),
@@ -789,6 +786,10 @@ class ProcessCrashesTest(fake_filesystem_unittest.TestCase):
         self._make_crash('u3', state='unreproducible2'),
         self._make_crash('u4', state='unreproducible3')
     ]
+
+    # TODO(metzman): Add a seperate test for strategies.
+    r2_logs = ('r2\ncf::fuzzing_strategies: value_profile\n')
+    crashes[1].set_fuzzing_log(r2_logs)
 
     self.mock.test_for_reproducibility.side_effect = [
         False,  # For r1. It returns False. So, r1 is demoted.
@@ -834,7 +835,7 @@ class ProcessCrashesTest(fake_filesystem_unittest.TestCase):
     testcases = list(data_types.Testcase.query())
     self.assertEqual(5, len(testcases))
     self.assertSetEqual(
-        set([r2_stacktrace, 'r4', 'u1', 'u2', 'u4']),
+        set(['r2', 'r4', 'u1', 'u2', 'u4']),
         set(t.crash_stacktrace for t in testcases))
 
     self.assertSetEqual(

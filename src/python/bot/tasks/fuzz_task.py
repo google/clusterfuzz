@@ -996,7 +996,8 @@ def create_testcase(group, context):
     testcase.put()
 
   fuzzing_strategies = (
-      libfuzzer_stats.LIBFUZZER_FUZZING_STRATEGIES.search(crash.fuzzing_log))
+      libfuzzer_stats.LIBFUZZER_FUZZING_STRATEGIES.search(
+          crash.fuzzing_log if crash.fuzzing_log else ''))
 
   if fuzzing_strategies:
     assert len(fuzzing_strategies.groups()) == 1
