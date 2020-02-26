@@ -71,7 +71,7 @@ message RunProcessRequest {
 message RunProcessResponse {
   optional int32 return_code = 1;
   optional double execution_time = 2;
-  optional bytes output = 3;
+  optional string output = 3;
 }
 
 // Supported popen args.
@@ -156,7 +156,7 @@ message UpdateSourceResponse {
 }
 
 message SymbolizeStacktraceRequest {
-  optional bytes unsymbolized_crash_stacktrace = 1;
+  optional string unsymbolized_crash_stacktrace = 1;
   optional bool enable_inline_frames = 2;
 }
 

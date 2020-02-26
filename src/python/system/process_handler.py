@@ -116,6 +116,8 @@ def cleanup_defunct_processes():
 
 
 # Note: changes to this function may require changes to untrusted_runner.proto.
+# This should only be used for running target black box applications which
+# return text output.
 def run_process(cmdline,
                 current_working_directory=None,
                 timeout=DEFAULT_TEST_TIMEOUT,
@@ -235,7 +237,8 @@ def run_process(cmdline,
     # Collect the process output.
     output = (
         android.logger.log_output()
-        if plt == 'ANDROID' else '\n'.join(process_output.output))
+        if plt == 'ANDROID' else b'\n'.join(process_output.output))
+    output = utils.decode_to_unicode(output)
     if crash_analyzer.is_memory_tool_crash(output):
       break
 
@@ -323,7 +326,8 @@ def run_process(cmdline,
     if lsan:
       time.sleep(LSAN_ANALYSIS_TIME)
 
-    output = '\n'.join(process_output.output)
+    output = b'\n'.join(process_output.output)
+    output = utils.decode_to_unicode(output)
 
     # X Server hack when max client reached.
     if ('Maximum number of clients reached' in output or
@@ -345,7 +349,7 @@ def run_process(cmdline,
 
   logs.log(
       'Process (%s) ended, exit code (%s), output (%s).' %
-      (str(cmdline), str(return_code), str(output, 'utf-8', errors='replace')),
+      (str(cmdline), str(return_code), output),
       level=logging.DEBUG)
 
   return return_code, round(time.time() - start_time, 1), output

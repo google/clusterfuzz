@@ -595,7 +595,7 @@ def read_data_from_file(file_path, eval_data=True, default=None):
     return default
 
   try:
-    return ast.literal_eval(file_content)
+    return ast.literal_eval(file_content.decode('utf-8'))
   except (SyntaxError, TypeError):
     return None
 
@@ -631,6 +631,7 @@ def search_string_in_file(search_string, file_handle):
   issues.
   """
   # TODO(aarya): This is too brittle and will fail if we have a very large line.
+  search_string = search_string.encode('utf-8')
   for line in file_handle:
     if search_string in line:
       return True

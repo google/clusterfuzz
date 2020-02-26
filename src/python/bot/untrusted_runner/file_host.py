@@ -106,7 +106,7 @@ def list_files(path, recursive=False):
 def copy_file_to_worker(host_path, worker_path):
   """Copy file from host to worker. |worker_path| must be a full path (including
   the filename). Any directories will be created if needed."""
-  with open(host_path) as f:
+  with open(host_path, 'rb') as f:
     request_iterator = file_utils.file_chunk_generator(f)
     metadata = [('path-bin', worker_path.encode('utf-8'))]
 
