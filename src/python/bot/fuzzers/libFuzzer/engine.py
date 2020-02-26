@@ -528,7 +528,8 @@ class LibFuzzerEngine(engine.Engine):
       raise engine.TimeoutError('Minimization timed out\n' + result.output)
 
     return engine.ReproduceResult(result.command, result.return_code,
-                                  result.time_executed, result.output)
+                                  result.time_executed,
+                                  utils.decode_to_unicode(result.output))
 
   def cleanse(self, target_path, arguments, input_path, output_path, max_time):
     """Optional (but recommended): Cleanse a testcase.
@@ -561,4 +562,5 @@ class LibFuzzerEngine(engine.Engine):
       raise engine.TimeoutError('Cleanse timed out\n' + result.output)
 
     return engine.ReproduceResult(result.command, result.return_code,
-                                  result.time_executed, result.output)
+                                  result.time_executed,
+                                  utils.decode_to_unicode(result.output))
