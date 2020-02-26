@@ -1580,8 +1580,8 @@ def use_radamsa_mutator_plugin(extra_env):
   # Radamsa will only work on LINUX ASAN jobs.
   # TODO(mpherman): Include architecture info in job definition and exclude
   #  i386.
-  if environment.platform() != 'LINUX' or environment.get_value(
-      'MEMORY_TOOL') != 'ASAN':
+  if (environment.platform() != 'LINUX' or
+      environment.get_value('MEMORY_TOOL') != 'ASAN'):
     return False
 
   radamsa_path = os.path.join(environment.get_platform_resources_directory(),
@@ -1626,14 +1626,12 @@ def use_peach_mutator(extra_env, arguments):
 
   # Set Python path.
   # TODO(mpherman): Change this to explicitly point to Python 2.
-  new_path = []
-  new_path.append(os.path.join(unzipped, 'peach_mutator', 'src'))
-  new_path.append(
-      os.path.join(unzipped, 'peach_mutator', 'third_party', 'peach'))
+  new_path = [
+      os.path.join(unzipped, 'peach_mutator', 'src'),
+      os.path.join(unzipped, 'peach_mutator', 'third_party', 'peach')
+  ] + sys.path
 
-  # Append the mutator to the begining of the Python path.
-  new_path = new_path + sys.path
-  extra_env['PYTHONPATH'] = ':'.join(new_path)
+  extra_env['PYTHONPATH'] = os.pathsep.join(new_path)
 
   return True
 
