@@ -1579,7 +1579,7 @@ def use_radamsa_mutator_plugin(extra_env):
 
   # Radamsa will only work on LINUX ASAN jobs.
   # TODO(mpherman): Include architecture info in job definition and exclude
-  #  i386.
+  # i386.
   if (environment.platform() != 'LINUX' or
       environment.get_value('MEMORY_TOOL') != 'ASAN'):
     return False
@@ -1596,17 +1596,17 @@ def use_peach_mutator(extra_env, arguments):
   """Decide whether or not to use peach mutator, and set up all of the
   environment variables necessary to do so."""
   # TODO(mpherman): Include architecture info in job definition and exclude
-  #  i386.
+  # i386.
   if environment.platform() != 'LINUX' or environment.get_value(
       'MEMORY_TOOL') != 'ASAN':
-    return False
+    return None
 
   # Select grammar.
   grammar = fuzzer_utils.extract_argument(arguments, 'grammar')
   pit_path = pits.get_path(grammar)
 
   if not pit_path:
-    return False
+    return None
 
   # Set title and pit environment variables
   extra_env['PIT_PATH'] = pit_path
@@ -1633,7 +1633,7 @@ def use_peach_mutator(extra_env, arguments):
 
   extra_env['PYTHONPATH'] = os.pathsep.join(new_path)
 
-  return True
+  return grammar
 
 
 def is_sha1_hash(possible_hash):
@@ -1754,10 +1754,11 @@ def pick_strategies(strategy_pool, fuzzer_path, corpus_directory,
       use_mutator_plugin(target_name, extra_env)):
     fuzzing_strategies.append(strategy.MUTATOR_PLUGIN_STRATEGY.name)
 
+  grammar = use_peach_mutator(extra_env, existing_arguments)
   if (strategy.MUTATOR_PLUGIN_STRATEGY.name not in fuzzing_strategies and
       strategy_pool.do_strategy(strategy.PEACH_GRAMMAR_MUTATION_STRATEGY) and
-      use_peach_mutator(extra_env, existing_arguments)):
-    fuzzing_strategies.append(strategy.PEACH_GRAMMAR_MUTATION_STRATEGY.name)
+      grammar):
+    fuzzing_strategies.append('%s_%s' %(strategy.PEACH_GRAMMAR_MUTATION_STRATEGY.name, grammar))
 
   if (strategy.MUTATOR_PLUGIN_STRATEGY.name not in fuzzing_strategies and
       strategy.PEACH_GRAMMAR_MUTATION_STRATEGY.name not in fuzzing_strategies
