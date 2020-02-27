@@ -480,6 +480,9 @@ STACK_FRAME_IGNORE_REGEXES = [
     r'.*\/win\_toolchain\/',
     r'.*libc\+\+\/',
 
+    # Wrappers from honggfuzz/libhfuzz/memorycmp.c.
+    r'.*\/memorycmp\.c',
+
     # Others (uncategorized).
     r'.*\+Unknown',
     r'.*\<unknown\ module\>',
