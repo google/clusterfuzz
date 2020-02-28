@@ -81,9 +81,9 @@ class FileHostTest(fake_filesystem_unittest.TestCase):
 
   def test_write_data_to_worker(self):
     """Test file_host.write_data_to_worker."""
-    contents = ('A' * config.FILE_TRANSFER_CHUNK_SIZE +
-                'B' * config.FILE_TRANSFER_CHUNK_SIZE +
-                'C' * config.FILE_TRANSFER_CHUNK_SIZE)
+    contents = (b'A' * config.FILE_TRANSFER_CHUNK_SIZE +
+                b'B' * config.FILE_TRANSFER_CHUNK_SIZE +
+                b'C' * config.FILE_TRANSFER_CHUNK_SIZE)
 
     result = untrusted_runner_pb2.CopyFileToResponse(result=True)
     self.mock.stub().CopyFileTo.return_value = result

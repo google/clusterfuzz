@@ -33,7 +33,7 @@ def write_dummy_file(input_dir):
   dummy_input_path = os.path.join(input_dir, AFL_DUMMY_INPUT)
   if environment.is_trusted_host():
     from bot.untrusted_runner import file_host
-    file_host.write_data_to_worker(' ', dummy_input_path)
+    file_host.write_data_to_worker(b' ', dummy_input_path)
   else:
     utils.write_data_to_file(' ', dummy_input_path)
 
