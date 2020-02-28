@@ -295,6 +295,7 @@ message EngineFuzzResponse {
   map<string, google.protobuf.Any> stats = 4;
   optional double time_executed = 5;
   map<string, string> fuzzer_metadata = 6;
+  map<string, google.protobuf.Any> strategies = 7;
 }
 
 message EngineReproduceRequest {

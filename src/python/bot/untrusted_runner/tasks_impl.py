@@ -102,10 +102,32 @@ def process_testcase(request, _):
       output=result.output)
 
 
+def _pack_values(values):
+  """Pack protobuf values."""
+  packed = {}
+  if values is None:
+    return packed
+
+  for key, value in six.iteritems(values):
+    packed_value = Any()
+    if isinstance(value, float):
+      packed_value.Pack(wrappers_pb2.DoubleValue(value=value))
+    elif isinstance(value, int):
+      packed_value.Pack(wrappers_pb2.Int32Value(value=value))
+    elif isinstance(value, six.string_types):
+      packed_value.Pack(wrappers_pb2.StringValue(value=value))
+    else:
+      raise ValueError('Unknown stat type for ' + key)
+
+    packed[key] = packed_value
+
+  return packed
+
+
 def engine_fuzz(request, _):
   """Run engine fuzzer."""
   engine_impl = engine.get(request.engine)
-  result, fuzzer_metadata = fuzz_task.run_engine_fuzzer(
+  result, fuzzer_metadata, strategies = fuzz_task.run_engine_fuzzer(
       engine_impl, request.target_name, request.sync_corpus_directory,
       request.testcase_directory)
 
@@ -117,19 +139,8 @@ def engine_fuzz(request, _):
           crash_time=crash.crash_time) for crash in result.crashes
   ]
 
-  packed_stats = {}
-  for key, value in six.iteritems(result.stats):
-    packed_value = Any()
-    if isinstance(value, float):
-      packed_value.Pack(wrappers_pb2.DoubleValue(value=value))
-    elif isinstance(value, int):
-      packed_value.Pack(wrappers_pb2.Int32Value(value=value))
-    elif isinstance(value, six.string_types):
-      packed_value.Pack(wrappers_pb2.StringValue(value=value))
-    else:
-      raise ValueError('Unknown stat type for ' + key)
-
-    packed_stats[key] = packed_value
+  packed_stats = _pack_values(result.stats)
+  packed_strategies = _pack_values(strategies)
 
   return untrusted_runner_pb2.EngineFuzzResponse(
       logs=result.logs,
@@ -137,7 +148,8 @@ def engine_fuzz(request, _):
       crashes=crashes,
       stats=packed_stats,
       time_executed=result.time_executed,
-      fuzzer_metadata=fuzzer_metadata)
+      fuzzer_metadata=fuzzer_metadata,
+      strategies=packed_strategies)
 
 
 def engine_reproduce(request, _):

@@ -123,6 +123,25 @@ def process_testcase(engine_name, tool_name, target_name, arguments,
       response.output)
 
 
+def _unpack_values(values):
+  """Unpack protobuf values."""
+  unpacked = {}
+  for key, packed_value in six.iteritems(values):
+    if packed_value.Is(wrappers_pb2.DoubleValue.DESCRIPTOR):
+      value = wrappers_pb2.DoubleValue()
+    elif packed_value.Is(wrappers_pb2.Int32Value.DESCRIPTOR):
+      value = wrappers_pb2.Int32Value()
+    elif packed_value.Is(wrappers_pb2.StringValue.DESCRIPTOR):
+      value = wrappers_pb2.StringValue()
+    else:
+      raise ValueError('Unknown stat type for ' + key)
+
+    packed_value.Unpack(value)
+    unpacked[key] = value.value
+
+  return unpacked
+
+
 def engine_fuzz(engine_impl, target_name, sync_corpus_directory,
                 testcase_directory):
   """Run engine fuzzer on untrusted worker."""
@@ -142,19 +161,8 @@ def engine_fuzz(engine_impl, target_name, sync_corpus_directory,
           crash_time=crash.crash_time) for crash in response.crashes
   ]
 
-  unpacked_stats = {}
-  for key, packed_value in six.iteritems(response.stats):
-    if packed_value.Is(wrappers_pb2.DoubleValue.DESCRIPTOR):
-      value = wrappers_pb2.DoubleValue()
-    elif packed_value.Is(wrappers_pb2.Int32Value.DESCRIPTOR):
-      value = wrappers_pb2.Int32Value()
-    elif packed_value.Is(wrappers_pb2.StringValue.DESCRIPTOR):
-      value = wrappers_pb2.StringValue()
-    else:
-      raise ValueError('Unknown stat type for ' + key)
-
-    packed_value.Unpack(value)
-    unpacked_stats[key] = value.value
+  unpacked_stats = _unpack_values(response.stats)
+  unpacked_strategies = _unpack_values(response.strategies)
 
   result = engine.FuzzResult(
       logs=response.logs,
@@ -164,7 +172,7 @@ def engine_fuzz(engine_impl, target_name, sync_corpus_directory,
       time_executed=response.time_executed)
 
   file_host.pull_testcases_from_worker()
-  return result, dict(response.fuzzer_metadata)
+  return result, dict(response.fuzzer_metadata), unpacked_strategies
 
 
 def engine_reproduce(engine_impl, target_name, testcase_path, arguments,
