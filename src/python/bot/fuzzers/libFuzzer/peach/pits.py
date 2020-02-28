@@ -13,9 +13,10 @@
 # limitations under the License.
 """Dictionary to keep track of pit information."""
 
+import os
+
 from metrics import logs
 from system import environment
-import os
 
 
 def get_path(grammar):
@@ -31,8 +32,7 @@ def get_path(grammar):
   pit_path = os.path.join(pit_dir, grammar + '.xml')
 
   if not os.path.exists(pit_path):
-    logs.log_error('Peach Mutator is being used with the grammar named ' +
-                   grammar + ' that does not have a corresponding pit.')
+    logs.log_error('Pit file for "%s" grammar is not found.' % grammar)
     return None
 
   return pit_path

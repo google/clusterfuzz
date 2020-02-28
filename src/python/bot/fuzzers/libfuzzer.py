@@ -1758,7 +1758,8 @@ def pick_strategies(strategy_pool, fuzzer_path, corpus_directory,
   if (strategy.MUTATOR_PLUGIN_STRATEGY.name not in fuzzing_strategies and
       strategy_pool.do_strategy(strategy.PEACH_GRAMMAR_MUTATION_STRATEGY) and
       grammar):
-    fuzzing_strategies.append('%s_%s' %(strategy.PEACH_GRAMMAR_MUTATION_STRATEGY.name, grammar))
+    fuzzing_strategies.append(
+        '%s_%s' % (strategy.PEACH_GRAMMAR_MUTATION_STRATEGY.name, grammar))
 
   if (strategy.MUTATOR_PLUGIN_STRATEGY.name not in fuzzing_strategies and
       strategy.PEACH_GRAMMAR_MUTATION_STRATEGY.name not in fuzzing_strategies
