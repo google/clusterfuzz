@@ -204,6 +204,13 @@ def get_fuzz_target_grammar(fuzz_target_path):
     try:
       config.read_file(f)
     except configparser.Error:
-      raise FuzzerOptionsException('Failed to parse fuzzer options file.')
+      raise FuzzerOptionsException('Failed to parse fuzzer grammar file.')
 
-  return config.get('grammar', None)
+  if not config.has_section('Grammar'):
+    return None
+
+  grammar_dict = dict(config.items('Grammar'))
+  if 'grammar' not in grammar_dict:
+    raise FuzzerOptionsException('Failed to parse fuzzer grammar file.')
+
+  return grammar_dict['grammar']

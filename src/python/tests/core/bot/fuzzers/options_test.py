@@ -100,3 +100,21 @@ class GetFuzzTargetOptions(fake_filesystem_unittest.TestCase):
   def test_not_exist(self):
     self.assertEqual(self._get_arguments('/path/not_exist'), None)
     self.assertEqual(self._get_arguments('/path/not_exist.exe'), None)
+
+
+class GetFuzzTargetGrammar(fake_filesystem_unittest.TestCase):
+  """get_fuzz_target_options tests."""
+
+  def setUp(self):
+    test_utils.set_up_pyfakefs(self)
+
+    input_data = ('[Grammar]\n' 'grammar=pdf\n')
+    self.fs.create_file('/path/fuzz_target.grammar', contents=input_data)
+
+  def test_get_fuzz_target_grammar(self):
+    self.assertEqual(options.get_fuzz_target_grammar('/path/fuzz_target'),
+                     'pdf')
+
+  def test_get_fuzz_target_grammar_none(self):
+    self.assertEqual(options.get_fuzz_target_grammar('/path/not_exist'),
+                     None)
