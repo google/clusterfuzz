@@ -1592,21 +1592,22 @@ def use_radamsa_mutator_plugin(extra_env):
   return True
 
 
-def use_peach_mutator(extra_env, arguments):
+def use_peach_mutator(extra_env, grammar):
   """Decide whether or not to use peach mutator, and set up all of the
   environment variables necessary to do so."""
   # TODO(mpherman): Include architecture info in job definition and exclude
   # i386.
   if environment.platform() != 'LINUX' or environment.get_value(
       'MEMORY_TOOL') != 'ASAN':
-    return None
+    return False
 
-  # Select grammar.
-  grammar = fuzzer_utils.extract_argument(arguments, 'grammar')
+  if not grammar:
+    return False
+
   pit_path = pits.get_path(grammar)
 
   if not pit_path:
-    return None
+    return False
 
   # Set title and pit environment variables
   extra_env['PIT_PATH'] = pit_path
@@ -1633,7 +1634,7 @@ def use_peach_mutator(extra_env, arguments):
 
   extra_env['PYTHONPATH'] = os.pathsep.join(new_path)
 
-  return grammar
+  return True
 
 
 def is_sha1_hash(possible_hash):
@@ -1659,8 +1660,11 @@ def move_mergeable_units(merge_directory, corpus_directory):
     shell.move(unit_path, dest_path)
 
 
-def pick_strategies(strategy_pool, fuzzer_path, corpus_directory,
-                    existing_arguments):
+def pick_strategies(strategy_pool,
+                    fuzzer_path,
+                    corpus_directory,
+                    existing_arguments,
+                    grammar=None):
   """Pick strategies."""
   build_directory = environment.get_value('BUILD_DIR')
   target_name = os.path.basename(fuzzer_path)
@@ -1754,10 +1758,9 @@ def pick_strategies(strategy_pool, fuzzer_path, corpus_directory,
       use_mutator_plugin(target_name, extra_env)):
     fuzzing_strategies.append(strategy.MUTATOR_PLUGIN_STRATEGY.name)
 
-  grammar = use_peach_mutator(extra_env, existing_arguments)
   if (strategy.MUTATOR_PLUGIN_STRATEGY.name not in fuzzing_strategies and
       strategy_pool.do_strategy(strategy.PEACH_GRAMMAR_MUTATION_STRATEGY) and
-      grammar):
+      use_peach_mutator(extra_env, grammar)):
     fuzzing_strategies.append(
         '%s_%s' % (strategy.PEACH_GRAMMAR_MUTATION_STRATEGY.name, grammar))
 

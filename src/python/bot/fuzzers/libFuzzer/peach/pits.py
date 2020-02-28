@@ -23,10 +23,6 @@ def get_path(grammar):
   """Return the path of the peach pit for the given grammar. Return None if the
   Pit does not exist or the grammar is None."""
 
-  # If the target has no grammar, do not use this strategy.
-  if not grammar:
-    return None
-
   pit_dir = os.path.join(environment.get_platform_resources_directory(),
                          'peach', 'pits')
   pit_path = os.path.join(pit_dir, grammar + '.xml')

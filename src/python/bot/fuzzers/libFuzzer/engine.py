@@ -24,6 +24,7 @@ from bot.fuzzers import dictionary_manager
 from bot.fuzzers import engine
 from bot.fuzzers import engine_common
 from bot.fuzzers import libfuzzer
+from bot.fuzzers import options
 from bot.fuzzers import strategy_selection
 from bot.fuzzers import utils as fuzzer_utils
 from bot.fuzzers.libFuzzer import constants
@@ -101,12 +102,13 @@ class LibFuzzerEngine(engine.Engine):
       A FuzzOptions object.
     """
     arguments = fuzzer.get_arguments(target_path)
+    grammar = options.get_fuzz_target_grammar(target_path)
     strategy_pool = strategy_selection.generate_weighted_strategy_pool(
         strategy_list=strategy.LIBFUZZER_STRATEGY_LIST,
         use_generator=True,
         engine_name=self.name)
     strategy_info = libfuzzer.pick_strategies(strategy_pool, target_path,
-                                              corpus_dir, arguments)
+                                              corpus_dir, arguments, grammar)
 
     arguments.extend(strategy_info.arguments)
 

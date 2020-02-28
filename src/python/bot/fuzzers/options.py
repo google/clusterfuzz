@@ -31,6 +31,7 @@ from metrics import logs
 from system import environment
 
 OPTIONS_FILE_EXTENSION = '.options'
+GRAMMAR_FILE_EXTENSION = '.grammar'
 
 # Whitelist for env variables .options files can set.
 ENV_VAR_WHITELIST = set([afl_constants.DONT_DEFER_ENV_VAR])
@@ -157,22 +158,52 @@ class FuzzerOptions(object):
     return self._get_option_section('ubsan')
 
 
+def get_fuzz_target_support_file(fuzz_target_path, file_extension):
+  """Helper function. returns a file path for a fuzz target support file
+  that has the given file extension"""
+  file_path = fuzzer_utils.get_supporting_file(fuzz_target_path, file_extension)
+
+  if environment.is_trusted_host():
+    file_path = fuzzer_utils.get_file_from_untrusted_worker(file_path)
+
+  if not os.path.exists(file_path):
+    return None
+
+  return file_path
+
+
 def get_fuzz_target_options(fuzz_target_path):
   """Return a FuzzerOptions for the given target, or None if it does not
   exist."""
-  options_file_path = fuzzer_utils.get_supporting_file(fuzz_target_path,
-                                                       OPTIONS_FILE_EXTENSION)
-  options_cwd = os.path.dirname(options_file_path)
 
-  if environment.is_trusted_host():
-    options_file_path = fuzzer_utils.get_file_from_untrusted_worker(
-        options_file_path)
+  options_file_path = get_fuzz_target_support_file(fuzz_target_path,
+                                                   OPTIONS_FILE_EXTENSION)
 
-  if not os.path.exists(options_file_path):
+  if not options_file_path:
     return None
+
+  options_cwd = os.path.dirname(options_file_path)
 
   try:
     return FuzzerOptions(options_file_path, cwd=options_cwd)
   except FuzzerOptionsException:
     logs.log_error('Invalid options file: %s.' % options_file_path)
     return None
+
+
+def get_fuzz_target_grammar(fuzz_target_path):
+  """Return the grammra for a given target or None if it does not exist"""
+
+  grammar_file_path = get_fuzz_target_support_file(fuzz_target_path,
+                                                   GRAMMAR_FILE_EXTENSION)
+  if not grammar_file_path:
+    return None
+
+  config = configparser.ConfigParser()
+  with open(grammar_file_path, 'r') as f:
+    try:
+      config.read_file(f)
+    except configparser.Error:
+      raise FuzzerOptionsException('Failed to parse fuzzer options file.')
+
+  return config.get('grammar', None)
