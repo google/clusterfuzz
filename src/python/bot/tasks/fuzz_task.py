@@ -136,6 +136,16 @@ class Crash(object):
         testcase_manager.get_command_line_for_application(
             crash.file_path, needs_http=needs_http))
 
+    # TODO(ochang): Remove once all engines are migrated to new pipeline.
+    fuzzing_strategies = libfuzzer_stats.LIBFUZZER_FUZZING_STRATEGIES.search(
+        orig_unsymbolized_crash_stacktrace)
+    if fuzzing_strategies:
+      assert len(fuzzing_strategies.groups()) == 1
+      fuzzing_strategies_string = fuzzing_strategies.groups()[0]
+      fuzzing_strategies = [
+          strategy.strip() for strategy in fuzzing_strategies_string.split(',')
+      ]
+
     return Crash(
         file_path=crash.file_path,
         crash_time=crash.crash_time,
@@ -145,10 +155,11 @@ class Crash(object):
         unsymbolized_crash_stacktrace=orig_unsymbolized_crash_stacktrace,
         arguments=arguments,
         application_command_line=application_command_line,
-        http_flag=needs_http)
+        http_flag=needs_http,
+        fuzzing_strategies=fuzzing_strategies)
 
   @classmethod
-  def from_engine_crash(cls, crash):
+  def from_engine_crash(cls, crash, fuzzing_strategies):
     """Create a Crash from a engine.Crash."""
     return Crash(
         file_path=crash.input_path,
@@ -158,7 +169,8 @@ class Crash(object):
         gestures=[],
         unsymbolized_crash_stacktrace=utils.decode_to_unicode(crash.stacktrace),
         arguments=' '.join(crash.reproduce_args),
-        application_command_line='')  # TODO(ochang): Write actual command line.
+        application_command_line='',  # TODO(ochang): Write actual command line.
+        fuzzing_strategies=fuzzing_strategies)
 
   def __init__(self,
                file_path,
@@ -169,13 +181,15 @@ class Crash(object):
                unsymbolized_crash_stacktrace,
                arguments,
                application_command_line,
-               http_flag=False):
+               http_flag=False,
+               fuzzing_strategies=None):
     self.file_path = file_path
     self.crash_time = crash_time
     self.return_code = return_code
     self.resource_list = resource_list
     self.gestures = gestures
     self.arguments = arguments
+    self.fuzzing_strategies = fuzzing_strategies
 
     self.security_flag = False
     self.should_be_ignored = False
@@ -989,18 +1003,9 @@ def create_testcase(group, context):
 
     testcase.put()
 
-  fuzzing_strategies = (
-      libfuzzer_stats.LIBFUZZER_FUZZING_STRATEGIES.search(
-          crash.crash_stacktrace))
-
-  if fuzzing_strategies:
-    assert len(fuzzing_strategies.groups()) == 1
-    fuzzing_strategies_string = fuzzing_strategies.groups()[0]
-    fuzzing_strategies = [
-        strategy.strip() for strategy in fuzzing_strategies_string.split(',')
-    ]
+  if crash.fuzzing_strategies:
     testcase.set_metadata(
-        'fuzzing_strategies', fuzzing_strategies, update_testcase=True)
+        'fuzzing_strategies', crash.fuzzing_strategies, update_testcase=True)
 
   # If there is one, record the original file this testcase was mutated from.
   if (crash.file_path in context.testcases_metadata and
@@ -1311,7 +1316,7 @@ def run_engine_fuzzer(engine_impl, target_name, sync_corpus_directory,
 
   fuzzer_metadata.update(engine_common.get_all_issue_metadata(target_path))
   _add_issue_metadata_from_environment(fuzzer_metadata)
-  return result, fuzzer_metadata
+  return result, fuzzer_metadata, options.strategies
 
 
 class FuzzingSession(object):
@@ -1562,7 +1567,7 @@ class FuzzingSession(object):
     # Do the actual fuzzing.
     for fuzzing_round in range(environment.get_value('MAX_TESTCASES', 1)):
       logs.log('Fuzzing round {}.'.format(fuzzing_round))
-      result, current_fuzzer_metadata = run_engine_fuzzer(
+      result, current_fuzzer_metadata, fuzzing_strategies = run_engine_fuzzer(
           engine_impl, self.fuzz_target.binary, sync_corpus_directory,
           self.testcase_directory)
       fuzzer_metadata.update(current_fuzzer_metadata)
@@ -1590,7 +1595,9 @@ class FuzzingSession(object):
       upload_testcase_run_stats(testcase_run)
       if result.crashes:
         crashes.extend([
-            Crash.from_engine_crash(crash) for crash in result.crashes if crash
+            Crash.from_engine_crash(crash, fuzzing_strategies)
+            for crash in result.crashes
+            if crash
         ])
 
     logs.log('All fuzzing rounds complete.')

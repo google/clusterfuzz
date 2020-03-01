@@ -1,4 +1,4 @@
-# Copyright 2019 Google LLC
+# Copyright 2020 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -34,7 +34,7 @@ DESCRIPTOR = _descriptor.FileDescriptor(
   package='',
   syntax='proto2',
   serialized_options=_b('Z#clusterfuzz/protos/untrusted_runner'),
-  serialized_pb=_b('\n\x1dprotos/untrusted_runner.proto\x1a\x19google/protobuf/any.proto\"\x12\n\x10GetStatusRequest\"K\n\x11GetStatusResponse\x12\x10\n\x08revision\x18\x01 \x01(\t\x12\x12\n\nstart_time\x18\x02 \x01(\x04\x12\x10\n\x08\x62ot_name\x18\x03 \x01(\t\"o\n\rProcessResult\x12\x0f\n\x07\x63ommand\x18\x01 \x03(\t\x12\x13\n\x0breturn_code\x18\x02 \x01(\x05\x12\x0e\n\x06output\x18\x03 \x01(\x0c\x12\x15\n\rtime_executed\x18\x04 \x01(\x01\x12\x11\n\ttimed_out\x18\x05 \x01(\x08\"\xb5\x01\n\x12SetupBuildResponse\x12\x0e\n\x06result\x18\x01 \x01(\x08\x12\x10\n\x08\x61pp_path\x18\x02 \x01(\t\x12\x16\n\x0e\x61pp_path_debug\x18\x03 \x01(\t\x12\x0f\n\x07\x61pp_dir\x18\x04 \x01(\t\x12\x11\n\tbuild_dir\x18\x05 \x01(\t\x12\x11\n\tbuild_url\x18\x06 \x01(\t\x12\x13\n\x0b\x66uzz_target\x18\x07 \x01(\t\x12\x19\n\x11\x66uzz_target_count\x18\x08 \x01(\x05\"\xe9\x01\n\x18SetupRegularBuildRequest\x12\x16\n\x0e\x62\x61se_build_dir\x18\x01 \x01(\t\x12\x10\n\x08revision\x18\x02 \x01(\x03\x12\x11\n\tbuild_url\x18\x03 \x01(\t\x12\x44\n\x0etarget_weights\x18\x04 \x03(\x0b\x32,.SetupRegularBuildRequest.TargetWeightsEntry\x12\x14\n\x0c\x62uild_prefix\x18\x05 \x01(\t\x1a\x34\n\x12TargetWeightsEntry\x12\x0b\n\x03key\x18\x01 \x01(\t\x12\r\n\x05value\x18\x02 \x01(\x01:\x02\x38\x01\"\x90\x02\n\x11RunProcessRequest\x12\x0f\n\x07\x63mdline\x18\x01 \x01(\t\x12!\n\x19\x63urrent_working_directory\x18\x02 \x01(\t\x12\x0f\n\x07timeout\x18\x03 \x01(\x01\x12\x12\n\nneed_shell\x18\x04 \x01(\x08\x12\x10\n\x08gestures\x18\x05 \x03(\t\x12\x31\n\x08\x65nv_copy\x18\x06 \x03(\x0b\x32\x1f.RunProcessRequest.EnvCopyEntry\x12\x14\n\x0ctestcase_run\x18\x07 \x01(\x08\x12\x17\n\x0fignore_children\x18\x08 \x01(\x08\x1a.\n\x0c\x45nvCopyEntry\x12\x0b\n\x03key\x18\x01 \x01(\t\x12\r\n\x05value\x18\x02 \x01(\t:\x02\x38\x01\"Q\n\x12RunProcessResponse\x12\x13\n\x0breturn_code\x18\x01 \x01(\x05\x12\x16\n\x0e\x65xecution_time\x18\x02 \x01(\x01\x12\x0e\n\x06output\x18\x03 \x01(\t\"\xb5\x01\n\tPopenArgs\x12\x0f\n\x07\x62ufsize\x18\x01 \x01(\x05\x12\x12\n\nexecutable\x18\x02 \x01(\t\x12\r\n\x05shell\x18\x03 \x01(\x08\x12\x0b\n\x03\x63wd\x18\x04 \x01(\t\x12 \n\x03\x65nv\x18\x05 \x03(\x0b\x32\x13.PopenArgs.EnvEntry\x12\x19\n\nenv_is_set\x18\x06 \x01(\x08:\x05\x66\x61lse\x1a*\n\x08\x45nvEntry\x12\x0b\n\x03key\x18\x01 \x01(\t\x12\r\n\x05value\x18\x02 \x01(\t:\x02\x38\x01\"\xf4\x01\n\x11RunAndWaitRequest\x12\x17\n\x0f\x65xecutable_path\x18\x01 \x01(\t\x12\x14\n\x0c\x64\x65\x66\x61ult_args\x18\x02 \x03(\t\x12\x17\n\x0f\x61\x64\x64itional_args\x18\x03 \x03(\t\x12\x0f\n\x07timeout\x18\x04 \x01(\x01\x12\x1d\n\x15terminate_before_kill\x18\x05 \x01(\x08\x12\x1b\n\x13terminate_wait_time\x18\x06 \x01(\x01\x12\x12\n\ninput_data\x18\x07 \x01(\x0c\x12\x1e\n\npopen_args\x18\x08 \x01(\x0b\x32\n.PopenArgs\x12\x16\n\x0emax_stdout_len\x18\t \x01(\r\"4\n\x12RunAndWaitResponse\x12\x1e\n\x06result\x18\x01 \x01(\x0b\x32\x0e.ProcessResult\"(\n\x14\x46indBuildFileRequest\x12\x10\n\x08\x66ilename\x18\x01 \x01(\t\"9\n\x15\x46indBuildFileResponse\x12\r\n\x05\x66ound\x18\x01 \x01(\x08\x12\x11\n\tfile_path\x18\x02 \x01(\t\"D\n\x16\x43reateDirectoryRequest\x12\x0c\n\x04path\x18\x01 \x01(\t\x12\x1c\n\x14\x63reate_intermediates\x18\x02 \x01(\x08\")\n\x17\x43reateDirectoryResponse\x12\x0e\n\x06result\x18\x01 \x01(\x08\"8\n\x16RemoveDirectoryRequest\x12\x0c\n\x04path\x18\x01 \x01(\t\x12\x10\n\x08recreate\x18\x02 \x01(\x08\")\n\x17RemoveDirectoryResponse\x12\x0e\n\x06result\x18\x01 \x01(\x08\"\x19\n\tFileChunk\x12\x0c\n\x04\x64\x61ta\x18\x01 \x01(\x0c\"$\n\x12\x43opyFileToResponse\x12\x0e\n\x06result\x18\x01 \x01(\x08\"#\n\x13\x43opyFileFromRequest\x12\x0c\n\x04path\x18\x01 \x01(\t\"w\n\x18UpdateEnvironmentRequest\x12/\n\x03\x65nv\x18\x01 \x03(\x0b\x32\".UpdateEnvironmentRequest.EnvEntry\x1a*\n\x08\x45nvEntry\x12\x0b\n\x03key\x18\x01 \x01(\t\x12\r\n\x05value\x18\x02 \x01(\t:\x02\x38\x01\"\x1b\n\x19UpdateEnvironmentResponse\"\x15\n\x13UpdateSourceRequest\"\x16\n\x14UpdateSourceResponse\"a\n\x1aSymbolizeStacktraceRequest\x12%\n\x1dunsymbolized_crash_stacktrace\x18\x01 \x01(\t\x12\x1c\n\x14\x65nable_inline_frames\x18\x02 \x01(\x08\"<\n\x1bSymbolizeStacktraceResponse\x12\x1d\n\x15symbolized_stacktrace\x18\x01 \x01(\t\"3\n\x10ListFilesRequest\x12\x0c\n\x04path\x18\x01 \x01(\t\x12\x11\n\trecursive\x18\x02 \x01(\x08\"\'\n\x11ListFilesResponse\x12\x12\n\nfile_paths\x18\x01 \x03(\t\"%\n\x15GetFuzzTargetsRequest\x12\x0c\n\x04path\x18\x01 \x01(\t\"3\n\x16GetFuzzTargetsResponse\x12\x19\n\x11\x66uzz_target_paths\x18\x01 \x03(\t\"\x91\x01\n\x0b\x43orpusCrash\x12\x13\n\x0b\x63rash_state\x18\x01 \x01(\t\x12\x12\n\ncrash_type\x18\x02 \x01(\t\x12\x15\n\rcrash_address\x18\x03 \x01(\t\x12\x18\n\x10\x63rash_stacktrace\x18\x04 \x01(\t\x12\x11\n\tunit_path\x18\x05 \x01(\t\x12\x15\n\rsecurity_flag\x18\x06 \x01(\x08\"\xd8\x01\n\x0c\x43overageInfo\x12\x19\n\x11\x63orpus_size_units\x18\x05 \x01(\x03\x12\x19\n\x11\x63orpus_size_bytes\x18\x06 \x01(\x03\x12\x17\n\x0f\x63orpus_location\x18\x07 \x01(\t\x12\x1e\n\x16\x63orpus_backup_location\x18\x08 \x01(\t\x12\x1d\n\x15quarantine_size_units\x18\t \x01(\x03\x12\x1d\n\x15quarantine_size_bytes\x18\n \x01(\x03\x12\x1b\n\x13quarantine_location\x18\x0b \x01(\t\"p\n\x14\x43rossPollinateFuzzer\x12 \n\x0b\x66uzz_target\x18\x01 \x01(\x0b\x32\x0b.FuzzTarget\x12\x1a\n\x12\x62\x61\x63kup_bucket_name\x18\x02 \x01(\t\x12\x1a\n\x12\x63orpus_engine_name\x18\x03 \x01(\t\"\x9f\x01\n\x12PruneCorpusRequest\x12 \n\x0b\x66uzz_target\x18\x01 \x01(\x0b\x32\x0b.FuzzTarget\x12\x36\n\x17\x63ross_pollinate_fuzzers\x18\x02 \x03(\x0b\x32\x15.CrossPollinateFuzzer\x12\x1d\n\x15last_execution_failed\x18\x04 \x01(\x08\x12\x10\n\x08revision\x18\x05 \x01(\x03\"\x88\x01\n\x13PruneCorpusResponse\x12$\n\rcoverage_info\x18\x01 \x01(\x0b\x32\r.CoverageInfo\x12\x1d\n\x07\x63rashes\x18\x02 \x03(\x0b\x32\x0c.CorpusCrash\x12\x1a\n\x12\x66uzzer_binary_name\x18\x03 \x01(\t\x12\x10\n\x08revision\x18\x04 \x01(\x03\"\x1b\n\x0bStatRequest\x12\x0c\n\x04path\x18\x01 \x01(\t\"v\n\x0cStatResponse\x12\x0e\n\x06result\x18\x01 \x01(\x08\x12\x0f\n\x07st_mode\x18\x02 \x01(\r\x12\x0f\n\x07st_size\x18\x03 \x01(\x04\x12\x10\n\x08st_atime\x18\x05 \x01(\x01\x12\x10\n\x08st_mtime\x18\x06 \x01(\x01\x12\x10\n\x08st_ctime\x18\x07 \x01(\x01\"+\n)TerminateStaleApplicationInstancesRequest\",\n*TerminateStaleApplicationInstancesResponse\"\x19\n\x17ResetEnvironmentRequest\"\x1a\n\x18ResetEnvironmentResponse\"=\n\nFuzzTarget\x12\x0e\n\x06\x65ngine\x18\x01 \x01(\t\x12\x0f\n\x07project\x18\x02 \x01(\t\x12\x0e\n\x06\x62inary\x18\x03 \x01(\t\"\xeb\x01\n\x16ProcessTestcaseRequest\x12\x0e\n\x06\x65ngine\x18\x01 \x01(\t\x12\x34\n\toperation\x18\x02 \x01(\x0e\x32!.ProcessTestcaseRequest.Operation\x12\x13\n\x0btarget_name\x18\x03 \x01(\t\x12\x11\n\targuments\x18\x04 \x03(\t\x12\x15\n\rtestcase_path\x18\x05 \x01(\t\x12\x13\n\x0boutput_path\x18\x06 \x01(\t\x12\x0f\n\x07timeout\x18\x07 \x01(\x04\"&\n\tOperation\x12\x0c\n\x08MINIMIZE\x10\x00\x12\x0b\n\x07\x43LEANSE\x10\x01\"d\n\x15\x45ngineReproduceResult\x12\x0f\n\x07\x63ommand\x18\x01 \x03(\t\x12\x13\n\x0breturn_code\x18\x02 \x01(\x03\x12\x15\n\rtime_executed\x18\x03 \x01(\x01\x12\x0e\n\x06output\x18\x04 \x01(\t\"s\n\x11\x45ngineFuzzRequest\x12\x0e\n\x06\x65ngine\x18\x01 \x01(\t\x12\x13\n\x0btarget_name\x18\x02 \x01(\t\x12\x1d\n\x15sync_corpus_directory\x18\x03 \x01(\t\x12\x1a\n\x12testcase_directory\x18\x04 \x01(\t\"a\n\x0b\x45ngineCrash\x12\x12\n\ninput_path\x18\x01 \x01(\t\x12\x12\n\nstacktrace\x18\x02 \x01(\t\x12\x16\n\x0ereproduce_args\x18\x03 \x03(\t\x12\x12\n\ncrash_time\x18\x04 \x01(\x01\"\xd5\x02\n\x12\x45ngineFuzzResponse\x12\x0c\n\x04logs\x18\x01 \x01(\t\x12\x0f\n\x07\x63ommand\x18\x02 \x03(\t\x12\x1d\n\x07\x63rashes\x18\x03 \x03(\x0b\x32\x0c.EngineCrash\x12-\n\x05stats\x18\x04 \x03(\x0b\x32\x1e.EngineFuzzResponse.StatsEntry\x12\x15\n\rtime_executed\x18\x05 \x01(\x01\x12@\n\x0f\x66uzzer_metadata\x18\x06 \x03(\x0b\x32\'.EngineFuzzResponse.FuzzerMetadataEntry\x1a\x42\n\nStatsEntry\x12\x0b\n\x03key\x18\x01 \x01(\t\x12#\n\x05value\x18\x02 \x01(\x0b\x32\x14.google.protobuf.Any:\x02\x38\x01\x1a\x35\n\x13\x46uzzerMetadataEntry\x12\x0b\n\x03key\x18\x01 \x01(\t\x12\r\n\x05value\x18\x02 \x01(\t:\x02\x38\x01\"x\n\x16\x45ngineReproduceRequest\x12\x0e\n\x06\x65ngine\x18\x01 \x01(\t\x12\x13\n\x0btarget_name\x18\x02 \x01(\t\x12\x15\n\rtestcase_path\x18\x03 \x01(\t\x12\x11\n\targuments\x18\x04 \x03(\t\x12\x0f\n\x07timeout\x18\x05 \x01(\x01\x32\xa1\n\n\x0fUntrustedRunner\x12\x32\n\tGetStatus\x12\x11.GetStatusRequest\x1a\x12.GetStatusResponse\x12\x43\n\x11SetupRegularBuild\x12\x19.SetupRegularBuildRequest\x1a\x13.SetupBuildResponse\x12\x35\n\nRunProcess\x12\x12.RunProcessRequest\x1a\x13.RunProcessResponse\x12\x35\n\nRunAndWait\x12\x12.RunAndWaitRequest\x1a\x13.RunAndWaitResponse\x12\x44\n\x0f\x43reateDirectory\x12\x17.CreateDirectoryRequest\x1a\x18.CreateDirectoryResponse\x12\x44\n\x0fRemoveDirectory\x12\x17.RemoveDirectoryRequest\x1a\x18.RemoveDirectoryResponse\x12\x32\n\tListFiles\x12\x11.ListFilesRequest\x1a\x12.ListFilesResponse\x12/\n\nCopyFileTo\x12\n.FileChunk\x1a\x13.CopyFileToResponse(\x01\x12\x32\n\x0c\x43opyFileFrom\x12\x14.CopyFileFromRequest\x1a\n.FileChunk0\x01\x12#\n\x04Stat\x12\x0c.StatRequest\x1a\r.StatResponse\x12J\n\x11UpdateEnvironment\x12\x19.UpdateEnvironmentRequest\x1a\x1a.UpdateEnvironmentResponse\x12G\n\x10ResetEnvironment\x12\x18.ResetEnvironmentRequest\x1a\x19.ResetEnvironmentResponse\x12;\n\x0cUpdateSource\x12\x14.UpdateSourceRequest\x1a\x15.UpdateSourceResponse\x12P\n\x13SymbolizeStacktrace\x12\x1b.SymbolizeStacktraceRequest\x1a\x1c.SymbolizeStacktraceResponse\x12}\n\"TerminateStaleApplicationInstances\x12*.TerminateStaleApplicationInstancesRequest\x1a+.TerminateStaleApplicationInstancesResponse\x12\x41\n\x0eGetFuzzTargets\x12\x16.GetFuzzTargetsRequest\x1a\x17.GetFuzzTargetsResponse\x12\x38\n\x0bPruneCorpus\x12\x13.PruneCorpusRequest\x1a\x14.PruneCorpusResponse\x12\x42\n\x0fProcessTestcase\x12\x17.ProcessTestcaseRequest\x1a\x16.EngineReproduceResult\x12\x35\n\nEngineFuzz\x12\x12.EngineFuzzRequest\x1a\x13.EngineFuzzResponse\x12\x42\n\x0f\x45ngineReproduce\x12\x17.EngineReproduceRequest\x1a\x16.EngineReproduceResultB%Z#clusterfuzz/protos/untrusted_runner')
+  serialized_pb=_b('\n\x1dprotos/untrusted_runner.proto\x1a\x19google/protobuf/any.proto\"\x12\n\x10GetStatusRequest\"K\n\x11GetStatusResponse\x12\x10\n\x08revision\x18\x01 \x01(\t\x12\x12\n\nstart_time\x18\x02 \x01(\x04\x12\x10\n\x08\x62ot_name\x18\x03 \x01(\t\"o\n\rProcessResult\x12\x0f\n\x07\x63ommand\x18\x01 \x03(\t\x12\x13\n\x0breturn_code\x18\x02 \x01(\x05\x12\x0e\n\x06output\x18\x03 \x01(\x0c\x12\x15\n\rtime_executed\x18\x04 \x01(\x01\x12\x11\n\ttimed_out\x18\x05 \x01(\x08\"\xb5\x01\n\x12SetupBuildResponse\x12\x0e\n\x06result\x18\x01 \x01(\x08\x12\x10\n\x08\x61pp_path\x18\x02 \x01(\t\x12\x16\n\x0e\x61pp_path_debug\x18\x03 \x01(\t\x12\x0f\n\x07\x61pp_dir\x18\x04 \x01(\t\x12\x11\n\tbuild_dir\x18\x05 \x01(\t\x12\x11\n\tbuild_url\x18\x06 \x01(\t\x12\x13\n\x0b\x66uzz_target\x18\x07 \x01(\t\x12\x19\n\x11\x66uzz_target_count\x18\x08 \x01(\x05\"\xe9\x01\n\x18SetupRegularBuildRequest\x12\x16\n\x0e\x62\x61se_build_dir\x18\x01 \x01(\t\x12\x10\n\x08revision\x18\x02 \x01(\x03\x12\x11\n\tbuild_url\x18\x03 \x01(\t\x12\x44\n\x0etarget_weights\x18\x04 \x03(\x0b\x32,.SetupRegularBuildRequest.TargetWeightsEntry\x12\x14\n\x0c\x62uild_prefix\x18\x05 \x01(\t\x1a\x34\n\x12TargetWeightsEntry\x12\x0b\n\x03key\x18\x01 \x01(\t\x12\r\n\x05value\x18\x02 \x01(\x01:\x02\x38\x01\"\x90\x02\n\x11RunProcessRequest\x12\x0f\n\x07\x63mdline\x18\x01 \x01(\t\x12!\n\x19\x63urrent_working_directory\x18\x02 \x01(\t\x12\x0f\n\x07timeout\x18\x03 \x01(\x01\x12\x12\n\nneed_shell\x18\x04 \x01(\x08\x12\x10\n\x08gestures\x18\x05 \x03(\t\x12\x31\n\x08\x65nv_copy\x18\x06 \x03(\x0b\x32\x1f.RunProcessRequest.EnvCopyEntry\x12\x14\n\x0ctestcase_run\x18\x07 \x01(\x08\x12\x17\n\x0fignore_children\x18\x08 \x01(\x08\x1a.\n\x0c\x45nvCopyEntry\x12\x0b\n\x03key\x18\x01 \x01(\t\x12\r\n\x05value\x18\x02 \x01(\t:\x02\x38\x01\"Q\n\x12RunProcessResponse\x12\x13\n\x0breturn_code\x18\x01 \x01(\x05\x12\x16\n\x0e\x65xecution_time\x18\x02 \x01(\x01\x12\x0e\n\x06output\x18\x03 \x01(\t\"\xb5\x01\n\tPopenArgs\x12\x0f\n\x07\x62ufsize\x18\x01 \x01(\x05\x12\x12\n\nexecutable\x18\x02 \x01(\t\x12\r\n\x05shell\x18\x03 \x01(\x08\x12\x0b\n\x03\x63wd\x18\x04 \x01(\t\x12 \n\x03\x65nv\x18\x05 \x03(\x0b\x32\x13.PopenArgs.EnvEntry\x12\x19\n\nenv_is_set\x18\x06 \x01(\x08:\x05\x66\x61lse\x1a*\n\x08\x45nvEntry\x12\x0b\n\x03key\x18\x01 \x01(\t\x12\r\n\x05value\x18\x02 \x01(\t:\x02\x38\x01\"\xf4\x01\n\x11RunAndWaitRequest\x12\x17\n\x0f\x65xecutable_path\x18\x01 \x01(\t\x12\x14\n\x0c\x64\x65\x66\x61ult_args\x18\x02 \x03(\t\x12\x17\n\x0f\x61\x64\x64itional_args\x18\x03 \x03(\t\x12\x0f\n\x07timeout\x18\x04 \x01(\x01\x12\x1d\n\x15terminate_before_kill\x18\x05 \x01(\x08\x12\x1b\n\x13terminate_wait_time\x18\x06 \x01(\x01\x12\x12\n\ninput_data\x18\x07 \x01(\x0c\x12\x1e\n\npopen_args\x18\x08 \x01(\x0b\x32\n.PopenArgs\x12\x16\n\x0emax_stdout_len\x18\t \x01(\r\"4\n\x12RunAndWaitResponse\x12\x1e\n\x06result\x18\x01 \x01(\x0b\x32\x0e.ProcessResult\"(\n\x14\x46indBuildFileRequest\x12\x10\n\x08\x66ilename\x18\x01 \x01(\t\"9\n\x15\x46indBuildFileResponse\x12\r\n\x05\x66ound\x18\x01 \x01(\x08\x12\x11\n\tfile_path\x18\x02 \x01(\t\"D\n\x16\x43reateDirectoryRequest\x12\x0c\n\x04path\x18\x01 \x01(\t\x12\x1c\n\x14\x63reate_intermediates\x18\x02 \x01(\x08\")\n\x17\x43reateDirectoryResponse\x12\x0e\n\x06result\x18\x01 \x01(\x08\"8\n\x16RemoveDirectoryRequest\x12\x0c\n\x04path\x18\x01 \x01(\t\x12\x10\n\x08recreate\x18\x02 \x01(\x08\")\n\x17RemoveDirectoryResponse\x12\x0e\n\x06result\x18\x01 \x01(\x08\"\x19\n\tFileChunk\x12\x0c\n\x04\x64\x61ta\x18\x01 \x01(\x0c\"$\n\x12\x43opyFileToResponse\x12\x0e\n\x06result\x18\x01 \x01(\x08\"#\n\x13\x43opyFileFromRequest\x12\x0c\n\x04path\x18\x01 \x01(\t\"w\n\x18UpdateEnvironmentRequest\x12/\n\x03\x65nv\x18\x01 \x03(\x0b\x32\".UpdateEnvironmentRequest.EnvEntry\x1a*\n\x08\x45nvEntry\x12\x0b\n\x03key\x18\x01 \x01(\t\x12\r\n\x05value\x18\x02 \x01(\t:\x02\x38\x01\"\x1b\n\x19UpdateEnvironmentResponse\"\x15\n\x13UpdateSourceRequest\"\x16\n\x14UpdateSourceResponse\"a\n\x1aSymbolizeStacktraceRequest\x12%\n\x1dunsymbolized_crash_stacktrace\x18\x01 \x01(\t\x12\x1c\n\x14\x65nable_inline_frames\x18\x02 \x01(\x08\"<\n\x1bSymbolizeStacktraceResponse\x12\x1d\n\x15symbolized_stacktrace\x18\x01 \x01(\t\"3\n\x10ListFilesRequest\x12\x0c\n\x04path\x18\x01 \x01(\t\x12\x11\n\trecursive\x18\x02 \x01(\x08\"\'\n\x11ListFilesResponse\x12\x12\n\nfile_paths\x18\x01 \x03(\t\"%\n\x15GetFuzzTargetsRequest\x12\x0c\n\x04path\x18\x01 \x01(\t\"3\n\x16GetFuzzTargetsResponse\x12\x19\n\x11\x66uzz_target_paths\x18\x01 \x03(\t\"\x91\x01\n\x0b\x43orpusCrash\x12\x13\n\x0b\x63rash_state\x18\x01 \x01(\t\x12\x12\n\ncrash_type\x18\x02 \x01(\t\x12\x15\n\rcrash_address\x18\x03 \x01(\t\x12\x18\n\x10\x63rash_stacktrace\x18\x04 \x01(\t\x12\x11\n\tunit_path\x18\x05 \x01(\t\x12\x15\n\rsecurity_flag\x18\x06 \x01(\x08\"\xd8\x01\n\x0c\x43overageInfo\x12\x19\n\x11\x63orpus_size_units\x18\x05 \x01(\x03\x12\x19\n\x11\x63orpus_size_bytes\x18\x06 \x01(\x03\x12\x17\n\x0f\x63orpus_location\x18\x07 \x01(\t\x12\x1e\n\x16\x63orpus_backup_location\x18\x08 \x01(\t\x12\x1d\n\x15quarantine_size_units\x18\t \x01(\x03\x12\x1d\n\x15quarantine_size_bytes\x18\n \x01(\x03\x12\x1b\n\x13quarantine_location\x18\x0b \x01(\t\"p\n\x14\x43rossPollinateFuzzer\x12 \n\x0b\x66uzz_target\x18\x01 \x01(\x0b\x32\x0b.FuzzTarget\x12\x1a\n\x12\x62\x61\x63kup_bucket_name\x18\x02 \x01(\t\x12\x1a\n\x12\x63orpus_engine_name\x18\x03 \x01(\t\"\x9f\x01\n\x12PruneCorpusRequest\x12 \n\x0b\x66uzz_target\x18\x01 \x01(\x0b\x32\x0b.FuzzTarget\x12\x36\n\x17\x63ross_pollinate_fuzzers\x18\x02 \x03(\x0b\x32\x15.CrossPollinateFuzzer\x12\x1d\n\x15last_execution_failed\x18\x04 \x01(\x08\x12\x10\n\x08revision\x18\x05 \x01(\x03\"\x88\x01\n\x13PruneCorpusResponse\x12$\n\rcoverage_info\x18\x01 \x01(\x0b\x32\r.CoverageInfo\x12\x1d\n\x07\x63rashes\x18\x02 \x03(\x0b\x32\x0c.CorpusCrash\x12\x1a\n\x12\x66uzzer_binary_name\x18\x03 \x01(\t\x12\x10\n\x08revision\x18\x04 \x01(\x03\"\x1b\n\x0bStatRequest\x12\x0c\n\x04path\x18\x01 \x01(\t\"v\n\x0cStatResponse\x12\x0e\n\x06result\x18\x01 \x01(\x08\x12\x0f\n\x07st_mode\x18\x02 \x01(\r\x12\x0f\n\x07st_size\x18\x03 \x01(\x04\x12\x10\n\x08st_atime\x18\x05 \x01(\x01\x12\x10\n\x08st_mtime\x18\x06 \x01(\x01\x12\x10\n\x08st_ctime\x18\x07 \x01(\x01\"+\n)TerminateStaleApplicationInstancesRequest\",\n*TerminateStaleApplicationInstancesResponse\"\x19\n\x17ResetEnvironmentRequest\"\x1a\n\x18ResetEnvironmentResponse\"=\n\nFuzzTarget\x12\x0e\n\x06\x65ngine\x18\x01 \x01(\t\x12\x0f\n\x07project\x18\x02 \x01(\t\x12\x0e\n\x06\x62inary\x18\x03 \x01(\t\"\xeb\x01\n\x16ProcessTestcaseRequest\x12\x0e\n\x06\x65ngine\x18\x01 \x01(\t\x12\x34\n\toperation\x18\x02 \x01(\x0e\x32!.ProcessTestcaseRequest.Operation\x12\x13\n\x0btarget_name\x18\x03 \x01(\t\x12\x11\n\targuments\x18\x04 \x03(\t\x12\x15\n\rtestcase_path\x18\x05 \x01(\t\x12\x13\n\x0boutput_path\x18\x06 \x01(\t\x12\x0f\n\x07timeout\x18\x07 \x01(\x04\"&\n\tOperation\x12\x0c\n\x08MINIMIZE\x10\x00\x12\x0b\n\x07\x43LEANSE\x10\x01\"d\n\x15\x45ngineReproduceResult\x12\x0f\n\x07\x63ommand\x18\x01 \x03(\t\x12\x13\n\x0breturn_code\x18\x02 \x01(\x03\x12\x15\n\rtime_executed\x18\x03 \x01(\x01\x12\x0e\n\x06output\x18\x04 \x01(\t\"s\n\x11\x45ngineFuzzRequest\x12\x0e\n\x06\x65ngine\x18\x01 \x01(\t\x12\x13\n\x0btarget_name\x18\x02 \x01(\t\x12\x1d\n\x15sync_corpus_directory\x18\x03 \x01(\t\x12\x1a\n\x12testcase_directory\x18\x04 \x01(\t\"a\n\x0b\x45ngineCrash\x12\x12\n\ninput_path\x18\x01 \x01(\t\x12\x12\n\nstacktrace\x18\x02 \x01(\t\x12\x16\n\x0ereproduce_args\x18\x03 \x03(\t\x12\x12\n\ncrash_time\x18\x04 \x01(\x01\"\xd7\x03\n\x12\x45ngineFuzzResponse\x12\x0c\n\x04logs\x18\x01 \x01(\t\x12\x0f\n\x07\x63ommand\x18\x02 \x03(\t\x12\x1d\n\x07\x63rashes\x18\x03 \x03(\x0b\x32\x0c.EngineCrash\x12-\n\x05stats\x18\x04 \x03(\x0b\x32\x1e.EngineFuzzResponse.StatsEntry\x12\x15\n\rtime_executed\x18\x05 \x01(\x01\x12@\n\x0f\x66uzzer_metadata\x18\x06 \x03(\x0b\x32\'.EngineFuzzResponse.FuzzerMetadataEntry\x12\x37\n\nstrategies\x18\x07 \x03(\x0b\x32#.EngineFuzzResponse.StrategiesEntry\x1a\x42\n\nStatsEntry\x12\x0b\n\x03key\x18\x01 \x01(\t\x12#\n\x05value\x18\x02 \x01(\x0b\x32\x14.google.protobuf.Any:\x02\x38\x01\x1a\x35\n\x13\x46uzzerMetadataEntry\x12\x0b\n\x03key\x18\x01 \x01(\t\x12\r\n\x05value\x18\x02 \x01(\t:\x02\x38\x01\x1aG\n\x0fStrategiesEntry\x12\x0b\n\x03key\x18\x01 \x01(\t\x12#\n\x05value\x18\x02 \x01(\x0b\x32\x14.google.protobuf.Any:\x02\x38\x01\"x\n\x16\x45ngineReproduceRequest\x12\x0e\n\x06\x65ngine\x18\x01 \x01(\t\x12\x13\n\x0btarget_name\x18\x02 \x01(\t\x12\x15\n\rtestcase_path\x18\x03 \x01(\t\x12\x11\n\targuments\x18\x04 \x03(\t\x12\x0f\n\x07timeout\x18\x05 \x01(\x01\x32\xa1\n\n\x0fUntrustedRunner\x12\x32\n\tGetStatus\x12\x11.GetStatusRequest\x1a\x12.GetStatusResponse\x12\x43\n\x11SetupRegularBuild\x12\x19.SetupRegularBuildRequest\x1a\x13.SetupBuildResponse\x12\x35\n\nRunProcess\x12\x12.RunProcessRequest\x1a\x13.RunProcessResponse\x12\x35\n\nRunAndWait\x12\x12.RunAndWaitRequest\x1a\x13.RunAndWaitResponse\x12\x44\n\x0f\x43reateDirectory\x12\x17.CreateDirectoryRequest\x1a\x18.CreateDirectoryResponse\x12\x44\n\x0fRemoveDirectory\x12\x17.RemoveDirectoryRequest\x1a\x18.RemoveDirectoryResponse\x12\x32\n\tListFiles\x12\x11.ListFilesRequest\x1a\x12.ListFilesResponse\x12/\n\nCopyFileTo\x12\n.FileChunk\x1a\x13.CopyFileToResponse(\x01\x12\x32\n\x0c\x43opyFileFrom\x12\x14.CopyFileFromRequest\x1a\n.FileChunk0\x01\x12#\n\x04Stat\x12\x0c.StatRequest\x1a\r.StatResponse\x12J\n\x11UpdateEnvironment\x12\x19.UpdateEnvironmentRequest\x1a\x1a.UpdateEnvironmentResponse\x12G\n\x10ResetEnvironment\x12\x18.ResetEnvironmentRequest\x1a\x19.ResetEnvironmentResponse\x12;\n\x0cUpdateSource\x12\x14.UpdateSourceRequest\x1a\x15.UpdateSourceResponse\x12P\n\x13SymbolizeStacktrace\x12\x1b.SymbolizeStacktraceRequest\x1a\x1c.SymbolizeStacktraceResponse\x12}\n\"TerminateStaleApplicationInstances\x12*.TerminateStaleApplicationInstancesRequest\x1a+.TerminateStaleApplicationInstancesResponse\x12\x41\n\x0eGetFuzzTargets\x12\x16.GetFuzzTargetsRequest\x1a\x17.GetFuzzTargetsResponse\x12\x38\n\x0bPruneCorpus\x12\x13.PruneCorpusRequest\x1a\x14.PruneCorpusResponse\x12\x42\n\x0fProcessTestcase\x12\x17.ProcessTestcaseRequest\x1a\x16.EngineReproduceResult\x12\x35\n\nEngineFuzz\x12\x12.EngineFuzzRequest\x1a\x13.EngineFuzzResponse\x12\x42\n\x0f\x45ngineReproduce\x12\x17.EngineReproduceRequest\x1a\x16.EngineReproduceResultB%Z#clusterfuzz/protos/untrusted_runner')
   ,
   dependencies=[google_dot_protobuf_dot_any__pb2.DESCRIPTOR,])
 
@@ -2179,8 +2179,8 @@ _ENGINEFUZZRESPONSE_STATSENTRY = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=4411,
-  serialized_end=4477,
+  serialized_start=4468,
+  serialized_end=4534,
 )
 
 _ENGINEFUZZRESPONSE_FUZZERMETADATAENTRY = _descriptor.Descriptor(
@@ -2216,8 +2216,45 @@ _ENGINEFUZZRESPONSE_FUZZERMETADATAENTRY = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=4479,
-  serialized_end=4532,
+  serialized_start=4536,
+  serialized_end=4589,
+)
+
+_ENGINEFUZZRESPONSE_STRATEGIESENTRY = _descriptor.Descriptor(
+  name='StrategiesEntry',
+  full_name='EngineFuzzResponse.StrategiesEntry',
+  filename=None,
+  file=DESCRIPTOR,
+  containing_type=None,
+  fields=[
+    _descriptor.FieldDescriptor(
+      name='key', full_name='EngineFuzzResponse.StrategiesEntry.key', index=0,
+      number=1, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=_b("").decode('utf-8'),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR),
+    _descriptor.FieldDescriptor(
+      name='value', full_name='EngineFuzzResponse.StrategiesEntry.value', index=1,
+      number=2, type=11, cpp_type=10, label=1,
+      has_default_value=False, default_value=None,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR),
+  ],
+  extensions=[
+  ],
+  nested_types=[],
+  enum_types=[
+  ],
+  serialized_options=_b('8\001'),
+  is_extendable=False,
+  syntax='proto2',
+  extension_ranges=[],
+  oneofs=[
+  ],
+  serialized_start=4591,
+  serialized_end=4662,
 )
 
 _ENGINEFUZZRESPONSE = _descriptor.Descriptor(
@@ -2269,10 +2306,17 @@ _ENGINEFUZZRESPONSE = _descriptor.Descriptor(
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       serialized_options=None, file=DESCRIPTOR),
+    _descriptor.FieldDescriptor(
+      name='strategies', full_name='EngineFuzzResponse.strategies', index=6,
+      number=7, type=11, cpp_type=10, label=3,
+      has_default_value=False, default_value=[],
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR),
   ],
   extensions=[
   ],
-  nested_types=[_ENGINEFUZZRESPONSE_STATSENTRY, _ENGINEFUZZRESPONSE_FUZZERMETADATAENTRY, ],
+  nested_types=[_ENGINEFUZZRESPONSE_STATSENTRY, _ENGINEFUZZRESPONSE_FUZZERMETADATAENTRY, _ENGINEFUZZRESPONSE_STRATEGIESENTRY, ],
   enum_types=[
   ],
   serialized_options=None,
@@ -2282,7 +2326,7 @@ _ENGINEFUZZRESPONSE = _descriptor.Descriptor(
   oneofs=[
   ],
   serialized_start=4191,
-  serialized_end=4532,
+  serialized_end=4662,
 )
 
 
@@ -2340,8 +2384,8 @@ _ENGINEREPRODUCEREQUEST = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=4534,
-  serialized_end=4654,
+  serialized_start=4664,
+  serialized_end=4784,
 )
 
 _SETUPREGULARBUILDREQUEST_TARGETWEIGHTSENTRY.containing_type = _SETUPREGULARBUILDREQUEST
@@ -2364,9 +2408,12 @@ _PROCESSTESTCASEREQUEST_OPERATION.containing_type = _PROCESSTESTCASEREQUEST
 _ENGINEFUZZRESPONSE_STATSENTRY.fields_by_name['value'].message_type = google_dot_protobuf_dot_any__pb2._ANY
 _ENGINEFUZZRESPONSE_STATSENTRY.containing_type = _ENGINEFUZZRESPONSE
 _ENGINEFUZZRESPONSE_FUZZERMETADATAENTRY.containing_type = _ENGINEFUZZRESPONSE
+_ENGINEFUZZRESPONSE_STRATEGIESENTRY.fields_by_name['value'].message_type = google_dot_protobuf_dot_any__pb2._ANY
+_ENGINEFUZZRESPONSE_STRATEGIESENTRY.containing_type = _ENGINEFUZZRESPONSE
 _ENGINEFUZZRESPONSE.fields_by_name['crashes'].message_type = _ENGINECRASH
 _ENGINEFUZZRESPONSE.fields_by_name['stats'].message_type = _ENGINEFUZZRESPONSE_STATSENTRY
 _ENGINEFUZZRESPONSE.fields_by_name['fuzzer_metadata'].message_type = _ENGINEFUZZRESPONSE_FUZZERMETADATAENTRY
+_ENGINEFUZZRESPONSE.fields_by_name['strategies'].message_type = _ENGINEFUZZRESPONSE_STRATEGIESENTRY
 DESCRIPTOR.message_types_by_name['GetStatusRequest'] = _GETSTATUSREQUEST
 DESCRIPTOR.message_types_by_name['GetStatusResponse'] = _GETSTATUSRESPONSE
 DESCRIPTOR.message_types_by_name['ProcessResult'] = _PROCESSRESULT
@@ -2778,6 +2825,13 @@ EngineFuzzResponse = _reflection.GeneratedProtocolMessageType('EngineFuzzRespons
     # @@protoc_insertion_point(class_scope:EngineFuzzResponse.FuzzerMetadataEntry)
     ))
   ,
+
+  StrategiesEntry = _reflection.GeneratedProtocolMessageType('StrategiesEntry', (_message.Message,), dict(
+    DESCRIPTOR = _ENGINEFUZZRESPONSE_STRATEGIESENTRY,
+    __module__ = 'protos.untrusted_runner_pb2'
+    # @@protoc_insertion_point(class_scope:EngineFuzzResponse.StrategiesEntry)
+    ))
+  ,
   DESCRIPTOR = _ENGINEFUZZRESPONSE,
   __module__ = 'protos.untrusted_runner_pb2'
   # @@protoc_insertion_point(class_scope:EngineFuzzResponse)
@@ -2785,6 +2839,7 @@ EngineFuzzResponse = _reflection.GeneratedProtocolMessageType('EngineFuzzRespons
 _sym_db.RegisterMessage(EngineFuzzResponse)
 _sym_db.RegisterMessage(EngineFuzzResponse.StatsEntry)
 _sym_db.RegisterMessage(EngineFuzzResponse.FuzzerMetadataEntry)
+_sym_db.RegisterMessage(EngineFuzzResponse.StrategiesEntry)
 
 EngineReproduceRequest = _reflection.GeneratedProtocolMessageType('EngineReproduceRequest', (_message.Message,), dict(
   DESCRIPTOR = _ENGINEREPRODUCEREQUEST,
@@ -2801,6 +2856,7 @@ _POPENARGS_ENVENTRY._options = None
 _UPDATEENVIRONMENTREQUEST_ENVENTRY._options = None
 _ENGINEFUZZRESPONSE_STATSENTRY._options = None
 _ENGINEFUZZRESPONSE_FUZZERMETADATAENTRY._options = None
+_ENGINEFUZZRESPONSE_STRATEGIESENTRY._options = None
 
 _UNTRUSTEDRUNNER = _descriptor.ServiceDescriptor(
   name='UntrustedRunner',
@@ -2808,8 +2864,8 @@ _UNTRUSTEDRUNNER = _descriptor.ServiceDescriptor(
   file=DESCRIPTOR,
   index=0,
   serialized_options=None,
-  serialized_start=4657,
-  serialized_end=5970,
+  serialized_start=4787,
+  serialized_end=6100,
   methods=[
   _descriptor.MethodDescriptor(
     name='GetStatus',
