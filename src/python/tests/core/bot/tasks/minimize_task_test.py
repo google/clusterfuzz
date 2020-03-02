@@ -104,10 +104,6 @@ class MinimizeTaskTestUntrusted(
     super(MinimizeTaskTestUntrusted, self).setUp()
     environment.set_value('JOB_NAME', 'libfuzzer_asan_job')
 
-    helpers.patch(self, [
-        'datastore.data_handler.get_data_bundle_bucket_name',
-    ])
-
     patcher = mock.patch(
         'bot.fuzzers.libFuzzer.fuzzer.LibFuzzer.fuzzer_directory',
         new_callable=mock.PropertyMock)
@@ -158,7 +154,7 @@ class MinimizeTaskTestUntrusted(
 
     testcase_file_path = os.path.join(self.temp_dir, 'testcase')
     with open(testcase_file_path, 'wb') as f:
-      f.write('EEE')
+      f.write(b'EEE')
 
     with open(testcase_file_path) as f:
       fuzzed_keys = blobs.write_blob(f)
