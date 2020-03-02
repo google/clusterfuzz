@@ -961,8 +961,8 @@ class UpdateOsLabelsTest(unittest.TestCase):
 
 
 @test_utils.with_cloud_emulators('datastore')
-class GetProjectsToJobsAndPlatformsMapTest(unittest.TestCase):
-  """Test get_projects_to_jobs_and_platforms_map_for_top_crashes."""
+class GetJobsAndPlatformsForProjectTest(unittest.TestCase):
+  """Test get_jobs_and_platforms_for_project."""
 
   def setUp(self):
     data_types.Job(
@@ -998,8 +998,7 @@ class GetProjectsToJobsAndPlatformsMapTest(unittest.TestCase):
         environment_string=('PROJECT_NAME=project6')).put()
 
   def test(self):
-    actual_projects_map = (
-        cleanup.get_projects_to_jobs_and_platforms_map_for_top_crashes())
+    actual_projects_map = cleanup.get_jobs_and_platforms_for_project()
     expected_projects_map = {
         'project5': cleanup.ProjectMap(set(['job5']), set(['LINUX'])),
         'project6': cleanup.ProjectMap(set(['job6']), set(['MAC']))

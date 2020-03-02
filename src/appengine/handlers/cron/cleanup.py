@@ -181,11 +181,11 @@ def cleanup_unused_fuzz_targets_and_jobs():
   ndb_utils.delete_multi(to_delete)
 
 
-def get_projects_to_jobs_and_platforms_map_for_top_crashes():
+def get_jobs_and_platforms_for_project():
   """Return a map of projects to jobs and platforms map to use for picking top
   crashes."""
   all_jobs = ndb_utils.get_all_from_model(data_types.Job)
-  projects_to_jobs_and_platforms_map = {}
+  projects_to_jobs_and_platforms = {}
   for job in all_jobs:
     job_environment = job.get_environment()
 
@@ -202,14 +202,14 @@ def get_projects_to_jobs_and_platforms_map_for_top_crashes():
     if utils.string_is_true(job_environment.get('EXCLUDE_FROM_TOP_CRASHES')):
       continue
 
-    if job.project not in projects_to_jobs_and_platforms_map:
-      projects_to_jobs_and_platforms_map[job.project] = ProjectMap(set(), set())
+    if job.project not in projects_to_jobs_and_platforms:
+      projects_to_jobs_and_platforms[job.project] = ProjectMap(set(), set())
 
-    projects_to_jobs_and_platforms_map[job.project].jobs.add(job.name)
-    projects_to_jobs_and_platforms_map[job.project].platforms.add(
+    projects_to_jobs_and_platforms[job.project].jobs.add(job.name)
+    projects_to_jobs_and_platforms[job.project].platforms.add(
         job_platform_to_real_platform(job.platform))
 
-  return projects_to_jobs_and_platforms_map
+  return projects_to_jobs_and_platforms
 
 
 @memoize.wrap(memoize.Memcache(12 * 60 * 60))
@@ -264,14 +264,13 @@ def get_top_crashes_for_all_projects_and_platforms():
     # No crash stats available, skip.
     return {}
 
-  projects_to_jobs_and_platforms_map = (
-      get_projects_to_jobs_and_platforms_map_for_top_crashes())
+  projects_to_jobs_and_platforms = (get_jobs_and_platforms_for_project())
   top_crashes_by_project_and_platform_map = {}
 
-  for project_name in projects_to_jobs_and_platforms_map:
+  for project_name in projects_to_jobs_and_platforms:
     top_crashes_by_project_and_platform_map[project_name] = {}
 
-    project_map = projects_to_jobs_and_platforms_map[project_name]
+    project_map = projects_to_jobs_and_platforms[project_name]
     for platform in project_map.platforms:
       where_clause = (
           'crash_type NOT IN UNNEST(%s) AND '
