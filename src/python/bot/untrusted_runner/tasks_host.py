@@ -129,8 +129,8 @@ def _unpack_values(values):
   for key, packed_value in six.iteritems(values):
     if packed_value.Is(wrappers_pb2.DoubleValue.DESCRIPTOR):
       value = wrappers_pb2.DoubleValue()
-    elif packed_value.Is(wrappers_pb2.Int32Value.DESCRIPTOR):
-      value = wrappers_pb2.Int32Value()
+    elif packed_value.Is(wrappers_pb2.Int64Value.DESCRIPTOR):
+      value = wrappers_pb2.Int64Value()
     elif packed_value.Is(wrappers_pb2.StringValue.DESCRIPTOR):
       value = wrappers_pb2.StringValue()
     else:
