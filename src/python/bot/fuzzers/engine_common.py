@@ -353,8 +353,8 @@ def is_lpm_fuzz_target(fuzzer_path):
   """Returns True if |fuzzer_path| is a libprotobuf-mutator based fuzz
   target."""
   # TODO(metzman): Use this function to disable running LPM targets with AFL.
-  with open(fuzzer_path, 'rb') as file_handle:
-    return utils.search_bytes_in_file(b'TestOneProtoInput', file_handle)
+  with open(fuzzer_path) as file_handle:
+    return utils.search_string_in_file('TestOneProtoInput', file_handle)
 
 
 def get_issue_owners(fuzz_target_path):

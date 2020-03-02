@@ -39,7 +39,7 @@ from system import shell
 ENGINE_ERROR_MESSAGE = 'libFuzzer: engine encountered an error'
 DICT_PARSING_FAILED_REGEX = re.compile(
     r'ParseDictionaryFile: error in line (\d+)')
-MULTISTEP_MERGE_SUPPORT_TOKEN = b'fuzz target overwrites its const input'
+MULTISTEP_MERGE_SUPPORT_TOKEN = 'fuzz target overwrites its const input'
 
 
 def _project_qualified_fuzzer_name(target_path):
@@ -59,8 +59,8 @@ def _is_multistep_merge_supported(target_path):
   # multi step merge: https://github.com/llvm/llvm-project/commit/f054067.
   if os.path.exists(target_path):
     with open(target_path, 'rb') as file_handle:
-      return utils.search_bytes_in_file(MULTISTEP_MERGE_SUPPORT_TOKEN,
-                                        file_handle)
+      return utils.search_string_in_file(MULTISTEP_MERGE_SUPPORT_TOKEN,
+                                         file_handle)
 
   return False
 

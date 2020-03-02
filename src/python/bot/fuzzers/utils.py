@@ -26,7 +26,7 @@ from system import environment
 from system import shell
 
 ALLOWED_FUZZ_TARGET_EXTENSIONS = ['', '.exe', '.par']
-FUZZ_TARGET_SEARCH_BYTES = b'LLVMFuzzerTestOneInput'
+FUZZ_TARGET_SEARCH_STRING = 'LLVMFuzzerTestOneInput'
 VALID_TARGET_NAME = re.compile(r'^[a-zA-Z0-9_-]+$')
 
 
@@ -65,8 +65,8 @@ def is_fuzz_target_local(file_path, file_handle=None):
 
   # TODO(metzman): Bound this call so we don't read forever if something went
   # wrong.
-  result = utils.search_bytes_in_file(FUZZ_TARGET_SEARCH_BYTES,
-                                      local_file_handle)
+  result = utils.search_string_in_file(FUZZ_TARGET_SEARCH_STRING,
+                                       local_file_handle)
 
   if not file_handle:
     # If this local file handle is owned by our function, close it now.
