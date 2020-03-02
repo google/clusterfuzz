@@ -108,7 +108,7 @@ class GetFuzzTargetGrammar(fake_filesystem_unittest.TestCase):
   def setUp(self):
     test_utils.set_up_pyfakefs(self)
 
-    input_data = ('[grammar_options]\n' 'grammar=pdf\n')
+    input_data = ('[grammar]\n' 'grammar=pdf\n')
     self.fs.create_file('/path/fuzz_target.grammar', contents=input_data)
 
   def test_get_fuzz_target_grammar(self):
