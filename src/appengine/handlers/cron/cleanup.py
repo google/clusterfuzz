@@ -268,7 +268,7 @@ def get_top_crashes_for_all_projects_and_platforms():
       get_projects_to_jobs_and_platforms_map_for_top_crashes())
   top_crashes_by_project_and_platform_map = {}
 
-  for project_name in projects_to_jobs_and_platforms_map.keys():
+  for project_name in projects_to_jobs_and_platforms_map:
     top_crashes_by_project_and_platform_map[project_name] = {}
 
     project_map = projects_to_jobs_and_platforms_map[project_name]
