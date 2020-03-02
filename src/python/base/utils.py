@@ -28,6 +28,7 @@ import functools
 import gc
 import hashlib
 import inspect
+import mmap
 import os
 import random
 import requests
@@ -626,17 +627,12 @@ def restart_machine():
     os.system('sudo shutdown -r now')
 
 
-def search_string_in_file(search_string, file_handle):
-  """Helper to search for a string in a large binary file without memory
+def search_bytes_in_file(search_bytes, file_handle):
+  """Helper to search for bytes in a large binary file without memory
   issues.
   """
-  # TODO(aarya): This is too brittle and will fail if we have a very large line.
-  search_string = search_string.encode('utf-8')
-  for line in file_handle:
-    if search_string in line:
-      return True
-
-  return False
+  memory_mapped = mmap.mmap(file_handle.fileno(), 0, access=mmap.ACCESS_READ)
+  return memory_mapped.find(search_bytes) != -1
 
 
 def string_hash(obj):
