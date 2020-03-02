@@ -631,6 +631,15 @@ def search_bytes_in_file(search_bytes, file_handle):
   """Helper to search for bytes in a large binary file without memory
   issues.
   """
+  old_pos = file_handle.tell()
+  file_handle.seek(0, os.SEEK_END)
+  file_size = file_handle.tell()
+  file_handle.seek(old_pos, os.SEEK_SET)
+
+  if file_size == 0:
+    # Avoid mapping 0 sized files, as they do not work on Windows.
+    return False
+
   memory_mapped = mmap.mmap(file_handle.fileno(), 0, access=mmap.ACCESS_READ)
   return memory_mapped.find(search_bytes) != -1
 
