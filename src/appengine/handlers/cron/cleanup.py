@@ -13,6 +13,7 @@
 # limitations under the License.
 """Cleanup task for cleaning up unneeded testcases."""
 
+import collections
 import datetime
 import json
 import random
@@ -57,6 +58,8 @@ TOP_CRASHES_IGNORE_CRASH_STATES = ['NULL']
 
 FUZZ_TARGET_UNUSED_THRESHOLD = 15
 UNUSED_HEARTBEAT_THRESHOLD = 15
+
+ProjectMap = collections.namedtuple('ProjectMap', 'jobs platforms')
 
 
 def _get_predator_result_item(testcase, key, default=None):
@@ -178,12 +181,11 @@ def cleanup_unused_fuzz_targets_and_jobs():
   ndb_utils.delete_multi(to_delete)
 
 
-def get_jobs_and_platforms_for_top_crashes():
-  """Return list of jobs and platforms to use for picking top crashes."""
-  jobs = set()
-  platforms = set()
-
+def get_projects_to_jobs_and_platforms_map_for_top_crashes():
+  """Return a map of projects to jobs and platforms map to use for picking top
+  crashes."""
   all_jobs = ndb_utils.get_all_from_model(data_types.Job)
+  projects_to_jobs_and_platforms_map = {}
   for job in all_jobs:
     job_environment = job.get_environment()
 
@@ -200,10 +202,14 @@ def get_jobs_and_platforms_for_top_crashes():
     if utils.string_is_true(job_environment.get('EXCLUDE_FROM_TOP_CRASHES')):
       continue
 
-    jobs.add(job.name)
-    platforms.add(job_platform_to_real_platform(job.platform))
+    if job.project not in projects_to_jobs_and_platforms_map:
+      projects_to_jobs_and_platforms_map[job.project] = ProjectMap(set(), set())
 
-  return jobs, platforms
+    projects_to_jobs_and_platforms_map[job.project].jobs.add(job.name)
+    projects_to_jobs_and_platforms_map[job.project].platforms.add(
+        job_platform_to_real_platform(job.platform))
+
+  return projects_to_jobs_and_platforms_map
 
 
 @memoize.wrap(memoize.Memcache(12 * 60 * 60))
@@ -258,23 +264,25 @@ def get_top_crashes_for_all_projects_and_platforms():
     # No crash stats available, skip.
     return {}
 
-  jobs, platforms = get_jobs_and_platforms_for_top_crashes()
-  project_names = data_handler.get_all_project_names()
+  projects_to_jobs_and_platforms_map = (
+      get_projects_to_jobs_and_platforms_map_for_top_crashes())
   top_crashes_by_project_and_platform_map = {}
 
-  for project_name in project_names:
+  for project_name in projects_to_jobs_and_platforms_map.keys():
     top_crashes_by_project_and_platform_map[project_name] = {}
 
-    for platform in platforms:
+    project_map = projects_to_jobs_and_platforms_map[project_name]
+    for platform in project_map.platforms:
       where_clause = (
           'crash_type NOT IN UNNEST(%s) AND '
           'crash_state NOT IN UNNEST(%s) AND '
           'job_type IN UNNEST(%s) AND '
           'platform LIKE %s AND '
-          'project = %s' %
-          (json.dumps(TOP_CRASHES_IGNORE_CRASH_TYPES),
-           json.dumps(TOP_CRASHES_IGNORE_CRASH_STATES), json.dumps(list(jobs)),
-           json.dumps(platform.lower() + '%'), json.dumps(project_name)))
+          'project = %s' % (json.dumps(TOP_CRASHES_IGNORE_CRASH_TYPES),
+                            json.dumps(TOP_CRASHES_IGNORE_CRASH_STATES),
+                            json.dumps(list(project_map.jobs)),
+                            json.dumps(platform.lower() + '%'),
+                            json.dumps(project_name)))
 
       _, rows = crash_stats.get(
           end=last_hour,
