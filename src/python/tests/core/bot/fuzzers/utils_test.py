@@ -21,7 +21,6 @@ import unittest
 from bot.fuzzers import utils
 from system import environment
 from tests.test_libs import helpers as test_helpers
-from tests.test_libs import test_utils
 
 
 class IsFuzzTargetLocalTest(unittest.TestCase):
