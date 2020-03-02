@@ -106,6 +106,10 @@ def cleanup_testcases_and_issues():
   top_crashes_by_project_and_platform_map = (
       get_top_crashes_for_all_projects_and_platforms())
 
+  utils.python_gc()
+
+  testcases_processed = 0
+  empty_issue_tracker_policy = issue_tracker_policy.get_empty()
   for testcase_key in testcase_keys:
     try:
       testcase = data_handler.get_testcase_by_id(testcase_key.id())
@@ -116,7 +120,7 @@ def cleanup_testcases_and_issues():
     issue = issue_tracker_utils.get_issue_for_testcase(testcase)
     policy = issue_tracker_utils.get_issue_tracker_policy_for_testcase(testcase)
     if not policy:
-      policy = issue_tracker_policy.get_empty()
+      policy = empty_issue_tracker_policy
 
     # Issue updates.
     update_os_labels(policy, testcase, issue)
@@ -148,6 +152,10 @@ def cleanup_testcases_and_issues():
 
     # Testcase deletion rules.
     delete_unreproducible_testcase_with_no_issue(testcase)
+
+    testcases_processed += 1
+    if testcases_processed % 100 == 0:
+      utils.python_gc()
 
 
 def cleanup_unused_fuzz_targets_and_jobs():
@@ -278,10 +286,15 @@ def get_top_crashes_for_all_projects_and_platforms():
           sort_by='total_count',
           offset=0,
           limit=TOP_CRASHES_LIMIT)
-      if rows:
-        rows = [s for s in rows if s['totalCount'] >= TOP_CRASHES_MIN_THRESHOLD]
-      top_crashes_by_project_and_platform_map[project_name][platform] = (
-          rows or [])
+      if not rows:
+        continue
+
+      top_crashes_by_project_and_platform_map[project_name][platform] = [{
+          'crashState': row['crashState'],
+          'crashType': row['crashType'],
+          'isSecurity': row['isSecurity'],
+          'totalCount': row['totalCount'],
+      } for row in rows if row['totalCount'] >= TOP_CRASHES_MIN_THRESHOLD]
 
   return top_crashes_by_project_and_platform_map
 
