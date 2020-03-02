@@ -627,12 +627,12 @@ def restart_machine():
     os.system('sudo shutdown -r now')
 
 
-def search_bytes_in_file(search_string, file_handle):
-  """Helper to search for a string in a large binary file without memory
+def search_bytes_in_file(search_bytes, file_handle):
+  """Helper to search for bytes in a large binary file without memory
   issues.
   """
   memory_mapped = mmap.mmap(file_handle.fileno(), 0, access=mmap.ACCESS_READ)
-  return memory_mapped.find(search_string) != -1
+  return memory_mapped.find(search_bytes) != -1
 
 
 def string_hash(obj):

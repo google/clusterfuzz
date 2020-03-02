@@ -97,3 +97,10 @@ class IsFuzzTargetLocalTest(unittest.TestCase):
     path = self._create_file(
         'a_fuzzer', contents=b'anything\nLLVMFuzzerTestOneInput')
     self.assertTrue(utils.is_fuzz_target_local(path))
+
+  def test_file_handle(self):
+    """Test with a file handle."""
+    path = self._create_file(
+        'abc', contents=b'anything\nLLVMFuzzerTestOneInput')
+    with open(path, 'rb') as f:
+      self.assertTrue(utils.is_fuzz_target_local('name', f))
