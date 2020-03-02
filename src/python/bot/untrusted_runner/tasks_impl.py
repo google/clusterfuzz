@@ -112,8 +112,8 @@ def _pack_values(values):
     packed_value = Any()
     if isinstance(value, float):
       packed_value.Pack(wrappers_pb2.DoubleValue(value=value))
-    elif isinstance(value, int):
-      packed_value.Pack(wrappers_pb2.Int32Value(value=value))
+    elif isinstance(value, six.integer_types):
+      packed_value.Pack(wrappers_pb2.Int64Value(value=value))
     elif isinstance(value, six.string_types):
       packed_value.Pack(wrappers_pb2.StringValue(value=value))
     else:
