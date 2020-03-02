@@ -150,7 +150,11 @@ class PickStrategiesTest(fake_fs_unittest.TestCase):
   """pick_strategies tests."""
 
   def setUp(self):
-    test_helpers.patch(self, ['random.SystemRandom.randint'])
+    test_helpers.patch(self, [
+        'bot.fuzzers.engine_common.is_lpm_fuzz_target',
+        'random.SystemRandom.randint',
+    ])
+    self.mock.is_lpm_fuzz_target.return_value = False
 
     test_utils.set_up_pyfakefs(self)
     self.fs.create_dir('/path/corpus')
