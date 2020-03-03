@@ -782,7 +782,7 @@ class UntrustedEngineReproduceTest(
     """Test reproduce."""
     testcase_file_path = os.path.join(self.temp_dir, 'testcase')
     with open(testcase_file_path, 'wb') as f:
-      f.write('EEE')
+      f.write(b'EEE')
 
     self._setup_env(job_type='libfuzzer_asan_job')
 
@@ -807,7 +807,7 @@ class UntrustedEngineReproduceTest(
     """Test target not found."""
     testcase_file_path = os.path.join(self.temp_dir, 'testcase')
     with open(testcase_file_path, 'wb') as f:
-      f.write('EEE')
+      f.write(b'EEE')
 
     self._setup_env(job_type='libfuzzer_asan_job')
 

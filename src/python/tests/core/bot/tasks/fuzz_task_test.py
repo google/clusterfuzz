@@ -691,7 +691,7 @@ class ProcessCrashesTest(fake_filesystem_unittest.TestCase):
     dummy_state.crash_stacktrace = 'orig_trace'
     dummy_state.crash_frames = ['frame 1', 'frame 2']
     self.mock.get_crash_data.return_value = dummy_state
-    self.mock.get_symbolized_stack_bytes.return_value = 'f00df00d'
+    self.mock.get_symbolized_stack_bytes.return_value = b'f00df00d'
     self.mock.get_crash_stacktrace_output.return_value = trace
     self.mock.get_unsymbolized_crash_stacktrace.return_value = trace
     self.mock.is_security_issue.return_value = True
@@ -859,7 +859,7 @@ class ProcessCrashesTest(fake_filesystem_unittest.TestCase):
       expected_saved_crash_info = crash_uploader.CrashReportInfo(
           product='Chrome_' + environment.platform().lower().capitalize(),
           version='this.is.fake.ver',
-          serialized_crash_stack_frames='f00df00d')
+          serialized_crash_stack_frames=b'f00df00d')
       expected_crash_infos = [
           expected_saved_crash_info,  # r2 is main crash for group r1,r2,r3
           expected_saved_crash_info,  # r4 is main crash for its own group
