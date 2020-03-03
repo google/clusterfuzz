@@ -1573,6 +1573,12 @@ def use_mutator_plugin(target_name, extra_env):
   return True
 
 
+def is_linux_asan():
+  """Helper functions. Returns whether or not the current env is linux asan."""
+  return (environment.platform() != 'LINUX' or
+          environment.get_value('MEMORY_TOOL') != 'ASAN')
+
+
 def use_radamsa_mutator_plugin(extra_env):
   """Decide whether to use Radamsa in process. If yes, add the path to the
   radamsa shared object to LD_PRELOAD in |extra_env| and return True."""
@@ -1580,8 +1586,7 @@ def use_radamsa_mutator_plugin(extra_env):
   # Radamsa will only work on LINUX ASAN jobs.
   # TODO(mpherman): Include architecture info in job definition and exclude
   # i386.
-  if (environment.platform() != 'LINUX' or
-      environment.get_value('MEMORY_TOOL') != 'ASAN'):
+  if not is_linux_asan():
     return False
 
   radamsa_path = os.path.join(environment.get_platform_resources_directory(),
@@ -1597,8 +1602,7 @@ def use_peach_mutator(extra_env, grammar):
   environment variables necessary to do so."""
   # TODO(mpherman): Include architecture info in job definition and exclude
   # i386.
-  if environment.platform() != 'LINUX' or environment.get_value(
-      'MEMORY_TOOL') != 'ASAN':
+  if not is_linux_asan():
     return False
 
   if not grammar:
