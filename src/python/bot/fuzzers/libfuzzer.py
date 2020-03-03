@@ -1417,7 +1417,7 @@ def analyze_and_update_recommended_dictionary(runner, fuzzer_name, log_lines,
                                       temp_dictionary_filename)
 
   with open(temp_dictionary_path, 'wb') as file_handle:
-    file_handle.write('\n'.join(recommended_dictionary))
+    file_handle.write('\n'.join(recommended_dictionary).encode('utf-8'))
 
   dictionary_analysis = runner.analyze_dictionary(
       temp_dictionary_path,
@@ -1437,7 +1437,7 @@ def analyze_and_update_recommended_dictionary(runner, fuzzer_name, log_lines,
 
   # Extract dictionary elements considered useless, calculate the result.
   useless_dictionary = dict_manager.parse_useless_dictionary_from_data(
-      dictionary_analysis.output)
+      dictionary_analysis.output.decode('utf-8'))
 
   logs.log('%d out of %d recommended dictionary elements for %s are useless.' %
            (len(useless_dictionary), len(recommended_dictionary), fuzzer_name))

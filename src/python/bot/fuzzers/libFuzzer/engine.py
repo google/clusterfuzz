@@ -260,7 +260,7 @@ class LibFuzzerEngine(engine.Engine):
       logs.log_error(
           'Dictionary parsing failed (target={target}, line={line}).'.format(
               target=project_qualified_fuzzer_name,
-              line=dict_error_match.group(1)),
+              line=dict_error_match.group(1).decode('utf-8')),
           engine_output=fuzz_result.output)
     elif (not environment.get_value('USE_MINIJAIL') and
           fuzz_result.return_code == constants.LIBFUZZER_ERROR_EXITCODE):
