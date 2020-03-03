@@ -114,11 +114,14 @@ def cleanup_testcases_and_issues():
   testcases_processed = 0
   empty_issue_tracker_policy = issue_tracker_policy.get_empty()
   for testcase_key in testcase_keys:
+    testcase_id = testcase_key.id()
     try:
-      testcase = data_handler.get_testcase_by_id(testcase_key.id())
+      testcase = data_handler.get_testcase_by_id(testcase_id)
     except errors.InvalidTestcaseError:
       # Already deleted.
       continue
+
+    logs.log('Processing testcase %d.' % testcase_id)
 
     issue = issue_tracker_utils.get_issue_for_testcase(testcase)
     policy = issue_tracker_utils.get_issue_tracker_policy_for_testcase(testcase)
@@ -843,7 +846,7 @@ def notify_uploader_when_testcase_is_processed(policy, testcase, issue):
     return
 
   notify = not upload_metadata.quiet_flag
-  if issue:
+  if issue and not testcase.duplicate_of:
     issue_description = data_handler.get_issue_description(testcase)
     _update_issue_when_uploaded_testcase_is_processed(
         policy, testcase, issue, issue_description,
