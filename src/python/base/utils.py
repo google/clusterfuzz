@@ -878,7 +878,7 @@ def read_from_handle_truncated(file_handle, max_len):
   file_handle.seek(file_size - half_max_len, os.SEEK_SET)
   end = file_handle.read(half_max_len)
 
-  truncated_marker = '\n...truncated %d bytes...\n' % (file_size - max_len)
+  truncated_marker = b'\n...truncated %d bytes...\n' % (file_size - max_len)
 
   return start + truncated_marker + end
 

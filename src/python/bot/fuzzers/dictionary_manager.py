@@ -96,7 +96,7 @@ def get_stats_for_dictionary_file(dictionary_path):
     return 0, 0
 
   dictionary_content = utils.read_data_from_file(
-      dictionary_path, eval_data=False)
+      dictionary_path, eval_data=False).decode('utf-8')
   dictionaries = dictionary_content.split(RECOMMENDED_DICTIONARY_HEADER)
 
   # If there are any elements before RECOMMENDED_DICTIONARY_HEADER, those are
@@ -182,7 +182,8 @@ def correct_if_needed(dict_path):
   if not dict_path or not os.path.exists(dict_path):
     return
 
-  content = utils.read_data_from_file(dict_path, eval_data=False)
+  content = utils.read_data_from_file(
+      dict_path, eval_data=False).decode('utf-8')
   new_content = ''
   for current_line in content.splitlines():
     new_content += _fix_dictionary_line(current_line, dict_path) + '\n'

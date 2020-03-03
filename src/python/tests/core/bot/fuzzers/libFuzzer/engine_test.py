@@ -222,7 +222,7 @@ class FuzzTest(fake_fs_unittest.TestCase):
       return new_process.ProcessResult(
           command='command',
           return_code=0,
-          output=fuzz_output,
+          output=fuzz_output.encode('utf-8'),
           time_executed=2.0,
           timed_out=False)
 
