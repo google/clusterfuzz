@@ -38,7 +38,7 @@ from system import shell
 
 ENGINE_ERROR_MESSAGE = 'libFuzzer: engine encountered an error'
 DICT_PARSING_FAILED_REGEX = re.compile(
-    r'ParseDictionaryFile: error in line (\d+)')
+    br'ParseDictionaryFile: error in line (\d+)')
 MULTISTEP_MERGE_SUPPORT_TOKEN = b'fuzz target overwrites its const input'
 
 
