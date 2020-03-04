@@ -349,7 +349,7 @@ def run_process(cmdline,
 
   logs.log(
       'Process (%s) ended, exit code (%s), output (%s).' %
-      (str(cmdline), str(return_code), output),
+      (repr(cmdline), str(return_code), output),
       level=logging.DEBUG)
 
   return return_code, round(time.time() - start_time, 1), output
