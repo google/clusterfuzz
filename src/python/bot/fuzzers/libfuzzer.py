@@ -1437,7 +1437,7 @@ def analyze_and_update_recommended_dictionary(runner, fuzzer_name, log_lines,
 
   # Extract dictionary elements considered useless, calculate the result.
   useless_dictionary = dict_manager.parse_useless_dictionary_from_data(
-      dictionary_analysis.output.decode('utf-8'))
+      utils.decode_to_unicode(dictionary_analysis.output))
 
   logs.log('%d out of %d recommended dictionary elements for %s are useless.' %
            (len(useless_dictionary), len(recommended_dictionary), fuzzer_name))
