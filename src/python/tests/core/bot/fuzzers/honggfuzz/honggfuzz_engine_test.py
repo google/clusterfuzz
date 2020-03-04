@@ -159,7 +159,7 @@ class IntegrationTest(unittest.TestCase):
     self.assertIn('ERROR: AddressSanitizer: heap-use-after-free',
                   crash.stacktrace)
 
-    with open(crash.input_path) as f:
-      self.assertEqual('A', f.read()[0])
+    with open(crash.input_path, 'rb') as f:
+      self.assertEqual(b'A', f.read()[:1])
 
     self.assert_has_stats(results)

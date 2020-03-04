@@ -359,3 +359,15 @@ class ProcessRunner(object):
     result.command = process.command
 
     return result
+
+
+class UnicodeProcessRunner(ProcessRunner):
+  """ProcessRunner which always returns unicode output."""
+
+  def run_and_wait(self, *args, **kwargs):
+    """Overridden run_and_wait which always decodes the output."""
+    result = ProcessRunner.run_and_wait(self, *args, **kwargs)
+    if result.output is not None:
+      result.output = utils.decode_to_unicode(result.output)
+
+    return result
