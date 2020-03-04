@@ -493,19 +493,38 @@ class SearchBytesInFileTest(unittest.TestCase):
     """Test exists."""
     with open(self.test_path, 'rb') as f:
       self.assertTrue(utils.search_bytes_in_file(b'A', f))
+
+    with open(self.test_path, 'rb') as f:
       self.assertTrue(utils.search_bytes_in_file(b'B', f))
+
+    with open(self.test_path, 'rb') as f:
       self.assertTrue(utils.search_bytes_in_file(b'C', f))
+
+    with open(self.test_path, 'rb') as f:
       self.assertTrue(utils.search_bytes_in_file(b'D', f))
 
+    with open(self.test_path, 'rb') as f:
       self.assertTrue(utils.search_bytes_in_file(b'A' * 16, f))
+
+    with open(self.test_path, 'rb') as f:
       self.assertTrue(utils.search_bytes_in_file(b'B' * 16, f))
+
+    with open(self.test_path, 'rb') as f:
       self.assertTrue(utils.search_bytes_in_file(b'D' * 16, f))
 
   def test_not_exists(self):
     """Test not exists."""
     with open(self.test_path, 'rb') as f:
       self.assertFalse(utils.search_bytes_in_file(b'A' * 17, f))
+
+    with open(self.test_path, 'rb') as f:
       self.assertFalse(utils.search_bytes_in_file(b'B' * 17, f))
+
+    with open(self.test_path, 'rb') as f:
       self.assertFalse(utils.search_bytes_in_file(b'C' * 2, f))
+
+    with open(self.test_path, 'rb') as f:
       self.assertFalse(utils.search_bytes_in_file(b'D' * 17, f))
+
+    with open(self.test_path, 'rb') as f:
       self.assertFalse(utils.search_bytes_in_file(b'ABCD', f))
