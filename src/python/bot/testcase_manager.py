@@ -301,7 +301,7 @@ def get_additional_command_line_flags(testcase_path):
   flags_file_content = utils.read_data_from_file(
       flags_file_path, eval_data=False)
   if flags_file_content:
-    additional_command_line_flags += ' %s' % flags_file_content
+    additional_command_line_flags += ' ' + flags_file_content.decode('utf-8')
   return additional_command_line_flags.strip()
 
 
