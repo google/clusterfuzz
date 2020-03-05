@@ -238,4 +238,4 @@ if main_domain and redirect_domains:
         ]))
 
 app = webapp2.WSGIApplication(
-    _CRON_ROUTES + _DOMAIN_ROUTES + _ROUTES, debug=True)
+    _CRON_ROUTES + _DOMAIN_ROUTES + _ROUTES, debug=False)
