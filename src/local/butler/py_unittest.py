@@ -37,6 +37,7 @@ from src.python.config import local_config
 APPENGINE_TEST_DIRECTORY = os.path.join('src', 'python', 'tests', 'appengine')
 CORE_TEST_DIRECTORY = os.path.join('src', 'python', 'tests', 'core')
 SLOW_TEST_THRESHOLD = 2  # In seconds.
+TESTS_TIMEOUT = 15 * 60  # In seconds.
 
 
 class TrackedTestResult(unittest.TextTestResult):
@@ -196,7 +197,7 @@ def run_tests_parallel(args, test_directory, top_level_dir):
   while True:
     try:
       # KeyboardInterrupt never gets raised unless we pass a timeout.
-      results = results.get(timeout=600)
+      results = results.get(timeout=TESTS_TIMEOUT)
       break
     except KeyboardInterrupt:
       pool.terminate()
