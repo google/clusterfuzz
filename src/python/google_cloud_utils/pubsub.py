@@ -312,7 +312,7 @@ def _message_to_dict(message):
   result = {}
 
   if message.data:
-    result['data'] = base64.b64encode(message.data)
+    result['data'] = base64.b64encode(message.data).decode('utf-8')
 
   if message.attributes:
     result['attributes'] = message.attributes
