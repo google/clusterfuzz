@@ -895,6 +895,7 @@ def add_frame_on_match(compiled_regex,
     pipe = subprocess.Popen(
         ['c++filt', '-n', frame], stdin=subprocess.PIPE, stdout=subprocess.PIPE)
     frame, _ = pipe.communicate()
+    frame = frame.decode('utf-8')
 
   # Try to parse the frame with the various stackframes.
   frame_struct = None
