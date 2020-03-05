@@ -217,7 +217,7 @@ class DictionaryManager(object):
   def _compare_and_swap_gcs_dictionary(self, old_content, new_content):
     """Compare and swap implementation for dictionary stored in GCS. Of course,
     this function is not atomic, but window for race is acceptably small."""
-    current_content = storage.read_data(self.gcs_path)
+    current_content = storage.read_data(self.gcs_path).decode('utf-8')
     if current_content != old_content:
       return False, current_content
 
@@ -345,7 +345,7 @@ class DictionaryManager(object):
       return len(new_dictionary)
 
     # Read current version of the dictionary.
-    old_dictionary_data = storage.read_data(self.gcs_path)
+    old_dictionary_data = storage.read_data(self.gcs_path).decode('utf-8')
 
     # Use "Compare-and-swap"-like approach to avoid race conditions and also to
     # avoid having a separate job merging multiple recommended dictionaries.
