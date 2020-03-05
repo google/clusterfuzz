@@ -1481,9 +1481,10 @@ def get_rpaths(binary_path):
 
   try:
     rpaths = subprocess.check_output(
-        [chrpath, '-l', binary_path], stderr=subprocess.PIPE).strip()
+        [chrpath, '-l', binary_path],
+        stderr=subprocess.PIPE).strip().decode('utf-8')
   except subprocess.CalledProcessError as e:
-    if 'no rpath or runpath tag found' in e.output:
+    if b'no rpath or runpath tag found' in e.output:
       return []
 
     raise

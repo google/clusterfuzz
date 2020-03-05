@@ -391,6 +391,7 @@ class RegularLibFuzzerBuildTest(fake_filesystem_unittest.TestCase):
     self.mock._make_space.return_value = True
     self.mock._make_space_for_build.return_value = True
     self.mock.unpack.return_value = True
+    self.mock.time.return_value = 1000.0
 
     os.environ['RELEASE_BUILD_BUCKET_PATH'] = (
         'gs://path/file-release-([0-9]+).zip')
@@ -1129,6 +1130,7 @@ class AuxiliaryRegularLibFuzzerBuildTest(fake_filesystem_unittest.TestCase):
     self.mock._make_space.return_value = True
     self.mock._make_space_for_build.return_value = True
     self.mock.unpack.return_value = True
+    self.mock.time.return_value = 1000.0
 
     os.environ['DATAFLOW_BUILD_BUCKET_PATH'] = (
         'gs://path/file-dataflow-([0-9]+).zip')
@@ -1815,6 +1817,7 @@ class SplitFuzzTargetsBuildTest(fake_filesystem_unittest.TestCase):
     self.mock._make_space.return_value = True
     self.mock._make_space_for_build.return_value = True
     self.mock.unpack.return_value = True
+    self.mock.time.return_value = 1000.0
 
     os.environ['FUZZ_TARGET_BUILD_BUCKET_PATH'] = (
         'gs://bucket/subdir/%TARGET%/([0-9]+).zip')
