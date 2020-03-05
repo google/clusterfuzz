@@ -203,7 +203,8 @@ def parse_performance_features(log_lines, strategies, arguments):
 
   # Initialize all strategy stats as disabled by default.
   for strategy_type in strategy.LIBFUZZER_STRATEGY_LIST:
-    if strategy_type.name == 'peach_grammar_mutation':
+    if (strategy_type.name in strategy.STRATEGIES_WITH_PREFIX_VALUE_TYPE and
+        strategy.STRATEGIES_WITH_PREFIX_VALUE_TYPE[strategy_type.name] == str):
       stats[strategy_column_name(strategy_type.name)] = 'None'
     else:
       stats[strategy_column_name(strategy_type.name)] = 0
