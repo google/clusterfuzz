@@ -115,12 +115,13 @@ def merge_dictionary_files(original_dictionary_path,
   """Merge a list of dictionaries with given paths into a singe dictionary."""
   if original_dictionary_path and os.path.exists(original_dictionary_path):
     merged_dictionary_data = utils.read_data_from_file(
-        original_dictionary_path, eval_data=False)
+        original_dictionary_path, eval_data=False).decode('utf-8')
   else:
     merged_dictionary_data = ''
 
   recommended_dictionary_lines = utils.read_data_from_file(
-      recommended_dictionary_path, eval_data=False).splitlines()
+      recommended_dictionary_path,
+      eval_data=False).decode('utf-8').splitlines()
 
   dictionary_lines_to_add = set()
   for line in recommended_dictionary_lines:
