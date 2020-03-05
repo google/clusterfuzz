@@ -95,9 +95,10 @@ SYNC_TIMEOUT = 2 * 60 * 60
 # current fuzz target corpus.
 CROSS_POLLINATE_FUZZER_COUNT = 5
 
-CorpusPruningResult = collections.namedtuple(
-    'CorpusPruningResult',
-    ['coverage_info', 'crashes', 'fuzzer_binary_name', 'revision'])
+CorpusPruningResult = collections.namedtuple('CorpusPruningResult', [
+    'coverage_info', 'crashes', 'fuzzer_binary_name', 'revision',
+    'cross_pollination_stats'
+])
 
 CorpusCrash = collections.namedtuple('CorpusCrash', [
     'crash_state',
@@ -106,6 +107,12 @@ CorpusCrash = collections.namedtuple('CorpusCrash', [
     'crash_stacktrace',
     'unit_path',
     'security_flag',
+])
+
+CrossPollinationStats = collections.namedtuple('CrossPollinationStats', [
+    'project_qualified_name', 'method', 'sources', 'tags',
+    'initial_corpus_size', 'corpus_size', 'initial_edge_coverage',
+    'edge_coverage', 'initial_feature_coverage', 'feature_coverage'
 ])
 
 
@@ -537,10 +544,10 @@ class CrossPollinator(object):
     return result.stats
 
 
-def record_cross_pollination_stats(
-    pruner_stats, pollinator_stats, project_qualified_name, sources, tag,
-    initial_corpus_size, minimized_corpus_size_units, method):
+def record_cross_pollination_stats(stats):
   """Log stats about cross pollination in BigQuery."""
+  if not stats:
+    return
   # TODO(mpherman): Find a way to collect these stats for OSS Fuzz.
   if environment.is_untrusted_worker():
     return
@@ -550,20 +557,17 @@ def record_cross_pollination_stats(
       'PY_UNITTESTS'):
     return
 
-  if not pruner_stats or not pollinator_stats:
-    return
-
   bigquery_row = {
-      'project_qualified_name': project_qualified_name,
-      'method': method,
-      'sources': sources,
-      'tags': tag if tag else '',
-      'initial_corpus_size': initial_corpus_size,
-      'corpus_size': minimized_corpus_size_units,
-      'initial_edge_coverage': pruner_stats['edge_coverage'],
-      'edge_coverage': pollinator_stats['edge_coverage'],
-      'initial_feature_coverage': pruner_stats['feature_coverage'],
-      'feature_coverage': pollinator_stats['feature_coverage']
+      'project_qualified_name': stats.project_qualified_name,
+      'method': stats.method,
+      'sources': stats.sources,
+      'tags': stats.tag if stats.tag else '',
+      'initial_corpus_size': stats.initial_corpus_size,
+      'corpus_size': stats.minimized_corpus_size_units,
+      'initial_edge_coverage': stats.initial_edge_coverage,
+      'edge_coverage': stats.edge_coverage,
+      'initial_feature_coverage': stats.initial_feature_coverate,
+      'feature_coverage': stats.feature_coverage
   }
 
   client = big_query.Client(
@@ -682,21 +686,26 @@ def do_corpus_pruning(context, last_execution_failed, revision):
 
   logs.log('Finished.')
 
-  result = CorpusPruningResult(
-      coverage_info=coverage_info,
-      crashes=list(crashes.values()),
-      fuzzer_binary_name=fuzzer_binary_name,
-      revision=environment.get_value('APP_REVISION'))
-
   sources = ','.join([
       fuzzer.fuzz_target.project_qualified_name()
       for fuzzer in context.cross_pollinate_fuzzers
   ])
 
-  record_cross_pollination_stats(
-      pruner_stats, pollinator_stats, project_qualified_name, sources,
-      context.tag, pre_pollination_corpus_size, minimized_corpus_size_units,
-      context.cross_pollination_method)
+  if not pruner_stats or not pollinator_stats:
+    cross_pollination_stats = None
+  else:
+    cross_pollination_stats = CrossPollinationStats(
+        project_qualified_name, context.cross_pollination_method, sources,
+        context.tag, initial_corpus_size, pre_pollination_corpus_size,
+        pruner_stats['edge_coverage'], pollinator_stats['edge_coverage'],
+        pruner_stats['feature_coverage'], pollinator_stats['feature_coverage'])
+
+  result = CorpusPruningResult(
+      coverage_info=coverage_info,
+      crashes=list(crashes.values()),
+      fuzzer_binary_name=fuzzer_binary_name,
+      revision=environment.get_value('APP_REVISION'),
+      cross_pollination_stats=cross_pollination_stats)
 
   return result
 
@@ -931,6 +940,7 @@ def execute_task(full_fuzzer_name, job_type):
 
   try:
     result = do_corpus_pruning(context, last_execution_failed, revision)
+    record_cross_pollination_stats(result.cross_pollination_stats)
     _save_coverage_information(context, result)
     _process_corpus_crashes(context, result)
   except CorpusPruningException:
