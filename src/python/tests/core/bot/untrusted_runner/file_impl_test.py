@@ -68,13 +68,13 @@ class FileImplTest(fake_filesystem_unittest.TestCase):
   def test_copy_file_to_worker(self):
     """Test file_impl.copy_file_to_worker."""
     request_iterator = (
-        untrusted_runner_pb2.FileChunk(data='A'),
-        untrusted_runner_pb2.FileChunk(data='B'),
-        untrusted_runner_pb2.FileChunk(data='C'),
+        untrusted_runner_pb2.FileChunk(data=b'A'),
+        untrusted_runner_pb2.FileChunk(data=b'B'),
+        untrusted_runner_pb2.FileChunk(data=b'C'),
     )
 
     context = mock.MagicMock()
-    context.invocation_metadata.return_value = (('path-bin', '/file'),)
+    context.invocation_metadata.return_value = (('path-bin', b'/file'),)
 
     response = file_impl.copy_file_to_worker(request_iterator, context)
     self.assertTrue(response.result)
@@ -106,13 +106,13 @@ class FileImplTest(fake_filesystem_unittest.TestCase):
   def test_copy_file_to_worker_create_intermediate(self):
     """Test file_impl.copy_file_to_worker (create intermediates)."""
     request_iterator = (
-        untrusted_runner_pb2.FileChunk(data='A'),
-        untrusted_runner_pb2.FileChunk(data='B'),
-        untrusted_runner_pb2.FileChunk(data='C'),
+        untrusted_runner_pb2.FileChunk(data=b'A'),
+        untrusted_runner_pb2.FileChunk(data=b'B'),
+        untrusted_runner_pb2.FileChunk(data=b'C'),
     )
 
     context = mock.MagicMock()
-    context.invocation_metadata.return_value = (('path-bin', '/new_dir/file'),)
+    context.invocation_metadata.return_value = (('path-bin', b'/new_dir/file'),)
 
     response = file_impl.copy_file_to_worker(request_iterator, context)
     self.assertTrue(response.result)
@@ -124,15 +124,15 @@ class FileImplTest(fake_filesystem_unittest.TestCase):
     """Test file_impl.copy_file_to_worker when the directory is an existing
     file."""
     request_iterator = (
-        untrusted_runner_pb2.FileChunk(data='A'),
-        untrusted_runner_pb2.FileChunk(data='B'),
-        untrusted_runner_pb2.FileChunk(data='C'),
+        untrusted_runner_pb2.FileChunk(data=b'A'),
+        untrusted_runner_pb2.FileChunk(data=b'B'),
+        untrusted_runner_pb2.FileChunk(data=b'C'),
     )
 
     self.fs.create_file('/file')
 
     context = mock.MagicMock()
-    context.invocation_metadata.return_value = (('path-bin', '/file/file'),)
+    context.invocation_metadata.return_value = (('path-bin', b'/file/file'),)
 
     response = file_impl.copy_file_to_worker(request_iterator, context)
     self.assertFalse(response.result)
@@ -142,15 +142,16 @@ class FileImplTest(fake_filesystem_unittest.TestCase):
     """Test file_impl.copy_file_to_worker when we fail to create intermediate
     dirs."""
     request_iterator = (
-        untrusted_runner_pb2.FileChunk(data='A'),
-        untrusted_runner_pb2.FileChunk(data='B'),
-        untrusted_runner_pb2.FileChunk(data='C'),
+        untrusted_runner_pb2.FileChunk(data=b'A'),
+        untrusted_runner_pb2.FileChunk(data=b'B'),
+        untrusted_runner_pb2.FileChunk(data=b'C'),
     )
 
     self.fs.create_file('/file')
 
     context = mock.MagicMock()
-    context.invocation_metadata.return_value = (('path-bin', '/file/dir/file'),)
+    context.invocation_metadata.return_value = (('path-bin',
+                                                 b'/file/dir/file'),)
 
     response = file_impl.copy_file_to_worker(request_iterator, context)
     self.assertFalse(response.result)
@@ -158,9 +159,9 @@ class FileImplTest(fake_filesystem_unittest.TestCase):
 
   def test_copy_file_from_worker(self):
     """Test file_impl.copy_file_from_worker."""
-    contents = ('A' * config.FILE_TRANSFER_CHUNK_SIZE +
-                'B' * config.FILE_TRANSFER_CHUNK_SIZE +
-                'C' * config.FILE_TRANSFER_CHUNK_SIZE)
+    contents = (b'A' * config.FILE_TRANSFER_CHUNK_SIZE +
+                b'B' * config.FILE_TRANSFER_CHUNK_SIZE +
+                b'C' * config.FILE_TRANSFER_CHUNK_SIZE)
 
     self.fs.create_file('/file', contents=contents)
 
@@ -170,7 +171,7 @@ class FileImplTest(fake_filesystem_unittest.TestCase):
 
     chunks = [chunk.data for chunk in response]
     self.assertEqual(len(chunks), 3)
-    self.assertEqual(contents, ''.join(chunks))
+    self.assertEqual(contents, b''.join(chunks))
     context.set_trailing_metadata.assert_called_with([('result', 'ok')])
 
   def test_copy_file_from_worker_failed(self):

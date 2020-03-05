@@ -58,9 +58,9 @@ class FileHostTest(fake_filesystem_unittest.TestCase):
 
   def test_copy_file_to_worker(self):
     """Test file_host.copy_file_to_worker."""
-    contents = ('A' * config.FILE_TRANSFER_CHUNK_SIZE +
-                'B' * config.FILE_TRANSFER_CHUNK_SIZE +
-                'C' * config.FILE_TRANSFER_CHUNK_SIZE)
+    contents = (b'A' * config.FILE_TRANSFER_CHUNK_SIZE +
+                b'B' * config.FILE_TRANSFER_CHUNK_SIZE +
+                b'C' * config.FILE_TRANSFER_CHUNK_SIZE)
 
     self.fs.create_file('/file', contents=contents)
 
@@ -69,9 +69,9 @@ class FileHostTest(fake_filesystem_unittest.TestCase):
       chunks = [chunk.data for chunk in iterator]
       self.assertEqual(3, len(chunks))
 
-      self.assertEqual([('path-bin', '/file')], metadata)
+      self.assertEqual([('path-bin', b'/file')], metadata)
 
-      data = ''.join(chunks)
+      data = b''.join(chunks)
       self.assertEqual(data, contents)
 
       return untrusted_runner_pb2.CopyFileToResponse(result=True)
@@ -90,12 +90,12 @@ class FileHostTest(fake_filesystem_unittest.TestCase):
 
     self.assertTrue(file_host.write_data_to_worker(contents, '/file'))
     call_args = self.mock.stub().CopyFileTo.call_args
-    self.assertEqual(call_args[1], {'metadata': [('path-bin', '/file')]})
+    self.assertEqual(call_args[1], {'metadata': [('path-bin', b'/file')]})
 
     chunks = [chunk.data for chunk in call_args[0][0]]
     self.assertEqual(len(chunks), 3)
 
-    data = ''.join(chunks)
+    data = b''.join(chunks)
     self.assertEqual(data, contents)
 
   def test_copy_file_from_worker(self):
@@ -103,9 +103,9 @@ class FileHostTest(fake_filesystem_unittest.TestCase):
     mock_response = mock.MagicMock()
     mock_response.trailing_metadata.return_value = (('result', 'ok'),)
     mock_response.__iter__.return_value = iter([
-        untrusted_runner_pb2.FileChunk(data='A'),
-        untrusted_runner_pb2.FileChunk(data='B'),
-        untrusted_runner_pb2.FileChunk(data='C'),
+        untrusted_runner_pb2.FileChunk(data=b'A'),
+        untrusted_runner_pb2.FileChunk(data=b'B'),
+        untrusted_runner_pb2.FileChunk(data=b'C'),
     ])
 
     self.mock.stub().CopyFileFrom.return_value = mock_response

@@ -32,7 +32,7 @@ class RemoteProcessTest(unittest.TestCase):
   @mock.patch.object(new_process.ProcessRunner, 'run_and_wait')
   def test_run_and_wait(self, mock_run_and_wait):
     """Test remote_process.run_and_wait()."""
-    process_result = new_process.ProcessResult(['command', '123'], 0, 'output',
+    process_result = new_process.ProcessResult(['command', '123'], 0, b'output',
                                                60.0, False)
 
     mock_run_and_wait.return_value = process_result
@@ -44,7 +44,7 @@ class RemoteProcessTest(unittest.TestCase):
     request.timeout = 100.0
     request.terminate_before_kill = True
     request.terminate_wait_time = 10.0
-    request.input_data = 'input'
+    request.input_data = b'input'
     request.max_stdout_len = 1337
     request.popen_args.shell = True
     request.popen_args.env.update({'VAR': 'VAL'})
@@ -59,7 +59,7 @@ class RemoteProcessTest(unittest.TestCase):
         timeout=100.0,
         terminate_before_kill=True,
         terminate_wait_time=10.0,
-        input_data='input',
+        input_data=b'input',
         max_stdout_len=1337,
         cwd='/',
         env={'VAR': 'VAL'},
@@ -74,7 +74,7 @@ class RemoteProcessTest(unittest.TestCase):
   @mock.patch.object(new_process.ProcessRunner, 'run_and_wait')
   def test_run_and_wait_none_env(self, mock_run_and_wait):
     """Test remote_process.run_and_wait() with a None env."""
-    process_result = new_process.ProcessResult(['command', '123'], 0, 'output',
+    process_result = new_process.ProcessResult(['command', '123'], 0, b'output',
                                                60.0, False)
 
     mock_run_and_wait.return_value = process_result
@@ -89,7 +89,7 @@ class RemoteProcessTest(unittest.TestCase):
   @mock.patch.object(new_process.ProcessRunner, 'run_and_wait')
   def test_run_and_wait_empty_env(self, mock_run_and_wait):
     """Test remote_process.run_and_wait() with an empty env."""
-    process_result = new_process.ProcessResult(['command', '123'], 0, 'output',
+    process_result = new_process.ProcessResult(['command', '123'], 0, b'output',
                                                60.0, False)
 
     mock_run_and_wait.return_value = process_result
