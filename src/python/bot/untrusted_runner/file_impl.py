@@ -31,8 +31,7 @@ def create_directory(request, _):
 
 def remove_directory(request, _):
   """Remove a directory."""
-  result = shell.remove_directory(
-      request.path.encode('utf-8'), request.recreate)
+  result = shell.remove_directory(request.path, request.recreate)
   return untrusted_runner_pb2.RemoveDirectoryResponse(result=result)
 
 

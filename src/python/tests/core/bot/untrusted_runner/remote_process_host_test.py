@@ -32,7 +32,7 @@ class RemoteProcessHostTest(unittest.TestCase):
 
   def test_run_and_wait(self):
     """Test RemoteProcessRunner.run_and_wait()."""
-    process_result = new_process.ProcessResult(['command', '123'], 0, 'output',
+    process_result = new_process.ProcessResult(['command', '123'], 0, b'output',
                                                60.0, False)
 
     self.mock.stub().RunAndWait.return_value = (
@@ -46,7 +46,7 @@ class RemoteProcessHostTest(unittest.TestCase):
         100.0,
         True,
         10.0,
-        'input',
+        b'input',
         shell=True,
         env={'ASAN_OPTIONS': 'asan_options'},
         cwd='/',
@@ -60,7 +60,7 @@ class RemoteProcessHostTest(unittest.TestCase):
     self.assertEqual(100.0, request.timeout)
     self.assertTrue(request.terminate_before_kill)
     self.assertEqual(10.0, request.terminate_wait_time)
-    self.assertEqual('input', request.input_data)
+    self.assertEqual(b'input', request.input_data)
     self.assertFalse(request.popen_args.HasField('bufsize'))
     self.assertFalse(request.popen_args.HasField('executable'))
     self.assertTrue(request.popen_args.shell)
@@ -77,7 +77,7 @@ class RemoteProcessHostTest(unittest.TestCase):
 
   def test_run_and_wait_none_env(self):
     """Test RemoteProcessRunner.run_and_wait() with a None env."""
-    process_result = new_process.ProcessResult(['command', '123'], 0, 'output',
+    process_result = new_process.ProcessResult(['command', '123'], 0, b'output',
                                                60.0, False)
 
     self.mock.stub().RunAndWait.return_value = (
@@ -112,7 +112,7 @@ class RemoteProcessHostTest(unittest.TestCase):
 
   def test_run_and_wait_empty_env(self):
     """Test RemoteProcessRunner.run_and_wait() with an empty env."""
-    process_result = new_process.ProcessResult(['command', '123'], 0, 'output',
+    process_result = new_process.ProcessResult(['command', '123'], 0, b'output',
                                                60.0, False)
 
     self.mock.stub().RunAndWait.return_value = (
