@@ -121,7 +121,7 @@ def get_local_source_revision():
 def get_remote_source_revision(source_manifest_url):
   """Get remote revision. We refactor this method out, so that we can mock
     it."""
-  return storage.read_data(source_manifest_url).strip()
+  return storage.read_data(source_manifest_url).decode('utf-8').strip()
 
 
 def get_newer_source_revision():

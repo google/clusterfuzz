@@ -770,7 +770,7 @@ def set_initial_testcase_metadata(testcase):
   gn_args_path = environment.get_value('GN_ARGS_PATH', '')
   if gn_args_path and os.path.exists(gn_args_path):
     gn_args = utils.read_data_from_file(
-        gn_args_path, eval_data=False, default='')
+        gn_args_path, eval_data=False, default='').decode('utf-8')
 
     # Remove goma_dir from gn args since it is only relevant to the machine that
     # did the build.

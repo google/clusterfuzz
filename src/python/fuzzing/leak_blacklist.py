@@ -74,7 +74,7 @@ def copy_global_to_local_blacklist(excluded_testcase=None):
 
   # The local suppressions file should always have a comment on top
   # to prevent parsing errors.
-  with open(lsan_suppressions_path, 'wb') as local_blacklist:
+  with open(lsan_suppressions_path, 'w') as local_blacklist:
     local_blacklist.write('# This is a LSAN suppressions file.\n')
 
     # Copy global blacklist into local blacklist.

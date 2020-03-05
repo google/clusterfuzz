@@ -1802,7 +1802,7 @@ class SplitFuzzTargetsBuildTest(fake_filesystem_unittest.TestCase):
         '/subdir/target3/',
         '/subdir/targets.list',
     )
-    self.mock.read_data.return_value = ('target1\ntarget2\ntarget3\n')
+    self.mock.read_data.return_value = (b'target1\ntarget2\ntarget3\n')
 
     self.target_weights = {
         'target1': 0.0,
