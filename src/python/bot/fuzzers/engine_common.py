@@ -520,7 +520,7 @@ def strip_minijail_command(command, fuzzer_path):
 def write_data_to_file(content, file_path):
   """Writes data to file."""
   with open(file_path, 'wb') as file_handle:
-    file_handle.write(str(content))
+    file_handle.write(str(content).encode('utf-8'))
 
 
 class MinijailEngineFuzzerRunner(minijail.MinijailProcessRunner):
