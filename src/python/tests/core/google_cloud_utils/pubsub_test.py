@@ -49,22 +49,22 @@ class PubSubTest(unittest.TestCase):
     """Test pull_from_subscription."""
     self.client.publish(
         self.topic, [
-            pubsub.Message(data='123'),
-            pubsub.Message(data='123', attributes={'a': '1337'}),
-            pubsub.Message(data='456'),
-            pubsub.Message(data='456'),
+            pubsub.Message(data=b'123'),
+            pubsub.Message(data=b'123', attributes={'a': '1337'}),
+            pubsub.Message(data=b'456'),
+            pubsub.Message(data=b'456'),
         ])
 
     messages = self.client.pull_from_subscription(
         self.subscription, max_messages=1)
     self.assertEqual(1, len(messages))
-    self.assertEqual('123', messages[0].data)
+    self.assertEqual(b'123', messages[0].data)
     self.assertIsNone(messages[0].attributes)
 
     messages = self.client.pull_from_subscription(
         self.subscription, max_messages=1)
     self.assertEqual(1, len(messages))
-    self.assertEqual('123', messages[0].data)
+    self.assertEqual(b'123', messages[0].data)
     self.assertDictEqual({'a': '1337'}, messages[0].attributes)
 
     messages = self.client.pull_from_subscription(
@@ -72,7 +72,7 @@ class PubSubTest(unittest.TestCase):
     self.assertEqual(2, len(messages))
 
     for message in messages:
-      self.assertEqual('456', messages[0].data)
+      self.assertEqual(b'456', message.data)
 
     # Test messages which were not acked in time. They will be re-sent and can
     # be re-pulled.
@@ -95,7 +95,7 @@ class PubSubTest(unittest.TestCase):
     """Test a single message ack."""
     self.client.publish(
         self.topic, [
-            pubsub.Message(data='123'),
+            pubsub.Message(data=b'123'),
         ])
 
     messages = self.client.pull_from_subscription(
@@ -114,7 +114,7 @@ class PubSubTest(unittest.TestCase):
     """Test modify ACK deadline."""
     self.client.publish(
         self.topic, [
-            pubsub.Message(data='123'),
+            pubsub.Message(data=b'123'),
         ])
     messages = self.client.pull_from_subscription(
         self.subscription, max_messages=1)
