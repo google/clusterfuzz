@@ -319,8 +319,7 @@ class CorpusPruningTestUntrusted(
     environment.set_value('JOB_NAME', 'libfuzzer_asan_job')
 
     helpers.patch(self, [
-        'bot.fuzzers.engine.get',
-        'bot.tasks.setup.get_fuzzer_directory',
+        'bot.fuzzers.engine.get', 'bot.tasks.setup.get_fuzzer_directory',
         'base.tasks.add_task',
         'bot.tasks.corpus_pruning_task._record_cross_pollination_stats'
     ])
