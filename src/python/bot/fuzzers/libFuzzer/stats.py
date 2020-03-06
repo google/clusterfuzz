@@ -144,7 +144,8 @@ def process_strategies(strategies, name_modifier=strategy_column_name):
     if not line.startswith(strategy_prefix):
       return
 
-    prefix_type = strategy.STRATEGIES_WITH_PREFIX_VALUE_TYPE[strategy_name]
+    prefix_type = strategy.LIBFUZZER_STRATEGIES_WITH_PREFIX_VALUE_TYPE[
+        strategy_name]
     try:
       strategy_value = prefix_type(line[len(strategy_prefix):])
       stats[name_modifier(strategy_name)] = strategy_value
@@ -203,8 +204,10 @@ def parse_performance_features(log_lines, strategies, arguments):
 
   # Initialize all strategy stats as disabled by default.
   for strategy_type in strategy.LIBFUZZER_STRATEGY_LIST:
-    if (strategy_type.name in strategy.STRATEGIES_WITH_PREFIX_VALUE_TYPE and
-        strategy.STRATEGIES_WITH_PREFIX_VALUE_TYPE[strategy_type.name] == str):
+    if (strategy_type.name in
+        strategy.LIBFUZZER_STRATEGIES_WITH_PREFIX_VALUE_TYPE and
+        strategy.LIBFUZZER_STRATEGIES_WITH_PREFIX_VALUE_TYPE[strategy_type.name]
+        == str):
       stats[strategy_column_name(strategy_type.name)] = 'None'
     else:
       stats[strategy_column_name(strategy_type.name)] = 0

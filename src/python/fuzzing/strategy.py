@@ -80,7 +80,7 @@ LIBFUZZER_STRATEGIES_WITH_PREFIX_VALUE = [
     PEACH_GRAMMAR_MUTATION_STRATEGY,
 ]
 
-STRATEGIES_WITH_PREFIX_VALUE_TYPE = {
+LIBFUZZER_STRATEGIES_WITH_PREFIX_VALUE_TYPE = {
     'corpus_subset': int,
     'fork': int,
     'peach_grammar_mutation': str

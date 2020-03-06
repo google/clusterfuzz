@@ -159,8 +159,8 @@ class FuzzerOptions(object):
 
 
 def get_fuzz_target_support_file(fuzz_target_path, file_extension):
-  """Helper function. returns a file path for a fuzz target support file
-  that has the given file extension"""
+  """Returns a file path for a fuzz target support file
+  that has the given file extension."""
   file_path = fuzzer_utils.get_supporting_file(fuzz_target_path, file_extension)
 
   if environment.is_trusted_host():
@@ -192,7 +192,7 @@ def get_fuzz_target_options(fuzz_target_path):
 
 
 def get_fuzz_target_grammar(fuzz_target_path):
-  """Return the grammra for a given target or None if it does not exist"""
+  """Return the grammar for a given target or None if it does not exist."""
 
   grammar_file_path = get_fuzz_target_support_file(fuzz_target_path,
                                                    GRAMMAR_FILE_EXTENSION)
