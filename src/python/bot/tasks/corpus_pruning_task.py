@@ -544,12 +544,9 @@ class CrossPollinator(object):
     return result.stats
 
 
-def record_cross_pollination_stats(stats):
+def _record_cross_pollination_stats(stats):
   """Log stats about cross pollination in BigQuery."""
   if not stats:
-    return
-  # TODO(mpherman): Find a way to collect these stats for OSS Fuzz.
-  if environment.is_untrusted_worker():
     return
   # BigQuery not available in local development.This is necessary because the
   # untrusted runner is in a separate process and can't be easily mocked.
@@ -700,14 +697,12 @@ def do_corpus_pruning(context, last_execution_failed, revision):
         pruner_stats['edge_coverage'], pollinator_stats['edge_coverage'],
         pruner_stats['feature_coverage'], pollinator_stats['feature_coverage'])
 
-  result = CorpusPruningResult(
+  return CorpusPruningResult(
       coverage_info=coverage_info,
       crashes=list(crashes.values()),
       fuzzer_binary_name=fuzzer_binary_name,
       revision=environment.get_value('APP_REVISION'),
       cross_pollination_stats=cross_pollination_stats)
-
-  return result
 
 
 def _process_corpus_crashes(context, result):
@@ -940,7 +935,7 @@ def execute_task(full_fuzzer_name, job_type):
 
   try:
     result = do_corpus_pruning(context, last_execution_failed, revision)
-    record_cross_pollination_stats(result.cross_pollination_stats)
+    _record_cross_pollination_stats(result.cross_pollination_stats)
     _save_coverage_information(context, result)
     _process_corpus_crashes(context, result)
   except CorpusPruningException:

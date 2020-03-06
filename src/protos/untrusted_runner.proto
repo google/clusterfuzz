@@ -236,7 +236,7 @@ message CrossPollinationStats {
   optional int32 corpus_size = 6;
   optional int32 initial_edge_coverage = 7;
   optional int32 edge_coverage = 8;
-  optional int32 initial_feature_coverage= 9;
+  optional int32 initial_feature_coverage = 9;
   optional int32 feature_coverage = 10;
 
 }
