@@ -22,8 +22,8 @@ standard_library.install_aliases()
 import email
 import os
 import re
-import sys
 import requests
+import sys
 import tempfile
 
 from base import utils
