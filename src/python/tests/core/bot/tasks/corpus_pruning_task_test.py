@@ -319,7 +319,8 @@ class CorpusPruningTestUntrusted(
     environment.set_value('JOB_NAME', 'libfuzzer_asan_job')
 
     helpers.patch(self, [
-        'bot.fuzzers.engine.get', 'bot.tasks.setup.get_fuzzer_directory',
+        'bot.fuzzers.engine.get',
+        'bot.tasks.setup.get_fuzzer_directory',
         'base.tasks.add_task',
         'bot.tasks.corpus_pruning_task._record_cross_pollination_stats'
     ])
@@ -421,8 +422,17 @@ class CorpusPruningTestUntrusted(
     """Test pruning."""
     self._setup_env(job_type='libfuzzer_asan_job')
     self.mock._record_cross_pollination_stats.side_effect = (
-        self.get_mock_record_compare('test_fuzzer', 'random', 'test2_fuzzer',
-                                     '', 5, 3, 0, 0, 0, 0))
+        self.get_mock_record_compare(
+            project_qualified_name='test_fuzzer',
+            method='random',
+            sources='test2_fuzzer',
+            tags='',
+            initial_corpus_size=5,
+            corpus_size=3,
+            initial_edge_coverage=0,
+            edge_coverage=0,
+            initial_feature_coverage=0,
+            feature_coverage=0))
 
     corpus_pruning_task.execute_task('libFuzzer_test_fuzzer',
                                      'libfuzzer_asan_job')

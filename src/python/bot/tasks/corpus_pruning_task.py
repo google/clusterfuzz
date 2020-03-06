@@ -546,6 +546,7 @@ class CrossPollinator(object):
 
 def _record_cross_pollination_stats(stats):
   """Log stats about cross pollination in BigQuery."""
+  # If no stats were gathered due to a timeout or lack of corpus, return.
   if not stats:
     return
   # BigQuery not available in local development.This is necessary because the
