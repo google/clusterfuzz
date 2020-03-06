@@ -447,13 +447,13 @@ class FileHashTest(fake_filesystem_unittest.TestCase):
 
   def test_shorter_than_one_chunk(self):
     with open(self.test_file, 'wb') as file_handle:
-      file_handle.write('ABC')
+      file_handle.write(b'ABC')
     self.assertEqual('3c01bdbb26f358bab27f267924aa2c9a03fcfdb8',
                      utils.file_hash(self.test_file))
 
   def test_longer_than_one_chunk(self):
     with open(self.test_file, 'wb') as file_handle:
-      file_handle.write('A' * 60000)
+      file_handle.write(b'A' * 60000)
     self.assertEqual('8360c01cef8aa7001d1dd8964b9921d4c187da29',
                      utils.file_hash(self.test_file))
 

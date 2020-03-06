@@ -96,7 +96,8 @@ class StatsGetter(object):
     if not os.path.exists(self.afl_stats_path):
       return
 
-    afl_stats_string = engine_common.read_data_from_file(self.afl_stats_path)
+    afl_stats_string = engine_common.read_data_from_file(
+        self.afl_stats_path).decode('utf-8')
     matches_iterator = re.finditer(self.STATS_REGEX, afl_stats_string)
     self.afl_stats = dict(match.groups() for match in matches_iterator)
 
