@@ -68,7 +68,7 @@ def get_value(key, default_value=None, constructor=None):
   """Get the value for a key."""
   value_path = get_value_file_path(key)
 
-  if not os.path.exists(value_path):
+  if not os.path.exists(value_path) or not os.path.getsize(value_path):
     return default_value
 
   try:

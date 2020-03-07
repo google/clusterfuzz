@@ -104,4 +104,4 @@ def configure(force_enable=False):
           password=quote(wifi_password),
           call_path=WIFI_UTIL_CALL_PATH))
   if 'result=true' not in output:
-    logs.log_error('Failed to connect to wifi.', output=output)
+    logs.log_warn('Failed to connect to wifi.', output=output)
