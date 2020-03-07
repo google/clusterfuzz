@@ -163,8 +163,10 @@ def factory_reset():
   revert_asan_device_setup_if_needed()
 
   run_as_root()
-  run_shell_command(
-      ['am', 'broadcast', '-a', 'android.intent.action.MASTER_CLEAR'])
+  run_shell_command([
+      'am', 'broadcast', '-a', 'android.intent.action.MASTER_CLEAR', '-n',
+      'android/com.android.server.MasterClearReceiver'
+  ])
 
   # Wait until the reset is complete.
   time.sleep(FACTORY_RESET_WAIT)
