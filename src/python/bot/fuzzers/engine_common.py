@@ -194,7 +194,7 @@ def generate_new_testcase_mutations_using_radamsa(
     result = radamsa_runner.run_and_wait(
         ['-o', output_path, original_file_path], timeout=RADAMSA_TIMEOUT)
     if result.return_code or result.timed_out:
-      logs.log_error(
+      logs.log_warn(
           'Radamsa failed to mutate or timed out.', output=result.output)
 
     # Check if we exceeded our timeout. If yes, do no more mutations and break.
