@@ -37,7 +37,7 @@ from src.python.config import local_config
 APPENGINE_TEST_DIRECTORY = os.path.join('src', 'python', 'tests', 'appengine')
 CORE_TEST_DIRECTORY = os.path.join('src', 'python', 'tests', 'core')
 SLOW_TEST_THRESHOLD = 2  # In seconds.
-TESTS_TIMEOUT = 12 * 60  # In seconds.
+TESTS_TIMEOUT = 15 * 60  # In seconds.
 
 
 class TrackedTestResult(unittest.TextTestResult):

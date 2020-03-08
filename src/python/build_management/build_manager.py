@@ -667,7 +667,8 @@ class Build(BaseBuild):
       os.system('rm %s' % symbolic_link_target)
       os.system('ln -s %s %s' % (app_directory, symbolic_link_target))
 
-    if utils.is_chromium():
+    # Use deterministic fonts when available. See crbug.com/822737.
+    if utils.is_chromium() and self.revision >= 635076:
       environment.set_value('FONTCONFIG_SYSROOT', app_directory)
 
     if environment.platform() != 'ANDROID':
