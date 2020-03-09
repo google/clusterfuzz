@@ -22,7 +22,6 @@ standard_library.install_aliases()
 
 import copy
 import datetime
-import logging
 import os
 import queue
 import subprocess
