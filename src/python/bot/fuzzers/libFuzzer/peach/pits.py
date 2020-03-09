@@ -28,7 +28,8 @@ def get_path(grammar):
   pit_path = os.path.join(pit_dir, grammar + '.xml')
 
   if not os.path.exists(pit_path):
-    logs.log_error('Pit file for "%s" grammar is not found.' % grammar)
+    logs.log_error(
+        'Pit file for "%s" grammar is not found.' % grammar, pit_path=pit_path)
     return None
 
   return pit_path
