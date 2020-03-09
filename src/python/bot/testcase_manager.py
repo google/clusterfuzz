@@ -829,7 +829,8 @@ def prepare_log_for_upload(symbolized_output, return_code):
           app_revision=app_revision, component_revisions=component_revisions))
   return_code_header = 'Return code: %s\n\n' % return_code
 
-  return revisions_header + return_code_header + symbolized_output
+  result = revisions_header + return_code_header + symbolized_output
+  return result.encode('utf-8')
 
 
 def upload_log(log, log_time):

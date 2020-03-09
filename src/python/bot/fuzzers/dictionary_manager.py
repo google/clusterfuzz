@@ -221,7 +221,7 @@ class DictionaryManager(object):
     if current_content != old_content:
       return False, current_content
 
-    storage.write_data(new_content, self.gcs_path)
+    storage.write_data(new_content.encode('utf-8'), self.gcs_path)
     return True, old_content
 
   def download_recommended_dictionary_from_gcs(self, local_dict_path):
@@ -341,7 +341,8 @@ class DictionaryManager(object):
     """
     # If the dictionary does not already exist, then directly update it.
     if not storage.exists(self.gcs_path):
-      storage.write_data('\n'.join(new_dictionary), self.gcs_path)
+      storage.write_data('\n'.join(new_dictionary).encode('utf-8'),
+                         self.gcs_path)
       return len(new_dictionary)
 
     # Read current version of the dictionary.

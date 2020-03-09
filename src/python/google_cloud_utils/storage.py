@@ -386,7 +386,7 @@ class FileSystemProvider(StorageProvider):
 
     fs_metadata_path = self.convert_path_for_write(remote_path,
                                                    self.METADATA_DIR)
-    with open(fs_metadata_path, 'wb') as f:
+    with open(fs_metadata_path, 'w') as f:
       json.dump(metadata, f)
 
   def convert_path(self, remote_path, directory=OBJECTS_DIR):

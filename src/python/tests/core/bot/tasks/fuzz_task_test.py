@@ -1410,12 +1410,12 @@ class DoEngineFuzzingTest(fake_filesystem_unittest.TestCase):
 
     log_time = datetime.datetime(1970, 1, 1, 0, 0)
     log_call = mock.call(
-        'Component revisions (build r1):\n'
-        'component: rev\n\n'
-        'Return code: 1\n\n'
-        'Command: cmd\nBot: None\nTime ran: 42.0\n\n'
-        'logs\n'
-        'cf::fuzzing_strategies: strategy_1:1,strategy_2:50', log_time)
+        b'Component revisions (build r1):\n'
+        b'component: rev\n\n'
+        b'Return code: 1\n\n'
+        b'Command: cmd\nBot: None\nTime ran: 42.0\n\n'
+        b'logs\n'
+        b'cf::fuzzing_strategies: strategy_1:1,strategy_2:50', log_time)
     self.mock.upload_log.assert_has_calls([log_call, log_call])
     self.mock.upload_testcase.assert_has_calls([
         mock.call('/input', log_time),
