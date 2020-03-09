@@ -689,9 +689,8 @@ def do_corpus_pruning(context, last_execution_failed, revision):
       for fuzzer in context.cross_pollinate_fuzzers
   ])
 
-  if not pruner_stats or not pollinator_stats:
-    cross_pollination_stats = None
-  else:
+  cross_pollination_stats = None
+  if pruner_stats and pollinator_stats:
     cross_pollination_stats = CrossPollinationStats(
         project_qualified_name, context.cross_pollination_method, sources,
         context.tag, initial_corpus_size, pre_pollination_corpus_size,
