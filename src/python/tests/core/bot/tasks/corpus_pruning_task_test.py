@@ -319,16 +319,15 @@ class CorpusPruningTestUntrusted(
     environment.set_value('JOB_NAME', 'libfuzzer_asan_job')
 
     helpers.patch(self, [
-        'bot.fuzzers.engine.get',
-        'bot.tasks.setup.get_fuzzer_directory',
+        'bot.fuzzers.engine.get', 'bot.tasks.setup.get_fuzzer_directory',
         'base.tasks.add_task',
+        'bot.tasks.corpus_pruning_task._record_cross_pollination_stats'
     ])
 
     self.mock.get.return_value = libFuzzer_engine.LibFuzzerEngine()
     self.mock.get_fuzzer_directory.return_value = os.path.join(
         environment.get_value('ROOT_DIR'), 'src', 'python', 'bot', 'fuzzers',
         'libFuzzer')
-
     self.corpus_bucket = os.environ['CORPUS_BUCKET']
     self.quarantine_bucket = os.environ['QUARANTINE_BUCKET']
     self.backup_bucket = os.environ['BACKUP_BUCKET']
@@ -421,6 +420,19 @@ class CorpusPruningTestUntrusted(
   def test_prune(self):
     """Test pruning."""
     self._setup_env(job_type='libfuzzer_asan_job')
+    self.mock._record_cross_pollination_stats.side_effect = (
+        self.get_mock_record_compare(
+            project_qualified_name='test_fuzzer',
+            method='random',
+            sources='test2_fuzzer',
+            tags='',
+            initial_corpus_size=5,
+            corpus_size=3,
+            initial_edge_coverage=0,
+            edge_coverage=0,
+            initial_feature_coverage=0,
+            feature_coverage=0))
+
     corpus_pruning_task.execute_task('libFuzzer_test_fuzzer',
                                      'libfuzzer_asan_job')
 
@@ -498,6 +510,29 @@ class CorpusPruningTestUntrusted(
         coverage_info.corpus_backup_location,
         'gs://{}/corpus/libFuzzer/test_fuzzer/'.format(
             self.backup_bucket) + '%s.zip' % today)
+
+  def get_mock_record_compare(self, project_qualified_name, method, sources,
+                              tags, initial_corpus_size, corpus_size,
+                              initial_edge_coverage, edge_coverage,
+                              initial_feature_coverage, feature_coverage):
+    """Given all of the expected stats, returns a function
+    that will compare them to an instance of CorpusPruningStats."""
+
+    def compare(stats):
+      """Mock record_cross_pollination_stats. Make sure function was called
+      with the correct arguments."""
+      self.assertEqual(project_qualified_name, stats.project_qualified_name)
+      self.assertEqual(method, stats.method)
+      self.assertEqual(tags, stats.tags)
+      self.assertEqual(sources, stats.sources)
+      self.assertEqual(initial_corpus_size, stats.initial_corpus_size)
+      self.assertEqual(corpus_size, stats.corpus_size)
+      self.assertEqual(initial_edge_coverage, stats.initial_edge_coverage)
+      self.assertEqual(edge_coverage, stats.edge_coverage)
+      self.assertEqual(initial_feature_coverage, stats.initial_feature_coverage)
+      self.assertEqual(stats.feature_coverage, feature_coverage)
+
+    return compare
 
 
 @test_utils.with_cloud_emulators('datastore')

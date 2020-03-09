@@ -220,10 +220,24 @@ message PruneCorpusResponse {
   repeated CorpusCrash crashes = 2;
   optional string fuzzer_binary_name = 3;
   optional int64 revision = 4;
+  optional CrossPollinationStats cross_pollination_stats = 5;
 }
 
 message StatRequest {
   optional string path = 1;
+}
+
+message CrossPollinationStats {
+  optional string project_qualified_name = 1;
+  optional string method = 2;
+  optional string sources = 3;
+  optional string tags = 4;
+  optional int32 initial_corpus_size = 5;
+  optional int32 corpus_size = 6;
+  optional int32 initial_edge_coverage = 7;
+  optional int32 edge_coverage = 8;
+  optional int32 initial_feature_coverage = 9;
+  optional int32 feature_coverage = 10;
 }
 
 message StatResponse {

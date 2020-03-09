@@ -86,11 +86,25 @@ def do_corpus_pruning(context, last_execution_failed, revision):
       ) for crash in response.crashes
   ]
 
+  result_stats = response.cross_pollination_stats
+  pollination_stats = corpus_pruning_task.CrossPollinationStats(
+      project_qualified_name=result_stats.project_qualified_name,
+      method=result_stats.method,
+      sources=result_stats.sources,
+      tags=result_stats.tags,
+      initial_corpus_size=result_stats.initial_corpus_size,
+      corpus_size=result_stats.corpus_size,
+      initial_edge_coverage=result_stats.initial_edge_coverage,
+      edge_coverage=result_stats.edge_coverage,
+      initial_feature_coverage=result_stats.initial_feature_coverage,
+      feature_coverage=result_stats.feature_coverage)
+
   return corpus_pruning_task.CorpusPruningResult(
       coverage_info=coverage_info,
       crashes=crashes,
       fuzzer_binary_name=response.fuzzer_binary_name,
-      revision=response.revision)
+      revision=response.revision,
+      cross_pollination_stats=pollination_stats)
 
 
 def process_testcase(engine_name, tool_name, target_name, arguments,
