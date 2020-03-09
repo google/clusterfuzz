@@ -129,9 +129,9 @@ def get_current_user():
     return User(loas_user + '@google.com')
 
   current_request = get_current_request()
-  iap_user = get_iap_email(current_request)
-  if iap_user:
-    return User(iap_user)
+  iap_email = get_iap_email(current_request)
+  if iap_email:
+    return User(iap_email)
 
   oauth_email = getattr(current_request, '_oauth_email', None)
   if oauth_email:
