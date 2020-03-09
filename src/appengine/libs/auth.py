@@ -67,47 +67,8 @@ def _project_number_from_id(project_id):
   return result['projectNumber']
 
 
-def validate_iap_jwt(iap_jwt):
-  """Validate a JWT passed to your App Engine app by Identity-Aware Proxy.
-
-  Args:
-    iap_jwt: The contents of the X-Goog-IAP-JWT-Assertion header.
-    cloud_project_number: The project *number* for your Google Cloud project.
-        This is returned by 'gcloud projects describe $PROJECT_ID', or
-        in the Project Info card in Cloud Console.
-    cloud_project_id: The project *ID* for your Google Cloud project.
-
-  Returns:
-    (user_id, user_email, error_str).
-  """
-  project_id = utils.get_application_id()
-  expected_audience = '/projects/{}/apps/{}'.format(
-      _project_number_from_id(project_id), project_id)
-  return _validate_iap_jwt(iap_jwt, expected_audience)
-
-
-def _validate_iap_jwt(iap_jwt, expected_audience):
-  """Validate JWT assertion."""
-  try:
-    key_id = jwt.get_unverified_header(iap_jwt).get('kid')
-    if not key_id:
-      raise AuthError('No key ID.')
-
-    key = get_iap_key(key_id)
-    decoded_jwt = jwt.decode(
-        iap_jwt,
-        key,
-        algorithms=['ES256'],
-        issuer='https://cloud.google.com/iap',
-        audience=expected_audience)
-    return decoded_jwt['sub'], decoded_jwt['email']
-  except (jwt.exceptions.InvalidTokenError,
-          requests.exceptions.RequestException) as e:
-    raise AuthError('JWT assertion decode error ' + str(e))
-
-
 @memoize.wrap(memoize.FifoInMemory(1))
-def get_iap_key(key_id):
+def _get_iap_key(key_id):
   """Retrieves a public key from the list published by Identity-Aware Proxy,
   re-fetching the key file if necessary.
   """
@@ -124,13 +85,37 @@ def get_iap_key(key_id):
   return key
 
 
+def _validate_iap_jwt(iap_jwt):
+  """Validate JWT assertion."""
+  project_id = utils.get_application_id()
+  expected_audience = '/projects/{}/apps/{}'.format(
+      _project_number_from_id(project_id), project_id)
+
+  try:
+    key_id = jwt.get_unverified_header(iap_jwt).get('kid')
+    if not key_id:
+      raise AuthError('No key ID.')
+
+    key = _get_iap_key(key_id)
+    decoded_jwt = jwt.decode(
+        iap_jwt,
+        key,
+        algorithms=['ES256'],
+        issuer='https://cloud.google.com/iap',
+        audience=expected_audience)
+    return decoded_jwt['sub'], decoded_jwt['email']
+  except (jwt.exceptions.InvalidTokenError,
+          requests.exceptions.RequestException) as e:
+    raise AuthError('JWT assertion decode error ' + str(e))
+
+
 def get_iap_email(current_request):
   """Get Cloud IAP email."""
   jwt_assertion = current_request.headers.get('X-Goog-IAP-JWT-Assertion')
   if not jwt_assertion:
     return None
 
-  _, email = validate_iap_jwt(jwt_assertion)
+  _, email = _validate_iap_jwt(jwt_assertion)
   return email
 
 
