@@ -64,6 +64,9 @@ def _project_number_from_id(project_id):
   """Get the project number from project ID."""
   resource_manager = build('cloudresourcemanager', 'v1')
   result = resource_manager.projects().get(projectId=project_id).execute()
+  if 'projectNumber' not in result:
+    raise AuthError('Failed to get project number.')
+
   return result['projectNumber']
 
 
@@ -103,10 +106,10 @@ def _validate_iap_jwt(iap_jwt):
         algorithms=['ES256'],
         issuer='https://cloud.google.com/iap',
         audience=expected_audience)
-    return decoded_jwt['sub'], decoded_jwt['email']
+    return decoded_jwt['email']
   except (jwt.exceptions.InvalidTokenError,
           requests.exceptions.RequestException) as e:
-    raise AuthError('JWT assertion decode error ' + str(e))
+    raise AuthError('JWT assertion decode error: ' + str(e))
 
 
 def get_iap_email(current_request):
@@ -115,8 +118,7 @@ def get_iap_email(current_request):
   if not jwt_assertion:
     return None
 
-  _, email = _validate_iap_jwt(jwt_assertion)
-  return email
+  return _validate_iap_jwt(jwt_assertion)
 
 
 def get_current_user():
