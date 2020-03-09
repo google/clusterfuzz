@@ -337,7 +337,8 @@ class OssFuzzBuildStatusTest(unittest.TestCase):
         'To reproduce locally, please see: '
         'https://google.github.io/oss-fuzz/advanced-topics/reproducing'
         '#reproducing-build-failures\n\n'
-        'If you have any questions, please file a bug on '
+        '<b>This bug tracker is not being monitored by OSS-Fuzz team.</b> '
+        'If you have any questions, please create an issue at '
         'https://github.com/google/oss-fuzz/issues/new.\n\n'
         '**This bug will be automatically closed within a '
         'day once it is fixed.**', issue.body)
@@ -358,7 +359,8 @@ class OssFuzzBuildStatusTest(unittest.TestCase):
         'To reproduce locally, please see: '
         'https://google.github.io/oss-fuzz/advanced-topics/reproducing'
         '#reproducing-build-failures\n\n'
-        'If you have any questions, please file a bug on '
+        '<b>This bug tracker is not being monitored by OSS-Fuzz team.</b> '
+        'If you have any questions, please create an issue at '
         'https://github.com/google/oss-fuzz/issues/new.\n\n'
         '**This bug will be automatically closed within a '
         'day once it is fixed.**', issue.body)
