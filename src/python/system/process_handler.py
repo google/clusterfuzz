@@ -22,7 +22,6 @@ standard_library.install_aliases()
 
 import copy
 import datetime
-import logging
 import os
 import queue
 import subprocess
@@ -177,8 +176,6 @@ def run_process(cmdline,
     gestures.pop()
   else:
     gesture_start_time = timeout // 2
-
-  logs.log('Process (%s) started.' % str(cmdline), level=logging.DEBUG)
 
   if plt == 'ANDROID':
     # Clear the log upfront.
@@ -347,10 +344,11 @@ def run_process(cmdline,
       output += utils.get_line_seperator('Memory Statistics')
       output += ps_output
 
-  logs.log(
-      'Process (%s) ended, exit code (%s), output (%s).' %
-      (repr(cmdline), str(return_code), output),
-      level=logging.DEBUG)
+  if return_code:
+    logs.log_warn(
+        'Process (%s) ended with exit code (%s).' % (repr(cmdline),
+                                                     str(return_code)),
+        output=output)
 
   return return_code, round(time.time() - start_time, 1), output
 
