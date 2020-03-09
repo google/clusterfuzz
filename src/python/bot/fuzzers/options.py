@@ -31,7 +31,6 @@ from metrics import logs
 from system import environment
 
 OPTIONS_FILE_EXTENSION = '.options'
-GRAMMAR_FILE_EXTENSION = '.grammar'
 
 # Whitelist for env variables .options files can set.
 ENV_VAR_WHITELIST = set([afl_constants.DONT_DEFER_ENV_VAR])
@@ -158,10 +157,11 @@ class FuzzerOptions(object):
     return self._get_option_section('ubsan')
 
 
-def get_fuzz_target_support_file(fuzz_target_path, file_extension):
-  """Returns a file path for a fuzz target support file
-  that has the given file extension."""
-  file_path = fuzzer_utils.get_supporting_file(fuzz_target_path, file_extension)
+def get_fuzz_target_options(fuzz_target_path):
+  """Return a FuzzerOptions for the given target, or None if it does not
+  exist."""
+  file_path = fuzzer_utils.get_supporting_file(fuzz_target_path,
+                                               OPTIONS_FILE_EXTENSION)
 
   if environment.is_trusted_host():
     file_path = fuzzer_utils.get_file_from_untrusted_worker(file_path)
@@ -169,23 +169,13 @@ def get_fuzz_target_support_file(fuzz_target_path, file_extension):
   if not os.path.exists(file_path):
     return None
 
-  return file_path
-
-
-def get_fuzz_target_options(fuzz_target_path):
-  """Return a FuzzerOptions for the given target, or None if it does not
-  exist."""
-
-  options_file_path = get_fuzz_target_support_file(fuzz_target_path,
-                                                   OPTIONS_FILE_EXTENSION)
-
-  if not options_file_path:
+  if not file_path:
     return None
 
-  options_cwd = os.path.dirname(options_file_path)
+  options_cwd = os.path.dirname(file_path)
 
   try:
-    return FuzzerOptions(options_file_path, cwd=options_cwd)
+    return FuzzerOptions(file_path, cwd=options_cwd)
   except FuzzerOptionsException:
-    logs.log_error('Invalid options file: %s.' % options_file_path)
+    logs.log_error('Invalid options file: %s.' % file_path)
     return None
