@@ -189,28 +189,3 @@ def get_fuzz_target_options(fuzz_target_path):
   except FuzzerOptionsException:
     logs.log_error('Invalid options file: %s.' % options_file_path)
     return None
-
-
-def get_fuzz_target_grammar(fuzz_target_path):
-  """Return the grammar for a given target or None if it does not exist."""
-
-  grammar_file_path = get_fuzz_target_support_file(fuzz_target_path,
-                                                   GRAMMAR_FILE_EXTENSION)
-  if not grammar_file_path:
-    return None
-
-  config = configparser.ConfigParser()
-  with open(grammar_file_path, 'r') as f:
-    try:
-      config.read_file(f)
-    except configparser.Error:
-      raise FuzzerOptionsException('Failed to parse fuzzer grammar file.')
-
-  if not config.has_section('grammar'):
-    return None
-
-  grammar_dict = dict(config.items('grammar'))
-  if 'grammar' not in grammar_dict:
-    raise FuzzerOptionsException('Failed to parse fuzzer grammar file.')
-
-  return grammar_dict['grammar']
