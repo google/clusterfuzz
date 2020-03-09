@@ -61,7 +61,7 @@ if [ ! $only_reproduce ]; then
   sudo apt-get install -y apt-transport-https software-properties-common
 
   if [ "$distro_codename" == "rodete" ]; then
-    prodaccess || glogin
+    glogin
     sudo glinux-add-repo docker-ce-"$distro_codename"
   else
     curl -fsSL https://download.docker.com/linux/${distro_id,,}/gpg | \
