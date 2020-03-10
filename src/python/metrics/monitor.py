@@ -47,7 +47,9 @@ from system import environment
 
 CUSTOM_METRIC_PREFIX = 'custom.googleapis.com/'
 FLUSH_INTERVAL_SECONDS = 10 * 60  # 10 minutes.
-RETRY_DEADLINE_SECONDS = 3 * 60  # 3 minutes.
+RETRY_DEADLINE_SECONDS = 5 * 60  # 5 minutes.
+INITIAL_DELAY_SECONDS = 16
+MAXIMUM_DELAY_SECONDS = 2 * 60  # 2 minutes.
 MAX_TIME_SERIES_PER_CALL = 200
 
 _retry_wrap = retry.Retry(
@@ -57,6 +59,8 @@ _retry_wrap = retry.Retry(
         exceptions.ServerError,
         exceptions.ServiceUnavailable,
     )),
+    initial=INITIAL_DELAY_SECONDS,
+    maximum=MAXIMUM_DELAY_SECONDS,
     deadline=RETRY_DEADLINE_SECONDS)
 
 
