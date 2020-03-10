@@ -375,11 +375,3 @@ class UnicodeProcessRunnerMixin(object):
 
 class UnicodeProcessRunner(UnicodeProcessRunnerMixin, ProcessRunner):
   """ProcessRunner which always returns unicode output."""
-
-  def run_and_wait(self, *args, **kwargs):  # pylint: disable=arguments-differ
-    """Overridden run_and_wait which always decodes the output."""
-    result = ProcessRunner.run_and_wait(self, *args, **kwargs)
-    if result.output is not None:
-      result.output = utils.decode_to_unicode(result.output)
-
-    return result
