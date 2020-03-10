@@ -91,13 +91,10 @@ def encode_text(string_data):
   Returns:
     An encoded list of integers representing code points.
   """
-  result = None
-  try:
-    result = list(map(ord, string_data))
-  except:
-    # Python3 fallback.
-    result = list(string_data)
-  return result
+  if sys.version_info.major == 3:
+    return list(string_data)
+
+  result = list(map(ord, string_data))
 
 
 def decode_to_text(encoded_list):
