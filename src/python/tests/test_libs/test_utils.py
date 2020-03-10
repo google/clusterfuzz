@@ -367,12 +367,17 @@ def supported_platforms(*platforms):
   return decorator
 
 
-class MockStdout(io.BufferedWriter):
-  """Mock stdout."""
+# TODO(ochang): Remove once migrated to Python 3.
+if sys.version_info.major == 2:
 
-  def __init__(self):
-    super(MockStdout, self).__init__(io.BytesIO())
+  class MockStdout(io.BufferedWriter):
+    """Mock stdout."""
 
-  def getvalue(self):
-    self.flush()
-    return self.raw.getvalue()
+    def __init__(self):
+      super(MockStdout, self).__init__(io.BytesIO())
+
+    def getvalue(self):
+      self.flush()
+      return self.raw.getvalue()
+else:
+  MockStdout = io.StringIO  # pylint: disable=invalid-name
