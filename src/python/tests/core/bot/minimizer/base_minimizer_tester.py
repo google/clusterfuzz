@@ -24,25 +24,25 @@ class BaseMinimizerTester(unittest.TestCase):
 
   def _mock_test_function(self, data_file):
     """Mock test function to reduce time minimizer takes and simplify tests."""
-    data = open(data_file, "r").read()
-    if "error" in data:
+    data = open(data_file, 'rb').read()
+    if b'error' in data:
       return False
     return True
 
   def test_minimizer_still_contains_error(self):
     """Tests a simple minimization. Should remove the first and last lines."""
-    testcase = 'x = 2 \n error \n return x'
+    testcase = b'x = 2 \n error \n return x'
     minimized = self.line_minimizer.minimize(testcase)
-    self.assertEqual(minimized, " error ")
+    self.assertEqual(minimized, b' error ')
 
   def test_minimizer_accepts_empty_data(self):
     """Tests that the minimizer does not break on empty string."""
-    testcase = ""
+    testcase = b''
     minimized = self.line_minimizer.minimize(testcase)
-    self.assertEqual(minimized, "")
+    self.assertEqual(minimized, b'')
 
   def test_minimizer_does_not_minimize_non_errored_code(self):
     """"Test that the minimizer does not break when there is nothing to min."""
-    testcase = "This \n Code \n Has \n No \n Error"
+    testcase = b'This \n Code \n Has \n No \n Error'
     minimized = self.line_minimizer.minimize(testcase)
     self.assertEqual(minimized, testcase)

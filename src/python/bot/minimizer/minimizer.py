@@ -498,12 +498,12 @@ class Testcase(object):
 
 def _default_tokenizer(s):
   """Default string tokenizer which splits on newlines."""
-  return s.split('\n')
+  return s.split(b'\n')
 
 
 def _default_combiner(tokens):
   """Default token combiner which assumes each token is a line."""
-  return '\n'.join(tokens)
+  return b'\n'.join(tokens)
 
 
 class Minimizer(object):
