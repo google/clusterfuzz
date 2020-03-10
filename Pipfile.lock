@@ -1,7 +1,7 @@
 {
     "_meta": {
         "hash": {
-            "sha256": "203e8cf0becad2bf6b1dad023e7b24c061c3db526deaddabc4cf11168ce6b65b"
+            "sha256": "5a932d2738114e37f816a59f369f3b39516ac6fb8bafa4bf9555a141c717eef2"
         },
         "pipfile-spec": 6,
         "requires": {
@@ -16,6 +16,9 @@
         ]
     },
     "default": {
+        "8af824b": {
+            "file": "https://storage.googleapis.com/tensorflow/linux/cpu/tensorflow-1.13.2-cp37-cp37m-linux_x86_64.whl"
+        },
         "argparse": {
             "hashes": [
                 "sha256:62b089a55be1d8949cd2bc7e0df0bddb9e028faefc8c32038cc84862aefdd6e4",
