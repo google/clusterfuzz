@@ -403,7 +403,8 @@ class LibFuzzerEngine(engine.Engine):
 
     # The dir where merge control file is located must persist for both merge
     # steps. The second step re-uses the MCF produced during the first step.
-    self._merge_control_file = os.path.join(fuzzer_utils.get_temp_dir(), 'MCF')
+    merge_control_file_dir = self._create_temp_corpus_dir('mcf_tmp_dir')
+    self._merge_control_file = os.path.join(merge_control_file_dir, 'MCF')
 
     # Two step merge process to obtain accurate stats for the new corpus units.
     # See https://reviews.llvm.org/D66107 for a more detailed description.
