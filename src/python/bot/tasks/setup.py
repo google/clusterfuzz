@@ -604,6 +604,8 @@ def get_data_bundle_directory(fuzzer_name):
     logs.log_error('Unable to find fuzzer %s.' % fuzzer_name)
     return None
 
+  local_data_bundles_directory = environment.get_value('DATA_BUNDLES_DIR')
+
   # Check if we have a fuzzer-specific data bundle. Use it to calculate the
   # data directory we will fetch our testcases from.
   data_bundle = data_types.DataBundle.query(
@@ -611,12 +613,10 @@ def get_data_bundle_directory(fuzzer_name):
   if not data_bundle:
     # Generic data bundle directory. Available to all fuzzers if they don't
     # have their own data bundle.
-    return environment.get_value('FUZZ_DATA')
+    return local_data_bundles_directory
 
-  local_data_bundles_directory = environment.get_value('DATA_BUNDLES_DIR')
   local_data_bundle_directory = os.path.join(local_data_bundles_directory,
                                              data_bundle.name)
-
   if data_bundle.is_local:
     # Data bundle is on local disk, return path.
     return local_data_bundle_directory

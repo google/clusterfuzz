@@ -115,6 +115,7 @@ def _make_space(requested_size, current_build_dir=None):
 
   error_message = 'Need at least %d GB of free disk space.' % ((
       (min_free_disk_space + requested_size) // 1024**3))
+  cleared_data_bundles = False
   for _ in range(MAX_EVICTED_BUILDS):
     free_disk_space = shell.get_free_disk_space(builds_directory)
     if free_disk_space is None:
@@ -123,6 +124,11 @@ def _make_space(requested_size, current_build_dir=None):
 
     if requested_size + min_free_disk_space < free_disk_space:
       return True
+
+    if not cleared_data_bundles:
+      logs.log('Clearing data bundles directory.')
+      shell.clear_data_bundles_directory()
+      cleared_data_bundles = True
 
     if not _evict_build(current_build_dir):
       logs.log_error(error_message)
