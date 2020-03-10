@@ -30,8 +30,8 @@ from bot.tokenizer.antlr_tokenizer import AntlrTokenizer
 from bot.tokenizer.grammars.HTMLLexer import HTMLLexer
 from bot.tokenizer.grammars.JavaScriptLexer import JavaScriptLexer
 
-SCRIPT_START_STRING = '<script'
-SCRIPT_END_STRING = '</script>'
+SCRIPT_START_STRING = b'<script'
+SCRIPT_END_STRING = b'</script>'
 
 
 class HTMLMinimizer(minimizer.Minimizer):  # pylint:disable=abstract-method
@@ -49,9 +49,6 @@ class HTMLMinimizer(minimizer.Minimizer):  # pylint:disable=abstract-method
     def __init__(self, data, token_type):
       self.data = data
       self.token_type = token_type
-
-    def __str__(self):
-      return self.data
 
   class TokenizerState(object):
     """Enum for tokenizer states."""
@@ -149,8 +146,8 @@ class HTMLMinimizer(minimizer.Minimizer):  # pylint:disable=abstract-method
 
       elif state == HTMLMinimizer.TokenizerState.SEARCHING_FOR_TAG_END:
         # Make sure that this really looks like a script tag.
-        next_newline = data.find('\n', index)
-        tag_end = data.find('>', index)
+        next_newline = data.find(b'\n', index)
+        tag_end = data.find(b'>', index)
         if 0 <= tag_end < next_newline or next_newline < 0 <= tag_end:
           # The end of the script tag is before the next newline, so it should
           # be safe to attempt to split this.
@@ -191,12 +188,15 @@ class HTMLMinimizer(minimizer.Minimizer):  # pylint:disable=abstract-method
   def combine_worker_tokens(tokens, prefix=b'', suffix=b''):
     """Combine tokens for a worker minimizer."""
     # The Antlr tokenizer decodes the bytes objects we originally pass to it.
-    return prefix + b''.join([t.encode('utf-8') for t in tokens]) + suffix
+    encoded_tokens = [
+        t if isinstance(t, bytes) else t.encode('utf-8') for t in tokens
+    ]
+    return prefix + b''.join(encoded_tokens) + suffix
 
   @staticmethod
   def combine_tokens(tokens):
     """Combine tokens into a usable format, stripping metadata."""
-    return b''.join([bytes(t) for t in tokens])
+    return b''.join([t.data for t in tokens])
 
   @staticmethod
   def run(data,
