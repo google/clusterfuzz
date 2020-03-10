@@ -38,14 +38,7 @@ protobuf = "==3.6.1"
 psutil = "==5.4.7"
 gunicorn = "*"
 numpy = "==1.16.4"
+tensorflow = {file = "https://storage.googleapis.com/tensorflow/linux/cpu/tensorflow-1.13.2-cp37-cp37m-linux_x86_64.whl"}
 
 [requires]
 python_version = "3.7"
-
-# TODO(mmoroz): should be removed after Py3 migration and TensorFlow upgrade:
-# https://github.com/google/clusterfuzz/issues/1540.
-[packages.8af824b]
-file = "https://storage.googleapis.com/tensorflow/linux/cpu/tensorflow-1.13.2-cp37-cp37m-linux_x86_64.whl"
-
-[dev-packages.tensorflow]
-file = "https://storage.googleapis.com/tensorflow/linux/cpu/tensorflow-1.13.2-cp37-cp37m-linux_x86_64.whl"
