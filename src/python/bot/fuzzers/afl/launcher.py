@@ -530,7 +530,7 @@ class AflRunnerCommon(object):
   HANG_LOG_MESSAGE = 'Testcase {0} in corpus causes a hang, retrying without it'
 
   SHOWMAP_FILENAME = 'afl_showmap_output'
-  SHOWMAP_REGEX = re.compile(r'(?P<guard>\d{6}):(?P<hit_count>\d+)\n')
+  SHOWMAP_REGEX = re.compile(br'(?P<guard>\d{6}):(?P<hit_count>\d+)\n')
 
   def __init__(self,
                target_path,
@@ -1171,7 +1171,7 @@ class AflRunnerCommon(object):
     return new_units_generated, new_units_added, corpus_size
 
 
-class AflRunner(AflRunnerCommon, new_process.ProcessRunner):
+class AflRunner(AflRunnerCommon, new_process.UnicodeProcessRunner):
   """Afl runner."""
 
   def __init__(self,
@@ -1186,7 +1186,7 @@ class AflRunner(AflRunnerCommon, new_process.ProcessRunner):
     new_process.ProcessRunner.__init__(self, self.afl_fuzz_path)
 
 
-class MinijailAflRunner(AflRunnerCommon,
+class MinijailAflRunner(AflRunnerCommon, new_process.UnicodeProcessRunnerMixin,
                         engine_common.MinijailEngineFuzzerRunner):
   """Minijail AFL runner."""
 
@@ -1513,8 +1513,9 @@ def main(argv):
     command = engine_common.strip_minijail_command(command,
                                                    runner.afl_fuzz_path)
   # Print info for the fuzzer logs.
-  print(engine_common.get_log_header(command, BOT_NAME,
-                                     fuzz_result.time_executed))
+  print(
+      engine_common.get_log_header(command, BOT_NAME,
+                                   fuzz_result.time_executed))
 
   print(fuzz_result.output)
   runner.strategies.print_strategies()
