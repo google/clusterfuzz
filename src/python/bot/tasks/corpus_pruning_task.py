@@ -559,7 +559,7 @@ def _record_cross_pollination_stats(stats):
       'project_qualified_name': stats.project_qualified_name,
       'method': stats.method,
       'sources': stats.sources,
-      'tags': stats.tag if stats.tag else '',
+      'tags': stats.tags if stats.tags else '',
       'initial_corpus_size': stats.initial_corpus_size,
       'corpus_size': stats.minimized_corpus_size_units,
       'initial_edge_coverage': stats.initial_edge_coverage,
