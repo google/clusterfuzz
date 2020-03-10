@@ -642,7 +642,7 @@ class FuchsiaQemuLibFuzzerRunner(new_process.ProcessRunner, LibFuzzerCommon):
         additional_args)
     self.fuzzer.monitor(return_code)
     self.process_logs_and_crash(artifact_prefix)
-    with open(self.fuzzer.logfile) as logfile:
+    with open(self.fuzzer.logfile, 'rb') as logfile:
       symbolized_output = logfile.read()
 
     self._pull_new_corpus_from_target_to_host(corpus_directories,
