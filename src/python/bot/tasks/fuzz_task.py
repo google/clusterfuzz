@@ -1792,22 +1792,6 @@ class FuzzingSession(object):
     # apply some of the time. Adjust APP_ARGS for them if needed.
     trials.setup_additional_args_for_app()
 
-    # Ensure that that the fuzzer still exists.
-    logs.log('Setting up fuzzer and data bundles.')
-    fuzzer = data_types.Fuzzer.query(
-        data_types.Fuzzer.name == self.fuzzer_name).get()
-    if not fuzzer or not setup.update_fuzzer_and_data_bundles(self.fuzzer_name):
-      _track_fuzzer_run_result(self.fuzzer_name, 0, 0,
-                               FuzzErrorCode.FUZZER_SETUP_FAILED)
-      logs.log_error('Unable to setup fuzzer %s.' % self.fuzzer_name)
-
-      # Artifical sleep to slow down continuous failed fuzzer runs if the bot is
-      # using command override for task execution.
-      time.sleep(failure_wait_interval)
-      return
-
-    self.testcase_directory = environment.get_value('FUZZ_INPUTS')
-
     # Set up a custom or regular build based on revision. By default, fuzzing
     # is done on trunk build (using revision=None). Otherwise, a job definition
     # can provide a revision to use via |APP_REVISION|.
@@ -1842,6 +1826,22 @@ class FuzzingSession(object):
     _track_build_run_result(self.job_type, crash_revision, is_bad_build)
     if is_bad_build:
       return
+
+    # Ensure that that the fuzzer still exists.
+    logs.log('Setting up fuzzer and data bundles.')
+    fuzzer = data_types.Fuzzer.query(
+        data_types.Fuzzer.name == self.fuzzer_name).get()
+    if not fuzzer or not setup.update_fuzzer_and_data_bundles(self.fuzzer_name):
+      _track_fuzzer_run_result(self.fuzzer_name, 0, 0,
+                               FuzzErrorCode.FUZZER_SETUP_FAILED)
+      logs.log_error('Unable to setup fuzzer %s.' % self.fuzzer_name)
+
+      # Artifical sleep to slow down continuous failed fuzzer runs if the bot is
+      # using command override for task execution.
+      time.sleep(failure_wait_interval)
+      return
+
+    self.testcase_directory = environment.get_value('FUZZ_INPUTS')
 
     # Data bundle directories can also have testcases which are kept in-place
     # because of dependencies.
