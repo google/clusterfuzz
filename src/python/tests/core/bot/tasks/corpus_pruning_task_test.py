@@ -300,7 +300,7 @@ class CorpusPruningTestFuchsia(unittest.TestCase, BaseTest):
     corpus = os.listdir(self.corpus_dir)
     self.assertEqual(2, len(corpus))
     six.assertCountEqual(self, [
-        '31836aeaab22dc49555a97edb4c753881432e01d',
+        '801c34269f74ed383fc97de33604b8a905adb635',
         '7cf184f4c67ad58283ecb19349720b0cae756829'
     ], corpus)
     quarantine = os.listdir(self.quarantine_dir)
