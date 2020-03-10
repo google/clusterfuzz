@@ -125,9 +125,9 @@ class UploadTestcaseOutputTest(fake_filesystem_unittest.TestCase):
 
     # Date and time below is derived from 1472846341 timestamp value.
     self.mock.write_data.assert_called_once_with(
-        'Component revisions (build r123):\n'
-        'Component: REVISION\nComponent2: REVISION2\n\n'
-        'Return code: 1\n\nfake output',
+        b'Component revisions (build r123):\n'
+        b'Component: REVISION\nComponent2: REVISION2\n\n'
+        b'Return code: 1\n\nfake output',
         'gs://fake-gcs-logs/fuzzer/job/2016-09-02/19:59:01:017923.log')
 
   def test_upload_without_timestamp(self):
@@ -146,9 +146,9 @@ class UploadTestcaseOutputTest(fake_filesystem_unittest.TestCase):
     log_time = testcase_manager._get_testcase_time(self.testcase_path)
     testcase_manager.upload_log(log, log_time)
     self.mock.write_data.assert_called_once_with(
-        'Component revisions (build r123):\n'
-        'Component: REVISION\nComponent2: REVISION2\n\n'
-        'Return code: None\n\nNo output!',
+        b'Component revisions (build r123):\n'
+        b'Component: REVISION\nComponent2: REVISION2\n\n'
+        b'Return code: None\n\nNo output!',
         'gs://fake-gcs-logs/fuzzer/job/2017-05-15/16:10:28:374119.log')
 
   def test_upload_without_component_revisions(self):
@@ -173,9 +173,9 @@ class UploadTestcaseOutputTest(fake_filesystem_unittest.TestCase):
 
     # Date and time below is derived from 1472846341 timestamp value.
     self.mock.write_data.assert_called_once_with(
-        'Component revisions (build r123):\n'
-        'Not available.\n\n'
-        'Return code: 1\n\nfake output',
+        b'Component revisions (build r123):\n'
+        b'Not available.\n\n'
+        b'Return code: 1\n\nfake output',
         'gs://fake-gcs-logs/fuzzer/job/2016-09-02/19:59:01:017923.log')
 
 

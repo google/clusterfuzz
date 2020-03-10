@@ -89,7 +89,8 @@ def upload_testcases_if_needed(fuzzer_name, testcase_list, testcase_directory,
   gcs_base_url += utils.string_hash(identifier)
 
   list_gcs_url = gcs_base_url + '/' + LIST_FILE_BASENAME
-  if not storage.write_data('\n'.join(files_list), list_gcs_url):
+  if not storage.write_data('\n'.join(files_list).encode('utf-8'),
+                            list_gcs_url):
     return
 
   if has_testcases_in_testcase_directory:
