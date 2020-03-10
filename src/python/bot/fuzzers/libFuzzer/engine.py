@@ -171,7 +171,8 @@ class LibFuzzerEngine(engine.Engine):
     return self._create_temp_corpus_dir('merge-corpus')
 
   def _merge_new_units(self, target_path, corpus_dir, new_corpus_dir,
-                       fuzz_corpus_dirs, arguments, stat_overrides):
+                       fuzz_corpus_dirs, merge_corpus_dir, reproducers_dir,
+                       arguments, stat_overrides):
     """Merge new units."""
     # Make a decision on whether merge step is needed at all. If there are no
     # new units added by libFuzzer run, then no need to do merge at all.
@@ -185,8 +186,6 @@ class LibFuzzerEngine(engine.Engine):
     # we're taking >10 minutes to load/merge the corpus something is going very
     # wrong and we probably don't want to make things worse by adding units
     # anyway.
-    merge_corpus = self._create_merge_corpus_dir()
-
     merge_dirs = fuzz_corpus_dirs[:]
 
     # Merge the new units with the initial corpus.
@@ -202,12 +201,12 @@ class LibFuzzerEngine(engine.Engine):
           arguments=arguments,
           existing_corpus_dirs=merge_dirs,
           new_corpus_dir=new_corpus_dir,
-          output_corpus_dir=merge_corpus,
-          reproducers_dir=None,
+          output_corpus_dir=merge_corpus_dir,
+          reproducers_dir=reproducers_dir,
           max_time=engine_common.get_merge_timeout(
               libfuzzer.DEFAULT_MERGE_TIMEOUT))
 
-      libfuzzer.move_mergeable_units(merge_corpus, corpus_dir)
+      libfuzzer.move_mergeable_units(merge_corpus_dir, corpus_dir)
       new_corpus_len = shell.get_directory_file_count(corpus_dir)
       new_units_added = new_corpus_len - old_corpus_len
 
@@ -243,6 +242,9 @@ class LibFuzzerEngine(engine.Engine):
 
     # Directory to place new units.
     new_corpus_dir = self._create_temp_corpus_dir('new')
+
+    # Directory to place merged corpus.
+    merge_corpus_dir = self._create_merge_corpus_dir()
 
     corpus_directories = [new_corpus_dir] + options.fuzz_corpus_dirs
     fuzz_timeout = libfuzzer.get_fuzz_timeout(
@@ -313,7 +315,8 @@ class LibFuzzerEngine(engine.Engine):
     arguments = options.arguments[:]
     libfuzzer.remove_fuzzing_arguments(arguments)
     self._merge_new_units(target_path, options.corpus_dir, new_corpus_dir,
-                          options.fuzz_corpus_dirs, arguments, parsed_stats)
+                          options.fuzz_corpus_dirs, merge_corpus_dir,
+                          reproducers_dir, arguments, parsed_stats)
 
     fuzz_logs = '\n'.join(log_lines)
     crashes = []
@@ -400,8 +403,7 @@ class LibFuzzerEngine(engine.Engine):
 
     # The dir where merge control file is located must persist for both merge
     # steps. The second step re-uses the MCF produced during the first step.
-    merge_control_file_dir = self._create_temp_corpus_dir('mcf_tmp_dir')
-    self._merge_control_file = os.path.join(merge_control_file_dir, 'MCF')
+    self._merge_control_file = os.path.join(fuzzer_utils.get_temp_dir(), 'MCF')
 
     # Two step merge process to obtain accurate stats for the new corpus units.
     # See https://reviews.llvm.org/D66107 for a more detailed description.
