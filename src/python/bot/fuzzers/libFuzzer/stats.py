@@ -204,11 +204,9 @@ def parse_performance_features(log_lines, strategies, arguments):
 
   # Initialize all strategy stats as disabled by default.
   for strategy_type in strategy.LIBFUZZER_STRATEGY_LIST:
-    if (strategy_type.name in
-        strategy.LIBFUZZER_STRATEGIES_WITH_PREFIX_VALUE_TYPE and
-        strategy.LIBFUZZER_STRATEGIES_WITH_PREFIX_VALUE_TYPE[strategy_type.name]
-        == str):
-      stats[strategy_column_name(strategy_type.name)] = 'None'
+    if strategy.LIBFUZZER_STRATEGIES_WITH_PREFIX_VALUE_TYPE.get(
+        strategy_type.name) == str:
+      stats[strategy_column_name(strategy_type.name)] = ''
     else:
       stats[strategy_column_name(strategy_type.name)] = 0
 

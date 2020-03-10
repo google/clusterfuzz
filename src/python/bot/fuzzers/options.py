@@ -156,26 +156,31 @@ class FuzzerOptions(object):
     """Return a list of UBSAN_OPTIONS overrides."""
     return self._get_option_section('ubsan')
 
+  def get_grammar_options(self):
+    """Return a list og grammar options"""
+    return self._get_option_section('grammar')
+
 
 def get_fuzz_target_options(fuzz_target_path):
   """Return a FuzzerOptions for the given target, or None if it does not
   exist."""
-  file_path = fuzzer_utils.get_supporting_file(fuzz_target_path,
-                                               OPTIONS_FILE_EXTENSION)
+  options_file_path = fuzzer_utils.get_supporting_file(fuzz_target_path,
+                                                       OPTIONS_FILE_EXTENSION)
 
   if environment.is_trusted_host():
-    file_path = fuzzer_utils.get_file_from_untrusted_worker(file_path)
+    options_file_path = fuzzer_utils.get_file_from_untrusted_worker(
+        options_file_path)
 
-  if not os.path.exists(file_path):
+  if not os.path.exists(options_file_path):
     return None
 
-  if not file_path:
+  if not options_file_path:
     return None
 
-  options_cwd = os.path.dirname(file_path)
+  options_cwd = os.path.dirname(options_file_path)
 
   try:
-    return FuzzerOptions(file_path, cwd=options_cwd)
+    return FuzzerOptions(options_file_path, cwd=options_cwd)
   except FuzzerOptionsException:
-    logs.log_error('Invalid options file: %s.' % file_path)
+    logs.log_error('Invalid options file: %s.' % options_file_path)
     return None
