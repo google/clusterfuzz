@@ -13,6 +13,7 @@
 # limitations under the License.
 """Shell related functions."""
 
+from builtins import str
 import os
 import re
 import shlex
@@ -441,7 +442,7 @@ def remove_directory(directory, recreate=False, ignore_errors=False):
     except:
       # Log errors for all cases except device or resource busy errors, as such
       # errors are expected in cases when mounts are used.
-      error_message = sys.exc_info()[1]
+      error_message = str(sys.exc_info()[1])
       if 'Device or resource busy' not in error_message:
         logs.log_warn(
             'Failed to remove directory %s failed because %s with %s failed. %s'
