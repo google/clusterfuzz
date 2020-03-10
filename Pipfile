@@ -1,5 +1,3 @@
-# This is currently only used for Python 3.
-
 [[source]]
 url = "https://pypi.python.org/simple"
 verify_ssl = true
@@ -39,7 +37,15 @@ paramiko = "==2.6.0"
 protobuf = "==3.6.1"
 psutil = "==5.4.7"
 gunicorn = "*"
-# tensorflow = "==1.8.0"  # does not seem to be available
+numpy = "==1.16.4"
 
 [requires]
 python_version = "3.7"
+
+# TODO(mmoroz): should be removed after Py3 migration and TensorFlow upgrade:
+# https://github.com/google/clusterfuzz/issues/1540.
+[packages.8af824b]
+file = "https://storage.googleapis.com/tensorflow/linux/cpu/tensorflow-1.13.2-cp37-cp37m-linux_x86_64.whl"
+
+[dev-packages.tensorflow]
+file = "https://storage.googleapis.com/tensorflow/linux/cpu/tensorflow-1.13.2-cp37-cp37m-linux_x86_64.whl"
