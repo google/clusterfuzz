@@ -380,4 +380,4 @@ if sys.version_info.major == 2:
       self.flush()
       return self.raw.getvalue()
 else:
-  MockStdout = io.StringIO
+  MockStdout = io.StringIO  # pylint: disable=invalid-name
