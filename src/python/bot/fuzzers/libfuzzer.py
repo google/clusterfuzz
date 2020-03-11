@@ -25,6 +25,7 @@ import random
 import re
 import shutil
 import string
+import sys
 import tempfile
 
 from base import retry
@@ -34,6 +35,7 @@ from bot.fuzzers import engine_common
 from bot.fuzzers import mutator_plugin
 from bot.fuzzers import utils as fuzzer_utils
 from bot.fuzzers.libFuzzer import constants
+from bot.fuzzers.libFuzzer.peach import pits
 from datastore import data_types
 from fuzzing import strategy
 from metrics import logs
@@ -45,6 +47,7 @@ from platforms.fuchsia.device import stop_qemu
 from platforms.fuchsia.util.device import Device
 from platforms.fuchsia.util.fuzzer import Fuzzer
 from platforms.fuchsia.util.host import Host
+from system import archive
 from system import environment
 from system import minijail
 from system import new_process
@@ -76,6 +79,13 @@ CRASH_TESTCASE_REGEX = (r'.*Test unit written to\s*'
 
 # Currently matches oss-fuzz/infra/base-images/base-runner/collect_dft#L34.
 DATAFLOW_TRACE_DIR_SUFFIX = '_dft'
+
+#List of all strategies that affect LD_PRELOAD.
+MUTATOR_STRATEGIES = [
+    strategy.PEACH_GRAMMAR_MUTATION_STRATEGY.name,
+    strategy.MUTATOR_PLUGIN_STRATEGY.name,
+    strategy.MUTATOR_PLUGIN_RADAMSA_STRATEGY.name
+]
 
 
 class LibFuzzerException(Exception):
@@ -1573,15 +1583,20 @@ def use_mutator_plugin(target_name, extra_env):
   return True
 
 
+def is_linux_asan():
+  """Helper functions. Returns whether or not the current env is linux asan."""
+  return (environment.platform() != 'LINUX' or
+          environment.get_value('MEMORY_TOOL') != 'ASAN')
+
+
 def use_radamsa_mutator_plugin(extra_env):
   """Decide whether to use Radamsa in process. If yes, add the path to the
   radamsa shared object to LD_PRELOAD in |extra_env| and return True."""
 
   # Radamsa will only work on LINUX ASAN jobs.
   # TODO(mpherman): Include architecture info in job definition and exclude
-  #  i386.
-  if environment.platform() != 'LINUX' or environment.get_value(
-      'MEMORY_TOOL') != 'ASAN':
+  # i386.
+  if not is_linux_asan():
     return False
 
   radamsa_path = os.path.join(environment.get_platform_resources_directory(),
@@ -1589,6 +1604,50 @@ def use_radamsa_mutator_plugin(extra_env):
 
   logs.log('Using Radamsa mutator plugin : %s' % radamsa_path)
   extra_env['LD_PRELOAD'] = radamsa_path
+  return True
+
+
+def use_peach_mutator(extra_env, grammar):
+  """Decide whether or not to use peach mutator, and set up all of the
+  environment variables necessary to do so."""
+  # TODO(mpherman): Include architecture info in job definition and exclude
+  # i386.
+  if not is_linux_asan():
+    return False
+
+  if not grammar:
+    return False
+
+  pit_path = pits.get_path(grammar)
+
+  if not pit_path:
+    return False
+
+  # Set title and pit environment variables
+  extra_env['PIT_PATH'] = pit_path
+  extra_env['PIT_TITLE'] = grammar
+
+  # Extract zip of peach mutator code.
+  peach_dir = os.path.join(environment.get_platform_resources_directory(),
+                           'peach')
+  unzipped = os.path.join(peach_dir, 'mutator')
+  source = os.path.join(peach_dir, 'peach_mutator.zip')
+
+  archive.unpack(source, unzipped, trusted=True)
+
+  # Set LD_PRELOAD.
+  peach_path = os.path.join(unzipped, 'peach_mutator', 'src', 'peach.so')
+  extra_env['LD_PRELOAD'] = peach_path
+
+  # Set Python path.
+  # TODO(mpherman): Change this to explicitly point to Python 2.
+  new_path = [
+      os.path.join(unzipped, 'peach_mutator', 'src'),
+      os.path.join(unzipped, 'peach_mutator', 'third_party', 'peach')
+  ] + sys.path
+
+  extra_env['PYTHONPATH'] = os.pathsep.join(new_path)
+
   return True
 
 
@@ -1615,8 +1674,15 @@ def move_mergeable_units(merge_directory, corpus_directory):
     shell.move(unit_path, dest_path)
 
 
-def pick_strategies(strategy_pool, fuzzer_path, corpus_directory,
-                    existing_arguments):
+def has_existing_mutator_strategy(fuzzing_strategy):
+  return any(strategy in fuzzing_strategy for strategy in MUTATOR_STRATEGIES)
+
+
+def pick_strategies(strategy_pool,
+                    fuzzer_path,
+                    corpus_directory,
+                    existing_arguments,
+                    grammar=None):
   """Pick strategies."""
   build_directory = environment.get_value('BUILD_DIR')
   target_name = os.path.basename(fuzzer_path)
@@ -1710,7 +1776,13 @@ def pick_strategies(strategy_pool, fuzzer_path, corpus_directory,
       use_mutator_plugin(target_name, extra_env)):
     fuzzing_strategies.append(strategy.MUTATOR_PLUGIN_STRATEGY.name)
 
-  if (strategy.MUTATOR_PLUGIN_STRATEGY.name not in fuzzing_strategies and
+  if (not has_existing_mutator_strategy(fuzzing_strategies) and
+      strategy_pool.do_strategy(strategy.PEACH_GRAMMAR_MUTATION_STRATEGY) and
+      use_peach_mutator(extra_env, grammar)):
+    fuzzing_strategies.append(
+        '%s_%s' % (strategy.PEACH_GRAMMAR_MUTATION_STRATEGY.name, grammar))
+
+  if (not has_existing_mutator_strategy(fuzzing_strategies) and
       strategy_pool.do_strategy(strategy.MUTATOR_PLUGIN_RADAMSA_STRATEGY) and
       use_radamsa_mutator_plugin(extra_env)):
     fuzzing_strategies.append(strategy.MUTATOR_PLUGIN_RADAMSA_STRATEGY.name)
