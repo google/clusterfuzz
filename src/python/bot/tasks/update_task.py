@@ -331,12 +331,12 @@ def run():
     # Update heartbeat with current time.
     data_handler.update_heartbeat()
 
-    # Download new layout tests once per day.
-    update_tests_if_needed()
-
     # Check overall free disk space. If we are running too low, clear all
     # data directories like builds, fuzzers, data bundles, etc.
     shell.clear_data_directories_on_low_disk_space()
+
+    # Download new layout tests once per day.
+    update_tests_if_needed()
   except Exception:
     logs.log_error('Error occurred while running update task.')
 

@@ -18,6 +18,7 @@ disable=
   fixme,
   global-statement,
   import-error,
+  import-outside-toplevel,
   locally-disabled,
   misplaced-comparison-constant,
   multiple-imports,
