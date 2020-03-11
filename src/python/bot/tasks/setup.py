@@ -604,6 +604,13 @@ def get_data_bundle_directory(fuzzer_name):
     logs.log_error('Unable to find fuzzer %s.' % fuzzer_name)
     return None
 
+  # Store corpora for built-in fuzzers like libFuzzer in the same directory
+  # as other local data bundles. This makes it easy to clear them when we run
+  # out of disk space.
+  local_data_bundles_directory = environment.get_value('DATA_BUNDLES_DIR')
+  if fuzzer.builtin:
+    return local_data_bundles_directory
+
   # Check if we have a fuzzer-specific data bundle. Use it to calculate the
   # data directory we will fetch our testcases from.
   data_bundle = data_types.DataBundle.query(
@@ -613,7 +620,6 @@ def get_data_bundle_directory(fuzzer_name):
     # have their own data bundle.
     return environment.get_value('FUZZ_DATA')
 
-  local_data_bundles_directory = environment.get_value('DATA_BUNDLES_DIR')
   local_data_bundle_directory = os.path.join(local_data_bundles_directory,
                                              data_bundle.name)
 

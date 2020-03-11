@@ -495,7 +495,7 @@ def reset_usb():
     return True
 
   # App Engine does not let us import this.
-  import fcntl  # pylint: disable=import-outside-toplevel
+  import fcntl
 
   # We need to get latest device path since it could be changed in reboots or
   # adb root restarts.
