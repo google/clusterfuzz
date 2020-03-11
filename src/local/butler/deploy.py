@@ -412,7 +412,7 @@ def execute(args):
   deploy_zips = 'zips' in args.targets
   deploy_appengine = 'appengine' in args.targets
 
-  is_python_3 = sys.version_info.major == 3
+  is_python3 = sys.version_info.major == 3
   package_zip_paths = []
   if deploy_zips:
     for platform_name in platforms:
@@ -436,14 +436,14 @@ def execute(args):
 
   deploy_go = args.with_go
   if args.staging:
-    _staging_deployment_helper(deploy_go, python3=is_python_3)
+    _staging_deployment_helper(deploy_go, python3=is_python3)
   else:
     _prod_deployment_helper(
         args.config_dir,
         package_zip_paths,
         deploy_go,
         deploy_appengine,
-        python3=is_python_3)
+        python3=is_python3)
 
   with open(constants.PACKAGE_TARGET_MANIFEST_PATH) as f:
     print('Source updated to %s' % f.read())
