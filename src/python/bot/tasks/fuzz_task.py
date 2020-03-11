@@ -504,7 +504,7 @@ class GcsCorpus(object):
 
     # Check if the corpus was recently synced. If yes, set a flag so that we
     # don't sync it again and save some time.
-    if last_sync_time:
+    if last_sync_time and os.path.exists(self._corpus_directory):
       last_update_time = storage.last_updated(self.gcs_corpus.get_gcs_url())
       if last_update_time and last_sync_time > last_update_time:
         logs.log('Corpus for target %s has no new updates, skipping rsync.' %

@@ -45,6 +45,7 @@ from system import environment
 from system import shell
 
 _BOT_DIR = 'bot'
+_DATA_BUNDLE_CACHE_COUNT = 10
 _DATA_BUNDLE_SYNC_INTERVAL_IN_SECONDS = 6 * 60 * 60
 _DATA_BUNDLE_LOCK_INTERVAL_IN_SECONDS = 3 * 60 * 60
 _SYNC_FILENAME = '.sync'
@@ -356,6 +357,26 @@ def _fetch_lock_for_data_bundle_update(data_bundle):
       by_zone=True)
 
 
+def _clear_old_data_bundles_if_needed():
+  """Clear old data bundles so as to keep the disk cache restricted to
+  |_DATA_BUNDLE_CACHE_COUNT| data bundles and prevent potential out-of-disk
+  spaces."""
+  data_bundles_directory = environment.get_value('DATA_BUNDLES_DIR')
+
+  dirs = []
+  for filename in os.listdir(data_bundles_directory):
+    file_path = os.path.join(data_bundles_directory, filename)
+    if not os.path.isdir(file_path):
+      continue
+    dirs.append(file_path)
+
+  dirs_to_remove = sorted(
+      dirs, key=os.path.getmtime, reverse=True)[_DATA_BUNDLE_CACHE_COUNT:]
+  for dir_to_remove in dirs_to_remove:
+    logs.log('Removing data bundle directory to keep disk cache small.')
+    shell.remove_directory(dir_to_remove)
+
+
 def update_data_bundle(fuzzer, data_bundle):
   """Updates a data bundle to the latest version."""
   # This module can't be in the global imports due to appengine issues
@@ -512,6 +533,8 @@ def update_fuzzer_and_data_bundles(fuzzer_name):
     # Save the current revision of this fuzzer in a file for later checks.
     revisions.write_revision_to_revision_file(version_file, fuzzer.revision)
     logs.log('Updated fuzzer to revision %d.' % fuzzer.revision)
+
+  _clear_old_data_bundles_if_needed()
 
   # Setup data bundles associated with this fuzzer.
   data_bundles = ndb_utils.get_all_from_query(
