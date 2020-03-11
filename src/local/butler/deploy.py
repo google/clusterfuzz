@@ -91,7 +91,7 @@ def _deploy_app_prod(project,
                      package_zip_paths,
                      deploy_appengine=True):
   """Deploy app in production."""
-  if deploy_appengine and yaml_paths:
+  if deploy_appengine:
     services = _get_services(yaml_paths)
     rebased_yaml_paths = appengine.copy_yamls_and_preprocess(
         yaml_paths, _additional_app_env_vars(project))
@@ -337,8 +337,10 @@ def _prod_deployment_helper(config_dir,
 
   yaml_paths = gae_deployment.get_absolute_path(path, default=[])
   yaml_paths = appengine.filter_yaml_paths(yaml_paths, deploy_go)
+  if not yaml_paths:
+    deploy_appengine = False
 
-  if yaml_paths and deploy_appengine:
+  if deploy_appengine:
     _update_pubsub_queues(project)
     _update_alerts(project)
     _update_bigquery(project)
@@ -351,7 +353,7 @@ def _prod_deployment_helper(config_dir,
       package_zip_paths,
       deploy_appengine=deploy_appengine)
 
-  if yaml_paths and deploy_appengine:
+  if deploy_appengine:
     common.execute('python butler.py run setup --config-dir {config_dir} '
                    '--non-dry-run'.format(config_dir=config_dir))
   print('Production deployment finished.')
