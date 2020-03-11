@@ -15,10 +15,10 @@
 from __future__ import print_function
 from future import standard_library
 standard_library.install_aliases()
+import sys
 import time
 import urllib.error
 import urllib.request
-import sys
 
 from local.butler import common
 from local.butler import constants
