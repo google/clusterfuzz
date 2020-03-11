@@ -134,7 +134,7 @@ def execute_command(cmd, timeout=None, log_error=True):
       if log_error:
         logs.log_warn(
             '%s returned %d error code.' % (cmd, pipe.returncode),
-            output=''.join(so).strip())
+            output=output)
 
   thread = threading.Thread(target=run)
   thread.start()
@@ -149,7 +149,7 @@ def execute_command(cmd, timeout=None, log_error=True):
     return None
 
   bytes_output = b''.join(so)
-  return bytes_output.strip().decode('utf-8')
+  return bytes_output.strip().decode('utf-8', errors='ignore')
 
 
 def factory_reset():
