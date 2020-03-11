@@ -549,11 +549,6 @@ def _record_cross_pollination_stats(stats):
   # If no stats were gathered due to a timeout or lack of corpus, return.
   if not stats:
     return
-  # BigQuery not available in local development.This is necessary because the
-  # untrusted runner is in a separate process and can't be easily mocked.
-  if environment.get_value('LOCAL_DEVELOPMENT') or environment.get_value(
-      'PY_UNITTESTS'):
-    return
 
   bigquery_row = {
       'project_qualified_name': stats.project_qualified_name,
@@ -567,6 +562,13 @@ def _record_cross_pollination_stats(stats):
       'initial_feature_coverage': stats.initial_feature_coverage,
       'feature_coverage': stats.feature_coverage
   }
+
+  # BigQuery not available in local development.This is necessary because the
+  # untrusted runner is in a separate process and can't be easily mocked.
+  # Check here instead of earlier to test for attribute errors above.
+  if environment.get_value('LOCAL_DEVELOPMENT') or environment.get_value(
+      'PY_UNITTESTS'):
+    return
 
   client = big_query.Client(
       dataset_id='main', table_id='cross_pollination_statistics')
