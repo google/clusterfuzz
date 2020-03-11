@@ -319,7 +319,8 @@ def _staging_deployment_helper(deploy_go, python3=False):
 def _prod_deployment_helper(config_dir,
                             package_zip_paths,
                             deploy_go=True,
-                            deploy_appengine=True):
+                            deploy_appengine=True,
+                            python3=False):
   """Helper for production deployment."""
   config = local_config.Config()
   deployment_bucket = config.get('project.deployment.bucket')
@@ -329,7 +330,12 @@ def _prod_deployment_helper(config_dir,
   project = gae_config.get('application_id')
 
   print('Deploying %s to prod.' % project)
-  yaml_paths = gae_deployment.get_absolute_path('prod')
+  if python3:
+    path = 'prod3'
+  else:
+    path = 'prod'
+
+  yaml_paths = gae_deployment.get_absolute_path(path)
   yaml_paths = appengine.filter_yaml_paths(yaml_paths, deploy_go)
 
   if deploy_appengine:
@@ -379,7 +385,7 @@ def execute(args):
   # Build templates before deployment.
   appengine.build_templates()
 
-  if not is_ci and not (args.staging or args.staging3):
+  if not is_ci and not args.staging:
     if is_diff_origin_master():
       if args.force:
         print('You are not on origin/master. --force is used. Continue.')
@@ -391,7 +397,7 @@ def execute(args):
         print('You are not on origin/master. Please fix or use --force.')
         sys.exit(1)
 
-  if args.staging or args.staging3:
+  if args.staging:
     revision = common.compute_staging_revision()
     platforms = ['linux']  # No other platforms required.
   elif args.prod:
@@ -406,11 +412,13 @@ def execute(args):
   deploy_zips = 'zips' in args.targets
   deploy_appengine = 'appengine' in args.targets
 
+  is_python_3 = sys.version_info.major == 3
   package_zip_paths = []
   if deploy_zips:
     for platform_name in platforms:
       package_zip_paths.append(
-          package.package(revision, platform_name=platform_name))
+          package.package(
+              revision, platform_name=platform_name, python3=is_python3))
   else:
     # package.package calls these, so only set these up if we're not packaging,
     # since they can be fairly slow.
@@ -428,12 +436,14 @@ def execute(args):
 
   deploy_go = args.with_go
   if args.staging:
-    _staging_deployment_helper(deploy_go, python3=False)
-  elif args.staging3:
-    _staging_deployment_helper(deploy_go, python3=True)
+    _staging_deployment_helper(deploy_go, python3=is_python_3)
   else:
-    _prod_deployment_helper(args.config_dir, package_zip_paths, deploy_go,
-                            deploy_appengine)
+    _prod_deployment_helper(
+        args.config_dir,
+        package_zip_paths,
+        deploy_go,
+        deploy_appengine,
+        python3=is_python_3)
 
   with open(constants.PACKAGE_TARGET_MANIFEST_PATH) as f:
     print('Source updated to %s' % f.read())
