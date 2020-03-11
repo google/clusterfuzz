@@ -79,6 +79,13 @@ CRASH_TESTCASE_REGEX = (r'.*Test unit written to\s*'
 # Currently matches oss-fuzz/infra/base-images/base-runner/collect_dft#L34.
 DATAFLOW_TRACE_DIR_SUFFIX = '_dft'
 
+#List of all strategies that affect LD_PRELOAD.
+MUTATOR_STRATEGIES = [
+    strategy.PEACH_GRAMMAR_MUTATION_STRATEGY.name,
+    strategy.MUTATOR_PLUGIN_STRATEGY.name,
+    strategy.MUTATOR_PLUGIN_RADAMSA_STRATEGY.name
+]
+
 
 class LibFuzzerException(Exception):
   """LibFuzzer exception."""
@@ -1664,6 +1671,10 @@ def move_mergeable_units(merge_directory, corpus_directory):
     shell.move(unit_path, dest_path)
 
 
+def has_existing_mutator_strategy(fuzzing_strategy):
+  return any(strategy in fuzzing_strategy for strategy in MUTATOR_STRATEGIES)
+
+
 def pick_strategies(strategy_pool,
                     fuzzer_path,
                     corpus_directory,
@@ -1762,15 +1773,13 @@ def pick_strategies(strategy_pool,
       use_mutator_plugin(target_name, extra_env)):
     fuzzing_strategies.append(strategy.MUTATOR_PLUGIN_STRATEGY.name)
 
-  if (strategy.MUTATOR_PLUGIN_STRATEGY.name not in fuzzing_strategies and
+  if (not has_existing_mutator_strategy(fuzzing_strategies) and
       strategy_pool.do_strategy(strategy.PEACH_GRAMMAR_MUTATION_STRATEGY) and
       use_peach_mutator(extra_env, grammar)):
     fuzzing_strategies.append(
         '%s_%s' % (strategy.PEACH_GRAMMAR_MUTATION_STRATEGY.name, grammar))
 
-  if (strategy.MUTATOR_PLUGIN_STRATEGY.name not in fuzzing_strategies and
-      strategy.PEACH_GRAMMAR_MUTATION_STRATEGY.name not in fuzzing_strategies
-      and
+  if (not has_existing_mutator_strategy(fuzzing_strategies) and
       strategy_pool.do_strategy(strategy.MUTATOR_PLUGIN_RADAMSA_STRATEGY) and
       use_radamsa_mutator_plugin(extra_env)):
     fuzzing_strategies.append(strategy.MUTATOR_PLUGIN_RADAMSA_STRATEGY.name)
