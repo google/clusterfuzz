@@ -351,7 +351,7 @@ def _prod_deployment_helper(config_dir,
       package_zip_paths,
       deploy_appengine=deploy_appengine)
 
-  if deploy_appengine:
+  if yaml_paths and deploy_appengine:
     common.execute('python butler.py run setup --config-dir {config_dir} '
                    '--non-dry-run'.format(config_dir=config_dir))
   print('Production deployment finished.')
