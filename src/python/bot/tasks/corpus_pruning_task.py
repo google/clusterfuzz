@@ -563,9 +563,9 @@ def _record_cross_pollination_stats(stats):
       'feature_coverage': stats.feature_coverage
   }
 
-  # BigQuery not available in local development.This is necessary because the
+  # BigQuery not available in local development. This is necessary because the
   # untrusted runner is in a separate process and can't be easily mocked.
-  # Check here instead of earlier to test for attribute errors above.
+  # Check here instead of earlier to test as much of the function as we can.
   if environment.get_value('LOCAL_DEVELOPMENT') or environment.get_value(
       'PY_UNITTESTS'):
     return
