@@ -373,7 +373,8 @@ def _clear_old_data_bundles_if_needed():
   dirs_to_remove = sorted(
       dirs, key=os.path.getmtime, reverse=True)[_DATA_BUNDLE_CACHE_COUNT:]
   for dir_to_remove in dirs_to_remove:
-    logs.log('Removing data bundle directory to keep disk cache small.')
+    logs.log('Removing data bundle directory to keep disk cache small: %s' %
+             dir_to_remove)
     shell.remove_directory(dir_to_remove)
 
 
