@@ -41,9 +41,7 @@ steps:
   args: ['pipenv', 'run', 'setup']
 - name: 'gcr.io/clusterfuzz-images/ci'
   args:
-    - 'bash'
-    - '-ex'
-    - 'pipenv run local/tests/run_all_tests'
+    - ['pipenv', 'run', 'local/tests/run_all_tests']
   env:
     - TEST_BLOBS_BUCKET=clusterfuzz-ci-blobs
     - TEST_BUCKET=clusterfuzz-ci-test
