@@ -26,7 +26,6 @@ waitress = "==1.4.3"
 WebTest = "==2.0.23"
 yapf = "==0.22.0"
 
-[dev-packages]
 crcmod = "==1.7"
 Fabric = "==1.14.1"
 future = "==0.17.1"

@@ -30,6 +30,14 @@ RUN apt-get update && \
         nodejs \
         openjdk-8-jdk
 
+# Install Python 3.
+# TODO(ochang): Move this to base image.
+RUN curl -sS https://www.python.org/ftp/python/3.7.7/Python-3.7.7.tgz | tar -C /tmp -xzv && \
+    cd /tmp/Python-3.7.7 && \
+    ./configure --enable-optimizations && make altinstall && \
+    rm -rf /tmp/Python-3.7.7
+RUN pip3.7 install pipenv
+
 # Install Bazel as per https://docs.bazel.build/versions/master/install-ubuntu.html#using-bazel-custom-apt-repository.
 RUN echo "deb [arch=amd64] http://storage.googleapis.com/bazel-apt stable jdk1.8" | tee /etc/apt/sources.list.d/bazel.list && \
     curl https://bazel.build/bazel-release.pub.gpg | apt-key add - && \
