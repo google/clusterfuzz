@@ -94,7 +94,7 @@ def encode_text(bytes_data):
   if sys.version_info.major == 3:
     return list(bytes_data)
 
-  result = list(map(ord, bytes_data))
+  return list(map(ord, bytes_data))
 
 
 def decode_to_text(encoded_list):
