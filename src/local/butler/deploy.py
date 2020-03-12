@@ -218,9 +218,14 @@ def _deploy_zip(bucket_name, zip_path):
 
 def _deploy_manifest(bucket_name, manifest_path):
   """Deploy source manifest to GCS."""
-  common.execute(
-      'gsutil cp -a public-read %s '
-      'gs://%s/clusterfuzz-source.manifest' % (manifest_path, bucket_name))
+  if sys.version_info.major == 3:
+    manifest_suffix = '.3'
+  else:
+    manifest_suffix = ''
+
+  common.execute('gsutil cp -a public-read %s '
+                 'gs://%s/clusterfuzz-source.manifest%s' %
+                 (manifest_path, bucket_name, manifest_suffix))
 
 
 def _update_deployment_manager(project, name, path):

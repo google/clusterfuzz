@@ -17,6 +17,7 @@ import datetime
 import json
 import mock
 import os
+import sys
 import unittest
 
 from pyfakefs import fake_filesystem_unittest
@@ -53,6 +54,9 @@ class DeployTest(fake_filesystem_unittest.TestCase):
 
     os.environ['ROOT_DIR'] = '.'
     self.mock.now.return_value = datetime.datetime(2017, 1, 3, 12, 1)
+    self.manifest_target = 'clusterfuzz-source.manifest'
+    if sys.version_info.major == 3:
+      self.manifest_target += '.3'
 
   def _check_env_variables(self, yaml_paths):
     """Check that environment variables are written to yaml paths."""
@@ -186,7 +190,7 @@ class DeployTest(fake_filesystem_unittest.TestCase):
                   'linux.zip'),
         mock.call('gsutil cp -a public-read src/appengine/resources/'
                   'clusterfuzz-source.manifest '
-                  'gs://test-deployment-bucket/clusterfuzz-source.manifest'),
+                  'gs://test-deployment-bucket/' + self.manifest_target),
         mock.call('python butler.py run setup --config-dir /config_dir '
                   '--non-dry-run'),
     ])
@@ -237,7 +241,7 @@ class DeployTest(fake_filesystem_unittest.TestCase):
                   'linux.zip'),
         mock.call('gsutil cp -a public-read src/appengine/resources/'
                   'clusterfuzz-source.manifest '
-                  'gs://test-deployment-bucket/clusterfuzz-source.manifest'),
+                  'gs://test-deployment-bucket/' + self.manifest_target),
         mock.call('python butler.py run setup --config-dir /config_dir '
                   '--non-dry-run'),
     ])
@@ -328,7 +332,7 @@ class DeployTest(fake_filesystem_unittest.TestCase):
                   'linux.zip'),
         mock.call('gsutil cp -a public-read src/appengine/resources/'
                   'clusterfuzz-source.manifest '
-                  'gs://test-deployment-bucket/clusterfuzz-source.manifest'),
+                  'gs://test-deployment-bucket/' + self.manifest_target),
         mock.call('python butler.py run setup --config-dir /config_dir '
                   '--non-dry-run'),
     ])
