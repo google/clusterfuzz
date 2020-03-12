@@ -59,6 +59,7 @@ def _rsync_errors_below_threshold(gsutil_result, max_errors):
   # Ignore NotFoundException(s) since they can happen when files can get deleted
   # e.g. when pruning task is updating corpus.
   error_count -= gsutil_result.output.count('NotFoundException')
+  error_count -= gsutil_result.output.count('No such file or directory')
 
   return error_count <= max_errors
 
