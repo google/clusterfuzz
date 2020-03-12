@@ -69,6 +69,9 @@ def close_invalid_testcase_and_update_status(testcase, metadata, status):
   """Closes an invalid testcase and updates metadata."""
   testcase.status = status
   testcase.open = False
+  testcase.minimized_keys = 'NA'
+  testcase.regression = 'NA'
+  testcase.set_impacts_as_na()
   testcase.fixed = 'NA'
   testcase.put()
 
@@ -311,7 +314,14 @@ def execute_task(testcase_id, job_type):
     duplicate_testcase.put()
 
   # Set testcase and metadata status if not set already.
-  if testcase.status != 'Duplicate':
+  if testcase.status == 'Duplicate':
+    # For testcase uploaded by bots (with quiet flag), don't create additional
+    # tasks.
+    if metadata.quiet_flag:
+      close_invalid_testcase_and_update_status(testcase, metadata, 'Duplicate')
+      return
+  else:
+    # New testcase.
     testcase.status = 'Processed'
     metadata.status = 'Confirmed'
 
