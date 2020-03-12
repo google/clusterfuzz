@@ -200,5 +200,5 @@ class MinimizeTaskTestUntrusted(
 
     blobs.read_blob_to_disk(testcase.minimized_keys, testcase_path)
 
-    with open(testcase_path) as f:
+    with open(testcase_path, 'rb') as f:
       self.assertEqual(1, len(f.read()))
