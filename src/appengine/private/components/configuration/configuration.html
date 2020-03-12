@@ -128,6 +128,17 @@
 
               <tr>
                 <td class="label">
+                  <div class="help" title="List of blacklisted users (one email per line). These users are blocked from accessing pages. Has precedence over other rules.">
+                    Blacklisted users
+                  </div>
+                </td>
+                <td>
+                  <paper-textarea name="blacklisted_users" max-rows="5" value="[[config.blacklisted_users]]" no-label-float></paper-textarea>
+                </td>
+              </tr>
+
+              <tr>
+                <td class="label">
                   <div class="help" title="Platform group to zone mapping (one per line - platform;zone). This groups platforms into a particular zone for locks (e.g. modifying corpus on NFS).">
                     Platform group to zone mapping
                   </div>

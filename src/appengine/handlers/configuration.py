@@ -120,6 +120,7 @@ class Handler(base_handler.Handler):
     github_credentials = self.request.get('github_credentials')
     platform_group_mappings = self.request.get('platform_group_mappings')
     privileged_users = self.request.get('privileged_users')
+    blacklisted_users = self.request.get('blacklisted_users')
     relax_security_bug_restrictions = self.request.get(
         'relax_security_bug_restrictions')
     relax_testcase_restrictions = self.request.get(
@@ -149,6 +150,7 @@ class Handler(base_handler.Handler):
     config.jira_url = jira_url
     config.platform_group_mappings = platform_group_mappings
     config.privileged_users = privileged_users
+    config.blacklisted_users = blacklisted_users
     config.relax_security_bug_restrictions = bool(
         relax_security_bug_restrictions)
     config.relax_testcase_restrictions = bool(relax_testcase_restrictions)

@@ -762,6 +762,9 @@ class Config(Model):
   # Privileged users.
   privileged_users = TextProperty(default='')
 
+  # Blacklisted users.
+  blacklisted_users = TextProperty(default='')
+
   # Admin contact string.
   contact_string = StringProperty(default='')
 

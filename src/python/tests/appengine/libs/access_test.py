@@ -110,11 +110,13 @@ class GetAccessTest(unittest.TestCase):
     test_helpers.patch(self, [
         'libs.auth.get_current_user',
         'libs.auth.is_current_user_admin',
+        'libs.access._is_blacklisted_user',
         'libs.access._is_privileged_user',
         'libs.access._is_domain_allowed',
         'base.external_users.is_fuzzer_allowed_for_user',
         'base.external_users.is_job_allowed_for_user',
     ])
+    self.mock._is_blacklisted_user.return_value = False
     self.user = auth.User('test@test.com')
 
   def test_get_access_access_redirect(self):
@@ -184,6 +186,13 @@ class GetAccessTest(unittest.TestCase):
     self.mock.is_job_allowed_for_user.return_value = False
     self.assertEqual(
         access.get_access(fuzzer_name='test'), access.UserAccess.Denied)
+    self.assertEqual(access.get_access(), access.UserAccess.Denied)
+
+  def test_blacklisted_user(self):
+    """Test blacklisted users."""
+    self.mock.is_current_user_admin.return_value = False
+    self.mock._is_domain_allowed.return_value = True
+    self.mock._is_blacklisted_user.return_value = True
     self.assertEqual(access.get_access(), access.UserAccess.Denied)
 
 
