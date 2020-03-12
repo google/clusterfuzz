@@ -31,16 +31,18 @@ def _is_privileged_user(email):
   """Check if an email is in the privileged users list."""
   privileged_user_emails = (db_config.get_value('privileged_users') or
                             '').splitlines()
-  return any(utils.emails_equal(email, privileged_user_email) for
-             privileged_user_email in privileged_user_emails)
+  return any(
+      utils.emails_equal(email, privileged_user_email)
+      for privileged_user_email in privileged_user_emails)
 
 
 def _is_blacklisted_user(email):
   """Check if an email is in the privileged users list."""
   blacklisted_user_emails = (db_config.get_value('blacklisted_users') or
-                            '').splitlines()
-  return any(utils.emails_equal(email, blacklisted_user_email) for
-             blacklisted_user_email in blacklisted_user_emails)
+                             '').splitlines()
+  return any(
+      utils.emails_equal(email, blacklisted_user_email)
+      for blacklisted_user_email in blacklisted_user_emails)
 
 
 def get_user_job_type():
