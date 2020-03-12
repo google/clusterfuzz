@@ -31,14 +31,10 @@ steps:
   args: ['pipenv', 'sync']
   env:
     - PIPENV_VENV_IN_PROJECT=1
-
-- name: 'gcr.io/clusterfuzz-images/ci'
-  args: ['pipenv', 'run', 'python', 'butler.py', 'lint']
-  env:
-    - GOOGLE_CLOUDBUILD=1
-    - PIPENV_VENV_IN_PROJECT=1
 - name: 'gcr.io/clusterfuzz-images/ci'
   args: ['pipenv', 'run', 'setup']
+  env:
+    - PIPENV_VENV_IN_PROJECT=1
 - name: 'gcr.io/clusterfuzz-images/ci'
   args: ['pipenv', 'run', 'local/tests/run_all_tests']
   env:
