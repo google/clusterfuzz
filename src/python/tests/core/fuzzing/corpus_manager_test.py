@@ -146,8 +146,8 @@ class RsyncErrorHandlingTest(unittest.TestCase):
     """Test rsync returning errors (below threshold, but with not found errors
     and overall error count more than threshold)."""
     output = (
-        'blah\n' +
-        'NotFoundException: 404 gs://bucket/file001 does not exist.\n' * 190 +
+        'blah\n' + '[Errno 2] No such file or directory\n' * 10 +
+        'NotFoundException: 404 gs://bucket/file001 does not exist.\n' * 180 +
         'CommandException: 200 files/objects could not be copied/removed.\n')
 
     self.mock._count_corpus_files.return_value = 10  # pylint: disable=protected-access
