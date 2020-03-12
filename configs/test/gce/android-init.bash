@@ -46,7 +46,7 @@ PYTHONPATH="$PYTHONPATH:$ROOT_DIR/src"
 curl -sL https://deb.nodesource.com/setup_11.x | sudo -E bash -
 
 echo "Installing dependencies."
-apt-get update && apt-get install -y \
+apt-get update && apt-get --no-install-recommends install -y \
   autofs \
   apt-transport-https \
   build-essential \

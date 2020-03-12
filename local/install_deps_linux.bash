@@ -58,7 +58,7 @@ fi
 
 if [ ! $only_reproduce ]; then
   # Prerequisite for add-apt-repository.
-  sudo apt-get install -y apt-transport-https software-properties-common
+  sudo apt-get --no-install-recommends install -y apt-transport-https software-properties-common
 
   if [ "$distro_codename" == "rodete" ]; then
     prodaccess
@@ -92,7 +92,7 @@ if [ ! $only_reproduce ]; then
 
   # Install apt-get packages.
   sudo apt-get update
-  sudo apt-get install -y \
+  sudo apt-get --no-install-recommends install -y \
       bazel \
       docker-ce \
       google-cloud-sdk \
@@ -114,12 +114,12 @@ if [ ! $only_reproduce ]; then
           sudo make install && \
           sudo rm -rf /tmp/patchelf-*)
   else
-      sudo apt-get install -y patchelf
+      sudo apt-get --no-install-recommends install -y patchelf
   fi
 fi
 
 # Install other packages that we depend on unconditionally.
-sudo apt-get install -y \
+sudo apt-get --no-install-recommends install -y \
     blackbox \
     python-pip \
     python-virtualenv \
@@ -138,7 +138,7 @@ if gcloud components install --quiet beta; then
 else
   # Either Cloud SDK component manager is disabled (default on GCE), or google-cloud-sdk package is
   # installed via apt-get.
-  sudo apt-get install -y \
+  sudo apt-get --no-install-recommends install -y \
       google-cloud-sdk-app-engine-go \
       google-cloud-sdk-app-engine-python \
       google-cloud-sdk-app-engine-python-extras \
@@ -149,7 +149,7 @@ fi
 
 # Setup virtualenv.
 if [[ -n "$PY3" ]]; then
-  sudo apt-get install -y pipenv
+  sudo apt-get --no-install-recommends install -y pipenv
   pipenv sync --python 3.7
   pipenv sync --dev
   source "$(pipenv --venv)/bin/activate"

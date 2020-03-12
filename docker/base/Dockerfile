@@ -21,7 +21,7 @@ ENV DEBIAN_FRONTEND noninteractive
 RUN apt-get update && \
     apt-get upgrade -y && \
     apt-get autoremove -y && \
-    apt-get install -y \
+    apt-get --no-install-recommends install -y \
         apt-transport-https \
         build-essential \
         curl \
@@ -53,7 +53,7 @@ RUN curl -sS https://nixos.org/releases/patchelf/patchelf-0.9/patchelf-0.9.tar.b
 RUN CLOUD_SDK_REPO="cloud-sdk-$(lsb_release -c -s)" && \
     echo "deb https://packages.cloud.google.com/apt $CLOUD_SDK_REPO main" | tee -a /etc/apt/sources.list.d/google-cloud-sdk.list && \
     curl https://packages.cloud.google.com/apt/doc/apt-key.gpg | apt-key add -  && \
-    apt-get update && apt-get install -y google-cloud-sdk
+    apt-get update && apt-get --no-install-recommends install -y google-cloud-sdk
 
 # Only upgrade python packages used by fuzzers and infrastructure.
 COPY requirements.txt .

@@ -1,6 +1,6 @@
 # Prerequisites
 ```bash
-sudo apt install ruby bundler
+sudo apt-get --no-install-recommends install ruby bundler
 bundle install --path vendor/bundle
 ```
 

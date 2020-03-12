@@ -26,7 +26,7 @@ RUN wget https://developer.nvidia.com/compute/cuda/9.0/Prod/local_installers/cud
     dpkg -i cuda.deb && \
     apt-key add /var/cuda-repo-9-0-local/7fa2af80.pub && \
     apt-get update && \
-    apt-get install -y cuda
+    apt-get --no-install-recommends install -y cuda
 
 # From (requires registration) https://docs.nvidia.com/deeplearning/sdk/cudnn-install/#installlinux-deb
 RUN wget https://storage.googleapis.com/clusterfuzz-data/cudnn/7.1.4_cuda9.0/libcudnn7_7.1.4.18-1%2Bcuda9.0_amd64.deb && \

@@ -22,7 +22,7 @@ ENV EXTRA_PATH "/data/depot_tools"
 ENV WAIT_TIME 7200
 
 RUN apt-get update && \
-    apt-get install -y \
+    apt-get --no-install-recommends install -y \
         git \
         subversion \
         zip

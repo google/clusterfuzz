@@ -18,7 +18,7 @@ RUN curl -sL https://deb.nodesource.com/setup_11.x | sudo -E bash -
 
 # TOOD(ochang):Also need libnss3 libfreetype6 libfontconfig1 libgconf-2-4 xvfb for chrome-driver.
 RUN apt-get update && \
-    apt-get install -y \
+    apt-get --no-install-recommends install -y \
         git \
         golang-go \
         google-cloud-sdk-app-engine-go \
@@ -34,14 +34,14 @@ RUN apt-get update && \
 RUN echo "deb [arch=amd64] http://storage.googleapis.com/bazel-apt stable jdk1.8" | tee /etc/apt/sources.list.d/bazel.list && \
     curl https://bazel.build/bazel-release.pub.gpg | apt-key add - && \
     apt-get update && \
-    apt-get install -y bazel
+    apt-get --no-install-recommends install -y bazel
 
 RUN npm install -g bower polymer-bundler
 
 # Install latest Chrome stable, needed for chromedriver testing.
 RUN curl -s https://dl-ssl.google.com/linux/linux_signing_key.pub | apt-key add - && \
     echo "deb [arch=amd64] http://dl.google.com/linux/chrome/deb/ stable main" >> /etc/apt/sources.list.d/google.list && \
-    apt-get update && apt-get install -y google-chrome-stable
+    apt-get update && apt-get --no-install-recommends install -y google-chrome-stable
 
 # Container Builder mount.
 VOLUME /workspace

@@ -22,7 +22,7 @@ RUN echo ttf-mscorefonts-installer msttcorefonts/accepted-mscorefonts-eula selec
     /tmp/install-build-deps.sh --backwards-compatible --no-prompt --no-chromeos-fonts --syms
 
 RUN apt-get update && \
-    apt-get install -y \
+    apt-get --no-install-recommends install -y \
         autofs \
         dbus-x11 \
         blackbox \

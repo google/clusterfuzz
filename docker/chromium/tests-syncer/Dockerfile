@@ -23,7 +23,7 @@ ENV TESTS_ARCHIVE_NAME "web_tests.zip"
 ENV TESTS_DIR /home/$USER/tests
 
 RUN apt-get update && \
-    apt-get install -y \
+    apt-get --no-install-recommends install -y \
         git \
         subversion \
         zip
