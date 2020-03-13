@@ -40,6 +40,7 @@ RUN wget https://storage.googleapis.com/clusterfuzz-data/cudnn/7.1.4_cuda9.0/lib
 # needs to match cuda and cuDNN version above.
 RUN pip uninstall tensorflow -y && \
     pip uninstall tensorboard -y && \
+    pip install mock==2.0.0 && \
     pip install tensorflow-gpu==1.8.0
 
 WORKDIR $INSTALL_DIRECTORY
