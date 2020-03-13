@@ -217,8 +217,7 @@ def clear_build_urls_directory():
 def clear_temp_directory():
   """Clear the temp directory on the worker."""
   remove_directory(
-      rebase_to_worker_root(environment.get_value('BOT_TMPDIR')),
-      recreate=True)
+      rebase_to_worker_root(environment.get_value('BOT_TMPDIR')), recreate=True)
 
 
 def push_testcases_to_worker():
