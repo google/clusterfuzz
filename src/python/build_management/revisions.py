@@ -182,7 +182,7 @@ def _get_url_content(url):
   """Read a potentially base64-encoded resource from the given URL."""
   if url.startswith(storage.GS_PREFIX):
     # Fetch a GCS path with authentication.
-    url_content = storage.read_data(url)
+    url_content = storage.read_data(url).decode('utf-8')
   else:
     # Fetch a regular url without authentication.
     url_content = utils.fetch_url(url)
