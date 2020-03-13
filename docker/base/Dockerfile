@@ -49,6 +49,13 @@ RUN curl -sS https://nixos.org/releases/patchelf/patchelf-0.9/patchelf-0.9.tar.b
     ./configure --prefix=/usr && \
     make install
 
+# Install Python 3.
+RUN curl -sS https://www.python.org/ftp/python/3.7.7/Python-3.7.7.tgz | tar -C /tmp -xzv && \
+    cd /tmp/Python-3.7.7 && \
+    ./configure --enable-optimizations && make altinstall && \
+    rm -rf /tmp/Python-3.7.7
+RUN pip3.7 install pipenv
+
 # Install Google Cloud SDK.
 RUN CLOUD_SDK_REPO="cloud-sdk-$(lsb_release -c -s)" && \
     echo "deb https://packages.cloud.google.com/apt $CLOUD_SDK_REPO main" | tee -a /etc/apt/sources.list.d/google-cloud-sdk.list && \
@@ -75,6 +82,7 @@ ENV ROOT_DIR $INSTALL_DIRECTORY/clusterfuzz
 ENV UPDATE_WEB_TESTS True
 ENV PYTHONPATH $INSTALL_DIRECTORY/clusterfuzz/src
 ENV RUN_CMD "python $ROOT_DIR/src/python/bot/startup/run.py"
+ENV DEPLOYMENT_ZIP "linux.zip"
 
 # Passwordless sudo (needed for AFL launcher).
 RUN groupadd nopwsudo && \

@@ -47,6 +47,8 @@ TESTS_LAST_UPDATE_KEY = 'tests_last_update'
 TESTS_UPDATE_INTERVAL_DAYS = 1
 
 MANIFEST_FILENAME = 'clusterfuzz-source.manifest'
+if sys.version_info.major == 3:
+  MANIFEST_FILENAME += '.3'
 
 
 def _rename_dll_for_update(absolute_filepath):
