@@ -117,9 +117,9 @@ class RsyncErrorHandlingTest(unittest.TestCase):
   def test_rsync_error_below_threshold(self):
     """Test rsync returning errors (but they're below threshold)."""
     output = (
-        'blah\n'
-        'blah\n'
-        'CommandException: 10 files/objects could not be copied/removed.\n')
+        b'blah\n'
+        b'blah\n'
+        b'CommandException: 10 files/objects could not be copied/removed.\n')
 
     self.mock._count_corpus_files.return_value = 10  # pylint: disable=protected-access
     self.mock.run_gsutil.return_value = new_process.ProcessResult(
@@ -146,9 +146,9 @@ class RsyncErrorHandlingTest(unittest.TestCase):
     """Test rsync returning errors (below threshold, but with not found errors
     and overall error count more than threshold)."""
     output = (
-        'blah\n' + '[Errno 2] No such file or directory\n' * 10 +
-        'NotFoundException: 404 gs://bucket/file001 does not exist.\n' * 180 +
-        'CommandException: 200 files/objects could not be copied/removed.\n')
+        b'blah\n' + b'[Errno 2] No such file or directory\n' * 10 +
+        b'NotFoundException: 404 gs://bucket/file001 does not exist.\n' * 180 +
+        b'CommandException: 200 files/objects could not be copied/removed.\n')
 
     self.mock._count_corpus_files.return_value = 10  # pylint: disable=protected-access
     self.mock.run_gsutil.return_value = new_process.ProcessResult(
@@ -174,9 +174,9 @@ class RsyncErrorHandlingTest(unittest.TestCase):
   def test_rsync_error_above_threshold(self):
     """Test rsync returning errors (above threshold)."""
     output = (
-        'blah\n'
-        'blah\n'
-        'CommandException: 11 files/objects could not be copied/removed.\n')
+        b'blah\n'
+        b'blah\n'
+        b'CommandException: 11 files/objects could not be copied/removed.\n')
 
     self.mock.run_gsutil.return_value = new_process.ProcessResult(
         command=['/fake'],
