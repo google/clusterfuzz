@@ -32,17 +32,16 @@ def _is_privileged_user(email):
   privileged_user_emails = (db_config.get_value('privileged_users') or
                             '').splitlines()
   # IAP users are automatically priviledged
-  # This requires IAP to be turned on 
+  # This requires IAP to be turned on
   # and a google group in IAM to have the "IAP-secured Web App User" role
   current_request = auth.get_current_request()
   iap_email = auth.get_iap_email(current_request)
   if iap_email:
     return True
-  else:
-    return any(
-      utils.emails_equal(email, privileged_user_email)
-      for privileged_user_email in privileged_user_emails)
 
+  return any(
+    utils.emails_equal(email, privileged_user_email)
+    for privileged_user_email in privileged_user_emails)
 
 def _is_blacklisted_user(email):
   """Check if an email is in the privileged users list."""
