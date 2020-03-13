@@ -1788,10 +1788,6 @@ class FuzzingSession(object):
     if is_lsan_enabled:
       leak_blacklist.copy_global_to_local_blacklist()
 
-    # For some binaries, we specify trials, which are sets of flags that we only
-    # apply some of the time. Adjust APP_ARGS for them if needed.
-    trials.setup_additional_args_for_app()
-
     # Ensure that that the fuzzer still exists.
     logs.log('Setting up fuzzer and data bundles.')
     fuzzer = data_types.Fuzzer.query(
@@ -1852,6 +1848,10 @@ class FuzzingSession(object):
       logs.log_error(
           'Unable to setup data bundle %s.' % fuzzer.data_bundle_name)
       return
+
+    # For some binaries, we specify trials, which are sets of flags that we only
+    # apply some of the time. Adjust APP_ARGS for them if needed.
+    trials.setup_additional_args_for_app()
 
     engine_impl = engine.get(fuzzer.name)
     if engine_impl:
