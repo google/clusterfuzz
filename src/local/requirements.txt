@@ -6,5 +6,5 @@ grpcio-tools==1.15.0
 nodeenv==1.0.0
 paramiko==2.6.0
 protobuf==3.6.1
-psutil==5.4.7
+psutil==5.6.6
 tensorflow==1.8.0
