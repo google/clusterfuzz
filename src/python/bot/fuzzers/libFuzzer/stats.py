@@ -144,8 +144,10 @@ def process_strategies(strategies, name_modifier=strategy_column_name):
     if not line.startswith(strategy_prefix):
       return
 
+    suffix_type = strategy.LIBFUZZER_STRATEGIES_WITH_PREFIX_VALUE_TYPE[
+        strategy_name]
     try:
-      strategy_value = int(line[len(strategy_prefix):])
+      strategy_value = suffix_type(line[len(strategy_prefix):])
       stats[name_modifier(strategy_name)] = strategy_value
     except (IndexError, ValueError) as e:
       logs.log_error('Failed to parse strategy "%s":\n%s\n' % (line, str(e)))
@@ -202,7 +204,11 @@ def parse_performance_features(log_lines, strategies, arguments):
 
   # Initialize all strategy stats as disabled by default.
   for strategy_type in strategy.LIBFUZZER_STRATEGY_LIST:
-    stats[strategy_column_name(strategy_type.name)] = 0
+    if strategy.LIBFUZZER_STRATEGIES_WITH_PREFIX_VALUE_TYPE.get(
+        strategy_type.name) == str:
+      stats[strategy_column_name(strategy_type.name)] = ''
+    else:
+      stats[strategy_column_name(strategy_type.name)] = 0
 
   # Process fuzzing strategies used.
   stats.update(parse_fuzzing_strategies(log_lines, strategies))
