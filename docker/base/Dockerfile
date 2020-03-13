@@ -64,7 +64,7 @@ RUN CLOUD_SDK_REPO="cloud-sdk-$(lsb_release -c -s)" && \
 
 # Only upgrade python packages used by fuzzers and infrastructure.
 COPY requirements.txt .
-RUN pip install -r requirements.txt
+RUN pip install --upgrade pip && pip install -r requirements.txt
 
 # Set up google-fluentd
 # We ignore errors in install-logging-agent.sh as it always fails to start
