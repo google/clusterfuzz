@@ -66,7 +66,7 @@ if [ ! -d "$INSTALL_DIRECTORY/$GOOGLE_CLOUD_SDK" ]; then
 fi
 
 echo "Installing ClusterFuzz package dependencies."
-python -m pip install crcmod==1.7 psutil==5.4.7 pyOpenSSL==19.0.0
+python -m pip install crcmod==1.7 psutil==5.6.6 pyOpenSSL==19.0.0
 
 echo "Activating credentials with the Google Cloud SDK."
 $GSUTIL_PATH/gcloud auth activate-service-account --key-file=$GOOGLE_APPLICATION_CREDENTIALS
