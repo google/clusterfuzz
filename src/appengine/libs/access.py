@@ -28,17 +28,18 @@ from libs.issue_management import issue_tracker_utils
 
 
 def _is_privileged_user(email):
-  """Check if an email is in the privileged users list."""
-  privileged_user_emails = (db_config.get_value('privileged_users') or
-                            '').splitlines()
-  # IAP users are automatically priviledged
-  # This requires IAP to be turned on
-  # and a google group in IAM to have the "IAP-secured Web App User" role
+  """IAP users are automatically privileged to allow for google group in IAM
+  with "IAP-secured Web App User" role to control access to privileged user.
+  This requires IAP to be turned on, otherwise
+  this will check if an email is in the privileged users list."""
+
   current_request = auth.get_current_request()
   iap_email = auth.get_iap_email(current_request)
   if iap_email:
     return True
 
+  privileged_user_emails = (db_config.get_value('privileged_users') or
+                            '').splitlines()
   return any(
     utils.emails_equal(email, privileged_user_email)
     for privileged_user_email in privileged_user_emails)
