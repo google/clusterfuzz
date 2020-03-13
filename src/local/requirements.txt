@@ -7,4 +7,4 @@ nodeenv==1.0.0
 paramiko==2.6.0
 protobuf==3.6.1
 psutil==5.6.6
-tensorflow==1.8.0
+tensorflow==1.15.2
