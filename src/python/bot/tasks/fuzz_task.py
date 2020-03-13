@@ -40,8 +40,8 @@ from bot.fuzzers import builtin
 from bot.fuzzers import builtin_fuzzers
 from bot.fuzzers import engine
 from bot.fuzzers import engine_common
+from bot.fuzzers import utils as fuzzer_utils
 from bot.fuzzers.libFuzzer import stats as libfuzzer_stats
-from bot.fuzzers.utils import utils as fuzzer_utils
 from bot.tasks import setup
 from bot.tasks import task_creation
 from bot.tasks import trials
