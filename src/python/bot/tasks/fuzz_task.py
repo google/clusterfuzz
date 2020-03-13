@@ -40,6 +40,7 @@ from bot.fuzzers import builtin
 from bot.fuzzers import builtin_fuzzers
 from bot.fuzzers import engine
 from bot.fuzzers import engine_common
+from bot.fuzzers import utils as fuzzer_utils
 from bot.fuzzers.libFuzzer import stats as libfuzzer_stats
 from bot.tasks import setup
 from bot.tasks import task_creation
@@ -1316,6 +1317,10 @@ def run_engine_fuzzer(engine_impl, target_name, sync_corpus_directory,
 
   fuzzer_metadata.update(engine_common.get_all_issue_metadata(target_path))
   _add_issue_metadata_from_environment(fuzzer_metadata)
+
+  # Cleanup fuzzer temporary artifacts (e.g. mutations dir, merge dirs. etc).
+  shell.remove_directory(fuzzer_utils.get_temp_dir())
+
   return result, fuzzer_metadata, options.strategies
 
 
