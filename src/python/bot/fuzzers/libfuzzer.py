@@ -1624,7 +1624,7 @@ def use_peach_mutator(extra_env, grammar):
     return False
 
   # Set title and pit environment variables
-  extra_env['PIT_PATH'] = pit_path
+  extra_env['PIT_FILENAME'] = pit_path
   extra_env['PIT_TITLE'] = grammar
 
   # Extract zip of peach mutator code.
