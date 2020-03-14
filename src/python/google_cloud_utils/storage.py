@@ -853,9 +853,19 @@ def write_data(data, cloud_storage_file_path, metadata=None):
 @retry.wrap(
     retries=DEFAULT_FAIL_RETRIES,
     delay=DEFAULT_FAIL_WAIT,
+    function='google_cloud_utils.storage.get_blobs')
+def get_blobs(cloud_storage_path, recursive=True):
+  """Return blobs under the given cloud storage path."""
+  for blob in _provider().list_blobs(cloud_storage_path, recursive=recursive):
+    yield blob
+
+
+@retry.wrap(
+    retries=DEFAULT_FAIL_RETRIES,
+    delay=DEFAULT_FAIL_WAIT,
     function='google_cloud_utils.storage.list_blobs')
 def list_blobs(cloud_storage_path, recursive=True):
-  """Return list of blobs under the given cloud storage path."""
+  """Return blob names under the given cloud storage path."""
   for blob in _provider().list_blobs(cloud_storage_path, recursive=recursive):
     yield blob['name']
 
