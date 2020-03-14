@@ -127,9 +127,10 @@ def clear_data_directories_on_low_disk_space():
   if free_disk_space >= LOW_DISK_SPACE_THRESHOLD:
     return
 
+  logs.log_warn(
+      'Low disk space detected, clearing all data directories to free up space.'
+  )
   clear_data_directories()
-  logs.log_error(
-      'Low disk space detected, cleared all data directories to free up space.')
 
 
 def clear_device_temp_directories():
