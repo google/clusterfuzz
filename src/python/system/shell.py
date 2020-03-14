@@ -32,7 +32,7 @@ try:
 except ImportError:
   psutil = None
 
-LOW_DISK_SPACE_THRESHOLD = 2 * 1024 * 1024 * 1024  # 2 GB
+LOW_DISK_SPACE_THRESHOLD = 5 * 1024 * 1024 * 1024  # 5 GB.
 FILE_COPY_BUFFER_SIZE = 10 * 1024 * 1024  # 10 MB.
 HANDLE_OUTPUT_FILE_TYPE_REGEX = re.compile(
     r'.*pid:\s*(\d+)\s*type:\s*File\s*([a-fA-F0-9]+):\s*(.*)')
@@ -127,9 +127,10 @@ def clear_data_directories_on_low_disk_space():
   if free_disk_space >= LOW_DISK_SPACE_THRESHOLD:
     return
 
+  logs.log_warn(
+      'Low disk space detected, clearing all data directories to free up space.'
+  )
   clear_data_directories()
-  logs.log_error(
-      'Low disk space detected, cleared all data directories to free up space.')
 
 
 def clear_device_temp_directories():
