@@ -544,6 +544,12 @@ class GcsCorpus(object):
     fuzzer."""
     new_files = []
     for file_path in self._walk():
+      if file_path.endswith('_.gstmp'):
+        # Skip unfinished gsutil file downloads.
+        continue
+      if file_path.endswith('.honggfuzz.cov'):
+        # Skip Honggfuzz coverage files.
+        continue
       if file_path not in self._synced_files:
         new_files.append(file_path)
 
