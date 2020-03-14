@@ -107,7 +107,7 @@ if [ ! $only_reproduce ]; then
   unsupported_codenames="(trusty|xenial|jessie)"
   if [[ $distro_codename =~ $unsupported_codenames ]]; then
       (cd /tmp && \
-          curl -sS https://nixos.org/releases/patchelf/patchelf-0.9/patchelf-0.9.tar.bz2 \
+          curl -sS https://releases.nixos.org/patchelf/patchelf-0.9/patchelf-0.9.tar.bz2 \
           | tar -C /tmp -xj && \
           cd /tmp/patchelf-*/ && \
           ./configure && \

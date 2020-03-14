@@ -44,7 +44,7 @@ RUN apt-get update && \
         zip
 
 # Install patchelf.
-RUN curl -sS https://nixos.org/releases/patchelf/patchelf-0.9/patchelf-0.9.tar.bz2 | tar -C /tmp -xj && \
+RUN curl -sS https://releases.nixos.org/patchelf/patchelf-0.9/patchelf-0.9.tar.bz2 | tar -C /tmp -xj && \
     cd /tmp/patchelf-*/ && \
     ./configure --prefix=/usr && \
     make install
