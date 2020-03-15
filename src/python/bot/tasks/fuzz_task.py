@@ -1319,7 +1319,7 @@ def run_engine_fuzzer(engine_impl, target_name, sync_corpus_directory,
   _add_issue_metadata_from_environment(fuzzer_metadata)
 
   # Cleanup fuzzer temporary artifacts (e.g. mutations dir, merge dirs. etc).
-  shell.remove_directory(fuzzer_utils.get_temp_dir())
+  fuzzer_utils.cleanup()
 
   return result, fuzzer_metadata, options.strategies
 

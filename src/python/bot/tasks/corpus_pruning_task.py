@@ -66,9 +66,13 @@ CORPUS_PRUNING_TIMEOUT = 22 * 60 * 60
 SINGLE_UNIT_TIMEOUT = 5
 TIMEOUT_FLAG = '-timeout=%d' % SINGLE_UNIT_TIMEOUT
 
-# Corpus size limit for cases when corpus pruning task failed in the last
+# Corpus files limit for cases when corpus pruning task failed in the last
 # execution.
-CORPUS_SIZE_LIMIT_FOR_FAILURES = 10000
+CORPUS_FILES_LIMIT_FOR_FAILURES = 10000
+
+# Corpus total size limit for cases when corpus pruning task failed in the last
+# execution.
+CORPUS_SIZE_LIMIT_FOR_FAILURES = 2 * 1024 * 1024 * 1024  # 2 GB.
 
 # Maximum number of units to restore from quarantine in one run.
 MAX_QUARANTINE_UNITS_TO_RESTORE = 128
@@ -93,7 +97,7 @@ SYNC_TIMEOUT = 2 * 60 * 60
 
 # Number of fuzz targets whose backup corpus is used to cross pollinate with our
 # current fuzz target corpus.
-CROSS_POLLINATE_FUZZER_COUNT = 5
+CROSS_POLLINATE_FUZZER_COUNT = 3
 
 CorpusPruningResult = collections.namedtuple('CorpusPruningResult', [
     'coverage_info', 'crashes', 'fuzzer_binary_name', 'revision',
@@ -129,24 +133,25 @@ def _get_corpus_file_paths(corpus_path):
   ]
 
 
-def _limit_corpus_size(corpus_url, size_limit):
-  """Limit number of files in a corpus url."""
-  files_list = list(storage.list_blobs(corpus_url))
-  corpus_size = len(files_list)
-
-  if corpus_size <= size_limit:
-    # Corpus directory size is within limit, no more work to do.
-    return
-
-  logs.log(
-      'Limit corpus at {corpus_url} from {corpus_size} to {size_limit}.'.format(
-          corpus_url=corpus_url, corpus_size=corpus_size,
-          size_limit=size_limit))
-  files_to_delete = random.sample(files_list, corpus_size - size_limit)
+def _limit_corpus_size(corpus_url):
+  """Limit number of files and size of a corpus."""
+  corpus_count = 0
+  corpus_size = 0
+  deleted_corpus_count = 0
   bucket, _ = storage.get_bucket_name_and_path(corpus_url)
-  for file_to_delete in files_to_delete:
-    path_to_delete = storage.get_cloud_storage_file_path(bucket, file_to_delete)
-    storage.delete(path_to_delete)
+  for corpus_file in storage.get_blobs(corpus_url):
+    corpus_count += 1
+    corpus_size += corpus_file['size']
+    if (corpus_count > CORPUS_FILES_LIMIT_FOR_FAILURES or
+        corpus_size > CORPUS_SIZE_LIMIT_FOR_FAILURES):
+      path_to_delete = storage.get_cloud_storage_file_path(
+          bucket, corpus_file['name'])
+      storage.delete(path_to_delete)
+      deleted_corpus_count += 1
+
+  if deleted_corpus_count:
+    logs.log('Removed %d files from oversized corpus: %s.' %
+             (deleted_corpus_count, corpus_url))
 
 
 def _get_time_remaining(start_time):
@@ -534,12 +539,16 @@ class CrossPollinator(object):
           'Shared corpus merge finished successfully.',
           output=symbolized_output)
     except engine.TimeoutError as e:
-      logs.log_error('Corpus pruning timed out while merging shared corpus: ' +
-                     repr(e))
+      # Other cross pollinated fuzzer corpuses can have unexpected test cases
+      # that time us out. This is expected, so bail out.
+      logs.log_warn('Corpus pruning timed out while merging shared corpus\n' +
+                    repr(e))
       return None
     except engine.Error as e:
-      raise CorpusPruningException(
-          'Corpus pruning failed to merge shared corpus\n' + repr(e))
+      # Other cross pollinated fuzzer corpuses can be large, so we can run out
+      # of disk space and exception out. This is expected, so bail out.
+      logs.log_warn('Corpus pruning failed to merge shared corpus\n' + repr(e))
+      return None
 
     return result.stats
 
@@ -604,7 +613,7 @@ def do_corpus_pruning(context, last_execution_failed, revision):
         context.corpus.get_gcs_url(),
         context.quarantine_corpus.get_gcs_url()
     ]:
-      _limit_corpus_size(corpus_url, CORPUS_SIZE_LIMIT_FOR_FAILURES)
+      _limit_corpus_size(corpus_url)
 
   # Get initial corpus to process from GCS.
   context.sync_to_disk()
