@@ -484,7 +484,7 @@ class LibFuzzerEngine(engine.Engine):
 
     if result.timed_out:
       raise engine.TimeoutError('Merging new testcases timed out\n' +
-                                result.output)
+                                result.output.decode('utf-8', errors='ignore'))
 
     if result.return_code != 0:
       raise MergeError('Merging new testcases failed: ' + result.output)
