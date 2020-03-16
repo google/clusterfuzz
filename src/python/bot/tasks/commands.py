@@ -84,7 +84,7 @@ def cleanup_task_state():
   environment.reset_current_memory_tool_options()
 
   # Clear exceptions.
-  sys.exc_clear()
+  utils.exc_clear()
 
   # Call python's garbage collector.
   utils.python_gc()

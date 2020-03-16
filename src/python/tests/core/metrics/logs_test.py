@@ -237,7 +237,7 @@ class JsonSocketHandler(unittest.TestCase):
 
     record = mock.Mock()
     handler = logs.JsonSocketHandler(None, None)
-    self.assertEqual('json\n', handler.makePickle(record))
+    self.assertEqual(b'json\n', handler.makePickle(record))
 
     self.mock.format_record.assert_called_once_with(record)
 

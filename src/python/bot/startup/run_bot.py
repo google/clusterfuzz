@@ -185,7 +185,7 @@ def main():
       return
 
     # Clear the current exception.
-    sys.exc_clear()
+    utils.exc_clear()
 
 
 if __name__ == '__main__':

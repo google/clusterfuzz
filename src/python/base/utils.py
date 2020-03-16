@@ -957,3 +957,10 @@ def newstr_to_native_str(s):
     newstr = str(s)
 
   return future_utils.native(newstr).encode('utf-8')
+
+
+def exc_clear():
+  """exc_clear wrapper. No-op on Python 3."""
+  # TODO(ochang): Remove this once migrated to Python 3.
+  if sys.version_info.major == 2:
+    sys.exc_clear()
