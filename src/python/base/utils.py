@@ -108,7 +108,11 @@ def decode_to_unicode(obj, encoding='utf-8'):
     try:
       obj = str(obj, encoding)
     except:
-      obj = str(''.join(char for char in obj if ord(char) < 128), encoding)
+      obj = str(
+          ''.join(
+              char for char in obj
+              if (char if isinstance(char, int) else ord(char)) < 128),
+          encoding)
 
   return obj
 
