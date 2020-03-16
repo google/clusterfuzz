@@ -214,6 +214,11 @@ def clear_build_urls_directory():
       recreate=True)
 
 
+def clear_temp_directory():
+  """Clear the temp directory on the worker."""
+  remove_directory(environment.get_value('WORKER_BOT_TMPDIR'), recreate=True)
+
+
 def push_testcases_to_worker():
   """Push all testcases to the worker."""
   local_testcases_directory = environment.get_value('FUZZ_INPUTS')

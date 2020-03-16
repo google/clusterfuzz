@@ -149,7 +149,10 @@ def clear_temp_directory(clear_user_profile_directories=True):
   """Clear the temporary directories."""
   temp_directory = environment.get_value('BOT_TMPDIR')
   remove_directory(temp_directory, recreate=True)
-  os.chmod(temp_directory, 0o777)
+
+  if environment.is_trusted_host():
+    from bot.untrusted_runner import file_host
+    file_host.clear_temp_directory()
 
   if not clear_user_profile_directories:
     return
