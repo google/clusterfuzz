@@ -38,7 +38,7 @@ from system import shell
 
 ENGINE_ERROR_MESSAGE = 'libFuzzer: engine encountered an error'
 DICT_PARSING_FAILED_REGEX = re.compile(
-    br'ParseDictionaryFile: error in line (\d+)')
+    r'ParseDictionaryFile: error in line (\d+)')
 MULTISTEP_MERGE_SUPPORT_TOKEN = b'fuzz target overwrites its const input'
 
 
@@ -260,7 +260,7 @@ class LibFuzzerEngine(engine.Engine):
       logs.log_error(
           'Dictionary parsing failed (target={target}, line={line}).'.format(
               target=project_qualified_fuzzer_name,
-              line=dict_error_match.group(1).decode('utf-8')),
+              line=dict_error_match.group(1)),
           engine_output=fuzz_result.output)
     elif (not environment.get_value('USE_MINIJAIL') and
           fuzz_result.return_code == constants.LIBFUZZER_ERROR_EXITCODE):
@@ -272,7 +272,7 @@ class LibFuzzerEngine(engine.Engine):
           ' (target={target}).'.format(target=project_qualified_fuzzer_name),
           engine_output=fuzz_result.output)
 
-    log_lines = utils.decode_to_unicode(fuzz_result.output).splitlines()
+    log_lines = fuzz_result.output.splitlines()
     # Output can be large, so save some memory by removing reference to the
     # original output which is no longer needed.
     fuzz_result.output = None
@@ -368,8 +368,7 @@ class LibFuzzerEngine(engine.Engine):
       raise engine.TimeoutError('Reproducing timed out\n' + result.output)
 
     return engine.ReproduceResult(result.command, result.return_code,
-                                  result.time_executed,
-                                  utils.decode_to_unicode(result.output))
+                                  result.time_executed, result.output)
 
   def _minimize_corpus_two_step(self, target_path, arguments,
                                 existing_corpus_dirs, new_corpus_dir,
@@ -489,7 +488,7 @@ class LibFuzzerEngine(engine.Engine):
     if result.return_code != 0:
       raise MergeError('Merging new testcases failed: ' + result.output)
 
-    merge_output = utils.decode_to_unicode(result.output)
+    merge_output = result.output
     merge_stats = stats.parse_stats_from_merge_log(merge_output.splitlines())
 
     # TODO(ochang): Get crashes found during merge.
@@ -528,8 +527,7 @@ class LibFuzzerEngine(engine.Engine):
       raise engine.TimeoutError('Minimization timed out\n' + result.output)
 
     return engine.ReproduceResult(result.command, result.return_code,
-                                  result.time_executed,
-                                  utils.decode_to_unicode(result.output))
+                                  result.time_executed, result.output)
 
   def cleanse(self, target_path, arguments, input_path, output_path, max_time):
     """Optional (but recommended): Cleanse a testcase.
@@ -562,5 +560,4 @@ class LibFuzzerEngine(engine.Engine):
       raise engine.TimeoutError('Cleanse timed out\n' + result.output)
 
     return engine.ReproduceResult(result.command, result.return_code,
-                                  result.time_executed,
-                                  utils.decode_to_unicode(result.output))
+                                  result.time_executed, result.output)

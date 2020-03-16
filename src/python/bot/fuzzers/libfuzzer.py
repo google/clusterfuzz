@@ -375,7 +375,7 @@ class LibFuzzerCommon(object):
         max_stdout_len=MAX_OUTPUT_LEN)
 
 
-class LibFuzzerRunner(new_process.ProcessRunner, LibFuzzerCommon):
+class LibFuzzerRunner(new_process.UnicodeProcessRunner, LibFuzzerCommon):
   """libFuzzer runner (when minijail is not used)."""
 
   def __init__(self, executable_path, default_args=None):
@@ -410,7 +410,8 @@ class LibFuzzerRunner(new_process.ProcessRunner, LibFuzzerCommon):
                                 artifact_prefix, additional_args, extra_env)
 
 
-class FuchsiaQemuLibFuzzerRunner(new_process.ProcessRunner, LibFuzzerCommon):
+class FuchsiaQemuLibFuzzerRunner(new_process.UnicodeProcessRunner,
+                                 LibFuzzerCommon):
   """libFuzzer runner (when Fuchsia is the target platform)."""
 
   FUCHSIA_BUILD_REL_PATH = os.path.join('build', 'out', 'default')
@@ -790,7 +791,8 @@ class FuchsiaQemuLibFuzzerRunner(new_process.ProcessRunner, LibFuzzerCommon):
     return ['ssh'] + self.ssh_root + list(args)
 
 
-class MinijailLibFuzzerRunner(engine_common.MinijailEngineFuzzerRunner,
+class MinijailLibFuzzerRunner(new_process.UnicodeProcessRunnerMixin,
+                              engine_common.MinijailEngineFuzzerRunner,
                               LibFuzzerCommon):
   """Minijail libFuzzer runner."""
 
@@ -1014,7 +1016,7 @@ class MinijailLibFuzzerRunner(engine_common.MinijailEngineFuzzerRunner,
       return result
 
 
-class AndroidLibFuzzerRunner(new_process.ProcessRunner, LibFuzzerCommon):
+class AndroidLibFuzzerRunner(new_process.UnicodeProcessRunner, LibFuzzerCommon):
   """Android libFuzzer runner."""
   # This temp directory is used by libFuzzer merge tool. DONT CHANGE.
   LIBFUZZER_TEMP_DIR = '/data/local/tmp'
@@ -1437,7 +1439,7 @@ def analyze_and_update_recommended_dictionary(runner, fuzzer_name, log_lines,
 
   # Extract dictionary elements considered useless, calculate the result.
   useless_dictionary = dict_manager.parse_useless_dictionary_from_data(
-      utils.decode_to_unicode(dictionary_analysis.output))
+      dictionary_analysis.output)
 
   logs.log('%d out of %d recommended dictionary elements for %s are useless.' %
            (len(useless_dictionary), len(recommended_dictionary), fuzzer_name))
