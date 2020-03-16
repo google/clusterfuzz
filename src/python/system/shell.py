@@ -461,6 +461,14 @@ def remove_directory(directory, recreate=False, ignore_errors=False):
     # try closing open file handles and then try removing it with read only
     # bit removed (Windows only).
     close_open_file_handles_if_needed(directory)
+
+    # File paths are not necessarily valid unicode, so we must encode the
+    # directory here to prevent exceptions when shutil tries to build
+    # subdirectory paths.
+    encoded_directory = directory
+    if isinstance(encoded_directory, str):
+      encoded_directory = encoded_directory.encode('utf-8')
+
     shutil.rmtree(directory, onerror=clear_read_only)
 
   if os.path.exists(directory):
