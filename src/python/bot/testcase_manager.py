@@ -234,7 +234,7 @@ def get_resource_dependencies(testcase_absolute_path, test_prefix=FUZZ_PREFIX):
         testcase_contents = file_handle.read()
         file_handle.close()
 
-      if filename in testcase_contents:
+      if filename.encode('utf-8') in testcase_contents:
         file_path = os.path.join(base_directory, filename)
         resources.append(file_path)
 
