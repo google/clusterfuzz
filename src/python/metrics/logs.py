@@ -217,7 +217,7 @@ class JsonSocketHandler(logging.handlers.SocketHandler):
   def makePickle(self, record):
     """Format LogEntry into JSON string."""
     # \n is the recognized delimiter by fluentd's in_tcp. Don't remove.
-    return format_record(record) + '\n'
+    return (format_record(record) + '\n').encode('utf-8')
 
 
 def uncaught_exception_handler(exception_type, exception_value,
