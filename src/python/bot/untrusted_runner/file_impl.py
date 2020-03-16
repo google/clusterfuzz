@@ -25,15 +25,13 @@ from system import shell
 
 def create_directory(request, _):
   """Create a directory."""
-  result = shell.create_directory(
-      request.path.encode('utf-8'), request.create_intermediates)
+  result = shell.create_directory(request.path, request.create_intermediates)
   return untrusted_runner_pb2.CreateDirectoryResponse(result=result)
 
 
 def remove_directory(request, _):
   """Remove a directory."""
-  result = shell.remove_directory(
-      request.path.encode('utf-8'), request.recreate)
+  result = shell.remove_directory(request.path, request.recreate)
   return untrusted_runner_pb2.RemoveDirectoryResponse(result=result)
 
 
@@ -41,7 +39,7 @@ def list_files(request, _):
   """List files."""
   file_paths = []
   if request.recursive:
-    for root, _, files in shell.walk(request.path.encode('utf-8')):
+    for root, _, files in shell.walk(request.path):
       for filename in files:
         file_paths.append(os.path.join(root, filename))
   else:
@@ -90,7 +88,7 @@ def stat(request, _):
   if not os.path.exists(request.path):
     return untrusted_runner_pb2.StatResponse(result=False)
 
-  stat_result = os.stat(request.path.encode('utf-8'))
+  stat_result = os.stat(request.path)
   return untrusted_runner_pb2.StatResponse(
       result=True,
       st_mode=stat_result.st_mode,
@@ -102,7 +100,6 @@ def stat(request, _):
 
 def get_fuzz_targets(request, _):
   """Get list of fuzz targets."""
-  fuzz_target_paths = fuzzers_utils.get_fuzz_targets_local(
-      request.path.encode('utf-8'))
+  fuzz_target_paths = fuzzers_utils.get_fuzz_targets_local(request.path)
   return untrusted_runner_pb2.GetFuzzTargetsResponse(
       fuzz_target_paths=fuzz_target_paths)
