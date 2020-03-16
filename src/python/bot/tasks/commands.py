@@ -84,9 +84,7 @@ def cleanup_task_state():
   environment.reset_current_memory_tool_options()
 
   # Clear exceptions.
-  if sys.version_info.major == 2:
-    # TODO(ochang): Remove this once migrated to Python 3.
-    sys.exc_clear()
+  utils.exc_clear()
 
   # Call python's garbage collector.
   utils.python_gc()
