@@ -1,7 +1,7 @@
 {
     "_meta": {
         "hash": {
-            "sha256": "8f9df1e9f9eab076ec1ca734f17253dca3a5544b736ad3464d1468de23a5d5ea"
+            "sha256": "9e184845a9cd1d31d6d76847e5aa0df407c12c6597b0ec958ca1f0ca64e38ad4"
         },
         "pipfile-spec": 6,
         "requires": {
@@ -209,11 +209,10 @@
         },
         "gast": {
             "hashes": [
-                "sha256:8f46f5be57ae6889a4e16e2ca113b1703ef17f2b0abceb83793eaba9e1351a45",
-                "sha256:b881ef288a49aa81440d2c5eb8aeefd4c2bb8993d5f50edae7413a85bfdb3b57"
+                "sha256:fe939df4583692f0512161ec1c880e0a10e71e6a232da045ab8edd3756fbadf0"
             ],
             "index": "pypi",
-            "version": "==0.3.3"
+            "version": "==0.2.2"
         },
         "google-compute-engine": {
             "hashes": [
@@ -221,6 +220,15 @@
             ],
             "index": "pypi",
             "version": "==2.8.13"
+        },
+        "google-pasta": {
+            "hashes": [
+                "sha256:41bbe63bab92408452585ff2e1673ec1e35b88e163371cbed2a18510be4e8bc5",
+                "sha256:644dcf3784cf7147ab01de5dc22e60a638d219d4e4a3a7464eb98997ae2fe66f",
+                "sha256:713813a9f7d6589e5defdaf21e80e4392eb124662f8bd829acd51a4f8735c0cb"
+            ],
+            "index": "pypi",
+            "version": "==0.1.8"
         },
         "grpcio": {
             "hashes": [
@@ -475,6 +483,14 @@
             "index": "pypi",
             "version": "==1.16.4"
         },
+        "opt-einsum": {
+            "hashes": [
+                "sha256:738b0a1db1d3084d360081bb64d826f9db06d2df7cc0bf8e2c9356028da1fa31",
+                "sha256:f6fbfbb759e670305c5c9a4dc4432e30f65e06fede88293dacfe19915af73386"
+            ],
+            "index": "pypi",
+            "version": "==3.2.0"
+        },
         "parameterized": {
             "hashes": [
                 "sha256:caf58e717097735de0d7e15386a46ffa5ce25bb6a13a43716a8854a8d34841e2",
@@ -622,21 +638,21 @@
         },
         "tensorboard": {
             "hashes": [
-                "sha256:53d8f40589c903dae65f39a799c2bc49defae3703754984d90613d26ebd714a4",
-                "sha256:b664fe7772be5670d8b04200342e681af7795a12cd752709aed565c06c0cc196"
+                "sha256:4cad2c65f6011e51609b463014c014fd7c6ddd9c1263af1d4f18dd97ed88c2bc",
+                "sha256:612b789386aa1b2c4804e1961273b37f8e4dd97613f98bc90ff0402d24627f50"
             ],
             "index": "pypi",
-            "version": "==1.13.1"
+            "version": "==1.15.0"
         },
         "tensorflow": {
-            "file": "https://storage.googleapis.com/tensorflow/linux/cpu/tensorflow-1.13.2-cp37-cp37m-linux_x86_64.whl"
+            "file": "https://storage.googleapis.com/tensorflow/linux/cpu/tensorflow-1.15.2-cp37-cp37m-manylinux2010_x86_64.whl"
         },
         "tensorflow-estimator": {
             "hashes": [
-                "sha256:7cfdaa3e83e3532f31713713feb98be7ea9f3065722be4267e49b6c301271419"
+                "sha256:8853bfb7c3c96fbdc80b3d66c37a10af6ccbcd235dc87474764270c02a0f86b9"
             ],
             "index": "pypi",
-            "version": "==1.13.0"
+            "version": "==1.15.1"
         },
         "termcolor": {
             "hashes": [
