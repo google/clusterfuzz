@@ -35,19 +35,19 @@ class FileImplTest(fake_filesystem_unittest.TestCase):
         path='/dir', create_intermediates=False)
     response = file_impl.create_directory(request, None)
     self.assertTrue(response.result)
-    self.assertTrue(os.path.isdir('/dir'))
+    self.assertTrue(os.path.isdir(b'/dir'))
 
     request = untrusted_runner_pb2.CreateDirectoryRequest(
         path='/dir2/dir2', create_intermediates=False)
     response = file_impl.create_directory(request, None)
     self.assertFalse(response.result)
-    self.assertFalse(os.path.isdir('/dir2/dir2'))
+    self.assertFalse(os.path.isdir('b/dir2/dir2'))
 
     request = untrusted_runner_pb2.CreateDirectoryRequest(
         path='/dir3/dir3', create_intermediates=True)
     response = file_impl.create_directory(request, None)
     self.assertTrue(response.result)
-    self.assertTrue(os.path.isdir('/dir3/dir3'))
+    self.assertTrue(os.path.isdir(b'/dir3/dir3'))
 
   def test_remove_directory(self):
     """Test file_impl.remove_directory."""
@@ -56,14 +56,14 @@ class FileImplTest(fake_filesystem_unittest.TestCase):
         path='/dir', recreate=False)
     response = file_impl.remove_directory(request, None)
     self.assertTrue(response.result)
-    self.assertFalse(os.path.isdir('/dir'))
+    self.assertFalse(os.path.isdir(b'/dir'))
 
     os.mkdir('/dir')
     request = untrusted_runner_pb2.RemoveDirectoryRequest(
         path='/dir', recreate=True)
     response = file_impl.remove_directory(request, None)
     self.assertTrue(response.result)
-    self.assertTrue(os.path.isdir('/dir'))
+    self.assertTrue(os.path.isdir(b'/dir'))
 
   def test_copy_file_to_worker(self):
     """Test file_impl.copy_file_to_worker."""
