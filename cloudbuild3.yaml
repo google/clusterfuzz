@@ -38,12 +38,12 @@ steps:
 - name: 'gcr.io/clusterfuzz-images/ci'
   args: ['pipenv', 'run', 'local/tests/run_all_tests']
   env:
-    - TEST_BLOBS_BUCKET=clusterfuzz-ci-blobs
-    - TEST_BUCKET=clusterfuzz-ci-test
-    - TEST_CORPUS_BUCKET=clusterfuzz-ci-corpus
-    - TEST_QUARANTINE_BUCKET=clusterfuzz-ci-quarantine
-    - TEST_BACKUP_BUCKET=clusterfuzz-ci-backup
-    - TEST_COVERAGE_BUCKET=clusterfuzz-ci-coverage
+    - TEST_BLOBS_BUCKET=clusterfuzz-ci-blobs-2
+    - TEST_BUCKET=clusterfuzz-ci-test-2
+    - TEST_CORPUS_BUCKET=clusterfuzz-ci-corpus-2
+    - TEST_QUARANTINE_BUCKET=clusterfuzz-ci-quarantine-2
+    - TEST_BACKUP_BUCKET=clusterfuzz-ci-backup-2
+    - TEST_COVERAGE_BUCKET=clusterfuzz-ci-coverage-2
     - PIPENV_VENV_IN_PROJECT=1
 timeout: 5400s
 options:
