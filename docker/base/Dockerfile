@@ -63,6 +63,7 @@ RUN CLOUD_SDK_REPO="cloud-sdk-$(lsb_release -c -s)" && \
     apt-get update && apt-get install -y google-cloud-sdk
 
 # Only upgrade python packages used by fuzzers and infrastructure.
+RUN pip install --upgrade pip
 COPY requirements.txt .
 RUN pip install -r requirements.txt
 
