@@ -282,10 +282,10 @@ def expected_instance_template(gce_project_name,
   if tls_cert:
     expected['properties']['metadata']['items'].extend([{
         'key': 'tls-cert',
-        'value': project_name.encode() + b'_cert',
+        'value': project_name + '_cert',
     }, {
         'key': 'tls-key',
-        'value': project_name.encode() + b'_key',
+        'value': project_name + '_key',
     }])
 
   return expected
