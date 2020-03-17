@@ -11,7 +11,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-FROM gcr.io/clusterfuzz-images/chromium/base
+FROM gcr.io/clusterfuzz-images/oss-fuzz/host
 
-ENV DEPLOYMENT_ZIP "linux-3.zip"
-ENV RUN_CMD "/data/start_python3.sh src/python/bot/startup/run.py"
+ENV RUN_CMD "/data/start_python3.sh /data/start_host.py"

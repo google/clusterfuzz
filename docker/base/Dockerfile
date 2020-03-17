@@ -98,5 +98,7 @@ WORKDIR $INSTALL_DIRECTORY
 RUN locale-gen en_US.UTF-8
 ENV LANG en_US.UTF-8
 
-COPY setup_common.sh setup_clusterfuzz.sh setup_nfs.sh start_clusterfuzz.sh setup_mock_metadata.sh start.sh /data/
+COPY setup_common.sh setup_clusterfuzz.sh setup_nfs.sh start_clusterfuzz.sh setup_mock_metadata.sh start.sh start_python3.sh /data/
+RUN chmod 755 /data/start_python3.sh
 CMD ["bash", "-ex", "/data/start.sh"]
+
