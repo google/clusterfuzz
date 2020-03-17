@@ -13,7 +13,6 @@
 # limitations under the License.
 """server.py initialises the appengine server for ClusterFuzz."""
 from __future__ import absolute_import
-import logging
 
 from webapp2_extras import routes
 import webapp2
@@ -79,6 +78,7 @@ from handlers.testcase_detail import remove_issue
 from handlers.testcase_detail import testcase_variants
 from handlers.testcase_detail import update_from_trunk
 from handlers.testcase_detail import update_issue
+from metrics import logs
 
 _is_chromium = utils.is_chromium()
 _is_oss_fuzz = utils.is_oss_fuzz()
@@ -224,7 +224,7 @@ _ROUTES = [
     ('/viewer', viewer.Handler),
 ]
 
-logging.getLogger().setLevel(logging.INFO)
+logs.configure('appengine')
 
 config = local_config.GAEConfig()
 main_domain = config.get('domains.main')
