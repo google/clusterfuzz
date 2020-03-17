@@ -37,6 +37,7 @@ _DEFAULT_ARGUMENTS = [
     '-z',  # use clang instrumentation
     '-P',  # persistent mode
     '-S',  # enable sanitizers
+    '--sanitizers_del_report=false',  # keep ASAN log files around for parsing
     '--rlimit_rss',
     str(_RSS_LIMIT),
     '--timeout',
