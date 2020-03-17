@@ -63,12 +63,6 @@ def _console_logging_enabled():
   return bool(os.getenv('LOG_TO_CONSOLE'))
 
 
-def suppress_unwanted_warnings():
-  """Suppress unwanted warnings."""
-  # See https://github.com/googleapis/google-api-python-client/issues/299
-  logging.getLogger('googleapiclient.discovery_cache').setLevel(logging.ERROR)
-
-
 def set_logger(logger):
   """Set the logger."""
   global _logger
@@ -95,7 +89,6 @@ def get_handler_config(filename, backup_count):
 def get_logging_config_dict(name):
   """Get config dict for the logger `name`."""
   logging_handler = {
-      'appengine': get_handler_config('bot/logs/appengine.log', 1),
       'run_bot': get_handler_config('bot/logs/bot.log', 3),
       'run': get_handler_config('bot/logs/run.log', 1),
       'run_heartbeat': get_handler_config('bot/logs/run_heartbeat.log', 1),
@@ -256,10 +249,7 @@ def configure(name, extras=None):
   """Set logger. See the list of loggers in bot/config/logging.yaml.
   Also configures the process to log any uncaught exceptions as an error.
   |extras| will be included by emit() in log messages."""
-  suppress_unwanted_warnings()
-
   if _is_running_on_app_engine():
-    logging.getLogger().setLevel(logging.INFO)
     return
 
   if _console_logging_enabled():
