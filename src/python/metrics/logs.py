@@ -63,6 +63,12 @@ def _console_logging_enabled():
   return bool(os.getenv('LOG_TO_CONSOLE'))
 
 
+def _suppress_warnings():
+  """Suppress unwanted warnings."""
+  # See https://github.com/googleapis/google-api-python-client/issues/299
+  logging.getLogger('googleapiclient.discovery_cache').setLevel(logging.ERROR)
+
+
 def set_logger(logger):
   """Set the logger."""
   global _logger
@@ -276,6 +282,8 @@ def get_logger():
   """Return logger. We need this method because we need to mock logger."""
   if _logger:
     return _logger
+
+  _suppress_warnings()
 
   if _is_running_on_app_engine():
     # Running on App Engine.
