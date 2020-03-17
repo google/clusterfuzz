@@ -95,6 +95,7 @@ def get_handler_config(filename, backup_count):
 def get_logging_config_dict(name):
   """Get config dict for the logger `name`."""
   logging_handler = {
+      'appengine': get_handler_config('bot/logs/appengine.log', 1),
       'run_bot': get_handler_config('bot/logs/bot.log', 3),
       'run': get_handler_config('bot/logs/run.log', 1),
       'run_heartbeat': get_handler_config('bot/logs/run_heartbeat.log', 1),
