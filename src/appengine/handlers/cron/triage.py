@@ -259,8 +259,12 @@ class Handler(base_handler.Handler):
     # Free up memory after group task run.
     utils.python_gc()
 
-    # Get list of jobs excluded from bug filing.
+    # Get a list of jobs excluded from bug filing.
     excluded_jobs = _get_excluded_jobs()
+
+    # Get a list of all jobs. This is used to filter testcases whose jobs have
+    # been removed.
+    all_jobs = data_handler.get_all_job_type_names()
 
     for testcase_id in data_handler.get_open_testcase_id_iterator():
       try:
@@ -269,7 +273,11 @@ class Handler(base_handler.Handler):
         # Already deleted.
         continue
 
-      # Skip if testcase's job type is in exclusions list.
+      # Skip if testcase's job is removed.
+      if testcase.job_type not in all_jobs:
+        continue
+
+      # Skip if testcase's job is in exclusions list.
       if testcase.job_type in excluded_jobs:
         continue
 
