@@ -26,9 +26,6 @@ from metrics import logs
 from system import environment
 from system import new_process
 
-# Use 5 MB as maximum allowed input size as default (128 MB) is too high.
-_MAX_INPUT_SIZE = 5 * 1024 * 1024
-
 _CLEAN_EXIT_SECS = 10
 _RSS_LIMIT = 2560
 _TIMEOUT = 25
@@ -40,8 +37,6 @@ _DEFAULT_ARGUMENTS = [
     '-z',  # use clang instrumentation
     '-P',  # persistent mode
     '-S',  # enable sanitizers
-    '--max_file_size',
-    str(_MAX_INPUT_SIZE),
     '--rlimit_rss',
     str(_RSS_LIMIT),
     '--timeout',
