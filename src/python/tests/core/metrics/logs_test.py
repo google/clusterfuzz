@@ -253,6 +253,7 @@ class ConfigureTest(unittest.TestCase):
         'logging.config.dictConfig',
         'logging.getLogger',
         'metrics.logs._is_running_on_app_engine',
+        'metrics.logs.suppress_unwanted_warnings',
     ])
 
   def test_configure(self):

@@ -52,15 +52,22 @@ def _is_local():
 def _is_running_on_app_engine():
   """Return whether or not we're running on App Engine (production or
   development)."""
-  return (os.getenv('SERVER_SOFTWARE') and
-          (os.getenv('SERVER_SOFTWARE').startswith('Development/') or
-           os.getenv('SERVER_SOFTWARE').startswith('Google App Engine/')))
+  return os.getenv('GAE_ENV') or (
+      os.getenv('SERVER_SOFTWARE') and
+      (os.getenv('SERVER_SOFTWARE').startswith('Development/') or
+       os.getenv('SERVER_SOFTWARE').startswith('Google App Engine/')))
 
 
 def _console_logging_enabled():
   """Return bool on where console logging is enabled, usually for tests and
   reproduce tool."""
   return bool(os.getenv('LOG_TO_CONSOLE'))
+
+
+def suppress_unwanted_warnings():
+  """Suppress unwanted warnings."""
+  # See https://github.com/googleapis/google-api-python-client/issues/299
+  logging.getLogger('googleapiclient.discovery_cache').setLevel(logging.ERROR)
 
 
 def set_logger(logger):
@@ -249,7 +256,10 @@ def configure(name, extras=None):
   """Set logger. See the list of loggers in bot/config/logging.yaml.
   Also configures the process to log any uncaught exceptions as an error.
   |extras| will be included by emit() in log messages."""
+  suppress_unwanted_warnings()
+
   if _is_running_on_app_engine():
+    logging.getLogger().setLevel(logging.INFO)
     return
 
   if _console_logging_enabled():
