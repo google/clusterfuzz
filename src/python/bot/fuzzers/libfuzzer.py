@@ -25,7 +25,6 @@ import random
 import re
 import shutil
 import string
-import sys
 import tempfile
 
 from base import retry
