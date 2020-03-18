@@ -171,7 +171,7 @@ def format_record(record):
       trace_id = trace_header.split('/')[0]
       entry['logging.googleapis.com/trace'] = (
           'projects/{project_id}/traces/{trace_id}').format(
-          project_id=project_id, trace_id=trace_id)
+              project_id=project_id, trace_id=trace_id)
 
   entry['location'] = getattr(record, 'location', {'error': True})
   entry['extras'] = getattr(record, 'extras', {})
