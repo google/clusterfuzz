@@ -21,6 +21,7 @@ import os
 import sys
 import time
 import traceback
+import webapp2
 
 from logging import config
 
@@ -161,6 +162,16 @@ def format_record(record):
       'name':
           record.name,
   }
+
+  if _is_running_on_app_engine():
+    request = webapp2.get_request()
+    trace_header = request.headers.get('X-Cloud-Trace-Context')
+    if trace_header:
+      project_id = os.getenv('APPLICATION_ID')
+      trace_id = trace_header.split('/')[0]
+      entry['logging.googleapis.com/trace'] = (
+          'projects/{project_id}/traces/{trace_id}').format(
+          project_id=project_id, trace_id=trace_id)
 
   entry['location'] = getattr(record, 'location', {'error': True})
   entry['extras'] = getattr(record, 'extras', {})
