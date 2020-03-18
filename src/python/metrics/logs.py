@@ -360,6 +360,8 @@ def emit(level, message, exc_info=None, **extras):
     return
 
   if exc_info == (None, None, None):
+    # Don't pass exc_info at all, as otherwise cloud logging will append
+    # "NoneType: None" to the message.
     exc_info = None
 
   # Include extras passed as an argument and default extras.
