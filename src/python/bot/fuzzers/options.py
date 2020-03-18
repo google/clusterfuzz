@@ -167,9 +167,6 @@ def get_fuzz_target_options(fuzz_target_path):
   options_file_path = fuzzer_utils.get_supporting_file(fuzz_target_path,
                                                        OPTIONS_FILE_EXTENSION)
 
-  if not options_file_path:
-    return None
-
   if environment.is_trusted_host():
     options_file_path = fuzzer_utils.get_file_from_untrusted_worker(
         options_file_path)
