@@ -949,7 +949,7 @@ def execute_task(full_fuzzer_name, job_type):
     _record_cross_pollination_stats(result.cross_pollination_stats)
     _save_coverage_information(context, result)
     _process_corpus_crashes(context, result)
-  except CorpusPruningException:
+  except Exception:
     logs.log_error('Corpus pruning failed.')
     data_handler.update_task_status(task_name, data_types.TaskState.ERROR)
     return
