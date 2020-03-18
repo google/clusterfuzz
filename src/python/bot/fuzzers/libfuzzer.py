@@ -80,7 +80,7 @@ CRASH_TESTCASE_REGEX = (r'.*Test unit written to\s*'
 # Currently matches oss-fuzz/infra/base-images/base-runner/collect_dft#L34.
 DATAFLOW_TRACE_DIR_SUFFIX = '_dft'
 
-#List of all strategies that affect LD_PRELOAD.
+# List of all strategies that affect LD_PRELOAD.
 MUTATOR_STRATEGIES = [
     strategy.PEACH_GRAMMAR_MUTATION_STRATEGY.name,
     strategy.MUTATOR_PLUGIN_STRATEGY.name,
@@ -1642,11 +1642,10 @@ def use_peach_mutator(extra_env, grammar):
   extra_env['LD_PRELOAD'] = peach_path
 
   # Set Python path.
-  # TODO(mpherman): Change this to explicitly point to Python 2.
   new_path = [
       os.path.join(unzipped, 'peach_mutator', 'src'),
       os.path.join(unzipped, 'peach_mutator', 'third_party', 'peach')
-  ] + sys.path
+  ]
 
   extra_env['PYTHONPATH'] = os.pathsep.join(new_path)
 
