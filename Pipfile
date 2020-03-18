@@ -4,38 +4,12 @@ verify_ssl = true
 name = "pypi"
 
 [packages]
-beautifulsoup4 = "==4.5.1"
-ecdsa = "==0.13.3"
-extras = "==1.0.0"
-fixtures = "==3.0.0"
-funcsigs = "==1.0.2"
-linecache2 = "==1.0.0"
-mock = "==2.0.0"
-mox3 = "==0.18.0"
-parameterized = "==0.6.1"
-pbr = "==1.10.0"
-pyfakefs = "==3.4.3"
-pylint = "~=2.4"
-python-mimeparse = "==1.5.2"
-PyYAML = "==5.1"
 six = "==1.12.0"
-testtools = "==2.2.0"
-traceback2 = "==1.4.0"
-unittest2 = "==1.1.0"
-waitress = "==1.4.3"
-WebTest = "==2.0.23"
-yapf = "==0.22.0"
 
 crcmod = "==1.7"
-Fabric = "==1.14.1"
 future = "==0.17.1"
-google-compute-engine = "==2.8.13"
-grpcio-tools = "==1.15.0"
-nodeenv = "==1.0.0"
-paramiko = "==2.6.0"
 protobuf = "==3.6.1"
 psutil = "==5.6.6"
-gunicorn = "*"
 numpy = "==1.16.4"
 
 # Explicit TensorFlow dependencies. Should be removed when upgrading TensorFlow
@@ -54,6 +28,19 @@ tensorflow-estimator = "==1.15.1"
 termcolor = "==1.1.0"
 werkzeug = "==1.0.0"
 tensorflow = {file = "https://storage.googleapis.com/tensorflow/linux/cpu/tensorflow-1.15.2-cp37-cp37m-manylinux2010_x86_64.whl"}
+
+[dev-packages]
+pylint = "~=2.4"
+pyfakefs = "==3.4.3"
+mock = "==2.0.0"
+parameterized = "==0.6.1"
+gunicorn = "*"
+paramiko = "==2.6.0"
+grpcio-tools = "==1.15.0"
+WebTest = "==2.0.23"
+nodeenv = "==1.0.0"
+yapf = "==0.22.0"
+Fabric = "==1.14.1"
 
 [requires]
 python_version = "3.7"
