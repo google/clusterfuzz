@@ -658,7 +658,8 @@ def is_running_on_app_engine():
 
 def is_running_on_app_engine_development():
   """Return True if running on the local development appengine server."""
-  return os.getenv('SERVER_SOFTWARE', '').startswith('Development/')
+  return (os.getenv('GAE_ENV') == 'dev' or
+          os.getenv('SERVER_SOFTWARE', '').startswith('Development/'))
 
 
 def parse_environment_definition(environment_string):

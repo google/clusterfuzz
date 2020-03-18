@@ -252,6 +252,20 @@ def uncaught_exception_handler(exception_type, exception_value,
   sys.__excepthook__(exception_type, exception_value, exception_traceback)
 
 
+def configure_appengine():
+  """Configure logging for App Engine."""
+  logging.getLogger().setLevel(logging.INFO)
+
+  if os.getenv('LOCAL_DEVELOPMENT') or sys.version_info.major == 2:
+    # TODO(ochang): Remove Python 2 check once all migrated to Python 3.
+    return
+
+  import google.cloud.logging
+  client = google.cloud.logging.Client()
+  handler = client.get_default_handler()
+  logging.getLogger().addHandler(handler)
+
+
 def configure(name, extras=None):
   """Set logger. See the list of loggers in bot/config/logging.yaml.
   Also configures the process to log any uncaught exceptions as an error.
@@ -259,7 +273,7 @@ def configure(name, extras=None):
   suppress_unwanted_warnings()
 
   if _is_running_on_app_engine():
-    logging.getLogger().setLevel(logging.INFO)
+    configure_appengine()
     return
 
   if _console_logging_enabled():
@@ -317,11 +331,36 @@ def get_source_location():
   return 'Unknown', '-1', 'Unknown'
 
 
+def _add_appengine_trace(extras):
+  """Add App Engine tracing information."""
+  if sys.version_info.major != 3 or not _is_running_on_app_engine():
+    # TODO(ochang): Remove Python 3 check once all migrated to Python 3.
+    return
+
+  import webapp2
+  request = webapp2.get_request()
+  if not request:
+    return
+
+  trace_header = request.headers.get('X-Cloud-Trace-Context')
+  if not trace_header:
+    return
+
+  project_id = os.getenv('APPLICATION_ID')
+  trace_id = trace_header.split('/')[0]
+  extras['logging.googleapis.com/trace'] = (
+      'projects/{project_id}/traces/{trace_id}').format(
+          project_id=project_id, trace_id=trace_id)
+
+
 def emit(level, message, exc_info=None, **extras):
   """Log in JSON."""
   logger = get_logger()
   if not logger:
     return
+
+  if exc_info == (None, None, None):
+    exc_info = None
 
   # Include extras passed as an argument and default extras.
   all_extras = _default_extras.copy()
@@ -338,6 +377,8 @@ def emit(level, message, exc_info=None, **extras):
     message = (
         message + '\n' + 'Traceback (most recent call last):\n' + ''.join(
             traceback.format_stack()[:-2]) + 'LogError: ' + message)
+
+  _add_appengine_trace(all_extras)
 
   # We need to make a dict out of it because member of the dict becomes the
   # first class attributes of LogEntry. It is very tricky to identify the extra
