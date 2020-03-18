@@ -593,7 +593,7 @@ def do_corpus_pruning(context, last_execution_failed, revision):
   if environment.is_trusted_host():
     from bot.untrusted_runner import tasks_host
     return tasks_host.do_corpus_pruning(context, last_execution_failed,
-                                          revision)
+                                        revision)
 
   build_manager.setup_build(revision=revision)
   build_directory = environment.get_value('BUILD_DIR')
