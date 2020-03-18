@@ -105,7 +105,7 @@ def get_component_information_by_name(chromium_revision,
   lower_name = component_display_name.lower()
   component_revisions = revisions.get_component_revisions_dict(
       chromium_revision, None)
-  if components_revisions is None:
+  if component_revisions is None:
     return None
 
   all_details = []
