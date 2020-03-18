@@ -684,6 +684,7 @@ class ProjectSetup(object):
     data_bundles = set([
         fuzzer_entity.data_bundle_name
         for fuzzer_entity in six.itervalues(self._fuzzer_entities)
+        if fuzzer_entity.data_bundle_name
     ])
     for data_bundle in data_bundles:
       # Workers also need to be able to set up these global bundles.
