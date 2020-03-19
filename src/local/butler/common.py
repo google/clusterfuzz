@@ -227,13 +227,25 @@ def _install_chromedriver():
   print('Installed chromedriver at: %s' % chromedriver_path)
 
 
+def _pip():
+  """Get the pip binary name."""
+  if sys.version_info.major == 3:
+    return 'pip3'
+
+  return 'pip2'
+
+
 def _install_pip(requirements_path, target_path):
   """Perform pip install using requirements_path onto target_path."""
   if os.path.exists(target_path):
     shutil.rmtree(target_path)
 
-  execute('pip install -r {requirements_path} --upgrade --target {target_path}'.
-          format(requirements_path=requirements_path, target_path=target_path))
+  execute(
+      '{pip} install -r {requirements_path} --upgrade --target {target_path}'.
+      format(
+          pip=_pip(),
+          requirements_path=requirements_path,
+          target_path=target_path))
 
 
 def _install_platform_pip(requirements_path, target_path, platform_name):
@@ -255,8 +267,9 @@ def _install_platform_pip(requirements_path, target_path, platform_name):
   for pip_platform in pip_platforms:
     temp_dir = tempfile.mkdtemp()
     return_code, _ = execute(
-        'pip download --no-deps --only-binary=:all: --platform={platform} '
+        '{pip} download --no-deps --only-binary=:all: --platform={platform} '
         '--abi={abi} -r {requirements_path} -d {output_dir}'.format(
+            pip=_pip(),
             platform=pip_platform,
             abi=pip_abi,
             requirements_path=requirements_path,
