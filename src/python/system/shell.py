@@ -350,7 +350,12 @@ def get_interpreter(file_to_execute, is_blackbox_fuzzer=False):
   }
 
   try:
+<<<<<<< HEAD
     interpreter = interpreters[os.path.splitext(file_to_execute)[1]]
+=======
+    extension = os.path.splitext(file_to_execute)[1]
+    interpreter = interpreter_extension_map[extension]
+>>>>>>> Break up oddly formatted line
   except KeyError:
     return None
 
