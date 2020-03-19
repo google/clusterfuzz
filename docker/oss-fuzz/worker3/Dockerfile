@@ -13,4 +13,4 @@
 # limitations under the License.
 FROM gcr.io/clusterfuzz-images/oss-fuzz/worker
 
-ENV RUN_CMD "/data/start_python3.sh src/python/bot/startup/run.py"
+ENV RUN_CMD "python3.7 src/python/bot/startup/run.py"

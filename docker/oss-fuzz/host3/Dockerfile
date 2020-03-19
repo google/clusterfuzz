@@ -13,4 +13,4 @@
 # limitations under the License.
 FROM gcr.io/clusterfuzz-images/oss-fuzz/host
 
-ENV RUN_CMD "/data/start_python3.sh /data/start_host.py"
+ENV RUN_CMD "python3.7 /data/start_host.py"

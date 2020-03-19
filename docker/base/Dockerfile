@@ -63,9 +63,9 @@ RUN CLOUD_SDK_REPO="cloud-sdk-$(lsb_release -c -s)" && \
     apt-get update && apt-get install -y google-cloud-sdk
 
 # Only upgrade python packages used by fuzzers and infrastructure.
-RUN pip install --upgrade pip
+RUN pip2 install --upgrade pip
 COPY requirements.txt .
-RUN pip install -r requirements.txt
+RUN pip2 install -r requirements.txt
 
 # Set up google-fluentd
 # We ignore errors in install-logging-agent.sh as it always fails to start
@@ -98,7 +98,10 @@ WORKDIR $INSTALL_DIRECTORY
 RUN locale-gen en_US.UTF-8
 ENV LANG en_US.UTF-8
 
-COPY setup_common.sh setup_clusterfuzz.sh setup_nfs.sh start_clusterfuzz.sh setup_mock_metadata.sh start.sh start_python3.sh /data/
-RUN chmod 755 /data/start_python3.sh
+COPY setup_common.sh setup_clusterfuzz.sh setup_nfs.sh start_clusterfuzz.sh setup_mock_metadata.sh start.sh Pipfile Pipfile.lock /data/
+RUN cd /data && \
+    # Make pip3.7 the default so that pipenv install --system works.
+    mv /usr/local/bin/pip3.7 /usr/local/bin/pip && \
+    pipenv install --deploy --system
 CMD ["bash", "-ex", "/data/start.sh"]
 

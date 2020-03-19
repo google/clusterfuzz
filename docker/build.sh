@@ -34,6 +34,7 @@ IMAGES=(
   gcr.io/clusterfuzz-images/fuchsia
 )
 
+cp ../Pipfile* base/
 GIT_HASH=$1
 stamp=$GIT_HASH-$(date -u +%Y%m%d%H%M)
 for image in "${IMAGES[@]}"; do
