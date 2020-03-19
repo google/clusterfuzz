@@ -14,4 +14,4 @@
 FROM gcr.io/clusterfuzz-images/chromium/base
 
 ENV DEPLOYMENT_ZIP "linux-3.zip"
-ENV RUN_CMD "/data/start_python3.sh src/python/bot/startup/run.py"
+ENV RUN_CMD "python3.7 src/python/bot/startup/run.py"
