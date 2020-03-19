@@ -350,8 +350,8 @@ def get_interpreter(file_to_execute, invoke_with_python2=False):
   }
 
   try:
-    interpreter = interpreter_extension_map[os.path.splitext(file_to_execute)[
-        1]]
+    extension = os.path.splitext(file_to_execute)[1]
+    interpreter = interpreter_extension_map[extension]
   except KeyError:
     return None
 
