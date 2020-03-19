@@ -337,7 +337,7 @@ def get_free_disk_space(path='/'):
   return psutil.disk_usage(path).free
 
 
-def get_interpreter(file_to_execute, invoke_with_python2=False):
+def get_interpreter(file_to_execute, is_blackbox_fuzzer=False):
   """Gives the interpreter needed to execute |file_to_execute|."""
   interpreters = {
       '.bash': 'bash',
@@ -350,15 +350,13 @@ def get_interpreter(file_to_execute, invoke_with_python2=False):
   }
 
   try:
-    return interpreters[os.path.splitext(file_to_execute)[1]]
+    interpreter = interpreters[os.path.splitext(file_to_execute)[1]]
   except KeyError:
     return None
 
   # TODO(mbarbella): Remove this when fuzzers have been migrated to Python 3.
-  # TODO(mbarbella): Remove the Windows platform check when bots have a
-  # python2.exe available.
-  if (invoke_with_python2 and interpreter == 'python' and
-      environment.platform() != 'WINDOWS'):
+  if (is_blackbox_fuzzer and interpreter == 'python' and
+      environment.get_value('USE_PYTHON2_FOR_BLACKBOX_FUZZERS')):
     interpreter = 'python2'
 
   return interpreter
