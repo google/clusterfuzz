@@ -14,6 +14,7 @@
 """Shell related functions."""
 
 from builtins import str
+
 import os
 import re
 import shlex
@@ -469,10 +470,7 @@ def remove_directory(directory, recreate=False, ignore_errors=False):
     # File paths are not necessarily valid unicode, so we must encode the
     # directory here to prevent exceptions when shutil tries to build
     # subdirectory paths.
-    encoded_directory = directory
-    if isinstance(encoded_directory, str):
-      encoded_directory = encoded_directory.encode('utf-8')
-
+    encoded_directory = directory.encode('utf-8')
     shutil.rmtree(encoded_directory, onerror=clear_read_only)
 
   if os.path.exists(directory):
