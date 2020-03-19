@@ -167,7 +167,7 @@ class HonggfuzzEngine(engine.Engine):
       reproducer_path = _get_reproducer_path(line)
       if reproducer_path:
         crashes.append(
-            engine.Crash(reproducer_path, sanitizer_stacktrace, [],
+            engine.Crash(reproducer_path, sanitizer_stacktrace or '', [],
                          int(fuzz_result.time_executed)))
         continue
 
