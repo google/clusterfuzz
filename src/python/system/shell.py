@@ -356,7 +356,10 @@ def get_interpreter(file_to_execute, invoke_with_python2=False):
     return None
 
   # TODO(mbarbella): Remove this when fuzzers have been migrated to Python 3.
-  if invoke_with_python2 and interpreter == 'python':
+  # TODO(mbarbella): Remove the Windows platform check when bots have a
+  # python2.exe available.
+  if (invoke_with_python2 and interpreter == 'python' and
+      environment.platform() != 'WINDOWS'):
     interpreter = 'python2'
 
   return interpreter
