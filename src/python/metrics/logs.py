@@ -372,9 +372,9 @@ def emit(level, message, exc_info=None, **extras):
       exc_info = None
 
     if level >= logging.ERROR:
-      # App Engine only reports errors if there is an exception stacktrace, so we
-      # generate one. We don't create an exception here and then format it, as
-      # that will not include frames below this emit() call. We do [:-2] on
+      # App Engine only reports errors if there is an exception stacktrace, so
+      # we generate one. We don't create an exception here and then format it,
+      # as that will not include frames below this emit() call. We do [:-2] on
       # the stacktrace to exclude emit() and the logging function below it (e.g.
       # log_error).
       message = (
