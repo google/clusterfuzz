@@ -350,18 +350,14 @@ def get_interpreter(file_to_execute, is_blackbox_fuzzer=False):
   }
 
   try:
-<<<<<<< HEAD
     interpreter = interpreters[os.path.splitext(file_to_execute)[1]]
-=======
-    extension = os.path.splitext(file_to_execute)[1]
-    interpreter = interpreter_extension_map[extension]
->>>>>>> Break up oddly formatted line
   except KeyError:
     return None
 
   # TODO(mbarbella): Remove this when fuzzers have been migrated to Python 3.
-  if (is_blackbox_fuzzer and interpreter == 'python' and
-      environment.get_value('USE_PYTHON2_FOR_BLACKBOX_FUZZERS')):
+  if (is_blackbox_fuzzer and interpreter == sys.executable and
+      environment.get_value('USE_PYTHON2_FOR_BLACKBOX_FUZZERS') and
+      environment.platform() != 'WINDOWS'):
     interpreter = 'python2'
 
   return interpreter
