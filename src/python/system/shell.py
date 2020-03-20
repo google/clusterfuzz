@@ -473,7 +473,7 @@ def remove_directory(directory, recreate=False, ignore_errors=False):
     if isinstance(encoded_directory, str):
       encoded_directory = encoded_directory.encode('utf-8')
 
-    shutil.rmtree(encoded_directory, onerror=clear_read_only)
+    shutil.rmtree(directory, onerror=clear_read_only)
 
   if os.path.exists(directory):
     # 1. If directory is a mount point, then directory itself won't be
