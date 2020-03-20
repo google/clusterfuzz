@@ -1388,7 +1388,7 @@ class FuzzingSession(object):
     filtered_new_files = []
     filtered_new_files_count = 0
     for new_file in new_files:
-      if filtered_new_files_count > MAX_NEW_CORPUS_FILES:
+      if filtered_new_files_count >= MAX_NEW_CORPUS_FILES:
         break
       if os.path.getsize(new_file) > engine_common.CORPUS_INPUT_SIZE_LIMIT:
         continue
