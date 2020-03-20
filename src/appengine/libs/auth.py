@@ -126,11 +126,12 @@ def get_current_user():
   if environment.is_local_development():
     return User('user@localhost')
 
-  loas_user = environment.get_value('LOAS_PEER_USERNAME')
-  if loas_user:
-    return User(loas_user + '@google.com')
-
   current_request = get_current_request()
+  if local_config.AuthConfig().get('enable_loas'):
+    loas_user = current_request.headers.get('X-AppEngine-LOAS-Peer-Username')
+    if loas_user:
+      return User(loas_user + '@google.com')
+
   iap_email = get_iap_email(current_request)
   if iap_email:
     return User(iap_email)
