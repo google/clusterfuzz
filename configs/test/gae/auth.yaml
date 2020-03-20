@@ -31,3 +31,7 @@ whitelisted_cors_urls:
 #  - https?://(.*-dot-)?test-client-site-staging.appspot.com
 #  - https?://(.*-dot-)?test-client-site.appspot.com
 
+# IAP authenticated users automatically is privileged.
+# This allows priviledged access to be controlled by google groups who have "IAPSecured Web App Users" Role
+# value is either True or False default is False
+iap_is_privileged: True

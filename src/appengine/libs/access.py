@@ -35,7 +35,8 @@ def _is_privileged_user(email):
 
   current_request = auth.get_current_request()
   iap_email = auth.get_iap_email(current_request)
-  if iap_email:
+  iap_ispriv = local_config.AuthConfig().get('iap_is_privileged', default=False)
+  if iap_email and iap_ispriv:
     return True
 
   privileged_user_emails = (db_config.get_value('privileged_users') or
