@@ -359,28 +359,29 @@ def emit(level, message, exc_info=None, **extras):
   if not logger:
     return
 
-  if exc_info == (None, None, None):
-    # Don't pass exc_info at all, as otherwise cloud logging will append
-    # "NoneType: None" to the message.
-    exc_info = None
-
   # Include extras passed as an argument and default extras.
   all_extras = _default_extras.copy()
   all_extras.update(extras)
 
   path_name, line_number, method_name = get_source_location()
 
-  if (level >= logging.ERROR and _is_running_on_app_engine()):
-    # App Engine only reports errors if there is an exception stacktrace, so we
-    # generate one. We don't create an exception here and then format it, as
-    # that will not include frames below this emit() call. We do [:-2] on
-    # the stacktrace to exclude emit() and the logging function below it (e.g.
-    # log_error).
-    message = (
-        message + '\n' + 'Traceback (most recent call last):\n' + ''.join(
-            traceback.format_stack()[:-2]) + 'LogError: ' + message)
+  if _is_running_on_app_engine():
+    if exc_info == (None, None, None):
+      # Don't pass exc_info at all, as otherwise cloud logging will append
+      # "NoneType: None" to the message.
+      exc_info = None
 
-  _add_appengine_trace(all_extras)
+    if level >= logging.ERROR:
+      # App Engine only reports errors if there is an exception stacktrace, so
+      # we generate one. We don't create an exception here and then format it,
+      # as that will not include frames below this emit() call. We do [:-2] on
+      # the stacktrace to exclude emit() and the logging function below it (e.g.
+      # log_error).
+      message = (
+          message + '\n' + 'Traceback (most recent call last):\n' + ''.join(
+              traceback.format_stack()[:-2]) + 'LogError: ' + message)
+
+    _add_appengine_trace(all_extras)
 
   # We need to make a dict out of it because member of the dict becomes the
   # first class attributes of LogEntry. It is very tricky to identify the extra
