@@ -1374,6 +1374,16 @@ class FuzzingSession(object):
     if not targets_count or targets_count.count != count:
       data_types.FuzzTargetsCount(id=self.job_type, count=count).put()
 
+  def _file_size(self, file_path):
+    """Return file size depending on whether file is local or remote (untrusted
+    worker)."""
+    if environment.is_trusted_host():
+      from bot.untrusted_runner import file_host
+      stat_result = file_host.stat(file_path)
+      return stat_result.st_size if stat_result else None
+
+    return os.path.getsize(file_path)
+
   def sync_new_corpus_files(self):
     """Sync new files from corpus to GCS."""
     if not self.gcs_corpus:
@@ -1390,7 +1400,7 @@ class FuzzingSession(object):
     for new_file in new_files:
       if filtered_new_files_count >= MAX_NEW_CORPUS_FILES:
         break
-      if os.path.getsize(new_file) > engine_common.CORPUS_INPUT_SIZE_LIMIT:
+      if self._file_size(new_file) > engine_common.CORPUS_INPUT_SIZE_LIMIT:
         continue
       filtered_new_files.append(new_file)
       filtered_new_files_count += 1
