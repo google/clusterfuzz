@@ -1643,7 +1643,8 @@ def use_peach_mutator(extra_env, grammar):
   # Set Python path.
   new_path = [
       os.path.join(unzipped, 'peach_mutator', 'src'),
-      os.path.join(unzipped, 'peach_mutator', 'third_party', 'peach')
+      os.path.join(unzipped, 'peach_mutator', 'third_party', 'peach'),
+      os.path.join(unzipped, 'peach_mutator', 'third_party', 'requirements')
   ]
 
   extra_env['PYTHONPATH'] = os.pathsep.join(new_path)
