@@ -15,6 +15,7 @@
 Write-Host "Start"
 
 # Helper variables.
+[Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
 $webClient = New-Object System.Net.WebClient
 $webClient.Headers.add('Metadata-Flavor', 'Google')
 $hostName = ($webClient.DownloadString('http://metadata.google.internal/computeMetadata/v1/instance/hostname')).split('.')[0]
@@ -138,12 +139,23 @@ if (!(Test-Path ($fileName))) {
   cmd /c msiexec /qn /i $fileName TARGETDIR=c:\python27
 }
 
+# Install Python 3.7
+$fileName = "$tmp\python-3.7.7-amd64.exe"
+if (!(Test-Path ($fileName))) {
+  $webClient.DownloadFile("https://www.python.org/ftp/python/3.7.7/python-3.7.7-amd64.exe", $fileName)
+  Remove-Item c:\python37 -Recurse -ErrorAction Ignore
+	cmd /c $fileName /quiet InstallAllUsers=1 Include_test=0 TargetDir=c:\python37
+}
+
 # Install specific python package versions.
 cmd /c c:\python27\python -m ensurepip --default-pip
 cmd /c c:\python27\python -m pip install -U pip
 cmd /c c:\python27\python -m pip install -U setuptools
 cmd /c c:\python27\python -m pip install -U wheel
 cmd /c c:\python27\python -m pip install crcmod==1.7 pywinauto==0.6.4 psutil==5.6.6 future==0.17.1
+
+cmd /c c:\python37\python -m pip install -U pip
+cmd /c c:\python37\python -m pip install pipenv
 
 # Install NodeJS.
 $fileName = "$tmp\nodejs.zip"
