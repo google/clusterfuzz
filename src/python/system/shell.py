@@ -14,7 +14,6 @@
 """Shell related functions."""
 
 from builtins import str
-
 import os
 import re
 import shlex
@@ -477,12 +476,7 @@ def remove_directory(directory, recreate=False, ignore_errors=False):
     # try closing open file handles and then try removing it with read only
     # bit removed (Windows only).
     close_open_file_handles_if_needed(directory)
-
-    # File paths are not necessarily valid unicode, so we must encode the
-    # directory here to prevent exceptions when shutil tries to build
-    # subdirectory paths.
-    encoded_directory = directory.encode('utf-8')
-    shutil.rmtree(encoded_directory, onerror=clear_read_only)
+    shutil.rmtree(directory, onerror=clear_read_only)
 
   if os.path.exists(directory):
     # 1. If directory is a mount point, then directory itself won't be
