@@ -14,4 +14,4 @@
 FROM gcr.io/clusterfuzz-images/oss-fuzz/host
 
 ENV DEPLOYMENT_ZIP "linux-3.zip"
-ENV RUN_CMD "python3.7 /data/start_host.py"
+ENV RUN_CMD "pipenv run python /data/start_host.py"
