@@ -418,6 +418,9 @@ def upload_testcase(testcase_path, log_time):
   if not fuzz_logs_bucket:
     return
 
+  if not os.path.exists(testcase_path):
+    return
+
   with open(testcase_path, 'rb') as file_handle:
     testcase_contents = file_handle.read()
 
