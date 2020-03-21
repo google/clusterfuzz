@@ -338,8 +338,14 @@ def _add_appengine_trace(extras):
     return
 
   import webapp2
-  request = webapp2.get_request()
-  if not request:
+
+  try:
+    request = webapp2.get_request()
+    if not request:
+      return
+  except Exception:
+    # FIXME: Find a way to add traces in threads. Skip adding for now, as
+    # otherwise, we hit an exception "Request global variable is not set".
     return
 
   trace_header = request.headers.get('X-Cloud-Trace-Context')
