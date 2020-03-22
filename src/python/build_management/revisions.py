@@ -277,7 +277,7 @@ def deps_to_revisions_dict(content):
   """Parses DEPS content and returns a dictionary of revision variables."""
   local_context = {}
   global_context = {
-      'Var': lambda x: '{%s}' % x,
+      'Var': lambda x: local_context.get('vars', {}).get(x),
   }
   # pylint: disable=exec-used
   exec (content, global_context, local_context)
