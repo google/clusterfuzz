@@ -339,19 +339,18 @@ def get_free_disk_space(path='/'):
 
 def get_interpreter(file_to_execute, invoke_with_python2=False):
   """Gives the interpreter needed to execute |file_to_execute|."""
-  interpreter_extension_map = {
+  interpreters = {
       '.bash': 'bash',
       '.class': 'java',
       '.js': 'node',
       '.pl': 'perl',
-      '.py': 'python',
-      '.pyc': 'python',
+      '.py': sys.executable,
+      '.pyc': sys.executable,
       '.sh': 'sh'
   }
 
   try:
-    extension = os.path.splitext(file_to_execute)[1]
-    interpreter = interpreter_extension_map[extension]
+    return interpreters[os.path.splitext(file_to_execute)[1]]
   except KeyError:
     return None
 
