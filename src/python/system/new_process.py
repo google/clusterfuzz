@@ -17,6 +17,7 @@ from builtins import object
 
 import os
 import subprocess
+import sys
 import tempfile
 import threading
 import time
@@ -277,7 +278,7 @@ class ProcessRunner(object):
 
     # TODO(mbarbella): Remove this after the Python 3 conversion. Subprocess
     # contains some explicit type checks, causing errors when newstrs are used.
-    if env:
+    if env and sys.version_info.major == 2:
       env = {
           utils.newstr_to_native_str(k): utils.newstr_to_native_str(v)
           for k, v in env.items()
