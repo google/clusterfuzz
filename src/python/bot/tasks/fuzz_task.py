@@ -1535,13 +1535,13 @@ class FuzzingSession(object):
       if float(
           generated_testcase_count) / testcase_count < FUZZER_FAILURE_THRESHOLD:
         logs.log_error(
-            'Fuzzer %s returned %d. Testcase generation failed.' %
-            (fuzzer_name, fuzzer_return_code),
+            'Fuzzer failed to generate testcases (fuzzer={name}, return_code={return_code}).'.
+            format(name=fuzzer_name, return_code=fuzzer_return_code),
             output=fuzzer_output)
       else:
         logs.log_warn(
-            'Fuzzer %s returned %d. Less than expected testcases generated.' %
-            (fuzzer_name, fuzzer_return_code),
+            'Fuzzer generated less than expected testcases (fuzzer={name}, return_code={return_code}).'.
+            format(name=fuzzer_name, return_code=fuzzer_return_code),
             output=fuzzer_output)
 
     # Store fuzzer run results.
