@@ -363,10 +363,10 @@ def get_interpreter(file_to_execute, is_blackbox_fuzzer=False):
   return interpreter
 
 
-def get_execute_command(file_to_execute, invoke_with_python2=False):
+def get_execute_command(file_to_execute, is_blackbox_fuzzer=False):
   """Return command to execute |file_to_execute|."""
   interpreter_path = get_interpreter(
-      file_to_execute, invoke_with_python2=invoke_with_python2)
+      file_to_execute, is_blackbox_fuzzer=is_blackbox_fuzzer)
 
   # Hack for Java scripts.
   file_to_execute = file_to_execute.replace('.class', '')
