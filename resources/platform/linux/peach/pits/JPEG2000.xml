@@ -1,0 +1,155 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Peach xmlns="http://peachfuzzer.com/2012/Peach" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://peachfuzzer.com/2012/Peach /peach/peach.xsd">
+  <Defaults>
+    <Number signed="false" valueType="hex" endian="big"/>
+  </Defaults>
+
+  <DataModel name="MarkerSegment">
+    <Number name="Marker" size="16"/>
+    <Block name="SegmentData">
+      <Number name="Length" size="16">
+        <Relation type="size" of="SegmentData" />
+      </Number>
+      <Blob name="Data"/>
+    </Block>
+  </DataModel>
+
+  <DataModel name="GenericBox">
+    <Block name="WholeBox">
+      <Number name="Length" size="32">
+        <Relation type="size" of="WholeBox" />
+      </Number>
+      <Blob name="Type" length="4"/>
+      <Blob name="Data"/>
+    </Block>
+  </DataModel>
+
+  <DataModel name="JpBox" ref="GenericBox">
+    <Block name="WholeBox">
+      <Number name="Length" size="32">
+        <Relation type="size" of="WholeBox" />
+      </Number>
+      <String name="Type" value="jP  " length="4" token="true"/>
+      <Blob name="Data"/>
+    </Block>
+  </DataModel>
+
+  <DataModel name="FtypBox" ref="GenericBox">
+    <Block name="WholeBox">
+      <Number name="Length" size="32">
+        <Relation type="size" of="WholeBox" />
+      </Number>
+      <String name="Type" value="ftyp" length="4" token="true"/>
+      <Blob name="Data"/>
+    </Block>
+  </DataModel>
+
+  <DataModel name="XmlBox" ref="GenericBox">
+    <Block name="WholeBox">
+      <Number name="Length" size="32">
+        <Relation type="size" of="WholeBox" />
+      </Number>
+      <String name="Type" value="xml " length="4" token="true"/>
+      <Blob name="Data"/>
+    </Block>
+  </DataModel>
+
+  <DataModel name="Jp2hBox" ref="GenericBox">
+    <Block name="WholeBox">
+      <Number name="Length" size="32">
+        <Relation type="size" of="WholeBox" />
+      </Number>
+      <String name="Type" value="jp2h" length="4" token="true"/>
+      <Blob name="Data"/>
+    </Block>
+  </DataModel>
+
+  <DataModel name="OtherMarkerSegment" ref="MarkerSegment">
+    <Choice name="Marker">
+      <Number name="SIZ" valueType="hex" value="FF 51" size="16" token="true"/>
+      <Number name="COD" valueType="hex" value="FF 52" size="16" token="true"/>
+      <Number name="COC" valueType="hex" value="FF 53" size="16" token="true"/>
+      <Number name="QCD" valueType="hex" value="FF 5C" size="16" token="true"/>
+      <Number name="QCC" valueType="hex" value="FF 5D" size="16" token="true"/>
+      <Number name="RGN" valueType="hex" value="FF 5E" size="16" token="true"/>
+      <Number name="POC" valueType="hex" value="FF 5F" size="16" token="true"/>
+      <Number name="PPM" valueType="hex" value="FF 60" size="16" token="true"/>
+      <Number name="TLM" valueType="hex" value="FF 55" size="16" token="true"/>
+      <Number name="PLM" valueType="hex" value="FF 57" size="16" token="true"/>
+      <Number name="CRG" valueType="hex" value="FF 63" size="16" token="true"/>
+      <Number name="COM" valueType="hex" value="FF 64" size="16" token="true"/>
+      <Number name="PPT" valueType="hex" value="FF 61" size="16" token="true"/>
+      <Number name="PLT" valueType="hex" value="FF 58" size="16" token="true"/>
+      <Number name="SOP" valueType="hex" value="FF 91" size="16" token="true"/>
+      <Number name="EPH" valueType="hex" value="FF 92" size="16" token="true"/>
+    </Choice>
+    <Block name="SegmentData">
+      <Number name="Length" size="16">
+        <Relation type="size" of="SegmentData" />
+      </Number>
+      <Blob name="Data"/>
+    </Block>
+  </DataModel>
+
+  <DataModel name="SOTMarkerSegment" ref="MarkerSegment">
+    <Number name="Marker" valueType="hex" value="FF 90" size="16" token="true"/>
+    <Block name="SegmentData">
+      <Number name="Length" size="16">
+        <Relation type="size" of="SegmentData" />
+      </Number>
+      <Block name="Data">
+        <Number name="Isot" size="16"/>
+        <Number name="Psot" size="32">
+          <Relation type="size" of="SOTMarkerSegment" />
+        </Number>
+        <Number name="TOsot" size="8"/>
+        <Number name="TNsot" size="8"/>
+      </Block>
+    </Block>
+
+    <!--
+    <Choice name="TileHeaderMarkerSegments" minOccurs="0" maxOccurs="10000">
+        <Block name="otherMarkerSegment" ref="OtherMarkerSegment" minOccurs="0" maxOccurs="10000"/>
+    </Choice>
+    -->
+
+    <Number name="MarkerSOD" valueType="hex" value="FF 93" size="16" token="true"/>
+    <Blob name="TileData"/>
+  </DataModel>
+
+  <DataModel name="Jp2cBox" ref="GenericBox">
+    <Block name="WholeBox">
+      <Number name="Length" size="32">
+        <Relation type="size" of="WholeBox" />
+      </Number>
+      <String name="Type" value="jp2c" length="4" token="true"/>
+      <Block name="Data">
+        <Number name="MarkerSOC" valueType="hex" value="FF 4F" size="16" token="true"/>
+
+        <Choice name="MainHeaderMarkerSegments" maxOccurs="10000">
+          <Block name="otherMarkerSegment" ref="OtherMarkerSegment"/>
+        </Choice>
+
+        <Choice name="SOTs" maxOccurs="10000">
+          <Block name="SotMarkerSegment" ref="SOTMarkerSegment" />
+          <Number name="MarkerEOC" valueType="hex" value="FF D9" size="16" token="true"/>
+        </Choice>
+
+      </Block>
+    </Block>
+  </DataModel>
+
+  <DataModel name="JPEG2000">
+    <Choice name="Boxes" maxOccurs="10000">
+      <Block name="jpBox" ref="JpBox"/>
+      <Block name="ftypBox" ref="FtypBox"/>
+      <Block name="xmlBox" ref="XmlBox"/>
+      <Block name="jp2hBox" ref="Jp2hBox"/>
+      <Block name="jp2cBox" ref="Jp2cBox"/>
+      <Block name="OtherBox" ref="GenericBox"/>
+    </Choice>
+  </DataModel>
+
+</Peach>
+    <!-- end -->
