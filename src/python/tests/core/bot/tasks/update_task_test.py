@@ -150,8 +150,10 @@ class GetUrlsTest(unittest.TestCase):
     ])
     if sys.version_info.major == 3:
       self.manifest_suffix = '.3'
+      self.deployment_suffix = '-3'
     else:
       self.manifest_suffix = ''
+      self.deployment_suffix = ''
 
   def test_get_source_manifest_url(self):
     """Test get_source_manifest_url."""
@@ -162,17 +164,20 @@ class GetUrlsTest(unittest.TestCase):
   def test_get_source_url_windows(self):
     """Test get_source_url on windows."""
     self.mock.system.return_value = 'Windows'
-    self.assertEqual('gs://test-deployment-bucket/windows.zip',
-                     update_task.get_source_url())
+    self.assertEqual(
+        'gs://test-deployment-bucket/windows%s.zip' % self.deployment_suffix,
+        update_task.get_source_url())
 
   def test_get_source_url_macos(self):
     """Test get_source_url on macos."""
     self.mock.system.return_value = 'Darwin'
-    self.assertEqual('gs://test-deployment-bucket/macos.zip',
-                     update_task.get_source_url())
+    self.assertEqual(
+        'gs://test-deployment-bucket/macos%s.zip' % self.deployment_suffix,
+        update_task.get_source_url())
 
   def test_get_source_url_linux(self):
     """Test get_source_url on linux."""
     self.mock.system.return_value = 'Linux'
-    self.assertEqual('gs://test-deployment-bucket/linux.zip',
-                     update_task.get_source_url())
+    self.assertEqual(
+        'gs://test-deployment-bucket/linux%s.zip' % self.deployment_suffix,
+        update_task.get_source_url())
