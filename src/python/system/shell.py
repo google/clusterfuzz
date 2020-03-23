@@ -357,7 +357,7 @@ def get_interpreter(file_to_execute, is_blackbox_fuzzer=False):
   # TODO(mbarbella): Remove this when fuzzers have been migrated to Python 3.
   if (is_blackbox_fuzzer and interpreter == sys.executable and
       environment.get_value('USE_PYTHON2_FOR_BLACKBOX_FUZZERS') and
-      environment.platform() != 'WINDOWS'):
+      sys.version_info.major == 3):
     interpreter = 'python2'
 
   return interpreter
