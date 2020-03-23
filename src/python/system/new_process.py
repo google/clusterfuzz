@@ -17,6 +17,7 @@ from builtins import object
 
 import os
 import subprocess
+import sys
 import tempfile
 import threading
 import time
