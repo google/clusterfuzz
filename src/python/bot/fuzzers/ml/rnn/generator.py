@@ -23,6 +23,7 @@ except ImportError:
 from builtins import str
 
 import os
+import sys
 
 from bot.fuzzers.ml.rnn import constants
 from google_cloud_utils import storage
@@ -168,7 +169,7 @@ def run(input_directory,
   script_environment = os.environ.copy()
 
   # Run process in script directory.
-  rnn_runner = new_process.ProcessRunner('python')
+  rnn_runner = new_process.ProcessRunner(sys.executable)
   return rnn_runner.run_and_wait(
       args_list,
       cwd=ML_RNN_SCRIPT_DIR,
