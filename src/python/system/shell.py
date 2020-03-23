@@ -35,7 +35,7 @@ except ImportError:
 LOW_DISK_SPACE_THRESHOLD = 5 * 1024 * 1024 * 1024  # 5 GB.
 FILE_COPY_BUFFER_SIZE = 10 * 1024 * 1024  # 10 MB.
 HANDLE_OUTPUT_FILE_TYPE_REGEX = re.compile(
-    r'.*pid:\s*(\d+)\s*type:\s*File\s*([a-fA-F0-9]+):\s*(.*)')
+    br'.*pid:\s*(\d+)\s*type:\s*File\s*([a-fA-F0-9]+):\s*(.*)')
 
 _system_temp_dir = None
 
@@ -229,9 +229,9 @@ def close_open_file_handles_if_needed(path):
     if not match:
       continue
 
-    process_id = match.group(1)
-    file_handle_id = match.group(2)
-    file_path = match.group(3)
+    process_id = match.group(1).decode('utf-8')
+    file_handle_id = match.group(2).decode('utf-8')
+    file_path = match.group(3).decode('utf-8')
 
     logs.log(
         'Closing file handle id %s for path %s.' % (file_handle_id, file_path))
