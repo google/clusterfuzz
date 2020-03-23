@@ -669,7 +669,8 @@ class Build(BaseBuild):
 
     if utils.is_chromium():
       # Use deterministic fonts when available. See crbug.com/822737.
-      if self.revision >= 635076:
+      # For production builds (stable, beta), assume that they support it.
+      if not isinstance(self.revision, int) or self.revision >= 635076:
         environment.set_value('FONTCONFIG_SYSROOT', app_directory)
       else:
         # Remove if set during previous iterations of regression testing.
