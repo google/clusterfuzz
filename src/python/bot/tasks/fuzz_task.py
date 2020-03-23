@@ -881,12 +881,15 @@ def store_fuzzer_run_results(testcase_file_paths, fuzzer, fuzzer_command,
   # 4. Return code is non-zero and was not found before.
   # 5. Testcases generated were fewer than expected in this run and zero return
   #    code did occur before and zero generated testcases didn't occur before.
+  # TODO(mbarbella): Break this up for readability.
+  # pylint: disable=consider-using-in
   save_test_results = (
       not fuzzer.result or not fuzzer.result_timestamp or
       dates.time_has_expired(fuzzer.result_timestamp, days=1) or
       (fuzzer_return_code != 0 and fuzzer_return_code != fuzzer.return_code) or
       (generated_testcase_count != expected_testcase_count and
        fuzzer.return_code == 0 and ' 0/' not in fuzzer.result))
+  # pylint: enable=consider-using-in
   if not save_test_results:
     return
 
@@ -1471,7 +1474,10 @@ class FuzzingSession(object):
         return error_occurred, None, None, None, None
 
       # Build the fuzzer command execution string.
-      command = shell.get_execute_command(fuzzer_executable)
+      # TODO(mbarbella): Conditionally invoke with Python 2 depending on
+      # the fuzzer. At present, all were implemented to work with Python 2.
+      command = shell.get_execute_command(
+          fuzzer_executable, is_blackbox_fuzzer=True)
 
       # NodeJS and shell script expect space seperator for arguments.
       if command.startswith('node ') or command.startswith('sh '):

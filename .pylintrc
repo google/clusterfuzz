@@ -30,6 +30,7 @@ disable=
   suppressed-message,
   ungrouped-imports,
   unsubscriptable-object,
+  useless-object-inheritance, # Remove once all bots are on Python 3.
   useless-suppression,
   wrong-import-order,
   wrong-import-position,
