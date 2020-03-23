@@ -65,7 +65,11 @@ def _platform_deployment_filename():
       'Darwin': 'macos'
   }
 
-  return platform_mappings[platform.system()] + '.zip'
+  base_filename = platform_mappings[platform.system()]
+  if sys.version_info.major == 3:
+    base_filename += '-3'
+
+  return base_filename + '.zip'
 
 
 def _deployment_file_url(filename):
@@ -268,7 +272,7 @@ def update_source_code():
   local_manifest_path = os.path.join(root_directory,
                                      utils.LOCAL_SOURCE_MANIFEST)
   source_version = utils.read_data_from_file(
-      local_manifest_path, eval_data=False)
+      local_manifest_path, eval_data=False).decode('utf-8').strip()
   logs.log('Source code updated to %s.' % source_version)
 
 
