@@ -595,11 +595,10 @@ def do_corpus_pruning(context, last_execution_failed, revision):
     return tasks_host.do_corpus_pruning(context, last_execution_failed,
                                         revision)
 
-  build_setup_result = build_manager.setup_build(revision=revision)
-  build_directory = environment.get_value('BUILD_DIR')
-  if not build_setup_result or not build_directory:
+  if not build_manager.setup_build(revision=revision):
     raise CorpusPruningException('Failed to setup build.')
 
+  build_directory = environment.get_value('BUILD_DIR')
   start_time = datetime.datetime.utcnow()
   runner = Runner(build_directory, context)
   pruner = CorpusPruner(runner)

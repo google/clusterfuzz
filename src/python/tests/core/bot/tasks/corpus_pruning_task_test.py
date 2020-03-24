@@ -119,6 +119,7 @@ class BaseTest(object):
 
   def _mock_setup_build(self, revision=None):
     os.environ['BUILD_DIR'] = os.path.join(TEST_DIR, 'build')
+    return True
 
   def _mock_rsync_to_disk(self, _, sync_dir, timeout=None, delete=None):
     """Mock rsync_to_disk."""
