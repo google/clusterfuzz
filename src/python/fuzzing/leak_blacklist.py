@@ -33,14 +33,14 @@ STACK_START_REGEX = re.compile(r'^ *#0 ')
 BLANK_LINE_REGEX = re.compile(r'^\s*$')
 
 LSAN_TOOL_NAME = 'lsan'
-LSAN_SUPPRESSION_LINE = b'leak:{function}\n'
-LSAN_HEADER_COMMENT = b'# This is a LSAN suppressions file.\n'
+LSAN_SUPPRESSION_LINE = 'leak:{function}\n'
+LSAN_HEADER_COMMENT = '# This is a LSAN suppressions file.\n'
 
 
 def create_empty_local_blacklist():
   """Creates an empty local blacklist."""
   lsan_suppressions_path = get_local_blacklist_file_path()
-  with open(lsan_suppressions_path, 'wb') as local_blacklist:
+  with open(lsan_suppressions_path, 'w') as local_blacklist:
     # Insert comment on top to avoid parsing errors on empty file.
     local_blacklist.write(LSAN_HEADER_COMMENT)
 
