@@ -104,17 +104,10 @@ def utc_datetime_to_timestamp(dt):
 # potentially indicative of poor tracking of encodings.
 def decode_to_unicode(obj, encoding='utf-8'):
   """Decode object to unicode encoding."""
-  if isinstance(obj, basestring) and not isinstance(obj, str):
-    try:
-      obj = str(obj, encoding)
-    except:
-      obj = str(
-          ''.join(
-              char for char in obj
-              if (char if isinstance(char, int) else ord(char)) < 128),
-          encoding)
+  if not hasattr(obj, 'decode'):
+    return obj
 
-  return obj
+  return obj.decode(encoding, errors='ignore')
 
 
 @retry.wrap(
