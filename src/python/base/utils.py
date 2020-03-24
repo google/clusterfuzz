@@ -17,7 +17,6 @@ from builtins import map
 from builtins import range
 from builtins import str
 from future import utils as future_utils
-from past.builtins import basestring
 
 from future import standard_library
 standard_library.install_aliases()
