@@ -1,0 +1,102 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Peach xmlns="http://peachfuzzer.com/2012/Peach" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://peachfuzzer.com/2012/Peach /peach/peach.xsd">
+  <Defaults>
+    <Number signed="false" valueType="hex" endian="big"/>
+  </Defaults>
+  <DataModel name="MarkerSegment">
+    <Number name="Marker" size="16"/>
+    <Blob name="SegmentData"/>
+  </DataModel>
+
+  <DataModel name="MarkerSegmentWithPayload">
+    <Number name="Marker" size="16"/>
+    <Block name="SegmentData">
+      <Number name="Length" size="16">
+        <Relation type="size" of="SegmentData" />
+      </Number>
+      <Blob name="Data"/>
+    </Block>
+  </DataModel>
+
+  <DataModel name="APPSegment" ref="MarkerSegmentWithPayload">
+    <Choice name="Marker">
+      <Number name="Marker0" valueType="hex" value="FF E0" size="16" token="true"/>
+      <Number name="Marker1" valueType="hex" value="FF E1" size="16" token="true"/>
+      <Number name="Marker2" valueType="hex" value="FF E2" size="16" token="true"/>
+      <Number name="Marker3" valueType="hex" value="FF E3" size="16" token="true"/>
+      <Number name="Marker4" valueType="hex" value="FF E4" size="16" token="true"/>
+      <Number name="Marker5" valueType="hex" value="FF E5" size="16" token="true"/>
+      <Number name="Marker6" valueType="hex" value="FF E6" size="16" token="true"/>
+      <Number name="Marker7" valueType="hex" value="FF E7" size="16" token="true"/>
+      <Number name="Marker8" valueType="hex" value="FF E8" size="16" token="true"/>
+      <Number name="Marker9" valueType="hex" value="FF E9" size="16" token="true"/>
+      <Number name="Marker10" valueType="hex" value="FF EA" size="16" token="true"/>
+      <Number name="Marker11" valueType="hex" value="FF EB" size="16" token="true"/>
+      <Number name="Marker12" valueType="hex" value="FF EC" size="16" token="true"/>
+      <Number name="Marker13" valueType="hex" value="FF ED" size="16" token="true"/>
+      <Number name="Marker14" valueType="hex" value="FF EE" size="16" token="true"/>
+      <Number name="Marker15" valueType="hex" value="FF EF" size="16" token="true"/>
+    </Choice>
+    <Block name="SegmentData">
+      <Number name="Length" size="16">
+        <Relation type="size" of="SegmentData" />
+      </Number>
+      <Blob name="Data"/>
+    </Block>
+  </DataModel>
+
+  <DataModel name="SOFSegment" ref="MarkerSegmentWithPayload">
+    <Choice name="Marker">
+      <Number name="Marker0" valueType="hex" value="FF C0" size="16" token="true"/>
+      <Number name="Marker1" valueType="hex" value="FF C1" size="16" token="true"/>
+      <Number name="Marker2" valueType="hex" value="FF C2" size="16" token="true"/>
+    </Choice>
+  </DataModel>
+
+  <DataModel name="DHTSegment" ref="MarkerSegmentWithPayload">
+    <Number name="Marker" valueType="hex" value="FF C4" size="16" token="true"/>
+  </DataModel>
+
+  <DataModel name="DQTSegment" ref="MarkerSegmentWithPayload">
+    <Number name="Marker" valueType="hex" value="FF DB" size="16" token="true"/>
+  </DataModel>
+
+  <DataModel name="DRISegment" ref="MarkerSegmentWithPayload">
+    <Number name="Marker" valueType="hex" value="FF DD" size="16" token="true"/>
+  </DataModel>
+
+  <DataModel name="SOSSegment" ref="MarkerSegmentWithPayload">
+    <Number name="Marker" valueType="hex" value="FF DA" size="16" token="true"/>
+  </DataModel>
+
+  <DataModel name="RESTARTMarker">
+    <Choice name="Marker">
+      <Number name="Marker0" valueType="hex" value="FF D0" size="16" token="true"/>
+      <Number name="Marker1" valueType="hex" value="FF D1" size="16" token="true"/>
+      <Number name="Marker2" valueType="hex" value="FF D2" size="16" token="true"/>
+      <Number name="Marker3" valueType="hex" value="FF D3" size="16" token="true"/>
+      <Number name="Marker4" valueType="hex" value="FF D4" size="16" token="true"/>
+      <Number name="Marker5" valueType="hex" value="FF D5" size="16" token="true"/>
+      <Number name="Marker6" valueType="hex" value="FF D6" size="16" token="true"/>
+      <Number name="Marker7" valueType="hex" value="FF D7" size="16" token="true"/>
+    </Choice>
+  </DataModel>
+
+  <DataModel name="JPEG">
+    <Number name="SOI" valueType="hex" value="FF D8" size="16"/>
+    <Choice name="Segments" maxOccurs="10000">
+      <Block name="AppSeg" ref="APPSegment"/>
+      <Block name="SofSeg" ref="SOFSegment"/>
+      <Block name="DhtSeg" ref="DHTSegment"/>
+      <Block name="DqtSeg" ref="DQTSegment"/>
+      <Block name="DriSeg" ref="DRISegment"/>
+      <Block name="SosSeg" ref="SOSSegment"/>
+      <Block name="RstSeg" ref="RESTARTMarker"/>
+    </Choice>
+    <Blob name="ScanData"/>
+    <Number name="EOI" valueType="hex" value="FF D9" size="16"/>
+  </DataModel>
+
+</Peach>
+    <!-- end -->

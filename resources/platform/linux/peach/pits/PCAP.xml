@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Peach xmlns="http://peachfuzzer.com/2012/Peach" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://peachfuzzer.com/2012/Peach /peach/peach.xsd">
+  <Defaults>
+    <Number signed="false" valueType="hex" endian="little"/>
+  </Defaults>
+  <DataModel name="PcapHeader">
+    <Number name="magic" size="32"/>
+    <Number name="vmajor" size="16"/>
+    <Number name="vminor" size="16"/>
+    <Number name="thiszone" size="32"/>
+    <Number name="sigfigs" size="32"/>
+    <Number name="snaplen" size="32"/>
+    <Number name="network" size="32"/>
+  </DataModel>
+
+  <DataModel name="Frame">
+    <Number name="ts_sec" size="32"/>
+    <Number name="ts_usec" size="32"/>
+    <Number name="incl_len" size="32">
+      <Relation type="size" of="data"/>
+    </Number>
+    <Number name="orig_len" size="32"/>
+    <Blob name="data"/>
+  </DataModel>
+
+  <DataModel name="PCAP">
+    <Block name="PHeader" ref="PcapHeader"/>
+    <Block name="PFrame" ref="Frame" maxOccurs="100000"/>
+  </DataModel>
+
+</Peach>
+    <!-- end -->

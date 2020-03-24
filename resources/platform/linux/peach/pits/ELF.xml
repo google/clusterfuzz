@@ -1,0 +1,108 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Peach xmlns="http://peachfuzzer.com/2012/Peach" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://peachfuzzer.com/2012/Peach /peach/peach.xsd">
+  <Defaults>
+    <Number signed="false" />
+  </Defaults>
+
+  <!-- Program Header Entry Data Model -->
+  <DataModel name="PH_ENTRY_MODEL">
+    <Blob name="ph_entry_data" />
+  </DataModel>
+
+  <DataModel name="PH_TABLE_MODEL">
+    <Block name="ph_table_entry" ref="PH_ENTRY_MODEL" minOccurs="0" maxOccurs="1000" />
+  </DataModel>
+
+  <!-- Section Header Entry Data Model -->
+  <DataModel name="SH_ENTRY_MODEL">
+    <Blob name="sh_entry_data" />
+  </DataModel>
+
+  <DataModel name="SH_TABLE_MODEL">
+    <Block name="sh_table_entry" ref="SH_ENTRY_MODEL" minOccurs="0" maxOccurs="1000" />
+  </DataModel>
+
+  <DataModel name="ELF_HEADER_64_MODEL">
+    <!-- Elf Magic Number in the Header (e_ident), static and non-configurable -->
+    <Blob name="MagicNumber" valueType="hex" value="7F 45 4C 46" token="true" />
+    <!-- Rest of e_ident -->
+    <Blob name="e_indent_other" length="12"/>
+    <!-- End of e_ident -->
+    <!-- Rest of Elf Header -->
+    <Number name="e_type" size="16" />
+    <!--
+    <Number name="e_machine" size="16" valueType="hex" value="3E 00" token="true" />
+    -->
+    <Number name="e_machine" size="16" />
+    <Number name="e_version" size="32" />
+    <Number name="e_entry" size="64" />
+    <Number name="e_phoff" size="64" />
+    <Number name="e_shoff" size="64" >
+      <Relation type="offset" of="SH_TABLE" />
+    </Number>
+    <Number name="e_flags" size="32" />
+    <Number name="e_ehsize" size="16" />
+    <Number name="e_phentsize" size="16" >
+      <Relation type="size" of="ph_entry_data" />
+    </Number>
+    <Number name="e_phnum" size="16" >
+      <Relation type="count" of="ph_table_entry" />
+    </Number>
+    <Number name="e_shentsize" size="16" >
+      <Relation type="size" of="sh_entry_data" />
+    </Number>
+    <Number name="e_shnum" size="16" >
+      <Relation type="count" of="sh_table_entry" />
+    </Number>
+    <Number name="e_shstrndx" size="16" />
+  </DataModel>
+
+  <DataModel name="ELF_HEADER_32_MODEL">
+    <!-- Elf Magic Number in the Header (e_ident), static and non-configurable -->
+    <Blob name="MagicNumber" valueType="hex" value="7F 45 4C 46" token="true" />
+    <!-- Rest of e_ident -->
+    <Blob name="e_indent_other" length="12"/>
+    <!-- End of e_ident -->
+    <!-- Rest of Elf Header -->
+    <Number name="e_type" size="16" />
+    <!--
+    <Number name="e_machine" size="16" valueType="hex" value="03 00" token="true" />
+    -->
+    <Number name="e_machine" size="16" />
+    <Number name="e_version" size="32" />
+    <Number name="e_entry" size="32" />
+    <Number name="e_phoff" size="32" />
+    <Number name="e_shoff" size="32" >
+      <Relation type="offset" of="SH_TABLE" />
+    </Number>
+    <Number name="e_flags" size="32" />
+    <Number name="e_ehsize" size="16" />
+    <Number name="e_phentsize" size="16" >
+      <Relation type="size" of="ph_entry_data" />
+    </Number>
+    <Number name="e_phnum" size="16" >
+      <Relation type="count" of="ph_table_entry" />
+    </Number>
+    <Number name="e_shentsize" size="16" >
+      <Relation type="size" of="sh_entry_data" />
+    </Number>
+    <Number name="e_shnum" size="16" >
+      <Relation type="count" of="sh_table_entry" />
+    </Number>
+    <Number name="e_shstrndx" size="16" />
+  </DataModel>
+
+  <DataModel name="ELF">
+    <Choice name="ELF_HEADER">
+      <Block name="ELF_HEADER_32" ref="ELF_HEADER_32_MODEL"/>
+      <Block name="ELF_HEADER_64" ref="ELF_HEADER_64_MODEL"/>
+    </Choice>
+    <Block name="PH_TABLE" ref="PH_TABLE_MODEL" />
+    <Blob name="FILE_DATA" />
+    <Block name="SH_TABLE" ref="SH_TABLE_MODEL" />
+  </DataModel>
+
+
+</Peach>
+    <!-- end -->
