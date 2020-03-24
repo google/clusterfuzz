@@ -101,12 +101,12 @@ def utc_datetime_to_timestamp(dt):
 
 # TODO(mbarbella): Clean up call-sites and delete this function. Any usage is
 # potentially indicative of poor tracking of encodings.
-def decode_to_unicode(obj, encoding='utf-8'):
+def decode_to_unicode(obj):
   """Decode object to unicode encoding."""
   if not hasattr(obj, 'decode'):
     return obj
 
-  return obj.decode(encoding, errors='ignore')
+  return obj.decode('utf-8', errors='ignore')
 
 
 @retry.wrap(
