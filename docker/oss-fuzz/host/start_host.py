@@ -73,7 +73,7 @@ def start_bot_instance(instance_num):
 
   while True:
     bot_proc = subprocess.Popen(
-        'python src/python/bot/startup/run.py 2>&1 > console.txt',
+        sys.executable + ' src/python/bot/startup/run.py 2>&1 > console.txt',
         shell=True,
         env=env,
         cwd=bot_root_directory)
