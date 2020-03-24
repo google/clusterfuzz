@@ -1334,7 +1334,7 @@ def load_testcase_if_exists(fuzzer_runner, testcase_file_path):
            | stat.S_IXGRP)
 
   fuzzer_runner.run_single_testcase(testcase_file_path)
-  print(fuzzer_runner.fuzzer_stderr)
+  sys.stdout.buffer.write(fuzzer_runner.fuzzer_stderr.encode('utf-8'))
   return True
 
 
@@ -1522,7 +1522,7 @@ def main(argv):
   if fuzz_result.return_code:
     # If AFL returned a non-zero return code quit now without getting stats,
     # since they would be meaningless.
-    print(runner.fuzzer_stderr)
+    sys.stdout.buffer.write(runner.fuzzer_stderr.encode('utf-8'))
     return
 
   stats_getter = stats.StatsGetter(runner.afl_output.stats_path,
@@ -1538,7 +1538,7 @@ def main(argv):
                                       command)
 
   finally:
-    print(runner.fuzzer_stderr)
+    sys.stdout.buffer.write(runner.fuzzer_stderr.encode('utf-8'))
 
   # Record the stats to make them easily searchable in stackdriver.
   if new_units_added:
