@@ -26,8 +26,14 @@ RUN apt-get update && \
         build-essential \
         curl \
         gdb \
+        libbz2-dev \
         libcurl4-openssl-dev \
         libffi-dev \
+        libgdbm-dev \
+        liblzma-dev \
+        libncurses5-dev \
+        libnss3-dev \
+        libreadline-dev \
         libssl-dev \
         locales \
         lsb-release \
@@ -41,7 +47,8 @@ RUN apt-get update && \
         unzip \
         util-linux \
         wget \
-        zip
+        zip \
+        zlib1g-dev
 
 # Install patchelf.
 RUN curl -sS https://releases.nixos.org/patchelf/patchelf-0.9/patchelf-0.9.tar.bz2 | tar -C /tmp -xj && \
