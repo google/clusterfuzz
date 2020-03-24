@@ -73,9 +73,8 @@ def copy_global_to_local_blacklist(excluded_testcase=None):
       get_leak_function_for_blacklist(excluded_testcase)
       if excluded_testcase else None)
 
-  # The local suppressions file should always have a comment on top
-  # to prevent parsing errors.
   with open(lsan_suppressions_path, 'w') as local_blacklist:
+    # Insert comment on top to avoid parsing errors on empty file.
     local_blacklist.write(LSAN_HEADER_COMMENT)
 
     # Copy global blacklist into local blacklist.
