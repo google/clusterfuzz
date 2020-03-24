@@ -898,7 +898,7 @@ def choose_cross_pollination_strategy(current_fuzzer_name):
     similar_targets = corpus_tagging.get_similarly_tagged_fuzzers(
         current_fuzzer_name)
     if similar_targets:
-      return (Pollination.TAGGED, random.choice(similar_targets.keys()))
+      return (Pollination.TAGGED, random.choice(list(similar_targets.keys())))
 
   return (Pollination.RANDOM, None)
 
