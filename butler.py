@@ -316,6 +316,7 @@ def main():
 def _setup():
   """Set up configs and import paths."""
   os.environ['ROOT_DIR'] = os.path.abspath('.')
+  os.environ['PYTHONIOENCODING'] = 'UTF-8'
 
   sys.path.insert(0, os.path.abspath(os.path.join('src')))
   from python.base import modules
