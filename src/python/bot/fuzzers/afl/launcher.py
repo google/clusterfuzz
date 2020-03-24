@@ -610,9 +610,9 @@ class AflRunnerCommon(object):
       return self._fuzzer_stderr
 
     try:
-      with open(self.stderr_file_path) as file_handle:
-        stderr_data = utils.read_from_handle_truncated(file_handle,
-                                                       MAX_OUTPUT_LEN)
+      with open(self.stderr_file_path, 'rb') as file_handle:
+        stderr_data = utils.decode_to_unicode(
+            utils.read_from_handle_truncated(file_handle, MAX_OUTPUT_LEN))
 
       self._fuzzer_stderr = get_first_stacktrace(stderr_data)
     except IOError:
