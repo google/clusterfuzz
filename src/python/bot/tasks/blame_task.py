@@ -260,7 +260,7 @@ def _prepare_predator_message(testcase):
           'platform': testcase.platform,
           'client_id': 'clusterfuzz',
           'signature': testcase.crash_state,
-      }))
+      }).encode('utf-8'))
 
 
 def _clear_blame_result_and_set_pending_flag(testcase):
