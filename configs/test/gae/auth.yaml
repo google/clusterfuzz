@@ -31,3 +31,7 @@ whitelisted_cors_urls:
 #  - https?://(.*-dot-)?test-client-site-staging.appspot.com
 #  - https?://(.*-dot-)?test-client-site.appspot.com
 
+# All users are privileged. This should not be used in the majority of cases,
+# and only be turned on when access to the web interface is tightly controlled
+# (e.g. via IAP).
+all_users_privileged: False

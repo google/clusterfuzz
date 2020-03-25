@@ -29,6 +29,9 @@ from libs.issue_management import issue_tracker_utils
 
 def _is_privileged_user(email):
   """Check if an email is in the privileged users list."""
+  if local_config.AuthConfig().get('all_users_privileged'):
+    return True
+
   privileged_user_emails = (db_config.get_value('privileged_users') or
                             '').splitlines()
   return any(

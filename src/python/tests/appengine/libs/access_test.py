@@ -24,6 +24,7 @@ from libs.issue_management import monorail
 from libs.issue_management.monorail import issue
 from libs.issue_management.monorail import issue_tracker_manager
 from tests.test_libs import helpers as test_helpers
+from tests.test_libs import mock_config
 from tests.test_libs import test_utils
 
 
@@ -75,6 +76,14 @@ class IsPrivilegedUserTest(unittest.TestCase):
     self.mock.get_value.return_value = self._FAKE_CONFIG
     self.assertTrue(access._is_privileged_user('test@test.com'))
     self.mock.get_value.assert_has_calls([mock.call('privileged_users')])
+
+  def test_all_users_privileged(self):
+    """Test when all_users_privileged is set."""
+    test_helpers.patch(self, ['config.local_config.AuthConfig'])
+    self.mock.AuthConfig.return_value = mock_config.MockConfig({
+        'all_users_privileged': True,
+    })
+    self.assertTrue(access._is_privileged_user('a@user.com'))
 
 
 class IsDomainAllowedTest(unittest.TestCase):
