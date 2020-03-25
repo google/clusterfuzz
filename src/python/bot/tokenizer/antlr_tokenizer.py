@@ -42,7 +42,7 @@ class AntlrTokenizer(object):
     try:
       lexer_input = antlr4.InputStream(data.decode('utf-8'))
     except UnicodeDecodeError:
-      raise errors.TokenizationFailureError('Antlr Tokenizer')
+      raise errors.AntlrDecodeError
 
     stream = antlr4.CommonTokenStream(self._lexer(lexer_input))
     end = self.fill(stream)

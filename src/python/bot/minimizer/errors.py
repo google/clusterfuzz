@@ -33,3 +33,8 @@ class TokenizationFailureError(Exception):
 
   def __init__(self, minimization_type):
     Exception.__init__(self, 'Unable to perform ' + minimization_type + '.')
+
+
+class AntlrDecodeError(Exception):
+  """Raised when Antlr can't minimize input because it is not unicode."""
+  pass
