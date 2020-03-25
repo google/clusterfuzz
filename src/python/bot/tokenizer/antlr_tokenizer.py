@@ -16,6 +16,8 @@
 from builtins import object
 import antlr4
 
+from bot.minimizer import errors
+
 
 class AntlrTokenizer(object):
   """Tokenizer. Takes an Antlr Lexer created using
@@ -35,11 +37,14 @@ class AntlrTokenizer(object):
 
   def tokenize(self, data):
     """Takes in a file and uses the antlr lexer to return a list of tokens"""
-    lexer_input = antlr4.InputStream(data)
+    # Antlr expects a string, but test cases are not necessarily valid utf-8.
+    try:
+      lexer_input = antlr4.InputStream(data.decode('utf-8'))
+    except UnicodeDecodeError:
+      raise errors.TokenizationFailureError('Antlr Tokenizer')
+
     stream = antlr4.CommonTokenStream(self._lexer(lexer_input))
-
     end = self.fill(stream)
-
     tokens = stream.getTokens(0, end)
     return [token.text for token in tokens]
 
