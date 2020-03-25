@@ -34,6 +34,7 @@ from bot.fuzzers import engine_common
 from bot.fuzzers.libFuzzer.engine import LibFuzzerEngine
 from bot.minimizer import basic_minimizers
 from bot.minimizer import delta_minimizer
+from bot.minimizer import errors as minimizer_errors
 from bot.minimizer import html_minimizer
 from bot.minimizer import js_minimizer
 from bot.minimizer import minimizer
@@ -1078,7 +1079,7 @@ def do_js_minimization(test_function, get_temp_file, data, deadline, threads,
   try:
     for _ in range(2):
       data = current_minimizer.minimize(data)
-  except minimizer.AntlrDecodeError:
+  except minimizer_errors.AntlrDecodeError:
     data = do_line_minimization(test_function, get_temp_file, data, deadline,
                                 threads, cleanup_interval, delete_temp_files)
 
@@ -1403,7 +1404,7 @@ def do_html_minimization(test_function, get_temp_file, data, deadline, threads,
       progress_report_function=functools.partial(logs.log))
   try:
     return current_minimizer.minimize(data)
-  except minimizer.AntlrDecodeError:
+  except minimizer_errors.AntlrDecodeError:
     return do_line_minimization(test_function, get_temp_file, data, deadline,
                                 threads, cleanup_interval, delete_temp_files)
 
