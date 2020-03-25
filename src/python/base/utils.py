@@ -99,14 +99,20 @@ def utc_datetime_to_timestamp(dt):
   return (dt - datetime.datetime.utcfromtimestamp(0)).total_seconds()
 
 
-# TODO(mbarbella): Clean up call-sites and delete this function. Any usage is
-# potentially indicative of poor tracking of encodings.
 def decode_to_unicode(obj):
   """Decode object to unicode encoding."""
   if not hasattr(obj, 'decode'):
     return obj
 
   return obj.decode('utf-8', errors='ignore')
+
+
+def encode_as_unicode(obj):
+  """Encode a string as unicode, or leave bytes as they are."""
+  if not hasattr(obj, 'encode'):
+    return obj
+
+  return obj.encode('utf-8')
 
 
 @retry.wrap(

@@ -44,7 +44,7 @@ class JSMinimizerTest(unittest.TestCase):
     """No need to prepare anything, because tests wont be run. Just save what
       tests would have been run to validate that the correct tokens will be
       removed."""
-    text = b''
+    text = ''
     for index in hypothesis:
       text += testcase.tokens[index]
 
@@ -69,7 +69,7 @@ class JSMinimizerTest(unittest.TestCase):
 
     self._minimizer.minimize(data)
 
-    self.assertIn(b'if(boolean) {}', self._hypotheses_tested)
+    self.assertIn('if(boolean) {}', self._hypotheses_tested)
 
   def test_try_catch_hypothesis(self):
     """Test that the minimizer successfully removes all of the try/catch
@@ -78,7 +78,7 @@ class JSMinimizerTest(unittest.TestCase):
     data = b'try{ crash() } catch(e){ }'
     self._minimizer.minimize(data)
 
-    self.assertIn(b'try{} catch(e){ }', self._hypotheses_tested)
+    self.assertIn('try{} catch(e){ }', self._hypotheses_tested)
 
   def test_handle_if_else(self):
     """Make sure the minimizer runs all of the other hypothesis cleanly on
@@ -87,8 +87,8 @@ class JSMinimizerTest(unittest.TestCase):
 
     self._minimizer.minimize(data)
 
-    self.assertIn(b'if(boolean) {}', self._hypotheses_tested)
-    self.assertIn(b'if(boolean) {} else { do_something_else }',
+    self.assertIn('if(boolean) {}', self._hypotheses_tested)
+    self.assertIn('if(boolean) {} else { do_something_else }',
                   self._hypotheses_tested)
     self.assertIn("if(boolean) {crash} else {}", self._hypotheses_tested)
 
@@ -98,7 +98,7 @@ class JSMinimizerTest(unittest.TestCase):
 
     self._minimizer.minimize(data)
 
-    self.assertIn(b'function name(param1, param2){}', self._hypotheses_tested)
+    self.assertIn('function name(param1, param2){}', self._hypotheses_tested)
 
   def test_handle_bracket_with_new_line(self):
     """Test for try/catch with extra whitespace."""
@@ -106,8 +106,8 @@ class JSMinimizerTest(unittest.TestCase):
 
     self._minimizer.minimize(data)
 
-    self.assertIn(b'try{}', self._hypotheses_tested)
-    self.assertIn(b'try{}\ncatch(e){\n\n}', self._hypotheses_tested)
+    self.assertIn('try{}', self._hypotheses_tested)
+    self.assertIn('try{}\ncatch(e){\n\n}', self._hypotheses_tested)
 
   def test_handle_function_with_new_lines(self):
     """Test for functions with extra whitespace."""
@@ -115,7 +115,7 @@ class JSMinimizerTest(unittest.TestCase):
 
     self._minimizer.minimize(data)
 
-    self.assertIn(b'function name(param1,\n\t\tparam2){}',
+    self.assertIn('function name(param1,\n\t\tparam2){}',
                   self._hypotheses_tested)
 
   def test_remove_outer_paren(self):
@@ -126,7 +126,7 @@ class JSMinimizerTest(unittest.TestCase):
 
     self._minimizer.minimize(data)
 
-    self.assertIn(b'assertTrue()', self._hypotheses_tested)
+    self.assertIn('assertTrue()', self._hypotheses_tested)
 
   def test_remove_inside_paren(self):
     """Test that minimizer removes everything between the parentheses.
@@ -135,7 +135,7 @@ class JSMinimizerTest(unittest.TestCase):
 
     self._minimizer.minimize(data)
 
-    self.assertIn(b'junk, more_junk', self._hypotheses_tested)
+    self.assertIn('junk, more_junk', self._hypotheses_tested)
 
   def test_remove_paren_to_start_of_line(self):
     """Tests that the minimizer will remove the whole line (including setting
@@ -146,7 +146,7 @@ class JSMinimizerTest(unittest.TestCase):
 
     self._minimizer.minimize(data)
 
-    self.assertIn(b'leftover_junk = (function(){\n})', self._hypotheses_tested)
+    self.assertIn('leftover_junk = (function(){\n})', self._hypotheses_tested)
 
   def test_remove_paren_with_attached_brackets(self):
     """Test that the minimizer removes the whole line and following brackets
@@ -156,7 +156,7 @@ class JSMinimizerTest(unittest.TestCase):
 
     self._minimizer.minimize(data)
 
-    self.assertIn(b'(function(global) { })(this)', self._hypotheses_tested)
+    self.assertIn('(function(global) { })(this)', self._hypotheses_tested)
 
   def test_remove_left_of_comma(self):
     """Test the minimizer removes the comma and token left of the comma
@@ -165,7 +165,7 @@ class JSMinimizerTest(unittest.TestCase):
 
     self._minimizer.minimize(data)
 
-    self.assertIn(b'whatever,', self._hypotheses_tested)
+    self.assertIn('whatever,', self._hypotheses_tested)
 
   def test_remove_right_of_comma(self):
     """Test the minimizer removes the comma and right of the comma.
@@ -174,4 +174,4 @@ class JSMinimizerTest(unittest.TestCase):
 
     self._minimizer.minimize(data)
 
-    self.assertIn(b', whatever', self._hypotheses_tested)
+    self.assertIn(', whatever', self._hypotheses_tested)
