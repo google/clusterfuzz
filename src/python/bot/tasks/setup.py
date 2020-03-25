@@ -548,7 +548,8 @@ def update_fuzzer_and_data_bundles(fuzzer_name):
   # Setup environment variable for launcher script path.
   if fuzzer.launcher_script:
     fuzzer_launcher_path = shell.get_execute_command(
-        os.path.join(fuzzer_directory, fuzzer.launcher_script))
+        os.path.join(fuzzer_directory, fuzzer.launcher_script),
+        is_blackbox_fuzzer=True)
     environment.set_value('LAUNCHER_PATH', fuzzer_launcher_path)
 
   return True
