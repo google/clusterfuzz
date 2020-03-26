@@ -25,7 +25,7 @@ from tests.test_libs import helpers as test_helpers
 from tests.test_libs import test_utils
 
 
-@unittest.skipIf(sys.version_info.major != 3, 'Python 3 only')
+@test_utils.python3_only
 @test_utils.with_cloud_emulators('datastore')
 class OssFuzzGenerateCertsTest(unittest.TestCase):
   """Test oss_fuzz_generate_certs."""
