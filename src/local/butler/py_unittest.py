@@ -252,6 +252,12 @@ def execute(args):
     test_directory = APPENGINE_TEST_DIRECTORY
     sys.path.insert(0, os.path.abspath(os.path.join('src', 'appengine')))
 
+    for i, path in enumerate(sys.path):
+      if 'third_party' in path:
+        # Replace third_party with App Engine third_party/.
+        sys.path[i] = os.path.abspath(
+            os.path.join('src', 'appengine', 'third_party'))
+
     if sys.version_info.major == 2:
       # TODO(ochang): Remove once migrated to Python 3.
       appengine_sdk_path = appengine.find_sdk_path()
