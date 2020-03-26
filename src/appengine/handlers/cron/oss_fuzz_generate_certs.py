@@ -21,6 +21,7 @@ from base import untrusted
 from datastore import data_types
 from handlers import base_handler
 from libs import handler
+from libs import helpers
 from metrics import logs
 
 
@@ -55,7 +56,7 @@ class Handler(base_handler.Handler):
   def get(self):
     """Handles a get request."""
     if sys.version_info.major == 2:
-      logs.log_error('Unsupported on Python 2.')
+      raise helpers.EarlyExitException('Unsupported on Python 2.', 500)
 
     for project in data_types.OssFuzzProject.query():
       tls_cert_key = ndb.Key(data_types.WorkerTlsCert, project.name)
