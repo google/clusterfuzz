@@ -572,7 +572,8 @@ class Minimizer(object):
       # that had been done up to that point.
       testcase = error.testcase
     except errors.TokenizationFailureError:
-      logs.log_error('Tokenized data did not match original data.')
+      logs.log('Tokenized data did not match original data. Defaulting to line'
+               'minimization.')
       # In situation where the tokenizer does not work, we still want to use
       # the token combiner. This will not change the data unless
       # token combiner changes the data such as appending extra data to the
