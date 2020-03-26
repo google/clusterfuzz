@@ -37,8 +37,6 @@ class DeployTest(fake_filesystem_unittest.TestCase):
     test_utils.set_up_pyfakefs(self)
     self.fs.add_real_directory(
         os.path.join(real_cwd, 'src', 'appengine'), read_only=False)
-    self.fs.add_real_directory(
-        os.path.join(real_cwd, 'src', 'go', 'server'), read_only=False)
 
     helpers.patch_environ(self)
     helpers.patch(self, [
@@ -147,65 +145,7 @@ class DeployTest(fake_filesystem_unittest.TestCase):
   def test_app(self):
     """Test deploy app."""
     deploy._prod_deployment_helper(
-        '/config_dir', ['/windows.zip', '/mac.zip', '/linux.zip'],
-        deploy_go=True)
-
-    self.mock.run.assert_has_calls([
-        mock.call(mock.ANY, 'deployment-manager', 'deployments', 'update',
-                  'pubsub', '--config=./configs/test/pubsub/queues.yaml'),
-        mock.call(mock.ANY, 'deployment-manager', 'deployments', 'update',
-                  'bigquery', '--config=./configs/test/bigquery/datasets.yaml'),
-    ])
-
-    self.mock.execute.assert_has_calls([
-        mock.call(
-            'gcloud app deploy --no-stop-previous-version --quiet '
-            '--project=test-clusterfuzz  '
-            'src/appengine/index.yaml '
-            'src/appengine/app.yaml '
-            'src/appengine/cron.yaml '
-            'src/appengine/cron-service.yaml '
-            'src/go/server/go-cron-service.yaml',
-            exit_on_error=False),
-        mock.call('gcloud app versions list --format=json '
-                  '--project=test-clusterfuzz --service=default'),
-        mock.call(
-            'gcloud app versions delete --quiet --project=test-clusterfuzz '
-            '--service=default v1'),
-        mock.call('gcloud app versions list --format=json '
-                  '--project=test-clusterfuzz --service=cron-service'),
-        mock.call(
-            'gcloud app versions delete --quiet --project=test-clusterfuzz '
-            '--service=cron-service v1'),
-        mock.call('gcloud app versions list --format=json '
-                  '--project=test-clusterfuzz --service=go-cron-service'),
-        mock.call(
-            'gcloud app versions delete --quiet --project=test-clusterfuzz '
-            '--service=go-cron-service v1'),
-        mock.call('gsutil cp /windows.zip gs://test-deployment-bucket/'
-                  'windows.zip'),
-        mock.call('gsutil cp /mac.zip gs://test-deployment-bucket/'
-                  'mac.zip'),
-        mock.call('gsutil cp /linux.zip gs://test-deployment-bucket/'
-                  'linux.zip'),
-        mock.call('gsutil cp -a public-read src/appengine/resources/'
-                  'clusterfuzz-source.manifest '
-                  'gs://test-deployment-bucket/' + self.manifest_target),
-        mock.call('python butler.py run setup --config-dir /config_dir '
-                  '--non-dry-run'),
-    ])
-    self._check_env_variables([
-        'src/appengine/app.yaml', 'src/appengine/cron-service.yaml',
-        'src/go/server/go-cron-service.yaml'
-    ])
-    self._check_no_env_variables(
-        ['src/appengine/cron.yaml', 'src/appengine/index.yaml'])
-
-  def test_app_without_go(self):
-    """Test deploy app without go."""
-    deploy._prod_deployment_helper(
-        '/config_dir', ['/windows.zip', '/mac.zip', '/linux.zip'],
-        deploy_go=False)
+        '/config_dir', ['/windows.zip', '/mac.zip', '/linux.zip'])
 
     self.mock.run.assert_has_calls([
         mock.call(mock.ANY, 'deployment-manager', 'deployments', 'update',
@@ -245,33 +185,27 @@ class DeployTest(fake_filesystem_unittest.TestCase):
         mock.call('python butler.py run setup --config-dir /config_dir '
                   '--non-dry-run'),
     ])
-    self._check_env_variables(
-        ['src/appengine/app.yaml', 'src/appengine/cron-service.yaml'])
+    self._check_env_variables([
+        'src/appengine/app.yaml', 'src/appengine/cron-service.yaml',
+    ])
     self._check_no_env_variables(
         ['src/appengine/cron.yaml', 'src/appengine/index.yaml'])
 
   def test_app_staging(self):
     """Test deploy app to staging."""
-    deploy._staging_deployment_helper(deploy_go=True)
+    deploy._staging_deployment_helper()
 
     self.mock.execute.assert_has_calls([
         mock.call(
             'gcloud app deploy --stop-previous-version --quiet '
             '--project=test-clusterfuzz  '
-            'src/appengine/staging.yaml '
-            'src/go/server/go-cron-service-staging.yaml',
+            'src/appengine/staging.yaml',
             exit_on_error=False),
         mock.call('gcloud app versions list --format=json '
                   '--project=test-clusterfuzz --service=staging'),
         mock.call(
             'gcloud app versions delete --quiet --project=test-clusterfuzz '
             '--service=staging v1 v2'),
-        mock.call(
-            'gcloud app versions list --format=json '
-            '--project=test-clusterfuzz --service=go-cron-service-staging'),
-        mock.call(
-            'gcloud app versions delete --quiet --project=test-clusterfuzz '
-            '--service=go-cron-service-staging v1 v2'),
     ])
     self._check_env_variables(['src/appengine/staging.yaml'])
 
@@ -280,8 +214,7 @@ class DeployTest(fake_filesystem_unittest.TestCase):
     self.deploy_failure_count = 1
 
     deploy._prod_deployment_helper(
-        '/config_dir', ['/windows.zip', '/mac.zip', '/linux.zip'],
-        deploy_go=True)
+        '/config_dir', ['/windows.zip', '/mac.zip', '/linux.zip'])
 
     self.mock.run.assert_has_calls([
         mock.call(mock.ANY, 'deployment-manager', 'deployments', 'update',
@@ -297,8 +230,7 @@ class DeployTest(fake_filesystem_unittest.TestCase):
             'src/appengine/index.yaml '
             'src/appengine/app.yaml '
             'src/appengine/cron.yaml '
-            'src/appengine/cron-service.yaml '
-            'src/go/server/go-cron-service.yaml',
+            'src/appengine/cron-service.yaml',
             exit_on_error=False),
         mock.call(
             'gcloud app deploy --no-stop-previous-version --quiet '
@@ -306,8 +238,7 @@ class DeployTest(fake_filesystem_unittest.TestCase):
             'src/appengine/index.yaml '
             'src/appengine/app.yaml '
             'src/appengine/cron.yaml '
-            'src/appengine/cron-service.yaml '
-            'src/go/server/go-cron-service.yaml',
+            'src/appengine/cron-service.yaml',
             exit_on_error=False),
         mock.call('gcloud app versions list --format=json '
                   '--project=test-clusterfuzz --service=default'),
@@ -319,11 +250,6 @@ class DeployTest(fake_filesystem_unittest.TestCase):
         mock.call(
             'gcloud app versions delete --quiet --project=test-clusterfuzz '
             '--service=cron-service v1'),
-        mock.call('gcloud app versions list --format=json '
-                  '--project=test-clusterfuzz --service=go-cron-service'),
-        mock.call(
-            'gcloud app versions delete --quiet --project=test-clusterfuzz '
-            '--service=go-cron-service v1'),
         mock.call('gsutil cp /windows.zip gs://test-deployment-bucket/'
                   'windows.zip'),
         mock.call('gsutil cp /mac.zip gs://test-deployment-bucket/'
@@ -338,7 +264,6 @@ class DeployTest(fake_filesystem_unittest.TestCase):
     ])
     self._check_env_variables([
         'src/appengine/app.yaml', 'src/appengine/cron-service.yaml',
-        'src/go/server/go-cron-service.yaml'
     ])
     self._check_no_env_variables(
         ['src/appengine/cron.yaml', 'src/appengine/index.yaml'])
@@ -349,8 +274,7 @@ class DeployTest(fake_filesystem_unittest.TestCase):
 
     with self.assertRaises(SystemExit):
       deploy._prod_deployment_helper(
-          '/config_dir', ['/windows.zip', '/mac.zip', '/linux.zip'],
-          deploy_go=True)
+          '/config_dir', ['/windows.zip', '/mac.zip', '/linux.zip'])
 
     self.mock.run.assert_has_calls([
         mock.call(mock.ANY, 'deployment-manager', 'deployments', 'update',
@@ -366,8 +290,7 @@ class DeployTest(fake_filesystem_unittest.TestCase):
             'src/appengine/index.yaml '
             'src/appengine/app.yaml '
             'src/appengine/cron.yaml '
-            'src/appengine/cron-service.yaml '
-            'src/go/server/go-cron-service.yaml',
+            'src/appengine/cron-service.yaml',
             exit_on_error=False),
         mock.call(
             'gcloud app deploy --no-stop-previous-version --quiet '
@@ -375,8 +298,7 @@ class DeployTest(fake_filesystem_unittest.TestCase):
             'src/appengine/index.yaml '
             'src/appengine/app.yaml '
             'src/appengine/cron.yaml '
-            'src/appengine/cron-service.yaml '
-            'src/go/server/go-cron-service.yaml',
+            'src/appengine/cron-service.yaml',
             exit_on_error=False),
         mock.call(
             'gcloud app deploy --no-stop-previous-version --quiet '
@@ -384,8 +306,7 @@ class DeployTest(fake_filesystem_unittest.TestCase):
             'src/appengine/index.yaml '
             'src/appengine/app.yaml '
             'src/appengine/cron.yaml '
-            'src/appengine/cron-service.yaml '
-            'src/go/server/go-cron-service.yaml',
+            'src/appengine/cron-service.yaml',
             exit_on_error=False),
         mock.call(
             'gcloud app deploy --no-stop-previous-version --quiet '
@@ -393,8 +314,7 @@ class DeployTest(fake_filesystem_unittest.TestCase):
             'src/appengine/index.yaml '
             'src/appengine/app.yaml '
             'src/appengine/cron.yaml '
-            'src/appengine/cron-service.yaml '
-            'src/go/server/go-cron-service.yaml',
+            'src/appengine/cron-service.yaml',
             exit_on_error=False),
     ])
 
