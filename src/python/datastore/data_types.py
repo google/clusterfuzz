@@ -701,7 +701,12 @@ class Testcase(Model):
     if not name:
       return None
 
-    return ndb.Key(FuzzTarget, name).get()
+    target = ndb.Key(FuzzTarget, name).get()
+    if environment.get_value('ORIGINAL_JOB_NAME'):
+      # Overridden engine (e.g. for minimization).
+      target.engine = environment.get_engine_for_job()
+
+    return target
 
 
 class TestcaseGroup(Model):
