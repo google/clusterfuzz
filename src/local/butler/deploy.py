@@ -301,7 +301,7 @@ def is_diff_origin_master():
   return diff_output.strip() or remote_sha.strip() != local_sha.strip()
 
 
-def _staging_deployment_helper(deploy_go, python3=False):
+def _staging_deployment_helper(python3=False):
   """Helper for staging deployment."""
   config = local_config.Config(local_config.GAE_CONFIG_PATH)
   project = config.get('application_id')
@@ -315,7 +315,6 @@ def _staging_deployment_helper(deploy_go, python3=False):
     path = 'staging'
 
   yaml_paths = deployment_config.get_absolute_path(path)
-  yaml_paths = appengine.filter_yaml_paths(yaml_paths, deploy_go)
 
   _deploy_app_staging(project, yaml_paths)
   print('Staging deployment finished.')
@@ -323,7 +322,6 @@ def _staging_deployment_helper(deploy_go, python3=False):
 
 def _prod_deployment_helper(config_dir,
                             package_zip_paths,
-                            deploy_go=True,
                             deploy_appengine=True,
                             python3=False):
   """Helper for production deployment."""
@@ -341,7 +339,6 @@ def _prod_deployment_helper(config_dir,
     path = 'prod'
 
   yaml_paths = gae_deployment.get_absolute_path(path, default=[])
-  yaml_paths = appengine.filter_yaml_paths(yaml_paths, deploy_go)
   if not yaml_paths:
     deploy_appengine = False
 
@@ -441,14 +438,12 @@ def execute(args):
            ' Please fix.') % (too_large_file_path, APPENGINE_FILESIZE_LIMIT))
     sys.exit(1)
 
-  deploy_go = args.with_go
   if args.staging:
-    _staging_deployment_helper(deploy_go, python3=is_python3)
+    _staging_deployment_helper(python3=is_python3)
   else:
     _prod_deployment_helper(
         args.config_dir,
         package_zip_paths,
-        deploy_go,
         deploy_appengine,
         python3=is_python3)
 

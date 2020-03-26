@@ -301,6 +301,13 @@ def install_dependencies(platform_name=None, is_reproduce_tool_setup=False):
         'src/third_party',
         platform_name=platform_name)
 
+  with tempfile.NamedTemporaryFile() as f:
+    f.write(open('src/requirements.txt', 'rb').read())
+    f.write(open('src/appengine/requirements.txt', 'rb').read())
+    f.flush()
+
+    _install_pip(f.name, 'src/appengine/third_party')
+
   # Only the previous dependencies are needed for reproduce tool installation.
   if is_reproduce_tool_setup:
     return

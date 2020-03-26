@@ -137,6 +137,13 @@ def python2_only(func):
                              func)
 
 
+def python3_only(func):
+  """Tests which can only run on Python 3."""
+  return unittest.skipIf(sys.version_info.major != 3,
+                         'Skipping Python 3-only test.')(
+                             func)
+
+
 def android_device_required(func):
   """Skip Android-specific tests if we cannot run them."""
   reason = None

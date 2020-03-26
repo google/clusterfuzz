@@ -29,10 +29,8 @@ deployment:
     - prod/app.yaml
     - prod/cron.yaml
     - prod/cron-service.yaml
-    - prod/go-cron-service.yaml
   staging:
     - staging/staging.yaml
-    - staging/go-cron-service-staging.yaml
 
 # Google analytics tracking id, to provide analytics / usage info for
 # ClusterFuzz UI pages. See https://support.google.com/analytics/answer/1008080.
