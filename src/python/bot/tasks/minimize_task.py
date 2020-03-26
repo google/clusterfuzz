@@ -1027,7 +1027,7 @@ def do_ipc_dump_minimization(test_function, get_temp_file, file_path, deadline,
     if not combined_file_path:
       # This can happen in the case of a timeout or other error. The actual
       # error should already be logged, so no need to do it again here.
-      return ''
+      return b''
 
     # TODO(mbarbella): Allow token combining functions to write files directly.
     handle = open(combined_file_path, 'rb')
@@ -1421,8 +1421,8 @@ def minimize_file(file_path,
   # Specialized minimization strategy for IPC dumps.
   if file_path.endswith(testcase_manager.IPCDUMP_EXTENSION):
     return do_ipc_dump_minimization(test_function, get_temp_file, file_path,
-                                    deadline, threads, delete_temp_files,
-                                    cleanup_interval)
+                                    deadline, threads, cleanup_interval,
+                                    delete_temp_files)
 
   # Specialized minimization strategy for javascript.
   if file_path.endswith('.js'):
