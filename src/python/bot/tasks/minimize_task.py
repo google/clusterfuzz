@@ -1421,8 +1421,8 @@ def minimize_file(file_path,
   # Specialized minimization strategy for IPC dumps.
   if file_path.endswith(testcase_manager.IPCDUMP_EXTENSION):
     return do_ipc_dump_minimization(test_function, get_temp_file, file_path,
-                                    deadline, threads, delete_temp_files,
-                                    cleanup_interval)
+                                    deadline, threads, cleanup_interval,
+                                    delete_temp_files)
 
   # Specialized minimization strategy for javascript.
   if file_path.endswith('.js'):
