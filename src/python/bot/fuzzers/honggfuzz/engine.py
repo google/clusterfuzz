@@ -31,12 +31,13 @@ _RSS_LIMIT = 2560
 _TIMEOUT = 25
 _DEFAULT_ARGUMENTS = [
     '-n',
-    '1',  # single threaded
+    '1',  # Single threaded.
     '--exit_upon_crash',
-    '-v',  # output to stderr
-    '-z',  # use clang instrumentation
-    '-P',  # persistent mode
-    '-S',  # enable sanitizers
+    '-v',  # Output to stderr.
+    '-z',  # Use clang instrumentation.
+    '-P',  # Persistent mode.
+    '-S',  # Enable sanitizers.
+    '--sanitizers_del_report=false',  # Keep sanitizer logs around for parsing.
     '--rlimit_rss',
     str(_RSS_LIMIT),
     '--timeout',
