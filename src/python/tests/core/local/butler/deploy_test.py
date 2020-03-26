@@ -144,8 +144,8 @@ class DeployTest(fake_filesystem_unittest.TestCase):
 
   def test_app(self):
     """Test deploy app."""
-    deploy._prod_deployment_helper(
-        '/config_dir', ['/windows.zip', '/mac.zip', '/linux.zip'])
+    deploy._prod_deployment_helper('/config_dir',
+                                   ['/windows.zip', '/mac.zip', '/linux.zip'])
 
     self.mock.run.assert_has_calls([
         mock.call(mock.ANY, 'deployment-manager', 'deployments', 'update',
@@ -186,7 +186,8 @@ class DeployTest(fake_filesystem_unittest.TestCase):
                   '--non-dry-run'),
     ])
     self._check_env_variables([
-        'src/appengine/app.yaml', 'src/appengine/cron-service.yaml',
+        'src/appengine/app.yaml',
+        'src/appengine/cron-service.yaml',
     ])
     self._check_no_env_variables(
         ['src/appengine/cron.yaml', 'src/appengine/index.yaml'])
@@ -213,8 +214,8 @@ class DeployTest(fake_filesystem_unittest.TestCase):
     """Test deploy app with retries."""
     self.deploy_failure_count = 1
 
-    deploy._prod_deployment_helper(
-        '/config_dir', ['/windows.zip', '/mac.zip', '/linux.zip'])
+    deploy._prod_deployment_helper('/config_dir',
+                                   ['/windows.zip', '/mac.zip', '/linux.zip'])
 
     self.mock.run.assert_has_calls([
         mock.call(mock.ANY, 'deployment-manager', 'deployments', 'update',
@@ -263,7 +264,8 @@ class DeployTest(fake_filesystem_unittest.TestCase):
                   '--non-dry-run'),
     ])
     self._check_env_variables([
-        'src/appengine/app.yaml', 'src/appengine/cron-service.yaml',
+        'src/appengine/app.yaml',
+        'src/appengine/cron-service.yaml',
     ])
     self._check_no_env_variables(
         ['src/appengine/cron.yaml', 'src/appengine/index.yaml'])
@@ -273,8 +275,8 @@ class DeployTest(fake_filesystem_unittest.TestCase):
     self.deploy_failure_count = 4
 
     with self.assertRaises(SystemExit):
-      deploy._prod_deployment_helper(
-          '/config_dir', ['/windows.zip', '/mac.zip', '/linux.zip'])
+      deploy._prod_deployment_helper('/config_dir',
+                                     ['/windows.zip', '/mac.zip', '/linux.zip'])
 
     self.mock.run.assert_has_calls([
         mock.call(mock.ANY, 'deployment-manager', 'deployments', 'update',
