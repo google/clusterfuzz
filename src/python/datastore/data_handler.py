@@ -206,9 +206,9 @@ def filter_stacktrace(stacktrace):
   tmp_stacktrace_file = os.path.join(tmpdir, 'stacktrace.tmp')
 
   try:
-    with open(tmp_stacktrace_file, 'w') as handle:
-      handle.write(stacktrace)
-    with open(tmp_stacktrace_file, 'r') as handle:
+    with open(tmp_stacktrace_file, 'wb') as handle:
+      handle.write(unicode_stacktrace.encode('utf-8'))
+    with open(tmp_stacktrace_file, 'rb') as handle:
       key = blobs.write_blob(handle)
   except Exception:
     logs.log_error('Unable to write crash stacktrace to temporary file.')
