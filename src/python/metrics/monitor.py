@@ -56,6 +56,7 @@ _retry_wrap = retry.Retry(
     predicate=retry.if_exception_type((
         exceptions.Aborted,
         exceptions.DeadlineExceeded,
+        exceptions.ResourceExhausted,
         exceptions.ServerError,
         exceptions.ServiceUnavailable,
     )),
