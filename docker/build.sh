@@ -18,7 +18,6 @@ IMAGES=(
   gcr.io/clusterfuzz-images/high-end
   gcr.io/clusterfuzz-images/ml-with-gpu
   gcr.io/clusterfuzz-images/chromium/base
-  gcr.io/clusterfuzz-images/chromium/base3
   gcr.io/clusterfuzz-images/chromium/builder
   gcr.io/clusterfuzz-images/chromium/high-end
   gcr.io/clusterfuzz-images/chromium/ml-with-gpu
