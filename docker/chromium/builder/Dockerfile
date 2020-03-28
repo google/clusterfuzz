@@ -23,8 +23,8 @@ ENV EXTRA_PATH "/data/depot_tools"
 ENV WAIT_TIME 7200
 
 # Add git-core/ppa for latest git version. Otherwise, we fail on gclient sync.
-RUN apt-get update &&
-    apt-get install -y software-properties-common &&
+RUN apt-get update && \
+    apt-get install -y software-properties-common && \
     add-apt-repository -y ppa:git-core/ppa
 
 RUN apt-get update && \
