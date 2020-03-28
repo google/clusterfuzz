@@ -13,6 +13,7 @@
 # limitations under the License.
 FROM gcr.io/clusterfuzz-images/base
 
+ENV DEPLOYMENT_ZIP "linux-3.zip"
 ENV RUN_CMD \
    "python3.7 $ROOT_DIR/src/python/scripts/other-bots/chromium-builder/run.py"
 ENV BUCKET_PREFIX "chromium-browser-"
