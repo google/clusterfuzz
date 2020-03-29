@@ -32,12 +32,23 @@ try:
 except ImportError:
   psutil = None
 
-LOW_DISK_SPACE_THRESHOLD = 5 * 1024 * 1024 * 1024  # 5 GB.
+_DEFAULT_LOW_DISK_SPACE_THRESHOLD = 5 * 1024 * 1024 * 1024  # 5 GB.
+_TRUSTED_HOST_LOW_DISK_SPACE_THRESHOLD = 2 * 1024 * 1024  # 2 GB.
 FILE_COPY_BUFFER_SIZE = 10 * 1024 * 1024  # 10 MB.
 HANDLE_OUTPUT_FILE_TYPE_REGEX = re.compile(
     br'.*pid:\s*(\d+)\s*type:\s*File\s*([a-fA-F0-9]+):\s*(.*)')
 
 _system_temp_dir = None
+
+
+def _low_disk_space_threshold():
+  """Get the low disk space threshold."""
+  if environment.is_trusted_host(ensure_connected=False):
+    # Trusted hosts can run with less free space as they do not store builds or
+    # corpora.
+    return _TRUSTED_HOST_LOW_DISK_SPACE_THRESHOLD
+
+  return _DEFAULT_LOW_DISK_SPACE_THRESHOLD
 
 
 def copy_file(source_file_path, destination_file_path):
@@ -124,7 +135,7 @@ def clear_data_directories_on_low_disk_space():
     # Can't determine free disk space, bail out.
     return
 
-  if free_disk_space >= LOW_DISK_SPACE_THRESHOLD:
+  if free_disk_space >= _low_disk_space_threshold():
     return
 
   logs.log_warn(
