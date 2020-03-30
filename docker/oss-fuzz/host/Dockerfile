@@ -19,4 +19,6 @@ RUN chmod 644 /data/start_host.py
 ENV NUM_WORKERS_PER_HOST 16
 ENV DISABLE_MOUNTS True
 ENV TRUSTED_HOST True
-ENV RUN_CMD "python /data/start_host.py"
+
+ENV DEPLOYMENT_ZIP "linux-3.zip"
+ENV RUN_CMD "python3.7 /data/start_host.py"
