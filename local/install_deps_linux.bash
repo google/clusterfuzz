@@ -71,10 +71,6 @@ if [ ! $only_reproduce ]; then
        $distro_codename \
        stable"
 
-    echo "deb [arch=amd64] http://storage.googleapis.com/bazel-apt stable jdk1.8" \
-        | sudo tee /etc/apt/sources.list.d/bazel.list
-    curl https://bazel.build/bazel-release.pub.gpg | sudo apt-key add -
-
     export CLOUD_SDK_REPO="cloud-sdk-$distro_codename"
     echo "deb http://packages.cloud.google.com/apt $CLOUD_SDK_REPO main" | \
         sudo tee -a /etc/apt/sources.list.d/google-cloud-sdk.list
@@ -93,7 +89,6 @@ if [ ! $only_reproduce ]; then
   # Install apt-get packages.
   sudo apt-get update
   sudo apt-get install -y \
-      bazel \
       docker-ce \
       google-cloud-sdk \
       $java_package    \

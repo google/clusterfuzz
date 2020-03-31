@@ -29,15 +29,6 @@ Optional switches you can use:
 * `-p <test_name/test_prefix_with_wildcards>`: Execute a particular test or set of tests matching
 a particular prefix. E.g. `-p libfuzzer_*` will execute all libFuzzer tests.
 
-### Go code
-
-```bash
-python butler.py go_unittest
-```
-
-Optional switch you can use:
-* `-v`: Run tests in verbose mode.
-
 ## Test App Engine changes
 
 Most of the App Engine code is written in Python. You can run unit tests for the App Engine

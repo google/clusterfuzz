@@ -131,16 +131,6 @@ def main():
   parser_py_unittest.add_argument(
       '-c', '--config-dir', help='Config dir to use for module tests.')
 
-  parser_go_unittest = subparsers.add_parser(
-      'go_unittest', help='Run Go unit tests.')
-  parser_go_unittest.add_argument(
-      '-u',
-      '--unsuppress-output',
-      action='store_true',
-      help='Unsuppress output from `print`. Good for debugging.')
-  parser_go_unittest.add_argument(
-      '-v', '--verbose', action='store_true', help='Print logs from tests.')
-
   parser_js_unittest = subparsers.add_parser(
       'js_unittest', help='Run Javascript unit tests.')
   parser_js_unittest.add_argument(

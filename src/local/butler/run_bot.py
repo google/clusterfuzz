@@ -115,12 +115,7 @@ def execute(args):
   try:
     original_root_dir = os.path.abspath('.')
     os.chdir(os.path.join(args.directory, 'clusterfuzz'))
-    if os.getenv('USE_GO_WORKER'):
-      proc = common.execute_async(
-          'bazel run //go/untrusted_runner:worker',
-          cwd=os.path.join(original_root_dir, 'src'))
-    else:
-      proc = common.execute_async('python src/python/bot/startup/run_bot.py')
+    proc = common.execute_async('python src/python/bot/startup/run_bot.py')
 
     def _stop_handler(*_):
       print('Bot has been stopped. Exit.')
