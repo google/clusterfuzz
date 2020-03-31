@@ -143,6 +143,7 @@ func handleGet(w http.ResponseWriter, r *http.Request) {
 
 // handler is the root http request handler.
 func handler(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Access-Control-Allow-Origin", "http://localhost:9000")
 	switch r.Method {
 	case http.MethodPost:
 		handlePost(w, r)

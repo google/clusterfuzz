@@ -169,10 +169,7 @@ def execute(args):
 
   # Start our custom GCS emulator.
   local_gcs = common.execute_async(
-      'bazel run //go/testing/gcs '
-      '--sandbox_writable_path=$(pwd)/../local/storage/local_gcs '
-      '-- -storage-path=$(pwd)/../local/storage/local_gcs',
-      cwd='src')
+      'go run emulators/gcs.go -storage-path=storage/local_gcs', cwd='local')
 
   if args.bootstrap:
     bootstrap_db()

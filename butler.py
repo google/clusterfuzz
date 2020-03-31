@@ -131,16 +131,6 @@ def main():
   parser_py_unittest.add_argument(
       '-c', '--config-dir', help='Config dir to use for module tests.')
 
-  parser_go_unittest = subparsers.add_parser(
-      'go_unittest', help='Run Go unit tests.')
-  parser_go_unittest.add_argument(
-      '-u',
-      '--unsuppress-output',
-      action='store_true',
-      help='Unsuppress output from `print`. Good for debugging.')
-  parser_go_unittest.add_argument(
-      '-v', '--verbose', action='store_true', help='Print logs from tests.')
-
   parser_js_unittest = subparsers.add_parser(
       'js_unittest', help='Run Javascript unit tests.')
   parser_js_unittest.add_argument(
@@ -234,9 +224,6 @@ def main():
       'clean_indexes', help=('Clean up undefined indexes (in index.yaml).'))
   parser_clean_indexes.add_argument(
       '-c', '--config-dir', required=True, help='Path to application config.')
-
-  subparsers.add_parser(
-      'generate_datastore_models', help='Generate datastore models for Go.')
 
   parser_create_config = subparsers.add_parser(
       'create_config', help='Create a new deployment config.')
