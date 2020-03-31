@@ -57,7 +57,8 @@ if [ "$dependencies_installed" != "true" ]; then
   echo "You may see several password prompts to install required packages."
   sleep 5
   PY3=1 $ROOT_DIRECTORY/local/install_deps.bash --only-reproduce $additional_deps_args || { exit 1; }
-  echo -n $version > $CLUSTERFUZZ_CONFIG_DIR/version
+  echo -n $current_version > $version_file
 fi
 
+pipenv sync --dev
 pipenv run python $ROOT_DIRECTORY/butler.py reproduce $original_args
