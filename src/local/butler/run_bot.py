@@ -42,8 +42,6 @@ def _setup_bot_directory(args):
       os.path.join(src_root_dir, 'src', 'appengine'),
       os.path.join(bot_src_dir, 'appengine'))
   common.update_dir(
-      os.path.join(src_root_dir, 'src', 'go'), os.path.join(bot_src_dir, 'go'))
-  common.update_dir(
       os.path.join(src_root_dir, 'src', 'protos'),
       os.path.join(bot_src_dir, 'protos'))
   common.update_dir(

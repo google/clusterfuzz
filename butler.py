@@ -225,9 +225,6 @@ def main():
   parser_clean_indexes.add_argument(
       '-c', '--config-dir', required=True, help='Path to application config.')
 
-  subparsers.add_parser(
-      'generate_datastore_models', help='Generate datastore models for Go.')
-
   parser_create_config = subparsers.add_parser(
       'create_config', help='Create a new deployment config.')
   parser_create_config.add_argument(

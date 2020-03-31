@@ -12,9 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """Classes for objects stored in the datastore."""
-# IMPORTANT: If you modify this file, please run
-# `python butler.py generate_datastore_models`
-# to generate Go structs for the models defined here.
 
 from builtins import next
 from builtins import object
