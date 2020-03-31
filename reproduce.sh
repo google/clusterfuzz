@@ -32,12 +32,14 @@ while [ "$1" != "" ]; do
 done
 
 mkdir -p $CLUSTERFUZZ_CONFIG_DIR
-if [ ! -d $ROOT_DIRECTORY/ENV ] || ([ $additional_deps_args ] && [ ! -d $ROOT_DIRECTORY/local/bin/android-sdk ]); then
+installed_version=$(cat $CLUSTERFUZZ_CONFIG_DIR/version 2>/dev/null || echo -n)
+version=1
+if pipenv graph 2>&1 | grep -q "Please run within a Pipenv project." || [ "$installed_version" != "$version" ] || ([ $additional_deps_args ] && [ ! -d $ROOT_DIRECTORY/local/bin/android-sdk ]); then
   echo "Running first time setup. This may take a while, but is only required once."
   echo "You may see several password prompts to install required packages."
   sleep 5
-  $ROOT_DIRECTORY/local/install_deps.bash --only-reproduce $additional_deps_args || { rm -rf $ROOT_DIRECTORY/ENV && exit 1; }
+  PY3=1 $ROOT_DIRECTORY/local/install_deps.bash --only-reproduce $additional_deps_args || { exit 1; }
+  echo -n $version > $CLUSTERFUZZ_CONFIG_DIR/version
 fi
 
-source ENV/bin/activate
-python $ROOT_DIRECTORY/butler.py reproduce $original_args
+pipenv run python $ROOT_DIRECTORY/butler.py reproduce $original_args
