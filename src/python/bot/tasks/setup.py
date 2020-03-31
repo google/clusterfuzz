@@ -552,6 +552,15 @@ def update_fuzzer_and_data_bundles(fuzzer_name):
         is_blackbox_fuzzer=True)
     environment.set_value('LAUNCHER_PATH', fuzzer_launcher_path)
 
+    # For launcher script usecase, we need the entire fuzzer directory on the
+    # worker.
+    if environment.is_trusted_host():
+      from bot.untrusted_runner import file_host
+      worker_fuzzer_directory = file_host.rebase_to_worker_root(
+          fuzzer_directory)
+      file_host.copy_directory_to_worker(
+          fuzzer_directory, worker_fuzzer_directory, replace=True)
+
   return True
 
 

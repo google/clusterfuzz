@@ -888,6 +888,7 @@ def get_command_line_for_application(file_to_run='',
   fuzzer_directory = environment.get_value('FUZZER_DIR')
   extension_argument = environment.get_value('EXTENSION_ARG')
   input_directory = environment.get_value('INPUT_DIR')
+  launcher = environment.get_value('LAUNCHER_PATH')
   plt = environment.platform()
   root_directory = environment.get_value('ROOT_DIR')
   temp_directory = environment.get_value('BOT_TMPDIR')
@@ -911,12 +912,11 @@ def get_command_line_for_application(file_to_run='',
   # Start creating the command line.
   command = ''
 
-  launcher = environment.get_value('LAUNCHER_PATH')
-  if environment.is_trusted_host() and not launcher:
-    # Rebase the file_to_run path to the worker's root (unless we're running
-    # under a launcher, which runs on the host).
+  if environment.is_trusted_host():
+    # Rebase the file_to_run and launcher paths to the worker's root.
     from bot.untrusted_runner import file_host
     file_to_run = file_host.rebase_to_worker_root(file_to_run)
+    launcher = file_host.rebase_to_worker_root(launcher)
 
   # Default case.
   testcase_path = file_to_run
