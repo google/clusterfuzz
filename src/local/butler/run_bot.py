@@ -113,7 +113,6 @@ def execute(args):
   _setup_environment_and_configs(args, appengine_path)
 
   try:
-    original_root_dir = os.path.abspath('.')
     os.chdir(os.path.join(args.directory, 'clusterfuzz'))
     proc = common.execute_async('python src/python/bot/startup/run_bot.py')
 
