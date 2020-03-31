@@ -34,7 +34,7 @@ done
 mkdir -p $CLUSTERFUZZ_CONFIG_DIR
 installed_version=$(cat $CLUSTERFUZZ_CONFIG_DIR/version 2>/dev/null || echo -n)
 version=1
-if pipenv graph 2>&1 | grep -q "Please run within a Pipenv project." || [ "$installed_version" != "$version" ] || ([ $additional_deps_args ] && [ ! -d $ROOT_DIRECTORY/local/bin/android-sdk ]); then
+if ! pipenv graph 2>&1 > /dev/null || [ "$installed_version" != "$version" ] || ([ $additional_deps_args ] && [ ! -d $ROOT_DIRECTORY/local/bin/android-sdk ]); then
   echo "Running first time setup. This may take a while, but is only required once."
   echo "You may see several password prompts to install required packages."
   sleep 5
