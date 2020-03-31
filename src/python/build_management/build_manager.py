@@ -1250,7 +1250,11 @@ def setup_regular_build(revision,
   base_build_dir = _base_build_dir(bucket_path)
 
   build_class = RegularBuild
-  if environment.is_trusted_host():
+
+  # Testcases are run on the trusted host when launcher is used. Otherwise,
+  # set up the build on the untrusted worker bot.
+  launcher = environment.get_value('LAUNCHER_PATH')
+  if environment.is_trusted_host() and not launcher:
     from bot.untrusted_runner import build_setup_host
     build_class = build_setup_host.RemoteRegularBuild
   elif environment.platform() == 'FUCHSIA':
