@@ -307,7 +307,10 @@ def run_process(cmdline,
 
     # If the process is still running, then terminate it.
     if not process_status.finished:
-      if launcher and cmdline.startswith(launcher):
+      launcher_with_interpreter = shell.get_execute_command(
+          launcher, is_blackbox_fuzzer=True) if launcher else None
+      if (launcher_with_interpreter and
+          cmdline.startswith(launcher_with_interpreter)):
         # If this was a launcher script, we KILL all child processes created
         # except for APP_NAME.
         # It is expected that, if the launcher script terminated normally, it
