@@ -358,6 +358,8 @@
           return this.fieldValues.libfuzzerTargets;
         } else if (jobLower.includes('afl')) {
           return this.fieldValues.aflTargets;
+        } else if (jobLower.includes('honggfuzz')) {
+          return this.fieldValues.honggfuzzTargets;
         } else {
           return [];
         }

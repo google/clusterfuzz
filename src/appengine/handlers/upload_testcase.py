@@ -240,11 +240,12 @@ class Handler(base_handler.Handler):
                     filter_blackbox_fuzzers(allowed_fuzzers),
                 'jobs':
                     allowed_jobs,
-                # TODO(unassigned): Add honggfuzz.
                 'libfuzzerTargets':
                     filter_target_names(allowed_fuzzers, 'libFuzzer'),
                 'aflTargets':
                     filter_target_names(allowed_fuzzers, 'afl'),
+                'honggfuzzTargets':
+                    filter_target_names(allowed_fuzzers, 'honggfuzz'),
                 'isChromium':
                     utils.is_chromium(),
                 'sandboxedJobs':
