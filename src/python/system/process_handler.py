@@ -126,10 +126,7 @@ def run_process(cmdline,
                 testcase_run=True,
                 ignore_children=True):
   """Executes a process with a given command line and other parameters."""
-  # FIXME(mbarbella): Using LAUNCHER_PATH here is error prone. It forces us to
-  # do certain operations before fuzzer setup (e.g. bad build check).
-  launcher = environment.get_value('LAUNCHER_PATH')
-  if environment.is_trusted_host() and testcase_run and not launcher:
+  if environment.is_trusted_host() and testcase_run:
     from bot.untrusted_runner import remote_process_host
     return remote_process_host.run_process(
         cmdline, current_working_directory, timeout, need_shell, gestures,
@@ -141,6 +138,9 @@ def run_process(cmdline,
   if env_copy:
     os.environ.update(env_copy)
 
+  # FIXME(mbarbella): Using LAUNCHER_PATH here is error prone. It forces us to
+  # do certain operations before fuzzer setup (e.g. bad build check).
+  launcher = environment.get_value('LAUNCHER_PATH')
   # This is used when running scripts on native linux OS and not on the device.
   # E.g. running a fuzzer to generate testcases or launcher script.
   plt = environment.platform()

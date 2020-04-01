@@ -459,13 +459,15 @@ class UntrustedRunnerIntegrationTest(
         '%s %s %s' % (app_path, worker_file_to_run,
                       utils.file_path_to_file_url(worker_file_to_run)))
 
-    launcher_path = '/path/to/launcher'
+    launcher_path = os.path.join(os.environ['FUZZERS_DIR'], 'test',
+                                 'launcher.py')
     os.environ['LAUNCHER_PATH'] = launcher_path
+    worker_launcher_path = file_host.rebase_to_worker_root(launcher_path)
     command_line = testcase_manager.get_command_line_for_application(
         file_to_run)
     self.assertEqual(
-        command_line,
-        '%s %s %s %s' % (launcher_path, app_path, file_to_run, file_to_run))
+        command_line, '%s %s %s %s' % (worker_launcher_path, app_path,
+                                       worker_file_to_run, worker_file_to_run))
 
   def test_corpus_sync(self):
     """Test syncing corpus."""
