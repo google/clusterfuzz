@@ -912,11 +912,15 @@ def get_command_line_for_application(file_to_run='',
   # Start creating the command line.
   command = ''
 
+  # Rebase the file_to_run and launcher paths to the worker's root.
   if environment.is_trusted_host():
-    # Rebase the file_to_run and launcher paths to the worker's root.
     from bot.untrusted_runner import file_host
     file_to_run = file_host.rebase_to_worker_root(file_to_run)
     launcher = file_host.rebase_to_worker_root(launcher)
+
+  # Add interpreter for launcher script.
+  if launcher:
+    launcher = shell.get_execute_command(launcher, is_blackbox_fuzzer=True)
 
   # Default case.
   testcase_path = file_to_run

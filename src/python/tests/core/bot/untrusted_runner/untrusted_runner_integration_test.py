@@ -16,10 +16,10 @@
 import filecmp
 import os
 import shutil
-import subprocess
-import tempfile
-
 import six
+import subprocess
+import sys
+import tempfile
 
 from base import utils
 from bot import testcase_manager
@@ -466,8 +466,9 @@ class UntrustedRunnerIntegrationTest(
     command_line = testcase_manager.get_command_line_for_application(
         file_to_run)
     self.assertEqual(
-        command_line, '%s %s %s %s' % (worker_launcher_path, app_path,
-                                       worker_file_to_run, worker_file_to_run))
+        command_line,
+        '%s %s %s %s %s' % (sys.executable, worker_launcher_path, app_path,
+                            worker_file_to_run, worker_file_to_run))
 
   def test_corpus_sync(self):
     """Test syncing corpus."""
