@@ -26,7 +26,7 @@ from libs import handler
 from libs import helpers
 from system import environment
 
-MEMCACHE_TTL_IN_SECONDS = 15 * 60
+MEMCACHE_TTL_IN_SECONDS = 30 * 60
 
 
 def _sort_by_name(item):
