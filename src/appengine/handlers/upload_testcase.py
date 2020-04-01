@@ -233,8 +233,7 @@ class Handler(base_handler.Handler):
 
     result, params = get_result(self)
     self.render(
-        'upload.html',
-        {
+        'upload.html', {
             'fieldValues': {
                 'blackboxFuzzers':
                     filter_blackbox_fuzzers(allowed_fuzzers),
