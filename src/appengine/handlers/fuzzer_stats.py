@@ -49,7 +49,7 @@ MEMCACHE_OLD_TTL_IN_SECONDS = 24 * 60 * 60
 
 # New fuzzer stats change, and aren't as likely to be reaccessed, don't cache
 # for very long.
-MEMCACHE_TODAY_TTL_IN_SECONDS = 15 * 60
+MEMCACHE_TODAY_TTL_IN_SECONDS = 30 * 60
 
 
 class QueryField(object):
