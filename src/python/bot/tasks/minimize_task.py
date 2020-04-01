@@ -752,8 +752,8 @@ def store_minimized_testcase(testcase, base_directory, file_list,
         absolute_filename = os.path.join(base_directory, file_name)
         is_file = os.path.isfile(absolute_filename)
         if file_to_run_data and is_file and os.path.getsize(
-            absolute_filename) == 0 and (
-                os.path.basename(absolute_filename) not in file_to_run_data):
+            absolute_filename) == 0 and (os.path.basename(
+                absolute_filename).encode('utf-8') not in file_to_run_data):
           continue
         if not os.path.exists(absolute_filename):
           continue
