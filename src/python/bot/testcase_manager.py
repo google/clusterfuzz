@@ -918,10 +918,6 @@ def get_command_line_for_application(file_to_run='',
     file_to_run = file_host.rebase_to_worker_root(file_to_run)
     launcher = file_host.rebase_to_worker_root(launcher)
 
-  # Add interpreter for launcher script.
-  if launcher:
-    launcher = shell.get_execute_command(launcher, is_blackbox_fuzzer=True)
-
   # Default case.
   testcase_path = file_to_run
   testcase_filename = os.path.basename(testcase_path)
@@ -944,7 +940,9 @@ def get_command_line_for_application(file_to_run='',
       # have app_name == launcher. In this case don't prepend launcher to
       # command - just use app_name.
       if os.path.basename(launcher) != app_name:
-        command += launcher + ' '
+        launcher_with_interpreter = shell.get_execute_command(
+            launcher, is_blackbox_fuzzer=True)
+        command += launcher_with_interpreter + ' '
     elif plt in ['ANDROID']:
       # Android-specific testcase path fixup for fuzzers that don't rely on
       # launcher scripts.
