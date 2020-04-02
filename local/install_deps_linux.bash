@@ -115,8 +115,6 @@ fi
 # Install other packages that we depend on unconditionally.
 sudo apt-get install -y \
     blackbox \
-    python-pip \
-    python-virtualenv \
     unzip \
     xvfb
 
@@ -141,23 +139,11 @@ else
       google-cloud-sdk-pubsub-emulator
 fi
 
-# Setup pipenv.
-if [[ -z "$PY2" ]]; then
-  sudo apt-get install -y pipenv
-  pipenv sync --python 3.7
-  pipenv sync --dev
-  source "$(pipenv --venv)/bin/activate"
-else
-  sudo apt-get install -y python-dev
-  rm -rf ENV
-  virtualenv ENV
-  source ENV/bin/activate
-
-  # Install needed python packages.
-  pip install --upgrade pip
-  pip install --upgrade -r docker/ci/requirements.txt
-  pip install --upgrade -r src/local/requirements.txt
-fi
+# Setup pipenv and install python dependencies.
+sudo apt-get install -y pipenv
+pipenv sync --python 3.7
+pipenv sync --dev
+source "$(pipenv --venv)/bin/activate"
 
 if [ $install_android_emulator ]; then
   ANDROID_SDK_INSTALL_DIR=local/bin/android-sdk
@@ -194,18 +180,9 @@ else
 fi
 
 set +x
-if [[ -z "$PY2" ]]; then
 echo "
 
 Installation succeeded!
 Please load environment by running 'pipenv shell'.
 
 "
-else
-echo "
-
-Installation succeeded!
-Please load virtualenv environment by running 'source ENV/bin/activate'.
-
-"
-fi
