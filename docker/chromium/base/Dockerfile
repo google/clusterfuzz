@@ -70,7 +70,5 @@ ENV INSTRUMENTED_LIBRARIES_PATHS_MSAN_NO_ORIGINS /msan-no-origins/lib/x86_64-lin
 ENV BOT_CONFIG linux_docker
 
 COPY setup.sh setup_x.sh start.sh /data/
-ENV DEPLOYMENT_ZIP "linux-3.zip"
-ENV RUN_CMD "python3.7 $ROOT_DIR/src/python/bot/startup/run.py"
 
 CMD ["bash", "-ex", "/data/start.sh"]

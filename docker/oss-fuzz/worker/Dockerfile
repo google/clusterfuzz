@@ -15,6 +15,3 @@ FROM gcr.io/clusterfuzz-images/oss-fuzz/base
 
 RUN apt-get install -y libc6-i386 lib32gcc1
 ENV UNTRUSTED_WORKER True
-
-ENV DEPLOYMENT_ZIP "linux-3.zip"
-ENV RUN_CMD "python3.7 $ROOT_DIR/src/python/bot/startup/run.py"

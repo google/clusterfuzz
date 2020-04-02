@@ -89,8 +89,8 @@ ENV BOT_TMPDIR $INSTALL_DIRECTORY/tmp
 ENV ROOT_DIR $INSTALL_DIRECTORY/clusterfuzz
 ENV UPDATE_WEB_TESTS True
 ENV PYTHONPATH $INSTALL_DIRECTORY/clusterfuzz/src
-ENV RUN_CMD "python $ROOT_DIR/src/python/bot/startup/run.py"
-ENV DEPLOYMENT_ZIP "linux.zip"
+ENV RUN_CMD "python3.7 $ROOT_DIR/src/python/bot/startup/run.py"
+ENV DEPLOYMENT_ZIP "linux-3.zip"
 
 # Passwordless sudo (needed for AFL launcher).
 RUN groupadd nopwsudo && \
