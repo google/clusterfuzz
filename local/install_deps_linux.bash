@@ -92,8 +92,7 @@ if [ ! $only_reproduce ]; then
       docker-ce \
       google-cloud-sdk \
       $java_package    \
-      liblzma-dev \
-      python-dev
+      liblzma-dev
 
   # Install patchelf - latest version not available on some older distros so we
   # compile from source.
@@ -116,8 +115,6 @@ fi
 # Install other packages that we depend on unconditionally.
 sudo apt-get install -y \
     blackbox \
-    python-pip \
-    python-virtualenv \
     unzip \
     xvfb
 
@@ -142,13 +139,18 @@ else
       google-cloud-sdk-pubsub-emulator
 fi
 
-# Setup virtualenv.
-if [[ -n "$PY3" ]]; then
+# Setup pipenv.
+if [[ -z "$PY2" ]]; then
   sudo apt-get install -y pipenv
   pipenv sync --python 3.7
   pipenv sync --dev
   source "$(pipenv --venv)/bin/activate"
 else
+  sudo apt-get install -y \
+      python-dev \
+      python-pip \
+      python-virtualenv \
+
   rm -rf ENV
   virtualenv ENV
   source ENV/bin/activate
@@ -194,7 +196,7 @@ else
 fi
 
 set +x
-if [[ -n "$PY3" ]]; then
+if [[ -z "$PY2" ]]; then
 echo "
 
 Installation succeeded!
