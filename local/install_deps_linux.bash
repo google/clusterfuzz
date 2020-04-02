@@ -115,6 +115,8 @@ fi
 # Install other packages that we depend on unconditionally.
 sudo apt-get install -y \
     blackbox \
+    python-pip \
+    python-virtualenv \
     unzip \
     xvfb
 
@@ -141,18 +143,12 @@ fi
 
 # Setup pipenv.
 if [[ -z "$PY2" ]]; then
-  sudo apt-get install -y \
-      pipenv \
-      python3-venv
-
+  sudo apt-get install -y pipenv
   pipenv sync --python 3.7
   pipenv sync --dev
   source "$(pipenv --venv)/bin/activate"
 else
-  sudo apt-get install -y \
-      python-dev \
-      python-pip \
-      python-virtualenv
+  sudo apt-get install -y python-dev
 
   rm -rf ENV
   virtualenv ENV
