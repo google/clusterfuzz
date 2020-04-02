@@ -149,7 +149,6 @@ if [[ -z "$PY2" ]]; then
   source "$(pipenv --venv)/bin/activate"
 else
   sudo apt-get install -y python-dev
-
   rm -rf ENV
   virtualenv ENV
   source ENV/bin/activate
