@@ -118,7 +118,7 @@ def process_proc_output(proc, print_output=True):
 
   lines = []
   for line in iter(proc.stdout.readline, b''):
-    _print('| %s' % line.rstrip())
+    _print('| %s' % line.rstrip().decode('utf-8'))
     lines.append(line)
 
   return b''.join(lines)
