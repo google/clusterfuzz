@@ -13,9 +13,7 @@
 # limitations under the License.
 
 service: cron-service
-runtime: python27
-api_version: 1
-threadsafe: false
+runtime: python37
 
 handlers:
   - url: /favicon/(.*)
@@ -28,21 +26,13 @@ handlers:
     secure: always
 
   - url: /.*
-    script: server.app
+    script: auto
     secure: always
 
 inbound_services:
   - warmup
 
 instance_class: B4
-
-libraries:
-  - name: jinja2
-    version: latest
-  - name: ssl
-    version: latest
-  - name: grpcio
-    version: latest
 
 basic_scaling:
   max_instances: 10
