@@ -141,7 +141,10 @@ fi
 
 # Setup pipenv.
 if [[ -z "$PY2" ]]; then
-  sudo apt-get install -y pipenv
+  sudo apt-get install -y \
+      pipenv \
+      python3-venv
+
   pipenv sync --python 3.7
   pipenv sync --dev
   source "$(pipenv --venv)/bin/activate"
@@ -149,7 +152,7 @@ else
   sudo apt-get install -y \
       python-dev \
       python-pip \
-      python-virtualenv \
+      python-virtualenv
 
   rm -rf ENV
   virtualenv ENV
