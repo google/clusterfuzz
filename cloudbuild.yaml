@@ -28,16 +28,15 @@ steps:
     mv tmp/.git .git
     rm -rf tmp
 - name: 'gcr.io/clusterfuzz-images/ci'
-  args: ['python', 'butler.py', 'lint']
+  args: ['pipenv', 'sync', '--dev']
   env:
-    - 'GOOGLE_CLOUDBUILD=1'
+    - PIPENV_VENV_IN_PROJECT=1
 - name: 'gcr.io/clusterfuzz-images/ci'
-  args: ['setup']
+  args: ['pipenv', 'run', 'setup']
+  env:
+    - PIPENV_VENV_IN_PROJECT=1
 - name: 'gcr.io/clusterfuzz-images/ci'
-  args:
-    - 'bash'
-    - '-ex'
-    - 'local/tests/run_all_tests'
+  args: ['pipenv', 'run', 'local/tests/run_all_tests']
   env:
     - TEST_BLOBS_BUCKET=clusterfuzz-ci-blobs
     - TEST_BUCKET=clusterfuzz-ci-test
@@ -45,6 +44,7 @@ steps:
     - TEST_QUARANTINE_BUCKET=clusterfuzz-ci-quarantine
     - TEST_BACKUP_BUCKET=clusterfuzz-ci-backup
     - TEST_COVERAGE_BUCKET=clusterfuzz-ci-coverage
+    - PIPENV_VENV_IN_PROJECT=1
 timeout: 5400s
 options:
   machineType: N1_HIGHCPU_32
