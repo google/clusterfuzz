@@ -25,6 +25,7 @@ import random
 import re
 import shutil
 import string
+import sys
 import tempfile
 
 from base import retry
@@ -1644,8 +1645,7 @@ def use_peach_mutator(extra_env, grammar):
   new_path = [
       os.path.join(unzipped, 'peach_mutator', 'src'),
       os.path.join(unzipped, 'peach_mutator', 'third_party', 'peach'),
-      os.path.join(unzipped, 'peach_mutator', 'third_party', 'requirements')
-  ]
+  ] + sys.path
 
   extra_env['PYTHONPATH'] = os.pathsep.join(new_path)
 
