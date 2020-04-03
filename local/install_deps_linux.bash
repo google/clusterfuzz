@@ -141,7 +141,7 @@ fi
 
 # Setup pipenv and install python dependencies.
 sudo apt-get install -y pipenv
-pipenv sync --python 3.7
+pipenv --python 3.7
 pipenv sync --dev
 source "$(pipenv --venv)/bin/activate"
 
