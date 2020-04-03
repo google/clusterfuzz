@@ -75,14 +75,17 @@ else
 fi
 
 echo "Downloading ClusterFuzz source code."
+rm -rf clusterfuzz
 $GSUTIL_PATH/gsutil cp gs://$DEPLOYMENT_BUCKET/$DEPLOYMENT_ZIP clusterfuzz-source.zip
 unzip -q clusterfuzz-source.zip
 
 echo "Installing ClusterFuzz package dependencies using pipenv."
-curl https://bootstrap.pypa.io/get-pip.py -o get-pip.py
-python3 get-pip.py
 cd clusterfuzz
-python3 -m pip install pipenv
+if ! python3 -m pip > /dev/null ; then
+  curl https://bootstrap.pypa.io/get-pip.py -o get-pip.py
+  python3 get-pip.py
+fi
+python3 -m pip install --upgrade pipenv
 pipenv sync
 source "$(pipenv --venv)/bin/activate"
 
