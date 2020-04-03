@@ -51,9 +51,6 @@ ENV BOT_TMPDIR /tmp
 ENV ROOT_DIR /workspace
 ENV PYTHONPATH $ROOT_DIR/src
 
-COPY requirements.txt /tmp
-RUN pip2 install -r /tmp/requirements.txt
-
 ENV TEST_BOT_ENVIRONMENT 1
 ENV PYTHONDONTWRITEBYTECODE 1
 
