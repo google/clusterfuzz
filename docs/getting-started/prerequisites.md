@@ -19,7 +19,7 @@ This page explains how to set up your environment for using ClusterFuzz.
 Many features of ClusterFuzz depend on [Google Cloud
 Platform](https://cloud.google.com) services, but it's possible to run it locally without these dependencies for testing purposes. See the [Architecture page]({{ site.baseurl }}/architecture/#requirements) for more details.
 
-**Note:** Local development is only supported on **Linux** platform.
+**Note:** Local development is only supported on **Linux** and **macOS** platforms.
 
 ## Getting the code
 
