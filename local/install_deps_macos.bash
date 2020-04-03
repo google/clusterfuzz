@@ -25,17 +25,10 @@ if ! which brew > /dev/null 2>&1; then
 fi
 
 brew bundle --file=$(dirname "$0")/Brewfile
-pip install virtualenv
 
-# Setup virtualenv.
-rm -rf ENV
-virtualenv ENV
-source ENV/bin/activate
-
-# Install needed python packages.
-pip install --upgrade pip
-pip install --upgrade -r docker/ci/requirements.txt
-pip install --upgrade -r src/local/requirements.txt
+pipenv --python 3.7
+pipenv sync --dev
+source "$(pipenv --venv)/bin/activate"
 
 # Install other dependencies (e.g. bower).
 nodeenv -p --prebuilt
@@ -57,6 +50,6 @@ set +x
 echo "
 
 Installation succeeded!
-Please load virtualenv environment by running 'source ENV/bin/activate'.
+Please load environment by running 'pipenv shell'.
 
 "
