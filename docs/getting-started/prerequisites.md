@@ -85,11 +85,11 @@ local/install_deps.bash
 
 [homebrew]: https://brew.sh/
 
-## Loading virtualenv
-After you run the `local/install_deps.bash` script, activate the virtualenv by running the following command:
+## Loading pipenv
+After you run the `local/install_deps.bash` script, activate pipenv by running the following command:
 
 ```bash
-source ENV/bin/activate
+pipenv shell
 ```
 This loads all the Python dependencies in the current environment.
 
