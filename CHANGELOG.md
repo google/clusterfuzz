@@ -1,6 +1,17 @@
 Change Log
 ==========
 
+## Version 1.9.0
+- Python 3 migration is complete.
+- Added Peach mutation strategy for engine fuzzers.
+- Added support for Google Cloud IAP authentication.
+- Added stop gaps to prevent corpus explosion (e.g. corpus element must be less than 5 MB).
+- Use ANTLR grammar for tokenization during testcase minimization (html, js).
+- Store statistics on corpus cross-pollination during corpus pruning.
+- Removed dependency on Google App Engine SDK.
+- Removed unused Go code.
+- Various bug fixes.
+
 ## Version 1.8.0
 - Added an uploader permission type to allow certain users to upload to any job/fuzzer.
 - More Python 3 conversion changes.
