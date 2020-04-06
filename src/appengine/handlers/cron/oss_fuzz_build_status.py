@@ -54,7 +54,9 @@ NO_BUILDS_THRESHOLD = datetime.timedelta(days=2)
 MIN_CONSECUTIVE_BUILD_FAILURES = 2
 
 # Number of failures after the last reminder/initial filing to send a reminder.
-REMINDER_INTERVAL = 3
+# This used to be 3 days, but now we may have up to two failures a day since
+# https://github.com/google/oss-fuzz/pull/3585 was landed.
+REMINDER_INTERVAL = 6
 
 
 class OssFuzzBuildStatusException(Exception):
