@@ -32,7 +32,7 @@ Run these commands to build a libFuzzer target for OpenSSL:
 [comment]: <> (TODO(metzman): Check that the URLs work when repo gets published.)
 ```bash
 # Download and unpack a vulnerable version of OpenSSL:
-curl -O https://www.openssl.org/source/openssl-1.0.1f.tar.gz
+curl -O https://ftp.openssl.org/source/old/1.0.1/openssl-1.0.1f.tar.gz
 tar xf openssl-1.0.1f.tar.gz
 
 # Build OpenSSL with ASan and fuzzer instrumentation:
