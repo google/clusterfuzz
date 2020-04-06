@@ -128,7 +128,7 @@ def execute(args):
   # Deploy all yaml files from test project for basic appengine deployment and
   # local testing to work. This needs to be called on every iteration as a past
   # deployment might have overwritten or deleted these config files.
-  yaml_paths = local_config.GAEConfig().get_absolute_path('deployment.prod')
+  yaml_paths = local_config.GAEConfig().get_absolute_path('deployment.prod3')
   appengine.copy_yamls_and_preprocess(yaml_paths)
 
   # Build templates.
@@ -156,11 +156,12 @@ def execute(args):
   datastore_emulator = test_utils.start_cloud_emulator(
       'datastore',
       args=['--host-port=' + constants.DATASTORE_EMULATOR_HOST],
-      data_dir=args.storage_path)
+      data_dir=args.storage_path,
+      store_on_disk=True)
 
   # Start our custom GCS emulator.
   local_gcs = common.execute_async(
-      'go run emulators/gcs.go -storage-path=storage/local_gcs', cwd='local')
+      'go run emulators/gcs.go -storage-path=' + args.storage_path, cwd='local')
 
   if args.bootstrap:
     bootstrap_db()
