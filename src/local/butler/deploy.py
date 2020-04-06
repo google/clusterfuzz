@@ -301,7 +301,7 @@ def is_diff_origin_master():
   return diff_output.strip() or remote_sha.strip() != local_sha.strip()
 
 
-def _staging_deployment_helper(python3=False):
+def _staging_deployment_helper(python3=True):
   """Helper for staging deployment."""
   config = local_config.Config(local_config.GAE_CONFIG_PATH)
   project = config.get('application_id')
@@ -323,7 +323,7 @@ def _staging_deployment_helper(python3=False):
 def _prod_deployment_helper(config_dir,
                             package_zip_paths,
                             deploy_appengine=True,
-                            python3=False):
+                            python3=True):
   """Helper for production deployment."""
   config = local_config.Config()
   deployment_bucket = config.get('project.deployment.bucket')
