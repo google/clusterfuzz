@@ -96,7 +96,7 @@ def get_signed_url(bucket_name,
   local_server = environment.get_value('LOCAL_GCS_SERVER_HOST')
   if local_server:
     url = local_server + '/' + bucket_name
-    signed_blob = 'SIGNATURE'
+    signed_blob = b'SIGNATURE'
     service_account_name = 'service_account'
   else:
     url = STORAGE_URL % bucket_name
@@ -137,7 +137,7 @@ def prepare_upload(bucket_name, path, expiry=DEFAULT_URL_VALID_SECONDS):
   local_server = environment.get_value('LOCAL_GCS_SERVER_HOST')
   if local_server:
     url = local_server
-    signature = 'SIGNATURE'
+    signature = b'SIGNATURE'
     service_account_name = 'service_account'
   else:
     url = STORAGE_URL % bucket_name
