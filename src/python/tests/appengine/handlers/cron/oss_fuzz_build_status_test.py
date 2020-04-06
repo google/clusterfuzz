@@ -529,7 +529,7 @@ class OssFuzzBuildStatusTest(unittest.TestCase):
         project_name='proj1',
         last_checked_timestamp=datetime.datetime(2018, 1, 31),
         issue_id='2',
-        consecutive_failures=3,
+        consecutive_failures=6,
         build_type='fuzzing').put()
 
     self.itm.issues[1] = Issue()
