@@ -15,6 +15,7 @@
 from __future__ import print_function
 from future import standard_library
 standard_library.install_aliases()
+import sys
 import time
 import urllib.error
 import urllib.request
@@ -28,6 +29,10 @@ RUN_SERVER_TIMEOUT = 120
 
 def execute(_):
   """Run integration tests."""
+  if sys.version_info.major == 2:
+    print('Skipping integration_tests on Python 2.')
+    return
+
   command = 'run_server'
   indicator = b'Booting worker'
 
