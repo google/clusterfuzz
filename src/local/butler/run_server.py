@@ -128,7 +128,7 @@ def execute(args):
   # Deploy all yaml files from test project for basic appengine deployment and
   # local testing to work. This needs to be called on every iteration as a past
   # deployment might have overwritten or deleted these config files.
-  yaml_paths = local_config.GAEConfig().get_absolute_path('deployment.prod')
+  yaml_paths = local_config.GAEConfig().get_absolute_path('deployment.prod3')
   appengine.copy_yamls_and_preprocess(yaml_paths)
 
   # Build templates.
