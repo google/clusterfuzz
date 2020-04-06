@@ -520,7 +520,7 @@ class OssFuzzBuildStatusTest(unittest.TestCase):
         project_name='proj0',
         last_checked_timestamp=datetime.datetime(2018, 1, 31),
         issue_id='1',
-        consecutive_failures=4,
+        consecutive_failures=7,
         build_type='fuzzing').put()
     data_types.OssFuzzProject(
         id='proj1', name='proj1', ccs=['a@user.com']).put()
