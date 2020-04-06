@@ -224,15 +224,20 @@ def wait_for_emulator_ready(proc,
   return thread
 
 
-def start_cloud_emulator(emulator, args=None, data_dir=None):
+def start_cloud_emulator(emulator,
+                         args=None,
+                         data_dir=None,
+                         store_on_disk=False):
   """Start a cloud emulator."""
   ready_indicators = {
       'datastore': b'is now running',
       'pubsub': b'Server started',
   }
 
+  store_on_disk_flag = ('--store-on-disk'
+                        if store_on_disk else '--no-store-on-disk')
   default_flags = {
-      'datastore': ['--no-store-on-disk', '--consistency=1'],
+      'datastore': [store_on_disk_flag, '--consistency=1'],
       'pubsub': [],
   }
 

@@ -156,7 +156,8 @@ def execute(args):
   datastore_emulator = test_utils.start_cloud_emulator(
       'datastore',
       args=['--host-port=' + constants.DATASTORE_EMULATOR_HOST],
-      data_dir=args.storage_path)
+      data_dir=args.storage_path,
+      store_on_disk=True)
 
   # Start our custom GCS emulator.
   local_gcs = common.execute_async(
