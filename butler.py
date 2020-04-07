@@ -288,6 +288,9 @@ def main():
       help='Run and attempt to reproduce a crash using the Android emulator.')
 
   args = parser.parse_args()
+  if not args.command:
+    parser.print_help()
+    return
 
   _setup()
   command = importlib.import_module('local.butler.%s' % args.command)
