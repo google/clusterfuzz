@@ -75,7 +75,8 @@ class Fuzzer(object):
     production). """
     # Strip any sanitizer extensions
     tgt = os.path.splitext(tgt)[0]
-    return ((pkg == 'example-fuzzers' and tgt != 'out_of_memory_fuzzer') or
+    return ((pkg == 'example-fuzzers' and
+             tgt not in ('out_of_memory_fuzzer', 'toy_example_arbitrary')) or
             (pkg == 'zircon_fuzzers' and tgt == 'noop-fuzzer'))
 
   @classmethod
