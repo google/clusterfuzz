@@ -59,7 +59,12 @@ def bootstrap_gcs(storage_path):
     os.mkdir(local_gcs_buckets_path)
 
   config = local_config.ProjectConfig()
-  create_local_bucket(local_gcs_buckets_path, config.get('blobs.bucket'))
+  test_blobs_bucket = os.environ.get('TEST_BLOBS_BUCKET')
+  if test_blobs_bucket:
+    create_local_bucket(local_gcs_buckets_path, test_blobs_bucket)
+  else:
+    create_local_bucket(local_gcs_buckets_path, config.get('blobs.bucket'))
+
   create_local_bucket(local_gcs_buckets_path, config.get('deployment.bucket'))
   create_local_bucket(local_gcs_buckets_path, config.get('bigquery.bucket'))
   create_local_bucket(local_gcs_buckets_path, config.get('backup.bucket'))
