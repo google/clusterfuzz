@@ -60,5 +60,12 @@ if [ "$dependencies_installed" != "true" ]; then
   echo -n $current_version > $version_file
 fi
 
-pipenv sync --dev
-pipenv run python $ROOT_DIRECTORY/butler.py reproduce $original_args
+# Only sync if necessary.
+pip_sync_file=$CLUSTERFUZZ_CONFIG_DIR/pip_sync
+if [ ! -e $pip_sync_file ] || [ $ROOT_DIRECTORY/Pipfile.lock -nt $pip_sync_file ]; then
+  pipenv sync --dev
+  echo 1 > $pip_sync_file
+fi
+
+source "$(pipenv --venv)/bin/activate"
+python $ROOT_DIRECTORY/butler.py reproduce $original_args

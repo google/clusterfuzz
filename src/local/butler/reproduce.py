@@ -257,10 +257,15 @@ def _verify_target_exists(build_directory):
             build_directory=build_directory))
 
 
-def _update_environment_for_testcase(testcase, build_directory):
+def _update_environment_for_testcase(testcase, build_directory,
+                                     application_override):
   """Update environment variables that depend on the test case."""
   commands.update_environment_for_job(testcase.job_definition)
   environment.set_value('JOB_NAME', testcase.job_type)
+
+  # Override app name if explicitly specified.
+  if application_override:
+    environment.set_value('APP_NAME', application_override)
 
   fuzzer_directory = setup.get_fuzzer_directory(testcase.fuzzer_name)
   environment.set_value('FUZZER_DIR', fuzzer_directory)
@@ -306,14 +311,13 @@ def _print_stacktrace(result):
 
 
 def _reproduce_crash(testcase_url, build_directory, iterations, disable_xvfb,
-                     verbose, disable_android_setup):
+                     verbose, disable_android_setup, application):
   """Reproduce a crash."""
   _prepare_initial_environment(build_directory, iterations, verbose)
 
   # Validate the test case URL and fetch the tool's configuration.
   testcase_id = _get_testcase_id_from_url(testcase_url)
   configuration = config.ReproduceToolConfiguration(testcase_url)
-
   testcase = _get_testcase(testcase_id, configuration)
 
   # For new user uploads, we'll fail without the metadata set by analyze task.
@@ -336,7 +340,7 @@ def _reproduce_crash(testcase_url, build_directory, iterations, disable_xvfb,
           'traces.')
 
   testcase_path = _download_testcase(testcase_id, testcase, configuration)
-  _update_environment_for_testcase(testcase, build_directory)
+  _update_environment_for_testcase(testcase, build_directory, application)
 
   # Validate that we're running on the right platform for this test case.
   platform = environment.platform().lower()
@@ -410,7 +414,7 @@ def execute(args):
   try:
     result = _reproduce_crash(args.testcase, absolute_build_dir,
                               args.iterations, args.disable_xvfb, args.verbose,
-                              args.disable_android_setup)
+                              args.disable_android_setup, args.application)
   except errors.ReproduceToolUnrecoverableError as exception:
     print(exception)
     return
