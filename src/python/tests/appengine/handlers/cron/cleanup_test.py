@@ -2099,21 +2099,24 @@ class CleanupUnusedHeartbeatsTest(unittest.TestCase):
             'source_version': None,
             'task_end_time': None,
             'last_beat_time': datetime.datetime(2018, 1, 16, 0, 0),
-            'bot_name': None
+            'bot_name': None,
+            'platform_id': None,
         },
         {
             'task_payload': None,
             'source_version': None,
             'task_end_time': None,
             'last_beat_time': datetime.datetime(2018, 1, 17, 0, 0),
-            'bot_name': None
+            'bot_name': None,
+            'platform_id': None,
         },
         {
             'task_payload': None,
             'source_version': None,
             'task_end_time': None,
             'last_beat_time': datetime.datetime(2018, 2, 1, 0, 0),
-            'bot_name': None
+            'bot_name': None,
+            'platform_id': None,
         },
     ], [e.to_dict() for e in data_types.Heartbeat.query()])
 
