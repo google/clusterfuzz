@@ -24,7 +24,7 @@
   <template>
     <style>
       div.info {
-        width: 70%;
+        width: 60%;
         margin: 10px;
       }
 
@@ -39,7 +39,7 @@
       }
 
       table.labels {
-        width: 30%;
+        width: 40%;
         padding: 5px;
       }
 
@@ -48,7 +48,7 @@
         text-align: right;
         font-size: 13px;
         padding: 2px 4px;
-        margin-top: 5px;
+        margin: 5px 5px 0px 0px;
       }
 
       span.alive {
@@ -115,17 +115,15 @@
                   </td>
                 </tr>
                 <tr>
-                  <template is="dom-if" if="[[item.platform_id]]">
-                    <td>
-                      <span class="label platform_id">
-                        [[item.platform_id]]
-                      </span>
-                    </td>
-                  </template>
                   <td>
                     <span class="label revision">
                       [[item.source_version]]
                     </span>
+                    <template is="dom-if" if="[[item.platform_id]]">
+                      <span class="label platform_id">
+                        [[item.platform_id]]
+                      </span>
+                    </template>
                   </td>
                 </tr>
               </table>
