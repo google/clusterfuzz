@@ -257,7 +257,8 @@ def _verify_target_exists(build_directory):
             build_directory=build_directory))
 
 
-def _update_environment_for_testcase(testcase, build_directory, application_override):
+def _update_environment_for_testcase(testcase, build_directory,
+                                     application_override):
   """Update environment variables that depend on the test case."""
   commands.update_environment_for_job(testcase.job_definition)
   environment.set_value('JOB_NAME', testcase.job_type)
