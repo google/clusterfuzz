@@ -119,9 +119,11 @@
                     <span class="label revision">
                       [[item.source_version]]
                     </span>
-                    <span class="label platform_id">
-                      [[item.platform_id]]
-                    </span>
+                    <template is="dom-if" if="[[item.platform_id]]">
+                      <span class="label platform_id">
+                        [[item.platform_id]]
+                      </span>
+                    </template>
                   </td>
                 </tr>
               </table>
