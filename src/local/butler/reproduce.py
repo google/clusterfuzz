@@ -263,7 +263,7 @@ def _update_environment_for_testcase(testcase, build_directory, application_over
   environment.set_value('JOB_NAME', testcase.job_type)
 
   # Override app name if explicitly specified.
-  if application:
+  if application_override:
     environment.set_value('APP_NAME', application_override)
 
   fuzzer_directory = setup.get_fuzzer_directory(testcase.fuzzer_name)
