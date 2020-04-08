@@ -708,7 +708,6 @@ class Testcase(Model):
 
 class TestcaseGroup(Model):
   """Group for a set of testcases."""
-  pass
 
 
 class DataBundle(Model):
@@ -979,6 +978,9 @@ class Heartbeat(Model):
 
   # Source version (for accountability).
   source_version = StringProperty()
+
+  # Platform id (esp important for Android platform for OS version).
+  platform_id = StringProperty()
 
 
 class Notification(Model):

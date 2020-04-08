@@ -46,6 +46,8 @@ def _convert_heartbeats_to_dicts(heartbeats):
             heartbeat.source_version,
         'task_payload':
             heartbeat.task_payload,
+        'platform_id':
+            heartbeat.platform_id,
         'task_end_time':
             utils.utc_datetime_to_timestamp(heartbeat.task_end_time)
             if heartbeat.task_end_time else '',

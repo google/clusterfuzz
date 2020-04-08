@@ -65,6 +65,11 @@
         border: 1px solid #01579B;
         color: #01579B;
       }
+
+      span.platform_id {
+        border: 1px solid #C51162;
+        color: #C51162;
+      }
     </style>
 
     <div id="mainContent">
@@ -110,6 +115,13 @@
                   </td>
                 </tr>
                 <tr>
+                  <template is="dom-if" if="[[item.platform_id]]">
+                    <td>
+                      <span class="label platform_id">
+                        [[item.platform_id]]
+                      </span>
+                    </td>
+                  </template>
                   <td>
                     <span class="label revision">
                       [[item.source_version]]
@@ -154,6 +166,7 @@
             searchStrings.every(s => (
                 el['bot_name'] && el['bot_name'].includes(s) ||
                 el['task_payload'] && el['task_payload'].includes(s) ||
+                el['platform_id'] && el['platform_id'].includes(s) ||
                 el['alive'] && el['alive'].includes(s))));
       }
     }

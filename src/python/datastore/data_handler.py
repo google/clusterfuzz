@@ -1063,6 +1063,7 @@ def update_heartbeat(force_update=False):
     heartbeat.task_end_time = tasks.get_task_end_time()
     heartbeat.last_beat_time = current_time
     heartbeat.source_version = utils.current_source_version()
+    heartbeat.platform_id = environment.get_platform_id()
     heartbeat.put()
 
     persistent_cache.set_value(
