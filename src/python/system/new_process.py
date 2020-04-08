@@ -15,6 +15,7 @@
 
 from builtins import object
 
+from distutils import spawn
 import os
 import subprocess
 import sys
@@ -376,3 +377,35 @@ class UnicodeProcessRunnerMixin(object):
 
 class UnicodeProcessRunner(UnicodeProcessRunnerMixin, ProcessRunner):
   """ProcessRunner which always returns unicode output."""
+
+
+class UnshareProcessRunnerMixin(object):
+  """ProcessRunner mixin which unshares."""
+
+  def get_command(self, additional_args=None):
+    """Overridden get_command."""
+    if environment.platform() != 'LINUX':
+      raise RuntimeError('UnshareProcessRunner only supported on Linux')
+
+    unshare_path = spawn.find_executable('unshare')
+    if not unshare_path:
+      raise RuntimeError('unshare not found')
+
+    command = [unshare_path]
+    command.extend([
+        '-U',  # Enter user namespace.
+        '--map-root-user',  # Map user to root user.
+        '-n',  # Enter network namespace.
+    ])
+
+    command.append(self._executable_path)
+    command.extend(self._default_args)
+
+    if additional_args:
+      command.extend(additional_args)
+
+    return command
+
+
+class UnshareProcessRunner(UnshareProcessRunnerMixin, ProcessRunner):
+  """ProcessRunner which unshares."""
