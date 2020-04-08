@@ -67,4 +67,5 @@ if [ ! -e $pip_sync_file ] || [ $ROOT_DIRECTORY/Pipfile.lock -nt $pip_sync_file 
   echo 1 > $pip_sync_file
 fi
 
-REPRODUCE_TOOL=1 pipenv run python $ROOT_DIRECTORY/butler.py reproduce $original_args
+source "$(pipenv --venv)/bin/activate"
+python $ROOT_DIRECTORY/butler.py reproduce $original_args

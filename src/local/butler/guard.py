@@ -24,12 +24,8 @@ def check_virtualenv():
   root_path = os.path.realpath(
       os.path.join(os.path.dirname(__file__), '..', '..', '..'))
   is_in_virtualenv = bool(os.getenv('VIRTUAL_ENV'))
-  is_reproduce_tool = bool(os.getenv('REPRODUCE_TOOL'))
 
-  # Check that we're in a virtual enviornment unless we're running the
-  # reproduce tool. The tool's method of running does not set the VIRTUAL_ENV
-  # environment variable.
-  if not is_in_virtualenv and not is_reproduce_tool:
+  if not is_in_virtualenv:
     raise Exception(
         'You are not in a virtual env environment. Please install it with'
         ' `./local/install_deps.bash` or load it with'
