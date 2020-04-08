@@ -286,6 +286,11 @@ def main():
       '--emulator',
       action='store_true',
       help='Run and attempt to reproduce a crash using the Android emulator.')
+  parser_reproduce.add_argument(
+      '-a',
+      '--application',
+      help='Name of the application binary to run. Only required if it '
+      'differs from the one the test case was discovered with.')
 
   args = parser.parse_args()
 
