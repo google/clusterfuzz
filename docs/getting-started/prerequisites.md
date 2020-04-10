@@ -65,9 +65,6 @@ gcloud auth login
 
 If you already have Python installed, you can verify its version by running `python --version`.
 
-### Go programming language
-[Install the Go programming language](https://golang.org/doc/install).
-
 ### Other dependencies
 We provide a script for installing all other development dependencies on Linux
 and macOS.
