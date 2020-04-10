@@ -1095,6 +1095,7 @@ class AndroidLibFuzzerRunner(new_process.UnicodeProcessRunner, LibFuzzerCommon):
   def _copy_local_directory_to_device(self, local_directory):
     """Copy local directory to device."""
     device_directory = self._get_device_path(local_directory)
+    android.adb.remove_directory(device_directory)
     android.adb.copy_local_directory_to_remote(local_directory,
                                                device_directory)
 
@@ -1102,6 +1103,7 @@ class AndroidLibFuzzerRunner(new_process.UnicodeProcessRunner, LibFuzzerCommon):
     """Copies directories from device to local."""
     for local_directory in set(local_directories):
       device_directory = self._get_device_path(local_directory)
+      shell.remove_directory(local_directory)
       android.adb.copy_remote_directory_to_local(device_directory,
                                                  local_directory)
 
@@ -1204,17 +1206,17 @@ class AndroidLibFuzzerRunner(new_process.UnicodeProcessRunner, LibFuzzerCommon):
     if artifact_prefix:
       sync_directories.append(artifact_prefix)
 
+    device_merge_control_file = None
+    if merge_control_file:
+      device_merge_control_file = self._get_device_path(merge_control_file)
+      merge_control_dir = os.path.dirname(merge_control_file)
+      sync_directories.append(merge_control_dir)
+
     self._copy_local_directories_to_device(sync_directories)
     corpus_directories = self._get_device_corpus_paths(corpus_directories)
 
     if artifact_prefix:
       artifact_prefix = self._get_device_path(artifact_prefix)
-
-    device_merge_control_file = None
-    if merge_control_file:
-      merge_control_dir = os.path.dirname(merge_control_file)
-      self._copy_local_directories_to_device([merge_control_dir])
-      device_merge_control_file = self._get_device_path(merge_control_file)
 
     result = LibFuzzerCommon.merge(
         self,
