@@ -1214,10 +1214,7 @@ class AndroidLibFuzzerRunner(new_process.UnicodeProcessRunner, LibFuzzerCommon):
     if merge_control_file:
       merge_control_dir = os.path.dirname(merge_control_file)
       self._copy_local_directories_to_device([merge_control_dir])
-      device_merge_control_dir = self._get_device_path(merge_control_dir)
-      device_merge_control_dir = os.path.join(
-          device_merge_control_dir,
-          os.path.relpath(merge_control_file, merge_control_dir))
+      device_merge_control_file = self._get_device_path(merge_control_file)
 
     result = LibFuzzerCommon.merge(
         self,
