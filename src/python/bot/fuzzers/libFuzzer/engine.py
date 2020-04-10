@@ -440,9 +440,7 @@ class LibFuzzerEngine(engine.Engine):
     output = result_1.logs + '\n\n' + result_2.logs
     if (merge_stats['new_edges'] < 0 or merge_stats['new_features'] < 0):
       logs.log_error(
-          'Two step merge failed.\n' + output,
-          merge_stats=merge_stats,
-          output=output)
+          'Two step merge failed.', merge_stats=merge_stats, output=output)
       merge_stats['new_edges'] = 0
       merge_stats['new_features'] = 0
 
