@@ -347,12 +347,10 @@ class Runner(object):
     arguments = [TIMEOUT_FLAG]
 
     if self.fuzzer_options:
-      # Default values from above can be custom for a particular fuzz target.
+      # Default values from above can be customized for a given fuzz target.
       libfuzzer_arguments = self.fuzzer_options.get_engine_arguments(
           'libfuzzer')
 
-      # Allow some flags to be used from .options file for single unit testing.
-      # Allow specifying a lower rss_limit.
       custom_rss_limit = libfuzzer_arguments.get(
           'rss_limit_mb', constructor=int)
       if custom_rss_limit and custom_rss_limit < rss_limit:

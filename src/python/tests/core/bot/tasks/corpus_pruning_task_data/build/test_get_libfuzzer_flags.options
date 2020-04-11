@@ -3,7 +3,7 @@
 # Valid value expected to be used.
 max_len=1337
 
-# Valid value that is not ued by get_libfuzzer_flags.
+# Valid value that is not used by get_libfuzzer_flags.
 timeout=10
 
 # Large value to be ignored as it exceeds the default.
@@ -11,3 +11,6 @@ rss_limit_mb=31337
 
 # Arbitrary option to be ignored, as get_libfuzzer_flags doesn't use all flags.
 close_mask_fd=1
+
+# Valid value that is allowed and should be used.
+detect_leaks=0
