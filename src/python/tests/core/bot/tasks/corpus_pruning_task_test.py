@@ -27,6 +27,7 @@ import unittest
 
 import six
 
+from bot.fuzzers import options
 from bot.fuzzers.libFuzzer import engine as libFuzzer_engine
 from bot.tasks import commands
 from bot.tasks import corpus_pruning_task
@@ -93,6 +94,7 @@ class BaseTest(object):
 
     self.fuzz_inputs_disk = tempfile.mkdtemp()
     self.bot_tmpdir = tempfile.mkdtemp()
+    self.build_dir = os.path.join(TEST_DIR, 'build')
     self.corpus_bucket = tempfile.mkdtemp()
     self.corpus_dir = os.path.join(self.corpus_bucket, 'corpus')
     self.quarantine_dir = os.path.join(self.corpus_bucket, 'quarantine')
@@ -118,7 +120,7 @@ class BaseTest(object):
     shutil.rmtree(self.corpus_bucket, ignore_errors=True)
 
   def _mock_setup_build(self, revision=None):
-    os.environ['BUILD_DIR'] = os.path.join(TEST_DIR, 'build')
+    os.environ['BUILD_DIR'] = self.build_dir
     return True
 
   def _mock_rsync_to_disk(self, _, sync_dir, timeout=None, delete=None):
@@ -234,6 +236,29 @@ class CorpusPruningTest(unittest.TestCase, BaseTest):
         coverage_info.to_dict())
 
     self.assertEqual(self.mock.unpack_seed_corpus_if_needed.call_count, 1)
+
+  def test_get_libfuzzer_flags(self):
+    """Test get_libfuzzer_flags logic."""
+    fuzz_target = data_handler.get_fuzz_target('libFuzzer_test_fuzzer')
+    context = corpus_pruning_task.Context(
+        fuzz_target, [], corpus_pruning_task.Pollination.RANDOM, None)
+
+    runner = corpus_pruning_task.Runner(self.build_dir, context)
+    flags = runner.get_libfuzzer_flags()
+    expected_default_flags = [
+        '-timeout=5', '-rss_limit_mb=2560', '-max_len=5242880',
+        '-detect_leaks=1', '-use_value_profile=1'
+    ]
+    self.assertCountEqual(flags, expected_default_flags)
+
+    runner.fuzzer_options = options.FuzzerOptions(
+        os.path.join(self.build_dir, 'test_get_libfuzzer_flags.options'))
+    flags = runner.get_libfuzzer_flags()
+    expected_custom_flags = [
+        '-timeout=5', '-rss_limit_mb=2560', '-max_len=1337', '-detect_leaks=1',
+        '-use_value_profile=1'
+    ]
+    self.assertCountEqual(flags, expected_custom_flags)
 
 
 class CorpusPruningTestMinijail(CorpusPruningTest):

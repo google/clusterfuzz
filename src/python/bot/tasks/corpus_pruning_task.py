@@ -84,8 +84,8 @@ RSS_LIMIT_MB_FLAG = '-rss_limit_mb=%d'
 # Flag to enforce length limit for a single corpus element.
 MAX_LEN_FLAG = '-max_len=%d'
 
-# Flag to disable leak checking.
-DISABLE_LEAK_CHECK_FLAG = '-detect_leaks=0'
+# Flag to control memory leaks detection.
+DETECT_LEAKS_FLAG = '-detect_leaks=%d'
 
 # Flag to do value profile during merges.
 USE_VALUE_PROFILE_FLAG = '-use_value_profile=%d'
@@ -343,6 +343,7 @@ class Runner(object):
     """Get default libFuzzer options."""
     rss_limit = RSS_LIMIT
     max_len = engine_common.CORPUS_INPUT_SIZE_LIMIT
+    detect_leaks = 1
     arguments = [TIMEOUT_FLAG]
 
     if self.fuzzer_options:
@@ -363,11 +364,14 @@ class Runner(object):
 
       # Some targets might falsely report leaks all the time, so allow this to
       # be disabled.
-      detect_leaks = libfuzzer_arguments.get('detect_leaks', default='1')
-      arguments.append('-detect_leaks=%s' % detect_leaks)
+      custom_detect_leaks = libfuzzer_arguments.get(
+          'detect_leaks', constructor=int)
+      if custom_detect_leaks is not None:
+        detect_leaks = custom_detect_leaks
 
     arguments.append(RSS_LIMIT_MB_FLAG % rss_limit)
     arguments.append(MAX_LEN_FLAG % max_len)
+    arguments.append(DETECT_LEAKS_FLAG % detect_leaks)
 
     corpus_size = shell.get_directory_file_count(
         self.context.initial_corpus_path)
