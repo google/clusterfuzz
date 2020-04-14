@@ -393,8 +393,6 @@ class UnshareProcessRunnerMixin(object):
 
     command = [unshare_path]
     command.extend([
-        '-U',  # Enter user namespace.
-        '--map-root-user',  # Map user to root user.
         '-n',  # Enter network namespace.
     ])
 
