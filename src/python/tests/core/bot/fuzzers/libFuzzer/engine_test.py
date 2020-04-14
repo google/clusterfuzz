@@ -862,6 +862,21 @@ class IntegrationTests(BaseIntegrationTest):
 
 
 @test_utils.integration
+class UnshareIntegrationTests(IntegrationTests):
+  """Unshare runner integration tests."""
+
+  def setUp(self):
+    super(UnshareIntegrationTests, self).setUp()
+    os.environ['USE_UNSHARE'] = 'True'
+
+  def compare_arguments(self, target_path, arguments, corpora_or_testcase,
+                        actual):
+    """Compare expected arguments."""
+    self.assertListEqual(actual, ['/usr/bin/unshare', '-n', target_path] +
+                         arguments + corpora_or_testcase)
+
+
+@test_utils.integration
 class MinijailIntegrationTests(IntegrationTests):
   """Minijail integration tests."""
 
