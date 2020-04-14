@@ -81,8 +81,11 @@ MAX_QUARANTINE_UNITS_TO_RESTORE = 128
 RSS_LIMIT = 2560
 RSS_LIMIT_MB_FLAG = '-rss_limit_mb=%d'
 
-# Flag to disable leak checking.
-DISABLE_LEAK_CHECK_FLAG = '-detect_leaks=0'
+# Flag to enforce length limit for a single corpus element.
+MAX_LEN_FLAG = '-max_len=%d'
+
+# Flag to control memory leaks detection.
+DETECT_LEAKS_FLAG = '-detect_leaks=%d'
 
 # Flag to do value profile during merges.
 USE_VALUE_PROFILE_FLAG = '-use_value_profile=%d'
@@ -338,25 +341,35 @@ class Runner(object):
 
   def get_libfuzzer_flags(self):
     """Get default libFuzzer options."""
+    rss_limit = RSS_LIMIT
+    max_len = engine_common.CORPUS_INPUT_SIZE_LIMIT
+    detect_leaks = 1
+    arguments = [TIMEOUT_FLAG]
+
     if self.fuzzer_options:
+      # Default values from above can be customized for a given fuzz target.
       libfuzzer_arguments = self.fuzzer_options.get_engine_arguments(
           'libfuzzer')
 
-      # Allow some flags to be used from .options file for single unit testing.
-      # Allow specifying a lower rss_limit.
-      rss_limit = libfuzzer_arguments.get('rss_limit_mb', constructor=int)
-      if not rss_limit or rss_limit > RSS_LIMIT:
-        rss_limit = RSS_LIMIT
+      custom_rss_limit = libfuzzer_arguments.get(
+          'rss_limit_mb', constructor=int)
+      if custom_rss_limit and custom_rss_limit < rss_limit:
+        rss_limit = custom_rss_limit
+
+      custom_max_len = libfuzzer_arguments.get('max_len', constructor=int)
+      if custom_max_len and custom_max_len < max_len:
+        max_len = custom_max_len
 
       # Some targets might falsely report leaks all the time, so allow this to
       # be disabled.
-      detect_leaks = libfuzzer_arguments.get('detect_leaks', default='1')
-      arguments = [
-          RSS_LIMIT_MB_FLAG % rss_limit,
-          '-detect_leaks=%s' % detect_leaks, TIMEOUT_FLAG
-      ]
-    else:
-      arguments = [RSS_LIMIT_MB_FLAG % RSS_LIMIT, TIMEOUT_FLAG]
+      custom_detect_leaks = libfuzzer_arguments.get(
+          'detect_leaks', constructor=int)
+      if custom_detect_leaks is not None:
+        detect_leaks = custom_detect_leaks
+
+    arguments.append(RSS_LIMIT_MB_FLAG % rss_limit)
+    arguments.append(MAX_LEN_FLAG % max_len)
+    arguments.append(DETECT_LEAKS_FLAG % detect_leaks)
 
     corpus_size = shell.get_directory_file_count(
         self.context.initial_corpus_path)
