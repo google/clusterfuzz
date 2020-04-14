@@ -398,13 +398,6 @@ class LibFuzzerRunner(new_process.UnicodeProcessRunner, LibFuzzerCommon):
     super(LibFuzzerRunner, self).__init__(
         executable_path=executable_path, default_args=default_args)
 
-  def get_command(self, additional_args=None):
-    """Process.get_command override."""
-    base_command = super(LibFuzzerRunner,
-                         self).get_command(additional_args=additional_args)
-
-    return base_command
-
   def fuzz(self,
            corpus_directories,
            fuzz_timeout,
@@ -418,6 +411,11 @@ class LibFuzzerRunner(new_process.UnicodeProcessRunner, LibFuzzerCommon):
 
     return LibFuzzerCommon.fuzz(self, corpus_directories, fuzz_timeout,
                                 artifact_prefix, additional_args, extra_env)
+
+
+class UnshareLibFuzzerRunner(new_process.UnshareProcessRunnerMixin,
+                             new_process.UnicodeProcessRunner, LibFuzzerCommon):
+  """LibFuzzerRunner which unshares."""
 
 
 class FuchsiaQemuLibFuzzerRunner(new_process.UnicodeProcessRunner,
@@ -1284,10 +1282,13 @@ class AndroidLibFuzzerRunner(new_process.UnicodeProcessRunner, LibFuzzerCommon):
       return result
 
 
-def get_runner(fuzzer_path, temp_dir=None, use_minijail=None):
+def get_runner(fuzzer_path, temp_dir=None, use_minijail=None, use_unshare=None):
   """Get a libfuzzer runner."""
   if use_minijail is None:
     use_minijail = environment.get_value('USE_MINIJAIL')
+
+  if use_unshare is None:
+    use_unshare = environment.get_value('USE_UNSHARE')
 
   if use_minijail is False:
     # If minijail is explicitly disabled, set the environment variable as well.
@@ -1351,6 +1352,8 @@ def get_runner(fuzzer_path, temp_dir=None, use_minijail=None):
     runner = FuchsiaQemuLibFuzzerRunner(fuzzer_path)
   elif is_android:
     runner = AndroidLibFuzzerRunner(fuzzer_path, build_dir)
+  elif use_unshare:
+    runner = UnshareLibFuzzerRunner(fuzzer_path)
   else:
     runner = LibFuzzerRunner(fuzzer_path)
 
