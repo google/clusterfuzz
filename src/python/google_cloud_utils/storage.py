@@ -164,7 +164,7 @@ class GcsProvider(StorageProvider):
       client.buckets().insert(project=project_id, body=request_body).execute()
     except HttpError as e:
       logs.log_error('Failed to create bucket %s: %s' % (name, e))
-      return False
+      raise
 
     return True
 
@@ -223,7 +223,7 @@ class GcsProvider(StorageProvider):
     except google.cloud.exceptions.GoogleCloudError:
       logs.log_error('Failed to copy cloud storage file %s to local file %s.' %
                      (remote_path, local_path))
-      return False
+      raise
 
     return True
 
@@ -246,7 +246,7 @@ class GcsProvider(StorageProvider):
     except google.cloud.exceptions.GoogleCloudError:
       logs.log_error('Failed to copy local file %s to cloud storage file %s.' %
                      (local_path_or_handle, remote_path))
-      return False
+      raise
 
     return True
 
@@ -264,7 +264,7 @@ class GcsProvider(StorageProvider):
     except google.cloud.exceptions.GoogleCloudError:
       logs.log_error('Failed to copy cloud storage file %s to cloud storage '
                      'file %s.' % (remote_source, remote_target))
-      return False
+      raise
 
     return True
 
@@ -279,7 +279,7 @@ class GcsProvider(StorageProvider):
       return blob.download_as_string()
     except google.cloud.exceptions.GoogleCloudError:
       logs.log_error('Failed to read cloud storage file %s.' % remote_path)
-      return None
+      raise
 
   def write_data(self, data, remote_path, metadata=None):
     """Write the data of a remote file."""
@@ -294,7 +294,7 @@ class GcsProvider(StorageProvider):
       blob.upload_from_string(data)
     except google.cloud.exceptions.GoogleCloudError:
       logs.log_error('Failed to write cloud storage file %s.' % remote_path)
-      return False
+      raise
 
     return True
 
@@ -321,7 +321,7 @@ class GcsProvider(StorageProvider):
       bucket.delete_blob(path)
     except google.cloud.exceptions.GoogleCloudError:
       logs.log_error('Failed to delete cloud storage file %s.' % remote_path)
-      return False
+      raise
 
     return True
 
