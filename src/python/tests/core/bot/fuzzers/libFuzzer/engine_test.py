@@ -872,10 +872,8 @@ class UnshareIntegrationTests(IntegrationTests):
   def compare_arguments(self, target_path, arguments, corpora_or_testcase,
                         actual):
     """Compare expected arguments."""
-    self.assertListEqual(
-        actual,
-        ['/usr/bin/unshare', '-U', '--map-root-user', '-n', target_path
-        ] + arguments + corpora_or_testcase)
+    self.assertListEqual(actual, ['/usr/bin/unshare', '-n', target_path] +
+                         arguments + corpora_or_testcase)
 
 
 @test_utils.integration
