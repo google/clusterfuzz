@@ -140,7 +140,7 @@ else
 fi
 
 # Setup pipenv and install python dependencies.
-sudo apt-get install -y pipenv
+python3 -m pip install --user pipenv
 pipenv --python 3.7
 pipenv sync --dev
 source "$(pipenv --venv)/bin/activate"
