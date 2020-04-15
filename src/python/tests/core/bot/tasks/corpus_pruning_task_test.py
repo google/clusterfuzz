@@ -249,7 +249,7 @@ class CorpusPruningTest(unittest.TestCase, BaseTest):
         '-timeout=5', '-rss_limit_mb=2560', '-max_len=5242880',
         '-detect_leaks=1', '-use_value_profile=1'
     ]
-    self.assertCountEqual(flags, expected_default_flags)
+    six.assertCountEqual(self, flags, expected_default_flags)
 
     runner.fuzzer_options = options.FuzzerOptions(
         os.path.join(self.build_dir, 'test_get_libfuzzer_flags.options'))
@@ -258,7 +258,7 @@ class CorpusPruningTest(unittest.TestCase, BaseTest):
         '-timeout=5', '-rss_limit_mb=2560', '-max_len=1337', '-detect_leaks=0',
         '-use_value_profile=1'
     ]
-    self.assertCountEqual(flags, expected_custom_flags)
+    six.assertCountEqual(self, flags, expected_custom_flags)
 
 
 class CorpusPruningTestMinijail(CorpusPruningTest):
