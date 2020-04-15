@@ -432,6 +432,8 @@ class BaseIntegrationTest(unittest.TestCase):
     os.environ['INPUT_DIR'] = TEMP_DIR
 
     test_helpers.patch(self, [
+        'bot.fuzzers.dictionary_manager.DictionaryManager.'
+        'update_recommended_dictionary',
         'bot.fuzzers.engine_common.get_merge_timeout',
         'bot.fuzzers.engine_common.random_choice',
         'bot.fuzzers.mutator_plugin._download_mutator_plugin_archive',
@@ -661,8 +663,6 @@ class IntegrationTests(BaseIntegrationTest):
     test_helpers.patch(self, [
         'bot.fuzzers.dictionary_manager.DictionaryManager.'
         'parse_recommended_dictionary_from_log_lines',
-        'bot.fuzzers.dictionary_manager.DictionaryManager.'
-        'update_recommended_dictionary',
     ])
 
     self.mock.parse_recommended_dictionary_from_log_lines.return_value = set([
@@ -861,6 +861,7 @@ class IntegrationTests(BaseIntegrationTest):
     engine_impl.fuzz(target_path, options, TEMP_DIR, 10)
 
 
+@unittest.skip('needs root')
 @test_utils.integration
 class UnshareIntegrationTests(IntegrationTests):
   """Unshare runner integration tests."""
