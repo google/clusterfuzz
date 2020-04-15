@@ -663,7 +663,7 @@ class FuchsiaQemuLibFuzzerRunner(new_process.UnicodeProcessRunner,
     # craft one by hand here.
     fuzzer_process_result = new_process.ProcessResult()
     fuzzer_process_result.return_code = 0
-    fuzzer_process_result.output = symbolized_output
+    fuzzer_process_result.output = str(symbolized_output)
     fuzzer_process_result.time_executed = 0
     fuzzer_process_result.command = self.fuzzer.last_fuzz_cmd
     return fuzzer_process_result
