@@ -651,7 +651,8 @@ class FuchsiaQemuLibFuzzerRunner(new_process.UnicodeProcessRunner,
         additional_args)
     self.fuzzer.monitor(return_code)
     self.process_logs_and_crash(artifact_prefix)
-    with open(self.fuzzer.logfile, 'rb') as logfile:
+    with open(
+        self.fuzzer.logfile, encoding='utf-8', errors='ignore') as logfile:
       symbolized_output = logfile.read()
 
     self._pull_new_corpus_from_target_to_host(corpus_directories,
@@ -737,7 +738,8 @@ class FuchsiaQemuLibFuzzerRunner(new_process.UnicodeProcessRunner,
                                     additional_args)
     self.fuzzer.monitor(return_code)
 
-    with open(self.fuzzer.logfile) as logfile:
+    with open(
+        self.fuzzer.logfile, encoding='utf-8', errors='ignore') as logfile:
       symbolized_output = logfile.read()
 
     fuzzer_process_result = new_process.ProcessResult()
@@ -780,7 +782,8 @@ class FuchsiaQemuLibFuzzerRunner(new_process.UnicodeProcessRunner,
         additional_args + [target_artifact_prefix + testcase_path_name])
     self.fuzzer.monitor(return_code)
 
-    with open(self.fuzzer.logfile) as logfile:
+    with open(
+        self.fuzzer.logfile, encoding='utf-8', errors='ignore') as logfile:
       symbolized_output = logfile.read()
 
     output_dir = os.path.dirname(output_path)
