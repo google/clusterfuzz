@@ -153,8 +153,11 @@ class Fuzzer(object):
                                           self.tgt)
     self._foreground = foreground
 
+    # Required for backwards compatibility with older builds where Zircon
+    # fuzzers had a sanitizer suffix
     if pkg == 'zircon_fuzzers' and sanitizer:
-      self.tgt += '.' + sanitizer
+      if (pkg, tgt) not in self.host.fuzzers:
+        self.tgt += '.' + sanitizer
 
   def __str__(self):
     return self.pkg + '/' + self.tgt
