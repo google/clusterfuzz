@@ -489,8 +489,9 @@ class FuchsiaQemuLibFuzzerRunner(new_process.UnicodeProcessRunner,
     # to the true location. Apologies for the hackery.
     crash_location_regex = r'(.*)(Test unit written to )(data/.*)'
     _, processed_log_path = tempfile.mkstemp()
-    with open(processed_log_path, 'w') as new_file:
-      with open(self.fuzzer.logfile) as old_file:
+    with open(processed_log_path, mode='w', encoding='utf-8') as new_file:
+      with open(
+          self.fuzzer.logfile, encoding='utf-8', errors='ignore') as old_file:
         for line in old_file:
           line_match = re.match(crash_location_regex, line)
           if line_match:
