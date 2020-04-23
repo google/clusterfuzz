@@ -277,7 +277,10 @@ class GcsProvider(StorageProvider):
       bucket = client.bucket(bucket_name)
       blob = bucket.blob(path, chunk_size=self._chunk_size())
       return blob.download_as_string()
-    except google.cloud.exceptions.GoogleCloudError:
+    except google.cloud.exceptions.GoogleCloudError as e:
+      if e.code == 404:
+        return None
+
       logs.log_warn('Failed to read cloud storage file %s.' % remote_path)
       raise
 
