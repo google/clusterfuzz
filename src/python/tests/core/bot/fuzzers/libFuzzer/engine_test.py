@@ -909,7 +909,6 @@ class MinijailIntegrationTests(IntegrationTests):
 
   def test_exit_failure_logged(self):
     """Exit failure is not logged in minijail."""
-    pass
 
   @parameterized.parameterized.expand(['1', '77', '27'])
   def test_exit_target_bug_not_logged(self, exit_code):
@@ -980,7 +979,7 @@ class IntegrationTestsFuchsia(BaseIntegrationTest):
     build_manager.setup_build()
 
     _, corpus_path = setup_testcase_and_corpus('aaaa', 'fuchsia_corpus')
-    num_files_original = len([corpfile for corpfile in os.listdir(corpus_path)])
+    num_files_original = len(os.listdir(corpus_path))
     engine_impl = engine.LibFuzzerEngine()
 
     self.mock.get_fuzz_timeout.return_value = get_fuzz_timeout(20.0)
@@ -994,10 +993,7 @@ class IntegrationTestsFuchsia(BaseIntegrationTest):
     # Check that the command was invoked with a corpus argument.
     self.assertIn('data/corpus/new', results.command)
     # Check that new units were added to the corpus.
-    num_files_new = len([
-        corpfile
-        for corpfile in os.listdir(os.path.join(TEMP_DIR, 'temp-1337/new'))
-    ])
+    num_files_new = len(os.listdir(os.path.join(TEMP_DIR, 'temp-1337/new')))
     self.assertGreater(num_files_new, num_files_original)
 
   @unittest.skipIf(
@@ -1279,8 +1275,6 @@ class IntegrationTestsAndroid(BaseIntegrationTest, android_helpers.AndroidTest):
     test_helpers.patch(self, [
         'bot.fuzzers.dictionary_manager.DictionaryManager.'
         'parse_recommended_dictionary_from_log_lines',
-        'bot.fuzzers.dictionary_manager.DictionaryManager.'
-        'update_recommended_dictionary',
     ])
 
     self.mock.parse_recommended_dictionary_from_log_lines.return_value = set([

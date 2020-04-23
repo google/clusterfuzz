@@ -1091,21 +1091,21 @@ class AndroidLibFuzzerRunner(new_process.UnicodeProcessRunner, LibFuzzerCommon):
 
   def _copy_local_directories_to_device(self, local_directories):
     """Copies local directories to device."""
-    for local_directory in set(local_directories):
+    for local_directory in sorted(set(local_directories)):
       self._copy_local_directory_to_device(local_directory)
 
   def _copy_local_directory_to_device(self, local_directory):
     """Copy local directory to device."""
     device_directory = self._get_device_path(local_directory)
-    android.adb.remove_directory(device_directory)
+    android.adb.remove_directory(device_directory, recreate=True)
     android.adb.copy_local_directory_to_remote(local_directory,
                                                device_directory)
 
   def _copy_local_directories_from_device(self, local_directories):
     """Copies directories from device to local."""
-    for local_directory in set(local_directories):
+    for local_directory in sorted(set(local_directories)):
       device_directory = self._get_device_path(local_directory)
-      shell.remove_directory(local_directory)
+      shell.remove_directory(local_directory, recreate=True)
       android.adb.copy_remote_directory_to_local(device_directory,
                                                  local_directory)
 
@@ -1357,7 +1357,7 @@ def get_runner(fuzzer_path, temp_dir=None, use_minijail=None, use_unshare=None):
   elif is_android:
     runner = AndroidLibFuzzerRunner(fuzzer_path, build_dir)
   elif use_unshare:
-    runner = UnshareLibFuzzerRunner(fuzzer_path)
+    runner = UnshareLibFuzzerRunner(fuzzer_path)  # pylint: disable=too-many-function-args
   else:
     runner = LibFuzzerRunner(fuzzer_path)
 
