@@ -14,7 +14,7 @@ google-cloud-monitoring==0.30.1
 google-cloud-ndb==1.0.0
 google-cloud-profiler==1.0.3
 google-cloud-storage==1.13.2
-grpcio==1.15.0
+grpcio==1.28.1
 httplib2==0.11.3
 lxml==4.5.0
 mozprocess==1.1.0
