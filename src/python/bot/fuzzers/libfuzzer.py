@@ -1109,6 +1109,15 @@ class AndroidLibFuzzerRunner(new_process.UnicodeProcessRunner, LibFuzzerCommon):
       android.adb.copy_remote_directory_to_local(device_directory,
                                                  local_directory)
 
+  def _append_logcat_output_if_needed(self, output):
+    """Add logcat output to end of output to capture crashes from related
+    processes if current output has no sanitizer crash."""
+    if 'Sanitizer: ' in output:
+      return output
+
+    return '{output}\n\nLogcat:\n{logcat_output}'.format(
+        output=output, logcat_output=android.logger.log_output())
+
   @contextlib.contextmanager
   def _device_file(self, file_path):
     """Context manager for device files.
@@ -1160,6 +1169,8 @@ class AndroidLibFuzzerRunner(new_process.UnicodeProcessRunner, LibFuzzerCommon):
            additional_args=None,
            extra_env=None):
     """LibFuzzerCommon.fuzz override."""
+    android.logger.clear_log()
+
     sync_directories = copy.copy(corpus_directories)
     if artifact_prefix:
       sync_directories.append(artifact_prefix)
@@ -1188,6 +1199,8 @@ class AndroidLibFuzzerRunner(new_process.UnicodeProcessRunner, LibFuzzerCommon):
         artifact_prefix=artifact_prefix,
         additional_args=additional_args,
         extra_env=extra_env)
+
+    result.output = self._append_logcat_output_if_needed(result.output)
 
     self._copy_local_directories_from_device(sync_directories)
     return result
@@ -1237,9 +1250,13 @@ class AndroidLibFuzzerRunner(new_process.UnicodeProcessRunner, LibFuzzerCommon):
                           timeout=None,
                           additional_args=None):
     """LibFuzzerCommon.test_single_input override."""
+    android.logger.clear_log()
+
     with self._device_file(testcase_path) as device_testcase_path:
-      return LibFuzzerCommon.run_single_testcase(self, device_testcase_path,
-                                                 timeout, additional_args)
+      result = LibFuzzerCommon.run_single_testcase(self, device_testcase_path,
+                                                   timeout, additional_args)
+      result.output = self._append_logcat_output_if_needed(result.output)
+      return result
 
   def minimize_crash(self,
                      testcase_path,

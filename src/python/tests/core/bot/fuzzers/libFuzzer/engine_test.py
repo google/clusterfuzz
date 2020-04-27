@@ -1160,6 +1160,9 @@ class IntegrationTestsAndroid(BaseIntegrationTest, android_helpers.AndroidTest):
     # New items should've been added to the corpus.
     self.assertNotEqual(0, len(os.listdir(corpus_path)))
 
+    self.assertNotIn('HWAddressSanitizer:', results.logs)
+    self.assertIn('Logcat:', results.logs)
+
   def test_fuzz_crash(self):
     """Tests fuzzing (crash)."""
     self.mock.get_fuzz_timeout.return_value = get_fuzz_timeout(5.0)
@@ -1203,6 +1206,7 @@ class IntegrationTestsAndroid(BaseIntegrationTest, android_helpers.AndroidTest):
     self.assertIn(
         'ERROR: HWAddressSanitizer: SEGV on unknown address '
         '0x000000000000', results.logs)
+    self.assertNotIn('Logcat:', results.logs)
 
   def test_fuzz_from_subset(self):
     """Tests fuzzing from corpus subset."""
