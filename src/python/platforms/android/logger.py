@@ -23,17 +23,9 @@ from metrics import logs
 
 def clear_log():
   """Clear log."""
-  retries = 2
-  while retries:
-    # Try clearing the log.
-    adb.run_command('logcat -c')
-
-    # Check if the log is cleared. If yes, we can return. Otherwise, we retry
-    # by continuing the loop.
-    if not log_output():
-      return
-
-    retries -= 1
+  adb.run_shell_command(['stop', 'logd'])
+  adb.run_shell_command(['start', 'logd'])
+  adb.run_command(['logcat', '-c'])
 
 
 def is_line_valid(line):
