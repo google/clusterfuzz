@@ -974,7 +974,7 @@ class MinijailLibFuzzerRunner(new_process.UnicodeProcessRunnerMixin,
                           testcase_path,
                           timeout=None,
                           additional_args=None):
-    """LibFuzzerCommon.test_single_input override."""
+    """LibFuzzerCommon.run_single_testcase override."""
     with self._chroot_testcase(testcase_path) as chroot_testcase_path:
       return LibFuzzerCommon.run_single_testcase(self, chroot_testcase_path,
                                                  timeout, additional_args)
@@ -1249,7 +1249,7 @@ class AndroidLibFuzzerRunner(new_process.UnicodeProcessRunner, LibFuzzerCommon):
                           testcase_path,
                           timeout=None,
                           additional_args=None):
-    """LibFuzzerCommon.test_single_input override."""
+    """LibFuzzerCommon.run_single_testcase override."""
     android.logger.clear_log()
 
     with self._device_file(testcase_path) as device_testcase_path:
