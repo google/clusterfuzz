@@ -37,6 +37,7 @@ from future import standard_library
 standard_library.install_aliases()
 from builtins import object
 import os
+import multiprocessing
 import time
 import traceback
 
@@ -189,6 +190,7 @@ def main():
 
 
 if __name__ == '__main__':
+  multiprocessing.set_start_method('spawn')
   try:
     with ndb_init.context():
       main()
