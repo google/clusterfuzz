@@ -190,7 +190,10 @@ def main():
 
 
 if __name__ == '__main__':
-  multiprocessing.set_start_method('spawn')
+  if sys.version_info.major == 3:
+    # TODO(ochang): Remove check once all migrated to Python 3.
+    multiprocessing.set_start_method('spawn')
+
   try:
     with ndb_init.context():
       main()
