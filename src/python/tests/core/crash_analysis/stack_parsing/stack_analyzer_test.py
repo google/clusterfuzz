@@ -2652,6 +2652,22 @@ class StackAnalyzerTestcase(unittest.TestCase):
                                   expected_state, expected_stacktrace,
                                   expected_security_flag)
 
+  def test_golang_panic_runtime_error_index_out_of_range_with_msan(self):
+    """Test golang stacktrace with panic caused by index out of range
+    with memory sanitizer."""
+    data = self._read_test_data(
+        'golang_panic_runtime_error_index_out_of_range_with_msan.txt')
+    expected_type = 'Index out of range'
+    expected_address = ''
+    expected_state = ('http.(*conn).serve.func1\n'
+                      'http.HandlerFunc.ServeHTTP\n'
+                      'http.(*ServeMux).ServeHTTP\n')
+    expected_stacktrace = data
+    expected_security_flag = False
+    self._validate_get_crash_data(data, expected_type, expected_address,
+                                  expected_state, expected_stacktrace,
+                                  expected_security_flag)
+
   def test_golang_panic_runtime_error_slice_bounds_out_of_range(self):
     """Test golang stacktrace with panic caused by slice bounds out of range."""
     data = self._read_test_data(
