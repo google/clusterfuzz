@@ -21,6 +21,7 @@ from builtins import str
 
 import collections
 import datetime
+import re
 import time
 
 from googleapiclient import discovery
@@ -41,6 +42,8 @@ QUERY_RETRY_DELAY = 3
 # The actual limit is 10,000, but the documentation suggests using batches of
 # 500 rows at most (https://cloud.google.com/bigquery/quotas#streaminginserts).
 INSERT_BATCH_SIZE = 500
+
+VALID_FIELD_NAME_REGEX = re.compile(r'^[a-zA-Z0-9_]+$')
 
 
 @retry.wrap(
