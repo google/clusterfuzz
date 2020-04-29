@@ -456,6 +456,7 @@ STACK_FRAME_IGNORE_REGEXES = [
     r'.*ieee754\-',
     r'.*libpthread',
     r'.*logger',
+    r'.*logging\:\:CheckError',
     r'.*logging\:\:ErrnoLogMessage',
     r'.*logging\:\:LogMessage',
     r'.*stdext\:\:exception\:\:what',
