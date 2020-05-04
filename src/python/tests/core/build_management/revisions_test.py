@@ -347,6 +347,30 @@ class RevisionsTestcase(unittest.TestCase):
                      revisions.get_component_range_list(1337, 1338,
                                                         CUSTOM_BINARY_JOB_TYPE))
 
+  def test_find_build_url(self):
+    """Tests test_find_build_url."""
+    bucket_path = 'gs://bucket/path/asan-([0-9]+).zip'
+    build_urls_list = [
+        'gs://bucket/path/asan-1000.zip',
+        'gs://bucket/path/asan-2000.zip',
+        'gs://bucket/path/asan-3000.zip',
+        'gs://bucket/path/asan-4000.zip',
+    ]
+    self.assertEqual(
+        revisions.find_build_url(bucket_path, build_urls_list, 1000),
+        'gs://bucket/path/asan-1000.zip')
+    self.assertEqual(
+        revisions.find_build_url(bucket_path, build_urls_list, 2000),
+        'gs://bucket/path/asan-2000.zip')
+    self.assertEqual(
+        revisions.find_build_url(bucket_path, build_urls_list, 3000),
+        'gs://bucket/path/asan-3000.zip')
+    self.assertEqual(
+        revisions.find_build_url(bucket_path, build_urls_list, 4000),
+        'gs://bucket/path/asan-4000.zip')
+    self.assertIsNone(
+        revisions.find_build_url(bucket_path, build_urls_list, 5000))
+
   def test_find_min_revision_index(self):
     """Tests find_min_revision_index()."""
     revisions_list = [1000, 2000, 3000, 4000]
