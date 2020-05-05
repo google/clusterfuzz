@@ -288,6 +288,7 @@ class TestUpdateJobWeights(unittest.TestCase):
     test_fuzzer_jobs = {
         'libFuzzer': [
             'libfuzzer_asan_job',
+            'libfuzzer_asan_large_job',
             'libfuzzer_msan_job',
             'libfuzzer_ubsan_job',
             'libfuzzer_tsan_job',
@@ -312,6 +313,7 @@ class TestUpdateJobWeights(unittest.TestCase):
     data_types.FuzzTargetsCount(id='afl_asan_job', count=10).put()
     data_types.FuzzTargetsCount(id='libfuzzer_asan_job2', count=0).put()
     data_types.FuzzTargetsCount(id='honggfuzz_asan_job', count=10).put()
+    data_types.FuzzTargetsCount(id='libfuzzer_asan_large_job', count=1000).put()
 
   def test_update_job_weights(self):
     """Test update job weights."""
@@ -329,3 +331,4 @@ class TestUpdateJobWeights(unittest.TestCase):
     self.assertEqual(15.0, get_result('asan_blackbox_job').multiplier)
     self.assertEqual(15.0, get_result('libfuzzer_asan_job2').multiplier)
     self.assertEqual(1.0, get_result('honggfuzz_asan_job').multiplier)
+    self.assertEqual(50.0, get_result('libfuzzer_asan_large_job').multiplier)
