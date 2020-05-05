@@ -1070,7 +1070,7 @@ class StackAnalyzerTestcase(unittest.TestCase):
                                   expected_state, expected_stacktrace,
                                   expected_security_flag)
 
-  def test_cfi_bad_cast(self):
+  def test_cfi_bad_cast_virtual_call(self):
     """Test the CFI output format."""
     data = self._read_test_data('cfi_bad_cast.txt')
     expected_type = 'Bad-cast'
@@ -1078,6 +1078,22 @@ class StackAnalyzerTestcase(unittest.TestCase):
     expected_state = ('Bad-cast to blink::LayoutObject from invalid vptr\n'
                       'blink::LayoutObject::containingBlock\n'
                       'blink::LayoutBox::topLeftLocation\n')
+    expected_stacktrace = data
+    expected_security_flag = True
+
+    self._validate_get_crash_data(data, expected_type, expected_address,
+                                  expected_state, expected_stacktrace,
+                                  expected_security_flag)
+
+  def test_cfi_bad_cast_indirect_function_call(self):
+    """Test the CFI output format."""
+    data = self._read_test_data('cfi_bad_cast_indirect_fc.txt')
+    expected_type = 'Bad-cast'
+    expected_address = ''
+    expected_state = (
+        'Bad-cast to void (*(struct VkInstance_T *, const char *))(void)\n'
+        'vkGetInstanceProcAddrStub$8d185785d173e702d91e2893e143a6d9.cfi\n'
+        'volkGenLoadLoader\n')
     expected_stacktrace = data
     expected_security_flag = True
 

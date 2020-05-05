@@ -1,0 +1,12 @@
+../../third_party/angle/src/third_party/volk/volk.c:37:9: runtime error: control flow integrity check for type 'void (*(struct VkInstance_T *, const char *))(void)' failed during indirect function call
+(/usr/lib/x86_64-linux-gnu/libvulkan.so+0x249f0): note: vkGetInstanceProcAddr defined here
+../../third_party/angle/src/third_party/volk/volk.c:37:9: note: check failed in /mnt/scratch0/clusterfuzz/bot/builds/chromium-browser-cfi_linux-release_06e5fe71be5e6f70e3de25bb92b41c57c6aef334/revisions/cfi-linux-release-765534/libGLESv2.so, destination function located in /usr/lib/x86_64-linux-gnu/libvulkan.so
+    #0 0x7fe1cc65c635 in vkGetInstanceProcAddrStub$8d185785d173e702d91e2893e143a6d9.cfi third_party/angle/src/third_party/volk/volk.c:37:9
+    #1 0x7fe1cc65c5c1 in volkGenLoadLoader third_party/angle/src/third_party/volk/volk.c:132:43
+    #2 0x7fe1cc65c589 in volkInitialize third_party/angle/src/third_party/volk/volk.c:74:2
+    #3 0x7fe1cc3f22f0 in rx::RendererVk::initialize(rx::DisplayVk*, egl::Display*, char const*, char const*) third_party/angle/src/libANGLE/renderer/vulkan/RendererVk.cpp:555:5
+    #4 0x7fe1cc3d4494 in rx::DisplayVk::initialize(egl::Display*) third_party/angle/src/libANGLE/renderer/vulkan/DisplayVk.cpp:40:39
+    #5 0x7fe1cc44d078 in rx::DisplayVkXcb::initialize(egl::Display*) third_party/angle/src/libANGLE/renderer/vulkan/xcb/DisplayVkXcb.cpp:54:23
+    #6 0x7fe1cc1c1f59 in egl::Display::initialize() third_party/angle/src/libANGLE/Display.cpp:678:36
+    #7 0x7fe1cc0f711e in EGL_Initialize third_party/angle/src/libGLESv2/entry_points_egl.cpp:87:5
+    #8 0x7fe1cf368a56 in eglInitialize third_party/angle/src/libEGL/libEGL.cpp:171:12

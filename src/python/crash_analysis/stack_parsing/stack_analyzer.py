@@ -74,9 +74,10 @@ ASSERT_REGEX_GLIBC = re.compile(
 ASSERT_NOT_REACHED_REGEX = re.compile(r'^\s*SHOULD NEVER BE REACHED\s*$')
 CFI_ERROR_REGEX = re.compile(
     r'(.*): runtime error: control flow integrity check for type (.*) '
-    r'failed during (.*) \(vtable address ([xX0-9a-fA-F]+)\)')
+    r'failed during (.*vtable address ([xX0-9a-fA-F]+)|.*)')
 CFI_INVALID_DOWNCAST_REGEX = re.compile(r'.*note: vtable is of type (.*)')
-CFI_INVALID_VPTR_REGEX = re.compile(r'.*note: invalid vtable')
+CFI_INVALID_VPTR_REGEX = re.compile(r'.*note: invalid vtable$')
+CFI_FUNC_DEFINED_HERE_REGEX = re.compile(r'.*note: .* defined here$')
 CFI_NODEBUG_ERROR_MARKER_REGEX = re.compile(
     r'CFI: Most likely a control flow integrity violation;.*')
 CHROME_CHECK_FAILURE_REGEX = re.compile(
@@ -1311,6 +1312,9 @@ def get_crash_data(crash_data, symbolize_flag=True):
         state.crash_state += ' from invalid vptr'
         state.found_bad_cast_crash_end_marker = True
 
+      if CFI_FUNC_DEFINED_HERE_REGEX.match(line):
+        state.found_bad_cast_crash_end_marker = True
+
       # Ubsan's -fsanitize=vptr crash extra info for member access.
       invalid_offset_match = UBSAN_VPTR_INVALID_OFFSET_REGEX.match(line)
       if invalid_offset_match:
@@ -1325,15 +1329,12 @@ def get_crash_data(crash_data, symbolize_flag=True):
     # CFI bad-cast crash.
     if not state.crash_type:
       cfi_bad_cast_match = update_state_on_match(
-          CFI_ERROR_REGEX,
-          line,
-          state,
-          new_type='Bad-cast',
-          new_frame_count=0,
-          address_from_group=4)
+          CFI_ERROR_REGEX, line, state, new_type='Bad-cast', new_frame_count=0)
       if cfi_bad_cast_match:
         state.crash_state = 'Bad-cast to %s' % (
             cfi_bad_cast_match.group(2).strip("'"))
+        if cfi_bad_cast_match.group(4):
+          state.crash_address = cfi_bad_cast_match.group(4)
         state.found_bad_cast_crash_end_marker = False
 
     # CFI bad-cast crash without extra debugging information.
