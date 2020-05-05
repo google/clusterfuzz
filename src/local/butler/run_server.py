@@ -166,7 +166,9 @@ def execute(args):
 
   # Start our custom GCS emulator.
   local_gcs = common.execute_async(
-      'go run emulators/gcs.go -storage-path=' + args.storage_path, cwd='local')
+      'go run emulators/gcs.go -storage-path=' + os.path.join(
+          os.path.abspath(args.storage_path), 'local_gcs'),
+      cwd='local')
 
   if args.bootstrap:
     bootstrap_db()
