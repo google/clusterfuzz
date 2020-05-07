@@ -26,6 +26,7 @@ import sys
 import tensorflow as tf
 import time
 
+# TODO(mmoroz): Use replacements for Tensorflow 2.x
 from tensorflow.contrib import layers
 from tensorflow.contrib import rnn
 
