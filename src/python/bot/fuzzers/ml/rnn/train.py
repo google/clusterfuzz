@@ -26,6 +26,7 @@ import sys
 import tensorflow as tf
 import time
 
+# TODO(mmoroz): Use replacements for Tensorflow 2.x
 from tensorflow.contrib import layers
 from tensorflow.contrib import rnn
 
@@ -102,24 +103,26 @@ def main(args):
 
   # Set graph-level random seed, so any random sequence generated in this
   # graph is repeatable. It could also be removed.
-  tf.set_random_seed(0)
+  tf.compat.v1.set_random_seed(0)
 
   # Define placeholder for learning rate, dropout and batch size.
-  lr = tf.placeholder(tf.float32, name='lr')
-  pkeep = tf.placeholder(tf.float32, name='pkeep')
-  batchsize = tf.placeholder(tf.int32, name='batchsize')
+  lr = tf.compat.v1.placeholder(tf.float32, name='lr')
+  pkeep = tf.compat.v1.placeholder(tf.float32, name='pkeep')
+  batchsize = tf.compat.v1.placeholder(tf.int32, name='batchsize')
 
   # Input data.
-  input_bytes = tf.placeholder(tf.uint8, [None, None], name='input_bytes')
+  input_bytes = tf.compat.v1.placeholder(
+      tf.uint8, [None, None], name='input_bytes')
   input_onehot = tf.one_hot(input_bytes, constants.ALPHA_SIZE, 1.0, 0.0)
 
   # Expected outputs = same sequence shifted by 1, since we are trying to
   # predict the next character.
-  expected_bytes = tf.placeholder(tf.uint8, [None, None], name='expected_bytes')
+  expected_bytes = tf.compat.v1.placeholder(
+      tf.uint8, [None, None], name='expected_bytes')
   expected_onehot = tf.one_hot(expected_bytes, constants.ALPHA_SIZE, 1.0, 0.0)
 
   # Input state.
-  hidden_state = tf.placeholder(
+  hidden_state = tf.compat.v1.placeholder(
       tf.float32, [None, hidden_state_size * hidden_layer_size],
       name='hidden_state')
 
@@ -131,7 +134,7 @@ def main(args):
   multicell = rnn.MultiRNNCell(dropcells, state_is_tuple=False)
   multicell = rnn.DropoutWrapper(multicell, output_keep_prob=pkeep)
 
-  output_raw, next_state = tf.nn.dynamic_rnn(
+  output_raw, next_state = tf.compat.v1.nn.dynamic_rnn(
       multicell, input_onehot, dtype=tf.float32, initial_state=hidden_state)
   next_state = tf.identity(next_state, name='next_state')
 
@@ -143,7 +146,7 @@ def main(args):
   expected_flat = tf.reshape(expected_onehot, [-1, constants.ALPHA_SIZE])
 
   # Compute training loss.
-  loss = tf.nn.softmax_cross_entropy_with_logits_v2(
+  loss = tf.nn.softmax_cross_entropy_with_logits(
       logits=output_logits, labels=expected_flat)
   loss = tf.reshape(loss, [batchsize, -1])
 
@@ -151,36 +154,36 @@ def main(args):
   output_onehot = tf.nn.softmax(output_logits, name='output_onehot')
 
   # Use argmax to get the max value, which is the predicted bytes.
-  output_bytes = tf.argmax(output_onehot, 1)
+  output_bytes = tf.argmax(input=output_onehot, axis=1)
   output_bytes = tf.reshape(output_bytes, [batchsize, -1], name='output_bytes')
 
   # Choose Adam optimizer to compute gradients.
-  optimizer = tf.train.AdamOptimizer(lr).minimize(loss)
+  optimizer = tf.compat.v1.train.AdamOptimizer(lr).minimize(loss)
 
   # Stats for display.
-  seqloss = tf.reduce_mean(loss, 1)
-  batchloss = tf.reduce_mean(seqloss)
+  seqloss = tf.reduce_mean(input_tensor=loss, axis=1)
+  batchloss = tf.reduce_mean(input_tensor=seqloss)
   accuracy = tf.reduce_mean(
-      tf.cast(
+      input_tensor=tf.cast(
           tf.equal(expected_bytes, tf.cast(output_bytes, tf.uint8)),
           tf.float32))
-  loss_summary = tf.summary.scalar('batch_loss', batchloss)
-  acc_summary = tf.summary.scalar('batch_accuracy', accuracy)
-  summaries = tf.summary.merge([loss_summary, acc_summary])
+  loss_summary = tf.compat.v1.summary.scalar('batch_loss', batchloss)
+  acc_summary = tf.compat.v1.summary.scalar('batch_accuracy', accuracy)
+  summaries = tf.compat.v1.summary.merge([loss_summary, acc_summary])
 
   # Init Tensorboard stuff.
   # This will save Tensorboard information in folder specified in command line.
   # Two sets of data are saved so that you can compare training and
   # validation curves visually in Tensorboard.
   timestamp = str(math.trunc(time.time()))
-  summary_writer = tf.summary.FileWriter(
+  summary_writer = tf.compat.v1.summary.FileWriter(
       os.path.join(log_dir, timestamp + '-training'))
-  validation_writer = tf.summary.FileWriter(
+  validation_writer = tf.compat.v1.summary.FileWriter(
       os.path.join(log_dir, timestamp + '-validation'))
 
   # Init for saving models.
   # They will be saved into a directory specified in command line.
-  saver = tf.train.Saver(max_to_keep=constants.MAX_TO_KEEP)
+  saver = tf.compat.v1.train.Saver(max_to_keep=constants.MAX_TO_KEEP)
 
   # For display: init the progress bar.
   step_size = batch_size * constants.TRAINING_SEQLEN
@@ -192,7 +195,7 @@ def main(args):
 
   # Set initial state.
   state = np.zeros([batch_size, hidden_state_size * hidden_layer_size])
-  session = tf.Session()
+  session = tf.compat.v1.Session()
 
   # We continue training on exsiting model, or start with a new model.
   if existing_model:
@@ -207,7 +210,7 @@ def main(args):
       return constants.ExitCode.TENSORFLOW_ERROR
   else:
     print('No existing model provided. Start training with a new model.')
-    session.run(tf.global_variables_initializer())
+    session.run(tf.compat.v1.global_variables_initializer())
 
   # Num of bytes we have trained so far.
   steps = 0
