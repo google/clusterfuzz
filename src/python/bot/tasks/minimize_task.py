@@ -876,7 +876,7 @@ def get_temporary_file_name(original_file):
   directory, basename = os.path.split(original_file)
   basename = basename[-MAX_TEMPORARY_FILE_BASENAME_LENGTH:]
 
-  random_hex = binascii.b2a_hex(os.urandom(16))
+  random_hex = binascii.b2a_hex(os.urandom(16)).decode('utf-8')
   new_file_path = os.path.join(directory, '%s%s' % (random_hex, basename))
 
   return new_file_path
