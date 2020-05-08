@@ -2867,3 +2867,29 @@ class StackAnalyzerTestcase(unittest.TestCase):
     self._validate_get_crash_data(data, expected_type, expected_address,
                                   expected_state, expected_stacktrace,
                                   expected_security_flag)
+
+  def test_gdb_sigtrap(self):
+    """Test for GDB stack."""
+    data = self._read_test_data('gdb_sigtrap.txt')
+    expected_type = 'SIGTRAP'
+    expected_address = '0x000000000ac8'
+    expected_state = (
+        'xymodem_trnasfer\nLoadImageFromUsb30\nLoadBL1FromUsb30\n')
+    expected_stacktrace = data
+    expected_security_flag = True
+    self._validate_get_crash_data(data, expected_type, expected_address,
+                                  expected_state, expected_stacktrace,
+                                  expected_security_flag)
+
+  def test_gdb_sigtrap_and_libfuzzer(self):
+    """Test for GDB stack with libfuzzer."""
+    data = self._read_test_data('gdb_sigtrap_and_libfuzzer.txt')
+    expected_type = 'SIGTRAP'
+    expected_address = '0x000000000ac8'
+    expected_state = (
+        'xymodem_trnasfer\nLoadImageFromUsb30\nLoadBL1FromUsb30\n')
+    expected_stacktrace = data
+    expected_security_flag = True
+    self._validate_get_crash_data(data, expected_type, expected_address,
+                                  expected_state, expected_stacktrace,
+                                  expected_security_flag)
