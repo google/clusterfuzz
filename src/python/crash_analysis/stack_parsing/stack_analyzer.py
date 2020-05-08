@@ -132,6 +132,8 @@ LIBRARY_NOT_FOUND_LINUX_REGEX = re.compile(
     r'cannot open shared object file')
 LINUX_GDB_CRASH_TYPE_REGEX = re.compile(r'Program received signal ([a-zA-Z]+),')
 LINUX_GDB_CRASH_ADDRESS_REGEX = re.compile(r'rip[ ]+([xX0-9a-fA-F]+)')
+LINUX_GDB_CRASH_ADDRESS_NO_REGISTERS_REGEX = re.compile(
+    r'^(0[xX][0-9a-fA-F]+)\s+in\s+')
 LSAN_DIRECT_LEAK_REGEX = re.compile(r'Direct leak of ')
 LSAN_INDIRECT_LEAK_REGEX = re.compile(r'Indirect leak of ')
 MAC_GDB_CRASH_ADDRESS_REGEX = re.compile(
@@ -334,6 +336,7 @@ STACK_FRAME_IGNORE_REGEXES = [
     # Function names (startswith).
     r'^(|\_\_)memcmp',
     r'^(|\_\_)memcpy',
+    r'^(|\_\_)aeabi\_',
     r'^(|\_\_)memmove',
     r'^(|\_\_)memset',
     r'^(|\_\_)strcmp',
@@ -1234,6 +1237,13 @@ def get_crash_data(crash_data, symbolize_flag=True):
     # Platform specific: Linux gdb crash address format.
     update_state_on_match(
         LINUX_GDB_CRASH_ADDRESS_REGEX, line, state, address_from_group=1)
+
+    # Platform specific: Linux gdb crash address format no registers
+    update_state_on_match(
+        LINUX_GDB_CRASH_ADDRESS_NO_REGISTERS_REGEX,
+        line,
+        state,
+        address_from_group=1)
 
     # Platform specific: Mac gdb style crash address format.
     update_state_on_match(
