@@ -1,6 +1,9 @@
 Change Log
 ==========
 
+## Version 2.0.0
+- Various bug fixes.
+
 ## Version 1.9.0
 - Python 3 migration is complete.
 - Added Peach mutation strategy for engine fuzzers.
