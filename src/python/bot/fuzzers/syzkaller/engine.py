@@ -16,6 +16,7 @@
 from bot.fuzzers import engine
 from bot.fuzzers import engine_common
 from bot.fuzzers import utils as fuzzer_utils
+from bot.fuzzers.syzkaller import constants
 from bot.fuzzers.syzkaller import runner
 from metrics import profiler
 from system import environment
@@ -46,6 +47,21 @@ class SyzkallerEngine(engine.Engine):
   def name(self):
     return 'syzkaller'
 
+  def prepare_binary_path(self):
+    """Prepares the path for the syzkaller binary
+
+    Returns:
+      The full path of the binary
+    """
+    syzkaller_path = os.path.join(
+        environment.get_value('BUILD_DIR'), 'syzkaller')
+    if not os.path.exists(syzkaller_path):
+      raise SyzkallerError('syzkaller not found in build')
+    binary_folder = os.path.join(syzkaller_path, BIN_FOLDER_PATH)
+    for filename in os.listdir(binary_folder):
+      os.chmod(os.path.join(binary_folder, filename), 0o755)
+    return binary_folder
+
   def prepare(self, corpus_dir, target_path, unused_build_dir):
     """Prepare for a fuzzing session, by generating options and making
     syzkaller binaries executable.
@@ -56,20 +72,14 @@ class SyzkallerEngine(engine.Engine):
       build_dir: Path to the build directory.
 
     Returns:
-      A FuzzOptions object.
-    """
-    syzkaller_path = os.path.join(
-        environment.get_value('BUILD_DIR'), 'syzkaller')
-    if not os.path.exists(syzkaller_path):
-      raise SyzkallerError('syzkaller not found in build')
-    binary_full_path = os.path.join(syzkaller_path, BIN_FOLDER_PATH)
-    for filename in os.listdir(binary_full_path):
-      os.chmod(os.path.join(binary_full_path, filename), 0o755)
-
-    # TODO(hzawawy): Add strategies here
-
-    arguments = runner.get_arguments(target_path)
-    return SyzkallerOptions(corpus_dir, arguments, None, None, None)
+      A FuzzOptions object."""
+    config = runner.get_config()
+    return SyzkallerOptions(
+        corpus_dir,
+        config,
+        strategies={},
+        fuzz_corpus_dirs=None,
+        extra_env=None)
 
   def _create_temp_corpus_dir(self, name):
     """Create temporary corpus directory."""
@@ -100,6 +110,7 @@ class SyzkallerEngine(engine.Engine):
 
   def reproduce(self, target_path, input_path, arguments, max_time):
     """Reproduce a crash given an input.
+       Example: ./syz-repro -config my.cfg crash-qemu-1-1455745459265726910
 
     Args:
       target_path: Path to the target.
@@ -110,7 +121,15 @@ class SyzkallerEngine(engine.Engine):
     Returns:
       A ReproduceResult.
     """
-    raise NotImplementedError
+    binary_path = self.prepare_binary_path()
+    syzkaller_runner = runner.get_runner(
+        os.path.join(binary_path, constants.SYZ_REPRO))
+    repro_args = runner.get_config()
+    repro_args.extend(input_path)
+    result = syzkaller_runner.repro(max_time, repro_args=repro_args)
+
+    return engine.ReproduceResult(result.command, result.return_code,
+                                  result.time_executed, result.output)
 
   def minimize_corpus(self, target_path, arguments, input_dirs, output_dir,
                       unused_reproducers_dir, unused_max_time):

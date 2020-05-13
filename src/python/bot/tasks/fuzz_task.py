@@ -1869,7 +1869,7 @@ class FuzzingSession(object):
     platform_id = environment.get_platform_id()
 
     # For Android, bring back device to a good state before analyzing crashes.
-    if platform == 'ANDROID' and crashes:
+    if (platform in ('ANDROID', 'ANDROID-KERNEL')) and crashes:
       # Remove this variable so that application is fully shutdown before every
       # re-run of testcase. This is critical for reproducibility.
       environment.remove_key('CHILD_PROCESS_TERMINATION_PATTERN')

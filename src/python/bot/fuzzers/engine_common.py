@@ -101,9 +101,9 @@ def select_generator(strategy_pool, fuzzer_path):
   # These generators don't produce testcases that LPM fuzzers can use.
   if (environment.platform() == 'WINDOWS' or is_lpm_fuzz_target(fuzzer_path)):
     return Generator.NONE
-  elif strategy_pool.do_strategy(strategy.CORPUS_MUTATION_ML_RNN_STRATEGY):
+  if strategy_pool.do_strategy(strategy.CORPUS_MUTATION_ML_RNN_STRATEGY):
     return Generator.ML_RNN
-  elif strategy_pool.do_strategy(strategy.CORPUS_MUTATION_RADAMSA_STRATEGY):
+  if strategy_pool.do_strategy(strategy.CORPUS_MUTATION_RADAMSA_STRATEGY):
     return Generator.RADAMSA
 
   return Generator.NONE
@@ -289,6 +289,9 @@ def find_fuzzer_path(build_directory, fuzzer_name):
   if environment.platform() == 'FUCHSIA':
     # Fuchsia targets are not on disk.
     return fuzzer_name
+
+  if environment.platform() == 'ANDROID_KERNEL':
+    return os.path.join(build_directory, 'syzkaller', 'bin', 'syz-manager')
 
   # TODO(ochang): This is necessary for legacy testcases, which include the
   # project prefix in arguments. Remove this in the near future.
