@@ -1,0 +1,88 @@
+name: build-and-publish
+
+on:
+  push:
+
+env:
+  PSUTIL_VERSION: "5.7.0"
+
+jobs:
+  build-linux:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        image:
+          - "quay.io/pypa/manylinux2010_x86_64"
+          - "quay.io/pypa/manylinux2010_i686"
+        python_abi:
+          - "cp27-cp27m"
+          - "cp27-cp27mu"
+          - "cp35-cp35m"
+          - "cp36-cp36m"
+          - "cp37-cp37m"
+          - "cp38-cp38"
+    container:
+      image: ${{ matrix.image }}
+
+    steps:
+      - name: Setup python/pip
+        run: |
+          rm -f /usr/bin/python
+          update-alternatives --install /usr/bin/python python /opt/python/${{ matrix.python_abi }}/bin/python 0
+          python --version
+          rm -f /usr/bin/pip
+          update-alternatives --install /usr/bin/pip pip /opt/python/${{ matrix.python_abi }}/bin/pip 0
+          pip --version
+          pip install -U pip wheel
+      - name: Download the source code.
+        run: |
+          PSUTIL_TGZ="$(mktemp -d)/psutil-release.tar.gz"
+          PSUTIL_URL="https://github.com/giampaolo/psutil/archive/release-${{ env.PSUTIL_VERSION }}.tar.gz"
+          curl -L --output "$PSUTIL_TGZ" "$PSUTIL_URL"
+          tar -xzf "$PSUTIL_TGZ" -C . --strip-components=1
+      - name: Build wheel
+        run: |
+          python setup.py build
+          python setup.py bdist_wheel --plat-name $(echo ${{ matrix.image }} | awk -F'/' '{print $(NF)}')
+      - name: Upload distribution
+        uses: actions/upload-artifact@v1
+        with:
+          name: distribution
+          path: dist/
+
+  build-macos:
+    runs-on: macos-10.15
+    strategy:
+      matrix:
+        python_version:
+          - "2.7"
+          - "3.5"
+          - "3.6"
+          - "3.7"
+          - "3.8"
+
+    steps:
+      - name: Setup python
+        uses: actions/setup-python@v1
+        with:
+          python-version: ${{ matrix.python_version }}
+
+      - name: Setup pip
+        run: |
+          pip install -U pip wheel
+          pip --version
+      - name: Download the source code.
+        run: |
+          PSUTIL_TGZ="$(mktemp -d)/psutil-release.tar.gz"
+          PSUTIL_URL="https://github.com/giampaolo/psutil/archive/release-${{ env.PSUTIL_VERSION }}.tar.gz"
+          curl -L --output "$PSUTIL_TGZ" "$PSUTIL_URL"
+          tar -xzf "$PSUTIL_TGZ" -C . --strip-components=1
+      - name: Build wheel
+        run: |
+          python setup.py build
+          python setup.py bdist_wheel
+      - name: Upload distribution
+        uses: actions/upload-artifact@v1
+        with:
+          name: distribution
+          path: dist/
