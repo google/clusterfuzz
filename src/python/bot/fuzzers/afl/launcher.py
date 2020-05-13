@@ -899,7 +899,7 @@ class AflRunnerCommon(object):
 
           elif (num_first_testcase_hangs ==
                 self.MAX_FIRST_HANGS_WITH_DEFERRED_FORKSERVER):
-            environment.set_value(constants.DONT_DEFER_FORKSERVER, 1)
+            environment.set_value(constants.AFL_DRIVER_DONT_DEFER, 1)
             print('Instructing AFL not to defer forkserver.\nIf this fixes the '
                   'fuzzer, you should add this to the .options file:\n'
                   '[env]\n'
