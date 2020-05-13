@@ -277,8 +277,7 @@ def _install_platform_pip(requirements_path, target_path, platform_name):
         exit_on_error=False)
 
     if return_code != 0:
-      print('Failed to find package for platform:', pip_platform)
-      continue
+      raise Exception('Failed to find package for platform: ' + pip_platform)
 
     execute('unzip -o -d %s \'%s/*.whl\'' % (target_path, temp_dir))
     shutil.rmtree(temp_dir, ignore_errors=True)
