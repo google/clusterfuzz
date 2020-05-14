@@ -14,12 +14,9 @@
 """Constants that are meaningful to syzkaller.
 Should not have any dependancies.
 """
-
-# Regex to find testcase path from a crash.
-KASAN_CRASH_TESTCASE_REGEX = (r'.*Test unit written to\s*'
-                              r'(Read|Write) of .*')
-
 SYZKALLER_WORK_FOLDER = '/tmp/syzkaller'
+
+SYZ_REPRO = 'syz-repro'
 
 VMLINUX_FOLDER = '/tmp/syzkaller/vmlinux'
 

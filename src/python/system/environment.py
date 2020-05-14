@@ -34,7 +34,7 @@ except ImportError:
 # FIXME: Support ADDITIONAL_UBSAN_OPTIONS and ADDITIONAL_LSAN_OPTIONS in an
 # ASAN instrumented build.
 SUPPORTED_MEMORY_TOOLS_FOR_OPTIONS = [
-    'HWASAN', 'ASAN', 'CFI', 'MSAN', 'TSAN', 'UBSAN'
+    'HWASAN', 'ASAN', 'KASAN', 'CFI', 'MSAN', 'TSAN', 'UBSAN'
 ]
 
 SANITIZER_NAME_MAP = {
@@ -436,6 +436,16 @@ def get_lsan_options():
   return lsan_options
 
 
+def get_kasan_options():
+  """Generates default KASAN options."""
+  kasan_options = {'symbolize': 0}
+
+  # Add common sanitizer options.
+  kasan_options.update(COMMON_SANITIZER_OPTIONS)
+
+  return kasan_options
+
+
 def get_msan_options():
   """Generates default MSAN options."""
   msan_options = {'symbolize': 0}
@@ -474,6 +484,11 @@ def get_memory_tool_name(job_name):
   for tool in SUPPORTED_MEMORY_TOOLS_FOR_OPTIONS:
     if tool_matches(tool, job_name):
       return tool
+
+  from platforms import android
+  if platform() == 'ANDROID_KERNEL' and 'KASAN' in android.adb.get_property(
+      'ro.product.name'):
+    return 'KASAN'
 
   # If no tool specified, assume it is ASAN. Also takes care of LSAN job type.
   return 'ASAN'
@@ -626,9 +641,9 @@ def get_engine_for_job(job_name=None):
   # TODO(ochang): Generalize this rather than hardcoding all these engines.
   if is_libfuzzer_job(job_name):
     return 'libFuzzer'
-  elif is_afl_job(job_name):
+  if is_afl_job(job_name):
     return 'afl'
-  elif is_honggfuzz_job(job_name):
+  if is_honggfuzz_job(job_name):
     return 'honggfuzz'
 
   return None
@@ -691,9 +706,9 @@ def platform():
 
   if sys.platform.startswith('win'):
     return 'WINDOWS'
-  elif sys.platform.startswith('linux'):
+  if sys.platform.startswith('linux'):
     return 'LINUX'
-  elif sys.platform == 'darwin':
+  if sys.platform == 'darwin':
     return 'MAC'
 
   raise ValueError('Unsupported platform "%s".' % sys.platform)
@@ -811,6 +826,8 @@ def reset_current_memory_tool_options(redzone_size=0,
     tool_options = get_asan_options(redzone_size, malloc_context_size,
                                     quarantine_size_mb, bot_platform, leaks,
                                     disable_ubsan)
+  elif tool_name == 'KASAN':
+    tool_options = get_kasan_options()
   elif tool_name == 'MSAN':
     tool_options = get_msan_options()
   elif tool_name == 'TSAN':

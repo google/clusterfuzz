@@ -18,15 +18,17 @@ from bot.fuzzers import engine
 from bot.fuzzers import utils as fuzzer_utils
 from bot.fuzzers.syzkaller import config
 from bot.fuzzers.syzkaller import constants
+from builtins import str
+from metrics import logs
 from system import environment
 from system import new_process
 import copy
+import fnmatch
 import os
-import re
 import tempfile
 
 
-def get_arguments(unused_fuzzer_path):
+def get_config():
   """Get arguments for a given fuzz target."""
   build_dir = environment.get_value('BUILD_DIR')
   device_serial = environment.get_value('ANDROID_SERIAL')
@@ -39,7 +41,7 @@ def get_arguments(unused_fuzzer_path):
       config_path=json_config_path,
       kcov=True,
       reproduce=False)
-  return ['--config', json_config_path]
+  return ['-config', json_config_path]
 
 
 def get_runner(fuzzer_path):
@@ -73,48 +75,76 @@ class AndroidSyzkallerRunner(new_process.ProcessRunner):
     _, path = tempfile.mkstemp(dir=fuzzer_utils.get_temp_dir())
     return path
 
-  def get_testcase_path(self, log_lines):
-    """Get testcase path from log lines."""
-    #TODO(hzawawy) when a crash is detected extract testcase from report.
-    for line in log_lines:
-      match = re.match(constants.KASAN_CRASH_TESTCASE_REGEX, line)
-      if match:
-        return match.group(1)
-
-    return None
+  def repro(self, repro_timeout, repro_args):
+    """This is where crash repro'ing is done.
+    Args:
+      repro_timeout: The maximum time in seconds that repro job is allowed
+          to run for.
+      repro_args: A sequence of arguments to be passed to the executable.
+    """
+    logs.log('Running Syzkaller testcase.')
+    additional_args = copy.copy(repro_args)
+    repro_timeout = 30
+    result = self.run_and_wait(additional_args, timeout=repro_timeout)
+    logs.log('Syzkaller testcase stopped.')
+    return engine.ReproduceResult(result.command, result.return_code,
+                                  result.time_executed, str(result.output))
 
   def fuzz(self,
            fuzz_timeout,
            additional_args,
            unused_additional_args=None,
            unused_extra_env=None):
-    """This is where actual syzkaller fuzzing is done."""
+    """This is where actual syzkaller fuzzing is done.
+    Args:
+      fuzz_timeout: The maximum time in seconds that fuzz job is allowed
+          to run for.
+      additional_args: A sequence of additional arguments to be passed to
+          the executable.
+    """
+    logs.log('Running Syzkaller!')
     additional_args = copy.copy(additional_args)
+    fuzz_timeout = 30
     fuzz_result = self.run_and_wait(additional_args, timeout=fuzz_timeout)
+    logs.log('Syzkaller Stopped! Fuzzing timed out: {}'.format(fuzz_timeout))
+    fuzz_logs = ''
 
-    log_lines = utils.decode_to_unicode(fuzz_result.output).splitlines()
-    fuzz_result.output = None
-    crash_testcase_file_path = self.get_testcase_path(log_lines)
+    visited = set()
+    for subdir, _, files in os.walk(constants.SYZKALLER_WORK_FOLDER):
+      for file in files:
+        # Each crash typically have 2 files: reportN and logN. Similar crashes
+        # are grouped together in subfolders. unique_crash puts together the
+        # subfolder name (without './' (hence the [2:])) and reportN.
+        unique_crash = subdir[len('./'):] + file
+        if fnmatch.fnmatch(file, 'report*') and unique_crash not in visited:
+          visited.add(unique_crash)
+          log_lines = utils.read_data_from_file(
+              os.path.join(subdir, file), eval_data=False)
+          fuzz_result.output = str(log_lines)
 
-    #TODO(hzawawy): remove once syzkaller code is completed.
-    if not crash_testcase_file_path and fuzz_result.return_code:
-      crash_testcase_file_path = self._create_empty_testcase_file()
+          # Since each crash (report file) has a corresponding log file
+          # that contains the syscalls that caused the crash. This file is
+          # located in the same subfolder and has the same number.
+          # E.g. ./439c37d288d4f26a33a6c7e5c57a97791453a447/report15 and
+          # ./439c37d288d4f26a33a6c7e5c57a97791453a447/log15.
+          crash_testcase_file_path = os.path.join(subdir,
+                                                  'log' + file[len('report'):])
 
-    fuzz_logs = '\n'.join(log_lines)
+          fuzz_logs = fuzz_result.output
 
-    # TODO(hzawawy): Parse stats information and add them to FuzzResult
-    parsed_stats = []
+          # TODO(hzawawy): Parse stats information and add them to FuzzResult
+          parsed_stats = []
 
-    crashes = []
-    if crash_testcase_file_path:
-      #TODO(hzawawy): add repro arguments
-      reproduce_arguments = []
-      actual_duration = int(fuzz_result.time_executed)
-      # Write the new testcase.
-      # Copy crash testcase contents into the main testcase path.
-      crashes.append(
-          engine.Crash(crash_testcase_file_path, fuzz_logs, reproduce_arguments,
-                       actual_duration))
+          crashes = []
+          if crash_testcase_file_path:
+            reproduce_arguments = [unique_crash]
+            actual_duration = int(fuzz_result.time_executed)
+            # Write the new testcase.
+            # Copy crash testcase contents into the main testcase path.
+            crashes.append(
+                engine.Crash(crash_testcase_file_path, log_lines,
+                             reproduce_arguments, actual_duration))
 
+    logs.log('Returning fuzz result')
     return engine.FuzzResult(fuzz_logs, fuzz_result.command, crashes,
                              parsed_stats, fuzz_result.time_executed)
