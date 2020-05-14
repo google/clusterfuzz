@@ -16,6 +16,7 @@
 
 from __future__ import print_function
 from builtins import object
+from builtins import str
 from future import standard_library
 standard_library.install_aliases()
 from past.builtins import basestring
@@ -277,11 +278,16 @@ def _install_platform_pip(requirements_path, target_path, platform_name):
         exit_on_error=False)
 
     if return_code != 0:
-      raise Exception('Failed to find package for platform: ' + pip_platform)
+      print('Did not find package for platform: ' + pip_platform)
+      continue
 
     execute('unzip -o -d %s \'%s/*.whl\'' % (target_path, temp_dir))
     shutil.rmtree(temp_dir, ignore_errors=True)
     break
+
+  if return_code != 0:
+    raise Exception('Failed to find package in supported platforms: %s' +
+                    str(pip_platforms))
 
 
 def _remove_invalid_files():
@@ -388,12 +394,12 @@ def get_platform():
   """Get the platform."""
   if platform.system() == 'Linux':
     return 'linux'
-  elif platform.system() == 'Darwin':
+  if platform.system() == 'Darwin':
     return 'macos'
-  elif platform.system() == 'Windows':
+  if platform.system() == 'Windows':
     return 'windows'
-  else:
-    raise Exception('Unknown platform: %s.' % platform.system())
+
+  raise Exception('Unknown platform: %s.' % platform.system())
 
 
 def update_dir(src_dir, dst_dir):
