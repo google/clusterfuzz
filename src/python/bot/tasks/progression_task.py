@@ -206,6 +206,9 @@ def _save_fixed_range(testcase_id, min_revision, max_revision):
       testcase, max_revision, message='fixed in range r%s' % testcase.fixed)
   _write_to_bigquery(testcase, min_revision, max_revision)
 
+  # If there is a fine grained bisection service available, request it.
+  task_creation.request_bisection(testcase, 'fixed')
+
 
 def find_fixed_range(testcase_id, job_type):
   """Attempt to find the revision range where a testcase was fixed."""
@@ -349,7 +352,7 @@ def find_fixed_range(testcase_id, job_type):
 
     # Occasionally, we get into this bad state. It seems to be related to test
     # cases with flaky stacks, but the exact cause is unknown.
-    elif max_index - min_index < 1:
+    if max_index - min_index < 1:
       testcase = data_handler.get_testcase_by_id(testcase_id)
       testcase.fixed = 'NA'
       testcase.open = False

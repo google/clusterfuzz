@@ -118,3 +118,6 @@ env:
   # REVISION_VARS_URL:
 
   # Any of the above variables can be overridden in a job definition.
+
+bisect_service:
+  pubsub_topic: /projects/project/topics/topic

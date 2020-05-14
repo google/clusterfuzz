@@ -16,10 +16,20 @@
 from base import tasks
 from base import utils
 from build_management import build_manager
+from build_management import revisions
+from config import local_config
 from datastore import data_handler
 from datastore import data_types
 from datastore import ndb_utils
+from google_cloud_utils import blobs
+from google_cloud_utils import pubsub
 from system import environment
+
+BISECT_SANITIZER_MAP = {
+    'ASAN': 'address',
+    'UBSAN': 'undefined',
+    'MSAN': 'memory',
+}
 
 
 def mark_unreproducible_if_flaky(testcase, potentially_flaky):
@@ -227,3 +237,57 @@ def create_tasks(testcase):
   # Just create the minimize task for now. Once minimization is complete, it
   # automatically created the rest of the needed tasks.
   create_minimize_task_if_needed(testcase)
+
+
+def _get_commits(commit_range, job_type):
+  """Get commits from range."""
+  start, end = revisions.get_start_and_end_revision(commit_range)
+  components = revisions.get_component_range_list(start, end, job_type)
+  if ':' not in components[0]['link_text']:
+    return components[0]['link_text'], components[0]['link_text']
+
+  old_commit, new_commit = components[0]['link_text'].split(':')
+  if old_commit == '0':
+    old_commit = ''
+
+  return old_commit, new_commit
+
+
+def request_bisection(testcase, bisect_type):
+  """Request precise bisection."""
+  pubsub_topic = local_config.ProjectConfig().get('bisect_service.pubsub_topic')
+  if not pubsub_topic:
+    return
+
+  if bisect_type == 'fixed':
+    old_commit, new_commit = _get_commits(testcase.fixed, testcase.job_type)
+  elif bisect_type == 'regressed':
+    old_commit, new_commit = _get_commits(testcase.regression,
+                                          testcase.job_type)
+  else:
+    raise ValueError('Invalid bisection type ' + bisect_type)
+
+  reproducer = blobs.read_key(testcase.minimized_keys or testcase.fuzzed_keys)
+  target = testcase.get_fuzz_target()
+
+  pubsub_client = pubsub.PubSubClient()
+  pubsub_client.publish(
+      pubsub_topic,
+      pubsub.Message(
+          reproducer, {
+              'type':
+                  bisect_type,
+              'project_name':
+                  target.project,
+              'sanitizer':
+                  BISECT_SANITIZER_MAP[environment.get_memory_tool_name(
+                      testcase.job_type)],
+              'fuzz_target':
+                  target.binary,
+              'old_commit':
+                  old_commit,
+              'new_commit':
+                  new_commit,
+              'testcase_id':
+                  testcase.key.id(),
+          }))
