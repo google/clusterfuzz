@@ -1,0 +1,16 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "go_default_library",
+    srcs = ["logs.go"],
+    importpath = "clusterfuzz/go/cloud/stackdriver",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//go/base/logs:go_default_library",
+        "//go/bots:go_default_library",
+        "//go/cloud:go_default_library",
+        "@com_google_cloud_go//compute/metadata:go_default_library",
+        "@com_google_cloud_go//logging:go_default_library",
+        "@go_googleapis//google/api:monitoredres_go_proto",
+    ],
+)

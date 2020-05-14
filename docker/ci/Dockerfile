@@ -52,7 +52,7 @@ ENV ROOT_DIR /workspace
 ENV PYTHONPATH $ROOT_DIR/src
 
 COPY requirements.txt /tmp
-RUN pip2 install -r /tmp/requirements.txt
+RUN pip install -r /tmp/requirements.txt && pip install --upgrade pip
 
 ENV TEST_BOT_ENVIRONMENT 1
 ENV PYTHONDONTWRITEBYTECODE 1

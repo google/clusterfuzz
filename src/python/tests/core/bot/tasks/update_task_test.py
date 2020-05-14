@@ -13,7 +13,6 @@
 # limitations under the License.
 """update_task tests."""
 import os
-import sys
 import unittest
 
 from pyfakefs import fake_filesystem_unittest
@@ -94,11 +93,6 @@ class GetNewerSourceRevisionTest(unittest.TestCase):
     os.environ['BOT_TMPDIR'] = 'bot_tmpdir'
     os.environ['FAIL_RETRIES'] = '1'
 
-    if sys.version_info.major == 3:
-      self.manifest_suffix = '.3'
-    else:
-      self.manifest_suffix = ''
-
   def test_no_local_revision(self):
     """Test no local revision."""
     self.mock.get_remote_source_revision.return_value = 'remote'
@@ -107,8 +101,7 @@ class GetNewerSourceRevisionTest(unittest.TestCase):
 
     self.mock.get_local_source_revision.assert_called_once_with()
     self.mock.get_remote_source_revision.assert_called_once_with(
-        'gs://test-deployment-bucket/clusterfuzz-source.manifest' +
-        self.manifest_suffix)
+        'gs://test-deployment-bucket/clusterfuzz-source.manifest')
 
   def test_error_on_remote_revision(self):
     """Test error on remote revision."""
@@ -125,8 +118,7 @@ class GetNewerSourceRevisionTest(unittest.TestCase):
 
     self.mock.get_local_source_revision.assert_called_once_with()
     self.mock.get_remote_source_revision.assert_called_once_with(
-        'gs://test-deployment-bucket/clusterfuzz-source.manifest' +
-        self.manifest_suffix)
+        'gs://test-deployment-bucket/clusterfuzz-source.manifest')
 
   def test_newer_revision(self):
     """Test remote revision is newer."""
@@ -136,8 +128,7 @@ class GetNewerSourceRevisionTest(unittest.TestCase):
 
     self.mock.get_local_source_revision.assert_called_once_with()
     self.mock.get_remote_source_revision.assert_called_once_with(
-        'gs://test-deployment-bucket/clusterfuzz-source.manifest' +
-        self.manifest_suffix)
+        'gs://test-deployment-bucket/clusterfuzz-source.manifest')
 
 
 class GetUrlsTest(unittest.TestCase):
@@ -148,36 +139,26 @@ class GetUrlsTest(unittest.TestCase):
     helpers.patch(self, [
         'platform.system',
     ])
-    if sys.version_info.major == 3:
-      self.manifest_suffix = '.3'
-      self.deployment_suffix = '-3'
-    else:
-      self.manifest_suffix = ''
-      self.deployment_suffix = ''
 
   def test_get_source_manifest_url(self):
     """Test get_source_manifest_url."""
-    self.assertEqual(
-        'gs://test-deployment-bucket/clusterfuzz-source.manifest' +
-        self.manifest_suffix, update_task.get_source_manifest_url())
+    self.assertEqual('gs://test-deployment-bucket/clusterfuzz-source.manifest',
+                     update_task.get_source_manifest_url())
 
   def test_get_source_url_windows(self):
     """Test get_source_url on windows."""
     self.mock.system.return_value = 'Windows'
-    self.assertEqual(
-        'gs://test-deployment-bucket/windows%s.zip' % self.deployment_suffix,
-        update_task.get_source_url())
+    self.assertEqual('gs://test-deployment-bucket/windows.zip',
+                     update_task.get_source_url())
 
   def test_get_source_url_macos(self):
     """Test get_source_url on macos."""
     self.mock.system.return_value = 'Darwin'
-    self.assertEqual(
-        'gs://test-deployment-bucket/macos%s.zip' % self.deployment_suffix,
-        update_task.get_source_url())
+    self.assertEqual('gs://test-deployment-bucket/macos.zip',
+                     update_task.get_source_url())
 
   def test_get_source_url_linux(self):
     """Test get_source_url on linux."""
     self.mock.system.return_value = 'Linux'
-    self.assertEqual(
-        'gs://test-deployment-bucket/linux%s.zip' % self.deployment_suffix,
-        update_task.get_source_url())
+    self.assertEqual('gs://test-deployment-bucket/linux.zip',
+                     update_task.get_source_url())

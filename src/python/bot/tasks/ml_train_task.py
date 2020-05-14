@@ -18,7 +18,6 @@ from builtins import str
 
 import glob
 import os
-import sys
 
 from bot.fuzzers.ml.rnn import constants
 from fuzzing import corpus_manager
@@ -266,7 +265,7 @@ def train_rnn(input_directory,
            str(args_list))
 
   # Run process in rnn directory.
-  rnn_trainer = new_process.ProcessRunner(sys.executable)
+  rnn_trainer = new_process.ProcessRunner('python')
 
   return rnn_trainer.run_and_wait(
       args_list,

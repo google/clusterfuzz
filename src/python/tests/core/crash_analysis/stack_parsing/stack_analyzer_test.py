@@ -617,19 +617,6 @@ class StackAnalyzerTestcase(unittest.TestCase):
                                   expected_state, expected_stacktrace,
                                   expected_security_flag)
 
-  def test_ignore_honggfuzz(self):
-    """Test that frames from honggfuzz wrappers are ignored."""
-    data = self._read_test_data('ignore_honggfuzz.txt')
-    expected_type = 'Segv on unknown address'
-    expected_address = ''
-    expected_state = ('function1\nfunction2\nfunction3\n')
-    expected_stacktrace = data
-    expected_security_flag = True
-
-    self._validate_get_crash_data(data, expected_type, expected_address,
-                                  expected_state, expected_stacktrace,
-                                  expected_security_flag)
-
   def test_ignore_libc_if_symbolized(self):
     """Test that we ignore certain shared libraries if symbolized."""
     data = self._read_test_data('ignore_libc_if_symbolized.txt')
@@ -1070,7 +1057,7 @@ class StackAnalyzerTestcase(unittest.TestCase):
                                   expected_state, expected_stacktrace,
                                   expected_security_flag)
 
-  def test_cfi_bad_cast_virtual_call(self):
+  def test_cfi_bad_cast(self):
     """Test the CFI output format."""
     data = self._read_test_data('cfi_bad_cast.txt')
     expected_type = 'Bad-cast'
@@ -1078,22 +1065,6 @@ class StackAnalyzerTestcase(unittest.TestCase):
     expected_state = ('Bad-cast to blink::LayoutObject from invalid vptr\n'
                       'blink::LayoutObject::containingBlock\n'
                       'blink::LayoutBox::topLeftLocation\n')
-    expected_stacktrace = data
-    expected_security_flag = True
-
-    self._validate_get_crash_data(data, expected_type, expected_address,
-                                  expected_state, expected_stacktrace,
-                                  expected_security_flag)
-
-  def test_cfi_bad_cast_indirect_function_call(self):
-    """Test the CFI output format."""
-    data = self._read_test_data('cfi_bad_cast_indirect_fc.txt')
-    expected_type = 'Bad-cast'
-    expected_address = ''
-    expected_state = (
-        'Bad-cast to void (*(struct VkInstance_T *, const char *))(void)\n'
-        'vkGetInstanceProcAddrStub$8d185785d173e702d91e2893e143a6d9.cfi\n'
-        'volkGenLoadLoader\n')
     expected_stacktrace = data
     expected_security_flag = True
 
@@ -2668,22 +2639,6 @@ class StackAnalyzerTestcase(unittest.TestCase):
                                   expected_state, expected_stacktrace,
                                   expected_security_flag)
 
-  def test_golang_panic_runtime_error_index_out_of_range_with_msan(self):
-    """Test golang stacktrace with panic caused by index out of range
-    with memory sanitizer."""
-    data = self._read_test_data(
-        'golang_panic_runtime_error_index_out_of_range_with_msan.txt')
-    expected_type = 'Index out of range'
-    expected_address = ''
-    expected_state = ('http.(*conn).serve.func1\n'
-                      'http.HandlerFunc.ServeHTTP\n'
-                      'http.(*ServeMux).ServeHTTP\n')
-    expected_stacktrace = data
-    expected_security_flag = False
-    self._validate_get_crash_data(data, expected_type, expected_address,
-                                  expected_state, expected_stacktrace,
-                                  expected_security_flag)
-
   def test_golang_panic_runtime_error_slice_bounds_out_of_range(self):
     """Test golang stacktrace with panic caused by slice bounds out of range."""
     data = self._read_test_data(
@@ -2864,32 +2819,6 @@ class StackAnalyzerTestcase(unittest.TestCase):
 
     expected_stacktrace = data
     expected_security_flag = False
-    self._validate_get_crash_data(data, expected_type, expected_address,
-                                  expected_state, expected_stacktrace,
-                                  expected_security_flag)
-
-  def test_gdb_sigtrap(self):
-    """Test for GDB stack."""
-    data = self._read_test_data('gdb_sigtrap.txt')
-    expected_type = 'SIGTRAP'
-    expected_address = '0x000000000ac8'
-    expected_state = (
-        'xymodem_trnasfer\nLoadImageFromUsb30\nLoadBL1FromUsb30\n')
-    expected_stacktrace = data
-    expected_security_flag = True
-    self._validate_get_crash_data(data, expected_type, expected_address,
-                                  expected_state, expected_stacktrace,
-                                  expected_security_flag)
-
-  def test_gdb_sigtrap_and_libfuzzer(self):
-    """Test for GDB stack with libfuzzer."""
-    data = self._read_test_data('gdb_sigtrap_and_libfuzzer.txt')
-    expected_type = 'SIGTRAP'
-    expected_address = '0x000000000ac8'
-    expected_state = (
-        'xymodem_trnasfer\nLoadImageFromUsb30\nLoadBL1FromUsb30\n')
-    expected_stacktrace = data
-    expected_security_flag = True
     self._validate_get_crash_data(data, expected_type, expected_address,
                                   expected_state, expected_stacktrace,
                                   expected_security_flag)

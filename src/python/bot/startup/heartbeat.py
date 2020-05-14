@@ -28,7 +28,6 @@ import time
 
 from base import dates
 from base import tasks
-from base import utils
 from datastore import data_handler
 from datastore import data_types
 from datastore import ndb_init
@@ -59,7 +58,7 @@ def beat(previous_state, log_filename):
       try:
         command_line = ' '.join(process.cmdline())
       except (psutil.AccessDenied, psutil.NoSuchProcess, OSError):
-        utils.exc_clear()
+        sys.exc_clear()
         continue
 
       # Find the process running the main bot script.

@@ -54,7 +54,7 @@ DEFAULT_FAIL_WAIT = 1.5
 GOMA_DIR_LINE_REGEX = re.compile(r'^\s*goma_dir\s*=')
 HEARTBEAT_LAST_UPDATE_KEY = 'heartbeat_update'
 INPUT_DIR = 'inputs'
-MEMCACHE_TTL_IN_SECONDS = 30 * 60
+MEMCACHE_TTL_IN_SECONDS = 15 * 60
 
 NUM_TESTCASE_QUALITY_BITS = 3
 MAX_TESTCASE_QUALITY = 2**NUM_TESTCASE_QUALITY_BITS - 1
@@ -206,9 +206,9 @@ def filter_stacktrace(stacktrace):
   tmp_stacktrace_file = os.path.join(tmpdir, 'stacktrace.tmp')
 
   try:
-    with open(tmp_stacktrace_file, 'wb') as handle:
-      handle.write(unicode_stacktrace.encode('utf-8'))
-    with open(tmp_stacktrace_file, 'rb') as handle:
+    with open(tmp_stacktrace_file, 'w') as handle:
+      handle.write(stacktrace)
+    with open(tmp_stacktrace_file, 'r') as handle:
       key = blobs.write_blob(handle)
   except Exception:
     logs.log_error('Unable to write crash stacktrace to temporary file.')
@@ -560,7 +560,7 @@ def get_stacktrace(testcase, stack_attribute='crash_stacktrace'):
   # For App Engine, we can't write to local file, so use blobs.read_key instead.
   if environment.is_running_on_app_engine():
     key = result[len(data_types.BLOBSTORE_STACK_PREFIX):]
-    return str(blobs.read_key(key), 'utf-8', errors='replace')
+    return str(blobs.read_key(key), errors='replace')
 
   key = result[len(data_types.BLOBSTORE_STACK_PREFIX):]
   tmpdir = environment.get_value('BOT_TMPDIR')
@@ -770,7 +770,7 @@ def set_initial_testcase_metadata(testcase):
   gn_args_path = environment.get_value('GN_ARGS_PATH', '')
   if gn_args_path and os.path.exists(gn_args_path):
     gn_args = utils.read_data_from_file(
-        gn_args_path, eval_data=False, default='').decode('utf-8')
+        gn_args_path, eval_data=False, default='')
 
     # Remove goma_dir from gn args since it is only relevant to the machine that
     # did the build.
@@ -1063,7 +1063,6 @@ def update_heartbeat(force_update=False):
     heartbeat.task_end_time = tasks.get_task_end_time()
     heartbeat.last_beat_time = current_time
     heartbeat.source_version = utils.current_source_version()
-    heartbeat.platform_id = environment.get_platform_id()
     heartbeat.put()
 
     persistent_cache.set_value(

@@ -20,7 +20,6 @@ from bot.fuzzers.libFuzzer import fuzzer
 from system import environment
 from tests.core.bot.fuzzers import builtin_test
 from tests.test_libs import helpers as test_helpers
-from tests.test_libs import test_utils
 
 SCRIPT_DIR = os.path.abspath(os.path.dirname(__file__))
 
@@ -45,7 +44,6 @@ class GenerateArgumentsTests(unittest.TestCase):
 
     self.assertEqual(arguments, expected_arguments)
 
-  @test_utils.python2_only
   def test_generate_arguments_with_options_file(self):
     """Test generateArgumentsForFuzzer."""
     fuzzer_path = os.path.join(self.build_dir, 'fake1_fuzzer')

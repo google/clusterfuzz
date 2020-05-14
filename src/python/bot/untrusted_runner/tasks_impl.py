@@ -18,6 +18,8 @@ from google.protobuf import wrappers_pb2
 from google.protobuf.any_pb2 import Any
 import six
 
+from . import protobuf_utils
+
 from bot import testcase_manager
 from bot.fuzzers import engine
 from bot.tasks import corpus_pruning_task
@@ -52,23 +54,6 @@ def prune_corpus(request, _):
   result = corpus_pruning_task.do_corpus_pruning(
       context, request.last_execution_failed, request.revision)
 
-  cross_pollination_stats = None
-  if result.cross_pollination_stats:
-    cross_pollination_stats = untrusted_runner_pb2.CrossPollinationStats(
-        project_qualified_name=result.cross_pollination_stats.
-        project_qualified_name,
-        method=result.cross_pollination_stats.method,
-        sources=result.cross_pollination_stats.sources,
-        tags=result.cross_pollination_stats.tags,
-        initial_corpus_size=result.cross_pollination_stats.initial_corpus_size,
-        corpus_size=result.cross_pollination_stats.corpus_size,
-        initial_edge_coverage=result.cross_pollination_stats.
-        initial_edge_coverage,
-        edge_coverage=result.cross_pollination_stats.edge_coverage,
-        initial_feature_coverage=result.cross_pollination_stats.
-        initial_feature_coverage,
-        feature_coverage=result.cross_pollination_stats.feature_coverage)
-
   # Intentionally skip edge and function coverage values as those would come
   # from fuzzer coverage cron task (see src/go/server/cron/coverage.go).
   coverage_info = untrusted_runner_pb2.CoverageInfo(
@@ -85,7 +70,8 @@ def prune_corpus(request, _):
           crash_state=crash.crash_state,
           crash_type=crash.crash_type,
           crash_address=crash.crash_address,
-          crash_stacktrace=crash.crash_stacktrace,
+          crash_stacktrace=protobuf_utils.encode_utf8_if_unicode(
+              crash.crash_stacktrace),
           unit_path=crash.unit_path,
           security_flag=crash.security_flag,
       ) for crash in result.crashes
@@ -95,8 +81,7 @@ def prune_corpus(request, _):
       coverage_info=coverage_info,
       crashes=crashes,
       fuzzer_binary_name=result.fuzzer_binary_name,
-      revision=result.revision,
-      cross_pollination_stats=cross_pollination_stats)
+      revision=result.revision)
 
 
 def process_testcase(request, _):
@@ -120,54 +105,42 @@ def process_testcase(request, _):
       output=result.output)
 
 
-def _pack_values(values):
-  """Pack protobuf values."""
-  packed = {}
-  if values is None:
-    return packed
-
-  for key, value in six.iteritems(values):
-    packed_value = Any()
-    if isinstance(value, float):
-      packed_value.Pack(wrappers_pb2.DoubleValue(value=value))
-    elif isinstance(value, six.integer_types):
-      packed_value.Pack(wrappers_pb2.Int64Value(value=value))
-    elif isinstance(value, six.string_types):
-      packed_value.Pack(wrappers_pb2.StringValue(value=value))
-    else:
-      raise ValueError('Unknown stat type for ' + key)
-
-    packed[key] = packed_value
-
-  return packed
-
-
 def engine_fuzz(request, _):
   """Run engine fuzzer."""
   engine_impl = engine.get(request.engine)
-  result, fuzzer_metadata, strategies = fuzz_task.run_engine_fuzzer(
+  result, fuzzer_metadata = fuzz_task.run_engine_fuzzer(
       engine_impl, request.target_name, request.sync_corpus_directory,
       request.testcase_directory)
 
   crashes = [
       untrusted_runner_pb2.EngineCrash(
           input_path=crash.input_path,
-          stacktrace=crash.stacktrace,
+          stacktrace=protobuf_utils.encode_utf8_if_unicode(crash.stacktrace),
           reproduce_args=crash.reproduce_args,
           crash_time=crash.crash_time) for crash in result.crashes
   ]
 
-  packed_stats = _pack_values(result.stats)
-  packed_strategies = _pack_values(strategies)
+  packed_stats = {}
+  for key, value in six.iteritems(result.stats):
+    packed_value = Any()
+    if isinstance(value, float):
+      packed_value.Pack(wrappers_pb2.DoubleValue(value=value))
+    elif isinstance(value, int):
+      packed_value.Pack(wrappers_pb2.Int32Value(value=value))
+    elif isinstance(value, six.string_types):
+      packed_value.Pack(wrappers_pb2.StringValue(value=value))
+    else:
+      raise ValueError('Unknown stat type for ' + key)
+
+    packed_stats[key] = packed_value
 
   return untrusted_runner_pb2.EngineFuzzResponse(
-      logs=result.logs,
+      logs=protobuf_utils.encode_utf8_if_unicode(result.logs),
       command=result.command,
       crashes=crashes,
       stats=packed_stats,
       time_executed=result.time_executed,
-      fuzzer_metadata=fuzzer_metadata,
-      strategies=packed_strategies)
+      fuzzer_metadata=fuzzer_metadata)
 
 
 def engine_reproduce(request, _):

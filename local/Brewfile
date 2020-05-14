@@ -1,7 +1,8 @@
+tap "bazelbuild/tap", pin: true
+brew "bazel"
 brew "golang"
 brew "node"
 brew "nodeenv"
-brew "pipenv"
 brew "pkill"
-brew "python3"
+brew "python@2"
 brew "xz"

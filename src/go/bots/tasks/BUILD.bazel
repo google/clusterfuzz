@@ -1,0 +1,9 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "go_default_library",
+    srcs = ["tasks.go"],
+    importpath = "clusterfuzz/go/bots/tasks",
+    visibility = ["//visibility:public"],
+    deps = ["//go/base/persist:go_default_library"],
+)

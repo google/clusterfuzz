@@ -24,7 +24,6 @@ import unittest
 
 from system import path_patcher
 from tests.test_libs import helpers
-from tests.test_libs import test_utils
 
 
 class MockedBuffer(object):
@@ -34,7 +33,6 @@ class MockedBuffer(object):
     self.value = value
 
 
-@test_utils.python2_only
 class MetadataTest(unittest.TestCase):
   """Metadata test."""
 
@@ -89,7 +87,6 @@ class MetadataTest(unittest.TestCase):
         self.assertNotEqual(file, type(file_handle))
 
 
-@test_utils.python2_only
 class PatcherTest(object):
   """Patcher tests."""
 
@@ -191,7 +188,6 @@ class PatcherTest(object):
     self.underlying_mock.assert_has_calls([self.expected_call(self.path)])
 
 
-@test_utils.python2_only
 class ListdirTest(PatcherTest, unittest.TestCase):
   """Listdir test."""
 
@@ -208,7 +204,6 @@ class ListdirTest(PatcherTest, unittest.TestCase):
     return mock.call(path)
 
 
-@test_utils.python2_only
 class StatTest(PatcherTest, unittest.TestCase):
   """Stat test."""
 
@@ -225,7 +220,6 @@ class StatTest(PatcherTest, unittest.TestCase):
     return mock.call(path)
 
 
-@test_utils.python2_only
 class MakedirsTest(PatcherTest, unittest.TestCase):
   """Makedirs test."""
 
@@ -242,7 +236,6 @@ class MakedirsTest(PatcherTest, unittest.TestCase):
     return mock.call(path)
 
 
-@test_utils.python2_only
 class FileTest(PatcherTest, unittest.TestCase):
   """File test."""
 
@@ -271,7 +264,6 @@ class FileTest(PatcherTest, unittest.TestCase):
     return mock.call(path, 'wb')
 
 
-@test_utils.python2_only
 class OpenTest(PatcherTest, unittest.TestCase):
   """Open test."""
 
@@ -288,7 +280,6 @@ class OpenTest(PatcherTest, unittest.TestCase):
     return mock.call(path, 'wb')
 
 
-@test_utils.python2_only
 class OsPathExistsTest(PatcherTest, unittest.TestCase):
   """os.path.exists test."""
 
@@ -305,7 +296,6 @@ class OsPathExistsTest(PatcherTest, unittest.TestCase):
     return mock.call(path)
 
 
-@test_utils.python2_only
 class OsPathIsfileTest(PatcherTest, unittest.TestCase):
   """os.path.isfile test."""
 
@@ -322,7 +312,6 @@ class OsPathIsfileTest(PatcherTest, unittest.TestCase):
     return mock.call(path)
 
 
-@test_utils.python2_only
 class OsPathIsdirTest(PatcherTest, unittest.TestCase):
   """os.path.isdir test."""
 
@@ -339,7 +328,6 @@ class OsPathIsdirTest(PatcherTest, unittest.TestCase):
     return mock.call(path)
 
 
-@test_utils.python2_only
 class OsMkdirTest(PatcherTest, unittest.TestCase):
   """mkdir test."""
 

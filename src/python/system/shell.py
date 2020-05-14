@@ -13,7 +13,6 @@
 # limitations under the License.
 """Shell related functions."""
 
-from builtins import str
 import os
 import re
 import shlex
@@ -32,23 +31,12 @@ try:
 except ImportError:
   psutil = None
 
-_DEFAULT_LOW_DISK_SPACE_THRESHOLD = 5 * 1024 * 1024 * 1024  # 5 GB.
-_TRUSTED_HOST_LOW_DISK_SPACE_THRESHOLD = 2 * 1024 * 1024  # 2 GB.
+LOW_DISK_SPACE_THRESHOLD = 2 * 1024 * 1024 * 1024  # 2 GB
 FILE_COPY_BUFFER_SIZE = 10 * 1024 * 1024  # 10 MB.
 HANDLE_OUTPUT_FILE_TYPE_REGEX = re.compile(
-    br'.*pid:\s*(\d+)\s*type:\s*File\s*([a-fA-F0-9]+):\s*(.*)')
+    r'.*pid:\s*(\d+)\s*type:\s*File\s*([a-fA-F0-9]+):\s*(.*)')
 
 _system_temp_dir = None
-
-
-def _low_disk_space_threshold():
-  """Get the low disk space threshold."""
-  if environment.is_trusted_host(ensure_connected=False):
-    # Trusted hosts can run with less free space as they do not store builds or
-    # corpora.
-    return _TRUSTED_HOST_LOW_DISK_SPACE_THRESHOLD
-
-  return _DEFAULT_LOW_DISK_SPACE_THRESHOLD
 
 
 def copy_file(source_file_path, destination_file_path):
@@ -135,13 +123,12 @@ def clear_data_directories_on_low_disk_space():
     # Can't determine free disk space, bail out.
     return
 
-  if free_disk_space >= _low_disk_space_threshold():
+  if free_disk_space >= LOW_DISK_SPACE_THRESHOLD:
     return
 
-  logs.log_warn(
-      'Low disk space detected, clearing all data directories to free up space.'
-  )
   clear_data_directories()
+  logs.log_error(
+      'Low disk space detected, cleared all data directories to free up space.')
 
 
 def clear_device_temp_directories():
@@ -160,10 +147,7 @@ def clear_temp_directory(clear_user_profile_directories=True):
   """Clear the temporary directories."""
   temp_directory = environment.get_value('BOT_TMPDIR')
   remove_directory(temp_directory, recreate=True)
-
-  if environment.is_trusted_host():
-    from bot.untrusted_runner import file_host
-    file_host.clear_temp_directory()
+  os.chmod(temp_directory, 0o777)
 
   if not clear_user_profile_directories:
     return
@@ -240,9 +224,9 @@ def close_open_file_handles_if_needed(path):
     if not match:
       continue
 
-    process_id = match.group(1).decode('utf-8')
-    file_handle_id = match.group(2).decode('utf-8')
-    file_path = match.group(3).decode('utf-8')
+    process_id = match.group(1)
+    file_handle_id = match.group(2)
+    file_path = match.group(3)
 
     logs.log(
         'Closing file handle id %s for path %s.' % (file_handle_id, file_path))
@@ -348,36 +332,27 @@ def get_free_disk_space(path='/'):
   return psutil.disk_usage(path).free
 
 
-def get_interpreter(file_to_execute, is_blackbox_fuzzer=False):
+def get_interpreter(file_to_execute):
   """Gives the interpreter needed to execute |file_to_execute|."""
-  interpreters = {
+  interpreter_extension_map = {
       '.bash': 'bash',
       '.class': 'java',
       '.js': 'node',
       '.pl': 'perl',
-      '.py': sys.executable,
-      '.pyc': sys.executable,
+      '.py': 'python',
+      '.pyc': 'python',
       '.sh': 'sh'
   }
 
   try:
-    interpreter = interpreters[os.path.splitext(file_to_execute)[1]]
+    return interpreter_extension_map[os.path.splitext(file_to_execute)[1]]
   except KeyError:
     return None
 
-  # TODO(mbarbella): Remove this when fuzzers have been migrated to Python 3.
-  if (is_blackbox_fuzzer and interpreter == sys.executable and
-      environment.get_value('USE_PYTHON2_FOR_BLACKBOX_FUZZERS') and
-      sys.version_info.major == 3):
-    interpreter = 'python2'
 
-  return interpreter
-
-
-def get_execute_command(file_to_execute, is_blackbox_fuzzer=False):
+def get_execute_command(file_to_execute):
   """Return command to execute |file_to_execute|."""
-  interpreter_path = get_interpreter(
-      file_to_execute, is_blackbox_fuzzer=is_blackbox_fuzzer)
+  interpreter_path = get_interpreter(file_to_execute)
 
   # Hack for Java scripts.
   file_to_execute = file_to_execute.replace('.class', '')
@@ -466,7 +441,7 @@ def remove_directory(directory, recreate=False, ignore_errors=False):
     except:
       # Log errors for all cases except device or resource busy errors, as such
       # errors are expected in cases when mounts are used.
-      error_message = str(sys.exc_info()[1])
+      error_message = sys.exc_info()[1]
       if 'Device or resource busy' not in error_message:
         logs.log_warn(
             'Failed to remove directory %s failed because %s with %s failed. %s'
@@ -516,10 +491,7 @@ def walk(directory, **kwargs):
   # TODO(mbarbella): Remove this hack once the Python 3 migration is complete.
   # The os library has some explicit type checks that cause issues when newstrs
   # are passed.
-  if sys.version_info.major == 2:
-    return os.walk(utils.newstr_to_native_str(directory), **kwargs)
-
-  return os.walk(directory, **kwargs)
+  return os.walk(utils.newstr_to_native_str(directory), **kwargs)
 
 
 # Copy of shutil.which from Python 3.3 (unavailable in Python 2.7).

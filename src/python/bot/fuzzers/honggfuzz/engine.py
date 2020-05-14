@@ -19,7 +19,6 @@ import glob
 import os
 import re
 
-from base import utils
 from bot.fuzzers import dictionary_manager
 from bot.fuzzers import engine
 from metrics import logs
@@ -59,7 +58,7 @@ def _get_runner():
     raise HonggfuzzError('honggfuzz not found in build')
 
   os.chmod(honggfuzz_path, 0o755)
-  return new_process.UnicodeProcessRunner(honggfuzz_path)
+  return new_process.ProcessRunner(honggfuzz_path)
 
 
 def _find_sanitizer_stacktrace(reproducers_dir):
@@ -67,7 +66,7 @@ def _find_sanitizer_stacktrace(reproducers_dir):
   for stacktrace_path in glob.glob(
       os.path.join(reproducers_dir, _HF_SANITIZER_LOG_PREFIX + '*')):
     with open(stacktrace_path, 'rb') as f:
-      return utils.decode_to_unicode(f.read())
+      return f.read()
 
   return None
 
@@ -167,7 +166,7 @@ class HonggfuzzEngine(engine.Engine):
       reproducer_path = _get_reproducer_path(line)
       if reproducer_path:
         crashes.append(
-            engine.Crash(reproducer_path, sanitizer_stacktrace or '', [],
+            engine.Crash(reproducer_path, sanitizer_stacktrace, [],
                          int(fuzz_result.time_executed)))
         continue
 
@@ -192,7 +191,7 @@ class HonggfuzzEngine(engine.Engine):
       A ReproduceResult.
     """
     os.chmod(target_path, 0o775)
-    runner = new_process.UnicodeProcessRunner(target_path)
+    runner = new_process.ProcessRunner(target_path)
     with open(input_path) as f:
       result = runner.run_and_wait(timeout=max_time, stdin=f)
 

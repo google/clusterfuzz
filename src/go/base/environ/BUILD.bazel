@@ -1,0 +1,18 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "go_default_library",
+    srcs = ["environ.go"],
+    importpath = "clusterfuzz/go/base/environ",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//go/base/logs:go_default_library",
+    ],
+)
+
+go_test(
+    name = "go_default_test",
+    srcs = ["environ_test.go"],
+    embed = [":go_default_library"],
+    importpath = "clusterfuzz/go/base/environ",
+)

@@ -17,7 +17,6 @@ from __future__ import absolute_import
 from builtins import range
 import functools
 
-from . import errors
 from . import minimizer
 from . import utils
 
@@ -33,8 +32,6 @@ class ChunkMinimizer(minimizer.Minimizer):
   def _execute(self, data):
     """Minimize |data| using the algorithm from CF (but backwards)."""
     testcase = minimizer.Testcase(data, self)
-    if not self.validate_tokenizer(data, testcase):
-      raise errors.TokenizationFailureError('Chunk Minimizer')
 
     for lines_to_remove in self.chunk_sizes:
       remaining_tokens = testcase.get_required_token_indices()

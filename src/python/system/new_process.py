@@ -15,10 +15,8 @@
 
 from builtins import object
 
-from distutils import spawn
 import os
 import subprocess
-import sys
 import tempfile
 import threading
 import time
@@ -279,7 +277,7 @@ class ProcessRunner(object):
 
     # TODO(mbarbella): Remove this after the Python 3 conversion. Subprocess
     # contains some explicit type checks, causing errors when newstrs are used.
-    if env and sys.version_info.major == 2:
+    if env:
       env = {
           utils.newstr_to_native_str(k): utils.newstr_to_native_str(v)
           for k, v in env.items()
@@ -361,49 +359,3 @@ class ProcessRunner(object):
     result.command = process.command
 
     return result
-
-
-class UnicodeProcessRunnerMixin(object):
-  """Mixin for process runner subclasses to output unicode output."""
-
-  def run_and_wait(self, *args, **kwargs):  # pylint: disable=arguments-differ
-    """Overridden run_and_wait which always decodes the output."""
-    result = ProcessRunner.run_and_wait(self, *args, **kwargs)
-    if result.output is not None:
-      result.output = utils.decode_to_unicode(result.output)
-
-    return result
-
-
-class UnicodeProcessRunner(UnicodeProcessRunnerMixin, ProcessRunner):
-  """ProcessRunner which always returns unicode output."""
-
-
-class UnshareProcessRunnerMixin(object):
-  """ProcessRunner mixin which unshares."""
-
-  def get_command(self, additional_args=None):
-    """Overridden get_command."""
-    if environment.platform() != 'LINUX':
-      raise RuntimeError('UnshareProcessRunner only supported on Linux')
-
-    unshare_path = spawn.find_executable('unshare')
-    if not unshare_path:
-      raise RuntimeError('unshare not found')
-
-    command = [unshare_path]
-    command.extend([
-        '-n',  # Enter network namespace.
-    ])
-
-    command.append(self._executable_path)
-    command.extend(self._default_args)
-
-    if additional_args:
-      command.extend(additional_args)
-
-    return command
-
-
-class UnshareProcessRunner(UnshareProcessRunnerMixin, ProcessRunner):
-  """ProcessRunner which unshares."""

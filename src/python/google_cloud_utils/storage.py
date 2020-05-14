@@ -163,8 +163,8 @@ class GcsProvider(StorageProvider):
     try:
       client.buckets().insert(project=project_id, body=request_body).execute()
     except HttpError as e:
-      logs.log_warn('Failed to create bucket %s: %s' % (name, e))
-      raise
+      logs.log_error('Failed to create bucket %s: %s' % (name, e))
+      return False
 
     return True
 
@@ -221,9 +221,9 @@ class GcsProvider(StorageProvider):
       blob = bucket.blob(path, chunk_size=self._chunk_size())
       blob.download_to_filename(local_path)
     except google.cloud.exceptions.GoogleCloudError:
-      logs.log_warn('Failed to copy cloud storage file %s to local file %s.' %
-                    (remote_path, local_path))
-      raise
+      logs.log_error('Failed to copy cloud storage file %s to local file %s.' %
+                     (remote_path, local_path))
+      return False
 
     return True
 
@@ -244,9 +244,9 @@ class GcsProvider(StorageProvider):
         blob.upload_from_file(local_path_or_handle, rewind=True)
 
     except google.cloud.exceptions.GoogleCloudError:
-      logs.log_warn('Failed to copy local file %s to cloud storage file %s.' %
-                    (local_path_or_handle, remote_path))
-      raise
+      logs.log_error('Failed to copy local file %s to cloud storage file %s.' %
+                     (local_path_or_handle, remote_path))
+      return False
 
     return True
 
@@ -262,9 +262,9 @@ class GcsProvider(StorageProvider):
       target_bucket = client.bucket(target_bucket_name)
       source_bucket.copy_blob(source_blob, target_bucket, target_path)
     except google.cloud.exceptions.GoogleCloudError:
-      logs.log_warn('Failed to copy cloud storage file %s to cloud storage '
-                    'file %s.' % (remote_source, remote_target))
-      raise
+      logs.log_error('Failed to copy cloud storage file %s to cloud storage '
+                     'file %s.' % (remote_source, remote_target))
+      return False
 
     return True
 
@@ -277,12 +277,9 @@ class GcsProvider(StorageProvider):
       bucket = client.bucket(bucket_name)
       blob = bucket.blob(path, chunk_size=self._chunk_size())
       return blob.download_as_string()
-    except google.cloud.exceptions.GoogleCloudError as e:
-      if e.code == 404:
-        return None
-
-      logs.log_warn('Failed to read cloud storage file %s.' % remote_path)
-      raise
+    except google.cloud.exceptions.GoogleCloudError:
+      logs.log_error('Failed to read cloud storage file %s.' % remote_path)
+      return None
 
   def write_data(self, data, remote_path, metadata=None):
     """Write the data of a remote file."""
@@ -296,8 +293,8 @@ class GcsProvider(StorageProvider):
         blob.metadata = metadata
       blob.upload_from_string(data)
     except google.cloud.exceptions.GoogleCloudError:
-      logs.log_warn('Failed to write cloud storage file %s.' % remote_path)
-      raise
+      logs.log_error('Failed to write cloud storage file %s.' % remote_path)
+      return False
 
     return True
 
@@ -323,8 +320,8 @@ class GcsProvider(StorageProvider):
       bucket = client.bucket(bucket_name)
       bucket.delete_blob(path)
     except google.cloud.exceptions.GoogleCloudError:
-      logs.log_warn('Failed to delete cloud storage file %s.' % remote_path)
-      raise
+      logs.log_error('Failed to delete cloud storage file %s.' % remote_path)
+      return False
 
     return True
 
@@ -389,7 +386,7 @@ class FileSystemProvider(StorageProvider):
 
     fs_metadata_path = self.convert_path_for_write(remote_path,
                                                    self.METADATA_DIR)
-    with open(fs_metadata_path, 'w') as f:
+    with open(fs_metadata_path, 'wb') as f:
       json.dump(metadata, f)
 
   def convert_path(self, remote_path, directory=OBJECTS_DIR):
@@ -695,14 +692,10 @@ def set_bucket_iam_policy(client, bucket_name, iam_policy):
     return client.buckets().setIamPolicy(
         bucket=bucket_name, body=filtered_iam_policy).execute()
   except HttpError as e:
-    error_reason = _get_error_reason(e)
-    if error_reason == 'Invalid argument':
+    if _get_error_reason(e) == 'Invalid argument':
       # Expected error for non-Google emails or groups. Warn about these.
       logs.log_warn('Invalid Google email or group being added to bucket %s.' %
                     bucket_name)
-    elif error_reason and 'is of type "group"' in error_reason:
-      logs.log_warn('Failed to set IAM policy for %s bucket for a group: %s.' %
-                    (bucket_name, error_reason))
     else:
       logs.log_error('Failed to set IAM policies for bucket %s.' % bucket_name)
 
@@ -856,19 +849,9 @@ def write_data(data, cloud_storage_file_path, metadata=None):
 @retry.wrap(
     retries=DEFAULT_FAIL_RETRIES,
     delay=DEFAULT_FAIL_WAIT,
-    function='google_cloud_utils.storage.get_blobs')
-def get_blobs(cloud_storage_path, recursive=True):
-  """Return blobs under the given cloud storage path."""
-  for blob in _provider().list_blobs(cloud_storage_path, recursive=recursive):
-    yield blob
-
-
-@retry.wrap(
-    retries=DEFAULT_FAIL_RETRIES,
-    delay=DEFAULT_FAIL_WAIT,
     function='google_cloud_utils.storage.list_blobs')
 def list_blobs(cloud_storage_path, recursive=True):
-  """Return blob names under the given cloud storage path."""
+  """Return list of blobs under the given cloud storage path."""
   for blob in _provider().list_blobs(cloud_storage_path, recursive=recursive):
     yield blob['name']
 

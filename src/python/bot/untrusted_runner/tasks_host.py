@@ -22,6 +22,7 @@ import six
 
 from . import host
 
+from base import utils
 from bot import testcase_manager
 from bot.fuzzers import engine
 from bot.tasks import corpus_pruning_task
@@ -80,31 +81,17 @@ def do_corpus_pruning(context, last_execution_failed, revision):
           crash_state=crash.crash_state,
           crash_type=crash.crash_type,
           crash_address=crash.crash_address,
-          crash_stacktrace=crash.crash_stacktrace,
+          crash_stacktrace=utils.decode_to_unicode(crash.crash_stacktrace),
           unit_path=crash.unit_path,
           security_flag=crash.security_flag,
       ) for crash in response.crashes
   ]
 
-  result_stats = response.cross_pollination_stats
-  pollination_stats = corpus_pruning_task.CrossPollinationStats(
-      project_qualified_name=result_stats.project_qualified_name,
-      method=result_stats.method,
-      sources=result_stats.sources,
-      tags=result_stats.tags,
-      initial_corpus_size=result_stats.initial_corpus_size,
-      corpus_size=result_stats.corpus_size,
-      initial_edge_coverage=result_stats.initial_edge_coverage,
-      edge_coverage=result_stats.edge_coverage,
-      initial_feature_coverage=result_stats.initial_feature_coverage,
-      feature_coverage=result_stats.feature_coverage)
-
   return corpus_pruning_task.CorpusPruningResult(
       coverage_info=coverage_info,
       crashes=crashes,
       fuzzer_binary_name=response.fuzzer_binary_name,
-      revision=response.revision,
-      cross_pollination_stats=pollination_stats)
+      revision=response.revision)
 
 
 def process_testcase(engine_name, tool_name, target_name, arguments,
@@ -137,25 +124,6 @@ def process_testcase(engine_name, tool_name, target_name, arguments,
       response.output)
 
 
-def _unpack_values(values):
-  """Unpack protobuf values."""
-  unpacked = {}
-  for key, packed_value in six.iteritems(values):
-    if packed_value.Is(wrappers_pb2.DoubleValue.DESCRIPTOR):
-      value = wrappers_pb2.DoubleValue()
-    elif packed_value.Is(wrappers_pb2.Int64Value.DESCRIPTOR):
-      value = wrappers_pb2.Int64Value()
-    elif packed_value.Is(wrappers_pb2.StringValue.DESCRIPTOR):
-      value = wrappers_pb2.StringValue()
-    else:
-      raise ValueError('Unknown stat type for ' + key)
-
-    packed_value.Unpack(value)
-    unpacked[key] = value.value
-
-  return unpacked
-
-
 def engine_fuzz(engine_impl, target_name, sync_corpus_directory,
                 testcase_directory):
   """Run engine fuzzer on untrusted worker."""
@@ -170,23 +138,34 @@ def engine_fuzz(engine_impl, target_name, sync_corpus_directory,
   crashes = [
       engine.Crash(
           input_path=file_host.rebase_to_host_root(crash.input_path),
-          stacktrace=crash.stacktrace,
+          stacktrace=utils.decode_to_unicode(crash.stacktrace),
           reproduce_args=crash.reproduce_args,
           crash_time=crash.crash_time) for crash in response.crashes
   ]
 
-  unpacked_stats = _unpack_values(response.stats)
-  unpacked_strategies = _unpack_values(response.strategies)
+  unpacked_stats = {}
+  for key, packed_value in six.iteritems(response.stats):
+    if packed_value.Is(wrappers_pb2.DoubleValue.DESCRIPTOR):
+      value = wrappers_pb2.DoubleValue()
+    elif packed_value.Is(wrappers_pb2.Int32Value.DESCRIPTOR):
+      value = wrappers_pb2.Int32Value()
+    elif packed_value.Is(wrappers_pb2.StringValue.DESCRIPTOR):
+      value = wrappers_pb2.StringValue()
+    else:
+      raise ValueError('Unknown stat type for ' + key)
+
+    packed_value.Unpack(value)
+    unpacked_stats[key] = value.value
 
   result = engine.FuzzResult(
-      logs=response.logs,
+      logs=utils.decode_to_unicode(response.logs),
       command=list(response.command),
       crashes=crashes,
       stats=unpacked_stats,
       time_executed=response.time_executed)
 
   file_host.pull_testcases_from_worker()
-  return result, dict(response.fuzzer_metadata), unpacked_strategies
+  return result, dict(response.fuzzer_metadata)
 
 
 def engine_reproduce(engine_impl, target_name, testcase_path, arguments,

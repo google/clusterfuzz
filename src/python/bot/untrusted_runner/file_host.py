@@ -106,7 +106,7 @@ def list_files(path, recursive=False):
 def copy_file_to_worker(host_path, worker_path):
   """Copy file from host to worker. |worker_path| must be a full path (including
   the filename). Any directories will be created if needed."""
-  with open(host_path, 'rb') as f:
+  with open(host_path) as f:
     request_iterator = file_utils.file_chunk_generator(f)
     metadata = [('path-bin', worker_path.encode('utf-8'))]
 
@@ -212,11 +212,6 @@ def clear_build_urls_directory():
   remove_directory(
       rebase_to_worker_root(environment.get_value('BUILD_URLS_DIR')),
       recreate=True)
-
-
-def clear_temp_directory():
-  """Clear the temp directory on the worker."""
-  remove_directory(environment.get_value('WORKER_BOT_TMPDIR'), recreate=True)
 
 
 def push_testcases_to_worker():

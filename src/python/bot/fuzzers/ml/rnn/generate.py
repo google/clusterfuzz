@@ -72,12 +72,12 @@ def main(args):
   # Use timestamp as part of identifier for each testcase generated.
   timestamp = str(math.trunc(time.time()))
 
-  with tf.compat.v1.Session() as session:
+  with tf.Session() as session:
     print('\nusing model {} to generate {} inputs...'.format(model_path, count))
 
     # Restore the model.
-    new_saver = tf.compat.v1.train.import_meta_graph(
-        model_path + constants.MODEL_META_SUFFIX)
+    new_saver = tf.train.import_meta_graph(model_path +
+                                           constants.MODEL_META_SUFFIX)
     new_saver.restore(session, model_path)
 
     corpus_files_info = utils.get_files_info(input_dir)

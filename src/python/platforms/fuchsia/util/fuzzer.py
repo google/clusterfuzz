@@ -73,11 +73,9 @@ class Fuzzer(object):
     """ Returns whether or not a given pkg/tgt pair is an example fuzzer.
     (Helper function to prevent us from wasting cycles on example fuzzers in
     production). """
-    # Strip any sanitizer extensions
+    # We want to remove the noop-fuzzer regardless of the extension.
     tgt = os.path.splitext(tgt)[0]
-    return ((pkg == 'example-fuzzers' and
-             tgt not in ('out_of_memory_fuzzer', 'toy_example_arbitrary')) or
-            (pkg == 'zircon_fuzzers' and tgt == 'noop-fuzzer'))
+    return pkg == 'example_fuzzers' or tgt == 'noop-fuzzer'
 
   @classmethod
   def filter(cls, fuzzers, name, sanitizer=None, example_fuzzers=True):
@@ -153,11 +151,8 @@ class Fuzzer(object):
                                           self.tgt)
     self._foreground = foreground
 
-    # Required for backwards compatibility with older builds where Zircon
-    # fuzzers had a sanitizer suffix
     if pkg == 'zircon_fuzzers' and sanitizer:
-      if (pkg, tgt) not in self.host.fuzzers:
-        self.tgt += '.' + sanitizer
+      self.tgt += '.' + sanitizer
 
   def __str__(self):
     return self.pkg + '/' + self.tgt

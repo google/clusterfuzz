@@ -1,0 +1,14 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "go_default_library",
+    srcs = ["persist.go"],
+    importpath = "clusterfuzz/go/base/persist",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//go/base/environ:go_default_library",
+        "//go/base/fs:go_default_library",
+        "//go/base/logs:go_default_library",
+        "@com_github_pkg_errors//:go_default_library",
+    ],
+)

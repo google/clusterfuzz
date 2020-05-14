@@ -71,7 +71,7 @@ message RunProcessRequest {
 message RunProcessResponse {
   optional int32 return_code = 1;
   optional double execution_time = 2;
-  optional string output = 3;
+  optional bytes output = 3;
 }
 
 // Supported popen args.
@@ -156,7 +156,7 @@ message UpdateSourceResponse {
 }
 
 message SymbolizeStacktraceRequest {
-  optional string unsymbolized_crash_stacktrace = 1;
+  optional bytes unsymbolized_crash_stacktrace = 1;
   optional bool enable_inline_frames = 2;
 }
 
@@ -185,7 +185,7 @@ message CorpusCrash {
   optional string crash_state = 1;
   optional string crash_type = 2;
   optional string crash_address = 3;
-  optional string crash_stacktrace = 4;
+  optional bytes crash_stacktrace = 4;
   optional string unit_path = 5;
   optional bool security_flag = 6;
 }
@@ -220,24 +220,10 @@ message PruneCorpusResponse {
   repeated CorpusCrash crashes = 2;
   optional string fuzzer_binary_name = 3;
   optional int64 revision = 4;
-  optional CrossPollinationStats cross_pollination_stats = 5;
 }
 
 message StatRequest {
   optional string path = 1;
-}
-
-message CrossPollinationStats {
-  optional string project_qualified_name = 1;
-  optional string method = 2;
-  optional string sources = 3;
-  optional string tags = 4;
-  optional int32 initial_corpus_size = 5;
-  optional int32 corpus_size = 6;
-  optional int32 initial_edge_coverage = 7;
-  optional int32 edge_coverage = 8;
-  optional int32 initial_feature_coverage = 9;
-  optional int32 feature_coverage = 10;
 }
 
 message StatResponse {
@@ -285,7 +271,7 @@ message EngineReproduceResult {
   repeated string command = 1;
   optional int64 return_code = 2;
   optional double time_executed = 3;
-  optional string output = 4;
+  optional bytes output = 4;
 }
 
 message EngineFuzzRequest {
@@ -297,19 +283,18 @@ message EngineFuzzRequest {
 
 message EngineCrash {
   optional string input_path = 1;
-  optional string stacktrace = 2;
+  optional bytes stacktrace = 2;
   repeated string reproduce_args = 3;
   optional double crash_time = 4;
 }
 
 message EngineFuzzResponse {
-  optional string logs = 1;
+  optional bytes logs = 1;
   repeated string command = 2;
   repeated EngineCrash crashes = 3;
   map<string, google.protobuf.Any> stats = 4;
   optional double time_executed = 5;
   map<string, string> fuzzer_metadata = 6;
-  map<string, google.protobuf.Any> strategies = 7;
 }
 
 message EngineReproduceRequest {

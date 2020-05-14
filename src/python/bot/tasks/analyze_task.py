@@ -18,7 +18,6 @@ standard_library.install_aliases()
 import datetime
 import six
 
-from base import errors
 from base import tasks
 from base import utils
 from bot import testcase_manager
@@ -26,7 +25,6 @@ from bot.fuzzers import engine_common
 from bot.tasks import setup
 from bot.tasks import task_creation
 from build_management import build_manager
-from build_management import revisions
 from chrome import crash_uploader
 from crash_analysis import crash_analyzer
 from crash_analysis import severity_analyzer
@@ -71,36 +69,11 @@ def close_invalid_testcase_and_update_status(testcase, metadata, status):
   """Closes an invalid testcase and updates metadata."""
   testcase.status = status
   testcase.open = False
-  testcase.minimized_keys = 'NA'
-  testcase.regression = 'NA'
-  testcase.set_impacts_as_na()
   testcase.fixed = 'NA'
   testcase.put()
 
   metadata.status = status
   metadata.put()
-
-
-def setup_build(testcase):
-  """Set up a custom or regular build based on revision. For regular builds,
-  if a provided revision is not found, set up a build with the
-  closest revision <= provided revision."""
-  revision = testcase.crash_revision
-
-  if revision and not build_manager.is_custom_binary():
-    build_bucket_path = build_manager.get_primary_bucket_path()
-    revision_list = build_manager.get_revisions_list(
-        build_bucket_path, testcase=testcase)
-    if not revision_list:
-      logs.log_error('Failed to fetch revision list.')
-      return
-
-    revision_index = revisions.find_min_revision_index(revision_list, revision)
-    if revision_index is None:
-      raise errors.BuildNotFoundError(revision, testcase.job_type)
-    revision = revision_list[revision_index]
-
-  build_manager.setup_build(revision)
 
 
 def execute_task(testcase_id, job_type):
@@ -145,13 +118,13 @@ def execute_task(testcase_id, job_type):
   if metadata.retries is not None:
     environment.set_value('CRASH_RETRIES', metadata.retries)
 
-  # Set up testcase and get absolute testcase path.
+  # Setup testcase and get absolute testcase path.
   file_list, _, testcase_file_path = setup.setup_testcase(testcase, job_type)
   if not file_list:
     return
 
-  # Set up build.
-  setup_build(testcase)
+  # Set up a custom or regular build based on revision.
+  build_manager.setup_build(testcase.crash_revision)
 
   # Check if we have an application path. If not, our build failed
   # to setup correctly.
@@ -338,14 +311,7 @@ def execute_task(testcase_id, job_type):
     duplicate_testcase.put()
 
   # Set testcase and metadata status if not set already.
-  if testcase.status == 'Duplicate':
-    # For testcase uploaded by bots (with quiet flag), don't create additional
-    # tasks.
-    if metadata.quiet_flag:
-      close_invalid_testcase_and_update_status(testcase, metadata, 'Duplicate')
-      return
-  else:
-    # New testcase.
+  if testcase.status != 'Duplicate':
     testcase.status = 'Processed'
     metadata.status = 'Confirmed'
 

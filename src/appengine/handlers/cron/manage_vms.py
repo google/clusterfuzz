@@ -96,10 +96,10 @@ def get_template_body(gce_project,
   if tls_cert:
     template_body['properties']['metadata']['items'].extend([{
         'key': 'tls-cert',
-        'value': tls_cert.cert_contents.decode('utf-8'),
+        'value': tls_cert.cert_contents,
     }, {
         'key': 'tls-key',
-        'value': tls_cert.key_contents.decode('utf-8'),
+        'value': tls_cert.key_contents,
     }])
 
   return template_body

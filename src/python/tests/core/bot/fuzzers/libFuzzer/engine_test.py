@@ -150,11 +150,7 @@ class PickStrategiesTest(fake_fs_unittest.TestCase):
   """pick_strategies tests."""
 
   def setUp(self):
-    test_helpers.patch(self, [
-        'bot.fuzzers.engine_common.is_lpm_fuzz_target',
-        'random.SystemRandom.randint',
-    ])
-    self.mock.is_lpm_fuzz_target.return_value = False
+    test_helpers.patch(self, ['random.SystemRandom.randint'])
 
     test_utils.set_up_pyfakefs(self)
     self.fs.create_dir('/path/corpus')
@@ -348,7 +344,6 @@ class FuzzTest(fake_fs_unittest.TestCase):
         'strategy_fork': 0,
         'strategy_mutator_plugin': 0,
         'strategy_mutator_plugin_radamsa': 0,
-        'strategy_peach_grammar_mutation': '',
         'strategy_random_max_len': 0,
         'strategy_recommended_dict': 0,
         'strategy_selection_method': 'default',
@@ -432,8 +427,6 @@ class BaseIntegrationTest(unittest.TestCase):
     os.environ['INPUT_DIR'] = TEMP_DIR
 
     test_helpers.patch(self, [
-        'bot.fuzzers.dictionary_manager.DictionaryManager.'
-        'update_recommended_dictionary',
         'bot.fuzzers.engine_common.get_merge_timeout',
         'bot.fuzzers.engine_common.random_choice',
         'bot.fuzzers.mutator_plugin._download_mutator_plugin_archive',
@@ -663,6 +656,8 @@ class IntegrationTests(BaseIntegrationTest):
     test_helpers.patch(self, [
         'bot.fuzzers.dictionary_manager.DictionaryManager.'
         'parse_recommended_dictionary_from_log_lines',
+        'bot.fuzzers.dictionary_manager.DictionaryManager.'
+        'update_recommended_dictionary',
     ])
 
     self.mock.parse_recommended_dictionary_from_log_lines.return_value = set([
@@ -809,7 +804,8 @@ class IntegrationTests(BaseIntegrationTest):
     self.assertEqual(1, self.mock.log_error.call_count)
 
     self.assertEqual(1, len(results.crashes))
-    self.assertEqual(TEMP_DIR, os.path.dirname(results.crashes[0].input_path))
+    self.assertEqual(fuzzer_utils.get_temp_dir(),
+                     os.path.dirname(results.crashes[0].input_path))
     self.assertEqual(0, os.path.getsize(results.crashes[0].input_path))
 
   @parameterized.parameterized.expand(['77', '27'])
@@ -834,7 +830,8 @@ class IntegrationTests(BaseIntegrationTest):
     results = engine_impl.fuzz(target_path, options, TEMP_DIR, 10)
 
     self.assertEqual(1, len(results.crashes))
-    self.assertEqual(TEMP_DIR, os.path.dirname(results.crashes[0].input_path))
+    self.assertEqual(fuzzer_utils.get_temp_dir(),
+                     os.path.dirname(results.crashes[0].input_path))
     self.assertEqual(0, os.path.getsize(results.crashes[0].input_path))
 
   def test_fuzz_invalid_dict(self):
@@ -859,22 +856,6 @@ class IntegrationTests(BaseIntegrationTest):
     options.arguments.append('-dict=' + invalid_dict_path)
 
     engine_impl.fuzz(target_path, options, TEMP_DIR, 10)
-
-
-@unittest.skip('needs root')
-@test_utils.integration
-class UnshareIntegrationTests(IntegrationTests):
-  """Unshare runner integration tests."""
-
-  def setUp(self):
-    super(UnshareIntegrationTests, self).setUp()
-    os.environ['USE_UNSHARE'] = 'True'
-
-  def compare_arguments(self, target_path, arguments, corpora_or_testcase,
-                        actual):
-    """Compare expected arguments."""
-    self.assertListEqual(actual, ['/usr/bin/unshare', '-n', target_path] +
-                         arguments + corpora_or_testcase)
 
 
 @test_utils.integration
@@ -909,6 +890,7 @@ class MinijailIntegrationTests(IntegrationTests):
 
   def test_exit_failure_logged(self):
     """Exit failure is not logged in minijail."""
+    pass
 
   @parameterized.parameterized.expand(['1', '77', '27'])
   def test_exit_target_bug_not_logged(self, exit_code):
@@ -932,7 +914,8 @@ class MinijailIntegrationTests(IntegrationTests):
     results = engine_impl.fuzz(target_path, options, TEMP_DIR, 10)
 
     self.assertEqual(1, len(results.crashes))
-    self.assertEqual(TEMP_DIR, os.path.dirname(results.crashes[0].input_path))
+    self.assertEqual(fuzzer_utils.get_temp_dir(),
+                     os.path.dirname(results.crashes[0].input_path))
     self.assertEqual(0, os.path.getsize(results.crashes[0].input_path))
 
 
@@ -975,17 +958,17 @@ class IntegrationTestsFuchsia(BaseIntegrationTest):
     Additionally, tests that pushing a corpus to the target works & produces
     an expanded corpus."""
     environment.set_value('JOB_NAME', 'libfuzzer_asan_fuchsia')
-    environment.set_value('FUZZ_TARGET', 'example-fuzzers/trap_fuzzer')
+    environment.set_value('FUZZ_TARGET', 'example_fuzzers/trap_fuzzer')
     build_manager.setup_build()
 
     _, corpus_path = setup_testcase_and_corpus('aaaa', 'fuchsia_corpus')
-    num_files_original = len(os.listdir(corpus_path))
+    num_files_original = len([corpfile for corpfile in os.listdir(corpus_path)])
     engine_impl = engine.LibFuzzerEngine()
 
     self.mock.get_fuzz_timeout.return_value = get_fuzz_timeout(20.0)
-    options = engine_impl.prepare(corpus_path, 'example-fuzzers/trap_fuzzer',
+    options = engine_impl.prepare(corpus_path, 'example_fuzzers/trap_fuzzer',
                                   DATA_DIR)
-    results = engine_impl.fuzz('example-fuzzers/trap_fuzzer', options, TEMP_DIR,
+    results = engine_impl.fuzz('example_fuzzers/trap_fuzzer', options, TEMP_DIR,
                                20)
 
     # If we don't get a crash, something went wrong.
@@ -993,7 +976,10 @@ class IntegrationTestsFuchsia(BaseIntegrationTest):
     # Check that the command was invoked with a corpus argument.
     self.assertIn('data/corpus/new', results.command)
     # Check that new units were added to the corpus.
-    num_files_new = len(os.listdir(os.path.join(TEMP_DIR, 'temp-1337/new')))
+    num_files_new = len([
+        corpfile
+        for corpfile in os.listdir(os.path.join(TEMP_DIR, 'temp-1337/new'))
+    ])
     self.assertGreater(num_files_new, num_files_original)
 
   @unittest.skipIf(
@@ -1001,13 +987,13 @@ class IntegrationTestsFuchsia(BaseIntegrationTest):
       'Temporarily disabling the Fuchsia tests until build size reduced.')
   def test_fuzzer_can_boot_and_run_reproducer(self):
     """Tests running a testcase that should cause a fast, predictable crash."""
-    environment.set_value('FUZZ_TARGET', 'example-fuzzers/overflow_fuzzer')
+    environment.set_value('FUZZ_TARGET', 'example_fuzzers/overflow_fuzzer')
     environment.set_value('JOB_NAME', 'libfuzzer_asan_fuchsia')
     build_manager.setup_build()
     testcase_path, _ = setup_testcase_and_corpus('fuchsia_crash',
                                                  'empty_corpus')
     engine_impl = engine.LibFuzzerEngine()
-    result = engine_impl.reproduce('example-fuzzers/overflow_fuzzer',
+    result = engine_impl.reproduce('example_fuzzers/overflow_fuzzer',
                                    testcase_path,
                                    ['-timeout=25', '-rss_limit_mb=2560'], 30)
 
@@ -1025,7 +1011,7 @@ class IntegrationTestsFuchsia(BaseIntegrationTest):
     # log_warn to plain log to avoid creating a loop)
     self.mock.log_warn.side_effect = logs.log
 
-    environment.set_value('FUZZ_TARGET', 'example-fuzzers/overflow_fuzzer')
+    environment.set_value('FUZZ_TARGET', 'example_fuzzers/overflow_fuzzer')
     environment.set_value('JOB_NAME', 'libfuzzer_asan_fuchsia')
     build_manager.setup_build()
     testcase_path, _ = setup_testcase_and_corpus('fuchsia_crash',
@@ -1039,7 +1025,7 @@ class IntegrationTestsFuchsia(BaseIntegrationTest):
 
     # Try to fuzz against the dead qemu to trigger automatic recovery behavior
     engine_impl = engine.LibFuzzerEngine()
-    engine_impl.reproduce('example-fuzzers/overflow_fuzzer', testcase_path,
+    engine_impl.reproduce('example_fuzzers/overflow_fuzzer', testcase_path,
                           ['-timeout=25', '-rss_limit_mb=2560'], 30)
 
     # Check the logs for the shutdown sequence
@@ -1050,7 +1036,7 @@ class IntegrationTestsFuchsia(BaseIntegrationTest):
       'Temporarily disabling the Fuchsia tests until build size reduced.')
   def test_minimize_testcase(self):
     """Tests running a testcase that should be able to minimize."""
-    environment.set_value('FUZZ_TARGET', 'example-fuzzers/trap_fuzzer')
+    environment.set_value('FUZZ_TARGET', 'example_fuzzers/trap_fuzzer')
     environment.set_value('JOB_NAME', 'libfuzzer_asan_fuchsia')
     build_manager.setup_build()
     testcase_path, _ = setup_testcase_and_corpus('fuchsia_overlong_crash',
@@ -1058,7 +1044,7 @@ class IntegrationTestsFuchsia(BaseIntegrationTest):
     minimize_output_path = os.path.join(TEMP_DIR, 'output')
 
     engine_impl = engine.LibFuzzerEngine()
-    result = engine_impl.minimize_testcase('example-fuzzers/trap_fuzzer',
+    result = engine_impl.minimize_testcase('example_fuzzers/trap_fuzzer',
                                            ['-runs=1000000'], testcase_path,
                                            minimize_output_path, 30)
     with open(minimize_output_path) as f:
@@ -1160,9 +1146,6 @@ class IntegrationTestsAndroid(BaseIntegrationTest, android_helpers.AndroidTest):
     # New items should've been added to the corpus.
     self.assertNotEqual(0, len(os.listdir(corpus_path)))
 
-    self.assertNotIn('HWAddressSanitizer:', results.logs)
-    self.assertIn('Logcat:', results.logs)
-
   def test_fuzz_crash(self):
     """Tests fuzzing (crash)."""
     self.mock.get_fuzz_timeout.return_value = get_fuzz_timeout(5.0)
@@ -1206,7 +1189,6 @@ class IntegrationTestsAndroid(BaseIntegrationTest, android_helpers.AndroidTest):
     self.assertIn(
         'ERROR: HWAddressSanitizer: SEGV on unknown address '
         '0x000000000000', results.logs)
-    self.assertNotIn('Logcat:', results.logs)
 
   def test_fuzz_from_subset(self):
     """Tests fuzzing from corpus subset."""
@@ -1279,6 +1261,8 @@ class IntegrationTestsAndroid(BaseIntegrationTest, android_helpers.AndroidTest):
     test_helpers.patch(self, [
         'bot.fuzzers.dictionary_manager.DictionaryManager.'
         'parse_recommended_dictionary_from_log_lines',
+        'bot.fuzzers.dictionary_manager.DictionaryManager.'
+        'update_recommended_dictionary',
     ])
 
     self.mock.parse_recommended_dictionary_from_log_lines.return_value = set([

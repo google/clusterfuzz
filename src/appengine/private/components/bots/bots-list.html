@@ -24,7 +24,7 @@
   <template>
     <style>
       div.info {
-        width: 60%;
+        width: 70%;
         margin: 10px;
       }
 
@@ -39,7 +39,7 @@
       }
 
       table.labels {
-        width: 40%;
+        width: 30%;
         padding: 5px;
       }
 
@@ -48,7 +48,7 @@
         text-align: right;
         font-size: 13px;
         padding: 2px 4px;
-        margin: 5px 5px 0px 0px;
+        margin-top: 5px;
       }
 
       span.alive {
@@ -64,11 +64,6 @@
       span.revision {
         border: 1px solid #01579B;
         color: #01579B;
-      }
-
-      span.platform_id {
-        border: 1px solid #C51162;
-        color: #C51162;
       }
     </style>
 
@@ -119,11 +114,6 @@
                     <span class="label revision">
                       [[item.source_version]]
                     </span>
-                    <template is="dom-if" if="[[item.platform_id]]">
-                      <span class="label platform_id">
-                        [[item.platform_id]]
-                      </span>
-                    </template>
                   </td>
                 </tr>
               </table>
@@ -164,7 +154,6 @@
             searchStrings.every(s => (
                 el['bot_name'] && el['bot_name'].includes(s) ||
                 el['task_payload'] && el['task_payload'].includes(s) ||
-                el['platform_id'] && el['platform_id'].includes(s) ||
                 el['alive'] && el['alive'].includes(s))));
       }
     }
