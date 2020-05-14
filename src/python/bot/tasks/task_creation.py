@@ -25,12 +25,6 @@ from google_cloud_utils import blobs
 from google_cloud_utils import pubsub
 from system import environment
 
-BISECT_SANITIZER_MAP = {
-    'ASAN': 'address',
-    'UBSAN': 'undefined',
-    'MSAN': 'memory',
-}
-
 
 def mark_unreproducible_if_flaky(testcase, potentially_flaky):
   """Check to see if a test case appears to be flaky."""
@@ -243,10 +237,13 @@ def _get_commits(commit_range, job_type):
   """Get commits from range."""
   start, end = revisions.get_start_and_end_revision(commit_range)
   components = revisions.get_component_range_list(start, end, job_type)
-  if ':' not in components[0]['link_text']:
-    return components[0]['link_text'], components[0]['link_text']
 
-  old_commit, new_commit = components[0]['link_text'].split(':')
+  commits = components[0]['link_text']
+
+  if ':' not in commits:
+    return commits, commits
+
+  old_commit, new_commit = commits.split(':')
   if old_commit == '0':
     old_commit = ''
 
@@ -265,10 +262,12 @@ def request_bisection(testcase, bisect_type):
     old_commit, new_commit = _get_commits(testcase.regression,
                                           testcase.job_type)
   else:
-    raise ValueError('Invalid bisection type ' + bisect_type)
+    raise ValueError('Invalid bisection type: ' + bisect_type)
 
   reproducer = blobs.read_key(testcase.minimized_keys or testcase.fuzzed_keys)
   target = testcase.get_fuzz_target()
+  if not target:
+    return
 
   pubsub_client = pubsub.PubSubClient()
   pubsub_client.publish(
@@ -280,8 +279,9 @@ def request_bisection(testcase, bisect_type):
               'project_name':
                   target.project,
               'sanitizer':
-                  BISECT_SANITIZER_MAP[environment.get_memory_tool_name(
-                      testcase.job_type)],
+                  environment.SANITIZER_NAME_MAP[
+                      environment.get_memory_tool_name(testcase.job_type)
+                  ],
               'fuzz_target':
                   target.binary,
               'old_commit':
