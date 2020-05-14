@@ -44,7 +44,7 @@ class OpenReproducibleTestcaseTasksScheduler(base_handler.Handler):
               testcase.key.id(),
               testcase.job_type,
               queue=tasks.queue_for_testcase(testcase))
-        except Exception:
+        except tasks.Error:
           logs.log_error('Failed to add task.')
           continue
 

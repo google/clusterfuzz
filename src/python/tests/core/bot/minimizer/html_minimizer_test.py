@@ -39,7 +39,7 @@ class HTMLMinimizerTest(unittest.TestCase):
     self.mock.html_minimizer.side_effect = self._mock_html_minimization
     self.mock.line_minimizer.side_effect = self._mock_line_minimization
 
-    self._html_data_begin = b"""
+    self._html_data_begin = """
     <!-- /mnt/fuzzer/gecko-tests/layout/reftests/bugs/256180-2.html -->
     <!DOCTYPE html>
     <html>
@@ -48,7 +48,7 @@ class HTMLMinimizerTest(unittest.TestCase):
     <font></font>
     <script>"""
 
-    self._script_data = b"""
+    self._script_data = """
     function a() {
         var a = 0;
     }
@@ -57,7 +57,7 @@ class HTMLMinimizerTest(unittest.TestCase):
         var b = document.createTextNode("PASS");
     }"""
 
-    self._html_data_end = b"""</script>
+    self._html_data_end = """</script>
     <style>
         div {
             display: table-cell;
@@ -77,16 +77,16 @@ class HTMLMinimizerTest(unittest.TestCase):
     """Mock js_minimization. Returns simple js_minimized code."""
     # pylint: disable=unused-argument
     return minimizer.token_combiner(
-        [b'var b = document.createTextNode("PASS")\n'])
+        ['var b = document.createTextNode("PASS")\n'])
 
   def _mock_html_minimization(self, minimizer, data):
     """Mock html minimization. Returns minimized top tags when its called for
     the first section, otherwise returns minimized bottom section"""
     # The first 3 times the html_minimizer is called will be for the begining.
-    if b'<html>' in data:
-      return minimizer.token_combiner([b'<html>\n<script>\n'])
+    if "<html>" in data:
+      return minimizer.token_combiner(['<html>\n<script>\n'])
 
-    return minimizer.token_combiner([b'</script>\n</html>'])
+    return minimizer.token_combiner(['</script>\n</html>'])
 
   def _mock_line_minimization(self, minimizer, data):
     """Mock line minimization. Assume data is already line-minimized."""
@@ -121,18 +121,18 @@ class HTMLMinimizerTest(unittest.TestCase):
   def test_minimization_returns_correct_result(self):
     """Test that the minimizer goes through all of the correct sub-minimizers
     gives the correct tokenizers, and returns the minimized product."""
-    minimized = b'<html>\n<script>\nvar b = document.createTextNode("PASS")' \
-                b'\n</script>\n</html>'
+    minimized = '<html>\n<script>\nvar b = document.createTextNode("PASS")' \
+                '\n</script>\n</html>'
     res = self._minimizer.minimize(self._simple_test)
     self.assertEqual(res, minimized)
 
   def test_combine_worker_tokens_with_prefix_and_suffix(self):
     """Test that combine worker tokens works the way that the minimizer expects
     it to."""
-    prefix = b'PRE'
-    suffix = b'POST'
-    tokens = [b'Here', b'Are', b'The', b'Tokens']
+    prefix = "PRE"
+    suffix = "POST"
+    tokens = ["Here", "Are", "The", "Tokens"]
 
     combo = self._minimizer.combine_worker_tokens(tokens, prefix, suffix)
 
-    self.assertEqual(combo, b'PREHereAreTheTokensPOST')
+    self.assertEqual(combo, "PREHereAreTheTokensPOST")

@@ -49,7 +49,7 @@ MEMCACHE_OLD_TTL_IN_SECONDS = 24 * 60 * 60
 
 # New fuzzer stats change, and aren't as likely to be reaccessed, don't cache
 # for very long.
-MEMCACHE_TODAY_TTL_IN_SECONDS = 30 * 60
+MEMCACHE_TODAY_TTL_IN_SECONDS = 15 * 60
 
 
 class QueryField(object):
@@ -525,20 +525,18 @@ class PreloadHandler(base_handler.Handler):
       group_by = 'by-fuzzer'
       try:
         build_results(fuzzer, job_filter, group_by, date_start, date_end)
-      except Exception as e:
-        if 'No stats.' not in repr(e):
-          logs.log_error('Failed to preload %s %s %s %s %s.' %
-                         (fuzzer, job_filter, group_by, date_start, date_end))
+      except Exception:
+        logs.log_error('Failed to preload %s %s %s %s %s.' %
+                       (fuzzer, job_filter, group_by, date_start, date_end))
 
       if not job_filter:
         # Group by job only makes sense for queries that do not specify job.
         group_by = 'by-job'
         try:
           build_results(fuzzer, job_filter, group_by, date_start, date_end)
-        except Exception as e:
-          if 'No stats.' not in repr(e):
-            logs.log_error('Failed to preload %s %s %s %s %s.' %
-                           (fuzzer, job_filter, group_by, date_start, date_end))
+        except Exception:
+          logs.log_error('Failed to preload %s %s %s %s %s.' %
+                         (fuzzer, job_filter, group_by, date_start, date_end))
 
 
 class RefreshCacheHandler(base_handler.Handler):

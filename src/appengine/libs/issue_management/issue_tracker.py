@@ -293,9 +293,6 @@ class IssueTracker(object):
     seen_issue_ids = []
     while True:
       original_issue = self.get_issue(original_issue_id)
-      if not original_issue:
-        return None
-
       seen_issue_ids.append(original_issue_id)
 
       if not original_issue.merged_into:

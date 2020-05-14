@@ -1,0 +1,19 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "go_default_library",
+    srcs = [
+        "fs.go",
+        "server.go",
+    ],
+    importpath = "clusterfuzz/go/untrusted_runner/worker",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//go/base/environ:go_default_library",
+        "//go/base/fs:go_default_library",
+        "//go/fuzzers:go_default_library",
+        "//protos:untrusted_runner_go_proto",
+        "@com_github_golang_protobuf//proto:go_default_library",
+        "@org_golang_google_grpc//metadata:go_default_library",
+    ],
+)

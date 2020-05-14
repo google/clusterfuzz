@@ -13,7 +13,6 @@
 # limitations under the License.
 """Cleanup task for cleaning up unneeded testcases."""
 
-import collections
 import datetime
 import json
 import random
@@ -58,8 +57,6 @@ TOP_CRASHES_IGNORE_CRASH_STATES = ['NULL']
 
 FUZZ_TARGET_UNUSED_THRESHOLD = 15
 UNUSED_HEARTBEAT_THRESHOLD = 15
-
-ProjectMap = collections.namedtuple('ProjectMap', 'jobs platforms')
 
 
 def _get_predator_result_item(testcase, key, default=None):
@@ -109,24 +106,17 @@ def cleanup_testcases_and_issues():
   top_crashes_by_project_and_platform_map = (
       get_top_crashes_for_all_projects_and_platforms())
 
-  utils.python_gc()
-
-  testcases_processed = 0
-  empty_issue_tracker_policy = issue_tracker_policy.get_empty()
   for testcase_key in testcase_keys:
-    testcase_id = testcase_key.id()
     try:
-      testcase = data_handler.get_testcase_by_id(testcase_id)
+      testcase = data_handler.get_testcase_by_id(testcase_key.id())
     except errors.InvalidTestcaseError:
       # Already deleted.
       continue
 
-    logs.log('Processing testcase %d.' % testcase_id)
-
     issue = issue_tracker_utils.get_issue_for_testcase(testcase)
     policy = issue_tracker_utils.get_issue_tracker_policy_for_testcase(testcase)
     if not policy:
-      policy = empty_issue_tracker_policy
+      policy = issue_tracker_policy.get_empty()
 
     # Issue updates.
     update_os_labels(policy, testcase, issue)
@@ -159,10 +149,6 @@ def cleanup_testcases_and_issues():
     # Testcase deletion rules.
     delete_unreproducible_testcase_with_no_issue(testcase)
 
-    testcases_processed += 1
-    if testcases_processed % 100 == 0:
-      utils.python_gc()
-
 
 def cleanup_unused_fuzz_targets_and_jobs():
   """Clean up unused FuzzTarget and FuzzTargetJob entities."""
@@ -184,11 +170,12 @@ def cleanup_unused_fuzz_targets_and_jobs():
   ndb_utils.delete_multi(to_delete)
 
 
-def get_jobs_and_platforms_for_project():
-  """Return a map of projects to jobs and platforms map to use for picking top
-  crashes."""
+def get_jobs_and_platforms_for_top_crashes():
+  """Return list of jobs and platforms to use for picking top crashes."""
+  jobs = set()
+  platforms = set()
+
   all_jobs = ndb_utils.get_all_from_model(data_types.Job)
-  projects_to_jobs_and_platforms = {}
   for job in all_jobs:
     job_environment = job.get_environment()
 
@@ -205,14 +192,10 @@ def get_jobs_and_platforms_for_project():
     if utils.string_is_true(job_environment.get('EXCLUDE_FROM_TOP_CRASHES')):
       continue
 
-    if job.project not in projects_to_jobs_and_platforms:
-      projects_to_jobs_and_platforms[job.project] = ProjectMap(set(), set())
+    jobs.add(job.name)
+    platforms.add(job_platform_to_real_platform(job.platform))
 
-    projects_to_jobs_and_platforms[job.project].jobs.add(job.name)
-    projects_to_jobs_and_platforms[job.project].platforms.add(
-        job_platform_to_real_platform(job.platform))
-
-  return projects_to_jobs_and_platforms
+  return jobs, platforms
 
 
 @memoize.wrap(memoize.Memcache(12 * 60 * 60))
@@ -267,24 +250,23 @@ def get_top_crashes_for_all_projects_and_platforms():
     # No crash stats available, skip.
     return {}
 
-  projects_to_jobs_and_platforms = (get_jobs_and_platforms_for_project())
+  jobs, platforms = get_jobs_and_platforms_for_top_crashes()
+  project_names = data_handler.get_all_project_names()
   top_crashes_by_project_and_platform_map = {}
 
-  for project_name in projects_to_jobs_and_platforms:
+  for project_name in project_names:
     top_crashes_by_project_and_platform_map[project_name] = {}
 
-    project_map = projects_to_jobs_and_platforms[project_name]
-    for platform in project_map.platforms:
+    for platform in platforms:
       where_clause = (
           'crash_type NOT IN UNNEST(%s) AND '
           'crash_state NOT IN UNNEST(%s) AND '
           'job_type IN UNNEST(%s) AND '
           'platform LIKE %s AND '
-          'project = %s' % (json.dumps(TOP_CRASHES_IGNORE_CRASH_TYPES),
-                            json.dumps(TOP_CRASHES_IGNORE_CRASH_STATES),
-                            json.dumps(list(project_map.jobs)),
-                            json.dumps(platform.lower() + '%'),
-                            json.dumps(project_name)))
+          'project = %s' %
+          (json.dumps(TOP_CRASHES_IGNORE_CRASH_TYPES),
+           json.dumps(TOP_CRASHES_IGNORE_CRASH_STATES), json.dumps(list(jobs)),
+           json.dumps(platform.lower() + '%'), json.dumps(project_name)))
 
       _, rows = crash_stats.get(
           end=last_hour,
@@ -296,15 +278,10 @@ def get_top_crashes_for_all_projects_and_platforms():
           sort_by='total_count',
           offset=0,
           limit=TOP_CRASHES_LIMIT)
-      if not rows:
-        continue
-
-      top_crashes_by_project_and_platform_map[project_name][platform] = [{
-          'crashState': row['crashState'],
-          'crashType': row['crashType'],
-          'isSecurity': row['isSecurity'],
-          'totalCount': row['totalCount'],
-      } for row in rows if row['totalCount'] >= TOP_CRASHES_MIN_THRESHOLD]
+      if rows:
+        rows = [s for s in rows if s['totalCount'] >= TOP_CRASHES_MIN_THRESHOLD]
+      top_crashes_by_project_and_platform_map[project_name][platform] = (
+          rows or [])
 
   return top_crashes_by_project_and_platform_map
 
@@ -846,7 +823,7 @@ def notify_uploader_when_testcase_is_processed(policy, testcase, issue):
     return
 
   notify = not upload_metadata.quiet_flag
-  if issue and not testcase.duplicate_of:
+  if issue:
     issue_description = data_handler.get_issue_description(testcase)
     _update_issue_when_uploaded_testcase_is_processed(
         policy, testcase, issue, issue_description,

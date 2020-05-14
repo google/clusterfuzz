@@ -100,7 +100,7 @@ TAG_NAME
     ;
 
 TAG_WHITESPACE
-    : [ \t\r\n]
+    : [ \t\r\n] -> skip
     ;
 
 fragment

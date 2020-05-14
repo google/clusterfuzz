@@ -54,9 +54,7 @@ NO_BUILDS_THRESHOLD = datetime.timedelta(days=2)
 MIN_CONSECUTIVE_BUILD_FAILURES = 2
 
 # Number of failures after the last reminder/initial filing to send a reminder.
-# This used to be 3 days, but now we may have up to two failures a day since
-# https://github.com/google/oss-fuzz/pull/3585 was landed.
-REMINDER_INTERVAL = 6
+REMINDER_INTERVAL = 3
 
 
 class OssFuzzBuildStatusException(Exception):
@@ -71,8 +69,7 @@ def _get_issue_body(project_name, build_id, build_type):
               'To reproduce locally, please see: '
               'https://google.github.io/oss-fuzz/advanced-topics/reproducing'
               '#reproducing-build-failures\n\n'
-              '<b>This bug tracker is not being monitored by OSS-Fuzz team.</b>'
-              ' If you have any questions, please create an issue at '
+              'If you have any questions, please file a bug on '
               'https://github.com/google/oss-fuzz/issues/new.\n\n'
               '**This bug will be automatically closed within a '
               'day once it is fixed.**')

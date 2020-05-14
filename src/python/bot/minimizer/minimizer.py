@@ -20,7 +20,6 @@ from builtins import range
 from future import standard_library
 standard_library.install_aliases()
 
-from metrics import logs
 import copy
 import functools
 import os
@@ -36,6 +35,11 @@ DEFAULT_TESTS_PER_THREAD = 4
 
 MAX_MERGE_BATCH_SIZE = 32
 PROGRESS_REPORT_INTERVAL = 300
+
+
+class AntlrDecodeError(Exception):
+  """Raised when Antlr can't minimize input because it is not unicode."""
+  pass
 
 
 class DummyLock(object):
@@ -151,7 +155,7 @@ class Testcase(object):
       try:
         self.tokens = minimizer.tokenizer(data)
       except UnicodeDecodeError:
-        raise errors.AntlrDecodeError
+        raise AntlrDecodeError
     else:
       self.tokens = data
 
@@ -477,7 +481,6 @@ class Testcase(object):
     """Get the result of minimization."""
     # Done with minimization, output log one more time
     self._report_progress(is_final_progress_report=True)
-
     if not self.minimizer.tokenize:
       return self.get_required_tokens()
     return self.get_current_testcase_data()
@@ -493,12 +496,12 @@ class Testcase(object):
 
 def _default_tokenizer(s):
   """Default string tokenizer which splits on newlines."""
-  return s.split(b'\n')
+  return s.split('\n')
 
 
 def _default_combiner(tokens):
   """Default token combiner which assumes each token is a line."""
-  return b'\n'.join(tokens)
+  return '\n'.join(tokens)
 
 
 class Minimizer(object):
@@ -571,34 +574,8 @@ class Minimizer(object):
       # minimized test case is stored with it so that we can recover the work
       # that had been done up to that point.
       testcase = error.testcase
-    except errors.TokenizationFailureError:
-      logs.log('Tokenized data did not match original data. Defaulting to line'
-               'minimization.')
-      # In situation where the tokenizer does not work, we still want to use
-      # the token combiner. This will not change the data unless
-      # token combiner changes the data such as appending extra data to the
-      # start or end. If this is the case, that change will be expected
-      # in the return.
-      return self.token_combiner([data])
 
     return testcase.get_result()
-
-  def validate_tokenizer(self, data, testcase):
-    """Validate that the tokenizer correctly tokenized the data. This is
-    necessary because if the tokenizer does not recognize a character, it will
-    skip it."""
-    # If data is a list, it means we're not minimizing a test case but another
-    # feature such as files or command line arguments. In these cases, we don't
-    # rely on a tokenizer.
-    if isinstance(data, list):
-      return True
-
-    # For most token_combiners, using the combiner on data like below will do
-    # nothing, but in situations where data is changed in the token combiner
-    # such as data being appended to the start or end of data we want to make
-    # sure the same change happens to both before comparison.
-    data = self.token_combiner([data])
-    return testcase.get_current_testcase_data() == data
 
   @staticmethod
   def run(data, thread_count=DEFAULT_THREAD_COUNT, file_extension=''):

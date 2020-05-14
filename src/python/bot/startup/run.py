@@ -68,9 +68,8 @@ def start_bot(bot_command):
   except Exception:
     pass
 
-  log_message = (
-      'Command: %s %s (exit=%s)\n' % (command, arguments, exit_code) +
-      b'\n'.join(store_output.output).decode('utf-8', errors='ignore'))
+  log_message = ('Command: %s %s (exit=%s)\n%s' % (
+      command, arguments, exit_code, '\n'.join(store_output.output)))
 
   if exit_code == 0:
     logs.log(log_message)

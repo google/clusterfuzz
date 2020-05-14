@@ -76,14 +76,17 @@ def get_value(key, default_value=None, constructor=None):
       value_str = f.read()
   except IOError:
     logs.log_error('Failed to read %s from persistent cache.' % key)
-    return default_value
+    value_str = None
+
+  if value_str is None:
+    return None
 
   try:
     value = json_utils.loads(value_str)
   except Exception:
-    logs.log_warn('Non-serializable value read from cache key %s: "%s"' %
-                  (key, value_str))
-    return default_value
+    logs.log_error('Non-serializable value read from cache key %s: "%s"' %
+                   (key, value_str))
+    value = default_value
 
   if constructor:
     try:
@@ -92,7 +95,7 @@ def get_value(key, default_value=None, constructor=None):
       logs.log_warn('Failed to construct value "%s" using %s '
                     'and key "%s" in persistent cache. Using default value %s.'
                     % (value, constructor, key, default_value))
-      return default_value
+      value = default_value
 
   return value
 

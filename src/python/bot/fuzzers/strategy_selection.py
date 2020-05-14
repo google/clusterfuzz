@@ -136,11 +136,6 @@ def generate_weighted_strategy_pool(strategy_list, use_generator, engine_name):
       if elem['engine'] == engine_name
   ]
 
-  if not distribution_tuples:
-    logs.log_warn('Tried to generate a weighted strategy pool, but do not have '
-                  'strategy probabilities for %s fuzzing engine.' % engine_name)
-    return generate_default_strategy_pool(strategy_list, use_generator)
-
   strategy_selection = utils.random_weighted_choice(distribution_tuples,
                                                     'probability')
   strategy_name = strategy_selection.strategy_name

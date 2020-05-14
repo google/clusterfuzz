@@ -29,23 +29,13 @@ from libs.issue_management import issue_tracker_utils
 
 def _is_privileged_user(email):
   """Check if an email is in the privileged users list."""
-  if local_config.AuthConfig().get('all_users_privileged'):
-    return True
-
   privileged_user_emails = (db_config.get_value('privileged_users') or
                             '').splitlines()
-  return any(
-      utils.emails_equal(email, privileged_user_email)
-      for privileged_user_email in privileged_user_emails)
+  for privileged_user_email in privileged_user_emails:
+    if utils.emails_equal(email, privileged_user_email):
+      return True
 
-
-def _is_blacklisted_user(email):
-  """Check if an email is in the privileged users list."""
-  blacklisted_user_emails = (db_config.get_value('blacklisted_users') or
-                             '').splitlines()
-  return any(
-      utils.emails_equal(email, blacklisted_user_email)
-      for blacklisted_user_email in blacklisted_user_emails)
+  return False
 
 
 def get_user_job_type():
@@ -99,9 +89,6 @@ def get_access(need_privileged_access=False, job_type=None, fuzzer_name=None):
     return UserAccess.Redirected
 
   email = user.email
-  if _is_blacklisted_user(email):
-    return UserAccess.Denied
-
   if _is_privileged_user(email):
     return UserAccess.Allowed
 

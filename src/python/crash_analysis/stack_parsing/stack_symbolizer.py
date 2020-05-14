@@ -276,14 +276,13 @@ class LLVMSymbolizer(Symbolizer):
     result = []
     try:
       symbolizer_input = '"%s" %s' % (binary, offset)
-      self.pipe.stdin.write(symbolizer_input.encode('utf-8') + b'\n')
-      self.pipe.stdin.flush()
+      print(symbolizer_input, file=self.pipe.stdin)
       while True:
-        function_name = self.pipe.stdout.readline().rstrip().decode('utf-8')
+        function_name = self.pipe.stdout.readline().rstrip()
         if not function_name:
           break
 
-        file_name = self.pipe.stdout.readline().rstrip().decode('utf-8')
+        file_name = self.pipe.stdout.readline().rstrip()
         result.append(get_stack_frame(binary, addr, function_name, file_name))
 
     except Exception:
@@ -321,11 +320,10 @@ class Addr2LineSymbolizer(Symbolizer):
       return ['%s in' % addr]
 
     try:
-      symbolizer_input = str(offset).encode('utf-8')
-      self.pipe.stdin.write(symbolizer_input + b'\n')
-      self.pipe.stdin.flush()
-      function_name = self.pipe.stdout.readline().rstrip().decode('utf-8')
-      file_name = self.pipe.stdout.readline().rstrip().decode('utf-8')
+      symbolizer_input = str(offset)
+      print(symbolizer_input, file=self.pipe.stdin)
+      function_name = self.pipe.stdout.readline().rstrip()
+      file_name = self.pipe.stdout.readline().rstrip()
     except Exception:
       logs.log_error('Symbolization using addr2line failed for: "%s %s".' %
                      (binary, str(offset)))

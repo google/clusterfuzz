@@ -37,7 +37,6 @@ from future import standard_library
 standard_library.install_aliases()
 from builtins import object
 import os
-import multiprocessing
 import time
 import traceback
 
@@ -186,14 +185,10 @@ def main():
       return
 
     # Clear the current exception.
-    utils.exc_clear()
+    sys.exc_clear()
 
 
 if __name__ == '__main__':
-  if sys.version_info.major == 3:
-    # TODO(ochang): Remove check once all migrated to Python 3.
-    multiprocessing.set_start_method('spawn')
-
   try:
     with ndb_init.context():
       main()

@@ -245,7 +245,6 @@ class PreparePredatorRequestBodyTest(ComponentRevisionPatchingTest):
     actual_result = testcase.get_metadata('predator_result')
     self.assertEqual(actual_result, expected_result)
 
-  @test_utils.python2_only
   def test_reproducible_regression_range(self):
     """Test reproducible with regression range."""
     testcase = test_utils.create_generic_testcase()
@@ -335,7 +334,6 @@ class PreparePredatorRequestBodyTest(ComponentRevisionPatchingTest):
     actual_message = json.loads(actual_message.data)
     self.assertDictEqual(actual_message, expected_message)
 
-  @test_utils.python2_only
   def test_reproducible_regression_range_with_zero_start_revision(self):
     """Test reproducible with regression range with 0 start."""
     testcase = test_utils.create_generic_testcase()
@@ -400,7 +398,6 @@ class PreparePredatorRequestBodyTest(ComponentRevisionPatchingTest):
     actual_message = json.loads(actual_message.data)
     self.assertDictEqual(actual_message, expected_message)
 
-  @test_utils.python2_only
   def test_unreproducible(self):
     """Test unreproducible."""
     testcase = test_utils.create_generic_testcase()

@@ -82,19 +82,16 @@ def get_files_info(directory):
   return files_info_list
 
 
-def encode_text(bytes_data):
-  """Encode byte string to a list of integers.
+def encode_text(string_data):
+  """Encode string data to a list of integers.
 
   Args:
-    bytes_data: Byte string.
+    string_data: String data.
 
   Returns:
     An encoded list of integers representing code points.
   """
-  if sys.version_info.major == 3:
-    return list(bytes_data)
-
-  return list(map(ord, bytes_data))
+  return list(map(ord, string_data))
 
 
 def decode_to_text(encoded_list):

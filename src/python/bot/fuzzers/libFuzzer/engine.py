@@ -39,7 +39,7 @@ from system import shell
 ENGINE_ERROR_MESSAGE = 'libFuzzer: engine encountered an error'
 DICT_PARSING_FAILED_REGEX = re.compile(
     r'ParseDictionaryFile: error in line (\d+)')
-MULTISTEP_MERGE_SUPPORT_TOKEN = b'fuzz target overwrites its const input'
+MULTISTEP_MERGE_SUPPORT_TOKEN = 'fuzz target overwrites its const input'
 
 
 def _project_qualified_fuzzer_name(target_path):
@@ -59,8 +59,8 @@ def _is_multistep_merge_supported(target_path):
   # multi step merge: https://github.com/llvm/llvm-project/commit/f054067.
   if os.path.exists(target_path):
     with open(target_path, 'rb') as file_handle:
-      return utils.search_bytes_in_file(MULTISTEP_MERGE_SUPPORT_TOKEN,
-                                        file_handle)
+      return utils.search_string_in_file(MULTISTEP_MERGE_SUPPORT_TOKEN,
+                                         file_handle)
 
   return False
 
@@ -101,13 +101,12 @@ class LibFuzzerEngine(engine.Engine):
       A FuzzOptions object.
     """
     arguments = fuzzer.get_arguments(target_path)
-    grammar = fuzzer.get_grammar(target_path)
     strategy_pool = strategy_selection.generate_weighted_strategy_pool(
         strategy_list=strategy.LIBFUZZER_STRATEGY_LIST,
         use_generator=True,
         engine_name=self.name)
     strategy_info = libfuzzer.pick_strategies(strategy_pool, target_path,
-                                              corpus_dir, arguments, grammar)
+                                              corpus_dir, arguments)
 
     arguments.extend(strategy_info.arguments)
 
@@ -156,9 +155,9 @@ class LibFuzzerEngine(engine.Engine):
         strategy_info.extra_env, strategy_info.use_dataflow_tracing,
         strategy_info.is_mutations_run)
 
-  def _create_empty_testcase_file(self, reproducers_dir):
+  def _create_empty_testcase_file(self):
     """Create an empty testcase file in temporary directory."""
-    _, path = tempfile.mkstemp(dir=reproducers_dir)
+    _, path = tempfile.mkstemp(dir=fuzzer_utils.get_temp_dir())
     return path
 
   def _create_temp_corpus_dir(self, name):
@@ -273,7 +272,7 @@ class LibFuzzerEngine(engine.Engine):
           ' (target={target}).'.format(target=project_qualified_fuzzer_name),
           engine_output=fuzz_result.output)
 
-    log_lines = fuzz_result.output.splitlines()
+    log_lines = utils.decode_to_unicode(fuzz_result.output).splitlines()
     # Output can be large, so save some memory by removing reference to the
     # original output which is no longer needed.
     fuzz_result.output = None
@@ -285,8 +284,7 @@ class LibFuzzerEngine(engine.Engine):
     # libFuzzer, this is most likely a startup crash. Use an empty testcase to
     # to store it as a crash.
     if not crash_testcase_file_path and fuzz_result.return_code:
-      crash_testcase_file_path = self._create_empty_testcase_file(
-          reproducers_dir)
+      crash_testcase_file_path = self._create_empty_testcase_file()
 
     # Parse stats information based on libFuzzer output.
     parsed_stats = libfuzzer.parse_log_stats(log_lines)
@@ -489,11 +487,10 @@ class LibFuzzerEngine(engine.Engine):
     if result.return_code != 0:
       raise MergeError('Merging new testcases failed: ' + result.output)
 
-    merge_output = result.output
-    merge_stats = stats.parse_stats_from_merge_log(merge_output.splitlines())
+    merge_stats = stats.parse_stats_from_merge_log(result.output.splitlines())
 
     # TODO(ochang): Get crashes found during merge.
-    return engine.FuzzResult(merge_output, result.command, [], merge_stats,
+    return engine.FuzzResult(result.output, result.command, [], merge_stats,
                              result.time_executed)
 
   def minimize_testcase(self, target_path, arguments, input_path, output_path,

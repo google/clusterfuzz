@@ -96,7 +96,7 @@ class GcsCorpusTest(unittest.TestCase):
         'cp', '-I', 'gs://bucket/'
     ])
 
-    mock_popen.communicate.assert_called_with(b'/dir/a\n/dir/b')
+    mock_popen.communicate.assert_called_with('/dir/a\n/dir/b')
 
     self.mock.cpu_count.return_value = 2
     corpus = corpus_manager.GcsCorpus('bucket')
@@ -117,9 +117,9 @@ class RsyncErrorHandlingTest(unittest.TestCase):
   def test_rsync_error_below_threshold(self):
     """Test rsync returning errors (but they're below threshold)."""
     output = (
-        b'blah\n'
-        b'blah\n'
-        b'CommandException: 10 files/objects could not be copied/removed.\n')
+        'blah\n'
+        'blah\n'
+        'CommandException: 10 files/objects could not be copied/removed.\n')
 
     self.mock._count_corpus_files.return_value = 10  # pylint: disable=protected-access
     self.mock.run_gsutil.return_value = new_process.ProcessResult(
@@ -146,9 +146,9 @@ class RsyncErrorHandlingTest(unittest.TestCase):
     """Test rsync returning errors (below threshold, but with not found errors
     and overall error count more than threshold)."""
     output = (
-        b'blah\n' + b'[Errno 2] No such file or directory\n' * 10 +
-        b'NotFoundException: 404 gs://bucket/file001 does not exist.\n' * 180 +
-        b'CommandException: 200 files/objects could not be copied/removed.\n')
+        'blah\n' +
+        'NotFoundException: 404 gs://bucket/file001 does not exist.\n' * 190 +
+        'CommandException: 200 files/objects could not be copied/removed.\n')
 
     self.mock._count_corpus_files.return_value = 10  # pylint: disable=protected-access
     self.mock.run_gsutil.return_value = new_process.ProcessResult(
@@ -174,9 +174,9 @@ class RsyncErrorHandlingTest(unittest.TestCase):
   def test_rsync_error_above_threshold(self):
     """Test rsync returning errors (above threshold)."""
     output = (
-        b'blah\n'
-        b'blah\n'
-        b'CommandException: 11 files/objects could not be copied/removed.\n')
+        'blah\n'
+        'blah\n'
+        'CommandException: 11 files/objects could not be copied/removed.\n')
 
     self.mock.run_gsutil.return_value = new_process.ProcessResult(
         command=['/fake'],
@@ -257,7 +257,7 @@ class FuzzTargetCorpusTest(fake_filesystem_unittest.TestCase):
 
     corpus = corpus_manager.FuzzTargetCorpus('libFuzzer', 'fuzzer')
     self.assertTrue(corpus.upload_files(['/dir/a', '/dir/b']))
-    mock_popen.communicate.assert_called_with(b'/dir/a\n/dir/b')
+    mock_popen.communicate.assert_called_with('/dir/a\n/dir/b')
 
     self.assertEqual(self.mock.Popen.call_args[0][0], [
         '/gsutil_path/gsutil', '-m', 'cp', '-I', 'gs://bucket/libFuzzer/fuzzer/'

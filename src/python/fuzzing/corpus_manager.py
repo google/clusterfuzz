@@ -39,11 +39,10 @@ except:
 BACKUP_ARCHIVE_FORMAT = 'zip'
 CORPUS_FILES_SYNC_TIMEOUT = 60 * 60
 LATEST_BACKUP_TIMESTAMP = 'latest'
-PUBLIC_BACKUP_TIMESTAMP = 'public'
 STATIC_CORPUS_GCS_PATH_SUFFIX = '_static'
 
-RSYNC_ERROR_REGEX = (br'CommandException:\s*(\d+)\s*files?/objects? '
-                     br'could not be copied/removed')
+RSYNC_ERROR_REGEX = (r'CommandException:\s*(\d+)\s*files?/objects? '
+                     'could not be copied/removed')
 
 MAX_SYNC_ERRORS = 10
 
@@ -58,8 +57,7 @@ def _rsync_errors_below_threshold(gsutil_result, max_errors):
 
   # Ignore NotFoundException(s) since they can happen when files can get deleted
   # e.g. when pruning task is updating corpus.
-  error_count -= gsutil_result.output.count(b'NotFoundException')
-  error_count -= gsutil_result.output.count(b'No such file or directory')
+  error_count -= gsutil_result.output.count('NotFoundException')
 
   return error_count <= max_errors
 

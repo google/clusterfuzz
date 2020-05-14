@@ -47,8 +47,6 @@ TESTS_LAST_UPDATE_KEY = 'tests_last_update'
 TESTS_UPDATE_INTERVAL_DAYS = 1
 
 MANIFEST_FILENAME = 'clusterfuzz-source.manifest'
-if sys.version_info.major == 3:
-  MANIFEST_FILENAME += '.3'
 
 
 def _rename_dll_for_update(absolute_filepath):
@@ -65,11 +63,7 @@ def _platform_deployment_filename():
       'Darwin': 'macos'
   }
 
-  base_filename = platform_mappings[platform.system()]
-  if sys.version_info.major == 3:
-    base_filename += '-3'
-
-  return base_filename + '.zip'
+  return platform_mappings[platform.system()] + '.zip'
 
 
 def _deployment_file_url(filename):
@@ -127,7 +121,7 @@ def get_local_source_revision():
 def get_remote_source_revision(source_manifest_url):
   """Get remote revision. We refactor this method out, so that we can mock
     it."""
-  return storage.read_data(source_manifest_url).decode('utf-8').strip()
+  return storage.read_data(source_manifest_url).strip()
 
 
 def get_newer_source_revision():
@@ -272,7 +266,7 @@ def update_source_code():
   local_manifest_path = os.path.join(root_directory,
                                      utils.LOCAL_SOURCE_MANIFEST)
   source_version = utils.read_data_from_file(
-      local_manifest_path, eval_data=False).decode('utf-8').strip()
+      local_manifest_path, eval_data=False)
   logs.log('Source code updated to %s.' % source_version)
 
 
@@ -337,12 +331,12 @@ def run():
     # Update heartbeat with current time.
     data_handler.update_heartbeat()
 
+    # Download new layout tests once per day.
+    update_tests_if_needed()
+
     # Check overall free disk space. If we are running too low, clear all
     # data directories like builds, fuzzers, data bundles, etc.
     shell.clear_data_directories_on_low_disk_space()
-
-    # Download new layout tests once per day.
-    update_tests_if_needed()
   except Exception:
     logs.log_error('Error occurred while running update task.')
 

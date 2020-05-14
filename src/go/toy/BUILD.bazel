@@ -1,0 +1,19 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_binary", "go_library")
+
+go_library(
+    name = "go_default_library",
+    srcs = ["iterate.go"],
+    importpath = "clusterfuzz/go/toy",
+    visibility = ["//visibility:private"],
+    deps = [
+        "//go/cloud/db:go_default_library",
+        "//go/cloud/db/types:go_default_library",
+    ],
+)
+
+go_binary(
+    name = "toy",
+    embed = [":go_default_library"],
+    importpath = "clusterfuzz/go/toy",
+    visibility = ["//visibility:public"],
+)

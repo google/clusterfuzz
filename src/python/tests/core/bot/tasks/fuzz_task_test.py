@@ -655,7 +655,6 @@ class ProcessCrashesTest(fake_filesystem_unittest.TestCase):
   def setUp(self):
     helpers.patch(self, [
         'chrome.crash_uploader.get_symbolized_stack_bytes',
-        'bot.tasks.fuzz_task.get_unsymbolized_crash_stacktrace',
         'bot.tasks.task_creation.create_tasks',
         'bot.tasks.setup.archive_testcase_and_dependencies_in_gcs',
         'crash_analysis.stack_parsing.stack_analyzer.get_crash_data',
@@ -691,9 +690,8 @@ class ProcessCrashesTest(fake_filesystem_unittest.TestCase):
     dummy_state.crash_stacktrace = 'orig_trace'
     dummy_state.crash_frames = ['frame 1', 'frame 2']
     self.mock.get_crash_data.return_value = dummy_state
-    self.mock.get_symbolized_stack_bytes.return_value = b'f00df00d'
+    self.mock.get_symbolized_stack_bytes.return_value = 'f00df00d'
     self.mock.get_crash_stacktrace_output.return_value = trace
-    self.mock.get_unsymbolized_crash_stacktrace.return_value = trace
     self.mock.is_security_issue.return_value = True
     self.mock.ignore_stacktrace.return_value = False
 
@@ -859,7 +857,7 @@ class ProcessCrashesTest(fake_filesystem_unittest.TestCase):
       expected_saved_crash_info = crash_uploader.CrashReportInfo(
           product='Chrome_' + environment.platform().lower().capitalize(),
           version='this.is.fake.ver',
-          serialized_crash_stack_frames=b'f00df00d')
+          serialized_crash_stack_frames='f00df00d')
       expected_crash_infos = [
           expected_saved_crash_info,  # r2 is main crash for group r1,r2,r3
           expected_saved_crash_info,  # r4 is main crash for its own group
@@ -1410,12 +1408,12 @@ class DoEngineFuzzingTest(fake_filesystem_unittest.TestCase):
 
     log_time = datetime.datetime(1970, 1, 1, 0, 0)
     log_call = mock.call(
-        b'Component revisions (build r1):\n'
-        b'component: rev\n\n'
-        b'Return code: 1\n\n'
-        b'Command: cmd\nBot: None\nTime ran: 42.0\n\n'
-        b'logs\n'
-        b'cf::fuzzing_strategies: strategy_1:1,strategy_2:50', log_time)
+        'Component revisions (build r1):\n'
+        'component: rev\n\n'
+        'Return code: 1\n\n'
+        'Command: cmd\nBot: None\nTime ran: 42.0\n\n'
+        'logs\n'
+        'cf::fuzzing_strategies: strategy_1:1,strategy_2:50', log_time)
     self.mock.upload_log.assert_has_calls([log_call, log_call])
     self.mock.upload_testcase.assert_has_calls([
         mock.call('/input', log_time),
@@ -1477,11 +1475,6 @@ class UntrustedRunEngineFuzzerTest(
     """Test running engine fuzzer."""
     self._setup_env(job_type='libfuzzer_asan_job')
     environment.set_value('FUZZ_TEST_TIMEOUT', 3600)
-    environment.set_value('STRATEGY_SELECTION_METHOD', 'multi_armed_bandit')
-    environment.set_value(
-        'STRATEGY_SELECTION_DISTRIBUTION',
-        '[{"strategy_name": "value_profile", '
-        '"probability": 1.0, "engine": "libFuzzer"}]')
 
     build_manager.setup_build()
     corpus_directory = os.path.join(self.temp_dir, 'corpus')
@@ -1489,7 +1482,7 @@ class UntrustedRunEngineFuzzerTest(
     os.makedirs(file_host.rebase_to_worker_root(corpus_directory))
     os.makedirs(file_host.rebase_to_worker_root(testcase_directory))
 
-    result, fuzzer_metadata, strategies = fuzz_task.run_engine_fuzzer(
+    result, fuzzer_metadata = fuzz_task.run_engine_fuzzer(
         libfuzzer_engine.LibFuzzerEngine(), 'test_fuzzer', corpus_directory,
         testcase_directory)
     self.assertIn(
@@ -1499,14 +1492,12 @@ class UntrustedRunEngineFuzzerTest(
     self.assertTrue(result.crashes[0].input_path.startswith(
         os.environ['ROOT_DIR']))
     self.assertTrue(os.path.exists(result.crashes[0].input_path))
-    self.assertIsInstance(
-        result.stats.get('number_of_executed_units'), six.integer_types)
-    self.assertIsInstance(result.stats.get('oom_count'), six.integer_types)
+    self.assertIsInstance(result.stats.get('number_of_executed_units'), int)
+    self.assertIsInstance(result.stats.get('oom_count'), int)
     self.assertIsInstance(
         result.stats.get('strategy_selection_method'), six.string_types)
 
     self.assertDictEqual({'fuzzer_binary_name': 'test_fuzzer'}, fuzzer_metadata)
-    self.assertDictEqual({'value_profile': 1}, strategies)
 
 
 class AddIssueMetadataFromEnvironmentTest(unittest.TestCase):

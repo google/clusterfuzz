@@ -118,7 +118,7 @@ def process_proc_output(proc, print_output=True):
 
   lines = []
   for line in iter(proc.stdout.readline, b''):
-    _print('| %s' % line.rstrip().decode('utf-8'))
+    _print('| %s' % line.rstrip())
     lines.append(line)
 
   return b''.join(lines)
@@ -227,25 +227,13 @@ def _install_chromedriver():
   print('Installed chromedriver at: %s' % chromedriver_path)
 
 
-def _pip():
-  """Get the pip binary name."""
-  if sys.version_info.major == 3:
-    return 'pip3'
-
-  return 'pip2'
-
-
 def _install_pip(requirements_path, target_path):
   """Perform pip install using requirements_path onto target_path."""
   if os.path.exists(target_path):
     shutil.rmtree(target_path)
 
-  execute(
-      '{pip} install -r {requirements_path} --upgrade --target {target_path}'.
-      format(
-          pip=_pip(),
-          requirements_path=requirements_path,
-          target_path=target_path))
+  execute('pip install -r {requirements_path} --upgrade --target {target_path}'.
+          format(requirements_path=requirements_path, target_path=target_path))
 
 
 def _install_platform_pip(requirements_path, target_path, platform_name):
@@ -267,9 +255,8 @@ def _install_platform_pip(requirements_path, target_path, platform_name):
   for pip_platform in pip_platforms:
     temp_dir = tempfile.mkdtemp()
     return_code, _ = execute(
-        '{pip} download --no-deps --only-binary=:all: --platform={platform} '
+        'pip download --no-deps --only-binary=:all: --platform={platform} '
         '--abi={abi} -r {requirements_path} -d {output_dir}'.format(
-            pip=_pip(),
             platform=pip_platform,
             abi=pip_abi,
             requirements_path=requirements_path,
@@ -277,7 +264,8 @@ def _install_platform_pip(requirements_path, target_path, platform_name):
         exit_on_error=False)
 
     if return_code != 0:
-      raise Exception('Failed to find package for platform: ' + pip_platform)
+      print('Failed to find package for platform:', pip_platform)
+      continue
 
     execute('unzip -o -d %s \'%s/*.whl\'' % (target_path, temp_dir))
     shutil.rmtree(temp_dir, ignore_errors=True)
@@ -299,13 +287,6 @@ def install_dependencies(platform_name=None, is_reproduce_tool_setup=False):
         'src/platform_requirements.txt',
         'src/third_party',
         platform_name=platform_name)
-
-  with tempfile.NamedTemporaryFile() as f:
-    f.write(open('src/requirements.txt', 'rb').read())
-    f.write(open('src/appengine/requirements.txt', 'rb').read())
-    f.flush()
-
-    _install_pip(f.name, 'src/appengine/third_party')
 
   # Only the previous dependencies are needed for reproduce tool installation.
   if is_reproduce_tool_setup:

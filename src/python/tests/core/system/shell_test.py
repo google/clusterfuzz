@@ -15,7 +15,6 @@
 from builtins import object
 import mock
 import os
-import sys
 import unittest
 
 from pyfakefs import fake_filesystem_unittest
@@ -257,7 +256,7 @@ class GetExecuteCommand(unittest.TestCase):
   def test_standard_script(self):
     """Test correct command returned for python script."""
     script_name = 'script.py'
-    expected_command = sys.executable + ' ' + script_name
+    expected_command = 'python %s' % script_name
     self.call_and_assert_helper(expected_command, script_name)
 
   def test_java(self):

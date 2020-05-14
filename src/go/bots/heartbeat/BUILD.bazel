@@ -1,0 +1,26 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_binary", "go_library")
+
+go_library(
+    name = "go_default_library",
+    srcs = ["heartbeat.go"],
+    importpath = "clusterfuzz/go/bots/heartbeat",
+    visibility = ["//visibility:private"],
+    deps = [
+        "//go/base/logs:go_default_library",
+        "//go/base/persist:go_default_library",
+        "//go/base/process:go_default_library",
+        "//go/bots:go_default_library",
+        "//go/bots/tasks:go_default_library",
+        "//go/cloud/db:go_default_library",
+        "//go/cloud/db/types:go_default_library",
+        "//go/cloud/stackdriver:go_default_library",
+        "@com_github_shirou_gopsutil//process:go_default_library",
+        "@com_google_cloud_go//datastore:go_default_library",
+    ],
+)
+
+go_binary(
+    name = "heartbeat",
+    embed = [":go_default_library"],
+    visibility = ["//visibility:public"],
+)

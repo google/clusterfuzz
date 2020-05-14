@@ -25,7 +25,6 @@ import random
 import re
 import shutil
 import string
-import sys
 import tempfile
 
 from base import retry
@@ -35,7 +34,6 @@ from bot.fuzzers import engine_common
 from bot.fuzzers import mutator_plugin
 from bot.fuzzers import utils as fuzzer_utils
 from bot.fuzzers.libFuzzer import constants
-from bot.fuzzers.libFuzzer.peach import pits
 from datastore import data_types
 from fuzzing import strategy
 from metrics import logs
@@ -47,11 +45,9 @@ from platforms.fuchsia.device import stop_qemu
 from platforms.fuchsia.util.device import Device
 from platforms.fuchsia.util.fuzzer import Fuzzer
 from platforms.fuchsia.util.host import Host
-from system import archive
 from system import environment
 from system import minijail
 from system import new_process
-from system import process_handler
 from system import shell
 
 # Maximum length of a random chosen length for `-max_len`.
@@ -79,13 +75,6 @@ CRASH_TESTCASE_REGEX = (r'.*Test unit written to\s*'
 
 # Currently matches oss-fuzz/infra/base-images/base-runner/collect_dft#L34.
 DATAFLOW_TRACE_DIR_SUFFIX = '_dft'
-
-# List of all strategies that affect LD_PRELOAD.
-MUTATOR_STRATEGIES = [
-    strategy.PEACH_GRAMMAR_MUTATION_STRATEGY.name,
-    strategy.MUTATOR_PLUGIN_STRATEGY.name,
-    strategy.MUTATOR_PLUGIN_RADAMSA_STRATEGY.name
-]
 
 
 class LibFuzzerException(Exception):
@@ -385,7 +374,7 @@ class LibFuzzerCommon(object):
         max_stdout_len=MAX_OUTPUT_LEN)
 
 
-class LibFuzzerRunner(new_process.UnicodeProcessRunner, LibFuzzerCommon):
+class LibFuzzerRunner(new_process.ProcessRunner, LibFuzzerCommon):
   """libFuzzer runner (when minijail is not used)."""
 
   def __init__(self, executable_path, default_args=None):
@@ -397,6 +386,13 @@ class LibFuzzerRunner(new_process.UnicodeProcessRunner, LibFuzzerCommon):
     """
     super(LibFuzzerRunner, self).__init__(
         executable_path=executable_path, default_args=default_args)
+
+  def get_command(self, additional_args=None):
+    """Process.get_command override."""
+    base_command = super(LibFuzzerRunner,
+                         self).get_command(additional_args=additional_args)
+
+    return base_command
 
   def fuzz(self,
            corpus_directories,
@@ -413,13 +409,7 @@ class LibFuzzerRunner(new_process.UnicodeProcessRunner, LibFuzzerCommon):
                                 artifact_prefix, additional_args, extra_env)
 
 
-class UnshareLibFuzzerRunner(new_process.UnshareProcessRunnerMixin,
-                             new_process.UnicodeProcessRunner, LibFuzzerCommon):
-  """LibFuzzerRunner which unshares."""
-
-
-class FuchsiaQemuLibFuzzerRunner(new_process.UnicodeProcessRunner,
-                                 LibFuzzerCommon):
+class FuchsiaQemuLibFuzzerRunner(new_process.ProcessRunner, LibFuzzerCommon):
   """libFuzzer runner (when Fuchsia is the target platform)."""
 
   FUCHSIA_BUILD_REL_PATH = os.path.join('build', 'out', 'default')
@@ -489,9 +479,8 @@ class FuchsiaQemuLibFuzzerRunner(new_process.UnicodeProcessRunner,
     # to the true location. Apologies for the hackery.
     crash_location_regex = r'(.*)(Test unit written to )(data/.*)'
     _, processed_log_path = tempfile.mkstemp()
-    with open(processed_log_path, mode='w', encoding='utf-8') as new_file:
-      with open(
-          self.fuzzer.logfile, encoding='utf-8', errors='ignore') as old_file:
+    with open(processed_log_path, 'w') as new_file:
+      with open(self.fuzzer.logfile) as old_file:
         for line in old_file:
           line_match = re.match(crash_location_regex, line)
           if line_match:
@@ -537,9 +526,7 @@ class FuchsiaQemuLibFuzzerRunner(new_process.UnicodeProcessRunner,
 
   def _restart_qemu(self):
     """Restart QEMU."""
-    logs.log_warn(
-        'Connection to fuzzing VM lost. Restarting.',
-        processes=process_handler.get_runtime_snapshot())
+    logs.log_warn('Connection to fuzzing VM lost. Restarting.')
     stop_qemu()
 
     # Do this after the stop, to make sure everything is flushed
@@ -652,8 +639,7 @@ class FuchsiaQemuLibFuzzerRunner(new_process.UnicodeProcessRunner,
         additional_args)
     self.fuzzer.monitor(return_code)
     self.process_logs_and_crash(artifact_prefix)
-    with open(
-        self.fuzzer.logfile, encoding='utf-8', errors='ignore') as logfile:
+    with open(self.fuzzer.logfile) as logfile:
       symbolized_output = logfile.read()
 
     self._pull_new_corpus_from_target_to_host(corpus_directories,
@@ -739,8 +725,7 @@ class FuchsiaQemuLibFuzzerRunner(new_process.UnicodeProcessRunner,
                                     additional_args)
     self.fuzzer.monitor(return_code)
 
-    with open(
-        self.fuzzer.logfile, encoding='utf-8', errors='ignore') as logfile:
+    with open(self.fuzzer.logfile) as logfile:
       symbolized_output = logfile.read()
 
     fuzzer_process_result = new_process.ProcessResult()
@@ -783,8 +768,7 @@ class FuchsiaQemuLibFuzzerRunner(new_process.UnicodeProcessRunner,
         additional_args + [target_artifact_prefix + testcase_path_name])
     self.fuzzer.monitor(return_code)
 
-    with open(
-        self.fuzzer.logfile, encoding='utf-8', errors='ignore') as logfile:
+    with open(self.fuzzer.logfile) as logfile:
       symbolized_output = logfile.read()
 
     output_dir = os.path.dirname(output_path)
@@ -803,8 +787,7 @@ class FuchsiaQemuLibFuzzerRunner(new_process.UnicodeProcessRunner,
     return ['ssh'] + self.ssh_root + list(args)
 
 
-class MinijailLibFuzzerRunner(new_process.UnicodeProcessRunnerMixin,
-                              engine_common.MinijailEngineFuzzerRunner,
+class MinijailLibFuzzerRunner(engine_common.MinijailEngineFuzzerRunner,
                               LibFuzzerCommon):
   """Minijail libFuzzer runner."""
 
@@ -974,7 +957,7 @@ class MinijailLibFuzzerRunner(new_process.UnicodeProcessRunnerMixin,
                           testcase_path,
                           timeout=None,
                           additional_args=None):
-    """LibFuzzerCommon.run_single_testcase override."""
+    """LibFuzzerCommon.test_single_input override."""
     with self._chroot_testcase(testcase_path) as chroot_testcase_path:
       return LibFuzzerCommon.run_single_testcase(self, chroot_testcase_path,
                                                  timeout, additional_args)
@@ -1028,7 +1011,7 @@ class MinijailLibFuzzerRunner(new_process.UnicodeProcessRunnerMixin,
       return result
 
 
-class AndroidLibFuzzerRunner(new_process.UnicodeProcessRunner, LibFuzzerCommon):
+class AndroidLibFuzzerRunner(new_process.ProcessRunner, LibFuzzerCommon):
   """Android libFuzzer runner."""
   # This temp directory is used by libFuzzer merge tool. DONT CHANGE.
   LIBFUZZER_TEMP_DIR = '/data/local/tmp'
@@ -1091,32 +1074,21 @@ class AndroidLibFuzzerRunner(new_process.UnicodeProcessRunner, LibFuzzerCommon):
 
   def _copy_local_directories_to_device(self, local_directories):
     """Copies local directories to device."""
-    for local_directory in sorted(set(local_directories)):
+    for local_directory in set(local_directories):
       self._copy_local_directory_to_device(local_directory)
 
   def _copy_local_directory_to_device(self, local_directory):
     """Copy local directory to device."""
     device_directory = self._get_device_path(local_directory)
-    android.adb.remove_directory(device_directory, recreate=True)
     android.adb.copy_local_directory_to_remote(local_directory,
                                                device_directory)
 
   def _copy_local_directories_from_device(self, local_directories):
     """Copies directories from device to local."""
-    for local_directory in sorted(set(local_directories)):
+    for local_directory in set(local_directories):
       device_directory = self._get_device_path(local_directory)
-      shell.remove_directory(local_directory, recreate=True)
       android.adb.copy_remote_directory_to_local(device_directory,
                                                  local_directory)
-
-  def _append_logcat_output_if_needed(self, output):
-    """Add logcat output to end of output to capture crashes from related
-    processes if current output has no sanitizer crash."""
-    if 'Sanitizer: ' in output:
-      return output
-
-    return '{output}\n\nLogcat:\n{logcat_output}'.format(
-        output=output, logcat_output=android.logger.log_output())
 
   @contextlib.contextmanager
   def _device_file(self, file_path):
@@ -1169,8 +1141,6 @@ class AndroidLibFuzzerRunner(new_process.UnicodeProcessRunner, LibFuzzerCommon):
            additional_args=None,
            extra_env=None):
     """LibFuzzerCommon.fuzz override."""
-    android.logger.clear_log()
-
     sync_directories = copy.copy(corpus_directories)
     if artifact_prefix:
       sync_directories.append(artifact_prefix)
@@ -1200,8 +1170,6 @@ class AndroidLibFuzzerRunner(new_process.UnicodeProcessRunner, LibFuzzerCommon):
         additional_args=additional_args,
         extra_env=extra_env)
 
-    result.output = self._append_logcat_output_if_needed(result.output)
-
     self._copy_local_directories_from_device(sync_directories)
     return result
 
@@ -1221,17 +1189,20 @@ class AndroidLibFuzzerRunner(new_process.UnicodeProcessRunner, LibFuzzerCommon):
     if artifact_prefix:
       sync_directories.append(artifact_prefix)
 
-    device_merge_control_file = None
-    if merge_control_file:
-      device_merge_control_file = self._get_device_path(merge_control_file)
-      merge_control_dir = os.path.dirname(merge_control_file)
-      sync_directories.append(merge_control_dir)
-
     self._copy_local_directories_to_device(sync_directories)
     corpus_directories = self._get_device_corpus_paths(corpus_directories)
 
     if artifact_prefix:
       artifact_prefix = self._get_device_path(artifact_prefix)
+
+    device_merge_control_file = None
+    if merge_control_file:
+      merge_control_dir = os.path.dirname(merge_control_file)
+      self._copy_local_directories_to_device([merge_control_dir])
+      device_merge_control_dir = self._get_device_path(merge_control_dir)
+      device_merge_control_dir = os.path.join(
+          device_merge_control_dir,
+          os.path.relpath(merge_control_file, merge_control_dir))
 
     result = LibFuzzerCommon.merge(
         self,
@@ -1249,14 +1220,10 @@ class AndroidLibFuzzerRunner(new_process.UnicodeProcessRunner, LibFuzzerCommon):
                           testcase_path,
                           timeout=None,
                           additional_args=None):
-    """LibFuzzerCommon.run_single_testcase override."""
-    android.logger.clear_log()
-
+    """LibFuzzerCommon.test_single_input override."""
     with self._device_file(testcase_path) as device_testcase_path:
-      result = LibFuzzerCommon.run_single_testcase(self, device_testcase_path,
-                                                   timeout, additional_args)
-      result.output = self._append_logcat_output_if_needed(result.output)
-      return result
+      return LibFuzzerCommon.run_single_testcase(self, device_testcase_path,
+                                                 timeout, additional_args)
 
   def minimize_crash(self,
                      testcase_path,
@@ -1303,13 +1270,10 @@ class AndroidLibFuzzerRunner(new_process.UnicodeProcessRunner, LibFuzzerCommon):
       return result
 
 
-def get_runner(fuzzer_path, temp_dir=None, use_minijail=None, use_unshare=None):
+def get_runner(fuzzer_path, temp_dir=None, use_minijail=None):
   """Get a libfuzzer runner."""
   if use_minijail is None:
     use_minijail = environment.get_value('USE_MINIJAIL')
-
-  if use_unshare is None:
-    use_unshare = environment.get_value('USE_UNSHARE')
 
   if use_minijail is False:
     # If minijail is explicitly disabled, set the environment variable as well.
@@ -1373,8 +1337,6 @@ def get_runner(fuzzer_path, temp_dir=None, use_minijail=None, use_unshare=None):
     runner = FuchsiaQemuLibFuzzerRunner(fuzzer_path)
   elif is_android:
     runner = AndroidLibFuzzerRunner(fuzzer_path, build_dir)
-  elif use_unshare:
-    runner = UnshareLibFuzzerRunner(fuzzer_path)  # pylint: disable=too-many-function-args
   else:
     runner = LibFuzzerRunner(fuzzer_path)
 
@@ -1452,7 +1414,7 @@ def analyze_and_update_recommended_dictionary(runner, fuzzer_name, log_lines,
                                       temp_dictionary_filename)
 
   with open(temp_dictionary_path, 'wb') as file_handle:
-    file_handle.write('\n'.join(recommended_dictionary).encode('utf-8'))
+    file_handle.write('\n'.join(recommended_dictionary))
 
   dictionary_analysis = runner.analyze_dictionary(
       temp_dictionary_path,
@@ -1608,20 +1570,15 @@ def use_mutator_plugin(target_name, extra_env):
   return True
 
 
-def is_linux_asan():
-  """Helper functions. Returns whether or not the current env is linux asan."""
-  return (environment.platform() != 'LINUX' or
-          environment.get_value('MEMORY_TOOL') != 'ASAN')
-
-
 def use_radamsa_mutator_plugin(extra_env):
   """Decide whether to use Radamsa in process. If yes, add the path to the
   radamsa shared object to LD_PRELOAD in |extra_env| and return True."""
 
   # Radamsa will only work on LINUX ASAN jobs.
   # TODO(mpherman): Include architecture info in job definition and exclude
-  # i386.
-  if not is_linux_asan():
+  #  i386.
+  if environment.platform() != 'LINUX' or environment.get_value(
+      'MEMORY_TOOL') != 'ASAN':
     return False
 
   radamsa_path = os.path.join(environment.get_platform_resources_directory(),
@@ -1629,49 +1586,6 @@ def use_radamsa_mutator_plugin(extra_env):
 
   logs.log('Using Radamsa mutator plugin : %s' % radamsa_path)
   extra_env['LD_PRELOAD'] = radamsa_path
-  return True
-
-
-def use_peach_mutator(extra_env, grammar):
-  """Decide whether or not to use peach mutator, and set up all of the
-  environment variables necessary to do so."""
-  # TODO(mpherman): Include architecture info in job definition and exclude
-  # i386.
-  if not is_linux_asan():
-    return False
-
-  if not grammar:
-    return False
-
-  pit_path = pits.get_path(grammar)
-
-  if not pit_path:
-    return False
-
-  # Set title and pit environment variables
-  extra_env['PIT_FILENAME'] = pit_path
-  extra_env['PIT_TITLE'] = grammar
-
-  # Extract zip of peach mutator code.
-  peach_dir = os.path.join(environment.get_platform_resources_directory(),
-                           'peach')
-  unzipped = os.path.join(peach_dir, 'mutator')
-  source = os.path.join(peach_dir, 'peach_mutator.zip')
-
-  archive.unpack(source, unzipped, trusted=True)
-
-  # Set LD_PRELOAD.
-  peach_path = os.path.join(unzipped, 'peach_mutator', 'src', 'peach.so')
-  extra_env['LD_PRELOAD'] = peach_path
-
-  # Set Python path.
-  new_path = [
-      os.path.join(unzipped, 'peach_mutator', 'src'),
-      os.path.join(unzipped, 'peach_mutator', 'third_party', 'peach'),
-  ] + sys.path
-
-  extra_env['PYTHONPATH'] = os.pathsep.join(new_path)
-
   return True
 
 
@@ -1698,15 +1612,8 @@ def move_mergeable_units(merge_directory, corpus_directory):
     shell.move(unit_path, dest_path)
 
 
-def has_existing_mutator_strategy(fuzzing_strategy):
-  return any(strategy in fuzzing_strategy for strategy in MUTATOR_STRATEGIES)
-
-
-def pick_strategies(strategy_pool,
-                    fuzzer_path,
-                    corpus_directory,
-                    existing_arguments,
-                    grammar=None):
+def pick_strategies(strategy_pool, fuzzer_path, corpus_directory,
+                    existing_arguments):
   """Pick strategies."""
   build_directory = environment.get_value('BUILD_DIR')
   target_name = os.path.basename(fuzzer_path)
@@ -1738,7 +1645,7 @@ def pick_strategies(strategy_pool,
       arguments.append('%s%s' % (constants.FOCUS_FUNCTION_FLAG, 'auto'))
       fuzzing_strategies.append(strategy.DATAFLOW_TRACING_STRATEGY.name)
     else:
-      logs.log_warn(
+      logs.log_error(
           'Dataflow trace is not found in dataflow build, skipping strategy.')
       use_dataflow_tracing = False
 
@@ -1800,13 +1707,7 @@ def pick_strategies(strategy_pool,
       use_mutator_plugin(target_name, extra_env)):
     fuzzing_strategies.append(strategy.MUTATOR_PLUGIN_STRATEGY.name)
 
-  if (not has_existing_mutator_strategy(fuzzing_strategies) and
-      strategy_pool.do_strategy(strategy.PEACH_GRAMMAR_MUTATION_STRATEGY) and
-      use_peach_mutator(extra_env, grammar)):
-    fuzzing_strategies.append(
-        '%s_%s' % (strategy.PEACH_GRAMMAR_MUTATION_STRATEGY.name, grammar))
-
-  if (not has_existing_mutator_strategy(fuzzing_strategies) and
+  if (strategy.MUTATOR_PLUGIN_STRATEGY.name not in fuzzing_strategies and
       strategy_pool.do_strategy(strategy.MUTATOR_PLUGIN_RADAMSA_STRATEGY) and
       use_radamsa_mutator_plugin(extra_env)):
     fuzzing_strategies.append(strategy.MUTATOR_PLUGIN_RADAMSA_STRATEGY.name)

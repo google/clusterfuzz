@@ -1,0 +1,16 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "go_default_library",
+    srcs = [
+        "dirs.go",
+        "environ.go",
+    ],
+    importpath = "clusterfuzz/go/bots",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//go/base/environ:go_default_library",
+        "//go/base/fs:go_default_library",
+        "//go/base/logs:go_default_library",
+    ],
+)

@@ -337,8 +337,7 @@ class OssFuzzBuildStatusTest(unittest.TestCase):
         'To reproduce locally, please see: '
         'https://google.github.io/oss-fuzz/advanced-topics/reproducing'
         '#reproducing-build-failures\n\n'
-        '<b>This bug tracker is not being monitored by OSS-Fuzz team.</b> '
-        'If you have any questions, please create an issue at '
+        'If you have any questions, please file a bug on '
         'https://github.com/google/oss-fuzz/issues/new.\n\n'
         '**This bug will be automatically closed within a '
         'day once it is fixed.**', issue.body)
@@ -359,8 +358,7 @@ class OssFuzzBuildStatusTest(unittest.TestCase):
         'To reproduce locally, please see: '
         'https://google.github.io/oss-fuzz/advanced-topics/reproducing'
         '#reproducing-build-failures\n\n'
-        '<b>This bug tracker is not being monitored by OSS-Fuzz team.</b> '
-        'If you have any questions, please create an issue at '
+        'If you have any questions, please file a bug on '
         'https://github.com/google/oss-fuzz/issues/new.\n\n'
         '**This bug will be automatically closed within a '
         'day once it is fixed.**', issue.body)
@@ -520,7 +518,7 @@ class OssFuzzBuildStatusTest(unittest.TestCase):
         project_name='proj0',
         last_checked_timestamp=datetime.datetime(2018, 1, 31),
         issue_id='1',
-        consecutive_failures=7,
+        consecutive_failures=4,
         build_type='fuzzing').put()
     data_types.OssFuzzProject(
         id='proj1', name='proj1', ccs=['a@user.com']).put()

@@ -74,10 +74,9 @@ ASSERT_REGEX_GLIBC = re.compile(
 ASSERT_NOT_REACHED_REGEX = re.compile(r'^\s*SHOULD NEVER BE REACHED\s*$')
 CFI_ERROR_REGEX = re.compile(
     r'(.*): runtime error: control flow integrity check for type (.*) '
-    r'failed during (.*vtable address ([xX0-9a-fA-F]+)|.*)')
+    r'failed during (.*) \(vtable address ([xX0-9a-fA-F]+)\)')
 CFI_INVALID_DOWNCAST_REGEX = re.compile(r'.*note: vtable is of type (.*)')
-CFI_INVALID_VPTR_REGEX = re.compile(r'.*note: invalid vtable$')
-CFI_FUNC_DEFINED_HERE_REGEX = re.compile(r'.*note: .* defined here$')
+CFI_INVALID_VPTR_REGEX = re.compile(r'.*note: invalid vtable')
 CFI_NODEBUG_ERROR_MARKER_REGEX = re.compile(
     r'CFI: Most likely a control flow integrity violation;.*')
 CHROME_CHECK_FAILURE_REGEX = re.compile(
@@ -98,7 +97,7 @@ CHROME_MAC_STACK_FRAME_REGEX = re.compile(
     r'([^/\\]+)\s*\+\s*'  # fun (6)
     r'(\d+)')  # off[dec] (7)
 MSAN_TSAN_REGEX = re.compile(
-    r'.*(ThreadSanitizer|MemorySanitizer):\s+(?!ABRT)(?!ILL)([^(:]+)')
+    r'.*(ThreadSanitizer|MemorySanitizer):[ ]*([^(:]+)')
 FATAL_ERROR_CHECK_FAILURE = re.compile(
     r'#\s+(Check failed: |RepresentationChangerError: node #\d+:)?(.*)')
 FATAL_ERROR_DCHECK_FAILURE = re.compile(r'#\s+(Debug check failed: )(.*)')
@@ -132,8 +131,6 @@ LIBRARY_NOT_FOUND_LINUX_REGEX = re.compile(
     r'cannot open shared object file')
 LINUX_GDB_CRASH_TYPE_REGEX = re.compile(r'Program received signal ([a-zA-Z]+),')
 LINUX_GDB_CRASH_ADDRESS_REGEX = re.compile(r'rip[ ]+([xX0-9a-fA-F]+)')
-LINUX_GDB_CRASH_ADDRESS_NO_REGISTERS_REGEX = re.compile(
-    r'^(0[xX][0-9a-fA-F]+)\s+in\s+')
 LSAN_DIRECT_LEAK_REGEX = re.compile(r'Direct leak of ')
 LSAN_INDIRECT_LEAK_REGEX = re.compile(r'Indirect leak of ')
 MAC_GDB_CRASH_ADDRESS_REGEX = re.compile(
@@ -336,7 +333,6 @@ STACK_FRAME_IGNORE_REGEXES = [
     # Function names (startswith).
     r'^(|\_\_)memcmp',
     r'^(|\_\_)memcpy',
-    r'^(|\_\_)aeabi\_',
     r'^(|\_\_)memmove',
     r'^(|\_\_)memset',
     r'^(|\_\_)strcmp',
@@ -460,7 +456,6 @@ STACK_FRAME_IGNORE_REGEXES = [
     r'.*ieee754\-',
     r'.*libpthread',
     r'.*logger',
-    r'.*logging\:\:CheckError',
     r'.*logging\:\:ErrnoLogMessage',
     r'.*logging\:\:LogMessage',
     r'.*stdext\:\:exception\:\:what',
@@ -484,9 +479,6 @@ STACK_FRAME_IGNORE_REGEXES = [
     r'.*\/vctools\/crt\/',
     r'.*\/win\_toolchain\/',
     r'.*libc\+\+\/',
-
-    # Wrappers from honggfuzz/libhfuzz/memorycmp.c.
-    r'.*\/memorycmp\.c',
 
     # Others (uncategorized).
     r'.*\+Unknown',
@@ -900,7 +892,6 @@ def add_frame_on_match(compiled_regex,
     pipe = subprocess.Popen(
         ['c++filt', '-n', frame], stdin=subprocess.PIPE, stdout=subprocess.PIPE)
     frame, _ = pipe.communicate()
-    frame = frame.decode('utf-8')
 
   # Try to parse the frame with the various stackframes.
   frame_struct = None
@@ -1238,13 +1229,6 @@ def get_crash_data(crash_data, symbolize_flag=True):
     update_state_on_match(
         LINUX_GDB_CRASH_ADDRESS_REGEX, line, state, address_from_group=1)
 
-    # Platform specific: Linux gdb crash address format no registers
-    update_state_on_match(
-        LINUX_GDB_CRASH_ADDRESS_NO_REGISTERS_REGEX,
-        line,
-        state,
-        address_from_group=1)
-
     # Platform specific: Mac gdb style crash address format.
     update_state_on_match(
         MAC_GDB_CRASH_ADDRESS_REGEX, line, state, address_from_group=1)
@@ -1322,9 +1306,6 @@ def get_crash_data(crash_data, symbolize_flag=True):
         state.crash_state += ' from invalid vptr'
         state.found_bad_cast_crash_end_marker = True
 
-      if CFI_FUNC_DEFINED_HERE_REGEX.match(line):
-        state.found_bad_cast_crash_end_marker = True
-
       # Ubsan's -fsanitize=vptr crash extra info for member access.
       invalid_offset_match = UBSAN_VPTR_INVALID_OFFSET_REGEX.match(line)
       if invalid_offset_match:
@@ -1339,12 +1320,15 @@ def get_crash_data(crash_data, symbolize_flag=True):
     # CFI bad-cast crash.
     if not state.crash_type:
       cfi_bad_cast_match = update_state_on_match(
-          CFI_ERROR_REGEX, line, state, new_type='Bad-cast', new_frame_count=0)
+          CFI_ERROR_REGEX,
+          line,
+          state,
+          new_type='Bad-cast',
+          new_frame_count=0,
+          address_from_group=4)
       if cfi_bad_cast_match:
         state.crash_state = 'Bad-cast to %s' % (
             cfi_bad_cast_match.group(2).strip("'"))
-        if cfi_bad_cast_match.group(4):
-          state.crash_address = cfi_bad_cast_match.group(4)
         state.found_bad_cast_crash_end_marker = False
 
     # CFI bad-cast crash without extra debugging information.

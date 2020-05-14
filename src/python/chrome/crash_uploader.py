@@ -23,7 +23,6 @@ import email
 import os
 import re
 import requests
-import sys
 import tempfile
 
 from base import utils
@@ -334,15 +333,11 @@ def parse_mime_to_crash_report_info(local_minidump_mime_path):
   with open(local_minidump_mime_path, 'rb') as minidump_mime_file_content:
     # The boundary is the first line after the first two dashes.
     boundary = minidump_mime_file_content.readline().strip()[2:]
-    minidump_mime_bytes = (
-        b'Content-Type: multipart/form-data; boundary=\"%s\"\r\n--%s\r\n' %
+    minidump_mime_string = (
+        'Content-Type: multipart/form-data; boundary=\"%s\"\r\n--%s\r\n' %
         (boundary, boundary))
-    minidump_mime_bytes += minidump_mime_file_content.read()
-
-  if sys.version_info.major == 3:
-    minidump_mime_contents = email.message_from_bytes(minidump_mime_bytes)
-  else:
-    minidump_mime_contents = email.message_from_string(minidump_mime_bytes)
+    minidump_mime_string += minidump_mime_file_content.read()
+  minidump_mime_contents = email.message_from_string(minidump_mime_string)
 
   # Parse the MIME contents, extracting the parameters needed for upload.
   mime_key_values = {}
@@ -359,7 +354,7 @@ def parse_mime_to_crash_report_info(local_minidump_mime_path):
     # Extract from the MIME part the key-value pairs used by report uploading.
     if key_match is not None:
       report_key = key_match.group(1)
-      report_value = mime_part.get_payload(decode=True)
+      report_value = mime_part.get_payload()
       if report_key == MINIDUMP_FILE_KEY:
         utils.write_data_to_file(report_value, minidump_path)
       else:
@@ -376,12 +371,12 @@ def parse_mime_to_crash_report_info(local_minidump_mime_path):
   # for upload.
   product, version = None, None
   if PRODUCT_KEY in mime_key_values:
-    product = mime_key_values.pop(PRODUCT_KEY).decode('utf-8')
+    product = mime_key_values.pop(PRODUCT_KEY)
   else:
     logs.log_error(
         'Could not find \'%s\' or alias in mime_key_values key.' % PRODUCT_KEY)
   if VERSION_KEY in mime_key_values:
-    version = mime_key_values.pop(VERSION_KEY).decode('utf-8')
+    version = mime_key_values.pop(VERSION_KEY)
   else:
     logs.log_error(
         'Could not find \'%s\' or alias in mime_key_values key.' % VERSION_KEY)

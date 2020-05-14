@@ -307,7 +307,7 @@ class GSUtilRunnerTest(fake_filesystem_unittest.TestCase):
     self.mock.run_and_wait.assert_called_with(
         self.gsutil_runner_obj.gsutil_runner,
         ['cp', '-I', 'gs://target_bucket/target_path'],
-        input_data=b'/source_path1\n/source_path2',
+        input_data='/source_path1\n/source_path2',
         timeout=None,
         env=mock.ANY)
 
@@ -320,7 +320,7 @@ class GSUtilRunnerTest(fake_filesystem_unittest.TestCase):
     self.mock.run_and_wait.assert_called_with(
         self.gsutil_runner_obj.gsutil_runner,
         ['cp', '-I', '/local/target_bucket/objects/target_path'],
-        input_data=b'/source_path1\n/source_path2',
+        input_data='/source_path1\n/source_path2',
         timeout=None,
         env=mock.ANY)
     self.assertTrue(os.path.exists('/local/target_bucket/objects'))
@@ -334,7 +334,7 @@ class GSUtilRunnerTest(fake_filesystem_unittest.TestCase):
     self.mock.run_and_wait.assert_called_with(
         self.gsutil_runner_obj.gsutil_runner,
         ['cp', '-I', 'gs://target_bucket/target_path'],
-        input_data=b'/source_path1\n/source_path2',
+        input_data='/source_path1\n/source_path2',
         timeout=1337,
         env=mock.ANY)
 
@@ -349,7 +349,7 @@ class GSUtilRunnerTest(fake_filesystem_unittest.TestCase):
     self.mock.run_and_wait.assert_called_with(
         self.gsutil_runner_obj.gsutil_runner,
         ['cp', '-I', '/local/target_bucket/objects/target_path'],
-        input_data=b'/source_path1\n/source_path2',
+        input_data='/source_path1\n/source_path2',
         timeout=1337,
         env=mock.ANY)
     self.assertTrue(os.path.exists('/local/target_bucket/objects'))

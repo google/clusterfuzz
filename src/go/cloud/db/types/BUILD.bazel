@@ -1,0 +1,9 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "go_default_library",
+    srcs = ["types.go"],
+    importpath = "clusterfuzz/go/cloud/db/types",
+    visibility = ["//visibility:public"],
+    deps = ["@com_google_cloud_go//datastore:go_default_library"],
+)
