@@ -55,7 +55,7 @@ class JSMinimizerTest(unittest.TestCase):
 
   def test_minimize_empty_string(self):
     """Minimizer does not break on empty data."""
-    data = ''
+    data = b''
 
     self._minimizer.minimize(data)
 
@@ -65,113 +65,113 @@ class JSMinimizerTest(unittest.TestCase):
     """Test that the minimizer successfully removes all of the if statement
       syntax when it hits a bracket.
       e.g.: if (statement_that_evaluates_to_true) { crash() } -> crash()."""
-    data = "if(boolean) { crash }"
+    data = b'if(boolean) { crash }'
 
     self._minimizer.minimize(data)
 
-    self.assertIn("if(boolean) {}", self._hypotheses_tested)
+    self.assertIn('if(boolean) {}', self._hypotheses_tested)
 
   def test_try_catch_hypothesis(self):
     """Test that the minimizer successfully removes all of the try/catch
       syntax when it hits a bracket.
       e.g.: try { crash() } catch(e) {} -> crash()."""
-    data = "try{ crash() } catch(e){ }"
+    data = b'try{ crash() } catch(e){ }'
     self._minimizer.minimize(data)
 
-    self.assertIn("try{} catch(e){ }", self._hypotheses_tested)
+    self.assertIn('try{} catch(e){ }', self._hypotheses_tested)
 
   def test_handle_if_else(self):
     """Make sure the minimizer runs all of the other hypothesis cleanly on
       if else."""
-    data = "if(boolean) {crash} else { do_something_else }"
+    data = b'if(boolean) {crash} else { do_something_else }'
 
     self._minimizer.minimize(data)
 
-    self.assertIn("if(boolean) {}", self._hypotheses_tested)
-    self.assertIn("if(boolean) {} else { do_something_else }",
+    self.assertIn('if(boolean) {}', self._hypotheses_tested)
+    self.assertIn('if(boolean) {} else { do_something_else }',
                   self._hypotheses_tested)
     self.assertIn("if(boolean) {crash} else {}", self._hypotheses_tested)
 
   def test_remove_function_call(self):
     """Test that it removes functions calls effectively."""
-    data = "function name(param1, param2){ stuff inside function }"
+    data = b'function name(param1, param2){ stuff inside function }'
 
     self._minimizer.minimize(data)
 
-    self.assertIn("function name(param1, param2){}", self._hypotheses_tested)
+    self.assertIn('function name(param1, param2){}', self._hypotheses_tested)
 
   def test_handle_bracket_with_new_line(self):
     """Test for try/catch with extra whitespace."""
-    data = """try{\n\tcrash()\n}\ncatch(e){\n\n}"""
+    data = b'try{\n\tcrash()\n}\ncatch(e){\n\n}'
 
     self._minimizer.minimize(data)
 
-    self.assertIn("try{}", self._hypotheses_tested)
-    self.assertIn("try{}\ncatch(e){\n\n}", self._hypotheses_tested)
+    self.assertIn('try{}', self._hypotheses_tested)
+    self.assertIn('try{}\ncatch(e){\n\n}', self._hypotheses_tested)
 
   def test_handle_function_with_new_lines(self):
     """Test for functions with extra whitespace."""
-    data = "function name(param1,\n\t\tparam2){\n\tstuff inside function\n}"
+    data = b'function name(param1,\n\t\tparam2){\n\tstuff inside function\n}'
 
     self._minimizer.minimize(data)
 
-    self.assertIn("function name(param1,\n\t\tparam2){}",
+    self.assertIn('function name(param1,\n\t\tparam2){}',
                   self._hypotheses_tested)
 
   def test_remove_outer_paren(self):
     """Test that the minimizer successfully removes all of the outer parens
       to check for nested parens.
       e.g.: assertTrue(crash()); -> crash()."""
-    data = "assertTrue(crash());"
+    data = b'assertTrue(crash());'
 
     self._minimizer.minimize(data)
 
-    self.assertIn("assertTrue()", self._hypotheses_tested)
+    self.assertIn('assertTrue()', self._hypotheses_tested)
 
   def test_remove_inside_paren(self):
     """Test that minimizer removes everything between the parentheses.
       e.g.: crash(junk, more_junk) -> crash()."""
-    data = "crash(junk, more_junk)"
+    data = b'crash(junk, more_junk)'
 
     self._minimizer.minimize(data)
 
-    self.assertIn("junk, more_junk", self._hypotheses_tested)
+    self.assertIn('junk, more_junk', self._hypotheses_tested)
 
   def test_remove_paren_to_start_of_line(self):
     """Tests that the minimizer will remove the whole line (including setting
       vars) when there are parens.
       e.g.: leftover_junk = (function() {
              });."""
-    data = "leftover_junk = (function(){\n})"
+    data = b'leftover_junk = (function(){\n})'
 
     self._minimizer.minimize(data)
 
-    self.assertIn("leftover_junk = (function(){\n})", self._hypotheses_tested)
+    self.assertIn('leftover_junk = (function(){\n})', self._hypotheses_tested)
 
   def test_remove_paren_with_attached_brackets(self):
     """Test that the minimizer removes the whole line and following brackets
       when there are parens.
       e.g.: (function(global) { })(this);."""
-    data = "(function(global) { })(this)"
+    data = b'(function(global) { })(this)'
 
     self._minimizer.minimize(data)
 
-    self.assertIn("(function(global) { })(this)", self._hypotheses_tested)
+    self.assertIn('(function(global) { })(this)', self._hypotheses_tested)
 
   def test_remove_left_of_comma(self):
     """Test the minimizer removes the comma and token left of the comma
       e.g.: f(whatever, crash()) -> f(crash())."""
-    data = "f(whatever, crash())"
+    data = b'f(whatever, crash())'
 
     self._minimizer.minimize(data)
 
-    self.assertIn("whatever,", self._hypotheses_tested)
+    self.assertIn('whatever,', self._hypotheses_tested)
 
   def test_remove_right_of_comma(self):
     """Test the minimizer removes the comma and right of the comma.
       e.g.: f(crash(),whatever) -> f(crash())."""
-    data = "f(crash(), whatever)"
+    data = b'f(crash(), whatever)'
 
     self._minimizer.minimize(data)
 
-    self.assertIn(", whatever", self._hypotheses_tested)
+    self.assertIn(', whatever', self._hypotheses_tested)

@@ -170,7 +170,7 @@ class Device(object):
     for fuzzer in self.host.fuzzers:
       tgt = (fuzzer[1] + '.cmx')[:32]
       url = ('fuchsia-pkg://fuchsia.com/%s#meta' % fuzzer[0])[:32]
-      for line in str(out).split('\n'):
+      for line in out.decode('utf-8').split('\n'):
         match = re.search(tgt + r'\[(\d+)\]: ' + url, line)
         if match:
           pids[fuzzer[1]] = int(match.group(1))
@@ -193,13 +193,13 @@ class Device(object):
     try:
       p = self._ssh(['ls', '-l', path], stdout=subprocess.PIPE).popen()
       out, _ = p.communicate()
-      for line in str(out).split('\n'):
+      for line in out.decode('utf-8').split('\n'):
         # Line ~= '-rw-r--r-- 1 0 0 8192 Mar 18 22:02 some-name'
         parts = line.split()
         # When we're running ls over ssh, we may get a note about
         # "Warning: Permanently added [address] to the list of known hosts"
         # Don't try to treat those as file paths
-        if len(parts) > 8 and "Warning:" not in parts:
+        if len(parts) > 8 and 'Warning:' not in parts:
           results[' '.join(parts[8:])] = int(parts[4])
     except subprocess.CalledProcessError:
       pass
@@ -231,9 +231,9 @@ class Device(object):
         """
     out = self._dump_log(['--only', 'reset,Fuzzer,Sanitizer'])
     pid = -1
-    for line in out.split('\n'):
+    for line in out.split(b'\n'):
       # Log lines are like '[timestamp][pid][tid][name] data'
-      parts = line.split('][')
+      parts = line.split(b'][')
       if len(parts) > 2:
         pid = int(parts[1])
     return pid
@@ -254,14 +254,14 @@ class Device(object):
           A list of the test artifacts (e.g. crashes) reported in the logs.
         """
     pid = -1
-    pid_pattern = re.compile(r'==([0-9]+)==')
-    mutation_pattern = re.compile(r'^MS: [0-9]*')
+    pid_pattern = re.compile(br'==([0-9]+)==')
+    mutation_pattern = re.compile(br'^MS: [0-9]*')
     artifacts = []
-    artifact_pattern = re.compile(r'Test unit written to data/(\S*)')
-    repro_pattern = re.compile(r'Running: .*')
+    artifact_pattern = re.compile(br'Test unit written to data/(\S*)')
+    repro_pattern = re.compile(br'Running: .*')
     line_with_crash_message = None
-    with open(logfile) as log:
-      with open(logfile + '.tmp', 'w') as tmp:
+    with open(logfile, 'rb') as log:
+      with open(logfile + '.tmp', 'wb') as tmp:
         for line in log:
           # Check for a line that tells us the process ID
           match = pid_pattern.search(line)
@@ -280,12 +280,9 @@ class Device(object):
               pid = self._guess_pid()
             if pid > 0:
               raw = self._dump_log(['--pid', str(pid)])
-              for item in raw:
-                if re.search(r'.*ERROR: AddressSanitizer.*', item):
-                  tmp.write(item)
               sym = self.host.symbolize(raw)
-              tmp.write('\n'.join(sym))
-              tmp.write('\n')
+              tmp.write(b'\n'.join(sym))
+              tmp.write(b'\n')
 
           # Check for an artifact being reported.
           match = artifact_pattern.search(line)
@@ -302,8 +299,8 @@ class Device(object):
     # TODO(flowerhack): Change the log output in Fuchsia itself, s.t. the
     # ordering is correct the *first* time, and we won't have to do this
     # fix-up-the-logs dance!
-    with open(logfile + '.tmp') as tmp:
-      with open(logfile, 'w') as final:
+    with open(logfile + '.tmp', 'rb') as tmp:
+      with open(logfile, 'wb') as final:
         if line_with_crash_message:
           final.write(line_with_crash_message)
 

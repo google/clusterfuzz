@@ -14,6 +14,7 @@
 """Report upload task."""
 
 from builtins import str
+import time
 
 from base import errors
 from chrome import crash_uploader
@@ -71,6 +72,7 @@ def execute_task(*_):
 
     logs.log('Uploaded testcase %s to crash, got back report id %s.' %
              (testcase_id, crash_report_id))
+    time.sleep(1)
 
   # Delete report metadata entries where testcase does not exist anymore or
   # upload is not supported.

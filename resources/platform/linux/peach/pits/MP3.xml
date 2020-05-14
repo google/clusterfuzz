@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Peach xmlns="http://peachfuzzer.com/2012/Peach" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://peachfuzzer.com/2012/Peach /peach/peach.xsd">
+  <Defaults>
+    <Number signed="false" valueType="hex" endian="big"/>
+  </Defaults>
+
+  <DataModel name="ID3Frame">
+    <String name="Tag" length="4"/>
+    <Number name="Size" size="32">
+      <Relation type="size" of="FrameData" />
+    </Number>
+    <Number name="Flags" size="16"/>
+    <Blob name="FrameData"/>
+  </DataModel>
+
+  <DataModel name="ID3v2Tag">
+    <String name="Tag" value="ID3" length="3" token="true"/>
+    <Number name="Ver" size="8"/>
+    <Number name="Rev" size="8"/>
+    <Number name="Flag" size="8"/>
+    <Number name="Size" size="32">
+      <Relation type="size" of="Frames" />
+    </Number>
+    <Block name="Frames" ref="ID3Frame" maxOccurs="100"/>
+  </DataModel>
+
+  <DataModel name="MPEGFrame">
+    <Number name="FrameSync" size="8" valueType="hex" value="FF" token="true"/>
+    <Blob name="Others"/>
+  </DataModel>
+
+  <DataModel name="Mp3NoID3">
+    <Block name="Frames" ref="MPEGFrame" maxOccurs="1000000"/>
+  </DataModel>
+
+  <DataModel name="Mp3WithID3">
+    <Block name="ID3v2TagMeta" ref="ID3v2Tag"/>
+    <Block name="Frames" ref="MPEGFrame" maxOccurs="1000000"/>
+  </DataModel>
+
+  <DataModel name="MP3">
+    <Choice name="MP3Content">
+      <Block name="Mp3NoID3Option" ref="Mp3NoID3"/>
+      <Block name="Mp3WithID3Option" ref="Mp3WithID3"/>
+    </Choice>
+    <!--
+    <Choice name="ID3v2">
+        <Block name="ID3v2TagMeta" ref="ID3v2Tag"/>
+        <Blob name="nothing" length="0"/>
+    </Choice>
+    <Block name="Frames" ref="MPEGFrame" maxOccurs="1000000"/>
+    -->
+  </DataModel>
+
+</Peach>
+    <!-- end -->

@@ -24,4 +24,5 @@ if [[ -n "$git_diff" ]]; then
   exit 1
 fi
 
+cp ../Pipfile* base/
 gcloud builds submit . --project=clusterfuzz-images --substitutions=_GIT_HASH=$(git rev-parse HEAD | head -c7)

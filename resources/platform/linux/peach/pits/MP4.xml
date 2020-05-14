@@ -1,0 +1,599 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Peach version="1.0" author="Jason Kratzer" site="http://www.flinkd.org">
+  <Include ns="default" src="file:defaults.xml"/>
+
+  <DataModel name="MP4">
+    <Block name="initialBlock" minOccurs="0" maxOccurs="1">
+      <Number name="ftypSize" size="32" endian="big">
+        <Relation type="size" of="ftypBlock" expressionSet="size+8" expressionGet="size-8"/>
+      </Number>
+      <String name="ftypIdentifier" value="ftyp" token="true"/>
+      <Block name="ftypBlock">
+        <String name="majorBrand" length="4"/>
+        <Number name="minorVersion" size="32" endian="big"/>
+        <Block name="compatBrands" maxOccurs="100">
+          <!-- See http://www.ftyps.com/ for a listing of compatible brands -->
+          <String name="brand" length="4"/>
+        </Block>
+      </Block>
+    </Block>
+
+    <Choice maxOccurs="1024">
+      <!-- 'free' - Reserved space atom -->
+      <Block name="freeBlock" minOccurs="0" maxOccurs="1">
+        <Number name="freeStaticSize" size="32" endian="big">
+          <Relation type="size" of="freeData" expressionSet="size+8" expressionGet="size-8"/>
+        </Number>
+        <String name="freeIdentifier" length="4" value="free" token="true"/>
+        <Blob name="freeData"/>
+      </Block>
+
+      <!-- 'wide' - Reserved space atom -->
+      <Block name="wideBlock" minOccurs="0" maxOccurs="1">
+        <Number name="wideStaticSize" size="32" endian="big"/>
+        <String name="wideIdentifier" length="4" value="wide" token="true"/>
+      </Block>
+
+      <!-- 'pnot' - Movie Preview atom -->
+      <Block name="pnotBlock" minOccurs="0" maxOccurs="1">
+        <Number name="pnotSize" size="32" endian="big">
+          <Relation type="size" of="pnotData" expressionSet="size+8" expressionGet="size-8"/>
+        </Number>
+        <String name="pnotIdentifier" value="pnot" token="true"/>
+        <Block name="pnotData">
+          <Number name="modificationDate" size="32" signed="false" endian="big"/>
+          <Number name="version" size="16" signed="false" endian="big"/>
+          <Number name="atomType" size="32" signed="false" endian="big"/>
+          <Number name="atomIndex" size="16" signed="false" endian="big"/>
+        </Block>
+      </Block>
+
+      <!-- 'mdat' - Movie Sample Data atom -->
+      <Block name="mdatBlock" minOccurs="0" maxOccurs="1">
+        <Number name="mdatSize" size="32" signed="false"  endian="big">
+          <Relation type="size" of="mdatData" expressionSet="size+8" expressionGet="size-8"/>
+        </Number>
+        <String name="mdatIdentifier" length="4" value="mdat" token="true"/>
+        <Blob name="mdatData"/> <!-- Adding codec support for this data would be awesome -->
+      </Block>
+
+      <!-- 'moov' - Movie Resource atom -->
+      <Block name="moovBlock" minOccurs="0" maxOccurs="1">
+        <Number name="moovSize" size="32" endian="big">
+          <Relation type="size" of="moovData" expressionSet="size+8" expressionGet="size-8"/>
+        </Number>
+        <String name="moovIdentifier" value="moov" token="true"/>
+        <Block name="moovData">
+          <Choice name="moovChildren" maxOccurs="5">
+            <!-- 'mvhd' - Movie Header atom -->
+            <Block name="mvhdBlock" maxOccurs="1">
+              <Number name="mvhdSize" size="32" signed="false"  endian="big">
+                <Relation type="size" of="mvhdData" expressionSet="size+8" expressionGet="size-8"/>
+              </Number>
+              <String name="mvhdIdentifier" value="mvhd" token="true"/>
+              <Block name="mvhdData">
+                <Number name="version" size="8" signed="false" endian="big"/>
+                <Blob name="Flags" length="3"/>
+                <Number name="creationTime" size="32" signed="false" endian="big"/>
+                <Number name="modificationTime" size="32" signed="false" endian="big"/>
+                <Number name="timeScale" size="32" signed="false" endian="big"/>
+                <Number name="duration" size="32" signed="false" endian="big"/>
+                <Number name="preferredRate" size="32" signed="false" endian="big"/>
+                <Number name="preferredVolume" size="16" signed="false" endian="big"/>
+                <Blob name="reserved" length="10"/><!-- Investigate further -->
+                <Blob name="matrix" length="36"/>
+                <Number name="previewTime" size="32" signed="false" endian="big"/>
+                <Number name="previewDuration" size="32" signed="false" endian="big"/>
+                <Number name="posterTime" size="32" signed="false" endian="big"/>
+                <Number name="selectionTime" size="32" signed="false" endian="big"/>
+                <Number name="selectionDuration" size="32" signed="false" endian="big"/>
+                <Number name="currentTime" size="32" signed="false" endian="big"/>
+                <Number name="nextTrackID" size="32" signed="false" endian="big"/>
+              </Block>
+            </Block>
+
+            <!-- 'clip' - Clipping atom -->
+            <Block name="clipBlock" minOccurs="0" maxOccurs="1">
+              <Number name="clipSize" size="32" endian="big">
+                <Relation type="size" of="clipRegionBlock" expressionSet="size+8" expressionGet="size-8"/>
+              </Number>
+              <String name="clipIdentifier" value="clip" token="true"/>
+              <Block name="clipRegionBlock" minOccurs="0" maxOccurs="1">
+                <Number name="clipRegionSize" size="32" endian="big">
+                  <Relation type="size" of="clipRegionData" expressionSet="size+8" expressionGet="size-8"/>
+                </Number>
+                <String name="clipRegionIdentifier" value="crgn" token="true"/>
+                <Block name="clipRegionData">
+                  <Number name="regionSize" size="16" signed="false" endian="big"/>
+                  <Number name="regionBoundaryBox" size="64" signed="false" endian="big"/>
+                  <Blob name="regionData"/>
+                </Block>
+              </Block>
+            </Block>
+
+            <!-- 'trak - Track atom -->
+            <Block name="trakBlock">
+              <Number name="trakSize" size="32" endian="big">
+                <Relation type="size" of="trakData" expressionSet="size+8" expressionGet="size-8"/>
+              </Number>
+              <String name="trakIdentifier" value="trak" token="true"/>
+              <Block name="trakData">
+                <Choice name="trakChildren" maxOccurs="100">
+                  <!-- 'tkhd' - Track Header atom -->
+                  <Block name="tkhdBlock" maxOccurs="1">
+                    <Number name="tkhdSize" size="32" endian="big">
+                      <Relation type="size" of="tkhdData" expressionSet="size+8" expressionGet="size-8"/>
+                    </Number>
+                    <String name="tkhdIdentifier" value="tkhd" token="true"/>
+                    <Block name="tkhdData">
+                      <Number name="version" size="8" signed="false" endian="big"/>
+                      <Blob name="flags" length="3"/>
+                      <Number name="creationTime" size="32" signed="false" endian="big"/>
+                      <Number name="modificationTime" size="32" signed="false" endian="big"/>
+                      <Number name="trackID" size="32" signed="false" endian="big"/>
+                      <Number name="reserved1" size="32" signed="false" endian="big"/>
+                      <Number name="trackDuration" size="32" signed="false" endian="big"/>
+                      <Number name="reserved2" size="64" signed="false" endian="big"/>
+                      <Number name="trackLayer" size="16" signed="false" endian="big"/>
+                      <Number name="alternateGroup" size="16" signed="false" endian="big"/>
+                      <Number name="trackVolume" size="16" signed="false" endian="big"/>
+                      <Number name="reserved3" size="16" signed="false" endian="big"/>
+                      <Blob name="trackMatrix" length="36"/>
+                      <Number name="trackWidth" size="32" signed="false" endian="big"/>
+                      <Number name="trackHeight" size="32" signed="false" endian="big"/>
+                    </Block>
+                  </Block>
+
+                  <!-- 'clip' - Clipping atom -->
+                  <Block name="clipBlock" minOccurs="0" maxOccurs="1">
+                    <Number name="clipSize" size="32" endian="big">
+                      <Relation type="size" of="clipRegionBlock" expressionSet="size+8" expressionGet="size-8"/>
+                    </Number>
+                    <String name="clipIdentifier" value="clip" token="true"/>
+                    <Block name="clipRegionBlock" minOccurs="0" maxOccurs="1">
+                      <Number name="clipRegionSize" size="32" endian="big">
+                        <Relation type="size" of="clipRegionData" expressionSet="size+8" expressionGet="size-8"/>
+                      </Number>
+                      <String name="clipRegionIdentifier" value="crgn" token="true"/>
+                      <Block name="clipRegionData">
+                        <Number name="regionSize" size="16" signed="false" endian="big"/>
+                        <Number name="regionBoundaryBox" size="64" signed="false" endian="big"/>
+                        <Blob name="regionData"/>
+                      </Block>
+                    </Block>
+                  </Block>
+
+                  <!-- 'matt' - Track Matte atom -->
+                  <Block name="mattBlock" maxOccurs="1">
+                    <Number name="mattSize" size="32" signed="false" endian="big">
+                      <Relation type="size" of="compMattBlock"  expressionSet="size+8" expressionGet="size-8"/>
+                    </Number>
+                    <String name="mattIdentifier" value="matt" token="true"/>
+                    <Block name="compMattBlock">
+                      <Number name="compMattSize" size="32" signed="false"  endian="big">
+                        <Relation type="size" of="compMattData" expressionSet="size+8" expressionGet="size-8"/>
+                      </Number>
+                      <String name="compMattIdentifier" value="kmat" token="true"/>
+                      <Block name="compMattData">
+                        <Number name="version" size="8" signed="false" endian="big"/>
+                        <Blob name="flags" length="3"/>
+                        <Blob name="data"/> <!-- This could be greatly improved -->
+                      </Block>
+                    </Block>
+                  </Block>
+
+                  <!-- 'edts' - Edit atom -->
+                  <Block name="edtsBlock" maxOccurs="1">
+                    <Number name="edtsSize" size="32" endian="big">
+                      <Relation type="size" of="elstBlock" expressionSet="size+8" expressionGet="size-8"/>
+                    </Number>
+                    <String name="edtsIdentifier" value="edts" token="true"/>
+                    <Block name="elstBlock">
+                      <Number name="elstSize" size="32" signed="false"  endian="big">
+                        <Relation type="size" of="elstData" expressionSet="size+8" expressionGet="size-8"/>
+                      </Number>
+                      <String name="elstIdentifier" value="elst" token="true"/>
+                      <Block name="elstData">
+                        <Number name="version" size="8" signed="false" endian="big"/>
+                        <Blob name="flags" length="3"/>
+                        <Number name="numberOfEntries" size="32" signed="false" endian="big">
+                          <Relation type="count" of="editListTable"/>
+                        </Number>
+                        <Block name="editListTable" maxOccurs="5000">
+                          <Number name="trackDuration" size="32" signed="false" endian="big"/>
+                          <Number name="mediaTime" size="32" signed="false" endian="big"/>
+                          <Number name="mediaRate" size="32" signed="false" endian="big"/>
+                        </Block>
+                      </Block>
+                    </Block>
+                  </Block>
+
+                  <!-- 'tref' Track Reference atom -->
+                  <Block name="trackRefAtom" minOccurs="0" maxOccurs="1">
+                    <Number name="trakRefSize" size="32" signed="false" endian="big">
+                      <Relation type="size" of="trakRefData"  expressionSet="size+8" expressionGet="size-8"/>
+                    </Number>
+                    <String name="trakRefIdentifier" value="tref" token="true"/>
+                    <Block name="trakRefData">
+                      <Choice name="trakRefType" maxOccurs="6">
+                        <String name="tmcd" token="true"/>
+                        <String name="chap" token="true"/>
+                        <String name="sync" token="true"/>
+                        <String name="scpt" token="true"/>
+                        <String name="ssrc" token="true"/>
+                        <String name="hint" token="true"/>
+                      </Choice>
+                      <Number name="trackID" size="32" signed="false" endian="big"/>
+                    </Block>
+                  </Block>
+
+                  <!-- ADD TRACK LOADING SETTINGS ATOM -->
+                  <Block name="loadBlock" minOccurs="0" maxOccurs="1">
+                    <Number name="loadSize" size="32" endian="big">
+                      <Relation type="size" of="loadData" expressionSet="size+8" expressionGet="size-8"/>
+                    </Number>
+                    <String name="loadIdentifier" value="load" token="true"/>
+                    <Block name="loadData">
+                      <Number name="preloadStartTime" size="32" signed="false" endian="big"/>
+                      <Number name="preloadDuration" size="32" signed="false" endian="big"/>
+                      <Number name="preloadFlags" size="32" signed="false" endian="big"/>
+                      <Number name="defaultHints" size="32" signed="false" endian="big"/>
+                    </Block>
+                  </Block>
+
+                  <!-- 'imap' - Track Input Map atom -->
+                  <Block name="imapAtom">
+                    <Number name="imapSize" size="32" signed="false" endian="big">
+                      <Relation type="size" of="trackInputBlock" expressionSet="size+8" expressionGet="size-8"/>
+                    </Number>
+                    <String name="imapIdentifier" value="imap" token="true"/>
+                    <Block name="trackInputBlock">
+                      <Number name="trackInputSize" size="32" signed="false" endian="big">
+                        <Relation type="size" of="trackInputData" expressionSet="size+8" expressionGet="size-8"/>
+                      </Number>
+                      <String name="trackInputIdentifier" value="0000696e" valuetype="hex" token="true"/> <!-- Corresponds to "  in" -->
+                      <Block name="trackInputData">
+                        <Number name="atomID" size="32" signed="false" endian="big"/>
+                        <Number name="reserved1" size="16" signed="false" endian="big"/>
+                        <Number name="childCount" size="16" signed="false" endian="big">
+                          <Relation type="count" of="childAtoms"/>
+                        </Number>
+                        <Number name="reserved2" size="32" signed="false" endian="big"/>
+                        <Block name="childAtoms" maxOccurs="1000">
+                          <Block name="inputTypeBlock">
+                            <Number name="inputTypeSize" size="32" signed="false" endian="big">
+                              <Relation type="size" of="inputType" expressionSet="size+8" expressionGet="size-8"/>
+                            </Number>
+                            <String name="inputTypeIdentifier" value="00007479" valuetype="hex" token="true"/>
+                            <Number name="inputType" size="32" signed="false" endian="big"/>
+                          </Block>
+                          <Block name="objectIdBlock">
+                            <Number name="objectIDSize" size="32" signed="false" endian="big">
+                              <Relation type="size" of="objectID" expressionSet="size+8" expressionGet="size-8"/>
+                            </Number>
+                            <String name="ObjectIDIdentifier" value="obid" token="true"/>
+                            <Number name="objectID" size="32" signed="false" endian="big"/>
+                          </Block>
+                        </Block>
+                      </Block>
+                    </Block>
+                  </Block>
+
+                  <!-- 'mdia' - Media Data atom -->
+                  <Block name="mdiaBlock">
+                    <Number name="mdiaSize" size="32" signed="false" endian="big">
+                      <Relation type="size" of="mdiaData" expressionSet="size+8" expressionGet="size-8"/>
+                    </Number>
+                    <String name="mdiaIdentifier" value="mdia" token="true"/>
+                    <Block name="mdiaData">
+                      <Choice name="mdiaChildren" maxOccurs="3">
+                        <Block name="mdhdBlock" maxOccurs="1">
+                          <Number name="mdhdSize" size="32" endian="big">
+                            <Relation type="size" of="mdhdData" expressionSet="size+8" expressionGet="size-8"/>
+                          </Number>
+                          <String name="mdhdIdentifier" value="mdhd" token="true"/>
+                          <Block name="mdhdData">
+                            <Number name="version" size="8" signed="false" endian="big"/>
+                            <Blob name="flags" length="3"/>
+                            <Number name="creationTime" size="32" signed="false" endian="big"/>
+                            <Number name="modificationTime" size="32" signed="false" endian="big"/>
+                            <Number name="timescale" size="32" signed="false" endian="big"/>
+                            <Number name="duration" size="32" signed="false" endian="big"/>
+                            <Number name="language" size="16" signed="false" endian="big"/>
+                            <Number name="quality" size="16" signed="false" endian="big"/>
+                          </Block>
+                        </Block>
+                        <Block name="hdlrBlock">
+                          <Number name="hdlrSize" size="32" endian="big">
+                            <Relation type="size" of="hdlrData" expressionSet="size+8" expressionGet="size-8"/>
+                          </Number>
+                          <String name="hdlrIdentifier" value="hdlr" token="true"/>
+                          <Block name="hdlrData">
+                            <Number name="version" size="8" signed="false" endian="big"/>
+                            <Blob name="flags" length="3"/>
+                            <Number name="componentType" size="32" signed="false" endian="big"/>
+                            <Number name="componentSubtype" size="32" signed="false" endian="big"/>
+                            <Number name="componentManuf" size="32" signed="false" endian="big"/>
+                            <Number name="componentFlags" size="32" signed="false" endian="big"/>
+                            <Number name="componentFlagsMask" size="16" signed="false" endian="big"/>
+                            <Blob name="componentName"/>
+                          </Block>
+                        </Block>
+                        <Block name="minfBlock">
+                          <Number name="minfSize" size="32" endian="big">
+                            <Relation type="size" of="minfData" expressionSet="size+8" expressionGet="size-8"/>
+                          </Number>
+                          <String name="minfIdentifier" value="minf" token="true"/>
+                          <Block name="minfData">
+                            <Choice name="minfChildren" maxOccurs="4">
+                              <Block name="smhdBlock">
+                                <Number name="smhdSize" size="32" endian="big">
+                                  <Relation type="size" of="smhdData" expressionSet="size+8" expressionGet="size-8"/>
+                                </Number>
+                                <String name="smhdIdentifier" value="smhd" token="true"/>
+                                <Block name="smhdData">
+                                  <Number name="version" size="8" signed="false" endian="big"/>
+                                  <Blob name="flags" length="3"/>
+                                  <Number name="balance" size="16" signed="false" endian="big"/>
+                                  <Number name="reserved" size="16" signed="false" endian="big"/>
+                                </Block>
+                              </Block>
+                              <Block name="vmhdBlock">
+                                <Number name="vmhdSize" size="32" endian="big">
+                                  <Relation type="size" of="vmhdData" expressionSet="size+8" expressionGet="size-8"/>
+                                </Number>
+                                <String name="vmhdIdentifier" value="vmhd" token="true"/>
+                                <Block name="vmhdData">
+                                  <Number name="version" size="8" signed="false" endian="big"/>
+                                  <Blob name="flags" length="3"/>
+                                  <Number name="graphicsMode" size="16" signed="false" endian="big"/>
+                                  <Number name="opColorRed" size="16" signed="false" endian="big"/>
+                                  <Number name="opColorBlue" size="16" signed="false" endian="big"/>
+                                  <Number name="opColorGreen" size="16" signed="false" endian="big"/>
+                                </Block>
+                              </Block>
+                              <Block ref="hdlrBlock"/>
+                              <Block name="dinfBlock">
+                                <Number name="dinfSize" size="32" endian="big">
+                                  <Relation type="size" of="drefBlock" expressionSet="size+8" expressionGet="size-8"/>
+                                </Number>
+                                <String name="dinfIdentifier" value="dinf" token="true"/>
+                                <Block name="drefBlock">
+                                  <Number name="drefSize" size="32" endian="big">
+                                    <Relation type="size" of="drefData" expressionSet="size+8" expressionGet="size-8"/>
+                                  </Number>
+                                  <String name="drefIdentifier" value="dref" token="true"/>
+                                  <Block name="drefData">
+                                    <Number name="version" size="8" signed="false" endian="big"/>
+                                    <Blob name="flags" length="3"/>
+                                    <Number name="numberOfEntries" size="32" signed="false" endian="big">
+                                      <Relation type="count" of="drefChildren" />
+                                    </Number>
+                                    <Block name="drefChildren" maxOccurs="1024">
+                                      <Number name="size" size="32" endian="big">
+                                        <Relation type="size" of="data" expressionSet="size+8" expressionGet="size-8"/>
+                                      </Number>
+                                      <String name="type" length="4"/>
+                                      <Block name="data">
+                                        <Number name="version" size="8" signed="false" endian="big"/>
+                                        <Blob name="flags" length="3"/>
+                                        <Blob name="data"/>
+                                      </Block>
+                                    </Block>
+                                  </Block>
+                                </Block>
+                              </Block>
+                              <Block name="stblBlock">
+                                <Number name="stblSize" size="32" endian="big">
+                                  <Relation type="size" of="stblData" expressionSet="size+8" expressionGet="size-8"/>
+                                </Number>
+                                <String name="stblIdentifier" value="stbl" token="true"/>
+                                <Block name="stblData">
+                                  <Choice name="stblChildren" maxOccurs="13">
+                                    <Block name="stsdBlock">
+                                      <Number name="stsdSize" size="32" endian="big">
+                                        <Relation type="size" of="failsauce" expressionSet="size+8" expressionGet="size-8"/>
+                                      </Number>
+                                      <String name="stsdIdentifier" value="stsd" token="true"/>
+                                      <Blob name="failsauce"/><!-- Fix this -->
+                                      <!--<Block name="stsdData">
+                                        <Number name="version" size="8" signed="false" endian="big"/>
+                                        <Blob name="flags" length="3"/>
+                                        <Number name="numberOfEntries" size="32" signed="false" endian="big">
+                                          <Relation type="count" of="sampleDescription"/>
+                                        </Number>
+                                        <Block name="sampleDescription" maxOccurs="1024">
+                                          <Number name="size" size="32" endian="big">
+                                            <Relation type="size" of="stsdData" expressionSet="size+8" expressionGet="size-8"/>
+                                          </Number>
+                                          <Number name="dataFormat" size="32" endian="big"/>
+                                          <Blob name="reserved" length="6"/>
+                                          <Number name="dataReferenceIndex" size="16" endian="big"/>
+                                          <Blob name="fail"/>
+                                        </Block>
+                                      </Block>-->
+                                    </Block>
+                                    <Block name="sttsBlock">
+                                      <Number name="sttsSize" size="32" endian="big">
+                                        <Relation type="size" of="sttsData" expressionSet="size+8" expressionGet="size-8"/>
+                                      </Number>
+                                      <String name="sttsIdentifier" value="stts" token="true"/>
+                                      <Block name="sttsData">
+                                        <Number name="version" size="8" signed="false" endian="big"/>
+                                        <Blob name="flags" length="3"/>
+                                        <Number name="numberOfEntries" size="32" signed="false" endian="big">
+                                          <Relation type="count" of="timeToSampleTable"/>
+                                        </Number>
+                                        <Block name="timeToSampleTable" maxOccurs="1024">
+                                          <Number name="sampleCount" size="32" signed="false" endian="big"/>
+                                          <Number name="sampleDuration" size="32" signed="false" endian="big"/>
+                                        </Block>
+                                      </Block>
+                                    </Block>
+                                    <Block name="stssBlock">
+                                      <Number name="stssSize" size="32" endian="big">
+                                        <Relation type="size" of="stssData" expressionSet="size+8" expressionGet="size-8"/>
+                                      </Number>
+                                      <String name="stssIdentifier" value="stss" token="true"/>
+                                      <Block name="stssData">
+                                        <Number name="version" size="8" signed="false" endian="big"/>
+                                        <Blob name="flags" length="3"/>
+                                        <Number name="numberOfEntries" size="32" signed="false" endian="big">
+                                          <Relation type="count" of="syncSampleTable"/>
+                                        </Number>
+                                        <Block name="syncSampleTable" maxOccurs="1024">
+                                          <Number name="sample" size="32" signed="false" endian="big"/>
+                                        </Block>
+                                      </Block>
+                                    </Block>
+                                    <Block name="stscBlock">
+                                      <Number name="stscSize" size="32" endian="big">
+                                        <Relation type="size" of="stscData" expressionSet="size+8" expressionGet="size-8"/>
+                                      </Number>
+                                      <String name="stscIdentifier" value="stsc" token="true"/>
+                                      <Block name="stscData">
+                                        <Number name="version" size="8" signed="false" endian="big"/>
+                                        <Blob name="flags" length="3"/>
+                                        <Number name="numberOfEntries" size="32" signed="false" endian="big">
+                                          <Relation type="count" of="sampleToChunkTable"/>
+                                        </Number>
+                                        <Block name="sampleToChunkTable" maxOccurs="1024">
+                                          <Number name="firstChunk" size="32" signed="false" endian="big"/>
+                                          <Number name="samplesPerChunk" size="32" signed="false" endian="big"/>
+                                          <Number name="sampleDescriptionID" size="32" signed="false" endian="big"/>
+                                        </Block>
+                                      </Block>
+                                    </Block>
+                                    <Block name="stszBlock">
+                                      <Number name="stszSize" size="32" endian="big">
+                                        <Relation type="size" of="stszData" expressionSet="size+8" expressionGet="size-8"/>
+                                      </Number>
+                                      <String name="stszIdentifier" value="stsz" token="true"/>
+                                      <Block name="stszData">
+                                        <Number name="version" size="8" signed="false" endian="big"/>
+                                        <Blob name="flags" length="3"/>
+                                        <Number name="sampleSize" size="32" signed="false" endian="big">
+                                          <!--<Relation type="size" of="withSize"/> This gets related back to the media sample -->
+                                        </Number>
+                                        <Number name="numberOfEntries" size="32" signed="false" endian="big">
+                                          <Relation type="count" of="sampleSizeTableData"/>
+                                        </Number>
+                                        <Block name="sampleSizeTable">
+                                          <Relation type="when" when="int(self.find('sampleSize').defaultValue) == 0"/>
+                                          <Block name="sampleSizeTableData" maxOccurs="5000">
+                                            <Number name="variableSampleSize" size="32" signed="false" endian="big"/>
+                                          </Block>
+                                        </Block>
+                                      </Block>
+                                    </Block>
+                                    <Block name="stcoBlock">
+                                      <Number name="stcoSize" size="32" endian="big">
+                                        <Relation type="size" of="stcoData" expressionSet="size+8" expressionGet="size-8"/>
+                                      </Number>
+                                      <String name="stcoIdentifier" value="stco" token="true"/>
+                                      <Block name="stcoData">
+                                        <Number name="version" size="8" signed="false" endian="big"/>
+                                        <Blob name="flags" length="3"/>
+                                        <Number name="numberOfEntries" size="32" signed="false" endian="big">
+                                          <Relation type="count" of="chunkOffsetTable"/>
+                                        </Number>
+                                        <Block name="chunkOffsetTable" maxOccurs="5000">
+                                          <Number name="chunkOffset" size="32" signed="false" endian="big"/>
+                                        </Block>
+                                      </Block>
+                                    </Block>
+                                  </Choice>
+                                </Block>
+                              </Block>
+                            </Choice>
+                          </Block>
+                        </Block>
+                        <Block name="udtaBlock">
+                          <Number name="udtaSize" size="32" signed="false" endian="big">
+                            <Relation type="size" of="udtaData" expressionSet="size+8" expressionGet="size-8"/>
+                          </Number>
+                          <String name="udtaIdentifier" value="udta" token="true"/>
+                          <Block name="udtaData">
+                            <Number name="udtaDataListSize" size="32" signed="false" endian="big">
+                              <Relation type="size" of="udtaDataList" expressionSet="size+8" expressionGet="size-8"/>
+                            </Number>
+                            <String name="udtaDataListIdentifier" length="4"/>
+                            <Blob name="udtaDataList"/>
+                          </Block>
+                        </Block>
+                      </Choice>
+                    </Block>
+                  </Block>
+
+                  <!-- 'udta' - User-Defined Data atom -->
+                  <Block name="udtaBlock">
+                    <Number name="udtaSize" size="32" signed="false" endian="big">
+                      <Relation type="size" of="udtaData" expressionSet="size+8" expressionGet="size-8"/>
+                    </Number>
+                    <String name="udtaIdentifier" value="udta" token="true"/>
+                    <Block name="udtaData">
+                      <Number name="udtaDataListSize" size="32" signed="false" endian="big">
+                        <!--<Relation type="size" of="udtaDataList" expressionSet="size+4" expressionGet="size-4"/>-->
+                      </Number>
+                      <Block name="udtaDataList" minOccurs="0" maxOccurs="1">
+                        <Relation type="when" when="int(self.find('udtaDataListSize').defaultValue) != 0"/>
+                        <String name="udtaDataListIdentifier" length="4"/>
+                        <Blob name="udtaDataList"/>
+                      </Block>
+                    </Block>
+                  </Block>
+                </Choice>
+              </Block>
+            </Block>
+
+            <!-- 'udta' - User Data atom -->
+            <Block name="udtaBlock">
+              <Number name="udtaSize" size="32" signed="false" endian="big">
+                <Relation type="size" of="udtaData" expressionSet="size+8" expressionGet="size-8"/>
+              </Number>
+              <String name="udtaIdentifier" value="udta" token="true"/>
+              <Block name="udtaData">
+                <Block name="udtaDataArray" maxOccurs="1024">
+                  <Number name="udtaDataListSize" size="32" signed="false" endian="big">
+                    <Relation type="size" of="udtaDataList" expressionSet="size+4" expressionGet="size-4"/>
+                  </Number>
+                  <Block name="udtaDataList">
+                    <Relation type="when" when="int(self.find('udtaDataListSize').defaultValue) != 0"/>
+                    <String name="udtaDataListIdentifier" length="4"/>
+                    <Blob name="udtaDataList"/>
+                  </Block>
+                </Block>
+              </Block>
+            </Block>
+
+            <!-- 'ctab' - Color Table atom -->
+            <Block name="ctabBlock" minOccurs="0" maxOccurs="1">
+              <Number name="ctabSize" size="32" signed="false" endian="big">
+                <Relation type="size" of="ctabData" expressionSet="size+8" expressionGet="size-8"/>
+              </Number>
+              <String name="ctabIdentifier" value="ctab" token="true"/>
+              <Block name="ctabData">
+                <Number name="colorTableSeed" size="32" signed="false" endian="big"/>
+                <Number name="colorTableFlags" size="16" signed="false" endian="big"/>
+                <Number name="colorTableSize" size="16" signed="false" endian="big">
+                  <Relation type="count" of="colorArray" expressionSet="count-1" expressionGet="count+1"/> <!-- Verify this is correct -->
+                </Number>
+                <Block name="colorArray" maxOccurs="256">
+                  <Number name="color1" size="16" signed="false" endian="big"/>
+                  <Number name="color2" size="16" signed="false" endian="big"/>
+                  <Number name="color3" size="16" signed="false" endian="big"/>
+                  <Number name="color4" size="16" signed="false" endian="big"/>
+                </Block>
+              </Block>
+            </Block>
+          </Choice>
+        </Block>
+      </Block>
+    </Choice>
+  </DataModel>
+
+  <DataModel name="Param">
+    <String name="Value" isStatic="true"/>
+  </DataModel>
+
+</Peach>

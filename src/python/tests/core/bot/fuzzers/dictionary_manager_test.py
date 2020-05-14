@@ -43,7 +43,8 @@ class DictionaryManagerTest(unittest.TestCase):
 
   def _parse_dictionary_file(self, dictionary_path):
     """Parse given dictionary file and return set of its lines."""
-    data = utils.read_data_from_file(dictionary_path, eval_data=False)
+    data = utils.read_data_from_file(
+        dictionary_path, eval_data=False).decode('utf-8')
     lines = [line.strip() for line in data.splitlines()]
     dictionary = set([line for line in lines if line])
     return dictionary
@@ -53,7 +54,7 @@ class DictionaryManagerTest(unittest.TestCase):
     dict_manager = dictionary_manager.DictionaryManager('fuzzer_name')
     log_data = utils.read_data_from_file(
         os.path.join(DATA_DIRECTORY, 'log_with_recommended_dict.txt'),
-        eval_data=False)
+        eval_data=False).decode('utf-8')
 
     recommended_dict = dict_manager.parse_recommended_dictionary_from_data(
         log_data)
@@ -72,7 +73,7 @@ class DictionaryManagerTest(unittest.TestCase):
     dict_manager = dictionary_manager.DictionaryManager('fuzzer_name')
     log_data = utils.read_data_from_file(
         os.path.join(DATA_DIRECTORY, 'log_with_recommended_dict.txt'),
-        eval_data=False)
+        eval_data=False).decode('utf-8')
 
     dict_from_log = dict_manager.parse_recommended_dictionary_from_data(
         log_data)
@@ -94,7 +95,7 @@ class DictionaryManagerTest(unittest.TestCase):
     dict_manager = dictionary_manager.DictionaryManager('fuzzer_name')
     log_data = utils.read_data_from_file(
         os.path.join(DATA_DIRECTORY, 'log_with_useless_dict.txt'),
-        eval_data=False)
+        eval_data=False).decode('utf-8')
 
     useless_dict = dict_manager.parse_useless_dictionary_from_data(log_data)
 
@@ -120,7 +121,7 @@ class CorrectIfNeededTest(unittest.TestCase):
     dictionary_manager.correct_if_needed(full_input_filename)
     full_output_filename = os.path.join(DATA_DIRECTORY, output_filename)
     expected_output = utils.read_data_from_file(
-        full_output_filename, eval_data=False)
+        full_output_filename, eval_data=False).decode('utf-8')
     self.mock.write_data_to_file.assert_called_once_with(
         expected_output, full_input_filename)
 

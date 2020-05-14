@@ -43,6 +43,7 @@ from libs import helpers
 from libs.issue_management import issue_tracker_utils
 from libs.query import datastore_query
 from system import archive
+from system import environment
 
 MAX_RETRIES = 50
 RUN_FILE_PATTERNS = ['run', 'fuzz-', 'index.', 'crash.']
@@ -165,6 +166,17 @@ def filter_target_names(targets, engine):
   return [t[len(prefix):] for t in targets if t.startswith(prefix)]
 
 
+def filter_blackbox_fuzzers(fuzzers):
+  """Filter out fuzzers such that only blackbox fuzzers are included."""
+
+  def is_greybox_fuzzer(name):
+    # TODO(ochang): Generalize this check.
+    return (name.startswith('libFuzzer') or name.startswith('afl') or
+            name.startswith('honggfuzz'))
+
+  return [f for f in fuzzers if not is_greybox_fuzzer(f)]
+
+
 def find_fuzz_target(engine, target_name, job_name):
   """Find a fuzz target given the engine, target name (which may or may not be
   prefixed with project), and job."""
@@ -223,12 +235,16 @@ class Handler(base_handler.Handler):
     self.render(
         'upload.html', {
             'fieldValues': {
+                'blackboxFuzzers':
+                    filter_blackbox_fuzzers(allowed_fuzzers),
                 'jobs':
                     allowed_jobs,
                 'libfuzzerTargets':
                     filter_target_names(allowed_fuzzers, 'libFuzzer'),
                 'aflTargets':
                     filter_target_names(allowed_fuzzers, 'afl'),
+                'honggfuzzTargets':
+                    filter_target_names(allowed_fuzzers, 'honggfuzz'),
                 'isChromium':
                     utils.is_chromium(),
                 'sandboxedJobs':
@@ -317,20 +333,21 @@ class UploadHandlerCommon(object):
         not data_types.Job.query(data_types.Job.name == job_type).get()):
       raise helpers.EarlyExitException('Invalid job name.', 400)
 
-    fuzzer_name = ''
+    fuzzer_name = self.request.get('fuzzer')
     job_type_lowercase = job_type.lower()
     if 'libfuzzer' in job_type_lowercase:
       fuzzer_name = 'libFuzzer'
     elif 'afl' in job_type_lowercase:
       fuzzer_name = 'afl'
 
+    is_engine_job = fuzzer_name and environment.is_engine_fuzzer_job(job_type)
     target_name = self.request.get('target')
-    if not fuzzer_name and target_name:
+    if not is_engine_job and target_name:
       raise helpers.EarlyExitException(
           'Target name is not applicable to non-engine jobs (AFL, libFuzzer).',
           400)
 
-    if fuzzer_name and not target_name:
+    if is_engine_job and not target_name:
       raise helpers.EarlyExitException(
           'Missing target name for engine job (AFL, libFuzzer).', 400)
 
@@ -339,7 +356,7 @@ class UploadHandlerCommon(object):
       raise helpers.EarlyExitException('Invalid target name.', 400)
 
     fully_qualified_fuzzer_name = ''
-    if fuzzer_name and target_name:
+    if is_engine_job and target_name:
       fully_qualified_fuzzer_name, target_name = find_fuzz_target(
           fuzzer_name, target_name, job_type)
       if not fully_qualified_fuzzer_name:

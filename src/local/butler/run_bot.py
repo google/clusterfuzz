@@ -42,8 +42,6 @@ def _setup_bot_directory(args):
       os.path.join(src_root_dir, 'src', 'appengine'),
       os.path.join(bot_src_dir, 'appengine'))
   common.update_dir(
-      os.path.join(src_root_dir, 'src', 'go'), os.path.join(bot_src_dir, 'go'))
-  common.update_dir(
       os.path.join(src_root_dir, 'src', 'protos'),
       os.path.join(bot_src_dir, 'protos'))
   common.update_dir(
@@ -113,14 +111,8 @@ def execute(args):
   _setup_environment_and_configs(args, appengine_path)
 
   try:
-    original_root_dir = os.path.abspath('.')
     os.chdir(os.path.join(args.directory, 'clusterfuzz'))
-    if os.getenv('USE_GO_WORKER'):
-      proc = common.execute_async(
-          'bazel run //go/untrusted_runner:worker',
-          cwd=os.path.join(original_root_dir, 'src'))
-    else:
-      proc = common.execute_async('python src/python/bot/startup/run_bot.py')
+    proc = common.execute_async('python src/python/bot/startup/run_bot.py')
 
     def _stop_handler(*_):
       print('Bot has been stopped. Exit.')

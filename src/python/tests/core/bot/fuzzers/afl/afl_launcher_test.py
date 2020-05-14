@@ -560,7 +560,7 @@ class AflRunnerTest(LauncherTestBase):
 
     for extra_arg in extra_args:
       self.assertIn(extra_arg, afl_args)
-      self.assertLess(afl_args.index(extra_arg), afl_args)
+      self.assertLess(afl_args.index(extra_arg), len(afl_args))
 
   def test_afl_setup(self):
     """Test AflRunner.afl_setup."""

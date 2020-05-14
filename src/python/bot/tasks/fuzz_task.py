@@ -40,6 +40,7 @@ from bot.fuzzers import builtin
 from bot.fuzzers import builtin_fuzzers
 from bot.fuzzers import engine
 from bot.fuzzers import engine_common
+from bot.fuzzers import utils as fuzzer_utils
 from bot.fuzzers.libFuzzer import stats as libfuzzer_stats
 from bot.tasks import setup
 from bot.tasks import task_creation
@@ -136,6 +137,16 @@ class Crash(object):
         testcase_manager.get_command_line_for_application(
             crash.file_path, needs_http=needs_http))
 
+    # TODO(ochang): Remove once all engines are migrated to new pipeline.
+    fuzzing_strategies = libfuzzer_stats.LIBFUZZER_FUZZING_STRATEGIES.search(
+        orig_unsymbolized_crash_stacktrace)
+    if fuzzing_strategies:
+      assert len(fuzzing_strategies.groups()) == 1
+      fuzzing_strategies_string = fuzzing_strategies.groups()[0]
+      fuzzing_strategies = [
+          strategy.strip() for strategy in fuzzing_strategies_string.split(',')
+      ]
+
     return Crash(
         file_path=crash.file_path,
         crash_time=crash.crash_time,
@@ -145,10 +156,11 @@ class Crash(object):
         unsymbolized_crash_stacktrace=orig_unsymbolized_crash_stacktrace,
         arguments=arguments,
         application_command_line=application_command_line,
-        http_flag=needs_http)
+        http_flag=needs_http,
+        fuzzing_strategies=fuzzing_strategies)
 
   @classmethod
-  def from_engine_crash(cls, crash):
+  def from_engine_crash(cls, crash, fuzzing_strategies):
     """Create a Crash from a engine.Crash."""
     return Crash(
         file_path=crash.input_path,
@@ -158,7 +170,8 @@ class Crash(object):
         gestures=[],
         unsymbolized_crash_stacktrace=utils.decode_to_unicode(crash.stacktrace),
         arguments=' '.join(crash.reproduce_args),
-        application_command_line='')  # TODO(ochang): Write actual command line.
+        application_command_line='',  # TODO(ochang): Write actual command line.
+        fuzzing_strategies=fuzzing_strategies)
 
   def __init__(self,
                file_path,
@@ -169,13 +182,15 @@ class Crash(object):
                unsymbolized_crash_stacktrace,
                arguments,
                application_command_line,
-               http_flag=False):
+               http_flag=False,
+               fuzzing_strategies=None):
     self.file_path = file_path
     self.crash_time = crash_time
     self.return_code = return_code
     self.resource_list = resource_list
     self.gestures = gestures
     self.arguments = arguments
+    self.fuzzing_strategies = fuzzing_strategies
 
     self.security_flag = False
     self.should_be_ignored = False
@@ -490,7 +505,7 @@ class GcsCorpus(object):
 
     # Check if the corpus was recently synced. If yes, set a flag so that we
     # don't sync it again and save some time.
-    if last_sync_time:
+    if last_sync_time and os.path.exists(self._corpus_directory):
       last_update_time = storage.last_updated(self.gcs_corpus.get_gcs_url())
       if last_update_time and last_sync_time > last_update_time:
         logs.log('Corpus for target %s has no new updates, skipping rsync.' %
@@ -866,12 +881,15 @@ def store_fuzzer_run_results(testcase_file_paths, fuzzer, fuzzer_command,
   # 4. Return code is non-zero and was not found before.
   # 5. Testcases generated were fewer than expected in this run and zero return
   #    code did occur before and zero generated testcases didn't occur before.
+  # TODO(mbarbella): Break this up for readability.
+  # pylint: disable=consider-using-in
   save_test_results = (
       not fuzzer.result or not fuzzer.result_timestamp or
       dates.time_has_expired(fuzzer.result_timestamp, days=1) or
       (fuzzer_return_code != 0 and fuzzer_return_code != fuzzer.return_code) or
       (generated_testcase_count != expected_testcase_count and
        fuzzer.return_code == 0 and ' 0/' not in fuzzer.result))
+  # pylint: enable=consider-using-in
   if not save_test_results:
     return
 
@@ -989,18 +1007,9 @@ def create_testcase(group, context):
 
     testcase.put()
 
-  fuzzing_strategies = (
-      libfuzzer_stats.LIBFUZZER_FUZZING_STRATEGIES.search(
-          crash.crash_stacktrace))
-
-  if fuzzing_strategies:
-    assert len(fuzzing_strategies.groups()) == 1
-    fuzzing_strategies_string = fuzzing_strategies.groups()[0]
-    fuzzing_strategies = [
-        strategy.strip() for strategy in fuzzing_strategies_string.split(',')
-    ]
+  if crash.fuzzing_strategies:
     testcase.set_metadata(
-        'fuzzing_strategies', fuzzing_strategies, update_testcase=True)
+        'fuzzing_strategies', crash.fuzzing_strategies, update_testcase=True)
 
   # If there is one, record the original file this testcase was mutated from.
   if (crash.file_path in context.testcases_metadata and
@@ -1311,7 +1320,11 @@ def run_engine_fuzzer(engine_impl, target_name, sync_corpus_directory,
 
   fuzzer_metadata.update(engine_common.get_all_issue_metadata(target_path))
   _add_issue_metadata_from_environment(fuzzer_metadata)
-  return result, fuzzer_metadata
+
+  # Cleanup fuzzer temporary artifacts (e.g. mutations dir, merge dirs. etc).
+  fuzzer_utils.cleanup()
+
+  return result, fuzzer_metadata, options.strategies
 
 
 class FuzzingSession(object):
@@ -1364,6 +1377,16 @@ class FuzzingSession(object):
     if not targets_count or targets_count.count != count:
       data_types.FuzzTargetsCount(id=self.job_type, count=count).put()
 
+  def _file_size(self, file_path):
+    """Return file size depending on whether file is local or remote (untrusted
+    worker)."""
+    if environment.is_trusted_host():
+      from bot.untrusted_runner import file_host
+      stat_result = file_host.stat(file_path)
+      return stat_result.st_size if stat_result else None
+
+    return os.path.getsize(file_path)
+
   def sync_new_corpus_files(self):
     """Sync new files from corpus to GCS."""
     if not self.gcs_corpus:
@@ -1375,15 +1398,23 @@ class FuzzingSession(object):
              (new_files_count, self.fuzz_target.project_qualified_name(),
               self.job_type))
 
-    if new_files_count > MAX_NEW_CORPUS_FILES:
-      # Throttle corpus uploads so they don't explode in size.
-      logs.log(('Only uploading %d out of %d new corpus files '
-                'generated by fuzzer %s (job %s).') %
-               (MAX_NEW_CORPUS_FILES, new_files_count,
-                self.fuzz_target.project_qualified_name(), self.job_type))
-      new_files = random.sample(new_files, MAX_NEW_CORPUS_FILES)
+    filtered_new_files = []
+    filtered_new_files_count = 0
+    for new_file in new_files:
+      if filtered_new_files_count >= MAX_NEW_CORPUS_FILES:
+        break
+      if self._file_size(new_file) > engine_common.CORPUS_INPUT_SIZE_LIMIT:
+        continue
+      filtered_new_files.append(new_file)
+      filtered_new_files_count += 1
 
-    self.gcs_corpus.upload_files(new_files)
+    if filtered_new_files_count < new_files_count:
+      logs.log(('Uploading only %d out of %d new corpus files '
+                'generated by fuzzer %s (job %s).') %
+               (filtered_new_files_count, new_files_count,
+                self.fuzz_target.project_qualified_name(), self.job_type))
+
+    self.gcs_corpus.upload_files(filtered_new_files)
 
   def generate_blackbox_testcases(self, fuzzer, fuzzer_directory,
                                   testcase_count):
@@ -1443,7 +1474,10 @@ class FuzzingSession(object):
         return error_occurred, None, None, None, None
 
       # Build the fuzzer command execution string.
-      command = shell.get_execute_command(fuzzer_executable)
+      # TODO(mbarbella): Conditionally invoke with Python 2 depending on
+      # the fuzzer. At present, all were implemented to work with Python 2.
+      command = shell.get_execute_command(
+          fuzzer_executable, is_blackbox_fuzzer=True)
 
       # NodeJS and shell script expect space seperator for arguments.
       if command.startswith('node ') or command.startswith('sh '):
@@ -1507,13 +1541,15 @@ class FuzzingSession(object):
       if float(
           generated_testcase_count) / testcase_count < FUZZER_FAILURE_THRESHOLD:
         logs.log_error(
-            'Fuzzer %s returned %d. Testcase generation failed.' %
-            (fuzzer_name, fuzzer_return_code),
+            ('Fuzzer failed to generate testcases '
+             '(fuzzer={name}, return_code={return_code}).').format(
+                 name=fuzzer_name, return_code=fuzzer_return_code),
             output=fuzzer_output)
       else:
         logs.log_warn(
-            'Fuzzer %s returned %d. Less than expected testcases generated.' %
-            (fuzzer_name, fuzzer_return_code),
+            ('Fuzzer generated less than expected testcases '
+             '(fuzzer={name}, return_code={return_code}).').format(
+                 name=fuzzer_name, return_code=fuzzer_return_code),
             output=fuzzer_output)
 
     # Store fuzzer run results.
@@ -1562,7 +1598,7 @@ class FuzzingSession(object):
     # Do the actual fuzzing.
     for fuzzing_round in range(environment.get_value('MAX_TESTCASES', 1)):
       logs.log('Fuzzing round {}.'.format(fuzzing_round))
-      result, current_fuzzer_metadata = run_engine_fuzzer(
+      result, current_fuzzer_metadata, fuzzing_strategies = run_engine_fuzzer(
           engine_impl, self.fuzz_target.binary, sync_corpus_directory,
           self.testcase_directory)
       fuzzer_metadata.update(current_fuzzer_metadata)
@@ -1590,7 +1626,9 @@ class FuzzingSession(object):
       upload_testcase_run_stats(testcase_run)
       if result.crashes:
         crashes.extend([
-            Crash.from_engine_crash(crash) for crash in result.crashes if crash
+            Crash.from_engine_crash(crash, fuzzing_strategies)
+            for crash in result.crashes
+            if crash
         ])
 
     logs.log('All fuzzing rounds complete.')
@@ -1781,10 +1819,6 @@ class FuzzingSession(object):
     if is_lsan_enabled:
       leak_blacklist.copy_global_to_local_blacklist()
 
-    # For some binaries, we specify trials, which are sets of flags that we only
-    # apply some of the time. Adjust APP_ARGS for them if needed.
-    trials.setup_additional_args_for_app()
-
     # Ensure that that the fuzzer still exists.
     logs.log('Setting up fuzzer and data bundles.')
     fuzzer = data_types.Fuzzer.query(
@@ -1845,6 +1879,10 @@ class FuzzingSession(object):
       logs.log_error(
           'Unable to setup data bundle %s.' % fuzzer.data_bundle_name)
       return
+
+    # For some binaries, we specify trials, which are sets of flags that we only
+    # apply some of the time. Adjust APP_ARGS for them if needed.
+    trials.setup_additional_args_for_app()
 
     engine_impl = engine.get(fuzzer.name)
     if engine_impl:

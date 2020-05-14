@@ -38,9 +38,10 @@ RUN wget https://storage.googleapis.com/clusterfuzz-data/cudnn/7.1.4_cuda9.0/lib
 
 # Replace TensorFlow CPU version with GPU version. Also the version number
 # needs to match cuda and cuDNN version above.
-RUN pip uninstall tensorflow -y && \
-    pip uninstall tensorboard -y && \
-    pip install tensorflow-gpu==1.8.0
+RUN python3.7 -m pip uninstall tensorflow -y && \
+    python3.7 -m pip uninstall tensorboard -y && \
+    python3.7 -m pip install mock==2.0.0 && \
+    python3.7 -m pip install tensorflow-gpu==1.15.2
 
 WORKDIR $INSTALL_DIRECTORY
 

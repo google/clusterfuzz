@@ -15,26 +15,32 @@
 
 import contextlib
 import functools
+import os
 import sys
 import threading
 
 from google.cloud import ndb
+from google.cloud.ndb import context as context_module
 import grpc
 
 from base import utils
 
 _ndb_client = None
 _ndb_client_lock = threading.Lock()
+_initial_pid = None
 
 
 def _client():
   """Get or initialize the NDB client."""
   global _ndb_client
+  global _initial_pid
 
   if not _ndb_client:
     with _ndb_client_lock:
       if not _ndb_client:
         _ndb_client = ndb.Client(project=utils.get_application_id())
+        _initial_pid = os.getpid()
+
         # TODO(ochang): Remove hack once migration to Python 3 is done.
         if sys.version_info.major == 2:
           # NDB doesn't like newstrs. On Python 3, keeping this breaks because
@@ -48,6 +54,12 @@ def _client():
 @contextlib.contextmanager
 def context():
   """Get the NDB context."""
+  if _initial_pid != os.getpid():
+    # Forked, clear the existing context to avoid issues.
+    # TODO(ochang): Remove this hack once on Python 3, where we can set
+    # multiprocessing.set_start_method to not fork.
+    context_module._state.context = None  # pylint: disable=protected-access
+
   with _client().context() as ndb_context:
     from google.cloud.ndb import _retry
     # Add an additional code to retry on.

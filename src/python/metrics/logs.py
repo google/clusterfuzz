@@ -52,15 +52,22 @@ def _is_local():
 def _is_running_on_app_engine():
   """Return whether or not we're running on App Engine (production or
   development)."""
-  return (os.getenv('SERVER_SOFTWARE') and
-          (os.getenv('SERVER_SOFTWARE').startswith('Development/') or
-           os.getenv('SERVER_SOFTWARE').startswith('Google App Engine/')))
+  return os.getenv('GAE_ENV') or (
+      os.getenv('SERVER_SOFTWARE') and
+      (os.getenv('SERVER_SOFTWARE').startswith('Development/') or
+       os.getenv('SERVER_SOFTWARE').startswith('Google App Engine/')))
 
 
 def _console_logging_enabled():
   """Return bool on where console logging is enabled, usually for tests and
   reproduce tool."""
   return bool(os.getenv('LOG_TO_CONSOLE'))
+
+
+def suppress_unwanted_warnings():
+  """Suppress unwanted warnings."""
+  # See https://github.com/googleapis/google-api-python-client/issues/299
+  logging.getLogger('googleapiclient.discovery_cache').setLevel(logging.ERROR)
 
 
 def set_logger(logger):
@@ -217,7 +224,7 @@ class JsonSocketHandler(logging.handlers.SocketHandler):
   def makePickle(self, record):
     """Format LogEntry into JSON string."""
     # \n is the recognized delimiter by fluentd's in_tcp. Don't remove.
-    return format_record(record) + '\n'
+    return (format_record(record) + '\n').encode('utf-8')
 
 
 def uncaught_exception_handler(exception_type, exception_value,
@@ -245,11 +252,28 @@ def uncaught_exception_handler(exception_type, exception_value,
   sys.__excepthook__(exception_type, exception_value, exception_traceback)
 
 
+def configure_appengine():
+  """Configure logging for App Engine."""
+  logging.getLogger().setLevel(logging.INFO)
+
+  if os.getenv('LOCAL_DEVELOPMENT') or sys.version_info.major == 2:
+    # TODO(ochang): Remove Python 2 check once all migrated to Python 3.
+    return
+
+  import google.cloud.logging
+  client = google.cloud.logging.Client()
+  handler = client.get_default_handler()
+  logging.getLogger().addHandler(handler)
+
+
 def configure(name, extras=None):
   """Set logger. See the list of loggers in bot/config/logging.yaml.
   Also configures the process to log any uncaught exceptions as an error.
   |extras| will be included by emit() in log messages."""
+  suppress_unwanted_warnings()
+
   if _is_running_on_app_engine():
+    configure_appengine()
     return
 
   if _console_logging_enabled():
@@ -307,6 +331,34 @@ def get_source_location():
   return 'Unknown', '-1', 'Unknown'
 
 
+def _add_appengine_trace(extras):
+  """Add App Engine tracing information."""
+  if sys.version_info.major != 3 or not _is_running_on_app_engine():
+    # TODO(ochang): Remove Python 3 check once all migrated to Python 3.
+    return
+
+  import webapp2
+
+  try:
+    request = webapp2.get_request()
+    if not request:
+      return
+  except Exception:
+    # FIXME: Find a way to add traces in threads. Skip adding for now, as
+    # otherwise, we hit an exception "Request global variable is not set".
+    return
+
+  trace_header = request.headers.get('X-Cloud-Trace-Context')
+  if not trace_header:
+    return
+
+  project_id = os.getenv('APPLICATION_ID')
+  trace_id = trace_header.split('/')[0]
+  extras['logging.googleapis.com/trace'] = (
+      'projects/{project_id}/traces/{trace_id}').format(
+          project_id=project_id, trace_id=trace_id)
+
+
 def emit(level, message, exc_info=None, **extras):
   """Log in JSON."""
   logger = get_logger()
@@ -319,15 +371,23 @@ def emit(level, message, exc_info=None, **extras):
 
   path_name, line_number, method_name = get_source_location()
 
-  if (level >= logging.ERROR and _is_running_on_app_engine()):
-    # App Engine only reports errors if there is an exception stacktrace, so we
-    # generate one. We don't create an exception here and then format it, as
-    # that will not include frames below this emit() call. We do [:-2] on
-    # the stacktrace to exclude emit() and the logging function below it (e.g.
-    # log_error).
-    message = (
-        message + '\n' + 'Traceback (most recent call last):\n' + ''.join(
-            traceback.format_stack()[:-2]) + 'LogError: ' + message)
+  if _is_running_on_app_engine():
+    if exc_info == (None, None, None):
+      # Don't pass exc_info at all, as otherwise cloud logging will append
+      # "NoneType: None" to the message.
+      exc_info = None
+
+    if level >= logging.ERROR:
+      # App Engine only reports errors if there is an exception stacktrace, so
+      # we generate one. We don't create an exception here and then format it,
+      # as that will not include frames below this emit() call. We do [:-2] on
+      # the stacktrace to exclude emit() and the logging function below it (e.g.
+      # log_error).
+      message = (
+          message + '\n' + 'Traceback (most recent call last):\n' + ''.join(
+              traceback.format_stack()[:-2]) + 'LogError: ' + message)
+
+    _add_appengine_trace(all_extras)
 
   # We need to make a dict out of it because member of the dict becomes the
   # first class attributes of LogEntry. It is very tricky to identify the extra

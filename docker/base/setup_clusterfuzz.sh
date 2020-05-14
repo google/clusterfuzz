@@ -25,8 +25,8 @@ if [[ -z "$LOCAL_SRC" ]]; then
     rm -rf clusterfuzz
   fi
 
-  gsutil cp gs://$DEPLOYMENT_BUCKET/linux.zip .
-  unzip -o linux.zip
+  gsutil cp gs://$DEPLOYMENT_BUCKET/$DEPLOYMENT_ZIP .
+  unzip -o $DEPLOYMENT_ZIP
 fi
 
 # Some configurations (e.g. hosts) run many instances of ClusterFuzz. Don't
@@ -39,11 +39,11 @@ if [[ -z "$DISABLE_MOUNTS" ]]; then
 
   # Setup mount to limit disk space for fuzzer-testcases-disk directory.
   FUZZER_TESTCASES_DISK_FILE=$INSTALL_DIRECTORY/fuzzer-testcases.mnt
-  fallocate -l 4GiB $FUZZER_TESTCASES_DISK_FILE
+  fallocate -l 8GiB $FUZZER_TESTCASES_DISK_FILE
   mkfs.ext4 -F $FUZZER_TESTCASES_DISK_FILE
 
   # mkfs.ext4 seems to remove the previous allocation, so do it again.
-  fallocate -l 4GiB $FUZZER_TESTCASES_DISK_FILE
+  fallocate -l 8GiB $FUZZER_TESTCASES_DISK_FILE
   mount -o loop $FUZZER_TESTCASES_DISK_FILE $INSTALL_DIRECTORY/clusterfuzz/bot/inputs/fuzzer-testcases-disk
 fi
 

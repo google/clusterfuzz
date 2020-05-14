@@ -22,7 +22,6 @@ standard_library.install_aliases()
 
 import copy
 import datetime
-import logging
 import os
 import queue
 import subprocess
@@ -116,6 +115,8 @@ def cleanup_defunct_processes():
 
 
 # Note: changes to this function may require changes to untrusted_runner.proto.
+# This should only be used for running target black box applications which
+# return text output.
 def run_process(cmdline,
                 current_working_directory=None,
                 timeout=DEFAULT_TEST_TIMEOUT,
@@ -125,10 +126,7 @@ def run_process(cmdline,
                 testcase_run=True,
                 ignore_children=True):
   """Executes a process with a given command line and other parameters."""
-  # FIXME(mbarbella): Using LAUNCHER_PATH here is error prone. It forces us to
-  # do certain operations before fuzzer setup (e.g. bad build check).
-  launcher = environment.get_value('LAUNCHER_PATH')
-  if environment.is_trusted_host() and testcase_run and not launcher:
+  if environment.is_trusted_host() and testcase_run:
     from bot.untrusted_runner import remote_process_host
     return remote_process_host.run_process(
         cmdline, current_working_directory, timeout, need_shell, gestures,
@@ -140,6 +138,9 @@ def run_process(cmdline,
   if env_copy:
     os.environ.update(env_copy)
 
+  # FIXME(mbarbella): Using LAUNCHER_PATH here is error prone. It forces us to
+  # do certain operations before fuzzer setup (e.g. bad build check).
+  launcher = environment.get_value('LAUNCHER_PATH')
   # This is used when running scripts on native linux OS and not on the device.
   # E.g. running a fuzzer to generate testcases or launcher script.
   plt = environment.platform()
@@ -175,8 +176,6 @@ def run_process(cmdline,
     gestures.pop()
   else:
     gesture_start_time = timeout // 2
-
-  logs.log('Process (%s) started.' % str(cmdline), level=logging.DEBUG)
 
   if plt == 'ANDROID':
     # Clear the log upfront.
@@ -235,7 +234,8 @@ def run_process(cmdline,
     # Collect the process output.
     output = (
         android.logger.log_output()
-        if plt == 'ANDROID' else '\n'.join(process_output.output))
+        if plt == 'ANDROID' else b'\n'.join(process_output.output))
+    output = utils.decode_to_unicode(output)
     if crash_analyzer.is_memory_tool_crash(output):
       break
 
@@ -307,7 +307,10 @@ def run_process(cmdline,
 
     # If the process is still running, then terminate it.
     if not process_status.finished:
-      if launcher and cmdline.startswith(launcher):
+      launcher_with_interpreter = shell.get_execute_command(
+          launcher, is_blackbox_fuzzer=True) if launcher else None
+      if (launcher_with_interpreter and
+          cmdline.startswith(launcher_with_interpreter)):
         # If this was a launcher script, we KILL all child processes created
         # except for APP_NAME.
         # It is expected that, if the launcher script terminated normally, it
@@ -323,7 +326,8 @@ def run_process(cmdline,
     if lsan:
       time.sleep(LSAN_ANALYSIS_TIME)
 
-    output = '\n'.join(process_output.output)
+    output = b'\n'.join(process_output.output)
+    output = utils.decode_to_unicode(output)
 
     # X Server hack when max client reached.
     if ('Maximum number of clients reached' in output or
@@ -343,10 +347,11 @@ def run_process(cmdline,
       output += utils.get_line_seperator('Memory Statistics')
       output += ps_output
 
-  logs.log(
-      'Process (%s) ended, exit code (%s), output (%s).' %
-      (str(cmdline), str(return_code), str(output, 'utf-8', errors='replace')),
-      level=logging.DEBUG)
+  if return_code:
+    logs.log_warn(
+        'Process (%s) ended with exit code (%s).' % (repr(cmdline),
+                                                     str(return_code)),
+        output=output)
 
   return return_code, round(time.time() - start_time, 1), output
 

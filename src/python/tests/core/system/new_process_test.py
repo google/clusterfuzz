@@ -238,16 +238,16 @@ class MaxStdoutLenTest(unittest.TestCase):
     """Test stdout over limit."""
     runner = new_process.ProcessRunner('python')
     result = runner.run_and_wait(
-        ['-c', 'print "A" + "B"*499 + "C"*499 + "D"'], max_stdout_len=64)
+        ['-c', 'print("A" + "B"*499 + "C"*499 + "D")'], max_stdout_len=64)
     self.assertEqual(
-        'A' + 'B' * 31 + '\n...truncated 937 bytes...\n' + 'C' * 30 + 'D' +
-        '\n', result.output)
+        b'A' + b'B' * 31 + b'\n...truncated 937 bytes...\n' + b'C' * 30 + b'D' +
+        b'\n', result.output)
 
   def test_under_limit(self):
     """Test stdout under limit."""
     runner = new_process.ProcessRunner('python')
-    result = runner.run_and_wait(['-c', 'print "A"*62'], max_stdout_len=64)
-    self.assertEqual('A' * 62 + '\n', result.output)
+    result = runner.run_and_wait(['-c', 'print("A"*62)'], max_stdout_len=64)
+    self.assertEqual(b'A' * 62 + b'\n', result.output)
 
 
 if __name__ == '__main__':

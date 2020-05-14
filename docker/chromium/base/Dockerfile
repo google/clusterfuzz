@@ -40,7 +40,8 @@ RUN apt-get update && \
         xvfb && \
     # 16.04's pyOpenSSL (installed by install-build-deps.sh) is too old for
     # Google Cloud SDK.
-    sudo pip install pyOpenSSL==19.0.0
+    sudo apt-get remove -y python-openssl && \
+    sudo pip2 install pyOpenSSL==19.0.0
 
 # Needed for older versions of Chrome.
 RUN ln -s /usr/lib/x86_64-linux-gnu/libudev.so /usr/lib/x86_64-linux-gnu/libudev.so.0
@@ -69,4 +70,5 @@ ENV INSTRUMENTED_LIBRARIES_PATHS_MSAN_NO_ORIGINS /msan-no-origins/lib/x86_64-lin
 ENV BOT_CONFIG linux_docker
 
 COPY setup.sh setup_x.sh start.sh /data/
+
 CMD ["bash", "-ex", "/data/start.sh"]

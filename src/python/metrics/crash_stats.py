@@ -151,6 +151,10 @@ def get(end, days, block, group_by, where_clause, group_having_clause, sort_by,
   if group_having_clause:
     group_having_clause = 'HAVING ' + group_having_clause
 
+  if (not big_query.VALID_FIELD_NAME_REGEX.match(group_by) or
+      not big_query.VALID_FIELD_NAME_REGEX.match(sort_by)):
+    raise ValueError('Invalid group_by or sort_by')
+
   sql = SQL.format(
       time_span=time_span,
       remainder=remainder,

@@ -25,14 +25,12 @@ application_id: test-clusterfuzz
 # Files to be deployed on App Engine for ClusterFuzz UI pages. This is kept
 # configurable, but does not need to be changed for most usecases.
 deployment:
-  prod:
-    - prod/app.yaml
-    - prod/cron.yaml
-    - prod/cron-service.yaml
-    - prod/go-cron-service.yaml
-  staging:
-    - staging/staging.yaml
-    - staging/go-cron-service-staging.yaml
+  prod3:
+    - prod3/app.yaml
+    - prod3/cron.yaml
+    - prod3/cron-service.yaml
+  staging3:
+    - staging3/staging.yaml
 
 # Google analytics tracking id, to provide analytics / usage info for
 # ClusterFuzz UI pages. See https://support.google.com/analytics/answer/1008080.

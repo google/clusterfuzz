@@ -16,6 +16,7 @@ from __future__ import absolute_import
 
 from builtins import range
 
+from . import errors
 from . import minimizer
 from . import utils
 
@@ -45,6 +46,9 @@ class DeltaMinimizer(minimizer.Minimizer):
   def _execute(self, data):
     """Prepare tests for delta minimization and process."""
     testcase = DeltaTestcase(data, self)
+    if not self.validate_tokenizer(data, testcase):
+      raise errors.TokenizationFailureError('Delta Minimizer')
+
     tokens = testcase.tokens
 
     step = max(1, len(tokens) // self.max_threads)

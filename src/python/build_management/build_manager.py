@@ -70,7 +70,9 @@ ICU_DATA_FILENAME = 'icudtl.dat'
 
 # Extensions to exclude when unarchiving a fuzz target. Note that fuzz target
 # own files like seed corpus, options, etc are covered by its own regex.
-FUZZ_TARGET_EXCLUDED_EXTENSIONS = ['exe', 'options', 'txt', 'zip', 'exe.pdb']
+FUZZ_TARGET_EXCLUDED_EXTENSIONS = [
+    'exe', 'options', 'txt', 'zip', 'exe.pdb', 'par'
+]
 
 # Binaries to explicitly include when unarchiving a fuzz target.
 FUZZ_TARGET_WHITELISTED_BINARIES = [
@@ -666,7 +668,13 @@ class Build(BaseBuild):
       os.system('ln -s %s %s' % (app_directory, symbolic_link_target))
 
     if utils.is_chromium():
-      environment.set_value('FONTCONFIG_SYSROOT', app_directory)
+      # Use deterministic fonts when available. See crbug.com/822737.
+      # For production builds (stable, beta), assume that they support it.
+      if not isinstance(self.revision, int) or self.revision >= 635076:
+        environment.set_value('FONTCONFIG_SYSROOT', app_directory)
+      else:
+        # Remove if set during previous iterations of regression testing.
+        environment.remove_key('FONTCONFIG_SYSROOT')
 
     if environment.platform() != 'ANDROID':
       return
@@ -1064,7 +1072,8 @@ def get_build_urls_list(bucket_path, reverse=True):
         for path in storage.list_blobs(base_url):
           f.write(path + '\n')
 
-    content = utils.read_data_from_file(keys_file_path, eval_data=False)
+    content = utils.read_data_from_file(
+        keys_file_path, eval_data=False).decode('utf-8')
     if not content:
       return []
 
@@ -1141,7 +1150,7 @@ def _get_targets_list(bucket_path):
     return None
 
   # Filter out targets which are not yet built.
-  targets = data.splitlines()
+  targets = data.decode('utf-8').splitlines()
   listed_targets = set(
       os.path.basename(path.rstrip('/'))
       for path in storage.list_blobs(bucket_dir_path, recursive=False))
@@ -1478,9 +1487,10 @@ def get_rpaths(binary_path):
 
   try:
     rpaths = subprocess.check_output(
-        [chrpath, '-l', binary_path], stderr=subprocess.PIPE).strip()
+        [chrpath, '-l', binary_path],
+        stderr=subprocess.PIPE).strip().decode('utf-8')
   except subprocess.CalledProcessError as e:
-    if 'no rpath or runpath tag found' in e.output:
+    if b'no rpath or runpath tag found' in e.output:
       return []
 
     raise

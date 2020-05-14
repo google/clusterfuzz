@@ -62,7 +62,7 @@ class BlobsTest(unittest.TestCase):
 
     self.mock.copy_file_from.return_value = True
     self.mock.copy_file_to.return_value = True
-    self.mock.read_data.return_value = 'data'
+    self.mock.read_data.return_value = b'data'
     self.mock.delete.return_value = True
 
   def test_get_gcs_path(self):
@@ -158,14 +158,14 @@ class BlobsTest(unittest.TestCase):
 
   def test_read_key(self):
     """Test read key for GCS files."""
-    self.assertEqual('data', blobs.read_key(TEST_UUID))
+    self.assertEqual(b'data', blobs.read_key(TEST_UUID))
     self.mock.read_data.assert_has_calls([
         mock.call('/blobs-bucket/' + TEST_UUID),
     ])
 
   def test_read_key_legacy(self):
     """Test read key for legacy files."""
-    self.assertEqual('data', blobs.read_key('legacyblobkey'))
+    self.assertEqual(b'data', blobs.read_key('legacyblobkey'))
     self.mock.read_data.assert_has_calls([
         mock.call('/blobs-bucket/legacy'),
     ])

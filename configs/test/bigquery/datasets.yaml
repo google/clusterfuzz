@@ -225,3 +225,33 @@ resources:
             type: FLOAT
           - name: engine
             type: STRING
+  - name: cross-pollination-stats-table
+    type: gcp-types/bigquery-v2:tables
+    properties:
+      datasetId: $(ref.main-dataset.datasetReference.datasetId)
+      tableReference:
+        tableId: cross_pollination_statistics
+      timePartitioning:
+        type: DAY
+      schema:
+        fields:
+          - name: project_qualified_name
+            type: STRING
+          - name: method
+            type: STRING
+          - name: sources
+            type: STRING
+          - name: tags
+            type: STRING
+          - name: initial_corpus_size
+            type: INTEGER
+          - name: corpus_size
+            type: INTEGER
+          - name: initial_edge_coverage
+            type: INTEGER
+          - name: edge_coverage
+            type: INTEGER
+          - name: initial_feature_coverage
+            type: INTEGER
+          - name: feature_coverage
+            type: INTEGER

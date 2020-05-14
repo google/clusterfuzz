@@ -108,14 +108,16 @@ def directory_exists(directory_path):
 def execute_command(cmd, timeout=None, log_error=True):
   """Spawns a subprocess to run the given shell command."""
   so = []
-  output_dest = tempfile.TemporaryFile(bufsize=0)
+  output_dest = tempfile.TemporaryFile()
+  # pylint: disable=subprocess-popen-preexec-fn
   pipe = subprocess.Popen(
       cmd,
       executable='/bin/bash',
       stdout=output_dest,
       stderr=subprocess.STDOUT,
       shell=True,
-      preexec_fn=lambda: signal.signal(signal.SIGPIPE, signal.SIG_DFL))
+      preexec_fn=lambda: signal.signal(signal.SIGPIPE, signal.SIG_DFL),
+      bufsize=0)
 
   def run():
     """Thread target function that waits for subprocess to complete."""
@@ -132,7 +134,7 @@ def execute_command(cmd, timeout=None, log_error=True):
       if log_error:
         logs.log_warn(
             '%s returned %d error code.' % (cmd, pipe.returncode),
-            output=''.join(so).strip())
+            output=output)
 
   thread = threading.Thread(target=run)
   thread.start()
@@ -146,8 +148,8 @@ def execute_command(cmd, timeout=None, log_error=True):
 
     return None
 
-  output = ''.join(so)
-  return output.strip()
+  bytes_output = b''.join(so)
+  return bytes_output.strip().decode('utf-8', errors='ignore')
 
 
 def factory_reset():
@@ -163,8 +165,10 @@ def factory_reset():
   revert_asan_device_setup_if_needed()
 
   run_as_root()
-  run_shell_command(
-      ['am', 'broadcast', '-a', 'android.intent.action.MASTER_CLEAR'])
+  run_shell_command([
+      'am', 'broadcast', '-a', 'android.intent.action.MASTER_CLEAR', '-n',
+      'android/com.android.server.MasterClearReceiver'
+  ])
 
   # Wait until the reset is complete.
   time.sleep(FACTORY_RESET_WAIT)

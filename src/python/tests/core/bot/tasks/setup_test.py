@@ -12,8 +12,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """Tests for setup."""
+from builtins import range
+from builtins import str
 
+import os
 import unittest
+
+from pyfakefs import fake_filesystem_unittest
 
 from bot.tasks import setup
 from datastore import data_types
@@ -154,3 +159,35 @@ class GetApplicationArgumentsTest(unittest.TestCase):
         '%TESTCASE%',
         setup._get_application_arguments(self.testcase,
                                          'afl_asan_chrome_variant', 'variant'))
+
+
+# pylint: disable=protected-access
+class ClearOldDataBundlesIfNeededTest(fake_filesystem_unittest.TestCase):
+  """Tests _clear_old_data_bundles_if_needed."""
+
+  def setUp(self):
+    test_utils.set_up_pyfakefs(self)
+    helpers.patch_environ(self)
+
+    self.data_bundles_dir = '/data-bundles'
+    os.mkdir(self.data_bundles_dir)
+    environment.set_value('DATA_BUNDLES_DIR', self.data_bundles_dir)
+
+  def test_evict(self):
+    """Tests that eviction works when more than certain number of bundles."""
+    for i in range(1, 15):
+      os.mkdir(os.path.join(self.data_bundles_dir, str(i)))
+
+    setup._clear_old_data_bundles_if_needed()
+    self.assertEqual([str(i) for i in range(5, 15)],
+                     sorted(os.listdir(self.data_bundles_dir), key=int))
+
+  def test_no_evict(self):
+    """Tests that no eviction is required when less than certain number of
+    bundles."""
+    for i in range(1, 5):
+      os.mkdir(os.path.join(self.data_bundles_dir, str(i)))
+
+    setup._clear_old_data_bundles_if_needed()
+    self.assertEqual([str(i) for i in range(1, 5)],
+                     sorted(os.listdir(self.data_bundles_dir), key=int))

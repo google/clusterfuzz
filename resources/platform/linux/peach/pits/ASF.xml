@@ -1,0 +1,943 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Peach version="1.0">
+  <Include ns="default" src="file:defaults.xml"/>
+
+  <DataModel name="ASF">
+    <!--  3.1 Header Object (mandatory, one only) -->
+    <Block name="HeaderObject" minOccurs="1" maxOccurs="1">
+      <Blob name="ObjectID" value="3026B2758E66CF11A6D900AA0062CE6C" valueType="hex" token="true"/>
+      <Number name="ObjectSize" size="64" endian="little"/> <!-- Size Relation -->
+      <Number name="NumberOfHeaderObjects" size="32" endian="little"/> <!-- Count Relation -->
+      <Number name="Reserved1" size="8" endian="little" value="1" token="true"/>
+      <Number name="Reserved2" size="8" endian="little" value="2" token="true"/>
+    </Block>
+
+    <Choice maxOccurs="100">
+      <!-- 3.2 File Properties Object (mandatory, one only) -->
+      <Block name="FilePropObject" minOccurs="1" maxOccurs="1">
+        <Blob name="ObjectID" value="A1DCAB8C47A9CF118EE400C00C205365" valueType="hex" token="true"/>
+        <Number name="ObjectSize" size="64" endian="little"/> <!-- Size Relation -->
+        <Blob name="FileID" length="16"/>
+        <Number name="FileSize" size="64" endian="little"/> <!-- Size Relation -->
+        <Number name="CreateDate" size="64" endian="little"/>
+        <Number name="DataPacketsCount" size="64" endian="little"/> <!-- See if this needs a count relation -->
+        <Number name="PlayDuration" size="64" endian="little"/>
+        <Number name="SendDuration" size="64" endian="little"/>
+        <Number name="Preroll" size="64" endian="little"/>
+        <Flags name="Flags" size="32">
+          <Flag name="BroadcastFlag" position="0" size="1"/>
+          <Flag name="SeekableFlag" position="1" size="1"/>
+          <Flag name="Reserved" position="2" size="30"/>
+        </Flags>
+        <Number name="MinDataPacketSize" size="32" endian="little"/>
+        <Number name="MaxDataPacketSize" size="32" endian="little"/>
+        <Number name="MaxBitrate" size="32" endian="little"/>
+      </Block>
+
+      <!-- 3.3 Stream Properties Object (mandatory, one per stream) -->
+      <Block name="StreamPropObject" minOccurs="1" maxOccurs="1">
+        <Blob name="ObjectID" value="9107DCB7B7A9CF118EE600C00C205365" valueType="hex" token="true"/>
+        <Number name="ObjectSize" size="64" endian="little"/> <!-- Size Relation -->
+        <Blob name="StreamType" length="16"/>
+        <Blob name="ErrorCorrectionType" length="16"/>
+        <Number name="TimeOffset" size="64" endian="little" value="0"/>
+        <Number name="TypeSpecificDataLength" size="32" endian="little">
+          <Relation type="size" of="TypeSpecificData"/>
+        </Number>
+        <Number name="ErrorCorrectDataLength" size="32" endian="little">
+          <Relation type="size" of="ErrorCorrectData"/>
+        </Number>
+        <Flags name="Flags" size="16">
+          <Flag name="StreamNumber" position="0" size="7"/>
+          <Flag name="Reserved" position="7" size="8"/>
+          <Flag name="EncryptedContentFlag" position="15" size="1"/>
+        </Flags>
+        <Number name="Reserved" size="32" endian="little" value="0"/>
+        <Blob name="TypeSpecificData"/> <!-- May be able to break this into a block - Section 9 -->
+        <Blob name="ErrorCorrectData"/><!-- These may need to be type-number?? -->
+      </Block>
+
+      <!-- 3.4 Header Extension Object (mandatory, one only) -->
+      <Block name="HeaderExtensionObject" minOccurs="1" maxOccurs="1">
+        <Blob name="ObjectID" value="B503BF5F2EA9CF118EE300C00C205365" valueType="hex" token="true"/>
+        <Number name="ObjectSize" size="64" endian="little"/> <!-- 46B + HeaderExtensionDataSize -->
+        <Blob name="Reserved1" value="11D2D3ABBAA9CF118EE600C00C205365" valueType="hex" token="true"/>
+        <Number name="Reserved2" size="16" endian="little" value="6"/>
+        <Number name="HeaderExtensionDataSize" size="32" endian="little"> <!-- ObjectSize - 46B -->
+          <Relation type="size" of="HeaderExtensionData"/>
+        </Number>
+        <Block name="HeaderExtensionData" maxOccurs="1">
+          <Blob name="Data" endian="little"/>
+        </Block>
+      </Block>
+
+      <!-- 3.5 Codec List Object (optional, one only) -->
+      <Block name="CodecListObject" minOccurs="0" maxOccurs="1">
+        <Blob name="ObjectID" value="4052D1861D31D011A3A400A0C90348F6" valueType="hex" token="true"/>
+        <Number name="ObjectSize" size="64" endian="little"/>
+        <Blob name="Reserved" value="4152D1861D31D011A3A400A0C90348F6" valueType="hex" token="true"/>
+        <Number name="CodecEntriesCount" size="32" endian="little">
+          <Relation type="count" of="CodecEntry" />
+        </Number>
+        <Block name="CodecEntry" maxOccurs="1024">
+          <Number name="CodecType" size="16"/>
+          <Number name="CodecNameLength" size="16">
+            <Relation type="size" of="CodecName" expressionSet="size/2"/>
+          </Number>
+          <String name="CodecName" type="wchar"/>
+          <Number name="CodecDescLength" size="16">
+            <Relation type="size" of="CodecDesc" expressionSet="size/2" />
+          </Number>
+          <String name="CodecDesc" type="wchar"/>
+          <Number name="CodecInfoLength" size="16">
+            <Relation type="size" of="CodecInfo"/>
+          </Number>
+          <String name="CodecInfo"/>
+        </Block>
+      </Block>
+
+      <!-- 3.6 Script Command Object (optional, one only) -->
+      <Block name="ScriptCommandObject" minOccurs="0" maxOccurs="1">
+        <Blob name="ObjectID" value="301AFB1E 620B D011 A39B00A0C90348F6" valueType="hex" token="true"/>
+        <Number name="ObjectSize" size="64" endian="little"/>
+        <Blob name="Reserved" length="16"/>
+        <Number name="CommandsCount" size="16" endian="little"/>
+        <Number name="CommandTypesCount" size="16" endian="little">
+          <Relation type="count" of="CommandTypes" />
+        </Number>
+        <Block name="CommandTypes" maxOccurs="1024">
+          <Number name="CommandTypeNameLen" size="16" endian="little">
+            <Relation type="count" of="CommandTypeName" />
+          </Number>
+          <Blob name="CommandTypeName"/>
+        </Block>
+        <Block name="CommandTypes" maxOccurs="1024">
+          <Number name="PresentationTime" size="32" endian="little"/>
+          <Number name="TypeIndex" size="16" endian="little"/>
+          <Number name="CommandNameLen" size="16" endian="little">
+            <Relation type="count" of="CommandTypeName" />
+          </Number>
+          <Blob name="CommandName"/>
+        </Block>
+      </Block>
+
+      <!-- 3.7 Marker Object (optional, 0 or 1) -->
+      <Block name="MarkerObject">
+        <Blob name="ObjectID" value="01CD87F451A911CF8EE600C00C205365" valueType="hex" token="true"/>
+        <Number name="ObjectSize" size="64" endian="little"/>
+        <Blob name="Reserved" length="16"/>
+        <Number name="MarkersCount" size="32" endian="little">
+          <Relation type="count" of="Markers" />
+        </Number>
+        <Number name="Reserved" size="16" endian="little"/>
+        <Number name="NameLength" size="16" endian="little">
+          <Relation type="size" of="Name" />
+        </Number>
+        <String name="Name"/>
+        <Block name="Markers" maxOccurs="1024">
+          <Number name="Offset" size="64" endian="little"/>
+          <Number name="PresentationTime" size="64" endian="little"/>
+          <Number name="EntryLength" size="16" endian="little"/>
+          <Number name="SendTime" size="32" endian="little"/>
+          <Number name="Flags" size="32" endian="little"/> <!-- Consider Changing to Flags element -->
+          <Number name="MarkerDescLength" size="32" endian="little">
+            <Relation type="size" of="MarkerDesc" />
+          </Number>
+          <String name="MarkerDesc"/>
+        </Block>
+      </Block>
+
+      <!-- 3.8 Bitrate Mutual Exclusion Object (optional, 0 or 1) -->
+      <Block name="BitrateMutualExclusionObject" minOccurs="0" maxOccurs="1">
+        <Blob name="ObjectID" value="DC29E2D6DA35D111903400A0C90349BE" valueType="hex" token="true"/>
+        <Number name="ObjectSize" size="64" endian="little"/>
+        <Blob name="ExclusionType" length="16"/>
+        <Number name="StreamNumCount" size="16" endian="little">
+          <Relation type="count" of="StreamNum" />
+        </Number>
+        <Number name="StreamNum" size="16" endian="little" maxOccurs="100"/>
+      </Block>
+
+      <!-- 3.9 Error Correction Object (optional, one only) -->
+      <Block name="ErrorCorrectObject" minOccurs="0" maxOccurs="1">
+        <Blob name="ObjectID" value="3526B2758E66CF11A6D900AA0062CE6C" valueType="hex" token="true"/>
+        <Number name="ObjectSize" size="64" endian="little"/>
+        <Blob name="ErrorCorrectType" length="16"/>
+        <Number name="ErrorCorrectDataLen" size="32" endian="little">
+          <Relation type="size" of="ErrorCorrectData" />
+        </Number>
+        <Blob name="ErrorCorrectData"/>
+      </Block>
+
+      <!-- 3.10 Content Description Object (optional, one only) -->
+      <Block name="ContentDescObject" minOccurs="0" maxOccurs="1">
+        <Blob name="ObjectID" value="3326B2758E66CF11A6D900AA0062CE6C" valueType="hex" token="true"/>
+        <Number name="ObjectSize" size="64" endian="little"/>
+        <Number name="TitleLength" size="16" endian="little">
+          <Relation type="size" of="Title" />
+        </Number>
+        <Number name="AuthorLength" size="16" endian="little">
+          <Relation type="size" of="Author" />
+        </Number>
+        <Number name="CopyrightLength" size="16" endian="little">
+          <Relation type="size" of="Copyright" />
+        </Number>
+        <Number name="DescriptionLength" size="16" endian="little">
+          <Relation type="size" of="Description" />
+        </Number>
+        <Number name="RatingLength" size="16" endian="little">
+          <Relation type="size" of="Rating" />
+        </Number>
+        <String name="Title"/>
+        <String name="Author"/>
+        <String name="Copyright"/>
+        <String name="Description"/>
+        <String name="Rating"/>
+      </Block>
+
+      <!-- 3.11 Extended Content Description Object (optional, one only) -->
+      <Block name="ExtendedContentDescriptionObject" minOccurs="1" maxOccurs="1">
+        <Blob name="ObjectID" value="40A4D0D207E3D21197F000A0C95EA850" valueType="hex" token="true"/>
+        <Number name="ObjectSize" size="64" endian="little"/>
+        <Number name="ContentDescriptorCount" size="16" endian="little">
+          <Relation type="count" of="ContentDescriptor" />
+        </Number>
+        <Block name="ContentDescriptor" maxOccurs="1024">
+          <Number name="DescriptorNameLen" size="16" endian="little">
+            <Relation type="size" of="DescriptorName" />
+          </Number>
+          <String name="DescriptorName" type="wchar"/>
+          <Choice name="DescriptorValueDataType" maxOccurs="1">
+            <!-- Find out if it's possible to influence DescriptorValue's data-type -->
+            <Number name="Unicode" size="16" endian="little" value="0" token="true"/>
+            <Number name="ByteArray" size="16" endian="little" value="1" token="true"/>
+            <Number name="Bool" size="16" endian="little" value="2" token="true"/>
+            <Number name="DWORD" size="16" endian="little" value="3" token="true"/>
+            <Number name="QWORD" size="16" endian="little" value="4" token="true"/>
+            <Number name="WORD" size="16" endian="little" value="5" token="true"/>
+          </Choice>
+          <Number name="DescriptorValueLen" size="16" endian="little">
+            <Relation type="size" of="DescriptorValue" />
+          </Number>
+          <Blob name="DescriptorValue"/>
+        </Block>
+      </Block>
+
+      <!-- 3.12 Stream Bitrate Properties Object (optional but recommended, one only) -->
+      <Block name="StreamBitrateProperties" minOccurs="0" maxOccurs="1">
+        <Blob name="ObjectID" value="CE75F87B8D46D1118D82006097C9A2B2" valueType="hex" token="true"/>
+        <Number name="ObjectSize" size="64" endian="little"/>
+        <Number name="BitRecordsCount" size="16" endian="little">
+          <Relation type="count" of="BitRecords"/>
+        </Number>
+        <Block name="BitRecords" maxOccurs="1024">
+          <Number name="Flags" size="16" endian="little"/>
+          <Number name="AverageBitrate" size="32" endian="little"/>
+        </Block>
+      </Block>
+
+      <!-- 3.13  Content Branding Object (optional, one only) -->
+      <Block name="ContentBrandingObject" minOccurs="0" maxOccurs="1">
+        <Blob name="ObjectID" value="FAB3112223BDD211B4B700A0C955FC6E" valueType="hex" token="true"/>
+        <Number name="ObjectSize" size="64" endian="little"/>
+        <Number name="BannerImageType" size="32" endian="little"/>
+        <Number name="BannerImageDataSize" size="32" endian="little">
+          <Relation type="size" of="BannerImageData"/>
+        </Number>
+        <Blob name="BannerImageData"/>
+        <Number name="BannerImageURLLength" size="32" endian="little">
+          <Relation type="size" of="BannerImageURL"/>
+        </Number>
+        <String name="BannerImageURL"/>
+        <Number name="CopyrightURLLength" size="32" endian="little">
+          <Relation type="size" of="CopyrightURL"/>
+        </Number>
+        <String name="CopyrightURL"/>
+      </Block>
+
+      <!-- 3.14  Content Encryption Object (optional, 0 or 1) -->
+      <Block name="ContentEncryptionObject" minOccurs="0" maxOccurs="1">
+        <Blob name="ObjectID" value="FBB3112223BDD211B4B700A0C955FC6E" valueType="hex" token="true"/>
+        <Number name="ObjectSize" size="64" endian="little"/>
+        <Number name="SecretDataLength" size="32" endian="little">
+          <Relation type="size" of="SecretData"/>
+        </Number>
+        <Blob name="SecretData"/>
+        <Number name="ProtectionTypeLength" size="32" endian="little">
+          <Relation type="size" of="ProtectionType"/>
+        </Number>
+        <String name="ProtectionType" value="DRM"/>
+        <Number name="KeyIDLength" size="32" endian="little">
+          <Relation type="size" of="KeyID"/>
+        </Number>
+        <String name="KeyID"/>
+        <Number name="LicenseURLLength" size="32" endian="little">
+          <Relation type="size" of="LicenseURL"/>
+        </Number>
+        <String name="LicenseURL"/>
+      </Block>
+
+      <!-- 3.15  Extended Content Encryption Object (optional, 0 or 1) -->
+      <Block name="ExtendedContentEncryptionObject" minOccurs="0" maxOccurs="1">
+        <Blob name="ObjectID" value="14E68A292226174CB935DAE07EE9289C" valueType="hex" token="true"/>
+        <Number name="ObjectSize" size="64" endian="little"/>
+        <Number name="DataSize" size="32" endian="little">
+          <Relation type="size" of="Data"/>
+        </Number>
+        <Blob name="Data"/>
+      </Block>
+
+      <!-- 3.16  Digital Signature Object (optional, 0 or 1) -->
+      <Block name="DigitalSignatureObject" minOccurs="0" maxOccurs="1">
+        <Blob name="ObjectID" value="FCB3112223BDD211B4B700A0C955FC6E" valueType="hex" token="true"/>
+        <Number name="ObjectSize" size="64" endian="little"/>
+        <Number name="SignatureType" size="32" endian="little"/>
+        <Number name="SignatureDataLength" size="32" endian="little">
+          <Relation type="size" of="SignatureData"/>
+        </Number>
+        <Blob name="SignatureData"/>
+      </Block>
+
+      <!-- 3.17  Padding Object (optional, 0 to many) -->
+      <Block name="PaddingObject" minOccurs="0" maxOccurs="5000">
+        <Blob name="ObjectID" value="74D40618DFCA0945A4BA9AABCB96AAE8" valueType="hex" token="true"/>
+        <Number name="ObjectSize" size="64" endian="little">
+          <Relation type="size" of="PaddingData" expressionGet="size-24" expressionSet="size+24"/>
+        </Number>
+        <Blob name="PaddingData"/>
+      </Block>
+
+      <!-- 4.1  Extended Stream Properties Object (optional, 1 per media stream) -->
+      <Block name="ExtendedStreamPropertiesObject">
+        <Blob name="ObjectID" value="CBA5E61472C632438399A96952065B5A" valueType="hex" token="true"/>
+        <Number name="ObjectSize" size="64" endian="little"/>
+        <Number name="StartTime" size="64" endian="little"/>
+        <Number name="EndTime" size="64" endian="little"/>
+        <Number name="DataBitrate" size="32" endian="little"/>
+        <Number name="BufferSize" size="32" endian="little"/>
+        <Number name="InitialBufferFullness" size="32" endian="little"/>
+        <Number name="AltDataBitrate" size="32" endian="little"/>
+        <Number name="AltBufferSize" size="32" endian="little"/>
+        <Number name="AltInitialBufferFullness" size="32" endian="little"/>
+        <Number name="MaxObjectSize" size="32" endian="little"/>
+        <Number name="Flags" size="32" endian="little"/> <!-- Change to Flags -->
+        <Number name="StreamNumber" size="16" endian="little"/>
+        <Number name="StreamLanguageIDIndex" size="16" endian="little"/>
+        <Number name="AverageTimePerFrame" size="64" endian="little"/>
+        <Number name="StreamNameCount" size="16" endian="little">
+          <Relation type="count" of="StreamNames"/>
+        </Number>
+        <Number name="PayloadExtensionSystemCount" size="16" endian="little">
+          <Relation type="count" of="PayloadExtensionSystems"/>
+        </Number>
+        <Block name="StreamNames" maxOccurs="1024">
+          <Number name="LanguageIDIndex" size="16" endian="little"/>
+          <Number name="StreamNameLength" size="16" endian="little">
+            <Relation type="size" of="StreamName"/>
+          </Number>
+          <String name="StreamName" type="wchar"/>
+        </Block>
+        <Block name="PayloadExtensionSystems" maxOccurs="1024">
+          <Blob name="ExtensionSystemID" length="16"/>
+          <Number name="ExtensionDataSize" size="16" endian="little"/>
+          <Number name="ExtensionSystemInfoLength" size="32" endian="little">
+            <Relation type="size" of="ExtensionSystemInfo"/>
+          </Number>
+          <Blob name="ExtensionSystemInfo"/>
+        </Block>
+      </Block>
+
+      <!-- 4.2  Advanced Mutual Exclusion Object (optional, 0 to many) -->
+      <Block name="AdvancedMutualExclusionObject">
+        <Blob name="ObjectID" value="CF4986A0754770468A166E35357566CD" valueType="hex" token="true"/>
+        <Number name="ObjectSize" size="64" endian="little"/>
+        <Blob name="ExclusionType" length="16"/>
+        <Number name="StreamNumbersCount" size="16" endian="little">
+          <Relation type="count" of="StreamNumbers"/>
+        </Number>
+        <Number name="StreamNumbers" size="16" endian="little" maxOccurs="1024"/>
+      </Block>
+
+      <!-- 4.3  Group Mutual Exclusion Object (optional, 0 to many) -->
+      <Block name="GroupMutalExclusionObject">
+        <Blob name="ObjectID" value="405A46D1795A3843B71BE36B8FD6C249" valueType="hex" token="true"/>
+        <Number name="ObjectSize" size="64" endian="little"/>
+        <Blob name="ExclusionType" length="16"/>
+        <Number name="RecordCount" size="16" endian="little">
+          <Relation type="count" of="Records"/>
+        </Number>
+        <Block name="Records" maxOccurs="1024">
+          <Number name="StreamCount" size="16" endian="little">
+            <Relation type="count" of="Stream"/>
+          </Number>
+          <Number name="Stream" size="16" endian="little"/>
+        </Block>
+      </Block>
+
+      <!-- 4.4  Stream Prioritization Object (optional, 0 or 1) -->
+      <Block name="StreamPrioritizationObject" minOccurs="0" maxOccurs="1">
+        <Blob name="ObjectID" value="5BD1FED4D3884F4581F0ED5C45999E24" valueType="hex" token="true"/>
+        <Number name="ObjectSize" size="64" endian="little"/>
+        <Number name="PriorityRecordCount" size="16" endian="little">
+          <Relation type="count" of="PriorityRecords"/>
+        </Number>
+        <Block name="PriorityRecords" maxOccurs="1024">
+          <Number name="StreamNumber" size="16" endian="little"/>
+          <Number name="PriorityFlags" size="16" endian="little"/> <!-- Add flags -->
+        </Block>
+      </Block>
+
+      <!-- 4.5  Bandwidth Sharing Object (optional, 0 to many) -->
+      <Block name="BandwidthSharingObject">
+        <Blob name="ObjectID" value="E60996A67B51D211B6AF00C04FD908E9" valueType="hex" token="true"/>
+        <Number name="ObjectSize" size="64" endian="little"/>
+        <Choice name="Sharing" maxOccurs="1">
+          <Blob name="Exclusive" value="AA6060AF9751D211B6AF-00C04FD908E9" valueType="hex" token="true"/>
+          <Blob name="Partial" value="AB6060AF9751D211B6AF00C04FD908E9" valueType="hex" token="true"/>
+        </Choice>
+        <Number name="DataBitrate" size="32" endian="little"/>
+        <Number name="BufferSize" size="32" endian="little"/>
+        <Number name="StreamNumbersCount" size="16" endian="little">
+          <Relation type="count" of="StreamNumbers"/>
+        </Number>
+        <Number name="StreamNumbers" size="16" endian="little" maxOccurs="1024"/>
+      </Block>
+
+      <!-- 4.6  Language List Object (optional, only 1) -->
+      <Block name="LanguageListObject" minOccurs="0" maxOccurs="1">
+        <Blob name="ObjectID" value="A946437CE0EFFC4BB229393EDE415C85" valueType="hex" token="true"/>
+        <Number name="ObjectSize" size="64" endian="little"/>
+        <Number name="LanguageIDRecordsCount" size="16" endian="little">
+          <Relation type="count" of="LanguageIDRecords"/>
+        </Number>
+        <Block name="LanguageIDRecords">
+          <Number name="LanguageIDLength" size="16" endian="little">
+            <Relation type="size" of="LanguageID"/>
+          </Number>
+          <String name="LanguageID" type="wchar"/>
+        </Block>
+      </Block>
+
+      <!-- 4.7  Metadata Object (optional, 0 or 1) -->
+      <Block name="MetadataObject" minOccurs="0" maxOccurs="1">
+        <Blob name="ObjectID" value="EACBF8C5AF5B77488467AA8C44FA4CCA" valueType="hex" token="true"/>
+        <Number name="ObjectSize" size="64" endian="little"/>
+        <Number name="DescriptionRecordsCount" size="64" endian="little">
+          <Relation type="count" of="DescriptionRecords"/>
+        </Number>
+        <Block name="DescriptionRecords">
+          <Number name="Reserved" size="16" value="0" endian="little"/>
+          <Number name="StreamNumber" size="16" endian="little"/>
+          <Number name="NameLength" size="16" endian="little">
+            <Relation type="size" of="Name"/>
+          </Number>
+          <Choice name="DataType">
+            <!-- Find out if it's possible to influence DescriptionRecords.Data data-type -->
+            <Number name="Unicode" size="16" endian="little" value="0" token="true"/>
+            <Number name="ByteArray" size="16" endian="little" value="1" token="true"/>
+            <Number name="Bool" size="16" endian="little" value="2" token="true"/>
+            <Number name="DWORD" size="16" endian="little" value="3" token="true"/>
+            <Number name="QWORD" size="16" endian="little" value="4" token="true"/>
+            <Number name="WORD" size="16" endian="little" value="5" token="true"/>
+            <!-- Find out if it's possible to influence DescriptionRecords.Data data-type -->
+          </Choice>
+          <Number name="DataLength" size="32" endian="little">
+            <Relation type="size" of="Data"/>
+          </Number>
+          <String name="Name" type="wchar"/>
+          <Blob name="Data"/>
+        </Block>
+      </Block>
+
+      <!-- 4.8  Metadata Library Object (optional, 0 or 1) -->
+      <Block name="MetadataLibraryObject" minOccurs="0" maxOccurs="1">
+        <Blob name="ObjectID" value="941C23449894D149A1411D134E457054" valueType="hex" token="true"/>
+        <Number name="ObjectSize" size="64" endian="little"/>
+        <Number name="DescriptionRecordCounts" size="16" endian="little">
+          <Relation type="count" of="DescriptionRecords"/>
+        </Number>
+        <Block name="DescriptionRecords">
+          <Number name="LanguageListSize" size="16" endian="little"/>
+          <Number name="StreamNumber" size="16" endian="little"/>
+          <Number name="NameLength" size="16" endian="little">
+            <Relation type="size" of="Name"/>
+          </Number>
+          <Number name="DataType" size="16" endian="little"/>
+          <Number name="DataSize" size="16" endian="little">
+            <Relation type="size" of="Data"/>
+          </Number>
+          <String name="Name" type="wchar"/>
+          <Number name="Data"/>
+        </Block>
+      </Block>
+
+      <!-- 4.9  Index  Parameters  Object (mandatory only if the Index Object is present in file, 0 or 1)-->
+      <Block name="IndexParametersObject"> <!-- Add "when" relation to Index Object -->
+        <Blob name="ObjectID" value="DF29E2D6DA35D111903400A0C90349BE" valueType="hex" token="true"/>
+        <Number name="ObjectSize" size="64" endian="little"/>
+        <Number name="IndexEntryTimeInterval" size="32" endian="little"/>
+        <Number name="IndexSpecifiersCount" size="16" endian="little">
+          <Relation type="count" of="IndexSpecifiers"/>
+        </Number>
+        <Block name="IndexSpecifiers">
+          <Number name="StreamNumber" size="16" endian="little"/>
+          <Number name="IndexType" size="16" endian="little"/>
+        </Block>
+      </Block>
+
+      <!-- 4.10 Media Object Index Parameters Object (mandatory only if media object index is present in file, 0 or 1) -->
+      <Block name="MediaObjectIndexParametersObject"> <!-- Add "when" relation to media Object index -->
+        <Blob name="ObjectID" value="AD3B206B113FE448ACA8D7613DE2CFA7" valueType="hex" token="true"/>
+        <Number name="ObjectSize" size="64" endian="little"/>
+        <Number name="IndexEntryCountInterval" size="32" endian="little"/>
+        <Number name="IndexSpecifiersCount" size="16" endian="little">
+          <Relation type="count" of="IndexSpecifiers"/>
+        </Number>
+        <Block name="IndexSpecifiers">
+          <Number name="StreamNumber" size="16" endian="little"/>
+          <Number name="IndexType" size="16" endian="little"/>
+        </Block>
+      </Block>
+
+      <!--4.11  Timecode Index Parameters Object (mandatory only if TIMECODE index is present in file, 0 or 1) -->
+      <Block name="TimecodeIndexParametersObject"> <!-- Add "when" relation to media Object index -->
+        <Blob name="ObjectID" value="6D495EF597975D4B8C8B604DFE9BFB24" valueType="hex" token="true"/>
+        <Number name="ObjectSize" size="64" endian="little"/>
+        <Number name="IndexEntryTimeInterval" size="32" endian="little"/>
+        <Number name="IndexSpecifiersCount" size="16" endian="little">
+          <Relation type="count" of="IndexSpecifiers"/>
+        </Number>
+        <Block name="IndexSpecifiers">
+          <Number name="StreamNumber" size="16" endian="little"/>
+          <Number name="IndexType" size="16" endian="little"/>
+        </Block>
+      </Block>
+
+      <!-- 4.12  Compatibility Object (optional, only 1) -->
+      <Block name="CompatibilityObject" minOccurs="0" maxOccurs="1">
+        <Blob name="ObjectID" value="5D8BF1268445EC479F5F0E651F0452C9" valueType="hex" token="true"/>
+        <Number name="ObjectSize" size="64" endian="little"/>
+        <Number name="Profile" size="8" endian="little" value="2"/>
+        <Number name="Mode" size="8" endian="little" value="1"/>
+      </Block>
+
+      <!-- 4.13  Advanced Content Encryption Object (optional, 0 or 1) -->
+      <Block name="AdvancedContentEncryptionObject" minOccurs="0" maxOccurs="1">
+        <Blob name="ObjectID" value="338505438169E6499B74AD12CB86D58C" valueType="hex" token="true"/>
+        <Number name="ObjectSize" size="64" endian="little"/>
+        <Number name="ContentEncryptionRecordsCount" size="16" endian="little">
+          <Relation type="size" of="ContentEncryptionRecord"/>
+        </Number>
+        <Block name="ContentEncryptionRecord">
+          <Number name="EncryptedObjectIDType" size="16" endian="little"/>
+          <Number name="EncryptedObjectIDLength" size="16" endian="little">
+            <Relation type="size" of="EncryptedObjectId"/>
+          </Number>
+          <Blob name="EncryptedObjectId"/>
+        </Block>
+        <Number name="DataSize" size="16" endian="little">
+          <Relation type="size" of="Data"/>
+        </Number>
+        <Blob name="Data"/>
+      </Block>
+
+      <!-- 5.1  ASF Data Object (mandatory, one only) -->
+      <Block name="ASFDataObject" maxOccurs="1">
+        <Blob name="ObjectID" value="3626B2758E66CF11A6D900AA0062CE6C" valueType="hex" token="true"/>
+        <Number name="ObjectSize" size="64" endian="little"/>
+        <Blob name="FileID" length="16" valueType="hex"/>
+        <Number name="TotalPackets" size="64" endian="little">
+          <Relation type="count" of="ASFDataPacketDefinition"/>
+        </Number>
+        <Number name="Reserved" size="16" endian="little"/>
+        <!-- 5.2  ASF data packet definition -->
+        <Block name="ASFDataPacketDefinition" maxOccurs="5000">
+          <!-- 5.2.1  Error correction data -->
+          <Block name="ErrorCorrectionHeader">
+            <Flags name="ErrorCorrectionFlags" size="8" endian="little">
+              <Flag name="ErrorCorrectionDataLength" position="0" size="4"/>
+              <Flag name="OpaqueDataPresent" position="4" size="1"/>
+              <Flag name="ErrorCorrectionLengthType" position="5" size="2"/>
+              <Flag name="ErrorCorrectionPresent" position="7" size="1"/>
+            </Flags>
+          </Block>
+          <Block name="ErrorCorrectionData">
+            <!--<Relation type="when" when="self.find('ErrorCorrectionFlags.ErrorCorrectionPresent').getInternalValue() == 1"/>-->
+            <Flags name="FirstByteType" size="8">
+              <Flag name="Type" position="0" size="4"/>
+              <Flag name="Number" position="4" size="4"/>
+            </Flags>
+            <Number name="SecondByte" size="8" endian="little"/>
+          </Block>
+          <!-- 5.2.2  Payload parsing information -->
+          <Block name="PayloadParsingInformation">
+            <Flags name="LengthTypeFlags" size="8">
+              <Flag name="MultiplePayloadsPresent" position="0" size="1"/>
+              <Flag name="SequenceType" position="1" size="2"/>
+              <Flag name="PaddingLengthType" position="3" size="2"/>
+              <Flag name="PacketLengthType" position="5" size="2"/>
+              <Flag name="ErrorCorrectPresent" position="7" size="1"/>
+            </Flags>
+            <Flags name="PropertyFlags" size="8">
+              <Flag name="ReplicatedDataLengthType" position="0" size="2"/>
+              <Flag name="OffsetIntoMediaObjectLengthType" position="2" size="2"/>
+              <Flag name="MediaObjectNumberLengthType" position="4" size="2"/>
+              <Flag name="StreamNumberLengthType" position="6" size="2"/>
+            </Flags>
+            <Choice name="PacketLengthTypeChooser">
+              <Block name="PacketLengthNONE">
+                <Blob name="PacketLength" length="0" constraint="self.find('LengthTypeFlags.PacketLengthType').getInternalValue() == 0">
+                </Blob>
+              </Block>
+              <Block name="PacketLengthBYTE">
+                <Number size="8" name="PacketLengthType" constraint="self.find('LengthTypeFlags.PacketLengthType').getInternalValue() == 1"/>
+              </Block>
+              <Block name="PacketLengthWORD">
+                <Number size="16" name="PacketLengthType" constraint="self.find('LengthTypeFlags.PacketLengthType').getInternalValue() == 2"/>
+              </Block>
+              <Block name="PacketLengthDWORD">
+                <Number size="32" name="PacketLengthType" constraint="self.find('LengthTypeFlags.PacketLengthType').getInternalValue() == 3"/>
+              </Block>
+            </Choice>
+            <Choice name="SequenceLengthTypeChooser">
+              <Block name="SequenceLengthNONE">
+                <Blob name="SequenceLength" length="0" constraint="self.find('LengthTypeFlags.SequenceType').getInternalValue() == 0"/>
+              </Block>
+              <Block name="SequenceLengthBYTE">
+                <Number size="8" name="SequenceLength" constraint="self.find('LengthTypeFlags.SequenceType').getInternalValue() == 1"/>
+              </Block>
+              <Block name="SequenceLengthWORD">
+                <Number size="16" name="SequenceLength" constraint="self.find('LengthTypeFlags.SequenceType').getInternalValue() == 2"/>
+              </Block>
+              <Block name="SequenceLengthDWORD">
+                <Number size="32" name="SequenceLength" constraint="self.find('LengthTypeFlags.SequenceType').getInternalValue() == 3"/>
+              </Block>
+            </Choice>
+            <Choice name="PaddingLengthTypeChooser">
+              <Block name="PaddingLengthNONE">
+                <!-- nothing to do -->
+                <Blob name="PaddingLength" length="0" constraint="self.find('LengthTypeFlags.PaddingLengthType').getInternalValue() == 0"/> <!-- Null entry in the case of where you want to preserve DOM -->
+              </Block>
+              <Block name="PaddingLengthBYTE">
+                <Number size="8" name="PaddingLength" constraint="self.find('LengthTypeFlags.PaddingLengthType').getInternalValue() == 1">
+                  <!--<Relation type="size" of="PaddingBlock.PaddingData"/>-->
+                </Number>
+              </Block>
+              <Block name="PaddingLengthWORD">
+                <Number size="16" name="PaddingLength" constraint="self.find('LengthTypeFlags.PaddingLengthType').getInternalValue() == 2">
+                  <!--<Relation type="size" of="PaddingBlock.PaddingData"/>-->
+                </Number>
+              </Block>
+              <Block name="PaddingLengthDWORD">
+                <Number size="32" name="PaddingLength" constraint="self.find('LengthTypeFlags.PaddingLengthType').getInternalValue() == 3">
+                  <!--<Relation type="size" of="PaddingBlock.PaddingData"/>-->
+                </Number>
+              </Block>
+            </Choice>
+            <Number name="SendTime" size="32" endian="little"/><!-- THIS SHOULD BE PADDING LENGTH -->
+            <Number name="Duration" size="16" endian="little"/>
+          </Block>
+
+          <!-- 5.2.3  Payload data -->
+          <!-- 5.2.3.1  Single payload -->
+          <Block name="SinglePayload">
+            <Relation type="when" when="self.find('MultiplePayloadsPresent').getInternalValue() != 1 and self.find('ReplicatedDataLengthType').getInternalValue() != 1"/>
+            <Block name="PayloadHeader">
+              <Flags name="StreamNumberandKeyFrameBit" size="8">
+                <Flag name="StreamNumber" position="0" size="7"/>
+                <Flag name="KeyFrameBit" position="6" size="1"/>
+              </Flags>
+              <Blob name="ReplicatedData"/>
+            </Block>
+            <Blob name="PayloadData" lengthType="calc" length="int(self.find('MinDataPacketSize').getInternalValue()) - len(self.find('PayloadParsingInformation').getValue()) - len(self.find('PayloadHeader').getValue()) - len(self.find('ErrorCorrectionHeader').getValue()) - len(self.find('ErrorCorrectionData').getValue())" mutable="false"/>
+            <!--<Block name="PaddingBlock">
+              <Blob name="PaddingData"/>
+            </Block>-->
+          </Block>
+          <!-- 5.2.3.2  Single payload, compressed payload data -->
+          <Block name="SingleCompressedPayload">
+            <Relation type="when" when="self.find('MultiplePayloadsPresent').getInternalValue() != 1 and self.find('ReplicatedDataLengthType').getInternalValue() == 1"/>
+            <Block name="PayloadHeader">
+              <Flags name="StreamNumberandKeyFrameBit" size="8">
+                <Flag name="StreamNumber" position="0" size="7"/>
+                <Flag name="KeyFrameBit" position="6" size="1"/>
+              </Flags>
+              <Choice name="MediaObjectNumberBlockChooser">
+                <Block name="MediaObjectNumberNONE" constraint="self.find('PropertyFlags.MediaObjectNumberLengthType').getInternalValue() == 0">
+                  <!-- nothing to do -->
+                  <Blob name="MediaObjectNumber" length="0" /> <!-- Null entry in the case of where you want to preserve DOM -->
+                </Block>
+                <Block name="MediaObjectNumberBYTE" constraint="self.find('PropertyFlags.MediaObjectNumberLengthType').getInternalValue() == 1">
+                  <Number size="8" name="MediaObjectNumber">
+                    <Relation type="size" of="FINISHME"/>
+                  </Number>
+                </Block>
+                <Block name="MediaObjectNumberWORD" constraint="self.find('PropertyFlags.MediaObjectNumberLengthType').getInternalValue() == 2">
+                  <Number size="16" name="MediaObjectNumber">
+                    <Relation type="size" of="FINISHME"/>
+                  </Number>
+                </Block>
+                <Block name="MediaObjectNumberDWORD" constraint="self.find('PropertyFlags.MediaObjectNumberLengthType').getInternalValue() == 3">
+                  <Number size="32" name="MediaObjectNumber">
+                    <Relation type="size" of="FINISHME"/>
+                  </Number>
+                </Block>
+              </Choice>
+              <Choice name="OffsetIntoMediaObjectChooser">
+                <Block name="OffsetIntoMediaObjectNONE" constraint="self.find('PropertyFlags.OffsetIntoMediaObjectLengthType').getInternalValue() == 0">
+                  <!-- nothing to do -->
+                  <Blob name="OffsetIntoMediaObject" length="0" /> <!-- Null entry in the case of where you want to preserve DOM -->
+                </Block>
+                <Block name="OffsetIntoMediaObjectLengthBYTE" constraint="self.find('PropertyFlags.OffsetIntoMediaObjectLengthType').getInternalValue() == 1">
+                  <Number size="8" name="OffsetIntoMediaObject">
+                    <Relation type="size" of="FINISHME"/>
+                  </Number>
+                </Block>
+                <Block name="OffsetIntoMediaObjectLengthWORD" constraint="self.find('PropertyFlags.OffsetIntoMediaObjectLengthType').getInternalValue() == 2">
+                  <Number size="16" name="OffsetIntoMediaObject">
+                    <Relation type="size" of="FINISHME"/>
+                  </Number>
+                </Block>
+                <Block name="OffsetIntoMediaObjectLengthDWORD" constraint="self.find('PropertyFlags.OffsetIntoMediaObjectLengthType').getInternalValue() == 3">
+                  <Number size="32" name="OffsetIntoMediaObject">
+                    <Relation type="size" of="FINISHME"/>
+                  </Number>
+                </Block>
+              </Choice>
+              <Choice name="ReplicatedDataLengthChooser">
+                <Block name="ReplicatedDataLengthNONE">
+                  <Blob name="ReplicatedDataLength" length="0" constraint="self.find('PropertyFlags.ReplicatedDataLengthType').getInternalValue() == 0"/>
+                </Block>
+                <Block name="ReplicatedDataLengthBYTE">
+                  <Number size="8" name="ReplicatedDataLength" constraint="self.find('PropertyFlags.ReplicatedDataLengthType').getInternalValue() == 1">
+                    <Relation type="size" of="ReplicatedData"/>
+                  </Number>
+                </Block>
+                <Block name="ReplicatedDataLengthWORD">
+                  <Number size="16" name="ReplicatedDataLength" constraint="self.find('PropertyFlags.ReplicatedDataLengthType').getInternalValue() == 2">
+                    <Relation type="size" of="ReplicatedData"/>
+                  </Number>
+                </Block>
+                <Block name="ReplicatedDataLengthDWORD">
+                  <Number size="32" name="ReplicatedDataLength" constraint="self.find('PropertyFlags.ReplicatedDataLengthType').getInternalValue() == 3">
+                    <Relation type="size" of="ReplicatedData"/>
+                  </Number>
+                </Block>
+              </Choice>
+              <Number name="PresentationTimeDelta" size="8" endian="little"/>
+              <Blob name="ReplicatedData"/>
+            </Block>
+            <Blob name="PayloadData" lengthType="calc" length="int(self.find('MinDataPacketSize').getInternalValue()) - len(self.find('PayloadParsingInformation').getValue()) - len(self.find('PayloadHeader').getValue()) - len(self.find('ErrorCorrectionHeader').getValue()) - len(self.find('ErrorCorrectionData').getValue())" mutable="false"/>
+            <!--<Block name="PaddingBlock">
+              <Blob name="PaddingData"/>
+            </Block>-->
+          </Block>
+          <!-- 5.2.3.3  Multiple payloads  -->
+          <Block name="MultiplePayload">
+            <Relation type="when" when="self.find('MultiplePayloadsPresent').getInternalValue() == 1 and self.find('ReplicatedDataLengthType').getInternalValue() != 1"/>
+            <Block name="PayloadHeader">
+              <Flags name="PayloadFlags" size="8">
+                <Flag name="NumberOfPayloads" position="0" size="6"/>
+                <Flag name="PayloadLengthType" position="6" size="2"/>
+              </Flags>
+              <Flags name="StreamNumberandKeyFrameBit" size="8">
+                <Flag name="StreamNumber" position="0" size="7"/>
+                <Flag name="KeyFrameBit" position="6" size="1"/>
+              </Flags>
+              <Choice name="MediaObjectNumberBlockChooser">
+                <Block name="MediaObjectNumberNONE">
+                  <Blob name="MediaObjectNumber" length="0" constraint="self.find('PayloadParsingInformation.PropertyFlags.MediaObjectNumberLengthType').getInternalValue() == 0"/>
+                </Block>
+                <Block name="MediaObjectNumberBYTE">
+                  <Number size="8" name="MediaObjectNumber" constraint="self.find('PayloadParsingInformation.PropertyFlags.MediaObjectNumberLengthType').getInternalValue() == 1"/>
+                </Block>
+                <Block name="MediaObjectNumberWORD">
+                  <Number size="16" name="MediaObjectNumber" constraint="self.find('PayloadParsingInformation.PropertyFlags.MediaObjectNumberLengthType').getInternalValue() == 2"/>
+                </Block>
+                <Block name="MediaObjectNumberDWORD">
+                  <Number size="32" name="MediaObjectNumber" constraint="self.find('PayloadParsingInformation.PropertyFlags.MediaObjectNumberLengthType').getInternalValue() == 3"/>
+                </Block>
+              </Choice>
+              <Choice name="OffsetIntoMediaObjectChooser">
+                <Block name="OffsetIntoMediaObjectNONE">
+                  <Blob name="OffsetIntoMediaObject" length="0" constraint="self.find('PayloadParsingInformation.PropertyFlags.OffsetIntoMediaObjectLengthType').getInternalValue() == 0"/>
+                </Block>
+                <Block name="OffsetIntoMediaObjectLengthBYTE">
+                  <Number size="8" name="OffsetIntoMediaObject" constraint="self.find('PayloadParsingInformation.PropertyFlags.OffsetIntoMediaObjectLengthType').getInternalValue() == 1"/>
+                </Block>
+                <Block name="OffsetIntoMediaObjectLengthWORD">
+                  <Number size="16" name="OffsetIntoMediaObject" constraint="self.find('PayloadParsingInformation.PropertyFlags.OffsetIntoMediaObjectLengthType').getInternalValue() == 2"/>
+                </Block>
+                <Block name="OffsetIntoMediaObjectLengthDWORD">
+                  <Number size="32" name="OffsetIntoMediaObject" constraint="self.find('PayloadParsingInformation.PropertyFlags.OffsetIntoMediaObjectLengthType').getInternalValue() == 3"/>
+                </Block>
+              </Choice>
+              <Choice name="ReplicatedDataLengthChooser">
+                <Block name="ReplicatedDataLengthNONE">
+                  <Blob name="ReplicatedDataLength" length="0" constraint="self.find('PropertyFlags.ReplicatedDataLengthType').getInternalValue() == 0"/>
+                </Block>
+                <Block name="ReplicatedDataLengthBYTE">
+                  <Number size="8" name="ReplicatedDataLength" constraint="self.find('PropertyFlags.ReplicatedDataLengthType').getInternalValue() == 1">
+                    <Relation type="size" of="ReplicatedData"/>
+                  </Number>
+                </Block>
+                <Block name="ReplicatedDataLengthWORD">
+                  <Number size="16" name="ReplicatedDataLength" constraint="self.find('PropertyFlags.ReplicatedDataLengthType').getInternalValue() == 2">
+                    <Relation type="size" of="ReplicatedData"/>
+                  </Number>
+                </Block>
+                <Block name="ReplicatedDataLengthDWORD">
+                  <Number size="32" name="ReplicatedDataLength" constraint="self.find('PropertyFlags.ReplicatedDataLengthType').getInternalValue() == 3">
+                    <Relation type="size" of="ReplicatedData"/>
+                  </Number>
+                </Block>
+              </Choice>
+              <Blob name="ReplicatedData"/>
+              <Choice name="PayloadLengthTypeChooser">
+                <Block name="PayloadLengthNONE">
+                  <Blob name="PayloadLength" length="0" constraint="self.find('PayloadFlags.PayloadLengthType').getInternalValue() == 0"/>
+                </Block>
+                <Block name="PayloadLengthBYTE">
+                  <Number size="8" name="PayloadLength" constraint="self.find('PayloadFlags.PayloadLengthType').getInternalValue() == 1"/>
+                </Block>
+                <Block name="PayloadLengthWORD">
+                  <Number size="16" name="PayloadLength" constraint="self.find('PayloadFlags.PayloadLengthType').getInternalValue() == 2"/>
+                </Block>
+                <Block name="PayloadLengthDWORD">
+                  <Number size="32" name="PayloadLength" constraint="self.find('PayloadFlags.PayloadLengthType').getInternalValue() == 3"/>
+                </Block>
+              </Choice>
+            </Block>
+            <Blob name="PayloadData" lengthType="calc" length="int(self.find('MinDataPacketSize').getInternalValue()) - len(self.find('PayloadParsingInformation').getValue()) - len(self.find('PayloadHeader').getValue()) - len(self.find('ErrorCorrectionHeader').getValue()) - len(self.find('ErrorCorrectionData').getValue())" mutable="false"/>
+            <!--<Block name="PaddingBlock">
+              <Blob name="PaddingData"/>
+            </Block>-->
+          </Block>
+
+          <!-- 5.2.3.4  Multiple payloads, compressed payload data -->
+          <Block name="MultipleCompressedPayload">
+            <Relation type="when" when="self.find('MultiplePayloadsPresent').getInternalValue() == 1 and self.find('ReplicatedDataLengthType').getInternalValue() == 1"/>
+            <Block name="PayloadHeader">
+              <Flags name="PayloadFlags" size="8">
+                <Flag name="NumberOfPayloads" position="0" size="6"/>
+                <Flag name="PayloadLengthType" position="6" size="2"/>
+              </Flags>
+              <Flags name="StreamNumberandKeyFrameBit" size="8">
+                <Flag name="StreamNumber" position="0" size="7"/>
+                <Flag name="KeyFrameBit" position="6" size="1"/>
+              </Flags>
+              <Choice name="MediaObjectNumberBlockChooser">
+                <Block name="MediaObjectNumberNONE">
+                  <Blob name="MediaObjectNumber" length="0" constraint="self.find('PayloadParsingInformation.PropertyFlags.MediaObjectNumberLengthType').getInternalValue() == 0"/>
+                </Block>
+                <Block name="MediaObjectNumberBYTE">
+                  <Number size="8" name="MediaObjectNumber" constraint="self.find('PayloadParsingInformation.PropertyFlags.MediaObjectNumberLengthType').getInternalValue() == 1"/>
+                </Block>
+                <Block name="MediaObjectNumberWORD">
+                  <Number size="16" name="MediaObjectNumber" constraint="self.find('PayloadParsingInformation.PropertyFlags.MediaObjectNumberLengthType').getInternalValue() == 2"/>
+                </Block>
+                <Block name="MediaObjectNumberDWORD">
+                  <Number size="32" name="MediaObjectNumber" constraint="self.find('PayloadParsingInformation.PropertyFlags.MediaObjectNumberLengthType').getInternalValue() == 3"/>
+                </Block>
+              </Choice>
+              <Choice name="OffsetIntoMediaObjectChooser">
+                <Block name="OffsetIntoMediaObjectNONE">
+                  <Blob name="OffsetIntoMediaObject" length="0" constraint="self.find('PayloadParsingInformation.PropertyFlags.OffsetIntoMediaObjectLengthType').getInternalValue() == 0"/>
+                </Block>
+                <Block name="OffsetIntoMediaObjectLengthBYTE">
+                  <Number size="8" name="OffsetIntoMediaObject" constraint="self.find('PayloadParsingInformation.PropertyFlags.OffsetIntoMediaObjectLengthType').getInternalValue() == 1"/>
+                </Block>
+                <Block name="OffsetIntoMediaObjectLengthWORD">
+                  <Number size="16" name="OffsetIntoMediaObject" constraint="self.find('PayloadParsingInformation.PropertyFlags.OffsetIntoMediaObjectLengthType').getInternalValue() == 2"/>
+                </Block>
+                <Block name="OffsetIntoMediaObjectLengthDWORD">
+                  <Number size="32" name="OffsetIntoMediaObject" constraint="self.find('PayloadParsingInformation.PropertyFlags.OffsetIntoMediaObjectLengthType').getInternalValue() == 3"/>
+                </Block>
+              </Choice>
+              <Choice name="ReplicatedDataLengthChooser">
+                <Block name="ReplicatedDataLengthNONE">
+                  <Blob name="ReplicatedDataLength" length="0" constraint="self.find('PropertyFlags.ReplicatedDataLengthType').getInternalValue() == 0"/>
+                </Block>
+                <Block name="ReplicatedDataLengthBYTE">
+                  <Number size="8" name="ReplicatedDataLength" constraint="self.find('PropertyFlags.ReplicatedDataLengthType').getInternalValue() == 1">
+                    <Relation type="size" of="ReplicatedData"/>
+                  </Number>
+                </Block>
+                <Block name="ReplicatedDataLengthWORD">
+                  <Number size="16" name="ReplicatedDataLength" constraint="self.find('PropertyFlags.ReplicatedDataLengthType').getInternalValue() == 2">
+                    <Relation type="size" of="ReplicatedData"/>
+                  </Number>
+                </Block>
+                <Block name="ReplicatedDataLengthDWORD">
+                  <Number size="32" name="ReplicatedDataLength" constraint="self.find('PropertyFlags.ReplicatedDataLengthType').getInternalValue() == 3">
+                    <Relation type="size" of="ReplicatedData"/>
+                  </Number>
+                </Block>
+              </Choice>
+              <Choice name="PayloadLengthTypeChooser">
+                <Block name="PayloadLengthNONE">
+                  <Blob name="PayloadLength" length="0" constraint="self.find('PayloadFlags.PayloadLengthType').getInternalValue() == 0"/>
+                </Block>
+                <Block name="PayloadLengthBYTE">
+                  <Number size="8" name="PayloadLength" constraint="self.find('PayloadFlags.PayloadLengthType').getInternalValue() == 1"/>
+                </Block>
+                <Block name="PayloadLengthWORD">
+                  <Number size="16" name="PayloadLength" constraint="self.find('PayloadFlags.PayloadLengthType').getInternalValue() == 2"/>
+                </Block>
+                <Block name="PayloadLengthDWORD">
+                  <Number size="32" name="PayloadLength" constraint="self.find('PayloadFlags.PayloadLengthType').getInternalValue() == 3"/>
+                </Block>
+              </Choice>
+            </Block>
+            <Blob name="PayloadData" lengthType="calc" length="int(self.find('MinDataPacketSize').getInternalValue()) - len(self.find('PayloadParsingInformation').getValue()) - len(self.find('PayloadHeader').getValue()) - len(self.find('ErrorCorrectionHeader').getValue()) - len(self.find('ErrorCorrectionData').getValue())" mutable="false"/>
+            <!--<Block name="PaddingBlock">
+              <Blob name="PaddingData"/>
+            </Block>-->
+          </Block>
+        </Block>
+      </Block>
+
+      <!-- 6.1 ASF top-level Simple Index Object (optional but recommended when appropriate, 1 for each non-hidden video stream) -->
+      <Block name="ASFTopLevelSimpleIndex">
+        <Blob name="ObjectID" value="90080033B1E5CF1189F400A0C90349CB" valueType="hex" token="true"/>
+        <Number name="ObjectSize" size="64" endian="little"/>
+        <Blob name="FileID" length="16" valueType="hex"/>
+        <Number name="IndexEntryTimeInterval" size="64" endian="little"/>
+        <Number name="MaximumPacketCount" size="32" endian="little"/>
+        <Number name="IndexEntriesCount" size="32" endian="little">
+          <Relation type="count" of="IndexEntries"/>
+        </Number>
+        <Block name="IndexEntries" maxOccurs="1024">
+          <Number name="PacketNumber" size="32" endian="little"/>
+          <Number name="PacketCount" size="16" endian="little"/>
+        </Block>
+      </Block>
+
+      <!-- 6.2 ASF top-level Index Object (optional but recommended when appropriate, 0 or 1) -->
+      <!--<Block name="ASFTopLevelIndex">
+        <Blob name="ObjectID" value="D329E2D6DA35D111903400A0C90349BE" valueType="hex" token="true"/>
+        <Number name="ObjectSize" size="64" endian="little"/>
+        <Number name="IndexEntryTimeInterval" size="32" endian="little"/>
+        <Number name="IndexSpecifiersCount" size="16" endian="little">
+          <Relation type="count" of="IndexSpecifiers"/>
+        </Number>
+        <Number name="IndexBlocksCount" size="32" endian="little">
+          <Relation type="count" of="IndexBlocks"/>
+        </Number>
+        <Block name="IndexSpecifiers" maxOccurs="1024">
+
+        </Block>
+        <Block name="IndexBlocks" maxOccurs="1024">
+          <Number name="IndexEntryCount" size="32" endian="little"/>
+          <Number name="BlockPositions" size="32" endian="little"/>
+        </Block>
+      </Block>-->
+
+    </Choice>
+  </DataModel>
+
+  <DataModel name="Param">
+    <String name="Value" isStatic="true"/>
+  </DataModel>
+
+</Peach>

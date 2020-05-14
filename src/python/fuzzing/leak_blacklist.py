@@ -34,14 +34,15 @@ BLANK_LINE_REGEX = re.compile(r'^\s*$')
 
 LSAN_TOOL_NAME = 'lsan'
 LSAN_SUPPRESSION_LINE = 'leak:{function}\n'
+LSAN_HEADER_COMMENT = '# This is a LSAN suppressions file.\n'
 
 
 def create_empty_local_blacklist():
   """Creates an empty local blacklist."""
   lsan_suppressions_path = get_local_blacklist_file_path()
-  with open(lsan_suppressions_path, 'wb') as local_blacklist:
+  with open(lsan_suppressions_path, 'w') as local_blacklist:
     # Insert comment on top to avoid parsing errors on empty file.
-    local_blacklist.write('# This is a LSAN suppressions file.\n')
+    local_blacklist.write(LSAN_HEADER_COMMENT)
 
 
 def cleanup_global_blacklist():
@@ -72,10 +73,9 @@ def copy_global_to_local_blacklist(excluded_testcase=None):
       get_leak_function_for_blacklist(excluded_testcase)
       if excluded_testcase else None)
 
-  # The local suppressions file should always have a comment on top
-  # to prevent parsing errors.
-  with open(lsan_suppressions_path, 'wb') as local_blacklist:
-    local_blacklist.write('# This is a LSAN suppressions file.\n')
+  with open(lsan_suppressions_path, 'w') as local_blacklist:
+    # Insert comment on top to avoid parsing errors on empty file.
+    local_blacklist.write(LSAN_HEADER_COMMENT)
 
     # Copy global blacklist into local blacklist.
     global_blacklists = data_types.Blacklist.query(

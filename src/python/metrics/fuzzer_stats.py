@@ -1065,7 +1065,7 @@ def upload_stats(stats_list, filename=None):
     day_path = 'gs:/' + get_gcs_stats_path(
         kind, fuzzer_or_engine_name, timestamp=timestamp) + filename
 
-    if not storage.write_data(upload_data, day_path):
+    if not storage.write_data(upload_data.encode('utf-8'), day_path):
       logs.log_error('Failed to upload FuzzerRun.')
 
 

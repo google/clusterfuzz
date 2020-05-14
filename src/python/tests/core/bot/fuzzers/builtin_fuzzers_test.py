@@ -61,6 +61,8 @@ class BuiltinFuzzersSetupTest(fake_filesystem_unittest.TestCase):
     test_utils.set_up_pyfakefs(self)
     self.fs.create_dir('/input')
     self.fs.create_dir('/output')
+    self.fs.create_dir('/data-bundles')
+    environment.set_value('DATA_BUNDLES_DIR', '/data-bundles')
 
     helpers.patch(self, [
         'bot.fuzzers.libFuzzer.fuzzer.LibFuzzer.run',
@@ -87,6 +89,7 @@ class BuiltinFuzzersSetupTest(fake_filesystem_unittest.TestCase):
 
     environment.set_value('JOB_NAME', 'job')
     environment.set_value('INPUT_DIR', '/input')
+    environment.set_value('MAX_TESTCASES', 4)
 
   def test_update_fuzzer(self):
     """Test fuzzer setup."""

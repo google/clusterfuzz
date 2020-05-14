@@ -961,38 +961,49 @@ class UpdateOsLabelsTest(unittest.TestCase):
 
 
 @test_utils.with_cloud_emulators('datastore')
-class GetJobsAndPlatformsForTopCrashesTest(unittest.TestCase):
-  """Test get_jobs_and_platforms_for_top_crashes."""
+class GetJobsAndPlatformsForProjectTest(unittest.TestCase):
+  """Test get_jobs_and_platforms_for_project."""
 
   def setUp(self):
     data_types.Job(
         name='job1',
         platform='LINUX',
-        environment_string=('EXPERIMENTAL = True\n')).put()
+        environment_string=('EXPERIMENTAL = True\nPROJECT_NAME=project1'),
+    ).put()
     data_types.Job(
         name='job2',
         platform='MAC',
-        environment_string=('CUSTOM_BINARY = True\n')).put()
+        environment_string=('CUSTOM_BINARY = True\nPROJECT_NAME=project2'),
+    ).put()
     data_types.Job(
         name='job3',
         platform='WINDOWS',
         environment_string=(
             'SYSTEM_BINARY_DIR = C:\\Program Files\\Internet Explorer\\\n'
-        )).put()
+            'PROJECT_NAME=project3'),
+    ).put()
     data_types.Job(
         name='job4',
         platform='ANDROID',
-        environment_string=('EXCLUDE_FROM_TOP_CRASHES = True\n')).put()
-    data_types.Job(name='job5', platform='LINUX', environment_string=('')).put()
-    data_types.Job(name='job6', platform='MAC', environment_string=('')).put()
+        environment_string=(
+            'EXCLUDE_FROM_TOP_CRASHES = True\nPROJECT_NAME=project4'),
+    ).put()
+    data_types.Job(
+        name='job5',
+        platform='LINUX',
+        environment_string=('PROJECT_NAME=project5')).put()
+    data_types.Job(
+        name='job6',
+        platform='MAC',
+        environment_string=('PROJECT_NAME=project6')).put()
 
   def test(self):
-    actual_jobs, actual_platforms = (
-        cleanup.get_jobs_and_platforms_for_top_crashes())
-    expected_jobs = {'job5', 'job6'}
-    expected_platforms = {'LINUX', 'MAC'}
-    self.assertEqual(expected_jobs, actual_jobs)
-    self.assertEqual(expected_platforms, actual_platforms)
+    actual_projects_map = cleanup.get_jobs_and_platforms_for_project()
+    expected_projects_map = {
+        'project5': cleanup.ProjectMap(set(['job5']), set(['LINUX'])),
+        'project6': cleanup.ProjectMap(set(['job6']), set(['MAC']))
+    }
+    self.assertEqual(actual_projects_map, expected_projects_map)
 
 
 @test_utils.with_cloud_emulators('datastore')
@@ -2088,21 +2099,24 @@ class CleanupUnusedHeartbeatsTest(unittest.TestCase):
             'source_version': None,
             'task_end_time': None,
             'last_beat_time': datetime.datetime(2018, 1, 16, 0, 0),
-            'bot_name': None
+            'bot_name': None,
+            'platform_id': None,
         },
         {
             'task_payload': None,
             'source_version': None,
             'task_end_time': None,
             'last_beat_time': datetime.datetime(2018, 1, 17, 0, 0),
-            'bot_name': None
+            'bot_name': None,
+            'platform_id': None,
         },
         {
             'task_payload': None,
             'source_version': None,
             'task_end_time': None,
             'last_beat_time': datetime.datetime(2018, 2, 1, 0, 0),
-            'bot_name': None
+            'bot_name': None,
+            'platform_id': None,
         },
     ], [e.to_dict() for e in data_types.Heartbeat.query()])
 

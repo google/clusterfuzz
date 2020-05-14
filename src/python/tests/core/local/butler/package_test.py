@@ -31,25 +31,25 @@ class IsNodeUpToDateTest(unittest.TestCase):
 
   def test_succeed(self):
     """Test when succeed."""
-    self.mock.execute.return_value = (0, 'v5.3.11')
+    self.mock.execute.return_value = (0, b'v5.3.11')
     self.assertTrue(package._is_nodejs_up_to_date())  # pylint: disable=protected-access
     self.mock.execute.assert_called_once_with('node -v')
 
   def test_fail_return_code(self):
     """Test return code is non-zero."""
-    self.mock.execute.return_value = (1, 'v5.3.11')
+    self.mock.execute.return_value = (1, b'v5.3.11')
     self.assertFalse(package._is_nodejs_up_to_date())  # pylint: disable=protected-access
     self.mock.execute.assert_called_once_with('node -v')
 
   def test_fail_parse(self):
     """Test when output cannot be parse."""
-    self.mock.execute.return_value = (0, 'sdafsadf')
+    self.mock.execute.return_value = (0, b'sdafsadf')
     self.assertFalse(package._is_nodejs_up_to_date())  # pylint: disable=protected-access
     self.mock.execute.assert_called_once_with('node -v')
 
   def test_fail_version(self):
     """Test version is less than 4."""
-    self.mock.execute.return_value = (0, 'v3.2.1')
+    self.mock.execute.return_value = (0, b'v3.2.1')
     self.assertFalse(package._is_nodejs_up_to_date())  # pylint: disable=protected-access
     self.mock.execute.assert_called_once_with('node -v')
 
@@ -90,7 +90,7 @@ class PackageTest(unittest.TestCase):
 
       self.assertIn(manifest_file, files)
 
-      self.assertEqual('revision\n', f.read(manifest_file))
+      self.assertEqual(b'revision\n', f.read(manifest_file))
 
       self.assertIn(
           os.path.join('clusterfuzz', 'src', 'third_party', 'googleapiclient',

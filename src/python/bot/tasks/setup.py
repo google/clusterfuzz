@@ -45,6 +45,7 @@ from system import environment
 from system import shell
 
 _BOT_DIR = 'bot'
+_DATA_BUNDLE_CACHE_COUNT = 10
 _DATA_BUNDLE_SYNC_INTERVAL_IN_SECONDS = 6 * 60 * 60
 _DATA_BUNDLE_LOCK_INTERVAL_IN_SECONDS = 3 * 60 * 60
 _SYNC_FILENAME = '.sync'
@@ -356,6 +357,27 @@ def _fetch_lock_for_data_bundle_update(data_bundle):
       by_zone=True)
 
 
+def _clear_old_data_bundles_if_needed():
+  """Clear old data bundles so as to keep the disk cache restricted to
+  |_DATA_BUNDLE_CACHE_COUNT| data bundles and prevent potential out-of-disk
+  spaces."""
+  data_bundles_directory = environment.get_value('DATA_BUNDLES_DIR')
+
+  dirs = []
+  for filename in os.listdir(data_bundles_directory):
+    file_path = os.path.join(data_bundles_directory, filename)
+    if not os.path.isdir(file_path):
+      continue
+    dirs.append(file_path)
+
+  dirs_to_remove = sorted(
+      dirs, key=os.path.getmtime, reverse=True)[_DATA_BUNDLE_CACHE_COUNT:]
+  for dir_to_remove in dirs_to_remove:
+    logs.log('Removing data bundle directory to keep disk cache small: %s' %
+             dir_to_remove)
+    shell.remove_directory(dir_to_remove)
+
+
 def update_data_bundle(fuzzer, data_bundle):
   """Updates a data bundle to the latest version."""
   # This module can't be in the global imports due to appengine issues
@@ -513,6 +535,8 @@ def update_fuzzer_and_data_bundles(fuzzer_name):
     revisions.write_revision_to_revision_file(version_file, fuzzer.revision)
     logs.log('Updated fuzzer to revision %d.' % fuzzer.revision)
 
+  _clear_old_data_bundles_if_needed()
+
   # Setup data bundles associated with this fuzzer.
   data_bundles = ndb_utils.get_all_from_query(
       data_types.DataBundle.query(
@@ -523,9 +547,18 @@ def update_fuzzer_and_data_bundles(fuzzer_name):
 
   # Setup environment variable for launcher script path.
   if fuzzer.launcher_script:
-    fuzzer_launcher_path = shell.get_execute_command(
-        os.path.join(fuzzer_directory, fuzzer.launcher_script))
+    fuzzer_launcher_path = os.path.join(fuzzer_directory,
+                                        fuzzer.launcher_script)
     environment.set_value('LAUNCHER_PATH', fuzzer_launcher_path)
+
+    # For launcher script usecase, we need the entire fuzzer directory on the
+    # worker.
+    if environment.is_trusted_host():
+      from bot.untrusted_runner import file_host
+      worker_fuzzer_directory = file_host.rebase_to_worker_root(
+          fuzzer_directory)
+      file_host.copy_directory_to_worker(
+          fuzzer_directory, worker_fuzzer_directory, replace=True)
 
   return True
 
@@ -604,6 +637,13 @@ def get_data_bundle_directory(fuzzer_name):
     logs.log_error('Unable to find fuzzer %s.' % fuzzer_name)
     return None
 
+  # Store corpora for built-in fuzzers like libFuzzer in the same directory
+  # as other local data bundles. This makes it easy to clear them when we run
+  # out of disk space.
+  local_data_bundles_directory = environment.get_value('DATA_BUNDLES_DIR')
+  if fuzzer.builtin:
+    return local_data_bundles_directory
+
   # Check if we have a fuzzer-specific data bundle. Use it to calculate the
   # data directory we will fetch our testcases from.
   data_bundle = data_types.DataBundle.query(
@@ -613,7 +653,6 @@ def get_data_bundle_directory(fuzzer_name):
     # have their own data bundle.
     return environment.get_value('FUZZ_DATA')
 
-  local_data_bundles_directory = environment.get_value('DATA_BUNDLES_DIR')
   local_data_bundle_directory = os.path.join(local_data_bundles_directory,
                                              data_bundle.name)
 

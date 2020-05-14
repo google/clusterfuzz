@@ -234,7 +234,7 @@ def get_resource_dependencies(testcase_absolute_path, test_prefix=FUZZ_PREFIX):
         testcase_contents = file_handle.read()
         file_handle.close()
 
-      if filename in testcase_contents:
+      if filename.encode('utf-8') in testcase_contents:
         file_path = os.path.join(base_directory, filename)
         resources.append(file_path)
 
@@ -301,7 +301,7 @@ def get_additional_command_line_flags(testcase_path):
   flags_file_content = utils.read_data_from_file(
       flags_file_path, eval_data=False)
   if flags_file_content:
-    additional_command_line_flags += ' %s' % flags_file_content
+    additional_command_line_flags += ' ' + flags_file_content.decode('utf-8')
   return additional_command_line_flags.strip()
 
 
@@ -416,6 +416,9 @@ def upload_testcase(testcase_path, log_time):
   """Uploads testcase so that a log file can be matched with it folder."""
   fuzz_logs_bucket = environment.get_value('FUZZ_LOGS_BUCKET')
   if not fuzz_logs_bucket:
+    return
+
+  if not os.path.exists(testcase_path):
     return
 
   with open(testcase_path, 'rb') as file_handle:
@@ -829,7 +832,8 @@ def prepare_log_for_upload(symbolized_output, return_code):
           app_revision=app_revision, component_revisions=component_revisions))
   return_code_header = 'Return code: %s\n\n' % return_code
 
-  return revisions_header + return_code_header + symbolized_output
+  result = revisions_header + return_code_header + symbolized_output
+  return result.encode('utf-8')
 
 
 def upload_log(log, log_time):
@@ -884,6 +888,7 @@ def get_command_line_for_application(file_to_run='',
   fuzzer_directory = environment.get_value('FUZZER_DIR')
   extension_argument = environment.get_value('EXTENSION_ARG')
   input_directory = environment.get_value('INPUT_DIR')
+  launcher = environment.get_value('LAUNCHER_PATH')
   plt = environment.platform()
   root_directory = environment.get_value('ROOT_DIR')
   temp_directory = environment.get_value('BOT_TMPDIR')
@@ -907,12 +912,11 @@ def get_command_line_for_application(file_to_run='',
   # Start creating the command line.
   command = ''
 
-  launcher = environment.get_value('LAUNCHER_PATH')
-  if environment.is_trusted_host() and not launcher:
-    # Rebase the file_to_run path to the worker's root (unless we're running
-    # under a launcher, which runs on the host).
+  # Rebase the file_to_run and launcher paths to the worker's root.
+  if environment.is_trusted_host():
     from bot.untrusted_runner import file_host
     file_to_run = file_host.rebase_to_worker_root(file_to_run)
+    launcher = file_host.rebase_to_worker_root(launcher)
 
   # Default case.
   testcase_path = file_to_run
@@ -936,7 +940,9 @@ def get_command_line_for_application(file_to_run='',
       # have app_name == launcher. In this case don't prepend launcher to
       # command - just use app_name.
       if os.path.basename(launcher) != app_name:
-        command += launcher + ' '
+        launcher_with_interpreter = shell.get_execute_command(
+            launcher, is_blackbox_fuzzer=True)
+        command += launcher_with_interpreter + ' '
     elif plt in ['ANDROID']:
       # Android-specific testcase path fixup for fuzzers that don't rely on
       # launcher scripts.

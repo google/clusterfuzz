@@ -34,6 +34,7 @@ from bot.fuzzers import engine_common
 from bot.fuzzers.libFuzzer.engine import LibFuzzerEngine
 from bot.minimizer import basic_minimizers
 from bot.minimizer import delta_minimizer
+from bot.minimizer import errors as minimizer_errors
 from bot.minimizer import html_minimizer
 from bot.minimizer import js_minimizer
 from bot.minimizer import minimizer
@@ -751,8 +752,8 @@ def store_minimized_testcase(testcase, base_directory, file_list,
         absolute_filename = os.path.join(base_directory, file_name)
         is_file = os.path.isfile(absolute_filename)
         if file_to_run_data and is_file and os.path.getsize(
-            absolute_filename) == 0 and (
-                os.path.basename(absolute_filename) not in file_to_run_data):
+            absolute_filename) == 0 and (os.path.basename(
+                absolute_filename).encode('utf-8') not in file_to_run_data):
           continue
         if not os.path.exists(absolute_filename):
           continue
@@ -875,7 +876,7 @@ def get_temporary_file_name(original_file):
   directory, basename = os.path.split(original_file)
   basename = basename[-MAX_TEMPORARY_FILE_BASENAME_LENGTH:]
 
-  random_hex = binascii.b2a_hex(os.urandom(16))
+  random_hex = binascii.b2a_hex(os.urandom(16)).decode('utf-8')
   new_file_path = os.path.join(directory, '%s%s' % (random_hex, basename))
 
   return new_file_path
@@ -1026,7 +1027,7 @@ def do_ipc_dump_minimization(test_function, get_temp_file, file_path, deadline,
     if not combined_file_path:
       # This can happen in the case of a timeout or other error. The actual
       # error should already be logged, so no need to do it again here.
-      return ''
+      return b''
 
     # TODO(mbarbella): Allow token combining functions to write files directly.
     handle = open(combined_file_path, 'rb')
@@ -1078,7 +1079,7 @@ def do_js_minimization(test_function, get_temp_file, data, deadline, threads,
   try:
     for _ in range(2):
       data = current_minimizer.minimize(data)
-  except minimizer.AntlrDecodeError:
+  except minimizer_errors.AntlrDecodeError:
     data = do_line_minimization(test_function, get_temp_file, data, deadline,
                                 threads, cleanup_interval, delete_temp_files)
 
@@ -1292,8 +1293,7 @@ def do_libfuzzer_minimization(testcase, testcase_file_path):
       reproduced = False
       for _ in range(MINIMIZE_SANITIZER_OPTIONS_RETRIES):
         crash_result = _run_libfuzzer_testcase(testcase, testcase_file_path)
-        if (crash_result.is_crash() and \
-            crash_result.is_security_issue() ==
+        if (crash_result.is_crash() and crash_result.is_security_issue() ==
             initial_crash_result.is_security_issue() and
             crash_result.get_type() == initial_crash_result.get_type() and
             crash_result.get_state() == initial_crash_result.get_state()):
@@ -1404,7 +1404,7 @@ def do_html_minimization(test_function, get_temp_file, data, deadline, threads,
       progress_report_function=functools.partial(logs.log))
   try:
     return current_minimizer.minimize(data)
-  except minimizer.AntlrDecodeError:
+  except minimizer_errors.AntlrDecodeError:
     return do_line_minimization(test_function, get_temp_file, data, deadline,
                                 threads, cleanup_interval, delete_temp_files)
 
@@ -1421,8 +1421,8 @@ def minimize_file(file_path,
   # Specialized minimization strategy for IPC dumps.
   if file_path.endswith(testcase_manager.IPCDUMP_EXTENSION):
     return do_ipc_dump_minimization(test_function, get_temp_file, file_path,
-                                    deadline, threads, delete_temp_files,
-                                    cleanup_interval)
+                                    deadline, threads, cleanup_interval,
+                                    delete_temp_files)
 
   # Specialized minimization strategy for javascript.
   if file_path.endswith('.js'):

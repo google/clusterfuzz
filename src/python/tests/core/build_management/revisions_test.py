@@ -133,7 +133,7 @@ class RevisionsTestcase(unittest.TestCase):
   @staticmethod
   def mock_get_git_hash_for_git_commit_pos(git_commit_pos, _):
     """Return a fake git hash for a git commit position."""
-    return hashlib.sha1(str(git_commit_pos)).hexdigest()
+    return hashlib.sha1(str(git_commit_pos).encode('utf-8')).hexdigest()
 
   # Tests.
   def test_convert_revision_to_integer_simple(self):
@@ -221,6 +221,7 @@ class RevisionsTestcase(unittest.TestCase):
     expected_html = self._read_data_file('clank_expected_html.txt')
     self.assertEqual(result_as_html, expected_html)
 
+  @test_utils.python2_only
   @mock.patch('config.db_config.get')
   @mock.patch('build_management.revisions._get_url_content')
   def test_get_git_hash_for_git_commit_pos(self, mock_get_url_content,
@@ -345,6 +346,30 @@ class RevisionsTestcase(unittest.TestCase):
     self.assertEqual([],
                      revisions.get_component_range_list(1337, 1338,
                                                         CUSTOM_BINARY_JOB_TYPE))
+
+  def test_find_build_url(self):
+    """Tests test_find_build_url."""
+    bucket_path = 'gs://bucket/path/asan-([0-9]+).zip'
+    build_urls_list = [
+        'gs://bucket/path/asan-1000.zip',
+        'gs://bucket/path/asan-2000.zip',
+        'gs://bucket/path/asan-3000.zip',
+        'gs://bucket/path/asan-4000.zip',
+    ]
+    self.assertEqual(
+        revisions.find_build_url(bucket_path, build_urls_list, 1000),
+        'gs://bucket/path/asan-1000.zip')
+    self.assertEqual(
+        revisions.find_build_url(bucket_path, build_urls_list, 2000),
+        'gs://bucket/path/asan-2000.zip')
+    self.assertEqual(
+        revisions.find_build_url(bucket_path, build_urls_list, 3000),
+        'gs://bucket/path/asan-3000.zip')
+    self.assertEqual(
+        revisions.find_build_url(bucket_path, build_urls_list, 4000),
+        'gs://bucket/path/asan-4000.zip')
+    self.assertIsNone(
+        revisions.find_build_url(bucket_path, build_urls_list, 5000))
 
   def test_find_min_revision_index(self):
     """Tests find_min_revision_index()."""

@@ -13,12 +13,17 @@
 # limitations under the License.
 """Authentication helpers."""
 
+from builtins import str
 import collections
+import jwt
 
 from firebase_admin import auth
 from google.cloud import ndb
+from googleapiclient.discovery import build
+import requests
 import webapp2
 
+from base import memoize
 from base import utils
 from config import local_config
 from datastore import data_types
@@ -54,16 +59,83 @@ def is_current_user_admin():
   return bool(key.get())
 
 
+@memoize.wrap(memoize.FifoInMemory(1))
+def _project_number_from_id(project_id):
+  """Get the project number from project ID."""
+  resource_manager = build('cloudresourcemanager', 'v1')
+  result = resource_manager.projects().get(projectId=project_id).execute()
+  if 'projectNumber' not in result:
+    raise AuthError('Failed to get project number.')
+
+  return result['projectNumber']
+
+
+@memoize.wrap(memoize.FifoInMemory(1))
+def _get_iap_key(key_id):
+  """Retrieves a public key from the list published by Identity-Aware Proxy,
+  re-fetching the key file if necessary.
+  """
+  resp = requests.get('https://www.gstatic.com/iap/verify/public_key')
+  if resp.status_code != 200:
+    raise AuthError('Unable to fetch IAP keys: {} / {} / {}'.format(
+        resp.status_code, resp.headers, resp.text))
+
+  result = resp.json()
+  key = result.get(key_id)
+  if not key:
+    raise AuthError('Key {!r} not found'.format(key_id))
+
+  return key
+
+
+def _validate_iap_jwt(iap_jwt):
+  """Validate JWT assertion."""
+  project_id = utils.get_application_id()
+  expected_audience = '/projects/{}/apps/{}'.format(
+      _project_number_from_id(project_id), project_id)
+
+  try:
+    key_id = jwt.get_unverified_header(iap_jwt).get('kid')
+    if not key_id:
+      raise AuthError('No key ID.')
+
+    key = _get_iap_key(key_id)
+    decoded_jwt = jwt.decode(
+        iap_jwt,
+        key,
+        algorithms=['ES256'],
+        issuer='https://cloud.google.com/iap',
+        audience=expected_audience)
+    return decoded_jwt['email']
+  except (jwt.exceptions.InvalidTokenError,
+          requests.exceptions.RequestException) as e:
+    raise AuthError('JWT assertion decode error: ' + str(e))
+
+
+def get_iap_email(current_request):
+  """Get Cloud IAP email."""
+  jwt_assertion = current_request.headers.get('X-Goog-IAP-JWT-Assertion')
+  if not jwt_assertion:
+    return None
+
+  return _validate_iap_jwt(jwt_assertion)
+
+
 def get_current_user():
   """Get the current logged in user, or None."""
   if environment.is_local_development():
     return User('user@localhost')
 
-  loas_user = environment.get_value('LOAS_PEER_USERNAME')
-  if loas_user:
-    return User(loas_user + '@google.com')
-
   current_request = get_current_request()
+  if local_config.AuthConfig().get('enable_loas'):
+    loas_user = current_request.headers.get('X-AppEngine-LOAS-Peer-Username')
+    if loas_user:
+      return User(loas_user + '@google.com')
+
+  iap_email = get_iap_email(current_request)
+  if iap_email:
+    return User(iap_email)
+
   oauth_email = getattr(current_request, '_oauth_email', None)
   if oauth_email:
     return User(oauth_email)

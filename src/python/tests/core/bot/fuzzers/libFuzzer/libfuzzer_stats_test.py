@@ -100,6 +100,7 @@ class PerformanceStatsTest(unittest.TestCase):
         'strategy_corpus_subset': 50,
         'strategy_fork': 1,
         'strategy_mutator_plugin_radamsa': 0,
+        'strategy_peach_grammar_mutation': '',
         'strategy_mutator_plugin': 1,
         'strategy_random_max_len': 1,
         'strategy_recommended_dict': 0,

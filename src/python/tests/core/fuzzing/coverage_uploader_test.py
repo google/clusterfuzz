@@ -82,7 +82,7 @@ class UploadTestsToCloudStorageTest(fake_filesystem_unittest.TestCase):
                                                  '/testcases', '/data')
 
     self.mock.write_data.assert_called_with(
-        'a/file1.txt\nfile2.txt\nf/g/file4.txt',
+        b'a/file1.txt\nfile2.txt\nf/g/file4.txt',
         'gs://test-coverage-testcases/2018-11-01/test_fuzzer/'
         '5b680a295e1f3a81160a0bd71ca2abbcb8d19521/file_list.txt')
     self.assertEquals(
@@ -110,7 +110,8 @@ class UploadTestsToCloudStorageTest(fake_filesystem_unittest.TestCase):
     coverage_uploader.upload_testcases_if_needed('test_fuzzer', files,
                                                  '/testcases', '/data')
 
-    filtered_files_list = '\n'.join(['file%s' % i for i in range(1000)])
+    filtered_files_list = '\n'.join(
+        ['file%s' % i for i in range(1000)]).encode('utf-8')
     self.mock.write_data.assert_called_with(
         filtered_files_list,
         'gs://test-coverage-testcases/2018-11-01/test_fuzzer/'

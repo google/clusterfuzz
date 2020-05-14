@@ -61,7 +61,7 @@ if [ ! $only_reproduce ]; then
   sudo apt-get install -y apt-transport-https software-properties-common
 
   if [ "$distro_codename" == "rodete" ]; then
-    prodaccess
+    glogin
     sudo glinux-add-repo docker-ce-"$distro_codename"
   else
     curl -fsSL https://download.docker.com/linux/${distro_id,,}/gpg | \
@@ -70,10 +70,6 @@ if [ ! $only_reproduce ]; then
        "deb [arch=amd64] https://download.docker.com/linux/${distro_id,,} \
        $distro_codename \
        stable"
-
-    echo "deb [arch=amd64] http://storage.googleapis.com/bazel-apt stable jdk1.8" \
-        | sudo tee /etc/apt/sources.list.d/bazel.list
-    curl https://bazel.build/bazel-release.pub.gpg | sudo apt-key add -
 
     export CLOUD_SDK_REPO="cloud-sdk-$distro_codename"
     echo "deb http://packages.cloud.google.com/apt $CLOUD_SDK_REPO main" | \
@@ -93,12 +89,10 @@ if [ ! $only_reproduce ]; then
   # Install apt-get packages.
   sudo apt-get update
   sudo apt-get install -y \
-      bazel \
       docker-ce \
       google-cloud-sdk \
       $java_package    \
-      liblzma-dev \
-      python-dev
+      liblzma-dev
 
   # Install patchelf - latest version not available on some older distros so we
   # compile from source.
@@ -107,7 +101,7 @@ if [ ! $only_reproduce ]; then
   unsupported_codenames="(trusty|xenial|jessie)"
   if [[ $distro_codename =~ $unsupported_codenames ]]; then
       (cd /tmp && \
-          curl -sS https://nixos.org/releases/patchelf/patchelf-0.9/patchelf-0.9.tar.bz2 \
+          curl -sS https://releases.nixos.org/patchelf/patchelf-0.9/patchelf-0.9.tar.bz2 \
           | tar -C /tmp -xj && \
           cd /tmp/patchelf-*/ && \
           ./configure && \
@@ -121,8 +115,6 @@ fi
 # Install other packages that we depend on unconditionally.
 sudo apt-get install -y \
     blackbox \
-    python-pip \
-    python-virtualenv \
     unzip \
     xvfb
 
@@ -147,22 +139,11 @@ else
       google-cloud-sdk-pubsub-emulator
 fi
 
-# Setup virtualenv.
-if [[ -n "$PY3" ]]; then
-  sudo apt-get install -y pipenv
-  pipenv sync --python 3.7
-  pipenv sync --dev
-  source "$(pipenv --venv)/bin/activate"
-else
-  rm -rf ENV
-  virtualenv ENV
-  source ENV/bin/activate
-
-  # Install needed python packages.
-  pip install --upgrade pip
-  pip install --upgrade -r docker/ci/requirements.txt
-  pip install --upgrade -r src/local/requirements.txt
-fi
+# Setup pipenv and install python dependencies.
+python3 -m pip install --user pipenv
+pipenv --python 3.7
+pipenv sync --dev
+source "$(pipenv --venv)/bin/activate"
 
 if [ $install_android_emulator ]; then
   ANDROID_SDK_INSTALL_DIR=local/bin/android-sdk
@@ -199,18 +180,9 @@ else
 fi
 
 set +x
-if [[ -n "$PY3" ]]; then
 echo "
 
 Installation succeeded!
 Please load environment by running 'pipenv shell'.
 
 "
-else
-echo "
-
-Installation succeeded!
-Please load virtualenv environment by running 'source ENV/bin/activate'.
-
-"
-fi

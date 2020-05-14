@@ -7,12 +7,10 @@ linecache2==1.0.0
 mock==2.0.0
 mox3==0.18.0
 parameterized==0.6.1
-pbr==1.10.0
 pyfakefs==3.4.3
 pylint==1.9.3
 python-mimeparse==1.5.2
 PyYAML==5.1
-six==1.12.0
 testtools==2.2.0
 traceback2==1.4.0
 unittest2==1.1.0

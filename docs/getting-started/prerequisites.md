@@ -19,7 +19,7 @@ This page explains how to set up your environment for using ClusterFuzz.
 Many features of ClusterFuzz depend on [Google Cloud
 Platform](https://cloud.google.com) services, but it's possible to run it locally without these dependencies for testing purposes. See the [Architecture page]({{ site.baseurl }}/architecture/#requirements) for more details.
 
-**Note:** Local development is only supported on **Linux** and **macOS**.
+**Note:** Local development is only supported on **Linux** platform.
 
 ## Getting the code
 
@@ -61,10 +61,9 @@ gcloud auth login
 [running ClusterFuzz locally]: {{ "/getting-started/local-instance/" | relative_url }}
 
 ### Python programming language
-[Download Python 2.7](https://www.python.org/downloads/release/python-2715/), then install it.
+[Download Python 3.7](https://www.python.org/downloads/release/python-377/), then install it.
 
 If you already have Python installed, you can verify its version by running `python --version`.
-The minimum required version is 2.7.10.
 
 ### Go programming language
 [Install the Go programming language](https://golang.org/doc/install).
@@ -86,11 +85,11 @@ local/install_deps.bash
 
 [homebrew]: https://brew.sh/
 
-## Loading virtualenv
-After you run the `local/install_deps.bash` script, activate the virtualenv by running the following command:
+## Loading pipenv
+After you run the `local/install_deps.bash` script, activate pipenv by running the following command:
 
 ```bash
-source ENV/bin/activate
+pipenv shell
 ```
 This loads all the Python dependencies in the current environment.
 

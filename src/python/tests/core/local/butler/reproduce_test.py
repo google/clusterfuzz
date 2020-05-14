@@ -126,9 +126,11 @@ class ReproduceTest(unittest.TestCase):
     disable_xvfb = False
     verbose = False
     disable_android_setup = False
+    application = None
     reproduce._reproduce_crash('https://localhost/testcase-detail/1',
                                self.build_directory, crash_retries,
-                               disable_xvfb, verbose, disable_android_setup)
+                               disable_xvfb, verbose, disable_android_setup,
+                               application)
     reproduce._cleanup()
     self.mock.run_process.assert_called_with(
         binary_path + ' -n /tmp/testcase',
@@ -148,9 +150,11 @@ class ReproduceTest(unittest.TestCase):
     disable_xvfb = False
     verbose = False
     disable_android_setup = False
+    application = None
     reproduce._reproduce_crash('https://localhost/testcase-detail/1',
                                self.build_directory, crash_retries,
-                               disable_xvfb, verbose, disable_android_setup)
+                               disable_xvfb, verbose, disable_android_setup,
+                               application)
     reproduce._cleanup()
     self.mock.engine_reproduce.assert_called_with(
         'fake engine object', 'test_fuzzer', '/tmp/testcase', [], 10)

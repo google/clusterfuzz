@@ -31,13 +31,41 @@ while [ "$1" != "" ]; do
   shift
 done
 
+# Later checks will set this to false if dependencies are missing.
+dependencies_installed="true"
+
+# Create the config directory if needed and check the ClusterFuzz version.
 mkdir -p $CLUSTERFUZZ_CONFIG_DIR
-if [ ! -d $ROOT_DIRECTORY/ENV ] || ([ $additional_deps_args ] && [ ! -d $ROOT_DIRECTORY/local/bin/android-sdk ]); then
+current_version=1
+version_file=$CLUSTERFUZZ_CONFIG_DIR/version
+if [ ! -e $version_file ] || [ "$(cat $version_file)" != "$current_version" ]; then
+  dependencies_installed="false"
+fi
+
+# Check if we have a valid pipenv.
+if ! pipenv graph 2>&1 > /dev/null; then
+  dependencies_installed="false"
+fi
+
+# Check to see if we need to install the android emulator.
+if [ $additional_deps_args ] && [ ! -d $ROOT_DIRECTORY/local/bin/android-sdk ]; then
+  dependencies_installed="false"
+fi
+
+if [ "$dependencies_installed" != "true" ]; then
   echo "Running first time setup. This may take a while, but is only required once."
   echo "You may see several password prompts to install required packages."
   sleep 5
-  $ROOT_DIRECTORY/local/install_deps.bash --only-reproduce $additional_deps_args || { rm -rf $ROOT_DIRECTORY/ENV && exit 1; }
+  $ROOT_DIRECTORY/local/install_deps.bash --only-reproduce $additional_deps_args || { exit 1; }
+  echo -n $current_version > $version_file
 fi
 
-source ENV/bin/activate
+# Only sync if necessary.
+pip_sync_file=$CLUSTERFUZZ_CONFIG_DIR/pip_sync
+if [ ! -e $pip_sync_file ] || [ $ROOT_DIRECTORY/Pipfile.lock -nt $pip_sync_file ]; then
+  pipenv sync --dev
+  echo 1 > $pip_sync_file
+fi
+
+source "$(pipenv --venv)/bin/activate"
 python $ROOT_DIRECTORY/butler.py reproduce $original_args

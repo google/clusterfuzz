@@ -84,7 +84,7 @@ def cleanup_task_state():
   environment.reset_current_memory_tool_options()
 
   # Clear exceptions.
-  sys.exc_clear()
+  utils.exc_clear()
 
   # Call python's garbage collector.
   utils.python_gc()
@@ -206,7 +206,7 @@ def run_command(task_name, task_argument, job_name):
     # It is difficult to try to handle the case where a test case is deleted
     # during processing. Rather than trying to catch by checking every point
     # where a test case is reloaded from the datastore, just abort the task.
-    logs.log_error('Test case %s no longer exists.' % task_argument)
+    logs.log_warn('Test case %s no longer exists.' % task_argument)
   except BaseException:
     # On any other exceptions, update state to reflect error and re-raise.
     if should_update_task_status(task_name):

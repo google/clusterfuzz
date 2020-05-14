@@ -14,8 +14,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+dir=$(dirname "$0")
+
+# Delete third_party to prevent import issues while doing `python butler.py
+# bootstrap`.
+rm -rf "$dir"/../src/third_party
+
 if [ "$(uname)" == "Darwin" ]; then
-  $(dirname "$0")/install_deps_macos.bash $*
+  "$dir"/install_deps_macos.bash $*
 else
-  $(dirname "$0")/install_deps_linux.bash $*
+  "$dir"/install_deps_linux.bash $*
 fi

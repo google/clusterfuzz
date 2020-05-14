@@ -28,6 +28,7 @@ GOOGLE_CLOUD_SDK=google-cloud-sdk
 GOOGLE_CLOUD_SDK_ARCHIVE=google-cloud-sdk-232.0.0-darwin-x86_64.tar.gz
 INSTALL_DIRECTORY=${INSTALL_DIRECTORY:-${HOME}}
 DEPLOYMENT_BUCKET=${DEPLOYMENT_BUCKET:-"deployment.$CLOUD_PROJECT_ID.appspot.com"}
+DEPLOYMENT_ZIP="macos-3.zip"
 GSUTIL_PATH="$INSTALL_DIRECTORY/$GOOGLE_CLOUD_SDK/bin"
 ROOT_DIR="$INSTALL_DIRECTORY/clusterfuzz"
 PYTHONPATH="$PYTHONPATH:$ROOT_DIR/src"
@@ -42,12 +43,6 @@ sudo sysctl -w vm.shared_region_unnest_logging=0
 echo "Increasing default file limit (requires sudo)."
 sudo launchctl limit maxfiles 2048 unlimited
 sudo ulimit -n 4096
-
-echo "Installing ClusterFuzz package dependencies (requires sudo)."
-
-# pip may fail on some macOS versions if run without "--ignore-installed".
-# For more context, see https://github.com/pypa/pip/issues/3165.
-sudo pip install --ignore-installed crcmod==1.7 psutil==5.4.7 pyOpenSSL==19.0.0
 
 echo "Creating directory $INSTALL_DIRECTORY."
 if [ ! -d "$INSTALL_DIRECTORY" ]; then
@@ -80,8 +75,20 @@ else
 fi
 
 echo "Downloading ClusterFuzz source code."
-$GSUTIL_PATH/gsutil cp gs://$DEPLOYMENT_BUCKET/macos.zip clusterfuzz-source.zip
+rm -rf clusterfuzz
+$GSUTIL_PATH/gsutil cp gs://$DEPLOYMENT_BUCKET/$DEPLOYMENT_ZIP clusterfuzz-source.zip
 unzip -q clusterfuzz-source.zip
+
+echo "Installing ClusterFuzz package dependencies using pipenv."
+cd clusterfuzz
+if ! python3 -m pip > /dev/null ; then
+  curl https://bootstrap.pypa.io/get-pip.py -o get-pip.py
+  python3 get-pip.py
+fi
+python3 -m pip install --upgrade pipenv
+pipenv --python 3.7
+pipenv sync
+source "$(pipenv --venv)/bin/activate"
 
 echo "Running ClusterFuzz."
 NFS_ROOT="$NFS_ROOT" GOOGLE_APPLICATION_CREDENTIALS="$GOOGLE_APPLICATION_CREDENTIALS" ROOT_DIR="$ROOT_DIR" PYTHONPATH="$PYTHONPATH" GSUTIL_PATH="$GSUTIL_PATH" python $ROOT_DIR/src/python/bot/startup/run.py &

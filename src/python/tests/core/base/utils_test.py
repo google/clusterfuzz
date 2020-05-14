@@ -16,7 +16,9 @@ from builtins import object
 import datetime
 import mock
 import os
+import shutil
 import sys
+import tempfile
 import time
 import unittest
 
@@ -445,13 +447,13 @@ class FileHashTest(fake_filesystem_unittest.TestCase):
 
   def test_shorter_than_one_chunk(self):
     with open(self.test_file, 'wb') as file_handle:
-      file_handle.write('ABC')
+      file_handle.write(b'ABC')
     self.assertEqual('3c01bdbb26f358bab27f267924aa2c9a03fcfdb8',
                      utils.file_hash(self.test_file))
 
   def test_longer_than_one_chunk(self):
     with open(self.test_file, 'wb') as file_handle:
-      file_handle.write('A' * 60000)
+      file_handle.write(b'A' * 60000)
     self.assertEqual('8360c01cef8aa7001d1dd8964b9921d4c187da29',
                      utils.file_hash(self.test_file))
 
@@ -473,3 +475,56 @@ class ServiceAccountEmailTest(unittest.TestCase):
     os.environ['APPLICATION_ID'] = 'domain.com:project-id'
     self.assertEqual('project-id.domain.com@appspot.gserviceaccount.com',
                      utils.service_account_email())
+
+
+class SearchBytesInFileTest(unittest.TestCase):
+  """Tests search_bytes_in_file."""
+
+  def setUp(self):
+    self.temp_dir = tempfile.mkdtemp()
+    self.test_path = os.path.join(self.temp_dir, 'file')
+    with open(self.test_path, 'wb') as f:
+      f.write(b'A' * 16 + b'B' * 16 + b'C' + b'D' * 16)
+
+  def tearDown(self):
+    shutil.rmtree(self.temp_dir, ignore_errors=True)
+
+  def test_exists(self):
+    """Test exists."""
+    with open(self.test_path, 'rb') as f:
+      self.assertTrue(utils.search_bytes_in_file(b'A', f))
+
+    with open(self.test_path, 'rb') as f:
+      self.assertTrue(utils.search_bytes_in_file(b'B', f))
+
+    with open(self.test_path, 'rb') as f:
+      self.assertTrue(utils.search_bytes_in_file(b'C', f))
+
+    with open(self.test_path, 'rb') as f:
+      self.assertTrue(utils.search_bytes_in_file(b'D', f))
+
+    with open(self.test_path, 'rb') as f:
+      self.assertTrue(utils.search_bytes_in_file(b'A' * 16, f))
+
+    with open(self.test_path, 'rb') as f:
+      self.assertTrue(utils.search_bytes_in_file(b'B' * 16, f))
+
+    with open(self.test_path, 'rb') as f:
+      self.assertTrue(utils.search_bytes_in_file(b'D' * 16, f))
+
+  def test_not_exists(self):
+    """Test not exists."""
+    with open(self.test_path, 'rb') as f:
+      self.assertFalse(utils.search_bytes_in_file(b'A' * 17, f))
+
+    with open(self.test_path, 'rb') as f:
+      self.assertFalse(utils.search_bytes_in_file(b'B' * 17, f))
+
+    with open(self.test_path, 'rb') as f:
+      self.assertFalse(utils.search_bytes_in_file(b'C' * 2, f))
+
+    with open(self.test_path, 'rb') as f:
+      self.assertFalse(utils.search_bytes_in_file(b'D' * 17, f))
+
+    with open(self.test_path, 'rb') as f:
+      self.assertFalse(utils.search_bytes_in_file(b'ABCD', f))

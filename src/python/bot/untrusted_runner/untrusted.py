@@ -89,7 +89,7 @@ def wrap_servicer(func):
       raise
     finally:
       with _rpc_count_lock:
-        assert _rpc_count_lock > 0
+        assert _rpc_count > 0
         _rpc_count -= 1
 
     return result
@@ -204,10 +204,10 @@ def _get_tls_cert_and_key():
   local_key_location = environment.get_value('UNTRUSTED_TLS_KEY_FOR_TESTING')
 
   if local_cert_location and local_key_location:
-    with open(local_cert_location) as f:
+    with open(local_cert_location, 'rb') as f:
       cert_contents = f.read()
 
-    with open(local_key_location) as f:
+    with open(local_key_location, 'rb') as f:
       key_contents = f.read()
 
     return cert_contents, key_contents

@@ -22,6 +22,7 @@ function run_bot () {
   mkdir -p $bot_directory
   cp -r $INSTALL_DIRECTORY/clusterfuzz $bot_directory/clusterfuzz
   echo "Created bot directory $bot_directory."
+  cd $bot_directory/clusterfuzz
 
   while true; do
     echo "Running ClusterFuzz instance for linux bot."
@@ -47,6 +48,7 @@ GOOGLE_CLOUD_SDK=google-cloud-sdk
 GOOGLE_CLOUD_SDK_ARCHIVE=google-cloud-sdk-232.0.0-linux-x86_64.tar.gz
 INSTALL_DIRECTORY=${INSTALL_DIRECTORY:-${HOME}}
 DEPLOYMENT_BUCKET=${DEPLOYMENT_BUCKET:-"deployment.$CLOUD_PROJECT_ID.appspot.com"}
+DEPLOYMENT_ZIP="linux-3.zip"
 GSUTIL_PATH="$INSTALL_DIRECTORY/$GOOGLE_CLOUD_SDK/bin"
 ROOT_DIR="$INSTALL_DIRECTORY/clusterfuzz"
 PYTHONPATH="$PYTHONPATH:$ROOT_DIR/src"
@@ -65,9 +67,6 @@ if [ ! -d "$INSTALL_DIRECTORY/$GOOGLE_CLOUD_SDK" ]; then
   rm $GOOGLE_CLOUD_SDK_ARCHIVE
 fi
 
-echo "Installing ClusterFuzz package dependencies."
-python -m pip install crcmod==1.7 psutil==5.4.7 pyOpenSSL==19.0.0
-
 echo "Activating credentials with the Google Cloud SDK."
 $GSUTIL_PATH/gcloud auth activate-service-account --key-file=$GOOGLE_APPLICATION_CREDENTIALS
 
@@ -84,7 +83,18 @@ fi
 
 echo "Downloading ClusterFuzz source code."
 rm -rf clusterfuzz
-$GSUTIL_PATH/gsutil cp gs://$DEPLOYMENT_BUCKET/linux.zip clusterfuzz-source.zip
+$GSUTIL_PATH/gsutil cp gs://$DEPLOYMENT_BUCKET/$DEPLOYMENT_ZIP clusterfuzz-source.zip
 unzip -q clusterfuzz-source.zip
+
+echo "Installing ClusterFuzz package dependencies using pipenv."
+cd clusterfuzz
+if ! python3 -m pip > /dev/null ; then
+  curl https://bootstrap.pypa.io/get-pip.py -o get-pip.py
+  python3 get-pip.py
+fi
+python3 -m pip install --upgrade pipenv
+pipenv --python 3.7
+pipenv sync
+source "$(pipenv --venv)/bin/activate"
 
 run_bot &

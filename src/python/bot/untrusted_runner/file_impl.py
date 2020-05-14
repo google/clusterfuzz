@@ -31,8 +31,7 @@ def create_directory(request, _):
 
 def remove_directory(request, _):
   """Remove a directory."""
-  result = shell.remove_directory(
-      request.path.encode('utf-8'), request.recreate)
+  result = shell.remove_directory(request.path, request.recreate)
   return untrusted_runner_pb2.RemoveDirectoryResponse(result=result)
 
 
@@ -78,7 +77,7 @@ def copy_file_from_worker(request, context):
     context.set_trailing_metadata([('result', 'invalid-path')])
     return
 
-  with open(path) as f:
+  with open(path, 'rb') as f:
     for chunk in file_utils.file_chunk_generator(f):
       yield chunk
   context.set_trailing_metadata([('result', 'ok')])

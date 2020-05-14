@@ -179,8 +179,8 @@ class Host(object):
     p.stdin = subprocess.PIPE
     p.stdout = subprocess.PIPE
     out, _ = p.popen().communicate(raw)
-    processed_out = re.sub(r'[0-9\[\]\.]*\[klog\] INFO: ', '', out)
-    return processed_out.split('\n')
+    processed_out = re.sub(br'[0-9\[\]\.]*\[klog\] INFO: ', b'', out)
+    return processed_out.split(b'\n')
 
   def notify_user(self, title, body):
     """Displays a message to the user in a platform-specific way"""

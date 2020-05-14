@@ -237,7 +237,7 @@ class JsonSocketHandler(unittest.TestCase):
 
     record = mock.Mock()
     handler = logs.JsonSocketHandler(None, None)
-    self.assertEqual('json\n', handler.makePickle(record))
+    self.assertEqual(b'json\n', handler.makePickle(record))
 
     self.mock.format_record.assert_called_once_with(record)
 
@@ -253,6 +253,8 @@ class ConfigureTest(unittest.TestCase):
         'logging.config.dictConfig',
         'logging.getLogger',
         'metrics.logs._is_running_on_app_engine',
+        'metrics.logs.suppress_unwanted_warnings',
+        'google.cloud.logging.Client',
     ])
 
   def test_configure(self):
@@ -266,7 +268,7 @@ class ConfigureTest(unittest.TestCase):
 
     self.mock.set_logger.assert_called_with(logger)
     self.mock.get_logging_config_dict.assert_called_once_with('test')
-    self.mock.getLogger.assert_called_once_with('test')
+    self.mock.getLogger.assert_called_with('test')
     self.mock.dictConfig.assert_called_once_with(
         self.mock.get_logging_config_dict.return_value)
 

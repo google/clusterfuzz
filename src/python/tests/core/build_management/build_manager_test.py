@@ -391,6 +391,7 @@ class RegularLibFuzzerBuildTest(fake_filesystem_unittest.TestCase):
     self.mock._make_space.return_value = True
     self.mock._make_space_for_build.return_value = True
     self.mock.unpack.return_value = True
+    self.mock.time.return_value = 1000.0
 
     os.environ['RELEASE_BUILD_BUCKET_PATH'] = (
         'gs://path/file-release-([0-9]+).zip')
@@ -1129,6 +1130,7 @@ class AuxiliaryRegularLibFuzzerBuildTest(fake_filesystem_unittest.TestCase):
     self.mock._make_space.return_value = True
     self.mock._make_space_for_build.return_value = True
     self.mock.unpack.return_value = True
+    self.mock.time.return_value = 1000.0
 
     os.environ['DATAFLOW_BUILD_BUCKET_PATH'] = (
         'gs://path/file-dataflow-([0-9]+).zip')
@@ -1395,7 +1397,11 @@ class GetFileMatchCallbackTest(unittest.TestCase):
     self.assertTrue(
         match_callback(
             '/b/build/instrumented_libraries/msan/lib/libgcrypt.so.11.8.2'))
-    self.assertTrue(match_callback(r'/b/build/afl-fuzz'))
+    self.assertTrue(match_callback('/b/build/afl-fuzz'))
+    # Windows
+    self.assertTrue(match_callback('my_fuzzer.exe'))
+    # Python
+    self.assertTrue(match_callback('my_fuzzer.par'))
 
     # Tests for relative path.
     self.assertTrue(match_callback('build/my_fuzzer'))
@@ -1458,6 +1464,8 @@ class GetFileMatchCallbackTest(unittest.TestCase):
     self.assertTrue(match_callback('shared.dll.pdb'))
     self.assertFalse(match_callback('other_fuzzer.exe'))
     self.assertFalse(match_callback('other_fuzzer.exe.pdb'))
+    # Test that other .par targets are not included.
+    self.assertFalse(match_callback('other_fuzzer.par'))
     # Make sure we aren't excluding files that contain but don't end in
     # ".exe.pdb".
     self.assertTrue(match_callback('other_fuzzer.exe.pdbb'))
@@ -1796,7 +1804,7 @@ class SplitFuzzTargetsBuildTest(fake_filesystem_unittest.TestCase):
         '/subdir/target3/',
         '/subdir/targets.list',
     )
-    self.mock.read_data.return_value = ('target1\ntarget2\ntarget3\n')
+    self.mock.read_data.return_value = (b'target1\ntarget2\ntarget3\n')
 
     self.target_weights = {
         'target1': 0.0,
@@ -1809,6 +1817,7 @@ class SplitFuzzTargetsBuildTest(fake_filesystem_unittest.TestCase):
     self.mock._make_space.return_value = True
     self.mock._make_space_for_build.return_value = True
     self.mock.unpack.return_value = True
+    self.mock.time.return_value = 1000.0
 
     os.environ['FUZZ_TARGET_BUILD_BUCKET_PATH'] = (
         'gs://bucket/subdir/%TARGET%/([0-9]+).zip')

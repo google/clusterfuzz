@@ -324,8 +324,8 @@ class TestLauncher(BaseLauncherTest):
 
     # Testcase should've been copied back.
     self.assertGreaterEqual(os.path.getsize(testcase_path), 3)
-    with open(testcase_path) as f:
-      self.assertEqual(f.read()[:3], 'ABC')
+    with open(testcase_path, 'rb') as f:
+      self.assertEqual(f.read()[:3], b'ABC')
 
   @no_errors
   @mock.patch('bot.fuzzers.afl.launcher.get_fuzz_timeout')
@@ -364,7 +364,7 @@ def _run_with_sudo(command):
       stdin=subprocess.PIPE,
       stdout=subprocess.PIPE,
       stderr=subprocess.STDOUT)
-  popen.communicate(input=SUDO_PASSWORD + '\n')
+  popen.communicate(input=(SUDO_PASSWORD + '\n').encode())
   assert popen.returncode == 0
 
 
@@ -435,8 +435,8 @@ class TestLauncherMinijail(BaseLauncherTest):
 
     # Testcase should've been copied back.
     self.assertGreaterEqual(os.path.getsize(testcase_path), 3)
-    with open(testcase_path) as f:
-      self.assertEqual(f.read()[:3], 'ABC')
+    with open(testcase_path, 'rb') as f:
+      self.assertEqual(f.read()[:3], b'ABC')
 
   @no_errors
   @mock.patch('bot.fuzzers.afl.launcher.get_fuzz_timeout')

@@ -138,6 +138,31 @@
             </template>
           </paper-listbox>
         </paper-dropdown-menu>
+        <template is="dom-if" if="[[shouldShowFuzzers(uploadParams.job)]]">
+          <paper-dropdown-menu
+              class="dropdown-filter"
+              no-animations="true"
+              label="Fuzzer"
+              noink>
+            <paper-listbox
+                slot="dropdown-content"
+                selected="{{uploadParams.fuzzer}}"
+                attr-for-selected="val">
+              <paper-input
+                  label="Search fuzzers"
+                  value="{{fuzzerKey}}"
+                  on-tap="stopEventPropagation"
+                  on-keydown="stopEventPropagation"
+                  on-keyup="stopEventPropagation" no-label-float>
+                <iron-icon icon="icons:search" slot="prefix"></iron-icon>
+                <iron-icon icon="icons:clear" slot="suffix" on-click="clearSearchInput"></iron-icon>
+              </paper-input>
+              <template is="dom-repeat" items="[[fieldValues.blackboxFuzzers]]" filter="{{onmatch(fuzzerKey)}}">
+                <paper-item on-click="submit" val="[[item]]">[[item]]</paper-item>
+              </template>
+            </paper-listbox>
+          </paper-dropdown-menu>
+        </template>
         <template is="dom-if" if="[[shouldShowTargetNames(uploadParams.job)]]">
           <paper-dropdown-menu
               class="dropdown-filter"
@@ -317,6 +342,13 @@
         return jobLower.includes('libfuzzer') || jobLower.includes('afl');
       }
 
+      shouldShowFuzzers(job) {
+        if (!job)
+          return false;
+
+        return !this.shouldShowTargetNames(job);
+      }
+
       getTargetNames(job) {
         if (!job)
           return [];
@@ -326,6 +358,8 @@
           return this.fieldValues.libfuzzerTargets;
         } else if (jobLower.includes('afl')) {
           return this.fieldValues.aflTargets;
+        } else if (jobLower.includes('honggfuzz')) {
+          return this.fieldValues.honggfuzzTargets;
         } else {
           return [];
         }

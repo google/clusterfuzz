@@ -12,9 +12,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+Set-PSDebug -Trace 1
 Write-Host "Start"
 
 # Helper variables.
+[Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
 $webClient = New-Object System.Net.WebClient
 $webClient.Headers.add('Metadata-Flavor', 'Google')
 $hostName = ($webClient.DownloadString('http://metadata.google.internal/computeMetadata/v1/instance/hostname')).split('.')[0]
@@ -28,8 +30,8 @@ $nfsHost = '10.0.0.2'
 $nfsVolume = 'cfvolume'
 $nfsRoot = If (Test-Connection $nfsHost) {'X:\'} Else {''}
 
-$registrySetFilePath = 'c:\registry.run'
-$scriptExecutedFilePath = 'c:\script.run'
+$registrySetupFilePath = 'c:\registry.setup'
+$packageSetupFilePath = 'c:\package.setup'
 
 # Create clusterfuzz admin account.
 $domain = 'CLUSTERFUZZ-WIN'
@@ -51,19 +53,20 @@ else {
 Add-WindowsFeature NFS-Client
 
 # Set registry keys.
-$s = "if not exist $registrySetFilePath ( netdom renamecomputer %COMPUTERNAME% /Newname $hostName /force`nreg add `"HKLM\SOFTWARE\Policies\Microsoft\Windows Defender`" /v DisableAntispyware /t REG_DWORD /f /d 1`nreg add `"HKLM\SYSTEM\CurrentControlSet\Control\Windows`" /v NoInteractiveServices /t REG_DWORD /f /d 0`nreg add `"HKLM\SYSTEM\ControlSet001\Control\FileSystem`" /v LongPathsEnabled /t REG_DWORD /f /d 1`nreg add `"HKLM\SYSTEM\CurrentControlSet\Control\FileSystem`" /v LongPathsEnabled /t REG_DWORD /f /d 1`nreg add `"HKLM\Software\Microsoft\ClientForNFS\CurrentVersion\Default`" /v AnonymousUid /t REG_DWORD /f /d 1337`nreg add `"HKLM\Software\Microsoft\ClientForNFS\CurrentVersion\Default`" /v AnonymousGid /t REG_DWORD /f /d 1337`nreg add `"HKLM\Software\Microsoft\Windows NT\CurrentVersion\Winlogon`" /v AutoAdminLogon /t REG_SZ /f /d 1`nreg add `"HKLM\Software\Microsoft\Windows NT\CurrentVersion\Winlogon`" /v DefaultUserName /t REG_SZ /f /d $username`nreg add `"HKLM\Software\Microsoft\Windows NT\CurrentVersion\Winlogon`" /v DefaultPassword /t REG_SZ /f /d `"$password`"`nreg add `"HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Winlogon`" /v DefaultDomainName /t REG_SZ /d `"CLUSTERFUZZ-WIN`" /f`nreg add `"HKLM\Software\Microsoft\Windows\Windows Error Reporting`" /v Disabled /t REG_DWORD /f /d 1`nreg add `"HKLM\Software\Microsoft\Windows\Windows Error Reporting`" /v DontShowUI /t REG_DWORD /f /d 1`nreg add `"HKCU\Software\Microsoft\Windows\Windows Error Reporting`" /v Disabled /t REG_DWORD /f /d 1`nreg add `"HKCU\Software\Microsoft\Windows\Windows Error Reporting`" /v DontShowUI /t REG_DWORD /f /d 1`ncopy NUL $registrySetFilePath`n# shutdown -t 30 -r -f`n)`n"
+$s = "if not exist $registrySetupFilePath ( netdom renamecomputer %COMPUTERNAME% /Newname $hostName /force`nreg add `"HKLM\SOFTWARE\Policies\Microsoft\Windows Defender`" /v DisableAntispyware /t REG_DWORD /f /d 1`nreg add `"HKLM\SYSTEM\CurrentControlSet\Control\Windows`" /v NoInteractiveServices /t REG_DWORD /f /d 0`nreg add `"HKLM\SYSTEM\ControlSet001\Control\FileSystem`" /v LongPathsEnabled /t REG_DWORD /f /d 1`nreg add `"HKLM\SYSTEM\CurrentControlSet\Control\FileSystem`" /v LongPathsEnabled /t REG_DWORD /f /d 1`nreg add `"HKLM\Software\Microsoft\ClientForNFS\CurrentVersion\Default`" /v AnonymousUid /t REG_DWORD /f /d 1337`nreg add `"HKLM\Software\Microsoft\ClientForNFS\CurrentVersion\Default`" /v AnonymousGid /t REG_DWORD /f /d 1337`nreg add `"HKLM\Software\Microsoft\Windows NT\CurrentVersion\Winlogon`" /v AutoAdminLogon /t REG_SZ /f /d 1`nreg add `"HKLM\Software\Microsoft\Windows NT\CurrentVersion\Winlogon`" /v DefaultUserName /t REG_SZ /f /d $username`nreg add `"HKLM\Software\Microsoft\Windows NT\CurrentVersion\Winlogon`" /v DefaultPassword /t REG_SZ /f /d `"$password`"`nreg add `"HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Winlogon`" /v DefaultDomainName /t REG_SZ /d `"CLUSTERFUZZ-WIN`" /f`nreg add `"HKLM\Software\Microsoft\Windows\Windows Error Reporting`" /v Disabled /t REG_DWORD /f /d 1`nreg add `"HKLM\Software\Microsoft\Windows\Windows Error Reporting`" /v DontShowUI /t REG_DWORD /f /d 1`nreg add `"HKCU\Software\Microsoft\Windows\Windows Error Reporting`" /v Disabled /t REG_DWORD /f /d 1`nreg add `"HKCU\Software\Microsoft\Windows\Windows Error Reporting`" /v DontShowUI /t REG_DWORD /f /d 1`ncopy NUL $registrySetupFilePath`n# shutdown -t 30 -r -f`n)`n"
 Set-Content c:\autologin.bat $s
 
 # Set the following variable globally in system environment.
 setx /M PYTHONUNBUFFERED "1"
 setx /M PYTHONDONTWRITEBYTECODE "1"
+setx /M PYTHONIOENCODING "UTF-8"
 setx /M RUBY_GC_HEAP_OLDOBJECT_LIMIT_FACTOR "0.9"
 
 # Set startup script contents.
-$s = "if not exist $registrySetFilePath ( EXIT )`nw32tm /resync`nnetsh winhttp import proxy source=ie`nnfsadmin client config protocol=tcp+udp UseReservedPorts=yes`nnfsadmin client stop`nnfsadmin client start`nset NFS_HOST=$nfsHost`nset NFS_VOLUME=$nfsVolume`nset NFS_ROOT=$nfsRoot`nmount -o anon -o nolock -o retry=10 $nfsHost`:/$nfsVolume $nfsRoot`nnet start w32time`nw32tm /resync`nset PREEMPTIBLE=$preemptible`nset QUEUE_OVERRIDE=$queueOverride`nset USER=bot`nset BOT_TMPDIR=c:\tmp`nset PYTHONPATH=c:\clusterfuzz\src`nset ROOT_DIR=c:\clusterfuzz`nset PATH=c:\java\bin;c:\python27;c:\nodejs;c:\Program Files (x86)\Windows Kits\10\Debuggers\x64;c:\Program Files (x86)\Google\Cloud SDK\google-cloud-sdk\bin;%PATH%`nc: `ncd \ `ncd clusterfuzz\src\python\bot\startup `npython -W ignore run.py"
+$s = "if not exist $registrySetupFilePath ( EXIT )`nw32tm /resync`nnetsh winhttp import proxy source=ie`nnfsadmin client config protocol=tcp+udp UseReservedPorts=yes`nnfsadmin client stop`nnfsadmin client start`nset NFS_HOST=$nfsHost`nset NFS_VOLUME=$nfsVolume`nset NFS_ROOT=$nfsRoot`nmount -o anon -o nolock -o retry=10 $nfsHost`:/$nfsVolume $nfsRoot`nnet start w32time`nw32tm /resync`nset PREEMPTIBLE=$preemptible`nset QUEUE_OVERRIDE=$queueOverride`nset USER=bot`nset BOT_TMPDIR=c:\tmp`nset PYTHONPATH=c:\clusterfuzz\src`nset ROOT_DIR=c:\clusterfuzz`nset PATH=c:\java\bin;c:\python37;c:\python27;c:\nodejs;c:\Program Files (x86)\Windows Kits\10\Debuggers\x64;c:\Program Files (x86)\Google\Cloud SDK\google-cloud-sdk\bin;%PATH%`nc: `ncd \ `ncd clusterfuzz\src\python\bot\startup `npython -W ignore run.py"
 Set-Content c:\startup.bat $s
 
-if (!(Test-Path ($scriptExecutedFilePath))) {
+if (!(Test-Path ($packageSetupFilePath))) {
 
 # Create helpers.
 $shell = new-object -com shell.application
@@ -138,12 +141,24 @@ if (!(Test-Path ($fileName))) {
   cmd /c msiexec /qn /i $fileName TARGETDIR=c:\python27
 }
 
+Copy-Item "c:\python27\python.exe" -Destination "c:\python27\python2.exe"
+
+$fileName = "$tmp\python-3.7.7-amd64.exe"
+if (!(Test-Path ($fileName))) {
+  $webClient.DownloadFile("https://www.python.org/ftp/python/3.7.7/python-3.7.7-amd64.exe", $fileName)
+  Remove-Item c:\python37 -Recurse -ErrorAction Ignore
+  cmd /c $fileName /quiet InstallAllUsers=1 Include_test=0 TargetDir=c:\python37
+}
+
 # Install specific python package versions.
 cmd /c c:\python27\python -m ensurepip --default-pip
 cmd /c c:\python27\python -m pip install -U pip
 cmd /c c:\python27\python -m pip install -U setuptools
 cmd /c c:\python27\python -m pip install -U wheel
-cmd /c c:\python27\python -m pip install crcmod==1.7 pywinauto==0.6.4 psutil==5.4.7 future==0.17.1
+cmd /c c:\python27\python -m pip install crcmod==1.7 pyOpenSSL==17.4.0 pywinauto==0.6.4 psutil==5.4.7 future==0.17.1
+
+cmd /c c:\python37\python -m pip install -U pip
+cmd /c c:\python37\python -m pip install pipenv
 
 # Install NodeJS.
 $fileName = "$tmp\nodejs.zip"
@@ -266,31 +281,40 @@ $deploymentBucket = $webClient.DownloadString('http://metadata.google.internal/c
 # Download ClusterFuzz source.
 rm c:\clusterfuzz -Recurse -Force
 $fileName = "$tmp\clusterfuzz.zip"
-gsutil cp gs://$deploymentBucket/windows.zip $fileName
+gsutil cp gs://$deploymentBucket/windows-3.zip $fileName
 unzip $fileName
 
 # Resize partition to max available size.
 $MaxSize = (Get-PartitionSupportedSize -DriveLetter c).sizeMax
 Resize-Partition -DriveLetter c -Size $MaxSize
 
-Set-Content $scriptExecutedFilePath "done"
+Set-Content $packageSetupFilePath " "
 
 # Run autologin so that the hostname changes at reboot.
 c:\autologin.bat
 
-Write-Host "Restart"
+Write-Host "Restarting"
 
 Restart-Computer -Force
 exit
 
-} # !(Test-Path ($scriptExecutedFilePath))
+} # !(Test-Path ($packageSetupFilePath))
 
-Set-Content $scriptExecutedFilePath "skipped"
+Set-Content $packageSetupFilePath "Skipped package install"
 
 # Schedule chkdsk on every reboot.
 echo y | chkdsk C: /F /I /C
 
+# Install Pipfile dependencies
+$env:Path += ";c:\python37;c:\python37\scripts"
+cd c:\clusterfuzz
+cmd /c c:\python37\scripts\pipenv install --deploy --system
+
+# Can't be managed by pipenv due to https://github.com/pypa/pipenv/issues/3193.
+cmd /c c:\python37\python -m pip install pywinauto==0.6.8
+
 # Run the scripts.
+Write-Host "Run scripts"
 c:\autologin.bat
 c:\PsExec.exe \\$hostName -accepteula -h -i 0 -username `""$domain\$username"`" -password `""$password"`" c:\startup.bat
 

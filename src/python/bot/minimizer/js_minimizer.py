@@ -17,6 +17,7 @@ from __future__ import absolute_import
 from builtins import range
 
 from . import delta_minimizer
+from . import errors
 from . import minimizer
 from . import utils
 
@@ -36,6 +37,8 @@ class JSMinimizer(minimizer.Minimizer):
 
   def _execute(self, data):
     testcase = minimizer.Testcase(data, self)
+    if not self.validate_tokenizer(data, testcase):
+      raise errors.TokenizationFailureError('JS Minimizer')
 
     brace_stack = []
     paren_stack = []

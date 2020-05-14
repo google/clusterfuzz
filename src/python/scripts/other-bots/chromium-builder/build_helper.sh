@@ -73,7 +73,7 @@ gclient runhooks --force
 
 # Trigger the build.
 gn gen $build_subdir "--args=$gn_args"
-ninja -C $build_subdir -j$cpus chromium_builder_asan
+autoninja -C $build_subdir chromium_builder_asan
 
 # Clear unneeded files from build directory.
 unneeded_dirnames=( ".deps" ".landmines" ".ninja_deps" ".ninja_log"

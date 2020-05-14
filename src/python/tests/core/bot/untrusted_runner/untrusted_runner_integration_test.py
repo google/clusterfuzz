@@ -16,10 +16,10 @@
 import filecmp
 import os
 import shutil
-import subprocess
-import tempfile
-
 import six
+import subprocess
+import sys
+import tempfile
 
 from base import utils
 from bot import testcase_manager
@@ -37,12 +37,11 @@ from google_cloud_utils import blobs
 from system import environment
 from system import process_handler
 from system import shell
-from tests.test_libs import helpers as test_helpers
 from tests.test_libs import untrusted_runner_helpers
 
-TEST_FILE_CONTENTS = ('A' * config.FILE_TRANSFER_CHUNK_SIZE +
-                      'B' * config.FILE_TRANSFER_CHUNK_SIZE +
-                      'C' * (config.FILE_TRANSFER_CHUNK_SIZE // 2))
+TEST_FILE_CONTENTS = (b'A' * config.FILE_TRANSFER_CHUNK_SIZE +
+                      b'B' * config.FILE_TRANSFER_CHUNK_SIZE +
+                      b'C' * (config.FILE_TRANSFER_CHUNK_SIZE // 2))
 
 TEST_BUNDLE_BUCKET = 'clusterfuzz-test-bundle'
 
@@ -66,10 +65,6 @@ class UntrustedRunnerIntegrationTest(
   def setUp(self):
     """Set up."""
     super(UntrustedRunnerIntegrationTest, self).setUp()
-    test_helpers.patch(self, [
-        'datastore.data_handler.get_data_bundle_bucket_name',
-    ])
-
     data_types.Config().put()
 
     environment_string = ('APP_NAME = app\n'
@@ -92,7 +87,7 @@ class UntrustedRunnerIntegrationTest(
 
   def test_run_process(self):
     """Tests remote run_process."""
-    expected_output = subprocess.check_output(['ls', '/'])
+    expected_output = subprocess.check_output(['ls', '/']).decode('utf-8')
 
     return_code, _, output = (
         remote_process_host.run_process('ls', current_working_directory='/'))
@@ -114,7 +109,7 @@ class UntrustedRunnerIntegrationTest(
     environment.set_value('ASAN_OPTIONS', 'host_value')
     runner = remote_process_host.RemoteProcessRunner('/bin/sh', ['-c'])
     result = runner.run_and_wait(['echo $ASAN_OPTIONS'])
-    self.assertEqual(result.output, 'host_value\n')
+    self.assertEqual(result.output, b'host_value\n')
 
     result = runner.run_and_wait(
         ['echo $ASAN_OPTIONS $UBSAN_OPTIONS'],
@@ -122,7 +117,7 @@ class UntrustedRunnerIntegrationTest(
             'UBSAN_OPTIONS': 'ubsan',
             'NOT_PASSED': 'blah'
         })
-    self.assertEqual(result.output, 'ubsan\n')
+    self.assertEqual(result.output, b'ubsan\n')
 
     _, _, output = process_handler.run_process(
         '/bin/sh -c \'echo $ASAN_OPTIONS $MSAN_OPTIONS\'',
@@ -193,46 +188,46 @@ class UntrustedRunnerIntegrationTest(
   def test_copy_file_to_worker(self):
     """Tests remote copy_file_to_worker."""
     src_path = os.path.join(self.tmp_dir, 'src')
-    with open(src_path, 'w') as f:
+    with open(src_path, 'wb') as f:
       f.write(TEST_FILE_CONTENTS)
 
     dest_path = os.path.join(self.tmp_dir, 'dst')
     self.assertTrue(file_host.copy_file_to_worker(src_path, dest_path))
 
-    with open(dest_path) as f:
+    with open(dest_path, 'rb') as f:
       self.assertEqual(f.read(), TEST_FILE_CONTENTS)
 
   def test_copy_file_to_worker_intermediate(self):
     """Tests remote copy_file_to_worker creating intermediate paths."""
     src_path = os.path.join(self.tmp_dir, 'src')
-    with open(src_path, 'w') as f:
+    with open(src_path, 'wb') as f:
       f.write(TEST_FILE_CONTENTS)
 
     dest_path = os.path.join(self.tmp_dir, 'dir1', 'dir2', 'dst')
     self.assertTrue(file_host.copy_file_to_worker(src_path, dest_path))
 
-    with open(dest_path) as f:
+    with open(dest_path, 'rb') as f:
       self.assertEqual(f.read(), TEST_FILE_CONTENTS)
 
   def test_write_data_to_worker(self):
     """Tests remote write_data_to_worker."""
     dest_path = os.path.join(self.tmp_dir, 'dst')
     self.assertTrue(
-        file_host.write_data_to_worker('write_data_to_worker', dest_path))
+        file_host.write_data_to_worker(b'write_data_to_worker', dest_path))
 
-    with open(dest_path) as f:
-      self.assertEqual(f.read(), 'write_data_to_worker')
+    with open(dest_path, 'rb') as f:
+      self.assertEqual(f.read(), b'write_data_to_worker')
 
   def test_copy_file_from_worker(self):
     """Tests remote copy_file_from_worker."""
     src_path = os.path.join(self.tmp_dir, 'src')
-    with open(src_path, 'w') as f:
+    with open(src_path, 'wb') as f:
       f.write(TEST_FILE_CONTENTS)
 
     dest_path = os.path.join(self.tmp_dir, 'dst')
     self.assertTrue(file_host.copy_file_from_worker(src_path, dest_path))
 
-    with open(dest_path) as f:
+    with open(dest_path, 'rb') as f:
       self.assertEqual(f.read(), TEST_FILE_CONTENTS)
 
   def test_copy_file_from_worker_does_not_exist(self):
@@ -425,7 +420,7 @@ class UntrustedRunnerIntegrationTest(
     testcase.absolute_path = os.path.join(fuzz_inputs, 'testcase.ext')
 
     with tempfile.NamedTemporaryFile() as f:
-      f.write('contents')
+      f.write(b'contents')
       f.seek(0)
       testcase.fuzzed_keys = blobs.write_blob(f)
 
@@ -464,13 +459,16 @@ class UntrustedRunnerIntegrationTest(
         '%s %s %s' % (app_path, worker_file_to_run,
                       utils.file_path_to_file_url(worker_file_to_run)))
 
-    launcher_path = '/path/to/launcher'
+    launcher_path = os.path.join(os.environ['FUZZERS_DIR'], 'test',
+                                 'launcher.py')
     os.environ['LAUNCHER_PATH'] = launcher_path
+    worker_launcher_path = file_host.rebase_to_worker_root(launcher_path)
     command_line = testcase_manager.get_command_line_for_application(
         file_to_run)
     self.assertEqual(
         command_line,
-        '%s %s %s %s' % (launcher_path, app_path, file_to_run, file_to_run))
+        '%s %s %s %s %s' % (sys.executable, worker_launcher_path, app_path,
+                            worker_file_to_run, worker_file_to_run))
 
   def test_corpus_sync(self):
     """Test syncing corpus."""
@@ -538,7 +536,7 @@ class UntrustedRunnerIntegrationTest(
 
   def test_large_message(self):
     """Tests that large messages work."""
-    expected_output = 'A' * 1024 * 1024 * 5 + '\n'
+    expected_output = b'A' * 1024 * 1024 * 5 + b'\n'
 
     runner = remote_process_host.RemoteProcessRunner('/usr/bin/python')
     result = runner.run_and_wait(
@@ -560,7 +558,7 @@ class UntrustedRunnerIntegrationTest(
 
     runner = remote_process_host.RemoteProcessRunner('/bin/sh', ['-c'])
     result = runner.run_and_wait(['echo $ASAN_OPTIONS'])
-    self.assertEqual(result.output, 'saved_options\n')
+    self.assertEqual(result.output, b'saved_options\n')
 
   # The "zzz" is a hack to make this test run last (tests are run in
   # alphabetical order).

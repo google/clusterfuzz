@@ -193,11 +193,15 @@ def get_result(this):
   group_query = crash_stats.Query()
   filters.add(group_query, params, GROUP_FILTERS)
 
-  total_count, rows = crash_stats.get(
-      query=query,
-      group_query=group_query,
-      offset=(page - 1) * PAGE_SIZE,
-      limit=PAGE_SIZE)
+  try:
+    total_count, rows = crash_stats.get(
+        query=query,
+        group_query=group_query,
+        offset=(page - 1) * PAGE_SIZE,
+        limit=PAGE_SIZE)
+  except ValueError:
+    raise helpers.EarlyExitException('Invalid filters', 400)
+
   attach_testcases(rows)
 
   helpers.log('CrashStats', helpers.VIEW_OPERATION)

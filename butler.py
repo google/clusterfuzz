@@ -131,16 +131,6 @@ def main():
   parser_py_unittest.add_argument(
       '-c', '--config-dir', help='Config dir to use for module tests.')
 
-  parser_go_unittest = subparsers.add_parser(
-      'go_unittest', help='Run Go unit tests.')
-  parser_go_unittest.add_argument(
-      '-u',
-      '--unsuppress-output',
-      action='store_true',
-      help='Unsuppress output from `print`. Good for debugging.')
-  parser_go_unittest.add_argument(
-      '-v', '--verbose', action='store_true', help='Print logs from tests.')
-
   parser_js_unittest = subparsers.add_parser(
       'js_unittest', help='Run Javascript unit tests.')
   parser_js_unittest.add_argument(
@@ -169,38 +159,30 @@ def main():
   parser_deploy.add_argument(
       '--staging', action='store_true', help='Deploy to staging.')
   parser_deploy.add_argument(
-      '--staging3', action='store_true', help='Deploy to staging (Python 3).')
-  parser_deploy.add_argument(
       '--prod', action='store_true', help='Deploy to production.')
   parser_deploy.add_argument(
       '--targets', nargs='*', default=['appengine', 'zips'])
-  parser_deploy.add_argument(
-      '--with-go', action='store_true', help='Deploy Go services.')
 
   parser_run_server = subparsers.add_parser(
       'run_server', help='Run the local Clusterfuzz server.')
-  parser_run_server3 = subparsers.add_parser(
-      'run_server3',
-      help='Run the local Clusterfuzz server (Python 3, experimental).')
-
-  for sub_parser in (parser_run_server, parser_run_server3):
-    sub_parser.add_argument(
-        '-b',
-        '--bootstrap',
-        action='store_true',
-        help='Bootstrap the local database.')
-    sub_parser.add_argument(
-        '--storage-path',
-        default='local/storage',
-        help='storage path for local database.')
-    sub_parser.add_argument(
-        '--skip-install-deps',
-        action='store_true',
-        help=('Don\'t install dependencies before running this command (useful '
-              'when you\'re restarting the server often).'))
-    sub_parser.add_argument('--log-level', default='info', help='Logging level')
-    sub_parser.add_argument(
-        '--clean', action='store_true', help='Clear existing database data.')
+  parser_run_server.add_argument(
+      '-b',
+      '--bootstrap',
+      action='store_true',
+      help='Bootstrap the local database.')
+  parser_run_server.add_argument(
+      '--storage-path',
+      default='local/storage',
+      help='storage path for local database.')
+  parser_run_server.add_argument(
+      '--skip-install-deps',
+      action='store_true',
+      help=('Don\'t install dependencies before running this command (useful '
+            'when you\'re restarting the server often).'))
+  parser_run_server.add_argument(
+      '--log-level', default='info', help='Logging level')
+  parser_run_server.add_argument(
+      '--clean', action='store_true', help='Clear existing database data.')
 
   parser_run = subparsers.add_parser(
       'run', help='Run a one-off script against a datastore (e.g. migration).')
@@ -238,9 +220,6 @@ def main():
       'clean_indexes', help=('Clean up undefined indexes (in index.yaml).'))
   parser_clean_indexes.add_argument(
       '-c', '--config-dir', required=True, help='Path to application config.')
-
-  subparsers.add_parser(
-      'generate_datastore_models', help='Generate datastore models for Go.')
 
   parser_create_config = subparsers.add_parser(
       'create_config', help='Create a new deployment config.')
@@ -307,8 +286,16 @@ def main():
       '--emulator',
       action='store_true',
       help='Run and attempt to reproduce a crash using the Android emulator.')
+  parser_reproduce.add_argument(
+      '-a',
+      '--application',
+      help='Name of the application binary to run. Only required if it '
+      'differs from the one the test case was discovered with.')
 
   args = parser.parse_args()
+  if not args.command:
+    parser.print_help()
+    return
 
   _setup()
   command = importlib.import_module('local.butler.%s' % args.command)
@@ -318,6 +305,7 @@ def main():
 def _setup():
   """Set up configs and import paths."""
   os.environ['ROOT_DIR'] = os.path.abspath('.')
+  os.environ['PYTHONIOENCODING'] = 'UTF-8'
 
   sys.path.insert(0, os.path.abspath(os.path.join('src')))
   from python.base import modules

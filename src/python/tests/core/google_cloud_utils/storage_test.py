@@ -221,7 +221,7 @@ class FileSystemProviderTests(fake_filesystem_unittest.TestCase):
     """Test copy_blob."""
     self.fs.create_dir('/local/test-bucket')
     self.provider.write_data(
-        'a', 'gs://test-bucket/subdir/a', metadata={'key': 'value'})
+        b'a', 'gs://test-bucket/subdir/a', metadata={'key': 'value'})
     with open('/local/test-bucket/objects/subdir/a') as f:
       self.assertEqual('a', f.read())
 

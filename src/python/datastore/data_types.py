@@ -12,9 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """Classes for objects stored in the datastore."""
-# IMPORTANT: If you modify this file, please run
-# `python butler.py generate_datastore_models`
-# to generate Go structs for the models defined here.
 
 from builtins import next
 from builtins import object
@@ -701,12 +698,16 @@ class Testcase(Model):
     if not name:
       return None
 
-    return ndb.Key(FuzzTarget, name).get()
+    target = ndb.Key(FuzzTarget, name).get()
+    if environment.get_value('ORIGINAL_JOB_NAME'):
+      # Overridden engine (e.g. for minimization).
+      target.engine = environment.get_engine_for_job()
+
+    return target
 
 
 class TestcaseGroup(Model):
   """Group for a set of testcases."""
-  pass
 
 
 class DataBundle(Model):
@@ -761,6 +762,9 @@ class Config(Model):
 
   # Privileged users.
   privileged_users = TextProperty(default='')
+
+  # Blacklisted users.
+  blacklisted_users = TextProperty(default='')
 
   # Admin contact string.
   contact_string = StringProperty(default='')
@@ -974,6 +978,9 @@ class Heartbeat(Model):
 
   # Source version (for accountability).
   source_version = StringProperty()
+
+  # Platform id (esp important for Android platform for OS version).
+  platform_id = StringProperty()
 
 
 class Notification(Model):

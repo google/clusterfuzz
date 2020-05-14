@@ -57,7 +57,7 @@ def _read_test_data(name):
 def read_data_from_file(file_path):
   """Reads data from file."""
   with open(file_path, 'rb') as file_handle:
-    return file_handle.read()
+    return file_handle.read().decode('utf-8')
 
 
 def create_mock_popen(output,

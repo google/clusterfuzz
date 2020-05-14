@@ -14,24 +14,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-function has_python_changes_only {
-  if git show --pretty="" --name-only | grep -E -v '(\.py|requirements\.txt|project\.yaml|gce/clusters\.yaml)$'; then
-    return 1
-  else
-    return 0
-  fi
-}
-
 echo 'Deploying...'
 
-EXTRA_ARGS=''
-if has_python_changes_only; then
-  echo 'Only Python App Engine services.'
-else
-  echo 'All App Engine services.'
-  EXTRA_ARGS='--with-go'
-fi
-
 for config_dir in "$@"; do
-  python butler.py deploy --force --prod --config-dir "$config_dir" $EXTRA_ARGS || exit 1
+  python butler.py deploy --force --prod --config-dir "$config_dir" || exit 1
 done

@@ -141,10 +141,10 @@ class UntrustedRunnerIntegrationTest(unittest.TestCase):
         project_name='project',
         id='host-0').put()
 
-    with open(cert_location) as f:
+    with open(cert_location, 'rb') as f:
       cert_contents = f.read()
 
-    with open(key_location) as f:
+    with open(key_location, 'rb') as f:
       key_contents = f.read()
 
     data_types.WorkerTlsCert(

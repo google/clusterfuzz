@@ -24,17 +24,6 @@ from local.butler import common
 from local.butler import constants
 
 SRC_DIR_PY = os.path.join('src', 'appengine')
-SRC_DIR_GO = os.path.join('src', 'go', 'server')
-
-
-def _is_go_yaml(file_path):
-  """Whether or not this is a go yaml path."""
-  return os.path.basename(file_path).startswith('go-')
-
-
-def _get_target_directory(yaml_path):
-  """Get target directory to copy appengine yaml to."""
-  return SRC_DIR_GO if _is_go_yaml(yaml_path) else SRC_DIR_PY
 
 
 def _add_env_vars_if_needed(yaml_path, additional_env_vars):
@@ -57,11 +46,6 @@ def _add_env_vars_if_needed(yaml_path, additional_env_vars):
     # Not a service.
     return
 
-  if 'runtime' in data and data['runtime'].startswith('go'):
-    # Remove HELP_FORMAT as multi-line environment variable values are not
-    # allowed in Go flex deployment.
-    env_values.pop('HELP_FORMAT', None)
-
   data.setdefault('env_variables', {}).update(env_values)
   with open(yaml_path, 'w') as f:
     yaml.safe_dump(data, f)
@@ -72,9 +56,8 @@ def copy_yamls_and_preprocess(paths, additional_env_vars=None):
   and otherwise, deployment fails."""
   rebased_paths = []
   for path in paths:
-    target_directory = _get_target_directory(path)
     target_filename = os.path.basename(path)
-    rebased_path = os.path.join(target_directory, target_filename)
+    rebased_path = os.path.join(SRC_DIR_PY, target_filename)
 
     # Remove target in case it's a symlink, since shutil.copy follows symlinks.
     if os.path.exists(rebased_path):
@@ -110,14 +93,6 @@ def find_sdk_path():
   return appengine_sdk_path
 
 
-def filter_yaml_paths(yaml_paths, deploy_go):
-  """Filter yaml paths."""
-  if deploy_go:
-    return yaml_paths
-
-  return [yaml_path for yaml_path in yaml_paths if not _is_go_yaml(yaml_path)]
-
-
 def symlink_dirs():
   """Symlink folders for use on appengine."""
   symlink_config_dir()
@@ -128,26 +103,12 @@ def symlink_dirs():
   common.symlink(
       src=os.path.join('src', 'python'),
       target=os.path.join(SRC_DIR_PY, 'python'))
-  # While importing third party modules, we may call pkg_resources.
-  # pkg_resources normalizes paths by calling os.path.realpath on them, which is
-  # incompatible with the App Engine sandbox since the resulting path will no
-  # longer be under appengine/.
-  common.copy_dir(
-      src=os.path.join('src', 'third_party'),
-      target=os.path.join(SRC_DIR_PY, 'third_party'))
 
   # Remove existing local_gcs symlink (if any). This is important, as otherwise
   # we will try deploying the directory in production. This is only needed for
   # local development in run_server.
   local_gcs_symlink_path = os.path.join(SRC_DIR_PY, 'local_gcs')
   common.remove_symlink(local_gcs_symlink_path)
-
-  # TODO(ochang): Remove extra_environments once migrated to Python 3.
-  _, output = common.execute(
-      'bazel run //local:create_gopath',
-      cwd='src',
-      extra_environments={'PYTHONPATH': ''})
-  os.environ['GOPATH'] = output.decode('utf-8').splitlines()[-1]
 
 
 def build_templates():
@@ -159,7 +120,6 @@ def symlink_config_dir():
   """Symlink config directory in appengine directory."""
   config_dir = os.getenv('CONFIG_DIR_OVERRIDE', constants.TEST_CONFIG_DIR)
   common.symlink(src=config_dir, target=os.path.join(SRC_DIR_PY, 'config'))
-  common.symlink(src=config_dir, target=os.path.join(SRC_DIR_GO, 'config'))
 
 
 def region_from_location(location):

@@ -26,6 +26,7 @@ import redis
 import six
 
 from base import persistent_cache
+from metrics import logs
 from system.environment import appengine_noop
 from system.environment import bot_noop
 from system.environment import local_noop
@@ -135,14 +136,21 @@ class Memcache(object):
   @bot_noop
   def put(self, key, value):
     """Put (key, value) into cache."""
-    _redis_client().set(
-        json.dumps(key), json.dumps(value), ex=self.ttl_in_seconds)
+    try:
+      _redis_client().set(
+          json.dumps(key), json.dumps(value), ex=self.ttl_in_seconds)
+    except redis.RedisError:
+      logs.log_error('Failed to store key in cache.', key=key, value=value)
 
   @local_noop
   @bot_noop
   def get(self, key):
     """Get the value from cache."""
-    value_raw = _redis_client().get(json.dumps(key))
+    try:
+      value_raw = _redis_client().get(json.dumps(key))
+    except redis.RedisError:
+      logs.log_error('Failed to retrieve key from cache.', key=key)
+      return None
 
     if value_raw is None:
       return value_raw

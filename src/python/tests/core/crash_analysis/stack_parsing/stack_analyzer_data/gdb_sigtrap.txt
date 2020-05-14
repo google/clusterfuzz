@@ -1,0 +1,11 @@
+0x0000000000000ac8 in __aeabi_memcpy ()
+
+Program received signal SIGTRAP, Trace/breakpoint trap.
+0x0000000000000ac8 in __aeabi_memcpy ()
+#0  0x0000000000000ac8 in __aeabi_memcpy ()
+#1  0x00000000000007d8 in memcpy ()
+#2  0x000000000000cdc0 in xymodem_trnasfer (target_addr=0x2022000, max_sz=<optimized out>, prot_type=1) at usbdev/protocol_xymodem.c:362
+#3  0x0000000000002060 in LoadImageFromUsb30 (uTargetAddr=<optimized out>, uSizeLimit=<optimized out>, req_type=3239010) at usbdev/usbdev_api.c:267
+#4  0x0000000000001fec in LoadBL1FromUsb30 () at usbdev/usbdev_api.c:225
+#5  0x0000000000004514 in Main () at boot/main.c:94
+#6  0x0000000000000044 in GPIO_SetPudBits (SFR_Address=<optimized out>, base=<optimized out>, mask=<optimized out>, value=<optimized out>) at gpio/gpio.c:38

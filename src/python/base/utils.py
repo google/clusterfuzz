@@ -17,7 +17,6 @@ from builtins import map
 from builtins import range
 from builtins import str
 from future import utils as future_utils
-from past.builtins import basestring
 
 from future import standard_library
 standard_library.install_aliases()
@@ -100,17 +99,20 @@ def utc_datetime_to_timestamp(dt):
   return (dt - datetime.datetime.utcfromtimestamp(0)).total_seconds()
 
 
-# TODO(mbarbella): Clean up call-sites and delete this function. Any usage is
-# potentially indicative of poor tracking of encodings.
-def decode_to_unicode(obj, encoding='utf-8'):
+def decode_to_unicode(obj):
   """Decode object to unicode encoding."""
-  if isinstance(obj, basestring) and not isinstance(obj, str):
-    try:
-      obj = str(obj, encoding)
-    except:
-      obj = str(''.join(char for char in obj if ord(char) < 128), encoding)
+  if not hasattr(obj, 'decode'):
+    return obj
 
-  return obj
+  return obj.decode('utf-8', errors='ignore')
+
+
+def encode_as_unicode(obj):
+  """Encode a string as unicode, or leave bytes as they are."""
+  if not hasattr(obj, 'encode'):
+    return obj
+
+  return obj.encode('utf-8')
 
 
 @retry.wrap(
@@ -595,7 +597,7 @@ def read_data_from_file(file_path, eval_data=True, default=None):
     return default
 
   try:
-    return ast.literal_eval(file_content)
+    return ast.literal_eval(file_content.decode('utf-8'))
   except (SyntaxError, TypeError):
     return None
 
@@ -626,13 +628,14 @@ def restart_machine():
     os.system('sudo shutdown -r now')
 
 
-def search_string_in_file(search_string, file_handle):
-  """Helper to search for a string in a large binary file without memory
+def search_bytes_in_file(search_bytes, file_handle):
+  """Helper to search for bytes in a large binary file without memory
   issues.
   """
-  # TODO(aarya): This is too brittle and will fail if we have a very large line.
+  # TODO(aarya): This is too brittle and will fail if we have a very large
+  # line.
   for line in file_handle:
-    if search_string in line:
+    if search_bytes in line:
       return True
 
   return False
@@ -640,7 +643,7 @@ def search_string_in_file(search_string, file_handle):
 
 def string_hash(obj):
   """Returns a SHA-1 hash of the object. Not used for security purposes."""
-  return hashlib.sha1(str(obj)).hexdigest()
+  return hashlib.sha1(str(obj).encode('utf-8')).hexdigest()
 
 
 def entity_hash(obj):
@@ -652,7 +655,7 @@ def entity_hash(obj):
   hasher = hashlib.sha1()
   entity_dict = obj.to_dict()
   for key in sorted(entity_dict.keys()):
-    hasher.update(str(entity_dict[key]))
+    hasher.update(str(entity_dict[key]).encode('utf-8'))
 
   return hasher.hexdigest()
 
@@ -849,7 +852,8 @@ def current_source_version():
   root_directory = environment.get_value('ROOT_DIR')
   local_manifest_path = os.path.join(root_directory, LOCAL_SOURCE_MANIFEST)
   if os.path.exists(local_manifest_path):
-    return read_data_from_file(local_manifest_path, eval_data=False).strip()
+    return read_data_from_file(
+        local_manifest_path, eval_data=False).strip().decode('utf-8')
 
   return None
 
@@ -870,7 +874,7 @@ def read_from_handle_truncated(file_handle, max_len):
   file_handle.seek(file_size - half_max_len, os.SEEK_SET)
   end = file_handle.read(half_max_len)
 
-  truncated_marker = '\n...truncated %d bytes...\n' % (file_size - max_len)
+  truncated_marker = b'\n...truncated %d bytes...\n' % (file_size - max_len)
 
   return start + truncated_marker + end
 
@@ -955,3 +959,10 @@ def newstr_to_native_str(s):
     newstr = str(s)
 
   return future_utils.native(newstr).encode('utf-8')
+
+
+def exc_clear():
+  """exc_clear wrapper. No-op on Python 3."""
+  # TODO(ochang): Remove this once migrated to Python 3.
+  if sys.version_info.major == 2:
+    sys.exc_clear()

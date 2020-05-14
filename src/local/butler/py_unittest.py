@@ -37,6 +37,7 @@ from src.python.config import local_config
 APPENGINE_TEST_DIRECTORY = os.path.join('src', 'python', 'tests', 'appengine')
 CORE_TEST_DIRECTORY = os.path.join('src', 'python', 'tests', 'core')
 SLOW_TEST_THRESHOLD = 2  # In seconds.
+TESTS_TIMEOUT = 20 * 60  # In seconds.
 
 
 class TrackedTestResult(unittest.TextTestResult):
@@ -196,7 +197,7 @@ def run_tests_parallel(args, test_directory, top_level_dir):
   while True:
     try:
       # KeyboardInterrupt never gets raised unless we pass a timeout.
-      results = results.get(timeout=600)
+      results = results.get(timeout=TESTS_TIMEOUT)
       break
     except KeyboardInterrupt:
       pool.terminate()
@@ -250,6 +251,12 @@ def execute(args):
 
     test_directory = APPENGINE_TEST_DIRECTORY
     sys.path.insert(0, os.path.abspath(os.path.join('src', 'appengine')))
+
+    for i, path in enumerate(sys.path):
+      if 'third_party' in path:
+        # Replace third_party with App Engine third_party/.
+        sys.path[i] = os.path.abspath(
+            os.path.join('src', 'appengine', 'third_party'))
 
     if sys.version_info.major == 2:
       # TODO(ochang): Remove once migrated to Python 3.

@@ -24,19 +24,19 @@ config_modules_path = os.path.join('config', 'modules')
 if os.path.exists(config_modules_path):
   sys.path.append(config_modules_path)
 
-try:
-  # Run any module initialization code.
-  import module_init
-  module_init.appengine()
-except ImportError:
-  pass
-
 if os.environ.get('GAE_ENV'):
   import pkg_resources
   importlib.reload(pkg_resources)
 
   import firebase_admin
   firebase_admin.initialize_app()
+
+try:
+  # Run any module initialization code.
+  import module_init
+  module_init.appengine()
+except ImportError:
+  pass
 
 import server
 app = server.app
