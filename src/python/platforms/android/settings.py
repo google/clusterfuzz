@@ -132,6 +132,8 @@ def get_sanitizer_tool_name():
   build_flavor = get_build_flavor()
   if 'hwasan' in build_flavor:
     return 'hwasan'
+  if 'kasan' in build_flavor:
+    return 'kasan'
   if 'asan' in build_flavor:
     return 'asan'
 
@@ -155,7 +157,7 @@ def is_google_device():
   if product_brand is None:
     return None
 
-  return product_brand == 'google' or product_brand == 'generic'
+  return product_brand in ('google', 'generic')
 
 
 def set_content_setting(table, key, value):

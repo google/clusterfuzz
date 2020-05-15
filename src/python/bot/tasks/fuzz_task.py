@@ -1458,7 +1458,7 @@ class FuzzingSession(object):
         logs.log_error(
             'Fuzzer %s does not have an executable path.' % fuzzer_name)
         error_occurred = True
-        return error_occurred, None, None, None, None
+        return error_occurred, None, None, None
 
       # Get the fuzzer executable and chdir to its base directory. This helps to
       # prevent referencing every file using __file__.
@@ -1907,7 +1907,7 @@ class FuzzingSession(object):
     platform_id = environment.get_platform_id()
 
     # For Android, bring back device to a good state before analyzing crashes.
-    if platform == 'ANDROID' and crashes:
+    if (platform in ('ANDROID', 'ANDROID-KERNEL')) and crashes:
       # Remove this variable so that application is fully shutdown before every
       # re-run of testcase. This is critical for reproducibility.
       environment.remove_key('CHILD_PROCESS_TERMINATION_PATTERN')
