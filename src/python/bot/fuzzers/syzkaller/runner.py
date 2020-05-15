@@ -112,8 +112,8 @@ class AndroidSyzkallerRunner(new_process.ProcessRunner):
       for file in files:
         # Each crash typically have 2 files: reportN and logN. Similar crashes
         # are grouped together in subfolders. unique_crash puts together the
-        # subfolder name (without './' (hence the [2:])) and reportN.
-        unique_crash = subdir[len('./'):] + file
+        # subfolder name and reportN.
+        unique_crash = os.path.join(subdir, file)
         if fnmatch.fnmatch(file, 'report*') and unique_crash not in visited:
           visited.add(unique_crash)
           log_lines = utils.read_data_from_file(
