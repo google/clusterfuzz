@@ -1,6 +1,9 @@
 Change Log
 ==========
 
+## Version 2.0.1
+- Various bug fixes.
+
 ## Version 2.0.0
 - Various bug fixes.
 
