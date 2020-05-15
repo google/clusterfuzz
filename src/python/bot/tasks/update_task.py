@@ -175,7 +175,7 @@ def run_platform_init_scripts():
   plt = environment.platform()
   if plt in ('ANDROID', 'ANDROID_KERNEL'):
     android_init.run()
-  if plt == 'CHROMEOS':
+  elif plt == 'CHROMEOS':
     chromeos_init.run()
   elif plt == 'FUCHSIA':
     fuchsia_init.run()
