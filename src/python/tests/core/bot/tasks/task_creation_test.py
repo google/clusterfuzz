@@ -20,6 +20,7 @@ from tests.test_libs import helpers
 from tests.test_libs import mock_config
 from tests.test_libs import test_utils
 
+
 @test_utils.with_cloud_emulators('datastore')
 class RequestBisectionTest(unittest.TestCase):
   """Tests request_bisection."""
