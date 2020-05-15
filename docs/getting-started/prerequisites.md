@@ -61,9 +61,13 @@ gcloud auth login
 [running ClusterFuzz locally]: {{ "/getting-started/local-instance/" | relative_url }}
 
 ### Python programming language
-[Download Python 3.7](https://www.python.org/downloads/release/python-377/), then install it.
+[Download Python 3.7](https://www.python.org/downloads/release/python-377/),
+then install it. If you have Python installed already, you can verify its
+version by running `python --version`.
 
-If you already have Python installed, you can verify its version by running `python --version`.
+We recommend building using python source from the official repo, as it installs
+the needed python headers and pip. Otherwise, make sure to explicitly install
+them.
 
 ### Go programming language
 [Install the Go programming language](https://golang.org/doc/install).

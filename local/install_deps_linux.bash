@@ -27,6 +27,18 @@ while [ "$1" != "" ]; do
   shift
 done
 
+# Check that python 3.7 or 3.8 is installed.
+if python3.7 --help > /dev/null; then
+  PYTHON='python3.7'
+  PYTHON_VERSION='3.7'
+elif python3.8 --help > /dev/null; then
+  PYTHON='python3.8'
+  PYTHON_VERSION='3.8'
+else
+  echo "ERROR: The only supported python versions are 3.7 and 3.8"
+  exit 1
+fi
+
 # Check for lsb_release command in $PATH.
 if ! which lsb_release > /dev/null; then
   echo "ERROR: lsb_release not found in \$PATH" >&2
@@ -56,6 +68,14 @@ if ! uname -m | egrep -q "i686|x86_64"; then
   exit
 fi
 
+# Install packages that we depend on.
+sudo apt-get update
+sudo apt-get install -y \
+    blackbox \
+    curl \
+    unzip \
+    xvfb
+
 if [ ! $only_reproduce ]; then
   # Prerequisite for add-apt-repository.
   sudo apt-get install -y apt-transport-https software-properties-common
@@ -65,11 +85,11 @@ if [ ! $only_reproduce ]; then
     sudo glinux-add-repo docker-ce-"$distro_codename"
   else
     curl -fsSL https://download.docker.com/linux/${distro_id,,}/gpg | \
-       sudo apt-key add -
+        sudo apt-key add -
     sudo add-apt-repository -y \
-       "deb [arch=amd64] https://download.docker.com/linux/${distro_id,,} \
-       $distro_codename \
-       stable"
+        "deb [arch=amd64] https://download.docker.com/linux/${distro_id,,} \
+        $distro_codename \
+        stable"
 
     export CLOUD_SDK_REPO="cloud-sdk-$distro_codename"
     echo "deb http://packages.cloud.google.com/apt $CLOUD_SDK_REPO main" | \
@@ -112,12 +132,6 @@ if [ ! $only_reproduce ]; then
   fi
 fi
 
-# Install other packages that we depend on unconditionally.
-sudo apt-get install -y \
-    blackbox \
-    unzip \
-    xvfb
-
 # Install gcloud dependencies.
 if gcloud components install --quiet beta; then
   gcloud components install --quiet \
@@ -140,10 +154,10 @@ else
 fi
 
 # Setup pipenv and install python dependencies.
-python3 -m pip install --user pipenv
-pipenv --python 3.7
-pipenv sync --dev
-source "$(pipenv --venv)/bin/activate"
+$PYTHON -m pip install --user pipenv
+$PYTHON -m pipenv --python $PYTHON_VERSION
+$PYTHON -m pipenv sync --dev
+source "$(${PYTHON} -m pipenv --venv)/bin/activate"
 
 if [ $install_android_emulator ]; then
   ANDROID_SDK_INSTALL_DIR=local/bin/android-sdk
@@ -156,7 +170,7 @@ if [ $install_android_emulator ]; then
   rm -rf $ANDROID_SDK_INSTALL_DIR
   mkdir $ANDROID_SDK_INSTALL_DIR
   curl https://dl.google.com/android/repository/sdk-tools-linux-$ANDROID_SDK_REVISION.zip \
-    --output $ANDROID_SDK_INSTALL_DIR/sdk-tools-linux.zip
+      --output $ANDROID_SDK_INSTALL_DIR/sdk-tools-linux.zip
   unzip -d $ANDROID_SDK_INSTALL_DIR $ANDROID_SDK_INSTALL_DIR/sdk-tools-linux.zip
 
   $ANDROID_TOOLS_BIN/sdkmanager "emulator"
@@ -183,6 +197,6 @@ set +x
 echo "
 
 Installation succeeded!
-Please load environment by running 'pipenv shell'.
+Please load environment by running "$PYTHON -m pipenv shell".
 
 "
