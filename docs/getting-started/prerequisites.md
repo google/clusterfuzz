@@ -28,6 +28,7 @@ Clone the ClusterFuzz repository to your machine by running the following comman
 ```bash
 git clone https://github.com/google/clusterfuzz
 cd clusterfuzz
+git pull
 ```
 
 We recommend that you use the [latest release
