@@ -48,10 +48,10 @@ class SyzkallerEngine(engine.Engine):
     return 'syzkaller'
 
   def prepare_binary_path(self):
-    """Prepares the path for the syzkaller binary
+    """Prepares the path for the syzkaller binary.
 
     Returns:
-      The full path of the binary
+      The full path of the binary folder.
     """
     syzkaller_path = os.path.join(
         environment.get_value('BUILD_DIR'), 'syzkaller')
@@ -122,9 +122,9 @@ class SyzkallerEngine(engine.Engine):
     Returns:
       A ReproduceResult.
     """
-    binary_path = self.prepare_binary_path()
+    binary_dir = self.prepare_binary_path()
     syzkaller_runner = runner.get_runner(
-        os.path.join(binary_path, constants.SYZ_REPRO))
+        os.path.join(binary_dir, constants.SYZ_REPRO))
     repro_args = runner.get_config()
     repro_args.extend(input_path)
     result = syzkaller_runner.repro(max_time, repro_args=repro_args)
