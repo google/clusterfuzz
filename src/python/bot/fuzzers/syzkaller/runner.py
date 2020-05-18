@@ -87,7 +87,7 @@ class AndroidSyzkallerRunner(new_process.ProcessRunner):
     result = self.run_and_wait(additional_args, timeout=repro_timeout)
     logs.log('Syzkaller testcase stopped.')
     return engine.ReproduceResult(result.command, result.return_code,
-                                  result.time_executed, str(result.output))
+                                  result.time_executed, result.output)
 
   def fuzz(self,
            fuzz_timeout,
@@ -101,12 +101,14 @@ class AndroidSyzkallerRunner(new_process.ProcessRunner):
       additional_args: A sequence of additional arguments to be passed to
           the executable.
     """
-    logs.log('Running Syzkaller!')
+    logs.log('Running Syzkaller.')
     additional_args = copy.copy(additional_args)
     fuzz_result = self.run_and_wait(additional_args, timeout=fuzz_timeout)
-    logs.log('Syzkaller Stopped! Fuzzing timed out: {}'.format(fuzz_timeout))
-    fuzz_logs = ''
+    logs.log('Syzkaller stopped, fuzzing timed out: {}'.format(fuzz_timeout))
 
+    fuzz_logs = ''
+    crashes = []
+    parsed_stats = {}
     visited = set()
     for subdir, _, files in os.walk(constants.SYZKALLER_WORK_FOLDER):
       for file in files:
@@ -118,7 +120,7 @@ class AndroidSyzkallerRunner(new_process.ProcessRunner):
           visited.add(unique_crash)
           log_lines = utils.read_data_from_file(
               os.path.join(subdir, file), eval_data=False)
-          fuzz_result.output = str(log_lines)
+          fuzz_logs += str(log_lines) + '\n'
 
           # Since each crash (report file) has a corresponding log file
           # that contains the syscalls that caused the crash. This file is
@@ -128,12 +130,8 @@ class AndroidSyzkallerRunner(new_process.ProcessRunner):
           crash_testcase_file_path = os.path.join(subdir,
                                                   'log' + file[len('report'):])
 
-          fuzz_logs = fuzz_result.output
+          # TODO(hzawawy): Parse stats information and add them to FuzzResult.
 
-          # TODO(hzawawy): Parse stats information and add them to FuzzResult
-          parsed_stats = []
-
-          crashes = []
           if crash_testcase_file_path:
             reproduce_arguments = [unique_crash]
             actual_duration = int(fuzz_result.time_executed)
@@ -143,6 +141,5 @@ class AndroidSyzkallerRunner(new_process.ProcessRunner):
                 engine.Crash(crash_testcase_file_path, log_lines,
                              reproduce_arguments, actual_duration))
 
-    logs.log('Returning fuzz result')
     return engine.FuzzResult(fuzz_logs, fuzz_result.command, crashes,
                              parsed_stats, fuzz_result.time_executed)

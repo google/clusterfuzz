@@ -485,10 +485,10 @@ def get_memory_tool_name(job_name):
     if tool_matches(tool, job_name):
       return tool
 
-  from platforms import android
-  if platform() == 'ANDROID_KERNEL' and 'KASAN' in android.adb.get_property(
-      'ro.product.name'):
-    return 'KASAN'
+  if platform() == 'ANDROID_KERNEL':
+    from platforms import android
+    if 'KASAN' in android.settings.get_product_name():
+      return 'KASAN'
 
   # If no tool specified, assume it is ASAN. Also takes care of LSAN job type.
   return 'ASAN'

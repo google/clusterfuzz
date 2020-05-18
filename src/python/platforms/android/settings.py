@@ -127,6 +127,11 @@ def get_product_brand():
   return adb.get_property('ro.product.brand')
 
 
+def get_product_name():
+  """Return product's name."""
+  return adb.get_property('ro.product.name')
+
+
 def get_sanitizer_tool_name():
   """Return sanitizer tool name e.g. ASAN if found on device."""
   build_flavor = get_build_flavor()
