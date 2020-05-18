@@ -195,7 +195,9 @@ def get_adb_path():
   if adb_path:
     return adb_path
 
-  return os.path.join(environment.get_platform_resources_directory(), 'adb')
+  return os.path.join(
+      environment.get_platform_resources_directory(platform_override='android'),
+      'adb')
 
 
 def get_device_state():
