@@ -395,8 +395,13 @@ def get_resources_directory():
 
 def get_platform_resources_directory(platform_override=None):
   """Return the path to platform-specific resources directory."""
-  return os.path.join(get_resources_directory(), 'platform',
-                      platform_override or platform().lower())
+  platform_dir = (platform_override or platform()).lower()
+
+  # Android resources share the same android directory.
+  if platform_dir == 'android_kernel':
+    platform_dir = 'android'
+
+  return os.path.join(get_resources_directory(), 'platform', platform_dir)
 
 
 def get_suppressions_directory():
