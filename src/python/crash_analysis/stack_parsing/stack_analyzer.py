@@ -158,6 +158,8 @@ OUT_OF_MEMORY_REGEX = re.compile(
     r'rss limit exhausted).*')
 RUNTIME_ERROR_REGEX = re.compile(r'#\s*Runtime error in (.*)')
 RUNTIME_ERROR_LINE_REGEX = re.compile(r'#\s*Runtime error in (.*), line [0-9]+')
+RUST_ASSERT_REGEX = re.compile(r'thread\s.*\spanicked at \'([^\']*)',
+                               re.IGNORECASE)
 SAN_ABRT_REGEX = re.compile(r'.*[a-zA-Z]+Sanitizer: ABRT ')
 SAN_BREAKPOINT_REGEX = re.compile(r'.*[a-zA-Z]+Sanitizer: breakpoint ')
 SAN_CHECK_FAILURE_REGEX = re.compile(
@@ -414,6 +416,7 @@ STACK_FRAME_IGNORE_REGEXES = [
     r'^generic\_cpp\_',
     r'^gsignal',
     r'^kasan\_',
+    r'^libfuzzer\_sys\:\:initialize',
     r'^main',
     r'^malloc',
     r'^mozalloc\_',
@@ -425,6 +428,9 @@ STACK_FRAME_IGNORE_REGEXES = [
     r'^scanf',
     r'^show\_stack',
     r'^std\:\:\_\_terminate',
+    r'^std\:\:panicking',
+    r'^std\:\:process\:\:abort',
+    r'^std\:\:sys\:\:unix\:\:abort',
 
     # Functions names (contains).
     r'.*ASAN\_OnSIGSEGV',
@@ -1215,6 +1221,7 @@ def get_crash_data(crash_data, symbolize_flag=True):
     match_assert(line, state, ASSERT_REGEX)
     match_assert(line, state, ASSERT_REGEX_GOOGLE, group=2)
     match_assert(line, state, ASSERT_REGEX_GLIBC)
+    match_assert(line, state, RUST_ASSERT_REGEX)
 
     # ASSERT_NOT_REACHED prints a single line error then triggers a crash. We
     # set the crash state here, but look for the stack after a crash on an
