@@ -352,7 +352,7 @@ class StackAnalyzerTestcase(unittest.TestCase):
     """Test the ubsan bool format."""
     data = self._read_test_data('ubsan_invalid_bool_value.txt')
     expected_type = 'Invalid-bool-value'
-    expected_state = ('tsm_screen_tab_left\n' 'parse_data\n' 'tsm_vte_input\n')
+    expected_state = ('tsm_screen_tab_left\nparse_data\ntsm_vte_input\n')
     expected_address = ''
     expected_stacktrace = data
     expected_security_flag = False
@@ -381,7 +381,7 @@ class StackAnalyzerTestcase(unittest.TestCase):
     data = self._read_test_data('ubsan_non_positive_vla_bound_value.txt')
     expected_type = 'Non-positive-vla-bound-value'
     expected_address = ''
-    expected_state = ('boom_internal\n' 'another_boom\n' 'boom\n')
+    expected_state = ('boom_internal\nanother_boom\nboom\n')
     expected_stacktrace = data
     expected_security_flag = True
 
@@ -469,7 +469,7 @@ class StackAnalyzerTestcase(unittest.TestCase):
     data = self._read_test_data('ubsan_object_size.txt')
     expected_type = 'Object-size'
     expected_address = ''
-    expected_state = ('boom_internal\n' 'another_boom\n' 'boom\n')
+    expected_state = ('boom_internal\nanother_boom\nboom\n')
     expected_stacktrace = data
     expected_security_flag = True
 
@@ -497,7 +497,7 @@ class StackAnalyzerTestcase(unittest.TestCase):
     data = self._read_test_data('ubsan_pointer_overflow_null_zero_offset.txt')
     expected_type = 'Pointer-overflow'
     expected_address = ''
-    expected_state = ('cff_subfont_load\n' 'cff_font_load\n' 'cff_face_init\n')
+    expected_state = ('cff_subfont_load\ncff_font_load\ncff_face_init\n')
     expected_stacktrace = data
     expected_security_flag = False
 
@@ -1245,7 +1245,7 @@ class StackAnalyzerTestcase(unittest.TestCase):
     """Test the ASan ILL format."""
     data = self._read_test_data('asan_ill.txt')
     expected_type = 'Ill'
-    expected_state = ('boom_internal\n' 'boom_intermediate\n' 'boom\n')
+    expected_state = ('boom_internal\nboom_intermediate\nboom\n')
     expected_address = '0x631000001001'
     expected_stacktrace = data
     expected_security_flag = False
@@ -1258,7 +1258,7 @@ class StackAnalyzerTestcase(unittest.TestCase):
     """Test the UBSan ILL format."""
     data = self._read_test_data('ubsan_ill.txt')
     expected_type = 'Ill'
-    expected_state = ('boom_internal\n' 'boom_intermediate\n' 'boom\n')
+    expected_state = ('boom_internal\nboom_intermediate\nboom\n')
     expected_address = '0x631000001001'
     expected_stacktrace = data
     expected_security_flag = False
@@ -1271,7 +1271,7 @@ class StackAnalyzerTestcase(unittest.TestCase):
     """Test the ASan ILL format with a null address."""
     data = self._read_test_data('asan_ill_null_address.txt')
     expected_type = 'Ill'
-    expected_state = ('boom_internal\n' 'boom_intermediate\n' 'boom\n')
+    expected_state = ('boom_internal\nboom_intermediate\nboom\n')
     expected_address = '0x000000000000'
     expected_stacktrace = data
     expected_security_flag = True
@@ -1534,7 +1534,7 @@ class StackAnalyzerTestcase(unittest.TestCase):
     data = self._read_test_data('gsignal_at_first_stack_frame.txt')
     expected_type = 'UNKNOWN'
     expected_address = '0x5668a000177a5'
-    expected_state = ('AbbreviatedMonthsMap\n' 'get\n' 'GetInstance\n')
+    expected_state = ('AbbreviatedMonthsMap\nget\nGetInstance\n')
     expected_stacktrace = data
     expected_security_flag = False
 
@@ -2890,6 +2890,23 @@ class StackAnalyzerTestcase(unittest.TestCase):
         'xymodem_trnasfer\nLoadImageFromUsb30\nLoadBL1FromUsb30\n')
     expected_stacktrace = data
     expected_security_flag = True
+    self._validate_get_crash_data(data, expected_type, expected_address,
+                                  expected_state, expected_stacktrace,
+                                  expected_security_flag)
+
+  def test_rust_assert(self):
+    """Test for assertion in Rust."""
+    environment.set_value('ASSERTS_HAVE_SECURITY_IMPLICATION', False)
+
+    data = self._read_test_data('rust_assert.txt')
+    expected_type = 'ASSERT'
+    expected_address = ''
+    expected_state = (
+        'Error: could not find an available port\n'
+        'libra_config::utils::get_available_port::h7d7baacfb554bae8\n'
+        'libra_json_rpc::fuzzing::fuzzer::hde487212e06dd4fd\n')
+    expected_stacktrace = data
+    expected_security_flag = False
     self._validate_get_crash_data(data, expected_type, expected_address,
                                   expected_state, expected_stacktrace,
                                   expected_security_flag)

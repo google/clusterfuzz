@@ -1,0 +1,29 @@
+Running: /9d6d91a8df092e704e2790e8a6818b055e6b4b0d3255bfef95601890afd80709
+thread '<unnamed>' panicked at 'Error: could not find an available port', config/src/utils.rs:27:5
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+AddressSanitizer:DEADLYSIGNAL
+=================================================================
+==1==ERROR: AddressSanitizer: ABRT on unknown address 0x000000000001 (pc 0x7f278061b428 bp 0x7ffe39ceeed0 sp 0x7ffe39ceed78 T0)
+    #0 0x7f278061b427 in gsignal /build/glibc-LK5gWL/glibc-2.23/signal/../sysdeps/unix/sysv/linux/raise.c:54
+    #1 0x7f278061d029 in abort /build/glibc-LK5gWL/glibc-2.23/stdlib/abort.c:89
+    #2 0x55866ec70586 in std::sys::unix::abort_internal::h3e3f989126541ea9 (.llvm.14040283905672493915) /rustc/b8cedc00407a4c56a3bda1ed605c6fc166655447/src/libstd/sys/unix/mod.rs:165:4
+    #3 0x55866ec5ea85 in std::process::abort::h1cec5cf8ad2f945d /rustc/b8cedc00407a4c56a3bda1ed605c6fc166655447/src/libstd/process.rs:1609:13
+    #4 0x558668255fae in libfuzzer_sys::initialize::_$u7b$$u7b$closure$u7d$$u7d$::h31ff8ab17e93ba40 /rust/registry/src/github.com-1ecc6299db9ec823/libfuzzer-sys-0.3.2/src/lib.rs:51:8
+    #5 0x55866ec63af5 in std::panicking::rust_panic_with_hook::hb7ad5693188bdb00 /rustc/b8cedc00407a4c56a3bda1ed605c6fc166655447/src/libstd/panicking.rs:476:16
+    #6 0x5586682ede81 in std::panicking::begin_panic::h2194e36e9d0a3237 /rustc/b8cedc00407a4c56a3bda1ed605c6fc166655447/src/libstd/panicking.rs:399:4
+    #7 0x55866847004f in libra_config::utils::get_available_port::h7d7baacfb554bae8 libra/config/src/utils.rs:27:4
+    #8 0x558668cd1fbd in libra_json_rpc::fuzzing::fuzzer::hde487212e06dd4fd libra/json-rpc/src/fuzzing.rs:45:15
+    #9 0x5586679065f3 in rust_fuzzer_test_input libra/testsuite/libra-fuzzer/fuzz/google-oss-fuzz/fuzzer_builder.rs:14:4
+    #10 0x55866cbe9e86 in __rust_maybe_catch_panic /rustc/b8cedc00407a4c56a3bda1ed605c6fc166655447/src/libpanic_unwind/lib.rs:86:7
+    #11 0x558668255b41 in std::panicking::try::h8d8e3e4107771fb3 /rustc/b8cedc00407a4c56a3bda1ed605c6fc166655447/src/libstd/panicking.rs:281:12
+    #12 0x558668255b41 in std::panic::catch_unwind::he4d9e2a6e9cdb201 /rustc/b8cedc00407a4c56a3bda1ed605c6fc166655447/src/libstd/panic.rs:394:13
+    #13 0x558668255b41 in LLVMFuzzerTestOneInput /rust/registry/src/github.com-1ecc6299db9ec823/libfuzzer-sys-0.3.2/src/lib.rs:25:21
+    #14 0x5586713bea16 in fuzzer::Fuzzer::ExecuteCallback(unsigned char const*, unsigned long) /src/libfuzzer/FuzzerLoop.cpp:556:15
+    #15 0x558671377e1f in fuzzer::RunOneTest(fuzzer::Fuzzer*, char const*, unsigned long) /src/libfuzzer/FuzzerDriver.cpp:292:6
+    #16 0x558671385a82 in fuzzer::FuzzerDriver(int*, char***, int (*)(unsigned char const*, unsigned long)) /src/libfuzzer/FuzzerDriver.cpp:774:9
+    #17 0x558671377467 in main /src/libfuzzer/FuzzerMain.cpp:19:10
+    #18 0x7f278060682f in __libc_start_main /build/glibc-LK5gWL/glibc-2.23/csu/../csu/libc-start.c:291
+    #19 0x558665a90af8 in _start (/mnt/scratch0/clusterfuzz/bot/builds/clusterfuzz-builds_libra_261a3974d6fe02088847c66c42b86704d2cb5fde/revisions/json_rpc_service+0x4331af8)
+AddressSanitizer can not provide additional info.
+SUMMARY: AddressSanitizer: ABRT /build/glibc-LK5gWL/glibc-2.23/signal/../sysdeps/unix/sysv/linux/raise.c:54 in gsignal
+==1==ABORTING
