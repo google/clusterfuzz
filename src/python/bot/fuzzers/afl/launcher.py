@@ -899,7 +899,7 @@ class AflRunnerCommon(object):
 
           elif (num_first_testcase_hangs ==
                 self.MAX_FIRST_HANGS_WITH_DEFERRED_FORKSERVER):
-            environment.set_value(constants.DONT_DEFER_FORKSERVER, 1)
+            environment.set_value(constants.DONT_DEFER_ENV_VAR, 1)
             print('Instructing AFL not to defer forkserver.\nIf this fixes the '
                   'fuzzer, you should add this to the .options file:\n'
                   '[env]\n'
@@ -1513,8 +1513,9 @@ def main(argv):
     command = engine_common.strip_minijail_command(command,
                                                    runner.afl_fuzz_path)
   # Print info for the fuzzer logs.
-  print(engine_common.get_log_header(command, BOT_NAME,
-                                     fuzz_result.time_executed))
+  print(
+      engine_common.get_log_header(command, BOT_NAME,
+                                   fuzz_result.time_executed))
 
   print(fuzz_result.output)
   runner.strategies.print_strategies()
