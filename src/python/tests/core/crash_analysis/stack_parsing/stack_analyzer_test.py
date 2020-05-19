@@ -2896,6 +2896,8 @@ class StackAnalyzerTestcase(unittest.TestCase):
 
   def test_rust_assert(self):
     """Test for assertion in Rust."""
+    environment.set_value('ASSERTS_HAVE_SECURITY_IMPLICATION', False)
+
     data = self._read_test_data('rust_assert.txt')
     expected_type = 'ASSERT'
     expected_address = ''

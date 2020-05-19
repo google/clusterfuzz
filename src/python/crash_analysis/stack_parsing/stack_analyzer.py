@@ -336,9 +336,9 @@ STACK_FRAME_IGNORE_REGEXES = [
     r'^tgkill$',
 
     # Function names (startswith).
+    r'^(|\_\_)aeabi\_',
     r'^(|\_\_)memcmp',
     r'^(|\_\_)memcpy',
-    r'^(|\_\_)aeabi\_',
     r'^(|\_\_)memmove',
     r'^(|\_\_)memset',
     r'^(|\_\_)strcmp',
@@ -364,6 +364,7 @@ STACK_FRAME_IGNORE_REGEXES = [
     r'^WTFCrash',
     r'^X11Error',
     r'^\_L\_unlock\_',
+    r'^\_\$LT\$',
     r'^\_\_GI\_',
     r'^\_\_asan\:\:',
     r'^\_\_asan\_',
