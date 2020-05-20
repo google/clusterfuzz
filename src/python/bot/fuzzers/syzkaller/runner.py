@@ -87,7 +87,7 @@ class AndroidSyzkallerRunner(new_process.ProcessRunner):
     result = self.run_and_wait(additional_args, timeout=repro_timeout)
     logs.log('Syzkaller testcase stopped.')
     return engine.ReproduceResult(result.command, result.return_code,
-                                  result.time_executed, result.output)
+                                  result.time_executed, str(result.output))
 
   def fuzz(self,
            fuzz_timeout,
