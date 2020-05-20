@@ -72,6 +72,10 @@ ALLOWED_VIEW_RESTRICTIONS = ['none', 'security', 'all']
 
 PUBSUB_PLATFORMS = ['linux']
 
+MEMORY_SAFE_LANGUAGES = {'go', 'java', 'python', 'rust'}
+OSS_FUZZ_DEFAULT_PROJECT_CPU_WEIGHT = 1.0
+OSS_FUZZ_MEMORY_SAFE_LANGUAGE_PROJECT_WEIGHT = 0.2
+
 
 class ProjectSetupError(Exception):
   """Exception."""
@@ -446,12 +450,12 @@ def ccs_from_info(info):
     field_value = info.get(field_name)
     if allow_list and isinstance(field_value, list):
       return field_value
-    elif isinstance(field_value, basestring):
+    if isinstance(field_value, basestring):
       return [field_value]
-    else:
-      raise ProjectSetupError(
-          'Bad value for field {field_name}: {field_value}.'.format(
-              field_name=field_name, field_value=field_value))
+
+    raise ProjectSetupError(
+        'Bad value for field {field_name}: {field_value}.'.format(
+            field_name=field_name, field_value=field_value))
 
   ccs = []
   ccs.extend(_get_ccs('primary_contact', allow_list=False))
@@ -513,6 +517,7 @@ def create_project_settings(project, info, service_account):
   is_high_end = info.get('fuzzing_engines') == ['none']
 
   ccs = ccs_from_info(info)
+  language = info.get('language')
 
   if oss_fuzz_project:
     if oss_fuzz_project.service_account != service_account['email']:
@@ -527,10 +532,16 @@ def create_project_settings(project, info, service_account):
       oss_fuzz_project.ccs = ccs
       oss_fuzz_project.put()
   else:
+    if language in MEMORY_SAFE_LANGUAGES:
+      cpu_weight = OSS_FUZZ_MEMORY_SAFE_LANGUAGE_PROJECT_WEIGHT
+    else:
+      cpu_weight = OSS_FUZZ_DEFAULT_PROJECT_CPU_WEIGHT
+
     data_types.OssFuzzProject(
         id=project,
         name=project,
         high_end=is_high_end,
+        cpu_weight=cpu_weight,
         service_account=service_account['email'],
         ccs=ccs).put()
 
@@ -681,11 +692,11 @@ class ProjectSetup(object):
     add_service_account_to_bucket(client, self._mutator_plugins_bucket_name(),
                                   service_account, OBJECT_VIEWER_IAM_ROLE)
 
-    data_bundles = set([
+    data_bundles = {
         fuzzer_entity.data_bundle_name
         for fuzzer_entity in six.itervalues(self._fuzzer_entities)
         if fuzzer_entity.data_bundle_name
-    ])
+    }
     for data_bundle in data_bundles:
       # Workers also need to be able to set up these global bundles.
       data_bundle_bucket_name = data_handler.get_data_bundle_bucket_name(

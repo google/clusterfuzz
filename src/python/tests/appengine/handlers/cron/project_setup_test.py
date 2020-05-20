@@ -76,8 +76,8 @@ def mock_get_iam_policy(bucket=None):
       'etag': 'fake'
   }
 
-  if (bucket == 'lib1-logs.clusterfuzz-external.appspot.com' or
-      bucket == 'lib3-logs.clusterfuzz-external.appspot.com'):
+  if bucket in ('lib1-logs.clusterfuzz-external.appspot.com',
+                'lib3-logs.clusterfuzz-external.appspot.com'):
     response['bindings'].append({
         'role': 'roles/storage.objectViewer',
         'members': ['user:user@example.com',]
@@ -263,6 +263,7 @@ class OssFuzzProjectSetupTest(unittest.TestCase):
         }),
         ('lib4', {
             'homepage': 'http://example4.com',
+            'language': 'go',
             'sanitizers': ['address'],
             'auto_ccs': 'User@example.com',
             'fuzzing_engines': ['none',],
@@ -553,7 +554,7 @@ class OssFuzzProjectSetupTest(unittest.TestCase):
     lib4_settings = ndb.Key(data_types.OssFuzzProject, 'lib4').get()
     self.assertIsNotNone(lib4_settings)
     self.assertDictEqual({
-        'cpu_weight': 1.0,
+        'cpu_weight': 0.2,
         'name': 'lib4',
         'disk_size_gb': None,
         'service_account': 'lib4@serviceaccount.com',
