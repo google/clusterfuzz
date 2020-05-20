@@ -2910,3 +2910,20 @@ class StackAnalyzerTestcase(unittest.TestCase):
     self._validate_get_crash_data(data, expected_type, expected_address,
                                   expected_state, expected_stacktrace,
                                   expected_security_flag)
+
+  def test_rust_oom(self):
+    """Test for out of memory in Rust."""
+    os.environ['REPORT_OOMS_AND_HANGS'] = 'True'
+
+    data = self._read_test_data('rust_oom.txt')
+    expected_type = 'Out-of-memory'
+    expected_address = ''
+    expected_state = (
+        'mp4parse::fallible::TryVec$LT$T$GT$::reserve::h1159314b25b06f7c\n'
+        'mp4parse::fallible::try_read_up_to::h64a356817b37893a\n'
+        'mp4parse::fallible::TryRead::read_into_try_vec::h1a15ad50dda088e3\n')
+    expected_stacktrace = data
+    expected_security_flag = False
+    self._validate_get_crash_data(data, expected_type, expected_address,
+                                  expected_state, expected_stacktrace,
+                                  expected_security_flag)

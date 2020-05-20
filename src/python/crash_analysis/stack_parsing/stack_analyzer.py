@@ -155,7 +155,8 @@ OUT_OF_MEMORY_REGEX = re.compile(
     r'blinkGCOutOfMemory|'
     r'couldnt allocate.*Out of memory|'
     r'libFuzzer: out-of-memory \(|'
-    r'rss limit exhausted).*')
+    r'rss limit exhausted|'
+    r'in rust_oom).*')
 RUNTIME_ERROR_REGEX = re.compile(r'#\s*Runtime error in (.*)')
 RUNTIME_ERROR_LINE_REGEX = re.compile(r'#\s*Runtime error in (.*), line [0-9]+')
 RUST_ASSERT_REGEX = re.compile(r'thread\s.*\spanicked at \'([^\']*)',
@@ -383,6 +384,7 @@ STACK_FRAME_IGNORE_REGEXES = [
     r'^\_\_msan\_',
     r'^\_\_pthread\_kill',
     r'^\_\_run\_exit\_handlers',
+    r'^\_\_rust\_try',
     r'^\_\_sanitizer\:\:',
     r'^\_\_sanitizer\_',
     r'^\_\_tsan\:\:',
@@ -399,6 +401,7 @@ STACK_FRAME_IGNORE_REGEXES = [
     r'^\_tsan\_',
     r'^\_ubsan\_',
     r'^abort',
+    r'^alloc\:\:',
     r'^android\.app\.ActivityManagerProxy\.',
     r'^android\.os\.Parcel\.',
     r'^asan\_',
@@ -426,10 +429,12 @@ STACK_FRAME_IGNORE_REGEXES = [
     r'^operator',
     r'^print\_trailer',
     r'^realloc',
+    r'^rust_begin_unwind',
+    r'^rust_oom',
     r'^scanf',
     r'^show\_stack',
     r'^std\:\:\_\_terminate',
-    r'^std\:\:panicking',
+    r'^std\:\:panic',
     r'^std\:\:process\:\:abort',
     r'^std\:\:sys\:\:unix\:\:abort',
 
