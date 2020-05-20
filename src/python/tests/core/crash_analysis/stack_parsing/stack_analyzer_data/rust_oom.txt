@@ -1,0 +1,37 @@
+==1==WARNING: AddressSanitizer failed to allocate 0x202020202020200c bytes
+memory allocation of 2314885530818453516 bytes failedAddressSanitizer:DEADLYSIGNAL
+=================================================================
+==1==ERROR: AddressSanitizer: ABRT on unknown address 0x000000000001 (pc 0x7efeaef2f428 bp 0x7ffef58fe030 sp 0x7ffef58fdd48 T0)
+    #0 0x7efeaef2f427 in gsignal /build/glibc-LK5gWL/glibc-2.23/sysdeps/unix/sysv/linux/raise.c:54
+    #1 0x7efeaef31029 in abort /build/glibc-LK5gWL/glibc-2.23/stdlib/abort.c:89
+    #2 0x55fcb95018b6 in std::sys::unix::abort_internal::h61fc255319305c43 /rustc/3a7dfda40a3e798bf086bd58cc7e5e09deb808b5/src/libstd/sys/unix/mod.rs:167:14
+    #3 0x55fcb94e9c75 in std::process::abort::hc04628a00aa4543a /rustc/3a7dfda40a3e798bf086bd58cc7e5e09deb808b5/src/libstd/process.rs:1623:5
+    #4 0x55fcb94f03cd in rust_oom /rustc/3a7dfda40a3e798bf086bd58cc7e5e09deb808b5/src/libstd/alloc.rs:282:5
+    #5 0x55fcb951b876 in alloc::alloc::handle_alloc_error::hf3b29e2cf0b4ae46 /rustc/3a7dfda40a3e798bf086bd58cc7e5e09deb808b5/src/liballoc/alloc.rs:307:14
+    #6 0x55fcb92ea65b in alloc::raw_vec::RawVec$LT$T$C$A$GT$::reserve::hf99060ff0a84a3be /rustc/3a7dfda40a3e798bf086bd58cc7e5e09deb808b5/src/liballoc/raw_vec.rs:269:47
+    #7 0x55fcb92ea65b in alloc::vec::Vec$LT$T$GT$::reserve::h76c1ff3ca24d558b /rustc/3a7dfda40a3e798bf086bd58cc7e5e09deb808b5/src/liballoc/vec.rs:500:9
+    #8 0x55fcb92ea65b in mp4parse::fallible::TryVec$LT$T$GT$::reserve::h1159314b25b06f7c mp4parse-rust/mp4parse/src/fallible.rs:283:13
+    #9 0x55fcb92ea65b in mp4parse::fallible::try_read_up_to::h64a356817b37893a mp4parse-rust/mp4parse/src/fallible.rs:75:5
+    #10 0x55fcb92f69a4 in _$LT$mp4parse..BMFFBox$LT$T$GT$$u20$as$u20$mp4parse..fallible..TryRead$GT$::try_read_to_end::h37ff3f8c67f3ab87 mp4parse-rust/mp4parse/src/fallible.rs:48:9
+    #11 0x55fcb92f69a4 in mp4parse::fallible::TryRead::read_into_try_vec::h1a15ad50dda088e3 mp4parse-rust/mp4parse/src/fallible.rs:41:17
+    #12 0x55fcb93196ff in mp4parse::read_iloc::hcabc592b0f73799c mp4parse-rust/mp4parse/src/lib.rs:1484:16
+    #13 0x55fcb9299568 in mp4parse::read_avif_meta::h6463196551ec8476 mp4parse-rust/mp4parse/src/lib.rs:1340:35
+    #14 0x55fcb930161d in mp4parse::read_avif::h085d003469ed626b mp4parse-rust/mp4parse/src/lib.rs:1249:40
+    #15 0x55fcb9396625 in _$LT$mp4parse_capi..Mp4parseAvifParser$u20$as$u20$mp4parse_capi..ContextParser$GT$::read::h3b7d4d3db512bcae mp4parse-rust/mp4parse_capi/src/lib.rs:377:9
+    #16 0x55fcb9396625 in mp4parse_capi::mp4parse_new_common_safe::h0ca2c54532ffc785 mp4parse-rust/mp4parse_capi/src/lib.rs:482:5
+    #17 0x55fcb9395c07 in mp4parse_capi::mp4parse_new_common::h5bcbdbc95c2c6730 mp4parse-rust/mp4parse_capi/src/lib.rs:467:15
+    #18 0x55fcb9395c07 in mp4parse_avif_new mp4parse-rust/mp4parse_capi/src/lib.rs:451:5
+    #19 0x55fcb921f598 in rust_fuzzer_test_input mp4parse-rust/mp4parse_capi/fuzz/fuzz_targets/avif.rs:28:12
+    #20 0x55fcb941e4a0 in __rust_try
+    #21 0x55fcb941e0df in std::panicking::try::hfc14f47abd791d38 /rustc/3a7dfda40a3e798bf086bd58cc7e5e09deb808b5/src/libstd/panicking.rs:274:15
+    #22 0x55fcb941e0df in std::panic::catch_unwind::h3c37ac4d75f6cfa4 /rustc/3a7dfda40a3e798bf086bd58cc7e5e09deb808b5/src/libstd/panic.rs:394:14
+    #23 0x55fcb941e0df in LLVMFuzzerTestOneInput /rust/registry/src/github.com-1ecc6299db9ec823/libfuzzer-sys-0.3.2/src/lib.rs:25:22
+    #24 0x55fcb946a6f6 in fuzzer::Fuzzer::ExecuteCallback(unsigned char const*, unsigned long) /src/libfuzzer/FuzzerLoop.cpp:556:15
+    #25 0x55fcb941edb3 in fuzzer::RunOneTest(fuzzer::Fuzzer*, char const*, unsigned long) /src/libfuzzer/FuzzerDriver.cpp:296:6
+    #26 0x55fcb942c252 in fuzzer::FuzzerDriver(int*, char***, int (*)(unsigned char const*, unsigned long)) /src/libfuzzer/FuzzerDriver.cpp:776:9
+    #27 0x55fcb941ca97 in main /src/libfuzzer/FuzzerMain.cpp:19:10
+    #28 0x7efeaef1a82f in __libc_start_main /build/glibc-LK5gWL/glibc-2.23/csu/libc-start.c:291
+    #29 0x55fcb916c6f8 in _start
+AddressSanitizer can not provide additional info.
+SUMMARY: AddressSanitizer: ABRT (/lib/x86_64-linux-gnu/libc.so.6+0x35427)
+==1==ABORTING
