@@ -256,6 +256,10 @@ def request_bisection(testcase, bisect_type):
   if not pubsub_topic:
     return
 
+  target = testcase.get_fuzz_target()
+  if not target:
+    return
+
   if bisect_type == 'fixed':
     old_commit, new_commit = _get_commits(testcase.fixed, testcase.job_type)
   elif bisect_type == 'regressed':
@@ -265,10 +269,6 @@ def request_bisection(testcase, bisect_type):
     raise ValueError('Invalid bisection type: ' + bisect_type)
 
   reproducer = blobs.read_key(testcase.minimized_keys or testcase.fuzzed_keys)
-  target = testcase.get_fuzz_target()
-  if not target:
-    return
-
   pubsub_client = pubsub.PubSubClient()
   pubsub_client.publish(
       pubsub_topic,
