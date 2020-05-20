@@ -83,6 +83,9 @@ def save_regression_range(testcase_id, regression_range_start,
   # Get blame information using the regression range result.
   task_creation.create_blame_task_if_needed(testcase)
 
+  # If there is a fine grained bisection service available, request it.
+  task_creation.request_bisection(testcase, 'regressed')
+
 
 def _testcase_reproduces_in_revision(testcase,
                                      testcase_file_path,
