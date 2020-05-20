@@ -290,4 +290,6 @@ def request_bisection(testcase, bisect_type):
                   new_commit,
               'testcase_id':
                   testcase.key.id(),
+              'issue_id':
+                  testcase.bug_information,
           }))

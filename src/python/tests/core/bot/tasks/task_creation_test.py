@@ -40,6 +40,7 @@ class RequestBisectionTest(unittest.TestCase):
         binary='target').put()
 
     self.testcase = data_types.Testcase(
+        bug_information='1337',
         job_type='libfuzzer_asan_proj',
         fuzzer_name='libFuzzer',
         overridden_fuzzer_name='libFuzzer_proj_target',
@@ -74,6 +75,7 @@ class RequestBisectionTest(unittest.TestCase):
         'project_name': 'proj',
         'sanitizer': sanitizer,
         'testcase_id': 1,
+        'issue_id': '1337',
         'type': bisect_type,
     }, message.attributes)
 
