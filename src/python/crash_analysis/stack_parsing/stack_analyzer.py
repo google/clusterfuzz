@@ -115,8 +115,12 @@ HWASAN_ALLOCATION_TAIL_OVERWRITTEN_ADDRESS_REGEX = re.compile(
     r'heap object \[([xX0-9a-fA-F]+),.*of size')
 JAVA_EXCEPTION_CRASH_STATE_REGEX = re.compile(r'\s*at (.*)\(.*\)')
 KASAN_ACCESS_TYPE_REGEX = re.compile(r'(Read|Write) of size ([0-9]+)')
+KASAN_ACCESS_TYPE_ADDRESS_REGEX = re.compile(
+    r'(Read|Write) of size ([0-9]+) at (addr|address) ([a-f0-9]+)')
 KASAN_CRASH_TYPE_ADDRESS_REGEX = re.compile(
     r'BUG: KASAN: (.*) (in|on).*(addr|address) ([a-f0-9]+)')
+KASAN_CRASH_TYPE_FUNCTION_REGEX = re.compile(
+    r'BUG: KASAN: (.*) (in|on).* ([\w]+)\+([\w]+)/([\w]+)')
 KASAN_GPF_REGEX = re.compile(r'general protection fault:.*KASAN')
 LIBFUZZER_DEADLY_SIGNAL_REGEX = re.compile(
     r'.*ERROR:\s*libFuzzer:\s*deadly signal')
@@ -1138,6 +1142,21 @@ def reverse_python_stacktrace(stacktrace):
   return python_stacktrace_split
 
 
+def update_kasan_crash_details(state, line):
+  """For KASan crashes, additional information about a bad access may exist."""
+  if state.crash_type.startswith('Kernel failure'):
+    kasan_access_match = KASAN_ACCESS_TYPE_ADDRESS_REGEX.match(line)
+    if kasan_access_match:
+      if not state.crash_address:
+        state.crash_address = '0x%s' % kasan_access_match.group(4)
+    else:
+      kasan_access_match = KASAN_ACCESS_TYPE_REGEX.match(line)
+
+    if kasan_access_match:
+      state.crash_type += '\n%s %s' % (kasan_access_match.group(1).upper(),
+                                       kasan_access_match.group(2))
+
+
 def get_crash_data(crash_data, symbolize_flag=True):
   """Get crash parameters from crash data.
   Crash parameters include crash type, address, state and stacktrace.
@@ -1476,12 +1495,13 @@ def get_crash_data(crash_data, symbolize_flag=True):
         state.crash_type += ' ' + segv_type
 
     # Sanitizer crash type and address format.
-    crash_type_and_address_match = update_state_on_match(
-        SAN_CRASH_TYPE_ADDRESS_REGEX, line, state, address_from_group=3)
-    if crash_type_and_address_match and not state.crash_type.startswith(
-        'UNKNOWN'):
-      state.crash_type += '\n%s %s' % (crash_type_and_address_match.group(
-          1).upper(), crash_type_and_address_match.group(2))
+    if not is_kasan:
+      crash_type_and_address_match = update_state_on_match(
+          SAN_CRASH_TYPE_ADDRESS_REGEX, line, state, address_from_group=3)
+      if crash_type_and_address_match and not state.crash_type.startswith(
+          'UNKNOWN'):
+        state.crash_type += '\n%s %s' % (crash_type_and_address_match.group(
+            1).upper(), crash_type_and_address_match.group(2))
 
     # Android SEGVs.
     # Exclude fatal signal lines from resetting state when we already have one.
@@ -1546,10 +1566,20 @@ def get_crash_data(crash_data, symbolize_flag=True):
         KASAN_CRASH_TYPE_ADDRESS_REGEX,
         line,
         state,
+        new_type='Kernel failure',
         type_from_group=1,
         address_from_group=4,
         type_filter=filter_kasan_crash_type):
       state.crash_address = '0x%s' % state.crash_address
+
+    # Generic KASan errors without an address.
+    update_state_on_match(
+        KASAN_CRASH_TYPE_FUNCTION_REGEX,
+        line,
+        state,
+        new_type='Kernel failure',
+        type_from_group=1,
+        type_filter=filter_kasan_crash_type)
 
     # KASan GPFs.
     update_state_on_match(
@@ -1559,12 +1589,8 @@ def get_crash_data(crash_data, symbolize_flag=True):
         new_type='Kernel failure\nGeneral-protection-fault')
 
     # For KASan crashes, additional information about a bad access may come
-    # from a later line. Update the type if this happens.
-    if state.crash_type.startswith('Kernel failure'):
-      kasan_access_match = KASAN_ACCESS_TYPE_REGEX.match(line)
-      if kasan_access_match:
-        state.crash_type += ' %s %s' % (kasan_access_match.group(1).upper(),
-                                        kasan_access_match.group(2))
+    # from a later line. Update the type and address if this happens.
+    update_kasan_crash_details(state, line)
 
     # Sanitizer tool check failure.
     san_check_match = update_state_on_match(
@@ -1880,7 +1906,7 @@ def get_crash_data(crash_data, symbolize_flag=True):
 
     # Android kernel stack frame.
     android_kernel_match = add_frame_on_match(
-        ANDROID_KERNEL_STACK_FRAME_REGEX, line, state, group=2)
+        ANDROID_KERNEL_STACK_FRAME_REGEX, line, state, group=3)
     if android_kernel_match:
       # Update address from the first stack frame unless we already have
       # more detailed information from KASan.
