@@ -40,6 +40,7 @@ class RequestBisectionTest(unittest.TestCase):
         binary='target').put()
 
     self.testcase = data_types.Testcase(
+        crash_type='crash-type',
         bug_information='1337',
         job_type='libfuzzer_asan_proj',
         fuzzer_name='libFuzzer',
@@ -69,6 +70,7 @@ class RequestBisectionTest(unittest.TestCase):
     self.assertEqual('/projects/project/topics/topic', topic)
     self.assertEqual(b'reproducer', message.data)
     self.assertDictEqual({
+        'crash_type': 'crash-type',
         'fuzz_target': 'target',
         'new_commit': 'new',
         'old_commit': 'old',
