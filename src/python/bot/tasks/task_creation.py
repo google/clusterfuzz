@@ -292,4 +292,6 @@ def request_bisection(testcase, bisect_type):
                   testcase.key.id(),
               'issue_id':
                   testcase.bug_information,
+              'crash_type':
+                  testcase.crash_type,
           }))
