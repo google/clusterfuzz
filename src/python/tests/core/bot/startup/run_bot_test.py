@@ -13,6 +13,7 @@
 # limitations under the License.
 """run_bot tests."""
 # pylint: disable=protected-access
+import os
 import unittest
 
 import mock
@@ -76,3 +77,32 @@ class MonitorTest(unittest.TestCase):
             'task': 'task',
             'job': 'job'
         }))
+
+
+class TaskLoopTest(unittest.TestCase):
+  """Test task_loop."""
+
+  def setUp(self):
+    helpers.patch_environ(self)
+    helpers.patch(self, [
+        'base.tasks.get_task',
+        'bot.tasks.commands.process_command',
+        'bot.tasks.update_task.run',
+        'bot.tasks.update_task.track_revision',
+    ])
+
+    self.task = mock.MagicMock()
+    self.task.payload.return_value = 'payload'
+    self.mock.get_task.return_value = self.task
+    self.task.lease.__enter__ = mock.Mock(return_value=None)
+    self.task.lease.__exit = mock.Mock(return_value=False)
+
+    os.environ['FAIL_WAIT'] = '1'
+
+  def test_exception(self):
+    """Test that exceptions are properly reported."""
+    self.mock.process_command.side_effect = Exception('text')
+    exception, clean_exit, payload = run_bot.task_loop()
+    self.assertIn('Exception: text', exception)
+    self.assertFalse(clean_exit)
+    self.assertEqual('payload', payload)

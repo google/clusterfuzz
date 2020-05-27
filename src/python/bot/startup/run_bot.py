@@ -103,11 +103,14 @@ def task_loop():
       clean_exit = (e.code == 0)
       if not clean_exit and not isinstance(e, untrusted.HostException):
         logs.log_error('SystemExit occurred while working on task.')
+
+      stacktrace = traceback.format_exc()
     except commands.AlreadyRunningError:
       exception_occurred = False
     except Exception:
       logs.log_error('Error occurred while working on task.')
       exception_occurred = True
+      stacktrace = traceback.format_exc()
 
     if exception_occurred:
       # Prevent looping too quickly. See: crbug.com/644830
@@ -116,7 +119,7 @@ def task_loop():
       break
 
   task_payload = task.payload() if task else None
-  return traceback.format_exc(), clean_exit, task_payload
+  return stacktrace, clean_exit, task_payload
 
 
 def main():
