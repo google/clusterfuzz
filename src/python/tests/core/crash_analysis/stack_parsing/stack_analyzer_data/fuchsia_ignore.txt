@@ -1,0 +1,34 @@
+==48070== ERROR: libFuzzer: deadly signal
+Warning: Permanently added '[localhost]:57591' (ED25519) to the list of known hosts.
+INFO: Seed: 2797547935
+INFO: Loaded 3 modules   (40851 inline 8-bit counters): 10 [0x2318cae62000, 0x2318cae6200a), 10773 [0x22acdc2a9360, 0x22acdc2abd75), 30068 [0x227defd5e520, 0x227defd65a94), 
+INFO: Loaded 3 PC tables (40851 PCs): 10 [0x2318cae62010,0x2318cae620b0), 10773 [0x22acdc2abd78,0x22acdc2d5ec8), 30068 [0x227defd65a98,0x227defddb1d8), 
+==48070== INFO: libFuzzer starting.
+/pkg/bin/frame-scheduler-fuzzer: Running 1 inputs 100 time(s) each.
+==48070== INFO: libFuzzer starting.
+   #0    0x0000231322dc0d71 in <libclang_rt.asan.so>+0x56d71 
+   #1    0x0000231322dc0d9e in <libclang_rt.asan.so>+0x56d9e 
+   #2    0x0000227def927355 in fuzzer::PrintStackTrace() <<application>>+0x21d355
+   #3    0x0000227def90d6a9 in fuzzer::Fuzzer::CrashCallback() <<application>>+0x2036a9
+   #4    0x0000227def927425 in fuzzer::(anonymous namespace)::StaticCrashHandler() ../recipe_cleanup/clang4jtbYR/llvm_build_dir/tools/clang/stage2-bins/runtimes/runtimes-x86_64-unknown-fuchsia-bins/compiler-rt/lib/fuzzer/FuzzerUtilFuchsia.cpp:186 <<application>>+0x21d425
+   #5    0x0000227def927415 in CrashTrampolineAsm <<application>>+0x21d415
+   #6    0x0000408982ea9aa8 in libc_io_functions_not_implemented_use_fdio_instead ../../out/clusterfuchsia-8880822439957731232.zircon/../../zircon/third_party/ulib/scudo/fuchsia.cc:34 <libc.so>+0x6eaa8
+   #7    0x000023029f880e90 in fx_logger::VLogWrite(int, char const*, char const*, __va_list_tag*, bool) ../../out/clusterfuchsia-8880822439957731232.zircon/../../zircon/system/ulib/syslog/fx_logger.cc:223 <libsyslog.so>+0x8e90
+   #8.3  0x000023029f881ccf in fidl::internal::Walker<(anonymous namespace)::FidlValidator>::Frame::Frame(fidl_type const*, (anonymous namespace)::Position) ../../out/clusterfuchsia-8880822439957731232.zircon/../../zircon/system/ulib/fidl/include/lib/fidl/walker.h:197 <libsyslog.so>+0x9ccf
+   #8.2  0x000023029f881ccf in fidl::internal::Walker<(anonymous namespace)::FidlValidator>::Walk((anonymous namespace)::FidlValidator&) ../../out/clusterfuchsia-8880822439957731232.zircon/../../zircon/system/ulib/fidl/include/lib/fidl/walker.h:686 <libsyslog.so>+0x9ccf
+   #8.1  0x000023029f881ccf in void fidl::Walk<(anonymous namespace)::FidlValidator>((anonymous namespace)::FidlValidator&, fidl_type const*, (anonymous namespace)::FidlValidator::StartingPoint) ../../out/clusterfuchsia-8880822439957731232.zircon/../../zircon/system/ulib/fidl/include/lib/fidl/walker.h:925 <libsyslog.so>+0x9ccf
+   #8    0x000023029f881ccf in fx_logger_log ../../out/clusterfuchsia-8880822439957731232.zircon/../../zircon/system/ulib/fidl/validating.cc:222 <libsyslog.so>+0x9ccf
+   #9    0x0000227defa51fcf in syslog::LogMessage::~LogMessage() ../../out/clusterfuchsia-8880822439957731232/../../sdk/lib/syslog/cpp/macros.cc:101 <<application>>+0x347fcf
+   #10   0x0000227def97f41a in frame::Fake::Fake() ../../out/clusterfuchsia-8880822439957731232/../../path:150 <<application>>+0x27541a
+   #11   0x0000227def97d13a in frame::Fake::Fake2() ../../out/clusterfuchsia-8880822439957731232/../../path:307 <<application>>+0x27313a
+   #14.1 0x0000227defcabd29 in DispatchNextDueMessage ../../out/clusterfuchsia-8880822439957731232/../../zircon/system/ulib/async-testing/test_loop.cc:61 <<application>>+0x5a1d29
+   #14   0x0000227defcabd29 in async::TestLoop::Run() ../../out/clusterfuchsia-8880822439957731232/../../zircon/system/ulib/async-testing/test_loop.cc:259 <<application>>+0x5a1d29
+   #15.1 0x0000227defcac925 in RunUntil ../../out/clusterfuchsia-8880822439957731232/../../zircon/system/ulib/async-testing/test_loop.cc:188 <<application>>+0x5a2925
+   #15   0x0000227defcac925 in async::TestLoop::RunUntilIdle() ../../out/clusterfuchsia-8880822439957731232/../../zircon/system/ulib/async-testing/test_loop.cc:196 <<application>>+0x5a2925
+   #16   0x0000227def94cfe3 in LLVMFuzzerTestOneInput ../../out/clusterfuchsia-8880822439957731232/../../path:20 <<application>>+0x242fe3
+   #17   0x0000227def90ebc5 in fuzzer::Fuzzer::ExecuteCallback(unsigned char const*, unsigned long) <<application>>+0x204bc5
+   #18   0x0000227def8fa594 in fuzzer::RunOneTest(fuzzer::Fuzzer*, char const*, unsigned long) ../recipe_cleanup/clang4jtbYR/llvm_build_dir/tools/clang/stage2-bins/runtimes/runtimes-x86_64-unknown-fuchsia-bins/compiler-rt/lib/fuzzer/FuzzerDriver.cpp:296 <<application>>+0x1f0594
+   #19   0x0000227def900534 in fuzzer::FuzzerDriver(int*, char***, int (*)(unsigned char const*, unsigned long)) <<application>>+0x1f6534
+   #20   0x0000227def928a52 in main ../recipe_cleanup/clang4jtbYR/llvm_build_dir/tools/clang/stage2-bins/runtimes/runtimes-x86_64-unknown-fuchsia-bins/compiler-rt/lib/fuzzer/FuzzerMain.cpp:19 <<application>>+0x21ea52
+   #21   0x0000408982ece68a in start_main ../../out/clusterfuchsia-8880822439957731232.zircon/../../zircon/third_party/ulib/musl/src/env/__libc_start_main.c:112 <libc.so>+0x9368a
+

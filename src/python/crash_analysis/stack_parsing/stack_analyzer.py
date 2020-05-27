@@ -511,8 +511,12 @@ STACK_FRAME_IGNORE_REGEXES = [
     r'^panic$',
     r'^runtime\.',
 
-    # Fuchsia libFuzzer specific.
+    # Fuchsia specific.
     r'^CrashTrampolineAsm',
+    r'^libc_io_functions_not_implemented_use_fdio_instead',
+    r'^\<libclang_rt.asan.so\>',
+    r'^__zx_panic',
+    r'^syslog\:\:LogMessage',
 ]
 
 STACK_FRAME_IGNORE_REGEXES_IF_SYMBOLIZED = [
