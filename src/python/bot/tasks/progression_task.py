@@ -252,6 +252,16 @@ def find_fixed_range(testcase_id, job_type):
   # if it timed out.
   min_revision = testcase.get_metadata('last_progression_min')
   max_revision = testcase.get_metadata('last_progression_max')
+
+  if min_revision or max_revision:
+    # Clear these to avoid using them in next run. If this run fails, then we
+    # should try next run without them to see it succeeds. If this run succeeds,
+    # we should still clear them to avoid capping max revision in next run.
+    testcase = data_handler.get_testcase_by_id(testcase_id)
+    testcase.delete_metadata('last_progression_min', update_testcase=False)
+    testcase.delete_metadata('last_progression_max', update_testcase=False)
+    testcase.put()
+
   last_tested_revision = testcase.get_metadata('last_tested_crash_revision')
   known_crash_revision = last_tested_revision or testcase.crash_revision
   if not min_revision:
