@@ -81,6 +81,7 @@ def task_loop():
   """Executes tasks indefinitely."""
   clean_exit = False
   while True:
+    stacktrace = ''
     exception_occurred = False
     task = None
     # This caches the current environment on first run. Don't move this.
