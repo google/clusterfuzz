@@ -513,9 +513,9 @@ STACK_FRAME_IGNORE_REGEXES = [
 
     # Fuchsia specific.
     r'^CrashTrampolineAsm',
-    r'^libc_io_functions_not_implemented_use_fdio_instead',
-    r'^\<libclang_rt.asan.so\>',
-    r'^__zx_panic',
+    r'^libc\_io\_functions\_not\_implemented\_use\_fdio\_instead',
+    r'^\<libclang\_rt.asan.so\>',
+    r'^\_\_zx\_panic',
     r'^syslog\:\:LogMessage',
 ]
 
