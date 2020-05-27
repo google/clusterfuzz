@@ -254,16 +254,6 @@ def find_regression_range(testcase_id, job_type):
   # Pick up where left off in a previous run if necessary.
   min_revision = testcase.get_metadata('last_regression_min')
   max_revision = testcase.get_metadata('last_regression_max')
-
-  if min_revision or max_revision:
-    # Clear these to avoid using them in next run. If this run fails, then we
-    # should try next run without them to see it succeeds. If this run succeeds,
-    # we should still clear them to avoid capping max revision in next run.
-    testcase = data_handler.get_testcase_by_id(testcase_id)
-    testcase.delete_metadata('last_regression_min', update_testcase=False)
-    testcase.delete_metadata('last_regression_max', update_testcase=False)
-    testcase.put()
-
   first_run = not min_revision and not max_revision
   if not min_revision:
     min_revision = revisions.get_first_revision_in_list(revision_list)
