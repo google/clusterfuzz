@@ -13,6 +13,8 @@
 # limitations under the License.
 """Common functions for task creation for test cases."""
 
+from builtins import str
+
 from base import tasks
 from base import utils
 from build_management import build_manager
@@ -295,5 +297,5 @@ def request_bisection(testcase, bisect_type):
               'crash_type':
                   testcase.crash_type,
               'security':
-                  testcase.security_flag,
+                  str(testcase.security_flag),
           }))

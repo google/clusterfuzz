@@ -72,7 +72,7 @@ class RequestBisectionTest(unittest.TestCase):
     self.assertEqual(b'reproducer', message.data)
     self.assertDictEqual({
         'crash_type': 'crash-type',
-        'security': True,
+        'security': 'True',
         'fuzz_target': 'target',
         'new_commit': 'new',
         'old_commit': 'old',
