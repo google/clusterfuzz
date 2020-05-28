@@ -294,4 +294,6 @@ def request_bisection(testcase, bisect_type):
                   testcase.bug_information,
               'crash_type':
                   testcase.crash_type,
+              'security':
+                  testcase.security_flag,
           }))
