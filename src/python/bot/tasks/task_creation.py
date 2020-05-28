@@ -295,5 +295,5 @@ def request_bisection(testcase, bisect_type):
               'crash_type':
                   testcase.crash_type,
               'security':
-                  testcase.security_flag,
+                  str(testcase.security_flag),
           }))
