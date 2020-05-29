@@ -559,7 +559,7 @@ UBSAN_CRASH_TYPES_MAP = [
     (UBSAN_NO_RETURN_VALUE_REGEX, 'No-return-value'),
     (UBSAN_NULL_ARGUMENT_REGEX, 'Invalid-null-argument'),
     (UBSAN_NULL_POINTER_READ_REGEX, 'Null-dereference READ'),
-    (UBSAN_NULL_POINTER_REFERENCE_REGEX, 'Potential-null-reference'),
+    (UBSAN_NULL_POINTER_REFERENCE_REGEX, 'Null-dereference'),
     (UBSAN_NULL_POINTER_WRITE_REGEX, 'Null-dereference WRITE'),
     (UBSAN_OBJECT_SIZE_REGEX, 'Object-size'),
     (UBSAN_POINTER_OVERFLOW_REGEX, 'Pointer-overflow'),

@@ -388,7 +388,7 @@ class StackAnalyzerTestcase(unittest.TestCase):
   def test_ubsan_null_pointer_member_access(self):
     """Test the ubsan null format for member access within null pointer."""
     data = self._read_test_data('ubsan_null_pointer_member_access.txt')
-    expected_type = 'Potential-null-reference'
+    expected_type = 'Null-dereference'
     expected_state = ('xmlFAParseCharClassEsc\n'
                       'xmlFAParseAtom\n'
                       'xmlFAParsePiece\n')
@@ -403,7 +403,7 @@ class StackAnalyzerTestcase(unittest.TestCase):
   def test_ubsan_null_pointer_member_call(self):
     """Test the ubsan null format for member call on null pointer."""
     data = self._read_test_data('ubsan_null_pointer_member_call.txt')
-    expected_type = 'Potential-null-reference'
+    expected_type = 'Null-dereference'
     expected_state = (
         'base::trace_event::internal::HeapDumpWriter::AddEntryForBucket\n'
         'base::trace_event::internal::HeapDumpWriter::Summarize\n'
@@ -434,7 +434,7 @@ class StackAnalyzerTestcase(unittest.TestCase):
   def test_ubsan_null_pointer_reference_binding(self):
     """Test the ubsan null format for reference binding to null pointer."""
     data = self._read_test_data('ubsan_null_pointer_reference_binding.txt')
-    expected_type = 'Potential-null-reference'
+    expected_type = 'Null-dereference'
     expected_state = ('woff2::ConvertWOFF2ToTTF\n'
                       'convert_woff2ttf_fuzzer.cc\n')
     expected_address = ''
@@ -1429,7 +1429,9 @@ class StackAnalyzerTestcase(unittest.TestCase):
     """Test for ignoring Fuchsia frames."""
     data = self._read_test_data('fuchsia_ignore.txt')
     expected_type = 'Fatal-signal'
-    expected_state = 'frame::Fake::Fake\nframe::Fake::Fake2\nasync::TestLoop::Run\n'
+    expected_state = ('frame::Fake::Fake\n'
+                      'frame::Fake::Fake2\n'
+                      'async::TestLoop::Run\n')
     expected_address = ''
     expected_stacktrace = data
     expected_security_flag = False
