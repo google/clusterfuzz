@@ -1194,13 +1194,16 @@ def _run_libfuzzer_tool(tool_name,
   security_flag = crash_result.is_security_issue()
   if (security_flag != testcase.security_flag or
       state.crash_state != expected_crash_state):
-    logs.log_warn('Ignoring unrelated crash.\n'
+    logs.log_warn('Unrelated crash occurred:\n'
                   'State: %s (expected %s)\n'
                   'Security: %s (expected %s)\n'
                   'Output: %s\n' %
                   (state.crash_state, expected_crash_state, security_flag,
                    testcase.security_flag, state.crash_stacktrace))
-    return None, None
+    if not testcase.flaky_stack:
+      logs.log_warn(
+          'Skipping minimization result due to different crash signature.')
+      return None, None
 
   with open(output_file_path, 'rb') as file_handle:
     minimized_keys = blobs.write_blob(file_handle)
