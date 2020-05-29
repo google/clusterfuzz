@@ -195,9 +195,7 @@ class StackAnalyzerTestcase(unittest.TestCase):
     data = self._read_test_data('android_kernel.txt')
     expected_type = 'Kernel failure\nREAD Translation Fault, Section (5)'
     expected_address = '0x12345678'
-    expected_state = ('top_frame+0xaa/0x000\n'
-                      'next_frame+0xbb/0x111\n'
-                      'last_frame+0xcc/0x222\n')
+    expected_state = ('top_frame\nnext_frame\nlast_frame\n')
     expected_stacktrace = data
     expected_security_flag = True
 
@@ -211,9 +209,7 @@ class StackAnalyzerTestcase(unittest.TestCase):
     data = self._read_test_data('android_kernel_no_parens.txt')
     expected_type = 'Kernel failure\nREAD Translation Fault, Section (5)'
     expected_address = '0x12345678'
-    expected_state = ('top_frame+0xaa/0x000\n'
-                      'next_frame+0xbb/0x111\n'
-                      'last_frame+0xcc/0x222\n')
+    expected_state = ('top_frame\nnext_frame\nlast_frame\n')
     expected_stacktrace = data
     expected_security_flag = True
 
@@ -1584,13 +1580,26 @@ class StackAnalyzerTestcase(unittest.TestCase):
                                   expected_security_flag)
 
   def test_syzkaller_kasan(self):
-    """Test skyzkaller kasan."""
+    """Test syzkaller kasan."""
     data = self._read_test_data('kasan_syzkaller.txt')
-    expected_type = 'Kernel failure\nUse-after-free READ 8'
-    expected_state = ('sock_wake_async+0xb8/0x2b4\n'
-                      'sock_def_readable+0x148/0x1e8\n'
-                      'unix_dgram_sendmsg+0x910/0x9a8\n')
+    expected_type = 'Kernel failure\nUse-after-free\nREAD 8'
+    expected_state = ('sock_wake_async\n'
+                      'sock_def_readable\n'
+                      'unix_dgram_sendmsg\n')
     expected_address = '0xffffffc01640e9d0'
+    expected_stacktrace = data
+    expected_security_flag = True
+
+    self._validate_get_crash_data(data, expected_type, expected_address,
+                                  expected_state, expected_stacktrace,
+                                  expected_security_flag)
+
+  def test_syzkaller_kasan_android(self):
+    """Test syzkaller kasan."""
+    data = self._read_test_data('kasan_syzkaller_android.txt')
+    expected_type = 'Kernel failure\nNull-ptr-deref\nWRITE 4'
+    expected_state = ('sockfs_setattr\nnotify_change2\nchown_common\n')
+    expected_address = '0x00000000027c'
     expected_stacktrace = data
     expected_security_flag = True
 
@@ -1602,9 +1611,9 @@ class StackAnalyzerTestcase(unittest.TestCase):
     """Test a KASan GPF."""
     data = self._read_test_data('kasan_gpf.txt')
     expected_type = 'Kernel failure\nGeneral-protection-fault'
-    expected_state = ('keyring_destroy+0xe2/0x186\n'
-                      'key_garbage_collector+0x436/0x641\n'
-                      'process_one_work+0x572/0x7e1\n')
+    expected_state = ('keyring_destroy\n'
+                      'key_garbage_collector\n'
+                      'process_one_work\n')
     expected_address = ''
     expected_stacktrace = data
     expected_security_flag = True
@@ -1616,10 +1625,10 @@ class StackAnalyzerTestcase(unittest.TestCase):
   def test_kasan_null(self):
     """Test a KASan NULL deref."""
     data = self._read_test_data('kasan_null.txt')
-    expected_type = 'Kernel failure\nUser-memory-access WRITE 4'
-    expected_state = ('snd_seq_fifo_clear+0x20/0xec\n'
-                      'snd_seq_ioctl_remove_events+0x90/0xc4\n'
-                      'snd_seq_do_ioctl+0x100/0x124\n')
+    expected_type = 'Kernel failure\nUser-memory-access\nWRITE 4'
+    expected_state = ('snd_seq_fifo_clear\n'
+                      'snd_seq_ioctl_remove_events\n'
+                      'snd_seq_do_ioctl\n')
     expected_address = '0x000000000040'
     expected_stacktrace = data
     expected_security_flag = True
@@ -1631,10 +1640,10 @@ class StackAnalyzerTestcase(unittest.TestCase):
   def test_kasan_oob_read(self):
     """Test a KASan out-of-bounds read."""
     data = self._read_test_data('kasan_oob_read.txt')
-    expected_type = 'Kernel failure\nOut-of-bounds-access READ 1'
-    expected_state = ('platform_match+0x100/0x1d8\n'
-                      '__device_attach_driver+0x108/0x1a4\n'
-                      'bus_for_each_drv+0x17c/0x190\n')
+    expected_type = 'Kernel failure\nOut-of-bounds-access\nREAD 1'
+    expected_state = ('platform_match\n'
+                      '__device_attach_driver\n'
+                      'bus_for_each_drv\n')
     expected_address = '0xffffffc002583240'
     expected_stacktrace = data
     expected_security_flag = True
@@ -1646,10 +1655,8 @@ class StackAnalyzerTestcase(unittest.TestCase):
   def test_kasan_uaf(self):
     """Test a KASan use-after-free."""
     data = self._read_test_data('kasan_uaf.txt')
-    expected_type = 'Kernel failure\nUse-after-free READ 4'
-    expected_state = ('ip6_append_data+ADDRESS/ADDRESS\n'
-                      'udpv6_sendmsg+ADDRESS/ADDRESS\n'
-                      'inet_sendmsg+0xe7/0x181\n')
+    expected_type = 'Kernel failure\nUse-after-free\nREAD 4'
+    expected_state = ('ip6_append_data\nudpv6_sendmsg\ninet_sendmsg\n')
     expected_address = '0xffff88005031ee80'
     expected_stacktrace = data
     expected_security_flag = True
