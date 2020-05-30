@@ -56,11 +56,13 @@ from system import process_handler
 from system import shell
 
 IPCDUMP_TIMEOUT = 60
-COMBINED_IPCDUMP_TIMEOUT = 60 * 3
+COMBINED_IPCDUMP_TIMEOUT = 3 * 60
 MAX_DEADLINE_EXCEEDED_ATTEMPTS = 3
 MAX_TEMPORARY_FILE_BASENAME_LENGTH = 32
 MINIMIZE_SANITIZER_OPTIONS_RETRIES = 3
 TOKENS_PER_IPCDUMP = 2000
+LIBFUZZER_TIMEOUT = 10 * 60
+LIBFUZZER_ROUNDS = 5
 
 IPC_MESSAGE_UTIL_EXECUTABLE_FOR_PLATFORM = {
     'LINUX': 'ipc_message_util',
@@ -1205,12 +1207,6 @@ def _run_libfuzzer_tool(tool_name,
           'Skipping minimization result due to different crash signature.')
       return None, None
 
-  with open(output_file_path, 'rb') as file_handle:
-    minimized_keys = blobs.write_blob(file_handle)
-
-  testcase.minimized_keys = minimized_keys
-  testcase.put()
-
   return output_file_path, crash_result
 
 
@@ -1253,8 +1249,11 @@ def do_libfuzzer_minimization(testcase, testcase_file_path):
     else:
       task_creation.mark_unreproducible_if_flaky(testcase, True)
 
-  timeout = environment.get_value('LIBFUZZER_MINIMIZATION_TIMEOUT', 600)
-  rounds = environment.get_value('LIBFUZZER_MINIMIZATION_ROUNDS', 5)
+  testcase_id = testcase.key.id()
+  timeout = environment.get_value('LIBFUZZER_MINIMIZATION_TIMEOUT',
+                                  LIBFUZZER_TIMEOUT)
+  rounds = environment.get_value('LIBFUZZER_MINIMIZATION_ROUNDS',
+                                 LIBFUZZER_ROUNDS)
   current_testcase_path = testcase_file_path
   last_crash_result = None
 
@@ -1319,8 +1318,9 @@ def do_libfuzzer_minimization(testcase, testcase_file_path):
     environment.set_memory_tool_options(options_env_var, minimized_options)
     env[options_env_var] = environment.get_memory_tool_options(options_env_var)
   if env:
-    testcase = data_handler.get_testcase_by_id(testcase.key.id())
+    testcase = data_handler.get_testcase_by_id(testcase_id)
     testcase.set_metadata('env', env)
+    testcase.put()
 
   # We attempt minimization multiple times in case one round results in an
   # incorrect state, or runs into another issue such as a slow unit.
@@ -1356,11 +1356,20 @@ def do_libfuzzer_minimization(testcase, testcase_file_path):
     if cleansed_testcase_path:
       current_testcase_path = cleansed_testcase_path
 
+  testcase = data_handler.get_testcase_by_id(testcase_id)
+  with open(current_testcase_path, 'rb') as file_handle:
+    minimized_keys = blobs.write_blob(file_handle)
+  testcase.minimized_keys = minimized_keys
+  testcase.put()
+
   # Finalize the test case if we were able to reproduce it.
   repro_command = testcase_manager.get_command_line_for_application(
       file_to_run=current_testcase_path, needs_http=testcase.http_flag)
   finalize_testcase(
-      testcase.key.id(), repro_command, last_crash_result, flaky_stack=False)
+      testcase_id,
+      repro_command,
+      last_crash_result,
+      flaky_stack=testcase.flaky_stack)
 
   # Clean up after we're done.
   shell.clear_testcase_directories()
@@ -1368,7 +1377,8 @@ def do_libfuzzer_minimization(testcase, testcase_file_path):
 
 def do_libfuzzer_cleanse(testcase, testcase_file_path, expected_crash_state):
   """Cleanse testcase using libFuzzer."""
-  timeout = environment.get_value('LIBFUZZER_CLEANSE_TIMEOUT', 180)
+  timeout = environment.get_value('LIBFUZZER_CLEANSE_TIMEOUT',
+                                  LIBFUZZER_TIMEOUT)
   output_file_path, _ = _run_libfuzzer_tool(
       'cleanse', testcase, testcase_file_path, timeout, expected_crash_state)
 
