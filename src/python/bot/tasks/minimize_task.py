@@ -576,14 +576,10 @@ def execute_task(testcase_id, job_type):
 
   store_minimized_testcase(testcase, input_directory, file_list, data,
                            testcase_file_path)
-  finalize_testcase(
-      testcase_id, command, last_crash_result, flaky_stack=flaky_stack)
+  finalize_testcase(testcase_id, command, last_crash_result)
 
 
-def finalize_testcase(testcase_id,
-                      command,
-                      last_crash_result,
-                      flaky_stack=False):
+def finalize_testcase(testcase_id, command, last_crash_result):
   """Perform final updates on a test case and prepare it for other tasks."""
   # Symbolize crash output if we have it.
   testcase = data_handler.get_testcase_by_id(testcase_id)
@@ -592,7 +588,6 @@ def finalize_testcase(testcase_id,
   testcase.delete_metadata('redo_minimize', update_testcase=False)
 
   # Update remaining test case information.
-  testcase.flaky_stack = flaky_stack
   if build_manager.is_custom_binary():
     testcase.set_impacts_as_na()
     testcase.regression = 'NA'
@@ -1356,6 +1351,7 @@ def do_libfuzzer_minimization(testcase, testcase_file_path):
     if cleansed_testcase_path:
       current_testcase_path = cleansed_testcase_path
 
+  # Store the minimized testcase.
   testcase = data_handler.get_testcase_by_id(testcase_id)
   with open(current_testcase_path, 'rb') as file_handle:
     minimized_keys = blobs.write_blob(file_handle)
@@ -1365,11 +1361,7 @@ def do_libfuzzer_minimization(testcase, testcase_file_path):
   # Finalize the test case if we were able to reproduce it.
   repro_command = testcase_manager.get_command_line_for_application(
       file_to_run=current_testcase_path, needs_http=testcase.http_flag)
-  finalize_testcase(
-      testcase_id,
-      repro_command,
-      last_crash_result,
-      flaky_stack=testcase.flaky_stack)
+  finalize_testcase(testcase_id, repro_command, last_crash_result)
 
   # Clean up after we're done.
   shell.clear_testcase_directories()
