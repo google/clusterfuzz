@@ -48,9 +48,9 @@ class RunTest(unittest.TestCase):
   def test_run(self):
     """Test run."""
     self.stdout = [
-        'aaaa\n', 'bbbb\n',
-        ('Path: /var/folders/bg/tn9j_qb532s4fz11rzz7m6sc0000gm/0'
-         '//com.apple.LaunchServices-134500.csstore\n'), 'cccc\n', ''
+        b'aaaa\n', b'bbbb\n',
+        (b'Path: /var/folders/bg/tn9j_qb532s4fz11rzz7m6sc0000gm/0'
+         b'//com.apple.LaunchServices-134500.csstore\n'), b'cccc\n', b''
     ]
     mac.run()
 
