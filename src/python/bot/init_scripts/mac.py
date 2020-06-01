@@ -34,7 +34,7 @@ def _execute(cmd):
       cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
   try:
     for line in iter(proc.stdout.readline, b''):
-      yield line
+      yield line.decode('utf-8')
   finally:
     proc.kill()
 
