@@ -189,7 +189,7 @@ class OssFuzzProjectSetupTest(unittest.TestCase):
         _mock_get_or_create_service_account)
 
     self.mock.ProjectConfig.return_value = mock_config.MockConfig({
-        'project_setup': {
+        'project_setup': [{
             'source': 'oss-fuzz',
             'build_type': 'RELEASE_BUILD_BUCKET_PATH',
             'segregate_projects': True,
@@ -203,7 +203,7 @@ class OssFuzzProjectSetupTest(unittest.TestCase):
                 'libfuzzer_i386': 'clusterfuzz-builds-i386',
                 'no_engine': 'clusterfuzz-builds-no-engine',
             }
-        }
+        }]
     })
 
   def test_execute(self):
@@ -1573,6 +1573,22 @@ class GetLibrariesTest(unittest.TestCase):
         })])
 
 
+def _mock_read_data(path):
+  """Mock read_data."""
+  if 'dbg' in path:
+    return (b'{"projects": [{"build_path": '
+            b'"gs://bucket-dbg/a-b/%ENGINE%/%SANITIZER%/'
+            b'%TARGET%/([0-9]+).zip", '
+            b'"name": "//a/b", "fuzzing_engines": ["libfuzzer", "honggfuzz"], '
+            b'"sanitizers": ["address"]}]}')
+
+  return (b'{"projects": [{"build_path": '
+          b'"gs://bucket/a-b/%ENGINE%/%SANITIZER%/'
+          b'%TARGET%/([0-9]+).zip", '
+          b'"name": "//a/b", "fuzzing_engines": ["libfuzzer", "honggfuzz"], '
+          b'"sanitizers": ["address"]}]}')
+
+
 @test_utils.with_cloud_emulators('datastore', 'pubsub')
 class GenericProjectSetupTest(unittest.TestCase):
   """Test generic project setup."""
@@ -1607,41 +1623,66 @@ class GenericProjectSetupTest(unittest.TestCase):
         'handlers.base_handler.Handler.is_cron',
     ])
 
-    self.mock.read_data.return_value = (
-        b'{"projects": [{"build_path": '
-        b'"gs://bucket/a-b/%ENGINE%/%SANITIZER%/'
-        b'%TARGET%/([0-9]+).zip", '
-        b'"name": "//a/b", "fuzzing_engines": ["libfuzzer", "honggfuzz"], '
-        b'"sanitizers": ["address"]}]}')
+    self.mock.read_data.side_effect = _mock_read_data
 
     self.mock.ProjectConfig.return_value = mock_config.MockConfig({
-        'project_setup': {
-            'source': 'gs://bucket/projects.json',
-            'build_type': 'FUZZ_TARGET_BUILD_BUCKET_PATH',
-            'build_buckets': {
-                'afl': 'clusterfuzz-builds-afl',
-                'dataflow': 'clusterfuzz-builds-dataflow',
-                'honggfuzz': 'clusterfuzz-builds-honggfuzz',
-                'libfuzzer': 'clusterfuzz-builds',
-                'libfuzzer_i386': 'clusterfuzz-builds-i386',
-                'no_engine': 'clusterfuzz-builds-no-engine',
-            },
-            'additional_vars': {
-                'all': {
-                    'STRING_VAR': 'VAL',
-                    'BOOL_VAR': True,
-                    'INT_VAR': 0,
+        'project_setup': [
+            {
+                'source': 'gs://bucket/projects.json',
+                'build_type': 'FUZZ_TARGET_BUILD_BUCKET_PATH',
+                'build_buckets': {
+                    'afl': 'clusterfuzz-builds-afl',
+                    'dataflow': 'clusterfuzz-builds-dataflow',
+                    'honggfuzz': 'clusterfuzz-builds-honggfuzz',
+                    'libfuzzer': 'clusterfuzz-builds',
+                    'libfuzzer_i386': 'clusterfuzz-builds-i386',
+                    'no_engine': 'clusterfuzz-builds-no-engine',
                 },
-                'libfuzzer': {
-                    'address': {
-                        'ASAN_VAR': 'VAL',
+                'additional_vars': {
+                    'all': {
+                        'STRING_VAR': 'VAL',
+                        'BOOL_VAR': True,
+                        'INT_VAR': 0,
                     },
-                    'memory': {
-                        'NOT_SET': 'VAL',
+                    'libfuzzer': {
+                        'address': {
+                            'ASAN_VAR': 'VAL',
+                        },
+                        'memory': {
+                            'NOT_SET': 'VAL',
+                        }
                     }
                 }
-            }
-        }
+            },
+            {
+                'source': 'gs://bucket-dbg/projects.json',
+                'suffix': '_dbg',
+                'build_type': 'FUZZ_TARGET_BUILD_BUCKET_PATH',
+                'build_buckets': {
+                    'afl': 'clusterfuzz-builds-afl-dbg',
+                    'dataflow': 'clusterfuzz-builds-dataflow-dbg',
+                    'honggfuzz': 'clusterfuzz-builds-honggfuzz-dbg',
+                    'libfuzzer': 'clusterfuzz-builds-dbg',
+                    'libfuzzer_i386': 'clusterfuzz-builds-i386-dbg',
+                    'no_engine': 'clusterfuzz-builds-no-engine-dbg',
+                },
+                'additional_vars': {
+                    'all': {
+                        'STRING_VAR': 'VAL-dbg',
+                        'BOOL_VAR': True,
+                        'INT_VAR': 0,
+                    },
+                    'libfuzzer': {
+                        'address': {
+                            'ASAN_VAR': 'VAL-dbg',
+                        },
+                        'memory': {
+                            'NOT_SET': 'VAL-dbg',
+                        }
+                    }
+                }
+            },
+        ],
     })
 
   def test_execute(self):
@@ -1661,6 +1702,19 @@ class GenericProjectSetupTest(unittest.TestCase):
                          job.templates)
 
     job = data_types.Job.query(
+        data_types.Job.name == 'libfuzzer_asan_a-b_dbg').get()
+    self.assertEqual(
+        'FUZZ_TARGET_BUILD_BUCKET_PATH = '
+        'gs://bucket-dbg/a-b/libfuzzer/address/%TARGET%/([0-9]+).zip\n'
+        'PROJECT_NAME = //a/b\nSUMMARY_PREFIX = //a/b\nMANAGED = True\n'
+        'ASAN_VAR = VAL-dbg\n'
+        'BOOL_VAR = True\n'
+        'INT_VAR = 0\n'
+        'STRING_VAR = VAL-dbg\n', job.environment_string)
+    six.assertCountEqual(self, ['engine_asan', 'libfuzzer', 'prune'],
+                         job.templates)
+
+    job = data_types.Job.query(
         data_types.Job.name == 'honggfuzz_asan_a-b').get()
     self.assertEqual(
         'FUZZ_TARGET_BUILD_BUCKET_PATH = '
@@ -1672,10 +1726,23 @@ class GenericProjectSetupTest(unittest.TestCase):
         'STRING_VAR = VAL\n', job.environment_string)
     six.assertCountEqual(self, ['engine_asan', 'honggfuzz'], job.templates)
 
+    job = data_types.Job.query(
+        data_types.Job.name == 'honggfuzz_asan_a-b_dbg').get()
+    self.assertEqual(
+        'FUZZ_TARGET_BUILD_BUCKET_PATH = '
+        'gs://bucket-dbg/a-b/honggfuzz/address/%TARGET%/([0-9]+).zip\n'
+        'PROJECT_NAME = //a/b\nSUMMARY_PREFIX = //a/b\nMANAGED = True\n'
+        'MINIMIZE_JOB_OVERRIDE = libfuzzer_asan_a-b_dbg\n'
+        'BOOL_VAR = True\n'
+        'INT_VAR = 0\n'
+        'STRING_VAR = VAL-dbg\n', job.environment_string)
+    six.assertCountEqual(self, ['engine_asan', 'honggfuzz'], job.templates)
+
     libfuzzer = data_types.Fuzzer.query(
         data_types.Fuzzer.name == 'libFuzzer').get()
     six.assertCountEqual(self, [
         'libfuzzer_asan_a-b',
+        'libfuzzer_asan_a-b_dbg',
         'old_unmanaged',
     ], libfuzzer.jobs)
 
@@ -1686,4 +1753,5 @@ class GenericProjectSetupTest(unittest.TestCase):
         data_types.Fuzzer.name == 'honggfuzz').get()
     six.assertCountEqual(self, [
         'honggfuzz_asan_a-b',
+        'honggfuzz_asan_a-b_dbg',
     ], honggfuzz.jobs)

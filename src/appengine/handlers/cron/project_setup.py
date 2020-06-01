@@ -100,8 +100,9 @@ class JobInfo(object):
     self.experimental = experimental
     self.minimize_job_override = minimize_job_override
 
-  def job_name(self, project_name):
-    return self.prefix + data_types.normalized_name(project_name)
+  def job_name(self, project_name, config_suffix):
+    return (
+        self.prefix + data_types.normalized_name(project_name) + config_suffix)
 
 
 # The order of templates is important here. Later templates override settings in
@@ -402,43 +403,6 @@ def add_service_account_to_bucket(client, bucket_name, service_account, role):
   storage.set_bucket_iam_policy(client, bucket_name, iam_policy)
 
 
-def sync_user_permissions(project, info):
-  """Sync permissions of project based on project.yaml."""
-  ccs = ccs_from_info(info)
-
-  for template in get_jobs_for_project(project, info):
-    job_name = template.job_name(project)
-
-    # Delete removed CCs.
-    existing_ccs = data_types.ExternalUserPermission.query(
-        data_types.ExternalUserPermission.entity_kind ==
-        data_types.PermissionEntityKind.JOB,
-        data_types.ExternalUserPermission.entity_name == job_name)
-    ndb_utils.delete_multi([
-        permission.key
-        for permission in existing_ccs
-        if permission.email not in ccs
-    ])
-
-    for cc in ccs:
-      query = data_types.ExternalUserPermission.query(
-          data_types.ExternalUserPermission.email == cc,
-          data_types.ExternalUserPermission.entity_kind ==
-          data_types.PermissionEntityKind.JOB,
-          data_types.ExternalUserPermission.entity_name == job_name)
-
-      existing_permission = query.get()
-      if existing_permission:
-        continue
-
-      data_types.ExternalUserPermission(
-          email=cc,
-          entity_kind=data_types.PermissionEntityKind.JOB,
-          entity_name=job_name,
-          is_prefix=False,
-          auto_cc=data_types.AutoCCType.ALL).put()
-
-
 def ccs_from_info(info):
   """Get list of CC's from project info."""
 
@@ -602,6 +566,7 @@ class ProjectSetup(object):
                build_bucket_path_template,
                revision_url_template,
                build_type,
+               config_suffix='',
                segregate_projects=False,
                engine_build_buckets=None,
                fuzzer_entities=None,
@@ -609,6 +574,7 @@ class ProjectSetup(object):
                add_revision_mappings=False,
                additional_vars=None):
     self._build_type = build_type
+    self._config_suffix = config_suffix
     self._build_bucket_path_template = build_bucket_path_template
     self._revision_url_template = revision_url_template
     self._segregate_projects = segregate_projects
@@ -735,7 +701,7 @@ class ProjectSetup(object):
       if not fuzzer_entity:
         raise ProjectSetupError('Invalid fuzzing engine ' + template.engine)
 
-      job_name = template.job_name(project)
+      job_name = template.job_name(project, self._config_suffix)
       job = data_types.Job.query(data_types.Job.name == job_name).get()
       if not job:
         job = data_types.Job()
@@ -804,7 +770,8 @@ class ProjectSetup(object):
         job.environment_string += 'EXPERIMENTAL = True\n'
 
       if template.minimize_job_override:
-        minimize_job_override = template.minimize_job_override.job_name(project)
+        minimize_job_override = template.minimize_job_override.job_name(
+            project, self._config_suffix)
         job.environment_string += (
             'MINIMIZE_JOB_OVERRIDE = %s\n' % minimize_job_override)
 
@@ -850,6 +817,42 @@ class ProjectSetup(object):
 
       job.put()
 
+  def sync_user_permissions(self, project, info):
+    """Sync permissions of project based on project.yaml."""
+    ccs = ccs_from_info(info)
+
+    for template in get_jobs_for_project(project, info):
+      job_name = template.job_name(project, self._config_suffix)
+
+      # Delete removed CCs.
+      existing_ccs = data_types.ExternalUserPermission.query(
+          data_types.ExternalUserPermission.entity_kind ==
+          data_types.PermissionEntityKind.JOB,
+          data_types.ExternalUserPermission.entity_name == job_name)
+      ndb_utils.delete_multi([
+          permission.key
+          for permission in existing_ccs
+          if permission.email not in ccs
+      ])
+
+      for cc in ccs:
+        query = data_types.ExternalUserPermission.query(
+            data_types.ExternalUserPermission.email == cc,
+            data_types.ExternalUserPermission.entity_kind ==
+            data_types.PermissionEntityKind.JOB,
+            data_types.ExternalUserPermission.entity_name == job_name)
+
+        existing_permission = query.get()
+        if existing_permission:
+          continue
+
+        data_types.ExternalUserPermission(
+            email=cc,
+            entity_kind=data_types.PermissionEntityKind.JOB,
+            entity_name=job_name,
+            is_prefix=False,
+            auto_cc=data_types.AutoCCType.ALL).put()
+
   def set_up(self, projects):
     """Do project setup."""
     for project, info in projects:
@@ -871,7 +874,7 @@ class ProjectSetup(object):
                      logs_bucket_name, backup_bucket_name)
 
       if self._segregate_projects:
-        sync_user_permissions(project, info)
+        self.sync_user_permissions(project, info)
 
         # Create Pub/Sub topics for tasks.
         create_pubsub_topics(project)
@@ -919,47 +922,46 @@ class Handler(base_handler.Handler):
       logs.log_error('Failed to get honggfuzz Fuzzer entity.')
       return
 
-    project_setup_config = local_config.ProjectConfig().sub_config(
-        'project_setup')
-    bucket_config = project_setup_config.sub_config('build_buckets')
+    project_setup_configs = local_config.ProjectConfig().get('project_setup')
+    for setup_config in project_setup_configs:
+      bucket_config = setup_config.get('build_buckets')
 
-    if not bucket_config:
-      raise ProjectSetupError('Project setup buckets not specified.')
+      if not bucket_config:
+        raise ProjectSetupError('Project setup buckets not specified.')
 
-    config = ProjectSetup(
-        BUILD_BUCKET_PATH_TEMPLATE,
-        REVISION_URL,
-        project_setup_config.get('build_type'),
-        segregate_projects=project_setup_config.get(
-            'segregate_projects', default=False),
-        engine_build_buckets={
-            'libfuzzer': bucket_config.get('libfuzzer'),
-            'libfuzzer-i386': bucket_config.get('libfuzzer_i386'),
-            'afl': bucket_config.get('afl'),
-            'honggfuzz': bucket_config.get('honggfuzz'),
-            'none': bucket_config.get('no_engine'),
-            'dataflow': bucket_config.get('dataflow'),
-        },
-        fuzzer_entities={
-            'libfuzzer': libfuzzer,
-            'honggfuzz': honggfuzz,
-            'afl': afl,
-        },
-        add_info_labels=project_setup_config.get(
-            'add_info_labels', default=False),
-        add_revision_mappings=project_setup_config.get(
-            'add_revision_mappings', default=False),
-        additional_vars=project_setup_config.get('additional_vars'))
+      config = ProjectSetup(
+          BUILD_BUCKET_PATH_TEMPLATE,
+          REVISION_URL,
+          setup_config.get('build_type'),
+          config_suffix=setup_config.get('suffix', ''),
+          segregate_projects=setup_config.get('segregate_projects', False),
+          engine_build_buckets={
+              'libfuzzer': bucket_config.get('libfuzzer'),
+              'libfuzzer-i386': bucket_config.get('libfuzzer_i386'),
+              'afl': bucket_config.get('afl'),
+              'honggfuzz': bucket_config.get('honggfuzz'),
+              'none': bucket_config.get('no_engine'),
+              'dataflow': bucket_config.get('dataflow'),
+          },
+          fuzzer_entities={
+              'libfuzzer': libfuzzer,
+              'honggfuzz': honggfuzz,
+              'afl': afl,
+          },
+          add_info_labels=setup_config.get('add_info_labels', False),
+          add_revision_mappings=setup_config.get('add_revision_mappings',
+                                                 False),
+          additional_vars=setup_config.get('additional_vars'))
 
-    projects_source = project_setup_config.get('source')
-    if projects_source == 'oss-fuzz':
-      projects = get_oss_fuzz_projects()
-    elif projects_source.startswith(storage.GS_PREFIX):
-      projects = get_projects_from_gcs(projects_source)
-    else:
-      raise ProjectSetupError('Invalid projects source: ' + projects_source)
+      projects_source = setup_config.get('source')
+      if projects_source == 'oss-fuzz':
+        projects = get_oss_fuzz_projects()
+      elif projects_source.startswith(storage.GS_PREFIX):
+        projects = get_projects_from_gcs(projects_source)
+      else:
+        raise ProjectSetupError('Invalid projects source: ' + projects_source)
 
-    if not projects:
-      raise ProjectSetupError('Missing projects list.')
+      if not projects:
+        raise ProjectSetupError('Missing projects list.')
 
-    config.set_up(projects)
+      config.set_up(projects)
