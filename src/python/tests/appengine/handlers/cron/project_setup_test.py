@@ -1656,7 +1656,7 @@ class GenericProjectSetupTest(unittest.TestCase):
             },
             {
                 'source': 'gs://bucket-dbg/projects.json',
-                'suffix': '_dbg',
+                'job_suffix': '_dbg',
                 'build_type': 'FUZZ_TARGET_BUILD_BUCKET_PATH',
                 'build_buckets': {
                     'afl': 'clusterfuzz-builds-afl-dbg',

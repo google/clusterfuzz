@@ -933,7 +933,7 @@ class Handler(base_handler.Handler):
           BUILD_BUCKET_PATH_TEMPLATE,
           REVISION_URL,
           setup_config.get('build_type'),
-          config_suffix=setup_config.get('suffix', ''),
+          config_suffix=setup_config.get('job_suffix', ''),
           segregate_projects=setup_config.get('segregate_projects', False),
           engine_build_buckets={
               'libfuzzer': bucket_config.get('libfuzzer'),
