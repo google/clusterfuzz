@@ -173,13 +173,6 @@
       properties: {
         stacktrace: Object,
         name: String,
-        isPreviewed: {
-          type: Boolean,
-          value: true
-        }
-      },
-      toggle() {
-        this.isPreviewed = !this.isPreviewed;
       },
       importantClass(line) {
         return line.important ? 'important': '';
