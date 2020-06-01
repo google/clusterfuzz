@@ -142,13 +142,11 @@
     </style>
     <div class="stacktrace">
       <div class="title">
-        <span slot="f">
-          [[name]]
-          <template is="dom-if" if="[[stacktrace.revision]]">
-            on <span class="revision">revision [[stacktrace.revision]]</span>
-          </template>
-          ([[stacktrace.lines.length]] lines)
-        </span>
+        [[name]]
+        <template is="dom-if" if="[[stacktrace.revision]]">
+          on <span class="revision">revision [[stacktrace.revision]]</span>
+        </template>
+        ([[stacktrace.lines.length]] lines)
       </div>
       <div class="body">
         <table>
@@ -176,12 +174,6 @@
       },
       importantClass(line) {
         return line.important ? 'important': '';
-      },
-      isLine(lineOrGap) {
-        return lineOrGap.type == 'Line';
-      },
-      isGap(lineOrGap) {
-        return lineOrGap.type == 'Gap';
       },
       formatContent(content) {
         return content.replace('\t', '&emsp;');
