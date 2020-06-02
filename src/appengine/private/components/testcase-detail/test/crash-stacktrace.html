@@ -36,14 +36,6 @@
     suite2('<crash-stacktrace>', ($) => {
       setup(function() {
         $.panel.stacktrace = {
-          preview_lines: [
-            {'type': 'Line', lineNumber: 1, content: '<b>a</b>'},
-            {'type': 'Gap', size: 10},
-            {'type': 'Line', lineNumber: 12, content: '  \t  b'},
-            {'type': 'Line', lineNumber: 13, content: 'c',
-             important: true},
-            {'type': 'Gap', size: 10}
-          ],
           lines: [
             {'type': 'Line', lineNumber: 1, content: '<b>aa</b>'},
             {'type': 'Line', lineNumber: 2, content: ' \t  b'},
@@ -57,41 +49,13 @@
         $.panel.name = 'name';
       });
 
-      test2(
-          'no preview (because preview_lines is empty)',
-          () => {
-            $.panel.set('stacktrace.preview_lines', []);
-          },
-          () => {
-            const rows = $.selectAll('.stacktrace tr');
-            expect(rows.length).to.be.eql(6);
-            expect($.panel.shouldHavePreview($.panel.stacktrace.preview_lines))
-                .to.be.false;
-          }
-      )
-
       test2('render title', noop, () => {
         expect($.select('.stacktrace .title').innerHTML).to.include('name');
         expect($.select('.stacktrace .title').innerHTML).to.include('123');
-        expect($.select('.stacktrace .title').innerHTML).to
-            .include('(6 lines)');
-        expect($.panel.shouldHavePreview($.panel.stacktrace.preview_lines))
-            .to.be.true;
-      });
-
-      test2('render preview', noop, () => {
-        const rows = $.selectAll('.stacktrace tr');
-        expect(rows.length).to.be.eql(5);
-        expect(rows[0].classList.contains('code')).to.true;
-        expect(rows[1].classList.contains('gap')).to.true;
-        expect(rows[2].classList.contains('code')).to.true;
-        expect(rows[3].classList.contains('code')).to.true;
-        expect(rows[4].classList.contains('gap')).to.true;
       });
 
       test2(
-          'render full trace',
-          () => { $.panel.isPreviewed = false; },
+          'render trace', noop,
           () => {
             const rows = $.selectAll('.stacktrace tr');
             expect(rows.length).to.be.eql(6);
@@ -103,28 +67,16 @@
           }
       );
 
-      test2('highlights in preview', noop, () => {
-        const tr = $.selectAll('.stacktrace tr')[3];
-        expect(tr.classList.contains('important')).to.true;
-      });
-
       test2(
-          'highlights in full trace',
-          () => { $.panel.isPreviewed = false; },
+          'highlights', noop,
           () => {
             const tr = $.selectAll('.stacktrace tr')[2];
             expect(tr.classList.contains('important')).to.true;
           }
       );
 
-      test2('avoid escaping html in preview', noop, () => {
-        const cells = $.selectAll('.stacktrace tr td');
-        expect(cells[1].innerHTML).to.include('<b>a</b>');
-      });
-
       test2(
-          'avoid escaping html in full trace',
-          () => { $.panel.isPreviewed = false; },
+          'avoid escaping html', noop,
           () => {
             const cells = $.selectAll('.stacktrace tr td');
             expect(cells[1].innerHTML).to.include('<b>aa</b>');

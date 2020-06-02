@@ -14,7 +14,6 @@
 """show tests."""
 # pylint: disable=protected-access
 from builtins import str
-from past.builtins import basestring
 import collections
 import datetime
 import os
@@ -163,95 +162,6 @@ class ConvertToLinesTest(unittest.TestCase):
     self._test_special_type('V8 correctness failure something')
 
 
-class PreviewStacktraceTest(unittest.TestCase):
-  """Test _preview_stacktrace."""
-
-  def _make(self, array):
-    """Create either Line from a tuple or Gap from an int."""
-    preview_lines_with_gaps = []
-    line_number = 1
-    for line in array:
-      if isinstance(line, basestring):
-        preview_lines_with_gaps.append(
-            show.Line(line_number, line, line.startswith('t-')))
-        line_number += 1
-      else:
-        line_number += line
-        preview_lines_with_gaps.append(show.Gap(line))
-    return preview_lines_with_gaps
-
-  def test_empty(self):
-    """Test empty stacktrace."""
-    self.assertListEqual(show._preview_stacktrace([], 10, 3), [])
-
-  def test_no_preview_small(self):
-    """Test no preview because the stacktrace is so small."""
-    lines = self._make(
-        ['a', 'b', 'x', 'x', 'x', 't-c', 't-d', 't-e', 'x', 'x', 'x'])
-    self.assertListEqual(show._preview_stacktrace(lines, 11, 5), [])
-
-  def test_no_preview_no_match(self):
-    """Test no preview because there is no important lines."""
-    lines = self._make([
-        'a', 'b', 'x', 'x', 'x', 'c', 'd', 'e', 'c', 'd', 'e', 'c', 'd', 'e',
-        'x', 'x', 'x'
-    ])
-    self.assertListEqual(show._preview_stacktrace(lines, 11, 5), [])
-
-  def test_preview_middle_and_end(self):
-    """Test preview in the middle and in the end."""
-    stack = self._make(
-        ['a', 'b', 'z', 'x', 'x', 'x', 't-c', 't-d', 't-e', 'x', 'x', 'x', 'z'])
-    expected = self._make([
-        3,
-        'x',
-        'x',
-        'x',
-        't-c',
-        't-d',
-        't-e',
-        'x',
-        'x',
-        'x',
-        1,
-    ])
-    result = show._preview_stacktrace(stack, 10, 3)
-    self.assertListEqual(result, expected)
-
-  def test_preview_two_parts(self):
-    """Test preview in 2 parts in the middle."""
-    stack = self._make([
-        'a', 'b', 'z', 'x', 'x', 'x', 't-c', 't-d', 't-e', 'x', 'x', 'x', 'z',
-        'x', 'x', 'x', 't-c', 'x', 'x', 'x', 'x', 'x', 'z'
-    ])
-    expected = self._make([
-        3, 'x', 'x', 'x', 't-c', 't-d', 't-e', 'x', 'x', 'x', 1, 'x', 'x', 'x',
-        't-c', 'x', 'x', 'x', 3
-    ])
-    result = show._preview_stacktrace(stack, 16, 3)
-    self.assertListEqual(result, expected)
-
-  def test_preview_two_parts_hit_limit(self):
-    """Test preview in 2 parts in the middle and hit limit."""
-    stack = self._make([
-        'a', 'b', 'z', 'x', 'x', 'x', 't-c', 't-d', 't-e', 'x', 'x', 'x', 'z',
-        'x', 'x', 'x', 't-c', 'x', 'x', 'x', 'x', 'x', 'z'
-    ])
-    expected = self._make([
-        3,
-        'x',
-        'x',
-        'x',
-        't-c',
-        't-d',
-        't-e',
-        'x',
-        13,
-    ])
-    result = show._preview_stacktrace(stack, 7, 3)
-    self.assertListEqual(result, expected)
-
-
 class HighlightCommonStackFramesTest(unittest.TestCase):
   """Test highlight_common_stack_frames."""
 
@@ -386,7 +296,11 @@ class FilterStacktraceTest(unittest.TestCase):
          'signed integer overflow:159714659 + 1996488831 cannot be represented '
          'in type \'int\''), 'random'
     ])
-    expected = stack
+    expected = '\n'.join([
+        ('../../net/spdy/chromium/spdy_stream.cc:227:21: runtime error: '
+         'signed integer overflow:159714659 + 1996488831 cannot be represented '
+         'in type &#x27;int&#x27;'), 'random'
+    ])
 
     self.assertEqual(
         show.filter_stacktrace(stack, 'type', revisions_dict), expected)

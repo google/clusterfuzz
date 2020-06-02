@@ -14,9 +14,8 @@
 """Handler for showing the testcase detail page."""
 
 from builtins import object
-from builtins import range
-import cgi
 import datetime
+import html
 import jinja2
 import re
 
@@ -54,8 +53,6 @@ CRASH_STATE_REGEXES = [
 COMPILED_CRASH_STATE_REGEXES = [
     re.compile(r, flags=re.IGNORECASE) for r in CRASH_STATE_REGEXES
 ]
-
-MAX_PREVIEW_STACKTRACE_LINE_COUNT = 25
 
 
 def _parse_suspected_cls(predator_result):
@@ -163,8 +160,7 @@ def filter_stacktrace(crash_stacktrace, crash_type, revisions_dict):
   filtered_crash_lines = []
   for line in crash_stacktrace.splitlines():
     # Html escape line content to prevent XSS.
-    line = cgi.escape(line, quote=True)
-
+    line = html.escape(line, quote=True)
     line = source_mapper.linkify_stack_frame(line, revisions_dict)
 
     filtered_crash_lines.append(line)
@@ -278,49 +274,6 @@ def convert_to_lines(raw_stacktrace, crash_state_lines, crash_type):
   return lines
 
 
-def _preview_stacktrace(lines,
-                        limit=MAX_PREVIEW_STACKTRACE_LINE_COUNT,
-                        padding=7):
-  """Preview stacktrace around crash_state."""
-  preview_lines = set()
-  length = len(lines)
-
-  if length <= limit:
-    return []
-
-  for index, line in enumerate(lines):
-    if line.important:
-      this_preview_lines = set()
-
-      for i in range(index - padding, index + padding + 1):
-        if i < 0 or i >= length:
-          continue
-        this_preview_lines.add(lines[i])
-
-      if (len(preview_lines | this_preview_lines)) <= limit:
-        preview_lines |= this_preview_lines
-
-  preview_lines = sorted(list(preview_lines), key=lambda l: l.line_number)
-  preview_lines_with_gaps = []
-  previous_line_number = 0
-
-  for line in preview_lines:
-    if (line.line_number - 1) > previous_line_number:
-      preview_lines_with_gaps.append(
-          Gap(line.line_number - previous_line_number - 1))
-
-    preview_lines_with_gaps.append(line)
-    previous_line_number = line.line_number
-
-  if not preview_lines_with_gaps:
-    return []
-
-  if length > previous_line_number:
-    preview_lines_with_gaps.append(Gap(length - previous_line_number))
-
-  return preview_lines_with_gaps
-
-
 def get_testcase_detail_by_id(testcase_id):
   """Get testcase detail for rendering the testcase detail page."""
   testcase = access.check_access_and_get_testcase(testcase_id)
@@ -431,7 +384,6 @@ def get_testcase_detail(testcase):
                                        crash_revisions_dict)
   crash_stacktrace = convert_to_lines(crash_stacktrace, crash_state_lines,
                                       crash_type)
-  crash_stacktrace_preview_lines = _preview_stacktrace(crash_stacktrace)
 
   last_tested_crash_revision = metadata.get('last_tested_crash_revision')
   last_tested_crash_revisions_dict = revisions.get_component_revisions_dict(
@@ -443,8 +395,6 @@ def get_testcase_detail(testcase):
       last_tested_crash_revisions_dict)
   last_tested_crash_stacktrace = convert_to_lines(last_tested_crash_stacktrace,
                                                   crash_state_lines, crash_type)
-  last_tested_crash_stacktrace_preview_lines = _preview_stacktrace(
-      last_tested_crash_stacktrace)
 
   privileged_user = access.has_access(need_privileged_access=True)
 
@@ -548,8 +498,6 @@ def get_testcase_detail(testcase):
       'crash_stacktrace': {
           'lines':
               crash_stacktrace,
-          'preview_lines':
-              crash_stacktrace_preview_lines,
           'revision':
               revisions.get_real_revision(
                   crash_revision, testcase.job_type, display=True)
@@ -557,8 +505,6 @@ def get_testcase_detail(testcase):
       'last_tested_crash_stacktrace': {
           'lines':
               last_tested_crash_stacktrace,
-          'preview_lines':
-              last_tested_crash_stacktrace_preview_lines,
           'revision':
               revisions.get_real_revision(
                   last_tested_crash_revision, testcase.job_type, display=True)
