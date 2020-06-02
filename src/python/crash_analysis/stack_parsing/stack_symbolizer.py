@@ -671,7 +671,7 @@ def download_system_symbols_if_needed(symbols_directory):
                                          '.cached_build_params')
   cached_build_params = utils.read_data_from_file(
       build_params_check_path, eval_data=True)
-  if cached_build_params and cmp(cached_build_params, build_params) == 0:
+  if cached_build_params and cached_build_params == build_params:
     # No work to do, same system symbols already in cache.
     return
 
