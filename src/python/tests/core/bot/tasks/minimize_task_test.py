@@ -171,7 +171,6 @@ class MinimizeTaskTestUntrusted(
         fuzzer_name='libFuzzer',
         overridden_fuzzer_name='libFuzzer_test_fuzzer',
         job_type='libfuzzer_asan_job',
-        original_absolute_path=testcase_path,
         absolute_path=testcase_path,
         minimized_arguments='%TESTCASE% test_fuzzer')
     testcase.put()

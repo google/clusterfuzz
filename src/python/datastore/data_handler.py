@@ -714,7 +714,6 @@ def store_testcase(crash, fuzzed_keys, minimized_keys, regression, fixed,
 
   testcase.one_time_crasher_flag = one_time_crasher_flag
   testcase.crash_revision = crash_revision
-  testcase.original_absolute_path = absolute_path
   testcase.absolute_path = absolute_path
   testcase.fuzzer_name = fuzzer_name
   testcase.overridden_fuzzer_name = fully_qualified_fuzzer_name or fuzzer_name

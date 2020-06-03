@@ -105,8 +105,6 @@ class Handler(base_handler.Handler):
           'Your change conflicts with another configuration update. '
           'Please refresh and try again.', 500)
 
-    build_apiary_service_account_email = self.request.get(
-        'build_apiary_service_account_email')
     build_apiary_service_account_private_key = self.request.get(
         'build_apiary_service_account_private_key')
     bug_report_url = self.request.get('bug_report_url')
@@ -136,8 +134,6 @@ class Handler(base_handler.Handler):
     sendgrid_api_key = self.request.get('sendgrid_api_key')
     sendgrid_sender = self.request.get('sendgrid_sender')
 
-    config.build_apiary_service_account_email = (
-        build_apiary_service_account_email)
     config.build_apiary_service_account_private_key = (
         build_apiary_service_account_private_key)
     config.bug_report_url = bug_report_url
