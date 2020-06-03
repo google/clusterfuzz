@@ -1,6 +1,7 @@
 firebase-admin==2.16.0
 Jinja2==2.11.1
 jira==2.0.0
+pyOpenSSL==19.1.0
 PyJWT==1.7.1
 requests-toolbelt==0.9.1
 sendgrid==6.0.4
