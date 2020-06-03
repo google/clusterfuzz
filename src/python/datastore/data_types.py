@@ -425,7 +425,6 @@ class Testcase(Model):
   crash_revision = ndb.IntegerProperty()
 
   # The file on the bot that generated the testcase.
-  original_absolute_path = TextProperty(default='')
   absolute_path = TextProperty()
 
   # Minimized argument list.
@@ -753,7 +752,6 @@ class Config(Model):
   jira_credentials = TextProperty(default='')
 
   # Build apiary authentication parameters.
-  build_apiary_service_account_email = StringProperty(default='')
   build_apiary_service_account_private_key = TextProperty(default='')
 
   # Google test account for login, gms testing, etc.
