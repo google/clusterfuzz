@@ -21,6 +21,7 @@ from future import standard_library
 standard_library.install_aliases()
 import apiclient
 import io
+import json
 import os
 import re
 
@@ -114,19 +115,15 @@ def get_artifacts_for_build(client, bid, target, attempt_id='latest'):
 def get_client():
   """Return client with connection to build apiary."""
   # Connect using build apiary service account credentials.
-  build_apiary_service_account_email = db_config.get_value(
-      'build_apiary_service_account_email')
   build_apiary_service_account_private_key = db_config.get_value(
       'build_apiary_service_account_private_key')
-  if (not build_apiary_service_account_email or
-      not build_apiary_service_account_private_key):
+  if not build_apiary_service_account_private_key:
     logs.log(
         'Android build apiary credentials are not set, skip artifact fetch.')
     return None
 
-  credentials = ServiceAccountCredentials.from_p12_keyfile_buffer(
-      build_apiary_service_account_email,
-      io.BytesIO(build_apiary_service_account_private_key),
+  credentials = ServiceAccountCredentials.from_json_keyfile_dict(
+      json.loads(build_apiary_service_account_private_key),
       scopes='https://www.googleapis.com/auth/androidbuild.internal')
   client = apiclient.discovery.build(
       'androidbuildinternal',
