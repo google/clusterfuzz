@@ -50,7 +50,8 @@ def execute_request_with_retries(request):
   return result
 
 
-def download_artifact(client, bid, target, attempt_id, name, output_directory):
+def download_artifact(client, bid, target, attempt_id, name, output_directory,
+                      output_filename):
   """Download one artifact."""
   artifact_query = client.buildartifact().get(
       buildId=bid, target=target, attemptId=attempt_id, resourceId=name)
@@ -71,9 +72,13 @@ def download_artifact(client, bid, target, attempt_id, name, output_directory):
   dl_request = client.buildartifact().get_media(
       buildId=bid, target=target, attemptId=attempt_id, resourceId=name)
 
-  # If the artifact already exists, then bail out.
-  file_name = name.replace('signed/', '')
+  if output_filename:
+    file_name = output_filename
+  else:
+    file_name = name.replace('signed/', '')
+
   output_path = os.path.join(output_directory, file_name)
+  # If the artifact already exists, then bail out.
   if os.path.exists(output_path) and os.path.getsize(output_path) == size:
     logs.log('Artifact %s already exists, skipping download.' % name)
     return output_path
@@ -159,7 +164,7 @@ def get_latest_artifact_info(branch, target, signed=False):
   return {'bid': bid, 'target': target}
 
 
-def get(bid, target, regex, output_directory):
+def get(bid, target, regex, output_directory, output_filename=None):
   """Return artifact for a given build id, target and file regex."""
   client = get_client()
   if not client:
@@ -171,10 +176,11 @@ def get(bid, target, regex, output_directory):
       bid=bid,
       target=target,
       regex=regex,
-      output_directory=output_directory)
+      output_directory=output_directory,
+      output_filename=output_filename)
 
 
-def run_script(client, bid, target, regex, output_directory):
+def run_script(client, bid, target, regex, output_directory, output_filename):
   """Download artifacts as specified."""
   artifacts = get_artifacts_for_build(
       client=client, bid=bid, target=target, attempt_id='latest')
@@ -199,6 +205,7 @@ def run_script(client, bid, target, regex, output_directory):
           target=target,
           attempt_id='latest',
           name=artifact_name,
-          output_directory=output_directory)
+          output_directory=output_directory,
+          output_filename=output_filename)
 
   return result

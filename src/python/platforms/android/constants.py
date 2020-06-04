@@ -38,3 +38,13 @@ BUILD_PROP_MD5_KEY = 'android_build_prop_md5'
 LAST_TEST_ACCOUNT_CHECK_KEY = 'android_last_test_account_check'
 LAST_FLASH_BUILD_KEY = 'android_last_flash'
 LAST_FLASH_TIME_KEY = 'android_last_flash_time'
+
+PRODUCT_TO_KERNEL = {
+    'blueline': 'bluecross',
+    'crosshatch': 'bluecross',
+    'flame': 'floral',
+    'coral': 'floral',
+    'walleye': 'wahoo',
+    'muskie': 'wahoo',
+    'taimen': 'wahoo',
+}

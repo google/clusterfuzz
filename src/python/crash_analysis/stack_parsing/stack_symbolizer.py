@@ -45,6 +45,7 @@ from metrics import logs
 from platforms.android import adb
 from platforms.android import fetch_artifact
 from platforms.android import settings
+from platforms.android import symbols_downloader
 from system import archive
 from system import environment
 from system import shell
@@ -556,7 +557,7 @@ def filter_binary_path(binary_path):
 
     # We didn't find the library locally in the build directory.
     # Try finding the library in the local system library cache.
-    download_system_symbols_if_needed(symbols_directory)
+    symbols_downloader.download_system_symbols_if_needed(symbols_directory)
     local_binary_path = utils.find_binary_path(symbols_directory, binary_path)
     if local_binary_path:
       return local_binary_path
@@ -636,74 +637,3 @@ def symbolize_stacktrace(unsymbolized_crash_stacktrace,
       unsymbolized_crash_stacktrace)
 
   return symbolized_crash_stacktrace
-
-
-def download_system_symbols_if_needed(symbols_directory):
-  """Download system libraries from |SYMBOLS_URL| and cache locally."""
-  # For local testing, we do not have access to the cloud storage bucket with
-  # the symbols. In this case, just bail out.
-  if environment.get_value('LOCAL_DEVELOPMENT'):
-    return
-
-  # When running reproduce tool locally, we do not have access to the cloud
-  # storage bucket with the symbols. In this case, just bail out.
-  if environment.get_value('REPRODUCE_TOOL'):
-    return
-
-  # We have archived symbols for google builds only.
-  if not settings.is_google_device():
-    return
-
-  # Get the build fingerprint parameters.
-  build_params = settings.get_build_parameters()
-  if not build_params:
-    logs.log_error('Unable to determine build parameters.')
-    return
-  build_id = build_params.get('build_id')
-  target = build_params.get('target')
-  type = build_params.get('type')
-  if not build_id or not target or not type:
-    logs.log_error('Null build parameters found, exiting.')
-    return
-
-  # Check if we already have the symbols in cache.
-  build_params_check_path = os.path.join(symbols_directory,
-                                         '.cached_build_params')
-  cached_build_params = utils.read_data_from_file(
-      build_params_check_path, eval_data=True)
-  if cached_build_params and cached_build_params == build_params:
-    # No work to do, same system symbols already in cache.
-    return
-
-  symbols_archive_filename = '%s-symbols-%s.zip' % (target, build_id)
-  symbols_archive_path = os.path.join(symbols_directory,
-                                      symbols_archive_filename)
-
-  # Delete existing symbols directory first.
-  shell.remove_directory(symbols_directory, recreate=True)
-
-  # Fetch symbol file from cloud storage cache (if available).
-  found_in_cache = storage.get_file_from_cache_if_exists(
-      symbols_archive_path, update_modification_time_on_access=False)
-  if not found_in_cache:
-    # Include type and sanitizer information in the target.
-    target_with_type_and_san = '%s-%s' % (target, type)
-    tool_suffix = environment.get_value('SANITIZER_TOOL_NAME')
-    if tool_suffix and not tool_suffix in target_with_type_and_san:
-      target_with_type_and_san += '_%s' % tool_suffix
-
-    # Fetch the artifact now.
-    fetch_artifact.get(build_id, target_with_type_and_san,
-                       symbols_archive_filename, symbols_directory)
-
-  if not os.path.exists(symbols_archive_path):
-    logs.log_error(
-        'Unable to locate symbols archive %s.' % symbols_archive_path)
-    return
-
-  # Store the artifact for later use or for use by other bots.
-  storage.store_file_in_cache(symbols_archive_path)
-
-  archive.unpack(symbols_archive_path, symbols_directory, trusted=True)
-  shell.remove_file(symbols_archive_path)
-  utils.write_data_to_file(build_params, build_params_check_path)

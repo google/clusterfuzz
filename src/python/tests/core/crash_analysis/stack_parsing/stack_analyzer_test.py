@@ -42,11 +42,13 @@ class StackAnalyzerTestcase(unittest.TestCase):
     helpers.patch(self, [
         'crash_analysis.stack_parsing.stack_symbolizer.symbolize_stacktrace',
         'metrics.logs.log_error',
+        'platforms.android.settings.get_repo_prop_path'
     ])
 
     os.environ['JOB_NAME'] = TEST_JOB_NAME
 
     self.mock.symbolize_stacktrace.side_effect = self._mock_symbolize_stacktrace
+    self.mock.get_repo_prop_path.return_value = None
 
   def _read_test_data(self, name):
     """Helper function to read test data."""

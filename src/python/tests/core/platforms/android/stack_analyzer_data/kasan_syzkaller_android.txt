@@ -1,0 +1,20 @@
+BUG: KASAN: null-ptr-deref in sockfs_setattr+0x68/0x90 net/socket.c:544
+Write of size 4 at addr 000000000000027c by task syz-executor/16883
+
+CPU: 7 PID: 16883 Comm: syz-executor Tainted: G         C      4.4.155-g9ef595a18d67 #1
+Hardware name: Qualcomm Technologies, Inc. MSM8998 v2.1 (DT)
+Call trace:
+[<ffffff900808f5ac>] dump_backtrace+0x0/0x34c arch/arm64/kernel/traps.c:96
+[<ffffff900808fa38>] show_stack+0x1c/0x24 arch/arm64/kernel/traps.c:242
+[<ffffff9008580198>] __dump_stack lib/dump_stack.c:15 [inline]
+[<ffffff9008580198>] dump_stack+0xb8/0xe8 lib/dump_stack.c:51
+[<ffffff90082b0e78>] kasan_report_error mm/kasan/report.c:348 [inline]
+[<ffffff90082b0e78>] kasan_report+0xe4/0x340 mm/kasan/report.c:407
+[<ffffff90082af1bc>] check_memory_region_inline mm/kasan/kasan.c:325 [inline]
+[<ffffff90082af1bc>] __asan_store4+0x78/0x94 mm/kasan/kasan.c:758
+[<ffffff9009602804>] sockfs_setattr+0x68/0x90 net/socket.c:544
+[<ffffff90082f0c0c>] notify_change2+0x568/0x5e8 fs/attr.c:283
+[<ffffff90082bd3e4>] chown_common+0xf4/0x1e8 fs/open.c:612
+[<ffffff90082bf4bc>] SYSC_fchownat fs/open.c:642 [inline]
+[<ffffff90082bf4bc>] SyS_fchownat+0xdc/0x168 fs/open.c:622
+[<ffffff90080842b0>] el0_svc_naked+0x24/0x28
