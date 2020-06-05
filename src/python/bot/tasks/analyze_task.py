@@ -75,6 +75,7 @@ def close_invalid_testcase_and_update_status(testcase, metadata, status):
   testcase.regression = 'NA'
   testcase.set_impacts_as_na()
   testcase.fixed = 'NA'
+  testcase.triaged = True
   testcase.put()
 
   metadata.status = status

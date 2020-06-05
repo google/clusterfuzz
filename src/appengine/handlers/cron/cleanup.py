@@ -123,41 +123,45 @@ def cleanup_testcases_and_issues():
 
     logs.log('Processing testcase %d.' % testcase_id)
 
-    issue = issue_tracker_utils.get_issue_for_testcase(testcase)
-    policy = issue_tracker_utils.get_issue_tracker_policy_for_testcase(testcase)
-    if not policy:
-      policy = empty_issue_tracker_policy
+    try:
+      issue = issue_tracker_utils.get_issue_for_testcase(testcase)
+      policy = issue_tracker_utils.get_issue_tracker_policy_for_testcase(
+          testcase)
+      if not policy:
+        policy = empty_issue_tracker_policy
 
-    # Issue updates.
-    update_os_labels(policy, testcase, issue)
-    update_fuzz_blocker_label(policy, testcase, issue,
-                              top_crashes_by_project_and_platform_map)
-    update_component_labels(testcase, issue)
-    update_issue_ccs_from_owners_file(policy, testcase, issue)
-    update_issue_owner_and_ccs_from_predator_results(policy, testcase, issue)
-    update_issue_labels_for_flaky_testcase(policy, testcase, issue)
+      # Issue updates.
+      update_os_labels(policy, testcase, issue)
+      update_fuzz_blocker_label(policy, testcase, issue,
+                                top_crashes_by_project_and_platform_map)
+      update_component_labels(testcase, issue)
+      update_issue_ccs_from_owners_file(policy, testcase, issue)
+      update_issue_owner_and_ccs_from_predator_results(policy, testcase, issue)
+      update_issue_labels_for_flaky_testcase(policy, testcase, issue)
 
-    # Testcase marking rules.
-    mark_duplicate_testcase_as_closed_with_no_issue(testcase)
-    mark_issue_as_closed_if_testcase_is_fixed(policy, testcase, issue)
-    mark_testcase_as_closed_if_issue_is_closed(policy, testcase, issue)
-    mark_testcase_as_closed_if_job_is_invalid(testcase, jobs)
-    mark_unreproducible_testcase_as_fixed_if_issue_is_closed(testcase, issue)
-    mark_unreproducible_testcase_and_issue_as_closed_after_deadline(
-        policy, testcase, issue)
+      # Testcase marking rules.
+      mark_duplicate_testcase_as_closed_with_no_issue(testcase)
+      mark_issue_as_closed_if_testcase_is_fixed(policy, testcase, issue)
+      mark_testcase_as_closed_if_issue_is_closed(policy, testcase, issue)
+      mark_testcase_as_closed_if_job_is_invalid(testcase, jobs)
+      mark_unreproducible_testcase_as_fixed_if_issue_is_closed(testcase, issue)
+      mark_unreproducible_testcase_and_issue_as_closed_after_deadline(
+          policy, testcase, issue)
 
-    # Notification, to be done at end after testcase state is updated from
-    # previous rules.
-    notify_closed_issue_if_testcase_is_open(policy, testcase, issue)
-    notify_issue_if_testcase_is_invalid(policy, testcase, issue)
-    notify_uploader_when_testcase_is_processed(policy, testcase, issue)
+      # Notification, to be done at end after testcase state is updated from
+      # previous rules.
+      notify_closed_issue_if_testcase_is_open(policy, testcase, issue)
+      notify_issue_if_testcase_is_invalid(policy, testcase, issue)
+      notify_uploader_when_testcase_is_processed(policy, testcase, issue)
 
-    # Mark testcase as triage complete if both testcase and associated issue
-    # are closed. This also need to be done before the deletion rules.
-    mark_testcase_as_triaged_if_needed(testcase, issue)
+      # Mark testcase as triage complete if both testcase and associated issue
+      # are closed. This also need to be done before the deletion rules.
+      mark_testcase_as_triaged_if_needed(testcase, issue)
 
-    # Testcase deletion rules.
-    delete_unreproducible_testcase_with_no_issue(testcase)
+      # Testcase deletion rules.
+      delete_unreproducible_testcase_with_no_issue(testcase)
+    except Exception:
+      logs.log_error('Failed to process testcase %d.' % testcase_id)
 
     testcases_processed += 1
     if testcases_processed % 100 == 0:
@@ -792,7 +796,7 @@ def _update_issue_security_severity_and_get_comment(policy, testcase, issue):
     issue.labels.add(recommended_severity)
     return ('\n\nA recommended severity was added to this bug. '
             'Please change the severity if it is inaccurate.')
-  elif issue_severity != testcase.security_severity:
+  if issue_severity != testcase.security_severity:
     return (
         '\n\nThe recommended severity (%s) is different from what was assigned '
         'to the bug. Please double check the accuracy of the assigned '
