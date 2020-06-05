@@ -796,7 +796,7 @@ def _update_issue_security_severity_and_get_comment(policy, testcase, issue):
     issue.labels.add(recommended_severity)
     return ('\n\nA recommended severity was added to this bug. '
             'Please change the severity if it is inaccurate.')
-  elif issue_severity != testcase.security_severity:
+  if issue_severity != testcase.security_severity:
     return (
         '\n\nThe recommended severity (%s) is different from what was assigned '
         'to the bug. Please double check the accuracy of the assigned '
