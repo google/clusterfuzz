@@ -40,7 +40,7 @@ def generate(serial,
   data['target'] = 'linux/arm64'
   data['reproduce'] = reproduce
   data['workdir'] = work_dir_path
-  data['http'] = 'localhost:50001'
+  data['http'] = 'localhost:0'
   data['syzkaller'] = binary_path
   #TODO(hzawawy): consider what suppressions are best for Android.
   data['suppressions'] = ['do_rt_sigqueueinfo', 'do_rt_tgsigqueueinfo']
