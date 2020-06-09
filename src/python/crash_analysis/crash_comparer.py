@@ -53,9 +53,20 @@ def _similarity_ratio(string_1, string_2):
       1.0 * length_sum)
 
 
+def count_same_frames(first_frames, second_frames):
+  """Count number of frames which are the same (disregarding order)."""
+  same_count = 0
+  for frame in first_frames:
+    if frame in second_frames:
+      same_count += 1
+
+  return same_count
+
+
 class CrashComparer(object):
   """Compares two crash results."""
   COMPARE_THRESHOLD = 0.8
+  SAME_FRAMES_THRESHOLD = 2
 
   def __init__(self, crash_state_1, crash_state_2, compare_threshold=None):
     self.crash_state_1 = crash_state_1
@@ -81,6 +92,10 @@ class CrashComparer(object):
     # stacktrace.
     crash_state_lines_1 = self.crash_state_1.splitlines()
     crash_state_lines_2 = self.crash_state_2.splitlines()
+
+    if (count_same_frames(crash_state_lines_1, crash_state_lines_2) >=
+        self.SAME_FRAMES_THRESHOLD):
+      return True
 
     lines_compared = 0
     similarity_ratio_sum = 0.0

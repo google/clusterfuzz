@@ -67,3 +67,9 @@ class CrashComparerTest(unittest.TestCase):
                      'base::debug::DebugBreak\n'
                      'gpu::gles2::GLES2Util::GLFaceTargetToTextureTarget\n')
     self.is_similar_helper(crash_state_1, crash_state_2, False)
+
+  def test_is_similar_shifted(self):
+    """Test similar when frames have shifted slightly."""
+    crash_state_1 = ('first\n' 'second\n' 'third\n')
+    crash_state_2 = ('second\n' 'third\n' 'fourth\n')
+    self.is_similar_helper(crash_state_1, crash_state_2, True)
