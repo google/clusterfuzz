@@ -1772,6 +1772,10 @@ def pick_strategies(strategy_pool,
                                  fuzzer_path)):
     fuzzing_strategies.append(strategy.RECOMMENDED_DICTIONARY_STRATEGY.name)
 
+  if strategy_pool.do_strategy(strategy.ENTROPIC_STRATEGY):
+    arguments.append(constants.ENTROPIC_ARGUMENT)
+    fuzzing_strategies.append(strategy.ENTROPIC_STRATEGY.name)
+
   if strategy_pool.do_strategy(strategy.VALUE_PROFILE_STRATEGY):
     arguments.append(constants.VALUE_PROFILE_ARGUMENT)
     fuzzing_strategies.append(strategy.VALUE_PROFILE_STRATEGY.name)

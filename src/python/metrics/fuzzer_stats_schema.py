@@ -321,6 +321,10 @@ _LIBFUZZER_SCHEMA = [{
     'type': 'INTEGER'
 }, {
     'mode': 'NULLABLE',
+    'name': 'strategy_entropic',
+    'type': 'INTEGER'
+}, {
+    'mode': 'NULLABLE',
     'name': 'slow_units_count',
     'type': 'INTEGER'
 }, {
