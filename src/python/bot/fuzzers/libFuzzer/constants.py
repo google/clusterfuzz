@@ -24,6 +24,8 @@ ARTIFACT_PREFIX_FLAG = '-artifact_prefix='
 
 DATA_FLOW_TRACE_FLAG = '-data_flow_trace='
 
+ENTROPIC_ARGUMENT = '-entropic=1'
+
 DICT_FLAG = '-dict='
 
 FOCUS_FUNCTION_FLAG = '-focus_function='
