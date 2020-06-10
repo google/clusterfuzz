@@ -104,7 +104,8 @@ class AndroidSyzkallerRunner(new_process.ProcessRunner):
     logs.log('Running Syzkaller.')
     additional_args = copy.copy(additional_args)
     fuzz_result = self.run_and_wait(additional_args, timeout=fuzz_timeout)
-    logs.log('Syzkaller stopped, fuzzing timed out: {}'.format(fuzz_timeout))
+    logs.log('Syzkaller stopped, fuzzing timed out: {}'.format(
+        fuzz_result.time_executed))
 
     fuzz_logs = ''
     crashes = []
@@ -119,8 +120,8 @@ class AndroidSyzkallerRunner(new_process.ProcessRunner):
         if fnmatch.fnmatch(file, 'report*') and unique_crash not in visited:
           visited.add(unique_crash)
           log_lines = utils.read_data_from_file(
-              os.path.join(subdir, file), eval_data=False)
-          fuzz_logs += str(log_lines) + '\n'
+              os.path.join(subdir, file), eval_data=False).decode('utf-8')
+          fuzz_logs += log_lines + '\n'
 
           # Since each crash (report file) has a corresponding log file
           # that contains the syscalls that caused the crash. This file is
