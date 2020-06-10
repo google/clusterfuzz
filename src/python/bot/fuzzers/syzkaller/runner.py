@@ -18,7 +18,6 @@ from bot.fuzzers import engine
 from bot.fuzzers import utils as fuzzer_utils
 from bot.fuzzers.syzkaller import config
 from bot.fuzzers.syzkaller import constants
-from builtins import str
 from metrics import logs
 from system import environment
 from system import new_process
@@ -87,7 +86,7 @@ class AndroidSyzkallerRunner(new_process.ProcessRunner):
     result = self.run_and_wait(additional_args, timeout=repro_timeout)
     logs.log('Syzkaller testcase stopped.')
     return engine.ReproduceResult(result.command, result.return_code,
-                                  result.time_executed, str(result.output))
+                                  result.time_executed, result.output)
 
   def fuzz(self,
            fuzz_timeout,
@@ -104,7 +103,8 @@ class AndroidSyzkallerRunner(new_process.ProcessRunner):
     logs.log('Running Syzkaller.')
     additional_args = copy.copy(additional_args)
     fuzz_result = self.run_and_wait(additional_args, timeout=fuzz_timeout)
-    logs.log('Syzkaller stopped, fuzzing timed out: {}'.format(fuzz_timeout))
+    logs.log('Syzkaller stopped, fuzzing timed out: {}'.format(
+        fuzz_result.time_executed))
 
     fuzz_logs = ''
     crashes = []
@@ -119,8 +119,8 @@ class AndroidSyzkallerRunner(new_process.ProcessRunner):
         if fnmatch.fnmatch(file, 'report*') and unique_crash not in visited:
           visited.add(unique_crash)
           log_lines = utils.read_data_from_file(
-              os.path.join(subdir, file), eval_data=False)
-          fuzz_logs += str(log_lines) + '\n'
+              os.path.join(subdir, file), eval_data=False).decode('utf-8')
+          fuzz_logs += log_lines + '\n'
 
           # Since each crash (report file) has a corresponding log file
           # that contains the syscalls that caused the crash. This file is
