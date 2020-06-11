@@ -368,18 +368,8 @@ def _get_bazel_test_args(arguments, sanitizer_options):
   return ' '.join(result)
 
 
-def get_formatted_reproduction_help(testcase):
-  """Return url to reproduce the bug."""
-  help_format = get_value_from_job_definition_or_environment(
-      testcase.job_type, 'HELP_FORMAT')
-  if not help_format:
-    return None
-
-  # Since this value may be in a job definition, it's non-trivial for it to
-  # include newlines. Instead, it will contain backslash-escaped characters
-  # that must be converted here (e.g. \n).
-  help_format = help_format.encode().decode('unicode-escape')
-
+def format_issue_information(testcase, format_string):
+  """Format a string with information from the testcase."""
   arguments = get_arguments(testcase)
   fuzzer_display = get_fuzzer_display(testcase)
   fuzzer_name = fuzzer_display.name or 'NA'
@@ -395,7 +385,7 @@ def get_formatted_reproduction_help(testcase):
   sanitizer_options_string = ' '.join(sanitizer_options)
   bazel_test_args = _get_bazel_test_args(arguments, sanitizer_options)
 
-  result = help_format.replace('%TESTCASE%', testcase_id)
+  result = format_string.replace('%TESTCASE%', testcase_id)
   result = result.replace('%PROJECT%', project_name)
   result = result.replace('%REVISION%', last_tested_crash_revision)
   result = result.replace('%FUZZER_NAME%', fuzzer_name)
@@ -406,6 +396,20 @@ def get_formatted_reproduction_help(testcase):
   result = result.replace('%ARGS%', arguments)
   result = result.replace('%BAZEL_TEST_ARGS%', bazel_test_args)
   return result
+
+
+def get_formatted_reproduction_help(testcase):
+  """Return url to reproduce the bug."""
+  help_format = get_value_from_job_definition_or_environment(
+      testcase.job_type, 'HELP_FORMAT')
+  if not help_format:
+    return None
+
+  # Since this value may be in a job definition, it's non-trivial for it to
+  # include newlines. Instead, it will contain backslash-escaped characters
+  # that must be converted here (e.g. \n).
+  help_format = help_format.encode().decode('unicode-escape')
+  return format_issue_information(testcase, help_format)
 
 
 def get_plaintext_help_text(testcase, config):

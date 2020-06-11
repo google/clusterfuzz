@@ -166,7 +166,7 @@ class IssueFilerTests(unittest.TestCase):
   def setUp(self):
     data_types.Job(
         name='job1',
-        environment_string='ISSUE_VIEW_RESTRICTIONS = all',
+        environment_string='ISSUE_VIEW_RESTRICTIONS = all\nPROJECT_NAME = proj',
         platform='linux').put()
 
     data_types.Job(
@@ -510,6 +510,43 @@ class IssueFilerTests(unittest.TestCase):
     issue_filer.file_issue(self.testcase1, issue_tracker)
     self.assertIn('Pri-2', issue_tracker._itm.last_issue.labels)
     self.assertNotIn('Stability-Crash', issue_tracker._itm.last_issue.labels)
+
+  def test_footer_formatting(self):
+    """Test footer message with formatting."""
+    policy = issue_tracker_policy.IssueTrackerPolicy({
+        'status': {
+            'assigned': 'Assigned',
+            'duplicate': 'Duplicate',
+            'verified': 'Verified',
+            'new': 'Untriaged',
+            'wontfix': 'WontFix',
+            'fixed': 'Fixed'
+        },
+        'all': {
+            'status': 'new',
+            'issue_body_footer': 'Target: %FUZZ_TARGET%, Project: %PROJECT%'
+        },
+        'non_security': {},
+        'labels': {},
+        'security': {},
+        'existing': {},
+    })
+    self.mock.get.return_value = policy
+
+    issue_tracker = monorail.IssueTracker(IssueTrackerManager('chromium'))
+    self.testcase1.project_name = 'proj'
+    self.testcase1.fuzzer_name = 'libFuzzer'
+    self.testcase1.overridden_fuzzer_name = 'libFuzzer_proj_target'
+
+    data_types.FuzzTarget(
+        id='libFuzzer_proj_target',
+        project='proj',
+        engine='libFuzzer',
+        binary='target').put()
+
+    issue_filer.file_issue(self.testcase1, issue_tracker)
+    self.assertIn('Target: target, Project: proj',
+                  issue_tracker._itm.last_issue.body)
 
 
 class MemoryToolLabelsTest(unittest.TestCase):

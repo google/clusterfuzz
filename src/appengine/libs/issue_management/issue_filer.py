@@ -142,11 +142,11 @@ def _get_impact_from_labels(labels):
   labels = [label.lower() for label in labels]
   if 'security_impact-stable' in labels:
     return data_types.SecurityImpact.STABLE
-  elif 'security_impact-beta' in labels:
+  if 'security_impact-beta' in labels:
     return data_types.SecurityImpact.BETA
-  elif 'security_impact-head' in labels:
+  if 'security_impact-head' in labels:
     return data_types.SecurityImpact.HEAD
-  elif 'security_impact-none' in labels:
+  if 'security_impact-none' in labels:
     return data_types.SecurityImpact.NONE
   return data_types.SecurityImpact.MISSING
 
@@ -349,7 +349,8 @@ def file_issue(testcase,
                                       security_severity):
       issue.labels.add(result)
 
-  issue.body += properties.issue_body_footer
+  issue.body += data_handler.format_issue_information(
+      testcase, properties.issue_body_footer)
   if (should_restrict_issue and has_accountable_people and
       policy.deadline_policy_message):
     issue.body += '\n\n' + policy.deadline_policy_message
