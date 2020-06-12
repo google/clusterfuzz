@@ -26,7 +26,7 @@ import os
 import tempfile
 
 
-def get_work_directory():
+def get_work_dir():
   """Return work directory for Syzkaller."""
   temp_dir = fuzzer_utils.get_temp_dir()
   return os.path.join(temp_dir, 'syzkaller')
@@ -45,7 +45,7 @@ def get_config():
 
   config.generate(
       serial=device_serial,
-      work_dir_path=get_work_directory(),
+      work_dir_path=get_work_dir(),
       binary_path=binary_path,
       vmlinux_path=vmlinux_path,
       config_path=json_config_path,
@@ -121,7 +121,7 @@ class AndroidSyzkallerRunner(new_process.ProcessRunner):
     crashes = []
     parsed_stats = {}
     visited = set()
-    for subdir, _, files in os.walk(get_work_directory()):
+    for subdir, _, files in os.walk(get_work_dir()):
       for file in files:
         # Each crash typically have 2 files: reportN and logN. Similar crashes
         # are grouped together in subfolders. unique_crash puts together the
