@@ -49,8 +49,7 @@ def generate(serial,
   data['sandbox'] = 'android'
   data['ignores'] = ['WARNING:', 'INFO:']
   data['type'] = 'adb'
-  #TODO(hzawawy): set procs to be half the number of CPUs
-  data['procs'] = 4
+  data['procs'] = 1
   data['cover'] = kcov
 
   ensure_dir(config_path)

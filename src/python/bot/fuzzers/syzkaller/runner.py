@@ -17,7 +17,6 @@ from base import utils
 from bot.fuzzers import engine
 from bot.fuzzers import utils as fuzzer_utils
 from bot.fuzzers.syzkaller import config
-from bot.fuzzers.syzkaller import constants
 from metrics import logs
 from system import environment
 from system import new_process
@@ -27,16 +26,28 @@ import os
 import tempfile
 
 
+def get_work_directory():
+  """Return work directory for Syzkaller."""
+  temp_dir = fuzzer_utils.get_temp_dir()
+  return os.path.join(temp_dir, 'syzkaller')
+
+
 def get_config():
   """Get arguments for a given fuzz target."""
-  build_dir = environment.get_value('BUILD_DIR')
   device_serial = environment.get_value('ANDROID_SERIAL')
-  json_config_path = os.path.join('/tmp', device_serial, 'config.json')
+  build_dir = environment.get_value('BUILD_DIR')
+  temp_dir = fuzzer_utils.get_temp_dir()
+
+  binary_path = os.path.join(build_dir, 'syzkaller')
+  json_config_path = os.path.join(temp_dir, 'config.json')
+  default_vmlinux_path = os.path.join('/tmp', device_serial, 'vmlinux')
+  vmlinux_path = environment.get_value('VMLINUX_PATH', default_vmlinux_path)
+
   config.generate(
       serial=device_serial,
-      work_dir_path=constants.SYZKALLER_WORK_FOLDER,
-      binary_path=os.path.join(build_dir, 'syzkaller'),
-      vmlinux_path=constants.VMLINUX_FOLDER,
+      work_dir_path=get_work_directory(),
+      binary_path=binary_path,
+      vmlinux_path=vmlinux_path,
       config_path=json_config_path,
       kcov=True,
       reproduce=False)
@@ -110,7 +121,7 @@ class AndroidSyzkallerRunner(new_process.ProcessRunner):
     crashes = []
     parsed_stats = {}
     visited = set()
-    for subdir, _, files in os.walk(constants.SYZKALLER_WORK_FOLDER):
+    for subdir, _, files in os.walk(get_work_directory()):
       for file in files:
         # Each crash typically have 2 files: reportN and logN. Similar crashes
         # are grouped together in subfolders. unique_crash puts together the
