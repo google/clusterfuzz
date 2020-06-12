@@ -14,10 +14,7 @@
 """Constants that are meaningful to syzkaller.
 Should not have any dependancies.
 """
-SYZKALLER_WORK_FOLDER = '/tmp/syzkaller'
 
 SYZ_REPRO = 'syz-repro'
-
-VMLINUX_FOLDER = '/tmp/syzkaller/vmlinux'
 
 CLEAN_EXIT_SECS = 10
