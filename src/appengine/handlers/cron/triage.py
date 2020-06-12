@@ -76,11 +76,6 @@ def _get_excluded_jobs():
     if utils.string_is_true(job_environment.get('EXPERIMENTAL')):
       excluded_jobs.append(job.name)
 
-    # Exclude custom binary jobs.
-    elif (utils.string_is_true(job_environment.get('CUSTOM_BINARY')) or
-          job_environment.get('SYSTEM_BINARY_DIR')):
-      excluded_jobs.append(job.name)
-
   return excluded_jobs
 
 
