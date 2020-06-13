@@ -58,8 +58,12 @@ class SyzkallerEngine(engine.Engine):
     if not os.path.exists(syzkaller_path):
       raise SyzkallerError('syzkaller not found in build')
     binary_folder = os.path.join(syzkaller_path, BIN_FOLDER_PATH)
-    for filename in os.listdir(binary_folder):
-      os.chmod(os.path.join(binary_folder, filename), 0o755)
+
+    for root, _, filenames in os.walk(binary_folder):
+      for filename in filenames:
+        absolute_file_path = os.path.join(root, filename)
+        os.chmod(absolute_file_path, 0o755)
+
     return binary_folder
 
   def prepare(self, corpus_dir, target_path, unused_build_dir):
