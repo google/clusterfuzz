@@ -339,7 +339,9 @@
           return false;
 
         let jobLower = job.toLowerCase();
-        return jobLower.includes('libfuzzer') || jobLower.includes('afl');
+        return (jobLower.includes('libfuzzer') ||
+                jobLower.includes('afl') ||
+                jobLower.includes('honggfuzz'));
       }
 
       shouldShowFuzzers(job) {
