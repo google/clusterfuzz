@@ -17,7 +17,8 @@ import unittest
 
 from datastore import data_types
 from handlers import upload_testcase
-from tests.test_libs import helpers
+from libs import helpers
+from tests.test_libs import helpers as test_helpers
 from tests.test_libs import test_utils
 
 
@@ -26,7 +27,7 @@ class FindFuzzTargetTest(unittest.TestCase):
   """Tests for find_fuzz_target."""
 
   def setUp(self):
-    helpers.patch_environ(self)
+    test_helpers.patch_environ(self)
 
     data_types.FuzzTarget(
         engine='libFuzzer', project='test-project', binary='binary').put()
@@ -60,6 +61,7 @@ class FindFuzzTargetTest(unittest.TestCase):
   def test_not_found(self):
     """Test target not found."""
     data_types.Job(name='job', environment_string='').put()
-    self.assertEqual((None, None),
-                     upload_testcase.find_fuzz_target('libFuzzer', 'notfound',
-                                                      'job'))
+    with self.assertRaises(helpers.EarlyExitException):
+      self.assertEqual((None, None),
+                       upload_testcase.find_fuzz_target('libFuzzer', 'notfound',
+                                                        'job'))

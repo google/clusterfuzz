@@ -28,6 +28,7 @@ import os
 from google.cloud import ndb
 
 from base import external_users
+from base import memoize
 from base import tasks
 from base import utils
 from datastore import data_handler
@@ -50,6 +51,7 @@ RUN_FILE_PATTERNS = ['run', 'fuzz-', 'index.', 'crash.']
 PAGE_SIZE = 20
 MORE_LIMIT = 100 - PAGE_SIZE
 UPLOAD_URL = '/upload-testcase/upload-oauth'
+MEMCACHE_TTL_IN_SECONDS = 60 * 60  # 1 hour.
 
 
 def _is_uploader_allowed(email):
@@ -80,7 +82,7 @@ def attach_testcases(rows):
 
 def get_result(this):
   """Get the result."""
-  params = {k: v for k, v in this.request.iterparams()}
+  params = dict(this.request.iterparams())
   page = helpers.cast(
       this.request.get('page') or 1, int, "'page' is not an int.")
 
@@ -177,18 +179,19 @@ def filter_blackbox_fuzzers(fuzzers):
   return [f for f in fuzzers if not is_greybox_fuzzer(f)]
 
 
+@memoize.wrap(memoize.Memcache(MEMCACHE_TTL_IN_SECONDS))
 def find_fuzz_target(engine, target_name, job_name):
-  """Find a fuzz target given the engine, target name (which may or may not be
-  prefixed with project), and job."""
+  """Return fuzz target values given the engine, target name (which may or may
+  not be prefixed with project), and job."""
   project_name = data_handler.get_project_name(job_name)
   candidate_name = data_types.fuzz_target_fully_qualified_name(
       engine, project_name, target_name)
 
   target = data_handler.get_fuzz_target(candidate_name)
-  if target:
-    return target.fully_qualified_name(), target.binary
+  if not target:
+    raise helpers.EarlyExitException('Fuzz target does not exist.', 400)
 
-  return None, None
+  return target.fully_qualified_name(), target.binary
 
 
 def _allow_unprivileged_metadata(testcase_metadata):
@@ -330,7 +333,7 @@ class UploadHandlerCommon(object):
       raise helpers.EarlyExitException('Missing job name.', 400)
 
     if (not data_types.Job.VALID_NAME_REGEX.match(job_type) or
-        not data_types.Job.query(data_types.Job.name == job_type).get()):
+        not job_type in data_handler.get_all_job_type_names()):
       raise helpers.EarlyExitException('Invalid job name.', 400)
 
     fuzzer_name = self.request.get('fuzzer')
@@ -359,8 +362,6 @@ class UploadHandlerCommon(object):
     if is_engine_job and target_name:
       fully_qualified_fuzzer_name, target_name = find_fuzz_target(
           fuzzer_name, target_name, job_type)
-      if not fully_qualified_fuzzer_name:
-        raise helpers.EarlyExitException('Target does not exist.', 400)
 
     if (not access.has_access(
         need_privileged_access=False,
