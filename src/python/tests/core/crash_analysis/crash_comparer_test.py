@@ -73,3 +73,15 @@ class CrashComparerTest(unittest.TestCase):
     crash_state_1 = ('first\n' 'second\n' 'third\n')
     crash_state_2 = ('second\n' 'third\n' 'fourth\n')
     self.is_similar_helper(crash_state_1, crash_state_2, True)
+
+  def test_only_one_frame_matching(self):
+    """Test not similar when 1/3 frames match."""
+    crash_state_1 = ('first\n' 'second\n' 'third\n')
+    crash_state_2 = ('second\n' 'fourth\n' 'fifth\n')
+    self.is_similar_helper(crash_state_1, crash_state_2, False)
+
+  def test_is_same_frames_wrong_order(self):
+    """Test not similar when some frames match but the order doesn't match."""
+    crash_state_1 = ('first\n' 'second\n' 'third\n')
+    crash_state_2 = ('second\n' 'first\n' 'fourth\n')
+    self.is_similar_helper(crash_state_1, crash_state_2, False)

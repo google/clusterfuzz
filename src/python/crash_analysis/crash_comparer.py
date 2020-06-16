@@ -53,14 +53,21 @@ def _similarity_ratio(string_1, string_2):
       1.0 * length_sum)
 
 
-def count_same_frames(first_frames, second_frames):
-  """Count number of frames which are the same (disregarding order)."""
-  same_count = 0
-  for frame in first_frames:
-    if frame in second_frames:
-      same_count += 1
+def longest_common_subsequence(first_frames, second_frames):
+  """Count number of frames which are the same (taking into account order)."""
+  first_len = len(first_frames)
+  second_len = len(second_frames)
 
-  return same_count
+  solution = [[0 for _ in range(second_len + 1)] for _ in range(first_len + 1)]
+
+  for i in range(1, first_len + 1):
+    for j in range(1, second_len + 1):
+      if first_frames[i - 1] == second_frames[j - 1]:
+        solution[i][j] = solution[i - 1][j - 1] + 1
+      else:
+        solution[i][j] = max(solution[i - 1][j], solution[i][j - 1])
+
+  return solution[first_len][second_len]
 
 
 class CrashComparer(object):
@@ -93,7 +100,7 @@ class CrashComparer(object):
     crash_state_lines_1 = self.crash_state_1.splitlines()
     crash_state_lines_2 = self.crash_state_2.splitlines()
 
-    if (count_same_frames(crash_state_lines_1, crash_state_lines_2) >=
+    if (longest_common_subsequence(crash_state_lines_1, crash_state_lines_2) >=
         self.SAME_FRAMES_THRESHOLD):
       return True
 
