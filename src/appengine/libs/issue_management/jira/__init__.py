@@ -113,7 +113,8 @@ class Issue(issue_tracker.Issue):
     """The issue component list."""
     return self._components
 
-  def save(self):
+  # FIXME: Add support for new_comment and notify arguments
+  def save(self, new_comment=None, notify=True):  # pylint: disable=unused-argument
     """Save the issue."""
     for added in self._components.added:
       self.components.add(added)
@@ -134,6 +135,12 @@ class Issue(issue_tracker.Issue):
     self._labels.reset_tracking()
 
     self.itm.save(self)
+
+  def actions(self):
+    pass
+
+  def merged_into(self):
+    pass
 
 
 class IssueTracker(issue_tracker.IssueTracker):
@@ -171,6 +178,10 @@ class IssueTracker(issue_tracker.IssueTracker):
     config = db_config.get()
     url = config.jira_url + '/browse/' + str(issue_id)
     return url
+
+  # FIXME: Add support for keywords and only_open arguments
+  def find_issues_url(self, keywords=None, only_open=None):  # pylint: disable=unused-argument
+    pass
 
 
 def _get_issue_tracker_manager_for_project(project_name):

@@ -31,7 +31,6 @@ TTL_IN_SECONDS = 15 * 60
 
 class _DoNotCatchException(Exception):
   """Serve as a dummy exception to avoid catching any exception."""
-  pass
 
 
 class EarlyExitException(Exception):
@@ -145,8 +144,7 @@ def get_or_exit(fn,
 
   if non_empty_fn(result):
     return result
-  else:
-    raise EarlyExitException(not_found_message, 404)
+  raise EarlyExitException(not_found_message, 404)
 
 
 def get_user_email():
