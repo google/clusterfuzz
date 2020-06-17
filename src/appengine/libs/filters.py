@@ -50,8 +50,7 @@ def extract_keyword_field(keyword, field):
     elif value.startswith("'") and value.endswith("'"):
       value = value.strip("'")
     return re.sub(regex, ' ', keyword), value
-  else:
-    return keyword, None
+  return keyword, None
 
 
 def get_boolean(value):

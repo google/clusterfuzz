@@ -36,7 +36,7 @@ class CredentialStorage(Storage):
 
     return credentials
 
-  def locked_put(self, credentials): # pylint: disable=unused-argument
+  def locked_put(self, credentials):  # pylint: disable=unused-argument
     # To prevent abstract exception.
     return
 

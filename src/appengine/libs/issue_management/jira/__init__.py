@@ -113,7 +113,7 @@ class Issue(issue_tracker.Issue):
     """The issue component list."""
     return self._components
 
-  def save(self, new_comment=None, notify=True): # pylint: disable=unused-argument
+  def save(self, new_comment=None, notify=True):  # pylint: disable=unused-argument
     """Save the issue."""
     for added in self._components.added:
       self.components.add(added)
@@ -180,7 +180,7 @@ class IssueTracker(issue_tracker.IssueTracker):
     url = config.jira_url + '/browse/' + str(issue_id)
     return url
 
-  def find_issues_url(self, keywords=None, only_open=None): # pylint: disable=unused-argument
+  def find_issues_url(self, keywords=None, only_open=None):  # pylint: disable=unused-argument
     # To prevent abstract exception.
     return
 
