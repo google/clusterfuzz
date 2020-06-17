@@ -23,7 +23,7 @@ class CredentialStorage(Storage):
   """Instead of reading a file, just parse a config entry."""
 
   def locked_get(self):
-    """ TODO ADD DOC-STRING"""
+    """Return Credentials."""
     content = db_config.get_value('client_credentials')
     if not content:
       return None
@@ -37,9 +37,7 @@ class CredentialStorage(Storage):
     return credentials
 
   def locked_put(self, credentials):  # pylint: disable=unused-argument
-    # To prevent abstract exception.
-    return
+    pass
 
   def locked_delete(self):
-    # To prevent abstract exception.
-    return
+    pass
