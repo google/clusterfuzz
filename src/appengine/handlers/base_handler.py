@@ -64,13 +64,13 @@ class JsonEncoder(json.JSONEncoder):
       dict_obj = obj.to_dict()
       dict_obj['id'] = obj.key.id()
       return dict_obj
-    elif isinstance(obj, datetime.datetime):
+    if isinstance(obj, datetime.datetime):
       return int((obj - self._EPOCH).total_seconds())
-    elif hasattr(obj, 'to_dict'):
+    if hasattr(obj, 'to_dict'):
       return obj.to_dict()
-    elif isinstance(obj, cgi.FieldStorage):
+    if isinstance(obj, cgi.FieldStorage):
       return str(obj)
-    elif isinstance(obj, bytes):
+    if isinstance(obj, bytes):
       return obj.decode('utf-8')
 
     return json.JSONEncoder.default(self, obj)
@@ -243,7 +243,7 @@ class Handler(webapp2.RequestHandler):
           self.response.headers.get('Content-Type')):
         self.render_json(values, status)
       else:
-        if status == 403 or status == 401:
+        if status in (403, 401):
           self.render_forbidden(str(exception))
         else:
           self.render('error.html', values, status)

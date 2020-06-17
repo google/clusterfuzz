@@ -19,7 +19,7 @@ from builtins import object
 import urllib.parse
 
 from libs.issue_management import issue_tracker
-from libs.issue_management.monorail.issue import ChangeList as ChangeList
+from libs.issue_management.monorail.issue import ChangeList
 from libs.issue_management.monorail.issue import Issue as MonorailIssue
 from libs.issue_management.monorail.issue_tracker_manager import (
     IssueTrackerManager)

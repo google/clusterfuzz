@@ -193,7 +193,7 @@ class _KeyQuery(object):
               projection=None,
               limit=more_limit))
 
-    keys = set([item.key.id() for item in items])
+    keys = {item.key.id() for item in items}
     for run in more_runs:
       for key in run.result:
         keys.add(key)

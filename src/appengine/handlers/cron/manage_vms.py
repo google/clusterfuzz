@@ -374,7 +374,7 @@ class OssFuzzClustersManager(ClustersManager):
       available_cpus -= cpus_allocated
 
     if available_cpus:
-      logging.warn('%d CPUs are not being used.', available_cpus)
+      logging.warning('%d CPUs are not being used.', available_cpus)
 
     return cpu_count
 
@@ -394,7 +394,7 @@ class OssFuzzClustersManager(ClustersManager):
     #   order).
     # This should ensure that a worker is reassigned only if it was
     # reimaged/new.
-    current_worker_names = set([worker.name for worker in worker_instances])
+    current_worker_names = {worker.name for worker in worker_instances}
     previous_assigned_workers = set()
 
     new_assignments = []
@@ -505,7 +505,7 @@ class OssFuzzClustersManager(ClustersManager):
       service_account = project.service_account
       tls_cert = ndb.Key(data_types.WorkerTlsCert, project.name).get()
       if not tls_cert:
-        logging.warn('TLS certs not set up yet for %s.', project.name)
+        logging.warning('TLS certs not set up yet for %s.', project.name)
         return
 
     cluster_info = project_info.get_cluster_info(cluster.name)

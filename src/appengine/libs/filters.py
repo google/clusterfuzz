@@ -58,10 +58,9 @@ def get_boolean(value):
   """Convert yes/no to boolean or raise Exception."""
   if value == 'yes':
     return True
-  elif value == 'no':
+  if value == 'no':
     return False
-  else:
-    raise ValueError("The value must be 'yes' or 'no'.")
+  raise ValueError("The value must be 'yes' or 'no'.")
 
 
 def get_string(value):

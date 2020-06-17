@@ -19,7 +19,7 @@ standard_library.install_aliases()
 from builtins import object
 from builtins import str
 
-import cgi
+import html
 import datetime
 import re
 import six
@@ -73,7 +73,7 @@ class BuiltinField(object):
 def _bigquery_type_to_charts_type(typename):
   """Convert bigquery type to charts type."""
   typename = typename.lower()
-  if typename == 'integer' or typename == 'float':
+  if typename in ('integer', 'float'):
     return 'number'
 
   if typename == 'timestamp':
@@ -84,7 +84,7 @@ def _bigquery_type_to_charts_type(typename):
 
 def _python_type_to_charts_type(type_value):
   """Convert bigquery type to charts type."""
-  if type_value == int or type_value == float or type_value == float:
+  if type_value in (int, float):
     return 'number'
 
   if type_value == datetime.date:
@@ -150,13 +150,13 @@ def _parse_group_by(group_by):
   """Parse group_by value."""
   if group_by == 'by-day':
     return fuzzer_stats.QueryGroupBy.GROUP_BY_DAY
-  elif group_by == 'by-time':
+  if group_by == 'by-time':
     return fuzzer_stats.QueryGroupBy.GROUP_BY_TIME
-  elif group_by == 'by-revision':
+  if group_by == 'by-revision':
     return fuzzer_stats.QueryGroupBy.GROUP_BY_REVISION
-  elif group_by == 'by-job':
+  if group_by == 'by-job':
     return fuzzer_stats.QueryGroupBy.GROUP_BY_JOB
-  elif group_by == 'by-fuzzer':
+  if group_by == 'by-fuzzer':
     return fuzzer_stats.QueryGroupBy.GROUP_BY_FUZZER
 
   return None
@@ -195,7 +195,7 @@ def _parse_stats_column_descriptions(stats_column_descriptions):
   try:
     result = yaml.safe_load(stats_column_descriptions)
     for key, value in six.iteritems(result):
-      result[key] = cgi.escape(value)
+      result[key] = html.escape(value)
 
     return result
   except yaml.parser.ParserError:
@@ -444,7 +444,7 @@ class LoadFiltersHandler(base_handler.Handler):
 
       jobs_list = sorted(external_users.allowed_jobs_for_user(user_email))
       projects_list = sorted(
-          set([data_handler.get_project_name(job) for job in jobs_list]))
+          {data_handler.get_project_name(job) for job in jobs_list})
 
     result = {
         'projects': projects_list,

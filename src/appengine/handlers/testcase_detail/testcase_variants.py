@@ -27,11 +27,11 @@ class Handler(base_handler.Handler):
       """Return status for display."""
       if status == data_types.TestcaseVariantStatus.PENDING:
         return 'Pending'
-      elif status == data_types.TestcaseVariantStatus.REPRODUCIBLE:
+      if status == data_types.TestcaseVariantStatus.REPRODUCIBLE:
         return 'Reproducible'
-      elif status == data_types.TestcaseVariantStatus.FLAKY:
+      if status == data_types.TestcaseVariantStatus.FLAKY:
         return 'Flaky'
-      elif status == data_types.TestcaseVariantStatus.UNREPRODUCIBLE:
+      if status == data_types.TestcaseVariantStatus.UNREPRODUCIBLE:
         return 'Unreproducible'
 
       return 'Unknown'
