@@ -19,8 +19,8 @@ standard_library.install_aliases()
 from builtins import object
 from builtins import str
 
-import html
 import datetime
+import html
 import re
 import six
 import urllib.parse
