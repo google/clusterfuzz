@@ -336,6 +336,7 @@ STACK_FRAME_IGNORE_REGEXES = [
     # Function names (exact match).
     r'^abort$',
     r'^exit$',
+    r'^pthread\_create$'
     r'^pthread\_kill$',
     r'^raise$',
     r'^tgkill$',
@@ -408,6 +409,7 @@ STACK_FRAME_IGNORE_REGEXES = [
     r'^alloc\:\:',
     r'^android\.app\.ActivityManagerProxy\.',
     r'^android\.os\.Parcel\.',
+    r'^art\:\:Thread\:\:CreateNativeThread'
     r'^asan\_',
     r'^calloc',
     r'^check\_memory\_region',
