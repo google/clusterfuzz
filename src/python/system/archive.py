@@ -16,6 +16,7 @@
 from builtins import object
 from builtins import oct
 
+import lzma
 import os
 import tarfile
 import zipfile
@@ -102,12 +103,6 @@ def iterator(archive_path,
       logs.log_error('Bad tar file %s.' % archive_path)
 
   elif archive_type == ArchiveType.TAR_LZMA:
-    # Import lzma here so that if lzma installation fails (as it may on
-    # Windows), other archives can still be opened.
-    # TODO(metzman): Determine if this actually fails on Windows and move
-    # this to the top of the file if it doesn't.
-    from backports import lzma
-
     assert archive_obj is None, "LZMAFile doesn't support opening file handles."
     try:
       with lzma.LZMAFile(archive_path) as lzma_file, \
