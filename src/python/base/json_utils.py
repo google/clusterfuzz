@@ -33,7 +33,7 @@ class JSONEncoder(json.JSONEncoder):
           'second': o.second,
           'microsecond': o.microsecond,
       }
-    elif isinstance(o, datetime.date):
+    if isinstance(o, datetime.date):
       return {
           '__type__': 'date',
           'year': o.year,

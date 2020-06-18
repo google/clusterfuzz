@@ -38,6 +38,7 @@ class GetLastSavedModelTest(fake_fs_unittest.TestCase):
   """Get latest model test."""
 
   def setUp(self):
+    """Set Up for Get Last Saved Model Test."""
     # Set up fake filesystem.
     test_utils.set_up_pyfakefs(self)
 
@@ -135,7 +136,7 @@ class ExecuteTaskTest(unittest.TestCase):
         'bot.tasks.ml_train_task.upload_model_to_gcs',
     ])
 
-    self.mock.get_corpus.return_value = True,
+    self.mock.get_corpus.return_value = True
     self.mock.train_rnn.return_value = new_process.ProcessResult(return_code=0)
     self.mock.upload_model_to_gcs.return_value = True
 

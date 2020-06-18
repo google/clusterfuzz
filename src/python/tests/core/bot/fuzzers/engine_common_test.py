@@ -361,6 +361,7 @@ class UnpackSeedCorpusIfNeededTest(fake_filesystem_unittest.TestCase):
   NUM_CORPUS_FILES = engine_common.MAX_FILES_FOR_UNPACK + 1
 
   def setUp(self):
+    """Set Up for Unpack Seed Corpus If Needed Test."""
     self.data_path = os.path.join(
         os.path.dirname(os.path.abspath(__file__)), 'data')
 

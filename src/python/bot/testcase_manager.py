@@ -697,8 +697,7 @@ class TestcaseRunner(object):
       if crash_comparer.is_similar():
         logs.log('Crash stacktrace is similar to original stacktrace.')
         return crash_result
-      else:
-        logs.log('Crash stacktrace does not match original stacktrace.')
+      logs.log('Crash stacktrace does not match original stacktrace.')
 
     logs.log('Didn\'t crash at all.')
     return CrashResult(return_code=0, crash_time=0, output=crash_result.output)

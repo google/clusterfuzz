@@ -295,7 +295,7 @@ def unpack(archive_path,
       logs.log_error(
           'Failed to extract everything from archive %s.' % archive_filename)
 
-  elif archive_type == ArchiveType.TAR or archive_type == ArchiveType.TAR_LZMA:
+  elif archive_type in (ArchiveType.TAR, ArchiveType.TAR_LZMA):
     if archive_type == ArchiveType.TAR_LZMA:
       # Import lzma here so that if lzma installation fails (as it may on
       # Windows), other archives can still be opened.

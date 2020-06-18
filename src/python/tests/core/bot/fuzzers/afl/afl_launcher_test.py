@@ -46,6 +46,7 @@ class LauncherTestBase(fake_filesystem_unittest.TestCase):
   DATA_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data')
 
   def setUp(self):
+    """Set Up for Launcher Test Base."""
     test_helpers.patch_environ(self)
     os.environ['FAIL_RETRIES'] = '1'
 

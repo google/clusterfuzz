@@ -69,9 +69,9 @@ def get_analyzer(name):
   """Return an analyzer for the given |name|."""
   if name == 'sanitizer_generic':
     return SeverityAnalyzerSanitizer()
-  elif name == 'sanitizer_chrome':
+  if name == 'sanitizer_chrome':
     return SeverityAnalyzerSanitizerChrome(is_compromised_renderer=False)
-  elif name == 'sanitizer_chrome_compromised_renderer':
+  if name == 'sanitizer_chrome_compromised_renderer':
     return SeverityAnalyzerSanitizerChrome(is_compromised_renderer=True)
   return None
 

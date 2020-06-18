@@ -27,6 +27,7 @@ class MinijailTest(fake_filesystem_unittest.TestCase):
   """Minijail tests."""
 
   def setUp(self):
+    """Set Up for Minijail Test."""
     if environment.platform() != 'LINUX':
       self.skipTest('Minijail tests are only applicable for linux platform.')
 

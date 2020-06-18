@@ -44,7 +44,11 @@ def _redis_client():
     return _local.redis
 
   host = os.getenv('REDIS_HOST', _DEFAULT_REDIS_HOST)
-  port = os.getenv('REDIS_PORT', _DEFAULT_REDIS_PORT)
+
+  # Casting to int as os.getenv returns str
+  # Casting default port to str as default needs to be str or None
+  port = int(os.getenv('REDIS_PORT', str(_DEFAULT_REDIS_PORT)))
+
   _local.redis = redis.Redis(host=host, port=port)
   return _local.redis
 

@@ -25,7 +25,6 @@ from tests.test_libs import helpers as test_helpers
 
 class TestNotFoundException(Exception):
   """Serve as a testing exception."""
-  pass
 
 
 class IsNotEmpty(unittest.TestCase):

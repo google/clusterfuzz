@@ -49,11 +49,9 @@ class Fuzzer(object):
 
   class NameError(ValueError):
     """Indicates a supplied name is malformed or unusable."""
-    pass
 
   class StateError(ValueError):
     """Indicates a command isn't valid for the fuzzer in its current state."""
-    pass
 
   @classmethod
   def _matches_sanitizer(cls, tgt, sanitizer):
@@ -105,7 +103,7 @@ class Fuzzer(object):
         return list(
             set(Fuzzer.filter(fuzzers, '/' + name))
             | set(Fuzzer.filter(fuzzers, name + '/')))
-      elif len(names) != 2:
+      if len(names) != 2:
         raise Fuzzer.NameError('Malformed fuzzer name: ' + name)
     filtered = []
     for pkg, tgt in fuzzers:

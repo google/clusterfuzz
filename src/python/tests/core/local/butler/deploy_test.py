@@ -33,6 +33,7 @@ class DeployTest(fake_filesystem_unittest.TestCase):
   """Deploy tests."""
 
   def setUp(self):
+    """Set Up for Deploy Test."""
     real_cwd = os.path.realpath(os.getcwd())
     test_utils.set_up_pyfakefs(self)
     self.fs.add_real_directory(
@@ -373,12 +374,11 @@ class IsDiffOriginMasterTest(unittest.TestCase):
     def execute(cmd):
       if cmd == 'git fetch':
         return (0, '')
-      elif cmd == 'git rev-parse HEAD':
+      if cmd == 'git rev-parse HEAD':
         return (0, self.head)
-      elif cmd == 'git diff origin/master --stat':
+      if cmd == 'git diff origin/master --stat':
         return (0, self.diff)
-      else:
-        raise Exception()
+      raise Exception()
 
     self.mock.execute.side_effect = execute
 

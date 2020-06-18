@@ -39,7 +39,6 @@ class Host(object):
 
   class ConfigError(RuntimeError):
     """Indicates the host is not configured for building Fuchsia."""
-    pass
 
   @classmethod
   def from_build(cls):

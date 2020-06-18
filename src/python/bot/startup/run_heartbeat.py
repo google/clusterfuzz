@@ -16,14 +16,6 @@ from __future__ import print_function
 
 from builtins import str
 
-# We want to use utf-8 encoding everywhere throughout the application
-# instead of the default 'ascii' encoding. This must happen before any
-# other imports.
-import sys
-if sys.version_info.major == 2:
-  reload(sys)
-  sys.setdefaultencoding('utf-8')
-
 # Before any other imports, we must fix the path. Some libraries might expect
 # to be able to import dependencies directly, but we must store these in
 # subdirectories of common so that they are shared with App Engine.
@@ -32,6 +24,7 @@ modules.fix_module_search_paths()
 
 import os
 import subprocess
+import sys
 
 from datastore import data_handler
 from datastore import ndb_init

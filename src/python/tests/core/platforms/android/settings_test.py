@@ -40,9 +40,9 @@ class GetDeviceCodenameTest(unittest.TestCase):
   def test_by_serial(self):
     """Ensure that we report the correct codename for serial number."""
     os.environ['ANDROID_SERIAL'] = '123456789012'
-    self.assertEquals(settings.get_device_codename(), 'device1')
+    self.assertEqual(settings.get_device_codename(), 'device1')
 
   def test_by_usb(self):
     """Ensure that we report the correct codename for a usb device."""
     os.environ['ANDROID_SERIAL'] = 'usb:2-4.2'
-    self.assertEquals(settings.get_device_codename(), 'device2')
+    self.assertEqual(settings.get_device_codename(), 'device2')

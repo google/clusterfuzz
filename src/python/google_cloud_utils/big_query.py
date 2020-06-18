@@ -71,18 +71,17 @@ def cast(value, field):
 
   if field['type'] in {'INTEGER', 'INT64'}:
     return int(value)
-  elif field['type'] in {'FLOAT', 'FLOAT64'}:
+  if field['type'] in {'FLOAT', 'FLOAT64'}:
     return float(value)
-  elif field['type'] in {'BOOLEAN', 'BOOL'}:
+  if field['type'] in {'BOOLEAN', 'BOOL'}:
     return value == 'true'
-  elif field['type'] in {'STRING'}:
+  if field['type'] in {'STRING'}:
     return value
-  elif field['type'] in {'TIMESTAMP'}:
+  if field['type'] in {'TIMESTAMP'}:
     return datetime.datetime.utcfromtimestamp(float(value))
-  elif field['type'] in {'RECORD'}:
+  if field['type'] in {'RECORD'}:
     return convert_row(value, field['fields'])
-  else:
-    raise Exception('The type %s is unsupported.' % field['type'])
+  raise Exception('The type %s is unsupported.' % field['type'])
 
 
 def convert_row(raw_row, fields):

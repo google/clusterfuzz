@@ -39,6 +39,7 @@ class BaseEngineFuzzerTest(fake_filesystem_unittest.TestCase):
   """Engine fuzzer tests."""
 
   def setUp(self):
+    """Set up for Base Engine Fuzzer Test."""
     helpers.patch_environ(self)
     helpers.patch(self, [
         'base.utils.default_project_name',

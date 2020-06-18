@@ -279,9 +279,9 @@ def get_crash_stacktrace_output(application_command_line,
   def _guess_build_type(application_command_line):
     if 'stable' in application_command_line:
       return 'stable'
-    elif 'beta' in application_command_line:
+    if 'beta' in application_command_line:
       return 'beta'
-    elif sub_string_exists_in(['debug', 'dbg'], application_command_line):
+    if sub_string_exists_in(['debug', 'dbg'], application_command_line):
       return 'debug'
     return 'release'
 
@@ -382,7 +382,7 @@ def get_line_count_string(line_count):
   """Return string representation for size."""
   if line_count == 0:
     return 'empty'
-  elif line_count == 1:
+  if line_count == 1:
     return '1 line'
   return '%d lines' % line_count
 
@@ -391,9 +391,9 @@ def get_size_string(size):
   """Return string representation for size."""
   if size < 1 << 10:
     return '%d B' % size
-  elif size < 1 << 20:
+  if size < 1 << 20:
     return '%d KB' % (size >> 10)
-  elif size < 1 << 30:
+  if size < 1 << 30:
     return '%d MB' % (size >> 20)
   return '%d GB' % (size >> 30)
 

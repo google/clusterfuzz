@@ -61,7 +61,7 @@ class PrepareTest(fake_fs_unittest.TestCase):
   """Prepare() tests."""
 
   def setUp(self):
-    # Set up fake filesystem.
+    """Set up for fake filesystem Prepare Test."""
     test_helpers.patch_environ(self)
     test_utils.set_up_pyfakefs(self)
 
@@ -180,7 +180,7 @@ class FuzzTest(fake_fs_unittest.TestCase):
   """Fuzz() tests."""
 
   def setUp(self):
-    # Set up fake filesystem.
+    """Set Up for fake filesystem Fuzz Test."""
     test_helpers.patch_environ(self)
     test_utils.set_up_pyfakefs(self)
 

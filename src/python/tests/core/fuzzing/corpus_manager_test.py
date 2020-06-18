@@ -194,6 +194,7 @@ class FuzzTargetCorpusTest(fake_filesystem_unittest.TestCase):
   """FuzzTargetCorpus tests."""
 
   def setUp(self):
+    """Set Up for Fuzz Target Corpus Test."""
     test_helpers.patch_environ(self)
 
     os.environ['GSUTIL_PATH'] = '/gsutil_path'
@@ -274,6 +275,7 @@ class CorpusBackupTest(fake_filesystem_unittest.TestCase):
     return path
 
   def setUp(self):
+    """Set Up for Corpus Backup Test."""
     test_helpers.patch_environ(self)
 
     test_utils.set_up_pyfakefs(self)
