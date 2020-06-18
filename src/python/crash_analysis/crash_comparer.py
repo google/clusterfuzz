@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """Functions for helping in crash comparison."""
+# pylint: disable=consider-using-enumerate
 from __future__ import division
 from builtins import object
 from builtins import range
@@ -22,9 +23,9 @@ def _levenshtein_distance(string_1, string_2):
   based on Wikipedia article and code by Christopher P. Matthews."""
   if string_1 == string_2:
     return 0
-  elif not string_1:
+  if not string_1:
     return len(string_2)
-  elif not string_2:
+  if not string_2:
     return len(string_1)
 
   v0 = list(range(len(string_2) + 1))
