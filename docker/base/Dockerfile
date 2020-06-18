@@ -69,11 +69,6 @@ RUN CLOUD_SDK_REPO="cloud-sdk-$(lsb_release -c -s)" && \
     curl https://packages.cloud.google.com/apt/doc/apt-key.gpg | apt-key add -  && \
     apt-get update && apt-get install -y google-cloud-sdk
 
-# Only upgrade python packages used by fuzzers and infrastructure.
-RUN pip2 install --upgrade pip
-COPY requirements.txt .
-RUN pip2 install -r requirements.txt
-
 # Set up google-fluentd
 # We ignore errors in install-logging-agent.sh as it always fails to start
 # after installation without a metadata server.
