@@ -104,7 +104,7 @@ class EngineFuzzerTest(BaseEngineFuzzerTest):
     """Test running without a build dir."""
     environment.set_value('BUILD_DIR', '')
     fuzzer = TestEngineFuzzer()
-    with self.assertRaisesRegexp(builtin.BuiltinFuzzerException, 'BUILD_DIR'):
+    with self.assertRaisesRegex(builtin.BuiltinFuzzerException, 'BUILD_DIR'):
       fuzzer.run('/input', '/output', 1)
 
   def test_run_no_fuzzers(self):

@@ -86,7 +86,7 @@ class UploadTestsToCloudStorageTest(fake_filesystem_unittest.TestCase):
         b'a/file1.txt\nfile2.txt\nf/g/file4.txt',
         'gs://test-coverage-testcases/2018-11-01/test_fuzzer/'
         '5b680a295e1f3a81160a0bd71ca2abbcb8d19521/file_list.txt')
-    self.assertEquals(
+    self.assertEqual(
         FakeGSUtilRunner.rsync_calls,
         [('/testcases', 'gs://test-coverage-testcases/'
           '2018-11-01/test_fuzzer/5b680a295e1f3a81160a0bd71ca2abbcb8d19521',
@@ -103,7 +103,7 @@ class UploadTestsToCloudStorageTest(fake_filesystem_unittest.TestCase):
     coverage_uploader.upload_testcases_if_needed('test_fuzzer', [],
                                                  '/testcases', '/data')
     self.assertEqual(self.mock.write_data.call_count, 0)
-    self.assertEquals(FakeGSUtilRunner.rsync_calls, [])
+    self.assertEqual(FakeGSUtilRunner.rsync_calls, [])
 
   def test_large_testcase_list(self):
     """Ensure that we cap number of uploaded testcases."""
@@ -117,7 +117,7 @@ class UploadTestsToCloudStorageTest(fake_filesystem_unittest.TestCase):
         filtered_files_list,
         'gs://test-coverage-testcases/2018-11-01/test_fuzzer/'
         '5b680a295e1f3a81160a0bd71ca2abbcb8d19521/file_list.txt')
-    self.assertEquals(
+    self.assertEqual(
         FakeGSUtilRunner.rsync_calls,
         [('/testcases', 'gs://test-coverage-testcases/'
           '2018-11-01/test_fuzzer/5b680a295e1f3a81160a0bd71ca2abbcb8d19521',

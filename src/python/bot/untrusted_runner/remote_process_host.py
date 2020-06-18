@@ -86,7 +86,9 @@ class RemoteProcessRunner(new_process.ProcessRunner):
                    extra_env=None,
                    stdout=subprocess.PIPE,
                    stderr=subprocess.STDOUT,
-                   **popen_args):  # pylint: disable=unused-argument
+                   **popen_args):
+    # pylint: disable=unused-argument
+    # pylint: disable=arguments-differ
     """Remote version of new_process.ProcessRunner.run_and_wait."""
     assert stdout == subprocess.PIPE
     assert stderr == subprocess.STDOUT
