@@ -67,3 +67,39 @@ class CrashComparerTest(unittest.TestCase):
                      'base::debug::DebugBreak\n'
                      'gpu::gles2::GLES2Util::GLFaceTargetToTextureTarget\n')
     self.is_similar_helper(crash_state_1, crash_state_2, False)
+
+  def test_is_similar_shifted(self):
+    """Test similar when frames have shifted slightly."""
+    crash_state_1 = 'first\nsecond\nthird\n'
+    crash_state_2 = 'second\nthird\nfourth\n'
+    self.is_similar_helper(crash_state_1, crash_state_2, True)
+
+    crash_state_2 = 'first\nthird\nfourth'
+    self.is_similar_helper(crash_state_1, crash_state_2, True)
+
+    crash_state_2 = 'first\nsecond\nfourth'
+    self.is_similar_helper(crash_state_1, crash_state_2, True)
+
+    crash_state_2 = 'first\nthird'
+    self.is_similar_helper(crash_state_1, crash_state_2, True)
+
+    crash_state_2 = 'other\nsecond\nthird'
+    self.is_similar_helper(crash_state_1, crash_state_2, True)
+
+  def test_only_one_frame_matching(self):
+    """Test not similar when 1/3 frames match."""
+    crash_state_1 = 'first\nsecond\nthird\n'
+    crash_state_2 = 'second\nfourth\nfifth\n'
+    self.is_similar_helper(crash_state_1, crash_state_2, False)
+
+    crash_state_2 = 'first\nfourth\nfifth\n'
+    self.is_similar_helper(crash_state_1, crash_state_2, False)
+
+  def test_is_same_frames_wrong_order(self):
+    """Test not similar when some frames match but the order doesn't match."""
+    crash_state_1 = 'first\nsecond\nthird\n'
+    crash_state_2 = 'second\nfirst\nfourth\n'
+    self.is_similar_helper(crash_state_1, crash_state_2, False)
+
+    crash_state_2 = 'third\nsecond\nfirst\n'
+    self.is_similar_helper(crash_state_1, crash_state_2, False)

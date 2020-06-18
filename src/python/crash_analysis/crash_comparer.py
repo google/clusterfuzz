@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """Functions for helping in crash comparison."""
+# pylint: disable=consider-using-enumerate
 from __future__ import division
 from builtins import object
 from builtins import range
@@ -22,9 +23,9 @@ def _levenshtein_distance(string_1, string_2):
   based on Wikipedia article and code by Christopher P. Matthews."""
   if string_1 == string_2:
     return 0
-  elif not string_1:
+  if not string_1:
     return len(string_2)
-  elif not string_2:
+  if not string_2:
     return len(string_1)
 
   v0 = list(range(len(string_2) + 1))
@@ -53,9 +54,27 @@ def _similarity_ratio(string_1, string_2):
       1.0 * length_sum)
 
 
+def longest_common_subsequence(first_frames, second_frames):
+  """Count number of frames which are the same (taking into account order)."""
+  first_len = len(first_frames)
+  second_len = len(second_frames)
+
+  solution = [[0 for _ in range(second_len + 1)] for _ in range(first_len + 1)]
+
+  for i in range(1, first_len + 1):
+    for j in range(1, second_len + 1):
+      if first_frames[i - 1] == second_frames[j - 1]:
+        solution[i][j] = solution[i - 1][j - 1] + 1
+      else:
+        solution[i][j] = max(solution[i - 1][j], solution[i][j - 1])
+
+  return solution[first_len][second_len]
+
+
 class CrashComparer(object):
   """Compares two crash results."""
   COMPARE_THRESHOLD = 0.8
+  SAME_FRAMES_THRESHOLD = 2
 
   def __init__(self, crash_state_1, crash_state_2, compare_threshold=None):
     self.crash_state_1 = crash_state_1
@@ -81,6 +100,10 @@ class CrashComparer(object):
     # stacktrace.
     crash_state_lines_1 = self.crash_state_1.splitlines()
     crash_state_lines_2 = self.crash_state_2.splitlines()
+
+    if (longest_common_subsequence(crash_state_lines_1, crash_state_lines_2) >=
+        self.SAME_FRAMES_THRESHOLD):
+      return True
 
     lines_compared = 0
     similarity_ratio_sum = 0.0
