@@ -16,9 +16,7 @@
 
 class ReproduceToolError(Exception):
   """Base class for reproduce tool exceptions."""
-  pass
 
 
 class ReproduceToolUnrecoverableError(ReproduceToolError):
   """Unrecoverable errors."""
-  pass

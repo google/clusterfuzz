@@ -21,8 +21,6 @@ def check_virtualenv():
   if sys.version_info.major != 3:
     raise RuntimeError('Python 2 is no longer supported!')
 
-  root_path = os.path.realpath(
-      os.path.join(os.path.dirname(__file__), '..', '..', '..'))
   is_in_virtualenv = bool(os.getenv('VIRTUAL_ENV'))
 
   if not is_in_virtualenv:
