@@ -33,19 +33,18 @@ def _get_handler_ctor(args):
   """Get a Handler class given arguments."""
   if 'linux' in args.instance_name:
     return linux.Handler
-  elif 'windows' in args.instance_name:
+  if 'windows' in args.instance_name:
     return windows.Handler
-  elif 'golo' in args.instance_name:
+  if 'golo' in args.instance_name:
     return mac.Handler
-  elif 'android-build' in args.instance_name:
+  if 'android-build' in args.instance_name:
     return android_chrome_lab.Handler
-  else:
-    raise NotImplementedError('Unsupported platform.')
+  raise NotImplementedError('Unsupported platform.')
 
 
 def _args_to_dict(args, method):
   """Convert args to dict that is compatible with the method's argument."""
-  arg_names = inspect.getargspec(method).args[1:]
+  arg_names = inspect.getfullargspec(method).args[1:]
   args_dict = {
       k: v
       for k, v in six.iteritems(vars(args))

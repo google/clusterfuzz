@@ -23,6 +23,9 @@ def check_virtualenv():
 
   root_path = os.path.realpath(
       os.path.join(os.path.dirname(__file__), '..', '..', '..'))
+
+  del root_path  # unused by check_virtualenv
+
   is_in_virtualenv = bool(os.getenv('VIRTUAL_ENV'))
 
   if not is_in_virtualenv:
