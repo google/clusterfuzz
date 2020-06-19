@@ -290,7 +290,7 @@ def unpack(archive_path,
       logs.log_error(
           'Failed to extract everything from archive %s.' % archive_filename)
 
-  elif archive_type in [ArchiveType.TAR, ArchiveType.TAR_LZMA]:
+  elif archive_type in (ArchiveType.TAR, ArchiveType.TAR_LZMA):
     if archive_type == ArchiveType.TAR_LZMA:
       lzma_file = lzma.LZMAFile(archive_path)
       tar_archive = tarfile.open(fileobj=lzma_file)
