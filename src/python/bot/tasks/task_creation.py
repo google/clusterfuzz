@@ -156,7 +156,8 @@ def create_variant_tasks_if_needed(testcase):
     return
 
   testcase_id = testcase.key.id()
-  jobs = ndb_utils.get_all_from_model(data_types.Job)
+  project = data_handler.get_project_name(testcase.job_type)
+  jobs = data_types.Job.query(data_types.Job.project == project)
   for job in jobs:
     # The variant needs to be tested in a different job type than us.
     job_type = job.name
@@ -172,11 +173,6 @@ def create_variant_tasks_if_needed(testcase):
     # Skip experimental jobs.
     job_environment = job.get_environment()
     if utils.string_is_true(job_environment.get('EXPERIMENTAL')):
-      continue
-
-    # Don't look for variants in other projects.
-    project_name = data_handler.get_project_name(job_type)
-    if testcase.project_name != project_name:
       continue
 
     queue = tasks.queue_for_platform(job.platform)
