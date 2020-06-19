@@ -22,7 +22,6 @@ from build_management import revisions
 from config import local_config
 from datastore import data_handler
 from datastore import data_types
-from datastore import ndb_utils
 from google_cloud_utils import blobs
 from google_cloud_utils import pubsub
 from system import environment
