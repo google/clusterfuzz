@@ -103,7 +103,6 @@ def initial_qemu_setup():
 
 class QemuError(Exception):
   """Error for errors handling QEMU."""
-  pass
 
 
 class QemuProcess(object):

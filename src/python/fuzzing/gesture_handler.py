@@ -25,9 +25,9 @@ def get_gestures(gesture_count):
 
   if plt == 'ANDROID':
     return android.gestures.get_random_gestures(gesture_count)
-  elif plt == 'LINUX':
+  if plt == 'LINUX':
     return linux.gestures.get_random_gestures(gesture_count)
-  elif plt == 'WINDOWS':
+  if plt == 'WINDOWS':
     return windows.gestures.get_random_gestures(gesture_count)
 
   return []

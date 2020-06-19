@@ -273,8 +273,7 @@ def is_security_issue(crash_stacktrace, crash_type, crash_address):
     return False
 
   # Debug CHECK failure should be marked with security implications.
-  if (crash_type == 'Security DCHECK failure' or
-      crash_type == 'DCHECK failure'):
+  if crash_type in ('Security DCHECK failure', 'DCHECK failure'):
     return True
 
   # Hard crash, explicitly enforced in code.
@@ -340,7 +339,7 @@ def is_security_issue(crash_stacktrace, crash_type, crash_address):
     return asserts_have_security_implication
 
   # Timeouts/OOMs.
-  if crash_type == 'Timeout' or crash_type == 'Out-of-memory':
+  if crash_type in ('Timeout', 'Out-of-memory'):
     return False
 
   # Unexpected exit call in fuzz target.

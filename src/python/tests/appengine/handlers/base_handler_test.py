@@ -125,8 +125,8 @@ class HandlerTest(unittest.TestCase):
         webapp2.WSGIApplication([('/', ExceptionHtmlHandler)]))
     response = app.get('/', expect_errors=True)
     self.assertEqual(response.status_int, 500)
-    self.assertRegexpMatches(response.body, b'.*unique_message.*')
-    self.assertRegexpMatches(response.body, b'.*test@test.com.*')
+    self.assertRegex(response.body, b'.*unique_message.*')
+    self.assertRegex(response.body, b'.*test@test.com.*')
 
   def test_forbidden_not_logged_in(self):
     """Ensure it renders forbidden response correctly (when not logged in)."""
@@ -145,8 +145,8 @@ class HandlerTest(unittest.TestCase):
         webapp2.WSGIApplication([('/', AccessDeniedExceptionHandler)]))
     response = app.get('/', expect_errors=True)
     self.assertEqual(response.status_int, 403)
-    self.assertRegexpMatches(response.body, b'.*Access Denied.*')
-    self.assertRegexpMatches(response.body, b'.*this_random_message.*')
+    self.assertRegex(response.body, b'.*Access Denied.*')
+    self.assertRegex(response.body, b'.*this_random_message.*')
 
   def test_redirect_another_page(self):
     """Test redirect to another page."""

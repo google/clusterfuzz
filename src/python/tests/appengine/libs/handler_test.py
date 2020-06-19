@@ -299,7 +299,7 @@ class CheckTestcaseAccessTest(unittest.TestCase):
 
     resp = self.app.post_json('/', {}, expect_errors=True)
     self.assertEqual(400, resp.status_int)
-    self.assertRegexpMatches(resp.json['message'], '.*not a number.*')
+    self.assertRegex(resp.json['message'], '.*not a number.*')
 
   def test_invalid_testcase_id(self):
     """Test invalid testcase id."""
@@ -310,7 +310,7 @@ class CheckTestcaseAccessTest(unittest.TestCase):
 
     resp = self.app.post_json('/', {'testcaseId': 'aaa'}, expect_errors=True)
     self.assertEqual(400, resp.status_int)
-    self.assertRegexpMatches(resp.json['message'], '.*not a number.*')
+    self.assertRegex(resp.json['message'], '.*not a number.*')
 
   def test_forbidden(self):
     """Test forbidden."""

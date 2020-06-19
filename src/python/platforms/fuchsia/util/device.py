@@ -144,12 +144,12 @@ class Device(object):
         with open(logfile, 'w') as f:
           return self._ssh(cmdline, stdout=f).call()
       return self._ssh(cmdline, stdout=Host.DEVNULL).call()
-    else:
-      if logfile:
-        p1 = self._ssh(cmdline, stdout=subprocess.PIPE).popen()
-        p2 = self.host.create_process(['tee', logfile], stdin=p1.stdout)
-        return p2.check_call()
-      return self._ssh(cmdline, stdout=None).call()
+
+    if logfile:
+      p1 = self._ssh(cmdline, stdout=subprocess.PIPE).popen()
+      p2 = self.host.create_process(['tee', logfile], stdin=p1.stdout)
+      return p2.check_call()
+    return self._ssh(cmdline, stdout=None).call()
 
   def getpids(self):
     """Maps names to process IDs for running fuzzers.

@@ -274,6 +274,7 @@ class CrashInitTest(fake_filesystem_unittest.TestCase):
   """Test Crash.__init__."""
 
   def setUp(self):
+    """Setup for crash init test."""
     helpers.patch(self, [
         'chrome.crash_uploader.FileMetadataInfo',
         'bot.tasks.setup.archive_testcase_and_dependencies_in_gcs',
@@ -653,6 +654,7 @@ class ProcessCrashesTest(fake_filesystem_unittest.TestCase):
   """Test process_crashes."""
 
   def setUp(self):
+    """Setup for process crashes test."""
     helpers.patch(self, [
         'chrome.crash_uploader.get_symbolized_stack_bytes',
         'bot.tasks.fuzz_task.get_unsymbolized_crash_stacktrace',
@@ -1171,6 +1173,7 @@ class TestCorpusSync(fake_filesystem_unittest.TestCase):
   """Test corpus sync."""
 
   def setUp(self):
+    """Setup for test corpus sync."""
     helpers.patch(self, [
         'fuzzing.corpus_manager.FuzzTargetCorpus.rsync_to_disk',
         'fuzzing.corpus_manager.FuzzTargetCorpus.upload_files',
@@ -1338,6 +1341,7 @@ class DoEngineFuzzingTest(fake_filesystem_unittest.TestCase):
   """do_engine_fuzzing tests."""
 
   def setUp(self):
+    """Setup for do engine fuzzing test."""
     helpers.patch_environ(self)
     helpers.patch(self, [
         'bot.fuzzers.engine_common.current_timestamp',

@@ -39,6 +39,7 @@ class BaseEngineFuzzerTest(fake_filesystem_unittest.TestCase):
   """Engine fuzzer tests."""
 
   def setUp(self):
+    """Setup for base engine fuzzer test."""
     helpers.patch_environ(self)
     helpers.patch(self, [
         'base.utils.default_project_name',
@@ -103,7 +104,7 @@ class EngineFuzzerTest(BaseEngineFuzzerTest):
     """Test running without a build dir."""
     environment.set_value('BUILD_DIR', '')
     fuzzer = TestEngineFuzzer()
-    with self.assertRaisesRegexp(builtin.BuiltinFuzzerException, 'BUILD_DIR'):
+    with self.assertRaisesRegex(builtin.BuiltinFuzzerException, 'BUILD_DIR'):
       fuzzer.run('/input', '/output', 1)
 
   def test_run_no_fuzzers(self):

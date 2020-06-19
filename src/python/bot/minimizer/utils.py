@@ -68,9 +68,9 @@ def get_size_string(size):
   """Return string representation for size."""
   if size < 1 << 10:
     return '%d B' % size
-  elif size < 1 << 20:
+  if size < 1 << 20:
     return '%d KB' % (size >> 10)
-  elif size < 1 << 30:
+  if size < 1 << 30:
     return '%d MB' % (size >> 20)
 
   return '%d GB' % (size >> 30)

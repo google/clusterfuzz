@@ -55,6 +55,7 @@ class RequestHandlerTest(fake_filesystem_unittest.TestCase):
   """Tests for the RequestHandler class."""
 
   def setUp(self):
+    """Setup for request handler test."""
     test_utils.set_up_pyfakefs(self)
     helpers.patch_environ(self)
 

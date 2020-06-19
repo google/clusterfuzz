@@ -194,6 +194,7 @@ class FuzzTargetCorpusTest(fake_filesystem_unittest.TestCase):
   """FuzzTargetCorpus tests."""
 
   def setUp(self):
+    """Setup for fuzz target corpus test."""
     test_helpers.patch_environ(self)
 
     os.environ['GSUTIL_PATH'] = '/gsutil_path'
@@ -274,6 +275,7 @@ class CorpusBackupTest(fake_filesystem_unittest.TestCase):
     return path
 
   def setUp(self):
+    """Setup for corpus backup test."""
     test_helpers.patch_environ(self)
 
     test_utils.set_up_pyfakefs(self)
@@ -342,6 +344,7 @@ class LegalizeFilenamesTest(FileMixin, fake_filesystem_unittest.TestCase):
   def test_rename_illegal(self):
     """Test that illegally named files are renamed."""
     legally_named = corpus_manager.legalize_filenames([self.FILE_PATH])
+    # pylint: disable=unnecessary-comprehension
     self.assertEqual([os.path.join(self.DIRECTORY, self.FILE_SHA1SUM)],
                      [file_path for file_path in legally_named])
     with open(os.path.join(self.DIRECTORY, self.FILE_SHA1SUM)) as file_handle:

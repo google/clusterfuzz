@@ -280,7 +280,7 @@ def deps_to_revisions_dict(content):
       'Var': lambda x: local_context.get('vars', {}).get(x),
   }
   # pylint: disable=exec-used
-  exec (content, global_context, local_context)
+  exec(content, global_context, local_context)
 
   revisions_dict = {}
 
@@ -572,14 +572,14 @@ def find_build_url(bucket_path, build_url_list, revision):
     return None
 
   revision_pattern = revision_pattern_from_build_bucket_path(bucket_path)
-  for index in range(len(build_url_list)):
-    match = re.match(revision_pattern, build_url_list[index])
+  for build_url in build_url_list:
+    match = re.match(revision_pattern, build_url)
     if not match:
       continue
 
     current_revision = convert_revision_to_integer(match.group(1))
     if current_revision == revision:
-      return build_url_list[index]
+      return build_url
 
   return None
 
@@ -620,9 +620,9 @@ def get_first_revision_in_list(revision_list):
   if not min_revision:
     return first_revision
 
-  for index in range(len(revision_list)):
-    if revision_list[index] >= min_revision:
-      return revision_list[index]
+  for revision in revision_list:
+    if revision >= min_revision:
+      return revision
 
   # No revision >= |MIN_REVISION| was found, store the error and just return
   # first revision.

@@ -37,4 +37,3 @@ class TokenizationFailureError(Exception):
 
 class AntlrDecodeError(Exception):
   """Raised when Antlr can't minimize input because it is not unicode."""
-  pass

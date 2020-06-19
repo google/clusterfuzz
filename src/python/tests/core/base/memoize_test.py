@@ -41,7 +41,6 @@ class CacheTestClass(object):
   @memoize.wrap(memoize.FifoInMemory(10))
   def none(self, a):
     self.called.append(a)
-    return None
 
 
 CALLED = []

@@ -162,6 +162,7 @@ class RecommendedDictionaryTest(fake_fs_unittest.TestCase):
     return True
 
   def setUp(self):
+    """Setup for recommended dictionary test."""
     # FIXME: Add support for Windows.
     if not environment.is_posix():
       self.skipTest('Process tests are only applicable for posix platforms.')

@@ -364,7 +364,7 @@ def parse_mime_to_crash_report_info(local_minidump_mime_path):
         utils.write_data_to_file(report_value, minidump_path)
       else:
         # Take care of aliases.
-        if report_key == 'prod' or report_key == 'buildTargetId':
+        if report_key in ('prod', 'buildTargetId'):
           report_key = PRODUCT_KEY
         elif report_key == 'ver':
           report_key = VERSION_KEY
@@ -488,10 +488,9 @@ def get_crash_info(output):
       crash_info.unsymbolized_stacktrace = output
       return crash_info
 
-    else:
-      # Other platforms are not currently supported.
-      logs.log_error('Unable to fetch crash information for this platform.')
-      return None
+    # Other platforms are not currently supported.
+    logs.log_error('Unable to fetch crash information for this platform.')
+    return None
 
   # Could not find dump location, bail out. This could also happen when we don't
   # have a minidump location in stack at all, e.g. when testcase does not crash

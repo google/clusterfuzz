@@ -623,7 +623,7 @@ class GetFormattedReproductionHelpTest(unittest.TestCase):
     testcase.minimized_arguments = '%TESTCASE% test_fuzzer -runs=100'
     testcase.put()
 
-    self.assertEquals(
+    self.assertEqual(
         data_handler.get_formatted_reproduction_help(testcase),
         ('-{id}\n-libFuzzer\n-test_fuzzer\n-test_project\n-1337\n'
          '-libFuzzer\n-ASAN\n-runs=100\n').format(id=testcase.key.id()))
@@ -638,7 +638,7 @@ class GetFormattedReproductionHelpTest(unittest.TestCase):
     testcase.put()
     testcase.set_metadata('last_tested_crash_revision', 1338)
 
-    self.assertEquals(
+    self.assertEqual(
         data_handler.get_formatted_reproduction_help(testcase),
         ('-{id}\n-simple_fuzzer\n-NA\n-test_project\n-1338\n'
          '-NA\n-ASAN\n--disable-logging\n').format(id=testcase.key.id()))
@@ -674,7 +674,7 @@ class GetFormattedReproductionHelpTest(unittest.TestCase):
             }
         })
 
-    self.assertEquals(
+    self.assertEqual(
         data_handler.get_formatted_reproduction_help(testcase),
         ('-{id}\n-simple_fuzzer\n-NA\n-test_project\n-1337\n'
          '-NA\n-UBSAN\n--disable-logging --disable-experiments\n'
@@ -711,7 +711,7 @@ class GetFormattedReproductionHelpTest(unittest.TestCase):
             }
         })
 
-    self.assertEquals(
+    self.assertEqual(
         data_handler.get_formatted_reproduction_help(testcase), 'bazel test '
         '--test_env=ASAN_OPTIONS="handle_abort=1:redzone=512" '
         '--test_env=UBSAN_OPTIONS="halt_on_error=1" '

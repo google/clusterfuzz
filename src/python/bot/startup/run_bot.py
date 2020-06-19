@@ -14,14 +14,6 @@
 """Bot startup script."""
 from __future__ import print_function
 
-# We want to use utf-8 encoding everywhere throughout the application
-# instead of the default 'ascii' encoding. This must happen before any
-# other imports.
-import sys
-if sys.version_info.major == 2:
-  reload(sys)
-  sys.setdefaultencoding('utf-8')
-
 # Before other modules import os, we patch path-related methods, so they are
 # compatible with windows.
 from system import path_patcher
@@ -36,8 +28,9 @@ modules.fix_module_search_paths()
 from future import standard_library
 standard_library.install_aliases()
 from builtins import object
-import os
 import multiprocessing
+import os
+import sys
 import time
 import traceback
 
@@ -194,9 +187,7 @@ def main():
 
 
 if __name__ == '__main__':
-  if sys.version_info.major == 3:
-    # TODO(ochang): Remove check once all migrated to Python 3.
-    multiprocessing.set_start_method('spawn')
+  multiprocessing.set_start_method('spawn')
 
   try:
     with ndb_init.context():

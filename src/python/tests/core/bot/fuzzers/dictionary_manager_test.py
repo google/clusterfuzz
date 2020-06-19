@@ -46,7 +46,7 @@ class DictionaryManagerTest(unittest.TestCase):
     data = utils.read_data_from_file(
         dictionary_path, eval_data=False).decode('utf-8')
     lines = [line.strip() for line in data.splitlines()]
-    dictionary = set([line for line in lines if line])
+    dictionary = {line for line in lines if line}
     return dictionary
 
   def test_recommended_dictionary_parse(self):

@@ -150,7 +150,6 @@ class JiraTests(unittest.TestCase):
 
   def test_find_issues(self):
     """Test find_issues."""
-    issue = self.mock_issue
     self.mock.get_issues.return_value = [self.jira_issue]
     issues = self.issue_tracker.find_issues(keywords=['body'], only_open=True)
     six.assertCountEqual(self, ['VSEC-3112'], [issue.id for issue in issues])

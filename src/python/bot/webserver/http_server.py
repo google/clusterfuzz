@@ -120,7 +120,6 @@ class RequestHandler(http.server.BaseHTTPRequestHandler):
 
   def log_message(self, fmt, *args):  # pylint: disable=arguments-differ
     """Do not output a log entry to stderr for every request made."""
-    pass
 
 
 def run_server(host, port):

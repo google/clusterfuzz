@@ -71,6 +71,7 @@ class UploadTestcaseOutputTest(fake_filesystem_unittest.TestCase):
   """Tests for logs uploading."""
 
   def setUp(self):
+    """Setup for upload testcase output test."""
     test_helpers.patch_environ(self)
     test_utils.set_up_pyfakefs(self)
     self.testcase_path = '/test/fuzzer/testcase'
@@ -364,6 +365,7 @@ class TestcaseRunningTest(fake_filesystem_unittest.TestCase):
   GREYBOX_FUZZER_CRASH = 'Command: cmd\nBot: bot_name\nTime ran: 1\n\ncrash'
 
   def setUp(self):
+    """Setup for testcase running test."""
     test_helpers.patch_environ(self)
     test_utils.set_up_pyfakefs(self)
 

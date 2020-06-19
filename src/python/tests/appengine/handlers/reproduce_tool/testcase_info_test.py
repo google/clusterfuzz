@@ -40,9 +40,9 @@ class PrepareTestcaseDictTest(unittest.TestCase):
   def test_expected_properties_included(self):
     """Ensure that a few of the common test case properties are included."""
     result = testcase_info._prepare_testcase_dict(self.testcase)
-    self.assertEquals(result['status'], 'Pending')
-    self.assertEquals(result['open'], True)
-    self.assertEquals(result['group_id'], 0)
+    self.assertEqual(result['status'], 'Pending')
+    self.assertEqual(result['open'], True)
+    self.assertEqual(result['group_id'], 0)
 
   def test_job_included(self):
     """Ensure that the job definition has been included."""
