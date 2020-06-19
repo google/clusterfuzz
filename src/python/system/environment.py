@@ -921,13 +921,17 @@ def set_bot_environment():
     # If not defined, default to host name.
     os.environ['BOT_NAME'] = socket.gethostname().lower()
 
+  # Local temp directory (non-tmpfs).
+  local_tmp_dir = os.path.join(bot_dir, 'tmp')
+
   # Set BOT_TMPDIR if not already set.
   if not get_value('BOT_TMPDIR'):
-    os.environ['BOT_TMPDIR'] = os.path.join(bot_dir, 'tmp')
+    os.environ['BOT_TMPDIR'] = local_tmp_dir
 
   # Add common environment variables needed by Bazel test runner.
   # See https://docs.bazel.build/versions/master/test-encyclopedia.html.
-  os.environ['TEST_TMPDIR'] = get_value('BOT_TMPDIR')
+  # NOTE: Do not use a tmpfs folder as some fuzz targets don't work.
+  os.environ['TEST_TMPDIR'] = local_tmp_dir
   os.environ['TZ'] = 'UTC'
 
   # Sets the default configuration. Can be overridden by job environment.
