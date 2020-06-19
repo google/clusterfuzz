@@ -244,7 +244,7 @@ class RegularBuildTest(fake_filesystem_unittest.TestCase):
   """Tests for regular build setup."""
 
   def setUp(self):
-    """Set Up for Regular Build Test."""
+    """Setup for regular build test."""
     test_utils.set_up_pyfakefs(self)
 
     test_helpers.patch(self, [
@@ -352,7 +352,7 @@ class RegularLibFuzzerBuildTest(fake_filesystem_unittest.TestCase):
   """Tests for regular libFuzzer build setup."""
 
   def setUp(self):
-    """Set Up for Regular Lib Fuzzer Build Test."""
+    """Setup for regular libFuzzer build test."""
     test_utils.set_up_pyfakefs(self)
 
     test_helpers.patch(self, [
@@ -526,7 +526,7 @@ class SymbolizedBuildTest(fake_filesystem_unittest.TestCase):
   """Tests for symbolized build setup."""
 
   def setUp(self):
-    """Set Up for Symbolized Build Test."""
+    """Setup for symbolized build test."""
     test_utils.set_up_pyfakefs(self)
 
     test_helpers.patch(self, [
@@ -729,7 +729,7 @@ class ProductionBuildTest(fake_filesystem_unittest.TestCase):
   """Tests for production build setup."""
 
   def setUp(self):
-    """Set Up for Production Build Test."""
+    """Setup for production build test."""
     test_utils.set_up_pyfakefs(self)
 
     test_helpers.patch(self, [
@@ -859,7 +859,7 @@ class CustomBuildTest(fake_filesystem_unittest.TestCase):
   """Tests for custom build setup."""
 
   def setUp(self):
-    """Set Up for Custom Build Test."""
+    """Setup for custom build test."""
     test_helpers.patch_environ(self)
     test_helpers.patch(self, [
         'build_management.build_manager._make_space_for_build',
@@ -965,7 +965,7 @@ class SystemBuildTest(fake_filesystem_unittest.TestCase):
   """Tests for system build setup."""
 
   def setUp(self):
-    """Set Up for System Build Test."""
+    """Setup for system build test."""
     test_utils.set_up_pyfakefs(self)
 
     test_helpers.patch(self, [
@@ -1001,7 +1001,7 @@ class AuxiliaryRegularBuildTest(fake_filesystem_unittest.TestCase):
   """Tests for auxiliary build setup."""
 
   def setUp(self):
-    """Set Up for Auxiliary Regular Build Test."""
+    """Setup for auxiliary regular build Test."""
     test_utils.set_up_pyfakefs(self)
 
     test_helpers.patch(self, [
@@ -1097,7 +1097,7 @@ class AuxiliaryRegularLibFuzzerBuildTest(fake_filesystem_unittest.TestCase):
   """Tests for auxiliary libFuzzer build setup."""
 
   def setUp(self):
-    """Set Up for Auxiliary Regular LibFuzzer Build Test."""
+    """Setup for auxiliary regular libFuzzer build test."""
     test_utils.set_up_pyfakefs(self)
 
     test_helpers.patch(self, [
@@ -1263,7 +1263,7 @@ class BuildEvictionTests(fake_filesystem_unittest.TestCase):
   """Build eviction tests."""
 
   def setUp(self):
-    """Set Up for Build Eviction Tests."""
+    """Setup for build eviction tests."""
     test_utils.set_up_pyfakefs(self)
     test_helpers.patch(self, [
         'base.utils.is_chromium',
@@ -1782,7 +1782,7 @@ class SplitFuzzTargetsBuildTest(fake_filesystem_unittest.TestCase):
   """Tests for split fuzz target build setup."""
 
   def setUp(self):
-    """Set Up for Split Fuzz Targets Build Test."""
+    """Setup for split fuzz targets build test."""
     test_utils.set_up_pyfakefs(self)
 
     test_helpers.patch(self, [

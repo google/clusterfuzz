@@ -33,7 +33,7 @@ class DeployTest(fake_filesystem_unittest.TestCase):
   """Deploy tests."""
 
   def setUp(self):
-    """Set Up for Deploy Test."""
+    """Setup for deploy test."""
     real_cwd = os.path.realpath(os.getcwd())
     test_utils.set_up_pyfakefs(self)
     self.fs.add_real_directory(

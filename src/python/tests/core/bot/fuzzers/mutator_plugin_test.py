@@ -86,7 +86,7 @@ class PluginGetterTest(fake_filesystem_unittest.TestCase):
   """Tests PluginGetter."""
 
   def setUp(self):
-    """Set Up for Plugin Getter Test."""
+    """Setup for plugin getter test."""
     helpers.patch_environ(self)
     test_utils.set_up_pyfakefs(self)
     os.environ['JOB_NAME'] = 'libfuzzer_asan_test'

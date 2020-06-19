@@ -38,7 +38,7 @@ class GetLastSavedModelTest(fake_fs_unittest.TestCase):
   """Get latest model test."""
 
   def setUp(self):
-    """Set Up for Get Last Saved Model Test."""
+    """Setup for get last saved model test."""
     # Set up fake filesystem.
     test_utils.set_up_pyfakefs(self)
 

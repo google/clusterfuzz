@@ -47,7 +47,7 @@ class UploadTestsToCloudStorageTest(fake_filesystem_unittest.TestCase):
   """Tests for upload_tests_to_cloud_storage."""
 
   def setUp(self):
-    """Set Up for Upload Tests To Cloud Storage Test."""
+    """Setup for upload tests to cloud storage test."""
     test_helpers.patch_environ(self)
     test_helpers.patch(self, [
         'base.utils.utcnow',

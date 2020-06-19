@@ -19,7 +19,6 @@ from builtins import str
 import collections
 import functools
 import json
-import os
 import threading
 
 import redis
@@ -27,6 +26,7 @@ import six
 
 from base import persistent_cache
 from metrics import logs
+from system import environment
 from system.environment import appengine_noop
 from system.environment import bot_noop
 from system.environment import local_noop
@@ -43,11 +43,8 @@ def _redis_client():
   if hasattr(_local, 'redis'):
     return _local.redis
 
-  host = os.getenv('REDIS_HOST', _DEFAULT_REDIS_HOST)
-
-  # Casting to int as os.getenv returns str
-  # Casting default port to str as default needs to be str or None
-  port = int(os.getenv('REDIS_PORT', str(_DEFAULT_REDIS_PORT)))
+  host = environment.get_value('REDIS_HOST', _DEFAULT_REDIS_HOST)
+  port = environment.get_value('REDIS_PORT', _DEFAULT_REDIS_PORT)
 
   _local.redis = redis.Redis(host=host, port=port)
   return _local.redis

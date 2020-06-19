@@ -57,7 +57,7 @@ class BuiltinFuzzersSetupTest(fake_filesystem_unittest.TestCase):
   """Test builtin fuzzers setup."""
 
   def setUp(self):
-    """Set Up for Builtin Fuzzer Setup Test."""
+    """Setup for builtin fuzzer setup test."""
     helpers.patch_environ(self)
     test_utils.set_up_pyfakefs(self)
     self.fs.create_dir('/input')

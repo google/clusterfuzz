@@ -572,14 +572,14 @@ def find_build_url(bucket_path, build_url_list, revision):
     return None
 
   revision_pattern = revision_pattern_from_build_bucket_path(bucket_path)
-  for build_url_item in build_url_list:
-    match = re.match(revision_pattern, build_url_item)
+  for build_url in build_url_list:
+    match = re.match(revision_pattern, build_url)
     if not match:
       continue
 
     current_revision = convert_revision_to_integer(match.group(1))
     if current_revision == revision:
-      return build_url_item
+      return build_url
 
   return None
 
@@ -620,9 +620,9 @@ def get_first_revision_in_list(revision_list):
   if not min_revision:
     return first_revision
 
-  for revision_list_item in revision_list:
-    if revision_list_item >= min_revision:
-      return revision_list_item
+  for revision in revision_list:
+    if revision >= min_revision:
+      return revision
 
   # No revision >= |MIN_REVISION| was found, store the error and just return
   # first revision.
