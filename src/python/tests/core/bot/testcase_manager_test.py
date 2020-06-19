@@ -381,6 +381,7 @@ class TestcaseRunningTest(fake_filesystem_unittest.TestCase):
     os.environ['CRASH_RETRIES'] = '3'
     os.environ['FAIL_RETRIES'] = '3'
     os.environ['BOT_TMPDIR'] = '/bot/tmp'
+    os.environ['TEST_TMPDIR'] = '/bot/tmp'
     os.environ['USER_PROFILE_ROOT_DIR'] = '/user-profiles'
     os.environ['APP_NAME'] = 'app_name'
     os.environ['APP_PATH'] = '/build_dir/app_name'
