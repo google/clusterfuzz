@@ -536,12 +536,12 @@ def _logs_bucket_key_fn(func, args, kwargs):  # pylint: disable=unused-argument
 class FuzzerRunLogsContext(BuiltinFieldContext):
   """Fuzzer logs context."""
 
-  MEMCACHE_TTL = 15 * 60
+  MEMCACHE_TTL = 30 * 60
 
   def __init__(self, fuzzer=None, jobs=None):
     super(FuzzerRunLogsContext, self).__init__(fuzzer=fuzzer, jobs=jobs)
 
-  @memoize.wrap(memoize.FifoInMemory(256))
+  @memoize.wrap(memoize.FifoInMemory(1024))
   def _get_logs_bucket_from_job(self, job_type):
     """Get logs bucket from job."""
     return data_handler.get_value_from_job_definition_or_environment(
