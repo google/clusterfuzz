@@ -336,7 +336,7 @@ def process_command(task):
       minimize_fuzzer_override = job_environment.get('MINIMIZE_FUZZER_OVERRIDE')
       fuzzer_name = minimize_fuzzer_override or fuzzer_name
 
-    if fuzzer_name:
+    if fuzzer_name and not environment.is_engine_fuzzer_job(job_name):
       fuzzer = data_types.Fuzzer.query(
           data_types.Fuzzer.name == fuzzer_name).get()
       additional_default_variables = ''

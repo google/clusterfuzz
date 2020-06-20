@@ -189,7 +189,8 @@ def setup_testcase(testcase, job_type, fuzzer_override=None):
 
   # Adjust the test timeout value if this is coming from an user uploaded
   # testcase.
-  _set_timeout_value_from_user_upload(testcase_id)
+  if testcase.uploader_email:
+    _set_timeout_value_from_user_upload(testcase_id)
 
   # Update the fuzzer if necessary in order to get the updated data bundle.
   if fuzzer_name:
