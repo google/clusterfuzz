@@ -1821,9 +1821,8 @@ class FuzzingSession(object):
 
     # Ensure that that the fuzzer still exists.
     logs.log('Setting up fuzzer and data bundles.')
-    fuzzer = data_types.Fuzzer.query(
-        data_types.Fuzzer.name == self.fuzzer_name).get()
-    if not fuzzer or not setup.update_fuzzer_and_data_bundles(self.fuzzer_name):
+    fuzzer = setup.update_fuzzer_and_data_bundles(self.fuzzer_name)
+    if not fuzzer:
       _track_fuzzer_run_result(self.fuzzer_name, 0, 0,
                                FuzzErrorCode.FUZZER_SETUP_FAILED)
       logs.log_error('Unable to setup fuzzer %s.' % self.fuzzer_name)

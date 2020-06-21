@@ -499,13 +499,13 @@ def update_fuzzer_and_data_bundles(fuzzer_name):
     # Clear the old fuzzer directory if it exists.
     if not shell.remove_directory(fuzzer_directory, recreate=True):
       logs.log_error('Failed to clear fuzzer directory.')
-      return False
+      return None
 
     # Copy the archive to local disk and unpack it.
     archive_path = os.path.join(fuzzer_directory, fuzzer.filename)
     if not blobs.read_blob_to_disk(fuzzer.blobstore_key, archive_path):
       logs.log_error('Failed to copy fuzzer archive.')
-      return False
+      return None
 
     try:
       archive.unpack(archive_path, fuzzer_directory)
@@ -515,7 +515,7 @@ def update_fuzzer_and_data_bundles(fuzzer_name):
       logs.log_error(error_message)
       fuzzer_logs.upload_script_log(
           'Fatal error: ' + error_message, fuzzer_name=fuzzer_name)
-      return False
+      return None
 
     fuzzer_path = os.path.join(fuzzer_directory, fuzzer.executable_path)
     if not os.path.exists(fuzzer_path):
@@ -524,7 +524,7 @@ def update_fuzzer_and_data_bundles(fuzzer_name):
       logs.log_error(error_message)
       fuzzer_logs.upload_script_log(
           'Fatal error: ' + error_message, fuzzer_name=fuzzer_name)
-      return False
+      return None
 
     # Make fuzzer executable.
     os.chmod(fuzzer_path, 0o750)
@@ -544,7 +544,7 @@ def update_fuzzer_and_data_bundles(fuzzer_name):
           data_types.DataBundle.name == fuzzer.data_bundle_name))
   for data_bundle in data_bundles:
     if not update_data_bundle(fuzzer, data_bundle):
-      return False
+      return None
 
   # Setup environment variable for launcher script path.
   if fuzzer.launcher_script:
@@ -561,7 +561,7 @@ def update_fuzzer_and_data_bundles(fuzzer_name):
       file_host.copy_directory_to_worker(
           fuzzer_directory, worker_fuzzer_directory, replace=True)
 
-  return True
+  return fuzzer
 
 
 def _is_search_index_data_bundle(data_bundle_name):
