@@ -285,7 +285,7 @@ def process_command(task):
       time.sleep(failure_wait_interval)
       return
 
-    if task_name not in ('fuzz', 'variant'):
+    if task_name != 'fuzz':
       # Make sure that our platform id matches that of the testcase (for
       # non-fuzz tasks).
       testcase = data_handler.get_entity_by_type_and_id(data_types.Testcase,
@@ -298,7 +298,7 @@ def process_command(task):
         # This can happen when you have different type of devices (e.g
         # android) on the same platform group. In this case, we just recreate
         # the task.
-        if (testcase_platform_id and
+        if (task_name != 'variant' and testcase_platform_id and
             not utils.fields_match(testcase_platform_id, current_platform_id)):
           logs.log(
               'Testcase %d platform (%s) does not match with ours (%s), exiting'
