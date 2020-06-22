@@ -152,6 +152,9 @@ class GetFuzzTaskPayloadTest(unittest.TestCase):
     windows_mapping.platform = 'windows'
     windows_mapping.put()
 
+    data_types.FuzzerJobs(
+        platform='windows', fuzzer_jobs=[windows_mapping]).put()
+
     self.assertEqual(
         (None, None), fuzzer_selection.get_fuzz_task_payload(platform='linux'))
 
@@ -160,6 +163,8 @@ class GetFuzzTaskPayloadTest(unittest.TestCase):
     linux_mapping.job = 'job_2'
     linux_mapping.platform = 'linux'
     linux_mapping.put()
+
+    data_types.FuzzerJobs(platform='linux', fuzzer_jobs=[linux_mapping]).put()
 
     argument, job = fuzzer_selection.get_fuzz_task_payload('linux')
     self.assertEqual(('right_fuzzer', 'job_2'), (argument, job))

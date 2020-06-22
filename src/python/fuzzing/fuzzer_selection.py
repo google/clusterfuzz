@@ -80,10 +80,13 @@ def get_fuzz_task_payload(platform=None):
     queue_override = environment.get_value('QUEUE_OVERRIDE')
     platform = queue_override if queue_override else environment.platform()
 
-  query = data_types.FuzzerJob.query()
-  query = query.filter(data_types.FuzzerJob.platform == platform)
+  query = data_types.FuzzerJobs.query()
+  query = query.filter(data_types.FuzzerJobs.platform == platform)
 
-  mappings = list(ndb_utils.get_all_from_query(query))
+  mappings = []
+  for fuzzer_jobs in query:
+    mappings.extend(fuzzer_jobs.fuzzer_jobs)
+
   if not mappings:
     return None, None
 

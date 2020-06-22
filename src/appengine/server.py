@@ -42,6 +42,7 @@ from handlers import testcase_list
 from handlers import upload_testcase
 from handlers import viewer
 from handlers.cron import backup
+from handlers.cron import batch_fuzzer_jobs
 from handlers.cron import build_crash_stats
 from handlers.cron import cleanup
 from handlers.cron import corpus_backup
@@ -126,6 +127,7 @@ base_handler.add_menu('Documentation', '/docs')
 # We need to separate routes for cron to avoid redirection.
 _CRON_ROUTES = [
     ('/backup', backup.Handler),
+    ('/batch-fuzzer-jobs', batch_fuzzer_jobs.Handler),
     ('/build-crash-stats', build_crash_stats.Handler),
     ('/cleanup', cleanup.Handler),
     ('/corpus-backup/make-public', corpus_backup.MakePublicHandler),

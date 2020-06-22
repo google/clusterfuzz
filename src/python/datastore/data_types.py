@@ -1417,6 +1417,13 @@ class FuzzerJob(Model):
     return self.weight * self.multiplier
 
 
+class FuzzerJobs(Model):
+  """(Batched) mappings between a fuzzer and jobs with additional metadata for
+  selection."""
+  platform = ndb.StringProperty()
+  fuzzer_jobs = ndb.LocalStructuredProperty(FuzzerJob, repeated=True)
+
+
 class OssFuzzBuildFailure(Model):
   """Represents build failure."""
   # Project name.
