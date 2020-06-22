@@ -378,4 +378,5 @@ def supported_platforms(*platforms):
 
   return decorator
 
+
 MockStdout = io.StringIO  # pylint: disable=invalid-name
