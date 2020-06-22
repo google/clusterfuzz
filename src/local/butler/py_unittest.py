@@ -108,13 +108,7 @@ def run_one_test_parallel(args):
     test_modules, suppress_output = args
     suite = unittest.loader.TestLoader().loadTestsFromNames(test_modules)
 
-    if sys.version_info.major == 2:
-      # We use BufferedWriter as a hack to accept both unicode and str write
-      # arguments.
-      # TODO(ochang): Remove this once migrated to Python 3.
-      stream = io.BufferedWriter(io.BytesIO())
-    else:
-      stream = io.StringIO()
+    stream = io.StringIO()
 
     # Verbosity=0 since we cannot see real-time test execution order when tests
     # are executed in parallel.
@@ -125,11 +119,7 @@ def run_one_test_parallel(args):
     print('Done running', tests)
 
     stream.flush()
-    if sys.version_info.major == 2:
-      # TODO(ochang): Remove this once migrated to Python 3.
-      value = stream.raw.getvalue()
-    else:
-      value = stream.getvalue()
+    value = stream.getvalue()
 
     return TestResult(value, len(result.errors), len(result.failures),
                       len(result.skipped), result.testsRun)
@@ -258,33 +248,6 @@ def execute(args):
         sys.path[i] = os.path.abspath(
             os.path.join('src', 'appengine', 'third_party'))
 
-    if sys.version_info.major == 2:
-      # TODO(ochang): Remove once migrated to Python 3.
-      appengine_sdk_path = appengine.find_sdk_path()
-      sys.path.insert(0, appengine_sdk_path)
-
-      # Get additional App Engine third party imports.
-      import dev_appserver
-      dev_appserver.fix_google_path()
-      sys.path.extend(dev_appserver.EXTRA_PATHS)
-
-      # Loading appengine_config from the current project ensures that any
-      # changes to configuration there are available to all tests (e.g.
-      # sys.path modifications, namespaces, etc.)
-      try:
-        from src.appengine import appengine_config
-        (appengine_config)  # pylint: disable=pointless-statement
-      except ImportError:
-        print('Note: unable to import appengine_config.')
-
-      # google.auth uses App Engine credentials based on importability of
-      # google.appengine.api.app_identity.
-      try:
-        from google.auth import app_engine as auth_app_engine
-        if auth_app_engine.app_identity:
-          auth_app_engine.app_identity = None
-      except ImportError:
-        pass
   elif args.target == 'core':
     test_directory = CORE_TEST_DIRECTORY
   else:

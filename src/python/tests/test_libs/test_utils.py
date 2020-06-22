@@ -129,14 +129,6 @@ def reproduce_tool(func):
           func)
 
 
-# TODO(mbarbella): Remove this and all users after fully migrating to Python 3.
-def python2_only(func):
-  """Tests which can only run on Python 2."""
-  return unittest.skipIf(sys.version_info.major != 2,
-                         'Skipping Python 2-only test.')(
-                             func)
-
-
 def python3_only(func):
   """Tests which can only run on Python 3."""
   return unittest.skipIf(sys.version_info.major != 3,
@@ -379,17 +371,4 @@ def supported_platforms(*platforms):
   return decorator
 
 
-# TODO(ochang): Remove once migrated to Python 3.
-if sys.version_info.major == 2:
-
-  class MockStdout(io.BufferedWriter):
-    """Mock stdout."""
-
-    def __init__(self):
-      super(MockStdout, self).__init__(io.BytesIO())
-
-    def getvalue(self):
-      self.flush()
-      return self.raw.getvalue()
-else:
-  MockStdout = io.StringIO  # pylint: disable=invalid-name
+MockStdout = io.StringIO  # pylint: disable=invalid-name

@@ -16,7 +16,6 @@ from __future__ import division
 from __future__ import print_function
 
 from builtins import chr
-from builtins import map
 from builtins import next
 from builtins import object
 from builtins import range
@@ -91,10 +90,7 @@ def encode_text(bytes_data):
   Returns:
     An encoded list of integers representing code points.
   """
-  if sys.version_info.major == 3:
-    return list(bytes_data)
-
-  return list(map(ord, bytes_data))
+  return list(bytes_data)
 
 
 def decode_to_text(encoded_list):

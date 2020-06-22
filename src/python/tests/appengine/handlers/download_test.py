@@ -16,7 +16,6 @@
 from builtins import str
 from future import standard_library
 standard_library.install_aliases()
-import sys
 import unittest
 import urllib.parse
 
@@ -97,13 +96,7 @@ class DownloadTest(unittest.TestCase):
           'attachment%3B+filename%3D' + urllib.parse.quote(expect_filename))
 
     if expect_blob:
-      # TODO(mbarbella): Remove explicit decode after Python 3 migration. This
-      # is required because header values are bytes while working around an
-      # issue with App Engine headers that will be resolved after migrating.
-      if sys.version_info.major == 2:
-        self.assertEqual(expected_url, resp.location.decode())
-      else:
-        self.assertEqual(expected_url, resp.location)
+      self.assertEqual(expected_url, resp.location)
     elif expect_status == 302:
       self.assertNotIn('SIGNED_URL', resp.location)
 

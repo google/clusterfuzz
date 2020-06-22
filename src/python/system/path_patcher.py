@@ -139,10 +139,6 @@ def patch():
   if not _is_windows():
     return
 
-  # TODO(mbarbella): Remove this file after fully transitioning to Python 3.
-  if sys.version_info.major != 2:
-    return
-
   if _ORIGINAL_MAP:
     return
 
@@ -159,11 +155,4 @@ def patch():
 
 def unpatch():
   """Restore the methods to their original implementations."""
-  if not _is_windows():
-    return
-
-  if sys.version_info.major != 2:
-    return
-
-  for obj, attr in list(_ORIGINAL_MAP):
-    _unpatch_single(obj, attr)
+  return

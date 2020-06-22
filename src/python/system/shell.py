@@ -23,7 +23,6 @@ import sys
 import tempfile
 
 from base import persistent_cache
-from base import utils
 from metrics import logs
 from system import environment
 
@@ -352,6 +351,7 @@ def get_free_disk_space(path='/'):
   return psutil.disk_usage(path).free
 
 
+# pylint: disable=unused-argument
 def get_interpreter(file_to_execute, is_blackbox_fuzzer=False):
   """Gives the interpreter needed to execute |file_to_execute|."""
   interpreters = {
@@ -368,12 +368,6 @@ def get_interpreter(file_to_execute, is_blackbox_fuzzer=False):
     interpreter = interpreters[os.path.splitext(file_to_execute)[1]]
   except KeyError:
     return None
-
-  # TODO(mbarbella): Remove this when fuzzers have been migrated to Python 3.
-  if (is_blackbox_fuzzer and interpreter == sys.executable and
-      environment.get_value('USE_PYTHON2_FOR_BLACKBOX_FUZZERS') and
-      sys.version_info.major == 3):
-    interpreter = 'python2'
 
   return interpreter
 
@@ -517,12 +511,6 @@ def remove_directory(directory, recreate=False, ignore_errors=False):
 
 def walk(directory, **kwargs):
   """Wrapper around walk to resolve compatibility issues."""
-  # TODO(mbarbella): Remove this hack once the Python 3 migration is complete.
-  # The os library has some explicit type checks that cause issues when newstrs
-  # are passed.
-  if sys.version_info.major == 2:
-    return os.walk(utils.newstr_to_native_str(directory), **kwargs)
-
   return os.walk(directory, **kwargs)
 
 

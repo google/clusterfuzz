@@ -13,14 +13,10 @@
 # limitations under the License.
 """guard.py checks virtualenv environment and dev requirements."""
 import os
-import sys
 
 
 def check_virtualenv():
   """Check that we're in a virtualenv."""
-  if sys.version_info.major != 3:
-    raise RuntimeError('Python 2 is no longer supported!')
-
   is_in_virtualenv = bool(os.getenv('VIRTUAL_ENV'))
 
   if not is_in_virtualenv:

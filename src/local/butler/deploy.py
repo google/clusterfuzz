@@ -218,10 +218,8 @@ def _deploy_zip(bucket_name, zip_path):
 
 def _deploy_manifest(bucket_name, manifest_path):
   """Deploy source manifest to GCS."""
-  if sys.version_info.major == 3:
-    manifest_suffix = '.3'
-  else:
-    manifest_suffix = ''
+  # manifest_suffix refers to majot python version used.
+  manifest_suffix = '.3'
 
   common.execute('gsutil cp -a public-read %s '
                  'gs://%s/clusterfuzz-source.manifest%s' %
@@ -414,13 +412,12 @@ def execute(args):
   deploy_zips = 'zips' in args.targets
   deploy_appengine = 'appengine' in args.targets
 
-  is_python3 = sys.version_info.major == 3
   package_zip_paths = []
   if deploy_zips:
     for platform_name in platforms:
       package_zip_paths.append(
           package.package(
-              revision, platform_name=platform_name, python3=is_python3))
+              revision, platform_name=platform_name, python3=True))
   else:
     # package.package calls these, so only set these up if we're not packaging,
     # since they can be fairly slow.
@@ -437,13 +434,13 @@ def execute(args):
     sys.exit(1)
 
   if args.staging:
-    _staging_deployment_helper(python3=is_python3)
+    _staging_deployment_helper(python3=True)
   else:
     _prod_deployment_helper(
         args.config_dir,
         package_zip_paths,
         deploy_appengine,
-        python3=is_python3)
+        python3=True)
 
   with open(constants.PACKAGE_TARGET_MANIFEST_PATH) as f:
     print('Source updated to %s' % f.read())

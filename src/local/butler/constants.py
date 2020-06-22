@@ -44,14 +44,12 @@ PLATFORMS = collections.OrderedDict([
     ('linux', ('manylinux2010_x86_64', 'manylinux1_x86_64')),
 ])
 
-if sys.version_info.major == 2:
-  ABIS = {'linux': 'cp27mu', 'windows': 'cp27m', 'macos': 'cp27m'}
-elif sys.version_info.major == 3 and sys.version_info.minor == 7:
+if sys.version_info.minor == 7:
   ABIS = {'linux': 'cp37m', 'windows': 'cp37m', 'macos': 'cp37m'}
-elif sys.version_info.major == 3 and sys.version_info.minor == 8:
+elif sys.version_info.minor == 8:
   ABIS = {'linux': 'cp38', 'windows': 'cp38', 'macos': 'cp38'}
 else:
-  raise Exception('Only python versions 2, 3.7 and 3.8 are supported.')
+  raise Exception('Only python 3.7 and 3.8 are supported.')
 
 # Config directory to use for tests.
 TEST_CONFIG_DIR = os.path.join('configs', 'test')
