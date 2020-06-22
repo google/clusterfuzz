@@ -35,23 +35,20 @@ class SeverityAnalyzerTest(unittest.TestCase):
     """Tests severity analysis of a use after free report."""
     self.assertEqual(
         severity_analyzer.get_analyzer('sanitizer_generic').analyze(
-            'Heap-use-after-free\nREAD 8', self._read_test_data('asan_uaf.txt'),
-            False), SecuritySeverity.HIGH)
+            'Heap-use-after-free\nREAD 8', None, False), SecuritySeverity.HIGH)
 
   def test_asan_uaf_gestures(self):
     """Tests severity analysis of a use after free report that requires
     gestures."""
     self.assertEqual(
         severity_analyzer.get_analyzer('sanitizer_generic').analyze(
-            'Heap-use-after-free\nREAD 8', self._read_test_data('asan_uaf.txt'),
-            True), SecuritySeverity.MEDIUM)
+            'Heap-use-after-free\nREAD 8', None, True), SecuritySeverity.MEDIUM)
 
   def test_asan_heap_overflow_read(self):
     """Tests severity analysis of a heap overflow read."""
     self.assertEqual(
         severity_analyzer.get_analyzer('sanitizer_generic').analyze(
-            'Heap-buffer-overflow\nREAD 4',
-            self._read_test_data('asan_heap_overflow_read.txt'), False),
+            'Heap-buffer-overflow\nREAD 4', None, False),
         SecuritySeverity.MEDIUM)
 
   def test_asan_heap_overflow_read_gestures(self):
@@ -59,16 +56,13 @@ class SeverityAnalyzerTest(unittest.TestCase):
     gestures."""
     self.assertEqual(
         severity_analyzer.get_analyzer('sanitizer_generic').analyze(
-            'Heap-buffer-overflow\nREAD 4',
-            self._read_test_data('asan_heap_overflow_read.txt'), True),
-        SecuritySeverity.LOW)
+            'Heap-buffer-overflow\nREAD 4', None, True), SecuritySeverity.LOW)
 
   def test_asan_heap_overflow_write(self):
     """Tests severity analysis of a heap overflow write."""
     self.assertEqual(
         severity_analyzer.get_analyzer('sanitizer_generic').analyze(
-            'Heap-buffer-overflow\nWRITE 16',
-            self._read_test_data('asan_heap_overflow_read.txt'), False),
+            'Heap-buffer-overflow\nWRITE 16', None, False),
         SecuritySeverity.HIGH)
 
   def test_asan_heap_overflow_write_gestures(self):
@@ -76,25 +70,20 @@ class SeverityAnalyzerTest(unittest.TestCase):
     gestures."""
     self.assertEqual(
         severity_analyzer.get_analyzer('sanitizer_generic').analyze(
-            'Heap-buffer-overflow\nWRITE 16',
-            self._read_test_data('asan_heap_overflow_read.txt'), True),
+            'Heap-buffer-overflow\nWRITE 16', None, True),
         SecuritySeverity.MEDIUM)
 
   def test_asan_container_overflow_read(self):
     """Tests severity analysis of a container overflow read."""
     self.assertEqual(
         severity_analyzer.get_analyzer('sanitizer_generic').analyze(
-            'Container-overflow\nREAD 4',
-            self._read_test_data('asan_container_overflow_read.txt'), False),
-        SecuritySeverity.MEDIUM)
+            'Container-overflow\nREAD 4', None, False), SecuritySeverity.MEDIUM)
 
   def test_asan_container_overflow_write(self):
     """Tests severity analysis of a container overflow write."""
     self.assertEqual(
         severity_analyzer.get_analyzer('sanitizer_generic').analyze(
-            'Container-overflow\nWRITE 4',
-            self._read_test_data('asan_container_overflow_read.txt'), False),
-        SecuritySeverity.HIGH)
+            'Container-overflow\nWRITE 4', None, False), SecuritySeverity.HIGH)
 
   def test_sanitizer_chrome_renderer_uaf(self):
     """Tests severity analysis of a use after free in the renderer."""
@@ -107,63 +96,54 @@ class SeverityAnalyzerTest(unittest.TestCase):
     """Tests severity analysis of a SEGV read."""
     self.assertEqual(
         severity_analyzer.get_analyzer('sanitizer_generic').analyze(
-            'UNKNOWN READ', self._read_test_data('asan_unknown_read.txt'),
-            False), SecuritySeverity.MEDIUM)
+            'UNKNOWN READ', None, False), SecuritySeverity.MEDIUM)
 
   def test_asan_unknown_write(self):
     """Tests severity analysis of a SEGV write."""
     self.assertEqual(
         severity_analyzer.get_analyzer('sanitizer_generic').analyze(
-            'UNKNOWN WRITE', self._read_test_data('asan_unknown_write.txt'),
-            False), SecuritySeverity.HIGH)
+            'UNKNOWN WRITE', None, False), SecuritySeverity.HIGH)
 
   def test_tsan_uaf(self):
     """Tests severity analysis of a use after free report given by TSan."""
     self.assertEqual(
         severity_analyzer.get_analyzer('sanitizer_generic').analyze(
-            'Heap-use-after-free READ 1',
-            self._read_test_data('tsan_use_after_free.txt'), False),
-        SecuritySeverity.HIGH)
+            'Heap-use-after-free READ 1', None, False), SecuritySeverity.HIGH)
 
   def test_ubsan_bad_cast(self):
     """Tests severity analysis of a bad cast report given by UBSan vtpr."""
     self.assertEqual(
         severity_analyzer.get_analyzer('sanitizer_generic').analyze(
-            'Bad-cast', self._read_test_data('ubsan_bad_cast_downcast.txt'),
-            False), SecuritySeverity.HIGH)
+            'Bad-cast', None, False), SecuritySeverity.HIGH)
 
   def test_ubsan_incorrect_function_pointer_type(self):
     """Tests severity analysis of an incorrect function pointer type report
     given by UBSan function."""
     self.assertEqual(
         severity_analyzer.get_analyzer('sanitizer_generic').analyze(
-            'Incorrect-function-pointer-type',
-            self._read_test_data('ubsan_incorrect_function_pointer_type.txt'),
-            False), SecuritySeverity.MEDIUM)
+            'Incorrect-function-pointer-type', None, False),
+        SecuritySeverity.MEDIUM)
 
   def test_ubsan_non_positive_vla_bound_value(self):
     """Tests severity analysis of a non-positive variable length array bound
     report given by UBSan function."""
     self.assertEqual(
         severity_analyzer.get_analyzer('sanitizer_generic').analyze(
-            'Non-positive-vla-bound-value',
-            self._read_test_data('ubsan_non_positive_vla_bound_value.txt'),
-            False), SecuritySeverity.MEDIUM)
+            'Non-positive-vla-bound-value', None, False),
+        SecuritySeverity.MEDIUM)
 
   def test_ubsan_object_size(self):
     """Tests severity analysis of a object-size report given by UBSan
     function."""
     self.assertEqual(
         severity_analyzer.get_analyzer('sanitizer_generic').analyze(
-            'Object-size', self._read_test_data('ubsan_object_size.txt'),
-            False), SecuritySeverity.MEDIUM)
+            'Object-size', None, False), SecuritySeverity.MEDIUM)
 
   def test_cfi_bad_cast(self):
     """Tests severity analysis of a bad cast report given by CFI."""
     self.assertEqual(
         severity_analyzer.get_analyzer('sanitizer_generic').analyze(
-            'Bad-cast', self._read_test_data('cfi_bad_cast.txt'), False),
-        SecuritySeverity.HIGH)
+            'Bad-cast', None, False), SecuritySeverity.HIGH)
 
   def test_msan_renderer(self):
     """Tests severity analysis of a MSan report in the renderer process."""
