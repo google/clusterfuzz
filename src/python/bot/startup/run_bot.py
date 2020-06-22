@@ -14,11 +14,6 @@
 """Bot startup script."""
 from __future__ import print_function
 
-# Before other modules import os, we patch path-related methods, so they are
-# compatible with windows.
-from system import path_patcher
-path_patcher.patch()
-
 # Before any other imports, we must fix the path. Some libraries might expect
 # to be able to import dependencies directly, but we must store these in
 # subdirectories of common so that they are shared with App Engine.
