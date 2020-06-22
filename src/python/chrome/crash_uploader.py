@@ -338,7 +338,7 @@ def parse_mime_to_crash_report_info(local_minidump_mime_path):
         (boundary, boundary))
     minidump_mime_bytes += minidump_mime_file_content.read()
 
-  minidump_mime_contents = email.message_from_string(minidump_mime_bytes)
+  minidump_mime_contents = email.message_from_bytes(minidump_mime_bytes)
 
   # Parse the MIME contents, extracting the parameters needed for upload.
   mime_key_values = {}

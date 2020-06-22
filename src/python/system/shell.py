@@ -369,6 +369,11 @@ def get_interpreter(file_to_execute, is_blackbox_fuzzer=False):
   except KeyError:
     return None
 
+  if(is_blackbox_fuzzer and interpreter == sys.executable and
+     environment.get_value('USE_PYTHON2_FOR_BLACKBOX_FUZZERS') and
+     sys.version_info.major == 3):
+    interpreter = 'python2'
+
   return interpreter
 
 
