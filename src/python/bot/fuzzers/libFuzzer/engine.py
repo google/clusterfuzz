@@ -420,8 +420,7 @@ class LibFuzzerEngine(engine.Engine):
     # Adjust the time limit for the time we spent on the first merge step.
     max_time -= result_1.time_executed
     if max_time <= 0:
-      raise TimeoutError('Merging new testcases timed out\n' +
-                         result_1.logs)
+      raise TimeoutError('Merging new testcases timed out\n' + result_1.logs)
 
     # Step 2. Process the new corpus units as well.
     result_2 = self.minimize_corpus(
@@ -483,8 +482,7 @@ class LibFuzzerEngine(engine.Engine):
         merge_control_file=getattr(self, '_merge_control_file', None))
 
     if result.timed_out:
-      raise TimeoutError('Merging new testcases timed out\n' +
-                         result.output)
+      raise TimeoutError('Merging new testcases timed out\n' + result.output)
 
     if result.return_code != 0:
       raise MergeError('Merging new testcases failed: ' + result.output)

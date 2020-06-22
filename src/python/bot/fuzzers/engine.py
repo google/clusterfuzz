@@ -21,6 +21,7 @@ _ENGINES = {}
 class Error(Exception):
   """Engine error."""
 
+
 class FuzzOptions(object):
   """Represents options passed to the engine. Can be overridden to provide more
   options."""
