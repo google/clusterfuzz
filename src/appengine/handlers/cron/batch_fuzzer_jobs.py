@@ -29,11 +29,12 @@ def batch_fuzzer_jobs():
   """Batch FuzzerJobs for reduced Datastore read ops by bots."""
   platforms = [
       item.platform for item in data_types.FuzzerJob.query(
-      projection=[data_types.FuzzerJob.platform], distinct=True)]
+          projection=[data_types.FuzzerJob.platform], distinct=True)
+  ]
 
   for platform in platforms:
-    fuzzer_jobs = list(data_types.FuzzerJob.query(data_types.FuzzerJob.platform
-                                                  == platform))
+    fuzzer_jobs = list(
+        data_types.FuzzerJob.query(data_types.FuzzerJob.platform == platform))
     fuzzer_jobs.sort(key=lambda item: item.job)
 
     for i in range(0, len(fuzzer_jobs), FUZZER_JOB_BATCH_SIZE):

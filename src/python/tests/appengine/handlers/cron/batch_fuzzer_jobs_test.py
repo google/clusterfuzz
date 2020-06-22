@@ -41,4 +41,5 @@ class TestBatchingFuzzerJobs(unittest.TestCase):
 
       self.assertEqual(self.total_fuzzer_jobs, len(all_fuzzer_jobs))
       for i in range(self.total_fuzzer_jobs):
-        self.assertEqual('libfuzzer_asan_{}_{:06d}'.format(platform, i), all_fuzzer_jobs[i].job)
+        self.assertEqual('libfuzzer_asan_{}_{:06d}'.format(platform, i),
+                         all_fuzzer_jobs[i].job)
