@@ -158,10 +158,9 @@ def run_tests_parallel(args, test_directory, top_level_dir):
       if subsuite.__class__.__name__ == 'ModuleImportFailure':
         unittest.TextTestRunner(verbosity=1).run(subsuite)
         raise Exception('A failure occurred while importing the module.')
-      else:
-        for test_class in subsuite._tests:  # pylint: disable=protected-access
-          test_classes.append((test_class.__module__,
-                               test_class.__class__.__name__))
+      for test_class in subsuite._tests:  # pylint: disable=protected-access
+        test_classes.append((test_class.__module__,
+                             test_class.__class__.__name__))
   test_classes = sorted(test_classes)
 
   test_modules = []

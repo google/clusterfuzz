@@ -416,8 +416,7 @@ def execute(args):
   if deploy_zips:
     for platform_name in platforms:
       package_zip_paths.append(
-          package.package(
-              revision, platform_name=platform_name, python3=True))
+          package.package(revision, platform_name=platform_name, python3=True))
   else:
     # package.package calls these, so only set these up if we're not packaging,
     # since they can be fairly slow.
@@ -437,10 +436,7 @@ def execute(args):
     _staging_deployment_helper(python3=True)
   else:
     _prod_deployment_helper(
-        args.config_dir,
-        package_zip_paths,
-        deploy_appengine,
-        python3=True)
+        args.config_dir, package_zip_paths, deploy_appengine, python3=True)
 
   with open(constants.PACKAGE_TARGET_MANIFEST_PATH) as f:
     print('Source updated to %s' % f.read())
