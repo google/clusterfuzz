@@ -37,4 +37,3 @@ def check():
     return
 
   check_virtualenv()
-  
