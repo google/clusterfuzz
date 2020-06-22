@@ -22,10 +22,6 @@ import yaml
 from local.butler import appengine
 from local.butler import common
 
-_FUTURIZE_EXCEPTIONS = [
-    # Causes issues if applied to the same code multiple times.
-    'lib2to3.fixes.fix_dict',
-]
 _GOLINT_EXCEPTIONS = [
     'types.go'  # Not all model names conform to Go naming conventions.
 ]
@@ -200,21 +196,6 @@ def execute(_):
 
     py_import_order(file_path)
     py_test_init_check(file_path)
-
-    # TODO(mbarbella): Remove futurize checks after migrating to Python 3.
-    # Skip files that cause futurize to report false positive issues.
-    if file_path.endswith(os.path.join('appengine', 'main.py')):
-      continue
-
-    futurize_excludes = ' '.join(
-        ['-x ' + exception for exception in _FUTURIZE_EXCEPTIONS])
-    futurize_command = 'futurize -0 {excludes} {file_path}'.format(
-        excludes=futurize_excludes, file_path=file_path)
-    futurize_output = _execute_command_and_track_error(futurize_command)
-    if ('No changes to ' not in futurize_output and
-        'No files need to be modified' not in futurize_output):
-      # Futurize doesn't modify its return code depending on the result.
-      _error('Python 3 compatibility error introduced.')
 
   golint_path = os.path.join('local', 'bin', 'golint')
   for file_path in go_changed_file_paths:

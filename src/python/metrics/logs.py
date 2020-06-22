@@ -256,7 +256,7 @@ def configure_appengine():
   """Configure logging for App Engine."""
   logging.getLogger().setLevel(logging.INFO)
 
-  if os.getenv('LOCAL_DEVELOPMENT'):
+  if os.getenv('LOCAL_DEVELOPMENT') or os.getenv('PY_UNITTESTS'):
     return
 
   import google.cloud.logging
