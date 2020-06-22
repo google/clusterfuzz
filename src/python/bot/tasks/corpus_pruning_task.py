@@ -451,7 +451,7 @@ class CorpusPruner(object):
 
       try:
         result = self._run_single_unit(unit_path)
-      except engine.TimeoutError:
+      except TimeoutError:
         # Slow unit. Quarantine it.
         unit_path = self._quarantine_unit(unit_path, quarantine_corpus_path)
         num_bad_units += 1
@@ -503,7 +503,7 @@ class CorpusPruner(object):
       result = self.runner.minimize_corpus(
           additional_args, [initial_corpus_path], minimized_corpus_path,
           bad_units_path, CORPUS_PRUNING_TIMEOUT)
-    except engine.TimeoutError as e:
+    except TimeoutError as e:
       raise CorpusPruningException(
           'Corpus pruning timed out while minimizing corpus\n' + repr(e))
     except engine.Error as e:
@@ -551,7 +551,7 @@ class CrossPollinator(object):
       logs.log(
           'Shared corpus merge finished successfully.',
           output=symbolized_output)
-    except engine.TimeoutError as e:
+    except TimeoutError as e:
       # Other cross pollinated fuzzer corpuses can have unexpected test cases
       # that time us out. This is expected, so bail out.
       logs.log_warn('Corpus pruning timed out while merging shared corpus\n' +

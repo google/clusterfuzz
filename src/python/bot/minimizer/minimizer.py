@@ -333,7 +333,6 @@ class Testcase(object):
 
   def _process_test_result(self, test_passed, hypothesis):
     """Additional processing of the result. Minimizers may override this."""
-    pass
 
   def _handle_failing_hypothesis(self, hypothesis):
     """Update the token list for a failing hypothesis."""
@@ -397,6 +396,7 @@ class Testcase(object):
     back = hypotheses[middle:]
 
     # If we could remove either one of two hypotheses, favor removing the first.
+    # pylint: disable=assignment-from-none
     front_merged_successfully = self._attempt_merge(front)
     self._attempt_merge(back, sibling_merge_succeeded=front_merged_successfully)
 

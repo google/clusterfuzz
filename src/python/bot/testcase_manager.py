@@ -615,7 +615,7 @@ class TestcaseRunner(object):
         result = engine_reproduce(self._engine_impl, self._fuzz_target.binary,
                                   self._testcase_path, self._arguments,
                                   run_timeout)
-      except engine.TimeoutError:
+      except TimeoutError:
         # Treat reproduction timeouts as not crashing.
         return CrashResult(0, run_timeout, '')
 

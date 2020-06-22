@@ -26,7 +26,6 @@ import grpc
 
 from base import untrusted
 from base import utils
-from bot.fuzzers import engine
 from datastore import data_types
 from metrics import logs
 from metrics import monitoring_metrics
@@ -160,7 +159,7 @@ def _wrap_call(func, num_retries=config.RPC_RETRY_ATTEMPTS):
           # TODO(ochang): Replace with generic TimeoutError in Python 3.
           # Use __str__ to avoid newstrs. TODO(ochang): Use plain str() once
           # migrated to Python 3.
-          raise engine.TimeoutError(e.__str__())
+          raise TimeoutError(e.__str__())
 
         if num_retries == 0:
           # Just re-raise the original exception if this RPC is not configured

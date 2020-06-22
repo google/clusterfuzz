@@ -1176,7 +1176,7 @@ def _run_libfuzzer_tool(tool_name,
   try:
     result = run_libfuzzer_engine(tool_name, fuzzer_display.target, arguments,
                                   testcase_file_path, output_file_path, timeout)
-  except engine.TimeoutError:
+  except TimeoutError:
     logs.log_warn('LibFuzzer timed out.')
     return None, None
 

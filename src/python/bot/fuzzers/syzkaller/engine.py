@@ -66,7 +66,8 @@ class SyzkallerEngine(engine.Engine):
 
     return binary_folder
 
-  def prepare(self, corpus_dir, target_path, unused_build_dir):
+  # FIXME: Add support for target_path argument
+  def prepare(self, corpus_dir, target_path, unused_build_dir):  # pylint: disable=unused-argument
     """Prepare for a fuzzing session, by generating options and making
     syzkaller binaries executable.
 
@@ -113,7 +114,8 @@ class SyzkallerEngine(engine.Engine):
 
     return syzkaller_runner.fuzz(max_time, additional_args=options.arguments)
 
-  def reproduce(self, target_path, input_path, arguments, max_time):
+  # FIXME: Add support for target_path and additional arguments
+  def reproduce(self, target_path, input_path, arguments, max_time):  # pylint: disable=unused-argument
     """Reproduce a crash given an input.
        Example: ./syz-repro -config my.cfg crash-qemu-1-1455745459265726910
 
