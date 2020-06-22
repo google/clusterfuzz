@@ -10,7 +10,6 @@ py_library(
         "environment.py",
         "minijail.py",
         "new_process.py",
-        "path_patcher.py",
         "process_handler.py",
         "shell.py",
     ],

@@ -168,10 +168,10 @@ def run_tests_parallel(args, test_directory, top_level_dir):
       if subsuite.__class__.__name__ == 'ModuleImportFailure':
         unittest.TextTestRunner(verbosity=1).run(subsuite)
         raise Exception('A failure occurred while importing the module.')
-      else:
-        for test_class in subsuite._tests:  # pylint: disable=protected-access
-          test_classes.append((test_class.__module__,
-                               test_class.__class__.__name__))
+
+      for test_class in subsuite._tests:  # pylint: disable=protected-access
+        test_classes.append((test_class.__module__,
+                             test_class.__class__.__name__))
   test_classes = sorted(test_classes)
 
   test_modules = []
@@ -268,14 +268,14 @@ def execute(args):
       dev_appserver.fix_google_path()
       sys.path.extend(dev_appserver.EXTRA_PATHS)
 
-      # Loading appengine_config from the current project ensures that any
+      # Loading appengine_main from the current project ensures that any
       # changes to configuration there are available to all tests (e.g.
       # sys.path modifications, namespaces, etc.)
       try:
-        from src.appengine import appengine_config
-        (appengine_config)  # pylint: disable=pointless-statement
+        from src.appengine import main as appengine_main
+        (appengine_main)  # pylint: disable=pointless-statement
       except ImportError:
-        print('Note: unable to import appengine_config.')
+        print('Note: unable to import appengine_main.')
 
       # google.auth uses App Engine credentials based on importability of
       # google.appengine.api.app_identity.

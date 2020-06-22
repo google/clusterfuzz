@@ -256,8 +256,7 @@ def configure_appengine():
   """Configure logging for App Engine."""
   logging.getLogger().setLevel(logging.INFO)
 
-  if os.getenv('LOCAL_DEVELOPMENT') or sys.version_info.major == 2:
-    # TODO(ochang): Remove Python 2 check once all migrated to Python 3.
+  if os.getenv('LOCAL_DEVELOPMENT') or os.getenv('PY_UNITTESTS'):
     return
 
   import google.cloud.logging
