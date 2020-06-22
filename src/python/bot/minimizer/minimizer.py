@@ -396,6 +396,7 @@ class Testcase(object):
     back = hypotheses[middle:]
 
     # If we could remove either one of two hypotheses, favor removing the first.
+    # FIXME: Fix this. Tracked in #1845.
     # pylint: disable=assignment-from-none
     front_merged_successfully = self._attempt_merge(front)
     self._attempt_merge(back, sibling_merge_succeeded=front_merged_successfully)
