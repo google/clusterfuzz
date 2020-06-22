@@ -129,6 +129,14 @@ def reproduce_tool(func):
           func)
 
 
+# TODO(mbarbella): Remove this and all users after fully migrating to Python 3.
+def python2_only(func):
+  """Tests which can only run on Python 2."""
+  return unittest.skipIf(sys.version_info.major != 2,
+                         'Skipping Python 2-only test.')(
+                             func)
+
+
 def python3_only(func):
   """Tests which can only run on Python 3."""
   return unittest.skipIf(sys.version_info.major != 3,
@@ -369,6 +377,5 @@ def supported_platforms(*platforms):
                                func)
 
   return decorator
-
 
 MockStdout = io.StringIO  # pylint: disable=invalid-name
