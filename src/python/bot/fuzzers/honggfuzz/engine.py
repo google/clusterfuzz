@@ -109,7 +109,6 @@ class HonggfuzzEngine(engine.Engine):
   def name(self):
     return 'honggfuzz'
 
-  # FIXME: Add support for build_dir argument
   def prepare(self, corpus_dir, target_path, build_dir):  # pylint: disable=unused-argument
     """Prepare for a fuzzing session, by generating options. Returns a
     FuzzOptions object.
@@ -180,7 +179,6 @@ class HonggfuzzEngine(engine.Engine):
     return engine.FuzzResult(fuzz_result.output, fuzz_result.command, crashes,
                              stats, fuzz_result.time_executed)
 
-  # FIXME: Add support for additional arguments.
   def reproduce(self, target_path, input_path, arguments, max_time):  # pylint: disable=unused-argument
     """Reproduce a crash given an input.
 
