@@ -7,7 +7,6 @@ from google.cloud import ndb
 
 from datastore import data_types
 from handlers.cron import batch_fuzzer_jobs
-from tests.test_libs import helpers as test_helpers
 from tests.test_libs import test_utils
 
 
