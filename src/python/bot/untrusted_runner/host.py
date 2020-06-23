@@ -156,7 +156,7 @@ def _wrap_call(func, num_retries=config.RPC_RETRY_ATTEMPTS):
         # For timeouts, which aren't fatal errors, resurface the right
         # exception.
         if 'TimeoutError' in repr(e):
-          raise TimeoutError(e)
+          raise TimeoutError(str(e))
 
         if num_retries == 0:
           # Just re-raise the original exception if this RPC is not configured
