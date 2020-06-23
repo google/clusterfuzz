@@ -1,4 +1,16 @@
-# Lint as: python3
+# Copyright 2020 Google LLC
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 """Tests for batch_fuzzer_jobs."""
 
 import unittest
@@ -28,6 +40,9 @@ class TestBatchingFuzzerJobs(unittest.TestCase):
 
     ndb.put_multi(fuzzer_jobs)
 
+    # Should be removed.
+    data_types.FuzzerJobs(id='LINUX-2', platform='LINUX').put()
+
   def test_batch(self):
     """Test batching."""
     batch_fuzzer_jobs.batch_fuzzer_jobs()
@@ -42,3 +57,5 @@ class TestBatchingFuzzerJobs(unittest.TestCase):
       for i in range(self.total_fuzzer_jobs):
         self.assertEqual('libfuzzer_asan_{}_{:06d}'.format(platform, i),
                          all_fuzzer_jobs[i].job)
+
+    self.assertIsNone(ndb.Key(data_types.FuzzerJobs, 'LINUX-2').get())
