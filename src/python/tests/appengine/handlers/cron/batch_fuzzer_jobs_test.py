@@ -27,7 +27,7 @@ class TestBatchingFuzzerJobs(unittest.TestCase):
   """Test batching FuzzerJob entitites."""
 
   def setUp(self):
-    self.total_fuzzer_jobs = 12000
+    self.total_fuzzer_jobs = 7000
     self.platforms = ['LINUX', 'WINDOWS']
     fuzzer_jobs = []
     for platform in self.platforms:
