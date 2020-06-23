@@ -49,7 +49,7 @@ def batch_fuzzer_jobs():
       batched.put()
       batch_count += 1
 
-      batches_to_remove.discard(key_id)
+      batches_to_remove.discard(batched.key)
 
     # Remove additional batches if number reduced.
     if batches_to_remove:
