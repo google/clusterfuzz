@@ -180,6 +180,7 @@ class GetImpactsFromUrlTest(ComponentRevisionPatchingTest):
   """Test get_impacts_from_url."""
 
   def setUp(self):
+    """Setup for get impacts from url test."""
     super(GetImpactsFromUrlTest, self).setUp()
     helpers.patch(self, [
         'bot.tasks.impact_task.get_start_and_end_revision',

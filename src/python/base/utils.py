@@ -16,7 +16,6 @@
 from builtins import map
 from builtins import range
 from builtins import str
-from future import utils as future_utils
 
 from future import standard_library
 standard_library.install_aliases()
@@ -948,21 +947,3 @@ def cpu_count():
 
   return environment.get_value('CPU_COUNT_OVERRIDE',
                                multiprocessing.cpu_count())
-
-
-# TODO(mbarbella): Delete this once fully migrated to Python 3.
-def newstr_to_native_str(s):
-  try:
-    newstr = str(s, 'utf-8')
-  except TypeError:
-    # Python 3 does not support an encoding argument when given a unicode str.
-    newstr = str(s)
-
-  return future_utils.native(newstr).encode('utf-8')
-
-
-def exc_clear():
-  """exc_clear wrapper. No-op on Python 3."""
-  # TODO(ochang): Remove this once migrated to Python 3.
-  if sys.version_info.major == 2:
-    sys.exc_clear()

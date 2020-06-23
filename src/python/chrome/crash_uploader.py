@@ -23,7 +23,6 @@ import email
 import os
 import re
 import requests
-import sys
 import tempfile
 
 from base import utils
@@ -339,10 +338,7 @@ def parse_mime_to_crash_report_info(local_minidump_mime_path):
         (boundary, boundary))
     minidump_mime_bytes += minidump_mime_file_content.read()
 
-  if sys.version_info.major == 3:
-    minidump_mime_contents = email.message_from_bytes(minidump_mime_bytes)
-  else:
-    minidump_mime_contents = email.message_from_string(minidump_mime_bytes)
+  minidump_mime_contents = email.message_from_bytes(minidump_mime_bytes)
 
   # Parse the MIME contents, extracting the parameters needed for upload.
   mime_key_values = {}

@@ -23,7 +23,6 @@ import sys
 import tempfile
 
 from base import persistent_cache
-from base import utils
 from metrics import logs
 from system import environment
 
@@ -517,12 +516,6 @@ def remove_directory(directory, recreate=False, ignore_errors=False):
 
 def walk(directory, **kwargs):
   """Wrapper around walk to resolve compatibility issues."""
-  # TODO(mbarbella): Remove this hack once the Python 3 migration is complete.
-  # The os library has some explicit type checks that cause issues when newstrs
-  # are passed.
-  if sys.version_info.major == 2:
-    return os.walk(utils.newstr_to_native_str(directory), **kwargs)
-
   return os.walk(directory, **kwargs)
 
 

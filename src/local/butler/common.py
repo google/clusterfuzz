@@ -230,10 +230,7 @@ def _install_chromedriver():
 
 def _pip():
   """Get the pip binary name."""
-  if sys.version_info.major == 3:
-    return 'pip3'
-
-  return 'pip2'
+  return 'pip3'
 
 
 def _install_pip(requirements_path, target_path):

@@ -18,7 +18,6 @@ from builtins import str
 import json
 import mock
 import os
-import sys
 import unittest
 import webapp2
 import webtest
@@ -32,10 +31,7 @@ from libs import handler
 from libs import helpers
 from tests.test_libs import helpers as test_helpers
 
-if sys.version_info.major == 3:
-  _JSON_CONTENT_TYPE = 'application/json; charset=utf-8'
-else:
-  _JSON_CONTENT_TYPE = 'application/json'
+_JSON_CONTENT_TYPE = 'application/json; charset=utf-8'
 
 
 def mocked_db_config_get_value(key):

@@ -71,7 +71,7 @@ class AndroidSyzkallerRunner(new_process.ProcessRunner):
       default_args: Default arguments to always pass to the fuzzer.
     """
     super(AndroidSyzkallerRunner, self).__init__(
-        executable_path=executable_path, default_args=None)
+        executable_path=executable_path, default_args=default_args)
 
   def get_command(self, additional_args=None):
     """Process.get_command override."""

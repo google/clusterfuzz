@@ -332,8 +332,7 @@ def get_source_location():
 
 def _add_appengine_trace(extras):
   """Add App Engine tracing information."""
-  if sys.version_info.major != 3 or not _is_running_on_app_engine():
-    # TODO(ochang): Remove Python 3 check once all migrated to Python 3.
+  if not _is_running_on_app_engine():
     return
 
   import webapp2

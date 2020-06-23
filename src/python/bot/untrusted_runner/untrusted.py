@@ -15,7 +15,6 @@
 from __future__ import absolute_import
 
 from builtins import object
-from builtins import str
 
 import functools
 import grpc
@@ -212,12 +211,8 @@ def _get_tls_cert_and_key():
 
     return cert_contents, key_contents
 
-  # TODO(mbarbella): Remove this after migrating to Python 3. The grpc library
-  # has explicit type checks against str.
-  cert_contents = str(compute_metadata.get('instance/attributes/tls-cert'))
-  cert_contents = utils.newstr_to_native_str(cert_contents)
-  key_contents = str(compute_metadata.get('instance/attributes/tls-key'))
-  key_contents = utils.newstr_to_native_str(key_contents)
+  cert_contents = compute_metadata.get('instance/attributes/tls-cert').encode()
+  key_contents = compute_metadata.get('instance/attributes/tls-key').encode()
   return cert_contents, key_contents
 
 

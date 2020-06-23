@@ -22,11 +22,6 @@ class Error(Exception):
   """Engine error."""
 
 
-class TimeoutError(Exception):
-  """TimeoutError."""
-  # TODO(ochang): Remove once migrated to Python 3.
-
-
 class FuzzOptions(object):
   """Represents options passed to the engine. Can be overridden to provide more
   options."""

@@ -177,9 +177,6 @@ def main():
     if data_handler.bot_run_timed_out():
       return
 
-    # Clear the current exception.
-    utils.exc_clear()
-
 
 if __name__ == '__main__':
   multiprocessing.set_start_method('spawn')

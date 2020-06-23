@@ -83,9 +83,6 @@ def cleanup_task_state():
   # Reset memory tool environment variables.
   environment.reset_current_memory_tool_options()
 
-  # Clear exceptions.
-  utils.exc_clear()
-
   # Call python's garbage collector.
   utils.python_gc()
 

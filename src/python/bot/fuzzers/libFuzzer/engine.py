@@ -213,7 +213,7 @@ class LibFuzzerEngine(engine.Engine):
       new_units_added = new_corpus_len - old_corpus_len
 
       stat_overrides.update(result.stats)
-    except (MergeError, engine.TimeoutError) as e:
+    except (MergeError, TimeoutError) as e:
       logs.log_warn('Merge failed.', error=repr(e))
 
     stat_overrides['new_units_added'] = new_units_added
@@ -366,7 +366,7 @@ class LibFuzzerEngine(engine.Engine):
         input_path, timeout=max_time, additional_args=arguments)
 
     if result.timed_out:
-      raise engine.TimeoutError('Reproducing timed out\n' + result.output)
+      raise TimeoutError('Reproducing timed out\n' + result.output)
 
     return engine.ReproduceResult(result.command, result.return_code,
                                   result.time_executed, result.output)
@@ -420,8 +420,7 @@ class LibFuzzerEngine(engine.Engine):
     # Adjust the time limit for the time we spent on the first merge step.
     max_time -= result_1.time_executed
     if max_time <= 0:
-      raise engine.TimeoutError('Merging new testcases timed out\n' +
-                                result_1.logs)
+      raise TimeoutError('Merging new testcases timed out\n' + result_1.logs)
 
     # Step 2. Process the new corpus units as well.
     result_2 = self.minimize_corpus(
@@ -483,8 +482,7 @@ class LibFuzzerEngine(engine.Engine):
         merge_control_file=getattr(self, '_merge_control_file', None))
 
     if result.timed_out:
-      raise engine.TimeoutError('Merging new testcases timed out\n' +
-                                result.output)
+      raise TimeoutError('Merging new testcases timed out\n' + result.output)
 
     if result.return_code != 0:
       raise MergeError('Merging new testcases failed: ' + result.output)
@@ -525,7 +523,7 @@ class LibFuzzerEngine(engine.Engine):
         additional_args=arguments)
 
     if result.timed_out:
-      raise engine.TimeoutError('Minimization timed out\n' + result.output)
+      raise TimeoutError('Minimization timed out\n' + result.output)
 
     return engine.ReproduceResult(result.command, result.return_code,
                                   result.time_executed, result.output)
@@ -558,7 +556,7 @@ class LibFuzzerEngine(engine.Engine):
         additional_args=arguments)
 
     if result.timed_out:
-      raise engine.TimeoutError('Cleanse timed out\n' + result.output)
+      raise TimeoutError('Cleanse timed out\n' + result.output)
 
     return engine.ReproduceResult(result.command, result.return_code,
                                   result.time_executed, result.output)

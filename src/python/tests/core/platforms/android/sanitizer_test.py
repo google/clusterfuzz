@@ -68,6 +68,7 @@ class SetOptionsTest(android_helpers.AndroidTest):
   """Tests set_options."""
 
   def setUp(self):
+    """Setup for set options test."""
     super(SetOptionsTest, self).setUp()
 
     test_helpers.patch(self, ['metrics.logs.log_error'])
@@ -103,6 +104,7 @@ class SetupASanIfNeededTest(android_helpers.AndroidTest):
   """Tests setup_asan_if_needed."""
 
   def setUp(self):
+    """Setup for setup ASan if needed test."""
     super(SetupASanIfNeededTest, self).setUp()
 
     test_helpers.patch(self, ['metrics.logs.log_error'])
