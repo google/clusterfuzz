@@ -13,16 +13,15 @@
 # limitations under the License.
 
 cron:
-  # Run fuzzer coverage task right before the corpus pruning task.
-  - description: Obtain code coverage information from the coverage GCS bucket.
-    url: /fuzzer-coverage
-    schedule: every day 18:30
-    target: cron-service
-
   # Python crons start here.
   - description: Backup
     url: /backup
     schedule: every day 01:47
+    target: cron-service
+
+  - description: Batch FuzzerJobs.
+    url: /batch-fuzzer-jobs
+    schedule: every 30 minutes
     target: cron-service
 
   - description: Build crash stats.
@@ -38,6 +37,12 @@ cron:
   - description: Make corpus backups public.
     url: /corpus-backup/make-public
     schedule: every day 03:00
+    target: cron-service
+
+  # Run fuzzer coverage task right before the corpus pruning task.
+  - description: Obtain code coverage information from the coverage GCS bucket.
+    url: /fuzzer-coverage
+    schedule: every day 18:30
     target: cron-service
 
   - description: Exercise cache on the fuzzer stats page.

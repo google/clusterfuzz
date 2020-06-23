@@ -16,6 +16,8 @@
 import os
 import unittest
 
+import parameterized
+
 from datastore import data_types
 from datastore import ndb_utils
 from fuzzing import fuzzer_selection
@@ -133,6 +135,7 @@ class GetFuzzTaskPayloadTest(unittest.TestCase):
   """Tests for the get_fuzz_task_payload function."""
 
   def setUp(self):
+    test_helpers.patch_environ(self)
     test_helpers.patch(self, [
         'base.utils.random_weighted_choice',
     ])
@@ -144,13 +147,18 @@ class GetFuzzTaskPayloadTest(unittest.TestCase):
     self.assertEqual(
         (None, None), fuzzer_selection.get_fuzz_task_payload(platform='linux'))
 
-  def test_platform_restriction(self):
+  @parameterized.parameterized.expand([('False',), ('True',)])
+  def test_platform_restriction(self, local_development):
     """Ensure that we can find a task with a valid platform."""
+    os.environ['LOCAL_DEVELOPMENT'] = local_development
     windows_mapping = data_types.FuzzerJob()
     windows_mapping.fuzzer = 'wrong_fuzzer'
     windows_mapping.job = 'job_1'
     windows_mapping.platform = 'windows'
     windows_mapping.put()
+
+    data_types.FuzzerJobs(
+        platform='windows', fuzzer_jobs=[windows_mapping]).put()
 
     self.assertEqual(
         (None, None), fuzzer_selection.get_fuzz_task_payload(platform='linux'))
@@ -160,6 +168,8 @@ class GetFuzzTaskPayloadTest(unittest.TestCase):
     linux_mapping.job = 'job_2'
     linux_mapping.platform = 'linux'
     linux_mapping.put()
+
+    data_types.FuzzerJobs(platform='linux', fuzzer_jobs=[linux_mapping]).put()
 
     argument, job = fuzzer_selection.get_fuzz_task_payload('linux')
     self.assertEqual(('right_fuzzer', 'job_2'), (argument, job))
