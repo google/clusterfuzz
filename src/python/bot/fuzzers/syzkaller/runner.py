@@ -140,9 +140,10 @@ class AndroidSyzkallerRunner(new_process.ProcessRunner):
         unique_crash = os.path.join(subdir, file)
         if fnmatch.fnmatch(file, 'report*') and unique_crash not in visited:
           visited.add(unique_crash)
-          log_lines = utils.read_data_from_file(
-              os.path.join(subdir, file), eval_data=False).decode('utf-8')
-          fuzz_logs += _filter_log(log_lines) + '\n'
+          log_content = _filter_log(
+              utils.read_data_from_file(
+                  os.path.join(subdir, file), eval_data=False).decode('utf-8'))
+          fuzz_logs += log_content + '\n'
 
           # Since each crash (report file) has a corresponding log file
           # that contains the syscalls that caused the crash. This file is
@@ -160,7 +161,7 @@ class AndroidSyzkallerRunner(new_process.ProcessRunner):
             # Write the new testcase.
             # Copy crash testcase contents into the main testcase path.
             crashes.append(
-                engine.Crash(crash_testcase_file_path, log_lines,
+                engine.Crash(crash_testcase_file_path, log_content,
                              reproduce_arguments, actual_duration))
 
     return engine.FuzzResult(fuzz_logs, fuzz_result.command, crashes,
