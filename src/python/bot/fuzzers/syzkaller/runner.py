@@ -13,6 +13,12 @@
 # limitations under the License.
 """syzkaller fuzzer."""
 from __future__ import absolute_import
+import copy
+import fnmatch
+import os
+import re
+import tempfile
+
 from base import utils
 from bot.fuzzers import engine
 from bot.fuzzers import utils as fuzzer_utils
@@ -20,10 +26,6 @@ from bot.fuzzers.syzkaller import config
 from metrics import logs
 from system import environment
 from system import new_process
-import copy
-import fnmatch
-import os
-import tempfile
 
 
 def get_work_dir():
@@ -111,6 +113,15 @@ class AndroidSyzkallerRunner(new_process.ProcessRunner):
       additional_args: A sequence of additional arguments to be passed to
           the executable.
     """
+
+    def _filter_log(content):
+      """Filter unneeded content from log."""
+      result = ''
+      strip_regex = re.compile(r'^c\d+\s+\d+\s')
+      for line in content.splitlines():
+        result += strip_regex.sub('', line) + '\n'
+      return result
+
     logs.log('Running Syzkaller.')
     additional_args = copy.copy(additional_args)
     fuzz_result = self.run_and_wait(additional_args, timeout=fuzz_timeout)
@@ -129,9 +140,10 @@ class AndroidSyzkallerRunner(new_process.ProcessRunner):
         unique_crash = os.path.join(subdir, file)
         if fnmatch.fnmatch(file, 'report*') and unique_crash not in visited:
           visited.add(unique_crash)
-          log_lines = utils.read_data_from_file(
-              os.path.join(subdir, file), eval_data=False).decode('utf-8')
-          fuzz_logs += log_lines + '\n'
+          log_content = _filter_log(
+              utils.read_data_from_file(
+                  os.path.join(subdir, file), eval_data=False).decode('utf-8'))
+          fuzz_logs += log_content + '\n'
 
           # Since each crash (report file) has a corresponding log file
           # that contains the syscalls that caused the crash. This file is
@@ -149,7 +161,7 @@ class AndroidSyzkallerRunner(new_process.ProcessRunner):
             # Write the new testcase.
             # Copy crash testcase contents into the main testcase path.
             crashes.append(
-                engine.Crash(crash_testcase_file_path, log_lines,
+                engine.Crash(crash_testcase_file_path, log_content,
                              reproduce_arguments, actual_duration))
 
     return engine.FuzzResult(fuzz_logs, fuzz_result.command, crashes,
