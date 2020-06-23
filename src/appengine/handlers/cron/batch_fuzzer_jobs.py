@@ -19,7 +19,7 @@ from libs import handler
 
 from google.cloud import ndb
 
-FUZZER_JOB_BATCH_SIZE = 10000
+FUZZER_JOB_BATCH_SIZE = 6000
 
 
 def batch_fuzzer_jobs():
