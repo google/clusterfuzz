@@ -43,6 +43,9 @@ class TestBatchingFuzzerJobs(unittest.TestCase):
     # Should be removed.
     data_types.FuzzerJobs(id='LINUX-2', platform='LINUX').put()
 
+    # Should be overwritten and not removed.
+    data_types.FuzzerJobs(id='LINUX-0', platform='LINUX').put()
+
   def test_batch(self):
     """Test batching."""
     batch_fuzzer_jobs.batch_fuzzer_jobs()
