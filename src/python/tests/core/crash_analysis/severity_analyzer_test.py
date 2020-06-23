@@ -68,7 +68,7 @@ class SeverityAnalyzerTest(unittest.TestCase):
     self.assertEqual(
         severity_analyzer.get_analyzer('sanitizer_generic').analyze(
             'Heap-buffer-overflow\nWRITE 16',
-            self._read_test_data('asan_heap_overflow_read.txt'), False),
+            self._read_test_data('asan_heap_overflow_write.txt'), False),
         SecuritySeverity.HIGH)
 
   def test_asan_heap_overflow_write_gestures(self):
@@ -77,7 +77,7 @@ class SeverityAnalyzerTest(unittest.TestCase):
     self.assertEqual(
         severity_analyzer.get_analyzer('sanitizer_generic').analyze(
             'Heap-buffer-overflow\nWRITE 16',
-            self._read_test_data('asan_heap_overflow_read.txt'), True),
+            self._read_test_data('asan_heap_overflow_write.txt'), True),
         SecuritySeverity.MEDIUM)
 
   def test_asan_container_overflow_read(self):
