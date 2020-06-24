@@ -30,8 +30,7 @@ from system import new_process
 
 def get_work_dir():
   """Return work directory for Syzkaller."""
-  temp_dir = fuzzer_utils.get_temp_dir()
-  return os.path.join(temp_dir, 'syzkaller')
+  return os.path.join(environment.get_value('FUZZ_INPUTS_DISK'), 'syzkaller')
 
 
 def get_config():
