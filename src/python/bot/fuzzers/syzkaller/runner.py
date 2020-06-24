@@ -58,22 +58,21 @@ def get_config():
 
 def get_runner(fuzzer_path):
   """Return a syzkaller runner object."""
-  build_dir = environment.get_value('BUILD_DIR')
-  return AndroidSyzkallerRunner(fuzzer_path, build_dir)
+  return AndroidSyzkallerRunner(fuzzer_path)
 
 
 class AndroidSyzkallerRunner(new_process.ProcessRunner):
   """Syzkaller runner."""
 
-  def __init__(self, executable_path, default_args=None):
+  def __init__(self, executable_path):
     """Inits the AndroidSyzkallerRunner.
 
     Args:
       executable_path: Path to the fuzzer executable.
       default_args: Default arguments to always pass to the fuzzer.
     """
-    super(AndroidSyzkallerRunner, self).__init__(
-        executable_path=executable_path, default_args=default_args)
+    super(AndroidSyzkallerRunner,
+          self).__init__(executable_path=executable_path)
 
   def get_command(self, additional_args=None):
     """Process.get_command override."""
