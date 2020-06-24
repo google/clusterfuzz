@@ -61,7 +61,7 @@ def get_runner(fuzzer_path):
   return AndroidSyzkallerRunner(fuzzer_path)
 
 
-class AndroidSyzkallerRunner(new_process.ProcessRunner):
+class AndroidSyzkallerRunner(new_process.UnicodeProcessRunner):
   """Syzkaller runner."""
 
   def __init__(self, executable_path):
