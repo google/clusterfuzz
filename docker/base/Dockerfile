@@ -34,6 +34,7 @@ RUN apt-get update && \
         libncurses5-dev \
         libnss3-dev \
         libreadline-dev \
+        libsqlite3-dev \
         libssl-dev \
         locales \
         lsb-release \
@@ -59,7 +60,7 @@ RUN curl -sS https://releases.nixos.org/patchelf/patchelf-0.9/patchelf-0.9.tar.b
 # Install Python 3.
 RUN curl -sS https://www.python.org/ftp/python/3.7.7/Python-3.7.7.tgz | tar -C /tmp -xzv && \
     cd /tmp/Python-3.7.7 && \
-    ./configure --enable-optimizations && make altinstall && \
+    ./configure --enable-optimizations --enable-loadable-sqlite-extensions && make altinstall && \
     rm -rf /tmp/Python-3.7.7
 RUN pip3.7 install pipenv
 
