@@ -41,8 +41,8 @@
     "paper-toolbar": "PolymerElements/paper-toolbar#^2.0.0",
     "paper-tooltip": "PolymerElements/paper-tooltip#^2.0.0",
     "polymer": "Polymer/polymer#^2.1.0",
-    "test-fixture": "PolymerElements/test-fixture#^2.0.0",
-    "web-component-tester": "Polymer/web-component-tester#^6.0.0",
+    "test-fixture": "PolymerElements/test-fixture#^3.0.0",
+    "web-component-tester": "Polymer/web-component-tester#^6.5.1",
     "shadycss": "^1.0.6",
     "firebaseui": "^3.6.0",
     "firebase": "^5.9.4"
