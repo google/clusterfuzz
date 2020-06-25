@@ -184,6 +184,7 @@ fi
 if [ ! $only_reproduce ]; then
   # Install other dependencies (e.g. bower).
   nodeenv -p --prebuilt
+  # Unsafe perm flag allows bower and polymer-bundler install for root users as well.
   npm install --unsafe-perm -g bower polymer-bundler
   bower --allow-root install
 
