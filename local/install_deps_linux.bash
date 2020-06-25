@@ -48,7 +48,7 @@ fi
 # Check if the distro is supported.
 distro_codename=$(lsb_release --codename --short)
 distro_id=$(lsb_release --id --short)
-supported_codenames="(trusty|xenial|artful|bionic|cosmic)"
+supported_codenames="(trusty|xenial|artful|bionic|cosmic|focal)"
 supported_ids="(Debian)"
 if [[ ! $distro_codename =~ $supported_codenames &&
       ! $distro_id =~ $supported_ids ]]; then
@@ -58,6 +58,7 @@ if [[ ! $distro_codename =~ $supported_codenames &&
     "\tUbuntu 17.10 (artful)\n" \
     "\tUbuntu 18.04 LTS (bionic)\n" \
     "\tUbuntu 18.10 LTS (cosmic)\n" \
+    "\tUbuntu 20.04 LTS (focal)\n" \
     "\tDebian 8 (jessie) or later" >&2
   exit 1
 fi
@@ -91,7 +92,7 @@ if [ ! $only_reproduce ]; then
         $distro_codename \
         stable"
 
-    export CLOUD_SDK_REPO="cloud-sdk-$distro_codename"
+    export CLOUD_SDK_REPO="cloud-sdk"
     echo "deb http://packages.cloud.google.com/apt $CLOUD_SDK_REPO main" | \
         sudo tee -a /etc/apt/sources.list.d/google-cloud-sdk.list
     curl https://packages.cloud.google.com/apt/doc/apt-key.gpg | \
@@ -183,8 +184,9 @@ fi
 if [ ! $only_reproduce ]; then
   # Install other dependencies (e.g. bower).
   nodeenv -p --prebuilt
-  npm install -g bower polymer-bundler
-  bower install
+  # Unsafe perm flag allows bower and polymer-bundler install for root users as well.
+  npm install --unsafe-perm -g bower polymer-bundler
+  bower --allow-root install
 
   # Run the full bootstrap script to prepare for ClusterFuzz development.
   python butler.py bootstrap
