@@ -184,7 +184,7 @@ fi
 if [ ! $only_reproduce ]; then
   # Install other dependencies (e.g. bower).
   nodeenv -p --prebuilt
-  npm install --unsafe-perf -g bower polymer-bundler
+  npm install --unsafe-perm -g bower polymer-bundler
   bower --allow-root install
 
   # Run the full bootstrap script to prepare for ClusterFuzz development.
