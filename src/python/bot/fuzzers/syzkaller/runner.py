@@ -126,7 +126,7 @@ class AndroidSyzkallerRunner(new_process.UnicodeProcessRunner):
     logs.log('Syzkaller stopped, fuzzing timed out: {}'.format(
         fuzz_result.time_executed))
 
-    fuzz_logs = ''
+    fuzz_logs = (fuzz_result.output or '') + '\n'
     crashes = []
     parsed_stats = {}
     visited = set()
