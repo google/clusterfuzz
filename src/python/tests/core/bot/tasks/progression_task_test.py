@@ -194,7 +194,6 @@ class StoreTestcaseForRegressionTesting(unittest.TestCase):
 
   def test_testcase_stored(self):
     """Test that a testcase is stored for regression testing."""
-    corpus_bucket = environment.get_value('CORPUS_BUCKET')
     progression_task._store_testcase_for_regression_testing(  # pylint: disable=protected-access
         self.testcase, self.testcase_file_path)
     self.mock.copy_file_to.assert_called_with(
