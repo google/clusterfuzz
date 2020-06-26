@@ -217,6 +217,22 @@ class FuzzTargetCorpusTest(fake_filesystem_unittest.TestCase):
     """Test rsync_to_disk."""
     corpus = corpus_manager.FuzzTargetCorpus('libFuzzer', 'fuzzer')
     self.assertTrue(corpus.rsync_to_disk('/dir', timeout=60))
+    self.assertEqual(self.mock.Popen.call_args[0][0], [
+        '/gsutil_path/gsutil',
+        '-m',
+        '-q',
+        'rsync',
+        '-r',
+        '-d',
+        'gs://bucket/libFuzzer/fuzzer/',
+        '/dir',
+    ])
+
+  def test_rsync_to_disk_with_regressions(self):
+    """Test rsync_to_disk, with regressions set."""
+    corpus = corpus_manager.FuzzTargetCorpus(
+        'libFuzzer', 'fuzzer', include_regressions=True)
+    self.assertTrue(corpus.rsync_to_disk('/dir', timeout=60))
 
     commands = [call_arg[0][0] for call_arg in self.mock.Popen.call_args_list]
 
@@ -237,7 +253,7 @@ class FuzzTargetCorpusTest(fake_filesystem_unittest.TestCase):
             '-q',
             'rsync',
             '-r',
-            'gs://bucket/libFuzzer/fuzzer_static/',
+            'gs://bucket/libFuzzer/fuzzer_regressions/',
             '/dir',
         ],
     ])
