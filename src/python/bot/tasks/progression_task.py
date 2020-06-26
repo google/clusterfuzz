@@ -236,7 +236,7 @@ def _store_testcase_for_regression_testing(testcase, testcase_file_path):
                                            fuzz_target.project_qualified_name())
   regression_testcase_url = os.path.join(
       corpus.get_regressions_corpus_gcs_url(),
-      os.path.basename(testcase_file_path))
+      utils.file_hash(testcase_file_path))
 
   if storage.copy_file_to(testcase_file_path, regression_testcase_url):
     logs.log('Successfully stored testcase for regression testing: ' +
