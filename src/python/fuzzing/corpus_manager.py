@@ -40,7 +40,7 @@ BACKUP_ARCHIVE_FORMAT = 'zip'
 CORPUS_FILES_SYNC_TIMEOUT = 60 * 60
 LATEST_BACKUP_TIMESTAMP = 'latest'
 PUBLIC_BACKUP_TIMESTAMP = 'public'
-STATIC_CORPUS_GCS_PATH_SUFFIX = '_static'
+REGRESSIONS_GCS_PATH_SUFFIX = '_regressions'
 
 RSYNC_ERROR_REGEX = (br'CommandException:\s*(\d+)\s*files?/objects? '
                      br'could not be copied/removed')
@@ -231,12 +231,12 @@ class GcsCorpus(object):
   def bucket_path(self):
     return self._bucket_path
 
-  def get_gcs_url(self):
+  def get_gcs_url(self, suffix=''):
     """Build corpus GCS URL for gsutil.
     Returns:
       A string giving the GCS URL.
     """
-    url = 'gs://%s' % self.bucket_name + self.bucket_path
+    url = 'gs://%s' % self.bucket_name + self.bucket_path + suffix
     if not url.endswith('/'):
       # Ensure that the bucket path is '/' terminated. Without this, when a
       # single file is being uploaded, it is renamed to the trailing non-/
@@ -318,6 +318,7 @@ class FuzzTargetCorpus(GcsCorpus):
                project_qualified_target_name,
                quarantine=False,
                log_results=True,
+               include_regressions=False,
                _gsutil_runner=DEFAULT_GSUTIL_RUNNER):
     """Inits the FuzzTargetCorpus.
 
@@ -352,12 +353,12 @@ class FuzzTargetCorpus(GcsCorpus):
         _gsutil_runner=_gsutil_runner,
     )
 
-    self._static_corpus = GcsCorpus(
+    self._regressions_corpus = GcsCorpus(
         sync_corpus_bucket_name,
         '/%s/%s%s' % (self._engine, self._project_qualified_target_name,
-                      STATIC_CORPUS_GCS_PATH_SUFFIX),
+                      REGRESSIONS_GCS_PATH_SUFFIX),
         log_results=log_results,
-        _gsutil_runner=_gsutil_runner)
+        _gsutil_runner=_gsutil_runner) if include_regressions else None
 
   @property
   def engine(self):
@@ -414,9 +415,11 @@ class FuzzTargetCorpus(GcsCorpus):
     if not result:
       return False
 
-    # Try to checkout additional '_static' corpus and ignore the result. Don't
+    # Checkout additional regressions corpus if set and ignore the result. Don't
     # delete existing files from syncing main corpus.
-    self._static_corpus.rsync_to_disk(directory, timeout=timeout, delete=False)
+    if self._regressions_corpus:
+      self._regressions_corpus.rsync_to_disk(
+          directory, timeout=timeout, delete=False)
 
     num_files = _count_corpus_files(directory)
     if self._log_results:
@@ -424,3 +427,7 @@ class FuzzTargetCorpus(GcsCorpus):
                (num_files, self._project_qualified_target_name))
 
     return result
+
+  def get_regressions_corpus_gcs_url(self):
+    """Return gcs path to directory containing crash regressions."""
+    return self.get_gcs_url(suffix=REGRESSIONS_GCS_PATH_SUFFIX)

@@ -216,7 +216,9 @@ class Context(object):
     self.merge_tmp_dir = self._create_temp_corpus_directory('merge_workdir')
 
     self.corpus = corpus_manager.FuzzTargetCorpus(
-        self.fuzz_target.engine, self.fuzz_target.project_qualified_name())
+        self.fuzz_target.engine,
+        self.fuzz_target.project_qualified_name(),
+        include_regressions=True)
     self.quarantine_corpus = corpus_manager.FuzzTargetCorpus(
         self.fuzz_target.engine,
         self.fuzz_target.project_qualified_name(),
@@ -445,7 +447,7 @@ class CorpusPruner(object):
       unit_name = os.path.basename(unit_path)
       if unit_name.startswith('timeout-') or unit_name.startswith('oom-'):
         # Don't waste time re-running timeout or oom testcases.
-        unit_path = self._quarantine_unit(unit_path, quarantine_corpus_path)
+        self._quarantine_unit(unit_path, quarantine_corpus_path)
         num_bad_units += 1
         continue
 
@@ -453,7 +455,7 @@ class CorpusPruner(object):
         result = self._run_single_unit(unit_path)
       except TimeoutError:
         # Slow unit. Quarantine it.
-        unit_path = self._quarantine_unit(unit_path, quarantine_corpus_path)
+        self._quarantine_unit(unit_path, quarantine_corpus_path)
         num_bad_units += 1
         continue
 

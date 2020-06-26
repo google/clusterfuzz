@@ -132,3 +132,67 @@ class UpdateIssueMetadataTest(unittest.TestCase):
         'issue_components': 'component1',
     }, json.loads(testcase.additional_metadata))
     self.assertIsNone(testcase.crash_type)
+
+
+@test_utils.with_cloud_emulators('datastore')
+class StoreTestcaseForRegressionTesting(unittest.TestCase):
+  """Test _store_testcase_for_regression_testing."""
+
+  def setUp(self):
+    helpers.patch(self, [
+        'google_cloud_utils.storage.copy_file_to',
+    ])
+
+    fuzz_target = data_types.FuzzTarget(id='libFuzzer_test_project_test_fuzzer')
+    fuzz_target.binary = 'test_fuzzer'
+    fuzz_target.project = 'test_project'
+    fuzz_target.engine = 'libFuzzer'
+    fuzz_target.put()
+
+    self.testcase = data_types.Testcase()
+    self.testcase.fuzzer_name = 'libFuzzer'
+    self.testcase.overridden_fuzzer_name = 'libFuzzer_test_project_test_fuzzer'
+    self.testcase.job_type = 'job'
+    self.testcase.bug_information = '123'
+    self.testcase.open = False
+    self.testcase.put()
+
+    self.testcase_file_path = '/testcase'
+
+  def test_open_testcase(self):
+    """Test that an open testcase is not stored for regression testing."""
+    self.testcase.open = True
+    self.testcase.put()
+
+    progression_task._store_testcase_for_regression_testing(  # pylint: disable=protected-access
+        self.testcase, self.testcase_file_path)
+    self.assertEqual(0, self.mock.copy_file_to.call_count)
+
+  def test_testcase_with_no_issue(self):
+    """Test that a testcase with no associated issue is not stored for
+    regression testing."""
+    self.testcase.bug_information = ''
+    self.testcase.put()
+
+    progression_task._store_testcase_for_regression_testing(  # pylint: disable=protected-access
+        self.testcase, self.testcase_file_path)
+    self.assertEqual(0, self.mock.copy_file_to.call_count)
+
+  def test_testcase_with_no_fuzz_target(self):
+    """Test that a testcase with no associated fuzz target is not stored for
+    regression testing."""
+    self.testcase.overridden_fuzzer_name = 'libFuzzer_not_exist'
+    self.testcase.put()
+
+    progression_task._store_testcase_for_regression_testing(  # pylint: disable=protected-access
+        self.testcase, self.testcase_file_path)
+    self.assertEqual(0, self.mock.copy_file_to.call_count)
+
+  def test_testcase_stored(self):
+    """Test that a testcase is stored for regression testing."""
+    progression_task._store_testcase_for_regression_testing(  # pylint: disable=protected-access
+        self.testcase, self.testcase_file_path)
+    self.mock.copy_file_to.assert_called_with(
+        '/testcase',
+        'gs://test-corpus-bucket/libFuzzer/test_project_test_fuzzer_regressions'
+        '/testcase')

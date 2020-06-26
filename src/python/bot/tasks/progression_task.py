@@ -13,6 +13,7 @@
 # limitations under the License.
 """Test to see if test cases are fixed."""
 
+import os
 import six
 import time
 
@@ -28,7 +29,9 @@ from build_management import revisions
 from chrome import crash_uploader
 from datastore import data_handler
 from datastore import data_types
+from fuzzing import corpus_manager
 from google_cloud_utils import big_query
+from google_cloud_utils import storage
 from metrics import logs
 from system import environment
 
@@ -210,6 +213,32 @@ def _save_fixed_range(testcase_id, min_revision, max_revision):
   task_creation.request_bisection(testcase, 'fixed')
 
 
+def _store_testcase_for_regression_testing(testcase, testcase_file_path):
+  """Stores reproduction testcase for future regression testing in corpus
+  pruning task."""
+  if testcase.open:
+    # Store testcase only after the crash is fixed.
+    return
+
+  if not testcase.bug_information:
+    # Only store crashes with bugs associated with them.
+    return
+
+  fuzz_target = data_handler.get_fuzz_target(testcase.overridden_fuzzer_name)
+  if not fuzz_target:
+    # No work to do, only applicable for engine fuzzers.
+    return
+
+  corpus = corpus_manager.FuzzTargetCorpus(fuzz_target.engine,
+                                           fuzz_target.project_qualified_name())
+  regression_testcase_url = os.path.join(
+      corpus.get_regressions_corpus_gcs_url(),
+      os.path.basename(testcase_file_path))
+  storage.copy_file_to(testcase_file_path, regression_testcase_url)
+  logs.log('Successfully stored testcase for regression testing: ' +
+           regression_testcase_url)
+
+
 def find_fixed_range(testcase_id, job_type):
   """Attempt to find the revision range where a testcase was fixed."""
   deadline = tasks.get_task_completion_deadline()
@@ -358,6 +387,7 @@ def find_fixed_range(testcase_id, job_type):
     # narrow the range.
     if max_index - min_index == 1:
       _save_fixed_range(testcase_id, min_revision, max_revision)
+      _store_testcase_for_regression_testing(testcase, testcase_file_path)
       return
 
     # Occasionally, we get into this bad state. It seems to be related to test
