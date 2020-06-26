@@ -20,6 +20,7 @@ import unittest
 from base import errors
 from bot.tasks import progression_task
 from datastore import data_types
+from system import environment
 from tests.test_libs import helpers
 from tests.test_libs import test_utils
 
@@ -139,9 +140,12 @@ class StoreTestcaseForRegressionTesting(unittest.TestCase):
   """Test _store_testcase_for_regression_testing."""
 
   def setUp(self):
+    helpers.patch_environ(self)
     helpers.patch(self, [
         'google_cloud_utils.storage.copy_file_to',
     ])
+
+    os.environ['CORPUS_BUCKET'] = 'corpus'
 
     fuzz_target = data_types.FuzzTarget(id='libFuzzer_test_project_test_fuzzer')
     fuzz_target.binary = 'test_fuzzer'
@@ -190,9 +194,9 @@ class StoreTestcaseForRegressionTesting(unittest.TestCase):
 
   def test_testcase_stored(self):
     """Test that a testcase is stored for regression testing."""
+    corpus_bucket = environment.get_value('CORPUS_BUCKET')
     progression_task._store_testcase_for_regression_testing(  # pylint: disable=protected-access
         self.testcase, self.testcase_file_path)
     self.mock.copy_file_to.assert_called_with(
         '/testcase',
-        'gs://test-corpus-bucket/libFuzzer/test_project_test_fuzzer_regressions'
-        '/testcase')
+        'gs://corpus/libFuzzer/test_project_test_fuzzer_regressions/testcase')
