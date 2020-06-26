@@ -20,7 +20,6 @@ import unittest
 from base import errors
 from bot.tasks import progression_task
 from datastore import data_types
-from system import environment
 from tests.test_libs import helpers
 from tests.test_libs import test_utils
 

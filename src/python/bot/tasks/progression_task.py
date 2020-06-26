@@ -234,9 +234,13 @@ def _store_testcase_for_regression_testing(testcase, testcase_file_path):
   regression_testcase_url = os.path.join(
       corpus.get_regressions_corpus_gcs_url(),
       os.path.basename(testcase_file_path))
-  storage.copy_file_to(testcase_file_path, regression_testcase_url)
-  logs.log('Successfully stored testcase for regression testing: ' +
-           regression_testcase_url)
+
+  if storage.copy_file_to(testcase_file_path, regression_testcase_url):
+    logs.log('Successfully stored testcase for regression testing: ' +
+             regression_testcase_url)
+  else:
+    logs.log_error('Failed to store testcase for regression testing: ' +
+                   regression_testcase_url)
 
 
 def find_fixed_range(testcase_id, job_type):
