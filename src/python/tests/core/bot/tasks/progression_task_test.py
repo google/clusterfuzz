@@ -17,6 +17,8 @@ import json
 import os
 import unittest
 
+from pyfakefs import fake_filesystem_unittest
+
 from base import errors
 from bot.tasks import progression_task
 from datastore import data_types
@@ -135,10 +137,11 @@ class UpdateIssueMetadataTest(unittest.TestCase):
 
 
 @test_utils.with_cloud_emulators('datastore')
-class StoreTestcaseForRegressionTesting(unittest.TestCase):
+class StoreTestcaseForRegressionTesting(fake_filesystem_unittest.TestCase):
   """Test _store_testcase_for_regression_testing."""
 
   def setUp(self):
+    test_utils.set_up_pyfakefs(self)
     helpers.patch_environ(self)
     helpers.patch(self, [
         'google_cloud_utils.storage.copy_file_to',
@@ -161,6 +164,7 @@ class StoreTestcaseForRegressionTesting(unittest.TestCase):
     self.testcase.put()
 
     self.testcase_file_path = '/testcase'
+    self.fs.create_file(self.testcase_file_path, contents='A')
 
   def test_open_testcase(self):
     """Test that an open testcase is not stored for regression testing."""
@@ -197,4 +201,5 @@ class StoreTestcaseForRegressionTesting(unittest.TestCase):
         self.testcase, self.testcase_file_path)
     self.mock.copy_file_to.assert_called_with(
         '/testcase',
-        'gs://corpus/libFuzzer/test_project_test_fuzzer_regressions/testcase')
+        'gs://corpus/libFuzzer/test_project_test_fuzzer_regressions/'
+        '6dcd4ce23d88e2ee9568ba546c007c63d9131c1b')
