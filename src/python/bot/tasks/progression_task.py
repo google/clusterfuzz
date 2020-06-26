@@ -199,7 +199,8 @@ def _save_current_fixed_range_indices(testcase_id, fixed_range_start,
   testcase.put()
 
 
-def _save_fixed_range(testcase_id, min_revision, max_revision):
+def _save_fixed_range(testcase_id, min_revision, max_revision,
+                      testcase_file_path):
   """Update a test case and other metadata with a fixed range."""
   testcase = data_handler.get_testcase_by_id(testcase_id)
   testcase.fixed = '%d:%d' % (min_revision, max_revision)
@@ -211,6 +212,8 @@ def _save_fixed_range(testcase_id, min_revision, max_revision):
 
   # If there is a fine grained bisection service available, request it.
   task_creation.request_bisection(testcase, 'fixed')
+
+  _store_testcase_for_regression_testing(testcase, testcase_file_path)
 
 
 def _store_testcase_for_regression_testing(testcase, testcase_file_path):
@@ -390,8 +393,8 @@ def find_fixed_range(testcase_id, job_type):
     # If the min and max revisions are one apart this is as much as we can
     # narrow the range.
     if max_index - min_index == 1:
-      _save_fixed_range(testcase_id, min_revision, max_revision)
-      _store_testcase_for_regression_testing(testcase, testcase_file_path)
+      _save_fixed_range(testcase_id, min_revision, max_revision,
+                        testcase_file_path)
       return
 
     # Occasionally, we get into this bad state. It seems to be related to test
