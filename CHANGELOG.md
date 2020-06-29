@@ -1,6 +1,14 @@
 Change Log
 ==========
 
+## Version 2.0.2
+- Improved Syzkaller support.
+- Support narrower bisection for regression/fix ranges.
+- Improve Rust crash detection signatures.
+- Improved Android KASan support.
+- Batch datastore operations more aggressively.
+- Various bug fixes.
+
 ## Version 2.0.1
 - Various bug fixes.
 
