@@ -7,6 +7,9 @@ Change Log
 - Improve Rust crash detection signatures.
 - Improved Android KASan support.
 - Batch datastore operations more aggressively.
+- Improved grouping of crashes involving inline frames.
+- Enable entropic fuzzing strategy in libFuzzer.
+- Test past crash regressions in corpus pruning task.
 - Various bug fixes.
 
 ## Version 2.0.1
