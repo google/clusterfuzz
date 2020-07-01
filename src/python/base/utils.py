@@ -161,11 +161,7 @@ def file_path_to_file_url(path):
     return ''
 
   path = path.lstrip(WINDOWS_PREFIX_PATH)
-  # TODO(mbarbella): urljoin has several type checks for arguments. Ensure that
-  # we're passing newstr on both sides while migrating to Python 3. After
-  # migrating, ensure that callers pass strs to avoid this hack.
-  return urllib.parse.urljoin(
-      str(u'file:'), str(urllib.request.pathname2url(path)))
+  return urllib.parse.urljoin('file:', urllib.request.pathname2url(path))
 
 
 def filter_file_list(file_list):

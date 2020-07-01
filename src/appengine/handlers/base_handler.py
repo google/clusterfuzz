@@ -15,7 +15,6 @@
 from builtins import object
 from builtins import str
 from future import standard_library
-from future import utils as future_utils
 standard_library.install_aliases()
 
 import base64
@@ -271,12 +270,6 @@ class Handler(webapp2.RequestHandler):
 
   def dispatch(self):
     """Dispatch a request and postprocess."""
-    # TODO(mbarbella): Delete this once the Python 3 migration is complete.
-    @future_utils.as_native_str()
-    def to_native_str(text):
-      """Convert from future's newstr to a native str."""
-      return text
-
     if environment.get_value('PY_UNITTESTS'):
       # Unit tests may not have NDB available.
       super(Handler, self).dispatch()
@@ -290,11 +283,6 @@ class Handler(webapp2.RequestHandler):
       # cycles. Garbage collect here to get rid of them.
       # TODO(ochang): Check if this is still needed for Python 3 GAE.
       gc.collect()
-
-    # Replace header values with Python 2-style strings after dispatching. There
-    # is an explicit type check against str that causes issues with newstr here.
-    for key, value in self.response.headers.items():
-      self.response.headers[key] = to_native_str(value)
 
 
 class GcsUploadHandler(Handler):
