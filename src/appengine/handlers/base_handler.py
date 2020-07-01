@@ -21,7 +21,6 @@ standard_library.install_aliases()
 import base64
 import cgi
 import datetime
-import gc
 import json
 import logging
 import os
