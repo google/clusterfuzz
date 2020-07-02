@@ -64,12 +64,13 @@ class JobsTest(unittest.TestCase):
     job4 = self._create_job('test_job4', 'APP_NAME = launcher4.py\n')
 
     expected_items = [
-        job1.key.id(), job2.key.id(),
-        job3.key.id(), job4.key.id()]
+        job1.key.id(),
+        job2.key.id(),
+        job3.key.id(),
+        job4.key.id()
+    ]
 
     resp = self.app.post_json('/', {'page': 1})
 
-    self.assertListEqual(
-        expected_items,
-        [item['id'] for item in resp.json['items']]
-    )
+    self.assertListEqual(expected_items,
+                         [item['id'] for item in resp.json['items']])

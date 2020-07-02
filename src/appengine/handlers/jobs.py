@@ -56,9 +56,10 @@ def get_queues():
   queues.sort(key=lambda q: q['display_name'])
   return queues
 
+
 def get_results(this):
   """Get results for the jobs page."""
-  params = {k: v for k, v in this.request.iterparams()}
+  params = {k: v for k, v in this.request.iterparams()}  # pylint: disable=unnecessary-comprehension
 
   query = datastore_query.Query(data_types.Job)
 
@@ -102,18 +103,19 @@ class Handler(base_handler.Handler):
 
     result, params = get_results(self)
 
-    self.render('jobs.html', {
-        'result': result,
-        'templates': templates,
-        'fieldValues': {
-            'csrf_token': form.generate_csrf_token(),
-            'queues': queues,
-            'update_job_url': '/update-job',
-            'update_job_template_url': '/update-job-template',
-            'upload_info': gcs.prepare_blob_upload()._asdict(),
-        },
-        'params': params,
-    })
+    self.render(
+        'jobs.html', {
+            'result': result,
+            'templates': templates,
+            'fieldValues': {
+                'csrf_token': form.generate_csrf_token(),
+                'queues': queues,
+                'update_job_url': '/update-job',
+                'update_job_template_url': '/update-job-template',
+                'upload_info': gcs.prepare_blob_upload()._asdict(),
+            },
+            'params': params,
+        })
 
 
 class UpdateJob(base_handler.GcsUploadHandler):
