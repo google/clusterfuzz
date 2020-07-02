@@ -24,10 +24,23 @@ from datastore import data_types
 from datastore import ndb_utils
 from fuzzing import fuzzer_selection
 from handlers import base_handler
+from libs import filters
 from libs import form
 from libs import gcs
 from libs import handler
 from libs import helpers
+from libs.query import datastore_query
+
+PAGE_SIZE = 10
+MORE_LIMIT = 50 - PAGE_SIZE  # exactly 5 pages
+
+KEYWORD_FILTERS = [
+    filters.String('name', 'name'),
+]
+
+FILTERS = [
+    filters.Keyword(KEYWORD_FILTERS, 'keywords', 'q'),
+]
 
 
 def get_queues():
@@ -43,6 +56,36 @@ def get_queues():
   queues.sort(key=lambda q: q['display_name'])
   return queues
 
+def get_results(this):
+  """Get results for the jobs page."""
+  params = {k: v for k, v in this.request.iterparams()}
+
+  query = datastore_query.Query(data_types.Job)
+
+  # Results sorted alphabatically by name.
+  # is_desc reverses the sorting.
+  query.order('name', is_desc=False)
+
+  page = helpers.cast(
+      this.request.get('page') or 1, int, "'page' is not an int.")
+
+  # Adding Filters for Search Query
+  filters.add(query, params, FILTERS)
+
+  items, total_pages, total_items, has_more = query.fetch_page(
+      page=page, page_size=PAGE_SIZE, projection=None, more_limit=MORE_LIMIT)
+
+  result = {
+      'hasMore': has_more,
+      'items': items,
+      'page': page,
+      'pageSize': PAGE_SIZE,
+      'totalItems': total_items,
+      'totalPages': total_pages,
+  }
+
+  return result, params
+
 
 class Handler(base_handler.Handler):
   """View job handler."""
@@ -53,19 +96,14 @@ class Handler(base_handler.Handler):
     """Handle a get request."""
     helpers.log('Jobs', helpers.VIEW_OPERATION)
 
-    template_values = self.get_results()
-    self.render('jobs.html', template_values)
-
-  @staticmethod
-  def get_results():
-    """Get results for the jobs page."""
-    jobs = list(data_types.Job.query().order(data_types.Job.name))
     templates = list(data_types.JobTemplate.query().order(
         data_types.JobTemplate.name))
     queues = get_queues()
 
-    return {
-        'jobs': jobs,
+    result, params = get_results(self)
+
+    self.render('jobs.html', {
+        'result': result,
         'templates': templates,
         'fieldValues': {
             'csrf_token': form.generate_csrf_token(),
@@ -74,7 +112,8 @@ class Handler(base_handler.Handler):
             'update_job_template_url': '/update-job-template',
             'upload_info': gcs.prepare_blob_upload()._asdict(),
         },
-    }
+        'params': params,
+    })
 
 
 class UpdateJob(base_handler.GcsUploadHandler):
@@ -232,3 +271,14 @@ class DeleteJobHandler(base_handler.Handler):
 
     helpers.log('Deleted job %s' % job.name, helpers.MODIFY_OPERATION)
     self.redirect('/jobs')
+
+
+class JsonHandler(base_handler.Handler):
+  """Handler that gets the jobs when user clicks on next page."""
+
+  @handler.check_user_access(need_privileged_access=True)
+  @handler.post(handler.JSON, handler.JSON)
+  def post(self):
+    """Get and render the jobs in JSON."""
+    result, _ = get_results(self)
+    self.render_json(result)

@@ -14,6 +14,8 @@
 """Tests for jobs."""
 import collections
 import unittest
+import webapp2
+import webtest
 
 from datastore import data_types
 from handlers import jobs
@@ -27,14 +29,15 @@ class JobsTest(unittest.TestCase):
 
   def setUp(self):
     test_helpers.patch(self, [
+        'libs.access.has_access',
         'libs.access.get_access',
         'libs.helpers.get_user_email',
-        'libs.form.generate_csrf_token',
         'libs.gcs.prepare_blob_upload',
     ])
-    self.mock.generate_csrf_token.return_value = None
     self.mock.prepare_blob_upload.return_value = (
         collections.namedtuple('GcsUpload', [])())
+    self.app = webtest.TestApp(
+        webapp2.WSGIApplication([('/', jobs.JsonHandler)]))
 
   def _create_job(self,
                   name,
@@ -54,54 +57,19 @@ class JobsTest(unittest.TestCase):
 
   def test_get_results(self):
     """Test get_results."""
-    job = self._create_job('test_job', 'APP_NAME = launcher.py\n')
-    expected = {
-        'templates': [],
-        'jobs': [job],
-        'fieldValues': {
-            'csrf_token':
-                None,
-            'queues': [{
-                'display_name': 'Android',
-                'name': 'ANDROID'
-            }, {
-                'display_name': 'Android (x86)',
-                'name': 'ANDROID_X86'
-            }, {
-                'display_name': 'Android Kernel',
-                'name': 'ANDROID_KERNEL'
-            }, {
-                'display_name': 'Chrome OS',
-                'name': 'CHROMEOS'
-            }, {
-                'display_name': 'Fuchsia OS',
-                'name': 'FUCHSIA'
-            }, {
-                'display_name': 'Linux',
-                'name': 'LINUX'
-            }, {
-                'display_name': 'Linux (untrusted)',
-                'name': 'LINUX_UNTRUSTED'
-            }, {
-                'display_name': 'Linux (with GPU)',
-                'name': 'LINUX_WITH_GPU'
-            }, {
-                'display_name': 'Mac',
-                'name': 'MAC'
-            }, {
-                'display_name': 'Windows',
-                'name': 'WINDOWS'
-            }, {
-                'display_name': 'Windows (with GPU)',
-                'name': 'WINDOWS_WITH_GPU'
-            }],
-            'update_job_template_url':
-                '/update-job-template',
-            'update_job_url':
-                '/update-job',
-            'upload_info':
-                collections.OrderedDict(),
-        },
-    }
-    results = jobs.Handler.get_results()
-    self.assertEqual(expected, results)
+    self.mock.has_access.return_value = True
+    job1 = self._create_job('test_job1', 'APP_NAME = launcher1.py\n')
+    job2 = self._create_job('test_job2', 'APP_NAME = launcher2.py\n')
+    job3 = self._create_job('test_job3', 'APP_NAME = launcher3.py\n')
+    job4 = self._create_job('test_job4', 'APP_NAME = launcher4.py\n')
+
+    expected_items = [
+        job1.key.id(), job2.key.id(),
+        job3.key.id(), job4.key.id()]
+
+    resp = self.app.post_json('/', {'page': 1})
+
+    self.assertListEqual(
+        expected_items,
+        [item['id'] for item in resp.json['items']]
+    )

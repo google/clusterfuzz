@@ -11,235 +11,44 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""server.py initialises the appengine server for ClusterFuzz."""
-from __future__ import absolute_import
+"""Handler for showing crash stats inside the testcase detail page."""
 
-from webapp2_extras import routes
-import webapp2
-
-from base import utils
-from config import local_config
 from handlers import base_handler
-from handlers import bots
-from handlers import commit_range
-from handlers import configuration
-from handlers import corpora
-from handlers import coverage_report
-from handlers import crash_stats
-from handlers import domain_verifier
-from handlers import download
-from handlers import fuzzer_stats
-from handlers import fuzzers
-from handlers import gcs_redirector
-from handlers import help_redirector
-from handlers import home
-from handlers import issue_redirector
-from handlers import jobs
-from handlers import login
-from handlers import report_csp_failure
-from handlers import revisions_info
-from handlers import testcase_list
-from handlers import upload_testcase
-from handlers import viewer
-from handlers.cron import backup
-from handlers.cron import batch_fuzzer_jobs
-from handlers.cron import build_crash_stats
-from handlers.cron import cleanup
-from handlers.cron import corpus_backup
-from handlers.cron import fuzz_strategy_selection
-from handlers.cron import fuzzer_and_job_weights
-from handlers.cron import fuzzer_coverage
-from handlers.cron import load_bigquery_stats
-from handlers.cron import manage_vms
-from handlers.cron import ml_train
-from handlers.cron import oss_fuzz_apply_ccs
-from handlers.cron import oss_fuzz_build_status
-from handlers.cron import oss_fuzz_generate_certs
-from handlers.cron import predator_pull
-from handlers.cron import project_setup
-from handlers.cron import recurring_tasks
-from handlers.cron import schedule_corpus_pruning
-from handlers.cron import sync_admins
-from handlers.cron import triage
-from handlers.performance_report import (show as show_performance_report)
-from handlers.reproduce_tool import get_config
-from handlers.reproduce_tool import testcase_info
-from handlers.testcase_detail import (crash_stats as crash_stats_on_testcase)
-from handlers.testcase_detail import (show as show_testcase)
-from handlers.testcase_detail import create_issue
-from handlers.testcase_detail import delete
-from handlers.testcase_detail import download_testcase
-from handlers.testcase_detail import find_similar_issues
-from handlers.testcase_detail import mark_fixed
-from handlers.testcase_detail import mark_security
-from handlers.testcase_detail import mark_unconfirmed
-from handlers.testcase_detail import redo
-from handlers.testcase_detail import remove_duplicate
-from handlers.testcase_detail import remove_group
-from handlers.testcase_detail import remove_issue
-from handlers.testcase_detail import testcase_variants
-from handlers.testcase_detail import update_from_trunk
-from handlers.testcase_detail import update_issue
-from metrics import logs
-
-_is_chromium = utils.is_chromium()
-_is_oss_fuzz = utils.is_oss_fuzz()
+from libs import crash_stats
+from libs import handler
+from libs import helpers
 
 
-class _TrailingSlashRemover(webapp2.RequestHandler):
+def get_result(testcase, end, block, days, group_by):
+  """Get slots for crash stats."""
+  query = crash_stats.Query()
+  query.group_by = group_by
+  query.sort_by = 'total_count'
+  query.set_time_params(end, days, block)
 
-  def get(self, url):
-    self.redirect(url)
+  query.filter('crash_type', testcase.crash_type)
+  query.filter('crash_state', testcase.crash_state)
+  query.filter('security_flag', testcase.security_flag)
+
+  _, rows = crash_stats.get(query, crash_stats.Query(), 0, 1)
+
+  if not rows:
+    return {'end': end, 'days': days, 'block': block, 'groups': []}
+
+  return rows[0]
 
 
-def redirect_to(to_domain):
-  """Create a redirect handler to a domain."""
+class Handler(base_handler.Handler):
+  """Serve crash stats data on testcase detail."""
 
-  class RedirectHandler(webapp2.RequestHandler):
-    """Handler to redirect to domain."""
-
-    def get(self, _):
-      self.redirect(
-          'https://' + to_domain + self.request.path_qs, permanent=True)
-
-  return RedirectHandler
-
-
-# Add item to the navigation menu. Order is important.
-base_handler.add_menu('Testcases', '/testcases')
-base_handler.add_menu('Fuzzer Statistics', '/fuzzer-stats')
-base_handler.add_menu('Crash Statistics', '/crash-stats')
-base_handler.add_menu('Upload Testcase', '/upload-testcase')
-
-if _is_chromium:
-  base_handler.add_menu('Crashes by range', '/commit-range')
-
-if not _is_oss_fuzz:
-  base_handler.add_menu('Fuzzers', '/fuzzers')
-  base_handler.add_menu('Corpora', '/corpora')
-  base_handler.add_menu('Bots', '/bots')
-
-base_handler.add_menu('Jobs', '/jobs')
-base_handler.add_menu('Configuration', '/configuration')
-base_handler.add_menu('Report Bug', '/report-bug')
-base_handler.add_menu('Documentation', '/docs')
-
-# We need to separate routes for cron to avoid redirection.
-_CRON_ROUTES = [
-    ('/backup', backup.Handler),
-    ('/batch-fuzzer-jobs', batch_fuzzer_jobs.Handler),
-    ('/build-crash-stats', build_crash_stats.Handler),
-    ('/cleanup', cleanup.Handler),
-    ('/corpus-backup/make-public', corpus_backup.MakePublicHandler),
-    ('/fuzzer-coverage', fuzzer_coverage.Handler),
-    ('/fuzzer-stats/cache', fuzzer_stats.RefreshCacheHandler),
-    ('/fuzzer-stats/preload', fuzzer_stats.PreloadHandler),
-    ('/fuzzer-and-job-weights', fuzzer_and_job_weights.Handler),
-    ('/fuzz-strategy-selection', fuzz_strategy_selection.Handler),
-    ('/home-cache', home.RefreshCacheHandler),
-    ('/load-bigquery-stats', load_bigquery_stats.Handler),
-    ('/manage-vms', manage_vms.Handler),
-    ('/oss-fuzz-apply-ccs', oss_fuzz_apply_ccs.Handler),
-    ('/oss-fuzz-build-status', oss_fuzz_build_status.Handler),
-    ('/oss-fuzz-generate-certs', oss_fuzz_generate_certs.Handler),
-    ('/project-setup', project_setup.Handler),
-    ('/predator-pull', predator_pull.Handler),
-    ('/schedule-corpus-pruning', schedule_corpus_pruning.Handler),
-    ('/schedule-impact-tasks', recurring_tasks.ImpactTasksScheduler),
-    ('/schedule-ml-train-tasks', ml_train.Handler),
-    ('/schedule-progression-tasks', recurring_tasks.ProgressionTasksScheduler),
-    ('/schedule-upload-reports-tasks',
-     recurring_tasks.UploadReportsTaskScheduler),
-    ('/sync-admins', sync_admins.Handler),
-    ('/testcases/cache', testcase_list.CacheHandler),
-    ('/triage', triage.Handler),
-]
-
-_ROUTES = [
-    ('/', home.Handler if _is_oss_fuzz else testcase_list.Handler),
-    (r'(.*)/$', _TrailingSlashRemover),
-    (r'/(google.+\.html)$', domain_verifier.Handler),
-    ('/bots', bots.Handler),
-    ('/bots/dead', bots.DeadBotsHandler),
-    ('/commit-range', commit_range.Handler),
-    ('/commit-range/load', commit_range.JsonHandler),
-    ('/configuration', configuration.Handler),
-    ('/add-external-user-permission', configuration.AddExternalUserPermission),
-    ('/delete-external-user-permission',
-     configuration.DeleteExternalUserPermission),
-    ('/coverage-report/([^/]+)/([^/]+)/([^/]+)(/.*)?', coverage_report.Handler),
-    ('/crash-stats/load', crash_stats.JsonHandler),
-    ('/crash-stats', crash_stats.Handler),
-    ('/corpora', corpora.Handler),
-    ('/corpora/create', corpora.CreateHandler),
-    ('/corpora/delete', corpora.DeleteHandler),
-    ('/docs', help_redirector.DocumentationHandler),
-    ('/download/?([^/]+)?', download.Handler),
-    ('/fuzzers', fuzzers.Handler),
-    ('/fuzzers/create', fuzzers.CreateHandler),
-    ('/fuzzers/delete', fuzzers.DeleteHandler),
-    ('/fuzzers/edit', fuzzers.EditHandler),
-    ('/fuzzers/log/([^/]+)', fuzzers.LogHandler),
-    ('/fuzzer-stats/load', fuzzer_stats.LoadHandler),
-    ('/fuzzer-stats/load-filters', fuzzer_stats.LoadFiltersHandler),
-    ('/fuzzer-stats', fuzzer_stats.Handler),
-    ('/fuzzer-stats/.*', fuzzer_stats.Handler),
-    ('/gcs-redirect', gcs_redirector.Handler),
-    ('/issue/([0-9]+)', issue_redirector.Handler),
-    ('/jobs', jobs.Handler),
-    ('/jobs/delete-job', jobs.DeleteJobHandler),
-    ('/login', login.Handler),
-    ('/logout', login.LogoutHandler),
-    ('/update-job', jobs.UpdateJob),
-    ('/update-job-template', jobs.UpdateJobTemplate),
-    ('/performance-report/(.+)/(.+)/(.+)', show_performance_report.Handler),
-    ('/report-csp-failure', report_csp_failure.ReportCspFailureHandler),
-    ('/reproduce-tool/get-config', get_config.Handler),
-    ('/reproduce-tool/testcase-info', testcase_info.Handler),
-    ('/session-login', login.SessionLoginHandler),
-    ('/testcase', show_testcase.DeprecatedHandler),
-    ('/testcase-detail/([0-9]+)', show_testcase.Handler),
-    ('/testcase-detail/crash-stats', crash_stats_on_testcase.Handler),
-    ('/testcase-detail/create-issue', create_issue.Handler),
-    ('/testcase-detail/delete', delete.Handler),
-    ('/testcase-detail/download-testcase', download_testcase.Handler),
-    ('/testcase-detail/find-similar-issues', find_similar_issues.Handler),
-    ('/testcase-detail/mark-fixed', mark_fixed.Handler),
-    ('/testcase-detail/mark-security', mark_security.Handler),
-    ('/testcase-detail/mark-unconfirmed', mark_unconfirmed.Handler),
-    ('/testcase-detail/redo', redo.Handler),
-    ('/testcase-detail/refresh', show_testcase.RefreshHandler),
-    ('/testcase-detail/remove-duplicate', remove_duplicate.Handler),
-    ('/testcase-detail/remove-issue', remove_issue.Handler),
-    ('/testcase-detail/remove-group', remove_group.Handler),
-    ('/testcase-detail/testcase-variants', testcase_variants.Handler),
-    ('/testcase-detail/update-from-trunk', update_from_trunk.Handler),
-    ('/testcase-detail/update-issue', update_issue.Handler),
-    ('/testcases', testcase_list.Handler),
-    ('/testcases/load', testcase_list.JsonHandler),
-    ('/upload-testcase', upload_testcase.Handler),
-    ('/upload-testcase/get-url-oauth', upload_testcase.UploadUrlHandlerOAuth),
-    ('/upload-testcase/prepare', upload_testcase.PrepareUploadHandler),
-    ('/upload-testcase/load', upload_testcase.JsonHandler),
-    ('/upload-testcase/upload', upload_testcase.UploadHandler),
-    ('/upload-testcase/upload-oauth', upload_testcase.UploadHandlerOAuth),
-    ('/revisions', revisions_info.Handler),
-    ('/report-bug', help_redirector.ReportBugHandler),
-    ('/viewer', viewer.Handler),
-]
-
-logs.configure('appengine')
-
-config = local_config.GAEConfig()
-main_domain = config.get('domains.main')
-redirect_domains = config.get('domains.redirects')
-_DOMAIN_ROUTES = []
-if main_domain and redirect_domains:
-  for redirect_domain in redirect_domains:
-    _DOMAIN_ROUTES.append(
-        routes.DomainRoute(redirect_domain, [
-            webapp2.Route('<:.*>', redirect_to(main_domain)),
-        ]))
-
-app = webapp2.WSGIApplication(
-    _CRON_ROUTES + _DOMAIN_ROUTES + _ROUTES, debug=False)
+  @handler.post(handler.JSON, handler.JSON)
+  @handler.check_testcase_access
+  def post(self, testcase):
+    """Server crash stats."""
+    end = helpers.cast(self.request.get('end'), int, "'end' is not an int.")
+    days = helpers.cast(self.request.get('days'), int, "'days' is not an int.")
+    group_by = helpers.cast(
+        self.request.get('groupBy'), str, "'groupBy' is not a string.")
+    block = helpers.cast(
+        self.request.get('block'), str, "'block' is not a string.")
+    self.render_json(get_result(testcase, end, block, days, group_by))
