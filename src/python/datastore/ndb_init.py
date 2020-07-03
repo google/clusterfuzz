@@ -20,7 +20,6 @@ import threading
 
 from google.cloud import ndb
 from google.cloud.ndb import context as context_module
-import grpc
 
 from base import utils
 
