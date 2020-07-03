@@ -72,7 +72,7 @@ class RequestBisectionTest(unittest.TestCase):
     self.assertEqual(2, len(publish_calls))
     for bisect_type, publish_call in zip(bisect_types, publish_calls):
       topic = publish_call[0][1]
-      message = publish_call[0][2]
+      message = publish_call[0][2][0]
       self.assertEqual('/projects/project/topics/topic', topic)
       self.assertEqual(b'reproducer', message.data)
       self.assertDictEqual({

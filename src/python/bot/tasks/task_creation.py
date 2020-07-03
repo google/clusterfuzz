@@ -290,8 +290,7 @@ def _make_bisection_request(pubsub_topic, testcase, target, bisect_type):
 
   reproducer = blobs.read_key(testcase.minimized_keys or testcase.fuzzed_keys)
   pubsub_client = pubsub.PubSubClient()
-  pubsub_client.publish(
-      pubsub_topic,
+  pubsub_client.publish(pubsub_topic, [
       pubsub.Message(
           reproducer, {
               'type':
@@ -316,4 +315,5 @@ def _make_bisection_request(pubsub_topic, testcase, target, bisect_type):
                   testcase.crash_type,
               'security':
                   str(testcase.security_flag),
-          }))
+          })
+  ])
