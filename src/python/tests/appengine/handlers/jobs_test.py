@@ -61,10 +61,10 @@ class JobsTest(unittest.TestCase):
     self.mock.has_access.return_value = True
     expected_items = {1: [], 2: [], 3: []}
 
-    for i, job_num in enumerate(string.ascii_lowercase):
-      job_name = "test_job" + job_num
+    for job_num, job_suffix in enumerate(string.ascii_lowercase):
+      job_name = "test_job_" + job_suffix
       job = self._create_job(job_name, 'APP_NAME = launcher.py\n')
-      expected_items[(i//10)+1].append(job.key.id())
+      expected_items[(job_num // 10) + 1].append(job.key.id())
 
     resp = self.app.post_json('/', {'page': 1})
     self.assertListEqual(expected_items[1],
@@ -127,5 +127,6 @@ class JobsSearchTest(unittest.TestCase):
                          [item['id'] for item in resp.json['items']])
 
     resp = self.app.post_json('/', {'q': "test"})
-    self.assertListEqual([job_asan.key.id(), job_ubsan.key.id()],
-                         [item['id'] for item in resp.json['items']])
+    self.assertListEqual(
+        [job_asan.key.id(), job_ubsan.key.id()],
+        [item['id'] for item in resp.json['items']])
