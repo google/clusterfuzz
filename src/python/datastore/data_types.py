@@ -909,7 +909,7 @@ class Job(Model):
   # Project name.
   project = StringProperty()
 
-  # keywords is used for searching.
+  # Keywords is used for searching.
   keywords = ndb.StringProperty(repeated=True)
 
   def get_environment(self):
@@ -947,7 +947,9 @@ class Job(Model):
 
   def populate_indices(self):
     """Populate keywords for fast test case list searching."""
-    self.keywords = list(search_tokenizer.tokenize(self.name))
+    self.keywords = list(
+        search_tokenizer.tokenize(self.name)
+        | search_tokenizer.tokenize(self.project))
 
   def _pre_put_hook(self):
     """Pre-put hook."""

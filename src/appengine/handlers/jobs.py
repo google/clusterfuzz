@@ -34,12 +34,8 @@ from libs.query import datastore_query
 PAGE_SIZE = 10
 MORE_LIMIT = 50 - PAGE_SIZE  # exactly 5 pages
 
-KEYWORD_FILTERS = [
-    filters.String('name', 'name'),
-]
-
 FILTERS = [
-    filters.Keyword(KEYWORD_FILTERS, 'keywords', 'q'),
+    filters.Keyword([], 'keywords', 'q'),
 ]
 
 
@@ -59,20 +55,14 @@ def get_queues():
 
 def get_results(this):
   """Get results for the jobs page."""
-  params = {k: v for k, v in this.request.iterparams()}  # pylint: disable=unnecessary-comprehension
-
+  params = dict(this.request.iterparams())
+  # Return jobs sorted alphabetically by name
   query = datastore_query.Query(data_types.Job)
-
-  # Results sorted alphabatically by name.
-  # is_desc reverses the sorting.
   query.order('name', is_desc=False)
+  filters.add(query, params, FILTERS)
 
   page = helpers.cast(
       this.request.get('page') or 1, int, "'page' is not an int.")
-
-  # Adding Filters for Search Query
-  filters.add(query, params, FILTERS)
-
   items, total_pages, total_items, has_more = query.fetch_page(
       page=page, page_size=PAGE_SIZE, projection=None, more_limit=MORE_LIMIT)
 
@@ -84,7 +74,6 @@ def get_results(this):
       'totalItems': total_items,
       'totalPages': total_pages,
   }
-
   return result, params
 
 
@@ -102,7 +91,6 @@ class Handler(base_handler.Handler):
     queues = get_queues()
 
     result, params = get_results(self)
-
     self.render(
         'jobs.html', {
             'result': result,

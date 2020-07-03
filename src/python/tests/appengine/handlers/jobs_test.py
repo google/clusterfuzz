@@ -13,6 +13,7 @@
 # limitations under the License.
 """Tests for jobs."""
 import collections
+import string
 import unittest
 import webapp2
 import webtest
@@ -55,22 +56,76 @@ class JobsTest(unittest.TestCase):
 
     return job
 
-  def test_get_results(self):
-    """Test get_results."""
+  def test_post(self):
+    """Test post method."""
     self.mock.has_access.return_value = True
-    job1 = self._create_job('test_job1', 'APP_NAME = launcher1.py\n')
-    job2 = self._create_job('test_job2', 'APP_NAME = launcher2.py\n')
-    job3 = self._create_job('test_job3', 'APP_NAME = launcher3.py\n')
-    job4 = self._create_job('test_job4', 'APP_NAME = launcher4.py\n')
+    expected_items = {1: [], 2: [], 3: []}
 
-    expected_items = [
-        job1.key.id(),
-        job2.key.id(),
-        job3.key.id(),
-        job4.key.id()
-    ]
+    for i, job_num in enumerate(string.ascii_lowercase):
+      job_name = "test_job" + job_num
+      job = self._create_job(job_name, 'APP_NAME = launcher.py\n')
+      expected_items[(i//10)+1].append(job.key.id())
 
     resp = self.app.post_json('/', {'page': 1})
+    self.assertListEqual(expected_items[1],
+                         [item['id'] for item in resp.json['items']])
 
-    self.assertListEqual(expected_items,
+    resp = self.app.post_json('/', {'page': 2})
+    self.assertListEqual(expected_items[2],
+                         [item['id'] for item in resp.json['items']])
+
+    resp = self.app.post_json('/', {'page': 3})
+    self.assertListEqual(expected_items[3],
+                         [item['id'] for item in resp.json['items']])
+
+
+@test_utils.with_cloud_emulators('datastore')
+class JobsSearchTest(unittest.TestCase):
+  """Jobs search tests."""
+
+  def setUp(self):
+    test_helpers.patch(self, [
+        'libs.access.has_access',
+        'libs.access.get_access',
+        'libs.helpers.get_user_email',
+        'libs.gcs.prepare_blob_upload',
+    ])
+    self.mock.prepare_blob_upload.return_value = (
+        collections.namedtuple('GcsUpload', [])())
+    self.app = webtest.TestApp(
+        webapp2.WSGIApplication([('/', jobs.JsonHandler)]))
+
+  def _create_job(self,
+                  name,
+                  environment_string,
+                  description='',
+                  platform='LINUX'):
+    """Create a test job."""
+    job = data_types.Job()
+    job.name = name
+    if environment_string.strip():
+      job.environment_string = environment_string
+    job.platform = platform
+    job.descripton = description
+    job.put()
+
+    return job
+
+  def test_post(self):
+    """Test post method."""
+    self.mock.has_access.return_value = True
+
+    job_asan = self._create_job('test_job_asan', 'APP_NAME = launcher.py\n')
+    job_ubsan = self._create_job('test_job_ubsan', 'APP_NAME = launcher.py\n')
+
+    resp = self.app.post_json('/', {'q': "asan"})
+    self.assertListEqual([job_asan.key.id()],
+                         [item['id'] for item in resp.json['items']])
+
+    resp = self.app.post_json('/', {'q': "ubsan"})
+    self.assertListEqual([job_ubsan.key.id()],
+                         [item['id'] for item in resp.json['items']])
+
+    resp = self.app.post_json('/', {'q': "test"})
+    self.assertListEqual([job_asan.key.id(), job_ubsan.key.id()],
                          [item['id'] for item in resp.json['items']])
