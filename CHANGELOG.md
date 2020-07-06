@@ -1,6 +1,13 @@
 Change Log
 ==========
 
+## Next
+- Next version requires new DB migrations due to addition of search keywords in Jobs.
+- To perform migrations, please use:
+```
+python butler.py run -c=path/to/config --non-dry-run migration.jobs_keywords
+```
+
 ## Version 2.0.2
 - Improved Syzkaller support.
 - Support narrower bisection for regression/fix ranges.
