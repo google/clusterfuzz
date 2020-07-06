@@ -419,7 +419,7 @@ class FuzzTargetCorpus(GcsCorpus):
     if self._regressions_corpus:
       regressions_dir = os.path.join(directory, 'regressions')
       self._regressions_corpus.rsync_to_disk(
-          regressions_dir, timeout=timeout, delete=True)
+          regressions_dir, timeout=timeout, delete=False)
 
     num_files = _count_corpus_files(directory)
     if self._log_results:
