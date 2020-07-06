@@ -20,7 +20,6 @@ standard_library.install_aliases()
 import base64
 import cgi
 import datetime
-import gc
 import json
 import logging
 import os
@@ -276,13 +275,6 @@ class Handler(webapp2.RequestHandler):
     else:
       with ndb_init.context():
         super(Handler, self).dispatch()
-
-      # App Engine Python 2 does not like it when there are threads still alive
-      # at the end of a request. In particular, NDB and gRPC may create threads
-      # which aren't automatically stopped at this point due to reference
-      # cycles. Garbage collect here to get rid of them.
-      # TODO(ochang): Check if this is still needed for Python 3 GAE.
-      gc.collect()
 
 
 class GcsUploadHandler(Handler):
