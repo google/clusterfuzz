@@ -115,8 +115,8 @@ class JobsSearchTest(unittest.TestCase):
     """Test post method."""
     self.mock.has_access.return_value = True
 
-    job_asan = self._create_job('test_job_asan', 'APP_NAME = launcher.py\n')
-    job_ubsan = self._create_job('test_job_ubsan', 'APP_NAME = launcher.py\n')
+    job_asan = self._create_job('test_job_asan', 'PROJECT_NAME = proj_1\n')
+    job_ubsan = self._create_job('test_job_ubsan', 'PROJECT_NAME = proj_2\n')
 
     resp = self.app.post_json('/', {'q': "asan"})
     self.assertListEqual([job_asan.key.id()],
@@ -127,6 +127,19 @@ class JobsSearchTest(unittest.TestCase):
                          [item['id'] for item in resp.json['items']])
 
     resp = self.app.post_json('/', {'q': "test"})
+    self.assertListEqual(
+        [job_asan.key.id(), job_ubsan.key.id()],
+        [item['id'] for item in resp.json['items']])
+
+    resp = self.app.post_json('/', {'q': "1"})
+    self.assertListEqual([job_asan.key.id()],
+                         [item['id'] for item in resp.json['items']])
+
+    resp = self.app.post_json('/', {'q': "2"})
+    self.assertListEqual([job_ubsan.key.id()],
+                         [item['id'] for item in resp.json['items']])
+
+    resp = self.app.post_json('/', {'q': "proj"})
     self.assertListEqual(
         [job_asan.key.id(), job_ubsan.key.id()],
         [item['id'] for item in resp.json['items']])

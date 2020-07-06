@@ -183,9 +183,9 @@
     <div class="section">
       <div class="title">Existing jobs</div>
       <div class="body">
-        <paper-input class="search-box" label="Enter search string here" type="search" value="{{params.q}}" on-keyup="searchButtonTapped">
+        <paper-input class="search-box" label="Enter search string here" type="text" value="{{params.q}}" on-input="searchInputTimeout" on-keyup="searchButtonPressed">
           <iron-icon icon="icons:search" slot="prefix"></iron-icon>
-          <iron-icon icon="icons:help-outline" title="Search with keywords in job name or its environment string." slot="suffix"></iron-icon>
+          <iron-icon icon="icons:help-outline" title="Search with keywords in job name or project name." slot="suffix"></iron-icon>
         </paper-input>
       </div>
     </div>
@@ -362,21 +362,23 @@
         this.$.paginatedList.save();
       }
       
-      searchButtonTapped(ev) {
+      searchInputTimeout(ev) {
         let self = this;
         let thisId = ++self.submitId;
+        setTimeout(
+            () => {
+              if (self.submitId == thisId) {
+                self.resetPageAndSearch();
+              }
+            },
+            600
+        );
+      }
 
+      searchButtonPressed(ev) {
+        let self = this;
         if (ev.keyCode == 13) {
           self.resetPageAndSearch();
-        } else {
-          setTimeout(
-              () => {
-                if (self.submitId == thisId) {
-                  self.resetPageAndSearch();
-                }
-              },
-              600
-          );
         }
       }
       
