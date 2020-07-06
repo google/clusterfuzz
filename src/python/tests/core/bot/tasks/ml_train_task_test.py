@@ -158,8 +158,6 @@ class ExecuteTaskTest(unittest.TestCase):
                                                 model_directory, log_directory)
 
 
-# TODO(mmoroz): Re-enable this.
-@unittest.skip('Training is broken.')
 @test_utils.integration
 class MLRnnTrainTaskIntegrationTest(unittest.TestCase):
   """ML RNN training integration tests."""
