@@ -232,6 +232,9 @@ def create_tasks(testcase):
 
 def _get_commits(commit_range, job_type):
   """Get commits from range."""
+  if not commit_range or commit_range == 'NA':
+    return None, None
+
   start, end = revisions.get_start_and_end_revision(commit_range)
   components = revisions.get_component_range_list(start, end, job_type)
 
@@ -247,16 +250,33 @@ def _get_commits(commit_range, job_type):
   return old_commit, new_commit
 
 
-def request_bisection(testcase, bisect_type):
+def request_bisection(testcase):
   """Request precise bisection."""
   pubsub_topic = local_config.ProjectConfig().get('bisect_service.pubsub_topic')
   if not pubsub_topic:
+    return
+
+  # Only request bisects for reproducible security bugs with a bug filed, found
+  # by engine fuzzers.
+  if not testcase.security_flag:
+    return
+
+  if testcase.one_time_crasher_flag:
+    return
+
+  if not testcase.bug_information:
     return
 
   target = testcase.get_fuzz_target()
   if not target:
     return
 
+  _make_bisection_request(pubsub_topic, testcase, target, 'regressed')
+  _make_bisection_request(pubsub_topic, testcase, target, 'fixed')
+
+
+def _make_bisection_request(pubsub_topic, testcase, target, bisect_type):
+  """Make a bisection request to the external bisection service."""
   if bisect_type == 'fixed':
     old_commit, new_commit = _get_commits(testcase.fixed, testcase.job_type)
   elif bisect_type == 'regressed':
@@ -265,10 +285,12 @@ def request_bisection(testcase, bisect_type):
   else:
     raise ValueError('Invalid bisection type: ' + bisect_type)
 
+  if not old_commit or not new_commit:
+    return
+
   reproducer = blobs.read_key(testcase.minimized_keys or testcase.fuzzed_keys)
   pubsub_client = pubsub.PubSubClient()
-  pubsub_client.publish(
-      pubsub_topic,
+  pubsub_client.publish(pubsub_topic, [
       pubsub.Message(
           reproducer, {
               'type':
@@ -293,4 +315,5 @@ def request_bisection(testcase, bisect_type):
                   testcase.crash_type,
               'security':
                   str(testcase.security_flag),
-          }))
+          })
+  ])

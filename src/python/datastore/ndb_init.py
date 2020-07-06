@@ -20,7 +20,6 @@ import threading
 
 from google.cloud import ndb
 from google.cloud.ndb import context as context_module
-import grpc
 
 from base import utils
 
@@ -53,12 +52,6 @@ def context():
     context_module._state.context = None  # pylint: disable=protected-access
 
   with _client().context() as ndb_context:
-    from google.cloud.ndb import _retry
-    # Add an additional code to retry on.
-    if grpc.StatusCode.UNKNOWN not in _retry.TRANSIENT_CODES:
-      _retry.TRANSIENT_CODES = _retry.TRANSIENT_CODES + (
-          grpc.StatusCode.UNKNOWN,)
-
     # Disable NDB caching, as NDB on GCE VMs do not use memcache and therefore
     # can't invalidate the memcache cache.
     ndb_context.set_memcache_policy(False)

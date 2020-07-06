@@ -211,7 +211,7 @@ def _save_fixed_range(testcase_id, min_revision, max_revision,
   _write_to_bigquery(testcase, min_revision, max_revision)
 
   # If there is a fine grained bisection service available, request it.
-  task_creation.request_bisection(testcase, 'fixed')
+  task_creation.request_bisection(testcase)
 
   _store_testcase_for_regression_testing(testcase, testcase_file_path)
 
