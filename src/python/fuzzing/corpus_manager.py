@@ -415,11 +415,11 @@ class FuzzTargetCorpus(GcsCorpus):
     if not result:
       return False
 
-    # Checkout additional regressions corpus if set and ignore the result. Don't
-    # delete existing files from syncing main corpus.
+    # Checkout additional regressions corpus if set and ignore the result.
     if self._regressions_corpus:
+      regressions_dir = os.path.join(directory, 'regressions')
       self._regressions_corpus.rsync_to_disk(
-          directory, timeout=timeout, delete=False)
+          regressions_dir, timeout=timeout, delete=True)
 
     num_files = _count_corpus_files(directory)
     if self._log_results:

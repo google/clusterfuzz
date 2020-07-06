@@ -646,9 +646,18 @@ def do_corpus_pruning(context, last_execution_failed, revision):
   context.sync_to_gcs()
 
   # Create corpus backup.
+  # Temporarily move the past crash regressions folder into the minimized corpus
+  # so that corpus backup archive can have both.
+  regressions_input_dir = os.path.join(context.initial_corpus_path,
+                                       'regressions')
+  regressions_output_dir = os.path.join(context.minimized_corpus_path,
+                                        'regressions')
+  if shell.get_directory_file_count(regressions_input_dir):
+    shell.move(regressions_input_dir, regressions_output_dir)
   backup_bucket = environment.get_value('BACKUP_BUCKET')
   corpus_backup_url = corpus_manager.backup_corpus(
       backup_bucket, context.corpus, context.minimized_corpus_path)
+  shell.remove_directory(regressions_output_dir)
 
   minimized_corpus_size_units = shell.get_directory_file_count(
       context.minimized_corpus_path)
