@@ -78,6 +78,9 @@ class JobsTest(unittest.TestCase):
     self.assertListEqual(expected_items[3],
                          [item['id'] for item in resp.json['items']])
 
+    resp = self.app.post_json('/', {'page': 4})
+    self.assertListEqual([], [item['id'] for item in resp.json['items']])
+
 
 @test_utils.with_cloud_emulators('datastore')
 class JobsSearchTest(unittest.TestCase):
@@ -125,6 +128,9 @@ class JobsSearchTest(unittest.TestCase):
     resp = self.app.post_json('/', {'q': "ubsan"})
     self.assertListEqual([job_ubsan.key.id()],
                          [item['id'] for item in resp.json['items']])
+
+    resp = self.app.post_json('/', {'q': "testing"})
+    self.assertListEqual([], [item['id'] for item in resp.json['items']])
 
     resp = self.app.post_json('/', {'q': "test"})
     self.assertListEqual(

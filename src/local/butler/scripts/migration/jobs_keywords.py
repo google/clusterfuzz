@@ -1,4 +1,4 @@
-# Copyright 2019 Google LLC
+# Copyright 2020 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -13,8 +13,6 @@
 # limitations under the License.
 """Build keyword attributes for every job."""
 
-import sys
-
 from datastore import data_types
 from google.cloud import ndb
 
@@ -25,11 +23,6 @@ def execute(args):
   if args.non_dry_run:
     try:
       ndb.put_multi(jobs)
+      print("Done building keywords for jobs.")
     except Exception:
-      for job in jobs:
-        try:
-          job.put()
-        except Exception:
-          print('Error: %s %s' % (job.key.id(), sys.exc_info()))
-
-    print("Done building keywords for jobs.")
+      print("Error during building keywords for jobs.")

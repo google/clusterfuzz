@@ -55,10 +55,11 @@ def get_queues():
 
 def get_results(this):
   """Get results for the jobs page."""
-  params = dict(this.request.iterparams())
+
   # Return jobs sorted alphabetically by name
   query = datastore_query.Query(data_types.Job)
   query.order('name', is_desc=False)
+  params = dict(this.request.iterparams())
   filters.add(query, params, FILTERS)
 
   page = helpers.cast(
