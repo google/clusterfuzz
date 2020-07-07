@@ -260,12 +260,10 @@ class PreparePredatorRequestBodyTest(ComponentRevisionPatchingTest):
             'job_type':
                 'test_content_shell_drt',
             'dependencies': [{
-                'dep_path':
-                    'src/third_party/bidichecker',
-                'repo_url':
-                    'https://chromium.googlesource.com/external/bidichecker/lib',
-                'revision':
-                    '97f2aa645b74c28c57eca56992235c79850fa9e0'
+                'dep_path': 'src/third_party/bidichecker',
+                'repo_url': 'https://chromium.googlesource.com/'
+                            'external/bidichecker/lib',
+                'revision': '97f2aa645b74c28c57eca56992235c79850fa9e0'
             }, {
                 'dep_path': 'src/third_party/pdfium',
                 'repo_url': 'https://pdfium.googlesource.com/pdfium',

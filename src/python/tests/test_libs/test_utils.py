@@ -28,7 +28,6 @@ import shutil
 import six
 import socket
 import subprocess
-import sys
 import tempfile
 import threading
 import unittest
