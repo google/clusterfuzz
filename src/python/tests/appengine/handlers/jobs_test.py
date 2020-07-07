@@ -13,7 +13,10 @@
 # limitations under the License.
 """Tests for jobs."""
 import collections
+import string
 import unittest
+import webapp2
+import webtest
 
 from datastore import data_types
 from handlers import jobs
@@ -27,14 +30,15 @@ class JobsTest(unittest.TestCase):
 
   def setUp(self):
     test_helpers.patch(self, [
+        'libs.access.has_access',
         'libs.access.get_access',
         'libs.helpers.get_user_email',
-        'libs.form.generate_csrf_token',
         'libs.gcs.prepare_blob_upload',
     ])
-    self.mock.generate_csrf_token.return_value = None
     self.mock.prepare_blob_upload.return_value = (
         collections.namedtuple('GcsUpload', [])())
+    self.app = webtest.TestApp(
+        webapp2.WSGIApplication([('/', jobs.JsonHandler)]))
 
   def _create_job(self,
                   name,
@@ -52,56 +56,96 @@ class JobsTest(unittest.TestCase):
 
     return job
 
-  def test_get_results(self):
-    """Test get_results."""
-    job = self._create_job('test_job', 'APP_NAME = launcher.py\n')
-    expected = {
-        'templates': [],
-        'jobs': [job],
-        'fieldValues': {
-            'csrf_token':
-                None,
-            'queues': [{
-                'display_name': 'Android',
-                'name': 'ANDROID'
-            }, {
-                'display_name': 'Android (x86)',
-                'name': 'ANDROID_X86'
-            }, {
-                'display_name': 'Android Kernel',
-                'name': 'ANDROID_KERNEL'
-            }, {
-                'display_name': 'Chrome OS',
-                'name': 'CHROMEOS'
-            }, {
-                'display_name': 'Fuchsia OS',
-                'name': 'FUCHSIA'
-            }, {
-                'display_name': 'Linux',
-                'name': 'LINUX'
-            }, {
-                'display_name': 'Linux (untrusted)',
-                'name': 'LINUX_UNTRUSTED'
-            }, {
-                'display_name': 'Linux (with GPU)',
-                'name': 'LINUX_WITH_GPU'
-            }, {
-                'display_name': 'Mac',
-                'name': 'MAC'
-            }, {
-                'display_name': 'Windows',
-                'name': 'WINDOWS'
-            }, {
-                'display_name': 'Windows (with GPU)',
-                'name': 'WINDOWS_WITH_GPU'
-            }],
-            'update_job_template_url':
-                '/update-job-template',
-            'update_job_url':
-                '/update-job',
-            'upload_info':
-                collections.OrderedDict(),
-        },
-    }
-    results = jobs.Handler.get_results()
-    self.assertEqual(expected, results)
+  def test_post(self):
+    """Test post method."""
+    self.mock.has_access.return_value = True
+    expected_items = {1: [], 2: [], 3: []}
+
+    for job_num, job_suffix in enumerate(string.ascii_lowercase):
+      job_name = "test_job_" + job_suffix
+      job = self._create_job(job_name, 'APP_NAME = launcher.py\n')
+      expected_items[(job_num // 10) + 1].append(job.key.id())
+
+    resp = self.app.post_json('/', {'page': 1})
+    self.assertListEqual(expected_items[1],
+                         [item['id'] for item in resp.json['items']])
+
+    resp = self.app.post_json('/', {'page': 2})
+    self.assertListEqual(expected_items[2],
+                         [item['id'] for item in resp.json['items']])
+
+    resp = self.app.post_json('/', {'page': 3})
+    self.assertListEqual(expected_items[3],
+                         [item['id'] for item in resp.json['items']])
+
+    resp = self.app.post_json('/', {'page': 4})
+    self.assertListEqual([], [item['id'] for item in resp.json['items']])
+
+
+@test_utils.with_cloud_emulators('datastore')
+class JobsSearchTest(unittest.TestCase):
+  """Jobs search tests."""
+
+  def setUp(self):
+    test_helpers.patch(self, [
+        'libs.access.has_access',
+        'libs.access.get_access',
+        'libs.helpers.get_user_email',
+        'libs.gcs.prepare_blob_upload',
+    ])
+    self.mock.prepare_blob_upload.return_value = (
+        collections.namedtuple('GcsUpload', [])())
+    self.app = webtest.TestApp(
+        webapp2.WSGIApplication([('/', jobs.JsonHandler)]))
+
+  def _create_job(self,
+                  name,
+                  environment_string,
+                  description='',
+                  platform='LINUX'):
+    """Create a test job."""
+    job = data_types.Job()
+    job.name = name
+    if environment_string.strip():
+      job.environment_string = environment_string
+    job.platform = platform
+    job.descripton = description
+    job.put()
+
+    return job
+
+  def test_post(self):
+    """Test post method."""
+    self.mock.has_access.return_value = True
+
+    job_asan = self._create_job('test_job_asan', 'PROJECT_NAME = proj_1\n')
+    job_ubsan = self._create_job('test_job_ubsan', 'PROJECT_NAME = proj_2\n')
+
+    resp = self.app.post_json('/', {'q': "asan"})
+    self.assertListEqual([job_asan.key.id()],
+                         [item['id'] for item in resp.json['items']])
+
+    resp = self.app.post_json('/', {'q': "ubsan"})
+    self.assertListEqual([job_ubsan.key.id()],
+                         [item['id'] for item in resp.json['items']])
+
+    resp = self.app.post_json('/', {'q': "testing"})
+    self.assertListEqual([], [item['id'] for item in resp.json['items']])
+
+    resp = self.app.post_json('/', {'q': "test"})
+    self.assertListEqual(
+        [job_asan.key.id(), job_ubsan.key.id()],
+        [item['id'] for item in resp.json['items']])
+
+    resp = self.app.post_json('/', {'q': "1"})
+    self.assertListEqual([job_asan.key.id()],
+                         [item['id'] for item in resp.json['items']])
+
+    resp = self.app.post_json('/', {'q': "2"})
+    self.assertListEqual([job_ubsan.key.id()],
+                         [item['id'] for item in resp.json['items']])
+
+    resp = self.app.post_json('/', {'q': "proj"})
+    self.assertListEqual(
+        [job_asan.key.id(), job_ubsan.key.id()],
+        [item['id'] for item in resp.json['items']])

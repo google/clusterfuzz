@@ -188,6 +188,7 @@ _ROUTES = [
     ('/issue/([0-9]+)', issue_redirector.Handler),
     ('/jobs', jobs.Handler),
     ('/jobs/delete-job', jobs.DeleteJobHandler),
+    ('/jobs/load', jobs.JsonHandler),
     ('/login', login.Handler),
     ('/logout', login.LogoutHandler),
     ('/update-job', jobs.UpdateJob),

@@ -883,6 +883,9 @@ class Job(Model):
   # Project name.
   project = ndb.StringProperty()
 
+  # Keywords is used for searching.
+  keywords = ndb.StringProperty(repeated=True)
+
   def get_environment(self):
     """Get the environment as a dict for this job, including any environment
     variables in its template."""
@@ -916,10 +919,17 @@ class Job(Model):
 
     return environment_string
 
+  def populate_indices(self):
+    """Populate keywords for fast job searching."""
+    self.keywords = list(
+        search_tokenizer.tokenize(self.name)
+        | search_tokenizer.tokenize(self.project))
+
   def _pre_put_hook(self):
     """Pre-put hook."""
     self.project = self.get_environment().get('PROJECT_NAME',
                                               utils.default_project_name())
+    self.populate_indices()
 
 
 class CSRFToken(Model):

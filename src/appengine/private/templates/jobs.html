@@ -38,8 +38,9 @@
     <template>
       <template is="dom-if" if="[[data]]">
         <jobs-page
-            jobs="[[data.jobs]]"
+            result="[[data.result]]"
             templates="[[data.templates]]"
+            params="[[data.params]]"
             field-values="[[data.fieldValues]]">
         </jobs-page>
       </template>
@@ -47,9 +48,10 @@
   </dom-bind>
   <script>
     document.querySelector('#page').data = {
-      jobs : JSON.parse(atob('{{jobs|json}}')),
+      result : JSON.parse(atob('{{result|json}}')),
       templates : JSON.parse(atob('{{templates|json}}')),
       fieldValues: JSON.parse(atob('{{fieldValues|json}}')),
+      params: JSON.parse(atob('{{params|json}}')),
     };
   </script>
 {% endblock %}
