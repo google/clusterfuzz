@@ -254,7 +254,7 @@ class FuzzTargetCorpusTest(fake_filesystem_unittest.TestCase):
             'rsync',
             '-r',
             'gs://bucket/libFuzzer/fuzzer_regressions/',
-            '/dir',
+            '/dir/regressions',
         ],
     ])
 
