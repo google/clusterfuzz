@@ -21,8 +21,5 @@ def execute(args):
   """Build keywords for jobs."""
   jobs = list(data_types.Job.query())
   if args.non_dry_run:
-    try:
-      ndb.put_multi(jobs)
-      print("Done building keywords for jobs.")
-    except Exception:
-      print("Error during building keywords for jobs.")
+    ndb.put_multi(jobs)
+    print("Done building keywords for jobs.")
