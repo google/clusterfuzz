@@ -301,7 +301,7 @@ class Query(base.Query):
         offset=0, limit=page_size, projection=projection, more_limit=more_limit)
 
     if total_items > 0:
-      has_more = False
+      has_more = True
 
     total_pages = total_items // page_size
     if (total_items % page_size) > 0:
