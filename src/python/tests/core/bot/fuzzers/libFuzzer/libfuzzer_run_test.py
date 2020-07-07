@@ -45,7 +45,6 @@ class GenerateArgumentsTests(unittest.TestCase):
 
     self.assertEqual(arguments, expected_arguments)
 
-  @test_utils.python2_only
   def test_generate_arguments_with_options_file(self):
     """Test generateArgumentsForFuzzer."""
     fuzzer_path = os.path.join(self.build_dir, 'fake1_fuzzer')
@@ -53,7 +52,7 @@ class GenerateArgumentsTests(unittest.TestCase):
     arguments = libfuzzer.generate_arguments(fuzzer_path)
 
     expected_arguments = (
-        '-max_len=31337 -runs=9999999 -timeout=11 -rss_limit_mb=2560')
+        '-max_len=31337 -timeout=11 -runs=9999999 -rss_limit_mb=2560')
     self.assertEqual(arguments, expected_arguments)
 
 

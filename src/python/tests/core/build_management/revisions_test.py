@@ -221,7 +221,6 @@ class RevisionsTestcase(unittest.TestCase):
     expected_html = self._read_data_file('clank_expected_html.txt')
     self.assertEqual(result_as_html, expected_html)
 
-  @test_utils.python2_only
   @mock.patch('config.db_config.get')
   @mock.patch('build_management.revisions._get_url_content')
   def test_get_git_hash_for_git_commit_pos(self, mock_get_url_content,
@@ -243,9 +242,9 @@ class RevisionsTestcase(unittest.TestCase):
     # URL encoding easier to understand.
     mock_get_url_content.assert_called_once_with(
         revisions.CRREV_NUMBERING_URL +
-        '?repo=v8%2Fv8&numbering_type=COMMIT_POSITION&fields=git_sha&'
-        'number=29124&project=chromium&numbering_identifier='
-        'refs%2Fheads%2Fmaster')
+        '?number=29124&numbering_identifier=refs%2Fheads%2Fmaster&'
+        'numbering_type=COMMIT_POSITION&project=chromium&'
+        'repo=v8%2Fv8&fields=git_sha')
 
   @mock.patch('config.db_config.get')
   @mock.patch('build_management.revisions._get_url_content')

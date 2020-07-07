@@ -245,7 +245,6 @@ class PreparePredatorRequestBodyTest(ComponentRevisionPatchingTest):
     actual_result = testcase.get_metadata('predator_result')
     self.assertEqual(actual_result, expected_result)
 
-  @test_utils.python2_only
   def test_reproducible_regression_range(self):
     """Test reproducible with regression range."""
     testcase = test_utils.create_generic_testcase()
@@ -261,18 +260,20 @@ class PreparePredatorRequestBodyTest(ComponentRevisionPatchingTest):
             'job_type':
                 'test_content_shell_drt',
             'dependencies': [{
-                'dep_path': 'src/third_party/skia',
-                'repo_url': 'https://skia.googlesource.com/skia',
-                'revision': 'ee295645bd91fcbe1714847c5fe5341759037cc5'
+                'dep_path':
+                    'src/third_party/bidichecker',
+                'repo_url':
+                    'https://chromium.googlesource.com/external/bidichecker/lib',
+                'revision':
+                    '97f2aa645b74c28c57eca56992235c79850fa9e0'
             }, {
                 'dep_path': 'src/third_party/pdfium',
                 'repo_url': 'https://pdfium.googlesource.com/pdfium',
                 'revision': 'f7e108b2d0c2f67a143e99693df084bfff7037ec'
             }, {
-                'dep_path': 'src/third_party/bidichecker',
-                'repo_url': 'https://chromium.googlesource.com/'
-                            'external/bidichecker/lib',
-                'revision': '97f2aa645b74c28c57eca56992235c79850fa9e0'
+                'dep_path': 'src/third_party/skia',
+                'repo_url': 'https://skia.googlesource.com/skia',
+                'revision': 'ee295645bd91fcbe1714847c5fe5341759037cc5'
             }, {
                 'dep_path': 'src/v8',
                 'repo_url': 'https://chromium.googlesource.com/v8/v8',
@@ -283,32 +284,32 @@ class PreparePredatorRequestBodyTest(ComponentRevisionPatchingTest):
                 'revision': 'e4eb2a57c8667ab31903237e3c316fcaf4afe718'
             }],
             'dependency_rolls': [{
-                'old_revision': 'cba1fdd4d72e7c5b874f9eeb07901792f26c871a',
-                'new_revision': '3a590058de9b3640f73741b1e95f815f5c089988',
-                'dep_path': 'src/v8',
-                'repo_url': 'https://chromium.googlesource.com/v8/v8'
-            }, {
-                'new_revision':
-                    '97f2aa645b74c28c57eca56992235c79850fa9e0',
                 'dep_path':
                     'src/third_party/gperf',
                 'repo_url':
-                    'https://chromium.googlesource.com/chromium/deps/gperf'
+                    'https://chromium.googlesource.com/chromium/deps/gperf',
+                'new_revision':
+                    '97f2aa645b74c28c57eca56992235c79850fa9e0'
             }, {
-                'old_revision': 'ee295645bd91fcbe1714847c5fe5341759037cc5',
-                'new_revision': '4772bd537d153922cd772020e4ad4820090be51a',
-                'dep_path': 'src/third_party/skia',
-                'repo_url': 'https://skia.googlesource.com/skia'
-            }, {
-                'old_revision': 'f7e108b2d0c2f67a143e99693df084bfff7037ec',
-                'new_revision': '855665d4889853f8ac71519de8ff004dba8eb056',
                 'dep_path': 'src/third_party/pdfium',
-                'repo_url': 'https://pdfium.googlesource.com/pdfium'
+                'repo_url': 'https://pdfium.googlesource.com/pdfium',
+                'new_revision': '855665d4889853f8ac71519de8ff004dba8eb056',
+                'old_revision': 'f7e108b2d0c2f67a143e99693df084bfff7037ec'
             }, {
-                'old_revision': 'e4eb2a57c8667ab31903237e3c316fcaf4afe718',
-                'new_revision': '52523d4e58d99cdb768791bf9ac532c917522460',
+                'dep_path': 'src/third_party/skia',
+                'repo_url': 'https://skia.googlesource.com/skia',
+                'new_revision': '4772bd537d153922cd772020e4ad4820090be51a',
+                'old_revision': 'ee295645bd91fcbe1714847c5fe5341759037cc5'
+            }, {
+                'dep_path': 'src/v8',
+                'repo_url': 'https://chromium.googlesource.com/v8/v8',
+                'new_revision': '3a590058de9b3640f73741b1e95f815f5c089988',
+                'old_revision': 'cba1fdd4d72e7c5b874f9eeb07901792f26c871a'
+            }, {
                 'dep_path': 'src',
-                'repo_url': 'https://chromium.googlesource.com/chromium/src'
+                'repo_url': 'https://chromium.googlesource.com/chromium/src',
+                'new_revision': '52523d4e58d99cdb768791bf9ac532c917522460',
+                'old_revision': 'e4eb2a57c8667ab31903237e3c316fcaf4afe718'
             }],
             'regression_range': {
                 'old_revision': 'e4eb2a57c8667ab31903237e3c316fcaf4afe718',
@@ -335,7 +336,6 @@ class PreparePredatorRequestBodyTest(ComponentRevisionPatchingTest):
     actual_message = json.loads(actual_message.data)
     self.assertDictEqual(actual_message, expected_message)
 
-  @test_utils.python2_only
   def test_reproducible_regression_range_with_zero_start_revision(self):
     """Test reproducible with regression range with 0 start."""
     testcase = test_utils.create_generic_testcase()
@@ -351,10 +351,6 @@ class PreparePredatorRequestBodyTest(ComponentRevisionPatchingTest):
             'job_type':
                 'test_content_shell_drt',
             'dependencies': [{
-                'dep_path': 'src/v8',
-                'repo_url': 'https://chromium.googlesource.com/v8/v8',
-                'revision': '3a590058de9b3640f73741b1e95f815f5c089988'
-            }, {
                 'dep_path':
                     'src/third_party/gperf',
                 'repo_url':
@@ -362,13 +358,17 @@ class PreparePredatorRequestBodyTest(ComponentRevisionPatchingTest):
                 'revision':
                     '97f2aa645b74c28c57eca56992235c79850fa9e0'
             }, {
+                'dep_path': 'src/third_party/pdfium',
+                'repo_url': 'https://pdfium.googlesource.com/pdfium',
+                'revision': '855665d4889853f8ac71519de8ff004dba8eb056'
+            }, {
                 'dep_path': 'src/third_party/skia',
                 'repo_url': 'https://skia.googlesource.com/skia',
                 'revision': '4772bd537d153922cd772020e4ad4820090be51a'
             }, {
-                'dep_path': 'src/third_party/pdfium',
-                'repo_url': 'https://pdfium.googlesource.com/pdfium',
-                'revision': '855665d4889853f8ac71519de8ff004dba8eb056'
+                'dep_path': 'src/v8',
+                'repo_url': 'https://chromium.googlesource.com/v8/v8',
+                'revision': '3a590058de9b3640f73741b1e95f815f5c089988'
             }, {
                 'dep_path': 'src',
                 'repo_url': 'https://chromium.googlesource.com/chromium/src',
@@ -400,7 +400,6 @@ class PreparePredatorRequestBodyTest(ComponentRevisionPatchingTest):
     actual_message = json.loads(actual_message.data)
     self.assertDictEqual(actual_message, expected_message)
 
-  @test_utils.python2_only
   def test_unreproducible(self):
     """Test unreproducible."""
     testcase = test_utils.create_generic_testcase()
@@ -417,10 +416,6 @@ class PreparePredatorRequestBodyTest(ComponentRevisionPatchingTest):
             'job_type':
                 'test_content_shell_drt',
             'dependencies': [{
-                'dep_path': 'src/v8',
-                'repo_url': 'https://chromium.googlesource.com/v8/v8',
-                'revision': '3a590058de9b3640f73741b1e95f815f5c089988'
-            }, {
                 'dep_path':
                     'src/third_party/gperf',
                 'repo_url':
@@ -428,13 +423,17 @@ class PreparePredatorRequestBodyTest(ComponentRevisionPatchingTest):
                 'revision':
                     '97f2aa645b74c28c57eca56992235c79850fa9e0'
             }, {
+                'dep_path': 'src/third_party/pdfium',
+                'repo_url': 'https://pdfium.googlesource.com/pdfium',
+                'revision': '855665d4889853f8ac71519de8ff004dba8eb056'
+            }, {
                 'dep_path': 'src/third_party/skia',
                 'repo_url': 'https://skia.googlesource.com/skia',
                 'revision': '4772bd537d153922cd772020e4ad4820090be51a'
             }, {
-                'dep_path': 'src/third_party/pdfium',
-                'repo_url': 'https://pdfium.googlesource.com/pdfium',
-                'revision': '855665d4889853f8ac71519de8ff004dba8eb056'
+                'dep_path': 'src/v8',
+                'repo_url': 'https://chromium.googlesource.com/v8/v8',
+                'revision': '3a590058de9b3640f73741b1e95f815f5c089988'
             }, {
                 'dep_path': 'src',
                 'repo_url': 'https://chromium.googlesource.com/chromium/src',
