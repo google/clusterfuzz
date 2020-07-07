@@ -298,10 +298,7 @@ class Query(base.Query):
 
     # Retriving deatils for page 1 to get other details correct.
     items, total_items, has_more = self.fetch(
-        offset=0,
-        limit=page_size,
-        projection=projection,
-        more_limit=more_limit)
+        offset=0, limit=page_size, projection=projection, more_limit=more_limit)
 
     if total_items > 0:
       has_more = False
