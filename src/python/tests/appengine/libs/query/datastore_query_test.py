@@ -171,6 +171,24 @@ class QueryTest(unittest.TestCase):
     self.assertEqual(total_count, 5)
     self.assertFalse(has_more)
 
+  def test_negative_page(self):
+    """Test getting a negative page."""
+    query = datastore_query.Query(TestDatastoreModel)
+    query.filter_in('tokens', ['a', 'b'])
+    query.filter('boolean_value', True)
+    query.order('datetime_value', is_desc=True)
+
+    items, total_pages, total_items, has_more = query.fetch_page(
+        page=-5, page_size=2, projection=['tokens'], more_limit=4)
+    self.assertListEqual([self.mocks[0].key.id(), self.mocks[2].key.id()],
+                         [item.key.id() for item in items])
+    self.assertListEqual([['a'], ['a']], [item.tokens for item in items])
+    with self.assertRaises(ndb.UnprojectedPropertyError):
+      _ = [item.boolean_value for item in items]
+    self.assertEqual(6, total_items)
+    self.assertEqual(3, total_pages)
+    self.assertTrue(has_more)
+
 
 class QueryWrapper(ndb.Query):
   """Query wrapper for easy mocking."""
