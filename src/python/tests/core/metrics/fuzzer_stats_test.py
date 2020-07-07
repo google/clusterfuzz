@@ -56,7 +56,6 @@ class FuzzerStatsTest(unittest.TestCase):
         'google_cloud_utils.storage.write_data',
     ])
 
-  @test_utils.python2_only
   def test_upload_testcase_run(self):
     """Tests uploading of TestcaseRun."""
     testcase_run_0 = fuzzer_stats.TestcaseRun('fuzzer', 'job', 123,
@@ -71,14 +70,15 @@ class FuzzerStatsTest(unittest.TestCase):
         [testcase_run_0, testcase_run_1], filename='upload.json')
 
     self.mock.write_data.assert_called_once_with(
-        '{"stat": 1000, "timestamp": 1472846341.017923, "kind": "TestcaseRun", '
-        '"job": "job", "fuzzer": "fuzzer", "build_revision": 123}\n'
-        '{"stat": 2000, "timestamp": 1472846341.017923, "kind": "TestcaseRun", '
-        '"job": "job", "fuzzer": "fuzzer", "build_revision": 123}',
+        b'{"fuzzer": "fuzzer", "job": "job", "build_revision": 123, '
+        b'"timestamp": 1472846341.017923, "kind": "TestcaseRun", '
+        b'"stat": 1000}\n'
+        b'{"fuzzer": "fuzzer", "job": "job", "build_revision": 123, '
+        b'"timestamp": 1472846341.017923, "kind": "TestcaseRun", '
+        b'"stat": 2000}',
         'gs://test-bigquery-bucket/fuzzer/TestcaseRun/date/20160902/upload.json'
     )
 
-  @test_utils.python2_only
   def tests_upload_testcase_run_with_source(self):
     """Test uploading testcase run with source."""
     os.environ['STATS_SOURCE'] = 'custom_source'
@@ -86,13 +86,12 @@ class FuzzerStatsTest(unittest.TestCase):
                                             1472846341.017923)
     fuzzer_stats.upload_stats([testcase_run], filename='upload.json')
     self.mock.write_data.assert_called_once_with(
-        '{"kind": "TestcaseRun", "timestamp": 1472846341.017923, '
-        '"source": "custom_source", '
-        '"job": "job", "fuzzer": "fuzzer", "build_revision": 123}',
+        b'{"fuzzer": "fuzzer", "job": "job", "build_revision": 123, '
+        b'"timestamp": 1472846341.017923, "kind": "TestcaseRun", '
+        b'"source": "custom_source"}',
         'gs://test-bigquery-bucket/fuzzer/TestcaseRun/date/20160902/upload.json'
     )
 
-  @test_utils.python2_only
   def test_upload_testcase_run_child(self):
     """Tests uploading of Testcaserun for a child fuzzer."""
     testcase_run_0 = fuzzer_stats.TestcaseRun('parent_child', 'job', 123,
@@ -101,12 +100,12 @@ class FuzzerStatsTest(unittest.TestCase):
 
     fuzzer_stats.upload_stats([testcase_run_0], filename='upload.json')
     self.mock.write_data.assert_called_once_with(
-        '{"stat": 1000, "timestamp": 1472846341.017923, "kind": "TestcaseRun", '
-        '"job": "job", "fuzzer": "parent_child", "build_revision": 123}',
+        b'{"fuzzer": "parent_child", "job": "job", "build_revision": 123, '
+        b'"timestamp": 1472846341.017923, "kind": "TestcaseRun", '
+        b'"stat": 1000}',
         'gs://test-bigquery-bucket/parent/TestcaseRun/date/20160902/upload.json'
     )
 
-  @test_utils.python2_only
   def test_upload_testcase_run_2_days(self):
     """Tests uploading TestcaseRuns that span multiple days."""
     testcase_run_0 = fuzzer_stats.TestcaseRun('fuzzer', 'job', 123,
@@ -128,21 +127,21 @@ class FuzzerStatsTest(unittest.TestCase):
 
     expected_calls = [
         mock.call(
-            '{"stat": 1000, "timestamp": 1472846341.017923, "kind": '
-            '"TestcaseRun", "job": "job", "fuzzer": "fuzzer", '
-            '"build_revision": 123}\n'
-            '{"stat": 2000, "timestamp": 1472846345.017923, "kind": '
-            '"TestcaseRun", "job": "job", "fuzzer": "fuzzer", '
-            '"build_revision": 123}',
+            b'{"fuzzer": "fuzzer", "job": "job", "build_revision": 123, '
+            b'"timestamp": 1472846341.017923, "kind": "TestcaseRun", '
+            b'"stat": 1000}\n'
+            b'{"fuzzer": "fuzzer", "job": "job", "build_revision": 123, '
+            b'"timestamp": 1472846345.017923, "kind": "TestcaseRun", '
+            b'"stat": 2000}',
             'gs://test-bigquery-bucket/fuzzer/TestcaseRun/date/20160902/'
             'upload.json'),
         mock.call(
-            '{"stat": 3000, "timestamp": 1472932741.017923, "kind": '
-            '"TestcaseRun", "job": "job", "fuzzer": "fuzzer", '
-            '"build_revision": 123}\n'
-            '{"stat": 4000, "timestamp": 1472932745.017923, "kind": '
-            '"TestcaseRun", "job": "job", "fuzzer": "fuzzer", '
-            '"build_revision": 123}',
+            b'{"fuzzer": "fuzzer", "job": "job", "build_revision": 123, '
+            b'"timestamp": 1472932741.017923, "kind": "TestcaseRun", '
+            b'"stat": 3000}\n'
+            b'{"fuzzer": "fuzzer", "job": "job", "build_revision": 123, '
+            b'"timestamp": 1472932745.017923, "kind": "TestcaseRun", '
+            b'"stat": 4000}',
             'gs://test-bigquery-bucket/fuzzer/TestcaseRun/date/20160903/'
             'upload.json'),
     ]
@@ -201,7 +200,6 @@ class FuzzerStatsTest(unittest.TestCase):
     self.assertEqual(testcase_run.timestamp, 1472846341.017923)
     self.assertEqual(testcase_run['stat'], 1000)
 
-  @test_utils.python2_only
   def test_testcase_run_write_to_disk(self):
     """Tests TestcaseRun serialization."""
     testcase_run = fuzzer_stats.TestcaseRun('fuzzer', 'job', 123,
@@ -213,8 +211,8 @@ class FuzzerStatsTest(unittest.TestCase):
 
     handle = m()
     handle.write.assert_called_once_with(
-        '{"timestamp": 1472846341.017923, "job": "job", "fuzzer": "fuzzer", '
-        '"kind": "TestcaseRun", "build_revision": 123}')
+        '{"fuzzer": "fuzzer", "job": "job", "build_revision": 123, '
+        '"timestamp": 1472846341.017923, "kind": "TestcaseRun"}')
 
   def test_job_run_from_json(self):
     """Tests JobRun deserialization."""
@@ -243,7 +241,6 @@ class FuzzerStatsTest(unittest.TestCase):
     self.assertEqual(job_run['testcases_executed'], 9001)
     self.assertEqual(job_run['crashes'], [{'test': 'crash'}])
 
-  @test_utils.python2_only
   @mock.patch('metrics.fuzzer_stats.TestcaseRun.read_from_disk')
   def test_fuzz_task_upload_testcase_run_stats_builtin_fuzzer(
       self, mock_read_from_disk_new):
@@ -259,8 +256,8 @@ class FuzzerStatsTest(unittest.TestCase):
     self.assertEqual(1, self.mock.write_data.call_count)
 
     self.assertEqual(
-        '{"stat": 9001, "timestamp": 1472846341.017923, "kind": "TestcaseRun", '
-        '"job": "job", "fuzzer": "libFuzzer_fuzzer1", "build_revision": 123}',
+        b'{"fuzzer": "libFuzzer_fuzzer1", "job": "job", "build_revision": 123, '
+        b'"timestamp": 1472846341.017923, "kind": "TestcaseRun", "stat": 9001}',
         self.mock.write_data.call_args[0][0])
 
   @mock.patch('metrics.fuzzer_stats.TestcaseRun.read_from_disk')

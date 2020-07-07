@@ -28,7 +28,6 @@ import shutil
 import six
 import socket
 import subprocess
-import sys
 import tempfile
 import threading
 import unittest
@@ -127,21 +126,6 @@ def reproduce_tool(func):
       not environment.get_value('REPRODUCE_TOOL_TESTS', False),
       'Skipping reproduce tool tests.')(
           func)
-
-
-# TODO(mbarbella): Remove this and all users after fully migrating to Python 3.
-def python2_only(func):
-  """Tests which can only run on Python 2."""
-  return unittest.skipIf(sys.version_info.major != 2,
-                         'Skipping Python 2-only test.')(
-                             func)
-
-
-def python3_only(func):
-  """Tests which can only run on Python 3."""
-  return unittest.skipIf(sys.version_info.major != 3,
-                         'Skipping Python 3-only test.')(
-                             func)
 
 
 def android_device_required(func):
