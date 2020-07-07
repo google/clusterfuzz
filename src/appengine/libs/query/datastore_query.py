@@ -282,31 +282,18 @@ class Query(base.Query):
   def fetch_page(self, page, page_size, projection, more_limit):
     """Return the items, total_pages, total_items, and has_more."""
 
-    # Validation check to confirm positive page number.
-    if page > 0:
-      items, total_items, has_more = self.fetch(
-          offset=(page - 1) * page_size,
-          limit=page_size,
-          projection=projection,
-          more_limit=more_limit)
+    # Validation check to convert all negative page numbers to 1.
+    if page < 1:
+      page = 1
 
-      total_pages = total_items // page_size
-      if (total_items % page_size) > 0:
-        total_pages += 1
-
-      return items, total_pages, total_items, has_more
-
-    # Retriving deatils for page 1 to get other details correct.
     items, total_items, has_more = self.fetch(
-        offset=0, limit=page_size, projection=projection, more_limit=more_limit)
-
-    if total_items > 0:
-      has_more = True
+        offset=(page - 1) * page_size,
+        limit=page_size,
+        projection=projection,
+        more_limit=more_limit)
 
     total_pages = total_items // page_size
     if (total_items % page_size) > 0:
       total_pages += 1
 
-    # Non-positive page number gets no resulting items found.
-    items = []
     return items, total_pages, total_items, has_more
