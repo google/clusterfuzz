@@ -280,6 +280,16 @@
         return templates.join('\n');
       }
 
+      computeFilter(searchKey) {
+        if (!searchKey)
+          return null;
+
+        searchKey = searchKey.toLowerCase();
+        return (el) => (
+            el['name'].toLowerCase().indexOf(searchKey) != -1 ||
+            el['environment_string'].toLowerCase().indexOf(searchKey) != -1);
+      }
+
       submitForm(event) {
         var index = event.target.dataset.index;
         var form = this.shadowRoot.getElementById('form_' + index);
