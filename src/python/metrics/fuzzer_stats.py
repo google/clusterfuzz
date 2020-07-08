@@ -590,11 +590,15 @@ class FuzzerRunLogsField(BuiltinField):
     if group_by == QueryGroupBy.GROUP_BY_FUZZER:
       fuzzer = group_by_value
     elif group_by == QueryGroupBy.GROUP_BY_DAY:
-      date = group_by_value
-      if not fuzzer or not job:
-        # We can only use the date if both fuzzer and job exist (since they come
-        # before the date in the GCS path).
+      if not fuzzer:
         return None
+      if not job:
+        # If job isn't specified, we'll ignore the date and show the link to the
+        # GCS directory containing all jobs for a given fuzz target, because job
+        # name comes before the date in the GCS path.
+        date = None
+      else:
+        date = group_by_value
     elif group_by == QueryGroupBy.GROUP_BY_JOB:
       job = group_by_value
     else:
