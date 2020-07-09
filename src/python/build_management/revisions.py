@@ -278,6 +278,7 @@ def deps_to_revisions_dict(content):
   local_context = {}
   global_context = {
       'Var': lambda x: local_context.get('vars', {}).get(x),
+      'Str': str,
   }
   # pylint: disable=exec-used
   exec(content, global_context, local_context)
