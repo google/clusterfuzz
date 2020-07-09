@@ -21,7 +21,7 @@ from tests.test_libs import helpers as test_helpers
 
 
 class EnvironmentTest(unittest.TestCase):
-  """Tests for environment module."""
+  """Test for environment module."""
 
   def setUp(self):
     test_helpers.patch_environ(self)
