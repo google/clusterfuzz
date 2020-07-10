@@ -27,6 +27,7 @@ from config import local_config
 from crash_analysis import crash_analyzer
 from crash_analysis.stack_parsing import stack_parser
 from metrics import logs
+from platforms.android import settings as android_settings
 from system import environment
 
 C_CPP_EXTENSIONS = ['c', 'cc', 'cpp', 'cxx', 'h', 'hh', 'hpp', 'hxx']
@@ -634,6 +635,7 @@ class StackAnalyzerState(object):
 
     # Additional tracking for Android bugs.
     self.found_java_exception = False
+    self.android_kernel_repo = None
 
     # Additional tracking for bad casts.
     self.found_bad_cast_crash_end_marker = False
@@ -1224,6 +1226,7 @@ def get_crash_data(crash_data, symbolize_flag=True):
   is_python = '.py", line' in crash_stacktrace_without_inlines
   found_python_crash = False
   found_golang_crash = False
+  found_android_kernel_crash = False
   ubsan_disabled = 'halt_on_error=0' in environment.get_value(
       'UBSAN_OPTIONS', '')
 
@@ -1927,6 +1930,8 @@ def get_crash_data(crash_data, symbolize_flag=True):
     android_kernel_match = add_frame_on_match(
         ANDROID_KERNEL_STACK_FRAME_REGEX, line, state, group=3)
     if android_kernel_match:
+      found_android_kernel_crash = True
+
       # Update address from the first stack frame unless we already have
       # more detailed information from KASan.
       if state.frame_count == 1 and not is_kasan:
@@ -1955,6 +1960,13 @@ def get_crash_data(crash_data, symbolize_flag=True):
     if is_python and add_frame_on_match(
         PYTHON_STACK_FRAME_FUNCTION_REGEX, line, state, group=3):
       continue
+
+  # Only get repo.prop if we have an Android kernel or KASAN crash
+  if not state.android_kernel_repo and (found_android_kernel_crash or is_kasan):
+    repo_prop_path = android_settings.get_repo_prop_path()
+    if repo_prop_path and os.path.exists(repo_prop_path):
+      state.android_kernel_repo = utils.read_data_from_file(
+          repo_prop_path, eval_data=False).decode()
 
   # Detect cycles in stack overflow bugs and update crash state.
   update_crash_state_for_stack_overflow_if_needed(state)
