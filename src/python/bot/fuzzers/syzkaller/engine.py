@@ -23,6 +23,7 @@ from system import environment
 import os
 
 BIN_FOLDER_PATH = 'bin'
+REPRO_TIME = 120
 
 
 class SyzkallerError(Exception):
@@ -115,7 +116,8 @@ class SyzkallerEngine(engine.Engine):
 
   def reproduce(self, target_path, input_path, arguments, max_time):  # pylint: disable=unused-argument
     """Reproduce a crash given an input.
-       Example: ./syz-repro -config my.cfg crash-qemu-1-1455745459265726910
+       Example: ./syz-crush -config my.cfg -infinite=false -restart_time=20s
+        crash-qemu-1-1455745459265726910
 
     Args:
       target_path: Path to the target.
@@ -130,7 +132,8 @@ class SyzkallerEngine(engine.Engine):
     syzkaller_runner = runner.get_runner(
         os.path.join(binary_dir, constants.SYZ_REPRO))
     repro_args = runner.get_config()
-    repro_args.extend(input_path)
+    repro_args.extend(
+        ['-infinite=false', '-restart_time={}s'.format(REPRO_TIME), input_path])
     result = syzkaller_runner.repro(max_time, repro_args=repro_args)
 
     return engine.ReproduceResult(result.command, result.return_code,

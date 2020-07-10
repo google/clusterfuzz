@@ -15,6 +15,6 @@
 Should not have any dependancies.
 """
 
-SYZ_REPRO = 'syz-repro'
+SYZ_REPRO = 'syz-crush'
 
 CLEAN_EXIT_SECS = 10
