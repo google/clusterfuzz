@@ -27,6 +27,8 @@ from metrics import logs
 from system import environment
 from system import new_process
 
+REPRODUCE_REGEX = re.compile(r'reproduced (\d+) crashes')
+
 
 def get_work_dir():
   """Return work directory for Syzkaller."""
@@ -85,6 +87,14 @@ class AndroidSyzkallerRunner(new_process.UnicodeProcessRunner):
     _, path = tempfile.mkstemp(dir=fuzzer_utils.get_temp_dir())
     return path
 
+  def _crash_was_reproducible(self, output):
+    reproducible = False
+    if 'all done.' in output:
+      search = REPRODUCE_REGEX.search(output)
+      if search and search.group(1) and search.group(1) > '0':
+        reproducible = True
+    return int(reproducible)
+
   def repro(self, repro_timeout, repro_args):
     """This is where crash repro'ing is done.
     Args:
@@ -95,7 +105,13 @@ class AndroidSyzkallerRunner(new_process.UnicodeProcessRunner):
     logs.log('Running Syzkaller testcase.')
     additional_args = copy.copy(repro_args)
     result = self.run_and_wait(additional_args, timeout=repro_timeout)
-    logs.log('Syzkaller testcase stopped.')
+    result.return_code = self._crash_was_reproducible(result.output)
+
+    if result.return_code:
+      logs.log('Successfully reproduced crash.')
+    else:
+      logs.log('Failed to reproduce crash.')
+    logs.log('Syzkaller repro testcase stopped.')
     return engine.ReproduceResult(result.command, result.return_code,
                                   result.time_executed, result.output)
 
