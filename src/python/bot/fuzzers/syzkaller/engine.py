@@ -23,7 +23,7 @@ from system import environment
 import os
 
 BIN_FOLDER_PATH = 'bin'
-REPRO_TIME = 120
+REPRO_TIME = 70
 
 
 class SyzkallerError(Exception):
