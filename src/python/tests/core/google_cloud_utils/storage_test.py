@@ -215,7 +215,7 @@ class FileSystemProviderTests(fake_filesystem_unittest.TestCase):
   def test_read_data(self):
     """Test copy_blob."""
     self.fs.create_file('/local/test-bucket/objects/a', contents='a')
-    self.assertEqual('a', self.provider.read_data('gs://test-bucket/a'))
+    self.assertEqual(b'a', self.provider.read_data('gs://test-bucket/a'))
 
   def test_write_data(self):
     """Test copy_blob."""
