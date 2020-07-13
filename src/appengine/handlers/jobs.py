@@ -30,6 +30,7 @@ from libs import gcs
 from libs import handler
 from libs import helpers
 from libs.query import datastore_query
+from metrics import logs
 
 PAGE_SIZE = 10
 MORE_LIMIT = 50 - PAGE_SIZE  # exactly 5 pages
@@ -67,9 +68,23 @@ def get_results(this):
   items, total_pages, total_items, has_more = query.fetch_page(
       page=page, page_size=PAGE_SIZE, projection=None, more_limit=MORE_LIMIT)
 
+  dic_items = []
+  for item in items:
+    dic_item = item.to_dict()
+    dic_item['id'] = item.key.id()
+
+    # Adding all associated fuzzers with each job.
+    query = data_types.Fuzzer.query()
+    query = query.filter(data_types.Fuzzer.jobs == item.name)
+    fuzzers = ndb_utils.get_all_from_query(query)
+    dic_item['fuzzers'] = []
+    for fuzzer in fuzzers:
+      dic_item['fuzzers'].append(fuzzer.name)
+    dic_items.append(dic_item)
+
   result = {
       'hasMore': has_more,
-      'items': items,
+      'items': dic_items,
       'page': page,
       'pageSize': PAGE_SIZE,
       'totalItems': total_items,
@@ -90,6 +105,7 @@ class Handler(base_handler.Handler):
     templates = list(data_types.JobTemplate.query().order(
         data_types.JobTemplate.name))
     queues = get_queues()
+    fuzzers = data_handler.get_all_fuzzer_names_including_children()
 
     result, params = get_results(self)
     self.render(
@@ -98,6 +114,7 @@ class Handler(base_handler.Handler):
             'templates': templates,
             'fieldValues': {
                 'csrf_token': form.generate_csrf_token(),
+                'fuzzers': fuzzers,
                 'queues': queues,
                 'update_job_url': '/update-job',
                 'update_job_template_url': '/update-job-template',
@@ -122,6 +139,36 @@ class UpdateJob(base_handler.GcsUploadHandler):
       raise helpers.EarlyExitException(
           'Job name can only contain letters, numbers, dashes and underscores.',
           400)
+
+    query = data_types.Fuzzer.query()
+    query = query.filter(data_types.Fuzzer.jobs == name)
+    old_fuzzers = ndb_utils.get_all_from_query(query)
+    old_mappings = {}
+    for fuzzer in old_fuzzers:
+      old_mappings[fuzzer.name] = fuzzer
+
+    new_fuzzer_names = self.request.get('fuzzers', []).split(',')
+    for fuzzer_name in new_fuzzer_names:
+      fuzzer = old_mappings.pop(fuzzer_name, None)
+      if fuzzer:
+        continue
+
+      fuzzer = data_types.Fuzzer.query(
+          data_types.Fuzzer.name == fuzzer_name).get()
+
+      if not fuzzer:
+        logs.log_error('An unknown fuzzer %s was selected for job %s.' %
+                       (fuzzer_name, name))
+        continue
+
+      fuzzer.jobs.append(name)
+      fuzzer.put()
+      fuzzer_selection.update_mappings_for_fuzzer(fuzzer)
+
+    for fuzzer_name, fuzzer in old_mappings.items():
+      fuzzer.jobs.remove(name)
+      fuzzer.put()
+      fuzzer_selection.update_mappings_for_fuzzer(fuzzer)
 
     templates = self.request.get('templates', '').splitlines()
     for template in templates:
