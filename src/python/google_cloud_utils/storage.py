@@ -488,7 +488,7 @@ class FileSystemProvider(StorageProvider):
     if not os.path.exists(fs_path):
       return None
 
-    with open(fs_path) as f:
+    with open(fs_path, 'rb') as f:
       return f.read()
 
   def write_data(self, data, remote_path, metadata=None):
