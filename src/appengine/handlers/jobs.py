@@ -140,6 +140,7 @@ class UpdateJob(base_handler.GcsUploadHandler):
           'Job name can only contain letters, numbers, dashes and underscores.',
           400)
 
+    # Retriving old associated fuzzers.
     query = data_types.Fuzzer.query()
     query = query.filter(data_types.Fuzzer.jobs == name)
     old_fuzzers = ndb_utils.get_all_from_query(query)
@@ -147,6 +148,7 @@ class UpdateJob(base_handler.GcsUploadHandler):
     for fuzzer in old_fuzzers:
       old_mappings[fuzzer.name] = fuzzer
 
+    # Adding new associated fuzzers.
     new_fuzzer_names = self.request.get('fuzzers', []).split(',')
     for fuzzer_name in new_fuzzer_names:
       fuzzer = old_mappings.pop(fuzzer_name, None)
@@ -165,6 +167,7 @@ class UpdateJob(base_handler.GcsUploadHandler):
       fuzzer.put()
       fuzzer_selection.update_mappings_for_fuzzer(fuzzer)
 
+    # Removing job from now non-associated fuzzers.
     for fuzzer_name, fuzzer in old_mappings.items():
       fuzzer.jobs.remove(name)
       fuzzer.put()
