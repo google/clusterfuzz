@@ -62,6 +62,37 @@ def update_mappings_for_fuzzer(fuzzer, mappings=None):
   ndb_utils.delete_multi([m.key for m in list(old_mappings.values())])
 
 
+def update_mappings_for_job(job, mappings):
+  """Clear existing mappings for a job, and replace them."""
+
+  old_fuzzers = data_types.Fuzzer.query(data_types.Fuzzer.jobs == job.name)
+  old_mappings = {}
+  for fuzzer in old_fuzzers:
+    old_mappings[fuzzer.name] = fuzzer
+
+  for fuzzer_name in mappings:
+    fuzzer = old_mappings.pop(fuzzer_name, None)
+    if fuzzer:
+      continue
+
+    fuzzer = data_types.Fuzzer.query(
+        data_types.Fuzzer.name == fuzzer_name).get()
+
+    if not fuzzer:
+      logs.log_error('An unknown fuzzer %s was selected for job %s.' %
+                     (fuzzer_name, job.name))
+      continue
+
+    fuzzer.jobs.append(job.name)
+    fuzzer.put()
+    update_mappings_for_fuzzer(fuzzer)
+
+  for fuzzer in old_mappings.values():
+    fuzzer.jobs.remove(job.name)
+    fuzzer.put()
+    update_mappings_for_fuzzer(fuzzer)
+
+
 def update_platform_for_job(job_name, new_platform):
   """Update platform for all mappings for a particular job."""
   query = data_types.FuzzerJob.query()

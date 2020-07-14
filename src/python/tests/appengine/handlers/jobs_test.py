@@ -81,6 +81,21 @@ class JobsTest(unittest.TestCase):
     resp = self.app.post_json('/', {'page': 4})
     self.assertListEqual([], [item['id'] for item in resp.json['items']])
 
+  def test_fuzzers_result(self):
+    """Test fuzzers result obtained in post method."""
+    self.mock.has_access.return_value = True
+
+    job = self._create_job('test_job', 'APP_NAME = launcher.py\n')
+    fuzzer = data_types.Fuzzer()
+    fuzzer.name = 'fuzzer'
+    fuzzer.jobs = ['test_job']
+    fuzzer.put()
+
+    resp = self.app.post_json('/', {'page': 1})
+    self.assertListEqual([job.key.id()],
+                         [item['id'] for item in resp.json['items']])
+    self.assertIn('fuzzer', resp.json['items'][0]['fuzzers'])
+
 
 @test_utils.with_cloud_emulators('datastore')
 class JobsSearchTest(unittest.TestCase):

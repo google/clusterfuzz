@@ -30,7 +30,6 @@ from libs import gcs
 from libs import handler
 from libs import helpers
 from libs.query import datastore_query
-from metrics import logs
 
 PAGE_SIZE = 10
 MORE_LIMIT = 50 - PAGE_SIZE  # exactly 5 pages
@@ -54,6 +53,22 @@ def get_queues():
   return queues
 
 
+def _add_fuzzers_to_job_items(items):
+  """Return a dic of job items along with associated fuzzers."""
+  result_items = []
+  for item in items:
+    result_item = item.to_dict()
+    result_item['id'] = item.key.id()
+
+    # Adding all associated fuzzers with each job.
+    fuzzers = data_types.Fuzzer.query().filter(
+        data_types.Fuzzer.jobs == item.name)
+    result_item['fuzzers'] = [fuzzer.name for fuzzer in fuzzers]
+    result_items.append(result_item)
+
+  return result_items
+
+
 def get_results(this):
   """Get results for the jobs page."""
 
@@ -68,23 +83,11 @@ def get_results(this):
   items, total_pages, total_items, has_more = query.fetch_page(
       page=page, page_size=PAGE_SIZE, projection=None, more_limit=MORE_LIMIT)
 
-  dic_items = []
-  for item in items:
-    dic_item = item.to_dict()
-    dic_item['id'] = item.key.id()
-
-    # Adding all associated fuzzers with each job.
-    query = data_types.Fuzzer.query()
-    query = query.filter(data_types.Fuzzer.jobs == item.name)
-    fuzzers = ndb_utils.get_all_from_query(query)
-    dic_item['fuzzers'] = []
-    for fuzzer in fuzzers:
-      dic_item['fuzzers'].append(fuzzer.name)
-    dic_items.append(dic_item)
+  result_items = _add_fuzzers_to_job_items(items)
 
   result = {
       'hasMore': has_more,
-      'items': dic_items,
+      'items': result_items,
       'page': page,
       'pageSize': PAGE_SIZE,
       'totalItems': total_items,
@@ -140,38 +143,7 @@ class UpdateJob(base_handler.GcsUploadHandler):
           'Job name can only contain letters, numbers, dashes and underscores.',
           400)
 
-    # Retriving old associated fuzzers.
-    query = data_types.Fuzzer.query()
-    query = query.filter(data_types.Fuzzer.jobs == name)
-    old_fuzzers = ndb_utils.get_all_from_query(query)
-    old_mappings = {}
-    for fuzzer in old_fuzzers:
-      old_mappings[fuzzer.name] = fuzzer
-
-    # Adding new associated fuzzers.
-    new_fuzzer_names = self.request.get('fuzzers', []).split(',')
-    for fuzzer_name in new_fuzzer_names:
-      fuzzer = old_mappings.pop(fuzzer_name, None)
-      if fuzzer:
-        continue
-
-      fuzzer = data_types.Fuzzer.query(
-          data_types.Fuzzer.name == fuzzer_name).get()
-
-      if not fuzzer:
-        logs.log_error('An unknown fuzzer %s was selected for job %s.' %
-                       (fuzzer_name, name))
-        continue
-
-      fuzzer.jobs.append(name)
-      fuzzer.put()
-      fuzzer_selection.update_mappings_for_fuzzer(fuzzer)
-
-    # Removing job from now non-associated fuzzers.
-    for fuzzer_name, fuzzer in old_mappings.items():
-      fuzzer.jobs.remove(name)
-      fuzzer.put()
-      fuzzer_selection.update_mappings_for_fuzzer(fuzzer)
+    fuzzers = self.request.get('fuzzers', []).split(',')
 
     templates = self.request.get('templates', '').splitlines()
     for template in templates:
@@ -219,6 +191,8 @@ class UpdateJob(base_handler.GcsUploadHandler):
       job.environment_string += '\nCUSTOM_BINARY = True'
 
     job.put()
+
+    fuzzer_selection.update_mappings_for_job(job, fuzzers)
 
     if recreate_fuzzer_mappings:
       fuzzer_selection.update_platform_for_job(name, new_platform)

@@ -32,6 +32,12 @@ def _get_job_list_for_fuzzer(fuzzer):
   return [m.job for m in ndb_utils.get_all_from_query(query)]
 
 
+def _get_fuzzer_list_for_job(job):
+  """Helper function to return the mappings for a job as a list."""
+  fuzzers = data_types.Fuzzer.query().filter(data_types.Fuzzer.jobs == job.name)
+  return [fuzzer.name for fuzzer in fuzzers]
+
+
 @test_utils.with_cloud_emulators('datastore')
 class UpdateMappingsForFuzzerTest(unittest.TestCase):
   """Tests for the update_mappings_for_fuzzer function."""
@@ -123,6 +129,92 @@ class UpdateMappingsForFuzzerTest(unittest.TestCase):
     self.assertEqual([], mappings)
 
 
+@test_utils.with_cloud_emulators('datastore')
+class UpdateMappingsForJobTest(unittest.TestCase):
+  """Tests for the update_mappings_for_job function."""
+
+  def setUp(self):
+    self.fuzzer_1 = data_types.Fuzzer()
+    self.fuzzer_1.name = 'fuzzer_1'
+    self.fuzzer_1.put()
+
+    self.fuzzer_2 = data_types.Fuzzer()
+    self.fuzzer_2.name = 'fuzzer_2'
+    self.fuzzer_2.put()
+
+  def test_no_mappings(self):
+    """Ensure that we do nothing if a job has no mappings."""
+    job = data_types.Job()
+    job.name = 'no_mappings'
+    job.put()
+
+    fuzzer_selection.update_mappings_for_job(job, [])
+
+    self.assertEqual(_get_fuzzer_list_for_job(job), [])
+
+  def test_new_addition(self):
+    """Ensure that we add mappings for a new job."""
+    job = data_types.Job()
+    job.name = 'new_addition'
+    job.put()
+
+    fuzzer_selection.update_mappings_for_job(job, ['fuzzer_1', 'fuzzer_2'])
+
+    mappings = _get_fuzzer_list_for_job(job)
+    self.assertIn('fuzzer_1', mappings)
+    self.assertIn('fuzzer_2', mappings)
+
+  def test_mapping_added(self):
+    """Ensure that we properly add mappings for existing jobs."""
+    job = data_types.Job()
+    job.name = 'adding_fuzzers'
+    job.put()
+
+    fuzzer_selection.update_mappings_for_job(job, ['fuzzer_1'])
+
+    mappings = _get_fuzzer_list_for_job(job)
+    self.assertIn('fuzzer_1', mappings)
+    self.assertNotIn('fuzzer_2', mappings)
+
+    fuzzer_selection.update_mappings_for_job(job, ['fuzzer_1', 'fuzzer_2'])
+
+    mappings = _get_fuzzer_list_for_job(job)
+    self.assertIn('fuzzer_1', mappings)
+    self.assertIn('fuzzer_2', mappings)
+
+  def test_mapping_subsituted(self):
+    """Ensure that mappings are subsituted properly."""
+    job = data_types.Job()
+    job.name = 'substitute_fuzzers'
+    job.put()
+
+    fuzzer_selection.update_mappings_for_job(job, ['fuzzer_1'])
+
+    mappings = _get_fuzzer_list_for_job(job)
+    self.assertIn('fuzzer_1', mappings)
+    self.assertNotIn('fuzzer_2', mappings)
+
+    fuzzer_selection.update_mappings_for_job(job, ['fuzzer_2'])
+
+    mappings = _get_fuzzer_list_for_job(job)
+    self.assertNotIn('fuzzer_1', mappings)
+    self.assertIn('fuzzer_2', mappings)
+
+  def test_mapping_removed(self):
+    """Ensure that mappings are removed properly."""
+    job = data_types.Job()
+    job.name = 'remove_fuzzer'
+    job.put()
+
+    self.fuzzer_1.jobs.append('remove_fuzzer')
+    self.fuzzer_1.put()
+
+    fuzzer_selection.update_mappings_for_job(job, [])
+
+    mappings = _get_fuzzer_list_for_job(job)
+    self.assertEqual([], mappings)
+
+
 def _mock_random_weighted_choice(items, weight_attribute='weight'):  # pylint: disable=unused-argument
   """Mock random_weighted_choice."""
   # Always select the first element rather than a random one for the sake of
@@ -144,8 +236,8 @@ class GetFuzzTaskPayloadTest(unittest.TestCase):
 
   def test_no_mappings(self):
     """Ensure that we raise an exception if we don't find a task."""
-    self.assertEqual(
-        (None, None), fuzzer_selection.get_fuzz_task_payload(platform='linux'))
+    self.assertEqual((None, None),
+                     fuzzer_selection.get_fuzz_task_payload(platform='linux'))
 
   @parameterized.parameterized.expand([('False',), ('True',)])
   def test_platform_restriction(self, local_development):
@@ -160,8 +252,8 @@ class GetFuzzTaskPayloadTest(unittest.TestCase):
     data_types.FuzzerJobs(
         platform='windows', fuzzer_jobs=[windows_mapping]).put()
 
-    self.assertEqual(
-        (None, None), fuzzer_selection.get_fuzz_task_payload(platform='linux'))
+    self.assertEqual((None, None),
+                     fuzzer_selection.get_fuzz_task_payload(platform='linux'))
 
     linux_mapping = data_types.FuzzerJob()
     linux_mapping.fuzzer = 'right_fuzzer'
