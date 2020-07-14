@@ -53,20 +53,14 @@ def get_queues():
   return queues
 
 
-def _add_fuzzers_to_job_items(items):
-  """Return a dic of job items along with associated fuzzers."""
-  result_items = []
-  for item in items:
-    result_item = item.to_dict()
-    result_item['id'] = item.key.id()
-
-    # Adding all associated fuzzers with each job.
-    fuzzers = data_types.Fuzzer.query().filter(
-        data_types.Fuzzer.jobs == item.name)
-    result_item['fuzzers'] = [fuzzer.name for fuzzer in fuzzers]
-    result_items.append(result_item)
-
-  return result_items
+def _job_to_dict(job):
+  """Return a dict of job items along with associated fuzzers."""
+  result = job.to_dict()
+  result['id'] = job.key.id()
+  # Adding all associated fuzzers with each job.
+  fuzzers = data_types.Fuzzer.query().filter(data_types.Fuzzer.jobs == job.name)
+  result['fuzzers'] = [fuzzer.name for fuzzer in fuzzers]
+  return result
 
 
 def get_results(this):
@@ -83,11 +77,9 @@ def get_results(this):
   items, total_pages, total_items, has_more = query.fetch_page(
       page=page, page_size=PAGE_SIZE, projection=None, more_limit=MORE_LIMIT)
 
-  result_items = _add_fuzzers_to_job_items(items)
-
   result = {
       'hasMore': has_more,
-      'items': result_items,
+      'items': [_job_to_dict(item) for item in items],
       'page': page,
       'pageSize': PAGE_SIZE,
       'totalItems': total_items,
@@ -108,7 +100,6 @@ class Handler(base_handler.Handler):
     templates = list(data_types.JobTemplate.query().order(
         data_types.JobTemplate.name))
     queues = get_queues()
-    fuzzers = data_handler.get_all_fuzzer_names_including_children()
 
     result, params = get_results(self)
     self.render(
@@ -116,12 +107,18 @@ class Handler(base_handler.Handler):
             'result': result,
             'templates': templates,
             'fieldValues': {
-                'csrf_token': form.generate_csrf_token(),
-                'fuzzers': fuzzers,
-                'queues': queues,
-                'update_job_url': '/update-job',
-                'update_job_template_url': '/update-job-template',
-                'upload_info': gcs.prepare_blob_upload()._asdict(),
+                'csrf_token':
+                    form.generate_csrf_token(),
+                'fuzzers':
+                    data_handler.get_all_fuzzer_names_including_children(),
+                'queues':
+                    queues,
+                'update_job_url':
+                    '/update-job',
+                'update_job_template_url':
+                    '/update-job-template',
+                'upload_info':
+                    gcs.prepare_blob_upload()._asdict(),
             },
             'params': params,
         })
@@ -144,7 +141,6 @@ class UpdateJob(base_handler.GcsUploadHandler):
           400)
 
     fuzzers = self.request.get('fuzzers', []).split(',')
-
     templates = self.request.get('templates', '').splitlines()
     for template in templates:
       if not data_types.JobTemplate.query(
@@ -193,7 +189,6 @@ class UpdateJob(base_handler.GcsUploadHandler):
     job.put()
 
     fuzzer_selection.update_mappings_for_job(job, fuzzers)
-
     if recreate_fuzzer_mappings:
       fuzzer_selection.update_platform_for_job(name, new_platform)
 
