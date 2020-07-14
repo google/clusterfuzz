@@ -236,8 +236,8 @@ class GetFuzzTaskPayloadTest(unittest.TestCase):
 
   def test_no_mappings(self):
     """Ensure that we raise an exception if we don't find a task."""
-    self.assertEqual((None, None),
-                     fuzzer_selection.get_fuzz_task_payload(platform='linux'))
+    self.assertEqual(
+        (None, None), fuzzer_selection.get_fuzz_task_payload(platform='linux'))
 
   @parameterized.parameterized.expand([('False',), ('True',)])
   def test_platform_restriction(self, local_development):
@@ -252,8 +252,8 @@ class GetFuzzTaskPayloadTest(unittest.TestCase):
     data_types.FuzzerJobs(
         platform='windows', fuzzer_jobs=[windows_mapping]).put()
 
-    self.assertEqual((None, None),
-                     fuzzer_selection.get_fuzz_task_payload(platform='linux'))
+    self.assertEqual(
+        (None, None), fuzzer_selection.get_fuzz_task_payload(platform='linux'))
 
     linux_mapping = data_types.FuzzerJob()
     linux_mapping.fuzzer = 'right_fuzzer'
