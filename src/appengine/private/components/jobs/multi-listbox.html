@@ -35,8 +35,7 @@
                    slot="dropdown-content"
                    attr-for-selected="[[attrForSelected]]"
                    selected-values="{{value}}"
-                   selected-attribute="[[selectedAttribute]]"
-                   on-iron-activate="_clearError">
+                   selected-attribute="[[selectedAttribute]]">
                    <slot></slot>
     </paper-listbox>
   </template>
@@ -60,22 +59,7 @@
         selectedAttribute: {
           type: String,
         },
-        invalid: {
-          type: Boolean,
-          reflectToAttribute: true
-        }
       },
-
-      validate: function() {
-        const isValid = !this.required || !!(this.value && this.value.length > 0);
-        this.invalid = !isValid;
-        console.log('invalid', this.invalid);
-        return isValid;
-      },
-
-      _clearError: function() {
-        this.invalid = false;
-      }
     });
   </script>
 </dom-module>
