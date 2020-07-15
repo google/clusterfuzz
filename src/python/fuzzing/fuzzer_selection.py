@@ -68,6 +68,7 @@ def update_mappings_for_job(job, mappings):
   existing_fuzzers_query = data_types.Fuzzer.query(
       data_types.Fuzzer.jobs == job.name)
   existing_fuzzers = {fuzzer.name: fuzzer for fuzzer in existing_fuzzers_query}
+  modified_fuzzers = []
 
   for fuzzer_name in mappings:
     fuzzer = existing_fuzzers.pop(fuzzer_name, None)
@@ -82,15 +83,16 @@ def update_mappings_for_job(job, mappings):
       continue
 
     fuzzer.jobs.append(job.name)
-    fuzzer.put()
+    modified_fuzzers.append(fuzzer)
     update_mappings_for_fuzzer(fuzzer)
 
   # Removing the remaining values in exisiting_fuzzers as
   # they are no longer mapped.
   for fuzzer in existing_fuzzers.values():
     fuzzer.jobs.remove(job.name)
+    modified_fuzzers.append(fuzzer)
     update_mappings_for_fuzzer(fuzzer)
-  ndb.put_multi(existing_fuzzers.values())
+  ndb.put_multi(modified_fuzzers)
 
 
 def update_platform_for_job(job_name, new_platform):

@@ -182,7 +182,7 @@ class UpdateMappingsForJobTest(unittest.TestCase):
     self.assertIn('fuzzer_1', mappings)
     self.assertIn('fuzzer_2', mappings)
 
-  def test_mapping_subsituted(self):
+  def test_mapping_substituted(self):
     """Ensure that mappings are subsituted properly."""
     job = data_types.Job()
     job.name = 'substitute_fuzzers'

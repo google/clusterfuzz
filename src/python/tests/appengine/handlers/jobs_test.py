@@ -13,7 +13,6 @@
 # limitations under the License.
 """Tests for jobs."""
 import collections
-import mock
 import string
 import unittest
 import webapp2
@@ -24,6 +23,7 @@ from handlers import jobs
 from libs import form
 from tests.test_libs import helpers as test_helpers
 from tests.test_libs import test_utils
+from unittest import mock
 
 
 @test_utils.with_cloud_emulators('datastore')
