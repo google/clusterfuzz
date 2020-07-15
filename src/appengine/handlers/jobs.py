@@ -100,6 +100,9 @@ class Handler(base_handler.Handler):
     templates = list(data_types.JobTemplate.query().order(
         data_types.JobTemplate.name))
     queues = get_queues()
+    fuzzers = [
+        fuzzer.name for fuzzer in data_types.Fuzzer.query(projection=['name'])
+    ]
 
     result, params = get_results(self)
     self.render(
@@ -107,18 +110,12 @@ class Handler(base_handler.Handler):
             'result': result,
             'templates': templates,
             'fieldValues': {
-                'csrf_token':
-                    form.generate_csrf_token(),
-                'fuzzers':
-                    data_handler.get_all_fuzzer_names_including_children(),
-                'queues':
-                    queues,
-                'update_job_url':
-                    '/update-job',
-                'update_job_template_url':
-                    '/update-job-template',
-                'upload_info':
-                    gcs.prepare_blob_upload()._asdict(),
+                'csrf_token': form.generate_csrf_token(),
+                'fuzzers': fuzzers,
+                'queues': queues,
+                'update_job_url': '/update-job',
+                'update_job_template_url': '/update-job-template',
+                'upload_info': gcs.prepare_blob_upload()._asdict(),
             },
             'params': params,
         })
