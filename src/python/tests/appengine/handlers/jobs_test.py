@@ -20,8 +20,10 @@ import webtest
 
 from datastore import data_types
 from handlers import jobs
+from libs import form
 from tests.test_libs import helpers as test_helpers
 from tests.test_libs import test_utils
+from unittest import mock
 
 
 @test_utils.with_cloud_emulators('datastore')
@@ -80,6 +82,21 @@ class JobsTest(unittest.TestCase):
 
     resp = self.app.post_json('/', {'page': 4})
     self.assertListEqual([], [item['id'] for item in resp.json['items']])
+
+  def test_fuzzers_result(self):
+    """Test fuzzers result obtained in post method."""
+    self.mock.has_access.return_value = True
+
+    job = self._create_job('test_job', 'APP_NAME = launcher.py\n')
+    fuzzer = data_types.Fuzzer()
+    fuzzer.name = 'fuzzer'
+    fuzzer.jobs = ['test_job']
+    fuzzer.put()
+
+    resp = self.app.post_json('/', {'page': 1})
+    self.assertListEqual([job.key.id()],
+                         [item['id'] for item in resp.json['items']])
+    self.assertIn('fuzzer', resp.json['items'][0]['fuzzers'])
 
 
 @test_utils.with_cloud_emulators('datastore')
@@ -149,3 +166,54 @@ class JobsSearchTest(unittest.TestCase):
     self.assertListEqual(
         [job_asan.key.id(), job_ubsan.key.id()],
         [item['id'] for item in resp.json['items']])
+
+
+@test_utils.with_cloud_emulators('datastore')
+class JobsUpdateTest(unittest.TestCase):
+  """Job update tests."""
+
+  def setUp(self):
+    test_helpers.patch(self, [
+        'libs.auth.get_current_user',
+        'libs.access.has_access',
+        'libs.access.get_access',
+        'libs.gcs.prepare_blob_upload',
+        'fuzzing.fuzzer_selection.update_mappings_for_job',
+    ])
+    self.mock.get_current_user().email = 'test@user.com'
+    self.mock.prepare_blob_upload.return_value = (
+        collections.namedtuple('GcsUpload', [])())
+    self.app = webtest.TestApp(webapp2.WSGIApplication([('/', jobs.UpdateJob)]))
+
+  def _create_job(self,
+                  name,
+                  environment_string,
+                  description='',
+                  platform='LINUX'):
+    """Create a test job."""
+    job = data_types.Job()
+    job.name = name
+    if environment_string.strip():
+      job.environment_string = environment_string
+    job.platform = platform
+    job.descripton = description
+    job.put()
+
+    return job
+
+  def test_post(self):
+    """Test post method."""
+    self.mock.has_access.return_value = True
+    job = self._create_job('test_job', 'PROJECT_NAME = proj\n')
+    resp = self.app.post(
+        '/', {
+            'csrf_token': form.generate_csrf_token(),
+            'name': job.name,
+            'desciption': job.description,
+            'platform': job.platform,
+            'fuzzers': ['test_fuzzer']
+        },
+        expect_errors=True)
+    self.assertEqual(200, resp.status_int)
+    self.mock.update_mappings_for_job.assert_called_with(
+        mock.ANY, ['test_fuzzer'])

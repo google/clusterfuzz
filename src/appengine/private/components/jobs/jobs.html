@@ -17,6 +17,7 @@
 <link rel="import" href="../../bower_components/iron-form/iron-form.html">
 <link rel="import" href="../../bower_components/iron-icon/iron-icon.html">
 <link rel="import" href="../../bower_components/paper-button/paper-button.html">
+<link rel="import" href="../../bower_components/paper-checkbox/paper-checkbox.html">
 <link rel="import" href="../../bower_components/paper-dropdown-menu/paper-dropdown-menu.html">
 <link rel="import" href="../../bower_components/paper-input/paper-input.html">
 <link rel="import" href="../../bower_components/paper-input/paper-textarea.html">
@@ -25,6 +26,7 @@
 <link rel="import" href="../common/paginated-list/paginated-list.html">
 
 <link rel="import" href="delete-job-dialog.html">
+<link rel="import" href="multi-listbox.html">
 
 <dom-module id="jobs-page">
   <link rel="import" href="../../stylesheets/main.css" type="css">
@@ -55,6 +57,28 @@
         --iron-autogrow-textarea: {
           overflow: hidden;
         }
+      }
+
+      .inline {
+        display: flex;
+      }
+
+      .inline > * {
+        flex: 1;
+      }
+
+      .inline.narrow > * {
+        width: 350px;
+        margin: 0 0px;
+      }
+
+      .fuzzer-select {
+        padding: 0;
+      }
+
+      .job-checkbox {
+        padding: 0.5em;
+        display: block;
       }
 
       :root {
@@ -157,6 +181,41 @@
                   </paper-listbox>
                 </paper-dropdown-menu>
 
+                <div class="inline narrow">
+                  <paper-menu-button class="fuzzer-select dropdown-filter" no-animations="true" ignore-select="true" noink>
+                    <div slot="dropdown-trigger">
+                      <paper-input
+                          readonly
+                          label="Select/modify fuzzers"
+                          title="Set of fuzzers to run with this job.">
+                        <iron-icon icon="paper-dropdown-menu:arrow-drop-down" suffix slot="suffix"></iron-icon>
+                      </paper-input>
+                    </div>
+                    <multi-listbox
+                        name="fuzzers"
+                        slot="dropdown-content"
+                        multi
+                        attr-for-selected="val"
+                        selected-attribute="checked">
+                      <paper-input
+                          autofocus
+                          label="Search fuzzers"
+                          value="{{fuzzerKey}}"
+                          on-tap="stopEventPropagation"
+                          on-keydown="stopEventPropagation"
+                          on-keyup="stopEventPropagation" no-label-float>
+                        <iron-icon icon="icons:search" slot="prefix"></iron-icon>
+                        <iron-icon icon="icons:clear" slot="suffix" on-click="clearSearchInput"></iron-icon>
+                      </paper-input>
+                      <template is="dom-repeat" items="[[fieldValues.fuzzers]]" filter="{{onmatch(fuzzerKey)}}">
+                        <paper-checkbox class="job-checkbox" val="[[item]]">
+                          [[item]]
+                        </paper-checkbox>
+                      </template>
+                    </multi-listbox>
+                  </paper-menu-button>
+                </div>
+
                 <paper-input label="Description (optional)" name="description"></paper-input>
 
                 <paper-textarea label="Templates (optional, one per line)" name="templates" value=""></paper-textarea>
@@ -222,6 +281,42 @@
                         </template>
                       </paper-listbox>
                     </paper-dropdown-menu>
+
+                    <div class="inline narrow">
+                      <paper-menu-button class="fuzzer-select dropdown-filter" no-animations="true" ignore-select="true" noink>
+                        <div slot="dropdown-trigger">
+                          <paper-input
+                              readonly
+                              label="Select/modify fuzzers"
+                              title="Set of fuzzers to run with this job.">
+                            <iron-icon icon="paper-dropdown-menu:arrow-drop-down" suffix slot="suffix"></iron-icon>
+                          </paper-input>
+                        </div>
+                        <multi-listbox
+                            name="fuzzers"
+                            slot="dropdown-content"
+                            multi
+                            attr-for-selected="val"
+                            value="{{item.fuzzers}}"
+                            selected-attribute="checked">
+                          <paper-input
+                              autofocus
+                              label="Search fuzzers"
+                              value="{{fuzzerKey}}"
+                              on-tap="stopEventPropagation"
+                              on-keydown="stopEventPropagation"
+                              on-keyup="stopEventPropagation" no-label-float>
+                            <iron-icon icon="icons:search" slot="prefix"></iron-icon>
+                            <iron-icon icon="icons:clear" slot="suffix" on-click="clearSearchInput"></iron-icon>
+                          </paper-input>
+                          <template is="dom-repeat" items="[[fieldValues.fuzzers]]" filter="{{onmatch(fuzzerKey)}}">
+                            <paper-checkbox class="job-checkbox" val="[[item]]">
+                              [[item]]
+                            </paper-checkbox>
+                          </template>
+                        </multi-listbox>
+                      </paper-menu-button>
+                    </div>
         
                     <paper-input label="Description (optional)" name="description" value="[[item.description]]"></paper-input>
         
@@ -375,6 +470,33 @@
 
         this.$.paginatedList.save();
       }
+
+      clearSearchInput(ev) {
+        // Clear the search box.
+        let searchBox = ev.target.parentNode;
+        searchBox.value = '';
+
+        // Clear the selection in the list box;
+        let listBox = searchBox.parentNode;
+        listBox.selected = '';
+
+        // Restore focus to searchbox.
+        searchBox.$.input.focus();
+      }
+
+      onmatch(key) {
+        if (!key)
+          return null;
+
+        try {
+          key = key.toLowerCase();
+        } catch (err) {}
+
+        return function(item) {
+          if (item.toLowerCase().search(key) >= 0)
+            return true;
+        };
+      }
       
       searchInputTimeout(ev) {
         let self = this;
@@ -412,6 +534,10 @@
       
       shouldShowItems(result, items) {
         return items && items.length > 0;
+      }
+
+      stopEventPropagation(ev) {
+        ev.stopPropagation();
       }
     }
 

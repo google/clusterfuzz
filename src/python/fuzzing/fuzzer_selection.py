@@ -21,6 +21,7 @@ from base import utils
 from datastore import data_types
 from datastore import fuzz_target_utils
 from datastore import ndb_utils
+from google.cloud import ndb
 from metrics import logs
 from system import environment
 
@@ -60,6 +61,38 @@ def update_mappings_for_fuzzer(fuzzer, mappings=None):
 
   ndb_utils.put_multi(new_mappings)
   ndb_utils.delete_multi([m.key for m in list(old_mappings.values())])
+
+
+def update_mappings_for_job(job, mappings):
+  """Clear existing mappings for a job, and replace them."""
+  existing_fuzzers_query = data_types.Fuzzer.query(
+      data_types.Fuzzer.jobs == job.name)
+  existing_fuzzers = {fuzzer.name: fuzzer for fuzzer in existing_fuzzers_query}
+  modified_fuzzers = []
+
+  for fuzzer_name in mappings:
+    fuzzer = existing_fuzzers.pop(fuzzer_name, None)
+    if fuzzer:
+      continue
+
+    fuzzer = data_types.Fuzzer.query(
+        data_types.Fuzzer.name == fuzzer_name).get()
+    if not fuzzer:
+      logs.log_error('An unknown fuzzer %s was selected for job %s.' %
+                     (fuzzer_name, job.name))
+      continue
+
+    fuzzer.jobs.append(job.name)
+    modified_fuzzers.append(fuzzer)
+    update_mappings_for_fuzzer(fuzzer)
+
+  # Removing the remaining values in exisiting_fuzzers as
+  # they are no longer mapped.
+  for fuzzer in existing_fuzzers.values():
+    fuzzer.jobs.remove(job.name)
+    modified_fuzzers.append(fuzzer)
+    update_mappings_for_fuzzer(fuzzer)
+  ndb.put_multi(modified_fuzzers)
 
 
 def update_platform_for_job(job_name, new_platform):

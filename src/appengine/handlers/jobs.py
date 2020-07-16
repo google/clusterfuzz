@@ -53,6 +53,16 @@ def get_queues():
   return queues
 
 
+def _job_to_dict(job):
+  """Return a dict of job items along with associated fuzzers."""
+  result = job.to_dict()
+  result['id'] = job.key.id()
+  # Adding all associated fuzzers with each job.
+  fuzzers = data_types.Fuzzer.query().filter(data_types.Fuzzer.jobs == job.name)
+  result['fuzzers'] = [fuzzer.name for fuzzer in fuzzers]
+  return result
+
+
 def get_results(this):
   """Get results for the jobs page."""
 
@@ -69,7 +79,7 @@ def get_results(this):
 
   result = {
       'hasMore': has_more,
-      'items': items,
+      'items': [_job_to_dict(item) for item in items],
       'page': page,
       'pageSize': PAGE_SIZE,
       'totalItems': total_items,
@@ -90,6 +100,9 @@ class Handler(base_handler.Handler):
     templates = list(data_types.JobTemplate.query().order(
         data_types.JobTemplate.name))
     queues = get_queues()
+    fuzzers = [
+        fuzzer.name for fuzzer in data_types.Fuzzer.query(projection=['name'])
+    ]
 
     result, params = get_results(self)
     self.render(
@@ -98,6 +111,7 @@ class Handler(base_handler.Handler):
             'templates': templates,
             'fieldValues': {
                 'csrf_token': form.generate_csrf_token(),
+                'fuzzers': fuzzers,
                 'queues': queues,
                 'update_job_url': '/update-job',
                 'update_job_template_url': '/update-job-template',
@@ -123,6 +137,7 @@ class UpdateJob(base_handler.GcsUploadHandler):
           'Job name can only contain letters, numbers, dashes and underscores.',
           400)
 
+    fuzzers = self.request.get('fuzzers', []).split(',')
     templates = self.request.get('templates', '').splitlines()
     for template in templates:
       if not data_types.JobTemplate.query(
@@ -170,6 +185,7 @@ class UpdateJob(base_handler.GcsUploadHandler):
 
     job.put()
 
+    fuzzer_selection.update_mappings_for_job(job, fuzzers)
     if recreate_fuzzer_mappings:
       fuzzer_selection.update_platform_for_job(name, new_platform)
 
