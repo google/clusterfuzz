@@ -252,9 +252,21 @@ def _get_crash_occurrence_platforms_from_crash_parameters(
   platforms = set()
   for row in rows:
     for group in row['groups']:
-      platform = group['name'].split(':')[0].capitalize()
-      platforms.add(platform)
-  return list(platforms)
+      platform = group['name'].split(':')[0]
+      platforms.add(platform.lower())
+  return platforms
+
+
+def get_platforms_from_testcase_variants(testcase):
+  """Get platforms from crash stats based on crash parameters."""
+  variant_query = data_types.TestcaseVariant.query(
+      data_types.TestcaseVariant.testcase_id == testcase.key.id())
+  platforms = {
+      variant.platform
+      for variant in variant_query
+      if variant.is_similar and variant.platform
+  }
+  return platforms
 
 
 def get_crash_occurrence_platforms(testcase, lookbehind_days=1):
@@ -876,12 +888,13 @@ def update_os_labels(policy, testcase, issue):
     return
 
   platforms = get_crash_occurrence_platforms(testcase)
+  platforms = platforms.union(get_platforms_from_testcase_variants(testcase))
   logs.log(
       'Found %d platforms for the testcase %d.' % (len(platforms),
                                                    testcase.key.id()),
       platforms=platforms)
   for platform in platforms:
-    label = os_label.replace('%PLATFORM%', platform)
+    label = os_label.replace('%PLATFORM%', platform.capitalize())
     if not issue_tracker_utils.was_label_added(issue, label):
       issue.labels.add(label)
 

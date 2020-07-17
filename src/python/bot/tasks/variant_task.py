@@ -152,6 +152,7 @@ def execute_task(testcase_id, job_type):
     variant.crash_state = crash_state
     variant.security_flag = security_flag
     variant.is_similar = is_similar
+    variant.platform = environment.platform().lower()
     # Explicitly skipping crash stacktrace for now as it make entities larger
     # and we plan to use only crash paramaters in UI.
     variant.put()

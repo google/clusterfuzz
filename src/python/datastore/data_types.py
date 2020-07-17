@@ -1461,3 +1461,6 @@ class TestcaseVariant(Model):
   # Similar testcase reproducer key (optional). This is set in case we notice a
   # similar crash on another platform.
   reproducer_key = ndb.StringProperty()
+
+  # Platform (e.g. windows, linux, android).
+  platform = ndb.StringProperty()
