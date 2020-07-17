@@ -20,6 +20,7 @@ from base import utils
 from google_cloud_utils import storage
 from metrics import logs
 from platforms.android import fetch_artifact
+from platforms.android import kernel_utils
 from platforms.android import settings
 from system import archive
 from system import environment
@@ -50,8 +51,8 @@ def download_system_symbols_if_needed(symbols_directory, is_kernel=False):
   # Note: kasan and non-kasan kernel should have the same repo.prop for a given
   # build_id.
   if is_kernel:
-    build_id = settings.get_kernel_build_id()
-    target = settings.get_kernel_name()
+    _, build_id = kernel_utils.get_kernel_hash_and_build_id()
+    target = kernel_utils.get_kernel_name()
     if not build_id or not target:
       logs.log_error('Could not get kernel parameters, exiting.')
       return

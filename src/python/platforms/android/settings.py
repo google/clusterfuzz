@@ -15,14 +15,9 @@
 
 from builtins import str
 
-import os
 import re
 
 from . import adb
-from base import utils
-from metrics import logs
-from platforms.android import constants
-from platforms.android import symbols_downloader
 from system import environment
 
 BUILD_FINGERPRINT_REGEX = re.compile(
@@ -160,30 +155,8 @@ def get_security_patch_level():
   return adb.get_property('ro.build.version.security_patch')
 
 
-def get_kernel_build_id():
-  """Returns the build id of the kernel from the kernel version string."""
-  version_string = adb.run_shell_command('cat /proc/version').strip()
-  # Linux version 3.18.0-g(8de8e79)-ab(1234567) where 8de8e79 is the hash and
-  # 1234567 optional is the kernel build id.
-  match = re.match(r'Linux version .+-g([0-9a-f]+)[\s\-](ab([0-9a-f]+)\s)',
-                   version_string)
-  if match:
-    return match.group(3)
-
-  return None
-
-
-def get_kernel_name():
-  """Returns the kernel name for the device, since some kernels are shared."""
-  product_name = get_product_name()
-  build_product = get_build_product()
-
-  # Strip _kasan off of the end as we will add it later if needed.
-  utils.strip_from_right(product_name, '_kasan')
-
-  # Some devices have a different kernel name than product_name, if so use the
-  # kernel name.
-  return constants.PRODUCT_TO_KERNEL.get(build_product, product_name)
+def get_kernel_version_string():
+  return adb.run_shell_command('cat /proc/version').strip()
 
 
 def is_google_device():
@@ -230,23 +203,3 @@ def set_database_setting(database_path, table, key, value):
   sql_command_string = ('"UPDATE %s SET value=\'%s\' WHERE name=\'%s\'"') % (
       table, str(value), key)
   adb.run_shell_command(['sqlite3', database_path, sql_command_string])
-
-
-def get_repo_prop_path():
-  """Download repo.prop and return path of it on local machine."""
-  symbols_directory = os.path.join(
-      environment.get_value('SYMBOLS_DIR'), 'kernel')
-  build_id = get_kernel_build_id()
-  target = get_kernel_name()
-  if not build_id or not target:
-    logs.log_error('Could not get kernel parameters, exiting.')
-    return None
-
-  repro_filename = symbols_downloader.get_symbols_archive_filename(
-      build_id, target)
-
-  # Grab repo.prop, it is not on the device nor in the build_dir.
-  symbols_downloader.download_system_symbols_if_needed(
-      symbols_directory, is_kernel=True)
-  local_binary_path = utils.find_binary_path(symbols_directory, repro_filename)
-  return local_binary_path
