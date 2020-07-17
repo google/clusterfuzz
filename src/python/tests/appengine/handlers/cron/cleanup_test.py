@@ -887,6 +887,13 @@ class UpdateOsLabelsTest(unittest.TestCase):
         project_name='project')
     testcase.put()
 
+    testcase_variant = data_types.TestcaseVariant(
+        testcase_id=testcase.key.id(),
+        job_type='mac_job',
+        is_similar=True,
+        platform='mac')
+    testcase_variant.put()
+
     history = data_types.BuildCrashStatsJobHistory(end_time_in_hours=10000)
     history.put()
 
@@ -895,8 +902,6 @@ class UpdateOsLabelsTest(unittest.TestCase):
             'name': 'windows'
         }, {
             'name': 'linux'
-        }, {
-            'name': 'mac'
         }, {
             'name': 'android:test'
         }, {
