@@ -36,15 +36,15 @@ declare -a afl_sources=(
 )
 for source_file in "${afl_sources[@]}"
 do
-  curl -O "https://cs.chromium.org/codesearch/f/chromium/src/third_party/afl/src/$source_file"
+  curl -H "cookie:REDIRECT_STATUS=optout" -O "https://cs.chromium.org/codesearch/f/chromium/src/third_party/afl/src/$source_file"
 done
 make afl-fuzz afl-showmap
 
 # Build AFL runtime sources needed to link against the fuzz target.
 mkdir -p llvm_mode
-curl "https://cs.chromium.org/codesearch/f/chromium/src/third_party/afl/src/llvm_mode/afl-llvm-rt.o.c" > "llvm_mode/afl-llvm-rt.o.c"
+curl -H "cookie:REDIRECT_STATUS=optout" "https://cs.chromium.org/codesearch/f/chromium/src/third_party/afl/src/llvm_mode/afl-llvm-rt.o.c" > "llvm_mode/afl-llvm-rt.o.c"
 $CC -c llvm_mode/afl-llvm-rt.o.c -Wno-pointer-sign -O3
-curl -O "https://cs.chromium.org/codesearch/f/chromium/src/third_party/libFuzzer/src/afl/afl_driver.cpp"
+curl -H "cookie:REDIRECT_STATUS=optout" -O "https://cs.chromium.org/codesearch/f/chromium/src/third_party/libFuzzer/src/afl/afl_driver.cpp"
 $CXX -c afl_driver.cpp -fsanitize=address -O3
 ar r FuzzingEngine.a afl-llvm-rt.o.o afl_driver.o
 
