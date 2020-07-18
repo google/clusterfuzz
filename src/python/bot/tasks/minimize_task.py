@@ -286,7 +286,7 @@ class TestRunner(object):
 
     # For Android, we need to sync our local testcases directory with the one on
     # the device.
-    if environment.platform() == 'ANDROID':
+    if environment.is_android():
       android.device.push_testcases_to_device()
     elif environment.is_trusted_host():
       from bot.untrusted_runner import file_host

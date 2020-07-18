@@ -524,10 +524,12 @@ class GetStartAndEndRevisionTest(unittest.TestCase):
         'build_management.revisions.get_start_and_end_revision',
         'build_management.revisions.get_component_range_list',
         'bot.testcase_manager.get_command_line_for_application',
+        'system.environment.is_android',
     ])
 
   def test_normal(self):
     """Test when there's no end revision."""
+    self.mock.is_android.return_value = False
     self.mock.get_start_and_end_revision.return_value = (1, 100)
     start, end = impact_task.get_start_and_end_revision('123:456', 'job')
 
@@ -539,6 +541,7 @@ class GetStartAndEndRevisionTest(unittest.TestCase):
 
   def test_android(self):
     """Test android."""
+    self.mock.is_android.return_value = True
     self.mock.get_start_and_end_revision.side_effect = [(1, 100), (9, 90)]
     self.mock.get_component_range_list.return_value = [{
         'component': 'test'

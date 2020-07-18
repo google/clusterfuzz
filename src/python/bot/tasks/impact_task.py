@@ -92,7 +92,7 @@ def get_start_and_end_revision(regression_range, job_type):
       regression_range)
 
   # FIXME: Hack to use chromium revision for android builds.
-  if 'android' in job_type.lower():
+  if environment.is_android():
     return get_chromium_component_start_and_end_revision(
         start_revision, end_revision, job_type)
 

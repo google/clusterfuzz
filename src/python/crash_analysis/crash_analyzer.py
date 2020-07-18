@@ -161,7 +161,7 @@ def is_crash(return_code, console_output):
 def is_check_failure_crash(stacktrace):
   """Return true if it a CHECK failure crash."""
   # Android-specific exception patterns.
-  if environment.platform() == 'ANDROID':
+  if environment.is_android():
     if 'Device rebooted' in stacktrace:
       return True
     if 'JNI DETECTED ERROR IN APPLICATION:' in stacktrace:
@@ -199,7 +199,7 @@ def is_memory_tool_crash(stacktrace):
 
   # Android specific check.
   # FIXME: Share this regex with stack_analyzer.
-  if (environment.platform() == 'ANDROID' and
+  if (environment.is_android() and
       re.match(r'.*signal.*\(SIG.*fault addr ([^ ]*)', stacktrace, re.DOTALL)):
     return True
 

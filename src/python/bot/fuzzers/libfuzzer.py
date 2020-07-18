@@ -1320,7 +1320,7 @@ def get_runner(fuzzer_path, temp_dir=None, use_minijail=None, use_unshare=None):
 
   build_dir = environment.get_value('BUILD_DIR')
   dataflow_build_dir = environment.get_value('DATAFLOW_BUILD_DIR')
-  is_android = environment.platform() == 'ANDROID'
+  is_android = environment.is_android()
   is_fuchsia = environment.platform() == 'FUCHSIA'
 
   if not is_fuchsia:
@@ -1782,7 +1782,7 @@ def pick_strategies(strategy_pool,
 
   # FIXME: Disable for now to avoid severe battery drainage. Stabilize and
   # re-enable with a lower process count.
-  is_android = environment.platform() == 'ANDROID'
+  is_android = environment.is_android()
   # Fork mode is not supported on Fuchsia platform.
   is_fuchsia = environment.platform() == 'FUCHSIA'
   # Fork mode is disabled on ephemeral bots due to a bug on the platform.

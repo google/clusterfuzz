@@ -229,7 +229,7 @@ def setup_testcase(testcase, job_type, fuzzer_override=None):
 
   # For Android/Fuchsia, we need to sync our local testcases directory with the
   # one on the device.
-  if environment.platform() == 'ANDROID':
+  if environment.is_android():
     _copy_testcase_to_device_and_setup_environment(testcase, testcase_file_path)
 
   # Push testcases to worker.

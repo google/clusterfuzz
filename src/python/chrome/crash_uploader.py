@@ -400,12 +400,12 @@ def get_crash_info(output):
   """Parse crash output to get (local) minidump path and any other information
      useful for crash uploading, and store in a CrashReportInfo object."""
   crash_stacks_directory = environment.get_value('CRASH_STACKTRACES_DIR')
-  platform = environment.platform()
 
   output_lines = output.splitlines()
   num_lines = len(output_lines)
+  is_android = environment.is_android()
   for i, line in enumerate(output_lines):
-    if platform == 'ANDROID':
+    if is_android:
       # If we are on Android, the dump extraction is more complicated.
       # The location placed in the crash-stacktrace is of the dump itself but
       # in fact only the MIME of the dump exists, and will have a different
@@ -498,9 +498,8 @@ def get_crash_info_and_stacktrace(application_command_line, crash_stacktrace,
                                   gestures):
   """Return crash minidump location and updated crash stacktrace."""
   app_name_lower = environment.get_value('APP_NAME').lower()
-  platform = environment.platform()
   retry_limit = environment.get_value('FAIL_RETRIES')
-  using_android = platform == 'ANDROID'
+  using_android = environment.is_android()
   using_chrome = 'chrome' in app_name_lower or 'chromium' in app_name_lower
   warmup_timeout = environment.get_value('WARMUP_TIMEOUT', 90)
 

@@ -144,7 +144,8 @@ def run_process(cmdline,
   # This is used when running scripts on native linux OS and not on the device.
   # E.g. running a fuzzer to generate testcases or launcher script.
   plt = environment.platform()
-  if plt in ['ANDROID', 'FUCHSIA'] and (not testcase_run or launcher):
+  is_android = environment.is_android(plt)
+  if (is_android or plt == 'FUCHSIA') and (not testcase_run or launcher):
     plt = 'LINUX'
   elif plt == 'IOS' and (not testcase_run or launcher):
     plt = 'MAC'
@@ -165,8 +166,7 @@ def run_process(cmdline,
   process_poll_interval = environment.get_value('PROCESS_POLL_INTERVAL', 0.5)
   start_time = time.time()
   watch_for_process_exit = (
-      environment.get_value('WATCH_FOR_PROCESS_EXIT')
-      if plt == 'ANDROID' else True)
+      environment.get_value('WATCH_FOR_PROCESS_EXIT') if is_android else True)
   window_list = []
 
   # Get gesture start time from last element in gesture list.
@@ -177,7 +177,7 @@ def run_process(cmdline,
   else:
     gesture_start_time = timeout // 2
 
-  if plt == 'ANDROID':
+  if is_android:
     # Clear the log upfront.
     android.logger.clear_log()
 
@@ -221,7 +221,7 @@ def run_process(cmdline,
         windows.gestures.run_gestures(gestures, process_handle.pid,
                                       process_status, start_time, timeout,
                                       window_list)
-      elif plt == 'ANDROID':
+      elif is_android:
         android.gestures.run_gestures(gestures, start_time, timeout)
 
         # TODO(mbarbella): We add a fake window here to prevent gestures on
@@ -234,7 +234,7 @@ def run_process(cmdline,
     # Collect the process output.
     output = (
         android.logger.log_output()
-        if plt == 'ANDROID' else b'\n'.join(process_output.output))
+        if is_android else b'\n'.join(process_output.output))
     output = utils.decode_to_unicode(output)
     if crash_analyzer.is_memory_tool_crash(output):
       break
@@ -243,7 +243,7 @@ def run_process(cmdline,
     if watch_for_process_exit:
       # If |watch_for_process_exit| is set, then we already completed running
       # our app launch command. So, we can bail out.
-      if plt == 'ANDROID':
+      if is_android:
         break
 
       # On desktop, we bail out as soon as the process finishes.
@@ -253,7 +253,7 @@ def run_process(cmdline,
         break
 
   # Process output based on platform.
-  if plt == 'ANDROID':
+  if is_android:
     # Get current log output. If device is in reboot mode, logcat automatically
     # waits for device to be online.
     time.sleep(ANDROID_CRASH_LOGCAT_WAIT_TIME)
@@ -341,7 +341,7 @@ def run_process(cmdline,
     return_code = 1
 
   # If a crash is found, then we add the memory state as well.
-  if return_code and plt == 'ANDROID':
+  if return_code and is_android:
     ps_output = android.adb.get_ps_output()
     if ps_output:
       output += utils.get_line_seperator('Memory Statistics')
@@ -467,7 +467,7 @@ def terminate_root_and_child_processes(root_pid):
       # Process doesn't exist anymore.
       continue
 
-    if child.name == app_name:
+    if child.name() == app_name:
       # Send SIGTERM to the root APP_NAME process only, and none of its children
       # so that coverage data will be dumped properly (e.g. the browser process
       # of chrome).
@@ -525,7 +525,7 @@ def terminate_stale_application_instances():
     processes_to_kill += additional_process_to_kill.split(' ')
   processes_to_kill = [x for x in processes_to_kill if x]
 
-  if platform == 'ANDROID':
+  if environment.is_android(platform):
     # Cleanup any stale adb connections.
     device_serial = environment.get_value('ANDROID_SERIAL')
     adb_search_string = 'adb -s %s' % device_serial

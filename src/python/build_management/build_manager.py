@@ -676,7 +676,7 @@ class Build(BaseBuild):
         # Remove if set during previous iterations of regression testing.
         environment.remove_key('FONTCONFIG_SYSROOT')
 
-    if environment.platform() != 'ANDROID':
+    if not environment.is_android():
       return
 
     android.device.update_build(absolute_file_path, force_update=build_update)

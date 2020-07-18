@@ -163,7 +163,7 @@ def get_asan_options(redzone_size, malloc_context_size, quarantine_size_mb,
     asan_options['detect_leaks'] = 0
 
   # FIXME: Support container overflow on Android.
-  if bot_platform == 'ANDROID':
+  if is_android(bot_platform):
     asan_options['detect_container_overflow'] = 0
 
   # Enable stack use-after-return.
@@ -188,7 +188,7 @@ def get_asan_options(redzone_size, malloc_context_size, quarantine_size_mb,
   asan_options['symbolize'] = int(bot_platform == 'WINDOWS')
 
   # For Android, allow user defined segv handler to work.
-  if bot_platform == 'ANDROID':
+  if is_android(bot_platform):
     asan_options['allow_user_segv_handler'] = 1
 
   # Check if UBSAN is enabled as well for this ASAN build.
@@ -209,7 +209,7 @@ def get_asan_options(redzone_size, malloc_context_size, quarantine_size_mb,
 
 def get_cpu_arch():
   """Return cpu architecture."""
-  if platform() == 'ANDROID':
+  if is_android():
     # FIXME: Handle this import in a cleaner way.
     from platforms import android
     return android.settings.get_cpu_arch()
@@ -259,7 +259,7 @@ def get_instrumented_libraries_paths():
 
 def get_default_tool_path(tool_name):
   """Get the default tool for this platform (from scripts/ dir)."""
-  if platform().lower() == 'android':
+  if is_android():
     # For android devices, we do symbolization on the host machine, which is
     # linux. So, we use the linux version of llvm-symbolizer.
     platform_override = 'linux'
@@ -280,7 +280,7 @@ def get_environment_settings_as_string():
   environment_string = ''
 
   # Add Android specific variables.
-  if platform() == 'ANDROID':
+  if is_android():
     # FIXME: Handle this import in a cleaner way.
     from platforms import android
 
@@ -395,13 +395,13 @@ def get_resources_directory():
 
 def get_platform_resources_directory(platform_override=None):
   """Return the path to platform-specific resources directory."""
-  platform_dir = (platform_override or platform()).lower()
+  plt = platform_override or platform()
 
   # Android resources share the same android directory.
-  if platform_dir == 'android_kernel':
-    platform_dir = 'android'
+  if is_android(plt):
+    plt = 'ANDROID'
 
-  return os.path.join(get_resources_directory(), 'platform', platform_dir)
+  return os.path.join(get_resources_directory(), 'platform', plt.lower())
 
 
 def get_suppressions_directory():
@@ -464,7 +464,7 @@ def get_msan_options():
 def get_platform_id():
   """Return a platform id as a lowercase string."""
   bot_platform = platform()
-  if bot_platform == 'ANDROID':
+  if is_android(bot_platform):
     # FIXME: Handle this import in a cleaner way.
     from platforms import android
 
@@ -857,7 +857,7 @@ def reset_current_memory_tool_options(redzone_size=0,
   # For Android, we need to set shell property |asan.options|.
   # For engine-based uzzers, it is not needed as options variable is directly
   # passed to shell.
-  if bot_platform == 'ANDROID' and not is_engine_fuzzer_job():
+  if is_android(bot_platform) and not is_engine_fuzzer_job():
     android.sanitizer.set_options(tool_name, joined_tool_options)
 
 
@@ -1030,3 +1030,8 @@ def local_noop(func):
 def is_ephemeral():
   """Return whether or not we are an ephemeral bot."""
   return get_value('EPHEMERAL')
+
+
+def is_android(plt=None):
+  """Return true if we are on android platform."""
+  return 'ANDROID' in (plt or platform())
