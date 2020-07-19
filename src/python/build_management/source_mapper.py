@@ -225,7 +225,7 @@ def normalize_source_path(path):
   # out/<build_dir>/ at time of build generation (chromium only).
   path = utils.remove_prefix(path, '../../')
 
-  # Remove /proc/self/cwd prefix if exists.
+  # Remove /proc/self/cwd prefix added by Bazel.
   path = utils.remove_prefix(path, '/proc/self/cwd/')
 
   # Cross-platform way to determine path absoluteness.
