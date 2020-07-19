@@ -141,6 +141,9 @@ class NormalizeSourcePathTest(unittest.TestCase):
         source_mapper.normalize_source_path('heap/compact.cc'),
         'heap/compact.cc')
     self.assertEqual(
+        source_mapper.normalize_source_path('/proc/self/cwd/heap/compact.cc'),
+        'heap/compact.cc')
+    self.assertEqual(
         source_mapper.normalize_source_path(
             '../../third_party/WebKit/Source/platform/heap/Member.h'),
         'third_party/WebKit/Source/platform/heap/Member.h')

@@ -225,6 +225,9 @@ def normalize_source_path(path):
   # out/<build_dir>/ at time of build generation (chromium only).
   path = utils.remove_prefix(path, '../../')
 
+  # Remove /proc/self/cwd prefix if exists.
+  path = utils.remove_prefix(path, '/proc/self/cwd/')
+
   # Cross-platform way to determine path absoluteness.
   is_path_absolute = path.startswith('/') or DRIVE_LETTER_REGEX.match(path)
 
