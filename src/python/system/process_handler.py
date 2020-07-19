@@ -145,10 +145,9 @@ def run_process(cmdline,
   # E.g. running a fuzzer to generate testcases or launcher script.
   plt = environment.platform()
   is_android = environment.is_android(plt)
-  if (is_android or plt == 'FUCHSIA') and (not testcase_run or launcher):
+  runs_on_device = is_android or plt == 'FUCHSIA'
+  if runs_on_device and (not testcase_run or launcher):
     plt = 'LINUX'
-  elif plt == 'IOS' and (not testcase_run or launcher):
-    plt = 'MAC'
 
   # Lower down testcase timeout slightly to account for time for crash analysis.
   timeout -= CRASH_ANALYSIS_TIME

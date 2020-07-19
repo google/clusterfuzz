@@ -1962,7 +1962,7 @@ def get_crash_data(crash_data, symbolize_flag=True):
       continue
 
   # Only get repo.prop if we have an Android kernel or KASAN crash
-  if not state.android_kernel_repo and (found_android_kernel_crash or is_kasan):
+  if environment.is_android() and (found_android_kernel_crash or is_kasan):
     repo_prop_path = android_settings.get_repo_prop_path()
     if repo_prop_path and os.path.exists(repo_prop_path):
       state.android_kernel_repo = utils.read_data_from_file(
