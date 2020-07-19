@@ -254,7 +254,7 @@ def _get_crash_occurrence_platforms_from_crash_parameters(
     for group in row['groups']:
       platform = group['name'].split(':')[0]
       platforms.add(platform.lower())
-  return platforms
+  return list(platforms)
 
 
 def get_platforms_from_testcase_variants(testcase):
@@ -271,9 +271,10 @@ def get_platforms_from_testcase_variants(testcase):
 
 def get_crash_occurrence_platforms(testcase, lookbehind_days=1):
   """Get platforms from crash stats for a testcase."""
-  return _get_crash_occurrence_platforms_from_crash_parameters(
-      testcase.crash_type, testcase.crash_state, testcase.security_flag,
-      testcase.project_name, lookbehind_days)
+  return set(
+      _get_crash_occurrence_platforms_from_crash_parameters(
+          testcase.crash_type, testcase.crash_state, testcase.security_flag,
+          testcase.project_name, lookbehind_days))
 
 
 def get_top_crashes_for_all_projects_and_platforms():
