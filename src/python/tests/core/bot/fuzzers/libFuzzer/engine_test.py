@@ -207,10 +207,14 @@ class FuzzTest(fake_fs_unittest.TestCase):
   def test_fuzz(self):
     """Test fuzz."""
     engine_impl = engine.LibFuzzerEngine()
-    options = engine.LibFuzzerOptions(
-        '/corpus',
-        ['-arg=1', '-timeout=123', '-dict=blah.dict', '-max_len=9001'], [],
-        ['/corpus'], {}, False, False)
+    options = engine.LibFuzzerOptions('/corpus', [
+        '-arg=1',
+        '-timeout=123',
+        '-dict=blah.dict',
+        '-max_len=9001',
+        '-entropic=1',
+        '-use_value_profile=1',
+    ], [], ['/corpus'], {}, False, False)
 
     with open(os.path.join(TEST_DIR, 'crash.txt')) as f:
       fuzz_output = f.read()
@@ -268,6 +272,8 @@ class FuzzTest(fake_fs_unittest.TestCase):
             '-timeout=123',
             '-dict=blah.dict',
             '-max_len=9001',
+            '-entropic=1',
+            '-use_value_profile=1',
         ],
         artifact_prefix='/fake',
         extra_env={},
