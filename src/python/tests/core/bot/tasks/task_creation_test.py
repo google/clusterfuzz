@@ -83,7 +83,7 @@ class RequestBisectionTest(unittest.TestCase):
           'old_commit': 'old',
           'project_name': 'proj',
           'sanitizer': sanitizer,
-          'testcase_id': 1,
+          'testcase_id': '1',
           'issue_id': '1337',
           'type': bisect_type,
       }, message.attributes)

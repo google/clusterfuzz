@@ -308,7 +308,7 @@ def _make_bisection_request(pubsub_topic, testcase, target, bisect_type):
               'new_commit':
                   new_commit,
               'testcase_id':
-                  testcase.key.id(),
+                  str(testcase.key.id()),
               'issue_id':
                   testcase.bug_information,
               'crash_type':
