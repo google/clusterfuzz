@@ -380,7 +380,7 @@ def convert_dependency_url_to_local_path(url):
       local_path = '/' + file_path
 
       # Convert remote to local path for android.
-      if platform == 'ANDROID':
+      if environment.is_android():
         remote_testcases_directory = android.constants.DEVICE_TESTCASES_DIR
         local_testcases_directory = environment.get_value('FUZZ_INPUTS')
         local_path = local_path.replace(remote_testcases_directory,
@@ -888,7 +888,7 @@ def get_command_line_for_application(file_to_run='',
   extension_argument = environment.get_value('EXTENSION_ARG')
   input_directory = environment.get_value('INPUT_DIR')
   launcher = environment.get_value('LAUNCHER_PATH')
-  plt = environment.platform()
+  is_android = environment.is_android()
   root_directory = environment.get_value('ROOT_DIR')
   temp_directory = environment.get_value('BOT_TMPDIR')
   user_profile_argument = environment.get_value('USER_PROFILE_ARG')
@@ -942,7 +942,7 @@ def get_command_line_for_application(file_to_run='',
         launcher_with_interpreter = shell.get_execute_command(
             launcher, is_blackbox_fuzzer=True)
         command += launcher_with_interpreter + ' '
-    elif plt in ['ANDROID']:
+    elif is_android:
       # Android-specific testcase path fixup for fuzzers that don't rely on
       # launcher scripts.
       local_testcases_directory = environment.get_value('FUZZ_INPUTS')
@@ -1017,7 +1017,7 @@ def get_command_line_for_application(file_to_run='',
   command = command.replace('%TMP_DIR%', temp_directory)
   command = command.replace('%USER_PROFILE_DIR%', user_profile_directory)
 
-  if plt == 'ANDROID' and not launcher:
+  if is_android and not launcher:
     # Initial setup phase for command line.
     if write_command_line_file:
       android.adb.write_command_line_file(command, app_path)

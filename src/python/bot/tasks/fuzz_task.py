@@ -1515,7 +1515,7 @@ class FuzzingSession(object):
 
     # For Android, we need to sync our local testcases directory with the one on
     # the device.
-    if environment.platform() == 'ANDROID':
+    if environment.is_android():
       android.device.push_testcases_to_device()
 
     if environment.is_trusted_host():
@@ -1902,11 +1902,10 @@ class FuzzingSession(object):
 
     logs.log('Finished processing test cases.')
 
-    platform = environment.platform()
     platform_id = environment.get_platform_id()
 
     # For Android, bring back device to a good state before analyzing crashes.
-    if (platform in ('ANDROID', 'ANDROID-KERNEL')) and crashes:
+    if environment.is_android() and crashes:
       # Remove this variable so that application is fully shutdown before every
       # re-run of testcase. This is critical for reproducibility.
       environment.remove_key('CHILD_PROCESS_TERMINATION_PATTERN')

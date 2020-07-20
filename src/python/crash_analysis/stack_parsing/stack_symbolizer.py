@@ -538,9 +538,7 @@ class SymbolizationLoop(object):
 
 def filter_binary_path(binary_path):
   """Filters binary path to provide a local copy."""
-  platform = environment.platform()
-
-  if platform == 'ANDROID':
+  if environment.is_android():
     # Skip symbolization when running it on bad entries like [stack:XYZ].
     if not binary_path.startswith('/') or '(deleted)' in binary_path:
       return ''
@@ -573,7 +571,7 @@ def filter_binary_path(binary_path):
     logs.log_error('Unable to find library %s for symbolization.' % binary_path)
     return ''
 
-  if platform == 'CHROMEOS':
+  if environment.platform() == 'CHROMEOS':
     # FIXME: Add code to pull binaries from ChromeOS device.
     return binary_path
 
