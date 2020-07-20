@@ -56,7 +56,7 @@ def filter_log_output(output):
     # To parse frames like:
     # E/v8      (18890): Error installing extension 'v8/LoadTimes'.
     # {log_level}/{process_name}({process_id}): {message}
-    m_line = re.match(r'^[VDIWEFS]/([^(]+)\(\s*(\d+)\)[:](.*)$', line)
+    m_line = re.match(r'^[VDIWEFS]/(.+)\(\s*(\d+)\)[:](.*)$', line)
     if not m_line:
       logs.log_error('Failed to parse logcat line: %s' % line)
       continue
