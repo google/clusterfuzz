@@ -1513,12 +1513,22 @@ def copy_from_corpus(dest_corpus_path, src_corpus_path, num_testcases):
 def remove_fuzzing_arguments(arguments):
   """Remove arguments used during fuzzing."""
   for argument in [
-      constants.DICT_FLAG,  # User for fuzzing only.
-      constants.MAX_LEN_FLAG,  # This may shrink the testcases.
-      constants.RUNS_FLAG,  # Make sure we don't have any '-runs' argument.
+      # Remove as it overrides `-merge` argument.
       constants.FORK_FLAG,  # It overrides `-merge` argument.
-      constants.DATA_FLOW_TRACE_FLAG,  # Used for fuzzing only.
-      constants.FOCUS_FUNCTION_FLAG,  # Used for fuzzing only.
+
+      # Remove as it may shrink the testcase.
+      constants.MAX_LEN_FLAG,  # This may shrink the testcases.
+
+      # Remove any existing runs argument as we will create our own for
+      # reproduction.
+      constants.RUNS_FLAG,  # Make sure we don't have any '-runs' argument.
+
+      # Remove the following flags/arguments that are only used for fuzzing.
+      constants.DATA_FLOW_TRACE_FLAG,
+      constants.DICT_FLAG,
+      constants.ENTROPIC_ARGUMENT,
+      constants.FOCUS_FUNCTION_FLAG,
+      constants.VALUE_PROFILE_ARGUMENT,
   ]:
     fuzzer_utils.extract_argument(arguments, argument)
 

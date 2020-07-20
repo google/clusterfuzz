@@ -24,8 +24,6 @@ ARTIFACT_PREFIX_FLAG = '-artifact_prefix='
 
 DATA_FLOW_TRACE_FLAG = '-data_flow_trace='
 
-ENTROPIC_ARGUMENT = '-entropic=1'
-
 DICT_FLAG = '-dict='
 
 FOCUS_FUNCTION_FLAG = '-focus_function='
@@ -48,6 +46,8 @@ EXACT_ARTIFACT_PATH_FLAG = '-exact_artifact_path='
 ANALYZE_DICT_ARGUMENT = '-analyze_dict=1'
 
 CLEANSE_CRASH_ARGUMENT = '-cleanse_crash=1'
+
+ENTROPIC_ARGUMENT = '-entropic=1'
 
 MERGE_ARGUMENT = '-merge=1'
 
