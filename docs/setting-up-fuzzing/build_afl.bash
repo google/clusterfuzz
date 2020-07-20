@@ -23,10 +23,11 @@ CXX=${CXX:-clang++}
 mkdir -p afl-build
 cd afl-build
 
-# Download AFL from Chromium repo (official download doesn't offer SSL)
+# Download AFL from Github Google/AFL repo
 declare -a afl_sources=(
   "afl-fuzz.c"
   "afl-showmap.c"
+  "android-ashmem.h"
   "config.h"
   "types.h"
   "debug.h"
@@ -36,15 +37,15 @@ declare -a afl_sources=(
 )
 for source_file in "${afl_sources[@]}"
 do
-  curl -H "cookie:REDIRECT_STATUS=optout" -O "https://cs.chromium.org/codesearch/f/chromium/src/third_party/afl/src/$source_file"
+  curl -O "https://raw.githubusercontent.com/google/AFL/master/$source_file"
 done
 make afl-fuzz afl-showmap
 
 # Build AFL runtime sources needed to link against the fuzz target.
 mkdir -p llvm_mode
-curl -H "cookie:REDIRECT_STATUS=optout" "https://cs.chromium.org/codesearch/f/chromium/src/third_party/afl/src/llvm_mode/afl-llvm-rt.o.c" > "llvm_mode/afl-llvm-rt.o.c"
+curl "https://raw.githubusercontent.com/google/AFL/master/llvm_mode/afl-llvm-rt.o.c" > "llvm_mode/afl-llvm-rt.o.c"
 $CC -c llvm_mode/afl-llvm-rt.o.c -Wno-pointer-sign -O3
-curl -H "cookie:REDIRECT_STATUS=optout" -O "https://cs.chromium.org/codesearch/f/chromium/src/third_party/libFuzzer/src/afl/afl_driver.cpp"
+curl -O "https://raw.githubusercontent.com/llvm/llvm-project/master/compiler-rt/lib/fuzzer/afl/afl_driver.cpp"
 $CXX -c afl_driver.cpp -fsanitize=address -O3
 ar r FuzzingEngine.a afl-llvm-rt.o.o afl_driver.o
 
