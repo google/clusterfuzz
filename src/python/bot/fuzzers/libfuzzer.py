@@ -1510,7 +1510,7 @@ def copy_from_corpus(dest_corpus_path, src_corpus_path, num_testcases):
     shutil.copy(os.path.join(to_copy), os.path.join(dest_corpus_path, str(i)))
 
 
-def remove_fuzzing_arguments(arguments):
+def remove_fuzzing_arguments(arguments, is_merge=False):
   """Remove arguments used during fuzzing."""
   for argument in [
       # Remove as it overrides `-merge` argument.
@@ -1528,9 +1528,12 @@ def remove_fuzzing_arguments(arguments):
       constants.DICT_FLAG,
       constants.ENTROPIC_ARGUMENT,
       constants.FOCUS_FUNCTION_FLAG,
-      constants.VALUE_PROFILE_ARGUMENT,
   ]:
     fuzzer_utils.extract_argument(arguments, argument)
+
+  # Value profile is needed during corpus merge, so do not remove if set.
+  if not is_merge:
+    fuzzer_utils.extract_argument(arguments, constants.VALUE_PROFILE_ARGUMENT)
 
 
 def fix_timeout_argument_for_reproduction(arguments):
