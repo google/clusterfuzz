@@ -64,6 +64,7 @@ class FilterLogOutputTest(unittest.TestCase):
     return open(os.path.join(DATA_PATH, filename)).read()
 
   def test_sanitizer_and_check_stack(self):
+    """Tests sanitizer check failure log output."""
     unfiltered_log_output = self._get_log_content(
         'check_failure_and_asan_log.txt')
     expected_filtered_log_output = self._get_log_content(
@@ -72,3 +73,12 @@ class FilterLogOutputTest(unittest.TestCase):
 
     self.assertEqual(actual_filtered_log_output, expected_filtered_log_output)
     self.assertEqual(0, self.mock.log_error.call_count)
+
+  def test_process_with_type(self):
+    """Tests log output where process has a type specifier."""
+    self.assertEqual(
+        '--------- EXT4-fs (loop25) (781):\n'
+        'mounted filesystem without journal. Opts: (null)\n',
+        logger.filter_log_output(
+            'I/EXT4-fs (loop25)(  781): '
+            'mounted filesystem without journal. Opts: (null)'))
