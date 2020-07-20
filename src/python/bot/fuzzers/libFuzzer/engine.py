@@ -311,16 +311,19 @@ class LibFuzzerEngine(engine.Engine):
     })
 
     # Remove fuzzing arguments before merge and dictionary analysis step.
-    arguments = options.arguments[:]
-    libfuzzer.remove_fuzzing_arguments(arguments)
+    merge_arguments = options.arguments[:]
+    libfuzzer.remove_fuzzing_arguments(merge_arguments, is_merge=True)
     self._merge_new_units(target_path, options.corpus_dir, new_corpus_dir,
-                          options.fuzz_corpus_dirs, arguments, parsed_stats)
+                          options.fuzz_corpus_dirs, merge_arguments,
+                          parsed_stats)
 
     fuzz_logs = '\n'.join(log_lines)
     crashes = []
     if crash_testcase_file_path:
+      reproduce_arguments = options.arguments[:]
+      libfuzzer.remove_fuzzing_arguments(reproduce_arguments)
+
       # Use higher timeout for reproduction.
-      reproduce_arguments = arguments[:]
       libfuzzer.fix_timeout_argument_for_reproduction(reproduce_arguments)
 
       # Write the new testcase.
@@ -331,7 +334,7 @@ class LibFuzzerEngine(engine.Engine):
 
     libfuzzer.analyze_and_update_recommended_dictionary(
         runner, project_qualified_fuzzer_name, log_lines, options.corpus_dir,
-        arguments)
+        merge_arguments)
 
     return engine.FuzzResult(fuzz_logs, fuzz_result.command, crashes,
                              parsed_stats, fuzz_result.time_executed)

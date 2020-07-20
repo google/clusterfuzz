@@ -28,6 +28,7 @@ from base import utils
 from bot.fuzzers import engine
 from bot.fuzzers import engine_common
 from bot.fuzzers import options
+from bot.fuzzers.libFuzzer import constants
 from bot.tasks import setup
 from bot.tasks import task_creation
 from build_management import build_manager
@@ -86,13 +87,6 @@ MAX_LEN_FLAG = '-max_len=%d'
 
 # Flag to control memory leaks detection.
 DETECT_LEAKS_FLAG = '-detect_leaks=%d'
-
-# Flag to do value profile during merges.
-USE_VALUE_PROFILE_FLAG = '-use_value_profile=%d'
-
-# Corpus size limit to allow use of value profile. This prevents corpus from
-# growing unbounded.
-CORPUS_SIZE_LIMIT_FOR_VALUE_PROFILE = 50000
 
 # Longer than default sync timeout to fix broken (overly large) corpora without
 # losing coverage.
@@ -372,11 +366,7 @@ class Runner(object):
     arguments.append(RSS_LIMIT_MB_FLAG % rss_limit)
     arguments.append(MAX_LEN_FLAG % max_len)
     arguments.append(DETECT_LEAKS_FLAG % detect_leaks)
-
-    corpus_size = shell.get_directory_file_count(
-        self.context.initial_corpus_path)
-    use_value_profile = int(corpus_size <= CORPUS_SIZE_LIMIT_FOR_VALUE_PROFILE)
-    arguments.append(USE_VALUE_PROFILE_FLAG % use_value_profile)
+    arguments.append(constants.VALUE_PROFILE_ARGUMENT)
 
     return arguments
 
