@@ -285,7 +285,8 @@ def _make_bisection_request(pubsub_topic, testcase, target, bisect_type):
   else:
     raise ValueError('Invalid bisection type: ' + bisect_type)
 
-  if not old_commit or not new_commit:
+  if not new_commit:
+    # old_commit can be empty (i.e. '0' case), but new_commit should never be.
     return
 
   reproducer = blobs.read_key(testcase.minimized_keys or testcase.fuzzed_keys)
