@@ -34,7 +34,7 @@ python butler.py run_server
 ```
 
 It may take a few seconds to start. Once you see an output line like
-`INFO <timestamp> admin_server.py:<num>] Starting admin server`, you can see the web interface by navigating to [http://localhost:9000](http://localhost:9000).
+`[INFO] Listening at: http://0.0.0.0:9000`, you can see the web interface by navigating to [http://localhost:9000](http://localhost:9000).
 
 **Note:** The local instance may use ports [other than 9000](https://github.com/google/clusterfuzz/blob/master/src/local/butler/constants.py),
 such as 9008, for things like uploading files. Your local
