@@ -24,3 +24,6 @@ WebTest = "==2.0.23"
 nodeenv = "==1.0.0"
 yapf = "==0.22.0"
 Fabric = "==1.14.1"
+
+[requires]
+python_version = "3.7"
