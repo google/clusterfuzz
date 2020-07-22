@@ -210,9 +210,6 @@ def _save_fixed_range(testcase_id, min_revision, max_revision,
       testcase, max_revision, message='fixed in range r%s' % testcase.fixed)
   _write_to_bigquery(testcase, min_revision, max_revision)
 
-  # If there is a fine grained bisection service available, request it.
-  task_creation.request_bisection(testcase)
-
   _store_testcase_for_regression_testing(testcase, testcase_file_path)
 
 
@@ -467,3 +464,9 @@ def execute_task(testcase_id, job_type):
     error_message = 'Unable to recover from bad build'
     data_handler.update_testcase_comment(testcase, data_types.TaskState.ERROR,
                                          error_message)
+
+  # If there is a fine grained bisection service available, request it. Both
+  # regression and fixed ranges are requested once. Regression is also requested
+  # here as the bisection service may require details that are not yet available
+  # (e.g. issue ID) at the time regress_task completes.
+  task_creation.request_bisection(testcase)

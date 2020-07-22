@@ -88,6 +88,10 @@ class RequestBisectionTest(unittest.TestCase):
           'type': bisect_type,
       }, message.attributes)
 
+    testcase = self.testcase.key.get()
+    self.assertTrue(testcase.get_metadata('requested_regressed_bisect'))
+    self.assertTrue(testcase.get_metadata('requested_fixed_bisect'))
+
   def test_request_bisection_asan(self):
     """Basic regressed test (asan)."""
     self.testcase.job_type = 'libfuzzer_asan_proj'
@@ -136,5 +140,13 @@ class RequestBisectionTest(unittest.TestCase):
     self.testcase.job_type = 'libfuzzer_asan_proj'
     self.testcase.regression = 'NA'
     self.testcase.fixed = 'NA'
+    task_creation.request_bisection(self.testcase)
+    self.assertEqual(0, self.mock.publish.call_count)
+
+  def test_request_bisection_once_only(self):
+    """Test request bisection for testcases isn't repeated if already
+    requested."""
+    self.testcase.set_metadata('requested_regressed_bisect', True)
+    self.testcase.set_metadata('requested_fixed_bisect', True)
     task_creation.request_bisection(self.testcase)
     self.assertEqual(0, self.mock.publish.call_count)
