@@ -54,6 +54,13 @@ COMPILED_CRASH_STATE_REGEXES = [
     re.compile(r, flags=re.IGNORECASE) for r in CRASH_STATE_REGEXES
 ]
 
+# [<ffffff900808f5ac>] dump_backtrace+0x0/0x34c
+# http://go/pakernel/msm-google/+/40e9b2ff3a280a8775cfcd5841e530ce78f94355/
+# arch/arm64/kernel/traps.c#96;msm-google/arch/arm64/kernel/traps.c
+KERNEL_LINK_REGEX = re.compile(
+    r'(.+)(http:\/\/go\/pakernel\/[^;]+);([^;]+);(.*)')
+KERNEL_LINK_FORMAT = r'%s<a href="%s">%s</a>%s'
+
 
 def _parse_suspected_cls(predator_result):
   """Parse raw suspected_cls into dict."""
@@ -152,7 +159,17 @@ def highlight_common_stack_frames(crash_stacktrace):
   return '\n'.join(highlighted_crash_stacktrace_lines)
 
 
-def filter_stacktrace(crash_stacktrace, crash_type, revisions_dict):
+def _linkify_android_kernel_stack_frame_if_needed(line):
+  """Linkify links to android kernel source."""
+  match = KERNEL_LINK_REGEX.match(line)
+  if match:
+    return KERNEL_LINK_FORMAT % (match.group(1), match.group(2), match.group(3),
+                                 match.group(4))
+
+  return line
+
+
+def filter_stacktrace(crash_stacktrace, crash_type, revisions_dict, platform):
   """Clean up and format a stack trace for display."""
   if not crash_stacktrace:
     return ''
@@ -162,6 +179,9 @@ def filter_stacktrace(crash_stacktrace, crash_type, revisions_dict):
     # Html escape line content to prevent XSS.
     line = html.escape(line, quote=True)
     line = source_mapper.linkify_stack_frame(line, revisions_dict)
+
+    if 'android' in platform:
+      line = _linkify_android_kernel_stack_frame_if_needed(line)
 
     filtered_crash_lines.append(line)
 
@@ -381,7 +401,7 @@ def get_testcase_detail(testcase):
       crash_revision, testcase.job_type)
   crash_stacktrace = data_handler.get_stacktrace(testcase)
   crash_stacktrace = filter_stacktrace(crash_stacktrace, testcase.crash_type,
-                                       crash_revisions_dict)
+                                       crash_revisions_dict, testcase.platform)
   crash_stacktrace = convert_to_lines(crash_stacktrace, crash_state_lines,
                                       crash_type)
 
@@ -392,7 +412,7 @@ def get_testcase_detail(testcase):
       testcase, stack_attribute='last_tested_crash_stacktrace')
   last_tested_crash_stacktrace = filter_stacktrace(
       last_tested_crash_stacktrace, testcase.crash_type,
-      last_tested_crash_revisions_dict)
+      last_tested_crash_revisions_dict, testcase.platform)
   last_tested_crash_stacktrace = convert_to_lines(last_tested_crash_stacktrace,
                                                   crash_state_lines, crash_type)
 

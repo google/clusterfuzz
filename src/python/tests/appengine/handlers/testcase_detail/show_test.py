@@ -207,7 +207,7 @@ class FilterStacktraceTest(unittest.TestCase):
     """Ensure that we escape untrusted stacktrace."""
     stack = 'aaaa\n<script>alert("XSS")</script>\ncccc'
     expected = 'aaaa\n&lt;script&gt;alert(&quot;XSS&quot;)&lt;/script&gt;\ncccc'
-    self.assertEqual(show.filter_stacktrace(stack, 'type', {}), expected)
+    self.assertEqual(show.filter_stacktrace(stack, 'type', {}, ''), expected)
 
   def test_asan_chromium(self):
     """Ensure it linkifies asan trace for chromium."""
@@ -231,7 +231,7 @@ class FilterStacktraceTest(unittest.TestCase):
                 '</a>\n'
                 'random')
     self.assertEqual(
-        show.filter_stacktrace(stack, 'type', revisions_dict), expected)
+        show.filter_stacktrace(stack, 'type', revisions_dict, ''), expected)
 
   def test_asan_oss_fuzz(self):
     """Ensure it linkifies asan trace for oss-fuzz."""
@@ -257,7 +257,7 @@ class FilterStacktraceTest(unittest.TestCase):
                 '</a>\n'
                 'random')
     self.assertEqual(
-        show.filter_stacktrace(stack, 'type', revisions_dict), expected)
+        show.filter_stacktrace(stack, 'type', revisions_dict, ''), expected)
 
   def test_asan_v8(self):
     """Ensure it linkifies v8 win trace for chromium."""
@@ -277,7 +277,7 @@ class FilterStacktraceTest(unittest.TestCase):
                 'random')
 
     self.assertEqual(
-        show.filter_stacktrace(stack, 'type', revisions_dict), expected)
+        show.filter_stacktrace(stack, 'type', revisions_dict, ''), expected)
 
   def test_no_linkify(self):
     """Ensure that we don't linkify a non-stack frame line."""
@@ -303,7 +303,20 @@ class FilterStacktraceTest(unittest.TestCase):
     ])
 
     self.assertEqual(
-        show.filter_stacktrace(stack, 'type', revisions_dict), expected)
+        show.filter_stacktrace(stack, 'type', revisions_dict, ''), expected)
+
+  def test_linkify_if_needed(self):
+    """Ensure that we don't escape prelinked kernel links."""
+    stack = ('[<ffffff90082bf4bc>] SyS_fchownat+0xdc/0x168 http://go/pakernel/'
+             'msm-google/+/40e9b2ff3a280a8775cfcd5841e530ce78f94355/fs/open.c'
+             '#622;msm-google/fs/open.c;')
+    expected_stack = ('[&lt;ffffff90082bf4bc&gt;] SyS_fchownat+0xdc/0x168 '
+                      '<a href="http://go/pakernel/'
+                      'msm-google/+/'
+                      '40e9b2ff3a280a8775cfcd5841e530ce78f94355/fs/open.c#622">'
+                      'msm-google/fs/open.c</a>')
+    self.assertEqual(
+        show.filter_stacktrace(stack, 'type', {}, 'android'), expected_stack)
 
 
 @test_utils.with_cloud_emulators('datastore')

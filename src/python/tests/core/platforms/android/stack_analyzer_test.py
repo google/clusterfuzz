@@ -96,15 +96,15 @@ class AndroidStackAnalyzerTest(unittest.TestCase):
     self._real_read_data_from_file = utils.read_data_from_file
     test_helpers.patch(self, [
         'platforms.android.fetch_artifact.get',
-        'platforms.android.settings.get_kernel_build_id',
-        'platforms.android.settings.get_kernel_name',
+        'platforms.android.kernel_utils.get_kernel_hash_and_build_id',
+        'platforms.android.kernel_utils.get_kernel_name',
         'platforms.android.settings.get_product_brand',
         'google_cloud_utils.storage.get_file_from_cache_if_exists',
         'google_cloud_utils.storage.store_file_in_cache',
         'base.utils.write_data_to_file', 'base.utils.read_data_from_file'
     ])
     self.mock.get.side_effect = _mock_fetch_artifact_get
-    self.mock.get_kernel_build_id.return_value = '12345'
+    self.mock.get_kernel_hash_and_build_id.return_value = '40e9b2ff3a2', '12345'
     self.mock.get_kernel_name.return_value = 'device_kernel'
     self.mock.get_product_brand.return_value = 'google'
     self.mock.get_file_from_cache_if_exists.return_value = False
@@ -113,5 +113,8 @@ class AndroidStackAnalyzerTest(unittest.TestCase):
     self.mock.read_data_from_file.side_effect = self._mock_read_data_from_file
 
     data = self._read_test_data('kasan_syzkaller_android.txt')
+    expected_stack = self._read_test_data(
+        'kasan_syzkaller_android_linkified.txt')
     actual_state = stack_analyzer.get_crash_data(data)
-    self.assertEqual(actual_state.android_kernel_repo, KERNEL_REPRO)
+
+    self.assertEqual(actual_state.crash_stacktrace, expected_stack)

@@ -27,7 +27,7 @@ from config import local_config
 from crash_analysis import crash_analyzer
 from crash_analysis.stack_parsing import stack_parser
 from metrics import logs
-from platforms.android import settings as android_settings
+from platforms.android import kernel_utils as android_kernel
 from system import environment
 
 C_CPP_EXTENSIONS = ['c', 'cc', 'cpp', 'cxx', 'h', 'hh', 'hpp', 'hxx']
@@ -635,7 +635,6 @@ class StackAnalyzerState(object):
 
     # Additional tracking for Android bugs.
     self.found_java_exception = False
-    self.android_kernel_repo = None
 
     # Additional tracking for bad casts.
     self.found_bad_cast_crash_end_marker = False
@@ -919,7 +918,6 @@ def add_frame_on_match(compiled_regex,
       frame = structure_match.group(1)
       break
 
-  # Demangle the frame if needed.
   if demangle and environment.is_posix():
     pipe = subprocess.Popen(
         ['c++filt', '-n', frame], stdin=subprocess.PIPE, stdout=subprocess.PIPE)
@@ -1963,10 +1961,17 @@ def get_crash_data(crash_data, symbolize_flag=True):
 
   # Only get repo.prop if we have an Android kernel or KASAN crash
   if environment.is_android() and (found_android_kernel_crash or is_kasan):
-    repo_prop_path = android_settings.get_repo_prop_path()
-    if repo_prop_path and os.path.exists(repo_prop_path):
-      state.android_kernel_repo = utils.read_data_from_file(
-          repo_prop_path, eval_data=False).decode()
+    android_kernel_prefix, android_kernel_hash = \
+       android_kernel.get_kernel_prefix_and_full_hash()
+
+    # Linkify only if we are Android kernel.
+    if android_kernel_prefix and android_kernel_hash:
+      temp_crash_stacktrace = ''
+      for line in state.crash_stacktrace.splitlines():
+        temp_crash_stacktrace += android_kernel.get_kernel_stack_frame_link(
+            line, android_kernel_prefix, android_kernel_hash) + '\n'
+
+      state.crash_stacktrace = temp_crash_stacktrace
 
   # Detect cycles in stack overflow bugs and update crash state.
   update_crash_state_for_stack_overflow_if_needed(state)
