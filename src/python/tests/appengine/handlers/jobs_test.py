@@ -13,9 +13,9 @@
 # limitations under the License.
 """Tests for jobs."""
 import collections
+import flask
 import string
 import unittest
-import webapp2
 import webtest
 
 from datastore import data_types
@@ -39,8 +39,9 @@ class JobsTest(unittest.TestCase):
     ])
     self.mock.prepare_blob_upload.return_value = (
         collections.namedtuple('GcsUpload', [])())
-    self.app = webtest.TestApp(
-        webapp2.WSGIApplication([('/', jobs.JsonHandler)]))
+    flaskapp = flask.Flask('testflask')
+    flaskapp.add_url_rule('/', view_func=jobs.JsonHandler.as_view('/'))
+    self.app = webtest.TestApp(flaskapp)
 
   def _create_job(self,
                   name,
@@ -112,8 +113,9 @@ class JobsSearchTest(unittest.TestCase):
     ])
     self.mock.prepare_blob_upload.return_value = (
         collections.namedtuple('GcsUpload', [])())
-    self.app = webtest.TestApp(
-        webapp2.WSGIApplication([('/', jobs.JsonHandler)]))
+    flaskapp = flask.Flask('testflask')
+    flaskapp.add_url_rule('/', view_func=jobs.JsonHandler.as_view('/'))
+    self.app = webtest.TestApp(flaskapp)
 
   def _create_job(self,
                   name,
@@ -183,7 +185,9 @@ class JobsUpdateTest(unittest.TestCase):
     self.mock.get_current_user().email = 'test@user.com'
     self.mock.prepare_blob_upload.return_value = (
         collections.namedtuple('GcsUpload', [])())
-    self.app = webtest.TestApp(webapp2.WSGIApplication([('/', jobs.UpdateJob)]))
+    flaskapp = flask.Flask('testflask')
+    flaskapp.add_url_rule('/', view_func=jobs.UpdateJob.as_view('/'))
+    self.app = webtest.TestApp(flaskapp)
 
   def _create_job(self,
                   name,

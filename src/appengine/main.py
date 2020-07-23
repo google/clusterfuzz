@@ -40,5 +40,9 @@ try:
 except ImportError:
   pass
 
+from werkzeug.middleware.dispatcher import DispatcherMiddleware
 import server
-app = server.app
+import server_flask
+app = DispatcherMiddleware(server.app, {
+    '/flask': server_flask.app,
+})

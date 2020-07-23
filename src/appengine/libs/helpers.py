@@ -164,6 +164,15 @@ def get_integer_key(request):
     raise EarlyExitException('Invalid key format.', 400)
 
 
+def get_integer_key_flask(request):
+  """Convenience function for getting an integer datastore key ID."""
+  key = request.form.get('key')
+  try:
+    return int(key)
+  except (ValueError, KeyError):
+    raise EarlyExitException('Invalid key format.', 400)
+
+
 def log(message, operation_type):
   """Logs operation being carried by current logged-in user."""
   logging.info('ClusterFuzz: %s (%s): %s.', operation_type, get_user_email(),

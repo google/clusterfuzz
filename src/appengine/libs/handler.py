@@ -422,3 +422,109 @@ def require_csrf_token(func):
     return func(self, *args, **kwargs)
 
   return wrapper
+
+
+def extend_request_flask(req, params):
+  """Extends a request."""
+
+  def _iterparams():
+    for k, v in six.iteritems(params):
+      yield k, v
+
+  req.iterparams = _iterparams
+
+
+def extend_json_request_flask(req):
+  """Extends a request to support JSON."""
+  try:
+    params = json.loads(req.data)
+    req.args = params
+  except ValueError:
+    raise helpers.EarlyExitException(
+        'Parsing the JSON request body failed: %s' % req.body, 400)
+
+  extend_request_flask(req, req.args)
+
+
+def post_flask(request_content_type, response_content_type):
+  """Wrap a POST handler, parse request, and set response's content type."""
+
+  def decorator(func):
+    """Decorator."""
+
+    @functools.wraps(func)
+    def wrapper(self):
+      """Wrapper."""
+      if response_content_type == JSON:
+        self.response.headers['Content-Type'] = 'application/json'
+      elif response_content_type == TEXT:
+        self.response.headers['Content-Type'] = 'text/plain'
+      elif response_content_type == HTML:
+        # Don't enforce content security policies in local development mode.
+        if not environment.is_running_on_app_engine_development():
+          self.response.headers['Content-Security-Policy'] = csp.get_default()
+
+      if request_content_type == JSON:
+        extend_json_request_flask(self.request)
+      else:
+        extend_request_flask(self.request, self.request.args)
+
+      return func(self)
+
+    return wrapper
+
+  return decorator
+
+
+def get_flask(response_content_type):
+  """Wrap a GET handler and set response's content type."""
+
+  def decorator(func):
+    """Decorator."""
+
+    @functools.wraps(func)
+    def wrapper(self, *args, **kwargs):
+      """Wrapper."""
+      if response_content_type == JSON:
+        self.response.headers['Content-Type'] = 'application/json'
+      elif response_content_type == TEXT:
+        self.response.headers['Content-Type'] = 'text/plain'
+      elif response_content_type == HTML:
+        # Don't enforce content security policies in local development mode.
+        if not environment.is_running_on_app_engine_development():
+          self.response.headers['Content-Security-Policy'] = csp.get_default()
+
+      extend_request_flask(self.request, self.request.args)
+
+      return func(self, *args, **kwargs)
+
+    return wrapper
+
+  return decorator
+
+
+def require_csrf_token_flask(func):
+  """Wrap a handler to require a valid CSRF token."""
+
+  def wrapper(self, *args, **kwargs):
+    """Check to see if this handler has a valid CSRF token provided to it."""
+    token_value = self.request.form.get('csrf_token')
+    user = auth.get_current_user()
+    if not user:
+      raise helpers.AccessDeniedException('Not logged in.')
+
+    query = data_types.CSRFToken.query(
+        data_types.CSRFToken.value == token_value,
+        data_types.CSRFToken.user_email == user.email)
+    token = query.get()
+    if not token:
+      raise helpers.AccessDeniedException('Invalid CSRF token.')
+
+    # Make sure that the token is not expired.
+    elif token.expiration_time < datetime.datetime.utcnow():
+      token.key.delete()
+      raise helpers.AccessDeniedException('Expired CSRF token.')
+
+    return func(self, *args, **kwargs)
+
+  return wrapper

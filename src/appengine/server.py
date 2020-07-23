@@ -34,7 +34,6 @@ from handlers import gcs_redirector
 from handlers import help_redirector
 from handlers import home
 from handlers import issue_redirector
-from handlers import jobs
 from handlers import login
 from handlers import report_csp_failure
 from handlers import revisions_info
@@ -186,13 +185,8 @@ _ROUTES = [
     ('/fuzzer-stats/.*', fuzzer_stats.Handler),
     ('/gcs-redirect', gcs_redirector.Handler),
     ('/issue/([0-9]+)', issue_redirector.Handler),
-    ('/jobs', jobs.Handler),
-    ('/jobs/delete-job', jobs.DeleteJobHandler),
-    ('/jobs/load', jobs.JsonHandler),
     ('/login', login.Handler),
     ('/logout', login.LogoutHandler),
-    ('/update-job', jobs.UpdateJob),
-    ('/update-job-template', jobs.UpdateJobTemplate),
     ('/performance-report/(.+)/(.+)/(.+)', show_performance_report.Handler),
     ('/report-csp-failure', report_csp_failure.ReportCspFailureHandler),
     ('/reproduce-tool/get-config', get_config.Handler),

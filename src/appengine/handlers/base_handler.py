@@ -36,6 +36,10 @@ from base import utils
 from config import db_config
 from config import local_config
 from datastore import ndb_init
+from flask import redirect as flaskredirect
+from flask import request as flaskrequest
+from flask import Response as flaskResponse
+from flask.views import MethodView
 from google_cloud_utils import storage
 from libs import auth
 from libs import form
@@ -291,6 +295,163 @@ class GcsUploadHandler(Handler):
       return self.upload
 
     upload_key = self.request.get('upload_key')
+    if not upload_key:
+      return None
+
+    blob_info = storage.GcsBlobInfo.from_key(upload_key)
+    if not blob_info:
+      raise helpers.EarlyExitException('Failed to upload.', 500)
+
+    self.upload = blob_info
+    return self.upload
+
+
+class FlaskHandler(MethodView):
+  """A superclass for all handlers. It contains many convenient methods."""
+
+  def is_cron(self):
+    """Return true if the request is from a cron job."""
+    return bool(self.request.headers.get('X-Appengine-Cron'))
+
+  def render_forbidden(self, message):
+    """Write HTML response for 403."""
+    login_url = make_login_url(dest_url=self.request.url)
+    user_email = helpers.get_user_email()
+    if not user_email:
+      return self.redirect(login_url)
+
+    contact_string = db_config.get_value('contact_string')
+    template_values = {
+        'message': message,
+        'user_email': helpers.get_user_email(),
+        'login_url': login_url,
+        'switch_account_url': login_url,
+        'logout_url': make_logout_url(dest_url=self.request.url),
+        'contact_string': contact_string,
+    }
+    return self.render('error-403.html', template_values, 403)
+
+  def _add_security_response_headers(self):
+    """Add security-related headers to response."""
+    self.response.headers['Strict-Transport-Security'] = (
+        'max-age=2592000; includeSubdomains')
+    self.response.headers['X-Content-Type-Options'] = 'nosniff'
+    self.response.headers['X-Frame-Options'] = 'deny'
+
+  def render(self, path, values=None, status=200):
+    """Write HTML response."""
+    if values is None:
+      values = {}
+
+    values['menu_items'] = _MENU_ITEMS
+    values['is_oss_fuzz'] = utils.is_oss_fuzz()
+    values['is_development'] = (
+        environment.is_running_on_app_engine_development())
+    values['is_logged_in'] = bool(helpers.get_user_email())
+
+    # Only track analytics for non-admin users.
+    values['ga_tracking_id'] = (
+        local_config.GAEConfig().get('ga_tracking_id')
+        if not auth.is_current_user_admin() else None)
+
+    if values['is_logged_in']:
+      values['switch_account_url'] = make_login_url(self.request.url)
+      values['logout_url'] = make_logout_url(dest_url=self.request.url)
+
+    template = _JINJA_ENVIRONMENT.get_template(path)
+
+    self._add_security_response_headers()
+    self.response.headers['Content-Type'] = 'text/html'
+    self.response.data = template.render(values)
+    self.response.status_code = status
+    return self.response
+
+  def before_render_json(self, values, status):
+    """A hook for modifying values before render_json."""
+
+  def render_json(self, values, status=200):
+    """Write JSON response."""
+    self._add_security_response_headers()
+    self.response.headers['Content-Type'] = 'application/json'
+    self.before_render_json(values, status)
+    self.response.data = json.dumps(values, cls=JsonEncoder)
+    self.response.status_code = status
+    return self.response
+
+  def handle_exception(self, exception):
+    """Catch exception and format it properly."""
+    try:
+      status = 500
+      values = {
+          'message': str(exception),
+          'email': helpers.get_user_email(),
+          'traceDump': traceback.format_exc(),
+          'status': status,
+          'type': exception.__class__.__name__
+      }
+      if isinstance(exception, helpers.EarlyExitException):
+        status = exception.status
+        values = exception.to_dict()
+
+      # 4XX is not our fault. Therefore, we hide the trace dump and log on
+      # the INFO level.
+      if 400 <= status <= 499:
+        logging.info(json.dumps(values, cls=JsonEncoder))
+        del values['traceDump']
+      else:  # Other error codes should be logged with the EXCEPTION level.
+        logging.exception(exception)
+
+      if helpers.should_render_json(
+          self.request.headers.get('accept', ''),
+          self.response.headers.get('Content-Type')):
+        return self.render_json(values, status)
+      if status in (403, 401):
+        return self.render_forbidden(str(exception))
+      return self.render('error.html', values, status)
+    except Exception:
+      self.handle_exception_exception()
+
+  def handle_exception_exception(self):
+    """Catch exception in handle_exception and format it properly."""
+    exception = sys.exc_info()[1]
+    values = {'message': str(exception), 'traceDump': traceback.format_exc()}
+    logging.exception(exception)
+    if helpers.should_render_json(
+        self.request.headers.get('accept', ''),
+        self.response.headers.get('Content-Type')):
+      return self.render_json(values, 500)
+    return self.render('error.html', values, 500)
+
+  def redirect(self, url, **kwargs):  # pylint: disable=arguments-differ
+    """Check vaid url and redirect to it, if valid."""
+    url = str(url)
+    check_redirect_url(url)
+    return flaskredirect(url, **kwargs)
+
+  def dispatch_request(self, *args, **kwargs):
+    """Dispatch a request and postprocess."""
+    self.request = flaskrequest
+    self.response = flaskResponse()
+    try:
+      return super(FlaskHandler, self).dispatch_request(*args, **kwargs)
+    except Exception as exception:
+      return self.handle_exception(exception)
+
+
+class FlaskGcsUploadHandler(FlaskHandler):
+  """A Flask handler which uploads files to GCS."""
+
+  def dispatch_request(self, *args, **kwargs):
+    """Dispatch a request and postprocess."""
+    self.upload = None
+    return super(FlaskGcsUploadHandler, self).dispatch_request(*args, **kwargs)
+
+  def get_upload(self):
+    """Get uploads."""
+    if self.upload:
+      return self.upload
+
+    upload_key = self.request.form.get('upload_key')
     if not upload_key:
       return None
 
