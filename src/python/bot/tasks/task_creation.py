@@ -273,6 +273,9 @@ def request_bisection(testcase):
   if not target:
     return
 
+  # Avoid stale updates.
+  testcase = data_handler.get_testcase_by_id(testcase.key.id())
+
   # Only make 1 request of each type per testcase.
   if (not testcase.get_metadata('requested_regressed_bisect') and
       _make_bisection_request(pubsub_topic, testcase, target, 'regressed')):
