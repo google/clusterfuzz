@@ -70,8 +70,8 @@ export FIREBASE_API_KEY=<your api key>
 Follow [these instructions](https://developers.google.com/identity/protocols/OAuth2InstalledApp#creatingcred)
 to create OAuth credentials for our project setup script. Choose
 `OAuth client ID` credential type. When prompted for an application type, choose
-`Other`. You may also need to fill in the application name on "OAuth consent
-screen" tab, enter any name of your choice, e.g. `MyClusterFuzz`.
+`Desktop app`. You may also need to fill in the application name on "OAuth
+consent screen" tab, enter any name of your choice, e.g. `MyClusterFuzz`.
 
 Download these credentials as JSON and place it somewhere safe. Export the path
 for later use:
