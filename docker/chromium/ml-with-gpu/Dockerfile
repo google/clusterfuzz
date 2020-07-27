@@ -21,27 +21,27 @@ WORKDIR /data
 # clusterfuzz/configs/gce/linux-init-internal-ml-with-gpu.yaml.
 # cuDNN packages installed later in this script must match the CUDA version too.
 
-# From https://developer.nvidia.com/cuda-downloads?target_os=Linux&target_arch=x86_64&target_distro=Ubuntu&target_version=1604&target_type=deblocal
-RUN wget https://developer.nvidia.com/compute/cuda/9.0/Prod/local_installers/cuda-repo-ubuntu1604-9-0-local_9.0.176-1_amd64-deb -O cuda.deb && \
-    dpkg -i cuda.deb && \
-    apt-key add /var/cuda-repo-9-0-local/7fa2af80.pub && \
-    apt-get update && \
-    apt-get install -y cuda
+# The dependencies installation commands below follow
+# https://www.tensorflow.org/install/gpu#ubuntu_1604_cuda_101.
 
-# From (requires registration) https://docs.nvidia.com/deeplearning/sdk/cudnn-install/#installlinux-deb
-RUN wget https://storage.googleapis.com/clusterfuzz-data/cudnn/7.1.4_cuda9.0/libcudnn7_7.1.4.18-1%2Bcuda9.0_amd64.deb && \
-    wget https://storage.googleapis.com/clusterfuzz-data/cudnn/7.1.4_cuda9.0/libcudnn7-dev_7.1.4.18-1%2Bcuda9.0_amd64.deb && \
-    wget https://storage.googleapis.com/clusterfuzz-data/cudnn/7.1.4_cuda9.0/libcudnn7-doc_7.1.4.18-1%2Bcuda9.0_amd64.deb && \
-    dpkg -i libcudnn7_*.deb && \
-    dpkg -i libcudnn7-dev_*.deb && \
-    dpkg -i libcudnn7-doc_*.deb
+# Install development and runtime libraries (~4GB)
+RUN apt-get install -y --no-install-recommends \
+    cuda-10-1 \
+    libcudnn7=7.6.4.38-1+cuda10.1  \
+    libcudnn7-dev=7.6.4.38-1+cuda10.1
+
+# Install TensorRT. Requires that libcudnn7 is installed above.
+RUN apt-get install -y --no-install-recommends \
+    libnvinfer6=6.0.1-1+cuda10.1 \
+    libnvinfer-dev=6.0.1-1+cuda10.1 \
+    libnvinfer-plugin6=6.0.1-1+cuda10.1
 
 # Replace TensorFlow CPU version with GPU version. Also the version number
 # needs to match cuda and cuDNN version above.
 RUN python3.7 -m pip uninstall tensorflow -y && \
     python3.7 -m pip uninstall tensorboard -y && \
     python3.7 -m pip install mock==2.0.0 && \
-    python3.7 -m pip install tensorflow-gpu==1.15.2
+    python3.7 -m pip install tensorflow-gpu==2.3.0rc2
 
 WORKDIR $INSTALL_DIRECTORY
 

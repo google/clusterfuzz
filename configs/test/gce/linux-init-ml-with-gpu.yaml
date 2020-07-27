@@ -42,9 +42,9 @@ write_files:
     permissions: 0644
     owner: root
     content: |
-      NVIDIA_DRIVER_VERSION=384.130
-      NVIDIA_DRIVER_DOWNLOAD_URL=https://storage.googleapis.com/clusterfuzz-data/nvidia/384.130/NVIDIA-Linux-x86_64-384.130.run
-      NVIDIA_DRIVER_MD5SUM=fca11fd1ddac399c5527d22a24a6c320
+      NVIDIA_DRIVER_VERSION=418.152.00
+      NVIDIA_DRIVER_DOWNLOAD_URL=https://storage.googleapis.com/clusterfuzz-data/nvidia/418.152.00/NVIDIA-Linux-x86_64-418.152.00.run
+      NVIDIA_DRIVER_MD5SUM=63467de91898fd602538ff29fa104085
       COS_NVIDIA_INSTALLER_CONTAINER=gcr.io/cos-cloud/cos-gpu-installer:latest
       NVIDIA_INSTALL_DIR_HOST=/var/lib/nvidia
       NVIDIA_INSTALL_DIR_CONTAINER=/usr/local/nvidia
