@@ -469,4 +469,4 @@ def execute_task(testcase_id, job_type):
   # regression and fixed ranges are requested once. Regression is also requested
   # here as the bisection service may require details that are not yet available
   # (e.g. issue ID) at the time regress_task completes.
-  task_creation.request_bisection(testcase.key.id())
+  task_creation.request_bisection(testcase_id)
