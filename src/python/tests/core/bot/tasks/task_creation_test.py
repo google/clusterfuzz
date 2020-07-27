@@ -65,7 +65,7 @@ class RequestBisectionTest(unittest.TestCase):
 
   def _test(self, sanitizer):
     """Test task publication."""
-    task_creation.request_bisection(self.testcase)
+    task_creation.request_bisection(self.testcase.key.id())
     publish_calls = self.mock.publish.call_args_list
     bisect_types = ('regressed', 'fixed')
 
@@ -95,44 +95,51 @@ class RequestBisectionTest(unittest.TestCase):
   def test_request_bisection_asan(self):
     """Basic regressed test (asan)."""
     self.testcase.job_type = 'libfuzzer_asan_proj'
+    self.testcase.put()
     self._test('address')
 
   def test_request_bisection_msan(self):
     """Basic regressed test (asan)."""
     self.testcase.job_type = 'libfuzzer_msan_proj'
+    self.testcase.put()
     self._test('memory')
 
   def test_request_bisection_ubsan(self):
     """Basic regressed test (ubsan)."""
     self.testcase.job_type = 'libfuzzer_ubsan_proj'
+    self.testcase.put()
     self._test('undefined')
 
   def test_request_bisection_blackbox(self):
     """Test request bisection for blackbox."""
     self.testcase.job_type = 'blackbox'
     self.testcase.overridden_fuzzer_name = None
-    task_creation.request_bisection(self.testcase)
+    self.testcase.put()
+    task_creation.request_bisection(self.testcase.key.id())
     self.assertEqual(0, self.mock.publish.call_count)
 
   def test_request_bisection_non_security(self):
     """Test request bisection for non-security testcases."""
     self.testcase.job_type = 'libfuzzer_asan_proj'
     self.testcase.security_flag = False
-    task_creation.request_bisection(self.testcase)
+    self.testcase.put()
+    task_creation.request_bisection(self.testcase.key.id())
     self.assertEqual(0, self.mock.publish.call_count)
 
   def test_request_bisection_flaky(self):
     """Test request bisection for flaky testcases."""
     self.testcase.job_type = 'libfuzzer_asan_proj'
     self.testcase.one_time_crasher_flag = True
-    task_creation.request_bisection(self.testcase)
+    self.testcase.put()
+    task_creation.request_bisection(self.testcase.key.id())
     self.assertEqual(0, self.mock.publish.call_count)
 
   def test_request_bisection_no_bug(self):
     """Test request bisection for testcases with no bug attached."""
     self.testcase.job_type = 'libfuzzer_asan_proj'
     self.testcase.bug_information = ''
-    task_creation.request_bisection(self.testcase)
+    self.testcase.put()
+    task_creation.request_bisection(self.testcase.key.id())
     self.assertEqual(0, self.mock.publish.call_count)
 
   def test_request_bisection_invalid_range(self):
@@ -140,7 +147,8 @@ class RequestBisectionTest(unittest.TestCase):
     self.testcase.job_type = 'libfuzzer_asan_proj'
     self.testcase.regression = 'NA'
     self.testcase.fixed = 'NA'
-    task_creation.request_bisection(self.testcase)
+    self.testcase.put()
+    task_creation.request_bisection(self.testcase.key.id())
     self.assertEqual(0, self.mock.publish.call_count)
 
   def test_request_bisection_once_only(self):
@@ -148,5 +156,6 @@ class RequestBisectionTest(unittest.TestCase):
     requested."""
     self.testcase.set_metadata('requested_regressed_bisect', True)
     self.testcase.set_metadata('requested_fixed_bisect', True)
-    task_creation.request_bisection(self.testcase)
+    self.testcase.put()
+    task_creation.request_bisection(self.testcase.key.id())
     self.assertEqual(0, self.mock.publish.call_count)

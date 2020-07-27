@@ -252,11 +252,13 @@ def _get_commits(commit_range, job_type):
   return old_commit, new_commit
 
 
-def request_bisection(testcase):
+def request_bisection(testcase_id):
   """Request precise bisection."""
   pubsub_topic = local_config.ProjectConfig().get('bisect_service.pubsub_topic')
   if not pubsub_topic:
     return
+
+  testcase = data_handler.get_testcase_by_id(testcase_id)
 
   # Only request bisects for reproducible security bugs with a bug filed, found
   # by engine fuzzers.
@@ -272,9 +274,6 @@ def request_bisection(testcase):
   target = testcase.get_fuzz_target()
   if not target:
     return
-
-  # Avoid stale updates.
-  testcase = data_handler.get_testcase_by_id(testcase.key.id())
 
   # Only make 1 request of each type per testcase.
   if (not testcase.get_metadata('requested_regressed_bisect') and
