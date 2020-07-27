@@ -494,6 +494,9 @@ class FileSystemProvider(StorageProvider):
   def write_data(self, data, remote_path, metadata=None):
     """Write the data of a remote file."""
     fs_path = self.convert_path_for_write(remote_path)
+    if isinstance(data, str):
+      data = data.encode()
+
     with open(fs_path, 'wb') as f:
       f.write(data)
 

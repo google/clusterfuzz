@@ -228,6 +228,10 @@ class FileSystemProviderTests(fake_filesystem_unittest.TestCase):
     with open('/local/test-bucket/metadata/subdir/a') as f:
       self.assertEqual('{"key": "value"}', f.read())
 
+    self.provider.write_data('b', 'gs://test-bucket/subdir/b')
+    with open('/local/test-bucket/objects/subdir/b') as f:
+      self.assertEqual('b', f.read())
+
   def test_get(self):
     """Test get."""
     mtime = datetime.datetime(2019, 1, 1)
