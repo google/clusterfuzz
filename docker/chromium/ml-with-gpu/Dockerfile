@@ -23,8 +23,20 @@ WORKDIR /data
 
 # The dependencies installation commands below follow
 # https://www.tensorflow.org/install/gpu#ubuntu_1604_cuda_101.
+#
+# Add NVIDIA package repositories.
+# Add HTTPS support for apt-key.
+RUN apt-get install -y gnupg-curl && \
+    wget https://developer.download.nvidia.com/compute/cuda/repos/ubuntu1604/x86_64/cuda-repo-ubuntu1604_10.1.243-1_amd64.deb && \
+    apt-key adv --fetch-keys https://developer.download.nvidia.com/compute/cuda/repos/ubuntu1604/x86_64/7fa2af80.pub && \
+    dpkg -i cuda-repo-ubuntu1604_10.1.243-1_amd64.deb && \
+    apt-get update && \
+    wget https://developer.download.nvidia.com/compute/machine-learning/repos/ubuntu1604/x86_64/nvidia-machine-learning-repo-ubuntu1604_1.0.0-1_amd64.deb && \
+    apt install -y ./nvidia-machine-learning-repo-ubuntu1604_1.0.0-1_amd64.deb && \
+    apt-get update && \
+    rm -f cuda-repo-* nvidia-machine-learning-repo-*
 
-# Install development and runtime libraries (~4GB)
+# Install development and runtime libraries (~4GB).
 RUN apt-get install -y --no-install-recommends \
     cuda-10-1 \
     libcudnn7=7.6.4.38-1+cuda10.1  \
