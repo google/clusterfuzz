@@ -63,6 +63,7 @@ TASK_QUEUE_DISPLAY_NAMES = {
     'LINUX_UNTRUSTED': 'Linux (untrusted)',
     'ANDROID': 'Android',
     'ANDROID_KERNEL': 'Android Kernel',
+    'ANDROID_AUTO': 'Android Auto',
     'ANDROID_X86': 'Android (x86)',
     'CHROMEOS': 'Chrome OS',
     'FUCHSIA': 'Fuchsia OS',

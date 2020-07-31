@@ -92,6 +92,7 @@ PLATFORMS = [
     'WINDOWS',
     'FUCHSIA',
     'ANDROID_KERNEL',
+    'ANDROID_AUTO',
 ]
 
 # Maximum size allowed for an appengine pubsub request.
