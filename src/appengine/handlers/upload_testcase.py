@@ -342,6 +342,8 @@ class UploadHandlerCommon(object):
       fuzzer_name = 'libFuzzer'
     elif 'afl' in job_type_lowercase:
       fuzzer_name = 'afl'
+    elif 'honggfuzz' in job_type_lowercase:
+      fuzzer_name = 'honggfuzz'
 
     is_engine_job = fuzzer_name and environment.is_engine_fuzzer_job(job_type)
     target_name = self.request.get('target')
