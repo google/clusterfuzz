@@ -110,7 +110,7 @@ func refreshTokenIfNeeded() error {
 	tokenLock.RUnlock()
 
 	cmd := exec.Command("gcloud", "auth", "application-default", "print-access-token")
-	output, err := cmd.CombinedOutput()
+	output, err := cmd.Output()
 	if err != nil {
 		return err
 	}

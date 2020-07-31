@@ -40,7 +40,7 @@ else
   CONFIG_DIR_OVERRIDE="/config"
 fi
 
-docker run -e COMMAND_OVERRIDE=$COMMAND_OVERRIDE -e SETUP_NFS= -e HOST_UID=$UID \
+sudo docker run -e COMMAND_OVERRIDE="$COMMAND_OVERRIDE" -e SETUP_NFS= -e HOST_UID=$UID \
               -e LOCAL_METADATA_SERVER=$docker_ip -e LOCAL_METADATA_PORT=8080 \
               -e USE_LOCAL_DIR_FOR_NFS=1 $MOUNT_ARGS \
               -e LOCAL_SRC=$LOCAL_SRC \
