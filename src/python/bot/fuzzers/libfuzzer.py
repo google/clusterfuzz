@@ -1542,7 +1542,9 @@ def fix_timeout_argument_for_reproduction(arguments):
   fuzzer_utils.extract_argument(arguments, constants.TIMEOUT_FLAG)
 
   # Leave 5 sec buffer for report processing.
-  adjusted_test_timeout = max(1, environment.get_value('TEST_TIMEOUT') - 5)
+  adjusted_test_timeout = max(
+      1,
+      environment.get_value('TEST_TIMEOUT') - constants.REPORT_PROCESSING_TIME)
   arguments.append('%s%d' % (constants.TIMEOUT_FLAG, adjusted_test_timeout))
 
 
