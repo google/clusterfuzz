@@ -61,12 +61,14 @@ TMP_ARTIFACT_PREFIX_ARGUMENT = '/tmp/'
 
 VALUE_PROFILE_ARGUMENT = '-use_value_profile=1'
 
-# Value for RSS_LIMIT_FLAG to catch OOM.
+# Default value for rss_limit_mb flag to catch OOM.s
 DEFAULT_RSS_LIMIT_MB = 2560
 
+# Default value for timeout flag to catch timeouts.
 DEFAULT_TIMEOUT_LIMIT = 25
 
-REPRODUCTION_TIMEOUT_LIMIT = 60
+# Buffer for processing crash reports.
+REPORT_PROCESSING_TIME = 5
 
 # libFuzzer's exit code if a bug occurred in libFuzzer.
 LIBFUZZER_ERROR_EXITCODE = 1
