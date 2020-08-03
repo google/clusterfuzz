@@ -1740,10 +1740,16 @@ def pick_strategies(strategy_pool,
   is_mutations_run = (not environment.is_ephemeral() and
                       candidate_generator != engine_common.Generator.NONE)
 
+  if strategy_pool.do_strategy(strategy.ENTROPIC_STRATEGY):
+    arguments.append(constants.ENTROPIC_ARGUMENT)
+    fuzzing_strategies.append(strategy.ENTROPIC_STRATEGY.name)
+
   # Depends on the presense of DFSan instrumented build.
   dataflow_build_dir = environment.get_value('DATAFLOW_BUILD_DIR')
   use_dataflow_tracing = (
       dataflow_build_dir and
+      # Focus function is not compatible with entropic mode.
+      strategy.ENTROPIC_STRATEGY.name not in fuzzing_strategies and
       strategy_pool.do_strategy(strategy.DATAFLOW_TRACING_STRATEGY))
   if use_dataflow_tracing:
     dataflow_binary_path = os.path.join(
@@ -1788,12 +1794,6 @@ def pick_strategies(strategy_pool,
       add_recommended_dictionary(arguments, project_qualified_fuzzer_name,
                                  fuzzer_path)):
     fuzzing_strategies.append(strategy.RECOMMENDED_DICTIONARY_STRATEGY.name)
-
-  # Entropic isn't compatible with focus function.
-  if (strategy_pool.do_strategy(strategy.ENTROPIC_STRATEGY) and not any(
-      [arg.startswith(constants.FOCUS_FUNCTION_FLAG) for arg in arguments])):
-    arguments.append(constants.ENTROPIC_ARGUMENT)
-    fuzzing_strategies.append(strategy.ENTROPIC_STRATEGY.name)
 
   if strategy_pool.do_strategy(strategy.VALUE_PROFILE_STRATEGY):
     arguments.append(constants.VALUE_PROFILE_ARGUMENT)
