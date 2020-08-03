@@ -66,8 +66,6 @@ DEFAULT_RSS_LIMIT_MB = 2560
 
 DEFAULT_TIMEOUT_LIMIT = 25
 
-REPRODUCTION_TIMEOUT_LIMIT = 60
-
 # libFuzzer's exit code if a bug occurred in libFuzzer.
 LIBFUZZER_ERROR_EXITCODE = 1
 

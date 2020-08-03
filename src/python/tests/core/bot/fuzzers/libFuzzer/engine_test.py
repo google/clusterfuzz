@@ -197,6 +197,7 @@ class FuzzTest(fake_fs_unittest.TestCase):
         'os.getpid',
     ])
 
+    os.environ['TEST_TIMEOUT'] = '65'
     os.environ['JOB_NAME'] = 'libfuzzer_asan_job'
     os.environ['FUZZ_INPUTS_DISK'] = '/fuzz-inputs'
 
@@ -435,6 +436,7 @@ class BaseIntegrationTest(unittest.TestCase):
     os.environ['FAIL_RETRIES'] = '1'
     os.environ['FUZZ_INPUTS_DISK'] = TEMP_DIR
     os.environ['FUZZ_TEST_TIMEOUT'] = '4800'
+    os.environ['TEST_TIMEOUT'] = '65'
     os.environ['JOB_NAME'] = 'libfuzzer_asan'
     os.environ['INPUT_DIR'] = TEMP_DIR
 

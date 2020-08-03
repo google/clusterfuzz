@@ -1537,11 +1537,13 @@ def remove_fuzzing_arguments(arguments, is_merge=False):
 
 
 def fix_timeout_argument_for_reproduction(arguments):
-  """Changes timeout argument for reproduction. This is higher than default to
-  avoid noise with smaller fuzzing defaults."""
+  """Changes timeout argument for reproduction. This is slightly less than the
+  |TEST_TIMEOUT| value for the job."""
   fuzzer_utils.extract_argument(arguments, constants.TIMEOUT_FLAG)
-  arguments.append(
-      '%s%d' % (constants.TIMEOUT_FLAG, constants.REPRODUCTION_TIMEOUT_LIMIT))
+
+  # Leave 5 sec buffer for report processing.
+  adjusted_test_timeout = max(1, environment.get_value('TEST_TIMEOUT') - 5)
+  arguments.append('%s%d' % (constants.TIMEOUT_FLAG, adjusted_test_timeout))
 
 
 def parse_log_stats(log_lines):
