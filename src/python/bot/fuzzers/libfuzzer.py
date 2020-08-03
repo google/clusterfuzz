@@ -1789,7 +1789,9 @@ def pick_strategies(strategy_pool,
                                  fuzzer_path)):
     fuzzing_strategies.append(strategy.RECOMMENDED_DICTIONARY_STRATEGY.name)
 
-  if strategy_pool.do_strategy(strategy.ENTROPIC_STRATEGY):
+  # Entropic isn't compatible with focus function.
+  if (strategy_pool.do_strategy(strategy.ENTROPIC_STRATEGY) and not any(
+      [arg.startswith(constants.FOCUS_FUNCTION_FLAG) for arg in arguments])):
     arguments.append(constants.ENTROPIC_ARGUMENT)
     fuzzing_strategies.append(strategy.ENTROPIC_STRATEGY.name)
 
