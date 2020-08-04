@@ -15,6 +15,7 @@
    multiple handlers."""
 
 from builtins import str
+import flask
 import logging
 import sys
 import traceback
@@ -102,8 +103,11 @@ def cast(value, fn, error_message):
     raise EarlyExitException(error_message, 400)
 
 
-def should_render_json(accepts, content_type):
+# TODO(singharshdeep): Remove content_type after flask migration.
+def should_render_json(accepts, content_type, res_json=False):
   """Check accepts and content_type to see if we should render JSON."""
+  if res_json:
+    return True
   return 'application/json' in accepts or content_type == 'application/json'
 
 
@@ -158,15 +162,6 @@ def get_user_email():
 def get_integer_key(request):
   """Convenience function for getting an integer datastore key ID."""
   key = request.get('key')
-  try:
-    return int(key)
-  except (ValueError, KeyError):
-    raise EarlyExitException('Invalid key format.', 400)
-
-
-def get_integer_key_flask(request):
-  """Convenience function for getting an integer datastore key ID."""
-  key = request.form.get('key')
   try:
     return int(key)
   except (ValueError, KeyError):

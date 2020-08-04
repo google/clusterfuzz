@@ -40,9 +40,20 @@ try:
 except ImportError:
   pass
 
-from werkzeug.middleware.dispatcher import DispatcherMiddleware
 import server
 import server_flask
-app = DispatcherMiddleware(server.app, {
-    '/flask': server_flask.app,
-})
+
+routes = {route: server_flask.app for route, _ in server_flask.handlers}
+
+
+class Middleware:
+  """Middleware dispatcher for custom redirects."""
+
+  def __call__(self, environ, start_response):
+    script = environ.get('PATH_INFO', '')
+    script = '/'.join(script.split('/', 2)[:2])
+    middleware_app = routes.get(script, server.app)
+    return middleware_app(environ, start_response)
+
+
+app = Middleware()

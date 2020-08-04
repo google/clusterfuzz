@@ -22,12 +22,13 @@ from base import tasks
 from datastore import data_handler
 from datastore import data_types
 from datastore import ndb_utils
+from flask import request
 from fuzzing import fuzzer_selection
-from handlers import base_handler
+from handlers import base_handler_flask
 from libs import filters
 from libs import form
 from libs import gcs
-from libs import handler
+from libs import handler_flask
 from libs import helpers
 from libs.query import datastore_query
 
@@ -63,20 +64,19 @@ def _job_to_dict(job):
   return result
 
 
-def get_results(this):
+def get_results():
   """Get results for the jobs page."""
 
   # Return jobs sorted alphabetically by name
   query = datastore_query.Query(data_types.Job)
   query.order('name', is_desc=False)
-  params = {k: v for k, v in this.request.iterparams()}
-  helpers.log('params', params)
+  params = dict(request.iterparams())
   filters.add(query, params, FILTERS)
 
-  page = helpers.cast(
-      this.request.args.get('page', 1), int, "'page' is not an int.")
+  page = helpers.cast(request.get('page', 1), int, "'page' is not an int.")
   items, total_pages, total_items, has_more = query.fetch_page(
       page=page, page_size=PAGE_SIZE, projection=None, more_limit=MORE_LIMIT)
+  helpers.log('Jobs', helpers.VIEW_OPERATION)
 
   result = {
       'hasMore': has_more,
@@ -89,22 +89,20 @@ def get_results(this):
   return result, params
 
 
-class Handler(base_handler.FlaskHandler):
+class Handler(base_handler_flask.Handler):
   """View job handler."""
 
-  @handler.check_user_access(need_privileged_access=True)
-  @handler.get_flask(handler.HTML)
+  @handler_flask.get(handler_flask.HTML)
+  @handler_flask.check_user_access(need_privileged_access=True)
   def get(self):
     """Handle a get request."""
-    helpers.log('Jobs', helpers.VIEW_OPERATION)
-
     templates = list(data_types.JobTemplate.query().order(
         data_types.JobTemplate.name))
     queues = get_queues()
     fuzzers = [
         fuzzer.name for fuzzer in data_types.Fuzzer.query(projection=['name'])
     ]
-    result, params = get_results(self)
+    result, params = get_results()
 
     return self.render(
         'jobs.html',
@@ -115,22 +113,23 @@ class Handler(base_handler.FlaskHandler):
                 'csrf_token': form.generate_csrf_token(),
                 'fuzzers': fuzzers,
                 'queues': queues,
-                'update_job_url': '/flask/update-job',
-                'update_job_template_url': '/flask/update-job-template',
+                'update_job_url': '/update-job',
+                'update_job_template_url': '/update-job-template',
                 'upload_info': gcs.prepare_blob_upload()._asdict(),
             },
             'params': params,
         })
 
 
-class UpdateJob(base_handler.FlaskGcsUploadHandler):
+class UpdateJob(base_handler_flask.GcsUploadHandler):
   """Update job handler."""
 
-  @handler.check_user_access(need_privileged_access=True)
-  @handler.require_csrf_token_flask
+  @handler_flask.post(handler_flask.FORM, handler_flask.HTML)
+  @handler_flask.check_user_access(need_privileged_access=True)
+  @handler_flask.require_csrf_token
   def post(self):
     """Handle a post request."""
-    name = self.request.form.get('name')
+    name = request.form.get('name')
     if not name:
       raise helpers.EarlyExitException('Please give this job a name!', 400)
 
@@ -139,20 +138,20 @@ class UpdateJob(base_handler.FlaskGcsUploadHandler):
           'Job name can only contain letters, numbers, dashes and underscores.',
           400)
 
-    fuzzers = self.request.form.get('fuzzers', []).split(',')
-    templates = self.request.form.get('templates', '').splitlines()
+    fuzzers = request.form.get('fuzzers', []).split(',')
+    templates = request.form.get('templates', '').splitlines()
     for template in templates:
       if not data_types.JobTemplate.query(
           data_types.JobTemplate.name == template).get():
         raise helpers.EarlyExitException('Invalid template name(s) specified.',
                                          400)
 
-    new_platform = self.request.form.get('platform')
+    new_platform = request.form.get('platform')
     if not new_platform or new_platform == 'undefined':
       raise helpers.EarlyExitException('No platform provided for job.', 400)
 
-    description = self.request.form.get('description', '')
-    environment_string = self.request.form.get('environment_string', '')
+    description = request.form.get('description', '')
+    environment_string = request.form.get('environment_string', '')
     previous_custom_binary_revision = 0
 
     job = data_types.Job.query(data_types.Job.name == name).get()
@@ -201,20 +200,20 @@ class UpdateJob(base_handler.FlaskGcsUploadHandler):
         'message': ('Job %s is successfully updated. '
                     'Redirecting back to jobs page...') % name,
         'redirect_url':
-            '/flask/jobs',
+            '/jobs',
     }
     return self.render('message.html', template_values)
 
 
-class UpdateJobTemplate(base_handler.FlaskHandler):
+class UpdateJobTemplate(base_handler_flask.Handler):
   """Update job template handler."""
 
-  @handler.check_user_access(need_privileged_access=True)
-  @handler.require_csrf_token_flask
-  @handler.post_flask(handler.FORM, handler.HTML)
+  @handler_flask.post(handler_flask.FORM, handler_flask.HTML)
+  @handler_flask.check_user_access(need_privileged_access=True)
+  @handler_flask.require_csrf_token
   def post(self):
     """Handle a post request."""
-    name = self.request.form.get('name')
+    name = request.form.get('name')
     if not name:
       raise helpers.EarlyExitException('Please give this template a name!', 400)
 
@@ -223,7 +222,7 @@ class UpdateJobTemplate(base_handler.FlaskHandler):
           'Template name can only contain letters, numbers, dashes and '
           'underscores.', 400)
 
-    environment_string = self.request.form.get('environment_string')
+    environment_string = request.form.get('environment_string')
     if not environment_string:
       raise helpers.EarlyExitException(
           'No environment string provided for job template.', 400)
@@ -245,20 +244,20 @@ class UpdateJobTemplate(base_handler.FlaskHandler):
         'message': ('Template %s is successfully updated. '
                     'Redirecting back to jobs page...') % name,
         'redirect_url':
-            '/flask/jobs',
+            '/jobs',
     }
     return self.render('message.html', template_values)
 
 
-class DeleteJobHandler(base_handler.FlaskHandler):
+class DeleteJobHandler(base_handler_flask.Handler):
   """Delete job handler."""
 
-  @handler.check_user_access(need_privileged_access=True)
-  @handler.post(handler.JSON, handler.JSON)
-  @handler.require_csrf_token
+  @handler_flask.post(handler_flask.JSON, handler_flask.JSON)
+  @handler_flask.check_user_access(need_privileged_access=True)
+  @handler_flask.require_csrf_token
   def post(self):
     """Handle a post request."""
-    key = helpers.get_integer_key(self.request)
+    key = helpers.get_integer_key(request)
     job = ndb.Key(data_types.Job, key).get()
     if not job:
       raise helpers.EarlyExitException('Job not found.', 400)
@@ -279,15 +278,15 @@ class DeleteJobHandler(base_handler.FlaskHandler):
     job.key.delete()
 
     helpers.log('Deleted job %s' % job.name, helpers.MODIFY_OPERATION)
-    self.redirect('/flask/jobs')
+    return self.redirect('/jobs')
 
 
-class JsonHandler(base_handler.FlaskHandler):
+class JsonHandler(base_handler_flask.Handler):
   """Handler that gets the jobs when user clicks on next page."""
 
-  @handler.check_user_access(need_privileged_access=True)
-  @handler.post_flask(handler.JSON, handler.JSON)
+  @handler_flask.post(handler_flask.JSON, handler_flask.JSON)
+  @handler_flask.check_user_access(need_privileged_access=True)
   def post(self):
     """Get and render the jobs in JSON."""
-    result, _ = get_results(self)
+    result, _ = get_results()
     return self.render_json(result)
