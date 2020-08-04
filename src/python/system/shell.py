@@ -351,7 +351,7 @@ def get_free_disk_space(path='/'):
   return psutil.disk_usage(path).free
 
 
-def get_interpreter(file_to_execute, is_blackbox_fuzzer=False):
+def get_interpreter(file_to_execute):
   """Gives the interpreter needed to execute |file_to_execute|."""
   interpreters = {
       '.bash': 'bash',
@@ -371,10 +371,9 @@ def get_interpreter(file_to_execute, is_blackbox_fuzzer=False):
   return interpreter
 
 
-def get_execute_command(file_to_execute, is_blackbox_fuzzer=False):
+def get_execute_command(file_to_execute):
   """Return command to execute |file_to_execute|."""
-  interpreter_path = get_interpreter(
-      file_to_execute, is_blackbox_fuzzer=is_blackbox_fuzzer)
+  interpreter_path = get_interpreter(file_to_execute)
 
   # Hack for Java scripts.
   file_to_execute = file_to_execute.replace('.class', '')
