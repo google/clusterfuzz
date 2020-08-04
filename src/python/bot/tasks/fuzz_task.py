@@ -1474,10 +1474,7 @@ class FuzzingSession(object):
         return error_occurred, None, None, None, None
 
       # Build the fuzzer command execution string.
-      # TODO(mbarbella): Conditionally invoke with Python 2 depending on
-      # the fuzzer. At present, all were implemented to work with Python 2.
-      command = shell.get_execute_command(
-          fuzzer_executable, is_blackbox_fuzzer=True)
+      command = shell.get_execute_command(fuzzer_executable)
 
       # NodeJS and shell script expect space seperator for arguments.
       if command.startswith('node ') or command.startswith('sh '):

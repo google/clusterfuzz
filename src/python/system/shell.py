@@ -351,7 +351,7 @@ def get_free_disk_space(path='/'):
   return psutil.disk_usage(path).free
 
 
-def get_interpreter(file_to_execute, is_blackbox_fuzzer=False):
+def get_interpreter(file_to_execute):
   """Gives the interpreter needed to execute |file_to_execute|."""
   interpreters = {
       '.bash': 'bash',
@@ -368,19 +368,12 @@ def get_interpreter(file_to_execute, is_blackbox_fuzzer=False):
   except KeyError:
     return None
 
-  # TODO(mbarbella): Remove this when fuzzers have been migrated to Python 3.
-  if (is_blackbox_fuzzer and interpreter == sys.executable and
-      environment.get_value('USE_PYTHON2_FOR_BLACKBOX_FUZZERS') and
-      sys.version_info.major == 3):
-    interpreter = 'python2'
-
   return interpreter
 
 
-def get_execute_command(file_to_execute, is_blackbox_fuzzer=False):
+def get_execute_command(file_to_execute):
   """Return command to execute |file_to_execute|."""
-  interpreter_path = get_interpreter(
-      file_to_execute, is_blackbox_fuzzer=is_blackbox_fuzzer)
+  interpreter_path = get_interpreter(file_to_execute)
 
   # Hack for Java scripts.
   file_to_execute = file_to_execute.replace('.class', '')

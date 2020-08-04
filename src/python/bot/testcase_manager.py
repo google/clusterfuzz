@@ -939,8 +939,7 @@ def get_command_line_for_application(file_to_run='',
       # have app_name == launcher. In this case don't prepend launcher to
       # command - just use app_name.
       if os.path.basename(launcher) != app_name:
-        launcher_with_interpreter = shell.get_execute_command(
-            launcher, is_blackbox_fuzzer=True)
+        launcher_with_interpreter = shell.get_execute_command(launcher)
         command += launcher_with_interpreter + ' '
     elif is_android:
       # Android-specific testcase path fixup for fuzzers that don't rely on
