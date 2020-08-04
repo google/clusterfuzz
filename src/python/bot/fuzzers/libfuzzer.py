@@ -586,7 +586,7 @@ class FuchsiaQemuLibFuzzerRunner(new_process.UnicodeProcessRunner,
     self._clear_all_target_corpora()
     logs.log('Push corpora from host to target.')
     for corpus_dir in corpus_directories:
-      # Appending '/*' indicates we want all the *files* in the corpus_dir's
+      # Appending '/*' indicates we want all the *files* in the corpus_dir's.
       self.fuzzer.device.store(
           corpus_dir + '/*',
           self._corpus_target_subdir(os.path.basename(corpus_dir)))
