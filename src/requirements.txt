@@ -13,6 +13,7 @@ google-cloud-profiler==1.0.3
 google-cloud-storage==1.28.1
 grpcio==1.28.1
 httplib2==0.18.0
+hyperlink==19.0.0
 lxml==4.5.0
 mozprocess==1.1.0
 oauth2client==4.1.3
