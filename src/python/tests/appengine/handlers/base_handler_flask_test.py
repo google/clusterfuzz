@@ -43,7 +43,7 @@ class ExceptionJsonHandler(base_handler_flask.Handler):
   """Render exception in JSON response for testing."""
 
   def get(self):
-    self.res_json = True
+    self.is_json = True
     raise Exception('message')
 
 
@@ -58,7 +58,7 @@ class EarlyExceptionHandler(base_handler_flask.Handler):
   """Render EarlyException in JSON for testing."""
 
   def get(self):
-    self.res_json = True
+    self.is_json = True
     raise helpers.EarlyExitException('message', 500, [])
 
 

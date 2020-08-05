@@ -353,7 +353,7 @@ def post(request_content_type, response_content_type):
     def wrapper(self):
       """Wrapper."""
       if response_content_type == JSON:
-        self.res_json = True
+        self.is_json = True
 
       if request_content_type == JSON:
         extend_json_request(request)
@@ -389,7 +389,7 @@ def get(response_content_type):
     def wrapper(self, *args, **kwargs):
       """Wrapper."""
       if response_content_type == JSON:
-        self.res_json = True
+        self.is_json = True
 
       extend_request(request, request.args)
       response = func(self, *args, **kwargs)
