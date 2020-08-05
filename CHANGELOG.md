@@ -10,7 +10,7 @@ python butler.py run -c path/to/config --non-dry-run migration.jobs_keywords
 ```
 - Jobs page now has the ability to specify Fuzzer-Job mappings.
 - Past crash regressions are now stored in the corpus backup.
-- Set handle_<signal>=2 by default for sanitizer options.
+- Set handle_<signal>=2 by default for sanitizer options in engine jobs.
 - Fix local GCS issues.
 - Remove more Python 2 support.
 - Various bug fixes.
