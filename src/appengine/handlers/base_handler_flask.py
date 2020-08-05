@@ -151,6 +151,10 @@ class Handler(MethodView):
     """Return true if the request is from a cron job."""
     return bool(request.headers.get('X-Appengine-Cron'))
 
+  def should_render_json(self):
+    return (self.is_json or
+            'application/json' in request.headers.get('accept', ''))
+
   def render_forbidden(self, message):
     """Write HTML response for 403."""
     login_url = make_login_url(dest_url=request.url)
@@ -244,8 +248,7 @@ class Handler(MethodView):
       else:  # Other error codes should be logged with the EXCEPTION level.
         logging.exception(exception)
 
-      if self.is_json or ('application/json' in request.headers.get(
-          'accept', '')):
+      if self.should_render_json():
         return self.render_json(values, status)
       if status in (403, 401):
         return self.render_forbidden(str(exception))
@@ -258,8 +261,7 @@ class Handler(MethodView):
     exception = sys.exc_info()[1]
     values = {'message': str(exception), 'traceDump': traceback.format_exc()}
     logging.exception(exception)
-    if self.is_json or ('application/json' in request.headers.get(
-        'accept', '')):
+    if self.should_render_json():
       return self.render_json(values, 500)
     return self.render('error.html', values, 500)
 

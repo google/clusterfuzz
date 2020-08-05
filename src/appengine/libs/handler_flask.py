@@ -20,7 +20,6 @@ import functools
 import json
 import re
 import requests
-import six
 
 from base import utils
 from config import db_config
@@ -59,7 +58,7 @@ def extend_request(req, params):
   """Extends a request."""
 
   def _iterparams():
-    for k, v in six.iteritems(params):
+    for k, v in params.items():
       yield k, v
 
   def _get(key, default_value=None):

@@ -13,8 +13,6 @@
 """Tests for Handler."""
 # TODO(singharshdeep): Rename this file to handler_flask_test after
 # flask migration.
-from __future__ import print_function
-
 from builtins import str
 
 import flask
@@ -58,6 +56,7 @@ def mocked_load_yaml_file(yaml_file_path):
 
 
 class JsonJsonPostHandler(base_handler_flask.Handler):
+  """Handler for json json post requests."""
 
   @handler_flask.post(handler_flask.JSON, handler_flask.JSON)
   def post(self):
@@ -69,6 +68,7 @@ class JsonJsonPostHandler(base_handler_flask.Handler):
 
 
 class FormHtmlPostHandler(base_handler_flask.Handler):
+  """Handler for form html post requests."""
 
   @handler_flask.post(handler_flask.FORM, handler_flask.HTML)
   def post(self):
@@ -80,6 +80,7 @@ class FormHtmlPostHandler(base_handler_flask.Handler):
 
 
 class JsonGetHandler(base_handler_flask.Handler):
+  """Handler for json get requests."""
 
   @handler_flask.get(handler_flask.JSON)
   def get(self):
@@ -91,6 +92,7 @@ class JsonGetHandler(base_handler_flask.Handler):
 
 
 class HtmlGetHandler(base_handler_flask.Handler):
+  """Handler for html get requests."""
 
   @handler_flask.get(handler_flask.HTML)
   def get(self):
@@ -102,6 +104,7 @@ class HtmlGetHandler(base_handler_flask.Handler):
 
 
 class NeedsPrivilegeAccessHandler(base_handler_flask.Handler):
+  """Handler for needs privilege access requests."""
 
   @handler_flask.get(handler_flask.JSON)
   @handler_flask.check_user_access(True)
@@ -110,6 +113,7 @@ class NeedsPrivilegeAccessHandler(base_handler_flask.Handler):
 
 
 class WithoutNeedsPrivilegeAccessHandler(base_handler_flask.Handler):
+  """Handler for without needs privilege access requests."""
 
   @handler_flask.get(handler_flask.JSON)
   @handler_flask.check_user_access(False)
@@ -118,6 +122,7 @@ class WithoutNeedsPrivilegeAccessHandler(base_handler_flask.Handler):
 
 
 class CronHandler(base_handler_flask.Handler):
+  """Handler for crons."""
 
   @handler_flask.check_cron()
   def get(self):
@@ -125,6 +130,7 @@ class CronHandler(base_handler_flask.Handler):
 
 
 class CheckTestcaseAccessHandler(base_handler_flask.Handler):
+  """Handler for check testcase access requests."""
 
   @handler_flask.post(handler_flask.JSON, handler_flask.JSON)
   @handler_flask.check_testcase_access
@@ -134,6 +140,7 @@ class CheckTestcaseAccessHandler(base_handler_flask.Handler):
 
 
 class CheckAdminAccessHandler(base_handler_flask.Handler):
+  """Handler for check admin access requests."""
 
   @handler_flask.post(handler_flask.JSON, handler_flask.JSON)
   @handler_flask.check_admin_access
@@ -142,6 +149,7 @@ class CheckAdminAccessHandler(base_handler_flask.Handler):
 
 
 class CheckAdminAccessIfOssFuzzHandler(base_handler_flask.Handler):
+  """Handler for check admin access if oss fuzz requests."""
 
   @handler_flask.post(handler_flask.JSON, handler_flask.JSON)
   @handler_flask.check_admin_access_if_oss_fuzz
@@ -150,6 +158,7 @@ class CheckAdminAccessIfOssFuzzHandler(base_handler_flask.Handler):
 
 
 class OAuthHandler(base_handler_flask.Handler):
+  """Handler for oauth requests."""
 
   @handler_flask.post(handler_flask.JSON, handler_flask.JSON)
   @handler_flask.oauth
@@ -161,6 +170,7 @@ class OAuthHandler(base_handler_flask.Handler):
 
 
 class AllowedCorsHandler(base_handler_flask.Handler):
+  """Handler for allowed cors requests."""
 
   @handler_flask.allowed_cors
   def post(self):
