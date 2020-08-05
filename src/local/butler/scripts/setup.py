@@ -75,7 +75,7 @@ ENABLE_GESTURES = False
 THREAD_DELAY = 30.0
 """
 
-ENGINE_ASAN_TEMPLATE = ('LSAN = True'
+ENGINE_ASAN_TEMPLATE = ('LSAN = True\n'
                         'ADDITIONAL_ASAN_OPTIONS = '
                         'symbolize=0:'
                         'quarantine_size_mb=64:'
@@ -99,7 +99,7 @@ ENGINE_MSAN_TEMPLATE = ('ADDITIONAL_MSAN_OPTIONS = '
                         'handle_sigfpe=2:'
                         'handle_sigill=2')
 
-ENGINE_UBSAN_TEMPLATE = ('LSAN = False'
+ENGINE_UBSAN_TEMPLATE = ('LSAN = False\n'
                          'ADDITIONAL_UBSAN_OPTIONS = '
                          'symbolize=0:'
                          'allocator_release_to_os_interval_ms=500:'
