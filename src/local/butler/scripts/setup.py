@@ -75,17 +75,39 @@ ENABLE_GESTURES = False
 THREAD_DELAY = 30.0
 """
 
-ENGINE_ASAN_TEMPLATE = """LSAN = True
-ADDITIONAL_ASAN_OPTIONS = quarantine_size_mb=64:strict_memcmp=1:symbolize=0:fast_unwind_on_fatal=0:allocator_release_to_os_interval_ms=500
-"""
-
-ENGINE_MSAN_TEMPLATE = ('ADDITIONAL_MSAN_OPTIONS = symbolize=0:print_stats=1:'
+ENGINE_ASAN_TEMPLATE = ('LSAN = True\n'
+                        'ADDITIONAL_ASAN_OPTIONS = '
+                        'symbolize=0:'
+                        'quarantine_size_mb=64:'
+                        'strict_memcmp=1:'
+                        'fast_unwind_on_fatal=0:'
                         'allocator_release_to_os_interval_ms=500:'
-                        'halt_on_error=1')
+                        'handle_abort=2:'
+                        'handle_segv=2:'
+                        'handle_sigbus=2:'
+                        'handle_sigfpe=2:'
+                        'handle_sigill=2')
 
-ENGINE_UBSAN_TEMPLATE = """LSAN = False
-ADDITIONAL_UBSAN_OPTIONS = symbolize=0:allocator_release_to_os_interval_ms=500
-"""
+ENGINE_MSAN_TEMPLATE = ('ADDITIONAL_MSAN_OPTIONS = '
+                        'symbolize=0:'
+                        'print_stats=1:'
+                        'allocator_release_to_os_interval_ms=500:'
+                        'halt_on_error=1:'
+                        'handle_abort=2:'
+                        'handle_segv=2:'
+                        'handle_sigbus=2:'
+                        'handle_sigfpe=2:'
+                        'handle_sigill=2')
+
+ENGINE_UBSAN_TEMPLATE = ('LSAN = False\n'
+                         'ADDITIONAL_UBSAN_OPTIONS = '
+                         'symbolize=0:'
+                         'allocator_release_to_os_interval_ms=500:'
+                         'handle_abort=2:'
+                         'handle_segv=2:'
+                         'handle_sigbus=2:'
+                         'handle_sigfpe=2:'
+                         'handle_sigill=2')
 
 PRUNE_TEMPLATE = 'CORPUS_PRUNE = True'
 
