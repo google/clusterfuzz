@@ -244,8 +244,8 @@ class Handler(MethodView):
       else:  # Other error codes should be logged with the EXCEPTION level.
         logging.exception(exception)
 
-      if helpers.should_render_json(
-          request.headers.get('accept', ''), None, self.res_json):
+      if self.is_json or ('application/json' in request.headers.get(
+          'accept', '')):
         return self.render_json(values, status)
       if status in (403, 401):
         return self.render_forbidden(str(exception))
@@ -258,8 +258,8 @@ class Handler(MethodView):
     exception = sys.exc_info()[1]
     values = {'message': str(exception), 'traceDump': traceback.format_exc()}
     logging.exception(exception)
-    if helpers.should_render_json(
-        request.headers.get('accept', ''), None, self.res_json):
+    if self.is_json or ('application/json' in request.headers.get(
+        'accept', '')):
       return self.render_json(values, 500)
     return self.render('error.html', values, 500)
 
@@ -271,7 +271,7 @@ class Handler(MethodView):
 
   def dispatch_request(self, *args, **kwargs):
     """Dispatch a request and postprocess."""
-    self.res_json = False
+    self.is_json = False
     try:
       return super(Handler, self).dispatch_request(*args, **kwargs)
     except Exception as exception:

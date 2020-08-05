@@ -46,14 +46,12 @@ import server_flask
 routes = {route: server_flask.app for route, _ in server_flask.handlers}
 
 
-class Middleware:
+def middleware(environ, start_response):
   """Middleware dispatcher for custom redirects."""
-
-  def __call__(self, environ, start_response):
-    script = environ.get('PATH_INFO', '')
-    script = '/'.join(script.split('/', 2)[:2])
-    middleware_app = routes.get(script, server.app)
-    return middleware_app(environ, start_response)
+  script = environ.get('PATH_INFO', '')
+  script = '/'.join(script.split('/', 2)[:2])
+  routed_app = routes.get(script, server.app)
+  return routed_app(environ, start_response)
 
 
-app = Middleware()
+app = middleware

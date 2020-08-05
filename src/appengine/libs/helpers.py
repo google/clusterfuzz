@@ -15,7 +15,6 @@
    multiple handlers."""
 
 from builtins import str
-import flask
 import logging
 import sys
 import traceback
@@ -103,11 +102,8 @@ def cast(value, fn, error_message):
     raise EarlyExitException(error_message, 400)
 
 
-# TODO(singharshdeep): Remove content_type after flask migration.
-def should_render_json(accepts, content_type, res_json=False):
+def should_render_json(accepts, content_type):
   """Check accepts and content_type to see if we should render JSON."""
-  if res_json:
-    return True
   return 'application/json' in accepts or content_type == 'application/json'
 
 
