@@ -220,7 +220,7 @@ class GcsProvider(StorageProvider):
       bucket = client.bucket(bucket_name)
       blob = bucket.blob(path, chunk_size=self._chunk_size())
       blob.download_to_filename(local_path)
-    except google.cloud.exceptions.GoogleCloudError:
+    except google.cloud.google.cloud.exceptions.GoogleCloudError:
       logs.log_warn('Failed to copy cloud storage file %s to local file %s.' %
                     (remote_path, local_path))
       raise
@@ -243,7 +243,7 @@ class GcsProvider(StorageProvider):
       else:
         blob.upload_from_file(local_path_or_handle, rewind=True)
 
-    except google.cloud.exceptions.GoogleCloudError:
+    except google.cloud.google.cloud.exceptions.GoogleCloudError:
       logs.log_warn('Failed to copy local file %s to cloud storage file %s.' %
                     (local_path_or_handle, remote_path))
       raise
@@ -261,7 +261,7 @@ class GcsProvider(StorageProvider):
       source_blob = source_bucket.blob(source_path)
       target_bucket = client.bucket(target_bucket_name)
       source_bucket.copy_blob(source_blob, target_bucket, target_path)
-    except google.cloud.exceptions.GoogleCloudError:
+    except google.cloud.google.cloud.exceptions.GoogleCloudError:
       logs.log_warn('Failed to copy cloud storage file %s to cloud storage '
                     'file %s.' % (remote_source, remote_target))
       raise
@@ -277,7 +277,7 @@ class GcsProvider(StorageProvider):
       bucket = client.bucket(bucket_name)
       blob = bucket.blob(path, chunk_size=self._chunk_size())
       return blob.download_as_string()
-    except google.cloud.exceptions.GoogleCloudError as e:
+    except google.cloud.google.cloud.exceptions.GoogleCloudError as e:
       if e.code == 404:
         return None
 
@@ -295,7 +295,7 @@ class GcsProvider(StorageProvider):
       if metadata:
         blob.metadata = metadata
       blob.upload_from_string(data)
-    except google.cloud.exceptions.GoogleCloudError:
+    except google.cloud.google.cloud.exceptions.GoogleCloudError:
       logs.log_warn('Failed to write cloud storage file %s.' % remote_path)
       raise
 
@@ -322,7 +322,7 @@ class GcsProvider(StorageProvider):
     try:
       bucket = client.bucket(bucket_name)
       bucket.delete_blob(path)
-    except google.cloud.exceptions.GoogleCloudError:
+    except google.cloud.google.cloud.exceptions.GoogleCloudError:
       logs.log_warn('Failed to delete cloud storage file %s.' % remote_path)
       raise
 
@@ -752,7 +752,8 @@ def generate_life_cycle_config(action, age=None, num_newer_versions=None):
 @retry.wrap(
     retries=DEFAULT_FAIL_RETRIES,
     delay=DEFAULT_FAIL_WAIT,
-    function='google_cloud_utils.storage.copy_file_from')
+    function='google_cloud_utils.storage.copy_file_from',
+    exception_type=google.cloud.exceptions.GoogleCloudError)
 def copy_file_from(cloud_storage_file_path, local_file_path, use_cache=False):
   """Saves a cloud storage file locally."""
   if use_cache and get_file_from_cache_if_exists(local_file_path):
@@ -771,7 +772,8 @@ def copy_file_from(cloud_storage_file_path, local_file_path, use_cache=False):
 @retry.wrap(
     retries=DEFAULT_FAIL_RETRIES,
     delay=DEFAULT_FAIL_WAIT,
-    function='google_cloud_utils.storage.copy_file_to')
+    function='google_cloud_utils.storage.copy_file_to',
+    exception_type=google.cloud.exceptions.GoogleCloudError)
 def copy_file_to(local_file_path_or_handle,
                  cloud_storage_file_path,
                  metadata=None):
@@ -788,7 +790,8 @@ def copy_file_to(local_file_path_or_handle,
 @retry.wrap(
     retries=DEFAULT_FAIL_RETRIES,
     delay=DEFAULT_FAIL_WAIT,
-    function='google_cloud_utils.storage.copy_blob')
+    function='google_cloud_utils.storage.copy_blob',
+    exception_type=google.cloud.exceptions.GoogleCloudError)
 def copy_blob(cloud_storage_source_path, cloud_storage_target_path):
   """Copy two blobs on GCS 'in the cloud' without touching local disk."""
   return _provider().copy_blob(cloud_storage_source_path,
@@ -798,7 +801,8 @@ def copy_blob(cloud_storage_source_path, cloud_storage_target_path):
 @retry.wrap(
     retries=DEFAULT_FAIL_RETRIES,
     delay=DEFAULT_FAIL_WAIT,
-    function='google_cloud_utils.storage.delete')
+    function='google_cloud_utils.storage.delete',
+    exception_type=google.cloud.exceptions.GoogleCloudError)
 def delete(cloud_storage_file_path):
   """Delete a cloud storage file given its path."""
   return _provider().delete(cloud_storage_file_path)
@@ -823,7 +827,8 @@ def exists(cloud_storage_file_path, ignore_errors=False):
 @retry.wrap(
     retries=DEFAULT_FAIL_RETRIES,
     delay=DEFAULT_FAIL_WAIT,
-    function='google_cloud_utils.storage.last_updated')
+    function='google_cloud_utils.storage.last_updated',
+    exception_type=google.cloud.exceptions.GoogleCloudError)
 def last_updated(cloud_storage_file_path):
   """Return last updated value by parsing stats for all blobs under a cloud
   storage path."""
@@ -840,7 +845,8 @@ def last_updated(cloud_storage_file_path):
 @retry.wrap(
     retries=DEFAULT_FAIL_RETRIES,
     delay=DEFAULT_FAIL_WAIT,
-    function='google_cloud_utils.storage.read_data')
+    function='google_cloud_utils.storage.read_data',
+    exception_type=google.cloud.exceptions.GoogleCloudError)
 def read_data(cloud_storage_file_path):
   """Return content of a cloud storage file."""
   return _provider().read_data(cloud_storage_file_path)
@@ -849,7 +855,8 @@ def read_data(cloud_storage_file_path):
 @retry.wrap(
     retries=DEFAULT_FAIL_RETRIES,
     delay=DEFAULT_FAIL_WAIT,
-    function='google_cloud_utils.storage.write_data')
+    function='google_cloud_utils.storage.write_data',
+    exception_type=google.cloud.exceptions.GoogleCloudError)
 def write_data(data, cloud_storage_file_path, metadata=None):
   """Return content of a cloud storage file."""
   return _provider().write_data(
@@ -859,7 +866,8 @@ def write_data(data, cloud_storage_file_path, metadata=None):
 @retry.wrap(
     retries=DEFAULT_FAIL_RETRIES,
     delay=DEFAULT_FAIL_WAIT,
-    function='google_cloud_utils.storage.get_blobs')
+    function='google_cloud_utils.storage.get_blobs',
+    exception_type=google.cloud.exceptions.GoogleCloudError)
 def get_blobs(cloud_storage_path, recursive=True):
   """Return blobs under the given cloud storage path."""
   for blob in _provider().list_blobs(cloud_storage_path, recursive=recursive):
@@ -869,7 +877,8 @@ def get_blobs(cloud_storage_path, recursive=True):
 @retry.wrap(
     retries=DEFAULT_FAIL_RETRIES,
     delay=DEFAULT_FAIL_WAIT,
-    function='google_cloud_utils.storage.list_blobs')
+    function='google_cloud_utils.storage.list_blobs',
+    exception_type=google.cloud.exceptions.GoogleCloudError)
 def list_blobs(cloud_storage_path, recursive=True):
   """Return blob names under the given cloud storage path."""
   for blob in _provider().list_blobs(cloud_storage_path, recursive=recursive):
@@ -1086,7 +1095,8 @@ def store_file_in_cache(file_path,
 @retry.wrap(
     retries=DEFAULT_FAIL_RETRIES,
     delay=DEFAULT_FAIL_WAIT,
-    function='google_cloud_utils.storage.get')
+    function='google_cloud_utils.storage.get',
+    exception_type=google.cloud.exceptions.GoogleCloudError)
 def get(cloud_storage_file_path):
   """Get GCS object data."""
   return _provider().get(cloud_storage_file_path)
