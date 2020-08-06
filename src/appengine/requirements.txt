@@ -1,4 +1,5 @@
 firebase-admin==2.16.0
+Flask==1.1.2
 Jinja2==2.11.1
 jira==2.0.0
 PyJWT==1.7.1

@@ -41,4 +41,17 @@ except ImportError:
   pass
 
 import server
-app = server.app
+import server_flask
+
+routes = {route: server_flask.app for route, _ in server_flask.handlers}
+
+
+def middleware(environ, start_response):
+  """Middleware dispatcher for custom redirects."""
+  script = environ.get('PATH_INFO', '')
+  script = '/'.join(script.split('/', 2)[:2])
+  routed_app = routes.get(script, server.app)
+  return routed_app(environ, start_response)
+
+
+app = middleware

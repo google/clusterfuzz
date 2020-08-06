@@ -15,6 +15,7 @@
 
 from builtins import str
 import collections
+import flask
 import jwt
 
 from firebase_admin import auth
@@ -177,6 +178,8 @@ def create_session_cookie(id_token, expires_in):
 
 def get_current_request():
   """Get the current request."""
+  if flask.request:
+    return flask.request
   return webapp2.get_request()
 
 

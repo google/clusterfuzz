@@ -1,4 +1,4 @@
-# Copyright 2019 Google LLC
+# Copyright 2020 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -11,28 +11,29 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """Tests for Handler."""
-# TODO(singharshdeep): Remove this file after flask migration.
-from __future__ import print_function
-
+# TODO(singharshdeep): Rename this file to handler_flask_test after
+# flask migration.
 from builtins import str
 
+import flask
 import json
 import mock
 import os
 import unittest
-import webapp2
 import webtest
 import yaml
 
 from config import local_config
 from datastore import data_types
-from handlers import base_handler
+from flask import request
+from flask import Response
+from handlers import base_handler_flask
 from libs import auth
-from libs import handler
+from libs import handler_flask
 from libs import helpers
 from tests.test_libs import helpers as test_helpers
 
-_JSON_CONTENT_TYPE = 'application/json; charset=utf-8'
+_JSON_CONTENT_TYPE = 'application/json'
 
 
 def mocked_db_config_get_value(key):
@@ -54,105 +55,126 @@ def mocked_load_yaml_file(yaml_file_path):
   return yaml.safe_load(open(yaml_file_path).read())
 
 
-class JsonJsonPostHandler(base_handler.Handler):
+class JsonJsonPostHandler(base_handler_flask.Handler):
+  """Handler for json json post requests."""
 
-  @handler.post(handler.JSON, handler.JSON)
+  @handler_flask.post(handler_flask.JSON, handler_flask.JSON)
   def post(self):
-    test = self.request.get('test')
-    self.response.out.write(json.dumps({'data': test}))
-    self.response.set_status(200)
+    test = request.get('test')
+    response = Response()
+    response.data = json.dumps({'data': test})
+    response.status_code = 200
+    return response
 
 
-class FormHtmlPostHandler(base_handler.Handler):
+class FormHtmlPostHandler(base_handler_flask.Handler):
+  """Handler for form html post requests."""
 
-  @handler.post(handler.FORM, handler.HTML)
+  @handler_flask.post(handler_flask.FORM, handler_flask.HTML)
   def post(self):
-    test = self.request.get('test')
-    self.response.out.write(str(test))
-    self.response.set_status(200)
+    test = request.form.get('test')
+    response = Response()
+    response.data = str(test)
+    response.status_code = 200
+    return response
 
 
-class JsonGetHandler(webapp2.RequestHandler):
+class JsonGetHandler(base_handler_flask.Handler):
+  """Handler for json get requests."""
 
-  @handler.get(handler.JSON)
+  @handler_flask.get(handler_flask.JSON)
   def get(self):
-    test = self.request.get('test')
-    self.response.out.write(json.dumps({'data': test}))
-    self.response.set_status(200)
+    test = request.get('test')
+    response = Response()
+    response.data = json.dumps({'data': test})
+    response.status_code = 200
+    return response
 
 
-class HtmlGetHandler(webapp2.RequestHandler):
+class HtmlGetHandler(base_handler_flask.Handler):
+  """Handler for html get requests."""
 
-  @handler.get(handler.HTML)
+  @handler_flask.get(handler_flask.HTML)
   def get(self):
-    test = self.request.get('test')
-    self.response.out.write(str(test))
-    self.response.set_status(200)
+    test = request.get('test')
+    response = Response()
+    response.data = str(test)
+    response.status_code = 200
+    return response
 
 
-class NeedsPrivilegeAccessHandler(base_handler.Handler):
+class NeedsPrivilegeAccessHandler(base_handler_flask.Handler):
+  """Handler for needs privilege access requests."""
 
-  @handler.get(handler.JSON)
-  @handler.check_user_access(True)
+  @handler_flask.get(handler_flask.JSON)
+  @handler_flask.check_user_access(True)
   def get(self):
-    self.render_json({'data': 'with'})
+    return self.render_json({'data': 'with'})
 
 
-class WithoutNeedsPrivilegeAccessHandler(base_handler.Handler):
+class WithoutNeedsPrivilegeAccessHandler(base_handler_flask.Handler):
+  """Handler for without needs privilege access requests."""
 
-  @handler.get(handler.JSON)
-  @handler.check_user_access(False)
+  @handler_flask.get(handler_flask.JSON)
+  @handler_flask.check_user_access(False)
   def get(self):
-    self.render_json({'data': 'without'})
+    return self.render_json({'data': 'without'})
 
 
-class CronHandler(base_handler.Handler):
+class CronHandler(base_handler_flask.Handler):
+  """Handler for crons."""
 
-  @handler.check_cron()
+  @handler_flask.check_cron()
   def get(self):
-    self.render_json({})
+    return self.render_json({})
 
 
-class CheckTestcaseAccessHandler(base_handler.Handler):
+class CheckTestcaseAccessHandler(base_handler_flask.Handler):
+  """Handler for check testcase access requests."""
 
-  @handler.post(handler.JSON, handler.JSON)
-  @handler.check_testcase_access
+  @handler_flask.post(handler_flask.JSON, handler_flask.JSON)
+  @handler_flask.check_testcase_access
   def post(self, testcase):
-    self.render_json({'state': testcase.crash_state})
+    print("returning render_json")
+    return self.render_json({'state': testcase.crash_state})
 
 
-class CheckAdminAccessHandler(base_handler.Handler):
+class CheckAdminAccessHandler(base_handler_flask.Handler):
+  """Handler for check admin access requests."""
 
-  @handler.post(handler.JSON, handler.JSON)
-  @handler.check_admin_access
+  @handler_flask.post(handler_flask.JSON, handler_flask.JSON)
+  @handler_flask.check_admin_access
   def post(self):
-    self.render_json({'data': 'admin'})
+    return self.render_json({'data': 'admin'})
 
 
-class CheckAdminAccessIfOssFuzzHandler(base_handler.Handler):
+class CheckAdminAccessIfOssFuzzHandler(base_handler_flask.Handler):
+  """Handler for check admin access if oss fuzz requests."""
 
-  @handler.post(handler.JSON, handler.JSON)
-  @handler.check_admin_access_if_oss_fuzz
+  @handler_flask.post(handler_flask.JSON, handler_flask.JSON)
+  @handler_flask.check_admin_access_if_oss_fuzz
   def post(self):
-    self.render_json({})
+    return self.render_json({})
 
 
-class OAuthHandler(base_handler.Handler):
+class OAuthHandler(base_handler_flask.Handler):
+  """Handler for oauth requests."""
 
-  @handler.post(handler.JSON, handler.JSON)
-  @handler.oauth
+  @handler_flask.post(handler_flask.JSON, handler_flask.JSON)
+  @handler_flask.oauth
   def post(self):
     email = ''
     if auth.get_current_user():
       email = auth.get_current_user().email
-    self.render_json({'data': email})
+    return self.render_json({'data': email})
 
 
-class AllowedCorsHandler(base_handler.Handler):
+class AllowedCorsHandler(base_handler_flask.Handler):
+  """Handler for allowed cors requests."""
 
-  @handler.allowed_cors
+  @handler_flask.allowed_cors
   def post(self):
-    self.render_json({'data': 'yes'})
+    return self.render_json({'data': 'yes'})
 
 
 class CronTest(unittest.TestCase):
@@ -169,7 +191,9 @@ class CronTest(unittest.TestCase):
     self.mock.is_current_user_admin.return_value = False
     self.mock.get_current_user.return_value = auth.User('test@test.com')
 
-    self.app = webtest.TestApp(webapp2.WSGIApplication([('/', CronHandler)]))
+    flaskapp = flask.Flask('testflask')
+    flaskapp.add_url_rule('/', view_func=CronHandler.as_view('/'))
+    self.app = webtest.TestApp(flaskapp)
 
   def test_succeed(self):
     """Test request from cron."""
@@ -179,7 +203,6 @@ class CronTest(unittest.TestCase):
   def test_fail(self):
     """Test request from non-cron."""
     response = self.app.get('/', expect_errors=True)
-    print(response.body)
     self.assertEqual(403, response.status_int)
 
 
@@ -188,8 +211,9 @@ class PostTest(unittest.TestCase):
 
   def test_post_json_json(self):
     """Post JSON and receive JSON."""
-    self.app = webtest.TestApp(
-        webapp2.WSGIApplication([('/', JsonJsonPostHandler)]))
+    flaskapp = flask.Flask('testflask')
+    flaskapp.add_url_rule('/', view_func=JsonJsonPostHandler.as_view('/'))
+    self.app = webtest.TestApp(flaskapp)
 
     resp = self.app.post_json('/', {'test': 123})
     self.assertEqual(_JSON_CONTENT_TYPE, resp.headers['Content-Type'])
@@ -197,8 +221,9 @@ class PostTest(unittest.TestCase):
 
   def test_post_json_json_failure(self):
     """Fail to post JSON."""
-    self.app = webtest.TestApp(
-        webapp2.WSGIApplication([('/', JsonJsonPostHandler)]))
+    flaskapp = flask.Flask('testflask')
+    flaskapp.add_url_rule('/', view_func=JsonJsonPostHandler.as_view('/'))
+    self.app = webtest.TestApp(flaskapp)
 
     resp = self.app.post('/', {'test': 123}, expect_errors=True)
     self.assertEqual(_JSON_CONTENT_TYPE, resp.headers['Content-Type'])
@@ -206,8 +231,9 @@ class PostTest(unittest.TestCase):
 
   def test_post_form_html(self):
     """Post Form-data and receive Html."""
-    self.app = webtest.TestApp(
-        webapp2.WSGIApplication([('/', FormHtmlPostHandler)]))
+    flaskapp = flask.Flask('testflask')
+    flaskapp.add_url_rule('/', view_func=FormHtmlPostHandler.as_view('/'))
+    self.app = webtest.TestApp(flaskapp)
 
     resp = self.app.post('/', {'test': 123})
     self.assertNotEqual('application/json', resp.headers['Content-Type'])
@@ -219,7 +245,9 @@ class GetTest(unittest.TestCase):
 
   def test_get_json(self):
     """Get and receive JSON."""
-    self.app = webtest.TestApp(webapp2.WSGIApplication([('/', JsonGetHandler)]))
+    flaskapp = flask.Flask('testflask')
+    flaskapp.add_url_rule('/', view_func=JsonGetHandler.as_view('/'))
+    self.app = webtest.TestApp(flaskapp)
 
     resp = self.app.get('/', {'test': 123})
     self.assertEqual(_JSON_CONTENT_TYPE, resp.headers['Content-Type'])
@@ -227,7 +255,9 @@ class GetTest(unittest.TestCase):
 
   def test_get_html(self):
     """Get and receive Html."""
-    self.app = webtest.TestApp(webapp2.WSGIApplication([('/', HtmlGetHandler)]))
+    flaskapp = flask.Flask('testflask')
+    flaskapp.add_url_rule('/', view_func=HtmlGetHandler.as_view('/'))
+    self.app = webtest.TestApp(flaskapp)
 
     resp = self.app.get('/', {'test': 123})
     self.assertNotEqual('application/json', resp.headers['Content-Type'])
@@ -246,8 +276,10 @@ class CheckUserAccessTest(unittest.TestCase):
   def test_with_needs_privilege_access(self):
     """Test with needs_previlege_access."""
     self.mock.has_access.return_value = True
-    self.app = webtest.TestApp(
-        webapp2.WSGIApplication([('/', NeedsPrivilegeAccessHandler)]))
+    flaskapp = flask.Flask('testflask')
+    flaskapp.add_url_rule(
+        '/', view_func=NeedsPrivilegeAccessHandler.as_view('/'))
+    self.app = webtest.TestApp(flaskapp)
 
     resp = self.app.get('/')
     self.assertEqual(200, resp.status_int)
@@ -257,8 +289,10 @@ class CheckUserAccessTest(unittest.TestCase):
   def test_without_needs_privilege(self):
     """Test without needs_previlege_access."""
     self.mock.has_access.return_value = True
-    self.app = webtest.TestApp(
-        webapp2.WSGIApplication([('/', WithoutNeedsPrivilegeAccessHandler)]))
+    flaskapp = flask.Flask('testflask')
+    flaskapp.add_url_rule(
+        '/', view_func=WithoutNeedsPrivilegeAccessHandler.as_view('/'))
+    self.app = webtest.TestApp(flaskapp)
 
     resp = self.app.get('/')
     self.assertEqual(200, resp.status_int)
@@ -269,8 +303,10 @@ class CheckUserAccessTest(unittest.TestCase):
     """Test deny access."""
     self.mock.has_access.return_value = False
     self.mock.get_user_email.return_value = 'test@test.com'
-    self.app = webtest.TestApp(
-        webapp2.WSGIApplication([('/', WithoutNeedsPrivilegeAccessHandler)]))
+    flaskapp = flask.Flask('testflask')
+    flaskapp.add_url_rule(
+        '/', view_func=WithoutNeedsPrivilegeAccessHandler.as_view('/'))
+    self.app = webtest.TestApp(flaskapp)
 
     resp = self.app.get('/', expect_errors=True)
     self.assertEqual(403, resp.status_int)
@@ -291,10 +327,13 @@ class CheckTestcaseAccessTest(unittest.TestCase):
     """Test no testcase id."""
     self.mock.check_access_and_get_testcase.side_effect = (
         helpers.AccessDeniedException())
-    self.app = webtest.TestApp(
-        webapp2.WSGIApplication([('/', CheckTestcaseAccessHandler)]))
+    flaskapp = flask.Flask('testflask')
+    flaskapp.add_url_rule(
+        '/', view_func=CheckTestcaseAccessHandler.as_view('/'))
+    self.app = webtest.TestApp(flaskapp)
 
     resp = self.app.post_json('/', {}, expect_errors=True)
+    #print(resp)
     self.assertEqual(400, resp.status_int)
     self.assertRegex(resp.json['message'], '.*not a number.*')
 
@@ -302,8 +341,10 @@ class CheckTestcaseAccessTest(unittest.TestCase):
     """Test invalid testcase id."""
     self.mock.check_access_and_get_testcase.side_effect = (
         helpers.AccessDeniedException())
-    self.app = webtest.TestApp(
-        webapp2.WSGIApplication([('/', CheckTestcaseAccessHandler)]))
+    flaskapp = flask.Flask('testflask')
+    flaskapp.add_url_rule(
+        '/', view_func=CheckTestcaseAccessHandler.as_view('/'))
+    self.app = webtest.TestApp(flaskapp)
 
     resp = self.app.post_json('/', {'testcaseId': 'aaa'}, expect_errors=True)
     self.assertEqual(400, resp.status_int)
@@ -313,8 +354,10 @@ class CheckTestcaseAccessTest(unittest.TestCase):
     """Test forbidden."""
     self.mock.check_access_and_get_testcase.side_effect = (
         helpers.AccessDeniedException())
-    self.app = webtest.TestApp(
-        webapp2.WSGIApplication([('/', CheckTestcaseAccessHandler)]))
+    flaskapp = flask.Flask('testflask')
+    flaskapp.add_url_rule(
+        '/', view_func=CheckTestcaseAccessHandler.as_view('/'))
+    self.app = webtest.TestApp(flaskapp)
 
     resp = self.app.post_json('/', {'testcaseId': '123'}, expect_errors=True)
     self.assertEqual(403, resp.status_int)
@@ -324,8 +367,10 @@ class CheckTestcaseAccessTest(unittest.TestCase):
     testcase = data_types.Testcase()
     testcase.crash_state = 'state_value'
     self.mock.check_access_and_get_testcase.return_value = testcase
-    self.app = webtest.TestApp(
-        webapp2.WSGIApplication([('/', CheckTestcaseAccessHandler)]))
+    flaskapp = flask.Flask('testflask')
+    flaskapp.add_url_rule(
+        '/', view_func=CheckTestcaseAccessHandler.as_view('/'))
+    self.app = webtest.TestApp(flaskapp)
 
     resp = self.app.post_json('/', {'testcaseId': '123'}, expect_errors=True)
     self.assertEqual(200, resp.status_int)
@@ -343,8 +388,9 @@ class CheckAdminAccessTest(unittest.TestCase):
   def test_allowed(self):
     """Test allowing admin."""
     self.mock.is_current_user_admin.return_value = True
-    self.app = webtest.TestApp(
-        webapp2.WSGIApplication([('/', CheckAdminAccessHandler)]))
+    flaskapp = flask.Flask('testflask')
+    flaskapp.add_url_rule('/', view_func=CheckAdminAccessHandler.as_view('/'))
+    self.app = webtest.TestApp(flaskapp)
 
     resp = self.app.post_json('/', {})
     self.assertEqual(200, resp.status_int)
@@ -353,8 +399,9 @@ class CheckAdminAccessTest(unittest.TestCase):
   def test_forbidden(self):
     """Test allowing admin."""
     self.mock.is_current_user_admin.return_value = False
-    self.app = webtest.TestApp(
-        webapp2.WSGIApplication([('/', CheckAdminAccessHandler)]))
+    flaskapp = flask.Flask('testflask')
+    flaskapp.add_url_rule('/', view_func=CheckAdminAccessHandler.as_view('/'))
+    self.app = webtest.TestApp(flaskapp)
 
     resp = self.app.post_json('/', {}, expect_errors=True)
     self.assertEqual(403, resp.status_int)
@@ -374,8 +421,10 @@ class CheckAdminAccessIfOssFuzzTest(unittest.TestCase):
   def test_allowed_internal(self):
     """Test allowing non-admin and admin in internal."""
     self.mock.is_current_user_admin.return_value = False
-    self.app = webtest.TestApp(
-        webapp2.WSGIApplication([('/', CheckAdminAccessIfOssFuzzHandler)]))
+    flaskapp = flask.Flask('testflask')
+    flaskapp.add_url_rule(
+        '/', view_func=CheckAdminAccessIfOssFuzzHandler.as_view('/'))
+    self.app = webtest.TestApp(flaskapp)
 
     resp = self.app.post_json('/', {})
     self.assertEqual(200, resp.status_int)
@@ -388,8 +437,10 @@ class CheckAdminAccessIfOssFuzzTest(unittest.TestCase):
     """Test allowing admin in OSS-Fuzz."""
     self.mock.is_oss_fuzz.return_value = True
     self.mock.is_current_user_admin.return_value = True
-    self.app = webtest.TestApp(
-        webapp2.WSGIApplication([('/', CheckAdminAccessIfOssFuzzHandler)]))
+    flaskapp = flask.Flask('testflask')
+    flaskapp.add_url_rule(
+        '/', view_func=CheckAdminAccessIfOssFuzzHandler.as_view('/'))
+    self.app = webtest.TestApp(flaskapp)
 
     resp = self.app.post_json('/', {})
     self.assertEqual(200, resp.status_int)
@@ -398,8 +449,10 @@ class CheckAdminAccessIfOssFuzzTest(unittest.TestCase):
     """Test that non-admin in OSS-Fuzz are forbidden."""
     self.mock.is_oss_fuzz.return_value = True
     self.mock.is_current_user_admin.return_value = False
-    self.app = webtest.TestApp(
-        webapp2.WSGIApplication([('/', CheckAdminAccessIfOssFuzzHandler)]))
+    flaskapp = flask.Flask('testflask')
+    flaskapp.add_url_rule(
+        '/', view_func=CheckAdminAccessIfOssFuzzHandler.as_view('/'))
+    self.app = webtest.TestApp(flaskapp)
 
     resp = self.app.post_json('/', {}, expect_errors=True)
     self.assertEqual(403, resp.status_int)
@@ -409,8 +462,10 @@ class AllowOAuthTest(unittest.TestCase):
   """Test oauth."""
 
   def setUp(self):
-    test_helpers.patch(self, ['libs.handler.get_email_and_access_token'])
-    self.app = webtest.TestApp(webapp2.WSGIApplication([('/', OAuthHandler)]))
+    test_helpers.patch(self, ['libs.handler_flask.get_email_and_access_token'])
+    flaskapp = flask.Flask('testflask')
+    flaskapp.add_url_rule('/', view_func=OAuthHandler.as_view('/'))
+    self.app = webtest.TestApp(flaskapp)
     test_helpers.patch_environ(self)
     os.environ['AUTH_DOMAIN'] = 'localhost'
 
@@ -422,10 +477,10 @@ class AllowOAuthTest(unittest.TestCase):
         '/', {}, headers={'Authorization': 'Bearer AccessToken'})
     self.assertEqual(200, resp.status_int)
     self.assertEqual('email', resp.json['data'])
-    self.assertEqual('auth',
-                     resp.headers[handler.CLUSTERFUZZ_AUTHORIZATION_HEADER])
-    self.assertEqual('email',
-                     resp.headers[handler.CLUSTERFUZZ_AUTHORIZATION_IDENTITY])
+    self.assertEqual(
+        'auth', resp.headers[handler_flask.CLUSTERFUZZ_AUTHORIZATION_HEADER])
+    self.assertEqual(
+        'email', resp.headers[handler_flask.CLUSTERFUZZ_AUTHORIZATION_IDENTITY])
     self.assertEqual(1, self.mock.get_email_and_access_token.call_count)
     self.mock.get_email_and_access_token.assert_has_calls(
         [mock.call('Bearer AccessToken')])
@@ -436,7 +491,8 @@ class AllowOAuthTest(unittest.TestCase):
     resp = self.app.post_json('/', {}, headers={})
     self.assertEqual(200, resp.status_int)
     self.assertEqual('', resp.json['data'])
-    self.assertNotIn(handler.CLUSTERFUZZ_AUTHORIZATION_HEADER, resp.headers)
+    self.assertNotIn(handler_flask.CLUSTERFUZZ_AUTHORIZATION_HEADER,
+                     resp.headers)
     self.assertEqual(0, self.mock.get_email_and_access_token.call_count)
 
 
@@ -447,7 +503,7 @@ class TestGetEmailAndAccessToken(unittest.TestCase):
     test_helpers.patch(self, [
         'config.db_config.get_value',
         'config.local_config._load_yaml_file',
-        'libs.handler.get_access_token',
+        'libs.handler_flask.get_access_token',
         'requests.get',
     ])
 
@@ -479,7 +535,8 @@ class TestGetEmailAndAccessToken(unittest.TestCase):
               'email_verified': True
           }))
 
-      email, token = handler.get_email_and_access_token('Bearer AccessToken')
+      email, token = handler_flask.get_email_and_access_token(
+          'Bearer AccessToken')
       self.assertEqual('test@test.com', email)
       self.assertEqual('Bearer AccessToken', token)
       self._assert_requests_get_call()
@@ -495,7 +552,7 @@ class TestGetEmailAndAccessToken(unittest.TestCase):
               'email': email
           }))
 
-      returned_email, token = handler.get_email_and_access_token(
+      returned_email, token = handler_flask.get_email_and_access_token(
           'Bearer AccessToken')
       self.assertEqual(email, returned_email)
       self.assertEqual('Bearer AccessToken', token)
@@ -512,7 +569,8 @@ class TestGetEmailAndAccessToken(unittest.TestCase):
         }))
     self.mock.get_access_token.return_value = 'AccessToken'
 
-    email, token = handler.get_email_and_access_token('VerificationCode Verify')
+    email, token = handler_flask.get_email_and_access_token(
+        'VerificationCode Verify')
     self.assertEqual('test@test.com', email)
     self.assertEqual('Bearer AccessToken', token)
     self.assertEqual(1, self.mock.get_access_token.call_count)
@@ -522,7 +580,7 @@ class TestGetEmailAndAccessToken(unittest.TestCase):
   def test_invalid_authorization_header(self):
     """Test invalid authorization header."""
     with self.assertRaises(helpers.UnauthorizedException) as cm:
-      handler.get_email_and_access_token('ReceiverAccessToken')
+      handler_flask.get_email_and_access_token('ReceiverAccessToken')
 
     self.assertEqual(401, cm.exception.status)
     self.assertEqual(
@@ -535,7 +593,7 @@ class TestGetEmailAndAccessToken(unittest.TestCase):
     self.mock.get.return_value = mock.Mock(status_code=403)
 
     with self.assertRaises(helpers.UnauthorizedException) as cm:
-      handler.get_email_and_access_token('Bearer AccessToken')
+      handler_flask.get_email_and_access_token('Bearer AccessToken')
     self.assertEqual(401, cm.exception.status)
     self.assertEqual(
         ('Failed to authorize. The Authorization header (Bearer AccessToken)'
@@ -547,7 +605,7 @@ class TestGetEmailAndAccessToken(unittest.TestCase):
     self.mock.get.return_value = mock.Mock(status_code=200, text='test')
 
     with self.assertRaises(helpers.EarlyExitException) as cm:
-      handler.get_email_and_access_token('Bearer AccessToken')
+      handler_flask.get_email_and_access_token('Bearer AccessToken')
     self.assertEqual(500, cm.exception.status)
     self.assertEqual('Parsing the JSON response body failed: test',
                      str(cm.exception))
@@ -564,7 +622,7 @@ class TestGetEmailAndAccessToken(unittest.TestCase):
         }))
 
     with self.assertRaises(helpers.EarlyExitException) as cm:
-      handler.get_email_and_access_token('Bearer AccessToken')
+      handler_flask.get_email_and_access_token('Bearer AccessToken')
     self.assertEqual(401, cm.exception.status)
     self.assertIn(
         "The access token doesn't belong to one of the allowed OAuth clients",
@@ -582,7 +640,7 @@ class TestGetEmailAndAccessToken(unittest.TestCase):
         }))
 
     with self.assertRaises(helpers.EarlyExitException) as cm:
-      handler.get_email_and_access_token('Bearer AccessToken')
+      handler_flask.get_email_and_access_token('Bearer AccessToken')
     self.assertEqual(401, cm.exception.status)
     self.assertIn('The email (test@test.com) is not verified',
                   str(cm.exception))
@@ -624,7 +682,7 @@ class TestGetAccessToken(unittest.TestCase):
             'access_token': 'token'
         }))
 
-    token = handler.get_access_token('verify')
+    token = handler_flask.get_access_token('verify')
     self.assertEqual('token', token)
     self._assert_requests_post_call()
 
@@ -633,7 +691,7 @@ class TestGetAccessToken(unittest.TestCase):
     self.mock.post.return_value = mock.Mock(status_code=403, text='test')
 
     with self.assertRaises(helpers.UnauthorizedException) as cm:
-      handler.get_access_token('verify')
+      handler_flask.get_access_token('verify')
     self.assertEqual(401, cm.exception.status)
     self.assertEqual('Invalid verification code (verify): test',
                      str(cm.exception))
@@ -644,7 +702,7 @@ class TestGetAccessToken(unittest.TestCase):
     self.mock.post.return_value = mock.Mock(status_code=200, text='test')
 
     with self.assertRaises(helpers.EarlyExitException) as cm:
-      handler.get_access_token('verify')
+      handler_flask.get_access_token('verify')
     self.assertEqual(500, cm.exception.status)
     self.assertEqual('Parsing the JSON response body failed: test',
                      str(cm.exception))
@@ -661,8 +719,9 @@ class AllowedCorsHandlerTest(unittest.TestCase):
 
     self.mock._load_yaml_file.side_effect = mocked_load_yaml_file  # pylint: disable=protected-access
 
-    self.app = webtest.TestApp(
-        webapp2.WSGIApplication([('/', AllowedCorsHandler)]))
+    flaskapp = flask.Flask('testflask')
+    flaskapp.add_url_rule('/', view_func=AllowedCorsHandler.as_view('/'))
+    self.app = webtest.TestApp(flaskapp)
 
   def test_allow_cors(self):
     """Tests valid origins."""
