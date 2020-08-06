@@ -111,8 +111,7 @@ class Handler(base_handler_flask.Handler):
     client_credentials = request.get('client_credentials')
     jira_url = request.get('jira_url')
     jira_credentials = request.get('jira_credentials')
-    component_repository_mappings = request.get(
-        'component_repository_mappings')
+    component_repository_mappings = request.get('component_repository_mappings')
     contact_string = request.get('contact_string')
     documentation_url = request.get('documentation_url')
     github_credentials = request.get('github_credentials')
@@ -121,11 +120,9 @@ class Handler(base_handler_flask.Handler):
     blacklisted_users = request.get('blacklisted_users')
     relax_security_bug_restrictions = request.get(
         'relax_security_bug_restrictions')
-    relax_testcase_restrictions = request.get(
-        'relax_testcase_restrictions')
+    relax_testcase_restrictions = request.get('relax_testcase_restrictions')
     reproduce_tool_client_id = request.get('reproduce_tool_client_id')
-    reproduce_tool_client_secret = request.get(
-        'reproduce_tool_client_secret')
+    reproduce_tool_client_secret = request.get('reproduce_tool_client_secret')
     reproduction_help_url = request.get('reproduction_help_url')
     test_account_email = request.get('test_account_email')
     test_account_password = request.get('test_account_password')
