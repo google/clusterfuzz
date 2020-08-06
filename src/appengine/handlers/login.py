@@ -16,26 +16,28 @@
 import datetime
 
 from config import local_config
-from handlers import base_handler
+from flask import request
+from flask import Response
+from handlers import base_handler_flask
 from libs import auth
-from libs import handler
+from libs import handler_flask
 from libs import helpers
 from metrics import logs
 
 SESSION_EXPIRY_DAYS = 14
 
 
-class Handler(base_handler.Handler):
+class Handler(base_handler_flask.Handler):
   """Login page."""
 
-  @handler.unsupported_on_local_server
-  @handler.get(handler.HTML)
+  @handler_flask.get(handler_flask.HTML)
+  @handler_flask.unsupported_on_local_server
   def get(self):
     """Handle a get request."""
-    dest = self.request.get('dest')
-    base_handler.check_redirect_url(dest)
+    dest = request.get('dest')
+    base_handler_flask.check_redirect_url(dest)
 
-    self.render(
+    return self.render(
         'login.html', {
             'apiKey': local_config.ProjectConfig().get('firebase.api_key'),
             'authDomain': auth.auth_domain(),
@@ -43,13 +45,13 @@ class Handler(base_handler.Handler):
         })
 
 
-class SessionLoginHandler(base_handler.Handler):
-  """Session login handler."""
+class SessionLoginHandler(base_handler_flask.Handler):
+  """Session login handler_flask."""
 
-  @handler.post(handler.JSON, handler.JSON)
+  @handler_flask.post(handler_flask.JSON, handler_flask.JSON)
   def post(self):
     """Handle a post request."""
-    id_token = self.request.get('idToken')
+    id_token = request.get('idToken')
     expires_in = datetime.timedelta(days=SESSION_EXPIRY_DAYS)
     try:
       session_cookie = auth.create_session_cookie(id_token, expires_in)
@@ -57,22 +59,23 @@ class SessionLoginHandler(base_handler.Handler):
       raise helpers.EarlyExitException('Failed to create session cookie.', 401)
 
     expires = datetime.datetime.now() + expires_in
-    self.response.set_cookie(
+    response = Response()
+    response.set_cookie(
         'session',
         session_cookie,
         expires=expires,
         httponly=True,
         secure=True,
         overwrite=True)
-    self.render_json({'status': 'success'})
+    return self.render_json({'status': 'success'}, response=response)
 
 
-class LogoutHandler(base_handler.Handler):
-  """Log out handler."""
+class LogoutHandler(base_handler_flask.Handler):
+  """Log out handler_flask."""
 
-  @handler.unsupported_on_local_server
-  @handler.require_csrf_token
-  @handler.get(handler.HTML)
+  @handler_flask.get(handler_flask.HTML)
+  @handler_flask.unsupported_on_local_server
+  @handler_flask.require_csrf_token
   def get(self):
     """Handle a get request."""
     try:
@@ -81,5 +84,6 @@ class LogoutHandler(base_handler.Handler):
       # Even if the revoke failed, remove the cookie.
       logs.log_error('Failed to revoke session cookie.')
 
-    self.response.delete_cookie('session')
-    self.redirect(self.request.get('dest'))
+    response = Response()
+    response.delete_cookie('session')
+    return self.redirect(request.get('dest'), response=response)

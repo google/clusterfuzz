@@ -181,7 +181,7 @@ class Handler(MethodView):
     response.headers['X-Frame-Options'] = 'deny'
     return response
 
-  def render(self, path, values=None, status=200):
+  def render(self, path, values=None, status=200, response=None):
     """Write HTML response."""
     if values is None:
       values = {}
@@ -203,7 +203,8 @@ class Handler(MethodView):
 
     template = _JINJA_ENVIRONMENT.get_template(path)
 
-    response = Response()
+    if not response:
+      response = Response()
     response = self._add_security_response_headers(response)
     response.headers['Content-Type'] = 'text/html'
     response.data = template.render(values)
@@ -215,9 +216,10 @@ class Handler(MethodView):
     """A hook for modifying values before render_json."""
     return response
 
-  def render_json(self, values, status=200):
+  def render_json(self, values, status=200, response=None):
     """Write JSON response."""
-    response = Response()
+    if not response:
+      response = Response()
     response = self._add_security_response_headers(response)
     response.headers['Content-Type'] = 'application/json'
     response = self.before_render_json(values, status, response)
@@ -293,7 +295,7 @@ class GcsUploadHandler(Handler):
     if self.upload:
       return self.upload
 
-    upload_key = request.form.get('upload_key')
+    upload_key = request.get('upload_key')
     if not upload_key:
       return None
 
