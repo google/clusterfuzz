@@ -220,7 +220,7 @@ class GcsProvider(StorageProvider):
       bucket = client.bucket(bucket_name)
       blob = bucket.blob(path, chunk_size=self._chunk_size())
       blob.download_to_filename(local_path)
-    except google.cloud.google.cloud.exceptions.GoogleCloudError:
+    except google.cloud.exceptions.GoogleCloudError:
       logs.log_warn('Failed to copy cloud storage file %s to local file %s.' %
                     (remote_path, local_path))
       raise
@@ -243,7 +243,7 @@ class GcsProvider(StorageProvider):
       else:
         blob.upload_from_file(local_path_or_handle, rewind=True)
 
-    except google.cloud.google.cloud.exceptions.GoogleCloudError:
+    except google.cloud.exceptions.GoogleCloudError:
       logs.log_warn('Failed to copy local file %s to cloud storage file %s.' %
                     (local_path_or_handle, remote_path))
       raise
@@ -261,7 +261,7 @@ class GcsProvider(StorageProvider):
       source_blob = source_bucket.blob(source_path)
       target_bucket = client.bucket(target_bucket_name)
       source_bucket.copy_blob(source_blob, target_bucket, target_path)
-    except google.cloud.google.cloud.exceptions.GoogleCloudError:
+    except google.cloud.exceptions.GoogleCloudError:
       logs.log_warn('Failed to copy cloud storage file %s to cloud storage '
                     'file %s.' % (remote_source, remote_target))
       raise
@@ -277,7 +277,7 @@ class GcsProvider(StorageProvider):
       bucket = client.bucket(bucket_name)
       blob = bucket.blob(path, chunk_size=self._chunk_size())
       return blob.download_as_string()
-    except google.cloud.google.cloud.exceptions.GoogleCloudError as e:
+    except google.cloud.exceptions.GoogleCloudError as e:
       if e.code == 404:
         return None
 
@@ -295,7 +295,7 @@ class GcsProvider(StorageProvider):
       if metadata:
         blob.metadata = metadata
       blob.upload_from_string(data)
-    except google.cloud.google.cloud.exceptions.GoogleCloudError:
+    except google.cloud.exceptions.GoogleCloudError:
       logs.log_warn('Failed to write cloud storage file %s.' % remote_path)
       raise
 
@@ -322,7 +322,7 @@ class GcsProvider(StorageProvider):
     try:
       bucket = client.bucket(bucket_name)
       bucket.delete_blob(path)
-    except google.cloud.google.cloud.exceptions.GoogleCloudError:
+    except google.cloud.exceptions.GoogleCloudError:
       logs.log_warn('Failed to delete cloud storage file %s.' % remote_path)
       raise
 
