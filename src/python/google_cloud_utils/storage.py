@@ -1095,8 +1095,7 @@ def store_file_in_cache(file_path,
 @retry.wrap(
     retries=DEFAULT_FAIL_RETRIES,
     delay=DEFAULT_FAIL_WAIT,
-    function='google_cloud_utils.storage.get',
-    exception_type=google.cloud.exceptions.GoogleCloudError)
+    function='google_cloud_utils.storage.get')
 def get(cloud_storage_file_path):
   """Get GCS object data."""
   return _provider().get(cloud_storage_file_path)
