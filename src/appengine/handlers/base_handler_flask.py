@@ -281,12 +281,12 @@ class Handler(MethodView):
 
 
 class GcsUploadHandler(Handler):
-  """A Flask handler which uploads files to GCS."""
+  """A handler which uploads files to GCS."""
 
   def dispatch_request(self, *args, **kwargs):
     """Dispatch a request and postprocess."""
     self.upload = None
-    return super(GcsUploadHandler, self).dispatch_request(*args, **kwargs)
+    return super().dispatch_request(*args, **kwargs)
 
   def get_upload(self):
     """Get uploads."""
