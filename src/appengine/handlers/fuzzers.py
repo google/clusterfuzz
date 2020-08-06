@@ -286,6 +286,7 @@ class LogHandler(base_handler_flask.Handler):
   @handler_flask.check_user_access(need_privileged_access=False)
   def get(self, fuzzer_name):
     """Handle a get request."""
+    helpers.log('LogHandler', fuzzer_name)
     fuzzer = data_types.Fuzzer.query(
         data_types.Fuzzer.name == fuzzer_name).get()
     if not fuzzer:

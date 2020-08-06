@@ -78,7 +78,7 @@ handlers = [
     ('/fuzzers/create', fuzzers.CreateHandler),
     ('/fuzzers/delete', fuzzers.DeleteHandler),
     ('/fuzzers/edit', fuzzers.EditHandler),
-    ('/fuzzers/log/([^/]+)', fuzzers.LogHandler),
+    ('/fuzzers/log/<fuzzer_name>', fuzzers.LogHandler),
     ('/jobs', jobs.Handler),
     ('/jobs/load', jobs.JsonHandler),
     ('/jobs/delete-job', jobs.DeleteJobHandler),
