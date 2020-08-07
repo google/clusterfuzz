@@ -23,16 +23,23 @@ def generate(serial,
              vmlinux_path,
              config_path,
              kcov=True,
-             reproduce=True):
+             reproduce=True,
+             syzhub_address=None,
+             syzhub_client=None,
+             syzhub_key=None):
   """Generates syzkaller config file.
 
   Args:
-    serial: (str)serial number of the device being fuzzed
-    kcov: (boolean) true if coverage is enabled
-    reproduce: (boolean) true if repro is enabled
-    vmlinux_path: (str) path to the vmlinux file
-    work_dir_path: (str) path to working directory of syzkaller
-
+    serial: (str)serial number of the device being fuzzed.
+    work_dir_path: (str) path to working directory of syzkaller.
+    binary_path: (str) path to syzkaller binaries.
+    vmlinux_path: (str) path to the vmlinux file.
+    config_path: (str) path to write the syzkaller config to.
+    kcov: (boolean) true if coverage is enabled.
+    reproduce: (boolean) true if repro is enabled.
+    syzhub_address: (str) ip:host of the syzhub to connect to.
+    syzhub_client: (str) syzhub client name.
+    syzhub_key: (str) syzhub key.
   """
   devices = {}
   devices['devices'] = [serial]
@@ -51,6 +58,11 @@ def generate(serial,
   data['type'] = 'adb'
   data['procs'] = 1
   data['cover'] = kcov
+
+  if syzhub_address and syzhub_client and syzhub_key:
+    data['hub_addr'] = syzhub_address
+    data['hub_client'] = syzhub_client
+    data['hub_key'] = syzhub_key
 
   ensure_dir(config_path)
   with open(config_path, 'w') as write_file:
