@@ -19,6 +19,7 @@ from flask import Flask
 from google.cloud import ndb
 from handlers import base_handler_flask
 from handlers import configuration
+from handlers import corpora
 from handlers import fuzzers
 from handlers import jobs
 from handlers import login
@@ -74,6 +75,9 @@ handlers = [
     ('/add-external-user-permission', configuration.AddExternalUserPermission),
     ('/delete-external-user-permission',
      configuration.DeleteExternalUserPermission),
+    ('/corpora', corpora.Handler),
+    ('/corpora/create', corpora.CreateHandler),
+    ('/corpora/delete', corpora.DeleteHandler),
     ('/fuzzers', fuzzers.Handler),
     ('/fuzzers/create', fuzzers.CreateHandler),
     ('/fuzzers/delete', fuzzers.DeleteHandler),

@@ -17,7 +17,6 @@ import datetime
 
 from config import local_config
 from flask import request
-from flask import Response
 from handlers import base_handler_flask
 from libs import auth
 from libs import handler_flask
@@ -59,7 +58,7 @@ class SessionLoginHandler(base_handler_flask.Handler):
       raise helpers.EarlyExitException('Failed to create session cookie.', 401)
 
     expires = datetime.datetime.now() + expires_in
-    response = Response()
+    response = self.render_json({'status': 'success'})
     response.set_cookie(
         'session',
         session_cookie,
@@ -67,7 +66,7 @@ class SessionLoginHandler(base_handler_flask.Handler):
         httponly=True,
         secure=True,
         overwrite=True)
-    return self.render_json({'status': 'success'}, response=response)
+    return response
 
 
 class LogoutHandler(base_handler_flask.Handler):
@@ -84,6 +83,6 @@ class LogoutHandler(base_handler_flask.Handler):
       # Even if the revoke failed, remove the cookie.
       logs.log_error('Failed to revoke session cookie.')
 
-    response = Response()
+    response = self.redirect(request.get('dest'))
     response.delete_cookie('session')
-    return self.redirect(request.get('dest'), response=response)
+    return response

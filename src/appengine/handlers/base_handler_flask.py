@@ -181,7 +181,7 @@ class Handler(MethodView):
     response.headers['X-Frame-Options'] = 'deny'
     return response
 
-  def render(self, path, values=None, status=200, response=None):
+  def render(self, path, values=None, status=200):
     """Write HTML response."""
     if values is None:
       values = {}
@@ -203,8 +203,7 @@ class Handler(MethodView):
 
     template = _JINJA_ENVIRONMENT.get_template(path)
 
-    if not response:
-      response = Response()
+    response = Response()
     response = self._add_security_response_headers(response)
     response.headers['Content-Type'] = 'text/html'
     response.data = template.render(values)
@@ -216,10 +215,9 @@ class Handler(MethodView):
     """A hook for modifying values before render_json."""
     return response
 
-  def render_json(self, values, status=200, response=None):
+  def render_json(self, values, status=200):
     """Write JSON response."""
-    if not response:
-      response = Response()
+    response = Response()
     response = self._add_security_response_headers(response)
     response.headers['Content-Type'] = 'application/json'
     response = self.before_render_json(values, status, response)

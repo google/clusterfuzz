@@ -22,7 +22,6 @@ from config import local_config
 from handlers import base_handler
 from handlers import bots
 from handlers import commit_range
-from handlers import corpora
 from handlers import coverage_report
 from handlers import crash_stats
 from handlers import domain_verifier
@@ -162,9 +161,6 @@ _ROUTES = [
     ('/coverage-report/([^/]+)/([^/]+)/([^/]+)(/.*)?', coverage_report.Handler),
     ('/crash-stats/load', crash_stats.JsonHandler),
     ('/crash-stats', crash_stats.Handler),
-    ('/corpora', corpora.Handler),
-    ('/corpora/create', corpora.CreateHandler),
-    ('/corpora/delete', corpora.DeleteHandler),
     ('/docs', help_redirector.DocumentationHandler),
     ('/download/?([^/]+)?', download.Handler),
     ('/fuzzer-stats/load', fuzzer_stats.LoadHandler),
