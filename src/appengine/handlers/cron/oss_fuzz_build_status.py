@@ -15,7 +15,6 @@
 
 from builtins import str
 import datetime
-import itertools
 import json
 import re
 import requests
@@ -103,11 +102,11 @@ def _get_ndb_key(project_name, build_type):
   return '%s-%s' % (project_name, build_type)
 
 
-def create_build_failure(failure, build_type):
+def create_build_failure(project_name, failure, build_type):
   """Create new build failure."""
   return data_types.OssFuzzBuildFailure(
-      id=_get_ndb_key(failure['name'], build_type),
-      project_name=failure['name'],
+      id=_get_ndb_key(project_name, build_type),
+      project_name=project_name,
       last_checked_timestamp=get_build_time(failure),
       build_type=build_type)
 
@@ -185,17 +184,24 @@ def send_reminder(issue_tracker, issue_id, build_id):
 class Handler(base_handler.Handler):
   """Build status checker."""
 
-  def _close_fixed_builds(self, build_status, build_type):
+  def _close_fixed_builds(self, projects, build_type):
     """Close bugs for fixed builds."""
     issue_tracker = issue_tracker_utils.get_issue_tracker()
     if not issue_tracker:
       raise OssFuzzBuildStatusException('Failed to get issue tracker.')
 
-    for build in build_status['successes']:
-      project_name = build['name']
-      build_failure = get_build_failure(project_name, build_type)
+    for project in projects:
+      project_name = project['name']
+      builds = project['history']
+      if not builds:
+        continue
 
+      build_failure = get_build_failure(project_name, build_type)
       if not build_failure:
+        continue
+
+      build = builds[0]
+      if not build['success']:
         continue
 
       if build_failure.last_checked_timestamp >= get_build_time(build):
@@ -209,14 +215,23 @@ class Handler(base_handler.Handler):
 
       close_build_failure(build_failure)
 
-  def _process_failures(self, build_status, build_type):
+  def _process_failures(self, projects, build_type):
     """Process failures."""
     issue_tracker = issue_tracker_utils.get_issue_tracker()
     if not issue_tracker:
       raise OssFuzzBuildStatusException('Failed to get issue tracker.')
 
-    for build in build_status['failures']:
-      project_name = build['name']
+    for project in projects:
+      project_name = project['name']
+      builds = project['history']
+      if not builds:
+        continue
+
+      build = builds[0]
+      if build['success']:
+        continue
+
+      project_name = project['name']
 
       # Do not file an issue for non-main build types, if there is a main build
       # failure for the same project, as the root cause might be the same.
@@ -233,7 +248,7 @@ class Handler(base_handler.Handler):
           # No updates.
           continue
       else:
-        build_failure = create_build_failure(build, build_type)
+        build_failure = create_build_failure(project_name, build, build_type)
 
       build_failure.last_checked_timestamp = build_time
       build_failure.consecutive_failures += 1
@@ -255,12 +270,15 @@ class Handler(base_handler.Handler):
 
       build_failure.put()
 
-  def _check_last_get_build_time(self, build_status, build_type):
+  def _check_last_get_build_time(self, projects, build_type):
     """Check that builds are up to date."""
-    for build in itertools.chain(build_status['successes'],
-                                 build_status['failures']):
-      project_name = build['name']
+    for project in projects:
+      project_name = project['name']
+      builds = project['history']
+      if not builds:
+        continue
 
+      build = builds[0]
       time_since_last_build = utils.utcnow() - get_build_time(build)
       if time_since_last_build >= NO_BUILDS_THRESHOLD:
         # Something likely went wrong with the build infrastructure, log errors.
@@ -278,6 +296,8 @@ class Handler(base_handler.Handler):
       except (requests.exceptions.RequestException, ValueError) as e:
         raise helpers.EarlyExitException(str(e), response.status_code)
 
-      self._check_last_get_build_time(build_status, build_type)
-      self._close_fixed_builds(build_status, build_type)
-      self._process_failures(build_status, build_type)
+      projects = build_status['projects']
+
+      self._check_last_get_build_time(projects, build_type)
+      self._close_fixed_builds(projects, build_type)
+      self._process_failures(projects, build_type)
