@@ -355,7 +355,7 @@ class Testcase(object):
     with self.merge_lock:
       self._attempt_merge(hypotheses_to_merge)
 
-  def _attempt_merge(self, hypotheses, sibling_merge_succeeded=False):
+  def _attempt_merge(self, hypotheses):
     """Update the required token list if the queued changes don't conflict."""
     # If there's nothing to merge, we're done.
     if not hypotheses:
@@ -367,18 +367,10 @@ class Testcase(object):
         aggregate_tokens.add(token)
     aggregate_hypothesis = list(aggregate_tokens)
 
-    if sibling_merge_succeeded:
-      # We were able to remove all tokens from the other half of this
-      # hypothesis, so we can assume that this would fail without running the
-      # test. If this would also pass, there would not have been a conflict
-      # while testing this set. Well, this could be a flaky test, but then we
-      # have bigger problems.
-      test_passed = True
-    else:
-      complement = self._range_complement(aggregate_hypothesis)
-      test_file = self._prepare_test_input(self.tokens, complement)
-      test_passed = self.minimizer.test_function(test_file)
-      self._delete_file_if_needed(test_file)
+    complement = self._range_complement(aggregate_hypothesis)
+    test_file = self._prepare_test_input(self.tokens, complement)
+    test_passed = self.minimizer.test_function(test_file)
+    self._delete_file_if_needed(test_file)
 
     # Failed (crashed), so there was no conflict here.
     if not test_passed:
@@ -395,11 +387,11 @@ class Testcase(object):
     front = hypotheses[:middle]
     back = hypotheses[middle:]
 
-    # If we could remove either one of two hypotheses, favor removing the first.
-    # FIXME: Fix this. Tracked in #1845.
-    # pylint: disable=assignment-from-none
-    front_merged_successfully = self._attempt_merge(front)
-    self._attempt_merge(back, sibling_merge_succeeded=front_merged_successfully)
+    # This could potentially be optimized to assume that if one test fails the
+    # other would pass, but because of flaky tests it's safer to run the test
+    # unconditionally.
+    self._attempt_merge(front)
+    self._attempt_merge(back)
 
   def _do_single_pass_process(self):
     """Process through a single pass of our test queue."""
