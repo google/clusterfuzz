@@ -121,7 +121,7 @@ def acquire_lock(key_name,
       if lock_entity.holder == bot_name:
         logs.log('Got the lock.')
         return lock_entity.expiration_time
-    except exceptions.TransactionFailedError:
+    except exceptions.Error:
       pass
 
     failed_acquires += 1
