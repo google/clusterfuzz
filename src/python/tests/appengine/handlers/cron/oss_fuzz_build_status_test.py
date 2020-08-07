@@ -94,19 +94,26 @@ class OssFuzzBuildStatusTest(unittest.TestCase):
     # Return the same status for all build types.
     self.mock.get.return_value = MockResponse(
         json.dumps({
-            'successes': [
+            'projects': [
                 {
-                    'name': 'proj0',
-                    'finish_time': '2018-02-01T00:00:00.000000Z',
-                    'build_id': 'proj0-id',
+                    'history': [{
+                        'finish_time': '2018-02-01T00:00:00.000000Z',
+                        'build_id': 'proj0-id',
+                        'success': True
+                    }],
+                    'name':
+                        'proj0',
                 },
                 {
-                    'name': 'proj1',
-                    'finish_time': '2018-02-01T00:00:00.000000Z',
-                    'build_id': 'proj1-id',
+                    'history': [{
+                        'finish_time': '2018-02-01T00:00:00.000000Z',
+                        'build_id': 'proj1-id',
+                        'success': True
+                    }],
+                    'name':
+                        'proj1',
                 },
-            ],
-            'failures': [],
+            ]
         }))
 
     self.app.get('/build-status')
@@ -121,113 +128,157 @@ class OssFuzzBuildStatusTest(unittest.TestCase):
       if url == oss_fuzz_build_status.FUZZING_STATUS_URL:
         return MockResponse(
             json.dumps({
-                'successes': [
+                'projects': [
                     # Both fuzzing and coverage build types are successful.
                     {
-                        'name': 'proj0',
-                        'finish_time': '2018-02-01T00:00:00.000000Z',
-                        'build_id': 'proj0-id-f',
+                        'history': [{
+                            'finish_time': '2018-02-01T00:00:00.000000Z',
+                            'build_id': 'proj0-id-f',
+                            'success': True
+                        }],
+                        'name':
+                            'proj0',
                     },
-
                     # Only coverage build type is broken for a while.
                     {
-                        'name': 'proj5',
-                        'finish_time': '2018-02-01T00:00:00.000000Z',
-                        'build_id': 'proj5-id-f',
+                        'history': [{
+                            'finish_time': '2018-02-01T00:00:00.000000Z',
+                            'build_id': 'proj5-id-f',
+                            'success': True
+                        }],
+                        'name':
+                            'proj5',
                     },
-
                     # Only coverage build type broken.
                     {
-                        'name': 'proj6',
-                        'finish_time': '2018-02-01T00:00:00.000000Z',
-                        'build_id': 'proj6-id-f',
+                        'history': [{
+                            'finish_time': '2018-02-01T00:00:00.000000Z',
+                            'build_id': 'proj6-id-f',
+                            'success': True
+                        }],
+                        'name':
+                            'proj6',
                     },
-                ],
-                'failures': [
+
                     # New failure (first 1).
                     {
-                        'name': 'proj1',
-                        'finish_time': '2018-02-01T00:00:00.000000000Z',
-                        'build_id': 'proj1-id-f',
+                        'history': [{
+                            'finish_time': '2018-02-01T00:00:00.000000000Z',
+                            'build_id': 'proj1-id-f',
+                            'success': False
+                        }],
+                        'name':
+                            'proj1',
                     },
-
                     # Seen failure (second consecutive).
                     {
-                        'name': 'proj2',
-                        'finish_time': '2018-02-01T00:00:00.000000Z',
-                        'build_id': 'proj2-id-f',
+                        'history': [{
+                            'finish_time': '2018-02-01T00:00:00.000000Z',
+                            'build_id': 'proj2-id-f',
+                            'success': False
+                        }],
+                        'name':
+                            'proj2',
                     },
-
                     # Seen failure (not updated).
                     {
-                        'name': 'proj3',
-                        'finish_time': '2018-01-31T00:00:00.000000Z',
-                        'build_id': 'proj3-id-f',
+                        'history': [{
+                            'finish_time': '2018-01-31T00:00:00.000000Z',
+                            'build_id': 'proj3-id-f',
+                            'success': False
+                        }],
+                        'name':
+                            'proj3',
                     },
-
                     # Seen failure (third consecutive, bug already filed).
                     {
-                        'name': 'proj4',
-                        'finish_time': '2018-02-01T00:00:00.000000Z',
-                        'build_id': 'proj4-id-f',
+                        'history': [{
+                            'finish_time': '2018-02-01T00:00:00.000000Z',
+                            'build_id': 'proj4-id-f',
+                            'success': False
+                        }],
+                        'name':
+                            'proj4',
                     },
-                ],
+                ]
             }))
 
       assert url == oss_fuzz_build_status.COVERAGE_STATUS_URL
       return MockResponse(
           json.dumps({
-              'successes': [
+              'projects': [
                   # Both fuzzing and coverage build types are successful.
                   {
-                      'name': 'proj0',
-                      'finish_time': '2018-02-01T00:00:00.000000Z',
-                      'build_id': 'proj0-id-c',
+                      'history': [{
+                          'finish_time': '2018-02-01T00:00:00.000000Z',
+                          'build_id': 'proj0-id-c',
+                          'success': True
+                      }],
+                      'name':
+                          'proj0',
                   },
-              ],
-              'failures': [
+
                   # New failure (first 1).
                   {
-                      'name': 'proj1',
-                      'finish_time': '2018-02-01T00:00:00.000000000Z',
-                      'build_id': 'proj1-id-c',
+                      'history': [{
+                          'finish_time': '2018-02-01T00:00:00.000000000Z',
+                          'build_id': 'proj1-id-c',
+                          'success': False
+                      }],
+                      'name':
+                          'proj1',
                   },
-
                   # Seen failure (second consecutive).
                   {
-                      'name': 'proj2',
-                      'finish_time': '2018-02-01T00:00:00.000000Z',
-                      'build_id': 'proj2-id-c',
+                      'history': [{
+                          'name': 'proj2',
+                          'finish_time': '2018-02-01T00:00:00.000000Z',
+                          'success': False
+                      }],
+                      'name':
+                          'proj2',
                   },
-
                   # Seen failure (not updated).
                   {
-                      'name': 'proj3',
-                      'finish_time': '2018-01-31T00:00:00.000000Z',
-                      'build_id': 'proj3-id-c',
+                      'history': [{
+                          'finish_time': '2018-01-31T00:00:00.000000Z',
+                          'build_id': 'proj3-id-c',
+                          'success': False
+                      }],
+                      'name':
+                          'proj3',
                   },
-
                   # Seen failure (third consecutive, bug already filed).
                   {
-                      'name': 'proj4',
-                      'finish_time': '2018-02-01T00:00:00.000000Z',
-                      'build_id': 'proj4-id-c',
+                      'history': [{
+                          'finish_time': '2018-02-01T00:00:00.000000Z',
+                          'build_id': 'proj4-id-c',
+                          'success': False
+                      }],
+                      'name':
+                          'proj4',
                   },
-
                   # Coverage build type is broken for a while.
                   {
-                      'name': 'proj5',
-                      'finish_time': '2018-02-01T00:00:00.000000Z',
-                      'build_id': 'proj5-id-c',
+                      'history': [{
+                          'finish_time': '2018-02-01T00:00:00.000000Z',
+                          'build_id': 'proj5-id-c',
+                          'success': False
+                      }],
+                      'name':
+                          'proj5',
                   },
-
                   # Only coverage build type broken (second consecutive).
                   {
-                      'name': 'proj6',
-                      'finish_time': '2018-02-01T00:00:00.000000Z',
-                      'build_id': 'proj6-id-c',
+                      'history': [{
+                          'finish_time': '2018-02-01T00:00:00.000000Z',
+                          'build_id': 'proj6-id-c',
+                          'success': False
+                      }],
+                      'name':
+                          'proj6',
                   },
-              ],
+              ]
           }))
 
     self.mock.get.side_effect = _mock_requests_get
@@ -373,12 +424,15 @@ class OssFuzzBuildStatusTest(unittest.TestCase):
     # Use the same status for all build types.
     self.mock.get.return_value = MockResponse(
         json.dumps({
-            'successes': [{
-                'name': 'proj0',
-                'finish_time': '2018-02-01T00:00:00.000000Z',
-                'build_id': 'proj0-id',
-            },],
-            'failures': [],
+            'projects': [{
+                'history': [{
+                    'finish_time': '2018-02-01T00:00:00.000000Z',
+                    'build_id': 'proj0-id',
+                    'success': True
+                }],
+                'name':
+                    'proj0',
+            }]
         }))
 
     data_types.OssFuzzBuildFailure(
@@ -414,37 +468,51 @@ class OssFuzzBuildStatusTest(unittest.TestCase):
       if url == oss_fuzz_build_status.FUZZING_STATUS_URL:
         return MockResponse(
             json.dumps({
-                'successes': [
+                'projects': [
                     {
-                        'name': 'proj0',
-                        'finish_time': '2018-01-30T00:00:00.000000Z',
-                        'build_id': 'proj0-id-f',
+                        'history': [{
+                            'finish_time': '2018-01-30T00:00:00.000000Z',
+                            'build_id': 'proj0-id-f',
+                            'success': True
+                        }],
+                        'name':
+                            'proj0',
                     },
                     {
-                        'name': 'proj1',
-                        'finish_time': '2018-02-01T00:00:00.000000Z',
-                        'build_id': 'proj0-id-f',
+                        'history': [{
+                            'finish_time': '2018-02-01T00:00:00.000000Z',
+                            'build_id': 'proj0-id-f',
+                            'success': True
+                        }],
+                        'name':
+                            'proj1',
                     },
-                ],
-                'failures': [],
+                ]
             }))
 
       assert url == oss_fuzz_build_status.COVERAGE_STATUS_URL
       return MockResponse(
           json.dumps({
-              'successes': [
+              'projects': [
                   {
-                      'name': 'proj0',
-                      'finish_time': '2018-02-01T00:00:00.000000Z',
-                      'build_id': 'proj0-id-c',
+                      'history': [{
+                          'finish_time': '2018-02-01T00:00:00.000000Z',
+                          'build_id': 'proj0-id-c',
+                          'success': True
+                      }],
+                      'name':
+                          'proj0',
                   },
                   {
-                      'name': 'proj1',
-                      'finish_time': '2018-01-30T00:00:00.000000Z',
-                      'build_id': 'proj1-id-c',
+                      'history': [{
+                          'finish_time': '2018-01-30T00:00:00.000000Z',
+                          'build_id': 'proj1-id-c',
+                          'success': True
+                      }],
+                      'name':
+                          'proj1',
                   },
-              ],
-              'failures': [],
+              ]
           }))
 
     self.mock.get.side_effect = _mock_requests_get
@@ -459,15 +527,15 @@ class OssFuzzBuildStatusTest(unittest.TestCase):
     # Return the same status for all build types.
     self.mock.get.return_value = MockResponse(
         json.dumps({
-            'successes': [],
-            'failures': [
-                # Seen failure (second consecutive).
-                {
-                    'name': 'disabled_proj',
+            'projects': [{
+                'history': [{
                     'finish_time': '2018-02-01T00:00:00.000000Z',
                     'build_id': 'proj2-id',
-                },
-            ],
+                    'success': False
+                }],
+                'name':
+                    'disabled_proj',
+            },]
         }))
 
     # Only fuzzing build type failure should be stored.
@@ -498,19 +566,26 @@ class OssFuzzBuildStatusTest(unittest.TestCase):
     # Return the same status for all build types.
     self.mock.get.return_value = MockResponse(
         json.dumps({
-            'successes': [],
-            'failures': [
+            'projects': [
                 {
-                    'name': 'proj0',
-                    'finish_time': '2018-02-01T00:00:00.000000Z',
-                    'build_id': 'proj0-id',
+                    'history': [{
+                        'finish_time': '2018-02-01T00:00:00.000000Z',
+                        'build_id': 'proj0-id',
+                        'success': False
+                    }],
+                    'name':
+                        'proj0',
                 },
                 {
-                    'name': 'proj1',
-                    'finish_time': '2018-02-01T00:00:00.000000Z',
-                    'build_id': 'proj0-id',
+                    'history': [{
+                        'finish_time': '2018-02-01T00:00:00.000000Z',
+                        'build_id': 'proj0-id',
+                        'success': False
+                    }],
+                    'name':
+                        'proj1',
                 },
-            ],
+            ]
         }))
 
     data_types.OssFuzzProject(
