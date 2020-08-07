@@ -184,8 +184,8 @@ class JSMinimizer(minimizer.Minimizer):
         file_extension=file_extension)
 
     result = line_minimizer.minimize(data)
-    result = js_minimizer(result)
-    result = js_minimizer(result)
+    result = js_minimizer.minimize(result)
+    result = js_minimizer.minimize(result)
     result = line_minimizer.minimize(result)
 
     return result
