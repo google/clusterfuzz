@@ -46,6 +46,10 @@ def get_config():
   default_vmlinux_path = os.path.join('/tmp', device_serial, 'vmlinux')
   vmlinux_path = environment.get_value('VMLINUX_PATH', default_vmlinux_path)
 
+  syzhub_address = environment.get_value('SYZHUB_ADDRESS')
+  syzhub_client = environment.get_value('SYZHUB_CLIENT')
+  syzhub_key = environment.get_value('SYZHUB_KEY')
+
   config.generate(
       serial=device_serial,
       work_dir_path=get_work_dir(),
@@ -53,7 +57,10 @@ def get_config():
       vmlinux_path=vmlinux_path,
       config_path=json_config_path,
       kcov=True,
-      reproduce=False)
+      reproduce=False,
+      syzhub_address=syzhub_address,
+      syzhub_client=syzhub_client,
+      syzhub_key=syzhub_key)
   return ['-config', json_config_path]
 
 
