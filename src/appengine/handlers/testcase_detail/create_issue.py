@@ -12,14 +12,15 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """Handler for creating issue."""
-from handlers import base_handler
+from flask import request
+from handlers import base_handler_flask
 from handlers.testcase_detail import show
-from libs import handler
+from libs import handler_flask
 from libs import helpers
 from libs.issue_management import issue_filer
 
 
-class Handler(base_handler.Handler):
+class Handler(base_handler_flask.Handler):
   """Handler that creates an issue."""
 
   @staticmethod
@@ -46,13 +47,13 @@ class Handler(base_handler.Handler):
     if not issue_id:
       raise helpers.EarlyExitException('Unable to create new issue.', 500)
 
-  @handler.post(handler.JSON, handler.JSON)
-  @handler.require_csrf_token
-  @handler.check_testcase_access
+  @handler_flask.post(handler_flask.JSON, handler_flask.JSON)
+  @handler_flask.require_csrf_token
+  @handler_flask.check_testcase_access
   def post(self, testcase):
     """Create an issue."""
-    cc_me = self.request.get('ccMe')
-    severity = self.request.get('severity')
+    cc_me = request.get('ccMe')
+    severity = request.get('severity')
 
     self.create_issue(testcase, severity, cc_me)
-    self.render_json(show.get_testcase_detail(testcase))
+    return self.render_json(show.get_testcase_detail(testcase))

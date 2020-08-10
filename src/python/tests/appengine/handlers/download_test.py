@@ -19,7 +19,7 @@ standard_library.install_aliases()
 import unittest
 import urllib.parse
 
-import webapp2
+import flask
 import webtest
 
 from datastore import data_types
@@ -65,11 +65,12 @@ class DownloadTest(unittest.TestCase):
     self.mock.get_blob_info.side_effect = (
         lambda key: storage.GcsBlobInfo('blobs-bucket', key, 'file.ext', 1337))
 
-    self.app = webtest.TestApp(
-        webapp2.WSGIApplication(
-            [
-                ('/download/?([^/]+)?', download.Handler),
-            ], debug=True))
+    flaskapp = flask.Flask('testflask')
+    flaskapp.add_url_rule('/download', view_func=download.Handler.as_view(''))
+    flaskapp.add_url_rule('/download/<resource>',
+                          view_func=download.Handler.as_view(
+                              '/download/<resource>'))
+    self.app = webtest.TestApp(flaskapp)
 
   def _test_download(self,
                      blob_key=None,
@@ -84,6 +85,7 @@ class DownloadTest(unittest.TestCase):
     if testcase_id:
       request += '?testcase_id=%s' % str(testcase_id)
 
+    print("test: ", request)
     resp = self.app.get(request, expect_errors=True)
     self.assertEqual(expect_status, resp.status_int)
 

@@ -12,9 +12,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """Handler for marking a testcase as unconfirmed."""
-from handlers import base_handler
+from flask import request
+from handlers import base_handler_flask
 from handlers.testcase_detail import show
-from libs import handler
+from libs import handler_flask
 from libs import helpers
 
 
@@ -33,15 +34,15 @@ def mark(testcase):
               helpers.MODIFY_OPERATION)
 
 
-class Handler(base_handler.Handler):
+class Handler(base_handler_flask.Handler):
   """Handler that marks a testcase as unconfirmed."""
 
-  @handler.post(handler.JSON, handler.JSON)
-  @handler.require_csrf_token
-  @handler.check_admin_access
+  @handler_flask.post(handler_flask.JSON, handler_flask.JSON)
+  @handler_flask.require_csrf_token
+  @handler_flask.check_admin_access
   def post(self):
     """Mark the testcase as unconfirmed."""
-    testcase_id = self.request.get('testcaseId')
+    testcase_id = request.get('testcaseId')
     testcase = helpers.get_testcase(testcase_id)
     mark(testcase)
-    self.render_json(show.get_testcase_detail(testcase))
+    return self.render_json(show.get_testcase_detail(testcase))

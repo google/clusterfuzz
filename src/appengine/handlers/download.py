@@ -23,15 +23,17 @@ import urllib.parse
 from base import errors
 from base import utils
 from datastore import data_handler
+from flask import request
 from google_cloud_utils import blobs
-from handlers import base_handler
+from handlers import base_handler_flask
 from libs import access
 from libs import gcs
 from libs import helpers
+from libs import handler_flask
 from libs.issue_management import issue_tracker_utils
 
 
-class Handler(base_handler.Handler, gcs.SignedGcsHandler):
+class Handler(base_handler_flask.Handler, gcs.SignedGcsHandler):
   """Download a file from GCS."""
 
   def _send_blob(self,
@@ -57,12 +59,13 @@ class Handler(base_handler.Handler, gcs.SignedGcsHandler):
       filename = blob_info.filename
 
     content_disposition = str('attachment; filename=%s' % filename)
-    self.response.headers['Content-disposition'] = content_disposition
-    self.serve_gcs_object(blob_info.bucket, blob_info.object_path,
-                          content_disposition)
+    response = self.serve_gcs_object(blob_info.bucket, blob_info.object_path,
+                                     content_disposition)
+    response.headers['Content-disposition'] = content_disposition
+    return response
 
-  def handle_public_testcase(self, blob_info, testcase, fuzzer_binary_name):
-    """Handle public testcase."""
+  def check_public_testcase(self, blob_info, testcase):
+    """Check public testcase."""
     if blob_info.key() != testcase.minimized_keys:
       return False
 
@@ -79,18 +82,15 @@ class Handler(base_handler.Handler, gcs.SignedGcsHandler):
     if 'restrict-view-commit' in issue.labels:
       return False
 
-    self._send_blob(
-        blob_info,
-        testcase.key.id(),
-        is_minimized=True,
-        fuzzer_binary_name=fuzzer_binary_name)
     return True
 
-  def get(self, resource):
+  @handler_flask.get(handler_flask.HTML)
+  def get(self, resource=None):
     """Handle a get request with resource."""
     testcase = None
-    testcase_id = self.request.get('testcase_id')
-
+    testcase_id = request.get('testcase_id')
+    print(request.url)
+    print(resource, testcase_id)
     if not testcase_id and not resource:
       raise helpers.EarlyExitException('No file requested.', 400)
 
@@ -120,15 +120,19 @@ class Handler(base_handler.Handler, gcs.SignedGcsHandler):
       raise helpers.EarlyExitException('Invalid testcase.', 400)
 
     if (utils.is_oss_fuzz() and testcase and
-        self.handle_public_testcase(blob_info, testcase, fuzzer_binary_name)):
+        self.check_public_testcase(blob_info, testcase)):
       # Public OSS-Fuzz testcase.
-      return
+      return self._send_blob(
+          blob_info,
+          testcase.key.id(),
+          is_minimized=True,
+          fuzzer_binary_name=fuzzer_binary_name)
 
     is_minimized = testcase and blob_info.key() == testcase.minimized_keys
     if access.has_access():
       # User has general access.
-      self._send_blob(blob_info, testcase_id, is_minimized, fuzzer_binary_name)
-      return
+      return self._send_blob(blob_info, testcase_id, is_minimized,
+                             fuzzer_binary_name)
 
     # If this blobstore file is for a testcase, check if the user has access to
     # the testcase.
@@ -136,7 +140,7 @@ class Handler(base_handler.Handler, gcs.SignedGcsHandler):
       raise helpers.AccessDeniedException()
 
     if access.can_user_access_testcase(testcase):
-      self._send_blob(blob_info, testcase_id, is_minimized, fuzzer_binary_name)
-      return
+      return self._send_blob(blob_info, testcase_id, is_minimized,
+                             fuzzer_binary_name)
 
     raise helpers.AccessDeniedException()

@@ -77,7 +77,7 @@ class SignedGcsHandler(object):
 
       url += '&' + urllib.parse.urlencode(content_disposition_params)
 
-    self.redirect(url)
+    return self.redirect(url)
 
 
 def _get_expiration_time(expiry_seconds):

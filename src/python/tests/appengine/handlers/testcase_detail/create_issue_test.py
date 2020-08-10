@@ -12,9 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """Create issue tests."""
+import flask
 import mock
 import unittest
-import webapp2
 import webtest
 
 from datastore import data_types
@@ -41,8 +41,9 @@ class HandlerTest(unittest.TestCase):
     self.mock.get_testcase_detail.return_value = {'testcase': 'yes'}
     self.mock.get_current_user().email = 'test@user.com'
 
-    self.app = webtest.TestApp(
-        webapp2.WSGIApplication([('/', create_issue.Handler)]))
+    flaskapp = flask.Flask('testflask')
+    flaskapp.add_url_rule('/', view_func=create_issue.Handler.as_view('/'))
+    self.app = webtest.TestApp(flaskapp)
 
     self.testcase = data_types.Testcase()
     self.testcase.put()

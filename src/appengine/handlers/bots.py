@@ -19,8 +19,8 @@ from base import tasks
 from base import utils
 from datastore import data_types
 from datastore import ndb_utils
-from handlers import base_handler
-from libs import handler
+from handlers import base_handler_flask
+from libs import handler_flask
 from libs import helpers
 
 
@@ -88,12 +88,12 @@ def _get_host_workers_heartbeats():
       break
 
 
-class Handler(base_handler.Handler):
+class Handler(base_handler_flask.Handler):
   """Handler that gets the bot list."""
 
-  @handler.check_admin_access_if_oss_fuzz
-  @handler.check_user_access(need_privileged_access=False)
-  @handler.get(handler.HTML)
+  @handler_flask.get(handler_flask.HTML)
+  @handler_flask.check_admin_access_if_oss_fuzz
+  @handler_flask.check_user_access(need_privileged_access=False)
   def get(self):
     """Render the bot list HTML."""
     if utils.is_oss_fuzz():
@@ -102,15 +102,15 @@ class Handler(base_handler.Handler):
       heartbeats = ndb_utils.get_all_from_model(data_types.Heartbeat)
 
     bots = _convert_heartbeats_to_dicts(heartbeats)
-    self.render('bots.html', {
+    return self.render('bots.html', {
         'bots': bots,
     })
 
 
-class DeadBotsHandler(base_handler.Handler):
+class DeadBotsHandler(base_handler_flask.Handler):
   """Output dead bots as json."""
 
-  @handler.get(handler.JSON)
+  @handler_flask.get(handler_flask.JSON)
   def get(self):
     """Render dead bots as json (used by automated scripts)."""
 
@@ -126,4 +126,4 @@ class DeadBotsHandler(base_handler.Handler):
       if heartbeat.last_beat_time <= alive_cutoff:
         result[heartbeat.bot_name] = 'dead'
 
-    self.render_json(result)
+    return self.render_json(result)

@@ -19,11 +19,12 @@ import json
 from datastore import data_handler
 from datastore import data_types
 from datastore import ndb_utils
-from handlers import base_handler
+from flask import request
+from handlers import base_handler_flask
 from libs import crash_access
 from libs import crash_stats
 from libs import filters
-from libs import handler
+from libs import handler_flask
 from libs import helpers
 from metrics import crash_stats as crash_stats_common
 
@@ -170,11 +171,10 @@ def attach_testcases(rows):
     row['testcase'] = testcase
 
 
-def get_result(this):
+def get_result():
   """Get the result for the crash stats page."""
-  params = {k: v for k, v in this.request.iterparams()}
-  page = helpers.cast(
-      this.request.get('page') or 1, int, "'page' is not an int.")
+  params = {k: v for k, v in request.iterparams()}
+  page = helpers.cast(request.get('page') or 1, int, "'page' is not an int.")
   group_by = params.get('group', 'platform')
   params['group'] = group_by
   sort_by = params.get('sort', 'total_count')
@@ -227,14 +227,14 @@ def get_all_platforms():
               ['android'])))
 
 
-class Handler(base_handler.Handler):
+class Handler(base_handler_flask.Handler):
   """Handler that gets the crash stats when user first lands on the page."""
 
-  @handler.unsupported_on_local_server
-  @handler.get(handler.HTML)
+  @handler_flask.get(handler_flask.HTML)
+  @handler_flask.unsupported_on_local_server
   def get(self):
     """Get and render the crash stats in HTML."""
-    result, params = get_result(self)
+    result, params = get_result()
     field_values = {
         'fuzzers':
             data_handler.get_all_fuzzer_names_including_children(
@@ -250,18 +250,18 @@ class Handler(base_handler.Handler):
         'maxHour':
             crash_stats_common.get_max_hour()
     }
-    self.render('crash-stats.html', {
+    return self.render('crash-stats.html', {
         'result': result,
         'fieldValues': field_values,
         'params': params
     })
 
 
-class JsonHandler(base_handler.Handler):
+class JsonHandler(base_handler_flask.Handler):
   """Handler that gets the crash stats when user interacts with the page."""
 
-  @handler.post(handler.JSON, handler.JSON)
+  @handler_flask.post(handler_flask.JSON, handler_flask.JSON)
   def post(self):
     """Get and render the crash stats in JSON."""
-    result, _ = get_result(self)
-    self.render_json(result)
+    result, _ = get_result()
+    return self.render_json(result)

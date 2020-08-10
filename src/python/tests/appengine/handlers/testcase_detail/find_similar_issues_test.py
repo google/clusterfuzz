@@ -12,9 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """find_similar_issues tests."""
+import flask
 import mock
 import unittest
-import webapp2
 import webtest
 
 from datastore import data_types
@@ -39,8 +39,10 @@ class HandlerTest(unittest.TestCase):
         'libs.issue_management.issue_tracker_utils.get_similar_issues',
         'libs.issue_management.issue_tracker_utils.get_similar_issues_url',
     ])
-    self.app = webtest.TestApp(
-        webapp2.WSGIApplication([('/', find_similar_issues.Handler)]))
+    flaskapp = flask.Flask('testflask')
+    flaskapp.add_url_rule('/',
+                          view_func=find_similar_issues.Handler.as_view('/'))
+    self.app = webtest.TestApp(flaskapp)
 
     self.testcase = data_types.Testcase()
     self.testcase.put()

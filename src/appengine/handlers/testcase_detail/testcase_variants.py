@@ -13,11 +13,11 @@
 # limitations under the License.
 """Handler for getting testcase variants."""
 from datastore import data_types
-from handlers import base_handler
-from libs import handler
+from handlers import base_handler_flask
+from libs import handler_flask
 
 
-class Handler(base_handler.Handler):
+class Handler(base_handler_flask.Handler):
   """Handler that return testcase variants."""
 
   def get_variants(self, testcase):
@@ -70,8 +70,8 @@ class Handler(base_handler.Handler):
 
     return items
 
-  @handler.get(handler.JSON)
-  @handler.check_testcase_access
+  @handler_flask.get(handler_flask.JSON)
+  @handler_flask.check_testcase_access
   def get(self, testcase):
     """Return testcase variants."""
     items = []
@@ -87,4 +87,4 @@ class Handler(base_handler.Handler):
         'items': items,
         'message': message,
     }
-    self.render_json(response)
+    return self.render_json(response)

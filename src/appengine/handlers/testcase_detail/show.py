@@ -26,13 +26,14 @@ from config import db_config
 from crash_analysis import severity_analyzer
 from datastore import data_handler
 from datastore import data_types
+from flask import request
 from fuzzing import leak_blacklist
 from google_cloud_utils import blobs
-from handlers import base_handler
+from handlers import base_handler_flask
 from libs import access
 from libs import auth
 from libs import form
-from libs import handler
+from libs import handler_flask
 from libs import helpers
 from libs.issue_management import issue_tracker_utils
 from metrics import crash_stats
@@ -579,34 +580,34 @@ def is_admin_or_not_oss_fuzz():
   return not utils.is_oss_fuzz() or auth.is_current_user_admin()
 
 
-class Handler(base_handler.Handler):
+class Handler(base_handler_flask.Handler):
   """Handler that shows a testcase in detail."""
 
-  @handler.get(handler.HTML)
+  @handler_flask.get(handler_flask.HTML)
   def get(self, testcase_id):
     """Serve the testcase detail HTML page."""
     values = {'info': get_testcase_detail_by_id(testcase_id)}
-    self.render('testcase-detail.html', values)
+    return self.render('testcase-detail.html', values)
 
 
-class DeprecatedHandler(base_handler.Handler):
-  """Deprecated handler to show old style testcase link with key."""
+class DeprecatedHandler(base_handler_flask.Handler):
+  """Deprecated handler_flask to show old style testcase link with key."""
 
   def get(self):
     """Serve the redirect to the current test case detail page."""
-    testcase_id = self.request.get('key')
+    testcase_id = request.get('key')
     if not testcase_id:
       raise helpers.EarlyExitException('No testcase key provided.', 400)
 
-    self.redirect('/testcase-detail/%s' % testcase_id)
+    return self.redirect('/testcase-detail/%s' % testcase_id)
 
 
-class RefreshHandler(base_handler.Handler):
+class RefreshHandler(base_handler_flask.Handler):
   """Handler that shows a testcase in detail through JSON."""
 
-  @handler.post(handler.JSON, handler.JSON)
-  @handler.oauth
+  @handler_flask.post(handler_flask.JSON, handler_flask.JSON)
+  @handler_flask.oauth
   def post(self):
     """Serve the testcase detail JSON."""
-    testcase_id = self.request.get('testcaseId')
-    self.render_json(get_testcase_detail_by_id(testcase_id))
+    testcase_id = request.get('testcaseId')
+    return self.render_json(get_testcase_detail_by_id(testcase_id))

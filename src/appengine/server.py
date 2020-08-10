@@ -20,21 +20,13 @@ import webapp2
 from base import utils
 from config import local_config
 from handlers import base_handler
-from handlers import bots
 from handlers import commit_range
 from handlers import coverage_report
-from handlers import crash_stats
 from handlers import domain_verifier
-from handlers import download
 from handlers import fuzzer_stats
 from handlers import gcs_redirector
-from handlers import help_redirector
-from handlers import home
-from handlers import issue_redirector
 from handlers import report_csp_failure
 from handlers import revisions_info
-from handlers import testcase_list
-from handlers import upload_testcase
 from handlers import viewer
 from handlers.cron import backup
 from handlers.cron import batch_fuzzer_jobs
@@ -59,22 +51,6 @@ from handlers.cron import triage
 from handlers.performance_report import (show as show_performance_report)
 from handlers.reproduce_tool import get_config
 from handlers.reproduce_tool import testcase_info
-from handlers.testcase_detail import (crash_stats as crash_stats_on_testcase)
-from handlers.testcase_detail import (show as show_testcase)
-from handlers.testcase_detail import create_issue
-from handlers.testcase_detail import delete
-from handlers.testcase_detail import download_testcase
-from handlers.testcase_detail import find_similar_issues
-from handlers.testcase_detail import mark_fixed
-from handlers.testcase_detail import mark_security
-from handlers.testcase_detail import mark_unconfirmed
-from handlers.testcase_detail import redo
-from handlers.testcase_detail import remove_duplicate
-from handlers.testcase_detail import remove_group
-from handlers.testcase_detail import remove_issue
-from handlers.testcase_detail import testcase_variants
-from handlers.testcase_detail import update_from_trunk
-from handlers.testcase_detail import update_issue
 from metrics import logs
 
 _is_chromium = utils.is_chromium()
@@ -131,7 +107,6 @@ _CRON_ROUTES = [
     ('/fuzzer-stats/preload', fuzzer_stats.PreloadHandler),
     ('/fuzzer-and-job-weights', fuzzer_and_job_weights.Handler),
     ('/fuzz-strategy-selection', fuzz_strategy_selection.Handler),
-    ('/home-cache', home.RefreshCacheHandler),
     ('/load-bigquery-stats', load_bigquery_stats.Handler),
     ('/manage-vms', manage_vms.Handler),
     ('/oss-fuzz-apply-ccs', oss_fuzz_apply_ccs.Handler),
@@ -146,61 +121,25 @@ _CRON_ROUTES = [
     ('/schedule-upload-reports-tasks',
      recurring_tasks.UploadReportsTaskScheduler),
     ('/sync-admins', sync_admins.Handler),
-    ('/testcases/cache', testcase_list.CacheHandler),
     ('/triage', triage.Handler),
 ]
 
 _ROUTES = [
-    ('/', home.Handler if _is_oss_fuzz else testcase_list.Handler),
     (r'(.*)/$', _TrailingSlashRemover),
     (r'/(google.+\.html)$', domain_verifier.Handler),
-    ('/bots', bots.Handler),
-    ('/bots/dead', bots.DeadBotsHandler),
     ('/commit-range', commit_range.Handler),
     ('/commit-range/load', commit_range.JsonHandler),
     ('/coverage-report/([^/]+)/([^/]+)/([^/]+)(/.*)?', coverage_report.Handler),
-    ('/crash-stats/load', crash_stats.JsonHandler),
-    ('/crash-stats', crash_stats.Handler),
-    ('/docs', help_redirector.DocumentationHandler),
-    ('/download/?([^/]+)?', download.Handler),
     ('/fuzzer-stats/load', fuzzer_stats.LoadHandler),
     ('/fuzzer-stats/load-filters', fuzzer_stats.LoadFiltersHandler),
     ('/fuzzer-stats', fuzzer_stats.Handler),
     ('/fuzzer-stats/.*', fuzzer_stats.Handler),
     ('/gcs-redirect', gcs_redirector.Handler),
-    ('/issue/([0-9]+)', issue_redirector.Handler),
     ('/performance-report/(.+)/(.+)/(.+)', show_performance_report.Handler),
     ('/report-csp-failure', report_csp_failure.ReportCspFailureHandler),
     ('/reproduce-tool/get-config', get_config.Handler),
     ('/reproduce-tool/testcase-info', testcase_info.Handler),
-    ('/testcase', show_testcase.DeprecatedHandler),
-    ('/testcase-detail/([0-9]+)', show_testcase.Handler),
-    ('/testcase-detail/crash-stats', crash_stats_on_testcase.Handler),
-    ('/testcase-detail/create-issue', create_issue.Handler),
-    ('/testcase-detail/delete', delete.Handler),
-    ('/testcase-detail/download-testcase', download_testcase.Handler),
-    ('/testcase-detail/find-similar-issues', find_similar_issues.Handler),
-    ('/testcase-detail/mark-fixed', mark_fixed.Handler),
-    ('/testcase-detail/mark-security', mark_security.Handler),
-    ('/testcase-detail/mark-unconfirmed', mark_unconfirmed.Handler),
-    ('/testcase-detail/redo', redo.Handler),
-    ('/testcase-detail/refresh', show_testcase.RefreshHandler),
-    ('/testcase-detail/remove-duplicate', remove_duplicate.Handler),
-    ('/testcase-detail/remove-issue', remove_issue.Handler),
-    ('/testcase-detail/remove-group', remove_group.Handler),
-    ('/testcase-detail/testcase-variants', testcase_variants.Handler),
-    ('/testcase-detail/update-from-trunk', update_from_trunk.Handler),
-    ('/testcase-detail/update-issue', update_issue.Handler),
-    ('/testcases', testcase_list.Handler),
-    ('/testcases/load', testcase_list.JsonHandler),
-    ('/upload-testcase', upload_testcase.Handler),
-    ('/upload-testcase/get-url-oauth', upload_testcase.UploadUrlHandlerOAuth),
-    ('/upload-testcase/prepare', upload_testcase.PrepareUploadHandler),
-    ('/upload-testcase/load', upload_testcase.JsonHandler),
-    ('/upload-testcase/upload', upload_testcase.UploadHandler),
-    ('/upload-testcase/upload-oauth', upload_testcase.UploadHandlerOAuth),
     ('/revisions', revisions_info.Handler),
-    ('/report-bug', help_redirector.ReportBugHandler),
     ('/viewer', viewer.Handler),
 ]
 

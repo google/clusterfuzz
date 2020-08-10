@@ -17,11 +17,13 @@ from base import errors
 from base import utils
 from datastore import data_handler
 from datastore import data_types
+from flask import request
+from flask import Response
 from google_cloud_utils import blobs
-from handlers import base_handler
+from handlers import base_handler_flask
 from libs import crash_access
 from libs import filters
-from libs import handler
+from libs import handler_flask
 from libs import helpers
 from libs.query import datastore_query
 
@@ -104,11 +106,11 @@ def add_filters(query, params):
   filters.add(query, params, FILTERS)
 
 
-def get_result(this):
+def get_result():
   """Get the result for the testcase list page."""
-  params = {k: v for k, v in this.request.iterparams()}
+  params = {k: v for k, v in request.iterparams()}
   page = helpers.cast(
-      this.request.get('page') or 1, int, "'page' is not an int.")
+      request.get('page') or 1, int, "'page' is not an int.")
 
   query = datastore_query.Query(data_types.Testcase)
   crash_access.add_scope(query, params, 'security_flag', 'job_type',
@@ -169,13 +171,13 @@ def get_result(this):
   return result, params
 
 
-class Handler(base_handler.Handler):
+class Handler(base_handler_flask.Handler):
   """Handler that gets the testcase list when user first lands on the page."""
 
-  @handler.get(handler.HTML)
+  @handler_flask.get(handler_flask.HTML)
   def get(self):
     """Get and render the testcase list in HTML."""
-    result, params = get_result(self)
+    result, params = get_result()
     field_values = {
         'projects':
             data_handler.get_all_project_names(),
@@ -187,17 +189,17 @@ class Handler(base_handler.Handler):
         'shouldShowImpact':
             utils.is_chromium()
     }
-    self.render('testcase-list.html', {
+    return self.render('testcase-list.html', {
         'fieldValues': field_values,
         'result': result,
         'params': params
     })
 
 
-class CacheHandler(base_handler.Handler):
+class CacheHandler(base_handler_flask.Handler):
   """Handler for exercising cache."""
 
-  @handler.check_cron()
+  @handler_flask.check_cron()
   def get(self):
     """Handle a GET request."""
     # pylint: disable=unexpected-keyword-arg
@@ -223,17 +225,19 @@ class CacheHandler(base_handler.Handler):
       blobs.get_blob_size(testcase.fuzzed_keys)
       blobs.get_blob_size(testcase.minimized_keys)
 
-    self.response.headers['Content-Type'] = 'text/plain'
-    self.response.out.write('OK')
-    self.response.set_status(200)
+    response = Response()
+    response.headers['Content-Type'] = 'text/plain'
+    response.out.write('OK')
+    response.set_status(200)
+    return response
 
 
-class JsonHandler(base_handler.Handler):
+class JsonHandler(base_handler_flask.Handler):
   """Handler that gets the testcase list when user clicks on next page."""
 
-  @handler.post(handler.JSON, handler.JSON)
-  @handler.oauth
+  @handler_flask.post(handler_flask.JSON, handler_flask.JSON)
+  @handler_flask.oauth
   def post(self):
     """Get and render the testcase list in JSON."""
-    result, _ = get_result(self)
-    self.render_json(result)
+    result, _ = get_result()
+    return self.render_json(result)

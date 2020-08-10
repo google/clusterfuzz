@@ -12,8 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """mark_security tests."""
+import flask
 import unittest
-import webapp2
 import webtest
 
 from datastore import data_types
@@ -33,8 +33,9 @@ class HandlerTest(unittest.TestCase):
         'libs.auth.is_current_user_admin',
         'handlers.testcase_detail.show.get_testcase_detail',
     ])
-    self.app = webtest.TestApp(
-        webapp2.WSGIApplication([('/', mark_security.Handler)]))
+    flaskapp = flask.Flask('testflask')
+    flaskapp.add_url_rule('/', view_func=mark_security.Handler.as_view('/'))
+    self.app = webtest.TestApp(flaskapp)
 
     self.testcase = data_types.Testcase()
     self.testcase.put()
