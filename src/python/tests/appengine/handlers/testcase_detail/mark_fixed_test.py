@@ -34,8 +34,7 @@ class HandlerTest(unittest.TestCase):
         'libs.auth.is_current_user_admin',
     ])
     flaskapp = flask.Flask('testflask')
-    flaskapp.add_url_rule('/',
-                          view_func=mark_fixed.Handler.as_view('/'))
+    flaskapp.add_url_rule('/', view_func=mark_fixed.Handler.as_view('/'))
     self.app = webtest.TestApp(flaskapp)
     self.testcase = data_types.Testcase()
     self.testcase.put()

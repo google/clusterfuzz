@@ -84,8 +84,7 @@ def attach_testcases(rows):
 def get_result():
   """Get the result."""
   params = dict(request.iterparams())
-  page = helpers.cast(
-      request.get('page') or 1, int, "'page' is not an int.")
+  page = helpers.cast(request.get('page') or 1, int, "'page' is not an int.")
 
   query = datastore_query.Query(data_types.TestcaseUploadMetadata)
   query.order('timestamp', is_desc=True)

@@ -108,9 +108,8 @@ def add_filters(query, params):
 
 def get_result():
   """Get the result for the testcase list page."""
-  params = {k: v for k, v in request.iterparams()}
-  page = helpers.cast(
-      request.get('page') or 1, int, "'page' is not an int.")
+  params = dict(request.iterparams())
+  page = helpers.cast(request.get('page') or 1, int, "'page' is not an int.")
 
   query = datastore_query.Query(data_types.Testcase)
   crash_access.add_scope(query, params, 'security_flag', 'job_type',

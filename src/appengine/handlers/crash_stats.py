@@ -173,7 +173,7 @@ def attach_testcases(rows):
 
 def get_result():
   """Get the result for the crash stats page."""
-  params = {k: v for k, v in request.iterparams()}
+  params = dict(request.iterparams())
   page = helpers.cast(request.get('page') or 1, int, "'page' is not an int.")
   group_by = params.get('group', 'platform')
   params['group'] = group_by

@@ -50,6 +50,5 @@ class Handler(base_handler_flask.Handler):
     days = helpers.cast(request.get('days'), int, "'days' is not an int.")
     group_by = helpers.cast(
         request.get('groupBy'), str, "'groupBy' is not a string.")
-    block = helpers.cast(
-        request.get('block'), str, "'block' is not a string.")
+    block = helpers.cast(request.get('block'), str, "'block' is not a string.")
     return self.render_json(get_result(testcase, end, block, days, group_by))

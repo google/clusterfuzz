@@ -20,8 +20,8 @@ from google.cloud import ndb
 from handlers import base_handler_flask
 from handlers import bots
 from handlers import configuration
-from handlers import crash_stats
 from handlers import corpora
+from handlers import crash_stats
 from handlers import download
 from handlers import fuzzers
 from handlers import help_redirector

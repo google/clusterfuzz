@@ -67,9 +67,9 @@ class DownloadTest(unittest.TestCase):
 
     flaskapp = flask.Flask('testflask')
     flaskapp.add_url_rule('/download', view_func=download.Handler.as_view(''))
-    flaskapp.add_url_rule('/download/<resource>',
-                          view_func=download.Handler.as_view(
-                              '/download/<resource>'))
+    flaskapp.add_url_rule(
+        '/download/<resource>',
+        view_func=download.Handler.as_view('/download/<resource>'))
     self.app = webtest.TestApp(flaskapp)
 
   def _test_download(self,

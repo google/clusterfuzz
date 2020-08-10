@@ -40,8 +40,8 @@ class HandlerTest(unittest.TestCase):
         'libs.issue_management.issue_tracker_utils.get_similar_issues_url',
     ])
     flaskapp = flask.Flask('testflask')
-    flaskapp.add_url_rule('/',
-                          view_func=find_similar_issues.Handler.as_view('/'))
+    flaskapp.add_url_rule(
+        '/', view_func=find_similar_issues.Handler.as_view('/'))
     self.app = webtest.TestApp(flaskapp)
 
     self.testcase = data_types.Testcase()
