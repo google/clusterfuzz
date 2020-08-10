@@ -16,10 +16,10 @@
 from base import utils
 from config import db_config
 from datastore import data_types
-
-from handlers import base_handler
+from flask import request
+from handlers import base_handler_flask
 from libs import form
-from libs import handler
+from libs import handler_flask
 from libs import helpers
 
 USER_PERMISSION_ENTITY_KINDS = [
@@ -62,11 +62,11 @@ def get_value_by_name(item_list, name):
   return None
 
 
-class Handler(base_handler.Handler):
+class Handler(base_handler_flask.Handler):
   """Configuration manager."""
 
-  @handler.check_admin_access
-  @handler.get(handler.HTML)
+  @handler_flask.get(handler_flask.HTML)
+  @handler_flask.check_admin_access
   def get(self):
     """Handle a get request."""
     external_user_permissions = list(
@@ -88,51 +88,48 @@ class Handler(base_handler.Handler):
     }
 
     helpers.log('Configuration', helpers.VIEW_OPERATION)
-    self.render('configuration.html', template_values)
+    return self.render('configuration.html', template_values)
 
-  @handler.check_admin_access
-  @handler.require_csrf_token
-  @handler.post(handler.FORM, handler.HTML)
+  @handler_flask.post(handler_flask.FORM, handler_flask.HTML)
+  @handler_flask.check_admin_access
+  @handler_flask.require_csrf_token
   def post(self):
     """Handle a post request."""
     config = db_config.get()
     if not config:
       config = data_types.Config()
 
-    previous_hash = self.request.get('previous_hash')
+    previous_hash = request.get('previous_hash')
     if config.previous_hash and config.previous_hash != previous_hash:
       raise helpers.EarlyExitException(
           'Your change conflicts with another configuration update. '
           'Please refresh and try again.', 500)
 
-    build_apiary_service_account_private_key = self.request.get(
+    build_apiary_service_account_private_key = request.get(
         'build_apiary_service_account_private_key')
-    bug_report_url = self.request.get('bug_report_url')
-    client_credentials = self.request.get('client_credentials')
-    jira_url = self.request.get('jira_url')
-    jira_credentials = self.request.get('jira_credentials')
-    component_repository_mappings = self.request.get(
-        'component_repository_mappings')
-    contact_string = self.request.get('contact_string')
-    documentation_url = self.request.get('documentation_url')
-    github_credentials = self.request.get('github_credentials')
-    platform_group_mappings = self.request.get('platform_group_mappings')
-    privileged_users = self.request.get('privileged_users')
-    blacklisted_users = self.request.get('blacklisted_users')
-    relax_security_bug_restrictions = self.request.get(
+    bug_report_url = request.get('bug_report_url')
+    client_credentials = request.get('client_credentials')
+    jira_url = request.get('jira_url')
+    jira_credentials = request.get('jira_credentials')
+    component_repository_mappings = request.get('component_repository_mappings')
+    contact_string = request.get('contact_string')
+    documentation_url = request.get('documentation_url')
+    github_credentials = request.get('github_credentials')
+    platform_group_mappings = request.get('platform_group_mappings')
+    privileged_users = request.get('privileged_users')
+    blacklisted_users = request.get('blacklisted_users')
+    relax_security_bug_restrictions = request.get(
         'relax_security_bug_restrictions')
-    relax_testcase_restrictions = self.request.get(
-        'relax_testcase_restrictions')
-    reproduce_tool_client_id = self.request.get('reproduce_tool_client_id')
-    reproduce_tool_client_secret = self.request.get(
-        'reproduce_tool_client_secret')
-    reproduction_help_url = self.request.get('reproduction_help_url')
-    test_account_email = self.request.get('test_account_email')
-    test_account_password = self.request.get('test_account_password')
-    wifi_ssid = self.request.get('wifi_ssid')
-    wifi_password = self.request.get('wifi_password')
-    sendgrid_api_key = self.request.get('sendgrid_api_key')
-    sendgrid_sender = self.request.get('sendgrid_sender')
+    relax_testcase_restrictions = request.get('relax_testcase_restrictions')
+    reproduce_tool_client_id = request.get('reproduce_tool_client_id')
+    reproduce_tool_client_secret = request.get('reproduce_tool_client_secret')
+    reproduction_help_url = request.get('reproduction_help_url')
+    test_account_email = request.get('test_account_email')
+    test_account_password = request.get('test_account_password')
+    wifi_ssid = request.get('wifi_ssid')
+    wifi_password = request.get('wifi_password')
+    sendgrid_api_key = request.get('sendgrid_api_key')
+    sendgrid_sender = request.get('sendgrid_sender')
 
     config.build_apiary_service_account_private_key = (
         build_apiary_service_account_private_key)
@@ -177,22 +174,22 @@ class Handler(base_handler.Handler):
         'redirect_url':
             '/configuration',
     }
-    self.render('message.html', template_values)
+    return self.render('message.html', template_values)
 
 
-class AddExternalUserPermission(base_handler.Handler):
+class AddExternalUserPermission(base_handler_flask.Handler):
   """Handles adding a new ExternalUserPermission."""
 
-  @handler.check_admin_access
-  @handler.require_csrf_token
-  @handler.post(handler.FORM, handler.HTML)
+  @handler_flask.post(handler_flask.FORM, handler_flask.HTML)
+  @handler_flask.check_admin_access
+  @handler_flask.require_csrf_token
   def post(self):
     """Handle a post request."""
-    email = utils.normalize_email(self.request.get('email'))
-    entity_kind = self.request.get('entity_kind')
-    entity_name = self.request.get('entity_name')
-    is_prefix = self.request.get('is_prefix')
-    auto_cc = self.request.get('auto_cc')
+    email = utils.normalize_email(request.get('email'))
+    entity_kind = request.get('entity_kind')
+    entity_name = request.get('entity_name')
+    is_prefix = request.get('is_prefix')
+    auto_cc = request.get('auto_cc')
 
     if not email:
       raise helpers.EarlyExitException('No email provided.', 400)
@@ -245,20 +242,20 @@ class AddExternalUserPermission(base_handler.Handler):
         'redirect_url':
             '/configuration',
     }
-    self.render('message.html', template_values)
+    return self.render('message.html', template_values)
 
 
-class DeleteExternalUserPermission(base_handler.Handler):
+class DeleteExternalUserPermission(base_handler_flask.Handler):
   """Handles deleting an ExternalUserPermission."""
 
-  @handler.check_admin_access
-  @handler.require_csrf_token
-  @handler.post(handler.FORM, handler.HTML)
+  @handler_flask.post(handler_flask.FORM, handler_flask.HTML)
+  @handler_flask.check_admin_access
+  @handler_flask.require_csrf_token
   def post(self):
     """Handle a post request."""
-    email = self.request.get('email')
-    entity_kind = self.request.get('entity_kind')
-    entity_name = self.request.get('entity_name')
+    email = request.get('email')
+    entity_kind = request.get('entity_kind')
+    entity_name = request.get('entity_name')
 
     if not email:
       raise helpers.EarlyExitException('No email provided.', 400)
@@ -295,4 +292,4 @@ class DeleteExternalUserPermission(base_handler.Handler):
         'redirect_url':
             '/configuration',
     }
-    self.render('message.html', template_values)
+    return self.render('message.html', template_values)

@@ -25,13 +25,14 @@ from google.cloud import ndb
 from base import utils
 from datastore import data_handler
 from datastore import data_types
+from flask import request
 from fuzzing import fuzzer_selection
 from google_cloud_utils import storage
-from handlers import base_handler
+from handlers import base_handler_flask
 from libs import access
 from libs import form
 from libs import gcs
-from libs import handler
+from libs import handler_flask
 from libs import helpers
 from metrics import fuzzer_logs
 from system import archive
@@ -39,12 +40,12 @@ from system import archive
 ARCHIVE_READ_SIZE_LIMIT = 16 * 1024 * 1024
 
 
-class Handler(base_handler.Handler):
+class Handler(base_handler_flask.Handler):
   """Manages fuzzers."""
 
-  @handler.check_admin_access_if_oss_fuzz
-  @handler.check_user_access(need_privileged_access=False)
-  @handler.get(handler.HTML)
+  @handler_flask.get(handler_flask.HTML)
+  @handler_flask.check_admin_access_if_oss_fuzz
+  @handler_flask.check_user_access(need_privileged_access=False)
   def get(self):
     """Handle a get request."""
     fuzzer_logs_bucket = fuzzer_logs.get_bucket()
@@ -73,11 +74,11 @@ class Handler(base_handler.Handler):
         }
     }
 
-    self.render('fuzzers.html', template_values)
+    return self.render('fuzzers.html', template_values)
 
 
-class BaseEditHandler(base_handler.GcsUploadHandler):
-  """Base edit handler."""
+class BaseEditHandler(base_handler_flask.GcsUploadHandler):
+  """Base edit handler_flask."""
 
   def _read_to_bytesio(self, gcs_path):
     """Return a bytesio representing a GCS object."""
@@ -89,7 +90,7 @@ class BaseEditHandler(base_handler.GcsUploadHandler):
 
   def _get_executable_path(self, upload_info):
     """Get executable path."""
-    executable_path = self.request.get('executable_path')
+    executable_path = request.get('executable_path')
     if not upload_info:
       return executable_path
 
@@ -105,7 +106,7 @@ class BaseEditHandler(base_handler.GcsUploadHandler):
 
   def _get_launcher_script(self, upload_info):
     """Get launcher script path."""
-    launcher_script = self.request.get('launcher_script')
+    launcher_script = request.get('launcher_script')
     if not upload_info:
       return launcher_script
 
@@ -126,7 +127,7 @@ class BaseEditHandler(base_handler.GcsUploadHandler):
 
   def _get_integer_value(self, key):
     """Check a numeric input value."""
-    value = self.request.get(key)
+    value = request.get(key)
     if value is None:
       return None
 
@@ -163,13 +164,13 @@ class BaseEditHandler(base_handler.GcsUploadHandler):
             'uploaded is less than 16MB, ensure that the executable file has '
             '"run" in its name.', 400)
 
-    jobs = self.request.get('jobs', [])
+    jobs = request.get('jobs', [])
     timeout = self._get_integer_value('timeout')
     max_testcases = self._get_integer_value('max_testcases')
-    external_contribution = self.request.get('external_contribution', False)
-    differential = self.request.get('differential', False)
-    environment_string = self.request.get('additional_environment_string')
-    data_bundle_name = self.request.get('data_bundle_name')
+    external_contribution = request.get('external_contribution', False)
+    differential = request.get('differential', False)
+    environment_string = request.get('additional_environment_string')
+    data_bundle_name = request.get('data_bundle_name')
 
     # Save the fuzzer file metadata.
     if upload_info:
@@ -205,18 +206,18 @@ class BaseEditHandler(base_handler.GcsUploadHandler):
     fuzzer_selection.update_mappings_for_fuzzer(fuzzer)
 
     helpers.log('Uploaded fuzzer %s.' % fuzzer.name, helpers.MODIFY_OPERATION)
-    self.redirect('/fuzzers')
+    return self.redirect('/fuzzers')
 
 
 class CreateHandler(BaseEditHandler):
   """Create a new fuzzer."""
 
-  @handler.check_user_access(need_privileged_access=True)
-  @handler.post(handler.JSON, handler.JSON)
-  @handler.require_csrf_token
+  @handler_flask.post(handler_flask.JSON, handler_flask.JSON)
+  @handler_flask.check_user_access(need_privileged_access=True)
+  @handler_flask.require_csrf_token
   def post(self):
     """Handle a post request."""
-    name = self.request.get('name')
+    name = request.get('name')
     if not name:
       raise helpers.EarlyExitException('Please give the fuzzer a name!', 400)
 
@@ -237,36 +238,36 @@ class CreateHandler(BaseEditHandler):
     fuzzer = data_types.Fuzzer()
     fuzzer.name = name
     fuzzer.revision = 0
-    self.apply_fuzzer_changes(fuzzer, upload_info)
+    return self.apply_fuzzer_changes(fuzzer, upload_info)
 
 
 class EditHandler(BaseEditHandler):
   """Edit or create a fuzzer."""
 
-  @handler.check_user_access(need_privileged_access=True)
-  @handler.post(handler.JSON, handler.JSON)
-  @handler.require_csrf_token
+  @handler_flask.post(handler_flask.JSON, handler_flask.JSON)
+  @handler_flask.check_user_access(need_privileged_access=True)
+  @handler_flask.require_csrf_token
   def post(self):
     """Handle a post request."""
-    key = helpers.get_integer_key(self.request)
+    key = helpers.get_integer_key(request)
 
     fuzzer = ndb.Key(data_types.Fuzzer, key).get()
     if not fuzzer:
       raise helpers.EarlyExitException('Fuzzer not found.', 400)
 
     upload_info = self.get_upload()
-    self.apply_fuzzer_changes(fuzzer, upload_info)
+    return self.apply_fuzzer_changes(fuzzer, upload_info)
 
 
-class DeleteHandler(base_handler.Handler):
+class DeleteHandler(base_handler_flask.Handler):
   """Delete a fuzzer."""
 
-  @handler.check_user_access(need_privileged_access=True)
-  @handler.post(handler.JSON, handler.JSON)
-  @handler.require_csrf_token
+  @handler_flask.post(handler_flask.JSON, handler_flask.JSON)
+  @handler_flask.check_user_access(need_privileged_access=True)
+  @handler_flask.require_csrf_token
   def post(self):
     """Handle a post request."""
-    key = helpers.get_integer_key(self.request)
+    key = helpers.get_integer_key(request)
 
     fuzzer = ndb.Key(data_types.Fuzzer, key).get()
     if not fuzzer:
@@ -276,21 +277,22 @@ class DeleteHandler(base_handler.Handler):
     fuzzer.key.delete()
 
     helpers.log('Deleted fuzzer %s' % fuzzer.name, helpers.MODIFY_OPERATION)
-    self.redirect('/fuzzers')
+    return self.redirect('/fuzzers')
 
 
-class LogHandler(base_handler.Handler):
+class LogHandler(base_handler_flask.Handler):
   """Show the console output from a fuzzer run."""
 
-  @handler.check_user_access(need_privileged_access=False)
+  @handler_flask.check_user_access(need_privileged_access=False)
   def get(self, fuzzer_name):
     """Handle a get request."""
+    helpers.log('LogHandler', fuzzer_name)
     fuzzer = data_types.Fuzzer.query(
         data_types.Fuzzer.name == fuzzer_name).get()
     if not fuzzer:
       raise helpers.EarlyExitException('Fuzzer not found.', 400)
 
-    self.render('viewer.html', {
+    return self.render('viewer.html', {
         'title': 'Output for ' + fuzzer.name,
         'content': fuzzer.console_output,
     })

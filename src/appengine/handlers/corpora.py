@@ -11,25 +11,26 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""Manage corpora ."""
+"""Manage corpora."""
 
 from google.cloud import ndb
 
 from datastore import data_handler
 from datastore import data_types
-from handlers import base_handler
+from flask import request
+from handlers import base_handler_flask
 from libs import form
-from libs import handler
+from libs import handler_flask
 from libs import helpers
 
 
-class Handler(base_handler.Handler):
+class Handler(base_handler_flask.Handler):
   """Manage data bundles."""
 
-  @handler.unsupported_on_local_server
-  @handler.check_admin_access_if_oss_fuzz
-  @handler.check_user_access(need_privileged_access=False)
-  @handler.get(handler.HTML)
+  @handler_flask.unsupported_on_local_server
+  @handler_flask.get(handler_flask.HTML)
+  @handler_flask.check_admin_access_if_oss_fuzz
+  @handler_flask.check_user_access(need_privileged_access=False)
   def get(self):
     """Handle a get request."""
     data_bundles = list(data_types.DataBundle.query().order(
@@ -43,18 +44,18 @@ class Handler(base_handler.Handler):
             'deleteUrl': '/corpora/delete',
         },
     }
-    self.render('corpora.html', template_values)
+    return self.render('corpora.html', template_values)
 
 
-class CreateHandler(base_handler.Handler):
+class CreateHandler(base_handler_flask.Handler):
   """Create a corpus."""
 
-  @handler.check_user_access(need_privileged_access=True)
-  @handler.post(handler.FORM, handler.HTML)
-  @handler.require_csrf_token
+  @handler_flask.post(handler_flask.FORM, handler_flask.HTML)
+  @handler_flask.check_user_access(need_privileged_access=True)
+  @handler_flask.require_csrf_token
   def post(self):
     """Handle a post request."""
-    name = self.request.get('name')
+    name = request.get('name')
     if not name:
       raise helpers.EarlyExitException('Please give this corpus a name!', 400)
 
@@ -66,7 +67,7 @@ class CreateHandler(base_handler.Handler):
     user_email = helpers.get_user_email()
     bucket_name = data_handler.get_data_bundle_bucket_name(name)
     bucket_url = data_handler.get_data_bundle_bucket_url(name)
-    is_local = not self.request.get('nfs', False)
+    is_local = not request.get('nfs', False)
 
     if not data_handler.create_data_bundle_bucket_and_iams(name, [user_email]):
       raise helpers.EarlyExitException(
@@ -89,18 +90,18 @@ class CreateHandler(base_handler.Handler):
             'Upload data to the corpus using: '
             'gsutil -d -m rsync -r <local_corpus_directory> %s' % bucket_url),
     }
-    self.render('message.html', template_values)
+    return self.render('message.html', template_values)
 
 
-class DeleteHandler(base_handler.Handler):
+class DeleteHandler(base_handler_flask.Handler):
   """Delete a corpus."""
 
-  @handler.check_user_access(need_privileged_access=True)
-  @handler.post(handler.FORM, handler.HTML)
-  @handler.require_csrf_token
+  @handler_flask.post(handler_flask.FORM, handler_flask.HTML)
+  @handler_flask.check_user_access(need_privileged_access=True)
+  @handler_flask.require_csrf_token
   def post(self):
     """Handle a post request."""
-    key = helpers.get_integer_key(self.request)
+    key = helpers.get_integer_key(request)
 
     data_bundle = ndb.Key(data_types.DataBundle, key).get()
     if not data_bundle:
@@ -122,4 +123,4 @@ class DeleteHandler(base_handler.Handler):
         'redirect_url':
             '/corpora',
     }
-    self.render('message.html', template_values)
+    return self.render('message.html', template_values)

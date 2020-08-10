@@ -293,7 +293,7 @@ class GcsUploadHandler(Handler):
     if self.upload:
       return self.upload
 
-    upload_key = request.form.get('upload_key')
+    upload_key = request.get('upload_key')
     if not upload_key:
       return None
 

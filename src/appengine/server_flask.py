@@ -18,7 +18,11 @@ from config import local_config
 from flask import Flask
 from google.cloud import ndb
 from handlers import base_handler_flask
+from handlers import configuration
+from handlers import corpora
+from handlers import fuzzers
 from handlers import jobs
+from handlers import login
 from metrics import logs
 from system import environment
 
@@ -67,9 +71,24 @@ logs.configure('appengine')
 config = local_config.GAEConfig()
 
 handlers = [
+    ('/configuration', configuration.Handler),
+    ('/add-external-user-permission', configuration.AddExternalUserPermission),
+    ('/delete-external-user-permission',
+     configuration.DeleteExternalUserPermission),
+    ('/corpora', corpora.Handler),
+    ('/corpora/create', corpora.CreateHandler),
+    ('/corpora/delete', corpora.DeleteHandler),
+    ('/fuzzers', fuzzers.Handler),
+    ('/fuzzers/create', fuzzers.CreateHandler),
+    ('/fuzzers/delete', fuzzers.DeleteHandler),
+    ('/fuzzers/edit', fuzzers.EditHandler),
+    ('/fuzzers/log/<fuzzer_name>', fuzzers.LogHandler),
     ('/jobs', jobs.Handler),
     ('/jobs/load', jobs.JsonHandler),
     ('/jobs/delete-job', jobs.DeleteJobHandler),
+    ('/login', login.Handler),
+    ('/logout', login.LogoutHandler),
+    ('/session-login', login.SessionLoginHandler),
     ('/update-job', jobs.UpdateJob),
     ('/update-job-template', jobs.UpdateJobTemplate),
 ]

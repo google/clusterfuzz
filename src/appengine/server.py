@@ -22,19 +22,15 @@ from config import local_config
 from handlers import base_handler
 from handlers import bots
 from handlers import commit_range
-from handlers import configuration
-from handlers import corpora
 from handlers import coverage_report
 from handlers import crash_stats
 from handlers import domain_verifier
 from handlers import download
 from handlers import fuzzer_stats
-from handlers import fuzzers
 from handlers import gcs_redirector
 from handlers import help_redirector
 from handlers import home
 from handlers import issue_redirector
-from handlers import login
 from handlers import report_csp_failure
 from handlers import revisions_info
 from handlers import testcase_list
@@ -162,36 +158,21 @@ _ROUTES = [
     ('/bots/dead', bots.DeadBotsHandler),
     ('/commit-range', commit_range.Handler),
     ('/commit-range/load', commit_range.JsonHandler),
-    ('/configuration', configuration.Handler),
-    ('/add-external-user-permission', configuration.AddExternalUserPermission),
-    ('/delete-external-user-permission',
-     configuration.DeleteExternalUserPermission),
     ('/coverage-report/([^/]+)/([^/]+)/([^/]+)(/.*)?', coverage_report.Handler),
     ('/crash-stats/load', crash_stats.JsonHandler),
     ('/crash-stats', crash_stats.Handler),
-    ('/corpora', corpora.Handler),
-    ('/corpora/create', corpora.CreateHandler),
-    ('/corpora/delete', corpora.DeleteHandler),
     ('/docs', help_redirector.DocumentationHandler),
     ('/download/?([^/]+)?', download.Handler),
-    ('/fuzzers', fuzzers.Handler),
-    ('/fuzzers/create', fuzzers.CreateHandler),
-    ('/fuzzers/delete', fuzzers.DeleteHandler),
-    ('/fuzzers/edit', fuzzers.EditHandler),
-    ('/fuzzers/log/([^/]+)', fuzzers.LogHandler),
     ('/fuzzer-stats/load', fuzzer_stats.LoadHandler),
     ('/fuzzer-stats/load-filters', fuzzer_stats.LoadFiltersHandler),
     ('/fuzzer-stats', fuzzer_stats.Handler),
     ('/fuzzer-stats/.*', fuzzer_stats.Handler),
     ('/gcs-redirect', gcs_redirector.Handler),
     ('/issue/([0-9]+)', issue_redirector.Handler),
-    ('/login', login.Handler),
-    ('/logout', login.LogoutHandler),
     ('/performance-report/(.+)/(.+)/(.+)', show_performance_report.Handler),
     ('/report-csp-failure', report_csp_failure.ReportCspFailureHandler),
     ('/reproduce-tool/get-config', get_config.Handler),
     ('/reproduce-tool/testcase-info', testcase_info.Handler),
-    ('/session-login', login.SessionLoginHandler),
     ('/testcase', show_testcase.DeprecatedHandler),
     ('/testcase-detail/([0-9]+)', show_testcase.Handler),
     ('/testcase-detail/crash-stats', crash_stats_on_testcase.Handler),
