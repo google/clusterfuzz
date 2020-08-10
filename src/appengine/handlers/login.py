@@ -60,12 +60,7 @@ class SessionLoginHandler(base_handler_flask.Handler):
     expires = datetime.datetime.now() + expires_in
     response = self.render_json({'status': 'success'})
     response.set_cookie(
-        'session',
-        session_cookie,
-        expires=expires,
-        httponly=True,
-        secure=True,
-        overwrite=True)
+        'session', session_cookie, expires=expires, httponly=True, secure=True)
     return response
 
 
