@@ -64,8 +64,7 @@ class SessionLoginHandler(base_handler_flask.Handler):
         session_cookie,
         expires=expires,
         httponly=True,
-        secure=True,
-        overwrite=True)
+        secure=True)
     return response
 
 
