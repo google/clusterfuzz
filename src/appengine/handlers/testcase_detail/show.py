@@ -584,7 +584,7 @@ class Handler(base_handler_flask.Handler):
   """Handler that shows a testcase in detail."""
 
   @handler_flask.get(handler_flask.HTML)
-  def get(self, testcase_id):
+  def get(self, testcase_id=None):
     """Serve the testcase detail HTML page."""
     values = {'info': get_testcase_detail_by_id(testcase_id)}
     return self.render('testcase-detail.html', values)

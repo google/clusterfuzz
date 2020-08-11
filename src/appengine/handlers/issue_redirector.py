@@ -22,7 +22,7 @@ from libs.issue_management import issue_tracker_utils
 class Handler(base_handler_flask.Handler):
   """Handler that redirects user to the issue URL."""
 
-  def get(self, testcase_id):
+  def get(self, testcase_id=None):
     """Redirect user to the correct URL."""
     testcase = helpers.get_testcase(testcase_id)
     issue_url = helpers.get_or_exit(
