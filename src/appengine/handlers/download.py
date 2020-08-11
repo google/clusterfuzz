@@ -89,8 +89,6 @@ class Handler(base_handler_flask.Handler, gcs.SignedGcsHandler):
     """Handle a get request with resource."""
     testcase = None
     testcase_id = request.get('testcase_id')
-    print(request.url)
-    print(resource, testcase_id)
     if not testcase_id and not resource:
       raise helpers.EarlyExitException('No file requested.', 400)
 

@@ -85,7 +85,6 @@ class DownloadTest(unittest.TestCase):
     if testcase_id:
       request += '?testcase_id=%s' % str(testcase_id)
 
-    print("test: ", request)
     resp = self.app.get(request, expect_errors=True)
     self.assertEqual(expect_status, resp.status_int)
 
