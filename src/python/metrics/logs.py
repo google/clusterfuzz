@@ -335,10 +335,10 @@ def _add_appengine_trace(extras):
   if not _is_running_on_app_engine():
     return
 
-  import webapp2
+  from libs import auth
 
   try:
-    request = webapp2.get_request()
+    request = auth.get_current_request()
     if not request:
       return
   except Exception:

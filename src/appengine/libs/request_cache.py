@@ -15,9 +15,9 @@
 
 from builtins import str
 import collections
-import webapp2
 
 from base import memoize
+from libs import auth
 from metrics import logs
 
 
@@ -31,7 +31,7 @@ class _FifoRequestCache(memoize.FifoInMemory):
   @property
   def cache(self):
     """Get the cache backing."""
-    request = webapp2.get_request()
+    request = auth.get_current_request()
     if not request:
       # Not a request (e.g. in a unit test). Should not happen in production.
       logs.log_error('No request found for cache.')
