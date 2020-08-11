@@ -238,13 +238,20 @@ def _update_deployment_manager(project, name, config_path):
     return
 
   gcloud = common.Gcloud(project)
+  operation = 'update'
   try:
-    gcloud.run('deployment-manager', 'deployments', 'update', name,
-               '--config=' + config_path)
+    gcloud.run('deployment-manager', 'deployments', 'describe', name)
   except common.GcloudError:
-    # Create deployment if it does not exist.
-    gcloud.run('deployment-manager', 'deployments', 'create', name,
-               '--config=' + config_path)
+    # Does not exist.
+    operation = 'create'
+
+  for _ in range(DEPLOY_RETRIES + 1):
+    try:
+      gcloud.run('deployment-manager', 'deployments', operation, name,
+                 '--config=' + config_path)
+      break
+    except common.GcloudError:
+      time.sleep(RETRY_WAIT_SECONDS)
 
 
 def _update_pubsub_queues(project):
@@ -289,8 +296,9 @@ def _preprocess_alerts(alerts_path):
 
   counts = _get_region_counts()
   for region, count in counts.items():
-    alerts_data = alerts_data.replace(
-        'BOT_COUNT:' + region, str(int(count * EXPECTED_BOT_COUNT_PERCENT)))
+    alerts_data = re.sub('BOT_COUNT:' + region + r'(?=\s|$)',
+                         str(int(count * EXPECTED_BOT_COUNT_PERCENT)),
+                         alerts_data)
 
   with tempfile.NamedTemporaryFile(mode='w') as f:
     f.write(alerts_data)
