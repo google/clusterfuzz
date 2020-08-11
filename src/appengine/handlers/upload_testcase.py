@@ -612,9 +612,10 @@ class UploadHandlerOAuth(base_handler_flask.Handler, UploadHandlerCommon):
   """Handler that uploads the testcase file (OAuth)."""
 
   # pylint: disable=unused-argument
-  def before_render_json(self, values, status):
+  def before_render_json(self, values, status, response):
     """Add upload info when the request fails."""
     values['uploadUrl'] = request.host_url + UPLOAD_URL
+    return response
 
   def get_upload(self):
     """Get the upload."""
