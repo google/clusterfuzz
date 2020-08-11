@@ -289,10 +289,9 @@ def _preprocess_alerts(alerts_path):
 
   counts = _get_region_counts()
   for region, count in counts.items():
-    alerts_data = re.sub(
-        'BOT_COUNT:' + region + r'(?=\s|$)',
-        str(int(count * EXPECTED_BOT_COUNT_PERCENT)),
-        alerts_data)
+    alerts_data = re.sub('BOT_COUNT:' + region + r'(?=\s|$)',
+                         str(int(count * EXPECTED_BOT_COUNT_PERCENT)),
+                         alerts_data)
 
   with tempfile.NamedTemporaryFile(mode='w') as f:
     f.write(alerts_data)
