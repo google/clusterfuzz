@@ -122,7 +122,7 @@ handlers = [
     ('/fuzzers/edit', fuzzers.EditHandler),
     ('/fuzzers/log/<fuzzer_name>', fuzzers.LogHandler),
     ('/issue', issue_redirector.Handler),
-    ('/issue/<int:testcase_id>', issue_redirector.Handler),
+    ('/issue/<testcase_id>', issue_redirector.Handler),
     ('/jobs', jobs.Handler),
     ('/jobs/load', jobs.JsonHandler),
     ('/jobs/delete-job', jobs.DeleteJobHandler),
