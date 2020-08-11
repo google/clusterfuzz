@@ -16,11 +16,13 @@ from __future__ import print_function
 
 from builtins import range
 from collections import namedtuple
+import contextlib
 import datetime
 import json
 import os
 import re
 import sys
+import tempfile
 import time
 
 from local.butler import appengine
@@ -29,6 +31,8 @@ from local.butler import constants
 from local.butler import package
 from src.python.config import local_config
 from src.python.system import environment
+
+EXPECTED_BOT_COUNT_PERCENT = 0.8
 
 APPENGINE_FILESIZE_LIMIT = 30 * 1000 * 1000  # ~32 MB
 DEPLOY_RETRIES = 3
@@ -228,10 +232,8 @@ def _deploy_manifest(bucket_name, manifest_path):
                  (manifest_path, bucket_name, manifest_suffix))
 
 
-def _update_deployment_manager(project, name, path):
+def _update_deployment_manager(project, name, config_path):
   """Update deployment manager settings."""
-  config_dir = environment.get_config_directory()
-  config_path = os.path.join(config_dir, path)
   if not os.path.exists(config_path):
     return
 
@@ -247,27 +249,80 @@ def _update_deployment_manager(project, name, path):
 
 def _update_pubsub_queues(project):
   """Update pubsub queues."""
-  _update_deployment_manager(project, 'pubsub',
-                             os.path.join('pubsub', 'queues.yaml'))
+  _update_deployment_manager(
+      project, 'pubsub',
+      os.path.join(environment.get_config_directory(), 'pubsub', 'queues.yaml'))
+
+
+def _get_region_counts():
+  """Get region instance counts."""
+  counts = {}
+  regions = local_config.MonitoringRegionsConfig()
+  clusters = local_config.Config(local_config.GCE_CLUSTERS_PATH).get()
+
+  def get_region(name):
+    """Get the region."""
+    for pattern in regions.get('patterns'):
+      if re.match(pattern['pattern'], name + '-0000'):
+        return pattern['name']
+
+    return None
+
+  # Compute expected bot counts per region.
+  for config in clusters.values():
+    for name, cluster in config['clusters'].items():
+      region = get_region(name)
+      if not region:
+        continue
+
+      counts.setdefault(region, 0)
+      counts[region] += cluster['instance_count']
+
+  return counts
+
+
+@contextlib.contextmanager
+def _preprocess_alerts(alerts_path):
+  """Preprocess alerts."""
+  with open(alerts_path) as f:
+    alerts_data = f.read()
+
+  counts = _get_region_counts()
+  for region, count in counts.items():
+    alerts_data = alerts_data.replace(
+        'BOT_COUNT:' + region, str(int(count * EXPECTED_BOT_COUNT_PERCENT)))
+
+  with tempfile.NamedTemporaryFile(mode='w') as f:
+    f.write(alerts_data)
+    f.flush()
+    yield f.name
 
 
 def _update_alerts(project):
   """Update pubsub topics."""
-  if local_config.ProjectConfig().get('monitoring.enabled'):
-    _update_deployment_manager(project, 'alerts',
-                               os.path.join('monitoring', 'alerts.yaml'))
+  if not local_config.ProjectConfig().get('monitoring.enabled'):
+    return
+
+  alerts_path = os.path.join(environment.get_config_directory(), 'monitoring',
+                             'alerts.yaml')
+  with _preprocess_alerts(alerts_path) as processed_alerts_path:
+    _update_deployment_manager(project, 'alerts', processed_alerts_path)
 
 
 def _update_bigquery(project):
   """Update bigquery datasets and tables."""
-  _update_deployment_manager(project, 'bigquery',
-                             os.path.join('bigquery', 'datasets.yaml'))
+  _update_deployment_manager(
+      project, 'bigquery',
+      os.path.join(environment.get_config_directory(), 'bigquery',
+                   'datasets.yaml'))
 
 
 def _update_redis(project):
   """Update redis instance."""
-  _update_deployment_manager(project, 'redis',
-                             os.path.join('redis', 'instance.yaml'))
+  _update_deployment_manager(
+      project, 'redis',
+      os.path.join(environment.get_config_directory(), 'redis',
+                   'instance.yaml'))
 
   region = appengine.region(project)
   return_code, _ = common.execute(

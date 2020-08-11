@@ -13,104 +13,22 @@
 # limitations under the License.
 
 resources:
-  - name: low_good_to_all_build_ratio_by_job
+  - name: bot_count_linux
     type: gcp-types/monitoring-v3:projects.alertPolicies
     properties:
-      displayName: Low good-to-all build ratio (by job)
+      displayName: Bot count linux
       combiner: AND
       conditions:
       - displayName: Under threshold
         conditionThreshold:
-          filter: metric.type="custom.googleapis.com/task/fuzz/job/bad_build_count"
-            resource.type="gce_instance" metric.label."bad_build"!="true"
+          filter: metric.type="custom.googleapis.com/bot_count"
+            resource.type="gce_instance" metric.label."region"="linux"
           aggregations:
             - alignmentPeriod: 600s
-              perSeriesAligner: ALIGN_DELTA
-              crossSeriesReducer: REDUCE_COUNT
-              groupByFields: [metric.label.job]
-          denominatorFilter: metric.type="custom.googleapis.com/task/fuzz/job/bad_build_count"
-            resource.type="gce_instance"
-          denominatorAggregations:
-            - alignmentPeriod: 600s
-              perSeriesAligner: ALIGN_DELTA
-              crossSeriesReducer: REDUCE_COUNT
-              groupByFields: [metric.label.job]
+              perSeriesAligner: ALIGN_MEAN
+              crossSeriesReducer: REDUCE_SUM
           comparison: COMPARISON_LT
-          thresholdValue: 0.9
-          duration: 21600s
-      notificationChannels:
-        - $(ref.alert_channel.name)
-  - name: low_good_to_all_build_ratio_by_region
-    type: gcp-types/monitoring-v3:projects.alertPolicies
-    properties:
-      displayName: Low good-to-all build ratio (by region)
-      combiner: AND
-      conditions:
-      - displayName: Under threshold
-        conditionThreshold:
-          filter: metric.type="custom.googleapis.com/task/fuzz/job/bad_build_count"
-            resource.type="gce_instance" metric.label."bad_build"!="true"
-          aggregations:
-            - alignmentPeriod: 600s
-              perSeriesAligner: ALIGN_DELTA
-              crossSeriesReducer: REDUCE_COUNT
-              groupByFields: [metric.label.region]
-          denominatorFilter: metric.type="custom.googleapis.com/task/fuzz/job/bad_build_count"
-            resource.type="gce_instance"
-          denominatorAggregations:
-            - alignmentPeriod: 600s
-              perSeriesAligner: ALIGN_DELTA
-              crossSeriesReducer: REDUCE_COUNT
-              groupByFields: [metric.label.region]
-          comparison: COMPARISON_LT
-          thresholdValue: 0.9
-          duration: 21600s
-      notificationChannels:
-        - $(ref.alert_channel.name)
-  - name: low_fuzzer_zero_return_count_ratio_by_region
-    type: gcp-types/monitoring-v3:projects.alertPolicies
-    properties:
-      displayName: Low fuzzer zero return count ratio (by region)
-      combiner: AND
-      conditions:
-      - displayName: Under threshold
-        conditionThreshold:
-          filter: metric.type="custom.googleapis.com/task/fuzz/fuzzer/return_code_count"
-            resource.type="gce_instance" metric.label."return_code"="0"
-          aggregations:
-            - alignmentPeriod: 600s
-              perSeriesAligner: ALIGN_DELTA
-              crossSeriesReducer: REDUCE_COUNT
-              groupByFields: [metric.label.region]
-          denominatorFilter: metric.type="custom.googleapis.com/task/fuzz/fuzzer/return_code_count"
-            resource.type="gce_instance"
-          denominatorAggregations:
-            - alignmentPeriod: 600s
-              perSeriesAligner: ALIGN_DELTA
-              crossSeriesReducer: REDUCE_COUNT
-              groupByFields: [metric.label.region]
-          comparison: COMPARISON_LT
-          thresholdValue: 0.9
-          duration: 21600s
-      notificationChannels:
-        - $(ref.alert_channel.name)
-  - name: low_fuzzer_testcase_count_ratio_by_region
-    type: gcp-types/monitoring-v3:projects.alertPolicies
-    properties:
-      displayName: Low fuzzer testcase count ratio (by region, P5)
-      combiner: AND
-      conditions:
-      - displayName: Under threshold
-        conditionThreshold:
-          filter: metric.type="custom.googleapis.com/task/fuzz/fuzzer/testcase_count_ratio"
-            resource.type="gce_instance"
-          aggregations:
-            - alignmentPeriod: 600s
-              perSeriesAligner: ALIGN_DELTA
-              crossSeriesReducer: REDUCE_PERCENTILE_05
-              groupByFields: [metric.label.region]
-          comparison: COMPARISON_LT
-          thresholdValue: 0.9
+          thresholdValue: BOT_COUNT:linux  # Replaced during deployment.
           duration: 21600s
       notificationChannels:
         - $(ref.alert_channel.name)
