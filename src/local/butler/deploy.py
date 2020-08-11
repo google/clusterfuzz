@@ -238,13 +238,20 @@ def _update_deployment_manager(project, name, config_path):
     return
 
   gcloud = common.Gcloud(project)
+  operation = 'update'
   try:
-    gcloud.run('deployment-manager', 'deployments', 'update', name,
-               '--config=' + config_path)
+    gcloud.run('deployment-manager', 'deployments', 'describe', name)
   except common.GcloudError:
-    # Create deployment if it does not exist.
-    gcloud.run('deployment-manager', 'deployments', 'create', name,
-               '--config=' + config_path)
+    # Does not exist.
+    operation = 'create'
+
+  for _ in range(DEPLOY_RETRIES + 1):
+    try:
+      gcloud.run('deployment-manager', 'deployments', operation, name,
+                 '--config=' + config_path)
+      break
+    except common.GcloudError:
+      time.sleep(RETRY_WAIT_SECONDS)
 
 
 def _update_pubsub_queues(project):
