@@ -132,7 +132,7 @@ handlers = [
     ('/session-login', login.SessionLoginHandler),
     ('/testcase', show_testcase.DeprecatedHandler),
     ('/testcase-detail', show_testcase.Handler),
-    ('/testcase-detail/<int:testcase_id>)', show_testcase.Handler),
+    ('/testcase-detail/<int:testcase_id>', show_testcase.Handler),
     ('/testcase-detail/crash-stats', crash_stats_on_testcase.Handler),
     ('/testcase-detail/create-issue', create_issue.Handler),
     ('/testcase-detail/delete', delete.Handler),
