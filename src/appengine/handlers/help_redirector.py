@@ -29,7 +29,7 @@ class DocumentationHandler(base_handler_flask.Handler):
     if not documentation_url:
       documentation_url = DEFAULT_DOCUMENTATION_URL
 
-    self.redirect(documentation_url)
+    return self.redirect(documentation_url)
 
 
 class ReportBugHandler(base_handler_flask.Handler):
@@ -41,4 +41,4 @@ class ReportBugHandler(base_handler_flask.Handler):
     if not bug_report_url:
       bug_report_url = DEFAULT_BUG_REPORT_URL
 
-    self.redirect(bug_report_url)
+    return self.redirect(bug_report_url)
