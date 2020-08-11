@@ -587,9 +587,10 @@ class UploadHandler(UploadHandlerCommon, base_handler_flask.GcsUploadHandler):
   """Handler that uploads the testcase file."""
 
   # pylint: disable=unused-argument
-  def before_render_json(self, values, status):
+  def before_render_json(self, values, status, response):
     """Add upload info when the request fails."""
     values['uploadInfo'] = gcs.prepare_blob_upload()._asdict()
+    return response
 
   def get_upload(self):
     return base_handler_flask.GcsUploadHandler.get_upload(self)
