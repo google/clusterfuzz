@@ -149,8 +149,12 @@ class DeployTest(fake_filesystem_unittest.TestCase):
                                    ['/windows.zip', '/mac.zip', '/linux.zip'])
 
     self.mock.run.assert_has_calls([
+        mock.call(mock.ANY, 'deployment-manager', 'deployments', 'describe',
+                  'pubsub'),
         mock.call(mock.ANY, 'deployment-manager', 'deployments', 'update',
                   'pubsub', '--config=./configs/test/pubsub/queues.yaml'),
+        mock.call(mock.ANY, 'deployment-manager', 'deployments', 'describe',
+                  'bigquery'),
         mock.call(mock.ANY, 'deployment-manager', 'deployments', 'update',
                   'bigquery', '--config=./configs/test/bigquery/datasets.yaml'),
     ])
@@ -219,8 +223,12 @@ class DeployTest(fake_filesystem_unittest.TestCase):
                                    ['/windows.zip', '/mac.zip', '/linux.zip'])
 
     self.mock.run.assert_has_calls([
+        mock.call(mock.ANY, 'deployment-manager', 'deployments', 'describe',
+                  'pubsub'),
         mock.call(mock.ANY, 'deployment-manager', 'deployments', 'update',
                   'pubsub', '--config=./configs/test/pubsub/queues.yaml'),
+        mock.call(mock.ANY, 'deployment-manager', 'deployments', 'describe',
+                  'bigquery'),
         mock.call(mock.ANY, 'deployment-manager', 'deployments', 'update',
                   'bigquery', '--config=./configs/test/bigquery/datasets.yaml'),
     ])
@@ -280,8 +288,12 @@ class DeployTest(fake_filesystem_unittest.TestCase):
                                      ['/windows.zip', '/mac.zip', '/linux.zip'])
 
     self.mock.run.assert_has_calls([
+        mock.call(mock.ANY, 'deployment-manager', 'deployments', 'describe',
+                  'pubsub'),
         mock.call(mock.ANY, 'deployment-manager', 'deployments', 'update',
                   'pubsub', '--config=./configs/test/pubsub/queues.yaml'),
+        mock.call(mock.ANY, 'deployment-manager', 'deployments', 'describe',
+                  'bigquery'),
         mock.call(mock.ANY, 'deployment-manager', 'deployments', 'update',
                   'bigquery', '--config=./configs/test/bigquery/datasets.yaml'),
     ])
