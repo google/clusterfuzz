@@ -587,10 +587,9 @@ class UploadHandler(UploadHandlerCommon, base_handler_flask.GcsUploadHandler):
   """Handler that uploads the testcase file."""
 
   # pylint: disable=unused-argument
-  def before_render_json(self, values, status, response):
+  def before_render_json(self, values, status):
     """Add upload info when the request fails."""
     values['uploadInfo'] = gcs.prepare_blob_upload()._asdict()
-    return response
 
   def get_upload(self):
     return base_handler_flask.GcsUploadHandler.get_upload(self)
@@ -613,14 +612,13 @@ class UploadHandlerOAuth(base_handler_flask.Handler, UploadHandlerCommon):
   """Handler that uploads the testcase file (OAuth)."""
 
   # pylint: disable=unused-argument
-  def before_render_json(self, values, status, response):
+  def before_render_json(self, values, status):
     """Add upload info when the request fails."""
     values['uploadUrl'] = request.host_url + UPLOAD_URL
-    return response
 
   def get_upload(self):
     """Get the upload."""
-    uploaded_file = request.POST.get('file')
+    uploaded_file = request.get('file')
     if not isinstance(uploaded_file, cgi.FieldStorage):
       raise helpers.EarlyExitException('File upload not found.', 400)
 

@@ -25,6 +25,7 @@ from base import utils
 from config import db_config
 from config import local_config
 from datastore import data_types
+from flask import g
 from flask import request
 from libs import access
 from libs import auth
@@ -256,7 +257,7 @@ def oauth(func):
     auth_header = request.headers.get('Authorization')
     if auth_header:
       email, returned_auth_header = get_email_and_access_token(auth_header)
-      setattr(request, '_oauth_email', email)
+      setattr(g, '_oauth_email', email)
 
       response = func(self)
       response.headers[CLUSTERFUZZ_AUTHORIZATION_HEADER] = str(

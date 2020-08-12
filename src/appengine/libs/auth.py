@@ -137,11 +137,17 @@ def get_current_user():
   if iap_email:
     return User(iap_email)
 
-  oauth_email = getattr(current_request, '_oauth_email', None)
+  if flask.request:
+    oauth_email = getattr(flask.g, '_oauth_email', None)
+  else:
+    oauth_email = getattr(current_request, '_oauth_email', None)
   if oauth_email:
     return User(oauth_email)
 
-  cached_email = getattr(current_request, '_cached_email', None)
+  if flask.request:
+    cached_email = getattr(flask.g, '_cached_email', None)
+  else:
+    cached_email = getattr(current_request, '_cached_email', None)
   if cached_email:
     return User(cached_email)
 
@@ -164,7 +170,10 @@ def get_current_user():
 
   # We cache the email for this request if we've validated the user to make
   # subsequent get_current_user() calls fast.
-  setattr(current_request, '_cached_email', email)
+  if flask.request:
+    setattr(flask.g, '_cached_email', email)
+  else:
+    setattr(current_request, '_cached_email', email)
   return User(email)
 
 
