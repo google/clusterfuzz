@@ -593,10 +593,9 @@ class Handler(base_handler_flask.Handler):
 class DeprecatedHandler(base_handler_flask.Handler):
   """Deprecated handler_flask to show old style testcase link with key."""
 
-  @handler_flask.get(handler_flask.HTML)
   def get(self):
     """Serve the redirect to the current test case detail page."""
-    testcase_id = request.get('key')
+    testcase_id = request.args.get('key')
     if not testcase_id:
       raise helpers.EarlyExitException('No testcase key provided.', 400)
 

@@ -28,7 +28,6 @@ from google_cloud_utils import blobs
 from handlers import base_handler_flask
 from libs import access
 from libs import gcs
-from libs import handler_flask
 from libs import helpers
 from libs.issue_management import issue_tracker_utils
 
@@ -84,11 +83,10 @@ class Handler(base_handler_flask.Handler, gcs.SignedGcsHandler):
 
     return True
 
-  @handler_flask.get(handler_flask.HTML)
   def get(self, resource=None):
     """Handle a get request with resource."""
     testcase = None
-    testcase_id = request.get('testcase_id')
+    testcase_id = request.args.get('testcase_id')
     if not testcase_id and not resource:
       raise helpers.EarlyExitException('No file requested.', 400)
 
