@@ -185,6 +185,7 @@ def get_current_request():
     return flask.request
   return webapp2.get_request()
 
+
 def get_cache_backing():
   """Get the cache backing for saving current context data."""
   # TODO(singharshdeep): Remove get_current_request() after flask migration.

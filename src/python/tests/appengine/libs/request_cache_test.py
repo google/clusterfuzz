@@ -53,10 +53,10 @@ class CacheTest(unittest.TestCase):
 
   def setUp(self):
     test_helpers.patch(self, [
-        'webapp2.get_request',
+        'auth.get_current_request',
     ])
 
-    self.mock.get_request.return_value = FakeRequest()
+    self.mock.get_current_request.return_value = FakeRequest()
 
   def test_basic(self):
     """Basic tests."""
