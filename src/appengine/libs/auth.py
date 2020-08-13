@@ -28,6 +28,7 @@ from base import memoize
 from base import utils
 from config import local_config
 from datastore import data_types
+from libs import request_cache
 from metrics import logs
 from system import environment
 
@@ -137,7 +138,7 @@ def get_current_user():
   if iap_email:
     return User(iap_email)
 
-  cache_backing = get_cache_backing()
+  cache_backing = request_cache.get_cache_backing()
 
   oauth_email = getattr(cache_backing, '_oauth_email', None)
   if oauth_email:
@@ -184,14 +185,6 @@ def get_current_request():
   if flask.request:
     return flask.request
   return webapp2.get_request()
-
-
-def get_cache_backing():
-  """Get the cache backing for saving current context data."""
-  # TODO(singharshdeep): Remove get_current_request() after flask migration.
-  if flask.request:
-    return flask.g
-  return get_current_request()
 
 
 def get_session_cookie():
