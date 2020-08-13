@@ -137,17 +137,13 @@ def get_current_user():
   if iap_email:
     return User(iap_email)
 
-  if flask.request:
-    oauth_email = getattr(flask.g, '_oauth_email', None)
-  else:
-    oauth_email = getattr(current_request, '_oauth_email', None)
+  cache_backing = get_cache_backing()
+
+  oauth_email = getattr(cache_backing, '_oauth_email', None)
   if oauth_email:
     return User(oauth_email)
 
-  if flask.request:
-    cached_email = getattr(flask.g, '_cached_email', None)
-  else:
-    cached_email = getattr(current_request, '_cached_email', None)
+  cached_email = getattr(cache_backing, '_cached_email', None)
   if cached_email:
     return User(cached_email)
 
@@ -170,10 +166,7 @@ def get_current_user():
 
   # We cache the email for this request if we've validated the user to make
   # subsequent get_current_user() calls fast.
-  if flask.request:
-    setattr(flask.g, '_cached_email', email)
-  else:
-    setattr(current_request, '_cached_email', email)
+  setattr(cache_backing, '_cached_email', email)
   return User(email)
 
 
@@ -191,6 +184,13 @@ def get_current_request():
   if flask.request:
     return flask.request
   return webapp2.get_request()
+
+def get_cache_backing():
+  """Get the cache backing for saving current context data."""
+  # TODO(singharshdeep): Remove get_current_request() after flask migration.
+  if flask.request:
+    return flask.g
+  return get_current_request()
 
 
 def get_session_cookie():

@@ -15,7 +15,6 @@
 
 from builtins import str
 import collections
-import flask
 
 from base import memoize
 from libs import auth
@@ -40,16 +39,11 @@ class _FifoRequestCache(memoize.FifoInMemory):
 
     key = '__cache:' + self._cache_key
 
-    if flask.request:
-      backing = getattr(flask.g, key, None)
-    else:
-      backing = getattr(request, key, None)
+    cache_backing = auth.get_cache_backing()
+    backing = getattr(cache_backing, key, None)
     if backing is None:
       backing = collections.OrderedDict()
-      if flask.request:
-        setattr(flask.g, key, backing)
-      else:
-        setattr(request, key, backing)
+      setattr(cache_backing, key, backing)
 
     return backing
 
