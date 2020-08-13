@@ -53,10 +53,9 @@ class CacheTest(unittest.TestCase):
 
   def setUp(self):
     test_helpers.patch(self, [
-        'libs.auth.get_current_request', 'libs.request_cache.get_cache_backing'
+        'libs.request_cache.get_cache_backing'
     ])
 
-    self.mock.get_current_request.return_value = FakeRequest()
     self.mock.get_cache_backing.return_value = FakeRequest()
 
   def test_basic(self):
@@ -73,7 +72,6 @@ class CacheTest(unittest.TestCase):
 
   def test_no_request(self):
     """Test no request available."""
-    self.mock.get_current_request.return_value = None
     self.mock.get_cache_backing.return_value = None
     c = CacheClass()
     self.assertEqual(2, c.foo(1))
@@ -105,7 +103,6 @@ class CacheTest(unittest.TestCase):
     """Test that the cache is scoped to requests."""
     c = CacheClass()
     self.assertEqual(2, c.foo(1))
-    self.mock.get_current_request.return_value = FakeRequest()
     self.mock.get_cache_backing.return_value = FakeRequest()
     self.assertEqual(2, c.foo(1))
 
