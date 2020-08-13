@@ -52,9 +52,7 @@ class CacheTest(unittest.TestCase):
   """Cache tests."""
 
   def setUp(self):
-    test_helpers.patch(self, [
-        'libs.request_cache.get_cache_backing'
-    ])
+    test_helpers.patch(self, ['libs.request_cache.get_cache_backing'])
 
     self.mock.get_cache_backing.return_value = FakeRequest()
 
