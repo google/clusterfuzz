@@ -14,13 +14,12 @@
 """Home page handler_flask."""
 from __future__ import absolute_import
 
-from . import base_handler_flask
-
 from base import external_users
 from base import memoize
 from base import utils
 from datastore import data_handler
 from datastore import data_types
+from handlers import base_handler_flask
 from libs import access
 from libs import handler_flask
 from libs import helpers
@@ -152,3 +151,4 @@ class RefreshCacheHandler(base_handler_flask.Handler):
     """GET handler_flask."""
     # pylint: disable=unexpected-keyword-arg
     _get_all_project_results(__memoize_force__=True)
+    return 'OK'
