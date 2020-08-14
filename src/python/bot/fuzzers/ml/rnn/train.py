@@ -126,9 +126,9 @@ def main(args):
   epoch_size = len(code_text) // (batch_size * constants.TRAINING_SEQLEN)
   utils.print_data_stats(len(code_text), len(validation_text), epoch_size)
 
-  # Set graph-level random seed, so any random sequence generated in this
-  # graph is repeatable. It could also be removed.
-  tf.compat.v1.set_random_seed(0)
+  # Set global random seed, so any random sequence generated is repeatable.
+  # It could also be removed.
+  tf.random.set_seed(0)
 
   # Define placeholder for learning rate, dropout and batch size.
   lr = tf.compat.v1.placeholder(tf.float32, name='lr')
