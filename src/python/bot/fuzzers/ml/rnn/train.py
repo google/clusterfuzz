@@ -183,7 +183,7 @@ def main(args):
   output_bytes = tf.reshape(output_bytes, [batchsize, -1], name='output_bytes')
 
   # Choose Adam optimizer to compute gradients.
-  optimizer = tf.compat.v1.train.AdamOptimizer(lr).minimize(loss)
+  optimizer = tf.keras.optimizers.Adam(learning_rate)
 
   # Stats for display.
   seqloss = tf.reduce_mean(input_tensor=loss, axis=1)
