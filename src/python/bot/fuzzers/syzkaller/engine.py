@@ -112,7 +112,10 @@ class SyzkallerEngine(engine.Engine):
     # Directory to place new units.
     self._create_temp_corpus_dir('new')
 
-    return syzkaller_runner.fuzz(max_time, additional_args=options.arguments)
+    args = options.arguments
+    args += ['--coverfile', runner.get_cover_file_path()]
+
+    return syzkaller_runner.fuzz(max_time, additional_args=args)
 
   def reproduce(self, target_path, input_path, arguments, max_time):  # pylint: disable=unused-argument
     """Reproduce a crash given an input.

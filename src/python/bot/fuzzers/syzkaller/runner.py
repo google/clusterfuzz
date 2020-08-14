@@ -64,6 +64,11 @@ def get_config():
   return ['-config', json_config_path]
 
 
+def get_cover_file_path():
+  """Return location of coverage file for Syzkaller."""
+  return os.path.join(get_work_dir(), 'coverfile')
+
+
 def get_runner(fuzzer_path):
   """Return a syzkaller runner object."""
   return AndroidSyzkallerRunner(fuzzer_path)
