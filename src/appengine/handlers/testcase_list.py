@@ -17,8 +17,8 @@ from base import errors
 from base import utils
 from datastore import data_handler
 from datastore import data_types
+from flask import make_response
 from flask import request
-from flask import Response
 from google_cloud_utils import blobs
 from handlers import base_handler_flask
 from libs import crash_access
@@ -224,11 +224,7 @@ class CacheHandler(base_handler_flask.Handler):
       blobs.get_blob_size(testcase.fuzzed_keys)
       blobs.get_blob_size(testcase.minimized_keys)
 
-    response = Response()
-    response.headers['Content-Type'] = 'text/plain'
-    response.out.write('OK')
-    response.set_status(200)
-    return response
+    return make_response(('OK', 200, {'Content-Type': 'text/plain'}))
 
 
 class JsonHandler(base_handler_flask.Handler):
