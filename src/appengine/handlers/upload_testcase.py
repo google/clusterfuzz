@@ -19,7 +19,6 @@ from builtins import object
 from builtins import str
 
 import ast
-import cgi
 import datetime
 import io
 import json
@@ -618,11 +617,11 @@ class UploadHandlerOAuth(base_handler_flask.Handler, UploadHandlerCommon):
 
   def get_upload(self):
     """Get the upload."""
-    uploaded_file = request.get('file')
-    if not isinstance(uploaded_file, cgi.FieldStorage):
+    uploaded_file = request.files.get('file')
+    if not uploaded_file:
       raise helpers.EarlyExitException('File upload not found.', 400)
 
-    bytes_io = NamedBytesIO(uploaded_file.filename, uploaded_file.file.read())
+    bytes_io = NamedBytesIO(uploaded_file.filename, uploaded_file.stream.read())
     key = blobs.write_blob(bytes_io)
     return blobs.get_blob_info(key)
 
