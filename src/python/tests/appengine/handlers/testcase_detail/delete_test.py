@@ -12,8 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """Delete tests."""
+import flask
 import unittest
-import webapp2
 import webtest
 
 from datastore import data_types
@@ -34,7 +34,9 @@ class HandlerTest(unittest.TestCase):
     ])
     self.mock.is_current_user_admin.return_value = True
     self.mock.get_current_user().email = 'test@user.com'
-    self.app = webtest.TestApp(webapp2.WSGIApplication([('/', delete.Handler)]))
+    flaskapp = flask.Flask('testflask')
+    flaskapp.add_url_rule('/', view_func=delete.Handler.as_view('/'))
+    self.app = webtest.TestApp(flaskapp)
 
   def test_assigned_issue(self):
     """The testcase is assigned an issue."""

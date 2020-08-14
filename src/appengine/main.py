@@ -44,6 +44,8 @@ import server
 import server_flask
 
 routes = {route: server_flask.app for route, _ in server_flask.handlers}
+routes.update(
+    {route: server_flask.app for route, _ in server_flask.cron_routes})
 
 
 def middleware(environ, start_response):

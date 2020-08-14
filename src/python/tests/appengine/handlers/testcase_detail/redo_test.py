@@ -12,8 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """redo tests."""
+import flask
 import unittest
-import webapp2
 import webtest
 
 from base import tasks
@@ -37,7 +37,9 @@ class HandlerTest(unittest.TestCase):
         'handlers.testcase_detail.show.get_testcase_detail',
         'libs.access.check_access_and_get_testcase'
     ])
-    self.app = webtest.TestApp(webapp2.WSGIApplication([('/', redo.Handler)]))
+    flaskapp = flask.Flask('testflask')
+    flaskapp.add_url_rule('/', view_func=redo.Handler.as_view('/'))
+    self.app = webtest.TestApp(flaskapp)
 
     self.mock.get_testcase_detail.return_value = {'testcase': 'yes'}
     self.testcase = data_types.Testcase()

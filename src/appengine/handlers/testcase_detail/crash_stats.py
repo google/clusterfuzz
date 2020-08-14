@@ -13,9 +13,10 @@
 # limitations under the License.
 """Handler for showing crash stats inside the testcase detail page."""
 
-from handlers import base_handler
+from flask import request
+from handlers import base_handler_flask
 from libs import crash_stats
-from libs import handler
+from libs import handler_flask
 from libs import helpers
 
 
@@ -38,17 +39,16 @@ def get_result(testcase, end, block, days, group_by):
   return rows[0]
 
 
-class Handler(base_handler.Handler):
+class Handler(base_handler_flask.Handler):
   """Serve crash stats data on testcase detail."""
 
-  @handler.post(handler.JSON, handler.JSON)
-  @handler.check_testcase_access
+  @handler_flask.post(handler_flask.JSON, handler_flask.JSON)
+  @handler_flask.check_testcase_access
   def post(self, testcase):
     """Server crash stats."""
-    end = helpers.cast(self.request.get('end'), int, "'end' is not an int.")
-    days = helpers.cast(self.request.get('days'), int, "'days' is not an int.")
+    end = helpers.cast(request.get('end'), int, "'end' is not an int.")
+    days = helpers.cast(request.get('days'), int, "'days' is not an int.")
     group_by = helpers.cast(
-        self.request.get('groupBy'), str, "'groupBy' is not a string.")
-    block = helpers.cast(
-        self.request.get('block'), str, "'block' is not a string.")
-    self.render_json(get_result(testcase, end, block, days, group_by))
+        request.get('groupBy'), str, "'groupBy' is not a string.")
+    block = helpers.cast(request.get('block'), str, "'block' is not a string.")
+    return self.render_json(get_result(testcase, end, block, days, group_by))

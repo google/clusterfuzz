@@ -18,11 +18,35 @@ from config import local_config
 from flask import Flask
 from google.cloud import ndb
 from handlers import base_handler_flask
+from handlers import bots
 from handlers import configuration
 from handlers import corpora
+from handlers import crash_stats
+from handlers import download
 from handlers import fuzzers
+from handlers import help_redirector
+from handlers import home
+from handlers import issue_redirector
 from handlers import jobs
 from handlers import login
+from handlers import testcase_list
+from handlers import upload_testcase
+from handlers.testcase_detail import (crash_stats as crash_stats_on_testcase)
+from handlers.testcase_detail import (show as show_testcase)
+from handlers.testcase_detail import create_issue
+from handlers.testcase_detail import delete
+from handlers.testcase_detail import download_testcase
+from handlers.testcase_detail import find_similar_issues
+from handlers.testcase_detail import mark_fixed
+from handlers.testcase_detail import mark_security
+from handlers.testcase_detail import mark_unconfirmed
+from handlers.testcase_detail import redo
+from handlers.testcase_detail import remove_duplicate
+from handlers.testcase_detail import remove_group
+from handlers.testcase_detail import remove_issue
+from handlers.testcase_detail import testcase_variants
+from handlers.testcase_detail import update_from_trunk
+from handlers.testcase_detail import update_issue
 from metrics import logs
 from system import environment
 
@@ -70,25 +94,69 @@ base_handler_flask.add_menu('Documentation', '/docs')
 logs.configure('appengine')
 config = local_config.GAEConfig()
 
+# We need to separate routes for cron to avoid redirection.
+cron_routes = [
+    ('/home-cache', home.RefreshCacheHandler),
+    ('/testcases/cache', testcase_list.CacheHandler),
+]
+
 handlers = [
+    ('/', home.Handler if _is_oss_fuzz else testcase_list.Handler),
+    ('/bots', bots.Handler),
+    ('/bots/dead', bots.DeadBotsHandler),
     ('/configuration', configuration.Handler),
     ('/add-external-user-permission', configuration.AddExternalUserPermission),
     ('/delete-external-user-permission',
      configuration.DeleteExternalUserPermission),
+    ('/crash-stats/load', crash_stats.JsonHandler),
+    ('/crash-stats', crash_stats.Handler),
     ('/corpora', corpora.Handler),
     ('/corpora/create', corpora.CreateHandler),
     ('/corpora/delete', corpora.DeleteHandler),
+    ('/docs', help_redirector.DocumentationHandler),
+    ('/download', download.Handler),
+    ('/download/<resource>', download.Handler),
     ('/fuzzers', fuzzers.Handler),
     ('/fuzzers/create', fuzzers.CreateHandler),
     ('/fuzzers/delete', fuzzers.DeleteHandler),
     ('/fuzzers/edit', fuzzers.EditHandler),
     ('/fuzzers/log/<fuzzer_name>', fuzzers.LogHandler),
+    ('/issue', issue_redirector.Handler),
+    ('/issue/<testcase_id>', issue_redirector.Handler),
     ('/jobs', jobs.Handler),
     ('/jobs/load', jobs.JsonHandler),
     ('/jobs/delete-job', jobs.DeleteJobHandler),
     ('/login', login.Handler),
     ('/logout', login.LogoutHandler),
+    ('/report-bug', help_redirector.ReportBugHandler),
     ('/session-login', login.SessionLoginHandler),
+    ('/testcase', show_testcase.DeprecatedHandler),
+    ('/testcase-detail', show_testcase.Handler),
+    ('/testcase-detail/<int:testcase_id>', show_testcase.Handler),
+    ('/testcase-detail/crash-stats', crash_stats_on_testcase.Handler),
+    ('/testcase-detail/create-issue', create_issue.Handler),
+    ('/testcase-detail/delete', delete.Handler),
+    ('/testcase-detail/download-testcase', download_testcase.Handler),
+    ('/testcase-detail/find-similar-issues', find_similar_issues.Handler),
+    ('/testcase-detail/mark-fixed', mark_fixed.Handler),
+    ('/testcase-detail/mark-security', mark_security.Handler),
+    ('/testcase-detail/mark-unconfirmed', mark_unconfirmed.Handler),
+    ('/testcase-detail/redo', redo.Handler),
+    ('/testcase-detail/refresh', show_testcase.RefreshHandler),
+    ('/testcase-detail/remove-duplicate', remove_duplicate.Handler),
+    ('/testcase-detail/remove-issue', remove_issue.Handler),
+    ('/testcase-detail/remove-group', remove_group.Handler),
+    ('/testcase-detail/testcase-variants', testcase_variants.Handler),
+    ('/testcase-detail/update-from-trunk', update_from_trunk.Handler),
+    ('/testcase-detail/update-issue', update_issue.Handler),
+    ('/testcases', testcase_list.Handler),
+    ('/testcases/load', testcase_list.JsonHandler),
+    ('/upload-testcase', upload_testcase.Handler),
+    ('/upload-testcase/get-url-oauth', upload_testcase.UploadUrlHandlerOAuth),
+    ('/upload-testcase/prepare', upload_testcase.PrepareUploadHandler),
+    ('/upload-testcase/load', upload_testcase.JsonHandler),
+    ('/upload-testcase/upload', upload_testcase.UploadHandler),
+    ('/upload-testcase/upload-oauth', upload_testcase.UploadHandlerOAuth),
     ('/update-job', jobs.UpdateJob),
     ('/update-job-template', jobs.UpdateJobTemplate),
 ]
@@ -102,6 +170,7 @@ if not environment.get_value('PY_UNITTESTS'):
   app.wsgi_app = ndb_wsgi_middleware(app.wsgi_app)
 
 register_routes(app, handlers)
+register_routes(app, cron_routes)
 
 if __name__ == '__main__':
   app.run()

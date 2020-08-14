@@ -13,8 +13,8 @@
 # limitations under the License.
 """Download testcase tests."""
 from builtins import str
+import flask
 import unittest
-import webapp2
 import webtest
 
 from datastore import data_types
@@ -50,8 +50,9 @@ class OAuthHandlerTest(unittest.TestCase):
     testcase.put()
 
     self.mock.check_access_and_get_testcase.return_value = testcase
-
-    app = webtest.TestApp(webapp2.WSGIApplication([('/', handler_class)]))
+    flaskapp = flask.Flask('testflask')
+    flaskapp.add_url_rule('/', view_func=handler_class.as_view('/'))
+    app = webtest.TestApp(flaskapp)
     resp = app.get('/?id=%s' % testcase.key.id())
 
     self.assertEqual(302, resp.status_int)

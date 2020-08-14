@@ -12,8 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """update_from_trunk tests."""
+import flask
 import unittest
-import webapp2
 import webtest
 
 from datastore import data_types
@@ -35,8 +35,9 @@ class HandlerTest(unittest.TestCase):
         'handlers.testcase_detail.show.get_testcase_detail',
         'libs.access.check_access_and_get_testcase',
     ])
-    self.app = webtest.TestApp(
-        webapp2.WSGIApplication([('/', update_from_trunk.Handler)]))
+    flaskapp = flask.Flask('testflask')
+    flaskapp.add_url_rule('/', view_func=update_from_trunk.Handler.as_view('/'))
+    self.app = webtest.TestApp(flaskapp)
 
     self.testcase = data_types.Testcase(queue='old-queue')
     self.testcase.put()

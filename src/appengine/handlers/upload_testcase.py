@@ -33,13 +33,14 @@ from base import tasks
 from base import utils
 from datastore import data_handler
 from datastore import data_types
+from flask import request
 from google_cloud_utils import blobs
 from google_cloud_utils import storage
-from handlers import base_handler
+from handlers import base_handler_flask
 from libs import access
 from libs import form
 from libs import gcs
-from libs import handler
+from libs import handler_flask
 from libs import helpers
 from libs.issue_management import issue_tracker_utils
 from libs.query import datastore_query
@@ -80,11 +81,10 @@ def attach_testcases(rows):
     row['testcase'] = testcase
 
 
-def get_result(this):
+def get_result():
   """Get the result."""
-  params = dict(this.request.iterparams())
-  page = helpers.cast(
-      this.request.get('page') or 1, int, "'page' is not an int.")
+  params = dict(request.iterparams())
+  page = helpers.cast(request.get('page') or 1, int, "'page' is not an int.")
 
   query = datastore_query.Query(data_types.TestcaseUploadMetadata)
   query.order('timestamp', is_desc=True)
@@ -206,10 +206,10 @@ def _allow_unprivileged_metadata(testcase_metadata):
   return len(testcase_metadata) == 1 and 'issue_labels' in testcase_metadata
 
 
-class Handler(base_handler.Handler):
+class Handler(base_handler_flask.Handler):
   """Handler for the testcase uploads page."""
 
-  @handler.get(handler.HTML)
+  @handler_flask.get(handler_flask.HTML)
   def get(self):
     """Handles get request."""
     email = helpers.get_user_email()
@@ -234,8 +234,8 @@ class Handler(base_handler.Handler):
 
     has_issue_tracker = bool(data_handler.get_issue_tracker_name())
 
-    result, params = get_result(self)
-    self.render(
+    result, params = get_result()
+    return self.render(
         'upload.html', {
             'fieldValues': {
                 'blackboxFuzzers':
@@ -266,38 +266,38 @@ class Handler(base_handler.Handler):
         })
 
 
-class PrepareUploadHandler(base_handler.Handler):
+class PrepareUploadHandler(base_handler_flask.Handler):
   """Handler that creates an upload URL."""
 
-  @handler.check_user_access(need_privileged_access=False)
+  @handler_flask.check_user_access(need_privileged_access=False)
   def post(self):
     """Serves the url."""
-    self.render_json({'uploadInfo': gcs.prepare_blob_upload()._asdict()})
+    return self.render_json({'uploadInfo': gcs.prepare_blob_upload()._asdict()})
 
 
-class UploadUrlHandlerOAuth(base_handler.Handler):
+class UploadUrlHandlerOAuth(base_handler_flask.Handler):
   """Handler that creates an upload URL (OAuth)."""
 
-  @handler.oauth
-  @handler.check_user_access(need_privileged_access=False)
+  @handler_flask.oauth
+  @handler_flask.check_user_access(need_privileged_access=False)
   def post(self):
     """Serves the url."""
-    self.render_json({
-        'uploadUrl': self.request.host_url + UPLOAD_URL,
+    return self.render_json({
+        'uploadUrl': request.host_url + UPLOAD_URL,
     })
 
 
-class JsonHandler(base_handler.Handler):
-  """JSON handler for past testcase uploads."""
+class JsonHandler(base_handler_flask.Handler):
+  """JSON handler_flask for past testcase uploads."""
 
-  @handler.post(handler.JSON, handler.JSON)
+  @handler_flask.post(handler_flask.JSON, handler_flask.JSON)
   def post(self):
     """Handles a post request."""
     if not helpers.get_user_email():
       raise helpers.AccessDeniedException()
 
-    result, _ = get_result(self)
-    self.render_json(result)
+    result, _ = get_result()
+    return self.render_json(result)
 
 
 class UploadHandlerCommon(object):
@@ -310,7 +310,7 @@ class UploadHandlerCommon(object):
   def do_post(self):
     """Upload a testcase."""
     email = helpers.get_user_email()
-    testcase_id = self.request.get('testcaseId')
+    testcase_id = request.get('testcaseId')
     uploaded_file = self.get_upload()
     if testcase_id and not uploaded_file:
       testcase = helpers.get_testcase(testcase_id)
@@ -328,7 +328,7 @@ class UploadHandlerCommon(object):
       uploaded_file.filename = os.path.basename(
           uploaded_file.filename.replace('\\', os.sep))
 
-    job_type = self.request.get('job')
+    job_type = request.get('job')
     if not job_type:
       raise helpers.EarlyExitException('Missing job name.', 400)
 
@@ -336,7 +336,7 @@ class UploadHandlerCommon(object):
         not job_type in data_handler.get_all_job_type_names()):
       raise helpers.EarlyExitException('Invalid job name.', 400)
 
-    fuzzer_name = self.request.get('fuzzer')
+    fuzzer_name = request.get('fuzzer')
     job_type_lowercase = job_type.lower()
     if 'libfuzzer' in job_type_lowercase:
       fuzzer_name = 'libFuzzer'
@@ -346,7 +346,7 @@ class UploadHandlerCommon(object):
       fuzzer_name = 'honggfuzz'
 
     is_engine_job = fuzzer_name and environment.is_engine_fuzzer_job(job_type)
-    target_name = self.request.get('target')
+    target_name = request.get('target')
     if not is_engine_job and target_name:
       raise helpers.EarlyExitException(
           'Target name is not applicable to non-engine jobs (AFL, libFuzzer).',
@@ -372,22 +372,22 @@ class UploadHandlerCommon(object):
         not _is_uploader_allowed(email)):
       raise helpers.AccessDeniedException()
 
-    multiple_testcases = bool(self.request.get('multiple'))
-    http_flag = bool(self.request.get('http'))
-    high_end_job = bool(self.request.get('highEnd'))
-    bug_information = self.request.get('issue')
-    crash_revision = self.request.get('revision')
-    timeout = self.request.get('timeout')
-    retries = self.request.get('retries')
-    bug_summary_update_flag = bool(self.request.get('updateIssue'))
-    quiet_flag = bool(self.request.get('quiet'))
-    additional_arguments = self.request.get('args')
-    app_launch_command = self.request.get('cmd')
-    platform_id = self.request.get('platform')
-    issue_labels = self.request.get('issue_labels')
-    gestures = self.request.get('gestures') or '[]'
+    multiple_testcases = bool(request.get('multiple'))
+    http_flag = bool(request.get('http'))
+    high_end_job = bool(request.get('highEnd'))
+    bug_information = request.get('issue')
+    crash_revision = request.get('revision')
+    timeout = request.get('timeout')
+    retries = request.get('retries')
+    bug_summary_update_flag = bool(request.get('updateIssue'))
+    quiet_flag = bool(request.get('quiet'))
+    additional_arguments = request.get('args')
+    app_launch_command = request.get('cmd')
+    platform_id = request.get('platform')
+    issue_labels = request.get('issue_labels')
+    gestures = request.get('gestures') or '[]'
 
-    testcase_metadata = self.request.get('metadata', {})
+    testcase_metadata = request.get('metadata', {})
     if testcase_metadata:
       try:
         testcase_metadata = json.loads(testcase_metadata)
@@ -531,8 +531,7 @@ class UploadHandlerCommon(object):
           upload_metadata.put()
 
           helpers.log('Uploaded multiple testcases.', helpers.VIEW_OPERATION)
-          self.render_json({'multiple': True})
-          return
+          return self.render_json({'multiple': True})
 
         file_path_input = guess_input_file(uploaded_file, filename)
         if not file_path_input:
@@ -581,10 +580,10 @@ class UploadHandlerCommon(object):
         issue.save(new_comment=comment)
 
     helpers.log('Uploaded testcase %s' % testcase_id, helpers.VIEW_OPERATION)
-    self.render_json({'id': '%s' % testcase_id})
+    return self.render_json({'id': '%s' % testcase_id})
 
 
-class UploadHandler(UploadHandlerCommon, base_handler.GcsUploadHandler):
+class UploadHandler(UploadHandlerCommon, base_handler_flask.GcsUploadHandler):
   """Handler that uploads the testcase file."""
 
   # pylint: disable=unused-argument
@@ -593,12 +592,12 @@ class UploadHandler(UploadHandlerCommon, base_handler.GcsUploadHandler):
     values['uploadInfo'] = gcs.prepare_blob_upload()._asdict()
 
   def get_upload(self):
-    return base_handler.GcsUploadHandler.get_upload(self)
+    return base_handler_flask.GcsUploadHandler.get_upload(self)
 
-  @handler.post(handler.FORM, handler.JSON)
-  @handler.require_csrf_token
+  @handler_flask.post(handler_flask.FORM, handler_flask.JSON)
+  @handler_flask.require_csrf_token
   def post(self):
-    self.do_post()
+    return self.do_post()
 
 
 class NamedBytesIO(io.BytesIO):
@@ -609,17 +608,17 @@ class NamedBytesIO(io.BytesIO):
     io.BytesIO.__init__(self, value)
 
 
-class UploadHandlerOAuth(base_handler.Handler, UploadHandlerCommon):
+class UploadHandlerOAuth(base_handler_flask.Handler, UploadHandlerCommon):
   """Handler that uploads the testcase file (OAuth)."""
 
   # pylint: disable=unused-argument
   def before_render_json(self, values, status):
     """Add upload info when the request fails."""
-    values['uploadUrl'] = self.request.host_url + UPLOAD_URL
+    values['uploadUrl'] = request.host_url + UPLOAD_URL
 
   def get_upload(self):
     """Get the upload."""
-    uploaded_file = self.request.POST.get('file')
+    uploaded_file = request.get('file')
     if not isinstance(uploaded_file, cgi.FieldStorage):
       raise helpers.EarlyExitException('File upload not found.', 400)
 
@@ -627,7 +626,7 @@ class UploadHandlerOAuth(base_handler.Handler, UploadHandlerCommon):
     key = blobs.write_blob(bytes_io)
     return blobs.get_blob_info(key)
 
-  @handler.oauth
-  @handler.post(handler.FORM, handler.JSON)
+  @handler_flask.post(handler_flask.FORM, handler_flask.JSON)
+  @handler_flask.oauth
   def post(self, *args):
-    self.do_post()
+    return self.do_post()

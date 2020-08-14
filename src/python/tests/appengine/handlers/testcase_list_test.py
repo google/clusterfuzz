@@ -15,9 +15,9 @@
 from builtins import range
 from builtins import str
 import datetime
+import flask
 import mock
 import unittest
-import webapp2
 import webtest
 
 from datastore import data_types
@@ -144,8 +144,9 @@ class JsonHandlerTest(unittest.TestCase):
         'libs.access.has_access',
         'libs.helpers.get_user_email',
     ])
-    self.app = webtest.TestApp(
-        webapp2.WSGIApplication([('/', testcase_list.JsonHandler)]))
+    flaskapp = flask.Flask('testflask')
+    flaskapp.add_url_rule('/', view_func=testcase_list.JsonHandler.as_view('/'))
+    self.app = webtest.TestApp(flaskapp)
 
     self.testcases = []
     for i in range(10):

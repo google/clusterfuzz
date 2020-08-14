@@ -211,16 +211,15 @@ class Handler(MethodView):
     return response
 
   # pylint: disable=unused-argument
-  def before_render_json(self, values, status, response):
+  def before_render_json(self, values, status):
     """A hook for modifying values before render_json."""
-    return response
 
   def render_json(self, values, status=200):
     """Write JSON response."""
     response = Response()
     response = self._add_security_response_headers(response)
     response.headers['Content-Type'] = 'application/json'
-    response = self.before_render_json(values, status, response)
+    self.before_render_json(values, status)
     response.data = json.dumps(values, cls=JsonEncoder)
     response.status_code = status
     return response

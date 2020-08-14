@@ -18,11 +18,12 @@ from future import standard_library
 standard_library.install_aliases()
 import urllib.parse
 
+from flask import request
 from google_cloud_utils import blobs
-from handlers import base_handler
+from handlers import base_handler_flask
 from libs import access
 from libs import gcs
-from libs import handler
+from libs import handler_flask
 from libs import helpers
 
 # Blob's filename can be very long. We only preview the last N characters.
@@ -50,8 +51,8 @@ def get_testcase_blob_info(testcase):
 
 
 def get(self):
-  """Get testcase file and write it to the handler."""
-  testcase_id = self.request.get('id')
+  """Get testcase file and write it to the handler_flask."""
+  testcase_id = request.get('id')
   testcase = access.check_access_and_get_testcase(testcase_id)
 
   blob_info, _ = get_testcase_blob_info(testcase)
@@ -60,14 +61,15 @@ def get(self):
       testcase.key.id(), blob_info.filename[-PREVIEW_BLOB_FILENAME_LENTGH:])
 
   content_disposition = str('attachment; filename=%s' % save_as_filename)
-  self.serve_gcs_object(blob_info.bucket, blob_info.object_path,
-                        content_disposition)
+  return self.serve_gcs_object(blob_info.bucket, blob_info.object_path,
+                               content_disposition)
 
 
-class Handler(base_handler.Handler, gcs.SignedGcsHandler):
+class Handler(base_handler_flask.Handler, gcs.SignedGcsHandler):
   """Handler that gets the testcase file."""
 
-  @handler.oauth
+  @handler_flask.get(handler_flask.HTML)
+  @handler_flask.oauth
   def get(self):
     """Serve the testcase file."""
-    get(self)
+    return get(self)

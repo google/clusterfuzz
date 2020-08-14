@@ -15,19 +15,18 @@
 
 from builtins import str
 import collections
-import flask
 import jwt
 
 from firebase_admin import auth
 from google.cloud import ndb
 from googleapiclient.discovery import build
 import requests
-import webapp2
 
 from base import memoize
 from base import utils
 from config import local_config
 from datastore import data_types
+from libs import request_cache
 from metrics import logs
 from system import environment
 
@@ -127,7 +126,7 @@ def get_current_user():
   if environment.is_local_development():
     return User('user@localhost')
 
-  current_request = get_current_request()
+  current_request = request_cache.get_current_request()
   if local_config.AuthConfig().get('enable_loas'):
     loas_user = current_request.headers.get('X-AppEngine-LOAS-Peer-Username')
     if loas_user:
@@ -137,11 +136,12 @@ def get_current_user():
   if iap_email:
     return User(iap_email)
 
-  oauth_email = getattr(current_request, '_oauth_email', None)
+  cache_backing = request_cache.get_cache_backing()
+  oauth_email = getattr(cache_backing, '_oauth_email', None)
   if oauth_email:
     return User(oauth_email)
 
-  cached_email = getattr(current_request, '_cached_email', None)
+  cached_email = getattr(cache_backing, '_cached_email', None)
   if cached_email:
     return User(cached_email)
 
@@ -164,7 +164,7 @@ def get_current_user():
 
   # We cache the email for this request if we've validated the user to make
   # subsequent get_current_user() calls fast.
-  setattr(current_request, '_cached_email', email)
+  setattr(cache_backing, '_cached_email', email)
   return User(email)
 
 
@@ -176,16 +176,9 @@ def create_session_cookie(id_token, expires_in):
     raise AuthError('Failed to create session cookie.')
 
 
-def get_current_request():
-  """Get the current request."""
-  if flask.request:
-    return flask.request
-  return webapp2.get_request()
-
-
 def get_session_cookie():
   """Get the current session cookie."""
-  return get_current_request().cookies.get('session')
+  return request_cache.get_current_request().cookies.get('session')
 
 
 def revoke_session_cookie(session_cookie):

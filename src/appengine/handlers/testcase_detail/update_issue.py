@@ -15,15 +15,16 @@
 
 from builtins import str
 from datastore import data_handler
-from handlers import base_handler
+from flask import request
+from handlers import base_handler_flask
 from handlers.testcase_detail import show
-from libs import handler
+from libs import handler_flask
 from libs import helpers
 from libs.issue_management import issue_filer
 from libs.issue_management import issue_tracker_policy
 
 
-class Handler(base_handler.Handler):
+class Handler(base_handler_flask.Handler):
   """Handler that updates an issue."""
 
   @staticmethod
@@ -68,14 +69,14 @@ class Handler(base_handler.Handler):
 
     helpers.log('Updated issue %sd' % issue_id, helpers.MODIFY_OPERATION)
 
-  @handler.post(handler.JSON, handler.JSON)
-  @handler.require_csrf_token
-  @handler.check_admin_access_if_oss_fuzz
-  @handler.check_testcase_access
+  @handler_flask.post(handler_flask.JSON, handler_flask.JSON)
+  @handler_flask.require_csrf_token
+  @handler_flask.check_admin_access_if_oss_fuzz
+  @handler_flask.check_testcase_access
   def post(self, testcase):
     """Update an issue."""
-    issue_id = self.request.get('issueId')
-    needs_summary_update = self.request.get('needsSummaryUpdate')
+    issue_id = request.get('issueId')
+    needs_summary_update = request.get('needsSummaryUpdate')
 
     self.update_issue(testcase, issue_id, needs_summary_update)
-    self.render_json(show.get_testcase_detail(testcase))
+    return self.render_json(show.get_testcase_detail(testcase))

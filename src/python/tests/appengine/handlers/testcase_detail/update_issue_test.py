@@ -12,9 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """update_issue tests."""
+import flask
 import mock
 import unittest
-import webapp2
 import webtest
 
 from datastore import data_types
@@ -66,8 +66,9 @@ class HandlerTest(unittest.TestCase):
     self.mock.get_current_user().email = 'test@test.com'
     self.mock.get.return_value = CHROMIUM_POLICY
 
-    self.app = webtest.TestApp(
-        webapp2.WSGIApplication([('/', update_issue.Handler)]))
+    flaskapp = flask.Flask('testflask')
+    flaskapp.add_url_rule('/', view_func=update_issue.Handler.as_view('/'))
+    self.app = webtest.TestApp(flaskapp)
 
     self.testcase = data_types.Testcase()
     self.testcase.bug_information = ''

@@ -15,10 +15,27 @@
 
 from builtins import str
 import collections
+import flask
 import webapp2
 
 from base import memoize
 from metrics import logs
+
+
+def get_current_request():
+  """Get the current request."""
+  # TODO(singharshdeep): Remove webapp.get_request() after flask migration.
+  if flask.request:
+    return flask.request
+  return webapp2.get_request()
+
+
+def get_cache_backing():
+  """Get the cache backing for saving current context data."""
+  # TODO(singharshdeep): Remove get_current_request() after flask migration.
+  if flask.request:
+    return flask.g
+  return get_current_request()
 
 
 class _FifoRequestCache(memoize.FifoInMemory):
@@ -31,18 +48,18 @@ class _FifoRequestCache(memoize.FifoInMemory):
   @property
   def cache(self):
     """Get the cache backing."""
-    request = webapp2.get_request()
-    if not request:
-      # Not a request (e.g. in a unit test). Should not happen in production.
-      logs.log_error('No request found for cache.')
+    cache_backing = get_cache_backing()
+    if not cache_backing:
+      # Not a cache (e.g. in a unit test). Should not happen in production.
+      logs.log_error('No container found for cache.')
       return None
 
     key = '__cache:' + self._cache_key
 
-    backing = getattr(request, key, None)
+    backing = getattr(cache_backing, key, None)
     if backing is None:
       backing = collections.OrderedDict()
-      setattr(request, key, backing)
+      setattr(cache_backing, key, backing)
 
     return backing
 
