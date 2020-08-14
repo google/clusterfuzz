@@ -32,7 +32,6 @@ from bot.fuzzers.ml.rnn import constants
 def validate_model_path(model_path):
   """RNN model consists of three files. This validates if they all exist."""
   model_exists = (
-      os.path.exists(model_path + constants.MODEL_META_SUFFIX) and
       os.path.exists(model_path + constants.MODEL_DATA_SUFFIX) and
       os.path.exists(model_path + constants.MODEL_INDEX_SUFFIX))
   return model_exists
