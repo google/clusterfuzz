@@ -282,7 +282,7 @@ class Progress(object):
       for _ in range(maxi):
         k = 0
         while d >= 0:
-          print('=', end=' ')
+          print('=', end='')
           sys.stdout.write('')
           sys.stdout.flush()
           k += 1
