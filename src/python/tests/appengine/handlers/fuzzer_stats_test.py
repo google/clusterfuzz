@@ -46,7 +46,6 @@ def _mock_query(fuzzer, jobs, group_by, date_start, date_end):
                                               date_start, date_end)))
 
 
-
 @test_utils.with_cloud_emulators('datastore')
 class TestBuildResults(unittest.TestCase):
   """Tests for fuzzer_stats build_results and wrappers."""
