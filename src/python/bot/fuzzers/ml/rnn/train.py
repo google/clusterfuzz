@@ -130,71 +130,12 @@ def main(args):
   # It could also be removed.
   tf.random.set_seed(0)
 
-  # Define placeholder for learning rate, dropout and batch size.
-  lr = tf.compat.v1.placeholder(tf.float32, name='lr')
-  pkeep = tf.compat.v1.placeholder(tf.float32, name='pkeep')
-  batchsize = tf.compat.v1.placeholder(tf.int32, name='batchsize')
-
-  # Input data.
-  input_bytes = tf.compat.v1.placeholder(
-      tf.uint8, [None, None], name='input_bytes')
-  input_onehot = tf.one_hot(input_bytes, constants.ALPHA_SIZE, 1.0, 0.0)
-
-  # Expected outputs = same sequence shifted by 1, since we are trying to
-  # predict the next character.
-  expected_bytes = tf.compat.v1.placeholder(
-      tf.uint8, [None, None], name='expected_bytes')
-  expected_onehot = tf.one_hot(expected_bytes, constants.ALPHA_SIZE, 1.0, 0.0)
-
-  # Input state.
-  hidden_state = tf.compat.v1.placeholder(
-      tf.float32, [None, hidden_state_size * hidden_layer_size],
-      name='hidden_state')
-
-  # "naive dropout" implementation.
-  cells = [rnn.GRUCell(hidden_state_size) for _ in range(hidden_layer_size)]
-  dropcells = [
-      rnn.DropoutWrapper(cell, input_keep_prob=pkeep) for cell in cells
-  ]
-  multicell = rnn.MultiRNNCell(dropcells, state_is_tuple=False)
-  multicell = rnn.DropoutWrapper(multicell, output_keep_prob=pkeep)
-
-  output_raw, next_state = tf.compat.v1.nn.dynamic_rnn(
-      multicell, input_onehot, dtype=tf.float32, initial_state=hidden_state)
-  next_state = tf.identity(next_state, name='next_state')
-
-  # Reshape training outputs.
-  output_flat = tf.reshape(output_raw, [-1, hidden_state_size])
-  output_logits = layers.linear(output_flat, constants.ALPHA_SIZE)
-
-  # Reshape expected outputs.
-  expected_flat = tf.reshape(expected_onehot, [-1, constants.ALPHA_SIZE])
-
-  # Compute training loss.
-  loss = tf.nn.softmax_cross_entropy_with_logits(
-      logits=output_logits, labels=expected_flat)
-  loss = tf.reshape(loss, [batchsize, -1])
-
-  # Use softmax to normalize training outputs.
-  output_onehot = tf.nn.softmax(output_logits, name='output_onehot')
-
-  # Use argmax to get the max value, which is the predicted bytes.
-  output_bytes = tf.argmax(input=output_onehot, axis=1)
-  output_bytes = tf.reshape(output_bytes, [batchsize, -1], name='output_bytes')
+  # Build the RNN model.
+  model = build_model(hidden_layer_size * hidden_state_size,
+                      dropout_pkeep, batch_size, debug)
 
   # Choose Adam optimizer to compute gradients.
   optimizer = tf.keras.optimizers.Adam(learning_rate)
-
-  # Stats for display.
-  seqloss = tf.reduce_mean(input_tensor=loss, axis=1)
-  batchloss = tf.reduce_mean(input_tensor=seqloss)
-  accuracy = tf.reduce_mean(
-      input_tensor=tf.cast(
-          tf.equal(expected_bytes, tf.cast(output_bytes, tf.uint8)),
-          tf.float32))
-  loss_summary = tf.compat.v1.summary.scalar('batch_loss', batchloss)
-  acc_summary = tf.compat.v1.summary.scalar('batch_accuracy', accuracy)
-  summaries = tf.compat.v1.summary.merge([loss_summary, acc_summary])
 
   # Init Tensorboard stuff.
   # This will save Tensorboard information in folder specified in command line.
@@ -206,10 +147,6 @@ def main(args):
   validation_writer = tf.summary.create_file_writer(
       os.path.join(log_dir, timestamp + '-validation'))
 
-  # Init for saving models.
-  # They will be saved into a directory specified in command line.
-  saver = tf.compat.v1.train.Saver(max_to_keep=constants.MAX_TO_KEEP)
-
   # For display: init the progress bar.
   step_size = batch_size * constants.TRAINING_SEQLEN
   frequency = constants.DISPLAY_FREQ * step_size
@@ -217,10 +154,6 @@ def main(args):
       constants.DISPLAY_FREQ,
       size=constants.DISPLAY_LEN,
       msg='Training on next {} batches'.format(constants.DISPLAY_FREQ))
-
-  # Set initial state.
-  state = np.zeros([batch_size, hidden_state_size * hidden_layer_size])
-  session = tf.compat.v1.Session()
 
   # We continue training on exsiting model, or start with a new model.
   if existing_model:
@@ -248,31 +181,23 @@ def main(args):
       nb_epochs=constants.EPOCHS):
 
     # Train on one mini-batch.
-    feed_dict = {
-        input_bytes: input_batch,
-        expected_bytes: expected_batch,
-        hidden_state: state,
-        lr: learning_rate,
-        pkeep: dropout_pkeep,
-        batchsize: batch_size
-    }
+    with tf.GradientTape() as tape:
+      predicted = model(input_batch)
+      loss = tf.keras.losses.sparse_categorical_crossentropy(
+          expected_batch, predicted, from_logits=True)
+      seq_loss = tf.reduce_mean(input_tensor=loss, axis=1)
+      batch_loss = tf.reduce_mean(input_tensor=seq_loss)
 
-    _, predicted, new_state = session.run(
-        [optimizer, output_bytes, next_state], feed_dict=feed_dict)
+      output_bytes = tf.cast(tf.argmax(predicted, axis=-1), tf.uint8)
+      accuracy = tf.reduce_mean(tf.cast(tf.equal(expected_batch, output_bytes),
+                                        tf.float32))
+
+    grads = tape.gradient(batch_loss, model.trainable_variables)
+    optimizer.apply_gradients(zip(grads, model.trainable_variables))
 
     # Log training data for Tensorboard display a mini-batch of sequences
     # every `frequency` batches.
     if debug and steps % frequency == 0:
-      feed_dict = {
-          input_bytes: input_batch,
-          expected_bytes: expected_batch,
-          hidden_state: state,
-          pkeep: 1.0,
-          batchsize: batch_size
-      }
-      predicted, seq_loss, batch_loss, acc_value, summaries_value = session.run(
-          [output_bytes, seqloss, batchloss, accuracy, summaries],
-          feed_dict=feed_dict)
       utils.print_learning_learned_comparison(
           input_batch, output_bytes, seq_loss, input_ranges, batch_loss,
           accuracy, epoch_size, steps, epoch)
@@ -341,7 +266,6 @@ def main(args):
       progress.step(reset=steps % frequency == 0)
 
     # Update state.
-    state = new_state
     steps += step_size
 
   # Save the model after training is done.
