@@ -25,8 +25,8 @@ from handlers import corpora
 from handlers import coverage_report
 from handlers import crash_stats
 from handlers import download
-from handlers import fuzzers
 from handlers import fuzzer_stats
+from handlers import fuzzers
 from handlers import gcs_redirector
 from handlers import help_redirector
 from handlers import home
@@ -145,15 +145,15 @@ handlers = [
     ('/docs', help_redirector.DocumentationHandler),
     ('/download', download.Handler),
     ('/download/<resource>', download.Handler),
+    ('/fuzzer-stats/load', fuzzer_stats.LoadHandler),
+    ('/fuzzer-stats/load-filters', fuzzer_stats.LoadFiltersHandler),
+    ('/fuzzer-stats', fuzzer_stats.Handler),
+    ('/fuzzer-stats/<path:extra>', fuzzer_stats.Handler),
     ('/fuzzers', fuzzers.Handler),
     ('/fuzzers/create', fuzzers.CreateHandler),
     ('/fuzzers/delete', fuzzers.DeleteHandler),
     ('/fuzzers/edit', fuzzers.EditHandler),
     ('/fuzzers/log/<fuzzer_name>', fuzzers.LogHandler),
-    ('/fuzzer-stats/load', fuzzer_stats.LoadHandler),
-    ('/fuzzer-stats/load-filters', fuzzer_stats.LoadFiltersHandler),
-    ('/fuzzer-stats', fuzzer_stats.Handler),
-    ('/fuzzer-stats/<path:extra>', fuzzer_stats.Handler),
     ('/gcs-redirect', gcs_redirector.Handler),
     ('/issue', issue_redirector.Handler),
     ('/issue/<testcase_id>', issue_redirector.Handler),

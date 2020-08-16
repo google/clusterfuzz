@@ -41,9 +41,10 @@ def _read_data_file(data_file):
 
 def _mock_query(fuzzer, jobs, group_by, date_start, date_end):
   return json.loads(
-      _read_data_file(
-          '%s_%s_%s_%s_%s.txt' % (fuzzer, '_'.join(jobs) if jobs else None,
-                                  group_by, date_start, date_end)))
+      _read_data_file('%s_%s_%s_%s_%s.txt' % (fuzzer, '_'.join(jobs)
+                                              if jobs else None, group_by,
+                                              date_start, date_end)))
+
 
 
 @test_utils.with_cloud_emulators('datastore')
