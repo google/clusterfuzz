@@ -20,14 +20,7 @@ import webapp2
 from base import utils
 from config import local_config
 from handlers import base_handler
-from handlers import commit_range
-from handlers import coverage_report
 from handlers import domain_verifier
-from handlers import fuzzer_stats
-from handlers import gcs_redirector
-from handlers import report_csp_failure
-from handlers import revisions_info
-from handlers import viewer
 from handlers.cron import backup
 from handlers.cron import batch_fuzzer_jobs
 from handlers.cron import build_crash_stats
@@ -48,9 +41,6 @@ from handlers.cron import recurring_tasks
 from handlers.cron import schedule_corpus_pruning
 from handlers.cron import sync_admins
 from handlers.cron import triage
-from handlers.performance_report import (show as show_performance_report)
-from handlers.reproduce_tool import get_config
-from handlers.reproduce_tool import testcase_info
 from metrics import logs
 
 _is_chromium = utils.is_chromium()
@@ -103,8 +93,6 @@ _CRON_ROUTES = [
     ('/cleanup', cleanup.Handler),
     ('/corpus-backup/make-public', corpus_backup.MakePublicHandler),
     ('/fuzzer-coverage', fuzzer_coverage.Handler),
-    ('/fuzzer-stats/cache', fuzzer_stats.RefreshCacheHandler),
-    ('/fuzzer-stats/preload', fuzzer_stats.PreloadHandler),
     ('/fuzzer-and-job-weights', fuzzer_and_job_weights.Handler),
     ('/fuzz-strategy-selection', fuzz_strategy_selection.Handler),
     ('/load-bigquery-stats', load_bigquery_stats.Handler),
@@ -127,20 +115,6 @@ _CRON_ROUTES = [
 _ROUTES = [
     (r'(.*)/$', _TrailingSlashRemover),
     (r'/(google.+\.html)$', domain_verifier.Handler),
-    ('/commit-range', commit_range.Handler),
-    ('/commit-range/load', commit_range.JsonHandler),
-    ('/coverage-report/([^/]+)/([^/]+)/([^/]+)(/.*)?', coverage_report.Handler),
-    ('/fuzzer-stats/load', fuzzer_stats.LoadHandler),
-    ('/fuzzer-stats/load-filters', fuzzer_stats.LoadFiltersHandler),
-    ('/fuzzer-stats', fuzzer_stats.Handler),
-    ('/fuzzer-stats/.*', fuzzer_stats.Handler),
-    ('/gcs-redirect', gcs_redirector.Handler),
-    ('/performance-report/(.+)/(.+)/(.+)', show_performance_report.Handler),
-    ('/report-csp-failure', report_csp_failure.ReportCspFailureHandler),
-    ('/reproduce-tool/get-config', get_config.Handler),
-    ('/reproduce-tool/testcase-info', testcase_info.Handler),
-    ('/revisions', revisions_info.Handler),
-    ('/viewer', viewer.Handler),
 ]
 
 logs.configure('appengine')

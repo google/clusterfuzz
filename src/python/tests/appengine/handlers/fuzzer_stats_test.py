@@ -20,7 +20,7 @@ import mock
 import os
 import unittest
 
-import webapp2
+import flask
 import webtest
 
 from datastore import data_types
@@ -41,9 +41,9 @@ def _read_data_file(data_file):
 
 def _mock_query(fuzzer, jobs, group_by, date_start, date_end):
   return json.loads(
-      _read_data_file('%s_%s_%s_%s_%s.txt' % (fuzzer, '_'.join(jobs)
-                                              if jobs else None, group_by,
-                                              date_start, date_end)))
+      _read_data_file(
+          '%s_%s_%s_%s_%s.txt' % (fuzzer, '_'.join(jobs) if jobs else None,
+                                  group_by, date_start, date_end)))
 
 
 @test_utils.with_cloud_emulators('datastore')
@@ -282,9 +282,11 @@ class TestPermissions(unittest.TestCase):
 
     self.mock.build_results.return_value = json.dumps({})
 
-    self.app = webtest.TestApp(
-        webapp2.WSGIApplication([('/fuzzer-stats/load',
-                                  fuzzer_stats.LoadHandler)]))
+    flaskapp = flask.Flask('testflask')
+    flaskapp.add_url_rule(
+        '/fuzzer-stats/load',
+        view_func=fuzzer_stats.LoadHandler.as_view('/fuzzer-stats/load'))
+    self.app = webtest.TestApp(flaskapp)
 
     data_types.ExternalUserPermission(
         email='test@user.com',

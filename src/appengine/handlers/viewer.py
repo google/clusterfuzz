@@ -14,26 +14,27 @@
 """Content viewer."""
 
 from base import utils
+from flask import request
 from google_cloud_utils import blobs
-from handlers import base_handler
+from handlers import base_handler_flask
 from libs import access
-from libs import handler
+from libs import handler_flask
 from libs import helpers
 
 MAX_ALLOWED_CONTENT_SIZE = 10 * 1024 * 1024
 
 
-class Handler(base_handler.Handler):
+class Handler(base_handler_flask.Handler):
   """Content Viewer."""
 
-  @handler.get(handler.HTML)
+  @handler_flask.get(handler_flask.HTML)
   def get(self):
     """Get the HTML page."""
-    key = self.request.get('key')
+    key = request.get('key')
     if not key:
       raise helpers.EarlyExitException('No key provided.', 400)
 
-    testcase_id = self.request.get('testcase_id')
+    testcase_id = request.get('testcase_id')
     if testcase_id:
       testcase = helpers.get_testcase(testcase_id)
       if not access.can_user_access_testcase(testcase):
@@ -65,4 +66,4 @@ class Handler(base_handler.Handler):
     title = '%s, %s' % (utils.get_line_count_string(line_count),
                         utils.get_size_string(size))
 
-    self.render('viewer.html', {'content': content, 'title': title})
+    return self.render('viewer.html', {'content': content, 'title': title})

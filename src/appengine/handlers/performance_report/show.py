@@ -24,11 +24,11 @@ import urllib.parse
 
 from datastore import data_handler
 from google_cloud_utils import big_query
-from handlers import base_handler
+from handlers import base_handler_flask
 from handlers.performance_report import constants
 from handlers.performance_report import performance_analyzer
 from libs import access
-from libs import handler
+from libs import handler_flask
 from libs import helpers
 from metrics import fuzzer_logs
 from metrics import fuzzer_stats
@@ -159,12 +159,21 @@ def _get_performance_report_data(fuzzer_name, job_type, logs_date):
   return features, date_start
 
 
-class Handler(base_handler.Handler):
+class Handler(base_handler_flask.Handler):
   """Performance report handler."""
 
-  @handler.get(handler.HTML)
-  def get(self, fuzzer_name, job_type, logs_date):
+  @handler_flask.get(handler_flask.HTML)
+  def get(self, fuzzer_name=None, job_type=None, logs_date=None):
     """Handle a GET request."""
+    if not fuzzer_name:
+      raise helpers.EarlyExitException('Fuzzer name cannot be empty.', 400)
+
+    if not job_type:
+      raise helpers.EarlyExitException('Job type cannot be empty.', 400)
+
+    if not logs_date:
+      raise helpers.EarlyExitException('Logs Date cannot be empty.', 400)
+
     if not access.has_access(fuzzer_name=fuzzer_name, job_type=job_type):
       raise helpers.AccessDeniedException()
 
@@ -204,4 +213,4 @@ class Handler(base_handler.Handler):
             'total_time': str(datetime.timedelta(seconds=total_time)),
         }
     }
-    self.render('performance-report.html', result)
+    return self.render('performance-report.html', result)
