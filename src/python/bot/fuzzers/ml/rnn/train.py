@@ -201,9 +201,9 @@ def main(args):
   # Two sets of data are saved so that you can compare training and
   # validation curves visually in Tensorboard.
   timestamp = str(math.trunc(time.time()))
-  summary_writer = tf.compat.v1.summary.FileWriter(
+  summary_writer = tf.summary.create_file_writer(
       os.path.join(log_dir, timestamp + '-training'))
-  validation_writer = tf.compat.v1.summary.FileWriter(
+  validation_writer = tf.summary.create_file_writer(
       os.path.join(log_dir, timestamp + '-validation'))
 
   # Init for saving models.
@@ -274,9 +274,12 @@ def main(args):
           [output_bytes, seqloss, batchloss, accuracy, summaries],
           feed_dict=feed_dict)
       utils.print_learning_learned_comparison(
-          input_batch, predicted, seq_loss, input_ranges, batch_loss, acc_value,
-          epoch_size, steps, epoch)
-      summary_writer.add_summary(summaries_value, steps)
+          input_batch, output_bytes, seq_loss, input_ranges, batch_loss,
+          accuracy, epoch_size, steps, epoch)
+      with summary_writer.as_default():
+        tf.summary.scalar('batch_loss', batch_loss, step=steps)
+        tf.summary.scalar('batch_accuracy', accuracy, step=steps)
+      summary_writer.flush()
 
     # Run a validation step every `frequency` batches.
     # The validation text should be a single sequence but that's too slow.
