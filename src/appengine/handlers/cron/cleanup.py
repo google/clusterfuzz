@@ -31,8 +31,8 @@ from datastore import data_handler
 from datastore import data_types
 from datastore import ndb_utils
 from fuzzing import leak_blacklist
-from handlers import base_handler
-from libs import handler
+from handlers import base_handler_flask
+from libs import handler_flask
 from libs import mail
 from libs.issue_management import issue_filer
 from libs.issue_management import issue_tracker_policy
@@ -1239,13 +1239,14 @@ def cleanup_unused_heartbeats():
   ndb_utils.delete_multi(unused_heartbeats)
 
 
-class Handler(base_handler.Handler):
+class Handler(base_handler_flask.Handler):
   """Cleanup."""
 
-  @handler.check_cron()
+  @handler_flask.check_cron()
   def get(self):
     cleanup_testcases_and_issues()
     cleanup_reports_metadata()
     leak_blacklist.cleanup_global_blacklist()
     cleanup_unused_fuzz_targets_and_jobs()
     cleanup_unused_heartbeats()
+    return 'OK'

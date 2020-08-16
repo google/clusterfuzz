@@ -15,8 +15,8 @@
 
 import unittest
 
+import flask
 import mock
-import webapp2
 import webtest
 
 from datastore import data_types
@@ -30,10 +30,12 @@ class OpenReproducibleTestcaseTasksSchedulerTest(unittest.TestCase):
   """Tests OpenReproducibleTestcaseTasksScheduler."""
 
   def setUp(self):
-    self.app = webtest.TestApp(
-        webapp2.WSGIApplication(
-            [('/schedule-open-reproducible-testcase-tasks',
-              recurring_tasks.OpenReproducibleTestcaseTasksScheduler)]))
+    flaskapp = flask.Flask('testflask')
+    flaskapp.add_url_rule(
+        '/schedule-open-reproducible-testcase-tasks',
+        view_func=recurring_tasks.OpenReproducibleTestcaseTasksScheduler
+        .as_view('/schedule-open-reproducible-testcase-tasks'))
+    self.app = webtest.TestApp(flaskapp)
 
     self.testcase_0 = data_types.Testcase(
         open=True,
@@ -80,7 +82,7 @@ class OpenReproducibleTestcaseTasksSchedulerTest(unittest.TestCase):
         name='job_windows', environment_string='', platform='WINDOWS').put()
 
     helpers.patch(self, [
-        'handlers.base_handler.Handler.is_cron',
+        'handlers.base_handler_flask.Handler.is_cron',
     ])
 
   def test_execute(self):
@@ -94,9 +96,12 @@ class ProgressionTasksSchedulerTest(OpenReproducibleTestcaseTasksSchedulerTest):
 
   def setUp(self):
     super(ProgressionTasksSchedulerTest, self).setUp()
-    self.app = webtest.TestApp(
-        webapp2.WSGIApplication([('/schedule-progression-tasks',
-                                  recurring_tasks.ProgressionTasksScheduler)]))
+    flaskapp = flask.Flask('testflask')
+    flaskapp.add_url_rule(
+        '/schedule-progression-tasks',
+        view_func=recurring_tasks.ProgressionTasksScheduler.as_view(
+            '/schedule-progression-tasks'))
+    self.app = webtest.TestApp(flaskapp)
 
     helpers.patch(self, [
         'base.tasks.add_task',
@@ -116,9 +121,12 @@ class ImpactTasksSchedulerTest(OpenReproducibleTestcaseTasksSchedulerTest):
 
   def setUp(self):
     super(ImpactTasksSchedulerTest, self).setUp()
-    self.app = webtest.TestApp(
-        webapp2.WSGIApplication([('/schedule-impact-tasks',
-                                  recurring_tasks.ImpactTasksScheduler)]))
+    flaskapp = flask.Flask('testflask')
+    flaskapp.add_url_rule(
+        '/schedule-impact-tasks',
+        view_func=recurring_tasks.ImpactTasksScheduler.as_view(
+            '/schedule-impact-tasks'))
+    self.app = webtest.TestApp(flaskapp)
     helpers.patch(self, [
         'base.tasks.add_task',
     ])

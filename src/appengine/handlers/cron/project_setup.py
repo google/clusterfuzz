@@ -39,8 +39,8 @@ from datastore import ndb_utils
 from fuzzing import fuzzer_selection
 from google_cloud_utils import pubsub
 from google_cloud_utils import storage
-from handlers import base_handler
-from libs import handler
+from handlers import base_handler_flask
+from libs import handler_flask
 from metrics import logs
 from system import environment
 
@@ -899,28 +899,28 @@ class ProjectSetup(object):
     cleanup_old_projects_settings(enabled_projects)
 
 
-class Handler(base_handler.Handler):
+class Handler(base_handler_flask.Handler):
   """Setup ClusterFuzz jobs for projects."""
 
-  @handler.check_cron()
+  @handler_flask.check_cron()
   def get(self):
     """Handles a GET request."""
     libfuzzer = data_types.Fuzzer.query(
         data_types.Fuzzer.name == 'libFuzzer').get()
     if not libfuzzer:
       logs.log_error('Failed to get libFuzzer Fuzzer entity.')
-      return
+      return 'OK'
 
     afl = data_types.Fuzzer.query(data_types.Fuzzer.name == 'afl').get()
     if not afl:
       logs.log_error('Failed to get AFL Fuzzer entity.')
-      return
+      return 'OK'
 
     honggfuzz = data_types.Fuzzer.query(
         data_types.Fuzzer.name == 'honggfuzz').get()
     if not honggfuzz:
       logs.log_error('Failed to get honggfuzz Fuzzer entity.')
-      return
+      return 'OK'
 
     project_setup_configs = local_config.ProjectConfig().get('project_setup')
     for setup_config in project_setup_configs:
@@ -965,3 +965,5 @@ class Handler(base_handler.Handler):
         raise ProjectSetupError('Missing projects list.')
 
       config.set_up(projects)
+
+    return 'OK'

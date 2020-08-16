@@ -34,8 +34,8 @@ import time
 from base import utils
 from datastore import data_types
 from google_cloud_utils import big_query
-from handlers import base_handler
-from libs import handler
+from handlers import base_handler_flask
+from libs import handler_flask
 from metrics import crash_stats
 
 # After insertion, it takes a few seconds for a record to show up.
@@ -174,14 +174,11 @@ def build_if_needed():
     logging.info("Skip building crash stats because it's too early.")
 
 
-class Handler(base_handler.Handler):
+class Handler(base_handler_flask.Handler):
   """Handler for building data_types.CrashsStats2."""
 
-  @handler.check_cron()
+  @handler_flask.check_cron()
   def get(self):
     """Process a GET request from a cronjob."""
     end_hour = build_if_needed()
-
-    self.response.headers['Content-Type'] = 'text/plain'
-    self.response.out.write('OK (end_hour=%s)' % end_hour)
-    self.response.set_status(200)
+    return 'OK (end_hour=%s)' % end_hour

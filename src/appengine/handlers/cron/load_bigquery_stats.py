@@ -24,8 +24,8 @@ from googleapiclient.errors import HttpError
 from base import utils
 from datastore import data_types
 from google_cloud_utils import big_query
-from handlers import base_handler
-from libs import handler
+from handlers import base_handler_flask
+from libs import handler_flask
 from metrics import fuzzer_stats
 from metrics import fuzzer_stats_schema
 from metrics import logs
@@ -36,7 +36,7 @@ NUM_RETRIES = 2
 RETRY_SLEEP_TIME = 5
 
 
-class Handler(base_handler.Handler):
+class Handler(base_handler_flask.Handler):
   """Cron handler for loading bigquery stats."""
 
   def _utc_now(self):
@@ -150,12 +150,12 @@ class Handler(base_handler.Handler):
       # See https://cloud.google.com/bigquery/docs/reference/rest/v2/jobs/query.
       logs.log('Response from BigQuery: %s' % response)
 
-  @handler.check_cron()
+  @handler_flask.check_cron()
   def get(self):
     """Load bigquery stats from GCS."""
     if not big_query.get_bucket():
       logs.log_error('Loading stats to BigQuery failed: missing bucket name.')
-      return
+      return 'OK'
 
     # Retrieve list of fuzzers before iterating them, since the query can expire
     # as we create the load jobs.
@@ -163,3 +163,5 @@ class Handler(base_handler.Handler):
     for fuzzer in list(data_types.Fuzzer.query()):
       logs.log('Loading stats to BigQuery for %s.' % fuzzer.name)
       self._load_data(bigquery_client, fuzzer.name)
+
+    return 'OK'

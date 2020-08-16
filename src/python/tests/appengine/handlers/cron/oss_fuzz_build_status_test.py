@@ -19,8 +19,8 @@ import json
 import mock
 import unittest
 
+import flask
 import six
-import webapp2
 import webtest
 
 from datastore import data_types
@@ -69,13 +69,15 @@ class OssFuzzBuildStatusTest(unittest.TestCase):
   """Tests for oss_fuzz_build_status."""
 
   def setUp(self):
-    self.app = webtest.TestApp(
-        webapp2.WSGIApplication([('/build-status',
-                                  oss_fuzz_build_status.Handler)]))
+    flaskapp = flask.Flask('testflask')
+    flaskapp.add_url_rule(
+        '/build-status',
+        view_func=oss_fuzz_build_status.Handler.as_view('/build-status'))
+    self.app = webtest.TestApp(flaskapp)
 
     test_helpers.patch(self, [
         'base.utils.utcnow',
-        'handlers.base_handler.Handler.is_cron',
+        'handlers.base_handler_flask.Handler.is_cron',
         'libs.issue_management.issue_tracker_utils.get_issue_tracker',
         'metrics.logs.log_error',
         'requests.get',

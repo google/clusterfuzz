@@ -14,8 +14,8 @@
 """A cron handler that batches FuzzerJobs."""
 
 from datastore import data_types
-from handlers import base_handler
-from libs import handler
+from handlers import base_handler_flask
+from libs import handler_flask
 
 from google.cloud import ndb
 
@@ -56,10 +56,11 @@ def batch_fuzzer_jobs():
       ndb.delete_multi(batches_to_remove)
 
 
-class Handler(base_handler.Handler):
+class Handler(base_handler_flask.Handler):
   """Handler for building data_types.CrashsStats2."""
 
-  @handler.check_cron()
+  @handler_flask.check_cron()
   def get(self):
     """Process a GET request from a cronjob."""
     batch_fuzzer_jobs()
+    return 'OK'

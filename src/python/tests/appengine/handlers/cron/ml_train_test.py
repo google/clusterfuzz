@@ -15,7 +15,7 @@
 
 import unittest
 
-import webapp2
+import flask
 import webtest
 
 from datastore import data_types
@@ -30,12 +30,14 @@ class HandlerTest(unittest.TestCase):
 
   def setUp(self):
     test_helpers.patch_environ(self)
-    self.app = webtest.TestApp(
-        webapp2.WSGIApplication([('/schedule-ml-train-tasks',
-                                  ml_train.Handler)]))
+    flaskapp = flask.Flask('testflask')
+    flaskapp.add_url_rule(
+        '/schedule-ml-train-tasks',
+        view_func=ml_train.Handler.as_view('/schedule-ml-train-tasks'))
+    self.app = webtest.TestApp(flaskapp)
 
-    test_helpers.patch(
-        self, ['base.tasks.add_task', 'handlers.base_handler.Handler.is_cron'])
+    test_helpers.patch(self, [
+        'base.tasks.add_task', 'handlers.base_handler_flask.Handler.is_cron'])
 
     # Create fake jobs.
     data_types.Job(

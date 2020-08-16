@@ -17,7 +17,7 @@ import datetime
 import unittest
 
 import six
-import webapp2
+import flask
 import webtest
 
 from datastore import data_types
@@ -94,8 +94,11 @@ class OssFuzzApplyCcsTest(unittest.TestCase):
 
   def setUp(self):
     test_helpers.patch_environ(self)
-    self.app = webtest.TestApp(
-        webapp2.WSGIApplication([('/apply-ccs', oss_fuzz_apply_ccs.Handler)]))
+    flaskapp = flask.Flask('testflask')
+    flaskapp.add_url_rule(
+        '/apply-ccs',
+        view_func=oss_fuzz_apply_ccs.Handler.as_view('/apply-ccs'))
+    self.app = webtest.TestApp(flaskapp)
 
     data_types.ExternalUserPermission(
         email='user@example.com',
@@ -113,7 +116,7 @@ class OssFuzzApplyCcsTest(unittest.TestCase):
 
     test_helpers.patch(self, [
         'base.utils.utcnow',
-        'handlers.base_handler.Handler.is_cron',
+        'handlers.base_handler_flask.Handler.is_cron',
         'libs.issue_management.issue_tracker.IssueTracker.get_original_issue',
         'libs.issue_management.issue_tracker_policy.get',
         'libs.issue_management.issue_tracker_utils.'

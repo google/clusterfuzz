@@ -20,21 +20,21 @@ from base import errors
 from config import db_config
 from datastore import data_handler
 from google_cloud_utils import pubsub
-from handlers import base_handler
-from libs import handler
+from handlers import base_handler_flask
+from libs import handler_flask
 from metrics import logs
 
 
-class Handler(base_handler.Handler):
+class Handler(base_handler_flask.Handler):
   """Handler to periodically gather new results from Predator requests."""
 
-  @handler.check_cron()
+  @handler_flask.check_cron()
   def get(self):
     """Process a GET request."""
     subscription = db_config.get_value('predator_result_topic')
     if not subscription:
       logs.log('No Predator subscription configured. Aborting.')
-      return
+      return 'OK'
 
     client = pubsub.PubSubClient()
     messages = client.pull_from_subscription(subscription, acknowledge=True)
@@ -53,3 +53,4 @@ class Handler(base_handler.Handler):
       logs.log('Set predator result for testcase %d.' % testcase.key.id())
 
     logs.log('Finished processing predator results. %d total.' % len(messages))
+    return 'OK'
