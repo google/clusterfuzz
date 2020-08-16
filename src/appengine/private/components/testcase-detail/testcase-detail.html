@@ -706,7 +706,7 @@
         if (this.isStatusReady(info)) {
           let title = info.testcase.crash_type;
           if (info.crash_state_lines && info.crash_state_lines.length > 0) {
-            title += ' · ';
+            title += ' \u0267 ';
             if (info.crash_state_lines[0].length > 60) {
               title += info.crash_state_lines[0].substring(0, 57) + '...';
             } else {
