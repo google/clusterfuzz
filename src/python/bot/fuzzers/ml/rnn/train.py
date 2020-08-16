@@ -44,6 +44,35 @@ from bot.fuzzers.ml.rnn import utils
 #     curves stay close. To see the curves drift apart ("overfitting") try
 #     to use an insufficient amount of training data.
 
+def build_model(num_rnn_cells, dropout_pkeep, batch_size, debug):
+  """Build the RNN model.
+
+  Since we use the Keras sequential model and we use different batch sizes for
+  train, validation and demo output generation, we use this function to rebatch
+  the model.
+
+  Args:
+    num_rnn_cells: number of RNN cells to use.
+    dropout_pkeep: probability of keeping a node in dropout.
+    batch_size: batch size used by the model layer.
+    debug: if True, print a summary of the model.
+
+  Returns:
+    Keras Sequential RNN model.
+  """
+  model = tf.keras.Sequential([
+      tf.keras.layers.Embedding(constants.ALPHA_SIZE, constants.ALPHA_SIZE,
+                                batch_input_shape=[batch_size, None]),
+      tf.keras.layers.GRU(num_rnn_cells, return_sequences=True, stateful=True,
+                          dropout=1-dropout_pkeep),
+      tf.keras.layers.Dense(constants.ALPHA_SIZE),
+  ])
+
+  # Display a summary of the model to debug shapes.
+  if debug:
+    model.summary()
+
+  return model
 
 def main(args):
   """Main function to train the model.
