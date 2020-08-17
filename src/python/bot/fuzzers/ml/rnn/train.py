@@ -213,21 +213,31 @@ def main(args):
       validation_x, validation_y, _ = next(
           utils.rnn_minibatch_sequencer(validation_text, validation_batch_size,
                                         constants.VALIDATION_SEQLEN, 1))
-      null_state = np.zeros(
-          [validation_batch_size, hidden_state_size * hidden_layer_size])
-      feed_dict = {
-          input_bytes: validation_x,
-          expected_bytes: validation_y,
-          hidden_state: null_state,
-          pkeep: 1.0,
-          batchsize: validation_batch_size
-      }
-      batch_loss, acc_value, summaries_value = session.run(
-          [batchloss, accuracy, summaries], feed_dict=feed_dict)
-      utils.print_validation_stats(batch_loss, acc_value)
 
-      # Save validation data for Tensorboard.
-      validation_writer.add_summary(summaries_value, steps)
+      validation_model = build_model(hidden_layer_size * hidden_state_size,
+                                     dropout_pkeep, validation_batch_size,
+                                     False)
+      validation_model.load_weights(tf.train.latest_checkpoint(model_dir))
+      validation_model.build(tf.TensorShape([validation_batch_size, None]))
+      validation_model.reset_states()
+
+      predicted = validation_model(validation_x)
+      loss = tf.keras.losses.sparse_categorical_crossentropy(
+          validation_y, predicted, from_logits=True)
+      seq_loss = tf.reduce_mean(input_tensor=loss, axis=1)
+      batch_loss = tf.reduce_mean(input_tensor=seq_loss)
+
+      output_bytes = tf.cast(tf.argmax(predicted, axis=-1), tf.uint8)
+      accuracy = tf.reduce_mean(tf.cast(tf.equal(validation_y, output_bytes),
+                                        tf.float32))
+
+      utils.print_validation_stats(batch_loss, accuracy)
+
+      ## Save validation data for Tensorboard.
+      with validation_writer.as_default():
+        tf.summary.scalar('batch_loss', batch_loss, step=steps)
+        tf.summary.scalar('batch_accuracy', accuracy, step=steps)
+      validation_writer.flush()
 
     # Display a short text generated with the current weights and biases.
     # If enabled, there will be a large output.
@@ -236,19 +246,21 @@ def main(args):
       file_info = utils.random_element_from_list(files_info_list)
       first_byte, file_size = file_info['first_byte'], file_info['file_size']
       ry = np.array([[first_byte]])
-      rh = np.zeros([1, hidden_state_size * hidden_layer_size])
       sample = [first_byte]
+
+      generation_model = build_model(hidden_layer_size * hidden_state_size,
+                                     dropout_pkeep, 1, False)
+      generation_model.load_weights(tf.train.latest_checkpoint(model_dir))
+      generation_model.build(tf.TensorShape([1, None]))
+      generation_model.reset_states()
+
       for _ in range(file_size - 1):
-        feed_dict = {
-            input_bytes: ry,
-            pkeep: 1.0,
-            hidden_state: rh,
-            batchsize: 1
-        }
-        ryo, rh = session.run([output_onehot, next_state], feed_dict=feed_dict)
-        rc = utils.sample_from_probabilities(ryo, topn=10 if epoch <= 1 else 2)
+        prediction = generation_model(ry)
+        prediction = tf.squeeze(prediction, 0).numpy()
+        rc = utils.sample_from_probabilities(prediction, topn=10 if epoch <= 1 else 2)
         sample.append(rc)
         ry = np.array([[rc]])
+
       print(repr(utils.decode_to_text(sample)))
       utils.print_text_generation_footer()
 
