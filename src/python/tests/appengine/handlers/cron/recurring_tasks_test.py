@@ -99,8 +99,8 @@ class ProgressionTasksSchedulerTest(OpenReproducibleTestcaseTasksSchedulerTest):
     flaskapp = flask.Flask('testflask')
     flaskapp.add_url_rule(
         '/schedule-progression-tasks',
-        view_func=recurring_tasks.ProgressionTasksScheduler.
-        as_view('/schedule-progression-tasks'))
+        view_func=recurring_tasks.ProgressionTasksScheduler.as_view(
+            '/schedule-progression-tasks'))
     self.app = webtest.TestApp(flaskapp)
 
     helpers.patch(self, [
@@ -124,8 +124,8 @@ class ImpactTasksSchedulerTest(OpenReproducibleTestcaseTasksSchedulerTest):
     flaskapp = flask.Flask('testflask')
     flaskapp.add_url_rule(
         '/schedule-impact-tasks',
-        view_func=recurring_tasks.ImpactTasksScheduler.
-        as_view('/schedule-impact-tasks'))
+        view_func=recurring_tasks.ImpactTasksScheduler.as_view(
+            '/schedule-impact-tasks'))
     self.app = webtest.TestApp(flaskapp)
     helpers.patch(self, [
         'base.tasks.add_task',
