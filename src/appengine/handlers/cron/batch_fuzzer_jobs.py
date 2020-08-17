@@ -59,8 +59,7 @@ def batch_fuzzer_jobs():
 class Handler(base_handler_flask.Handler):
   """Handler for building data_types.CrashsStats2."""
 
-  @handler_flask.check_cron()
+  @handler_flask.cron()
   def get(self):
     """Process a GET request from a cronjob."""
     batch_fuzzer_jobs()
-    return 'OK'

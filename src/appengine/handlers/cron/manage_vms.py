@@ -701,7 +701,7 @@ class OssFuzzClustersManager(ClustersManager):
 class Handler(base_handler_flask.Handler):
   """CPU distributor for OSS-Fuzz projects."""
 
-  @handler_flask.check_cron()
+  @handler_flask.cron()
   def get(self):
     """Handle a get request."""
     if utils.is_oss_fuzz():
@@ -712,4 +712,3 @@ class Handler(base_handler_flask.Handler):
     for project_id in _get_project_ids():
       manager = manager_class(project_id)
       manager.update_clusters()
-    return 'OK'

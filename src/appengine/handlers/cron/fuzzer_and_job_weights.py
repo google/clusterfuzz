@@ -389,7 +389,7 @@ def update_job_weights():
 class Handler(base_handler_flask.Handler):
   """Handler to periodically update fuzz target weights based on performance."""
 
-  @handler_flask.check_cron()
+  @handler_flask.cron()
   def get(self):
     """Process all fuzz targets and update FuzzTargetJob weights."""
     client = big_query.Client()
@@ -399,4 +399,3 @@ class Handler(base_handler_flask.Handler):
     update_job_weights()
 
     store_current_weights_in_bigquery()
-    return 'OK'

@@ -137,7 +137,7 @@ def collect_fuzzer_coverage(bucket):
 class Handler(base_handler_flask.Handler):
   """Collects the latest code coverage stats and links to reports."""
 
-  @handler_flask.check_cron()
+  @handler_flask.cron()
   def get(self):
     """Handle a GET request."""
     # The task is supposed to be super reliable and never fail. If anything goes
@@ -147,8 +147,7 @@ class Handler(base_handler_flask.Handler):
     if not bucket:
       logs.log(
           'Coverage bucket is not specified. Skipping FuzzerCoverage task.')
-      return 'OK'
+      return
 
     collect_fuzzer_coverage(bucket)
     logs.log('FuzzerCoverage task finished successfully.')
-    return 'OK'

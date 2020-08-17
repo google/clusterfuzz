@@ -24,7 +24,6 @@ import googleapiclient
 
 from base import utils
 from config import local_config
-from flask import make_response
 from handlers import base_handler_flask
 from libs import handler_flask
 from metrics import logs
@@ -42,7 +41,7 @@ def _datastore_client():
 class Handler(base_handler_flask.Handler):
   """Handler for triggering the backup URL."""
 
-  @handler_flask.check_cron()
+  @handler_flask.cron()
   def get(self):
     """Handle a cron job."""
     backup_bucket = local_config.Config(
@@ -81,4 +80,4 @@ class Handler(base_handler_flask.Handler):
       status_code = e.resp.status
       logs.log_error(message, error=str(e))
 
-    return make_response(message, status_code, {'Content-Type': 'text/plain'})
+    return (message, status_code, {'Content-Type': 'text/plain'})

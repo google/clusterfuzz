@@ -211,9 +211,8 @@ class Handler(base_handler_flask.Handler):
   Handler to periodically update fuzz strategy bandit probabilities
   based on a performance metric (currently based on new_edges)."""
 
-  @handler_flask.check_cron()
+  @handler_flask.cron()
   def get(self):
     """Process all fuzz targets and update FuzzStrategy weights."""
     for engine in ENGINE_LIST:
       _query_and_upload_strategy_probabilities(engine)
-    return 'OK'

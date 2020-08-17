@@ -77,7 +77,7 @@ def _make_corpus_backup_public(target, corpus_fuzzer_name_override,
 class MakePublicHandler(base_handler_flask.Handler):
   """Makes corpuses older than 90 days public."""
 
-  @handler_flask.check_cron()
+  @handler_flask.cron()
   def get(self):
     """Handle a GET request."""
     jobs = ndb_utils.get_all_from_model(data_types.Job)
@@ -115,5 +115,3 @@ class MakePublicHandler(base_handler_flask.Handler):
                                      corpus_backup_bucket_name)
         except:
           logs.log_error('Failed to make %s corpus backup public.' % target)
-
-    return 'OK'

@@ -150,12 +150,12 @@ class Handler(base_handler_flask.Handler):
       # See https://cloud.google.com/bigquery/docs/reference/rest/v2/jobs/query.
       logs.log('Response from BigQuery: %s' % response)
 
-  @handler_flask.check_cron()
+  @handler_flask.cron()
   def get(self):
     """Load bigquery stats from GCS."""
     if not big_query.get_bucket():
       logs.log_error('Loading stats to BigQuery failed: missing bucket name.')
-      return 'OK'
+      return
 
     # Retrieve list of fuzzers before iterating them, since the query can expire
     # as we create the load jobs.
@@ -163,5 +163,3 @@ class Handler(base_handler_flask.Handler):
     for fuzzer in list(data_types.Fuzzer.query()):
       logs.log('Loading stats to BigQuery for %s.' % fuzzer.name)
       self._load_data(bigquery_client, fuzzer.name)
-
-    return 'OK'

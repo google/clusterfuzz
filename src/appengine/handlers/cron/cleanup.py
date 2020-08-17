@@ -1242,11 +1242,10 @@ def cleanup_unused_heartbeats():
 class Handler(base_handler_flask.Handler):
   """Cleanup."""
 
-  @handler_flask.check_cron()
+  @handler_flask.cron()
   def get(self):
     cleanup_testcases_and_issues()
     cleanup_reports_metadata()
     leak_blacklist.cleanup_global_blacklist()
     cleanup_unused_fuzz_targets_and_jobs()
     cleanup_unused_heartbeats()
-    return 'OK'
