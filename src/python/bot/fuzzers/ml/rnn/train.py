@@ -159,7 +159,7 @@ def main(args):
   if existing_model:
     print('Continue training on existing model: {}'.format(existing_model))
     try:
-      saver.restore(session, existing_model)
+      model.load_weights(existing_model)
     except:
       print(
           ('Failed to restore existing model since model '
@@ -168,7 +168,6 @@ def main(args):
       return constants.ExitCode.TENSORFLOW_ERROR
   else:
     print('No existing model provided. Start training with a new model.')
-    session.run(tf.compat.v1.global_variables_initializer())
 
   # Num of bytes we have trained so far.
   steps = 0
@@ -258,8 +257,8 @@ def main(args):
     if steps // 10 % frequency == 0:
       saved_model_name = constants.RNN_MODEL_NAME + '_' + timestamp
       saved_model_path = os.path.join(model_dir, saved_model_name)
-      saved_model = saver.save(session, saved_model_path, global_step=steps)
-      print('Saved model: {}'.format(saved_model))
+      model.save_weights(saved_model_path)
+      print('Saved model: {}'.format(saved_model_path))
 
     # Display progress bar.
     if debug:
@@ -271,8 +270,8 @@ def main(args):
   # Save the model after training is done.
   saved_model_name = constants.RNN_MODEL_NAME + '_' + timestamp
   saved_model_path = os.path.join(model_dir, saved_model_name)
-  saved_model = saver.save(session, saved_model_path, global_step=steps)
-  print('Saved model: {}'.format(saved_model))
+  model.save_weights(saved_model_path)
+  print('Saved model: {}'.format(saved_model_path))
 
   return constants.ExitCode.SUCCESS
 
