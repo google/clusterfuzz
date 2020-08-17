@@ -65,7 +65,7 @@ ndb_client = ndb.Client()
 
 
 class EmptyHandler(base_handler_flask.Handler):
-  """Empty hanlder for flask migration."""
+  """Empty handler for flask migration."""
 
   def get(self):
     # TODO(singharshdeep): Remove routes based on this handler
