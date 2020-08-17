@@ -68,6 +68,11 @@ class EmptyHandler(base_handler_flask.Handler):
   """Empty handler for flask migration."""
 
   def get(self):
+    # The middleware used in flask migration routes only on the basis
+    # of the path before the second / after domain, so to support the
+    # migration and proper functioning of URLs such as
+    # /corpus-backup/make-public, a route on /corpus-backup using
+    # EmptyHanlder is created.
     # TODO(singharshdeep): Remove routes based on this handler
     # after flask migration.
     raise helpers.EarlyExitException('URL not complete.', 404)
