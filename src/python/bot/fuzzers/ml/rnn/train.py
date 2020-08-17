@@ -217,9 +217,11 @@ def main(args):
       validation_model = build_model(hidden_layer_size * hidden_state_size,
                                      dropout_pkeep, validation_batch_size,
                                      False)
-      validation_model.load_weights(tf.train.latest_checkpoint(model_dir))
-      validation_model.build(tf.TensorShape([validation_batch_size, None]))
-      validation_model.reset_states()
+      last_weights = tf.train.latest_checkpoint(model_dir)
+      if last_weights:
+        validation_model.load_weights(tf.train.latest_checkpoint(model_dir))
+        validation_model.build(tf.TensorShape([validation_batch_size, None]))
+        validation_model.reset_states()
 
       predicted = validation_model(validation_x)
       loss = tf.keras.losses.sparse_categorical_crossentropy(
@@ -250,9 +252,11 @@ def main(args):
 
       generation_model = build_model(hidden_layer_size * hidden_state_size,
                                      dropout_pkeep, 1, False)
-      generation_model.load_weights(tf.train.latest_checkpoint(model_dir))
-      generation_model.build(tf.TensorShape([1, None]))
-      generation_model.reset_states()
+      last_weights = tf.train.latest_checkpoint(model_dir)
+      if last_weights:
+        generation_model.load_weights(tf.train.latest_checkpoint(model_dir))
+        generation_model.build(tf.TensorShape([1, None]))
+        generation_model.reset_states()
 
       for _ in range(file_size - 1):
         prediction = generation_model(ry)
