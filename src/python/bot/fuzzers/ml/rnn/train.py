@@ -74,6 +74,40 @@ def build_model(num_rnn_cells, dropout_pkeep, batch_size, debug):
 
   return model
 
+@tf.function
+def train_step(model, optimizer, input_data, expected_data, train=False):
+  """Train the model for one step.
+
+  Args:
+    model: RNN model to train/predict.
+    optimize: optimizer to use to train the model.
+    input_data: input sequence to the model.
+    expected_data: expected output of the model.
+
+  Returns:
+    Tuple containing the sequential loss between the expected output and the
+    real output, the batch loss between the two, the accuracy metric value as
+    well as the most likely predicted output.
+  """
+  with tf.GradientTape() as tape:
+    predicted_data = model(input_data)
+    loss = tf.keras.losses.sparse_categorical_crossentropy(
+        expected_data, predicted_data, from_logits=True)
+    seq_loss = tf.reduce_mean(input_tensor=loss, axis=1)
+    batch_loss = tf.reduce_mean(input_tensor=seq_loss)
+
+    output_bytes = tf.cast(tf.argmax(predicted_data, axis=-1),
+                           expected_data.dtype)
+    accuracy = tf.reduce_mean(tf.cast(tf.equal(expected_data, output_bytes),
+                                      tf.float32))
+
+  if train:
+    grads = tape.gradient(loss, model.trainable_variables)
+    optimizer.apply_gradients(zip(grads, model.trainable_variables))
+
+  return seq_loss, batch_loss, accuracy, output_bytes
+
+
 def main(args):
   """Main function to train the model.
 
@@ -180,19 +214,8 @@ def main(args):
       nb_epochs=constants.EPOCHS):
 
     # Train on one mini-batch.
-    with tf.GradientTape() as tape:
-      predicted = model(input_batch)
-      loss = tf.keras.losses.sparse_categorical_crossentropy(
-          expected_batch, predicted, from_logits=True)
-      seq_loss = tf.reduce_mean(input_tensor=loss, axis=1)
-      batch_loss = tf.reduce_mean(input_tensor=seq_loss)
-
-      output_bytes = tf.cast(tf.argmax(predicted, axis=-1), tf.uint8)
-      accuracy = tf.reduce_mean(tf.cast(tf.equal(expected_batch, output_bytes),
-                                        tf.float32))
-
-    grads = tape.gradient(batch_loss, model.trainable_variables)
-    optimizer.apply_gradients(zip(grads, model.trainable_variables))
+    seq_loss, batch_loss, accuracy, output_bytes = train_step(
+        model, optimizer, input_batch, expected_batch, train=True)
 
     # Log training data for Tensorboard display a mini-batch of sequences
     # every `frequency` batches.
@@ -223,19 +246,13 @@ def main(args):
         validation_model.build(tf.TensorShape([validation_batch_size, None]))
         validation_model.reset_states()
 
-      predicted = validation_model(validation_x)
-      loss = tf.keras.losses.sparse_categorical_crossentropy(
-          validation_y, predicted, from_logits=True)
-      seq_loss = tf.reduce_mean(input_tensor=loss, axis=1)
-      batch_loss = tf.reduce_mean(input_tensor=seq_loss)
-
-      output_bytes = tf.cast(tf.argmax(predicted, axis=-1), tf.uint8)
-      accuracy = tf.reduce_mean(tf.cast(tf.equal(validation_y, output_bytes),
-                                        tf.float32))
+      # Run one single inference step
+      _, batch_loss, accuracy, _ = train_step(
+          validation_model, optimizer, validation_x, validation_y, train=False)
 
       utils.print_validation_stats(batch_loss, accuracy)
 
-      ## Save validation data for Tensorboard.
+      # Save validation data for Tensorboard.
       with validation_writer.as_default():
         tf.summary.scalar('batch_loss', batch_loss, step=steps)
         tf.summary.scalar('batch_accuracy', accuracy, step=steps)
