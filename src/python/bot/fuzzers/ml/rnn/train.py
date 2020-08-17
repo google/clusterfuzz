@@ -155,7 +155,7 @@ def main(args):
       size=constants.DISPLAY_LEN,
       msg='Training on next {} batches'.format(constants.DISPLAY_FREQ))
 
-  # We continue training on exsiting model, or start with a new model.
+  # We continue training on existing model, or start with a new model.
   if existing_model:
     print('Continue training on existing model: {}'.format(existing_model))
     try:
