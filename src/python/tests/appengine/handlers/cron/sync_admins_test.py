@@ -15,8 +15,8 @@
 
 import unittest
 
-import six
 import flask
+import six
 import webtest
 
 from datastore import data_types

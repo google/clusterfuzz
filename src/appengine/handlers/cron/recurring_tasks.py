@@ -25,7 +25,7 @@ class OpenReproducibleTestcaseTasksScheduler(base_handler_flask.Handler):
   """Create tasks for open reproducible testcases."""
   task = None
 
-  @handler_flask.check_cron()
+  @handler_flask.cron()
   def get(self):
     """Handle a GET request."""
     assert self.task
@@ -48,8 +48,6 @@ class OpenReproducibleTestcaseTasksScheduler(base_handler_flask.Handler):
           logs.log_error('Failed to add task.')
           continue
 
-    return 'OK'
-
 
 class ImpactTasksScheduler(OpenReproducibleTestcaseTasksScheduler):
   """Create impact tasks."""
@@ -67,11 +65,10 @@ class SimpleRecurringTaskScheduler(base_handler_flask.Handler):
   argument = 0
   job_type = 'none'
 
-  @handler_flask.check_cron()
+  @handler_flask.cron()
   def get(self):
     assert self.task
     tasks.add_task(self.task, self.argument, self.job_type)
-    return 'OK'
 
 
 class UploadReportsTaskScheduler(SimpleRecurringTaskScheduler):

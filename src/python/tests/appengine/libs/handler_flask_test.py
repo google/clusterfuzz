@@ -124,7 +124,7 @@ class WithoutNeedsPrivilegeAccessHandler(base_handler_flask.Handler):
 class CronHandler(base_handler_flask.Handler):
   """Handler for crons."""
 
-  @handler_flask.check_cron()
+  @handler_flask.cron()
   def get(self):
     return self.render_json({})
 
@@ -178,7 +178,7 @@ class AllowedCorsHandler(base_handler_flask.Handler):
 
 
 class CronTest(unittest.TestCase):
-  """Test check_cron."""
+  """Test cron."""
 
   def setUp(self):
     test_helpers.patch(self, [

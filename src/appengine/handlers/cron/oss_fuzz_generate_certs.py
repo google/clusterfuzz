@@ -49,7 +49,7 @@ def generate_cert(project_name):
 class Handler(base_handler_flask.Handler):
   """Generate OSS-Fuzz certs."""
 
-  @handler_flask.check_cron()
+  @handler_flask.cron()
   def get(self):
     """Handles a get request."""
     for project in data_types.OssFuzzProject.query():
@@ -66,5 +66,3 @@ class Handler(base_handler_flask.Handler):
           cert_contents=cert_contents,
           key_contents=key_contents)
       tls_cert.put()
-
-    return 'OK'

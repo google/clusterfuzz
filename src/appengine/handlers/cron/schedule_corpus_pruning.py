@@ -36,9 +36,8 @@ def get_tasks_to_schedule():
 class Handler(base_handler_flask.Handler):
   """Schedule corpus pruning tasks.."""
 
-  @handler_flask.check_cron()
+  @handler_flask.cron()
   def get(self):
     """Schedule the corpus pruning tasks."""
     for task_target, job_name, queue_name in get_tasks_to_schedule():
       tasks.add_task('corpus_pruning', task_target, job_name, queue=queue_name)
-    return 'OK'

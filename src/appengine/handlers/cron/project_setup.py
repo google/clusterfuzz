@@ -902,25 +902,25 @@ class ProjectSetup(object):
 class Handler(base_handler_flask.Handler):
   """Setup ClusterFuzz jobs for projects."""
 
-  @handler_flask.check_cron()
+  @handler_flask.cron()
   def get(self):
     """Handles a GET request."""
     libfuzzer = data_types.Fuzzer.query(
         data_types.Fuzzer.name == 'libFuzzer').get()
     if not libfuzzer:
       logs.log_error('Failed to get libFuzzer Fuzzer entity.')
-      return 'OK'
+      return
 
     afl = data_types.Fuzzer.query(data_types.Fuzzer.name == 'afl').get()
     if not afl:
       logs.log_error('Failed to get AFL Fuzzer entity.')
-      return 'OK'
+      return
 
     honggfuzz = data_types.Fuzzer.query(
         data_types.Fuzzer.name == 'honggfuzz').get()
     if not honggfuzz:
       logs.log_error('Failed to get honggfuzz Fuzzer entity.')
-      return 'OK'
+      return
 
     project_setup_configs = local_config.ProjectConfig().get('project_setup')
     for setup_config in project_setup_configs:
@@ -965,5 +965,3 @@ class Handler(base_handler_flask.Handler):
         raise ProjectSetupError('Missing projects list.')
 
       config.set_up(projects)
-
-    return 'OK'

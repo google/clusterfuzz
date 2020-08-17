@@ -285,7 +285,7 @@ class Handler(base_handler_flask.Handler):
         logs.log_error('%s has not been built in %s config for %d days.' %
                        (project_name, build_type, time_since_last_build.days))
 
-  @handler_flask.check_cron()
+  @handler_flask.cron()
   def get(self):
     """Handles a get request."""
     for build_type, status_url in BUILD_STATUS_MAPPINGS:
@@ -301,5 +301,3 @@ class Handler(base_handler_flask.Handler):
       self._check_last_get_build_time(projects, build_type)
       self._close_fixed_builds(projects, build_type)
       self._process_failures(projects, build_type)
-
-    return 'OK'

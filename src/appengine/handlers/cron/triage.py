@@ -242,14 +242,14 @@ def _check_and_update_similar_bug(testcase, issue_tracker):
 class Handler(base_handler_flask.Handler):
   """Triage testcases."""
 
-  @handler_flask.check_cron()
+  @handler_flask.cron()
   def get(self):
     """Handle a get request."""
     try:
       grouper.group_testcases()
     except:
       logs.log_error('Error occurred while grouping test cases.')
-      return 'OK'
+      return
 
     # Free up memory after group task run.
     utils.python_gc()
@@ -327,5 +327,3 @@ class Handler(base_handler_flask.Handler):
       _create_filed_bug_metadata(testcase)
       logs.log('Filed new issue %s for testcase %d.' %
                (testcase.bug_information, testcase_id))
-
-    return 'OK'

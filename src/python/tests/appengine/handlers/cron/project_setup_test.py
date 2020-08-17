@@ -117,8 +117,7 @@ class OssFuzzProjectSetupTest(unittest.TestCase):
   def setUp(self):
     flaskapp = flask.Flask('testflask')
     flaskapp.add_url_rule(
-        '/setup',
-        view_func=project_setup.Handler.as_view('/setup'))
+        '/setup', view_func=project_setup.Handler.as_view('/setup'))
     self.app = webtest.TestApp(flaskapp)
 
     helpers.patch_environ(self)
@@ -1599,8 +1598,7 @@ class GenericProjectSetupTest(unittest.TestCase):
   def setUp(self):
     flaskapp = flask.Flask('testflask')
     flaskapp.add_url_rule(
-        '/setup',
-        view_func=project_setup.Handler.as_view('/setup'))
+        '/setup', view_func=project_setup.Handler.as_view('/setup'))
     self.app = webtest.TestApp(flaskapp)
 
     helpers.patch_environ(self)

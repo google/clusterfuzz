@@ -38,7 +38,7 @@ def get_open_testcases_with_bugs():
 class Handler(base_handler_flask.Handler):
   """Cron handler for adding new CC's to oss-fuzz bugs.."""
 
-  @handler_flask.check_cron()
+  @handler_flask.cron()
   def get(self):
     """Handle a cron job."""
 
@@ -59,7 +59,7 @@ class Handler(base_handler_flask.Handler):
       policy = issue_tracker_policy.get(issue_tracker.project)
       reported_label = policy.label('reported')
       if not reported_label:
-        return 'OK'
+        return
 
       reported_pattern = issue_filer.get_label_pattern(reported_label)
 
@@ -96,5 +96,3 @@ class Handler(base_handler_flask.Handler):
           comment = policy.deadline_policy_message
 
       issue.save(new_comment=comment, notify=True)
-
-    return 'OK'

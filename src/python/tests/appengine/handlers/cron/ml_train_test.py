@@ -36,8 +36,9 @@ class HandlerTest(unittest.TestCase):
         view_func=ml_train.Handler.as_view('/schedule-ml-train-tasks'))
     self.app = webtest.TestApp(flaskapp)
 
-    test_helpers.patch(self, [
-        'base.tasks.add_task', 'handlers.base_handler_flask.Handler.is_cron'])
+    test_helpers.patch(
+        self,
+        ['base.tasks.add_task', 'handlers.base_handler_flask.Handler.is_cron'])
 
     # Create fake jobs.
     data_types.Job(

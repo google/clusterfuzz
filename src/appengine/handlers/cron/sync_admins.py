@@ -76,7 +76,7 @@ def update_admins(new_admins):
 class Handler(base_handler_flask.Handler):
   """Admin user syncing cron."""
 
-  @handler_flask.check_cron()
+  @handler_flask.cron()
   def get(self):
     """Handle a get request."""
     resource_manager = googleapiclient.discovery.build('cloudresourcemanager',
@@ -87,4 +87,3 @@ class Handler(base_handler_flask.Handler):
 
     admins = admins_from_iam_policy(policy)
     update_admins(admins)
-    return 'OK'
