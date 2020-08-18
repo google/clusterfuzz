@@ -23,6 +23,7 @@ from libs import handler_flask
 from libs import helpers
 from metrics import logs
 
+DEFAULT_REDIRECT = '/'
 SESSION_EXPIRY_DAYS = 14
 
 
@@ -33,7 +34,7 @@ class Handler(base_handler_flask.Handler):
   @handler_flask.unsupported_on_local_server
   def get(self):
     """Handle a get request."""
-    dest = request.get('dest')
+    dest = request.get('dest', DEFAULT_REDIRECT)
     base_handler_flask.check_redirect_url(dest)
 
     return self.render(
@@ -78,6 +79,6 @@ class LogoutHandler(base_handler_flask.Handler):
       # Even if the revoke failed, remove the cookie.
       logs.log_error('Failed to revoke session cookie.')
 
-    response = self.redirect(request.get('dest'))
+    response = self.redirect(request.get('dest', DEFAULT_REDIRECT))
     response.delete_cookie('session')
     return response
