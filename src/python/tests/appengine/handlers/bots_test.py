@@ -24,6 +24,7 @@ from handlers import bots
 from tests.test_libs import helpers as test_helpers
 from tests.test_libs import test_utils
 
+
 @test_utils.with_cloud_emulators('datastore')
 class BotsTest(unittest.TestCase):
   """Jobs tests."""
@@ -104,9 +105,8 @@ class BotsTest(unittest.TestCase):
     self.assertListEqual([], [item['bot_name'] for item in resp.json['items']])
 
     resp = self.app.post_json('/', {'q': "bot"})
-    self.assertListEqual(
-        [bot_a.bot_name, bot_b.bot_name],
-        [item['bot_name'] for item in resp.json['items']])
+    self.assertListEqual([bot_a.bot_name, bot_b.bot_name],
+                         [item['bot_name'] for item in resp.json['items']])
 
     resp = self.app.post_json('/', {'q': "x"})
     self.assertListEqual([bot_a.bot_name],
@@ -117,6 +117,5 @@ class BotsTest(unittest.TestCase):
                          [item['bot_name'] for item in resp.json['items']])
 
     resp = self.app.post_json('/', {'q': "pay"})
-    self.assertListEqual(
-        [bot_a.bot_name, bot_b.bot_name],
-        [item['bot_name'] for item in resp.json['items']])
+    self.assertListEqual([bot_a.bot_name, bot_b.bot_name],
+                         [item['bot_name'] for item in resp.json['items']])
