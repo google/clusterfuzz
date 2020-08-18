@@ -13,9 +13,12 @@
   See the License for the specific language governing permissions and
   limitations under the License.
 -->
+<link rel="import" href="../../bower_components/iron-ajax/iron-ajax.html">
 <link rel="import" href="../../bower_components/polymer/polymer.html">
 <link rel="import" href="../../bower_components/paper-input/paper-input.html">
 <link rel="import" href="../common/if-else/if-else.html">
+<link rel="import" href="../common/paginated-list/paginated-list.html">
+
 
 <dom-module id="bots-list">
   <link rel="import" href="../../stylesheets/main.css" type="css">
@@ -71,66 +74,93 @@
         color: #C51162;
       }
     </style>
+    <iron-ajax
+    id="ajax"
+    url="/bots/load"
+    method="POST"
+    content-type="application/json"
+    body="[[ajaxParams]]"
+    loading="{{loading}}"
+    last-request="{{request}}"
+    last-error="{{error}}"
+    last-response="{{response}}"
+    on-error="handleError"
+    on-request="handleRequest"
+    on-response="handleResponse"
+    debounce-duration="500"></iron-ajax>
 
     <div id="mainContent">
       <div class="section">
-        <div class="title">Bot list ([[botCount]])</div>
+        <div class="title">Bot list</div>
         <div class="body">
-          <paper-input
-              class="search-box"
-              label="Enter search string here"
-              autofocus
-              value="{{search}}">
+          <paper-input class="search-box" label="Enter search string here" type="text" value="{{params.q}}" on-input="searchInputTimeout" on-keyup="searchButtonPressed">
             <iron-icon icon="icons:search" slot="prefix"></iron-icon>
-            <iron-icon icon="icons:help-outline" title="Filter the bot list to any bots with fields containing the specified string. Use &quot;alive&quot; or &quot;dead&quot; to filter for alive or dead bots." slot="suffix"></iron-icon>
+            <iron-icon icon="icons:help-outline" title="Filter the bot list to any bots with fields containing the specified string." slot="suffix"></iron-icon>
           </paper-input>
-          <template
-              id="list"
-              is="dom-repeat"
-              items="[[bots]]"
-              filter="[[computeFilter(search)]]"
-              initial-count="20"
-              rendered-item-count="{{botCount}}">
-            <div class="container flex">
-              <div class="info">
-                <div class="name">
-                  [[item.bot_name]]
-                </div>
-                <if-else condition="[[item.task_payload]]">
-                  <div class="content" slot="t">
-                    [[item.task_payload]]<br/>
-                    ends [[formatTime(item.task_end_time)]]
-                  </div>
-                  <div class="content" slot="f">
-                    No task!
-                  </div>
-                </if-else>
-              </div>
-              <table class="labels">
-                <tr>
-                  <td>
-                    <span class$="label [[item.alive]]">
-                      Last Ping - [[formatTime(item.last_beat_time)]]
-                    </span>
-                  </td>
-                </tr>
-                <tr>
-                  <td>
-                    <span class="label revision">
-                      [[item.source_version]]
-                    </span>
-                    <template is="dom-if" if="[[item.platform_id]]">
-                      <span class="label platform_id">
-                        [[item.platform_id]]
-                      </span>
-                    </template>
-                  </td>
-                </tr>
-              </table>
-            </div>
-          </template>
         </div>
       </div>
+      <paginated-list
+        id="paginatedList"
+        result="{{result}}"
+        params="{{params}}"
+        keys="[[paramKeys]]"
+        loading="[[loading]]"
+        on-params-modified="paramsModified">
+        <div class="section">
+          <div class="error" hidden$="[[!shouldShowError(result, result.error)]]">
+            <span class="title">[[result.error.message]]</span>
+            <span class="trace-dump" hidden$="[[!result.error.traceDump]]"
+              >[[result.error.traceDump]]</span>
+          </div>
+          <div class="empty" hidden$="[[!shouldShowEmpty(result, result.items)]]">
+            Didn't find anything with the current search.<br/>
+          </div>
+          <div class="body" hidden$="[[!shouldShowItems(result, result.items)]]">
+            <template
+                id="list"
+                is="dom-repeat"
+                items="[[result.items]]">
+              <div class="container flex">
+                <div class="info">
+                  <div class="name">
+                    [[item.bot_name]]
+                  </div>
+                  <if-else condition="[[item.task_payload]]">
+                    <div class="content" slot="t">
+                      [[item.task_payload]]<br/>
+                      ends [[formatTime(item.task_end_time)]]
+                    </div>
+                    <div class="content" slot="f">
+                      No task!
+                    </div>
+                  </if-else>
+                </div>
+                <table class="labels">
+                  <tr>
+                    <td>
+                      <span class$="label [[item.alive]]">
+                        Last Ping - [[formatTime(item.last_beat_time)]]
+                      </span>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td>
+                      <span class="label revision">
+                        [[item.source_version]]
+                      </span>
+                      <template is="dom-if" if="[[item.platform_id]]">
+                        <span class="label platform_id">
+                          [[item.platform_id]]
+                        </span>
+                      </template>
+                    </td>
+                  </tr>
+                </table>
+              </div>
+            </template>
+          </div>
+        </div>
+      </paginated-list>
     </div>
   </template>
   <script>
@@ -139,8 +169,22 @@
 
       static get properties() {
         return {
-          bots: Array,
-          search: String,
+          result: Object,
+          params: Object,
+          paramKeys: {
+            type: Array,
+            value: [
+              'page', 'q'
+            ]
+          },
+          loading: {
+            type: Boolean,
+            value: false
+          },
+          submitId: {
+            type: Number,
+            value: 0
+          },
         };
       }
 
@@ -152,20 +196,86 @@
               hour: 'numeric', minute: 'numeric'});
       }
 
-      computeFilter(searchKey) {
-        if (!searchKey)
-          return null;
+      search() {
+        this.ajaxParams = {};
+        this.paramKeys.forEach((key) => {
+          if (this.params[key]) {
+            this.ajaxParams[key] = this.params[key];
+          }
+        });
 
-        // Workaround for bug https://github.com/Polymer/polymer/issues/4729.
-        this.$.list.__initializeChunking();
+        this.$.paginatedList.updateQuery();
+        this.$.ajax.generateRequest();
+      }
 
-        var searchStrings = searchKey.split(" ");
-        return (el) => (
-            searchStrings.every(s => (
-                el['bot_name'] && el['bot_name'].includes(s) ||
-                el['task_payload'] && el['task_payload'].includes(s) ||
-                el['platform_id'] && el['platform_id'].includes(s) ||
-                el['alive'] && el['alive'].includes(s))));
+      searchInputTimeout(ev) {
+        let self = this;
+        let thisId = ++self.submitId;
+        setTimeout(
+            () => {
+              if (self.submitId == thisId) {
+                self.resetPageAndSearch();
+              }
+            },
+            600
+        );
+      }
+
+      paramsModified(ev) {
+        this.search();
+      }
+
+      searchButtonPressed(ev) {
+        let self = this;
+        if (ev.keyCode == 13) {
+          self.resetPageAndSearch();
+        }
+      }
+
+      resetPageAndSearch() {
+        this.params.page = '';
+        this.set('result.page', 1);
+        this.search();
+      }
+
+      handleRequest() {
+        var reqs = this.$.ajax.activeRequests;
+        for (let i=0;i<reqs.length;i++) {
+          if (reqs[i] != this.request) {
+            reqs[i].abort();
+          }
+        }
+      }
+
+      handleResponse() {
+        this.result = this.response;
+        this.set('result.error', null);
+        this.$.paginatedList.save();
+      }
+
+      handleError() {
+        let error = parseError(this.error);
+        if (!error) {
+          // this.error is undefined because its request is aborted.
+          return;
+        }
+
+        this.set('result.items', null);
+        this.set('result.error', error);
+
+        this.$.paginatedList.save();
+      }
+
+      shouldShowError(result, error) {
+        return error;
+      }
+
+      shouldShowEmpty(result, items) {
+        return items && items.length == 0;
+      }
+      
+      shouldShowItems(result, items) {
+        return items && items.length > 0;
       }
     }
 

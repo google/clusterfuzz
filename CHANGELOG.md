@@ -1,6 +1,14 @@
 Change Log
 ==========
 
+## Next Version
+- Bots page is now paginated. 
+  - Next version requires new DB migrations due to addition of search keywords in Bots.
+  - To perform migrations, please use:
+```
+python butler.py run -c path/to/config --non-dry-run migration.bots_keywords
+```
+
 ## Version 2.1.0
 - Jobs page is now paginated. 
   - Next version requires new DB migrations due to addition of search keywords in Jobs.

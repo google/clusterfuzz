@@ -965,6 +965,19 @@ class Heartbeat(Model):
   # Platform id (esp important for Android platform for OS version).
   platform_id = ndb.StringProperty()
 
+  # Keywords is used for searching.
+  keywords = ndb.StringProperty(repeated=True)
+
+  def populate_indices(self):
+    """Populate keywords for fast job searching."""
+    self.keywords = list(
+        search_tokenizer.tokenize(self.bot_name)
+        | search_tokenizer.tokenize(self.task_payload))
+
+  def _pre_put_hook(self):
+    """Pre-put hook."""
+    self.populate_indices()
+
 
 class Notification(Model):
   """Tracks whether or not an email has been sent to a user for a test case."""
