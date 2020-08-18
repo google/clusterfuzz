@@ -261,7 +261,7 @@ def main(args):
       utils.print_validation_stats(batch_loss, accuracy)
 
       # Save validation data for Tensorboard.
-      with validation_writer.as_default(): # pylint: disable=not-context-manager
+      with validation_writer.as_default():  # pylint: disable=not-context-manager
         tf.summary.scalar('batch_loss', batch_loss, step=steps)
         tf.summary.scalar('batch_accuracy', accuracy, step=steps)
       validation_writer.flush()
