@@ -44,6 +44,7 @@ from bot.fuzzers.ml.rnn import utils
 #     curves stay close. To see the curves drift apart ("overfitting") try
 #     to use an insufficient amount of training data.
 
+
 def build_model(num_rnn_cells, dropout_pkeep, batch_size, debug):
   """Build the RNN model.
 
@@ -60,11 +61,17 @@ def build_model(num_rnn_cells, dropout_pkeep, batch_size, debug):
   Returns:
     Keras Sequential RNN model.
   """
+  dropout_pdrop = 1 - dropout_pkeep
   model = tf.keras.Sequential([
-      tf.keras.layers.Embedding(constants.ALPHA_SIZE, constants.ALPHA_SIZE,
-                                batch_input_shape=[batch_size, None]),
-      tf.keras.layers.GRU(num_rnn_cells, return_sequences=True, stateful=True,
-                          dropout=1-dropout_pkeep),
+      tf.keras.layers.Embedding(
+          constants.ALPHA_SIZE,
+          constants.ALPHA_SIZE,
+          batch_input_shape=[batch_size, None]),
+      tf.keras.layers.GRU(
+          num_rnn_cells,
+          return_sequences=True,
+          stateful=True,
+          dropout=dropout_pdrop),
       tf.keras.layers.Dense(constants.ALPHA_SIZE),
   ])
 
@@ -73,6 +80,7 @@ def build_model(num_rnn_cells, dropout_pkeep, batch_size, debug):
     model.summary()
 
   return model
+
 
 @tf.function
 def train_step(model, optimizer, input_data, expected_data, train=False):
@@ -96,10 +104,10 @@ def train_step(model, optimizer, input_data, expected_data, train=False):
     seq_loss = tf.reduce_mean(input_tensor=loss, axis=1)
     batch_loss = tf.reduce_mean(input_tensor=seq_loss)
 
-    output_bytes = tf.cast(tf.argmax(predicted_data, axis=-1),
-                           expected_data.dtype)
-    accuracy = tf.reduce_mean(tf.cast(tf.equal(expected_data, output_bytes),
-                                      tf.float32))
+    output_bytes = tf.cast(
+        tf.argmax(predicted_data, axis=-1), expected_data.dtype)
+    accuracy = tf.reduce_mean(
+        tf.cast(tf.equal(expected_data, output_bytes), tf.float32))
 
   if train:
     grads = tape.gradient(loss, model.trainable_variables)
@@ -165,8 +173,8 @@ def main(args):
   tf.random.set_seed(0)
 
   # Build the RNN model.
-  model = build_model(hidden_layer_size * hidden_state_size,
-                      dropout_pkeep, batch_size, debug)
+  model = build_model(hidden_layer_size * hidden_state_size, dropout_pkeep,
+                      batch_size, debug)
 
   # Choose Adam optimizer to compute gradients.
   optimizer = tf.keras.optimizers.Adam(learning_rate)
@@ -278,7 +286,8 @@ def main(args):
       for _ in range(file_size - 1):
         prediction = generation_model(ry)
         prediction = tf.squeeze(prediction, 0).numpy()
-        rc = utils.sample_from_probabilities(prediction, topn=10 if epoch <= 1 else 2)
+        rc = utils.sample_from_probabilities(
+            prediction, topn=10 if epoch <= 1 else 2)
         sample.append(rc)
         ry = np.array([[rc]])
 
