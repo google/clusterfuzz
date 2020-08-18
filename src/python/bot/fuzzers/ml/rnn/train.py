@@ -231,7 +231,7 @@ def main(args):
       utils.print_learning_learned_comparison(
           input_batch, output_bytes, seq_loss, input_ranges, batch_loss,
           accuracy, epoch_size, steps, epoch)
-      with summary_writer.as_default():
+      with summary_writer.as_default():  # pylint: disable=not-context-manager
         tf.summary.scalar('batch_loss', batch_loss, step=steps)
         tf.summary.scalar('batch_accuracy', accuracy, step=steps)
       summary_writer.flush()
@@ -261,7 +261,7 @@ def main(args):
       utils.print_validation_stats(batch_loss, accuracy)
 
       # Save validation data for Tensorboard.
-      with validation_writer.as_default():
+      with validation_writer.as_default(): # pylint: disable=not-context-manager
         tf.summary.scalar('batch_loss', batch_loss, step=steps)
         tf.summary.scalar('batch_accuracy', accuracy, step=steps)
       validation_writer.flush()
