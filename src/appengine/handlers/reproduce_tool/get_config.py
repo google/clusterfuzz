@@ -20,21 +20,22 @@ import urllib.parse
 
 from config import db_config
 from datastore import data_handler
-from handlers import base_handler
-from libs import handler
+from handlers import base_handler_flask
+from libs import handler_flask
 
 
-class Handler(base_handler.Handler):
+class Handler(base_handler_flask.Handler):
   """Handler to configure the reproduce tool."""
 
   # Note: This handler is intentionally unauthenticated.
-  @handler.post(handler.JSON, handler.JSON)
+  @handler_flask.post(handler_flask.JSON, handler_flask.JSON)
   def post(self):
     """Download the reproduce tool configuration json."""
     client_id = db_config.get_value('reproduce_tool_client_id')
     if not client_id:
-      self.render_json({'error': 'Reproduce tool is not configured.'}, 500)
-      return
+      return self.render_json({
+          'error': 'Reproduce tool is not configured.'
+      }, 500)
 
     domain = data_handler.get_domain()
     link_format = 'https://{domain}/{handler}'
@@ -55,4 +56,4 @@ class Handler(base_handler.Handler):
                 })),
     }
 
-    self.render_json(configuration)
+    return self.render_json(configuration)

@@ -15,11 +15,12 @@
 
 import json
 
+from flask import request
 from google_cloud_utils import big_query
-from handlers import base_handler
+from handlers import base_handler_flask
 from libs import crash_access
 from libs import filters
-from libs import handler
+from libs import handler_flask
 from libs import helpers
 from libs.query import big_query_query
 
@@ -135,12 +136,11 @@ def get(params, query, offset, limit):
   return result.rows, result.total_count
 
 
-def get_result(this):
+def get_result():
   """Get the result for the crash stats page."""
-  params = {k: v for k, v in this.request.iterparams()}
+  params = dict(request.iterparams())
   params['type'] = params.get('type', 'regression')
-  page = helpers.cast(
-      this.request.get('page') or 1, int, "'page' is not an int.")
+  page = helpers.cast(request.get('page') or 1, int, "'page' is not an int.")
 
   is_revision_empty = 'revision' not in params
 
@@ -171,30 +171,33 @@ def get_result(this):
   return result, params
 
 
-class Handler(base_handler.Handler):
+class Handler(base_handler_flask.Handler):
   """Handler that lists testcases whose regression range contains a revision."""
 
-  @handler.unsupported_on_local_server
-  @handler.get(handler.HTML)
+  @handler_flask.unsupported_on_local_server
+  @handler_flask.get(handler_flask.HTML)
   def get(self):
     """Get and render the commit range in HTML."""
-    result, params = get_result(self)
-    self.render('commit_range.html', {'result': result, 'params': params})
+    result, params = get_result()
+    return self.render('commit_range.html', {
+        'result': result,
+        'params': params
+    })
 
 
-class JsonHandler(base_handler.Handler):
-  """JSON handler used for dynamic updates of commit ranges."""
+class JsonHandler(base_handler_flask.Handler):
+  """JSON handler_flask used for dynamic updates of commit ranges."""
 
   # See: https://bugs.chromium.org/p/chromium/issues/detail?id=760669
-  @handler.oauth
-  @handler.allowed_cors
-  @handler.post(handler.JSON, handler.JSON)
+  @handler_flask.post(handler_flask.JSON, handler_flask.JSON)
+  @handler_flask.oauth
+  @handler_flask.allowed_cors
   def post(self):
     """Get and render the commit range in JSON."""
-    result, params = get_result(self)
+    result, params = get_result()
     result['params'] = params
-    self.render_json(result)
+    return self.render_json(result)
 
-  @handler.allowed_cors
+  @handler_flask.allowed_cors
   def options(self):
     """Responds with CORS headers."""

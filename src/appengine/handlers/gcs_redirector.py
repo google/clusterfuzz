@@ -13,19 +13,20 @@
 # limitations under the License.
 """GCS redirector."""
 
+from flask import request
 from google_cloud_utils import storage
-from handlers import base_handler
-from libs import handler
+from handlers import base_handler_flask
+from libs import handler_flask
 from libs import helpers
 
 
-class Handler(base_handler.Handler):
+class Handler(base_handler_flask.Handler):
   """Gcs redirector."""
 
-  @handler.get(handler.HTML)
+  @handler_flask.get(handler_flask.HTML)
   def get(self):
     """Handle a get request."""
-    gcs_path = self.request.get('path', '')
+    gcs_path = request.args.get('path', '')
     if not gcs_path:
       raise helpers.EarlyExitException('No path provided.', 400)
 
@@ -35,4 +36,4 @@ class Handler(base_handler.Handler):
       host_url = storage.DIRECTORY_URL
 
     bucket_name, object_path = storage.get_bucket_name_and_path(gcs_path)
-    self.redirect(host_url + '/' + bucket_name + '/' + object_path)
+    return self.redirect(host_url + '/' + bucket_name + '/' + object_path)

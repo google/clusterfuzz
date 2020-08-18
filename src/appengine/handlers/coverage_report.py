@@ -18,8 +18,8 @@ import re
 
 from datastore import data_handler
 from datastore import data_types
-from handlers import base_handler
-from libs import handler
+from handlers import base_handler_flask
+from libs import handler_flask
 from libs import helpers
 from metrics import fuzzer_stats
 
@@ -66,14 +66,14 @@ def get_report_url(report_type, argument, date):
   return _get_project_report_url(job, date)
 
 
-class Handler(base_handler.Handler):
+class Handler(base_handler_flask.Handler):
   """Coverage Report Handler."""
 
-  @handler.get(handler.HTML)
-  def get(self, report_type, argument, date, _):
+  # pylint: disable=unused-argument
+  @handler_flask.get(handler_flask.HTML)
+  def get(self, report_type=None, argument=None, date=None, extra=None):
     """Handle a get request."""
     report_url = get_report_url(report_type, argument, date)
     if report_url:
-      self.redirect(report_url)
-    else:
-      raise helpers.EarlyExitException('Failed to get coverage report.', 400)
+      return self.redirect(report_url)
+    raise helpers.EarlyExitException('Failed to get coverage report.', 400)

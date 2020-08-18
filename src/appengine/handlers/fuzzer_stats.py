@@ -28,16 +28,16 @@ import yaml
 
 from googleapiclient.errors import HttpError
 
-from . import base_handler
-
 from base import external_users
 from base import memoize
 from base import utils
 from datastore import data_handler
 from datastore import data_types
+from flask import request
 from google_cloud_utils import big_query
+from handlers import base_handler_flask
 from libs import access
-from libs import handler
+from libs import handler_flask
 from libs import helpers
 from metrics import fuzzer_stats
 from metrics import logs
@@ -386,12 +386,13 @@ def _get_date(date_value, days_ago):
   return date_datetime.strftime('%Y-%m-%d')
 
 
-class Handler(base_handler.Handler):
+class Handler(base_handler_flask.Handler):
   """Fuzzer stats main page handler."""
 
-  @handler.unsupported_on_local_server
-  @handler.get(handler.HTML)
-  def get(self):
+  # pylint: disable=unused-argument
+  @handler_flask.unsupported_on_local_server
+  @handler_flask.get(handler_flask.HTML)
+  def get(self, extra=None):
     """Handle a GET request."""
     if not access.has_access():
       # User is an external user of ClusterFuzz (eg: non-Chrome dev who
@@ -404,17 +405,17 @@ class Handler(base_handler.Handler):
         raise helpers.AccessDeniedException(
             "You don't have access to any fuzzers.")
 
-    self.render('fuzzer-stats.html', {})
+    return self.render('fuzzer-stats.html', {})
 
 
-class LoadFiltersHandler(base_handler.Handler):
+class LoadFiltersHandler(base_handler_flask.Handler):
   """Load filters handler."""
 
-  @handler.unsupported_on_local_server
-  @handler.get(handler.HTML)
+  @handler_flask.unsupported_on_local_server
+  @handler_flask.get(handler_flask.HTML)
   def get(self):
     """Handle a GET request."""
-    project = self.request.get('project')
+    project = request.get('project')
 
     if access.has_access():
       # User is an internal user of ClusterFuzz (eg: ClusterFuzz developer).
@@ -451,10 +452,10 @@ class LoadFiltersHandler(base_handler.Handler):
         'fuzzers': fuzzers_list,
         'jobs': jobs_list,
     }
-    self.render_json(result)
+    return self.render_json(result)
 
 
-class LoadHandler(base_handler.Handler):
+class LoadHandler(base_handler_flask.Handler):
   """Load handler."""
 
   def _check_user_access_and_get_job_filter(self, fuzzer, job):
@@ -477,26 +478,26 @@ class LoadHandler(base_handler.Handler):
 
     raise helpers.AccessDeniedException()
 
-  @handler.post(handler.JSON, handler.JSON)
+  @handler_flask.post(handler_flask.JSON, handler_flask.JSON)
   def post(self):
     """Handle a POST request."""
-    fuzzer = self.request.get('fuzzer')
-    job = self.request.get('job')
-    group_by = self.request.get('group_by')
+    fuzzer = request.get('fuzzer')
+    job = request.get('job')
+    group_by = request.get('group_by')
 
     # If date_start is "": because the front end defaults to using a
     # start_date 7 days ago, do the same.
-    date_start = _get_date(self.request.get('date_start'), 7)
+    date_start = _get_date(request.get('date_start'), 7)
     # If date_end is "": don't get today's stats as they may not be
     # available, use yesterdays (as the front end does by default).
-    date_end = _get_date(self.request.get('date_end'), 1)
+    date_end = _get_date(request.get('date_end'), 1)
 
     job_filter = self._check_user_access_and_get_job_filter(fuzzer, job)
-    self.render_json(
+    return self.render_json(
         build_results(fuzzer, job_filter, group_by, date_start, date_end))
 
 
-class PreloadHandler(base_handler.Handler):
+class PreloadHandler(base_handler_flask.Handler):
   """Handler for the infrequent task of loading results for expensive stats
   queries that are commonly accessed into the cache."""
 
@@ -515,7 +516,7 @@ class PreloadHandler(base_handler.Handler):
 
     return fuzzer_job_filters
 
-  @handler.check_cron()
+  @handler_flask.check_cron()
   def get(self):
     """Handle a GET request."""
     date_start = _get_date(None, 7)
@@ -539,13 +540,15 @@ class PreloadHandler(base_handler.Handler):
           if 'No stats.' not in repr(e):
             logs.log_error('Failed to preload %s %s %s %s %s.' %
                            (fuzzer, job_filter, group_by, date_start, date_end))
+    return 'OK'
 
 
-class RefreshCacheHandler(base_handler.Handler):
+class RefreshCacheHandler(base_handler_flask.Handler):
   """Refresh cache."""
 
-  @handler.check_cron()
+  @handler_flask.check_cron()
   def get(self):
+    """Handle a GET request."""
     fuzzer_logs_context = fuzzer_stats.FuzzerRunLogsContext()
     fuzz_targets = data_handler.get_fuzz_targets()
 
@@ -554,3 +557,4 @@ class RefreshCacheHandler(base_handler.Handler):
       # pylint: disable=protected-access,unexpected-keyword-arg
       fuzzer_logs_context._get_logs_bucket_from_fuzzer(
           fuzz_target.fully_qualified_name(), __memoize_force__=True)
+    return 'OK'

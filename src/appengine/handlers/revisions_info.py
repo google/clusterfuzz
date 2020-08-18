@@ -14,26 +14,27 @@
 """Display information for revision ranges."""
 
 from build_management import revisions
-from handlers import base_handler
-from libs import handler
+from flask import request
+from handlers import base_handler_flask
+from libs import handler_flask
 from libs import helpers
 
 
-class Handler(base_handler.Handler):
+class Handler(base_handler_flask.Handler):
   """Information on a revision range."""
 
-  @handler.get(handler.HTML)
+  @handler_flask.get(handler_flask.HTML)
   def get(self):
-    """GET handler."""
-    job_type = self.request.get('job')
+    """GET handler_flask."""
+    job_type = request.get('job')
 
-    revision = self.request.get('revision')
+    revision = request.get('revision')
     if revision:
       if not revision.isdigit():
         raise helpers.EarlyExitException('Revision is not an integer.', 400)
       start_revision = end_revision = revision
     else:
-      revision_range = self.request.get('range')
+      revision_range = request.get('range')
       if revision_range:
         try:
           start_revision, end_revision = revision_range.split(':')
@@ -51,7 +52,8 @@ class Handler(base_handler.Handler):
       raise helpers.EarlyExitException('Failed to get component revisions.',
                                        400)
 
-    self.render('revisions-info.html',
-                {'info': {
-                    'componentRevisionsList': component_revisions_list
-                }})
+    return self.render(
+        'revisions-info.html',
+        {'info': {
+            'componentRevisionsList': component_revisions_list
+        }})

@@ -20,7 +20,7 @@ import mock
 import os
 import unittest
 
-import webapp2
+import flask
 import webtest
 
 from datastore import data_types
@@ -282,9 +282,11 @@ class TestPermissions(unittest.TestCase):
 
     self.mock.build_results.return_value = json.dumps({})
 
-    self.app = webtest.TestApp(
-        webapp2.WSGIApplication([('/fuzzer-stats/load',
-                                  fuzzer_stats.LoadHandler)]))
+    flaskapp = flask.Flask('testflask')
+    flaskapp.add_url_rule(
+        '/fuzzer-stats/load',
+        view_func=fuzzer_stats.LoadHandler.as_view('/fuzzer-stats/load'))
+    self.app = webtest.TestApp(flaskapp)
 
     data_types.ExternalUserPermission(
         email='test@user.com',

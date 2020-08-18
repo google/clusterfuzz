@@ -15,9 +15,10 @@
 
 from datastore import data_handler
 from datastore import data_types
-from handlers import base_handler
+from flask import request
+from handlers import base_handler_flask
 from libs import access
-from libs import handler
+from libs import handler_flask
 
 
 def _prepare_testcase_dict(testcase):
@@ -42,15 +43,15 @@ def _prepare_testcase_dict(testcase):
   return testcase_dict
 
 
-class Handler(base_handler.Handler):
+class Handler(base_handler_flask.Handler):
   """Handler that returns a serialized testcase as JSON."""
 
-  @handler.post(handler.JSON, handler.JSON)
-  @handler.oauth
+  @handler_flask.post(handler_flask.JSON, handler_flask.JSON)
+  @handler_flask.oauth
   def post(self):
     """Serve the testcase JSON."""
-    testcase_id = self.request.get('testcaseId')
+    testcase_id = request.get('testcaseId')
     testcase = access.check_access_and_get_testcase(testcase_id)
 
     testcase_dict = _prepare_testcase_dict(testcase)
-    self.render_json(testcase_dict)
+    return self.render_json(testcase_dict)
