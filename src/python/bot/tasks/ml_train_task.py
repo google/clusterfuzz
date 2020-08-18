@@ -194,8 +194,8 @@ def upload_model_to_gcs(model_directory, fuzzer_name):
   gcs_data_path = '%s/%s' % (gcs_model_directory, data_file_name)
   gcs_index_path = '%s/%s' % (gcs_model_directory, index_file_name)
 
-  logs.log('Uploading the model for %s: %s, %s.' %
-           (fuzzer_name, data_file_name, index_file_name))
+  logs.log('Uploading the model for %s: %s, %s.' % (fuzzer_name, data_file_name,
+                                                    index_file_name))
 
   # Upload files to GCS.
   result = (
