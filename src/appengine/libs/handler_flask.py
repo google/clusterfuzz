@@ -144,14 +144,14 @@ def unsupported_on_local_server(func):
   """
 
   @functools.wraps(func)
-  def wrapper(self):
+  def wrapper(self, *args, **kwargs):
     """Wrapper."""
     if environment.is_running_on_app_engine_development():
       raise helpers.EarlyExitException(
           'This feature is not available in local App Engine Development '
           'environment.', 400)
 
-    return func(self)
+    return func(self, *args, **kwargs)
 
   return wrapper
 
