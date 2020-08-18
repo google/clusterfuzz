@@ -13,10 +13,11 @@
 # limitations under the License.
 """server_flask.py initialises the appengine server for ClusterFuzz."""
 # TODO(singharshdeep): Rename this file to server after flask migration.
-from base import utils
-from config import local_config
 from flask import Flask
 from google.cloud import ndb
+
+from base import utils
+from config import local_config
 from handlers import base_handler_flask
 from handlers import bots
 from handlers import commit_range
@@ -38,9 +39,6 @@ from handlers import revisions_info
 from handlers import testcase_list
 from handlers import upload_testcase
 from handlers import viewer
-from handlers.performance_report import (show as show_performance_report)
-from handlers.reproduce_tool import get_config
-from handlers.reproduce_tool import testcase_info
 from handlers.cron import backup
 from handlers.cron import batch_fuzzer_jobs
 from handlers.cron import build_crash_stats
@@ -61,6 +59,9 @@ from handlers.cron import recurring_tasks
 from handlers.cron import schedule_corpus_pruning
 from handlers.cron import sync_admins
 from handlers.cron import triage
+from handlers.performance_report import (show as show_performance_report)
+from handlers.reproduce_tool import get_config
+from handlers.reproduce_tool import testcase_info
 from handlers.testcase_detail import (crash_stats as crash_stats_on_testcase)
 from handlers.testcase_detail import (show as show_testcase)
 from handlers.testcase_detail import create_issue

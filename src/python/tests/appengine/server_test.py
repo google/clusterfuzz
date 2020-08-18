@@ -30,6 +30,5 @@ class ServerTest(unittest.TestCase):
   def test(self):
     import server
     self.assertIsNotNone(server._ROUTES)
-    self.assertIsNotNone(server._CRON_ROUTES)
     self.assertIsNotNone(server._DOMAIN_ROUTES)
     self.assertIsNotNone(server.app)

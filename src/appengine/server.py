@@ -83,5 +83,4 @@ if main_domain and redirect_domains:
             webapp2.Route('<:.*>', redirect_to(main_domain)),
         ]))
 
-app = webapp2.WSGIApplication(
-    _DOMAIN_ROUTES + _ROUTES, debug=False)
+app = webapp2.WSGIApplication(_DOMAIN_ROUTES + _ROUTES, debug=False)
