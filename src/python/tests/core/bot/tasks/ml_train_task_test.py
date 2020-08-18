@@ -45,36 +45,30 @@ class GetLastSavedModelTest(fake_fs_unittest.TestCase):
     # Create model directory.
     self.fs.create_dir(MODEL_DIR)
 
-    # Create fake meta file, index file and data file.
-    # Model_1 has three complete files.
-    self.model_1_meta_path = os.path.join(MODEL_DIR, 'model_1.meta')
+    # Create fake index file and data file.
+    # Model_1 has two complete files.
     self.model_1_data_path = os.path.join(MODEL_DIR,
                                           'model_1.data-00000-of-00001')
     self.model_1_index_path = os.path.join(MODEL_DIR, 'model_1.index')
 
-    # Create three files for model_1.
-    self.fs.create_file(self.model_1_meta_path)
+    # Create two files for model_1.
     self.fs.create_file(self.model_1_data_path)
     self.fs.create_file(self.model_1_index_path)
 
     # Update timestamp.
-    os.utime(self.model_1_meta_path, (1330711140, 1330711160))
     os.utime(self.model_1_data_path, (1330711140, 1330711160))
     os.utime(self.model_1_index_path, (1330711140, 1330711160))
 
-    # Model_2 has three complete files.
-    self.model_2_meta_path = os.path.join(MODEL_DIR, 'model_2.meta')
+    # Model_2 has two complete files.
     self.model_2_data_path = os.path.join(MODEL_DIR,
                                           'model_2.data-00000-of-00001')
     self.model_2_index_path = os.path.join(MODEL_DIR, 'model_2.index')
 
-    # Create three files for model_2.
-    self.fs.create_file(self.model_2_meta_path)
+    # Create two files for model_2.
     self.fs.create_file(self.model_2_data_path)
     self.fs.create_file(self.model_2_index_path)
 
     # Update timestamp. Make sure they are newer than model_1.
-    os.utime(self.model_2_meta_path, (1330713340, 1330713360))
     os.utime(self.model_2_data_path, (1330713340, 1330713360))
     os.utime(self.model_2_index_path, (1330713340, 1330713360))
 
@@ -83,7 +77,6 @@ class GetLastSavedModelTest(fake_fs_unittest.TestCase):
     # Model_2 is newer than model_1, so we will get model_2.
     model_paths = ml_train_task.get_last_saved_model(MODEL_DIR)
     expected = {
-        'meta': self.model_2_meta_path,
         'data': self.model_2_data_path,
         'index': self.model_2_index_path
     }
@@ -98,7 +91,6 @@ class GetLastSavedModelTest(fake_fs_unittest.TestCase):
     # Now we should get model_1.
     model_paths = ml_train_task.get_last_saved_model(MODEL_DIR)
     expected = {
-        'meta': self.model_1_meta_path,
         'data': self.model_1_data_path,
         'index': self.model_1_index_path
     }

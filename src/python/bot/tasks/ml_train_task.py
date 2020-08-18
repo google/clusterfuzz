@@ -53,40 +53,34 @@ def get_last_saved_model(model_directory):
     model_directory: The directory where models are saved.
 
   Returns:
-    A dictionary with three keys: 'meta', 'data' and 'index'. Each
+    A dictionary with two keys: 'data' and 'index'. Each
     refers to the path of one model file. Empty dictionary will be
     returned if no valid model exists.
   """
   # The dictionary to be returned.
   model_paths = {}
 
-  # Get a list of all meta files.
+  # Get a list of all index files.
   file_pattern = os.path.join(model_directory,
-                              '*' + constants.MODEL_META_SUFFIX)
-  meta_file_list = list(filter(os.path.isfile, glob.glob(file_pattern)))
-  if not meta_file_list:
+                              '*' + constants.MODEL_INDEX_SUFFIX)
+  index_file_list = list(filter(os.path.isfile, glob.glob(file_pattern)))
+  if not index_file_list:
     return model_paths
 
   # Sort files based on their modification time.
-  meta_file_list.sort(key=os.path.getmtime, reverse=True)
+  index_file_list.sort(key=os.path.getmtime, reverse=True)
 
-  # Iterate the list. For each meta file, search for corresponding index file
-  # and data file.
-  for meta_file_path in meta_file_list:
-    meta_file_name = os.path.basename(meta_file_path)
-    file_prefix = os.path.splitext(meta_file_name)[0]
+  # Iterate the list. For each index file, search for corresponding data file.
+  for index_file_path in index_file_list:
+    index_file_name = os.path.basename(index_file_path)
+    file_prefix = os.path.splitext(index_file_name)[0]
 
-    # Find index file and data file with the same prefix, so these three files
-    # are from the same model.
+    # Find data file with the same prefix (from the same model).
     data_file_name = file_prefix + constants.MODEL_DATA_SUFFIX
-    index_file_name = file_prefix + constants.MODEL_INDEX_SUFFIX
-
     data_file_path = os.path.join(model_directory, data_file_name)
-    index_file_path = os.path.join(model_directory, index_file_name)
 
     # Check if they exist.
     if os.path.exists(data_file_path) and os.path.exists(index_file_path):
-      model_paths['meta'] = meta_file_path
       model_paths['data'] = data_file_path
       model_paths['index'] = index_file_path
       break
@@ -184,7 +178,6 @@ def upload_model_to_gcs(model_directory, fuzzer_name):
     logs.log_error('No valid RNN model is saved during training.')
     return
 
-  latest_meta_file = model_paths['meta']
   latest_data_file = model_paths['data']
   latest_index_file = model_paths['index']
 
@@ -195,20 +188,17 @@ def upload_model_to_gcs(model_directory, fuzzer_name):
     return
 
   # Basename of model files.
-  meta_file_name = constants.RNN_MODEL_NAME + constants.MODEL_META_SUFFIX
   data_file_name = constants.RNN_MODEL_NAME + constants.MODEL_DATA_SUFFIX
   index_file_name = constants.RNN_MODEL_NAME + constants.MODEL_INDEX_SUFFIX
 
-  gcs_meta_path = '%s/%s' % (gcs_model_directory, meta_file_name)
   gcs_data_path = '%s/%s' % (gcs_model_directory, data_file_name)
   gcs_index_path = '%s/%s' % (gcs_model_directory, index_file_name)
 
-  logs.log('Uploading the model for %s: %s, %s, %s.' %
-           (fuzzer_name, meta_file_name, data_file_name, index_file_name))
+  logs.log('Uploading the model for %s: %s, %s.' %
+           (fuzzer_name, data_file_name, index_file_name))
 
   # Upload files to GCS.
   result = (
-      storage.copy_file_to(latest_meta_file, gcs_meta_path) and
       storage.copy_file_to(latest_data_file, gcs_data_path) and
       storage.copy_file_to(latest_index_file, gcs_index_path))
 
