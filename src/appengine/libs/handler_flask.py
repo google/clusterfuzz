@@ -95,10 +95,11 @@ def cron():
       if not self.is_cron():
         raise helpers.AccessDeniedException('You are not a cron.')
 
-      response = func(self)
-      if not response:
+      result = func(self)
+      if result is None:
         return 'OK'
-      return response
+
+      return result
 
     return wrapper
 
