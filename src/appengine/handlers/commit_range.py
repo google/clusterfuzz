@@ -201,3 +201,4 @@ class JsonHandler(base_handler_flask.Handler):
   @handler_flask.allowed_cors
   def options(self):
     """Responds with CORS headers."""
+    return ''

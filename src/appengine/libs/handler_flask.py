@@ -21,12 +21,14 @@ import json
 import re
 import requests
 
+from flask import g
+from flask import make_response
+from flask import request
+
 from base import utils
 from config import db_config
 from config import local_config
 from datastore import data_types
-from flask import g
-from flask import request
 from libs import access
 from libs import auth
 from libs import csp
@@ -259,7 +261,7 @@ def oauth(func):
       email, returned_auth_header = get_email_and_access_token(auth_header)
       setattr(g, '_oauth_email', email)
 
-      response = func(self)
+      response = make_response(func(self))
       response.headers[CLUSTERFUZZ_AUTHORIZATION_HEADER] = str(
           returned_auth_header)
       response.headers[CLUSTERFUZZ_AUTHORIZATION_IDENTITY] = str(email)
@@ -323,7 +325,7 @@ def allowed_cors(func):
     """Wrapper."""
     origin = request.headers.get('Origin')
     whitelisted_cors_urls = _auth_config().get('whitelisted_cors_urls')
-    response = func(self)
+    response = make_response(func(self))
 
     if origin and whitelisted_cors_urls:
       for domain_regex in whitelisted_cors_urls:
@@ -362,7 +364,7 @@ def post(request_content_type, response_content_type):
       else:
         extend_request(request, request.args)
 
-      response = func(self)
+      response = make_response(func(self))
       if response_content_type == JSON:
         response.headers['Content-Type'] = 'application/json'
       elif response_content_type == TEXT:
@@ -392,7 +394,7 @@ def get(response_content_type):
         self.is_json = True
 
       extend_request(request, request.args)
-      response = func(self, *args, **kwargs)
+      response = make_response(func(self, *args, **kwargs))
       if response_content_type == JSON:
         response.headers['Content-Type'] = 'application/json'
       elif response_content_type == TEXT:
