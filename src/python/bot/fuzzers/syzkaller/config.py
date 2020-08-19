@@ -63,6 +63,7 @@ def generate(serial,
     data['hub_addr'] = syzhub_address
     data['hub_client'] = syzhub_client
     data['hub_key'] = syzhub_key
+    data['name'] = '{}-{}'.format(syzhub_client, serial)
 
   ensure_dir(config_path)
   with open(config_path, 'w') as write_file:
