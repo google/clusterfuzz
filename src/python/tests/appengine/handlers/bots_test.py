@@ -71,7 +71,6 @@ class BotsTest(unittest.TestCase):
       expected_items[(bot_num // bots.PAGE_SIZE) + 1].append(bot.bot_name)
 
     resp = self.app.post_json('/', {'page': 1})
-    print(resp.json['items'])
     self.assertListEqual(expected_items[1],
                          [item['bot_name'] for item in resp.json['items']])
 
