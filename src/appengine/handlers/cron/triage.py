@@ -26,8 +26,8 @@ from base import utils
 from datastore import data_handler
 from datastore import data_types
 from datastore import ndb_utils
-from handlers import base_handler
-from libs import handler
+from handlers import base_handler_flask
+from libs import handler_flask
 from libs.issue_management import issue_filer
 from libs.issue_management import issue_tracker_policy
 from libs.issue_management import issue_tracker_utils
@@ -239,10 +239,10 @@ def _check_and_update_similar_bug(testcase, issue_tracker):
   return False
 
 
-class Handler(base_handler.Handler):
+class Handler(base_handler_flask.Handler):
   """Triage testcases."""
 
-  @handler.check_cron()
+  @handler_flask.cron()
   def get(self):
     """Handle a get request."""
     try:

@@ -516,7 +516,7 @@ class PreloadHandler(base_handler_flask.Handler):
 
     return fuzzer_job_filters
 
-  @handler_flask.check_cron()
+  @handler_flask.cron()
   def get(self):
     """Handle a GET request."""
     date_start = _get_date(None, 7)
@@ -540,13 +540,12 @@ class PreloadHandler(base_handler_flask.Handler):
           if 'No stats.' not in repr(e):
             logs.log_error('Failed to preload %s %s %s %s %s.' %
                            (fuzzer, job_filter, group_by, date_start, date_end))
-    return 'OK'
 
 
 class RefreshCacheHandler(base_handler_flask.Handler):
   """Refresh cache."""
 
-  @handler_flask.check_cron()
+  @handler_flask.cron()
   def get(self):
     """Handle a GET request."""
     fuzzer_logs_context = fuzzer_stats.FuzzerRunLogsContext()
@@ -557,4 +556,3 @@ class RefreshCacheHandler(base_handler_flask.Handler):
       # pylint: disable=protected-access,unexpected-keyword-arg
       fuzzer_logs_context._get_logs_bucket_from_fuzzer(
           fuzz_target.fully_qualified_name(), __memoize_force__=True)
-    return 'OK'

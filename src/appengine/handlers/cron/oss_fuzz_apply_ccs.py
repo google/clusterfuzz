@@ -19,8 +19,8 @@ from base import external_users
 from base import memoize
 from datastore import data_types
 from datastore import ndb_utils
-from handlers import base_handler
-from libs import handler
+from handlers import base_handler_flask
+from libs import handler_flask
 from libs.issue_management import issue_filer
 from libs.issue_management import issue_tracker_policy
 from libs.issue_management import issue_tracker_utils
@@ -35,10 +35,10 @@ def get_open_testcases_with_bugs():
           data_types.Testcase.bug_information, data_types.Testcase.key)
 
 
-class Handler(base_handler.Handler):
+class Handler(base_handler_flask.Handler):
   """Cron handler for adding new CC's to oss-fuzz bugs.."""
 
-  @handler.check_cron()
+  @handler_flask.cron()
   def get(self):
     """Handle a cron job."""
 

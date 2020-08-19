@@ -24,8 +24,8 @@ from datastore import data_handler
 from datastore import data_types
 from datastore import ndb_utils
 from google_cloud_utils import big_query
-from handlers import base_handler
-from libs import handler
+from handlers import base_handler_flask
+from libs import handler_flask
 from metrics import fuzzer_stats
 from metrics import logs
 from system import environment
@@ -386,10 +386,10 @@ def update_job_weights():
     update_job_weight(job.name, multiplier)
 
 
-class Handler(base_handler.Handler):
+class Handler(base_handler_flask.Handler):
   """Handler to periodically update fuzz target weights based on performance."""
 
-  @handler.check_cron()
+  @handler_flask.cron()
   def get(self):
     """Process all fuzz targets and update FuzzTargetJob weights."""
     client = big_query.Client()

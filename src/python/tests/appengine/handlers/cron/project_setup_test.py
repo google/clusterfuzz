@@ -15,11 +15,11 @@
 from builtins import object
 import ast
 import copy
+import flask
 import googleapiclient
 import mock
 import os
 import unittest
-import webapp2
 import webtest
 
 from google.cloud import ndb
@@ -115,8 +115,10 @@ class OssFuzzProjectSetupTest(unittest.TestCase):
   """Test project_setup for OSS-Fuzz."""
 
   def setUp(self):
-    self.app = webtest.TestApp(
-        webapp2.WSGIApplication([('/setup', project_setup.Handler)]))
+    flaskapp = flask.Flask('testflask')
+    flaskapp.add_url_rule(
+        '/setup', view_func=project_setup.Handler.as_view('/setup'))
+    self.app = webtest.TestApp(flaskapp)
 
     helpers.patch_environ(self)
 
@@ -179,7 +181,7 @@ class OssFuzzProjectSetupTest(unittest.TestCase):
         ('get_application_id_2', 'base.utils.get_application_id'),
         'google_cloud_utils.storage.build',
         'time.sleep',
-        'handlers.base_handler.Handler.is_cron',
+        'handlers.base_handler_flask.Handler.is_cron',
         'handlers.cron.project_setup.get_oss_fuzz_projects',
         'handlers.cron.service_accounts.get_or_create_service_account',
         'handlers.cron.service_accounts.set_service_account_roles',
@@ -1594,8 +1596,10 @@ class GenericProjectSetupTest(unittest.TestCase):
   """Test generic project setup."""
 
   def setUp(self):
-    self.app = webtest.TestApp(
-        webapp2.WSGIApplication([('/setup', project_setup.Handler)]))
+    flaskapp = flask.Flask('testflask')
+    flaskapp.add_url_rule(
+        '/setup', view_func=project_setup.Handler.as_view('/setup'))
+    self.app = webtest.TestApp(flaskapp)
 
     helpers.patch_environ(self)
 
@@ -1620,7 +1624,7 @@ class GenericProjectSetupTest(unittest.TestCase):
         'google_cloud_utils.storage.build',
         'google_cloud_utils.storage.read_data',
         'time.sleep',
-        'handlers.base_handler.Handler.is_cron',
+        'handlers.base_handler_flask.Handler.is_cron',
     ])
 
     self.mock.read_data.side_effect = _mock_read_data

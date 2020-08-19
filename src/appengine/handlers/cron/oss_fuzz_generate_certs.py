@@ -17,8 +17,8 @@ from google.cloud import ndb
 
 from base import untrusted
 from datastore import data_types
-from handlers import base_handler
-from libs import handler
+from handlers import base_handler_flask
+from libs import handler_flask
 from metrics import logs
 
 
@@ -46,10 +46,10 @@ def generate_cert(project_name):
   return cert_contents, key_contents
 
 
-class Handler(base_handler.Handler):
+class Handler(base_handler_flask.Handler):
   """Generate OSS-Fuzz certs."""
 
-  @handler.check_cron()
+  @handler_flask.cron()
   def get(self):
     """Handles a get request."""
     for project in data_types.OssFuzzProject.query():

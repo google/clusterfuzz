@@ -24,8 +24,8 @@ import googleapiclient
 
 from base import utils
 from config import local_config
-from handlers import base_handler
-from libs import handler
+from handlers import base_handler_flask
+from libs import handler_flask
 from metrics import logs
 
 # CrashStatistic is excluded because the number of records is too high and
@@ -38,17 +38,17 @@ def _datastore_client():
   return googleapiclient.discovery.build('datastore', 'v1')
 
 
-class Handler(base_handler.Handler):
+class Handler(base_handler_flask.Handler):
   """Handler for triggering the backup URL."""
 
-  @handler.check_cron()
+  @handler_flask.cron()
   def get(self):
     """Handle a cron job."""
     backup_bucket = local_config.Config(
         local_config.PROJECT_PATH).get('backup.bucket')
     if not backup_bucket:
       logs.log('No backup bucket is set, skipping.')
-      return
+      return 'OK'
 
     kinds = [
         kind for kind in ndb.Model._kind_map  # pylint: disable=protected-access
@@ -80,6 +80,4 @@ class Handler(base_handler.Handler):
       status_code = e.resp.status
       logs.log_error(message, error=str(e))
 
-    self.response.headers['Content-Type'] = 'text/plain'
-    self.response.out.write(message)
-    self.response.set_status(status_code)
+    return (message, status_code, {'Content-Type': 'text/plain'})

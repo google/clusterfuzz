@@ -146,9 +146,8 @@ class Handler(base_handler_flask.Handler):
 class RefreshCacheHandler(base_handler_flask.Handler):
   """Home page handler_flask."""
 
-  @handler_flask.check_cron()
+  @handler_flask.cron()
   def get(self):
     """GET handler_flask."""
     # pylint: disable=unexpected-keyword-arg
     _get_all_project_results(__memoize_force__=True)
-    return 'OK'

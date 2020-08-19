@@ -83,8 +83,8 @@ def extend_json_request(req):
   extend_request(req, params)
 
 
-def check_cron():
-  """Wrap a handler with check_cron."""
+def cron():
+  """Wrap a handler with cron."""
 
   def decorator(func):
     """Decorator."""
@@ -95,7 +95,11 @@ def check_cron():
       if not self.is_cron():
         raise helpers.AccessDeniedException('You are not a cron.')
 
-      return func(self)
+      result = func(self)
+      if result is None:
+        return 'OK'
+
+      return result
 
     return wrapper
 

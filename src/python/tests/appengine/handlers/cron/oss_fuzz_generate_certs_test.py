@@ -12,10 +12,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """oss_fuzz_apply_ccs tests."""
+import flask
 import unittest
 
 from google.cloud import ndb
-import webapp2
 import webtest
 
 from datastore import data_types
@@ -31,13 +31,15 @@ class OssFuzzGenerateCertsTest(unittest.TestCase):
   def setUp(self):
     test_helpers.patch_environ(self)
     test_helpers.patch(self, [
-        'handlers.base_handler.Handler.is_cron',
+        'handlers.base_handler_flask.Handler.is_cron',
     ])
 
     self.mock.is_cron.return_value = True
-    self.app = webtest.TestApp(
-        webapp2.WSGIApplication([('/generate-certs',
-                                  oss_fuzz_generate_certs.Handler)]))
+    flaskapp = flask.Flask('testflask')
+    flaskapp.add_url_rule(
+        '/generate-certs',
+        view_func=oss_fuzz_generate_certs.Handler.as_view('/generate-certs'))
+    self.app = webtest.TestApp(flaskapp)
 
     data_types.OssFuzzProject(name='project1').put()
     data_types.OssFuzzProject(name='project2').put()

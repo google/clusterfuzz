@@ -27,8 +27,8 @@ from datastore import data_types
 from datastore import ndb_utils
 from fuzzing import strategy
 from google_cloud_utils import big_query
-from handlers import base_handler
-from libs import handler
+from handlers import base_handler_flask
+from libs import handler_flask
 from metrics import logs
 
 # After experimentation with high, low, and medium temperature parameters, we
@@ -205,13 +205,13 @@ def _query_and_upload_strategy_probabilities(engine):
       engine.name))
 
 
-class Handler(base_handler.Handler):
+class Handler(base_handler_flask.Handler):
   """Cron job handler for fuzz strategy selection.
 
   Handler to periodically update fuzz strategy bandit probabilities
   based on a performance metric (currently based on new_edges)."""
 
-  @handler.check_cron()
+  @handler_flask.cron()
   def get(self):
     """Process all fuzz targets and update FuzzStrategy weights."""
     for engine in ENGINE_LIST:

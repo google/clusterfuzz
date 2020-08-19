@@ -15,8 +15,8 @@
 
 import unittest
 
+import flask
 import six
-import webapp2
 import webtest
 
 from datastore import data_types
@@ -30,12 +30,14 @@ class SyncAdminsTest(unittest.TestCase):
   """Tests for sync_admins."""
 
   def setUp(self):
-    self.app = webtest.TestApp(
-        webapp2.WSGIApplication([('/sync-admins', sync_admins.Handler)]))
+    flaskapp = flask.Flask('testflask')
+    flaskapp.add_url_rule(
+        '/sync-admins', view_func=sync_admins.Handler.as_view('/sync-admins'))
+    self.app = webtest.TestApp(flaskapp)
 
     test_helpers.patch(self, [
         'googleapiclient.discovery.build',
-        'handlers.base_handler.Handler.is_cron',
+        'handlers.base_handler_flask.Handler.is_cron',
     ])
 
     data_types.Admin(id='remove@email.com', email='remove@email.com').put()

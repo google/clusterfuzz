@@ -22,8 +22,8 @@ from datastore import fuzz_target_utils
 from datastore import ndb_utils
 from fuzzing import corpus_manager
 from google_cloud_utils import storage
-from handlers import base_handler
-from libs import handler
+from handlers import base_handler_flask
+from libs import handler_flask
 from metrics import logs
 
 
@@ -74,10 +74,10 @@ def _make_corpus_backup_public(target, corpus_fuzzer_name_override,
   logs.log('Corpus backup %s is now marked public.' % corpus_backup_url)
 
 
-class MakePublicHandler(base_handler.Handler):
+class MakePublicHandler(base_handler_flask.Handler):
   """Makes corpuses older than 90 days public."""
 
-  @handler.check_cron()
+  @handler_flask.cron()
   def get(self):
     """Handle a GET request."""
     jobs = ndb_utils.get_all_from_model(data_types.Job)

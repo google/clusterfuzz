@@ -21,26 +21,6 @@ from base import utils
 from config import local_config
 from handlers import base_handler
 from handlers import domain_verifier
-from handlers.cron import backup
-from handlers.cron import batch_fuzzer_jobs
-from handlers.cron import build_crash_stats
-from handlers.cron import cleanup
-from handlers.cron import corpus_backup
-from handlers.cron import fuzz_strategy_selection
-from handlers.cron import fuzzer_and_job_weights
-from handlers.cron import fuzzer_coverage
-from handlers.cron import load_bigquery_stats
-from handlers.cron import manage_vms
-from handlers.cron import ml_train
-from handlers.cron import oss_fuzz_apply_ccs
-from handlers.cron import oss_fuzz_build_status
-from handlers.cron import oss_fuzz_generate_certs
-from handlers.cron import predator_pull
-from handlers.cron import project_setup
-from handlers.cron import recurring_tasks
-from handlers.cron import schedule_corpus_pruning
-from handlers.cron import sync_admins
-from handlers.cron import triage
 from metrics import logs
 
 _is_chromium = utils.is_chromium()
@@ -85,33 +65,6 @@ base_handler.add_menu('Configuration', '/configuration')
 base_handler.add_menu('Report Bug', '/report-bug')
 base_handler.add_menu('Documentation', '/docs')
 
-# We need to separate routes for cron to avoid redirection.
-_CRON_ROUTES = [
-    ('/backup', backup.Handler),
-    ('/batch-fuzzer-jobs', batch_fuzzer_jobs.Handler),
-    ('/build-crash-stats', build_crash_stats.Handler),
-    ('/cleanup', cleanup.Handler),
-    ('/corpus-backup/make-public', corpus_backup.MakePublicHandler),
-    ('/fuzzer-coverage', fuzzer_coverage.Handler),
-    ('/fuzzer-and-job-weights', fuzzer_and_job_weights.Handler),
-    ('/fuzz-strategy-selection', fuzz_strategy_selection.Handler),
-    ('/load-bigquery-stats', load_bigquery_stats.Handler),
-    ('/manage-vms', manage_vms.Handler),
-    ('/oss-fuzz-apply-ccs', oss_fuzz_apply_ccs.Handler),
-    ('/oss-fuzz-build-status', oss_fuzz_build_status.Handler),
-    ('/oss-fuzz-generate-certs', oss_fuzz_generate_certs.Handler),
-    ('/project-setup', project_setup.Handler),
-    ('/predator-pull', predator_pull.Handler),
-    ('/schedule-corpus-pruning', schedule_corpus_pruning.Handler),
-    ('/schedule-impact-tasks', recurring_tasks.ImpactTasksScheduler),
-    ('/schedule-ml-train-tasks', ml_train.Handler),
-    ('/schedule-progression-tasks', recurring_tasks.ProgressionTasksScheduler),
-    ('/schedule-upload-reports-tasks',
-     recurring_tasks.UploadReportsTaskScheduler),
-    ('/sync-admins', sync_admins.Handler),
-    ('/triage', triage.Handler),
-]
-
 _ROUTES = [
     (r'(.*)/$', _TrailingSlashRemover),
     (r'/(google.+\.html)$', domain_verifier.Handler),
@@ -130,5 +83,4 @@ if main_domain and redirect_domains:
             webapp2.Route('<:.*>', redirect_to(main_domain)),
         ]))
 
-app = webapp2.WSGIApplication(
-    _CRON_ROUTES + _DOMAIN_ROUTES + _ROUTES, debug=False)
+app = webapp2.WSGIApplication(_DOMAIN_ROUTES + _ROUTES, debug=False)

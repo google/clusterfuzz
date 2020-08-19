@@ -197,7 +197,7 @@ class Handler(base_handler_flask.Handler):
 class CacheHandler(base_handler_flask.Handler):
   """Handler for exercising cache."""
 
-  @handler_flask.check_cron()
+  @handler_flask.cron()
   def get(self):
     """Handle a GET request."""
     # pylint: disable=unexpected-keyword-arg
@@ -222,8 +222,6 @@ class CacheHandler(base_handler_flask.Handler):
 
       blobs.get_blob_size(testcase.fuzzed_keys)
       blobs.get_blob_size(testcase.minimized_keys)
-
-    return 'OK'
 
 
 class JsonHandler(base_handler_flask.Handler):
