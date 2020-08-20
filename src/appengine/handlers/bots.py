@@ -15,13 +15,24 @@
 
 import datetime
 
+from flask import request
+
 from base import tasks
 from base import utils
 from datastore import data_types
 from datastore import ndb_utils
 from handlers import base_handler_flask
+from libs import filters
 from libs import handler_flask
 from libs import helpers
+from libs.query import datastore_query
+
+PAGE_SIZE = 10
+MORE_LIMIT = 50 - PAGE_SIZE  # exactly 5 pages
+
+FILTERS = [
+    filters.Keyword([], 'keywords', 'q'),
+]
 
 
 def _get_alive_cutoff():
@@ -61,31 +72,29 @@ def _convert_heartbeats_to_dicts(heartbeats):
   return result
 
 
-def _get_host_workers_heartbeats():
-  """Return host worker heartbeats."""
-  page_size = 30
+def get_results():
+  """Get results for the bots page."""
+  # Return bots sorted alphabetically by bot_name
+  query = datastore_query.Query(data_types.Heartbeat)
+  query.order('bot_name', is_desc=False)
+  params = dict(request.iterparams())
+  filters.add(query, params, FILTERS)
 
-  query = data_types.HostWorkerAssignment.query()
-  cursor = None
+  page = helpers.cast(request.get('page', 1), int, "'page' is not an int.")
+  items, total_pages, total_items, has_more = query.fetch_page(
+      page=page, page_size=PAGE_SIZE, projection=None, more_limit=MORE_LIMIT)
+  items = _convert_heartbeats_to_dicts(items)
+  helpers.log('Bots', helpers.VIEW_OPERATION)
 
-  while True:
-    results, cursor, more = query.fetch_page(page_size, start_cursor=cursor)
-    key_ids = [assignment.key.id() for assignment in results]
-    if not key_ids:
-      break
-
-    worker_mapping = dict(
-        (assignment.key.id(), assignment.worker_name) for assignment in results)
-
-    for heartbeat in data_types.Heartbeat.query(
-        data_types.Heartbeat.bot_name.IN(key_ids)):
-      heartbeat.bot_name = '{host_name} ({worker_name})'.format(
-          host_name=heartbeat.bot_name,
-          worker_name=worker_mapping[heartbeat.bot_name])
-      yield heartbeat
-
-    if not more:
-      break
+  result = {
+      'hasMore': has_more,
+      'items': items,
+      'page': page,
+      'pageSize': PAGE_SIZE,
+      'totalItems': total_items,
+      'totalPages': total_pages,
+  }
+  return result, params
 
 
 class Handler(base_handler_flask.Handler):
@@ -96,15 +105,23 @@ class Handler(base_handler_flask.Handler):
   @handler_flask.check_user_access(need_privileged_access=False)
   def get(self):
     """Render the bot list HTML."""
-    if utils.is_oss_fuzz():
-      heartbeats = _get_host_workers_heartbeats()
-    else:
-      heartbeats = ndb_utils.get_all_from_model(data_types.Heartbeat)
-
-    bots = _convert_heartbeats_to_dicts(heartbeats)
+    result, params = get_results()
     return self.render('bots.html', {
-        'bots': bots,
+        'result': result,
+        'params': params,
     })
+
+
+class JsonHandler(base_handler_flask.Handler):
+  """Handler that gets the bots when user clicks on next page."""
+
+  @handler_flask.post(handler_flask.JSON, handler_flask.JSON)
+  @handler_flask.check_admin_access_if_oss_fuzz
+  @handler_flask.check_user_access(need_privileged_access=False)
+  def post(self):
+    """Get and render the bots in JSON."""
+    result, _ = get_results()
+    return self.render_json(result)
 
 
 class DeadBotsHandler(base_handler_flask.Handler):

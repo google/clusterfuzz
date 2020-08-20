@@ -176,6 +176,7 @@ handlers = [
     ('/', home.Handler if _is_oss_fuzz else testcase_list.Handler),
     ('/add-external-user-permission', configuration.AddExternalUserPermission),
     ('/bots', bots.Handler),
+    ('/bots/load', bots.JsonHandler),
     ('/bots/dead', bots.DeadBotsHandler),
     ('/commit-range', commit_range.Handler),
     ('/commit-range/load', commit_range.JsonHandler),

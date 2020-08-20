@@ -37,13 +37,17 @@
 <dom-bind id="page">
   <template>
     <template is="dom-if" if="[[data]]">
-      <bots-list bots="[[data.bots]]"></bots-list>
+      <bots-list
+        result="[[data.result]]"
+        field-values="[[data.fieldValues]]">
+      </bots-list>
     </template>
   </template>
 </dom-bind>
 <script>
   document.querySelector('#page').data = {
-    bots: JSON.parse(atob('{{bots|json}}')),
+    result : JSON.parse(atob('{{result|json}}')),
+    params: JSON.parse(atob('{{params|json}}')),
   };
 </script>
 {% endblock %}

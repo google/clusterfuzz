@@ -555,3 +555,8 @@ indexes:
   properties:
     - name: keywords
     - name: name
+
+- kind: Heartbeat
+  properties:
+    - name: keywords
+    - name: bot_name
