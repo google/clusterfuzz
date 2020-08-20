@@ -20,15 +20,15 @@ from base import errors
 from config import db_config
 from datastore import data_handler
 from google_cloud_utils import pubsub
-from handlers import base_handler_flask
-from libs import handler_flask
+from handlers import base_handler
+from libs import handler
 from metrics import logs
 
 
-class Handler(base_handler_flask.Handler):
+class Handler(base_handler.Handler):
   """Handler to periodically gather new results from Predator requests."""
 
-  @handler_flask.cron()
+  @handler.cron()
   def get(self):
     """Process a GET request."""
     subscription = db_config.get_value('predator_result_topic')

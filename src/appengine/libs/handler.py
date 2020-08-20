@@ -1,4 +1,4 @@
-# Copyright 2019 Google LLC
+# Copyright 2020 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -12,14 +12,17 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """handler.py provides decorators for POST and GET handlers."""
-# TODO(singharshdeep): Remove this file after flask migration.
+
 from builtins import str
 import datetime
 import functools
 import json
 import re
 import requests
-import six
+
+from flask import g
+from flask import make_response
+from flask import request
 
 from base import utils
 from config import db_config
@@ -57,33 +60,30 @@ def extend_request(req, params):
   """Extends a request."""
 
   def _iterparams():
-    for k, v in six.iteritems(params):
+    for k, v in params.items():
       yield k, v
-
-  req.iterparams = _iterparams
-
-
-def extend_json_request(req):
-  """Extends a request to support JSON."""
-  try:
-    params = json.loads(req.body)
-  except ValueError:
-    raise helpers.EarlyExitException(
-        'Parsing the JSON request body failed: %s' % req.body, 400)
 
   def _get(key, default_value=None):
     """Return the value of the key or the default value."""
     return params.get(key, default_value)
 
   req.get = _get
+  req.iterparams = _iterparams
 
-  # We need the below method because setting req.params raises "can't set
-  # attribute" error. It would have been cleaner to replace req.params.
+
+def extend_json_request(req):
+  """Extends a request to support JSON."""
+  try:
+    params = json.loads(req.data)
+  except ValueError:
+    raise helpers.EarlyExitException(
+        'Parsing the JSON request body failed: %s' % req.data, 400)
+
   extend_request(req, params)
 
 
-def check_cron():
-  """Wrap a handler with check_cron."""
+def cron():
+  """Wrap a handler with cron."""
 
   def decorator(func):
     """Decorator."""
@@ -94,7 +94,11 @@ def check_cron():
       if not self.is_cron():
         raise helpers.AccessDeniedException('You are not a cron.')
 
-      return func(self)
+      result = func(self)
+      if result is None:
+        return 'OK'
+
+      return result
 
     return wrapper
 
@@ -143,14 +147,14 @@ def unsupported_on_local_server(func):
   """
 
   @functools.wraps(func)
-  def wrapper(self):
+  def wrapper(self, *args, **kwargs):
     """Wrapper."""
     if environment.is_running_on_app_engine_development():
       raise helpers.EarlyExitException(
           'This feature is not available in local App Engine Development '
           'environment.', 400)
 
-    return func(self)
+    return func(self, *args, **kwargs)
 
   return wrapper
 
@@ -249,21 +253,22 @@ def get_email_and_access_token(authorization):
 
 def oauth(func):
   """Wrap a handler with OAuth authentication by reading the Authorization
-
     header and getting user email.
   """
 
   @functools.wraps(func)
   def wrapper(self):
     """Wrapper."""
-    auth_header = self.request.headers.get('Authorization')
+    auth_header = request.headers.get('Authorization')
     if auth_header:
       email, returned_auth_header = get_email_and_access_token(auth_header)
+      setattr(g, '_oauth_email', email)
 
-      setattr(self.request, '_oauth_email', email)
-      self.response.headers[CLUSTERFUZZ_AUTHORIZATION_HEADER] = str(
+      response = make_response(func(self))
+      response.headers[CLUSTERFUZZ_AUTHORIZATION_HEADER] = str(
           returned_auth_header)
-      self.response.headers[CLUSTERFUZZ_AUTHORIZATION_IDENTITY] = str(email)
+      response.headers[CLUSTERFUZZ_AUTHORIZATION_IDENTITY] = str(email)
+      return response
 
     return func(self)
 
@@ -305,7 +310,7 @@ def check_testcase_access(func):
   def wrapper(self):
     """Wrapper."""
     testcase_id = helpers.cast(
-        self.request.get('testcaseId'), int,
+        request.get('testcaseId'), int,
         "The param 'testcaseId' is not a number.")
 
     testcase = access.check_access_and_get_testcase(testcase_id)
@@ -321,23 +326,24 @@ def allowed_cors(func):
   @functools.wraps(func)
   def wrapper(self):
     """Wrapper."""
-    origin = self.request.headers.get('Origin')
+    origin = request.headers.get('Origin')
     whitelisted_cors_urls = _auth_config().get('whitelisted_cors_urls')
+    response = make_response(func(self))
 
     if origin and whitelisted_cors_urls:
       for domain_regex in whitelisted_cors_urls:
         if re.match(domain_regex, origin):
-          self.response.headers['Access-Control-Allow-Origin'] = origin
-          self.response.headers['Vary'] = 'Origin'
-          self.response.headers['Access-Control-Allow-Credentials'] = 'true'
-          self.response.headers['Access-Control-Allow-Methods'] = (
+          response.headers['Access-Control-Allow-Origin'] = origin
+          response.headers['Vary'] = 'Origin'
+          response.headers['Access-Control-Allow-Credentials'] = 'true'
+          response.headers['Access-Control-Allow-Methods'] = (
               'GET,OPTIONS,POST')
-          self.response.headers['Access-Control-Allow-Headers'] = (
+          response.headers['Access-Control-Allow-Headers'] = (
               'Accept,Authorization,Content-Type')
-          self.response.headers['Access-Control-Max-Age'] = '3600'
+          response.headers['Access-Control-Max-Age'] = '3600'
           break
 
-    return func(self)
+    return response
 
   return wrapper
 
@@ -352,20 +358,26 @@ def post(request_content_type, response_content_type):
     def wrapper(self):
       """Wrapper."""
       if response_content_type == JSON:
-        self.response.headers['Content-Type'] = 'application/json'
+        self.is_json = True
+
+      if request_content_type == JSON:
+        extend_json_request(request)
+      elif request_content_type == FORM:
+        extend_request(request, request.form)
+      else:
+        extend_request(request, request.args)
+
+      response = make_response(func(self))
+      if response_content_type == JSON:
+        response.headers['Content-Type'] = 'application/json'
       elif response_content_type == TEXT:
-        self.response.headers['Content-Type'] = 'text/plain'
+        response.headers['Content-Type'] = 'text/plain'
       elif response_content_type == HTML:
         # Don't enforce content security policies in local development mode.
         if not environment.is_running_on_app_engine_development():
-          self.response.headers['Content-Security-Policy'] = csp.get_default()
+          response.headers['Content-Security-Policy'] = csp.get_default()
 
-      if request_content_type == JSON:
-        extend_json_request(self.request)
-      else:
-        extend_request(self.request, self.request.params)
-
-      return func(self)
+      return response
 
     return wrapper
 
@@ -382,16 +394,20 @@ def get(response_content_type):
     def wrapper(self, *args, **kwargs):
       """Wrapper."""
       if response_content_type == JSON:
-        self.response.headers['Content-Type'] = 'application/json'
+        self.is_json = True
+
+      extend_request(request, request.args)
+      response = make_response(func(self, *args, **kwargs))
+      if response_content_type == JSON:
+        response.headers['Content-Type'] = 'application/json'
       elif response_content_type == TEXT:
-        self.response.headers['Content-Type'] = 'text/plain'
+        response.headers['Content-Type'] = 'text/plain'
       elif response_content_type == HTML:
         # Don't enforce content security policies in local development mode.
         if not environment.is_running_on_app_engine_development():
-          self.response.headers['Content-Security-Policy'] = csp.get_default()
+          response.headers['Content-Security-Policy'] = csp.get_default()
 
-      extend_request(self.request, self.request.params)
-      return func(self, *args, **kwargs)
+      return response
 
     return wrapper
 
@@ -403,7 +419,7 @@ def require_csrf_token(func):
 
   def wrapper(self, *args, **kwargs):
     """Check to see if this handler has a valid CSRF token provided to it."""
-    token_value = self.request.get('csrf_token')
+    token_value = request.get('csrf_token')
     user = auth.get_current_user()
     if not user:
       raise helpers.AccessDeniedException('Not logged in.')

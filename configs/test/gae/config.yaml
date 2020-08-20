@@ -17,10 +17,11 @@
 application_id: test-clusterfuzz
 
 # Define these if you would like to use a custom domain.
-# domains:
-#   main: test-clusterfuzz.com
-#   redirects:
-#     - test-clusterfuzz.appspot.com
+domains:
+  main: 0.0.0.0:9000
+  redirects:
+    - 127.0.0.1
+    - localhost
 
 # Files to be deployed on App Engine for ClusterFuzz UI pages. This is kept
 # configurable, but does not need to be changed for most usecases.

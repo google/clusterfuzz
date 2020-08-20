@@ -15,15 +15,15 @@
 
 from flask import request
 from google_cloud_utils import storage
-from handlers import base_handler_flask
-from libs import handler_flask
+from handlers import base_handler
+from libs import handler
 from libs import helpers
 
 
-class Handler(base_handler_flask.Handler):
+class Handler(base_handler.Handler):
   """Gcs redirector."""
 
-  @handler_flask.get(handler_flask.HTML)
+  @handler.get(handler.HTML)
   def get(self):
     """Handle a get request."""
     gcs_path = request.args.get('path', '')

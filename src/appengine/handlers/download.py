@@ -25,14 +25,14 @@ from base import utils
 from datastore import data_handler
 from flask import request
 from google_cloud_utils import blobs
-from handlers import base_handler_flask
+from handlers import base_handler
 from libs import access
 from libs import gcs
 from libs import helpers
 from libs.issue_management import issue_tracker_utils
 
 
-class Handler(base_handler_flask.Handler, gcs.SignedGcsHandler):
+class Handler(base_handler.Handler, gcs.SignedGcsHandler):
   """Download a file from GCS."""
 
   def _send_blob(self,

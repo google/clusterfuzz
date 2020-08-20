@@ -1,4 +1,4 @@
-# Copyright 2019 Google LLC
+# Copyright 2020 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -13,10 +13,11 @@
 # limitations under the License.
 """Tests for the base handler class."""
 
+import flask
 import unittest
-import webapp2
 import webtest
 
+from flask import request
 from handlers import base_handler
 from libs import helpers
 from tests.test_libs import helpers as test_helpers
@@ -26,21 +27,21 @@ class JsonHandler(base_handler.Handler):
   """Render JSON response for testing."""
 
   def get(self):
-    self.render_json({'test': 'value'})
+    return self.render_json({'test': 'value'})
 
 
 class HtmlHandler(base_handler.Handler):
   """Render HTML response for testing."""
 
   def get(self):
-    self.render('test.html', {'test': 'value'})
+    return self.render('test.html', {'test': 'value'})
 
 
 class ExceptionJsonHandler(base_handler.Handler):
   """Render exception in JSON response for testing."""
 
   def get(self):
-    self.response.headers['Content-Type'] = 'application/json'
+    self.is_json = True
     raise Exception('message')
 
 
@@ -55,7 +56,7 @@ class EarlyExceptionHandler(base_handler.Handler):
   """Render EarlyException in JSON for testing."""
 
   def get(self):
-    self.response.headers['Content-Type'] = 'application/json'
+    self.is_json = True
     raise helpers.EarlyExitException('message', 500, [])
 
 
@@ -66,12 +67,12 @@ class AccessDeniedExceptionHandler(base_handler.Handler):
     raise helpers.AccessDeniedException('this_random_message')
 
 
-class RedirectHandler(base_handler.Handler):
+class FlaskRedirectHandler(base_handler.Handler):
   """Redirect handler."""
 
   def get(self):
-    redirect = self.request.get('redirect')
-    self.redirect(redirect)
+    redirect = request.args.get('redirect')
+    return self.redirect(redirect)
 
 
 class HandlerTest(unittest.TestCase):
@@ -89,15 +90,18 @@ class HandlerTest(unittest.TestCase):
 
   def test_render_json(self):
     """Ensure it renders JSON correctly."""
-    app = webtest.TestApp(webapp2.WSGIApplication([('/', JsonHandler)]))
+    flaskapp = flask.Flask('testflask')
+    flaskapp.add_url_rule('/', view_func=JsonHandler.as_view('/'))
+    app = webtest.TestApp(flaskapp)
     response = app.get('/')
     self.assertEqual(response.status_int, 200)
     self.assertDictEqual(response.json, {'test': 'value'})
 
   def test_render_early_exception(self):
     """Ensure it renders JSON response for EarlyExitException properly."""
-    app = webtest.TestApp(
-        webapp2.WSGIApplication([('/', EarlyExceptionHandler)]))
+    flaskapp = flask.Flask('testflask')
+    flaskapp.add_url_rule('/', view_func=EarlyExceptionHandler.as_view('/'))
+    app = webtest.TestApp(flaskapp)
     response = app.get('/', expect_errors=True)
     self.assertEqual(response.status_int, 500)
     self.assertEqual(response.json['message'], 'message')
@@ -105,8 +109,9 @@ class HandlerTest(unittest.TestCase):
 
   def test_render_json_exception(self):
     """Ensure it renders JSON exception correctly."""
-    app = webtest.TestApp(
-        webapp2.WSGIApplication([('/', ExceptionJsonHandler)]))
+    flaskapp = flask.Flask('testflask')
+    flaskapp.add_url_rule('/', view_func=ExceptionJsonHandler.as_view('/'))
+    app = webtest.TestApp(flaskapp)
     response = app.get('/', expect_errors=True)
     self.assertEqual(response.status_int, 500)
     self.assertEqual(response.json['message'], 'message')
@@ -114,15 +119,18 @@ class HandlerTest(unittest.TestCase):
 
   def test_render(self):
     """Ensure it gets template and render HTML correctly."""
-    app = webtest.TestApp(webapp2.WSGIApplication([('/', HtmlHandler)]))
+    flaskapp = flask.Flask('testflask')
+    flaskapp.add_url_rule('/', view_func=HtmlHandler.as_view('/'))
+    app = webtest.TestApp(flaskapp)
     response = app.get('/')
     self.assertEqual(response.status_int, 200)
     self.assertEqual(response.body, b'<html><body>value\n</body></html>')
 
   def test_render_html_exception(self):
     """Ensure it renders HTML exception correctly."""
-    app = webtest.TestApp(
-        webapp2.WSGIApplication([('/', ExceptionHtmlHandler)]))
+    flaskapp = flask.Flask('testflask')
+    flaskapp.add_url_rule('/', view_func=ExceptionHtmlHandler.as_view('/'))
+    app = webtest.TestApp(flaskapp)
     response = app.get('/', expect_errors=True)
     self.assertEqual(response.status_int, 500)
     self.assertRegex(response.body, b'.*unique_message.*')
@@ -132,8 +140,10 @@ class HandlerTest(unittest.TestCase):
     """Ensure it renders forbidden response correctly (when not logged in)."""
     self.mock.get_user_email.return_value = None
 
-    app = webtest.TestApp(
-        webapp2.WSGIApplication([('/', AccessDeniedExceptionHandler)]))
+    flaskapp = flask.Flask('testflask')
+    flaskapp.add_url_rule(
+        '/', view_func=AccessDeniedExceptionHandler.as_view('/'))
+    app = webtest.TestApp(flaskapp)
     response = app.get('/', expect_errors=True)
     self.assertEqual(response.status_int, 302)
     self.assertEqual('http://localhost/login?dest=http%3A%2F%2Flocalhost%2F',
@@ -141,8 +151,10 @@ class HandlerTest(unittest.TestCase):
 
   def test_forbidden_logged_in(self):
     """Ensure it renders forbidden response correctly (when logged in)."""
-    app = webtest.TestApp(
-        webapp2.WSGIApplication([('/', AccessDeniedExceptionHandler)]))
+    flaskapp = flask.Flask('testflask')
+    flaskapp.add_url_rule(
+        '/', view_func=AccessDeniedExceptionHandler.as_view('/'))
+    app = webtest.TestApp(flaskapp)
     response = app.get('/', expect_errors=True)
     self.assertEqual(response.status_int, 403)
     self.assertRegex(response.body, b'.*Access Denied.*')
@@ -150,20 +162,26 @@ class HandlerTest(unittest.TestCase):
 
   def test_redirect_another_page(self):
     """Test redirect to another page."""
-    app = webtest.TestApp(webapp2.WSGIApplication([('/', RedirectHandler)]))
+    flaskapp = flask.Flask('testflask')
+    flaskapp.add_url_rule('/', view_func=FlaskRedirectHandler.as_view('/'))
+    app = webtest.TestApp(flaskapp)
     response = app.get('/?redirect=%2Fanother-page')
     self.assertEqual('http://localhost/another-page',
                      response.headers['Location'])
 
   def test_redirect_another_domain(self):
     """Test redirect to another domain."""
-    app = webtest.TestApp(webapp2.WSGIApplication([('/', RedirectHandler)]))
+    flaskapp = flask.Flask('testflask')
+    flaskapp.add_url_rule('/', view_func=FlaskRedirectHandler.as_view('/'))
+    app = webtest.TestApp(flaskapp)
     response = app.get('/?redirect=https%3A%2F%2Fblah.com%2Ftest')
     self.assertEqual('https://blah.com/test', response.headers['Location'])
 
   def test_redirect_javascript(self):
     """Test redirect to a javascript url."""
-    app = webtest.TestApp(webapp2.WSGIApplication([('/', RedirectHandler)]))
+    flaskapp = flask.Flask('testflask')
+    flaskapp.add_url_rule('/', view_func=FlaskRedirectHandler.as_view('/'))
+    app = webtest.TestApp(flaskapp)
     response = app.get(
         '/?redirect=javascript%3Aalert%281%29', expect_errors=True)
     self.assertEqual(response.status_int, 403)

@@ -24,11 +24,11 @@ import urllib.parse
 
 from datastore import data_handler
 from google_cloud_utils import big_query
-from handlers import base_handler_flask
+from handlers import base_handler
 from handlers.performance_report import constants
 from handlers.performance_report import performance_analyzer
 from libs import access
-from libs import handler_flask
+from libs import handler
 from libs import helpers
 from metrics import fuzzer_logs
 from metrics import fuzzer_stats
@@ -159,10 +159,10 @@ def _get_performance_report_data(fuzzer_name, job_type, logs_date):
   return features, date_start
 
 
-class Handler(base_handler_flask.Handler):
+class Handler(base_handler.Handler):
   """Performance report handler."""
 
-  @handler_flask.get(handler_flask.HTML)
+  @handler.get(handler.HTML)
   def get(self, fuzzer_name=None, job_type=None, logs_date=None):
     """Handle a GET request."""
     if not fuzzer_name:

@@ -14,12 +14,12 @@
 """Handler for redirecting to the issue url (given a testcase). See
   crbug.com/665652 on why we need it."""
 
-from handlers import base_handler_flask
+from handlers import base_handler
 from libs import helpers
 from libs.issue_management import issue_tracker_utils
 
 
-class Handler(base_handler_flask.Handler):
+class Handler(base_handler.Handler):
   """Handler that redirects user to the issue URL."""
 
   def get(self, testcase_id=None):

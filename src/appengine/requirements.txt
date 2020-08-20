@@ -6,4 +6,3 @@ PyJWT==1.7.1
 pyOpenSSL==19.1.0
 requests-toolbelt==0.9.1
 sendgrid==6.0.4
-webapp2==3.0.0b1

@@ -24,8 +24,8 @@ from googleapiclient.errors import HttpError
 from base import utils
 from datastore import data_types
 from google_cloud_utils import big_query
-from handlers import base_handler_flask
-from libs import handler_flask
+from handlers import base_handler
+from libs import handler
 from metrics import fuzzer_stats
 from metrics import fuzzer_stats_schema
 from metrics import logs
@@ -36,7 +36,7 @@ NUM_RETRIES = 2
 RETRY_SLEEP_TIME = 5
 
 
-class Handler(base_handler_flask.Handler):
+class Handler(base_handler.Handler):
   """Cron handler for loading bigquery stats."""
 
   def _utc_now(self):
@@ -150,7 +150,7 @@ class Handler(base_handler_flask.Handler):
       # See https://cloud.google.com/bigquery/docs/reference/rest/v2/jobs/query.
       logs.log('Response from BigQuery: %s' % response)
 
-  @handler_flask.cron()
+  @handler.cron()
   def get(self):
     """Load bigquery stats from GCS."""
     if not big_query.get_bucket():

@@ -13,12 +13,12 @@
 # limitations under the License.
 """Handler for creating issue."""
 from flask import request
-from handlers import base_handler_flask
-from libs import handler_flask
+from handlers import base_handler
+from libs import handler
 from libs import helpers
 
 
-class Handler(base_handler_flask.Handler):
+class Handler(base_handler.Handler):
   """Handler that creates an issue."""
 
   @staticmethod
@@ -35,9 +35,9 @@ class Handler(base_handler_flask.Handler):
     testcase.key.delete()
     helpers.log('Deleted testcase %s' % testcase_id, helpers.MODIFY_OPERATION)
 
-  @handler_flask.post(handler_flask.JSON, handler_flask.JSON)
-  @handler_flask.require_csrf_token
-  @handler_flask.check_admin_access
+  @handler.post(handler.JSON, handler.JSON)
+  @handler.require_csrf_token
+  @handler.check_admin_access
   def post(self):
     """Delete a testcase."""
     testcase_id = request.get('testcaseId')

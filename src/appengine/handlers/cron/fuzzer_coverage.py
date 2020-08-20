@@ -23,8 +23,8 @@ from datastore import data_handler
 from datastore import data_types
 from datastore import ndb_utils
 from google_cloud_utils import storage
-from handlers import base_handler_flask
-from libs import handler_flask
+from handlers import base_handler
+from libs import handler
 from metrics import logs
 
 
@@ -134,10 +134,10 @@ def collect_fuzzer_coverage(bucket):
     _process_project(project, bucket)
 
 
-class Handler(base_handler_flask.Handler):
+class Handler(base_handler.Handler):
   """Collects the latest code coverage stats and links to reports."""
 
-  @handler_flask.cron()
+  @handler.cron()
   def get(self):
     """Handle a GET request."""
     # The task is supposed to be super reliable and never fail. If anything goes

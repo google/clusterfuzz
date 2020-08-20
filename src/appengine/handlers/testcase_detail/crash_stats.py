@@ -14,9 +14,9 @@
 """Handler for showing crash stats inside the testcase detail page."""
 
 from flask import request
-from handlers import base_handler_flask
+from handlers import base_handler
 from libs import crash_stats
-from libs import handler_flask
+from libs import handler
 from libs import helpers
 
 
@@ -39,11 +39,11 @@ def get_result(testcase, end, block, days, group_by):
   return rows[0]
 
 
-class Handler(base_handler_flask.Handler):
+class Handler(base_handler.Handler):
   """Serve crash stats data on testcase detail."""
 
-  @handler_flask.post(handler_flask.JSON, handler_flask.JSON)
-  @handler_flask.check_testcase_access
+  @handler.post(handler.JSON, handler.JSON)
+  @handler.check_testcase_access
   def post(self, testcase):
     """Server crash stats."""
     end = helpers.cast(request.get('end'), int, "'end' is not an int.")

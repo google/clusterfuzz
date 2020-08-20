@@ -38,7 +38,7 @@ class HandlerTest(unittest.TestCase):
 
     test_helpers.patch(
         self,
-        ['base.tasks.add_task', 'handlers.base_handler_flask.Handler.is_cron'])
+        ['base.tasks.add_task', 'handlers.base_handler.Handler.is_cron'])
 
     # Create fake jobs.
     data_types.Job(

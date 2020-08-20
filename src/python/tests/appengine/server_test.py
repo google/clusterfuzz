@@ -29,6 +29,6 @@ class ServerTest(unittest.TestCase):
   # pylint: disable=protected-access
   def test(self):
     import server
-    self.assertIsNotNone(server._ROUTES)
-    self.assertIsNotNone(server._DOMAIN_ROUTES)
+    self.assertIsNotNone(server.handlers)
+    self.assertIsNotNone(server.cron_routes)
     self.assertIsNotNone(server.app)

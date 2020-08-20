@@ -77,7 +77,7 @@ class OssFuzzBuildStatusTest(unittest.TestCase):
 
     test_helpers.patch(self, [
         'base.utils.utcnow',
-        'handlers.base_handler_flask.Handler.is_cron',
+        'handlers.base_handler.Handler.is_cron',
         'libs.issue_management.issue_tracker_utils.get_issue_tracker',
         'metrics.logs.log_error',
         'requests.get',

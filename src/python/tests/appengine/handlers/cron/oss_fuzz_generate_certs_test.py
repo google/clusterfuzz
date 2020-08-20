@@ -31,7 +31,7 @@ class OssFuzzGenerateCertsTest(unittest.TestCase):
   def setUp(self):
     test_helpers.patch_environ(self)
     test_helpers.patch(self, [
-        'handlers.base_handler_flask.Handler.is_cron',
+        'handlers.base_handler.Handler.is_cron',
     ])
 
     self.mock.is_cron.return_value = True

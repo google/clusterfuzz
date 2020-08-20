@@ -14,13 +14,13 @@
 """Help."""
 
 from config import db_config
-from handlers import base_handler_flask
+from handlers import base_handler
 
 DEFAULT_DOCUMENTATION_URL = 'https://google.github.io/clusterfuzz/'
 DEFAULT_BUG_REPORT_URL = 'https://github.com/google/clusterfuzz/issues'
 
 
-class DocumentationHandler(base_handler_flask.Handler):
+class DocumentationHandler(base_handler.Handler):
   """Redirect to documentation."""
 
   def get(self):
@@ -32,7 +32,7 @@ class DocumentationHandler(base_handler_flask.Handler):
     return self.redirect(documentation_url)
 
 
-class ReportBugHandler(base_handler_flask.Handler):
+class ReportBugHandler(base_handler.Handler):
   """Redirect to issue tracker for reporting bug."""
 
   def get(self):

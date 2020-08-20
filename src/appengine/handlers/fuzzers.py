@@ -28,11 +28,11 @@ from datastore import data_types
 from flask import request
 from fuzzing import fuzzer_selection
 from google_cloud_utils import storage
-from handlers import base_handler_flask
+from handlers import base_handler
 from libs import access
 from libs import form
 from libs import gcs
-from libs import handler_flask
+from libs import handler
 from libs import helpers
 from metrics import fuzzer_logs
 from system import archive
@@ -40,12 +40,12 @@ from system import archive
 ARCHIVE_READ_SIZE_LIMIT = 16 * 1024 * 1024
 
 
-class Handler(base_handler_flask.Handler):
+class Handler(base_handler.Handler):
   """Manages fuzzers."""
 
-  @handler_flask.get(handler_flask.HTML)
-  @handler_flask.check_admin_access_if_oss_fuzz
-  @handler_flask.check_user_access(need_privileged_access=False)
+  @handler.get(handler.HTML)
+  @handler.check_admin_access_if_oss_fuzz
+  @handler.check_user_access(need_privileged_access=False)
   def get(self):
     """Handle a get request."""
     fuzzer_logs_bucket = fuzzer_logs.get_bucket()
@@ -77,8 +77,8 @@ class Handler(base_handler_flask.Handler):
     return self.render('fuzzers.html', template_values)
 
 
-class BaseEditHandler(base_handler_flask.GcsUploadHandler):
-  """Base edit handler_flask."""
+class BaseEditHandler(base_handler.GcsUploadHandler):
+  """Base edit handler."""
 
   def _read_to_bytesio(self, gcs_path):
     """Return a bytesio representing a GCS object."""
@@ -212,9 +212,9 @@ class BaseEditHandler(base_handler_flask.GcsUploadHandler):
 class CreateHandler(BaseEditHandler):
   """Create a new fuzzer."""
 
-  @handler_flask.post(handler_flask.JSON, handler_flask.JSON)
-  @handler_flask.check_user_access(need_privileged_access=True)
-  @handler_flask.require_csrf_token
+  @handler.post(handler.JSON, handler.JSON)
+  @handler.check_user_access(need_privileged_access=True)
+  @handler.require_csrf_token
   def post(self):
     """Handle a post request."""
     name = request.get('name')
@@ -244,9 +244,9 @@ class CreateHandler(BaseEditHandler):
 class EditHandler(BaseEditHandler):
   """Edit or create a fuzzer."""
 
-  @handler_flask.post(handler_flask.JSON, handler_flask.JSON)
-  @handler_flask.check_user_access(need_privileged_access=True)
-  @handler_flask.require_csrf_token
+  @handler.post(handler.JSON, handler.JSON)
+  @handler.check_user_access(need_privileged_access=True)
+  @handler.require_csrf_token
   def post(self):
     """Handle a post request."""
     key = helpers.get_integer_key(request)
@@ -259,12 +259,12 @@ class EditHandler(BaseEditHandler):
     return self.apply_fuzzer_changes(fuzzer, upload_info)
 
 
-class DeleteHandler(base_handler_flask.Handler):
+class DeleteHandler(base_handler.Handler):
   """Delete a fuzzer."""
 
-  @handler_flask.post(handler_flask.JSON, handler_flask.JSON)
-  @handler_flask.check_user_access(need_privileged_access=True)
-  @handler_flask.require_csrf_token
+  @handler.post(handler.JSON, handler.JSON)
+  @handler.check_user_access(need_privileged_access=True)
+  @handler.require_csrf_token
   def post(self):
     """Handle a post request."""
     key = helpers.get_integer_key(request)
@@ -280,10 +280,10 @@ class DeleteHandler(base_handler_flask.Handler):
     return self.redirect('/fuzzers')
 
 
-class LogHandler(base_handler_flask.Handler):
+class LogHandler(base_handler.Handler):
   """Show the console output from a fuzzer run."""
 
-  @handler_flask.check_user_access(need_privileged_access=False)
+  @handler.check_user_access(need_privileged_access=False)
   def get(self, fuzzer_name):
     """Handle a get request."""
     helpers.log('LogHandler', fuzzer_name)

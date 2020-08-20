@@ -17,8 +17,8 @@ from base import tasks
 from base import utils
 from datastore import data_types
 from datastore import fuzz_target_utils
-from handlers import base_handler_flask
-from libs import handler_flask
+from handlers import base_handler
+from libs import handler
 
 
 def get_tasks_to_schedule():
@@ -33,10 +33,10 @@ def get_tasks_to_schedule():
       yield (task_target, job.name, queue_name)
 
 
-class Handler(base_handler_flask.Handler):
+class Handler(base_handler.Handler):
   """Schedule corpus pruning tasks.."""
 
-  @handler_flask.cron()
+  @handler.cron()
   def get(self):
     """Schedule the corpus pruning tasks."""
     for task_target, job_name, queue_name in get_tasks_to_schedule():

@@ -17,9 +17,9 @@ from base import utils
 from config import db_config
 from datastore import data_types
 from flask import request
-from handlers import base_handler_flask
+from handlers import base_handler
 from libs import form
-from libs import handler_flask
+from libs import handler
 from libs import helpers
 
 USER_PERMISSION_ENTITY_KINDS = [
@@ -62,11 +62,11 @@ def get_value_by_name(item_list, name):
   return None
 
 
-class Handler(base_handler_flask.Handler):
+class Handler(base_handler.Handler):
   """Configuration manager."""
 
-  @handler_flask.get(handler_flask.HTML)
-  @handler_flask.check_admin_access
+  @handler.get(handler.HTML)
+  @handler.check_admin_access
   def get(self):
     """Handle a get request."""
     external_user_permissions = list(
@@ -90,9 +90,9 @@ class Handler(base_handler_flask.Handler):
     helpers.log('Configuration', helpers.VIEW_OPERATION)
     return self.render('configuration.html', template_values)
 
-  @handler_flask.post(handler_flask.FORM, handler_flask.HTML)
-  @handler_flask.check_admin_access
-  @handler_flask.require_csrf_token
+  @handler.post(handler.FORM, handler.HTML)
+  @handler.check_admin_access
+  @handler.require_csrf_token
   def post(self):
     """Handle a post request."""
     config = db_config.get()
@@ -177,12 +177,12 @@ class Handler(base_handler_flask.Handler):
     return self.render('message.html', template_values)
 
 
-class AddExternalUserPermission(base_handler_flask.Handler):
+class AddExternalUserPermission(base_handler.Handler):
   """Handles adding a new ExternalUserPermission."""
 
-  @handler_flask.post(handler_flask.FORM, handler_flask.HTML)
-  @handler_flask.check_admin_access
-  @handler_flask.require_csrf_token
+  @handler.post(handler.FORM, handler.HTML)
+  @handler.check_admin_access
+  @handler.require_csrf_token
   def post(self):
     """Handle a post request."""
     email = utils.normalize_email(request.get('email'))
@@ -245,12 +245,12 @@ class AddExternalUserPermission(base_handler_flask.Handler):
     return self.render('message.html', template_values)
 
 
-class DeleteExternalUserPermission(base_handler_flask.Handler):
+class DeleteExternalUserPermission(base_handler.Handler):
   """Handles deleting an ExternalUserPermission."""
 
-  @handler_flask.post(handler_flask.FORM, handler_flask.HTML)
-  @handler_flask.check_admin_access
-  @handler_flask.require_csrf_token
+  @handler.post(handler.FORM, handler.HTML)
+  @handler.check_admin_access
+  @handler.require_csrf_token
   def post(self):
     """Handle a post request."""
     email = request.get('email')
