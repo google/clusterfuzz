@@ -14,9 +14,10 @@
 """Tests for bots."""
 import collections
 import datetime
-import flask
 import string
 import unittest
+
+import flask
 import webtest
 
 from datastore import data_types
@@ -92,29 +93,29 @@ class BotsTest(unittest.TestCase):
     bot_a = self._create_bot(bot_name='test_bot_a', task_payload='pay_x')
     bot_b = self._create_bot(bot_name='test_bot_b', task_payload='pay_y')
 
-    resp = self.app.post_json('/', {'q': "a"})
+    resp = self.app.post_json('/', {'q': 'a'})
     self.assertListEqual([bot_a.bot_name],
                          [item['bot_name'] for item in resp.json['items']])
 
-    resp = self.app.post_json('/', {'q': "b"})
+    resp = self.app.post_json('/', {'q': 'b'})
     self.assertListEqual([bot_b.bot_name],
                          [item['bot_name'] for item in resp.json['items']])
 
-    resp = self.app.post_json('/', {'q': "c"})
+    resp = self.app.post_json('/', {'q': 'c'})
     self.assertListEqual([], [item['bot_name'] for item in resp.json['items']])
 
-    resp = self.app.post_json('/', {'q': "bot"})
+    resp = self.app.post_json('/', {'q': 'bot'})
     self.assertListEqual([bot_a.bot_name, bot_b.bot_name],
                          [item['bot_name'] for item in resp.json['items']])
 
-    resp = self.app.post_json('/', {'q': "x"})
+    resp = self.app.post_json('/', {'q': 'x'})
     self.assertListEqual([bot_a.bot_name],
                          [item['bot_name'] for item in resp.json['items']])
 
-    resp = self.app.post_json('/', {'q': "y"})
+    resp = self.app.post_json('/', {'q': 'y'})
     self.assertListEqual([bot_b.bot_name],
                          [item['bot_name'] for item in resp.json['items']])
 
-    resp = self.app.post_json('/', {'q': "pay"})
+    resp = self.app.post_json('/', {'q': 'pay'})
     self.assertListEqual([bot_a.bot_name, bot_b.bot_name],
                          [item['bot_name'] for item in resp.json['items']])
