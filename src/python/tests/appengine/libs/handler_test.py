@@ -475,10 +475,10 @@ class AllowOAuthTest(unittest.TestCase):
         '/', {}, headers={'Authorization': 'Bearer AccessToken'})
     self.assertEqual(200, resp.status_int)
     self.assertEqual('email', resp.json['data'])
-    self.assertEqual(
-        'auth', resp.headers[handler.CLUSTERFUZZ_AUTHORIZATION_HEADER])
-    self.assertEqual(
-        'email', resp.headers[handler.CLUSTERFUZZ_AUTHORIZATION_IDENTITY])
+    self.assertEqual('auth',
+                     resp.headers[handler.CLUSTERFUZZ_AUTHORIZATION_HEADER])
+    self.assertEqual('email',
+                     resp.headers[handler.CLUSTERFUZZ_AUTHORIZATION_IDENTITY])
     self.assertEqual(1, self.mock.get_email_and_access_token.call_count)
     self.mock.get_email_and_access_token.assert_has_calls(
         [mock.call('Bearer AccessToken')])
@@ -489,8 +489,7 @@ class AllowOAuthTest(unittest.TestCase):
     resp = self.app.post_json('/', {}, headers={})
     self.assertEqual(200, resp.status_int)
     self.assertEqual('', resp.json['data'])
-    self.assertNotIn(handler.CLUSTERFUZZ_AUTHORIZATION_HEADER,
-                     resp.headers)
+    self.assertNotIn(handler.CLUSTERFUZZ_AUTHORIZATION_HEADER, resp.headers)
     self.assertEqual(0, self.mock.get_email_and_access_token.call_count)
 
 
@@ -567,8 +566,7 @@ class TestGetEmailAndAccessToken(unittest.TestCase):
         }))
     self.mock.get_access_token.return_value = 'AccessToken'
 
-    email, token = handler.get_email_and_access_token(
-        'VerificationCode Verify')
+    email, token = handler.get_email_and_access_token('VerificationCode Verify')
     self.assertEqual('test@test.com', email)
     self.assertEqual('Bearer AccessToken', token)
     self.assertEqual(1, self.mock.get_access_token.call_count)
