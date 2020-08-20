@@ -559,4 +559,4 @@ indexes:
 - kind: Heartbeat
   properties:
     - name: keywords
-    - name: name
+    - name: bot_name
