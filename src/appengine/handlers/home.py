@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""Home page handler_flask."""
+"""Home page handler."""
 from __future__ import absolute_import
 
 from base import external_users
@@ -19,9 +19,9 @@ from base import memoize
 from base import utils
 from datastore import data_handler
 from datastore import data_types
-from handlers import base_handler_flask
+from handlers import base_handler
 from libs import access
-from libs import handler_flask
+from libs import handler
 from libs import helpers
 from system import environment
 
@@ -134,20 +134,20 @@ def get_results():
   return results
 
 
-class Handler(base_handler_flask.Handler):
-  """Home page handler_flask."""
+class Handler(base_handler.Handler):
+  """Home page handler."""
 
-  @handler_flask.get(handler_flask.HTML)
+  @handler.get(handler.HTML)
   def get(self):
-    """GET handler_flask."""
+    """GET handler."""
     return self.render('oss-fuzz-home.html', get_results())
 
 
-class RefreshCacheHandler(base_handler_flask.Handler):
-  """Home page handler_flask."""
+class RefreshCacheHandler(base_handler.Handler):
+  """Home page handler."""
 
-  @handler_flask.cron()
+  @handler.cron()
   def get(self):
-    """GET handler_flask."""
+    """GET handler."""
     # pylint: disable=unexpected-keyword-arg
     _get_all_project_results(__memoize_force__=True)

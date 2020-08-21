@@ -29,11 +29,11 @@ from datastore import data_types
 from flask import request
 from fuzzing import leak_blacklist
 from google_cloud_utils import blobs
-from handlers import base_handler_flask
+from handlers import base_handler
 from libs import access
 from libs import auth
 from libs import form
-from libs import handler_flask
+from libs import handler
 from libs import helpers
 from libs.issue_management import issue_tracker_utils
 from metrics import crash_stats
@@ -580,18 +580,18 @@ def is_admin_or_not_oss_fuzz():
   return not utils.is_oss_fuzz() or auth.is_current_user_admin()
 
 
-class Handler(base_handler_flask.Handler):
+class Handler(base_handler.Handler):
   """Handler that shows a testcase in detail."""
 
-  @handler_flask.get(handler_flask.HTML)
+  @handler.get(handler.HTML)
   def get(self, testcase_id=None):
     """Serve the testcase detail HTML page."""
     values = {'info': get_testcase_detail_by_id(testcase_id)}
     return self.render('testcase-detail.html', values)
 
 
-class DeprecatedHandler(base_handler_flask.Handler):
-  """Deprecated handler_flask to show old style testcase link with key."""
+class DeprecatedHandler(base_handler.Handler):
+  """Deprecated handler to show old style testcase link with key."""
 
   def get(self):
     """Serve the redirect to the current test case detail page."""
@@ -602,11 +602,11 @@ class DeprecatedHandler(base_handler_flask.Handler):
     return self.redirect('/testcase-detail/%s' % testcase_id)
 
 
-class RefreshHandler(base_handler_flask.Handler):
+class RefreshHandler(base_handler.Handler):
   """Handler that shows a testcase in detail through JSON."""
 
-  @handler_flask.post(handler_flask.JSON, handler_flask.JSON)
-  @handler_flask.oauth
+  @handler.post(handler.JSON, handler.JSON)
+  @handler.oauth
   def post(self):
     """Serve the testcase detail JSON."""
     testcase_id = request.get('testcaseId')

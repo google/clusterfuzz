@@ -15,17 +15,17 @@
 
 from build_management import revisions
 from flask import request
-from handlers import base_handler_flask
-from libs import handler_flask
+from handlers import base_handler
+from libs import handler
 from libs import helpers
 
 
-class Handler(base_handler_flask.Handler):
+class Handler(base_handler.Handler):
   """Information on a revision range."""
 
-  @handler_flask.get(handler_flask.HTML)
+  @handler.get(handler.HTML)
   def get(self):
-    """GET handler_flask."""
+    """GET handler."""
     job_type = request.get('job')
 
     revision = request.get('revision')

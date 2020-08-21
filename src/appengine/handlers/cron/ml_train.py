@@ -17,14 +17,14 @@ from base import tasks
 from base import utils
 from datastore import data_types
 from datastore import fuzz_target_utils
-from handlers import base_handler_flask
-from libs import handler_flask
+from handlers import base_handler
+from libs import handler
 
 
-class Handler(base_handler_flask.Handler):
+class Handler(base_handler.Handler):
   """Schedule ML train tasks."""
 
-  @handler_flask.cron()
+  @handler.cron()
   def get(self):
     """Handle a GET request."""
     for job in data_types.Job.query():

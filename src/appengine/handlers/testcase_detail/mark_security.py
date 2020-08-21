@@ -13,9 +13,9 @@
 # limitations under the License.
 """Handler for marking a testcase as security-related."""
 from flask import request
-from handlers import base_handler_flask
+from handlers import base_handler
 from handlers.testcase_detail import show
-from libs import handler_flask
+from libs import handler
 from libs import helpers
 
 
@@ -28,12 +28,12 @@ def mark(testcase):
               helpers.MODIFY_OPERATION)
 
 
-class Handler(base_handler_flask.Handler):
+class Handler(base_handler.Handler):
   """Handler that removes an issue from a testcase."""
 
-  @handler_flask.post(handler_flask.JSON, handler_flask.JSON)
-  @handler_flask.require_csrf_token
-  @handler_flask.check_admin_access
+  @handler.post(handler.JSON, handler.JSON)
+  @handler.require_csrf_token
+  @handler.check_admin_access
   def post(self):
     """Mark the testcase as security-related."""
     testcase_id = request.get('testcaseId')

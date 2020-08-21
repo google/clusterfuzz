@@ -39,8 +39,8 @@ from datastore import ndb_utils
 from fuzzing import fuzzer_selection
 from google_cloud_utils import pubsub
 from google_cloud_utils import storage
-from handlers import base_handler_flask
-from libs import handler_flask
+from handlers import base_handler
+from libs import handler
 from metrics import logs
 from system import environment
 
@@ -899,10 +899,10 @@ class ProjectSetup(object):
     cleanup_old_projects_settings(enabled_projects)
 
 
-class Handler(base_handler_flask.Handler):
+class Handler(base_handler.Handler):
   """Setup ClusterFuzz jobs for projects."""
 
-  @handler_flask.cron()
+  @handler.cron()
   def get(self):
     """Handles a GET request."""
     libfuzzer = data_types.Fuzzer.query(

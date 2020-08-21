@@ -21,9 +21,9 @@ from base import tasks
 from base import utils
 from datastore import data_types
 from datastore import ndb_utils
-from handlers import base_handler_flask
+from handlers import base_handler
 from libs import filters
-from libs import handler_flask
+from libs import handler
 from libs import helpers
 from libs.query import datastore_query
 
@@ -97,12 +97,12 @@ def get_results():
   return result, params
 
 
-class Handler(base_handler_flask.Handler):
+class Handler(base_handler.Handler):
   """Handler that gets the bot list."""
 
-  @handler_flask.get(handler_flask.HTML)
-  @handler_flask.check_admin_access_if_oss_fuzz
-  @handler_flask.check_user_access(need_privileged_access=False)
+  @handler.get(handler.HTML)
+  @handler.check_admin_access_if_oss_fuzz
+  @handler.check_user_access(need_privileged_access=False)
   def get(self):
     """Render the bot list HTML."""
     result, params = get_results()
@@ -112,22 +112,22 @@ class Handler(base_handler_flask.Handler):
     })
 
 
-class JsonHandler(base_handler_flask.Handler):
+class JsonHandler(base_handler.Handler):
   """Handler that gets the bots when user clicks on next page."""
 
-  @handler_flask.post(handler_flask.JSON, handler_flask.JSON)
-  @handler_flask.check_admin_access_if_oss_fuzz
-  @handler_flask.check_user_access(need_privileged_access=False)
+  @handler.post(handler.JSON, handler.JSON)
+  @handler.check_admin_access_if_oss_fuzz
+  @handler.check_user_access(need_privileged_access=False)
   def post(self):
     """Get and render the bots in JSON."""
     result, _ = get_results()
     return self.render_json(result)
 
 
-class DeadBotsHandler(base_handler_flask.Handler):
+class DeadBotsHandler(base_handler.Handler):
   """Output dead bots as json."""
 
-  @handler_flask.get(handler_flask.JSON)
+  @handler.get(handler.JSON)
   def get(self):
     """Render dead bots as json (used by automated scripts)."""
 

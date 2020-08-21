@@ -82,7 +82,7 @@ class OpenReproducibleTestcaseTasksSchedulerTest(unittest.TestCase):
         name='job_windows', environment_string='', platform='WINDOWS').put()
 
     helpers.patch(self, [
-        'handlers.base_handler_flask.Handler.is_cron',
+        'handlers.base_handler.Handler.is_cron',
     ])
 
   def test_execute(self):

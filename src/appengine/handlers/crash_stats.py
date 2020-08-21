@@ -20,11 +20,11 @@ from datastore import data_handler
 from datastore import data_types
 from datastore import ndb_utils
 from flask import request
-from handlers import base_handler_flask
+from handlers import base_handler
 from libs import crash_access
 from libs import crash_stats
 from libs import filters
-from libs import handler_flask
+from libs import handler
 from libs import helpers
 from metrics import crash_stats as crash_stats_common
 
@@ -227,11 +227,11 @@ def get_all_platforms():
               ['android'])))
 
 
-class Handler(base_handler_flask.Handler):
+class Handler(base_handler.Handler):
   """Handler that gets the crash stats when user first lands on the page."""
 
-  @handler_flask.get(handler_flask.HTML)
-  @handler_flask.unsupported_on_local_server
+  @handler.get(handler.HTML)
+  @handler.unsupported_on_local_server
   def get(self):
     """Get and render the crash stats in HTML."""
     result, params = get_result()
@@ -257,10 +257,10 @@ class Handler(base_handler_flask.Handler):
     })
 
 
-class JsonHandler(base_handler_flask.Handler):
+class JsonHandler(base_handler.Handler):
   """Handler that gets the crash stats when user interacts with the page."""
 
-  @handler_flask.post(handler_flask.JSON, handler_flask.JSON)
+  @handler.post(handler.JSON, handler.JSON)
   def post(self):
     """Get and render the crash stats in JSON."""
     result, _ = get_result()

@@ -18,8 +18,8 @@ import googleapiclient
 from base import utils
 from datastore import data_types
 from datastore import ndb_utils
-from handlers import base_handler_flask
-from libs import handler_flask
+from handlers import base_handler
+from libs import handler
 from metrics import logs
 
 
@@ -73,10 +73,10 @@ def update_admins(new_admins):
   ndb_utils.put_multi(to_add)
 
 
-class Handler(base_handler_flask.Handler):
+class Handler(base_handler.Handler):
   """Admin user syncing cron."""
 
-  @handler_flask.cron()
+  @handler.cron()
   def get(self):
     """Handle a get request."""
     resource_manager = googleapiclient.discovery.build('cloudresourcemanager',

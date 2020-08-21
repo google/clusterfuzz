@@ -35,9 +35,9 @@ from datastore import data_handler
 from datastore import data_types
 from flask import request
 from google_cloud_utils import big_query
-from handlers import base_handler_flask
+from handlers import base_handler
 from libs import access
-from libs import handler_flask
+from libs import handler
 from libs import helpers
 from metrics import fuzzer_stats
 from metrics import logs
@@ -386,12 +386,12 @@ def _get_date(date_value, days_ago):
   return date_datetime.strftime('%Y-%m-%d')
 
 
-class Handler(base_handler_flask.Handler):
+class Handler(base_handler.Handler):
   """Fuzzer stats main page handler."""
 
   # pylint: disable=unused-argument
-  @handler_flask.unsupported_on_local_server
-  @handler_flask.get(handler_flask.HTML)
+  @handler.unsupported_on_local_server
+  @handler.get(handler.HTML)
   def get(self, extra=None):
     """Handle a GET request."""
     if not access.has_access():
@@ -408,11 +408,11 @@ class Handler(base_handler_flask.Handler):
     return self.render('fuzzer-stats.html', {})
 
 
-class LoadFiltersHandler(base_handler_flask.Handler):
+class LoadFiltersHandler(base_handler.Handler):
   """Load filters handler."""
 
-  @handler_flask.unsupported_on_local_server
-  @handler_flask.get(handler_flask.HTML)
+  @handler.unsupported_on_local_server
+  @handler.get(handler.HTML)
   def get(self):
     """Handle a GET request."""
     project = request.get('project')
@@ -455,7 +455,7 @@ class LoadFiltersHandler(base_handler_flask.Handler):
     return self.render_json(result)
 
 
-class LoadHandler(base_handler_flask.Handler):
+class LoadHandler(base_handler.Handler):
   """Load handler."""
 
   def _check_user_access_and_get_job_filter(self, fuzzer, job):
@@ -478,7 +478,7 @@ class LoadHandler(base_handler_flask.Handler):
 
     raise helpers.AccessDeniedException()
 
-  @handler_flask.post(handler_flask.JSON, handler_flask.JSON)
+  @handler.post(handler.JSON, handler.JSON)
   def post(self):
     """Handle a POST request."""
     fuzzer = request.get('fuzzer')
@@ -497,7 +497,7 @@ class LoadHandler(base_handler_flask.Handler):
         build_results(fuzzer, job_filter, group_by, date_start, date_end))
 
 
-class PreloadHandler(base_handler_flask.Handler):
+class PreloadHandler(base_handler.Handler):
   """Handler for the infrequent task of loading results for expensive stats
   queries that are commonly accessed into the cache."""
 
@@ -516,7 +516,7 @@ class PreloadHandler(base_handler_flask.Handler):
 
     return fuzzer_job_filters
 
-  @handler_flask.cron()
+  @handler.cron()
   def get(self):
     """Handle a GET request."""
     date_start = _get_date(None, 7)
@@ -542,10 +542,10 @@ class PreloadHandler(base_handler_flask.Handler):
                            (fuzzer, job_filter, group_by, date_start, date_end))
 
 
-class RefreshCacheHandler(base_handler_flask.Handler):
+class RefreshCacheHandler(base_handler.Handler):
   """Refresh cache."""
 
-  @handler_flask.cron()
+  @handler.cron()
   def get(self):
     """Handle a GET request."""
     fuzzer_logs_context = fuzzer_stats.FuzzerRunLogsContext()

@@ -37,7 +37,7 @@ class SyncAdminsTest(unittest.TestCase):
 
     test_helpers.patch(self, [
         'googleapiclient.discovery.build',
-        'handlers.base_handler_flask.Handler.is_cron',
+        'handlers.base_handler.Handler.is_cron',
     ])
 
     data_types.Admin(id='remove@email.com', email='remove@email.com').put()

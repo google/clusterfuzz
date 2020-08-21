@@ -24,8 +24,8 @@ import googleapiclient
 
 from base import utils
 from config import local_config
-from handlers import base_handler_flask
-from libs import handler_flask
+from handlers import base_handler
+from libs import handler
 from metrics import logs
 
 # CrashStatistic is excluded because the number of records is too high and
@@ -38,10 +38,10 @@ def _datastore_client():
   return googleapiclient.discovery.build('datastore', 'v1')
 
 
-class Handler(base_handler_flask.Handler):
+class Handler(base_handler.Handler):
   """Handler for triggering the backup URL."""
 
-  @handler_flask.cron()
+  @handler.cron()
   def get(self):
     """Handle a cron job."""
     backup_bucket = local_config.Config(

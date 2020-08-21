@@ -20,15 +20,15 @@ import urllib.parse
 
 from config import db_config
 from datastore import data_handler
-from handlers import base_handler_flask
-from libs import handler_flask
+from handlers import base_handler
+from libs import handler
 
 
-class Handler(base_handler_flask.Handler):
+class Handler(base_handler.Handler):
   """Handler to configure the reproduce tool."""
 
   # Note: This handler is intentionally unauthenticated.
-  @handler_flask.post(handler_flask.JSON, handler_flask.JSON)
+  @handler.post(handler.JSON, handler.JSON)
   def post(self):
     """Download the reproduce tool configuration json."""
     client_id = db_config.get_value('reproduce_tool_client_id')

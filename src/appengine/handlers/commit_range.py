@@ -17,10 +17,10 @@ import json
 
 from flask import request
 from google_cloud_utils import big_query
-from handlers import base_handler_flask
+from handlers import base_handler
 from libs import crash_access
 from libs import filters
-from libs import handler_flask
+from libs import handler
 from libs import helpers
 from libs.query import big_query_query
 
@@ -171,11 +171,11 @@ def get_result():
   return result, params
 
 
-class Handler(base_handler_flask.Handler):
+class Handler(base_handler.Handler):
   """Handler that lists testcases whose regression range contains a revision."""
 
-  @handler_flask.unsupported_on_local_server
-  @handler_flask.get(handler_flask.HTML)
+  @handler.unsupported_on_local_server
+  @handler.get(handler.HTML)
   def get(self):
     """Get and render the commit range in HTML."""
     result, params = get_result()
@@ -185,20 +185,20 @@ class Handler(base_handler_flask.Handler):
     })
 
 
-class JsonHandler(base_handler_flask.Handler):
-  """JSON handler_flask used for dynamic updates of commit ranges."""
+class JsonHandler(base_handler.Handler):
+  """JSON handler used for dynamic updates of commit ranges."""
 
   # See: https://bugs.chromium.org/p/chromium/issues/detail?id=760669
-  @handler_flask.post(handler_flask.JSON, handler_flask.JSON)
-  @handler_flask.oauth
-  @handler_flask.allowed_cors
+  @handler.post(handler.JSON, handler.JSON)
+  @handler.oauth
+  @handler.allowed_cors
   def post(self):
     """Get and render the commit range in JSON."""
     result, params = get_result()
     result['params'] = params
     return self.render_json(result)
 
-  @handler_flask.allowed_cors
+  @handler.allowed_cors
   def options(self):
     """Responds with CORS headers."""
     return ''

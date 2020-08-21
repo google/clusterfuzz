@@ -19,10 +19,10 @@ from datastore import data_handler
 from datastore import data_types
 from flask import request
 from google_cloud_utils import blobs
-from handlers import base_handler_flask
+from handlers import base_handler
 from libs import crash_access
 from libs import filters
-from libs import handler_flask
+from libs import handler
 from libs import helpers
 from libs.query import datastore_query
 
@@ -169,10 +169,10 @@ def get_result():
   return result, params
 
 
-class Handler(base_handler_flask.Handler):
+class Handler(base_handler.Handler):
   """Handler that gets the testcase list when user first lands on the page."""
 
-  @handler_flask.get(handler_flask.HTML)
+  @handler.get(handler.HTML)
   def get(self):
     """Get and render the testcase list in HTML."""
     result, params = get_result()
@@ -194,10 +194,10 @@ class Handler(base_handler_flask.Handler):
     })
 
 
-class CacheHandler(base_handler_flask.Handler):
+class CacheHandler(base_handler.Handler):
   """Handler for exercising cache."""
 
-  @handler_flask.cron()
+  @handler.cron()
   def get(self):
     """Handle a GET request."""
     # pylint: disable=unexpected-keyword-arg
@@ -224,11 +224,11 @@ class CacheHandler(base_handler_flask.Handler):
       blobs.get_blob_size(testcase.minimized_keys)
 
 
-class JsonHandler(base_handler_flask.Handler):
+class JsonHandler(base_handler.Handler):
   """Handler that gets the testcase list when user clicks on next page."""
 
-  @handler_flask.post(handler_flask.JSON, handler_flask.JSON)
-  @handler_flask.oauth
+  @handler.post(handler.JSON, handler.JSON)
+  @handler.oauth
   def post(self):
     """Get and render the testcase list in JSON."""
     result, _ = get_result()

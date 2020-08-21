@@ -14,17 +14,17 @@
 """Log incoming reports of CSP violations."""
 
 from flask import request
-from handlers import base_handler_flask
-from libs import handler_flask
+from handlers import base_handler
+from libs import handler
 from libs import helpers
 from metrics import logs
 
 
-class ReportCspFailureHandler(base_handler_flask.Handler):
+class ReportCspFailureHandler(base_handler.Handler):
   """Log failures on HTML pages caused by CSP."""
 
-  @handler_flask.post(handler_flask.JSON, handler_flask.JSON)
-  @handler_flask.check_user_access(need_privileged_access=False)
+  @handler.post(handler.JSON, handler.JSON)
+  @handler.check_user_access(need_privileged_access=False)
   def post(self):
     """Handle a POST request."""
     report = request.get('csp-report')

@@ -16,16 +16,16 @@
 from base import tasks
 from datastore import data_types
 from datastore import ndb_utils
-from handlers import base_handler_flask
-from libs import handler_flask
+from handlers import base_handler
+from libs import handler
 from metrics import logs
 
 
-class OpenReproducibleTestcaseTasksScheduler(base_handler_flask.Handler):
+class OpenReproducibleTestcaseTasksScheduler(base_handler.Handler):
   """Create tasks for open reproducible testcases."""
   task = None
 
-  @handler_flask.cron()
+  @handler.cron()
   def get(self):
     """Handle a GET request."""
     assert self.task
@@ -59,13 +59,13 @@ class ProgressionTasksScheduler(OpenReproducibleTestcaseTasksScheduler):
   task = 'progression'
 
 
-class SimpleRecurringTaskScheduler(base_handler_flask.Handler):
+class SimpleRecurringTaskScheduler(base_handler.Handler):
   """Recreate a recurring task."""
   task = None
   argument = 0
   job_type = 'none'
 
-  @handler_flask.cron()
+  @handler.cron()
   def get(self):
     assert self.task
     tasks.add_task(self.task, self.argument, self.job_type)

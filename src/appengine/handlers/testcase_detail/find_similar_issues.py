@@ -13,19 +13,19 @@
 # limitations under the License.
 """Handler for finding similar issues."""
 from flask import request
-from handlers import base_handler_flask
-from libs import handler_flask
+from handlers import base_handler
+from libs import handler
 from libs import helpers
 from libs.issue_management import issue_tracker_utils
 
 
-class Handler(base_handler_flask.Handler):
+class Handler(base_handler.Handler):
   """Handler that finds similar issues."""
 
   @staticmethod
   def get_issues(issue_tracker, testcase, only_open):
     """Get similar issues. It is used by self.process() and
-    handler_flask.testcase_detail.FindSimilarIssuesHandler.get()"""
+    handler.testcase_detail.FindSimilarIssuesHandler.get()"""
     issues = issue_tracker_utils.get_similar_issues(
         issue_tracker, testcase, only_open=only_open)
 
@@ -45,9 +45,9 @@ class Handler(base_handler_flask.Handler):
         'url': issue_tracker.issue_url(item['id']),
     } for item in items]
 
-  @handler_flask.get(handler_flask.JSON)
-  @handler_flask.check_admin_access_if_oss_fuzz
-  @handler_flask.check_testcase_access
+  @handler.get(handler.JSON)
+  @handler.check_admin_access_if_oss_fuzz
+  @handler.check_testcase_access
   def get(self, testcase):
     """Find similar issues."""
     filter_type = request.get('filterType')

@@ -24,11 +24,11 @@ from datastore import data_types
 from datastore import ndb_utils
 from flask import request
 from fuzzing import fuzzer_selection
-from handlers import base_handler_flask
+from handlers import base_handler
 from libs import filters
 from libs import form
 from libs import gcs
-from libs import handler_flask
+from libs import handler
 from libs import helpers
 from libs.query import datastore_query
 
@@ -89,11 +89,11 @@ def get_results():
   return result, params
 
 
-class Handler(base_handler_flask.Handler):
+class Handler(base_handler.Handler):
   """View job handler."""
 
-  @handler_flask.get(handler_flask.HTML)
-  @handler_flask.check_user_access(need_privileged_access=True)
+  @handler.get(handler.HTML)
+  @handler.check_user_access(need_privileged_access=True)
   def get(self):
     """Handle a get request."""
     templates = list(data_types.JobTemplate.query().order(
@@ -121,12 +121,12 @@ class Handler(base_handler_flask.Handler):
         })
 
 
-class UpdateJob(base_handler_flask.GcsUploadHandler):
+class UpdateJob(base_handler.GcsUploadHandler):
   """Update job handler."""
 
-  @handler_flask.post(handler_flask.FORM, handler_flask.HTML)
-  @handler_flask.check_user_access(need_privileged_access=True)
-  @handler_flask.require_csrf_token
+  @handler.post(handler.FORM, handler.HTML)
+  @handler.check_user_access(need_privileged_access=True)
+  @handler.require_csrf_token
   def post(self):
     """Handle a post request."""
     name = request.form.get('name')
@@ -205,12 +205,12 @@ class UpdateJob(base_handler_flask.GcsUploadHandler):
     return self.render('message.html', template_values)
 
 
-class UpdateJobTemplate(base_handler_flask.Handler):
+class UpdateJobTemplate(base_handler.Handler):
   """Update job template handler."""
 
-  @handler_flask.post(handler_flask.FORM, handler_flask.HTML)
-  @handler_flask.check_user_access(need_privileged_access=True)
-  @handler_flask.require_csrf_token
+  @handler.post(handler.FORM, handler.HTML)
+  @handler.check_user_access(need_privileged_access=True)
+  @handler.require_csrf_token
   def post(self):
     """Handle a post request."""
     name = request.form.get('name')
@@ -249,12 +249,12 @@ class UpdateJobTemplate(base_handler_flask.Handler):
     return self.render('message.html', template_values)
 
 
-class DeleteJobHandler(base_handler_flask.Handler):
+class DeleteJobHandler(base_handler.Handler):
   """Delete job handler."""
 
-  @handler_flask.post(handler_flask.JSON, handler_flask.JSON)
-  @handler_flask.check_user_access(need_privileged_access=True)
-  @handler_flask.require_csrf_token
+  @handler.post(handler.JSON, handler.JSON)
+  @handler.check_user_access(need_privileged_access=True)
+  @handler.require_csrf_token
   def post(self):
     """Handle a post request."""
     key = helpers.get_integer_key(request)
@@ -281,11 +281,11 @@ class DeleteJobHandler(base_handler_flask.Handler):
     return self.redirect('/jobs')
 
 
-class JsonHandler(base_handler_flask.Handler):
+class JsonHandler(base_handler.Handler):
   """Handler that gets the jobs when user clicks on next page."""
 
-  @handler_flask.post(handler_flask.JSON, handler_flask.JSON)
-  @handler_flask.check_user_access(need_privileged_access=True)
+  @handler.post(handler.JSON, handler.JSON)
+  @handler.check_user_access(need_privileged_access=True)
   def post(self):
     """Get and render the jobs in JSON."""
     result, _ = get_results()

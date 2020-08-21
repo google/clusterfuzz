@@ -41,7 +41,7 @@ class LoadBigQueryStatsTest(unittest.TestCase):
 
     test_helpers.patch(self, [
         'google_cloud_utils.big_query.get_api_client',
-        'handlers.base_handler_flask.Handler.is_cron',
+        'handlers.base_handler.Handler.is_cron',
         'handlers.cron.load_bigquery_stats.Handler._utc_now',
     ])
 

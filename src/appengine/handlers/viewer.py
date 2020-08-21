@@ -16,18 +16,18 @@
 from base import utils
 from flask import request
 from google_cloud_utils import blobs
-from handlers import base_handler_flask
+from handlers import base_handler
 from libs import access
-from libs import handler_flask
+from libs import handler
 from libs import helpers
 
 MAX_ALLOWED_CONTENT_SIZE = 10 * 1024 * 1024
 
 
-class Handler(base_handler_flask.Handler):
+class Handler(base_handler.Handler):
   """Content Viewer."""
 
-  @handler_flask.get(handler_flask.HTML)
+  @handler.get(handler.HTML)
   def get(self):
     """Get the HTML page."""
     key = request.get('key')

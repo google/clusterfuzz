@@ -23,8 +23,8 @@ from google.cloud import ndb
 
 from base import utils
 from datastore import data_types
-from handlers import base_handler_flask
-from libs import handler_flask
+from handlers import base_handler
+from libs import handler
 from libs import helpers
 from libs.issue_management import issue_tracker_utils
 from metrics import logs
@@ -181,7 +181,7 @@ def send_reminder(issue_tracker, issue_id, build_id):
   issue.save(new_comment=comment, notify=True)
 
 
-class Handler(base_handler_flask.Handler):
+class Handler(base_handler.Handler):
   """Build status checker."""
 
   def _close_fixed_builds(self, projects, build_type):
@@ -285,7 +285,7 @@ class Handler(base_handler_flask.Handler):
         logs.log_error('%s has not been built in %s config for %d days.' %
                        (project_name, build_type, time_since_last_build.days))
 
-  @handler_flask.cron()
+  @handler.cron()
   def get(self):
     """Handles a get request."""
     for build_type, status_url in BUILD_STATUS_MAPPINGS:

@@ -17,9 +17,9 @@ import datetime
 
 from config import local_config
 from flask import request
-from handlers import base_handler_flask
+from handlers import base_handler
 from libs import auth
-from libs import handler_flask
+from libs import handler
 from libs import helpers
 from metrics import logs
 
@@ -27,15 +27,15 @@ DEFAULT_REDIRECT = '/'
 SESSION_EXPIRY_DAYS = 14
 
 
-class Handler(base_handler_flask.Handler):
+class Handler(base_handler.Handler):
   """Login page."""
 
-  @handler_flask.get(handler_flask.HTML)
-  @handler_flask.unsupported_on_local_server
+  @handler.get(handler.HTML)
+  @handler.unsupported_on_local_server
   def get(self):
     """Handle a get request."""
     dest = request.get('dest', DEFAULT_REDIRECT)
-    base_handler_flask.check_redirect_url(dest)
+    base_handler.check_redirect_url(dest)
 
     return self.render(
         'login.html', {
@@ -45,10 +45,10 @@ class Handler(base_handler_flask.Handler):
         })
 
 
-class SessionLoginHandler(base_handler_flask.Handler):
-  """Session login handler_flask."""
+class SessionLoginHandler(base_handler.Handler):
+  """Session login handler."""
 
-  @handler_flask.post(handler_flask.JSON, handler_flask.JSON)
+  @handler.post(handler.JSON, handler.JSON)
   def post(self):
     """Handle a post request."""
     id_token = request.get('idToken')
@@ -65,12 +65,12 @@ class SessionLoginHandler(base_handler_flask.Handler):
     return response
 
 
-class LogoutHandler(base_handler_flask.Handler):
-  """Log out handler_flask."""
+class LogoutHandler(base_handler.Handler):
+  """Log out handler."""
 
-  @handler_flask.get(handler_flask.HTML)
-  @handler_flask.unsupported_on_local_server
-  @handler_flask.require_csrf_token
+  @handler.get(handler.HTML)
+  @handler.unsupported_on_local_server
+  @handler.require_csrf_token
   def get(self):
     """Handle a get request."""
     try:

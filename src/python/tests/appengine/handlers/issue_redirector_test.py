@@ -32,8 +32,8 @@ class HandlerTest(unittest.TestCase):
     ])
     self.mock._is_running_on_app_engine.return_value = True  # pylint: disable=protected-access
 
-    import server_flask
-    self.app = webtest.TestApp(server_flask.app)
+    import server
+    self.app = webtest.TestApp(server.app)
 
   def test_succeed(self):
     """Test redirection succeeds."""

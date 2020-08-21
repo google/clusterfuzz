@@ -35,11 +35,11 @@ from datastore import data_types
 from flask import request
 from google_cloud_utils import blobs
 from google_cloud_utils import storage
-from handlers import base_handler_flask
+from handlers import base_handler
 from libs import access
 from libs import form
 from libs import gcs
-from libs import handler_flask
+from libs import handler
 from libs import helpers
 from libs.issue_management import issue_tracker_utils
 from libs.query import datastore_query
@@ -205,10 +205,10 @@ def _allow_unprivileged_metadata(testcase_metadata):
   return len(testcase_metadata) == 1 and 'issue_labels' in testcase_metadata
 
 
-class Handler(base_handler_flask.Handler):
+class Handler(base_handler.Handler):
   """Handler for the testcase uploads page."""
 
-  @handler_flask.get(handler_flask.HTML)
+  @handler.get(handler.HTML)
   def get(self):
     """Handles get request."""
     email = helpers.get_user_email()
@@ -265,20 +265,20 @@ class Handler(base_handler_flask.Handler):
         })
 
 
-class PrepareUploadHandler(base_handler_flask.Handler):
+class PrepareUploadHandler(base_handler.Handler):
   """Handler that creates an upload URL."""
 
-  @handler_flask.check_user_access(need_privileged_access=False)
+  @handler.check_user_access(need_privileged_access=False)
   def post(self):
     """Serves the url."""
     return self.render_json({'uploadInfo': gcs.prepare_blob_upload()._asdict()})
 
 
-class UploadUrlHandlerOAuth(base_handler_flask.Handler):
+class UploadUrlHandlerOAuth(base_handler.Handler):
   """Handler that creates an upload URL (OAuth)."""
 
-  @handler_flask.oauth
-  @handler_flask.check_user_access(need_privileged_access=False)
+  @handler.oauth
+  @handler.check_user_access(need_privileged_access=False)
   def post(self):
     """Serves the url."""
     return self.render_json({
@@ -286,10 +286,10 @@ class UploadUrlHandlerOAuth(base_handler_flask.Handler):
     })
 
 
-class JsonHandler(base_handler_flask.Handler):
-  """JSON handler_flask for past testcase uploads."""
+class JsonHandler(base_handler.Handler):
+  """JSON handler for past testcase uploads."""
 
-  @handler_flask.post(handler_flask.JSON, handler_flask.JSON)
+  @handler.post(handler.JSON, handler.JSON)
   def post(self):
     """Handles a post request."""
     if not helpers.get_user_email():
@@ -582,7 +582,7 @@ class UploadHandlerCommon(object):
     return self.render_json({'id': '%s' % testcase_id})
 
 
-class UploadHandler(UploadHandlerCommon, base_handler_flask.GcsUploadHandler):
+class UploadHandler(UploadHandlerCommon, base_handler.GcsUploadHandler):
   """Handler that uploads the testcase file."""
 
   # pylint: disable=unused-argument
@@ -591,10 +591,10 @@ class UploadHandler(UploadHandlerCommon, base_handler_flask.GcsUploadHandler):
     values['uploadInfo'] = gcs.prepare_blob_upload()._asdict()
 
   def get_upload(self):
-    return base_handler_flask.GcsUploadHandler.get_upload(self)
+    return base_handler.GcsUploadHandler.get_upload(self)
 
-  @handler_flask.post(handler_flask.FORM, handler_flask.JSON)
-  @handler_flask.require_csrf_token
+  @handler.post(handler.FORM, handler.JSON)
+  @handler.require_csrf_token
   def post(self):
     return self.do_post()
 
@@ -607,7 +607,7 @@ class NamedBytesIO(io.BytesIO):
     io.BytesIO.__init__(self, value)
 
 
-class UploadHandlerOAuth(base_handler_flask.Handler, UploadHandlerCommon):
+class UploadHandlerOAuth(base_handler.Handler, UploadHandlerCommon):
   """Handler that uploads the testcase file (OAuth)."""
 
   # pylint: disable=unused-argument
@@ -625,7 +625,7 @@ class UploadHandlerOAuth(base_handler_flask.Handler, UploadHandlerCommon):
     key = blobs.write_blob(bytes_io)
     return blobs.get_blob_info(key)
 
-  @handler_flask.post(handler_flask.FORM, handler_flask.JSON)
-  @handler_flask.oauth
+  @handler.post(handler.FORM, handler.JSON)
+  @handler.oauth
   def post(self, *args):
     return self.do_post()

@@ -16,7 +16,6 @@
 from builtins import str
 import collections
 import flask
-import webapp2
 
 from base import memoize
 from metrics import logs
@@ -24,18 +23,12 @@ from metrics import logs
 
 def get_current_request():
   """Get the current request."""
-  # TODO(singharshdeep): Remove webapp.get_request() after flask migration.
-  if flask.request:
-    return flask.request
-  return webapp2.get_request()
+  return flask.request
 
 
 def get_cache_backing():
   """Get the cache backing for saving current context data."""
-  # TODO(singharshdeep): Remove get_current_request() after flask migration.
-  if flask.request:
-    return flask.g
-  return get_current_request()
+  return flask.g
 
 
 class _FifoRequestCache(memoize.FifoInMemory):

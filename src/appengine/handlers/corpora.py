@@ -18,19 +18,19 @@ from google.cloud import ndb
 from datastore import data_handler
 from datastore import data_types
 from flask import request
-from handlers import base_handler_flask
+from handlers import base_handler
 from libs import form
-from libs import handler_flask
+from libs import handler
 from libs import helpers
 
 
-class Handler(base_handler_flask.Handler):
+class Handler(base_handler.Handler):
   """Manage data bundles."""
 
-  @handler_flask.unsupported_on_local_server
-  @handler_flask.get(handler_flask.HTML)
-  @handler_flask.check_admin_access_if_oss_fuzz
-  @handler_flask.check_user_access(need_privileged_access=False)
+  @handler.unsupported_on_local_server
+  @handler.get(handler.HTML)
+  @handler.check_admin_access_if_oss_fuzz
+  @handler.check_user_access(need_privileged_access=False)
   def get(self):
     """Handle a get request."""
     data_bundles = list(data_types.DataBundle.query().order(
@@ -47,12 +47,12 @@ class Handler(base_handler_flask.Handler):
     return self.render('corpora.html', template_values)
 
 
-class CreateHandler(base_handler_flask.Handler):
+class CreateHandler(base_handler.Handler):
   """Create a corpus."""
 
-  @handler_flask.post(handler_flask.FORM, handler_flask.HTML)
-  @handler_flask.check_user_access(need_privileged_access=True)
-  @handler_flask.require_csrf_token
+  @handler.post(handler.FORM, handler.HTML)
+  @handler.check_user_access(need_privileged_access=True)
+  @handler.require_csrf_token
   def post(self):
     """Handle a post request."""
     name = request.get('name')
@@ -93,12 +93,12 @@ class CreateHandler(base_handler_flask.Handler):
     return self.render('message.html', template_values)
 
 
-class DeleteHandler(base_handler_flask.Handler):
+class DeleteHandler(base_handler.Handler):
   """Delete a corpus."""
 
-  @handler_flask.post(handler_flask.FORM, handler_flask.HTML)
-  @handler_flask.check_user_access(need_privileged_access=True)
-  @handler_flask.require_csrf_token
+  @handler.post(handler.FORM, handler.HTML)
+  @handler.check_user_access(need_privileged_access=True)
+  @handler.require_csrf_token
   def post(self):
     """Handle a post request."""
     key = helpers.get_integer_key(request)

@@ -33,9 +33,9 @@ from config import local_config
 from datastore import data_types
 from datastore import ndb_utils
 from google_cloud_utils import compute_engine_projects
-from handlers import base_handler_flask
+from handlers import base_handler
 from handlers.cron.helpers import bot_manager
-from libs import handler_flask
+from libs import handler
 
 PROJECT_MIN_CPUS = 1
 
@@ -698,10 +698,10 @@ class OssFuzzClustersManager(ClustersManager):
     self.cleanup_old_assignments(all_host_names)
 
 
-class Handler(base_handler_flask.Handler):
+class Handler(base_handler.Handler):
   """CPU distributor for OSS-Fuzz projects."""
 
-  @handler_flask.cron()
+  @handler.cron()
   def get(self):
     """Handle a get request."""
     if utils.is_oss_fuzz():

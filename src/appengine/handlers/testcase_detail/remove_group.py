@@ -15,9 +15,9 @@
 
 from datastore import data_handler
 from flask import request
-from handlers import base_handler_flask
+from handlers import base_handler
 from handlers.testcase_detail import show
-from libs import handler_flask
+from libs import handler
 from libs import helpers
 
 
@@ -35,12 +35,12 @@ def remove_group(testcase_id):
   return testcase
 
 
-class Handler(base_handler_flask.Handler):
+class Handler(base_handler.Handler):
   """Handler that removes a testcase from a group."""
 
-  @handler_flask.post(handler_flask.JSON, handler_flask.JSON)
-  @handler_flask.require_csrf_token
-  @handler_flask.check_admin_access
+  @handler.post(handler.JSON, handler.JSON)
+  @handler.require_csrf_token
+  @handler.check_admin_access
   def post(self):
     """Remove the issue from the testcase."""
     testcase_id = request.get('testcaseId')

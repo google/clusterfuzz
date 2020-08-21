@@ -181,7 +181,7 @@ class OssFuzzProjectSetupTest(unittest.TestCase):
         ('get_application_id_2', 'base.utils.get_application_id'),
         'google_cloud_utils.storage.build',
         'time.sleep',
-        'handlers.base_handler_flask.Handler.is_cron',
+        'handlers.base_handler.Handler.is_cron',
         'handlers.cron.project_setup.get_oss_fuzz_projects',
         'handlers.cron.service_accounts.get_or_create_service_account',
         'handlers.cron.service_accounts.set_service_account_roles',
@@ -1624,7 +1624,7 @@ class GenericProjectSetupTest(unittest.TestCase):
         'google_cloud_utils.storage.build',
         'google_cloud_utils.storage.read_data',
         'time.sleep',
-        'handlers.base_handler_flask.Handler.is_cron',
+        'handlers.base_handler.Handler.is_cron',
     ])
 
     self.mock.read_data.side_effect = _mock_read_data
