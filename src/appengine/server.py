@@ -14,6 +14,7 @@
 """server.py initialises the appengine server for ClusterFuzz."""
 
 from flask import Flask
+from flask import redirect
 from flask import request
 from google.cloud import ndb
 
@@ -96,11 +97,11 @@ def ndb_wsgi_middleware(wsgi_app):
   return middleware
 
 
-def register_routes(flask_app, routes, domain_name):
+def register_routes(flask_app, routes):
   """Utility function to register all routes to the flask app."""
   for route, handler in routes:
     flask_app.add_url_rule(
-        route, view_func=handler.as_view(route), host=domain_name)
+        route, view_func=handler.as_view(route))
 
 
 # Add item to the navigation menu. Order is important.
@@ -244,39 +245,25 @@ main_domain = config.get('domains.main')
 redirect_domains = config.get('domains.redirects')
 
 
-class RedirectHandler(base_handler.Handler):
-  """Handler to redirect to domain."""
+def redirect_handler():
+  """Redirection handler."""
+  if request.host in redirect_domains:
+    return redirect('https://' + main_domain + request.full_path)
 
-  def get(self, path):  # pylint: disable=unused-argument
-    return self.redirect('https://' + main_domain + request.full_path)
+  return None
 
 
-if main_domain:
-  app = Flask(__name__, host_matching=True, static_host=main_domain)
-else:
-  app = Flask(__name__)
-
+app = Flask(__name__)
 # To also process trailing slash urls.
 app.url_map.strict_slashes = False
+app.before_request(redirect_handler)
 
 if not environment.get_value('PY_UNITTESTS'):
   # Adding ndb context middleware when not running tests.
   app.wsgi_app = ndb_wsgi_middleware(app.wsgi_app)
 
-if main_domain and redirect_domains:
-  for redirect_domain in redirect_domains:
-    app.add_url_rule(
-        '/',
-        view_func=RedirectHandler.as_view(redirect_domain),
-        host=redirect_domain,
-        defaults={'path': ''})
-    app.add_url_rule(
-        '/<path:path>',
-        view_func=RedirectHandler.as_view(redirect_domain + '/path'),
-        host=redirect_domain)
-
-register_routes(app, handlers, main_domain)
-register_routes(app, cron_routes, main_domain)
+register_routes(app, handlers)
+register_routes(app, cron_routes)
 
 if __name__ == '__main__':
   app.run(host=main_domain)
