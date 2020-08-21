@@ -100,8 +100,7 @@ def ndb_wsgi_middleware(wsgi_app):
 def register_routes(flask_app, routes):
   """Utility function to register all routes to the flask app."""
   for route, handler in routes:
-    flask_app.add_url_rule(
-        route, view_func=handler.as_view(route))
+    flask_app.add_url_rule(route, view_func=handler.as_view(route))
 
 
 # Add item to the navigation menu. Order is important.
