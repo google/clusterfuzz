@@ -251,7 +251,11 @@ class RedirectHandler(base_handler.Handler):
     return self.redirect('https://' + main_domain + request.full_path)
 
 
-app = Flask(__name__, host_matching=True, static_host=main_domain)
+if main_domain:
+  app = Flask(__name__, host_matching=True, static_host=main_domain)
+else:
+  app = Flask(__name__)
+
 # To also process trailing slash urls.
 app.url_map.strict_slashes = False
 
