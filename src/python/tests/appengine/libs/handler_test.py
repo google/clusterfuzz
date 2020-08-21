@@ -532,8 +532,7 @@ class TestGetEmailAndAccessToken(unittest.TestCase):
               'email_verified': True
           }))
 
-      email, token = handler.get_email_and_access_token(
-          'Bearer AccessToken')
+      email, token = handler.get_email_and_access_token('Bearer AccessToken')
       self.assertEqual('test@test.com', email)
       self.assertEqual('Bearer AccessToken', token)
       self._assert_requests_get_call()
