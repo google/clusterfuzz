@@ -246,6 +246,9 @@ redirect_domains = config.get('domains.redirects')
 
 def redirect_handler():
   """Redirection handler."""
+  if not redirect_domains:
+    return None
+
   if request.host in redirect_domains:
     return redirect('https://' + main_domain + request.full_path)
 
