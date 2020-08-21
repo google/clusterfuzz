@@ -21,10 +21,11 @@ import unittest
 import webtest
 import yaml
 
-from config import local_config
-from datastore import data_types
 from flask import request
 from flask import Response
+
+from config import local_config
+from datastore import data_types
 from handlers import base_handler
 from libs import auth
 from libs import handler

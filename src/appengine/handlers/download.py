@@ -20,10 +20,11 @@ standard_library.install_aliases()
 import os
 import urllib.parse
 
+from flask import request
+
 from base import errors
 from base import utils
 from datastore import data_handler
-from flask import request
 from google_cloud_utils import blobs
 from handlers import base_handler
 from libs import access

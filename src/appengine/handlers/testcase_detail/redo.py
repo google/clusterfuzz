@@ -14,8 +14,9 @@
 """Handler for redoing."""
 from builtins import str
 
-from base import tasks
 from flask import request
+
+from base import tasks
 from handlers import base_handler
 from handlers.testcase_detail import show
 from libs import handler

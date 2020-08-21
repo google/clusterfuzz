@@ -13,8 +13,9 @@
 # limitations under the License.
 """Handler for removing a testcase from a group."""
 
-from datastore import data_handler
 from flask import request
+
+from datastore import data_handler
 from handlers import base_handler
 from handlers.testcase_detail import show
 from libs import handler

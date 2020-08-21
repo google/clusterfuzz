@@ -18,6 +18,7 @@ import unittest
 import webtest
 
 from flask import request
+
 from handlers import base_handler
 from libs import helpers
 from tests.test_libs import helpers as test_helpers

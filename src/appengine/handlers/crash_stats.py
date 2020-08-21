@@ -16,10 +16,11 @@
 from builtins import str
 import json
 
+from flask import request
+
 from datastore import data_handler
 from datastore import data_types
 from datastore import ndb_utils
-from flask import request
 from handlers import base_handler
 from libs import crash_access
 from libs import crash_stats

@@ -26,6 +26,7 @@ import six
 import urllib.parse
 import yaml
 
+from flask import request
 from googleapiclient.errors import HttpError
 
 from base import external_users
@@ -33,7 +34,6 @@ from base import memoize
 from base import utils
 from datastore import data_handler
 from datastore import data_types
-from flask import request
 from google_cloud_utils import big_query
 from handlers import base_handler
 from libs import access

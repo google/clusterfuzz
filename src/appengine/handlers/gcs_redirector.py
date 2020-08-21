@@ -14,6 +14,7 @@
 """GCS redirector."""
 
 from flask import request
+
 from google_cloud_utils import storage
 from handlers import base_handler
 from libs import handler

@@ -13,11 +13,12 @@
 # limitations under the License.
 """Handler that gets the testcase list page."""
 
+from flask import request
+
 from base import errors
 from base import utils
 from datastore import data_handler
 from datastore import data_types
-from flask import request
 from google_cloud_utils import blobs
 from handlers import base_handler
 from libs import crash_access

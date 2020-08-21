@@ -13,10 +13,11 @@
 # limitations under the License.
 """Configuration Manager."""
 
+from flask import request
+
 from base import utils
 from config import db_config
 from datastore import data_types
-from flask import request
 from handlers import base_handler
 from libs import form
 from libs import handler

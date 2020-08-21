@@ -13,11 +13,11 @@
 # limitations under the License.
 """Manage corpora."""
 
+from flask import request
 from google.cloud import ndb
 
 from datastore import data_handler
 from datastore import data_types
-from flask import request
 from handlers import base_handler
 from libs import form
 from libs import handler
