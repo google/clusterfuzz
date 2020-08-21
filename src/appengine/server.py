@@ -247,7 +247,7 @@ redirect_domains = config.get('domains.redirects')
 class RedirectHandler(base_handler.Handler):
   """Handler to redirect to domain."""
 
-  def get(self, extra):  # pylint: disable=unused-argument
+  def get(self, path):  # pylint: disable=unused-argument
     return self.redirect('https://' + main_domain + request.full_path)
 
 
@@ -262,8 +262,13 @@ if not environment.get_value('PY_UNITTESTS'):
 if main_domain and redirect_domains:
   for redirect_domain in redirect_domains:
     app.add_url_rule(
-        '/<path:extra>',
+        '/',
         view_func=RedirectHandler.as_view(redirect_domain),
+        host=redirect_domain,
+        defaults={'path': ''})
+    app.add_url_rule(
+        '/<path:path>',
+        view_func=RedirectHandler.as_view(redirect_domain + '/path'),
         host=redirect_domain)
 
 register_routes(app, handlers, main_domain)
