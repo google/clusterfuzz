@@ -13,8 +13,9 @@
 # limitations under the License.
 """Display information for revision ranges."""
 
-from build_management import revisions
 from flask import request
+
+from build_management import revisions
 from handlers import base_handler
 from libs import handler
 from libs import helpers

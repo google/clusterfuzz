@@ -15,8 +15,9 @@
 
 import datetime
 
-from config import local_config
 from flask import request
+
+from config import local_config
 from handlers import base_handler
 from libs import auth
 from libs import handler

@@ -29,16 +29,16 @@ import sys
 import traceback
 import urllib.parse
 
+from flask import redirect as flask_redirect
+from flask import request
+from flask import Response
+from flask.views import MethodView
 from google.cloud import ndb
 import jinja2
 
 from base import utils
 from config import db_config
 from config import local_config
-from flask import redirect as flask_redirect
-from flask import request
-from flask import Response
-from flask.views import MethodView
 from google_cloud_utils import storage
 from libs import auth
 from libs import form

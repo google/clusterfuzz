@@ -14,6 +14,7 @@
 """Handler for showing crash stats inside the testcase detail page."""
 
 from flask import request
+
 from handlers import base_handler
 from libs import crash_stats
 from libs import handler

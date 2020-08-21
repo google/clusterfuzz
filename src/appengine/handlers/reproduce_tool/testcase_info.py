@@ -13,9 +13,10 @@
 # limitations under the License.
 """Handler for serving serialized test cases for the reproduce tool."""
 
+from flask import request
+
 from datastore import data_handler
 from datastore import data_types
-from flask import request
 from handlers import base_handler
 from libs import access
 from libs import handler

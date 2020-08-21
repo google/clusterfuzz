@@ -19,6 +19,8 @@ import html
 import jinja2
 import re
 
+from flask import request
+
 from base import utils
 from build_management import revisions
 from build_management import source_mapper
@@ -26,7 +28,6 @@ from config import db_config
 from crash_analysis import severity_analyzer
 from datastore import data_handler
 from datastore import data_types
-from flask import request
 from fuzzing import leak_blacklist
 from google_cloud_utils import blobs
 from handlers import base_handler

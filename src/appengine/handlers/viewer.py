@@ -13,8 +13,9 @@
 # limitations under the License.
 """Content viewer."""
 
-from base import utils
 from flask import request
+
+from base import utils
 from google_cloud_utils import blobs
 from handlers import base_handler
 from libs import access
