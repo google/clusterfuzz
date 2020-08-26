@@ -50,8 +50,16 @@ class HandlerTest(unittest.TestCase):
         name='afl_asan',
         environment_string='USE_CORPUS_FOR_ML = False\n').put()
 
+    data_types.Job(
+        name='libfuzzer_asan_gradientfuzz',
+        environment_string=
+        'USE_CORPUS_FOR_ML = True\nUSE_LIBFUZZER_FOR_GRADIENTFUZZ = True\n'
+    ).put()
+
     # Create fake fuzzers.
-    data_types.Fuzzer(name='libFuzzer', jobs=['libfuzzer_asan']).put()
+    data_types.Fuzzer(
+        name='libFuzzer',
+        jobs=['libfuzzer_asan', 'libfuzzer_asan_gradientfuzz']).put()
     data_types.Fuzzer(name='afl', jobs=['afl_asan']).put()
 
     # Create fake child fuzzers.
@@ -64,8 +72,21 @@ class HandlerTest(unittest.TestCase):
     data_types.FuzzTargetJob(
         fuzz_target_name='afl_fake_fuzzer', job='afl_asan').put()
 
+    data_types.FuzzTarget(
+        engine='libFuzzer',
+        binary='fake_gradientfuzzer',
+        project='test-project').put()
+    data_types.FuzzTargetJob(
+        fuzz_target_name='libFuzzer_fake_gradientfuzzer',
+        job='libfuzzer_asan_gradientfuzz').put()
+
   def test_add_one_task(self):
     """Test add one task."""
     self.app.get('/schedule-ml-train-tasks')
-    self.mock.add_task.assert_called_once_with(
+    self.mock.add_task.assert_any_call(
         'ml_train', 'fake_fuzzer', 'libfuzzer_asan', queue='ml-jobs-linux')
+    self.mock.add_task.assert_any_call(
+        'ml_train_gradientfuzz',
+        'fake_gradientfuzzer',
+        'libfuzzer_asan_gradientfuzz',
+        queue='ml-jobs-linux')
