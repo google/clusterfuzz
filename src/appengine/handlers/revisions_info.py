@@ -28,24 +28,26 @@ class Handler(base_handler.Handler):
   def get(self):
     """GET handler."""
     job_type = request.get('job')
-
     revision = request.get('revision')
+    revision_range = request.get('range')
+
     if revision:
       if not revision.isdigit():
         raise helpers.EarlyExitException('Revision is not an integer.', 400)
       start_revision = end_revision = revision
-    else:
-      revision_range = request.get('range')
-      if revision_range:
-        try:
-          start_revision, end_revision = revision_range.split(':')
-        except:
-          raise helpers.EarlyExitException('Bad revision range.', 400)
+    elif revision_range:
+      try:
+        start_revision, end_revision = revision_range.split(':')
+      except:
+        raise helpers.EarlyExitException('Bad revision range.', 400)
+
       if not start_revision.isdigit():
         raise helpers.EarlyExitException('Start revision is not an integer.',
                                          400)
       if not end_revision.isdigit():
         raise helpers.EarlyExitException('End revision is not an integer.', 400)
+    else:
+      raise helpers.EarlyExitException('No revision specified.', 400)
 
     component_revisions_list = revisions.get_component_range_list(
         start_revision, end_revision, job_type)
