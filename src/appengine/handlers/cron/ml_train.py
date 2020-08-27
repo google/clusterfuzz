@@ -33,7 +33,7 @@ class Handler(base_handler.Handler):
           job.get_environment().get('USE_CORPUS_FOR_ML')):
         continue
 
-      task_name = 'ml_train_gradientfuzz' if utils.string_is_true(
+      task_name = 'gradientfuzz' if utils.string_is_true(
           job.get_environment().get(
               'USE_LIBFUZZER_FOR_GRADIENTFUZZ')) else 'ml_train'
 

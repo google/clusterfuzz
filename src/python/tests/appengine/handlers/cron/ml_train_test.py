@@ -86,7 +86,7 @@ class HandlerTest(unittest.TestCase):
     self.mock.add_task.assert_any_call(
         'ml_train', 'fake_fuzzer', 'libfuzzer_asan', queue='ml-jobs-linux')
     self.mock.add_task.assert_any_call(
-        'ml_train_gradientfuzz',
+        'gradientfuzz',
         'fake_gradientfuzzer',
         'libfuzzer_asan_gradientfuzz',
         queue='ml-jobs-linux')
