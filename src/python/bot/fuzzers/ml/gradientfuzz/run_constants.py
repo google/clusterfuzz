@@ -15,6 +15,16 @@
 
 import enum
 
+# Execution time limits.
+DATA_GEN_TIMEOUT = 60 * 60 * 1
+TRAIN_TIMEOUT = 60 * 60 * 2
+LOC_GEN_TIMEOUT = 60 * 60 * 3
+MUT_GEN_TIMEOUT = 60 * 60 * 3
+
+# Corpus directory (corpora backups stored here).
+CORPUS_DIR = 'corpus'
+CORPUS_SUFFIX = '-raw-inputs'
+
 # Script names.
 GENERATE_DATA_SCRIPT = 'libfuzzer_to_numpy.py'
 TRAIN_MODEL_SCRIPT = 'train.py'
@@ -39,8 +49,8 @@ VAL_SPLIT_FLAG = '--val-split'
 ARCHITECTURE_FLAG = '--architecture'
 BATCH_SIZE_FLAG = '--batch-size'
 VAL_BATCH_SIZE_FLAG = '--val-batch-size'
-DATASET_FLAG = '--dataset'
 NUM_HIDDEN_FLAG = '--num-hidden'
+RUN_NAME_SUFFIX = '-gradientfuzz'
 
 # For `gradient_gen_critical_locs.py`.
 PATH_TO_SEEDS_FLAG = '--path-to-seeds'
