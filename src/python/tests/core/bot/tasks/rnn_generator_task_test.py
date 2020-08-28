@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""Tests for ml_train_task."""
+"""Tests for rnn_generator_task."""
 
 import os
 import tempfile
@@ -20,7 +20,7 @@ import unittest
 import pyfakefs.fake_filesystem_unittest as fake_fs_unittest
 
 from bot.fuzzers.ml.rnn import constants
-from bot.tasks import ml_train_task
+from bot.tasks import rnn_generator_task
 from system import new_process
 from system import shell
 from tests.test_libs import helpers as test_helpers
@@ -75,7 +75,7 @@ class GetLastSavedModelTest(fake_fs_unittest.TestCase):
   def test_get_latest_model(self):
     """Test latest model is returned as a dictionary."""
     # Model_2 is newer than model_1, so we will get model_2.
-    model_paths = ml_train_task.get_last_saved_model(MODEL_DIR)
+    model_paths = rnn_generator_task.get_last_saved_model(MODEL_DIR)
     expected = {
         'data': self.model_2_data_path,
         'index': self.model_2_index_path
@@ -89,7 +89,7 @@ class GetLastSavedModelTest(fake_fs_unittest.TestCase):
     self.assertFalse(os.path.exists(self.model_2_index_path))
 
     # Now we should get model_1.
-    model_paths = ml_train_task.get_last_saved_model(MODEL_DIR)
+    model_paths = rnn_generator_task.get_last_saved_model(MODEL_DIR)
     expected = {
         'data': self.model_1_data_path,
         'index': self.model_1_index_path
@@ -105,7 +105,7 @@ class GetLastSavedModelTest(fake_fs_unittest.TestCase):
     self.assertFalse(os.path.exists(self.model_2_index_path))
 
     # Now we should get empty dictionary since both models are invalid.
-    model_paths = ml_train_task.get_last_saved_model(MODEL_DIR)
+    model_paths = rnn_generator_task.get_last_saved_model(MODEL_DIR)
     expected = {}
     self.assertDictEqual(model_paths, expected)
 
@@ -123,9 +123,9 @@ class ExecuteTaskTest(unittest.TestCase):
     os.environ['FUZZ_INPUTS_DISK'] = self.temp_dir
 
     test_helpers.patch(self, [
-        'bot.tasks.ml_train_task.get_corpus',
-        'bot.tasks.ml_train_task.train_rnn',
-        'bot.tasks.ml_train_task.upload_model_to_gcs',
+        'bot.tasks.rnn_generator_task.get_corpus',
+        'bot.tasks.rnn_generator_task.train_rnn',
+        'bot.tasks.rnn_generator_task.upload_model_to_gcs',
     ])
 
     self.mock.get_corpus.return_value = True
@@ -138,13 +138,13 @@ class ExecuteTaskTest(unittest.TestCase):
   def test_execute(self):
     """Test execute task."""
     input_directory = os.path.join(
-        self.temp_dir, self.fuzzer_name + ml_train_task.CORPUS_DIR_SUFFIX)
+        self.temp_dir, self.fuzzer_name + rnn_generator_task.CORPUS_DIR_SUFFIX)
     model_directory = os.path.join(
-        self.temp_dir, self.fuzzer_name + ml_train_task.MODEL_DIR_SUFFIX)
+        self.temp_dir, self.fuzzer_name + rnn_generator_task.MODEL_DIR_SUFFIX)
     log_directory = os.path.join(
-        self.temp_dir, self.fuzzer_name + ml_train_task.LOG_DIR_SUFFIX)
+        self.temp_dir, self.fuzzer_name + rnn_generator_task.LOG_DIR_SUFFIX)
 
-    ml_train_task.execute_task(self.fuzzer_name, self.job_type)
+    rnn_generator_task.execute_task(self.fuzzer_name, self.job_type)
 
     self.mock.train_rnn.assert_called_once_with(input_directory,
                                                 model_directory, log_directory)
@@ -170,11 +170,11 @@ class MLRnnTrainTaskIntegrationTest(unittest.TestCase):
   def test_train_rnn(self):
     """Test train RNN model on a simple corpus."""
     # No model exists in model directory.
-    self.assertFalse(ml_train_task.get_last_saved_model(self.model_directory))
+    self.assertFalse(rnn_generator_task.get_last_saved_model(self.model_directory))
 
     # The training should be fast (a few seconds) since sample corpus is
     # extremely small.
-    result = ml_train_task.train_rnn(
+    result = rnn_generator_task.train_rnn(
         self.input_directory, self.model_directory, self.log_directory,
         self.batch_size, self.hidden_state_size, self.hidden_layer_size)
 
@@ -182,14 +182,14 @@ class MLRnnTrainTaskIntegrationTest(unittest.TestCase):
     self.assertFalse(result.timed_out)
 
     # At least one model exists.
-    self.assertTrue(ml_train_task.get_last_saved_model(self.model_directory))
+    self.assertTrue(rnn_generator_task.get_last_saved_model(self.model_directory))
 
   def test_small_corpus(self):
     """Test small corpus situation."""
     # Increase batch size so the sample corpus appears small in this case.
     self.batch_size = 100
 
-    result = ml_train_task.train_rnn(
+    result = rnn_generator_task.train_rnn(
         self.input_directory, self.model_directory, self.log_directory,
         self.batch_size, self.hidden_state_size, self.hidden_layer_size)
 
@@ -197,4 +197,4 @@ class MLRnnTrainTaskIntegrationTest(unittest.TestCase):
     self.assertFalse(result.timed_out)
 
     # No model exsits after execution.
-    self.assertFalse(ml_train_task.get_last_saved_model(self.model_directory))
+    self.assertFalse(rnn_generator_task.get_last_saved_model(self.model_directory))

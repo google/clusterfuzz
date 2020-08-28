@@ -27,7 +27,7 @@ from bot.tasks import corpus_pruning_task
 from bot.tasks import fuzz_task
 from bot.tasks import impact_task
 from bot.tasks import minimize_task
-from bot.tasks import ml_train_task
+from bot.tasks import rnn_generator_task
 from bot.tasks import progression_task
 from bot.tasks import regression_task
 from bot.tasks import symbolize_task
@@ -49,7 +49,7 @@ COMMAND_MAP = {
     'fuzz': fuzz_task,
     'impact': impact_task,
     'minimize': minimize_task,
-    'ml_train': ml_train_task,
+    'rnn_generator': rnn_generator_task,
     'progression': progression_task,
     'regression': regression_task,
     'symbolize': symbolize_task,

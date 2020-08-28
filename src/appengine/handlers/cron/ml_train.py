@@ -33,9 +33,12 @@ class Handler(base_handler.Handler):
           job.get_environment().get('USE_CORPUS_FOR_ML')):
         continue
 
-      task_name = 'gradientfuzz' if utils.string_is_true(
-          job.get_environment().get(
-              'USE_LIBFUZZER_FOR_GRADIENTFUZZ')) else 'ml_train'
+      if utils.string_is_true(job.get_environment().get('USE_GRADIENTFUZZ')):
+        task_name = 'gradientfuzz'
+      elif utils.string_is_true(job.get_environment().get('USE_RNN_GENERATOR')):
+        task_name = 'rnn_generator'
+      else:
+        continue
 
       target_jobs = list(fuzz_target_utils.get_fuzz_target_jobs(job=job.name))
       fuzz_targets = fuzz_target_utils.get_fuzz_targets_for_target_jobs(
