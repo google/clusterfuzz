@@ -141,13 +141,15 @@ def run_process(cmdline,
   # FIXME(mbarbella): Using LAUNCHER_PATH here is error prone. It forces us to
   # do certain operations before fuzzer setup (e.g. bad build check).
   launcher = environment.get_value('LAUNCHER_PATH')
+
   # This is used when running scripts on native linux OS and not on the device.
   # E.g. running a fuzzer to generate testcases or launcher script.
   plt = environment.platform()
-  is_android = environment.is_android(plt)
-  runs_on_device = is_android or plt == 'FUCHSIA'
+  runs_on_device = environment.is_android(plt) or plt == 'FUCHSIA'
   if runs_on_device and (not testcase_run or launcher):
     plt = 'LINUX'
+
+  is_android = environment.is_android(plt)
 
   # Lower down testcase timeout slightly to account for time for crash analysis.
   timeout -= CRASH_ANALYSIS_TIME
