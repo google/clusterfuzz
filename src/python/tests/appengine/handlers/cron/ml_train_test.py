@@ -42,8 +42,8 @@ class HandlerTest(unittest.TestCase):
     # Create fake jobs.
     data_types.Job(
         name='libfuzzer_asan',
-        environment_string='USE_CORPUS_FOR_ML = True\nUSE_RNN_GENERATOR = True\n'
-    ).put()
+        environment_string='USE_CORPUS_FOR_ML = True\n' +
+        'USE_RNN_GENERATOR = True\n').put()
     data_types.Job(
         name='libfuzzer_msan',
         environment_string='USE_CORPUS_FOR_ML = True\n').put()
@@ -53,8 +53,8 @@ class HandlerTest(unittest.TestCase):
 
     data_types.Job(
         name='libfuzzer_asan_gradientfuzz',
-        environment_string='USE_CORPUS_FOR_ML = True\nUSE_GRADIENTFUZZ = True\n'
-    ).put()
+        environment_string='USE_CORPUS_FOR_ML = True\n' +
+        'USE_GRADIENTFUZZ = True\n').put()
 
     data_types.Job(
         name='libfuzzer_asan_all',
