@@ -611,8 +611,9 @@ def process_sanitizer_options_overrides(fuzzer_path):
     ubsan_options.update(ubsan_overrides)
     environment.set_memory_tool_options('UBSAN_OPTIONS', ubsan_options)
 
-  if hwasan_options and asan_overrides:
-    hwasan_options.update(asan_overrides)
+  hwasan_overrides = fuzzer_options.get_hwasan_options()
+  if hwasan_options and hwasan_overrides:
+    hwasan_options.update(hwasan_overrides)
     environment.set_memory_tool_options('HWASAN_OPTIONS', hwasan_options)
 
 

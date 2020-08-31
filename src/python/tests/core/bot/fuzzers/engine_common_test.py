@@ -504,7 +504,7 @@ class ProcessSanitizerOptionsOverridesTest(fake_filesystem_unittest.TestCase):
       ('ASAN_OPTIONS', 'asan'),
       ('MSAN_OPTIONS', 'msan'),
       ('UBSAN_OPTIONS', 'ubsan'),
-      ('HWASAN_OPTIONS', 'asan'),
+      ('HWASAN_OPTIONS', 'hwasan'),
   ])
   def test_sanitizer_options_changed(self, options_name, section_name):
     """Test that sanitizer options set in .options file are added to the
