@@ -490,3 +490,58 @@ class GetRadamsaOutputFilenameTest(unittest.TestCase):
     output_filename = engine_common.get_radamsa_output_filename(
         filename_length_limit * 2 * 'a', 0)
     self.assertLessEqual(len(output_filename), filename_length_limit)
+
+
+class ProcessSanitizerOptionsOverridesTest(fake_filesystem_unittest.TestCase):
+  """process_sanitizer_options_overrides tests."""
+
+  def setUp(self):
+    test_utils.set_up_pyfakefs(self)
+    self.fuzz_target = '/test'
+    self.fuzz_target_options_file = self.fuzz_target + '.options'
+
+  @parameterized.parameterized.expand([
+      ('ASAN_OPTIONS', 'asan'),
+      ('MSAN_OPTIONS', 'msan'),
+      ('UBSAN_OPTIONS', 'ubsan'),
+      ('HWASAN_OPTIONS', 'hwasan'),
+  ])
+  def test_sanitizer_options_changed(self, options_name, section_name):
+    """Test that sanitizer options set in .options file are added to the
+    environment variable."""
+    environment.set_value(options_name, 'a=1:b=2:c=1')
+    self.fs.create_file(
+        self.fuzz_target_options_file,
+        contents='[{section_name}]\nc=3:d=4'.format(section_name=section_name))
+    engine_common.process_sanitizer_options_overrides(self.fuzz_target)
+    self.assertEqual('a=1:b=2:c=3:d=4', environment.get_value(options_name))
+
+  @parameterized.parameterized.expand([
+      ('ASAN_OPTIONS', 'msan'),
+      ('MSAN_OPTIONS', 'asan'),
+      ('UBSAN_OPTIONS', 'msan'),
+      ('HWASAN_OPTIONS', 'msan'),
+  ])
+  def test_sanitizer_options_not_changed_unrelated_section(
+      self, options_name, section_name):
+    """Test that sanitizer options are not changed when provided an unrelated
+    sanitizer section name."""
+    environment.set_value(options_name, 'a=1:b=2:c=1')
+    self.fs.create_file(
+        self.fuzz_target_options_file,
+        contents='[{section_name}]\nc=3:d=4'.format(section_name=section_name))
+    engine_common.process_sanitizer_options_overrides(self.fuzz_target)
+    self.assertEqual('a=1:b=2:c=1', environment.get_value(options_name))
+
+  @parameterized.parameterized.expand([
+      ('ASAN_OPTIONS'),
+      ('MSAN_OPTIONS'),
+      ('UBSAN_OPTIONS'),
+      ('HWASAN_OPTIONS'),
+  ])
+  def test_sanitizer_options_not_changed_no_options_file(self, options_name):
+    """Test that sanitizer options are not changed and no exception occurs
+    when .options file is not provided."""
+    environment.set_value(options_name, 'a=1:b=2:c=1')
+    engine_common.process_sanitizer_options_overrides(self.fuzz_target)
+    self.assertEqual('a=1:b=2:c=1', environment.get_value(options_name))
