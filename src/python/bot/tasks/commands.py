@@ -27,11 +27,11 @@ from bot.tasks import corpus_pruning_task
 from bot.tasks import fuzz_task
 from bot.tasks import impact_task
 from bot.tasks import minimize_task
-from bot.tasks import train_gradientfuzz_task
-from bot.tasks import train_rnn_generator_task
 from bot.tasks import progression_task
 from bot.tasks import regression_task
 from bot.tasks import symbolize_task
+from bot.tasks import train_gradientfuzz_task
+from bot.tasks import train_rnn_generator_task
 from bot.tasks import unpack_task
 from bot.tasks import upload_reports_task
 from bot.tasks import variant_task
