@@ -594,6 +594,7 @@ def process_sanitizer_options_overrides(fuzzer_path):
   asan_options = environment.get_memory_tool_options('ASAN_OPTIONS', {})
   msan_options = environment.get_memory_tool_options('MSAN_OPTIONS', {})
   ubsan_options = environment.get_memory_tool_options('UBSAN_OPTIONS', {})
+  hwasan_options = environment.get_memory_tool_options('HWASAN_OPTIONS', {})
 
   asan_overrides = fuzzer_options.get_asan_options()
   if asan_options and asan_overrides:
@@ -609,6 +610,10 @@ def process_sanitizer_options_overrides(fuzzer_path):
   if ubsan_options and ubsan_overrides:
     ubsan_options.update(ubsan_overrides)
     environment.set_memory_tool_options('UBSAN_OPTIONS', ubsan_options)
+
+  if hwasan_options and asan_overrides:
+    hwasan_options.update(asan_overrides)
+    environment.set_memory_tool_options('HWASAN_OPTIONS', hwasan_options)
 
 
 def unpack_seed_corpus_if_needed(fuzz_target_path,
