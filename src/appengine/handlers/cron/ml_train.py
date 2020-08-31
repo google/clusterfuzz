@@ -28,17 +28,28 @@ class Handler(base_handler.Handler):
   def get(self):
     """Handle a GET request."""
     for job in data_types.Job.query():
+
       if not utils.string_is_true(
           job.get_environment().get('USE_CORPUS_FOR_ML')):
+        continue
+
+      task_list = []
+      if utils.string_is_true(job.get_environment().get('USE_GRADIENTFUZZ')):
+        task_list.append('train_gradientfuzz')
+      if utils.string_is_true(job.get_environment().get('USE_RNN_GENERATOR')):
+        task_list.append('train_rnn_generator')
+
+      if len(task_list) == 0:
         continue
 
       target_jobs = list(fuzz_target_utils.get_fuzz_target_jobs(job=job.name))
       fuzz_targets = fuzz_target_utils.get_fuzz_targets_for_target_jobs(
           target_jobs)
 
-      for target in fuzz_targets:
-        tasks.add_task(
-            'ml_train',
-            target.project_qualified_name(),
-            job.name,
-            queue=tasks.ML_JOBS_TASKQUEUE)
+      for task_name in task_list:
+        for target in fuzz_targets:
+          tasks.add_task(
+              task_name,
+              target.project_qualified_name(),
+              job.name,
+              queue=tasks.ML_JOBS_TASKQUEUE)
