@@ -68,7 +68,7 @@ def get_corpus(corpus_directory, fuzzer_name):
   # Download latest backup.
   if not storage.copy_file_from(gcs_backup_path, local_backup_path):
     logs.log_error(
-        'Failed to download corpus from GCS bucket %s.' % gcs_backup_path)
+        'Failed to download corpus from GCS bucket {}.'.format(gcs_backup_path))
     return False
 
   # Extract corpus from zip file.
@@ -176,8 +176,8 @@ def gen_inputs_labels(corpus_directory, fuzzer_binary_path):
 
   script_environment = os.environ.copy()
 
-  logs.log('Launching the training with the following arguments: "%s".' %
-           str(args_list))
+  logs.log('Launching the training with the following arguments: "{}".'.format(
+      str(args_list)))
 
   # Run process in GradientFuzz directory.
   data_gen_proc = new_process.ProcessRunner(sys.executable)
@@ -212,8 +212,8 @@ def train_gradientfuzz(fuzzer_name, dataset_name):
 
   script_environment = os.environ.copy()
 
-  logs.log('Launching the training with the following arguments: "%s".' %
-           str(args_list))
+  logs.log('Launching the training with the following arguments: "{}".'.format(
+      str(args_list)))
 
   # Run process in rnn directory.
   rnn_trainer = new_process.ProcessRunner(sys.executable)
@@ -256,7 +256,8 @@ def execute_task(fuzzer_name, job_type):
   """
   if not job_type:
     logs.log_error(
-        'job_type is not set when training ML RNN for fuzzer %s.' % fuzzer_name)
+        'job_type is not set when training ML RNN for fuzzer {}.'.format(
+            fuzzer_name))
     return
 
   # Directory to place training files, such as logs, models, corpus.
@@ -269,9 +270,10 @@ def execute_task(fuzzer_name, job_type):
   shell.remove_directory(corpus_directory, recreate=True)
 
   # This actually downloads corpus directory based on fuzzer name from GCS.
-  logs.log('Downloading corpus backup for %s.' % fuzzer_name)
+  logs.log('Downloading corpus backup for {}.'.format(fuzzer_name))
   if not get_corpus(corpus_directory, fuzzer_name):
-    logs.log_error('Failed to download corpus backup for %s.' % fuzzer_name)
+    logs.log_error(
+        'Failed to download corpus backup for {}.'.format(fuzzer_name))
     return
 
   # TODO(ryancao): Get the compiled fuzzer binary!
