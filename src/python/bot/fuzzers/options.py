@@ -157,7 +157,7 @@ class FuzzerOptions(object):
     return self._get_option_section('ubsan')
 
   def get_hwasan_options(self):
-    """Return a list of UBSAN_OPTIONS overrides."""
+    """Return a list of HWSAN_OPTIONS overrides."""
     return self._get_option_section('hwasan')
 
   def get_grammar_options(self):
