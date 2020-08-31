@@ -138,11 +138,14 @@ class ExecuteTaskTest(unittest.TestCase):
   def test_execute(self):
     """Test execute task."""
     input_directory = os.path.join(
-        self.temp_dir, self.fuzzer_name + train_rnn_generator_task.CORPUS_DIR_SUFFIX)
+        self.temp_dir,
+        self.fuzzer_name + train_rnn_generator_task.CORPUS_DIR_SUFFIX)
     model_directory = os.path.join(
-        self.temp_dir, self.fuzzer_name + train_rnn_generator_task.MODEL_DIR_SUFFIX)
+        self.temp_dir,
+        self.fuzzer_name + train_rnn_generator_task.MODEL_DIR_SUFFIX)
     log_directory = os.path.join(
-        self.temp_dir, self.fuzzer_name + train_rnn_generator_task.LOG_DIR_SUFFIX)
+        self.temp_dir,
+        self.fuzzer_name + train_rnn_generator_task.LOG_DIR_SUFFIX)
 
     train_rnn_generator_task.execute_task(self.fuzzer_name, self.job_type)
 
@@ -170,7 +173,8 @@ class MLRnnTrainTaskIntegrationTest(unittest.TestCase):
   def test_train_rnn(self):
     """Test train RNN model on a simple corpus."""
     # No model exists in model directory.
-    self.assertFalse(train_rnn_generator_task.get_last_saved_model(self.model_directory))
+    self.assertFalse(
+        train_rnn_generator_task.get_last_saved_model(self.model_directory))
 
     # The training should be fast (a few seconds) since sample corpus is
     # extremely small.
@@ -182,7 +186,8 @@ class MLRnnTrainTaskIntegrationTest(unittest.TestCase):
     self.assertFalse(result.timed_out)
 
     # At least one model exists.
-    self.assertTrue(train_rnn_generator_task.get_last_saved_model(self.model_directory))
+    self.assertTrue(
+        train_rnn_generator_task.get_last_saved_model(self.model_directory))
 
   def test_small_corpus(self):
     """Test small corpus situation."""
@@ -197,4 +202,5 @@ class MLRnnTrainTaskIntegrationTest(unittest.TestCase):
     self.assertFalse(result.timed_out)
 
     # No model exsits after execution.
-    self.assertFalse(train_rnn_generator_task.get_last_saved_model(self.model_directory))
+    self.assertFalse(
+        train_rnn_generator_task.get_last_saved_model(self.model_directory))

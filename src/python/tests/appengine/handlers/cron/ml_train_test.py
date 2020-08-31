@@ -58,11 +58,9 @@ class HandlerTest(unittest.TestCase):
 
     data_types.Job(
         name='libfuzzer_asan_all',
-        environment_string=
-        ('USE_CORPUS_FOR_ML = True\n' +
-         'USE_GRADIENTFUZZ = True\n' +
-         'USE_RNN_GENERATOR = True')
-    ).put()
+        environment_string=(
+            'USE_CORPUS_FOR_ML = True\n' + 'USE_GRADIENTFUZZ = True\n' +
+            'USE_RNN_GENERATOR = True')).put()
 
     # Create fake fuzzers.
     data_types.Fuzzer(
@@ -89,8 +87,7 @@ class HandlerTest(unittest.TestCase):
         job='libfuzzer_asan_gradientfuzz').put()
 
     data_types.FuzzTarget(
-        engine='libFuzzer',
-        binary='fake_all_fuzzer',
+        engine='libFuzzer', binary='fake_all_fuzzer',
         project='test-project').put()
     data_types.FuzzTargetJob(
         fuzz_target_name='libFuzzer_fake_all_fuzzer',
@@ -100,7 +97,10 @@ class HandlerTest(unittest.TestCase):
     """Tests adding single and multiple tasks."""
     self.app.get('/schedule-ml-train-tasks')
     self.mock.add_task.assert_any_call(
-        'train_rnn_generator', 'fake_fuzzer', 'libfuzzer_asan', queue='ml-jobs-linux')
+        'train_rnn_generator',
+        'fake_fuzzer',
+        'libfuzzer_asan',
+        queue='ml-jobs-linux')
     self.mock.add_task.assert_any_call(
         'train_gradientfuzz',
         'fake_gradientfuzzer',
@@ -109,7 +109,10 @@ class HandlerTest(unittest.TestCase):
 
     # Multiple tasks in one job.
     self.mock.add_task.assert_any_call(
-        'train_rnn_generator', 'fake_all_fuzzer', 'libfuzzer_asan_all', queue='ml-jobs-linux')
+        'train_rnn_generator',
+        'fake_all_fuzzer',
+        'libfuzzer_asan_all',
+        queue='ml-jobs-linux')
     self.mock.add_task.assert_any_call(
         'train_gradientfuzz',
         'fake_all_fuzzer',
