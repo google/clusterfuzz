@@ -18,11 +18,11 @@
 __author__ = 'Ryan Cao (ryancao@google.com)'
 
 import numpy as np
-import constants
+import bot.fuzzers.ml.gradientfuzz.constants as constants
+import bot.fuzzers.ml.gradientfuzz.plot_utils as plot_utils
 import glob
 import os
 import tqdm
-import plot_utils
 import argparse
 
 

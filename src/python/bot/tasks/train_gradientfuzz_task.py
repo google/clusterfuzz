@@ -32,8 +32,7 @@ from system import shell
 
 # Model script directory.
 GRADIENTFUZZ_SCRIPTS_DIR = os.path.join(
-    os.path.dirname(os.path.dirname(__file__)),
-    'fuzzers', 'ml', 'gradientfuzz')
+    os.path.dirname(os.path.dirname(__file__)), 'fuzzers', 'ml', 'gradientfuzz')
 
 
 def get_corpus(corpus_directory, fuzzer_name):
@@ -177,15 +176,10 @@ def gen_inputs_labels(corpus_directory, fuzzer_binary_path):
 
   script_environment = os.environ.copy()
 
-  logs.log('Launching the training with the following arguments: "{}".'.format(
-      str(args_list)))
+  logs.log('Launching input gen with args: "{}".'.format(str(args_list)))
 
   # Run process in GradientFuzz directory.
   data_gen_proc = new_process.ProcessRunner(sys.executable)
-
-  print('Launching the training with the following arguments: "{}".'.format(
-      str(args_list)))
-  print('Using cwd={}'.format(GRADIENTFUZZ_SCRIPTS_DIR))
 
   return data_gen_proc.run_and_wait(
       additional_args=args_list,
@@ -211,13 +205,15 @@ def train_gradientfuzz(fuzzer_name, dataset_name):
   run_name = fuzzer_name + run_constants.RUN_NAME_SUFFIX
   args_list = [
       script_path, run_constants.RUN_NAME_FLAG, run_name,
-      run_constants.DATASET_NAME_FLAG, dataset_name,
-      run_constants.NEUZZ_CONFIG_FLAG
+      run_constants.DATASET_NAME_FLAG, dataset_name, run_constants.EPOCHS_FLAG,
+      '10', run_constants.BATCH_SIZE_FLAG, '4',
+      run_constants.VAL_BATCH_SIZE_FLAG, '2', run_constants.ARCHITECTURE_FLAG,
+      constants.NEUZZ_ONE_HIDDEN_LAYER_MODEL
   ]
 
   script_environment = os.environ.copy()
 
-  logs.log('Launching the training with the following arguments: "{}".'.format(
+  logs.log('Launching training with the following arguments: "{}".'.format(
       str(args_list)))
 
   # Run process in rnn directory.
@@ -265,12 +261,10 @@ def execute_task(fuzzer_name, job_type):
             fuzzer_name))
     return
 
-  # Directory to place training files, such as logs, models, corpus.
-  # Use |FUZZ_INPUTS_DISK| since it is not size constrained.
+  # Directory to place corpus. |FUZZ_INPUTS_DISK| is not size constrained.
   temp_directory = environment.get_value('FUZZ_INPUTS_DISK')
 
-  # Deletes existing corpus directory (incl. all contents) and
-  # recreates without contents.
+  # Recreates corpus dir without contents.
   corpus_directory = get_corpus_directory(temp_directory, fuzzer_name)
   shell.remove_directory(corpus_directory, recreate=True)
 
@@ -287,6 +281,7 @@ def execute_task(fuzzer_name, job_type):
   # First, generate input/label pairs for training.
   gen_inputs_labels_result, dataset_name = gen_inputs_labels(
       corpus_directory, fuzzer_binary_path)
+
   if gen_inputs_labels_result.timed_out:
     logs.log_warn('Data gen script for {} timed out.'.format(fuzzer_name))
 

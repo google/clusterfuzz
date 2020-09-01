@@ -14,13 +14,16 @@
 """Tests for train_gradientfuzz_task.py."""
 
 import glob
+import json
 import numpy as np
 import os
 import tempfile
+import tensorflow as tf
 import unittest
 
 from bot.fuzzers.ml.gradientfuzz import run_constants
 from bot.fuzzers.ml.gradientfuzz import constants
+from bot.fuzzers.ml.gradientfuzz import models
 from bot.tasks import train_gradientfuzz_task
 from system import new_process
 from system import shell
@@ -30,8 +33,7 @@ from tests.test_libs import test_utils
 # Directory for testing files.
 GRADIENTFUZZ_TESTING_DIR = os.path.abspath(
     os.path.join(
-        os.path.dirname(__file__), os.pardir, 'fuzzers',
-        'ml', 'gradientfuzz'))
+        os.path.dirname(__file__), os.pardir, 'fuzzers', 'ml', 'gradientfuzz'))
 
 # Small, precompiled fuzz target.
 TESTING_BINARY = 'zlib_uncompress_sample_fuzzer'
@@ -92,8 +94,8 @@ class ExecuteTaskTest(unittest.TestCase):
                               self.fuzzer_name + run_constants.CORPUS_SUFFIX)
     train_gradientfuzz_task.execute_task(self.fuzzer_name, self.job_type)
 
-    self.mock.gen_inputs_labels.assert_called_once_with(
-        corpus_dir, self.binary_path)
+    self.mock.gen_inputs_labels.assert_called_once_with(corpus_dir,
+                                                        self.binary_path)
     self.mock.train_gradientfuzz.assert_called_once_with(
         self.fuzzer_name, 'fake_dataset')
     self.mock.upload_model_to_gcs.assert_called_once_with(
@@ -101,7 +103,7 @@ class ExecuteTaskTest(unittest.TestCase):
 
 
 @test_utils.integration
-class GenerateInputsIntegrationTest(unittest.TestCase):
+class GenerateInputsIntegration(unittest.TestCase):
   """
   Unit tests for generating model inputs/labels from
   raw input files.
@@ -130,11 +132,8 @@ class GenerateInputsIntegrationTest(unittest.TestCase):
     Generates input/label pairs using a tiny corpus and
     pre-compiled binary.
     """
-    result, dataset_name = train_gradientfuzz_task.gen_inputs_labels(
-        self.corpus_dir, self.binary_path)
-
-    print(result)
-    print(dataset_name)
+    _, _ = train_gradientfuzz_task.gen_inputs_labels(self.corpus_dir,
+                                                     self.binary_path)
 
     # Asserts that directories were created.
     inputs = os.path.join(self.dataset_dir, constants.STANDARD_INPUT_DIR, '*')
@@ -153,49 +152,73 @@ class GradientFuzzTrainTaskIntegrationTest(unittest.TestCase):
   """
 
   def setUp(self):
-    self.input_directory = os.path.join(DATA_DIRECTORY, 'input')
-    self.model_directory = tempfile.mkdtemp()
-    self.log_directory = tempfile.mkdtemp()
+    self.fuzzer_name = 'dummy_fuzzer'
+    self.job_type = 'dummy_job'
+    self.home_dir = train_gradientfuzz_task.GRADIENTFUZZ_SCRIPTS_DIR
+    self.corpus_dir = os.path.join(GRADIENTFUZZ_TESTING_DIR, TESTING_CORPUS_DIR)
+    self.dataset_dir = os.path.join(
+        self.home_dir, constants.DATASET_DIR,
+        self.fuzzer_name + run_constants.CORPUS_SUFFIX)
+    self.run_dir = os.path.join(
+        self.home_dir, constants.MODEL_DIR,
+        constants.NEUZZ_ONE_HIDDEN_LAYER_MODEL,
+        self.fuzzer_name + run_constants.RUN_NAME_SUFFIX)
+    self.temp_dir = tempfile.mkdtemp()
+    self.binary_path = os.path.join(GRADIENTFUZZ_TESTING_DIR, TESTING_BINARY)
 
-    self.batch_size = 1
-    self.hidden_state_size = 2
-    self.hidden_layer_size = 1
+    # TODO(ryancao): Fix env var name!
+    os.environ['TEST_BINARY_PATH'] = self.binary_path
+    os.environ['FUZZ_INPUTS_DISK'] = self.temp_dir
+
+    test_helpers.patch(self, [
+        'bot.tasks.train_gradientfuzz_task.get_corpus',
+        'bot.tasks.train_gradientfuzz_task.upload_model_to_gcs',
+    ])
+
+    self.mock.get_corpus.return_value = True
+    self.mock.get_corpus.side_effect = self.fake_get_corpus
+    self.mock.upload_model_to_gcs.return_value = True
+
+  def fake_get_corpus(self, corpus_directory, _):
+    """
+    Copy over training corpus to temp dir.
+    """
+    train_files = glob.glob(os.path.join(self.corpus_dir, '*'))
+    for train_file in train_files:
+      target_path = os.path.join(corpus_directory, os.path.basename(train_file))
+      self.assertTrue(shell.copy_file(train_file, target_path))
+    return True
 
   def tearDown(self):
-    shell.remove_directory(self.model_directory)
-    shell.remove_directory(self.log_directory)
+    shell.remove_directory(os.path.join(self.home_dir, constants.DATASET_DIR))
+    shell.remove_directory(os.path.join(self.home_dir, constants.MODEL_DIR))
+    shell.remove_directory(os.path.join(self.home_dir, constants.GENERATED_DIR))
+    shell.remove_directory(self.temp_dir)
 
   def test_train_gradientfuzz(self):
-    """Test train GradientFuzz model on a simple corpus."""
-    # No model exists in model directory.
-    self.assertFalse(
-        train_gradientfuzz_task.get_last_saved_model(self.model_directory))
+    """
+    Generate input/output pairs, then train GradientFuzz
+    model on a simple corpus.
+    """
+    train_gradientfuzz_task.execute_task(self.fuzzer_name, self.job_type)
 
-    # The training should be fast (a few seconds) since sample corpus is
-    # extremely small.
-    result = train_gradientfuzz_task.train_gradientfuzz(
-        self.input_directory, self.model_directory, self.log_directory,
-        self.batch_size, self.hidden_state_size, self.hidden_layer_size)
+    # Asserts that directories were created.
+    inputs = os.path.join(self.dataset_dir, constants.STANDARD_INPUT_DIR)
+    labels = os.path.join(self.dataset_dir, constants.STANDARD_LABEL_DIR)
+    self.assertTrue(os.path.isdir(inputs))
+    self.assertTrue(os.path.isdir(labels))
+    self.assertTrue(os.path.isdir(self.run_dir))
 
-    self.assertEqual(result.return_code, constants.ExitCode.SUCCESS)
-    self.assertFalse(result.timed_out)
+    # Attempts to load in latest model.
+    ckpt_path = tf.train.latest_checkpoint(self.run_dir)
+    model_config_path = os.path.join(self.run_dir, constants.CONFIG_FILENAME)
+    model_config = json.load(open(model_config_path, 'r'))
+    model = models.make_model_from_layer(
+        constants.ARCHITECTURE_MAP[model_config['architecture']],
+        model_config['output_dim'],
+        model_config['input_shape'],
+        hidden_layer_dim=model_config['num_hidden'])
+    model.load_weights(ckpt_path).expect_partial()
 
-    # At least one model exists.
-    self.assertTrue(
-        train_gradientfuzz_task.get_last_saved_model(self.model_directory))
-
-  def test_small_corpus(self):
-    """Test small corpus situation."""
-    # Increase batch size so the sample corpus appears small in this case.
-    self.batch_size = 100
-
-    result = train_gradientfuzz_task.train_gradientfuzz(
-        self.input_directory, self.model_directory, self.log_directory,
-        self.batch_size, self.hidden_state_size, self.hidden_layer_size)
-
-    self.assertEqual(result.return_code, constants.ExitCode.CORPUS_TOO_SMALL)
-    self.assertFalse(result.timed_out)
-
-    # No model exsits after execution.
-    self.assertFalse(
-        train_gradientfuzz_task.get_last_saved_model(self.model_directory))
+    # TODO(ryancao): Check model accuracy!
+    # TODO(ryancao): Check small corpus situation!

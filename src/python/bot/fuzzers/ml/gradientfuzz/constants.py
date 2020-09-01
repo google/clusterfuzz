@@ -108,8 +108,8 @@ DEFAULT_HIDDEN_SIZE = 256
 # Utility function defaults.
 def default_run_name():
   now = datetime.now()
-  return ('run_on_' + now.strftime('%m-%d-%y') +
-          '_at_' + now.strftime('%H:%M:%S'))
+  return (
+      'run_on_' + now.strftime('%m-%d-%y') + '_at_' + now.strftime('%H:%M:%S'))
 
 
 # NEUZZ configuration constants.
